@@ -7,16 +7,23 @@ namespace Eon {
 ScriptMachineLoader::ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def) :
 	Base(parent, id, def)
 {
-	
+
 	for (Eon::ChainDefinition& chain : def.chains) {
 		ScriptTopChainLoader& loader = chains.Add(new ScriptTopChainLoader(0, *this, 0, chains.GetCount(), chain));
 	}
-	
+
+	for (Eon::NetDefinition& net : def.nets) {
+		ScriptNetLoader& loader = nets.Add(new ScriptNetLoader(*this, nets.GetCount(), net));
+	}
+
 }
 
 bool ScriptMachineLoader::Load() {
     for (ScriptTopChainLoader& tc : chains)
         if (!tc.Load())
+            return false;
+    for (ScriptNetLoader& net : nets)
+        if (!net.Load())
             return false;
     return true;
 }
@@ -29,7 +36,10 @@ String ScriptMachineLoader::GetTreeString(int indent) {
 	for (ScriptTopChainLoader& loader : chains) {
 		s << loader.GetTreeString(indent+1);
 	}
-	
+	for (ScriptNetLoader& loader : nets) {
+		s << loader.GetTreeString(indent+1);
+	}
+
 	return s;
 }
 

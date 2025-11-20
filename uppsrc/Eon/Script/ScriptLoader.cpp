@@ -59,6 +59,37 @@ String Id::ToSlashPath() const {
 	return s;
 }
 
+String NetConnectionDef::ToString() const {
+	return Format("%s:%d -> %s:%d", from_atom, from_port, to_atom, to_port);
+}
+
+String NetConnectionDef::GetTreeString(int indent) const {
+	String pad; pad.Cat(' ', indent);
+	return pad + ToString();
+}
+
+String NetDefinition::GetTreeString(int indent) const {
+	String s;
+	String pad; pad.Cat(' ', indent);
+	s << pad << "net " << id.ToString() << ":\n";
+	for (const StateDeclaration& state : states)
+		s << pad << "  state " << state.id.ToString() << "\n";
+	for (const AtomDefinition& atom : atoms)
+		s << pad << "  atom " << atom.id.ToString() << "\n";
+	for (const NetConnectionDef& conn : connections)
+		s << pad << "  " << conn.ToString() << "\n";
+	for (const NetDefinition& subnet : subnets)
+		s << subnet.GetTreeString(indent + 2);
+	return s;
+}
+
+void NetDefinition::GetSubNetPointers(LinkedList<Eon::NetDefinition*>& ptrs) {
+	for (NetDefinition& subnet : subnets) {
+		ptrs.Add(&subnet);
+		subnet.GetSubNetPointers(ptrs);
+	}
+}
+
 static bool LooksLikeDotPath(const String& s) {
 	if (s.IsEmpty())
 		return false;

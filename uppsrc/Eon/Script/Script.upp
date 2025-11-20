@@ -18,6 +18,7 @@ file
 	LoopLoader.cpp,
 	ChainLoader.cpp,
 	TopChainLoader.cpp,
+	NetLoader.cpp,
 	MachineLoader.cpp,
 	EngineLoader.cpp,
 	EcsSystemLoader.cpp,

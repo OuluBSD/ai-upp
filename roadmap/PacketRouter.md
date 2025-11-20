@@ -184,27 +184,44 @@ Router metadata infrastructure is production-ready:
 - ✓ MetaCtrl/MetaEnvTree display router metadata from cached overlays
 - ✓ Test coverage: `upptst/Router`, `upptst/RouterFanout`, `upptst/RouterPool`
 
-### What's Missing – Phase 1 Runtime API
-`RouterNetContext` is a builder/test helper that emits router metadata but still delegates to `ChainContext`/`LoopContext` for execution. We need:
-1. **`PacketRouter` runtime class** (`uppsrc/Eon/Core/PacketRouter.{h,cpp}`) – actual packet routing at runtime, replacing Link-based loops
-2. **Port registration API** – Atoms declare ports during initialization
-3. **Connection table management** – router maintains adjacency, not hardwired Links
-4. **Credit/flow-control hooks** – replace loop packet pools with router-governed buffers
+### Phase 1 Runtime API – COMPLETE ✓
+Phase 1 runtime infrastructure validated with Eon workloads (2025-11-20):
+- ✓ `PacketRouter` runtime class (`uppsrc/Eon/Core/PacketRouter.{h,cpp}`) – full packet routing implementation
+- ✓ Port registration API (`RegisterSourcePort`, `RegisterSinkPort`) – atoms declare ports during initialization
+- ✓ Connection table management (`Connect`, `GetPortCount`) – router maintains adjacency
+- ✓ Credit/flow-control primitives – default credits and allocation system
+- ✓ LoopContext integration (`RegisterRouterPorts`, `MakeRouterConnections`)
+- ✓ Validated atoms: `CustomerBase`, `RollingValueBase`, `VoidSinkBase`
+- ✓ Test results: Eon00 methods 0/2/3 all execute with router lifecycle
+
+### Phase 2 DSL Integration – COMPLETE ✓
+Full DSL parser and validation infrastructure implemented (2025-11-20):
+- ✓ AST definitions (`NetConnectionDef`, `NetDefinition`) in `uppsrc/Eon/Script/Def.h`
+- ✓ Parser support (`Cursor_NetStmt`, `LoadNet()`) in `Script/Script.cpp` and `ScriptLoader.cpp`
+- ✓ ScriptNetLoader class integrated into MachineLoader
+- ✓ BuildNet() runtime implementation with comprehensive validation
+- ✓ ToyLoader router syntax scaffolding with documentation
+- ✓ Test infrastructure (`upptst/RouterCore/test_net.eon`)
+- ✓ Build verification: all changes compile successfully
 
 ## Immediate Next Steps
 
-### Phase 1 – Router Core Runtime (IN PROGRESS)
-1. **Create `uppsrc/Eon/Core/PacketRouter.{h,cpp}`** with stub implementations:
-   - `RegisterPort(AtomBase*, direction, index, vd, metadata)` → returns port handle
-   - `Connect(src_handle, dst_handle, policy)` → builds connection table
-   - `RoutePacket(src_port, packet)` → enqueues to connected sinks
-   - `RequestCredits(port_handle, count)` / `AckCredits(port_handle, count)` → flow control
-2. **Extend `Atom.h`** with router-aware virtuals:
-   - `OnPortReady(port_id)` – notification when credits available
-   - `EmitPacket(port_id, packet&)` – replaces hardcoded channel 0 sends
-   - `RegisterPorts(PacketRouter&)` – called during Initialize instead of assuming sink/src layout
-3. **Update one backend** (`api/Audio` generator atom) to use new API as proof-of-concept
-4. **Add `upptst/RouterCore`** console package with unit tests for port registration and connection table logic
-
-### Phase 2 – DSL Rewrite (BLOCKED until Phase 1 runtime complete)
-Parser/AST changes require a working router runtime to validate against.
+### Phase 3 – Full Atom Instantiation & Lifecycle (NEXT)
+Complete the atom instantiation deferred in Phase 2:
+1. **Implement full atom creation in BuildNet()** (ScriptLoader.cpp:513-630)
+   - Replace TODO markers with actual atom instantiation
+   - Use AtomFactoryRegistry to create atoms from definitions
+   - Apply atom configuration (state, parameters)
+2. **Wire live port registration**
+   - Call `atom->RegisterPorts(router)` for each instantiated atom
+   - Validate port counts match connection requirements
+3. **Create actual connections**
+   - Use `PacketRouter::Connect()` to wire port pairs
+   - Validate connection topology
+4. **Lifecycle management**
+   - Call Initialize/Start on atoms in dependency order
+   - Handle cleanup and error cases
+5. **Comprehensive testing**
+   - Create test .eon files with multiple atom types
+   - Verify packet flow through router connections
+   - Test error cases (invalid atoms, port mismatches, etc.)

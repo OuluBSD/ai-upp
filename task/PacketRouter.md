@@ -192,6 +192,19 @@ net audio_pipeline:
 
 **Next Phase:** Phase 3 - Full atom instantiation and lifecycle management
 
+### Phase 3 – Atom Instantiation & Lifecycle (IN PROGRESS)
+**Goal:** Complete the BuildNet() implementation by instantiating atoms, registering ports, and establishing live connections.
+
+**Current Status:** Phase 2 created the validation infrastructure and deferred atom instantiation with TODO markers.
+
+**Remaining Work:**
+1. **Atom Creation** - Use AtomFactoryRegistry to instantiate atoms from definitions
+2. **Port Registration** - Call RegisterPorts() on live atoms and validate port counts
+3. **Connection Wiring** - Use PacketRouter::Connect() to establish port-to-port connections
+4. **Lifecycle Management** - Initialize/start atoms in proper dependency order
+5. **Error Handling** - Robust cleanup for partial failures
+6. **Testing** - Comprehensive validation with live packet flow
+
 ---
 
 ## Immediate Action Items

@@ -1,0 +1,25 @@
+// PacketRouter Test: Diamond topology
+// A -> B, A -> C, B -> D, C -> D
+// Tests parallel paths converging to single destination
+
+machine audio.gen.diamond:
+	net tester.diamond:
+		// 4 logical positions but only 3 atom types available
+		// A: customer (source)
+		// B: src.test (processor 1)
+		// C: sink.test (processor 2 / also final sink)
+		// Using available atoms to simulate diamond pattern:
+		// customer -> src.test -> sink
+		// customer -> sink (direct path)
+
+		center.customer
+		center.audio.src.test
+		center.audio.sink.test.realtime:
+			dbg_limit = 100
+
+		// Diamond: two paths from customer to sink
+		// Path 1: customer -> src.test -> sink
+		center.customer.0 -> center.audio.src.test.0
+		center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+		// Path 2: customer -> sink (direct)
+		center.customer.0 -> center.audio.sink.test.realtime.0

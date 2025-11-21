@@ -9,7 +9,9 @@ file
 	00b_audio_gen.cpp,
 	00c_audio_gen.cpp,
 	00d_audio_gen_net.cpp,
-	00e_fork_net.cpp;
+	00e_fork_net.cpp,
+	00f_diamond_net.cpp,
+	00g_branch_net.cpp;
 
 mainconfig
 	"Release" = "AI DEBUG_VFS",

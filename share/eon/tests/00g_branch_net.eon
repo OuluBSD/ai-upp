@@ -1,0 +1,16 @@
+// PacketRouter Test: Branching topology
+// Single source fans out to multiple independent sinks
+// Tests one-to-many without fan-in
+
+machine audio.gen.branch:
+	net tester.branch:
+		// Source fans out to two independent paths
+		center.audio.src.test
+		center.customer
+		center.audio.sink.test.realtime:
+			dbg_limit = 100
+
+		// Branching: src.test sends to both customer and sink independently
+		// No convergence - each destination receives independently
+		center.audio.src.test.0 -> center.customer.0
+		center.audio.src.test.0 -> center.audio.sink.test.realtime.0

@@ -92,7 +92,7 @@ void PacketRouter::Disconnect(PortHandle src, PortHandle dst) {
 }
 
 
-bool PacketRouter::RoutePacket(PortHandle src_port, PacketValue& packet) {
+bool PacketRouter::RoutePacket(PortHandle src_port, const Packet& packet) {
 	const Port* port = FindPort(src_port);
 	if (!port) {
 		LOG("PacketRouter::RoutePacket: ERROR - invalid source port");
@@ -105,20 +105,47 @@ bool PacketRouter::RoutePacket(PortHandle src_port, PacketValue& packet) {
 		return false;
 	}
 
-	// STUB: Actual packet routing not yet implemented
-	// Will need to enqueue packet to destination port's buffer
-	LOG("PacketRouter::RoutePacket: STUB - would route packet from port "
-	    << src_port.router_index << " to " << port->outgoing_connections.GetCount()
-	    << " destination(s)");
+	bool all_delivered = true;
 
-	// Increment diagnostic counters
+	// Route packet to all connected destinations
 	for (int conn_idx : port->outgoing_connections) {
-		if (conn_idx >= 0 && conn_idx < connection_table.GetCount()) {
-			connection_table[conn_idx].packets_routed++;
+		if (conn_idx < 0 || conn_idx >= connection_table.GetCount())
+			continue;
+
+		Connection& conn = connection_table[conn_idx];
+		if (!conn.active)
+			continue;
+
+		// Get destination port
+		if (conn.dst_port_idx < 0 || conn.dst_port_idx >= ports.GetCount())
+			continue;
+
+		const Port& dst_port = ports[conn.dst_port_idx];
+		AtomBase* dst_atom = dst_port.handle.atom;
+		int dst_sink_ch = dst_port.handle.port_index;
+
+		if (!dst_atom) {
+			LOG("PacketRouter::RoutePacket: ERROR - destination atom is null for connection " << conn_idx);
+			all_delivered = false;
+			continue;
+		}
+
+		// Deliver packet to destination atom's sink channel
+		bool recv_ok = dst_atom->Recv(dst_sink_ch, packet);
+		if (recv_ok) {
+			conn.packets_routed++;
+			RTLOG("PacketRouter::RoutePacket: delivered packet from port "
+			      << src_port.router_index << " to atom " << FormatPtr(dst_atom)
+			      << " sink " << dst_sink_ch);
+		}
+		else {
+			LOG("PacketRouter::RoutePacket: Recv failed for atom " << FormatPtr(dst_atom)
+			    << " sink " << dst_sink_ch);
+			all_delivered = false;
 		}
 	}
 
-	return true;
+	return all_delivered;
 }
 
 
@@ -303,7 +330,8 @@ int AtomBase::RegisterSinkPort(PacketRouter& router, int index, const ValDevTupl
 		return -1;
 	}
 
-	// Store router index
+	// Store router reference and index
+	packet_router = &router;
 	while (router_sink_ports.GetCount() <= index)
 		router_sink_ports.Add(-1);
 	router_sink_ports[index] = handle.router_index;
@@ -322,12 +350,40 @@ int AtomBase::RegisterSourcePort(PacketRouter& router, int index, const ValDevTu
 		return -1;
 	}
 
-	// Store router index
+	// Store router reference and index
+	packet_router = &router;
 	while (router_source_ports.GetCount() <= index)
 		router_source_ports.Add(-1);
 	router_source_ports[index] = handle.router_index;
 
 	return handle.router_index;
+}
+
+
+bool AtomBase::EmitViaRouter(int src_port_index, const Packet& packet) {
+	if (!packet_router) {
+		LOG("AtomBase::EmitViaRouter: ERROR - no router registered");
+		return false;
+	}
+
+	if (src_port_index < 0 || src_port_index >= router_source_ports.GetCount()) {
+		LOG("AtomBase::EmitViaRouter: ERROR - invalid source port index " << src_port_index);
+		return false;
+	}
+
+	int router_idx = router_source_ports[src_port_index];
+	if (router_idx < 0) {
+		LOG("AtomBase::EmitViaRouter: ERROR - source port " << src_port_index << " not registered");
+		return false;
+	}
+
+	PacketRouter::PortHandle handle;
+	handle.atom = this;
+	handle.port_index = src_port_index;
+	handle.direction = RouterPortDesc::Direction::Source;
+	handle.router_index = router_idx;
+
+	return packet_router->RoutePacket(handle, packet);
 }
 
 

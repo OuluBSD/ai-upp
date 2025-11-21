@@ -49,6 +49,7 @@ const TestCase kTests[] = {
 	{ Run00bAudioGen, "Run00bAudioGen" },
 	{ Run00cAudioGen, "Run00cAudioGen" },
 	{ Run00dAudioGenNet, "Run00dAudioGenNet" },
+	{ Run00eForkNet, "Run00eForkNet" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

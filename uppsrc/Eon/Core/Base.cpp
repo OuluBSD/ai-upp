@@ -153,6 +153,15 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		time += internal_fmt.GetFrameSeconds();
 
 		out.seq = seq++;
+
+		// Router integration: also emit via router if registered
+		if (packet_router && !router_source_ports.IsEmpty()) {
+			Packet p = CreatePacket(out.GetOffset());
+			p->Pick(out);  // Move data into shared packet
+			p->SetFormat(internal_fmt);
+			EmitViaRouter(src_ch, p);
+			out.Pick(*p);  // Move data back for legacy forwarding
+		}
 	}
 	else if (internal_fmt.IsVideo()) {
 		TODO

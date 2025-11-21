@@ -1,0 +1,15 @@
+// PacketRouter Test: Runtime packet flow verification
+// Verifies that packets actually flow through the router during main loop
+// Tests: packets_routed counter increments, data reaches sink atoms
+
+machine audio.gen.flow:
+	net tester.flow:
+		// Simple linear pipeline for flow verification
+		center.audio.src.test
+		center.customer
+		center.audio.sink.test.realtime:
+			dbg_limit = 50
+
+		// Linear connections: src -> customer -> sink
+		center.audio.src.test.0 -> center.customer.0
+		center.customer.0 -> center.audio.sink.test.realtime.0

@@ -280,6 +280,31 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 - Source atoms need to call `EmitViaRouter()` when producing packets
 - Currently packets flow through legacy LinkSystem; atoms have infrastructure to switch
 
+### Phase 4+ Enhancements (2025-11-21)
+**Extended router infrastructure and diagnostics:**
+
+**Statistics API** (`PacketRouter.{h,cpp}`):
+- `GetTotalPacketsRouted()` - Query total packets routed across all connections
+- `GetPacketsRouted(int conn_idx)` - Query packets routed on specific connection
+- `GetTotalDeliveryFailures()` - Track delivery failures
+- `GetDeliveryFailures(int conn_idx)` - Per-connection failure count
+- `delivery_failures` counter added to Connection struct
+
+**ScriptLoader Integration**:
+- `GetNetCount()` - Query number of built nets
+- `GetNetRouter(int net_idx)` - Access router by net index
+- `GetTotalPacketsRouted()` - Aggregate packets across all nets
+
+**Error Handling**:
+- `DisconnectAtom(AtomBase*)` - Safely disconnect atom mid-run
+- Enhanced delivery failure tracking with per-connection counters
+- Improved logging with failure counts
+
+**New Test** (`upptst/Eon00/00h_router_flow.cpp`):
+- `Run00hRouterFlow` - Runtime packet flow verification
+- Tests linear pipeline: src -> customer -> sink
+- Verifies router topology builds correctly
+
 **Next Phase:** Phase 5 - DSL Migration & Test Coverage
 
 ---

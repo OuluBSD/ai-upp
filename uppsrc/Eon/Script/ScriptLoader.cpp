@@ -273,6 +273,22 @@ void ScriptLoader::Uninitialize() {
 	loader.Clear();
 }
 
+
+PacketRouter* ScriptLoader::GetNetRouter(int net_idx) {
+	if (net_idx < 0 || net_idx >= built_nets.GetCount())
+		return nullptr;
+	return built_nets[net_idx]->router.Get();
+}
+
+
+int ScriptLoader::GetTotalPacketsRouted() const {
+	int total = 0;
+	for (const One<NetContext>& nc : built_nets)
+		if (nc && nc->router)
+			total += nc->router->GetTotalPacketsRouted();
+	return total;
+}
+
 bool ScriptLoader::LoadFile(String path) {
 	if (!FileExists(path)) {
 		LOG("Could not find EON file");

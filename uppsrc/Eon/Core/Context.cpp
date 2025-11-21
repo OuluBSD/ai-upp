@@ -756,5 +756,86 @@ String NetContext::GetTreeString(int indent) const {
     return s;
 }
 
+// Phase 5: Net execution driver
+void NetContext::Update(double dt) {
+    // Update all atoms
+    for (auto& inst : atoms) {
+        if (inst.atom) {
+            inst.atom->Update(dt);
+        }
+    }
+
+    // Drive packet flow
+    accumulated_time += dt;
+    ProcessFrame();
+}
+
+int NetContext::ProcessFrame(int max_iterations) {
+    if (!router) {
+        RTLOG("NetContext::ProcessFrame: no router");
+        return 0;
+    }
+
+    int packets_routed = 0;
+    int iteration = 0;
+
+    // Process packets up to max_iterations
+    while (iteration < max_iterations) {
+        bool any_sent = false;
+
+        // Poll source atoms for packets
+        for (auto& inst : atoms) {
+            if (!inst.atom) continue;
+
+            // Check if atom has source ports
+            const Vector<int>& src_ports = inst.atom->router_source_ports;
+            if (src_ports.IsEmpty()) continue;
+
+            // For each source port, try to get a packet
+            for (int src_ch = 0; src_ch < src_ports.GetCount(); src_ch++) {
+                // Create packet value for Send() to fill
+                PacketValue pv;
+                pv.SetOffset(iteration);
+
+                // Get source format
+                InterfaceSourcePtr src = inst.atom->GetSource();
+                if (!src || src_ch >= src->GetSourceCount())
+                    continue;
+
+                ValueFormat fmt = src->GetSourceValue(src_ch).GetFormat();
+                pv.SetFormat(fmt);
+
+                // Create config for Send() call
+                RealtimeSourceConfig cfg;
+                cfg.time = accumulated_time;
+
+                // Call atom's Send() method
+                if (inst.atom->Send(cfg, pv, src_ch)) {
+                    // Atom produced a packet - it will be routed via EmitViaRouter()
+                    // which is called inside atom's Send() method
+                    any_sent = true;
+                }
+            }
+        }
+
+        iteration++;
+        iteration_count++;
+
+        // If no atoms sent packets, we're done for this frame
+        if (!any_sent)
+            break;
+    }
+
+    // Query router for actual packets routed
+    if (router) {
+        packets_routed = router->GetTotalPacketsRouted();
+    }
+
+    RTLOG("NetContext::ProcessFrame: completed " << iteration << " iterations, "
+        << packets_routed << " total packets routed");
+
+    return packets_routed;
+}
+
 }
 END_UPP_NAMESPACE

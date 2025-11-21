@@ -260,11 +260,18 @@ bool ScriptLoader::DoPostLoad() {
 }
 
 void ScriptLoader::Update(double dt) {
-	
+
 	if (!DoPostLoad()) {
 		GetEngine().SetNotRunning();
 	}
-	
+
+	// Drive NetContext execution (Phase 5)
+	for (One<NetContext>& nc : built_nets) {
+		if (nc) {
+			nc->Update(dt);
+		}
+	}
+
 }
 
 void ScriptLoader::Uninitialize() {

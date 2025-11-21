@@ -220,7 +220,7 @@ void VoidSinkBase::Uninitialize() {
 }
 
 bool VoidSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Panic("Not implemented");
+	// Default sink does not emit packets, so nothing to route.
 	return false;
 }
 

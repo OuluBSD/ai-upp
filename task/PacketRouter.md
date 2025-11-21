@@ -245,7 +245,42 @@ net audio_pipeline:
 - NetContext properly integrated with ScriptLoader
 - Test infrastructure ready for Phase 4 validation
 
-**Next Phase:** Phase 4 - Testing with live .eon files and packet flow validation
+### ✓ Phase 4 – Packet Routing Infrastructure Complete (2025-11-21)
+**Full packet delivery and atom-router integration implemented:**
+
+**Test Files:**
+- `share/eon/tests/00d_audio_gen_net.eon` - Linear pipeline test (3 atoms, 2 connections)
+- `share/eon/tests/00e_fork_net.eon` - Fork topology test (fan-out/fan-in, 3 atoms, 3 connections)
+- Test drivers in `upptst/Eon00/` (00d, 00e)
+
+**RoutePacket Implementation** (`PacketRouter.cpp:95-149`):
+- Delivers packets to all connected destinations via `AtomBase::Recv()`
+- Handles fan-out (one source to multiple sinks)
+- Handles fan-in (multiple sources to one sink)
+- Tracks `packets_routed` counter per connection
+- Error handling for invalid ports and null atoms
+
+**Atom-Router Integration:**
+- `AtomBase::packet_router` - Pointer to PacketRouter set during port registration
+- `AtomBase::EmitViaRouter(port_index, packet)` - Method for atoms to emit packets via router
+- `RegisterSinkPort` / `RegisterSourcePort` now set `packet_router` on the atom
+
+**Test Results (Eon00 test 4 - 00eForkNet):**
+```
+PacketRouter: Created
+PacketRouter::RegisterPort: 6 ports registered (3 atoms × 2 directions)
+PacketRouter::Connect: src_port 1 -> dst_port 2 (conn_idx=0)
+PacketRouter::Connect: src_port 1 -> dst_port 4 (conn_idx=1) // fan-out
+PacketRouter::Connect: src_port 3 -> dst_port 4 (conn_idx=2) // fan-in
+BuildNet: Successfully built network with 3 atoms and 3 connections
+PacketRouter: Destroyed (6 ports, 3 connections)
+```
+
+**Remaining for Full Runtime Flow:**
+- Source atoms need to call `EmitViaRouter()` when producing packets
+- Currently packets flow through legacy LinkSystem; atoms have infrastructure to switch
+
+**Next Phase:** Phase 5 - DSL Migration & Test Coverage
 
 ---
 

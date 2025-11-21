@@ -8,7 +8,8 @@ file
 	00a_audio_gen.cpp,
 	00b_audio_gen.cpp,
 	00c_audio_gen.cpp,
-	00d_audio_gen_net.cpp;
+	00d_audio_gen_net.cpp,
+	00e_fork_net.cpp;
 
 mainconfig
 	"Release" = "AI DEBUG_VFS",

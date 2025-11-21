@@ -71,6 +71,7 @@ public:
 	// Port handle storage (router_index values) - public for LoopContext access
 	Vector<int>				router_sink_ports;
 	Vector<int>				router_source_ports;
+	PacketRouter*			packet_router = nullptr;  // Set during RegisterPorts
 	
 	
 public:
@@ -97,10 +98,12 @@ public:
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
 
-	// Router integration (Phase 1) - opt-in virtuals for PacketRouter mode
+	// Router integration - opt-in virtuals for PacketRouter mode
 	virtual void			RegisterPorts(PacketRouter& router) {}
 	virtual void			OnPortReady(int port_id) {}
-	virtual bool			EmitPacket(int port_id, PacketValue& packet) { return false; }
+
+	// Emit packet via router - returns true if delivered to at least one destination
+	bool					EmitViaRouter(int src_port_index, const Packet& packet);
 
 	String					ToString() const override;
 	void					UninitializeDeep() override;

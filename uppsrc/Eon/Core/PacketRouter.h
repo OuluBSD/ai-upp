@@ -8,6 +8,7 @@ NAMESPACE_UPP
 // Forward declarations
 struct AtomBase;
 class PacketValue;
+using Packet = SharedRecycler<PacketValue>;
 
 
 class PacketRouter {
@@ -38,7 +39,7 @@ public:
 	void Disconnect(PortHandle src, PortHandle dst);
 
 	// Packet routing (called by Atom::EmitPacket)
-	bool RoutePacket(PortHandle src_port, PacketValue& packet);
+	bool RoutePacket(PortHandle src_port, const Packet& packet);
 
 	// Flow control (credit-based)
 	int  RequestCredits(PortHandle port, int requested_count);

@@ -147,7 +147,15 @@ public:
     bool StartAll();
     void UndoAll();
 
+    // Execution driver (Phase 5)
+    void Update(double dt);                         // Update all atoms and drive packet flow
+    int ProcessFrame(int max_iterations = 100);     // Process packets for one frame, returns packets routed
+
     String GetTreeString(int indent=0) const;
+
+private:
+    double accumulated_time = 0;    // Accumulated time since last update
+    int iteration_count = 0;        // Total iterations processed
 };
 
 }

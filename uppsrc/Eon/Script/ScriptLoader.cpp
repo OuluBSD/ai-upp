@@ -675,6 +675,29 @@ bool ScriptLoader::ImplementScript() {
             if (!ll->Start())
                 return false;
         }
+
+        // Router nets built via BuildNet need the same lifecycle steps as chain contexts
+        if (!built_nets.IsEmpty()) {
+            RTLOG("ScriptLoader::ImplementScript: net post initialize");
+            for (int i = 0; i < built_nets.GetCount(); i++) {
+                NetContext& N = *built_nets[i];
+                if (!N.PostInitializeAll()) {
+                    AddError(FileLocation(), "Net PostInitialize failed");
+                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                    return false;
+                }
+            }
+
+            RTLOG("ScriptLoader::ImplementScript: net start");
+            for (int i = 0; i < built_nets.GetCount(); i++) {
+                NetContext& N = *built_nets[i];
+                if (!N.StartAll()) {
+                    AddError(FileLocation(), "Net Start failed");
+                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                    return false;
+                }
+            }
+        }
     } else {
         RTLOG("ScriptLoader::ImplementScript: eager mode: connect sides across built chains");
         for (int i = 0; i < built_chains.GetCount(); i++) {

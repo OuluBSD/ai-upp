@@ -226,6 +226,8 @@ bool ScriptLoader::Initialize(const WorldState& ws) {
 	if (!WhenMessage)
 		WhenMessage << THISBACK(LogMessage);
 	
+	GetEngine().AddUpdated(this);
+	
 	RTLOG("ScriptLoader::Initialize success!");
 	return true;
 }
@@ -278,6 +280,7 @@ void ScriptLoader::Uninitialize() {
 	//es.Clear();
 	//ss.Clear();
 	loader.Clear();
+	GetEngine().RemoveUpdated(this);
 }
 
 

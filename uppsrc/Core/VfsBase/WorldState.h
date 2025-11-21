@@ -8,6 +8,7 @@ class ScriptLoader;
 class ScriptLoopLoader;
 class ScriptDriverLoader;
 class LoopContext;
+class NetContext;
 }
 class ActionPlanner;
 class ActionNode;
@@ -132,7 +133,8 @@ protected:
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
 	friend class Eon::LoopContext;
-	
+	friend class Eon::NetContext;
+
 	ValueMap values;
 	
 public:

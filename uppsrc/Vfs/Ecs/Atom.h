@@ -6,6 +6,7 @@ class ScriptLoopLoader;
 class ScriptDriverLoader;
 struct ExtScriptEcsLoader;
 struct LoopContext;
+struct NetContext;
 }
 
 #define ATOM_CTOR_(x, base) \
@@ -41,16 +42,17 @@ protected:
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
-	
+
 	int64					idx = -1;
 	bool					is_running = false;
-	
+
 	void					SetIdx(int64 i) {idx = i;}
 	void					SetRunning(bool b=true) {is_running = b;}
-	
+
 protected:
 	friend class LinkBase;
 	friend class Eon::LoopContext;
+	friend class Eon::NetContext;
 
 	Mutex					fwd_lock;
 	IfaceConnTuple			iface;

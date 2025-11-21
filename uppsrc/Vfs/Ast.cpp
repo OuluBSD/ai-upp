@@ -551,6 +551,8 @@ bool IsPartially(CodeCursor src, CodeCursor t) {
 			case Cursor_LoopDecl:
 			case Cursor_DriverStmt:
 			case Cursor_LoopStmt:
+			case Cursor_NetDecl:
+			case Cursor_NetStmt:
 			case Cursor_StateStmt:
 			case Cursor_AtomStmt:
 			return true;

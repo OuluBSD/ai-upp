@@ -538,8 +538,8 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
     VectorMap<String, int> atom_index_map;
 
     // Create atoms
-    for (int i = 0; i < net.atoms.GetCount(); i++) {
-        const Eon::AtomDefinition& atom_def = net.atoms[i];
+    int i = 0;
+    for (const Eon::AtomDefinition& atom_def : net.atoms) {
         String atom_name = atom_def.id.ToString();
         String action = atom_name; // atom name is the action
 
@@ -552,6 +552,7 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
         }
 
         atom_index_map.Add(atom_name, i);
+        i++;
     }
 
     if (nc->failed) {
@@ -824,11 +825,16 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	#if VERBOSE_SCRIPT_LOADER
 	LOG(n->GetTreeString());
 	#endif
-	
+
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints2(items, Cursor_EcsStmt, Cursor_OldEcsStmt);
 	Sort(items, AstNodeLess());
-	
+
+	RTLOG("LoadMachine: found " << items.GetCount() << " items");
+	for (int i = 0; i < items.GetCount(); i++) {
+		RTLOG("  item[" << i << "]: src=" << GetCodeCursorString(items[i].n->src) << " id=" << items[i].n->val.id);
+	}
+
 	if (items.IsEmpty()) {
 		AddError(def.loc, "empty node");
 		return false;
@@ -839,7 +845,28 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == Cursor_ChainStmt) {
+		if (item->src == Cursor_MachineStmt) {
+			// Nested machine - recursively process its contents
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block in nested machine"); return false;}
+
+			// Update machine id to include the nested machine name
+			Eon::Id nested_id;
+			if (!GetPathId(nested_id, n, item))
+				return false;
+			EnsurePrefix(nested_id, def.id);
+
+			// Temporarily update def.id for recursive processing
+			Eon::Id saved_id = def.id;
+			def.id = nested_id;
+
+			if (!LoadMachine(def, block))
+				return false;
+
+			def.id = saved_id;
+			has_chain = true;
+		}
+		else if (item->src == Cursor_ChainStmt) {
 			Eon::ChainDefinition& chain_def = def.chains.Add();
 			
 			if (!GetPathId(chain_def.id, n, item))
@@ -1511,7 +1538,12 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 
 		// Try to detect if this is a connection statement by checking for arrow-like patterns
 		// or simple text extraction from the AST
-		if (IsPartially(rval->src, Cursor_Op)) {
+		// First check if connection string is stored directly in stmt->str (from SemanticParser)
+		if (!stmt->str.IsEmpty() && stmt->str.Find("->") >= 0) {
+			expr_text = stmt->str;
+			looks_like_connection = true;
+		}
+		else if (IsPartially(rval->src, Cursor_Op)) {
 			// This is an operator expression - might be our connection
 			// For now, we only handle simple Cursor_Unresolved connections
 			// Full operator-based parsing will be implemented later
@@ -1536,9 +1568,9 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 		String from_part = TrimBoth(expr_text.Left(arrow_pos));
 		String to_part = TrimBoth(expr_text.Mid(arrow_pos + 2));
 
-		// Parse from_part (atom.port or atom:port)
-		int from_sep = from_part.Find('.');
-		if (from_sep < 0) from_sep = from_part.Find(':');
+		// Parse from_part (atom.port or atom:port) - use LAST separator for port
+		int from_sep = from_part.ReverseFind('.');
+		if (from_sep < 0) from_sep = from_part.ReverseFind(':');
 		if (from_sep < 0) {
 			AddError(stmt->loc, "invalid connection syntax (missing port separator in source): " + expr_text);
 			return false;
@@ -1547,9 +1579,9 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 		String from_atom = TrimBoth(from_part.Left(from_sep));
 		String from_port_str = TrimBoth(from_part.Mid(from_sep + 1));
 
-		// Parse to_part (atom.port or atom:port)
-		int to_sep = to_part.Find('.');
-		if (to_sep < 0) to_sep = to_part.Find(':');
+		// Parse to_part (atom.port or atom:port) - use LAST separator for port
+		int to_sep = to_part.ReverseFind('.');
+		if (to_sep < 0) to_sep = to_part.ReverseFind(':');
 		if (to_sep < 0) {
 			AddError(stmt->loc, "invalid connection syntax (missing port separator in sink): " + expr_text);
 			return false;

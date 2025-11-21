@@ -70,13 +70,22 @@ void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
 }
 
 void CustomerBase::RegisterPorts(PacketRouter& router) {
-	// CustomerBase generates packets (source-only pattern)
-	// Register output port based on interface source channel 0
+	// CustomerBase: register both sink and source ports for net-based connections
 	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives receipts)
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
+		RTLOG("CustomerBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends orders)
 	if (iface.type.iface.src.GetCount() > 0) {
-		ValDevTuple vd;
-		vd.Add(iface.type.iface.src.channels[0].vd, false);
-		RegisterSourcePort(router, 0, vd);
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
 		RTLOG("CustomerBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
 	}
 }
@@ -156,12 +165,22 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 }
 
 void RollingValueBase::RegisterPorts(PacketRouter& router) {
-	// RollingValueBase is a source-only pattern
+	// RollingValueBase: register both sink and source ports for net-based connections
 	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives orders from CustomerBase)
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
+		RTLOG("RollingValueBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends audio to sink)
 	if (iface.type.iface.src.GetCount() > 0) {
-		ValDevTuple vd;
-		vd.Add(iface.type.iface.src.channels[0].vd, false);
-		RegisterSourcePort(router, 0, vd);
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
 		RTLOG("RollingValueBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
 	}
 }
@@ -259,13 +278,23 @@ bool VoidSinkBase::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueF
 }
 
 void VoidSinkBase::RegisterPorts(PacketRouter& router) {
-	// VoidSinkBase is a sink-only pattern
+	// VoidSinkBase: register both sink and source ports for net-based connections
 	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives audio)
 	if (iface.type.iface.sink.GetCount() > 0) {
-		ValDevTuple vd;
-		vd.Add(iface.type.iface.sink.channels[0].vd, false);
-		RegisterSinkPort(router, 0, vd);
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
 		RTLOG("VoidSinkBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends receipts back)
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
+		RTLOG("VoidSinkBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
 	}
 }
 

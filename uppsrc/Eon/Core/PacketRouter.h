@@ -54,6 +54,13 @@ public:
 	// Query
 	int GetPortCount() const { return ports.GetCount(); }
 	int GetConnectionCount() const { return connection_table.GetCount(); }
+	int GetTotalPacketsRouted() const;
+	int GetPacketsRouted(int connection_idx) const;
+	int GetTotalDeliveryFailures() const;
+	int GetDeliveryFailures(int connection_idx) const;
+
+	// Connection management helpers
+	void DisconnectAtom(AtomBase* atom);  // Marks all connections involving atom as inactive
 
 
 private:
@@ -73,7 +80,8 @@ private:
 		int dst_port_idx = -1;
 		ValueMap policy;
 		bool active = true;
-		int packets_routed = 0;  // Diagnostics counter
+		int packets_routed = 0;    // Diagnostics counter
+		int delivery_failures = 0; // Delivery failure counter
 
 		bool IsValid() const { return src_port_idx >= 0 && dst_port_idx >= 0; }
 	};

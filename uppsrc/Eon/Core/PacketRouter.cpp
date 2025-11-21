@@ -139,8 +139,9 @@ bool PacketRouter::RoutePacket(PortHandle src_port, const Packet& packet) {
 			      << " sink " << dst_sink_ch);
 		}
 		else {
+			conn.delivery_failures++;
 			LOG("PacketRouter::RoutePacket: Recv failed for atom " << FormatPtr(dst_atom)
-			    << " sink " << dst_sink_ch);
+			    << " sink " << dst_sink_ch << " (failure #" << conn.delivery_failures << ")");
 			all_delivered = false;
 		}
 	}
@@ -275,6 +276,67 @@ const PacketRouter::Port* PacketRouter::FindPort(PortHandle handle) const {
 int PacketRouter::FindPortIndex(PortHandle handle) const {
 	const Port* port = FindPort(handle);
 	return port ? handle.router_index : -1;
+}
+
+
+int PacketRouter::GetTotalPacketsRouted() const {
+	int total = 0;
+	for (const Connection& conn : connection_table)
+		if (conn.active)
+			total += conn.packets_routed;
+	return total;
+}
+
+
+int PacketRouter::GetPacketsRouted(int connection_idx) const {
+	if (connection_idx < 0 || connection_idx >= connection_table.GetCount())
+		return 0;
+	return connection_table[connection_idx].packets_routed;
+}
+
+
+int PacketRouter::GetTotalDeliveryFailures() const {
+	int total = 0;
+	for (const Connection& conn : connection_table)
+		if (conn.active)
+			total += conn.delivery_failures;
+	return total;
+}
+
+
+int PacketRouter::GetDeliveryFailures(int connection_idx) const {
+	if (connection_idx < 0 || connection_idx >= connection_table.GetCount())
+		return 0;
+	return connection_table[connection_idx].delivery_failures;
+}
+
+
+void PacketRouter::DisconnectAtom(AtomBase* atom) {
+	if (!atom) return;
+
+	int disconnected = 0;
+	for (int i = 0; i < ports.GetCount(); i++) {
+		if (ports[i].handle.atom == atom) {
+			// Mark all connections involving this port as inactive
+			for (int conn_idx : ports[i].outgoing_connections) {
+				if (conn_idx >= 0 && conn_idx < connection_table.GetCount()) {
+					connection_table[conn_idx].active = false;
+					disconnected++;
+				}
+			}
+			for (int conn_idx : ports[i].incoming_connections) {
+				if (conn_idx >= 0 && conn_idx < connection_table.GetCount()) {
+					connection_table[conn_idx].active = false;
+					disconnected++;
+				}
+			}
+		}
+	}
+
+	if (disconnected > 0) {
+		LOG("PacketRouter::DisconnectAtom: disabled " << disconnected
+		    << " connections for atom " << FormatPtr(atom));
+	}
 }
 
 

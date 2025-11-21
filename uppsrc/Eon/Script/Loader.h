@@ -308,6 +308,11 @@ public:
 	int				NewConnectionId() {return tmp_side_id_counter++;}
 	void			AddError(const FileLocation& loc, String msg) {ErrorSource::AddError(loc, msg);}
 	bool			LoadAst(AstNode* root);
+
+	// Router statistics access
+	int				GetNetCount() const { return built_nets.GetCount(); }
+	PacketRouter*	GetNetRouter(int net_idx);
+	int				GetTotalPacketsRouted() const;
 	// Non-AST path: build a chain directly from a prepared definition using Core contexts
 	bool			BuildChain(const Eon::ChainDefinition& chain);
 	// Non-AST path: build a net directly from a prepared definition using PacketRouter

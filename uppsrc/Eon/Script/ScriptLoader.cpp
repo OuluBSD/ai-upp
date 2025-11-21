@@ -278,12 +278,20 @@ bool ScriptLoader::LoadFile(String path) {
 		LOG("Could not find EON file");
 		return false;
 	}
-	
-	// Use SerialLoaderFactory to handle different file types (.toy, .mid, etc.)
-	String eon_script = SerialLoaderFactory::LoadFile(path);
-	if (eon_script.IsEmpty()) {
-		// If no special loader found, load as raw EON file
+
+	String eon_script;
+	String ext = GetFileExt(path);
+	if (ext == ".eon") {
+		// Native .eon files are loaded directly
 		eon_script = UPP::LoadFile(path);
+	}
+	else {
+		// Use SerialLoaderFactory to handle different file types (.toy, .mid, etc.)
+		eon_script = SerialLoaderFactory::LoadFile(path);
+		if (eon_script.IsEmpty()) {
+			LOG("ScriptLoader::LoadFile: no loader for extension: " << ext);
+			return false;
+		}
 	}
 	return Load(eon_script, path);
 }

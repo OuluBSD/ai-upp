@@ -794,8 +794,8 @@ int NetContext::ProcessFrame(int max_iterations) {
             // For each source port, try to get a packet
             for (int src_ch = 0; src_ch < src_ports.GetCount(); src_ch++) {
                 // Create packet value for Send() to fill
-                PacketValue pv;
-                pv.SetOffset(iteration);
+                off32 packet_offset = packet_offset_gen.Create();
+                PacketValue pv(packet_offset);
 
                 // Get source format
                 InterfaceSourcePtr src = inst.atom->GetSource();
@@ -806,8 +806,10 @@ int NetContext::ProcessFrame(int max_iterations) {
                 pv.SetFormat(fmt);
 
                 // Create config for Send() call
-                RealtimeSourceConfig cfg;
-                cfg.time = accumulated_time;
+                RealtimeSourceConfig cfg(packet_offset_gen);
+                cfg.time_total = accumulated_time;
+                cfg.cur_offset = packet_offset;
+                cfg.prev_offset = packet_offset;
 
                 // Call atom's Send() method
                 if (inst.atom->Send(cfg, pv, src_ch)) {

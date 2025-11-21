@@ -156,6 +156,7 @@ public:
 private:
     double accumulated_time = 0;    // Accumulated time since last update
     int iteration_count = 0;        // Total iterations processed
+    off32_gen packet_offset_gen;
 };
 
 }

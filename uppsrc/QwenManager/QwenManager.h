@@ -4,11 +4,15 @@
 #include <Qwen/Qwen.h>
 #include <Terminal/Terminal.h>
 
+#define LAYOUTFILE <QwenManager/QwenManager.lay>
+#include <CtrlCore/lay.h>
+
 NAMESPACE_UPP
 
 #include "DataModel.h"
 #include "QwenView.h"
 #include "App.h"
+#include "QwenConnection.h"
 
 END_UPP_NAMESPACE
 

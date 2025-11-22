@@ -1,177 +1,25 @@
-# PacketRouter Phase 2 - DSL Integration
+# PacketRouter Phase 2 – DSL Integration
 
 ## Goal
-Integrate PacketRouter with the ChainContext/LoopContext system to automatically register atom ports and generate router connections from the DSL loop definitions.
+Migrate the parser/AST from loop-based `chain`/`loop` blocks to explicit `net` definitions so every atom declares ports by name, connections are enumerated with `atom:port -> atom:port`, and loader code can instantiate router graphs directly.
 
-## Architecture Overview
+## Current State
+- `NetDefinition`, `NetConnectionDef`, and `MachineDefinition::nets` live in `uppsrc/Eon/Script/Def.h`, and the AST now produces `Cursor_NetStmt` nodes via `uppsrc/Vfs/AstBuilder.cpp`/`uppsrc/Vfs/Ast.cpp` so `net` blocks enter the same pipeline as chains.
+- `ScriptLoader::LoadMachine` (see `uppsrc/Eon/Script/ScriptLoader.cpp`) recognizes `Cursor_NetStmt`, resolves the dotted net id, and calls `LoadNet`, which parses inline atoms, optional states, and textual `atom.port -> atom.port` (or `atom:port`) expressions to populate `Eon::NetDefinition`.
+- `ScriptLoader::BuildNet` creates a `NetContext` (`uppsrc/Eon/Core/Context.{h,cpp}`), instantiates atoms via `VfsValueExtFactory`, registers ports, wires `NetConnectionDef` records through `PacketRouter::Connect`, and pushes the resulting `NetContext` into `Loader::built_nets` so lifecycle steps (post-initialize/start) run inside `ScriptLoader::ImplementScript` just like chains.
+- `ScriptNetLoader` (`uppsrc/Eon/Script/NetLoader.cpp`) is the new loader subclass that delegates to `ScriptLoader::BuildNet`; it currently skips state-targeted loaders (todo) but already logs atoms/connections and reports success/failure at load time.
+- The new `.eon` assets under `share/eon/tests` illustrate router nets: `00d_audio_gen_net.eon`, `00e_fork_net.eon`, `00f_diamond_net.eon`, `00g_branch_net.eon`, `00h_router_flow.eon`, and the DSL conversion notes next to `00a/00b/00c` show old vs. new syntax.
+- Test drivers under `upptst/Eon00` now include `00d_audio_gen_net.cpp` through `00i_router_perf.cpp`, each calling into the router stacks to validate the same pipeline topologies expressed in the `.eon` assets.
 
-### Current Flow (Legacy)
-1. `ChainContext::AddLoop()` creates atoms
-2. `LoopContext::AddAtom()` initializes each atom
-3. `LoopContext::MakePrimaryLinks()` creates Exchange connections
-4. Atoms use Exchange/Link for packet flow
+## Tests & Coverage
+- `share/eon/tests/{00d,00e,00f,00g,00h}_*.eon` exercise linear, fork, diamond, branched, and runtime-inspection nets using the new syntax with explicit `connections` tables.
+- `upptst/Eon00/00d_audio_gen_net.cpp`–`00h_router_flow.cpp` build the same nets via the loader and confirm `NetContext` registers ports, wires the router, and emits packets (00h also exercises `PacketRouter::RoutePacket`).
+- `upptst/Eon00/00i_router_perf.cpp` collects performance counters by calling `NetContext::ProcessFrame`, ensuring the DSL-built nets can run repeated packet frames.
+- `share/eon/tests/00a_audio_gen_CONVERSION.md` plus the sibling `CONVERSION.md` files for 00b/00c document how to rewrite legacy `.eon` files to routers, so future assets can follow the same pattern.
 
-### Target Flow (Router Mode)
-1. `ChainContext::AddLoop()` creates atoms
-2. `LoopContext::AddAtom()` initializes each atom
-3. `LoopContext::RegisterRouterPorts()` calls `atom->RegisterPorts(router)`
-4. `LoopContext::MakeRouterConnections()` generates router connections
-5. Atoms use PacketRouter for packet flow
+## Status
+- Parser, AST, loader, and runtime wiring for `net` blocks are complete: the loader stores built routers (`built_nets`) and handles post-initialize/start lifecycles, `NetContext` knows how to connect atoms via port indices, and the script machine now exposes router stats (via `ScriptLoader::GetNetCount`/`GetNetRouter`).
+- Connection parsing still relies on textual extraction from `Cursor_ExprStmt` because the AST currently emits raw strings for `atom:port -> atom:port`; this parsable rule should stay stable while the grammar continues to evolve.
 
-## Phase 2 Tasks
-
-### Task 1: Add PacketRouter to LoopContext
-**File:** `uppsrc/Eon/Core/Context.h`
-
-Add router support to LoopContext:
-```cpp
-class LoopContext {
-public:
-    // ...existing members...
-
-    #ifdef flagROUTER_RUNTIME
-    One<PacketRouter> router;
-    #endif
-
-    // New methods
-    bool RegisterRouterPorts();
-    bool MakeRouterConnections();
-};
-```
-
-### Task 2: Implement Port Registration
-**File:** `uppsrc/Eon/Core/Context.cpp`
-
-Call RegisterPorts on each atom after initialization:
-```cpp
-bool LoopContext::RegisterRouterPorts() {
-    #ifdef flagROUTER_RUNTIME
-    if (!router)
-        router.Create();
-
-    for (auto& info : added) {
-        if (info.a)
-            info.a->RegisterPorts(*router);
-    }
-    return true;
-    #else
-    return true;
-    #endif
-}
-```
-
-### Task 3: Generate Router Connections
-**File:** `uppsrc/Eon/Core/Context.cpp`
-
-Map primary links to router connections:
-```cpp
-bool LoopContext::MakeRouterConnections() {
-    #ifdef flagROUTER_RUNTIME
-    if (!router || added.GetCount() < 2)
-        return true;
-
-    // Connect source port 0 of atom[i] to sink port 0 of atom[i+1]
-    for (int i = 0; i < added.GetCount(); i++) {
-        AddedAtom& src = added[i];
-        AddedAtom& dst = added[(i + 1) % added.GetCount()];
-
-        // Find source's output port and sink's input port
-        // Use router_source_ports[0] and router_sink_ports[0]
-        // Call router->Connect(src_handle, dst_handle)
-    }
-    return true;
-    #else
-    return true;
-    #endif
-}
-```
-
-### Task 4: Hook into AddLoop Flow
-**File:** `uppsrc/Eon/Core/Context.cpp`
-
-Modify AddLoop to call router registration:
-```cpp
-LoopContext& ChainContext::AddLoop(...) {
-    // ...existing atom creation...
-
-    if (make_primary_links)
-        lc.MakePrimaryLinks();
-
-    #ifdef flagROUTER_RUNTIME
-    lc.RegisterRouterPorts();
-    lc.MakeRouterConnections();
-    #endif
-
-    return lc;
-}
-```
-
-### Task 5: Add PortHandle Storage to AtomBase
-Currently AtomBase stores `Vector<int> router_sink_ports` and `router_source_ports`.
-Need to also store full PortHandle for each to enable connection generation.
-
-### Task 6: Create Test with Real Atoms
-**File:** `upptst/RouterCore/` or new test package
-
-Create a test that:
-1. Uses ChainContext to build a simple loop
-2. Verifies RegisterPorts was called on each atom
-3. Verifies router connections match primary links
-4. Uses flagROUTER_RUNTIME to toggle modes
-
-## Integration Points
-
-### Where Port Registration Happens
-- After `LoopContext::AddAtom()` but before `MakePrimaryLinks()`
-- In `ChainContext::AddLoop()` after all atoms are created
-
-### Where Connection Generation Happens
-- After `MakePrimaryLinks()` (both can coexist during transition)
-- Uses atom interface info to map channels to ports
-
-### Side Links
-- Side link connections also need router mapping
-- `LoopContext::ConnectSides()` should generate router connections
-- Side channels start at index 1 (not 0)
-
-## Flag Strategy
-
-Use `flagROUTER_RUNTIME` to control:
-- Router creation in LoopContext
-- RegisterPorts calls on atoms
-- Router connection generation
-- Eventually: disable legacy Exchange path
-
-## Testing Strategy
-
-1. **Unit Test**: RouterCore with mock ChainContext
-2. **Integration Test**: Simple Eon script with router mode
-3. **Validation**: Compare topology dump with expected connections
-
-## Files to Modify
-
-- `uppsrc/Eon/Core/Context.h` - Add router member and methods
-- `uppsrc/Eon/Core/Context.cpp` - Implement port registration and connections
-- `uppsrc/Vfs/Ecs/Atom.h` - May need PortHandle storage
-- `upptst/RouterCore/Main.cpp` - Add ChainContext integration tests
-
-## Success Criteria
-
-- [ ] LoopContext creates PacketRouter when flagROUTER_RUNTIME
-- [ ] RegisterPorts called on all atoms in loop
-- [ ] Router connections mirror primary link topology
-- [ ] Topology dump shows correct port/connection structure
-- [ ] Tests pass with both legacy and router modes
-
-## Dependencies
-
-- Phase 1 complete (PacketRouter API, Atom virtuals)
-- flagROUTER_RUNTIME defined for router mode
-
-## Timeline
-
-- Task 1-2: Add router and port registration (1 day)
-- Task 3-4: Connection generation (1 day)
-- Task 5-6: PortHandle storage and testing (1 day)
-
-**Total:** ~3 days for Phase 2 DSL integration
+## Next
+- Phase 3 (VFS/ECS plumbing) can iterate on the metadata now that nets are fully parsed; see `task/notes/packet_router_vfs_alignment.md` for serialization/IDE integration requirements.

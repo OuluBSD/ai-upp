@@ -179,4 +179,77 @@ VfsValue* AtomBase::GetSpace() {
 }
 
 
+void AtomBase::RegisterPorts(PacketRouter& router) {
+	const Vector<RouterPortDesc>& sink_ports = GetRouterPorts(RouterPortDesc::Direction::Sink);
+	for (const RouterPortDesc& port : sink_ports) {
+		if (!port.IsValid() || !port.vd.IsValid()) {
+			LOG("AtomBase::RegisterPorts: skipping invalid sink port " << port.index << " on " << GetType().ToString());
+			continue;
+		}
+		RegisterSinkPort(router, port.index, port.vd, port.metadata);
+	}
+
+	const Vector<RouterPortDesc>& source_ports = GetRouterPorts(RouterPortDesc::Direction::Source);
+	for (const RouterPortDesc& port : source_ports) {
+		if (!port.IsValid() || !port.vd.IsValid()) {
+			LOG("AtomBase::RegisterPorts: skipping invalid source port " << port.index << " on " << GetType().ToString());
+			continue;
+		}
+		RegisterSourcePort(router, port.index, port.vd, port.metadata);
+	}
+}
+
+int AtomBase::RequestCredits(int src_port_index, int requested_count) {
+	if (!packet_router) {
+		LOG("AtomBase::RequestCredits: ERROR - no router registered");
+		return 0;
+	}
+
+	if (src_port_index < 0 || src_port_index >= router_source_ports.GetCount()) {
+		LOG("AtomBase::RequestCredits: ERROR - invalid source port index " << src_port_index);
+		return 0;
+	}
+
+	int router_idx = router_source_ports[src_port_index];
+	if (router_idx < 0) {
+		LOG("AtomBase::RequestCredits: ERROR - source port " << src_port_index << " not registered");
+		return 0;
+	}
+
+	PacketRouter::PortHandle handle;
+	handle.atom = this;
+	handle.port_index = src_port_index;
+	handle.direction = RouterPortDesc::Direction::Source;
+	handle.router_index = router_idx;
+
+	return packet_router->RequestCredits(handle, requested_count);
+}
+
+void AtomBase::AckCredits(int src_port_index, int ack_count) {
+	if (!packet_router) {
+		LOG("AtomBase::AckCredits: ERROR - no router registered");
+		return;
+	}
+
+	if (src_port_index < 0 || src_port_index >= router_source_ports.GetCount()) {
+		LOG("AtomBase::AckCredits: ERROR - invalid source port index " << src_port_index);
+		return;
+	}
+
+	int router_idx = router_source_ports[src_port_index];
+	if (router_idx < 0) {
+		LOG("AtomBase::AckCredits: ERROR - source port " << src_port_index << " not registered");
+		return;
+	}
+
+	PacketRouter::PortHandle handle;
+	handle.atom = this;
+	handle.port_index = src_port_index;
+	handle.direction = RouterPortDesc::Direction::Source;
+	handle.router_index = router_idx;
+
+	packet_router->AckCredits(handle, ack_count);
+}
+
+
 END_UPP_NAMESPACE

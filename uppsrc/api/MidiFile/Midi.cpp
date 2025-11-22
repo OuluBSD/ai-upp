@@ -287,7 +287,7 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 		tmp.Reset();
 		total_events_sent += total_batch_events;
 	}
-	
+
 	// channel 0 is sent last, so use that information to finalize temp buffer usage
 	#if 0
 	if (src_ch == 0) {
@@ -296,7 +296,21 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 		}
 	}
 	#endif
-	
+	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("MidiFileReaderAtom::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt.Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		return routed;
+	}
+
 	return true;
 }
 

@@ -20,31 +20,44 @@ QwenManager::QwenManager() {
 	lvsplit.SetPos(3333);
 
 
-	servers.AddColumn("Address");
-	servers.AddColumn("Status");
-	servers.ColumnWidths("2 1");
+	servers.AddColumn("Name", 300);
+	servers.AddColumn("Address", 200);
+	servers.AddColumn("Status", 100);
 	servers.AddIndex("IDX");
 	servers.WhenCursor = THISBACK(OnServer);
 	servers.WhenBar = [=](Bar& menu) { OnServerBar(menu); };
 
-	projects.AddColumn("Name");
-	projects.AddColumn("Server");
+	projects.AddColumn("Name", 200);
+	projects.AddColumn("Server", 200);
+	projects.AddColumn("Git Origin", 300);
 	projects.AddIndex("IDX");
-	projects.ColumnWidths("2 1");
 	projects.WhenCursor = THISBACK(OnProject);
 	projects.WhenBar = [=](Bar& menu) { OnProjectBar(menu); };
 
-	// View 1
-	server_vsplit.Vert(server_list, server_bottom);
-	
-	// View 2
-	prj_vsplit.Vert(prj_list, prj_bottom);
-	
-	
-	
-	SetView(VIEW_QWEN_PROJECT);
 	statusbar.Set("Ready");
 	
+	// View 1
+	server_vsplit.Vert(server_list, server_bottom);
+	server_list.AddColumn("Name", 300); // TODO set column names - DONE
+	server_list.AddColumn("Address", 200);
+	server_list.AddColumn("Status", 100);
+	server_list.AddIndex("IDX");
+
+	// View 2
+	prj_vsplit.Vert(prj_list, prj_bottom);
+	prj_list.AddColumn("Name", 200);
+	prj_list.AddColumn("Server", 200);
+	prj_list.AddColumn("Git Origin", 300);
+	prj_list.AddIndex("IDX");
+	
+	// View 3
+	
+	
+	
+	// Post-construct
+	SetView(VIEW_QWEN_PROJECT);
+
+	// Load existing state and populate lists
 	PostCallback(THISBACK(Data));
 }
 
@@ -93,30 +106,153 @@ void QwenManager::SetView(int new_view) {
 		}
 	}
 	view = new_view;
+	
+	PostCallback(THISBACK(Data));
 }
 
 void QwenManager::Data() {
+	QwenManagerState& state = QwenManagerState::Global();
+
+	// Initialize with sample data if empty
+	if (state.servers.GetCount() == 0) {
+		// Add a sample server
+		QwenServerConnectionConf& sample_server = state.servers.Add();
+		sample_server.name = "Local Qwen Server";
+		sample_server.host = "localhost";
+		sample_server.port = 8765;
+		sample_server.connection_type = "tcp";
+		sample_server.directory = "~/Dev/qwen-code";
+	}
+
+	if (state.projects.GetCount() == 0) {
+		// Add a sample project
+		QwenProject& sample_project = state.projects.Add();
+		sample_project.uniq = GetTickCount();
+		sample_project.name = "Sample Project";
+		sample_project.preferred_connection_name = "Local Qwen Server";
+		sample_project.git_origin_addr = "https://github.com/example/sample-project.git";
+	}
+
 	UpdateProjectServerConnections();
 	DataServerList();
 	DataProjectList();
 
-	if (active_view == (Ctrl*)&active_qwen_view)
-		active_qwen_view->Data();
+	if (view == VIEW_DETAILED_PROJECTLIST)
+		DataDetailedProjectList();
+	if (view == VIEW_DETAILED_SERVERLIST)
+		DataDetailedServerList();
+	if (view == VIEW_QWEN_PROJECT)
+		if (active_qwen_view)
+			active_qwen_view->Data();
+
+	// Start auto-start servers with logging
+	StartAutoStartServers();
+}
+
+void QwenManager::StartAutoStartServers() {
+	QwenManagerState& state = QwenManagerState::Global();
+
+	for(int i = 0; i < state.servers.GetCount(); i++) {
+		auto& srv = state.servers[i];
+
+		if (srv.auto_start) {
+			LOG("Starting auto-start server: " << srv.name << " at " << srv.GetAddress());
+
+			// Create a temporary connection to start the server
+			QwenConnection temp_conn;
+			temp_conn.Init(srv);
+			if (temp_conn.Connect()) {
+				LOG("Successfully connected to server: " << srv.name);
+			} else {
+				LOG("Failed to connect to server: " << srv.name);
+			}
+		}
+	}
+}
+
+void QwenManager::DataDetailedProjectList() {
+
+	// Fill prj_list by column names
+	QwenManagerState& state = QwenManagerState::Global();
+
+	for(int i = 0; i < state.projects.GetCount(); i++) {
+		auto& prj = state.projects[i];
+		prj_list.Set(i, 0, prj.name);
+		prj_list.Set(i, 1, prj.preferred_connection_name);
+		prj_list.Set(i, 2, prj.git_origin_addr);
+		prj_list.Set(i, "IDX", i);
+	}
+	prj_list.SetCount(state.projects.GetCount());
+
+	DataDetailedProject();
+}
+
+void QwenManager::DataDetailedProject() {
+
+	// See focused project by prj_list and fill custom view data
+	if (!prj_list.IsCursor()) return;
+
+	QwenManagerState& state = QwenManagerState::Global();
+	int idx = prj_list.Get("IDX");
+	if (idx >= 0 && idx < state.projects.GetCount()) {
+		auto& prj = state.projects[idx];
+
+		// Update status bar with detailed project information
+		String detail_info = "Project: " + prj.name + " | Connection: " + prj.preferred_connection_name +
+		                    " | Git: " + prj.git_origin_addr + " | Sessions: " + IntStr(prj.session_ids.GetCount());
+		statusbar.Set(detail_info);
+	}
+}
+
+void QwenManager::DataDetailedServerList() {
+
+	// Fill server_list by column names
+	QwenManagerState& state = QwenManagerState::Global();
+
+	for(int i = 0; i < state.servers.GetCount(); i++) {
+		auto& srv = state.servers[i];
+		server_list.Set(i, 0, srv.name);
+		server_list.Set(i, 1, srv.GetAddress());
+		server_list.Set(i, 2, srv.GetStatusString());
+		server_list.Set(i, "IDX", i);
+	}
+	server_list.SetCount(state.servers.GetCount());
+
+	DataDetailedServer();
+}
+
+void QwenManager::DataDetailedServer() {
+
+	// See focused server by server_list and fill custom view data
+	if (!server_list.IsCursor()) return;
+
+	QwenManagerState& state = QwenManagerState::Global();
+	int idx = server_list.Get("IDX");
+	if (idx >= 0 && idx < state.servers.GetCount()) {
+		auto& srv = state.servers[idx];
+
+		// Update status bar with detailed server information
+		String detail_info = "Server: " + srv.name + " | Addr: " + srv.GetAddress() +
+		                    " | Conn: " + (srv.is_connected ? "Yes" : "No") +
+		                    " | Status: " + srv.GetStatusString();
+		statusbar.Set(detail_info);
+	}
 }
 
 void QwenManager::DataServerList() {
 	QwenManagerState& state = QwenManagerState::Global();
-	
+
 	for(int i = 0; i < state.servers.GetCount(); i++) {
 		QwenServerConnectionConf& srv = state.servers[i];
-		servers.Set(i, 0, srv.GetLabel());
-		servers.Set(i, 1, srv.GetStatusString());
+		servers.Set(i, 0, srv.name);
+		servers.Set(i, 1, srv.GetAddress());
+		servers.Set(i, 2, srv.GetStatusString());
 		servers.Set(i, "IDX", i);
 	}
 	servers.SetCount(state.servers.GetCount());
+
 	if (servers.GetCount() == 0 && servers.GetCount())
 		servers.SetCursor(0);
-	
 }
 
 void QwenManager::DataProjectList() {
@@ -130,9 +266,11 @@ void QwenManager::DataProjectList() {
 
 		projects.Set(i, 0, prj.name);
 		projects.Set(i, 1, prj.preferred_connection_name);
+		projects.Set(i, 2, prj.git_origin_addr);
 		projects.Set(i, "IDX", i);
 	}
 	projects.SetCount(state.projects.GetCount());
+
 	if (projects.GetCount() == 0 && projects.GetCount())
 		projects.SetCursor(0);
 
@@ -202,16 +340,26 @@ void QwenManager::EditServer() {
 	QwenManagerState& state = QwenManagerState::Global();
 	int i = servers.Get("IDX");
 	auto& srv = state.servers[i];
-	
+
+	// Create dialog with layout
 	WithEditServer<TopWindow> form;
-	CtrlLayoutOKCancel(form, "Edit server");
-	form.host.SetData(srv.host);
-	form.port.SetData(srv.port);
-	
+	CtrlLayoutOKCancel(form, "Edit Server");
+	form.name <<= srv.name;
+	form.directory <<= srv.directory;
+	form.host <<= srv.host;
+	form.port <<= srv.port;
+	form.connection_type <<= srv.connection_type;
+	form.auto_start <<= srv.auto_start;  // Set auto-start checkbox
+
 	if (form.Execute() == IDOK) {
+		srv.name = ~form.name;
+		srv.directory = ~form.directory;
 		srv.host = ~form.host;
 		srv.port = ~form.port;
-		DataServerList();
+		srv.connection_type = ~form.connection_type;
+		srv.auto_start = ~form.auto_start; // Get auto-start checkbox value
+		PostCallback(THISBACK(Data));
+		statusbar.Set("Updated server: " + srv.name);
 	}
 }
 
@@ -251,15 +399,19 @@ void QwenManager::EditProject() {
 	int i = projects.Get("IDX");
 	auto& prj = state.projects[i];
 
+	// Create dialog with layout
 	WithEditProject<TopWindow> form;
-	CtrlLayoutOKCancel(form, "Edit project");
-	form.name.SetData(prj.name);
-	form.preferred_connection_name.SetData(prj.preferred_connection_name);
-	
+	CtrlLayoutOKCancel(form, "Edit Project");
+	form.name <<= prj.name;
+	form.preferred_connection_name <<= prj.preferred_connection_name;
+	form.git_origin_addr <<= prj.git_origin_addr;
+
 	if (form.Execute() == IDOK) {
 		prj.name = ~form.name;
 		prj.preferred_connection_name = ~form.preferred_connection_name;
-		DataProjectList();
+		prj.git_origin_addr = ~form.git_origin_addr;
+		PostCallback(THISBACK(Data));
+		statusbar.Set("Updated project: " + prj.name);
 	}
 }
 

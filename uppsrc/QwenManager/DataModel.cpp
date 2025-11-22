@@ -32,6 +32,7 @@ void QwenServerConnectionConf::Jsonize(JsonIO& jio) {
 		("host", host)
 		("port", port)
 		("connection_type", connection_type)
+		("auto_start", auto_start)
 		;
 }
 

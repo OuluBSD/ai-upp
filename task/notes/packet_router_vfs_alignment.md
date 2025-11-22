@@ -4,51 +4,40 @@ Context Links
 - `uppsrc/Vfs/Ecs/AGENTS.md`: runtime owns Atom/Link registration via `VfsValueExtFactory`; every new descriptor must enter through the Factory layer.
 - `uppsrc/Vfs/Storage/AGENTS.md`: storage package documents on-disk formats and should stay header-only until new schema lands.
 
-Alignment Notes
-1. **Descriptor placement**
-   - Router port/connection structs will live beside today’s `Interface` types inside `uppsrc/Vfs/Ecs`.
-   - Each `InterfaceSink/Source` gains a port descriptor list (`name`, `direction`, `vd tuple`, metadata for credits/sync). These descriptors serialize via VFS values under the loop/net nodes.
-2. **Storage schema**
-   - `Vfs/Storage` exposes the JSON/binary schema. New keys:
-     - `ports`: array of `{id, direction, vd, metadata}` entries.
-     - `connections`: array of `{from_atom, from_port, to_atom, to_port}` for router nets.
-     - `flow_control`: object describing credit pools, optional legacy loop emulation flags.
-   - Schema doc lives next to implementation in `VfsStorage.h` once code lands.
-   - JSON fragment helpers (`VfsSaveFragment`/`VfsLoadFragment`) now live in `Vfs/Storage/VfsStorage.{h,cpp}` so router metadata stamped onto loop nodes persists to disk immediately.
-   - Overlay index helpers (`VfsOverlayIndex` + `VfsSaveOverlayIndex`/`VfsLoadOverlayIndex`) serialize logical-path entries with `SourceRef` provenance and a generic `metadata` map; router metadata is stored as `metadata["router"]` so IDE overlay views can inspect descriptors without loading fragments.
-   - `BuildRouterOverlayIndex` mirrors the IDE builder path so console/test harnesses can regenerate overlay metadata; `upptst/Router` now emits fragments + overlay indexes through that helper and asserts the JSON/binary payloads match.
-   - Binary parity now comes from `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary`, which wrap the JSON schema in a headerized payload so CLI tools can ship compact `.vfsbin` artifacts until the chunked writers land.
-   - The chunked overlay writer (`.overlay.vfsch`) is now wired directly into `BuildRouterOverlayIndex`, letting IDE package saves stream router metadata into chunk records while simultaneously populating the JSON/binary indexes (single traversal, no duplicate tree walks). Chunk loaders parse the same data back into `VfsOverlayIndex` for caching.
-   - IDE package now calls those helpers on every `Meta.bin` store, emitting `Meta.fragment.{json,vfsbin}` plus overlay siblings, and caches the overlay indexes so `MetaEnvTree` and future inspectors can read `metadata.router` straight from disk without reloading fragments.
-3. **Compatibility strategy**
-   - Legacy loop payloads keep their existing layout. Loader emits synthetic router descriptors at load time so IDE tooling can visualize nets even before `.eon` migration finishes.
-   - Storage writers output both representations while the migration is in flight (guarded by feature flag).
-4. **Next actions**
-   - Define concrete structs in `uppsrc/Vfs/Ecs/Interface.h` (Phase 1 deliverable).
-   - Draft schema snippet in `task/PacketRouter.md` once prototype data is available.
-   - Coordinate with IDE team to ensure new keys are reflected in inspectors before enabling router serialization by default.
-5. **Round-trip helpers + tests**
-   - `StoreValDevTuple/StoreRouterPortDesc/StoreRouterConnectionDesc` live in `uppsrc/Vfs/Ecs/Formats.{h,cpp}` with matching loaders so JSON writers and binary packers share a single conversion path.
-   - `upptst/Router` exercises the helpers plus the RouterNetContext metadata wiring to make sure vd + credit flags remain stable.
+## Phase 3 Alignment Status
 
-## Schema Outline (Draft)
+### Descriptor placement
+- Router port/connection structs now sit beside the Interface types in `uppsrc/Vfs/Ecs/Interface.h`. `AtomBase::SetInterface` uses `BuildRouterPortList` to produce `RouterPortDesc` entries (direction, index, optional flag, VD tuple, metadata) and `InterfaceBase::GetRouterPorts` exposes those descriptors to IDE/runtime consumers. `RouterNetContext::StoreRouterMetadata` (see `upptst/EonRouterSupport/EonRouterSupport.h`) serializes `StoreRouterSchema(BuildRouterSchema())` into the `router` ValueMap attached to every loop/net `VfsValue`, so each fragment carries the same port/connection metadata as the runtime observes.
 
-### JSON view (human-facing)
+### Storage schema
+- `uppsrc/Vfs/Storage/VfsStorage.{h,cpp}` now implement `VfsSaveFragment`, `VfsSaveFragmentBinary`, `VfsSaveOverlayIndex`, `VfsSaveOverlayIndexBinary`, and `VfsSaveOverlayIndexChunked`. `EmitPackageStorageArtifacts` (called from `uppsrc/ide/Vfs/Vfs.cpp::VfsSrcPkg::Store`) serializes `.fragment.json`, `.fragment.vfsbin`, `.overlay.json`, `.overlay.vfsbin`, and the streaming `.overlay.vfsch` by running `BuildRouterOverlayIndex` with an `OverlayIndexCollectorSink` and, when available, an `OverlayIndexChunkWriter`. The chunked writer writes each `OverlayNodeRecord`'s path, source refs, and `metadata["router"]`, so a single traversal covers the JSON/binary representations and the incremental chunk without touching the fragment tree twice. Overlay readers prefer the chunked index (`VfsLoadOverlayIndexChunked`) and transparently fall back to binary or JSON when the chunked file is missing or invalid, allowing inspectors to stay responsive even while legacy payloads still exist.
+
+### Compatibility strategy
+- Legacy fragments retain their original layout because router metadata is added as a `router` record next to the existing node data instead of replacing it. `IdeMetaEnvironment::LoadOverlayIndexForPkg` caches the generated overlay index per package and resolves `router` metadata by first checking the chunked cache, then the binary envelope, and finally the JSON dump. `MetaEnvTree::DataFocusSelection` and `MetaCtrl` consume that cached metadata (`IdeMetaEnv().GetRouterMetadataForNode` → `RouterSummaryForVirtualNode`/`RouterDetailsForVirtualNode`) so the IDE can display router summaries and per-connection hints without reloading fragments, enabling slow legacy workloads to continue while the router migration progresses.
+
+### Round-trip helpers + tests
+- `StoreRouterPortDesc`, `LoadRouterPortDesc`, `StoreRouterConnectionDesc`, `LoadRouterConnectionDesc`, and `StoreRouterSchema`/`LoadRouterSchema` in `uppsrc/Vfs/Ecs/Formats.{h,cpp}` keep the JSON ↔ binary conversions coherent. `upptst/Router/RouterTest.cpp` exercises those helpers while emitting fragments, overlay indexes, and chunked `.overlay.vfsch` files, asserting that every payload holds the same `router` metadata, and `upptst/RouterFanout` / `upptst/RouterPool` extend the cases to multi-port fan‑out and packet-pool hints. `BuildRouterOverlayIndex` (combined with `OverlayIndexChunkWriter`) collects metadata for every node so `MetaCtrl::RouterSummaryForVirtualNode` and `RouterDetailsForVirtualNode` can render port counts, flow-control policies, and per-connection JSON without reopening fragments.
+
+## Schema Outline (Live)
 ```json
 {
   "router": {
     "ports": [
       {
         "atom": "generator0",
-        "id": 0,
         "name": "audio.out",
+        "id": 0,
         "dir": "src",
         "vd": "ValCls::AUDIO",
         "meta": { "credits": 1, "sync": "none" }
       }
     ],
     "connections": [
-      { "from": ["generator0", 0], "to": ["sink0", 0], "policy": "default" }
+      {
+        "from": ["generator0", 0],
+        "to": ["sink0", 0],
+        "policy": "default"
+      }
     ],
     "bridges": [
       { "from": ["output.side_src0", 0], "to": ["input.side_sink0", 0] }
@@ -61,12 +50,10 @@ Alignment Notes
   }
 }
 ```
-- `ports` flatten across sink/source roles; `dir` distinguishes them, `vd` mirrors `ValDevTuple`.
-- `connections` capture intra-net edges, `bridges` capture cross-net edges (both collapse into the same router adjacency list once the runtime ignores loop shells).
-- `flow_control` advertises policy knobs so routers can emulate the constant-packet loops while tests migrate.
+- `ports` flatten sink/source entries, `dir` mirrors `RouterPortDesc::Direction`, and `vd` mirrors a serialized `ValDevTuple`. `connections` captures intra-net edges while `bridges` collect cross-net hops; both collapse into the router adjacency table once the runtime ignores loop shells. `flow_control` advertises the credit policy that allows routers to emulate the constant-packet loops until every consumer migrates.
 
 ### Binary view (Vfs/Storage payload)
-- Introduce a `RouterPorts` chunk under each loop VFS node. Layout: `uint16 count`, followed by `count` entries of `{uint16 atom_idx, uint16 port_idx, uint8 dir, uint8 vd_class, uint8 vd_device, VarBytes name, VarBytes meta}`.
-- `RouterConnections` chunk mirrors this with `{uint16 from_atom, uint16 from_port, uint16 to_atom, uint16 to_port, uint8 flags}`.
-- `RouterFlowControl` chunk encodes policy enums and integers (credits, burst limit, optional timer ticks). Defaults match current loop behavior so omission means “legacy”.
-- JSON exporters simply dump the same structures with friendly keys; binary readers/writers live in `uppsrc/Vfs/Storage/Serializer.{h,cpp}` next to today’s Link serialization.
+- `VfsSaveFragmentBinary`/`VfsLoadFragmentBinary` wrap the JSON fragment in a headerized envelope, and `VfsSaveOverlayIndexBinary`/`VfsLoadOverlayIndexBinary` do the same for the overlay schema so CLI tools can ship compact `.vfsbin` artifacts. `OverlayIndexChunkWriter` writes `.overlay.vfsch` records as `<path, sources, metadata>` tuples; the metadata map contains the same `router` ValueMap so chunk loaders can rebuild `VfsOverlayIndex` instances without parsing JSON.
+
+## Next steps
+- Router serialization/IDE plumbing is complete and summarized here; the remaining work shifts to Phase 4 (runtime/Atom conversion) and Phase 5 (DSL migration + test coverage). Use `task/PacketRouter.md` to track the upcoming runtime API updates, port registration polish, and backend/DSL migrations that still need completion.

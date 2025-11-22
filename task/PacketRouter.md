@@ -50,6 +50,8 @@ Convert the current loop-based Eon system to a router-based system where atoms c
 - Ensure router graphs serialize into both JSON and binary VFS payloads with round-trip regression tests.
 - **Exit criteria:** VFS loaders/savers operate on router nets, IDE tooling can at minimum visualize port lists, and debugging tools show router metadata.
 
+Detailed serialization/IDE plumbing (JSON/binary fragments, chunked `.overlay.vfsch` streams, overlay caching, and MetaCtrl/MetaEnvTree inspectors) is recorded in `task/notes/packet_router_vfs_alignment.md`, so the thread can now shift its attention to the runtime/DSL conversion work that follows in Phase 4.
+
 ### Phase 4 – Atom, API, and Backend Conversion
 - Update Atom subclasses (audio/gfx/etc.) to register ports via the new API, removing assumptions about primary channel 0.
 - Implement router credit hooks (request/ack) per backend and add asserts to guarantee packets honor the new flow-control metadata.

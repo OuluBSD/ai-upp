@@ -54,11 +54,11 @@ QwenManager::QwenManager() {
 	
 	
 	
-	// Post-construct
-	SetView(VIEW_QWEN_PROJECT);
-
 	// Load existing state and populate lists
 	PostCallback(THISBACK(Data));
+
+	// Post-construct
+	PostCallback(THISBACK1(SetView, VIEW_QWEN_PROJECT));
 }
 
 void QwenManager::OnMenuBar(Bar& b) {
@@ -251,7 +251,7 @@ void QwenManager::DataServerList() {
 	}
 	servers.SetCount(state.servers.GetCount());
 
-	if (servers.GetCount() == 0 && servers.GetCount())
+	if (!servers.IsCursor() && servers.GetCount())
 		servers.SetCursor(0);
 }
 
@@ -271,8 +271,11 @@ void QwenManager::DataProjectList() {
 	}
 	projects.SetCount(state.projects.GetCount());
 
-	if (projects.GetCount() == 0 && projects.GetCount())
+	if (!projects.IsCursor() && projects.GetCount()) {
 		projects.SetCursor(0);
+		if (!active_view)
+			SetView(VIEW_QWEN_PROJECT);
+	}
 
 }
 

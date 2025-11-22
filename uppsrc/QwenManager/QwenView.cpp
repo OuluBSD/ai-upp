@@ -4,6 +4,16 @@
 
 NAMESPACE_UPP
 
+
+bool PromptEdit::Key(Upp::dword key, int count) {
+	if (key == (K_CTRL|K_ENTER)) {
+		WhenSend();
+		return true;
+	}
+	
+	return DocEdit::Key(key, count);
+}
+
 QwenProjectView::Entry::Entry() {
 
 }
@@ -27,12 +37,10 @@ QwenProjectView::QwenProjectView() {
 	send_btn <<= THISBACK(OnSend);
 
 	// Create input area
-	Ctrl input_ctrl;
 	input_ctrl.Add(user_input.HSizePos(2, 102).VSizePos(0, 30));  // Leave space for button
 	input_ctrl.Add(send_btn.RightPos(2, 100).VSizePos(0, 30));
 
 	// Set up a vertical splitter for the right side - conversation area on top, terminal below
-	Splitter main_vsplit;
 	main_vsplit.Vert();
 
 	// Create a container for the conversation area components
@@ -44,13 +52,25 @@ QwenProjectView::QwenProjectView() {
 	// Split right side into conversation area and terminal
 	main_vsplit << conv_container << term;
 
+	// Left pane
+	left.Vert(page, prompt);
+	left.SetPos(8500);
+	
 	// Set up the main horizontal splitter
-	Splitter main_split;
-	main_split.Horz() << page << main_vsplit;
+	main_split.Horz() << left << main_vsplit;
 	Add(main_split.SizePos());
 
+	PostCallback([this]{AddEntry("Testing 123");});
 }
 
+QwenProjectView::Entry& QwenProjectView::AddEntry(String msg) {
+	QwenProjectView::Entry& e = entries.Add();
+	page.Add(e, "Entry");
+	e.SetDocText();
+	e.doc.SetData(msg);
+	page.Layout();
+	return e;
+}
 
 void QwenProjectView::Data() {
 	if (!~prj) return;

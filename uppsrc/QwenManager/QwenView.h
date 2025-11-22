@@ -3,10 +3,29 @@
 
 #include <CtrlLib/CtrlLib.h>
 
-class QwenProjectView : public Ctrl {
-	PageCtrl page;
-	TerminalCtrl term;
+class PromptEdit : public DocEdit {
+	
+	
+public:
+	typedef PromptEdit CLASSNAME;
+	PromptEdit();
+	
+	bool Key(Upp::dword key, int count) override;
+	
+	Event<> WhenSend;
+};
 
+class QwenProjectView : public Ctrl {
+	// Left
+	PageCtrl page;
+	DocEdit prompt;
+	Splitter left;
+	
+	TerminalCtrl term;
+	Ctrl input_ctrl;
+	Splitter main_vsplit;
+	Splitter main_split;
+	
 	// Chat interface components
 	LineEdit user_input;
 	Button send_btn;
@@ -27,7 +46,8 @@ public:
 	Array<Entry> entries;
 
 	Ptr<QwenProject> prj;
-
+	
+	Entry& AddEntry(String msg);
 
 public:
 	typedef QwenProjectView CLASSNAME;

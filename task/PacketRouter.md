@@ -279,7 +279,7 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 ```
 
 - **Remaining for Full Runtime Flow:**
-- Camera, media-file, image, and SynSoft audio generators now register ports via the default `AtomBase::RegisterPorts()`, request credits, and call `EmitViaRouter()`/`AckCredits()` so router-based nets run the workloads while preserving the legacy Link data for compatibility. Remaining source atoms still need to adopt the same pattern.
+- Camera, media-file, image, and audio generators (SynSoft plus SynFluidsynth, SynFmSynth, SynCoreSynth, SynCoreDrummer) now register ports via the default `AtomBase::RegisterPorts()`, request credits, and call `EmitViaRouter()`/`AckCredits()` so router-based nets run the workloads while preserving the legacy Link data for compatibility. Remaining source atoms (LV2 hosts, SDL/audio bridge devices, etc.) still need to adopt the same pattern.
 - Legacy LinkSystem delivery remains available for unconverted atoms, but new nets should rely on the router path so diagnostics and credits stay in sync.
 
 ### Phase 4+ Enhancements (2025-11-21)

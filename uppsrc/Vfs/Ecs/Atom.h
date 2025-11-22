@@ -64,8 +64,8 @@ protected:
 
 	// Router port registration helpers for derived classes
 	// Returns router_index (internal routing table index), or -1 on failure
-	int						RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd);
-	int						RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd);
+	int						RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata = ValueMap());
+	int						RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata = ValueMap());
 
 public:
 	// Port handle storage (router_index values) - public for LoopContext access
@@ -99,11 +99,13 @@ public:
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
 
 	// Router integration - opt-in virtuals for PacketRouter mode
-	virtual void			RegisterPorts(PacketRouter& router) {}
+	virtual void			RegisterPorts(PacketRouter& router);
 	virtual void			OnPortReady(int port_id) {}
 
 	// Emit packet via router - returns true if delivered to at least one destination
 	bool					EmitViaRouter(int src_port_index, const Packet& packet);
+	int						RequestCredits(int src_port_index, int requested_count);
+	void					AckCredits(int src_port_index, int ack_count);
 
 	String					ToString() const override;
 	void					UninitializeDeep() override;

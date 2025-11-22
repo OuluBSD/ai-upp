@@ -382,11 +382,12 @@ bool PacketRouter::ValidateConnection(const PortHandle& src, const PortHandle& d
 
 // AtomBase helper implementations (defined here to avoid Vfs->Eon dependency)
 
-int AtomBase::RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd) {
+int AtomBase::RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata) {
 	PacketRouter::PortHandle handle = router.RegisterPort(this,
 	                                                       RouterPortDesc::Direction::Sink,
 	                                                       index,
-	                                                       vd);
+	                                                       vd,
+	                                                       metadata);
 	if (!handle.IsValid()) {
 		LOG("AtomBase::RegisterSinkPort: FAILED to register sink port " << index);
 		return -1;
@@ -402,11 +403,12 @@ int AtomBase::RegisterSinkPort(PacketRouter& router, int index, const ValDevTupl
 }
 
 
-int AtomBase::RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd) {
+int AtomBase::RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata) {
 	PacketRouter::PortHandle handle = router.RegisterPort(this,
 	                                                       RouterPortDesc::Direction::Source,
 	                                                       index,
-	                                                       vd);
+	                                                       vd,
+	                                                       metadata);
 	if (!handle.IsValid()) {
 		LOG("AtomBase::RegisterSourcePort: FAILED to register source port " << index);
 		return -1;

@@ -280,6 +280,7 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 
 - **Remaining for Full Runtime Flow:**
 - Camera, media-file, image, and audio generators (SynSoft plus SynFluidsynth, SynFmSynth, SynCoreSynth, SynCoreDrummer) now register ports via the default `AtomBase::RegisterPorts()`, request credits, and call `EmitViaRouter()`/`AckCredits()` so router-based nets run the workloads while preserving the legacy Link data for compatibility. SynLV2 and the SDL event bridge now also route their packets through the PacketRouter, leaving only a handful of remaining hardware-specific sources to touch.
+- The V4L2/OpenCV camera now returns `false` when credits are denied so the router diagnostics and flow-control metadata stay accurate.
 - `MidiFileReaderAtom` now obeys router credits, emits MIDI batches via `EmitViaRouter()`, and restores the `PacketValue` afterwards so MIDI playback participates in the same metadata-driven flow control as other audio sources.
 - Legacy LinkSystem delivery remains available for unconverted atoms, but new nets should rely on the router path so diagnostics and credits stay in sync.
 

@@ -142,17 +142,17 @@ bool CamV4L2OpenCV::Camera_Send(NativeCamera& dev, AtomBase& a, RealtimeSourceCo
 			int credits = a.RequestCredits(src_ch, 1);
 			if (credits <= 0) {
 				RTLOG("CamV4L2OpenCV::Camera_Send: credit request denied for src_ch=" << src_ch);
+				return false;
 			}
-			else {
-				Packet route_pkt = CreatePacket(out.GetOffset());
-				route_pkt.Pick(out);
-				route_pkt->SetFormat(fmt);
-				bool routed = a.EmitViaRouter(src_ch, route_pkt);
-				a.AckCredits(src_ch, credits);
-				out.Pick(*route_pkt);
-				if (!routed)
-					return false;
-			}
+
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt.Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = a.EmitViaRouter(src_ch, route_pkt);
+			a.AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
 		}
 	}
 

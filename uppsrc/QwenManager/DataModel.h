@@ -8,6 +8,7 @@ struct QwenServerConnectionConf : Pte<QwenServerConnectionConf> {
 	String host = "localhost"; // host for TCP connection
 	int port = 8765; // port for TCP connection
 	String connection_type = "tcp"; // connection type: tcp, stdin, pipe
+	bool auto_start = false; // Whether to auto-start this connection
 
 	// Connection state
 	mutable bool is_connected = false;

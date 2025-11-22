@@ -46,6 +46,10 @@ public:
 	void UpdateProjectServerConnections();
 	void OnServer();
 	void OnProject();
+	void DataDetailedProjectList();
+	void DataDetailedProject();
+	void DataDetailedServerList();
+	void DataDetailedServer();
 	void OnMenuBar(Bar& b);
 	void OnServerBar(Bar& menu);
 	void OnProjectBar(Bar& menu);
@@ -57,6 +61,7 @@ public:
 	void NewProject();
 	void EditProject();
 	void DeleteProject();
+	void StartAutoStartServers();
 };
 
 

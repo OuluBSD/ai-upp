@@ -53,7 +53,7 @@ QwenProjectView::QwenProjectView() {
 
 
 void QwenProjectView::Data() {
-	if (!prj) return;
+	if (!~prj) return;
 
 	int c = prj->session_ids.GetCount(); // Get the count of entries in qwen session
 

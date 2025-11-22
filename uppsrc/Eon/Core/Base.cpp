@@ -53,7 +53,16 @@ bool CustomerBase::Recv(int sink_ch, const Packet& in) {
 }
 
 bool CustomerBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	// pass
+	PacketValue null_in(cfg.cur_offset);
+	ForwardPacket(null_in, out);
+
+	if (packet_router && !router_source_ports.IsEmpty()) {
+		Packet p = CreatePacket(out.GetOffset());
+		p->Pick(out);
+		EmitViaRouter(src_ch, p);
+		out.Pick(*p);
+	}
+
 	return true;
 }
 

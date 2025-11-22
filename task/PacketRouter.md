@@ -278,9 +278,9 @@ BuildNet: Successfully built network with 3 atoms and 3 connections
 PacketRouter: Destroyed (6 ports, 3 connections)
 ```
 
-**Remaining for Full Runtime Flow:**
-- Source atoms need to call `EmitViaRouter()` when producing packets
-- Currently packets flow through legacy LinkSystem; atoms have infrastructure to switch
+- **Remaining for Full Runtime Flow:**
+- Source atoms beyond `CustomerBase` still need to register ports and call `EmitViaRouter()` when emitting data; `CustomerBase` already performs that handoff when a router is active.
+- Legacy LinkSystem delivery remains available for unconverted atoms, but new nets should rely on the router path so diagnostics and credits stay in sync.
 
 ### Phase 4+ Enhancements (2025-11-21)
 **Extended router infrastructure and diagnostics:**

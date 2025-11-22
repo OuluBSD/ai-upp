@@ -14,7 +14,7 @@ public:
     CollisionListCtrl();
     virtual ~CollisionListCtrl();
 
-    void SetFrame(const Upp::Frame* frame);
+    void SetFrame(const AnimationFrame* frame);
     void RefreshList();
 
     // Selection
@@ -31,7 +31,7 @@ protected:
     virtual void RightDown(Point pos, dword flags);
 
 private:
-    const Upp::Frame* frame;
+    const AnimationFrame* frame;
     Vector<int> display_indices; // Indices of collision rectangles to display
     int selected_index;
 

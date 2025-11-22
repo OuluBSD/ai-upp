@@ -146,14 +146,9 @@ void AnimEditorWindow::UpdateZoomLabel() {
     zoom_label.SetLabel(IntStr(zoomPercent) + "%");
 }
 
-void AnimEditorWindow::UpdateZoomLabel() {
-    int zoomPercent = (int)(canvas_ctrl.GetZoom() * 100);
-    zoom_label.SetLabel(IntStr(zoomPercent) + "%");
-}
-
 void AnimEditorWindow::UpdateUndoRedoButtons() {
-    undo_btn.SetEnabled(canvas_ctrl.CanUndo());
-    redo_btn.SetEnabled(canvas_ctrl.CanRedo());
+    undo_btn.Enable(canvas_ctrl.CanUndo());
+    redo_btn.Enable(canvas_ctrl.CanRedo());
 }
 
 void AnimEditorWindow::UpdateSpriteList() {
@@ -165,7 +160,7 @@ void AnimEditorWindow::UpdateSpriteList() {
     }
 }
 
-void AnimEditorWindow::SetActiveFrame(const Frame* frame) {
+void AnimEditorWindow::SetActiveFrame(const AnimationFrame* frame) {
     sprite_list_ctrl.SetFrame(frame);
     sprite_instance_list_ctrl.SetFrame(frame);
     collision_list_ctrl.SetFrame(frame);
@@ -183,25 +178,26 @@ void AnimEditorWindow::CreateNewSprite() {
     
     // Create input fields
     EditField id_field, name_field, texture_path_field, tags_field, description_field;
-    SpinEdit region_x, region_y, region_cx, region_cy;
-    SpinEdit pivot_x, pivot_y;
+    EditInt region_x, region_y, region_cx, region_cy;
+    EditInt pivot_x, pivot_y;
     Option category_option;
     Button ok_btn, cancel_btn, browse_btn;
     
     // Set up category options
+    category_option.Add("All Categories");
     category_option.Add("character");
     category_option.Add("environment");
     category_option.Add("effect");
     category_option.Add("other");
-    category_option <<= 0; // Default to character
+    category_option <<= 0; // Default to "All Categories"
     
     // Set up numeric fields
-    region_x.SetRange(0, 10000).Set(0);
-    region_y.SetRange(0, 10000).Set(0);
-    region_cx.SetRange(1, 10000).Set(32);
-    region_cy.SetRange(1, 10000).Set(32);
-    pivot_x.SetRange(-1000, 1000).Set(0);
-    pivot_y.SetRange(-1000, 1000).Set(0);
+    region_x.MinMax(0, 10000) <<= 0;
+    region_y.MinMax(0, 10000) <<= 0;
+    region_cx.MinMax(1, 10000) <<= 32;
+    region_cy.MinMax(1, 10000) <<= 32;
+    pivot_x.MinMax(-1000, 1000) <<= 0;
+    pivot_y.MinMax(-1000, 1000) <<= 0;
     
     // Add controls with positioning
     dlg.Add(id_field.HSizePos(80, 50).TopPos(8, 20));
@@ -467,7 +463,7 @@ timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
 
         // If there's a selected animation, add the new frame to it
         if (selected_animation) {
-            FrameRef frame_ref;
+            AnimationFrameRef frame_ref;
             frame_ref.frame_id = new_frame.id;
             frame_ref.has_duration = false;
             frame_ref.duration = 0.1; // default duration
@@ -544,7 +540,7 @@ timeline_ctrl.SetFrameCallback([this](const Frame* frame) {
         }
 
         // Create a combo box to select a sprite
-        CtrlLayout<ParentCtrl> dlg;
+        CtrlLayout dlg;
         dlg.Ctrl::SizeHint([this]() { return Size(300, 80); });
 
         ArrayCtrl array_ctrl;
@@ -803,7 +799,7 @@ timeline_panel.Add(timeline_ctrl.VSizePos(24).HSizePos());  // Leave space at to
                        timeline_ctrl.GetSelectedFrameIndex() + 1 : 
                        selected_animation->frames.GetCount();
     
-    FrameRef frame_ref;
+    AnimationFrameRef frame_ref;
     frame_ref.frame_id = new_frame.id;
     frame_ref.has_duration = false;
     frame_ref.duration = 0.1; // default duration
@@ -823,7 +819,7 @@ void AnimEditorWindow::AddExistingFrame() {
     }
     
     // Create a simple dialog to select an existing frame
-    CtrlLayout<ParentCtrl> dlg;
+    CtrlLayout dlg;
     dlg.Ctrl::SizeHint([this]() { return Size(300, 400); });
     
     ArrayCtrl array_ctrl;
@@ -855,7 +851,7 @@ void AnimEditorWindow::AddExistingFrame() {
         String selected_frame_id = array_ctrl.Get(0, selected_row); // Get ID
         
         // Add the selected frame to the animation
-        FrameRef frame_ref;
+        AnimationFrameRef frame_ref;
         frame_ref.frame_id = selected_frame_id;
         frame_ref.has_duration = false;
         frame_ref.duration = 0.1; // default duration
@@ -885,7 +881,7 @@ void AnimEditorWindow::DuplicateFrame() {
     }
     
     // Get the frame reference to duplicate
-    FrameRef original_ref = selected_animation->frames[selected_frame_index];
+    AnimationFrameRef original_ref = selected_animation->frames[selected_frame_index];
     const Frame* original_frame = state.project.FindFrame(original_ref.frame_id);
     
     if (!original_frame) {
@@ -900,7 +896,7 @@ void AnimEditorWindow::DuplicateFrame() {
     state.project.frames.Add(new_frame);
     
     // Add the new frame reference to the animation after the original
-    FrameRef new_ref;
+    AnimationFrameRef new_ref;
     new_ref.frame_id = new_frame.id;
     new_ref.has_duration = original_ref.has_duration;
     new_ref.duration = original_ref.duration;

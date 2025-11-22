@@ -78,6 +78,10 @@ public:
 	void SetRenderingContext(void* context);
 	void* GetRenderingContext() const { return rendering_context; }
 	
+	// Input system integration
+	void SetInputSystem(std::shared_ptr<InputSystem> input_system);
+	std::shared_ptr<InputSystem> GetInputSystem() const { return input_system; }
+	
 	// Rendering methods
 	void SetClearColor(double r, double g, double b, double a = 1.0);
 	void ClearBuffers();
@@ -127,6 +131,9 @@ private:
 	bool culling_enabled = true;
 	int cull_face = 0; // GFX_BACK by default
 	int blend_mode = 0;
+	
+	// Input system
+	std::shared_ptr<InputSystem> input_system;
 };
 
 //END_UPP_NAMESPACE

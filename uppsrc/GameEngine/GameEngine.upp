@@ -9,8 +9,20 @@ uses
 	CtrlLib,
 	api/Screen,
 	api/Graphics,
-	plugin/jpg;
+	api/Hal,
+	api/Audio,
+	api/Physics,
+	plugin/jpg,
+	plugin/wav;
 
 file
 	GameWindow.cpp,
 	Game.cpp,
+	InputSystem.cpp,
+	InputSystemExample.cpp,
+	AudioSystem.cpp,
+	PhysicsSystem.cpp,
+	UISystem.cpp,
+	VFS.cpp,
+	AnimationSystem.cpp,
+	EcsIntegration.cpp,

@@ -11,7 +11,7 @@ CollisionListCtrl::CollisionListCtrl()
 CollisionListCtrl::~CollisionListCtrl() {
 }
 
-void CollisionListCtrl::SetFrame(const Upp::Frame* frame) {
+void CollisionListCtrl::SetFrame(const AnimationFrame* frame) {
     this->frame = frame;
     RefreshList();
 }
@@ -57,7 +57,7 @@ void CollisionListCtrl::DrawItem(Draw& w, int display_index, const Rect& rc) con
     const CollisionRect& cr = frame->collisions[frame_index];
 
     // Draw background
-    Color bg_color = (display_index == selected_index) ? LtBlue() : (display_index % 2 == 0 ? White() : SdkLightGray());
+    Color bg_color = (display_index == selected_index) ? LtBlue() : (display_index % 2 == 0 ? White() : SclLightGray());
     w.DrawRect(rc, bg_color);
 
     // Draw collision properties
@@ -109,7 +109,7 @@ void CollisionListCtrl::MouseDown(Point pos, dword button) {
         }
     }
 
-    Ctrl::MouseDown(pos, button);
+    Ctrl::LeftDown(pos, button);
 }
 
 void CollisionListCtrl::RightDown(Point pos, dword flags) {
@@ -146,7 +146,7 @@ void CollisionListCtrl::PopupContextMenu(Point pos) {
     popup.AddFrame(BlackFrame());
 
     // Create a menu layout
-    WithTextCtrlLayout<ParentCtrl> content;
+    CtrlLayout<ParentCtrl> content;
     content.Ctrl::SizeHint([this]() { return Size(150, 150); });
 
     // Create menu items

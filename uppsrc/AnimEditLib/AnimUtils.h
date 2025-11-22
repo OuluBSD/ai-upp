@@ -8,15 +8,15 @@ namespace Upp {
 
 // ID Generation utilities
 String GenerateSpriteId(const AnimationProject& p, const String& base);
-String GenerateFrameId(const AnimationProject& p, const String& base);
+String GenerateAnimationFrameId(const AnimationProject& p, const String& base);
 String GenerateAnimationId(const AnimationProject& p, const String& base);
 String GenerateCollisionId(const AnimationProject& p, const String& frameId, const String& base);
 
 // Validation helpers
 bool ValidateProject(const AnimationProject& p, String& errorOut);
 bool ValidateAnimation(const AnimationProject& p, const Animation& a, String& errorOut);
-bool ValidateFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut);
-bool ValidateSpriteLinks(const AnimationProject& p, const Frame& f, String& errorOut);
+bool ValidateAnimationFrameLinks(const AnimationProject& p, const Animation& a, String& errorOut);
+bool ValidateSpriteLinks(const AnimationProject& p, const AnimationFrame& f, String& errorOut);
 bool ValidateAnimationEvent(const AnimationEvent& event, String& errorOut);
 bool ValidateAnimationTransition(const AnimationTransition& transition, String& errorOut);
 bool ValidateAnimationBlendParams(const AnimationBlendParams& params, String& errorOut);

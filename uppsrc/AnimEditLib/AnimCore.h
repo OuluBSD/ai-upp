@@ -16,6 +16,18 @@ struct Vec2 : public Moveable<Vec2> {
     bool operator==(const Vec2& other) const { return x == other.x && y == other.y; }
     bool operator!=(const Vec2& other) const { return !(*this == other); }
     
+    // Arithmetic operators
+    Vec2 operator+(const Vec2& other) const { return Vec2(x + other.x, y + other.y); }
+    Vec2 operator-(const Vec2& other) const { return Vec2(x - other.x, y - other.y); }
+    Vec2 operator*(double scalar) const { return Vec2(x * scalar, y * scalar); }
+    Vec2 operator/(double scalar) const { return Vec2(x / scalar, y / scalar); }
+    
+    // Compound assignment operators
+    Vec2& operator+=(const Vec2& other) { x += other.x; y += other.y; return *this; }
+    Vec2& operator-=(const Vec2& other) { x -= other.x; y -= other.y; return *this; }
+    Vec2& operator*=(double scalar) { x *= scalar; y *= scalar; return *this; }
+    Vec2& operator/=(double scalar) { x /= scalar; y /= scalar; return *this; }
+    
     void Swap(Vec2& other) {
         Upp::Swap(x, other.x);
         Upp::Swap(y, other.y);
@@ -116,24 +128,24 @@ struct CollisionRect : public Moveable<CollisionRect> {
     }
 };
 
-struct Frame : public Moveable<Frame> {
+struct AnimationFrame : public Moveable<AnimationFrame> {
     String id;
     String name;
-    Frame() = default;
-    Frame(const String& id) : id(id) {}
+    AnimationFrame() = default;
+    AnimationFrame(const String& id) : id(id) {}
 
     Vector<SpriteInstance> sprites;
     Vector<CollisionRect>  collisions;
     double default_duration = 0.1;
     
-    bool operator==(const Frame& other) const { 
+    bool operator==(const AnimationFrame& other) const { 
         return id == other.id && name == other.name && 
                sprites == other.sprites && collisions == other.collisions &&
                default_duration == other.default_duration; 
     }
-    bool operator!=(const Frame& other) const { return !(*this == other); }
+    bool operator!=(const AnimationFrame& other) const { return !(*this == other); }
     
-    void Swap(Frame& other) {
+    void Swap(AnimationFrame& other) {
         Upp::Swap(id, other.id);
         Upp::Swap(name, other.name);
         Upp::Swap(sprites, other.sprites);
@@ -142,18 +154,18 @@ struct Frame : public Moveable<Frame> {
     }
 };
 
-struct FrameRef : public Moveable<FrameRef> {
+struct AnimationFrameRef : public Moveable<AnimationFrameRef> {
     String frame_id;
     bool   has_duration = false;
     double duration = 0.0;
     
-    bool operator==(const FrameRef& other) const { 
+    bool operator==(const AnimationFrameRef& other) const { 
         return frame_id == other.frame_id && has_duration == other.has_duration &&
                duration == other.duration; 
     }
-    bool operator!=(const FrameRef& other) const { return !(*this == other); }
+    bool operator!=(const AnimationFrameRef& other) const { return !(*this == other); }
     
-    void Swap(FrameRef& other) {
+    void Swap(AnimationFrameRef& other) {
         Upp::Swap(frame_id, other.frame_id);
         Upp::Swap(has_duration, other.has_duration);
         Upp::Swap(duration, other.duration);
@@ -164,7 +176,7 @@ struct Animation : public Moveable<Animation> {
     String id;
     String name;
     String category;
-    Vector<FrameRef> frames;
+    Vector<AnimationFrameRef> frames;
     
     bool operator==(const Animation& other) const { 
         return id == other.id && name == other.name && 
@@ -211,7 +223,7 @@ struct AnimationEvent : public Moveable<AnimationEvent> {
     String id;
     String name;
     String type;           // Type of event (e.g., "sound", "particle", "callback", "trigger")
-    int frame_index;       // Frame at which the event should trigger
+    int frame_index;       // AnimationFrame at which the event should trigger
     ValueMap parameters;   // Additional parameters specific to the event type
 
     AnimationEvent() : frame_index(0) {}
@@ -722,7 +734,7 @@ struct AnimationProject : public Moveable<AnimationProject> {
     String name;
 
     Vector<Sprite>     sprites;
-    Vector<Frame>      frames;
+    Vector<AnimationFrame>      frames;
     Vector<Animation>  animations;
     Vector<Entity>     entities;
     Vector<BehaviorTree> behavior_trees;  // Shared behavior trees across entities
@@ -734,8 +746,8 @@ struct AnimationProject : public Moveable<AnimationProject> {
     const Sprite*    FindSprite(const String&) const;
     Sprite*          FindSprite(const String&);
 
-    const Frame*     FindFrame(const String&) const;
-    Frame*           FindFrame(const String&);
+    const AnimationFrame*     FindFrame(const String&) const;
+    AnimationFrame*           FindFrame(const String&);
 
     const Animation* FindAnimation(const String&) const;
     Animation*       FindAnimation(const String&);

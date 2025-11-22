@@ -17,7 +17,7 @@ void SpriteInstanceListCtrl::SetProject(const AnimationProject* project) {
     RefreshList();
 }
 
-void SpriteInstanceListCtrl::SetFrame(const Upp::Frame* frame) {
+void SpriteInstanceListCtrl::SetFrame(const AnimationFrame* frame) {
     this->frame = frame;
     RefreshList();
 }
@@ -69,7 +69,7 @@ void SpriteInstanceListCtrl::DrawItem(Draw& w, int display_index, const Rect& rc
     }
 
     // Draw background
-    Color bg_color = (display_index == selected_index) ? LtBlue() : (display_index % 2 == 0 ? White() : SdkLightGray());
+    Color bg_color = (display_index == selected_index) ? LtBlue() : (display_index % 2 == 0 ? White() : SclLightGray());
     w.DrawRect(rc, bg_color);
 
     // Draw sprite name/ID
@@ -79,14 +79,14 @@ void SpriteInstanceListCtrl::DrawItem(Draw& w, int display_index, const Rect& rc
 
     // Draw transform properties
     String transform = Format("Pos: (%.1f, %.1f), Scl: (%.2f, %.2f), Rot: %.1f°", 
-                              si.transform.position.x, si.transform.position.y,
-                              si.transform.scale.x, si.transform.scale.y,
-                              si.transform.rotation);
+                              si.position.x, si.position.y,
+                              si.scale.x, si.scale.y,
+                              si.rotation);
     w.DrawText(rc.left + 8, rc.top + 18, transform, Arial(10), Gray());
 
     // Draw z-index
-    String z_index = "Z: " + IntStr(si.z_index);
-    w.DrawText(rc.left + 8, rc.top + 30, z_index, Arial(10), DarkGray());
+    String z_index = "Z: " + IntStr(si.zindex);
+    w.DrawText(rc.left + 8, rc.top + 30, z_index, Arial(10), SclGray());
 }
 
 Size SpriteInstanceListCtrl::GetItemSize(int index) const {
@@ -132,7 +132,7 @@ void SpriteInstanceListCtrl::MouseDown(Point pos, dword button) {
         }
     }
 
-    Ctrl::MouseDown(pos, button);
+    Ctrl::LeftDown(pos, button);
 }
 
 void SpriteInstanceListCtrl::RightDown(Point pos, dword flags) {
@@ -169,7 +169,7 @@ void SpriteInstanceListCtrl::PopupContextMenu(Point pos) {
     popup.AddFrame(BlackFrame());
 
     // Create a menu layout
-    WithTextCtrlLayout<ParentCtrl> content;
+    CtrlLayout<ParentCtrl> content;
     content.Ctrl::SizeHint([this]() { return Size(150, 150); });
 
     // Create menu items
@@ -199,12 +199,12 @@ void SpriteInstanceListCtrl::PopupContextMenu(Point pos) {
         Button ok_btn, cancel_btn;
 
         // Set ranges and initial values
-        pos_x.SetRange(-1000, 1000); pos_x.Set(si.transform.position.x);
-        pos_y.SetRange(-1000, 1000); pos_y.Set(si.transform.position.y);
-        rot.SetRange(-360, 360); rot.Set(si.transform.rotation);
-        scale_x <<= si.transform.scale.x;
-        scale_y <<= si.transform.scale.y;
-        z_index.SetRange(-1000, 1000); z_index.Set(si.z_index);
+        pos_x.SetRange(-1000, 1000); pos_x.Set(si.position.x);
+        pos_y.SetRange(-1000, 1000); pos_y.Set(si.position.y);
+        rot.SetRange(-360, 360); rot.Set(si.rotation);
+        scale_x <<= si.scale.x;
+        scale_y <<= si.scale.y;
+        z_index.SetRange(-1000, 1000); z_index.Set(si.zindex);
 
         // Add controls
         dlg.Add(pos_x.HSizePos(80, 50).TopPos(8, 20));
@@ -244,12 +244,12 @@ void SpriteInstanceListCtrl::PopupContextMenu(Point pos) {
 
         if(prompt_dlg.Execute() == IDOK) {
             // Update transform values
-            si.transform.position.x = ~pos_x;
-            si.transform.position.y = ~pos_y;
-            si.transform.rotation = ~rot;
-            si.transform.scale.x = ~scale_x;
-            si.transform.scale.y = ~scale_y;
-            si.z_index = ~z_index;
+            si.position.x = ~pos_x;
+            si.position.y = ~pos_y;
+            si.rotation = ~rot;
+            si.scale.x = ~scale_x;
+            si.scale.y = ~scale_y;
+            si.zindex = ~z_index;
 
             // Notify of change
             if (change_callback) {

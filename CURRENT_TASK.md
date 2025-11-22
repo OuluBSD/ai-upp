@@ -110,3 +110,44 @@ Objective: Implement a VfsShell that works like a standard Bourne shell with a `
 - Update all command implementations to properly handle both system paths and VFS overlay paths
 - Ensure consistent behavior across both path systems
 - Maintain backward compatibility with existing shell functionality
+
+## GameEngine Development Progress
+
+### Status: IN-PROGRESS (Secondary Task)
+
+#### Current Implemented Features
+- [x] **GameLib Package**: Core game engine functionality layer with basic structure
+- [x] **GameEngine Package**: Higher-level game engine features with basic structure
+- [x] **Geometry Integration**: Integration with uppsrc/Geometry for vectors, matrices, and 3D math operations
+- [x] **Screen API Integration**: Leverage uppsrc/api/Screen for cross-platform windowing and input handling
+- [x] **Graphics API Integration**: Integration with uppsrc/api/Graphics for rendering capabilities (OpenGL, DirectX, etc.)
+- [ ] **HAL Integration**: Use uppsrc/api/Hal package for hardware abstraction and input management
+- [ ] **Eon Pattern Following**: Follow patterns from upptst/Eon{00,01,02,03,04,05} examples for proper eon code expansion
+- [x] **GameWindow Class**: Design GameWindow class as an easy-to-use solution for game windows
+- [x] **GameWindow Integration**: Ensure GameWindow properly integrates with Screen and Graphics API packages
+- [x] **Game Loop Architecture**: Implement basic game loop architecture in GameEngine
+- [ ] **ECS Framework**: Create entity-component-system (ECS) framework in GameEngine (using existing ai-upp ECS code after upptst/Eon* packages work properly)
+- [x] **Asset Management**: Add support for asset management and resource loading (AssetManager with memory budget tracking)
+- [x] **2D/3D Rendering Pipeline**: Implement basic 2D and 3D rendering pipelines
+- [x] **Camera System**: Create camera system with support for different projection types
+- [ ] **Input Handling**: Develop input handling system unified across different platforms
+- [ ] **Audio Integration**: Add audio integration using uppsrc/api/Audio package
+- [ ] **Physics Integration**: Implement basic physics integration using uppsrc/api/Physics package
+- [x] **Scene Management**: Design scene management system (Scene and SceneManager classes)
+- [ ] **UI/HUD Rendering**: Create basic UI/HUD rendering capabilities
+- [ ] **File System Abstraction**: Add cross-platform file system abstraction for game assets
+- [ ] **Animation System**: Implement basic animation system
+- [x] **Resource Management**: Design resource management with proper memory handling (via AssetManager)
+- [x] **U++/Eon Compatibility**: Ensure compatibility with existing U++/Eon architecture
+- [x] **Comprehensive Tests**: Write comprehensive tests for GameLib and GameEngine packages (gametst package)
+- [ ] **Documentation**: Document API design and usage patterns for game development
+
+### Roadmap Phases
+1. **Phase 1: Foundation** (COMPLETED) - Basic structure and core systems
+2. **Phase 2: ECS Integration** (PENDING) - Integration with existing Eon ECS after upptst/Eon* fixes
+3. **Phase 3: Rendering and Graphics** (COMPLETED) - Advanced rendering capabilities
+4. **Phase 4: Audio and Input** (PENDING) - Audio and input systems
+5. **Phase 5: Physics and Animation** (PENDING) - Physics and animation
+6. **Phase 6: Advanced Features** (PENDING) - UI, networking, etc.
+
+For full roadmap details, see GameEngine.md and task/GameEngine.md

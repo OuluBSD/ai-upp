@@ -42,9 +42,9 @@ private:
     Button remove_slot_btn;
     
     // Blending controls
-    Slider blend_weight_slider;
+    ScrollBar blend_weight_slider;  // U++ uses ScrollBar for slider functionality
     Label blend_weight_label;
-    SpinEdit transition_time_edit;
+    EditDouble transition_time_edit;  // For numeric input
     Label transition_label;
     Button apply_blend_btn;
     
@@ -55,22 +55,22 @@ private:
     Button edit_event_btn;
     EditField event_name_field;
     Option event_type_option;
-    SpinEdit event_frame_field;
+    EditInt event_frame_field;  // For integer input
     
     // Transition management controls
     ArrayCtrl transition_list_ctrl;
     Option from_animation_option;
     Option to_animation_option;
-    SpinEdit transition_time_field;
+    EditDouble transition_time_field;  // For numeric input
     EditField condition_field;
     Button add_transition_btn;
     Button remove_transition_btn;
     Button edit_transition_btn;
     
     // Entity animation parameters controls
-    SpinEdit speed_multiplier_field;
-    SpinEdit time_offset_field;
-    CheckBox looping_check;
+    EditDouble speed_multiplier_field;  // For numeric input
+    EditDouble time_offset_field;       // For numeric input
+    Option looping_check;
     Button apply_anim_params_btn;
     
     // Script management controls
@@ -81,8 +81,8 @@ private:
     Option script_type_option;
     EditField script_name_field;
     EditField script_id_field;
-    MultiLineEdit script_content_edit;
-    CheckBox script_active_check;
+    EditField script_content_edit;
+    Option script_active_check;
     Button apply_script_btn;
     
     // Validation feedback
@@ -95,8 +95,8 @@ private:
     Button play_btn;
     Button pause_btn;
     Button stop_btn;
-    CheckBox loop_check;
-    Slider speed_slider;
+    Option loop_check;
+    ScrollBar speed_slider;  // U++ uses ScrollBar for slider functionality
     Label speed_label;
 
     void UpdateControls();

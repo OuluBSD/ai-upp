@@ -8,7 +8,7 @@ namespace Upp {
 
 // Forward declarations
 struct Sprite;
-struct Frame;
+struct AnimationFrame;
 struct Animation;
 struct AnimationProject;
 
@@ -25,10 +25,10 @@ public:
     Vector<String> GetAllSpriteIds() const;
     void ClearSprites();
     
-    // Frame management
-    void AddFrame(Frame frame);
+    // AnimationFrame management
+    void AddFrame(AnimationFrame frame);
     void RemoveFrame(const String& id);
-    const Frame* GetFrame(const String& id) const;
+    const AnimationFrame* GetFrame(const String& id) const;
     Vector<String> GetAllFrameIds() const;
     void ClearFrames();
     
@@ -67,7 +67,7 @@ public:
 private:
     // Internal storage
     VectorMap<String, Sprite> sprites;
-    VectorMap<String, Frame> frames;
+    VectorMap<String, AnimationFrame> frames;
     VectorMap<String, Animation> animations;
     
     // Helper methods

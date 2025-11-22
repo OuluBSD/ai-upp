@@ -54,25 +54,25 @@ void AnimResourceRegistry::ClearSprites() {
     sprites.Clear();
 }
 
-// Frame management
-void AnimResourceRegistry::AddFrame(Frame frame) {
+// AnimationFrame management
+void AnimResourceRegistry::AddFrame(AnimationFrame frame) {
     if (frame.id.IsEmpty()) {
         // Don't add frames without IDs
         return;
     }
     
     frames.Add(frame.id, pick(frame));  // Use pick to move it to VectorMap
-    NotifyResourceAdded(frame.id, 'F');  // F for Frame
+    NotifyResourceAdded(frame.id, 'F');  // F for AnimationFrame
 }
 
 void AnimResourceRegistry::RemoveFrame(const String& id) {
     if (frames.Find(id) >= 0) {
         frames.RemoveKey(id);
-        NotifyResourceRemoved(id, 'F');  // F for Frame
+        NotifyResourceRemoved(id, 'F');  // F for AnimationFrame
     }
 }
 
-const Frame* AnimResourceRegistry::GetFrame(const String& id) const {
+const AnimationFrame* AnimResourceRegistry::GetFrame(const String& id) const {
     int idx = frames.Find(id);
     if (idx >= 0) {
         return &frames[idx];

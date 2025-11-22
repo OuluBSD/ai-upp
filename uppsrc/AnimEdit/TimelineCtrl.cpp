@@ -32,7 +32,7 @@ void AnimEditTimelineCtrl::SetAnimation(const Animation* anim) {
     Refresh();
 }
 
-void AnimEditTimelineCtrl::SetFrameCallback(std::function<void(const Upp::Frame*)> callback) {
+void AnimEditTimelineCtrl::SetFrameCallback(std::function<void(const AnimationFrame*)> callback) {
     frame_callback = callback;
 }
 
@@ -80,8 +80,8 @@ int AnimEditTimelineCtrl::HitTestDurationControl(Point pos) const {
 void AnimEditTimelineCtrl::DrawFrame(Draw& w, int index, const Rect& rc) {
     if (!animation || index < 0 || index >= animation->frames.GetCount()) return;
     
-    const FrameRef& ref = animation->frames[index];
-    const Frame* frame = project ? project->FindFrame(ref.frame_id) : nullptr;
+    const AnimationFrameRef& ref = animation->frames[index];
+    const AnimationFrame* frame = project ? project->FindFrame(ref.frame_id) : nullptr;
     
     // Draw frame background
     Color bg_color = (index == selected_frame_index) ? RGB(50, 150, 200) : RGB(200, 200, 200);
@@ -176,8 +176,8 @@ void AnimEditTimelineCtrl::SelectFrame(int index) {
     selected_frame_index = index;
     
     if (frame_callback && animation && index >= 0 && index < animation->frames.GetCount()) {
-        const FrameRef& ref = animation->frames[index];
-        const Frame* frame = project ? project->FindFrame(ref.frame_id) : nullptr;
+        const AnimationFrameRef& ref = animation->frames[index];
+        const AnimationFrame* frame = project ? project->FindFrame(ref.frame_id) : nullptr;
         if (frame) {
             frame_callback(frame);
         }
@@ -328,7 +328,7 @@ void AnimEditTimelineCtrl::ReorderFrame(int from_index, int to_index) {
     }
     
     // Move the frame from from_index to to_index
-    FrameRef temp = animation->frames[from_index];
+    AnimationFrameRef temp = animation->frames[from_index];
     animation->frames.Remove(from_index);
     animation->frames.Insert(to_index, temp);
     
@@ -366,7 +366,7 @@ void AnimEditTimelineCtrl::ShowDurationEditor(int frame_index, int x, int y) {
     }
     
     // Get the current duration value
-    const FrameRef& ref = animation->frames[frame_index];
+    const AnimationFrameRef& ref = animation->frames[frame_index];
     double current_duration = ref.has_duration ? ref.duration : 0.1; // Default to 0.1 if not set
     
     // Create a simple dialog for duration editing
@@ -413,7 +413,7 @@ void AnimEditTimelineCtrl::OnDurationChanged(int frame_index, double new_duratio
     }
     
     // Update the frame duration
-    FrameRef& ref = animation->frames[frame_index];
+    AnimationFrameRef& ref = animation->frames[frame_index];
     ref.has_duration = true;
     ref.duration = new_duration;
     

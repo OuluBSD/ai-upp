@@ -3,7 +3,13 @@
 NAMESPACE_UPP
 
 String QwenServerConnectionConf::GetAddress() const {
-	// TODO read qwen address
+	if (connection_type == "tcp") {
+		return host + ":" + IntStr(port);
+	} else if (connection_type == "stdin") {
+		return "stdin/stdout";
+	} else if (connection_type == "pipe") {
+		return directory;
+	}
 	return String();
 }
 
@@ -12,21 +18,31 @@ String QwenServerConnectionConf::GetLabel() const {
 }
 
 String QwenServerConnectionConf::GetStatusString() const {
-	// TODO qwen status string
-	return String();
+	if (is_connected) {
+		return is_healthy ? "Connected" : "Connected (Unhealthy)";
+	} else {
+		return "Disconnected";
+	}
 }
 
 void QwenServerConnectionConf::Jsonize(JsonIO& jio) {
 	jio
 		("name", name)
-		//("", ) // TODO qwen variables
+		("directory", directory)
+		("host", host)
+		("port", port)
+		("connection_type", connection_type)
+		("auto_start", auto_start)
 		;
 }
 
 void QwenProject::Jsonize(JsonIO& jio) {
 	jio
+		("uniq", uniq)
 		("name", name)
 		("preferred_connection_name", preferred_connection_name)
+		("git_origin_addr", git_origin_addr)
+		("session_ids", session_ids)
 		;
 }
 

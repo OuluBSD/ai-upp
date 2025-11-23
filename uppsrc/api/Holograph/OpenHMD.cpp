@@ -398,6 +398,21 @@ bool HoloOpenHMD::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSo
 		UPP::CtrlEvent& dst = out.SetData<UPP::CtrlEvent>();
 		dst = dev.ev;
 		out.seq = dev.seq++;
+		if (a.packet_router && !a.router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = a.RequestCredits(src_ch, 1);
+			if (credits <= 0) {
+				RTLOG("HoloOpenHMD::SinkDevice_Send: credit request denied for src_ch=" << src_ch);
+				return false;
+			}
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt.Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = a.EmitViaRouter(src_ch, route_pkt);
+			a.AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
+		}
 	}
 	
 	return true;
@@ -417,4 +432,3 @@ void HoloOpenHMD::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, Realti
 
 END_UPP_NAMESPACE
 #endif
-

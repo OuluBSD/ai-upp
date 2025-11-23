@@ -285,6 +285,11 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 - `MidiFileReaderAtom` now obeys router credits, emits MIDI batches via `EmitViaRouter()`, and restores the `PacketValue` afterwards so MIDI playback participates in the same metadata-driven flow control as other audio sources.
 - Legacy LinkSystem delivery remains available for unconverted atoms, but new nets should rely on the router path so diagnostics and credits stay in sync.
 
+### Phase 4 Validation (in progress)
+- Extend the `upptst/Router` console suites (and `upptst/Eon00/00h_router_flow`) with explicit runs that include the debug audio/video generators (`center.audio.src.dbg_generator`, `center.video.src.dbg_generator`), SDL event/audio bridges, and PortMidi so the credit counters exposed by `PacketRouter` (`GetTotalPacketsRouted`, `GetPacketsRouted`, `GetTotalDeliveryFailures`) exercise the same workloads that touched routers in Phase 4 runtime conversions.
+- Add lightweight regression cases that construct router nets via `RouterNetContext` and `RouterSchema` to confirm the debug sources request credits, emit through `EmitViaRouter()`, and restore their `PacketValue` before the legacy Link path observes the packets (see `task/notes/packet_router_phase4_runtime.md` for the exact behavioral contract).
+- Keep the runtime diary (`task/notes/packet_router_phase4_runtime.md`) synced with each conversion so the serialization/IDE thread can stay focused on metadata and tooling while runtime coverage is proven.
+
 ### Phase 4+ Enhancements (2025-11-21)
 **Extended router infrastructure and diagnostics:**
 

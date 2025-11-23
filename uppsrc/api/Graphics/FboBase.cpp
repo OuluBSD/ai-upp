@@ -185,6 +185,7 @@ bool FboAtomT<Gfx>::IsReady(PacketIO& io) {
 template <class Gfx>
 bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	RTLOG("FboAtomT::ProcessPackets:");
+	ValueFormat fmt = out.GetFormat();
 	 
 	if (src_type == VD(CENTER,FBO) ||
 		src_type == VD(OGL,FBO)) {
@@ -193,6 +194,22 @@ bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch
 		data.ptr = &static_cast<GfxDataState&>(this->data);
 		data.SetText("gfxstate");
 		ASSERT(data.ptr);
+		
+		if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = RequestCredits(src_ch, 1);
+			if (credits <= 0) {
+				RTLOG("FboAtomT::Send: credit request denied for src_ch=" << src_ch);
+				return false;
+			}
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt.Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = EmitViaRouter(src_ch, route_pkt);
+			AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
+		}
 	}
 	else {
 		ASSERT_(0, "TODO");

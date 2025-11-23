@@ -11,6 +11,7 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 - `MidiFileReaderAtom` now requests credits, routes MIDI packets via `EmitViaRouter()`, acknowledges the router before restoring the `PacketValue`, and returns the router result so metadata-driven flow control governs MIDI file playback in router nets.
 - `SynLV2::Instrument_Send` now reads the LV2 host buffers, mixes each output port into the packet payload, and runs the resulting audio through `EmitViaRouter()`/`AckCredits()` so LV2 hosts share the same metadata-driven flow control as the other synth sources.
 - `HalSdl::EventsBase_Send` now requests credits and emits SDL event packets via `EmitViaRouter()` before clearing the sendable flag, keeping the SDL event bridge diagnostics aligned with the router metadata and preventing events from bubbling up without honoring the credit helpers.
+- Volumetric static sources (e.g., `VolRawByte`) and the PortMidi hardware source now request router credits and emit their packets via `EmitViaRouter()`, which ensures the router metadata reflects those workloads as soon as the data leaves the hardware.
 
 ## Next
-- Continue migrating remaining backend sources (SDL/video/audio bridges, LV2/hardware synth hosts, etc.) so every emission honors router credits, and keep an eye on diagnostics to make sure VFS metadata still reflects the live topology.
+- Continue migrating the remaining SDL-backed audio/video bridges and any other hardware synth hosts so each emission honors router credits, keeping router diagnostics/VFS metadata in lock-step with the live workloads as more sources adopt the router path.

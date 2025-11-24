@@ -1,11 +1,31 @@
 #include <Core/Core.h>
+#include <Eon/Core/PacketRouter.h>
+#include <Eon/Script/Script.h>
 #include <EonRouterSupport/EonRouterSupport.h>
+#include <Shell/Shell.h>
+#include <Vfs/Ecs/Engine.h>
+#include <Vfs/Ecs/Engine2.h>
 #include <Vfs/Ecs/Formats.h>
 #include <Vfs/Storage/VfsStorage.h>
 #include <Vfs/Core/VfsValue.h>
 #include <Vfs/Overlay/VfsOverlay.h>
 
 using namespace Upp;
+
+struct EngineGuard {
+	Engine* eng = nullptr;
+	~EngineGuard() {
+		if (eng)
+			Engine::Uninstall(true, eng);
+	}
+};
+
+static void ConfigureRouterEngine(Engine& eng) {
+	eng.ClearCallbacks();
+	eng.WhenInitialize << callback(MachineEcsInit);
+	eng.WhenPreFirstUpdate << callback(DefaultStartup);
+	eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
+}
 
 static bool CompareVfsNodes(const VfsValue& a, const VfsValue& b) {
 	if (a.id != b.id)
@@ -390,6 +410,34 @@ static void TestRouterBuilderArtifactParity() {
 	FileDelete(base);
 }
 
+static void TestRouterRuntimeFlowCounters() {
+	EngineGuard guard;
+	guard.eng = &ShellMainEngine();
+	Engine& eng = *guard.eng;
+
+	ConfigureRouterEngine(eng);
+
+	ValueMap args;
+	args.Add("MACHINE_TIME_LIMIT", 2);
+
+	String script_path = ShareDirFile("eon/tests/00h_router_flow.eon");
+	ASSERT(eng.StartLoad("RouterRuntimeFlow", script_path, args));
+	eng.MainLoop();
+
+	Ptr<Eon::ScriptLoader> script = eng.Find<Eon::ScriptLoader>();
+	ASSERT(script && script->GetNetCount() > 0);
+
+	PacketRouter* router = script->GetNetRouter(0);
+	ASSERT(router);
+
+	int total_routed = router->GetTotalPacketsRouted();
+	int total_failures = router->GetTotalDeliveryFailures();
+	LOG(Format("Router runtime flow: routed=%d, failures=%d", total_routed, total_failures));
+
+	ASSERT(total_routed > 0);
+	ASSERT(total_failures == 0);
+}
+
 CONSOLE_APP_MAIN {
 	StdLogSetup(LOG_COUT|LOG_FILE);
 	TestRouterPortMetadata();
@@ -402,5 +450,6 @@ CONSOLE_APP_MAIN {
 	TestRouterOverlayIndexBinaryRoundTrip();
 	TestRouterOverlayChunkRoundTrip();
 	TestRouterBuilderArtifactParity();
+	TestRouterRuntimeFlowCounters();
 	LOG("Router descriptor tests completed");
 }

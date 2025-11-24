@@ -1,5 +1,6 @@
 uses
 	Core,
+	Shell,
 	Eon,
 	EonRouterSupport,
 	Vfs/Ecs,

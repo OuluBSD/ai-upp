@@ -1,3 +1,4 @@
+#include <Eon/Core/Core.h>
 #include "Ecs.h"
 
 

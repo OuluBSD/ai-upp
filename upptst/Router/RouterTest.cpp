@@ -495,6 +495,15 @@ static void TestRouterRuntimeFlowCounters() {
 		ASSERT(router->GetConnectionInfo(i, info));
 		router_connections[i] = info;
 
+		Value policy = RouterLookupValue(info.policy, "policy");
+		ASSERT(policy.Is<String>() && policy.Get<String>() == "legacy-loop");
+		Value credits = RouterLookupValue(info.policy, "credits");
+		ASSERT(credits.Is<int>() && credits.Get<int>() == 1);
+		Value src_vd = RouterLookupValue(info.src_metadata, "vd");
+		Value dst_vd = RouterLookupValue(info.dst_metadata, "vd");
+		ASSERT(src_vd.Is<String>() && src_vd.Get<String>().GetCount() > 0);
+		ASSERT(dst_vd.Is<String>() && dst_vd.Get<String>().GetCount() > 0);
+
 		ASSERT(info.delivery_failures == 0);
 		per_connection_total += info.packets_routed;
 		if (info.packets_routed > 0)

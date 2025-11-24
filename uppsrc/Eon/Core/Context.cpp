@@ -607,12 +607,13 @@ AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const 
     return ab;
 }
 
-void NetContext::AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port) {
+void NetContext::AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port, const ValueMap& metadata) {
     Connection& conn = connections.Add();
     conn.from_atom_idx = from_atom_idx;
     conn.from_port = from_port;
     conn.to_atom_idx = to_atom_idx;
     conn.to_port = to_port;
+    conn.metadata = metadata;
 }
 
 bool NetContext::RegisterPorts() {

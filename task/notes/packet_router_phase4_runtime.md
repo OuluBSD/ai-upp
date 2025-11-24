@@ -26,4 +26,5 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 
 ## Regression
 - Added a new shared regression net (`share/eon/tests/00h_router_flow.eon`) that strings the debug audio/video generators, SDL event/audio bridges, and PortMidi source through SDL/State/MIDI sinks and wired `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` to load it via `ShellMainEngine`, drive a couple of frames, and assert `PacketRouter::GetTotalPacketsRouted()`/`GetTotalDeliveryFailures()`.
+- `ScriptLoader::GetNetContext()` now exposes built nets so `TestRouterRuntimeFlowCounters` can match each `share/eon/tests/00h_router_flow.eon` connection against a `PacketRouter` connection and confirm the debug audio/video/SDL/PortMidi sources were routed (connection metadata + counters are verified end-to-end).
 - Rebuilt `bin/Router` via `script/build-console.sh Router` after the per-connection assertions landed so the console regression suite continues to pass with the stricter counters.

@@ -61,6 +61,15 @@ public:
 	int GetPacketsRouted(int connection_idx) const;
 	int GetTotalDeliveryFailures() const;
 	int GetDeliveryFailures(int connection_idx) const;
+	
+	struct ConnectionInfo {
+		PortHandle	src_handle;
+		PortHandle	dst_handle;
+		int			packets_routed = 0;
+		int			delivery_failures = 0;
+		bool		active = false;
+	};
+	bool GetConnectionInfo(int connection_idx, ConnectionInfo& info) const;
 
 	// Connection management helpers
 	void DisconnectAtom(AtomBase* atom);  // Marks all connections involving atom as inactive

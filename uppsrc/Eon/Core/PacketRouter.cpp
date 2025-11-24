@@ -311,6 +311,27 @@ int PacketRouter::GetDeliveryFailures(int connection_idx) const {
 }
 
 
+bool PacketRouter::GetConnectionInfo(int connection_idx, ConnectionInfo& info) const {
+	if (connection_idx < 0 || connection_idx >= connection_table.GetCount())
+		return false;
+	const Connection& conn = connection_table[connection_idx];
+	if (!conn.IsValid())
+		return false;
+	if (conn.src_port_idx < 0 || conn.src_port_idx >= ports.GetCount())
+		return false;
+	if (conn.dst_port_idx < 0 || conn.dst_port_idx >= ports.GetCount())
+		return false;
+	const Port& src_port = ports[conn.src_port_idx];
+	const Port& dst_port = ports[conn.dst_port_idx];
+	info.src_handle = src_port.handle;
+	info.dst_handle = dst_port.handle;
+	info.packets_routed = conn.packets_routed;
+	info.delivery_failures = conn.delivery_failures;
+	info.active = conn.active;
+	return true;
+}
+
+
 void PacketRouter::DisconnectAtom(AtomBase* atom) {
 	if (!atom) return;
 

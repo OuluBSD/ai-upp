@@ -120,6 +120,7 @@ public:
         int from_port;
         int to_atom_idx;
         int to_port;
+        ValueMap metadata;
     };
 
     VfsValue& net_space;
@@ -134,7 +135,7 @@ public:
     AtomBasePtr AddAtom(const String& name, const String& action, const IfaceConnTuple& iface, const ArrayMap<String, Value>* args = nullptr);
 
     // Add connection
-    void AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port);
+    void AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port, const ValueMap& metadata = ValueMap());
 
     // Register all ports with router
     bool RegisterPorts();

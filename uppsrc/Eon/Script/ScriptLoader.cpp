@@ -620,7 +620,10 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
             return false;
         }
 
-        nc->AddConnection(from_idx, conn.from_port, to_idx, conn.to_port);
+        ValueMap conn_metadata;
+        for (int i = 0; i < conn.metadata.GetCount(); i++)
+            conn_metadata.Add(conn.metadata.GetKey(i), conn.metadata[i]);
+        nc->AddConnection(from_idx, conn.from_port, to_idx, conn.to_port, conn_metadata);
         LOG("  Added connection: " << conn.ToString());
     }
 
@@ -1668,6 +1671,11 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 		conn.to_atom = to_atom;
 		conn.to_port = to_port;
 		conn.loc = stmt->loc;
+
+		if (conn.metadata.GetCount() == 0) {
+			conn.metadata.Add("policy", Value(String("legacy-loop")));
+			conn.metadata.Add("credits", Value(1));
+		}
 
 		RTLOG("LoadNet: parsed connection: " << conn.ToString());
 	}

@@ -68,6 +68,9 @@ public:
 		int			packets_routed = 0;
 		int			delivery_failures = 0;
 		bool		active = false;
+		ValueMap	policy;
+		ValueMap	src_metadata;
+		ValueMap	dst_metadata;
 	};
 	bool GetConnectionInfo(int connection_idx, ConnectionInfo& info) const;
 

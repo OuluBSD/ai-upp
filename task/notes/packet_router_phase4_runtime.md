@@ -30,6 +30,7 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 - `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` was updated to check that the new `sdl.ogl.center.fbo.audio` connection routes packets (per-connection counters, `ScriptLoader::GetNetContext()`, and essential source tracking now include the SDL/OpenGL audio path) so diagnostics cover this workload end-to-end.
 - `share/eon/tests/00h_router_flow.eon` now includes `corefx.pipe` so the FxAudioCore effect path runs inside the net and contributes to router packet counters alongside the SDL sources.
 - `TestRouterRuntimeFlowCounters` now treats `corefx.pipe` as an essential routed source, ensuring its connection counters are asserted by `PacketRouter::GetConnectionInfo()` before lagging into the legacy Link path.
+- `ScriptLoader::BuildNet()` now copies the connection metadata (`policy`, `credits`, etc.) into each `NetContext::Connection` so `PacketRouter::Connect()` receives the same legacy-loop hints that were stored on disk; `PacketRouter::ConnectionInfo` exposes the policy/port metadata and `TestRouterRuntimeFlowCounters` asserts those maps so the runtime diagnostics mirror the serialized router overlays.
 - Keep cataloging newly converted hardware event/emitter atoms in this runtime diary so `upptst/Router`/`00h_router_flow` can deliberately include each workload before falling back on the legacy Link path; the net should emit router credit diagnostics for every new source as soon as it lands.
 
 ## Regression

@@ -328,6 +328,9 @@ bool PacketRouter::GetConnectionInfo(int connection_idx, ConnectionInfo& info) c
 	info.packets_routed = conn.packets_routed;
 	info.delivery_failures = conn.delivery_failures;
 	info.active = conn.active;
+	info.policy = conn.policy;
+	info.src_metadata = src_port.metadata;
+	info.dst_metadata = dst_port.metadata;
 	return true;
 }
 

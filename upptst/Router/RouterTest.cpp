@@ -448,11 +448,14 @@ static void TestRouterRuntimeFlowCounters() {
 		"center.audio.src.dbg_generator",
 		"center.video.src.dbg_generator",
 		"sdl.audio",
+		"corefx.pipe",
+		"sdl.ogl.center.fbo.audio",
 		"sdl.video.pipe",
 		"center.customer",
 		"sdl.event.pipe",
 		"state.event.pipe",
 		"midi.src.side.portmidi",
+		"center.audio.sink.test.realtime",
 		"midi.null.sink"
 	};
 
@@ -471,6 +474,8 @@ static void TestRouterRuntimeFlowCounters() {
 		"center.audio.src.dbg_generator",
 		"center.video.src.dbg_generator",
 		"sdl.audio",
+		"corefx.pipe",
+		"sdl.ogl.center.fbo.audio",
 		"sdl.video.pipe",
 		"sdl.event.pipe",
 		"midi.src.side.portmidi"

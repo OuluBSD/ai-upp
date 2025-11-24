@@ -1,5 +1,5 @@
 #include <Core/Core.h>
-#include <Eon/Core/PacketRouter.h>
+#include <Eon/Core/Core.h>
 #include <Eon/Script/Script.h>
 #include <EonRouterSupport/EonRouterSupport.h>
 #include <Shell/Shell.h>
@@ -440,15 +440,87 @@ static void TestRouterRuntimeFlowCounters() {
 	int connection_count = router->GetConnectionCount();
 	ASSERT(connection_count >= 5);
 
+	Eon::NetContext* net_ctx = script->GetNetContext(0);
+	ASSERT(net_ctx);
+	ASSERT(net_ctx->connections.GetCount() >= 5);
+
+	Vector<String> expected_atoms = {
+		"center.audio.src.dbg_generator",
+		"center.video.src.dbg_generator",
+		"sdl.audio",
+		"sdl.video.pipe",
+		"center.customer",
+		"sdl.event.pipe",
+		"state.event.pipe",
+		"midi.src.side.portmidi",
+		"midi.null.sink"
+	};
+
+	for (const String& expected : expected_atoms) {
+		bool found = false;
+		for (const Eon::NetContext::AtomInstance& inst : net_ctx->atoms) {
+			if (inst.name == expected) {
+				found = true;
+				break;
+			}
+		}
+		ASSERT(found);
+	}
+
+	Vector<String> essential_sources = {
+		"center.audio.src.dbg_generator",
+		"center.video.src.dbg_generator",
+		"sdl.audio",
+		"sdl.video.pipe",
+		"sdl.event.pipe",
+		"midi.src.side.portmidi"
+	};
+	Index<String> essential_index;
+	for (int i = 0; i < essential_sources.GetCount(); i++)
+		essential_index.Add(essential_sources[i]);
+	Vector<bool> essential_routed(essential_sources.GetCount());
+
+	Vector<PacketRouter::ConnectionInfo> router_connections;
+	router_connections.SetCount(connection_count);
+
 	int per_connection_total = 0;
 	bool routed_connection_found = false;
 	for (int i = 0; i < connection_count; i++) {
-		int conn_routed = router->GetPacketsRouted(i);
-		int conn_failures = router->GetDeliveryFailures(i);
-		ASSERT(conn_failures == 0);
-		per_connection_total += conn_routed;
-		if (conn_routed > 0)
+		PacketRouter::ConnectionInfo info;
+		ASSERT(router->GetConnectionInfo(i, info));
+		router_connections[i] = info;
+
+		ASSERT(info.delivery_failures == 0);
+		per_connection_total += info.packets_routed;
+		if (info.packets_routed > 0)
 			routed_connection_found = true;
+	}
+
+	for (const Eon::NetContext::Connection& conn : net_ctx->connections) {
+		bool matched = false;
+		AtomBase* src_atom = net_ctx->atoms[conn.from_atom_idx].atom;
+		AtomBase* dst_atom = net_ctx->atoms[conn.to_atom_idx].atom;
+		ASSERT(src_atom && dst_atom);
+		String src_name = net_ctx->atoms[conn.from_atom_idx].name;
+
+		for (const PacketRouter::ConnectionInfo& info : router_connections) {
+			if (info.src_handle.atom == src_atom &&
+				info.src_handle.port_index == conn.from_port &&
+				info.dst_handle.atom == dst_atom &&
+				info.dst_handle.port_index == conn.to_port)
+			{
+				matched = true;
+				int essential_idx = essential_index.Find(src_name);
+				if (essential_idx >= 0 && info.packets_routed > 0)
+					essential_routed[essential_idx] = true;
+				break;
+			}
+		}
+		ASSERT(matched);
+	}
+
+	for (int i = 0; i < essential_routed.GetCount(); i++) {
+		ASSERT(essential_routed[i]);
 	}
 
 	LOG(Format("Router runtime flow: conn_count=%d, sum_routed=%d", connection_count, per_connection_total));

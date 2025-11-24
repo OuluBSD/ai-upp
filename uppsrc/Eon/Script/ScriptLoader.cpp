@@ -291,6 +291,12 @@ PacketRouter* ScriptLoader::GetNetRouter(int net_idx) {
 }
 
 
+NetContext* ScriptLoader::GetNetContext(int net_idx) {
+	if (net_idx < 0 || net_idx >= built_nets.GetCount())
+		return nullptr;
+	return built_nets[net_idx].Get();
+}
+
 int ScriptLoader::GetTotalPacketsRouted() const {
 	int total = 0;
 	for (const One<NetContext>& nc : built_nets)

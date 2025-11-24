@@ -16,6 +16,7 @@ class ScriptNetLoader;
 class ScriptMachineLoader;
 class ScriptWorldLoader;
 class ScriptLoader;
+class NetContext;
 
 void GetAtomActions(const WorldState& src, Vector<Eon::Action>& acts);
 
@@ -312,6 +313,7 @@ public:
 	// Router statistics access
 	int				GetNetCount() const { return built_nets.GetCount(); }
 	PacketRouter*	GetNetRouter(int net_idx);
+	NetContext*		GetNetContext(int net_idx);
 	int				GetTotalPacketsRouted() const;
 	// Non-AST path: build a chain directly from a prepared definition using Core contexts
 	bool			BuildChain(const Eon::ChainDefinition& chain);

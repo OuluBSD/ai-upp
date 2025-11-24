@@ -436,6 +436,25 @@ static void TestRouterRuntimeFlowCounters() {
 
 	ASSERT(total_routed > 0);
 	ASSERT(total_failures == 0);
+
+	int connection_count = router->GetConnectionCount();
+	ASSERT(connection_count >= 5);
+
+	int per_connection_total = 0;
+	bool routed_connection_found = false;
+	for (int i = 0; i < connection_count; i++) {
+		int conn_routed = router->GetPacketsRouted(i);
+		int conn_failures = router->GetDeliveryFailures(i);
+		ASSERT(conn_failures == 0);
+		per_connection_total += conn_routed;
+		if (conn_routed > 0)
+			routed_connection_found = true;
+	}
+
+	LOG(Format("Router runtime flow: conn_count=%d, sum_routed=%d", connection_count, per_connection_total));
+	ASSERT(per_connection_total == total_routed);
+	ASSERT(routed_connection_found);
+	ASSERT(script->GetTotalPacketsRouted() == total_routed);
 }
 
 CONSOLE_APP_MAIN {

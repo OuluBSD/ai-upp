@@ -16,6 +16,7 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 - Volumetric static sources (e.g., `VolRawByte`) and the PortMidi hardware source now request router credits and emit their packets via `EmitViaRouter()`, which ensures the router metadata reflects those workloads as soon as the data leaves the hardware.
 - SDL graphics/audio bridge sources (`ShaderBaseT`, `TextureBaseT`, `FboReaderBaseT`, `FboAtomT`, `FboProgAtomT`) now request router credits, emit their packets via `EmitViaRouter()`, and acknowledge the grants before clearing their outgoing buffers so every SDL video/audio emission honors the PacketRouter diagnostics and flow-control metadata.
 - `AudioGenBase` and `VideoGenBase` (the debug audio/video generators provided by the Eon runtime) now request credits, route their packets through `EmitViaRouter()`, and restore the `PacketValue` afterward so router nets can drive those built-in sources without overrunning the legacy Link diagnostics.
+- `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` now inspects the router built from `share/eon/tests/00h_router_flow.eon`, asserts the router exposes at least 5 connections, checks each connection's `GetPacketsRouted`/`GetDeliveryFailures`, and verifies the per-connection routed total matches both `PacketRouter::GetTotalPacketsRouted()` and `ScriptLoader::GetTotalPacketsRouted()` so the debug generators, SDL bridges, and PortMidi source exercise the credit path diagnostics from end to end.
 - Normalized `route_pkt.Pick` → `route_pkt->Pick` across camera/SDL/audio/hardware atoms and included `<Vfs/Ecs/Ecs.h>` in `PacketRouter.h` so the router descriptor definitions compile, then re-ran `script/build-console.sh Router` to verify the console suite succeeds with the router credits in place.
 
 ## Next
@@ -24,3 +25,4 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 
 ## Regression
 - Added a new shared regression net (`share/eon/tests/00h_router_flow.eon`) that strings the debug audio/video generators, SDL event/audio bridges, and PortMidi source through SDL/State/MIDI sinks and wired `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` to load it via `ShellMainEngine`, drive a couple of frames, and assert `PacketRouter::GetTotalPacketsRouted()`/`GetTotalDeliveryFailures()`.
+- Rebuilt `bin/Router` via `script/build-console.sh Router` after the per-connection assertions landed so the console regression suite continues to pass with the stricter counters.

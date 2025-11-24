@@ -284,6 +284,7 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 - The V4L2/OpenCV camera now returns `false` when credits are denied so the router diagnostics and flow-control metadata stay accurate.
 - `MidiFileReaderAtom` now obeys router credits, emits MIDI batches via `EmitViaRouter()`, and restores the `PacketValue` afterwards so MIDI playback participates in the same metadata-driven flow control as other audio sources.
 - Legacy LinkSystem delivery remains available for unconverted atoms, but new nets should rely on the router path so diagnostics and credits stay in sync.
+- `Screen` event senders now run through the templated `EventsBase_Send` implementation in `Screen/Impl.inl`, which requests router credits, emits the `GeomEventCollection` via `EmitViaRouter()`, and ACKs before clearing the future sendable flag so OS input streams report router credit diagnostics alongside the SDL bridge.
 
 ### Phase 4 Validation (in progress)
 - Extend the `upptst/Router` console suites (and `upptst/Eon00/00h_router_flow`) with explicit runs that include the debug audio/video generators (`center.audio.src.dbg_generator`, `center.video.src.dbg_generator`), SDL event/audio bridges, and PortMidi so the credit counters exposed by `PacketRouter` (`GetTotalPacketsRouted`, `GetPacketsRouted`, `GetTotalDeliveryFailures`) exercise the same workloads that touched routers in Phase 4 runtime conversions.

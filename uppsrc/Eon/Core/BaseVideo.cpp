@@ -193,7 +193,7 @@ bool VideoGenBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 		}
 
 		Packet route_pkt = CreatePacket(out.GetOffset());
-		route_pkt.Pick(out);
+		route_pkt->Pick(out);
 		route_pkt->SetFormat(current_fmt);
 		bool routed = EmitViaRouter(src_ch, route_pkt);
 		AckCredits(src_ch, credits);

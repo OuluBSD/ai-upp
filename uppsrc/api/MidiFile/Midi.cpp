@@ -303,7 +303,7 @@ bool MidiFileReaderAtom::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 			return false;
 		}
 		Packet route_pkt = CreatePacket(out.GetOffset());
-		route_pkt.Pick(out);
+		route_pkt->Pick(out);
 		route_pkt->SetFormat(fmt);
 		bool routed = EmitViaRouter(src_ch, route_pkt);
 		AckCredits(src_ch, credits);

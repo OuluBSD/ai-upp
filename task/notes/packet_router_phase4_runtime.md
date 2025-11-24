@@ -20,4 +20,6 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 ## Next
 - Expand the router-driven validation suites (`upptst/Router`, Eon00/00h, etc.) to cover the built-in audio/video generators and SDL/Eon workloads so credit accounting is observable end-to-end.
 - Continue sweeping the remaining hardware/SDL-backed sources (e.g., `HalSdl` audio/video bridges, event producers, and any lingering custom hardware atoms) so every emission honors router credits/diagnostics before the legacy Link path fires.
-- Add a Router regression case (console or `upptst` extension) that wires `center.audio.src.dbg_generator`, `center.video.src.dbg_generator`, and SDL/PortMidi sources into a net, runs a few frames via `RouterNetContext`, and inspects `PacketRouter::GetTotalPacketsRouted()`/`GetTotalDeliveryFailures()` to prove the credit path executes.
+
+## Regression
+- Added a new shared regression net (`share/eon/tests/00h_router_flow.eon`) that strings the debug audio/video generators, SDL event/audio bridges, and PortMidi source through SDL/State/MIDI sinks and wired `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` to load it via `ShellMainEngine`, drive a couple of frames, and assert `PacketRouter::GetTotalPacketsRouted()`/`GetTotalDeliveryFailures()`.

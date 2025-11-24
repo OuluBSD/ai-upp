@@ -4,20 +4,11 @@
 /*
 PacketRouter Runtime Flow Verification Test
 
-This test verifies that packets actually flow through the PacketRouter during
-the main loop execution. It:
-1. Creates a net-based pipeline
-2. Runs for several iterations
-3. Verifies packets_routed counter increments
-4. Confirms data reaches the sink atom
-
-net tester.flow:
-	center.audio.src.test
-	center.customer
-	center.audio.sink.test.realtime:
-		dbg_limit = 50
-	center.audio.src.test.0 -> center.customer.0
-	center.customer.0 -> center.audio.sink.test.realtime.0
+This test verifies that packets flow through PacketRouter when the net
+includes the debug audio/video generators, SDL event/audio bridges, and
+PortMidi hardware source so the metadata-driven credit path is exercised.
+The net is described by share/eon/tests/00h_router_flow.eon and dispatches
+packets through sdl.audio, sdl.video.pipe, sdl.event.pipe, and midi.null.sink.
 */
 
 NAMESPACE_UPP

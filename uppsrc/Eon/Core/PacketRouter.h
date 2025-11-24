@@ -1,6 +1,9 @@
 #ifndef _Eon_Core_PacketRouter_h_
 #define _Eon_Core_PacketRouter_h_
 
+#include <Core/Core.h>
+#include <Vfs/Ecs/Ecs.h>
+
 
 NAMESPACE_UPP
 

@@ -146,7 +146,7 @@ bool CamV4L2OpenCV::Camera_Send(NativeCamera& dev, AtomBase& a, RealtimeSourceCo
 			}
 
 			Packet route_pkt = CreatePacket(out.GetOffset());
-			route_pkt.Pick(out);
+			route_pkt->Pick(out);
 			route_pkt->SetFormat(fmt);
 			bool routed = a.EmitViaRouter(src_ch, route_pkt);
 			a.AckCredits(src_ch, credits);

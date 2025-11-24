@@ -78,7 +78,7 @@ bool HoloOpenVR::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSou
 				return false;
 			}
 			Packet route_pkt = CreatePacket(out.GetOffset());
-			route_pkt.Pick(out);
+			route_pkt->Pick(out);
 			route_pkt->SetFormat(fmt);
 			bool routed = a.EmitViaRouter(src_ch, route_pkt);
 			a.AckCredits(src_ch, credits);

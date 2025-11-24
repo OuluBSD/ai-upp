@@ -16,6 +16,7 @@ Gradually rewire backend atoms so they emit packets through the router instead o
 - Volumetric static sources (e.g., `VolRawByte`) and the PortMidi hardware source now request router credits and emit their packets via `EmitViaRouter()`, which ensures the router metadata reflects those workloads as soon as the data leaves the hardware.
 - SDL graphics/audio bridge sources (`ShaderBaseT`, `TextureBaseT`, `FboReaderBaseT`, `FboAtomT`, `FboProgAtomT`) now request router credits, emit their packets via `EmitViaRouter()`, and acknowledge the grants before clearing their outgoing buffers so every SDL video/audio emission honors the PacketRouter diagnostics and flow-control metadata.
 - `AudioGenBase` and `VideoGenBase` (the debug audio/video generators provided by the Eon runtime) now request credits, route their packets through `EmitViaRouter()`, and restore the `PacketValue` afterward so router nets can drive those built-in sources without overrunning the legacy Link diagnostics.
+- Normalized `route_pkt.Pick` → `route_pkt->Pick` across camera/SDL/audio/hardware atoms and included `<Vfs/Ecs/Ecs.h>` in `PacketRouter.h` so the router descriptor definitions compile, then re-ran `script/build-console.sh Router` to verify the console suite succeeds with the router credits in place.
 
 ## Next
 - Expand the router-driven validation suites (`upptst/Router`, Eon00/00h, etc.) to cover the built-in audio/video generators and SDL/Eon workloads so credit accounting is observable end-to-end.

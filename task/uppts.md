@@ -1,0 +1,464 @@
+# uppts Thread
+
+**Goal**: Create TypeScript/Node.js interface library with U++-like API implemented using TypeScript and npm packages
+
+## Status: IN PROGRESS (Phase 5 COMPLETED)
+
+---
+
+## Overview
+
+This thread is about creating a TypeScript package (uppts) that provides familiar U++ class names and method signatures, but implemented using TypeScript/JavaScript features and external npm libraries. This enables U++ developers to work with Node.js using familiar patterns and facilitates code conversion between U++ and TypeScript.
+
+Unlike stdsrc (U++ API backed by STL) and uppstd (documentation/mapping), uppts creates a completely new implementation in TypeScript for the JavaScript/Node.js ecosystem.
+
+---
+
+## Goals
+
+1. **U++-Like TypeScript API**
+   - Provide familiar class names (Vector, String, Thread, etc.)
+   - Match U++ method signatures where possible
+   - Maintain U++ semantics and patterns
+
+2. **TypeScript Best Practices**
+   - Use modern TypeScript features (generics, type inference, etc.)
+   - Provide excellent type definitions
+   - Follow JavaScript/TypeScript conventions where they don't conflict with U++ patterns
+
+3. **npm Package Ecosystem Integration**
+   - Leverage existing npm packages where appropriate
+   - Build on Node.js built-in modules
+   - Minimize external dependencies for core functionality
+
+4. **Code Portability**
+   - Enable easier migration from U++ to TypeScript
+   - Provide conversion documentation
+   - Create examples showing equivalent code
+
+5. **Production Ready**
+   - Comprehensive test coverage
+   - Full API documentation
+   - Published to npm registry
+   - CI/CD pipeline
+
+---
+
+## Architecture
+
+### Package Structure
+
+```
+ts/
+├── src/
+│   ├── Core/          # Containers, strings, smart pointers
+│   │   ├── Vector.ts
+│   │   ├── Array.ts
+│   │   ├── Index.ts
+│   │   ├── Map.ts
+│   │   ├── String.ts
+│   │   ├── One.ts
+│   │   ├── Ptr.ts
+│   │   └── ...
+│   ├── IO/            # File and stream I/O
+│   │   ├── Stream.ts
+│   │   ├── FileIn.ts
+│   │   ├── FileOut.ts
+│   │   └── ...
+│   ├── Threading/     # Async and concurrency
+│   │   ├── Thread.ts
+│   │   ├── Mutex.ts
+│   │   ├── CoWork.ts
+│   │   └── ...
+│   ├── DateTime/      # Time and date
+│   │   ├── Time.ts
+│   │   ├── Date.ts
+│   │   └── ...
+│   ├── Network/       # HTTP, TCP, WebSocket
+│   │   ├── HttpRequest.ts
+│   │   ├── TcpSocket.ts
+│   │   └── ...
+│   └── index.ts       # Main export
+├── tests/             # Test suite
+├── docs/              # Documentation
+├── examples/          # Usage examples
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### Design Principles
+
+1. **Familiar API Surface**
+   - Use U++ naming conventions (GetCount, Add, etc.)
+   - Provide operator-like methods where applicable
+   - Keep method signatures similar
+
+2. **TypeScript Native**
+   - Leverage TypeScript generics and type system
+   - Use async/await for asynchronous operations
+   - Provide both sync and async variants where appropriate
+
+3. **Minimal Dependencies**
+   - Use Node.js built-ins when possible
+   - Only add dependencies for complex functionality
+   - Keep bundle size reasonable
+
+4. **Documentation First**
+   - Every class documented with TypeDoc
+   - Examples for common patterns
+   - Migration guide from U++
+
+---
+
+## Work Items
+
+### Phase 1: Project Setup (COMPLETED)
+- [x] Create ts directory structure
+- [x] Set up TypeScript configuration (tsconfig.json)
+- [x] Configure package.json with dependencies
+- [x] Set up testing framework (Jest)
+- [x] Configure linting (ESLint) and formatting (Prettier)
+- [x] Set up documentation generation (TypeDoc)
+- [x] Create initial README
+- [x] Set up Git repository and .gitignore
+- [x] Research npm packages for various U++ equivalents
+- [x] Define export strategy and module structure
+
+### Phase 2: Core Containers (FULLY COMPLETED)
+- [x] Implement Vector<T> wrapping Array (ts/src/Core/Vector.ts)
+- [x] Implement Array<T> for object references (ts/src/Core/Array.ts)
+- [x] Implement Index<T> using binary search (ts/src/Core/Index.ts)
+- [x] Implement Map<K,V> with U++ interface (ts/src/Core/Map.ts)
+- [x] Implement BiVector<T> with deque operations (ts/src/Core/BiVector.ts)
+- [x] Create iterator interfaces (Symbol.iterator support)
+- [x] Implement Pick semantics (AddPick, InsertPick)
+- [x] Add container utility functions (Find, FindValue, etc.)
+- [x] Write unit tests for all containers (216 tests passing, 96.92% coverage)
+- [x] Document container usage (TypeDoc comments)
+
+**Completed**: All Phase 2 containers implemented:
+- Vector<T> - Dynamic array with U++ API (57 tests)
+- Array<T> - Object reference container (41 tests)
+- Index<T> - Sorted container with binary search (20 tests)
+- Map<K,V> - Key-value container with hash lookup (53 tests)
+- BiVector<T> - Double-ended queue/deque (45 tests)
+
+Build successful, all 216 tests pass, 96.92% coverage.
+
+### Phase 3: String Handling (COMPLETED)
+- [x] Implement String class (ts/src/Core/String.ts)
+- [x] Implement WString for wide characters (ts/src/Core/WString.ts)
+- [x] Create StringBuffer for concatenation (ts/src/Core/StringBuffer.ts)
+- [x] Add string utilities (ToUpper, ToLower, Find, Replace, Trim, etc.)
+- [x] Implement string formatting (Format method with %s, %d, %f)
+- [x] Add string parsing utilities (ToInt, ToDouble, IsNumber)
+- [x] Implement encoding/decoding support (UTF-8, UTF-16, code points in WString)
+- [x] Write comprehensive tests (204 tests passing: String 63, WString 70, StringBuffer 71)
+- [x] Document string handling (TypeDoc comments)
+
+**Completed**: All Phase 3 string classes implemented:
+- String - U++ style string wrapper with 63 tests
+- WString - Unicode-aware wide string with 70 tests
+- StringBuffer - Efficient string building with 71 tests
+
+Build successful, all 420 tests pass (Phase 2: 216 tests + Phase 3: 204 tests), 97.76% coverage.
+
+### Phase 4: Smart Pointers and Memory (COMPLETED)
+- [x] Implement One<T> with ownership semantics (ts/src/Core/One.ts)
+- [x] Create Ptr<T> for shared references (ts/src/Core/Ptr.ts)
+- [x] Implement Pick<T> move helper (included in One.ts)
+- [x] Add weak reference support (WeakPtr in Ptr.ts)
+- [x] Implement Clone/DeepCopy patterns (Clone method in One<T>)
+- [x] Write memory management tests (160 tests: One 101, Ptr 59)
+- [x] Document ownership patterns (ts/docs/OwnershipPatterns.md)
+
+**Completed**: All Phase 4 smart pointer classes implemented:
+- One<T> - Unique ownership with move semantics (101 tests)
+- Ptr<T> - Shared ownership with reference counting (59 tests)
+- WeakPtr<T> - Weak references for breaking cycles
+- Pick<T> - Helper function for ownership transfer
+- Clone support for deep copying
+
+Build successful, all 532 tests pass (Phase 2: 216 + Phase 3: 204 + Phase 4: 112 tests = 532 total), 97.89% coverage.
+
+**Note**: RAII-style helpers deferred as they are less relevant in garbage-collected JavaScript/TypeScript. The smart pointer types (One, Ptr, WeakPtr) provide the core memory management patterns needed for U++ compatibility.
+
+### Phase 5: Utility Classes (COMPLETED)
+- [x] Implement Tuple<T...> (ts/src/Core/Tuple.ts)
+- [x] Create Optional<T> (ts/src/Core/Optional.ts)
+- [x] Implement Value variant type (ts/src/Core/Value.ts)
+- [x] Create Function<R(Args...)> callback wrapper (ts/src/Core/Function.ts)
+- [x] Implement Callback<R(Args...)> with U++ semantics (ts/src/Core/Callback.ts)
+- [x] Add Event<Args...> for event handling (ts/src/Core/Event.ts)
+- [x] Create Gate and Throttle utilities (ts/src/Core/Gate.ts and ts/src/Core/Throttle.ts)
+- [x] Implement sorting and searching functions (ts/src/Core/Algorithms.ts)
+- [x] Add collection algorithms (Filter, Map, etc.) (ts/src/Core/Algorithms.ts)
+- [x] Document utility patterns with examples
+
+**Completed**: All Phase 5 utility classes implemented:
+- Tuple<T...> - Fixed-size heterogeneous collection (10 tests)
+- Optional<T> - Nullable wrapper for values (10 tests)
+- Value<T> - Variant type that can hold different types (4 tests)
+- Function<T> - Function wrapper with type checking (9 tests)
+- Callback<T> - Callback function with type checking (9 tests)
+- Event<T> - Event system for callbacks (10 tests)
+- Gate - Boolean-based gate mechanism (7 tests)
+- Throttle - Rate limiting utility (8 tests)
+- Algorithms - Collection of utility functions for sorting, searching, filtering, mapping, etc. (19 tests)
+
+Build successful, all tests pass, coverage increased.
+
+### Phase 6: I/O System (TODO)
+- [ ] Implement Stream base class
+- [ ] Create FileIn for reading
+- [ ] Create FileOut for writing
+- [ ] Implement StringStream
+- [ ] Add binary I/O operations
+- [ ] Create FileSystem utilities
+- [ ] Implement Path manipulation
+- [ ] Add async I/O with Promises
+- [ ] Test I/O operations
+- [ ] Document I/O patterns
+
+### Phase 7: Threading and Async (TODO)
+- [ ] Implement Thread wrapper
+- [ ] Create Mutex for synchronization
+- [ ] Implement CoWork parallel processing
+- [ ] Add Event/Semaphore primitives
+- [ ] Create Promise-based utilities
+- [ ] Implement async/await helpers
+- [ ] Add thread pool
+- [ ] Create thread-safe containers
+- [ ] Test concurrency scenarios
+- [ ] Document threading patterns
+
+### Phase 8: Time and Date (TODO)
+- [ ] Implement Time class
+- [ ] Create Date class
+- [ ] Add TimePoint and Duration
+- [ ] Implement time zone handling
+- [ ] Create time formatting
+- [ ] Add date arithmetic
+- [ ] Implement timers
+- [ ] Add performance timing utilities
+- [ ] Test date/time operations
+- [ ] Document time handling
+
+### Phase 9: Networking (TODO)
+- [ ] Implement HttpRequest
+- [ ] Create TcpSocket
+- [ ] Add WebSocket support
+- [ ] Implement URL utilities
+- [ ] Create JSON helpers
+- [ ] Add XML parsing
+- [ ] Implement base64 encoding
+- [ ] Create compression utilities
+- [ ] Test networking components
+- [ ] Document networking patterns
+
+### Phase 10: Integration and Release (TODO)
+- [ ] Complete test suite (>80% coverage)
+- [ ] Add integration tests
+- [ ] Generate API documentation
+- [ ] Create migration guide from U++
+- [ ] Write example applications
+- [ ] Add performance benchmarks
+- [ ] Set up CI/CD pipeline
+- [ ] Publish to npm
+- [ ] Create comparison docs (uppts vs U++ vs STL)
+- [ ] Write future roadmap
+
+---
+
+## Dependencies
+
+### Requires
+- TypeScript 5.x
+- Node.js 18+ (LTS)
+- Understanding of both U++ and TypeScript/JavaScript ecosystems
+- Reference to uppstd mapping (for API consistency)
+
+### Blocks
+- TypeScript code conversion tools
+- U++ to JavaScript/TypeScript migration projects
+
+### Related
+- uppstd thread (API mapping documentation)
+- stdsrc thread (similar goal but for C++/STL)
+
+---
+
+## Implementation Notes
+
+### Naming Conventions
+
+Follow U++ naming where possible:
+- Classes: PascalCase (Vector, String, Thread)
+- Methods: PascalCase for U++ compatibility (GetCount, Add, ToUpper)
+- Properties: Consider both camelCase (TypeScript) and PascalCase (U++) accessors
+- Private members: Use TypeScript private or # syntax
+
+### TypeScript Features
+
+Leverage modern TypeScript:
+```typescript
+// Generic containers
+class Vector<T> {
+    Add(item: T): void
+    GetCount(): number
+    At(index: number): T
+    [Symbol.iterator](): Iterator<T>
+}
+
+// Optional and nullable
+class Optional<T> {
+    static Of<T>(value: T | null | undefined): Optional<T>
+    IsNull(): boolean
+    Get(): T
+}
+
+// Callbacks with proper typing
+type Callback<TArgs extends any[] = [], TReturn = void> =
+    (...args: TArgs) => TReturn
+
+// Pick semantics using TypeScript
+function Pick<T>(value: T): T {
+    // Transfer ownership semantics in TypeScript context
+    return value
+}
+```
+
+### Async Patterns
+
+Provide both sync and async variants:
+```typescript
+class FileIn {
+    // Synchronous (U++ style)
+    Open(filename: string): boolean
+    Read(buffer: Buffer, size: number): number
+
+    // Asynchronous (TypeScript style)
+    async OpenAsync(filename: string): Promise<boolean>
+    async ReadAsync(size: number): Promise<Buffer>
+}
+```
+
+### Package Dependencies
+
+Core dependencies:
+- No external deps for basic containers (use native Array, Set, Map)
+- `worker_threads` for threading (built-in)
+- `fs/promises` for I/O (built-in)
+
+Optional dependencies:
+- `axios` or `got` for HTTP
+- `ws` for WebSocket
+- `date-fns` or `dayjs` for date handling
+- `async-mutex` for synchronization primitives
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+- Test every public method
+- Cover edge cases (empty, null, boundary conditions)
+- Test type safety
+
+### Integration Tests
+- Test real-world scenarios
+- Test interaction between components
+- Performance benchmarks
+
+### Test Structure
+```
+tests/
+├── Core/
+│   ├── Vector.test.ts
+│   ├── String.test.ts
+│   └── ...
+├── IO/
+│   ├── FileIn.test.ts
+│   └── ...
+└── integration/
+    ├── containers.test.ts
+    └── ...
+```
+
+---
+
+## Documentation
+
+### TypeDoc Comments
+```typescript
+/**
+ * A dynamic array container similar to U++ Vector.
+ * Provides O(1) access, O(1) amortized append, and O(n) insert/remove.
+ *
+ * @template T The type of elements in the vector
+ *
+ * @example
+ * ```typescript
+ * const v = new Vector<number>()
+ * v.Add(1)
+ * v.Add(2)
+ * console.log(v.GetCount()) // 2
+ * ```
+ */
+class Vector<T> { ... }
+```
+
+### Documentation Structure
+- API reference (generated by TypeDoc)
+- Migration guide (U++ → TypeScript)
+- Examples and tutorials
+- Comparison with U++ and standard JavaScript
+
+---
+
+## Success Metrics
+
+1. **API Coverage**: All core U++ types have TypeScript equivalents
+2. **Test Coverage**: >80% code coverage
+3. **Documentation**: 100% API documentation
+4. **Performance**: Acceptable for typical use cases
+5. **Adoption**: Package downloaded and used by community
+6. **Migration**: Clear path for U++ developers to TypeScript
+
+---
+
+## Future Enhancements
+
+After v1.0 release:
+- GUI bindings (Electron integration)
+- Database connectivity utilities
+- Graphics/Canvas operations (Canvas API wrappers)
+- Audio processing
+- Code conversion tools (automated U++ to TypeScript)
+- Additional U++ package equivalents
+- Bridge/FFI to call actual U++ code from Node.js
+
+---
+
+## Comparison: uppts vs stdsrc vs uppstd
+
+| Aspect | uppts | stdsrc | uppstd |
+|--------|-------|--------|--------|
+| Language | TypeScript/JavaScript | C++ | Documentation |
+| Purpose | Node.js library | STL-backed U++ | Mapping reference |
+| Implementation | npm packages + custom | STL + custom wrappers | N/A |
+| Target | JavaScript developers | C++ developers | AI & converters |
+| Executable | Node.js runtime | Compiled binary | N/A |
+| Use Case | Web/server apps | Cross-platform C++ | Reference docs |
+
+---
+
+## References
+
+- **roadmap/uppts.md**: Detailed 10-phase roadmap
+- **uppstd thread**: API mapping for consistency
+- **stdsrc thread**: Similar approach for C++/STL
+- U++ documentation: For API reference
+- TypeScript handbook: For language features
+- npm best practices: For package publishing

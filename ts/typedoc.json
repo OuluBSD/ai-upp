@@ -1,0 +1,15 @@
+{
+  "entryPoints": ["./src/index.ts"],
+  "out": "./docs/api",
+  "exclude": ["**/*.test.ts", "**/node_modules/**"],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "readme": "./README.md",
+  "name": "uppts - U++ TypeScript Interface",
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true
+  }
+}

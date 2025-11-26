@@ -40,9 +40,15 @@ export { StringStream } from './IO/StringStream';
 export { FileSystem, FindFile } from './IO/FileSystem';
 export { Path } from './IO/Path';
 
-// Threading (to be implemented in Phase 7)
-// export { Thread } from './Threading/Thread';
-// export { Mutex } from './Threading/Mutex';
+// Threading (Phase 7)
+export { Thread, ThreadResult, Sleep, GetCurrentThreadId } from './Threading/Thread';
+export { Mutex, RecursiveMutex } from './Threading/Mutex';
+export { Semaphore, SyncEvent } from './Threading/Semaphore';
+export { CoWork, WorkItem, ParallelMap, ParallelReduce } from './Threading/CoWork';
+export { Async, Delay as AsyncDelay, WaitForAny, WaitForAll, Future } from './Threading/Async';
+export { AsyncCoWork, AsyncParallel, AsyncFirst, AsyncFor, AsyncForEach, AsyncMap, AsyncFilter, WithTimeout } from './Threading/AsyncHelpers';
+export { ThreadPool, ParallelExecute } from './Threading/ThreadPool';
+export { SynchronizedVector, SynchronizedArray, SynchronizedIndex, SynchronizedMap, Synchronized } from './Threading/SynchronizedContainers';
 
 // DateTime (to be implemented in Phase 8)
 // export { Time } from './DateTime/Time';

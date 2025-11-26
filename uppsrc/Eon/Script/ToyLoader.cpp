@@ -264,18 +264,17 @@ bool ToyLoader::MakeScript() {
 	String& s = eon_script;
 	s.Clear();
 
-	// Router syntax option has been added via UseRouterSyntax() method
-	// When enabled, generates router-based net syntax instead of loop/chain syntax
+	// Option has been added via UseRouterSyntax() method in header, but
+	// full implementation to generate router-based net syntax instead of loop/chain syntax is still needed
 	// Router syntax example:
 	//   net audio_pipeline:
 	//     osc
 	//     gain
 	//     sink
-	//     connections:
-	//       osc.0 -> gain.0
-	//       gain.0 -> sink.0
+	//     osc.0 -> gain.0
+	//     gain.0 -> sink.0
 	//
-	// Traditional syntax is still default, but router option is now available
+	// For now, continues using traditional loop/chain syntax
 
 	s << __eon_script_begin;
 	

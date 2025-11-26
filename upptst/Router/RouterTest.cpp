@@ -421,6 +421,7 @@ static void TestRouterRuntimeFlowCounters() {
 	args.Add("MACHINE_TIME_LIMIT", 2);
 
 	String script_path = ShareDirFile("eon/tests/00h_router_flow.eon");
+	LOG("Loading script from: " << script_path);
 	ASSERT(eng.StartLoad("RouterRuntimeFlow", script_path, args));
 	eng.MainLoop();
 
@@ -627,20 +628,27 @@ static void TestRouterHardwareBridgeFlow() {
 					if (src_name == "sdl.ogl.center.fbo.audio") sdl_ogl_audio_routed = true;
 					audio_sink_routed = true;
 				}
-				if (dst_name == "sdl.video.pipe" && info.packets_routed > 0)
+				if (dst_name == "sdl.video.pipe" && info.packets_routed > 0) {
 					video_sink_routed = true;
-				if (src_name == "sdl.event.pipe" && dst_name == "state.event.pipe" && info.packets_routed > 0)
+				}
+				if (src_name == "sdl.event.pipe" && dst_name == "state.event.pipe" && info.packets_routed > 0) {
 					sdl_event_routed = true;
-				if (src_name == "state.event.pipe" && dst_name == "center.event.sink.test" && info.packets_routed > 0)
+				}
+				if (src_name == "state.event.pipe" && dst_name == "center.event.sink.test" && info.packets_routed > 0) {
 					state_event_routed = true;
-				if (src_name == "midi.src.side.portmidi" && dst_name == "midi.null.sink" && info.packets_routed > 0)
+				}
+				if (src_name == "midi.src.side.portmidi" && dst_name == "midi.null.sink" && info.packets_routed > 0) {
 					midi_routed = true;
-				if (dst_name == "center.audio.sink.test.realtime" && info.packets_routed > 0)
+				}
+				if (dst_name == "center.audio.sink.test.realtime" && info.packets_routed > 0) {
 					audio_sink_test_routed = true;
-				if (dst_name == "center.event.sink.test" && info.packets_routed > 0)
+				}
+				if (dst_name == "center.event.sink.test" && info.packets_routed > 0) {
 					event_sink_test_routed = true;
-				if (dst_name == "midi.null.sink" && info.packets_routed > 0)
+				}
+				if (dst_name == "midi.null.sink" && info.packets_routed > 0) {
 					midi_sink_routed = true;
+				}
 				break;
 			}
 		}

@@ -889,7 +889,9 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 			has_world = true;
 		}
 		else if (item->src == Cursor_SystemStmt) {
-			TODO
+			// System statements are not allowed at the machine level, they should be inside worlds
+			AddError(item->loc, "System statement is not allowed at machine level - systems belong in world definitions");
+			return false;
 		}
 	}
 	
@@ -1057,15 +1059,34 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadDriver(Eon::DriverDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	Vector<Endpoint> items;
+	n->FindAll(items, Cursor_ArgumentStmt);
+	Sort(items, AstNodeLess());
+
+	for (Endpoint& ep : items) {
+		AstNode* item = ep.n;
+		Id arg_id;
+		if (!GetId(arg_id, item)) return false;
+
+		Value val;
+		if (!GetValue(val, item)) return false;
+
+		def.args.Add(arg_id, val);
+	}
+
+	return true;
 }
 
 bool ScriptLoader::LoadTopChain(Eon::ChainDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	return LoadChain(def, n);
 }
 
 bool ScriptLoader::LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n) {
@@ -1112,15 +1133,27 @@ bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadTopPool(Eon::PoolDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	return LoadPool(def, n);
 }
 
 bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	// StateDeclaration has only id and location, which are typically set by the caller
+	// This function ensures the state is properly initialized
+	def.loc = n->loc;
+
+	if (!GetPathId(def.id, n, n)) {
+		return false;
+	}
+
+	return true;
 }
 
 bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
@@ -1748,7 +1781,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							}
 							else {
 								LOG(rval.GetTreeString(0));
-								TODO
+								AddError(rval.loc, "Unsupported value type in argument assignment");
+								return false;
 							}
 						}
 						else if (key->src == Cursor_VarDecl) {
@@ -1762,17 +1796,20 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							}
 							else {
 								LOG(rval.GetTreeString(0));
-								TODO
+								AddError(rval.loc, "Unsupported value type in argument assignment");
+								return false;
 							}
 						}
 						else {
 							LOG(rval.GetTreeString(0));
-							TODO
+							AddError(rval.loc, "Unsupported syntax in arguments");
+							return false;
 						}
 					}
 					else {
 						LOG(rval.GetTreeString(0));
-						TODO
+						AddError(rval.loc, "Unsupported syntax in arguments");
+						return false;
 					}
 				}
 				else if (rval.src == Cursor_CompoundStmt ||
@@ -1783,17 +1820,20 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 				}
 				else {
 					LOG(rval.GetTreeString(0));
-					TODO
+					AddError(rval.loc, "Unsupported syntax in arguments");
+					return false;
 				}
 			}
 			else {
 				LOG(stmt.GetTreeString(0));
-				TODO
+				AddError(stmt.loc, "Unsupported syntax in argument processing");
+				return false;
 			}
 		}
 		else {
 			LOG(stmt.GetTreeString(0));
-			TODO
+			AddError(stmt.loc, "Unsupported syntax in argument processing");
+			return false;
 		}
 		
 		if (!succ) {

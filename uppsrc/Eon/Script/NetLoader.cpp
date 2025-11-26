@@ -7,9 +7,10 @@ namespace Eon {
 ScriptNetLoader::ScriptNetLoader(ScriptMachineLoader& parent, int id, Eon::NetDefinition& def) :
 	Base(parent, id, def)
 {
-	// TODO: Load states when we support them with nets
-	// For now, states require ScriptChainLoader parent, so we skip them
-	// We'll refactor StateLoader to support multiple parent types later
+	// Load states for the net
+	for (int i = 0; i < def.states.GetCount(); i++) {
+		states.Add(ScriptStateLoader(*this, i, def.states[i]));
+	}
 }
 
 bool ScriptNetLoader::Load() {
@@ -53,10 +54,10 @@ void ScriptNetLoader::GetLoops(Vector<ScriptLoopLoader*>& v) {
 }
 
 void ScriptNetLoader::GetStates(Vector<ScriptStateLoader*>& v) {
-	// TODO: Add state support when we refactor StateLoader
-	// for (ScriptStateLoader& state : states) {
-	//     v.Add(&state);
-	// }
+	// Add all state loaders to the vector
+	for (ScriptStateLoader& state : states) {
+		v.Add(&state);
+	}
 }
 
 Eon::Id ScriptNetLoader::GetDeepId() const {

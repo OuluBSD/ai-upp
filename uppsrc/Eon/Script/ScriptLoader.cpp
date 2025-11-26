@@ -843,7 +843,17 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 			has_machine = true;
 		}
 		else if (item->src == Cursor_EngineStmt) {
-			TODO
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block for engine"); return false;}
+
+			Eon::WorldDefinition& world_def = def.worlds.Add();
+
+			if (!GetPathId(world_def.id, n, item))
+				return false;
+
+			ASSERT(!world_def.id.IsEmpty());
+			if (!LoadWorld(world_def, block))
+				return false;
 		}
 	}
 	

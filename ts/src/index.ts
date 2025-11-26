@@ -32,10 +32,13 @@ export { Gate } from './Core/Gate';
 export { Throttle, QueuedThrottle } from './Core/Throttle';
 export * from './Core/Algorithms';
 
-// I/O (to be implemented in Phase 6)
-// export { Stream } from './IO/Stream';
-// export { FileIn } from './IO/FileIn';
-// export { FileOut } from './IO/FileOut';
+// I/O (Phase 6)
+export { Stream } from './IO/Stream';
+export { FileIn } from './IO/FileIn';
+export { FileOut } from './IO/FileOut';
+export { StringStream } from './IO/StringStream';
+export { FileSystem, FindFile } from './IO/FileSystem';
+export { Path } from './IO/Path';
 
 // Threading (to be implemented in Phase 7)
 // export { Thread } from './Threading/Thread';

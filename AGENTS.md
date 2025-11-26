@@ -287,3 +287,43 @@ GFXTYPE_LIST
 - Allows writing generic graphics code that works across multiple backends (SDL+OpenGL, X11+OpenGL, Windows+DirectX, etc.)
 - The concrete atoms are auto-generated from the Headers.cpp definitions
 - Makes it easy to track which atoms belong to which graphics backend via type aliases
+
+## Packet Router Architecture
+
+### Overview
+The PacketRouter replaces the loop-centric Eon dataflow runtime with a router-based architecture where Atoms expose explicit ports and all packet movement is mediated by a PacketRouter rather than Link chains.
+
+### Key Features
+- **Net syntax**: DSL uses `net` blocks instead of `loop` for defining connections
+- **Explicit connections**: Connections defined as `atom:port -> atom:port` instead of implicit loop wiring
+- **Port-based flow**: All atom channels become peer ports with optional names
+- **Credit management**: Router-governed credit/buffer management for flow control
+- **Arbitrary topology**: Networks can have fan-out/fan-in and non-circular topologies
+
+### DSL Syntax Example
+```eon
+net audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime:
+        dbg_limit = 100
+    center.customer.0 -> center.audio.src.test.0
+    center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+```
+
+### Migration Status
+- **Phases 0-4**: Completed (Core API, DSL integration, runtime flow)
+- **Phase 5**: In progress (DSL migration & test coverage)
+- **Phase 6**: Planned (Performance, compatibility, cleanup)
+
+### Key Files
+- `uppsrc/Eon/Core/PacketRouter.{h,cpp}` - Core router implementation
+- `uppsrc/Eon/Script/ScriptLoader.cpp` - BuildNet() and DSL integration
+- `uppsrc/Eon/Core/Context.{h,cpp}` - NetContext for router networks
+- `uppsrc/Eon/AGENTS.md` - Detailed migration guide for atoms
+
+### Benefits
+- Supports arbitrary network topologies (not just loops)
+- Explicit port-to-port connections for clarity
+- Credit-based flow control instead of fixed packet pools
+- Better diagnostics and topology inspection

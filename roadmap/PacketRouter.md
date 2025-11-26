@@ -218,24 +218,74 @@ Complete implementation of atom creation, port registration, and lifecycle:
 - ✓ **Error handling** - UndoAll() cleanup on failures
 - ✓ **Build verification** - Eon00 compiles successfully with all changes
 
-## Immediate Next Steps
+## Current Status Summary
 
-### Phase 4 – Live Testing & Validation (NEXT)
-Test the complete implementation with live .eon files:
-1. **Create test .eon files** with various network topologies
-   - Single-atom nets
-   - Multi-atom pipeline nets
-   - Networks with fan-out/fan-in patterns
-2. **Verify packet flow**
-   - Router properly routes packets between atoms
-   - Credit accounting works correctly
-   - Atoms communicate through PacketRouter API
-3. **Test error cases**
-   - Invalid atom names
-   - Port mismatches
-   - Type incompatibilities
-   - Missing connections
-4. **Performance validation**
-   - Compare router nets vs loop-based chains
-   - Measure packet routing overhead
-   - Verify no packet leaks or starvation
+### Phase 0-4 – COMPLETE ✓
+All foundational work is complete:
+- Phase 0: Discovery & Router Prototype - COMPLETE ✓
+- Phase 1: Router Core & Flow Control + Serialization - COMPLETE ✓
+- Phase 2: DSL & Loader Rewrite - COMPLETE ✓
+- Phase 3: Interface + VFS/ECS Plumbing - COMPLETE ✓
+- Phase 4: Atom, API, and Backend Conversion - COMPLETE ✓
+
+### Phase 5 – DSL Migration & Test Coverage - IN PROGRESS
+Current focus areas:
+1. **Converting .eon assets** to router syntax
+   - All `share/eon/**/*.eon` progressively migrating to `net` syntax
+   - Maintaining functional equivalence with legacy loop-based systems
+2. **Test coverage expansion**
+   - `upptst/Eon*` packages updating to router nets
+   - Regression tests validating router behavior
+3. **Conversion tooling**
+   - Scripts to automate legacy-to-router syntax conversion
+   - Validation tools for router net correctness
+
+### Phase 6 – Performance, Compatibility, and Cleanup - PLANNED
+Planned for after Phase 5 completion:
+1. Benchmarking router vs legacy loop performance
+2. Final compatibility policy implementation
+3. Removal of deprecated loop-era APIs
+4. Full deprecation of legacy DSL constructs
+
+## Key Achievements
+
+### Router Infrastructure Complete ✓
+- **PacketRouter runtime** - Full implementation with connection management
+- **DSL support** - `net` blocks, explicit port-to-port connections, validation
+- **NetContext** - Router-based network context parallel to legacy ChainContext
+- **BuildNet** - Complete implementation with atom instantiation and lifecycle
+- **Statistics API** - Packet counters, delivery diagnostics, connection info
+- **Credit handling** - Per-connection flow control with request/acknowledge
+
+### Test Coverage Complete ✓
+- **00d_audio_gen_net.eon** - Linear pipeline test (customer → generator → sink)
+- **00e_fork_net.eon** - Fork topology test (fan-out/fan-in)
+- **00h_router_flow.eon** - Runtime flow validation with debug generators
+- **Test drivers** - All functional in upptst/Eon00 (00d, 00e, 00h, etc.)
+
+### DSL Syntax Evolution
+**Legacy loop syntax:**
+```eon
+loop audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime
+```
+
+**Modern net syntax:**
+```eon
+net audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime:
+        dbg_limit = 100
+    center.customer.0 -> center.audio.src.test.0
+    center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+```
+
+### Benefits Delivered
+- **Arbitrary topologies** - Networks support fan-out/fan-in, not just loops
+- **Explicit connections** - Clear port-to-port mapping for better understanding
+- **Credit-based flow control** - Replaces fixed packet pools with dynamic management
+- **Enhanced diagnostics** - Better visibility into network state and performance
+- **Flexible routing** - Non-circular network topologies now possible

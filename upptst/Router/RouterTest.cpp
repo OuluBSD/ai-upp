@@ -438,7 +438,7 @@ static void TestRouterRuntimeFlowCounters() {
 	ASSERT(total_failures == 0);
 
 	int connection_count = router->GetConnectionCount();
-	ASSERT(connection_count >= 5);
+	ASSERT(connection_count >= 10);
 
 	Eon::NetContext* net_ctx = script->GetNetContext(0);
 	ASSERT(net_ctx);
@@ -521,8 +521,7 @@ static void TestRouterRuntimeFlowCounters() {
 			if (info.src_handle.atom == src_atom &&
 				info.src_handle.port_index == conn.from_port &&
 				info.dst_handle.atom == dst_atom &&
-				info.dst_handle.port_index == conn.to_port)
-			{
+				info.dst_handle.port_index == conn.to_port) {
 				matched = true;
 				int essential_idx = essential_index.Find(src_name);
 				if (essential_idx >= 0 && info.packets_routed > 0)
@@ -543,6 +542,125 @@ static void TestRouterRuntimeFlowCounters() {
 	ASSERT(script->GetTotalPacketsRouted() == total_routed);
 }
 
+static void TestRouterHardwareBridgeFlow() {
+	EngineGuard guard;
+	guard.eng = &ShellMainEngine();
+	Engine& eng = *guard.eng;
+
+	ConfigureRouterEngine(eng);
+
+	ValueMap args;
+	args.Add("MACHINE_TIME_LIMIT", 2);
+
+	String script_path = ShareDirFile("eon/tests/00i_router_hw_flow.eon");
+	ASSERT(eng.StartLoad("RouterHardwareFlow", script_path, args));
+	eng.MainLoop();
+
+	Ptr<Eon::ScriptLoader> script = eng.Find<Eon::ScriptLoader>();
+	ASSERT(script && script->GetNetCount() > 0);
+
+	PacketRouter* router = script->GetNetRouter(0);
+	ASSERT(router);
+	int total_routed = router->GetTotalPacketsRouted();
+	int total_failures = router->GetTotalDeliveryFailures();
+	ASSERT(total_routed > 0);
+	ASSERT(total_failures == 0);
+
+	int connection_count = router->GetConnectionCount();
+	ASSERT(connection_count >= 10);
+	ASSERT(script->GetTotalPacketsRouted() == total_routed);
+
+	Eon::NetContext* net_ctx = script->GetNetContext(0);
+	ASSERT(net_ctx);
+	ASSERT(net_ctx->connections.GetCount() == connection_count);
+
+	Vector<String> essential_sources = {
+		"center.audio.src.dbg_generator",
+		"center.video.src.dbg_generator",
+		"sdl.ogl.center.fbo.audio",
+		"sdl.event.pipe",
+		"midi.src.side.portmidi"
+	};
+	Index<String> essential_index;
+	for (int i = 0; i < essential_sources.GetCount(); i++)
+		essential_index.Add(essential_sources[i]);
+	Vector<bool> essential_routed(essential_sources.GetCount());
+
+	bool audio_sink_routed = false;
+	bool video_sink_routed = false;
+	bool corefx_pipe_routed = false;
+	bool sdl_ogl_audio_routed = false;
+	bool sdl_event_routed = false;
+	bool state_event_routed = false;
+	bool midi_routed = false;
+	bool audio_sink_test_routed = false;
+	bool event_sink_test_routed = false;
+	bool midi_sink_routed = false;
+
+	Vector<PacketRouter::ConnectionInfo> router_connections;
+	router_connections.SetCount(connection_count);
+	for (int i = 0; i < connection_count; i++) {
+		PacketRouter::ConnectionInfo info;
+		ASSERT(router->GetConnectionInfo(i, info));
+		ASSERT(info.delivery_failures == 0);
+		router_connections[i] = info;
+	}
+
+	for (const Eon::NetContext::Connection& conn : net_ctx->connections) {
+		AtomBase* src_atom = net_ctx->atoms[conn.from_atom_idx].atom;
+		AtomBase* dst_atom = net_ctx->atoms[conn.to_atom_idx].atom;
+		ASSERT(src_atom && dst_atom);
+		String src_name = net_ctx->atoms[conn.from_atom_idx].name;
+		String dst_name = net_ctx->atoms[conn.to_atom_idx].name;
+
+		for (const PacketRouter::ConnectionInfo& info : router_connections) {
+			if (info.src_handle.atom == src_atom &&
+				info.src_handle.port_index == conn.from_port &&
+				info.dst_handle.atom == dst_atom &&
+				info.dst_handle.port_index == conn.to_port) {
+				int essential_idx = essential_index.Find(src_name);
+				if (essential_idx >= 0 && info.packets_routed > 0)
+					essential_routed[essential_idx] = true;
+
+				if (dst_name == "sdl.audio" && info.packets_routed > 0) {
+					if (src_name == "corefx.pipe") corefx_pipe_routed = true;
+					if (src_name == "sdl.ogl.center.fbo.audio") sdl_ogl_audio_routed = true;
+					audio_sink_routed = true;
+				}
+				if (dst_name == "sdl.video.pipe" && info.packets_routed > 0)
+					video_sink_routed = true;
+				if (src_name == "sdl.event.pipe" && dst_name == "state.event.pipe" && info.packets_routed > 0)
+					sdl_event_routed = true;
+				if (src_name == "state.event.pipe" && dst_name == "center.event.sink.test" && info.packets_routed > 0)
+					state_event_routed = true;
+				if (src_name == "midi.src.side.portmidi" && dst_name == "midi.null.sink" && info.packets_routed > 0)
+					midi_routed = true;
+				if (dst_name == "center.audio.sink.test.realtime" && info.packets_routed > 0)
+					audio_sink_test_routed = true;
+				if (dst_name == "center.event.sink.test" && info.packets_routed > 0)
+					event_sink_test_routed = true;
+				if (dst_name == "midi.null.sink" && info.packets_routed > 0)
+					midi_sink_routed = true;
+				break;
+			}
+		}
+	}
+
+	for (int i = 0; i < essential_routed.GetCount(); i++)
+		ASSERT(essential_routed[i]);
+
+	ASSERT(audio_sink_routed);
+	ASSERT(video_sink_routed);
+	ASSERT(corefx_pipe_routed);
+	ASSERT(sdl_ogl_audio_routed);
+	ASSERT(sdl_event_routed);
+	ASSERT(state_event_routed);
+	ASSERT(midi_routed);
+	ASSERT(audio_sink_test_routed);
+	ASSERT(event_sink_test_routed);
+	ASSERT(midi_sink_routed);
+}
+
 CONSOLE_APP_MAIN {
 	StdLogSetup(LOG_COUT|LOG_FILE);
 	TestRouterPortMetadata();
@@ -556,5 +674,6 @@ CONSOLE_APP_MAIN {
 	TestRouterOverlayChunkRoundTrip();
 	TestRouterBuilderArtifactParity();
 	TestRouterRuntimeFlowCounters();
+	TestRouterHardwareBridgeFlow();
 	LOG("Router descriptor tests completed");
 }

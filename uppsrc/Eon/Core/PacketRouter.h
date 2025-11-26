@@ -62,7 +62,7 @@ public:
 	int GetTotalDeliveryFailures() const;
 	int GetDeliveryFailures(int connection_idx) const;
 	
-	struct ConnectionInfo {
+	struct ConnectionInfo : Moveable<ConnectionInfo> {
 		PortHandle	src_handle;
 		PortHandle	dst_handle;
 		int			packets_routed = 0;

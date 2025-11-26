@@ -398,7 +398,23 @@ bool PacketRouter::ValidateConnection(const PortHandle& src, const PortHandle& d
 		return false;
 	}
 
-	// TODO: Validate ValDevTuple compatibility between src and dst
+	// Validate ValDevTuple compatibility between src and dst
+	if (src_port->vd.GetCount() != dst_port->vd.GetCount()) {
+		if (err_msg) *err_msg = "Source and destination ValDevTuple channel counts do not match";
+		return false;
+	}
+
+	for (int i = 0; i < src_port->vd.GetCount(); i++) {
+		if (src_port->vd[i].vd != dst_port->vd[i].vd) {
+			if (err_msg) {
+				*err_msg = "ValDevTuple channel mismatch: source channel " + IntStr(i) +
+				           " (" + src_port->vd[i].ToString() +
+				           ") does not match destination channel " + IntStr(i) +
+				           " (" + dst_port->vd[i].ToString() + ")";
+			}
+			return false;
+		}
+	}
 
 	return true;
 }

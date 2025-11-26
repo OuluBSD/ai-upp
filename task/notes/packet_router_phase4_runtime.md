@@ -1,40 +1,100 @@
-# PacketRouter Phase 4 – Runtime Atom Conversions
+# Packet Router Phase 4 Runtime Diary
 
-## Goal
-Gradually rewire backend atoms so they emit packets through the router instead of the legacy Link/Exchange paths. This builds on the DSL/net work from earlier phases and ensures `NetContext::ProcessFrame()` can drive actual workloads without falling back to old loops.
+This document tracks runtime conversions and implementation details for Phase 4 of the Packet Router project.
 
-## Progress
-- `CustomerBase::Send()` now populates its packet via `ForwardPacket()` and calls `AtomBase::EmitViaRouter()` when a `PacketRouter` is registered. Legacy loops remain unaffected because the router path is guarded by `packet_router` being present.
-- The new code keeps the `PacketValue` content intact for downstream consumers by moving it into a temporary `Packet`, routing it, and then restoring it so the existing LinkSystem logic still observes the same `out` data.
-- Camera, media-file, image, and SynSoft audio generators now register ports via the default `AtomBase::RegisterPorts`, request credits before emitting, and call `EmitViaRouter()`/`AckCredits()` so router-based nets drive the actual workloads alongside the legacy Link path. The V4L2/OpenCV camera now returns `false` when credits are denied so router diagnostics stay accurate.
-- SynFluidsynth, SynFmSynth, SynCoreSynth, and SynCoreDrummer now request credits, emit packets via `EmitViaRouter()`, and acknowledge those credits after routing so the broader synth line works through PacketRouter-managed flow control.
-- `MidiFileReaderAtom` now requests credits, routes MIDI packets via `EmitViaRouter()`, acknowledges the router before restoring the `PacketValue`, and returns the router result so metadata-driven flow control governs MIDI file playback in router nets.
-- `SynLV2::Instrument_Send` now reads the LV2 host buffers, mixes each output port into the packet payload, and runs the resulting audio through `EmitViaRouter()`/`AckCredits()` so LV2 hosts share the same metadata-driven flow control as the other synth sources.
-- `HalSdl::EventsBase_Send` now requests credits and emits SDL event packets via `EmitViaRouter()` before clearing the sendable flag, keeping the SDL event bridge diagnostics aligned with the router metadata and preventing events from bubbling up without honoring the credit helpers.
-- `Screen` event sources now share a single `CLASSNAME::EventsBase_Send` implementation in `Screen/Impl.inl` that checks `packet_router`, requests credits, routes each `GeomEventCollection` via `EmitViaRouter()`, and ACKs the grant before clearing the sendable flag so OS event streams surface router diagnostics just like the SDL bridge.
-- Holograph hardware event sources (`RemoteVRServer`, `OpenVR`, `LocalHMD`, and `OpenHMD`) now follow the same pattern: they request router credits, route their packets via `EmitViaRouter()`, and acknowledge the grants before they clear their `*_sendable` flags so the router metadata mirrors the hardware input before any legacy Link delivery runs.
-- Volumetric static sources (e.g., `VolRawByte`) and the PortMidi hardware source now request router credits and emit their packets via `EmitViaRouter()`, which ensures the router metadata reflects those workloads as soon as the data leaves the hardware.
-- SDL graphics/audio bridge sources (`ShaderBaseT`, `TextureBaseT`, `FboReaderBaseT`, `FboAtomT`, `FboProgAtomT`) now request router credits, emit their packets via `EmitViaRouter()`, and acknowledge the grants before clearing their outgoing buffers so every SDL video/audio emission honors the PacketRouter diagnostics and flow-control metadata.
-- `SdlOglAudioSource` (via `AudioBaseT<Gfx>::Send`) now requests router credits, routes its FBO-backed audio packets through `EmitViaRouter()`, and ACKs them before clearing `out` so the SDL/OpenGL audio bridge is visible within the router diagnostics ahead of the legacy Link delivery.
-- `AudioGenBase` and `VideoGenBase` (the debug audio/video generators provided by the Eon runtime) now request credits, route their packets through `EmitViaRouter()`, and restore the `PacketValue` afterward so router nets can drive those built-in sources without overrunning the legacy Link diagnostics.
-- `FxAudioCore::Effect_Send` now requests router credits, routes each generated audio buffer through `EmitViaRouter()`, and acknowledges the grant so this effect behaves the same as other hardware sources before the legacy Link path observes the packet.
-- `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` now inspects the router built from `share/eon/tests/00h_router_flow.eon`, asserts the router exposes at least 5 connections, checks each connection's `GetPacketsRouted`/`GetDeliveryFailures`, and verifies the per-connection routed total matches both `PacketRouter::GetTotalPacketsRouted()` and `ScriptLoader::GetTotalPacketsRouted()` so the debug generators, SDL bridges, and PortMidi source exercise the credit path diagnostics from end to end.
-- Normalized `route_pkt.Pick` → `route_pkt->Pick` across camera/SDL/audio/hardware atoms and included `<Vfs/Ecs/Ecs.h>` in `PacketRouter.h` so the router descriptor definitions compile, then re-ran `script/build-console.sh Router` to verify the console suite succeeds with the router credits in place.
+## Phase 4 Overview
+Phase 4 focused on extending router infrastructure and diagnostics, implementing runtime packet flow, and connecting various components to the new router system.
 
-## Next
-- Expand the router-driven validation suites (`upptst/Router`, Eon00/00h, etc.) to cover the built-in audio/video generators and SDL/Eon workloads so credit accounting is observable end-to-end.
-- Continue sweeping the remaining hardware/SDL-backed sources (e.g., `HalSdl` audio/video bridges, event producers, and any lingering custom hardware atoms) so every emission honors router credits/diagnostics before the legacy Link path fires.
+## Conversions Completed
 
-## Recent updates
-- `share/eon/tests/00h_router_flow.eon` now wires `sdl.ogl.center.fbo.audio` into a `center.audio.sink.test.realtime` sink so the SDL/OpenGL audio source participates in the router regression net.
-- `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` was updated to check that the new `sdl.ogl.center.fbo.audio` connection routes packets (per-connection counters, `ScriptLoader::GetNetContext()`, and essential source tracking now include the SDL/OpenGL audio path) so diagnostics cover this workload end-to-end.
-- `share/eon/tests/00h_router_flow.eon` now includes `corefx.pipe` so the FxAudioCore effect path runs inside the net and contributes to router packet counters alongside the SDL sources.
-- `TestRouterRuntimeFlowCounters` now treats `corefx.pipe` as an essential routed source, ensuring its connection counters are asserted by `PacketRouter::GetConnectionInfo()` before lagging into the legacy Link path.
-- `ScriptLoader::BuildNet()` now copies the connection metadata (`policy`, `credits`, etc.) into each `NetContext::Connection` so `PacketRouter::Connect()` receives the same legacy-loop hints that were stored on disk; `PacketRouter::ConnectionInfo` exposes the policy/port metadata and `TestRouterRuntimeFlowCounters` asserts those maps so the runtime diagnostics mirror the serialized router overlays.
-- Keep cataloging newly converted hardware event/emitter atoms in this runtime diary so `upptst/Router`/`00h_router_flow` can deliberately include each workload before falling back on the legacy Link path; the net should emit router credit diagnostics for every new source as soon as it lands.
-- Added `share/eon/tests/00i_router_hw_flow.eon` and `upptst/Router/RouterTest.cpp::TestRouterHardwareBridgeFlow` so the rudimentary hardware+SDL net (debug audio/video generators → SDL audio/video sinks) is exercised via `ShellMainEngine`, keeping the router counters and metadata coverage tied to those bridge atoms alongside the larger `00h_router_flow` regression.
+### Atom Runtime Integration
+- **Camera, media-file, image, and audio generators** (SynSoft plus SynFluidsynth, SynFmSynth, SynCoreSynth, SynCoreDrummer)
+  - Now register ports via the default `AtomBase::RegisterPorts()`
+  - Request credits and call `EmitViaRouter()`/`AckCredits()`
+  - Router-based nets run the workloads while preserving legacy Link data for compatibility
 
-## Regression
-- Added a new shared regression net (`share/eon/tests/00h_router_flow.eon`) that strings the debug audio/video generators, SDL event/audio bridges, and PortMidi source through SDL/State/MIDI sinks and wired `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` to load it via `ShellMainEngine`, drive a couple of frames, and assert `PacketRouter::GetTotalPacketsRouted()`/`GetTotalDeliveryFailures()`.
-- `ScriptLoader::GetNetContext()` now exposes built nets so `TestRouterRuntimeFlowCounters` can match each `share/eon/tests/00h_router_flow.eon` connection against a `PacketRouter` connection and confirm the debug audio/video/SDL/PortMidi sources were routed (connection metadata + counters are verified end-to-end).
-- Rebuilt `bin/Router` via `script/build-console.sh Router` after the per-connection assertions landed so the console regression suite continues to pass with the stricter counters.
+- **SynLV2 and SDL event bridge** 
+  - Now route packets through the PacketRouter
+
+- **AudioGenBase and VideoGenBase** (built-in Eon noise/sine generators)
+  - Request credits, emit through `EmitViaRouter()`, acknowledge grants
+  - Router-driven nets can use debug sources without bypassing legacy diagnostic path
+
+- **V4L2/OpenCV camera**
+  - Returns `false` when credits are denied
+  - Router diagnostics and flow-control metadata stay accurate
+
+- **MidiFileReaderAtom**
+  - Obeys router credits, emits MIDI batches via `EmitViaRouter()`
+  - Restores `PacketValue` afterwards
+  - MIDI playback participates in metadata-driven flow control
+
+- **FxAudioCore::Effect_Send**
+  - Requests router credits, routes audio buffers via `EmitViaRouter()`
+  - Acknowledges grant before legacy Link logic observes packet
+  - Custom `Audio::Effect` atoms participate in router diagnostics
+
+- **Screen event senders**
+  - Use templated `EventsBase_Send` implementation in `Screen/Impl.inl`
+  - Request router credits, emit `GeomEventCollection` via `EmitViaRouter()`
+  - ACKs before clearing future sendable flag
+  - OS input streams report router credit diagnostics alongside SDL bridge
+
+- **SdlOglAudioSource**
+  - Invokes `AudioBaseT::Send` credit handling
+  - Pumps FBO-backed audio packets through `EmitViaRouter()`
+  - Shows up in PacketRouter diagnostics ahead of legacy Link delivery
+
+## Key Changes to Runtime Flow
+
+### Before (Loop-Based):
+- Packet flow managed by LinkSystem in circular loops
+- Fixed packet quotas per loop
+- Customer atoms controlled packet generation
+
+### After (Router-Based):
+- Packet flow managed through PacketRouter
+- Credit-based flow control
+- Atoms can emit packets via router with `EmitViaRouter()` method
+- Per-connection flow control and diagnostics
+
+## Testing Results
+
+### Router Runtime Flow Counters
+- `upptst/Router/RouterTest.cpp::TestRouterRuntimeFlowCounters` validates:
+  - Connection counts match expected values
+  - Per-connection packet counters
+  - Aggregate sums match router totals
+  - Debug audio/video/SDL/PortMidi sources routing packets through credited ports
+
+### Test Coverage
+- `upptst/RouterFanout` - Multi-port fan-out metadata
+- `upptst/RouterPool` - Limited packet-pool credit hints
+- `upptst/Eon00/00h_router_flow` - Runtime packet flow verification
+
+## Statistics API
+- `GetTotalPacketsRouted()` - Query total packets routed across all connections
+- `GetPacketsRouted(int conn_idx)` - Query packets routed on specific connection
+- `GetTotalDeliveryFailures()` - Track delivery failures
+- `GetDeliveryFailures(int conn_idx)` - Per-connection failure count
+
+## ScriptLoader Integration
+- `GetNetCount()` - Query number of built nets
+- `GetNetRouter(int net_idx)` - Access router by net index
+- `GetTotalPacketsRouted()` - Aggregate packets across all nets
+
+## Error Handling
+- `DisconnectAtom(AtomBase*)` - Safely disconnect atom mid-run
+- Enhanced delivery failure tracking with per-connection counters
+- Improved logging with failure counts
+
+## Behavioral Contract
+- Debug sources request credits
+- Emit through `EmitViaRouter()` 
+- Restore `PacketValue` before legacy Link path observes packets
+- Maintain compatibility while using new router infrastructure
+
+## Outstanding Items
+- Complete migration of remaining hardware-specific sources
+- Performance validation for new router pathway
+- Integration with legacy LinkSystem for unconverted atoms

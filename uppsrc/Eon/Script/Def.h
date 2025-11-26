@@ -285,7 +285,7 @@ struct CompilationUnit {
 	CompilationUnit(const CompilationUnit& v) {*this = v;}
 	void operator=(const CompilationUnit& v) {glob = v.glob;}
 	String GetTreeString(int indent=0) const;
-	void Visit(Vis& v) {TODO}
+	void Visit(Vis& v) { v || glob; }
 };
 
 

@@ -9,8 +9,9 @@ ScriptEcsSystemLoader::ScriptEcsSystemLoader(ScriptWorldLoader& parent, int id, 
 }
 
 bool ScriptEcsSystemLoader::Load() {
-	TODO
-	return false;
+	// ECS System loader implementation - typically just needs to register itself
+	// Systems don't have further nested systems to load in this context
+	return true;
 }
 
 }

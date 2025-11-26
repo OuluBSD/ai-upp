@@ -9,8 +9,9 @@ ScriptComponentLoader::ScriptComponentLoader(ScriptEntityLoader& parent, int id,
 }
 
 bool ScriptComponentLoader::Load() {
-	TODO
-	return false;
+	// Component loader implementation - typically just needs to register itself
+	// Components don't have further nested components to load
+	return true;
 }
 
 

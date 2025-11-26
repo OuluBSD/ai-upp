@@ -323,7 +323,13 @@ PacketRouter: Destroyed (6 ports, 3 connections)
 - Tests linear pipeline: src -> customer -> sink
 - Verifies router topology builds correctly
 
-**Next Phase:** Phase 5 - DSL Migration & Test Coverage
+**Phase 5 Status:** DSL Migration & Test Coverage - IN PROGRESS
+
+Phase 5 involves:
+1. Converting all `.eon` files under `share/eon` to the router syntax
+2. Updating every `upptst/Eon*` package to the router AST
+3. Expanding regression tests for router nets
+4. Providing conversion scripts to automate the migration
 
 ---
 

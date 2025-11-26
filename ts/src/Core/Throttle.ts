@@ -141,8 +141,7 @@ export class QueuedThrottle {
                 const call = this.queuedCall;
                 this.queuedCall = null;
 
-                // Schedule the queued call to execute after the delay
-                // We need to preserve the 'this' context for the timeout callback
+                // Execute the queued function after the delay
                 this.timerId = setTimeout(() => {
                     // Execute the queued function with its arguments directly
                     (call.func as Function)(...call.args);
@@ -151,8 +150,27 @@ export class QueuedThrottle {
                 }, this.delay);
             }
         } else {
+            // If we're creating a new timeout, clear the previous one first
+            if (this.timerId) {
+                clearTimeout(this.timerId);
+            }
+
             // Queue this call to execute after the delay
             this.queuedCall = { func, args };
+
+            // Schedule the queued call to execute when the current throttle period ends
+            // The call will execute at: lastExecTime + delay (when throttling period ends)
+            const executeAt = this.lastExecTime + this.delay;
+            const timeUntilExecution = Math.max(0, executeAt - Date.now());
+
+            this.timerId = setTimeout(() => {
+                if (this.queuedCall) {
+                    const call = this.queuedCall;
+                    this.queuedCall = null;
+                    (call.func as Function)(...call.args);
+                    this.lastExecTime = Date.now();
+                }
+            }, timeUntilExecution);
         }
     }
 

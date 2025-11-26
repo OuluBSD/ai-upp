@@ -142,12 +142,11 @@ export class QueuedThrottle {
                 this.queuedCall = null;
 
                 // Schedule the queued call to execute after the delay
-                // When the queued function executes, it should execute directly without
-                // checking the throttle again (that's the point of the queued version)
+                // We need to preserve the 'this' context for the timeout callback
                 this.timerId = setTimeout(() => {
                     // Execute the queued function with its arguments directly
                     (call.func as Function)(...call.args);
-                    // Update the last execution time to now that the queued call ran
+                    // Update the last execution time after executing the queued call
                     this.lastExecTime = Date.now();
                 }, this.delay);
             }

@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
+    "@types/ws": "^8.13.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
@@ -32,7 +33,9 @@
     "typedoc": "^0.25.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
   "engines": {
     "node": ">=18.0.0"
   }

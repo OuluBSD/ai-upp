@@ -50,13 +50,17 @@ export { AsyncCoWork, AsyncParallel, AsyncFirst, AsyncFor, AsyncForEach, AsyncMa
 export { ThreadPool, ParallelExecute } from './Threading/ThreadPool';
 export { SynchronizedVector, SynchronizedArray, SynchronizedIndex, SynchronizedMap, Synchronized } from './Threading/SynchronizedContainers';
 
-// DateTime (to be implemented in Phase 8)
-// export { Time } from './DateTime/Time';
-// export { Date } from './DateTime/Date';
+// DateTime (Phase 8)
+export { Time, GetTickCount } from './DateTime/Time';
+export { DateClass as Date, TimePoint, Duration } from './DateTime/Date';
+export { TimeZone, TimeZonedTime, GetLocalTime, GetUtcTime } from './DateTime/TimeZone';
+export { FormatTime, FormatDuration, ParseDateTime, FormatTimeInterval, FormatRelativeTime, FormatDate, FormatDurationAsHours, FormatDurationAsMinutes, CurrentTimeFormatted } from './DateTime/TimeFormatting';
+export { AddDays, AddMonths, AddYears, DaysBetween, MonthsBetween, YearsBetween, AddDuration, SubtractDuration, TimeDifference, AddHours, AddMinutes, AddSeconds, AddMilliseconds, CompareDates, CompareTimes, StartOfMonth, EndOfMonth, StartOfYear, EndOfYear, DaysInMonth, IsLeapYear } from './DateTime/DateArithmetic';
+export { Timer, PeriodicTimer, ScheduledTask, ScheduleTask, ScheduleRecurringTask, Timeout, ExecuteAfter, ExecuteAtInterval, Delay as DelayDuration, DelayMs } from './DateTime/Timers';
+export { PerformanceCounter, PerformanceTimer, Stopwatch, GetPerformanceCounter, CounterToMilliseconds, CounterToSeconds, MeasureTime, MeasureTimeAsync } from './DateTime/Performance';
 
-// Network (to be implemented in Phase 9)
-// export { HttpRequest } from './Network/HttpRequest';
-// export { TcpSocket } from './Network/TcpSocket';
+// Network (Phase 9)
+export * from './Network';
 
 // Placeholder export for Phase 1
 export const VERSION = '0.1.0';

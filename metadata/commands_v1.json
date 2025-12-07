@@ -1,0 +1,261 @@
+{
+  "commands": [
+    {
+      "name": "open_file",
+      "category": "file",
+      "description": "Open a file in the editor",
+      "long_description": "Opens the specified file in the editor window",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to open"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Opens a file in the editor tab"
+    },
+    {
+      "name": "save_file",
+      "category": "file",
+      "description": "Save the current file or specified file",
+      "long_description": "Saves the current file or the specified file to disk",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": false,
+          "default": "current",
+          "description": "Path to the file to save (current if omitted)"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Saves the file to disk, optionally with a new path"
+    },
+    {
+      "name": "find_in_files",
+      "category": "search",
+      "description": "Search for text pattern in files",
+      "long_description": "Searches for a specified pattern in files within a directory",
+      "inputs": [
+        {
+          "name": "pattern",
+          "type": "string",
+          "required": true,
+          "description": "Text pattern to search for"
+        },
+        {
+          "name": "directory",
+          "type": "path",
+          "required": false,
+          "default": ".",
+          "description": "Directory to search in (current directory if omitted)"
+        },
+        {
+          "name": "regex",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Whether to use regex pattern matching"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": ["file", "line", "match"]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Searches for text in multiple files recursively"
+    },
+    {
+      "name": "build_project",
+      "category": "build",
+      "description": "Build the current project",
+      "long_description": "Builds the project with the specified configuration",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the project to build"
+        },
+        {
+          "name": "config",
+          "type": "enum",
+          "enum_values": ["Debug", "Release"],
+          "required": false,
+          "default": "Debug",
+          "description": "Build configuration to use"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Calls PackageBuild() to build the project with specified configuration"
+    },
+    {
+      "name": "clean_project",
+      "category": "build",
+      "description": "Clean the project build artifacts",
+      "long_description": "Removes build artifacts from the project",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the project to clean"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Cleans the output directory of the project"
+    },
+    {
+      "name": "goto_line",
+      "category": "navigation",
+      "description": "Go to a specific line in the current file",
+      "long_description": "Moves the cursor to the specified line in the file",
+      "inputs": [
+        {
+          "name": "line",
+          "type": "int",
+          "required": true,
+          "description": "Line number to go to"
+        },
+        {
+          "name": "file",
+          "type": "path",
+          "required": false,
+          "description": "File to go to line in (current file if omitted)"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": true
+      },
+      "context_notes": "Navigates to a specific line in the editor"
+    },
+    {
+      "name": "search_code",
+      "category": "search",
+      "description": "Search code across the project",
+      "long_description": "Searches for symbols, functions, or text across the entire project",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": ["file", "line", "match"]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Searches symbols and references across the project"
+    },
+    {
+      "name": "show_console",
+      "category": "panel",
+      "description": "Show the console panel",
+      "long_description": "Displays the console panel showing build output and messages",
+      "inputs": [],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Shows/hides the console output panel"
+    },
+    {
+      "name": "show_errors",
+      "category": "panel",
+      "description": "Show the errors panel",
+      "long_description": "Displays the errors panel showing compilation errors and warnings",
+      "inputs": [],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Shows/hides the errors and warnings panel"
+    },
+    {
+      "name": "set_main_package",
+      "category": "project",
+      "description": "Set the main package for the project",
+      "long_description": "Sets the specified package as the main package for the project",
+      "inputs": [
+        {
+          "name": "package",
+          "type": "string",
+          "required": true,
+          "description": "Name of the package to set as main"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Changes the main package setting in the project"
+    }
+  ]
+}

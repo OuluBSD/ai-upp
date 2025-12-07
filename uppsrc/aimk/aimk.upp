@@ -1,0 +1,20 @@
+description "AI-friendly commandline U++ package/assembly builder\377";
+
+uses
+	ide\Builders;
+
+uses(!POSIX) Core/SSL;
+
+file
+	aimake.h,
+	Console.cpp,
+	IdeContext.cpp,
+	MakeBuild.cpp,
+	Export.cpp,
+	UppHub.cpp,
+	aimake.cpp;
+
+mainconfig
+	"" = "",
+	"" = "NOMM";
+

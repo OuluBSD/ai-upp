@@ -1,0 +1,14 @@
+{
+	"Name": "cli",
+	"Include": [
+		"CtrlLib",
+		"plugin/bz2/bz2",
+		"plugin/lzma/lzma",
+		"plugin/json/json"
+	],
+	"Target": {
+		"cli": {
+			"Main": "main.cpp"
+		}
+	}
+}

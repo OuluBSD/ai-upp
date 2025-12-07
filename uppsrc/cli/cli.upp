@@ -1,14 +1,30 @@
+description "AI-UPP CLI module";
+
+uses
+	Core,
+	CtrlLib,
+	plugin/bz2,
+	plugin/lzma,
+	plugin/json;
+
+file
+	cli.h PCH,
+	Command.h,
+	Command.cpp,
+	CommandRegistry.h,
+	CommandRegistry.cpp,
+	JsonLoader.h,
+	JsonLoader.cpp,
+	IdeSession.h,
+	IdeSession.cpp,
+	IdeHost.h,
+	IdeHost.cpp,
+	CommandExecutor.h,
+	CommandExecutor.cpp,
+	main.cpp;
+
+target
+	cli : EXE
 {
-	"Name": "cli",
-	"Include": [
-		"CtrlLib",
-		"plugin/bz2/bz2",
-		"plugin/lzma/lzma",
-		"plugin/json/json"
-	],
-	"Target": {
-		"cli": {
-			"Main": "main.cpp"
-		}
-	}
+	main = main.cpp
 }

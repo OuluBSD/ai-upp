@@ -2,7 +2,7 @@ description "AI-UPP CLI module";
 
 uses
 	Core,
-	CtrlLib,
+	Draw,
 	plugin/bz2,
 	plugin/lzma,
 	plugin/json;

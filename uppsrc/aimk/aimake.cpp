@@ -105,6 +105,59 @@ void SetupUmkUppHub()
 	}
 }
 
+void ShowHelp(const String& version)
+{
+	Puts(
+		"aimk (AI Make) " + version + " - AI-friendly U++ build tool\n\n"
+		"USAGE:\n"
+		"  aimk --package=<name> [OPTIONS]\n"
+		"  aimk -p <name> [OPTIONS]\n\n"
+		"REQUIRED:\n"
+		"  -p, --package=NAME         Main package to build (e.g., MyApp)\n\n"
+		"COMMON OPTIONS:\n"
+		"  -a, --assembly=PATHS       Assembly directories (comma or colon separated)\n"
+		"                             Default: upptst,examples,tutorial,reference,uppsrc\n"
+		"  -m, --method=NAME          Build method (GCC, CLANG, MSC, etc.)\n"
+		"                             Default: CLANG\n"
+		"  -o, --output=PATH          Output executable path\n"
+		"  -f, --flags=FLAGS          Build flags (comma separated: GUI,SHARED,etc.)\n"
+		"  -c, --config=NAME          Build configuration (debug, release)\n"
+		"                             Default: debug\n\n"
+		"BUILD OPTIONS:\n"
+		"  --clean                    Clean before building\n"
+		"  --blitz                    Enable blitz build\n"
+		"  --no-blitz                 Disable blitz build (default)\n"
+		"  --static                   Static linking\n"
+		"  --shared                   Shared linking (default)\n"
+		"  --threads=N                Number of parallel build threads\n"
+		"                             Default: CPU core count\n"
+		"  --verbose                  Verbose build output\n"
+		"  --silent                   Minimal output\n\n"
+		"EXPORT OPTIONS:\n"
+		"  --makefile[=PATH]          Generate Makefile\n"
+		"  --export-project=PATH      Export project files\n"
+		"  --export-all=PATH          Export all project files\n"
+		"  --compile-commands         Generate compile_commands.json\n\n"
+		"RUN OPTIONS:\n"
+		"  --run [ARGS...]            Run executable after successful build\n\n"
+		"OTHER OPTIONS:\n"
+		"  -h, --help                 Show this help message\n"
+		"  -v, --version              Show version information\n\n"
+		"EXAMPLES:\n"
+		"  # Simple build\n"
+		"  aimk --package=Bombs\n\n"
+		"  # Build with custom assembly and flags\n"
+		"  aimk -p MyApp -a ~/myapp/src,uppsrc -f GUI,SHARED -o ~/bin/myapp\n\n"
+		"  # Clean build with CLANG, 8 threads\n"
+		"  aimk -p MyApp --clean --method=CLANG --threads=8\n\n"
+		"  # Build and run\n"
+		"  aimk -p MyApp --run arg1 arg2\n\n"
+		"  # Generate compile_commands.json for IDE\n"
+		"  aimk -p MyApp --compile-commands\n\n"
+		"For more information: https://www.ultimatepp.org/\n"
+	);
+}
+
 CONSOLE_APP_MAIN
 {
 	SetConfigName("theide");
@@ -140,119 +193,288 @@ CONSOLE_APP_MAIN
 	bool flatpak_build = !GetEnv("FLATPAK_ID").IsEmpty();
 	String mkf;
 
-	Vector<String> param, runargs;
+	// New named parameters
+	String package_name;
+	String assembly_paths;
+	String build_method;
+	String output_path;
+	String build_flags;
+	bool show_help = false;
+	bool show_version = false;
+
+	Vector<String> runargs;
 
 	const Vector<String>& args = CommandLine();
+
+	// Parse command line arguments
 	for(int i = 0; i < args.GetCount(); i++) {
 		String a = args[i];
-		if(*a == '-') {
-			for(const char *s = ~a + 1; *s; s++)
-				switch(*s) {
-				case 'a': clean = true; break;
-				case 'r': ide.targetmode = 1; break;
-				case 'm': ide.release.createmap = ide.debug.createmap = true; break;
-				case 'b': ide.release.def.blitz = ide.debug.def.blitz = 1; break;
-				case 's': ide.debug.linkmode = ide.release.linkmode = 1; break;
-				case 'd': ide.debug.def.debug = 0; break;
-				case 'S': ide.debug.linkmode = ide.release.linkmode = 2; break;
-				case 'v': ide.console.verbosebuild = true; break;
-				case 'l': SilentMode = true; break;
-				case 'x': exporting = 1; break;
-				case 'X': exporting = 2; break;
-				case 'k': deletedir = false; break;
-				case 'u': ide.use_target = true; break;
-				case 'j': ccfile = true; break;
-				case 'h': auto_hub = true; break;
-				case 'U': update_hub = true; break;
-				case 'M': {
-					makefile = true;
-					if(s[1] == '=') {
-						mkf = NormalizePath(s + 2);
-						PutVerbose("Generating Makefile: " + mkf);
-						goto endopt;
-					}
-					else
-						PutVerbose("Generating Makefile");
-					break;
+
+		// Handle --long-option or --long-option=value
+		if(a.StartsWith("--")) {
+			String opt = a.Mid(2);
+			String value;
+			int eq = opt.Find('=');
+			if(eq >= 0) {
+				value = opt.Mid(eq + 1);
+				opt = opt.Left(eq);
+			}
+
+			if(opt == "help") {
+				show_help = true;
+			}
+			else if(opt == "version") {
+				show_version = true;
+			}
+			else if(opt == "package") {
+				if(eq >= 0)
+					package_name = value;
+				else if(i + 1 < args.GetCount())
+					package_name = args[++i];
+			}
+			else if(opt == "assembly") {
+				if(eq >= 0)
+					assembly_paths = value;
+				else if(i + 1 < args.GetCount())
+					assembly_paths = args[++i];
+			}
+			else if(opt == "method") {
+				if(eq >= 0)
+					build_method = value;
+				else if(i + 1 < args.GetCount())
+					build_method = args[++i];
+			}
+			else if(opt == "output") {
+				if(eq >= 0)
+					output_path = value;
+				else if(i + 1 < args.GetCount())
+					output_path = args[++i];
+			}
+			else if(opt == "flags") {
+				if(eq >= 0)
+					build_flags = value;
+				else if(i + 1 < args.GetCount())
+					build_flags = args[++i];
+			}
+			else if(opt == "config") {
+				if(eq >= 0) {
+					if(value == "release")
+						ide.targetmode = 1;
 				}
-				case 'H': {
-					int n = 0;
-					while(IsDigit(s[1])) {
-						n = 10 * n + s[1] - '0';
-						s++;
-					}
-					if(!n)
-						n = CPU_Cores();
+				else if(i + 1 < args.GetCount()) {
+					if(args[i + 1] == "release")
+						ide.targetmode = 1;
+					i++;
+				}
+			}
+			else if(opt == "clean") {
+				clean = true;
+			}
+			else if(opt == "blitz") {
+				ide.release.def.blitz = ide.debug.def.blitz = 1;
+			}
+			else if(opt == "no-blitz") {
+				ide.release.def.blitz = ide.debug.def.blitz = 0;
+			}
+			else if(opt == "static") {
+				ide.debug.linkmode = ide.release.linkmode = 1;
+			}
+			else if(opt == "shared") {
+				ide.debug.linkmode = ide.release.linkmode = 2;
+			}
+			else if(opt == "threads") {
+				int n = 0;
+				if(eq >= 0)
+					n = atoi(value);
+				else if(i + 1 < args.GetCount())
+					n = atoi(args[++i]);
+				if(n > 0) {
 					n = minmax(n, 1, 256);
-					PutVerbose("Hydra threads: " + AsString(n));
+					PutVerbose("Build threads: " + AsString(n));
 					ide.console.SetSlots(n);
-					break;
 				}
-				default:
-					SilentMode = false;
-					Puts("Invalid build option(s)");
-					SetExitCode(3);
-					return;
+			}
+			else if(opt == "verbose") {
+				ide.console.verbosebuild = true;
+			}
+			else if(opt == "silent") {
+				SilentMode = true;
+			}
+			else if(opt == "makefile") {
+				makefile = true;
+				if(eq >= 0)
+					mkf = NormalizePath(value);
+			}
+			else if(opt == "export-project") {
+				exporting = 1;
+				if(eq >= 0)
+					mkf = value;
+				else if(i + 1 < args.GetCount())
+					mkf = args[++i];
+			}
+			else if(opt == "export-all") {
+				exporting = 2;
+				if(eq >= 0)
+					mkf = value;
+				else if(i + 1 < args.GetCount())
+					mkf = args[++i];
+			}
+			else if(opt == "compile-commands") {
+				ccfile = true;
+			}
+			else if(opt == "run") {
+				run = true;
+				// Collect remaining args for the program
+				for(int j = i + 1; j < args.GetCount(); j++)
+					runargs.Add(args[j]);
+				break;
+			}
+			else {
+				Puts("Unknown option: --" + opt + "\n");
+				Puts("Use --help for usage information\n");
+				SetExitCode(3);
+				return;
+			}
+		}
+		// Handle -short options
+		else if(a.StartsWith("-") && a.GetLength() > 1) {
+			char opt = a[1];
+			String value = a.GetLength() > 2 ? a.Mid(2) : String();
+
+			if(opt == 'h') {
+				show_help = true;
+			}
+			else if(opt == 'v') {
+				show_version = true;
+			}
+			else if(opt == 'p') {
+				if(!value.IsEmpty())
+					package_name = value;
+				else if(i + 1 < args.GetCount())
+					package_name = args[++i];
+			}
+			else if(opt == 'a') {
+				if(!value.IsEmpty())
+					assembly_paths = value;
+				else if(i + 1 < args.GetCount())
+					assembly_paths = args[++i];
+			}
+			else if(opt == 'm') {
+				if(!value.IsEmpty())
+					build_method = value;
+				else if(i + 1 < args.GetCount())
+					build_method = args[++i];
+			}
+			else if(opt == 'o') {
+				if(!value.IsEmpty())
+					output_path = value;
+				else if(i + 1 < args.GetCount())
+					output_path = args[++i];
+			}
+			else if(opt == 'f') {
+				if(!value.IsEmpty())
+					build_flags = value;
+				else if(i + 1 < args.GetCount())
+					build_flags = args[++i];
+			}
+			else if(opt == 'c') {
+				if(!value.IsEmpty()) {
+					if(value == "release")
+						ide.targetmode = 1;
 				}
-		endopt:;
+				else if(i + 1 < args.GetCount()) {
+					if(args[i + 1] == "release")
+						ide.targetmode = 1;
+					i++;
+				}
+			}
+			else {
+				Puts("Unknown option: -" + String(opt, 1) + "\n");
+				Puts("Use --help for usage information\n");
+				SetExitCode(3);
+				return;
+			}
 		}
-		else
-		if(*a == '+')
-			ide.mainconfigparam = Filter(~a + 1, [](int c) { return c == ',' ? ' ' : c; });
-		else
-		if(*a == '!') {
-			run = true;
-			for(int j = i + 1; j < args.GetCount(); j++)
-				runargs.Add(args[j]);
-			if(runargs)
-				PutVerbose("Set to execute the result with args: " << Join(runargs, " "));
-			else
-				PutVerbose("Set to execute the result");
-			break;
-		}
-		else
-			param.Add(a);
 	}
+
+	String version = GenerateVersionNumber();
+
+	// Handle --help and --version
+	if(show_help) {
+		ShowHelp(version);
+		SetExitCode(0);
+		return;
+	}
+
+	if(show_version) {
+		Puts("aimk (AI Make) " + version + "\n");
+		SetExitCode(0);
+		return;
+	}
+
+	// Check if package is specified
+	if(package_name.IsEmpty()) {
+		Puts("Error: Package name is required\n\n");
+		ShowHelp(version);
+		SetExitCode(1);
+		return;
+	}
+
+	// Set defaults
+	if(assembly_paths.IsEmpty())
+		assembly_paths = "upptst,examples,tutorial,reference,uppsrc";
+	if(build_method.IsEmpty())
+		build_method = "CLANG";
+
+	// Apply build flags
+	if(!build_flags.IsEmpty())
+		ide.mainconfigparam = Filter(build_flags, [](int c) { return c == ',' ? ' ' : c; });
+
+	PutVerbose("Package: " + package_name);
+	PutVerbose("Assembly: " + assembly_paths);
+	PutVerbose("Method: " + build_method);
+	if(!build_flags.IsEmpty())
+		PutVerbose("Flags: " + build_flags);
 
 	if(auto_hub)
 		DeleteFolderDeep(GetHubDir());
 	else
 		SetupUmkUppHub();
 
-	if(param.GetCount() >= 2) {
-		String v = GetUmkFile(param[0] + ".var");
-		if(IsNull(v)) {
-		#ifdef PLATFORM_POSIX
-			Vector<String> h = Split(param[0], [](int c) { return c == ':' || c == ',' ? c : 0; });
-		#else
-			Vector<String> h = Split(param[0], ',');
-		#endif
-			for(int i = 0; i < h.GetCount(); i++)
-				h[i] = GetFullPath(TrimBoth(h[i]));
-			String x = Join(h, ";");
-			SetVar("UPP", x, false);
-			PutVerbose("Inline assembly: " + x);
-			String outdir = GetDefaultUppOut();
-			if (flatpak_build) {
-				outdir = GetExeFolder() + DIR_SEPS + ".cache" + DIR_SEPS + "upp.out";
-			}
-			RealizeDirectory(outdir);
-			SetVar("OUTPUT", outdir, false);
+	// Process assembly paths
+	String v = GetUmkFile(assembly_paths + ".var");
+	if(IsNull(v)) {
+	#ifdef PLATFORM_POSIX
+		Vector<String> h = Split(assembly_paths, [](int c) { return c == ':' || c == ',' ? c : 0; });
+	#else
+		Vector<String> h = Split(assembly_paths, ',');
+	#endif
+		for(int i = 0; i < h.GetCount(); i++)
+			h[i] = GetFullPath(TrimBoth(h[i]));
+		String x = Join(h, ";");
+		SetVar("UPP", x, false);
+		PutVerbose("Inline assembly: " + x);
+		String outdir = GetDefaultUppOut();
+		if (flatpak_build) {
+			outdir = GetExeFolder() + DIR_SEPS + ".cache" + DIR_SEPS + "upp.out";
 		}
-		else {
-			if(!LoadVars(v)) {
-				Puts("Invalid assembly\n");
-				SetExitCode(2);
-				return;
-			}
-			PutVerbose("Assembly file: " + v);
-			PutVerbose("Assembly: " + GetVar("UPP"));
-			PutVerbose("AI overlay: " + GetVar("AI"));
+		RealizeDirectory(outdir);
+		SetVar("OUTPUT", outdir, false);
+	}
+	else {
+		if(!LoadVars(v)) {
+			Puts("Invalid assembly\n");
+			SetExitCode(2);
+			return;
 		}
-		PutVerbose("Output directory: " + GetUppOut());
-		ide.main = param[1];
-		v = SourcePath(ide.main, GetFileTitle(ide.main) + ".upp");
-		PutVerbose("Main package: " + v);
+		PutVerbose("Assembly file: " + v);
+		PutVerbose("Assembly: " + GetVar("UPP"));
+		PutVerbose("AI overlay: " + GetVar("AI"));
+	}
+	PutVerbose("Output directory: " + GetUppOut());
+	ide.main = package_name;
+	v = SourcePath(ide.main, GetFileTitle(ide.main) + ".upp");
+	PutVerbose("Main package: " + v);
 		if(!FileExists(v)) {
 			Puts("Package " + ide.main + " does not exist\n");
 			SetExitCode(2);
@@ -289,77 +511,67 @@ CONSOLE_APP_MAIN
 			if(f.GetCount())
 				ide.mainconfigparam = f[0].param;
 		}
-		PutVerbose("Build flags: " << ide.mainconfigparam);
-		String m = 2 < param.GetCount() ? param[2] : "CLANG";
-		String bp = GetBuildMethodPath(m);
-		PutVerbose("Build method: " + bp);
-		if(bp.GetCount() == 0) {
-			SilentMode = false;
-			Puts("Invalid build method\n");
-			SetExitCode(3);
-			return;
-		}
-
-		if(3 < param.GetCount()) {
-			ide.debug.target_override = ide.release.target_override = true;
-			ide.debug.target = ide.release.target = NormalizePath(param[3]);
-			PutVerbose("Target override: " << ide.debug.target);
-		}
-
-		ide.method = bp;
-
-		if(ccfile) {
-			ide.SaveCCJ(GetFileDirectory(PackageFile(ide.main)) + "compile_commands.json", false);
-			SetExitCode(0);
-			return;
-		}
-
-		if(clean)
-			ide.Clean();
-		if(exporting) {
-			mkf = GetFullPath(mkf);
-			Cout() << mkf << '\n';
-			RealizeDirectory(mkf);
-			if(makefile)
-				ide.ExportMakefile(mkf);
-			else
-				ide.ExportProject(mkf, exporting == 2, deletedir);
-		}
-		else
-		if(makefile) {
-			ide.SaveMakeFile(IsNull(mkf) ? "Makefile" : mkf, false);
-			SetExitCode(0);
-		}
-		else
-		if(ide.Build()) {
-			SetExitCode(0);
-			if(run) {
-				Vector<char *> args;
-				Vector<Buffer<char>> buffer;
-				auto Add = [&](const String& s) {
-					auto& b = buffer.Add();
-					b.Alloc(s.GetCount() + 1);
-					memcpy(b, s, s.GetCount() + 1);
-					args.Add(b);
-				};
-				Add(ide.target);
-				for(const String& s : runargs)
-					Add(s);
-				args.Add(NULL);
-				SetExitCode((int)execv(ide.target, args.begin()));
-			}
-		}
-		else
-			SetExitCode(1);
+	PutVerbose("Build flags: " << ide.mainconfigparam);
+	String bp = GetBuildMethodPath(build_method);
+	PutVerbose("Build method: " + bp);
+	if(bp.GetCount() == 0) {
+		SilentMode = false;
+		Puts("Invalid build method: " + build_method + "\n");
+		SetExitCode(3);
+		return;
 	}
-	else {
-		String version = GenerateVersionNumber();
-		Puts("aimk (AI Make - AI-friendly U++ build tool) " + version + "\n\n"
-		     "Usage: aimk assembly main_package [build_method] [-options] [+flags] [output]\n"
-		     "Examples: aimk examples Bombs CLANG -ab +GUI,SHARED ~/bombs\n"
-		     "          aimk ~/upp.src/examples,~/upp.src/uppsrc Bombs ~/GCC.bm -rv +GUI,SHARED ~/bin\n\n"
-		     "AI-friendly features coming soon. Currently compatible with umk usage.\n");
+
+	if(!output_path.IsEmpty()) {
+		ide.debug.target_override = ide.release.target_override = true;
+		ide.debug.target = ide.release.target = NormalizePath(output_path);
+		PutVerbose("Output path: " << ide.debug.target);
 	}
+
+	ide.method = bp;
+
+	if(ccfile) {
+		ide.SaveCCJ(GetFileDirectory(PackageFile(ide.main)) + "compile_commands.json", false);
+		SetExitCode(0);
+		return;
+	}
+
+	if(clean)
+		ide.Clean();
+	if(exporting) {
+		mkf = GetFullPath(mkf);
+		Cout() << mkf << '\n';
+		RealizeDirectory(mkf);
+		if(makefile)
+			ide.ExportMakefile(mkf);
+		else
+			ide.ExportProject(mkf, exporting == 2, deletedir);
+	}
+	else
+	if(makefile) {
+		ide.SaveMakeFile(IsNull(mkf) ? "Makefile" : mkf, false);
+		SetExitCode(0);
+	}
+	else
+	if(ide.Build()) {
+		SetExitCode(0);
+		if(run) {
+			Vector<char *> args;
+			Vector<Buffer<char>> buffer;
+			auto Add = [&](const String& s) {
+				auto& b = buffer.Add();
+				b.Alloc(s.GetCount() + 1);
+				memcpy(b, s, s.GetCount() + 1);
+				args.Add(b);
+			};
+			Add(ide.target);
+			for(const String& s : runargs)
+				Add(s);
+			args.Add(NULL);
+			SetExitCode((int)execv(ide.target, args.begin()));
+		}
+	}
+	else
+		SetExitCode(1);
 }
 
 #endif

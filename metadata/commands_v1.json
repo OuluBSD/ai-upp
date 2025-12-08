@@ -164,15 +164,22 @@
         }
       ],
       "outputs": {
-        "kind": "status-only"
+        "kind": "object",
+        "fields": [
+          {
+            "name": "pos",
+            "type": "int",
+            "description": "Resolved character offset in the file"
+          }
+        ]
       },
       "side_effects": {
         "modifies_files": false,
         "modifies_project": false,
         "requires_open_project": false,
-        "requires_open_file": true
+        "requires_open_file": false
       },
-      "context_notes": "Navigates to a specific line in the editor"
+      "context_notes": "Navigates to a specific line in the in-memory editor buffer"
     },
     {
       "name": "search_code",
@@ -256,6 +263,304 @@
         "requires_open_file": false
       },
       "context_notes": "Changes the main package setting in the project"
+    },
+    {
+      "name": "insert_text",
+      "category": "editor",
+      "description": "Insert text at a specific position in a file",
+      "long_description": "Inserts the specified text at the given position in the file",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to edit"
+        },
+        {
+          "name": "pos",
+          "type": "int",
+          "required": true,
+          "description": "Position (0-based) to insert text at"
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true,
+          "description": "Text to insert"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Operates on in-memory buffer (CoreEditor). File will be persisted to disk when saved with save_file command."
+    },
+    {
+      "name": "erase_range",
+      "category": "editor",
+      "description": "Erase a range of text in a file",
+      "long_description": "Removes text from the specified position for the given count of characters",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to edit"
+        },
+        {
+          "name": "pos",
+          "type": "int",
+          "required": true,
+          "description": "Starting position (0-based) to erase from"
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "required": true,
+          "description": "Number of characters to erase"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Operates on in-memory buffer (CoreEditor). File will be persisted to disk when saved with save_file command."
+    },
+    {
+      "name": "replace_all",
+      "category": "editor",
+      "description": "Replace all occurrences of a pattern in a file",
+      "long_description": "Finds and replaces all occurrences of the pattern with the replacement text",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to edit"
+        },
+        {
+          "name": "pattern",
+          "type": "string",
+          "required": true,
+          "description": "Pattern to find and replace"
+        },
+        {
+          "name": "replacement",
+          "type": "string",
+          "required": true,
+          "description": "Text to replace the pattern with"
+        },
+        {
+          "name": "case_sensitive",
+          "type": "bool",
+          "required": false,
+          "default": true,
+          "description": "Whether the pattern matching is case sensitive"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "replacements",
+            "type": "int",
+            "description": "Number of replacements made"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Operates on in-memory buffer (CoreEditor). File will be persisted to disk when saved with save_file command."
+    },
+    {
+      "name": "undo",
+      "category": "editor",
+      "description": "Undo the last edit in a file",
+      "long_description": "Reverts the last edit operation performed on the file",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to undo changes in"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Operates on in-memory buffer (CoreEditor). File will be persisted to disk when saved with save_file command."
+    },
+    {
+      "name": "redo",
+      "category": "editor",
+      "description": "Redo the last undone edit in a file",
+      "long_description": "Re-applies the last edit that was undone on the file",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to redo changes in"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Operates on in-memory buffer (CoreEditor). File will be persisted to disk when saved with save_file command."
+    },
+    {
+      "name": "find_definition",
+      "category": "navigation",
+      "description": "Find the definition of a symbol",
+      "long_description": "Locates the definition of the specified symbol in the workspace",
+      "inputs": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "description": "Name of the symbol to find the definition for"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "description": "File containing the definition"
+          },
+          {
+            "name": "line",
+            "type": "int",
+            "description": "Line number of the definition"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Requires the workspace to be indexed first using the indexing functionality."
+    },
+    {
+      "name": "find_usages",
+      "category": "navigation",
+      "description": "Find all usages of a symbol",
+      "long_description": "Locates all usages of the specified symbol in the workspace",
+      "inputs": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": true,
+          "description": "Name of the symbol to find usages for"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "location",
+            "type": "string",
+            "description": "File and line number in format 'file:line'"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Requires the workspace to be indexed first using the indexing functionality."
+    },
+    {
+      "name": "get_build_order",
+      "category": "graph",
+      "description": "Get the build order of packages based on dependencies",
+      "long_description": "Returns the topological order of packages based on their dependency relationships, which is the order in which packages should be built",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": ["package"]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command computes the dependency graph and provides the topological sort order for building packages"
+    },
+    {
+      "name": "detect_cycles",
+      "category": "graph",
+      "description": "Detect cycles in the package dependency graph",
+      "long_description": "Identifies cycles in package dependencies that would prevent successful building",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": ["cycle"]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command detects if there are circular dependencies in the package graph"
+    },
+    {
+      "name": "affected_packages",
+      "category": "graph",
+      "description": "Get packages affected by changes to a file",
+      "long_description": "Returns the list of packages that would be affected by changes to the specified file, based on package dependency graph",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to check for impact"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": ["package"]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs impact analysis to determine which packages depend (directly or transitively) on the specified file"
     }
   ]
 }

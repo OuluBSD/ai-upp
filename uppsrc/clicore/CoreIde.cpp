@@ -4,6 +4,7 @@ using namespace Upp;
 
 CoreIde::CoreIde() {
     // Initialize internal state
+    current_editor_index = -1;
 }
 
 CoreIde::~CoreIde() {
@@ -12,27 +13,203 @@ CoreIde::~CoreIde() {
 
 // File operations
 bool CoreIde::OpenFile(const String& path, String& error) {
-    String content;
-    return fileOps.OpenFile(path, content, error);
+    return OpenEditor(path, error) != nullptr;
 }
 
 bool CoreIde::SaveFile(const String& path, String& error) {
-    // For save, we need to get current content somehow
-    // In a real implementation, we would save the current in-memory content of the file
-    // For now, if the file exists, we'll save it with the same content to just validate we can write
-    String content;
-    if (FileExists(path)) {
-        content = LoadFile(path);  // Load current content if file exists
-        if (content.IsEmpty() && !GetFileTime(path)) {
-            error = "File access error: " + path;
+    if (path.IsEmpty()) {
+        // Save the current editor if no path is specified
+        if (current_editor_index >= 0 && current_editor_index < editors.GetCount()) {
+            return editors[current_editor_index].SaveFile(error);
+        } else {
+            error = "No file path specified and no current editor available";
             return false;
         }
-    } else {
-        // If file doesn't exist, we'll save it with empty content (create new file)
-        content = "";
     }
 
-    return fileOps.SaveFile(path, content, error);
+    // Find the editor for the specified path
+    int index = editor_paths.Find(path);
+    if (index >= 0) {
+        // Editor exists, save it
+        return editors[index].SaveFile(error);
+    } else {
+        // Editor doesn't exist, so save the original file directly
+        String content;
+        if (FileExists(path)) {
+            content = LoadFile(path);
+        }
+        return fileOps.SaveFile(path, content, error);
+    }
+}
+
+// Editor operations
+CoreEditor* CoreIde::FindEditorForPath(const String& path) {
+    int index = editor_paths.Find(path);
+    if (index >= 0 && index < editors.GetCount()) {
+        return &editors[index];
+    }
+    return nullptr;
+}
+
+CoreEditor* CoreIde::GetCurrentEditor() {
+    if (current_editor_index >= 0 && current_editor_index < editors.GetCount()) {
+        return &editors[current_editor_index];
+    }
+    return nullptr;
+}
+
+CoreEditor* CoreIde::OpenEditor(const String& path, String& error) {
+    // Check if editor for this path already exists
+    int index = editor_paths.Find(path);
+    if (index >= 0) {
+        // Editor already exists, set it as current and return it
+        current_editor_index = index;
+        return &editors[index];
+    }
+
+    // Editor doesn't exist, create a new one
+    CoreEditor new_editor;
+    if (!new_editor.LoadFile(path, error)) {
+        return nullptr;  // Error already set by LoadFile
+    }
+
+    // Add the new editor
+    int new_index = editors.GetCount();
+    editors.Add(new_editor);
+    editor_paths.Add(path);
+
+    // Set as current editor
+    current_editor_index = new_index;
+
+    return &editors[new_index];
+}
+
+bool CoreIde::CloseFile(const String& path, String& error) {
+    int index = editor_paths.Find(path);
+    if (index < 0) {
+        error = "File not open: " + path;
+        return false;
+    }
+
+    // Remove the editor
+    editors.Remove(index);
+    editor_paths.Remove(index);
+
+    // Update current_editor_index if needed
+    if (current_editor_index == index) {
+        current_editor_index = -1;  // No current editor
+    } else if (current_editor_index > index) {
+        current_editor_index--;  // Adjust index after removal
+    }
+
+    return true;
+}
+
+// Editor-specific operations
+bool CoreIde::EditorInsert(const String& path, int pos, const String& text, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->Insert(pos, text);
+}
+
+bool CoreIde::EditorErase(const String& path, int pos, int count, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->Erase(pos, count);
+}
+
+bool CoreIde::EditorReplace(const String& path, int pos, int count, const String& replacement, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->Replace(pos, count, replacement);
+}
+
+bool CoreIde::EditorGotoLine(const String& path, int line, int& out_pos, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->GotoLine(line, out_pos);
+}
+
+bool CoreIde::EditorFindFirst(const String& path, const String& pattern, int start_pos,
+                              bool case_sensitive, int& out_pos, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->FindFirst(pattern, start_pos, case_sensitive, out_pos);
+}
+
+bool CoreIde::EditorReplaceAll(const String& path, const String& pattern, const String& replacement,
+                               bool case_sensitive, int& out_count, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->ReplaceAll(pattern, replacement, case_sensitive, out_count);
+}
+
+bool CoreIde::EditorUndo(const String& path, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->Undo();
+}
+
+bool CoreIde::EditorRedo(const String& path, String& error) {
+    CoreEditor* editor = FindEditorForPath(path);
+    if (!editor) {
+        // Try to open the file in editor
+        editor = OpenEditor(path, error);
+        if (!editor) {
+            return false;
+        }
+    }
+
+    return editor->Redo();
 }
 
 // Workspace management
@@ -42,6 +219,14 @@ bool CoreIde::SetWorkspaceRoot(const String& root, String& error) {
     }
 
     workspace_root = root;
+
+    // Rebuild graph after workspace root changes
+    String graph_error;
+    if (!RebuildGraph(graph_error)) {
+        // Log the error but don't fail the SetWorkspaceRoot operation
+        console.AddToConsole("Warning: Failed to rebuild dependency graph: " + graph_error);
+    }
+
     return true;
 }
 
@@ -58,7 +243,18 @@ bool CoreIde::SetMainPackage(const String& package, String& error) {
     }
 
     // Use the workspace helper to set the main package
-    return workspace.SetMainPackage(package, error);
+    bool result = workspace.SetMainPackage(package, error);
+
+    // Rebuild graph after setting main package
+    if (result) {
+        String graph_error;
+        if (!RebuildGraph(graph_error)) {
+            // Log the error but don't fail the SetMainPackage operation
+            console.AddToConsole("Warning: Failed to rebuild dependency graph: " + graph_error);
+        }
+    }
+
+    return result;
 }
 
 bool CoreIde::GetMainPackage(CoreWorkspace::Package& out, String& error) const {
@@ -217,6 +413,19 @@ bool CoreIde::SearchCode(const String& query, String& result, String& error) {
     return success;
 }
 
+// Symbol assistance
+bool CoreIde::IndexWorkspace(String& error) {
+    return assist.IndexWorkspace(workspace, error);
+}
+
+bool CoreIde::FindSymbolDefinition(const String& symbol, String& file, int& line, String& error) {
+    return assist.FindDefinition(symbol, file, line);
+}
+
+bool CoreIde::FindSymbolUsages(const String& symbol, Vector<String>& locs, String& error) {
+    return assist.FindUsages(symbol, locs);
+}
+
 // Output
 bool CoreIde::GetConsoleOutput(String& out, String& error) {
     // Delegate to the console helper
@@ -228,4 +437,21 @@ bool CoreIde::GetErrorsOutput(String& out, String& error) {
     // Delegate to the console helper
     out = console.GetErrorsOutput();
     return true; // This operation should always succeed
+}
+
+// Graph operations
+bool CoreIde::RebuildGraph(String& error) {
+    return graph.BuildPackageGraph(workspace, error);
+}
+
+bool CoreIde::GetBuildOrder(Vector<String>& out_order, String& error) {
+    return graph.TopologicalSort(out_order, error);
+}
+
+bool CoreIde::GetCycles(Vector<Vector<String>>& out_cycles, String& error) {
+    return graph.DetectCycles(out_cycles);
+}
+
+bool CoreIde::GetAffectedPackages(const String& filepath, Vector<String>& out_packages, String& error) {
+    return graph.AffectedPackagesByFile(filepath, workspace, out_packages);
 }

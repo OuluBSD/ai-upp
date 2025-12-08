@@ -53,6 +53,36 @@ InvocationResult CommandExecutor::Invoke(const String& name,
     else if (name == "set_main_package") {
         return HandleSetMainPackage(args);
     }
+    else if (name == "insert_text") {
+        return HandleInsertText(args);
+    }
+    else if (name == "erase_range") {
+        return HandleEraseRange(args);
+    }
+    else if (name == "replace_all") {
+        return HandleReplaceAll(args);
+    }
+    else if (name == "undo") {
+        return HandleUndo(args);
+    }
+    else if (name == "redo") {
+        return HandleRedo(args);
+    }
+    else if (name == "find_definition") {
+        return HandleFindDefinition(args);
+    }
+    else if (name == "find_usages") {
+        return HandleFindUsages(args);
+    }
+    else if (name == "get_build_order") {
+        return HandleGetBuildOrder(args);
+    }
+    else if (name == "detect_cycles") {
+        return HandleDetectCycles(args);
+    }
+    else if (name == "affected_packages") {
+        return HandleAffectedPackages(args);
+    }
     // Special case for list_commands (not in metadata)
     else if (name == "list_commands") {
         Vector<Command> allCmds = registry.ListCommands();
@@ -192,6 +222,197 @@ InvocationResult CommandExecutor::HandleSetMainPackage(const VectorMap<String, S
     }
 
     return {0, "Set main package to '" + pkg + "'"};
+}
+
+InvocationResult CommandExecutor::HandleInsertText(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    String posStr = args.Get("pos", "0");
+    String text = args.Get("text", "");
+
+    int pos = ScanInt(posStr);
+    if (pos < 0) {
+        return {1, "Invalid position: " + posStr};
+    }
+
+    String error;
+    if (!session->EditorInsert(path, pos, text, error)) {
+        return {1, "Failed to insert text: " + error};
+    }
+
+    return {0, "Inserted text into '" + path + "' at position " + IntStr(pos) + "."};
+}
+
+InvocationResult CommandExecutor::HandleEraseRange(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    String posStr = args.Get("pos", "0");
+    String countStr = args.Get("count", "0");
+
+    int pos = ScanInt(posStr);
+    int count = ScanInt(countStr);
+    if (pos < 0 || count < 0) {
+        return {1, "Invalid position or count: " + posStr + ", " + countStr};
+    }
+
+    String error;
+    if (!session->EditorErase(path, pos, count, error)) {
+        return {1, "Failed to erase range: " + error};
+    }
+
+    return {0, "Erased " + IntStr(count) + " characters in '" + path + "' starting at position " + IntStr(pos) + "."};
+}
+
+InvocationResult CommandExecutor::HandleReplaceAll(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    String pattern = args.Get("pattern", "");
+    String replacement = args.Get("replacement", "");
+    String caseSensitiveStr = args.Get("case_sensitive", "true");
+
+    bool case_sensitive = true;
+    if (caseSensitiveStr == "false" || caseSensitiveStr == "0") {
+        case_sensitive = false;
+    }
+
+    String error;
+    int count;
+    if (!session->EditorReplaceAll(path, pattern, replacement, case_sensitive, count, error)) {
+        return {1, "Failed to replace all: " + error};
+    }
+
+    return {0, "Replaced " + IntStr(count) + " occurrences in '" + path + "'."};
+}
+
+InvocationResult CommandExecutor::HandleGotoLine(const VectorMap<String, String>& args) {
+    String lineStr = args.Get("line", "1");
+    String file = args.Get("file", "");
+
+    int line = ScanInt(lineStr);
+    String error;
+    int pos;
+    if (!session->EditorGotoLine(file, line, pos, error)) {
+        return {1, "Failed to go to line " + IntStr(line) + " in file '" + file + "': " + error};
+    }
+
+    return {0, "Moved to line " + IntStr(line) + " (pos " + IntStr(pos) + ") in '" + file + "'."};
+}
+
+InvocationResult CommandExecutor::HandleUndo(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    String error;
+
+    if (!session->EditorUndo(path, error)) {
+        return {1, "Failed to undo: " + error};
+    }
+
+    return {0, "Undid last edit in '" + path + "'."};
+}
+
+InvocationResult CommandExecutor::HandleRedo(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    String error;
+
+    if (!session->EditorRedo(path, error)) {
+        return {1, "Failed to redo: " + error};
+    }
+
+    return {0, "Redid last undone edit in '" + path + "'."};
+}
+
+InvocationResult CommandExecutor::HandleFindDefinition(const VectorMap<String, String>& args) {
+    String symbol = args.Get("symbol", "");
+    if (symbol.IsEmpty()) {
+        return {1, "Missing required argument: symbol"};
+    }
+
+    String file, error;
+    int line = -1;
+    if (!session->FindDefinition(symbol, file, line, error)) {
+        return {1, "Failed to find definition for symbol '" + symbol + "': " + error};
+    }
+
+    return {0, "Definition found: " + file + ":" + IntStr(line)};
+}
+
+InvocationResult CommandExecutor::HandleFindUsages(const VectorMap<String, String>& args) {
+    String symbol = args.Get("symbol", "");
+    if (symbol.IsEmpty()) {
+        return {1, "Missing required argument: symbol"};
+    }
+
+    Vector<String> locations;
+    String error;
+    if (!session->FindUsages(symbol, locations, error)) {
+        return {1, "Failed to find usages for symbol '" + symbol + "': " + error};
+    }
+
+    String result = "Usages found for symbol '" + symbol + "':\n";
+    for (const String& loc : locations) {
+        result += "  " + loc + "\n";
+    }
+
+    return {0, result};
+}
+
+// Graph command handlers
+InvocationResult CommandExecutor::HandleGetBuildOrder(const VectorMap<String, String>& args) {
+    Vector<String> build_order;
+    String error;
+
+    if (!session->GetBuildOrder(build_order, error)) {
+        return {1, "Failed to get build order: " + error};
+    }
+
+    String result = "Build order:\n";
+    for (int i = 0; i < build_order.GetCount(); i++) {
+        result += IntStr(i + 1) + ". " + build_order[i] + "\n";
+    }
+
+    return {0, result};
+}
+
+InvocationResult CommandExecutor::HandleDetectCycles(const VectorMap<String, String>& args) {
+    Vector<Vector<String>> cycles;
+    String error;
+
+    if (!session->FindCycles(cycles, error)) {
+        return {1, "Failed to detect cycles: " + error};
+    }
+
+    if (cycles.GetCount() == 0) {
+        return {0, "No cycles detected in package dependencies."};
+    }
+
+    String result = "Cycles detected in package dependencies:\n";
+    for (int i = 0; i < cycles.GetCount(); i++) {
+        result += "Cycle " + IntStr(i + 1) + ": ";
+        for (int j = 0; j < cycles[i].GetCount(); j++) {
+            if (j > 0) result += " -> ";
+            result += cycles[i][j];
+        }
+        result += "\n";
+    }
+
+    return {0, result};
+}
+
+InvocationResult CommandExecutor::HandleAffectedPackages(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    if (path.IsEmpty()) {
+        return {1, "Missing required argument: path"};
+    }
+
+    Vector<String> affected_packages;
+    String error;
+
+    if (!session->AffectedPackages(path, affected_packages, error)) {
+        return {1, "Failed to get affected packages for file '" + path + "': " + error};
+    }
+
+    String result = "Packages affected by changes to '" + path + "':\n";
+    for (int i = 0; i < affected_packages.GetCount(); i++) {
+        result += "- " + affected_packages[i] + "\n";
+    }
+
+    return {0, result};
 }
 
 }

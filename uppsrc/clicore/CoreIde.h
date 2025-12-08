@@ -7,6 +7,9 @@
 #include "CoreSearch.h"
 #include "CoreConsole.h"
 #include "CoreFileOps.h"
+#include "CoreEditor.h"
+#include "CoreAssist.h"
+#include "CoreGraph.h"
 
 using namespace Upp;
 
@@ -18,6 +21,24 @@ public:
     // File operations
     bool OpenFile(const String& path, String& error);
     bool SaveFile(const String& path, String& error);
+
+    // Editor operations
+    CoreEditor* FindEditorForPath(const String& path);
+    CoreEditor* GetCurrentEditor();
+    CoreEditor* OpenEditor(const String& path, String& error);
+    bool CloseFile(const String& path, String& error);
+
+    // Editor-specific operations
+    bool EditorInsert(const String& path, int pos, const String& text, String& error);
+    bool EditorErase(const String& path, int pos, int count, String& error);
+    bool EditorReplace(const String& path, int pos, int count, const String& replacement, String& error);
+    bool EditorGotoLine(const String& path, int line, int& out_pos, String& error);
+    bool EditorFindFirst(const String& path, const String& pattern, int start_pos,
+                         bool case_sensitive, int& out_pos, String& error);
+    bool EditorReplaceAll(const String& path, const String& pattern, const String& replacement,
+                          bool case_sensitive, int& out_count, String& error);
+    bool EditorUndo(const String& path, String& error);
+    bool EditorRedo(const String& path, String& error);
 
     // Workspace management
     bool SetWorkspaceRoot(const String& root, String& error);
@@ -38,6 +59,17 @@ public:
     bool FindInFiles(const String& pattern, const String& directory, bool replace, String& result, String& error);
     bool SearchCode(const String& query, String& result, String& error);
 
+    // Symbol assistance
+    bool IndexWorkspace(String& error);
+    bool FindSymbolDefinition(const String& symbol, String& file, int& line, String& error);
+    bool FindSymbolUsages(const String& symbol, Vector<String>& locs, String& error);
+
+    // Graph operations
+    bool RebuildGraph(String& error);
+    bool GetBuildOrder(Vector<String>& out_order, String& error);
+    bool GetCycles(Vector<Vector<String>>& out_cycles, String& error);
+    bool GetAffectedPackages(const String& filepath, Vector<String>& out_packages, String& error);
+
     // Output
     bool GetConsoleOutput(String& out, String& error);
     bool GetErrorsOutput(String& out, String& error);
@@ -49,7 +81,14 @@ private:
     CoreSearch search;
     CoreConsole console;
     CoreFileOps fileOps;
+    CoreAssist assist;  // Added CoreAssist member
+    CoreGraph graph;    // Added CoreGraph member
     String workspace_root;
+
+    // Core Editor management
+    Vector<CoreEditor> editors;
+    Index<String> editor_paths;  // Map from path to editor index
+    int current_editor_index;    // Index of currently active editor
 };
 
 #endif

@@ -68,6 +68,26 @@ public:
     virtual bool CanonicalizeIncludes(const String& path,
                                       String& error) override;
 
+    // Telemetry & Analytics v1 methods (PART C)
+    virtual Value GetWorkspaceStats(String& error) override;
+    virtual Value GetPackageStats(const String& pkg, String& error) override;
+    virtual Value GetFileComplexity(const String& path, String& error) override;
+    virtual Value GetGraphStats(String& error) override;
+    virtual Value GetEditHistory(String& error) override;
+
+    // Optimization Loop v1 (PART C)
+    virtual Value OptimizePackage(
+        const String& package,
+        int max_iterations,
+        double converge_threshold,
+        bool stop_on_worse,
+        bool stop_on_converge,
+        String& error
+    ) override;
+
+    // AI Supervisor Layer v1 (PART C)
+    virtual Value GetOptimizationPlan(const String& package, String& error) override;
+
 private:
     CoreIde core_ide;
 };
@@ -225,6 +245,51 @@ bool IdeSessionImpl::RemoveDeadIncludes(const String& path,
 bool IdeSessionImpl::CanonicalizeIncludes(const String& path,
                                           String& error) {
     return core_ide.CanonicalizeIncludes(path, error);
+}
+
+// Telemetry & Analytics v1 implementations
+Value IdeSessionImpl::GetWorkspaceStats(String& error) {
+    return core_ide.GetWorkspaceStats();
+}
+
+Value IdeSessionImpl::GetPackageStats(const String& pkg, String& error) {
+    return core_ide.GetPackageStats(pkg);
+}
+
+Value IdeSessionImpl::GetFileComplexity(const String& path, String& error) {
+    return core_ide.GetFileComplexity(path);
+}
+
+Value IdeSessionImpl::GetGraphStats(String& error) {
+    return core_ide.GetGraphStats();
+}
+
+Value IdeSessionImpl::GetEditHistory(String& error) {
+    return core_ide.GetEditHistory();
+}
+
+// Optimization Loop v1 implementations
+Value IdeSessionImpl::OptimizePackage(
+    const String& package,
+    int max_iterations,
+    double converge_threshold,
+    bool stop_on_worse,
+    bool stop_on_converge,
+    String& error
+) {
+    CoreOptimize::LoopConfig config;
+    config.max_iterations = max_iterations;
+    config.converge_threshold = converge_threshold;
+    config.stop_on_worse = stop_on_worse;
+    config.stop_on_converge = stop_on_converge;
+
+    // Call the CoreIde's RunOptimizationLoop method
+    return core_ide.RunOptimizationLoop(package, config, error);
+}
+
+// AI Supervisor Layer v1 implementation
+Value IdeSessionImpl::GetOptimizationPlan(const String& package, String& error) {
+    return core_ide.GenerateOptimizationPlan(package, error);
 }
 
 One<IdeSession> CreateIdeSession() {

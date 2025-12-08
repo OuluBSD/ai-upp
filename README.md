@@ -135,3 +135,176 @@ The U++ repository is divided into several directories. Some of them are:
 * **benchmarks** - code for benchmarking purposes
 * **rainbow** - area for new GUI backends development
 * **upptst** - manual testing code for the framework
+
+## Telemetry & Analytics v1
+
+The system now supports a comprehensive telemetry and analytics layer that enables external AI agents to gain situational awareness of the workspace. This provides rich introspection capabilities through structured JSON APIs.
+
+### Available Telemetry Commands:
+
+* **workspace_stats** - Provides structural analytics about the entire workspace
+  * Number of packages
+  * Total source files and distribution by extension
+  * Average file size and largest file information
+  * Main package name (if set)
+
+* **package_stats** - Delivers detailed metrics about a specific package
+  * Number of files and uses-count
+  * Include count and total lines of code
+  * Histogram of file sizes
+
+* **file_complexity** - Computes complexity heuristics for a specific source file
+  * Lines of code and estimated function count
+  * Number of includes and nesting depth
+  * Comment ratio
+
+* **graph_stats** - Analyzes the dependency graph structure
+  * Node and edge counts
+  * Average outdegree and cycle detection
+  * Longest dependency chain length
+  * Most depended-on package identification
+
+* **edit_history** - Tracks changes during the session
+  * Records per-file size deltas
+  * Timestamped edit history
+
+### JSON Output Examples:
+
+**workspace_stats:**
+```json
+{
+  "packages": 4,
+  "files": 132,
+  "extensions": { "cpp": 84, "h": 48 },
+  "largest_file": { "path": "src/Engine.cpp", "bytes": 42103 },
+  "average_size": 3370,
+  "main_package": "MyApp"
+}
+```
+
+**file_complexity:**
+```json
+{
+  "lines": 230,
+  "functions": 7,
+  "includes": 5,
+  "nesting": 12,
+  "comment_ratio": 0.18
+}
+```
+
+**graph_stats:**
+```json
+{
+  "nodes": 4,
+  "edges": 3,
+  "avg_out": 0.75,
+  "cycles": false,
+  "max_chain": 3,
+  "most_depended_on": "Core"
+}
+```
+
+This subsystem enables external AI to make **strategic decisions** by providing visibility into workspace health, change impact, code complexity, and quality signals.
+
+## Optimization Loop v1
+
+The system includes an iterative optimization subsystem that enables automated structural cleanup and refactoring of code packages. This provides a foundation for AI-driven refactoring through repeated incremental improvements with measurable outcomes.
+
+### Core Features:
+
+* **Iterative Refactoring** - Runs a sequence of optimizations repeatedly on a package
+* **Telemetry-Based Scoring** - Uses heuristic metrics to evaluate improvement between iterations
+* **Convergence Detection** - Stops automatically when improvements plateau or diminish
+* **Regression Prevention** - Can halt when metrics indicate degradation
+* **Built-in Refactoring Actions** - Currently includes operations like dead include removal and include canonicalization
+
+### Available Optimization Command:
+
+* **optimize_package** - Performs iterative structural cleanup on a specified package
+  * Configurable maximum iterations
+  * Convergence threshold for automatic termination
+  * Options to stop on metric degradation
+  * Detailed iteration history in JSON output
+
+### Command Example:
+
+```bash
+theide-cli --workspace-root . --json optimize_package \
+  --name MyApp \
+  --max_iterations 10 \
+  --converge_threshold 0.05
+```
+
+### JSON Output Example:
+
+```json
+{
+  "iterations": [
+    {
+      "index": 0,
+      "score_delta": -2.5,
+      "changes": { "removed_includes": 4 }
+    },
+    {
+      "index": 1,
+      "score_delta": -0.8,
+      "changes": { "removed_includes": 2 }
+    }
+  ],
+  "reason": "converged",
+  "success": true
+}
+```
+
+This subsystem enables external AI to perform **systematic structural improvements** by automatically iterating over code with measurable quality heuristics to guide the process.
+
+## AI Supervisor Layer v1
+
+The system includes an AI Supervisor Layer that generates strategic, multi-step improvement plans for code packages. This component consumes telemetry, graph statistics, and complexity metrics to produce actionable recommendations for workspace enhancement.
+
+### Core Features:
+
+* **Strategic Planning** - Generates a multi-step plan with prioritized recommendations
+* **Telemetry Integration** - Consumes workspace stats, package metrics, and complexity data
+* **Heuristic Decision Making** - Uses rule-based algorithms to identify optimization opportunities
+* **Structured Output** - Returns JSON describing recommended actions, parameters, and reasoning
+* **AI Agent Ready** - Designed specifically for AI agents to use for autonomous project improvement
+
+### Available Supervisor Command:
+
+* **get_optimization_plan** - Analyzes a package and generates an AI-guided improvement plan
+  * Identifies unused includes for cleanup
+  * Detects symbol renaming opportunities
+  * Flags graph simplification possibilities
+  * Recommends optimization loop execution
+  * Provides risk scoring based on complexity metrics
+
+### Command Example:
+
+```bash
+theide-cli --workspace-root . --json get_optimization_plan --name MyApp
+```
+
+### JSON Output Example:
+
+```json
+{
+  "steps": [
+    {
+      "action": "run_playbook",
+      "target": "cleanup_includes_and_rebuild",
+      "params": { "package": "MyApp" },
+      "reason": "Many unused #includes detected."
+    },
+    {
+      "action": "optimize_package",
+      "params": { "name": "MyApp", "max_iterations": 5 },
+      "reason": "High complexity score & long dependency chains."
+    }
+  ],
+  "summary": "Package 'MyApp' shows structural issues: Risk score 0.72"
+}
+```
+
+This subsystem enables external AI to make **strategic decisions** by providing a planning layer that interprets workspace telemetry and recommends specific improvement actions.

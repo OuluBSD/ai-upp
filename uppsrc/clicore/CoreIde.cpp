@@ -20,7 +20,16 @@ bool CoreIde::SaveFile(const String& path, String& error) {
     if (path.IsEmpty()) {
         // Save the current editor if no path is specified
         if (current_editor_index >= 0 && current_editor_index < editors.GetCount()) {
-            return editors[current_editor_index].SaveFile(error);
+            CoreEditor& editor = editors[current_editor_index];
+            String old_content = editor.GetContent();
+            int old_size = old_content.GetLength();
+            bool success = editor.SaveFile(error);
+            if (success) {
+                String new_content = LoadFile(path);
+                int new_size = new_content.GetLength();
+                telemetry.RecordEdit(path, old_size, new_size);
+            }
+            return success;
         } else {
             error = "No file path specified and no current editor available";
             return false;
@@ -31,12 +40,29 @@ bool CoreIde::SaveFile(const String& path, String& error) {
     int index = editor_paths.Find(path);
     if (index >= 0) {
         // Editor exists, save it
-        return editors[index].SaveFile(error);
+        CoreEditor& editor = editors[index];
+        String old_content = editor.GetContent();
+        int old_size = old_content.GetLength();
+        bool success = editor.SaveFile(error);
+        if (success) {
+            String new_content = LoadFile(path);
+            int new_size = new_content.GetLength();
+            telemetry.RecordEdit(path, old_size, new_size);
+        }
+        return success;
     } else {
         // Editor doesn't exist, so save the original file directly
         String content;
         if (FileExists(path)) {
             content = LoadFile(path);
+            int old_size = content.GetLength();
+            bool success = fileOps.SaveFile(path, content, error);
+            if (success) {
+                String new_content = LoadFile(path);
+                int new_size = new_content.GetLength();
+                telemetry.RecordEdit(path, old_size, new_size);
+            }
+            return success;
         }
         return fileOps.SaveFile(path, content, error);
     }
@@ -116,7 +142,16 @@ bool CoreIde::EditorInsert(const String& path, int pos, const String& text, Stri
         }
     }
 
-    return editor->Insert(pos, text);
+    // Record edit for telemetry (before modification)
+    String old_content = editor->GetContent();
+    int old_size = old_content.GetLength();
+    bool success = editor->Insert(pos, text);
+    if (success) {
+        String new_content = editor->GetContent();
+        int new_size = new_content.GetLength();
+        telemetry.RecordEdit(path, old_size, new_size);
+    }
+    return success;
 }
 
 bool CoreIde::EditorErase(const String& path, int pos, int count, String& error) {
@@ -129,7 +164,16 @@ bool CoreIde::EditorErase(const String& path, int pos, int count, String& error)
         }
     }
 
-    return editor->Erase(pos, count);
+    // Record edit for telemetry (before modification)
+    String old_content = editor->GetContent();
+    int old_size = old_content.GetLength();
+    bool success = editor->Erase(pos, count);
+    if (success) {
+        String new_content = editor->GetContent();
+        int new_size = new_content.GetLength();
+        telemetry.RecordEdit(path, old_size, new_size);
+    }
+    return success;
 }
 
 bool CoreIde::EditorReplace(const String& path, int pos, int count, const String& replacement, String& error) {
@@ -142,7 +186,16 @@ bool CoreIde::EditorReplace(const String& path, int pos, int count, const String
         }
     }
 
-    return editor->Replace(pos, count, replacement);
+    // Record edit for telemetry (before modification)
+    String old_content = editor->GetContent();
+    int old_size = old_content.GetLength();
+    bool success = editor->Replace(pos, count, replacement);
+    if (success) {
+        String new_content = editor->GetContent();
+        int new_size = new_content.GetLength();
+        telemetry.RecordEdit(path, old_size, new_size);
+    }
+    return success;
 }
 
 bool CoreIde::EditorGotoLine(const String& path, int line, int& out_pos, String& error) {
@@ -458,13 +511,150 @@ bool CoreIde::GetAffectedPackages(const String& filepath, Vector<String>& out_pa
 
 // Refactoring operations
 bool CoreIde::RenameSymbol(const String& old, const String& nw, String& error) {
-    return refactor.RenameSymbol(old, nw, *this, error);
+    // For now, we'll implement a simpler approach for recording the edit
+    // In a complete implementation, this would track all affected files during rename
+    bool success = refactor.RenameSymbol(old, nw, *this, error);
+    // Note: In a complete implementation, we would need to get the list of affected files from the refactor operation
+    // and record the before/after sizes for each file
+    return success;
 }
 
 bool CoreIde::RemoveDeadIncludes(const String& path, String& error, int* out_count) {
-    return refactor.RemoveDeadIncludes(path, *this, error, out_count);
+    String old_content = LoadFile(path);
+    int old_size = old_content.GetLength();
+    bool success = refactor.RemoveDeadIncludes(path, *this, error, out_count);
+    if (success) {
+        String new_content = LoadFile(path);
+        int new_size = new_content.GetLength();
+        telemetry.RecordEdit(path, old_size, new_size);
+    }
+    return success;
 }
 
 bool CoreIde::CanonicalizeIncludes(const String& path, String& error, int* out_count) {
-    return refactor.CanonicalizeIncludes(path, *this, error, out_count);
+    String old_content = LoadFile(path);
+    int old_size = old_content.GetLength();
+    bool success = refactor.CanonicalizeIncludes(path, *this, error, out_count);
+    if (success) {
+        String new_content = LoadFile(path);
+        int new_size = new_content.GetLength();
+        telemetry.RecordEdit(path, old_size, new_size);
+    }
+    return success;
+}
+
+// Telemetry & Analytics v1
+Value CoreIde::GetWorkspaceStats() {
+    return telemetry.GetWorkspaceStats(workspace);
+}
+
+Value CoreIde::GetPackageStats(const String& pkg) {
+    const CoreWorkspace::Package* pkg_ptr = workspace.GetPackage(pkg);
+    if (pkg_ptr) {
+        return telemetry.GetPackageStats(*pkg_ptr);
+    }
+    return Value();
+}
+
+Value CoreIde::GetPackageStats(const String& pkg, String& error) {
+    const CoreWorkspace::Package* pkg_ptr = workspace.GetPackage(pkg);
+    if (!pkg_ptr) {
+        error = "Package not found: " + pkg;
+        return Value();
+    }
+    try {
+        return telemetry.GetPackageStats(*pkg_ptr);
+    } catch (const Exception& e) {
+        error = e.ToString();
+        return Value();
+    }
+}
+
+Value CoreIde::GetTelemetryData(const String& pkg, String& error) {
+    try {
+        // For now, return the same as package stats - in a real implementation,
+        // this would return additional telemetry information
+        return GetPackageStats(pkg, error);
+    } catch (const Exception& e) {
+        error = e.ToString();
+        return Value();
+    }
+}
+
+Value CoreIde::GetGraphStats(const String& pkg, String& error) {
+    try {
+        // Return overall graph statistics (in a real implementation, this would
+        // compute statistics specific to the package's position in the graph)
+        return telemetry.GetGraphStats(graph);
+    } catch (const Exception& e) {
+        error = e.ToString();
+        return Value();
+    }
+}
+
+Value CoreIde::GetFileComplexity(const String& path) {
+    String contents = LoadFile(path);
+    return telemetry.ComputeFileComplexity(path, contents);
+}
+
+Value CoreIde::GetGraphStats() {
+    return telemetry.GetGraphStats(graph);
+}
+
+Value CoreIde::GetEditHistory() {
+    return telemetry.GetEditHistory();
+}
+
+// Optimization Loop v1
+Value CoreIde::RunOptimizationLoop(const String& package,
+                                   const CoreOptimize::LoopConfig& cfg,
+                                   String& error) {
+    CoreOptimize::LoopResult result = optimizer.RunOptimizationLoop(package, cfg, *this, error);
+
+    // Convert the result to a ValueMap for return
+    ValueMap vm;
+    vm.Set("success", result.success);
+    vm.Set("reason", result.reason);
+
+    // Convert iterations to ValueArray
+    ValueArray iterations;
+    for (const auto& iter : result.iterations) {
+        ValueMap iter_map;
+        iter_map.Set("index", iter.index);
+        iter_map.Set("before_stats", iter.before_stats);
+        iter_map.Set("after_stats", iter.after_stats);
+        iter_map.Set("changes", iter.changes);
+        iter_map.Set("score_delta", iter.score_delta);
+        iterations.Add(iter_map);
+    }
+    vm.Set("iterations", iterations);
+
+    return vm;
+}
+
+// Supervisor v1 - Generate optimization plan for a package
+Value CoreIde::GenerateOptimizationPlan(const String& package, String& error) {
+    CoreSupervisor::Plan plan = supervisor.GenerateOptimizationPlan(package, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value(); // Return empty value on error
+    }
+
+    // Convert the plan to a ValueMap for return
+    ValueMap vm;
+    vm.Set("summary", plan.summary);
+
+    // Convert steps to ValueArray
+    ValueArray steps;
+    for (const auto& step : plan.steps) {
+        ValueMap step_map;
+        step_map.Set("action", step.action);
+        step_map.Set("target", step.target);
+        step_map.Set("params", step.params);
+        step_map.Set("reason", step.reason);
+        steps.Add(step_map);
+    }
+    vm.Set("steps", steps);
+
+    return vm;
 }

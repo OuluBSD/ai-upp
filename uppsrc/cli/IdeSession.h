@@ -56,6 +56,19 @@ public:
     virtual bool AffectedPackages(const String& filepath,
                                   Vector<String>& out_packages,
                                   String& error) = 0;
+
+    // Refactoring operations (PART F - Add these virtual methods)
+    virtual bool RenameSymbol(const String& old_name,
+                              const String& new_name,
+                              String& error) = 0;
+
+    virtual bool RemoveDeadIncludes(const String& path,
+                                    String& error,
+                                    int* out_count = nullptr) = 0;
+
+    virtual bool CanonicalizeIncludes(const String& path,
+                                      String& error,
+                                      int* out_count = nullptr) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

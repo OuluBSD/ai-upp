@@ -57,6 +57,17 @@ public:
                                   Vector<String>& out_packages,
                                   String& error) override;
 
+    // Refactoring operations
+    virtual bool RenameSymbol(const String& old_name,
+                              const String& new_name,
+                              String& error) override;
+
+    virtual bool RemoveDeadIncludes(const String& path,
+                                    String& error) override;
+
+    virtual bool CanonicalizeIncludes(const String& path,
+                                      String& error) override;
+
 private:
     CoreIde core_ide;
 };
@@ -197,6 +208,23 @@ bool IdeSessionImpl::AffectedPackages(const String& filepath,
                                       Vector<String>& out_packages,
                                       String& error) {
     return core_ide.GetAffectedPackages(filepath, out_packages, error);
+}
+
+// Refactoring operations
+bool IdeSessionImpl::RenameSymbol(const String& old_name,
+                                  const String& new_name,
+                                  String& error) {
+    return core_ide.RenameSymbol(old_name, new_name, error);
+}
+
+bool IdeSessionImpl::RemoveDeadIncludes(const String& path,
+                                        String& error) {
+    return core_ide.RemoveDeadIncludes(path, error);
+}
+
+bool IdeSessionImpl::CanonicalizeIncludes(const String& path,
+                                          String& error) {
+    return core_ide.CanonicalizeIncludes(path, error);
 }
 
 One<IdeSession> CreateIdeSession() {

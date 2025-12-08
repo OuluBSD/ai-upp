@@ -89,12 +89,13 @@ struct Command : Moveable<Command> {
 struct InvocationResult : Moveable<InvocationResult> {
     int status_code;    // 0 = success
     String message;     // Result message or error details
+    Value payload;      // Optional structured data for machine consumption
 
     InvocationResult() : status_code(0) {}
     InvocationResult(int status_code, String message);
 
     void Jsonize(JsonIO& json) {
-        json("status_code", status_code)("message", message);
+        json("status_code", status_code)("message", message)("payload", payload);
     }
 
     typedef InvocationResult CLASSNAME;

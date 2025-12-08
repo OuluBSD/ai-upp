@@ -8,6 +8,7 @@
 #include <Core/Core.h>
 
 #include "CoreIde.h"
+#include "CoreAssist.h"
 
 NAMESPACE_UPP
 

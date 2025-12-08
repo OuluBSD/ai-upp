@@ -455,3 +455,16 @@ bool CoreIde::GetCycles(Vector<Vector<String>>& out_cycles, String& error) {
 bool CoreIde::GetAffectedPackages(const String& filepath, Vector<String>& out_packages, String& error) {
     return graph.AffectedPackagesByFile(filepath, workspace, out_packages);
 }
+
+// Refactoring operations
+bool CoreIde::RenameSymbol(const String& old, const String& nw, String& error) {
+    return refactor.RenameSymbol(old, nw, *this, error);
+}
+
+bool CoreIde::RemoveDeadIncludes(const String& path, String& error, int* out_count) {
+    return refactor.RemoveDeadIncludes(path, *this, error, out_count);
+}
+
+bool CoreIde::CanonicalizeIncludes(const String& path, String& error, int* out_count) {
+    return refactor.CanonicalizeIncludes(path, *this, error, out_count);
+}

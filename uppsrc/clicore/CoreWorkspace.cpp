@@ -349,3 +349,19 @@ String CoreWorkspace::GetSourcePath(const String& package, const String& file) c
     if (pkg_dir.IsEmpty()) return String();
     return NormalizePath(AppendFileName(pkg_dir, file));
 }
+
+String CoreWorkspace::GetPackageOfFile(const String& filepath) const {
+    String normalized_filepath = NormalizePath(NativePath(filepath));
+
+    for(int i = 0; i < workspace.packages.GetCount(); i++) {
+        const Package& pkg = workspace.packages[i];
+        for(int j = 0; j < pkg.files.GetCount(); j++) {
+            String pkg_file = NormalizePath(NativePath(pkg.files[j]));
+            if(pkg_file == normalized_filepath) {
+                return pkg.name;
+            }
+        }
+    }
+
+    return String();  // Empty string if file is not found in any package
+}

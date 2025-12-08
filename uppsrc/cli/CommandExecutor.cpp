@@ -83,14 +83,37 @@ InvocationResult CommandExecutor::Invoke(const String& name,
     else if (name == "affected_packages") {
         return HandleAffectedPackages(args);
     }
+    else if (name == "rename_symbol") {
+        return HandleRenameSymbol(args);
+    }
+    else if (name == "remove_dead_includes") {
+        return HandleRemoveDeadIncludes(args);
+    }
+    else if (name == "canonicalize_includes") {
+        return HandleCanonicalizeIncludes(args);
+    }
+    else if (name == "describe_command") {
+        return HandleDescribeCommand(args);
+    }
     // Special case for list_commands (not in metadata)
     else if (name == "list_commands") {
         Vector<Command> allCmds = registry.ListCommands();
         String msg = "Available commands:\n";
+        ValueArray payload_array;
         for (const Command& c : allCmds) {
             msg += c.name + " (" + c.category + "): " + c.description + "\n";
+            ValueMap cmd_info;
+            cmd_info.Add("name", c.name);
+            cmd_info.Add("category", c.category);
+            cmd_info.Add("description", c.description);
+            payload_array.Add(cmd_info);
         }
-        return {0, msg};
+
+        InvocationResult result_struct;
+        result_struct.status_code = 0;
+        result_struct.message = msg;
+        result_struct.payload = payload_array;
+        return result_struct;
     }
 
     return {1, "Unimplemented command: " + name};
@@ -132,7 +155,40 @@ InvocationResult CommandExecutor::HandleFindInFiles(const VectorMap<String, Stri
         return {1, "Failed to find in files: " + error};
     }
 
-    return {0, "Find in files completed:\n" + result};
+    // Parse the result to create structured payload
+    Vector<String> lines = Split(result, "\n");
+    ValueArray payload_array;
+    String output_result = "Find in files completed:\n";
+
+    for (const String& line : lines) {
+        if (!line.IsEmpty()) {
+            output_result += line + "\n";
+            // Try to parse "file:line:content" format if available
+            Vector<String> parts = Split(line, ':');
+            if (parts.GetCount() >= 3) {
+                ValueMap entry;
+                entry.Add("file", parts[0]);
+                entry.Add("line", ScanInt(parts[1]));
+                String content = parts[2];
+                for (int i = 3; i < parts.GetCount(); i++) {
+                    content += ":" + parts[i];
+                }
+                entry.Add("content", content);
+                payload_array.Add(entry);
+            } else {
+                // If format doesn't match, just add the line as content
+                ValueMap entry;
+                entry.Add("content", line);
+                payload_array.Add(entry);
+            }
+        }
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = output_result;
+    result_struct.payload = payload_array;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleBuildProject(const VectorMap<String, String>& args) {
@@ -144,7 +200,19 @@ InvocationResult CommandExecutor::HandleBuildProject(const VectorMap<String, Str
         return {1, "Failed to build project '" + name + "' with config '" + config + "': " + error};
     }
 
-    return {0, "Build completed for project '" + name + "' with config '" + config + "'\nLog:\n" + log};
+    String result = "Build completed for project '" + name + "' with config '" + config + "'\nLog:\n" + log;
+
+    ValueMap payload_map;
+    payload_map.Add("project", name);
+    payload_map.Add("config", config);
+    payload_map.Add("log", log);
+    payload_map.Add("success", true);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleCleanProject(const VectorMap<String, String>& args) {
@@ -155,7 +223,18 @@ InvocationResult CommandExecutor::HandleCleanProject(const VectorMap<String, Str
         return {1, "Failed to clean project '" + name + "': " + error};
     }
 
-    return {0, "Clean completed for project '" + name + "'\nLog:\n" + log};
+    String result = "Clean completed for project '" + name + "'\nLog:\n" + log;
+
+    ValueMap payload_map;
+    payload_map.Add("project", name);
+    payload_map.Add("log", log);
+    payload_map.Add("success", true);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleGotoLine(const VectorMap<String, String>& args) {
@@ -180,7 +259,40 @@ InvocationResult CommandExecutor::HandleSearchCode(const VectorMap<String, Strin
         return {1, "Failed to search code: " + error};
     }
 
-    return {0, "Search code completed:\n" + result};
+    // Parse the result to create structured payload
+    Vector<String> lines = Split(result, "\n");
+    ValueArray payload_array;
+    String output_result = "Search code completed:\n";
+
+    for (const String& line : lines) {
+        if (!line.IsEmpty()) {
+            output_result += line + "\n";
+            // Try to parse "file:line:content" format if available
+            Vector<String> parts = Split(line, ':');
+            if (parts.GetCount() >= 3) {
+                ValueMap entry;
+                entry.Add("file", parts[0]);
+                entry.Add("line", ScanInt(parts[1]));
+                String content = parts[2];
+                for (int i = 3; i < parts.GetCount(); i++) {
+                    content += ":" + parts[i];
+                }
+                entry.Add("content", content);
+                payload_array.Add(entry);
+            } else {
+                // If format doesn't match, just add the line as content
+                ValueMap entry;
+                entry.Add("content", line);
+                payload_array.Add(entry);
+            }
+        }
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = output_result;
+    result_struct.payload = payload_array;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleShowConsole(const VectorMap<String, String>& args) {
@@ -278,7 +390,20 @@ InvocationResult CommandExecutor::HandleReplaceAll(const VectorMap<String, Strin
         return {1, "Failed to replace all: " + error};
     }
 
-    return {0, "Replaced " + IntStr(count) + " occurrences in '" + path + "'."};
+    String result = "Replaced " + IntStr(count) + " occurrences in '" + path + "'.";
+
+    ValueMap payload_map;
+    payload_map.Add("count", count);
+    payload_map.Add("path", path);
+    payload_map.Add("pattern", pattern);
+    payload_map.Add("replacement", replacement);
+    payload_map.Add("case_sensitive", case_sensitive);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleGotoLine(const VectorMap<String, String>& args) {
@@ -292,7 +417,18 @@ InvocationResult CommandExecutor::HandleGotoLine(const VectorMap<String, String>
         return {1, "Failed to go to line " + IntStr(line) + " in file '" + file + "': " + error};
     }
 
-    return {0, "Moved to line " + IntStr(line) + " (pos " + IntStr(pos) + ") in '" + file + "'."};
+    String result = "Moved to line " + IntStr(line) + " (pos " + IntStr(pos) + ") in '" + file + "'.";
+
+    ValueMap payload_map;
+    payload_map.Add("file", file);
+    payload_map.Add("line", line);
+    payload_map.Add("pos", pos);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleUndo(const VectorMap<String, String>& args) {
@@ -329,7 +465,18 @@ InvocationResult CommandExecutor::HandleFindDefinition(const VectorMap<String, S
         return {1, "Failed to find definition for symbol '" + symbol + "': " + error};
     }
 
-    return {0, "Definition found: " + file + ":" + IntStr(line)};
+    String result = "Definition found: " + file + ":" + IntStr(line);
+
+    ValueMap payload_map;
+    payload_map.Add("file", file);
+    payload_map.Add("line", line);
+    payload_map.Add("symbol", symbol);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleFindUsages(const VectorMap<String, String>& args) {
@@ -345,11 +492,32 @@ InvocationResult CommandExecutor::HandleFindUsages(const VectorMap<String, Strin
     }
 
     String result = "Usages found for symbol '" + symbol + "':\n";
+    ValueArray payload_array;
     for (const String& loc : locations) {
         result += "  " + loc + "\n";
+        // Parse location format "file:line" and convert to structured format
+        int colon_pos = loc.ReverseFind(':');
+        if (colon_pos > 0) {
+            String file = loc.Mid(0, colon_pos);
+            String line_str = loc.Mid(colon_pos + 1);
+            int line = ScanInt(line_str);
+            ValueMap entry;
+            entry.Add("file", file);
+            entry.Add("line", line);
+            payload_array.Add(entry);
+        } else {
+            // If format is not "file:line", just add the whole location as a file
+            ValueMap entry;
+            entry.Add("file", loc);
+            payload_array.Add(entry);
+        }
     }
 
-    return {0, result};
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_array;
+    return result_struct;
 }
 
 // Graph command handlers
@@ -362,11 +530,17 @@ InvocationResult CommandExecutor::HandleGetBuildOrder(const VectorMap<String, St
     }
 
     String result = "Build order:\n";
+    ValueArray payload_array;
     for (int i = 0; i < build_order.GetCount(); i++) {
         result += IntStr(i + 1) + ". " + build_order[i] + "\n";
+        payload_array.Add(build_order[i]);
     }
 
-    return {0, result};
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_array;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleDetectCycles(const VectorMap<String, String>& args) {
@@ -377,21 +551,31 @@ InvocationResult CommandExecutor::HandleDetectCycles(const VectorMap<String, Str
         return {1, "Failed to detect cycles: " + error};
     }
 
-    if (cycles.GetCount() == 0) {
-        return {0, "No cycles detected in package dependencies."};
-    }
-
     String result = "Cycles detected in package dependencies:\n";
-    for (int i = 0; i < cycles.GetCount(); i++) {
-        result += "Cycle " + IntStr(i + 1) + ": ";
-        for (int j = 0; j < cycles[i].GetCount(); j++) {
-            if (j > 0) result += " -> ";
-            result += cycles[i][j];
+    ValueArray payload_array;
+
+    if (cycles.GetCount() == 0) {
+        result = "No cycles detected in package dependencies.";
+        payload_array.Add("No cycles detected");
+    } else {
+        for (int i = 0; i < cycles.GetCount(); i++) {
+            result += "Cycle " + IntStr(i + 1) + ": ";
+            ValueArray cycle_packages;
+            for (int j = 0; j < cycles[i].GetCount(); j++) {
+                if (j > 0) result += " -> ";
+                result += cycles[i][j];
+                cycle_packages.Add(cycles[i][j]);
+            }
+            result += "\n";
+            payload_array.Add(cycle_packages);
         }
-        result += "\n";
     }
 
-    return {0, result};
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_array;
+    return result_struct;
 }
 
 InvocationResult CommandExecutor::HandleAffectedPackages(const VectorMap<String, String>& args) {
@@ -408,11 +592,181 @@ InvocationResult CommandExecutor::HandleAffectedPackages(const VectorMap<String,
     }
 
     String result = "Packages affected by changes to '" + path + "':\n";
+    ValueArray payload_array;
     for (int i = 0; i < affected_packages.GetCount(); i++) {
         result += "- " + affected_packages[i] + "\n";
+        payload_array.Add(affected_packages[i]);
     }
 
-    return {0, result};
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_array;
+    return result_struct;
+}
+
+// Refactoring command handlers
+InvocationResult CommandExecutor::HandleRenameSymbol(const VectorMap<String, String>& args) {
+    String old_name = args.Get("old", "");
+    String new_name = args.Get("new", "");
+
+    if (old_name.IsEmpty()) {
+        return {1, "Missing required argument: old"};
+    }
+
+    if (new_name.IsEmpty()) {
+        return {1, "Missing required argument: new"};
+    }
+
+    String error;
+    if (!session->RenameSymbol(old_name, new_name, error)) {
+        return {1, "Failed to rename symbol from '" + old_name + "' to '" + new_name + "': " + error};
+    }
+
+    String result = "Successfully renamed symbol from '" + old_name + "' to '" + new_name + "'";
+
+    ValueMap payload_map;
+    payload_map.Add("old", old_name);
+    payload_map.Add("new", new_name);
+    payload_map.Add("success", true);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleRemoveDeadIncludes(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    if (path.IsEmpty()) {
+        return {1, "Missing required argument: path"};
+    }
+
+    String error;
+    int count; // We'll track how many includes were removed
+    if (!session->RemoveDeadIncludes(path, error, &count)) {
+        return {1, "Failed to remove dead includes in file '" + path + "': " + error};
+    }
+
+    String result = "Successfully removed " + IntStr(count) + " dead includes in file '" + path + "'";
+
+    ValueMap payload_map;
+    payload_map.Add("count", count);
+    payload_map.Add("path", path);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleCanonicalizeIncludes(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    if (path.IsEmpty()) {
+        return {1, "Missing required argument: path"};
+    }
+
+    String error;
+    int count = 0;
+    if (!session->CanonicalizeIncludes(path, error, &count)) {
+        return {1, "Failed to canonicalize includes in file '" + path + "': " + error};
+    }
+
+    String result = "Successfully canonicalized " + IntStr(count) + " include(s) in file '" + path + "'";
+
+    ValueMap payload_map;
+    payload_map.Add("count", count);
+    payload_map.Add("path", path);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = result;
+    result_struct.payload = payload_map;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleDescribeCommand(const VectorMap<String, String>& args) {
+    String name = args.Get("name", "");
+    if (name.IsEmpty()) {
+        return {1, "Missing required argument: name"};
+    }
+
+    const Command* cmd = registry.FindByName(name);
+    if (!cmd) {
+        return {1, "Command not found: " + name};
+    }
+
+    // Create structured payload with command metadata
+    ValueMap payload;
+    payload.Add("name", cmd->name);
+    payload.Add("category", cmd->category);
+    payload.Add("description", cmd->description);
+    payload.Add("long_description", cmd->long_description);
+
+    // Add inputs (arguments)
+    ValueArray inputs_array;
+    for (const Argument& input : cmd->inputs) {
+        ValueMap input_map;
+        input_map.Add("name", input.name);
+        input_map.Add("type", input.type);
+        input_map.Add("required", input.required);
+        input_map.Add("default", input.default_value);
+        input_map.Add("description", input.description);
+
+        if (!input.enum_values.IsEmpty()) {
+            ValueArray enum_array;
+            for (const String& enum_val : input.enum_values) {
+                enum_array.Add(enum_val);
+            }
+            input_map.Add("enum_values", enum_array);
+        }
+
+        inputs_array.Add(input_map);
+    }
+    payload.Add("inputs", inputs_array);
+
+    // Add outputs
+    ValueMap outputs_map;
+    outputs_map.Add("kind", cmd->output.kind);
+
+    if (!cmd->output.fields.IsEmpty()) {
+        ValueArray fields_array;
+        for (const String& field : cmd->output.fields) {
+            fields_array.Add(field);
+        }
+        outputs_map.Add("fields", fields_array);
+    }
+    payload.Add("outputs", outputs_map);
+
+    // Add side effects
+    ValueMap side_effects_map;
+    side_effects_map.Add("modifies_files", cmd->side_effects.modifies_files);
+    side_effects_map.Add("modifies_project", cmd->side_effects.modifies_project);
+    side_effects_map.Add("requires_open_project", cmd->side_effects.requires_open_project);
+    side_effects_map.Add("requires_open_file", cmd->side_effects.requires_open_file);
+    payload.Add("side_effects", side_effects_map);
+
+    payload.Add("context_notes", cmd->context_notes);
+
+    // Create human-readable message
+    String msg = "Command: " + cmd->name + "\n";
+    msg += "Category: " + cmd->category + "\n";
+    msg += "Description: " + cmd->description + "\n";
+    msg += "Arguments:\n";
+    for (const Argument& input : cmd->inputs) {
+        msg += "  " + input.name + " (" + input.type + "): " + input.description;
+        if (input.required) msg += " [required]";
+        if (!input.default_value.IsEmpty()) msg += " [default: " + input.default_value + "]";
+        msg += "\n";
+    }
+
+    InvocationResult result;
+    result.status_code = 0;
+    result.message = msg;
+    result.payload = payload;
+    return result;
 }
 
 }

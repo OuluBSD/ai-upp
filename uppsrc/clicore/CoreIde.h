@@ -10,6 +10,7 @@
 #include "CoreEditor.h"
 #include "CoreAssist.h"
 #include "CoreGraph.h"
+#include "CoreRefactor.h"
 
 using namespace Upp;
 
@@ -74,6 +75,11 @@ public:
     bool GetConsoleOutput(String& out, String& error);
     bool GetErrorsOutput(String& out, String& error);
 
+    // Refactoring operations
+    bool RenameSymbol(const String& old, const String& nw, String& error);
+    bool RemoveDeadIncludes(const String& path, String& error, int* out_count = nullptr);
+    bool CanonicalizeIncludes(const String& path, String& error, int* out_count = nullptr);
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -83,6 +89,7 @@ private:
     CoreFileOps fileOps;
     CoreAssist assist;  // Added CoreAssist member
     CoreGraph graph;    // Added CoreGraph member
+    CoreRefactor refactor;  // Added CoreRefactor member
     String workspace_root;
 
     // Core Editor management

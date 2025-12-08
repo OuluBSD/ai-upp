@@ -1,0 +1,11 @@
+description "GameEngine Networking Test";
+
+uses
+	Core,
+	Draw,
+	CtrlCore,
+	Geometry,
+	GameLib,
+	GameEngine,
+	Socket,
+	plugin/json;

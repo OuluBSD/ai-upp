@@ -1,14 +1,16 @@
 #ifndef CMD_COMMANDEXECUTOR_H
 #define CMD_COMMANDEXECUTOR_H
 
-#include "cli.h"
+#include <Core/Core.h>
+#include "Command.h"
+#include "CommandRegistry.h"
 #include "IdeSession.h"
 
 namespace Upp {
 
 class CommandExecutor {
 public:
-    CommandExecutor(const CommandRegistry& registry);
+    CommandExecutor(const CommandRegistry& registry, One<IdeSession> session);
 
     InvocationResult Invoke(const String& name,
                            const VectorMap<String, String>& args);
@@ -29,7 +31,7 @@ private:
     InvocationResult HandleShowErrors(const VectorMap<String, String>& args);
 
     const CommandRegistry& registry;
-    Ptr<IdeSession> session;
+    One<IdeSession> session;
 };
 
 }

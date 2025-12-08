@@ -32,17 +32,50 @@ describe('Time', () => {
     test('should format time correctly', () => {
         const time = new Time(2023, 5, 15, 14, 30, 45, 123);
         const formatted = time.Format('%Y-%m-%d %H:%M:%S.%f');
-        
+
         expect(formatted).toBe('2023-05-15 14:30:45.123');
     });
 
     test('should compare times correctly', () => {
         const time1 = new Time(2023, 5, 15, 10, 0, 0);
         const time2 = new Time(2023, 5, 15, 12, 0, 0);
-        
+
         expect(time1.IsBefore(time2)).toBe(true);
         expect(time1.IsAfter(time2)).toBe(false);
         expect(time1.IsEqual(time1)).toBe(true);
+    });
+
+    test('should create Time from timestamp', () => {
+        const timestamp = Date.now();
+        const time = Time.FromTimestamp(timestamp);
+        expect(time.GetTimestamp()).toBe(timestamp);
+    });
+
+    test('should create time from ISO string', () => {
+        const isoString = '2023-10-15T14:30:45.123Z';
+        const time = Time.FromISOString(isoString);
+        expect(time).toBeInstanceOf(Time);
+    });
+
+    test('should handle time arithmetic methods', () => {
+        const time = new Time(2023, 10, 15, 14, 30, 45, 123);
+        expect(time.GetDayOfYear()).toBeGreaterThanOrEqual(1);
+        expect(time.GetDayOfWeek()).toBeGreaterThanOrEqual(0);
+        expect(time.GetTimestamp()).toBeGreaterThanOrEqual(0);
+    });
+
+    test('should get time components', () => {
+        const time = new Time(2023, 10, 15, 14, 30, 45, 123);
+
+        expect(time.GetYear()).toBe(2023);
+        expect(time.GetMonth()).toBe(10);
+        expect(time.GetDay()).toBe(15);
+        expect(time.GetHour()).toBe(14);
+        expect(time.GetMinute()).toBe(30);
+        expect(time.GetSecond()).toBe(45);
+        expect(time.GetMillisecond()).toBe(123);
+        expect(time.GetDayOfWeek()).toBeGreaterThanOrEqual(0);
+        expect(time.GetDayOfYear()).toBeGreaterThanOrEqual(1);
     });
 });
 
@@ -157,6 +190,87 @@ describe('Date arithmetic', () => {
         expect(DaysInMonth(2023, 2)).toBe(28); // February 2023 has 28 days
         expect(DaysInMonth(2020, 2)).toBe(29); // February 2020 (leap year) has 29 days
         expect(DaysInMonth(2023, 1)).toBe(31); // January has 31 days
+    });
+
+    test('should handle date formatting edge cases', () => {
+        const date = new DateClass(2023, 12, 31);
+        const formatted = date.Format('%Y-%m-%d');
+        expect(formatted).toBe('2023-12-31');
+    });
+
+    test('should compare dates accurately', () => {
+        const date1 = new DateClass(2023, 5, 15);
+        const date2 = new DateClass(2023, 5, 15);
+        const date3 = new DateClass(2022, 5, 15);
+
+        expect(date1.Compare(date2)).toBe(0); // Equal
+        expect(date1.Compare(date3)).toBe(1); // After
+        expect(date3.Compare(date1)).toBe(-1); // Before
+    });
+
+    test('should create date from ISO string', () => {
+        const isoString = '2023-05-15';
+        const date = DateClass.FromISOString(isoString);
+        expect(date.GetYear()).toBe(2023);
+        expect(date.GetMonth()).toBe(5);
+        expect(date.GetDay()).toBe(15);
+    });
+
+    test('should get day of year correctly', () => {
+        const date = new DateClass(2023, 1, 1); // Jan 1
+        expect(date.GetDayOfYear()).toBe(1);
+
+        const date2 = new DateClass(2023, 12, 31); // Dec 31
+        expect(date2.GetDayOfYear()).toBe(365); // 365 in non-leap year
+    });
+
+    test('should get day of week correctly', () => {
+        const date = new DateClass(2023, 11, 5); // Nov 5, 2023 is a Sunday (0)
+        expect(date.GetDayOfWeek()).toBe(0);
+    });
+});
+
+describe('Duration', () => {
+    test('should create duration and perform operations', () => {
+        const duration = Duration.FromSeconds(120);
+        expect(duration.GetMinutes()).toBe(2);
+        expect(duration.GetSeconds()).toBe(120);
+
+        const duration2 = Duration.FromMinutes(1);
+        const sum = duration.Add(duration2);
+        expect(sum.GetSeconds()).toBe(180); // 2 min + 1 min = 3 min = 180 sec
+
+        const diff = duration.Subtract(duration2);
+        expect(diff.GetSeconds()).toBe(60); // 2 min - 1 min = 1 min = 60 sec
+    });
+
+    test('should handle duration multiplication and division', () => {
+        const duration = Duration.FromHours(2);
+        const doubled = duration.Multiply(2);
+        expect(doubled.GetHours()).toBe(4);
+
+        const halved = duration.Divide(2);
+        expect(halved.GetHours()).toBe(1);
+    });
+
+    test('should handle duration comparison methods', () => {
+        const duration1 = Duration.FromSeconds(60);
+        const duration2 = Duration.FromSeconds(30);
+
+        expect(duration1.IsGreaterThan(duration2)).toBe(true);
+        expect(duration1.IsLessThan(duration2)).toBe(false);
+        expect(duration1.IsEqual(duration1)).toBe(true);
+    });
+
+    test('should compute absolute value of duration', () => {
+        const duration = Duration.FromSeconds(-60);
+        const absolute = duration.Abs();
+        expect(absolute.GetSeconds()).toBe(60);
+    });
+
+    test('should throw error when dividing by zero', () => {
+        const duration = Duration.FromSeconds(60);
+        expect(() => duration.Divide(0)).toThrow('Cannot divide duration by zero');
     });
 });
 

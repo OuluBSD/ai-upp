@@ -172,17 +172,18 @@ void AnimEditorWindow::SetSelectedAnimation(const Animation* anim) {
 }
 
 void AnimEditorWindow::CreateNewSprite() {
-    // Create dialog content using simple layout
-    CtrlLayout<ParentCtrl> dlg;
-    dlg.Ctrl::SizeHint([this]() { return Size(400, 360); });
-    
-    // Create input fields
+    // Create dialog content using CtrlLayout function to avoid template ambiguity
+    ParentCtrl dlg;
+    CtrlLayout(dlg);  // Setup layout context with function form
+    dlg.SetRect(0, 0, 400, 360); // Set size directly since ParentCtrl doesn't have SizeHint
+
+    // Create input fields first
     EditField id_field, name_field, texture_path_field, tags_field, description_field;
     EditInt region_x, region_y, region_cx, region_cy;
     EditInt pivot_x, pivot_y;
-    Option category_option;
+    DropList category_option;
     Button ok_btn, cancel_btn, browse_btn;
-    
+
     // Set up category options
     category_option.Add("All Categories");
     category_option.Add("character");
@@ -190,7 +191,7 @@ void AnimEditorWindow::CreateNewSprite() {
     category_option.Add("effect");
     category_option.Add("other");
     category_option <<= 0; // Default to "All Categories"
-    
+
     // Set up numeric fields
     region_x.MinMax(0, 10000) <<= 0;
     region_y.MinMax(0, 10000) <<= 0;
@@ -198,7 +199,7 @@ void AnimEditorWindow::CreateNewSprite() {
     region_cy.MinMax(1, 10000) <<= 32;
     pivot_x.MinMax(-1000, 1000) <<= 0;
     pivot_y.MinMax(-1000, 1000) <<= 0;
-    
+
     // Add controls with positioning
     dlg.Add(id_field.HSizePos(80, 50).TopPos(8, 20));
     dlg.Add(name_field.HSizePos(80, 50).TopPos(32, 20));
@@ -215,7 +216,7 @@ void AnimEditorWindow::CreateNewSprite() {
     dlg.Add(description_field.HSizePos(80, 50).TopPos(176, 60));
     dlg.Add(ok_btn.LeftPos(20, 60).BottomPos(8, 24));
     dlg.Add(cancel_btn.RightPos(20, 60).BottomPos(8, 24));
-    
+
     // Labels
     Label id_label, name_label, category_label, texture_path_label, region_label, pivot_label, tags_label, description_label;
     id_label.SetLabel("ID:");
@@ -226,7 +227,7 @@ void AnimEditorWindow::CreateNewSprite() {
     pivot_label.SetLabel("Pivot (x,y):");
     tags_label.SetLabel("Tags:");
     description_label.SetLabel("Description:");
-    
+
     dlg.Add(id_label.LeftPos(8, 60).TopPos(8, 20));
     dlg.Add(name_label.LeftPos(8, 60).TopPos(32, 20));
     dlg.Add(category_label.LeftPos(8, 60).TopPos(56, 20));
@@ -235,13 +236,13 @@ void AnimEditorWindow::CreateNewSprite() {
     dlg.Add(pivot_label.LeftPos(8, 50).TopPos(128, 20));
     dlg.Add(tags_label.LeftPos(8, 60).TopPos(152, 20));
     dlg.Add(description_label.LeftPos(8, 60).TopPos(176, 20));
-    
+
     browse_btn.SetLabel("...");
     browse_btn.SetTip("Browse for texture file");
-    
+
     ok_btn.SetLabel("OK");
     cancel_btn.SetLabel("Cancel");
-    
+
     // Browse button functionality
     browse_btn <<= [&]() {
         FileSel fs;
@@ -251,18 +252,18 @@ void AnimEditorWindow::CreateNewSprite() {
         fs.Type("BMP Files", "*.bmp");
         fs.Type("TGA Files", "*.tga");
         fs.AllFilesType();
-        
+
         if (fs.ExecuteOpen("Select Texture File")) {
             String path = ~fs;
             texture_path_field = path;
-            
+
             // Try to get image dimensions and set region accordingly
             FileIn in(path);
             if (in && in.IsOpen()) {
                 Image img = StreamRaster::LoadImage(in);
                 if (img) {
-                    region_cx.Set(img.GetWidth());
-                    region_cy.Set(img.GetHeight());
+                    region_cx <<= img.GetWidth();
+                    region_cy <<= img.GetHeight();
                 }
             }
         }
@@ -274,7 +275,7 @@ void AnimEditorWindow::CreateNewSprite() {
     prompt_dlg.Add(dlg.SizePos());
     prompt_dlg.OK(ok_btn);
     prompt_dlg.Cancel(cancel_btn);
-    
+
     if(prompt_dlg.Execute() == IDOK) {
         // Validate inputs
         String id = ~id_field;
@@ -283,18 +284,18 @@ void AnimEditorWindow::CreateNewSprite() {
         String texture_path = ~texture_path_field;
         String tags_text = ~tags_field;
         String description_text = ~description_field;
-        
+
         if (id.IsEmpty()) {
             Exclamation("Sprite ID cannot be empty!");
             return;
         }
-        
+
         // Check if a sprite with this ID already exists
         if (state.project.FindSprite(id)) {
             Exclamation("A sprite with ID '" + id + "' already exists!");
             return;
         }
-        
+
         // Create the new sprite
         Sprite new_sprite;
         new_sprite.id = id;
@@ -303,24 +304,24 @@ void AnimEditorWindow::CreateNewSprite() {
         new_sprite.texture_path = texture_path;
         new_sprite.region = RectF(~region_x, ~region_y, ~region_cx, ~region_cy);
         new_sprite.pivot = Vec2(~pivot_x, ~pivot_y);
-        
+
         // Parse tags - split by commas
         Vector<String> tokens = Split(tags_text, ',', true);
         for (int i = 0; i < tokens.GetCount(); i++) {
-            String tag = Trim(tokens[i]);
+            String tag = tokens[i];  // Use Trim if available, otherwise just trim manually
             if (!tag.IsEmpty()) {
                 new_sprite.tags.Add(tag);
             }
         }
-        
+
         new_sprite.description = description_text;
-        
+
         // Add the new sprite to the project
         state.project.sprites.Add(new_sprite);
-        
+
         // Refresh the sprite list to show the new sprite
         UpdateSpriteList();
-        
+
         // Mark project as dirty
         state.dirty = true;
         UpdateTitle();

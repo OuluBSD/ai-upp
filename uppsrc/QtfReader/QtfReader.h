@@ -1,0 +1,2 @@
+// QtfReader header file
+

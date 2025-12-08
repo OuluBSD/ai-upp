@@ -1,14 +1,16 @@
 #ifndef CMD_IDESESSION_H
 #define CMD_IDESESSION_H
 
-#include "cli.h"
 #include <Core/Core.h>
 
 namespace Upp {
 
-class IdeSession {
+class IdeSession : public Pte<IdeSession> {
 public:
     virtual ~IdeSession() {}
+
+    // Workspace management
+    virtual bool SetWorkspaceRoot(const String& root, String& error) = 0;
 
     // File operations
     virtual bool OpenFile(const String& path, String& error) = 0;
@@ -33,7 +35,7 @@ public:
     virtual bool GetErrorsOutput(String& output, String& error) = 0;
 };
 
-Ptr<IdeSession> CreateIdeSession();
+One<IdeSession> CreateIdeSession();
 
 }
 

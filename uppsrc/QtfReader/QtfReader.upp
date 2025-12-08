@@ -1,0 +1,9 @@
+description "QtfReader - Convert U++ .qtf files to plain text";
+
+uses
+	Core,
+	RichText;
+
+file
+	QtfReader.cpp,
+	QtfReader.h;

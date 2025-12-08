@@ -1,14 +1,18 @@
-description "AI-UPP CLI module";
+description "AI-UPP CLI module\377";
 
 uses
 	Core,
 	Draw,
 	plugin/bz2,
 	plugin/lzma,
-	plugin/json;
+	plugin/json,
+	clicore;
+
+target
+	cli;
 
 file
-	cli.h PCH,
+	cli.h,
 	Command.h,
 	Command.cpp,
 	CommandRegistry.h,
@@ -17,14 +21,10 @@ file
 	JsonLoader.cpp,
 	IdeSession.h,
 	IdeSession.cpp,
-	IdeHost.h,
-	IdeHost.cpp,
 	CommandExecutor.h,
 	CommandExecutor.cpp,
 	main.cpp;
 
-target
-	cli : EXE
-{
-	main = main.cpp
-}
+mainconfig
+	"" = "";
+

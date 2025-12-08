@@ -1,0 +1,30 @@
+description "AI-UPP CLI Core - Core IDE functionality without GUI\377";
+
+uses
+	Core,
+	Draw,
+	plugin/bz2,
+	plugin/lzma,
+	plugin/json;
+
+target
+	clicore;
+
+file
+	clicore.h,
+	CoreIde.h,
+	CoreIde.cpp,
+	CoreWorkspace.h,
+	CoreWorkspace.cpp,
+	CoreBuild.h,
+	CoreBuild.cpp,
+	CoreSearch.h,
+	CoreSearch.cpp,
+	CoreConsole.h,
+	CoreConsole.cpp,
+	CoreFileOps.h,
+	CoreFileOps.cpp;
+
+mainconfig
+	"" = "";
+

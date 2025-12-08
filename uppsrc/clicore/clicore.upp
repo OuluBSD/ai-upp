@@ -26,8 +26,18 @@ file
 	CoreFileOps.cpp,
 	CoreEditor.h,
 	CoreEditor.cpp,
+	CoreAssist.h,
+	CoreAssist.cpp,
+	CoreGraph.h,
+	CoreGraph.cpp,
+	CoreRefactor.h,
+	CoreRefactor.cpp,
+	CoreTelemetry.h,
+	CoreTelemetry.cpp,
 	CoreOptimize.h,
-	CoreOptimize.cpp;
+	CoreOptimize.cpp,
+	CoreSupervisor.h,
+	CoreSupervisor.cpp;
 
 mainconfig
 	"" = "";

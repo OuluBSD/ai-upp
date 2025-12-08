@@ -50,4 +50,8 @@ Vector<Command> CommandRegistry::ListByCategory(const String& category) const {
     return result;
 }
 
+const Vector<Command>& CommandRegistry::GetAll() const {
+    return commands;
+}
+
 }

@@ -561,6 +561,99 @@
         "requires_open_file": false
       },
       "context_notes": "This command performs impact analysis to determine which packages depend (directly or transitively) on the specified file"
+    },
+    {
+      "name": "rename_symbol",
+      "category": "refactor",
+      "description": "Rename a symbol throughout the workspace",
+      "long_description": "Renames a symbol (function, variable, class, etc.) throughout the entire workspace, updating all references",
+      "inputs": [
+        {
+          "name": "old",
+          "type": "string",
+          "required": true,
+          "description": "Current name of the symbol to be renamed"
+        },
+        {
+          "name": "new",
+          "type": "string",
+          "required": true,
+          "description": "New name for the symbol"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": ["file"]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs workspace-wide symbol renaming using the CoreRefactor engine"
+    },
+    {
+      "name": "remove_dead_includes",
+      "category": "refactor",
+      "description": "Remove unused include directives from a file",
+      "long_description": "Identifies and removes #include directives that are not referenced anywhere in the file",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to process"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "removed_includes",
+            "type": "int",
+            "description": "Number of unused includes removed"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command uses heuristics to determine which includes are unused and can be safely removed"
+    },
+    {
+      "name": "canonicalize_includes",
+      "category": "refactor",
+      "description": "Canonicalize include paths in a file",
+      "long_description": "Standardizes include paths by converting them to the shortest possible relative paths",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to process"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "canonicalized_includes",
+            "type": "int",
+            "description": "Number of includes that were canonicalized"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command resolves relative paths like 'src/../include/foo.h' to canonical forms like 'include/foo.h'"
     }
   ]
 }

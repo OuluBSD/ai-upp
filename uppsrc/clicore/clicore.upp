@@ -23,7 +23,9 @@ file
 	CoreConsole.h,
 	CoreConsole.cpp,
 	CoreFileOps.h,
-	CoreFileOps.cpp;
+	CoreFileOps.cpp,
+	CoreEditor.h,
+	CoreEditor.cpp;
 
 mainconfig
 	"" = "";

@@ -46,6 +46,14 @@ private:
     InvocationResult HandleDetectCycles(const VectorMap<String, String>& args);
     InvocationResult HandleAffectedPackages(const VectorMap<String, String>& args);
 
+    // Handler functions for refactoring commands
+    InvocationResult HandleRenameSymbol(const VectorMap<String, String>& args);
+    InvocationResult HandleRemoveDeadIncludes(const VectorMap<String, String>& args);
+    InvocationResult HandleCanonicalizeIncludes(const VectorMap<String, String>& args);
+
+    // Handler function for command introspection
+    InvocationResult HandleDescribeCommand(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

@@ -81,8 +81,118 @@ theide-cli <command_name> [--arg value ...]
 The CLI supports global arguments that affect the entire session:
 
 - `--workspace-root PATH`: Sets the workspace root directory for the session (required for package-aware commands)
+- `--json`: When present, all output is formatted as JSON objects (machine-friendly)
+- `--script PATH`: Execute commands from a text script file
+- `--json-script PATH`: Execute commands from a JSON script file (AI Driver mode)
 
-### Examples:
+## Machine-Readable Output (JSON Mode)
+
+The CLI now supports a machine-friendly JSON output mode. When the `--json` flag is provided, all commands return structured JSON instead of human-readable text.
+
+### Usage:
+```bash
+theide-cli --json find_definition --symbol MyClass
+```
+
+### Output Format:
+```json
+{
+  "command": "find_definition",
+  "status_code": 0,
+  "message": "Definition found: MyClass.cpp:15",
+  "payload": {
+    "file": "MyClass.cpp",
+    "line": 15,
+    "symbol": "MyClass"
+  }
+}
+```
+
+The payload field contains structured data appropriate for each command, while status_code (0=success) and message provide human-readable summary information.
+
+## Command Introspection (describe_command)
+
+An AI process can query the command surface programmatically using the `describe_command` command:
+
+### Usage:
+```bash
+theide-cli --json describe_command --name build_project
+```
+
+### Output:
+```json
+{
+  "command": "describe_command",
+  "status_code": 0,
+  "message": "Command: build_project\nCategory: build\nDescription: Build a project with specified configuration...",
+  "payload": {
+    "name": "build_project",
+    "category": "build",
+    "description": "Build a project with specified configuration...",
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "description": "Project name to build",
+        "default": ""
+      },
+      {
+        "name": "config",
+        "type": "string",
+        "required": false,
+        "description": "Build configuration (Debug/Release)",
+        "default": "Debug"
+      }
+    ],
+    "outputs": {
+      "kind": "object",
+      "fields": ["project", "config", "log", "success"]
+    },
+    "side_effects": {
+      "modifies_files": false,
+      "modifies_project": false,
+      "requires_open_project": false,
+      "requires_open_file": false
+    },
+    "context_notes": ""
+  }
+}
+```
+
+## JSON Script Mode (AI Driver)
+
+The CLI supports JSON-based script execution designed for AI automation systems:
+
+### JSON Script Format:
+```json
+{
+  "commands": [
+    {
+      "name": "set_main_package",
+      "args": { "package": "MyApp" }
+    },
+    {
+      "name": "find_definition",
+      "args": { "symbol": "MyClass" }
+    },
+    {
+      "name": "build_project",
+      "args": { "name": "MyApp", "config": "Debug" }
+    }
+  ],
+  "stop_on_error": true
+}
+```
+
+### Usage:
+```bash
+theide-cli --workspace-root . --json --json-script plan.json
+```
+
+Each command in the JSON array is executed sequentially. If `stop_on_error` is true, execution stops on the first error.
+
+## Examples:
 
 ```bash
 # List all available commands
@@ -108,11 +218,29 @@ theide-cli show_console
 
 # Show errors
 theide-cli show_errors
+
+# Machine-readable output for symbol definition
+theide-cli --workspace-root . --json find_definition --symbol MyClass
+
+# Get build order in structured format
+theide-cli --workspace-root . --json get_build_order
+
+# Query command metadata programmatically
+theide-cli --json describe_command --name build_project
+
+# Execute JSON script for automation
+theide-cli --workspace-root . --json --json-script automation_plan.json
 ```
 
 ## Current Status
 
-This version implements a clean NOGUI architecture where all 10 commands connect to the `clicore` package instead of the GUI-dependent `ide` package. The CLI now builds cleanly in NOGUI mode and provides core IDE functionality through a forked core.
+This version implements a clean NOGUI architecture where all commands connect to the `clicore` package instead of the GUI-dependent `ide` package. The CLI now builds cleanly in NOGUI mode and provides core IDE functionality through a forked core.
+
+The new AI Driver Integration Layer v1 provides:
+- Machine-readable JSON output with structured payloads
+- Command introspection for programmatic discovery
+- JSON script mode for AI-driven automation
+- Deterministic and stable output for machine consumption
 
 ## Available Commands
 
@@ -127,6 +255,7 @@ This version implements a clean NOGUI architecture where all 10 commands connect
 - `show_errors`: Retrieve error list (FULLY INTEGRATED with CLI Core)
 - `set_main_package`: Set the main package for the project (FULLY INTEGRATED with CLI Core)
 - `list_commands`: List all available commands (special built-in command)
+- `describe_command`: Describe command metadata and schema (special built-in command)
 
 ## Editor Commands
 
@@ -261,6 +390,48 @@ theide-cli --workspace-root /path/to/workspace affected_packages --path src/mypa
 
 **Note**: These commands require a properly set workspace root and will analyze the dependency graph based on the `.upp` files in the workspace.
 
+## CoreRefactor – Workspace Refactoring Engine
+
+A new subsystem `CoreRefactor` has been added to provide workspace-aware refactoring capabilities to the CLI. It implements a first-generation refactoring engine focused on common code maintenance operations:
+
+- **Symbol Renaming**: Renames symbols across the entire workspace, updating all references
+- **Dead Include Removal**: Identifies and removes unused #include directives from files
+- **Include Path Canonicalization**: Standardizes include paths to their canonical forms
+- **Workspace-Aware**: Operations understand package structure and dependencies
+- **Safe Editing**: All operations work on in-memory editors with proper overlap detection
+- **NOGUI Compatible**: Fully compatible with headless environments
+
+### Refactoring Commands
+
+Three new commands have been added to expose CoreRefactor functionality through the CLI:
+
+- `rename_symbol`: Renames a symbol throughout the workspace
+  - Example: `theide-cli --workspace-root . rename_symbol --old MyOldClass --new MyNewClass`
+  - Returns: Confirmation of successful rename operation
+
+- `remove_dead_includes`: Removes unused include directives from a file
+  - Example: `theide-cli --workspace-root . remove_dead_includes --path src/main.cpp`
+  - Returns: Number of includes removed
+
+- `canonicalize_includes`: Standardizes include paths in a file to canonical forms
+  - Example: `theide-cli --workspace-root . canonicalize_includes --path src/main.cpp`
+  - Returns: Number of includes canonicalized
+
+### CLI Usage
+
+```bash
+# Rename a symbol throughout the entire workspace
+theide-cli --workspace-root /path/to/workspace rename_symbol --old OldName --new NewName
+
+# Remove unused include directives from a file
+theide-cli --workspace-root /path/to/workspace remove_dead_includes --path src/File.cpp
+
+# Canonicalize include paths in a file
+theide-cli --workspace-root /path/to/workspace canonicalize_includes --path src/File.cpp
+```
+
+**Note**: These refactoring operations modify file content in the in-memory editor buffers and require saving to persist changes to disk.
+
 ## Implementation Notes
 
 - All handlers now connect to the CLI Core (`clicore`) through the `IdeSession` interface
@@ -269,3 +440,15 @@ theide-cli --workspace-root /path/to/workspace affected_packages --path src/mypa
 - The `clicore` package is built NOGUI and can be used in headless environments
 - Build operations are currently simulated but provide the structure for integration with real build system
 - The architecture maintains clean separation while providing a path for more TheIDE functionality to be ported
+
+## AI/Automation Integration
+
+The new AI Driver Integration Layer v1 is specifically designed to enable external AI systems to reliably drive the CLI engine:
+
+- **Machine-Friendly**: Structured JSON output via `--json` flag
+- **Introspectable**: Command metadata available via `describe_command`
+- **Deterministic**: Clean, predictable output in machine mode
+- **Embeddable**: Can be used as a subprocess driven by stdin/stdout
+- **Scriptable**: JSON-based script execution for complex automation
+
+This layer provides the protocol and plumbing for AI processes to interact with the engine without embedding any real ML models in the CLI itself.

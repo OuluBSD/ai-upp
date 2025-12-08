@@ -14,6 +14,7 @@ public:
     void LoadCommands(const String& metadataPath);
 
     const Command* FindByName(const String& name) const;
+    const Vector<Command>& GetAll() const;
     Vector<Command> ListCommands() const;
     Vector<Command> ListByCategory(const String& category) const;
 

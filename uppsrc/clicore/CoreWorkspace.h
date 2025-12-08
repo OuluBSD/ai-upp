@@ -58,6 +58,7 @@ public:
     // File operations
     String GetPackageDirectory(const String& package_name) const;
     String GetSourcePath(const String& package, const String& file) const;
+    String GetPackageOfFile(const String& filepath) const;
 
 private:
     // Helper methods for parsing .upp files

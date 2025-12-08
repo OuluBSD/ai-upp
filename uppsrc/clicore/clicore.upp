@@ -25,7 +25,9 @@ file
 	CoreFileOps.h,
 	CoreFileOps.cpp,
 	CoreEditor.h,
-	CoreEditor.cpp;
+	CoreEditor.cpp,
+	CoreOptimize.h,
+	CoreOptimize.cpp;
 
 mainconfig
 	"" = "";

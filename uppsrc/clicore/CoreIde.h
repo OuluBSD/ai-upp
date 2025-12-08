@@ -11,6 +11,9 @@
 #include "CoreAssist.h"
 #include "CoreGraph.h"
 #include "CoreRefactor.h"
+#include "CoreTelemetry.h"
+#include "CoreOptimize.h"
+#include "CoreSupervisor.h"
 
 using namespace Upp;
 
@@ -80,6 +83,24 @@ public:
     bool RemoveDeadIncludes(const String& path, String& error, int* out_count = nullptr);
     bool CanonicalizeIncludes(const String& path, String& error, int* out_count = nullptr);
 
+    // Telemetry & Analytics v1
+    Value GetWorkspaceStats();
+    Value GetPackageStats(const String& pkg);
+    Value GetPackageStats(const String& pkg, String& error);
+    Value GetTelemetryData(const String& pkg, String& error);
+    Value GetGraphStats(const String& pkg, String& error);
+    Value GetFileComplexity(const String& path);
+    Value GetGraphStats();
+    Value GetEditHistory();
+
+    // Optimization Loop v1
+    Value RunOptimizationLoop(const String& package,
+                              const CoreOptimize::LoopConfig& cfg,
+                              String& error);
+
+    // Supervisor v1 - Generate optimization plan for a package
+    Value GenerateOptimizationPlan(const String& package, String& error);
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -90,6 +111,9 @@ private:
     CoreAssist assist;  // Added CoreAssist member
     CoreGraph graph;    // Added CoreGraph member
     CoreRefactor refactor;  // Added CoreRefactor member
+    CoreTelemetry telemetry;  // Added CoreTelemetry member
+    CoreOptimize optimizer;   // Added CoreOptimize member
+    CoreSupervisor supervisor; // Added CoreSupervisor member
     String workspace_root;
 
     // Core Editor management

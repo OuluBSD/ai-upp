@@ -95,6 +95,27 @@ InvocationResult CommandExecutor::Invoke(const String& name,
     else if (name == "describe_command") {
         return HandleDescribeCommand(args);
     }
+    else if (name == "workspace_stats") {
+        return HandleWorkspaceStats(args);
+    }
+    else if (name == "package_stats") {
+        return HandlePackageStats(args);
+    }
+    else if (name == "file_complexity") {
+        return HandleFileComplexity(args);
+    }
+    else if (name == "graph_stats") {
+        return HandleGraphStats(args);
+    }
+    else if (name == "edit_history") {
+        return HandleEditHistory(args);
+    }
+    else if (name == "optimize_package") {
+        return HandleOptimizePackage(args);
+    }
+    else if (name == "get_optimization_plan") {
+        return HandleGetOptimizationPlan(args);
+    }
     // Special case for list_commands (not in metadata)
     else if (name == "list_commands") {
         Vector<Command> allCmds = registry.ListCommands();
@@ -767,6 +788,149 @@ InvocationResult CommandExecutor::HandleDescribeCommand(const VectorMap<String, 
     result.message = msg;
     result.payload = payload;
     return result;
+}
+
+// Telemetry handler implementations
+InvocationResult CommandExecutor::HandleWorkspaceStats(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetWorkspaceStats(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get workspace stats: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Workspace stats retrieved";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandlePackageStats(const VectorMap<String, String>& args) {
+    String pkg = args.Get("package", "");
+    if (pkg.IsEmpty()) {
+        return {1, "Missing required argument: package"};
+    }
+
+    String error;
+    Value result = session->GetPackageStats(pkg, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get package stats for '" + pkg + "': " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Package stats for '" + pkg + "' retrieved";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleFileComplexity(const VectorMap<String, String>& args) {
+    String path = args.Get("path", "");
+    if (path.IsEmpty()) {
+        return {1, "Missing required argument: path"};
+    }
+
+    String error;
+    Value result = session->GetFileComplexity(path, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get file complexity for '" + path + "': " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "File complexity for '" + path + "' retrieved";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleGraphStats(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetGraphStats(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get graph stats: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Graph stats retrieved";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleEditHistory(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetEditHistory(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get edit history: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Edit history retrieved";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+// Optimization Loop v1 handler
+InvocationResult CommandExecutor::HandleOptimizePackage(const VectorMap<String, String>& args) {
+    String package = args.Get("name", "");
+    if (package.IsEmpty()) {
+        return {1, "Missing required argument: name"};
+    }
+
+    // Parse optional parameters with defaults
+    int max_iterations = ScanInt(args.Get("max_iterations", "5"));
+    double converge_threshold = ScanDouble(args.Get("converge_threshold", "0.01"));
+    bool stop_on_worse = args.Get("stop_on_worse", "true") == "true";
+    bool stop_on_converge = args.Get("stop_on_converge", "true") == "true";
+
+    String error;
+    Value result = session->OptimizePackage(
+        package,
+        max_iterations,
+        converge_threshold,
+        stop_on_worse,
+        stop_on_converge,
+        error
+    );
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to optimize package '" + package + "': " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Optimization completed for package '" + package + "'";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+// AI Supervisor Layer v1 handler
+InvocationResult CommandExecutor::HandleGetOptimizationPlan(const VectorMap<String, String>& args) {
+    String package = args.Get("name", "");
+    if (package.IsEmpty()) {
+        return {1, "Missing required argument: name"};
+    }
+
+    String error;
+    Value result = session->GetOptimizationPlan(package, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to generate optimization plan for '" + package + "': " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Optimization plan generated for package '" + package + "'";
+    result_struct.payload = result;
+    return result_struct;
 }
 
 }

@@ -69,6 +69,26 @@ public:
     virtual bool CanonicalizeIncludes(const String& path,
                                       String& error,
                                       int* out_count = nullptr) = 0;
+
+    // Telemetry & Analytics v1 methods (PART C)
+    virtual Value GetWorkspaceStats(String& error) = 0;
+    virtual Value GetPackageStats(const String& pkg, String& error) = 0;
+    virtual Value GetFileComplexity(const String& path, String& error) = 0;
+    virtual Value GetGraphStats(String& error) = 0;
+    virtual Value GetEditHistory(String& error) = 0;
+
+    // Optimization Loop v1 (PART C)
+    virtual Value OptimizePackage(
+        const String& package,
+        int max_iterations,
+        double converge_threshold,
+        bool stop_on_worse,
+        bool stop_on_converge,
+        String& error
+    ) = 0;
+
+    // AI Supervisor Layer v1 (PART C)
+    virtual Value GetOptimizationPlan(const String& package, String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

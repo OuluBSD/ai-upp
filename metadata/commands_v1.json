@@ -654,6 +654,291 @@
         "requires_open_file": false
       },
       "context_notes": "This command resolves relative paths like 'src/../include/foo.h' to canonical forms like 'include/foo.h'"
+    },
+    {
+      "name": "workspace_stats",
+      "category": "telemetry",
+      "description": "Get statistics about the workspace",
+      "long_description": "Provides detailed statistics about the current workspace including packages, files, and their distribution",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "packages",
+            "type": "int",
+            "description": "Number of packages in the workspace"
+          },
+          {
+            "name": "files",
+            "type": "int",
+            "description": "Total number of source files"
+          },
+          {
+            "name": "extensions",
+            "type": "object",
+            "description": "Distribution of files by extension"
+          },
+          {
+            "name": "largest_file",
+            "type": "object",
+            "description": "Information about the largest file"
+          },
+          {
+            "name": "average_size",
+            "type": "int",
+            "description": "Average file size in bytes"
+          },
+          {
+            "name": "main_package",
+            "type": "string",
+            "description": "Name of the main package if set"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the structure and composition of the workspace"
+    },
+    {
+      "name": "package_stats",
+      "category": "telemetry",
+      "description": "Get statistics about a specific package",
+      "long_description": "Provides detailed statistics about a specific package including file count, dependencies, and code metrics",
+      "inputs": [
+        {
+          "name": "package",
+          "type": "string",
+          "required": true,
+          "description": "Name of the package to get statistics for"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "files",
+            "type": "int",
+            "description": "Number of files in the package"
+          },
+          {
+            "name": "uses_count",
+            "type": "int",
+            "description": "Number of packages this package uses"
+          },
+          {
+            "name": "include_count",
+            "type": "int",
+            "description": "Total number of include directives in the package"
+          },
+          {
+            "name": "total_lines",
+            "type": "int",
+            "description": "Total lines of code in the package"
+          },
+          {
+            "name": "file_size_histogram",
+            "type": "object",
+            "description": "Histogram of file sizes within the package"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the structure and complexity of a specific package"
+    },
+    {
+      "name": "file_complexity",
+      "category": "telemetry",
+      "description": "Get complexity metrics for a specific file",
+      "long_description": "Provides various complexity metrics for a specific source file",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the file to analyze"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "lines",
+            "type": "int",
+            "description": "Number of lines in the file"
+          },
+          {
+            "name": "functions",
+            "type": "int",
+            "description": "Estimated number of functions in the file"
+          },
+          {
+            "name": "includes",
+            "type": "int",
+            "description": "Number of include directives"
+          },
+          {
+            "name": "nesting",
+            "type": "int",
+            "description": "Maximum nesting depth of code blocks"
+          },
+          {
+            "name": "comment_ratio",
+            "type": "float",
+            "description": "Ratio of comment characters to total characters"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the complexity metrics of a specific file"
+    },
+    {
+      "name": "graph_stats",
+      "category": "telemetry",
+      "description": "Get statistics about the dependency graph",
+      "long_description": "Provides various metrics about the package dependency graph",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "nodes",
+            "type": "int",
+            "description": "Number of nodes in the dependency graph"
+          },
+          {
+            "name": "edges",
+            "type": "int",
+            "description": "Number of edges in the dependency graph"
+          },
+          {
+            "name": "avg_out",
+            "type": "float",
+            "description": "Average out-degree of nodes"
+          },
+          {
+            "name": "cycles",
+            "type": "bool",
+            "description": "Whether the graph contains cycles"
+          },
+          {
+            "name": "max_chain",
+            "type": "int",
+            "description": "Length of the longest dependency chain"
+          },
+          {
+            "name": "most_depended_on",
+            "type": "string",
+            "description": "Package that is most depended upon"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the structure and health of the dependency graph"
+    },
+    {
+      "name": "edit_history",
+      "category": "telemetry",
+      "description": "Get history of edits made in the session",
+      "long_description": "Provides a list of file edits made during the current session with size deltas",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "path",
+            "type": "path",
+            "description": "Path of the file that was edited"
+          },
+          {
+            "name": "delta",
+            "type": "int",
+            "description": "Change in file size in bytes (negative if file became smaller)"
+          },
+          {
+            "name": "timestamp",
+            "type": "datetime",
+            "description": "Time when the edit occurred"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the change history during the current session"
+    },
+    {
+      "name": "optimize_package",
+      "category": "optimize",
+      "description": "Run an iterative optimization loop over a package.",
+      "long_description": "Runs a series of optimizations repeatedly on a package, measuring improvements between iterations and stopping based on configurable thresholds.",
+      "inputs": [
+        { "name": "name", "type": "string", "required": true, "description": "Name of the package to optimize" },
+        { "name": "max_iterations", "type": "int", "required": false, "default": 5, "description": "Maximum number of optimization iterations to perform" },
+        { "name": "converge_threshold", "type": "float", "required": false, "default": 0.01, "description": "Threshold for determining when optimization has converged" },
+        { "name": "stop_on_worse", "type": "bool", "default": true, "description": "Stop the optimization loop if metrics worsen" },
+        { "name": "stop_on_converge", "type": "bool", "default": true, "description": "Stop the optimization loop when convergence is detected" }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          { "name": "iterations", "type": "array", "description": "Details of each optimization iteration" },
+          { "name": "reason", "type": "string", "description": "Reason why the optimization loop terminated" },
+          { "name": "success", "type": "bool", "description": "Whether the optimization completed successfully" }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs iterative structural cleanup of a package, potentially removing dead includes, canonicalizing includes, and other refactoring operations."
+    },
+    {
+      "name": "get_optimization_plan",
+      "category": "optimize",
+      "description": "Analyze the project and generate an AI-guided improvement plan.",
+      "long_description": "Analyzes a package and generates a strategic optimization plan with actionable recommendations.",
+      "inputs": [
+        { "name": "name", "type": "string", "required": true, "description": "Name of the package to analyze" }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          { "name": "steps", "type": "array", "description": "List of suggested optimization steps" },
+          { "name": "summary", "type": "string", "description": "Summary of the optimization plan" }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes the package using the AI Supervisor engine to generate a multi-step improvement plan."
     }
   ]
 }

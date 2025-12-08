@@ -54,6 +54,19 @@ private:
     // Handler function for command introspection
     InvocationResult HandleDescribeCommand(const VectorMap<String, String>& args);
 
+    // Handler functions for telemetry commands
+    InvocationResult HandleWorkspaceStats(const VectorMap<String, String>& args);
+    InvocationResult HandlePackageStats(const VectorMap<String, String>& args);
+    InvocationResult HandleFileComplexity(const VectorMap<String, String>& args);
+    InvocationResult HandleGraphStats(const VectorMap<String, String>& args);
+    InvocationResult HandleEditHistory(const VectorMap<String, String>& args);
+
+    // Optimization Loop v1 handler
+    InvocationResult HandleOptimizePackage(const VectorMap<String, String>& args);
+
+    // AI Supervisor Layer v1 handler
+    InvocationResult HandleGetOptimizationPlan(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

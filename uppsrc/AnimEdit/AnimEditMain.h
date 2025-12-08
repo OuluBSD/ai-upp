@@ -43,8 +43,8 @@ private:
     SpriteListCtrl sprite_list_ctrl;
     StaticRect parts_toolbar;   // Toolbar for parts panel controls
     EditField search_field;     // For text search
-    Option category_option;     // For category filtering
-    Option sort_option;         // For sorting options
+    DropList category_option;   // For category filtering
+    DropList sort_option;       // For sorting options
     Button create_sprite_btn;   // For creating new sprites
 
     // Center-top (canvas)
@@ -140,8 +140,8 @@ private:
     Splitter hsplit_main;  // Left list | Right properties
     StaticRect entity_toolbar;  // Toolbar for entity controls
     EditField search_field;  // For text search
-    Option category_option;  // For category filtering
-    Option sort_option;  // For sorting options
+    DropList category_option;  // For category filtering
+    DropList sort_option;  // For sorting options
     Button create_entity_btn;  // For creating new entities
     Button duplicate_entity_btn;  // For duplicating entities
     Button delete_entity_btn;  // For deleting entities

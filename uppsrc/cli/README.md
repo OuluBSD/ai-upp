@@ -1,6 +1,6 @@
 # AI-UPP CLI Module
 
-This module implements the command metadata layer and CLI scaffold for AI-UPP, providing a structured way to interact with TheIDE functionality through command-line interface.
+This module implements the command metadata layer and CLI scaffold for AI-UPP, providing a structured way to interact with IDE functionality through command-line interface.
 
 ## Architecture Overview
 
@@ -14,48 +14,58 @@ The CLI module consists of several components:
 
 4. **Command Registry (`CommandRegistry.h/cpp`)**: Manages the collection of commands and provides lookup functionality.
 
-5. **IDE Host (`IdeHost.h/cpp`)**: Hosts a real `Ide` instance from TheIDE in a headless/minimal-GUI configuration, allowing CLI access to full IDE functionality.
+5. **CLI Core (`clicore` package)**: A new NOGUI package that implements IDE functionality without any GUI dependencies. Contains core logic for workspace management, building, searching, etc.
 
-6. **IDE Session (`IdeSession.h/cpp`)**: An abstraction layer that decouples command execution from direct IDE internals, serving as a thin adapter around the real `Ide` instance.
+6. **IDE Session (`IdeSession.h/cpp`)**: An abstraction layer that decouples command execution from IDE internals, serving as a thin adapter around the `CoreIde` from the CLI core.
 
 7. **Command Executor (`CommandExecutor.h/cpp`)**: Validates arguments and dispatches commands through the `IdeSession` interface.
 
-8. **CLI Frontend (`main.cpp`)**: Parses command-line arguments and executes commands after initializing the `IdeHost`.
+8. **CLI Frontend (`main.cpp`)**: Parses command-line arguments and executes commands after initializing the `IdeSession`.
 
-## IDE Session Abstraction
+## CLI Core Architecture (New Design)
 
-The `IdeSession` interface provides a clean separation between the command execution layer and TheIDE internals. This allows for:
+The new architecture introduces the `clicore` package to address the critical issue that the original `ide` package is tightly coupled to GUI (GTK/Win32/Cocoa) and requires GUI build flags. The `clicore` package:
 
-- Testing without full IDE initialization
-- Headless operation for build automation
-- Potential remote IDE control
-- Easier maintenance and refactoring
+- **NOGUI**: Built without any GUI dependencies
+- **Forked Logic**: Contains relevant non-GUI logic from `uppsrc/ide` copied and sanitized
+- **Clean API**: Provides a pure C++ API that matches what `IdeSession` needs
+- **Incremental Migration**: Structured so that more functionality from `uppsrc/ide` can be ported into it incrementally
 
-## IDE Host Architecture
+## Architecture Flow
 
-The `IdeHost` component creates and initializes a real `Ide` instance following patterns from TheIDE's `main.cpp`, but without starting the GUI event loop. It enables CLI programs to access full TheIDE functionality while running in a headless mode.
+```
+CLI → CommandExecutor → IdeSession → CoreIde → internal CLI-only services
+```
+
+**Why this approach?** Previous attempts to host a real `Ide` instance from the `ide` package failed because:
+- The `ide` package is tightly coupled to GUI and requires GUI build flags everywhere
+- Including `<ide/ide.h>` in a NOGUI CLI package pulls in GUI backends and breaks the build
+- The `IdeHost` approach that tried to run a headless `Ide` still required GUI libraries at build time
+
+**Solution**: We FORK relevant non-GUI logic from `uppsrc/ide` into our own `clicore` package, gradually de-GUI-fying it while preserving functionality.
 
 ## Command Integration Status
 
-All commands are now backed by real TheIDE functionality through the `IdeSession`:
+All commands now work through the CLI Core (clicore) without any GUI dependencies:
 
-- ✅ `open_file`: Opens files through the real `Ide::EditFile` method
-- ✅ `save_file`: Saves files through the real `Ide::SaveFile` method
-- ✅ `set_main_package`: Sets main package through `Ide::SetMain` method
-- ✅ `build_project`: Performs actual builds using `Ide::PackageBuild` with real logs and error capture
-- ✅ `clean_project`: Performs actual cleaning using `Ide::PackageClean`
-- ✅ `goto_line`: Performs actual navigation using `Ide::GotoPos`
-- ✅ `find_in_files`: Performs actual file searches using custom headless implementation
-- ✅ `search_code`: Initiates code search/indexing through `Ide::TriggerIndexer`
-- ✅ `show_console`: Retrieves actual console output from TheIDE console system
-- ✅ `show_errors`: Retrieves actual error list from TheIDE error tracking system
+- ✅ `open_file`: File opening through `CoreFileOps` in CLI Core
+- ✅ `save_file`: File saving through `CoreFileOps` in CLI Core
+- ✅ `set_main_package`: Package management through `CoreWorkspace` in CLI Core
+- ✅ `build_project`: Build operations through `CoreBuild` in CLI Core (simulated for now)
+- ✅ `clean_project`: Clean operations through `CoreBuild` in CLI Core (simulated for now)
+- ✅ `goto_line`: Line navigation validation (to be enhanced in future)
+- ✅ `find_in_files`: File searches through `CoreSearch` in CLI Core
+- ✅ `search_code`: Code search (stubbed, to be enhanced in future)
+- ✅ `show_console`: Console output through `CoreConsole` in CLI Core
+- ✅ `show_errors`: Error output through `CoreConsole` in CLI Core
+- ✅ `list_commands`: Special built-in command (unchanged)
 
 ## Building the CLI
 
-To build the `theide-cli` binary, use the Ultimate++ build system:
+The CLI can now be built in NOGUI mode without any GUI dependencies:
 
 ```
-// Build using TheIDE or command line build tools
+// Build using TheIDE or command line build tools in NOGUI configuration
 ```
 
 ## Using the CLI
@@ -66,6 +76,12 @@ Basic usage pattern:
 theide-cli <command_name> [--arg value ...]
 ```
 
+### Global Arguments
+
+The CLI supports global arguments that affect the entire session:
+
+- `--workspace-root PATH`: Sets the workspace root directory for the session (required for package-aware commands)
+
 ### Examples:
 
 ```bash
@@ -75,17 +91,17 @@ theide-cli list_commands
 # Open a file
 theide-cli open_file --path /path/to/file.cpp
 
-# Build a project
-theide-cli build_project --name MyApp --config Debug
+# Build a project with workspace root
+theide-cli --workspace-root /path/to/workspace build_project --name MyApp --config Debug
 
-# Set main package
-theide-cli set_main_package --package MyApp
+# Set main package in a workspace
+theide-cli --workspace-root . set_main_package --package MyApp
 
-# Search for text in files
-theide-cli find_in_files --pattern "TODO" --directory /src
+# Search for text in files (uses main package directory if no directory specified)
+theide-cli --workspace-root . find_in_files --pattern "TODO"
 
-# Search code across the project
-theide-cli search_code --query "MyFunction"
+# Search code across the main package
+theide-cli --workspace-root . search_code --query "MyFunction"
 
 # Show console output
 theide-cli show_console
@@ -96,26 +112,27 @@ theide-cli show_errors
 
 ## Current Status
 
-This version fully integrates all 10 commands with real TheIDE functionality through the `IdeHost` and `IdeSession` architecture. The CLI now runs a real `Ide` instance in headless mode, enabling access to all of TheIDE's core capabilities from the command line.
+This version implements a clean NOGUI architecture where all 10 commands connect to the `clicore` package instead of the GUI-dependent `ide` package. The CLI now builds cleanly in NOGUI mode and provides core IDE functionality through a forked core.
 
 ## Available Commands
 
-- `open_file`: Open a file in the editor (FULLY INTEGRATED)
-- `save_file`: Save the current or specified file (FULLY INTEGRATED)
-- `find_in_files`: Search for patterns in files (FULLY INTEGRATED)
-- `build_project`: Build a project with specified configuration (FULLY INTEGRATED)
-- `clean_project`: Clean project build artifacts (FULLY INTEGRATED)
-- `goto_line`: Navigate to a specific line in a file (FULLY INTEGRATED)
-- `search_code`: Search code across the project (FULLY INTEGRATED)
-- `show_console`: Retrieve console output (FULLY INTEGRATED)
-- `show_errors`: Retrieve error list (FULLY INTEGRATED)
-- `set_main_package`: Set the main package for the project (FULLY INTEGRATED)
+- `open_file`: Open a file in the editor (FULLY INTEGRATED with CLI Core)
+- `save_file`: Save the current or specified file (FULLY INTEGRATED with CLI Core)
+- `find_in_files`: Search for patterns in files (FULLY INTEGRATED with CLI Core)
+- `build_project`: Build a project with specified configuration (SIMULATED with CLI Core)
+- `clean_project`: Clean project build artifacts (SIMULATED with CLI Core)
+- `goto_line`: Navigate to a specific line in a file (PARTIALLY INTEGRATED)
+- `search_code`: Search code across the project (STUBBED in CLI Core)
+- `show_console`: Retrieve console output (FULLY INTEGRATED with CLI Core)
+- `show_errors`: Retrieve error list (FULLY INTEGRATED with CLI Core)
+- `set_main_package`: Set the main package for the project (FULLY INTEGRATED with CLI Core)
 - `list_commands`: List all available commands (special built-in command)
 
 ## Implementation Notes
 
-- All handlers now connect to real TheIDE through the `IdeSession` interface
-- The `IdeHost` properly initializes TheIDE in headless mode before command execution
-- Error handling captures real IDE errors and exceptions
-- Build operations return actual build logs and error information
-- The architecture maintains clean separation while providing access to full IDE functionality
+- All handlers now connect to the CLI Core (`clicore`) through the `IdeSession` interface
+- The `IdeSession` has been refactored to use `CoreIde` instead of `Ide`/`IdeHost`
+- NO GUI dependencies: The `ide` package is NO LONGER used directly
+- The `clicore` package is built NOGUI and can be used in headless environments
+- Build operations are currently simulated but provide the structure for integration with real build system
+- The architecture maintains clean separation while providing a path for more TheIDE functionality to be ported

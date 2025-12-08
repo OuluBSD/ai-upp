@@ -1,4 +1,5 @@
 #include "CommandRegistry.h"
+#include "JsonLoader.h"
 
 namespace Upp {
 
@@ -12,7 +13,7 @@ CommandRegistry::CommandRegistry(const String& metadataPath) {
 
 void CommandRegistry::LoadCommands(const String& metadataPath) {
     commands = JsonLoader::LoadCommands(metadataPath);
-    
+
     // Build the name to index mapping for fast lookup
     nameToIndex.Clear();
     for(int i = 0; i < commands.GetCount(); i++) {
@@ -23,13 +24,20 @@ void CommandRegistry::LoadCommands(const String& metadataPath) {
 const Command* CommandRegistry::FindByName(const String& name) const {
     int index = nameToIndex.Find(name);
     if(index >= 0) {
-        return &commands[nameToIndex.Get(index)];
+        int commandIndex = nameToIndex[index];  // Get the value at the found index
+        if(commandIndex >= 0 && commandIndex < commands.GetCount()) {
+            return &commands[commandIndex];
+        }
     }
     return nullptr;
 }
 
 Vector<Command> CommandRegistry::ListCommands() const {
-    return commands;
+    Vector<Command> result;
+    for(int i = 0; i < commands.GetCount(); i++) {
+        result.Add(commands[i]);
+    }
+    return result;
 }
 
 Vector<Command> CommandRegistry::ListByCategory(const String& category) const {

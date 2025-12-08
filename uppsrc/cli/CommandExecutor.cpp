@@ -4,21 +4,21 @@
 
 namespace Upp {
 
-CommandExecutor::CommandExecutor(const CommandRegistry& registry)
-    : registry(registry), session(CreateIdeSession()) {}
+CommandExecutor::CommandExecutor(const CommandRegistry& registry, One<IdeSession> session)
+    : registry(registry), session(pick(session)) {}
 
 InvocationResult CommandExecutor::Invoke(const String& name,
                                         const VectorMap<String, String>& args) {
     // Find the command in the registry
     const Command* cmd = registry.FindByName(name);
     if (!cmd) {
-        return {1, "Unknown command: " + name};
+        return InvocationResult(1, "Unknown command: " + name);
     }
 
     // Validate arguments against command metadata
     for (const Argument& arg : cmd->inputs) {
         if (arg.required && !args.Find(arg.name)) {
-            return {1, "Missing required argument: " + arg.name};
+            return InvocationResult(1, "Missing required argument: " + arg.name);
         }
     }
 

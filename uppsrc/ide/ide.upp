@@ -9,21 +9,33 @@ uses
 	plugin\bz2,
 	plugin/md;
 
-uses(GUI)
-	ide/clang,
-	ide\LayDes,
-	ide\Browser,
-	CodeEditor,
-	CtrlLib,
-	HexView,
-	TextDiffCtrl,
-	TabBar,
-	ide/Designers,
-	ide/Android,
-	ide/Java,
-	ide/MacroManager,
-	Report,
-	ide/Edit3D;
+uses(GUI) ide/clang;
+
+uses(GUI) ide\LayDes;
+
+uses(GUI) ide\Browser;
+
+uses(GUI) CodeEditor;
+
+uses(GUI) CtrlLib;
+
+uses(GUI) HexView;
+
+uses(GUI) TextDiffCtrl;
+
+uses(GUI) TabBar;
+
+uses(GUI) ide/Designers;
+
+uses(GUI) ide/Android;
+
+uses(GUI) ide/Java;
+
+uses(GUI) ide/MacroManager;
+
+uses(GUI) Report;
+
+uses(GUI) ide/Edit3D;
 
 uses(GUI & !V1) MCP;
 
@@ -167,3 +179,4 @@ mainconfig
 custom() "",
 	"ASDFASDFASDF",
 	"$(OUTDIR)/$(FILE).obj";
+

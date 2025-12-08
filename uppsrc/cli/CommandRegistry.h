@@ -1,7 +1,8 @@
 #ifndef CMD_COMMANDREGISTRY_H
 #define CMD_COMMANDREGISTRY_H
 
-#include "cli.h"
+#include <Core/Core.h>
+#include "Command.h"
 
 namespace Upp {
 

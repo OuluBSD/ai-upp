@@ -10,8 +10,8 @@ public:
     static Vector<Command> LoadCommands(const String& filepath);
 
 private:
-    static Argument ParseArgument(const Value& argValue);
-    static void ParseArgumentEnumValues(Argument& arg, const Value& argValue);
+    static Argument ParseArgument(Value argValue);
+    static void ParseArgumentEnumValues(Argument& arg, Value argValue);
 };
 
 }

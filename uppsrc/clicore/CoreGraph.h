@@ -28,10 +28,10 @@ public:
 
 private:
     // package -> list of dependent packages (uses)
-    Index<String, Vector<String>> adj;
+    VectorMap<String, Vector<String>> adj;
 
     // reverse edges (package -> who depends on it)
-    Index<String, Vector<String>> rev;
+    VectorMap<String, Vector<String>> rev;
 
 };
 

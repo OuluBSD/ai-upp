@@ -24,11 +24,27 @@ private:
     InvocationResult HandleCleanProject(const VectorMap<String, String>& args);
     InvocationResult HandleGotoLine(const VectorMap<String, String>& args);
 
+    // Handler functions for editor commands (using IdeSession)
+    InvocationResult HandleInsertText(const VectorMap<String, String>& args);
+    InvocationResult HandleEraseRange(const VectorMap<String, String>& args);
+    InvocationResult HandleReplaceAll(const VectorMap<String, String>& args);
+    InvocationResult HandleUndo(const VectorMap<String, String>& args);
+    InvocationResult HandleRedo(const VectorMap<String, String>& args);
+
     // Handler functions for stub commands (not yet integrated)
     InvocationResult HandleFindInFiles(const VectorMap<String, String>& args);
     InvocationResult HandleSearchCode(const VectorMap<String, String>& args);
     InvocationResult HandleShowConsole(const VectorMap<String, String>& args);
     InvocationResult HandleShowErrors(const VectorMap<String, String>& args);
+
+    // Handler functions for symbol analysis commands
+    InvocationResult HandleFindDefinition(const VectorMap<String, String>& args);
+    InvocationResult HandleFindUsages(const VectorMap<String, String>& args);
+
+    // Handler functions for graph analysis commands
+    InvocationResult HandleGetBuildOrder(const VectorMap<String, String>& args);
+    InvocationResult HandleDetectCycles(const VectorMap<String, String>& args);
+    InvocationResult HandleAffectedPackages(const VectorMap<String, String>& args);
 
     const CommandRegistry& registry;
     One<IdeSession> session;

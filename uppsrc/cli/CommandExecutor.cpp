@@ -1,6 +1,7 @@
 #include "CommandExecutor.h"
 #include "IdeSession.h"
 #include <Core/Core.h>
+#include "CoreSupervisor.h"
 
 namespace Upp {
 
@@ -115,6 +116,24 @@ InvocationResult CommandExecutor::Invoke(const String& name,
     }
     else if (name == "get_optimization_plan") {
         return HandleGetOptimizationPlan(args);
+    }
+    else if (name == "workspace_plan") {
+        return HandleGetWorkspacePlan(args);
+    }
+    else if (name == "list_strategies") {
+        return HandleListStrategies(args);
+    }
+    else if (name == "get_strategy") {
+        return HandleGetStrategy(args);
+    }
+    else if (name == "set_strategy") {
+        return HandleSetStrategy(args);
+    }
+    else if (name == "supervisor_front") {
+        return HandleSupervisorFront(args);
+    }
+    else if (name == "supervisor_rank") {
+        return HandleSupervisorRank(args);
     }
     // Special case for list_commands (not in metadata)
     else if (name == "list_commands") {
@@ -930,6 +949,275 @@ InvocationResult CommandExecutor::HandleGetOptimizationPlan(const VectorMap<Stri
     result_struct.status_code = 0;
     result_struct.message = "Optimization plan generated for package '" + package + "'";
     result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleGetWorkspacePlan(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetWorkspacePlan(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to generate workspace plan: " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Workspace optimization plan generated";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+// Dynamic Strategy Engine handlers
+InvocationResult CommandExecutor::HandleListStrategies(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->ListStrategies(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to list strategies: " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved strategy list";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleGetStrategy(const VectorMap<String, String>& args) {
+    String strategy_name = args.Get("name", "active");
+    String error;
+
+    Value result;
+    if (strategy_name == "active") {
+        // Get the currently active strategy
+        result = session->GetActiveStrategy(error);
+    } else {
+        // Get a specific strategy by name
+        result = session->GetStrategy(strategy_name, error);
+    }
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to get strategy: " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved strategy information";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSetStrategy(const VectorMap<String, String>& args) {
+    String strategy_name = args.Get("name", "");
+    if (strategy_name.IsEmpty()) {
+        return {1, "Missing required argument: name"};
+    }
+
+    String error;
+    bool success = session->SetActiveStrategy(strategy_name, error);
+
+    if (!success) {
+        return {1, "Failed to set strategy to '" + strategy_name + "': " + error};
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully set active strategy to '" + strategy_name + "'";
+    return result_struct;
+}
+
+// Supervisor v3: Multi-Objective Planner command handlers
+InvocationResult CommandExecutor::HandleSupervisorFront(const VectorMap<String, String>& args) {
+    String package = args.Get("package", "");
+    if (package.IsEmpty()) {
+        return {1, "Missing required argument: package"};
+    }
+
+    String error;
+    Value result = session->GetOptimizationPlan(package, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to generate optimization plan for '" + package + "': " + error};
+    }
+
+    // Extract the suggestions from the plan
+    Vector<CoreSupervisor::Suggestion> suggestions;
+    if (result.Is<ValueMap>()) {
+        ValueMap plan = result;
+        ValueArray steps = plan.Get("steps", ValueArray());
+
+        for (int i = 0; i < steps.GetCount(); i++) {
+            if (steps[i].Is<ValueMap>()) {
+                ValueMap step = steps[i];
+
+                CoreSupervisor::Suggestion suggestion;
+                suggestion.action = (String)step.Get("action", "");
+                suggestion.target = (String)step.Get("target", "");
+                suggestion.params = step.Get("params", ValueMap());
+                suggestion.reason = (String)step.Get("reason", "");
+                suggestion.benefit_score = (double)step.Get("benefit_score", 0.0);
+                suggestion.cost_score = (double)step.Get("cost_score", 0.0);
+                suggestion.risk_score = (double)step.Get("risk_score", 0.0);
+                suggestion.confidence_score = (double)step.Get("confidence_score", 0.0);
+
+                // Get metrics map
+                ValueMap metrics_map = step.Get("metrics", ValueMap());
+                suggestion.metrics = metrics_map;
+
+                suggestions.Add(suggestion);
+            }
+        }
+    }
+
+    // Instead of creating a new supervisor, let's use the one from the session
+    // Extract the supervisor from the session - need to do this differently
+    // since we're not calling session->ComputeParetoFront directly
+
+    // For now, create a temporary supervisor to compute the front
+    // A more proper way would be adding this functionality to the IdeSession
+    CoreSupervisor temp_supervisor;
+    Vector<CoreSupervisor::Suggestion> pareto_front = temp_supervisor.ComputeParetoFront(suggestions);
+
+    // Convert suggestions back to ValueArray for payload
+    ValueArray payload_array;
+    for (const auto& suggestion : pareto_front) {
+        ValueMap suggestion_map;
+        suggestion_map.Add("action", suggestion.action);
+        suggestion_map.Add("target", suggestion.target);
+        suggestion_map.Add("params", suggestion.params);
+        suggestion_map.Add("reason", suggestion.reason);
+        suggestion_map.Add("benefit_score", suggestion.benefit_score);
+        suggestion_map.Add("cost_score", suggestion.cost_score);
+        suggestion_map.Add("risk_score", suggestion.risk_score);
+        suggestion_map.Add("confidence_score", suggestion.confidence_score);
+        suggestion_map.Add("metrics", suggestion.metrics);
+
+        payload_array.Add(suggestion_map);
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Computed Pareto-optimal suggestions for package '" + package + "'";
+    result_struct.payload = payload_array;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSupervisorRank(const VectorMap<String, String>& args) {
+    String package = args.Get("package", "");
+    if (package.IsEmpty()) {
+        return {1, "Missing required argument: package"};
+    }
+
+    String limit_str = args.Get("limit", "10");
+    int limit = ScanInt(limit_str);
+    if (limit <= 0) {
+        limit = 10; // default
+    }
+
+    String error;
+    Value result = session->GetOptimizationPlan(package, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to generate optimization plan for '" + package + "': " + error};
+    }
+
+    // Extract the suggestions from the plan
+    Vector<CoreSupervisor::Suggestion> suggestions;
+    if (result.Is<ValueMap>()) {
+        ValueMap plan = result;
+        ValueArray steps = plan.Get("steps", ValueArray());
+
+        for (int i = 0; i < steps.GetCount(); i++) {
+            if (steps[i].Is<ValueMap>()) {
+                ValueMap step = steps[i];
+
+                CoreSupervisor::Suggestion suggestion;
+                suggestion.action = (String)step.Get("action", "");
+                suggestion.target = (String)step.Get("target", "");
+                suggestion.params = step.Get("params", ValueMap());
+                suggestion.reason = (String)step.Get("reason", "");
+                suggestion.benefit_score = (double)step.Get("benefit_score", 0.0);
+                suggestion.cost_score = (double)step.Get("cost_score", 0.0);
+                suggestion.risk_score = (double)step.Get("risk_score", 0.0);
+                suggestion.confidence_score = (double)step.Get("confidence_score", 0.0);
+
+                // Get metrics map
+                ValueMap metrics_map = step.Get("metrics", ValueMap());
+                suggestion.metrics = metrics_map;
+
+                suggestions.Add(suggestion);
+            }
+        }
+    }
+
+    // Get strategy weights for ranking
+    double w_benefit = 1.0;
+    double w_cost = 0.7;
+    double w_risk = 1.2;
+    double w_confidence = 1.0;
+
+    // Try to get objective weights from active strategy
+    Value strategy_info = session->GetActiveStrategy(error);
+    if (strategy_info.Is<ValueMap>()) {
+        ValueMap strategy_map = strategy_info;
+        ValueMap objective_weights = strategy_map.Get("objective_weights", ValueMap());
+        w_benefit = (double)objective_weights.Get("benefit", 1.0);
+        w_cost = (double)objective_weights.Get("cost", 0.7);
+        w_risk = (double)objective_weights.Get("risk", 1.2);
+        w_confidence = (double)objective_weights.Get("confidence", 1.0);
+    }
+
+    // Compute weighted scores and rank suggestions
+    Vector< pair<double, int> > scores_with_indices;  // (score, original_index)
+    for (int i = 0; i < suggestions.GetCount(); i++) {
+        const auto& s = suggestions[i];
+        // Use weighted linear combination: score = (benefit_score * w_benefit) + (confidence_score * w_confidence) - (cost_score * w_cost) - (risk_score * w_risk)
+        double score = (s.benefit_score * w_benefit) +
+                      (s.confidence_score * w_confidence) -
+                      (s.cost_score * w_cost) -
+                      (s.risk_score * w_risk);
+
+        scores_with_indices.Add(make_pair(score, i));
+    }
+
+    // Sort by score in descending order
+    Sort(scores_with_indices, [](const pair<double, int>& a, const pair<double, int>& b) {
+        return a.first > b.first;  // Higher scores first
+    });
+
+    // Create ranked result
+    ValueArray payload_array;
+    int actual_limit = min(limit, scores_with_indices.GetCount());
+    for (int i = 0; i < actual_limit; i++) {
+        int original_index = scores_with_indices[i].second;
+        const auto& s = suggestions[original_index];
+        double score = scores_with_indices[i].first;
+
+        ValueMap suggestion_map;
+        suggestion_map.Add("action", s.action);
+        suggestion_map.Add("target", s.target);
+        suggestion_map.Add("params", s.params);
+        suggestion_map.Add("reason", s.reason);
+        suggestion_map.Add("benefit_score", s.benefit_score);
+        suggestion_map.Add("cost_score", s.cost_score);
+        suggestion_map.Add("risk_score", s.risk_score);
+        suggestion_map.Add("confidence_score", s.confidence_score);
+        suggestion_map.Add("metrics", s.metrics);
+        suggestion_map.Add("combined_score", score);  // Add the computed combined score
+
+        payload_array.Add(suggestion_map);
+    }
+
+    // Create result struct
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Ranked " + IntStr(actual_limit) + " suggestions for package '" + package + "'";
+    result_struct.payload = payload_array;
     return result_struct;
 }
 

@@ -89,6 +89,15 @@ public:
 
     // AI Supervisor Layer v1 (PART C)
     virtual Value GetOptimizationPlan(const String& package, String& error) = 0;
+
+    // AI Supervisor Layer v2 - Workspace planning
+    virtual Value GetWorkspacePlan(String& error) = 0;
+
+    // Dynamic Strategy Engine (PART E)
+    virtual bool SetActiveStrategy(const String& name, String& error) = 0;
+    virtual Value GetActiveStrategy(String& error) = 0;
+    virtual Value GetStrategy(const String& name, String& error) = 0;  // Get specific strategy by name
+    virtual Value ListStrategies(String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

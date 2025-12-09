@@ -1,50 +1,113 @@
 #include "clicore.h"
 #include "CoreSupervisor.h"
+#include "CoreIde.h"
 
 CoreSupervisor::CoreSupervisor() {
 }
 
-CoreSupervisor::Suggestion CoreSupervisor::SuggestIncludeCleanup(const String& package,
-                                                                const Value& pkg_stats) {
-	ValueMap m;
-	m.Set("package", package);
-	
+void CoreSupervisor::SetStrategyRegistry(const StrategyRegistry* reg) {
+    registry = reg;
+}
+
+bool CoreSupervisor::SetActiveStrategy(const String& name, String& error) {
+    if (!registry) {
+        error = "No strategy registry available";
+        return false;
+    }
+
+    const StrategyProfile* profile = registry->Find(name);
+    if (!profile) {
+        error = "Strategy not found: " + name;
+        return false;
+    }
+
+    active = profile;
+    return true;
+}
+
+const StrategyProfile* CoreSupervisor::GetActiveStrategy() const {
+    return active;
+}
+
+CoreSupervisor::Suggestion CoreSupervisor::SuggestIncludeCleanupStrategic(const String& package,
+                                                                         const Value& pkg_stats) const {
+    ValueMap m;
+    m.Set("package", package);
+
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "cleanup_includes_and_rebuild";
     suggestion.params = m;
     suggestion.reason = "Many unused #includes detected.";
-    
-    // Check if unused includes are detected based on heuristic data
+    suggestion.benefit_score = 0.0;
+    suggestion.cost_score = 0.0;
+    suggestion.risk_score = 0.0;
+    suggestion.confidence_score = 0.0;
+
+    // Get threshold from active strategy or use default
+    double min_include_density = 0.3; // Default threshold
+    if (active && active->thresholds.Is<ValueMap>()) {
+        ValueMap thresholds = active->thresholds;
+        ValueMap cleanup_thresholds = thresholds.Get("cleanup_includes_and_rebuild", ValueMap());
+        if (!cleanup_thresholds.IsVoid()) {
+            min_include_density = (double)cleanup_thresholds.Get("min_include_density", 0.3);
+        }
+    }
+
+    // Check if unused includes are detected based on heuristic data with strategy threshold
     // This is a placeholder implementation - would integrate with actual telemetry
     if (pkg_stats.Is<ValueMap>()) {
         ValueMap stats = pkg_stats;
         if ((int)stats.Get("unused_includes", 0) > 10) { // Heuristic threshold
-            return suggestion;
+            // Additional check based on include density if available
+            double include_density = (double)stats.Get("include_density", 1.0);
+            if (include_density >= min_include_density) {
+                return suggestion;
+            }
         }
     }
-    
+
     return Suggestion(); // Return empty suggestion if no cleanup needed
 }
 
-CoreSupervisor::Suggestion CoreSupervisor::SuggestRenameHotspot(const String& package,
-                                                                const Value& telemetry,
-                                                                CoreIde& ide) {
+CoreSupervisor::Suggestion CoreSupervisor::SuggestIncludeCleanup(const String& package,
+                                                                const Value& pkg_stats) const {
+    // Use the strategic version by default
+    return SuggestIncludeCleanupStrategic(package, pkg_stats);
+}
+
+CoreSupervisor::Suggestion CoreSupervisor::SuggestRenameHotspotStrategic(const String& package,
+                                                                        const Value& telemetry,
+                                                                        CoreIde& ide) const {
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "rename_symbol_safe";
-	ValueMap m;
-	m.Set("package", package);
+    ValueMap m;
+    m.Set("package", package);
     suggestion.params = m;
-    suggestion.reason = "Symbol appears thousands of times across workspace.";
+    suggestion.reason = "Symbol appears frequently across workspace.";
+    suggestion.benefit_score = 0.0;
+    suggestion.cost_score = 0.0;
+    suggestion.risk_score = 0.0;
+    suggestion.confidence_score = 0.0;
 
-    // Check if any symbol appears frequently enough to warrant renaming
+    // Get threshold from active strategy or use default
+    int min_symbol_occurrences = 100; // Default threshold
+    if (active && active->thresholds.Is<ValueMap>()) {
+        ValueMap thresholds = active->thresholds;
+        ValueMap rename_thresholds = thresholds.Get("rename_symbol_safe", ValueMap());
+        if (!rename_thresholds.IsVoid()) {
+            min_symbol_occurrences = (int)rename_thresholds.Get("min_symbol_occurrences", 100);
+        }
+    }
+
+    // Check if any symbol appears frequently enough to warrant renaming with strategy threshold
     if (telemetry.Is<ValueMap>()) {
         ValueMap tel = telemetry;  // Copy to non-const to access Get method
-        if ((int)tel.Get("max_symbol_frequency", 0) > 1000) { // Heuristic threshold
-			ValueMap m2;
-			m2.Set("package", package);
-			m2.Set("symbol", (String)tel.Get("hot_symbol", String()));
+        if ((int)tel.Get("max_symbol_frequency", 0) > min_symbol_occurrences) { // Heuristic threshold based on strategy
+            ValueMap m2;
+            m2.Set("package", package);
+            m2.Set("symbol", (String)tel.Get("hot_symbol", String()));
             suggestion.params = m2;
             return suggestion;
         }
@@ -53,21 +116,45 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestRenameHotspot(const String& pa
     return Suggestion(); // Return empty suggestion if no hotspot found
 }
 
-CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplification(const String& package,
-                                                                      const Value& graph_stats) {
+CoreSupervisor::Suggestion CoreSupervisor::SuggestRenameHotspot(const String& package,
+                                                                const Value& telemetry,
+                                                                CoreIde& ide) const {
+    // Use the strategic version by default
+    return SuggestRenameHotspotStrategic(package, telemetry, ide);
+}
+
+CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplificationStrategic(const String& package,
+                                                                              const Value& graph_stats) const {
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "reorganize_includes";
-	ValueMap m;
-	m.Set("package", package);
+    ValueMap m;
+    m.Set("package", package);
     suggestion.params = m;
     suggestion.reason = "Long dependency chains or near-cycles detected.";
+    suggestion.benefit_score = 0.0;
+    suggestion.cost_score = 0.0;
+    suggestion.risk_score = 0.0;
+    suggestion.confidence_score = 0.0;
 
-    // Check for graph complexity issues
+    // Get threshold from active strategy or use default
+    double cycles_weight = 1.5; // Default cycles weight
+    if (active && active->weights.GetCount() > 0) {
+        cycles_weight = (double)active->weights.Get("cycles", 1.5);
+    }
+
+    // Check for graph complexity issues with strategy influence
     if (graph_stats.Is<ValueMap>()) {
         ValueMap stats = graph_stats;  // Copy to non-const to access Get method
-        if ((int)stats.Get("max_dependency_chain", 0) > 5 || // Heuristic threshold
-            (int)stats.Get("near_cycles", 0) > 0) {
+        int max_dependency_chain = (int)stats.Get("max_dependency_chain", 0);
+        int near_cycles = (int)stats.Get("near_cycles", 0);
+
+        // Adjust thresholds based on strategy weights
+        int chain_threshold = (int)(5.0 / cycles_weight); // Higher weight means lower threshold (more sensitive)
+        if (chain_threshold < 2) chain_threshold = 2; // Minimum threshold
+
+        if (max_dependency_chain > chain_threshold ||
+            (int)(near_cycles * cycles_weight) > 0) { // Weight affects how many cycles we tolerate
             return suggestion;
         }
     }
@@ -75,23 +162,43 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplification(const Stri
     return Suggestion(); // Return empty suggestion if no graph issues found
 }
 
-CoreSupervisor::Suggestion CoreSupervisor::SuggestRunOptimizationLoop(const String& package,
-                                                                      const Value& pkg_stats) {
+CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplification(const String& package,
+                                                                      const Value& graph_stats) const {
+    // Use the strategic version by default
+    return SuggestGraphSimplificationStrategic(package, graph_stats);
+}
+
+CoreSupervisor::Suggestion CoreSupervisor::SuggestRunOptimizationLoopStrategic(const String& package,
+                                                                              const Value& pkg_stats) const {
     Suggestion suggestion;
     suggestion.action = "optimize_package";
-	ValueMap m;
-	m.Set("name", package);
-	m.Set("max_iterations", 5);
+    ValueMap m;
+    m.Set("name", package);
+    m.Set("max_iterations", 5);
     suggestion.params = m;
     suggestion.reason = "High complexity score & long dependency chains.";
+    suggestion.benefit_score = 0.0;
+    suggestion.cost_score = 0.0;
+    suggestion.risk_score = 0.0;
+    suggestion.confidence_score = 0.0;
 
-    // Check if complexity exceeds thresholds
+    // Get threshold from active strategy or use default
+    double min_risk_score = 0.5; // Default threshold
+    if (active && active->thresholds.Is<ValueMap>()) {
+        ValueMap thresholds = active->thresholds;
+        ValueMap optimize_thresholds = thresholds.Get("optimize_package", ValueMap());
+        if (!optimize_thresholds.IsVoid()) {
+            min_risk_score = (double)optimize_thresholds.Get("min_risk_score", 0.5);
+        }
+    }
+
+    // Check if complexity exceeds thresholds with strategy influence
     if (pkg_stats.Is<ValueMap>()) {
         ValueMap stats = pkg_stats;  // Copy to non-const to access Get method
         double complexity = (double)stats.Get("complexity_score", 0.0);
         double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
 
-        if (complexity > 0.7 || avg_complexity > 0.6) { // Heuristic thresholds
+        if (complexity > min_risk_score || avg_complexity > (min_risk_score * 0.85)) { // Heuristic thresholds based on strategy
             return suggestion;
         }
     }
@@ -99,91 +206,541 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestRunOptimizationLoop(const Stri
     return Suggestion(); // Return empty suggestion if complexity is acceptable
 }
 
-double CoreSupervisor::ComputeRiskScore(const Value& pkg_stats,
-                                        const Value& graph_stats,
-                                        const Value& file_complexity) {
+CoreSupervisor::Suggestion CoreSupervisor::SuggestRunOptimizationLoop(const String& package,
+                                                                      const Value& pkg_stats) const {
+    // Use the strategic version by default
+    return SuggestRunOptimizationLoopStrategic(package, pkg_stats);
+}
+
+double CoreSupervisor::ComputeRiskScoreStrategic(const Value& pkg_stats,
+                                                 const Value& graph_stats,
+                                                 const Value& file_complexity) const {
     double risk = 0.0;
 
-    // Calculate risk based on various factors
+    // Get active strategy or use fallback values
+    double include_density_weight = 1.0;
+    double complexity_weight = 1.0;
+    double dependency_depth_weight = 1.0;
+    double edit_volatility_weight = 0.5;
+
+    if (active && active->weights.GetCount() > 0) {
+        include_density_weight = (double)active->weights.Get("include_density", 1.0);
+        complexity_weight = (double)active->weights.Get("complexity", 1.0);
+        dependency_depth_weight = (double)active->weights.Get("dependency_depth", 1.0);
+        edit_volatility_weight = (double)active->weights.Get("edit_volatility", 0.5);
+    }
+
+    // Calculate risk based on various factors using strategy weights
     if (pkg_stats.Is<ValueMap>()) {
         ValueMap stats = pkg_stats; // Copy to non-const to access Get method
         double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
         double include_density = (double)stats.Get("include_density", 0.0);
         int total_bytes = (int)stats.Get("total_bytes", 0);
 
-        // Normalize by typical values to get score between 0 and 1
-        risk += (avg_complexity / 100.0) * 0.3; // 30% weight
-        risk += (include_density / 0.5) * 0.3;  // 30% weight, assuming 50% is high
-        risk += (min(double(total_bytes) / 100000.0, 1.0)) * 0.2; // 20% weight, assuming 100KB is large
+        // Normalize by typical values and apply strategy weights
+        risk += (avg_complexity / 100.0) * complexity_weight * 0.25; // 25% base weight
+        risk += (include_density / 0.5) * include_density_weight * 0.25;  // 25% base weight, assuming 50% is high
+        risk += (min(double(total_bytes) / 100000.0, 1.0)) * edit_volatility_weight * 0.25; // 25% weight, assuming 100KB is large
     }
 
     if (graph_stats.Is<ValueMap>()) {
         ValueMap g_stats = graph_stats; // Copy to non-const to access Get method
         int dependency_depth = (int)g_stats.Get("dependency_depth", 0);
 
-        // Normalize and add to risk
-        risk += (min(double(dependency_depth) / 10.0, 1.0)) * 0.2; // 20% weight
+        // Normalize and add to risk with strategy weight
+        risk += (min(double(dependency_depth) / 10.0, 1.0)) * dependency_depth_weight * 0.25; // 25% weight
     }
 
     // Cap the risk score between 0 and 1
     return min(risk, 1.0);
 }
 
+double CoreSupervisor::ComputeRiskScore(const Value& pkg_stats,
+                                        const Value& graph_stats,
+                                        const Value& file_complexity) const {
+    // Use the strategic version by default
+    return ComputeRiskScoreStrategic(pkg_stats, graph_stats, file_complexity);
+}
+
 CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& package,
                                                               CoreIde& ide,
                                                               String& error) {
     Plan plan;
-    
+
     try {
         // Get various metrics from the IDE
         Value pkg_stats = ide.GetPackageStats(package, error);
         if (!error.IsEmpty()) {
             return plan;
         }
-        
+
         Value telemetry = ide.GetTelemetryData(package, error);
         if (!error.IsEmpty()) {
             return plan;
         }
-        
+
         Value graph_stats = ide.GetGraphStats(package, error);
         if (!error.IsEmpty()) {
             return plan;
         }
-        
-        // Generate suggestions based on heuristics
-        Suggestion include_cleanup = SuggestIncludeCleanup(package, pkg_stats);
+
+        // Generate suggestions based on strategic heuristics
+        Suggestion include_cleanup = SuggestIncludeCleanupStrategic(package, pkg_stats);
         if (!include_cleanup.action.IsEmpty()) {
             plan.steps.Add(include_cleanup);
         }
-        
-        Suggestion rename_hotspot = SuggestRenameHotspot(package, telemetry, ide);
+
+        Suggestion rename_hotspot = SuggestRenameHotspotStrategic(package, telemetry, ide);
         if (!rename_hotspot.action.IsEmpty()) {
             plan.steps.Add(rename_hotspot);
         }
-        
-        Suggestion graph_simplification = SuggestGraphSimplification(package, graph_stats);
+
+        Suggestion graph_simplification = SuggestGraphSimplificationStrategic(package, graph_stats);
         if (!graph_simplification.action.IsEmpty()) {
             plan.steps.Add(graph_simplification);
         }
-        
-        Suggestion optimization_loop = SuggestRunOptimizationLoop(package, pkg_stats);
+
+        Suggestion optimization_loop = SuggestRunOptimizationLoopStrategic(package, pkg_stats);
         if (!optimization_loop.action.IsEmpty()) {
             plan.steps.Add(optimization_loop);
         }
-        
-        // Calculate risk score and create summary
-        double risk_score = ComputeRiskScore(pkg_stats, graph_stats, Value());
+
+        // Calculate risk score using strategic weights and create summary
+        double risk_score = ComputeRiskScoreStrategic(pkg_stats, graph_stats, Value());
         plan.summary = Format("Package '%s' shows structural issues: Risk score %.2f", package, risk_score);
-        
-        // Sort suggestions by priority (for now, just keep the order we added them)
-        // In a more sophisticated implementation, we might have priorities
-        
+
+        // Add strategy information to the plan
+        if (active) {
+            ValueMap strategy_map;
+            strategy_map.Set("name", active->name);
+            strategy_map.Set("description", active->description);
+            strategy_map.Set("weights", active->weights);
+            plan.strategy_info = strategy_map;
+        } else {
+            // Fallback strategy info when no strategy is active
+            ValueMap fallback_strategy;
+            fallback_strategy.Set("name", "default_fallback");
+            fallback_strategy.Set("description", "Built-in fallback strategy with default weights");
+            ValueMap default_weights;
+            default_weights.Set("include_density", 1.0);
+            default_weights.Set("complexity", 1.0);
+            default_weights.Set("dependency_depth", 1.0);
+            default_weights.Set("cycles", 1.5);
+            default_weights.Set("edit_volatility", 0.5);
+            fallback_strategy.Set("weights", default_weights);
+            plan.strategy_info = fallback_strategy;
+        }
+
     } catch (const Exc& e) {
         error = e;
     } catch (...) {
         error = "Unknown error occurred generating optimization plan";
     }
-    
+
+    return plan;
+}
+
+Vector<CoreSupervisor::Suggestion> CoreSupervisor::ComputeParetoFront(const Vector<Suggestion>& all) const {
+    Vector<Suggestion> front;
+
+    // For each suggestion, check if it's dominated by any other suggestion
+    for (int i = 0; i < all.GetCount(); i++) {
+        bool is_dominated = false;
+
+        // Check against all other suggestions
+        for (int j = 0; j < all.GetCount(); j++) {
+            if (i == j) continue;  // Don't compare with itself
+
+            // Check if suggestion j dominates suggestion i
+            // A dominates B if:
+            // - A is >= B in all *beneficial* metrics (benefit_score, confidence_score)
+            // - A is <= B in all *costly* metrics (cost_score, risk_score)
+            // - And A is strictly better in at least one metric
+            bool dominates = true;
+            bool strictly_better = false;
+
+            // Check beneficial metrics (higher is better)
+            if (all[j].benefit_score < all[i].benefit_score) {
+                dominates = false;
+            } else if (all[j].benefit_score > all[i].benefit_score) {
+                strictly_better = true;
+            }
+
+            if (all[j].confidence_score < all[i].confidence_score) {
+                dominates = false;
+            } else if (all[j].confidence_score > all[i].confidence_score) {
+                strictly_better = true;
+            }
+
+            // Check costly metrics (lower is better)
+            if (all[j].cost_score > all[i].cost_score) {
+                dominates = false;
+            } else if (all[j].cost_score < all[i].cost_score) {
+                strictly_better = true;
+            }
+
+            if (all[j].risk_score > all[i].risk_score) {
+                dominates = false;
+            } else if (all[j].risk_score < all[i].risk_score) {
+                strictly_better = true;
+            }
+
+            // If j dominates i (better or equal in all metrics, and strictly better in at least one)
+            if (dominates && strictly_better) {
+                is_dominated = true;
+                break;
+            }
+        }
+
+        // If the suggestion is not dominated by any other, add to the front
+        if (!is_dominated) {
+            front.Add(all[i]);
+        }
+    }
+
+    return front;
+}
+
+void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
+                                             const String& package,
+                                             CoreIde& ide,
+                                             const Value& pkg_stats,
+                                             const Value& telemetry,
+                                             const Value& graph_stats) const {
+    // Get strategy-specific objective weights or use defaults if no strategy is active
+    double benefit_weight = 1.0;
+    double cost_weight = 0.7;
+    double risk_weight = 1.2;
+    double confidence_weight = 1.0;
+
+    if (active && active->objective_weights.GetCount() > 0) {
+        benefit_weight = (double)active->objective_weights.Get("benefit", 1.0);
+        cost_weight = (double)active->objective_weights.Get("cost", 0.7);
+        risk_weight = (double)active->objective_weights.Get("risk", 1.2);
+        confidence_weight = (double)active->objective_weights.Get("confidence", 1.0);
+    }
+
+    // Benefit score: based on potential improvements
+    double benefit_score = 0.0;
+
+    // Calculate benefit based on the specific action
+    if (suggestion.target == "cleanup_includes_and_rebuild") {
+        // Benefit from reducing include complexity
+        if (pkg_stats.Is<ValueMap>()) {
+            ValueMap stats = pkg_stats;
+            int unused_includes = (int)stats.Get("unused_includes", 0);
+            double include_density = (double)stats.Get("include_density", 0.0);
+
+            // Higher benefit for more unused includes and higher density
+            benefit_score = min(1.0, (double)unused_includes * 0.05 + include_density * 0.3);
+        }
+    } else if (suggestion.target == "rename_symbol_safe") {
+        // Benefit from consistent naming
+        if (telemetry.Is<ValueMap>()) {
+            ValueMap tel = telemetry;
+            int max_symbol_frequency = (int)tel.Get("max_symbol_frequency", 0);
+            benefit_score = min(1.0, (double)max_symbol_frequency / 500.0); // Normalize
+        }
+    } else if (suggestion.target == "reorganize_includes" ||
+               suggestion.target == "simplify_dependency_chains") {
+        // Benefit from graph simplification
+        if (graph_stats.Is<ValueMap>()) {
+            ValueMap g_stats = graph_stats;
+            int max_dependency_chain = (int)g_stats.Get("max_dependency_chain", 0);
+            int near_cycles = (int)g_stats.Get("near_cycles", 0);
+
+            // Higher benefit for problematic graph structures
+            benefit_score = min(1.0, (double)max_dependency_chain * 0.02 + (double)near_cycles * 0.1);
+        }
+    } else if (suggestion.target == "optimize_package") {
+        // Benefit from complexity improvement
+        if (pkg_stats.Is<ValueMap>()) {
+            ValueMap stats = pkg_stats;
+            double complexity_score = (double)stats.Get("complexity_score", 0.0);
+            double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
+
+            benefit_score = min(1.0, complexity_score * 0.5 + avg_complexity * 0.3);
+        }
+    } else {
+        // Default benefit for other actions
+        benefit_score = 0.5;
+    }
+
+    // Apply benefit weight
+    benefit_score *= benefit_weight;
+
+    // Cost score: estimated resources needed
+    double cost_score = 0.0;
+
+    // Estimate cost based on the action and package size
+    if (pkg_stats.Is<ValueMap>()) {
+        ValueMap stats = pkg_stats;
+        int total_files = (int)stats.Get("files", 0);
+        int total_lines = (int)stats.Get("total_lines", 0);
+
+        // Higher cost for larger packages
+        if (suggestion.target == "rename_symbol_safe") {
+            // Rename operations touch many files
+            cost_score = min(1.0, (double)total_files * 0.01 + (double)total_lines / 10000.0);
+        } else if (suggestion.target == "reorganize_includes" ||
+                   suggestion.target == "simplify_dependency_chains") {
+            // Dependency changes may affect many files
+            cost_score = min(1.0, (double)total_files * 0.005 + (double)total_lines / 15000.0);
+        } else if (suggestion.target == "cleanup_includes_and_rebuild") {
+            // Cleanup operations typically lower cost
+            cost_score = min(1.0, (double)total_files * 0.002 + (double)total_lines / 20000.0);
+        } else {
+            cost_score = min(1.0, (double)total_files * 0.003 + (double)total_lines / 15000.0);
+        }
+    }
+
+    // Apply cost weight
+    cost_score *= cost_weight;
+
+    // Risk score: probability of breaking things (reusing existing risk computation)
+    double risk_score = ComputeRiskScoreStrategic(pkg_stats, graph_stats, Value());
+
+    // Apply risk weight
+    risk_score *= risk_weight;
+
+    // Confidence score: based on signal clarity
+    double confidence_score = 0.5; // Base confidence
+
+    if (telemetry.Is<ValueMap>()) {
+        ValueMap tel = telemetry;
+        int telemetry_signals = 0;
+
+        // Count valid telemetry signals
+        if (!tel.Get("hot_symbol", String()).IsEmpty()) telemetry_signals++;
+        if ((int)tel.Get("max_symbol_frequency", 0) > 0) telemetry_signals++;
+        if ((int)tel.Get("edit_volatility_score", 0) > 0) telemetry_signals++;
+
+        // Normalize confidence based on signals
+        confidence_score = min(1.0, 0.3 + (double)telemetry_signals * 0.2);
+    } else {
+        // Lower confidence if no telemetry data
+        confidence_score = 0.3;
+    }
+
+    // Apply confidence weight
+    confidence_score *= confidence_weight;
+
+    // Update the suggestion with computed scores
+    suggestion.benefit_score = min(1.0, benefit_score);
+    suggestion.cost_score = min(1.0, cost_score);
+    suggestion.risk_score = min(1.0, risk_score);
+    suggestion.confidence_score = min(1.0, confidence_score);
+
+    // Populate metrics map with arbitrary computed metrics
+    ValueMap metrics;
+    metrics.Set("impact", suggestion.benefit_score / max(suggestion.cost_score, 0.01));
+    metrics.Set("surface_area", (int)pkg_stats["files"]);
+    metrics.Set("graph_delta", 0); // Placeholder - would indicate graph structure change
+    suggestion.metrics = metrics;
+}
+
+CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& package,
+                                                              CoreIde& ide,
+                                                              String& error) {
+    Plan plan;
+
+    try {
+        // Get various metrics from the IDE
+        Value pkg_stats = ide.GetPackageStats(package, error);
+        if (!error.IsEmpty()) {
+            return plan;
+        }
+
+        Value telemetry = ide.GetTelemetryData(package, error);
+        if (!error.IsEmpty()) {
+            return plan;
+        }
+
+        Value graph_stats = ide.GetGraphStats(package, error);
+        if (!error.IsEmpty()) {
+            return plan;
+        }
+
+        // Generate suggestions based on strategic heuristics
+        Suggestion include_cleanup = SuggestIncludeCleanupStrategic(package, pkg_stats);
+        if (!include_cleanup.action.IsEmpty()) {
+            ComputeSuggestionMetrics(include_cleanup, package, ide, pkg_stats, telemetry, graph_stats);
+            plan.steps.Add(include_cleanup);
+        }
+
+        Suggestion rename_hotspot = SuggestRenameHotspotStrategic(package, telemetry, ide);
+        if (!rename_hotspot.action.IsEmpty()) {
+            ComputeSuggestionMetrics(rename_hotspot, package, ide, pkg_stats, telemetry, graph_stats);
+            plan.steps.Add(rename_hotspot);
+        }
+
+        Suggestion graph_simplification = SuggestGraphSimplificationStrategic(package, graph_stats);
+        if (!graph_simplification.action.IsEmpty()) {
+            ComputeSuggestionMetrics(graph_simplification, package, ide, pkg_stats, telemetry, graph_stats);
+            plan.steps.Add(graph_simplification);
+        }
+
+        Suggestion optimization_loop = SuggestRunOptimizationLoopStrategic(package, pkg_stats);
+        if (!optimization_loop.action.IsEmpty()) {
+            ComputeSuggestionMetrics(optimization_loop, package, ide, pkg_stats, telemetry, graph_stats);
+            plan.steps.Add(optimization_loop);
+        }
+
+        // Calculate risk score using strategic weights and create summary
+        double risk_score = ComputeRiskScoreStrategic(pkg_stats, graph_stats, Value());
+        plan.summary = Format("Package '%s' shows structural issues: Risk score %.2f", package, risk_score);
+
+        // Add strategy information to the plan
+        if (active) {
+            ValueMap strategy_map;
+            strategy_map.Set("name", active->name);
+            strategy_map.Set("description", active->description);
+            strategy_map.Set("weights", active->weights);
+            plan.strategy_info = strategy_map;
+        } else {
+            // Fallback strategy info when no strategy is active
+            ValueMap fallback_strategy;
+            fallback_strategy.Set("name", "default_fallback");
+            fallback_strategy.Set("description", "Built-in fallback strategy with default weights");
+            ValueMap default_weights;
+            default_weights.Set("include_density", 1.0);
+            default_weights.Set("complexity", 1.0);
+            default_weights.Set("dependency_depth", 1.0);
+            default_weights.Set("cycles", 1.5);
+            default_weights.Set("edit_volatility", 0.5);
+            fallback_strategy.Set("weights", default_weights);
+            plan.strategy_info = fallback_strategy;
+        }
+
+    } catch (const Exc& e) {
+        error = e;
+    } catch (...) {
+        error = "Unknown error occurred generating optimization plan";
+    }
+
+    return plan;
+}
+
+CoreSupervisor::Plan CoreSupervisor::GenerateWorkspacePlan(CoreIde& ide, String& error) {
+    Plan plan;
+
+    try {
+        // Get overall workspace statistics
+        Value workspace_stats = ide.GetWorkspaceStats(error);
+        if (!error.IsEmpty()) {
+            return plan;
+        }
+
+        Value graph_stats = ide.GetGraphStats(error);
+        if (!error.IsEmpty()) {
+            return plan;
+        }
+
+        // For now, we'll add workspace-level suggestions based on overall statistics
+        // This is a simplified implementation that could be expanded with more complex logic
+
+        // Check for global workspace issues
+        if (graph_stats.Is<ValueMap>()) {
+            ValueMap g_stats = graph_stats;
+            int dependency_depth = (int)g_stats.Get("max_chain", 0);
+            bool has_cycles = (bool)g_stats.Get("cycles", false);
+            int edge_count = (int)g_stats.Get("edges", 0);
+
+            // Add suggestion for dependency graph issues
+            if (has_cycles) {
+                Suggestion suggestion;
+                suggestion.action = "run_playbook";
+                suggestion.target = "resolve_cycles";
+                ValueMap params;
+                params.Set("type", "workspace");
+                params.Set("issue", "dependency_cycles");
+                suggestion.params = params;
+                suggestion.reason = "Dependency cycles detected in workspace graph.";
+                suggestion.benefit_score = 0.0;
+                suggestion.cost_score = 0.0;
+                suggestion.risk_score = 0.0;
+                suggestion.confidence_score = 0.0;
+                // Since this is a workspace-level suggestion, we pass empty values for package-specific data
+                ComputeSuggestionMetrics(suggestion, "workspace", ide, workspace_stats, Value(), graph_stats);
+                plan.steps.Add(suggestion);
+            } else if (dependency_depth > 10) { // Heuristic threshold
+                Suggestion suggestion;
+                suggestion.action = "run_playbook";
+                suggestion.target = "simplify_dependency_chains";
+                ValueMap params;
+                params.Set("type", "workspace");
+                params.Set("max_depth", dependency_depth);
+                suggestion.params = params;
+                suggestion.reason = "Long dependency chains detected in workspace graph.";
+                suggestion.benefit_score = 0.0;
+                suggestion.cost_score = 0.0;
+                suggestion.risk_score = 0.0;
+                suggestion.confidence_score = 0.0;
+                // Since this is a workspace-level suggestion, we pass empty values for package-specific data
+                ComputeSuggestionMetrics(suggestion, "workspace", ide, workspace_stats, Value(), graph_stats);
+                plan.steps.Add(suggestion);
+            }
+        }
+
+        if (workspace_stats.Is<ValueMap>()) {
+            ValueMap ws_stats = workspace_stats;
+            int packages_count = (int)ws_stats.Get("packages", 0);
+            int total_files = (int)ws_stats.Get("files", 0);
+            double avg_size = (double)ws_stats.Get("average_size", 0.0);
+
+            // Add suggestions based on workspace metrics if they exceed thresholds
+            if (total_files > 10000) { // Heuristic threshold for large workspaces
+                Suggestion suggestion;
+                suggestion.action = "run_playbook";
+                suggestion.target = "workspace_optimization";
+                ValueMap params;
+                params.Set("type", "workspace");
+                params.Set("file_count", total_files);
+                suggestion.params = params;
+                suggestion.reason = "Large number of files detected in workspace.";
+                suggestion.benefit_score = 0.0;
+                suggestion.cost_score = 0.0;
+                suggestion.risk_score = 0.0;
+                suggestion.confidence_score = 0.0;
+                // Since this is a workspace-level suggestion, we pass empty values for package-specific data
+                ComputeSuggestionMetrics(suggestion, "workspace", ide, workspace_stats, Value(), graph_stats);
+                plan.steps.Add(suggestion);
+            }
+        }
+
+        // Calculate overall risk score for the workspace
+        double risk_score = ComputeRiskScoreStrategic(workspace_stats, graph_stats, Value());
+
+        plan.summary = Format("Workspace shows overall issues: %d packages, %d files, risk score %.2f",
+                              (int)workspace_stats["packages"], (int)workspace_stats["files"], risk_score);
+
+        // Add strategy information to the plan
+        if (active) {
+            ValueMap strategy_map;
+            strategy_map.Set("name", active->name);
+            strategy_map.Set("description", active->description);
+            strategy_map.Set("weights", active->weights);
+            plan.strategy_info = strategy_map;
+        } else {
+            // Fallback strategy info when no strategy is active
+            ValueMap fallback_strategy;
+            fallback_strategy.Set("name", "default_fallback");
+            fallback_strategy.Set("description", "Built-in fallback strategy with default weights");
+            ValueMap default_weights;
+            default_weights.Set("include_density", 1.0);
+            default_weights.Set("complexity", 1.0);
+            default_weights.Set("dependency_depth", 1.0);
+            default_weights.Set("cycles", 1.5);
+            default_weights.Set("edit_volatility", 0.5);
+            fallback_strategy.Set("weights", default_weights);
+            plan.strategy_info = fallback_strategy;
+        }
+
+    } catch (const Exc& e) {
+        error = e;
+    } catch (...) {
+        error = "Unknown error occurred generating workspace plan";
+    }
+
     return plan;
 }

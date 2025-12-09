@@ -308,3 +308,233 @@ theide-cli --workspace-root . --json get_optimization_plan --name MyApp
 ```
 
 This subsystem enables external AI to make **strategic decisions** by providing a planning layer that interprets workspace telemetry and recommends specific improvement actions.
+
+## Dynamic Strategy Engine (Supervisor v2)
+
+The system now includes a Dynamic Strategy Engine that allows AI agents to control the optimization planning behavior through data-driven strategy profiles. This provides flexibility to adjust planning heuristics without recompiling the system.
+
+### Core Features:
+
+* **Data-Driven Strategies** - Strategy profiles are defined in JSON format in `metadata/strategies_v1.json`
+* **Runtime Strategy Selection** - AI agents can switch between different strategies at runtime
+* **Strategy-Aware Planning** - Optimization plans are generated using weights and thresholds from the active strategy
+* **Extensible Configuration** - Strategies can define custom weights and threshold rules for different optimization playbooks
+
+### Strategy Profile Format:
+
+```json
+{
+  "strategies": [
+    {
+      "name": "default",
+      "description": "Balanced cleanup and refactoring strategy.",
+      "weights": {
+        "include_density": 1.0,
+        "complexity": 1.0,
+        "dependency_depth": 1.0,
+        "cycles": 1.5,
+        "edit_volatility": 0.5
+      },
+      "playbook_thresholds": {
+        "cleanup_includes_and_rebuild": {
+          "min_include_density": 0.3
+        },
+        "rename_symbol_safe": {
+          "min_symbol_occurrences": 100
+        },
+        "optimize_package": {
+          "min_risk_score": 0.5
+        }
+      }
+    }
+  ]
+}
+```
+
+### Available Strategy Commands:
+
+* **list_strategies** - Returns an array of available strategies with their names and descriptions
+* **get_strategy** - Returns detailed information about a specific strategy or the currently active strategy
+* **set_strategy** - Changes the active strategy used for generating optimization plans
+* **get_optimization_plan** and **workspace_plan** - Now include strategy information in their output
+
+### Command Examples:
+
+```bash
+theide-cli --json list_strategies
+
+theide-cli --json get_strategy
+theide-cli --json get_strategy --name aggressive_cleanup
+
+theide-cli set_strategy --name aggressive_cleanup
+theide-cli --json get_optimization_plan --name MyApp
+```
+
+### CLI Usage:
+
+The strategy engine provides both human-readable and JSON modes for all commands, maintaining compatibility with existing automation while enabling flexible AI agent behavior.
+
+* **Strategy Selection**: Use `set_strategy --name STRATEGY_NAME` to select the active strategy
+* **Plan Generation**: `get_optimization_plan` and `workspace_plan` commands now explicitly report which strategy generated the plan
+* **Verification**: Use `get_strategy` to verify the currently active strategy before running planning commands
+
+This subsystem enables AI agents to **adapt their optimization behavior dynamically** by selecting appropriate strategies based on project requirements, risk tolerance, or phase of development.
+
+## Multi-Objective Planner (Supervisor v3)
+
+The system has been upgraded to a Multi-Objective Planner (Supervisor v3) that evaluates suggestions using multiple objective dimensions, computes Pareto fronts, and provides multi-objective scores for each proposed action. This allows AI agents to make more sophisticated optimization decisions by considering benefit, cost, risk, and confidence simultaneously.
+
+### Core Features:
+
+* **Multi-Objective Evaluation** - Each suggestion is evaluated across four key dimensions:
+  * **benefit_score**: Expected improvement from the action
+  * **cost_score**: Estimated implementation cost and effort
+  * **risk_score**: Risk of breakage or refactor impact
+  * **confidence_score**: Heuristic confidence level in the suggestion
+
+* **Pareto Optimization** - Ability to compute the Pareto-optimal subset of suggestions where no single suggestion dominates another across all objectives
+
+* **Weighted Ranking** - Suggestios can be ranked using a weighted linear combination of objective scores based on strategy profile settings
+
+* **Extensible Metrics** - Each suggestion includes an extensible metrics map for additional computed measurements
+
+### Multi-Objective Fields in Suggestions:
+
+Each suggestion now includes the following multi-objective fields:
+
+```json
+{
+  "action": "run_playbook",
+  "target": "cleanup_includes_and_rebuild",
+  "params": { "package": "MyApp" },
+  "reason": "Many unused #includes detected.",
+  "benefit_score": 0.65,
+  "cost_score": 0.23,
+  "risk_score": 0.41,
+  "confidence_score": 0.85,
+  "metrics": {
+    "impact": 2.83,
+    "surface_area": 12,
+    "graph_delta": 0
+  }
+}
+```
+
+### Available Supervisor v3 Commands:
+
+* **supervisor_front** - Returns the Pareto-optimal suggestions for a package
+  * Computes the Pareto front from all generated suggestions
+  * Returns only non-dominated suggestions
+  * Allows AI agents to focus on the most promising actions
+
+* **supervisor_rank** - Ranks suggestions by multi-objective weighted score
+  * Uses a weighted linear combination: `score = (benefit * w_benefit) + (confidence * w_confidence) - (cost * w_cost) - (risk * w_risk)`
+  * Orders suggestions from highest to lowest score
+  * Supports optional `limit` parameter to restrict number of results
+
+### Strategy-Driven Objective Weights:
+
+Strategy profiles now support an `objective_weights` section that influences both the computation of suggestion metrics and the ranking:
+
+```json
+{
+  "name": "default",
+  "description": "Balanced cleanup and refactoring strategy.",
+  "weights": {
+    "include_density": 1.0,
+    "complexity": 1.0,
+    "dependency_depth": 1.0,
+    "cycles": 1.5,
+    "edit_volatility": 0.5
+  },
+  "objective_weights": {
+    "benefit": 1.0,
+    "cost": 0.7,
+    "risk": 1.2,
+    "confidence": 1.0
+  },
+  "playbook_thresholds": {
+    "cleanup_includes_and_rebuild": {
+      "min_include_density": 0.3
+    }
+  }
+}
+```
+
+### Command Examples:
+
+```bash
+# Get Pareto-optimal suggestions for a package
+theide-cli --workspace-root . --json supervisor_front --package MyApp
+
+# Get top 5 ranked suggestions for a package
+theide-cli --workspace-root . --json supervisor_rank --package MyApp --limit 5
+
+# Compare with traditional optimization plan
+theide-cli --json get_optimization_plan --name MyApp
+```
+
+### JSON Output Examples:
+
+**supervisor_front:**
+```json
+{
+  "payload": [
+    {
+      "action": "run_playbook",
+      "target": "cleanup_includes_and_rebuild",
+      "params": { "package": "MyApp" },
+      "reason": "Many unused #includes detected.",
+      "benefit_score": 0.65,
+      "cost_score": 0.23,
+      "risk_score": 0.41,
+      "confidence_score": 0.85,
+      "metrics": {
+        "impact": 2.83,
+        "surface_area": 12,
+        "graph_delta": 0
+      }
+    },
+    {
+      "action": "optimize_package",
+      "params": { "name": "MyApp", "max_iterations": 5 },
+      "reason": "High complexity score & long dependency chains.",
+      "benefit_score": 0.72,
+      "cost_score": 0.54,
+      "risk_score": 0.38,
+      "confidence_score": 0.91,
+      "metrics": {
+        "impact": 1.33,
+        "surface_area": 12,
+        "graph_delta": 0
+      }
+    }
+  ]
+}
+```
+
+**supervisor_rank:**
+```json
+{
+  "payload": [
+    {
+      "action": "run_playbook",
+      "target": "cleanup_includes_and_rebuild",
+      "params": { "package": "MyApp" },
+      "reason": "Many unused #includes detected.",
+      "benefit_score": 0.65,
+      "cost_score": 0.23,
+      "risk_score": 0.41,
+      "confidence_score": 0.85,
+      "combined_score": 1.54,
+      "metrics": {
+        "impact": 2.83,
+        "surface_area": 12,
+        "graph_delta": 0
+      }
+    }
+  ]
+}
+```
+
+This subsystem enables AI agents to make **sophisticated multi-objective optimization decisions** by considering benefit, cost, risk, and confidence simultaneously, and allows them to focus on the most strategically valuable actions through Pareto optimization or weighted ranking.

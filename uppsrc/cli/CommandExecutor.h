@@ -67,6 +67,16 @@ private:
     // AI Supervisor Layer v1 handler
     InvocationResult HandleGetOptimizationPlan(const VectorMap<String, String>& args);
 
+    // AI Supervisor Layer v2 handler
+    InvocationResult HandleGetWorkspacePlan(const VectorMap<String, String>& args);
+
+    // Dynamic Strategy Engine handlers
+    InvocationResult HandleListStrategies(const VectorMap<String, String>& args);
+    InvocationResult HandleGetStrategy(const VectorMap<String, String>& args);
+    InvocationResult HandleSetStrategy(const VectorMap<String, String>& args);
+    InvocationResult HandleSupervisorFront(const VectorMap<String, String>& args);
+    InvocationResult HandleSupervisorRank(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

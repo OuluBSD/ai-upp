@@ -77,6 +77,18 @@ private:
     InvocationResult HandleSupervisorFront(const VectorMap<String, String>& args);
     InvocationResult HandleSupervisorRank(const VectorMap<String, String>& args);
 
+    // Semantic Analysis v1 handlers
+    InvocationResult HandleSemanticEntities(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticClusters(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticFind(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticAnalyze(const VectorMap<String, String>& args);
+
+    // Semantic Analysis v2 - NEW: Inference layer handlers
+    InvocationResult HandleSemanticSubsystems(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticEntity(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticRoles(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticLayers(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

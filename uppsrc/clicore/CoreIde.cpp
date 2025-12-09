@@ -721,3 +721,16 @@ Value CoreIde::GenerateWorkspacePlan(String& error) {
 
     return vm;
 }
+
+// Semantic analysis v1
+bool CoreIde::AnalyzeSemantics(String& error) {
+    return semantic.AnalyzeWorkspace(workspace, assist, graph, error);
+}
+
+const CoreSemantic& CoreIde::GetSemanticAnalyzer() const {
+    return semantic;
+}
+
+CoreSemantic& CoreIde::GetSemanticAnalyzer() {
+    return semantic;
+}

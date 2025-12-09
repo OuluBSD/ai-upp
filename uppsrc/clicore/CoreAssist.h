@@ -21,7 +21,7 @@ public:
                         Vector<String>& out_includes) const;
 
 private:
-    struct SymbolLocation {
+    struct SymbolLocation : Moveable<SymbolLocation> {
         String file;
         int line;
     };

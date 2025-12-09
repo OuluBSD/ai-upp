@@ -4,84 +4,96 @@ CoreTelemetry::CoreTelemetry() {
 }
 
 Value CoreTelemetry::GetWorkspaceStats(const CoreWorkspace& ws) const {
-    Value result = CreateMap();
-    
+    ValueMap result;
+
     // Number of packages
-    int package_count = ws.packages.GetCount();
-    result("packages") = package_count;
-    
+    int package_count = ws.GetPackages().GetCount();
+    result.Set("packages", package_count);
+
     // Total source files and distribution by extension
     int total_files = 0;
-    Map<String, int> extension_count;
+    ValueMap extension_count;
     String largest_file_path;
-    int largest_file_size = 0;
+    int64 largest_file_size = 0;
     int64 total_size = 0;
-    
-    for (int i = 0; i < ws.packages.GetCount(); i++) {
-        const CoreWorkspace::Package& pkg = ws.packages[i];
-        for (const String& file_path : pkg.files) {
-            total_files++;
-            
-            // Get file extension
-            String ext = GetFileExt(file_path).ToLower();
-            if (ext.GetCount() > 0) {
-                ext = ext.Mid(1); // Remove the dot
-                extension_count.GetAdd(ext, 0)++;
-            }
-            
-            // Calculate file size
-            int64 file_size = GetFileLength(file_path);
-            total_size += file_size;
-            
-            // Track largest file
-            if (file_size > largest_file_size) {
-                largest_file_size = file_size;
-                largest_file_path = file_path;
+
+    const VectorMap<String, CoreWorkspace::Package>& all_packages_map = ws.GetPackages();
+    Vector<String> all_packages;
+    for(int i = 0; i < all_packages_map.GetCount(); i++) {
+        all_packages.Add(all_packages_map.GetKey(i));
+    }
+    for(int i = 0; i < all_packages.GetCount(); i++) {
+        String pkg_name = all_packages[i];
+        const CoreWorkspace::Package* pkg = ws.GetPackage(pkg_name);
+        if(pkg) {
+            for(int j = 0; j < pkg->files.GetCount(); j++) {
+                const String& file_path = pkg->files[j];
+                total_files++;
+
+                // Get file extension
+                String ext = GetFileExt(file_path);
+                if(ext.GetCount() > 0) {
+                    ext = ToLower(ext.Mid(1)); // Remove the dot and convert to lowercase
+                    int current_count = (int)extension_count.Get(ext, 0);
+                    extension_count.Set(ext, current_count + 1);
+                }
+
+                // Calculate file size
+                int64 file_size = GetFileLength(file_path);
+                total_size += file_size;
+
+                // Track largest file
+                if (file_size > largest_file_size) {
+                    largest_file_size = file_size;
+                    largest_file_path = file_path;
+                }
             }
         }
     }
-    
-    result("files") = total_files;
-    result("extensions") = extension_count;
-    
+
+    result.Set("files", total_files);
+    result.Set("extensions", extension_count);
+
     if (total_files > 0) {
-        result("average_size") = total_size / total_files;
+        result.Set("average_size", total_size / total_files);
     } else {
-        result("average_size") = 0;
+        result.Set("average_size", 0);
     }
-    
+
     if (largest_file_size > 0) {
-        Value largest_info = CreateMap();
-        largest_info("path") = largest_file_path;
-        largest_info("bytes") = largest_file_size;
-        result("largest_file") = largest_info;
+        ValueMap largest_info;
+        largest_info.Set("path", largest_file_path);
+        largest_info.Set("bytes", largest_file_size);
+        result.Set("largest_file", largest_info);
     }
-    
+
     // Main package name (if available)
-    if (ws.main_package.GetCount() > 0) {
-        result("main_package") = ws.main_package;
+    String main_pkg_name = ws.GetMainPackage();
+    if (main_pkg_name.GetCount() > 0) {
+        result.Set("main_package", main_pkg_name);
     } else {
-        result("main_package") = String();
+        result.Set("main_package", String());
     }
-    
+
     return result;
 }
 
 Value CoreTelemetry::GetPackageStats(const CoreWorkspace::Package& pkg) const {
-    Value result = CreateMap();
-    
+    ValueMap result;
+
     // Number of files
-    result("files") = pkg.files.GetCount();
-    
+    result.Set("files", pkg.files.GetCount());
+
     // Uses count
-    result("uses_count") = pkg.uses.GetCount();
-    
+    result.Set("uses_count", pkg.uses.GetCount());
+
     // Include count
     int include_count = 0;
     int total_lines = 0;
     Vector<int> file_sizes;
-    
-    for (const String& file_path : pkg.files) {
+
+    for (int j = 0; j < pkg.files.GetCount(); j++) {
+        const String& file_path = pkg.files[j];
         String content = LoadFile(file_path);
         if (content.GetCount() > 0) {
             // Count lines
@@ -91,7 +103,7 @@ Value CoreTelemetry::GetPackageStats(const CoreWorkspace::Package& pkg) const {
             }
             if (content.GetCount() > 0 && content[content.GetCount()-1] != '\n') lines++; // Last line without newline
             total_lines += lines;
-            
+
             // Count includes
             for (int i = 0; i < content.GetCount(); i++) {
                 if (content.Mid(i, 8) == "#include") {
@@ -99,38 +111,44 @@ Value CoreTelemetry::GetPackageStats(const CoreWorkspace::Package& pkg) const {
                     i += 7; // Skip past "include"
                 }
             }
-            
+
             // Record file size for histogram
             file_sizes.Add(content.GetCount());
         }
     }
-    
-    result("include_count") = include_count;
-    result("total_lines") = total_lines;
-    
+
+    result.Set("include_count", include_count);
+    result.Set("total_lines", total_lines);
+
     // Histogram of file sizes
-    Value histogram = CreateMap();
-    for (int size : file_sizes) {
+    ValueMap histogram;
+    for (int j = 0; j < file_sizes.GetCount(); j++) {
+        int size = file_sizes[j];
         int bucket = (size / 1000) * 1000; // Group by 1KB increments
         String bucket_str = IntStr(bucket) + "-" + IntStr(bucket + 999);
-        histogram(bucket_str) = histogram.IsKey(bucket_str) ? ToInt(histogram[bucket_str]) + 1 : 1;
+        int idx = histogram.Find(bucket_str);
+        if(idx >= 0) {
+            histogram.Set(bucket_str, (int)histogram[idx] + 1);
+        } else {
+            histogram.Set(bucket_str, 1);
+        }
     }
-    result("file_size_histogram") = histogram;
-    
+    result.Set("file_size_histogram", histogram);
+
     return result;
 }
 
 Value CoreTelemetry::ComputeFileComplexity(const String& path, const String& contents) const {
-    Value result = CreateMap();
-    
+    ValueMap result;
+
     // Lines of code
     int lines = 0;
     for (int i = 0; i < contents.GetCount(); i++) {
         if (contents[i] == '\n') lines++;
     }
     if (contents.GetCount() > 0 && contents[contents.GetCount()-1] != '\n') lines++; // Last line without newline
-    result("lines") = lines;
-    
+    result.Set("lines", lines);
+
     // Number of functions found by regex (simple heuristic)
     int function_count = 0;
     // Look for patterns like "return_type function_name(" or "function_name("
@@ -157,8 +175,8 @@ Value CoreTelemetry::ComputeFileComplexity(const String& path, const String& con
             if (is_function) function_count++;
         }
     }
-    result("functions") = function_count;
-    
+    result.Set("functions", function_count);
+
     // Number of includes
     int include_count = 0;
     for (int i = 0; i < contents.GetCount(); i++) {
@@ -167,8 +185,8 @@ Value CoreTelemetry::ComputeFileComplexity(const String& path, const String& con
             i += 7; // Skip past "include"
         }
     }
-    result("includes") = include_count;
-    
+    result.Set("includes", include_count);
+
     // Nesting depth approximation (count of '{' - '}' transitions)
     int nesting_depth = 0;
     int current_depth = 0;
@@ -180,12 +198,12 @@ Value CoreTelemetry::ComputeFileComplexity(const String& path, const String& con
             current_depth--;
         }
     }
-    result("nesting") = nesting_depth;
-    
+    result.Set("nesting", nesting_depth);
+
     // Comment ratio
     int total_chars = contents.GetCount();
     int comment_chars = 0;
-    
+
     for (int i = 0; i < contents.GetCount(); i++) {
         if (contents.Mid(i, 2) == "//") {
             // Count rest of line as comment
@@ -211,53 +229,55 @@ Value CoreTelemetry::ComputeFileComplexity(const String& path, const String& con
             i++;
         }
     }
-    
+
     double comment_ratio = total_chars > 0 ? (double)comment_chars / total_chars : 0.0;
-    result("comment_ratio") = comment_ratio;
-    
+    result.Set("comment_ratio", comment_ratio);
+
     return result;
 }
 
 Value CoreTelemetry::GetGraphStats(const CoreGraph& graph) const {
-    Value result = CreateMap();
-    
+    ValueMap result;
+
     // Node count
-    result("nodes") = graph.GetNodeCount();
-    
+    result.Set("nodes", graph.GetNodeCount());
+
     // Edge count
     int edge_count = 0;
-    for (int i = 0; i < graph.GetNodeCount(); i++) {
-        edge_count += graph.GetOutgoingCount(i);
+    const auto& adj_list = graph.GetAdjacencyList();
+    for(int i = 0; i < adj_list.GetCount(); i++) {
+        edge_count += adj_list[i].GetCount();
     }
-    result("edges") = edge_count;
-    
+    result.Set("edges", edge_count);
+
     // Average outdegree
     if (graph.GetNodeCount() > 0) {
-        result("avg_out") = (double)edge_count / graph.GetNodeCount();
+        result.Set("avg_out", (double)edge_count / graph.GetNodeCount());
     } else {
-        result("avg_out") = 0.0;
+        result.Set("avg_out", 0.0);
     }
-    
+
     // Check for cycles
     bool has_cycles = graph.HasCycles();
-    result("cycles") = has_cycles;
-    
-    // Largest dependency chain length (approx using longest path on DAG)
+    result.Set("cycles", has_cycles);
+
+    // Largest dependency chain length (approx using longest path)
     int max_chain_length = graph.GetLongestPathLength();
-    result("max_chain") = max_chain_length;
-    
+    result.Set("max_chain", max_chain_length);
+
     // Most depended-on package
     String most_depended_on_pkg;
     int max_incoming_count = 0;
-    for (int i = 0; i < graph.GetNodeCount(); i++) {
-        int incoming_count = graph.GetIncomingCount(i);
+    for(int i = 0; i < adj_list.GetCount(); i++) {
+        const String& pkg = adj_list.GetKey(i);
+        int incoming_count = graph.GetIncomingCount(pkg);
         if (incoming_count > max_incoming_count) {
             max_incoming_count = incoming_count;
-            most_depended_on_pkg = graph.GetNodeName(i);
+            most_depended_on_pkg = pkg;
         }
     }
-    result("most_depended_on") = most_depended_on_pkg;
-    
+    result.Set("most_depended_on", most_depended_on_pkg);
+
     return result;
 }
 
@@ -266,19 +286,20 @@ void CoreTelemetry::RecordEdit(const String& path, int bytes_before, int bytes_a
     record.path = path;
     record.delta = bytes_after - bytes_before;
     record.timestamp = GetSysTime();
-    edits.Add(std::move(record));
+    edits.Add(record);
 }
 
 Value CoreTelemetry::GetEditHistory() const {
-    Value result = CreateArray();
-    
-    for (const EditRecord& record : edits) {
-        Value record_value = CreateMap();
-        record_value("path") = record.path;
-        record_value("delta") = record.delta;
-        record_value("timestamp") = record.timestamp;
+    ValueArray result;
+
+    for(int i = 0; i < edits.GetCount(); i++) {
+        const EditRecord& record = edits[i];
+        ValueMap record_value;
+        record_value.Set("path", record.path);
+        record_value.Set("delta", record.delta);
+        record_value.Set("timestamp", record.timestamp);
         result.Add(record_value);
     }
-    
+
     return result;
 }

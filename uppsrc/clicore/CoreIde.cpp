@@ -101,7 +101,7 @@ CoreEditor* CoreIde::OpenEditor(const String& path, String& error) {
 
     // Add the new editor
     int new_index = editors.GetCount();
-    editors.Add(new_editor);
+    editors.Add(pick(new_editor)); // Proper One<T> creation
     editor_paths.Add(path);
 
     // Set as current editor
@@ -277,7 +277,7 @@ bool CoreIde::SetWorkspaceRoot(const String& root, String& error) {
     String graph_error;
     if (!RebuildGraph(graph_error)) {
         // Log the error but don't fail the SetWorkspaceRoot operation
-        console.AddToConsole("Warning: Failed to rebuild dependency graph: " + graph_error);
+        console.AppendLine("Warning: Failed to rebuild dependency graph: " + graph_error);
     }
 
     return true;
@@ -303,7 +303,7 @@ bool CoreIde::SetMainPackage(const String& package, String& error) {
         String graph_error;
         if (!RebuildGraph(graph_error)) {
             // Log the error but don't fail the SetMainPackage operation
-            console.AddToConsole("Warning: Failed to rebuild dependency graph: " + graph_error);
+            console.AppendLine("Warning: Failed to rebuild dependency graph: " + graph_error);
         }
     }
 
@@ -564,8 +564,8 @@ Value CoreIde::GetPackageStats(const String& pkg, String& error) {
     }
     try {
         return telemetry.GetPackageStats(*pkg_ptr);
-    } catch (const Exception& e) {
-        error = e.ToString();
+    } catch (const Exc& e) {
+        error = e;
         return Value();
     }
 }
@@ -575,8 +575,8 @@ Value CoreIde::GetTelemetryData(const String& pkg, String& error) {
         // For now, return the same as package stats - in a real implementation,
         // this would return additional telemetry information
         return GetPackageStats(pkg, error);
-    } catch (const Exception& e) {
-        error = e.ToString();
+    } catch (const Exc& e) {
+        error = e;
         return Value();
     }
 }
@@ -586,8 +586,8 @@ Value CoreIde::GetGraphStats(const String& pkg, String& error) {
         // Return overall graph statistics (in a real implementation, this would
         // compute statistics specific to the package's position in the graph)
         return telemetry.GetGraphStats(graph);
-    } catch (const Exception& e) {
-        error = e.ToString();
+    } catch (const Exc& e) {
+        error = e;
         return Value();
     }
 }

@@ -117,7 +117,7 @@ private:
     String workspace_root;
 
     // Core Editor management
-    Vector<CoreEditor> editors;
+    Array<CoreEditor> editors;  // Use One<> to ensure move-only semantics
     Index<String> editor_paths;  // Map from path to editor index
     int current_editor_index;    // Index of currently active editor
 };

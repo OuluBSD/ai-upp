@@ -102,7 +102,7 @@ bool ExecuteScript(const String& scriptPath, const VectorMap<String, String>& gl
             error_result.message = "ERROR: Could not open script file: " + scriptPath;
             cout << ToJson("script", error_result); cout.PutEol();
         } else {
-            cout << "ERROR: Could not open script file: " << scriptPath << endl;
+            cout << "ERROR: Could not open script file: " << scriptPath; cout.PutEol();
         }
         return false;
     }

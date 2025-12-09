@@ -6,17 +6,20 @@ CoreSupervisor::CoreSupervisor() {
 
 CoreSupervisor::Suggestion CoreSupervisor::SuggestIncludeCleanup(const String& package,
                                                                 const Value& pkg_stats) {
+	ValueMap m;
+	m.Set("package", package);
+	
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "cleanup_includes_and_rebuild";
-    suggestion.params = ValueMap().Set("package", package);
+    suggestion.params = m;
     suggestion.reason = "Many unused #includes detected.";
     
     // Check if unused includes are detected based on heuristic data
     // This is a placeholder implementation - would integrate with actual telemetry
-    if (pkg_stats.IsType<V_UMAP>()) {
-        const ValueMap& stats = pkg_stats;
-        if (stats.Get("unused_includes", 0).GetInt() > 10) { // Heuristic threshold
+    if (pkg_stats.Is<ValueMap>()) {
+        ValueMap stats = pkg_stats;
+        if ((int)stats.Get("unused_includes", 0) > 10) { // Heuristic threshold
             return suggestion;
         }
     }
@@ -30,19 +33,23 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestRenameHotspot(const String& pa
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "rename_symbol_safe";
-    suggestion.params = ValueMap().Set("package", package);
+	ValueMap m;
+	m.Set("package", package);
+    suggestion.params = m;
     suggestion.reason = "Symbol appears thousands of times across workspace.";
-    
+
     // Check if any symbol appears frequently enough to warrant renaming
-    if (telemetry.IsType<V_UMAP>()) {
-        const ValueMap& tel = telemetry;
-        if (tel.Get("max_symbol_frequency", 0).GetInt() > 1000) { // Heuristic threshold
-            String hot_symbol = tel.Get("hot_symbol", String()).ToString();
-            suggestion.params.Set("symbol", hot_symbol);
+    if (telemetry.Is<ValueMap>()) {
+        ValueMap tel = telemetry;  // Copy to non-const to access Get method
+        if ((int)tel.Get("max_symbol_frequency", 0) > 1000) { // Heuristic threshold
+			ValueMap m2;
+			m2.Set("package", package);
+			m2.Set("symbol", (String)tel.Get("hot_symbol", String()));
+            suggestion.params = m2;
             return suggestion;
         }
     }
-    
+
     return Suggestion(); // Return empty suggestion if no hotspot found
 }
 
@@ -51,18 +58,20 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplification(const Stri
     Suggestion suggestion;
     suggestion.action = "run_playbook";
     suggestion.target = "reorganize_includes";
-    suggestion.params = ValueMap().Set("package", package);
+	ValueMap m;
+	m.Set("package", package);
+    suggestion.params = m;
     suggestion.reason = "Long dependency chains or near-cycles detected.";
-    
+
     // Check for graph complexity issues
-    if (graph_stats.IsType<V_UMAP>()) {
-        const ValueMap& stats = graph_stats;
-        if (stats.Get("max_dependency_chain", 0).GetInt() > 5 || // Heuristic threshold
-            stats.Get("near_cycles", 0).GetInt() > 0) {
+    if (graph_stats.Is<ValueMap>()) {
+        ValueMap stats = graph_stats;  // Copy to non-const to access Get method
+        if ((int)stats.Get("max_dependency_chain", 0) > 5 || // Heuristic threshold
+            (int)stats.Get("near_cycles", 0) > 0) {
             return suggestion;
         }
     }
-    
+
     return Suggestion(); // Return empty suggestion if no graph issues found
 }
 
@@ -70,22 +79,23 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestRunOptimizationLoop(const Stri
                                                                       const Value& pkg_stats) {
     Suggestion suggestion;
     suggestion.action = "optimize_package";
-    suggestion.params = ValueMap()
-                         .Set("name", package)
-                         .Set("max_iterations", 5);
+	ValueMap m;
+	m.Set("name", package);
+	m.Set("max_iterations", 5);
+    suggestion.params = m;
     suggestion.reason = "High complexity score & long dependency chains.";
-    
+
     // Check if complexity exceeds thresholds
-    if (pkg_stats.IsType<V_UMAP>()) {
-        const ValueMap& stats = pkg_stats;
-        double complexity = stats.Get("complexity_score", 0.0).GetDouble();
-        double avg_complexity = stats.Get("avg_file_complexity", 0.0).GetDouble();
-        
+    if (pkg_stats.Is<ValueMap>()) {
+        ValueMap stats = pkg_stats;  // Copy to non-const to access Get method
+        double complexity = (double)stats.Get("complexity_score", 0.0);
+        double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
+
         if (complexity > 0.7 || avg_complexity > 0.6) { // Heuristic thresholds
             return suggestion;
         }
     }
-    
+
     return Suggestion(); // Return empty suggestion if complexity is acceptable
 }
 
@@ -93,28 +103,28 @@ double CoreSupervisor::ComputeRiskScore(const Value& pkg_stats,
                                         const Value& graph_stats,
                                         const Value& file_complexity) {
     double risk = 0.0;
-    
+
     // Calculate risk based on various factors
-    if (pkg_stats.IsType<V_UMAP>()) {
-        const ValueMap& stats = pkg_stats;
-        double avg_complexity = stats.Get("avg_file_complexity", 0.0).GetDouble();
-        double include_density = stats.Get("include_density", 0.0).GetDouble();
-        int total_bytes = stats.Get("total_bytes", 0).GetInt();
-        
+    if (pkg_stats.Is<ValueMap>()) {
+        ValueMap stats = pkg_stats; // Copy to non-const to access Get method
+        double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
+        double include_density = (double)stats.Get("include_density", 0.0);
+        int total_bytes = (int)stats.Get("total_bytes", 0);
+
         // Normalize by typical values to get score between 0 and 1
         risk += (avg_complexity / 100.0) * 0.3; // 30% weight
         risk += (include_density / 0.5) * 0.3;  // 30% weight, assuming 50% is high
         risk += (min(double(total_bytes) / 100000.0, 1.0)) * 0.2; // 20% weight, assuming 100KB is large
     }
-    
-    if (graph_stats.IsType<V_UMAP>()) {
-        const ValueMap& g_stats = graph_stats;
-        int dependency_depth = g_stats.Get("dependency_depth", 0).GetInt();
-        
+
+    if (graph_stats.Is<ValueMap>()) {
+        ValueMap g_stats = graph_stats; // Copy to non-const to access Get method
+        int dependency_depth = (int)g_stats.Get("dependency_depth", 0);
+
         // Normalize and add to risk
         risk += (min(double(dependency_depth) / 10.0, 1.0)) * 0.2; // 20% weight
     }
-    
+
     // Cap the risk score between 0 and 1
     return min(risk, 1.0);
 }
@@ -169,8 +179,8 @@ CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& pack
         // Sort suggestions by priority (for now, just keep the order we added them)
         // In a more sophisticated implementation, we might have priorities
         
-    } catch (const Exception& e) {
-        error = e.ToString();
+    } catch (const Exc& e) {
+        error = e;
     } catch (...) {
         error = "Unknown error occurred generating optimization plan";
     }

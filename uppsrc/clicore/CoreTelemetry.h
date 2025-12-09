@@ -2,8 +2,8 @@
 #define _clicore_CoreTelemetry_h_
 
 #include <Core/Core.h>
-#include <CoreGraph/CoreGraph.h>
-#include <CoreWorkspace/CoreWorkspace.h>
+#include <clicore/CoreGraph.h>
+#include <clicore/CoreWorkspace.h>
 
 class CoreTelemetry : Moveable<CoreTelemetry> {
 public:

@@ -55,6 +55,9 @@ public:
     const Package* GetPackage(const String& package_name) const;
     const VectorMap<String, Package>& GetPackages() const { return workspace.packages; }
 
+    // Package dependency analysis
+    Vector<String> GetPackageUses(const String& package_name) const;
+
     // File operations
     String GetPackageDirectory(const String& package_name) const;
     String GetSourcePath(const String& package, const String& file) const;

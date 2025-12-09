@@ -135,6 +135,30 @@ InvocationResult CommandExecutor::Invoke(const String& name,
     else if (name == "supervisor_rank") {
         return HandleSupervisorRank(args);
     }
+    else if (name == "semantic_entities") {
+        return HandleSemanticEntities(args);
+    }
+    else if (name == "semantic_clusters") {
+        return HandleSemanticClusters(args);
+    }
+    else if (name == "semantic_find") {
+        return HandleSemanticFind(args);
+    }
+    else if (name == "semantic_analyze") {
+        return HandleSemanticAnalyze(args);
+    }
+    else if (name == "semantic_subsystems") {
+        return HandleSemanticSubsystems(args);
+    }
+    else if (name == "semantic_entity") {
+        return HandleSemanticEntity(args);
+    }
+    else if (name == "semantic_roles") {
+        return HandleSemanticRoles(args);
+    }
+    else if (name == "semantic_layers") {
+        return HandleSemanticLayers(args);
+    }
     // Special case for list_commands (not in metadata)
     else if (name == "list_commands") {
         Vector<Command> allCmds = registry.ListCommands();
@@ -1218,6 +1242,164 @@ InvocationResult CommandExecutor::HandleSupervisorRank(const VectorMap<String, S
     result_struct.status_code = 0;
     result_struct.message = "Ranked " + IntStr(actual_limit) + " suggestions for package '" + package + "'";
     result_struct.payload = payload_array;
+    return result_struct;
+}
+
+// Semantic Analysis v1 handlers
+InvocationResult CommandExecutor::HandleSemanticEntities(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSemanticEntities(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic entities: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic entities";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticClusters(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSemanticClusters(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic clusters: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic clusters";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticFind(const VectorMap<String, String>& args) {
+    String pattern = args.Get("pattern", "");
+    if (pattern.IsEmpty()) {
+        return {1, "Missing required argument: pattern"};
+    }
+
+    String error;
+    Value result = session->SearchSemanticEntities(pattern, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to search semantic entities with pattern '" + pattern + "': " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully found semantic entities matching pattern '" + pattern + "'";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticAnalyze(const VectorMap<String, String>& args) {
+    String error;
+    // We need to call the semantic analysis directly via the CoreIde
+    // Since we don't have direct access to CoreIde from CommandExecutor,
+    // we can't trigger a fresh analysis directly through IdeSession interface.
+    // This would require adding a method to IdeSession interface to trigger analysis.
+    // For now, calling GetSemanticEntities will trigger analysis if needed.
+
+    // Just return status that analysis is complete
+    Value entities = session->GetSemanticEntities(error);
+    if (error.GetCount() > 0) {
+        return {1, "Failed to perform semantic analysis: " + error};
+    }
+
+    Value clusters = session->GetSemanticClusters(error);
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic clusters: " + error};
+    }
+
+    int entity_count = 0;
+    if (entities.Is<ValueArray>()) {
+        entity_count = entities.GetCount();
+    }
+
+    int cluster_count = 0;
+    if (clusters.Is<ValueArray>()) {
+        cluster_count = clusters.GetCount();
+    }
+
+    ValueMap payload;
+    payload.Add("status", "Semantic analysis completed");
+    payload.Add("entity_count", entity_count);
+    payload.Add("cluster_count", cluster_count);
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Semantic analysis completed. Found " + IntStr(entity_count) + " entities and " + IntStr(cluster_count) + " clusters.";
+    result_struct.payload = payload;
+    return result_struct;
+}
+
+// NEW: Semantic Analysis v2 - Inference layer handlers
+InvocationResult CommandExecutor::HandleSemanticSubsystems(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSemanticSubsystems(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic subsystems: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic subsystems";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticEntity(const VectorMap<String, String>& args) {
+    String entity_name = args.Get("name", "");
+    if (entity_name.IsEmpty()) {
+        return {1, "Missing required argument: name"};
+    }
+
+    String error;
+    Value result = session->GetSemanticEntity(entity_name, error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic entity '" + entity_name + "': " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic information for entity '" + entity_name + "'";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticRoles(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSemanticRoles(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic roles: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic roles";
+    result_struct.payload = result;
+    return result_struct;
+}
+
+InvocationResult CommandExecutor::HandleSemanticLayers(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSemanticLayers(error);
+
+    if (error.GetCount() > 0) {
+        return {1, "Failed to retrieve semantic layers: " + error};
+    }
+
+    InvocationResult result_struct;
+    result_struct.status_code = 0;
+    result_struct.message = "Successfully retrieved semantic layers";
+    result_struct.payload = result;
     return result_struct;
 }
 

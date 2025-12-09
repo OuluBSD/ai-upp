@@ -98,6 +98,11 @@ public:
     virtual Value GetStrategy(const String& name, String& error) override;  // Get specific strategy by name
     virtual Value ListStrategies(String& error) override;
 
+    // Semantic Analysis v1
+    virtual Value GetSemanticEntities(String& error) override;
+    virtual Value GetSemanticClusters(String& error) override;
+    virtual Value SearchSemanticEntities(const String& pattern, String& error) override;
+
 private:
     CoreIde core_ide;
 };
@@ -358,6 +363,259 @@ Value IdeSessionImpl::ListStrategies(String& error) {
     }
 
     return result;
+}
+
+// Semantic Analysis v1 implementations
+Value IdeSessionImpl::GetSemanticEntities(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic entities";
+        return Value();
+    }
+
+    // Get the entities from the semantic analyzer
+    const auto& entities = core_ide.semantic.GetEntities();
+
+    // Convert entities to ValueArray
+    ValueArray result;
+    for (const auto& entity : entities) {
+        ValueMap entity_map;
+        entity_map.Set("name", entity.name);
+        entity_map.Set("kind", entity.kind);
+        entity_map.Set("file", entity.file);
+        entity_map.Set("line", entity.line);
+
+        // Convert relations to ValueMap
+        ValueMap relations_map;
+        for (const auto& key : entity.relations.GetKeys()) {
+            relations_map.Set(key, entity.relations.Get(key));
+        }
+        entity_map.Set("relations", relations_map);
+
+        // Convert attributes to ValueMap
+        ValueMap attributes_map;
+        for (const auto& key : entity.attributes.GetKeys()) {
+            attributes_map.Set(key, entity.attributes.Get(key));
+        }
+        entity_map.Set("attributes", attributes_map);
+
+        result.Add(entity_map);
+    }
+
+    return result;
+}
+
+Value IdeSessionImpl::GetSemanticClusters(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic clusters";
+        return Value();
+    }
+
+    // Get the clusters from the semantic analyzer
+    const auto& clusters = core_ide.semantic.GetClusters();
+
+    // Convert clusters to ValueArray
+    ValueArray result;
+    for (const auto& cluster : clusters) {
+        ValueMap cluster_map;
+        cluster_map.Set("name", cluster.name);
+
+        // Convert entities to ValueArray
+        ValueArray entities_array;
+        for (const auto& entity : cluster.entities) {
+            entities_array.Add(entity);
+        }
+        cluster_map.Set("entities", entities_array);
+
+        // Convert metrics to ValueMap
+        ValueMap metrics_map;
+        for (const auto& key : cluster.metrics.GetKeys()) {
+            metrics_map.Set(key, cluster.metrics.Get(key));
+        }
+        cluster_map.Set("metrics", metrics_map);
+
+        result.Add(cluster_map);
+    }
+
+    return result;
+}
+
+Value IdeSessionImpl::SearchSemanticEntities(const String& pattern, String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic entities";
+        return Value();
+    }
+
+    // Find entities matching the pattern
+    auto entities = core_ide.semantic.FindEntitiesByName(pattern);
+
+    // Convert entities to ValueArray
+    ValueArray result;
+    for (const auto& entity : entities) {
+        ValueMap entity_map;
+        entity_map.Set("name", entity.name);
+        entity_map.Set("kind", entity.kind);
+        entity_map.Set("file", entity.file);
+        entity_map.Set("line", entity.line);
+
+        // Convert relations to ValueMap
+        ValueMap relations_map;
+        for (const auto& key : entity.relations.GetKeys()) {
+            relations_map.Set(key, entity.relations.Get(key));
+        }
+        entity_map.Set("relations", relations_map);
+
+        // Convert attributes to ValueMap
+        ValueMap attributes_map;
+        for (const auto& key : entity.attributes.GetKeys()) {
+            attributes_map.Set(key, entity.attributes.Get(key));
+        }
+        entity_map.Set("attributes", attributes_map);
+
+        result.Add(entity_map);
+    }
+
+    return result;
+}
+
+// Semantic Analysis v2 - NEW: Inference layer implementations
+Value IdeSessionImpl::GetSemanticSubsystems(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic subsystems";
+        return Value();
+    }
+
+    // Get the subsystems from the semantic analyzer
+    const auto& subsystems = core_ide.semantic.GetSubsystems();
+
+    // Convert subsystems to ValueArray
+    ValueArray result;
+    for (const auto& subsystem : subsystems) {
+        ValueMap subsystem_map;
+        subsystem_map.Set("name", subsystem.name);
+
+        // Convert entities to ValueArray
+        ValueArray entities_array;
+        for (const auto& entity : subsystem.entities) {
+            entities_array.Add(entity);
+        }
+        subsystem_map.Set("entities", entities_array);
+
+        // Convert metrics to ValueMap
+        ValueMap metrics_map;
+        for (const auto& key : subsystem.metrics.GetKeys()) {
+            metrics_map.Set(key, subsystem.metrics.Get(key));
+        }
+        subsystem_map.Set("metrics", metrics_map);
+
+        result.Add(subsystem_map);
+    }
+
+    return result;
+}
+
+Value IdeSessionImpl::GetSemanticEntity(const String& name, String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic entity";
+        return Value();
+    }
+
+    // Find the specific entity
+    auto entities = core_ide.semantic.FindEntitiesByName(name);
+    if (entities.GetCount() == 0) {
+        error = "Entity not found: " + name;
+        return Value();
+    }
+
+    // Use the first matching entity
+    const auto& entity = entities[0];
+
+    // Convert entity to ValueMap
+    ValueMap entity_map;
+    entity_map.Set("name", entity.name);
+    entity_map.Set("kind", entity.kind);
+    entity_map.Set("file", entity.file);
+    entity_map.Set("line", entity.line);
+
+    // Convert relations to ValueMap
+    ValueMap relations_map;
+    for (const auto& key : entity.relations.GetKeys()) {
+        relations_map.Set(key, entity.relations.Get(key));
+    }
+    entity_map.Set("relations", relations_map);
+
+    // Convert attributes to ValueMap
+    ValueMap attributes_map;
+    for (const auto& key : entity.attributes.GetKeys()) {
+        attributes_map.Set(key, entity.attributes.Get(key));
+    }
+    entity_map.Set("attributes", attributes_map);
+
+    // Add the new inferred relation fields in the relations map
+    // Convert co_occurs_with to ValueArray
+    ValueArray co_occurs_with_array;
+    for (const auto& co_entity : entity.co_occurs_with) {
+        co_occurs_with_array.Add(co_entity);
+    }
+    relations_map.Set("co_occurs_with", co_occurs_with_array);
+
+    // Convert conceptually_related to ValueArray
+    ValueArray conceptually_related_array;
+    for (const auto& related_entity : entity.conceptually_related) {
+        conceptually_related_array.Add(related_entity);
+    }
+    relations_map.Set("conceptually_related", conceptually_related_array);
+
+    // Add layer_dependency to ValueMap
+    entity_map.Set("layer_dependency", entity.layer_dependency);
+
+    // Add role to ValueMap
+    entity_map.Set("role", entity.role);
+
+    // Update the relations map in the entity map
+    entity_map.Set("relations", relations_map);
+
+    return entity_map;
+}
+
+Value IdeSessionImpl::GetSemanticRoles(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic roles";
+        return Value();
+    }
+
+    // Create a mapping of entity names to their roles
+    ValueMap roles_map;
+
+    const auto& entities = core_ide.semantic.GetEntities();
+    for (const auto& entity : entities) {
+        roles_map.Set(entity.name, entity.role);
+    }
+
+    return roles_map;
+}
+
+Value IdeSessionImpl::GetSemanticLayers(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic layers";
+        return Value();
+    }
+
+    // Create a mapping of entity names to their layer dependencies
+    ValueMap layers_map;
+
+    const auto& entities = core_ide.semantic.GetEntities();
+    for (const auto& entity : entities) {
+        layers_map.Set(entity.name, entity.layer_dependency);
+    }
+
+    return layers_map;
 }
 
 One<IdeSession> CreateIdeSession() {

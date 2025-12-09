@@ -98,6 +98,17 @@ public:
     virtual Value GetActiveStrategy(String& error) = 0;
     virtual Value GetStrategy(const String& name, String& error) = 0;  // Get specific strategy by name
     virtual Value ListStrategies(String& error) = 0;
+
+    // Semantic Analysis v1
+    virtual Value GetSemanticEntities(String& error) = 0;
+    virtual Value GetSemanticClusters(String& error) = 0;
+    virtual Value SearchSemanticEntities(const String& pattern, String& error) = 0;
+
+    // Semantic Analysis v2 - NEW: Inference layer methods
+    virtual Value GetSemanticSubsystems(String& error) = 0;
+    virtual Value GetSemanticEntity(const String& name, String& error) = 0;
+    virtual Value GetSemanticRoles(String& error) = 0;
+    virtual Value GetSemanticLayers(String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

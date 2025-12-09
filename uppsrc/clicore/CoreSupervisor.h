@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include "StrategyProfile.h"
+#include "CoreSemantic.h"
 
 class CoreIde;
 
@@ -26,6 +27,7 @@ public:
         Vector<Suggestion> steps;
         String summary;
         Value strategy_info;  // Contains name, description, weights of the strategy used
+        ValueMap semantic_snapshot;  // Semantic information for multi-objective scoring
     };
 
     // Helper method to compute multi-objective metrics for a suggestion
@@ -38,6 +40,9 @@ public:
 
     // Method to compute Pareto front of suggestions
     Vector<Suggestion> ComputeParetoFront(const Vector<Suggestion>& all) const;
+
+    // Helper method to populate semantic snapshot for the plan
+    void PopulateSemanticSnapshot(const CoreIde& ide, Plan& plan) const;
 
     CoreSupervisor();
 

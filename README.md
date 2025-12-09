@@ -538,3 +538,331 @@ theide-cli --json get_optimization_plan --name MyApp
 ```
 
 This subsystem enables AI agents to make **sophisticated multi-objective optimization decisions** by considering benefit, cost, risk, and confidence simultaneously, and allows them to focus on the most strategically valuable actions through Pareto optimization or weighted ranking.
+
+## DeepSemanticAssist v1
+
+The system now includes a DeepSemanticAssist v1 layer that performs static semantic analysis of code to extract relationships between entities, identify conceptual clusters, and provide insights about responsibility boundaries. This enables AI agents to understand code architecture at a deeper level and make more informed refactoring decisions.
+
+### Core Features:
+
+* **Semantic Entity Extraction** - Discovers and catalogs code entities (classes, functions, enums, etc.) with their metadata
+* **Relationship Analysis** - Identifies connections between entities including function calls, type usage, and package dependencies
+* **Conceptual Clustering** - Groups related entities into semantic clusters representing conceptual modules
+* **Attribute Computation** - Calculates metrics like Lines of Code (LOC), fan-out (outgoing relations), fan-in (incoming relations), and complexity scores
+* **Deterministic Output** - Provides consistent results for the same codebase state
+
+### Semantic Entity Structure:
+
+Each extracted entity includes the following information:
+
+```json
+{
+  "name": "DatabaseConnection",
+  "kind": "class",
+  "file": "src/database/Connection.h",
+  "line": 15,
+  "relations": {
+    "calls": ["connect", "disconnect", "execute_query"],
+    "uses_type": ["SqlConnection", "QueryResult"],
+    "depends_on_package": ["Core", "Network"]
+  },
+  "attributes": {
+    "LOC": 125,
+    "fanout": 8,
+    "fannin": 3,
+    "complexity": 12
+  }
+}
+```
+
+### Semantic Cluster Structure:
+
+Clusters group related entities and include metrics about cohesion and coupling:
+
+```json
+{
+  "name": "FileOps_cluster",
+  "entities": [
+    "FileReader",
+    "FileWriter",
+    "FileManager",
+    "FileCache"
+  ],
+  "metrics": {
+    "size": 4,
+    "avg_complexity": 8.5
+  }
+}
+```
+
+### Available Semantic Commands:
+
+* **semantic_entities** - Returns all semantic entities discovered in the workspace
+  * Provides entity names, kinds, locations, relations, and computed attributes
+  * Enables AI agents to explore the semantic landscape of the codebase
+
+* **semantic_clusters** - Returns semantic clusters identified in the workspace
+  * Groups related entities into conceptual modules
+  * Provides metrics about cluster size and average complexity
+  * Supports module-based reasoning and refactoring
+
+* **semantic_find** - Searches for semantic entities by name pattern
+  * Finds entities matching a specified pattern
+  * Returns the same detailed information as semantic_entities
+
+* **semantic_analyze** - Forces rerun of semantic analysis
+  * Updates entity and cluster information based on current codebase state
+  * Returns status information and counts of discovered entities and clusters
+
+### Command Examples:
+
+```bash
+# Get all semantic entities in the workspace
+theide-cli --workspace-root . --json semantic_entities
+
+# Get semantic clusters
+theide-cli --workspace-root . --json semantic_clusters
+
+# Find entities matching a pattern
+theide-cli --workspace-root . --json semantic_find --pattern Connection
+
+# Force semantic analysis
+theide-cli --workspace-root . --json semantic_analyze
+```
+
+### Integration with Supervisor v3:
+
+The semantic information is integrated into the multi-objective planning process:
+
+* **Semantic Snapshot** - Plans now include a semantic_snapshot with key metrics:
+  * Number of clusters and entities
+  * Largest cluster size
+  * Top N entities by centrality (fanout/fannin)
+  * Potential "god clusters" with extremely high metrics
+
+* **Score Adjustment** - Suggestion scoring now considers semantic metrics:
+  * Benefit scores are adjusted for coupling reduction opportunities
+  * Cost scores increase for modifications to highly coupled clusters
+  * Risk scores account for large/complex clusters
+  * Confidence scores boost when semantic analysis data is available
+
+### JSON Output for Plan with Semantic Snapshot:
+
+```json
+{
+  "steps": [...],
+  "summary": "Package 'MyApp' shows structural issues...",
+  "strategy_info": {...},
+  "semantic_snapshot": {
+    "cluster_count": 12,
+    "entity_count": 87,
+    "largest_cluster_size": 15,
+    "top_entities_by_centrality": [
+      {
+        "name": "CoreManager",
+        "fanout": 23,
+        "fannin": 18,
+        "centrality": 20.3
+      }
+    ],
+    "potential_god_clusters": [
+      {
+        "name": "CoreSystem_cluster",
+        "size": 22,
+        "avg_complexity": 12.7
+      }
+    ]
+  }
+}
+```
+
+This subsystem enables AI agents to make **architecture-aware optimization decisions** by understanding the conceptual structure of the codebase, identifying highly connected elements, and making refactoring decisions that improve code cohesion and reduce coupling.
+
+## SemanticAssist v2 – Inference Layer
+
+The system has been upgraded to SemanticAssist v2 with a new inference layer that goes beyond direct code relationships to identify higher-level conceptual connections, architectural layers, semantic roles, and subsystem boundaries. This enables AI agents to understand not just what code entities are connected, but why and how they form larger architectural patterns.
+
+### Core Features:
+
+* **Inferred Relations** - Identifies relationships that are not directly observable in code but emerge from usage patterns:
+  * `co_occurs_with`: Symbols that frequently appear in the same files
+  * `conceptually_related`: Derived from shared patterns, prefixes, or similar call graphs
+  * `layer_dependency`: Inferred architectural layer ordering (e.g., util → core → app)
+  * `role`: Possible semantic roles (e.g., "controller", "manager", "utility", "parser")
+
+* **Semantic Propagation** - Propagates semantic information across entities to understand how changes might affect related components through inferred conceptual relationships
+
+* **Subsystem Detection** - Automatically identifies semantic communities that represent cohesive subsystems within the larger codebase
+
+* **Tagging & Labeling** - Applies semantic domain labels to entities and subsystems to facilitate architectural reasoning
+
+* **CLI Access to Inferred Metadata** - Provides command-line access to the new inference layer data
+
+* **Supervisor Integration** - Incorporates subsystem and role information into multi-objective planning and scoring
+
+### Inferred Entity Relations:
+
+Entities now include additional semantic fields beyond direct code relationships:
+
+```json
+{
+  "name": "UserManager",
+  "kind": "class",
+  "file": "src/user/manager.h",
+  "line": 12,
+  "relations": {
+    "calls": ["UserRepository::save", "EmailService::send"],
+    "uses_type": ["User", "UserQuery"],
+    "depends_on_package": ["Core"],
+    "co_occurs_with": ["UserAuthenticator", "UserValidator"],
+    "conceptually_related": ["PermissionManager", "RoleManager"]
+  },
+  "attributes": {
+    "LOC": 87,
+    "fanout": 12,
+    "fannin": 3,
+    "complexity": 8
+  },
+  "layer_dependency": "core",
+  "role": "controller"
+}
+```
+
+### Subsystem Structure:
+
+Subsystems represent cohesive semantic communities with computed metrics:
+
+```json
+{
+  "name": "controller_subsystem",
+  "entities": [
+    "UserManager",
+    "PermissionManager",
+    "RoleManager",
+    "SessionController"
+  ],
+  "metrics": {
+    "size": 4,
+    "cohesion_score": 0.75,
+    "coupling_score": 0.12,
+    "complexity_sum": 37,
+    "role_distribution": {
+      "controller": 3,
+      "manager": 1
+    }
+  }
+}
+```
+
+### New Semantic CLI Commands:
+
+* **semantic_subsystems** - Returns subsystem array with name, entities, and metrics:
+  * Lists all detected subsystems with their composition and quality metrics
+  * Enables AI agents to reason at the subsystem level
+
+* **semantic_entity** - Returns full semantic info for one entity:
+  * Includes both direct and inferred relations for a specific entity
+  * Provides complete semantic context for focused analysis
+
+* **semantic_roles** - Returns: entity → role mapping:
+  * Shows the semantic role of each entity in the codebase
+  * Allows AI agents to identify architectural patterns and responsibilities
+
+* **semantic_layers** - Returns: entity → inferred architectural layer:
+  * Maps each entity to its inferred architectural layer (base, core, app)
+  * Enables layer-aware refactoring and dependency management
+
+### Command Examples:
+
+```bash
+# Get all semantic subsystems
+theide-cli --workspace-root . --json semantic_subsystems
+
+# Get detailed info for a specific entity
+theide-cli --workspace-root . --json semantic_entity --name DatabaseConnection
+
+# Get role assignments for all entities
+theide-cli --workspace-root . --json semantic_roles
+
+# Get architectural layer assignments
+theide-cli --workspace-root . --json semantic_layers
+```
+
+### Supervisor Integration:
+
+The new inference data enhances Supervisor v3 scoring and planning:
+
+* **Benefit Scoring** - Increases for suggestions that:
+  * Reduce coupling between subsystems
+  * Simplify high-level layers
+  * Refactor "god components"
+
+* **Risk Scoring** - Increases if:
+  * Suggestion touches multiple subsystems
+  * Entity has fragile role (parser, controller)
+
+* **Confidence Scoring** - Increases if:
+  * Subsystem structure is cohesive and supports the suggestion
+  * Entity role fits proposed change
+
+* **Semantic Snapshot Enhancement** - Plans now include:
+  * Subsystem count and metrics
+  * Role and layer distribution statistics
+  * Potential "god components" with detailed role information
+  * Subsystem cohesion and coupling metrics
+
+### JSON Output for Plan with Enhanced Semantic Snapshot:
+
+```json
+{
+  "steps": [...],
+  "summary": "Package 'MyApp' shows structural issues...",
+  "strategy_info": {...},
+  "semantic_snapshot": {
+    "cluster_count": 12,
+    "entity_count": 87,
+    "subsystem_count": 5,
+    "largest_cluster_size": 15,
+    "largest_subsystem_size": 8,
+    "avg_subsystem_cohesion": 0.63,
+    "avg_subsystem_coupling": 0.21,
+    "top_entities_by_centrality": [...],
+    "role_distribution": {
+      "controller": 12,
+      "utility": 23,
+      "service": 8,
+      "manager": 15,
+      "parser": 4
+    },
+    "layer_distribution": {
+      "base": 16,
+      "core": 42,
+      "app": 29
+    },
+    "potential_god_components": [
+      {
+        "name": "CoreManager",
+        "role": "controller",
+        "fannin": 28,
+        "fanout": 22,
+        "layer_dependency": "core"
+      }
+    ],
+    "potential_god_clusters": [...],
+    "subsystems": [
+      {
+        "name": "controller_subsystem",
+        "size": 8,
+        "cohesion_score": 0.81,
+        "coupling_score": 0.15,
+        "role_distribution": {
+          "controller": 6,
+          "manager": 2
+        }
+      }
+    ]
+  }
+}
+```
+
+This subsystem enables AI agents to make **architectural-scale optimization decisions** by understanding not just the direct relationships between code entities, but the higher-level conceptual structures and roles that guide the design. The inferred relationship layer allows for more sophisticated reasoning about impact, risk, and benefit of changes across the codebase.

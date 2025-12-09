@@ -1095,6 +1095,222 @@
         "requires_open_file": false
       },
       "context_notes": "This command ranks suggestions using a weighted linear combination of multi-objective metrics."
+    },
+    {
+      "name": "semantic_entities",
+      "category": "semantic",
+      "description": "Get all semantic entities in the workspace",
+      "long_description": "Returns a list of all semantic entities (classes, functions, etc.) discovered in the workspace with their relationships and attributes",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "entities",
+            "type": "array",
+            "description": "Array of semantic entities with name, kind, file, line, relations, and attributes"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs semantic analysis to extract all entities in the codebase and their relationships"
+    },
+    {
+      "name": "semantic_clusters",
+      "category": "semantic",
+      "description": "Get semantic clusters in the workspace",
+      "long_description": "Returns a list of semantic clusters, which are groups of tightly related entities in the codebase",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "clusters",
+            "type": "array",
+            "description": "Array of semantic clusters with name, entities, and metrics"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs semantic clustering to group related entities into conceptual communities"
+    },
+    {
+      "name": "semantic_find",
+      "category": "semantic",
+      "description": "Find semantic entities by name pattern",
+      "long_description": "Searches for semantic entities that match the given pattern",
+      "inputs": [
+        {
+          "name": "pattern",
+          "type": "string",
+          "required": true,
+          "description": "Pattern to search for in entity names"
+        }
+      ],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "entities",
+            "type": "array",
+            "description": "Array of matching semantic entities with name, kind, file, line, relations, and attributes"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command searches for entities by name pattern and returns matching semantic entities"
+    },
+    {
+      "name": "semantic_analyze",
+      "category": "semantic",
+      "description": "Perform semantic analysis on the workspace",
+      "long_description": "Triggers semantic analysis of the entire workspace to extract entities, relationships, and clusters",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "status",
+            "type": "string",
+            "description": "Analysis status message"
+          },
+          {
+            "name": "entity_count",
+            "type": "int",
+            "description": "Number of entities discovered"
+          },
+          {
+            "name": "cluster_count",
+            "type": "int",
+            "description": "Number of clusters identified"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs comprehensive semantic analysis of the entire workspace"
+    },
+    {
+      "name": "semantic_subsystems",
+      "category": "semantic",
+      "description": "Get semantic subsystems in the workspace",
+      "long_description": "Returns a list of semantic subsystems, which are groups of entities with inferred conceptual relationships",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "subsystems",
+            "type": "array",
+            "description": "Array of semantic subsystems with name, entities, and metrics"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command performs semantic subsystem detection based on inferred relations and clustering"
+    },
+    {
+      "name": "semantic_entity",
+      "category": "semantic",
+      "description": "Get detailed semantic information for a specific entity",
+      "long_description": "Returns full semantic information for one entity including relations and attributes",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the entity to get information for"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "entity",
+            "type": "object",
+            "description": "Detailed semantic information for the specified entity"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns comprehensive semantic information for a specific entity"
+    },
+    {
+      "name": "semantic_roles",
+      "category": "semantic",
+      "description": "Get semantic roles assigned to entities",
+      "long_description": "Returns a mapping of entities to their inferred semantic roles",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "roles",
+            "type": "object",
+            "description": "Entity to role mapping"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns the semantic roles assigned to entities in the workspace"
+    },
+    {
+      "name": "semantic_layers",
+      "category": "semantic",
+      "description": "Get inferred architectural layers for entities",
+      "long_description": "Returns a mapping of entities to their inferred architectural layers",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "layers",
+            "type": "object",
+            "description": "Entity to architectural layer mapping"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns the inferred architectural layers for entities in the workspace"
     }
   ]
 }

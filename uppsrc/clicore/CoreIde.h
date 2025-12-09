@@ -15,6 +15,7 @@
 #include "CoreOptimize.h"
 #include "CoreSupervisor.h"
 #include "StrategyProfile.h"
+#include "CoreSemantic.h"
 
 using namespace Upp;
 
@@ -111,6 +112,11 @@ public:
     const StrategyProfile* GetActiveStrategy() const;
     const Vector<StrategyProfile>& GetAllStrategies() const;
 
+    // Semantic analysis v1
+    bool AnalyzeSemantics(String& error);
+    const CoreSemantic& GetSemanticAnalyzer() const;
+    CoreSemantic& GetSemanticAnalyzer();
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -124,6 +130,7 @@ private:
     CoreTelemetry telemetry;  // Added CoreTelemetry member
     CoreOptimize optimizer;   // Added CoreOptimize member
     CoreSupervisor supervisor; // Added CoreSupervisor member
+    CoreSemantic semantic;     // Added CoreSemantic member
     StrategyRegistry strategy_registry; // Added StrategyRegistry for Supervisor v2
     String workspace_root;
 

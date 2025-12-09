@@ -929,7 +929,8 @@
         "kind": "object",
         "fields": [
           { "name": "steps", "type": "array", "description": "List of suggested optimization steps" },
-          { "name": "summary", "type": "string", "description": "Summary of the optimization plan" }
+          { "name": "summary", "type": "string", "description": "Summary of the optimization plan" },
+          { "name": "strategy", "type": "object", "description": "Information about the strategy used to generate the plan" }
         ]
       },
       "side_effects": {
@@ -939,6 +940,161 @@
         "requires_open_file": false
       },
       "context_notes": "This command analyzes the package using the AI Supervisor engine to generate a multi-step improvement plan."
+    },
+    {
+      "name": "workspace_plan",
+      "category": "optimize",
+      "description": "Analyze the entire workspace and generate an AI-guided improvement plan.",
+      "long_description": "Analyzes the entire workspace and generates a strategic optimization plan with actionable recommendations.",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          { "name": "steps", "type": "array", "description": "List of suggested optimization steps" },
+          { "name": "summary", "type": "string", "description": "Summary of the optimization plan" },
+          { "name": "strategy", "type": "object", "description": "Information about the strategy used to generate the plan" }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes the workspace using the AI Supervisor engine to generate a multi-step improvement plan."
+    },
+    {
+      "name": "list_strategies",
+      "category": "strategy",
+      "description": "List all available strategies",
+      "long_description": "Returns a list of all available strategies with their names and descriptions",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the strategy"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Description of the strategy"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command shows all available strategies for the AI Supervisor engine."
+    },
+    {
+      "name": "get_strategy",
+      "category": "strategy",
+      "description": "Get information about a specific strategy",
+      "long_description": "Returns detailed information about a specific strategy or the currently active strategy",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "default": "active",
+          "description": "Name of the strategy to get information for. If omitted, returns the active strategy."
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the strategy"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Description of the strategy"
+          },
+          {
+            "name": "weights",
+            "type": "object",
+            "description": "Weighting factors used by this strategy"
+          },
+          {
+            "name": "thresholds",
+            "type": "object",
+            "description": "Threshold values used by this strategy"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides detailed information about a specific strategy including its weights and thresholds."
+    },
+    {
+      "name": "set_strategy",
+      "category": "strategy",
+      "description": "Set the current active strategy",
+      "long_description": "Sets the active strategy for the AI Supervisor engine",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the strategy to activate"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command changes the active strategy used by the AI Supervisor for optimization planning."
+    },
+    {
+      "name": "supervisor_front",
+      "category": "strategy",
+      "description": "Return the Pareto-optimal suggestions for a package.",
+      "inputs": [
+        { "name": "package", "type": "string", "required": true }
+      ],
+      "outputs": { "kind": "array" },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns the Pareto-optimal subset of suggestions for the given package, using multi-objective optimization."
+    },
+    {
+      "name": "supervisor_rank",
+      "category": "strategy",
+      "description": "Rank suggestions by multi-objective weighted score.",
+      "inputs": [
+        { "name": "package", "type": "string", "required": true },
+        { "name": "limit", "type": "int", "required": false, "default": 10 }
+      ],
+      "outputs": { "kind": "array" },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command ranks suggestions using a weighted linear combination of multi-objective metrics."
     }
   ]
 }

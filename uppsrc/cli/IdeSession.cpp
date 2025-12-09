@@ -1,5 +1,6 @@
 #include "IdeSession.h"
 #include <clicore/CoreIde.h>
+#include <clicore/StrategyProfile.h>
 #include <Core/Core.h>
 
 namespace Upp {
@@ -87,6 +88,15 @@ public:
 
     // AI Supervisor Layer v1 (PART C)
     virtual Value GetOptimizationPlan(const String& package, String& error) override;
+
+    // AI Supervisor Layer v2 - Workspace planning
+    virtual Value GetWorkspacePlan(String& error) override;
+
+    // Dynamic Strategy Engine (PART E)
+    virtual bool SetActiveStrategy(const String& name, String& error) override;
+    virtual Value GetActiveStrategy(String& error) override;
+    virtual Value GetStrategy(const String& name, String& error) override;  // Get specific strategy by name
+    virtual Value ListStrategies(String& error) override;
 
 private:
     CoreIde core_ide;
@@ -290,6 +300,64 @@ Value IdeSessionImpl::OptimizePackage(
 // AI Supervisor Layer v1 implementation
 Value IdeSessionImpl::GetOptimizationPlan(const String& package, String& error) {
     return core_ide.GenerateOptimizationPlan(package, error);
+}
+
+Value IdeSessionImpl::GetWorkspacePlan(String& error) {
+    return core_ide.GenerateWorkspacePlan(error);
+}
+
+// Dynamic Strategy Engine implementations
+bool IdeSessionImpl::SetActiveStrategy(const String& name, String& error) {
+    return core_ide.SetActiveStrategy(name, error);
+}
+
+Value IdeSessionImpl::GetActiveStrategy(String& error) {
+    const StrategyProfile* profile = core_ide.GetActiveStrategy();
+    if (!profile) {
+        error = "No active strategy found";
+        return Value();
+    }
+
+    ValueMap result;
+    result.Set("name", profile->name);
+    result.Set("description", profile->description);
+    result.Set("weights", profile->weights);
+    result.Set("thresholds", profile->thresholds);
+
+    return result;
+}
+
+Value IdeSessionImpl::GetStrategy(const String& name, String& error) {
+    // Find the strategy in the registry by name
+    const StrategyProfile* profile = core_ide.strategy_registry.Find(name);
+    if (!profile) {
+        error = "Strategy not found: " + name;
+        return Value();
+    }
+
+    ValueMap result;
+    result.Set("name", profile->name);
+    result.Set("description", profile->description);
+    result.Set("weights", profile->weights);
+    result.Set("thresholds", profile->thresholds);
+
+    return result;
+}
+
+Value IdeSessionImpl::ListStrategies(String& error) {
+    ValueArray result;
+
+    // Get all strategies from the registry
+    const Vector<StrategyProfile>& profiles = core_ide.GetAllStrategies();
+
+    for (const auto& profile : profiles) {
+        ValueMap strategy_info;
+        strategy_info.Set("name", profile.name);
+        strategy_info.Set("description", profile.description);
+        result.Add(strategy_info);
+    }
+
+    return result;
 }
 
 One<IdeSession> CreateIdeSession() {

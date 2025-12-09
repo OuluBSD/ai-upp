@@ -5,6 +5,20 @@ using namespace Upp;
 CoreIde::CoreIde() {
     // Initialize internal state
     current_editor_index = -1;
+
+    // Initialize supervisor with strategy registry
+    supervisor.SetStrategyRegistry(&strategy_registry);
+
+    // Set default strategy (gracefully handle loading failure)
+    String error;
+    if (!InitializeStrategies("metadata/strategies_v1.json", error)) {
+        // If we can't load strategy file, try with a default fallback
+        // The supervisor will use built-in default weights
+        supervisor.SetActiveStrategy("default", error);
+    } else {
+        // Set default strategy if initialization succeeds
+        supervisor.SetActiveStrategy("default", error);
+    }
 }
 
 CoreIde::~CoreIde() {
@@ -632,6 +646,23 @@ Value CoreIde::RunOptimizationLoop(const String& package,
     return vm;
 }
 
+// Strategy registry management for Supervisor v2
+bool CoreIde::InitializeStrategies(const String& strategies_path, String& error) {
+    return strategy_registry.Load(strategies_path, error);
+}
+
+bool CoreIde::SetActiveStrategy(const String& name, String& error) {
+    return supervisor.SetActiveStrategy(name, error);
+}
+
+const StrategyProfile* CoreIde::GetActiveStrategy() const {
+    return supervisor.GetActiveStrategy();
+}
+
+const Vector<StrategyProfile>& CoreIde::GetAllStrategies() const {
+    return strategy_registry.GetAll();
+}
+
 // Supervisor v1 - Generate optimization plan for a package
 Value CoreIde::GenerateOptimizationPlan(const String& package, String& error) {
     CoreSupervisor::Plan plan = supervisor.GenerateOptimizationPlan(package, *this, error);
@@ -655,6 +686,38 @@ Value CoreIde::GenerateOptimizationPlan(const String& package, String& error) {
         steps.Add(step_map);
     }
     vm.Set("steps", steps);
+
+    // Add strategy information used to generate the plan
+    vm.Set("strategy", plan.strategy_info);
+
+    return vm;
+}
+
+Value CoreIde::GenerateWorkspacePlan(String& error) {
+    CoreSupervisor::Plan plan = supervisor.GenerateWorkspacePlan(*this, error);
+
+    if (!error.IsEmpty()) {
+        return Value(); // Return empty value on error
+    }
+
+    // Convert the plan to a ValueMap for return
+    ValueMap vm;
+    vm.Set("summary", plan.summary);
+
+    // Convert steps to ValueArray
+    ValueArray steps;
+    for (const auto& step : plan.steps) {
+        ValueMap step_map;
+        step_map.Set("action", step.action);
+        step_map.Set("target", step.target);
+        step_map.Set("params", step.params);
+        step_map.Set("reason", step.reason);
+        steps.Add(step_map);
+    }
+    vm.Set("steps", steps);
+
+    // Add strategy information used to generate the plan
+    vm.Set("strategy", plan.strategy_info);
 
     return vm;
 }

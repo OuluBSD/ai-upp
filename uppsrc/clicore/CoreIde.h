@@ -14,6 +14,7 @@
 #include "CoreTelemetry.h"
 #include "CoreOptimize.h"
 #include "CoreSupervisor.h"
+#include "StrategyProfile.h"
 
 using namespace Upp;
 
@@ -101,6 +102,15 @@ public:
     // Supervisor v1 - Generate optimization plan for a package
     Value GenerateOptimizationPlan(const String& package, String& error);
 
+    // Supervisor v2 - Generate optimization plan for the entire workspace
+    Value GenerateWorkspacePlan(String& error);
+
+    // Strategy registry management for Supervisor v2
+    bool InitializeStrategies(const String& strategies_path, String& error);
+    bool SetActiveStrategy(const String& name, String& error);
+    const StrategyProfile* GetActiveStrategy() const;
+    const Vector<StrategyProfile>& GetAllStrategies() const;
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -114,6 +124,7 @@ private:
     CoreTelemetry telemetry;  // Added CoreTelemetry member
     CoreOptimize optimizer;   // Added CoreOptimize member
     CoreSupervisor supervisor; // Added CoreSupervisor member
+    StrategyRegistry strategy_registry; // Added StrategyRegistry for Supervisor v2
     String workspace_root;
 
     // Core Editor management

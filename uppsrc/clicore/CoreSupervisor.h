@@ -4,8 +4,11 @@
 #include <Core/Core.h>
 #include "StrategyProfile.h"
 #include "CoreSemantic.h"
+#include "ProjectMemory.h"  // Include for ProjectMemory
+#include "GlobalKnowledge.h"  // Include for GlobalKnowledge
 
 class CoreIde;
+class CoreScenario;  // Forward declaration to avoid circular dependency
 
 class CoreSupervisor : Moveable<CoreSupervisor> {
 public:
@@ -58,10 +61,20 @@ public:
     Plan GenerateWorkspacePlan(CoreIde& ide, String& error);
 
     // NEW: Build a scenario plan from suggestions
-    CoreScenario::ScenarioPlan BuildScenario(const String& package,
-                                            int max_actions,
-                                            CoreIde& ide,
-                                            String& error);
+    Value BuildScenario(const String& package,
+                       int max_actions,
+                       CoreIde& ide,
+                       String& error);
+
+    // Adaptive Priority Engine (APE) v4 methods
+    void UpdateAdaptiveWeights(const ProjectMemory& mem);
+    double PredictValue(const Suggestion& s, const ProjectMemory& mem) const;
+
+    // Meta-Supervisor extension for CWI v1
+    void UpdateMetaWeights(const GlobalKnowledge& gk);
+
+    // Needed for supervisor_predict command
+    AdaptiveWeights GetAdaptiveWeightsForTesting() const { return adaptive; }
 
 private:
     Suggestion SuggestIncludeCleanup(const String& package,
@@ -102,6 +115,25 @@ private:
     // Members for strategy management
     const StrategyRegistry* registry = nullptr;
     const StrategyProfile* active = nullptr;
+
+    // Adaptive Priority Engine (APE) v4 members
+    bool ape_enabled = true;
+
+    struct AdaptiveWeights {
+        double benefit_multiplier = 1.0;
+        double risk_penalty = 1.0;
+        double confidence_boost = 1.0;
+        double novelty_bias = 0.1;
+    };
+    AdaptiveWeights adaptive;
+
+    // Meta-Supervisor extension for CWI v1
+    struct MetaWeights {
+        double pattern_success_bias = 0.0;
+        double refactor_success_bias = 0.0;
+        double topology_risk_adjustment = 0.0;
+    };
+    MetaWeights meta;
 };
 
 #endif

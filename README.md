@@ -1519,3 +1519,304 @@ The markdown output contains:
 * **Workflow Integration**: Formats designed for modern development toolchains
 
 This subsystem enables AI agents to produce **machine-reviewable, human-interpretable change proposals** that bridge the gap between automated analysis and human oversight, supporting both CI systems and code review processes with comprehensive, structured information about proposed changes and their expected impact.
+
+## Supervisor v4 — Adaptive Priority Engine (APE)
+
+The system has been enhanced with an Adaptive Priority Engine (APE) that enables learning from past proposals, applied scenarios, and successes/failures to dynamically adjust suggestion priorities and strategy profile weights. This system implements a persistent "project health model" that can predict which suggestions are likely to yield high-value improvements.
+
+### Core Features:
+
+* **Project Memory System** - Persistent experience log that stores metrics and outcomes of applied changes:
+  * **Timestamp** - When the change was applied
+  * **Proposal ID** - Unique identifier for the applied change
+  * **Metrics Before & After** - Telemetry, semantic, and architectural metrics before and after the change
+  * **Deltas** - Computed differences in metrics for impact assessment
+  * **Benefit/Risk/Confidence Scores** - Original assessment scores for the change
+  * **Applied/Reverted Status** - Whether the change was successfully applied and later reverted
+
+* **Adaptive Priority Engine (APE)** - Heuristic-based learning system that adjusts priorities based on past experiences:
+  * **Adaptive Weights** - Four key multipliers that evolve over time:
+    * `benefit_multiplier`: How much benefit is weighted
+    * `risk_penalty`: How heavily risk is penalized
+    * `confidence_boost`: How much to boost confidence
+    * `novelty_bias`: How much to favor new types of actions
+  * **Dynamic Adjustment** - Weights evolve based on project history:
+    * If past accepted changes produced good deltas → increase benefit multiplier
+    * If many high-risk suggestions failed → increase risk penalty
+    * If high-confidence predictions tend to succeed → increase confidence boost
+    * If project stagnates → increase novelty bias (favor new types of actions)
+
+* **Predictive Value Function** - Formula that estimates the likely value of a suggestion:
+  ```
+  value = s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score     * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + semantic_novelty(s) * adaptive.novelty_bias;
+  ```
+
+* **APE Integration** - The prediction value influences ranking in:
+  * `GenerateOptimizationPlan`
+  * `BuildScenario`
+  * `BuildProposal`
+
+### Project Memory Storage:
+
+* **Location**: Stored at `<workspace-root>/.aiupp/project_memory.json`
+* **Format**: U++-style JSON file with complete change history
+* **Persistence**: Automatically loaded on workspace initialization and saved after applying scenarios
+
+### Adaptive Learning Logic:
+
+The APE continuously adapts based on project history analytics:
+
+* **AverageBenefit()** - Overall benefit score average across all changes
+* **AverageRisk()** - Overall risk score average across all changes
+* **AverageConfidence()** - Overall confidence score average
+* **CountHighValueChanges()** - Number of changes with benefit_score > 0.7
+* **CountFailedChanges()** - Number of changes that were applied but later reverted
+
+### Available APE Commands:
+
+* **supervisor_predict** - Predicts the value of suggestions for a symbol, file, or entity:
+  * Inputs: `symbol` OR `file` OR `entity` (one required)
+  * Output: Predicted suggestion value, explanation fields, and adaptive weight multipliers
+
+* **memory_export** - Exports the complete project memory history to JSON format:
+  * Input: Optional `path` for export location (default: current directory)
+  * Output: Number of exported entries and output file path
+
+* **memory_import** - Imports project memory from JSON format, with merge or replace modes:
+  * Input: `file` path to import and `mode` (merge or replace)
+  * Output: Number of imported entries and import mode used
+
+### Command Examples:
+
+1. After a few accepted proposals, predict suggestion value for a specific symbol:
+   ```bash
+   theide-cli --json supervisor_predict --symbol "ParseNode"
+   ```
+
+2. Export memory for backup or transfer:
+   ```bash
+   theide-cli --json memory_export > history.json
+   ```
+
+3. Import memory into another workspace:
+   ```bash
+   theide-cli --json memory_import --file history.json
+   ```
+
+### JSON Output Example for supervisor_predict:
+
+```json
+{
+  "predicted_value": 0.65,
+  "explanation": {
+    "input_symbol": "ParseNode",
+    "input_file": "",
+    "input_entity": "",
+    "benefit_score": 0.5,
+    "risk_score": 0.3,
+    "confidence_score": 0.7,
+    "predicted_value": 0.65
+  },
+  "adaptive_weights": {
+    "benefit_multiplier": 1.1,
+    "risk_penalty": 1.0,
+    "confidence_boost": 1.2,
+    "novelty_bias": 0.1
+  }
+}
+```
+
+### Example Adaptive Evolution:
+
+* **Initial State**: All adaptive weights start at 1.0 (except novelty_bias at 0.1)
+* **After Good Changes**: `benefit_multiplier` increases, encouraging more beneficial changes
+* **After Failed High-Risk Changes**: `risk_penalty` increases, making the system more cautious
+* **After Successful High-Confidence Predictions**: `confidence_boost` increases, trusting confidence estimates more
+* **During Project Stagnation**: `novelty_bias` increases, encouraging exploration of new improvement types
+
+### Key Benefits:
+
+* **Learning from Experience**: The system improves over time by learning from past successes and failures
+* **Deterministic Heuristics**: No ML libraries required, fully explainable to humans
+* **Persistent Memory**: Experience is remembered across sessions in simple JSON format
+* **Adaptive Priorities**: Suggestion ranking improves based on what has worked in the specific project
+* **Transparent Evolution**: Adaptive weight values can be inspected and understood
+* **NoGUI Compatible**: Full functionality available through command-line interface
+
+This subsystem enables AI agents to exhibit **adaptive intelligence** by learning from the outcomes of their suggestions and continuously improving their decision-making process based on project-specific experience, making it more likely to propose high-value improvements over time.
+
+## Cross-Workspace Intelligence (CWI) v1
+
+The system now includes a Cross-Workspace Intelligence (CWI) v1 layer that extends the learning capabilities beyond individual project boundaries. This global memory layer enables AI agents to leverage experience from multiple, unrelated workspaces while maintaining deterministic, heuristic-based, and auditable behavior.
+
+### Core Concepts:
+
+* **Global Knowledge Base** - A persistent knowledge store at the user level (`~/.aiupp/global_knowledge.json`) that aggregates experience across all projects
+* **ProjectMemory vs GlobalKnowledge** - Local project memory (`ProjectMemory`) remains for workspace-specific learning, while `GlobalKnowledge` provides cross-workspace intelligence
+* **Deterministic Merging** - Statistics are aggregated using additive averages rather than complex model updates
+* **NoGUI & Auditable** - All behavior is transparent and explainable through JSON APIs
+* **Human-Explainable** - Meta-weights and prediction factors are accessible and interpretable
+
+### Core Features:
+
+* **Pattern Statistics** - Tracks historical success rates, benefits, risks, and confidence for common patterns across all projects
+* **Refactor Statistics** - Records usage, success rate, and complexity impact of various refactoring operations
+* **Topology Statistics** - Captures architectural metrics and trends across workspaces
+* **Workspace Snapshots** - Records state information for cross-workspace analysis
+* **Meta-Supervisor** - Adjusts local supervisor priorities based on global statistics
+
+### Global Knowledge Data Structure:
+
+```json
+{
+  "workspace_snapshots": [
+    {
+      "workspace_root": "/path/to/workspace",
+      "timestamp": 1697582400,
+      "scenario_name": "cleanup_includes_v1"
+    }
+  ],
+  "pattern_stats": {
+    "cleanup_includes_and_rebuild": {
+      "occurrences": 127,
+      "successes": 102,
+      "failures": 25,
+      "avg_benefit": 0.64,
+      "avg_risk": 0.23,
+      "avg_confidence": 0.78
+    }
+  },
+  "refactor_stats": {
+    "rename_symbol_safe": {
+      "uses": 89,
+      "successful": 82,
+      "reverted": 7,
+      "avg_delta_complexity": -0.15
+    }
+  },
+  "topology_stats": {
+    "avg_cycles": 2.3,
+    "avg_depth": 4.7,
+    "avg_coupling": 0.31,
+    "count": 15
+  }
+}
+```
+
+### Available CWI Commands:
+
+* **global_stats** - Returns aggregated statistics from the global knowledge base
+  * Provides cross-workspace pattern, refactor, and topology statistics
+  * Enables AI agents to understand general trends across all projects
+
+* **global_predict** - Predicts success likelihood based on global knowledge
+  * Accepts `pattern`, `refactor`, or `topology` parameters
+  * Returns predicted success rate and contributing factors
+  * Includes meta-weights used in prediction
+
+* **export_global_knowledge** - Exports the global knowledge base to a JSON file
+  * Enables backup and transfer of cross-workspace intelligence
+  * Supports sharing of learned heuristics across different users/environments
+
+* **import_global_knowledge** - Imports global knowledge from a JSON file
+  * Merges or replaces the current global knowledge base
+  * Enables restoration from backup or integration of external knowledge
+
+### Meta-Supervisor Integration:
+
+The Meta-Supervisor extension uses global statistics to adjust local decision-making:
+
+* **MetaWeights Structure**:
+  * `pattern_success_bias`: Adjustment based on historically successful patterns
+  * `refactor_success_bias`: Adjustment based on historically risky refactors
+  * `topology_risk_adjustment`: Adjustment based on problematic topology patterns
+
+* **PredictValue Integration**: The supervisor's `PredictValue` method now incorporates global insights:
+  * Value += meta.pattern_success_bias * pattern_match_score
+  * Value -= meta.refactor_success_bias * risky_refactor_factor
+  * Value -= meta.topology_risk_adjustment * architecture_risk_factor
+
+### How CWI Influences Supervisor Decisions:
+
+* **Global Pattern Success Rates**: Actions matching historically successful patterns receive higher priority
+* **Refactor Risk Adjustment**: Operations similar to historically risky refactors receive additional penalties
+* **Topology Trend Awareness**: Workspaces with problematic topologies trigger more conservative strategies
+
+### Command Examples:
+
+```bash
+# Get global statistics
+theide-cli --json global_stats
+
+# Predict success likelihood for a pattern
+theide-cli --json global_predict --pattern pipeline_stage
+
+# Export global knowledge for backup
+theide-cli --json export_global_knowledge
+
+# Import global knowledge from another user
+theide-cli --json import_global_knowledge --file colleague_knowledge.json
+```
+
+### JSON Output Examples:
+
+**global_stats:**
+```json
+{
+  "pattern_stats": {
+    "cleanup_includes_and_rebuild": {
+      "occurrences": 127,
+      "successes": 102,
+      "failures": 25,
+      "avg_benefit": 0.64,
+      "avg_risk": 0.23,
+      "avg_confidence": 0.78
+    }
+  },
+  "refactor_stats": {
+    "rename_symbol_safe": {
+      "uses": 89,
+      "successful": 82,
+      "reverted": 7,
+      "avg_delta_complexity": -0.15
+    }
+  },
+  "topology_stats": {
+    "avg_cycles": 2.3,
+    "avg_depth": 4.7,
+    "avg_coupling": 0.31,
+    "count": 15
+  }
+}
+```
+
+**global_predict:**
+```json
+{
+  "prediction": 0.72,
+  "factors": {
+    "pattern_name": "cleanup_includes_and_rebuild",
+    "historical_success_rate": 0.80,
+    "pattern_bias": 0.15
+  },
+  "meta_weights": {
+    "pattern_success_bias": 0.15,
+    "refactor_success_bias": 0.05,
+    "topology_risk_adjustment": 0.2
+  }
+}
+```
+
+### Key Benefits:
+
+* **Cross-Workspace Learning**: Experience from one project improves decisions in others
+* **Deterministic Intelligence**: No ML models required, fully explainable heuristics
+* **Persistent Global Memory**: Knowledge accumulates across all projects and sessions
+* **Meta-Level Adaptation**: Adjusts local behavior based on global patterns
+* **Auditable Decisions**: All global influences on decisions are trackable and explainable
+* **NoGUI Compatible**: Full functionality available through command-line interface
+
+This subsystem enables AI agents to exhibit **cross-workspace intelligence** by learning from the collective experience across all projects and applying those insights to make better decisions in any individual workspace, creating a continuously improving ecosystem of knowledge and best practices.

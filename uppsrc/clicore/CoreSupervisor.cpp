@@ -1,6 +1,9 @@
 #include "clicore.h"
 #include "CoreSupervisor.h"
 #include "CoreIde.h"
+#include "CoreScenario.h"
+#include "ProjectMemory.h"
+#include "GlobalKnowledge.h"
 
 CoreSupervisor::CoreSupervisor() {
 }
@@ -139,8 +142,8 @@ CoreSupervisor::Suggestion CoreSupervisor::SuggestGraphSimplificationStrategic(c
 
     // Get threshold from active strategy or use default
     double cycles_weight = 1.5; // Default cycles weight
-    if (active && const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).GetCount() > 0) {
-        cycles_weight = (double)const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).Get("cycles", 1.5);
+    if (active && (~active->weights).GetCount() > 0) {
+        cycles_weight = (double)(~active->weights).Get("cycles", 1.5);
     }
 
     // Check for graph complexity issues with strategy influence
@@ -223,11 +226,11 @@ double CoreSupervisor::ComputeRiskScoreStrategic(const Value& pkg_stats,
     double dependency_depth_weight = 1.0;
     double edit_volatility_weight = 0.5;
 
-    if (active && const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).GetCount() > 0) {
-        include_density_weight = (double)const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).Get("include_density", 1.0);
-        complexity_weight = (double)const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).Get("complexity", 1.0);
-        dependency_depth_weight = (double)const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).Get("dependency_depth", 1.0);
-        edit_volatility_weight = (double)const_cast<ValueMap&>(const_cast<StrategyProfile*>(active)->weights).Get("edit_volatility", 0.5);
+    if (active && (~active->weights).GetCount() > 0) {
+        include_density_weight = (double)(~active->weights).Get("include_density", 1.0);
+        complexity_weight = (double)(~active->weights).Get("complexity", 1.0);
+        dependency_depth_weight = (double)(~active->weights).Get("dependency_depth", 1.0);
+        edit_volatility_weight = (double)(~active->weights).Get("edit_volatility", 0.5);
     }
 
     // Calculate risk based on various factors using strategy weights
@@ -415,8 +418,8 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
     // Try to get semantic data from the ide
     if (const_cast<CoreIde&>(ide).AnalyzeSemantics(error1)) {
         const CoreSemantic& semantic = const_cast<CoreIde&>(ide).GetSemanticAnalyzer();
-        semantic_entities = semantic.GetEntities();
-        semantic_clusters = semantic.GetClusters();
+        semantic_entities = pick(semantic.GetEntities());
+        semantic_clusters = pick(semantic.GetClusters());
     }
 
     // Get strategy-specific objective weights or use defaults if no strategy is active
@@ -425,11 +428,11 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
     double risk_weight = 1.2;
     double confidence_weight = 1.0;
 
-    if (active && const_cast<ValueMap&>(active->objective_weights).GetCount() > 0) {
-        benefit_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("benefit", 1.0);
-        cost_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("cost", 0.7);
-        risk_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("risk", 1.2);
-        confidence_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("confidence", 1.0);
+    if (active && (~active->objective_weights).GetCount() > 0) {
+        benefit_weight = (double)(~active->objective_weights).Get("benefit", 1.0);
+        cost_weight = (double)(~active->objective_weights).Get("cost", 0.7);
+        risk_weight = (double)(~active->objective_weights).Get("risk", 1.2);
+        confidence_weight = (double)(~active->objective_weights).Get("confidence", 1.0);
     }
 
     // Benefit score: based on potential improvements
@@ -470,7 +473,7 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
         for (const auto& cluster : semantic_clusters) {
             if (cluster.metrics.GetCount() > 0) {
                 // Check coupling index - how much this cluster connects to other clusters
-                double coupling_index = (double)cluster.metrics.Get("coupling_index", 0.0);
+                double coupling_index = (double)(~cluster.metrics).Get("coupling_index", 0.0);
                 if (coupling_index > 0.5) { // Heuristic: if coupling index is high, there's potential for improvement
                     coupling_reduction_potential += coupling_index * 0.1;
                 }
@@ -975,8 +978,8 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
     // Try to get semantic data from the ide
     if (const_cast<CoreIde&>(ide).AnalyzeSemantics(error1)) {
         const CoreSemantic& semantic = const_cast<CoreIde&>(ide).GetSemanticAnalyzer();
-        semantic_entities = semantic.GetEntities();
-        semantic_clusters = semantic.GetClusters();
+        semantic_entities = pick(semantic.GetEntities());
+        semantic_clusters = pick(semantic.GetClusters());
     }
 
     // Get strategy-specific objective weights or use defaults if no strategy is active
@@ -985,11 +988,11 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
     double risk_weight = 1.2;
     double confidence_weight = 1.0;
 
-    if (active && const_cast<ValueMap&>(active->objective_weights).GetCount() > 0) {
-        benefit_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("benefit", 1.0);
-        cost_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("cost", 0.7);
-        risk_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("risk", 1.2);
-        confidence_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("confidence", 1.0);
+    if (active && (~active->objective_weights).GetCount() > 0) {
+        benefit_weight = (double)(~active->objective_weights).Get("benefit", 1.0);
+        cost_weight = (double)(~active->objective_weights).Get("cost", 0.7);
+        risk_weight = (double)(~active->objective_weights).Get("risk", 1.2);
+        confidence_weight = (double)(~active->objective_weights).Get("confidence", 1.0);
     }
 
     // Benefit score: based on potential improvements
@@ -1030,7 +1033,7 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
         for (const auto& cluster : semantic_clusters) {
             if (cluster.metrics.GetCount() > 0) {
                 // Check coupling index - how much this cluster connects to other clusters
-                double coupling_index = (double)cluster.metrics.Get("coupling_index", 0.0);
+                double coupling_index = (double)(~cluster.metrics).Get("coupling_index", 0.0);
                 if (coupling_index > 0.5) { // Heuristic: if coupling index is high, there's potential for improvement
                     coupling_reduction_potential += coupling_index * 0.1;
                 }
@@ -1347,6 +1350,9 @@ CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& pack
     Plan plan;
 
     try {
+        // Update adaptive weights based on project memory before generating the plan
+        UpdateAdaptiveWeights(ide.memory);
+
         // Get various metrics from the IDE
         Value pkg_stats = ide.GetPackageStats(package, error);
         if (!error.IsEmpty()) {
@@ -1386,6 +1392,27 @@ CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& pack
         if (!optimization_loop.action.IsEmpty()) {
             ComputeSuggestionMetrics(optimization_loop, package, ide, pkg_stats, telemetry, graph_stats);
             plan.steps.Add(optimization_loop);
+        }
+
+        // Sort suggestions using the adaptive prediction values (APE)
+        if (ape_enabled) {
+            Sort(plan.steps, [this, &ide](const Suggestion& a, const Suggestion& b) {
+                return PredictValue(a, ide.memory) > PredictValue(b, ide.memory);
+            });
+        } else {
+            // Fallback to original sorting by benefit-to-cost ratio
+            Sort(plan.steps, [](const Suggestion& a, const Suggestion& b) {
+                // Use benefit-to-cost ratio as primary sort criterion
+                double ratio_a = a.benefit_score / max(a.cost_score, 0.01);
+                double ratio_b = b.benefit_score / max(b.cost_score, 0.01);
+
+                if (ratio_a != ratio_b) {
+                    return ratio_a > ratio_b;  // Higher ratio first
+                }
+
+                // If ratios are equal, use benefit score
+                return a.benefit_score > b.benefit_score;
+            });
         }
 
         // Calculate risk score using strategic weights and create summary
@@ -1553,14 +1580,17 @@ CoreSupervisor::Plan CoreSupervisor::GenerateWorkspacePlan(CoreIde& ide, String&
     return plan;
 }
 
-CoreScenario::ScenarioPlan CoreSupervisor::BuildScenario(const String& package,
-                                                       int max_actions,
-                                                       CoreIde& ide,
-                                                       String& error) {
+Value CoreSupervisor::BuildScenario(const String& package,
+                                  int max_actions,
+                                  CoreIde& ide,
+                                  String& error) {
     CoreScenario::ScenarioPlan scenario_plan;
     scenario_plan.name = "supervisor_generated_scenario_" + package;
 
     try {
+        // Update adaptive weights based on project memory before building the scenario
+        UpdateAdaptiveWeights(ide.memory);
+
         // Generate optimization plan using the existing method
         Plan optimization_plan = GenerateOptimizationPlan(package, ide, error);
         if (!error.IsEmpty()) {
@@ -1568,22 +1598,28 @@ CoreScenario::ScenarioPlan CoreSupervisor::BuildScenario(const String& package,
         }
 
         // Create scenario actions from the top suggestions in the optimization plan
-        // Sort suggestions by benefit-to-cost ratio or by score if available
         Vector<Suggestion> sorted_suggestions = optimization_plan.steps;
 
-        // Sort by benefit score by default, or use a more sophisticated method
-        Sort(sorted_suggestions, [](const Suggestion& a, const Suggestion& b) {
-            // Use benefit-to-cost ratio as primary sort criterion
-            double ratio_a = a.benefit_score / max(a.cost_score, 0.01);
-            double ratio_b = b.benefit_score / max(b.cost_score, 0.01);
+        // Sort by adaptive prediction values (APE) if enabled, otherwise use default sorting
+        if (ape_enabled) {
+            Sort(sorted_suggestions, [this, &ide](const Suggestion& a, const Suggestion& b) {
+                return PredictValue(a, ide.memory) > PredictValue(b, ide.memory);
+            });
+        } else {
+            // Fallback to original sorting by benefit-to-cost ratio
+            Sort(sorted_suggestions, [](const Suggestion& a, const Suggestion& b) {
+                // Use benefit-to-cost ratio as primary sort criterion
+                double ratio_a = a.benefit_score / max(a.cost_score, 0.01);
+                double ratio_b = b.benefit_score / max(b.cost_score, 0.01);
 
-            if (ratio_a != ratio_b) {
-                return ratio_a > ratio_b;  // Higher ratio first
-            }
+                if (ratio_a != ratio_b) {
+                    return ratio_a > ratio_b;  // Higher ratio first
+                }
 
-            // If ratios are equal, use benefit score
-            return a.benefit_score > b.benefit_score;
-        });
+                // If ratios are equal, use benefit score
+                return a.benefit_score > b.benefit_score;
+            });
+        }
 
         // Take the top max_actions suggestions and convert them to scenario actions
         int action_count = 0;
@@ -1629,6 +1665,7 @@ CoreScenario::ScenarioPlan CoreSupervisor::BuildScenario(const String& package,
         scenario_plan.metadata.Set("generated_from_package", package);
         scenario_plan.metadata.Set("max_actions", max_actions);
         scenario_plan.metadata.Set("suggestions_count", optimization_plan.steps.GetCount());
+        scenario_plan.metadata.Set("ape_enabled", ape_enabled);
 
     } catch (const Exc& e) {
         error = e;
@@ -1636,5 +1673,175 @@ CoreScenario::ScenarioPlan CoreSupervisor::BuildScenario(const String& package,
         error = "Unknown error occurred building scenario";
     }
 
-    return scenario_plan;
+    // Convert the scenario plan to a ValueMap to return
+    ValueMap result;
+    result.Set("name", scenario_plan.name);
+
+    // Convert actions to array
+    ValueArray actions_array;
+    for (const auto& action : scenario_plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions_array.Add(action_map);
+    }
+    result.Set("actions", actions_array);
+    result.Set("metadata", scenario_plan.metadata);
+
+    return result;
+}
+
+// Adaptive Priority Engine (APE) v4 methods
+void CoreSupervisor::UpdateAdaptiveWeights(const ProjectMemory& mem) {
+    // Initialize adaptive weights based on project history
+    double avg_benefit = mem.AverageBenefit();
+    double avg_risk = mem.AverageRisk();
+    double avg_confidence = mem.AverageConfidence();
+    int high_value_changes = mem.CountHighValueChanges();
+    int failed_changes = mem.CountFailedChanges();
+
+    // If past accepted changes produced good deltas, increase benefit multiplier
+    if (avg_benefit > 0.5) {
+        adaptive.benefit_multiplier = 1.1;
+    } else if (avg_benefit < 0.2) {
+        adaptive.benefit_multiplier = 0.9;
+    } else {
+        adaptive.benefit_multiplier = 1.0;
+    }
+
+    // If many high-risk suggestions failed, increase risk penalty
+    if (failed_changes > 0 && avg_risk > 0.5) {
+        adaptive.risk_penalty = 1.3;
+    } else if (failed_changes == 0 && avg_risk < 0.3) {
+        adaptive.risk_penalty = 0.8;
+    } else {
+        adaptive.risk_penalty = 1.0;
+    }
+
+    // If high-confidence predictions tend to succeed, increase confidence boost
+    if (high_value_changes > 0 && avg_confidence > 0.6) {
+        adaptive.confidence_boost = 1.2;
+    } else if (high_value_changes == 0 && avg_confidence < 0.4) {
+        adaptive.confidence_boost = 0.8;
+    } else {
+        adaptive.confidence_boost = 1.0;
+    }
+
+    // If project stagnates (few high-value changes relative to attempts), increase novelty bias
+    int total_changes = mem.GetHistory().GetCount();
+    if (total_changes > 0) {
+        double success_rate = (double)high_value_changes / (double)total_changes;
+        if (success_rate < 0.3) {  // Low success rate indicates stagnation
+            adaptive.novelty_bias = 0.3;  // Increase novelty bias
+        } else {
+            adaptive.novelty_bias = 0.1;  // Default novelty bias
+        }
+    }
+}
+
+double CoreSupervisor::PredictValue(const Suggestion& s, const ProjectMemory& mem) const {
+    double value =
+        s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + 0.0; // semantic_novelty(s) * adaptive.novelty_bias; // Placeholder for semantic novelty
+
+    // For now, we'll implement a simple novelty measure based on how often
+    // similar actions have been tried
+    int similar_actions_count = 0;
+    int total_actions = mem.GetHistory().GetCount();
+
+    if (total_actions > 0) {
+        for (const auto& entry : mem.GetHistory()) {
+            if (entry.proposal_id.Contains(s.action) || entry.proposal_id.Contains(s.target)) {
+                similar_actions_count++;
+            }
+        }
+
+        double novelty_factor = 1.0 - ((double)similar_actions_count / (double)total_actions);
+        value += novelty_factor * adaptive.novelty_bias;
+    }
+
+    // Integrate meta-weights from global knowledge (CWI v1)
+    // Adjust value based on historically successful patterns across all projects
+    double pattern_match_score = 0.0;
+    if (s.target == "cleanup_includes_and_rebuild" ||
+        s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes") {
+        // If this suggestion matches a historically successful pattern, boost its value
+        pattern_match_score = meta.pattern_success_bias;
+    }
+
+    value += meta.pattern_success_bias * pattern_match_score;
+
+    // Adjust value based on historically risky refactors
+    double risky_refactor_factor = 0.0;
+    if (s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes" ||
+        s.target.Contains("refactor")) {
+        risky_refactor_factor = meta.refactor_success_bias;
+    }
+
+    // Only subtract if the refactor has been historically risky (negative bias)
+    if (risky_refactor_factor < 0) {
+        value -= meta.refactor_success_bias * risky_refactor_factor;
+    }
+
+    // Adjust value based on workspace topology risks
+    double architecture_risk_factor = s.risk_score; // Use the suggestion's own risk score as a base
+
+    // If the workspace has problematic topologies, increase the penalty for risky operations
+    value -= meta.topology_risk_adjustment * architecture_risk_factor;
+
+    return value;
+}
+
+void CoreSupervisor::UpdateMetaWeights(const GlobalKnowledge& gk) {
+    // Get historical pattern success rates to inform meta-weights
+    auto all_pattern_stats = gk.GetPatternStats("all_patterns"); // This will get all patterns for computing averages
+    auto topology_stats = gk.GetTopologyStats();
+
+    // Calculate average success rate across all patterns
+    // Since we can't get "all patterns" directly, we'll use a heuristic approach
+    // For demo purposes, let's calculate based on some common patterns
+    GlobalKnowledge::PatternStats cleanup_stats = gk.GetPatternStats("cleanup_includes_and_rebuild");
+    GlobalKnowledge::PatternStats rename_stats = gk.GetPatternStats("rename_symbol_safe");
+    GlobalKnowledge::PatternStats graph_stats = gk.GetPatternStats("reorganize_includes");
+
+    int total_occurrences = cleanup_stats.occurrences + rename_stats.occurrences + graph_stats.occurrences;
+    int total_successes = cleanup_stats.successes + rename_stats.successes + graph_stats.successes;
+
+    if (total_occurrences > 0) {
+        // Calculate bias based on historical success rate
+        double avg_success_rate = (double)total_successes / (double)total_occurrences;
+        meta.pattern_success_bias = (avg_success_rate - 0.5) * 0.5; // Scale to [-0.25, 0.25] range
+    } else {
+        meta.pattern_success_bias = 0.0; // Default to no bias if no historical data
+    }
+
+    // Calculate refactor success bias based on refactor statistics
+    GlobalKnowledge::RefactorStats rename_refactor_stats = gk.GetRefactorStats("rename_symbol_safe");
+    GlobalKnowledge::RefactorStats include_cleanup_stats = gk.GetRefactorStats("cleanup_includes");
+    GlobalKnowledge::RefactorStats graph_refactor_stats = gk.GetRefactorStats("reorganize_includes");
+
+    int total_refactor_uses = rename_refactor_stats.uses + include_cleanup_stats.uses + graph_refactor_stats.uses;
+    int total_refactor_successes = rename_refactor_stats.successful + include_cleanup_stats.successful + graph_refactor_stats.successful;
+
+    if (total_refactor_uses > 0) {
+        double avg_refactor_success_rate = (double)total_refactor_successes / (double)total_refactor_uses;
+        meta.refactor_success_bias = (avg_refactor_success_rate - 0.5) * 0.5; // Scale to [-0.25, 0.25] range
+    } else {
+        meta.refactor_success_bias = 0.0; // Default to no bias if no historical data
+    }
+
+    // Calculate topology risk adjustment based on topology statistics
+    // Higher cycle counts or coupling would indicate higher risk
+    if (topology_stats.count > 0) {
+        meta.topology_risk_adjustment = (topology_stats.avg_cycles * 0.3 +
+                                        topology_stats.avg_coupling * 0.4 +
+                                        topology_stats.avg_depth * 0.3) * 0.1; // Scale for appropriate impact
+    } else {
+        meta.topology_risk_adjustment = 0.0; // Default to no adjustment if no historical data
+    }
 }

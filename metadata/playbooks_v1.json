@@ -1,0 +1,71 @@
+{
+  "playbooks": [
+    {
+      "name": "safe_cleanup_cycle",
+      "description": "A complete cleanup cycle that builds, simulates, applies and exports changes safely",
+      "steps": [
+        {
+          "action": "build_scenario",
+          "description": "Build a scenario for the given package",
+          "params": {
+            "package": "{{package}}",
+            "max_actions": "{{max_actions}}"
+          }
+        },
+        {
+          "action": "simulate_scenario", 
+          "description": "Simulate the scenario and log deltas",
+          "params": {
+            "plan": "{{scenario_plan}}"
+          }
+        },
+        {
+          "action": "apply_scenario",
+          "description": "Apply the scenario changes",
+          "params": {
+            "plan": "{{scenario_plan}}"
+          }
+        },
+        {
+          "action": "export_diff",
+          "description": "Export unified diff to a file",
+          "params": {
+            "diff_content": "{{unified_diff}}",
+            "output_path": "{{output_path}}"
+          }
+        }
+      ],
+      "description_detailed": "This playbook orchestrates a complete cleanup cycle: 1) Builds a scenario for optimization of a package, 2) Simulates the scenario to preview changes, 3) Applies the scenario if simulation is acceptable, 4) Exports the changes as a diff file for review or version control."
+    },
+    {
+      "name": "cleanup_includes_and_rebuild",
+      "description": "Remove dead includes and canonicalize paths",
+      "steps": [
+        {
+          "action": "command",
+          "description": "Run include cleanup command",
+          "params": {
+            "command": "remove_dead_includes",
+            "target": "{{package}}"
+          }
+        },
+        {
+          "action": "command", 
+          "description": "Canonicalize include paths",
+          "params": {
+            "command": "canonicalize_includes",
+            "target": "{{package}}"
+          }
+        },
+        {
+          "action": "command",
+          "description": "Rebuild the package",
+          "params": {
+            "command": "build_project",
+            "target": "{{package}}"
+          }
+        }
+      ]
+    }
+  ]
+}

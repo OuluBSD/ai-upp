@@ -19,6 +19,14 @@ CoreIde::CoreIde() {
         // Set default strategy if initialization succeeds
         supervisor.SetActiveStrategy("default", error);
     }
+
+    // Initialize ProjectMemory - load from default location if it exists
+    String memory_file_path = GetWorkspaceRoot() + "/.aiupp/project_memory.json";
+    memory.Load(memory_file_path);
+
+    // Initialize GlobalKnowledge - load from user-level location
+    String global_knowledge_path = GetHomeDirectory() + "/.aiupp/global_knowledge.json";
+    global.Load(global_knowledge_path);
 }
 
 CoreIde::~CoreIde() {
@@ -286,6 +294,10 @@ bool CoreIde::SetWorkspaceRoot(const String& root, String& error) {
     }
 
     workspace_root = root;
+
+    // Load ProjectMemory from workspace-specific location
+    String memory_file_path = workspace_root + "/.aiupp/project_memory.json";
+    memory.Load(memory_file_path);
 
     // Rebuild graph after workspace root changes
     String graph_error;
@@ -744,8 +756,25 @@ Value CoreIde::BuildScenarioFromPlan(const String& package, int max_actions, Str
         return Value();
     }
 
-    // Convert the supervisor plan to a scenario plan
-    CoreScenario::ScenarioPlan scenario_plan = scenario.BuildPlanFromSupervisor(sup_plan, max_actions);
+    // Convert the supervisor plan to a Value to pass to BuildPlanFromSupervisor
+    ValueMap sup_plan_value;
+    sup_plan_value.Set("summary", sup_plan.summary);
+
+    // Convert steps to ValueArray
+    ValueArray steps_array;
+    for (const auto& step : sup_plan.steps) {
+        ValueMap step_map;
+        step_map.Set("action", step.action);
+        step_map.Set("target", step.target);
+        step_map.Set("params", step.params);
+        step_map.Set("reason", step.reason);
+        steps_array.Add(step_map);
+    }
+    sup_plan_value.Set("steps", steps_array);
+    sup_plan_value.Set("strategy", sup_plan.strategy_info);
+    sup_plan_value.Set("semantic_snapshot", sup_plan.semantic_snapshot);
+
+    CoreScenario::ScenarioPlan scenario_plan = scenario.BuildPlanFromSupervisor(sup_plan_value, max_actions);
 
     // Convert to ValueMap for return
     ValueMap result;
@@ -773,7 +802,7 @@ Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
         return Value();
     }
 
-    const ValueMap& plan_map = plan_desc;
+    const ValueMap& plan_map = AsValueMap(plan_desc);
     CoreScenario::ScenarioPlan plan;
     plan.name = plan_map.Get("name", String("default_scenario"));
 
@@ -782,7 +811,7 @@ Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
         ValueArray actions = plan_map.Get("actions");
         for (int i = 0; i < actions.GetCount(); i++) {
             if (Is<ValueMap>(actions[i])) {
-                const ValueMap& action_map = actions[i];
+                const ValueMap& action_map = AsValueMap(actions[i]);
                 CoreScenario::ScenarioAction action;
                 action.type = action_map.Get("type", String("command"));
                 action.target = action_map.Get("target", String(""));
@@ -830,7 +859,7 @@ Value CoreIde::ApplyScenario(const Value& plan_desc, String& error) {
         return Value();
     }
 
-    const ValueMap& plan_map = plan_desc;
+    const ValueMap& plan_map = AsValueMap(plan_desc);
     CoreScenario::ScenarioPlan plan;
     plan.name = plan_map.Get("name", String("default_scenario"));
 
@@ -839,7 +868,7 @@ Value CoreIde::ApplyScenario(const Value& plan_desc, String& error) {
         ValueArray actions = plan_map.Get("actions");
         for (int i = 0; i < actions.GetCount(); i++) {
             if (Is<ValueMap>(actions[i])) {
-                const ValueMap& action_map = actions[i];
+                const ValueMap& action_map = AsValueMap(actions[i]);
                 CoreScenario::ScenarioAction action;
                 action.type = action_map.Get("type", String("command"));
                 action.target = action_map.Get("target", String(""));
@@ -855,6 +884,61 @@ Value CoreIde::ApplyScenario(const Value& plan_desc, String& error) {
     if (!error.IsEmpty()) {
         return Value();
     }
+
+    // Record the scenario result in ProjectMemory if it was applied successfully
+    if (result.applied) {
+        ProjectMemory::Entry entry;
+        entry.timestamp = GetSysTime();
+        entry.proposal_id = plan.name + "_" + FormatDouble(result.deltas.Get("value", 0.0), 3); // Create a unique ID
+        entry.metrics_before = result.before.telemetry;
+        entry.metrics_after = result.after.telemetry;
+        entry.deltas = result.deltas;
+        entry.benefit_score = result.deltas.Get("benefit", 0.0);
+        entry.risk_score = result.deltas.Get("risk", 0.0);
+        entry.confidence_score = result.deltas.Get("confidence", 0.7); // Default confidence
+        entry.applied = result.applied;
+        entry.reverted = false; // Scenarios don't support revert by default
+
+        memory.Record(entry);
+    }
+
+    // Save the updated memory to file
+    String memory_file_path = workspace_root + "/.aiupp/project_memory.json";
+    memory.Save(memory_file_path);
+
+    // Record scenario result in GlobalKnowledge for cross-workspace intelligence
+    if (result.applied) {
+        // Record workspace snapshot
+        ValueMap snapshot;
+        snapshot.Set("workspace_root", workspace_root);
+        Time t = GetSysTime();
+        snapshot.Set("timestamp", (int64)(int)t);
+        snapshot.Set("scenario_name", result.plan.name);
+        global.RecordWorkspaceSnapshot(snapshot);
+
+        // Record pattern outcomes based on scenario actions
+        for (const auto& action : result.plan.actions) {
+            ValueMap deltas;
+            deltas.Set("benefit", result.deltas.Get("benefit", 0.0));
+            deltas.Set("risk", result.deltas.Get("risk", 0.0));
+            deltas.Set("confidence", result.deltas.Get("confidence", 0.7)); // Default confidence
+            global.RecordPatternOutcome(action.target, result.applied, deltas);
+        }
+
+        // Record refactor outcomes
+        if (result.plan.name.Find("refactor") >= 0) {
+            ValueMap deltas;
+            deltas.Set("delta_complexity", result.deltas.Get("complexity_change", 0.0));
+            global.RecordRefactorOutcome(result.plan.name, result.applied, deltas);
+        }
+
+        // Update supervisor with global knowledge weights
+        supervisor.UpdateMetaWeights(global);
+    }
+
+    // Save global knowledge to persistent storage
+    String global_knowledge_path = GetHomeDirectory() + "/.aiupp/global_knowledge.json";
+    global.Save(global_knowledge_path);
 
     // Convert result to ValueMap for return
     ValueMap result_map;
@@ -893,4 +977,53 @@ Value CoreIde::BuildProposal(const String& package,
     
     // Convert the proposal to Value using the CoreProposal's ToValue method
     return this->proposal.ToValue(proposal);
+}
+
+Value CoreIde::RevertPatch(const String& patch_text, String& error) {
+    // Use the CoreScenario to perform the revert
+    CoreScenario::ScenarioResult result = scenario.Revert(patch_text, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // If the revert was successful, update ProjectMemory to mark any applicable changes as reverted
+    if (result.applied) {
+        // Mark the corresponding entries in ProjectMemory as reverted
+        for (auto& entry : memory.history) {
+            // This is a simple check - in a real implementation, you'd need a more sophisticated
+            // way to match patches to memory entries
+            if (result.unified_diff.Contains(entry.proposal_id)) {
+                entry.reverted = true;
+            }
+        }
+    }
+
+    // Save the updated memory to file
+    String memory_file_path = workspace_root + "/.aiupp/project_memory.json";
+    memory.Save(memory_file_path);
+
+    // Convert result to ValueMap for return
+    ValueMap result_map;
+    ValueMap plan_map_result;
+    plan_map_result.Set("name", result.plan.name);
+
+    ValueArray actions_result;
+    for (const auto& action : result.plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions_result.Add(action_map);
+    }
+    plan_map_result.Set("actions", actions_result);
+
+    result_map.Set("plan", plan_map_result);
+    result_map.Set("before", result.before.telemetry); // Simplified for now
+    result_map.Set("after", result.after.telemetry); // Simplified for now
+    result_map.Set("deltas", result.deltas);
+    result_map.Set("applied", result.applied);
+    result_map.Set("unified_diff", result.unified_diff);
+
+    return result_map;
 }

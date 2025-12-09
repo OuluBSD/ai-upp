@@ -654,6 +654,39 @@ void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
                     suggestion.risk_score = min(1.0, suggestion.risk_score * 1.3);
                 }
 
+                // NEW: Adjust scores based on behavior signatures
+                ValueMap behavior = entity.behavior;
+                if (!behavior.IsEmpty()) {
+                    // Increase cost/risk for stateful or I/O bound entities
+                    if (behavior.Get("stateful", false)) {
+                        suggestion.cost_score = min(1.0, suggestion.cost_score * 1.4);
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.4);
+                    }
+
+                    if (behavior.Get("io_bound", false)) {
+                        suggestion.cost_score = min(1.0, suggestion.cost_score * 1.2);
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.2);
+                    }
+
+                    // Increase benefit score if the suggestion improves pure functions or reduces complexity
+                    bool pure_func = behavior.Get("pure", true);
+                    if (pure_func && suggestion.target == "cleanup_includes_and_rebuild") {
+                        suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.1);
+                    }
+
+                    // Increase risk for functions that call heavy functions
+                    if (behavior.Get("calls_heavy", false)) {
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.3);
+                    }
+
+                    // Consider pipeline stage for risk adjustments
+                    String pipeline_stage = behavior.Get("pipeline_stage", String("unknown"));
+                    if (pipeline_stage == "source" || pipeline_stage == "sink") {
+                        // Operations on pipeline boundaries might have higher impact
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.1);
+                    }
+                }
+
                 // Increase benefit score if the suggestion improves high-level layers
                 String layer = entity.layer_dependency;
                 if (layer == "base" || layer == "core") {
@@ -837,7 +870,475 @@ void CoreSupervisor::PopulateSemanticSnapshot(const CoreIde& ide, Plan& plan) co
             subsystems_array.Add(subsystem_info);
         }
         plan.semantic_snapshot.Set("subsystems", subsystems_array);
+
+        // NEW: Add behavior signature statistics to the semantic snapshot (SemanticAssist v3)
+        // Count different types of behavior signatures
+        int pure_functions_count = 0;
+        int io_bound_count = 0;
+        int stateful_count = 0;
+        int transformer_count = 0;
+        int calls_heavy_count = 0;
+
+        // Pipeline stage counts
+        int sources_count = 0;
+        int transforms_count = 0;
+        int sinks_count = 0;
+
+        // Process entities to count behavior signatures
+        for (const auto& entity : entities) {
+            ValueMap behavior = entity.behavior;
+            if (!behavior.IsEmpty()) {
+                if (behavior.Get("pure", false)) {
+                    pure_functions_count++;
+                }
+                if (behavior.Get("io_bound", false)) {
+                    io_bound_count++;
+                }
+                if (behavior.Get("stateful", false)) {
+                    stateful_count++;
+                }
+                if (behavior.Get("transformer", false)) {
+                    transformer_count++;
+                }
+                if (behavior.Get("calls_heavy", false)) {
+                    calls_heavy_count++;
+                }
+
+                // Count pipeline stages
+                String pipeline_stage = behavior.Get("pipeline_stage", String("unknown"));
+                if (pipeline_stage == "source") {
+                    sources_count++;
+                } else if (pipeline_stage == "transform") {
+                    transforms_count++;
+                } else if (pipeline_stage == "sink") {
+                    sinks_count++;
+                }
+            }
+        }
+
+        // Add behavior statistics to snapshot
+        plan.semantic_snapshot.Set("behavior", AsValue([&]() {
+            ValueMap behavior_stats;
+            behavior_stats.Set("pure_functions_count", pure_functions_count);
+            behavior_stats.Set("io_bound_count", io_bound_count);
+            behavior_stats.Set("stateful_count", stateful_count);
+            behavior_stats.Set("transformer_count", transformer_count);
+            behavior_stats.Set("calls_heavy_count", calls_heavy_count);
+            behavior_stats.Set("num_sources", sources_count);
+            behavior_stats.Set("num_transforms", transforms_count);
+            behavior_stats.Set("num_sinks", sinks_count);
+            return behavior_stats;
+        }()));
+
+        // NEW: Add behavior graph information to the semantic snapshot
+        CoreSemantic::BehaviorGraph behavior_graph = semantic.GetBehaviorGraph();
+        plan.semantic_snapshot.Set("behavior_graph_nodes", behavior_graph.nodes.GetCount());
+        plan.semantic_snapshot.Set("behavior_graph_edges", behavior_graph.edges.GetCount());
+
+        // NEW: Add architecture diagnostic information (SemanticAssist v4)
+        const auto& diagnostic = semantic.GetArchitectureDiagnostic();
+        ValueMap architecture_diagnostic;
+
+        // Add patterns detected
+        ValueArray patterns_array;
+        for (const auto& pattern : diagnostic.patterns) {
+            patterns_array.Add(pattern);
+        }
+        architecture_diagnostic.Set("patterns", patterns_array);
+
+        // Add anti-patterns detected
+        ValueArray antipatterns_array;
+        for (const auto& antipattern : diagnostic.antipatterns) {
+            antipatterns_array.Add(antipattern);
+        }
+        architecture_diagnostic.Set("antipatterns", antipatterns_array);
+
+        // Add scores
+        architecture_diagnostic.Set("scores", diagnostic.scores);
+
+        plan.semantic_snapshot.Set("architecture", architecture_diagnostic);
     }
+}
+
+// NEW: SemanticAssist v4 - Enhanced ComputeSuggestionMetrics with architecture diagnostic integration
+void CoreSupervisor::ComputeSuggestionMetrics(Suggestion& suggestion,
+                                             const String& package,
+                                             CoreIde& ide,
+                                             const Value& pkg_stats,
+                                             const Value& telemetry,
+                                             const Value& graph_stats) const {
+    // First, ensure semantic analysis has been performed and get semantic data
+    String error1;
+    Vector<CoreSemantic::Entity> semantic_entities;
+    Vector<CoreSemantic::Cluster> semantic_clusters;
+
+    // Try to get semantic data from the ide
+    if (const_cast<CoreIde&>(ide).AnalyzeSemantics(error1)) {
+        const CoreSemantic& semantic = const_cast<CoreIde&>(ide).GetSemanticAnalyzer();
+        semantic_entities = semantic.GetEntities();
+        semantic_clusters = semantic.GetClusters();
+    }
+
+    // Get strategy-specific objective weights or use defaults if no strategy is active
+    double benefit_weight = 1.0;
+    double cost_weight = 0.7;
+    double risk_weight = 1.2;
+    double confidence_weight = 1.0;
+
+    if (active && const_cast<ValueMap&>(active->objective_weights).GetCount() > 0) {
+        benefit_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("benefit", 1.0);
+        cost_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("cost", 0.7);
+        risk_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("risk", 1.2);
+        confidence_weight = (double)const_cast<ValueMap&>(active->objective_weights).Get("confidence", 1.0);
+    }
+
+    // Benefit score: based on potential improvements
+    double benefit_score = 0.0;
+
+    // Calculate benefit based on the specific action
+    if (suggestion.target == "cleanup_includes_and_rebuild") {
+        // Benefit from reducing include complexity
+        if (pkg_stats.Is<ValueMap>()) {
+            ValueMap stats = pkg_stats;
+            int unused_includes = (int)stats.Get("unused_includes", 0);
+            double include_density = (double)stats.Get("include_density", 0.0);
+
+            // Higher benefit for more unused includes and higher density
+            benefit_score = min(1.0, (double)unused_includes * 0.05 + include_density * 0.3);
+        }
+    } else if (suggestion.target == "rename_symbol_safe") {
+        // Benefit from consistent naming
+        if (telemetry.Is<ValueMap>()) {
+            ValueMap tel = telemetry;
+            int max_symbol_frequency = (int)tel.Get("max_symbol_frequency", 0);
+            benefit_score = min(1.0, (double)max_symbol_frequency / 500.0); // Normalize
+        }
+    } else if (suggestion.target == "reorganize_includes" ||
+               suggestion.target == "simplify_dependency_chains") {
+        // Benefit from graph simplification - now also consider semantic cluster coupling
+        if (graph_stats.Is<ValueMap>()) {
+            ValueMap g_stats = graph_stats;
+            int max_dependency_chain = (int)g_stats.Get("max_dependency_chain", 0);
+            int near_cycles = (int)g_stats.Get("near_cycles", 0);
+
+            // Higher benefit for problematic graph structures
+            benefit_score = min(1.0, (double)max_dependency_chain * 0.02 + (double)near_cycles * 0.1);
+        }
+
+        // Additionally, check semantic clusters for coupling reduction opportunities
+        double coupling_reduction_potential = 0.0;
+        for (const auto& cluster : semantic_clusters) {
+            if (cluster.metrics.GetCount() > 0) {
+                // Check coupling index - how much this cluster connects to other clusters
+                double coupling_index = (double)cluster.metrics.Get("coupling_index", 0.0);
+                if (coupling_index > 0.5) { // Heuristic: if coupling index is high, there's potential for improvement
+                    coupling_reduction_potential += coupling_index * 0.1;
+                }
+            }
+        }
+        benefit_score += min(1.0, coupling_reduction_potential);
+    } else if (suggestion.target == "optimize_package") {
+        // Benefit from complexity improvement
+        if (pkg_stats.Is<ValueMap>()) {
+            ValueMap stats = pkg_stats;
+            double complexity_score = (double)stats.Get("complexity_score", 0.0);
+            double avg_complexity = (double)stats.Get("avg_file_complexity", 0.0);
+
+            benefit_score = min(1.0, complexity_score * 0.5 + avg_complexity * 0.3);
+        }
+    } else {
+        // Default benefit for other actions
+        benefit_score = 0.5;
+    }
+
+    // Apply benefit weight
+    benefit_score *= benefit_weight;
+
+    // Cost score: estimated resources needed
+    double cost_score = 0.0;
+
+    // Estimate cost based on the action and package size
+    if (pkg_stats.Is<ValueMap>()) {
+        ValueMap stats = pkg_stats;
+        int total_files = (int)stats.Get("files", 0);
+        int total_lines = (int)stats.Get("total_lines", 0);
+
+        // Higher cost for larger packages
+        if (suggestion.target == "rename_symbol_safe") {
+            // Rename operations touch many files
+            cost_score = min(1.0, (double)total_files * 0.01 + (double)total_lines / 10000.0);
+        } else if (suggestion.target == "reorganize_includes" ||
+                   suggestion.target == "simplify_dependency_chains") {
+            // Dependency changes may affect many files
+            cost_score = min(1.0, (double)total_files * 0.005 + (double)total_lines / 15000.0);
+        } else if (suggestion.target == "cleanup_includes_and_rebuild") {
+            // Cleanup operations typically lower cost
+            cost_score = min(1.0, (double)total_files * 0.002 + (double)total_lines / 20000.0);
+        } else {
+            cost_score = min(1.0, (double)total_files * 0.003 + (double)total_lines / 15000.0);
+        }
+    }
+
+    // Adjust cost based on semantic information
+    // Large clusters may be more expensive to modify due to high coupling
+    double semantic_cost_modifier = 1.0;
+    for (const auto& cluster : semantic_clusters) {
+        if (cluster.metrics.GetCount() > 0) {
+            int cluster_size = (int)const_cast<ValueMap&>(const_cast<CoreSemantic::Cluster&>(cluster)).metrics.Get("size", 0);
+            double coupling_index = (double)const_cast<ValueMap&>(const_cast<CoreSemantic::Cluster&>(cluster)).metrics.Get("coupling_index", 0.0);
+
+            // Large and highly coupled clusters are more expensive to modify
+            if (cluster_size > 10 && coupling_index > 0.7) {
+                semantic_cost_modifier *= 1.3; // Increase cost by 30%
+            }
+        }
+    }
+    cost_score *= semantic_cost_modifier;
+
+    // Apply cost weight
+    cost_score *= cost_weight;
+
+    // Risk score: probability of breaking things (reusing existing risk computation)
+    double risk_score = ComputeRiskScoreStrategic(pkg_stats, graph_stats, Value());
+
+    // Adjust risk based on semantic information
+    // Modify risk based on cluster metrics
+    for (const auto& cluster : semantic_clusters) {
+        if (cluster.metrics.GetCount() > 0) {
+            int cluster_size = (int)const_cast<ValueMap&>(const_cast<CoreSemantic::Cluster&>(cluster)).metrics.Get("size", 0);
+            double avg_complexity = (double)const_cast<ValueMap&>(const_cast<CoreSemantic::Cluster&>(cluster)).metrics.Get("avg_complexity", 0.0);
+
+            // Large clusters with high complexity are riskier to modify
+            if (cluster_size > 20) {
+                risk_score *= 1.2; // Increase risk by 20%
+            }
+
+            if (avg_complexity > 10.0) {
+                risk_score *= 1.1; // Increase risk by 10%
+            }
+        }
+    }
+
+    // Apply risk weight
+    risk_score *= risk_weight;
+
+    // Confidence score: based on signal clarity
+    double confidence_score = 0.5; // Base confidence
+
+    if (telemetry.Is<ValueMap>()) {
+        ValueMap tel = telemetry;
+        int telemetry_signals = 0;
+
+        // Count valid telemetry signals
+        String hot_symbol = tel.Get("hot_symbol", String());
+        if (!hot_symbol.IsEmpty()) telemetry_signals++;
+        if ((int)tel.Get("max_symbol_frequency", 0) > 0) telemetry_signals++;
+        if ((int)tel.Get("edit_volatility_score", 0) > 0) telemetry_signals++;
+
+        // Normalize confidence based on signals
+        confidence_score = min(1.0, 0.3 + (double)telemetry_signals * 0.2);
+    } else {
+        // Lower confidence if no telemetry data
+        confidence_score = 0.3;
+    }
+
+    // Boost confidence if semantic information is available and consistent
+    if (semantic_clusters.GetCount() > 0) {
+        confidence_score *= 1.1; // Boost by 10% when semantic analysis data is available
+    }
+
+    // Apply confidence weight
+    confidence_score *= confidence_weight;
+
+    // Update the suggestion with computed scores
+    suggestion.benefit_score = min(1.0, benefit_score);
+    suggestion.cost_score = min(1.0, cost_score);
+    suggestion.risk_score = min(1.0, risk_score);
+    suggestion.confidence_score = min(1.0, confidence_score);
+
+    // Populate metrics map with arbitrary computed metrics
+    ValueMap metrics;
+    metrics.Set("impact", suggestion.benefit_score / max(suggestion.cost_score, 0.01));
+    metrics.Set("surface_area", (int)pkg_stats["files"]);
+    metrics.Set("graph_delta", 0); // Placeholder - would indicate graph structure change
+
+    // NEW: Enhance metrics with semantic inference data
+    String error;
+    if (const_cast<CoreIde&>(ide).AnalyzeSemantics(error)) {
+        // Check if this suggestion affects entities in multiple subsystems (increases cost/risk)
+        const auto& subsystems = const_cast<CoreIde&>(ide).GetSemanticAnalyzer().GetSubsystems();
+        int subsystems_affected = 0;
+        String target_package = (String)suggestion.params["package"]; // Assuming package is in params
+
+        // Identify which subsystems are affected by this suggestion
+        for (const auto& subsystem : subsystems) {
+            bool affects_this_subsystem = false;
+
+            // Check if any entity in this subsystem is related to the suggestion target
+            for (const auto& entity_name : subsystem.entities) {
+                // For now, we'll check if the target package contains the entity name
+                // In a more sophisticated implementation, this would check actual relationships
+                if (target_package.Find(entity_name) >= 0) {
+                    affects_this_subsystem = true;
+                    break;
+                }
+            }
+
+            if (affects_this_subsystem) {
+                subsystems_affected++;
+            }
+        }
+
+        metrics.Set("subsystems_affected", subsystems_affected);
+
+        // Adjust scores based on subsystem cohesion and coupling
+        if (subsystems_affected > 1) {
+            // Touching multiple subsystems increases risk
+            suggestion.risk_score = min(1.0, suggestion.risk_score * 1.5);
+            // And potentially increases cost
+            suggestion.cost_score = min(1.0, suggestion.cost_score * 1.2);
+        }
+
+        // Check if the target entity has a fragile role (like parser or controller)
+        const auto& entities = const_cast<CoreIde&>(ide).GetSemanticAnalyzer().GetEntities();
+        // Check if there's a specific target entity in the suggestion params
+        String target_entity_param = (String)suggestion.params["symbol"]; // Looking for symbol parameter
+        if (target_entity_param.IsEmpty()) {
+            target_entity_param = (String)suggestion.target; // Or target itself might be an entity name
+        }
+
+        for (const auto& entity : entities) {
+            if (entity.name == target_entity_param) {
+                String role = entity.role;
+                if (role == "parser" || role == "controller" || role == "core_component") {
+                    // Operations on fragile roles increase risk
+                    suggestion.risk_score = min(1.0, suggestion.risk_score * 1.3);
+                }
+
+                // NEW: Adjust scores based on behavior signatures
+                ValueMap behavior = entity.behavior;
+                if (!behavior.IsEmpty()) {
+                    // Increase cost/risk for stateful or I/O bound entities
+                    if (behavior.Get("stateful", false)) {
+                        suggestion.cost_score = min(1.0, suggestion.cost_score * 1.4);
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.4);
+                    }
+
+                    if (behavior.Get("io_bound", false)) {
+                        suggestion.cost_score = min(1.0, suggestion.cost_score * 1.2);
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.2);
+                    }
+
+                    // Increase benefit score if the suggestion improves pure functions or reduces complexity
+                    bool pure_func = behavior.Get("pure", true);
+                    if (pure_func && suggestion.target == "cleanup_includes_and_rebuild") {
+                        suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.1);
+                    }
+
+                    // Increase risk for functions that call heavy functions
+                    if (behavior.Get("calls_heavy", false)) {
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.3);
+                    }
+
+                    // Consider pipeline stage for risk adjustments
+                    String pipeline_stage = behavior.Get("pipeline_stage", String("unknown"));
+                    if (pipeline_stage == "source" || pipeline_stage == "sink") {
+                        // Operations on pipeline boundaries might have higher impact
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.1);
+                    }
+                }
+
+                // Increase benefit score if the suggestion improves high-level layers
+                String layer = entity.layer_dependency;
+                if (layer == "base" || layer == "core") {
+                    // Improvements to foundational layers have higher benefit
+                    suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.1);
+                }
+
+                break;
+            }
+        }
+
+        // Increase benefit score if the suggestion helps reduce coupling between subsystems
+        // This is heuristic-based - in real implementation, we'd check if the action
+        // specifically simplifies architectural layering or reduces cross-subsystem dependencies
+        if (suggestion.target == "reorganize_includes" ||
+            suggestion.target == "simplify_dependency_chains" ||
+            suggestion.target == "resolve_cycles") {
+            // These actions potentially improve subsystem structure
+            suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.1);
+        }
+
+        // NEW: SemanticAssist v4 - Architecture diagnostic integration
+        const auto& diagnostic = const_cast<CoreIde&>(ide).GetSemanticAnalyzer().GetArchitectureDiagnostic();
+
+        // Benefit score increases when suggestions reduce coupling between pattern clusters
+        if (suggestion.target == "reorganize_includes" ||
+            suggestion.target == "simplify_dependency_chains") {
+            // Check if the action will help eliminate anti-patterns like god objects or cycles
+            for (const auto& antipattern : diagnostic.antipatterns) {
+                String entity_name = antipattern.Get("entity_name", String(""));
+                ValueMap antipattern_details = antipattern.Get("antipatterns", ValueMap());
+
+                // If the target affects known god objects or cyclic dependencies, increase benefit
+                if (antipattern_details.Contains("god_object") ||
+                    antipattern_details.Contains("cyclic_dependency")) {
+                    // If this suggestion targets an identified anti-pattern, increase benefit
+                    if ((String)suggestion.params["target_entity"] == entity_name ||
+                        (String)suggestion.target == entity_name ||
+                        suggestion.target == "resolve_cycles") {
+                        suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.5);
+                        break;
+                    }
+                }
+            }
+
+            // If action improves overall architecture scores, increase benefit
+            ValueMap scores = diagnostic.scores;
+            double coupling_score = scores.Get("coupling_score", 0.5);
+            double layering_score = scores.Get("layering_score", 0.5);
+            double cohesion_score = scores.Get("cohesion_score", 0.5);
+
+            // Actions that reduce coupling or improve layering get higher benefit
+            if (coupling_score > 0.7) { // High coupling - opportunities for improvement
+                suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.3);
+            }
+            if (layering_score < 0.5) { // Low layering - opportunities for improvement
+                suggestion.benefit_score = min(1.0, suggestion.benefit_score * 1.2);
+            }
+        }
+
+        // Risk score increases when touching entities identified as façade or adapter
+        if (suggestion.target != "remove_dead_component") {  // Exempt removal of dead components
+            for (const auto& entity : entities) {
+                ValueMap patterns = entity.patterns;
+                if (patterns.Contains("facade") || patterns.Contains("adapter")) {
+                    // If the suggestion targets a facade or adapter, increase risk
+                    if (entity.name == target_entity_param) {
+                        suggestion.risk_score = min(1.0, suggestion.risk_score * 1.4);
+                        // Also increase cost as these are important architectural components
+                        suggestion.cost_score = min(1.0, suggestion.cost_score * 1.2);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Confidence score boosted when patterns/anti-patterns clearly support the suggestion
+        // For example, if we're suggesting to remove a dead component and it's flagged as such
+        if (suggestion.target == "remove_dead_component") {
+            for (const auto& entity : entities) {
+                ValueMap antipatterns = entity.antipatterns;
+                if (antipatterns.Contains("dead_component") && entity.name == target_entity_param) {
+                    // If a component is identified as dead, confidence in removal increases
+                    suggestion.confidence_score = min(1.0, suggestion.confidence_score * 1.5);
+                    break;
+                }
+            }
+        }
+    }
+
+    suggestion.metrics = metrics;
 }
 
 CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& package,
@@ -1050,4 +1551,90 @@ CoreSupervisor::Plan CoreSupervisor::GenerateWorkspacePlan(CoreIde& ide, String&
     }
 
     return plan;
+}
+
+CoreScenario::ScenarioPlan CoreSupervisor::BuildScenario(const String& package,
+                                                       int max_actions,
+                                                       CoreIde& ide,
+                                                       String& error) {
+    CoreScenario::ScenarioPlan scenario_plan;
+    scenario_plan.name = "supervisor_generated_scenario_" + package;
+
+    try {
+        // Generate optimization plan using the existing method
+        Plan optimization_plan = GenerateOptimizationPlan(package, ide, error);
+        if (!error.IsEmpty()) {
+            return scenario_plan;
+        }
+
+        // Create scenario actions from the top suggestions in the optimization plan
+        // Sort suggestions by benefit-to-cost ratio or by score if available
+        Vector<Suggestion> sorted_suggestions = optimization_plan.steps;
+
+        // Sort by benefit score by default, or use a more sophisticated method
+        Sort(sorted_suggestions, [](const Suggestion& a, const Suggestion& b) {
+            // Use benefit-to-cost ratio as primary sort criterion
+            double ratio_a = a.benefit_score / max(a.cost_score, 0.01);
+            double ratio_b = b.benefit_score / max(b.cost_score, 0.01);
+
+            if (ratio_a != ratio_b) {
+                return ratio_a > ratio_b;  // Higher ratio first
+            }
+
+            // If ratios are equal, use benefit score
+            return a.benefit_score > b.benefit_score;
+        });
+
+        // Take the top max_actions suggestions and convert them to scenario actions
+        int action_count = 0;
+        for (const auto& suggestion : sorted_suggestions) {
+            if (action_count >= max_actions) {
+                break;
+            }
+
+            CoreScenario::ScenarioAction action;
+
+            // Determine the action type based on the suggestion
+            if (suggestion.action == "optimize_package") {
+                action.type = "command";
+                action.target = suggestion.action;
+            } else if (suggestion.action == "run_playbook") {
+                action.type = "playbook";
+                action.target = suggestion.target;
+            } else {
+                // Default to command type for unknown suggestion types
+                action.type = "command";
+                action.target = suggestion.action;
+            }
+
+            // Convert the parameters
+            if (suggestion.params.Is<ValueMap>()) {
+                action.params = suggestion.params;
+            } else {
+                // If params is not a ValueMap, create an empty one
+                action.params = ValueMap();
+            }
+
+            // Add additional parameters for the package if not already present
+            if (action.params.Get("package", String()).IsEmpty()) {
+                action.params.Set("package", package);
+            }
+
+            scenario_plan.actions.Add(action);
+            action_count++;
+        }
+
+        // Add metadata about the strategy used to generate the plan
+        scenario_plan.metadata.Set("originating_strategy", optimization_plan.strategy_info);
+        scenario_plan.metadata.Set("generated_from_package", package);
+        scenario_plan.metadata.Set("max_actions", max_actions);
+        scenario_plan.metadata.Set("suggestions_count", optimization_plan.steps.GetCount());
+
+    } catch (const Exc& e) {
+        error = e;
+    } catch (...) {
+        error = "Unknown error occurred building scenario";
+    }
+
+    return scenario_plan;
 }

@@ -10,6 +10,7 @@
 #include "CoreIde.h"
 #include "CoreAssist.h"
 #include "CoreOptimize.h"
+#include "CoreProposal.h"
 
 NAMESPACE_UPP
 

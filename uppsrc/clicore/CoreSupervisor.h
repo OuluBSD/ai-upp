@@ -57,6 +57,12 @@ public:
 
     Plan GenerateWorkspacePlan(CoreIde& ide, String& error);
 
+    // NEW: Build a scenario plan from suggestions
+    CoreScenario::ScenarioPlan BuildScenario(const String& package,
+                                            int max_actions,
+                                            CoreIde& ide,
+                                            String& error);
+
 private:
     Suggestion SuggestIncludeCleanup(const String& package,
                                      const Value& pkg_stats) const;

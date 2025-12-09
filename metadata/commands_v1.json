@@ -1311,6 +1311,533 @@
         "requires_open_file": false
       },
       "context_notes": "This command returns the inferred architectural layers for entities in the workspace"
+    },
+    {
+      "name": "semantic_behavior",
+      "category": "semantic",
+      "description": "Get behavior signatures for all entities",
+      "long_description": "Returns behavior signatures for all entities including pure, io_bound, stateful, transformer, pipeline_stage, etc.",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "entities",
+            "type": "array",
+            "description": "Array of entities with their behavior signatures"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns comprehensive behavior signatures for all entities in the workspace"
+    },
+    {
+      "name": "semantic_behavior_entity",
+      "category": "semantic",
+      "description": "Get behavior signature for a specific entity",
+      "long_description": "Returns behavior signature for one entity",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the entity to get behavior information for"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "entity",
+            "type": "object",
+            "description": "Behavior signature for the specified entity"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns behavior signature for a specific entity"
+    },
+    {
+      "name": "semantic_behavior_graph",
+      "category": "semantic",
+      "description": "Get the behavior graph representation",
+      "long_description": "Returns the behavior graph with nodes and edges representing behavioral relationships",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "nodes",
+            "type": "array",
+            "description": "Array of entity names"
+          },
+          {
+            "name": "edges",
+            "type": "array",
+            "description": "Array of relationships between entities"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns the behavior graph with nodes and edges"
+    },
+    {
+      "name": "semantic_pipeline",
+      "category": "semantic",
+      "description": "Get ordered pipeline stages for the workspace",
+      "long_description": "Returns entities organized by their pipeline stage (source, transform, sink)",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "sources",
+            "type": "array",
+            "description": "Entities classified as sources"
+          },
+          {
+            "name": "transforms",
+            "type": "array",
+            "description": "Entities classified as transforms"
+          },
+          {
+            "name": "sinks",
+            "type": "array",
+            "description": "Entities classified as sinks"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns entities organized by their pipeline stages"
+    },
+    {
+      "name": "semantic_patterns",
+      "category": "semantic",
+      "description": "Get detected patterns per entity in the workspace",
+      "long_description": "Returns a list of all entities with their recognized architectural patterns",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "entities",
+            "type": "array",
+            "description": "Array of entities with their detected patterns"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns entities with their recognized architectural patterns such as facade, adapter, factory, etc."
+    },
+    {
+      "name": "semantic_antipatterns",
+      "category": "semantic",
+      "description": "Get detected anti-patterns per entity in the workspace",
+      "long_description": "Returns a list of all entities with their recognized architectural anti-patterns",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "entities",
+            "type": "array",
+            "description": "Array of entities with their detected anti-patterns"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns entities with their recognized architectural anti-patterns such as god object, cyclic dependencies, etc."
+    },
+    {
+      "name": "semantic_architecture",
+      "category": "semantic",
+      "description": "Get global architecture diagnostics",
+      "long_description": "Returns global architecture diagnostic information including patterns, anti-patterns, and scores",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "patterns",
+            "type": "array",
+            "description": "Global architecture patterns detected"
+          },
+          {
+            "name": "antipatterns",
+            "type": "array",
+            "description": "Global architecture anti-patterns detected"
+          },
+          {
+            "name": "scores",
+            "type": "object",
+            "description": "Architecture quality scores"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns global architecture diagnostic information including patterns, anti-patterns, and scores like cohesion, coupling, etc."
+    },
+    {
+      "name": "semantic_outliers",
+      "category": "semantic",
+      "description": "Get entities that are architectural outliers",
+      "long_description": "Returns entities whose metrics fall outside statistical norms for the workspace",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "outliers",
+            "type": "array",
+            "description": "Array of outlier entities with their anomalous metrics"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command identifies entities with metrics that significantly deviate from the norm in the workspace"
+    },
+    {
+      "name": "build_scenario",
+      "category": "scenario",
+      "description": "Build a scenario plan from supervisor suggestions",
+      "long_description": "Generates a scenario plan with actions that can be simulated or applied to optimize a package",
+      "inputs": [
+        {
+          "name": "package",
+          "type": "string",
+          "required": true,
+          "description": "Name of the package to build scenario for"
+        },
+        {
+          "name": "max_actions",
+          "type": "int",
+          "required": false,
+          "default": 5,
+          "description": "Maximum number of actions to include in the plan"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the generated scenario plan"
+          },
+          {
+            "name": "actions",
+            "type": "array",
+            "description": "Array of actions in the scenario plan"
+          },
+          {
+            "name": "metadata",
+            "type": "object",
+            "description": "Additional metadata for the scenario plan"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command generates a scenario plan using the AI Supervisor engine recommendations that can be later simulated or applied."
+    },
+    {
+      "name": "simulate_scenario",
+      "category": "scenario",
+      "description": "Simulate the impact of a scenario without applying changes",
+      "long_description": "Estimates the impact of executing a scenario plan without actually making any changes to the codebase",
+      "inputs": [
+        {
+          "name": "plan",
+          "type": "json",
+          "required": true,
+          "description": "JSON string or file path to scenario plan to simulate"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "plan",
+            "type": "object",
+            "description": "The scenario plan that was simulated"
+          },
+          {
+            "name": "before",
+            "type": "object",
+            "description": "Metrics and state before the scenario"
+          },
+          {
+            "name": "after",
+            "type": "object",
+            "description": "Estimated metrics and state after the scenario"
+          },
+          {
+            "name": "deltas",
+            "type": "object",
+            "description": "Differences between before and after states"
+          },
+          {
+            "name": "applied",
+            "type": "bool",
+            "description": "Whether changes were actually applied (should be false for simulation)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command simulates the impact of a scenario plan without making any actual changes to files. It estimates metric changes using heuristics."
+    },
+    {
+      "name": "apply_scenario",
+      "category": "scenario",
+      "description": "Apply a scenario by executing its actions",
+      "long_description": "Actually executes the actions in a scenario plan, making real changes to the codebase",
+      "inputs": [
+        {
+          "name": "plan",
+          "type": "json",
+          "required": true,
+          "description": "JSON string or file path to scenario plan to apply"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "plan",
+            "type": "object",
+            "description": "The scenario plan that was applied"
+          },
+          {
+            "name": "before",
+            "type": "object",
+            "description": "Metrics and state before the scenario"
+          },
+          {
+            "name": "after",
+            "type": "object",
+            "description": "Metrics and state after the scenario"
+          },
+          {
+            "name": "deltas",
+            "type": "object",
+            "description": "Differences between before and after states"
+          },
+          {
+            "name": "applied",
+            "type": "bool",
+            "description": "Whether changes were actually applied (should be true for apply)"
+          },
+          {
+            "name": "unified_diff",
+            "type": "string",
+            "description": "Unified diff representation of the changes made"
+          },
+          {
+            "name": "file_changes",
+            "type": "array",
+            "description": "Structured summary of file changes"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command applies a scenario plan by executing its actions, making real changes to files, refactoring code, or running build operations. Returns patch information about changes made."
+    },
+    {
+      "name": "scenario_diff",
+      "category": "scenario",
+      "description": "Generate a diff for a scenario without applying it",
+      "long_description": "Creates a unified diff representation of what a scenario would change without actually applying the changes",
+      "inputs": [
+        {
+          "name": "plan",
+          "type": "json",
+          "required": true,
+          "description": "JSON string or file path to scenario plan to diff"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "plan",
+            "type": "object",
+            "description": "The scenario plan that was diffed"
+          },
+          {
+            "name": "before",
+            "type": "object",
+            "description": "Metrics and state before the scenario"
+          },
+          {
+            "name": "after",
+            "type": "object",
+            "description": "Estimated metrics and state after the scenario"
+          },
+          {
+            "name": "deltas",
+            "type": "object",
+            "description": "Differences between before and after states"
+          },
+          {
+            "name": "unified_diff",
+            "type": "string",
+            "description": "Unified diff representation of the changes"
+          },
+          {
+            "name": "file_changes",
+            "type": "array",
+            "description": "Structured summary of file changes"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command generates a diff for a scenario plan without applying the changes, useful for previewing what would change."
+    },
+    {
+      "name": "scenario_revert",
+      "category": "scenario",
+      "description": "Revert changes based on a patch",
+      "long_description": "Applies the inverse of a patch to undo changes made by a previous scenario",
+      "inputs": [
+        {
+          "name": "patch",
+          "type": "string",
+          "required": false,
+          "description": "Patch text to revert"
+        },
+        {
+          "name": "patch_file",
+          "type": "path",
+          "required": false,
+          "description": "Path to patch file to revert"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "unified_diff",
+            "type": "string",
+            "description": "Unified diff representation of the revert changes"
+          },
+          {
+            "name": "file_changes",
+            "type": "array",
+            "description": "Structured summary of reverted file changes"
+          },
+          {
+            "name": "applied",
+            "type": "bool",
+            "description": "Whether changes were applied (should be true for revert)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command reverts changes by applying the inverse of a patch generated by this tool, undoing the changes made by a previous scenario."
+    },
+    {
+      "name": "export_proposal",
+      "category": "ai",
+      "description": "Produces a complete AI-generated change proposal: plan, heuristics, metrics, deltas, semantic/architecture context. No changes are applied.",
+      "long_description": "Generates a complete AI change proposal that combines supervisor reasoning, scenario simulation, patch & delta analysis, semantic/architecture insights, risk analysis, and a reproducible execution recipe. No changes are applied in this command.",
+      "inputs": [
+        {
+          "name": "package",
+          "type": "string",
+          "required": true,
+          "description": "Package the proposal concerns"
+        },
+        {
+          "name": "max_actions",
+          "type": "int",
+          "required": false,
+          "default": 5,
+          "description": "Maximum number of actions in the proposal"
+        },
+        {
+          "name": "format",
+          "type": "enum",
+          "enum_values": ["json", "md"],
+          "required": false,
+          "default": "json",
+          "description": "Output format: json for structured data, md for markdown report"
+        }
+      ],
+      "outputs": {
+        "kind": "json",
+        "description": "Full proposal as JSON structure containing plan, heuristics, metrics, deltas, semantic/architecture context, and risk/confidence/benefit scores"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command produces a machine-reviewable bundle suitable for CI pipelines, code review bots, pull request creation layers, and human review workflows. It combines supervisor reasoning with scenario simulation to provide a comprehensive change proposal."
     }
   ]
 }

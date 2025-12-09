@@ -16,6 +16,7 @@
 #include "CoreSupervisor.h"
 #include "StrategyProfile.h"
 #include "CoreSemantic.h"
+#include "CoreScenario.h"
 
 using namespace Upp;
 
@@ -117,6 +118,29 @@ public:
     const CoreSemantic& GetSemanticAnalyzer() const;
     CoreSemantic& GetSemanticAnalyzer();
 
+    // Scenario operations
+    Value BuildScenarioFromPlan(const String& package,
+                                int max_actions,
+                                String& error);
+    Value SimulateScenario(const Value& plan_desc,
+                           String& error);
+    Value ApplyScenario(const Value& plan_desc,
+                        String& error);
+
+    // Revert patch functionality
+    Value RevertPatch(const String& patch_text, String& error);
+
+    // Proposal generation v1
+    Value BuildProposal(const String& package,
+                        int max_actions,
+                        String& error);
+
+    // Getter methods for access to internal components
+    CoreWorkspace& GetWorkspace() { return workspace; }
+    const CoreWorkspace& GetWorkspace() const { return workspace; }
+    CoreFileOps& GetFileOps() { return fileOps; }
+    const CoreFileOps& GetFileOps() const { return fileOps; }
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -131,6 +155,8 @@ private:
     CoreOptimize optimizer;   // Added CoreOptimize member
     CoreSupervisor supervisor; // Added CoreSupervisor member
     CoreSemantic semantic;     // Added CoreSemantic member
+    CoreScenario scenario;     // Added CoreScenario member
+    CoreProposal proposal;     // Added CoreProposal member
     StrategyRegistry strategy_registry; // Added StrategyRegistry for Supervisor v2
     String workspace_root;
 

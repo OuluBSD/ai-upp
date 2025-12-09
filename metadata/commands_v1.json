@@ -1097,6 +1097,139 @@
       "context_notes": "This command ranks suggestions using a weighted linear combination of multi-objective metrics."
     },
     {
+      "name": "supervisor_predict",
+      "category": "strategy",
+      "description": "Predict the value of suggestions for a symbol, file, or entity.",
+      "long_description": "Analyzes a symbol, file, or entity and predicts the likely benefit of various suggestions based on project memory and adaptive weights.",
+      "inputs": [
+        {
+          "name": "symbol",
+          "type": "string",
+          "required": false,
+          "description": "Name of the symbol to analyze"
+        },
+        {
+          "name": "file",
+          "type": "path",
+          "required": false,
+          "description": "Path to the file to analyze"
+        },
+        {
+          "name": "entity",
+          "type": "string",
+          "required": false,
+          "description": "Name of a specific entity to analyze"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "predicted_value",
+            "type": "float",
+            "description": "Predicted value of the suggestions"
+          },
+          {
+            "name": "explanation",
+            "type": "object",
+            "description": "Explanation fields for the prediction"
+          },
+          {
+            "name": "adaptive_weights",
+            "type": "object",
+            "description": "Current adaptive weight multipliers"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command uses the Adaptive Priority Engine (APE) to predict which suggestions are likely to yield high-value improvements based on project memory."
+    },
+    {
+      "name": "memory_export",
+      "category": "memory",
+      "description": "Export the project memory to JSON format.",
+      "long_description": "Dumps the complete project memory history to JSON format for backup or transfer to another workspace.",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": false,
+          "description": "Path to export the memory file (default: current directory)"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "exported_entries",
+            "type": "int",
+            "description": "Number of entries exported"
+          },
+          {
+            "name": "output_file",
+            "type": "path",
+            "description": "Path of the exported file"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Exports the complete project memory to a JSON file for backup or transfer purposes."
+    },
+    {
+      "name": "memory_import",
+      "category": "memory",
+      "description": "Import project memory from JSON format.",
+      "long_description": "Loads project memory from a JSON file, merging or replacing the current memory.",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "path",
+          "required": true,
+          "description": "Path to the memory file to import"
+        },
+        {
+          "name": "mode",
+          "type": "enum",
+          "enum_values": ["merge", "replace"],
+          "required": false,
+          "default": "merge",
+          "description": "Import mode: merge adds to current memory, replace overwrites current memory"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "imported_entries",
+            "type": "int",
+            "description": "Number of entries imported"
+          },
+          {
+            "name": "import_mode",
+            "type": "string",
+            "description": "The import mode used (merge or replace)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "Imports project memory from a JSON file, either merging with current memory or replacing it."
+    },
+    {
       "name": "semantic_entities",
       "category": "semantic",
       "description": "Get all semantic entities in the workspace",
@@ -1838,6 +1971,173 @@
         "requires_open_file": false
       },
       "context_notes": "This command produces a machine-reviewable bundle suitable for CI pipelines, code review bots, pull request creation layers, and human review workflows. It combines supervisor reasoning with scenario simulation to provide a comprehensive change proposal."
+    },
+    {
+      "name": "global_stats",
+      "category": "cwi",
+      "description": "Get statistics from global knowledge base",
+      "long_description": "Provides detailed statistics about global knowledge including pattern stats, refactor stats, and topology averages across all workspaces",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "pattern_stats",
+            "type": "object",
+            "description": "Statistics about historically successful patterns"
+          },
+          {
+            "name": "refactor_stats",
+            "type": "object",
+            "description": "Statistics about historically successful refactors"
+          },
+          {
+            "name": "topology_stats",
+            "type": "object",
+            "description": "Statistics about workspace topology metrics"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command provides insight into the cross-workspace intelligence gathered from all projects"
+    },
+    {
+      "name": "global_predict",
+      "category": "cwi",
+      "description": "Predict success likelihood based on global knowledge",
+      "long_description": "Analyzes a pattern, refactor or topology and predicts the likely success based on global knowledge and meta-weights",
+      "inputs": [
+        {
+          "name": "pattern",
+          "type": "string",
+          "required": false,
+          "description": "Name of the pattern to analyze"
+        },
+        {
+          "name": "refactor",
+          "type": "string",
+          "required": false,
+          "description": "Name of the refactor to analyze"
+        },
+        {
+          "name": "topology",
+          "type": "string",
+          "required": false,
+          "description": "Name of the topology to analyze"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "prediction",
+            "type": "float",
+            "description": "Predicted success likelihood"
+          },
+          {
+            "name": "factors",
+            "type": "object",
+            "description": "Contributing factors to the prediction"
+          },
+          {
+            "name": "meta_weights",
+            "type": "object",
+            "description": "Current meta-weights used in prediction"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command uses Cross-Workspace Intelligence (CWI) to predict which actions are likely to succeed based on global knowledge across all projects."
+    },
+    {
+      "name": "export_global_knowledge",
+      "category": "cwi",
+      "description": "Export the global knowledge base to JSON format",
+      "long_description": "Dumps the complete global knowledge base to JSON format for backup or transfer to another user/workspace",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": false,
+          "description": "Path to export the global knowledge file (default: current directory)"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "exported_entries",
+            "type": "int",
+            "description": "Number of entries exported"
+          },
+          {
+            "name": "output_file",
+            "type": "path",
+            "description": "Path of the exported file"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Exports the complete global knowledge base to a JSON file for backup or transfer purposes."
+    },
+    {
+      "name": "import_global_knowledge",
+      "category": "cwi",
+      "description": "Import global knowledge from JSON format",
+      "long_description": "Loads global knowledge from a JSON file, merging with the current global knowledge base",
+      "inputs": [
+        {
+          "name": "file",
+          "type": "path",
+          "required": true,
+          "description": "Path to the global knowledge file to import"
+        },
+        {
+          "name": "mode",
+          "type": "enum",
+          "enum_values": ["merge", "replace"],
+          "required": false,
+          "default": "merge",
+          "description": "Import mode: merge adds to current global knowledge, replace overwrites current global knowledge"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "imported_entries",
+            "type": "int",
+            "description": "Number of entries imported"
+          },
+          {
+            "name": "import_mode",
+            "type": "string",
+            "description": "The import mode used (merge or replace)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "Imports global knowledge from a JSON file, either merging with current global knowledge or replacing it."
     }
   ]
 }

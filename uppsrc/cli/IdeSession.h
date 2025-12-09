@@ -93,6 +93,9 @@ public:
     // AI Supervisor Layer v2 - Workspace planning
     virtual Value GetWorkspacePlan(String& error) = 0;
 
+    // Supervisor access for APE functionality
+    virtual CoreSupervisor& GetSupervisor() = 0;
+
     // Dynamic Strategy Engine (PART E)
     virtual bool SetActiveStrategy(const String& name, String& error) = 0;
     virtual Value GetActiveStrategy(String& error) = 0;

@@ -107,6 +107,12 @@ private:
     // Proposal export handler (PART F)
     InvocationResult HandleExportProposal(const VectorMap<String, String>& args);
 
+    // Cross-Workspace Intelligence (CWI) v1 handlers
+    InvocationResult HandleGlobalStats(const VectorMap<String, String>& args);
+    InvocationResult HandleGlobalPredict(const VectorMap<String, String>& args);
+    InvocationResult HandleExportGlobalKnowledge(const VectorMap<String, String>& args);
+    InvocationResult HandleImportGlobalKnowledge(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

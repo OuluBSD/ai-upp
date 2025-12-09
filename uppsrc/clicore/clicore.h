@@ -11,6 +11,7 @@
 #include "CoreAssist.h"
 #include "CoreOptimize.h"
 #include "CoreProposal.h"
+#include "ProjectMemory.h"
 
 NAMESPACE_UPP
 

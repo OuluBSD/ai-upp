@@ -311,6 +311,10 @@ Value IdeSessionImpl::GetWorkspacePlan(String& error) {
     return core_ide.GenerateWorkspacePlan(error);
 }
 
+CoreSupervisor& IdeSessionImpl::GetSupervisor() {
+    return core_ide.GetSupervisor();
+}
+
 // Dynamic Strategy Engine implementations
 bool IdeSessionImpl::SetActiveStrategy(const String& name, String& error) {
     return core_ide.SetActiveStrategy(name, error);

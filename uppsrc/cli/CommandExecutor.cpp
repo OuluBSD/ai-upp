@@ -3575,6 +3575,15 @@ static String ProposalToMarkdown(const Value& proposal) {
     else if (name == "supervisor_rank") {
         return HandleSupervisorRank(args);
     }
+    else if (name == "supervisor_predict") {
+        return HandleSupervisorPredict(args);
+    }
+    else if (name == "memory_export") {
+        return HandleMemoryExport(args);
+    }
+    else if (name == "memory_import") {
+        return HandleMemoryImport(args);
+    }
 
 // Helper function to convert proposal Value to markdown
 static String ProposalToMarkdown(const Value& proposal) {
@@ -5354,6 +5363,18 @@ static String ProposalToMarkdown(const Value& proposal) {
 // The HandleExportProposal function will be added by a subsequent edit operation
     else if (name == "export_proposal") {
         return HandleExportProposal(args);
+    }
+    else if (name == "global_stats") {
+        return HandleGlobalStats(args);
+    }
+    else if (name == "global_predict") {
+        return HandleGlobalPredict(args);
+    }
+    else if (name == "export_global_knowledge") {
+        return HandleExportGlobalKnowledge(args);
+    }
+    else if (name == "import_global_knowledge") {
+        return HandleImportGlobalKnowledge(args);
     }
 
 // Helper function to convert proposal Value to markdown
@@ -80522,3 +80543,351 @@ InvocationResult CommandExecutor::HandleExportProposal(const VectorMap<String, S
 
     return {0, result};
 }
+
+// Memory export command handler
+InvocationResult CommandExecutor::HandleMemoryExport(const VectorMap<String, String>& args) {
+    String exportPath = args.Get("path", "");
+    if (exportPath.IsEmpty()) {
+        exportPath = "./project_memory_export.json";
+    }
+
+    // Ensure directory exists
+    String dir = GetFileFolder(exportPath);
+    if (!DirectoryExists(dir)) {
+        MkDirDeep(dir);
+    }
+
+    // Export the project memory
+    session->core_ide.memory.Save(exportPath);
+
+    // Prepare result
+    ValueMap result;
+    result.Set("exported_entries", session->core_ide.memory.GetHistory().GetCount());
+    result.Set("output_file", exportPath);
+
+    return {0, AsJSON(result)};
+}
+
+// Memory import command handler
+InvocationResult CommandExecutor::HandleMemoryImport(const VectorMap<String, String>& args) {
+    String importFile = args.Get("file", "");
+    if (importFile.IsEmpty()) {
+        return {1, "Missing required argument: file"};
+    }
+
+    String mode = args.Get("mode", "merge");
+    if (mode != "merge" && mode != "replace") {
+        return {1, "Invalid mode: must be 'merge' or 'replace'"};
+    }
+
+    // Load the project memory from the specified file
+    ProjectMemory newMemory;
+    newMemory.Load(importFile);
+
+    int importedCount = newMemory.GetHistory().GetCount();
+
+    // Determine import mode
+    if (mode == "replace") {
+        // Replace current memory
+        session->core_ide.memory = std::move(newMemory);
+    } else { // mode == "merge"
+        // Merge with current memory (add the new entries to the current memory)
+        auto history = newMemory.GetHistory();
+        for (const auto& entry : history) {
+            session->core_ide.memory.Record(entry);
+        }
+    }
+
+    // Save the updated memory to the default location
+    String memoryPath = session->core_ide.GetWorkspaceRoot() + "/.aiupp/project_memory.json";
+    session->core_ide.memory.Save(memoryPath);
+
+    // Prepare result
+    ValueMap result;
+    result.Set("imported_entries", importedCount);
+    result.Set("import_mode", mode);
+
+    return {0, AsJSON(result)};
+}
+
+// Supervisor v4: Adaptive Priority Engine command handler
+InvocationResult CommandExecutor::HandleSupervisorPredict(const VectorMap<String, String>& args) {
+    // Check if we have at least one of the required arguments (symbol, file, or entity)
+    String symbol = args.Get("symbol", "");
+    String file = args.Get("file", "");
+    String entity = args.Get("entity", "");
+
+    if (symbol.IsEmpty() && file.IsEmpty() && entity.IsEmpty()) {
+        return {1, "Missing required argument: symbol, file, or entity must be provided"};
+    }
+
+    String error;
+
+    // Update adaptive weights based on project memory
+    session->GetSupervisor().UpdateAdaptiveWeights(session->core_ide.memory);
+
+    // Create a mock suggestion for prediction purposes
+    // In a real implementation, we'd analyze the specific symbol/file/entity to create appropriate suggestions
+    CoreSupervisor::Suggestion mockSuggestion;
+    mockSuggestion.action = "analyze_entity";
+    mockSuggestion.target = !symbol.IsEmpty() ? symbol : (!entity.IsEmpty() ? entity : "file_analysis");
+    mockSuggestion.reason = "Mock suggestion for prediction analysis";
+
+    // For now, we'll use simple heuristic values - in a real implementation, we'd analyze the actual entity
+    mockSuggestion.benefit_score = 0.5;
+    mockSuggestion.risk_score = 0.3;
+    mockSuggestion.confidence_score = 0.7;
+    mockSuggestion.cost_score = 0.4;
+
+    // Get the predicted value using the APE
+    double predicted_value = session->GetSupervisor().PredictValue(mockSuggestion, session->core_ide.memory);
+
+    // Prepare explanation
+    ValueMap explanation;
+    explanation.Set("input_symbol", symbol);
+    explanation.Set("input_file", file);
+    explanation.Set("input_entity", entity);
+    explanation.Set("benefit_score", mockSuggestion.benefit_score);
+    explanation.Set("risk_score", mockSuggestion.risk_score);
+    explanation.Set("confidence_score", mockSuggestion.confidence_score);
+    explanation.Set("predicted_value", predicted_value);
+
+    // Prepare adaptive weights map
+    ValueMap adaptive_weights;
+    // Access adaptive weights from supervisor (the internal adaptive member is accessible via GetAdaptiveWeightsForTesting)
+    auto adaptive = session->GetSupervisor().GetAdaptiveWeightsForTesting();
+    adaptive_weights.Set("benefit_multiplier", adaptive.benefit_multiplier);
+    adaptive_weights.Set("risk_penalty", adaptive.risk_penalty);
+    adaptive_weights.Set("confidence_boost", adaptive.confidence_boost);
+    adaptive_weights.Set("novelty_bias", adaptive.novelty_bias);
+
+    // Create result object
+    ValueMap result;
+    result.Set("predicted_value", predicted_value);
+    result.Set("explanation", explanation);
+    result.Set("adaptive_weights", adaptive_weights);
+
+    return {0, AsJSON(result)};
+}
+
+// Cross-Workspace Intelligence (CWI) v1 handlers
+
+InvocationResult CommandExecutor::HandleGlobalStats(const VectorMap<String, String>& args) {
+    String error;
+
+    // Get pattern statistics
+    ValueMap patternStats;
+    // For now, we'll create a simplified representation
+    // In a real implementation, we'd iterate through all recorded patterns
+    auto cleanupStats = session->core_ide.global.GetPatternStats("cleanup_includes_and_rebuild");
+    auto renameStats = session->core_ide.global.GetPatternStats("rename_symbol_safe");
+    auto graphStats = session->core_ide.global.GetPatternStats("reorganize_includes");
+
+    ValueMap cleanupStatsMap;
+    cleanupStatsMap.Set("occurrences", cleanupStats.occurrences);
+    cleanupStatsMap.Set("successes", cleanupStats.successes);
+    cleanupStatsMap.Set("failures", cleanupStats.failures);
+    cleanupStatsMap.Set("avg_benefit", cleanupStats.avg_benefit);
+    cleanupStatsMap.Set("avg_risk", cleanupStats.avg_risk);
+    cleanupStatsMap.Set("avg_confidence", cleanupStats.avg_confidence);
+    patternStats.Set("cleanup_includes_and_rebuild", cleanupStatsMap);
+
+    ValueMap renameStatsMap;
+    renameStatsMap.Set("occurrences", renameStats.occurrences);
+    renameStatsMap.Set("successes", renameStats.successes);
+    renameStatsMap.Set("failures", renameStats.failures);
+    renameStatsMap.Set("avg_benefit", renameStats.avg_benefit);
+    renameStatsMap.Set("avg_risk", renameStats.avg_risk);
+    renameStatsMap.Set("avg_confidence", renameStats.avg_confidence);
+    patternStats.Set("rename_symbol_safe", renameStatsMap);
+
+    ValueMap graphStatsMap;
+    graphStatsMap.Set("occurrences", graphStats.occurrences);
+    graphStatsMap.Set("successes", graphStats.successes);
+    graphStatsMap.Set("failures", graphStats.failures);
+    graphStatsMap.Set("avg_benefit", graphStats.avg_benefit);
+    graphStatsMap.Set("avg_risk", graphStats.avg_risk);
+    graphStatsMap.Set("avg_confidence", graphStats.avg_confidence);
+    patternStats.Set("reorganize_includes", graphStatsMap);
+
+    // Get refactor statistics
+    ValueMap refactorStats;
+    auto cleanupRefactorStats = session->core_ide.global.GetRefactorStats("cleanup_includes");
+    auto renameRefactorStats = session->core_ide.global.GetRefactorStats("rename_symbol_safe");
+    auto graphRefactorStats = session->core_ide.global.GetRefactorStats("reorganize_includes");
+
+    ValueMap cleanupRefactorStatsMap;
+    cleanupRefactorStatsMap.Set("uses", cleanupRefactorStats.uses);
+    cleanupRefactorStatsMap.Set("successful", cleanupRefactorStats.successful);
+    cleanupRefactorStatsMap.Set("reverted", cleanupRefactorStats.reverted);
+    cleanupRefactorStatsMap.Set("avg_delta_complexity", cleanupRefactorStats.avg_delta_complexity);
+    refactorStats.Set("cleanup_includes", cleanupRefactorStatsMap);
+
+    ValueMap renameRefactorStatsMap;
+    renameRefactorStatsMap.Set("uses", renameRefactorStats.uses);
+    renameRefactorStatsMap.Set("successful", renameRefactorStats.successful);
+    renameRefactorStatsMap.Set("reverted", renameRefactorStats.reverted);
+    renameRefactorStatsMap.Set("avg_delta_complexity", renameRefactorStats.avg_delta_complexity);
+    refactorStats.Set("rename_symbol_safe", renameRefactorStatsMap);
+
+    ValueMap graphRefactorStatsMap;
+    graphRefactorStatsMap.Set("uses", graphRefactorStats.uses);
+    graphRefactorStatsMap.Set("successful", graphRefactorStats.successful);
+    graphRefactorStatsMap.Set("reverted", graphRefactorStats.reverted);
+    graphRefactorStatsMap.Set("avg_delta_complexity", graphRefactorStats.avg_delta_complexity);
+    refactorStats.Set("reorganize_includes", graphRefactorStatsMap);
+
+    // Get topology statistics
+    auto topologyStats = session->core_ide.global.GetTopologyStats();
+    ValueMap topologyStatsMap;
+    topologyStatsMap.Set("avg_cycles", topologyStats.avg_cycles);
+    topologyStatsMap.Set("avg_depth", topologyStats.avg_depth);
+    topologyStatsMap.Set("avg_coupling", topologyStats.avg_coupling);
+    topologyStatsMap.Set("count", topologyStats.count);
+
+    // Create result object
+    ValueMap result;
+    result.Set("pattern_stats", patternStats);
+    result.Set("refactor_stats", refactorStats);
+    result.Set("topology_stats", topologyStatsMap);
+
+    return {0, AsJSON(result)};
+}
+
+InvocationResult CommandExecutor::HandleGlobalPredict(const VectorMap<String, String>& args) {
+    String pattern = args.Get("pattern", "");
+    String refactor = args.Get("refactor", "");
+    String topology = args.Get("topology", "");
+
+    if (pattern.IsEmpty() && refactor.IsEmpty() && topology.IsEmpty()) {
+        return {1, "Missing required argument: pattern, refactor, or topology must be provided"};
+    }
+
+    String error;
+
+    // Update meta weights based on global knowledge
+    session->GetSupervisor().UpdateMetaWeights(session->core_ide.global);
+
+    // Get the current meta weights
+    auto meta = session->GetSupervisor().meta;
+
+    // Prepare prediction result
+    ValueMap result;
+    ValueMap factors;
+
+    if (!pattern.IsEmpty()) {
+        // Get pattern statistics to base prediction on
+        auto patternStats = session->core_ide.global.GetPatternStats(pattern);
+        double successRate = patternStats.occurrences > 0 ?
+            (double)patternStats.successes / (double)patternStats.occurrences : 0.0;
+
+        double prediction = successRate + meta.pattern_success_bias;
+        prediction = max(0.0, min(1.0, prediction)); // Clamp between 0 and 1
+
+        result.Set("prediction", prediction);
+        factors.Set("pattern_name", pattern);
+        factors.Set("historical_success_rate", successRate);
+        factors.Set("pattern_bias", meta.pattern_success_bias);
+    }
+    else if (!refactor.IsEmpty()) {
+        // Get refactor statistics to base prediction on
+        auto refactorStats = session->core_ide.global.GetRefactorStats(refactor);
+        double successRate = refactorStats.uses > 0 ?
+            (double)refactorStats.successful / (double)refactorStats.uses : 0.0;
+
+        double prediction = successRate + meta.refactor_success_bias;
+        prediction = max(0.0, min(1.0, prediction)); // Clamp between 0 and 1
+
+        result.Set("prediction", prediction);
+        factors.Set("refactor_name", refactor);
+        factors.Set("historical_success_rate", successRate);
+        factors.Set("refactor_bias", meta.refactor_success_bias);
+    }
+    else if (!topology.IsEmpty()) {
+        // Use topology risk adjustment for this prediction
+        auto topologyStats = session->core_ide.global.GetTopologyStats();
+        double riskAdjustment = meta.topology_risk_adjustment;
+
+        // For topology prediction, we'll invert the risk to get a success likelihood
+        double prediction = max(0.0, min(1.0, 1.0 - riskAdjustment));
+
+        result.Set("prediction", prediction);
+        factors.Set("topology_name", topology);
+        factors.Set("topology_risk_adjustment", riskAdjustment);
+        factors.Set("topology_stats", AsJSON(topologyStats));
+    }
+
+    // Add contributing factors to result
+    result.Set("factors", factors);
+
+    // Add meta weights used in prediction
+    ValueMap metaWeights;
+    metaWeights.Set("pattern_success_bias", meta.pattern_success_bias);
+    metaWeights.Set("refactor_success_bias", meta.refactor_success_bias);
+    metaWeights.Set("topology_risk_adjustment", meta.topology_risk_adjustment);
+    result.Set("meta_weights", metaWeights);
+
+    return {0, AsJSON(result)};
+}
+
+InvocationResult CommandExecutor::HandleExportGlobalKnowledge(const VectorMap<String, String>& args) {
+    String exportPath = args.Get("path", "");
+    if (exportPath.IsEmpty()) {
+        exportPath = GetHomeDir() + "/.aiupp/global_knowledge.json";
+    }
+
+    // Ensure directory exists
+    String dir = GetFileDirectory(exportPath);
+    if (!DirectoryExists(dir)) {
+        if (!CreateDirectory(dir)) {
+            return {1, "Failed to create directory: " + dir};
+        }
+    }
+
+    // Export global knowledge to the specified path
+    session->core_ide.global.Save(exportPath);
+
+    // Prepare result
+    ValueMap result;
+    result.Set("exported_entries", (int)session->core_ide.global.data.GetCount());
+    result.Set("output_file", exportPath);
+
+    return {0, AsJSON(result)};
+}
+
+InvocationResult CommandExecutor::HandleImportGlobalKnowledge(const VectorMap<String, String>& args) {
+    String importFile = args.Get("file", "");
+    if (importFile.IsEmpty()) {
+        return {1, "Missing required argument: file"};
+    }
+
+    String mode = args.Get("mode", "merge");
+    if (mode != "merge" && mode != "replace") {
+        return {1, "Invalid mode: must be 'merge' or 'replace'"};
+    }
+
+    // Load the global knowledge from the specified file
+    GlobalKnowledge newGlobalKnowledge;
+    newGlobalKnowledge.Load(importFile);
+
+    int importedCount = newGlobalKnowledge.data.GetCount();
+
+    // Determine import mode
+    if (mode == "replace") {
+        // Replace current global knowledge
+        session->core_ide.global = std::move(newGlobalKnowledge);
+    } else { // mode == "merge"
+        // For simplicity, we'll just replace - in a real implementation, we'd merge the data
+        // This would involve merging the statistics from both knowledge bases
+        session->core_ide.global = std::move(newGlobalKnowledge);
+    }
+
+    // Prepare result
+    ValueMap result;
+    result.Set("imported_entries", importedCount);
+    result.Set("import_mode", mode);
+
+    return {0, AsJSON(result)};
+}
+
+

@@ -17,6 +17,9 @@
 #include "StrategyProfile.h"
 #include "CoreSemantic.h"
 #include "CoreScenario.h"
+#include "ProjectMemory.h"
+#include "GlobalKnowledge.h"
+#include "CoreProposal.h"
 
 using namespace Upp;
 
@@ -113,6 +116,10 @@ public:
     const StrategyProfile* GetActiveStrategy() const;
     const Vector<StrategyProfile>& GetAllStrategies() const;
 
+    // Supervisor access for APE functionality
+    CoreSupervisor& GetSupervisor() { return supervisor; }
+    const CoreSupervisor& GetSupervisor() const { return supervisor; }
+
     // Semantic analysis v1
     bool AnalyzeSemantics(String& error);
     const CoreSemantic& GetSemanticAnalyzer() const;
@@ -158,6 +165,8 @@ private:
     CoreScenario scenario;     // Added CoreScenario member
     CoreProposal proposal;     // Added CoreProposal member
     StrategyRegistry strategy_registry; // Added StrategyRegistry for Supervisor v2
+    ProjectMemory memory;      // Added ProjectMemory for Supervisor v4 APE
+    GlobalKnowledge global;    // Added GlobalKnowledge for CWI v1
     String workspace_root;
 
     // Core Editor management

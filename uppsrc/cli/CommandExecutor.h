@@ -89,6 +89,24 @@ private:
     InvocationResult HandleSemanticRoles(const VectorMap<String, String>& args);
     InvocationResult HandleSemanticLayers(const VectorMap<String, String>& args);
 
+    // Semantic Analysis v3 - NEW: Behavioral analysis handlers
+    InvocationResult HandleSemanticBehavior(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticBehaviorEntity(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticBehaviorGraph(const VectorMap<String, String>& args);
+    InvocationResult HandleSemanticPipeline(const VectorMap<String, String>& args);
+
+    // Scenario operation handlers (PART D)
+    InvocationResult HandleBuildScenario(const VectorMap<String, String>& args);
+    InvocationResult HandleSimulateScenario(const VectorMap<String, String>& args);
+    InvocationResult HandleApplyScenario(const VectorMap<String, String>& args);
+
+    // Patch and revert handlers (PART E)
+    InvocationResult HandleScenarioDiff(const VectorMap<String, String>& args);
+    InvocationResult HandleScenarioRevert(const VectorMap<String, String>& args);
+
+    // Proposal export handler (PART F)
+    InvocationResult HandleExportProposal(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

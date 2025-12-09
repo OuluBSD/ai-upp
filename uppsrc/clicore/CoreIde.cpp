@@ -734,3 +734,163 @@ const CoreSemantic& CoreIde::GetSemanticAnalyzer() const {
 CoreSemantic& CoreIde::GetSemanticAnalyzer() {
     return semantic;
 }
+
+// Scenario operations
+Value CoreIde::BuildScenarioFromPlan(const String& package, int max_actions, String& error) {
+    // Generate an optimization plan from the supervisor
+    CoreSupervisor::Plan sup_plan = supervisor.GenerateOptimizationPlan(package, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert the supervisor plan to a scenario plan
+    CoreScenario::ScenarioPlan scenario_plan = scenario.BuildPlanFromSupervisor(sup_plan, max_actions);
+
+    // Convert to ValueMap for return
+    ValueMap result;
+    result.Set("name", scenario_plan.name);
+
+    ValueArray actions;
+    for (const auto& action : scenario_plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions.Add(action_map);
+    }
+    result.Set("actions", actions);
+
+    result.Set("metadata", scenario_plan.metadata);
+
+    return result;
+}
+
+Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
+    // Convert Value to ScenarioPlan
+    if (!Is<ValueMap>(plan_desc)) {
+        error = "plan_desc must be a ValueMap";
+        return Value();
+    }
+
+    const ValueMap& plan_map = plan_desc;
+    CoreScenario::ScenarioPlan plan;
+    plan.name = plan_map.Get("name", String("default_scenario"));
+
+    // Convert actions from ValueArray to Vector<ScenarioAction>
+    if (plan_map.Find("actions") >= 0) {
+        ValueArray actions = plan_map.Get("actions");
+        for (int i = 0; i < actions.GetCount(); i++) {
+            if (Is<ValueMap>(actions[i])) {
+                const ValueMap& action_map = actions[i];
+                CoreScenario::ScenarioAction action;
+                action.type = action_map.Get("type", String("command"));
+                action.target = action_map.Get("target", String(""));
+                action.params = action_map.Get("params", ValueMap());
+                plan.actions.Add(action);
+            }
+        }
+    }
+
+    // Perform simulation
+    CoreScenario::ScenarioResult result = scenario.Simulate(plan, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert result to ValueMap for return
+    ValueMap result_map;
+    ValueMap plan_map_result;
+    plan_map_result.Set("name", result.plan.name);
+
+    ValueArray actions_result;
+    for (const auto& action : result.plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions_result.Add(action_map);
+    }
+    plan_map_result.Set("actions", actions_result);
+
+    result_map.Set("plan", plan_map_result);
+    result_map.Set("before", result.before.telemetry); // Simplified for now
+    result_map.Set("after", result.after.telemetry); // Simplified for now
+    result_map.Set("deltas", result.deltas);
+    result_map.Set("applied", result.applied);
+
+    return result_map;
+}
+
+Value CoreIde::ApplyScenario(const Value& plan_desc, String& error) {
+    // Convert Value to ScenarioPlan (similar to SimulateScenario)
+    if (!Is<ValueMap>(plan_desc)) {
+        error = "plan_desc must be a ValueMap";
+        return Value();
+    }
+
+    const ValueMap& plan_map = plan_desc;
+    CoreScenario::ScenarioPlan plan;
+    plan.name = plan_map.Get("name", String("default_scenario"));
+
+    // Convert actions from ValueArray to Vector<ScenarioAction>
+    if (plan_map.Find("actions") >= 0) {
+        ValueArray actions = plan_map.Get("actions");
+        for (int i = 0; i < actions.GetCount(); i++) {
+            if (Is<ValueMap>(actions[i])) {
+                const ValueMap& action_map = actions[i];
+                CoreScenario::ScenarioAction action;
+                action.type = action_map.Get("type", String("command"));
+                action.target = action_map.Get("target", String(""));
+                action.params = action_map.Get("params", ValueMap());
+                plan.actions.Add(action);
+            }
+        }
+    }
+
+    // Apply the scenario
+    CoreScenario::ScenarioResult result = scenario.Apply(plan, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert result to ValueMap for return
+    ValueMap result_map;
+    ValueMap plan_map_result;
+    plan_map_result.Set("name", result.plan.name);
+
+    ValueArray actions_result;
+    for (const auto& action : result.plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions_result.Add(action_map);
+    }
+    plan_map_result.Set("actions", actions_result);
+
+    result_map.Set("plan", plan_map_result);
+    result_map.Set("before", result.before.telemetry); // Simplified for now
+    result_map.Set("after", result.after.telemetry); // Simplified for now
+    result_map.Set("deltas", result.deltas);
+    result_map.Set("applied", result.applied);
+
+    return result_map;
+}
+
+
+Value CoreIde::BuildProposal(const String& package,
+                             int max_actions,
+                             String& error) {
+    // Build the proposal using the CoreProposal class
+    CoreProposal::Proposal proposal = this->proposal.BuildProposal(*this, package, max_actions, error);
+    
+    if (!error.IsEmpty()) {
+        return Value(); // Return empty value on error
+    }
+    
+    // Convert the proposal to Value using the CoreProposal's ToValue method
+    return this->proposal.ToValue(proposal);
+}

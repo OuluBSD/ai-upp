@@ -618,6 +618,167 @@ Value IdeSessionImpl::GetSemanticLayers(String& error) {
     return layers_map;
 }
 
+// NEW: SemanticAssist v4 - Architecture diagnostic methods
+Value IdeSessionImpl::GetSemanticPatterns(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic patterns";
+        return Value();
+    }
+
+    // Get the entities from the semantic analyzer
+    const auto& entities = core_ide.semantic.GetEntities();
+
+    // Convert entities with their patterns to ValueArray
+    ValueArray result;
+    for (const auto& entity : entities) {
+        if (!entity.patterns.IsEmpty()) {  // Only include entities that have patterns
+            ValueMap entity_map;
+            entity_map.Set("name", entity.name);
+            entity_map.Set("kind", entity.kind);
+            entity_map.Set("file", entity.file);
+            entity_map.Set("line", entity.line);
+            entity_map.Set("patterns", entity.patterns);
+            result.Add(entity_map);
+        }
+    }
+
+    return result;
+}
+
+Value IdeSessionImpl::GetSemanticAntiPatterns(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic anti-patterns";
+        return Value();
+    }
+
+    // Get the entities from the semantic analyzer
+    const auto& entities = core_ide.semantic.GetEntities();
+
+    // Convert entities with their anti-patterns to ValueArray
+    ValueArray result;
+    for (const auto& entity : entities) {
+        if (!entity.antipatterns.IsEmpty()) {  // Only include entities that have anti-patterns
+            ValueMap entity_map;
+            entity_map.Set("name", entity.name);
+            entity_map.Set("kind", entity.kind);
+            entity_map.Set("file", entity.file);
+            entity_map.Set("line", entity.line);
+            entity_map.Set("antipatterns", entity.antipatterns);
+            result.Add(entity_map);
+        }
+    }
+
+    return result;
+}
+
+Value IdeSessionImpl::GetSemanticArchitecture(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic architecture";
+        return Value();
+    }
+
+    // Get the architecture diagnostic from the semantic analyzer
+    const auto& diagnostic = core_ide.semantic.GetArchitectureDiagnostic();
+
+    // Create the result map
+    ValueMap result;
+
+    // Convert patterns to ValueArray
+    ValueArray patterns_array;
+    for (const auto& pattern : diagnostic.patterns) {
+        patterns_array.Add(pattern);
+    }
+    result.Set("patterns", patterns_array);
+
+    // Convert anti-patterns to ValueArray
+    ValueArray antipatterns_array;
+    for (const auto& antipattern : diagnostic.antipatterns) {
+        antipatterns_array.Add(antipattern);
+    }
+    result.Set("antipatterns", antipatterns_array);
+
+    // Add scores
+    result.Set("scores", diagnostic.scores);
+
+    return result;
+}
+
+Value IdeSessionImpl::GetSemanticOutliers(String& error) {
+    // First ensure semantic analysis has been run
+    if (!core_ide.AnalyzeSemantics(error)) {
+        if (error.IsEmpty()) error = "Failed to analyze workspace for semantic outliers";
+        return Value();
+    }
+
+    // Get the entities from the semantic analyzer
+    const auto& entities = core_ide.semantic.GetEntities();
+
+    // For simplicity, we'll consider entities with extreme metrics as outliers
+    // This is a basic implementation - a more sophisticated approach would use statistical analysis
+    ValueArray outliers;
+
+    for (const auto& entity : entities) {
+        // Identify potential outliers based on extreme metrics
+        int fannin = entity.attributes.Get("fannin", 0);
+        int fanout = entity.attributes.Get("fanout", 0);
+        int complexity = entity.attributes.Get("complexity", 0);
+        double cohesion_score = entity.attributes.Get("cohesion_score", 0.0);
+        double coupling_score = entity.attributes.Get("coupling_score", 0.0);
+
+        // Heuristic thresholds for outliers
+        bool is_outlier = fannin > 20 || fanout > 20 || complexity > 100 ||
+                         cohesion_score > 0.95 || coupling_score > 0.8;
+
+        if (is_outlier || !entity.antipatterns.IsEmpty()) {
+            ValueMap entity_map;
+            entity_map.Set("name", entity.name);
+            entity_map.Set("kind", entity.kind);
+            entity_map.Set("file", entity.file);
+            entity_map.Set("line", entity.line);
+            entity_map.Set("fannin", fannin);
+            entity_map.Set("fanout", fanout);
+            entity_map.Set("complexity", complexity);
+            entity_map.Set("cohesion_score", cohesion_score);
+            entity_map.Set("coupling_score", coupling_score);
+            entity_map.Set("antipatterns", entity.antipatterns);
+            outliers.Add(entity_map);
+        }
+    }
+
+    return outliers;
+}
+
+// Scenario operations implementations (PART C)
+Value IdeSessionImpl::BuildScenario(const String& package,
+                                    int max_actions,
+                                    String& error) {
+    return core_ide.BuildScenarioFromPlan(package, max_actions, error);
+}
+
+Value IdeSessionImpl::SimulateScenario(const Value& plan_desc,
+                                       String& error) {
+    return core_ide.SimulateScenario(plan_desc, error);
+}
+
+Value IdeSessionImpl::ApplyScenario(const Value& plan_desc,
+                                    String& error) {
+    return core_ide.ApplyScenario(plan_desc, error);
+}
+
+Value IdeSessionImpl::RevertPatch(const String& patch_text,
+                                  String& error) {
+    return core_ide.RevertPatch(patch_text, error);
+}
+
+Value IdeSessionImpl::BuildProposal(const String& package,
+                                    int max_actions,
+                                    String& error) {
+    return core_ide.BuildProposal(package, max_actions, error);
+}
+
 One<IdeSession> CreateIdeSession() {
     return new IdeSessionImpl();
 }

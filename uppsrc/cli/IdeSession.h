@@ -109,6 +109,37 @@ public:
     virtual Value GetSemanticEntity(const String& name, String& error) = 0;
     virtual Value GetSemanticRoles(String& error) = 0;
     virtual Value GetSemanticLayers(String& error) = 0;
+
+    // Semantic Analysis v3 - NEW: Behavioral analysis methods
+    virtual Value GetSemanticBehavior(String& error) = 0;
+    virtual Value GetSemanticBehaviorEntity(const String& name, String& error) = 0;
+    virtual Value GetSemanticBehaviorGraph(String& error) = 0;
+    virtual Value GetSemanticPipeline(String& error) = 0;
+
+    // Semantic Analysis v4 - NEW: Architecture diagnostic methods
+    virtual Value GetSemanticPatterns(String& error) = 0;
+    virtual Value GetSemanticAntiPatterns(String& error) = 0;
+    virtual Value GetSemanticArchitecture(String& error) = 0;
+    virtual Value GetSemanticOutliers(String& error) = 0;
+
+    // Scenario operations (PART C)
+    virtual Value BuildScenario(const String& package,
+                                int max_actions,
+                                String& error) = 0;
+
+    virtual Value SimulateScenario(const Value& plan_desc,
+                                   String& error) = 0;
+
+    virtual Value ApplyScenario(const Value& plan_desc,
+                                String& error) = 0;
+
+    // Revert patch functionality (PART D)
+    virtual Value RevertPatch(const String& patch_text, String& error) = 0;
+
+    // Proposal generation v1
+    virtual Value BuildProposal(const String& package,
+                                int max_actions,
+                                String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

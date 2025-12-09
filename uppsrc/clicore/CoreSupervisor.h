@@ -2,7 +2,6 @@
 #define _clicore_CoreSupervisor_h_
 
 #include <Core/Core.h>
-#include <CtrlCore/CtrlCore.h>
 
 class CoreIde;
 

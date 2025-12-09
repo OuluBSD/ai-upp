@@ -26,6 +26,22 @@ public:
     // Debug dump
     String DumpGraph() const;
 
+    // Graph statistics and analysis methods for telemetry
+    int GetNodeCount() const;
+    int GetOutgoingCount(const String& pkg) const;
+    int GetIncomingCount(const String& pkg) const;
+    bool HasCycles() const;
+    int GetLongestPathLength() const;
+    const VectorMap<String, Vector<String>>& GetAdjacencyList() const { return adj; }
+    const VectorMap<String, Vector<String>>& GetReverseList() const { return rev; }
+
+private:
+    // Helper for cycle detection
+    bool DfsCycleDetection(const String& node,
+                           VectorMap<String, int>& visited,
+                           Vector<String>& path,
+                           Vector<Vector<String>>& out_cycles) const;
+
 private:
     // package -> list of dependent packages (uses)
     VectorMap<String, Vector<String>> adj;

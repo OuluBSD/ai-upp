@@ -1,14 +1,24 @@
 #ifndef UPP_CLICORE_COREREFACTOR_H
 #define UPP_CLICORE_COREREFACTOR_H
 
-#include <CoreAssist/CoreAssist.h>
-#include <CoreEditor/CoreEditor.h>
-#include <CoreIde/CoreIde.h>
-#include <CoreBuild/CoreBuild.h>
-#include <CoreGraph/CoreGraph.h>
-#include <CoreWorkspace/CoreWorkspace.h>
+#include <clicore/CoreAssist.h>
+#include <clicore/CoreEditor.h>
+#include <clicore/CoreIde.h>
+#include <clicore/CoreBuild.h>
+#include <clicore/CoreGraph.h>
+#include <clicore/CoreWorkspace.h>
 
 class CoreIde;
+
+// Define a struct to replace Tuple usage
+struct EditOperation : Moveable<EditOperation> {
+    int pos;
+    int length;
+    String replacement;
+
+    EditOperation() : pos(0), length(0) {}
+    EditOperation(int p, int l, const String& r) : pos(p), length(l), replacement(r) {}
+};
 
 class CoreRefactor : Moveable<CoreRefactor> {
 public:
@@ -41,7 +51,7 @@ private:
                             String& error);
 
     bool ApplyEdits(const String& path,
-                    const Vector<Tuple<int, int, String>>& edits,
+                    const Vector<EditOperation>& edits,
                     CoreIde& ide,
                     String& error);
 };

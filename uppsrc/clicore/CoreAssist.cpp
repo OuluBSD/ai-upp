@@ -111,7 +111,7 @@ bool CoreAssist::IndexFile(const String& path, String& error) {
 }
 
 bool CoreAssist::FindDefinition(const String& symbol, String& out_file, int& out_line) const {
-    const SymbolLocation* loc = definitions.Find(symbol);
+    const SymbolLocation* loc = definitions.FindPtr(symbol);
     if (loc) {
         out_file = loc->file;
         out_line = loc->line;
@@ -121,7 +121,7 @@ bool CoreAssist::FindDefinition(const String& symbol, String& out_file, int& out
 }
 
 bool CoreAssist::FindUsages(const String& symbol, Vector<String>& out_locations) const {
-    const Vector<SymbolLocation>* locations = usages.Find(symbol);
+    const Vector<SymbolLocation>* locations = usages.FindPtr(symbol);
     if (locations) {
         for (const auto& loc : *locations) {
             out_locations.Add(loc.file + ":" + IntStr(loc.line));

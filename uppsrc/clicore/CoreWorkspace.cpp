@@ -365,3 +365,13 @@ String CoreWorkspace::GetPackageOfFile(const String& filepath) const {
 
     return String();  // Empty string if file is not found in any package
 }
+
+Vector<String> CoreWorkspace::GetPackageUses(const String& package_name) const {
+    const Package* pkg = GetPackage(package_name);
+    if (pkg) {
+        Vector<String> result;
+        result <<= pkg->uses; // Use pick assignment to copy the vector
+        return result;
+    }
+    return Vector<String>();  // Return empty vector if package not found
+}

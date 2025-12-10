@@ -143,6 +143,11 @@ public:
     virtual Value BuildProposal(const String& package,
                                 int max_actions,
                                 String& error) = 0;
+
+    // Orchestrator v1 - Multi-project roadmap management
+    virtual bool AddWorkspaceToOrchestrator(const String& path, String& error) = 0;
+    virtual Value GetWorkspaceSummaries(String& error) = 0;
+    virtual Value BuildGlobalRoadmap(const String& strategy, String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

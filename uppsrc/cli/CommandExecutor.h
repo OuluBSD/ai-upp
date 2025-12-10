@@ -113,6 +113,31 @@ private:
     InvocationResult HandleExportGlobalKnowledge(const VectorMap<String, String>& args);
     InvocationResult HandleImportGlobalKnowledge(const VectorMap<String, String>& args);
 
+    // Lifecycle Supervisor v1 handlers
+    InvocationResult HandleLifecyclePhase(const VectorMap<String, String>& args);
+    InvocationResult HandleLifecyclePhases(const VectorMap<String, String>& args);
+    InvocationResult HandleLifecyclePredict(const VectorMap<String, String>& args);
+
+    // Lifecycle Supervisor v2 handlers
+    InvocationResult HandleLifecycleDrift(const VectorMap<String, String>& args);
+    InvocationResult HandleLifecycleStability(const VectorMap<String, String>& args);
+    InvocationResult HandleLifecycleTimeline(const VectorMap<String, String>& args);
+
+    // Orchestrator v1 - Multi-project roadmap handlers
+    InvocationResult HandleOrchestratorAddWorkspace(const VectorMap<String, String>& args);
+    InvocationResult HandleOrchestratorSummaries(const VectorMap<String, String>& args);
+    InvocationResult HandleOrchestratorRoadmap(const VectorMap<String, String>& args);
+
+    // Temporal Strategy Engine v1 handlers
+    InvocationResult HandleTemporalSeasonality(const VectorMap<String, String>& args);
+    InvocationResult HandleTemporalCadence(const VectorMap<String, String>& args);
+    InvocationResult HandleTemporalWindows(const VectorMap<String, String>& args);
+
+    // Temporal Strategy Engine v2 - Forecasting & Shock Modeling command handlers
+    InvocationResult HandleTemporalForecast(const VectorMap<String, String>& args);
+    InvocationResult HandleTemporalRisk(const VectorMap<String, String>& args);
+    InvocationResult HandleTemporalShock(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

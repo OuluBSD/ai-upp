@@ -6,6 +6,10 @@
 #include "GlobalKnowledge.h"
 
 CoreSupervisor::CoreSupervisor() {
+    // Initialize temporal weights to default values
+    temporal.avoid_crunch_multiplier = 0.5;
+    temporal.prefer_stability_bonus = 0.3;
+    temporal.release_cycle_alignment = 0.4;
 }
 
 void CoreSupervisor::SetStrategyRegistry(const StrategyRegistry* reg) {
@@ -1394,11 +1398,49 @@ CoreSupervisor::Plan CoreSupervisor::GenerateOptimizationPlan(const String& pack
             plan.steps.Add(optimization_loop);
         }
 
+        // Get the risk profile for risk-aware sorting
+        Value risk_value = ide.GetRiskProfile();
+        RiskProfile risk_profile;
+
+        // Convert the Value to RiskProfile
+        if (risk_value.Is<ValueMap>()) {
+            ValueMap risk_map = risk_value;
+            risk_profile.long_term_risk = risk_map.Get("long_term_risk", 0.5);
+            risk_profile.volatility_risk = risk_map.Get("volatility_risk", 0.5);
+            risk_profile.schedule_risk = risk_map.Get("schedule_risk", 0.5);
+            risk_profile.architectural_risk = risk_map.Get("architectural_risk", 0.5);
+
+            // Extract possible shocks
+            Value shocks_value = risk_map.Get("possible_shocks", ValueArray());
+            if (shocks_value.Is<ValueArray>()) {
+                ValueArray shocks_array = shocks_value;
+                for (const auto& shock_val : shocks_array) {
+                    if (shock_val.Is<ValueMap>()) {
+                        ValueMap shock_map = shock_val;
+                        ShockScenario shock;
+                        shock.type = shock_map.Get("type", String());
+                        shock.severity = shock_map.Get("severity", 0.0);
+                        shock.probability = shock_map.Get("probability", 0.0);
+                        risk_profile.possible_shocks.Add(shock);
+                    }
+                }
+            }
+        }
+
         // Sort suggestions using the adaptive prediction values (APE)
         if (ape_enabled) {
-            Sort(plan.steps, [this, &ide](const Suggestion& a, const Suggestion& b) {
-                return PredictValue(a, ide.memory) > PredictValue(b, ide.memory);
-            });
+            LifecyclePhase current_phase = ide.GetCurrentLifecyclePhase(); // Get current lifecycle phase
+            if (risk_profile.long_term_risk > 0.0 || risk_profile.volatility_risk > 0.0 || risk_profile.possible_shocks.GetCount() > 0) {
+                // Use risk-aware prediction if risk profile is available
+                Sort(plan.steps, [this, &ide, &current_phase, &risk_profile](const Suggestion& a, const Suggestion& b) {
+                    return PredictValue(a, ide.memory, risk_profile) > PredictValue(b, ide.memory, risk_profile);
+                });
+            } else {
+                // Fall back to lifecycle-aware prediction
+                Sort(plan.steps, [this, &ide, &current_phase](const Suggestion& a, const Suggestion& b) {
+                    return PredictValue(a, ide.memory, current_phase) > PredictValue(b, ide.memory, current_phase);
+                });
+            }
         } else {
             // Fallback to original sorting by benefit-to-cost ratio
             Sort(plan.steps, [](const Suggestion& a, const Suggestion& b) {
@@ -1602,8 +1644,9 @@ Value CoreSupervisor::BuildScenario(const String& package,
 
         // Sort by adaptive prediction values (APE) if enabled, otherwise use default sorting
         if (ape_enabled) {
-            Sort(sorted_suggestions, [this, &ide](const Suggestion& a, const Suggestion& b) {
-                return PredictValue(a, ide.memory) > PredictValue(b, ide.memory);
+            LifecyclePhase current_phase = ide.GetCurrentLifecyclePhase(); // Get current lifecycle phase
+            Sort(sorted_suggestions, [this, &ide, &current_phase](const Suggestion& a, const Suggestion& b) {
+                return PredictValue(a, ide.memory, current_phase) > PredictValue(b, ide.memory, current_phase);
             });
         } else {
             // Fallback to original sorting by benefit-to-cost ratio
@@ -1794,6 +1837,304 @@ double CoreSupervisor::PredictValue(const Suggestion& s, const ProjectMemory& me
     // If the workspace has problematic topologies, increase the penalty for risky operations
     value -= meta.topology_risk_adjustment * architecture_risk_factor;
 
+    // NEW: Lifecycle Supervisor v1 - Adjust value based on project lifecycle phase
+    // This would typically be called through the CoreIde to get the current lifecycle phase
+    // For this implementation, we'll assume a default phase behavior
+    // In a real implementation, we'd have access to the CoreIde to get the current phase
+    // For now, we'll simulate the different phase effects based on typical lifecycle characteristics:
+    // This is a simplified version where lifecycle effects are applied as static adjustments
+    // For a complete implementation, the lifecycle phase would be passed as part of the context
+
+    // Note: In a complete implementation, the lifecycle phase adjustment would happen
+    // in the method that calls PredictValue, using something like:
+    // if (current_phase.name == "early_growth") {
+    //     value += lw.growth_refactor_bonus * suggestion.benefit_score;
+    // } else if (current_phase.name == "mature") {
+    //     value -= lw.mature_conservatism_bias * suggestion.risk_score;
+    // } else if (current_phase.name == "declining") {
+    //     value += lw.decline_alertness_factor * suggestion.confidence_score;
+    // } else if (current_phase.name == "legacy") {
+    //     value -= lw.legacy_risk_multiplier * suggestion.cost_score;
+    // }
+
+    // As a placeholder implementation, we'll use a fixed adjustment
+    // This simulates the effect of being in a "mature" phase with conservative bias
+    value -= 0.1 * s.risk_score;  // Conservative bias typical for mature phase
+
+    return value;
+}
+
+// NEW: Lifecycle Supervisor v1 - Overload of PredictValue that takes lifecycle phase into account
+double CoreSupervisor::PredictValue(const Suggestion& s, const ProjectMemory& mem, const LifecyclePhase& current_phase) const {
+    double value =
+        s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + 0.0; // semantic_novelty(s) * adaptive.novelty_bias; // Placeholder for semantic novelty
+
+    // For now, we'll implement a simple novelty measure based on how often
+    // similar actions have been tried
+    int similar_actions_count = 0;
+    int total_actions = mem.GetHistory().GetCount();
+
+    if (total_actions > 0) {
+        for (const auto& entry : mem.GetHistory()) {
+            if (entry.proposal_id.Contains(s.action) || entry.proposal_id.Contains(s.target)) {
+                similar_actions_count++;
+            }
+        }
+
+        double novelty_factor = 1.0 - ((double)similar_actions_count / (double)total_actions);
+        value += novelty_factor * adaptive.novelty_bias;
+    }
+
+    // Integrate meta-weights from global knowledge (CWI v1)
+    // Adjust value based on historically successful patterns across all projects
+    double pattern_match_score = 0.0;
+    if (s.target == "cleanup_includes_and_rebuild" ||
+        s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes") {
+        // If this suggestion matches a historically successful pattern, boost its value
+        pattern_match_score = meta.pattern_success_bias;
+    }
+
+    value += meta.pattern_success_bias * pattern_match_score;
+
+    // Adjust value based on historically risky refactors
+    double risky_refactor_factor = 0.0;
+    if (s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes" ||
+        s.target.Contains("refactor")) {
+        risky_refactor_factor = meta.refactor_success_bias;
+    }
+
+    // Only subtract if the refactor has been historically risky (negative bias)
+    if (risky_refactor_factor < 0) {
+        value -= meta.refactor_success_bias * risky_refactor_factor;
+    }
+
+    // Adjust value based on workspace topology risks
+    double architecture_risk_factor = s.risk_score; // Use the suggestion's own risk score as a base
+
+    // If the workspace has problematic topologies, increase the penalty for risky operations
+    value -= meta.topology_risk_adjustment * architecture_risk_factor;
+
+    // NEW: Lifecycle Supervisor v1 - Apply lifecycle-specific adjustments
+    if (current_phase.name == "early_growth") {
+        value += lw.growth_refactor_bonus * s.benefit_score;
+    } else if (current_phase.name == "mature") {
+        value -= lw.mature_conservatism_bias * s.risk_score;
+    } else if (current_phase.name == "declining") {
+        value += lw.decline_alertness_factor * s.confidence_score;
+    } else if (current_phase.name == "legacy") {
+        value -= lw.legacy_risk_multiplier * s.cost_score;
+    }
+
+    // NEW: Lifecycle Supervisor v2 - Apply drift-aware adjustments
+    // If stability_index is low (less than 0.3), reduce value based on risk
+    if (current_phase.stability < 0.3) {  // Using stability as a proxy for low stability_index
+        // In an unstable system, be more conservative with risky changes
+        value -= dw.low_stability_risk_amplifier * s.risk_score;
+    }
+
+    // If drift.transitions is high, be more conservative
+    // This requires getting drift metrics from the lifecycle model in the IDE context
+    // For now, using the weights to represent this behavior
+    value -= dw.high_drift_conservatism * s.cost_score;
+
+    // If stability is high (>0.8) and phase is mature or legacy, allow "big moves"
+    if (current_phase.stability > 0.8 &&
+        (current_phase.name == "mature" || current_phase.name == "legacy")) {
+        value += dw.stable_refactor_release * s.benefit_score;
+    }
+
+    return value;
+}
+
+// NEW: Lifecycle Supervisor v2 - Overload of PredictValue that takes drift metrics and stability index into account
+double CoreSupervisor::PredictValue(const Suggestion& s,
+                                   const ProjectMemory& mem,
+                                   const LifecycleModel::DriftMetrics& drift,
+                                   double stability_index) const {
+    // Start with the standard calculation from the base method
+    double value =
+        s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + 0.0; // semantic_novelty(s) * adaptive.novelty_bias; // Placeholder for semantic novelty
+
+    // For now, we'll implement a simple novelty measure based on how often
+    // similar actions have been tried
+    int similar_actions_count = 0;
+    int total_actions = mem.GetHistory().GetCount();
+
+    if (total_actions > 0) {
+        for (const auto& entry : mem.GetHistory()) {
+            if (entry.proposal_id.Contains(s.action) || entry.proposal_id.Contains(s.target)) {
+                similar_actions_count++;
+            }
+        }
+
+        double novelty_factor = 1.0 - ((double)similar_actions_count / (double)total_actions);
+        value += novelty_factor * adaptive.novelty_bias;
+    }
+
+    // Integrate meta-weights from global knowledge (CWI v1)
+    // Adjust value based on historically successful patterns across all projects
+    double pattern_match_score = 0.0;
+    if (s.target == "cleanup_includes_and_rebuild" ||
+        s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes") {
+        // If this suggestion matches a historically successful pattern, boost its value
+        pattern_match_score = meta.pattern_success_bias;
+    }
+
+    value += meta.pattern_success_bias * pattern_match_score;
+
+    // Adjust value based on historically risky refactors
+    double risky_refactor_factor = 0.0;
+    if (s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes" ||
+        s.target.Contains("refactor")) {
+        risky_refactor_factor = meta.refactor_success_bias;
+    }
+
+    // Only subtract if the refactor has been historically risky (negative bias)
+    if (risky_refactor_factor < 0) {
+        value -= meta.refactor_success_bias * risky_refactor_factor;
+    }
+
+    // Adjust value based on workspace topology risks
+    double architecture_risk_factor = s.risk_score; // Use the suggestion's own risk score as a base
+
+    // If the workspace has problematic topologies, increase the penalty for risky operations
+    value -= meta.topology_risk_adjustment * architecture_risk_factor;
+
+    // NEW: Lifecycle Supervisor v2 - Apply drift-aware adjustments
+    // If stability_index is low (less than 0.3), reduce value based on risk
+    if (stability_index < 0.3) {
+        // In an unstable system, be more conservative with risky changes
+        value -= dw.low_stability_risk_amplifier * s.risk_score;
+    }
+
+    // If transitions is high, apply conservatism based on cost
+    if (drift.transitions > 5) {  // Using 5 as a threshold for high drift
+        value -= dw.high_drift_conservatism * s.cost_score;
+    }
+
+    // If stability is high (>0.8) and we're in mature/legacy phase, allow more aggressive refactoring
+    // This would normally be based on the current phase, but we don't have it here
+    // For now, we'll just apply the stable refactor release if stability is very high
+    if (stability_index > 0.8) {
+        value += dw.stable_refactor_release * s.benefit_score;
+    }
+
+    return value;
+}
+
+// Temporal Strategy Engine v1 - Overload of PredictValue that takes temporal seasonality into account
+double CoreSupervisor::PredictValue(const Suggestion& s,
+                                   const ProjectMemory& mem,
+                                   const Vector<StabilityWindow>& stability_windows,
+                                   const Vector<SeasonalityPattern>& seasonality_patterns,
+                                   const ReleaseCadence& cadence) const {
+    // Start with the standard calculation from the base method
+    double value =
+        s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + 0.0; // semantic_novelty(s) * adaptive.novelty_bias; // Placeholder for semantic novelty
+
+    // For now, we'll implement a simple novelty measure based on how often
+    // similar actions have been tried
+    int similar_actions_count = 0;
+    int total_actions = mem.GetHistory().GetCount();
+
+    if (total_actions > 0) {
+        for (const auto& entry : mem.GetHistory()) {
+            if (entry.proposal_id.Contains(s.action) || entry.proposal_id.Contains(s.target)) {
+                similar_actions_count++;
+            }
+        }
+
+        double novelty_factor = 1.0 - ((double)similar_actions_count / (double)total_actions);
+        value += novelty_factor * adaptive.novelty_bias;
+    }
+
+    // Integrate meta-weights from global knowledge (CWI v1)
+    // Adjust value based on historically successful patterns across all projects
+    double pattern_match_score = 0.0;
+    if (s.target == "cleanup_includes_and_rebuild" ||
+        s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes") {
+        // If this suggestion matches a historically successful pattern, boost its value
+        pattern_match_score = meta.pattern_success_bias;
+    }
+
+    value += meta.pattern_success_bias * pattern_match_score;
+
+    // Adjust value based on historically risky refactors
+    double risky_refactor_factor = 0.0;
+    if (s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes" ||
+        s.target.Contains("refactor")) {
+        risky_refactor_factor = meta.refactor_success_bias;
+    }
+
+    // Only subtract if the refactor has been historically risky (negative bias)
+    if (risky_refactor_factor < 0) {
+        value -= meta.refactor_success_bias * risky_refactor_factor;
+    }
+
+    // Adjust value based on workspace topology risks
+    double architecture_risk_factor = s.risk_score; // Use the suggestion's own risk score as a base
+
+    // If the workspace has problematic topologies, increase the penalty for risky operations
+    value -= meta.topology_risk_adjustment * architecture_risk_factor;
+
+    // NEW: Temporal Strategy Engine v1 - Apply temporal reasoning adjustments
+    // Check if current time (simulated as "now") lies within a predicted stability window
+    // For this implementation, we'll assume the current "iteration" or "timestamp" is the most recent
+    int current_time = 0;
+    if (mem.GetHistory().GetCount() > 0) {
+        // Use the count of memory entries as a proxy for current time
+        current_time = mem.GetHistory().GetCount() - 1;
+    }
+
+    // Check if current time lies within any predicted stability window
+    for (const auto& window : stability_windows) {
+        if (current_time >= window.start && current_time <= window.end) {
+            // If current time is within a stability window, apply the stability bonus
+            value += temporal.prefer_stability_bonus * s.confidence_score;
+            break;
+        }
+    }
+
+    // Check for strong "pre_release_crunch" seasonality pattern
+    for (const auto& pattern : seasonality_patterns) {
+        if (pattern.name.Contains("pre_release_crunch") && pattern.confidence > 0.6 && pattern.intensity > 0.7) {
+            // If strong pre-release crunch is detected, reduce value based on cost with the multiplier
+            value -= temporal.avoid_crunch_multiplier * s.cost_score;
+            break;
+        }
+    }
+
+    // Check if suggestion aligns with release cadence
+    // For this implementation, we'll consider "large changes" as refactoring suggestions with high benefit scores
+    if (cadence.average_interval > 0 && cadence.confidence > 0.5) {
+        if (s.benefit_score > 0.7 && s.target.Contains("refactor")) {  // Consider high benefit refactoring as "large changes"
+            // Determine if we're in a period that aligns with cleanup windows (often post-release)
+            // This is a simplified calculation - in real implementation, we'd need to know where we are in the cadence cycle
+            int current_phase_in_cycle = current_time % cadence.average_interval;
+            int cleanup_window_start = (int)(cadence.average_interval * 0.7); // Assume cleanup happens in last 30% of cycle
+
+            if (current_phase_in_cycle >= cleanup_window_start) {
+                // If we're in cleanup/post-release window and the suggestion is a large change, boost it
+                value += temporal.release_cycle_alignment * s.benefit_score;
+            }
+        }
+    }
+
     return value;
 }
 
@@ -1845,3 +2186,108 @@ void CoreSupervisor::UpdateMetaWeights(const GlobalKnowledge& gk) {
         meta.topology_risk_adjustment = 0.0; // Default to no adjustment if no historical data
     }
 }
+
+void CoreSupervisor::UpdateDriftWeights(const LifecycleModel::DriftMetrics& drift,
+                                        double stability_index) {
+    // Set weights based on drift metrics and stability index
+    // Higher transitions and oscillations indicate higher drift
+    dw.high_drift_conservatism = min(1.0, (double)drift.transitions / 10.0);
+
+    // Low stability index should amplify risk
+    dw.low_stability_risk_amplifier = max(0.0, 1.0 - stability_index);
+
+    // When stability is high and system is mature, allow more significant refactoring
+    if (stability_index > 0.8) {
+        dw.stable_refactor_release = 0.5; // Allow more aggressive refactoring
+    } else {
+        dw.stable_refactor_release = 0.1; // Be more conservative
+    }
+}
+
+// Temporal Strategy Engine v2 - Overload of PredictValue that takes risk profile into account
+double CoreSupervisor::PredictValue(const Suggestion& s,
+                                   const ProjectMemory& mem,
+                                   const RiskProfile& risk_profile) const {
+    // Start with the standard calculation from the base method
+    double value =
+        s.benefit_score * adaptive.benefit_multiplier
+        - s.risk_score * adaptive.risk_penalty
+        + s.confidence_score * adaptive.confidence_boost
+        + 0.0; // semantic_novelty(s) * adaptive.novelty_bias; // Placeholder for semantic novelty
+
+    // For now, we'll implement a simple novelty measure based on how often
+    // similar actions have been tried
+    int similar_actions_count = 0;
+    int total_actions = mem.GetHistory().GetCount();
+
+    if (total_actions > 0) {
+        for (const auto& entry : mem.GetHistory()) {
+            if (entry.proposal_id.Contains(s.action) || entry.proposal_id.Contains(s.target)) {
+                similar_actions_count++;
+            }
+        }
+
+        double novelty_factor = 1.0 - ((double)similar_actions_count / (double)total_actions);
+        value += novelty_factor * adaptive.novelty_bias;
+    }
+
+    // Integrate meta-weights from global knowledge (CWI v1)
+    // Adjust value based on historically successful patterns across all projects
+    double pattern_match_score = 0.0;
+    if (s.target == "cleanup_includes_and_rebuild" ||
+        s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes") {
+        // If this suggestion matches a historically successful pattern, boost its value
+        pattern_match_score = meta.pattern_success_bias;
+    }
+
+    value += meta.pattern_success_bias * pattern_match_score;
+
+    // Adjust value based on historically risky refactors
+    double risky_refactor_factor = 0.0;
+    if (s.target == "rename_symbol_safe" ||
+        s.target == "reorganize_includes" ||
+        s.target.Contains("refactor")) {
+        risky_refactor_factor = meta.refactor_success_bias;
+    }
+
+    // Only subtract if the refactor has been historically risky (negative bias)
+    if (risky_refactor_factor < 0) {
+        value -= meta.refactor_success_bias * risky_refactor_factor;
+    }
+
+    // Adjust value based on workspace topology risks
+    double architecture_risk_factor = s.risk_score; // Use the suggestion's own risk score as a base
+
+    // If the workspace has problematic topologies, increase the penalty for risky operations
+    value -= meta.topology_risk_adjustment * architecture_risk_factor;
+
+    // NEW: Temporal Strategy Engine v2 - Apply risk-aware adjustments
+
+    // If long_term_risk is high (>0.7), decrease suggestion value to be more conservative
+    if (risk_profile.long_term_risk > 0.7) {
+        value -= risk_weights.avoid_high_risk * s.risk_score;
+    }
+
+    // If volatility_risk is low (<0.3), increase suggestion value (safer time to optimize)
+    if (risk_profile.volatility_risk < 0.3) {
+        value += risk_weights.reward_low_volatility * s.benefit_score;
+    }
+
+    // If any shock_scenario has high probability (>0.5), penalize expensive refactors
+    bool high_shock_probability = false;
+    for (const auto& shock : risk_profile.possible_shocks) {
+        if (shock.probability > 0.5) {
+            high_shock_probability = true;
+            break;
+        }
+    }
+
+    if (high_shock_probability) {
+        // Penalize suggestions that have high cost scores during predicted shock periods
+        value -= risk_weights.shock_sensitivity * s.cost_score;
+    }
+
+    return value;
+}
+

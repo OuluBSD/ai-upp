@@ -2138,6 +2138,656 @@
         "requires_open_file": false
       },
       "context_notes": "Imports global knowledge from a JSON file, either merging with current global knowledge or replacing it."
+    },
+    {
+      "name": "lifecycle_phase",
+      "category": "lifecycle",
+      "description": "Get the current lifecycle phase of the project",
+      "long_description": "Analyzes the project's characteristics to determine its current lifecycle phase (early_growth, mature, declining, legacy)",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the current lifecycle phase"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Description of the current lifecycle phase"
+          },
+          {
+            "name": "stability",
+            "type": "float",
+            "description": "Stability metric of the current phase"
+          },
+          {
+            "name": "volatility",
+            "type": "float",
+            "description": "Volatility metric of the current phase"
+          },
+          {
+            "name": "refactor_bias",
+            "type": "float",
+            "description": "Refactor bias in the current phase"
+          },
+          {
+            "name": "metrics_used",
+            "type": "object",
+            "description": "Metrics used to determine the phase"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes the project using temporal dynamics, architectural metrics, and semantic entropy to determine the current lifecycle phase."
+    },
+    {
+      "name": "lifecycle_phases",
+      "category": "lifecycle",
+      "description": "List all known lifecycle phases",
+      "long_description": "Returns a list of all lifecycle phases recognized by the system with their characteristics",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the lifecycle phase"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Description of the lifecycle phase"
+          },
+          {
+            "name": "stability",
+            "type": "float",
+            "description": "Stability metric of the phase"
+          },
+          {
+            "name": "volatility",
+            "type": "float",
+            "description": "Volatility metric of the phase"
+          },
+          {
+            "name": "refactor_bias",
+            "type": "float",
+            "description": "Refactor bias of the phase"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns all predefined lifecycle phases with their properties."
+    },
+    {
+      "name": "lifecycle_predict",
+      "category": "lifecycle",
+      "description": "Predict the effect of lifecycle phase on supervisor decisions and project evolution",
+      "long_description": "Analyzes how the current lifecycle phase affects supervisor optimization decisions and projects evolution over future events",
+      "inputs": [
+        {
+          "name": "events",
+          "type": "int",
+          "required": false,
+          "default": 10,
+          "description": "Number of events to project future evolution over"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "current_phase",
+            "type": "string",
+            "description": "Current lifecycle phase"
+          },
+          {
+            "name": "supervisor_impact",
+            "type": "object",
+            "description": "Impact on supervisor decision making"
+          },
+          {
+            "name": "projected_evolution",
+            "type": "list",
+            "description": "Projected evolution over specified events"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes how the current lifecycle phase influences supervisor optimization decisions and forecasts project evolution."
+    },
+    {
+      "name": "lifecycle_predict",
+      "category": "lifecycle",
+      "description": "Predict the effect of lifecycle phase on supervisor decisions and project evolution",
+      "long_description": "Analyzes how the current lifecycle phase affects supervisor optimization decisions and projects evolution over future events",
+      "inputs": [
+        {
+          "name": "events",
+          "type": "int",
+          "required": false,
+          "default": 10,
+          "description": "Number of events to project future evolution over"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "current_phase",
+            "type": "string",
+            "description": "Current lifecycle phase"
+          },
+          {
+            "name": "supervisor_impact",
+            "type": "object",
+            "description": "Impact on supervisor decision making"
+          },
+          {
+            "name": "projected_evolution",
+            "type": "list",
+            "description": "Projected evolution over specified events"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes how the current lifecycle phase influences supervisor optimization decisions and forecasts project evolution."
+    },
+    {
+      "name": "lifecycle_drift",
+      "category": "lifecycle",
+      "description": "Get the phase drift metrics for the project lifecycle",
+      "long_description": "Analyzes the project lifecycle history to calculate drift metrics: phase transitions, oscillations, and stability patterns",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "transitions",
+            "type": "int",
+            "description": "Total number of phase transitions"
+          },
+          {
+            "name": "back_and_forth",
+            "type": "int",
+            "description": "Number of oscillations (A→B→A patterns)"
+          },
+          {
+            "name": "avg_phase_duration",
+            "type": "float",
+            "description": "Average duration of phases in seconds"
+          },
+          {
+            "name": "stability_index",
+            "type": "float",
+            "description": "Longitudinal Stability Index (0.0-1.0)"
+          },
+          {
+            "name": "history",
+            "type": "array",
+            "description": "Timeline of phase changes with timestamps"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes the lifecycle phase history to detect drift patterns and stability metrics."
+    },
+    {
+      "name": "lifecycle_stability",
+      "category": "lifecycle",
+      "description": "Get the Longitudinal Stability Index (LSI) for the project",
+      "long_description": "Analyzes the project lifecycle history and current metrics to calculate the Longitudinal Stability Index (LSI)",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "stability_index",
+            "type": "float",
+            "description": "Longitudinal Stability Index (0.0-1.0)"
+          },
+          {
+            "name": "classification",
+            "type": "string",
+            "description": "Textual classification of stability level"
+          },
+          {
+            "name": "supervisor_impact",
+            "type": "string",
+            "description": "Description of how stability affects supervisor priorities"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command calculates the Longitudinal Stability Index (LSI) and explains how it affects supervisor decision-making."
+    },
+    {
+      "name": "lifecycle_timeline",
+      "category": "lifecycle",
+      "description": "Get the complete phase history timeline",
+      "long_description": "Returns the complete timeline of lifecycle phase changes with timestamps",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "timestamp",
+            "type": "datetime",
+            "description": "Time when the phase was recorded"
+          },
+          {
+            "name": "phase",
+            "type": "string",
+            "description": "Name of the lifecycle phase"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns the complete history of lifecycle phase changes for analysis."
+    },
+    {
+      "name": "orchestrator_add_workspace",
+      "category": "orchestrator",
+      "description": "Register a workspace for multi-project analysis",
+      "long_description": "Adds a workspace path to the MetaOrchestrator for cross-project analysis and roadmap planning",
+      "inputs": [
+        {
+          "name": "path",
+          "type": "path",
+          "required": true,
+          "description": "Path to the workspace root to register"
+        }
+      ],
+      "outputs": {
+        "kind": "status-only"
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command registers a workspace root path with the MetaOrchestrator for multi-project coordination."
+    },
+    {
+      "name": "orchestrator_summaries",
+      "category": "orchestrator",
+      "description": "Get summaries for all registered workspaces",
+      "long_description": "Returns project summaries with stability, lifecycle phase, and other metrics for all registered workspaces",
+      "inputs": [],
+      "outputs": {
+        "kind": "array",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the project"
+          },
+          {
+            "name": "path",
+            "type": "string",
+            "description": "Path to the project"
+          },
+          {
+            "name": "stability",
+            "type": "float",
+            "description": "Stability metric (0.0-1.0)"
+          },
+          {
+            "name": "lifecycle_phase",
+            "type": "string",
+            "description": "Current lifecycle phase"
+          },
+          {
+            "name": "entropy",
+            "type": "float",
+            "description": "Semantic entropy metric"
+          },
+          {
+            "name": "size_loc",
+            "type": "int",
+            "description": "Lines of code"
+          },
+          {
+            "name": "packages",
+            "type": "int",
+            "description": "Number of packages in the project"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command returns summaries of all registered workspaces with their computed metrics."
+    },
+    {
+      "name": "orchestrator_roadmap",
+      "category": "orchestrator",
+      "description": "Generate a global roadmap for registered workspaces",
+      "long_description": "Builds a coordinated roadmap across multiple workspaces using specified strategy",
+      "inputs": [
+        {
+          "name": "strategy",
+          "type": "enum",
+          "enum_values": ["default", "stability-first", "risk-distribution", "sequential"],
+          "required": false,
+          "default": "default",
+          "description": "Strategy to use for roadmap generation"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "strategy_name",
+            "type": "string",
+            "description": "Name of the strategy used"
+          },
+          {
+            "name": "proposals",
+            "type": "array",
+            "description": "Array of roadmap proposals"
+          },
+          {
+            "name": "global_metrics",
+            "type": "object",
+            "description": "Global metrics for the roadmap"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command generates a cross-workspace roadmap with coordinated optimization suggestions."
+    },
+    {
+      "name": "temporal_seasonality",
+      "category": "temporal",
+      "description": "Detect seasonality patterns in project lifecycle",
+      "long_description": "Analyzes project lifecycle history to detect recurring patterns and seasonal trends in project activity",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the detected seasonality pattern"
+          },
+          {
+            "name": "intensity",
+            "type": "float",
+            "description": "Intensity of the pattern (0-1)"
+          },
+          {
+            "name": "confidence",
+            "type": "float",
+            "description": "Confidence in the detection (0-1)"
+          },
+          {
+            "name": "peaks",
+            "type": "array",
+            "items": {
+              "type": "int"
+            },
+            "description": "Array of iteration points representing peak activity"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes historical project metrics to detect temporal patterns in development activity."
+    },
+    {
+      "name": "temporal_cadence",
+      "category": "temporal",
+      "description": "Infer release cadence from project history",
+      "long_description": "Analyzes project lifecycle history to infer the average interval between release cycles",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "average_interval",
+            "type": "int",
+            "description": "Average interval between release cycles in analysis windows"
+          },
+          {
+            "name": "confidence",
+            "type": "float",
+            "description": "Confidence in the inferred cadence (0-1)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command analyzes historical project metrics to infer release cycle patterns."
+    },
+    {
+      "name": "temporal_windows",
+      "category": "temporal",
+      "description": "Predict stability windows for safe changes",
+      "long_description": "Predicts time ranges when it's safe to apply refactors or structural changes based on stability analysis",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "start",
+            "type": "int",
+            "description": "Start timestamp or iteration index of the stability window"
+          },
+          {
+            "name": "end",
+            "type": "int",
+            "description": "End timestamp or iteration index of the stability window"
+          },
+          {
+            "name": "predicted_safety",
+            "type": "float",
+            "description": "Predicted safety score for the window (0-1)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command predicts optimal time windows for applying structural changes based on temporal analysis."
+    },
+    {
+      "name": "temporal_forecast",
+      "category": "temporal",
+      "description": "Forecast future lifecycle phases and entropy evolution",
+      "long_description": "Uses historical data to predict future lifecycle phases, entropy levels, and confidence scores over a specified horizon",
+      "inputs": [
+        {
+          "name": "horizon",
+          "type": "int",
+          "required": false,
+          "default": 12,
+          "description": "Number of timesteps to forecast into the future"
+        }
+      ],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "t",
+            "type": "int",
+            "description": "Future timestep"
+          },
+          {
+            "name": "predicted_phase",
+            "type": "string",
+            "description": "Predicted lifecycle phase at this timestep"
+          },
+          {
+            "name": "predicted_entropy",
+            "type": "float",
+            "description": "Predicted entropy level at this timestep"
+          },
+          {
+            "name": "confidence",
+            "type": "float",
+            "description": "Confidence in the prediction (0-1)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command uses entropy trend extrapolation to forecast the evolution of the software lifecycle."
+    },
+    {
+      "name": "temporal_risk",
+      "category": "temporal",
+      "description": "Compute long-term risk profile based on historical patterns",
+      "long_description": "Analyzes historical lifecycle data to compute long-term risk metrics including volatility, schedule irregularity, and architectural risk",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "long_term_risk",
+            "type": "float",
+            "description": "Overall long-term risk score (0-1)"
+          },
+          {
+            "name": "volatility_risk",
+            "type": "float",
+            "description": "Risk based on entropy volatility (0-1)"
+          },
+          {
+            "name": "schedule_risk",
+            "type": "float",
+            "description": "Risk based on release schedule irregularity (0-1)"
+          },
+          {
+            "name": "architectural_risk",
+            "type": "float",
+            "description": "Risk based on architectural entropy trends (0-1)"
+          },
+          {
+            "name": "possible_shocks",
+            "type": "list",
+            "description": "List of possible shock scenarios with probabilities"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command computes a comprehensive risk profile based on historical lifecycle and release cadence data."
+    },
+    {
+      "name": "temporal_shock",
+      "category": "temporal",
+      "description": "Simulate disruption shock event impact",
+      "long_description": "Simulates the potential impact of specific shock events like developer churn, API breaks, or mass refactors on the project",
+      "inputs": [
+        {
+          "name": "type",
+          "type": "enum",
+          "enum_values": [
+            "developer_churn",
+            "api_break",
+            "mass_refactor",
+            "team_reorg",
+            "dependency_break"
+          ],
+          "required": false,
+          "default": "developer_churn",
+          "description": "Type of shock event to simulate"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Type of shock event simulated"
+          },
+          {
+            "name": "severity",
+            "type": "float",
+            "description": "Severity of the shock (0-1)"
+          },
+          {
+            "name": "probability",
+            "type": "float",
+            "description": "Probability of this shock occurring (0-1)"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command simulates the deterministic impact of potential disruption events on the project lifecycle."
     }
   ]
 }

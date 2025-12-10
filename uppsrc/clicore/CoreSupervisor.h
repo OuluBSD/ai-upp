@@ -6,6 +6,9 @@
 #include "CoreSemantic.h"
 #include "ProjectMemory.h"  // Include for ProjectMemory
 #include "GlobalKnowledge.h"  // Include for GlobalKnowledge
+#include "LifecycleModel.h"   // Include for LifecyclePhase and LifecycleModel
+#include "TemporalSeasonality.h"  // Include for StabilityWindow, SeasonalityPattern, ReleaseCadence
+#include "TemporalForecast.h"     // Include for RiskProfile
 
 class CoreIde;
 class CoreScenario;  // Forward declaration to avoid circular dependency
@@ -69,12 +72,22 @@ public:
     // Adaptive Priority Engine (APE) v4 methods
     void UpdateAdaptiveWeights(const ProjectMemory& mem);
     double PredictValue(const Suggestion& s, const ProjectMemory& mem) const;
+    double PredictValue(const Suggestion& s, const ProjectMemory& mem, const LifecyclePhase& current_phase) const;
+    double PredictValue(const Suggestion& s,
+                       const ProjectMemory& mem,
+                       const DriftMetrics& drift,
+                       double stability_index) const;
+
+    // Temporal Strategy Engine v1 - Overload of PredictValue that takes temporal seasonality into account
+    double PredictValue(const Suggestion& s,
+                       const ProjectMemory& mem,
+                       const Vector<StabilityWindow>& stability_windows,
+                       const Vector<SeasonalityPattern>& seasonality_patterns,
+                       const ReleaseCadence& cadence) const;
 
     // Meta-Supervisor extension for CWI v1
     void UpdateMetaWeights(const GlobalKnowledge& gk);
 
-    // Needed for supervisor_predict command
-    AdaptiveWeights GetAdaptiveWeightsForTesting() const { return adaptive; }
 
 private:
     Suggestion SuggestIncludeCleanup(const String& package,
@@ -134,6 +147,48 @@ private:
         double topology_risk_adjustment = 0.0;
     };
     MetaWeights meta;
+
+    // Lifecycle Supervisor v1 - Weights for different lifecycle phases
+    struct LifecycleWeights {
+        double legacy_risk_multiplier = 1.5;
+        double mature_conservatism_bias = 0.3;
+        double growth_refactor_bonus = 0.4;
+        double decline_alertness_factor = 0.6;
+    };
+    LifecycleWeights lw;
+
+    // Lifecycle Supervisor v2 - Weights for phase drift aware decisions
+    struct DriftWeights {
+        double high_drift_conservatism;
+        double low_stability_risk_amplifier;
+        double stable_refactor_release;
+    };
+    DriftWeights dw;
+
+    // Temporal Strategy Engine v1 - Weights for temporal reasoning
+    struct TemporalWeights {
+        double avoid_crunch_multiplier;
+        double prefer_stability_bonus;
+        double release_cycle_alignment;
+    };
+    TemporalWeights temporal;
+
+    // Temporal Strategy Engine v2 - Weights for risk-aware decisions
+    struct RiskWeights {
+        double avoid_high_risk = 0.8;
+        double reward_low_volatility = 0.3;
+        double shock_sensitivity = 0.5;
+    };
+    RiskWeights risk_weights;
+
+    // Temporal Strategy Engine v2 - Overload of PredictValue that takes risk profile into account
+    double PredictValue(const Suggestion& s,
+                       const ProjectMemory& mem,
+                       const RiskProfile& risk_profile) const;
+
+    // Method to update drift-aware weights
+    void UpdateDriftWeights(const DriftMetrics& drift,
+                            double stability_index);
 };
 
 #endif

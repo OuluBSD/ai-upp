@@ -1820,3 +1820,587 @@ theide-cli --json import_global_knowledge --file colleague_knowledge.json
 * **NoGUI Compatible**: Full functionality available through command-line interface
 
 This subsystem enables AI agents to exhibit **cross-workspace intelligence** by learning from the collective experience across all projects and applying those insights to make better decisions in any individual workspace, creating a continuously improving ecosystem of knowledge and best practices.
+
+## Lifecycle Supervisor v1
+
+The system introduces a Lifecycle Supervisor v1 that uses temporal slopes, semantic complexity, architecture diagnostics, and pattern density to classify the current project phase and influence supervisor decisions.
+
+### Core Concepts:
+
+* **Lifecycle Phases** - Projects are classified into four phases: early_growth, mature, declining, and legacy
+* **Phase Detection** - Uses temporal dynamics, architectural metrics, and semantic entropy to determine the current phase
+* **Adaptive Decision Making** - Supervisor behavior adapts based on the current lifecycle phase
+* **Predictive Analysis** - Projects evolution and supervisor behavior over future events
+
+### Lifecycle Phases:
+
+* **Early Growth** - High growth phase with rapid expansion and frequent refactoring
+  * High refactor bias and risk tolerance
+  * Aggressive optimization suggestion behavior
+
+* **Mature** - Stable phase with conservative changes and low volatility
+  * Low refactor bias and risk tolerance
+  * Conservative, risk-averse decision making
+
+* **Declining** - Phase with increasing technical debt and maintenance focus
+  * Medium refactor bias with alert behavior
+  * Focus on maintainability and stability
+
+* **Legacy** - Low-change phase with minimal interventions due to high risk
+  * Minimal refactor bias and very low risk tolerance
+  * Maintenance-focused with minimal changes
+
+### Available Lifecycle Commands:
+
+* **lifecycle_phase** - Returns the current lifecycle phase of the project with detailed metrics
+* **lifecycle_phases** - Lists all known lifecycle phases with their characteristics
+* **lifecycle_predict** - Analyzes how the current lifecycle phase affects supervisor optimization decisions and projects evolution over future events
+
+### Integration with Supervisor:
+
+The lifecycle phase influences the CoreSupervisor's decision-making through modifications to the prediction value calculation:
+
+* **Early Growth**: Increases benefit score by growth_refactor_bonus for aggressive refactoring
+* **Mature**: Reduces value by mature_conservatism_bias for conservative behavior
+* **Declining**: Increases value by decline_alertness_factor for maintainability focus
+* **Legacy**: Reduces value by legacy_risk_multiplier to minimize change risk
+
+### Command Examples:
+
+```bash
+# Get current lifecycle phase
+theide-cli --workspace-root . --json lifecycle_phase
+
+# List all known lifecycle phases
+theide-cli --workspace-root . --json lifecycle_phases
+
+# Predict lifecycle impact on supervisor decisions
+theide-cli --workspace-root . --json lifecycle_predict --events 20
+```
+
+### JSON Output Examples:
+
+**lifecycle_phase:**
+```json
+{
+  "name": "mature",
+  "description": "Stable phase with conservative changes and low volatility",
+  "stability": 0.8,
+  "volatility": 0.2,
+  "refactor_bias": 0.3,
+  "metrics_used": {
+    "temporal_trend": "slopes_and_variance",
+    "architectural_diagnostic": "complexity_and_coupling",
+    "semantic_entropy": "computed_entropy"
+  }
+}
+```
+
+**lifecycle_predict:**
+```json
+{
+  "current_phase": "mature",
+  "supervisor_impact": {
+    "refactor_bias": "conservative",
+    "risk_tolerance": "low",
+    "optimization_aggression": "low"
+  },
+  "projected_evolution": [
+    {
+      "event_number": 1,
+      "expected_change": "low",
+      "expected_volatility": "low",
+      "expected_complexity_change": "stable"
+    }
+  ]
+}
+```
+
+This subsystem enables AI agents to exhibit **lifecycle-aware intelligence** by adapting their optimization behavior based on the project's lifecycle phase, ensuring appropriate decision-making strategies for each stage of the project's evolution.
+
+## Lifecycle Supervisor v2 – Phase Drift & Stability
+
+The system has been upgraded to Lifecycle Supervisor v2 with enhanced capabilities for tracking phase history, detecting phase drift, and computing a Longitudinal Stability Index (LSI). This provides AI agents with deeper insights into project evolution patterns and enables more sophisticated drift-aware decision making.
+
+### Core Features:
+
+* **Phase History Tracking** - Records the sequence of lifecycle phases over time with timestamps
+* **Phase Drift Detection** - Quantifies how often and how violently the phase changes using metrics:
+  * `transitions`: Total number of phase changes
+  * `back_and_forth`: Count of oscillations (A→B→A patterns)
+  * `avg_phase_duration`: Average time between phase changes
+* **Longitudinal Stability Index (LSI)** - A long-term "stability / chaos" score from 0.0 to 1.0:
+  * 0.0 = extremely unstable, thrashy
+  * 1.0 = very stable, controlled evolution
+* **Drift-Aware Decision Making** - Supervisor priorities adapt based on drift metrics and stability index
+* **Historical Persistence** - Phase history is saved to `.aiupp/lifecycle.json` in the workspace root
+
+### Heuristic LSI Calculation:
+
+The LSI is computed using a combination of factors:
+* Inverse relationship with high transitions and oscillations
+* Direct relationship with long phase durations
+* Adjustment based on temporal dynamics trend steepness
+
+### Supervisor Integration:
+
+The supervisor now adjusts its decision-making based on drift and stability metrics:
+
+* **Low Stability Index (< 0.3)** - Supervisor becomes highly conservative:
+  * Reduces suggestion value based on risk score
+  * Focuses on stability and risk mitigation
+
+* **High Drift (many transitions)** - Supervisor applies conservatism:
+  * Reduces suggestion value based on cost score
+  * Avoids expensive changes in volatile periods
+
+* **High Stability Index (> 0.8) in mature/legacy phases** - Supervisor allows "big moves":
+  * Increases suggestion value based on benefit score
+  * Enables controlled "macro-refactoring" when stability is high
+
+### Available Lifecycle Supervisor v2 Commands:
+
+* **lifecycle_drift** - Returns phase drift metrics and stability index
+  * Phase transition history with timestamps
+  * Drift metrics: transitions, back_and_forth, avg_phase_duration
+  * Stability index value
+
+* **lifecycle_stability** - Returns Longitudinal Stability Index and classification
+  * Stability index (0.0-1.0) with textual classification
+  * Explanation of how stability affects supervisor priorities
+
+* **lifecycle_timeline** - Returns complete phase history timeline
+  * Array of all recorded phase changes with timestamps
+
+### Command Examples:
+
+```bash
+# Get lifecycle drift metrics
+theide-cli --workspace-root . --json lifecycle_drift
+
+# Get stability index and classification
+theide-cli --workspace-root . --json lifecycle_stability
+
+# Get complete phase history timeline
+theide-cli --workspace-root . --json lifecycle_timeline
+```
+
+### JSON Output Examples:
+
+**lifecycle_drift:**
+```json
+{
+  "transitions": 5,
+  "back_and_forth": 2,
+  "avg_phase_duration": 86400.0,
+  "stability_index": 0.65,
+  "history": [
+    {
+      "timestamp": 1699123456,
+      "phase": "early_growth"
+    },
+    {
+      "timestamp": 1699209856,
+      "phase": "mature"
+    }
+  ]
+}
+```
+
+**lifecycle_stability:**
+```json
+{
+  "stability_index": 0.65,
+  "classification": "managed",
+  "supervisor_impact": "Supervisor balances risk and benefit, with moderate caution"
+}
+```
+
+This subsystem enables AI agents to exhibit **deep lifecycle-aware intelligence** by understanding not just the current lifecycle phase but also the historical patterns of phase evolution. This allows for more sophisticated, context-aware decision-making that adapts to the project's stability profile over time.
+
+## Meta-Orchestrator v1 – Multi-Project Roadmaps
+
+The system includes a Meta-Orchestrator subsystem that coordinates multiple independent workspaces, computes cross-project metrics, and generates roadmap proposals. This enables AI agents to make strategic decisions across multiple projects simultaneously, optimizing for global objectives while managing risk distribution.
+
+### Core Features:
+
+* **Multi-Workspace Coordination** - Manages analysis and planning across multiple independent project workspaces
+* **Cross-Project Metrics** - Computes stability, lifecycle phase, entropy, size, and package count across all registered workspaces
+* **Risk Distribution** - Avoids refactoring multiple unstable projects simultaneously, distributing risk appropriately
+* **Strategic Roadmap Generation** - Creates coordinated roadmap suggestions that optimize for global objectives
+* **Strategy Integration** - Uses configurable strategy weights to influence roadmap generation decisions
+* **Deterministic Operation** - Provides consistent results for the same workspace state and strategy configuration
+
+### Available Orchestrator Commands:
+
+* **orchestrator_add_workspace** - Registers a workspace root for multi-project analysis
+  * Requires a path to the workspace root directory
+  * Adds the workspace to the orchestrator's registry for subsequent analysis
+
+* **orchestrator_summaries** - Gets project summaries with computed metrics for all registered workspaces
+  * Returns stability, lifecycle phase, entropy, size (LOC), and package count for each project
+  * Provides a high-level overview of all registered projects
+
+* **orchestrator_roadmap** - Generates a global roadmap across registered workspaces using specified strategy
+  * Supports strategies: `default`, `stability-first`, `risk-distribution`, `sequential`
+  * Creates coordinated optimization suggestions across projects
+  * Distributes risk and optimizes for global objectives
+
+### Command Usage:
+
+```bash
+# Register multiple workspaces for coordinated analysis
+theide-cli orchestrator_add_workspace --path /proj/A
+theide-cli orchestrator_add_workspace --path /proj/B
+
+# Get summaries of all registered workspaces
+theide-cli orchestrator_summaries --json
+
+# Generate a global roadmap with default strategy
+theide-cli orchestrator_roadmap --json
+
+# Generate a roadmap with specific strategy (stability-first)
+theide-cli orchestrator_roadmap --strategy stability-first --json
+```
+
+### Project Summary Structure:
+
+Each project summary includes:
+
+```json
+{
+  "name": "ProjectName",
+  "path": "/path/to/project",
+  "stability": 0.65,
+  "lifecycle_phase": "mature",
+  "entropy": 0.23,
+  "size_loc": 45000,
+  "packages": 12
+}
+```
+
+### Global Roadmap Structure:
+
+The roadmap includes strategy information, proposals for each project, and global metrics:
+
+```json
+{
+  "strategy_name": "stability-first",
+  "global_metrics": {
+    "project_count": 2,
+    "average_stability": 0.55,
+    "stability_variance": 0.02,
+    "stability_weight": 0.5,
+    "risk_weight": 0.3,
+    "entropy_weight": 0.2
+  },
+  "proposals": [
+    {
+      "project_name": "ProjectA",
+      "project_path": "/proj/A",
+      "priority": 0,
+      "stability": 0.45,
+      "risk_score": 0.55,
+      "recommendation": {
+        "action": "focus on stabilization first"
+      }
+    },
+    {
+      "project_name": "ProjectB",
+      "project_path": "/proj/B",
+      "priority": 1,
+      "stability": 0.65,
+      "risk_score": 0.35,
+      "recommendation": {
+        "action": "focus on stabilization first"
+      }
+    }
+  ]
+}
+```
+
+### Strategy Integration:
+
+The orchestrator integrates with the Dynamic Strategy Engine to allow configurable behavior:
+
+* **stability-first** - Prioritizes the most unstable projects first
+* **risk-distribution** - Distributes refactoring risk across projects
+* **sequential** - Processes projects in the order they were added
+* **default** - Standard optimization approach
+
+This subsystem enables AI agents to make **strategic multi-project decisions** by providing visibility into cross-workspace metrics and coordinated roadmap suggestions that optimize for global objectives while managing risk appropriately.
+
+## Temporal Strategy Engine v1 – Seasonality, Release Cadence & Predictive Stability Windows
+
+The system introduces a Temporal Strategy Engine v1 that analyzes long-term patterns in project lifecycle history to detect seasonality, infer release cadence, and predict optimal stability windows for applying refactors or strategic changes. This enables AI agents to make time-aware optimization decisions that align with natural project rhythms and predictable stability periods.
+
+### Core Features:
+
+* **Seasonality Detection** - Analyzes project history to identify recurring patterns of activity:
+  * Uses deterministic heuristics to detect periodic swings in lifecycle phase entropy
+  * Identifies patterns such as "pre_release_crunch", "post_release_cleanup", "innovation_cycle"
+  * Quantifies intensity (0-1) and confidence (0-1) of detected patterns
+  * Records peak activity points in development cycles
+
+* **Release Cadence Inference** - Determines the average interval between release cycles:
+  * Identifies stability peaks (periods of low entropy) in project history
+  * Calculates average intervals between consecutive stability periods
+  * Provides confidence score (0-1) based on consistency of intervals
+  * Enables prediction of upcoming release cycle patterns
+
+* **Stability Window Prediction** - Predicts optimal time ranges for safe structural changes:
+  * Identifies periods of high stability (low entropy, predictable behavior)
+  * Aligns predictions with inferred release cadence for strategic timing
+  * Provides safety scores (0-1) for each predicted window
+  * Supports strategic planning of refactoring activities
+
+* **Temporal-Aware Supervisor** - The CoreSupervisor now incorporates temporal reasoning into decision making:
+  * Adjusts suggestion values based on current position in stability windows
+  * Avoids high-cost operations during detected "crunch" periods
+  * Aligns large changes with cleanup windows in release cycles
+  * Uses temporal weights: `avoid_crunch_multiplier`, `prefer_stability_bonus`, `release_cycle_alignment`
+
+### Available Temporal Strategy Commands:
+
+* **temporal_seasonality** - Returns detected seasonality patterns in project lifecycle
+  * Name of each pattern (e.g., "pre_release_crunch", "innovation_cycle")
+  * Intensity score (0-1) indicating strength of the pattern
+  * Confidence score (0-1) in the detection
+  * Array of peak activity timestamps or iteration indices
+
+* **temporal_cadence** - Returns inferred release cadence from project history
+  * Average interval between release cycles in analysis windows
+  * Confidence score (0-1) in the inferred cadence
+
+* **temporal_windows** - Returns predicted stability windows for safe changes
+  * Start and end timestamps or iteration indices for each window
+  * Predicted safety score (0-1) for each window
+
+### Integration with CoreSupervisor:
+
+The temporal information influences the CoreSupervisor's decision-making through modifications to the prediction value calculation:
+
+* **Within Stability Windows**: Increases value by `temporal.prefer_stability_bonus * suggestion.confidence_score`
+* **During Crunch Periods**: Reduces value by `temporal.avoid_crunch_multiplier * suggestion.cost_score`
+* **Aligned with Release Cycles**: Increases value by `temporal.release_cycle_alignment * suggestion.benefit_score` for appropriate changes
+
+### Command Examples:
+
+```bash
+# Get detected seasonality patterns
+theide-cli --workspace-root . --json temporal_seasonality
+
+# Get inferred release cadence
+theide-cli --workspace-root . --json temporal_cadence
+
+# Get predicted stability windows
+theide-cli --workspace-root . --json temporal_windows
+```
+
+### JSON Output Examples:
+
+**temporal_seasonality:**
+```json
+{
+  "payload": [
+    {
+      "name": "seasonality_period_5",
+      "intensity": 0.72,
+      "confidence": 0.58,
+      "peaks": [2, 7, 12, 17, 22]
+    },
+    {
+      "name": "pre_release_crunch",
+      "intensity": 0.81,
+      "confidence": 0.72,
+      "peaks": [4, 9, 14, 19, 24]
+    }
+  ]
+}
+```
+
+**temporal_cadence:**
+```json
+{
+  "payload": {
+    "average_interval": 12,
+    "confidence": 0.65
+  }
+}
+```
+
+**temporal_windows:**
+```json
+{
+  "payload": [
+    {
+      "start": 0,
+      "end": 2,
+      "predicted_safety": 0.85
+    },
+    {
+      "start": 6,
+      "end": 8,
+      "predicted_safety": 0.91
+    }
+  ]
+}
+```
+
+This subsystem enables AI agents to exhibit **temporal intelligence** by understanding the natural rhythms and predictable patterns in project development cycles. By aligning optimization activities with stability windows and avoiding busy periods, AI agents can make more strategic time-aware decisions that improve success rates and reduce disruption.
+
+## Temporal Strategy Engine v2 – Forecasting & Shock Modeling
+
+The system extends the Temporal Strategy Engine to include forecasting capabilities, shock simulation, and long-term risk modeling. This provides AI agents with predictive capabilities to anticipate future lifecycle phases, model potential disruption events, and incorporate long-term risk considerations into decision-making processes.
+
+### Core Features:
+
+* **Lifecycle Forecasting** - Predicts future lifecycle phases and entropy evolution:
+  * Uses entropy trend extrapolation and drift analysis to forecast future states
+  * Provides predicted phase names and entropy values for each timestep in the horizon
+  * Includes confidence scores that decrease over time to reflect increasing uncertainty
+  * Supports configurable forecast horizon (default: 12 timesteps)
+  * Identifies trends like "complexity_growth", "stabilization", and continuation of current phases
+
+* **Risk Profile Computation** - Computes comprehensive long-term risk metrics based on historical patterns:
+  * **Volatility Risk**: Based on entropy fluctuations and standard deviation of historical entropy values
+  * **Schedule Risk**: Quantified from release cadence irregularity and timing inconsistencies
+  * **Architectural Risk**: Calculated from entropy trend rates (rapidly increasing entropy indicates higher risk)
+  * **Long-term Risk**: Weighted combination of the above risk components with configurable weights
+  * **Possible Shocks**: List of potential shock scenarios with computed severity and probability
+
+* **Shock Simulation** - Models potential disruption events and their impacts:
+  * Simulates "developer_churn", "api_break", "mass_refactor", "team_reorg", and "dependency_break" scenarios
+  * Uses deterministic lookup tables based on historical entropy patterns
+  * Computes severity (0-1) based on project's current state and volatility
+  * Computes probability (0-1) based on historical patterns and current trends
+  * Returns consistent results for the same input conditions
+
+* **Risk-Aware Supervisor** - The CoreSupervisor now incorporates long-term risk into decision-making:
+  * **High Long-term Risk**: Reduces suggestion value using `risk_weights.avoid_high_risk * s.risk_score`
+  * **Low Volatility Risk**: Increases suggestion value with `risk_weights.reward_low_volatility * s.benefit_score`
+  * **High Shock Probability**: Penalizes expensive refactors with `risk_weights.shock_sensitivity * s.cost_score`
+
+### Available Temporal Strategy Engine Commands:
+
+* **temporal_forecast** - Returns lifecycle phase and entropy forecasts for future timesteps
+  * `horizon` parameter (default: 12) specifies number of timesteps to predict
+  * Each forecast point includes predicted phase, entropy, confidence, and timestep index
+  * Confidence decreases over the forecast horizon due to increasing uncertainty
+
+* **temporal_risk** - Returns comprehensive long-term risk profile for the project
+  * Returns long-term, volatility, schedule, and architectural risk scores (all 0-1)
+  * Includes list of possible shock scenarios with types, severities, and probabilities
+  * Computed from historical lifecycle patterns and release cadence irregularity
+
+* **temporal_shock** - Simulates a specific shock event and returns its projected impact
+  * `type` parameter specifies shock type: "developer_churn", "api_break", "mass_refactor", "team_reorg", or "dependency_break"
+  * Returns severity and probability scores (0-1) for the specified shock type
+  * Uses deterministic models based on historical project metrics
+
+### Integration with CoreSupervisor:
+
+The risk profile information influences the CoreSupervisor's decision-making through enhanced prediction value calculations:
+
+* **Risk-Aware Prioritization**: The supervisor now uses `PredictValue(s, mem, risk_profile)` when risk data is available
+* **Conservative Bias**: When `risk_profile.long_term_risk > 0.7`, suggestion values decrease to avoid risky changes
+* **Opportunity Sensing**: When `risk_profile.volatility_risk < 0.3`, suggestion values increase for beneficial changes
+* **Shock Preparation**: When high-probability shocks are detected, expensive refactors are penalized
+
+### Influence on Supervisor Scoring Example:
+
+```cpp
+// New risk-aware PredictValue method in CoreSupervisor
+double CoreSupervisor::PredictValue(const Suggestion& s,
+                                   const ProjectMemory& mem,
+                                   const RiskProfile& risk_profile) const {
+    double value = /* base calculation */;
+
+    // If long_term_risk is high, decrease suggestion value to be more conservative
+    if (risk_profile.long_term_risk > 0.7) {
+        value -= risk_weights.avoid_high_risk * s.risk_score;
+    }
+
+    // If volatility_risk is low, increase suggestion value (safer time to optimize)
+    if (risk_profile.volatility_risk < 0.3) {
+        value += risk_weights.reward_low_volatility * s.benefit_score;
+    }
+
+    // If any shock_scenario has high probability, penalize expensive refactors
+    for (const auto& shock : risk_profile.possible_shocks) {
+        if (shock.probability > 0.5) {
+            value -= risk_weights.shock_sensitivity * s.cost_score;
+            break;
+        }
+    }
+
+    return value;
+}
+```
+
+### Command Examples:
+
+```
+theide-cli temporal_forecast --horizon 12 --json
+theide-cli temporal_risk
+theide-cli temporal_shock --type api_break
+```
+
+### JSON Output Examples:
+
+**temporal_forecast:**
+```json
+{
+  "payload": [
+    {
+      "t": 1,
+      "predicted_phase": "complexity_growth",
+      "predicted_entropy": 0.65,
+      "confidence": 0.9
+    },
+    {
+      "t": 2,
+      "predicted_phase": "complexity_growth",
+      "predicted_entropy": 0.67,
+      "confidence": 0.8
+    }
+  ]
+}
+```
+
+**temporal_risk:**
+```json
+{
+  "payload": {
+    "long_term_risk": 0.68,
+    "volatility_risk": 0.45,
+    "schedule_risk": 0.72,
+    "architectural_risk": 0.55,
+    "possible_shocks": [
+      {
+        "type": "developer_churn",
+        "severity": 0.58,
+        "probability": 0.62
+      },
+      {
+        "type": "api_break",
+        "severity": 0.42,
+        "probability": 0.35
+      }
+    ]
+  }
+}
+```
+
+**temporal_shock:**
+```json
+{
+  "payload": {
+    "type": "api_break",
+    "severity": 0.42,
+    "probability": 0.35
+  }
+}
+```
+
+This subsystem enables AI agents to exhibit **predictive temporal intelligence** by forecasting future lifecycle states, modeling potential disruptions, and incorporating long-term risk considerations into their decision-making processes. By understanding future risk profiles and potential shock events, AI agents can make more strategic and resilient optimization decisions that account for both immediate benefits and long-term stability.

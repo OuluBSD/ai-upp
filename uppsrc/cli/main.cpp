@@ -79,13 +79,16 @@ void PrintUsage() {
     RLOG("Usage: theide-cli [--json] [--workspace-root PATH] <command_name> [--arg value ...]");
     RLOG("Or: theide-cli [--json] --workspace-root PATH --script PATH");
     RLOG("Or: theide-cli [--json] --workspace-root PATH --json-script PATH");
-    RLOG("Available commands: list_commands, open_file, save_file, find_in_files, build_project, clean_project, goto_line, search_code, show_console, show_errors, set_main_package, insert_text, erase_range, replace_all, undo, redo, find_definition, find_usages, get_build_order, detect_cycles, affected_packages, rename_symbol, remove_dead_includes, canonicalize_includes, describe_command");
+    RLOG("Available commands: list_commands, open_file, save_file, find_in_files, build_project, clean_project, goto_line, search_code, show_console, show_errors, set_main_package, insert_text, erase_range, replace_all, undo, redo, find_definition, find_usages, get_build_order, detect_cycles, affected_packages, rename_symbol, remove_dead_includes, canonicalize_includes, describe_command, orchestrator_add_workspace, orchestrator_summaries, orchestrator_roadmap");
     RLOG("Global options: --workspace-root PATH, --json, --script PATH, --json-script PATH");
     RLOG("Example: theide-cli open_file --path /path/to/file.cpp");
     RLOG("Example: theide-cli --workspace-root . --json find_definition --symbol MyClass");
     RLOG("Example: theide-cli --workspace-root . --json describe_command --name build_project");
     RLOG("Example: theide-cli --workspace-root . --script commands.txt");
     RLOG("Example: theide-cli --workspace-root . --json --json-script plan.json");
+    RLOG("Example: theide-cli orchestrator_add_workspace --path /project/path");
+    RLOG("Example: theide-cli --json orchestrator_summaries");
+    RLOG("Example: theide-cli --json orchestrator_roadmap --strategy stability-first");
 }
 
 // Execute commands from a script file

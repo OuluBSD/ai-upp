@@ -5,6 +5,21 @@
 
 #include "CoreWorkspace.h"
 
+NAMESPACE_UPP
+
+struct ArchitectureDiagnostic {
+    double complexity_index;      // Overall complexity metric
+    double coupling_score;        // Coupling between modules/components
+    double cohesion_score;        // Internal coherence of modules
+    double structural_entropy;    // Entropy in the architecture structure
+    int total_nodes;              // Number of nodes in the graph
+    int total_edges;              // Number of edges in the graph
+    double cycle_density;         // Density of cycles in the dependency graph
+    double modularity_score;      // Modularity metric
+};
+
+END_UPP_NAMESPACE
+
 namespace Upp {
 
 class CoreGraph : Moveable<CoreGraph> {

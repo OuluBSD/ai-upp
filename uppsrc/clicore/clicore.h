@@ -12,6 +12,9 @@
 #include "CoreOptimize.h"
 #include "CoreProposal.h"
 #include "ProjectMemory.h"
+#include "LifecycleModel.h"
+#include "MetaOrchestrator.h"
+#include "TemporalSeasonality.h"
 
 NAMESPACE_UPP
 

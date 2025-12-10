@@ -783,6 +783,48 @@ Value IdeSessionImpl::BuildProposal(const String& package,
     return core_ide.BuildProposal(package, max_actions, error);
 }
 
+// Orchestrator v1 - Multi-project roadmap management implementations
+bool IdeSessionImpl::AddWorkspaceToOrchestrator(const String& path, String& error) {
+    try {
+        core_ide.AddWorkspaceToOrchestrator(path);
+        return true;
+    } catch (const std::exception& e) {
+        error = e.what();
+        return false;
+    } catch (...) {
+        error = "Unknown error occurred while adding workspace to orchestrator";
+        return false;
+    }
+}
+
+Value IdeSessionImpl::GetWorkspaceSummaries(String& error) {
+    try {
+        return core_ide.GetWorkspaceSummaries();
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while getting workspace summaries";
+        return Value();
+    }
+}
+
+Value IdeSessionImpl::BuildGlobalRoadmap(const String& strategy, String& error) {
+    try {
+        String strategy_name = strategy;
+        if (strategy_name.IsEmpty()) {
+            strategy_name = "default"; // Use default strategy if none specified
+        }
+        return core_ide.BuildGlobalRoadmap(strategy_name);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while building global roadmap";
+        return Value();
+    }
+}
+
 One<IdeSession> CreateIdeSession() {
     return new IdeSessionImpl();
 }

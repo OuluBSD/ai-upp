@@ -20,6 +20,10 @@
 #include "ProjectMemory.h"
 #include "GlobalKnowledge.h"
 #include "CoreProposal.h"
+#include "LifecycleModel.h"
+#include "MetaOrchestrator.h"
+#include "TemporalSeasonality.h"
+#include "TemporalForecast.h"
 
 using namespace Upp;
 
@@ -148,6 +152,28 @@ public:
     CoreFileOps& GetFileOps() { return fileOps; }
     const CoreFileOps& GetFileOps() const { return fileOps; }
 
+    // Lifecycle Analysis v1
+    LifecyclePhase GetCurrentLifecyclePhase() const;
+
+    // Lifecycle Supervisor v2 methods
+    Value GetLifecycleDrift(String& error) const;
+    double GetLifecycleStability(String& error) const;
+
+    // Orchestrator v1 - Multi-project roadmap management
+    void AddWorkspaceToOrchestrator(const String& path);
+    Value GetWorkspaceSummaries();
+    Value BuildGlobalRoadmap(const String& strategy);
+
+    // Temporal Strategy Engine v1 - Seasonality, Release Cadence & Stability Windows
+    Value GetSeasonality();
+    Value GetReleaseCadence();
+    Value GetStabilityWindows();
+
+    // Temporal Strategy Engine v2 - Forecasting & Shock Modeling
+    Value GetLifecycleForecast(int horizon);
+    Value GetRiskProfile();
+    Value SimulateShock(const String& type);
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -167,12 +193,19 @@ private:
     StrategyRegistry strategy_registry; // Added StrategyRegistry for Supervisor v2
     ProjectMemory memory;      // Added ProjectMemory for Supervisor v4 APE
     GlobalKnowledge global;    // Added GlobalKnowledge for CWI v1
+    MetaOrchestrator orchestrator; // Added MetaOrchestrator for multi-project coordination
     String workspace_root;
+    LifecycleModel lifecycle;  // Lifecycle model for phase detection
+    TemporalSeasonality seasonality; // Temporal seasonality analysis engine
+    TemporalForecast forecast;       // Temporal forecasting engine
 
     // Core Editor management
     Array<CoreEditor> editors;  // Use One<> to ensure move-only semantics
     Index<String> editor_paths;  // Map from path to editor index
     int current_editor_index;    // Index of currently active editor
+
+    // Helper methods for lifecycle management
+    void RecordCurrentPhase(const LifecyclePhase& phase);
 };
 
 #endif

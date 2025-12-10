@@ -797,12 +797,12 @@ Value CoreIde::BuildScenarioFromPlan(const String& package, int max_actions, Str
 
 Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
     // Convert Value to ScenarioPlan
-    if (!Is<ValueMap>(plan_desc)) {
+    if (!IsValueMap(plan_desc)) {
         error = "plan_desc must be a ValueMap";
         return Value();
     }
 
-    const ValueMap& plan_map = AsValueMap(plan_desc);
+    const ValueMap& plan_map = ValueTo<ValueMap>(plan_desc);
     CoreScenario::ScenarioPlan plan;
     plan.name = plan_map.Get("name", String("default_scenario"));
 
@@ -810,8 +810,8 @@ Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
     if (plan_map.Find("actions") >= 0) {
         ValueArray actions = plan_map.Get("actions");
         for (int i = 0; i < actions.GetCount(); i++) {
-            if (Is<ValueMap>(actions[i])) {
-                const ValueMap& action_map = AsValueMap(actions[i]);
+            if (IsValueMap(actions[i])) {
+                const ValueMap& action_map = ValueTo<ValueMap>(actions[i]);
                 CoreScenario::ScenarioAction action;
                 action.type = action_map.Get("type", String("command"));
                 action.target = action_map.Get("target", String(""));
@@ -852,132 +852,21 @@ Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
     return result_map;
 }
 
-Value CoreIde::ApplyScenario(const Value& plan_desc, String& error) {
-    // Convert Value to ScenarioPlan (similar to SimulateScenario)
-    if (!Is<ValueMap>(plan_desc)) {
-        error = "plan_desc must be a ValueMap";
-        return Value();
-    }
-
-    const ValueMap& plan_map = AsValueMap(plan_desc);
-    CoreScenario::ScenarioPlan plan;
-    plan.name = plan_map.Get("name", String("default_scenario"));
-
-    // Convert actions from ValueArray to Vector<ScenarioAction>
-    if (plan_map.Find("actions") >= 0) {
-        ValueArray actions = plan_map.Get("actions");
-        for (int i = 0; i < actions.GetCount(); i++) {
-            if (Is<ValueMap>(actions[i])) {
-                const ValueMap& action_map = AsValueMap(actions[i]);
-                CoreScenario::ScenarioAction action;
-                action.type = action_map.Get("type", String("command"));
-                action.target = action_map.Get("target", String(""));
-                action.params = action_map.Get("params", ValueMap());
-                plan.actions.Add(action);
-            }
-        }
-    }
-
-    // Apply the scenario
-    CoreScenario::ScenarioResult result = scenario.Apply(plan, *this, error);
-
-    if (!error.IsEmpty()) {
-        return Value();
-    }
-
-    // Record the scenario result in ProjectMemory if it was applied successfully
-    if (result.applied) {
-        ProjectMemory::Entry entry;
-        entry.timestamp = GetSysTime();
-        entry.proposal_id = plan.name + "_" + FormatDouble(result.deltas.Get("value", 0.0), 3); // Create a unique ID
-        entry.metrics_before = result.before.telemetry;
-        entry.metrics_after = result.after.telemetry;
-        entry.deltas = result.deltas;
-        entry.benefit_score = result.deltas.Get("benefit", 0.0);
-        entry.risk_score = result.deltas.Get("risk", 0.0);
-        entry.confidence_score = result.deltas.Get("confidence", 0.7); // Default confidence
-        entry.applied = result.applied;
-        entry.reverted = false; // Scenarios don't support revert by default
-
-        memory.Record(entry);
-    }
-
-    // Save the updated memory to file
-    String memory_file_path = workspace_root + "/.aiupp/project_memory.json";
-    memory.Save(memory_file_path);
-
-    // Record scenario result in GlobalKnowledge for cross-workspace intelligence
-    if (result.applied) {
-        // Record workspace snapshot
-        ValueMap snapshot;
-        snapshot.Set("workspace_root", workspace_root);
-        Time t = GetSysTime();
-        snapshot.Set("timestamp", (int64)(int)t);
-        snapshot.Set("scenario_name", result.plan.name);
-        global.RecordWorkspaceSnapshot(snapshot);
-
-        // Record pattern outcomes based on scenario actions
-        for (const auto& action : result.plan.actions) {
-            ValueMap deltas;
-            deltas.Set("benefit", result.deltas.Get("benefit", 0.0));
-            deltas.Set("risk", result.deltas.Get("risk", 0.0));
-            deltas.Set("confidence", result.deltas.Get("confidence", 0.7)); // Default confidence
-            global.RecordPatternOutcome(action.target, result.applied, deltas);
-        }
-
-        // Record refactor outcomes
-        if (result.plan.name.Find("refactor") >= 0) {
-            ValueMap deltas;
-            deltas.Set("delta_complexity", result.deltas.Get("complexity_change", 0.0));
-            global.RecordRefactorOutcome(result.plan.name, result.applied, deltas);
-        }
-
-        // Update supervisor with global knowledge weights
-        supervisor.UpdateMetaWeights(global);
-    }
-
-    // Save global knowledge to persistent storage
-    String global_knowledge_path = GetHomeDirectory() + "/.aiupp/global_knowledge.json";
-    global.Save(global_knowledge_path);
-
-    // Convert result to ValueMap for return
-    ValueMap result_map;
-    ValueMap plan_map_result;
-    plan_map_result.Set("name", result.plan.name);
-
-    ValueArray actions_result;
-    for (const auto& action : result.plan.actions) {
-        ValueMap action_map;
-        action_map.Set("type", action.type);
-        action_map.Set("target", action.target);
-        action_map.Set("params", action.params);
-        actions_result.Add(action_map);
-    }
-    plan_map_result.Set("actions", actions_result);
-
-    result_map.Set("plan", plan_map_result);
-    result_map.Set("before", result.before.telemetry); // Simplified for now
-    result_map.Set("after", result.after.telemetry); // Simplified for now
-    result_map.Set("deltas", result.deltas);
-    result_map.Set("applied", result.applied);
-
-    return result_map;
-}
-
-
 Value CoreIde::BuildProposal(const String& package,
                              int max_actions,
                              String& error) {
     // Build the proposal using the CoreProposal class
     CoreProposal::Proposal proposal = this->proposal.BuildProposal(*this, package, max_actions, error);
-    
+
     if (!error.IsEmpty()) {
         return Value(); // Return empty value on error
     }
-    
+
     // Convert the proposal to Value using the CoreProposal's ToValue method
     return this->proposal.ToValue(proposal);
 }
+
+
 
 Value CoreIde::RevertPatch(const String& patch_text, String& error) {
     // Use the CoreScenario to perform the revert
@@ -1026,4 +915,300 @@ Value CoreIde::RevertPatch(const String& patch_text, String& error) {
     result_map.Set("unified_diff", result.unified_diff);
 
     return result_map;
+}
+
+// Lifecycle Analysis v1 - Get the current lifecycle phase with history tracking
+LifecyclePhase CoreIde::GetCurrentLifecyclePhase() const {
+    // Get current metrics needed for lifecycle detection
+    Vector<CoreTelemetry::PackageStats> pkg_stats = telemetry.GetPackageStats(workspace);
+
+    // Aggregate metrics for workspace-level analysis
+    int total_complexity = 0;
+    int total_coupling = 0;
+    int total_files = 0;
+    int total_packages = pkg_stats.GetCount();
+
+    for (const auto& stats : pkg_stats) {
+        total_complexity += stats.complexity_score;
+        total_coupling += stats.coupling_score;
+        total_files += stats.files;
+    }
+
+    // Calculate average complexities
+    double avg_complexity = total_packages > 0 ? (double)total_complexity / total_packages : 0.0;
+    double avg_coupling = total_packages > 0 ? (double)total_coupling / total_packages : 0.0;
+
+    // Calculate semantic entropy based on package distribution
+    double semantic_entropy = 0.0;  // Placeholder - in real implementation this would be computed from semantic analysis
+
+    // Get temporal dynamics trend for lifecycle detection
+    TemporalDynamics::Trend trend = telemetry.GetTemporalTrend();
+
+    // Get architecture diagnostic metrics
+    ArchitectureDiagnostic diag;
+    diag.complexity_index = avg_complexity;
+    diag.coupling_score = avg_coupling;
+    diag.structural_entropy = semantic_entropy;
+
+    // Determine the lifecycle phase using the model
+    LifecyclePhase phase = lifecycle.DetectPhase(trend, diag, semantic_entropy);
+
+    // Record this phase in the history
+    const_cast<CoreIde*>(this)->RecordCurrentPhase(phase);
+
+    return phase;
+}
+
+// Helper method to record the current phase in the lifecycle model
+void CoreIde::RecordCurrentPhase(const LifecyclePhase& phase) {
+    // Record the phase in the lifecycle model
+    lifecycle.RecordPhase(phase);
+
+    // Set up storage path for lifecycle history (e.g., .aiupp/lifecycle.json in workspace root)
+    String lifecycle_path = workspace_root + "/.aiupp/lifecycle.json";
+    lifecycle.SetStoragePath(lifecycle_path);
+
+    // Save the updated history to persist it
+    lifecycle.Save(lifecycle_path);
+}
+
+Value CoreIde::GetLifecycleDrift(String& error) const {
+    DriftMetrics drift = lifecycle.ComputeDrift();
+
+    // Create a ValueMap with the drift metrics
+    ValueMap result;
+    result.Set("transitions", drift.transitions);
+    result.Set("back_and_forth", drift.back_and_forth);
+    result.Set("avg_phase_duration", drift.avg_phase_duration);
+
+    // Include the history for complete information
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+    ValueArray history_array;
+    for (const PhaseSample& sample : history) {
+        ValueMap sample_map;
+        sample_map.Set("timestamp", (int64)sample.timestamp.GetUnix());
+        sample_map.Set("phase", sample.phase_name);
+        history_array.Add(sample_map);
+    }
+    result.Set("history", history_array);
+
+    return result;
+}
+
+double CoreIde::GetLifecycleStability(String& error) const {
+    // Get drift metrics
+    DriftMetrics drift = lifecycle.ComputeDrift();
+
+    // Get temporal dynamics trend
+    TemporalDynamics::Trend trend = telemetry.GetTemporalTrend();
+
+    // Calculate stability index using the lifecycle model
+    double stability = lifecycle.ComputeStabilityIndex(drift, trend);
+
+    return stability;
+}
+
+// Orchestrator v1 - Multi-project roadmap management
+void CoreIde::AddWorkspaceToOrchestrator(const String& path) {
+    orchestrator.AddWorkspace(path);
+}
+
+Value CoreIde::GetWorkspaceSummaries() {
+    Vector<ProjectSummary> summaries = orchestrator.Summaries();
+    ValueArray result;
+
+    for (const ProjectSummary& summary : summaries) {
+        ValueMap summary_map;
+        summary_map.Set("name", summary.name);
+        summary_map.Set("path", summary.path);
+        summary_map.Set("stability", summary.stability);
+        summary_map.Set("lifecycle_phase", summary.lifecycle_phase);
+        summary_map.Set("entropy", summary.entropy);
+        summary_map.Set("size_loc", summary.size_loc);
+        summary_map.Set("packages", summary.packages);
+
+        result.Add(summary_map);
+    }
+
+    return result;
+}
+
+Value CoreIde::BuildGlobalRoadmap(const String& strategy) {
+    CrossWorkspacePlan plan = orchestrator.BuildGlobalRoadmap(strategy);
+
+    ValueMap result;
+    result.Set("strategy_name", plan.strategy_name);
+    result.Set("proposals", plan.proposals);
+    result.Set("global_metrics", plan.global_metrics);
+
+    return result;
+}
+
+// Temporal Strategy Engine v1 - Seasonality, Release Cadence & Stability Windows
+
+Value CoreIde::GetSeasonality() {
+    // Load lifecycle history
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+
+    if (history.GetCount() == 0) {
+        // If no history, return an empty array
+        return ValueArray();
+    }
+
+    // Detect seasonality patterns
+    Vector<SeasonalityPattern> patterns = seasonality.DetectSeasonality(history);
+
+    // Convert to Value
+    ValueArray result;
+    for (const auto& pattern : patterns) {
+        ValueMap pattern_map;
+        pattern_map.Set("name", pattern.name);
+        pattern_map.Set("intensity", pattern.intensity);
+        pattern_map.Set("confidence", pattern.confidence);
+
+        ValueArray peaks_array;
+        for (int peak : pattern.peaks) {
+            peaks_array.Add(peak);
+        }
+        pattern_map.Set("peaks", peaks_array);
+
+        result.Add(pattern_map);
+    }
+
+    return result;
+}
+
+Value CoreIde::GetReleaseCadence() {
+    // Load lifecycle history
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+
+    if (history.GetCount() == 0) {
+        // If no history, return an empty map
+        ValueMap result;
+        result.Set("average_interval", 0);
+        result.Set("confidence", 0.0);
+        return result;
+    }
+
+    // Infer release cadence
+    ReleaseCadence cadence = seasonality.InferReleaseCadence(history);
+
+    // Convert to Value
+    ValueMap result;
+    result.Set("average_interval", cadence.average_interval);
+    result.Set("confidence", cadence.confidence);
+
+    return result;
+}
+
+Value CoreIde::GetStabilityWindows() {
+    // Load lifecycle history
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+
+    if (history.GetCount() == 0) {
+        // If no history, return an empty array
+        return ValueArray();
+    }
+
+    // Get release cadence to inform window prediction
+    ReleaseCadence cadence = seasonality.InferReleaseCadence(history);
+
+    // Predict stability windows
+    Vector<StabilityWindow> windows = seasonality.PredictStabilityWindows(history, cadence);
+
+    // Convert to Value
+    ValueArray result;
+    for (const auto& window : windows) {
+        ValueMap window_map;
+        window_map.Set("start", window.start);
+        window_map.Set("end", window.end);
+        window_map.Set("predicted_safety", window.predicted_safety);
+
+        result.Add(window_map);
+    }
+
+    return result;
+}
+
+// Temporal Strategy Engine v2 - Forecasting & Shock Modeling
+
+Value CoreIde::GetLifecycleForecast(int horizon) {
+    // Load lifecycle history to perform forecasting
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+
+    if (history.GetCount() == 0) {
+        // If no history, return an empty array
+        return ValueArray();
+    }
+
+    // Get the forecast using the forecasting engine
+    Vector<ForecastPoint> forecast_points = forecast.ForecastLifecycle(history, horizon);
+
+    // Convert forecast points to Value for return
+    ValueArray result;
+    for (const auto& point : forecast_points) {
+        ValueMap point_map;
+        point_map.Set("t", point.t);
+        point_map.Set("predicted_phase", point.predicted_phase);
+        point_map.Set("predicted_entropy", point.predicted_entropy);
+        point_map.Set("confidence", point.confidence);
+
+        result.Add(point_map);
+    }
+
+    return result;
+}
+
+Value CoreIde::GetRiskProfile() {
+    // Load lifecycle history and release cadence to compute risk profile
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+    ReleaseCadence cadence = seasonality.InferReleaseCadence(history);
+
+    // Compute the risk profile based on history and cadence
+    RiskProfile profile = forecast.ComputeRiskProfile(history, cadence);
+
+    // Convert risk profile to Value for return
+    ValueMap result;
+    result.Set("long_term_risk", profile.long_term_risk);
+    result.Set("volatility_risk", profile.volatility_risk);
+    result.Set("schedule_risk", profile.schedule_risk);
+    result.Set("architectural_risk", profile.architectural_risk);
+
+    // Convert possible shocks to ValueArray
+    ValueArray shocks_array;
+    for (const auto& shock : profile.possible_shocks) {
+        ValueMap shock_map;
+        shock_map.Set("type", shock.type);
+        shock_map.Set("severity", shock.severity);
+        shock_map.Set("probability", shock.probability);
+        shocks_array.Add(shock_map);
+    }
+    result.Set("possible_shocks", shocks_array);
+
+    return result;
+}
+
+Value CoreIde::SimulateShock(const String& type) {
+    // Load lifecycle history to perform shock simulation
+    Vector<PhaseSample> history = lifecycle.GetHistory();
+
+    if (history.GetCount() == 0) {
+        // If no history, return an empty map
+        ValueMap result;
+        result.Set("type", type);
+        result.Set("severity", 0.0);
+        result.Set("probability", 0.0);
+        return result;
+    }
+
+    // Simulate the shock of the specified type
+    ShockScenario scenario = forecast.SimulateShock(history, type);
+
+    // Convert shock scenario to Value for return
+    ValueMap result;
+    result.Set("type", scenario.type);
+    result.Set("severity", scenario.severity);
+    result.Set("probability", scenario.probability);
+
+    return result;
 }

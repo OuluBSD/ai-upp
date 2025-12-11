@@ -94,6 +94,8 @@ struct InvocationResult : Moveable<InvocationResult> {
     InvocationResult() : status_code(0) {}
     InvocationResult(int status_code, String message);
 
+    InvocationResult& SetPayload(const Value& v) { payload = v; return *this; }
+
     void Jsonize(JsonIO& json) {
         json("status_code", status_code)("message", message)("payload", payload);
     }

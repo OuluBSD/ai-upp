@@ -23,6 +23,7 @@ file
 	IdeSession.cpp,
 	CommandExecutor.h,
 	CommandExecutor.cpp,
+	InstrumentCommands.cpp,
 	main.cpp;
 
 mainconfig

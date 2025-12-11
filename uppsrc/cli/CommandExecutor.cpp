@@ -172,6 +172,24 @@ InvocationResult CommandExecutor::Invoke(const String& name,
         return HandleTemporalRisk(args);
     } else if (name == "temporal_shock") {
         return HandleTemporalShock(args);
+    } else if (name == "list_agents") {
+        return HandleListAgents(args);
+    } else if (name == "agent_plan") {
+        return HandleAgentPlan(args);
+    } else if (name == "global_plan") {
+        return HandleGlobalPlan(args);
+    } else if (name == "resolve_conflicts") {
+        return HandleResolveConflicts(args);
+    } else if (name == "explore_futures") {
+        return HandleExploreFutures(args);
+    } else if (name == "evolution_timeline") {
+        return HandleEvolutionTimeline(args);
+    } else if (name == "evolution_summary") {
+        return HandleEvolutionSummary(args);
+    } else if (name == "instrument_build_hybrid") {
+        return HandleInstrumentBuildHybrid(args);
+    } else if (name == "instrument_render_hybrid") {
+        return HandleInstrumentRenderHybrid(args);
     } else {
         return InvocationResult(1, "Unsupported command: " + name);
     }
@@ -1211,6 +1229,30 @@ InvocationResult CommandExecutor::HandleExportProposal(const VectorMap<String, S
         return InvocationResult(1, "ExportProposal failed: " + error);
     }
 
+    // Check if the 'with-futures' flag is present
+    String with_futures = args.Get("with_futures", "false");
+    if (with_futures == "true" || with_futures == "1") {
+        // Add outcome_horizon to the result
+        Value futures_result = session->ExploreFutures(error);
+        if (!error.IsEmpty()) {
+            // Log the error but don't fail the entire command - just don't include futures
+            LOG("Warning: Failed to generate outcome horizon: " + error);
+        } else {
+            // Add outcome_horizon to the existing result
+            if (IsValueMap(result)) {
+                ValueMap result_map = ValueTo<ValueMap>(result);
+                result_map.Set("outcome_horizon", futures_result);
+                result = result_map;
+            } else {
+                // If result is not a map, create a new map with the result and the horizon
+                ValueMap combined_result;
+                combined_result.Set("proposal", result);
+                combined_result.Set("outcome_horizon", futures_result);
+                result = combined_result;
+            }
+        }
+    }
+
     InvocationResult r(0, "Proposal exported successfully");
     r.payload = result;
     return r;
@@ -1393,6 +1435,107 @@ InvocationResult CommandExecutor::HandleTemporalShock(const VectorMap<String, St
     } else {
         return InvocationResult(1, "Failed to retrieve shock simulation data");
     }
+}
+
+// Strategic Navigator v1 - Multi-agent planning command handlers
+
+InvocationResult CommandExecutor::HandleListAgents(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetSupervisor().GetCoreIde().GetAgentProfiles();
+
+    if (result.Is<ValueArray>()) {
+        InvocationResult r(0, "List of agents retrieved successfully");
+        r.payload = result;
+        return r;
+    } else {
+        return InvocationResult(1, "Failed to retrieve agent profiles");
+    }
+}
+
+InvocationResult CommandExecutor::HandleAgentPlan(const VectorMap<String, String>& args) {
+    String agent_name = args.Get("agent_name", "");
+    if (agent_name.IsEmpty()) {
+        return InvocationResult(1, "Missing required argument: agent_name");
+    }
+
+    String error;
+    Value result = session->BuildAgentPlan(agent_name, error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to build agent plan: " + error);
+    }
+
+    InvocationResult r(0, "Agent plan generated successfully");
+    r.payload = result;
+    return r;
+}
+
+InvocationResult CommandExecutor::HandleGlobalPlan(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->BuildGlobalPlan(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to build global plan: " + error);
+    }
+
+    InvocationResult r(0, "Global plan generated successfully");
+    r.payload = result;
+    return r;
+}
+
+// Conflict Resolver v1 - Patch-level negotiation command handlers
+
+InvocationResult CommandExecutor::HandleResolveConflicts(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->ResolveConflicts(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to resolve conflicts: " + error);
+    }
+
+    InvocationResult r(0, "Conflicts resolved successfully");
+    r.payload = result;
+    return r;
+}
+
+InvocationResult CommandExecutor::HandleExploreFutures(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->ExploreFutures(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to explore futures: " + error);
+    }
+
+    InvocationResult r(0, "Futures exploration completed successfully");
+    r.payload = result;
+    return r;
+}
+
+// Evolution Engine v1 - CLI command handlers
+InvocationResult CommandExecutor::HandleEvolutionTimeline(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetEvolutionTimeline(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to retrieve evolution timeline: " + error);
+    }
+
+    InvocationResult r(0, "Evolution timeline retrieved successfully");
+    r.payload = result;
+    return r;
+}
+
+InvocationResult CommandExecutor::HandleEvolutionSummary(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->GetEvolutionSummary(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to retrieve evolution summary: " + error);
+    }
+
+    InvocationResult r(0, "Evolution summary retrieved successfully");
+    r.payload = result;
+    return r;
 }
 
 }

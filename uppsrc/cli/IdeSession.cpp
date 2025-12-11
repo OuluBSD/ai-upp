@@ -103,6 +103,9 @@ public:
     virtual Value GetSemanticClusters(String& error) override;
     virtual Value SearchSemanticEntities(const String& pattern, String& error) override;
 
+    // Multi-Branch Futures & Outcome Horizon Engine - v2
+    virtual Value ExploreFutures(String& error) override;
+
 private:
     CoreIde core_ide;
 };
@@ -821,6 +824,81 @@ Value IdeSessionImpl::BuildGlobalRoadmap(const String& strategy, String& error) 
         return Value();
     } catch (...) {
         error = "Unknown error occurred while building global roadmap";
+        return Value();
+    }
+}
+
+// Conflict Resolver v1 - Patch-level negotiation implementation
+Value IdeSessionImpl::ResolveConflicts(String& error) {
+    try {
+        return core_ide.ResolveConflicts(error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while resolving conflicts";
+        return Value();
+    }
+}
+
+Value IdeSessionImpl::ExploreFutures(String& error) {
+    try {
+        return core_ide.ExploreFutures(error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while exploring futures";
+        return Value();
+    }
+}
+
+// Evolution Engine v1 implementations
+Value IdeSessionImpl::GetEvolutionTimeline(String& error) const {
+    try {
+        return core_ide.GetEvolutionTimeline(error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while getting evolution timeline";
+        return Value();
+    }
+}
+
+Value IdeSessionImpl::GetEvolutionSummary(String& error) const {
+    try {
+        return core_ide.GetEvolutionSummary(error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while getting evolution summary";
+        return Value();
+    }
+}
+
+// Playbook Engine v1 - High-level workflow automation
+Value IdeSessionImpl::ListPlaybooks(String& error) const {
+    try {
+        return core_ide.ListPlaybooks(error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while listing playbooks";
+        return Value();
+    }
+}
+
+Value IdeSessionImpl::RunPlaybook(const String& id, String& error) {
+    try {
+        return core_ide.RunPlaybook(id, error);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while running playbook: " + id;
         return Value();
     }
 }

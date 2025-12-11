@@ -149,6 +149,10 @@ private:
     // Multi-Branch Futures & Outcome Horizon Engine - v2
     InvocationResult HandleExploreFutures(const VectorMap<String, String>& args);
 
+    // Playbook Engine v1 - High-level workflow automation
+    InvocationResult HandleListPlaybooks(const VectorMap<String, String>& args);
+    InvocationResult HandleRunPlaybook(const VectorMap<String, String>& args);
+
     // Hybrid Instrument Commands
     InvocationResult HandleInstrumentBuildHybrid(const VectorMap<String, String>& args);
     InvocationResult HandleInstrumentRenderHybrid(const VectorMap<String, String>& args);

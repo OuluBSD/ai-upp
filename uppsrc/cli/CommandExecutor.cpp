@@ -186,6 +186,10 @@ InvocationResult CommandExecutor::Invoke(const String& name,
         return HandleEvolutionTimeline(args);
     } else if (name == "evolution_summary") {
         return HandleEvolutionSummary(args);
+    } else if (name == "list_playbooks") {
+        return HandleListPlaybooks(args);
+    } else if (name == "run_playbook") {
+        return HandleRunPlaybook(args);
     } else if (name == "instrument_build_hybrid") {
         return HandleInstrumentBuildHybrid(args);
     } else if (name == "instrument_render_hybrid") {
@@ -1534,6 +1538,38 @@ InvocationResult CommandExecutor::HandleEvolutionSummary(const VectorMap<String,
     }
 
     InvocationResult r(0, "Evolution summary retrieved successfully");
+    r.payload = result;
+    return r;
+}
+
+// Playbook Engine v1 - CLI command handlers
+InvocationResult CommandExecutor::HandleListPlaybooks(const VectorMap<String, String>& args) {
+    String error;
+    Value result = session->ListPlaybooks(error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to list playbooks: " + error);
+    }
+
+    InvocationResult r(0, "Playbooks listed successfully");
+    r.payload = result;
+    return r;
+}
+
+InvocationResult CommandExecutor::HandleRunPlaybook(const VectorMap<String, String>& args) {
+    String playbook_id = args.Get("playbook_id", "");
+    if (playbook_id.IsEmpty()) {
+        return InvocationResult(1, "Missing required argument: playbook_id");
+    }
+
+    String error;
+    Value result = session->RunPlaybook(playbook_id, error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to run playbook '" + playbook_id + "': " + error);
+    }
+
+    InvocationResult r(0, "Playbook '" + playbook_id + "' executed successfully");
     r.payload = result;
     return r;
 }

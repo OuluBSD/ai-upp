@@ -676,6 +676,48 @@ The semantic information is integrated into the multi-objective planning process
 }
 ```
 
+### Playbook Engine v1 – High-Level Workflows & Safety-Oriented Automation
+
+The system now includes a Playbook Engine that enables high-level, safe automation workflows. Playbooks are declarative, data-driven sequences of operations with built-in safety constraints that allow AI agents to trigger complex procedures without manually orchestrating each low-level command.
+
+Key features:
+* **Declarative Workflows** - Playbooks are defined in JSON with ordered steps
+* **Safety Constraints** - Built-in limits on risk, actions, and apply operations
+* **Multi-Step Orchestration** - Sequences of related operations with shared state
+* **Deterministic Execution** - Consistent, auditable results for AI agent trust
+
+Available commands:
+* `list_playbooks` - Discover available automation workflows and their safety characteristics
+* `run_playbook` - Execute a named playbook with multi-step automation and safety checks
+
+Example usage:
+```bash
+# List available playbooks
+theide-cli --workspace-root . --json list_playbooks
+
+# Run a conservative cleanup playbook
+theide-cli --workspace-root . --json run_playbook --playbook_id safe_cleanup_cycle
+```
+
+This enables AI agents to perform complex automation tasks with confidence in safety constraints and predictable outcomes.
+
+### MCP Integration (Node.js)
+
+ai-upp-mcp exposes AI-UPP CLI as an MCP server.
+
+* Tools: workspace_overview, optimization_proposal, explore_futures, apply_scenario, revert_patch, evolution_summary, lifecycle_status, list_playbooks, run_playbook.
+* See mcp/ai-upp-mcp/README.md for details.
+
+The system now includes MCP (Model Context Protocol) integration via a dedicated Node.js server that exposes AI-UPP functionality to LLM agents. This provides a standardized interface for AI agents to interact with the codebase through structured tool calls.
+
+Key features:
+* **Standardized Protocol** - Implements MCP 2024-02-02 specification over stdin/stdout
+* **JSON-RPC Interface** - All communication uses structured JSON-RPC format
+* **Deterministic Operations** - All tools provide consistent, auditable results
+* **No GUI Dependencies** - All operations run in headless mode via the CLI
+
+This integration enables AI agents like Qwen, Claude, and others to perform sophisticated codebase analysis, refactoring, and automation operations by calling these standardized tools.
+
 This subsystem enables AI agents to make **architecture-aware optimization decisions** by understanding the conceptual structure of the codebase, identifying highly connected elements, and making refactoring decisions that improve code cohesion and reduce coupling.
 
 ## SemanticAssist v2 – Inference Layer
@@ -2404,3 +2446,503 @@ theide-cli temporal_shock --type api_break
 ```
 
 This subsystem enables AI agents to exhibit **predictive temporal intelligence** by forecasting future lifecycle states, modeling potential disruptions, and incorporating long-term risk considerations into their decision-making processes. By understanding future risk profiles and potential shock events, AI agents can make more strategic and resilient optimization decisions that account for both immediate benefits and long-term stability.
+
+## Strategic Navigator v1 – Multi-Agent Goal-Oriented Planning
+
+The system introduces a Strategic Navigator layer that represents multiple optimization agents, each with its own goal profile, allowing for explicit optimization goals and generating per-agent plans AND a merged, conflict-aware global plan. This enables AI agents to coordinate complex multi-objective optimization strategies while detecting and resolving conflicts between different optimization approaches.
+
+### Key Features:
+* **Multi-Agent Architecture** - Supports multiple strategic agents, each with specific optimization goals and preferences
+  * `complexity_agent`: Focuses on reducing code complexity and entropy
+  * `graph_agent`: Focuses on flattening dependencies and reducing coupling
+  * Custom agents can be defined for specific optimization goals
+* **Goal-Based Planning** - Agents define explicit optimization goals with configurable weights:
+  * `complexity`: Weight for complexity reduction metrics
+  * `entropy`: Weight for entropy reduction metrics
+  * `coupling`: Weight for coupling reduction metrics
+  * `cycles`: Weight for cycle elimination metrics
+* **Conflict Detection** - Identifies conflicts between agent plans that could cause incompatible changes
+  * Detects file conflicts where multiple agents try to modify the same files
+  * Reports type of conflicts and conflicting files
+* **Priority-Based Merging** - Creates a global plan by merging individual agent plans prioritizing by goal importance
+
+### Agent Configuration:
+Agents are defined in the metadata file `./metadata/agents_v1.json`:
+```json
+{
+  "agents": [
+    {
+      "name": "complexity_agent",
+      "preferences": {
+        "strategy": "aggressive_cleanup",
+        "risk_tolerance": 0.4
+      },
+      "goals": [
+        {
+          "id": "reduce_complexity",
+          "description": "Reduce complexity and entropy of core packages.",
+          "weights": {
+            "complexity": 1.0,
+            "entropy": 0.8,
+            "coupling": 0.4
+          },
+          "priority": 0.9
+        }
+      ]
+    },
+    {
+      "name": "graph_agent",
+      "preferences": {
+        "strategy": "stability_first",
+        "risk_tolerance": 0.2
+      },
+      "goals": [
+        {
+          "id": "flatten_dependencies",
+          "weights": {
+            "cycles": 1.0,
+            "coupling": 0.8
+          },
+          "priority": 0.8
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Available Strategic Navigator Commands:
+* **list_agents** - Returns a list of all registered strategic agents with their names, preferences, and goals:
+  * Shows agent names, preferences, and goal configurations
+  * Enables AI agents to understand the available specialization options
+
+* **agent_plan** - Builds an optimization plan for the specified agent based on its goals and preferences:
+  * `agent_name` parameter specifies which agent to generate a plan for
+  * Returns agent-specific plan with metadata and full proposal
+
+* **global_plan** - Builds a global optimization plan by merging plans from all registered agents, detecting and resolving conflicts:
+  * Returns individual agent plans, detected conflicts, and merged global plan
+  * Orders actions by priority considering conflicts between agents
+
+### Command Examples:
+```bash
+# List all registered agents
+theide-cli --json list_agents
+
+# Generate a plan for a specific agent
+theide-cli --json agent_plan --agent_name complexity_agent
+
+# Generate a merged global plan from all agents
+theide-cli --json global_plan
+```
+
+### JSON Output Example for list_agents:
+```json
+{
+  "status": 0,
+  "message": "List of agents retrieved successfully",
+  "payload": [
+    {
+      "name": "complexity_agent",
+      "preferences": {
+        "strategy": "aggressive_cleanup",
+        "risk_tolerance": 0.4
+      },
+      "goals": [
+        {
+          "id": "reduce_complexity",
+          "description": "Reduce complexity and entropy of core packages.",
+          "weights": {
+            "complexity": 1.0,
+            "entropy": 0.8,
+            "coupling": 0.4
+          },
+          "priority": 0.9
+        }
+      ]
+    }
+  ]
+}
+```
+
+### JSON Output Example for agent_plan:
+```json
+{
+  "status": 0,
+  "message": "Agent plan generated successfully",
+  "payload": {
+    "agent_name": "complexity_agent",
+    "metadata": {
+      "timestamp": "2023-10-15 10:30:45",
+      "strategy": "aggressive_cleanup",
+      "risk_tolerance": 0.4,
+      "goal_ids": ["reduce_complexity"],
+      "goals_snapshot": [
+        {
+          "id": "reduce_complexity",
+          "weights": {"complexity": 1.0, "entropy": 0.8, "coupling": 0.4},
+          "priority": 0.9
+        }
+      ]
+    },
+    "proposal": {
+      // CoreProposal structure for the agent
+    }
+  }
+}
+```
+
+### JSON Output Example for global_plan:
+```json
+{
+  "status": 0,
+  "message": "Global plan generated successfully",
+  "payload": {
+    "agent_plans": [
+      // Array of individual agent plans
+    ],
+    "conflicts": {
+      // Map of detected conflicts between agent plans
+    },
+    "merged": {
+      "ordered_plans": [
+        // Agent plans ordered by priority
+      ],
+      "conflicts_resolved": true,
+      "total_agents": 2,
+      "conflict_count": 1,
+      "conflicts": {
+        // Detailed conflict information
+      }
+    }
+  }
+}
+```
+
+This subsystem enables AI agents to exhibit **strategic coordination** by managing multiple optimization agents with different goals, detecting potential conflicts between their plans, and creating a unified execution sequence that respects priorities and constraints. By coordinating multiple specialized agents, the system can address complex multi-objective optimization problems while maintaining consistency and avoiding contradictory changes.
+
+## Conflict Resolver v1 – Patch-Level Negotiation
+
+The system introduces a Conflict Resolver layer that operates after the Strategic Navigator, focusing on resolving conflicts between AgentPlans at the patch and change-set level. This system compares multiple proposals, identifies conflicts, evaluates trade-offs, and produces a final negotiated result.
+
+### Key Features:
+* **Multi-Level Conflict Detection** - Identifies various types of conflicts between agent plans:
+  * `edit_overlap`: Two agents modifying the same file and same/nearby line range
+  * `semantic_disagreement`: Two agents giving mutually incompatible semantic changes
+  * `refactor_collision`: Incompatible refactoring operations like rename vs delete, pipeline reorder vs flatten
+* **Trade-Off Evaluation** - Heuristically evaluates trade-offs using benefit, cost, risk, confidence, priorities, lifecycle weights, drift, seasonality, and other metrics
+* **Deterministic Negotiation** - Produces reproducible merged plans by resolving conflicts and determining which actions to keep vs discard
+* **Priority-Based Resolution** - Honors agent priorities and preferences when resolving conflicts
+
+### Available Conflict Resolver Commands:
+* **resolve_conflicts** - Analyzes conflicts between multiple agent plans and produces a negotiated result:
+  * Returns list of detected conflicts between agent plans
+  * Returns evaluated trade-offs and decisions
+  * Returns negotiated result with final actions and discarded actions
+
+### Command Examples:
+```bash
+# Resolve conflicts between agent plans
+theide-cli --json resolve_conflicts
+```
+
+### JSON Output Example for resolve_conflicts:
+```json
+{
+  "status": 0,
+  "message": "Conflicts resolved successfully",
+  "payload": {
+    "conflicts": [
+      {
+        "file": "src/main.cpp",
+        "line": 42,
+        "type": "edit_overlap",
+        "agents": {
+          "complexity_agent": {
+            "action": {
+              "type": "remove_dead_includes",
+              "target": "src/main.cpp",
+              "params": {}
+            }
+          },
+          "graph_agent": {
+            "action": {
+              "type": "rename_function",
+              "target": "src/main.cpp",
+              "params": {
+                "old_name": "main",
+                "new_name": "application_main"
+              }
+            }
+          }
+        },
+        "metadata": {
+          "severity": "medium",
+          "rationale": "Both agents attempting to modify the same file"
+        }
+      }
+    ],
+    "tradeoffs": [
+      {
+        "id": "honor_priority_complexity_agent",
+        "description": "Honor higher priority agent: complexity_agent vs graph_agent",
+        "score": 0.9,
+        "rationale": {
+          "reason": "Higher priority agent preference",
+          "agent_a_priority": 0.9,
+          "agent_b_priority": 0.8
+        }
+      }
+    ],
+    "result": {
+      "final_actions": [
+        {
+          "type": "remove_dead_includes",
+          "target": "src/main.cpp",
+          "params": {}
+        }
+      ],
+      "discarded_actions": [
+        {
+          "type": "rename_function",
+          "target": "src/main.cpp",
+          "params": {
+            "old_name": "main",
+            "new_name": "application_main"
+          }
+        }
+      ],
+      "tradeoffs": [
+        // Array of trade-off decisions
+      ]
+    }
+  }
+}
+```
+
+### Trade-off Policies:
+* **Lower Risk vs Higher Benefit**: Evaluates which conflicting action presents less risk or higher benefit
+* **Lifecycle-Aware Bias**: Considers current project lifecycle phase when evaluating trade-offs
+* **Stability Window Alignment**: Prefers actions that align with predicted stability windows
+* **Agent Priority Resolution**: Honors agent priorities when other factors are equal
+* **Multi-Agent Compromise Model**: Attempts to preserve beneficial aspects of both agent plans where possible
+
+This subsystem enables AI agents to exhibit **patch-level negotiation intelligence** by analyzing and resolving conflicts between different strategic approaches in a deterministic, heuristic-based manner. The system evaluates trade-offs using multiple criteria (risk, benefit, priority) to produce a coherent execution plan that maximizes the value of multiple agent strategies while avoiding contradictory changes.
+
+## Scenario Simulator v2 – Multi-Branch Futures & Outcome Horizon
+
+The system now includes a Scenario Simulator v2 that enables AI agents to explore multiple hypothetical futures based on the current negotiated scenario. This provides pre-scored alternatives instead of just one plan, allowing for more informed decision-making.
+
+### Core Features:
+
+* **Multi-Branch Futures** - Generates different subsets of actions from the same base scenario, creating alternative "branches" to explore
+* **Projected Metrics** - Heuristically predicts risk, benefit, complexity/coupling deltas, and other metrics without applying changes
+* **Branch Scoring** - Uses lifecycle phase, temporal trends, and stability windows to compute fitness scores for each branch
+* **Outcome Horizon** - Returns structured data suitable for AI agents to compare branches and make decisions
+* **Deterministic & Heuristic-Based** - All behavior remains predictable and based on heuristics rather than machine learning
+
+### Branch Generation Strategy:
+
+The simulator creates branches such as:
+* **"all_actions"** → all negotiated actions
+* **"low_risk"** → only actions below some risk threshold
+* **"high_benefit"** → top N actions by benefit
+* **"stability_aligned"** → actions that fall into safe stability windows
+* **"minimal_change"** → smallest set that yields non-trivial improvement
+
+Each branch reuses the same base scenario with a filtered actions vector.
+
+### Core Data Structures:
+
+**FutureBranch** contains:
+* `id`: Identifier for the branch (e.g., "branch_low_risk")
+* `starting_point`: Snapshot of telemetry + architecture + semantic summary
+* `actions`: Scenario actions included in this branch
+* `projected_metrics`: Predicted complexity, coupling, cycles, risk, benefit, etc.
+* `terminal_state`: Predicted "end" state snapshot
+* `score`: Overall fitness score for this branch
+
+**OutcomeHorizon** contains:
+* `branches`: List of FutureBranch objects with full details
+* `best_branch`: Minimal summary of top-scoring branch
+* `stats`: Horizon-level statistics (min/max/avg risk, benefit, etc.)
+
+### Available Commands:
+
+* **explore_futures** - Explore multiple hypothetical futures based on the current negotiated scenario:
+  * Generates different branches of actions
+  * Scores them based on risk, benefit, complexity, and other metrics
+  * Returns an outcome horizon for AI agents to compare
+
+* **export_proposal --with-futures** - Extended version of the export_proposal command that optionally includes outcome horizon:
+  * When the `--with-futures` flag is set to true, also calls explore_futures
+  * Attaches the outcome_horizon to the proposal result
+  * Enables AI agents to choose a specific branch and materialize only that branch
+
+### Command Examples:
+
+```bash
+# Explore multiple futures based on the current negotiated scenario
+theide-cli --workspace-root . --json explore_futures
+
+# Get a proposal with the outcome horizon included
+theide-cli --workspace-root . --json export_proposal --package MyApp --with-futures true
+
+# Compare with regular proposal
+theide-cli --json export_proposal --package MyApp
+```
+
+### JSON Output Example for explore_futures:
+
+```json
+{
+  "branches": [
+    {
+      "id": "branch_all_actions",
+      "projected_metrics": {
+        "risk": 0.4,
+        "benefit": 0.8,
+        "complexity": 0.3,
+        "coupling": 0.2,
+        "cycles": 0.1,
+        "complexity_delta": -0.12,
+        "coupling_delta": -0.08,
+        "entropy_delta": -0.05
+      },
+      "score": 0.73
+    },
+    {
+      "id": "branch_low_risk",
+      "projected_metrics": {
+        "risk": 0.22,
+        "benefit": 0.65,
+        "complexity": 0.25,
+        "coupling": 0.18,
+        "cycles": 0.08,
+        "complexity_delta": -0.08,
+        "coupling_delta": -0.05,
+        "entropy_delta": -0.03
+      },
+      "score": 0.81
+    },
+    {
+      "id": "branch_high_benefit",
+      "projected_metrics": {
+        "risk": 0.55,
+        "benefit": 0.92,
+        "complexity": 0.45,
+        "coupling": 0.35,
+        "cycles": 0.15,
+        "complexity_delta": -0.18,
+        "coupling_delta": -0.12,
+        "entropy_delta": -0.08
+      },
+      "score": 0.68
+    }
+  ],
+  "best_branch": {
+    "id": "branch_low_risk",
+    "score": 0.81,
+    "projected_metrics": {
+      "risk": 0.22,
+      "benefit": 0.65
+    }
+  },
+  "stats": {
+    "avg_score": 0.65,
+    "max_score": 0.81,
+    "min_risk": 0.22,
+    "max_benefit": 0.92,
+    "branch_count": 5
+  }
+}
+```
+
+### Integration with AI Drivers:
+
+AI drivers (like Qwen via MCP) can now:
+1. Call `export_proposal --with-futures` to get a proposal with the outcome horizon attached
+2. Inspect the different branches and their metrics
+3. Choose a specific branch ID
+4. Subsequently ask CLI/AI-UPP to materialize only that branch via a filtered scenario
+
+For v1, the system reports the horizon and AI agents can choose which branch to pursue. Actual branch-specific application can be added in future versions.
+
+This subsystem enables AI agents to make **strategic multi-branch decisions** by providing multiple pre-scored alternatives based on the same base scenario, allowing for more nuanced and risk-aware planning.
+
+## Meta-Evolution Engine v1 – Evolution Timeline & Change Genome
+
+The Meta-Evolution Engine provides a comprehensive system for recording, analyzing, and learning from the historical evolution of codebases. It maintains a persistent timeline of all significant changes applied to the codebase, along with their outcomes, enabling AI agents to understand what strategies have been most effective in a particular repository.
+
+### Core Concepts
+
+* **EvolutionEvent**: A structured record of a significant change application, containing:
+  * `timestamp`: When the event occurred
+  * `id`: Unique identifier for the event
+  * `package`: The package the event applied to
+  * `agent_name`: Which agent / strategy profile triggered the change
+  * `scenario_id`: Link to ScenarioPlan / Proposal id
+  * `lifecycle_phase`: Lifecycle phase at time of change
+  * `strategy`: Active strategy profile name
+  * `change_kinds`: Categorical characterization ("rename", "include_cleanup", "graph_simplification", etc.)
+  * `metrics_before` and `metrics_after`: Selected metrics snapshots
+  * `deltas`: Normalized deltas (complexity, cycles, coupling, etc.)
+  * `succeeded`: True if applied & kept
+  * `reverted`: True if later undone
+  * `context`: Snapshot of drift, stability, seasonality at the time
+
+* **Change "Genome"**: The categorical characterization of change types, stored in `change_kinds`, allows for high-level analysis of what types of changes were applied and their effectiveness.
+
+* **EvolutionSummary**: An aggregated view that provides:
+  * Total event counts and success rates
+  * Aggregated stats by change kind (what types of changes work best)
+  * Success/failure and avg benefit/risk by strategy profile
+  * Preferred change kinds by lifecycle phase
+
+### Available Evolution Commands
+
+* **evolution_timeline** - Retrieves the full timeline of evolution events in the repository
+* **evolution_summary** - Provides aggregated summary of evolution events and their outcomes
+
+### CLI Usage
+
+```bash
+theide-cli --workspace-root . --json evolution_timeline
+theide-cli --workspace-root . --json evolution_summary
+```
+
+### Data Storage
+
+* **Location**: Evolution data is stored at `<workspace-root>/.aiupp/evolution.json`
+* **Persistent**: Events are automatically saved after each significant change application
+* **Queryable**: Full timeline and aggregated statistics accessible through JSON APIs
+
+### AI Integration
+
+The Meta-Evolution Engine enables AI agents to ask strategic questions:
+
+* "What usually works in this repo?" - Through `evolution_summary` by change kind and strategy
+* "What strategy worked best historically?" - By examining success rates in `by_strategy` section
+* "How has the codebase evolved structurally over time?" - Through the full timeline in `evolution_timeline`
+* "Are we frequently reverting certain kinds of changes?" - By checking `reverted` flag and `reverted_count`
+
+AI drivers (Qwen via MCP later) can call `evolution_summary` to:
+1. Pick strategies that align with past successes
+2. Avoid repeating historically bad patterns
+3. Adapt their behavior per-repo based on evolution history
+
+### Supervisor Integration
+
+The AI Supervisor consumes evolution data to adjust its behavior:
+* Strategies with low success rates (<70%) have their priority reduced over time
+* High-success change kinds (like include cleanup with >90% success) get increased priority
+* The system learns from historical outcomes to improve future decision-making
+
+### Deterministic & Auditable
+
+* **Heuristic-Based**: All evolution analysis uses deterministic heuristics, no ML required
+* **Auditable**: Every recorded change is visible in the timeline with full context
+* **NoGUI Compatible**: Full functionality available through command-line interface
+* **Reproducible**: Evolution history can be analyzed and acted upon in a deterministic way
+
+This subsystem enables AI agents to exhibit **meta-evolution intelligence** by learning from the historical outcomes of their changes, continuously improving their decision-making based on project-specific experience. By understanding what types of changes have been successful in a particular codebase, AI agents can adapt their strategies to maximize the likelihood of successful outcomes and avoid repeating patterns that historically led to failures or reverts.

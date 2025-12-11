@@ -148,6 +148,20 @@ public:
     virtual bool AddWorkspaceToOrchestrator(const String& path, String& error) = 0;
     virtual Value GetWorkspaceSummaries(String& error) = 0;
     virtual Value BuildGlobalRoadmap(const String& strategy, String& error) = 0;
+
+    // Conflict Resolver v1 - Patch-level negotiation
+    virtual Value ResolveConflicts(String& error) = 0;
+
+    // Multi-Branch Futures & Outcome Horizon Engine - v2
+    virtual Value ExploreFutures(String& error) = 0;
+
+    // Evolution Engine v1 - Get evolution timeline and summary
+    virtual Value GetEvolutionTimeline(String& error) const = 0;
+    virtual Value GetEvolutionSummary(String& error) const = 0;
+
+    // Playbook Engine v1 - High-level workflow automation
+    virtual Value ListPlaybooks(String& error) const = 0;
+    virtual Value RunPlaybook(const String& id, String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

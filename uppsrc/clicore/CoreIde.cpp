@@ -27,6 +27,35 @@ CoreIde::CoreIde() {
     // Initialize GlobalKnowledge - load from user-level location
     String global_knowledge_path = GetHomeDirectory() + "/.aiupp/global_knowledge.json";
     global.Load(global_knowledge_path);
+
+    // Load and register agent profiles from metadata
+    if (!agent_registry.Load("metadata/agents_v1.json", error)) {
+        // If we can't load agent file, log but don't fail
+        console.AppendLine("Warning: Failed to load agent profiles: " + error);
+        console.AppendLine("Using default empty agent configuration");
+    } else {
+        // Register all loaded agent profiles with the StrategicNavigator
+        Vector<AgentProfile> profiles = agent_registry.GetAll();
+        for(const AgentProfile& profile : profiles) {
+            navigator.RegisterAgent(profile);
+        }
+    }
+
+    // Initialize CoreEvolution - load from workspace-specific location
+    String evolution_path = workspace_root + "/.aiupp/evolution.json";
+    evolution.Load(evolution_path);
+
+    // Learn from evolution history to adjust strategy weights
+    EvolutionSummary summary = evolution.Summarize();
+    supervisor.LearnFromEvolution(summary);
+
+    // Initialize Playbook Engine - load from default location if it exists
+    String playbook_error;
+    if (!playbook_engine.Load("metadata/playbooks_v1.json", playbook_error)) {
+        // If we can't load playbooks file, log but don't fail
+        console.AppendLine("Warning: Failed to load playbooks: " + playbook_error);
+        console.AppendLine("Using default empty playbooks configuration");
+    }
 }
 
 CoreIde::~CoreIde() {
@@ -537,15 +566,80 @@ bool CoreIde::GetAffectedPackages(const String& filepath, Vector<String>& out_pa
 
 // Refactoring operations
 bool CoreIde::RenameSymbol(const String& old, const String& nw, String& error) {
+    // Collect metrics before rename
+    ValueMap metrics_before = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return false; // Return early on error
+    }
+
     // For now, we'll implement a simpler approach for recording the edit
     // In a complete implementation, this would track all affected files during rename
     bool success = refactor.RenameSymbol(old, nw, *this, error);
+
+    if (success) {
+        // Collect metrics after rename
+        ValueMap metrics_after = GetTelemetryData("", error);
+        if (!error.IsEmpty()) {
+            return false; // Return early on error
+        }
+
+        // Create evolution event to record the change
+        EvolutionEvent ev;
+        ev.timestamp = GetSysTime();
+        ev.id = AsString(GetSysTime().GetTickCount(), "%016x"); // Generate a unique ID
+        ev.package = workspace.GetMainPackage().IsEmpty() ? "unknown" : workspace.GetMainPackage();
+        ev.agent_name = "unknown"; // Would be set by caller
+        ev.scenario_id = "direct_call"; // Direct call rather than through scenario
+        ev.lifecycle_phase = GetCurrentLifecyclePhase().name; // Get current lifecycle phase
+        ev.strategy = GetActiveStrategy() ? GetActiveStrategy()->name : "default"; // Get active strategy name
+        ev.context.Set("stability", GetLifecycleStability(error));
+        if (error.IsEmpty()) {
+            ev.context.Set("phase", GetCurrentLifecyclePhase().name);
+        }
+
+        ev.change_kinds.Add("rename");
+        ev.metrics_before = metrics_before;
+        ev.metrics_after = metrics_after;
+
+        // Calculate deltas
+        for (int i = 0; i < metrics_before.GetCount(); i++) {
+            String key = metrics_before.GetKey(i);
+            Value b_val = metrics_before[i];
+            if (metrics_after.Find(key) >= 0) {
+                Value a_val = metrics_after[key];
+
+                if (Is<double>(b_val) && Is<double>(a_val)) {
+                    ev.deltas.Set(key, As<double>(a_val) - As<double>(b_val));
+                } else if (Is<int>(b_val) && Is<int>(a_val)) {
+                    ev.deltas.Set(key, As<int>(a_val) - As<int>(b_val));
+                } else {
+                    ev.deltas.Set(key, a_val); // Just store the new value if types don't match for subtraction
+                }
+            }
+        }
+
+        ev.succeeded = success;
+        ev.reverted = false; // This will be set to true if the change is later reverted
+
+        // Record the event in the evolution engine
+        String evolution_path = workspace_root + "/.aiupp/evolution.json";
+        evolution.Load(evolution_path); // Load existing events
+        evolution.RecordEvent(ev); // Record the new event
+        evolution.Save(evolution_path); // Save back to file
+    }
+
     // Note: In a complete implementation, we would need to get the list of affected files from the refactor operation
     // and record the before/after sizes for each file
     return success;
 }
 
 bool CoreIde::RemoveDeadIncludes(const String& path, String& error, int* out_count) {
+    // Collect metrics before removing dead includes
+    ValueMap metrics_before = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return false; // Return early on error
+    }
+
     String old_content = LoadFile(path);
     int old_size = old_content.GetLength();
     bool success = refactor.RemoveDeadIncludes(path, *this, error, out_count);
@@ -553,11 +647,67 @@ bool CoreIde::RemoveDeadIncludes(const String& path, String& error, int* out_cou
         String new_content = LoadFile(path);
         int new_size = new_content.GetLength();
         telemetry.RecordEdit(path, old_size, new_size);
+
+        // Collect metrics after removing dead includes
+        ValueMap metrics_after = GetTelemetryData("", error);
+        if (!error.IsEmpty()) {
+            return false; // Return early on error
+        }
+
+        // Create evolution event to record the change
+        EvolutionEvent ev;
+        ev.timestamp = GetSysTime();
+        ev.id = AsString(GetSysTime().GetTickCount(), "%016x"); // Generate a unique ID
+        ev.package = workspace.GetMainPackage().IsEmpty() ? "unknown" : workspace.GetMainPackage();
+        ev.agent_name = "unknown"; // Would be set by caller
+        ev.scenario_id = "direct_call"; // Direct call rather than through scenario
+        ev.lifecycle_phase = GetCurrentLifecyclePhase().name; // Get current lifecycle phase
+        ev.strategy = GetActiveStrategy() ? GetActiveStrategy()->name : "default"; // Get active strategy name
+        ev.context.Set("stability", GetLifecycleStability(error));
+        if (error.IsEmpty()) {
+            ev.context.Set("phase", GetCurrentLifecyclePhase().name);
+        }
+
+        ev.change_kinds.Add("include_cleanup");
+        ev.metrics_before = metrics_before;
+        ev.metrics_after = metrics_after;
+
+        // Calculate deltas
+        for (int i = 0; i < metrics_before.GetCount(); i++) {
+            String key = metrics_before.GetKey(i);
+            Value b_val = metrics_before[i];
+            if (metrics_after.Find(key) >= 0) {
+                Value a_val = metrics_after[key];
+
+                if (Is<double>(b_val) && Is<double>(a_val)) {
+                    ev.deltas.Set(key, As<double>(a_val) - As<double>(b_val));
+                } else if (Is<int>(b_val) && Is<int>(a_val)) {
+                    ev.deltas.Set(key, As<int>(a_val) - As<int>(b_val));
+                } else {
+                    ev.deltas.Set(key, a_val); // Just store the new value if types don't match for subtraction
+                }
+            }
+        }
+
+        ev.succeeded = success;
+        ev.reverted = false; // This will be set to true if the change is later reverted
+
+        // Record the event in the evolution engine
+        String evolution_path = workspace_root + "/.aiupp/evolution.json";
+        evolution.Load(evolution_path); // Load existing events
+        evolution.RecordEvent(ev); // Record the new event
+        evolution.Save(evolution_path); // Save back to file
     }
     return success;
 }
 
 bool CoreIde::CanonicalizeIncludes(const String& path, String& error, int* out_count) {
+    // Collect metrics before canonicalizing includes
+    ValueMap metrics_before = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return false; // Return early on error
+    }
+
     String old_content = LoadFile(path);
     int old_size = old_content.GetLength();
     bool success = refactor.CanonicalizeIncludes(path, *this, error, out_count);
@@ -565,6 +715,56 @@ bool CoreIde::CanonicalizeIncludes(const String& path, String& error, int* out_c
         String new_content = LoadFile(path);
         int new_size = new_content.GetLength();
         telemetry.RecordEdit(path, old_size, new_size);
+
+        // Collect metrics after canonicalizing includes
+        ValueMap metrics_after = GetTelemetryData("", error);
+        if (!error.IsEmpty()) {
+            return false; // Return early on error
+        }
+
+        // Create evolution event to record the change
+        EvolutionEvent ev;
+        ev.timestamp = GetSysTime();
+        ev.id = AsString(GetSysTime().GetTickCount(), "%016x"); // Generate a unique ID
+        ev.package = workspace.GetMainPackage().IsEmpty() ? "unknown" : workspace.GetMainPackage();
+        ev.agent_name = "unknown"; // Would be set by caller
+        ev.scenario_id = "direct_call"; // Direct call rather than through scenario
+        ev.lifecycle_phase = GetCurrentLifecyclePhase().name; // Get current lifecycle phase
+        ev.strategy = GetActiveStrategy() ? GetActiveStrategy()->name : "default"; // Get active strategy name
+        ev.context.Set("stability", GetLifecycleStability(error));
+        if (error.IsEmpty()) {
+            ev.context.Set("phase", GetCurrentLifecyclePhase().name);
+        }
+
+        ev.change_kinds.Add("include_normalization");
+        ev.metrics_before = metrics_before;
+        ev.metrics_after = metrics_after;
+
+        // Calculate deltas
+        for (int i = 0; i < metrics_before.GetCount(); i++) {
+            String key = metrics_before.GetKey(i);
+            Value b_val = metrics_before[i];
+            if (metrics_after.Find(key) >= 0) {
+                Value a_val = metrics_after[key];
+
+                if (Is<double>(b_val) && Is<double>(a_val)) {
+                    ev.deltas.Set(key, As<double>(a_val) - As<double>(b_val));
+                } else if (Is<int>(b_val) && Is<int>(a_val)) {
+                    ev.deltas.Set(key, As<int>(a_val) - As<int>(b_val));
+                } else {
+                    ev.deltas.Set(key, a_val); // Just store the new value if types don't match for subtraction
+                }
+            }
+        }
+
+        ev.succeeded = success;
+        ev.reverted = false; // This will be set to true if the change is later reverted
+
+        // Record the event in the evolution engine
+        String evolution_path = workspace_root + "/.aiupp/evolution.json";
+        evolution.Load(evolution_path); // Load existing events
+        evolution.RecordEvent(ev); // Record the new event
+        evolution.Save(evolution_path); // Save back to file
     }
     return success;
 }
@@ -635,7 +835,63 @@ Value CoreIde::GetEditHistory() {
 Value CoreIde::RunOptimizationLoop(const String& package,
                                    const CoreOptimize::LoopConfig& cfg,
                                    String& error) {
+    // Collect metrics before optimization loop
+    ValueMap metrics_before = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return Value(); // Return early on error
+    }
+
     CoreOptimize::LoopResult result = optimizer.RunOptimizationLoop(package, cfg, *this, error);
+
+    // Collect metrics after optimization loop
+    ValueMap metrics_after = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return Value(); // Return early on error
+    }
+
+    // Create evolution event to record the change
+    EvolutionEvent ev;
+    ev.timestamp = GetSysTime();
+    ev.id = AsString(GetSysTime().GetTickCount(), "%016x"); // Generate a unique ID
+    ev.package = package;
+    ev.agent_name = "unknown"; // Would be set by caller
+    ev.scenario_id = "direct_call"; // Direct call rather than through scenario
+    ev.lifecycle_phase = GetCurrentLifecyclePhase().name; // Get current lifecycle phase
+    ev.strategy = GetActiveStrategy() ? GetActiveStrategy()->name : "default"; // Get active strategy name
+    ev.context.Set("stability", GetLifecycleStability(error));
+    if (error.IsEmpty()) {
+        ev.context.Set("phase", GetCurrentLifecyclePhase().name);
+    }
+
+    ev.change_kinds.Add("optimization");
+    ev.metrics_before = metrics_before;
+    ev.metrics_after = metrics_after;
+
+    // Calculate deltas
+    for (int i = 0; i < metrics_before.GetCount(); i++) {
+        String key = metrics_before.GetKey(i);
+        Value b_val = metrics_before[i];
+        if (metrics_after.Find(key) >= 0) {
+            Value a_val = metrics_after[key];
+
+            if (Is<double>(b_val) && Is<double>(a_val)) {
+                ev.deltas.Set(key, As<double>(a_val) - As<double>(b_val));
+            } else if (Is<int>(b_val) && Is<int>(a_val)) {
+                ev.deltas.Set(key, As<int>(a_val) - As<int>(b_val));
+            } else {
+                ev.deltas.Set(key, a_val); // Just store the new value if types don't match for subtraction
+            }
+        }
+    }
+
+    ev.succeeded = result.success;
+    ev.reverted = false; // This will be set to true if the change is later reverted
+
+    // Record the event in the evolution engine
+    String evolution_path = workspace_root + "/.aiupp/evolution.json";
+    evolution.Load(evolution_path); // Load existing events
+    evolution.RecordEvent(ev); // Record the new event
+    evolution.Save(evolution_path); // Save back to file
 
     // Convert the result to a ValueMap for return
     ValueMap vm;
@@ -848,6 +1104,147 @@ Value CoreIde::SimulateScenario(const Value& plan_desc, String& error) {
     result_map.Set("after", result.after.telemetry); // Simplified for now
     result_map.Set("deltas", result.deltas);
     result_map.Set("applied", result.applied);
+
+    return result_map;
+}
+
+Value CoreIde::ApplyScenario(const Value& plan_desc,
+                             String& error) {
+    // Convert Value to ScenarioPlan
+    if (!IsValueMap(plan_desc)) {
+        error = "plan_desc must be a ValueMap";
+        return Value();
+    }
+
+    const ValueMap& plan_map = ValueTo<ValueMap>(plan_desc);
+    CoreScenario::ScenarioPlan plan;
+    plan.name = plan_map.Get("name", String("default_scenario"));
+
+    // Convert actions from ValueArray to Vector<ScenarioAction>
+    if (plan_map.Find("actions") >= 0) {
+        ValueArray actions = plan_map.Get("actions");
+        for (int i = 0; i < actions.GetCount(); i++) {
+            if (IsValueMap(actions[i])) {
+                const ValueMap& action_map = ValueTo<ValueMap>(actions[i]);
+                CoreScenario::ScenarioAction action;
+                action.type = action_map.Get("type", String("command"));
+                action.target = action_map.Get("target", String(""));
+                action.params = action_map.Get("params", ValueMap());
+                plan.actions.Add(action);
+            }
+        }
+    }
+
+    // Collect metrics before applying scenario
+    ValueMap metrics_before = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return Value(); // Return early on error
+    }
+
+    // Perform the actual application of the scenario
+    CoreScenario::ScenarioResult result = scenario.Apply(plan, *this, error);
+
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Collect metrics after applying scenario
+    ValueMap metrics_after = GetTelemetryData("", error);
+    if (!error.IsEmpty()) {
+        return Value(); // Return early on error
+    }
+
+    // Create evolution event to record the change
+    EvolutionEvent ev;
+    ev.timestamp = GetSysTime();
+    ev.id = AsString(GetSysTime().GetTickCount(), "%016x"); // Generate a unique ID
+    ev.package = plan_map.Get("target_package", String("unknown")); // Get target package from plan metadata
+    ev.agent_name = plan_map.Get("initiator", String("unknown")); // Get agent name from plan metadata
+    ev.scenario_id = plan_map.Get("scenario_id", String("unknown")); // Get scenario ID from plan metadata
+    ev.lifecycle_phase = GetCurrentLifecyclePhase().name; // Get current lifecycle phase
+    ev.strategy = GetActiveStrategy() ? GetActiveStrategy()->name : "default"; // Get active strategy name
+    // Add context (drift, stability, seasonality snapshot)
+    ev.context.Set("stability", GetLifecycleStability(error));
+    if (error.IsEmpty()) {
+        // Add more context if needed
+        ev.context.Set("phase", GetCurrentLifecyclePhase().name);
+    }
+    ev.context.Set("telemetry_before", metrics_before);
+    ev.context.Set("telemetry_after", metrics_after);
+
+    // Determine change kinds based on scenario actions
+    for (const auto& action : plan.actions) {
+        if (action.type == "refactor") {
+            if (action.target == "rename_symbol") {
+                ev.change_kinds.Add("rename");
+            } else if (action.target == "remove_dead_includes") {
+                ev.change_kinds.Add("include_cleanup");
+            } else if (action.target == "canonicalize_includes") {
+                ev.change_kinds.Add("include_normalization");
+            } else {
+                ev.change_kinds.Add(action.target);
+            }
+        } else if (action.type == "command") {
+            if (action.target == "optimize_package") {
+                ev.change_kinds.Add("optimization");
+            } else {
+                ev.change_kinds.Add(action.target);
+            }
+        } else {
+            ev.change_kinds.Add(action.type);
+        }
+    }
+
+    ev.metrics_before = metrics_before;
+    ev.metrics_after = metrics_after;
+
+    // Calculate deltas
+    for (int i = 0; i < metrics_before.GetCount(); i++) {
+        String key = metrics_before.GetKey(i);
+        Value b_val = metrics_before[i];
+        if (metrics_after.Find(key) >= 0) {
+            Value a_val = metrics_after[key];
+
+            if (Is<double>(b_val) && Is<double>(a_val)) {
+                ev.deltas.Set(key, As<double>(a_val) - As<double>(b_val));
+            } else if (Is<int>(b_val) && Is<int>(a_val)) {
+                ev.deltas.Set(key, As<int>(a_val) - As<int>(b_val));
+            } else {
+                ev.deltas.Set(key, a_val); // Just store the new value if types don't match for subtraction
+            }
+        }
+    }
+
+    ev.succeeded = result.applied; // If applied successfully, mark as succeeded
+    ev.reverted = false; // This will be set to true if the change is later reverted
+
+    // Record the event in the evolution engine
+    String evolution_path = workspace_root + "/.aiupp/evolution.json";
+    evolution.Load(evolution_path); // Load existing events
+    evolution.RecordEvent(ev); // Record the new event
+    evolution.Save(evolution_path); // Save back to file
+
+    // Convert result to ValueMap for return
+    ValueMap result_map;
+    ValueMap plan_map_result;
+    plan_map_result.Set("name", result.plan.name);
+
+    ValueArray actions_result;
+    for (const auto& action : result.plan.actions) {
+        ValueMap action_map;
+        action_map.Set("type", action.type);
+        action_map.Set("target", action.target);
+        action_map.Set("params", action.params);
+        actions_result.Add(action_map);
+    }
+    plan_map_result.Set("actions", actions_result);
+
+    result_map.Set("plan", plan_map_result);
+    result_map.Set("before", result.before.telemetry); // Simplified for now
+    result_map.Set("after", result.after.telemetry); // Simplified for now
+    result_map.Set("deltas", result.deltas);
+    result_map.Set("applied", result.applied);
+    result_map.Set("unified_diff", result.unified_diff);
 
     return result_map;
 }
@@ -1211,4 +1608,403 @@ Value CoreIde::SimulateShock(const String& type) {
     result.Set("probability", scenario.probability);
 
     return result;
+}
+
+// Strategic Navigator v1 - Multi-agent goal-oriented planning methods
+void CoreIde::RegisterAgentProfile(const AgentProfile& profile) {
+    navigator.RegisterAgent(profile);
+}
+
+Value CoreIde::GetAgentProfiles() const {
+    Vector<AgentProfile> agents = navigator.GetAgents();
+
+    ValueArray result;
+    for(const AgentProfile& profile : agents) {
+        ValueMap agent_map;
+        agent_map.Set("name", profile.name);
+        agent_map.Set("preferences", profile.preferences);
+
+        ValueArray goals_array;
+        for(const Goal& goal : profile.goals) {
+            ValueMap goal_map;
+            goal_map.Set("id", goal.id);
+            goal_map.Set("description", goal.description);
+            goal_map.Set("weights", goal.weights);
+            goal_map.Set("priority", goal.priority);
+            goals_array.Add(goal_map);
+        }
+        agent_map.Set("goals", goals_array);
+
+        result.Add(agent_map);
+    }
+
+    return result;
+}
+
+Value CoreIde::BuildAgentPlan(const String& agent_name, String& error) {
+    Vector<AgentProfile> agents = navigator.GetAgents();
+
+    // Find the agent profile by name
+    AgentProfile* target_profile = nullptr;
+    for(int i = 0; i < agents.GetCount(); i++) {
+        if(agents[i].name == agent_name) {
+            target_profile = &agents[i];
+            break;
+        }
+    }
+
+    if(!target_profile) {
+        error = "Agent profile not found: " + agent_name;
+        return Value();
+    }
+
+    // Build the agent plan
+    AgentPlan plan = navigator.BuildAgentPlan(*this, *target_profile, error);
+    if(!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert to ValueMap for return
+    ValueMap result;
+    result.Set("agent_name", plan.agent_name);
+    result.Set("metadata", plan.metadata);
+    result.Set("proposal", plan.proposal);
+
+    return result;
+}
+
+Value CoreIde::BuildGlobalPlan(String& error) {
+    Vector<AgentProfile> agents = navigator.GetAgents();
+
+    GlobalPlan global_plan = navigator.BuildGlobalPlan(*this, agents, error);
+    if(!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert to ValueMap for return
+    ValueMap result;
+    result.Set("conflicts", global_plan.conflicts);
+    result.Set("merged", global_plan.merged);
+
+    // Convert agent_plans to ValueArray
+    ValueArray agent_plans_array;
+    for(int i = 0; i < global_plan.agent_plans.GetCount(); i++) {
+        const ValueMap& agent_plan = global_plan.agent_plans[i];
+        agent_plans_array.Add(agent_plan);
+    }
+    result.Set("agent_plans", agent_plans_array);
+
+    return result;
+}
+
+// Conflict Resolver v1 - Patch-level negotiation methods
+Value CoreIde::ResolveConflicts(String& error) {
+    // First, get the global plan from the Strategic Navigator
+    Vector<AgentProfile> agents = navigator.GetAgents();
+
+    GlobalPlan global_plan = navigator.BuildGlobalPlan(*this, agents, error);
+    if (!error.IsEmpty()) {
+        return Value();
+    }
+
+    // Convert agent plans from ValueArray to Vector<AgentPlan>
+    Vector<AgentPlan> agent_plans;
+    for (int i = 0; i < global_plan.agent_plans.GetCount(); i++) {
+        if (IsValueMap(global_plan.agent_plans[i])) {
+            const ValueMap& plan_map = ValueTo<ValueMap>(global_plan.agent_plans[i]);
+
+            AgentPlan agent_plan;
+            agent_plan.agent_name = plan_map.Get("agent_name", String(""));
+            agent_plan.metadata = plan_map.Get("metadata", ValueMap());
+            agent_plan.proposal = plan_map.Get("proposal", Value());
+
+            agent_plans.Add(agent_plan);
+        }
+    }
+
+    // Run the conflict resolution
+    NegotiatedResult negotiated_result = resolver.Negotiate(agent_plans, agents);
+
+    // Convert ConflictDetail objects to Values
+    ValueArray conflicts_array;
+    Vector<ConflictDetail> conflicts = resolver.DetectConflicts(agent_plans);
+    for (const ConflictDetail& conflict : conflicts) {
+        ValueMap conflict_map;
+        conflict_map.Set("file", conflict.file);
+        conflict_map.Set("line", conflict.line);
+        conflict_map.Set("type", conflict.type);
+        conflict_map.Set("agents", conflict.agents);
+        conflict_map.Set("metadata", conflict.metadata);
+        conflicts_array.Add(conflict_map);
+    }
+
+    // Convert TradeOff objects to Values
+    ValueArray tradeoffs_array;
+    Vector<TradeOff> tradeoffs_list = resolver.EvaluateTradeOffs(conflicts, agent_plans, agents);
+    for (const TradeOff& tradeoff : tradeoffs_list) {
+        ValueMap tradeoff_map;
+        tradeoff_map.Set("id", tradeoff.id);
+        tradeoff_map.Set("description", tradeoff.description);
+        tradeoff_map.Set("score", tradeoff.score);
+        tradeoff_map.Set("rationale", tradeoff.rationale);
+        tradeoffs_array.Add(tradeoff_map);
+    }
+
+    // Create the final result
+    ValueMap result;
+    result.Set("conflicts", conflicts_array);
+    result.Set("tradeoffs", tradeoffs_array);
+
+    ValueMap result_map;
+    result_map.Set("final_actions", negotiated_result.final_actions);
+    result_map.Set("discarded_actions", negotiated_result.discarded_actions);
+    result_map.Set("tradeoffs", tradeoffs_array);
+
+    result.Set("result", result_map);
+
+    return result;
+}
+
+Value CoreIde::ExploreFutures(String& error) {
+    try {
+        // Get the latest negotiated scenario:
+        // Use StrategicNavigator + CoreConflictResolver to obtain:
+        // - ScenarioPlan base_plan
+        // - final_actions from NegotiatedResult
+        Vector<AgentProfile> agents = navigator.GetAgents();
+
+        GlobalPlan global_plan = navigator.BuildGlobalPlan(*this, agents, error);
+        if (!error.IsEmpty()) {
+            return Value();
+        }
+
+        // Convert agent plans from ValueArray to Vector<AgentPlan>
+        Vector<AgentPlan> agent_plans;
+        for (int i = 0; i < global_plan.agent_plans.GetCount(); i++) {
+            if (IsValueMap(global_plan.agent_plans[i])) {
+                const ValueMap& plan_map = ValueTo<ValueMap>(global_plan.agent_plans[i]);
+
+                AgentPlan agent_plan;
+                agent_plan.agent_name = plan_map.Get("agent_name", String(""));
+                agent_plan.metadata = plan_map.Get("metadata", ValueMap());
+                agent_plan.proposal = plan_map.Get("proposal", Value());
+
+                agent_plans.Add(agent_plan);
+            }
+        }
+
+        // Run the conflict resolution to get final actions
+        NegotiatedResult negotiated_result = resolver.Negotiate(agent_plans, agents);
+
+        // Convert final actions to ScenarioAction vector
+        Vector<CoreScenario::ScenarioAction> final_actions;
+        if (IsValueArray(negotiated_result.final_actions)) {
+            ValueArray final_actions_array = negotiated_result.final_actions;
+            for (int i = 0; i < final_actions_array.GetCount(); i++) {
+                if (IsValueMap(final_actions_array[i])) {
+                    const ValueMap& action_map = ValueTo<ValueMap>(final_actions_array[i]);
+                    CoreScenario::ScenarioAction action;
+                    action.type = action_map.Get("type", String("command"));
+                    action.target = action_map.Get("target", String(""));
+                    action.params = action_map.Get("params", ValueMap());
+                    final_actions.Add(action);
+                }
+            }
+        }
+
+        // Create a base scenario plan with a default name
+        CoreScenario::ScenarioPlan base_plan;
+        base_plan.name = "negotiated_base_plan";
+        base_plan.actions = final_actions;
+        base_plan.metadata.Set("source", "negotiated_result");
+
+        // Compute:
+        // - current lifecycle phase (GetCurrentLifecyclePhase)
+        LifecyclePhase phase = GetCurrentLifecyclePhase();
+
+        // - current temporal trend (TemporalDynamics::ComputeTrend)
+        TemporalDynamics::Trend trend = telemetry.GetTemporalTrend();
+
+        // - an appropriate stability window (from TemporalSeasonality)
+        Vector<PhaseSample> history = lifecycle.GetHistory();
+        ReleaseCadence cadence = seasonality.InferReleaseCadence(history);
+        Vector<TemporalSeasonality::StabilityWindow> windows = seasonality.PredictStabilityWindows(history, cadence);
+        TemporalSeasonality::StabilityWindow window;
+        if (windows.GetCount() > 0) {
+            // Use the first stability window, or compute average if multiple exist
+            window = windows[0];
+        } else {
+            // Default window if none available
+            window.lower_bound = 0.0;
+            window.upper_bound = 1.0;
+            window.confidence = 0.5;
+        }
+
+        // Call: OutcomeHorizon horizon = future_sim.Explore(base_plan, final_actions, phase, trend, window);
+        CoreFutureSimulator::OutcomeHorizon horizon = future_sim.Explore(base_plan, final_actions, phase, trend, window);
+
+        // Convert OutcomeHorizon into a ValueMap:
+        ValueMap result;
+
+        // Convert branches
+        ValueArray branches_array;
+        for (int i = 0; i < horizon.branches.GetCount(); i++) {
+            const CoreFutureSimulator::FutureBranch& branch =
+                static_cast<const CoreFutureSimulator::FutureBranch&>(horizon.branches[i]);
+
+            ValueMap branch_map;
+            branch_map.Set("id", branch.id);
+            branch_map.Set("starting_point", branch.starting_point);
+
+            // Convert actions array
+            ValueArray actions_array;
+            for (int j = 0; j < branch.actions.GetCount(); j++) {
+                actions_array.Add(branch.actions[j]);
+            }
+            branch_map.Set("actions", actions_array);
+
+            branch_map.Set("projected_metrics", branch.projected_metrics);
+            branch_map.Set("terminal_state", branch.terminal_state);
+            branch_map.Set("score", branch.score);
+
+            branches_array.Add(branch_map);
+        }
+        result.Set("branches", branches_array);
+
+        // Best branch
+        result.Set("best_branch", horizon.best_branch);
+
+        // Stats
+        result.Set("stats", horizon.stats);
+
+        return result;
+    }
+    catch (const Exc& e) {
+        error = e;
+        return Value();
+    }
+    catch (...) {
+        error = "Unknown error occurred in ExploreFutures";
+        return Value();
+    }
+}
+
+Value CoreIde::GetEvolutionTimeline(String& error) const {
+    // Load evolution data from file
+    String evolution_path = workspace_root + "/.aiupp/evolution.json";
+    const_cast<CoreIde*>(this)->evolution.Load(evolution_path); // Load the evolution data
+
+    Vector<EvolutionEvent> events = evolution.GetTimeline();
+
+    ValueArray result;
+
+    for (const EvolutionEvent& ev : events) {
+        ValueMap event_map;
+        event_map.Set("timestamp", ev.timestamp.ToString());
+        event_map.Set("id", ev.id);
+        event_map.Set("package", ev.package);
+        event_map.Set("agent_name", ev.agent_name);
+        event_map.Set("scenario_id", ev.scenario_id);
+        event_map.Set("lifecycle_phase", ev.lifecycle_phase);
+        event_map.Set("strategy", ev.strategy);
+        event_map.Set("succeeded", ev.succeeded);
+        event_map.Set("reverted", ev.reverted);
+
+        // Convert change_kinds to ValueArray
+        ValueArray change_kinds_array;
+        for (const String& kind : ev.change_kinds) {
+            change_kinds_array.Add(kind);
+        }
+        event_map.Set("change_kinds", change_kinds_array);
+
+        // Add metrics and deltas
+        event_map.Set("metrics_before", ev.metrics_before);
+        event_map.Set("metrics_after", ev.metrics_after);
+        event_map.Set("deltas", ev.deltas);
+        event_map.Set("context", ev.context);
+
+        result.Add(event_map);
+    }
+
+    return result;
+}
+
+Value CoreIde::GetEvolutionSummary(String& error) const {
+    // Load evolution data from file
+    String evolution_path = workspace_root + "/.aiupp/evolution.json";
+    const_cast<CoreIde*>(this)->evolution.Load(evolution_path); // Load the evolution data
+
+    EvolutionSummary summary = evolution.Summarize();
+
+    ValueMap result;
+    result.Set("total_events", summary.total_events);
+    result.Set("successful", summary.successful);
+    result.Set("reverted_count", summary.reverted_count);
+
+    // Convert by_change_kind map to ValueMap
+    ValueMap by_change_kind_map;
+    for (int i = 0; i < summary.by_change_kind.GetCount(); i++) {
+        String key = summary.by_change_kind.GetKey(i);
+        Value value = summary.by_change_kind[i];
+        by_change_kind_map.Set(key, value);
+    }
+    result.Set("by_change_kind", by_change_kind_map);
+
+    // Convert by_strategy map to ValueMap
+    ValueMap by_strategy_map;
+    for (int i = 0; i < summary.by_strategy.GetCount(); i++) {
+        String key = summary.by_strategy.GetKey(i);
+        Value value = summary.by_strategy[i];
+        by_strategy_map.Set(key, value);
+    }
+    result.Set("by_strategy", by_strategy_map);
+
+    // Convert by_phase map to ValueMap
+    ValueMap by_phase_map;
+    for (int i = 0; i < summary.by_phase.GetCount(); i++) {
+        String key = summary.by_phase.GetKey(i);
+        Value value = summary.by_phase[i];
+        by_phase_map.Set(key, value);
+    }
+    result.Set("by_phase", by_phase_map);
+
+    return result;
+}
+
+// Playbook Engine v1 - High-level workflow automation
+Value CoreIde::ListPlaybooks(String& error) const {
+    ValueArray result;
+    Vector<Playbook> playbooks = playbook_engine.GetAll();
+
+    for (int i = 0; i < playbooks.GetCount(); i++) {
+        const Playbook& pb = playbooks[i];
+
+        ValueMap pb_info;
+        pb_info.GetAdd("id") = pb.id;
+        pb_info.GetAdd("description") = pb.description;
+        pb_info.GetAdd("safety_level") = pb.safety_level;
+
+        // Add constraints
+        ValueMap constraints_map;
+        for(int j = 0; j < pb.constraints.GetCount(); j++) {
+            String key = pb.constraints.GetKey(j);
+            Value value = pb.constraints[j];
+            constraints_map.Set(key, value);
+        }
+        pb_info.GetAdd("constraints") = constraints_map;
+
+        result.Add(pb_info);
+    }
+
+    return result;
+}
+
+Value CoreIde::RunPlaybook(const String& id, String& error) {
+    const Playbook* pb = playbook_engine.Find(id);
+    if (!pb) {
+        error = "Playbook not found: " + id;
+        return Value();
+    }
+
+    return playbook_engine.Run(*pb, *this, error);
 }

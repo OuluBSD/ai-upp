@@ -124,5 +124,7 @@
 #include "NRev.h"
 
 #include "Compressor.h"
+#include "InstrumentGraph.h"
+#include "InstrumentJson.h"
 
 #endif

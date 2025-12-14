@@ -2,11 +2,11 @@
 using namespace Upp;
 
 
-struct A {
+struct A : Moveable<A> {
 	String nontrivial;
 };
 
-CONSOLE_APP_MAIN {
+inline void fn() {
 	Vector<A> avec;
 	avec.Add();
 }

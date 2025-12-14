@@ -1,0 +1,9 @@
+file
+	NestedUpp.h,
+	main.cpp,
+	a.h,
+	b.h;
+
+mainconfig
+	"" = "";
+

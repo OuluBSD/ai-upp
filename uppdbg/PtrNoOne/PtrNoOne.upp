@@ -1,9 +1,7 @@
-uses
-	Core;
-
 file
+	a.cpp,
 	b.cpp,
-	a.cpp;
+	c.cpp;
 
 mainconfig
 	"" = "";

@@ -53,6 +53,9 @@ void ScriptMachineLoader::GetStates(Vector<ScriptStateLoader*>& v) {
 	for (ScriptTopChainLoader& loader : chains) {
 		loader.GetStates(v);
 	}
+	for (ScriptNetLoader& loader : nets) {
+		loader.GetStates(v);
+	}
 }
 
 

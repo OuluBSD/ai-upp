@@ -120,7 +120,7 @@ struct NetDefinition {
 	Id								id;
 	FileLocation					loc;
 	ArrayMap<String, Value>			args;
-	LinkedList<StateDeclaration>	states;
+	Array<StateDeclaration>			states;
 	LinkedList<AtomDefinition>		atoms;       // Flat atom list (not grouped into loops)
 	Vector<NetConnectionDef>		connections; // Explicit port connections
 	LinkedList<NetDefinition>		subnets;     // Nested networks (future)
@@ -275,7 +275,7 @@ struct GlobalScope {
 	void operator=(const GlobalScope& v) {id = v.id; loc = v.loc; args <<= v.args; machs <<= v.machs; worlds <<= v.worlds; states <<= v.states;}
 	String GetTreeString(int indent=0) const;
 	void Clear() {machs.Clear(); states.Clear(); id.Clear();}
-	
+	bool IsEmpty() const {return id.IsEmpty() && args.IsEmpty() && machs.IsEmpty() && worlds.IsEmpty() && states.IsEmpty();}
 };
 
 struct CompilationUnit {

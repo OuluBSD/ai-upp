@@ -2,7 +2,7 @@
 #define _Vfs_Ecs_Interface_h_
 
 
-struct AtomBase;
+class AtomBase;
 
 struct RouterPortDesc : Moveable<RouterPortDesc> {
 	enum class Direction { Sink, Source };

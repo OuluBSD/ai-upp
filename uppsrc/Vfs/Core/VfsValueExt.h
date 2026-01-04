@@ -7,7 +7,7 @@ struct VfsSrcPkg;
 struct Entity;
 struct DatasetPtrs;
 struct VirtualNode;
-struct WorldState;
+class WorldState;
 class Value;
 class JsonIO;
 class Stream;

@@ -260,9 +260,22 @@ static const char* __eon_script_end = R"30N(
 
 bool ToyLoader::MakeScript() {
 	bool has_audio_output = false;
-	
+
 	String& s = eon_script;
 	s.Clear();
+
+	// Option has been added via UseRouterSyntax() method in header, but
+	// full implementation to generate router-based net syntax instead of loop/chain syntax is still needed
+	// Router syntax example:
+	//   net audio_pipeline:
+	//     osc
+	//     gain
+	//     sink
+	//     osc.0 -> gain.0
+	//     gain.0 -> sink.0
+	//
+	// For now, continues using traditional loop/chain syntax
+
 	s << __eon_script_begin;
 	
 	auto QuoteLoop = [](const String& loop_name) -> String {

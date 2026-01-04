@@ -2,10 +2,12 @@ description "Vfs storage interfaces (header-only stub)\377B128,0,0";
 
 uses
 	Core,
-	Vfs/Core;
+	Vfs/Core,
+	Vfs/Ecs,
+	Vfs/Overlay;
 
 file
 	AGENTS.md,
 	README.md,
-	VfsStorage.h;
-
+	VfsStorage.h,
+	VfsStorage.cpp;

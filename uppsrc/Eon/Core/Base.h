@@ -33,7 +33,10 @@ public:
 	bool PostInitialize() override;
 	void UpdateConfig(double dt) override;
 	void EnsureAudioDefaultQueue();
-	
+
+	// Router integration
+	void RegisterPorts(PacketRouter& router) override;
+
 };
 
 
@@ -44,14 +47,17 @@ class RollingValueBase :
 	uint64				seq = 0;
 	double				time = 0;
 	ValueFormat			internal_fmt;
-	
+
 public:
 	using Atom::Atom;
 	bool Initialize(const WorldState& ws) override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	void Uninitialize() override {}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
-	
+
+	// Router integration
+	void RegisterPorts(PacketRouter& router) override;
+
 };
 
 
@@ -74,10 +80,13 @@ public:
 	void Uninitialize() override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
+	bool Recv(int sink_ch, const Packet& in) override;
 	bool Consume(const void* data, int len) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
-	
-	
+
+	// Router integration
+	void RegisterPorts(PacketRouter& router) override;
+
 };
 
 class VoidPollerSinkBase :
@@ -118,7 +127,8 @@ public:
 	bool Initialize(const WorldState& ws) override {return true;}
 	void Uninitialize() override {}
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
-	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {return true;}
+	bool Recv(int sink_ch, const Packet& in) override;
+	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
 	
 };
 

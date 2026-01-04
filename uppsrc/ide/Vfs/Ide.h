@@ -100,6 +100,10 @@ struct IdeMetaEnvironment {
 	
 private:
 	Array<VfsSrcPkg> pkgs;
+	VectorMap<hash_t, VfsOverlayIndex> overlay_cache;
+	VectorMap<hash_t, Time> overlay_mtime;
+	const VfsSrcPkg* FindPkgByHash(hash_t pkg_hash) const;
+	const VfsOverlayIndex* LoadOverlayIndexForPkg(const VfsSrcPkg& pkg);
 	
 public:
 	IdeMetaEnvironment();
@@ -127,6 +131,7 @@ public:
 	static VfsValue* FindDeclarationStatic(const VfsValue& n);
 	static Vector<VfsValue*> FindDeclarationsDeepStatic(const VfsValue& n);
 	Array<VfsSrcPkg>& GetPackages() {return pkgs;}
+	ValueMap GetRouterMetadataForNode(const VfsValue& node);
 };
 
 void Assign(VfsValue& mn, VfsValue* owner, const ClangNode& n);

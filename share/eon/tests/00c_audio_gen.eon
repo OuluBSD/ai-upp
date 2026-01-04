@@ -1,20 +1,21 @@
-chain tester:
-	loop output0:
+// PacketRouter Test: 00c audio side-link braid expressed as a single net
+
+machine audio.gen:
+	net tester.side_braid:
 		center.customer
 		center.audio.src.test
-		center.audio.side.src.center.user[][loop == "pipe"]
-	
-	loop output1:
-		center.customer
-		center.audio.src.test
-		center.audio.side.src.center.user[][loop == "input"]
-	
-	loop pipe:
-		center.customer
-		center.audio.side.sink.center.user[loop == "output0"]
-		center.audio.side.src.center.user[][loop == "input"]
-	
-	loop input:
-		center.customer
-		center.audio.side.sink2.center.user[loop == "pipe", loop == "output1"]
+		center.audio.side.src.center.user
+		center.audio.side.sink.center.user
+		center.audio.side.sink2.center.user
 		center.audio.sink.test.poller
+
+		center.customer.0 -> center.audio.src.test.0
+		center.audio.src.test.0 -> center.audio.side.src.center.user.0
+
+		center.customer.0 -> center.audio.side.sink.center.user.0
+		center.audio.side.src.center.user.1 -> center.audio.side.sink.center.user.1
+
+		center.customer.0 -> center.audio.side.sink2.center.user.0
+		center.audio.side.sink.center.user.0 -> center.audio.side.sink2.center.user.1
+
+		center.audio.side.sink2.center.user.0 -> center.audio.sink.test.poller.0

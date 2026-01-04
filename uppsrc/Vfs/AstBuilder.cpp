@@ -447,6 +447,19 @@ void SemanticParser::PopLoop(const FileLocation& loc) {
 	PopScope();
 }
 
+AstNode* SemanticParser::PushNet(const FileLocation& loc, const PathIdentifier& id) {
+	AstNode& var = DeclareRelative(id);
+	var.src = Cursor_NetStmt;
+
+	PushScope(var);
+
+	return &var;
+}
+
+void SemanticParser::PopNet(const FileLocation& loc) {
+	PopScope();
+}
+
 AstNode* SemanticParser::PushAtom(const FileLocation& loc, const PathIdentifier& id) {
 	AstNode& var = DeclareRelative(id);
 	var.src = Cursor_AtomStmt;

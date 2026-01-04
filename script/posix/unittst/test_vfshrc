@@ -1,0 +1,14 @@
+# Sample .vfshrc initialization file for VfsShell
+echo "VfsShell initialization started..."
+
+# Set some environment variables using VfsShell commands if available
+echo "Current working directory: "
+pwd
+
+# Change to a specific directory for testing
+cd /tmp
+echo "Changed to tmp directory: "
+pwd
+
+# Define aliases if the functionality exists
+echo "Initialization completed."

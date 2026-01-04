@@ -59,6 +59,37 @@ String Id::ToSlashPath() const {
 	return s;
 }
 
+String NetConnectionDef::ToString() const {
+	return Format("%s:%d -> %s:%d", from_atom, from_port, to_atom, to_port);
+}
+
+String NetConnectionDef::GetTreeString(int indent) const {
+	String pad; pad.Cat(' ', indent);
+	return pad + ToString();
+}
+
+String NetDefinition::GetTreeString(int indent) const {
+	String s;
+	String pad; pad.Cat(' ', indent);
+	s << pad << "net " << id.ToString() << ":\n";
+	for (const StateDeclaration& state : states)
+		s << pad << "  state " << state.id.ToString() << "\n";
+	for (const AtomDefinition& atom : atoms)
+		s << pad << "  atom " << atom.id.ToString() << "\n";
+	for (const NetConnectionDef& conn : connections)
+		s << pad << "  " << conn.ToString() << "\n";
+	for (const NetDefinition& subnet : subnets)
+		s << subnet.GetTreeString(indent + 2);
+	return s;
+}
+
+void NetDefinition::GetSubNetPointers(LinkedList<Eon::NetDefinition*>& ptrs) {
+	for (NetDefinition& subnet : subnets) {
+		ptrs.Add(&subnet);
+		subnet.GetSubNetPointers(ptrs);
+	}
+}
+
 static bool LooksLikeDotPath(const String& s) {
 	if (s.IsEmpty())
 		return false;
@@ -195,6 +226,8 @@ bool ScriptLoader::Initialize(const WorldState& ws) {
 	if (!WhenMessage)
 		WhenMessage << THISBACK(LogMessage);
 	
+	GetEngine().AddUpdated(this);
+	
 	RTLOG("ScriptLoader::Initialize success!");
 	return true;
 }
@@ -229,17 +262,47 @@ bool ScriptLoader::DoPostLoad() {
 }
 
 void ScriptLoader::Update(double dt) {
-	
+
 	if (!DoPostLoad()) {
 		GetEngine().SetNotRunning();
 	}
-	
+
+	// Drive NetContext execution (Phase 5)
+	for (One<NetContext>& nc : built_nets) {
+		if (nc) {
+			nc->Update(dt);
+		}
+	}
+
 }
 
 void ScriptLoader::Uninitialize() {
 	//es.Clear();
 	//ss.Clear();
 	loader.Clear();
+	GetEngine().RemoveUpdated(this);
+}
+
+
+PacketRouter* ScriptLoader::GetNetRouter(int net_idx) {
+	if (net_idx < 0 || net_idx >= built_nets.GetCount())
+		return nullptr;
+	return built_nets[net_idx]->router.Get();
+}
+
+
+NetContext* ScriptLoader::GetNetContext(int net_idx) {
+	if (net_idx < 0 || net_idx >= built_nets.GetCount())
+		return nullptr;
+	return built_nets[net_idx].Get();
+}
+
+int ScriptLoader::GetTotalPacketsRouted() const {
+	int total = 0;
+	for (const One<NetContext>& nc : built_nets)
+		if (nc && nc->router)
+			total += nc->router->GetTotalPacketsRouted();
+	return total;
 }
 
 bool ScriptLoader::LoadFile(String path) {
@@ -247,12 +310,20 @@ bool ScriptLoader::LoadFile(String path) {
 		LOG("Could not find EON file");
 		return false;
 	}
-	
-	// Use SerialLoaderFactory to handle different file types (.toy, .mid, etc.)
-	String eon_script = SerialLoaderFactory::LoadFile(path);
-	if (eon_script.IsEmpty()) {
-		// If no special loader found, load as raw EON file
+
+	String eon_script;
+	String ext = GetFileExt(path);
+	if (ext == ".eon") {
+		// Native .eon files are loaded directly
 		eon_script = UPP::LoadFile(path);
+	}
+	else {
+		// Use SerialLoaderFactory to handle different file types (.toy, .mid, etc.)
+		eon_script = SerialLoaderFactory::LoadFile(path);
+		if (eon_script.IsEmpty()) {
+			LOG("ScriptLoader::LoadFile: no loader for extension: " << ext);
+			return false;
+		}
 	}
 	return Load(eon_script, path);
 }
@@ -479,6 +550,99 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
     return true;
 }
 
+bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
+    RTLOG("BuildNet: net=" << (net.id.IsEmpty() ? "<anon>" : net.id.ToString())
+        << " atoms=" << net.atoms.GetCount()
+        << " states=" << net.states.GetCount()
+        << " connections=" << net.connections.GetCount());
+
+    // Resolve net space (similar to how BuildChain resolves loop space)
+    Engine* mach = val.FindOwner<Engine>();
+    ASSERT(mach);
+    if (!mach) {
+        AddError(FileLocation(), "BuildNet: no engine available");
+        return false;
+    }
+
+    VfsValue* net_space = ResolveLoop(const_cast<Eon::Id&>(net.id));
+    if (!net_space) {
+        AddError(FileLocation(), String("Could not resolve net space: ") + net.id.ToString());
+        return false;
+    }
+
+    // Create NetContext
+    One<NetContext> nc = new NetContext(*net_space);
+    LOG("BuildNet: Creating network for " << net.id.ToString());
+
+    // Map atom names to their indices for connection resolution
+    VectorMap<String, int> atom_index_map;
+
+    // Create atoms
+    int i = 0;
+    for (const Eon::AtomDefinition& atom_def : net.atoms) {
+        String atom_name = atom_def.id.ToString();
+        String action = atom_name; // atom name is the action
+
+        LOG("  Creating atom[" << i << "]: " << atom_name);
+
+        AtomBasePtr atom = nc->AddAtom(atom_name, action, atom_def.iface, &atom_def.args);
+        if (!atom) {
+            AddError(atom_def.loc, "Failed to create atom: " + atom_name);
+            return false;
+        }
+
+        atom_index_map.Add(atom_name, i);
+        i++;
+    }
+
+    if (nc->failed) {
+        AddError(FileLocation(), "BuildNet: atom creation failed for " + net.id.ToString());
+        return false;
+    }
+
+    // Register ports
+    if (!nc->RegisterPorts()) {
+        AddError(FileLocation(), "BuildNet: port registration failed for " + net.id.ToString());
+        return false;
+    }
+
+    // Add connections
+    for (const NetConnectionDef& conn : net.connections) {
+        int from_idx = atom_index_map.Find(conn.from_atom);
+        int to_idx = atom_index_map.Find(conn.to_atom);
+
+        if (from_idx < 0) {
+            AddError(conn.loc, "Connection source atom not found: " + conn.from_atom);
+            return false;
+        }
+        if (to_idx < 0) {
+            AddError(conn.loc, "Connection sink atom not found: " + conn.to_atom);
+            return false;
+        }
+
+        ValueMap conn_metadata;
+        for (int i = 0; i < conn.metadata.GetCount(); i++)
+            conn_metadata.Add(conn.metadata.GetKey(i), conn.metadata[i]);
+        nc->AddConnection(from_idx, conn.from_port, to_idx, conn.to_port, conn_metadata);
+        LOG("  Added connection: " << conn.ToString());
+    }
+
+    // Wire connections
+    if (!nc->MakeConnections()) {
+        AddError(FileLocation(), "BuildNet: connection wiring failed for " + net.id.ToString());
+        return false;
+    }
+
+    // Store the built net context for later initialization in ImplementScript
+    built_nets.Add(pick(nc));
+
+    LOG("BuildNet: Successfully built network " << net.id.ToString()
+        << " with " << built_nets.Top()->atoms.GetCount() << " atoms and "
+        << built_nets.Top()->connections.GetCount() << " connections");
+
+    return true;
+}
+
 void ScriptLoader::Cleanup() {
 	loader.Clear();
 }
@@ -491,7 +655,7 @@ bool ScriptLoader::ImplementScript() {
         if (!dl->Load())
             return false;
 
-    if (!eager_build_chains || built_chains.IsEmpty()) {
+    if (!eager_build_chains || (built_chains.IsEmpty() && built_nets.IsEmpty())) {
         RTLOG("ScriptLoader::ImplementScript: build chains (loops)");
         if (!loader->Load())
             return false;
@@ -499,7 +663,7 @@ bool ScriptLoader::ImplementScript() {
         // Collect loop pointers created by chain loaders for post steps
         Vector<ScriptLoopLoader*> loops;
         loader->GetLoops(loops);
-	
+
         RTLOG("ScriptLoader::ImplementScript: connect sides");
         for (ScriptLoopLoader* loop0 : loops) {
             for (ScriptLoopLoader* loop1 : loops) {
@@ -511,7 +675,7 @@ bool ScriptLoader::ImplementScript() {
                 }
             }
         }
-	
+
         RTLOG("ScriptLoader::ImplementScript: loop post initialize");
         for (ScriptLoopLoader* ll : loops) {
             if (!ll->PostInitialize())
@@ -522,6 +686,29 @@ bool ScriptLoader::ImplementScript() {
         for (ScriptLoopLoader* ll : loops) {
             if (!ll->Start())
                 return false;
+        }
+
+        // Router nets built via BuildNet need the same lifecycle steps as chain contexts
+        if (!built_nets.IsEmpty()) {
+            RTLOG("ScriptLoader::ImplementScript: net post initialize");
+            for (int i = 0; i < built_nets.GetCount(); i++) {
+                NetContext& N = *built_nets[i];
+                if (!N.PostInitializeAll()) {
+                    AddError(FileLocation(), "Net PostInitialize failed");
+                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                    return false;
+                }
+            }
+
+            RTLOG("ScriptLoader::ImplementScript: net start");
+            for (int i = 0; i < built_nets.GetCount(); i++) {
+                NetContext& N = *built_nets[i];
+                if (!N.StartAll()) {
+                    AddError(FileLocation(), "Net Start failed");
+                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                    return false;
+                }
+            }
         }
     } else {
         RTLOG("ScriptLoader::ImplementScript: eager mode: connect sides across built chains");
@@ -546,7 +733,7 @@ bool ScriptLoader::ImplementScript() {
             }
         }
 
-        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize");
+        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize chains");
         for (int i = 0; i < built_chains.GetCount(); i++) {
             ChainContext& C = *built_chains[i];
             if (!C.PostInitializeAll()) {
@@ -555,11 +742,31 @@ bool ScriptLoader::ImplementScript() {
             }
         }
 
-        RTLOG("ScriptLoader::ImplementScript: eager mode: start");
+        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize nets");
+        for (int i = 0; i < built_nets.GetCount(); i++) {
+            NetContext& N = *built_nets[i];
+            if (!N.PostInitializeAll()) {
+                AddError(FileLocation(), "Net PostInitialize failed");
+                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+                return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: start chains");
         for (int i = 0; i < built_chains.GetCount(); i++) {
             ChainContext& C = *built_chains[i];
             if (!C.StartAll()) {
                 for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+                return false;
+            }
+        }
+
+        RTLOG("ScriptLoader::ImplementScript: eager mode: start nets");
+        for (int i = 0; i < built_nets.GetCount(); i++) {
+            NetContext& N = *built_nets[i];
+            if (!N.StartAll()) {
+                AddError(FileLocation(), "Net Start failed");
+                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
                 return false;
             }
         }
@@ -636,7 +843,17 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 			has_machine = true;
 		}
 		else if (item->src == Cursor_EngineStmt) {
-			TODO
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block for engine"); return false;}
+
+			Eon::WorldDefinition& world_def = def.worlds.Add();
+
+			if (!GetPathId(world_def.id, n, item))
+				return false;
+
+			ASSERT(!world_def.id.IsEmpty());
+			if (!LoadWorld(world_def, block))
+				return false;
 		}
 	}
 	
@@ -672,7 +889,9 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 			has_world = true;
 		}
 		else if (item->src == Cursor_SystemStmt) {
-			TODO
+			// System statements are not allowed at the machine level, they should be inside worlds
+			AddError(item->loc, "System statement is not allowed at machine level - systems belong in world definitions");
+			return false;
 		}
 	}
 	
@@ -684,11 +903,16 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	#if VERBOSE_SCRIPT_LOADER
 	LOG(n->GetTreeString());
 	#endif
-	
+
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints2(items, Cursor_EcsStmt, Cursor_OldEcsStmt);
 	Sort(items, AstNodeLess());
-	
+
+	RTLOG("LoadMachine: found " << items.GetCount() << " items");
+	for (int i = 0; i < items.GetCount(); i++) {
+		RTLOG("  item[" << i << "]: src=" << GetCodeCursorString(items[i].n->src) << " id=" << items[i].n->val.id);
+	}
+
 	if (items.IsEmpty()) {
 		AddError(def.loc, "empty node");
 		return false;
@@ -699,7 +923,28 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 	bool has_chain = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
-		if (item->src == Cursor_ChainStmt) {
+		if (item->src == Cursor_MachineStmt) {
+			// Nested machine - recursively process its contents
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block in nested machine"); return false;}
+
+			// Update machine id to include the nested machine name
+			Eon::Id nested_id;
+			if (!GetPathId(nested_id, n, item))
+				return false;
+			EnsurePrefix(nested_id, def.id);
+
+			// Temporarily update def.id for recursive processing
+			Eon::Id saved_id = def.id;
+			def.id = nested_id;
+
+			if (!LoadMachine(def, block))
+				return false;
+
+			def.id = saved_id;
+			has_chain = true;
+		}
+		else if (item->src == Cursor_ChainStmt) {
 			Eon::ChainDefinition& chain_def = def.chains.Add();
 			
 			if (!GetPathId(chain_def.id, n, item))
@@ -722,12 +967,28 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			}
 			has_chain = true;
 		}
+		else if (item->src == Cursor_NetStmt) {
+			Eon::NetDefinition& net_def = def.nets.Add();
+
+			if (!GetPathId(net_def.id, n, item))
+				return false;
+			EnsurePrefix(net_def.id, def.id);
+
+			ASSERT(!net_def.id.IsEmpty());
+
+			AstNode* block = item->Find(Cursor_CompoundStmt);
+			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
+
+			if (!LoadNet(net_def, block))
+				return false;
+			has_chain = true;
+		}
 		else if (item->src == Cursor_DriverStmt || item->src == Cursor_LoopStmt) {
 			if (!anon_chain)
 				anon_chain = &def.chains.Add();
 			if (anon_chain->id.IsEmpty())
 				anon_chain->id = def.id;
-			
+
 			if (!LoadChain(*anon_chain, item))
 				return false;
 			has_chain = true;
@@ -798,15 +1059,18 @@ bool ScriptLoader::LoadWorld(Eon::WorldDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadDriver(Eon::DriverDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+	return LoadArguments(def.args, n);
 }
 
 bool ScriptLoader::LoadTopChain(Eon::ChainDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	return LoadChain(def, n);
 }
 
 bool ScriptLoader::LoadEcsSystem(Eon::EcsSysDefinition& def, AstNode* n) {
@@ -853,15 +1117,27 @@ bool ScriptLoader::LoadPool(Eon::PoolDefinition& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadTopPool(Eon::PoolDefinition& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	return LoadPool(def, n);
 }
 
 bool ScriptLoader::LoadState(Eon::StateDeclaration& def, AstNode* n) {
-	
-	TODO
-	return false;
+	#if VERBOSE_SCRIPT_LOADER
+	LOG(n->GetTreeString(0));
+	#endif
+
+	// StateDeclaration has only id and location, which are typically set by the caller
+	// This function ensures the state is properly initialized
+	def.loc = n->loc;
+
+	if (!GetPathId(def.id, n, n)) {
+		return false;
+	}
+
+	return true;
 }
 
 bool ScriptLoader::LoadEntity(Eon::EntityDefinition& def, AstNode* n) {
@@ -1268,6 +1544,175 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
     return ok;
 }
 
+bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
+	const auto& map = VfsValueExtFactory::AtomDataMap();
+	Vector<Endpoint> atoms, states;
+	RTLOG("LoadNet: entering for id=" << net.id.ToString());
+
+	// Parse inline atom definitions
+	n->FindAll(atoms, Cursor_AtomStmt);
+	Sort(atoms, AstNodeLess());
+
+	for (Endpoint& ep : atoms) {
+		AstNode* atom = ep.n;
+		Eon::AtomDefinition& atom_def = net.atoms.Add();
+		atom_def.loc = atom->loc;
+
+		if (!GetPathId(atom_def.id, n, atom))
+			return false;
+
+		String atom_action = atom_def.id.ToString();
+		const VfsValueExtFactory::AtomData* found_atom = 0;
+		for (const VfsValueExtFactory::AtomData& atom_data : map.GetValues()) {
+			bool match = false;
+			for (const String& action : atom_data.actions) {
+				if (action == atom_action) {
+					match = true;
+					break;
+				}
+			}
+			if (!match)
+				continue;
+			found_atom = &atom_data;
+		}
+
+		if (!found_atom) {
+			AddError(atom->loc, "could not find atom for '" + atom_action + "'");
+			return false;
+		}
+
+		AtomTypeCls type = found_atom->cls;
+		ASSERT(type.IsValid());
+		atom_def.iface.Realize(type);
+
+		if (!LoadArguments(atom_def.args, atom))
+			return false;
+	}
+	RTLOG("LoadNet: parsed atoms count=" << net.atoms.GetCount());
+
+	// Parse state declarations
+	n->FindAll(states, Cursor_StateStmt);
+	Sort(states, AstNodeLess());
+	RTLOG("LoadNet: state stmt count=" << states.GetCount());
+	for (Endpoint& ep : states) {
+		AstNode* state = ep.n;
+		Eon::StateDeclaration& state_def = net.states.Add();
+		state_def.loc = state->loc;
+
+		if (!GetPathId(state_def.id, n, state))
+			return false;
+		RTLOG("LoadNet: state def=" << state_def.id.ToString());
+	}
+
+	// Parse explicit connections: atom:port -> atom:port
+	// Connection syntax uses member access (.) for port references: atom.port -> atom.port
+	Vector<Endpoint> conn_stmts;
+	n->FindAll(conn_stmts, Cursor_ExprStmt);
+
+	for (Endpoint& ep : conn_stmts) {
+		AstNode* stmt = ep.n;
+		if (!stmt->rval)
+			continue;
+
+		AstNode* rval = stmt->rval;
+		while (rval->src == Cursor_Rval && rval->rval)
+			rval = rval->rval;
+
+		// Try to parse connection expression
+		// We expect something like: osc.0 -> gain.0
+		// This might parse as Cursor_Op_SUB (minus) followed by Cursor_Op_GT (greater than)
+		// Or it might be a different operator structure
+		// For now, use a simple string-based parser as fallback
+
+		// Get the full expression text and parse it directly
+		// Format: atom_name.port_id -> atom_name.port_id
+		String expr_text;
+		bool looks_like_connection = false;
+
+		// Try to detect if this is a connection statement by checking for arrow-like patterns
+		// or simple text extraction from the AST
+		// First check if connection string is stored directly in stmt->str (from SemanticParser)
+		if (!stmt->str.IsEmpty() && stmt->str.Find("->") >= 0) {
+			expr_text = stmt->str;
+			looks_like_connection = true;
+		}
+		else if (IsPartially(rval->src, Cursor_Op)) {
+			// This is an operator expression - might be our connection
+			// For now, we only handle simple Cursor_Unresolved connections
+			// Full operator-based parsing will be implemented later
+			RTLOG("LoadNet: skipping operator expression (not yet supported for connections)");
+			continue;
+		}
+		else if (rval->src == Cursor_Unresolved) {
+			// This might be a simple unresolved identifier that looks like a connection
+			expr_text = rval->str;
+			if (expr_text.Find("->") >= 0)
+				looks_like_connection = true;
+		}
+
+		if (!looks_like_connection)
+			continue;
+
+		// Parse connection from text: "atom1.port1 -> atom2.port2" or "atom1:port1 -> atom2:port2"
+		int arrow_pos = expr_text.Find("->");
+		if (arrow_pos < 0)
+			continue;
+
+		String from_part = TrimBoth(expr_text.Left(arrow_pos));
+		String to_part = TrimBoth(expr_text.Mid(arrow_pos + 2));
+
+		// Parse from_part (atom.port or atom:port) - use LAST separator for port
+		int from_sep = from_part.ReverseFind('.');
+		if (from_sep < 0) from_sep = from_part.ReverseFind(':');
+		if (from_sep < 0) {
+			AddError(stmt->loc, "invalid connection syntax (missing port separator in source): " + expr_text);
+			return false;
+		}
+
+		String from_atom = TrimBoth(from_part.Left(from_sep));
+		String from_port_str = TrimBoth(from_part.Mid(from_sep + 1));
+
+		// Parse to_part (atom.port or atom:port) - use LAST separator for port
+		int to_sep = to_part.ReverseFind('.');
+		if (to_sep < 0) to_sep = to_part.ReverseFind(':');
+		if (to_sep < 0) {
+			AddError(stmt->loc, "invalid connection syntax (missing port separator in sink): " + expr_text);
+			return false;
+		}
+
+		String to_atom = TrimBoth(to_part.Left(to_sep));
+		String to_port_str = TrimBoth(to_part.Mid(to_sep + 1));
+
+		// Convert port strings to integers
+		int from_port = 0;
+		int to_port = 0;
+		if (!from_port_str.IsEmpty() && IsDigit(from_port_str[0]))
+			from_port = StrInt(from_port_str);
+		if (!to_port_str.IsEmpty() && IsDigit(to_port_str[0]))
+			to_port = StrInt(to_port_str);
+
+		// Create connection definition
+		NetConnectionDef& conn = net.connections.Add();
+		conn.from_atom = from_atom;
+		conn.from_port = from_port;
+		conn.to_atom = to_atom;
+		conn.to_port = to_port;
+		conn.loc = stmt->loc;
+
+		if (conn.metadata.GetCount() == 0) {
+			conn.metadata.Add("policy", Value(String("legacy-loop")));
+			conn.metadata.Add("credits", Value(1));
+		}
+
+		RTLOG("LoadNet: parsed connection: " << conn.ToString());
+	}
+
+	RTLOG("LoadNet: successfully parsed net with " << net.atoms.GetCount() << " atoms, "
+		<< net.states.GetCount() << " states, " << net.connections.GetCount() << " connections");
+
+	return true;
+}
+
 bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 	if (!n)
 		return true; // only failed statements returns false
@@ -1320,7 +1765,8 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							}
 							else {
 								LOG(rval.GetTreeString(0));
-								TODO
+								AddError(rval.loc, "Unsupported value type in argument assignment");
+								return false;
 							}
 						}
 						else if (key->src == Cursor_VarDecl) {
@@ -1334,17 +1780,20 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 							}
 							else {
 								LOG(rval.GetTreeString(0));
-								TODO
+								AddError(rval.loc, "Unsupported value type in argument assignment");
+								return false;
 							}
 						}
 						else {
 							LOG(rval.GetTreeString(0));
-							TODO
+							AddError(rval.loc, "Unsupported syntax in arguments");
+							return false;
 						}
 					}
 					else {
 						LOG(rval.GetTreeString(0));
-						TODO
+						AddError(rval.loc, "Unsupported syntax in arguments");
+						return false;
 					}
 				}
 				else if (rval.src == Cursor_CompoundStmt ||
@@ -1355,17 +1804,20 @@ bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {
 				}
 				else {
 					LOG(rval.GetTreeString(0));
-					TODO
+					AddError(rval.loc, "Unsupported syntax in arguments");
+					return false;
 				}
 			}
 			else {
 				LOG(stmt.GetTreeString(0));
-				TODO
+				AddError(stmt.loc, "Unsupported syntax in argument processing");
+				return false;
 			}
 		}
 		else {
 			LOG(stmt.GetTreeString(0));
-			TODO
+			AddError(stmt.loc, "Unsupported syntax in argument processing");
+			return false;
 		}
 		
 		if (!succ) {

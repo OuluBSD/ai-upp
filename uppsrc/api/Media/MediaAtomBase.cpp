@@ -226,18 +226,37 @@ template <class Backend>
 bool MediaAtomBaseT<Backend>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	bool succ = true;
 	ValueFormat fmt = out.GetFormat();
-	
+
 	if (audio_packet_ready && fmt.IsAudio()) {
 		succ = file_in.GetAudio().StorePacket(out); //, time);
 		ASSERT(succ);
 	}
-	
+
 	if (video_packet_ready && fmt.IsVideo()) {
 		succ = file_in.GetVideo().StorePacket(out); //, time);
 		ASSERT(succ);
 	}
-	
-	return succ;
+
+	if (!succ)
+		return false;
+
+	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("MediaAtomBaseT::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+
+		Packet p = CreatePacket(out.GetOffset());
+		p->Pick(out);
+		p->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, p);
+		AckCredits(src_ch, credits);
+		out.Pick(*p); // restore for legacy Link path
+		return routed;
+	}
+
+	return true;
 }
 
 

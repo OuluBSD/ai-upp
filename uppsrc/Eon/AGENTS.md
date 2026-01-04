@@ -263,3 +263,138 @@ Troubleshooting
 - Side‑linking errors: verify both source and sink atoms expose matching side connector IDs and that script connectors are consistent.
 - ECS load errors: check `System::Arg`/`Component::Arg` returns; logs include `GetErrorString()` from loaders.
 
+
+PacketRouter Migration Guide
+----------------------------
+
+### Overview
+
+The PacketRouter is a new runtime packet routing system that replaces the legacy Link/Customer/Exchange architecture. It provides:
+- Port-based packet routing instead of hardcoded channels
+- Credit-based flow control for backpressure management
+- Topology inspection and diagnostics
+- Support for "net" DSL syntax instead of loop-based chains
+
+### Current State (Phases 0-4 Complete)
+
+The implementation is now complete with the following features:
+
+**Phase 1-2: Core Implementation**
+- `PacketRouter` class in `Eon/Core/PacketRouter.{h,cpp}` with full runtime implementation
+- Port registration API (`RegisterSourcePort`, `RegisterSinkPort`)
+- Connection table management (`Connect`, `GetPortCount`)
+- Credit-based flow control primitives (default credits, allocation)
+- DSL support for `net` blocks and explicit port-to-port connections
+
+**Phase 3: DSL & Runtime Integration**
+- `NetContext` class (`uppsrc/Eon/Core/Context.{h,cpp}`) - Router-based network context
+- Parser support for `net` blocks with inline atom definitions and explicit connections
+- `BuildNet()` implementation with full atom instantiation and lifecycle management
+- ScriptLoader integration with net compilation and execution
+
+**Phase 4: Runtime Flow & Diagnostics**
+- `RoutePacket()` implementation for delivering packets to all connected destinations
+- `EmitViaRouter()` method for atoms to emit packets via the router
+- Statistics API (`GetTotalPacketsRouted`, `GetPacketsRouted`, etc.)
+- Live testing with .eon files using router syntax
+
+### DSL Syntax Example
+
+**Old loop syntax:**
+```eon
+loop audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime
+```
+
+**New net syntax:**
+```eon
+net audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime:
+        dbg_limit = 100
+    center.customer.0 -> center.audio.src.test.0
+    center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+```
+
+### Migration Path for Atoms
+
+**Step 1: Add port registration**
+
+Override `RegisterPorts()` to declare your atom's ports:
+
+```cpp
+void YourAtom::RegisterPorts(PacketRouter& router) {
+    ValDevTuple vd;
+    vd.Add(VD(CENTER, AUDIO), false);
+
+    // Register ports
+    RegisterSourcePort(router, 0, vd);  // output port
+    RegisterSinkPort(router, 0, vd);    // input port
+}
+```
+
+**Step 2: Implement packet emission**
+
+Use `EmitViaRouter()` to route packets via the router:
+
+```cpp
+void YourAtom::SomeProcessingMethod() {
+    // Request credits before emitting
+    if (RequestCredits(0, 1)) {  // port 0, 1 credit
+        PacketValue packet;
+        // ... fill packet ...
+        EmitViaRouter(0, packet);
+        AckCredits(0, 1);  // acknowledge the credit
+    }
+}
+```
+
+### Runtime Flow Control
+
+The PacketRouter manages flow control with:
+- Per-connection credit accounting
+- Request/acknowledge pattern for packet emission
+- Built-in diagnostics (GetTotalPacketsRouted, GetDeliveryFailures, etc.)
+
+### Testing Router Integration
+
+Use the existing router test files to verify functionality:
+
+```bash
+# Run with .eon file using new net syntax
+bin/Eon00 0 0d_audio_gen_net
+
+# Test fork topology (fan-out/fan-in)
+bin/Eon00 0 00e_fork_net
+
+# Test runtime flow counters
+bin/Eon00 0 00h_router_flow
+```
+
+The test files include:
+- `share/eon/tests/00d_audio_gen_net.eon` - Linear pipeline
+- `share/eon/tests/00e_fork_net.eon` - Fork topology (fan-out/fan-in)
+- `share/eon/tests/00h_router_flow.eon` - Runtime flow validation
+
+### Key Differences from Legacy
+
+| Legacy (Exchange/Link) | Router (PacketRouter) |
+|------------------------|----------------------|
+| Loop-based circular topology | Net-based arbitrary topologies |
+| Channel 0 as primary path | Explicit port-to-port connections |
+| Link schedules packets | Router manages credits and routing |
+| Implicit packet flow | Explicit connection definitions |
+| Chain/loop DSL syntax | Net DSL syntax |
+
+### Files
+
+- `uppsrc/Eon/Core/PacketRouter.{h,cpp}` - Router implementation
+- `uppsrc/Eon/Script/Def.h` - AST definitions for net syntax
+- `uppsrc/Eon/Script/ScriptLoader.cpp` - BuildNet() implementation
+- `uppsrc/Eon/Core/Context.{h,cpp}` - NetContext for router nets
+- `share/eon/tests/*.eon` - Router test files
+- `upptst/Eon00/*net*` - Test drivers for router functionality
+

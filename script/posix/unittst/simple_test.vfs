@@ -1,0 +1,5 @@
+true
+echo "First command executed successfully"
+true && echo "Logical AND worked"
+false || echo "Logical OR worked (false failed, so this should run)"
+echo "All tests complete"

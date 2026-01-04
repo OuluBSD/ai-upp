@@ -1,5 +1,6 @@
 uses
-	Shell;
+	Shell,
+	EonRouterSupport;
 
 file
 	Main.cpp,
@@ -17,4 +18,3 @@ file
 mainconfig
 	"Release" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE FFMPEG",
 	"Debug" = "AI SCREEN BUILTIN_PORTAUDIO BUILTIN_PORTMIDI FLUIDLITE FFMPEG DEBUG_RT";
-

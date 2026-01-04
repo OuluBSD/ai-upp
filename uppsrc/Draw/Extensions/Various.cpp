@@ -55,7 +55,7 @@ ByteImage TgaReaderBackend::LoadByteImageAny(String path) {
 Image TgaReaderBackend::LoadStringAny(String str) {
 	
 	TODO
-	
+	return Image();
 }
 
 void TgaReaderBackend::ClearImage(SysImage& img) {
@@ -193,7 +193,7 @@ Image LibPngBackend::LoadFileAny(String path) {
 Image LibPngBackend::LoadStringAny(String str) {
 	
 	TODO
-	
+	return Image();
 }
 
 void LibPngBackend::ClearImage(SysImage& img) {
@@ -204,4 +204,3 @@ void LibPngBackend::ClearImage(SysImage& img) {
 
 
 END_UPP_NAMESPACE
-

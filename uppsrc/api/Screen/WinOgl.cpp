@@ -11,6 +11,7 @@
 // This is because the standard opengl32.dll only provides OpenGL 1.1 functions
 // We'll need extensions for modern OpenGL features
 #include <GL/glext.h>
+#include <GL/wglext.h>
 
 // Define function pointers for OpenGL extensions we might need
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = nullptr;
@@ -50,7 +51,7 @@ struct ScrWinOgl::NativeEventsBase {
 };
 
 // Helper function to load OpenGL extensions
-bool Load_OpenGL_Extensions(NativeContext& ctx) {
+bool Load_OpenGL_Extensions(ScrWinOgl::NativeContext& ctx) {
     // Create a dummy context to load extensions
     HGLRC tempContext = wglCreateContext(ctx.hdc);
     wglMakeCurrent(ctx.hdc, tempContext);
@@ -293,7 +294,7 @@ bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
         return false;
     }
     
-    dev.accel.SetNative(ctx.hdc, ctx.hwnd, (void*)ctx.hrc, 0);
+    dev.accel.SetNative(ctx.hdc, ctx.hwnd, &ctx.hrc, 0);
     
     if (!dev.accel.Open(Size(width, height), 4, true)) {
         LOG("ScrWinOgl::SinkDevice_Initialize: error: could not open opengl atom");
@@ -362,7 +363,7 @@ bool ScrWinOgl::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSour
 }
 
 bool ScrWinOgl::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
-    return dev.accel.NegotiateSinkFormat(link, sink_ch, new_fmt);
+    return false;
 }
 
 bool ScrWinOgl::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase&, PacketIO& io) {

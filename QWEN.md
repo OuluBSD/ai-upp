@@ -61,6 +61,58 @@ This is an Ultimate++ (U++) codebase.
 #include "Geometry.h"    // Too late! Must be FIRST!
 ```
 
+### Rule 1.5: CRITICAL - Never Nest Namespace Upp!
+
+**Problem**: If you put headers inside `namespace Upp`, you get `Upp::Upp::` error!
+
+**Why this happens**:
+- U++ macros use `UPP::` which becomes `Upp::`
+- If already inside `namespace Upp`, it becomes `Upp::Upp::`
+- This breaks `LOG`, `INITBLOCK`, and other macros!
+
+**The compile-time check**: Core/Defs.h has `extern int Upp;`. If you try to declare `namespace Upp` after including Core, you get "redefinition as different kind of symbol" error. This helps you catch the mistake!
+
+**Simple rules**:
+1. **Main header only**: Only `PackageName.h` should have `NAMESPACE_UPP`
+2. **Sub-headers**: No `NAMESPACE_UPP` in headers included from main header
+3. **No includes in sub-headers**: Sub-headers cannot include other headers
+4. **Use main header**: `.cpp` files must include main header, not sub-headers
+
+**CORRECT**:
+```cpp
+// PackageName.h (main header)
+#include <Core/Core.h>     // Includes BEFORE namespace!
+
+NAMESPACE_UPP
+#include "SubHeader.h"     // SubHeader has NO namespace!
+END_UPP_NAMESPACE
+
+// SubHeader.h
+#ifndef _SubHeader_h_
+#define _SubHeader_h_
+// NO includes here!
+// NO NAMESPACE_UPP here!
+class MyClass { };
+#endif
+
+// MyCode.cpp
+#include "PackageName.h"   // Use MAIN header!
+```
+
+**WRONG** (causes Upp::Upp::):
+```cpp
+// WRONG: SubHeader.h with its own namespace
+NAMESPACE_UPP              // WRONG! Will nest!
+#include <Core/Core.h>     // WRONG! Sub-headers can't include!
+class MyClass { };
+END_UPP_NAMESPACE
+
+// WRONG: .cpp using sub-header
+#include "SubHeader.h"     // WRONG! Use main header!
+```
+
+**Remember**: If you see `Upp::Upp::` error, check your includes and namespaces!
+
 ### Rule 2: Understand flagV1
 
 `flagV1` is a special flag.

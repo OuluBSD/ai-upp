@@ -60,7 +60,22 @@ bool ShaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		InternalPacketData& data = out.GetData<InternalPacketData>();
 		this->bf.GetBuffer().StoreOutputLink(data);
 		RTLOG("ShaderBaseT::Send: 0, " << out.ToString());
-		
+
+		if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = RequestCredits(src_ch, 1);
+			if (credits <= 0) {
+				RTLOG("ShaderBaseT::Send: credit request denied for src_ch=" << src_ch);
+				return false;
+			}
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt->Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = EmitViaRouter(src_ch, route_pkt);
+			AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
+		}
 	}
 	else {
 		TODO
@@ -273,11 +288,31 @@ template <class Gfx>
 bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	if (preload_pending && !UploadPreloadedData())
 		return false;
+	auto route_packet = [&](const ValueFormat& fmt) {
+		if (!packet_router || router_source_ports.IsEmpty() || !fmt.IsValid())
+			return true;
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("TextureBaseT::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+		return true;
+	};
 	if (src_ch == 0) {
 		if (!this->bf.GetBuffer().IsSingleInitialized())
 			return true;
 		InternalPacketData& data = out.SetData<InternalPacketData>();
 		this->GetBuffer().StoreOutputLink(data);
+		if (!route_packet(out.GetFormat()))
+			return false;
 		return true;
 	}
 	
@@ -291,6 +326,8 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 		InternalPacketData& data = out.SetData<InternalPacketData>();
 		this->GetBuffer().StoreOutputLink(data);
 		RTLOG("TextureBaseT::Send: " << src_ch << ": " << out.ToString());
+		if (!route_packet(out.GetFormat()))
+			return false;
 		return true;
 	}
 
@@ -562,6 +599,22 @@ bool FboReaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int 
 	}
 	else TODO
 	
+	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("FboReaderBaseT::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+	}
+	
 	return true;
 }
 
@@ -734,6 +787,22 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 	}
 
+	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("KeyboardBaseT::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+	}
+
 	return true;
 }
 
@@ -852,6 +921,23 @@ bool AudioBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 		this->GetBuffer().StoreOutputLink(data);
 		RTLOG("AudioBaseT<Gfx>::Send: 0, " << src_ch << ": " << out.ToString());
 	}
+
+	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("AudioBaseT<Gfx>::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+	}
+
 	return true;
 }
 

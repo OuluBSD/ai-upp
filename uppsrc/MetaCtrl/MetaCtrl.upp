@@ -2,6 +2,7 @@ description "\377B0,0,128";
 
 uses
 	Vfs/Runtime,
+	Vfs/Storage,
 	CtrlLib,
 	CodeEditor;
 
@@ -19,4 +20,3 @@ file
 	TextDesigner.cpp,
 	Entity.h,
 	Entity.cpp;
-

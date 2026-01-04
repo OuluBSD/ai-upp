@@ -1,5 +1,4 @@
-#include "VfsOverlay.h"
-#include <Vfs/Core/Core.h>  // for VfsValue
+#include "Overlay.h"
 
 NAMESPACE_UPP
 

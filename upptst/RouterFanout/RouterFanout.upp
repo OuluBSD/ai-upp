@@ -1,0 +1,14 @@
+uses
+	Core,
+	Eon,
+	EonRouterSupport,
+	Vfs/Ecs,
+	Vfs/Storage;
+
+file
+	AGENTS.md,
+	RouterFanoutTest.cpp;
+
+mainconfig
+	"Release" = "AI",
+	"Debug" = "AI DEBUG";

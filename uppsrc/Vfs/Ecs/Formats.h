@@ -1,6 +1,11 @@
 #ifndef _Vfs_Ecs_Formats_h_
 #define _Vfs_Ecs_Formats_h_
 
+#ifndef _Vfs_Ecs_Interface_h_
+struct RouterPortDesc;
+struct RouterConnectionDesc;
+#endif
+
 #define STD_FMT_SIZE (4*16)
 
 struct AudioFormat :
@@ -250,5 +255,22 @@ public:
 
 GVar::Sample GetGVarSampleFromBinarySample(BinarySample::Type t);
 ValueFormat GetDefaultFormat(ValDevCls type);
+
+// Router descriptor serialization helpers
+inline Value RouterLookupValue(const ValueMap& map, const char* key) {
+	int idx = map.Find(Value(String(key)));
+	if (idx >= 0)
+		return map.GetValue(idx);
+	return Value();
+}
+
+ValueMap StoreValDevTuple(const ValDevTuple& tuple);
+bool LoadValDevTuple(const Value& value, ValDevTuple& out);
+
+ValueMap StoreRouterPortDesc(const RouterPortDesc& desc);
+bool LoadRouterPortDesc(const Value& value, RouterPortDesc& out);
+
+ValueMap StoreRouterConnectionDesc(const RouterConnectionDesc& desc);
+bool LoadRouterConnectionDesc(const Value& value, RouterConnectionDesc& out);
 
 #endif

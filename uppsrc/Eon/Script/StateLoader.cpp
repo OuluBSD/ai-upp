@@ -4,7 +4,7 @@ NAMESPACE_UPP
 namespace Eon {
 
 
-ScriptStateLoader::ScriptStateLoader(ScriptChainLoader& parent, int id, Eon::StateDeclaration& def):
+ScriptStateLoader::ScriptStateLoader(ScriptStateParent& parent, int id, Eon::StateDeclaration& def):
 	Base(parent, id, def)
 {
 	

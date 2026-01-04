@@ -12,9 +12,19 @@ class ScriptStateLoader;
 class ScriptSystemLoader;
 class ScriptTopChainLoader;
 class ScriptChainLoader;
+class ScriptNetLoader;
 class ScriptMachineLoader;
 class ScriptWorldLoader;
 class ScriptLoader;
+class NetContext;
+
+class ScriptStateParent {
+public:
+	virtual ScriptLoader&	GetLoader() = 0;
+	virtual void			AddError(const FileLocation& loc, String msg) = 0;
+	virtual Eon::Id			GetDeepId() const = 0;
+	virtual ~ScriptStateParent() {}
+};
 
 void GetAtomActions(const WorldState& src, Vector<Eon::Action>& acts);
 
@@ -131,7 +141,7 @@ public:
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 };
 
-class ScriptChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader> {
+class ScriptChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader>, public ScriptStateParent {
 	
 public:
 	using Base = ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader>;
@@ -148,14 +158,37 @@ public:
 	void		FindAcceptedLinks();
 	void		LinkPlanner();
 	void		Linker();
+	ScriptLoader& GetLoader() override { return Base::GetLoader(); }
+	void		AddError(const FileLocation& loc, String msg) override { Base::AddError(loc, msg); }
 	
 	void		Visit(Vis& vis) override {vis || loops || states;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
-	Eon::Id	GetDeepId() const override;
+	Eon::Id		GetDeepId() const override;
 	bool		Load() override;
 	
+};
+
+class ScriptNetLoader : public ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader>, public ScriptStateParent {
+
+public:
+	using Base = ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader>;
+
+public:
+	Array<ScriptStateLoader>		states;
+
+	ScriptNetLoader(ScriptMachineLoader& parent, int id, Eon::NetDefinition& def);
+
+	void		Visit(Vis& vis) override {vis || states;}
+	String		GetTreeString(int indent) override;
+	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
+	void		GetStates(Vector<ScriptStateLoader*>& v) override;
+	ScriptLoader& GetLoader() override { return Base::GetLoader(); }
+	void		AddError(const FileLocation& loc, String msg) override { Base::AddError(loc, msg); }
+	Eon::Id		GetDeepId() const override;
+	bool		Load() override;
+
 };
 
 
@@ -182,18 +215,18 @@ public:
 	
 };
 
-class ScriptStateLoader : public ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader> {
+class ScriptStateLoader : public ScriptLoaderBase<Eon::StateDeclaration, ScriptStateParent> {
 	
 protected:
 	Eon::Id		id;
 	
 public:
-	using Base = ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader>;
+	using Base = ScriptLoaderBase<Eon::StateDeclaration, ScriptStateParent>;
 	
 public:
 	
 	
-	ScriptStateLoader(ScriptChainLoader& parent, int id, Eon::StateDeclaration& def);
+	ScriptStateLoader(ScriptStateParent& parent, int id, Eon::StateDeclaration& def);
 	void		Visit(Vis& vis) override {}
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override {}
 	void		GetStates(Vector<ScriptStateLoader*>& v) override {}
@@ -207,13 +240,14 @@ public:
 class ScriptMachineLoader : public ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader> {
 public:
 	using Base = ScriptLoaderBase<Eon::MachineDefinition, ScriptSystemLoader>;
-	
+
 public:
 	Array<ScriptTopChainLoader>		chains;
+	Array<ScriptNetLoader>			nets;
 	
 	
 	ScriptMachineLoader(ScriptSystemLoader& parent, int id, Eon::MachineDefinition& def);
-	void		Visit(Vis& vis) override {vis || chains;}
+	void		Visit(Vis& vis) override {vis || chains || nets;}
 	bool		Load() override;
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
@@ -269,6 +303,7 @@ protected:
     bool collect_errors = false;
     bool eager_build_chains = false;
     Array<One<ChainContext>> built_chains;
+    Array<One<NetContext>> built_nets;
 	
 	bool GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to);
 	
@@ -286,8 +321,16 @@ public:
 	int				NewConnectionId() {return tmp_side_id_counter++;}
 	void			AddError(const FileLocation& loc, String msg) {ErrorSource::AddError(loc, msg);}
 	bool			LoadAst(AstNode* root);
+
+	// Router statistics access
+	int				GetNetCount() const { return built_nets.GetCount(); }
+	PacketRouter*	GetNetRouter(int net_idx);
+	NetContext*		GetNetContext(int net_idx);
+	int				GetTotalPacketsRouted() const;
 	// Non-AST path: build a chain directly from a prepared definition using Core contexts
 	bool			BuildChain(const Eon::ChainDefinition& chain);
+	// Non-AST path: build a net directly from a prepared definition using PacketRouter
+	bool			BuildNet(const Eon::NetDefinition& net);
 	
 	
 protected:
@@ -309,6 +352,7 @@ protected:
 	bool		LoadCompilationUnit(AstNode* root);
 	bool		LoadGlobalScope(Eon::GlobalScope& glob, AstNode* root);
 	bool		LoadChain(Eon::ChainDefinition& chain, AstNode* root);
+	bool		LoadNet(Eon::NetDefinition& net, AstNode* root);
 	bool		LoadMachine(Eon::MachineDefinition& mach, AstNode* root);
 	bool		LoadWorld(Eon::WorldDefinition& def, AstNode* n);
 	bool		LoadDriver(Eon::DriverDefinition& def, AstNode* n);

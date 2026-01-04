@@ -297,11 +297,11 @@ bool LoopContext::PostInitializeAll() {
     for (int i = c; i >= 0; i--) {
         const AddedAtom& a = added[i];
         if (!a.a->PostInitialize()) {
-            LOG("LoopContext::PostInitializeAll: atom " << a.a->GetType().ToString() << " PostInitialize failed");
+            RTLOG("LoopContext::PostInitializeAll: atom " << a.a->GetType().ToString() << " PostInitialize failed");
             return false;
         }
         if (a.l && !a.l->PostInitialize()) {
-            LOG("LoopContext::PostInitializeAll: link " << a.l->GetTypeName() << " PostInitialize failed");
+            RTLOG("LoopContext::PostInitializeAll: link " << a.l->GetTypeName() << " PostInitialize failed");
             return false;
         }
     }
@@ -339,6 +339,83 @@ String LoopContext::GetTreeString(int indent) const {
         s << '\n';
     }
     return s;
+}
+
+bool LoopContext::RegisterRouterPorts() {
+    if (!router)
+        router.Create();
+
+    RTLOG("LoopContext::RegisterRouterPorts: registering " << added.GetCount() << " atoms");
+
+    for (auto& info : added) {
+        if (info.a) {
+            info.a->RegisterPorts(*router);
+        }
+    }
+
+    RTLOG("LoopContext::RegisterRouterPorts: router has " << router->GetPortCount() << " ports");
+    return true;
+}
+
+bool LoopContext::MakeRouterConnections() {
+    if (!router || added.GetCount() < 2)
+        return true;
+
+    RTLOG("LoopContext::MakeRouterConnections: connecting " << added.GetCount() << " atoms");
+
+    // For each atom pair (i, i+1), connect source port 0 to sink port 0
+    // This mirrors the primary link topology
+    for (int i = 0; i < added.GetCount(); i++) {
+        AddedAtom& src_info = added[i];
+        AddedAtom& dst_info = added[(i + 1) % added.GetCount()];
+
+        if (!src_info.a || !dst_info.a)
+            continue;
+
+        // Get router indices for primary ports (port 0)
+        // These are stored in AtomBase::router_source_ports and router_sink_ports
+        const Vector<int>& src_ports = src_info.a->router_source_ports;
+        const Vector<int>& dst_ports = dst_info.a->router_sink_ports;
+
+        if (src_ports.IsEmpty() || dst_ports.IsEmpty()) {
+            // Atom didn't register ports - skip (backward compatible)
+            continue;
+        }
+
+        int src_router_idx = src_ports[0];
+        int dst_router_idx = dst_ports[0];
+
+        if (src_router_idx < 0 || dst_router_idx < 0)
+            continue;
+
+        // Build PortHandles
+        PacketRouter::PortHandle src_handle;
+        src_handle.atom = &*src_info.a;
+        src_handle.port_index = 0;
+        src_handle.direction = RouterPortDesc::Direction::Source;
+        src_handle.router_index = src_router_idx;
+
+        PacketRouter::PortHandle dst_handle;
+        dst_handle.atom = &*dst_info.a;
+        dst_handle.port_index = 0;
+        dst_handle.direction = RouterPortDesc::Direction::Sink;
+        dst_handle.router_index = dst_router_idx;
+
+        router->Connect(src_handle, dst_handle);
+
+        RTLOG("LoopContext::MakeRouterConnections: connected atom " << i
+            << " port " << src_router_idx << " -> atom " << ((i + 1) % added.GetCount())
+            << " port " << dst_router_idx);
+    }
+
+    RTLOG("LoopContext::MakeRouterConnections: router has " << router->GetConnectionCount() << " connections");
+    return true;
+}
+
+String LoopContext::DumpRouterTopology() const {
+    if (!router)
+        return "No router";
+    return router->DumpTopology();
 }
 
 static bool FindAtomByAction(const String& action, AtomTypeCls& out_atom, LinkTypeCls& out_link) {
@@ -417,6 +494,12 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
     }
     if (make_primary_links)
         lc.MakePrimaryLinks();
+
+    // Router integration (Phase 2)
+    // Register ports and generate router connections
+    lc.RegisterRouterPorts();
+    lc.MakeRouterConnections();
+
     return lc;
 }
 
@@ -452,6 +535,309 @@ String ChainContext::GetTreeString(int indent) const {
     for (const auto& lc : loops)
         s << lc.GetTreeString(indent+1);
     return s;
+}
+
+// NetContext implementation (Phase 3)
+
+NetContext::NetContext(VfsValue& space)
+    : net_space(space) {
+    router.Create();
+}
+
+AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const IfaceConnTuple& iface, const ArrayMap<String, Value>* args) {
+    // Resolve action to atom type and link type
+    AtomTypeCls atom_type;
+    LinkTypeCls link_type;
+    if (!FindAtomByAction(action, atom_type, link_type)) {
+        RTLOG("NetContext::AddAtom: could not resolve action '" << action << "'");
+        failed = true;
+        return nullptr;
+    }
+
+    // Create atom using VfsValueExtFactory
+    VfsValue& sub_atom = net_space.Add();
+    int ai = VfsValueExtFactory::AtomDataMap().Find(atom_type);
+    if (ai < 0) {
+        RTLOG("NetContext::AddAtom: atom type not found in factory");
+        failed = true;
+        return nullptr;
+    }
+
+    const auto& af = VfsValueExtFactory::AtomDataMap()[ai];
+    VfsValueExt* aext = af.new_fn(sub_atom);
+    AtomBasePtr ab = CastPtr<AtomBase>(aext);
+    if (!ab) {
+        RTLOG("NetContext::AddAtom: failed to cast to AtomBase");
+        failed = true;
+        return nullptr;
+    }
+
+    sub_atom.id = name; // Use atom name from definition
+    sub_atom.ext = ab;
+    sub_atom.type_hash = ab->GetTypeHash();
+
+    // Set interface
+    ab->SetInterface(iface);
+
+    // Initialize with args
+    WorldState ws;
+    if (args) {
+        for (int i = 0; i < args->GetCount(); i++) {
+            String key = args->GetKey(i);
+            const Value& obj = args->operator[](i);
+            ws.values.GetAdd("." + key) = obj;
+        }
+    }
+
+    if (!ab->InitializeAtom(ws) || !ab->Initialize(ws)) {
+        RTLOG("NetContext::AddAtom: initialization failed for '" << name << "'");
+        failed = true;
+        return nullptr;
+    }
+
+    ab->SetInitialized();
+
+    // Store atom instance
+    AtomInstance& inst = atoms.Add();
+    inst.name = name;
+    inst.atom = ab;
+    inst.iface = iface;
+
+    RTLOG("NetContext::AddAtom: created atom '" << name << "' (" << action << ")");
+    return ab;
+}
+
+void NetContext::AddConnection(int from_atom_idx, int from_port, int to_atom_idx, int to_port, const ValueMap& metadata) {
+    Connection& conn = connections.Add();
+    conn.from_atom_idx = from_atom_idx;
+    conn.from_port = from_port;
+    conn.to_atom_idx = to_atom_idx;
+    conn.to_port = to_port;
+    conn.metadata = metadata;
+}
+
+bool NetContext::RegisterPorts() {
+    if (!router) {
+        RTLOG("NetContext::RegisterPorts: router not initialized");
+        return false;
+    }
+
+    RTLOG("NetContext::RegisterPorts: registering " << atoms.GetCount() << " atoms");
+
+    for (auto& inst : atoms) {
+        if (inst.atom) {
+            inst.atom->RegisterPorts(*router);
+        }
+    }
+
+    RTLOG("NetContext::RegisterPorts: router has " << router->GetPortCount() << " ports");
+    return true;
+}
+
+bool NetContext::MakeConnections() {
+    if (!router) {
+        RTLOG("NetContext::MakeConnections: router not initialized");
+        return false;
+    }
+
+    RTLOG("NetContext::MakeConnections: wiring " << connections.GetCount() << " connections");
+
+    for (const Connection& conn : connections) {
+        if (conn.from_atom_idx < 0 || conn.from_atom_idx >= atoms.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid from_atom_idx " << conn.from_atom_idx);
+            return false;
+        }
+        if (conn.to_atom_idx < 0 || conn.to_atom_idx >= atoms.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid to_atom_idx " << conn.to_atom_idx);
+            return false;
+        }
+
+        AtomInstance& from_inst = atoms[conn.from_atom_idx];
+        AtomInstance& to_inst = atoms[conn.to_atom_idx];
+
+        if (!from_inst.atom || !to_inst.atom) {
+            RTLOG("NetContext::MakeConnections: null atom pointer");
+            return false;
+        }
+
+        // Get router port indices
+        const Vector<int>& src_ports = from_inst.atom->router_source_ports;
+        const Vector<int>& dst_ports = to_inst.atom->router_sink_ports;
+
+        if (conn.from_port < 0 || conn.from_port >= src_ports.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid from_port " << conn.from_port
+                << " (atom has " << src_ports.GetCount() << " source ports)");
+            return false;
+        }
+        if (conn.to_port < 0 || conn.to_port >= dst_ports.GetCount()) {
+            RTLOG("NetContext::MakeConnections: invalid to_port " << conn.to_port
+                << " (atom has " << dst_ports.GetCount() << " sink ports)");
+            return false;
+        }
+
+        int src_router_idx = src_ports[conn.from_port];
+        int dst_router_idx = dst_ports[conn.to_port];
+
+        // Build PortHandles
+        PacketRouter::PortHandle src_handle;
+        src_handle.atom = &*from_inst.atom;
+        src_handle.port_index = conn.from_port;
+        src_handle.direction = RouterPortDesc::Direction::Source;
+        src_handle.router_index = src_router_idx;
+
+        PacketRouter::PortHandle dst_handle;
+        dst_handle.atom = &*to_inst.atom;
+        dst_handle.port_index = conn.to_port;
+        dst_handle.direction = RouterPortDesc::Direction::Sink;
+        dst_handle.router_index = dst_router_idx;
+
+        router->Connect(src_handle, dst_handle);
+
+        RTLOG("NetContext::MakeConnections: connected " << from_inst.name << ":" << conn.from_port
+            << " -> " << to_inst.name << ":" << conn.to_port);
+    }
+
+    RTLOG("NetContext::MakeConnections: router has " << router->GetConnectionCount() << " connections");
+    return true;
+}
+
+bool NetContext::PostInitializeAll() {
+    RTLOG("NetContext::PostInitializeAll: " << atoms.GetCount() << " atoms");
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom && !atoms[i].atom->PostInitialize()) {
+            RTLOG("NetContext::PostInitializeAll: atom " << atoms[i].name << " failed");
+            return false;
+        }
+    }
+    return true;
+}
+
+bool NetContext::StartAll() {
+    RTLOG("NetContext::StartAll: " << atoms.GetCount() << " atoms");
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            if (!atoms[i].atom->Start()) {
+                RTLOG("NetContext::StartAll: atom " << atoms[i].name << " failed to start");
+                return false;
+            }
+            atoms[i].atom->SetRunning();
+        }
+    }
+    return true;
+}
+
+void NetContext::UndoAll() {
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            atoms[i].atom->Stop();
+        }
+    }
+    for (int i = atoms.GetCount() - 1; i >= 0; i--) {
+        if (atoms[i].atom) {
+            atoms[i].atom->UninitializeDeep();
+        }
+    }
+}
+
+String NetContext::GetTreeString(int indent) const {
+    String s;
+    s << Indent(indent) << "NetContext space: " << PathOf(const_cast<VfsValue&>(net_space)) << '\n';
+    s << Indent(indent+1) << "Atoms: " << atoms.GetCount() << '\n';
+    for (int i = 0; i < atoms.GetCount(); i++) {
+        s << Indent(indent+2) << i << ": " << atoms[i].name;
+        if (atoms[i].atom)
+            s << " (" << atoms[i].iface.type.ToString() << ")";
+        s << '\n';
+    }
+    s << Indent(indent+1) << "Connections: " << connections.GetCount() << '\n';
+    for (const Connection& conn : connections) {
+        s << Indent(indent+2) << atoms[conn.from_atom_idx].name << ":" << conn.from_port
+            << " -> " << atoms[conn.to_atom_idx].name << ":" << conn.to_port << '\n';
+    }
+    return s;
+}
+
+// Phase 5: Net execution driver
+void NetContext::Update(double dt) {
+    // Update all atoms
+    for (auto& inst : atoms) {
+        if (inst.atom) {
+            inst.atom->Update(dt);
+        }
+    }
+
+    // Drive packet flow
+    accumulated_time += dt;
+    ProcessFrame();
+}
+
+int NetContext::ProcessFrame(int max_iterations) {
+    if (!router) {
+        RTLOG("NetContext::ProcessFrame: no router");
+        return 0;
+    }
+
+    int packets_routed = 0;
+    int iteration = 0;
+
+    // Process packets up to max_iterations
+    while (iteration < max_iterations) {
+        bool any_sent = false;
+
+        // Poll source atoms for packets
+        for (auto& inst : atoms) {
+            if (!inst.atom) continue;
+
+            // Check if atom has source ports
+            const Vector<int>& src_ports = inst.atom->router_source_ports;
+            if (src_ports.IsEmpty()) continue;
+
+            // For each source port, try to get a packet
+            for (int src_ch = 0; src_ch < src_ports.GetCount(); src_ch++) {
+                // Create packet value for Send() to fill
+                off32 packet_offset = packet_offset_gen.Create();
+                PacketValue pv(packet_offset);
+
+                // Get source format
+                InterfaceSourcePtr src = inst.atom->GetSource();
+                if (!src || src_ch >= src->GetSourceCount())
+                    continue;
+
+                ValueFormat fmt = src->GetSourceValue(src_ch).GetFormat();
+                pv.SetFormat(fmt);
+
+                // Create config for Send() call
+                RealtimeSourceConfig cfg(packet_offset_gen);
+                cfg.time_total = accumulated_time;
+                cfg.cur_offset = packet_offset;
+                cfg.prev_offset = packet_offset;
+
+                // Call atom's Send() method
+                if (inst.atom->Send(cfg, pv, src_ch)) {
+                    // Atom produced a packet - it will be routed via EmitViaRouter()
+                    // which is called inside atom's Send() method
+                    any_sent = true;
+                }
+            }
+        }
+
+        iteration++;
+        iteration_count++;
+
+        // If no atoms sent packets, we're done for this frame
+        if (!any_sent)
+            break;
+    }
+
+    // Query router for actual packets routed
+    if (router) {
+        packets_routed = router->GetTotalPacketsRouted();
+    }
+
+    RTLOG("NetContext::ProcessFrame: completed " << iteration << " iterations, "
+        << packets_routed << " total packets routed");
+
+    return packets_routed;
 }
 
 }

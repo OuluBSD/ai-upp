@@ -9,6 +9,11 @@ AtomTypeCls InterfaceBase::GetAtomType() const {
 	return b.AsAtomBase()->GetType();
 }
 
+const Vector<RouterPortDesc>& InterfaceBase::GetRouterPorts(RouterPortDesc::Direction dir) const {
+	InterfaceBase& b = const_cast<InterfaceBase&>(*this);
+	return b.AsAtomBase()->GetRouterPorts(dir);
+}
+
 
 
 bool DefaultExchangePoint::IsPacketStuck() {

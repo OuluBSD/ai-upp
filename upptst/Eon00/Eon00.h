@@ -14,6 +14,7 @@ void Run00fDiamondNet(Engine& eng, int method);
 void Run00gBranchNet(Engine& eng, int method);
 void Run00hRouterFlow(Engine& eng, int method);
 void Run00iRouterPerf(Engine& eng, int method);
+void Run00jAudioGenBridge(Engine& eng, int method);
 
 END_UPP_NAMESPACE
 

@@ -233,6 +233,31 @@ bool VoidSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 	return false;
 }
 
+bool VoidSinkBase::Recv(int sink_ch, const Packet& in) {
+	if (GetLink()) {
+		// Legacy loop links handle Consume(); avoid double-checking packets.
+		return true;
+	}
+	if (!in) {
+		LOG("VoidSinkBase::Recv: error: empty packet");
+		return false;
+	}
+	const PacketValue& pv = *in;
+	const ValueFormat& pkt_fmt = pv.GetFormat();
+	if (!fmt.IsAudio())
+		fmt = pkt_fmt;
+	if (!pkt_fmt.IsAudio()) {
+		LOG("VoidSinkBase::Recv: error: unexpected packet " << pv.ToString());
+		return false;
+	}
+	const Vector<byte>& data = pv.GetData();
+	if (data.IsEmpty()) {
+		LOG("VoidSinkBase::Recv: error: empty data");
+		return false;
+	}
+	return Consume(data.Begin(), data.GetCount());
+}
+
 bool VoidSinkBase::Consume(const void* data, int len) {
 	RTLOG("VoidSinkBase::Consume: " << HexStr64((size_t)data) << ", len=" << len);
 	

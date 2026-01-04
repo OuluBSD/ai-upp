@@ -158,6 +158,4 @@ protected:
 	String             exception;
 	
 	const int max_stack_trace_size = 400;
-	
-	One<ILLDBUtils> lldb_utils;
 };

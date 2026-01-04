@@ -96,17 +96,9 @@ enum AdditionalKinds {
 	KIND_ERROR,
 };
 
-<<<<<<< HEAD
-#ifdef flagGUI
-Image  CxxIcon(int kind); // TODO: Move here
-int    PaintCpp(Draw& w, const Rect& r, int kind, const String& name, const String& pretty, Color ink, bool focuscursor, bool retval_last = false);
-#endif
-String SignatureQtf(const String& name, const String& pretty, int pari = INT_MAX);
-=======
 Image  CxxIcon(int kind);
 int    PaintCpp(Draw& w, const Rect& r, int kind, const String& name, const String& pretty, Color ink, bool focuscursor, bool retval_last = false);
 String SignatureQtf(const String& name, const String& pretty, const String& nest, int pari = INT_MAX);
->>>>>>> upstream/master
 String CppText(const String& name, const String& pretty);
 
 bool IsStruct(int kind);

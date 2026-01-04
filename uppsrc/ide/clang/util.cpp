@@ -100,10 +100,10 @@ bool IsVariable(int kind)
 	return findarg(kind, CXCursor_VarDecl, CXCursor_FieldDecl, CXCursor_ParmDecl) >= 0;
 }
 
-<<<<<<< HEAD
 bool IsDecl(int kind) {
 	return kind >= (int)CXCursor_FirstDecl && kind <= (int)CXCursor_LastDecl;
-=======
+}
+
 int FindId(const String& s, const String& id) {
 	if(id.GetCount() == 0)
 		return -1;
@@ -148,7 +148,6 @@ String GetClass(const AnnotationItem& m)
 	}
 	
 	return Null;
->>>>>>> upstream/master
 }
 
 bool IsTypeDecl(int kind)

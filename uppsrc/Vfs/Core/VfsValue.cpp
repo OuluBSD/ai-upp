@@ -716,7 +716,9 @@ void VfsValue::SetPkgFileHashDeep(hash_t pkg, hash_t file)
 
 void VfsValue::SetTempDeep()
 {
+	#ifdef flagDEBUG
 	only_temporary = true;
+	#endif
 	for(auto& n : sub)
 		n.SetTempDeep();
 }

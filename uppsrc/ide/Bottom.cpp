@@ -219,8 +219,10 @@ void Ide::SyncBottom()
 	SetBar();
 	if(q == BCALC)
 		ActiveFocus(calc);
+    #ifndef flagV1
 	if(q == BAGENT)
 		ActiveFocus(agent);
+	#endif
 	if(bottomctrl)
 		bottomctrl->Show(q == BDEBUG);
 	else

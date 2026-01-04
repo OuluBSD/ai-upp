@@ -491,6 +491,27 @@ bool VoidPollerSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 	return true;
 }
 
+bool VoidBase::Recv(int sink_ch, const Packet& in) {
+	if (!packet_router)
+		return true;
+	const IfaceConnTuple& iface = GetInterface();
+	if (sink_ch < 0 || sink_ch >= iface.type.iface.sink.GetCount())
+		return true;
+	const ValDevCls sink_vd = iface.type.iface.sink[sink_ch].vd;
+	bool routed = true;
+	for (int src_ch = 0; src_ch < iface.type.iface.src.GetCount(); src_ch++) {
+		if (iface.type.iface.src[src_ch].vd != sink_vd)
+			continue;
+		if (!EmitViaRouter(src_ch, in))
+			routed = false;
+	}
+	return routed;
+}
+
+bool VoidBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	return packet_router ? false : true;
+}
+
 
 
 

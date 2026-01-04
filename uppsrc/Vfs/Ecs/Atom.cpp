@@ -1,5 +1,5 @@
-#include <Eon/Core/Core.h>
 #include "Ecs.h"
+#include <Eon/Core/Core.h>
 
 
 NAMESPACE_UPP
@@ -140,6 +140,8 @@ void AtomBase::UpdateSinkFormat(ValCls vc, ValueFormat fmt) {
 
 void AtomBase::PostContinueForward() {
 	RTLOG("AtomBase::PostContinueForward");
+	if (packet_router && !link)
+		return;
 	ASSERT(link);
 	if (link)
 		link->PostContinueForward();

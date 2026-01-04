@@ -20,17 +20,17 @@ ScriptWorldLoader::ScriptWorldLoader(ScriptSystemLoader& parent, int id, Eon::Wo
 
 bool ScriptWorldLoader::Load() {
 	// Load all systems in this world/engine
-	for (ScriptEcsSystemLoader* system : systems) {
-		if (!system->Load()) {
-			LOG("ScriptWorldLoader::Load: failed to load system " << system->GetId());
+	for (ScriptEcsSystemLoader& system : systems) {
+		if (!system.Load()) {
+			LOG("ScriptWorldLoader::Load: failed to load system " << system.GetId());
 			return false;
 		}
 	}
 
 	// Load all pools in this world/engine
-	for (ScriptPoolLoader* pool : pools) {
-		if (!pool->Load()) {
-			LOG("ScriptWorldLoader::Load: failed to load pool " << pool->GetId());
+	for (ScriptPoolLoader& pool : pools) {
+		if (!pool.Load()) {
+			LOG("ScriptWorldLoader::Load: failed to load pool " << pool.GetId());
 			return false;
 		}
 	}

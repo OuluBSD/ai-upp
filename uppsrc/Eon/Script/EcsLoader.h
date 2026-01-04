@@ -33,6 +33,7 @@ public:
 	}
 	void				SetError(String s) {err_str = s;}
 	String				GetErrorString() const {return err_str;}
+	String				GetId() const {return def.id.ToString();}
 	
 };
 

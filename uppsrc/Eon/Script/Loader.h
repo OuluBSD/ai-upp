@@ -18,6 +18,14 @@ class ScriptWorldLoader;
 class ScriptLoader;
 class NetContext;
 
+class ScriptStateParent {
+public:
+	virtual ScriptLoader&	GetLoader() = 0;
+	virtual void			AddError(const FileLocation& loc, String msg) = 0;
+	virtual Eon::Id			GetDeepId() const = 0;
+	virtual ~ScriptStateParent() {}
+};
+
 void GetAtomActions(const WorldState& src, Vector<Eon::Action>& acts);
 
 
@@ -133,7 +141,7 @@ public:
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 };
 
-class ScriptChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader> {
+class ScriptChainLoader : public ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader>, public ScriptStateParent {
 	
 public:
 	using Base = ScriptLoaderBase<Eon::ChainDefinition, ScriptTopChainLoader>;
@@ -150,17 +158,19 @@ public:
 	void		FindAcceptedLinks();
 	void		LinkPlanner();
 	void		Linker();
+	ScriptLoader& GetLoader() override { return Base::GetLoader(); }
+	void		AddError(const FileLocation& loc, String msg) override { Base::AddError(loc, msg); }
 	
 	void		Visit(Vis& vis) override {vis || loops || states;}
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
-	Eon::Id	GetDeepId() const override;
+	Eon::Id		GetDeepId() const override;
 	bool		Load() override;
 	
 };
 
-class ScriptNetLoader : public ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader> {
+class ScriptNetLoader : public ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader>, public ScriptStateParent {
 
 public:
 	using Base = ScriptLoaderBase<Eon::NetDefinition, ScriptMachineLoader>;
@@ -174,6 +184,8 @@ public:
 	String		GetTreeString(int indent) override;
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override;
 	void		GetStates(Vector<ScriptStateLoader*>& v) override;
+	ScriptLoader& GetLoader() override { return Base::GetLoader(); }
+	void		AddError(const FileLocation& loc, String msg) override { Base::AddError(loc, msg); }
 	Eon::Id		GetDeepId() const override;
 	bool		Load() override;
 
@@ -203,18 +215,18 @@ public:
 	
 };
 
-class ScriptStateLoader : public ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader> {
+class ScriptStateLoader : public ScriptLoaderBase<Eon::StateDeclaration, ScriptStateParent> {
 	
 protected:
 	Eon::Id		id;
 	
 public:
-	using Base = ScriptLoaderBase<Eon::StateDeclaration, ScriptChainLoader>;
+	using Base = ScriptLoaderBase<Eon::StateDeclaration, ScriptStateParent>;
 	
 public:
 	
 	
-	ScriptStateLoader(ScriptChainLoader& parent, int id, Eon::StateDeclaration& def);
+	ScriptStateLoader(ScriptStateParent& parent, int id, Eon::StateDeclaration& def);
 	void		Visit(Vis& vis) override {}
 	void		GetLoops(Vector<ScriptLoopLoader*>& v) override {}
 	void		GetStates(Vector<ScriptStateLoader*>& v) override {}

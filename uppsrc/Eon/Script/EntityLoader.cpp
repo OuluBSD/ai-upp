@@ -14,9 +14,9 @@ ScriptEntityLoader::ScriptEntityLoader(ScriptPoolLoader& parent, int id, Eon::En
 
 bool ScriptEntityLoader::Load() {
 	// Load all component definitions in this entity
-	for (ScriptComponentLoader* comp : comps) {
-		if (!comp->Load()) {
-			LOG("ScriptEntityLoader::Load: failed to load component " << comp->GetId());
+	for (ScriptComponentLoader& comp : comps) {
+		if (!comp.Load()) {
+			LOG("ScriptEntityLoader::Load: failed to load component " << comp.GetId());
 			return false;
 		}
 	}

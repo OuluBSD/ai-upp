@@ -1062,23 +1062,7 @@ bool ScriptLoader::LoadDriver(Eon::DriverDefinition& def, AstNode* n) {
 	#if VERBOSE_SCRIPT_LOADER
 	LOG(n->GetTreeString(0));
 	#endif
-
-	Vector<Endpoint> items;
-	n->FindAll(items, Cursor_ArgumentStmt);
-	Sort(items, AstNodeLess());
-
-	for (Endpoint& ep : items) {
-		AstNode* item = ep.n;
-		Id arg_id;
-		if (!GetId(arg_id, item)) return false;
-
-		Value val;
-		if (!GetValue(val, item)) return false;
-
-		def.args.Add(arg_id, val);
-	}
-
-	return true;
+	return LoadArguments(def.args, n);
 }
 
 bool ScriptLoader::LoadTopChain(Eon::ChainDefinition& def, AstNode* n) {

@@ -420,6 +420,10 @@ bool ClangVisitor::ProcessNode(CXCursor cursor)
 	
 	ClangNode* np = 0;
 	if (kind != CXCursor_OverloadCandidate) {
+		if (scope.IsEmpty()) {
+			Logw() << "ClangVisitor::ProcessNode: warning: scope is empty\n";
+			return false;
+		}
 		ClangNode& n = *scope.Top();
 		np = &n;
 		LoadSourceLocation();
@@ -589,7 +593,8 @@ CXChildVisitResult clang_visitor(CXCursor cursor, CXCursor p, CXClientData clien
 	if(v->ProcessNode(cursor)) {
 		clang_visitChildren(cursor, clang_visitor, clientData);
 	}
-	v->scope.Pop();
+	if (!v->scope.IsEmpty())
+		v->scope.Pop();
 	v->locals = bak_locals;
 	v->parent_id = bak_parent_id;
 #ifdef DUMPTREE

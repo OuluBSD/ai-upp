@@ -204,7 +204,9 @@ void Ide::Exit()
 	FlushFile();
 	console.Kill();
 	// Stop MCP server on shutdown
+#ifndef flagV1
 	StopMcpServer();
+#endif
 	Break(IDOK);
 	IdeExit = true;
 }

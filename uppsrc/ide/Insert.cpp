@@ -370,13 +370,13 @@ void Ide::ToggleWordwrap()
 	wordwrap = !wordwrap;
 	SetupEditor();
 }
-<<<<<<< HEAD
 
 void Ide::EditorMenu(Bar& bar)
 {
 	bar.Sub("Assist", [=](Bar& bar) { AssistMenu(bar); });
 	Reformat(bar);
 	InsertAdvanced(bar);
+//	bar.Add("Find and Replace", THISBACK(SearchMenu));
 	bar.MenuSeparator();
 	OnlineSearchMenu(bar);
     bar.Add(IsClipboardAvailableText() && (editor.IsSelection() || editor.GetLength() < 1024*1024),
@@ -392,5 +392,3 @@ void Ide::EditorMenu(Bar& bar)
 	editor.StdBar(bar);
 }
 #endif // flagGUI
-=======
->>>>>>> upstream/master

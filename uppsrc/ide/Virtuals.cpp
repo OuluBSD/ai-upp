@@ -266,9 +266,6 @@ void AssistEditor::Virtuals()
 	Paste(text.ToWString());
 	WriteClipboardText(ctext);
 }
-<<<<<<< HEAD
-#endif // flagGUI
-=======
 
 void AssistEditor::ConvertToOverrides()
 {
@@ -308,4 +305,4 @@ void AssistEditor::ConvertToOverrides()
 	});
 }
 
->>>>>>> upstream/master
+#endif // flagGUI

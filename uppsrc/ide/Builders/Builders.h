@@ -190,6 +190,9 @@ INITIALIZE(MscBuilder)
 INITIALIZE(JavaBuilder)
 INITIALIZE(AndroidBuilder)
 INITIALIZE(ScriptBuilder)
+
+#ifndef flagV1
 INITIALIZE(VfsBuilder)
+#endif
 
 #endif

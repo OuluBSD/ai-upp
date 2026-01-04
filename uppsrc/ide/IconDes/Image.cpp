@@ -497,9 +497,6 @@ void IconDes::Colors()
 		}
 	}
 }
-<<<<<<< HEAD
-#endif // flagGUI
-=======
 
 void IconDes::RestoreAlpha()
 {
@@ -531,4 +528,5 @@ void IconDes::RestoreAlpha()
 		Restore(c.image);
 	SyncShow();
 }
->>>>>>> upstream/master
+
+#endif // flagGUI

@@ -104,6 +104,8 @@ bool IsDecl(int kind) {
 	return kind >= (int)CXCursor_FirstDecl && kind <= (int)CXCursor_LastDecl;
 }
 
+#if 0
+// Moved to Ide/Core package
 int FindId(const String& s, const String& id) {
 	if(id.GetCount() == 0)
 		return -1;
@@ -149,6 +151,7 @@ String GetClass(const AnnotationItem& m)
 	
 	return Null;
 }
+#endif
 
 bool IsTypeDecl(int kind)
 {

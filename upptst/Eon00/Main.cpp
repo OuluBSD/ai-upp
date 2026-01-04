@@ -54,6 +54,7 @@ const TestCase kTests[] = {
 	{ Run00gBranchNet, "Run00gBranchNet" },
 	{ Run00hRouterFlow, "Run00hRouterFlow" },
 	{ Run00iRouterPerf, "Run00iRouterPerf" },
+	{ Run00jAudioGenBridge, "Run00jAudioGenBridge" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

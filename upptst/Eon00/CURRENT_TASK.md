@@ -7,3 +7,4 @@
 - Router helper moved into `upptst/EonRouterSupport` so other `upptst/Eon*` packages (starting with `Eon02`) can reuse the same `BuildRouterChain` plumbing for their method 3 runs.
 - Follow-ups: share the helper across tests, surface router topology in test output, and align with the real PacketRouter core once ready.
 - `VoidSinkBase` now handles router-delivered packets via `Recv`, so net-loaded tests can reach the "success!" path without the legacy interval pipe.
+- Added 00j_audio_gen_bridge.cpp to capture the 00b two-net side-bridge sketch as a dedicated method 3 test.

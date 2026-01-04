@@ -9,6 +9,8 @@ void Run00bAudioGen(Engine& eng, int method) {
 	
 	switch(method) {
 	case 3: {
+		int bridge_conn = 1;
+
 		RouterNetContext output("tester.output");
 		auto& customer_out = output.AddAtom("customer_out0", "center.customer");
 		int customer_out_src = output.AddPort(customer_out.id, RouterPortDesc::Direction::Source, "main").index;
@@ -18,6 +20,7 @@ void Run00bAudioGen(Engine& eng, int method) {
 		auto& side_src = output.AddAtom("side_src0", "center.audio.side.src.center");
 		int side_src_sink = output.AddPort(side_src.id, RouterPortDesc::Direction::Sink, "loop-in").index;
 		int side_src_src = output.AddPort(side_src.id, RouterPortDesc::Direction::Source, "side-out").index;
+		output.SetSideSourceLink(side_src.id, 1, bridge_conn, 1);
 		output.Connect(customer_out.id, customer_out_src, src.id, src_sink);
 		output.Connect(src.id, src_src, side_src.id, side_src_sink);
 
@@ -27,6 +30,7 @@ void Run00bAudioGen(Engine& eng, int method) {
 		auto& side_sink = input.AddAtom("side_sink0", "center.audio.side.sink.center");
 		int side_sink_sink = input.AddPort(side_sink.id, RouterPortDesc::Direction::Sink, "loop-in").index;
 		int side_sink_src = input.AddPort(side_sink.id, RouterPortDesc::Direction::Source, "loop-out").index;
+		input.SetSideSinkLink(side_sink.id, 1, bridge_conn, 1);
 		auto& sink = input.AddAtom("sink0", "center.audio.sink.test.realtime");
 		sink.args.GetAdd("dbg_limit") = 100;
 		int sink_sink = input.AddPort(sink.id, RouterPortDesc::Direction::Sink, "in").index;

@@ -13,10 +13,10 @@ file
 	00f_diamond_net.cpp,
 	00g_branch_net.cpp,
 	00h_router_flow.cpp,
-	00i_router_perf.cpp;
+	00i_router_perf.cpp,
+	00j_audio_gen_bridge.cpp;
 
 mainconfig
 	"Release" = "AI DEBUG_VFS",
 	"Debug" = "AI DEBUG_RT DEBUG_VFS",
 	"Release (Valgrind)" = "AI DEBUG_VFS USEMALLOC";
-

@@ -1068,12 +1068,80 @@ template<class Gfx> void OglGfxT<Gfx>::ClearDepthBufferPtr(NativeDepthBufferPtr&
 }
 
 
+#if defined flagWIN32 && defined flagOGL && !defined flagUWP
+
+Size WinGfx::GetWindowSize(NativeWindow& win) {
+	RECT rc{};
+	GetClientRect(win, &rc);
+	return Size(rc.right - rc.left, rc.bottom - rc.top);
+}
+
+bool WinGfx::CreateWindowAndRenderer(Size, dword, NativeWindow&, NativeRenderer&) {
+	return false;
+}
+
+void WinGfx::SetTitle(NativeDisplay& display, NativeWindow& win, String title) {
+	SetWindowTextA(win, title.Begin());
+}
+
+void WinGfx::SetWindowFullscreen(NativeWindow&, bool) {}
+void WinGfx::DestroyRenderer(NativeRenderer& rend) {
+	if (rend) {
+		wglDeleteContext(rend);
+		rend = NULL;
+	}
+}
+
+void WinGfx::ClearRendererPtr(NativeRenderer& rend) {
+	rend = NULL;
+}
+
+void WinGfx::DestroyWindow(NativeWindow& win) {
+	if (win) {
+		DestroyWindow(win);
+		win = NULL;
+	}
+}
+
+void WinGfx::DeleteContext(NativeGLContext& ctx) {
+	if (ctx) {
+		wglDeleteContext(ctx);
+		ctx = NULL;
+	}
+}
+
+void WinGfx::MaximizeWindow(NativeWindow& win) {
+	ShowWindow(win, SW_MAXIMIZE);
+}
+
+void WinGfx::RestoreWindow(NativeWindow& win) {
+	ShowWindow(win, SW_RESTORE);
+}
+
+void WinGfx::SetWindowPosition(NativeWindow& win, Point pt) {
+	SetWindowPos(win, 0, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
+
+void WinGfx::SetWindowSize(NativeWindow& win, Size sz) {
+	SetWindowPos(win, 0, 0, 0, sz.cx, sz.cy, SWP_NOMOVE | SWP_NOZORDER);
+}
+
+void WinOglGfx::ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf) {
+	// Swap buffers is handled in WinOgl.cpp
+}
+
+#endif
+
+
 #if defined flagOGL && defined flagSCREEN
 #ifdef flagX11
 template struct OglGfxT<X11OglGfx>;
 #endif
 #ifdef flagSDL2
 template struct OglGfxT<SdlOglGfx>;
+#endif
+#if defined flagWIN32 && !defined flagUWP
+template struct OglGfxT<WinOglGfx>;
 #endif
 #endif
 

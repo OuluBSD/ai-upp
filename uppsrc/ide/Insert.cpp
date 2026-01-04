@@ -238,6 +238,7 @@ void Ide::InsertFileContent()
 	}
 }
 
+#ifndef flagV1
 void Ide::InsertParameters()
 {
 	if(designer)
@@ -278,6 +279,7 @@ void Ide::InsertParameters()
 	catch(CParser::Error) {}
 	InsertText(params);
 }
+#endif
 
 void Ide::InsertMenu(Bar& bar)
 {
@@ -317,7 +319,9 @@ void Ide::InsertMenu(Bar& bar)
 	bar.Add("Insert color..", THISBACK(InsertColor));
 	bar.Add("Insert .iml Image..", [=] { InsertImage(); });
 	bar.Add("Insert sequence..", THISBACK(InsertSequence));
+#ifndef flagV1
 	bar.Add("Insert function parameters..", [=] { InsertParameters(); });
+#endif
 	bar.Add("Insert file path..", THISBACK1(InsertFilePath, false));
 	bar.Add("Insert file path as C string..", THISBACK1(InsertFilePath, true));
 	bar.Add("Insert clipboard as..", [=] { InsertAs(); });

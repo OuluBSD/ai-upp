@@ -43,8 +43,20 @@ void AndroidSDK::DeduceBuildToolsRelease()
 
 bool AndroidSDK::Validate() const
 {
-	if(IsNull(path) || !DirectoryExists(path) || !FileExists(AndroidPath())) return false;
-	
+	if(IsNull(path) || !DirectoryExists(path)) return false;
+
+	// Modern Android SDK validation: check for essential directories
+	// platform-tools contains adb which is essential
+	// build-tools contains build tools
+	// platforms contains API platforms
+	if(!DirectoryExists(PlatformToolsDir()) || !DirectoryExists(BuildToolsDir()) || !DirectoryExists(PlatformsDir()))
+		return false;
+
+	// Check for essential executables in platform-tools
+	String adbPath = AdbPath();
+	if(!FileExists(adbPath))
+		return false;
+
 	return true;
 }
 
@@ -127,45 +139,51 @@ Vector<AndroidDevice> AndroidSDK::FindDevices() const
 Vector<AndroidVirtualDevice> AndroidSDK::FindVirtualDevices() const
 {
 	Vector<AndroidVirtualDevice> avdes;
-	
-	String out;
-	if(Sys(NormalizeExePath(AndroidPath()) + " list avd", out) == 0) {
-		Vector<String> lines = Split(out, "\n");
-		
-		AndroidVirtualDevice avd;
-		for(int i = 0; i < lines.GetCount(); i++) {
-			Vector<String> line = Split(lines[i], ":");
-			if(line.GetCount() == 2) {
-				String tag  = line[0];
-				String data = line[1];
-				if(data.StartsWith(" "))
-					data.Remove(0);
-				if(tag.Find("Name") > -1) {
-					if(!avd.GetName().IsEmpty() && avd.GetName() != data)
-						avdes.Add(avd);
-					avd.SetName(data);
+
+	// Check if the deprecated android tool exists (older SDKs)
+	String androidToolPath = AndroidPath();
+	if (FileExists(androidToolPath)) {
+		String out;
+		if(Sys(NormalizeExePath(androidToolPath) + " list avd", out) == 0) {
+			Vector<String> lines = Split(out, "\n");
+
+			AndroidVirtualDevice avd;
+			for(int i = 0; i < lines.GetCount(); i++) {
+				Vector<String> line = Split(lines[i], ":");
+				if(line.GetCount() == 2) {
+					String tag  = line[0];
+					String data = line[1];
+					if(data.StartsWith(" "))
+						data.Remove(0);
+					if(tag.Find("Name") > -1) {
+						if(!avd.GetName().IsEmpty() && avd.GetName() != data)
+							avdes.Add(avd);
+						avd.SetName(data);
+					}
+					else
+					if(tag.Find("Device") > -1)
+						avd.SetDeviceType(data);
+					else
+					if(tag.Find("Path") > -1)
+						avd.SetPath(data);
+					else
+					if(tag.Find("Target") > -1)
+						avd.SetTarget(data);
+					else
+					if(tag.Find("Tag/ABI") > -1)
+						avd.SetAbi(data);
+
+					// TODO: implement all possible tags
 				}
-				else
-				if(tag.Find("Device") > -1)
-					avd.SetDeviceType(data);
-				else
-				if(tag.Find("Path") > -1)
-					avd.SetPath(data);
-				else
-				if(tag.Find("Target") > -1)
-					avd.SetTarget(data);
-				else
-				if(tag.Find("Tag/ABI") > -1)
-					avd.SetAbi(data);
-				
-				// TODO: implement all possible tags
 			}
+
+			if(!avd.GetName().IsEmpty())
+				avdes.Add(avd);
 		}
-		
-		if(!avd.GetName().IsEmpty())
-			avdes.Add(avd);
 	}
-	
+	// For modern SDKs, we could potentially use avdmanager, but that would require more complex implementation
+	// For now, return empty list if the old android tool doesn't exist
+
 	return avdes;
 }
 
@@ -176,15 +194,14 @@ String AndroidSDK::FindDefaultPlatform() const
 		Android::NormalizeVersions(platforms);
 		Sort(platforms, StdGreater<String>());
 		Android::RemoveVersionsNormalization(platforms);
-		
-		int idx = 0;
+
 		for(int i = 0; i < platforms.GetCount(); i++) {
-			if(RegExp("^android-[0-9]*$").Match(platforms[i])) {
-				idx = i;
-				break;
+			if(RegExp("^android-[0-9]+$").Match(platforms[i])) {
+				return platforms[i];
 			}
 		}
-		return platforms[idx];
+		// If no platform matches the expected pattern, return empty string
+		return "";
 	}
 	return "";
 }
@@ -194,14 +211,13 @@ String AndroidSDK::FindDefaultBuildToolsRelease() const
 	Vector<String> releases = FindBuildToolsReleases();
 	if(releases.GetCount()) {
 		Sort(releases, StdGreater<String>());
-		int idx = 0;
 		for(int i = 0; i < releases.GetCount(); i++) {
 			if(RegExp("^[1-9][0-9.]*$").Match(releases[i])) {
-				idx = i;
-				break;
+				return releases[i];
 			}
 		}
-		return releases[idx];
+		// If no build tools match the expected pattern, return empty string
+		return "";
 	}
 	return "";
 }

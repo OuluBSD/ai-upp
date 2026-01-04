@@ -316,6 +316,7 @@ void IconDes::ColorChanged()
 	antifill_cursor = MakeIconDesCursor(IconDesImg::Fill(), IconDesImg::AntiFill());
 	PasteText();
 	SetBar();
+	initial_rgba = rgbactrl.Get();
 }
 
 void IconDes::SetTool(void (IconDes::*_tool)(Point p, dword flags))

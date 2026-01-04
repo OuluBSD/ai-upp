@@ -213,7 +213,7 @@ private:
 	void Next();
 
 public:
-	Event<>  WhenTopic;
+	Event<String> WhenTopic;
 
 	void SyncDocTree();
 	void SearchWord(const String& s);
@@ -505,6 +505,7 @@ public:
 
 	struct FoundList : ArrayCtrl {
 		Button freplace;
+		Button fdelete;
 		Image  icon;
 
 		FoundList();
@@ -543,13 +544,14 @@ public:
 	StaticRect right;
 
 	String    editfile;
+	String    editfile2;
 	FileTime  edittime;
+	int64     editfile_length = 0;
 	int       editfile_line_endings;
 	int       editfile_repo;
 	bool      editfile_isfolder;
 	bool      replace_in_files = false; // Find in files replace or Replace found items mode - do not update things
-	String    editfile2;
-	int64     editfile_length = 0;
+	bool      editfile_isreadonly = false;
 
 	String    scratch_back; // to get back from Alt-M scratchfile
 
@@ -683,6 +685,7 @@ public:
 	Font      gui_font = StdFont();
 	String    libclang_options;
 	String    libclang_coptions;
+	String    valgrind_options;
 	bool      prefer_clang_format = false;
 	bool      blk0_header = true;
 	bool      win_deactivated = false;
@@ -734,7 +737,6 @@ public:
 
 	int           doc_serial;
 	TopicCtrl     doc;
-	TopicCtrl     windoc;
 
 	int           state_icon;
 
@@ -754,7 +756,7 @@ public:
 	int           animate_phase = 0;
 
 	Vector<Ptr<TopWindow>> window;
-
+	
 	void          NewWindow(TopWindow *win);
 	template<class T, class... Args>
 	T&            CreateNewWindow(Args&&... args)     { T *q = new T(std::forward<Args>(args)...); NewWindow(q); return *q; }
@@ -920,6 +922,7 @@ public:
 	    void  ReformatComment();
 		String FindClangFormatPath(bool local = false);
 
+	void OnlineSearchMenu(Bar& menu, const String& what, bool accel);
 	void OnlineSearchMenu(Bar& menu);
 
 	String GetFoundText(const ArrayCtrl& list);
@@ -1030,7 +1033,7 @@ public:
 		void  QueryId();
 		void  OpenTopic(const String& topic, const String& create_id, bool before);
 		void  OpenTopic(const String& topic);
-		void  OpenATopic();
+		void  OpenATopic(const String& topic);
 		void  ToggleNavigator();
 		void  SearchCode();
 		void  Goto();
@@ -1066,7 +1069,9 @@ public:
 		void  DoPatchDiff();
 		RepoDiff *RunRepoDiff(const String& filepath, int line = -1);
 		void  AsErrors();
-		void  RemoveDs();
+		Vector<String> FindXFiles(int where);
+		void  FindDs(int where, bool all = false);
+		void  FindGitConflicts();
 		void  FindDesignerItemReferences(const String& id, const String& name);
 		void  NavigatorDlg();
 	#ifndef flagV1
@@ -1158,7 +1163,7 @@ public:
 	void      NewFFound();
 	ArrayCtrl& FFound();
 	void      FFoundSetIcon(const Image& m);
-	void      FFoundFinish(bool replace = true);
+	void      FFoundFinish();
 	void      ShowFound(ArrayCtrl& list);
 	void      CopyFound(ArrayCtrl& list, bool all);
 	void      FFoundMenu(ArrayCtrl& list, Bar& bar);
@@ -1167,6 +1172,7 @@ public:
 	WString   FormatErrorLine(const String& text, int& linecy);
 	WString   FormatErrorLineEP(const String& text, const char *ep, int& linecy);
 	void      ReplaceFound(ArrayCtrl& list);
+	void      DeleteFound(ArrayCtrl& list);
 
 	struct FoundDisplay : Display {
 		Size DrawHl(Draw& w, const char *s, const Rect& r, Color ink, Color paper, dword style) const;
@@ -1244,6 +1250,7 @@ public:
 	void      SearchTopics();
 	void      ShowTopics();
 	void      ShowTopicsWin();
+	void      OpenHelp(const char *ref, bool editable = false);
 
 	const Workspace& AssistWorkspace() const;
 

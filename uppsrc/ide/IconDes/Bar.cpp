@@ -10,6 +10,7 @@ void IconDes::SetPen(int _pen)
 {
 	pen = _pen;
 	SetBar();
+	PasteText();
 }
 
 bool IconDes::Key(dword key, int count)
@@ -163,7 +164,8 @@ void IconDes::ImageBar(Bar& bar)
 	bar.Add(c, AK_CHROMA, IconDesImg::Chroma(), THISBACK(Chroma));
 	bar.Add(c, AK_CONTRAST, IconDesImg::Contrast(), THISBACK(Contrast));
 	bar.Add(c, AK_ALPHA, IconDesImg::AlphaI(), THISBACK(Alpha));
-	bar.Add(c, "Remove alpha", IconDesImg::RemoveAlpha(), THISBACK(RemoveAlpha));
+	bar.Add(c, "Restore alpha", IconDesImg::RestoreAlpha(), THISBACK(RestoreAlpha));
+	bar.Add(c, "Alpha threshold", IconDesImg::RemoveAlpha(), THISBACK(RemoveAlpha));
 	bar.Add(c, AK_COLORS, IconDesImg::Colors(), THISBACK(Colors));
 	bar.Add(c, AK_SMOOTHEN, IconDesImg::Smoothen(), THISBACK(Smoothen));
 }
@@ -247,9 +249,6 @@ void IconDes::MainToolBar(Bar& bar)
 	bar.Separator();
 	SettingBar(bar);
 	bar.GapRight();
-	bar.Separator();
-	bar.Add("Learn more about Icon Designer..", IdeCommonImg::Help(),
-	        [=] { LaunchWebBrowser("https://www.ultimatepp.org/app$ide$IconDes$en-us.html"); });
 }
 
 void IconDes::SetBar()
@@ -370,6 +369,13 @@ void IconDes::SyncStatus()
 	status.SetLabel(s);
 }
 
+Upp::RGBA IconDes::initial_rgba = Black();
+
+IconDes::~IconDes()
+{
+	initial_rgba = rgbactrl.Get();
+}
+
 IconDes::IconDes()
 {
 	sb.WhenScroll = THISBACK(Scroll);
@@ -389,6 +395,8 @@ IconDes::IconDes()
 	rgbactrl.SubCtrl(&imgs);
 
 	rgbactrl <<= THISBACK(ColorChanged);
+	
+	rgbactrl.Set(initial_rgba);
 
 	search.NullText("Search (Ctrl+F)");
 	search <<= THISBACK(Search);

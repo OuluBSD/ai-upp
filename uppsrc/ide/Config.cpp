@@ -188,7 +188,7 @@ void Sentinel(Stream& s, const char *txt)
 
 void Ide::Serialize(Stream& s)
 {
-	int version = 36;
+	int version = 37;
 	Sentinel(s, "before 12341234");
 	s.Magic(0x12341234);
 	Sentinel(s, "after magic");
@@ -387,11 +387,20 @@ void Ide::Serialize(Stream& s)
 	if(version >= 26)
 		s % prefer_clang_format;
 	
-	if(version >= 28)
-		s % blk0_header;
-	
-	if(version >= 28)
-		s % blk0_header;
+	if(version >= 34) {
+		bool b = IsBasicHintsEnabled();
+		s % b;
+		EnableBasicHints(b);
+	}
+
+	if(version >= 35)
+		s % valgrind_options;
+
+	if(version >= 36)
+		s % GlobalCreateReferencesFile();
+
+	if(version >= 37)
+		s % mcp_server_enabled % mcp_server_port;
 
 	if(version >= 32)
 		s % GlobalProxy() % AiManager();

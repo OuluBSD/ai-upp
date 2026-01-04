@@ -431,14 +431,14 @@ bool LLDB::RunTo()
 void LLDB::BreakRunning()
 {
 	Logd() << METHOD_NAME << "PID: " << pid << "\n";
-	
-	auto error = lldb_utils->BreakRunning(pid);
+
+	auto error = BreakRunning(pid);
 	if(!error.IsEmpty()) {
 		Loge() << METHOD_NAME << error;
 		ErrorOK(error);
 		return;
 	}
-	
+
 	running_interrupted = true;
 }
 
@@ -674,7 +674,6 @@ void LLDB::SerializeSession(Stream& s)
 }
 
 LLDB::LLDB()
-	: lldb_utils(LLDBUtilsFactory().Create())
 {
 	auto Mem = [=](Bar& bar, ArrayCtrl& h) {
 		String s = h.GetKey();
@@ -781,4 +780,48 @@ One<Debugger> LLDBCreate(Host& host, const String& exefile, const String& cmdlin
 		return nullptr;
 	return pick(dbg); // CLANG does not like this without pick
 }
+
+#if defined(PLATFORM_WIN32)
+
+#define METHOD_NAME UPP_METHOD_NAME("LLDBWindowsUtils")
+
+String LLDB::BreakRunning(int pid)
+{
+	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+
+	if(!handle)
+		return String() << "Failed to open process associated with " << pid << " PID.";
+
+	String ret;
+	BOOL is_wow_64 = FALSE;
+	if(IsWow64Process(handle, &is_wow_64)) {
+		if(sizeof(void*) == 8 && is_wow_64) {
+			String out; // NOTE: this does not work anyway as we are not distributing theide32.exe anymore
+			if(Sys(GetExeFolder() << "\\" << "theide32.exe --gdb_debug_break_process=" << pid, out) < 0)
+				ret = "Failed to interrupt process via 32-bit TheIDE. Output from command is \"" << out << "\".";
+		}
+	}
+	else
+		 ret = "Failed to check that process is under wow64 emulation layer.";
+
+	if(!DebugBreakProcess(handle))
+		return String().Cat() << "Failed to break process associated with " << pid << " PID.";
+
+	CloseHandle(handle);
+
+	return "";
+}
+
+#elif defined(PLATFORM_POSIX)
+
+String LLDB::BreakRunning(int pid)
+{
+	if(kill(pid, SIGINT) == -1)
+		return String().Cat() << "Failed to interrupt process associated with " << pid << " PID.";
+
+	return "";
+}
+
+#endif
+
 #endif // flagGUI

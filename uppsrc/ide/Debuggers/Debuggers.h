@@ -3,8 +3,7 @@
 
 #define DR_LOG(x) // RLOG(x)
 
-#include "GdbUtils.h"
-#include "LLDBUtils.h"
+//#include "GdbUtils.h" // deprecated
 
 #include <ide/Common/Common.h>
 

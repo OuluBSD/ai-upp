@@ -1,5 +1,8 @@
 #include "Builders.h"
 #include "BuilderUtils.h"
+
+#ifndef flagV1
+
 #include <ide/clang/clang.h>
 #ifdef flagGUI
 #include <ide/Vfs/Vfs.h>
@@ -806,3 +809,5 @@ INITIALIZER(VfsBuilder)
 {
 	RegisterBuilder("VFS", CreateVfsBuilder);
 }
+
+#endif

@@ -1,11 +1,14 @@
-chain tester:
-	loop output:
+machine audio.gen:
+	net tester.side_bridge:
 		center.customer
 		center.audio.src.test
 		center.audio.side.src.center
-		
-	loop input:
-		center.customer
 		center.audio.side.sink.center
 		center.audio.sink.test.realtime:
 			dbg_limit = 100
+
+		center.customer.0 -> center.audio.src.test.0
+		center.audio.src.test.0 -> center.audio.side.src.center.0
+		center.audio.side.src.center.1 -> center.audio.side.sink.center.1
+		center.audio.side.sink.center.0 -> center.audio.sink.test.realtime.0
+		center.customer.0 -> center.audio.side.sink.center.0

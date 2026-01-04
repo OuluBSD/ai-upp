@@ -602,9 +602,12 @@ bool MscBuilder::CreateLib(const String& product, const Vector<String>& obj,
 	}
 	else
 	if((IsMsc86() || IsMsc64()) && is_shared) {
-		String mt("mt -nologo -manifest ");
-		mt << GetPathQ(product) << ".manifest -outputresource:" << GetPathQ(product) << ";2";
-		Execute(mt);
+		String manifest = product + ".manifest";
+		if(FileExists(manifest)) {
+			String mt("mt -nologo -manifest ");
+			mt << GetPathQ(manifest) << " -outputresource:" << GetPathQ(product) << ";2";
+			Execute(mt);
+		}
 	}
 	PutConsole(String().Cat() << product << " (" << GetFileInfo(product).length
 	           << " B) created in " << GetPrintTime(linktime));
@@ -705,10 +708,13 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 			if(!error && Execute(link) == 0) {
 				CustomStep(".post-link", Null, error);
 				if((IsMsc86() || IsMsc64()) && HasFlag("SHARED")) {
-					String mt("mt -nologo -manifest ");
-					mt << GetPathQ(target) << ".manifest -outputresource:" << GetPathQ(target)
-				           << (HasFlag("DLL") ? ";2" : ";1");
-				   Execute(mt);
+					String manifest = target + ".manifest";
+					if(FileExists(manifest)) {
+						String mt("mt -nologo -manifest ");
+						mt << GetPathQ(manifest) << " -outputresource:" << GetPathQ(target)
+					           << (HasFlag("DLL") ? ";2" : ";1");
+						Execute(mt);
+					}
 				}
 				PutConsole(String().Cat() << target << " (" << GetFileInfo(target).length
 				           << " B) linked in " << GetPrintTime(time));

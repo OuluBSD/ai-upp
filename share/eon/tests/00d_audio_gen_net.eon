@@ -1,0 +1,15 @@
+// PacketRouter Test: Simple audio generator using net syntax
+// Based on 00a_audio_gen.eon but using explicit connections
+
+machine audio.gen.net:
+	net tester.generator:
+		// Inline atom definitions
+		center.customer
+		center.audio.src.test
+		center.audio.sink.test.realtime:
+			dbg_limit = 100
+
+		// Explicit port-to-port connections
+		// Port 0 is the primary audio port for these atoms
+		center.customer.0 -> center.audio.src.test.0
+		center.audio.src.test.0 -> center.audio.sink.test.realtime.0

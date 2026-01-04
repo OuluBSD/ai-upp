@@ -83,6 +83,19 @@ bool GfxAccelAtom<X11SwGfx>::GfxRenderer() {
 #endif
 
 
+#if defined flagWIN32 && defined flagOGL
+template <>
+void GfxAccelAtom<WinOglGfx>::GfxFlags(uint32& flags) {
+	is_opengl = true;
+}
+
+template <>
+bool GfxAccelAtom<WinOglGfx>::GfxRenderer() {
+	return true;
+}
+#endif
+
+
 #if defined flagWIN32 && defined flagDX11
 // Provided by Dx.cpp to pass device/context/swapchain/rtv into TLS
 extern void D11_Internal_SetDeviceAndTargets(ID3D11Device* dev,

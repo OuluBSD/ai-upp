@@ -1,0 +1,39 @@
+// PacketRouter Hardware+SDL Flow Regression
+// Ensures the builtin generators and SDL bridges emit through the router
+
+machine router.hw.flow:
+	net hardware_bridge:
+		center.audio.src.dbg_generator:
+			waveform = "noise"
+			dbg_limit = 64
+		corefx.pipe:
+			filter = "echo"
+		center.video.src.dbg_generator:
+			mode = "noise"
+		sdl.audio
+		sdl.ogl.center.fbo.audio:
+			samplerate = 44100
+		sdl.video.pipe
+		sdl.event.pipe
+		state.event.pipe:
+			target = "/event/register"
+		midi.src.side.portmidi:
+			loop = "input"
+		midi.null.sink
+		center.audio.sink.test.realtime:
+			dbg_limit = 64
+		center.event.sink.test:
+			dbg_limit = 64
+
+		connections:
+			center.audio.src.dbg_generator.0 -> corefx.pipe.0
+			corefx.pipe.0 -> sdl.audio.0
+			sdl.ogl.center.fbo.audio.0 -> sdl.audio.0
+			center.audio.src.dbg_generator.0 -> center.audio.sink.test.realtime.0
+
+			center.video.src.dbg_generator.0 -> sdl.video.pipe.0
+
+			sdl.event.pipe.0 -> state.event.pipe.0
+			state.event.pipe.0 -> center.event.sink.test.0
+
+			midi.src.side.portmidi.0 -> midi.null.sink.0

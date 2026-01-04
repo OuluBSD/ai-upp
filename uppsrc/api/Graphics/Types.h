@@ -512,23 +512,61 @@ struct WinD11Gfx : D11GfxT<WinD11Gfx>, DxGfx {
 
 #define WINDX_GFXTYPE GFXTYPE(WinD11)
 #define WINDX_EXCPLICIT_INITIALIZE_CLASS(x) template struct x <WinD11Gfx>;
+#else
+#define WINDX_GFXTYPE
+#define WINDX_EXCPLICIT_INITIALIZE_CLASS(x)
+#endif
+
+
+#if defined flagWIN32 && defined flagOGL && !defined flagUWP
+
+struct WinGfx {
+	using NativeDisplay			= HDC;
+	using NativeWindow			= HWND;
+	using NativeRenderer		= HGLRC;
+	using NativeRendererInfo	= void*;
+	using NativeGLContext		= HGLRC;
+
+	static Size GetWindowSize(NativeWindow& win);
+	static bool CreateWindowAndRenderer(Size screen_sz, dword flags, NativeWindow& win, NativeRenderer& rend);
+	static void SetTitle(NativeDisplay& display, NativeWindow& win, String title);
+	static void SetWindowFullscreen(NativeWindow& win, bool b=true);
+	static void DestroyRenderer(NativeRenderer& rend);
+	static void ClearRendererPtr(NativeRenderer& rend);
+	static void DestroyWindow(NativeWindow& win);
+	static void DeleteContext(NativeGLContext& ctx);
+	static void MaximizeWindow(NativeWindow& win);
+	static void RestoreWindow(NativeWindow& win);
+	static void SetWindowPosition(NativeWindow& win, Point pt);
+	static void SetWindowSize(NativeWindow& win, Size sz);
+};
+
+struct WinOglGfx : OglGfxT<WinOglGfx>, WinGfx {
+	#define GFX_CLS(x, g) using x = x##T<g##Gfx>;
+	GFX_CLS_LIST(WinOgl)
+	#undef GFX_CLS
+
+	using NativeSurface = void*;
+	using SoftShaderLibrary = DummySoftShaderLibrary;
+
+	static void ActivateNextFrame(NativeDisplay& d, NativeWindow& w, NativeRenderer& r, NativeColorBufferPtr color_buf);
+};
+
+#define WINOGL_GFXTYPE GFXTYPE(WinOgl)
+#define WINOGL_EXCPLICIT_INITIALIZE_CLASS(x) template struct x <WinOglGfx>;
+
+#else
+#define WINOGL_GFXTYPE
+#define WINOGL_EXCPLICIT_INITIALIZE_CLASS(x)
+#endif
 
 #define WIN_GFXTYPE \
-	WINDX_GFXTYPE
+	WINDX_GFXTYPE \
+	WINOGL_GFXTYPE
 
 #define WIN_EXCPLICIT_INITIALIZE_CLASS(x) \
 	WINDX_EXCPLICIT_INITIALIZE_CLASS(x) \
-	
-
-#else
-
-#define WINDX_GFXTYPE
-#define WINDX_EXCPLICIT_INITIALIZE_CLASS(x)
-#define WIN_GFXTYPE
-#define WINDX_EXCPLICIT_INITIALIZE_CLASS(x)
-#define WIN_EXCPLICIT_INITIALIZE_CLASS(x)
-
-#endif
+	WINOGL_EXCPLICIT_INITIALIZE_CLASS(x)
 
 
 
@@ -566,6 +604,7 @@ struct WinD11Gfx : D11GfxT<WinD11Gfx>, DxGfx {
 	SDLSW_EXCPLICIT_INITIALIZE_CLASS(x) \
 	SDLOGL_EXCPLICIT_INITIALIZE_CLASS(x) \
 	WINDX_EXCPLICIT_INITIALIZE_CLASS(x) \
+	WINOGL_EXCPLICIT_INITIALIZE_CLASS(x) \
 
 
 #define SOFTREND_EXCPLICIT_INITIALIZE_CLASS(x) \

@@ -1,4 +1,5 @@
 #include "Eon02.h"
+#include <EonRouterSupport/EonRouterSupport.h>
 
 /*
 loop player.audio.generator:
@@ -15,6 +16,26 @@ void Run02aAudioTest(Engine& eng, int method) {
 	sys->SetEagerChainBuild(true);
 
 	switch(method) {
+	case 3: {
+		RouterNetContext net("player.audio.generator");
+
+		auto& customer = net.AddAtom("customer0", "center.customer");
+		int customer_src = net.AddPort(customer.id, RouterPortDesc::Direction::Source, "audio.out").index;
+
+		auto& generator = net.AddAtom("generator0", "center.audio.src.dbg_generator");
+		int generator_sink = net.AddPort(generator.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+		int generator_src = net.AddPort(generator.id, RouterPortDesc::Direction::Source, "audio.out").index;
+
+		auto& sink = net.AddAtom("sink0", "center.audio.sink.hw");
+		int sink_in = net.AddPort(sink.id, RouterPortDesc::Direction::Sink, "audio.in").index;
+
+		net.Connect(customer.id, customer_src, generator.id, generator_sink);
+		net.Connect(generator.id, generator_src, sink.id, sink_in);
+
+		if (!net.BuildLegacyLoop(eng))
+			Exit(1);
+		break;
+	}
 	case 2: {
 		// Manually writing directly to the VFS using Context
 		using namespace Eon;

@@ -1,4 +1,5 @@
 #include "Eon01.h"
+#include <EonRouterSupport/EonRouterSupport.h>
 
 /*
 machine sdl.app:
@@ -22,6 +23,40 @@ void Run01aEventState(Engine& eng, int method) {
 	sys->SetEagerChainBuild(true);
 
 	switch(method) {
+	case 3: {
+		// C++ version that builds the same net topology via RouterNetContext
+		RouterNetContext net("event");
+
+		auto& customer = net.AddAtom("customer0", "center.customer");
+		int customer_src = net.AddPort(customer.id, RouterPortDesc::Direction::Source, "out").index;
+
+		auto& event_src = net.AddAtom("event_src0", "event.src.test.pipe");
+		int event_src_sink = net.AddPort(event_src.id, RouterPortDesc::Direction::Sink, "in").index;
+		int event_src_src = net.AddPort(event_src.id, RouterPortDesc::Direction::Source, "out").index;
+
+		auto& state_pipe = net.AddAtom("state_pipe0", "state.event.pipe");
+		state_pipe.args.GetAdd("target") = "event/register";
+		state_pipe.args.GetAdd("dbg_limit") = 100;
+		int state_pipe_sink = net.AddPort(state_pipe.id, RouterPortDesc::Direction::Sink, "in").index;
+		int state_pipe_src = net.AddPort(state_pipe.id, RouterPortDesc::Direction::Source, "out").index;
+
+		net.Connect("customer0", customer_src, "event_src0", event_src_sink);
+		net.Connect("event_src0", event_src_src, "state_pipe0", state_pipe_sink);
+
+		// Create a separate net for the state.register loop if needed
+		RouterNetContext state_net("event.register");
+		auto& state_register = state_net.AddAtom("state_reg0", "state.event.register");
+		state_net.AddPort(state_register.id, RouterPortDesc::Direction::Sink, "in");
+		state_net.AddPort(state_register.id, RouterPortDesc::Direction::Source, "out");
+
+		Vector<RouterNetContext*> nets;
+		nets.Add(&net);
+		nets.Add(&state_net);
+
+		if (!BuildRouterChain(eng, nets, "RouterNetContext: event and event.register nets built successfully."))
+			Exit(1);
+		break;
+	}
 	case 2: {
 		// Manually writing directly to the VFS using Context
 		using namespace Eon;

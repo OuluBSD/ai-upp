@@ -25,9 +25,15 @@ public:
 	
 	virtual bool		Load() = 0;
 	virtual void		Visit(Vis& vis) = 0;
-	virtual String		GetTreeString(int indent) {TODO; return String();}
+	virtual String		GetTreeString(int indent) {
+		String s;
+		s.Cat('\t', indent);
+		s << "EcsLoaderBase (ID: " << id << ")\n";
+		return s;
+	}
 	void				SetError(String s) {err_str = s;}
 	String				GetErrorString() const {return err_str;}
+	String				GetId() const {return def.id.ToString();}
 	
 };
 

@@ -1,0 +1,10 @@
+uses
+	Shell;
+
+file
+	AGENTS.md,
+	EonRouterSupport.h;
+
+mainconfig
+	"Release" = "",
+	"Debug" = "";

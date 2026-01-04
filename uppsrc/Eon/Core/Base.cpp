@@ -53,7 +53,16 @@ bool CustomerBase::Recv(int sink_ch, const Packet& in) {
 }
 
 bool CustomerBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	// pass
+	PacketValue null_in(cfg.cur_offset);
+	ForwardPacket(null_in, out);
+
+	if (packet_router && !router_source_ports.IsEmpty()) {
+		Packet p = CreatePacket(out.GetOffset());
+		p->Pick(out);
+		EmitViaRouter(src_ch, p);
+		out.Pick(*p);
+	}
+
 	return true;
 }
 
@@ -65,8 +74,29 @@ void CustomerBase::ForwardPacket(PacketValue& in, PacketValue& out) {
 	InternalPacketData& data = out.template SetData<InternalPacketData>();
 	data.pos = 0;
 	data.count = 1;
-	
+
 	packet_count++;
+}
+
+void CustomerBase::RegisterPorts(PacketRouter& router) {
+	// CustomerBase: register both sink and source ports for net-based connections
+	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives receipts)
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
+		RTLOG("CustomerBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends orders)
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
+		RTLOG("CustomerBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
+	}
 }
 
 
@@ -109,9 +139,9 @@ bool RollingValueBase::Initialize(const WorldState& ws) {
 
 bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	ASSERT(internal_fmt.IsValid());
-	
+
 	RTLOG("RollingValueBase::Send: time=" << time);
-	
+
 	if (internal_fmt.IsAudio()) {
 		int sz = internal_fmt.GetFrameSize();
 		Vector<byte>& data = out.Data();
@@ -130,8 +160,17 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 				*f++ = rolling_value++;
 		}
 		time += internal_fmt.GetFrameSeconds();
-		
+
 		out.seq = seq++;
+
+		// Router integration: also emit via router if registered
+		if (packet_router && !router_source_ports.IsEmpty()) {
+			Packet p = CreatePacket(out.GetOffset());
+			p->Pick(out);  // Move data into shared packet
+			p->SetFormat(internal_fmt);
+			EmitViaRouter(src_ch, p);
+			out.Pick(*p);  // Move data back for legacy forwarding
+		}
 	}
 	else if (internal_fmt.IsVideo()) {
 		TODO
@@ -141,6 +180,27 @@ bool RollingValueBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		return false;
 	}
 	return true;
+}
+
+void RollingValueBase::RegisterPorts(PacketRouter& router) {
+	// RollingValueBase: register both sink and source ports for net-based connections
+	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives orders from CustomerBase)
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
+		RTLOG("RollingValueBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends audio to sink)
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
+		RTLOG("RollingValueBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
+	}
 }
 
 
@@ -169,8 +229,33 @@ void VoidSinkBase::Uninitialize() {
 }
 
 bool VoidSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	Panic("Not implemented");
+	// Default sink does not emit packets, so nothing to route.
 	return false;
+}
+
+bool VoidSinkBase::Recv(int sink_ch, const Packet& in) {
+	if (GetLink()) {
+		// Legacy loop links handle Consume(); avoid double-checking packets.
+		return true;
+	}
+	if (!in) {
+		LOG("VoidSinkBase::Recv: error: empty packet");
+		return false;
+	}
+	const PacketValue& pv = *in;
+	const ValueFormat& pkt_fmt = pv.GetFormat();
+	if (!fmt.IsAudio())
+		fmt = pkt_fmt;
+	if (!pkt_fmt.IsAudio()) {
+		LOG("VoidSinkBase::Recv: error: unexpected packet " << pv.ToString());
+		return false;
+	}
+	const Vector<byte>& data = pv.GetData();
+	if (data.IsEmpty()) {
+		LOG("VoidSinkBase::Recv: error: empty data");
+		return false;
+	}
+	return Consume(data.Begin(), data.GetCount());
 }
 
 bool VoidSinkBase::Consume(const void* data, int len) {
@@ -233,6 +318,27 @@ bool VoidSinkBase::NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueF
 	if (new_fmt.IsAudio())
 		return true;
 	return false;
+}
+
+void VoidSinkBase::RegisterPorts(PacketRouter& router) {
+	// VoidSinkBase: register both sink and source ports for net-based connections
+	const IfaceConnTuple& iface = GetInterface();
+
+	// Register sink port (receives audio)
+	if (iface.type.iface.sink.GetCount() > 0) {
+		ValDevTuple sink_vd;
+		sink_vd.Add(iface.type.iface.sink.channels[0].vd, false);
+		RegisterSinkPort(router, 0, sink_vd);
+		RTLOG("VoidSinkBase::RegisterPorts: registered sink port 0 for " << GetType().ToString());
+	}
+
+	// Register source port (sends receipts back)
+	if (iface.type.iface.src.GetCount() > 0) {
+		ValDevTuple src_vd;
+		src_vd.Add(iface.type.iface.src.channels[0].vd, false);
+		RegisterSourcePort(router, 0, src_vd);
+		RTLOG("VoidSinkBase::RegisterPorts: registered source port 0 for " << GetType().ToString());
+	}
 }
 
 
@@ -383,6 +489,27 @@ bool VoidPollerSinkBase::Recv(int sink_ch, const Packet& p) {
 
 bool VoidPollerSinkBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	return true;
+}
+
+bool VoidBase::Recv(int sink_ch, const Packet& in) {
+	if (!packet_router)
+		return true;
+	const IfaceConnTuple& iface = GetInterface();
+	if (sink_ch < 0 || sink_ch >= iface.type.iface.sink.GetCount())
+		return true;
+	const ValDevCls sink_vd = iface.type.iface.sink[sink_ch].vd;
+	bool routed = true;
+	for (int src_ch = 0; src_ch < iface.type.iface.src.GetCount(); src_ch++) {
+		if (iface.type.iface.src[src_ch].vd != sink_vd)
+			continue;
+		if (!EmitViaRouter(src_ch, in))
+			routed = false;
+	}
+	return routed;
+}
+
+bool VoidBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	return packet_router ? false : true;
 }
 
 

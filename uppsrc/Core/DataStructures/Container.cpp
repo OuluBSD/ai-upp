@@ -3,6 +3,8 @@
 
 NAMESPACE_UPP
 
+#include <Core/ProcessUtil/Util.h>
+
 
 void HugePersistent::StoreData() {
 	ASSERT(data_size > 0);

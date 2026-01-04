@@ -1,6 +1,9 @@
-loop tester.generator:
-	center.customer
-	center.audio.src.test
-	center.audio.sink.test.realtime:
-		dbg_limit = 100
+machine audio.gen:
+	net tester.generator:
+		center.customer
+		center.audio.src.test
+		center.audio.sink.test.realtime:
+			dbg_limit = 100
 
+		center.customer.0 -> center.audio.src.test.0
+		center.audio.src.test.0 -> center.audio.sink.test.realtime.0

@@ -8,6 +8,139 @@ bool IsFunction(int kind);
 
 NAMESPACE_UPP
 
+namespace {
+
+String GetMetaArtifactBaseName() {
+	static String base = GetFileTitle(META_FILENAME);
+	return base;
+}
+
+String FragmentJsonPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".fragment.json");
+}
+
+String FragmentBinaryPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".fragment.vfsbin");
+}
+
+String OverlayJsonPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".overlay.json");
+}
+
+String OverlayBinaryPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".overlay.vfsbin");
+}
+
+String OverlayChunkPath(const String& dir) {
+	return AppendFileName(dir, GetMetaArtifactBaseName() + ".overlay.vfsch");
+}
+
+String NormalizeOverlayPath(const String& path) {
+	return path.IsEmpty() ? String("<root>") : path;
+}
+
+String AppendOverlaySegment(const String& base, const String& id) {
+	if (id.IsEmpty())
+		return base;
+	if (base.IsEmpty())
+		return id;
+	return base + "|" + id;
+}
+
+String BuildOverlayPathFromNode(const VfsValue& node) {
+	Vector<String> parts;
+	const VfsValue* current = &node;
+	while (current) {
+		if (!current->id.IsEmpty())
+			parts.Insert(0, current->id);
+		current = current->owner;
+	}
+	String joined = parts.IsEmpty() ? String() : Join(parts, "|");
+	return NormalizeOverlayPath(joined);
+}
+
+void EmitPackageStorageArtifacts(const VfsSrcPkg& pkg, const VfsValue& fragment) {
+	const String& pkg_dir = pkg.dir;
+
+	String fragment_json = FragmentJsonPath(pkg_dir);
+	if (!fragment_json.IsEmpty() && !VfsSaveFragment(fragment_json, fragment))
+		RLOG("VfsSrcPkg: failed to save fragment JSON '" << fragment_json << "'");
+
+	String fragment_bin = FragmentBinaryPath(pkg_dir);
+	if (!fragment_bin.IsEmpty() && !VfsSaveFragmentBinary(fragment_bin, fragment))
+		RLOG("VfsSrcPkg: failed to save fragment binary '" << fragment_bin << "'");
+
+	VfsOverlayIndex index;
+	OverlayIndexCollectorSink collector(index);
+	OverlayIndexSink* sink = &collector;
+	OverlayIndexSinkMultiplexer mux;
+	OverlayIndexChunkWriter chunk_writer;
+	String overlay_chunk = OverlayChunkPath(pkg_dir);
+	bool chunk_enabled = false;
+	if (!overlay_chunk.IsEmpty()) {
+		if (chunk_writer.Begin(overlay_chunk)) {
+			mux.AddSink(collector);
+			mux.AddSink(chunk_writer);
+			sink = &mux;
+			chunk_enabled = true;
+		}
+		else
+			RLOG("VfsSrcPkg: failed to open overlay chunk '" << overlay_chunk << "'");
+	}
+	BuildRouterOverlayIndex(fragment, *sink);
+	if (chunk_enabled && !chunk_writer.Finish())
+		RLOG("VfsSrcPkg: failed to finish overlay chunk '" << overlay_chunk << "'");
+
+	String overlay_json = OverlayJsonPath(pkg_dir);
+	if (!overlay_json.IsEmpty() && !VfsSaveOverlayIndex(overlay_json, index))
+		RLOG("VfsSrcPkg: failed to save overlay index '" << overlay_json << "'");
+
+	String overlay_bin = OverlayBinaryPath(pkg_dir);
+	if (!overlay_bin.IsEmpty() && !VfsSaveOverlayIndexBinary(overlay_bin, index))
+		RLOG("VfsSrcPkg: failed to save overlay binary '" << overlay_bin << "'");
+}
+
+bool LoadOverlayIndexFromDisk(const VfsSrcPkg& pkg, VfsOverlayIndex& out_index, Time& out_mtime) {
+	String chunk_path = OverlayChunkPath(pkg.dir);
+	if (FileExists(chunk_path) && VfsLoadOverlayIndexChunked(chunk_path, out_index)) {
+		out_mtime = FileGetTime(chunk_path);
+		return true;
+	}
+	String bin_path = OverlayBinaryPath(pkg.dir);
+	if (FileExists(bin_path) && VfsLoadOverlayIndexBinary(bin_path, out_index)) {
+		out_mtime = FileGetTime(bin_path);
+		return true;
+	}
+
+	String json_path = OverlayJsonPath(pkg.dir);
+	if (FileExists(json_path) && VfsLoadOverlayIndex(json_path, out_index)) {
+		out_mtime = FileGetTime(json_path);
+		return true;
+	}
+	return false;
+}
+
+bool GetOverlayFileTimestamp(const VfsSrcPkg& pkg, Time& out_time) {
+	String chunk_path = OverlayChunkPath(pkg.dir);
+	if (FileExists(chunk_path)) {
+		out_time = FileGetTime(chunk_path);
+		return true;
+	}
+	String bin_path = OverlayBinaryPath(pkg.dir);
+	if (FileExists(bin_path)) {
+		out_time = FileGetTime(bin_path);
+		return true;
+	}
+	String json_path = OverlayJsonPath(pkg.dir);
+	if (FileExists(json_path)) {
+		out_time = FileGetTime(json_path);
+		return true;
+	}
+	return false;
+}
+
+} // namespace
+
 extern VfsValue*         (*IdeMetaEnvironment_FindDeclaration)(const VfsValue& n);
 extern Vector<VfsValue*> (*IdeMetaEnvironment_FindDeclarationsDeep)(const VfsValue& n);
 extern bool (*IsStructPtr)(int kind);
@@ -565,6 +698,7 @@ bool VfsSrcPkg::Store(bool forced)
 	hash_t pkg_hash = pkg.GetPackageHash();
 	ASSERT(file_hash != 0 && pkg_hash != 0);
 	env.SplitValueHash(env.env.root, file_nodes, pkg_hash);
+	EmitPackageStorageArtifacts(*this, file_nodes);
 	return file.Store(forced);
 }
 
@@ -832,6 +966,60 @@ int VfsSrcPkg::FindFile(String path) const {
 
 int VfsSrcPkg::GetFileId(const String& path) const {
 	return FindFile(path);
+}
+
+const VfsSrcPkg* IdeMetaEnvironment::FindPkgByHash(hash_t pkg_hash) const {
+	for (const VfsSrcPkg& pkg : pkgs) {
+		if (pkg.GetPackageHash() == pkg_hash)
+			return &pkg;
+	}
+	return nullptr;
+}
+
+const VfsOverlayIndex* IdeMetaEnvironment::LoadOverlayIndexForPkg(const VfsSrcPkg& pkg) {
+	hash_t pkg_hash = pkg.GetPackageHash();
+	Time disk_time;
+	if (!GetOverlayFileTimestamp(pkg, disk_time)) {
+		overlay_cache.RemoveKey(pkg_hash);
+		overlay_mtime.RemoveKey(pkg_hash);
+		return nullptr;
+	}
+	Time* cached_time = overlay_mtime.FindPtr(pkg_hash);
+	if (cached_time && *cached_time == disk_time) {
+		int idx = overlay_cache.Find(pkg_hash);
+		if (idx >= 0)
+			return &overlay_cache[idx];
+	}
+	VfsOverlayIndex index;
+	Time loaded_time;
+	if (!LoadOverlayIndexFromDisk(pkg, index, loaded_time))
+		return nullptr;
+	overlay_cache.GetAdd(pkg_hash) = pick(index);
+	overlay_mtime.GetAdd(pkg_hash) = loaded_time;
+	int idx = overlay_cache.Find(pkg_hash);
+	return idx >= 0 ? &overlay_cache[idx] : nullptr;
+}
+
+ValueMap IdeMetaEnvironment::GetRouterMetadataForNode(const VfsValue& node) {
+	ValueMap router_meta;
+	if (!node.pkg_hash)
+		return router_meta;
+	const VfsSrcPkg* pkg = FindPkgByHash(node.pkg_hash);
+	if (!pkg)
+		return router_meta;
+	const VfsOverlayIndex* overlay_index = LoadOverlayIndexForPkg(*pkg);
+	if (!overlay_index)
+		return router_meta;
+	String target_path = BuildOverlayPathFromNode(node);
+	for (const OverlayNodeRecord& rec : overlay_index->nodes) {
+		if (rec.path == target_path) {
+			Value router_value = RouterLookupValue(rec.metadata, "router");
+			if (router_value.Is<ValueMap>())
+				router_meta = ValueMap(router_value);
+			break;
+		}
+	}
+	return router_meta;
 }
 
 /*int VfsSrcPkg::GetAddFileId(const String& path)

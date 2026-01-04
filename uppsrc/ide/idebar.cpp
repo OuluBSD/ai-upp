@@ -1134,28 +1134,5 @@ void Ide::SetToolBar()
 {
 	toolbar.Set(THISBACK(MainTool));
 }
-<<<<<<< HEAD
-#endif // flagGUI
-=======
 
-void Ide::EditorMenu(Bar& bar)
-{
-	bar.Sub("Assist", [=](Bar& bar) { AssistMenu(bar); });
-	Reformat(bar);
-	InsertAdvanced(bar);
-//	bar.Add("Find and Replace", THISBACK(SearchMenu));
-	bar.MenuSeparator();
-	OnlineSearchMenu(bar);
-    bar.Add(IsClipboardAvailableText() && (editor.IsSelection() || editor.GetLength() < 1024*1024),
-            "Compare with clipboard..", [=]() {
-        DiffDlg& dlg = CreateNewWindow<DiffDlg>();
-        dlg.diff.left.RemoveFrame(dlg.p);
-        dlg.diff.Set(ReadClipboardText(), editor.IsSelection() ? editor.GetSelection()
-                                                               : editor.Get());
-		dlg.Title("Compare with clipboard");
-        dlg.OpenMain();
-    });
-	bar.MenuSeparator();
-	editor.StdBar(bar);
-}
->>>>>>> upstream/master
+#endif // flagGUI

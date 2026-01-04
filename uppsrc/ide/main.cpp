@@ -119,18 +119,10 @@ void StartEditorMode(const Vector<String>& args, Ide& ide, bool& clset)
 	}
 }
 
-<<<<<<< HEAD
 
 #undef  GUI_APP_MAIN_HOOK
-#define GUI_APP_MAIN_HOOK \
-{ \
-	BaseCommandLineHandler cmd_handler(CommandLine()); \
-	if (cmd_handler.Handle()) \
-		return Upp::GetExitCode(); \
-}
+#define GUI_APP_MAIN_HOOK
 
-=======
->>>>>>> upstream/master
 #ifdef DYNAMIC_LIBCLANG
 bool TryLoadLibClang()
 {
@@ -467,14 +459,9 @@ void AppMain___()
 					}
 				}
 			}
-<<<<<<< HEAD
-		} else {
-			if(arg.GetCount() >= 2 && IsAssembly(arg[0])) {
-=======
 		}
 		else
-		if(arg.GetCount() == 2 && IsAssembly(arg[0])) {
->>>>>>> upstream/master
+		if(arg.GetCount() <= 2 && IsAssembly(arg[0])) {
 				LoadVars(arg[0]);
 				ide.SetMain(arg[1]);
 				clset=true;

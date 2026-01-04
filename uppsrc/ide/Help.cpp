@@ -600,9 +600,6 @@ void Ide::ViewIdeLogFile()
 {
 	OpenLog(GetIdeLogPath());
 }
-<<<<<<< HEAD
-#endif // flagGUI
-=======
 
 void IdeHelpButton(Button& help, const String& link)
 {
@@ -614,4 +611,4 @@ void IdeHelpButton(Button& help, const String& link)
 			ide->OpenHelp(link);
 	};
 }
->>>>>>> upstream/master
+#endif // flagGUI

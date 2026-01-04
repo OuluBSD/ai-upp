@@ -163,10 +163,12 @@ void AudioOutStream::Put(const Record& rec) {
 
 bool AudioOutStream::IsOpen() const {
 	TODO
+	return false;
 }
 
 AudioOutStream AudioOutStream::OpenDefault() {
 	TODO
+	return AudioOutStream();
 }
 
 

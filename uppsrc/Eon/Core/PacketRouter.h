@@ -9,7 +9,7 @@ NAMESPACE_UPP
 
 
 // Forward declarations
-struct AtomBase;
+class AtomBase;
 class PacketValue;
 using Packet = SharedRecycler<PacketValue>;
 

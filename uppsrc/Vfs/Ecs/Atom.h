@@ -5,8 +5,8 @@ namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
 struct ExtScriptEcsLoader;
-struct LoopContext;
-struct NetContext;
+class LoopContext;
+class NetContext;
 }
 
 #define ATOM_CTOR_(x, base) \
@@ -22,13 +22,14 @@ class PacketValue;
 class PacketForwarderData {};
 
 
-struct AtomBase :
-	VfsValueExt,
-	PacketForwarderData,
-	Destroyable
+class AtomBase :
+	public VfsValueExt,
+	public PacketForwarderData,
+	public Destroyable
 {
+public:
 	using AtomBasePtr = Ptr<AtomBase>;
-	
+
 	struct CustomerData {
 		RealtimeSourceConfig	cfg;
 		off32_gen				gen;

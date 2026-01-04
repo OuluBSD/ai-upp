@@ -5,7 +5,7 @@
 struct VfsValue;
 struct VfsValueExtCtrl;
 struct Entity;
-struct Engine;
+class Engine;
 struct IdeShellHost;
 struct IdeShell;
 class ClangTypeResolver;

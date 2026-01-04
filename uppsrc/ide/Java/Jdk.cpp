@@ -31,13 +31,20 @@ void Jdk::FindVersion(Host* host)
 		Logw() << METHOD_NAME << "Path to JDK is wrong or files are corrupted.";
 		return;
 	}
-	
+
 	StringStream ss;
-	if (host->Execute(GetJavacPath() + " -version", ss) != 0) {
-		Logw() << METHOD_NAME << "Cannot obtain version due to command execution failure.";
+	String javacPath = GetJavacPath();
+	// Properly quote the executable path if it contains spaces
+	if (javacPath.Find(' ') >= 0) {
+		javacPath = "\"" + javacPath + "\"";
+	}
+	String command = javacPath + " -version";
+
+	if (host->Execute(command, ss) != 0) {
+		Logw() << METHOD_NAME << "Cannot obtain version due to command execution failure. (" + command + ")";
 		return;
 	}
-	
+
 	String output = static_cast<String>(ss);
 	output.Replace("\n", "");
 	Vector<String> splitedOutput = Split(output, " ");
@@ -45,25 +52,25 @@ void Jdk::FindVersion(Host* host)
 		Logw() << METHOD_NAME << "Splited output is too short (" + output + ").";
 		return;
 	}
-	
+
 	Vector<String> splitedVersion = Split(splitedOutput[1], ".");
 	if (splitedVersion.GetCount() != 3) {
 		Logw() << METHOD_NAME << "Splited version is too short (" + output + ").";
 		return;
 	}
-	
+
 	int major = StrInt(splitedVersion[0]);
 	if (major == INT_NULL) {
 		Logw() << METHOD_NAME << "Major version conversion to int failed (" + splitedVersion[0] + ").";
 		return;
 	}
-	
+
 	int minor = StrInt(splitedVersion[1]);
 	if (minor == INT_NULL) {
 		Logw() << METHOD_NAME << "Minor version conversion to int failed (" + splitedVersion[1] + ").";
 		return;
 	}
-	
+
 	version = JavaVersion(major, minor);
 }
 

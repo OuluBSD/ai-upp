@@ -80,6 +80,7 @@ public:
 	void Uninitialize() override;
 	void Visit(Vis& vis) override {vis.VisitT<Atom>("Atom", *this);}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override;
+	bool Recv(int sink_ch, const Packet& in) override;
 	bool Consume(const void* data, int len) override;
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override;
 

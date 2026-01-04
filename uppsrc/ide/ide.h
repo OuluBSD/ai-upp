@@ -531,7 +531,11 @@ public:
 	bool        calc_in_menubar = true;
 	Ptr<Ctrl>   bottomctrl; // debugger pane
 
-	enum Bottoms { BCLOSE, BCONSOLE, BERRORS, BCALC, BAGENT, BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };
+	enum Bottoms { BCLOSE, BCONSOLE, BERRORS, BCALC,
+		#ifndef flagV1
+		BAGENT,
+		#endif
+		BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };
 
 	FileOut    stdout_fout;
 

@@ -461,7 +461,7 @@ void AppMain___()
 			}
 		}
 		else
-		if(arg.GetCount() <= 2 && IsAssembly(arg[0])) {
+		if(arg.GetCount() >= 2 && IsAssembly(arg[0])) {
 				LoadVars(arg[0]);
 				ide.SetMain(arg[1]);
 				clset=true;

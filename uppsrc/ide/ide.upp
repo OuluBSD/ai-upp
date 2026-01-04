@@ -146,7 +146,7 @@ file
 	ide.iml,
 	ide.usc,
 	app.tpp,
-	ide.rc
+	ide.rc_
 		depends() xide.ico
 		depends() ide.ico,
 	theide.desktop,

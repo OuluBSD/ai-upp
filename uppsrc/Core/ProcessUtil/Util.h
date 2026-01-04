@@ -1,9 +1,8 @@
 #ifndef _Core_ProcessUtil_Util_h_
 #define _Core_ProcessUtil_Util_h_
 
-
-
-
+struct Visitor;
+using Vis = Visitor;
 
 
 /*
@@ -477,9 +476,9 @@ public:
 	void SetError(String s) {last_error = s;}
 	bool IsError() const {return !last_error.IsEmpty();}
 	String GetError() const {return last_error;}
-	
-	virtual void Visit(Vis& vis) {vis("last_error",last_error);}
-	
+
+	virtual void Visit(Vis& vis) {}
+
 };
 
 

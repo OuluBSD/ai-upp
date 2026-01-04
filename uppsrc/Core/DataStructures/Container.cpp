@@ -1,8 +1,9 @@
 #include "DataStructures.h"
-#include <Core/ProcessUtil/Util.h>
 
 
 NAMESPACE_UPP
+
+#include <Core/ProcessUtil/Util.h>
 
 
 void HugePersistent::StoreData() {

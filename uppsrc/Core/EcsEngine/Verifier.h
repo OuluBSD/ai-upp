@@ -11,7 +11,7 @@ class PacketForwarder;
 class FwdScope;
 class System;
 class ValueFormat;
-struct PacketValue;
+class PacketValue;
 
 using Packet = SharedRecycler<PacketValue>;
 

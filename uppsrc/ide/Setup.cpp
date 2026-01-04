@@ -470,17 +470,14 @@ void Ide::SetupFormat() {
 		(ide.setmain_newide, setmain_newide)
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
-<<<<<<< HEAD
 #ifndef flagV1
 		(ai.global_proxy, GlobalProxy())
 		(ai.references, GlobalCreateReferencesFile())
 		(ai.mcp_server_enabled, mcp_server_enabled)
 		(ai.mcp_server_port, mcp_server_port)
 #endif
-=======
 		(ide.show_basic_hints, show_basic_hints)
 		(ide.valgrind, valgrind_options)
->>>>>>> upstream/master
 	;
 	
 #ifndef flagV1

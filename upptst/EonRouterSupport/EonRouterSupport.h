@@ -208,7 +208,23 @@ public:
 		}
 	}
 
+	void SetSideSourceLink(const String& atom_id, int src_ch, int conn_id, int sink_ch) {
+		AddSideLink(atom_id, true, src_ch, conn_id, sink_ch);
+	}
+
+	void SetSideSinkLink(const String& atom_id, int sink_ch, int conn_id, int src_ch) {
+		AddSideLink(atom_id, false, sink_ch, conn_id, src_ch);
+	}
+
 private:
+	struct SideLinkSpec : Moveable<SideLinkSpec> {
+		String atom_id;
+		bool is_source = false;
+		int local_ch = -1;
+		int other_ch = -1;
+		int conn_id = -1;
+	};
+
 	void BuildAtomSpecs(Vector<Eon::ChainContext::AtomSpec>& atom_specs) const {
 		using namespace Eon;
 
@@ -223,6 +239,7 @@ private:
 			if (!net_atom.EnsureTypeResolved())
 				throw Exc(Format("RouterNetContext: unknown atom action '%s'", spec.action));
 			spec.iface.Realize(net_atom.atom_type);
+			ApplySideLinks(spec.iface, net_atom.id);
 			spec.link = net_atom.link_type;
 		}
 	}
@@ -254,6 +271,7 @@ private:
 	Array<RouterAtomSpec> atoms;
 	Index<String> atom_index;
 	Vector<RouterConnectionDesc> connections;
+	Vector<SideLinkSpec> side_links;
 	ValueMap flow_control;
 
 	RouterSchema BuildRouterSchema() const {
@@ -287,6 +305,28 @@ private:
 		loop_space.value = loop_value;
 	}
 private:
+	void AddSideLink(const String& atom_id, bool is_source, int local_ch, int conn_id, int other_ch) {
+		SideLinkSpec& link = side_links.Add();
+		link.atom_id = atom_id;
+		link.is_source = is_source;
+		link.local_ch = local_ch;
+		link.other_ch = other_ch;
+		link.conn_id = conn_id;
+	}
+
+	void ApplySideLinks(Eon::IfaceConnTuple& iface, const String& atom_id) const {
+		for (const SideLinkSpec& link : side_links) {
+			if (link.atom_id != atom_id)
+				continue;
+			if (link.is_source) {
+				iface.SetSource(link.conn_id, link.local_ch, link.other_ch);
+			}
+			else if (link.local_ch >= 0 && link.local_ch < iface.sink.GetCount()) {
+				iface.sink[link.local_ch].Set(link.conn_id, link.local_ch, link.other_ch);
+			}
+		}
+	}
+
 	void ResetFlowControlDefaults() {
 		flow_control.Clear();
 		flow_control.Set("policy", String("legacy-loop"));

@@ -9,7 +9,7 @@ ScriptNetLoader::ScriptNetLoader(ScriptMachineLoader& parent, int id, Eon::NetDe
 {
 	// Load states for the net
 	for (int i = 0; i < def.states.GetCount(); i++) {
-		states.Add(ScriptStateLoader(*this, i, def.states[i]));
+		states.Add(new ScriptStateLoader(*this, i, def.states[i]));
 	}
 }
 

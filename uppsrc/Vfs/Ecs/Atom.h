@@ -5,7 +5,8 @@ namespace Eon {
 class ScriptLoopLoader;
 class ScriptDriverLoader;
 struct ExtScriptEcsLoader;
-struct LoopContext;
+class LoopContext;
+class NetContext;
 }
 
 #define ATOM_CTOR_(x, base) \
@@ -14,18 +15,21 @@ struct LoopContext;
 
 class LinkBase;
 class WorldState;
+class PacketRouter;
+class PacketValue;
 
 
 class PacketForwarderData {};
 
 
-struct AtomBase :
-	VfsValueExt,
-	PacketForwarderData,
-	Destroyable
+class AtomBase :
+	public VfsValueExt,
+	public PacketForwarderData,
+	public Destroyable
 {
+public:
 	using AtomBasePtr = Ptr<AtomBase>;
-	
+
 	struct CustomerData {
 		RealtimeSourceConfig	cfg;
 		off32_gen				gen;
@@ -39,23 +43,36 @@ protected:
 	friend class Eon::ScriptLoopLoader;
 	friend class Eon::ScriptDriverLoader;
 	friend class Loop;
-	
+
 	int64					idx = -1;
 	bool					is_running = false;
-	
+
 	void					SetIdx(int64 i) {idx = i;}
 	void					SetRunning(bool b=true) {is_running = b;}
-	
+
 protected:
 	friend class LinkBase;
 	friend class Eon::LoopContext;
-	
+	friend class Eon::NetContext;
+
 	Mutex					fwd_lock;
 	IfaceConnTuple			iface;
 	LinkBase*				link = 0;
 	AtomBasePtr				atom_dependency;
 	int						dep_count = 0;
+	Vector<RouterPortDesc>	router_ports[2];
 	//Value					user_data; // use val.value instead
+
+	// Router port registration helpers for derived classes
+	// Returns router_index (internal routing table index), or -1 on failure
+	int						RegisterSinkPort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata = ValueMap());
+	int						RegisterSourcePort(PacketRouter& router, int index, const ValDevTuple& vd, const ValueMap& metadata = ValueMap());
+
+public:
+	// Port handle storage (router_index values) - public for LoopContext access
+	Vector<int>				router_sink_ports;
+	Vector<int>				router_source_ports;
+	PacketRouter*			packet_router = nullptr;  // Set during RegisterPorts
 	
 	
 public:
@@ -81,7 +98,16 @@ public:
 	virtual void			DetachContext(AtomBase& a) {Panic("Unimplemented"); NEVER();}
 	virtual RealtimeSourceConfig* GetConfig() {return 0;}
 	virtual bool			NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {return false;}
-	
+
+	// Router integration - opt-in virtuals for PacketRouter mode
+	virtual void			RegisterPorts(PacketRouter& router);
+	virtual void			OnPortReady(int port_id) {}
+
+	// Emit packet via router - returns true if delivered to at least one destination
+	bool					EmitViaRouter(int src_port_index, const Packet& packet);
+	int						RequestCredits(int src_port_index, int requested_count);
+	void					AckCredits(int src_port_index, int ack_count);
+
 	String					ToString() const override;
 	void					UninitializeDeep() override;
 	void					Visit(Vis& vis) override {}
@@ -97,6 +123,7 @@ public:
 	Engine&					GetEngine();
 	void					SetInterface(const IfaceConnTuple& iface);
 	const IfaceConnTuple&	GetInterface() const;
+	const Vector<RouterPortDesc>&	GetRouterPorts(RouterPortDesc::Direction dir) const;
 	int						FindSourceWithValDev(ValDevCls vd);
 	int						FindSinkWithValDev(ValDevCls vd);
 	void					SetPrimarySinkQueueSize(int i);

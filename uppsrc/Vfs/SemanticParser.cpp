@@ -103,6 +103,10 @@ bool SemanticParser::ParseDeclaration() {
 			if (!ParseLoop())
 				return false;
 		}
+		else if (IsId("net")) {
+			if (!ParseNet())
+				return false;
+		}
 		else if (IsId("world")) {
 			if (!ParseWorld())
 				return false;
@@ -1945,27 +1949,27 @@ bool SemanticParser::ParseChain() {
 
 bool SemanticParser::ParseLoop() {
 	Iterator& iter = TopIterator();
-	
+
 	bool is_driver = false;
-	
+
 	if (IsId("driver")) {
 		is_driver = true;
 		iter++;
 	}
 	else if (!PassId("loop"))
 		return false;
-	
+
 	PathIdentifier id;
 	if (!ParsePathIdentifier(id, false, false)) {
 		AddError(iter->loc, "invalid loop id");
 		return false;
 	}
-	
+
 	CHECK_SPATH_BEGIN
 	AstNode* loop = EMIT PushLoop(iter.begin->loc, id);
 	if (is_driver)
 		loop->src = Cursor_DriverStmt;
-	
+
 	Iterator& owner_iter = TopIterator();
 	if (owner_iter.node->val.Sub<TokenNode>().GetCount()) {
 		if (!ParseLoopStatementList())
@@ -1974,10 +1978,156 @@ bool SemanticParser::ParseLoop() {
 	else {
 		loop->src = Cursor_LoopDecl;
 	}
-	
+
 	EMIT PopLoop(iter.begin->loc);
 	CHECK_SPATH_END
-	
+
+	return true;
+}
+
+bool SemanticParser::ParseNet() {
+	Iterator& iter = TopIterator();
+
+	if (!PassId("net"))
+		return false;
+
+	PathIdentifier id;
+	if (!ParsePathIdentifier(id, false, false)) {
+		AddError(iter->loc, "invalid net id");
+		return false;
+	}
+
+	CHECK_SPATH_BEGIN
+	AstNode* net = EMIT PushNet(iter.begin->loc, id);
+
+	Iterator& owner_iter = TopIterator();
+	if (owner_iter.node->val.Sub<TokenNode>().GetCount()) {
+		if (!ParseNetStatementList())
+			return false;
+	}
+	else {
+		net->src = Cursor_NetDecl;
+	}
+
+	EMIT PopNet(iter.begin->loc);
+	CHECK_SPATH_END
+
+	return true;
+}
+
+bool SemanticParser::ParseNetStatementList() {
+	const TokenNode& owner = *path.Top();
+	const TokenNode*& cur = path.Add();
+	int cookie = 0;
+
+	EMIT PushStatementList(owner.begin->loc);
+
+	for(const TokenNode& tns : owner.val.Sub<TokenNode>()) {
+		CHECK_SPATH_BEGIN
+
+		cur = &tns;
+		if (!ParseNetStatement(cookie))
+			return false;
+
+		CHECK_SPATH_END
+	}
+
+	path.Remove(path.GetCount()-1);
+
+	EMIT PopStatementList(owner.end->loc);
+
+	return true;
+}
+
+bool SemanticParser::ParseNetStatement(int& cookie) {
+	const TokenNode& cur = *path.Top();
+	Iterator& iter = AddIterator(cur);
+
+	if (iter) {
+
+		if (IsId("meta")) {
+			if (!ParseMeta(cookie))
+				return false;
+		}
+		else if (Id("pass")) {
+			// pass
+		}
+		else if (iter->IsType('$')) {
+			if (!ParseExpressionStatement())
+				return false;
+		}
+		else if (iter->IsType(TK_ID) || iter->IsType('$')) {
+			PathIdentifier id;
+			if (!ParsePathIdentifier(id, false, false)) {
+				AddError(iter->loc, "id parsing failed");
+				return false;
+			}
+
+			// Check for connection statement (->)
+			if (iter && TryToken(TK_MINUS)) {
+				if (!TryToken('>')) {
+					AddError(iter->loc, "expected '>' after '-' in connection statement");
+					return false;
+				}
+
+				// Parse destination path
+				PathIdentifier dest_id;
+				if (!ParsePathIdentifier(dest_id, false, false)) {
+					AddError(iter->loc, "invalid destination in connection statement");
+					return false;
+				}
+				// Create connection ExprStmt with full connection string
+				String conn_str = id.ToString() + " -> " + dest_id.ToString();
+				AstNode* stmt = EMIT PushStatement(iter->loc, Cursor_ExprStmt);
+				stmt->str = conn_str;  // Store connection string directly on statement
+				EMIT PushRvalUnresolved(iter->loc, id, Cursor_Null);
+				AstNode* rval = EMIT PopExpr(iter->loc);
+				EMIT PopStatement(iter->loc, rval);
+			}
+			else if (!iter || iter->IsType('[') || cur.val.Sub<TokenNode>().GetCount()) {
+				if (!ParseAtom(id))
+					return false;
+			}
+			else if (iter->IsType('=')) {
+				CHECK_SPATH_BEGIN
+
+				AstNode* var = EMIT DeclareVariable(iter->loc, *builtin_void, id);
+				if (!var) return false;
+
+				EMIT PushStatement(iter->loc, Cursor_ExprStmt);
+
+				EMIT PushRval(id.begin->loc, *var);
+
+				if (!AssignPost(false))
+					return false;
+
+				AstNode* link = EMIT PopExpr(iter->loc);
+
+				EMIT PopStatement(iter->loc, link);
+
+				CHECK_SPATH_END
+			}
+			else if (IsToken('(')) {
+				if (!ParseCallArguments())
+					return false;
+			}
+			else {
+				AddError(iter->loc, "invalid net statement");
+				return false;
+			}
+		}
+		else {
+			AddError(iter->loc, "invalid statement");
+			return false;
+		}
+	}
+
+	if (iter) {
+		AddError(iter->loc, "expected end-of-statement");
+		return false;
+	}
+
+	PopIterator();
 	return true;
 }
 
@@ -2105,13 +2255,17 @@ bool SemanticParser::ParseMachineStatement(int& cookie) {
 		
 		if (iter->IsType(TK_ID)) {
 			const String& id = iter->str_value;
-			
+
 			if (id == "chain") {
 				if (!ParseChain())
 					return false;
 			}
 			else if (id == "loop" || id == "driver") {
 				if (!ParseLoop())
+					return false;
+			}
+			else if (id == "net") {
+				if (!ParseNet())
 					return false;
 			}
 			else if (id == "meta") {

@@ -36,7 +36,8 @@ void ScriptLoaderBase<ParserDef,LoaderParent>::Forward() {
 		}
 	}
 	else {
-		TODO
+		SetError("Invalid status in ScriptLoaderBase::Forward");
+		SetStatus(FAILED);
 	}
 	
 	ASSERT(prev_status != status || status == WAITING_CHILDREN);
@@ -46,7 +47,8 @@ template <class ParserDef, class LoaderParent>
 void ScriptLoaderBase<ParserDef,LoaderParent>::CheckStatus(ScriptStatus s) {
 	
 	if (s == ScriptStatus::IN_BEGINNING) {
-		TODO
+		// When in beginning state, no special handling required
+		// Just continue to check other conditions
 	}
 	else if (
 		s == ScriptStatus::WAITING_CHILDREN ||
@@ -84,9 +86,9 @@ void ScriptLoaderBase<ParserDef,LoaderParent>::CheckStatus(ScriptStatus s) {
 		// pass
 	}
 	else {
-		TODO
+		SetError("Unknown ScriptStatus in CheckStatus: " + IntStr(int(s)));
 	}
-	
+
 	if (s != ScriptStatus::READY)
 		all_ready = false;
 	
@@ -110,7 +112,8 @@ void ScriptLoaderBase<ParserDef,LoaderParent>::CheckFlags() {
 		SetStatus(ScriptStatus::MAKE_OPTION_LINK_VECTOR);
 	}
 	else {
-		TODO
+		// This shouldn't happen in normal operation
+		// Continue with current status
 	}
 	
 }

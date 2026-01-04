@@ -1,0 +1,13 @@
+# Sample .vfshrc initialization file for testing
+echo "Loading .vfshrc initialization file..."
+
+# Set some environment variables
+setenv TEST_VAR "This is a test variable"
+
+# Define some aliases (conceptual - not implemented yet)
+alias ll 'ls -la'
+
+# Change to a specific directory on startup
+cd /tmp
+
+echo "Initialization complete."

@@ -19,8 +19,23 @@ ScriptPoolLoader::ScriptPoolLoader(ScriptWorldLoader& parent, ScriptPoolLoader* 
 }
 
 bool ScriptPoolLoader::Load() {
-	TODO
-	return false;
+	// Load all entity definitions in this pool
+	for (ScriptEntityLoader& entity : entities) {
+		if (!entity.Load()) {
+			LOG("ScriptPoolLoader::Load: failed to load entity " << entity.GetId());
+			return false;
+		}
+	}
+
+	// Load nested pools
+	for (ScriptPoolLoader& pool : pools) {
+		if (!pool.Load()) {
+			LOG("ScriptPoolLoader::Load: failed to load pool " << pool.GetId());
+			return false;
+		}
+	}
+
+	return true;
 }
 
 

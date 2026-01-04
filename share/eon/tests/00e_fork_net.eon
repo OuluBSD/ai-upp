@@ -1,0 +1,17 @@
+// PacketRouter Test: Fork topology - tests fan-out connections
+// src.test sends to both customer and sink, customer also sends to sink
+// Tests: one-to-many routing and multiple inputs to single sink
+
+machine audio.gen.fork:
+	net tester.fork:
+		// Atoms in the fork topology
+		center.audio.src.test
+		center.customer
+		center.audio.sink.test.realtime:
+			dbg_limit = 100
+
+		// Fork topology: src fans out to both customer and sink
+		// customer also sends to sink (two inputs to sink)
+		center.audio.src.test.0 -> center.customer.0
+		center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+		center.customer.0 -> center.audio.sink.test.realtime.0

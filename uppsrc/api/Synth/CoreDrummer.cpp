@@ -207,6 +207,21 @@ bool SynCoreDrummer::Instrument_Send(NativeInstrument& dev, AtomBase& a, Realtim
 		#endif
 		
 		ASSERT(out.GetBeginTime());
+		if (a.packet_router && !a.router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = a.RequestCredits(src_ch, 1);
+			if (credits <= 0) {
+				RTLOG("SynCoreDrummer::Instrument_Send: credit request denied for src_ch=" << src_ch);
+				return false;
+			}
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt->Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = a.EmitViaRouter(src_ch, route_pkt);
+			a.AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
+		}
 	}
 	return true;
 }

@@ -51,10 +51,14 @@ class ToyLoader {
 public:
 	typedef ToyLoader CLASSNAME;
 	ToyLoader();
-	
+	void UseRouterSyntax(bool enable = true) { use_router_syntax = enable; }
+
 	bool Load(Value& o);
-	
+
 	String GetResult();
+
+private:
+	bool use_router_syntax = false;
 	
 	
 	static ValueMap GetStageMap(int i, Value& o);

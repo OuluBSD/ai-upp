@@ -220,8 +220,9 @@ struct ValStreamState {
 };
 
 
-struct PacketIO {
-	
+class PacketIO {
+public:
+
 	struct Sink : Moveable<Sink> {
 		ValueBase*		val = 0;
 		PacketBuffer*	buf = 0;

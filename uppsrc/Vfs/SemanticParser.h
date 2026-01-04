@@ -84,6 +84,9 @@ public:
 	bool ParseMachine();
 	bool ParseChain();
 	bool ParseLoop();
+	bool ParseNet();
+	bool ParseNetStatementList();
+	bool ParseNetStatement(int& cookie);
 	bool ParsePool();
 	bool ParseMachineStatementList();
 	bool ParseMachineStatement(int& cookie);
@@ -193,6 +196,8 @@ public:
 	void PopChain(const FileLocation& loc);
 	AstNode* PushLoop(const FileLocation& loc, const PathIdentifier& id);
 	void PopLoop(const FileLocation& loc);
+	AstNode* PushNet(const FileLocation& loc, const PathIdentifier& id);
+	void PopNet(const FileLocation& loc);
 	AstNode* PushAtom(const FileLocation& loc, const PathIdentifier& id);
 	void PopAtom(const FileLocation& loc);
 	AstNode* AddEmptyAtomConnector(const FileLocation& loc, int part);

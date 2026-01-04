@@ -425,6 +425,8 @@ AstNode* AstRunner::Visit(const AstNode& n) {
 	case Cursor_PoolStmt:
 	case Cursor_DriverStmt:
 	case Cursor_StateStmt:
+	case Cursor_NetStmt:
+	case Cursor_NetDecl:
 		d = Merge(n);
 		PushScope(*d);
 		for (const AstNode& s : n.val.Sub<AstNode>()) {

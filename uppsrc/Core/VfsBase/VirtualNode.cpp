@@ -347,6 +347,18 @@ Value VirtualNode::GetValue() const {
 	return Value();
 }
 
+VfsValue* VirtualNode::GetVfsValue() {
+	if (data && data->mode == VFS_ENTITY)
+		return data->vfs_value;
+	return nullptr;
+}
+
+const VfsValue* VirtualNode::GetVfsValue() const {
+	if (data && data->mode == VFS_ENTITY)
+		return data->vfs_value;
+	return nullptr;
+}
+
 void VirtualNode::WriteValue(Value val) {
 	ASSERT(IsValue());
 	if (data && data->mode == VFS_VALUE && data->root_poly_value)

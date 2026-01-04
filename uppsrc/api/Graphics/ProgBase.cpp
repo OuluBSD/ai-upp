@@ -88,6 +88,22 @@ bool FboProgAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 		
 		data.ptr = &(GfxDataState&)this->data;
 		data.SetText("gfxstate");
+		
+		if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = RequestCredits(src_ch, 1);
+			if (credits <= 0) {
+				RTLOG("FboProgAtomT::Send: credit request denied for src_ch=" << src_ch);
+				return false;
+			}
+			Packet route_pkt = CreatePacket(out.GetOffset());
+			route_pkt->Pick(out);
+			route_pkt->SetFormat(fmt);
+			bool routed = EmitViaRouter(src_ch, route_pkt);
+			AckCredits(src_ch, credits);
+			out.Pick(*route_pkt);
+			if (!routed)
+				return false;
+		}
 	}
 	
 	return true;

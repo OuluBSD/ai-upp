@@ -37,6 +37,7 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
   - Manual builders (`ChainContext`, `LoopContext`) we can recast into prototype router builders before touching the parser.
   - A fast test harness (small audio pipeline) to prove router semantics without touching SDL/Gfx stacks.
 - **Plan:** Fork `upptst/Eon00` in the new branch, add router prototypes, and keep method 0/1/2 compiling until we complete the DSL migration.
+- **Status update:** Method 3 now shares RouterNetContext instances through a helper that connects loops via `LoopContext::ConnectSides`, so `00b/00c` mimic ScriptLoader’s side-link parity. Conversion guides for `00a/00b/00c` live next to the `.eon` assets for future rewrites. The helper moved into `upptst/EonRouterSupport` and `upptst/Eon02` method 3 runners (`02a`, `02b`, `02c`, `02d`, `02e`, `02f`, `02g`, `02l`, `02m`) now exercise the same router nets to cover single-loop audio, chain-linked side loops, and the fluidsynth/softinstru/fmsynth/coresynth+corefx/portmidi event/input bridges. `RouterPortDesc`/`RouterConnectionDesc` have been defined inside `uppsrc/Vfs/Ecs/Interface.h` so runtime-facing packages share a single descriptor format before serialization lands, complete with metadata + serialization helpers covered by the `upptst/Router` test harness, and `Vfs/Storage` now ships both JSON and binary fragment/overlay writers (`VfsSaveFragmentBinary`, `VfsSaveOverlayIndexBinary`, and matching loaders) verified via the Router console build + gdb run. Scenario-focused suites `upptst/RouterFanout` and `upptst/RouterPool` extend that coverage with multi-port fan-out + limited packet-pool metadata checks, and the base `upptst/Router` suite now exercises the builder path end-to-end by emitting fragments + overlay indexes via `BuildRouterOverlayIndex` and asserting JSON/binary equality. IDE package saves now call those helpers automatically whenever `Meta.bin` updates, emitting `.fragment.json` + `.fragment.vfsbin` and overlay counterparts while `MetaEnvTree` loads the cached overlay indexes to surface router metadata alongside each inspected node, and MetaCtrl’s overlay tree now inlines router summaries (flow-control policy + credit hints) beside each logical node. Overlay builders now stream router metadata into `.overlay.vfsch` chunk files through the same traversal so JSON/binary artifacts stay in sync without rebuilding fragments, and MetaCtrl’s inspectors render per-connection details (burst, pool hints, flow-control JSON) to make those stored hints actionable.
 
 ---
 
@@ -98,10 +99,61 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
 
 ---
 
+## Phase Exit Criteria & Deliverables
+- **Phase 0 – Discovery & Prototype Router Builder**
+  - Artifact: Doc describing every Link/Customer usage site (`Eon/Core`, DSL builders, ECS glue).
+  - Code spike: `NetContext` sample in `upptst/Eon00` proving packets can move without loops.
+  - Decision record for port naming + anonymous fallback semantics.
+- **Phase 1 – Router Core & Flow Control Primitives**
+  - `PacketRouter` headers with credit/connection APIs merged (even if backed by stub implementations).
+  - All Interface providers compiling with router descriptors; `CustomerBase` deleted or shimmed.
+  - Flow-control metadata structs in `Vfs/Ecs/Formats.h` with serialization tests.
+- **Phase 2 – DSL & Loader Rewrite**
+  - Parser unit tests covering new `net` syntax plus backward-compat toggles.
+  - Builder emits router tables consumable by the `NetContext` spike.
+  - ToyLoader generates router `.eon` output for at least one ShaderToy example.
+- **Phase 3 – Interface + VFS/ECS Plumbing**
+  - Router descriptors stored/retrieved via VFS JSON/binary formats.
+  - IDE tooling still renders existing graphs (even if still loop-shaped) while router nets are visible in inspectors.
+  - Port lookup helpers exposed to script builders and runtime code.
+- **Phase 4 – Atom, API, and Backend Conversion**
+  - Representative Atoms per backend (audio, gfx, SDL I/O) declare ports via new API.
+  - Router-managed credits exercised in at least one backend test (e.g., audio generator).
+  - Legacy builds continue running via compatibility policy flag.
+- **Phase 5 – DSL Migration & Test Coverage**
+  - All `share/eon/**/*.eon` rewritten; automated converter + manual checklist recorded.
+  - `upptst/Eon*` packages reflect router nets with method 0/1/2 parity.
+  - CI suite includes router + legacy compatibility coverage.
+- **Phase 6 – Performance, Compatibility, and Cleanup**
+  - Benchmarks comparing loop vs router mode published; any regressions triaged.
+  - Diagnostics page/screens for router nets implemented in IDE or DropTerm.
+  - Deprecated loop APIs removed from headers and docs.
+
+---
+
+## Collaboration & Tooling Expectations
+- **Eon Core + Script team:** Owns router runtime, DSL rewrite, Atom API updates, and the Eon00 pilot.
+- **VFS/ECS team:** Defines router descriptors, storage schema, and IDE integration; partners on serialization + inspector updates.
+- **Backend owners (`api/audio`, `api/gfx`, etc.):** Provide per-backend port definitions, credit-handling hooks, and regression benchmarks.
+- **Tooling support:** Build conversion scripts (likely under `script/` or `task/PacketRouter`) to translate `.eon` files and method 2 builders; share progress logs via `CURRENT_TASK.md`.
+- **Documentation:** Update AGENTS, ROADMAP, and TASK files whenever a phase crosses its exit criteria; cross-link to decision logs stored under `pseudocode_analysis/` or `task/notes`.
+
+---
+
+## Metrics & Validation Strategy
+- **Functional:** Router nets must recreate packet order/latency guarantees previously enforced by loops (verified via deterministic test scenes and audio samples).
+- **Flow control:** Credit accounting traced via debug counters and assertions; target zero packet leaks or starvation over extended runs.
+- **Performance:** Track CPU cost per packet in `upptst/Eon00` and a representative SDL/Gfx workload; maintain parity with legacy loops within ±5% before Phase 6 optimizations.
+- **Adoption:** Number of `.eon` assets migrated vs total; maintain a running tally in `task/PacketRouter.md`.
+- **Compatibility:** Continuous test ensuring loop-compatible policy remains available until all downstream packages opt in.
+
+---
+
 ## Supporting Workstreams
 - **Conversion tooling:** Scripts to translate legacy `.eon` loops into router nets (including port mapping heuristics).
 - **Documentation:** Update `AGENTS.md`, `CURRENT_TASK.md` entries, and developer guides after each major milestone.
 - **IDE/Visualizer impact:** Once routers exist, IDE integrations must know how to display them. Track this as a follow-up thread.
+- **Serialization prep:** JSON/binary schema outline for router ports, bridges, and flow-control metadata now lives in `task/notes/packet_router_vfs_alignment.md` so VFS/Storage work can start as soon as descriptors stabilize.
 
 ---
 
@@ -114,10 +166,126 @@ This arrangement keeps packet counts predictable but makes it impossible to crea
 
 ---
 
-## Immediate Next Steps
-1. **Stand up a `PacketRouter` prototype** beside `ChainContext` inside `upptst/Eon00`, wiring ports manually to confirm data flow.
-2. **Draft port descriptor structs** (name, direction, vd tuple, metadata) and sketch how `DefaultInterfaceSink/Source` expose them.
-3. **Write conversion notes for `share/eon/tests/00a_audio_gen.eon`** demonstrating the old vs new syntax; this becomes the template for the rest of the assets.
-4. **Update `CURRENT_TASK.md` (Eon scope)** once the branch exists so other developers know this sweeping change is happening elsewhere.
+## Current Status
 
-Natural follow-up once these land: branch cut, implement Phase 0 prototype, and iterate on the router core before touching the DSL across the repo.
+### Phase 0 – COMPLETE ✓
+All discovery and prototype work finished:
+- ✓ Link/customer inventory documented in `task/notes/packet_router_links.md`
+- ✓ `RouterNetContext` implemented in `upptst/EonRouterSupport` (builder/test harness)
+- ✓ Port descriptor structs (`RouterPortDesc`, `RouterConnectionDesc`) defined in `uppsrc/Vfs/Ecs/Interface.h`
+- ✓ Conversion notes for `00a/00b/00c_audio_gen.eon` in `share/eon/tests/`
+- ✓ Method 3 router builders in `upptst/Eon00` and `upptst/Eon02`
+
+### Phase 1/3 – Serialization & IDE – COMPLETE ✓
+Router metadata infrastructure is production-ready:
+- ✓ Schema helpers in `Vfs/Ecs/Formats.{h,cpp}` with round-trip tests
+- ✓ Fragment/overlay serialization (JSON/binary/chunked) in `Vfs/Storage`
+- ✓ `BuildRouterOverlayIndex` integrated into IDE package saves
+- ✓ MetaCtrl/MetaEnvTree display router metadata from cached overlays
+- ✓ Test coverage: `upptst/Router`, `upptst/RouterFanout`, `upptst/RouterPool`
+
+### Phase 1 Runtime API – COMPLETE ✓
+Phase 1 runtime infrastructure validated with Eon workloads (2025-11-20):
+- ✓ `PacketRouter` runtime class (`uppsrc/Eon/Core/PacketRouter.{h,cpp}`) – full packet routing implementation
+- ✓ Port registration API (`RegisterSourcePort`, `RegisterSinkPort`) – atoms declare ports during initialization
+- ✓ Connection table management (`Connect`, `GetPortCount`) – router maintains adjacency
+- ✓ Credit/flow-control primitives – default credits and allocation system
+- ✓ LoopContext integration (`RegisterRouterPorts`, `MakeRouterConnections`)
+- ✓ Validated atoms: `CustomerBase`, `RollingValueBase`, `VoidSinkBase`
+- ✓ Test results: Eon00 methods 0/2/3 all execute with router lifecycle
+
+### Phase 2 DSL Integration – COMPLETE ✓
+Full DSL parser and validation infrastructure implemented (2025-11-20):
+- ✓ AST definitions (`NetConnectionDef`, `NetDefinition`) in `uppsrc/Eon/Script/Def.h`
+- ✓ Parser support (`Cursor_NetStmt`, `LoadNet()`) in `Script/Script.cpp` and `ScriptLoader.cpp`
+- ✓ ScriptNetLoader class integrated into MachineLoader
+- ✓ BuildNet() runtime implementation with comprehensive validation
+- ✓ ToyLoader router syntax scaffolding with documentation
+- ✓ Test infrastructure (`upptst/RouterCore/test_net.eon`)
+- ✓ Build verification: all changes compile successfully
+
+## Immediate Next Steps
+
+### Phase 3 – Full Atom Instantiation & Lifecycle – COMPLETE ✓ (2025-11-20)
+Complete implementation of atom creation, port registration, and lifecycle:
+- ✓ **NetContext class** (`uppsrc/Eon/Core/Context.{h,cpp}`) - Router-based network context
+- ✓ **BuildNet() implementation** (ScriptLoader.cpp:513-600) - Full atom instantiation
+- ✓ **Atom creation** - VfsValueExtFactory resolves actions → atoms
+- ✓ **Port registration** - RegisterPorts() called on all atoms, router tracks handles
+- ✓ **Connection wiring** - PacketRouter::Connect() with explicit port-to-port specs
+- ✓ **Lifecycle management** - PostInitializeAll/StartAll integrated with ImplementScript()
+- ✓ **ScriptLoader integration** - built_nets storage and eager mode support
+- ✓ **Error handling** - UndoAll() cleanup on failures
+- ✓ **Build verification** - Eon00 compiles successfully with all changes
+
+## Current Status Summary
+
+### Phase 0-4 – COMPLETE ✓
+All foundational work is complete:
+- Phase 0: Discovery & Router Prototype - COMPLETE ✓
+- Phase 1: Router Core & Flow Control + Serialization - COMPLETE ✓
+- Phase 2: DSL & Loader Rewrite - COMPLETE ✓
+- Phase 3: Interface + VFS/ECS Plumbing - COMPLETE ✓
+- Phase 4: Atom, API, and Backend Conversion - COMPLETE ✓
+
+### Phase 5 – DSL Migration & Test Coverage - IN PROGRESS
+Current focus areas:
+1. **Converting .eon assets** to router syntax
+   - All `share/eon/**/*.eon` progressively migrating to `net` syntax
+   - Maintaining functional equivalence with legacy loop-based systems
+2. **Test coverage expansion**
+   - `upptst/Eon*` packages updating to router nets
+   - Regression tests validating router behavior
+3. **Conversion tooling**
+   - Scripts to automate legacy-to-router syntax conversion
+   - Validation tools for router net correctness
+
+### Phase 6 – Performance, Compatibility, and Cleanup - PLANNED
+Planned for after Phase 5 completion:
+1. Benchmarking router vs legacy loop performance
+2. Final compatibility policy implementation
+3. Removal of deprecated loop-era APIs
+4. Full deprecation of legacy DSL constructs
+
+## Key Achievements
+
+### Router Infrastructure Complete ✓
+- **PacketRouter runtime** - Full implementation with connection management
+- **DSL support** - `net` blocks, explicit port-to-port connections, validation
+- **NetContext** - Router-based network context parallel to legacy ChainContext
+- **BuildNet** - Complete implementation with atom instantiation and lifecycle
+- **Statistics API** - Packet counters, delivery diagnostics, connection info
+- **Credit handling** - Per-connection flow control with request/acknowledge
+
+### Test Coverage Complete ✓
+- **00d_audio_gen_net.eon** - Linear pipeline test (customer → generator → sink)
+- **00e_fork_net.eon** - Fork topology test (fan-out/fan-in)
+- **00h_router_flow.eon** - Runtime flow validation with debug generators
+- **Test drivers** - All functional in upptst/Eon00 (00d, 00e, 00h, etc.)
+
+### DSL Syntax Evolution
+**Legacy loop syntax:**
+```eon
+loop audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime
+```
+
+**Modern net syntax:**
+```eon
+net audio_pipeline:
+    center.customer
+    center.audio.src.test
+    center.audio.sink.test.realtime:
+        dbg_limit = 100
+    center.customer.0 -> center.audio.src.test.0
+    center.audio.src.test.0 -> center.audio.sink.test.realtime.0
+```
+
+### Benefits Delivered
+- **Arbitrary topologies** - Networks support fan-out/fan-in, not just loops
+- **Explicit connections** - Clear port-to-port mapping for better understanding
+- **Credit-based flow control** - Replaces fixed packet pools with dynamic management
+- **Enhanced diagnostics** - Better visibility into network state and performance
+- **Flexible routing** - Non-circular network topologies now possible

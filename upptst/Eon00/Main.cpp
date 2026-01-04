@@ -48,6 +48,13 @@ const TestCase kTests[] = {
 	{ Run00aAudioGen, "Run00aAudioGen" },
 	{ Run00bAudioGen, "Run00bAudioGen" },
 	{ Run00cAudioGen, "Run00cAudioGen" },
+	{ Run00dAudioGenNet, "Run00dAudioGenNet" },
+	{ Run00eForkNet, "Run00eForkNet" },
+	{ Run00fDiamondNet, "Run00fDiamondNet" },
+	{ Run00gBranchNet, "Run00gBranchNet" },
+	{ Run00hRouterFlow, "Run00hRouterFlow" },
+	{ Run00iRouterPerf, "Run00iRouterPerf" },
+	{ Run00jAudioGenBridge, "Run00jAudioGenBridge" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

@@ -43,7 +43,25 @@ bool AudioGenBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch)
 	gen.Play((int)offset, out);
 	
 	RTLOG("AudioGenBase::Send: offset " << (int)off << " " << out.ToStringWithHash());
-	
+
+	ValueFormat current_fmt = out.GetFormat();
+	if (packet_router && !router_source_ports.IsEmpty() && current_fmt.IsValid()) {
+		int credits = RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("AudioGenBase::Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(current_fmt);
+		bool routed = EmitViaRouter(src_ch, route_pkt);
+		AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+	}
+
 	return true;
 }
 

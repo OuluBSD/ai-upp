@@ -204,6 +204,11 @@ void MetaEnvTree::DataFocusSelection() {
 	String full_path = pkg.GetFullPath(n.file_hash);
 	String content = LoadFile(full_path);
 	String node_content = GetStringRange(content, a->begin, a->end);
+	ValueMap router_meta = env.GetRouterMetadataForNode(n);
+	if (!router_meta.IsEmpty()) {
+		String meta_json = StoreAsJson(router_meta, true);
+		node_content << "\n\n// Router metadata (overlay index)\n" << meta_json;
+	}
 	code.SetData(node_content);
 }
 

@@ -496,7 +496,7 @@ Image MakeZoomIcon(double scale)
 }
 
 FixedGridCtrl::FixedGridCtrl() {
-	
+
 }
 
 void FixedGridCtrl::SetGridSize(int rows, int cols) {
@@ -519,6 +519,54 @@ void FixedGridCtrl::Layout() {
 		Rect r = RectC(x, y, col_w, row_h);
 		ctrl->SetRect(r);
 	}
+}
+
+void DrawRoundRect(Draw& w, const Rect& r, int radius, Color fill, int stroke_width,
+                   Color stroke)
+{
+	Size sz = r.GetSize();
+	radius = min(min(sz.cx, sz.cy) / 2, radius);
+	if(radius < 1) {
+		w.DrawRect(r.Deflated(stroke_width), fill);
+		DrawFrame(w, r, stroke);
+	}
+	else {
+		StringStream ss;
+		ss % radius % fill % stroke_width % stroke;
+		String key = ss;
+		auto MakeCorner = [&](int x, int y, int c) {
+			return MakeImage(
+				[&] { return key + String(c, 1); },
+				[&] {
+					ImagePainter iw(radius, radius);
+					iw.Clear();
+					iw.Circle(x, y, radius - (double) stroke_width / 2);
+					iw.Fill(fill);
+					iw.Stroke(stroke_width, stroke);
+					return iw.GetResult();
+				}
+			);
+		};
+		w.DrawImage(r.left, r.top, MakeCorner(radius, radius, '1'));
+		w.DrawImage(r.right - radius, r.top, MakeCorner(0, radius, '2'));
+		w.DrawImage(r.left, r.bottom - radius, MakeCorner(radius, 0, '3'));
+		w.DrawImage(r.right - radius, r.bottom - radius, MakeCorner(0, 0, '4'));
+		int tbf = max(radius - stroke_width, 0);
+		w.DrawRect(r.left + radius, r.top, sz.cx - 2 * radius, stroke_width, stroke);
+		w.DrawRect(r.left + radius, r.top + stroke_width, sz.cx - 2 * radius, tbf, fill);
+		w.DrawRect(r.left + radius, r.bottom - stroke_width, sz.cx - 2 * radius, stroke_width, stroke);
+		w.DrawRect(r.left + radius, r.bottom - stroke_width - tbf, sz.cx - 2 * radius, tbf, fill);
+		int h = sz.cy - 2 * radius;
+		w.DrawRect(r.left, r.top + radius, stroke_width, h, stroke);
+		w.DrawRect(r.left + stroke_width, r.top + radius, max(sz.cx - 2 * stroke_width, 0), h, fill);
+		w.DrawRect(r.right - stroke_width, r.top + radius, stroke_width, h, stroke);
+	}
+}
+
+void DrawRoundRect(Draw& w, int x, int y, int cx, int cy, int radius, Color fill,
+                   int stroke_width, Color stroke)
+{
+	DrawRoundRect(w, RectC(x, y, cx, cy), radius, fill, stroke_width, stroke);
 }
 
 }

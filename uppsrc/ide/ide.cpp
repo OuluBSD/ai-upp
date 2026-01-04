@@ -1,6 +1,9 @@
 #ifdef flagGUI
 #include "ide.h"
+
+#ifndef flagV1
 #include "MCP/MCP.h"
+#endif
 
 VectorMap<String, String> git_branch_cache;
 
@@ -575,6 +578,7 @@ void Ide::SetIdeState(int newstate)
 
 void Ide::MakeIcon() {
 	Image li = IdeImg::Icon256();
+#ifndef PLATFORM_POSIX // Kubuntu is using this icon for window while ignoring it in taskbar...
 	WString mp = main.ToWString();
 	if(!IsNull(mp))
 	{
@@ -605,6 +609,7 @@ void Ide::MakeIcon() {
 			                                         IdeImg::IconBuildingLarge256()));
 		li = idraw;
 	}
+#endif
 	LargeIcon(li);
 }
 
@@ -647,7 +652,7 @@ Rect Ide::GetFileInfoRect()
 	Rect r = display.GetScreenRect();
 	r.top = r.bottom - GetStdFontCy() / 2;
 	r.bottom = r.top + GetStdFontCy() + DPI(2);
-	r.left = r.right - HorzLayoutZoom(270);
+	r.left = r.right - Zx(400);
 	return r - GetScreenRect().TopLeft();
 }
 
@@ -661,23 +666,24 @@ void Ide::PaintFileInfo(Draw& w)
 		                (int)tm.year, (int)tm.month, (int)tm.day,
 		                (int)tm.hour, (int)tm.minute, (int)tm.second));
 		                
-		double d = (GetSysTime() - tm) / 60;
+		double d = double(GetSysTime() - tm) / 60;
 		String unit = "minute";
 		auto DoUnit = [&](double m, const char *s) {
 			if(d > m) {
 				d /= m;
 				unit = s;
+				return true;
 			}
+			return false;
 		};
-		DoUnit(60, "hour");
-		DoUnit(24, "day");
-		
-		DoUnit(30.5, "month");
-		DoUnit(12, "year");
+		DoUnit(60, "hour") && DoUnit(24, "day") && DoUnit(30.5, "month") && DoUnit(12, "year");
 		int n = (int)round(d);
 		if(n != 1)
 			unit << "s";
 		qtf << " ([* " << n << ' ' << unit << "] ago), size [* " << FormatFileSize(editfile_length);
+		
+		if(editfile_isreadonly)
+			qtf << "][@B read only  ";
 
 		RichText txt = ParseQTF(qtf);
 		txt.ApplyZoom(GetRichTextStdScreenZoom());
@@ -700,7 +706,9 @@ void Ide::Periodic()
 	if(debugger && debugger->IsFinished() && !IdeIsDebugLock())
 		IdeEndDebug();
 	SyncClang();
-	bool b = display.GetScreenRect().Contains(GetMousePos());
+	Rect r = display.GetScreenRect();
+	r.left = max(r.left, r.right - Zx(150));
+	bool b = r.Contains(GetMousePos());
 	if(fileinfo_visible != b) {
 		RefreshFrame(GetFileInfoRect());
 		fileinfo_visible = b;

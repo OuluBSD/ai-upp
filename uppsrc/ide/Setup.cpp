@@ -396,6 +396,8 @@ void Ide::SetupFormat() {
 	}
 #endif
 
+	bool show_basic_hints = IsBasicHintsEnabled();
+
 	rtvr
 		(hlt.hilite_scope, hs)
 		(hlt.hilite_bracket, hilite_bracket)
@@ -468,12 +470,17 @@ void Ide::SetupFormat() {
 		(ide.setmain_newide, setmain_newide)
 		(ide.gui_font, gui_font_override)
 		(ide.search_downloads, search_downloads)
+<<<<<<< HEAD
 #ifndef flagV1
 		(ai.global_proxy, GlobalProxy())
 		(ai.references, GlobalCreateReferencesFile())
 		(ai.mcp_server_enabled, mcp_server_enabled)
 		(ai.mcp_server_port, mcp_server_port)
 #endif
+=======
+		(ide.show_basic_hints, show_basic_hints)
+		(ide.valgrind, valgrind_options)
+>>>>>>> upstream/master
 	;
 	
 #ifndef flagV1
@@ -632,6 +639,8 @@ void Ide::SetupFormat() {
 		UpdateFormat();
 		
 		web_search.Save();
+		
+		EnableBasicHints(show_basic_hints);
 		
 		if(c == IDEXIT)
 			break;

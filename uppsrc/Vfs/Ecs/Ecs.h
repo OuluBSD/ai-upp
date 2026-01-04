@@ -7,6 +7,10 @@
 #include <Core/EcsDataflow/EcsDataflow.h>
 #include <Geometry/Geometry.h>
 
+#ifdef flagV1
+#error Vfs/Ecs shouldn't be included in V1 build
+#endif
+
 NAMESPACE_UPP
 #include "Component.h"
 #include "Debugging.h"

@@ -1,5 +1,4 @@
 #include "ide.h"
-#include "CommandLineHandler.h"
 
 #ifndef flagGUI
 #include <Core/Core.h>
@@ -120,6 +119,7 @@ void StartEditorMode(const Vector<String>& args, Ide& ide, bool& clset)
 	}
 }
 
+<<<<<<< HEAD
 
 #undef  GUI_APP_MAIN_HOOK
 #define GUI_APP_MAIN_HOOK \
@@ -129,6 +129,8 @@ void StartEditorMode(const Vector<String>& args, Ide& ide, bool& clset)
 		return Upp::GetExitCode(); \
 }
 
+=======
+>>>>>>> upstream/master
 #ifdef DYNAMIC_LIBCLANG
 bool TryLoadLibClang()
 {
@@ -257,17 +259,74 @@ void AppMain___()
 	SetLanguage(lng);
 	SetDefaultCharset(CHARSET_UTF8);
 
-	MainCommandLineHandler cmd_handler(CommandLine());
-	if (cmd_handler.Handle())
-		return;
-	auto arg = clone(cmd_handler.GetArgs());
+	bool dosplash = true;
+	bool debug_exe_mode = false;
 	
-	bool debug_exe_mode = arg.GetCount() && arg[0] == "--debug";
 
+	Vector<String> arg = clone(CommandLine());
+	
+	for(int i = 0; i < arg.GetCount();) {
+		String ca = arg[i];
+		int number = atoi(Filter(ca, CharFilterDigit));
+		auto Info = [](const char *s) {
+		#ifdef PLATFORM_POSIX
+			Cout() << s;
+		#else
+			PromptOK(String() << "[C0 \1" << s); // Console output does not work in Win32 GUI apps
+		#endif
+		};
+		if(findarg(ca, "?", "--help", "-h", "-?", "/?") >= 0) {
+			Info(
+				"Usage:\n"
+				"    theide [file..]               opens given file in editor mode\n"
+				"    theide [assembly] [package]   opens given package from given assembly\n\n"
+				"Common options:\n"
+				"    -v or --version    displays information about version.\n"
+				"    -h or --help       displays this site.\n"
+				"    --nosplash         start without showing splash window\n"
+				"    --scale=number     scales interface by number percent\n"
+			#ifdef PLATFORM_POSIX
+				"    --clangdir dir     specify location of libclang.so\n"
+				"    --noclang          do not use libclang.so (Assist will be disabled)\n"
+			#endif
+			);
+			return;
+		}
+		else
+		if(findarg(ca, "-v", "--version") >= 0) {
+			Info(SplashCtrl::GenerateVersionInfo(false) + "\n");
+			return;
+		}
+		else
+		if(ca == "--nosplash") {
+			dosplash = false;
+			arg.Remove(i);
+		}
+		if(ca.StartsWith("--scale=")) {
+			Font::SetStdFont(StdFont().Height(GetStdFontCy() * minmax(number, 50, 400) / 100));
+			arg.Remove(i);
+		}
+		else
+		if(ca.StartsWith("--gdb_debug_break_process=")) {
+			String error = Gdb::BreakRunning(number);
+			if(!error.IsEmpty()) {
+				Cout() << error << "\n";
+				SetExitCode(-1);
+				return;
+			}
+		}
+		else
+		if(ca == "--debug") {
+			debug_exe_mode = true;
+			arg.Remove(i);
+		}
+		else
+			i++;
+	}
+	
 	SetVppLogSizeLimit(200000000);
 //	SetVppLogSizeLimit(2000000000); _DBG_
 
-	bool dosplash = true;
 	if(debug_exe_mode)
 		dosplash = false;
 	else {
@@ -299,12 +358,6 @@ void AppMain___()
 		if(!FileExists(SearchEnginesFile()))
 			SearchEnginesDefaultSetup();
 	
-		for(int i = 0; i < arg.GetCount(); i++)
-			if(arg[i] == "--nosplash") {
-				dosplash = false;
-				arg.Remove(i);
-				break;
-			}
 		for(int i = 0; i < arg.GetCount(); i++) {
 		#ifdef PLATFORM_WIN32
 			if(arg[i] == "!") {
@@ -414,12 +467,17 @@ void AppMain___()
 					}
 				}
 			}
+<<<<<<< HEAD
 		} else {
 			if(arg.GetCount() >= 2 && IsAssembly(arg[0])) {
+=======
+		}
+		else
+		if(arg.GetCount() == 2 && IsAssembly(arg[0])) {
+>>>>>>> upstream/master
 				LoadVars(arg[0]);
 				ide.SetMain(arg[1]);
 				clset=true;
-			}
 		}
 		
 		ide.LoadAbbr();
@@ -502,12 +560,12 @@ void AppMain___()
 				#endif
 				ide.SaveConfigOnTime();
 				ide.SaveLastMain();
-				ide.DeleteWindows();
 				ide.Close();
 			}
 		}
 		while(IdeAgain);
 
+		ide.DeleteWindows();
 		DelTemps();
 		DeletePCHFiles();
 		ReduceCfgCache();

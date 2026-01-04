@@ -24,7 +24,6 @@ file
 	GdbData.cpp,
 	Gdb.cpp,
 	GdbMem.cpp,
-	GdbUtils.h,
 	GdbUtils.cpp,
 	LLDB readonly separator,
 	LLDB.h,

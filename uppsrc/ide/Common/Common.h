@@ -62,6 +62,7 @@ struct IdeDesigner  {
 	virtual void   EditMenu(Bar& menu) = 0;
 	virtual int    GetCharset() const                               { return -1; }
 	virtual Ctrl&  DesignerCtrl() = 0;
+	virtual String HelpLink() const                                 { return Null; }
 
 	virtual ~IdeDesigner() {}
 };
@@ -133,5 +134,7 @@ String LibClangCommandLineC();
 void   IdeShowConsole();
 
 void QTFEdit(String& text);
+
+void IdeHelpButton(Button& help, const String& link);
 
 #endif

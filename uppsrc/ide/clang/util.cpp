@@ -100,8 +100,55 @@ bool IsVariable(int kind)
 	return findarg(kind, CXCursor_VarDecl, CXCursor_FieldDecl, CXCursor_ParmDecl) >= 0;
 }
 
+<<<<<<< HEAD
 bool IsDecl(int kind) {
 	return kind >= (int)CXCursor_FirstDecl && kind <= (int)CXCursor_LastDecl;
+=======
+int FindId(const String& s, const String& id) {
+	if(id.GetCount() == 0)
+		return -1;
+	int q = 0;
+	int r = -1;
+	for(;;) {
+		q = s.Find(id, q);
+		if(q < 0)
+			break;
+		if((q == 0 || !iscid(s[q - 1])) && // character before id
+		   (q + id.GetCount() >= s.GetCount() || !iscid(s[q + id.GetCount()]))) { // and after..
+			r = q; // need to find last one...
+			q += id.GetCount();
+		}
+		else
+			q++;
+	}
+	return r;
+};
+
+String GetClass(const AnnotationItem& m)
+{
+	String cls = m.id;
+	int q;
+	if(m.kind == CXCursor_Constructor) {
+		q = cls.Find("::" + m.name + "(");
+		if(q >= 0)
+			q += 2;
+	}
+	else
+	if(m.kind == CXCursor_Destructor) {
+		q = cls.Find('~');
+	}
+	else
+		q = FindId(cls, m.name);
+
+	if(q >= 0) {
+		cls.Trim(q);
+		if(m.nspace.GetCount())
+			cls.TrimStart(m.nspace + "::");
+		return cls;
+	}
+	
+	return Null;
+>>>>>>> upstream/master
 }
 
 bool IsTypeDecl(int kind)

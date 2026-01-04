@@ -76,7 +76,7 @@ bool RenamePackageFs(const String& upp, const String& newname, bool duplicate)
 		Exclamation("Wrong name.");
 		return false;
 	}
-	String npf = AppendFileName(GetPackagePathNest(GetFileFolder(upp)), newname);
+	String npf = AppendFileName(GetPathNest(GetFileFolder(upp)), newname);
 	String nupp = npf + "/" + GetFileName(newname) + ".upp";
 
 	if(FileExists(nupp)) {
@@ -251,7 +251,7 @@ SelectPackageDlg::SelectPackageDlg(const char *title, bool selectvars_, bool mai
 				if(i >= 0 && lru.GetCount()) {
 					selected = lru[i].b;
 					LoadVars(lru[i].a);
-					selected_nest = GetPackagePathNest(PackageDirectory(selected));
+					selected_nest = GetPathNest(PackageDirectory(selected));
 					Break(IDYES);
 				}
 			}
@@ -300,11 +300,8 @@ SelectPackageDlg::SelectPackageDlg(const char *title, bool selectvars_, bool mai
 			clist.FindSetCursor(p);
 		}
 	};
-
-	help << [] {
-		LaunchWebBrowser(
-			"https://www.ultimatepp.org/app$ide$PackagesAssembliesAndNests$en-us.html");
-	};
+	
+	IdeHelpButton(help, "PackagesAssembliesAndNests");
 
 	String exf = VarFilePath("[external]");
 	if(!FileExists(exf))

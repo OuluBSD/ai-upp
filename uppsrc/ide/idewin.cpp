@@ -224,7 +224,7 @@ void Ide::IdeSetDebugPos(const String& file, int line, const Image& img, int i)
 	posline[i] = line;
 	posimg[i] = img;
 	EditFile(file);
-	editor.GotoLine(line);
+	editor.GotoBarLine(line);
 	PosSync();
 	Size sz = editor.GetPageSize();
 	Point p = editor.GetScrollPos();
@@ -398,7 +398,10 @@ void Ide::DoDisplay()
 		p = editor.GetColumnLine(editor.GetCursor64());
 	String s;
 	if(IsCustomTitleBar()) {
-		s << "[g \1" << editfile << "\1";
+		s << "[g [";
+		if(editfile_isreadonly)
+			s << "@B";
+		s << " \1" << editfile << "\1]";
 		if(!designer) {
 			s << ": [* " << p.y + 1 << "]:" << p.x + 1;
 			int64 l, h;
@@ -429,7 +432,7 @@ void Ide::DoDisplay()
 		display_main.Set("[g$Y  [* " + m + " ");
 	}
 	else
-		display_main.Set("[g$Y  [@b \1" + GetVarsName() + "\1]: [* " + main + " ");
+		display_main.Set("[g$Y  [@b \1" + GetVarsName() + "\1]: [* \1" + main + "\1 ");
 }
 
 void SetupError(ArrayCtrl& error, const char *s)

@@ -46,6 +46,10 @@ TOPIC("CrossComp_en-gb")
 #include "CrossComp_en-gb.tppi"
 END_TOPIC
 
+TOPIC("EditorBeginnerInfo_en-us")
+#include "EditorBeginnerInfo_en-us.tppi"
+END_TOPIC
+
 TOPIC("Files_en-us")
 #include "Files_en-us.tppi"
 END_TOPIC
@@ -74,12 +78,20 @@ TOPIC("IconDes_en-us")
 #include "IconDes_en-us.tppi"
 END_TOPIC
 
+TOPIC("ImlBeginnerInfo_en-us")
+#include "ImlBeginnerInfo_en-us.tppi"
+END_TOPIC
+
 TOPIC("IntroductionToUPP_en-us")
 #include "IntroductionToUPP_en-us.tppi"
 END_TOPIC
 
 TOPIC("Keys_en-us")
 #include "Keys_en-us.tppi"
+END_TOPIC
+
+TOPIC("LayBeginnerInfo_en-us")
+#include "LayBeginnerInfo_en-us.tppi"
 END_TOPIC
 
 TOPIC("LayoutDes_en-us")

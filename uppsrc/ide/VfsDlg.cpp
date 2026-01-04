@@ -1,6 +1,8 @@
 #ifdef flagGUI
 #include "ide.h"
 
+#ifndef flagV1
+
 INITBLOCK {
 	RegisterGlobalConfig("VfsDlg2");
 }
@@ -48,12 +50,13 @@ VfsDlg::VfsDlg()
 	Title("Vfs Navigator");
 	
 	Add(tabs.SizePos());
-	tabs.Add(menv.SizePos(), "Data");
+    tabs.Add(menv.SizePos(), "Data");
 	tabs.Add(idxr.SizePos(), "Indexer");
 	tabs.Add(task.SizePos(), "Temporary Task Files");
 	tabs.WhenSet = THISBACK(OnTab);
 	
 	menv.dlgmode = true;
+	
 	//search.WhenEnter.Clear();
 	Sizeable().Zoomable();
 	Icon(IdeImg::Navigator());
@@ -181,4 +184,6 @@ void Ide::OpenVfsDlg()
 	//dlg.search.AddHistory();
 	StoreToGlobal(dlg, "VfsDlg");
 }
+
+#endif // !flagV1
 #endif // flagGUI

@@ -127,6 +127,7 @@ void WorkspaceWork::ScanWorkspace() {
         String assembly_dir = GetPackagePathNest(pkg.dir);
         String rel_pkg_dir =GetPackageNestRelativePath(pkg.dir);
         // Record seen directories
+        #ifndef flagV1
         MetaEnv().AddSeenPath(pkg.dir);
         MetaEnv().AddSeenPath(assembly_dir);
         MetaEnv().AddSeenPath(rel_pkg_dir);
@@ -136,6 +137,7 @@ void WorkspaceWork::ScanWorkspace() {
             // Record each file path within the package
             MetaEnv().AddSeenPath(filepath);
         }
+        #endif
         pks.Add(wspc.package.GetKey(i));
     }
 	if(sort && wspc.GetCount()) {

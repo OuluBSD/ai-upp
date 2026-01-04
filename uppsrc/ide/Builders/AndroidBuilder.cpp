@@ -253,7 +253,9 @@ bool AndroidBuilder::Link(
 		}
 		ndkBuild.SetWorkingDir(project->GetDir());
 		ndkBuild.SetJobs(IdeGetHydraThreads());
-		if(host->Execute(ndkBuild.MakeCmd()) != 0 ) {
+		String cmd = ndkBuild.MakeCmd();
+		PutVerbose(cmd);
+		if(host->Execute(cmd) != 0 ) {
 			return false;
 		}
 		PutConsole("Native sources compiled in " + GetPrintTime(time) + ".");

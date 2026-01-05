@@ -1,0 +1,24 @@
+{
+  "phase_id": "v01",
+  "name": "v0.1 \u2014 Core Data & Serialization",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v01.1",
+    "v01.2",
+    "v01.3",
+    "v01.4",
+    "v01.5",
+    "v01.6",
+    "v01.7"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:15.868752",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

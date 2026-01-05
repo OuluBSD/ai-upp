@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p4",
+  "name": "Phase 4: Smart Pointer Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p4-t1",
+    "uppstd-p4-t2",
+    "uppstd-p4-t3",
+    "uppstd-p4-t4",
+    "uppstd-p4-t5",
+    "uppstd-p4-t6",
+    "uppstd-p4-t7",
+    "uppstd-p4-t8",
+    "uppstd-p4-t9",
+    "uppstd-p4-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:47.587541",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,25 @@
+{
+  "phase_id": "performance",
+  "name": "Performance & Optimization",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "performance.1",
+    "performance.2",
+    "performance.3",
+    "performance.4",
+    "profiling-utils",
+    "memory-tracking",
+    "texture-compression",
+    "object-pooling"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:01.368948",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

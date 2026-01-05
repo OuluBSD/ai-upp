@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p9",
+  "name": "Phase 9: Time/Date and Math Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p9-t1",
+    "uppstd-p9-t2",
+    "uppstd-p9-t3",
+    "uppstd-p9-t4",
+    "uppstd-p9-t5",
+    "uppstd-p9-t6",
+    "uppstd-p9-t7",
+    "uppstd-p9-t8",
+    "uppstd-p9-t9",
+    "uppstd-p9-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:54.681407",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

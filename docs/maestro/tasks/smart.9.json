@@ -1,0 +1,18 @@
+{
+  "task_id": "smart.9",
+  "name": "Document ownership patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Document ownership and lifetime patterns"
+  ],
+  "phase_id": "smart",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:23.417866",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

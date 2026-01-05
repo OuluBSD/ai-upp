@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p2-t8",
+  "name": "Add animation support for UI transitions",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p2",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:47.727987",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

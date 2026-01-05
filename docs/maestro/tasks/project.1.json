@@ -1,0 +1,18 @@
+{
+  "task_id": "project.1",
+  "name": "Create project structure",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create ts directory structure"
+  ],
+  "phase_id": "project",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:37.004320",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

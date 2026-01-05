@@ -1,0 +1,20 @@
+{
+  "phase_id": "v6-advanced-tools",
+  "name": "v6 \u2014 Advanced Editing Tools",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v6.0-canvas-power-tools",
+    "v6.1-project-maintenance",
+    "v6.2-ux-polish"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:50.247450",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

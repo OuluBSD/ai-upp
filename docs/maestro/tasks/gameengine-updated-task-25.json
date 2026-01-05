@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-updated-task-25",
+  "name": "Documentation",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-updated-foundation",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:11:23.786338",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-cleanup.3",
+  "name": "API cleanup",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Remove deprecated loop APIs and rename residual Chain/Loop identifiers to Router equivalents"
+  ],
+  "phase_id": "packetrouter-cleanup",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:20.977162",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

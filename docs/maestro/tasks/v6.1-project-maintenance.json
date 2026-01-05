@@ -1,0 +1,16 @@
+{
+  "task_id": "v6.1-project-maintenance",
+  "name": "v6.1 \u2014 Project-Wide Tools & Maintenance",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v6-advanced-tools",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:19.916705",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

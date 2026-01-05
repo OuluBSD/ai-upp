@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p8-t7",
+  "name": "Document thread-safe container access",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p8",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:45.337561",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

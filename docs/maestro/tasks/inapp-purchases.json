@@ -1,0 +1,16 @@
+{
+  "task_id": "inapp-purchases",
+  "name": "In-app purchase support",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "mobile-specific",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:26:20.679936",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

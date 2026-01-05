@@ -1,0 +1,18 @@
+{
+  "task_id": "string.10",
+  "name": "Document string handling",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Document string handling patterns"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:05.545138",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

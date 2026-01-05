@@ -1,0 +1,16 @@
+{
+  "task_id": "input_ui.1",
+  "name": "Touch input handling for mobile platforms",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "input_ui",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:39.218401",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,26 @@
+{
+  "phase_id": "halintegration-backlog",
+  "name": "Backlog",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "halintegration-task-1",
+    "halintegration-task-2",
+    "halintegration-task-3",
+    "halintegration-task-4",
+    "halintegration-task-5",
+    "halintegration-task-6",
+    "halintegration-task-7",
+    "halintegration-task-8",
+    "halintegration-task-9"
+  ],
+  "track_id": "halintegration",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:19:55.910354",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

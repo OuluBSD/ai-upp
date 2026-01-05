@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-core.1",
+  "name": "PacketRouter API definition",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Define the PacketRouter API (port registration, connection tables, credit accounting)"
+  ],
+  "phase_id": "packetrouter-core",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:14:57.309006",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

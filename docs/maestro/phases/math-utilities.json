@@ -1,0 +1,21 @@
+{
+  "phase_id": "math-utilities",
+  "name": "Mathematics & Utilities",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "vector-math",
+    "matrix-transformations",
+    "interpolation-utils",
+    "collision-shapes"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:21.316923",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

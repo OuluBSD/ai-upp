@@ -1,0 +1,16 @@
+{
+  "task_id": "math_utilities.3",
+  "name": "Interpolation utilities (Interpolation class)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "math_utilities",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:27.779315",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

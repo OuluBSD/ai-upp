@@ -1,0 +1,18 @@
+{
+  "task_id": "physics-system.7",
+  "name": "Add solver utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add solver utilities"
+  ],
+  "phase_id": "physics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:28:10.130563",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "v2.2-animation-integration",
+  "name": "v2.2 \u2014 Entity Animation Integration",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v2-entity-editor",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:08.449553",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

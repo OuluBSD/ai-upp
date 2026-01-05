@@ -1,0 +1,21 @@
+{
+  "phase_id": "v2-entity-editor",
+  "name": "v2 \u2014 Entity Editor Alpha",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v2.0-entity-model",
+    "v2.1-entity-gui",
+    "v2.2-animation-integration",
+    "v2.3-behavior-system"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:44.572890",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "v0.2-gui-shell",
+  "name": "v0.2 \u2014 GUI Shell",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v0-foundations",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:58.439827",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

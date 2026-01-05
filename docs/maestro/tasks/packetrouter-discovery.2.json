@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-discovery.2",
+  "name": "NetContext prototype",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Build a NetContext spike inside upptst/Eon00 (method 2 builder) that wires Atoms through an in-memory router"
+  ],
+  "phase_id": "packetrouter-discovery",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:14:54.420443",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

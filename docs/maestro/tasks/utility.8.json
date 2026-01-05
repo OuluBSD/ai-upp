@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.8",
+  "name": "Implement sorting and searching",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement sorting and searching functions"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:39.209250",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

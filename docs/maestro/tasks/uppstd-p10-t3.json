@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p10-t3",
+  "name": "Map U++ Draw to graphics library equivalents (or console image handling)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p10",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:48:08.818001",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

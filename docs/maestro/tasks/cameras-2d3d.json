@@ -1,0 +1,16 @@
+{
+  "task_id": "cameras-2d3d",
+  "name": "2D/3D camera implementations with different projection types",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "graphics-rendering",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:54.485719",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "v1.2-timeline",
+  "name": "v1.2 \u2014 Timeline",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v1-animation-editor",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:03.415144",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

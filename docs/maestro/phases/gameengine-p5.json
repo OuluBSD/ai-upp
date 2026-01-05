@@ -1,0 +1,24 @@
+{
+  "phase_id": "gameengine-p5",
+  "name": "Networking Implementation",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p5-t1",
+    "gameengine-p5-t2",
+    "gameengine-p5-t3",
+    "gameengine-p5-t4",
+    "gameengine-p5-t5",
+    "gameengine-p5-t6",
+    "gameengine-p5-t7"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:18.889783",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

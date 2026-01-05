@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-discovery.3",
+  "name": "Port descriptor specification",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Decide on the canonical port descriptor (name, direction, atom-local index, metadata flags)"
+  ],
+  "phase_id": "packetrouter-discovery",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:14:55.899206",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

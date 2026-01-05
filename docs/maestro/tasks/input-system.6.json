@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.6",
+  "name": "Create Event system",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Event system for input events"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:36.187203",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.8",
+  "name": "Add animation utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add animation utilities"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:20.078727",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

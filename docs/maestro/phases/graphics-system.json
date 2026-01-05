@@ -1,0 +1,27 @@
+{
+  "phase_id": "graphics-system",
+  "name": "Graphics System",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "graphics-system.1",
+    "graphics-system.2",
+    "graphics-system.3",
+    "graphics-system.4",
+    "graphics-system.5",
+    "graphics-system.6",
+    "graphics-system.7",
+    "graphics-system.8",
+    "graphics-system.9",
+    "graphics-system.10"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:05:06.467942",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "halintegration-task-1",
+  "name": "Enhance InputSystem: Improve gamepad support with actual HAL integration",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "halintegration-backlog",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:19:57.188547",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

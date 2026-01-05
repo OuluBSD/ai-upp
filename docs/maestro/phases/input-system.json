@@ -1,0 +1,26 @@
+{
+  "phase_id": "input-system",
+  "name": "Input System",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "input-system.1",
+    "input-system.2",
+    "input-system.3",
+    "input-system.4",
+    "input-system.5",
+    "input-system.6",
+    "input-system.7",
+    "input-system.8",
+    "input-system.9"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:05:09.262504",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

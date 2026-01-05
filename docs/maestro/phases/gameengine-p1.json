@@ -1,0 +1,28 @@
+{
+  "phase_id": "gameengine-p1",
+  "name": "Core Math and Utilities Enhancement",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p1-t1",
+    "gameengine-p1-t2",
+    "gameengine-p1-t3",
+    "gameengine-p1-t4",
+    "gameengine-p1-t5",
+    "gameengine-p1-t6",
+    "gameengine-p1-t7",
+    "gameengine-p1-t8",
+    "gameengine-p1-t9",
+    "gameengine-p1-t10",
+    "gameengine-p1-t11"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:13.720106",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

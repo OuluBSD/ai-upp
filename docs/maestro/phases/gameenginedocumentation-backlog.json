@@ -1,0 +1,26 @@
+{
+  "phase_id": "gameenginedocumentation-backlog",
+  "name": "Backlog",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameenginedocumentation-task1",
+    "gameenginedocumentation-task2",
+    "gameenginedocumentation-task3",
+    "gameenginedocumentation-task4",
+    "gameenginedocumentation-task5",
+    "gameenginedocumentation-task6",
+    "gameenginedocumentation-task7",
+    "gameenginedocumentation-task8",
+    "gameenginedocumentation-task9"
+  ],
+  "track_id": "gameenginedocumentation",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:08:36.796760",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

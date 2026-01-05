@@ -1,0 +1,22 @@
+{
+  "track_id": "packetrouter",
+  "name": "PacketRouter",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "packetrouter-discovery",
+    "packetrouter-core",
+    "packetrouter-dsl",
+    "packetrouter-plumbing",
+    "packetrouter-backend",
+    "packetrouter-migration",
+    "packetrouter-cleanup"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:33:09.525282",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "project.6",
+  "name": "Set up documentation generation",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Set up documentation generation (TypeDoc)"
+  ],
+  "phase_id": "project",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:43.583294",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

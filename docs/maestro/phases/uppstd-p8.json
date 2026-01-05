@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p8",
+  "name": "Phase 8: Threading and Concurrency Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p8-t1",
+    "uppstd-p8-t2",
+    "uppstd-p8-t3",
+    "uppstd-p8-t4",
+    "uppstd-p8-t5",
+    "uppstd-p8-t6",
+    "uppstd-p8-t7",
+    "uppstd-p8-t8",
+    "uppstd-p8-t9",
+    "uppstd-p8-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:53.248285",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,23 @@
+{
+  "track_id": "shadereditor",
+  "name": "ShaderEditor",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "interactive",
+    "advanced",
+    "productivity",
+    "shadertoy",
+    "known",
+    "build",
+    "reference",
+    "dependencies"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:36:57.920843",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

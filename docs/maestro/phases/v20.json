@@ -1,0 +1,16 @@
+{
+  "phase_id": "v20",
+  "name": "v2.0 \u2014 Entity Model & Serialization",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:25.113042",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

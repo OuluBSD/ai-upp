@@ -1,0 +1,19 @@
+{
+  "phase_id": "v7-export-pipeline",
+  "name": "v7 \u2014 Export, Packaging, and Pipelines",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v7.0-export-tools",
+    "v7.1-import-tools"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:51.681375",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

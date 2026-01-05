@@ -1,0 +1,23 @@
+{
+  "phase_id": "physics",
+  "name": "Physics",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "physics.1",
+    "physics.2",
+    "physics.3",
+    "box2d-integration",
+    "collision-detection",
+    "joint-systems"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:49.828408",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "version.4",
+  "name": "Timeline Recording",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement timeline recording and JSON serialization"
+  ],
+  "phase_id": "version",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:41:46.481046",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

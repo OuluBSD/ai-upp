@@ -1,0 +1,19 @@
+{
+  "phase_id": "v8-stability",
+  "name": "v8 \u2014 Stability, QA, and Documentation",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v8.0-stability-qa",
+    "v8.1-documentation"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:53.104639",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "v1.1-parts-panel",
+  "name": "v1.1 \u2014 Parts Panel",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v1-animation-editor",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:02.159030",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

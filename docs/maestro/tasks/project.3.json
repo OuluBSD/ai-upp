@@ -1,0 +1,18 @@
+{
+  "task_id": "project.3",
+  "name": "Configure package.json",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Configure package.json with dependencies"
+  ],
+  "phase_id": "project",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:39.634337",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

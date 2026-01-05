@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.10",
+  "name": "Document graphics patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Document graphics patterns"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:23.121214",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,25 @@
+{
+  "track_id": "uppstd",
+  "name": "U++ to STL Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "uppstd-p1",
+    "uppstd-p2",
+    "uppstd-p3",
+    "uppstd-p4",
+    "uppstd-p5",
+    "uppstd-p6",
+    "uppstd-p7",
+    "uppstd-p8",
+    "uppstd-p9",
+    "uppstd-p10"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:58:08.342473",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

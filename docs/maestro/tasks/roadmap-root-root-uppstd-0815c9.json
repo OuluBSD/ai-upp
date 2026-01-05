@@ -1,0 +1,29 @@
+{
+  "task_id": "roadmap-root-root-uppstd-0815c9",
+  "name": "Uppstd",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: roadmap/uppstd.md",
+    "Summary: U++ to STL Mapping Project Roadmap",
+    "Excerpt:",
+    "  # U++ to STL Mapping Project Roadmap",
+    "  This roadmap outlines the comprehensive mapping between U++ and STL C++ features for code conversion, organized into 10 phases with 10 tasks per phase.",
+    "  ## Implementation Location",
+    "  The actual implementation of this mapping will take place in the following stdmap subdirectories:",
+    "  - `stdmap/Core/` - For Core package mappings",
+    "  - `stdmap/Draw/` - For Draw package mappings"
+  ],
+  "phase_id": "roadmap-root-root",
+  "completed": false,
+  "created_at": "2025-11-22T17:20:12.083293",
+  "updated_at": "2025-11-22T17:20:12.083293",
+  "tags": [
+    "imported",
+    "roadmap"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

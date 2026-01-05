@@ -1,0 +1,21 @@
+{
+  "track_id": "task-root",
+  "name": "Task (root)",
+  "status": "planned",
+  "completion": 0,
+  "description": [
+    "Imported from Task (root) sources."
+  ],
+  "phases": [
+    "task-root-root"
+  ],
+  "priority": 0,
+  "created_at": "2026-01-04T18:44:49.325797",
+  "updated_at": "2026-01-04T18:44:49.325797",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "is_top_priority": false
+}

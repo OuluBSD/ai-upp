@@ -1,0 +1,29 @@
+{
+  "task_id": "task-notes-root-packet-router-phase2-dsl-a7c64e",
+  "name": "Packet Router Phase2 Dsl",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/notes/packet_router_phase2_dsl.md",
+    "Summary: PacketRouter Phase 2 \u2013 DSL Integration",
+    "Excerpt:",
+    "  # PacketRouter Phase 2 \u2013 DSL Integration",
+    "  ## Goal",
+    "  Migrate the parser/AST from loop-based `chain`/`loop` blocks to explicit `net` definitions so every atom declares ports by name, connections are enumerated with `atom:port -> atom:port`, and loader code can instantiate router graphs directly.",
+    "  ## Current State",
+    "  - `NetDefinition`, `NetConnectionDef`, and `MachineDefinition::nets` live in `uppsrc/Eon/Script/Def.h`, and the AST now produces `Cursor_NetStmt` nodes via `uppsrc/Vfs/AstBuilder.cpp`/`uppsrc/Vfs/Ast.cpp` so `net` blocks enter the same pipeline as chains.",
+    "  - `ScriptLoader::LoadMachine` (see `uppsrc/Eon/Script/ScriptLoader.cpp`) recognizes `Cursor_NetStmt`, resolves the dotted net id, and calls `LoadNet`, which parses inline atoms, optional states, and textual `atom.port -> atom.port` (or `atom:port`) expressions to populate `Eon::NetDefinition`."
+  ],
+  "phase_id": "task-notes-root",
+  "completed": false,
+  "created_at": "2026-01-04T18:44:49.339377",
+  "updated_at": "2026-01-04T18:44:49.339377",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

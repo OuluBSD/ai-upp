@@ -1,0 +1,28 @@
+{
+  "phase_id": "task-notes-root",
+  "name": "Root",
+  "status": "in_progress",
+  "completion": 33,
+  "description": [
+    "Imported from Task: Notes / Root"
+  ],
+  "tasks": [
+    "task-notes-root-packet-router-links-8fbf6b",
+    "task-notes-root-packet-router-phase1-runtime-c32538",
+    "task-notes-root-packet-router-phase2-dsl-a7c64e",
+    "task-notes-root-packet-router-phase4-runtime-958af6",
+    "task-notes-root-packet-router-sync-225fa5",
+    "task-notes-root-packet-router-vfs-alignment-f186f5"
+  ],
+  "track_id": "task-notes",
+  "priority": 0,
+  "created_at": "2026-01-04T18:44:49.347407",
+  "updated_at": "2026-01-04T18:44:49.347407",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

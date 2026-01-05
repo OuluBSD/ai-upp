@@ -1,0 +1,29 @@
+{
+  "task_id": "task-root-root-todo-714489",
+  "name": "Todo",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/TODO.md",
+    "Summary: TODO Thread",
+    "Excerpt:",
+    "  # TODO Thread",
+    "  **Goal**: Collection of future enhancement tasks and feature additions",
+    "  ## Status: BACKLOG",
+    "  ---",
+    "  ## IdeDropdownTerminal Enhancement Tasks",
+    "  - [ ] Create and implement KillCaret and SetCaret functions that are missing from TabbedTerminalExample"
+  ],
+  "phase_id": "task-root-root",
+  "completed": false,
+  "created_at": "2025-11-16T21:12:52.309227",
+  "updated_at": "2025-11-16T21:12:52.309227",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

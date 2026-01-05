@@ -1,0 +1,29 @@
+{
+  "task_id": "task-root-root-animedit-258028",
+  "name": "Animedit",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/animedit.md",
+    "Summary: AnimEdit Current Task Status",
+    "Excerpt:",
+    "  # AnimEdit Current Task Status",
+    "  Tracking Progress Through v1.3 \u2014 Right\u2011Side Lists",
+    "  ## Current Focus: Major Version 1 \u2014 Animation Editor Alpha",
+    "  Based on the roadmap in `/roadmap/animedit.md`, we are currently completing the v1.3 milestone of Major Version 1. Here's what has been accomplished and what remains:",
+    "  ---",
+    "  ## \u2705 **Completed Milestones**"
+  ],
+  "phase_id": "task-root-root",
+  "completed": true,
+  "created_at": "2025-11-24T00:08:55.101339",
+  "updated_at": "2025-11-24T00:08:55.101339",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

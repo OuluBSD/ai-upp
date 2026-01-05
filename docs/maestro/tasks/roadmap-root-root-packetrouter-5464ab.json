@@ -1,0 +1,29 @@
+{
+  "task_id": "roadmap-root-root-packetrouter-5464ab",
+  "name": "Packetrouter",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: roadmap/PacketRouter.md",
+    "Summary: Packet Router Migration Roadmap",
+    "Excerpt:",
+    "  # Packet Router Migration Roadmap",
+    "  **Goal:** Replace the loop-centric Eon dataflow runtime with a router-based architecture where Atoms expose explicit ports and all packet movement is mediated by a PacketRouter rather than Link chains.",
+    "  ---",
+    "  ## Context & Targets",
+    "  - **Task thread:** `task/PacketRouter.md` \u2014 convert loop-based Eon graphs into router-managed networks.",
+    "  - **Primary motivator:** Side links, customers, and loop balancing no longer match how we want packet flow to work. We need uniform, nameable ports, router-managed flow control, and more flexible network topology."
+  ],
+  "phase_id": "roadmap-root-root",
+  "completed": false,
+  "created_at": "2026-01-04T18:44:49.053580",
+  "updated_at": "2026-01-04T18:44:49.053580",
+  "tags": [
+    "imported",
+    "roadmap"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

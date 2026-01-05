@@ -1,0 +1,29 @@
+{
+  "task_id": "task-notes-root-packet-router-links-8fbf6b",
+  "name": "Packet Router Links",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/notes/packet_router_links.md",
+    "Summary: Packet Router \u2013 Link & Customer Inventory",
+    "Excerpt:",
+    "  # Packet Router \u2013 Link & Customer Inventory",
+    "  This note captures where loop-era constructs (Customers, Link factories, and side-link plumbing) live today. It is the seed list for Phase\u202f0 discovery so we know exactly what needs to be untangled before dropping routers in.",
+    "  ## CustomerBase Touch Points",
+    "  - **Core implementation:** `uppsrc/Eon/Core/Base.h` and `Base.cpp` define `CustomerBase`, provide loop-queue helpers (`EnsureAudioDefaultQueue`, `Recv/Send`, `ForwardPacket`), and expose the lifecycle hooks that all customer atoms inherit.",
+    "  - **ChainContext usage:** `uppsrc/Eon/Core/Context.cpp:414` dynamically casts atoms to `CustomerBase` during `ChainContext::PostInitializeAll()` to apply queue sizing rules per loop.",
+    "  - **Script guidance:** `uppsrc/Eon/Core/AGENTS.md:157` documents loop priming behavior and the default queue size bump performed for audio customers."
+  ],
+  "phase_id": "task-notes-root",
+  "completed": false,
+  "created_at": "2026-01-04T18:44:49.334340",
+  "updated_at": "2026-01-04T18:44:49.334340",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

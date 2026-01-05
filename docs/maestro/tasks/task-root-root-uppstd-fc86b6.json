@@ -1,0 +1,29 @@
+{
+  "task_id": "task-root-root-uppstd-fc86b6",
+  "name": "Uppstd",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/uppstd.md",
+    "Summary: uppstd Thread",
+    "Excerpt:",
+    "  # uppstd Thread",
+    "  **Goal**: Create comprehensive mapping between U++ and STL C++ features for code conversion",
+    "  ## Status: IN_PROGRESS",
+    "  ---",
+    "  ## Overview",
+    "  This thread is about mapping U++ and STL c++ features in a way that we know what to replace with what. It's more like documentation for AI than actual code, though we can implement code if that's the best solution."
+  ],
+  "phase_id": "task-root-root",
+  "completed": false,
+  "created_at": "2025-11-22T17:20:12.083293",
+  "updated_at": "2025-11-22T17:20:12.083293",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,29 @@
+{
+  "task_id": "roadmap-root-root-uppts-e3850e",
+  "name": "Uppts",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: roadmap/uppts.md",
+    "Summary: U++ to TypeScript/Node.js Interface Roadmap",
+    "Excerpt:",
+    "  # U++ to TypeScript/Node.js Interface Roadmap",
+    "  This roadmap outlines the creation of a TypeScript/Node.js interface library (uppts) that provides a U++-like API but is implemented using TypeScript core features and external npm packages.",
+    "  ## Project Goal",
+    "  Create a TypeScript package that:",
+    "  - Provides familiar U++ class names and method signatures",
+    "  - Implements functionality using TypeScript/JavaScript features and npm libraries"
+  ],
+  "phase_id": "roadmap-root-root",
+  "completed": true,
+  "created_at": "2025-11-27T04:10:14.541579",
+  "updated_at": "2025-11-27T04:10:14.541579",
+  "tags": [
+    "imported",
+    "roadmap"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

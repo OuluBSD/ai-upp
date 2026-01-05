@@ -1,0 +1,29 @@
+{
+  "task_id": "task-notes-root-packet-router-vfs-alignment-f186f5",
+  "name": "Packet Router Vfs Alignment",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/notes/packet_router_vfs_alignment.md",
+    "Summary: Packet Router \u2013 VFS/ECS Serialization Alignment",
+    "Excerpt:",
+    "  # Packet Router \u2013 VFS/ECS Serialization Alignment",
+    "  Context Links",
+    "  - `uppsrc/Vfs/Ecs/AGENTS.md`: runtime owns Atom/Link registration via `VfsValueExtFactory`; every new descriptor must enter through the Factory layer.",
+    "  - `uppsrc/Vfs/Storage/AGENTS.md`: storage package documents on-disk formats and should stay header-only until new schema lands.",
+    "  ## Phase 3 Alignment Status",
+    "  ### Descriptor placement"
+  ],
+  "phase_id": "task-notes-root",
+  "completed": true,
+  "created_at": "2026-01-04T18:44:49.347407",
+  "updated_at": "2026-01-04T18:44:49.347407",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

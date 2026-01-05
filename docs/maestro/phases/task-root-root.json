@@ -1,0 +1,38 @@
+{
+  "phase_id": "task-root-root",
+  "name": "Root",
+  "status": "in_progress",
+  "completion": 50,
+  "description": [
+    "Imported from Task (root) / Root"
+  ],
+  "tasks": [
+    "task-root-root-animedit-258028",
+    "task-root-root-eonpatternintegration-fdbcb9",
+    "task-root-root-gameengine-1f82e8",
+    "task-root-root-gameengine-updated-38ca73",
+    "task-root-root-gameenginedocumentation-3b487e",
+    "task-root-root-halintegration-8b1f29",
+    "task-root-root-libgdxcomparison-db939d",
+    "task-root-root-packetrouter-bb0d79",
+    "task-root-root-readme-91ac77",
+    "task-root-root-shadereditor-8d072e",
+    "task-root-root-stdsrc-597c40",
+    "task-root-root-todo-714489",
+    "task-root-root-uppstd-fc86b6",
+    "task-root-root-uppts-b1dd4a",
+    "task-root-root-vfs-bc1e13",
+    "task-root-root-vfsshell-4b027a"
+  ],
+  "track_id": "task-root",
+  "priority": 0,
+  "created_at": "2026-01-04T18:44:49.325797",
+  "updated_at": "2026-01-04T18:44:49.325797",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

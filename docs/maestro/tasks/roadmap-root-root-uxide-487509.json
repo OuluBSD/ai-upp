@@ -1,0 +1,29 @@
+{
+  "task_id": "roadmap-root-root-uxide-487509",
+  "name": "Uxide",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: roadmap/uxide.md",
+    "Summary: UX IDE Project Roadmap",
+    "Excerpt:",
+    "  # UX IDE Project Roadmap",
+    "  **User Experience Integrated Development Environment for Ultimate++**",
+    "  ---",
+    "  ## Project Overview",
+    "  ### Vision",
+    "  Create a comprehensive tool for designing, analyzing, and generating GUI applications based on user state machines and user-centered design principles."
+  ],
+  "phase_id": "roadmap-root-root",
+  "completed": true,
+  "created_at": "2025-11-13T12:21:42.944803",
+  "updated_at": "2025-11-13T12:21:42.944803",
+  "tags": [
+    "imported",
+    "roadmap"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

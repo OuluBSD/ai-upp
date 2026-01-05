@@ -1,0 +1,29 @@
+{
+  "task_id": "roadmap-root-root-animedit-9d62f1",
+  "name": "Animedit",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: roadmap/animedit.md",
+    "Summary: AnimEdit / AnimEditLib Full Development Roadmap",
+    "Excerpt:",
+    "  # AnimEdit / AnimEditLib Full Development Roadmap",
+    "  Versioned, Multi\u2011Phase, Long\u2011Term Plan",
+    "  =====================================",
+    "  This roadmap describes the complete progression from the current prototype to a fully working,",
+    "  production\u2011ready animation, entity, and world\u2011integration editor suite.",
+    "  It includes **major versions**, **minor versions**, and **well over 100 detailed tasks**."
+  ],
+  "phase_id": "roadmap-root-root",
+  "completed": false,
+  "created_at": "2025-11-24T00:08:55.101339",
+  "updated_at": "2025-11-24T00:08:55.101339",
+  "tags": [
+    "imported",
+    "roadmap"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

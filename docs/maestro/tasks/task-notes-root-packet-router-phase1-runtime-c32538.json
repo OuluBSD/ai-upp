@@ -1,0 +1,29 @@
+{
+  "task_id": "task-notes-root-packet-router-phase1-runtime-c32538",
+  "name": "Packet Router Phase1 Runtime",
+  "status": "todo",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Source: task/notes/packet_router_phase1_runtime.md",
+    "Summary: PacketRouter Phase 1 \u2013 Runtime API Implementation",
+    "Excerpt:",
+    "  # PacketRouter Phase 1 \u2013 Runtime API Implementation",
+    "  ## Goal",
+    "  Replace the loop-based Exchange/Link runtime with a router that owns port registration, connections, and credit-aware packet delivery so atoms can emit via an explicit router API and downstream packages stop depending on `CustomerBase` queues.",
+    "  ## Current State",
+    "  - `uppsrc/Eon/Core/PacketRouter.{h,cpp}` now drives the runtime: ports are tracked via `RouterPortDesc`, connections live in a dedicated `connection_table`, credits are granted/requested, `DisconnectAtom` can tear down endpoints, and diagnostics include topology, port status, and connection tables.",
+    "  - `uppsrc/Eon/Core/Atom.h` stores per-atom `router_sink_ports`/`router_source_ports`, exposes `RegisterSinkPort`, `RegisterSourcePort`, and lets atoms call `EmitViaRouter` once a router registers their ports; `PacketRouter::PortHandle` caching keeps the router pointer on the atom for the duration of the net."
+  ],
+  "phase_id": "task-notes-root",
+  "completed": false,
+  "created_at": "2026-01-04T18:44:49.336854",
+  "updated_at": "2026-01-04T18:44:49.336854",
+  "tags": [
+    "imported",
+    "task"
+  ],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

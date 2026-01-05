@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.9",
+  "name": "Document input patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Document input patterns"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:40.512322",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

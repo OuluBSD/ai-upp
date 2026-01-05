@@ -1,0 +1,29 @@
+{
+  "phase_id": "gameengine-p3",
+  "name": "Advanced Rendering Features",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p3-t1",
+    "gameengine-p3-t2",
+    "gameengine-p3-t3",
+    "gameengine-p3-t4",
+    "gameengine-p3-t5",
+    "gameengine-p3-t6",
+    "gameengine-p3-t7",
+    "gameengine-p3-t8",
+    "gameengine-p3-t9",
+    "gameengine-p3-t10",
+    "gameengine-p3-t11",
+    "gameengine-p3-t12"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:16.264756",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

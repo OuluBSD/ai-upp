@@ -1,0 +1,31 @@
+{
+  "phase_id": "gameengine-p6",
+  "name": "Tooling and Debugging",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p6-t1",
+    "gameengine-p6-t2",
+    "gameengine-p6-t3",
+    "gameengine-p6-t4",
+    "gameengine-p6-t5",
+    "gameengine-p6-t6",
+    "gameengine-p6-t7",
+    "gameengine-p6-t8",
+    "gameengine-p6-t9",
+    "gameengine-p6-t10",
+    "gameengine-p6-t11",
+    "gameengine-p6-t12",
+    "gameengine-p6-t13",
+    "gameengine-p6-t14"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:20.203490",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

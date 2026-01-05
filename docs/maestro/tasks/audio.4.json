@@ -1,0 +1,16 @@
+{
+  "task_id": "audio.4",
+  "name": "3D spatial audio with proper attenuation models",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "audio",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:37.440228",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

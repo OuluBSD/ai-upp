@@ -1,0 +1,16 @@
+{
+  "phase_id": "v1",
+  "name": "v1 -- Animation Editor Alpha",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:53:17.352318",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

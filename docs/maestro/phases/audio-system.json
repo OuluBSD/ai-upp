@@ -1,0 +1,26 @@
+{
+  "phase_id": "audio-system",
+  "name": "Audio System",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "audio-system.1",
+    "audio-system.2",
+    "audio-system.3",
+    "audio-system.4",
+    "audio-system.5",
+    "audio-system.6",
+    "audio-system.7",
+    "audio-system.8",
+    "audio-system.9"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:05:07.859372",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

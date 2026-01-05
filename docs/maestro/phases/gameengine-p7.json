@@ -1,0 +1,25 @@
+{
+  "phase_id": "gameengine-p7",
+  "name": "Platform Integrations",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p7-t1",
+    "gameengine-p7-t2",
+    "gameengine-p7-t3",
+    "gameengine-p7-t4",
+    "gameengine-p7-t5",
+    "gameengine-p7-t6",
+    "gameengine-p7-t7",
+    "gameengine-p7-t8"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:21.498734",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

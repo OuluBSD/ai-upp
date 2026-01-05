@@ -1,0 +1,27 @@
+{
+  "phase_id": "utility",
+  "name": "Utility Classes and Functions",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "utility.1",
+    "utility.2",
+    "utility.3",
+    "utility.4",
+    "utility.5",
+    "utility.6",
+    "utility.7",
+    "utility.8",
+    "utility.9",
+    "utility.10"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:03:52.122195",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

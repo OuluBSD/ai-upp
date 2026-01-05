@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p4-t8",
+  "name": "Create smart pointer conversion examples",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p4",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:50.109853",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

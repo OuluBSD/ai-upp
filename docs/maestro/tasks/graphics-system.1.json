@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.1",
+  "name": "Implement Canvas class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Canvas class for 2D graphics"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:09.059519",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

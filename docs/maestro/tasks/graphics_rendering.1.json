@@ -1,0 +1,16 @@
+{
+  "task_id": "graphics_rendering.1",
+  "name": "Sprite batching system for efficient 2D rendering",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "graphics_rendering",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:03.338485",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

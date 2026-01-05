@@ -1,0 +1,18 @@
+{
+  "task_id": "shadertoy.1",
+  "name": "sttf.parser",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement STTF parser for ShaderToy projects"
+  ],
+  "phase_id": "shadertoy",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:41:34.553263",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

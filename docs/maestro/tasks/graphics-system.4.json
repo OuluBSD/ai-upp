@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.4",
+  "name": "Add Color utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add Color utilities"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:14.161099",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

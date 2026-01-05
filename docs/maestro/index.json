@@ -1,9 +1,5 @@
 {
-  "tracks": [
-    "roadmap-root",
-    "task-notes",
-    "task-root"
-  ],
+  "tracks": [],
   "top_priority_track": null,
   "created_at": null,
   "updated_at": "2026-01-05T16:19:46.455741"

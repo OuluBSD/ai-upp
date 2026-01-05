@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p7-t8",
+  "name": "Native dialog boxes",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p7",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:05:49.468066",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

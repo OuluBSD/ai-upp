@@ -1,0 +1,18 @@
+{
+  "task_id": "dependencies.1",
+  "name": "opengl.integration",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Ensure OpenGL backend dependency is properly integrated"
+  ],
+  "phase_id": "dependencies",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:41:27.829966",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

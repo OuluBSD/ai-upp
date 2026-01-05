@@ -1,11 +1,11 @@
 {
-  "last_resolved_at": "2026-01-05T16:18:01.603114",
+  "last_resolved_at": "2026-01-05T17:15:20.207797",
   "repo_root": "/e/active/sblo/Dev/ai-upp",
   "repo_model_path": "docs/maestro/repo_model.json",
   "packages_count": 1456,
   "assemblies_count": 29,
   "user_assemblies_count": 0,
-  "internal_packages_count": 0,
-  "unknown_count": 0,
+  "internal_packages_count": 24,
+  "unknown_count": 2891,
   "scanner_version": "0.9.0"
 }

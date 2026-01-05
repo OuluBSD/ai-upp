@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.3",
+  "name": "Implement Touch class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Touch class for touch input"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:31.860010",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

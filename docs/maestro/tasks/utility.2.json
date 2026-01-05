@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.2",
+  "name": "Create Optional<T>",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Optional<T> for nullable values"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:30.352786",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

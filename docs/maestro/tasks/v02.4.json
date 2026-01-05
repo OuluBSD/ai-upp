@@ -1,0 +1,16 @@
+{
+  "task_id": "v02.4",
+  "name": "Create placeholder windows: Animation Editor, Entity Editor, Texture Editor",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v02",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:44.613047",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

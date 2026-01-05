@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-migration.2",
+  "name": "Test package updates",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Update every upptst/Eon* package to the router AST (method 2 builders, generated sources)"
+  ],
+  "phase_id": "packetrouter-migration",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:15.443113",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

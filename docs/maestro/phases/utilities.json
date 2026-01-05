@@ -1,0 +1,27 @@
+{
+  "phase_id": "utilities",
+  "name": "Utilities",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "utilities.1",
+    "utilities.2",
+    "utilities.3",
+    "utilities.4",
+    "utilities.5",
+    "json-serialization",
+    "xml-parsing",
+    "logging-system",
+    "timer-scheduling",
+    "async-tasks"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:55.690442",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

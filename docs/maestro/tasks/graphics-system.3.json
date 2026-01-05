@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.3",
+  "name": "Implement Font class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Font class for text rendering"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:12.439131",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

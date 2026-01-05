@@ -1,0 +1,16 @@
+{
+  "task_id": "v3.0-texture-slots",
+  "name": "v3.0 \u2014 Texture Slot Models",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v3-texture-editor",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:10.986741",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

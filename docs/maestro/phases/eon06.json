@@ -1,0 +1,16 @@
+{
+  "phase_id": "eon06",
+  "name": "Eon06",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "vfs",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:42:05.079214",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

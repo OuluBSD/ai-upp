@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p3-t8",
+  "name": "Map encoding and locale handling",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p3",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:35.660786",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

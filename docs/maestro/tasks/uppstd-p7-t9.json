@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p7-t9",
+  "name": "Map file system operations",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p7",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:34.166650",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

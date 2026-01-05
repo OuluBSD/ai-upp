@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.5",
+  "name": "Implement InputManager",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement InputManager for handling multiple input sources"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:34.757573",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

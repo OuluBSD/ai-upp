@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p5",
+  "name": "Phase 5: Utility Classes Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p5-t1",
+    "uppstd-p5-t2",
+    "uppstd-p5-t3",
+    "uppstd-p5-t4",
+    "uppstd-p5-t5",
+    "uppstd-p5-t6",
+    "uppstd-p5-t7",
+    "uppstd-p5-t8",
+    "uppstd-p5-t9",
+    "uppstd-p5-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:49.071119",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

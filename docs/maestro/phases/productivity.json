@@ -1,0 +1,18 @@
+{
+  "phase_id": "productivity",
+  "name": "Productivity Features",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "productivity.1"
+  ],
+  "track_id": "shadereditor",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:30:08.124630",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

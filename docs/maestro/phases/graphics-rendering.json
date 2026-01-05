@@ -1,0 +1,25 @@
+{
+  "phase_id": "graphics-rendering",
+  "name": "Graphics & Rendering",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "sprite-batching",
+    "texture-atlas",
+    "particle-effects",
+    "shaders-materials",
+    "cameras-2d3d",
+    "scene-graph",
+    "mesh-model-loading",
+    "sprite-texture-utils"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:16.381857",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

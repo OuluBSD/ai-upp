@@ -1,0 +1,18 @@
+{
+  "phase_id": "v03",
+  "name": "v0.3 \u2014 Editor State Management",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v03.1"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:18.461356",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

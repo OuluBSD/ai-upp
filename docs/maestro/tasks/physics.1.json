@@ -1,0 +1,16 @@
+{
+  "task_id": "physics.1",
+  "name": "Integration with Box2D for 2D physics",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "physics",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:52.661960",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

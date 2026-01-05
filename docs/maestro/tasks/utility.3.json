@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.3",
+  "name": "Implement Value variant type",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Value variant-like type"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:31.805089",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

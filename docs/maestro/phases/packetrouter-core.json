@@ -1,0 +1,20 @@
+{
+  "phase_id": "packetrouter-core",
+  "name": "Router Core & Flow Control Primitives",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "packetrouter-core.1",
+    "packetrouter-core.2",
+    "packetrouter-core.3"
+  ],
+  "track_id": "packetrouter",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:33:12.616480",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

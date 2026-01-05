@@ -1,0 +1,18 @@
+{
+  "task_id": "string.3",
+  "name": "Create StringBuffer",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create StringBuffer for efficient concatenation"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:56.026660",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

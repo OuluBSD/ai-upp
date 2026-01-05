@@ -1,0 +1,16 @@
+{
+  "task_id": "v5.1-playback-engine",
+  "name": "v5.1 \u2014 Playback Engine Improvements",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v5-runtime-engine",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:17.345050",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

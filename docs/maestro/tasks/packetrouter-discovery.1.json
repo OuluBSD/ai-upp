@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-discovery.1",
+  "name": "Link/Customer usage inventory",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Inventory every Link/Customer usage site within uppsrc/Eon and downstream DSL loaders"
+  ],
+  "phase_id": "packetrouter-discovery",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:14:53.031426",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

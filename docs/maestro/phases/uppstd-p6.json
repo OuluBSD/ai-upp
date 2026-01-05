@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p6",
+  "name": "Phase 6: Algorithm Function Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p6-t1",
+    "uppstd-p6-t2",
+    "uppstd-p6-t3",
+    "uppstd-p6-t4",
+    "uppstd-p6-t5",
+    "uppstd-p6-t6",
+    "uppstd-p6-t7",
+    "uppstd-p6-t8",
+    "uppstd-p6-t9",
+    "uppstd-p6-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:50.456107",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

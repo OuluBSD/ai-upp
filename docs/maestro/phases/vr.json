@@ -1,0 +1,16 @@
+{
+  "phase_id": "vr",
+  "name": "VR ECS Engine",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "stdsrc",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:54:13.916231",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

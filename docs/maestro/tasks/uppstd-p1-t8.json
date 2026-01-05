@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p1-t8",
+  "name": "Set up tools for API extraction and comparison",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p1",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:07.468778",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

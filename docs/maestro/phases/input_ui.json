@@ -1,0 +1,21 @@
+{
+  "phase_id": "input_ui",
+  "name": "Input & UI",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "input_ui.1",
+    "input_ui.2",
+    "input_ui.3",
+    "input_ui.4"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:46.031388",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-backend.3",
+  "name": "Compatibility shims",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Provide temporary compatibility shims/policies for router vs legacy loop scheduling"
+  ],
+  "phase_id": "packetrouter-backend",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:12.694211",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

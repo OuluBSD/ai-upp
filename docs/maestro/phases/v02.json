@@ -1,0 +1,23 @@
+{
+  "phase_id": "v02",
+  "name": "v0.2 \u2014 GUI Shell",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v02.1",
+    "v02.2",
+    "v02.3",
+    "v02.4",
+    "v02.5",
+    "v02.6"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:17.167474",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-cleanup.1",
+  "name": "Performance benchmarking",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Benchmark router mode vs legacy loops and tune flow-control policies"
+  ],
+  "phase_id": "packetrouter-cleanup",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:18.178991",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

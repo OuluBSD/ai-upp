@@ -1,0 +1,16 @@
+{
+  "task_id": "math_utilities.1",
+  "name": "Comprehensive vector math library",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "math_utilities",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:24.056524",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

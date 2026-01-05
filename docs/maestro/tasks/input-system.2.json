@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.2",
+  "name": "Create Mouse class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Mouse class for mouse input"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:30.445533",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

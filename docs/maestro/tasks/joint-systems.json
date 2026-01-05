@@ -1,0 +1,16 @@
+{
+  "task_id": "joint-systems",
+  "name": "Joint systems and constraints",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "physics",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:25:47.707783",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

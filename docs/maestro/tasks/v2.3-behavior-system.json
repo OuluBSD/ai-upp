@@ -1,0 +1,16 @@
+{
+  "task_id": "v2.3-behavior-system",
+  "name": "v2.3 \u2014 Behavior System",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v2-entity-editor",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:09.743807",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

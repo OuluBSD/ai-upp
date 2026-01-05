@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-updated-task-11",
+  "name": "ECS Framework",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-updated-foundation",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:10:53.519802",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

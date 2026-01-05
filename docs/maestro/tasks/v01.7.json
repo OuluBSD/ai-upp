@@ -1,0 +1,16 @@
+{
+  "task_id": "v01.7",
+  "name": "Package cleanup and internal documentation pass for AnimEditLib",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v01",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:39.371023",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

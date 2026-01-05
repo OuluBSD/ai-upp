@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p10-t1",
+  "name": "Map U++ CtrlCore to GUI library equivalents (Qt, wxWidgets, etc.)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p10",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:48:06.066825",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

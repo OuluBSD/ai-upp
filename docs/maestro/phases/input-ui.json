@@ -1,0 +1,21 @@
+{
+  "phase_id": "input-ui",
+  "name": "Input & UI",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "touch-input",
+    "gesture-recognition",
+    "scene2d-ui",
+    "input-processor-chain"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:25.631074",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

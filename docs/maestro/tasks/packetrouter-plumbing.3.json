@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-plumbing.3",
+  "name": "Router serialization",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Ensure router graphs serialize into both JSON and binary VFS payloads with round-trip tests"
+  ],
+  "phase_id": "packetrouter-plumbing",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:08.521912",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

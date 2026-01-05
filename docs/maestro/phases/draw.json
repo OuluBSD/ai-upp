@@ -1,0 +1,16 @@
+{
+  "phase_id": "draw",
+  "name": "Draw Library",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "stdsrc",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:54:08.633685",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

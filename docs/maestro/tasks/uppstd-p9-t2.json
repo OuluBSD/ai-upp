@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p9-t2",
+  "name": "Map U++ Date to std::chrono or custom equivalent",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p9",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:52.660769",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,26 @@
+{
+  "phase_id": "physics-system",
+  "name": "Physics System",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "physics-system.1",
+    "physics-system.2",
+    "physics-system.3",
+    "physics-system.4",
+    "physics-system.5",
+    "physics-system.6",
+    "physics-system.7",
+    "physics-system.8",
+    "physics-system.9"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:05:10.688489",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

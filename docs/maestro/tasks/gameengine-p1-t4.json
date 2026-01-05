@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p1-t4",
+  "name": "Integrate with existing Geometry package",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p1",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:28.076037",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

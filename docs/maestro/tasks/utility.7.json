@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.7",
+  "name": "Create Gate and Throttle utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Gate and Throttle utilities"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:37.693140",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

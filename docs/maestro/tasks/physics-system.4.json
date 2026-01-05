@@ -1,0 +1,18 @@
+{
+  "task_id": "physics-system.4",
+  "name": "Add Shape classes",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add Shape classes for collision detection"
+  ],
+  "phase_id": "physics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:28:06.010825",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

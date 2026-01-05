@@ -1,0 +1,18 @@
+{
+  "task_id": "smart.2",
+  "name": "Create Ptr<T>",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Ptr<T> for shared reference management"
+  ],
+  "phase_id": "smart",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:12.656119",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

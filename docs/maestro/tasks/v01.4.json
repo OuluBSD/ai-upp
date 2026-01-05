@@ -1,0 +1,16 @@
+{
+  "task_id": "v01.4",
+  "name": "Create AnimEditLib test console application for round\u2011trip JSON tests",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v01",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:35.447491",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

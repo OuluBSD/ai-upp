@@ -1,0 +1,16 @@
+{
+  "task_id": "platform_abstraction.1",
+  "name": "File handle utilities with different storage types",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "platform_abstraction",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:20:04.263335",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

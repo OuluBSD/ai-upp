@@ -1,0 +1,18 @@
+{
+  "task_id": "string.4",
+  "name": "Add string utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add string utility functions (ToUpper, ToLower, etc.)"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:57.341261",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

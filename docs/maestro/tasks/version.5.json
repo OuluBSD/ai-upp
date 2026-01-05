@@ -1,0 +1,18 @@
+{
+  "task_id": "version.5",
+  "name": "Real Application Testing",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Test with actual command-line application and measure performance"
+  ],
+  "phase_id": "version",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:41:47.798475",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

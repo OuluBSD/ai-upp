@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-dsl.1",
+  "name": "Parser/AST modifications",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Modify the parser/AST (Eon/Script/*) to support net blocks, inline atom declarations, and explicit connections sections"
+  ],
+  "phase_id": "packetrouter-dsl",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:01.500544",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

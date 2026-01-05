@@ -1,0 +1,25 @@
+{
+  "phase_id": "graphics_rendering",
+  "name": "Graphics & Rendering",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "graphics_rendering.1",
+    "graphics_rendering.2",
+    "graphics_rendering.3",
+    "graphics_rendering.4",
+    "graphics_rendering.5",
+    "graphics_rendering.6",
+    "graphics_rendering.7",
+    "graphics_rendering.8"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:38.495412",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

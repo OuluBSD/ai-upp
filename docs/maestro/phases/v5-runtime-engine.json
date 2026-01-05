@@ -1,0 +1,19 @@
+{
+  "phase_id": "v5-runtime-engine",
+  "name": "v5 \u2014 Runtime Engine Sync",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v5.0-live-preview",
+    "v5.1-playback-engine"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:48.838970",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

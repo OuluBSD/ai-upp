@@ -1,0 +1,18 @@
+{
+  "task_id": "io-system.5",
+  "name": "Add binary I/O operations",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add binary I/O operations"
+  ],
+  "phase_id": "io-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:54.029311",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

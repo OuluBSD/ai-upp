@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p5-t3",
+  "name": "Create game-specific networking protocols",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p5",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:05:15.187204",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

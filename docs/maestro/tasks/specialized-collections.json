@@ -1,0 +1,16 @@
+{
+  "task_id": "specialized-collections",
+  "name": "Specialized collections (IntFloatMap, ObjectSet, etc.)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "data-structures",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:25:36.277559",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

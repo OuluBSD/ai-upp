@@ -1,0 +1,18 @@
+{
+  "task_id": "reference.1",
+  "name": "imgui.review",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Review ImGui node editor implementation"
+  ],
+  "phase_id": "reference",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:41:33.226601",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

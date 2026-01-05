@@ -1,0 +1,27 @@
+{
+  "phase_id": "io-system",
+  "name": "I/O System",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "io-system.1",
+    "io-system.2",
+    "io-system.3",
+    "io-system.4",
+    "io-system.5",
+    "io-system.6",
+    "io-system.7",
+    "io-system.8",
+    "io-system.9",
+    "io-system.10"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:05:05.059883",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

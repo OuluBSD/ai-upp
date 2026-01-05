@@ -1,0 +1,16 @@
+{
+  "task_id": "data_structures.3",
+  "name": "Array utilities and sorting algorithms",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "data_structures",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:50.789505",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

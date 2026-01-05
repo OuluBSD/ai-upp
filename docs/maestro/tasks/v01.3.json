@@ -1,0 +1,16 @@
+{
+  "task_id": "v01.3",
+  "name": "Implement JSON loader/saver helpers (SaveProjectJson / LoadProjectJson)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v01",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:34.200416",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

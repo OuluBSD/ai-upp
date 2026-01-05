@@ -1,0 +1,25 @@
+{
+  "phase_id": "post-1.0-ideas",
+  "name": "Beyond 1.0 \u2014 Long-Term Ideas",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "post-1.0-ai-assist",
+    "post-1.0-node-editor",
+    "post-1.0-procedural",
+    "post-1.0-collaborative",
+    "post-1.0-plugins",
+    "post-1.0-scripting",
+    "post-1.0-cloud",
+    "post-1.0-integration"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:55.947983",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

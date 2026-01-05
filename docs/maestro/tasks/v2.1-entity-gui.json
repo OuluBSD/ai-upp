@@ -1,0 +1,16 @@
+{
+  "task_id": "v2.1-entity-gui",
+  "name": "v2.1 \u2014 Entity Editor GUI",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v2-entity-editor",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:07.159468",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

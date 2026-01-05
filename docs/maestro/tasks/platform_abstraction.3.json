@@ -1,0 +1,16 @@
+{
+  "task_id": "platform_abstraction.3",
+  "name": "Application lifecycle management",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "platform_abstraction",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:20:08.050698",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

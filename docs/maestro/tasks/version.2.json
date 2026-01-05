@@ -1,0 +1,18 @@
+{
+  "task_id": "version.2",
+  "name": "TCP/Pipe Communication",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement TCP client/server communication for UX IDE connection"
+  ],
+  "phase_id": "version",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:41:43.890271",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

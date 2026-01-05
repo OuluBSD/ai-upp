@@ -1,0 +1,19 @@
+{
+  "phase_id": "v3-texture-editor",
+  "name": "v3 \u2014 Texture Editor Alpha",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v3.0-texture-slots",
+    "v3.1-texture-gui"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:45.994700",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

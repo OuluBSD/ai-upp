@@ -1,0 +1,20 @@
+{
+  "phase_id": "mobile-specific",
+  "name": "Mobile-Specific",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "app-lifecycle-mobile",
+    "mobile-features",
+    "inapp-purchases"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:39.786112",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

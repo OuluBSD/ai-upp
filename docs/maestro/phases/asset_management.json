@@ -1,0 +1,20 @@
+{
+  "phase_id": "asset_management",
+  "name": "Asset Management",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "asset_management.1",
+    "asset_management.2",
+    "asset_management.3"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:40.321728",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

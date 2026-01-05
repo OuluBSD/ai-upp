@@ -1,0 +1,18 @@
+{
+  "task_id": "string.2",
+  "name": "Implement WString",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement WString for wide character support"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:54.752188",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

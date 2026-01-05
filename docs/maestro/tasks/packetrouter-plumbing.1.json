@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-plumbing.1",
+  "name": "Router descriptor integration",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Wire router descriptors into Vfs/Ecs/LinkFwd.cpp, LinkSystem.h, and related storage paths"
+  ],
+  "phase_id": "packetrouter-plumbing",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:05.731401",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "phase_id": "gameengine-updated-physics",
+  "name": "Physics and Animation",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "gameengine-updated",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:10:30.370149",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "timer-scheduling",
+  "name": "Timer and scheduling utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "utilities",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:26:11.986171",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "pool-pattern",
+  "name": "Pool pattern implementation for object reuse",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "data-structures",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:25:38.640883",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

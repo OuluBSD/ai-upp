@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.2",
+  "name": "Create Image class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Image class for image handling"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:10.731434",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

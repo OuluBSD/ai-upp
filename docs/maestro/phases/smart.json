@@ -1,0 +1,26 @@
+{
+  "phase_id": "smart",
+  "name": "Smart Pointers and Memory",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "smart.1",
+    "smart.2",
+    "smart.3",
+    "smart.4",
+    "smart.5",
+    "smart.6",
+    "smart.7",
+    "smart.8",
+    "smart.9"
+  ],
+  "track_id": "uppts",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:03:50.858230",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

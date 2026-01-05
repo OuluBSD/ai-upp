@@ -1,0 +1,18 @@
+{
+  "task_id": "physics-system.5",
+  "name": "Implement Constraint classes",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Constraint classes for joints"
+  ],
+  "phase_id": "physics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:28:07.299814",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

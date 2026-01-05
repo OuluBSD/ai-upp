@@ -1,0 +1,18 @@
+{
+  "task_id": "smart.6",
+  "name": "Add reference counting utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add reference counting utilities"
+  ],
+  "phase_id": "smart",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:18.770043",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

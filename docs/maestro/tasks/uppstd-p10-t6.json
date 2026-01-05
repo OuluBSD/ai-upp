@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p10-t6",
+  "name": "Map GUI event handling patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p10",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:48:13.050890",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

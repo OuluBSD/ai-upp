@@ -1,0 +1,16 @@
+{
+  "phase_id": "backlog",
+  "name": "Backlog",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "eonpatternintegration",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:01:18.410853",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

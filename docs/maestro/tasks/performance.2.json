@@ -1,0 +1,16 @@
+{
+  "task_id": "performance.2",
+  "name": "Memory usage tracking",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "performance",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:20:30.562810",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

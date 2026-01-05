@@ -1,0 +1,18 @@
+{
+  "task_id": "audio-system.6",
+  "name": "Create AudioEffect classes",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create AudioEffect classes for audio processing"
+  ],
+  "phase_id": "audio-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:52.491136",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

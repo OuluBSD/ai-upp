@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p2-t1",
+  "name": "Map U++ Vector to std::vector",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p2",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:11.714055",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

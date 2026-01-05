@@ -1,0 +1,16 @@
+{
+  "track_id": "halintegration",
+  "name": "HAL Integration",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "halintegration-backlog"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:13:37.283414",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

@@ -1,0 +1,21 @@
+{
+  "track_id": "stdsrc",
+  "name": "stdsrc",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "core",
+    "draw",
+    "ctrlcore",
+    "ctrllib",
+    "platform",
+    "vr"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:52:36.661111",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

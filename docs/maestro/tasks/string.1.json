@@ -1,0 +1,18 @@
+{
+  "task_id": "string.1",
+  "name": "Implement String class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement String class wrapping native string"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:53.472845",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

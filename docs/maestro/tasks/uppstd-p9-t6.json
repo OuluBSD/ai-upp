@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p9-t6",
+  "name": "Compare precision and accuracy",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p9",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:58.667525",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

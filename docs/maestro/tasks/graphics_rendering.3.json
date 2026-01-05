@@ -1,0 +1,16 @@
+{
+  "task_id": "graphics_rendering.3",
+  "name": "Particle effects system",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "graphics_rendering",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:07.035002",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "mock-objects",
+  "name": "Mock objects for testing",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "testing",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:26:25.297436",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

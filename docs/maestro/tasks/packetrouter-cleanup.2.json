@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-cleanup.2",
+  "name": "Diagnostics improvement",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Improve diagnostics/visualizers (IDE panes, DropTerm commands) to expose router topology"
+  ],
+  "phase_id": "packetrouter-cleanup",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:19.567671",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

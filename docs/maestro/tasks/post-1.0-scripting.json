@@ -1,0 +1,16 @@
+{
+  "task_id": "post-1.0-scripting",
+  "name": "Scripting support",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "post-1.0-ideas",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:35.385285",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

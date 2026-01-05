@@ -1,0 +1,21 @@
+{
+  "phase_id": "v1-animation-editor",
+  "name": "v1 \u2014 Animation Editor Alpha",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v1.0-canvas",
+    "v1.1-parts-panel",
+    "v1.2-timeline",
+    "v1.3-right-lists"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:43.157321",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

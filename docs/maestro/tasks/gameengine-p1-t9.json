@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p1-t9",
+  "name": "Add other performance-optimized collections from libgdx",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p1",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:34.761349",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

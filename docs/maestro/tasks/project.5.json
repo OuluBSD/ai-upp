@@ -1,0 +1,18 @@
+{
+  "task_id": "project.5",
+  "name": "Configure linting and formatting",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Configure linting (ESLint) and formatting (Prettier)"
+  ],
+  "phase_id": "project",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:25:42.267657",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

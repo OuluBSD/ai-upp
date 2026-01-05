@@ -1,0 +1,16 @@
+{
+  "task_id": "v4.1-ux-enhancements",
+  "name": "v4.1 \u2014 Level Editor UX Enhancements",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v4-level-editor",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:14.784105",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

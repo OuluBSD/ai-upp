@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p2",
+  "name": "Phase 2: Core Container Mapping",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p2-t1",
+    "uppstd-p2-t2",
+    "uppstd-p2-t3",
+    "uppstd-p2-t4",
+    "uppstd-p2-t5",
+    "uppstd-p2-t6",
+    "uppstd-p2-t7",
+    "uppstd-p2-t8",
+    "uppstd-p2-t9",
+    "uppstd-p2-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:44.801357",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

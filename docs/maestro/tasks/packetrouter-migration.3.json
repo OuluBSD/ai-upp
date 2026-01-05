@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-migration.3",
+  "name": "Regression test expansion",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Expand regression tests for router nets (functional equivalence, credit exhaustion)"
+  ],
+  "phase_id": "packetrouter-migration",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:16.828559",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

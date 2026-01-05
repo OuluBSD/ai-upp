@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p5-t4",
+  "name": "Add multiplayer support framework",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p5",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:05:16.481831",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

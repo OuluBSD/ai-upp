@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p9-t7",
+  "name": "Map calendar operations",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p9",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:48:00.247491",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

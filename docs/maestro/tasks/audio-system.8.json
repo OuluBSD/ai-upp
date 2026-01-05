@@ -1,0 +1,18 @@
+{
+  "task_id": "audio-system.8",
+  "name": "Test audio operations",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Test audio operations"
+  ],
+  "phase_id": "audio-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:55.313304",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p2-t5",
+  "name": "Map U++ BiVector to std::deque",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p2",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:17.257359",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

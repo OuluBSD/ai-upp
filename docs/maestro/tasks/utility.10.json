@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.10",
+  "name": "Document utility patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Document utility patterns with examples"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:42.242470",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

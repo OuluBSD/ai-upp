@@ -1,0 +1,16 @@
+{
+  "phase_id": "v21",
+  "name": "v2.1 \u2014 Entity Editor GUI",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:50:26.437528",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,21 @@
+{
+  "phase_id": "testing",
+  "name": "Testing Framework",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "testing.1",
+    "testing.2",
+    "unit-testing",
+    "mock-objects"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:59.448338",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

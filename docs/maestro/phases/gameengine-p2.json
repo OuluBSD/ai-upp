@@ -1,0 +1,25 @@
+{
+  "phase_id": "gameengine-p2",
+  "name": "UI System Overhaul",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p2-t1",
+    "gameengine-p2-t2",
+    "gameengine-p2-t3",
+    "gameengine-p2-t4",
+    "gameengine-p2-t5",
+    "gameengine-p2-t6",
+    "gameengine-p2-t7",
+    "gameengine-p2-t8"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:15.012819",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

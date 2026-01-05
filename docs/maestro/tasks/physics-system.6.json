@@ -1,0 +1,18 @@
+{
+  "task_id": "physics-system.6",
+  "name": "Create Collision system",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Collision system for collision detection"
+  ],
+  "phase_id": "physics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:28:08.717798",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

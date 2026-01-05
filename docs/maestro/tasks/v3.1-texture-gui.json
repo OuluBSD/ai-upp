@@ -1,0 +1,16 @@
+{
+  "task_id": "v3.1-texture-gui",
+  "name": "v3.1 \u2014 Texture Editor GUI",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v3-texture-editor",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:12.254646",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p5-t2",
+  "name": "Map U++ Optional to std::optional (C++17)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p5",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:55.935131",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

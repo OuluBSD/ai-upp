@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p1",
+  "name": "Phase 1: Project Setup and Research",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p1-t1",
+    "uppstd-p1-t2",
+    "uppstd-p1-t3",
+    "uppstd-p1-t4",
+    "uppstd-p1-t5",
+    "uppstd-p1-t6",
+    "uppstd-p1-t7",
+    "uppstd-p1-t8",
+    "uppstd-p1-t9",
+    "uppstd-p1-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:43.416686",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

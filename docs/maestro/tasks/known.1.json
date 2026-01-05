@@ -1,0 +1,18 @@
+{
+  "task_id": "known.1",
+  "name": "shadertoy.gui",
+  "status": "in_progress",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Investigate ShaderToy GUI display issues"
+  ],
+  "phase_id": "known",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:41:30.524409",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

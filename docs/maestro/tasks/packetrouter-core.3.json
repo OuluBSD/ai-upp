@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-core.3",
+  "name": "Flow control metadata structs",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Extend Vfs/Ecs/Formats.h with metadata structs describing buffer hints, throttling, and sync semantics"
+  ],
+  "phase_id": "packetrouter-core",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:00.115197",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

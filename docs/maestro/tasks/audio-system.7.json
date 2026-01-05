@@ -1,0 +1,18 @@
+{
+  "task_id": "audio-system.7",
+  "name": "Add mixer utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add mixer utilities"
+  ],
+  "phase_id": "audio-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:53.894230",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

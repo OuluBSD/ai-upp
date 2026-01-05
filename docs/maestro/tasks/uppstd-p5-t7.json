@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p5-t7",
+  "name": "Map U++ ValueList to appropriate STL container",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p5",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:02.941596",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

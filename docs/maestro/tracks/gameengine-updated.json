@@ -1,0 +1,21 @@
+{
+  "track_id": "gameengine-updated",
+  "name": "GameEngine_updated",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "gameengine-updated-foundation",
+    "gameengine-updated-ecs",
+    "gameengine-updated-rendering",
+    "gameengine-updated-audio",
+    "gameengine-updated-physics",
+    "gameengine-updated-advanced"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:10:20.735347",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

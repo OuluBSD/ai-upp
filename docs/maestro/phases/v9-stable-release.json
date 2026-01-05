@@ -1,0 +1,18 @@
+{
+  "phase_id": "v9-stable-release",
+  "name": "v9 \u2014 Final Stable Release",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v9.0-animedit-1.0"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:54.539020",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

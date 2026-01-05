@@ -1,0 +1,16 @@
+{
+  "track_id": "uxide",
+  "name": "UX IDE Project",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "phases": [
+    "version"
+  ],
+  "priority": 0,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:10:01.131790",
+  "tags": [],
+  "owner": null,
+  "is_top_priority": false
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p1-t10",
+  "name": "Document the initial project scope and constraints",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p1",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:10.361111",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

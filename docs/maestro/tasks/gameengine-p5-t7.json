@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p5-t7",
+  "name": "Create network debugging tools",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p5",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:05:20.420672",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

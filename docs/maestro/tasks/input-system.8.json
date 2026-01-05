@@ -1,0 +1,18 @@
+{
+  "task_id": "input-system.8",
+  "name": "Test input handling",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Test input handling"
+  ],
+  "phase_id": "input-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:39.027568",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

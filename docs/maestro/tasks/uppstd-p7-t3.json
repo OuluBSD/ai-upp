@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p7-t3",
+  "name": "Map U++ FileOut to std::ofstream",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p7",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:47:25.568060",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

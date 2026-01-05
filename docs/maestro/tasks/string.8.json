@@ -1,0 +1,18 @@
+{
+  "task_id": "string.8",
+  "name": "Create regex helpers",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create regular expression helpers with U++ style"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:02.592485",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

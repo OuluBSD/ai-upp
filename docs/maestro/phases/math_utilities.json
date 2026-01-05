@@ -1,0 +1,21 @@
+{
+  "phase_id": "math_utilities",
+  "name": "Mathematics & Utilities",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "math_utilities.1",
+    "math_utilities.2",
+    "math_utilities.3",
+    "math_utilities.4"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:42.144710",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

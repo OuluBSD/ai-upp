@@ -1,0 +1,18 @@
+{
+  "task_id": "version.1",
+  "name": "ConsoleLayout Class Foundation",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create ConsoleLayout class with enum system for text IDs"
+  ],
+  "phase_id": "version",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:41:42.566526",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

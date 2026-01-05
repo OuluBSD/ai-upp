@@ -1,0 +1,18 @@
+{
+  "task_id": "packetrouter-dsl.2",
+  "name": "ToyLoader updates",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Update ToyLoader and Script builders to emit router-friendly specs with conversion helpers"
+  ],
+  "phase_id": "packetrouter-dsl",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:15:02.866618",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

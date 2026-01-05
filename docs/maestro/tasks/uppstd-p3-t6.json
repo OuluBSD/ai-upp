@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p3-t6",
+  "name": "Map string utility functions",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p3",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:32.812596",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

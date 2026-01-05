@@ -1,0 +1,29 @@
+{
+  "phase_id": "gameengine-p8",
+  "name": "Scripting and Serialization",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "gameengine-p8-t1",
+    "gameengine-p8-t2",
+    "gameengine-p8-t3",
+    "gameengine-p8-t4",
+    "gameengine-p8-t5",
+    "gameengine-p8-t6",
+    "gameengine-p8-t7",
+    "gameengine-p8-t8",
+    "gameengine-p8-t9",
+    "gameengine-p8-t10",
+    "gameengine-p8-t11",
+    "gameengine-p8-t12"
+  ],
+  "track_id": "gameengine",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:22.796564",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

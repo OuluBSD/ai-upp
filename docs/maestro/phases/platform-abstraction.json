@@ -1,0 +1,20 @@
+{
+  "phase_id": "platform-abstraction",
+  "name": "Platform Abstraction",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "file-handles",
+    "preferences-system",
+    "app-lifecycle"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:35.011055",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

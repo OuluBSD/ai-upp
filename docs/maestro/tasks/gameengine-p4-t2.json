@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p4-t2",
+  "name": "Add support for additional audio formats",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p4",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:05:06.067541",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

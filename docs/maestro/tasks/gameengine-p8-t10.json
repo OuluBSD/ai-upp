@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p8-t10",
+  "name": "Save game system",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p8",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:06:02.628987",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

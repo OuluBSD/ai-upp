@@ -1,0 +1,18 @@
+{
+  "task_id": "string.7",
+  "name": "Add encoding support",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add encoding/decoding support (UTF-8, UTF-16)"
+  ],
+  "phase_id": "string",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:01.270238",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

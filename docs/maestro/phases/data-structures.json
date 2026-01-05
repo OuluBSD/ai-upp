@@ -1,0 +1,20 @@
+{
+  "phase_id": "data-structures",
+  "name": "Data Structures & Collections",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "specialized-collections",
+    "pool-pattern",
+    "array-utilities"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:28.071304",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

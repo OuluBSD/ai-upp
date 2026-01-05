@@ -1,0 +1,20 @@
+{
+  "phase_id": "packetrouter-backend",
+  "name": "Atom, API, and Backend Conversion",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "packetrouter-backend.1",
+    "packetrouter-backend.2",
+    "packetrouter-backend.3"
+  ],
+  "track_id": "packetrouter",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:33:17.259571",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

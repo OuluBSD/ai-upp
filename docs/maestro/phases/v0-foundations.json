@@ -1,0 +1,20 @@
+{
+  "phase_id": "v0-foundations",
+  "name": "v0 \u2014 Foundations & Tooling",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v0.1-core-data",
+    "v0.2-gui-shell",
+    "v0.3-state-mgmt"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:41.780706",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

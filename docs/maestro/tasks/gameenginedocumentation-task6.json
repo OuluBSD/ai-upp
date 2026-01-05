@@ -1,0 +1,16 @@
+{
+  "task_id": "gameenginedocumentation-task6",
+  "name": "Best Practices Documentation",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameenginedocumentation-backlog",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:08:45.009736",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

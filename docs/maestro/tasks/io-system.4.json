@@ -1,0 +1,18 @@
+{
+  "task_id": "io-system.4",
+  "name": "Implement StringStream",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement StringStream for in-memory I/O"
+  ],
+  "phase_id": "io-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:52.354556",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

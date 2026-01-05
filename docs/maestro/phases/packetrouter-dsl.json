@@ -1,0 +1,20 @@
+{
+  "phase_id": "packetrouter-dsl",
+  "name": "DSL & Loader Rewrite",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "packetrouter-dsl.1",
+    "packetrouter-dsl.2",
+    "packetrouter-dsl.3"
+  ],
+  "track_id": "packetrouter",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:33:14.232797",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-p1-t7",
+  "name": "Implement ObjectSet optimized for games",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-p1",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:04:32.057967",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

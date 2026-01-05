@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p4-t4",
+  "name": "Document ownership patterns",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p4",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:44.134084",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

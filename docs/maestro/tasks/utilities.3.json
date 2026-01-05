@@ -1,0 +1,16 @@
+{
+  "task_id": "utilities.3",
+  "name": "Logging system with different levels",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "utilities",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:20:13.489626",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

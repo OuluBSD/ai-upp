@@ -1,0 +1,22 @@
+{
+  "phase_id": "version",
+  "name": "VERSION 0.x - FOUNDATION & INSTRUMENTATION",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "version.1",
+    "version.2",
+    "version.3",
+    "version.4",
+    "version.5"
+  ],
+  "track_id": "uxide",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:10:02.367969",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

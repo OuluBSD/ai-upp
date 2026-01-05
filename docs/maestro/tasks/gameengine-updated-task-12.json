@@ -1,0 +1,16 @@
+{
+  "task_id": "gameengine-updated-task-12",
+  "name": "Asset Management",
+  "status": "done",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "gameengine-updated-foundation",
+  "completed": true,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:10:55.568656",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

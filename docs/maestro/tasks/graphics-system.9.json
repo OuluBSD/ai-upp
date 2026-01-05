@@ -1,0 +1,18 @@
+{
+  "task_id": "graphics-system.9",
+  "name": "Test graphics operations",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Test graphics operations"
+  ],
+  "phase_id": "graphics-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:21.615259",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

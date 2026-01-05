@@ -1,0 +1,19 @@
+{
+  "phase_id": "v4-level-editor",
+  "name": "v4 \u2014 Level Editor Integration",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "v4.0-replace-texture-system",
+    "v4.1-ux-enhancements"
+  ],
+  "track_id": "animedit",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T17:57:47.408354",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

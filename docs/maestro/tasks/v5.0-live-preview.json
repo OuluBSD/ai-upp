@@ -1,0 +1,16 @@
+{
+  "task_id": "v5.0-live-preview",
+  "name": "v5.0 \u2014 Live Preview Integration",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "v5-runtime-engine",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T17:58:16.089423",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

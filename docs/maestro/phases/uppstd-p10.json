@@ -1,0 +1,27 @@
+{
+  "phase_id": "uppstd-p10",
+  "name": "Phase 10: GUI Package Mapping and Integration",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "uppstd-p10-t1",
+    "uppstd-p10-t2",
+    "uppstd-p10-t3",
+    "uppstd-p10-t4",
+    "uppstd-p10-t5",
+    "uppstd-p10-t6",
+    "uppstd-p10-t7",
+    "uppstd-p10-t8",
+    "uppstd-p10-t9",
+    "uppstd-p10-t10"
+  ],
+  "track_id": "uppstd",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T19:45:56.105674",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

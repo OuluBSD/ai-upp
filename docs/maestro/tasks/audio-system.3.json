@@ -1,0 +1,18 @@
+{
+  "task_id": "audio-system.3",
+  "name": "Implement Music class",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Implement Music class for music playback"
+  ],
+  "phase_id": "audio-system",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:27:48.456810",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

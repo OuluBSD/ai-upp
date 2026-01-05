@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.4",
+  "name": "Create Function callback wrapper",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Create Function<R(Args...)> callback wrapper"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:33.242464",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

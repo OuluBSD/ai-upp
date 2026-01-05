@@ -1,0 +1,16 @@
+{
+  "task_id": "mobile-features",
+  "name": "Platform-specific features (vibration, sensors)",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "mobile-specific",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:26:18.491103",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

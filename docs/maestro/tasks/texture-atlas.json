@@ -1,0 +1,16 @@
+{
+  "task_id": "texture-atlas",
+  "name": "Texture atlas support for efficient texture management",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "graphics-rendering",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:24:48.240197",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

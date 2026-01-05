@@ -1,0 +1,23 @@
+{
+  "phase_id": "networking",
+  "name": "Networking",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [
+    "networking.1",
+    "networking.2",
+    "networking.3",
+    "http-client",
+    "websocket-support",
+    "udp-tcp-networking"
+  ],
+  "track_id": "libgdxcomparison",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-05T18:18:51.664777",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

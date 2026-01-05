@@ -1,0 +1,16 @@
+{
+  "task_id": "uppstd-p4-t5",
+  "name": "Map custom deleter functionality",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "uppstd-p4",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T19:46:45.836661",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

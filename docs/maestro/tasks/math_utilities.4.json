@@ -1,0 +1,16 @@
+{
+  "task_id": "math_utilities.4",
+  "name": "Rectangle, Circle, Polygon collision shapes and utilities",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "math_utilities",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:29.537860",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

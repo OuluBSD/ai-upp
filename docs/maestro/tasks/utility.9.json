@@ -1,0 +1,18 @@
+{
+  "task_id": "utility.9",
+  "name": "Add collection algorithms",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [
+    "Add collection algorithms (Filter, Map, etc.)"
+  ],
+  "phase_id": "utility",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T20:26:40.700810",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

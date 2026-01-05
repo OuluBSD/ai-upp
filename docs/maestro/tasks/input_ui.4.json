@@ -1,0 +1,16 @@
+{
+  "task_id": "input_ui.4",
+  "name": "Input processor chain pattern",
+  "status": "planned",
+  "priority": "P2",
+  "estimated_hours": null,
+  "description": [],
+  "phase_id": "input_ui",
+  "completed": false,
+  "created_at": null,
+  "updated_at": "2026-01-05T18:19:45.091485",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "subtasks": []
+}

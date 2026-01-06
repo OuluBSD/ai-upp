@@ -260,18 +260,19 @@ void Thread::DumpDiagnostics()
 {
 #ifdef PLATFORM_LINUX
 	INTERLOCKED {
+#ifndef PLATFORM_ANDROID
 		int i;
 		void *stkaddr;
 		pthread_attr_t attr[1];
-		
+
 		if(pthread_getattr_np(pthread_self(), attr))
 			return;
-		
+
 		if(pthread_attr_getinheritsched(attr, &i) == 0)
 			RLOG(decode(i, PTHREAD_INHERIT_SCHED, "PTHREAD_INHERIT_SCHED",
 			               PTHREAD_EXPLICIT_SCHED, "PTHREAD_EXPLICIT_SCHED",
 			               "UNKNOWN getinheritsched VALUE"));
-	
+
 		if(pthread_attr_getschedpolicy(attr, &i) == 0)
 			RLOG(decode(i, SCHED_OTHER, "SCHED_OTHER",
 			               SCHED_FIFO, "SCHED_FIFO",
@@ -279,17 +280,24 @@ void Thread::DumpDiagnostics()
 			               SCHED_IDLE, "SCHED_IDLE",
 			               SCHED_BATCH, "SCHED_BATCH",
 			               "UNKNOWN schedpolicy"));
-			
+
 		struct sched_param sp;
 		if(pthread_attr_getschedparam(attr, &sp) == 0)
 			RLOG("Scheduling priority " << sp.sched_priority);
-		
+
 		size_t v;
 		if(pthread_attr_getguardsize(attr, &v) == 0)
 			RLOG("Guard size " << v);
-			
+
 		if(pthread_attr_getstack(attr, &stkaddr, &v) == 0)
 			RLOG("Stack size " << v);
+#else
+		// On Android, pthread_getattr_np and related functions may not be available
+		// depending on the API level. Provide basic thread diagnostics instead.
+		// Get basic thread information that's more likely to be available on Android
+		RLOG("Android thread diagnostics (basic info only)");
+		RLOG("Current thread ID: " << (unsigned long long)pthread_self());
+#endif
 	}
 #endif
 }

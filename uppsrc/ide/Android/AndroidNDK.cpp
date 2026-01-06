@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "Android.h"
 
 namespace Upp {
@@ -135,4 +134,3 @@ String AndroidNDK::GetCppIncludeDir(const String& cppRuntime) const
 }
 
 }
-#endif // flagGUI

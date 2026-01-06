@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "Executables.h"
 
 namespace Upp {
@@ -24,4 +23,3 @@ String NDKBuild::MakeCmd() const
 }
 
 }
-#endif // flagGUI

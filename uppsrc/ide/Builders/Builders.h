@@ -192,7 +192,9 @@ INITIALIZE(AndroidBuilder)
 INITIALIZE(ScriptBuilder)
 
 #ifndef flagV1
-INITIALIZE(VfsBuilder)
+ #ifdef flagGUI
+  INITIALIZE(VfsBuilder)
+ #endif
 #endif
 
 #endif

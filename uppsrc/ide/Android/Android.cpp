@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "Android.h"
 
 namespace Upp {
@@ -93,4 +92,3 @@ String Android::FindLongestVersion(const Vector<String>& versions)
 }
 
 }
-#endif // flagGUI

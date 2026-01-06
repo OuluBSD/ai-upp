@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "Android.h"
 
 #define METHOD_NAME "AndroidManifest::" << UPP_FUNCTION_NAME << "(): "
@@ -49,4 +48,3 @@ bool AndroidManifest::Parse()
 }
 
 }
-#endif // flagGUI

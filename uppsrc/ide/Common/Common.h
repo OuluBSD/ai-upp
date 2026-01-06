@@ -135,6 +135,8 @@ void   IdeShowConsole();
 
 void QTFEdit(String& text);
 
+#ifdef flagGUI
 void IdeHelpButton(Button& help, const String& link);
+#endif
 
 #endif

@@ -1,4 +1,3 @@
-#ifdef flagGUI
 #include "Executables.h"
 
 namespace Upp {
@@ -28,4 +27,3 @@ String LogCat::MakeCmdByTag(const Adb& adb, const String& packageName) const
 }
 
 }
-#endif // flagGUI

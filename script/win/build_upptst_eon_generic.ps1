@@ -1,7 +1,7 @@
 # PowerShell script to build EON tests for Windows
 param(
     [Parameter(Mandatory=$true)][string]$Target,
-    [Parameter(Mandatory=$true)][string]$BaseFlags,
+    [Parameter(Mandatory=$false)][string]$BaseFlags = "",
     [switch]$Release,
     [switch]$NoDebugRt,
     [switch]$Uppheap,

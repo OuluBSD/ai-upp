@@ -1,0 +1,40 @@
+{
+  "agents": [
+    {
+      "name": "complexity_agent",
+      "preferences": {
+        "strategy": "aggressive_cleanup",
+        "risk_tolerance": 0.4
+      },
+      "goals": [
+        {
+          "id": "reduce_complexity",
+          "description": "Reduce complexity and entropy of core packages.",
+          "weights": {
+            "complexity": 1.0,
+            "entropy": 0.8,
+            "coupling": 0.4
+          },
+          "priority": 0.9
+        }
+      ]
+    },
+    {
+      "name": "graph_agent",
+      "preferences": {
+        "strategy": "stability_first",
+        "risk_tolerance": 0.2
+      },
+      "goals": [
+        {
+          "id": "flatten_dependencies",
+          "weights": {
+            "cycles": 1.0,
+            "coupling": 0.8
+          },
+          "priority": 0.8
+        }
+      ]
+    }
+  ]
+}

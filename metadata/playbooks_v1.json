@@ -1,69 +1,42 @@
 {
   "playbooks": [
     {
-      "name": "safe_cleanup_cycle",
-      "description": "A complete cleanup cycle that builds, simulates, applies and exports changes safely",
+      "id": "safe_cleanup_cycle",
+      "description": "Run a conservative include/complexity cleanup cycle.",
+      "safety_level": 0.9,
+      "constraints": {
+        "max_actions": 10,
+        "max_risk": 0.3,
+        "allow_apply": true
+      },
       "steps": [
+        { "id": "step1_scan", "action": "scan_workspace", "params": {} },
         {
-          "action": "build_scenario",
-          "description": "Build a scenario for the given package",
+          "id": "step2_propose",
+          "action": "generate_proposal",
           "params": {
-            "package": "{{package}}",
-            "max_actions": "{{max_actions}}"
+            "package": "auto_main",
+            "max_actions": 10,
+            "with_futures": true
           }
         },
         {
-          "action": "simulate_scenario", 
-          "description": "Simulate the scenario and log deltas",
+          "id": "step3_resolve",
+          "action": "resolve_conflicts",
+          "params": {}
+        },
+        {
+          "id": "step4_apply_if_safe",
+          "action": "apply_if_safe",
           "params": {
-            "plan": "{{scenario_plan}}"
+            "max_risk": 0.3,
+            "require_positive_benefit": true
           }
         },
         {
-          "action": "apply_scenario",
-          "description": "Apply the scenario changes",
-          "params": {
-            "plan": "{{scenario_plan}}"
-          }
-        },
-        {
-          "action": "export_diff",
-          "description": "Export unified diff to a file",
-          "params": {
-            "diff_content": "{{unified_diff}}",
-            "output_path": "{{output_path}}"
-          }
-        }
-      ],
-      "description_detailed": "This playbook orchestrates a complete cleanup cycle: 1) Builds a scenario for optimization of a package, 2) Simulates the scenario to preview changes, 3) Applies the scenario if simulation is acceptable, 4) Exports the changes as a diff file for review or version control."
-    },
-    {
-      "name": "cleanup_includes_and_rebuild",
-      "description": "Remove dead includes and canonicalize paths",
-      "steps": [
-        {
-          "action": "command",
-          "description": "Run include cleanup command",
-          "params": {
-            "command": "remove_dead_includes",
-            "target": "{{package}}"
-          }
-        },
-        {
-          "action": "command", 
-          "description": "Canonicalize include paths",
-          "params": {
-            "command": "canonicalize_includes",
-            "target": "{{package}}"
-          }
-        },
-        {
-          "action": "command",
-          "description": "Rebuild the package",
-          "params": {
-            "command": "build_project",
-            "target": "{{package}}"
-          }
+          "id": "step5_record",
+          "action": "record_evolution_summary",
+          "params": {}
         }
       ]
     }

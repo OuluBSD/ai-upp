@@ -14,6 +14,7 @@ struct ProcessContext {
     int sample_rate = 44100;
     int block_size = 512;
     unsigned long long frame_cursor = 0; // total frames processed so far
+    bool is_start_of_render = true;      // indicates start of a new render
 };
 
 NAMESPACE_SAGRAPH_END

@@ -21,7 +21,9 @@ AFO_VNDR_LIST
 #undef AFO_CLS
 
 struct AFOCoreAudio {
+	#if defined flagAUDIO
 	struct NativeSink;
+	#endif
 	
 	struct Thread {
 		
@@ -33,22 +35,23 @@ struct AFOCoreAudio {
 	
 };
 
+#if defined flagAUDIO
 struct AFOSink : public Atom {
 	//RTTI_DECL1(AFOSink, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~AFOSink() {}
 };
+#endif
 
 
+#if defined flagAUDIO
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
-	AudioFileOutSinkT(VfsValue& n) : AFOSink(n) {}
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) AFO::Sink_Visit(*dev, *this, v);
-		VIS_THIS(AFOSink);
+	//RTTI_DECL1(CLASSNAME, AFOSink)
+	void Visit(Vis& vis) override {
+		if (dev) AFO::Sink_Visit(*dev, *this, vis);
+		vis.VisitThis<AFOSink>(this);
 	}
 	typename AFO::NativeSink* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -89,8 +92,11 @@ template <class AFO> struct AudioFileOutSinkT : AFOSink {
 		return AFO::Sink_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
+#if defined flagAUDIO
 using CoreAudioSink = AudioFileOutSinkT<AFOCoreAudio>;
+#endif
 
 END_UPP_NAMESPACE
 

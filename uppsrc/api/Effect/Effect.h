@@ -4,8 +4,10 @@
 #ifndef _IEffect_IEffect_h_
 #define _IEffect_IEffect_h_
 
-#include <SoftAudio/SoftAudio.h>
 #include <Eon/Eon.h>
+#include <SoftAudio/SoftAudio.h>
+#include <api/AudioHost/AudioHost.h>
+#include <plugin/lilv/lilv.h>
 
 NAMESPACE_UPP
 
@@ -23,7 +25,9 @@ FX_VNDR_LIST
 #undef FX_CLS
 
 struct FxAudioCore {
+	#if defined flagAUDIO
 	struct NativeEffect;
+	#endif
 	
 	struct Thread {
 		
@@ -36,7 +40,9 @@ struct FxAudioCore {
 };
 #if defined flagLV2
 struct FxLV2 {
+	#if defined flagAUDIO
 	struct NativeEffect;
+	#endif
 	
 	struct Thread {
 		
@@ -49,22 +55,23 @@ struct FxLV2 {
 };
 #endif
 
+#if defined flagAUDIO
 struct FxEffect : public Atom {
 	//RTTI_DECL1(FxEffect, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~FxEffect() {}
 };
+#endif
 
 
+#if defined flagAUDIO
 template <class Fx> struct EffectEffectT : FxEffect {
-	EffectEffectT(VfsValue& n) : FxEffect(n) {}
 	using CLASSNAME = EffectEffectT<Fx>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Fx::Effect_Visit(*dev, *this, v);
-		VIS_THIS(FxEffect);
+	//RTTI_DECL1(CLASSNAME, FxEffect)
+	void Visit(Vis& vis) override {
+		if (dev) Fx::Effect_Visit(*dev, *this, vis);
+		vis.VisitThis<FxEffect>(this);
 	}
 	typename Fx::NativeEffect* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -105,10 +112,15 @@ template <class Fx> struct EffectEffectT : FxEffect {
 		return Fx::Effect_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
+#if defined flagAUDIO
 using AudioCoreEffect = EffectEffectT<FxAudioCore>;
+#endif
 #if defined flagLV2
+#if defined flagAUDIO
 using LV2Effect = EffectEffectT<FxLV2>;
+#endif
 #endif
 
 END_UPP_NAMESPACE

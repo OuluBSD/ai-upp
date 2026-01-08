@@ -1,6 +1,7 @@
 // This file have been generated automatically.
 // DO NOT MODIFY THIS FILE!
 
+#if defined flagVR
 static bool SinkDevice_Create(NativeSinkDevice*& dev);
 static void SinkDevice_Destroy(NativeSinkDevice*& dev);
 static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const WorldState&);
@@ -9,8 +10,9 @@ static bool SinkDevice_Start(NativeSinkDevice&, AtomBase&);
 static void SinkDevice_Stop(NativeSinkDevice&, AtomBase&);
 static void SinkDevice_Uninitialize(NativeSinkDevice&, AtomBase&);
 static bool SinkDevice_Send(NativeSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Vis& vis);
+static void SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis);
 static bool SinkDevice_Recv(NativeSinkDevice&, AtomBase&, int, const Packet&);
 static void SinkDevice_Finalize(NativeSinkDevice&, AtomBase&, RealtimeSourceConfig&);
 static bool SinkDevice_IsReady(NativeSinkDevice&, AtomBase&, PacketIO& io);
+#endif
 

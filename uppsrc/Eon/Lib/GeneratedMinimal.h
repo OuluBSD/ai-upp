@@ -55,7 +55,7 @@ public:
 	
 };
 
-#if defined flagPORTAUDIO
+#if (defined flagBUILTIN_PORTAUDIO && defined flagAUDIO) || (defined flagPORTAUDIO && defined flagAUDIO)
 class PortaudioSink : public PortaudioSinkDevice {
 
 public:
@@ -85,6 +85,7 @@ public:
 };
 #endif
 
+#if defined flagAUDIO
 class AudioDbgSrc : public AudioGenBase {
 
 public:
@@ -97,6 +98,7 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
 class AudioSplitter : public VoidBase {
 
@@ -163,6 +165,7 @@ public:
 	
 };
 
+#if defined flagAUDIO
 class AudioMixer16 : public AudioMixerBase {
 
 public:
@@ -175,6 +178,7 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
 #if defined flagSCREEN
 class VideoDbgSrc : public VideoGenBase {
@@ -191,7 +195,7 @@ public:
 };
 #endif
 
-#if (defined flagOPENCV && defined flagLINUX)
+#if (defined flagOPENCV && defined flagLINUX && defined flagCAMERA)
 class WebcamPipe : public V4L2OpenCVCamera {
 
 public:
@@ -206,7 +210,7 @@ public:
 };
 #endif
 
-#if (defined flagOPENCV && defined flagLINUX)
+#if (defined flagOPENCV && defined flagLINUX && defined flagCAMERA)
 class WebcamAtom : public V4L2OpenCVCamera {
 
 public:
@@ -296,7 +300,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagFBO)
 class SdlSwFboProg : public SdlCenterFboSinkDevice {
 
 public:
@@ -386,7 +390,7 @@ public:
 };
 #endif
 
-#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 class X11OglFboAtomPipe : public X11OglSinkDevice {
 
 public:
@@ -401,7 +405,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagFBO)
 class SdlSwFboAtomPipe : public SdlCenterFboSinkDevice {
 
 public:
@@ -476,7 +480,7 @@ public:
 };
 #endif
 
-#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 class X11OglContextAtom : public X11OglContext {
 
 public:
@@ -521,7 +525,7 @@ public:
 };
 #endif
 
-#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 class X11OglEventAtomPipe : public X11OglEventsBase {
 
 public:
@@ -536,7 +540,7 @@ public:
 };
 #endif
 
-#if (defined flagWIN32 && defined flagSCREEN && !defined flagUWP)
+#if (defined flagWIN32 && !defined flagUWP && defined flagSCREEN)
 class WinContextAtom : public WinContext {
 
 public:
@@ -551,7 +555,7 @@ public:
 };
 #endif
 
-#if (defined flagWIN32 && defined flagSCREEN && !defined flagUWP)
+#if (defined flagWIN32 && !defined flagUWP && defined flagSCREEN)
 class WinVideoAtomPipe : public WinSinkDevice {
 
 public:
@@ -579,7 +583,7 @@ public:
 	
 };
 
-#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
+#if (defined flagWIN32 && defined flagDX11 && defined flagSCREEN)
 class WinD11ContextAtom : public WinD11Context {
 
 public:
@@ -609,7 +613,7 @@ public:
 };
 #endif
 
-#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
+#if (defined flagWIN32 && defined flagDX11 && defined flagSCREEN)
 class WinD11FboAtomPipe : public WinD11SinkDevice {
 
 public:
@@ -624,7 +628,7 @@ public:
 };
 #endif
 
-#if (defined flagWIN32 && defined flagSCREEN && defined flagDX11)
+#if (defined flagWIN32 && defined flagDX11 && defined flagSCREEN)
 class WinD11FboAtomSA : public WinD11SinkDevice {
 
 public:
@@ -652,7 +656,7 @@ public:
 	
 };
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagHAL)
 class SdlContextAtom : public SdlContextBase {
 
 public:
@@ -667,7 +671,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagHAL)
 class SdlEventAtomPipe : public SdlEventsBase {
 
 public:
@@ -710,7 +714,7 @@ public:
 };
 #endif
 
-#ifdef flagVOLUMETRIC
+#if defined flagVOLUMETRIC
 class VolumeLoaderAtom : public RawByteStaticSource {
 
 public:
@@ -740,7 +744,7 @@ public:
 };
 #endif
 
-#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 class X11OglVideoAtomPipe : public X11OglSinkDevice {
 
 public:
@@ -755,7 +759,7 @@ public:
 };
 #endif
 
-#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
+#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 class X11OglFboAtomSA : public X11OglSinkDevice {
 
 public:
@@ -815,7 +819,7 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagOGL && defined flagGUI)
+#if (defined flagSDL2 && defined flagOGL)
 class SdlUppOglDeviceSA : public SdlUppOglDevice {
 
 public:
@@ -875,7 +879,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagVIDEO)
 class SdlVideoAtomPipe : public SdlCenterVideoSinkDevice {
 
 public:
@@ -890,7 +894,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagVIDEO)
 class SdlProgAtomPipe : public SdlCenterVideoSinkDevice {
 
 public:
@@ -965,7 +969,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagVIDEO)
 class SdlVideoAtom : public SdlCenterVideoSinkDevice {
 
 public:
@@ -980,7 +984,7 @@ public:
 };
 #endif
 
-#if defined flagSDL2
+#if (defined flagSDL2 && defined flagAUDIO)
 class SdlAudioAtom : public SdlAudioSinkDevice {
 
 public:

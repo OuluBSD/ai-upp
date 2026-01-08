@@ -10,14 +10,13 @@ file
 	MemoryManager readonly separator,
 	MemoryManager.h,
 	Native readonly separator,
-	AndroidMath.cpp,
-	Vector.cpp,
-	Math readonly separator,
-	Vector.java,
-	AndroidMath.java,
+	AndroidCore.cpp,
+	CoreStringProcessor.cpp,
 	Runtime readonly separator,
 	AndroidManifest.xml,
-	AndroidMathActivity.java;
+	AndroidCoreActivity.java,
+	AndroidCore.java,
+	CoreStringProcessor.java;
 
 mainconfig
 	"" = "";

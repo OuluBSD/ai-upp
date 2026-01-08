@@ -10,7 +10,7 @@ void InterfaceBuilder::AddCamera() {
 	Dependency("IMedia");
 	HaveIsReady();
 	
-	Interface("Camera");
+	Interface("Camera", "CAMERA");
 	
 	Vendor("V4L2OpenCV", "OPENCV&LINUX");
 	

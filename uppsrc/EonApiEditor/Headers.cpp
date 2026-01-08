@@ -8,7 +8,7 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("RollingValueBase");
 	AddCustomBase("VoidSinkBase");
 	AddCustomBase("VoidPollerSinkBase");
-	AddCustomBase("AudioGenBase");
+	AddCustomBase("AudioGenBase","AUDIO");
 	AddCustomBase("VoidBase");
 	AddCustomBase("VideoGenBase", "SCREEN");
 	AddCustomBase("FfmpegSourceDevice", "FFMPEG");
@@ -31,9 +31,9 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("X11OglFboProgBase", "X11&SCREEN&OGL");
 	AddCustomBase("SdlOglFboProgBase", "SCREEN&SDL2&OGL");
 	AddCustomBase("WinD11FboBase", "SCREEN&WIN32&DX11");
-	AddCustomBase("MidiFileReaderAtom");
-	AddCustomBase("MidiNullAtom");
-	AddCustomBase("AudioMixerBase");
+	AddCustomBase("MidiFileReaderAtom","MIDI");
+	AddCustomBase("MidiNullAtom","MIDI");
+	AddCustomBase("AudioMixerBase","AUDIO");
 	
 	AddHeader("CenterCustomer", "CustomerBase", "customer")
 		.In("CenterReceipt").Out("CenterOrder")

@@ -10,7 +10,7 @@ void InterfaceBuilder::AddAudioFileOut() {
 	HaveRecvFinalize();
 	HaveIsReady();
 	
-	Interface("Sink");
+	Interface("Sink", "AUDIO");
 	
 	Vendor("CoreAudio");
 	

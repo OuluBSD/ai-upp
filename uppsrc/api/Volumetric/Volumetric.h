@@ -21,7 +21,9 @@ VOL_VNDR_LIST
 #undef VOL_CLS
 
 struct VolRawByte {
+	#if defined flagVOLUMETRIC
 	struct NativeStaticSource;
+	#endif
 	
 	struct Thread {
 		
@@ -33,22 +35,23 @@ struct VolRawByte {
 	
 };
 
+#if defined flagVOLUMETRIC
 struct VolStaticSource : public Atom {
 	//RTTI_DECL1(VolStaticSource, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~VolStaticSource() {}
 };
+#endif
 
 
+#if defined flagVOLUMETRIC
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
-	VolumetricStaticSourceT(VfsValue& n) : VolStaticSource(n) {}
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Vol::StaticSource_Visit(*dev, *this, v);
-		VIS_THIS(VolStaticSource);
+	//RTTI_DECL1(CLASSNAME, VolStaticSource)
+	void Visit(Vis& vis) override {
+		if (dev) Vol::StaticSource_Visit(*dev, *this, vis);
+		vis.VisitThis<VolStaticSource>(this);
 	}
 	typename Vol::NativeStaticSource* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -83,8 +86,11 @@ template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 		return Vol::StaticSource_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
+#if defined flagVOLUMETRIC
 using RawByteStaticSource = VolumetricStaticSourceT<VolRawByte>;
+#endif
 
 END_UPP_NAMESPACE
 

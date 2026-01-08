@@ -1,20 +1,18 @@
 #include "Lib.h"
 
 // This file is generated. Do not modify this file.
-#ifdef flagVR
 
 NAMESPACE_UPP
 
 
-
-#if (defined flagFREEBSD && defined flagOPENHMD) || (defined flagLINUX && defined flagOPENHMD)
+#if (defined flagFREEBSD && defined flagOPENHMD && defined flagVR) || (defined flagLINUX && defined flagOPENHMD && defined flagVR)
 String OpenHMDPipe::GetAction() {
 	return "x11.ogl.ohmd.events";
 }
 
 AtomTypeCls OpenHMDPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //OPEN_HMDPIPE;
+	t.sub = SUB_ATOM_CLS; //OPENHMDPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -35,14 +33,14 @@ AtomTypeCls OpenHMDPipe::GetType() const {
 #endif
 
 
-#if defined flagLOCALHMD
+#if (defined flagLOCALHMD && defined flagVR)
 String LocalHMDPipe::GetAction() {
 	return "x11.ogl.holo.events";
 }
 
 AtomTypeCls LocalHMDPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //LOCAL_HMDPIPE;
+	t.sub = SUB_ATOM_CLS; //LOCALHMDPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -63,14 +61,14 @@ AtomTypeCls LocalHMDPipe::GetType() const {
 #endif
 
 
-#if (defined flagFREEBSD) || (defined flagLINUX)
+#if (defined flagFREEBSD && defined flagVR) || (defined flagLINUX && defined flagVR)
 String RemoteVRServerPipe::GetAction() {
 	return "tcp.ogl.holo.events";
 }
 
 AtomTypeCls RemoteVRServerPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //REMOTE_VRSERVER_PIPE;
+	t.sub = SUB_ATOM_CLS; //REMOTEVRSERVERPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -91,14 +89,14 @@ AtomTypeCls RemoteVRServerPipe::GetType() const {
 #endif
 
 
-#if (defined flagFREEBSD && defined flagHACK) || (defined flagLINUX && defined flagHACK)
+#if (defined flagFREEBSD && defined flagHACK && defined flagVR) || (defined flagLINUX && defined flagHACK && defined flagVR)
 String BluetoothHoloPipe::GetAction() {
 	return "bluetooth.holo.events";
 }
 
 AtomTypeCls BluetoothHoloPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //BLUETOOTH_HOLO_PIPE;
+	t.sub = SUB_ATOM_CLS; //BLUETOOTHHOLOPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -119,14 +117,14 @@ AtomTypeCls BluetoothHoloPipe::GetType() const {
 #endif
 
 
-#if (defined flagUWP && defined flagDX12)
+#if (defined flagUWP && defined flagDX12 && defined flagHAL)
 String HoloContextAtom::GetAction() {
 	return "holo.context";
 }
 
 AtomTypeCls HoloContextAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //HOLO_CONTEXT_ATOM;
+	t.sub = SUB_ATOM_CLS; //HOLOCONTEXTATOM;
 	t.role = AtomRole::DRIVER;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -147,14 +145,14 @@ AtomTypeCls HoloContextAtom::GetType() const {
 #endif
 
 
-#if (defined flagUWP && defined flagDX12)
+#if (defined flagUWP && defined flagDX12 && defined flagHAL)
 String HoloEventAtomPipe::GetAction() {
 	return "holo.event.pipe";
 }
 
 AtomTypeCls HoloEventAtomPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //HOLO_EVENT_ATOM_PIPE;
+	t.sub = SUB_ATOM_CLS; //HOLOEVENTATOMPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
@@ -182,7 +180,7 @@ String HoloD12FboAtomSA::GetAction() {
 
 AtomTypeCls HoloD12FboAtomSA::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //HOLO_D12_FBO_ATOM_SA;
+	t.sub = SUB_ATOM_CLS; //HOLOD12FBOATOMSA;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(DX,ORDER),0);
 	t.AddOut(VD(DX,RECEIPT),0);
@@ -202,6 +200,6 @@ AtomTypeCls HoloD12FboAtomSA::GetType() const {
 }
 #endif
 
-END_UPP_NAMESPACE
 
-#endif
+
+END_UPP_NAMESPACE

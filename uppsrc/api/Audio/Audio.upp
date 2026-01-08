@@ -1,16 +1,14 @@
 description "\377B0,128,0";
 
-flags(WIN32 (CLANG | GCC)) SYS_PORTAUDIO;
+	uses Eon;
+	uses Sound;
 
-uses
-	Eon,
-	Sound;
+	library(PORTAUDIO) "portaudio";
 
 file
 	Audio.h,
-	DebugAudioPattern.h,
 	Portaudio.cpp,
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-	"" = "";
+        "" = "";

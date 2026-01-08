@@ -12,7 +12,7 @@ String HandleProgEvents::GetAction() {
 
 AtomTypeCls HandleProgEvents::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS;
+	t.sub = SUB_ATOM_CLS; //HANDLEPROGEVENTS;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,RECEIPT),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -40,7 +40,7 @@ String CenterProgPipe::GetAction() {
 
 AtomTypeCls CenterProgPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CENTER_PROG_PIPE;
+	t.sub = SUB_ATOM_CLS; //CENTERPROGPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,PROG),0);
@@ -68,7 +68,7 @@ String OglProgPipe::GetAction() {
 
 AtomTypeCls OglProgPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //OGL_PROG_PIPE;
+	t.sub = SUB_ATOM_CLS; //OGLPROGPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(OGL,ORDER),0);
 	t.AddOut(VD(OGL,PROG),0);
@@ -96,7 +96,7 @@ String HandleProgVideo::GetAction() {
 
 AtomTypeCls HandleProgVideo::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //HANDLE_PROG_VIDEO;
+	t.sub = SUB_ATOM_CLS; //HANDLEPROGVIDEO;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -116,5 +116,6 @@ AtomTypeCls HandleProgVideo::GetType() const {
 }
 #endif
 
-END_UPP_NAMESPACE
 
+
+END_UPP_NAMESPACE

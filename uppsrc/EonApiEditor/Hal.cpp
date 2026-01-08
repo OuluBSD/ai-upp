@@ -17,13 +17,13 @@ void InterfaceBuilder::AddHal() {
 	HaveIsReady();
 	HaveContextFunctions();
 	
-	Interface("AudioSinkDevice");
-	Interface("CenterVideoSinkDevice");
-	Interface("CenterFboSinkDevice");
+	Interface("AudioSinkDevice", "AUDIO");
+	Interface("CenterVideoSinkDevice", "VIDEO");
+	Interface("CenterFboSinkDevice", "FBO");
 	Interface("OglVideoSinkDevice", "OGL");
 	Interface("D12VideoSinkDevice", "DX12");
-	Interface("ContextBase");
-	Interface("EventsBase");
+	Interface("ContextBase","HAL");
+	Interface("EventsBase","HAL");
 	Interface("UppEventsBase", "GUI");
 	Interface("UppOglDevice", "OGL");
 	

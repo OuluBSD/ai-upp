@@ -96,10 +96,6 @@ public:
 	static String GetMacroName(String vd_name);
 	static String GetMacroFlags(String flags);
 	
-	void AddWebGpu();
-	void AddWebRtc();
-	void AddNeuralNetwork();
-	
 };
 
 

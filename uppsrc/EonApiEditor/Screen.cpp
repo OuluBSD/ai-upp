@@ -15,16 +15,16 @@ void InterfaceBuilder::AddScreen() {
 	HaveNegotiateFormat();
 	HaveIsReady();
 	
-	Interface("SinkDevice");
-	Interface("Context");
-	Interface("EventsBase");
+	Interface("SinkDevice", "SCREEN");
+	Interface("Context", "SCREEN");
+	Interface("EventsBase", "SCREEN");
 	
-	Vendor("X11",		"X11&SCREEN");
-	Vendor("X11Sw",		"X11&SCREEN");
-	Vendor("X11Ogl",	"X11&SCREEN&OGL");
-	Vendor("Win",		"WIN32&SCREEN&!UWP");
-	//Vendor("WinSw",	"WIN32&SCREEN");
-	Vendor("WinD11",	"WIN32&SCREEN&DX11");
+	Vendor("X11",		"X11");
+	Vendor("X11Sw",		"X11");
+	Vendor("X11Ogl",	"X11&OGL");
+	Vendor("Win",		"WIN32&!UWP");
+	//Vendor("WinSw",	"WIN32");
+	Vendor("WinD11",	"WIN32&DX11");
 	
 	
 }

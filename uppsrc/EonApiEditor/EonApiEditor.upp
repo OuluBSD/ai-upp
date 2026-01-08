@@ -1,5 +1,8 @@
 description "Generate base classes for Atoms\377B141,0,255";
 
+uses
+	Core;
+
 file
 	main.cpp,
 	EonApiEditor.h,
@@ -18,9 +21,6 @@ file
 	Effect.cpp,
 	MidiHw.cpp,
 	AudioFileOut.cpp,
-	WebGpu.cpp,
-	WebRtc.cpp,
-	NeuralNetwork.cpp,
 	_ readonly separator;
 
 mainconfig

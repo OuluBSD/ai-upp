@@ -11,8 +11,8 @@ void InterfaceBuilder::AddAudio() {
 	Library("portaudio", "PORTAUDIO");
 	HaveNegotiateFormat();
 	
-	Interface("SinkDevice");
-	Interface("SourceDevice");
+	Interface("SinkDevice", "AUDIO");
+	Interface("SourceDevice", "AUDIO");
 	
 	Vendor("Portaudio", "BUILTIN_PORTAUDIO|PORTAUDIO");
 	

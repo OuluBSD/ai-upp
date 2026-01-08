@@ -9,7 +9,7 @@ void InterfaceBuilder::AddVolumetric() {
 	Dependency("ParallelLib");
 	HaveIsReady();
 	
-	Interface("StaticSource");
+	Interface("StaticSource", "VOLUMETRIC");
 	
 	Vendor("RawByte");
 	

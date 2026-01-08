@@ -4,14 +4,15 @@
 
 NAMESPACE_UPP
 
-#ifdef flagMIDI
+
+#if defined flagMIDI
 String MidiFileReaderPipe::GetAction() {
 	return "midi.file.reader.pipe";
 }
 
 AtomTypeCls MidiFileReaderPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS;
+	t.sub = SUB_ATOM_CLS; //MIDIFILEREADERPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,MIDI),0);
@@ -29,15 +30,17 @@ void MidiFileReaderPipe::Visit(Vis& v) {
 AtomTypeCls MidiFileReaderPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if defined flagMIDI
 String MidiFileReader::GetAction() {
 	return "midi.file.reader";
 }
 
 AtomTypeCls MidiFileReader::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //MIDI_FILE_READER;
+	t.sub = SUB_ATOM_CLS; //MIDIFILEREADER;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -56,15 +59,17 @@ void MidiFileReader::Visit(Vis& v) {
 AtomTypeCls MidiFileReader::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if defined flagMIDI
 String MidiFileReader16::GetAction() {
 	return "midi.file.reader16";
 }
 
 AtomTypeCls MidiFileReader16::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //MIDI_FILE_READER16;
+	t.sub = SUB_ATOM_CLS; //MIDIFILEREADER16;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -98,15 +103,17 @@ void MidiFileReader16::Visit(Vis& v) {
 AtomTypeCls MidiFileReader16::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if defined flagMIDI
 String MidiNullSink::GetAction() {
 	return "midi.null.sink";
 }
 
 AtomTypeCls MidiNullSink::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //MIDI_NULL_SINK;
+	t.sub = SUB_ATOM_CLS; //MIDINULLSINK;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,MIDI),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -126,14 +133,15 @@ AtomTypeCls MidiNullSink::GetType() const {
 }
 #endif
 
-#if (defined flagFLUIDLITE) || (defined flagFLUIDSYNTH)
+
+#if (defined flagFLUIDLITE && defined flagAUDIO && defined flagMIDI) || (defined flagFLUIDSYNTH && defined flagAUDIO && defined flagMIDI)
 String FluidsynthPipe::GetAction() {
 	return "fluidsynth.pipe";
 }
 
 AtomTypeCls FluidsynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //FLUIDSYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //FLUIDSYNTHPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -155,13 +163,14 @@ AtomTypeCls FluidsynthPipe::GetType() const {
 #endif
 
 
+#if (defined flagAUDIO && defined flagMIDI)
 String SoftInstrumentPipe::GetAction() {
 	return "softinstru.pipe";
 }
 
 AtomTypeCls SoftInstrumentPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //SOFT_INSTRUMENT_PIPE;
+	t.sub = SUB_ATOM_CLS; //SOFTINSTRUMENTPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -180,15 +189,17 @@ void SoftInstrumentPipe::Visit(Vis& v) {
 AtomTypeCls SoftInstrumentPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if (defined flagAUDIO && defined flagMIDI)
 String FmSynthPipe::GetAction() {
 	return "fmsynth.pipe";
 }
 
 AtomTypeCls FmSynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //FM_SYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //FMSYNTHPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -207,16 +218,17 @@ void FmSynthPipe::Visit(Vis& v) {
 AtomTypeCls FmSynthPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
-#if defined flagLV2
+#if (defined flagLV2 && defined flagAUDIO && defined flagMIDI)
 String LV2InstrumentPipe::GetAction() {
 	return "lv2.instrument.pipe";
 }
 
 AtomTypeCls LV2InstrumentPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //LV2_INSTRUMENT_PIPE;
+	t.sub = SUB_ATOM_CLS; //LV2INSTRUMENTPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -238,13 +250,14 @@ AtomTypeCls LV2InstrumentPipe::GetType() const {
 #endif
 
 
+#if (defined flagAUDIO && defined flagMIDI)
 String CoreSynthPipe::GetAction() {
 	return "coresynth.pipe";
 }
 
 AtomTypeCls CoreSynthPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CORE_SYNTH_PIPE;
+	t.sub = SUB_ATOM_CLS; //CORESYNTHPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -263,15 +276,17 @@ void CoreSynthPipe::Visit(Vis& v) {
 AtomTypeCls CoreSynthPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if (defined flagAUDIO && defined flagMIDI)
 String CoreDrummerPipe::GetAction() {
 	return "coredrummer.pipe";
 }
 
 AtomTypeCls CoreDrummerPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CORE_DRUMMER_PIPE;
+	t.sub = SUB_ATOM_CLS; //COREDRUMMERPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,MIDI),1);
@@ -294,15 +309,17 @@ void CoreDrummerPipe::Visit(Vis& v) {
 AtomTypeCls CoreDrummerPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if defined flagAUDIO
 String CoreEffectPipe::GetAction() {
 	return "corefx.pipe";
 }
 
 AtomTypeCls CoreEffectPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CORE_EFFECT_PIPE;
+	t.sub = SUB_ATOM_CLS; //COREEFFECTPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -328,15 +345,17 @@ void CoreEffectPipe::Visit(Vis& v) {
 AtomTypeCls CoreEffectPipe::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
+#if defined flagAUDIO
 String CoreEffectAtom::GetAction() {
 	return "corefx.atom";
 }
 
 AtomTypeCls CoreEffectAtom::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CORE_EFFECT_ATOM;
+	t.sub = SUB_ATOM_CLS; //COREEFFECTATOM;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddIn(VD(CENTER,AUDIO),1);
@@ -362,16 +381,17 @@ void CoreEffectAtom::Visit(Vis& v) {
 AtomTypeCls CoreEffectAtom::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
-#if defined flagLV2
+#if (defined flagLV2 && defined flagAUDIO)
 String LV2EffectPipe::GetAction() {
 	return "lv2.effect.pipe";
 }
 
 AtomTypeCls LV2EffectPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //LV2_EFFECT_PIPE;
+	t.sub = SUB_ATOM_CLS; //LV2EFFECTPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,AUDIO),0);
@@ -392,14 +412,14 @@ AtomTypeCls LV2EffectPipe::GetType() const {
 #endif
 
 
-#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
+#if (defined flagBUILTIN_PORTMIDI && defined flagMIDI) || (defined flagPORTMIDI && defined flagMIDI)
 String PortmidiPipe::GetAction() {
 	return "midi.src.portmidi";
 }
 
 AtomTypeCls PortmidiPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //PORTMIDI_PIPE;
+	t.sub = SUB_ATOM_CLS; //PORTMIDIPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,MIDI),0);
@@ -420,14 +440,14 @@ AtomTypeCls PortmidiPipe::GetType() const {
 #endif
 
 
-#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
+#if (defined flagBUILTIN_PORTMIDI && defined flagMIDI) || (defined flagPORTMIDI && defined flagMIDI)
 String PortmidiSend::GetAction() {
 	return "midi.src.side.portmidi";
 }
 
 AtomTypeCls PortmidiSend::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //PORTMIDI_SEND;
+	t.sub = SUB_ATOM_CLS; //PORTMIDISEND;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -452,13 +472,14 @@ AtomTypeCls PortmidiSend::GetType() const {
 #endif
 
 
+#if defined flagAUDIO
 String CoreAudioFileOut::GetAction() {
 	return "audio.file.writer";
 }
 
 AtomTypeCls CoreAudioFileOut::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //CORE_AUDIO_FILE_OUT;
+	t.sub = SUB_ATOM_CLS; //COREAUDIOFILEOUT;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,AUDIO),0);
 	t.AddOut(VD(CENTER,RECEIPT),0);
@@ -476,6 +497,8 @@ void CoreAudioFileOut::Visit(Vis& v) {
 AtomTypeCls CoreAudioFileOut::GetType() const {
 	return GetAtomType();
 }
+#endif
+
+
 
 END_UPP_NAMESPACE
-

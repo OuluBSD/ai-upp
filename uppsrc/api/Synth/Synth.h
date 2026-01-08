@@ -8,6 +8,9 @@
 #include <SoftInstru/SoftInstru.h>
 #include <SoftSynth/SoftSynth.h>
 #include <SoftAudio/SoftAudio.h>
+#include <api/AudioHost/AudioHost.h>
+#include <plugin/fluidlite/fluidlite.h>
+#include <plugin/lilv/lilv.h>
 
 NAMESPACE_UPP
 
@@ -29,7 +32,9 @@ SYN_VNDR_LIST
 #undef SYN_CLS
 
 struct SynSoft {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -42,7 +47,9 @@ struct SynSoft {
 };
 #if (defined flagFLUIDSYNTH) || (defined flagFLUIDLITE)
 struct SynFluidsynth {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -55,7 +62,9 @@ struct SynFluidsynth {
 };
 #endif
 struct SynFmSynth {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -67,7 +76,9 @@ struct SynFmSynth {
 	
 };
 struct SynCoreSynth {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -79,7 +90,9 @@ struct SynCoreSynth {
 	
 };
 struct SynCoreDrummer {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -92,7 +105,9 @@ struct SynCoreDrummer {
 };
 #if defined flagLV2
 struct SynLV2 {
+	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
+	#endif
 	
 	struct Thread {
 		
@@ -105,138 +120,86 @@ struct SynLV2 {
 };
 #endif
 
+#if (defined flagAUDIO && defined flagMIDI)
 struct SynInstrument : public Atom {
 	//RTTI_DECL1(SynInstrument, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~SynInstrument() {}
 };
+#endif
 
 
+#if (defined flagAUDIO && defined flagMIDI)
 template <class Syn> struct SynthInstrumentT : SynInstrument {
-	SynthInstrumentT(VfsValue& n) : SynInstrument(n) {}
 	using CLASSNAME = SynthInstrumentT<Syn>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Syn::Instrument_Visit(*dev, *this, v);
-		VIS_THIS(SynInstrument);
+	//RTTI_DECL1(CLASSNAME, SynInstrument)
+	void Visit(Vis& vis) override {
+		if (dev) Syn::Instrument_Visit(*dev, *this, vis);
+		vis.VisitThis<SynInstrument>(this);
 	}
 	typename Syn::NativeInstrument* dev = 0;
 	bool Initialize(const WorldState& ws) override {
-		debug_sound_output = ws.Get(".debug_sound_output", "");
-		debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
-		debug_sound_enabled = false;
-		debug_print_enabled = false;
-		String trimmed = TrimBoth(debug_sound_output);
-		if (trimmed.IsEmpty()) {
-			debug_sound_output.Clear();
-		}
-		else {
-			String lowered = ToLower(trimmed);
-			if (lowered == "0" || lowered == "false" || lowered == "off" || lowered == "no" || lowered == "none") {
-				debug_sound_output.Clear();
-			}
-			else {
-				debug_sound_enabled = true;
-				if (lowered == "1" || lowered == "true" || lowered == "on" || lowered == "yes")
-					debug_sound_output.Clear();
-				else
-					debug_sound_output = trimmed;
-			}
-		}
-		if (!debug_sound_enabled)
-			debug_sound_output.Clear();
-		if (debug_sound_enabled && debug_sound_output.IsEmpty())
-			debug_sound_output = "on";
-		// default debug_print to follow debug_sound
-		debug_print_enabled = debug_sound_enabled;
-		String debug_print_token = TrimBoth(ws.Get(".debug_print", ""));
-		if (!debug_print_token.IsEmpty()) {
-			String lowered = ToLower(debug_print_token);
-			if (lowered == "0" || lowered == "false" || lowered == "off" || lowered == "no" || lowered == "none")
-				debug_print_enabled = false;
-			else
-				debug_print_enabled = true;
-		}
 		if (!Syn::Instrument_Create(dev))
 			return false;
-		if (!dev)
+		if (!Syn::Instrument_Initialize(*dev, *this, ws))
 			return false;
-		if (!Syn::Instrument_Initialize(*dev, *this, ws)) {
-			Syn::Instrument_Destroy(dev);
-			dev = nullptr;
-			return false;
-		}
 		return true;
 	}
 	bool PostInitialize() override {
-		if (!dev)
-			return false;
 		if (!Syn::Instrument_PostInitialize(*dev, *this))
 			return false;
 		return true;
 	}
 	bool Start() override {
-		if (!dev)
-			return false;
 		return Syn::Instrument_Start(*dev, *this);
 	}
 	void Stop() override {
-		if (!dev)
-			return;
 		Syn::Instrument_Stop(*dev, *this);
 	}
 	void Uninitialize() override {
 		ASSERT(this->GetDependencyCount() == 0);
-		if (!dev)
-			return;
 		Syn::Instrument_Uninitialize(*dev, *this);
 		Syn::Instrument_Destroy(dev);
-		dev = nullptr;
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
-		if (!dev)
-			return false;
 		if (!Syn::Instrument_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
 	bool Recv(int sink_ch, const Packet& in) override {
-		if (!dev)
-			return false;
 		return Syn::Instrument_Recv(*dev, *this, sink_ch, in);
 	}
 	void Finalize(RealtimeSourceConfig& cfg) override {
-		if (!dev)
-			return;
 		return Syn::Instrument_Finalize(*dev, *this, cfg);
 	}
 	bool IsReady(PacketIO& io) override {
-		if (!dev)
-			return false;
 		return Syn::Instrument_IsReady(*dev, *this, io);
 	}
-	const String& GetDebugSoundOutput() const { return debug_sound_output; }
-	int GetDebugSoundSeed() const { return debug_sound_seed; }
-	bool IsDebugSoundEnabled() const { return debug_sound_enabled; }
-	bool IsDebugPrintEnabled() const { return debug_print_enabled; }
-protected:
-	String debug_sound_output;
-	int debug_sound_seed = 0;
-	bool debug_sound_enabled = false;
-	bool debug_print_enabled = false;
 };
+#endif
 
+#if (defined flagAUDIO && defined flagMIDI)
 using SoftInstrument = SynthInstrumentT<SynSoft>;
+#endif
 #if (defined flagFLUIDSYNTH) || (defined flagFLUIDLITE)
+#if (defined flagAUDIO && defined flagMIDI)
 using FluidsynthInstrument = SynthInstrumentT<SynFluidsynth>;
 #endif
+#endif
+#if (defined flagAUDIO && defined flagMIDI)
 using FmSynthInstrument = SynthInstrumentT<SynFmSynth>;
+#endif
+#if (defined flagAUDIO && defined flagMIDI)
 using CoreSynthInstrument = SynthInstrumentT<SynCoreSynth>;
+#endif
+#if (defined flagAUDIO && defined flagMIDI)
 using CoreDrummerInstrument = SynthInstrumentT<SynCoreDrummer>;
+#endif
 #if defined flagLV2
+#if (defined flagAUDIO && defined flagMIDI)
 using LV2Instrument = SynthInstrumentT<SynLV2>;
+#endif
 #endif
 
 END_UPP_NAMESPACE

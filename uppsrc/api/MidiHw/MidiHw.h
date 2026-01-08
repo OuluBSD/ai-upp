@@ -6,6 +6,7 @@
 
 #include <Eon/Eon.h>
 #include <MidiFile/MidiFile.h>
+#include <plugin/portmidi/portmidi.h>
 
 NAMESPACE_UPP
 
@@ -23,7 +24,9 @@ MID_VNDR_LIST
 
 #if (defined flagPORTMIDI) || (defined flagBUILTIN_PORTMIDI)
 struct MidPortmidi {
+	#if defined flagMIDI
 	struct NativeSource;
+	#endif
 	
 	struct Thread {
 		
@@ -36,22 +39,23 @@ struct MidPortmidi {
 };
 #endif
 
+#if defined flagMIDI
 struct MidSource : public Atom {
 	//RTTI_DECL1(MidSource, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~MidSource() {}
 };
+#endif
 
 
+#if defined flagMIDI
 template <class Mid> struct MidiHwSourceT : MidSource {
-	MidiHwSourceT(VfsValue& n) : MidSource(n) {}
 	using CLASSNAME = MidiHwSourceT<Mid>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Mid::Source_Visit(*dev, *this, v);
-		VIS_THIS(MidSource);
+	//RTTI_DECL1(CLASSNAME, MidSource)
+	void Visit(Vis& vis) override {
+		if (dev) Mid::Source_Visit(*dev, *this, vis);
+		vis.VisitThis<MidSource>(this);
 	}
 	typename Mid::NativeSource* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -86,9 +90,12 @@ template <class Mid> struct MidiHwSourceT : MidSource {
 		return Mid::Source_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
 #if (defined flagPORTMIDI) || (defined flagBUILTIN_PORTMIDI)
+#if defined flagMIDI
 using PortmidiSource = MidiHwSourceT<MidPortmidi>;
+#endif
 #endif
 
 END_UPP_NAMESPACE

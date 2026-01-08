@@ -6,6 +6,7 @@
 
 #include <Eon/Eon.h>
 #include <api/Media/Media.h>
+#include <plugin/hcidump/hcidump.h>
 #include <SoftHMD/SoftHMD.h>
 
 NAMESPACE_UPP
@@ -29,7 +30,9 @@ HOLO_VNDR_LIST
 
 #if (defined flagLINUX && defined flagOPENHMD) || (defined flagFREEBSD && defined flagOPENHMD)
 struct HoloOpenHMD {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -43,7 +46,9 @@ struct HoloOpenHMD {
 #endif
 #if defined flagLOCALHMD
 struct HoloLocalHMD {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -57,7 +62,9 @@ struct HoloLocalHMD {
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
 struct HoloRemoteVRServer {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -71,7 +78,9 @@ struct HoloRemoteVRServer {
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
 struct HoloDevUsb {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -85,7 +94,9 @@ struct HoloDevUsb {
 #endif
 #if (defined flagLINUX && defined flagHACK) || (defined flagFREEBSD && defined flagHACK)
 struct HoloDevBluetooth {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -99,7 +110,9 @@ struct HoloDevBluetooth {
 #endif
 #if (defined flagWIN32 && defined flagOPENVR)
 struct HoloOpenVR {
+	#if defined flagVR
 	struct NativeSinkDevice;
+	#endif
 	
 	struct Thread {
 		
@@ -112,22 +125,23 @@ struct HoloOpenVR {
 };
 #endif
 
+#if defined flagVR
 struct HoloSinkDevice : public Atom {
 	//RTTI_DECL1(HoloSinkDevice, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~HoloSinkDevice() {}
 };
+#endif
 
 
+#if defined flagVR
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
-	HolographSinkDeviceT(VfsValue& n) : HoloSinkDevice(n) {}
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Holo::SinkDevice_Visit(*dev, *this, v);
-		VIS_THIS(HoloSinkDevice);
+	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
+	void Visit(Vis& vis) override {
+		if (dev) Holo::SinkDevice_Visit(*dev, *this, vis);
+		vis.VisitThis<HoloSinkDevice>(this);
 	}
 	typename Holo::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -168,24 +182,37 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 		return Holo::SinkDevice_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
 #if (defined flagLINUX && defined flagOPENHMD) || (defined flagFREEBSD && defined flagOPENHMD)
+#if defined flagVR
 using OpenHMDSinkDevice = HolographSinkDeviceT<HoloOpenHMD>;
 #endif
+#endif
 #if defined flagLOCALHMD
+#if defined flagVR
 using LocalHMDSinkDevice = HolographSinkDeviceT<HoloLocalHMD>;
 #endif
+#endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
+#if defined flagVR
 using RemoteVRServerSinkDevice = HolographSinkDeviceT<HoloRemoteVRServer>;
 #endif
+#endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
+#if defined flagVR
 using DevUsbSinkDevice = HolographSinkDeviceT<HoloDevUsb>;
 #endif
+#endif
 #if (defined flagLINUX && defined flagHACK) || (defined flagFREEBSD && defined flagHACK)
+#if defined flagVR
 using DevBluetoothSinkDevice = HolographSinkDeviceT<HoloDevBluetooth>;
 #endif
+#endif
 #if (defined flagWIN32 && defined flagOPENVR)
+#if defined flagVR
 using OpenVRSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
+#endif
 #endif
 
 END_UPP_NAMESPACE

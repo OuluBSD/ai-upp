@@ -3,7 +3,7 @@
 
 // This file is generated. Do not modify this file.
 
-#if (defined flagFREEBSD && defined flagOPENHMD) || (defined flagLINUX && defined flagOPENHMD)
+#if (defined flagFREEBSD && defined flagOPENHMD && defined flagVR) || (defined flagLINUX && defined flagOPENHMD && defined flagVR)
 class OpenHMDPipe : public OpenHMDSinkDevice {
 
 public:
@@ -18,7 +18,7 @@ public:
 };
 #endif
 
-#if defined flagLOCALHMD
+#if (defined flagLOCALHMD && defined flagVR)
 class LocalHMDPipe : public LocalHMDSinkDevice {
 
 public:
@@ -33,7 +33,7 @@ public:
 };
 #endif
 
-#if (defined flagFREEBSD) || (defined flagLINUX)
+#if (defined flagFREEBSD && defined flagVR) || (defined flagLINUX && defined flagVR)
 class RemoteVRServerPipe : public RemoteVRServerSinkDevice {
 
 public:
@@ -48,7 +48,7 @@ public:
 };
 #endif
 
-#if (defined flagFREEBSD && defined flagHACK) || (defined flagLINUX && defined flagHACK)
+#if (defined flagFREEBSD && defined flagHACK && defined flagVR) || (defined flagLINUX && defined flagHACK && defined flagVR)
 class BluetoothHoloPipe : public DevBluetoothSinkDevice {
 
 public:
@@ -63,7 +63,7 @@ public:
 };
 #endif
 
-#if (defined flagUWP && defined flagDX12)
+#if (defined flagUWP && defined flagDX12 && defined flagHAL)
 class HoloContextAtom : public HoloContextBase {
 
 public:
@@ -78,7 +78,7 @@ public:
 };
 #endif
 
-#if (defined flagUWP && defined flagDX12)
+#if (defined flagUWP && defined flagDX12 && defined flagHAL)
 class HoloEventAtomPipe : public HoloEventsBase {
 
 public:

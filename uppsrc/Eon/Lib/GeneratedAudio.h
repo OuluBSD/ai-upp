@@ -3,7 +3,7 @@
 
 // This file is generated. Do not modify this file.
 
-#if (defined flagMIDI)
+#if defined flagMIDI
 class MidiFileReaderPipe : public MidiFileReaderAtom {
 
 public:
@@ -18,7 +18,7 @@ public:
 };
 #endif
 
-#if (defined flagMIDI)
+#if defined flagMIDI
 class MidiFileReader : public MidiFileReaderAtom {
 
 public:
@@ -33,7 +33,7 @@ public:
 };
 #endif
 
-#if (defined flagMIDI)
+#if defined flagMIDI
 class MidiFileReader16 : public MidiFileReaderAtom {
 
 public:
@@ -48,7 +48,7 @@ public:
 };
 #endif
 
-#if (defined flagMIDI)
+#if defined flagMIDI
 class MidiNullSink : public MidiNullAtom {
 
 public:
@@ -63,7 +63,7 @@ public:
 };
 #endif
 
-#if (defined flagFLUIDLITE) || (defined flagFLUIDSYNTH)
+#if (defined flagFLUIDLITE && defined flagAUDIO && defined flagMIDI) || (defined flagFLUIDSYNTH && defined flagAUDIO && defined flagMIDI)
 class FluidsynthPipe : public FluidsynthInstrument {
 
 public:
@@ -78,7 +78,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if (defined flagAUDIO && defined flagMIDI)
 class SoftInstrumentPipe : public SoftInstrument {
 
 public:
@@ -93,7 +93,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if (defined flagAUDIO && defined flagMIDI)
 class FmSynthPipe : public FmSynthInstrument {
 
 public:
@@ -106,8 +106,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
-#if defined flagLV2
+#if (defined flagLV2 && defined flagAUDIO && defined flagMIDI)
 class LV2InstrumentPipe : public LV2Instrument {
 
 public:
@@ -122,6 +123,7 @@ public:
 };
 #endif
 
+#if (defined flagAUDIO && defined flagMIDI)
 class CoreSynthPipe : public CoreSynthInstrument {
 
 public:
@@ -136,7 +138,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if (defined flagAUDIO && defined flagMIDI)
 class CoreDrummerPipe : public CoreDrummerInstrument {
 
 public:
@@ -151,7 +153,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if defined flagAUDIO
 class CoreEffectPipe : public AudioCoreEffect {
 
 public:
@@ -166,7 +168,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if defined flagAUDIO
 class CoreEffectAtom : public AudioCoreEffect {
 
 public:
@@ -181,7 +183,7 @@ public:
 };
 #endif
 
-#if defined flagLV2
+#if (defined flagLV2 && defined flagAUDIO)
 class LV2EffectPipe : public LV2Effect {
 
 public:
@@ -196,7 +198,7 @@ public:
 };
 #endif
 
-#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
+#if (defined flagBUILTIN_PORTMIDI && defined flagMIDI) || (defined flagPORTMIDI && defined flagMIDI)
 class PortmidiPipe : public PortmidiSource {
 
 public:
@@ -211,7 +213,7 @@ public:
 };
 #endif
 
-#if (defined flagBUILTIN_PORTMIDI) || (defined flagPORTMIDI)
+#if (defined flagBUILTIN_PORTMIDI && defined flagMIDI) || (defined flagPORTMIDI && defined flagMIDI)
 class PortmidiSend : public PortmidiSource {
 
 public:
@@ -226,7 +228,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO)
+#if defined flagAUDIO
 class CoreAudioFileOut : public CoreAudioSink {
 
 public:

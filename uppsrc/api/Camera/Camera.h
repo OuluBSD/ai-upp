@@ -23,7 +23,9 @@ CAM_VNDR_LIST
 
 #if (defined flagOPENCV && defined flagLINUX)
 struct CamV4L2OpenCV {
+	#if defined flagCAMERA
 	struct NativeCamera;
+	#endif
 	
 	struct Thread {
 		
@@ -36,22 +38,23 @@ struct CamV4L2OpenCV {
 };
 #endif
 
+#if defined flagCAMERA
 struct CamCamera : public Atom {
 	//RTTI_DECL1(CamCamera, Atom)
-	using Atom::Atom;
-	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	void Visit(Vis& vis) override {VIS_THIS(Atom);}
 	
 	virtual ~CamCamera() {}
 };
+#endif
 
 
+#if defined flagCAMERA
 template <class Cam> struct CameraCameraT : CamCamera {
-	CameraCameraT(VfsValue& n) : CamCamera(n) {}
 	using CLASSNAME = CameraCameraT<Cam>;
-	TypeCls GetTypeCls() const override {return typeid(CLASSNAME);}
-	void Visit(Vis& v) override {
-		if (dev) Cam::Camera_Visit(*dev, *this, v);
-		v.VisitT<CamCamera>("CamCamera",*this);
+	//RTTI_DECL1(CLASSNAME, CamCamera)
+	void Visit(Vis& vis) override {
+		if (dev) Cam::Camera_Visit(*dev, *this, vis);
+		vis.VisitThis<CamCamera>(this);
 	}
 	typename Cam::NativeCamera* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -86,9 +89,12 @@ template <class Cam> struct CameraCameraT : CamCamera {
 		return Cam::Camera_IsReady(*dev, *this, io);
 	}
 };
+#endif
 
 #if (defined flagOPENCV && defined flagLINUX)
+#if defined flagCAMERA
 using V4L2OpenCVCamera = CameraCameraT<CamV4L2OpenCV>;
+#endif
 #endif
 
 END_UPP_NAMESPACE

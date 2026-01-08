@@ -2291,3 +2291,87 @@ double CoreSupervisor::PredictValue(const Suggestion& s,
     return value;
 }
 
+// Evolution Engine v1 - Implementation of LearnFromEvolution method
+void CoreSupervisor::LearnFromEvolution(const EvolutionSummary& summary) {
+    // Adjust strategy weights based on evolution summary
+    // If success rate is low for a strategy, reduce its priority
+    for (int i = 0; i < summary.by_strategy.GetCount(); i++) {
+        String strategy_name = summary.by_strategy.GetKey(i);
+        ValueMap strategy_stats = summary.by_strategy[i];
+
+        if (strategy_stats.GetCount() > 0) {
+            int count = strategy_stats.Get("count", 0);
+            int success_count = strategy_stats.Get("success_count", 0);
+            double avg_success_rate = count > 0 ? (double)success_count / count : 0.0;
+            double avg_delta = strategy_stats.Get("avg_delta", 0.0);
+
+            // If the strategy has a low success rate, reduce its priority
+            if (avg_success_rate < 0.7 && count > 2) {
+                // Reduce the weights of this strategy if we have active strategy and it matches
+                if (active && active->name == strategy_name) {
+                    // For simplicity, we'll reduce benefit multiplier of all objectives
+                    StrategyProfile* mutable_active = const_cast<StrategyProfile*>(active);
+
+                    // Reduce benefit weights to lower the priority of this strategy
+                    if (mutable_active->weights.Find("benefit") >= 0) {
+                        double current_benefit_weight = mutable_active->weights.Get("benefit");
+                        mutable_active->weights.Set("benefit", current_benefit_weight * 0.8); // Reduce by 20%
+                    }
+                }
+            }
+
+            // If the strategy has a high success rate, increase its priority
+            if (avg_success_rate > 0.9 && count > 2) {
+                // Increase the weights of this strategy if we have active strategy and it matches
+                if (active && active->name == strategy_name) {
+                    StrategyProfile* mutable_active = const_cast<StrategyProfile*>(active);
+
+                    // Increase benefit weights to raise the priority of this strategy
+                    if (mutable_active->weights.Find("benefit") >= 0) {
+                        double current_benefit_weight = mutable_active->weights.Get("benefit");
+                        mutable_active->weights.Set("benefit", current_benefit_weight * 1.2); // Increase by 20%
+                    }
+                }
+            }
+        }
+    }
+
+    // Adjust objective weights based on change kind success rates
+    for (int i = 0; i < summary.by_change_kind.GetCount(); i++) {
+        String change_kind = summary.by_change_kind.GetKey(i);
+        ValueMap change_stats = summary.by_change_kind[i];
+
+        if (change_stats.GetCount() > 0) {
+            int count = change_stats.Get("count", 0);
+            int success_count = change_stats.Get("success_count", 0);
+            double avg_success_rate = count > 0 ? (double)success_count / count : 0.0;
+            double avg_delta = change_stats.Get("avg_delta", 0.0);
+
+            // If include cleanup has high success rate, increase its weight in suggestions
+            if (change_kind == "include_cleanup" && avg_success_rate > 0.9 && count > 2) {
+                // Increase the likelihood of suggesting include cleanup
+                adaptive.novelty_bias += 0.1; // Boost safe, high-success changes
+            }
+            // If rename has good success rate and benefit, increase its weight
+            else if (change_kind == "rename" && avg_success_rate > 0.85 && count > 2 && avg_delta > 0) {
+                adaptive.benefit_multiplier += 0.05; // Small boost for beneficial renames
+            }
+            // If optimization has high success rate, increase its weight
+            else if (change_kind == "optimization" && avg_success_rate > 0.85 && count > 2) {
+                // This affects optimization loop suggestions
+                adaptive.confidence_boost += 0.05;
+            }
+            // If include cleanup has low success rate, reduce its priority
+            else if (change_kind == "include_cleanup" && avg_success_rate < 0.6 && count > 2) {
+                adaptive.novelty_bias -= 0.1; // Reduce the boost for include cleanup
+            }
+        }
+    }
+
+    // Apply thresholds to prevent weights from going too high or low
+    adaptive.benefit_multiplier = max(0.1, min(2.0, adaptive.benefit_multiplier));
+    adaptive.risk_penalty = max(0.1, min(2.0, adaptive.risk_penalty));
+    adaptive.confidence_boost = max(0.1, min(2.0, adaptive.confidence_boost));
+    adaptive.novelty_bias = max(0.0, min(0.5, adaptive.novelty_bias));
+}
+

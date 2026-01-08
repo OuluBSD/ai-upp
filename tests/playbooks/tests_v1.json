@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "id": "basic_safe_cleanup_applies",
+      "workspace": "tests/playbooks/workspaces/ws_basic_cleanup",
+      "playbook_id": "safe_cleanup_cycle",
+      "expect": {
+        "status": "applied_or_simulated",
+        "max_events_increase": 5,
+        "min_events_increase": 1,
+        "allow_apply": true
+      }
+    },
+    {
+      "id": "high_risk_blocked_by_constraints",
+      "workspace": "tests/playbooks/workspaces/ws_high_risk",
+      "playbook_id": "safe_cleanup_cycle",
+      "override_constraints": {
+        "max_risk": 0.1,
+        "allow_apply": false
+      },
+      "expect": {
+        "status": "blocked_by_constraint",
+        "no_apply": true
+      }
+    }
+  ]
+}

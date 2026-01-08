@@ -15,6 +15,14 @@
 #include "LifecycleModel.h"
 #include "MetaOrchestrator.h"
 #include "TemporalSeasonality.h"
+#include "StrategicNavigator.h"
+#include "AgentRegistry.h"
+#include "CoreConflictResolver.h"
+#include "CoreFutureSimulator.h"
+#include "CoreEvolution.h"
+#include "CorePlaybook.h"
+#include "RegressionSpec.h"
+#include "RegressionRunner.h"
 
 NAMESPACE_UPP
 

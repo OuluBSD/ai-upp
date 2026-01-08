@@ -1,0 +1,115 @@
+{
+  "name": "ai-upp",
+  "description": "AI-UPP CLI-based codebase analysis and refactoring tools",
+  "api_version": "2024-02-02",
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "workspace_overview",
+      "description": "Get workspace & graph stats",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" }
+        },
+        "required": ["workspace_root"]
+      }
+    },
+    {
+      "name": "optimization_proposal",
+      "description": "Generate optimization proposal",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" },
+          "package": { "type": "string" },
+          "max_actions": { "type": "number" },
+          "with_futures": { "type": "boolean" }
+        },
+        "required": ["workspace_root", "package"]
+      }
+    },
+    {
+      "name": "explore_futures",
+      "description": "Explore multi-branch futures for the current negotiated scenario",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" }
+        },
+        "required": ["workspace_root"]
+      }
+    },
+    {
+      "name": "apply_scenario",
+      "description": "Apply an existing scenario plan",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" },
+          "plan_file": { "type": "string" }
+        },
+        "required": ["workspace_root", "plan_file"]
+      }
+    },
+    {
+      "name": "revert_patch",
+      "description": "Revert a previously applied patch",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" },
+          "patch": { "type": "string" }
+        },
+        "required": ["workspace_root", "patch"]
+      }
+    },
+    {
+      "name": "evolution_summary",
+      "description": "Summarize historical evolution of the codebase",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" }
+        },
+        "required": ["workspace_root"]
+      }
+    },
+    {
+      "name": "lifecycle_status",
+      "description": "Report lifecycle phase, drift and stability",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" }
+        },
+        "required": ["workspace_root"]
+      }
+    },
+    {
+      "name": "list_playbooks",
+      "description": "List available playbooks for automation",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" }
+        },
+        "required": ["workspace_root"]
+      }
+    },
+    {
+      "name": "run_playbook",
+      "description": "Run a specific playbook",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "workspace_root": { "type": "string" },
+          "playbook_id": { "type": "string" }
+        },
+        "required": ["workspace_root", "playbook_id"]
+      }
+    }
+  ]
+}

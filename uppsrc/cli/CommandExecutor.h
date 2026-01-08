@@ -138,6 +138,30 @@ private:
     InvocationResult HandleTemporalRisk(const VectorMap<String, String>& args);
     InvocationResult HandleTemporalShock(const VectorMap<String, String>& args);
 
+    // Strategic Navigator v1 - Multi-agent planning command handlers
+    InvocationResult HandleListAgents(const VectorMap<String, String>& args);
+    InvocationResult HandleAgentPlan(const VectorMap<String, String>& args);
+    InvocationResult HandleGlobalPlan(const VectorMap<String, String>& args);
+
+    // Conflict Resolver v1 - Patch-level negotiation command handlers
+    InvocationResult HandleResolveConflicts(const VectorMap<String, String>& args);
+
+    // Multi-Branch Futures & Outcome Horizon Engine - v2
+    InvocationResult HandleExploreFutures(const VectorMap<String, String>& args);
+
+    // Playbook Engine v1 - High-level workflow automation
+    InvocationResult HandleListPlaybooks(const VectorMap<String, String>& args);
+    InvocationResult HandleRunPlaybook(const VectorMap<String, String>& args);
+
+    // Hybrid Instrument Commands
+    InvocationResult HandleInstrumentBuildHybrid(const VectorMap<String, String>& args);
+    InvocationResult HandleInstrumentRenderHybrid(const VectorMap<String, String>& args);
+
+    // Regression Lab v1 - Agent-based regression testing
+    InvocationResult HandleListRegressionSpecs(const VectorMap<String, String>& args);
+    InvocationResult HandleRunRegression(const VectorMap<String, String>& args);
+    InvocationResult HandleCompareRegressions(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

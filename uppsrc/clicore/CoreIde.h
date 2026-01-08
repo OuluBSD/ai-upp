@@ -24,6 +24,10 @@
 #include "MetaOrchestrator.h"
 #include "TemporalSeasonality.h"
 #include "TemporalForecast.h"
+#include "StrategicNavigator.h"
+#include "AgentRegistry.h"
+#include "CoreConflictResolver.h"
+#include "RegressionRunner.h"
 
 using namespace Upp;
 
@@ -124,6 +128,19 @@ public:
     CoreSupervisor& GetSupervisor() { return supervisor; }
     const CoreSupervisor& GetSupervisor() const { return supervisor; }
 
+    // Strategic Navigator v1 - Multi-agent goal-oriented planning
+    void RegisterAgentProfile(const AgentProfile& profile);
+    Value GetAgentProfiles() const;
+
+    Value BuildAgentPlan(const String& agent_name, String& error);
+    Value BuildGlobalPlan(String& error);
+
+    // Conflict Resolver v1 - Patch-level negotiation
+    Value ResolveConflicts(String& error);
+
+    // Multi-Branch Futures & Outcome Horizon Engine - v2
+    Value ExploreFutures(String& error);
+
     // Semantic analysis v1
     bool AnalyzeSemantics(String& error);
     const CoreSemantic& GetSemanticAnalyzer() const;
@@ -174,6 +191,17 @@ public:
     Value GetRiskProfile();
     Value SimulateShock(const String& type);
 
+    // Evolution Engine v1 - Get evolution timeline and summary
+    Value GetEvolutionTimeline(String& error) const;
+    Value GetEvolutionSummary(String& error) const;
+
+    // Playbook Engine v1 - High-level workflow automation
+    Value ListPlaybooks(String& error) const;
+    Value RunPlaybook(const String& id, String& error);
+
+    // Regression Lab v1 - Agent-based regression testing
+    Value RunRegression(const String& name, String& error);
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -203,6 +231,27 @@ private:
     Array<CoreEditor> editors;  // Use One<> to ensure move-only semantics
     Index<String> editor_paths;  // Map from path to editor index
     int current_editor_index;    // Index of currently active editor
+
+    // Strategic Navigator v1 - Multi-agent planning
+    StrategicNavigator navigator;  // StrategicNavigator member
+
+    // Agent Registry for loading agent profiles from metadata
+    AgentRegistry agent_registry;  // AgentRegistry member
+
+    // Conflict Resolver v1 - Patch-level negotiation
+    CoreConflictResolver resolver;  // CoreConflictResolver member
+
+    // Multi-Branch Futures & Outcome Horizon Engine - v2
+    CoreFutureSimulator future_sim;  // CoreFutureSimulator member
+
+    // Evolution Engine v1 - Track changes and their outcomes
+    CoreEvolution evolution;  // CoreEvolution member for evolution tracking
+
+    // Playbook Engine v1 - High-level workflow automation
+    CorePlaybook playbook_engine;  // CorePlaybook member for playbook execution
+
+    // Regression Lab v1 - Agent-based regression testing
+    RegressionRunner regression;  // RegressionRunner member for regression testing
 
     // Helper methods for lifecycle management
     void RecordCurrentPhase(const LifecyclePhase& phase);

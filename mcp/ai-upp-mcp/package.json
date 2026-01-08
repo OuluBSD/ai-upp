@@ -1,0 +1,16 @@
+{
+  "name": "ai-upp-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for AI-UPP CLI integration",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "yargs": "^17.7.2"
+  },
+  "keywords": ["mcp", "ai", "aid", "refactoring", "codegen"],
+  "author": "AI-UPP Team",
+  "license": "MIT"
+}

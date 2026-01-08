@@ -35,6 +35,8 @@ bin/**
 valgrind*
 *.txt
 screen.png
+node_modules/
+mcp/*/node_modules/
 
 thirdparty_imgui-node-editor_ref
 

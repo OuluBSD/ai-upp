@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Upp workspace="HighRiskWorkspace">
+	<Package name="CtrlCore" />
+	<Package name="Core" />
+	<Package name="TangledPkg" />
+	<Package name="RiskyPkg" />
+</Upp>

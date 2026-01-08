@@ -1,0 +1,41 @@
+[
+  {
+    "name": "cleanup_regression",
+    "agent_name": "Qwen",
+    "workspace_root": "tests/regression/workspaces/ws_regression_basic",
+    "playbook_or_scenario": "cleanup_unused_code",
+    "allowed_risk": 0.3,
+    "max_actions": 50,
+    "comparison_baselines": {
+      "complexity": 10,
+      "cycles": 5,
+      "loc": 1000
+    }
+  },
+  {
+    "name": "refactor_regression",
+    "agent_name": "Claude",
+    "workspace_root": "tests/regression/workspaces/ws_regression_basic",
+    "playbook_or_scenario": "refactor_code_structure",
+    "allowed_risk": 0.5,
+    "max_actions": 100,
+    "comparison_baselines": {
+      "complexity": 15,
+      "cycles": 8,
+      "loc": 1200
+    }
+  },
+  {
+    "name": "high_risk_block_test",
+    "agent_name": "Gemini",
+    "workspace_root": "tests/regression/workspaces/ws_regression_risky",
+    "playbook_or_scenario": "modify_critical_security_component",
+    "allowed_risk": 0.1,
+    "max_actions": 20,
+    "comparison_baselines": {
+      "complexity": 20,
+      "cycles": 10,
+      "loc": 500
+    }
+  }
+]

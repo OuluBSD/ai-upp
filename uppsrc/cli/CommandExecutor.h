@@ -157,6 +157,11 @@ private:
     InvocationResult HandleInstrumentBuildHybrid(const VectorMap<String, String>& args);
     InvocationResult HandleInstrumentRenderHybrid(const VectorMap<String, String>& args);
 
+    // Regression Lab v1 - Agent-based regression testing
+    InvocationResult HandleListRegressionSpecs(const VectorMap<String, String>& args);
+    InvocationResult HandleRunRegression(const VectorMap<String, String>& args);
+    InvocationResult HandleCompareRegressions(const VectorMap<String, String>& args);
+
     const CommandRegistry& registry;
     One<IdeSession> session;
 };

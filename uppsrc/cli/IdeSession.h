@@ -162,6 +162,9 @@ public:
     // Playbook Engine v1 - High-level workflow automation
     virtual Value ListPlaybooks(String& error) const = 0;
     virtual Value RunPlaybook(const String& id, String& error) = 0;
+
+    // Regression Lab v1 - Agent-based regression testing
+    virtual Value RunRegression(const String& name, String& error) = 0;
 };
 
 One<IdeSession> CreateIdeSession();

@@ -2008,3 +2008,63 @@ Value CoreIde::RunPlaybook(const String& id, String& error) {
 
     return playbook_engine.Run(*pb, *this, error);
 }
+
+// Regression Lab v1 - Agent-based regression testing
+Value CoreIde::RunRegression(const String& name, String& error) {
+    // Load the regression suite and find the specified test
+    RegressionSuite& suite = RegressionSuite::Single();
+
+    // Load specs from file if not already loaded
+    if (suite.ListSpecs().GetCount() == 0) {
+        suite.LoadSpecs("tests/regression/specs_v1.json");
+    }
+
+    if (!suite.HasSpec(name)) {
+        error = "Regression spec not found: " + name;
+        return Value();
+    }
+
+    const RegressionSpec& spec = suite.GetSpec(name);
+    RegressionRunner::RegressionResult result = regression.RunSpec(spec);
+
+    if (!result.success) {
+        error = result.error_msg;
+        return Value();
+    }
+
+    // Evaluate the outcome
+    if (!regression.EvaluateOutcome(result, spec)) {
+        error = "Regression evaluation failed for spec: " + name;
+        return Value();
+    }
+
+    // Save the report
+    String report_path = regression.GetReportOutputDir() + "/regression_" + name + ".json";
+    if (!regression.SaveReport(result, report_path)) {
+        LOG("Warning: Failed to save regression report to: " + report_path);
+    }
+
+    // Generate markdown report
+    String md_report = regression.GenerateMarkdownReport(result);
+    String md_path = regression.GetReportOutputDir() + "/regression_" + name + ".md";
+    if (!SaveFile(md_path, md_report)) {
+        LOG("Warning: Failed to save markdown report to: " + md_path);
+    }
+
+    // Convert result to ValueMap for return
+    ValueMap report;
+    report.Set("spec", result.spec_name);
+    report.Set("agent", result.agent_name);
+    report.Set("success", result.success);
+    report.Set("metrics", result.metrics);
+    report.Set("patch_summary", result.patch_summary);
+    report.Set("violations", result.violations);
+    report.Set("conflicts", result.conflicts);
+    report.Set("score", result.score);
+
+    if (!result.error_msg.IsEmpty()) {
+        report.Set("error", result.error_msg);
+    }
+
+    return report;
+}

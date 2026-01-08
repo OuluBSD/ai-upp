@@ -2,15 +2,21 @@ description "\377B0,0,255";
 
 uses
 	Eon/Draw,
-	api/Effect,
-	api/MidiFile,
-	api/MidiHw,
-	api/Synth,
-	api/Holograph,
-	Painter,
-	api/Audio;
+	Painter;
 
-uses(!EMSCRIPTEN) api/Holograph;
+uses(AUDIO) api/Effect;
+
+uses(MIDI) api/MidiFile;
+
+uses(MIDI) api/MidiHw;
+
+uses(AUDIO) api/Synth;
+
+uses(AUDIO) api/Audio;
+
+uses(VR) api/Holograph;
+
+uses(!EMSCRIPTEN VR) api/Holograph;
 
 uses(SCREEN) api/Graphics;
 

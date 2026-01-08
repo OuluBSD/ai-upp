@@ -110,7 +110,7 @@ AtomTypeCls TestPollerSink::GetType() const {
 }
 
 
-#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
+#if defined flagPORTAUDIO
 String PortaudioSink::GetAction() {
 	return "center.audio.sink.hw";
 }
@@ -1388,7 +1388,7 @@ AtomTypeCls SdlOglImageLoader::GetType() const {
 }
 #endif
 
-
+#ifdef flagVOLUMETRIC
 String VolumeLoaderAtom::GetAction() {
 	return "center.volume.loader";
 }
@@ -1414,6 +1414,7 @@ void VolumeLoaderAtom::Visit(Vis& v) {
 AtomTypeCls VolumeLoaderAtom::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
 #if (defined flagX11 && defined flagSCREEN)

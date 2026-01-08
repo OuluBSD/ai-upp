@@ -1,6 +1,7 @@
 #include "Lib.h"
 
 // This file is generated. Do not modify this file.
+#ifdef flagVR
 
 NAMESPACE_UPP
 
@@ -203,3 +204,4 @@ AtomTypeCls HoloD12FboAtomSA::GetType() const {
 
 END_UPP_NAMESPACE
 
+#endif

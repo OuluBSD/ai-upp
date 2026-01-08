@@ -1,18 +1,27 @@
 description "Topside main application\377B";
 
 uses
-	api/MidiFile,
-	api/MidiHw,
 	AI/Core,
-	api/AudioFileOut,
-	api/Camera,
-	api/Media,
-	api/Volumetric,
-	SoftPhys,
-	SoftAudio,
-	api/Physics,
 	Eon/Draw,
 	Eon/Lib;
+
+uses(VOLUMETRIC) api/Volumetric;
+
+uses(CAMERA) api/Camera;
+
+uses(PHYSICS) api/Physics;
+
+uses(AUDIO) SoftAudio;
+
+uses(PHYSICS) SoftPhys;
+
+uses(MEDIA) api/Media;
+
+uses(AUDIO) api/AudioFileOut;
+
+uses(MIDI) api/MidiHw;
+
+uses(MIDI) api/MidiFile;
 
 uses(LINUX & VR) SoftVR;
 
@@ -26,7 +35,7 @@ uses(GUI) Eon/Ctrl;
 
 uses(GUI | SCREEN) api/Graphics;
 
-uses(GUI | SCREEN) api/Hal;
+uses(HAL (GUI | SCREEN)) api/Hal;
 
 uses((GUI | SCREEN) & !EMSCRIPTEN) api/Screen;
 

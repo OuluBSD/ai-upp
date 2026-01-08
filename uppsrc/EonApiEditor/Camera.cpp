@@ -5,9 +5,8 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddCamera() {
 	Package("Camera", "Cam");
-	SetColor(54, 157, 42);
-	Dependency("ParallelLib");
-	Dependency("IMedia");
+	SetColor(0, 128, 0);
+	Dependency("api/Media");
 	HaveIsReady();
 	
 	Interface("Camera", "CAMERA");

@@ -5,8 +5,7 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddAudioFileOut() {
 	Package("AudioFileOut", "AFO");
-	SetColor(80, 58, 119);
-	Dependency("ParallelLib");
+	SetColor(0, 128, 0);
 	HaveRecvFinalize();
 	HaveIsReady();
 	

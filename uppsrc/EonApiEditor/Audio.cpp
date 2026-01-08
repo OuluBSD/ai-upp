@@ -5,9 +5,9 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddAudio() {
 	Package("Audio", "Aud");
-	SetColor(226, 212, 0);
-	Dependency("ParallelLib");
-	Dependency("ports/portaudio", "BUILTIN_PORTAUDIO");
+	SetColor(0, 128, 0);
+	Dependency("Eon");
+	Dependency("Sound");
 	Library("portaudio", "PORTAUDIO");
 	HaveNegotiateFormat();
 	

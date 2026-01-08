@@ -13,7 +13,7 @@ void InterfaceBuilder::AddEffect() {
 	HaveRecvFinalize();
 	HaveIsReady();
 	
-	Interface("Effect");
+	Interface("Effect", "AUDIO");
 	
 	Vendor("AudioCore");
 	Vendor("LV2", "LV2");

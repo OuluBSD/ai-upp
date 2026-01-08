@@ -12,7 +12,7 @@ void InterfaceBuilder::AddMidiHw() {
 	HaveIsReady();
 	Library("portmidi", "PORTMIDI");
 	
-	Interface("Source");
+	Interface("Source", "MIDI");
 	
 	Vendor("Portmidi", "PORTMIDI|BUILTIN_PORTMIDI");
 	

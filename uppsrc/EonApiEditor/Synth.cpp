@@ -17,7 +17,7 @@ void InterfaceBuilder::AddSynth() {
 	HaveRecvFinalize();
 	HaveIsReady();
 	
-	Interface("Instrument");
+	Interface("Instrument", "AUDIO&MIDI");
 	
 	Vendor("Soft");
 	Vendor("Fluidsynth", "FLUIDSYNTH|FLUIDLITE");

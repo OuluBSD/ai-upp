@@ -1,6 +1,7 @@
 #include "Lib.h"
 
 // This file is generated. Do not modify this file.
+#ifdef flagAUDIO
 
 NAMESPACE_UPP
 
@@ -478,3 +479,4 @@ AtomTypeCls CoreAudioFileOut::GetType() const {
 
 END_UPP_NAMESPACE
 
+#endif

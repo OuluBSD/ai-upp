@@ -55,7 +55,7 @@ public:
 	
 };
 
-#if (!defined flagSYS_PORTAUDIO) || (defined flagPORTAUDIO)
+#if defined flagPORTAUDIO
 class PortaudioSink : public PortaudioSinkDevice {
 
 public:
@@ -710,6 +710,7 @@ public:
 };
 #endif
 
+#ifdef flagVOLUMETRIC
 class VolumeLoaderAtom : public RawByteStaticSource {
 
 public:
@@ -722,6 +723,7 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
 #if (defined flagX11 && defined flagSCREEN)
 class X11VideoAtomPipe : public X11SinkDevice {

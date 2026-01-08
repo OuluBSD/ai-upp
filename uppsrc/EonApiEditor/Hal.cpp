@@ -5,13 +5,13 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddHal() {
 	Package("Hal", "Hal");
-	SetColor(198, 127, 200);
-	Dependency("ParallelLib");
-	Dependency("IGraphics");
-	Library("SDL2", "SDL2");
-	Library("SDL2_ttf", "SDL2");
-	Library("SDL2_image", "SDL2");
+	SetColor(0, 128, 0);
+	Dependency("api/Graphics");
+	Library("SDL2 SDL2_ttf SDL2_image", "SDL2 & (!WIN32 | MSC)");
 	Library("D3D11 DXGI D2d1 Dwrite", "UWP&DX12");
+	Library("SDL2main SDL2 SDL2_image SDL2_ttf glew32 freetype harfbuzz Dwrite SetupAPI jpeg jxl png tiff webp Imm32 Version OleAut32 hwy brotlidec brotlicommon graphite2 Rpcrt4  jbig deflate lzma zstd Lerc sharpyuv z", "SDL2 & WIN32 & !MSC");
+	Library("Ole32", "SDL2 WIN32");
+	Library("glew32 libglew32.dll.a OpenGL32 iconv", "SDL2 WIN32 (GCC | CLANG)");
 	HaveRecvFinalize();
 	HaveUpdate();
 	HaveIsReady();

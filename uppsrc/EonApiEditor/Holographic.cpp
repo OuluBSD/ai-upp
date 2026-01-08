@@ -5,11 +5,10 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddHolographic() {
 	Package("Holograph", "Holo");
-	SetColor(85, 42, 150);
-	Dependency("ParallelLib");
-	Dependency("IMedia");
-	Dependency("ports/hcidump", "LINUX", false);
-	Dependency("LocalHMD", "LOCALHMD");
+	SetColor(0, 128, 0);
+	Dependency("api/Media");
+	Dependency("plugin/hcidump", "LINUX");
+	Dependency("SoftHMD", "SOFTHMD");
 	Library("openhmd hidapi-libusb", "LINUX & OPENHMD");
 	HaveRecvFinalize();
 	HaveIsReady();

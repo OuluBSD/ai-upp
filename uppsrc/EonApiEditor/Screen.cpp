@@ -5,12 +5,12 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddScreen() {
 	Package("Screen", "Scr");
-	SetColor(112, 112, 112);
-	Dependency("ParallelLib");
-	Dependency("IGraphics");
+	SetColor(0, 128, 0);
+	Dependency("api/Graphics");
 	Library("X11 Xrandr Xxf86vm", "POSIX & !EMSCRIPTEN");
 	Library("GLX GL GLU GLEW glut", "POSIX & OGL & !EMSCRIPTEN");
-	Library("D3D11", "WIN32 & DX11");
+	Library("D3D11 D3DCompiler dxgi", "WIN32 & DX11");
+	Library("opengl32 glu32", "WIN32 & OGL");
 	HaveRecvFinalize();
 	HaveNegotiateFormat();
 	HaveIsReady();

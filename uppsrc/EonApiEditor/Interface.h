@@ -51,9 +51,11 @@ class InterfaceBuilder {
 	Array<Pkg> packages;
 	VectorMap<String,String> custom_atom_bases;
 	Pkg* cur = 0;
-	
-	
+	String root_path;
+
+
 public:
+	void SetRootPath(String path) { root_path = path; }
 	void Package(String s, String a);
 	void SetColor(byte r, byte g, byte b);
 	void Dependency(String lib, String conditional="", bool have_header=true);

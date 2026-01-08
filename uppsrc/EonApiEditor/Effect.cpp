@@ -5,11 +5,10 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddEffect() {
 	Package("Effect", "Fx");
-	SetColor(28, 255, 150);
-	Dependency("AudioCore");
-	Dependency("ParallelLib");
-	Dependency("ports/lilv", "LV2", false);
-	Dependency("AudioHost", "LV2", false);
+	SetColor(0, 128, 0);
+	Dependency("SoftAudio");
+	Dependency("api/AudioHost");
+	Dependency("plugin/lilv", "LV2");
 	HaveRecvFinalize();
 	HaveIsReady();
 	

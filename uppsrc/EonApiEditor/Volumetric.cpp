@@ -5,8 +5,7 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddVolumetric() {
 	Package("Volumetric", "Vol");
-	SetColor(28, 85, 0);
-	Dependency("ParallelLib");
+	SetColor(0, 128, 0);
 	HaveIsReady();
 	
 	Interface("StaticSource", "VOLUMETRIC");

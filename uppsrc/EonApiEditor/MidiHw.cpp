@@ -5,12 +5,11 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddMidiHw() {
 	Package("MidiHw", "Mid");
-	SetColor(198, 85, 150);
-	Dependency("ParallelLib");
+	SetColor(0, 128, 0);
 	Dependency("MidiFile");
-	Dependency("ports/portmidi", "BUILTIN_PORTMIDI", false);
-	HaveIsReady();
+	Dependency("plugin/portmidi", "BUILTIN_PORTMIDI");
 	Library("portmidi", "PORTMIDI");
+	HaveIsReady();
 	
 	Interface("Source", "MIDI");
 	

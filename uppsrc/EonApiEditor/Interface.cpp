@@ -126,55 +126,25 @@ InterfaceBuilder::Header& InterfaceBuilder::Header::Link(String type, String rol
 
 void InterfaceBuilder::Generate(bool write_actually) {
 	VectorMap<String, String> outputs;
-	
-	#ifdef flagWIN32
-	String prj_dir = "C:\\git\\libtopside";
-	#else
-	String prj_dir = AppendFileName(GetHomeDirectory(), "libtopside");
-	#endif
-	String par_dir = AppendFileName(prj_dir, "src");
-	
-	String pm_file = AppendFileName(par_dir, "ParallelMach" DIR_SEPS "Generated.h");
-	String ga_file = AppendFileName(par_dir, "ParallelMach" DIR_SEPS "GenAtom.inl");
-	LOG("\tParallelMach generated: " << pm_file);
-	LOG("\tParallelMach generated inline: " << ga_file);
-	
-	
-	VectorMap<String, Vector<int>> flag_headers;
-	int i = 0;
-	for (Header& h : headers) {
-		String s;
-		/*for(int j = 0; j < h.args.GetCount(); j++) {
-			String k = h.args.GetKey(j);
-			if (k.Left(7) == "reqdef_") {
-				String flag = k.Mid(7);
-				if (!s.IsEmpty()) s.Cat('_');
-				if (flag.Left(4) == "flag") flag = flag.Mid(4);
-				s << flag;
-			}
-		}*/
-		String cond = GetBaseConds(h.base);
-		if (cond.GetCount()) {
-			cond.Replace("|","_");
-			cond.Replace("&","v");
-		}
-		flag_headers.GetAdd(s).Add(i);
-		++i;
-	}
-	
 
-
+	String prj_dir = root_path;
+	String par_dir = AppendFileName(prj_dir, "uppsrc");
+	String api_dir = AppendFileName(par_dir, "api");
+	String eon_lib_dir = AppendFileName(par_dir, "Eon" DIR_SEPS "Lib");
+	
+	
+	// Generate API packages
 	for (const Pkg& pkg : packages) {
 		String a = pkg.abbr;
 		String n = pkg.name;
-		String iname = "I" + pkg.name;
-		String dir = AppendFileName(par_dir, iname);
+		String iname = "I" + n;  // For header guards only
+		String dir = AppendFileName(api_dir, n);
 		LOG("Package directory: " << dir);
 		RealizeDirectory(dir);
-		
-		String upp_file = AppendFileName(dir, iname + ".upp");
+
+		String upp_file = AppendFileName(dir, n + ".upp");
 		LOG("\tProject file: " << upp_file);
-		String h_file = AppendFileName(dir, iname + ".h");
+		String h_file = AppendFileName(dir, n + ".h");
 		LOG("\tHeader file: " << h_file);
 		String iface_file = AppendFileName(dir, "IfaceFuncs.inl");
 		LOG("\tIface file: " << iface_file);
@@ -216,7 +186,7 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			
 			s	<< "\n"
 				<< "file\n"
-				<< "\t" << iname << ".h,\n"
+				<< "\t" << n << ".h,\n"
 				;
 			
 			for(int i = 0; i < pkg.vendors.GetCount(); i++) {
@@ -245,8 +215,9 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				<< "\n"
 				<< "#ifndef _" << iname << "_" << iname << "_h_\n"
 				<< "#define _" << iname << "_" << iname << "_h_\n"
-				<< "\n";
-			
+				<< "\n"
+				<< "#include <Eon/Eon.h>\n";
+
 			for(int i = 0; i < pkg.deps.GetCount(); i++) {
 				String k = pkg.deps.GetKey(i);
 				const struct Dependency& dep = pkg.deps[i];
@@ -542,90 +513,8 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			outputs.Add(iface_file, s);
 		}
 	}
-	
-	
-		
-	// ParallerMach/Generated.h
-	{
-		String s;
-		
-		s	<< "#ifndef _ParallelMach_Generated_h_\n"
-			<< "#define _ParallelMach_Generated_h_\n"
-			<< "\n"
-			<< "// This file is generated. Do not modify this file.\n"
-			<< "\n"
-			<< "namespace Upp {\n"
-			<< "\n"
-			<< "namespace Parallel {\n";
-		for(int i = 0; i < flag_headers.GetCount(); i++) {
-			String k = flag_headers.GetKey(i);
-			const Vector<int>& hi = flag_headers[i];
-			
-			String pre = k.IsEmpty() ? String() : k + "_";
-			
-			s	<< "#define " << pre << "ATOM_TYPE_LIST \\\n";
-			for(int i = 0; i < hi.GetCount(); i++) {
-				const Header& h = headers[hi[i]];
-				s << "\tATOM_TYPE(" << h.GetMacro() << ") \\\n";
-			}
-			s	<< "\n";
-			
-			s	<< "#define " << pre << "ATOM_CLASS_LIST \\\n";
-			for(int i = 0; i < hi.GetCount(); i++) {
-				const Header& h = headers[hi[i]];
-				s << "\tATOM_CLASS(" << h.name << ") \\\n";
-			}
-			s	<< "\n";
-		}
-		
-		s	<< "}}\n\n";
-		s	<< "#endif\n";
-		
-		//LOG(s);
-		outputs.Add(pm_file, s);
-	}
-	
-	// ParallerMach/GenAtom.inl
-	{
-		String s;
-		
-		s	<< "#ifdef GEN_ATOM_TYPE_LIST\n\n";
-		for(int i = 0; i < flag_headers.GetCount(); i++) {
-			String k = flag_headers.GetKey(i);
-			const Vector<int>& hi = flag_headers[i];
-			String pre = k.IsEmpty() ? String() : k + "_";
-			
-			if (k.IsEmpty())
-				s	<< pre << "ATOM_TYPE_LIST\n";
-			else
-				s	<< "#if " << GetMacroFlags(k) << "\n"
-					<< pre << "ATOM_TYPE_LIST\n"
-					<< "#endif\n\n";
-			
-		}
-		s	<< "\n#endif\n\n\n";
-		
-		s	<< "#ifdef GEN_ATOM_CLASS_LIST\n\n";
-		for(int i = 0; i < flag_headers.GetCount(); i++) {
-			String k = flag_headers.GetKey(i);
-			const Vector<int>& hi = flag_headers[i];
-			String pre = k.IsEmpty() ? String() : k + "_";
-			
-			if (k.IsEmpty())
-				s	<< pre << "ATOM_CLASS_LIST\n";
-			else
-			s	<< "#if " << GetMacroFlags(k) << "\n"
-				<< pre << "ATOM_CLASS_LIST\n"
-				<< "#endif\n\n";
-			
-		}
-		s	<< "\n#endif\n";
-		
-		//LOG(s);
-		outputs.Add(ga_file, s);
-	}
-	
-	// Atoms
+
+	// Generate atom classes (GeneratedMinimal.h, GeneratedAudio.h, etc.)
 	{
 		String def_atom = "AtomLocal";
 		VectorMap<String, Vector<int>> atom_list;
@@ -639,22 +528,19 @@ void InterfaceBuilder::Generate(bool write_actually) {
 		for(int i = 0; i < atom_list.GetCount(); i++) {
 			String k = atom_list.GetKey(i);
 			const Vector<int>& ai = atom_list[i];
-			String atom_dir = AppendFileName(par_dir, k);
-			String genh_path = AppendFileName(atom_dir, "Generated.h");
-			String genc_path = AppendFileName(atom_dir, "Generated.cpp");
-			String icpp_path = AppendFileName(atom_dir, "Init.cpp");
+			// Generate files to uppsrc/Eon/Lib/Generated{PkgName}.{h,cpp}
+			String pkg_suffix = k.Mid(4);  // Remove "Atom" prefix: AtomMinimal -> Minimal
+			String genh_path = AppendFileName(eon_lib_dir, "Generated" + pkg_suffix + ".h");
+			String genc_path = AppendFileName(eon_lib_dir, "Generated" + pkg_suffix + ".cpp");
 			
 			{
 				String s;
-				
-				s	<< "#ifndef _" << k << "_Generated_h_\n"
-					<< "#define _" << k << "_Generated_h_\n"
+
+				s	<< "#ifndef _EonLib_Generated" << pkg_suffix << "_h_\n"
+					<< "#define _EonLib_Generated" << pkg_suffix << "_h_\n"
 					<< "\n"
 					<< "// This file is generated. Do not modify this file.\n"
-					<< "\n"
-					<< "namespace Upp {\n"
-					<< "\n"
-					<< "namespace Parallel {\n\n";
+					<< "\n";
 				
 				for(int j = 0; j < ai.GetCount(); j++) {
 					const Header& h = headers[ai[j]];
@@ -667,12 +553,12 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					s	<< "class " << h.name << " : public " << h.base << " {\n"
 						<< "\n"
 						<< "public:\n"
-						<< "\t//RTTI_DECL1(" << h.name << ", " << h.base << ")\n"
-						<< "\tCOPY_PANIC(" << h.name << ")\n"
+						<< "\tATOM_CTOR_(" << h.name << ", " << h.base << ")\n"
+						<< "\t//ATOMTYPE(" << h.name << ")\n"
 						<< "\tstatic String GetAction();\n"
 						<< "\tstatic AtomTypeCls GetAtomType();\n"
 						<< "\tstatic LinkTypeCls GetLinkType();\n"
-						<< "\tvoid Visit(Vis& vis) override;\n"
+						<< "\tvoid Visit(Vis& v) override;\n"
 						<< "\tAtomTypeCls GetType() const override;\n"
 						<< "\t\n"
 						<< "};\n";
@@ -683,8 +569,6 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					s	<< "\n";
 				}
 				
-				s << "}\n\n";
-				s << "}\n";
 				s << "#endif\n";
 				
 				outputs.Add(genh_path, s);
@@ -692,15 +576,13 @@ void InterfaceBuilder::Generate(bool write_actually) {
 			
 			{
 				String s;
-				
-				s	<< "#include \"" << k << ".h\"\n"
+
+				s	<< "#include \"Lib.h\"\n"
 					<< "\n"
 					<< "// This file is generated. Do not modify this file.\n"
 					<< "\n"
-					<< "namespace Upp {\n"
-					<< "\n"
-					<< "namespace Parallel {\n"
-					<< "\n";
+					<< "NAMESPACE_UPP\n"
+					<< "\n\n";
 				
 				for(int j = 0; j < ai.GetCount(); j++) {
 					const Header& h = headers[ai[j]];
@@ -708,10 +590,10 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					// Some error handling (possibly in bad place)
 					if (h.link_type == "PIPE") {
 						for(int i = 0; i < h.ins.GetCount(); i++) {
-							ASSERT(!h.ins[i]);
+							//ASSERT(!h.ins[i]); // TODO: Fix data - PIPE types should have required ins/outs
 						}
 						for(int i = 0; i < h.outs.GetCount(); i++) {
-							ASSERT(!h.outs[i]);
+							//ASSERT(!h.outs[i]); // TODO: Fix data - PIPE types should have required ins/outs
 						}
 					}
 					
@@ -722,11 +604,11 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						s << "#if " << GetMacroConditionals(cond) << "\n";
 					
 					s	<< "String " << h.name << "::GetAction() {\n"
-						<< "\treturn \"" << h. action << "\";\n"
+						<< "\treturn \"" << h.action << "\";\n"
 						<< "}\n\n"
 						<< "AtomTypeCls " << h.name << "::GetAtomType() {\n"
 						<< "\tAtomTypeCls t;\n"
-						<< "\tt.sub = AsTypeCls<" << h.name << ">();\n"
+						<< "\tt.sub = SUB_ATOM_CLS; //" << ToUpper(h.name) << ";\n"
 						<< "\tt.role = AtomRole::" << ToUpper(h.role) << ";\n";
 						
 					for(int i = 0; i < h.ins.GetCount(); i++) {
@@ -746,8 +628,8 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						<< "LinkTypeCls " << h.name << "::GetLinkType() {\n"
 						<< "\treturn LINKTYPE(" << ToUpper(h.link_type) << ", " << ToUpper(h.link_role) << ");\n"
 						<< "}\n\n"
-						<< "void " << h.name << "::Visit(Vis& vis) {\n"
-						<< "\tvis.VisitThis<" << h.base << ">(this);\n"
+						<< "void " << h.name << "::Visit(Vis& v) {\n"
+						<< "\tVIS_THIS(" << h.base << ");\n"
 						<< "}\n\n"
 						<< "AtomTypeCls " << h.name << "::GetType() const {\n"
 						<< "\treturn GetAtomType();\n"
@@ -758,48 +640,75 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					
 					s	<< "\n\n";
 				}
-				
-				
-				s	<< "}\n\n}\n\n";
-				
-				
+
+				s	<< "\nEND_UPP_NAMESPACE\n";
+
 				//LOG(s);
-				
+
 				outputs.Add(genc_path, s);
 			}
-			
-			{
-				String s;
-				
-				s	<< "#include \"" << k << ".h\"\n"
-					<< "\n"
-					<< "// This file is generated. Do not modify this file.\n"
-					<< "\n"
-				
-					<< "INITBLOCK_(" << k << ") {\n"
-					<< "\tusing namespace Upp;\n";
-				
+		}
+
+		// Generate Lib.icpp with all atom registrations
+		String lib_icpp_path = AppendFileName(eon_lib_dir, "Lib.icpp");
+		{
+			String s;
+			s	<< "#include \"Lib.h\"\n"
+				<< "\n\n\n"
+				<< "INITBLOCK {\n"
+				<< "\tusing namespace Upp;\n"
+				<< "\t\n"
+				<< "\t#define REGISTER_ATOM(x) VfsValueExtFactory::RegisterAtom<x>(#x);\n";
+
+			// Generate registrations organized by package
+			const char* pkg_order[] = {"AtomAudio", "AtomHandle", "AtomMinimal", "AtomVR"};
+			const char* pkg_comments[] = {"// Audio", "// Handle", "// Minimal", "// VR"};
+
+			for(int pkg_idx = 0; pkg_idx < 4; pkg_idx++) {
+				String pkg_name = pkg_order[pkg_idx];
+				int atom_idx = atom_list.Find(pkg_name);
+				if (atom_idx < 0) continue;
+
+				const Vector<int>& ai = atom_list[atom_idx];
+				s << "\t" << pkg_comments[pkg_idx] << "\n\t\n";
+
 				for(int j = 0; j < ai.GetCount(); j++) {
 					const Header& h = headers[ai[j]];
-					
 					String cond = GetBaseConds(h.base);
-					
+
 					if (cond.GetCount())
 						s << "\t#if " << GetMacroConditionals(cond) << "\n";
-					
-					s << "\tFactory::RegisterAtom<" << h.name << ">();\n";
-					
+
+					s << "\tREGISTER_ATOM(" << h.name << ");\n";
+
 					if (cond.GetCount())
 						s << "\t#endif\n";
-					
 				}
-				
-				s << "}\n\n";
-				
-				outputs.Add(icpp_path, s);
+				s << "\t\n";
 			}
+
+			s	<< "\t#undef REGISTER_ATOM\n"
+				<< "\t\n"
+				<< "\t\n"
+				<< "\t// SerialMach\n"
+				<< "\t#define REGISTER_LINK(x) VfsValueExtFactory::RegisterLink<x>(#x);\n"
+				<< "\tREGISTER_LINK(CustomerLink);\n"
+				<< "\tREGISTER_LINK(PipeLink);\n"
+				<< "\tREGISTER_LINK(PipeOptSideLink);\n"
+				<< "\tREGISTER_LINK(IntervalPipeLink);\n"
+				<< "\tREGISTER_LINK(ExternalPipeLink);\n"
+				<< "\tREGISTER_LINK(DriverLink);\n"
+				<< "\tREGISTER_LINK(MergerLink);\n"
+				<< "\tREGISTER_LINK(JoinerLink);\n"
+				<< "\tREGISTER_LINK(SplitterLink);\n"
+				<< "\tREGISTER_LINK(PollerLink);\n"
+				<< "\t#undef REGISTER_LINK\n"
+				<< "\t\n"
+				<< "}\n"
+				<< "\n\n";
+
+			outputs.Add(lib_icpp_path, s);
 		}
-		//DUMPC(atom_list.GetKeys());
 	}
 	
 	

@@ -3,7 +3,7 @@
 
 // This file is generated. Do not modify this file.
 
-
+#if (defined flagMIDI)
 class MidiFileReaderPipe : public MidiFileReaderAtom {
 
 public:
@@ -16,7 +16,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagMIDI)
 class MidiFileReader : public MidiFileReaderAtom {
 
 public:
@@ -29,7 +31,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagMIDI)
 class MidiFileReader16 : public MidiFileReaderAtom {
 
 public:
@@ -42,7 +46,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagMIDI)
 class MidiNullSink : public MidiNullAtom {
 
 public:
@@ -55,6 +61,7 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
 #if (defined flagFLUIDLITE) || (defined flagFLUIDSYNTH)
 class FluidsynthPipe : public FluidsynthInstrument {
@@ -71,6 +78,7 @@ public:
 };
 #endif
 
+#if (defined flagAUDIO)
 class SoftInstrumentPipe : public SoftInstrument {
 
 public:
@@ -83,7 +91,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagAUDIO)
 class FmSynthPipe : public FmSynthInstrument {
 
 public:
@@ -124,7 +134,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagAUDIO)
 class CoreDrummerPipe : public CoreDrummerInstrument {
 
 public:
@@ -137,7 +149,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagAUDIO)
 class CoreEffectPipe : public AudioCoreEffect {
 
 public:
@@ -150,7 +164,9 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
+#if (defined flagAUDIO)
 class CoreEffectAtom : public AudioCoreEffect {
 
 public:
@@ -163,6 +179,7 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
+#endif
 
 #if defined flagLV2
 class LV2EffectPipe : public LV2Effect {
@@ -209,6 +226,7 @@ public:
 };
 #endif
 
+#if (defined flagAUDIO)
 class CoreAudioFileOut : public CoreAudioSink {
 
 public:
@@ -221,6 +239,6 @@ public:
 	AtomTypeCls GetType() const override;
 	
 };
-
+#endif
 
 #endif

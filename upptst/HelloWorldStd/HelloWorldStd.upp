@@ -1,0 +1,12 @@
+uses
+	HelloWorld2;
+
+options
+	-IC:\Users\sblo;
+
+file
+	HelloWorld.cpp;
+
+mainconfig
+	"" = "";
+

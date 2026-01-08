@@ -2946,3 +2946,71 @@ The AI Supervisor consumes evolution data to adjust its behavior:
 * **Reproducible**: Evolution history can be analyzed and acted upon in a deterministic way
 
 This subsystem enables AI agents to exhibit **meta-evolution intelligence** by learning from the historical outcomes of their changes, continuously improving their decision-making based on project-specific experience. By understanding what types of changes have been successful in a particular codebase, AI agents can adapt their strategies to maximize the likelihood of successful outcomes and avoid repeating patterns that historically led to failures or reverts.
+
+## Playbook Test Harness
+
+The system now includes a Playbook Test Harness that provides deterministic, scriptable testing for AI Playbooks, focusing on end-to-end execution and validation of safety constraints.
+
+### Core Features:
+
+* **End-to-End Execution** - Tests complete playbook execution cycles including "safe_cleanup_cycle"
+* **Safety Constraint Validation** - Verifies max_risk, max_actions, and allow_apply constraints
+* **Deterministic Operation** - All tests run without GUI dependencies, relying only on the AI-UPP CLI with --json flag
+* **Telemetry Tracking** - Monitors structural effects, evolution, and diffs in controlled test workspaces
+
+### Available Commands:
+
+* **playbook_self_test** - Runs the playbook test harness for the current workspace (if configured)
+
+### Test Structure:
+
+The harness includes:
+* **Test Workspaces** - Dedicated workspaces under `tests/playbooks/workspaces/` for different test scenarios
+* **Test Configuration** - Test cases defined in `tests/playbooks/tests_v1.json`
+* **Executable Harness** - Bash script `tests/playbooks/run_playbook_tests.sh` that runs all tests and validates expectations
+
+### Test Harness Components:
+
+* **ws_basic_cleanup** - Basic workspace to validate that "safe_cleanup_cycle" performs small, safe cleanups
+* **ws_high_risk** - High-risk workspace to test that playbook safety constraints prevent applying changes when max_risk is low
+* **Validation Logic** - Uses jq for JSON handling to validate expectations like:
+  * Status validation (applied_or_simulated, blocked_by_constraint)
+  * Apply validation (no_apply checks)
+  * Event count validation (min/max bounds)
+
+### Command Usage:
+
+```
+# Run the playbook test harness
+tests/playbooks/run_playbook_tests.sh
+```
+
+### Example Test Configuration:
+
+```json
+{
+  "tests": [
+    {
+      "id": "basic_safe_cleanup_applies",
+      "workspace": "tests/playbooks/workspaces/ws_basic_cleanup",
+      "playbook_id": "safe_cleanup_cycle",
+      "expect": {
+        "status": "applied_or_simulated",
+        "max_events_increase": 5,
+        "min_events_increase": 1,
+        "allow_apply": true
+      }
+    }
+  ]
+}
+```
+
+### Deterministic & Auditable:
+
+* **CLI-Only**: All operations run through command-line interface without GUI dependencies
+* **Versionable**: Test configurations and workspaces are stored in the repository
+* **Reproducible**: Tests return consistent results for the same workspace state
+* **NoGUI Compatible**: Full functionality available through command-line interface
+
+This subsystem enables AI agents to validate their behavior through **comprehensive deterministic testing**, ensuring that safety constraints are properly enforced and that playbook operations behave correctly under various conditions.
+

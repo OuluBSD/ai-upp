@@ -37,7 +37,17 @@ file
 	CoreOptimize.h,
 	CoreOptimize.cpp,
 	CoreSupervisor.h,
-	CoreSupervisor.cpp;
+	CoreSupervisor.cpp,
+	StrategicNavigator.h,
+	StrategicNavigator.cpp,
+	AgentRegistry.h,
+	AgentRegistry.cpp,
+	CoreConflictResolver.h,
+	CoreConflictResolver.cpp,
+	RegressionSpec.h,
+	RegressionSpec.cpp,
+	RegressionRunner.h,
+	RegressionRunner.cpp;
 
 mainconfig
 	"" = "";

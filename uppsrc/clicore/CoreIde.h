@@ -27,6 +27,7 @@
 #include "StrategicNavigator.h"
 #include "AgentRegistry.h"
 #include "CoreConflictResolver.h"
+#include "RegressionRunner.h"
 
 using namespace Upp;
 
@@ -198,6 +199,9 @@ public:
     Value ListPlaybooks(String& error) const;
     Value RunPlaybook(const String& id, String& error);
 
+    // Regression Lab v1 - Agent-based regression testing
+    Value RunRegression(const String& name, String& error);
+
 private:
     // Internal state: workspace, packages, logs, etc.
     CoreWorkspace workspace;
@@ -245,6 +249,9 @@ private:
 
     // Playbook Engine v1 - High-level workflow automation
     CorePlaybook playbook_engine;  // CorePlaybook member for playbook execution
+
+    // Regression Lab v1 - Agent-based regression testing
+    RegressionRunner regression;  // RegressionRunner member for regression testing
 
     // Helper methods for lifecycle management
     void RecordCurrentPhase(const LifecyclePhase& phase);

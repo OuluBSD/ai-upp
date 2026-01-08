@@ -21,6 +21,8 @@
 #include "CoreFutureSimulator.h"
 #include "CoreEvolution.h"
 #include "CorePlaybook.h"
+#include "RegressionSpec.h"
+#include "RegressionRunner.h"
 
 NAMESPACE_UPP
 

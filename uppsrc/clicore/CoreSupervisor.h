@@ -88,6 +88,9 @@ public:
     // Meta-Supervisor extension for CWI v1
     void UpdateMetaWeights(const GlobalKnowledge& gk);
 
+    // Evolution Engine v1 - Learn from evolution summary to adjust strategy weights
+    void LearnFromEvolution(const EvolutionSummary& summary);
+
 
 private:
     Suggestion SuggestIncludeCleanup(const String& package,

@@ -3157,6 +3157,40 @@
       "context_notes": "This command allows AI agents to discover available high-level automation workflows and their safety characteristics"
     },
     {
+      "name": "playbook_self_test",
+      "category": "playbook",
+      "description": "Runs the playbook test harness for the current workspace (if configured).",
+      "long_description": "Executes the playbook test harness to validate that playbooks behave safely and deterministically in the current workspace.",
+      "inputs": [],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "status",
+            "type": "string",
+            "description": "Execution status (success, failed)"
+          },
+          {
+            "name": "test_results",
+            "type": "list",
+            "description": "List of individual test results with pass/fail status"
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "description": "Summary of the test execution"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command runs the playbook test harness to validate that playbooks behave safely and deterministically. For v1, it simply prints a message directing users to run the test script directly."
+    },
+    {
       "name": "run_playbook",
       "category": "playbook",
       "description": "Run a specific playbook",
@@ -3201,6 +3235,150 @@
         "requires_open_file": false
       },
       "context_notes": "This command executes a named playbook which performs multi-step automation workflows with built-in safety constraints. The steps and results are returned for AI agent inspection."
+    },
+    {
+      "name": "list_regression_specs",
+      "category": "regression",
+      "description": "List available regression test specifications",
+      "long_description": "Returns a list of all available regression test specifications that can be executed",
+      "inputs": [],
+      "outputs": {
+        "kind": "list",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Name of the regression spec"
+          },
+          {
+            "name": "agent",
+            "type": "string",
+            "description": "Agent name associated with the spec"
+          },
+          {
+            "name": "scenario",
+            "type": "string",
+            "description": "Scenario or playbook to execute"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command lists all available regression test specifications for agent-based testing"
+    },
+    {
+      "name": "run_regression",
+      "category": "regression",
+      "description": "Run a specific regression test",
+      "long_description": "Executes a regression test using the specified specification name",
+      "inputs": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "Name of the regression spec to run"
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "default": false,
+          "description": "Return output in JSON format"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "spec",
+            "type": "string",
+            "description": "Name of the executed regression spec"
+          },
+          {
+            "name": "agent",
+            "type": "string",
+            "description": "Agent that executed the test"
+          },
+          {
+            "name": "success",
+            "type": "bool",
+            "description": "Whether the test execution was successful"
+          },
+          {
+            "name": "metrics",
+            "type": "object",
+            "description": "Metrics collected during the test"
+          },
+          {
+            "name": "violations",
+            "type": "list",
+            "description": "List of violations detected during execution"
+          },
+          {
+            "name": "conflicts",
+            "type": "list",
+            "description": "List of conflicts detected during execution"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": true,
+        "modifies_project": true,
+        "requires_open_project": true,
+        "requires_open_file": false
+      },
+      "context_notes": "This command runs a specific regression test and returns the results including metrics, violations, and conflicts. This command uses a temporary workspace for testing."
+    },
+    {
+      "name": "compare_regressions",
+      "category": "regression",
+      "description": "Compare results of two regression tests",
+      "long_description": "Compares the results of two different regression test executions",
+      "inputs": [
+        {
+          "name": "first_report",
+          "type": "path",
+          "required": true,
+          "description": "Path to the first regression report JSON file"
+        },
+        {
+          "name": "second_report",
+          "type": "path",
+          "required": true,
+          "description": "Path to the second regression report JSON file"
+        }
+      ],
+      "outputs": {
+        "kind": "object",
+        "fields": [
+          {
+            "name": "differences",
+            "type": "object",
+            "description": "Differences between the two reports"
+          },
+          {
+            "name": "metrics_comparison",
+            "type": "object",
+            "description": "Comparison of metrics between the reports"
+          },
+          {
+            "name": "risk_delta",
+            "type": "float",
+            "description": "Change in risk assessment between the two tests"
+          }
+        ]
+      },
+      "side_effects": {
+        "modifies_files": false,
+        "modifies_project": false,
+        "requires_open_project": false,
+        "requires_open_file": false
+      },
+      "context_notes": "This command compares two regression test reports to identify differences in metrics and outcomes."
     }
   ]
 }

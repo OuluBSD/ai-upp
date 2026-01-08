@@ -903,6 +903,69 @@ Value IdeSessionImpl::RunPlaybook(const String& id, String& error) {
     }
 }
 
+// Regression Lab v1 - Agent-based regression testing
+Value IdeSessionImpl::RunRegression(const String& name, String& error) {
+    try {
+        // Use the CoreIde's regression member to run the regression test
+        // This will load the spec by name and execute it
+        RegressionSuite& suite = RegressionSuite::Single();
+        if (!suite.HasSpec(name)) {
+            error = "Regression spec not found: " + name;
+            return Value();
+        }
+
+        const RegressionSpec& spec = suite.GetSpec(name);
+        RegressionRunner::RegressionResult result = core_ide.regression.RunSpec(spec);
+
+        if (!result.success) {
+            error = result.error_msg;
+            return Value();
+        }
+
+        // Evaluate the outcome
+        if (!core_ide.regression.EvaluateOutcome(result, spec)) {
+            error = "Regression evaluation failed for spec: " + name;
+            return Value();
+        }
+
+        // Save the report
+        String report_path = core_ide.regression.GetReportOutputDir() + "/regression_" + name + ".json";
+        if (!core_ide.regression.SaveReport(result, report_path)) {
+            LOG("Warning: Failed to save regression report to: " + report_path);
+        }
+
+        // Generate markdown report
+        String md_report = core_ide.regression.GenerateMarkdownReport(result);
+        String md_path = core_ide.regression.GetReportOutputDir() + "/regression_" + name + ".md";
+        if (!SaveFile(md_path, md_report)) {
+            LOG("Warning: Failed to save markdown report to: " + md_path);
+        }
+
+        // Convert result to ValueMap for return
+        ValueMap report;
+        report.Set("spec", result.spec_name);
+        report.Set("agent", result.agent_name);
+        report.Set("success", result.success);
+        report.Set("metrics", result.metrics);
+        report.Set("patch_summary", result.patch_summary);
+        report.Set("violations", result.violations);
+        report.Set("conflicts", result.conflicts);
+        report.Set("score", result.score);
+
+        if (!result.error_msg.IsEmpty()) {
+            report.Set("error", result.error_msg);
+        }
+
+        return report;
+    } catch (const std::exception& e) {
+        error = e.what();
+        return Value();
+    } catch (...) {
+        error = "Unknown error occurred while running regression: " + name;
+        return Value();
+    }
+}
+
 One<IdeSession> CreateIdeSession() {
     return new IdeSessionImpl();
 }

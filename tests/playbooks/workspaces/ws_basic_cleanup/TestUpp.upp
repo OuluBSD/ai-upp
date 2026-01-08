@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Upp workspace="TestUpp">
+	<Package name="CtrlCore" />
+	<Package name="Core" />
+	<Package name="TestPkg" />
+</Upp>

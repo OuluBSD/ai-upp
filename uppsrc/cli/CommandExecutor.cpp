@@ -2,6 +2,7 @@
 #include "IdeSession.h"
 #include <Core/Core.h>
 #include "CoreSupervisor.h"
+#include "clicore/RegressionSpec.h"
 
 namespace Upp {
 
@@ -190,6 +191,12 @@ InvocationResult CommandExecutor::Invoke(const String& name,
         return HandleListPlaybooks(args);
     } else if (name == "run_playbook") {
         return HandleRunPlaybook(args);
+    } else if (name == "list_regression_specs") {
+        return HandleListRegressionSpecs(args);
+    } else if (name == "run_regression") {
+        return HandleRunRegression(args);
+    } else if (name == "compare_regressions") {
+        return HandleCompareRegressions(args);
     } else if (name == "instrument_build_hybrid") {
         return HandleInstrumentBuildHybrid(args);
     } else if (name == "instrument_render_hybrid") {
@@ -1572,6 +1579,149 @@ InvocationResult CommandExecutor::HandleRunPlaybook(const VectorMap<String, Stri
     InvocationResult r(0, "Playbook '" + playbook_id + "' executed successfully");
     r.payload = result;
     return r;
+}
+
+// Regression Lab v1 - Agent-based regression testing
+CommandExecutor::InvocationResult CommandExecutor::HandleListRegressionSpecs(const VectorMap<String, String>& args) {
+    // Load the regression suite and return the list of specs
+    RegressionSuite& suite = RegressionSuite::Single();
+
+    // Load specs from file if not already loaded
+    if (suite.ListSpecs().GetCount() == 0) {
+        suite.LoadSpecs("tests/regression/specs_v1.json");
+    }
+
+    Vector<String> specs = suite.ListSpecs();
+    ValueArray result;
+
+    for (const String& spec_name : specs) {
+        if (suite.HasSpec(spec_name)) {
+            const RegressionSpec& spec = suite.GetSpec(spec_name);
+            ValueMap spec_info;
+            spec_info.Set("name", spec_name);
+            spec_info.Set("agent", spec.GetAgentName());
+            spec_info.Set("scenario", spec.GetPlaybookOrScenario());
+            result.Add(spec_info);
+        }
+    }
+
+    InvocationResult r(0, "Regression specs listed successfully");
+    r.payload = result;
+    return r;
+}
+
+CommandExecutor::InvocationResult CommandExecutor::HandleRunRegression(const VectorMap<String, String>& args) {
+    String name = args.Get("name", "");
+    if (name.IsEmpty()) {
+        return InvocationResult(1, "Missing required argument: name");
+    }
+
+    String error;
+    Value result = session->RunRegression(name, error);
+
+    if (!error.IsEmpty()) {
+        return InvocationResult(1, "Failed to run regression '" + name + "': " + error);
+    }
+
+    InvocationResult r(0, "Regression '" + name + "' executed successfully");
+    r.payload = result;
+    return r;
+}
+
+CommandExecutor::InvocationResult CommandExecutor::HandleCompareRegressions(const VectorMap<String, String>& args) {
+    String first_report = args.Get("first_report", "");
+    String second_report = args.Get("second_report", "");
+
+    if (first_report.IsEmpty() || second_report.IsEmpty()) {
+        return InvocationResult(1, "Missing required arguments: first_report and second_report");
+    }
+
+    // For now, implement a basic comparison - in a full implementation, this would
+    // load both reports and compare their metrics
+    try {
+        String first_content = LoadFile(first_report);
+        String second_content = LoadFile(second_report);
+
+        if (first_content.IsEmpty() || second_content.IsEmpty()) {
+            return InvocationResult(1, "Failed to load one or both report files");
+        }
+
+        Value first_json = ParseJSON(first_content);
+        Value second_json = ParseJSON(second_content);
+
+        if (!first_json.Is<ValueMap>() || !second_json.Is<ValueMap>()) {
+            return InvocationResult(1, "Invalid JSON format in one or both report files");
+        }
+
+        ValueMap first_map = first_json;
+        ValueMap second_map = second_json;
+
+        // Compute differences between the reports
+        ValueMap comparison;
+        ValueMap metrics_diff;
+
+        if (first_map.Find("metrics") >= 0 && second_map.Find("metrics") >= 0) {
+            ValueMap first_metrics = first_map.Get("metrics");
+            ValueMap second_metrics = second_map.Get("metrics");
+
+            // Compare metric values
+            for (int i = 0; i < first_metrics.GetCount(); i++) {
+                String key = first_metrics.GetKey(i);
+                if (second_metrics.Find(key) >= 0) {
+                    Value first_val = first_metrics.Get(key);
+                    Value second_val = second_metrics.Get(key);
+
+                    // Calculate difference if both values are numeric
+                    if (first_val.IsInt() && second_val.IsInt()) {
+                        metrics_diff.Set(key, second_val.GetInt() - first_val.GetInt());
+                    } else if (first_val.IsDouble() && second_val.IsDouble()) {
+                        metrics_diff.Set(key, second_val.GetDouble() - first_val.GetDouble());
+                    } else {
+                        // For non-numeric values, store both values
+                        ValueMap diff_pair;
+                        diff_pair.Set("first", first_val);
+                        diff_pair.Set("second", second_val);
+                        metrics_diff.Set(key, diff_pair);
+                    }
+                } else {
+                    // Metric only exists in first report
+                    ValueMap only_in_first;
+                    only_in_first.Set("first_only", first_val);
+                    metrics_diff.Set(key, only_in_first);
+                }
+            }
+
+            // Check for metrics that only exist in the second report
+            for (int i = 0; i < second_metrics.GetCount(); i++) {
+                String key = second_metrics.GetKey(i);
+                if (first_metrics.Find(key) < 0) {
+                    ValueMap only_in_second;
+                    only_in_second.Set("second_only", second_metrics.Get(key));
+                    metrics_diff.Set(key, only_in_second);
+                }
+            }
+        }
+
+        comparison.Set("metrics_comparison", metrics_diff);
+
+        // Calculate risk delta if both reports have risk information
+        if (first_map.Find("metrics") >= 0 && second_map.Find("metrics") >= 0) {
+            ValueMap first_metrics = first_map.Get("metrics");
+            ValueMap second_metrics = second_map.Get("metrics");
+
+            if (first_metrics.Find("risk_delta") >= 0 && second_metrics.Find("risk_delta") >= 0) {
+                double risk_delta_first = first_metrics.Get("risk_delta").GetDouble();
+                double risk_delta_second = second_metrics.Get("risk_delta").GetDouble();
+                comparison.Set("risk_delta", risk_delta_second - risk_delta_first);
+            }
+        }
+
+        InvocationResult r(0, "Regression reports compared successfully");
+        r.payload = comparison;
+        return r;
+    } catch (...) {
+        return InvocationResult(1, "Error occurred while comparing regression reports");
+    }
 }
 
 }

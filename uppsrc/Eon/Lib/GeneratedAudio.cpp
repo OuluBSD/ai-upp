@@ -1,10 +1,10 @@
 #include "Lib.h"
 
 // This file is generated. Do not modify this file.
-#ifdef flagAUDIO
 
 NAMESPACE_UPP
 
+#ifdef flagMIDI
 String MidiFileReaderPipe::GetAction() {
 	return "midi.file.reader.pipe";
 }
@@ -124,7 +124,7 @@ void MidiNullSink::Visit(Vis& v) {
 AtomTypeCls MidiNullSink::GetType() const {
 	return GetAtomType();
 }
-
+#endif
 
 #if (defined flagFLUIDLITE) || (defined flagFLUIDSYNTH)
 String FluidsynthPipe::GetAction() {
@@ -479,4 +479,3 @@ AtomTypeCls CoreAudioFileOut::GetType() const {
 
 END_UPP_NAMESPACE
 
-#endif

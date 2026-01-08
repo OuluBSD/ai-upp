@@ -55,9 +55,7 @@ NAMESPACE_UPP
 
 #include "Handle.h"
 
-#ifdef flagAUDIO
-	#include "GeneratedAudio.h"
-#endif
+#include "GeneratedAudio.h"
 
 #include "GeneratedHandle.h"
 #include "GeneratedMinimal.h"

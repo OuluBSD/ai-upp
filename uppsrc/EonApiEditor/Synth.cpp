@@ -5,15 +5,14 @@ NAMESPACE_UPP
 
 void InterfaceBuilder::AddSynth() {
 	Package("Synth", "Syn");
-	SetColor(200, 179, 81);
-	Dependency("ParallelLib");
+	SetColor(0, 128, 0);
 	Dependency("SoftInstru");
 	Dependency("SoftSynth");
-	Dependency("AudioCore");
-	Dependency("ports/fluidlite", "FLUIDLITE", false);
+	Dependency("SoftAudio");
+	Dependency("api/AudioHost");
+	Dependency("plugin/fluidlite", "FLUIDLITE");
+	Dependency("plugin/lilv", "LV2");
 	Library("fluidsynth", "FLUIDSYNTH");
-	Dependency("ports/lilv", "LV2", false);
-	Dependency("AudioHost", "LV2", false);
 	HaveRecvFinalize();
 	HaveIsReady();
 	

@@ -127,8 +127,8 @@ struct HoloOpenVR {
 
 #if defined flagVR
 struct HoloSinkDevice : public Atom {
-	//RTTI_DECL1(HoloSinkDevice, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HoloSinkDevice() {}
 };
@@ -138,10 +138,10 @@ struct HoloSinkDevice : public Atom {
 #if defined flagVR
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
-	//RTTI_DECL1(CLASSNAME, HoloSinkDevice)
-	void Visit(Vis& vis) override {
-		if (dev) Holo::SinkDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<HoloSinkDevice>(this);
+	using HoloSinkDevice::HoloSinkDevice;
+	void Visit(Vis& v) override {
+		if (dev) Holo::SinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(HoloSinkDevice);
 	}
 	typename Holo::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {

@@ -57,8 +57,8 @@ struct FxLV2 {
 
 #if defined flagAUDIO
 struct FxEffect : public Atom {
-	//RTTI_DECL1(FxEffect, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~FxEffect() {}
 };
@@ -68,10 +68,10 @@ struct FxEffect : public Atom {
 #if defined flagAUDIO
 template <class Fx> struct EffectEffectT : FxEffect {
 	using CLASSNAME = EffectEffectT<Fx>;
-	//RTTI_DECL1(CLASSNAME, FxEffect)
-	void Visit(Vis& vis) override {
-		if (dev) Fx::Effect_Visit(*dev, *this, vis);
-		vis.VisitThis<FxEffect>(this);
+	using FxEffect::FxEffect;
+	void Visit(Vis& v) override {
+		if (dev) Fx::Effect_Visit(*dev, *this, v);
+		VIS_THIS(FxEffect);
 	}
 	typename Fx::NativeEffect* dev = 0;
 	bool Initialize(const WorldState& ws) override {

@@ -140,8 +140,8 @@ struct ScrWinD11 {
 
 #if defined flagSCREEN
 struct ScrSinkDevice : public Atom {
-	//RTTI_DECL1(ScrSinkDevice, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrSinkDevice() {}
 };
@@ -149,8 +149,8 @@ struct ScrSinkDevice : public Atom {
 
 #if defined flagSCREEN
 struct ScrContext : public Atom {
-	//RTTI_DECL1(ScrContext, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrContext() {}
 };
@@ -158,8 +158,8 @@ struct ScrContext : public Atom {
 
 #if defined flagSCREEN
 struct ScrEventsBase : public Atom {
-	//RTTI_DECL1(ScrEventsBase, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~ScrEventsBase() {}
 };
@@ -169,10 +169,10 @@ struct ScrEventsBase : public Atom {
 #if defined flagSCREEN
 template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 	using CLASSNAME = ScreenSinkDeviceT<Scr>;
-	//RTTI_DECL1(CLASSNAME, ScrSinkDevice)
-	void Visit(Vis& vis) override {
-		if (dev) Scr::SinkDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<ScrSinkDevice>(this);
+	using ScrSinkDevice::ScrSinkDevice;
+	void Visit(Vis& v) override {
+		if (dev) Scr::SinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(ScrSinkDevice);
 	}
 	typename Scr::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -220,10 +220,10 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 #if defined flagSCREEN
 template <class Scr> struct ScreenContextT : ScrContext {
 	using CLASSNAME = ScreenContextT<Scr>;
-	//RTTI_DECL1(CLASSNAME, ScrContext)
-	void Visit(Vis& vis) override {
-		if (dev) Scr::Context_Visit(*dev, *this, vis);
-		vis.VisitThis<ScrContext>(this);
+	using ScrContext::ScrContext;
+	void Visit(Vis& v) override {
+		if (dev) Scr::Context_Visit(*dev, *this, v);
+		VIS_THIS(ScrContext);
 	}
 	typename Scr::NativeContext* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -271,10 +271,10 @@ template <class Scr> struct ScreenContextT : ScrContext {
 #if defined flagSCREEN
 template <class Scr> struct ScreenEventsBaseT : ScrEventsBase {
 	using CLASSNAME = ScreenEventsBaseT<Scr>;
-	//RTTI_DECL1(CLASSNAME, ScrEventsBase)
-	void Visit(Vis& vis) override {
-		if (dev) Scr::EventsBase_Visit(*dev, *this, vis);
-		vis.VisitThis<ScrEventsBase>(this);
+	using ScrEventsBase::ScrEventsBase;
+	void Visit(Vis& v) override {
+		if (dev) Scr::EventsBase_Visit(*dev, *this, v);
+		VIS_THIS(ScrEventsBase);
 	}
 	typename Scr::NativeEventsBase* dev = 0;
 	bool Initialize(const WorldState& ws) override {

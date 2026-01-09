@@ -37,8 +37,8 @@ struct AFOCoreAudio {
 
 #if defined flagAUDIO
 struct AFOSink : public Atom {
-	//RTTI_DECL1(AFOSink, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AFOSink() {}
 };
@@ -48,10 +48,10 @@ struct AFOSink : public Atom {
 #if defined flagAUDIO
 template <class AFO> struct AudioFileOutSinkT : AFOSink {
 	using CLASSNAME = AudioFileOutSinkT<AFO>;
-	//RTTI_DECL1(CLASSNAME, AFOSink)
-	void Visit(Vis& vis) override {
-		if (dev) AFO::Sink_Visit(*dev, *this, vis);
-		vis.VisitThis<AFOSink>(this);
+	using AFOSink::AFOSink;
+	void Visit(Vis& v) override {
+		if (dev) AFO::Sink_Visit(*dev, *this, v);
+		VIS_THIS(AFOSink);
 	}
 	typename AFO::NativeSink* dev = 0;
 	bool Initialize(const WorldState& ws) override {

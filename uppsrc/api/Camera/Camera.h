@@ -40,8 +40,8 @@ struct CamV4L2OpenCV {
 
 #if defined flagCAMERA
 struct CamCamera : public Atom {
-	//RTTI_DECL1(CamCamera, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~CamCamera() {}
 };
@@ -51,10 +51,10 @@ struct CamCamera : public Atom {
 #if defined flagCAMERA
 template <class Cam> struct CameraCameraT : CamCamera {
 	using CLASSNAME = CameraCameraT<Cam>;
-	//RTTI_DECL1(CLASSNAME, CamCamera)
-	void Visit(Vis& vis) override {
-		if (dev) Cam::Camera_Visit(*dev, *this, vis);
-		vis.VisitThis<CamCamera>(this);
+	using CamCamera::CamCamera;
+	void Visit(Vis& v) override {
+		if (dev) Cam::Camera_Visit(*dev, *this, v);
+		VIS_THIS(CamCamera);
 	}
 	typename Cam::NativeCamera* dev = 0;
 	bool Initialize(const WorldState& ws) override {

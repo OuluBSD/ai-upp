@@ -308,8 +308,9 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					s << "#if " << GetMacroConditionals(v) << "\n";
 				
 				s	<< "struct " << pkg.abbr << k << " : public Atom {\n"
-					<< "\t//RTTI_DECL1(" << pkg.abbr << k << ", Atom)\n"
-					<< "\tvoid Visit(Vis& vis) override {VIS_THIS(Atom);}\n"
+					//<< "\t//RTTI_DECL1(" << pkg.abbr << k << ", Atom)\n"
+					<< "\tusing Atom::Atom;\n"
+					<< "\tvoid Visit(Vis& v) override {VIS_THIS(Atom);}\n"
 					<< "\t\n"
 					<< "\tvirtual ~" << pkg.abbr << k << "() {}\n"
 					<< "};\n";
@@ -333,10 +334,11 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				s	<< "template <class " << a << "> struct " << n << k << "T : "<<a<<k<<" {\n"
 				
 					<< "\tusing CLASSNAME = "<<n<<k<<"T<"<<a<<">;\n"
-					<< "\t//RTTI_DECL1(CLASSNAME, "<<a<<k<<")\n"
-					<< "\tvoid Visit(Vis& vis) override {\n"
-					   "\t\tif (dev) "<<a<<"::"<<k<<"_Visit(*dev, *this, vis);\n"
-					   "\t\tvis.VisitThis<"<<a<<k<<">(this);\n"
+					//<< "\t//RTTI_DECL1(CLASSNAME, "<<a<<k<<")\n"
+					<< "\tusing "<<a<<k<<"::"<<a<<k<<";\n"
+					<< "\tvoid Visit(Vis& v) override {\n"
+					   "\t\tif (dev) "<<a<<"::"<<k<<"_Visit(*dev, *this, v);\n"
+					   "\t\tVIS_THIS("<<a<<k<<");\n"
 					   "\t}\n"
 					
 					<< "\ttypename "<<a<<"::Native"<<k<<"* dev = 0;\n"

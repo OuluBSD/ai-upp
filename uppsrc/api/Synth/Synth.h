@@ -122,8 +122,8 @@ struct SynLV2 {
 
 #if (defined flagAUDIO && defined flagMIDI)
 struct SynInstrument : public Atom {
-	//RTTI_DECL1(SynInstrument, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~SynInstrument() {}
 };
@@ -133,10 +133,10 @@ struct SynInstrument : public Atom {
 #if (defined flagAUDIO && defined flagMIDI)
 template <class Syn> struct SynthInstrumentT : SynInstrument {
 	using CLASSNAME = SynthInstrumentT<Syn>;
-	//RTTI_DECL1(CLASSNAME, SynInstrument)
-	void Visit(Vis& vis) override {
-		if (dev) Syn::Instrument_Visit(*dev, *this, vis);
-		vis.VisitThis<SynInstrument>(this);
+	using SynInstrument::SynInstrument;
+	void Visit(Vis& v) override {
+		if (dev) Syn::Instrument_Visit(*dev, *this, v);
+		VIS_THIS(SynInstrument);
 	}
 	typename Syn::NativeInstrument* dev = 0;
 	bool Initialize(const WorldState& ws) override {

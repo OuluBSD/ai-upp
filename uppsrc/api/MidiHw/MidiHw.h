@@ -41,8 +41,8 @@ struct MidPortmidi {
 
 #if defined flagMIDI
 struct MidSource : public Atom {
-	//RTTI_DECL1(MidSource, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~MidSource() {}
 };
@@ -52,10 +52,10 @@ struct MidSource : public Atom {
 #if defined flagMIDI
 template <class Mid> struct MidiHwSourceT : MidSource {
 	using CLASSNAME = MidiHwSourceT<Mid>;
-	//RTTI_DECL1(CLASSNAME, MidSource)
-	void Visit(Vis& vis) override {
-		if (dev) Mid::Source_Visit(*dev, *this, vis);
-		vis.VisitThis<MidSource>(this);
+	using MidSource::MidSource;
+	void Visit(Vis& v) override {
+		if (dev) Mid::Source_Visit(*dev, *this, v);
+		VIS_THIS(MidSource);
 	}
 	typename Mid::NativeSource* dev = 0;
 	bool Initialize(const WorldState& ws) override {

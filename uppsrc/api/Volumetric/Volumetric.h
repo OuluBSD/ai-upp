@@ -37,8 +37,8 @@ struct VolRawByte {
 
 #if defined flagVOLUMETRIC
 struct VolStaticSource : public Atom {
-	//RTTI_DECL1(VolStaticSource, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~VolStaticSource() {}
 };
@@ -48,10 +48,10 @@ struct VolStaticSource : public Atom {
 #if defined flagVOLUMETRIC
 template <class Vol> struct VolumetricStaticSourceT : VolStaticSource {
 	using CLASSNAME = VolumetricStaticSourceT<Vol>;
-	//RTTI_DECL1(CLASSNAME, VolStaticSource)
-	void Visit(Vis& vis) override {
-		if (dev) Vol::StaticSource_Visit(*dev, *this, vis);
-		vis.VisitThis<VolStaticSource>(this);
+	using VolStaticSource::VolStaticSource;
+	void Visit(Vis& v) override {
+		if (dev) Vol::StaticSource_Visit(*dev, *this, v);
+		VIS_THIS(VolStaticSource);
 	}
 	typename Vol::NativeStaticSource* dev = 0;
 	bool Initialize(const WorldState& ws) override {

@@ -45,8 +45,8 @@ struct AudPortaudio {
 
 #if defined flagAUDIO
 struct AudSinkDevice : public Atom {
-	//RTTI_DECL1(AudSinkDevice, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSinkDevice() {}
 };
@@ -54,8 +54,8 @@ struct AudSinkDevice : public Atom {
 
 #if defined flagAUDIO
 struct AudSourceDevice : public Atom {
-	//RTTI_DECL1(AudSourceDevice, Atom)
-	void Visit(Vis& vis) override {VIS_THIS(Atom);}
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~AudSourceDevice() {}
 };
@@ -65,10 +65,10 @@ struct AudSourceDevice : public Atom {
 #if defined flagAUDIO
 template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	using CLASSNAME = AudioSinkDeviceT<Aud>;
-	//RTTI_DECL1(CLASSNAME, AudSinkDevice)
-	void Visit(Vis& vis) override {
-		if (dev) Aud::SinkDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<AudSinkDevice>(this);
+	using AudSinkDevice::AudSinkDevice;
+	void Visit(Vis& v) override {
+		if (dev) Aud::SinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(AudSinkDevice);
 	}
 	typename Aud::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
@@ -107,10 +107,10 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 #if defined flagAUDIO
 template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	using CLASSNAME = AudioSourceDeviceT<Aud>;
-	//RTTI_DECL1(CLASSNAME, AudSourceDevice)
-	void Visit(Vis& vis) override {
-		if (dev) Aud::SourceDevice_Visit(*dev, *this, vis);
-		vis.VisitThis<AudSourceDevice>(this);
+	using AudSourceDevice::AudSourceDevice;
+	void Visit(Vis& v) override {
+		if (dev) Aud::SourceDevice_Visit(*dev, *this, v);
+		VIS_THIS(AudSourceDevice);
 	}
 	typename Aud::NativeSourceDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {

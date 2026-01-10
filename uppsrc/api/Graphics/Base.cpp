@@ -61,8 +61,8 @@ bool ShaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 		this->bf.GetBuffer().StoreOutputLink(data);
 		RTLOG("ShaderBaseT::Send: 0, " << out.ToString());
 
-		if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
-			int credits = RequestCredits(src_ch, 1);
+		if (this->packet_router && !this->router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = this->RequestCredits(src_ch, 1);
 			if (credits <= 0) {
 				RTLOG("ShaderBaseT::Send: credit request denied for src_ch=" << src_ch);
 				return false;
@@ -70,8 +70,8 @@ bool ShaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src
 			Packet route_pkt = CreatePacket(out.GetOffset());
 			route_pkt->Pick(out);
 			route_pkt->SetFormat(fmt);
-			bool routed = EmitViaRouter(src_ch, route_pkt);
-			AckCredits(src_ch, credits);
+			bool routed = this->EmitViaRouter(src_ch, route_pkt);
+			this->AckCredits(src_ch, credits);
 			out.Pick(*route_pkt);
 			if (!routed)
 				return false;
@@ -289,9 +289,9 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 	if (preload_pending && !UploadPreloadedData())
 		return false;
 	auto route_packet = [&](const ValueFormat& fmt) {
-		if (!packet_router || router_source_ports.IsEmpty() || !fmt.IsValid())
+		if (!this->packet_router || this->router_source_ports.IsEmpty() || !fmt.IsValid())
 			return true;
-		int credits = RequestCredits(src_ch, 1);
+		int credits = this->RequestCredits(src_ch, 1);
 		if (credits <= 0) {
 			RTLOG("TextureBaseT::Send: credit request denied for src_ch=" << src_ch);
 			return false;
@@ -299,8 +299,8 @@ bool TextureBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int sr
 		Packet route_pkt = CreatePacket(out.GetOffset());
 		route_pkt->Pick(out);
 		route_pkt->SetFormat(fmt);
-		bool routed = EmitViaRouter(src_ch, route_pkt);
-		AckCredits(src_ch, credits);
+		bool routed = this->EmitViaRouter(src_ch, route_pkt);
+		this->AckCredits(src_ch, credits);
 		out.Pick(*route_pkt);
 		if (!routed)
 			return false;
@@ -599,8 +599,8 @@ bool FboReaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int 
 	}
 	else TODO
 	
-	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
-		int credits = RequestCredits(src_ch, 1);
+	if (this->packet_router && !this->router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = this->RequestCredits(src_ch, 1);
 		if (credits <= 0) {
 			RTLOG("FboReaderBaseT::Send: credit request denied for src_ch=" << src_ch);
 			return false;
@@ -608,8 +608,8 @@ bool FboReaderBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int 
 		Packet route_pkt = CreatePacket(out.GetOffset());
 		route_pkt->Pick(out);
 		route_pkt->SetFormat(fmt);
-		bool routed = EmitViaRouter(src_ch, route_pkt);
-		AckCredits(src_ch, credits);
+		bool routed = this->EmitViaRouter(src_ch, route_pkt);
+		this->AckCredits(src_ch, credits);
 		out.Pick(*route_pkt);
 		if (!routed)
 			return false;
@@ -787,8 +787,8 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 
 	}
 
-	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
-		int credits = RequestCredits(src_ch, 1);
+	if (this->packet_router && !this->router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = this->RequestCredits(src_ch, 1);
 		if (credits <= 0) {
 			RTLOG("KeyboardBaseT::Send: credit request denied for src_ch=" << src_ch);
 			return false;
@@ -796,8 +796,8 @@ bool KeyboardBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int s
 		Packet route_pkt = CreatePacket(out.GetOffset());
 		route_pkt->Pick(out);
 		route_pkt->SetFormat(fmt);
-		bool routed = EmitViaRouter(src_ch, route_pkt);
-		AckCredits(src_ch, credits);
+		bool routed = this->EmitViaRouter(src_ch, route_pkt);
+		this->AckCredits(src_ch, credits);
 		out.Pick(*route_pkt);
 		if (!routed)
 			return false;
@@ -922,8 +922,8 @@ bool AudioBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 		RTLOG("AudioBaseT<Gfx>::Send: 0, " << src_ch << ": " << out.ToString());
 	}
 
-	if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
-		int credits = RequestCredits(src_ch, 1);
+	if (this->packet_router && !this->router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = this->RequestCredits(src_ch, 1);
 		if (credits <= 0) {
 			RTLOG("AudioBaseT<Gfx>::Send: credit request denied for src_ch=" << src_ch);
 			return false;
@@ -931,8 +931,8 @@ bool AudioBaseT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 		Packet route_pkt = CreatePacket(out.GetOffset());
 		route_pkt->Pick(out);
 		route_pkt->SetFormat(fmt);
-		bool routed = EmitViaRouter(src_ch, route_pkt);
-		AckCredits(src_ch, credits);
+		bool routed = this->EmitViaRouter(src_ch, route_pkt);
+		this->AckCredits(src_ch, credits);
 		out.Pick(*route_pkt);
 		if (!routed)
 			return false;

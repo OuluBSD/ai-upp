@@ -63,8 +63,8 @@ bool CLASSNAME::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSour
 		GeomEventCollection& dst = out.SetData<GeomEventCollection>();
 		dst <<= dev.ev;
 		dev.ev_sendable = false;
-		if (packet_router && !router_source_ports.IsEmpty() && fmt.IsValid()) {
-			int credits = RequestCredits(src_ch, 1);
+		if (a.packet_router && !a.router_source_ports.IsEmpty() && fmt.IsValid()) {
+			int credits = a.RequestCredits(src_ch, 1);
 			if (credits <= 0) {
 				RTLOG("CLASSNAME::EventsBase_Send: credit request denied for src_ch=" << src_ch);
 				return false;
@@ -72,8 +72,8 @@ bool CLASSNAME::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSour
 			Packet route_pkt = CreatePacket(out.GetOffset());
 			route_pkt->Pick(out);
 			route_pkt->SetFormat(fmt);
-			bool routed = EmitViaRouter(src_ch, route_pkt);
-			AckCredits(src_ch, credits);
+			bool routed = a.EmitViaRouter(src_ch, route_pkt);
+			a.AckCredits(src_ch, credits);
 			out.Pick(*route_pkt);
 			if (!routed)
 				return false;

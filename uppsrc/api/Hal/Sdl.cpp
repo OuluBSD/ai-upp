@@ -2377,5 +2377,76 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 }
 #endif
 
+// Stub implementations for UppOglDevice when OGL is defined but GUI is not
+#if defined flagOGL && !defined flagGUI
+bool HalSdl::UppOglDevice_Create(NativeUppOglDevice*& dev) {
+	TODO;
+	return false;
+}
+
+void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
+	TODO;
+}
+
+bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
+	TODO;
+	return false;
+}
+
+bool HalSdl::UppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
+	TODO;
+	return false;
+}
+
+bool HalSdl::UppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
+	TODO;
+	return false;
+}
+
+void HalSdl::UppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
+	TODO;
+}
+
+void HalSdl::UppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
+	TODO;
+}
+
+bool HalSdl::UppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	TODO;
+	return false;
+}
+
+void HalSdl::UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
+	TODO;
+}
+
+bool HalSdl::UppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
+	TODO;
+	return false;
+}
+
+void HalSdl::UppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
+	TODO;
+}
+
+void HalSdl::UppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
+	TODO;
+}
+
+bool HalSdl::UppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
+	TODO;
+	return false;
+}
+
+bool HalSdl::UppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+	TODO;
+	return false;
+}
+
+void HalSdl::UppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+	TODO;
+}
+#endif
+
 END_UPP_NAMESPACE
 #endif

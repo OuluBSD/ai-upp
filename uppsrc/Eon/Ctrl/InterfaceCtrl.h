@@ -14,10 +14,10 @@ public:
 };
 
 typedef InterfaceCtrl*(*InterfaceCtrlFactory)();
-typedef VectorMap<TypeId, InterfaceCtrlFactory> InterfaceCtrlFactoryMap;
+typedef VectorMap<TypeCls, InterfaceCtrlFactory> InterfaceCtrlFactoryMap;
 
-void RegisterInterfaceCtrlFactory(TypeId iface, InterfaceCtrlFactory fac);
-InterfaceCtrl* NewInterfaceCtrl(TypeId iface);
+void RegisterInterfaceCtrlFactory(TypeCls iface, InterfaceCtrlFactory fac);
+InterfaceCtrl* NewInterfaceCtrl(TypeCls iface);
 
 template <class T> InterfaceCtrl* InterfaceCtrlFactoryFn() {return new T();}
 template <class I, class C> void MakeInterfaceCtrlFactory() {

@@ -1,5 +1,14 @@
 description "\377B0,128,0";
 
+acceptflags
+	HAL,
+	SDL2,
+	DX9,
+	DX10,
+	DX11,
+	DX12,
+	UWP;
+
 uses
 	api/Graphics;
 

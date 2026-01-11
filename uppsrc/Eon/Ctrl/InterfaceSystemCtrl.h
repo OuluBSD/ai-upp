@@ -8,29 +8,29 @@ struct InterfaceDataCtrl : public InterfaceCtrl {
 	
 	InterfaceDataCtrl();
 	
-	void UpdateInterfaceData(ExchangeProviderBasePtr e);
-	void AddInterfaceDataRow(UPP::Value key, UPP::Value value);
+	void UpdateData(ExchangeProviderBasePtr e);
+	void AddRow(UPP::Value key, UPP::Value value);
 	
 	void SetInterface(ComponentPtr, ExchangeProviderBasePtr) override {}
 	
 };
 
 class InterfaceSystemCtrl : public ParentCtrl {
-	ArrayMap<TypeId, InterfaceCtrl>		iface_ctrls;
+	ArrayMap<TypeCls, InterfaceCtrl>	iface_ctrls;
 	Splitter							vsplit, hsplit;
-	EntityBrowserCtrl					ent_browser;
+	VfsBrowserCtrl						vfs_browser;
 	InterfaceListCtrl					iface_list;
-	InterfaceDataCtrl					ent_data;
-	ParentCtrl							ent_cont;
+	InterfaceDataCtrl					iface_data;
+	ParentCtrl							vfs_cont;
 	
 	VectorMap<int, int>					node_ifaces;
-	EntityPtr						sel_ent;
+	VfsValuePtr							selected;
 	ExchangeProviderBasePtr				sel_iface;
 	InterfaceCtrl*						active_ctrl = 0;
 	
 	Image ent_icon, comp_icon, iface_icon;
 	
-	void OnEntityCursorChanged();
+	void OnVfsCursorChanged();
 	void OnInterfaceCursorChanged();
 	void ClearActiveCtrl();
 	void SetInterfaceCtrl(ComponentPtr c, ExchangeProviderBasePtr b);
@@ -40,7 +40,7 @@ public:
 	InterfaceSystemCtrl();
 	
 	void Updated() override;
-	void SetEngine(Engine& m) {ent_browser.SetEngine(m);}
+	void SetEngine(Engine& m) {vfs_browser.SetEngine(m);}
 	
 };
 

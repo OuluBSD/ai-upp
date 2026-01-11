@@ -1,5 +1,5 @@
-#ifndef _EonCtrl_DesktopSystem_h_
-#define _EonCtrl_DesktopSystem_h_
+#ifndef _Eon_Ctrl_DesktopSystem_h_
+#define _Eon_Ctrl_DesktopSystem_h_
 
 
 class DesktopSuiteSystem : public System {

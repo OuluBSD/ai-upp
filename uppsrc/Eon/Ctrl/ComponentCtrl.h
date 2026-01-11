@@ -14,10 +14,10 @@ public:
 };
 
 typedef ComponentCtrl*(*ComponentCtrlFactory)();
-typedef VectorMap<TypeId, ComponentCtrlFactory> ComponentCtrlFactoryMap;
+typedef VectorMap<TypeCls, ComponentCtrlFactory> ComponentCtrlFactoryMap;
 
-void RegisterComponentCtrlFactory(TypeId comp, ComponentCtrlFactory fac);
-ComponentCtrl* NewComponentCtrl(TypeId comp);
+void RegisterComponentCtrlFactory(TypeCls comp, ComponentCtrlFactory fac);
+ComponentCtrl* NewComponentCtrl(TypeCls comp);
 
 template <class T> ComponentCtrl* ComponentCtrlFactoryFn() {return new T();}
 template <class I, class C> void MakeComponentCtrlFactory() {

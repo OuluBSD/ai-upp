@@ -421,40 +421,78 @@ void Ctrl::SysEndLoop()
 {
 }
 
-void Ctrl::EventLoop(Ctrl *ctrl)
+Ctrl::EventLoopContext Ctrl::EventLoopBegin(Ctrl *ctrl)
 {
 	GuiLock __;
 	ASSERT_(IsMainThread(), "EventLoop can only run in the main thread");
 	ASSERT(LoopLevel == 0 || ctrl);
+
+	EventLoopContext ctx;
+	ctx.ctrl = ctrl;
+	ctx.quit = false;
+
 	LoopLevel++;
-	int64 loopno = ++EventLoopNo;
 	LLOG("Entering event loop at level " << LoopLevel << LOG_BEGIN);
-	Ctrl *ploop = NULL;
+
 	if(ctrl) {
-		ploop = LoopCtrl;
+		ctx.prev_loop_ctrl = LoopCtrl;
 		LoopCtrl = ctrl;
 		ctrl->inloop = true;
 	}
 
-	while(loopno > EndSessionLoopNo && (ctrl ? ctrl->InLoop() && ctrl->IsOpen() : GetTopCtrls().GetCount())) {
-		XEvent event;
-		GuiSleep(granularity);
-		SyncMousePos();
-		while(IsWaitingEvent()) {
-			LTIMING("XNextEvent");
-			XNextEvent(Xdisplay, &event);
-			LDUMP(event.type);
-			ProcessEvent(&event);
-		}
-		TimerAndPaint();
-		SweepMkImageCache();
+	ctx.loop_no = ++EventLoopNo;
+	return ctx;
+}
+
+bool Ctrl::EventLoopIteration(EventLoopContext& ctx)
+{
+	GuiLock __;
+
+	// Check if should continue
+	if(ctx.loop_no <= EndSessionLoopNo || ctx.quit)
+		return false;
+
+	if(ctx.ctrl && (!ctx.ctrl->IsOpen() || !ctx.ctrl->InLoop()))
+		return false;
+
+	if(!ctx.ctrl && GetTopCtrls().GetCount() == 0)
+		return false;
+
+	// X11-specific event processing
+	XEvent event;
+	GuiSleep(granularity);
+	SyncMousePos();
+
+	while(IsWaitingEvent()) {
+		LTIMING("XNextEvent");
+		XNextEvent(Xdisplay, &event);
+		LDUMP(event.type);
+		ProcessEvent(&event);
 	}
 
-	if(ctrl)
-		LoopCtrl = ploop;
+	TimerAndPaint();
+	SweepMkImageCache();
+
+	return true;
+}
+
+void Ctrl::EventLoopEnd(EventLoopContext& ctx)
+{
+	GuiLock __;
+
+	if(ctx.ctrl)
+		LoopCtrl = ctx.prev_loop_ctrl;
 
 	LoopLevel--;
 	LLOG(LOG_END << "Leaving event loop ");
+}
+
+void Ctrl::EventLoop(Ctrl *ctrl)
+{
+	EventLoopContext ctx = EventLoopBegin(ctrl);
+	while(EventLoopIteration(ctx))
+		;
+	EventLoopEnd(ctx);
 }
 
 void Ctrl::SyncExpose()

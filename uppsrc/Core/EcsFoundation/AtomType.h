@@ -13,6 +13,7 @@
 	IFACE(RECEIPT) \
 	IFACE(FBO) \
 	IFACE(PROG) \
+	IFACE(GUI) \
 
 #define ATOM_ROLE_LIST \
 	ATOM_ROLE(DRIVER) \
@@ -40,6 +41,7 @@ typedef enum : int {
 	ValReceipt = RECEIPT,
 	ValFbo = FBO,
 	ValProg = PROG,
+	ValGui = GUI,
 } ValCls;
 
 typedef enum : int {

@@ -1364,6 +1364,22 @@ public:
 	bool   IsPopUp() const          { return popup; }
 
 
+	// Event loop context for split Begin/Iteration/End pattern
+	struct EventLoopContext {
+		Ptr<Ctrl> ctrl;           // Control for this loop (can be NULL)
+		Ptr<Ctrl> prev_loop_ctrl; // Previous LoopCtrl to restore
+		int64 loop_no;            // This loop's EventLoopNo
+		bool quit;                // Session end flag
+
+		EventLoopContext() : loop_no(0), quit(false) {}
+	};
+
+	// Split event loop functions
+	static EventLoopContext EventLoopBegin(Ctrl *ctrl = NULL);
+	static bool EventLoopIteration(EventLoopContext& ctx);
+	static void EventLoopEnd(EventLoopContext& ctx);
+
+	// Original EventLoop (now implemented using Begin/Iteration/End)
 	static void  EventLoop(Ctrl *loopctrl = NULL);
 	static int   GetLoopLevel()     { return LoopLevel; }
 	static Ctrl *GetLoopCtrl()      { return LoopCtrl; }

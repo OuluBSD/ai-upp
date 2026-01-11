@@ -1,11 +1,16 @@
 #ifndef _Eon_GuiGlue_HandleTypes_h_
 #define _Eon_GuiGlue_HandleTypes_h_
 
+#ifdef flagSUBWINDOWS
+ #define SUBWINDOWS_GLUE(x) template class x <CtxUpp2D>;
+#else
+ #define SUBWINDOWS_GLUE(x)
+#endif
 
 #define UPPCTRL2D_EXCPLICIT_INITIALIZE_CLASS(x) \
-	template class x <CtxUpp2D>;
+	SUBWINDOWS_GLUE(x)
 
-#define PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(x) \
+#define GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(x) \
 	 \
 	UPPCTRL2D_EXCPLICIT_INITIALIZE_CLASS(x)
 

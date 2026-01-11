@@ -158,7 +158,7 @@ public:
 	TopWindow* GetTopWindow() const;
 	
 	void Serialize(Stream& e) ;
-	bool Initialize(const WorldState&) ;
+	bool Initialize(const WorldState&) override;
 	virtual void Uninitialize() override;
 	//String GetTitle() const ;
 	void Layout();
@@ -187,7 +187,7 @@ struct Geom2DComponentLink : public Component {
 	
 	
 	void Serialize(Stream& e) ;
-	bool Initialize(const WorldState&) ;
+	bool Initialize(const WorldState&) override;
 	virtual void Uninitialize() override;
 	
 	void Link(Geom2DComponent* cw);

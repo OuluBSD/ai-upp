@@ -1,5 +1,8 @@
 description "Eon/Core\377B85,42,0";
 
+acceptflags
+	SCREEN;
+
 uses
 	Vfs,
 	Geometry,

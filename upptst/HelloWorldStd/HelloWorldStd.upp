@@ -1,3 +1,7 @@
+acceptflags
+	ABC,
+	TEST;
+
 uses
 	HelloWorld2;
 
@@ -8,5 +12,5 @@ file
 	HelloWorld.cpp;
 
 mainconfig
-	"" = "";
+	"" = "TEST";
 

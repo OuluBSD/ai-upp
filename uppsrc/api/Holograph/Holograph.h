@@ -6,8 +6,12 @@
 
 #include <Eon/Eon.h>
 #include <api/Media/Media.h>
+#if defined flagLINUX
 #include <plugin/hcidump/hcidump.h>
+#endif
+#if defined flagSOFTHMD
 #include <SoftHMD/SoftHMD.h>
+#endif
 
 NAMESPACE_UPP
 

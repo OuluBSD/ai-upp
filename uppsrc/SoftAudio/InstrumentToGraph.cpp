@@ -4,6 +4,7 @@
 #include "SoftAudio/Graph/GainNode.h"
 #include "SoftAudio/Graph/MixerNode.h"
 #include "SoftAudio/Graph/GraphPlayer.h"
+#include "SoftAudio/Graph/ProcessContext.h"
 
 NAMESPACE_AUDIO_BEGIN
 
@@ -13,14 +14,14 @@ public:
     SineSourceNode(double frequency, double sample_rate)
         : frequency_(frequency), sample_rate_(sample_rate), phase_(0.0) {}
 
-    void Prepare(const ProcessContext& ctx) override {
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
         Node::Prepare(ctx);
         sample_rate_ = ctx.sample_rate;
         // Reset phase when preparing
         phase_ = 0.0;
     }
 
-    void Process(const ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
         int block_size = ctx.block_size;
         output.SetSize(block_size, 1); // Mono output
 
@@ -46,14 +47,14 @@ public:
     PanLfoNode(double rate_hz, double sample_rate)
         : rate_hz_(rate_hz), sample_rate_(sample_rate), phase_(0.0) {}
 
-    void Prepare(const ProcessContext& ctx) override {
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
         Node::Prepare(ctx);
         sample_rate_ = ctx.sample_rate;
         // Reset phase when preparing
         phase_ = 0.0;
     }
 
-    void Process(const ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
         int block_size = ctx.block_size;
         output.SetSize(block_size, 1); // Mono output (pan value)
 
@@ -85,7 +86,7 @@ bool InstrumentToGraph::BuildAudioGraphForInstrument(
     // Create a mixer node for combining all voices
     One<SAGraph::MixerNode> mixer = new SAGraph::MixerNode();
     mixer->SetOutputChannels(2); // Stereo output
-    int mixer_node_idx = graph.AddNodeWithName("output_mixer", pick(mixer));
+    int mixer_node_idx = graph.AddNodeWithName("output_mixer", pick(std::move(mixer)));
 
     // Create voice nodes and connect them to the mixer
     for (int i = 0; i < instrument.voices.GetCount(); i++) {
@@ -101,26 +102,26 @@ bool InstrumentToGraph::BuildAudioGraphForInstrument(
             // For now, use a SineSourceNode as placeholder - in a real implementation,
             // this would be a more complex analog circuit simulation node
             One<SineSourceNode> sine_node = new SineSourceNode(frequency, instrument.sample_rate_hz);
-            source_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_source", pick(sine_node));
+            source_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_source", pick(std::move(sine_node)));
         } else {
             // Digital oscillator - using SineSourceNode
             One<SineSourceNode> sine_node = new SineSourceNode(frequency, instrument.sample_rate_hz);
-            source_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_source", pick(sine_node));
+            source_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_source", pick(std::move(sine_node)));
         }
 
         int pan_lfo_node_idx = -1;
         if (instrument.voice_template.has_pan_lfo) {
             // Add a pan LFO for this voice
             One<PanLfoNode> pan_lfo_node = new PanLfoNode(instrument.voice_template.pan_lfo_hz, instrument.sample_rate_hz);
-            pan_lfo_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_pan_lfo", pick(pan_lfo_node));
+            pan_lfo_node_idx = graph.AddNodeWithName("voice_" + voice.id + "_pan_lfo", pick(std::move(pan_lfo_node)));
         }
 
         // Create a simple stereo panner using a gain node for each channel
         // In a more complete implementation, this would be a dedicated panner node
         One<SAGraph::GainNode> left_gain = new SAGraph::GainNode();
         One<SAGraph::GainNode> right_gain = new SAGraph::GainNode();
-        int left_gain_idx = graph.AddNodeWithName("voice_" + voice.id + "_left_gain", pick(left_gain));
-        int right_gain_idx = graph.AddNodeWithName("voice_" + voice.id + "_right_gain", pick(right_gain));
+        int left_gain_idx = graph.AddNodeWithName("voice_" + voice.id + "_left_gain", pick(std::move(left_gain)));
+        int right_gain_idx = graph.AddNodeWithName("voice_" + voice.id + "_right_gain", pick(std::move(right_gain)));
 
         // Connect to mixer with appropriate gains based on pan
         if (pan_lfo_node_idx != -1) {

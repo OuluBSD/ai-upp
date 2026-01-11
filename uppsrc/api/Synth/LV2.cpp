@@ -1,6 +1,6 @@
 #include "Synth.h"
 
-#ifdef flagLV2
+#ifdef defined flagAUDIO && defined flagMIDI && defined flagLV2
 
 #include <plugin/lilv/lilv.h>
 #include <plugin/lilv/lilv_config.h>

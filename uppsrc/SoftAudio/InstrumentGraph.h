@@ -13,7 +13,7 @@ struct NoteDesc {
 };
 
 // Voice configuration
-struct VoiceConfig {
+struct VoiceConfig : Moveable<VoiceConfig> {
     String id;                      // e.g. "voice0", "voice1"
     double detune_cents = 0.0;      // -50..+50 etc., optional
     bool use_analog_source = false; // if true, voice source is analog model; else digital oscillator

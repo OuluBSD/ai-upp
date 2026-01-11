@@ -1,5 +1,11 @@
 description "\377B128,0,255";
 
+acceptflags
+	SCREEN,
+	HAL,
+	SDL2,
+	OGL;
+
 uses
 	Eon,
 	Draw/Extensions;

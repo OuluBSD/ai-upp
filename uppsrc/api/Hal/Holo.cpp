@@ -1,6 +1,6 @@
 #include "Hal.h"
 
-#if defined flagUWP && defined flagDX12
+#if defined flagHAL && defined flagUWP && defined flagDX12
 
 #ifndef WINAPI_FAMILY
 	#define WINAPI_FAMILY WINAPI_FAMILY_APP

@@ -86,8 +86,21 @@ GVar::Sample GetGVarType(BinarySample::Type s);
 
 
 template <int> struct DimBase;
-template<> class DimBase<1> {
-public:
+template<> struct DimBase<0> {
+	void	SetSize(DimBase<0> a) {}
+	void	SetDefault() {}
+	void	Clear() {}
+	
+	String	ToString() const {return "len(0)";}
+	bool	IsSame(const DimBase& b) const {return true;}
+	int		GetScalar() const {return 1;}
+	bool	IsValid() const {return true;}
+	int		GetSize() const {return INT_MIN;}
+	
+	DimBase& operator=(const DimBase& b) {return *this;}
+};
+
+template<> struct DimBase<1> {
 	static const int n = 1;
 	int res[1];
 	

@@ -197,6 +197,26 @@ int EventFormat::GetFrameSize() const {
 
 
 
+String GuiFormat::ToString() const {
+	return		SampleBase<GuiSample>::ToString() + ", " +
+				DimBase<0>::ToString() + ", " +
+				SparseTimeSeriesBase::ToString();
+}
+
+bool GuiFormat::IsValid() const {
+	return true;
+}
+
+bool GuiFormat::IsSame(const GuiFormat& fmt) const {
+	return true;
+}
+
+int GuiFormat::GetFrameSize() const {
+	return		DimBase<0>::GetScalar() *
+				SparseTimeSeriesBase::GetSampleRate() *
+				SampleBase<GuiSample>::GetSampleSize() *
+				text_block_size;
+}
 
 
 
@@ -258,6 +278,7 @@ String ValueFormat::ToString() const {
 	if (IsEvent()) return "EventFormat(" + vd.ToString() + ", " + ev.ToString() + ")";
 	if (IsFbo())   return "FboFormat(" + vd.ToString() + ", " + fbo.ToString() + ")";
 	if (IsProg())   return "ProgFormat(" + vd.ToString() + ", " + prog.ToString() + ")";
+	if (IsGui())   return "GuiFormat(" + vd.ToString() + ", " + gui.ToString() + ")";
 	if (vd.val == ValCls::ORDER) return "OrderFormat";
 	if (vd.val == ValCls::RECEIPT) return "ReceiptFormat";
 	return "Invalid ValueFormat";
@@ -392,6 +413,12 @@ void ValueFormat::SetEvent(DevCls dev) {
 void ValueFormat::SetProg(DevCls dev) {
 	vd.dev = dev;
 	vd.val = ValCls::PROG;
+	memset(data, 0, sizeof(data));
+}
+
+void ValueFormat::SetGui(DevCls dev) {
+	vd.dev = dev;
+	vd.val = ValCls::GUI;
 	memset(data, 0, sizeof(data));
 }
 

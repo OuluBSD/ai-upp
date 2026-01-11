@@ -4,6 +4,7 @@ NAMESPACE_UPP
 
 
 void InterfaceBuilder::Headers() {
+	AddCustomBase("Atom");
 	AddCustomBase("CustomerBase");
 	AddCustomBase("RollingValueBase");
 	AddCustomBase("VoidSinkBase");
@@ -34,7 +35,8 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("MidiFileReaderAtom","MIDI");
 	AddCustomBase("MidiNullAtom","MIDI");
 	AddCustomBase("AudioMixerBase","AUDIO");
-	
+	AddCustomBase("UppGuiSinkBase", "HAL&GUI");
+
 	AddHeader("CenterCustomer", "CustomerBase", "customer")
 		.In("CenterReceipt").Out("CenterOrder")
 		.Action("center.customer")
@@ -589,7 +591,23 @@ void InterfaceBuilder::Headers() {
 		.Action("upp.event.pipe")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
-	
+
+	AddHeader("GuiFileSrc", "Atom", "pipe")
+		.In("CenterOrder").Out("CenterGui")
+		.Action("center.gui.filesrc")
+		.Link("PIPE", "PROCESS")
+		.Arg("file", "")
+	;
+
+	AddHeader("UppGuiSinkDevice", "UppGuiSinkBase", "pipe")
+		.In("CenterGui").Out("CenterReceipt")
+		.Action("upp.gui.sink")
+		.Link("POLLER_PIPE", "PROCESS")
+		.Arg("env", "/event/register")
+		.Arg("sizeable", "true")
+		.Arg("close_machine", "true")
+	;
+
 	AddHeader("SdlVideoAtomPipe", "SdlCenterVideoSinkDevice", "pipe")
 		.In("CenterVideo").Out("CenterReceipt")
 		.Action("sdl.video.pipe")

@@ -217,38 +217,74 @@ bool Ctrl::ProcessEvents(bool *quit)
 }
 
 
-void Ctrl::EventLoop(Ctrl *ctrl)
+Ctrl::EventLoopContext Ctrl::EventLoopBegin(Ctrl *ctrl)
 {
 	Upp::GuiLock __;
 	ASSERT(IsMainThread());
 	ASSERT(LoopLevel == 0 || ctrl);
+
+	EventLoopContext ctx;
+	ctx.ctrl = ctrl;
+	ctx.quit = false;
+
 	LoopLevel++;
 	LLOG("Entering event loop at level " << LoopLevel);
-	Ptr<Ctrl> ploop;
+
 	if(ctrl) {
-		ploop = LoopCtrl;
+		ctx.prev_loop_ctrl = LoopCtrl;
 		LoopCtrl = ctrl;
 		ctrl->inloop = true;
 	}
 
-	bool quit = false;
-	ProcessEvents(&quit);
-	while(ctrl ? ctrl->IsOpen() && ctrl->InLoop() : GetTopCtrls().GetCount())
-	{
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / GuiSleep");
-		SyncCaret();
-		AnimateCaret();
-		GuiSleep(20);
-//		if(EndSession()) break;
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / ProcessEvents");
-		ProcessEvents(&quit);
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / after ProcessEvents");
-	}
+	ctx.loop_no = ++EventLoopNo;
+	return ctx;
+}
 
-	if(ctrl)
-		LoopCtrl = ploop;
+bool Ctrl::EventLoopIteration(EventLoopContext& ctx)
+{
+	Upp::GuiLock __;
+
+	// Check if should continue
+	if(ctx.loop_no <= EndSessionLoopNo || ctx.quit)
+		return false;
+
+	if(ctx.ctrl && (!ctx.ctrl->IsOpen() || !ctx.ctrl->InLoop()))
+		return false;
+
+	if(!ctx.ctrl && GetTopCtrls().GetCount() == 0)
+		return false;
+
+	// Cocoa-specific event processing
+//	LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / GuiSleep");
+	SyncCaret();
+	AnimateCaret();
+	GuiSleep(20);
+//	if(EndSession()) break;
+//	LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / ProcessEvents");
+	ProcessEvents(&ctx.quit);
+//	LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / after ProcessEvents");
+
+	return true;
+}
+
+void Ctrl::EventLoopEnd(EventLoopContext& ctx)
+{
+	Upp::GuiLock __;
+
+	if(ctx.ctrl)
+		LoopCtrl = ctx.prev_loop_ctrl;
+
 	LoopLevel--;
 	LLOG("Leaving event loop ");
+}
+
+void Ctrl::EventLoop(Ctrl *ctrl)
+{
+	EventLoopContext ctx = EventLoopBegin(ctrl);
+	ProcessEvents(&ctx.quit);
+	while(EventLoopIteration(ctx))
+		;
+	EventLoopEnd(ctx);
 }
 
 static std::atomic<bool> sGuiSleep;

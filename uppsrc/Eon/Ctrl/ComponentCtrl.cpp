@@ -4,11 +4,11 @@ NAMESPACE_UPP
 
 ComponentCtrlFactoryMap& GetComponentCtrlFactoryMap() {static ComponentCtrlFactoryMap map; return map;}
 
-void RegisterComponentCtrlFactory(TypeId comp, ComponentCtrlFactory fac) {
+void RegisterComponentCtrlFactory(TypeCls comp, ComponentCtrlFactory fac) {
 	GetComponentCtrlFactoryMap().GetAdd(comp) = fac;
 }
 
-ComponentCtrl* NewComponentCtrl(TypeId comp) {
+ComponentCtrl* NewComponentCtrl(TypeCls comp) {
 	auto& map = GetComponentCtrlFactoryMap();
 	ComponentCtrlFactory fn = 0;
 	int i = map.Find(comp);

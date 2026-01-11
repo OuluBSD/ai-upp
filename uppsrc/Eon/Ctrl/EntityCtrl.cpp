@@ -17,67 +17,70 @@ EntityDataCtrl::EntityDataCtrl() {
 EntityCtrl::EntityCtrl() {
 	Add(hsplit.Horz().SizePos());
 	
-	hsplit << vsplit << ent_cont;
+	hsplit << vsplit << vfs_cont;
 	hsplit.SetPos(2000);
 	
 	vsplit.Vert();
-	vsplit << ent_browser << ent_content;
+	vsplit << vfs_browser << vfs_content;
 	
 	
-	ent_browser.WhenEntityChanged << THISBACK(OnEntityCursorChanged);
-	ent_content.WhenContentCursor << THISBACK(OnContentCursorChanged);
+	vfs_browser.WhenVfsChanged << THISBACK(OnVfsCursorChanged);
+	vfs_content.WhenContentCursor << THISBACK(OnContentCursorChanged);
 	
 }
 
-void EntityCtrl::OnEntityCursorChanged() {
-	EntityPtr ent = ent_browser.GetSelected();
-	if (ent != sel_ent) {
-		sel_ent = ent;
-		ent_content.SetEntity(sel_ent);
-		ent_content.Update();
+void EntityCtrl::OnVfsCursorChanged() {
+	VfsValuePtr v = vfs_browser.GetSelected();
+	if (v != selected) {
+		selected = v;
+		vfs_content.SetSelected(selected);
+		vfs_content.Update();
 	}
 }
 
 void EntityCtrl::OnContentCursorChanged() {
-	if (sel_ent) {
-		ComponentPtr c;
+	if (selected) {
+		VfsValuePtr v;
+		vfs_content.GetCursor(v);
 		
-		ent_content.GetCursor(c);
-		
-		if (c)
-			SetComponentCtrl(*c);
+		if (v) {
+			Component* c = v->FindExt<Component>();
+			if (c)
+				SetComponentCtrl(*c);
+			else
+				SetDataCtrl();
+		}
 		else
-			SetEntityDataCtrl();
+			SetDataCtrl();
 	}
 	else
 		ClearActiveCtrl();
 }
 
 void EntityCtrl::Updated() {
-	ent_browser.Updated();
-	ent_content.Updated();
+	vfs_browser.Updated();
+	vfs_content.Updated();
 }
 
 void EntityCtrl::ClearActiveCtrl() {
 	if (active_ctrl) {
-		ent_cont.RemoveChild(active_ctrl);
+		vfs_cont.RemoveChild(active_ctrl);
 		active_ctrl = 0;
 	}
 }
 
-void EntityCtrl::SetEntityDataCtrl() {
+void EntityCtrl::SetDataCtrl() {
 	ClearActiveCtrl();
 	
-	active_ctrl = &ent_data;
-	ent_cont.Add(ent_data.SizePos());
-	UpdateEntityData();
+	active_ctrl = &vfs_data;
+	vfs_cont.Add(vfs_data.SizePos());
+	UpdateData();
 }
 
 void EntityCtrl::SetComponentCtrl(Component& c) {
 	ClearActiveCtrl();
 	
-	TODO
-	/*TypeId type = c.GetType();
+	TypeCls type = c.GetTypeCls();
 	int i = comp_ctrls.Find(type);
 	if (i < 0) {
 		active_ctrl = NewComponentCtrl(type);
@@ -90,15 +93,15 @@ void EntityCtrl::SetComponentCtrl(Component& c) {
 		ASSERT(active_ctrl);
 	}
 	
-	ent_cont.Add(active_ctrl->SizePos());*/
+	vfs_cont.Add(active_ctrl->SizePos());
 	
 	active_ctrl->SetComponent(c);
 	active_ctrl->Update();
 }
 
-void EntityCtrl::UpdateEntityData() {
-	if (sel_ent)
-		ent_data.UpdateEntityData(*sel_ent);
+void EntityCtrl::UpdateData() {
+	if (selected)
+		vfs_data.UpdateData(*selected);
 }
 
 
@@ -106,20 +109,26 @@ void EntityCtrl::UpdateEntityData() {
 
 
 
-void EntityDataCtrl::UpdateEntityData(Entity& e) {
+void EntityDataCtrl::UpdateData(VfsValue& v) {
 	ent_cursor = 0;
 	
-	AddEntityDataRow("created", e.GetCreatedTick());
-	AddEntityDataRow("id", e.GetId());
-	AddEntityDataRow("prefab", e.GetPrefab());
+	AddRow("id", v.id);
+	AddRow("serial", (int64)v.serial);
+	AddRow("type_hash", (int64)v.type_hash);
 	
-	const auto& comps = e.GetComponents();
-	AddEntityDataRow("component-count", comps.GetCount());
+	Entity* e = v.FindExt<Entity>();
+	if (e) {
+		AddRow("entity-idx", e->GetIdx());
+		AddRow("created", e->GetCreated());
+		AddRow("prefab", e->GetPrefab());
+	}
+	
+	AddRow("sub-count", v.sub.GetCount());
 	
 	list.SetCount(ent_cursor);
 }
 
-void EntityDataCtrl::AddEntityDataRow(UPP::Value key, UPP::Value value) {
+void EntityDataCtrl::AddRow(UPP::Value key, UPP::Value value) {
 	list.Set(ent_cursor, 0, key);
 	list.Set(ent_cursor, 1, value);
 	ent_cursor++;

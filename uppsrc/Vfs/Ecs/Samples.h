@@ -148,7 +148,7 @@ public:
 
 
 class DataSample {
-	
+
 public:
 	static const int def_sample_rate = 1;
 
@@ -162,7 +162,7 @@ public:
 		DATA_SMPL_LIST
 		#undef DATA_SMPL
 		TYPE_COUNT,
-		
+
 		DEFAULT = INVALID
 	} Type;
 
@@ -175,6 +175,32 @@ public:
 };
 
 
+class GuiSample {
+
+public:
+	static const int def_sample_rate = 1;
+
+	#define GUI_SMPL_LIST \
+		GUI_SMPL(FORM_XML)
+
+	typedef enum : byte {
+		INVALID,
+		DEV_INTERNAL,
+		#define GUI_SMPL(x) x ,
+		GUI_SMPL_LIST
+		#undef GUI_SMPL
+		TYPE_COUNT,
+
+		DEFAULT = FORM_XML
+	} Type;
+
+
+	static void Clear(Type& t) {t = INVALID;}
+	static bool IsCopyCompatible(Type a, Type b) {return a == b;}
+	static String ToString(Type t);
+	static int GetSize(Type t);
+	static bool IsValid(Type t) {return (int)t > (int)INVALID && (int)t < (int)TYPE_COUNT;}
+};
 
 
 #endif

@@ -727,7 +727,7 @@ void ScopeT<Dim>::AddInterface(TopContainer& tw)
 
 	Frame& h = handles.Add(id);
 	h.SetScope(this);
-	h.RefScopeParent<RefParent1<ScopeT<Dim>>>::SetParent(this);
+	TODO //h.RefScopeParent<RefParent1<ScopeT<Dim>>>::SetParent(this);
 	h.SetId(id);
 	
 	//GeomInteraction::Add(h); // Add to Interaction (e.g. GeomInteraction2D)
@@ -770,7 +770,7 @@ void ScopeT<Dim>::SetFrameBox(const Box& b) {
 	desktop.SetRect(b);
 }
 
-PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(ScopeT)
+GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(ScopeT)
 
 
 

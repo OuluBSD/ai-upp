@@ -5,6 +5,8 @@ uses
 	Vfs,
 	CtrlCore;
 
+uses(VIRTUALGUI) VirtualGui;
+
 file
 	README.md,
 	GuiGlue.h,

@@ -35,6 +35,7 @@ void InterfaceBuilder::Headers() {
 	AddCustomBase("MidiFileReaderAtom","MIDI");
 	AddCustomBase("MidiNullAtom","MIDI");
 	AddCustomBase("AudioMixerBase","AUDIO");
+	AddCustomBase("CenterGuiFileSrcBase", "HAL");
 
 	AddHeader("CenterCustomer", "CustomerBase", "customer")
 		.In("CenterReceipt").Out("CenterOrder")
@@ -591,7 +592,7 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 
-	AddHeader("GuiFileSrc", "Atom", "pipe")
+	AddHeader("CenterGuiFileSrc", "CenterGuiFileSrcBase", "pipe")
 		.In("CenterOrder").Out("CenterGui")
 		.Action("center.gui.filesrc")
 		.Link("PIPE", "PROCESS")

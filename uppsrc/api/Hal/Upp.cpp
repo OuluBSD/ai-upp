@@ -7,6 +7,62 @@
 NAMESPACE_UPP
 
 
+// EventsBase stub implementation (not used in GUI test)
+struct HalUpp::NativeEventsBase {};
+
+bool HalUpp::EventsBase_Create(NativeEventsBase*& dev) {
+	dev = new NativeEventsBase;
+	return true;
+}
+
+void HalUpp::EventsBase_Destroy(NativeEventsBase*& dev) {
+	if (dev) {
+		delete dev;
+		dev = nullptr;
+	}
+}
+
+bool HalUpp::EventsBase_Initialize(NativeEventsBase& dev, AtomBase& a, const WorldState& ws) {
+	return true;
+}
+
+bool HalUpp::EventsBase_PostInitialize(NativeEventsBase& dev, AtomBase& a) {
+	return true;
+}
+
+bool HalUpp::EventsBase_Start(NativeEventsBase& dev, AtomBase& a) {
+	return true;
+}
+
+void HalUpp::EventsBase_Stop(NativeEventsBase& dev, AtomBase& a) {}
+
+void HalUpp::EventsBase_Uninitialize(NativeEventsBase& dev, AtomBase& a) {}
+
+bool HalUpp::EventsBase_Recv(NativeEventsBase& dev, AtomBase& a, int sink_ch, const Packet& in) {
+	return true;
+}
+
+void HalUpp::EventsBase_Finalize(NativeEventsBase& dev, AtomBase& a, RealtimeSourceConfig& cfg) {}
+
+bool HalUpp::EventsBase_Send(NativeEventsBase& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	return false;
+}
+
+void HalUpp::EventsBase_Visit(NativeEventsBase& dev, AtomBase& a, Visitor& vis) {}
+
+void HalUpp::EventsBase_Update(NativeEventsBase& dev, AtomBase& a, double dt) {}
+
+bool HalUpp::EventsBase_IsReady(NativeEventsBase& dev, AtomBase& a, PacketIO& io) {
+	return false;
+}
+
+bool HalUpp::EventsBase_AttachContext(NativeEventsBase& dev, AtomBase& a, AtomBase& other) {
+	return true;
+}
+
+void HalUpp::EventsBase_DetachContext(NativeEventsBase& dev, AtomBase& a, AtomBase& other) {}
+
+
 // Mid-class between Atom and FormWindow
 // Provides room for future Esc script VM, event I/O, and threading
 struct HalUpp::NativeGuiSinkBase {

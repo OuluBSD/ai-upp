@@ -1933,30 +1933,32 @@ AtomTypeCls UppEventAtomPipe::GetType() const {
 #endif
 
 
-String GuiFileSrc::GetAction() {
+#if defined flagHAL
+String CenterGuiFileSrc::GetAction() {
 	return "center.gui.filesrc";
 }
 
-AtomTypeCls GuiFileSrc::GetAtomType() {
+AtomTypeCls CenterGuiFileSrc::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //GUIFILESRC;
+	t.sub = SUB_ATOM_CLS; //CENTERGUIFILESRC;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,GUI),0);
 	return t;
 }
 
-LinkTypeCls GuiFileSrc::GetLinkType() {
+LinkTypeCls CenterGuiFileSrc::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void GuiFileSrc::Visit(Vis& v) {
-	VIS_THIS(Atom);
+void CenterGuiFileSrc::Visit(Vis& v) {
+	VIS_THIS(CenterGuiFileSrcBase);
 }
 
-AtomTypeCls GuiFileSrc::GetType() const {
+AtomTypeCls CenterGuiFileSrc::GetType() const {
 	return GetAtomType();
 }
+#endif
 
 
 #if (defined flagGUI && defined flagHAL)

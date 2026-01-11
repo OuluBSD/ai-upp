@@ -184,7 +184,7 @@ bool HandleVideoBase::PostInitialize() {
 void HandleVideoBase::Stop() {
 	state = 0;
 	#if defined flagGUI
-	wins.Close();
+	wins->Close();
 	#endif
 	#if defined flagGUBO
 	surfs.Clear();
@@ -326,6 +326,8 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 					//Ctrl::PaintAll(); // -> public Ctrl::DoPaint();
 				}
 			}
+			#endif
+			#if defined flagGUBO
 			if (surfs) {
 				int scope_count = surfs->GetScopeCount();
 				ASSERT(scope_count);
@@ -415,9 +417,13 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				
 				pd.Realize(this, w.GetSize());
 				
+				#ifdef flagVIRTUALGUI
 				UPP::AtomVirtualGui* vgui = CastPtr<AtomVirtualGui>(VirtualGuiPtr);
 				ASSERT(VirtualGuiPtr && vgui);
 				vgui->SetTarget(pd);
+				#else
+				#error TODO
+				#endif
 				
 				Ctrl::EventLoopIteration(NULL);
 				

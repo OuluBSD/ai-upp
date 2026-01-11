@@ -16,10 +16,9 @@ void DefaultGuiAppComponent::Visit(Vis& v) {
 	/*if (test) vis % *test;*/
 	
 	//vis & wins;
-	//vis & cw;
-	
-	vis & trans;
-	vis & trans2;
+	v ("cw", cw)
+	  ("trans", trans)
+	  ("trans2", trans2);
 }
 
 void DefaultGuiAppComponent::Serialize(Stream& e) {

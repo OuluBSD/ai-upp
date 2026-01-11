@@ -10,7 +10,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $genericScript = Join-Path $scriptDir "build_upptst_eon_generic.ps1"
 
 $target = "Eon02"
-$flags = "AI,SCREEN,BUILTIN_PORTAUDIO,BUILTIN_PORTMIDI,FLUIDLITE"
+$flags = "AUDIO,MIDI,MEDIA,BUILTIN_PORTAUDIO,BUILTIN_PORTMIDI,FFMPEG,FLUIDLITE,SCREEN,AI"
 
 # Build the command with proper parameter passing
 $paramArgs = @{

@@ -21,7 +21,6 @@ struct DefaultGuiAppComponent :
 	DefaultGuiAppComponent(VfsValue& v);
 	void operator=(const DefaultGuiAppComponent& t) {Panic("Can't copy DefaultGuiAppComponent");}
 	
-	virtual void Serialize(Stream& e);
 	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	void Visit(Vis& v) override;

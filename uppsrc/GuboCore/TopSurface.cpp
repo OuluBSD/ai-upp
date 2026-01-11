@@ -34,7 +34,7 @@ void TopSurface::RunInMachine() {
 
 void TopSurface::FocusEvent() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
 	if (wins) {
 		Gu::SurfaceManager& mgr = wins->GetActiveScope();

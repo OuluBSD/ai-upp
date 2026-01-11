@@ -1,7 +1,10 @@
 description "\377B128,0,255";
 
+uses
+	Core/Cuboid;
+
 file
-	3D.h,
+	Cuboid.h,
 	Draw3D.h,
 	Draw3D.cpp;
 

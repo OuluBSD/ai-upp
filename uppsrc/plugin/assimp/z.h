@@ -3,11 +3,7 @@
 
 #include <Core/config.h>
 
-#ifdef LIBTOPSIDE
-	#include <plugin/z/zlib.h>
-#else
-	#include <plugin/z/lib/zlib.h>
-#endif
+#include <plugin/z/lib/zlib.h>
 
 #include <plugin/unzip/unzip.h>
 

@@ -162,7 +162,7 @@ ProgDraw::operator Image() const {
             case DRAW_SYSDRAW_IMAGE_OP:
                 if (!it->img.IsEmpty()) {
                     #ifdef flagGUI
-                    w.SysDrawImage(it->pt.x, it->pt.y, it->img, it->r, it->color);
+                    w.SysDrawImageOp(it->pt.x, it->pt.y, it->img, it->r, it->color);
                     #else
                     w.DrawImage(it->pt.x, it->pt.y, it->img, it->r, it->color);
                     #endif

@@ -16,7 +16,7 @@ library(WIN32 & MSC & OGL) glew32;
 library(WIN32) opengl32;
 
 file
-	CtrlLib.h,
+	Eon.h,
 	CtrlUtils.cpp,
 	Defs.h,
 	Compat.h,
@@ -26,6 +26,7 @@ file
 	Container.h,
 	TabMgrCtrl.h,
 	TabMgrCtrl.cpp,
+	CtrlEvent.h,
 	Images readonly separator,
 	Image.h,
 	Image.cpp,

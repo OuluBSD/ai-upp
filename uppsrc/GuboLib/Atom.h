@@ -25,8 +25,8 @@ struct AtomVirtualGui3D : VirtualGui3D {
 	
 	SystemDraw          sysdraw;
 	
-	Gu::SurfaceSystemRef	wins;
-	Gu::SurfaceManagerRef	mgr;
+	Gu::SurfaceSystemPtr	wins;
+	Gu::SurfaceManagerPtr	mgr;
 	
 	void SetTarget(Draw& d);
 	//void Attach(SDL_Window *win, SDL_GLContext glcontext);

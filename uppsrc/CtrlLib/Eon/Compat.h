@@ -1,5 +1,5 @@
-#ifndef _CtrlLib_Compat_h_
-#define _CtrlLib_Compat_h_
+#ifndef _CtrlLib_Eon_Compat_h_
+#define _CtrlLib_Eon_Compat_h_
 
 
 NAMESPACE_UPP
@@ -72,8 +72,6 @@ public:
 
 template <class T> using CG = CtrlGeom<T>;
 
-#endif
-#if 0
 class CtrlInterfaceGeom :
 	public CtrlGeomProxy,
 	public Absolute2DProxy {

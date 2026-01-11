@@ -1,10 +1,6 @@
-#ifndef _CtrlLib_Defs_h_
-#define _CtrlLib_Defs_h_
+#ifndef _CtrlLib_Eon_Defs_h_
+#define _CtrlLib_Eon_Defs_h_
 
-
-#ifndef flagGUI
-	#error <LocalCtrl/CtrlLib.h> should only be included, when GUI flag is set.
-#endif
 
 
 #if defined flagOGL
@@ -20,10 +16,6 @@
 	#endif
 #endif
 
-
-#include <Core2/Core.h>
-
-#include <CtrlLib/CtrlLib.h>
 
 
 #ifdef GUIPLATFORM_VIRTUALGUI_INCLUDE

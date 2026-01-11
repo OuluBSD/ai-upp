@@ -668,11 +668,7 @@ void IrVM::ExecuteEscape() {
 	SRVal& self			= *parent->call_self;
 	SRVal& r			=  parent->s->r_stack.Top();
 	
-	#if LIBTOPSIDE
-	var.PickValues(argvar);
-	#else
 	argvar = var.PickValues();
-	#endif
 	
 	for(int i = l.arg.GetCount(); i < arg.GetCount(); i++) {
 		Get(arg[i], argvar.Add());
@@ -720,11 +716,7 @@ void IrVM::FinishSubcall() {
 	Array<SRVal>& arg	= *parent->call_arg;
 	SRVal& r			=  parent->s->r_stack.Top();
 	
-	#if LIBTOPSIDE
-	var.PickValues(argvar);
-	#else
 	argvar = var.PickValues();
-	#endif
 	
 	for(int i = 0; i < l.inout.GetCount(); i++)
 		if(l.inout[i] && i < arg.GetCount() && arg[i].lval)
@@ -1829,11 +1821,7 @@ EscValue IrVM::ExecuteLambda(const String& id, EscValue& lambda, SRVal& self, Ar
 	}
 	Array<EscValue> argvar;
 	if(l.escape) {
-		#if LIBTOPSIDE
-		sub.Var().PickValues(argvar);
-		#else
 		argvar = sub.Var().PickValues();
-		#endif
 		
 		for(int i = l.arg.GetCount(); i < arg.GetCount(); i++) {
 			Get(arg[i], argvar.Add());
@@ -1861,11 +1849,7 @@ EscValue IrVM::ExecuteLambda(const String& id, EscValue& lambda, SRVal& self, Ar
 		sub.Run();
 		retval = sub.return_value;
 		
-		#if LIBTOPSIDE
-		sub.Var().PickValues(argvar);
-		#else
 		argvar = sub.Var().PickValues();
-		#endif
 	}
 	for(int i = 0; i < l.inout.GetCount(); i++)
 		if(l.inout[i] && i < arg.GetCount() && arg[i].lval)

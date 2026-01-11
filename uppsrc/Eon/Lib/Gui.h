@@ -1,12 +1,7 @@
-#ifndef _EonLib_Gui_h_
-#define _EonLib_Gui_h_
-
+#ifndef _Eon_Lib_Gui_h_
+#define _Eon_Lib_Gui_h_
 
 #ifdef flagGUI
-
-#include <Geometry/GeomEvent.h>
-#include <CtrlCore/CtrlCore.h>
-#include <GuboCore/CtrlEvent.h>
 
 struct DefaultGuiAppComponent :
 	public Component,
@@ -23,7 +18,7 @@ struct DefaultGuiAppComponent :
 	Transform2DPtr trans2;
 	
 	
-	DefaultGuiAppComponent();
+	DefaultGuiAppComponent(VfsValue& v);
 	void operator=(const DefaultGuiAppComponent& t) {Panic("Can't copy DefaultGuiAppComponent");}
 	
 	virtual void Serialize(Stream& e);

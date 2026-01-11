@@ -1,10 +1,13 @@
 #include "Lib.h"
 
 
-#ifdef flagGUI
-#include <VirtualGui/Local.h>
-#include <VirtualGui/Atom/Atom.h>
-#include <GuboCore/GuboCore.h>
+#if defined flagGUI && defined flagVIRTUALGUI
+ #include <VirtualGui/Local.h>
+ #include <VirtualGui/Atom/Atom.h>
+#endif
+
+#ifdef flagGUBO
+ #include <GuboCore/GuboCore.h>
 #endif
 
 NAMESPACE_UPP
@@ -149,8 +152,9 @@ bool HandleVideoBase::Initialize(const WorldState& ws) {
 	
 	#if defined flagGUI
 	wins = GetEngine().TryGet<WindowSystem>();
+	#endif
+	#if defined flagGUBO
 	surfs = GetEngine().TryGet<Gu::SurfaceSystem>();
-	#else
 	#endif
 	
 	return true;
@@ -180,7 +184,9 @@ bool HandleVideoBase::PostInitialize() {
 void HandleVideoBase::Stop() {
 	state = 0;
 	#if defined flagGUI
-	wins.Clear();
+	wins.Close();
+	#endif
+	#if defined flagGUBO
 	surfs.Clear();
 	#endif
 	if (IsActive())
@@ -202,6 +208,8 @@ void HandleVideoBase::Visit(Vis& v) {
 	
 	#if defined flagGUI
 	v & wins;
+	#endif
+	#if defined flagGUBO
 	v & surfs;
 	#endif
 }
@@ -211,10 +219,13 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	
 	bool render_win = false;
 	
+	if (0) {}
 	#if defined flagGUI
-	if (wins && screen_id < wins->GetScreenCount()) {
+	else if (wins && screen_id < wins->GetScreenCount()) {
 		render_win = true;
 	}
+	#endif
+	#if defined flagGUBO
 	else if (surfs && screen_id < surfs->GetScreenCount()) {
 		render_win = true;
 	}

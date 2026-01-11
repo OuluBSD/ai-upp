@@ -563,7 +563,7 @@ Rect Surface::GetWorkArea() const {
 
 bool Surface::ReleaseSurfaceCapture() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
 	if (!wins)
 		return false;
@@ -574,7 +574,7 @@ bool Surface::ReleaseSurfaceCapture() {
 
 Surface* Surface::GetCaptureSurface() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
 	if (!wins)
 		return 0;

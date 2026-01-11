@@ -1,7 +1,6 @@
-#ifndef _CtrlLib_TabMgrCtrl_h_
-#define _CtrlLib_TabMgrCtrl_h_
+#ifndef _CtrlLib_Eon_TabMgrCtrl_h_
+#define _CtrlLib_Eon_TabMgrCtrl_h_
 
-NAMESPACE_UPP
 
 
 class TabMgrCtrl : public ParentCtrl {
@@ -24,6 +23,5 @@ public:
 };
 
 
-END_UPP_NAMESPACE
 
 #endif

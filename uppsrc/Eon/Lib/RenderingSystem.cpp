@@ -13,7 +13,7 @@ NAMESPACE_UPP
 
 
 #ifdef flagSDL2
-void RenderingSystem::Attach(String key, Parallel::BufferT<SdlSwGfx>* b) {
+void RenderingSystem::Attach(String key, BufferT<SdlSwGfx>* b) {
 	if (key != "ecs") {
 		RTLOG("RenderingSystem::Attach: warning: skipping unrelated key '" << key << "'");
 		return;
@@ -23,7 +23,7 @@ void RenderingSystem::Attach(String key, Parallel::BufferT<SdlSwGfx>* b) {
 	
 }
 #ifdef flagOGL
-void RenderingSystem::Attach(String key, Parallel::BufferT<SdlOglGfx>* b) {
+void RenderingSystem::Attach(String key, BufferT<SdlOglGfx>* b) {
 	if (key != "ecs") {
 		RTLOG("RenderingSystem::Attach: warning: skipping unrelated key '" << key << "'");
 		return;

@@ -25,7 +25,7 @@ bool ScopeT<Dim>::Attach()
 template <>
 bool ScopeT<Ctx3D>::Attach()
 {
-	Parallel::RendererContent::AddContent(this);
+	RendererContent::AddContent(this);
 	return true;
 }
 
@@ -679,13 +679,13 @@ void ScopeT<Dim>::SetWithMouse(Container* c) {
 
 
 template <class Dim>
-bool ScopeT<Dim>::Load(Parallel::GfxDataState& state) {
+bool ScopeT<Dim>::Load(GfxDataState& state) {
 	LOG("ScopeT<Dim>::Load: error: unimplemented");
 	return false;
 }
 
 template <>
-bool ScopeT<Ctx3D>::Load(Parallel::GfxDataState& state) {
+bool ScopeT<Ctx3D>::Load(GfxDataState& state) {
 	
 	auto& pp = pd.GetPainter();
 	

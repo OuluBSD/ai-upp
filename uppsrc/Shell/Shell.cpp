@@ -128,28 +128,17 @@ void DesktopMain(Upp::Engine& mach, bool _3d) {
 }
 #endif
 
-#ifdef flagGUI
-
-NAMESPACE_UPP
-INITBLOCK {
-	Engine::WhenInitialize << callback(DefaultSerialInitializer);
-	Engine::WhenPreFirstUpdate << callback(DefaultStartup);
-	//Machine::WhenPreFirstUpdate << callback(BindEcsToSerial);
-}
-END_UPP_NAMESPACE
-
-GUI_APP_MAIN {
-	Engine& mach = MetaEnv().root.Add<Engine>("mach");
-	mach.Run(true, "Shell");
-}
-
-#else
-
 
 #ifdef flagMAIN
+#ifdef flagGUI
+GUI_APP_MAIN {
+	ShellMain(false);
+}
+#else
 CONSOLE_APP_MAIN {
 	ShellMain(false);
 }
+#endif
 #endif
 
 Upp::Engine& ShellMainEngine()
@@ -183,5 +172,3 @@ void ShellMain(bool skip_eon)
 }
 
 
-
-#endif

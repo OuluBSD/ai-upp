@@ -33,12 +33,6 @@ INITBLOCK {
 	VfsValueExtFactory::Register<ShootingComponent>("ShootingComponent", VFSEXT_COMPONENT, "shoot", "Ecs|Tool");
 	VfsValueExtFactory::Register<ThrowingComponent>("ThrowingComponent", VFSEXT_COMPONENT, "throw", "Ecs|Tool");
 	
-	#ifdef flagGUI
-	VfsValueExtFactory::Register<GuiTesterApp>("GuiTesterApp", VFSEXT_COMPONENT, "guitester", "Ecs|Gui");
-	VfsValueExtFactory::Register<DefaultGuiAppComponent>("DefaultGuiAppComponent", VFSEXT_COMPONENT, "gui.app", "Ecs|Gui");
-	#endif
-	
-	
 }
 
 END_UPP_NAMESPACE

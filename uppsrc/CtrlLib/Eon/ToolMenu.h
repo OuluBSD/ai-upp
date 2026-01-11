@@ -1,7 +1,6 @@
-#ifndef _CtrlLib_ToolMenu_h_
-#define _CtrlLib_ToolMenu_h_
+#ifndef _CtrlLib_Eon_ToolMenu_h_
+#define _CtrlLib_Eon_ToolMenu_h_
 
-NAMESPACE_UPP
 
 class ToolBackground : public Ctrl {
 	bool horz;
@@ -64,6 +63,5 @@ public:
 	
 };
 
-END_UPP_NAMESPACE
 
 #endif

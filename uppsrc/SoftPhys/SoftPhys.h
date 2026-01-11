@@ -11,7 +11,7 @@
 #define SOFTPHYS_RENDER 0
 
 #define SOFTPHYS_RENDER_COMMON \
-	void Refresh(Parallel::GfxDataState& s);
+	void Refresh(GfxDataState& s);
 
 #else
 #define SOFTPHYS_RENDER_COMMON

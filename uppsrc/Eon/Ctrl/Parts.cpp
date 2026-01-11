@@ -1,4 +1,4 @@
-#include "EonCtrl.h"
+#include "Ctrl.h"
 
 NAMESPACE_UPP
 
@@ -316,7 +316,7 @@ void EntityBrowserCtrl::OnPoolCursorChanged() {
 
 
 
-
+#if 0
 InterfaceListCtrl::InterfaceListCtrl() {
 	ParentCtrl::Add(list.SizePos());
 	
@@ -400,5 +400,6 @@ void InterfaceListCtrl::GetCursor(ComponentPtr& c,  ExchangeProviderBasePtr& i) 
 	c = comp;
 	i = iface;
 }
+#endif
 
 END_UPP_NAMESPACE

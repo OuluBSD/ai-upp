@@ -1,16 +1,16 @@
-#ifndef _CtrlLib_CtrlLib_h_
-#define _CtrlLib_CtrlLib_h_
+#ifndef _CtrlLib_Eon_Eon_h_
+#define _CtrlLib_Eon_Eon_h_
+
+#include <CtrlLib/CtrlLib.h>
+#include <Draw/Draw.h>
 
 #include "Defs.h"
-
-#ifndef flagGUI
-	#error "LocalCtrl library requires GUI flag to be set"
-#endif
+#include "Compat.h"
 
 NAMESPACE_UPP
 
-#include "Compat.h"
-#include "Util.h"
+#include <Geometry/GeomEvent.h>
+
 #include "Image.h"
 #include "BlueBar.h"
 #include "GrayBar.h"
@@ -18,6 +18,7 @@ NAMESPACE_UPP
 #include "PathCtrl.h"
 #include "Container.h"
 #include "TabMgrCtrl.h"
+#include "CtrlEvent.h"
 
 void SetFileDialogDirectory(String path);
 

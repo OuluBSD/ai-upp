@@ -1,6 +1,6 @@
 #include "Screen.h"
 
-#if defined flagWIN32 && !defined flagUWP
+#if defined flagWIN32 && !defined flagUWP && defined flagSCREEN
 
 
 #include <windows.h>
@@ -35,6 +35,7 @@ struct ScrWinSinkBase {
 	int bits_per_pixel = 0;
 	Size data_sz;
 };
+
 
 struct ScrWin::NativeContext {
     bool running = false;

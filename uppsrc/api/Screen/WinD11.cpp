@@ -1,6 +1,6 @@
 #include "Screen.h"
 
-#if defined flagWIN32 && defined flagDX11
+#if defined flagWIN32 && defined flagDX11 && defined flagSCREEN
 
 
 #include <api/Graphics/dxstdafx.h>

@@ -1,6 +1,7 @@
 #ifndef _Physics_Physics_h_
 #define _Physics_Physics_h_
 
+#ifdef flagPHYSICS
 
 #ifdef flagODE
 	#include <ode/ode.h>
@@ -23,4 +24,5 @@
 #include "OdePrefab.h"
 
 
+#endif
 #endif

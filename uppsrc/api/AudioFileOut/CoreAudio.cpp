@@ -1,5 +1,9 @@
+
 #include "AudioFileOut.h"
 #include <SoftAudio/SoftAudio.h>
+
+
+#if defined flagAUDIO
 
 
 NAMESPACE_UPP
@@ -100,3 +104,6 @@ bool AFOCoreAudio::Sink_IsReady(NativeSink& dev, AtomBase& a, PacketIO& io) {
 
 
 END_UPP_NAMESPACE
+
+
+#endif

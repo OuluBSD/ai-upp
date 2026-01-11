@@ -6,7 +6,9 @@
 
 #include <Eon/Eon.h>
 #include <MidiFile/MidiFile.h>
+#if defined flagBUILTIN_PORTMIDI
 #include <plugin/portmidi/portmidi.h>
+#endif
 
 NAMESPACE_UPP
 

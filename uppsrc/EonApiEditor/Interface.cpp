@@ -226,7 +226,15 @@ void InterfaceBuilder::Generate(bool write_actually) {
 					int j = title.ReverseFind("/");
 					if (j >= 0)
 						title = title.Mid(j+1);
+
+					// Add flag guard if conditional dependency
+					if (dep.conditional.GetCount())
+						s << "#if " << GetMacroConditionals(dep.conditional) << "\n";
+
 					s << "#include <" << k << "/" << title << ".h>\n";
+
+					if (dep.conditional.GetCount())
+						s << "#endif\n";
 				}
 			}
 			
@@ -749,6 +757,7 @@ String InterfaceBuilder::Header::GetMacro() const {
 String InterfaceBuilder::GetMacroConditionals(String cond_str) {
 	String s;
 	ASSERT(!cond_str.IsEmpty());
+	cond_str.Replace(" ", "");
 	Vector<String> ors = Split(cond_str, "|");
 	int i = 0;
 	int parts = 0;
@@ -863,6 +872,8 @@ String InterfaceBuilder::GetBaseConds(String s) const {
 				if (base == s) {
 					String vcond = p.vendors[i];
 					String icond = p.ifaces[j];
+					vcond.Replace(" ", "");
+					icond.Replace(" ", "");
 					Index<String> ors;
 					if (vcond.GetCount() && icond.GetCount()) {
 						for (String a : Split(vcond, "|"))

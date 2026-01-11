@@ -1,11 +1,18 @@
 description "\377B0,128,0";
 
-	uses api/Graphics;
+acceptflags
+	SCREEN;
 
-	library(POSIX & !EMSCRIPTEN) "X11 Xrandr Xxf86vm";
-	library(POSIX & OGL & !EMSCRIPTEN) "GLX GL GLU GLEW glut";
-	library(WIN32 & DX11) "D3D11 D3DCompiler dxgi";
-	library(WIN32 & OGL) "opengl32 glu32";
+uses
+	api/Graphics;
+
+library(POSIX & !EMSCRIPTEN) "X11 Xrandr Xxf86vm";
+
+library(POSIX & OGL & !EMSCRIPTEN) "GLX GL GLU GLEW glut";
+
+library(WIN32 & DX11) "D3D11 D3DCompiler dxgi";
+
+library(WIN32 & OGL) "opengl32 glu32";
 
 file
 	Screen.h,
@@ -18,4 +25,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

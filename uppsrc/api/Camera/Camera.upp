@@ -1,7 +1,11 @@
 description "\377B0,128,0";
 
-	uses api/Media;
+acceptflags
+	CAMERA,
+	OPENCV;
 
+uses
+	api/Media;
 
 file
 	Camera.h,
@@ -9,4 +13,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

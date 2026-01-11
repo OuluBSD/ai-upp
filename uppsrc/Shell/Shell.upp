@@ -16,11 +16,15 @@ acceptflags
 uses
 	AI/Core,
 	Eon/Draw,
-	Eon/Lib,
-	api/Volumetric,
-	api/Camera,
-	api/Media,
-	api/AudioFileOut;
+	Eon/Lib;
+
+uses(VOLUMETRIC) api/Volumetric;
+
+uses(AUDIO) api/AudioFileOut;
+
+uses(MEDIA) api/Media;
+
+uses(CAMERA) api/Camera;
 
 uses(MIDI) api/MidiFile;
 

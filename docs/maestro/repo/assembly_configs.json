@@ -1,0 +1,18 @@
+{
+  "configurations": {
+    "minimal": {
+      "roots": [
+        "uppsrc"
+      ],
+      "created_at": "0.0"
+    },
+    "default": {
+      "roots": [
+        "uppsrc",
+        "upptst"
+      ],
+      "created_at": "0.0"
+    }
+  },
+  "selected": "default"
+}

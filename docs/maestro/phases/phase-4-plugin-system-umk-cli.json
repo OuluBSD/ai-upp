@@ -1,0 +1,16 @@
+{
+  "phase_id": "phase-4-plugin-system-umk-cli",
+  "name": "Phase 4: Plugin System (umk CLI)",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "gentoo-style-use-flags-system",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-10T04:05:34.676838",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

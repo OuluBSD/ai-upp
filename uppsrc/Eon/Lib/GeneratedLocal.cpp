@@ -1978,7 +1978,7 @@ LinkTypeCls UppGuiSinkDevice::GetLinkType() {
 }
 
 void UppGuiSinkDevice::Visit(Vis& v) {
-	VIS_THIS(UppGuiSinkBase);
+	VIS_THIS(GuiSinkBase);
 }
 
 AtomTypeCls UppGuiSinkDevice::GetType() const {

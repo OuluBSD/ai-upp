@@ -127,3 +127,39 @@ static bool EventsBase_AttachContext(NativeEventsBase&, AtomBase& a, AtomBase& o
 static void EventsBase_DetachContext(NativeEventsBase&, AtomBase& a, AtomBase& other);
 #endif
 
+#if defined flagHAL
+static bool GuiSinkBase_Create(NativeGuiSinkBase*& dev);
+static void GuiSinkBase_Destroy(NativeGuiSinkBase*& dev);
+static bool GuiSinkBase_Initialize(NativeGuiSinkBase&, AtomBase&, const WorldState&);
+static bool GuiSinkBase_PostInitialize(NativeGuiSinkBase&, AtomBase&);
+static bool GuiSinkBase_Start(NativeGuiSinkBase&, AtomBase&);
+static void GuiSinkBase_Stop(NativeGuiSinkBase&, AtomBase&);
+static void GuiSinkBase_Uninitialize(NativeGuiSinkBase&, AtomBase&);
+static bool GuiSinkBase_Send(NativeGuiSinkBase&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
+static void GuiSinkBase_Visit(NativeGuiSinkBase&, AtomBase&, Visitor& vis);
+static bool GuiSinkBase_Recv(NativeGuiSinkBase&, AtomBase&, int, const Packet&);
+static void GuiSinkBase_Finalize(NativeGuiSinkBase&, AtomBase&, RealtimeSourceConfig&);
+static void GuiSinkBase_Update(NativeGuiSinkBase&, AtomBase&, double dt);
+static bool GuiSinkBase_IsReady(NativeGuiSinkBase&, AtomBase&, PacketIO& io);
+static bool GuiSinkBase_AttachContext(NativeGuiSinkBase&, AtomBase& a, AtomBase& other);
+static void GuiSinkBase_DetachContext(NativeGuiSinkBase&, AtomBase& a, AtomBase& other);
+#endif
+
+#if defined flagHAL
+static bool GuiFileSrc_Create(NativeGuiFileSrc*& dev);
+static void GuiFileSrc_Destroy(NativeGuiFileSrc*& dev);
+static bool GuiFileSrc_Initialize(NativeGuiFileSrc&, AtomBase&, const WorldState&);
+static bool GuiFileSrc_PostInitialize(NativeGuiFileSrc&, AtomBase&);
+static bool GuiFileSrc_Start(NativeGuiFileSrc&, AtomBase&);
+static void GuiFileSrc_Stop(NativeGuiFileSrc&, AtomBase&);
+static void GuiFileSrc_Uninitialize(NativeGuiFileSrc&, AtomBase&);
+static bool GuiFileSrc_Send(NativeGuiFileSrc&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
+static void GuiFileSrc_Visit(NativeGuiFileSrc&, AtomBase&, Visitor& vis);
+static bool GuiFileSrc_Recv(NativeGuiFileSrc&, AtomBase&, int, const Packet&);
+static void GuiFileSrc_Finalize(NativeGuiFileSrc&, AtomBase&, RealtimeSourceConfig&);
+static void GuiFileSrc_Update(NativeGuiFileSrc&, AtomBase&, double dt);
+static bool GuiFileSrc_IsReady(NativeGuiFileSrc&, AtomBase&, PacketIO& io);
+static bool GuiFileSrc_AttachContext(NativeGuiFileSrc&, AtomBase& a, AtomBase& other);
+static void GuiFileSrc_DetachContext(NativeGuiFileSrc&, AtomBase& a, AtomBase& other);
+#endif
+

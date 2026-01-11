@@ -17,6 +17,8 @@ NAMESPACE_UPP
 	HAL_CLS(D12VideoSinkDevice, x) \
 	HAL_CLS(ContextBase, x) \
 	HAL_CLS(EventsBase, x) \
+	HAL_CLS(GuiSinkBase, x) \
+	HAL_CLS(GuiFileSrc, x) \
 
 #define HAL_VNDR_LIST \
 	HAL_VNDR(HalUpp) \
@@ -52,6 +54,12 @@ struct HalUpp {
 	#if defined flagHAL
 	struct NativeEventsBase;
 	#endif
+	#if defined flagHAL
+	struct NativeGuiSinkBase;
+	#endif
+	#if defined flagHAL
+	struct NativeGuiFileSrc;
+	#endif
 	
 	struct Thread {
 		
@@ -86,6 +94,12 @@ struct HalSdl {
 	#if defined flagHAL
 	struct NativeEventsBase;
 	#endif
+	#if defined flagHAL
+	struct NativeGuiSinkBase;
+	#endif
+	#if defined flagHAL
+	struct NativeGuiFileSrc;
+	#endif
 	
 	struct Thread {
 		
@@ -119,6 +133,12 @@ struct HalHolo {
 	#endif
 	#if defined flagHAL
 	struct NativeEventsBase;
+	#endif
+	#if defined flagHAL
+	struct NativeGuiSinkBase;
+	#endif
+	#if defined flagHAL
+	struct NativeGuiFileSrc;
 	#endif
 	
 	struct Thread {
@@ -192,6 +212,24 @@ struct HalEventsBase : public Atom {
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HalEventsBase() {}
+};
+#endif
+
+#if defined flagHAL
+struct HalGuiSinkBase : public Atom {
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	
+	virtual ~HalGuiSinkBase() {}
+};
+#endif
+
+#if defined flagHAL
+struct HalGuiFileSrc : public Atom {
+	using Atom::Atom;
+	void Visit(Vis& v) override {VIS_THIS(Atom);}
+	
+	virtual ~HalGuiFileSrc() {}
 };
 #endif
 
@@ -595,6 +633,120 @@ template <class Hal> struct HalEventsBaseT : HalEventsBase {
 	}
 };
 #endif
+#if defined flagHAL
+template <class Hal> struct HalGuiSinkBaseT : HalGuiSinkBase {
+	using CLASSNAME = HalGuiSinkBaseT<Hal>;
+	using HalGuiSinkBase::HalGuiSinkBase;
+	void Visit(Vis& v) override {
+		if (dev) Hal::GuiSinkBase_Visit(*dev, *this, v);
+		VIS_THIS(HalGuiSinkBase);
+	}
+	typename Hal::NativeGuiSinkBase* dev = 0;
+	bool Initialize(const WorldState& ws) override {
+		if (!Hal::GuiSinkBase_Create(dev))
+			return false;
+		if (!Hal::GuiSinkBase_Initialize(*dev, *this, ws))
+			return false;
+		return true;
+	}
+	bool PostInitialize() override {
+		if (!Hal::GuiSinkBase_PostInitialize(*dev, *this))
+			return false;
+		return true;
+	}
+	bool Start() override {
+		return Hal::GuiSinkBase_Start(*dev, *this);
+	}
+	void Stop() override {
+		Hal::GuiSinkBase_Stop(*dev, *this);
+	}
+	void Uninitialize() override {
+		ASSERT(this->GetDependencyCount() == 0);
+		Hal::GuiSinkBase_Uninitialize(*dev, *this);
+		Hal::GuiSinkBase_Destroy(dev);
+	}
+	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
+		if (!Hal::GuiSinkBase_Send(*dev, *this, cfg, out, src_ch))
+			return false;
+		return true;
+	}
+	bool Recv(int sink_ch, const Packet& in) override {
+		return Hal::GuiSinkBase_Recv(*dev, *this, sink_ch, in);
+	}
+	void Finalize(RealtimeSourceConfig& cfg) override {
+		return Hal::GuiSinkBase_Finalize(*dev, *this, cfg);
+	}
+	void Update(double dt) override {
+		return Hal::GuiSinkBase_Update(*dev, *this, dt);
+	}
+	bool IsReady(PacketIO& io) override {
+		return Hal::GuiSinkBase_IsReady(*dev, *this, io);
+	}
+	bool AttachContext(AtomBase& a) override {
+		return Hal::GuiSinkBase_AttachContext(*dev, *this, a);
+	}
+	void DetachContext(AtomBase& a) override {
+		Hal::GuiSinkBase_DetachContext(*dev, *this, a);
+	}
+};
+#endif
+#if defined flagHAL
+template <class Hal> struct HalGuiFileSrcT : HalGuiFileSrc {
+	using CLASSNAME = HalGuiFileSrcT<Hal>;
+	using HalGuiFileSrc::HalGuiFileSrc;
+	void Visit(Vis& v) override {
+		if (dev) Hal::GuiFileSrc_Visit(*dev, *this, v);
+		VIS_THIS(HalGuiFileSrc);
+	}
+	typename Hal::NativeGuiFileSrc* dev = 0;
+	bool Initialize(const WorldState& ws) override {
+		if (!Hal::GuiFileSrc_Create(dev))
+			return false;
+		if (!Hal::GuiFileSrc_Initialize(*dev, *this, ws))
+			return false;
+		return true;
+	}
+	bool PostInitialize() override {
+		if (!Hal::GuiFileSrc_PostInitialize(*dev, *this))
+			return false;
+		return true;
+	}
+	bool Start() override {
+		return Hal::GuiFileSrc_Start(*dev, *this);
+	}
+	void Stop() override {
+		Hal::GuiFileSrc_Stop(*dev, *this);
+	}
+	void Uninitialize() override {
+		ASSERT(this->GetDependencyCount() == 0);
+		Hal::GuiFileSrc_Uninitialize(*dev, *this);
+		Hal::GuiFileSrc_Destroy(dev);
+	}
+	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
+		if (!Hal::GuiFileSrc_Send(*dev, *this, cfg, out, src_ch))
+			return false;
+		return true;
+	}
+	bool Recv(int sink_ch, const Packet& in) override {
+		return Hal::GuiFileSrc_Recv(*dev, *this, sink_ch, in);
+	}
+	void Finalize(RealtimeSourceConfig& cfg) override {
+		return Hal::GuiFileSrc_Finalize(*dev, *this, cfg);
+	}
+	void Update(double dt) override {
+		return Hal::GuiFileSrc_Update(*dev, *this, dt);
+	}
+	bool IsReady(PacketIO& io) override {
+		return Hal::GuiFileSrc_IsReady(*dev, *this, io);
+	}
+	bool AttachContext(AtomBase& a) override {
+		return Hal::GuiFileSrc_AttachContext(*dev, *this, a);
+	}
+	void DetachContext(AtomBase& a) override {
+		Hal::GuiFileSrc_DetachContext(*dev, *this, a);
+	}
+};
+#endif
 
 #if defined flagGUI
 #if (defined flagHAL && defined flagAUDIO)
@@ -617,6 +769,12 @@ using UppContextBase = HalContextBaseT<HalUpp>;
 #endif
 #if defined flagHAL
 using UppEventsBase = HalEventsBaseT<HalUpp>;
+#endif
+#if defined flagHAL
+using UppGuiSinkBase = HalGuiSinkBaseT<HalUpp>;
+#endif
+#if defined flagHAL
+using UppGuiFileSrc = HalGuiFileSrcT<HalUpp>;
 #endif
 #endif
 #if defined flagSDL2
@@ -641,6 +799,12 @@ using SdlContextBase = HalContextBaseT<HalSdl>;
 #if defined flagHAL
 using SdlEventsBase = HalEventsBaseT<HalSdl>;
 #endif
+#if defined flagHAL
+using SdlGuiSinkBase = HalGuiSinkBaseT<HalSdl>;
+#endif
+#if defined flagHAL
+using SdlGuiFileSrc = HalGuiFileSrcT<HalSdl>;
+#endif
 #endif
 #if (defined flagUWP && defined flagDX12)
 #if (defined flagHAL && defined flagAUDIO)
@@ -663,6 +827,12 @@ using HoloContextBase = HalContextBaseT<HalHolo>;
 #endif
 #if defined flagHAL
 using HoloEventsBase = HalEventsBaseT<HalHolo>;
+#endif
+#if defined flagHAL
+using HoloGuiSinkBase = HalGuiSinkBaseT<HalHolo>;
+#endif
+#if defined flagHAL
+using HoloGuiFileSrc = HalGuiFileSrcT<HalHolo>;
 #endif
 #endif
 

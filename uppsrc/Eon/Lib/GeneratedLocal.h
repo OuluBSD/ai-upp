@@ -1013,10 +1013,10 @@ public:
 };
 
 #if (defined flagHAL && defined flagGUI)
-class UppGuiSinkDevice : public UppGuiSinkBase {
+class UppGuiSinkDevice : public GuiSinkBase {
 
 public:
-	ATOM_CTOR_(UppGuiSinkDevice, UppGuiSinkBase)
+	ATOM_CTOR_(UppGuiSinkDevice, GuiSinkBase)
 	//ATOMTYPE(UppGuiSinkDevice)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();

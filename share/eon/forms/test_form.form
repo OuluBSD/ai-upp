@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE form>
+<form>
+	<layouts>
+		<item>
+			<content>
+				<item x="20" y="20" cx="360" cy="80" align="0" valign="0">
+					<name>label1</name>
+					<properties>
+						<property name="Variable" value="label1"/>
+						<property name="Type" value="Label"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Font.Height" value="50"/>
+						<property name="Label" value="GUI Event System"/>
+						<property name="Text.Align" value="Center"/>
+					</properties>
+				</item>
+				<item x="20" y="110" cx="360" cy="30" align="0" valign="0">
+					<name>label2</name>
+					<properties>
+						<property name="Variable" value="label2"/>
+						<property name="Type" value="Label"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Font.Height" value="12"/>
+						<property name="Label" value="Form loaded from .eon test via GUI packets"/>
+						<property name="Text.Align" value="Center"/>
+					</properties>
+				</item>
+				<item x="150" y="160" cx="100" cy="30" align="0" valign="0">
+					<name>btn1</name>
+					<properties>
+						<property name="Variable" value="btn1"/>
+						<property name="Type" value="Button"/>
+						<property name="Label" value="Test Button"/>
+					</properties>
+				</item>
+			</content>
+			<name></name>
+			<properties>
+				<property name="Form.Width" value="400"/>
+				<property name="Form.Height" value="220"/>
+				<property name="Form.Name" value="Default"/>
+				<property name="Form.Title" value="Eon GUI Test"/>
+				<property name="Form.Sizeable" value="true"/>
+				<property name="Form.MaximizeBox" value="true"/>
+				<property name="Form.MinimizeBox" value="true"/>
+			</properties>
+		</item>
+	</layouts>
+</form>

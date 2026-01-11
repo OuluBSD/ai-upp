@@ -946,6 +946,10 @@ String FindShareDir() {
 	if (DirectoryExists(home_share))
 		return home_share;
 	
+	String home_upp_share = GetHomeDirFile("ai-upp" DIR_SEPS "share");
+	if (DirectoryExists(home_upp_share))
+		return home_upp_share;
+	
 	#if defined flagUWP && defined flagRELPKG
 	String home_upphub_share = "ms-appx://share";
 	#elif defined flagUWP && !defined flagRELPKG

@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-
+#if defined flagVOLUMETRIC
 struct VolRawByte::NativeStaticSource {
     Vector<byte> values;
     ValueFormat fmt;
@@ -177,7 +177,7 @@ bool VolRawByte::StaticSource_IsReady(NativeStaticSource& dev, AtomBase&, Packet
 	return io.full_src_mask == 0 && !dev.values.IsEmpty();
 }
 
-
+#endif
 
 
 END_UPP_NAMESPACE

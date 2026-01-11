@@ -1,27 +1,36 @@
 description "Topside main application\377B";
 
+acceptflags
+	MIDI,
+	PHYSICS,
+	AUDIO,
+	VR,
+	GUBO,
+	DX12,
+	DX11,
+	DX10,
+	DX9,
+	SCREEN,
+	HAL;
+
 uses
 	AI/Core,
 	Eon/Draw,
-	Eon/Lib;
+	Eon/Lib,
+	api/Volumetric,
+	api/Camera,
+	api/Media,
+	api/AudioFileOut;
 
-uses(VOLUMETRIC) api/Volumetric;
-
-uses(CAMERA) api/Camera;
-
-uses(PHYSICS) api/Physics;
-
-uses(AUDIO) SoftAudio;
-
-uses(PHYSICS) SoftPhys;
-
-uses(MEDIA) api/Media;
-
-uses(AUDIO) api/AudioFileOut;
+uses(MIDI) api/MidiFile;
 
 uses(MIDI) api/MidiHw;
 
-uses(MIDI) api/MidiFile;
+uses(PHYSICS) api/Physics;
+
+uses(PHYSICS) SoftPhys;
+
+uses(AUDIO) SoftAudio;
 
 uses(LINUX & VR) SoftVR;
 

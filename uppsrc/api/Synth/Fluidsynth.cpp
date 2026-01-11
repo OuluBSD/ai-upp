@@ -16,7 +16,7 @@
 	#include <fluidsynth.h>
 #endif
 
-#if defined flagFLUIDSYNTH || defined flagFLUIDLITE
+#if (defined flagAUDIO && defined flagMIDI) && (defined flagFLUIDSYNTH || defined flagFLUIDLITE)
 
 
 #ifndef HAVE_PACKETTIMING
@@ -60,7 +60,6 @@ struct SynFluidsynth::NativeInstrument {
     #endif
     
 };
-
 
 
 void SynFluidsynth_ConfigureTrack(SynFluidsynth::NativeInstrument& dev, const MidiIO::File& file, int track_i);

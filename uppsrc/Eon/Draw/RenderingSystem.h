@@ -12,7 +12,7 @@ class RenderingSystem :
 protected:
 	friend class VirtualGui;
 	
-	#ifdef flagSDL2
+	#if defined flagSDL2 && defined flagHAL
 	BufferT<SdlSwGfx>* sdl_sw_buf = 0;
 	#ifdef flagOGL
 	BufferT<SdlOglGfx>* sdl_ogl_buf = 0;

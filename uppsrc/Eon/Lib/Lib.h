@@ -4,47 +4,50 @@
 #include <Eon/Draw/Draw.h>
 
 #ifdef flagMIDI
-	#include <api/MidiFile/MidiFile.h>
-	#include <api/MidiHw/MidiHw.h>
+ #include <api/MidiFile/MidiFile.h>
+ #include <api/MidiHw/MidiHw.h>
 #endif
 
-#ifdef flagAUDIO
-	#include <api/Synth/Synth.h>
-	#include <api/Effect/Effect.h>
-	#include <api/Audio/Audio.h>
+#if defined flagAUDIO && defined flagMIDI
+ #include <api/Synth/Synth.h>
 #endif
 
-#include <api/Hal/Hal.h>
+#if defined flagAUDIO
+ #include <api/Effect/Effect.h>
+ #include <api/Audio/Audio.h>
+ #include <api/AudioFileOut/AudioFileOut.h>
+#endif
 
-#ifdef flagPHYSICS
-	#include <api/Physics/Physics.h>
+#ifdef flagHAL
+ #include <api/Hal/Hal.h>
+#endif
+
+#if defined flagPHYSICS
+ #include <api/Physics/Physics.h>
+#endif
+
+#include <api/Graphics/Graphics.h>
+
+#ifdef flagVR
+ #include <api/Holograph/Holograph.h>
 #endif
 
 #ifdef flagSCREEN
-	#include <api/Graphics/Graphics.h>
+ #include <api/Screen/Screen.h>
 #endif
-
-#ifdef flagVR
-	#include <api/Holograph/Holograph.h>
-#endif
-
-#include <api/Screen/Screen.h>
 
 #ifdef flagMEDIA
-	#include <api/Media/Media.h>
+ #include <api/Media/Media.h>
 #endif
 
 #ifdef flagVOLUMETRIC
-	#include <api/Volumetric/Volumetric.h>
+ #include <api/Volumetric/Volumetric.h>
 #endif
 
 #ifdef flagCAMERA
-	#include <api/Camera/Camera.h>
+ #include <api/Camera/Camera.h>
 #endif
 
-#ifdef flagAUDIO
-	#include <api/AudioFileOut/AudioFileOut.h>
-#endif
 
 #include <Eon/Draw/Draw.h>
 
@@ -59,17 +62,16 @@ NAMESPACE_UPP
 
 #include "GeneratedHandle.h"
 #include "GeneratedMinimal.h"
-#ifdef flagVR
-	#include "GeneratedVR.h"
-#endif
+#include "GeneratedVR.h"
 #include "RenderingSystem.h"
 #include "Absolute2D.h"
 #include "Geom2DComponent.h"
 #include "Gui.h"
+
 #ifdef flagPHYSICS
-	#include "EcsPhysics.h"
-	#include "OdePrefab.h"
-	#include "TPrefab.h"
+ #include "EcsPhysics.h"
+ #include "OdePrefab.h"
+ #include "TPrefab.h"
 #endif
 
 END_UPP_NAMESPACE

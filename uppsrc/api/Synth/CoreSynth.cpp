@@ -1,6 +1,6 @@
 #include "Synth.h"
 
-#if 1
+#if (defined flagAUDIO && defined flagMIDI)
 NAMESPACE_UPP
 
 

@@ -3,7 +3,7 @@
 
 #include <Core/Core.h>
 
-#if !defined flagSYS_PORTAUDIO
+#if defined flagBUILTIN_PORTAUDIO
 	#include <plugin/portaudio/portaudio.h>
 #else
 	#include <portaudio.h>

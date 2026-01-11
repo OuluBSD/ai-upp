@@ -1,6 +1,6 @@
 #include "MidiHw.h"
 
-#if defined flagPORTMIDI || defined flagBUILTIN_PORTMIDI
+#if defined flagMIDI && (defined flagPORTMIDI || defined flagBUILTIN_PORTMIDI)
 
 #include <MidiFile/MidiFile.h>
 

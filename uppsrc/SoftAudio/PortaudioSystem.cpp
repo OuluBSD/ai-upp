@@ -178,7 +178,7 @@ END_UPP_NAMESPACE;
 
 
 
-#if !defined flagSYS_PORTAUDIO || defined BUILTIN_PORTAUDIO
+#if defined flagBUILTIN_PORTAUDIO || defined BUILTIN_PORTAUDIO
 INITBLOCK_(PortaudioSystem) {
 	
 }

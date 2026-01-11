@@ -2,6 +2,17 @@ description "\377B0,128,0";
 
 noblitz;
 
+acceptflags
+	SCREEN,
+	OGL,
+	X11,
+	DX9,
+	DX10,
+	DX11,
+	DX12,
+	FBO,
+	SDL2;
+
 uses
 	Geometry,
 	plugin/MingwDx,

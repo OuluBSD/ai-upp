@@ -1,8 +1,10 @@
 #include "Synth.h"
+
+#if (defined flagAUDIO && defined flagMIDI)
+
 #include <MidiFile/MidiFile.h>
 #include <atomic>
 #include <cmath>
-
 
 NAMESPACE_UPP
 
@@ -209,8 +211,6 @@ bool SynSoft::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, PacketIO& i
 	return (io.active_sink_mask & 0x1) && io.full_src_mask == 0;
 }
 
-
-
-
-
 END_UPP_NAMESPACE
+
+#endif

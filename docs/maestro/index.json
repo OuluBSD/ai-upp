@@ -5,7 +5,6 @@
     "gameengine",
     "gameengine-updated",
     "gameenginedocumentation",
-    "gentoo-style-use-flags-system",
     "halintegration",
     "libgdxcomparison",
     "packetrouter",
@@ -18,7 +17,8 @@
     "uppts",
     "uxide",
     "vfs",
-    "vfsshell"
+    "vfsshell",
+    "gentoo-style-use-flags-system"
   ],
   "top_priority_track": null,
   "created_at": null,

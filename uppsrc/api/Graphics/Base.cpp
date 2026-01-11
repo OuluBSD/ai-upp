@@ -649,7 +649,7 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 
 	target = ws.Get(".target");
 	if (target.IsEmpty()) {
-		LOG("EventStateBase::Initialize: error: target state argument is required");
+		LOG("KeyboardBaseT::Initialize: error: target state argument is required");
 		return false;
 	}
 	String normalized = NormalizePathSeparators(target);
@@ -657,7 +657,7 @@ bool KeyboardBaseT<Gfx>::Initialize(const WorldState& ws) {
 	if (!state && normalized != target)
 		state = this->val.template FindOwnerWithPathAndCast<EnvState>(target);
 	if (!state) {
-		LOG("EventStateBase::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
+		LOG("KeyboardBaseT::Initialize: error: state '" << target << "' not found in parent space: " << this->val.GetPath());
 		return false;
 	}
 

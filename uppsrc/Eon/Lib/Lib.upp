@@ -1,5 +1,35 @@
 description "\377B0,0,255";
 
+acceptflags
+	AUDIO,
+	BUILTIN_PORTAUDIO,
+	CAMERA,
+	DX10,
+	DX11,
+	DX12,
+	DX9,
+	FBO,
+	FLUIDLITE,
+	FLUIDSYNTH,
+	GUBO,
+	HACK,
+	HAL,
+	LOCALHMD,
+	LV2,
+	MEDIA,
+	MIDI,
+	OGL,
+	OPENCV,
+	OPENHMD,
+	PORTAUDIO,
+	SDL2,
+	SOFTHMD,
+	UWP,
+	VIDEO,
+	VOLUMETRIC,
+	VR,
+	X11;
+
 uses
 	Eon/Draw,
 	Painter;

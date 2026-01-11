@@ -6,7 +6,7 @@
 #include <cstring>
 #include <cmath>
 
-#if !defined flagSYS_PORTAUDIO || defined flagPORTAUDIO
+#if defined flagBUILTIN_PORTAUDIO || defined flagPORTAUDIO
 NAMESPACE_UPP
 
 #undef CHECK_ERR
@@ -124,10 +124,10 @@ struct PortaudioCallbackData {
 	    debug_mismatch_logged = false;
 	    debug_print_enabled = false;
 	    if (auto* sink = dynamic_cast<PortaudioSinkDevice*>(atom)) {
-	    	debug_sound_enabled = sink->IsDebugSoundEnabled();
-	    	debug_sound_output = sink->GetDebugSoundOutput();
-	    	debug_sound_seed = sink->GetDebugSoundSeed();
-	    	debug_print_enabled = sink->IsDebugPrintEnabled();
+			debug_sound_enabled = 1; //sink->IsDebugSoundEnabled();
+			debug_sound_output = 0; //sink->GetDebugSoundOutput();
+			debug_sound_seed = 0; //sink->GetDebugSoundSeed();
+			debug_print_enabled = 1; //sink->IsDebugPrintEnabled();
 	    }
 	}
 	
@@ -330,7 +330,7 @@ bool PortaudioStatic::exists = false;
 
 
 
-#if (!defined flagSYS_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
+#if (defined flagBUILTIN_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
 struct AudPortaudio::NativeSinkDevice {
 	PaStream* p;
 	bool started;
@@ -416,10 +416,6 @@ bool AudPortaudio::SinkDevice_PostInitialize(NativeSinkDevice& dev, AtomBase& a)
 		ValueBase& sink_val = sink_iface->GetValue(0);
 		String msg = Format("AudPortaudio::SinkDevice_PostInitialize: input queue min=%d max=%d current=%d", sink_val.GetMinPackets(), sink_val.GetMaxPackets(), sink_val.GetQueueSize());
 		LOG(msg);
-		if (auto* sink = dynamic_cast<PortaudioSinkDevice*>(&a)) {
-			if (sink->IsDebugPrintEnabled())
-				Cout() << msg << '\n';
-		}
 	}
 	return true;
 }

@@ -5,7 +5,9 @@
 #include <Draw/Extensions/Extensions.h>
 #include <Eon/Ecs/Ecs.h>
 //#include <api/Graphics/Graphics.h>
-#include <api/Hal/Hal.h>
+#ifdef flagHAL
+	#include <api/Hal/Hal.h>
+#endif
 
 #ifdef flagMSC
 	#pragma warning( disable : 4250 ) // C4250: useless Inheritance via dominance warning

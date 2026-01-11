@@ -39,42 +39,36 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterOrder")
 		.Action("center.customer")
 		.Link("CUSTOMER", "CUSTOMER")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("TestRealtimeSrc", "RollingValueBase", "pipe")
 		.In("CenterOrder").Out("CenterAudio")
 		.Action("center.audio.src.test")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("TestRealtimeSink", "VoidSinkBase", "pipe")
 		.In("CenterAudio").Out("CenterReceipt")
 		.Action("center.audio.sink.test.realtime")
 		.Link("INTERVAL_PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("TestPollerSink", "VoidPollerSinkBase", "pipe")
 		.In("CenterAudio").Out("CenterReceipt")
 		.Action("center.audio.sink.test.poller")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("PortaudioSink", "PortaudioSinkDevice", "pipe")
 		.In("CenterAudio").Out("CenterReceipt")
 		.Action("center.audio.sink.hw")
 		.Link("EXTERNAL_PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("AudioDecoderSrc", "FfmpegSourceDevice", "pipe")
 		.In("CenterOrder").Out("CenterAudio")
 		.Action("perma.audio.source.decoder")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagFFMPEG", "1")
 	;
 	
@@ -82,41 +76,35 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").Out("CenterAudio")
 		.Action("center.audio.src.dbg_generator")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("AudioSplitter", "VoidBase", "pipe")
 		.In("CenterAudio").Out("CenterReceipt").Out("CenterAudio")
 		.Action("center.audio.side.src.center")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("SPLITTER", "PROCESS")
 	;
 	
 	AddHeader("AudioSplitterUser", "VoidBase", "pipe")
 		.In("CenterAudio").Out("CenterReceipt").OutOpt(8, "CenterAudio")
 		.Action("center.audio.side.src.center.user")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("SPLITTER", "PROCESS")
 	;
 	
 	AddHeader("AudioJoiner", "VoidBase", "pipe")
 		.In("CenterOrder").In("CenterAudio").Out("CenterAudio")
 		.Action("center.audio.side.sink.center")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("JOINER", "PROCESS")
 	;
 	
 	AddHeader("AudioJoinerUser", "VoidBase", "pipe")
 		.In("CenterOrder").InOpt("CenterAudio").Out("CenterAudio")
 		.Action("center.audio.side.sink.center.user")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("JOINER", "PROCESS")
 	;
 	
 	AddHeader("AudioJoiner2User", "VoidBase", "pipe")
 		.In("CenterOrder").InOpt("CenterAudio").InOpt("CenterAudio").Out("CenterAudio")
 		.Action("center.audio.side.sink2.center.user")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("JOINER", "PROCESS")
 	;
 	
@@ -124,7 +112,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").InOpt(16,"CenterAudio")
 		.Out("CenterAudio")
 		.Action("center.audio.mixer16")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("MERGER", "PROCESS")
 	;
 	
@@ -132,7 +119,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").Out("CenterVideo")
 		.Action("center.video.src.dbg_generator")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -142,7 +128,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagOPENCV", "1")
 		//.Arg("reqdef_flagLINUX", "1")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("WebcamAtom", "V4L2OpenCVCamera", "pipe")
@@ -151,7 +136,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagOPENCV", "1")
 		//.Arg("reqdef_flagLINUX", "1")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("AudioLoaderAtom", "FfmpegSourceDevice", "pipe")
@@ -160,7 +144,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagFFMPEG", "1")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("VideoLoaderAtom", "FfmpegSourceDevice", "pipe")
@@ -169,13 +152,11 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagFFMPEG", "1")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("EventStatePipe", "EventStateBase", "driver_pipe")
 		.In("CenterEvent").Out("CenterReceipt")
 		.Action("state.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -183,7 +164,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("HandleProgEvents", "HandleEventsBase", "pipe")
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("center.events.prog.ecs")
-		.Arg("HINT_PKG", "AtomHandle")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -192,7 +172,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder")
 		.Out("CenterProg")
 		.Action("center.video.prog.pipe")
-		.Arg("HINT_PKG", "AtomHandle")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -201,7 +180,6 @@ void InterfaceBuilder::Headers() {
 		.In("OglOrder")
 		.Out("OglProg")
 		.Action("ogl.prog.pipe")
-		.Arg("HINT_PKG", "AtomHandle")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -210,7 +188,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder")
 		.Out("CenterReceipt")
 		.Action("center.video.prog.ecs")
-		.Arg("HINT_PKG", "AtomHandle")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -220,7 +197,6 @@ void InterfaceBuilder::Headers() {
 		.InOpt("CenterFbo")
 		.Out("CenterFbo")
 		.Action("x11.sw.fbo.program")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
@@ -230,7 +206,6 @@ void InterfaceBuilder::Headers() {
 		.InOpt("OglFbo")
 		.Out("OglFbo")
 		.Action("x11.ogl.fbo.program")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
@@ -244,7 +219,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -256,7 +230,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -272,7 +245,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("LocalHMDPipe", "LocalHMDSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.holo.events")
-		.Arg("HINT_PKG", "AtomVR")
 		.Link("PIPE", "PROCESS")
 		//.Arg("reqdef_flagLOCALHMD", "1")
 	;
@@ -280,14 +252,12 @@ void InterfaceBuilder::Headers() {
 	AddHeader("RemoteVRServerPipe", "RemoteVRServerSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("tcp.ogl.holo.events")
-		.Arg("HINT_PKG", "AtomVR")
 		.Link("PIPE", "PROCESS")
 	;
 	
 	AddHeader("BluetoothHoloPipe", "DevBluetoothSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("bluetooth.holo.events")
-		.Arg("HINT_PKG", "AtomVR")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -295,7 +265,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").Out("CenterFbo")
 		.Action("x11.sw.fbo.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -304,7 +273,6 @@ void InterfaceBuilder::Headers() {
 		.Action("x11.ogl.fbo.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -314,7 +282,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -322,7 +289,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterFbo").Out("CenterReceipt")
 		.Action("x11.sw.fbo.sink")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -331,7 +297,6 @@ void InterfaceBuilder::Headers() {
 		.Action("x11.ogl.fbo.sink")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -341,21 +306,18 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
 	AddHeader("SdlOglFboAtomPipe", "SdlOglVideoSinkDevice", "pipe")
 		.In("OglFbo").Out("OglReceipt")
 		.Action("sdl.ogl.fbo.sink")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
 	AddHeader("SdlOglProgAtomPipe", "SdlOglVideoSinkDevice", "pipe")
 		.In("OglProg").Out("OglReceipt")
 		.Action("sdl.ogl.prog.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -363,7 +325,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("x11.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
@@ -371,7 +332,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("x11.sw.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
@@ -379,14 +339,12 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("x11.ogl.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
 	AddHeader("X11EventAtomPipe", "X11EventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -394,7 +352,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("X11SwEventAtomPipe", "X11SwEventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.sw.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -402,7 +359,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("X11OglEventAtomPipe", "X11OglEventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -411,7 +367,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("win.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
@@ -419,7 +374,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterVideo").Out("CenterReceipt")
 		.Action("win.video.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -428,14 +382,12 @@ void InterfaceBuilder::Headers() {
 		.Action("dx.customer")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("CUSTOMER", "CUSTOMER")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("WinD11ContextAtom", "WinD11Context", "driver")
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("win.dx.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
@@ -444,7 +396,6 @@ void InterfaceBuilder::Headers() {
 		.InOpt("DxFbo")
 		.Out("DxFbo")
 		.Action("win.dx.fbo.program")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
@@ -455,7 +406,6 @@ void InterfaceBuilder::Headers() {
 		.Action("win.dx.fbo.sink")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -463,7 +413,6 @@ void InterfaceBuilder::Headers() {
 		.In("DxOrder").Out("DxReceipt")
 		.Action("win.dx.fbo.standalone")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -472,7 +421,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("x11.sw.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
@@ -480,14 +428,12 @@ void InterfaceBuilder::Headers() {
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("x11.ogl.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 	;
 	
 	AddHeader("X11EventAtomPipe", "X11EventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -495,7 +441,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("X11SwEventAtomPipe", "X11SwEventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.sw.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -503,7 +448,6 @@ void InterfaceBuilder::Headers() {
 	AddHeader("X11OglEventAtomPipe", "X11OglEventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -513,21 +457,18 @@ void InterfaceBuilder::Headers() {
 		.Action("ogl.customer")
 		//.Arg("reqdef_flagSCREEN", "1")
 		.Link("CUSTOMER", "CUSTOMER")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("SdlContextAtom", "SdlContextBase", "driver")
 		.In("CenterReceipt").Out("CenterReceipt")
 		.Action("sdl.context")
 		.Link("DRIVER", "DRIVER")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSDL2", "1")
 	;
 	
 	AddHeader("SdlEventAtomPipe", "SdlEventsBase", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("sdl.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		//.Arg("reqdef_flagSDL2", "1")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -536,7 +477,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("event.src.test.pipe")
 		.Link("PIPE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("SdlOglImageLoader", "SdlOglImageBase", "pipe")
@@ -546,7 +486,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	{
@@ -554,13 +493,11 @@ void InterfaceBuilder::Headers() {
 			.In("CenterReceipt").Out("CenterReceipt")
 			.Action("holo.context")
 			.Link("DRIVER", "DRIVER")
-			.Arg("HINT_PKG", "AtomVR")
 		;
 		
 		AddHeader("HoloEventAtomPipe", "HoloEventsBase", "pipe")
 			.In("CenterOrder").Out("CenterEvent")
 			.Action("holo.event.pipe")
-			.Arg("HINT_PKG", "AtomVR")
 			.Link("POLLER_PIPE", "PROCESS")
 		;
 		
@@ -569,7 +506,6 @@ void InterfaceBuilder::Headers() {
 			.Action("holo.fbo.standalone")
 			//.Arg("reqdef_flagHOLOLENS", "1")
 			//.Arg("reqdef_flagDX12", "1")
-			.Arg("HINT_PKG", "AtomVR")
 			.Link("POLLER_PIPE", "PROCESS")
 		;
 	}
@@ -578,14 +514,12 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").Out("CenterReceipt").OutOpt("CenterVolume")
 		.Action("center.volume.loader")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("X11VideoAtomPipe", "X11SinkDevice", "pipe")
 		.In("CenterVideo").Out("CenterReceipt")
 		.Action("x11.video.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -593,7 +527,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterVideo").Out("CenterReceipt")
 		.Action("glx.video.pipe")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -601,7 +534,6 @@ void InterfaceBuilder::Headers() {
 		.In("OglOrder").Out("OglReceipt")
 		.Action("x11.ogl.fbo.standalone")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -609,7 +541,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterFbo").Out("CenterReceipt")
 		.Action("x11.sw.video.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -626,13 +557,12 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.fbo.standalone")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlUppOglDeviceSA", "SdlUppOglDevice", "pipe")
-		.In("OglOrder").Out("OglReceipt")
-		.Action("uppsdl.ogl.standalone")
+	AddHeader("UppOglFboPipe", "UppOglVideoSinkDevice", "pipe")
+		.In("OglFbo").Out("OglReceipt")
+		.Action("upp.fbo.sink")
 		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
@@ -642,7 +572,6 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.fbo.sink")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -652,14 +581,12 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.fbo")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlUppEventsBasePipe", "SdlUppEventsBase", "pipe")
-		.In("CenterOrder").Out("CenterReceipt")
-		.Action("uppsdl.event.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
+	AddHeader("UppEventAtomPipe", "UppEventsBase", "pipe")
+		.In("CenterOrder").Out("CenterEvent")
+		.Action("upp.event.pipe")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -668,7 +595,6 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.video.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -678,7 +604,6 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.prog.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -686,7 +611,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterProg")
 		.Out("CenterReceipt")
 		.Action("x11.prog.pipe")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -695,7 +619,6 @@ void InterfaceBuilder::Headers() {
 		.Out("CenterReceipt")
 		.OutOpt("CenterFbo")
 		.Action("x11.sw.prog")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -704,7 +627,6 @@ void InterfaceBuilder::Headers() {
 		.Out("CenterReceipt")
 		.OutOpt("OglFbo")
 		.Action("x11.ogl.prog")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -713,7 +635,6 @@ void InterfaceBuilder::Headers() {
 		.Out("CenterReceipt")
 		.OutOpt("OglFbo")
 		.Action("sdl.ogl.prog")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -723,7 +644,6 @@ void InterfaceBuilder::Headers() {
 		.Action("sdl.video")
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
@@ -731,7 +651,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterAudio").Out("CenterReceipt")
 		.Action("sdl.audio")
 		//.Arg("reqdef_flagSDL2", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("EXTERNAL_PIPE", "PROCESS")
 	;
 	
@@ -742,7 +661,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -752,7 +670,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -762,7 +679,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -772,7 +688,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -782,7 +697,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -793,7 +707,6 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSCREEN", "1")
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
-		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -804,13 +717,11 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagSDL2", "1")
 		//.Arg("reqdef_flagOGL", "1")
 		.Link("PIPE_OPTSIDE", "PROCESS")
-		.Arg("HINT_PKG", "AtomMinimal")
 	;
 	
 	AddHeader("MidiFileReaderPipe", "MidiFileReaderAtom", "pipe")
 		.In("CenterOrder").Out("CenterMidi")
 		.Action("midi.file.reader.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -818,7 +729,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder")
 		.Out("CenterReceipt").OutOpt("CenterMidi")
 		.Action("midi.file.reader")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -826,49 +736,42 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder")
 		.Out("CenterReceipt").OutOpt(16, "CenterMidi")
 		.Action("midi.file.reader16")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("MidiNullSink", "MidiNullAtom", "pipe")
 		.In("CenterMidi").Out("CenterReceipt")
 		.Action("midi.null.sink")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE", "PROCESS")
 	;
 	
 	AddHeader("FluidsynthPipe", "FluidsynthInstrument", "pipe")
 		.In("CenterOrder").InOpt("CenterMidi").Out("CenterAudio")
 		.Action("fluidsynth.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("SoftInstrumentPipe", "SoftInstrument", "pipe")
 		.In("CenterOrder").InOpt("CenterMidi").Out("CenterAudio")
 		.Action("softinstru.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("FmSynthPipe", "FmSynthInstrument", "pipe")
 		.In("CenterOrder").InOpt("CenterMidi").Out("CenterAudio")
 		.Action("fmsynth.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("LV2InstrumentPipe", "LV2Instrument", "pipe")
 		.In("CenterOrder").InOpt("CenterMidi").Out("CenterAudio")
 		.Action("lv2.instrument.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("CoreSynthPipe", "CoreSynthInstrument", "pipe")
 		.In("CenterOrder").InOpt("CenterMidi").Out("CenterAudio")
 		.Action("coresynth.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -876,7 +779,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").InOpt("CenterMidi")
 		.Out("CenterReceipt").OutOpt(4, "CenterAudio")
 		.Action("coredrummer.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -884,7 +786,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterAudio").InOpt(8, "CenterAudio")
 		.Out("CenterAudio")
 		.Action("corefx.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -892,21 +793,18 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder").InOpt(8, "CenterAudio")
 		.Out("CenterAudio")
 		.Action("corefx.atom")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE", "PROCESS")
 	;
 	
 	AddHeader("LV2EffectPipe", "LV2Effect", "pipe")
 		.In("CenterAudio").Out("CenterAudio")
 		.Action("lv2.effect.pipe")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
 	AddHeader("PortmidiPipe", "PortmidiSource", "pipe")
 		.In("CenterOrder").Out("CenterMidi")
 		.Action("midi.src.portmidi")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE", "PROCESS")
 	;
 	
@@ -914,7 +812,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterOrder")
 		.Out("CenterReceipt").OutOpt(4, "CenterMidi")
 		.Action("midi.src.side.portmidi")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
@@ -922,7 +819,6 @@ void InterfaceBuilder::Headers() {
 		.In("CenterAudio")
 		.Out("CenterReceipt")
 		.Action("audio.file.writer")
-		.Arg("HINT_PKG", "AtomAudio")
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	

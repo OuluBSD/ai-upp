@@ -7,7 +7,9 @@
 #include <Eon/Eon.h>
 #include <SoftAudio/SoftAudio.h>
 #include <api/AudioHost/AudioHost.h>
+#if defined flagLV2
 #include <plugin/lilv/lilv.h>
+#endif
 
 NAMESPACE_UPP
 

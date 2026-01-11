@@ -1,5 +1,8 @@
 description "Loads midi files and makes lv2-instrument and effect system from them\377B0,128,0";
 
+acceptflags
+	AUDIO;
+
 file
 	Copying,
 	main.cpp,

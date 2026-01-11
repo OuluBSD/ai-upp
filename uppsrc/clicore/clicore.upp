@@ -1,5 +1,7 @@
 description "AI-UPP CLI Core - Core IDE functionality without GUI\377";
 
+noblitz;
+
 uses
 	Core,
 	Draw,

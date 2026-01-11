@@ -1,7 +1,7 @@
 // This file have been generated automatically.
 // DO NOT MODIFY THIS FILE!
 
-#if defined flagAUDIO
+#if (defined flagHAL && defined flagAUDIO)
 static bool AudioSinkDevice_Create(NativeAudioSinkDevice*& dev);
 static void AudioSinkDevice_Destroy(NativeAudioSinkDevice*& dev);
 static bool AudioSinkDevice_Initialize(NativeAudioSinkDevice&, AtomBase&, const WorldState&);
@@ -19,7 +19,7 @@ static bool AudioSinkDevice_AttachContext(NativeAudioSinkDevice&, AtomBase& a, A
 static void AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if defined flagVIDEO
+#if (defined flagHAL && defined flagVIDEO)
 static bool CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev);
 static void CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev);
 static bool CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const WorldState&);
@@ -37,7 +37,7 @@ static bool CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, At
 static void CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if defined flagFBO
+#if (defined flagHAL && defined flagFBO)
 static bool CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev);
 static void CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev);
 static bool CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice&, AtomBase&, const WorldState&);
@@ -55,7 +55,7 @@ static bool CenterFboSinkDevice_AttachContext(NativeCenterFboSinkDevice&, AtomBa
 static void CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if defined flagOGL
+#if (defined flagHAL && defined flagOGL)
 static bool OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev);
 static void OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev);
 static bool OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const WorldState&);
@@ -73,7 +73,7 @@ static bool OglVideoSinkDevice_AttachContext(NativeOglVideoSinkDevice&, AtomBase
 static void OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if defined flagDX12
+#if (defined flagHAL && defined flagDX12)
 static bool D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev);
 static void D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev);
 static bool D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const WorldState&);
@@ -125,41 +125,5 @@ static void EventsBase_Update(NativeEventsBase&, AtomBase&, double dt);
 static bool EventsBase_IsReady(NativeEventsBase&, AtomBase&, PacketIO& io);
 static bool EventsBase_AttachContext(NativeEventsBase&, AtomBase& a, AtomBase& other);
 static void EventsBase_DetachContext(NativeEventsBase&, AtomBase& a, AtomBase& other);
-#endif
-
-#if defined flagGUI
-static bool UppEventsBase_Create(NativeUppEventsBase*& dev);
-static void UppEventsBase_Destroy(NativeUppEventsBase*& dev);
-static bool UppEventsBase_Initialize(NativeUppEventsBase&, AtomBase&, const WorldState&);
-static bool UppEventsBase_PostInitialize(NativeUppEventsBase&, AtomBase&);
-static bool UppEventsBase_Start(NativeUppEventsBase&, AtomBase&);
-static void UppEventsBase_Stop(NativeUppEventsBase&, AtomBase&);
-static void UppEventsBase_Uninitialize(NativeUppEventsBase&, AtomBase&);
-static bool UppEventsBase_Send(NativeUppEventsBase&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void UppEventsBase_Visit(NativeUppEventsBase&, AtomBase&, Visitor& vis);
-static bool UppEventsBase_Recv(NativeUppEventsBase&, AtomBase&, int, const Packet&);
-static void UppEventsBase_Finalize(NativeUppEventsBase&, AtomBase&, RealtimeSourceConfig&);
-static void UppEventsBase_Update(NativeUppEventsBase&, AtomBase&, double dt);
-static bool UppEventsBase_IsReady(NativeUppEventsBase&, AtomBase&, PacketIO& io);
-static bool UppEventsBase_AttachContext(NativeUppEventsBase&, AtomBase& a, AtomBase& other);
-static void UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, AtomBase& other);
-#endif
-
-#if defined flagOGL
-static bool UppOglDevice_Create(NativeUppOglDevice*& dev);
-static void UppOglDevice_Destroy(NativeUppOglDevice*& dev);
-static bool UppOglDevice_Initialize(NativeUppOglDevice&, AtomBase&, const WorldState&);
-static bool UppOglDevice_PostInitialize(NativeUppOglDevice&, AtomBase&);
-static bool UppOglDevice_Start(NativeUppOglDevice&, AtomBase&);
-static void UppOglDevice_Stop(NativeUppOglDevice&, AtomBase&);
-static void UppOglDevice_Uninitialize(NativeUppOglDevice&, AtomBase&);
-static bool UppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis);
-static bool UppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&);
-static void UppOglDevice_Finalize(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig&);
-static void UppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt);
-static bool UppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io);
-static bool UppOglDevice_AttachContext(NativeUppOglDevice&, AtomBase& a, AtomBase& other);
-static void UppOglDevice_DetachContext(NativeUppOglDevice&, AtomBase& a, AtomBase& other);
 #endif
 

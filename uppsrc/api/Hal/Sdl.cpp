@@ -1,6 +1,6 @@
 #include "Hal.h"
 
-#if defined flagSDL2
+#if defined flagHAL && defined flagSDL2
 
 #ifdef flagGUI
 #include <CtrlCore/CtrlCore.h>
@@ -80,8 +80,8 @@ static SdlContextBase* ResolveSdlContext(AtomBase& a, const char* caller_tag) {
 
 SDL_TimerID waketimer_id;
 
-
- struct HalSdl::NativeCenterVideoSinkDevice {
+#ifdef flagVIDEO
+struct HalSdl::NativeCenterVideoSinkDevice {
     void* display;
     SDL_Window* win;
     SDL_Renderer* rend;
@@ -90,7 +90,9 @@ SDL_TimerID waketimer_id;
     Size sz;
     ProgImage pi;
 };
+#endif
 
+#ifdef flagFBO
 struct HalSdl::NativeCenterFboSinkDevice {
     SDL_Window* win;
     SDL_Renderer* rend;
@@ -99,6 +101,7 @@ struct HalSdl::NativeCenterFboSinkDevice {
     SDL_Texture* fb;
     GfxAccelAtom<SdlSwGfx> accel;
 };
+#endif
 
 #if defined flagOGL
 struct HalSdl_CommonOgl {
@@ -167,9 +170,11 @@ struct HalSdl::NativeEventsBase {
     }
 };
 
+#ifdef flagAUDIO
 struct HalSdl::NativeAudioSinkDevice {
 	SDL_AudioDeviceID id;
 };
+#endif
 
 struct HalSdl::NativeContextBase {
 	void* p;
@@ -222,6 +227,7 @@ void StaticAudioOutputSinkCallback(void* userdata, Uint8* stream, int len) {
 
 
 
+#ifdef flagAUDIO
 bool HalSdl::AudioSinkDevice_Create(NativeAudioSinkDevice*& dev) {
 	dev = new NativeAudioSinkDevice;
 	return true;
@@ -393,6 +399,7 @@ bool HalSdl::AudioSinkDevice_AttachContext(NativeAudioSinkDevice&, AtomBase& a, 
 void HalSdl::AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase& a, AtomBase& other) {
 	
 }
+#endif
 
 
 
@@ -524,6 +531,7 @@ bool HalSdl::ContextBase_IsReady(NativeContextBase& ctx, AtomBase&, PacketIO& io
 
 	
 
+#ifdef flagVIDEO
 bool HalSdl::CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev) {
 	dev = new NativeCenterVideoSinkDevice;
 	return true;
@@ -815,6 +823,7 @@ bool HalSdl::CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, A
 void HalSdl::CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other) {
 	
 }
+#endif
 
 
 
@@ -826,7 +835,7 @@ void HalSdl::CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, A
 
 
 
-
+#ifdef flagFBO
 bool HalSdl::CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev) {
 	dev = new NativeCenterFboSinkDevice;
 	return true;
@@ -973,7 +982,7 @@ bool HalSdl::CenterFboSinkDevice_AttachContext(NativeCenterFboSinkDevice& dev, A
 void HalSdl::CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice& dev, AtomBase& a, AtomBase& other) {
 	
 }
-
+#endif
 
 
 
@@ -1505,11 +1514,15 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	Point mouse_pt;
 #ifdef flagSCREEN
 	auto s = a.GetSpace();
-	auto v_sink   = s->FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
-	auto sw_sink  = s->FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 	::SDL_Renderer* rend = 0;
+#ifdef flagVIDEO
+	auto v_sink   = s->FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
 	if (v_sink)   rend = v_sink->dev->rend;
+#endif
+#ifdef flagFBO
+	auto sw_sink  = s->FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 	if (sw_sink)  rend = sw_sink->dev->rend;
+#endif
 #ifdef flagOGL
 	auto ogl_sink = s->FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
 	if (ogl_sink) rend = ogl_sink->dev->rend;
@@ -1731,21 +1744,31 @@ bool HalSdl::EventsBase_IsReady(NativeEventsBase& dev, AtomBase& a, PacketIO& io
 			
 			auto s = a.GetSpace();
 			e.type = EVENT_WINDOW_RESIZE;
+			#ifdef flagVIDEO
 			auto v_sink   = s->FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
+			#endif
+			#ifdef flagFBO
 			auto sw_sink  = s->FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
+			#endif
 			#ifdef flagOGL
 			auto ogl_sink = s->FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
 			#endif
 			
 			int x = 0, y = 0;
+			if (0) {}
+			
+			#ifdef flagVIDEO
 			if (v_sink) {
 				SDL_GetWindowPosition(v_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;
 			}
+			#endif
+			#ifdef flagFBO
 			else if (sw_sink) {
 				SDL_GetWindowPosition(sw_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;
 			}
+			#endif
 			#ifdef flagOGL
 			else if (ogl_sink) {
 				SDL_GetWindowPosition(ogl_sink->dev->win, &x, &y);

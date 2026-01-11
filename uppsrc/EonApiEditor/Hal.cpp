@@ -17,16 +17,15 @@ void InterfaceBuilder::AddHal() {
 	HaveIsReady();
 	HaveContextFunctions();
 	
-	Interface("AudioSinkDevice", "AUDIO");
-	Interface("CenterVideoSinkDevice", "VIDEO");
-	Interface("CenterFboSinkDevice", "FBO");
-	Interface("OglVideoSinkDevice", "OGL");
-	Interface("D12VideoSinkDevice", "DX12");
+	Interface("AudioSinkDevice", "HAL & AUDIO");
+	Interface("CenterVideoSinkDevice", "HAL & VIDEO");
+	Interface("CenterFboSinkDevice", "HAL & FBO");
+	Interface("OglVideoSinkDevice", "HAL & OGL");
+	Interface("D12VideoSinkDevice", "HAL & DX12");
 	Interface("ContextBase","HAL");
 	Interface("EventsBase","HAL");
-	Interface("UppEventsBase", "GUI");
-	Interface("UppOglDevice", "OGL");
 	
+	Vendor("Upp", "GUI");
 	Vendor("Sdl", "SDL2");
 	Vendor("Holo", "UWP&DX12"); // Microsoft Hololens
 	

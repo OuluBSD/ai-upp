@@ -2,6 +2,7 @@
 #include "InstrumentRuntime.h"
 #include "InstrumentToGraph.h"
 #include "SoftAudio/Graph/GraphPlayer.h"
+#include "SoftAudio/Graph/ProcessContext.h"
 
 NAMESPACE_AUDIO_BEGIN
 
@@ -11,7 +12,7 @@ public:
     AudioCaptureNode(Vector<float>& left_buffer, Vector<float>& right_buffer)
         : left_buffer_(left_buffer), right_buffer_(right_buffer) {}
 
-    void Prepare(const ProcessContext& ctx) override {
+    void Prepare(const SAGraph::ProcessContext& ctx) override {
         Node::Prepare(ctx);
         // Clear buffers at start of processing
         if (ctx.is_start_of_render) {
@@ -20,7 +21,7 @@ public:
         }
     }
 
-    void Process(const ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
+    void Process(const SAGraph::ProcessContext& ctx, const Vector<SAGraph::Bus*>& inputs, SAGraph::Bus& output) override {
         if (inputs.IsEmpty() || !inputs[0]) {
             output.SetSize(ctx.block_size, 2);
             output.Zero();
@@ -79,7 +80,7 @@ bool InstrumentRuntime::RenderInstrument(
 
     // Add an output capture node to the graph
     One<AudioCaptureNode> capture_node = new AudioCaptureNode(out_left, out_right);
-    int capture_node_idx = graph.AddNodeWithName("output_capture", pick(capture_node));
+    int capture_node_idx = graph.AddNodeWithName("output_capture", pick(std::move(capture_node)));
 
     // Connect the mixer to our capture node (assuming mixer is last node in the graph)
     // The mixer was the first node added in BuildAudioGraphForInstrument, so it has index 0
@@ -97,7 +98,7 @@ bool InstrumentRuntime::RenderInstrument(
     }
 
     // Prepare the graph for processing
-    ProcessContext ctx;
+    SAGraph::ProcessContext ctx;
     ctx.sample_rate = (int)instrument.sample_rate_hz;
     ctx.block_size = 512;  // Default block size
     ctx.is_start_of_render = true;  // Indicate this is the start of a render

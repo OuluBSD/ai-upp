@@ -1,3 +1,4 @@
+#include <cmath>
 #include "SoftAudio.h"
 #include "InstrumentBuilder.h"
 #include "InstrumentRuntime.h"
@@ -13,7 +14,8 @@ void RunInstrumentGraphTest() {
     InstrumentVoiceTemplate voice_template;
     voice_template.has_pan_lfo = true;
     voice_template.pan_lfo_hz = 0.25;
-    voice_template.use_analog_source = false;  // Use digital oscillator for this test
+    
+
     
     // Set up a note description
     NoteDesc note;
@@ -73,7 +75,7 @@ void RunInstrumentGraphTest() {
     
     // Verify output is finite (not NaN or infinity)
     for (int i = 0; i < min(100, left_buffer.GetCount()); i++) {
-        if (!IsFinite(left_buffer[i]) || !IsFinite(right_buffer[i])) {
+        if (!std::isfinite(left_buffer[i]) || !std::isfinite(right_buffer[i])) {
             LOG("FAILED: Non-finite values in output");
             return;
         }

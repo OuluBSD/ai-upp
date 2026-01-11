@@ -9,8 +9,12 @@
 #include <SoftSynth/SoftSynth.h>
 #include <SoftAudio/SoftAudio.h>
 #include <api/AudioHost/AudioHost.h>
+#if defined flagFLUIDLITE
 #include <plugin/fluidlite/fluidlite.h>
+#endif
+#if defined flagLV2
 #include <plugin/lilv/lilv.h>
+#endif
 
 NAMESPACE_UPP
 

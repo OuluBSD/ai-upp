@@ -9,7 +9,7 @@ NAMESPACE_UPP
 
 // Mid-class between Atom and FormWindow
 // Provides room for future Esc script VM, event I/O, and threading
-struct HalUpp::NativeUppGuiSinkBase {
+struct HalUpp::NativeGuiSinkBase {
 	// Form display
 	FormWindow form_win;
 
@@ -25,7 +25,7 @@ struct HalUpp::NativeUppGuiSinkBase {
 
 	bool initialized = false;
 
-	~NativeUppGuiSinkBase() {
+	~NativeGuiSinkBase() {
 		if (event_ctx_active) {
 			Ctrl::EventLoopEnd(event_ctx);
 			event_ctx_active = false;
@@ -35,28 +35,28 @@ struct HalUpp::NativeUppGuiSinkBase {
 };
 
 // Device interface functions
-bool HalUpp::UppGuiSinkBase_Create(NativeUppGuiSinkBase*& dev) {
-	dev = new NativeUppGuiSinkBase;
+bool HalUpp::GuiSinkBase_Create(NativeGuiSinkBase*& dev) {
+	dev = new NativeGuiSinkBase;
 	return true;
 }
 
-void HalUpp::UppGuiSinkBase_Destroy(NativeUppGuiSinkBase*& dev) {
+void HalUpp::GuiSinkBase_Destroy(NativeGuiSinkBase*& dev) {
 	if (dev) {
 		delete dev;
 		dev = nullptr;
 	}
 }
 
-bool HalUpp::UppGuiSinkBase_Initialize(NativeUppGuiSinkBase& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalUpp::GuiSinkBase_Initialize(NativeGuiSinkBase& dev, AtomBase& a, const WorldState& ws) {
 	// Setup window from configuration
-	bool sizeable = a.Get(".sizeable", true);
-	bool close_machine = a.Get(".close_machine", true);
+	bool sizeable = ws.GetBool(".sizeable", true);
+	bool close_machine = ws.GetBool(".close_machine", true);
 
 	if (sizeable)
 		dev.form_win.Sizeable();
 
 	if (close_machine)
-		dev.form_win.WhenClose = [&a]() { a.GetMachine().SetNotRunning(); };
+		dev.form_win.WhenClose = [&a]() { a.GetEngine().SetNotRunning(); };
 
 	// Window will be sized by form layout
 	dev.form_win.Title("GUI Event Viewer");
@@ -65,19 +65,19 @@ bool HalUpp::UppGuiSinkBase_Initialize(NativeUppGuiSinkBase& dev, AtomBase& a, c
 	return true;
 }
 
-bool HalUpp::UppGuiSinkBase_PostInitialize(NativeUppGuiSinkBase& dev, AtomBase& a) {
+bool HalUpp::GuiSinkBase_PostInitialize(NativeGuiSinkBase& dev, AtomBase& a) {
 	return true;
 }
 
-bool HalUpp::UppGuiSinkBase_Start(NativeUppGuiSinkBase& dev, AtomBase& a) {
+bool HalUpp::GuiSinkBase_Start(NativeGuiSinkBase& dev, AtomBase& a) {
 	return true;
 }
 
-void HalUpp::UppGuiSinkBase_Stop(NativeUppGuiSinkBase& dev, AtomBase& a) {
+void HalUpp::GuiSinkBase_Stop(NativeGuiSinkBase& dev, AtomBase& a) {
 	a.ClearDependencies();
 }
 
-void HalUpp::UppGuiSinkBase_Uninitialize(NativeUppGuiSinkBase& dev, AtomBase& a) {
+void HalUpp::GuiSinkBase_Uninitialize(NativeGuiSinkBase& dev, AtomBase& a) {
 	if (dev.event_ctx_active) {
 		Ctrl::EventLoopEnd(dev.event_ctx);
 		dev.event_ctx_active = false;
@@ -88,26 +88,25 @@ void HalUpp::UppGuiSinkBase_Uninitialize(NativeUppGuiSinkBase& dev, AtomBase& a)
 	a.RemoveAtomFromUpdateList();
 }
 
-bool HalUpp::UppGuiSinkBase_Recv(NativeUppGuiSinkBase& dev, AtomBase& a, int sink_ch, const Packet& in) {
+bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, const Packet& in) {
 	if (!dev.initialized)
 		return false;
 
-	auto& fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (!fmt.IsGui()) {
 		LOG("UppGuiSinkDevice: expected GUI format, got " << fmt.ToString());
 		return false;
 	}
 
 	// Extract GUI form data from packet
-	// For now, we expect the packet data to be the form XML string
-	int data_size = in->GetDataSize();
-	if (data_size <= 0) {
+	// The packet data contains the form XML string
+	const Vector<byte>& data = in->GetData();
+	if (data.GetCount() <= 0) {
 		LOG("UppGuiSinkDevice: empty packet data");
 		return false;
 	}
 
-	const byte* data_ptr = (const byte*)in->Data();
-	String form_xml((const char*)data_ptr, data_size);
+	String form_xml((const char*)data.Begin(), data.GetCount());
 
 	// Load form from XML
 	LOG("UppGuiSinkDevice: Loading form from XML (" << form_xml.GetCount() << " bytes)");
@@ -132,7 +131,7 @@ bool HalUpp::UppGuiSinkBase_Recv(NativeUppGuiSinkBase& dev, AtomBase& a, int sin
 	return true;
 }
 
-void HalUpp::UppGuiSinkBase_Finalize(NativeUppGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
+void HalUpp::GuiSinkBase_Finalize(NativeGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
 	if (!dev.initialized || !dev.form_win.IsOpen())
 		return;
 
@@ -145,34 +144,35 @@ void HalUpp::UppGuiSinkBase_Finalize(NativeUppGuiSinkBase& dev, AtomBase& a, Rea
 	Ctrl::EventLoopIteration(dev.event_ctx);
 }
 
-bool HalUpp::UppGuiSinkBase_Send(NativeUppGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalUpp::GuiSinkBase_Send(NativeGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	// Send receipt acknowledging GUI display
-	auto& fmt = out.SetFormat();
+	ValueFormat fmt;
 	fmt.SetReceipt(DevCls::CENTER);
+	out.SetFormat(fmt);
 
 	// TODO: Set receipt data (timestamp, status, etc.)
 
 	return true;
 }
 
-void HalUpp::UppGuiSinkBase_Visit(NativeUppGuiSinkBase& dev, AtomBase& a, Visitor& vis) {
+void HalUpp::GuiSinkBase_Visit(NativeGuiSinkBase& dev, AtomBase& a, Visitor& vis) {
 	// Visit for serialization/inspection
 }
 
-void HalUpp::UppGuiSinkBase_Update(NativeUppGuiSinkBase& dev, AtomBase& a, double dt) {
+void HalUpp::GuiSinkBase_Update(NativeGuiSinkBase& dev, AtomBase& a, double dt) {
 	// Update for time-based operations
 }
 
-bool HalUpp::UppGuiSinkBase_IsReady(NativeUppGuiSinkBase& dev, AtomBase& a, PacketIO& io) {
+bool HalUpp::GuiSinkBase_IsReady(NativeGuiSinkBase& dev, AtomBase& a, PacketIO& io) {
 	// Always ready to receive GUI data
 	return false; // We don't produce data, only receive
 }
 
-bool HalUpp::UppGuiSinkBase_AttachContext(NativeUppGuiSinkBase& dev, AtomBase& a, AtomBase& other) {
+bool HalUpp::GuiSinkBase_AttachContext(NativeGuiSinkBase& dev, AtomBase& a, AtomBase& other) {
 	return true;
 }
 
-void HalUpp::UppGuiSinkBase_DetachContext(NativeUppGuiSinkBase& dev, AtomBase& a, AtomBase& other) {
+void HalUpp::GuiSinkBase_DetachContext(NativeGuiSinkBase& dev, AtomBase& a, AtomBase& other) {
 	// Detach context
 }
 
@@ -197,16 +197,17 @@ void HalUpp::GuiFileSrc_Destroy(NativeGuiFileSrc*& dev) {
 	}
 }
 
-bool HalUpp::GuiFileSrc_Initialize(NativeGuiFileSrc& dev, AtomBase& a, const Script::WorldState& ws) {
+bool HalUpp::GuiFileSrc_Initialize(NativeGuiFileSrc& dev, AtomBase& a, const WorldState& ws) {
 	// Get file path from configuration
-	dev.form_file_path = a.Get(".file", String());
+	dev.form_file_path = ws.GetString(".file", String());
 	if (dev.form_file_path.IsEmpty()) {
 		LOG("GuiFileSrc: no file path specified");
 		return false;
 	}
 
 	// Load the .form file
-	if (!LoadFile(dev.form_file_path, dev.form_xml_data)) {
+	dev.form_xml_data = LoadFile(dev.form_file_path);
+	if (dev.form_xml_data.IsEmpty()) {
 		LOG("GuiFileSrc: failed to load file: " << dev.form_file_path);
 		return false;
 	}
@@ -238,7 +239,7 @@ void HalUpp::GuiFileSrc_Uninitialize(NativeGuiFileSrc& dev, AtomBase& a) {
 
 bool HalUpp::GuiFileSrc_Recv(NativeGuiFileSrc& dev, AtomBase& a, int sink_ch, const Packet& in) {
 	// Receive orders to reload or send
-	auto& fmt = in->GetFormat();
+	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsOrder()) {
 		// Reset sent flag to allow re-sending
 		dev.sent = false;
@@ -256,13 +257,15 @@ bool HalUpp::GuiFileSrc_Send(NativeGuiFileSrc& dev, AtomBase& a, RealtimeSourceC
 		return false;
 
 	// Create GUI packet with form XML data
-	auto& fmt = out.SetFormat();
+	ValueFormat fmt;
 	fmt.SetGui(DevCls::CENTER);
+	out.SetFormat(fmt);
 
 	// Set packet data to the form XML
 	int data_size = dev.form_xml_data.GetCount();
-	byte* data_ptr = (byte*)out.AllocData(data_size);
-	memcpy(data_ptr, dev.form_xml_data.Begin(), data_size);
+	Vector<byte>& data = out.Data();
+	data.SetCount(data_size);
+	memcpy(data.Begin(), dev.form_xml_data.Begin(), data_size);
 
 	LOG("GuiFileSrc: sending GUI packet (" << data_size << " bytes)");
 	dev.sent = true;

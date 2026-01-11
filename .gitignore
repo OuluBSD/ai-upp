@@ -43,4 +43,5 @@ thirdparty_imgui-node-editor_ref
 server_output.log
 
 tmp/
+.maestro
 

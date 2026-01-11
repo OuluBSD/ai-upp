@@ -1,24 +1,15 @@
+// GUI Event System Test: form file display using net-based format
+
 machine upp.app:
+	net gui.test:
+		center.customer
+		center.gui.filesrc:
+			file = "share/eon/forms/test_form.form"
+		upp.gui.sink:
+			close_machine = true
+			sizeable = true
+			env = "/event/register"
 
-	chain program:
-		state event.register
-
-		loop gui:
-			center.customer
-			center.gui.filesrc:
-				file = "share/eon/forms/test_form.form"
-
-			upp.gui.sink:
-				close_machine = true
-				sizeable = true
-				env = "/event/register"
-
-
-world ecs.dummy:
-    system rendering
-    system events
-    system physics:
-        //log: debug
-
-    pool world:
-        entity ground:
+		center.customer.0 -> center.gui.filesrc.0
+		center.gui.filesrc.0 -> upp.gui.sink.0
+		upp.gui.sink.0 -> center.customer.0

@@ -11,7 +11,7 @@ $genericScript = Join-Path $scriptDir "build_upptst_eon_generic.ps1"
 
 $target = "Eon07"
 # Note: X11 is excluded for Windows compatibility, using SDL2 instead
-$flags = "AI,SCREEN,SDL2,HAL,AUDIO,VIDEO,FBO,OGL,FFMPEG,OPENCV,CAMERA,SYS_PORTAUDIO"
+$flags = "AI,SCREEN,SDL2,HAL,AUDIO,VIDEO,MEDIA,VOLUMETRIC,FBO,OGL,FFMPEG,OPENCV,CAMERA,SYS_PORTAUDIO"
 
 # Build the command with proper parameter passing
 $paramArgs = @{

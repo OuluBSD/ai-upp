@@ -46,4 +46,4 @@ else
 	set --
 fi
 
-exec "$SCRIPT_DIR/build_upptst_eon_generic.sh" "$target" "AI,DEBUG_VFS" "$@"
+exec "$SCRIPT_DIR/build_upptst_eon_generic.sh" "$target" "AI,AUDIO,DEBUG_VFS" "$@"

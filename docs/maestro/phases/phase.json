@@ -1,0 +1,16 @@
+{
+  "phase_id": "phase",
+  "name": "Phase 1: Core Flag Filtering",
+  "status": "planned",
+  "completion": 0,
+  "description": [],
+  "tasks": [],
+  "track_id": "gentoo-style-use-flags-system",
+  "priority": "P2",
+  "created_at": null,
+  "updated_at": "2026-01-09T21:17:49.263690",
+  "tags": [],
+  "owner": null,
+  "dependencies": [],
+  "order": null
+}

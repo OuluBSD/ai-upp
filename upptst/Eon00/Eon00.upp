@@ -17,7 +17,7 @@ file
 	00j_audio_gen_bridge.cpp;
 
 mainconfig
-	"Release" = "AI DEBUG_VFS",
-	"Debug" = "AI DEBUG_RT DEBUG_VFS",
-	"Release (Valgrind)" = "AI DEBUG_VFS USEMALLOC";
+	"Release" = "AI .AUDIO DEBUG_VFS",
+	"Debug" = "AI .AUDIO DEBUG_RT DEBUG_VFS",
+	"Release (Valgrind)" = "AI .AUDIO DEBUG_VFS USEMALLOC";
 

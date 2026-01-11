@@ -24,7 +24,9 @@ void InterfaceBuilder::AddHal() {
 	Interface("D12VideoSinkDevice", "HAL & DX12");
 	Interface("ContextBase","HAL");
 	Interface("EventsBase","HAL");
-	
+	Interface("GuiSinkBase","HAL");
+	Interface("GuiFileSrc","HAL");
+
 	Vendor("Upp", "GUI");
 	Vendor("Sdl", "SDL2");
 	Vendor("Holo", "UWP&DX12"); // Microsoft Hololens

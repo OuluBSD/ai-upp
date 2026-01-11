@@ -999,18 +999,20 @@ public:
 };
 #endif
 
-class GuiFileSrc : public Atom {
+#if defined flagHAL
+class CenterGuiFileSrc : public CenterGuiFileSrcBase {
 
 public:
-	ATOM_CTOR_(GuiFileSrc, Atom)
-	//ATOMTYPE(GuiFileSrc)
+	ATOM_CTOR_(CenterGuiFileSrc, CenterGuiFileSrcBase)
+	//ATOMTYPE(CenterGuiFileSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();
 	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
-	
+
 };
+#endif
 
 #if (defined flagGUI && defined flagHAL)
 class UppGuiSinkDevice : public UppGuiSinkBase {

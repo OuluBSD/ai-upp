@@ -3,11 +3,6 @@
 
 #ifdef flagGUI
 
-#include <Eon/Ecs/CommonComponents.h>
-#include <Painter/Painter.h>
-#include <Vfs/Ecs/Component.h>
-#include <Vfs/Ecs/Entity.h>
-
 
 #if 0
 

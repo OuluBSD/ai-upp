@@ -10,8 +10,8 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $genericScript = Join-Path $scriptDir "build_upptst_eon_generic.ps1"
 
 $target = "Eon08"
-# Note: X11 is excluded for Windows compatibility, using SDL2 instead
-$flags = "AI,SCREEN,SDL2,HAL,OGL,FFMPEG,OPENCV,AUDIO,VIDEO,MEDIA,SYS_PORTAUDIO"
+
+$flags = "GUI,AI,SCREEN,HAL,OGL,FFMPEG,OPENCV,AUDIO,VIDEO,MEDIA,SYS_PORTAUDIO"
 
 # Build the command with proper parameter passing
 $paramArgs = @{

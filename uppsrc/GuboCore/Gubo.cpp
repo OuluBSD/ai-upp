@@ -555,7 +555,7 @@ Cubf Gubo::GetWorkArea() const {
 
 bool Gubo::ReleaseGuboCapture() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
 	if (!wins)
 		return false;
@@ -566,7 +566,7 @@ bool Gubo::ReleaseGuboCapture() {
 
 Gubo* Gubo::GetCaptureGubo() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
 	if (!wins)
 		return 0;

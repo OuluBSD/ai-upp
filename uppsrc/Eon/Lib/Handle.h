@@ -51,8 +51,10 @@ class HandleVideoBase :
 	bool					dbg_info = false;
 	int						dbg_win_id = 0;
 	#if defined flagGUI
-	WindowSystemRef			wins;
-	Gu::SurfaceSystemRef	surfs;
+	WindowSystemPtr			wins;
+	#endif
+	#if defined flagGUBO
+	Gu::SurfaceSystemPtr	surfs;
 	#endif
 	int						screen_id = -1;
 	int						add_count = 0;

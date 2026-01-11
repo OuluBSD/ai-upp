@@ -4,7 +4,7 @@ NAMESPACE_GUBO_BEGIN
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(Parallel::Engine& m) :
+HandleSystemT<Dim>::HandleSystemT(Engine& m) :
 	RefScopeEnabler<MetaSystemBase, MetaMachineBase>::SP(m) {
 	
 }

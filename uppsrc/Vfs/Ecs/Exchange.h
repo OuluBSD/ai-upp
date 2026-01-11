@@ -67,9 +67,10 @@ public:
 	
 };
 
+typedef Ptr<ExchangeProviderBase> ExchangeProviderBasePtr;
 
 class ExchangeSinkProvider :
-	public ExchangeProviderBase	
+	public ExchangeProviderBase
 {
 	
 protected:

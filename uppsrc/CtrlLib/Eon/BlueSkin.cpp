@@ -1,15 +1,15 @@
-#include "CtrlLib.h"
+#include "Eon.h"
 
 
 NAMESPACE_UPP
 
 #define IMAGECLASS BlueImg
-#define IMAGEFILE <LocalCtrl/BlueSkin.iml>
-#include IML_HEADER
+#define IMAGEFILE <CtrlLib/Eon/BlueSkin.iml>
+#include <Draw/iml_header.h>
 
 #define IMAGECLASS BlueImg
-#define IMAGEFILE <LocalCtrl/BlueSkin.iml>
-#include IML_SOURCE
+#define IMAGEFILE <CtrlLib/Eon/BlueSkin.iml>
+#include <Draw/iml_source.h>
 
 void InstallBlueToolBar()
 {

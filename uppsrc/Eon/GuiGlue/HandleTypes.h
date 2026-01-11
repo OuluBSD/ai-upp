@@ -12,6 +12,10 @@
 
 
 #ifdef flagGUI
+
+class ProgDraw;
+class ProgPainter;
+
 struct CtxUpp2D {
 	using Container = Ctrl;
 	using ContainerFrame = CtrlFrame;

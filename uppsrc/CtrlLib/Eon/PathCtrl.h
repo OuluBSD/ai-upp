@@ -1,7 +1,6 @@
-#ifndef _CtrlLib_PathCtrl_h_
-#define _CtrlLib_PathCtrl_h_
+#ifndef _CtrlLib_Eon_PathCtrl_h_
+#define _CtrlLib_Eon_PathCtrl_h_
 
-NAMESPACE_UPP
 
 class ToolBarBg : public Ctrl {
 	
@@ -40,6 +39,5 @@ public:
 	
 };
 
-END_UPP_NAMESPACE
 
 #endif

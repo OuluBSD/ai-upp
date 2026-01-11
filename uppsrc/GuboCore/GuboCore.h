@@ -2,12 +2,10 @@
 #define _GuboCore_GuboCore_h_
 
 #include <Draw/Draw.h>
-#include <Core2/Core.h>
+#include <CtrlLib/Eon/Eon.h>
 #include <CtrlCore/CtrlCore.h>
-#include <Draw/3D/3D.h>
+#include <Draw/Cuboid/Cuboid.h>
 #include <Eon/Draw/Draw.h>
-
-#include "CtrlEvent.h"
 
 #include "Defs.h"
 #include "DrawCommand.h"

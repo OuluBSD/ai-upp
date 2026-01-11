@@ -33,7 +33,7 @@
 
 
 
-#if defined LIBTOPSIDE && defined flagGUI
+#if defined flagGUBO && defined flagVIRTUALGUI
 	#define HAVE_WINDOWSYSTEM 1
 	#include <VirtualGui3D/VirtualGui3D.h>
 #endif

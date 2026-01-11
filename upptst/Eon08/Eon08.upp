@@ -2,7 +2,9 @@ uses
 	Shell;
 
 file
-	Main.cpp;
+	Eon08.h,
+	Main.cpp,
+	08a_gui.cpp;
 
 mainconfig
 	"Release" = "GUI .AI .SCREEN .HAL .FFMPEG .OPENCV .AUDIO .VIDEO .MEDIA USEMALLOC",

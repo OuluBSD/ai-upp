@@ -1959,7 +1959,7 @@ AtomTypeCls GuiFileSrc::GetType() const {
 }
 
 
-#if (defined flagHAL && defined flagGUI)
+#if (defined flagGUI && defined flagHAL)
 String UppGuiSinkDevice::GetAction() {
 	return "upp.gui.sink";
 }
@@ -1978,7 +1978,7 @@ LinkTypeCls UppGuiSinkDevice::GetLinkType() {
 }
 
 void UppGuiSinkDevice::Visit(Vis& v) {
-	VIS_THIS(GuiSinkBase);
+	VIS_THIS(UppGuiSinkBase);
 }
 
 AtomTypeCls UppGuiSinkDevice::GetType() const {

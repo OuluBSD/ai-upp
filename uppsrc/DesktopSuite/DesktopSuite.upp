@@ -2,12 +2,13 @@ description "\377B0,0,255";
 
 uses
 	CtrlLib,
-	CtrlLib2;
+	CtrlLib/Eon;
 
 uses(VIRTUALGUI) VirtualGuiAtom;
 
 file
 	DesktopSuite.h,
+	DesktopSuite.icpp,
 	Factory.h,
 	Factory.cpp,
 	TaskBar.h,

@@ -20,7 +20,8 @@ uses
 	Vfs/Factory,
 	Vfs/Overlay,
 	Eon/Script,
-	Eon/Interaction;
+	Eon/Interaction,
+	Core/Cuboid;
 
 file
 	AGENTS.md,
@@ -41,8 +42,6 @@ file
 	Entity2.cpp,
 	Exchange.h,
 	Exchange.cpp,
-	Geom.h,
-	Geom.cpp,
 	Interface.h,
 	Interface.cpp,
 	Link.h,

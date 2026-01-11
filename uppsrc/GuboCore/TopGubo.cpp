@@ -15,7 +15,7 @@ TopGubo::TopGubo() {
 
 void TopGubo::FocusEvent() {
 	using namespace Ecs;
-	Parallel::Engine& mach = GetActiveMachine();
+	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
 	if (wins) {
 		Gu::GuboManager& mgr = wins->GetActiveScope();

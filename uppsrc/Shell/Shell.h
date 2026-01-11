@@ -12,19 +12,16 @@
 
 
 #ifdef flagGUI
-#include <Eon/Ctrl/EonCtrl.h>
+ #include <CtrlLib/Eon/Eon.h>
+ #include <Eon/Ctrl/Ctrl.h>
 
-#if defined flagUWP && defined flagDX12
-	#include <EcsWin/EcsWin.h>
-#endif
+ #if defined flagUWP && defined flagDX12
+  #include <EcsWin/EcsWin.h>
+ #endif
 #endif
 
 #ifdef flagGUI
 	#include <GuboLib/GuboLib.h>
-#endif
-
-#ifdef flagGUI
-	#include <EcsCtrl/EcsCtrl.h>
 #endif
 
 #ifdef flagVR

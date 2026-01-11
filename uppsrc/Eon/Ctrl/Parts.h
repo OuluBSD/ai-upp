@@ -1,18 +1,17 @@
-#ifndef _EonCtrl_Parts_h_
-#define _EonCtrl_Parts_h_
+#ifndef _Eon_Ctrl_Parts_h_
+#define _Eon_Ctrl_Parts_h_
 
 
 class PoolTreeCtrl : public ParentCtrl {
-	Engine*		mach = 0;
-	EntityStorePtr	es;
-	PoolRef		selected;
+	Engine*				mach = 0;
+	VfsPath				selected;
 	TreeCtrl			tree;
 	uint64				last_hash = 0;
 
 	void OnCursor();
-	hash_t GetPoolTreeHash() const;
+	hash_t GetPathTreeHash() const;
 	
-	void AddPool(int parent, PoolRef pool);
+	void AddPath(int owner, VfsPath p, VfsValue& owner_vfs);
 	
 public:
 	typedef PoolTreeCtrl CLASSNAME;
@@ -22,7 +21,7 @@ public:
 	void Updated() override;
 	void Data();
 	
-	PoolRef GetSelected() {return selected;}
+	VfsPath GetSelected() {return selected;}
 	
 	Callback WhenPoolChanged;
 	
@@ -30,9 +29,8 @@ public:
 
 
 class EntityListCtrl : public ParentCtrl {
-	EntityStorePtr	es;
-	PoolRef		pool;
-	EntityPtr		selected;
+	VfsPath				owner;
+	EntityPtr			selected;
 	ArrayCtrl			list;
 	uint64				last_hash = 0;
 
@@ -43,7 +41,7 @@ public:
 	typedef EntityListCtrl CLASSNAME;
 	EntityListCtrl();
 	
-	void SetPool(PoolRef pool);
+	void SetPool(VfsPath path);
 	void Updated() override;
 	void Data();
 	
@@ -58,7 +56,7 @@ class EntityBrowserCtrl : public ParentCtrl {
 	Splitter			vsplit;
 	PoolTreeCtrl		pool_tree;
 	EntityListCtrl		ent_list;
-	PoolRef				sel_pool;
+	VfsPath				sel_pool;
 	
 	void OnPoolCursorChanged();
 	
@@ -98,7 +96,12 @@ public:
 	
 };
 
+// TODO new router based ctrls
+class InterfaceListCtrl : public ParentCtrl {
+	
+};
 
+#if 0
 class InterfaceListCtrl : public ParentCtrl {
 	LinkedList<ExchangeProviderBasePtr> ifaces;
 	ArrayCtrl list;
@@ -133,6 +136,6 @@ public:
 	Callback WhenInterfaceCursor;
 	
 };
-
+#endif
 
 #endif

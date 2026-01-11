@@ -1,14 +1,14 @@
-#include "CtrlLib.h"
+#include "Eon.h"
 
 
 NAMESPACE_UPP
 
 #define IMAGECLASS GrayImg
-#define IMAGEFILE <LocalCtrl/GraySkin.iml>
-#include IML_HEADER
+#define IMAGEFILE <CtrlLib/Eon/GraySkin.iml>
+#include <Draw/iml_header.h>
 
 #define IMAGECLASS GrayImg
-#define IMAGEFILE <LocalCtrl/GraySkin.iml>
+#define IMAGEFILE <CtrlLib/Eon/GraySkin.iml>
 #include IML_SOURCE
 
 void InstallGrayToolBar()

@@ -72,7 +72,7 @@ public:
 
 template <class Dim>
 class HandleT :
-	public RefScopeEnabler<HandleT<Dim>, ScopeT<Dim>>,
+	public Ptr<HandleT<Dim>>,
 	public Dim::Interaction
 {
 	

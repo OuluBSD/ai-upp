@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 #ifdef flagGUI
 
-DefaultGuiAppComponent::DefaultGuiAppComponent() {
+DefaultGuiAppComponent::DefaultGuiAppComponent(VfsValue& v) {
 	prev_mouse = Point(0,0);
 	
 }

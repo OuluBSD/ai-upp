@@ -5,6 +5,7 @@
 #include <Vfs/Factory/VfsFactory.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
 #include <Core/EcsDataflow/EcsDataflow.h>
+#include <Core/Cuboid/Cuboid.h>
 #include <Geometry/Geometry.h>
 
 #ifdef flagV1
@@ -26,7 +27,6 @@ NAMESPACE_UPP
 #include "Atom.h"
 #include "Engine.h"
 #include "Engine2.h"
-#include "Geom.h"
 #include "Link.h"
 #include "LinkSystem.h"
 #include "PacketTracker.h"

@@ -52,6 +52,22 @@
 #include <Eon/Draw/Draw.h>
 
 
+#ifdef flagGUI
+ #include <CtrlLib/CtrlLib.h>
+ #include <CtrlLib/Eon/Eon.h>
+ #include <Eon/Ecs/CommonComponents.h>
+ #include <Painter/Painter.h>
+ #include <Vfs/Ecs/Component.h>
+ #include <Vfs/Ecs/Entity.h>
+ #include <Geometry/GeomEvent.h>
+ #include <CtrlLib/Eon/Eon.h>
+#endif
+
+#ifdef flagGUBO
+ #include <GuboCore/CtrlEvent.h>
+#endif
+
+
 #define BIG_NUMBER 100000000
 
 NAMESPACE_UPP

@@ -4,15 +4,15 @@
 #if 0
 
 class RenderingSystem :
-	public Parallel::System
+	public System
 {
 	
 protected:
 	
 	#ifdef flagSDL2
-	Parallel::BufferT<SdlSwGfx>* sdl_sw_buf = 0;
+	BufferT<SdlSwGfx>* sdl_sw_buf = 0;
 	#ifdef flagOGL
-	Parallel::BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
+	BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
 	#endif
 	#endif
 	
@@ -44,9 +44,9 @@ public:
 	
 	
 	#ifdef flagSDL2
-	void Attach(String key, Parallel::BufferT<SdlSwGfx>* b);
+	void Attach(String key, BufferT<SdlSwGfx>* b);
 	#ifdef flagOGL
-	void Attach(String key, Parallel::BufferT<SdlOglGfx>* b);
+	void Attach(String key, BufferT<SdlOglGfx>* b);
 	void Attach(Gu::GuboManager* b);
 	#endif
 	#endif

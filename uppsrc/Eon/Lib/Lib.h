@@ -20,6 +20,7 @@
 
 #ifdef flagHAL
  #include <api/Hal/Hal.h>
+ using CenterGuiFileSrcBase = Upp::UppGuiFileSrc;
 #endif
 
 #if defined flagPHYSICS
@@ -75,12 +76,9 @@ NAMESPACE_UPP
 #include "Geom2DComponent.h"
 #include "Gui.h"
 #include "Handle.h"
-
-#include "GeneratedAudio.h"
-
-#include "GeneratedHandle.h"
 #include "GeneratedMinimal.h"
 #include "GeneratedVR.h"
+#include "GeneratedLocal.h"
 #include "RenderingSystem.h"
 #include "Absolute2D.h"
 

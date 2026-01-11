@@ -1,5 +1,7 @@
 uses
-	Shell;
+	Shell,
+	Form,
+	GridCtrl;
 
 file
 	Eon08.h,

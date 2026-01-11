@@ -40,6 +40,10 @@ struct Entity :
 	void SetChanged(int64 i)		{changed = i;}
 	String GetPrefab() const		{return prefab;}
 	String GetName() const override	{return val.id;}
+	int64 GetChanged() const {return changed;}
+	int64 GetCreated() const {return created;}
+	EntityId GetIdx() const {return idx;}
+	
 	String ToString() const override {return IntStr64(idx) + " " + prefab + (val.id.GetCount() ? ": " + val.id : String());}
 	ComponentPtr CreateEon(String id);
 	

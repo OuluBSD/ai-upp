@@ -129,4 +129,24 @@ int DataSample::GetSize(Type t) {
 }
 
 
+
+
+String GuiSample::ToString(Type t) {
+	switch (t) {
+		case INVALID: return "INVALID";
+		#define GUI_SMPL(type) \
+			case type: return #type;
+		GUI_SMPL_LIST
+		#undef GUI_SMPL
+		default: break;
+	}
+	return "<invalid-sample-type>";
+}
+
+int GuiSample::GetSize(Type t) {
+	Panic("Invalid call. (Do not use GuiSample with SimpleBufferedValue)");
+	return -1;
+}
+
+
 END_UPP_NAMESPACE

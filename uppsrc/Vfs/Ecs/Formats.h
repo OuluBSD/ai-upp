@@ -168,6 +168,25 @@ struct ProgFormat :
 	byte pad[STD_FMT_SIZE - base_size - 4];
 };
 
+struct GuiFormat :
+	SampleBase<GuiSample>,
+	DimBase<0>,
+	SparseTimeSeriesBase
+{
+	static const int text_block_size = 512;
+	static constexpr int base_size =
+		sizeof(SampleBase<GuiSample>) +
+		sizeof(DimBase<0>) +
+		sizeof(SparseTimeSeriesBase);
+
+	String	ToString() const;
+	bool	IsValid() const;
+	bool	IsSame(const GuiFormat& fmt) const;
+	int		GetFrameSize() const;
+
+	byte pad[STD_FMT_SIZE - base_size - 4];
+};
+
 #define TEST_FORMAT(x) \
 	static_assert(std::is_trivially_constructible<x>::value == true, #x " must be trivial to construct"); \
 	static_assert(sizeof(x) == STD_FMT_SIZE, "Expecting standard format size in " #x);
@@ -190,6 +209,7 @@ public:
 		EventFormat			ev;
 		FboFormat			fbo;
 		ProgFormat			prog;
+		GuiFormat			gui;
 	};
 
 public:
@@ -215,6 +235,7 @@ public:
 	bool IsEvent() const {return vd.val == ValCls::EVENT;}
 	bool IsFbo()   const {return vd.val == ValCls::FBO;}
 	bool IsProg()  const {return vd.val == ValCls::PROG;}
+	bool IsGui()   const {return vd.val == ValCls::GUI;}
 	bool IsOgl()   const {return vd.dev == DevCls::OGL;}
 	bool IsValid() const;
 	bool IsSame(const ValueFormat& f) const;
@@ -236,6 +257,7 @@ public:
 	void SetFbo(DevCls dev, BinarySample::Type t, int w, int h, int d, int freq, int sample_rate);
 	void SetEvent(DevCls dev);
 	void SetProg(DevCls dev);
+	void SetGui(DevCls dev);
 
 	operator const AudioFormat&() const {ASSERT(IsAudio()); return aud;}
 	operator       AudioFormat&()       {ASSERT(IsAudio()); return aud;}

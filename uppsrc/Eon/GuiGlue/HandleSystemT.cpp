@@ -6,8 +6,8 @@ NAMESPACE_UPP
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(Engine& m) :
-	VfsValueExt(m) {
+HandleSystemT<Dim>::HandleSystemT(VfsValue& m) :
+	System(m) {
 	
 }
 
@@ -70,7 +70,7 @@ typename HandleSystemT<Dim>::Scope& HandleSystemT<Dim>::AddScope() {
 	ASSERT_(scopes.IsEmpty(), "only 1 screen support is implemented for now: see static Ctrl::SetWindows");
 	lock.Enter();
 	Scope& s = scopes.Add();
-	s.SetParent(RefParent1<HandleSystemT<Dim>>(this));
+	TODO //s.SetParent(RefParent1<HandleSystemT<Dim>>(this));
 	lock.Leave();
 	
 	//s.Init();
@@ -113,6 +113,7 @@ void HandleSystemT<Dim>::DoEvents(const EventCollection& ev) {
 			this->GetEngine().SetNotRunning();
 			break;
 		
+		#if defined flagVIRTUALGUI || defined flagSUBWINDOWS
 		case EVENT_KEYDOWN:
 			Ctrl::DoKeyFB(e.value, e.n);
 			break;
@@ -132,6 +133,7 @@ void HandleSystemT<Dim>::DoEvents(const EventCollection& ev) {
 		case EVENT_MOUSE_EVENT:
 			Ctrl::DoMouseFB(e.n, e.pt, e.value);
 			break;
+		#endif
 		
 		default:
 			TODO
@@ -203,15 +205,16 @@ Image HandleSystemT<Dim>::DefaultCursor() {
 }
 
 
-
+#ifdef flagSUBWINDOWS
 template <>
 bool HandleSystemT<CtxUpp2D>::Initialize(const WorldState& ws) {
 	RealizeScope();
 	return true;
 }
+#endif
 
 
-PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(HandleSystemT)
+GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(HandleSystemT)
 
 
 END_UPP_NAMESPACE

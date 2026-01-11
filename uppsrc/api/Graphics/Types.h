@@ -49,7 +49,7 @@ NAMESPACE_UPP
 #else
 	#define GFX_RENDSYS_LIST
 	#if defined flagCLANG || defined flagGCC
-		#warning no render system in IGraphics
+		//#warning no render system in IGraphics
 	#endif
 #endif
 

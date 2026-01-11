@@ -999,6 +999,34 @@ public:
 };
 #endif
 
+class GuiFileSrc : public Atom {
+
+public:
+	ATOM_CTOR_(GuiFileSrc, Atom)
+	//ATOMTYPE(GuiFileSrc)
+	static String GetAction();
+	static AtomTypeCls GetAtomType();
+	static LinkTypeCls GetLinkType();
+	void Visit(Vis& v) override;
+	AtomTypeCls GetType() const override;
+	
+};
+
+#if (defined flagHAL && defined flagGUI)
+class UppGuiSinkDevice : public UppGuiSinkBase {
+
+public:
+	ATOM_CTOR_(UppGuiSinkDevice, UppGuiSinkBase)
+	//ATOMTYPE(UppGuiSinkDevice)
+	static String GetAction();
+	static AtomTypeCls GetAtomType();
+	static LinkTypeCls GetLinkType();
+	void Visit(Vis& v) override;
+	AtomTypeCls GetType() const override;
+	
+};
+#endif
+
 #if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
 class SdlVideoAtomPipe : public SdlCenterVideoSinkDevice {
 

@@ -70,6 +70,7 @@ struct VfsPath : Moveable<VfsPath> {
 	void    RemoveLast();
 	hash_t  GetHashValue() const;
 	bool operator==(const VfsPath& p) const;
+	bool operator!=(const VfsPath& p) const;
 	bool operator==(const String& p) const;
 	void    Visit(Visitor& v);
 	bool    IsSysDirectory() const;

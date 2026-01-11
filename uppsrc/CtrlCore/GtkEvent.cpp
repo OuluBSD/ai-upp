@@ -829,7 +829,7 @@ void WakeUpGuiThread()
 	g_main_context_wakeup(g_main_context_default());
 }
 
-void Ctrl::EventLoop(Ctrl *ctrl)
+Ctrl::EventLoopContext Ctrl::EventLoopBegin(Ctrl *ctrl)
 {
 	GuiLock __;
 
@@ -837,27 +837,65 @@ void Ctrl::EventLoop(Ctrl *ctrl)
 
 	ASSERT_(IsMainThread(), "EventLoop can only run in the main thread");
 	ASSERT(LoopLevel == 0 || ctrl);
+
+	EventLoopContext ctx;
+	ctx.ctrl = ctrl;
+	ctx.quit = false;
+
 	LoopLevel++;
 	LLOG("Entering event loop at level " << LoopLevel << LOG_BEGIN);
+
 	if(!GetMouseRight() && !GetMouseMiddle() && !GetMouseLeft())
 		ReleaseCtrlCapture();
-	Ptr<Ctrl> ploop;
+
 	if(ctrl) {
-		ploop = LoopCtrl;
+		ctx.prev_loop_ctrl = LoopCtrl;
 		LoopCtrl = ctrl;
 		ctrl->inloop = true;
 	}
 
-	while(!IsEndSession() &&
-	      (ctrl ? ctrl->IsOpen() && ctrl->InLoop() : GetTopCtrls().GetCount())) {
-		FetchEvents(TRUE);
-		ProcessEvents();
-	}
+	ctx.loop_no = ++EventLoopNo;
+	return ctx;
+}
 
-	if(ctrl)
-		LoopCtrl = ploop;
+bool Ctrl::EventLoopIteration(EventLoopContext& ctx)
+{
+	GuiLock __;
+
+	// Check if should continue
+	if(IsEndSession() || ctx.quit)
+		return false;
+
+	if(ctx.ctrl && (!ctx.ctrl->IsOpen() || !ctx.ctrl->InLoop()))
+		return false;
+
+	if(!ctx.ctrl && GetTopCtrls().GetCount() == 0)
+		return false;
+
+	// GTK-specific event processing
+	FetchEvents(TRUE);
+	ProcessEvents();
+
+	return true;
+}
+
+void Ctrl::EventLoopEnd(EventLoopContext& ctx)
+{
+	GuiLock __;
+
+	if(ctx.ctrl)
+		LoopCtrl = ctx.prev_loop_ctrl;
+
 	LoopLevel--;
 	LLOG(LOG_END << "Leaving event loop ");
+}
+
+void Ctrl::EventLoop(Ctrl *ctrl)
+{
+	EventLoopContext ctx = EventLoopBegin(ctrl);
+	while(EventLoopIteration(ctx))
+		;
+	EventLoopEnd(ctx);
 }
 
 gboolean sOnce(GtkWidget *)

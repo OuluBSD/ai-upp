@@ -1933,6 +1933,60 @@ AtomTypeCls UppEventAtomPipe::GetType() const {
 #endif
 
 
+String GuiFileSrc::GetAction() {
+	return "center.gui.filesrc";
+}
+
+AtomTypeCls GuiFileSrc::GetAtomType() {
+	AtomTypeCls t;
+	t.sub = SUB_ATOM_CLS; //GUIFILESRC;
+	t.role = AtomRole::PIPE;
+	t.AddIn(VD(CENTER,ORDER),0);
+	t.AddOut(VD(CENTER,GUI),0);
+	return t;
+}
+
+LinkTypeCls GuiFileSrc::GetLinkType() {
+	return LINKTYPE(PIPE, PROCESS);
+}
+
+void GuiFileSrc::Visit(Vis& v) {
+	VIS_THIS(Atom);
+}
+
+AtomTypeCls GuiFileSrc::GetType() const {
+	return GetAtomType();
+}
+
+
+#if (defined flagHAL && defined flagGUI)
+String UppGuiSinkDevice::GetAction() {
+	return "upp.gui.sink";
+}
+
+AtomTypeCls UppGuiSinkDevice::GetAtomType() {
+	AtomTypeCls t;
+	t.sub = SUB_ATOM_CLS; //UPPGUISINKDEVICE;
+	t.role = AtomRole::PIPE;
+	t.AddIn(VD(CENTER,GUI),0);
+	t.AddOut(VD(CENTER,RECEIPT),0);
+	return t;
+}
+
+LinkTypeCls UppGuiSinkDevice::GetLinkType() {
+	return LINKTYPE(POLLER_PIPE, PROCESS);
+}
+
+void UppGuiSinkDevice::Visit(Vis& v) {
+	VIS_THIS(UppGuiSinkBase);
+}
+
+AtomTypeCls UppGuiSinkDevice::GetType() const {
+	return GetAtomType();
+}
+#endif
+
+
 #if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
 String SdlVideoAtomPipe::GetAction() {
 	return "sdl.video.pipe";

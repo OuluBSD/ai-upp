@@ -8,37 +8,37 @@ struct EntityDataCtrl : public ComponentCtrl {
 	
 	EntityDataCtrl();
 	
-	void UpdateEntityData(Entity& e);
-	void AddEntityDataRow(UPP::Value key, UPP::Value value);
+	void UpdateData(VfsValue& v);
+	void AddRow(UPP::Value key, UPP::Value value);
 	
 	void SetComponent(Component&) override {}
 	
 };
 
 class EntityCtrl : public ParentCtrl {
-	ArrayMap<TypeId, ComponentCtrl>		comp_ctrls;
+	ArrayMap<TypeCls, ComponentCtrl>	comp_ctrls;
 	Splitter							vsplit, hsplit;
-	EntityBrowserCtrl					ent_browser;
-	EntityContentCtrl					ent_content;
-	EntityDataCtrl						ent_data;
-	ParentCtrl							ent_cont;
+	VfsBrowserCtrl						vfs_browser;
+	VfsContentCtrl						vfs_content;
+	EntityDataCtrl						vfs_data;
+	ParentCtrl							vfs_cont;
 	
-	EntityPtr						sel_ent;
+	VfsValuePtr							selected;
 	ComponentCtrl*						active_ctrl = 0;
-	Engine*						mach = 0;
+	Engine*								mach = 0;
 	
 	void ClearActiveCtrl();
-	void UpdateEntityData();
-	void SetEntityDataCtrl();
+	void UpdateData();
+	void SetDataCtrl();
 	void SetComponentCtrl(Component& c);
 	
 public:
 	typedef EntityCtrl CLASSNAME;
 	EntityCtrl();
 	
-	void SetEngine(Engine& m) {mach = &m; ent_browser.SetEngine(m);}
+	void SetEngine(Engine& m) {mach = &m; vfs_browser.SetEngine(m);}
 	void Updated() override;
-	void OnEntityCursorChanged();
+	void OnVfsCursorChanged();
 	void OnContentCursorChanged();
 	
 	

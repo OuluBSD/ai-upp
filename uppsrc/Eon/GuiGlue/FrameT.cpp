@@ -1,5 +1,5 @@
 #include "GuiGlue.h"
-
+#include <CtrlLib/Eon/Eon.h>
 #ifdef flagGUI
 
 NAMESPACE_UPP
@@ -14,14 +14,15 @@ FrameT<Dim>::FrameT() {
 }
 
 
+#ifdef flagSUBWINDOWS
 template <>
 FrameT<CtxUpp2D>::FrameT() {
 	//geom.SetTargetCtrl(*this);
 	
-	close.SetImage(FBImg::close());
+	close.SetImage(DbgImages::close());
 	close.EdgeStyle();
 	Add(close);
-	maximize.SetImage(FBImg::maximize());
+	maximize.SetImage(DbgImages::maximize());
 	maximize.EdgeStyle();
 	Add(maximize);
 	maximize <<= THISBACK(ToggleMaximize);
@@ -48,7 +49,7 @@ void FrameT<CtxUpp2D>::SetFrameBox(Box b) {
 template <>
 Rect FrameT<CtxUpp2D>::Margins() const
 {
-	return maximized ? Rect(0,0,0,0) : ChMargins(FBImg::border());
+	return maximized ? Rect(0,0,0,0) : ChMargins(DbgImages::border());
 }
 
 template <>
@@ -58,9 +59,9 @@ void FrameT<CtxUpp2D>::Paint(DrawT& w) {
 	Size sz = Ctrl::GetSize();
 	Box m = Margins();
 	int c = GetStdFontCy() + 4;
-	ChPaintEdge(w, sz, FBImg::border());
+	ChPaintEdge(w, sz, DbgImages::border());
 	ChPaint(w, m.left, m.top, sz.cx - m.left - m.right, GetStdFontCy() + 4,
-	        window->IsForeground() ? FBImg::title() : FBImg::bgtitle());
+	        window->IsForeground() ? DbgImages::title() : DbgImages::bgtitle());
 	int tx = m.left + 2;
 	int tcx = sz.cx - m.left - m.right - 4 - c * (close.IsShown() + maximize.IsShown());
 	if(!IsNull(icon)) {
@@ -164,7 +165,7 @@ void FrameT<Dim>::Maximize()
 		maximized = true;
 		overlapped = this->GetFrameBox();
 		this->SetFrameBox(GetWorkArea().GetSize());
-		maximize.SetImage(FBImg::overlap());
+		maximize.SetImage(DbgImages::overlap());
 	}
 }
 
@@ -174,7 +175,7 @@ void FrameT<Dim>::Overlap()
 	if(maximized && maximize.IsShown()) {
 		maximized = false;
 		this->SetFrameBox(overlapped);
-		maximize.SetImage(FBImg::maximize());
+		maximize.SetImage(DbgImages::maximize());
 	}
 }
 
@@ -450,7 +451,7 @@ template <>
 Point FrameT<CtxUpp2D>::GetDragMode(Pt p)
 {
 	Sz sz = this->GetFrameSize();
-	Box m = ChMargins(FBImg::border());
+	Box m = ChMargins(DbgImages::border());
 	Point dir;
 	dir.y = p.y < m.top ? -1 : p.y > sz.cy - m.top ? 1 : 0;
 	dir.x = p.x < m.left ? -1 : p.x > sz.cx - m.right ? 1 : 0;
@@ -504,8 +505,9 @@ void FrameT<CtxUpp2D>::MouseMove(Pt, dword keyflags) {
 	#endif
 }
 
+#endif
 
-PLIB_TYPE_EXCPLICIT_INITIALIZE_CLASS(FrameT)
+GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(FrameT)
 
 
 END_UPP_NAMESPACE

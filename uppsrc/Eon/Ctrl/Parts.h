@@ -2,8 +2,8 @@
 #define _Eon_Ctrl_Parts_h_
 
 
-class PoolTreeCtrl : public ParentCtrl {
-	Engine*				mach = 0;
+class VfsTreeCtrl : public ParentCtrl {
+	Ptr<Engine>			mach;
 	VfsPath				selected;
 	TreeCtrl			tree;
 	uint64				last_hash = 0;
@@ -11,11 +11,11 @@ class PoolTreeCtrl : public ParentCtrl {
 	void OnCursor();
 	hash_t GetPathTreeHash() const;
 	
-	void AddPath(int owner, VfsPath p, VfsValue& owner_vfs);
+	void AddPath(int parent, VfsValue& parent_vfs);
 	
 public:
-	typedef PoolTreeCtrl CLASSNAME;
-	PoolTreeCtrl();
+	typedef VfsTreeCtrl CLASSNAME;
+	VfsTreeCtrl();
 	
 	void SetEngine(Engine& m);
 	void Updated() override;
@@ -23,74 +23,74 @@ public:
 	
 	VfsPath GetSelected() {return selected;}
 	
-	Callback WhenPoolChanged;
+	Callback WhenVfsChanged;
 	
 };
 
 
-class EntityListCtrl : public ParentCtrl {
-	VfsPath				owner;
-	EntityPtr			selected;
+class VfsListCtrl : public ParentCtrl {
+	Ptr<Engine>			mach;
+	VfsPath				scope;
+	VfsValuePtr			selected;
 	ArrayCtrl			list;
 	uint64				last_hash = 0;
 
 	void OnCursor();
-	hash_t GetEntityListHash() const;
-	
+	hash_t GetVfsListHash() const;
+	VfsValue* GetCurrent() const;
 public:
-	typedef EntityListCtrl CLASSNAME;
-	EntityListCtrl();
+	typedef VfsListCtrl CLASSNAME;
+	VfsListCtrl();
 	
-	void SetPool(VfsPath path);
+	void SetScope(VfsPath path);
 	void Updated() override;
 	void Data();
 	
-	EntityPtr GetSelected() {return selected;}
+	VfsValuePtr GetSelected() {return selected;}
 	
-	Callback WhenEntityChanged;
+	Callback WhenVfsChanged;
 	
 };
 
 
-class EntityBrowserCtrl : public ParentCtrl {
+class VfsBrowserCtrl : public ParentCtrl {
 	Splitter			vsplit;
-	PoolTreeCtrl		pool_tree;
-	EntityListCtrl		ent_list;
-	VfsPath				sel_pool;
+	VfsTreeCtrl			vfs_tree;
+	VfsListCtrl			vfs_list;
+	VfsPath				scope;
 	
-	void OnPoolCursorChanged();
+	void OnVfsCursorChanged();
 	
 public:
-	typedef EntityBrowserCtrl CLASSNAME;
-	EntityBrowserCtrl();
+	typedef VfsBrowserCtrl CLASSNAME;
+	VfsBrowserCtrl();
 	
-	void SetEngine(Engine& m) {pool_tree.SetEngine(m);}
+	void SetEngine(Engine& m) {vfs_tree.SetEngine(m);}
 	void Updated() override;
 	void Data();
-	EntityPtr GetSelected() {return ent_list.GetSelected();}
+	VfsValuePtr GetSelected() {return vfs_list.GetSelected();}
 	
-	Callback WhenEntityChanged;
+	Callback WhenVfsChanged;
 	
 };
 
-class EntityContentCtrl : public ParentCtrl {
+class VfsContentCtrl : public ParentCtrl {
 	TreeCtrl tree;
-	Image ent_icon, comp_icon, iface_icon;
-	EntityPtr ent;
-	int64 ent_changed_time = -1;
-	VectorMap<int, int> node_comps;
+	Image ent_icon, comp_icon, iface_icon, vfs_icon;
+	VfsValuePtr selected;
+	int64 vfs_changed_time = -1;
 	
 	void OnCursor();
-	void AddTreeEntity(int tree_i, const Entity& e);
+	void AddTreeVfs(int tree_i, VfsValue& v);
 	
 public:
-	typedef EntityContentCtrl CLASSNAME;
-	EntityContentCtrl();
+	typedef VfsContentCtrl CLASSNAME;
+	VfsContentCtrl();
 	
 	void Updated() override;
 	
-	void SetEntity(EntityPtr e) {ent = e;}
-	void GetCursor(ComponentPtr& c);
+	void SetSelected(VfsValuePtr v) {selected = v;}
+	void GetCursor(VfsValuePtr& v);
 	
 	Callback WhenContentCursor;
 	
@@ -98,44 +98,12 @@ public:
 
 // TODO new router based ctrls
 class InterfaceListCtrl : public ParentCtrl {
-	
-};
-
-#if 0
-class InterfaceListCtrl : public ParentCtrl {
-	LinkedList<ExchangeProviderBasePtr> ifaces;
-	ArrayCtrl list;
-	EntityPtr ent;
-	int64 ent_changed_time = -1;
-	int write_cursor;
-	
-	void OnCursor();
-	void Data();
-	
-	
-	template <class T>
-	void AddInterface(int comp_i, Ptr<T> o) {
-		int iface_i = ifaces.GetCount();
-		ifaces.Add(o);
-		list.Set(write_cursor, 0, comp_i);
-		list.Set(write_cursor, 1, iface_i);
-		list.Set(write_cursor, 2, TypeId(AsTypeCls<T>()).CleanDemangledName());
-		list.Set(write_cursor, 3, o->GetConnections().GetCount());
-		write_cursor++;
-	}
-	
 public:
-	typedef InterfaceListCtrl CLASSNAME;
-	InterfaceListCtrl();
-	
-	void Updated() override;
-	
-	void SetEntity(EntityPtr e) {ent = e;}
-	void GetCursor(ComponentPtr& c, ExchangeProviderBasePtr& i);
+	virtual void SetSelected(VfsValuePtr v) {}
+	virtual void GetCursor(ComponentPtr& c, ExchangeProviderBasePtr& b) {}
 	
 	Callback WhenInterfaceCursor;
-	
 };
-#endif
 
 #endif
+

@@ -72,6 +72,8 @@
 
 NAMESPACE_UPP
 
+#include "Geom2DComponent.h"
+#include "Gui.h"
 #include "Handle.h"
 
 #include "GeneratedAudio.h"
@@ -81,8 +83,6 @@ NAMESPACE_UPP
 #include "GeneratedVR.h"
 #include "RenderingSystem.h"
 #include "Absolute2D.h"
-#include "Geom2DComponent.h"
-#include "Gui.h"
 
 #ifdef flagPHYSICS
  #include "EcsPhysics.h"

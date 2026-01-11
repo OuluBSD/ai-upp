@@ -1,24 +1,17 @@
-machine sdl.app:
-	
-	driver context:
-		x11.sw.context
-	
+machine upp.app:
+
 	chain program:
 		state event.register
-		
-		loop video:
+
+		loop gui:
 			center.customer
-			x11.sw.fbo.program:
-				drawmem =		"false"
-				program =		"ecs_view"
-				shader.default.frag.name =	"obj_view"
-				shader.default.vtx.name =	"obj_view"
-			
-			x11.sw.video.pipe:
-				close_machine =	true
-				sizeable =		true
+			center.gui.filesrc:
+				file = "share/eon/forms/test_form.form"
+
+			upp.gui.sink:
+				close_machine = true
+				sizeable = true
 				env = "/event/register"
-				recv.data =      true
 
 
 world ecs.dummy:
@@ -26,6 +19,6 @@ world ecs.dummy:
     system events
     system physics:
         //log: debug
-    
+
     pool world:
         entity ground:

@@ -1,8 +1,6 @@
 #ifndef _GraphLib_GraphLib_h_
 #define _GraphLib_GraphLib_h_
 
-#include <LocalCtrl/LocalCtrl.h>
-
 
 #define GRAPHLIB						GraphLib
 #define NAMESPACE_GRAPHLIB_BEGIN		namespace  Upp { namespace  GRAPHLIB {

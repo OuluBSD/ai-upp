@@ -37,8 +37,8 @@ class HandleVideoBase :
 	struct Binder;
 	struct HandleVideoBasePimpl; // Forward declaration for pimpl
 	
-	One<HandleVideoBasePimpl> pimpl; // PIMPL to manage binders where complete type is known
-	HandleVideoBase* active = 0;
+	static HandleVideoBasePimpl& GetPimpl(); // PIMPL to manage binders where complete type is known
+	static HandleVideoBase* active;
 	
 	String					target;
 	EnvStatePtr				state;
@@ -50,8 +50,10 @@ class HandleVideoBase :
 	bool					add_ecs = false;
 	bool					dbg_info = false;
 	int						dbg_win_id = 0;
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	WindowSystemPtr			wins;
+	Upp::Ctrl::EventLoopContext gui_event_ctx;  // Event loop context for GUI
+	bool					gui_event_ctx_active = false;
 	#endif
 	#if defined flagGUBO
 	Gu::SurfaceSystemPtr	surfs;
@@ -88,8 +90,8 @@ public:
 	void AddBinders();
 	void AddBinderActive(Binder& b);
 	
-	void AddBinder(BinderIfaceVideo* iface);
-	void RemoveBinder(BinderIfaceVideo* iface);
+	static void AddBinder(BinderIfaceVideo* iface);
+	static void RemoveBinder(BinderIfaceVideo* iface);
 	
 	static Callback1<HandleVideoBase*>	WhenInitialize;
 	

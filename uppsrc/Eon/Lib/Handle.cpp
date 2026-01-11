@@ -125,12 +125,19 @@ HandleVideoBase::HandleVideoBase(VfsValue& n) : Atom(n) {
 	if (!active) {
 		active = this;
 	}
-	pimpl.Create(); // Create the pimpl object that manages binders
+	GetPimpl(); // Create the pimpl object that manages binders
 }
 
 HandleVideoBase::~HandleVideoBase() {
 	// Destructor defined here where complete types are known
 	// This ensures safe destruction of pimpl which contains Array<Binder>
+
+	#if defined flagGUI && defined flagSUBWINDOWS
+	if (gui_event_ctx_active) {
+		Ctrl::EventLoopEnd(gui_event_ctx);
+		gui_event_ctx_active = false;
+	}
+	#endif
 }
 
 bool HandleVideoBase::IsActive() const {
@@ -150,7 +157,7 @@ bool HandleVideoBase::Initialize(const WorldState& ws) {
 	if (GetSourceValue(0).GetFormat().IsReceipt())
 		add_ecs = true;
 	
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	wins = GetEngine().TryGet<WindowSystem>();
 	#endif
 	#if defined flagGUBO
@@ -183,19 +190,19 @@ bool HandleVideoBase::PostInitialize() {
 
 void HandleVideoBase::Stop() {
 	state = 0;
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	wins->Close();
 	#endif
 	#if defined flagGUBO
 	surfs.Clear();
 	#endif
 	if (IsActive())
-		pimpl->binders.Clear();
+		GetPimpl().binders.Clear();
 }
 
 void HandleVideoBase::Uninitialize() {
 	if (IsActive()) {
-		pimpl->binders.Clear(); // Array<Binder> in pimpl will be cleared properly
+		GetPimpl().binders.Clear(); // Array<Binder> in pimpl will be cleared properly
 		active = 0;
 	}
 }
@@ -203,10 +210,10 @@ void HandleVideoBase::Uninitialize() {
 void HandleVideoBase::Visit(Vis& v) {
 	VIS_THIS(Atom);
 	if (IsActive())
-		v | pimpl->binders;
+		v | GetPimpl().binders;
 	v & state;
 	
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	v & wins;
 	#endif
 	#if defined flagGUBO
@@ -220,7 +227,7 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	bool render_win = false;
 	
 	if (0) {}
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	else if (wins && screen_id < wins->GetScreenCount()) {
 		render_win = true;
 	}
@@ -234,8 +241,8 @@ bool HandleVideoBase::IsReady(PacketIO& io) {
 	
 	bool b =	io.active_sink_mask == iface_sink_mask &&
 				io.full_src_mask == 0 &&
-				(pimpl->binders.GetCount() > 0 || render_win);
-	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << pimpl->binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
+				(GetPimpl().binders.GetCount() > 0 || render_win);
+	RTLOG("HandleVideoBase::IsReady: " << (b ? "true" : "false") << " (binders " << GetPimpl().binders.GetCount() << ", " << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
 	
 	return b;
 }
@@ -252,7 +259,7 @@ void HandleVideoBase::RedrawScreen() {
 		pd.Create(sz);*/
 	
 	bool render_win = false;
-	#if defined flagGUI
+	#if defined flagGUI && defined flagSUBWINDOWS
 	if (wins && screen_id < wins->GetScreenCount()) {
 		/*ASSERT(sz.cx > 0 && sz.cy > 0);
 		ProgPainter& pp = pd.GetPainter();
@@ -311,9 +318,9 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 	else*/
 	if (IsActive()) {
 		
-		for (Binder& b : pimpl->binders) {
+		for (Binder& b : GetPimpl().binders) {
 			
-			#if defined flagGUI
+			#if defined flagGUI && defined flagSUBWINDOWS
 			if (wins) {
 				int scope_count = wins->GetScopeCount();
 				ASSERT(scope_count);
@@ -321,9 +328,15 @@ void HandleVideoBase::Finalize(RealtimeSourceConfig& cfg) {
 					// TODO multi AtomVirtualGui support and update VirtualGuiPtr here
 					//      also, put Ctrl::desktop etc to own class and instance
 					ASSERT(scope_count == 1);
-					
-					Ctrl::EventLoopIteration(NULL);
-					//Ctrl::PaintAll(); // -> public Ctrl::DoPaint();
+
+					// Initialize context on first use
+					if (!gui_event_ctx_active) {
+						gui_event_ctx = Ctrl::EventLoopBegin(NULL);
+						gui_event_ctx_active = true;
+					}
+
+					// Process one iteration
+					Ctrl::EventLoopIteration(gui_event_ctx);
 				}
 			}
 			#endif
@@ -408,33 +421,35 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 	ValueFormat fmt = out.GetFormat();
 	if (fmt.IsProg()) {
 		if (IsScreenMode()) {
-			#if defined flagGUI
+			#if defined flagGUI && defined flagSUBWINDOWS
 			if (wins && screen_id >= 0 && screen_id < wins->GetScreenCount()) {
 				WindowManager& w = wins->GetScope(screen_id);
 				ProgDraw& pd = w.GetDraw();
 				ProgPainter& pp = pd.GetPainter();
 				InternalPacketData& data = out.SetData<InternalPacketData>();
-				
+
 				pd.Realize(this, w.GetSize());
-				
+
 				#ifdef flagVIRTUALGUI
 				UPP::AtomVirtualGui* vgui = CastPtr<AtomVirtualGui>(VirtualGuiPtr);
 				ASSERT(VirtualGuiPtr && vgui);
 				vgui->SetTarget(pd);
 				#else
-				#error TODO
+				TODO
 				#endif
-				
-				Ctrl::EventLoopIteration(NULL);
-				
-				// h4x
-				if (!pp.GetCurrentBegin()) {
-					Ctrl::PaintAll(true);
+
+				// Initialize context on first use
+				if (!gui_event_ctx_active) {
+					gui_event_ctx = Ctrl::EventLoopBegin(NULL);
+					gui_event_ctx_active = true;
 				}
-				
+				Ctrl::EventLoopIteration(gui_event_ctx);
+
+				// h4x - PaintAll removed, handled by EventLoopIteration
+
 				data.ptr = pp.GetCurrentBegin();
 				ASSERT(data.ptr);
-				
+
 				#if 0
 				{
 					DrawCommand* begin = pp.GetCurrentBegin();
@@ -448,6 +463,8 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				ASSERT(0);
 				#endif
 			}
+			#endif
+			#if defined flagGUBO
 			if (surfs && screen_id >= 0 && screen_id < surfs->GetScreenCount()) {
 				Gu::SurfaceManager& w = surfs->GetScope(screen_id);
 				auto& pd = w.GetDraw();
@@ -495,8 +512,8 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 			#endif
 		}
 		else {
-			if (pimpl->binders.GetCount() == 1) {
-				Binder& b = pimpl->binders.Top();
+			if (GetPimpl().binders.GetCount() == 1) {
+				Binder& b = GetPimpl().binders.Top();
 				
 				DrawCommand *begin = 0, *end = 0;
 				b.iface->RenderProg(begin, end);
@@ -504,7 +521,7 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 				InternalPacketData& data = out.SetData<InternalPacketData>();
 				data.ptr = begin;
 			}
-			else if (pimpl->binders.GetCount() > 1) {
+			else if (GetPimpl().binders.GetCount() > 1) {
 				TODO // join multiple draw command vectors from binders to one
 			}
 			else {
@@ -524,9 +541,9 @@ bool HandleVideoBase::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_
 }
 
 void HandleVideoBase::AddBinders() {
-	ASSERT(pimpl->binders.IsEmpty());
+	ASSERT(GetPimpl().binders.IsEmpty());
 	#if 0
-	for (Binder& b : pimpl->binders)
+	for (Binder& b : GetPimpl().binders)
 		if (!b.abs_iface)
 			AddBinderActive(b);
 	#endif
@@ -545,7 +562,7 @@ void HandleVideoBase::AddBinderActive(Binder& b) {
 }
 
 void HandleVideoBase::AddBinder(BinderIfaceVideo* iface) {
-	Binder& b = pimpl->binders.Add();
+	Binder& b = GetPimpl().binders.Add();
 	b.iface = iface;
 	
 	if (active)
@@ -554,7 +571,7 @@ void HandleVideoBase::AddBinder(BinderIfaceVideo* iface) {
 
 void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 	int pos = -1, i = 0;
-	for (Binder& b : pimpl->binders) {
+	for (Binder& b : GetPimpl().binders) {
 		if (b.iface == iface) {
 			pos = i;
 			break;
@@ -564,7 +581,7 @@ void HandleVideoBase::RemoveBinder(BinderIfaceVideo* iface) {
 	ASSERT(pos >= 0);
 	if (pos < 0) return;
 	
-	Binder& b = pimpl->binders[pos];
+	Binder& b = GetPimpl().binders[pos];
 	
 	TODO
 	#if 0
@@ -751,6 +768,17 @@ void HandleOglBase::AddBinder(BinderIfaceOgl* iface) {
 void HandleOglBase::RemoveBinder(BinderIfaceOgl* iface) {
 	VectorRemoveKey(binders, iface);
 }
+#endif
+
+
+
+#if defined flagSCREEN
+HandleVideoBase::HandleVideoBasePimpl& HandleVideoBase::GetPimpl() {
+	static HandleVideoBasePimpl p;
+	return p;
+}
+
+HandleVideoBase* HandleVideoBase::active;
 #endif
 
 

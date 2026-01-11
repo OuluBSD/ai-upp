@@ -6,11 +6,11 @@ NAMESPACE_UPP
 
 InterfaceCtrlFactoryMap& GetInterfaceCtrlFactoryMap() {static InterfaceCtrlFactoryMap map; return map;}
 
-void RegisterInterfaceCtrlFactory(TypeId iface, InterfaceCtrlFactory fac) {
+void RegisterInterfaceCtrlFactory(TypeCls iface, InterfaceCtrlFactory fac) {
 	GetInterfaceCtrlFactoryMap().GetAdd(iface) = fac;
 }
 
-InterfaceCtrl* NewInterfaceCtrl(TypeId iface) {
+InterfaceCtrl* NewInterfaceCtrl(TypeCls iface) {
 	auto& map = GetInterfaceCtrlFactoryMap();
 	InterfaceCtrlFactory fn = 0;
 	int i = map.Find(iface);

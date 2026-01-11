@@ -258,6 +258,10 @@ bool VfsPath::operator==(const VfsPath& p) const {
 	return this->str == p.str;
 }
 
+bool VfsPath::operator!=(const VfsPath& p) const {
+	return this->str != p.str;
+}
+
 bool VfsPath::operator==(const String& s) const {
 	return this->str == s;
 }

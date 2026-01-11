@@ -6,7 +6,7 @@ NAMESPACE_UPP
 
 #ifdef flagGUI
 
-DefaultGuiAppComponent::DefaultGuiAppComponent(VfsValue& v) {
+DefaultGuiAppComponent::DefaultGuiAppComponent(VfsValue& v) : Component(v) {
 	prev_mouse = Point(0,0);
 	
 }
@@ -16,17 +16,11 @@ void DefaultGuiAppComponent::Visit(Vis& v) {
 	/*if (test) vis % *test;*/
 	
 	//vis & wins;
-	v ("cw", cw)
-	  ("trans", trans)
-	  ("trans2", trans2);
-}
-
-void DefaultGuiAppComponent::Serialize(Stream& e) {
-	e % prev_mouse;
-	
-	EtherizeRef(e, cw);
-	EtherizeRef(e, trans);
-	EtherizeRef(e, trans2);
+	v ("prev_mouse", prev_mouse)
+	  //("cw", cw)
+	  //("trans", trans)
+	  //("trans2", trans2)
+	  ;
 }
 
 bool DefaultGuiAppComponent::Initialize(const WorldState& ws) {
@@ -42,9 +36,9 @@ bool DefaultGuiAppComponent::Initialize(const WorldState& ws) {
 
 void DefaultGuiAppComponent::Uninitialize() {
 	//wins.Clear();
-	cw.Clear();
-	trans.Clear();
-	trans2.Clear();
+	cw = 0;
+	trans = 0;
+	trans2 = 0;
 	
 	RemoveFromUpdateList();
 	HandleVideoBase::RemoveBinder(this);
@@ -56,14 +50,12 @@ void DefaultGuiAppComponent::Update(double dt) {
 }
 
 void DefaultGuiAppComponent::StateStartup(GfxDataState& state) {
-	Engine& eng = GetActiveEngine();
-	EntityStorePtr ents = eng.TryGet<EntityStore>();
-	RenderingSystemRef rend = eng.TryGet<RenderingSystem>();
-	if (!ents || !rend) {
+	RenderingSystemPtr rend = val.FindOwnerWith<RenderingSystem>();
+	if (!rend) {
 		LOG("DefaultGuiAppComponent::StateStartup: EntityStore or RenderingSystem not available yet");
 		return;
 	}
-	PoolRef models = ents->GetRoot()->GetAddPool("models");
+	//PoolRef models = ents->GetRoot()->GetAddPool("models");
 	
 	TODO
 }

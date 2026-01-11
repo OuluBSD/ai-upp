@@ -9,7 +9,7 @@ NAMESPACE_UPP
 
 #define IMAGECLASS GrayImg
 #define IMAGEFILE <CtrlLib/Eon/GraySkin.iml>
-#include IML_SOURCE
+#include <Draw/iml_source.h>
 
 void InstallGrayToolBar()
 {

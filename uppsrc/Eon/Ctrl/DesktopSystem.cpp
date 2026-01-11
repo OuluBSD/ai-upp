@@ -33,8 +33,8 @@ bool DesktopSuiteSystem::Initialize(const WorldState& ws) {
 	return true;
 }
 
-void DesktopSuiteSystem::Start() {
-	
+bool DesktopSuiteSystem::Start() {
+	return true;
 }
 
 void DesktopSuiteSystem::Update(double dt) {

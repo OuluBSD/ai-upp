@@ -482,6 +482,9 @@ ValueFormat GetDefaultFormat(ValDevCls type) {
 	else if (type.val == ValCls::PROG) {
 		fmt.SetProg(type.dev);
 	}
+	else if (type.val == ValCls::GUI) {
+		fmt.SetGui(type.dev);
+	}
 	else {
 		TODO
 	}

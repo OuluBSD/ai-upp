@@ -1,5 +1,7 @@
 #include "Lib.h"
 
+#if 0
+
 NAMESPACE_UPP
 
 
@@ -36,3 +38,4 @@ void Close_NonGUI_ECS() {
 
 END_UPP_NAMESPACE
 
+#endif

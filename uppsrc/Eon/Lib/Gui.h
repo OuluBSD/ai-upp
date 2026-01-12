@@ -1,6 +1,7 @@
 #ifndef _Eon_Lib_Gui_h_
 #define _Eon_Lib_Gui_h_
 
+#if 0
 #ifdef flagGUI
 
 struct DefaultGuiAppComponent :
@@ -38,4 +39,5 @@ struct DefaultGuiAppComponent :
 #endif
 
 
+#endif
 #endif

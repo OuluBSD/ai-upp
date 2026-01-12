@@ -1,4 +1,4 @@
-description "\377B0,128,0";
+description "Media IO\377B0,128,0";
 
 acceptflags
 	MEDIA,
@@ -19,6 +19,8 @@ library(OPENCV WIN32 MSC) "opencv_calib3d4 opencv_core4 opencv_dnn4 opencv_featu
 library(OPENCV WIN32 MSC DEBUG) "opencv_calib3d4d opencv_core4d opencv_dnn4d opencv_features2d4d opencv_flann4d opencv_highgui4d opencv_imgcodecs4d opencv_imgproc4d opencv_ml4d opencv_objdetect4d opencv_photo4d opencv_stitching4d opencv_video4d opencv_videoio4d";
 
 library(OPENCV WIN32 (CLANG | GCC)) "libopencv_core.dll.a libopencv_imgproc.dll.a libopencv_highgui.dll.a libopencv_videoio.dll.a libopencv_shape.dll.a";
+
+pkg_config(FFMPEG WIN32 (CLANG | GCC)) libavcodec;
 
 file
 	Media.h,

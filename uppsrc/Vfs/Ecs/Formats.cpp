@@ -254,6 +254,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsEvent()) return ev.x(); \
 	if (IsFbo())   return fbo.x(); \
 	if (IsProg())  return prog.x(); \
+	if (IsGui())   return gui.x(); \
 	Panic("Invalid type");
 
 #define PROXY_(x,y) \
@@ -264,6 +265,7 @@ int ProgFormat::GetFrameSize() const {
 	if (IsEvent()) return ev.x((const EventFormat&)y); \
 	if (IsFbo())   return fbo.x((const FboFormat&)y); \
 	if (IsProg())  return prog.x((const ProgFormat&)y); \
+	if (IsGui())   return gui.x((const GuiFormat&)y); \
 	Panic("Invalid type");
 
 #define PROXY_CHK(x) ASSERT(IsValid()); PROXY(x)

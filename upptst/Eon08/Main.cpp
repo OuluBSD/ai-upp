@@ -26,22 +26,30 @@ void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 }
 
 void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {
+	LOG(Format("RunScenario: starting %s with method %d", label, method));
+
 	EngineGuard guard;
+	LOG("RunScenario: calling ShellMainEngine");
 	guard.eng = &ShellMainEngine();
 	Engine& eng = *guard.eng;
-	
+
+	LOG("RunScenario: calling ConfigureEngine");
 	ConfigureEngine(eng, runner, method);
-	
+
 	ValueMap args;
 	args.Add("MACHINE_TIME_LIMIT", 3);
-	
+
+	LOG("RunScenario: calling StartLoad");
 	if (!eng.StartLoad("Shell", String(), args))
 		throw Exc(String().Cat() << label << ": engine failed to start: " << eng.GetFailMessage());
-	
+
+	LOG("RunScenario: calling MainLoop");
 	eng.MainLoop();
-	
+
+	LOG("RunScenario: calling Engine::Uninstall");
 	Engine::Uninstall(true, guard.eng);
 	guard.eng = nullptr;
+	LOG("RunScenario: complete");
 }
 
 const TestCase kTests[] = {
@@ -71,7 +79,9 @@ void RunAllTests(int method) {
 } // namespace
 
 GUI_APP_MAIN {
+	Cout() << "=== Eon08 starting ===" << EOL;
 	SetCoutLog();
+	LOG("=== SetCoutLog complete ===");
 	CommandLineArguments cmd;
 	cmd.AddPositional("test number", INT_V, -1);
 	cmd.AddPositional("method number", INT_V, 0);

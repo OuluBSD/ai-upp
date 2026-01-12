@@ -133,6 +133,7 @@ public:
 	void ClearCallbacks();
 	
     bool IsRunning() const {return main_thrd.IsRunning();}
+    bool IsFailed() const {return is_failed;}
 	void SetNotRunning() {main_thrd.SetNotRunning();}
 	void SetFailed(String msg="") {is_failed = true; fail_msg = msg;}
 	void WarnDeveloper(String msg);
@@ -202,6 +203,7 @@ public:
     void RemoveUpdated(VfsValueExt* c);
     void AddUpdated(String name, VfsValueExt* c);
     void RemoveUpdated(String name, VfsValueExt* c);
+    String GetFailMessage() const {return fail_msg;}
 	
 	static void AddNameUpdater(String name, Event<VfsValueExt&> update_fn);
 	static Engine& Setup(String name, Engine* e=0, bool in_thrd=false);

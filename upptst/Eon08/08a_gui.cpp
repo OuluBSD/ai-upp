@@ -21,6 +21,7 @@ net gui.test:
 NAMESPACE_UPP
 
 void Run08aGui(Engine& eng, int method) {
+	LOG(Format("Run08aGui: starting with method %d", method));
 	auto sys = eng.GetAdd<Eon::ScriptLoader>();
 	sys->SetEagerChainBuild(true);
 
@@ -48,15 +49,21 @@ void Run08aGui(Engine& eng, int method) {
 		net.Connect("filesrc0", filesrc_src0, "guisink0", guisink_sink0);
 		net.Connect("guisink0", guisink_src0, "customer0", customer_sink0);
 
-		if (!net.BuildLegacyLoop(eng))
+		LOG("Run08aGui: calling BuildLegacyLoop");
+		if (!net.BuildLegacyLoop(eng)) {
+			LOG("Run08aGui: BuildLegacyLoop failed!");
 			Exit(1);
+		}
+		LOG("Run08aGui: BuildLegacyLoop succeeded");
 		break;
 	}
 	case 1:
 	case 2:
 		LOG(Format("warning: Run08aGui: method %d not implemented yet", method));
 	case 0:
+		LOG("Run08aGui: calling PostLoadFile");
 		sys->PostLoadFile(ShareDirFile("eon/tests/08a_gui.eon"));
+		LOG("Run08aGui: PostLoadFile returned");
 		break;
 	default:
 		throw Exc(Format("Run08aGui: unknown method %d", method));

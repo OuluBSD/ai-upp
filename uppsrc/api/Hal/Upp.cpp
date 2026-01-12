@@ -66,8 +66,8 @@ void HalUpp::EventsBase_DetachContext(NativeEventsBase& dev, AtomBase& a, AtomBa
 // Mid-class between Atom and FormWindow
 // Provides room for future Esc script VM, event I/O, and threading
 struct HalUpp::NativeGuiSinkBase {
-	// Form display
-	FormWindow form_win;
+	// Form display (pointer to avoid early construction)
+	FormWindow* form_win = nullptr;
 
 	// Event loop integration
 	Ctrl::EventLoopContext event_ctx;
@@ -80,14 +80,6 @@ struct HalUpp::NativeGuiSinkBase {
 	// - PacketBuffer event_out;         // Outgoing event packets
 
 	bool initialized = false;
-
-	~NativeGuiSinkBase() {
-		if (event_ctx_active) {
-			Ctrl::EventLoopEnd(event_ctx);
-			event_ctx_active = false;
-		}
-		form_win.Close();
-	}
 };
 
 // Device interface functions
@@ -98,26 +90,37 @@ bool HalUpp::GuiSinkBase_Create(NativeGuiSinkBase*& dev) {
 
 void HalUpp::GuiSinkBase_Destroy(NativeGuiSinkBase*& dev) {
 	if (dev) {
+		if (dev->form_win) {
+			delete dev->form_win;
+			dev->form_win = nullptr;
+		}
 		delete dev;
 		dev = nullptr;
 	}
 }
 
 bool HalUpp::GuiSinkBase_Initialize(NativeGuiSinkBase& dev, AtomBase& a, const WorldState& ws) {
+	LOG("GuiSinkBase_Initialize: starting");
+
+	// Create FormWindow now that GUI system is initialized
+	dev.form_win = new FormWindow;
+	LOG("GuiSinkBase_Initialize: FormWindow created");
+
 	// Setup window from configuration
 	bool sizeable = ws.GetBool(".sizeable", true);
 	bool close_machine = ws.GetBool(".close_machine", true);
 
 	if (sizeable)
-		dev.form_win.Sizeable();
+		dev.form_win->Sizeable();
 
 	if (close_machine)
-		dev.form_win.WhenClose = [&a]() { a.GetEngine().SetNotRunning(); };
+		dev.form_win->WhenClose = [&a]() { a.GetEngine().SetNotRunning(); };
 
 	// Window will be sized by form layout
-	dev.form_win.Title("GUI Event Viewer");
+	dev.form_win->Title("GUI Event Viewer");
 
 	dev.initialized = true;
+	LOG("GuiSinkBase_Initialize: complete");
 	return true;
 }
 
@@ -134,14 +137,26 @@ void HalUpp::GuiSinkBase_Stop(NativeGuiSinkBase& dev, AtomBase& a) {
 }
 
 void HalUpp::GuiSinkBase_Uninitialize(NativeGuiSinkBase& dev, AtomBase& a) {
+	LOG("GuiSinkBase_Uninitialize: starting");
+
 	if (dev.event_ctx_active) {
+		LOG("GuiSinkBase_Uninitialize: ending event loop");
 		Ctrl::EventLoopEnd(dev.event_ctx);
 		dev.event_ctx_active = false;
+		LOG("GuiSinkBase_Uninitialize: event loop ended");
 	}
-	dev.form_win.Close();
+
+	if (dev.form_win) {
+		LOG("GuiSinkBase_Uninitialize: closing form window");
+		dev.form_win->Close();
+		LOG("GuiSinkBase_Uninitialize: form window closed");
+	}
+
 	dev.initialized = false;
 
+	LOG("GuiSinkBase_Uninitialize: removing from update list");
 	a.RemoveAtomFromUpdateList();
+	LOG("GuiSinkBase_Uninitialize: complete");
 }
 
 bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, const Packet& in) {
@@ -164,23 +179,28 @@ bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, 
 
 	String form_xml((const char*)data.Begin(), data.GetCount());
 
+	if (!dev.form_win) {
+		LOG("UppGuiSinkDevice: form_win not created yet");
+		return false;
+	}
+
 	// Load form from XML
 	LOG("UppGuiSinkDevice: Loading form from XML (" << form_xml.GetCount() << " bytes)");
-	if (!dev.form_win.LoadString(form_xml, false)) {
+	if (!dev.form_win->LoadString(form_xml, false)) {
 		LOG("UppGuiSinkDevice: failed to load form from XML");
 		return false;
 	}
 
 	// Select default layout
 	String layout_name = "Default";
-	if (!dev.form_win.Layout(layout_name)) {
+	if (!dev.form_win->Layout(layout_name)) {
 		LOG("UppGuiSinkDevice: layout '" << layout_name << "' not found");
 		return false;
 	}
 
 	// Open window if not visible
-	if (!dev.form_win.IsOpen()) {
-		dev.form_win.Open();
+	if (!dev.form_win->IsOpen()) {
+		dev.form_win->Open();
 		LOG("UppGuiSinkDevice: window opened");
 	}
 
@@ -188,7 +208,7 @@ bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, 
 }
 
 void HalUpp::GuiSinkBase_Finalize(NativeGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
-	if (!dev.initialized || !dev.form_win.IsOpen())
+	if (!dev.initialized || !dev.form_win || !dev.form_win->IsOpen())
 		return;
 
 	// Process one event loop iteration
@@ -254,6 +274,7 @@ void HalUpp::GuiFileSrc_Destroy(NativeGuiFileSrc*& dev) {
 }
 
 bool HalUpp::GuiFileSrc_Initialize(NativeGuiFileSrc& dev, AtomBase& a, const WorldState& ws) {
+	LOG("GuiFileSrc_Initialize: starting");
 	// Get file path from configuration
 	dev.form_file_path = ws.GetString(".file", String());
 	if (dev.form_file_path.IsEmpty()) {

@@ -1,6 +1,7 @@
 #ifndef _EonLib_Geom2DComponent_h_
 #define _EonLib_Geom2DComponent_h_
 
+#if 0
 #ifdef flagGUI
 
 
@@ -250,5 +251,6 @@ struct Window3D :
 */
 
 
+#endif
 #endif
 #endif

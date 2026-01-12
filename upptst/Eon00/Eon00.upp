@@ -4,6 +4,7 @@ uses
 
 file
 	CURRENT_TASK.md,
+	Eon00.h,
 	Main.cpp,
 	00a_audio_gen.cpp,
 	00b_audio_gen.cpp,

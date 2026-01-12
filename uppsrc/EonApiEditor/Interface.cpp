@@ -671,16 +671,10 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				<< "\t#define REGISTER_ATOM(x) VfsValueExtFactory::RegisterAtom<x>(#x);\n";
 
 			// Generate registrations organized by package
-			const char* pkg_order[] = {"AtomAudio", "AtomHandle", "AtomMinimal", "AtomVR"};
-			const char* pkg_comments[] = {"// Audio", "// Handle", "// Minimal", "// VR"};
-
-			for(int pkg_idx = 0; pkg_idx < 4; pkg_idx++) {
-				String pkg_name = pkg_order[pkg_idx];
-				int atom_idx = atom_list.Find(pkg_name);
-				if (atom_idx < 0) continue;
-
-				const Vector<int>& ai = atom_list[atom_idx];
-				s << "\t" << pkg_comments[pkg_idx] << "\n\t\n";
+			for(int pkg_idx = 0; pkg_idx < atom_list.GetCount(); pkg_idx++) {
+				String pkg_name = atom_list.GetKey(pkg_idx);
+				const Vector<int>& ai = atom_list[pkg_idx];
+				s << "\t// " << pkg_name << "\n\t\n";
 
 				for(int j = 0; j < ai.GetCount(); j++) {
 					const Header& h = headers[ai[j]];

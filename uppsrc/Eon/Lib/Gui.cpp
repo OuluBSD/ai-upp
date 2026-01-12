@@ -1,6 +1,6 @@
 #include "Lib.h"
 
-
+#if 0
 NAMESPACE_UPP
 
 
@@ -121,3 +121,5 @@ bool DefaultGuiAppComponent::Arg(const String& key, const String& value) {
 
 
 END_UPP_NAMESPACE
+
+#endif

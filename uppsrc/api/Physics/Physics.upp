@@ -1,8 +1,9 @@
-description "\377B0,128,0";
+description "Physics api\377B0,128,0";
 
 acceptflags
 	PHYSICS,
-	ODE;
+	ODE,
+	SOFTPHYS;
 
 library(ODE & DEBUG & WIN32) ode_doubled;
 

@@ -1664,6 +1664,18 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	String src_text;
 	if (!src_file.IsEmpty())
 		src_text = ::Upp::LoadFile(~src_file);
+	Vector<String> lines;
+	Vector<int> conn_line_indices;
+	Vector<bool> conn_line_used;
+	if (!src_text.IsEmpty()) {
+		lines = Split(src_text, '\n', false);
+		for (int i = 0; i < lines.GetCount(); i++) {
+			if (lines[i].Find("->") >= 0) {
+				conn_line_indices.Add(i);
+				conn_line_used.Add(false);
+			}
+		}
+	}
 
 	for (int conn_idx = 0; conn_idx < conn_stmts.GetCount(); conn_idx++) {
 		AstNode* stmt = conn_stmts[conn_idx];
@@ -1696,17 +1708,33 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 			continue;
 		}
 		LOG("LoadNet: source text length=" << src_text.GetCount());
-		LOG("LoadNet: splitting source text");
-		Vector<String> lines = Split(src_text, '\n');
 		LOG("LoadNet: source lines=" << lines.GetCount());
-		if (stmt->loc.line <= 0 || stmt->loc.line > lines.GetCount()) {
-			LOG("LoadNet: invalid source line index, skipping");
-			continue;
+		int stmt_line = stmt->loc.line;
+		if (stmt_line <= 0 && stmt_rval)
+			stmt_line = stmt_rval->loc.line;
+		if (stmt_line > 0 && stmt_line <= lines.GetCount()) {
+			expr_text = TrimBoth(lines[stmt_line - 1]);
+			LOG("LoadNet: source line=\"" << expr_text << "\"");
+			if (expr_text.Find("->") >= 0) {
+				looks_like_connection = true;
+				for (int i = 0; i < conn_line_indices.GetCount(); i++) {
+					if (conn_line_indices[i] == stmt_line - 1) {
+						conn_line_used[i] = true;
+						break;
+					}
+				}
+			}
 		}
-		expr_text = TrimBoth(lines[stmt->loc.line - 1]);
-		LOG("LoadNet: source line=\"" << expr_text << "\"");
-		if (expr_text.Find("->") >= 0) {
-			looks_like_connection = true;
+		if (!looks_like_connection) {
+			for (int i = 0; i < conn_line_indices.GetCount(); i++) {
+				if (!conn_line_used[i]) {
+					expr_text = TrimBoth(lines[conn_line_indices[i]]);
+					conn_line_used[i] = true;
+					looks_like_connection = expr_text.Find("->") >= 0;
+					LOG("LoadNet: fallback source line=\"" << expr_text << "\"");
+					break;
+				}
+			}
 		}
 
 		LOG("LoadNet: looks_like_connection=" << looks_like_connection);

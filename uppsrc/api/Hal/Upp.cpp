@@ -68,6 +68,7 @@ void HalUpp::EventsBase_DetachContext(NativeEventsBase& dev, AtomBase& a, AtomBa
 struct HalUpp::NativeGuiSinkBase {
 	// Form display (pointer to avoid early construction)
 	FormWindow* form_win = nullptr;
+	bool receipt_pending = false;
 
 	// Event loop integration
 	Ctrl::EventLoopContext event_ctx;
@@ -105,6 +106,7 @@ bool HalUpp::GuiSinkBase_Initialize(NativeGuiSinkBase& dev, AtomBase& a, const W
 	// Create FormWindow now that GUI system is initialized
 	dev.form_win = new FormWindow;
 	LOG("GuiSinkBase_Initialize: FormWindow created");
+	dev.form_win->Add(dev.form_win->GetForm().SizePos());
 
 	// Setup window from configuration
 	bool sizeable = ws.GetBool(".sizeable", true);
@@ -203,6 +205,7 @@ bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, 
 		dev.form_win->Open();
 		LOG("UppGuiSinkDevice: window opened");
 	}
+	dev.receipt_pending = true;
 
 	return true;
 }
@@ -221,6 +224,9 @@ void HalUpp::GuiSinkBase_Finalize(NativeGuiSinkBase& dev, AtomBase& a, RealtimeS
 }
 
 bool HalUpp::GuiSinkBase_Send(NativeGuiSinkBase& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	if (!dev.receipt_pending)
+		return false;
+
 	// Send receipt acknowledging GUI display
 	ValueFormat fmt;
 	fmt.SetReceipt(DevCls::CENTER);
@@ -228,6 +234,7 @@ bool HalUpp::GuiSinkBase_Send(NativeGuiSinkBase& dev, AtomBase& a, RealtimeSourc
 
 	// TODO: Set receipt data (timestamp, status, etc.)
 
+	dev.receipt_pending = false;
 	return true;
 }
 
@@ -240,8 +247,8 @@ void HalUpp::GuiSinkBase_Update(NativeGuiSinkBase& dev, AtomBase& a, double dt) 
 }
 
 bool HalUpp::GuiSinkBase_IsReady(NativeGuiSinkBase& dev, AtomBase& a, PacketIO& io) {
-	// Always ready to receive GUI data
-	return false; // We don't produce data, only receive
+	// Always ready to receive GUI data when initialized
+	return dev.initialized;
 }
 
 bool HalUpp::GuiSinkBase_AttachContext(NativeGuiSinkBase& dev, AtomBase& a, AtomBase& other) {
@@ -318,9 +325,8 @@ bool HalUpp::GuiFileSrc_Recv(NativeGuiFileSrc& dev, AtomBase& a, int sink_ch, co
 	// Receive orders to reload or send
 	ValueFormat fmt = in->GetFormat();
 	if (fmt.IsOrder()) {
-		// Reset sent flag to allow re-sending
-		dev.sent = false;
-		LOG("GuiFileSrc: received order, will resend form data");
+		// Ignore orders; this atom only sends the form once
+		LOG("GuiFileSrc: received order, ignoring (single-send)");
 	}
 	return true;
 }
@@ -345,6 +351,22 @@ bool HalUpp::GuiFileSrc_Send(NativeGuiFileSrc& dev, AtomBase& a, RealtimeSourceC
 	memcpy(data.Begin(), dev.form_xml_data.Begin(), data_size);
 
 	LOG("GuiFileSrc: sending GUI packet (" << data_size << " bytes)");
+	if (a.packet_router && !a.router_source_ports.IsEmpty() && fmt.IsValid()) {
+		int credits = a.RequestCredits(src_ch, 1);
+		if (credits <= 0) {
+			RTLOG("GuiFileSrc_Send: credit request denied for src_ch=" << src_ch);
+			return false;
+		}
+		Packet route_pkt = CreatePacket(out.GetOffset());
+		route_pkt->Pick(out);
+		route_pkt->SetFormat(fmt);
+		bool routed = a.EmitViaRouter(src_ch, route_pkt);
+		a.AckCredits(src_ch, credits);
+		out.Pick(*route_pkt);
+		if (!routed)
+			return false;
+	}
+
 	dev.sent = true;
 	return true;
 }

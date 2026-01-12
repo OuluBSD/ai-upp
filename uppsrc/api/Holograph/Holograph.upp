@@ -1,16 +1,10 @@
 description "\377B0,128,0";
 
-acceptflags
-	VR;
+	uses api/Media;
+	uses(LINUX) plugin/hcidump;
+	uses(SOFTHMD) SoftHMD;
 
-uses
-	api/Media;
-
-uses(LINUX) plugin/hcidump;
-
-uses(SOFTHMD) SoftHMD;
-
-library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+	library(LINUX & OPENHMD) "openhmd hidapi-libusb";
 
 file
 	Holograph.h,
@@ -23,5 +17,4 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-	"" = "";
-
+        "" = "";

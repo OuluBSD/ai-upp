@@ -28,32 +28,41 @@ bool SemanticParser::ProcessEon(const TokenStructure& t) {
 	path.Add(&t.GetRoot());
 	
 	DLOG("t.GetRoot().GetTreeString():\n" << t.GetRoot().GetTreeString());
+	LOG("SemanticParser: after tree string, calling ParseNamespaceBlock");
 	bool succ = ParseNamespaceBlock();
-	
+	LOG("SemanticParser: ParseNamespaceBlock returned " << (succ ? "true" : "false"));
+
 	spath.Clear();
 	path.Clear();
-	
+
 	return succ;
 }
 
 bool SemanticParser::ParseNamespaceBlock() {
+	LOG("ParseNamespaceBlock: starting");
 	ASSERT(!path.IsEmpty());
-	
+
 	const TokenNode& owner = *path.Top();
 	const TokenNode*& cur = path.Add();
-	
+
+	LOG("ParseNamespaceBlock: iterating over " << owner.val.Sub<TokenNode>().GetCount() << " nodes");
 	for (const TokenNode& tns : owner.val.Sub<TokenNode>()) {
 		CHECK_SPATH_BEGIN
-		
+
 		cur = &tns;
-		if (!ParseDeclaration())
+		LOG("ParseNamespaceBlock: calling ParseDeclaration");
+		if (!ParseDeclaration()) {
+			LOG("ParseNamespaceBlock: ParseDeclaration returned false");
 			return false;
-		
+		}
+		LOG("ParseNamespaceBlock: ParseDeclaration succeeded");
+
 		CHECK_SPATH_END
 	}
-	
+
 	path.Remove(path.GetCount()-1);
-	
+	LOG("ParseNamespaceBlock: returning true");
+
 	return true;
 }
 

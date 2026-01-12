@@ -1582,10 +1582,11 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
     return ok;
 }
 
-bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
-	const auto& map = VfsValueExtFactory::AtomDataMap();
-	Vector<Endpoint> atoms, states;
-	RTLOG("LoadNet: entering for id=" << net.id.ToString());
+	bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
+		const auto& map = VfsValueExtFactory::AtomDataMap();
+		Vector<Endpoint> atoms, states;
+		RTLOG("LoadNet: entering for id=" << net.id.ToString());
+		LOG("LoadNet: source file=" << n->loc.file);
 
 	// Parse inline atom definitions
 	n->FindAll(atoms, Cursor_AtomStmt);
@@ -1644,53 +1645,36 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 
 	// Parse explicit connections: atom:port -> atom:port
 	// Connection syntax uses member access (.) for port references: atom.port -> atom.port
-	Vector<Endpoint> conn_stmts;
-	n->FindAll(conn_stmts, Cursor_ExprStmt);
+	AstNode* block = n;
+	if (block->src != Cursor_CompoundStmt)
+		block = n->Find(Cursor_CompoundStmt);
+	if (!block) {
+		AddError(n->loc, "internal error: net block missing compound statement");
+		return false;
+	}
+
+	Vector<AstNode*> conn_stmts;
+	for (AstNode& stmt : block->val.Sub<AstNode>()) {
+		if (stmt.src == Cursor_ExprStmt)
+			conn_stmts.Add(&stmt);
+	}
 	LOG("LoadNet: found " << conn_stmts.GetCount() << " ExprStmt nodes");
 
+	String src_file = n->loc.file;
+	String src_text;
+	if (!src_file.IsEmpty())
+		src_text = ::Upp::LoadFile(~src_file);
+
 	for (int conn_idx = 0; conn_idx < conn_stmts.GetCount(); conn_idx++) {
-		Endpoint& ep = conn_stmts[conn_idx];
+		AstNode* stmt = conn_stmts[conn_idx];
 		LOG("LoadNet: processing statement " << conn_idx << " of " << conn_stmts.GetCount());
-		AstNode* stmt = ep.n;
 		if (!stmt) {
 			LOG("LoadNet: ERROR - null stmt at index " << conn_idx);
 			continue;
 		}
 
-		AstNode* rval = stmt->rval;
-		LOG("LoadNet: processing connection stmt, stmt=" << (void*)stmt << " rval=" << (void*)rval);
-
-		Array<AstNode>& stmt_children = stmt->val.Sub<AstNode>();
-		bool rval_in_children = false;
-		if (rval) {
-			for (AstNode& child : stmt_children) {
-				if (&child == rval) {
-					rval_in_children = true;
-					break;
-				}
-			}
-		}
-		if (!rval_in_children) {
-			if (rval) {
-				LOG("LoadNet: rval not in stmt children, falling back to first child");
-			}
-			rval = stmt_children.IsEmpty() ? nullptr : &stmt_children[0];
-		}
-		if (!rval) {
-			LOG("LoadNet: skipping stmt with no usable rval");
-			continue;
-		}
-		LOG("LoadNet: rval initial src=" << GetCodeCursorString(rval->src));
-
-		// Skip assignment statements - they're not connections
-		if (rval->src == Cursor_Op_ASSIGN) {
-			LOG("LoadNet: skipping assignment statement");
-			continue;
-		}
-
-		while (rval->src == Cursor_Rval && rval->rval)
-			rval = rval->rval;
-		LOG("LoadNet: rval after unwrap, src=" << GetCodeCursorString(rval->src) << " str=\"" << rval->str << "\"");
+		AstNode* stmt_rval = stmt->rval;
+		LOG("LoadNet: processing connection stmt, stmt=" << (void*)stmt << " rval=" << (void*)stmt_rval);
 
 		// Try to parse connection expression
 		// We expect something like: osc.0 -> gain.0
@@ -1706,32 +1690,23 @@ bool ScriptLoader::LoadNet(Eon::NetDefinition& net, AstNode* n) {
 		// Try to detect if this is a connection statement by checking for arrow-like patterns
 		// or simple text extraction from the AST
 		// First check if connection string is stored directly in stmt->str (from SemanticParser)
-		LOG("LoadNet: about to check stmt->str");
-		if (!stmt->str.IsEmpty()) {
-			LOG("LoadNet: stmt->str=\"" << stmt->str << "\"");
-			if (stmt->str.Find("->") >= 0) {
-				LOG("LoadNet: found connection in stmt->str");
-				expr_text = stmt->str;
-				looks_like_connection = true;
-			}
+		LOG("LoadNet: reading statement text from source");
+		if (src_text.IsEmpty()) {
+			LOG("LoadNet: failed to read source file, skipping");
+			continue;
 		}
-
-		if (!looks_like_connection) {
-			LOG("LoadNet: checking IsPartially for rval->src");
-			if (IsPartially(rval->src, Cursor_Op)) {
-				// This is an operator expression - might be our connection
-				// For now, we only handle simple Cursor_Unresolved connections
-				// Full operator-based parsing will be implemented later
-				LOG("LoadNet: skipping operator expression (not yet supported for connections)");
-				continue;
-			}
-			else if (rval->src == Cursor_Unresolved) {
-				// This might be a simple unresolved identifier that looks like a connection
-				LOG("LoadNet: checking Cursor_Unresolved str");
-				expr_text = rval->str;
-				if (expr_text.Find("->") >= 0)
-					looks_like_connection = true;
-			}
+		LOG("LoadNet: source text length=" << src_text.GetCount());
+		LOG("LoadNet: splitting source text");
+		Vector<String> lines = Split(src_text, '\n');
+		LOG("LoadNet: source lines=" << lines.GetCount());
+		if (stmt->loc.line <= 0 || stmt->loc.line > lines.GetCount()) {
+			LOG("LoadNet: invalid source line index, skipping");
+			continue;
+		}
+		expr_text = TrimBoth(lines[stmt->loc.line - 1]);
+		LOG("LoadNet: source line=\"" << expr_text << "\"");
+		if (expr_text.Find("->") >= 0) {
+			looks_like_connection = true;
 		}
 
 		LOG("LoadNet: looks_like_connection=" << looks_like_connection);

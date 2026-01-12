@@ -107,24 +107,35 @@ bool Compiler::ParseStructure() {
 }
 
 bool Compiler::Parse() {
+	LOG("Compiler::Parse: starting");
 	auto& ts = GetTokenStructure();
 	auto& sp = GetSemanticParser();
-	
+
 	sp.WhenMessage = THISBACK(OnProcMsg);
+	LOG("Compiler::Parse: calling sp.ProcessEon");
 	if (!sp.ProcessEon(ts)) {
+		LOG("Compiler::Parse: ProcessEon failed");
 		return false;
 	}
-	
+	LOG("Compiler::Parse: ProcessEon succeeded, returning true");
+
 	return true;
 }
 
 bool Compiler::RunMeta() {
+	LOG("Compiler::RunMeta: starting");
 	auto& ar = GetAstRunner();
+	LOG("Compiler::RunMeta: got AstRunner");
 	auto& sp = GetSemanticParser();
+	LOG("Compiler::RunMeta: got SemanticParser");
 	ar.WhenMessage = THISBACK(OnProcMsg);
-	if (!ar.Execute(sp.GetRoot()))
+	LOG("Compiler::RunMeta: calling ar.Execute");
+	if (!ar.Execute(sp.GetRoot())) {
+		LOG("Compiler::RunMeta: Execute failed");
 		return false;
-	
+	}
+	LOG("Compiler::RunMeta: Execute succeeded, returning true");
+
 	return true;
 }
 

@@ -329,32 +329,40 @@ bool ScriptLoader::LoadFile(String path) {
 }
 
 bool ScriptLoader::Load(const String& content, const String& filepath) {
-	RTLOG("ScriptLoader::Load: Loading \"" << filepath << "\"");
-	
+	LOG("ScriptLoader::Load: Loading \"" << filepath << "\"");
+
 	WhenEnterScriptLoad(*this);
-	
+
 	Compiler& c = val.GetAdd<Compiler>("cu");
+	LOG("ScriptLoader::Load: calling CompileAst");
 	AstNode* root = c.CompileAst(content, filepath, true);
-	
+
 	if (!root) {
+		LOG("ScriptLoader::Load: CompileAst returned NULL");
 		RTLOG(GetLineNumStr(content, 1));
 		WhenLeaveScriptLoad();
 		return false;
 	}
+	LOG("ScriptLoader::Load: CompileAst succeeded, calling LoadAst");
 	return LoadAst(root);
 }
 
 bool ScriptLoader::LoadAst(AstNode* root) {
+	LOG("ScriptLoader::LoadAst: starting");
 	if (!LoadCompilationUnit(root)) {
+		LOG("ScriptLoader::LoadAst: LoadCompilationUnit failed");
 		LOG("error dump:");
 		if (loader) loader->Dump();
-		
+
 		Cleanup();
 		WhenLeaveScriptLoad();
 		return false;
 	}
-	
+	LOG("ScriptLoader::LoadAst: LoadCompilationUnit succeeded");
+
+	LOG("ScriptLoader::LoadAst: calling ImplementScript");
 	if (!ImplementScript()) {
+		LOG("ScriptLoader::LoadAst: ImplementScript failed");
 		Cleanup();
 		WhenLeaveScriptLoad();
 		return false;
@@ -805,41 +813,62 @@ bool ScriptLoader::GetPathId(Eon::Id& script_id, AstNode* from, AstNode* to) {
 }
 
 bool ScriptLoader::LoadCompilationUnit(AstNode* root) {
+	LOG("LoadCompilationUnit: starting");
 	loader.Clear();
-	
-	if (!LoadGlobalScope(cunit.glob, root))
+
+	LOG("LoadCompilationUnit: calling LoadGlobalScope");
+	if (!LoadGlobalScope(cunit.glob, root)) {
+		LOG("LoadCompilationUnit: LoadGlobalScope failed");
 		return false;
-	
+	}
+	LOG("LoadCompilationUnit: LoadGlobalScope succeeded");
+
+	LOG("LoadCompilationUnit: creating ScriptSystemLoader");
 	loader = new ScriptSystemLoader(*this, 0, cunit.glob);
-	
+	LOG("LoadCompilationUnit: ScriptSystemLoader created");
+
 	return true;
 }
 
 bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
+	LOG("LoadGlobalScope: starting");
 	ASSERT(n);
 	if (!n) return false;
-	
-	
+
+
 	// Serial machine part
+	LOG("LoadGlobalScope: finding MetaDecl endpoints");
 	Vector<Endpoint> items;
 	n->FindAllNonIdEndpoints(items, Cursor_MetaDecl);
+	LOG("LoadGlobalScope: sorting items, found " << items.GetCount());
 	Sort(items, AstNodeLess());
-	
+
 	bool has_machine = false;
+	LOG("LoadGlobalScope: iterating through items");
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
+		LOG("LoadGlobalScope: processing item with src=" << GetCodeCursorString(item->src));
 		if (item->src == Cursor_MachineDecl) {
+			LOG("LoadGlobalScope: found MachineDecl");
 			AstNode* block = item->Find(Cursor_CompoundStmt);
-			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
-			
+			if (!block) {
+				LOG("LoadGlobalScope: ERROR - no stmt block");
+				AddError(n->loc, "internal error: no stmt block");
+				return false;
+			}
+
 			Eon::MachineDefinition& mach_def = def.machs.Add();
-			
+
 			if (!GetPathId(mach_def.id, n, item))
 				return false;
-			
+
 			ASSERT(!mach_def.id.IsEmpty());
-			if (!LoadMachine(mach_def, block))
+			LOG("LoadGlobalScope: calling LoadMachine for machine " << mach_def.id.ToString());
+			if (!LoadMachine(mach_def, block)) {
+				LOG("LoadGlobalScope: LoadMachine failed");
 				return false;
+			}
+			LOG("LoadGlobalScope: LoadMachine succeeded");
 			has_machine = true;
 		}
 		else if (item->src == Cursor_EngineStmt) {
@@ -900,17 +929,26 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 }
 
 bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
+	LOG("LoadMachine: starting");
 	#if VERBOSE_SCRIPT_LOADER
-	LOG(n->GetTreeString());
+	LOG("LoadMachine: calling GetTreeString");
+	String tree_str = n->GetTreeString();
+	LOG("LoadMachine: GetTreeString returned, length=" << tree_str.GetCount());
+	LOG(tree_str);
+	LOG("LoadMachine: tree string logged");
 	#endif
 
+	LOG("LoadMachine: after GetTreeString");
 	Vector<Endpoint> items;
+	LOG("LoadMachine: calling FindAllNonIdEndpoints2");
 	n->FindAllNonIdEndpoints2(items, Cursor_EcsStmt, Cursor_OldEcsStmt);
+	LOG("LoadMachine: calling Sort");
 	Sort(items, AstNodeLess());
+	LOG("LoadMachine: Sort complete");
 
-	RTLOG("LoadMachine: found " << items.GetCount() << " items");
+	LOG("LoadMachine: found " << items.GetCount() << " items");
 	for (int i = 0; i < items.GetCount(); i++) {
-		RTLOG("  item[" << i << "]: src=" << GetCodeCursorString(items[i].n->src) << " id=" << items[i].n->val.id);
+		LOG("  item[" << i << "]: src=" << GetCodeCursorString(items[i].n->src) << " id=" << items[i].n->val.id);
 	}
 
 	if (items.IsEmpty()) {

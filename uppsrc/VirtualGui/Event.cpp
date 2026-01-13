@@ -135,39 +135,68 @@ bool Ctrl::ProcessEvents(bool *quit)
 	return ret;
 }
 
-void Ctrl::EventLoop(Ctrl *ctrl)
+Ctrl::EventLoopContext Ctrl::EventLoopBegin(Ctrl *ctrl)
 {
 	GuiLock __;
 	ASSERT(IsMainThread());
 	ASSERT(LoopLevel == 0 || ctrl);
+	
+	EventLoopContext ctx;
+	ctx.ctrl = ctrl;
+	ctx.prev_loop_ctrl = LoopCtrl;
+	ctx.loop_no = ++EventLoopNo;
+	ctx.quit = false;
+
 	LoopLevel++;
-	LLOG("Entering event loop at level " << LoopLevel << LOG_BEGIN);
-	Ptr<Ctrl> ploop;
 	if(ctrl) {
-		ploop = LoopCtrl;
 		LoopCtrl = ctrl;
 		ctrl->inloop = true;
 	}
+	
+	ProcessEvents(&ctx.quit);
+	
+	return ctx;
+}
 
-	bool quit = false;
-	int64 loopno = ++EventLoopNo;
-	ProcessEvents(&quit);
-	while(loopno > EndSessionLoopNo && !quit && (ctrl ? ctrl->IsOpen() && ctrl->InLoop() : GetTopCtrls().GetCount()))
-	{
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / GuiSleep");
-		SyncCaret();
-		GuiSleep(20);
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / ProcessEvents");
-		ProcessEvents(&quit);
-//		LLOG(GetSysTime() << " % " << (unsigned)msecs() % 10000 << ": EventLoop / after ProcessEvents");
-		LDUMP(loopno);
-		LDUMP(fbEndSessionLoop);
+bool Ctrl::EventLoopIteration(EventLoopContext& ctx)
+{
+	GuiLock __;
+	ASSERT(IsMainThread());
+	
+	if (ctx.loop_no <= EndSessionLoopNo || ctx.quit)
+		return false;
+		
+	if (ctx.ctrl) {
+		if (!ctx.ctrl->IsOpen() || !ctx.ctrl->InLoop())
+			return false;
+	}
+	else {
+		if (GetTopCtrls().IsEmpty())
+			return false;
 	}
 
-	if(ctrl)
-		LoopCtrl = ploop;
+	SyncCaret();
+	GuiSleep(20);
+	ProcessEvents(&ctx.quit);
+	
+	return true;
+}
+
+void Ctrl::EventLoopEnd(EventLoopContext& ctx)
+{
+	GuiLock __;
+	ASSERT(IsMainThread());
+	
+	if(ctx.ctrl)
+		LoopCtrl = ctx.prev_loop_ctrl;
 	LoopLevel--;
-	LLOG(LOG_END << "Leaving event loop ");
+}
+
+void Ctrl::EventLoop(Ctrl *ctrl)
+{
+	EventLoopContext ctx = EventLoopBegin(ctrl);
+	while (EventLoopIteration(ctx));
+	EventLoopEnd(ctx);
 }
 
 void Ctrl::GuiSleep(int ms)

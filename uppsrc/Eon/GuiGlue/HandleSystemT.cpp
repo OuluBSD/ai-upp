@@ -215,6 +215,7 @@ bool HandleSystemT<CtxUpp2D>::Initialize(const WorldState& ws) {
 
 
 GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(HandleSystemT)
+template class HandleSystemT<CtxUpp2D>;
 
 
 END_UPP_NAMESPACE

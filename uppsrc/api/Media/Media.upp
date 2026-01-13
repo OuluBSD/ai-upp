@@ -23,6 +23,7 @@ library(OPENCV WIN32 (CLANG | GCC)) "libopencv_core.dll.a libopencv_imgproc.dll.
 pkg_config(FFMPEG WIN32 (CLANG | GCC)) libavcodec;
 
 file
+	pre_win32.h,
 	Media.h,
 	Types.h,
 	Types.cpp,

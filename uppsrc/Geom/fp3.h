@@ -235,25 +235,25 @@ public:
 
 inline bool IsNull(Box3 b) { return IsNull(b.low[0]); }
 
-class Camera
+class Camera3
 {
 public:
-	Camera();
+	Camera3();
 
 	void     Serialize(Stream& stream);
 
-	Camera&  Location(Pointf3 new_location)             { location = new_location; return *this; }
-	Camera&  Target(Pointf3 new_target)                 { target = new_target; return *this; }
-	Camera&  Upwards(Pointf3 new_upwards)               { upwards = new_upwards; return *this; }
-	Camera&  ViewingAngle(double new_va)                { viewing_angle = new_va; return *this; }
-	Camera&  Viewport(double wmm, double hmm)           { width_mm = wmm; height_mm = hmm; return *this; }
-	Camera&  Viewport(Sizef mm)                         { width_mm = mm.cx; height_mm = mm.cy; return *this; }
-	Camera&  ViewportOffset(double xc, double yc)       { shift_x = xc; shift_y = yc; return *this; }
-	Camera&  ViewportSize(Sizef px)                     { view_px = px.cx; view_py = px.cy; return *this; }
-	Camera&  ViewportSize(double px, double py)         { view_px = px; view_py = py; return *this; }
-	Camera&  Projection(const Matrixf3& pm)             { projection_matrix = pm; return *this; }
-	Camera&  FarDistance(double new_fd)                 { far_distance = new_fd; return *this; }
-	Camera&  NearDistance(double new_nd)                { near_distance = new_nd; return *this; }
+	Camera3&  Location(Pointf3 new_location)             { location = new_location; return *this; }
+	Camera3&  Target(Pointf3 new_target)                 { target = new_target; return *this; }
+	Camera3&  Upwards(Pointf3 new_upwards)               { upwards = new_upwards; return *this; }
+	Camera3&  ViewingAngle(double new_va)                { viewing_angle = new_va; return *this; }
+	Camera3&  Viewport(double wmm, double hmm)           { width_mm = wmm; height_mm = hmm; return *this; }
+	Camera3&  Viewport(Sizef mm)                         { width_mm = mm.cx; height_mm = mm.cy; return *this; }
+	Camera3&  ViewportOffset(double xc, double yc)       { shift_x = xc; shift_y = yc; return *this; }
+	Camera3&  ViewportSize(Sizef px)                     { view_px = px.cx; view_py = px.cy; return *this; }
+	Camera3&  ViewportSize(double px, double py)         { view_px = px; view_py = py; return *this; }
+	Camera3&  Projection(const Matrixf3& pm)             { projection_matrix = pm; return *this; }
+	Camera3&  FarDistance(double new_fd)                 { far_distance = new_fd; return *this; }
+	Camera3&  NearDistance(double new_nd)                { near_distance = new_nd; return *this; }
 
 	double   GetDistance(Pointf3 v) const               { return (v ^ direction) + distance_delta; }
 

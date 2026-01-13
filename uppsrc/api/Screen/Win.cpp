@@ -3,7 +3,12 @@
 #if defined flagWIN32 && !defined flagUWP && defined flagSCREEN
 
 
+#include <Core/Core.h>
+#define CY win32_CY_
+#define FAR win32_FAR_
 #include <windows.h>
+#undef CY
+#undef FAR
 
 
 /*#ifdef flagMSC

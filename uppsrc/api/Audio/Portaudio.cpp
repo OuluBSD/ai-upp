@@ -330,7 +330,7 @@ bool PortaudioStatic::exists = false;
 
 
 
-#if (defined flagBUILTIN_PORTAUDIO) || (defined flagWIN32 && defined flagMSC)
+#if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
 struct AudPortaudio::NativeSinkDevice {
 	PaStream* p;
 	bool started;

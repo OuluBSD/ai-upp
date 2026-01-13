@@ -19,11 +19,17 @@ extern "C" {
 #endif
 
 
+#if (defined flagCAMERA && defined flagWIN32 && defined flagMSC)
+	#define HAVE_DIRECTSHOW 1
+#endif
+
 #if defined flagOPENCV && defined flagLINUX
 	#define HAVE_V4L2_DEVMGR	1
 	//#define HAVE_V4L2_CAP		1
 	//#define V4L2_SLOW		1
 #elif defined flagOPENCV && (defined flagWIN32 && defined flagMSC)
+	#define HAVE_WIN32_DEVMGR	1
+#elif (defined flagCAMERA && defined flagWIN32 && defined flagMSC)
 	#define HAVE_WIN32_DEVMGR	1
 #endif
 
@@ -35,7 +41,9 @@ extern "C" {
 #include "FileIn.h"
 #include "MediaAtomBase.h"
 
+#ifdef flagOPENCV
 #include "Capture_OpenCV.h"
+#endif
 #include "DeviceManager_V4L2.h"
 #include "DeviceManager_Win32.h"
 #include "Capture_V4L2.h"

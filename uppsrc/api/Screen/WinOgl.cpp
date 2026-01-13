@@ -2,7 +2,12 @@
 
 #if defined flagWIN32 && defined flagOGL && !defined flagUWP
 
+#include <Core/Core.h>
+#define CY win32_CY_
+#define FAR win32_FAR_
 #include <windows.h>
+#undef CY
+#undef FAR
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <string.h>

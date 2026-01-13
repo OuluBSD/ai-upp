@@ -1,6 +1,11 @@
 #pragma once
 
-#include <Core/config.h>
+#include <Core/Core.h>
+
+#ifdef flagWIN32
+#define CY win32_CY_
+#define FAR win32_FAR_
+#endif
 
 // https://social.msdn.microsoft.com/Forums/en-US/6c3b5778-0b60-4dc5-a8bd-4bc645464e4f/strsafeh-before-iostream-triggers-warnings?forum=Vsexpressvc
 #if defined flagWIN32 && !defined flagMSC
@@ -43,8 +48,6 @@
 #pragma warning( disable : 4100 ) // disable unreference formal parameter warnings for /W4 builds
 
 
-#define NEAR
-#define FAR
 #define WIN32_LEAN_AND_MEAN 1
 
 
@@ -172,6 +175,11 @@
 #endif    
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
+#endif
+
+#ifdef flagWIN32
+#undef CY
+#undef FAR
 #endif
 
 #undef IsMaximized

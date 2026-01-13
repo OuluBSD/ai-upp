@@ -3,6 +3,8 @@
 
 NAMESPACE_UPP
 
+using namespace GVar;
+
 
 inline void Begin(PrimType type) {}
 inline void Finish() {}

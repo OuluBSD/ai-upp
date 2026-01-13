@@ -70,8 +70,10 @@ String CodeVisitor::Item::ToString() const {
 void CodeVisitor::Begin() {
 	export_items.Clear();
 	visited.Clear();
+#ifdef flagASTCLANG
 	macro_exps = MetaEnv().root.AstFindAllShallow(CXCursor_MacroExpansion);
 	macro_defs = MetaEnv().root.AstFindAllShallow(CXCursor_MacroDefinition);
+#endif
 }
 
 int CodeVisitor::FindItem(VfsValue* n) const {
@@ -90,16 +92,22 @@ void CodeVisitor::Visit(const String& filepath, VfsValue& n) {
 	visited.Add(&n);
 	AstValue& ast = RealizeRawValue<AstValue>(n.value);
 	bool add_item = false;
+#ifdef flagASTCLANG
 	if((!n.id.IsEmpty() || !ast.type.IsEmpty()) && ast.kind != CXCursor_CXXBaseSpecifier)
 		add_item = true;
 	else if(ast.kind == CXCursor_ReturnStmt || ast.kind == CXCursor_MacroDefinition || ast.kind == CXCursor_MacroExpansion)
 		add_item = true;
+#else
+	if(!n.id.IsEmpty() || !ast.type.IsEmpty())
+		add_item = true;
+#endif
 
 	if(add_item) {
 		Item& it = export_items.Add();
 		it.pos = ast.begin;
 		it.file = filepath;
 		it.node = &n;
+#ifdef flagASTCLANG
 		if(ast.kind == CXCursor_MacroExpansion) {
 			String id = n.id;
 			for(VfsValue* md : macro_defs) {
@@ -109,10 +117,12 @@ void CodeVisitor::Visit(const String& filepath, VfsValue& n) {
 				}
 			}
 		}
+#endif
 	}
 
 	VisitSub(filepath, n);
 
+#ifdef flagASTCLANG
 	if(IsStructPtr && IsFunctionPtr && (IsStructPtr(ast.kind) || IsFunctionPtr(ast.kind))) {
 		hash_t pkg_hash = n.pkg_hash;
 		hash_t file_hash = n.file_hash;
@@ -124,6 +134,7 @@ void CodeVisitor::Visit(const String& filepath, VfsValue& n) {
 			}
 		}
 	}
+#endif
 }
 
 void CodeVisitor::VisitSub(const String& filepath, VfsValue& n) {

@@ -2,102 +2,70 @@
 
 namespace Upp {
 
-Pointf3 Length(Pointf3 p, double length)
+Pointf3 Orthogonal(Pointf3 v, Pointf3 target)
 {
-	double l = max(Length(p), fpabsmax(p));
-	if(l)
-		return p * length / l;
-	return p;
+	return v - target * (v ^ target) / Squared(target);
 }
 
-String AsString(const Pointf3& p)
+Pointf3 Orthonormal(Pointf3 v, Pointf3 target)
 {
-	String out;
-	if(IsNull(p))
-		out = "Pointf3(Null)";
-	else
-		out << "Pointf3(" << DblStr(p.x) << ", " << DblStr(p.y) << ", " << DblStr(p.z) << ")";
-	return out;
-}
-
-Pointf3 Bezier2(Pointf3 a, Pointf3 b, Pointf3 c, double t)
-{
-	double u = 1 - t;
-	return a * (u * u) + b * (2 * u * t) + c * (t * t);
-}
-
-Pointf3 Orthogonal(Pointf3 v, Pointf3 against)
-{
-	return v - against * ((v ^ against) / Squared(against));
-}
-
-Pointf3 Orthonormal(Pointf3 v, Pointf3 against)
-{
-	return UnitV(Orthogonal(v, against));
+	Pointf3 o = Orthogonal(v, target);
+	double l = Length(o);
+	return l > 1e-100 ? o / l : o;
 }
 
 Pointf3 FarthestAxis(Pointf3 v)
 {
-	double tx = fabs(v.x), ty = fabs(v.y), tz = fabs(v.z);
-	return tx <= ty && tx <= tz ? Pointf3(1, 0, 0)
-		:  ty <= tx && ty <= tz ? Pointf3(0, 1, 0)
-		:                         Pointf3(0, 0, 1);
-}
-
-Pointf3 AtLine(Pointf3 a, double ta, Pointf3 b, double tb, double tx, double *ratio)
-{
-	double r = (ta == tb ? 0 : (tx - ta) / (tb - ta));
-	if(ratio)
-		*ratio = r;
-	return a + (b - a) * r;
-}
-
-Pointf3 RotateX(Pointf3 v, double angle, Pointf3 centre)
-{
-	double c = cos(angle), s = sin(angle), y = v.y - centre.y, z = v.z - centre.z;
-	return Pointf3(v.x, y * c - z * s + centre.y, y * s + z * c + centre.z);
-}
-
-Pointf3 RotateY(Pointf3 v, double angle, Pointf3 centre)
-{
-	double c = cos(angle), s = sin(angle), z = v.z - centre.z, x = v.x - centre.x;
-	return Pointf3(z * s + x * c + centre.x, v.y, z * c - x * s + centre.z);
-}
-
-Pointf3 RotateZ(Pointf3 v, double angle, Pointf3 centre)
-{
-	double c = cos(angle), s = sin(angle), x = v.x - centre.x, y = v.y - centre.y;
-	return Pointf3(x * c - y * s + centre.x, x * s + y * c + centre.y, v.z);
-}
-
-Pointf3 Rotate(Pointf3 v, Pointf3 axis, double angle, Pointf3 centre)
-{
-	Matrixf3 m = Matrixf3Rotate(axis, angle);
-	m.Fix(centre);
-	return v * m;
-}
-
-double Angle(Pointf3 a, Pointf3 b)
-{
-	double da = sqrt(Squared(a) * Squared(b));
-	if(da == 0)
-		return 0;
-	da = (a ^ b) / da;
-	if(da <= -1)
-		return M_PI;
-	else if(da >= 1)
-		return 0;
+	double ax = fabs(v.x), ay = fabs(v.y), az = fabs(v.z);
+	if(ax < ay)
+		return (ax < az ? Pointf3(1, 0, 0) : Pointf3(0, 0, 1));
 	else
-		return acos(da);
+		return (ay < az ? Pointf3(0, 1, 0) : Pointf3(0, 0, 1));
 }
 
 //////////////////////////////////////////////////////////////////////
 // Plane3::
 
-Plane3 Unit3(Plane3 p)
+Plane3::Plane3(const Nuller& n)
 {
-	double nt = max(Length(p.normal), fpabsmax(p.normal));
-	if(nt)
+	delta = Null;
+}
+
+Plane3::Plane3(double d, Pointf3 n)
+{
+	delta = d;
+	normal = n;
+}
+
+Plane3::Plane3(Pointf3 p, Pointf3 n)
+{
+	normal = UnitV(n);
+	delta = -(p ^ normal);
+}
+
+Plane3::Plane3(Pointf3 p1, Pointf3 p2, Pointf3 p3)
+{
+	normal = UnitV((p2 - p1) % (p3 - p1));
+	delta = -(p1 ^ normal);
+}
+
+void Plane3::Serialize(Stream& stream)
+{
+	stream % delta % normal;
+}
+
+Plane3 operator * (Plane3 p, const Matrixf3& m)
+{
+	Pointf3 p1 = Pointf3(-p.delta, 0, 0) * m;
+	Pointf3 p2 = (Pointf3(-p.delta, 0, 0) + Orthonormal(FarthestAxis(p.normal), p.normal)) * m;
+	Pointf3 p3 = (Pointf3(-p.delta, 0, 0) + (p2 - p1) % p.normal) * m;
+	return Plane3(p1, p2, p3);
+}
+
+Plane3 UnitV(Plane3 p)
+{
+	double nt = Length(p.normal);
+	if(nt > 1e-100)
 		return Plane3(p.delta / nt, p.normal / nt);
 	return p;
 }
@@ -263,9 +231,9 @@ Matrixf3 Matrixf3Rotate(Pointf3 axis, double angle)
 }
 
 //////////////////////////////////////////////////////////////////////
-// Camera::
+// Camera3::
 
-Camera::Camera()
+Camera3::Camera3()
 {
 	ViewingAngle(120 * DEGRAD); // default viewing angle in radians
 	Location(Pointf3(-100, 100, 0)); // 150 m from origin in the -x+y distance
@@ -280,7 +248,7 @@ Camera::Camera()
 	Update();
 }
 
-void Camera::Serialize(Stream& stream)
+void Camera3::Serialize(Stream& stream)
 {
 	int version = StreamHeading(stream, 1, 1, 1, "Camera");
 	if(version >= 1)
@@ -292,7 +260,7 @@ void Camera::Serialize(Stream& stream)
 	}
 }
 
-void Camera::Update()
+void Camera3::Update()
 {
 	direction = UnitV(target - location);
 	distance_delta = -(location ^ direction);
@@ -314,7 +282,7 @@ void Camera::Update()
 		Pointf3(shift_x, shift_y, 1) / z_times);
 }
 
-Pointf3 Camera::Transform(Pointf3 point) const
+Pointf3 Camera3::Transform(Pointf3 point) const
 {
 	Pointf3 axon = point * transform_matrix;
 	static const double MIN_DISTANCE = 1e-3; // 1 mm should be good enough
@@ -323,7 +291,7 @@ Pointf3 Camera::Transform(Pointf3 point) const
 	return Pointf3(axon.x / axon.z, axon.y / axon.z, axon.z + z_delta);
 }
 
-void Camera::SetPolar(Pointf3 dz, Pointf3 dx, double d, double a, double b, double r)
+void Camera3::SetPolar(Pointf3 dz, Pointf3 dx, double d, double a, double b, double r)
 {
 	Pointf3 dy = dz % dx;
 	Pointf3 az = RotateX(Pointf3(0, 0, -1), -b);
@@ -337,7 +305,7 @@ void Camera::SetPolar(Pointf3 dz, Pointf3 dx, double d, double a, double b, doub
 	Location(loc).Upwards(Rotate(su, dir, r));
 }
 
-void Camera::GetPolar(Pointf3 dz, Pointf3 dx,
+void Camera3::GetPolar(Pointf3 dz, Pointf3 dx,
 double& distance, double& azimuth, double& bearing, double& rotation) const
 {
 	distance = Distance(location, target);
@@ -349,7 +317,7 @@ double& distance, double& azimuth, double& bearing, double& rotation) const
 	rotation = asin(2 * r) * 0.5;
 }
 
-bool Camera::TransformClip(Pointf3 a, Pointf3 b, Pointf& outa, Pointf& outb) const
+bool Camera3::TransformClip(Pointf3 a, Pointf3 b, Pointf& outa, Pointf& outb) const
 {
 	Pointf3 a1 = a * transform_matrix, b1 = b * transform_matrix;
 	double az = a1.z + z_delta, bz = b1.z + z_delta;
@@ -368,7 +336,7 @@ bool Camera::TransformClip(Pointf3 a, Pointf3 b, Pointf& outa, Pointf& outb) con
 	return ClipLine(outa, outb, Rectf(-view_px, -view_py, +view_px, +view_py));
 }
 
-Pointf3 Camera::InverseXY(Pointf point, double z) const
+Pointf3 Camera3::InverseXY(Pointf point, double z) const
 {
 	double dax = point.x * transform_matrix.x.z - transform_matrix.x.x;
 	double day = point.x * transform_matrix.y.z - transform_matrix.y.x;

@@ -757,7 +757,7 @@ void ScopeT<Dim>::AddInterface(TopContainer& tw)
 	h.Layout();
 	h.Refresh();
 	
-	tw.SetTopFrame(h);
+	// tw.SetTopFrame(h); // TODO: implement or remove
 }
 
 template <class Dim>
@@ -771,6 +771,7 @@ void ScopeT<Dim>::SetFrameBox(const Box& b) {
 }
 
 GUIGLUE_EXCPLICIT_INITIALIZE_CLASS(ScopeT)
+template class ScopeT<CtxUpp2D>;
 
 
 

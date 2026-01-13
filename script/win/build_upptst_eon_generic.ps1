@@ -1,12 +1,15 @@
 # PowerShell script to build EON tests for Windows
 param(
     [Parameter(Mandatory=$true)][string]$Target,
+    [Parameter(Mandatory=$true)][string]$BuildModel,
     [Parameter(Mandatory=$false)][string]$BaseFlags = "",
     [switch]$Release,
     [switch]$NoDebugRt,
     [switch]$Uppheap,
     [switch]$Clean
 )
+
+Write-Host "Generic script: Received BuildModel = $BuildModel"
 
 function Strip-Flag {
     param(
@@ -69,11 +72,9 @@ if (!(Test-Path "bin")) {
 
 # Build the executable
 if ($finalFlags) {
-    $buildModel = "C:\Users\$env:USERNAME\upp\MSVS22x64.bm"
-    $command = "umk ./upptst,./uppsrc `"$Target`" `"$buildModel`" `"$buildFlags`" `"+$finalFlags`" `"bin/$Target.exe`""
+    $command = "umk ./upptst,./uppsrc `"$Target`" `"$BuildModel`" `"$buildFlags`" `"+$finalFlags`" `"bin/$Target.exe`""
 } else {
-    $buildModel = "C:\Users\$env:USERNAME\upp\MSVS22x64.bm"
-    $command = "umk ./upptst,./uppsrc `"$Target`" `"$buildModel`" `"$buildFlags`" `"bin/$Target.exe`""
+    $command = "umk ./upptst,./uppsrc `"$Target`" `"$BuildModel`" `"$buildFlags`" `"bin/$Target.exe`""
 }
 
 Write-Host "Executing: $command"

@@ -52,6 +52,8 @@ uses(HAL (GUI | SCREEN)) api/Hal;
 
 uses((GUI | SCREEN) & !EMSCRIPTEN) api/Screen;
 
+options(BUILDER_OPTION) noblitz;
+
 file
 	Shell.h,
 	Shell.cpp,

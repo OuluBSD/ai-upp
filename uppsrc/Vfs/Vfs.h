@@ -1,6 +1,7 @@
 #ifndef _Vfs_Backend_h_
 #define _Vfs_Backend_h_
 
+#ifdef flagASTCLANG
 #ifndef flagLCLANG
 	#ifdef PLATFORM_POSIX
 	#define DYNAMIC_LIBCLANG // dynamic loading of clang experiment (does not seem to work in Win32)
@@ -10,6 +11,7 @@
 #include <ide/clang/libclang.h>
 #else
 #include <clang-c/Index.h>
+#endif
 #endif
 
 #include <Core/Core.h>

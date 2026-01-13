@@ -193,6 +193,21 @@ bool HalUpp::GuiSinkBase_Recv(NativeGuiSinkBase& dev, AtomBase& a, int sink_ch, 
 		return false;
 	}
 
+	// Align/valign values of 0 mean CENTER in U++, but older forms store 0 for LEFT/TOP.
+	// If explicit offsets are present, treat 0 as LEFT/TOP to preserve expected layout.
+	Form& form = dev.form_win->GetForm();
+	for (FormLayout& layout : form.GetLayouts()) {
+		Array<FormObject>& objects = layout.GetObjects();
+		for (int i = 0; i < objects.GetCount(); ++i) {
+			FormObject& obj = objects[i];
+			const Rect& r = obj.GetRect();
+			if (obj.GetHAlign() == Ctrl::CENTER && r.left != 0)
+				obj.SetHAlign(Ctrl::LEFT);
+			if (obj.GetVAlign() == Ctrl::CENTER && r.top != 0)
+				obj.SetVAlign(Ctrl::TOP);
+		}
+	}
+
 	// Select default layout
 	String layout_name = "Default";
 	if (!dev.form_win->Layout(layout_name)) {
@@ -392,6 +407,154 @@ void HalUpp::GuiFileSrc_DetachContext(NativeGuiFileSrc& dev, AtomBase& a, AtomBa
 	// Detach context
 }
 
+// Stubs for missing HalUpp devices
+#if (defined flagHAL && defined flagAUDIO)
+struct HalUpp::NativeAudioSinkDevice {};
+bool HalUpp::AudioSinkDevice_Create(NativeAudioSinkDevice*& dev) { return false; }
+void HalUpp::AudioSinkDevice_Destroy(NativeAudioSinkDevice*& dev) {}
+bool HalUpp::AudioSinkDevice_Initialize(NativeAudioSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::AudioSinkDevice_PostInitialize(NativeAudioSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::AudioSinkDevice_Start(NativeAudioSinkDevice&, AtomBase&) { return false; }
+void HalUpp::AudioSinkDevice_Stop(NativeAudioSinkDevice&, AtomBase&) {}
+void HalUpp::AudioSinkDevice_Uninitialize(NativeAudioSinkDevice&, AtomBase&) {}
+bool HalUpp::AudioSinkDevice_Send(NativeAudioSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::AudioSinkDevice_Visit(NativeAudioSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::AudioSinkDevice_Recv(NativeAudioSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::AudioSinkDevice_Finalize(NativeAudioSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::AudioSinkDevice_Update(NativeAudioSinkDevice&, AtomBase&, double) {}
+bool HalUpp::AudioSinkDevice_IsReady(NativeAudioSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::AudioSinkDevice_AttachContext(NativeAudioSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase&, AtomBase&) {}
+#endif
+
+#if (defined flagHAL && defined flagVIDEO)
+struct HalUpp::NativeCenterVideoSinkDevice {};
+bool HalUpp::CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev) { return false; }
+void HalUpp::CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev) {}
+bool HalUpp::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice&, AtomBase&) { return false; }
+void HalUpp::CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice&, AtomBase&) {}
+void HalUpp::CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice&, AtomBase&) {}
+bool HalUpp::CenterVideoSinkDevice_Send(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::CenterVideoSinkDevice_Update(NativeCenterVideoSinkDevice&, AtomBase&, double) {}
+bool HalUpp::CenterVideoSinkDevice_IsReady(NativeCenterVideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase&, AtomBase&) {}
+#endif
+
+#if (defined flagHAL && defined flagFBO)
+struct HalUpp::NativeCenterFboSinkDevice {};
+bool HalUpp::CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev) { return false; }
+void HalUpp::CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev) {}
+bool HalUpp::CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::CenterFboSinkDevice_PostInitialize(NativeCenterFboSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::CenterFboSinkDevice_Start(NativeCenterFboSinkDevice&, AtomBase&) { return false; }
+void HalUpp::CenterFboSinkDevice_Stop(NativeCenterFboSinkDevice&, AtomBase&) {}
+void HalUpp::CenterFboSinkDevice_Uninitialize(NativeCenterFboSinkDevice&, AtomBase&) {}
+bool HalUpp::CenterFboSinkDevice_Send(NativeCenterFboSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::CenterFboSinkDevice_Visit(NativeCenterFboSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::CenterFboSinkDevice_Recv(NativeCenterFboSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::CenterFboSinkDevice_Finalize(NativeCenterFboSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::CenterFboSinkDevice_Update(NativeCenterFboSinkDevice&, AtomBase&, double) {}
+bool HalUpp::CenterFboSinkDevice_IsReady(NativeCenterFboSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::CenterFboSinkDevice_AttachContext(NativeCenterFboSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice&, AtomBase&, AtomBase&) {}
+#endif
+
+#if (defined flagHAL && defined flagOGL)
+struct HalUpp::NativeOglVideoSinkDevice {};
+bool HalUpp::OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev) { return false; }
+void HalUpp::OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev) {}
+bool HalUpp::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::OglVideoSinkDevice_Start(NativeOglVideoSinkDevice&, AtomBase&) { return false; }
+void HalUpp::OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice&, AtomBase&) {}
+void HalUpp::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice&, AtomBase&) {}
+bool HalUpp::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::OglVideoSinkDevice_Recv(NativeOglVideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::OglVideoSinkDevice_Finalize(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::OglVideoSinkDevice_Update(NativeOglVideoSinkDevice&, AtomBase&, double) {}
+bool HalUpp::OglVideoSinkDevice_IsReady(NativeOglVideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::OglVideoSinkDevice_AttachContext(NativeOglVideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase&, AtomBase&) {}
+#endif
+
+#if (defined flagHAL && defined flagDX12)
+struct HalUpp::NativeD12VideoSinkDevice {};
+bool HalUpp::D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev) { return false; }
+void HalUpp::D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev) {}
+bool HalUpp::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::D12VideoSinkDevice_PostInitialize(NativeD12VideoSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::D12VideoSinkDevice_Start(NativeD12VideoSinkDevice&, AtomBase&) { return false; }
+void HalUpp::D12VideoSinkDevice_Stop(NativeD12VideoSinkDevice&, AtomBase&) {}
+void HalUpp::D12VideoSinkDevice_Uninitialize(NativeD12VideoSinkDevice&, AtomBase&) {}
+bool HalUpp::D12VideoSinkDevice_Send(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::D12VideoSinkDevice_Recv(NativeD12VideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::D12VideoSinkDevice_Finalize(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::D12VideoSinkDevice_Update(NativeD12VideoSinkDevice&, AtomBase&, double) {}
+bool HalUpp::D12VideoSinkDevice_IsReady(NativeD12VideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::D12VideoSinkDevice_AttachContext(NativeD12VideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::D12VideoSinkDevice_DetachContext(NativeD12VideoSinkDevice&, AtomBase&, AtomBase&) {}
+#endif
+
+#if defined flagHAL
+struct HalUpp::NativeContextBase {};
+bool HalUpp::ContextBase_Create(NativeContextBase*& dev) { return false; }
+void HalUpp::ContextBase_Destroy(NativeContextBase*& dev) {}
+bool HalUpp::ContextBase_Initialize(NativeContextBase&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::ContextBase_PostInitialize(NativeContextBase&, AtomBase&) { return false; }
+bool HalUpp::ContextBase_Start(NativeContextBase&, AtomBase&) { return false; }
+void HalUpp::ContextBase_Stop(NativeContextBase&, AtomBase&) {}
+void HalUpp::ContextBase_Uninitialize(NativeContextBase&, AtomBase&) {}
+bool HalUpp::ContextBase_Send(NativeContextBase&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::ContextBase_Visit(NativeContextBase&, AtomBase&, Visitor&) {}
+bool HalUpp::ContextBase_Recv(NativeContextBase&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::ContextBase_Finalize(NativeContextBase&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::ContextBase_Update(NativeContextBase&, AtomBase&, double) {}
+bool HalUpp::ContextBase_IsReady(NativeContextBase&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::ContextBase_AttachContext(NativeContextBase&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::ContextBase_DetachContext(NativeContextBase&, AtomBase&, AtomBase&) {}
+#endif
+
+struct HalUpp::NativeUppOglDevice {};
+bool HalUpp::NativeUppOglDevice_Create(NativeUppOglDevice*& dev) { return false; }
+void HalUpp::NativeUppOglDevice_Destroy(NativeUppOglDevice*& dev) {}
+bool HalUpp::NativeUppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) { return false; }
+bool HalUpp::NativeUppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) { return false; }
+bool HalUpp::NativeUppOglDevice_Start(NativeUppOglDevice&, AtomBase&) { return false; }
+void HalUpp::NativeUppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {}
+void HalUpp::NativeUppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {}
+bool HalUpp::NativeUppOglDevice_Send(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) { return false; }
+bool HalUpp::NativeUppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int sink_ch, const Packet& in) { return false; }
+void HalUpp::NativeUppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg) {}
+void HalUpp::NativeUppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {}
+bool HalUpp::NativeUppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) { return false; }
+void HalUpp::NativeUppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Vis& v) {}
+bool HalUpp::NativeUppOglDevice_AttachContext(NativeUppOglDevice&, AtomBase&, AtomBase& a) { return false; }
+void HalUpp::NativeUppOglDevice_DetachContext(NativeUppOglDevice&, AtomBase&, AtomBase& a) {}
+
+struct HalUpp::NativeUppEventsBase {};
+bool HalUpp::UppEventsBase_Create(NativeUppEventsBase*& dev) { return false; }
+void HalUpp::UppEventsBase_Destroy(NativeUppEventsBase*& dev) {}
+bool HalUpp::UppEventsBase_Initialize(NativeUppEventsBase& dev, AtomBase& a, const WorldState&) { return false; }
+bool HalUpp::UppEventsBase_PostInitialize(NativeUppEventsBase& dev, AtomBase& a) { return false; }
+bool HalUpp::UppEventsBase_Start(NativeUppEventsBase&, AtomBase&) { return false; }
+void HalUpp::UppEventsBase_Stop(NativeUppEventsBase&, AtomBase& a) {}
+void HalUpp::UppEventsBase_Uninitialize(NativeUppEventsBase& dev, AtomBase& a) {}
+bool HalUpp::UppEventsBase_Send(NativeUppEventsBase& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) { return false; }
+bool HalUpp::UppEventsBase_Recv(NativeUppEventsBase&, AtomBase&, int sink_ch, const Packet& in) { return false; }
+void HalUpp::UppEventsBase_Finalize(NativeUppEventsBase&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::UppEventsBase_Update(NativeUppEventsBase&, AtomBase&, double dt) {}
+bool HalUpp::UppEventsBase_IsReady(NativeUppEventsBase&, AtomBase&, PacketIO& io) { return false; }
+void HalUpp::UppEventsBase_Visit(NativeUppEventsBase&, AtomBase&, Vis& v) {}
+bool HalUpp::UppEventsBase_AttachContext(NativeUppEventsBase&, AtomBase&, AtomBase& a) { return false; }
+void HalUpp::UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase&, AtomBase& a) {}
 
 END_UPP_NAMESPACE
 

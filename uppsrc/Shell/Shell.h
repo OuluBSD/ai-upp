@@ -1,7 +1,6 @@
 #ifndef _Shell_Shell_h_
 #define _Shell_Shell_h_
 
-
 #include <AI/Core/Base/Base.h>
 #include <Geometry/Geometry.h>
 #include <Vfs/Runtime/Runtime.h>

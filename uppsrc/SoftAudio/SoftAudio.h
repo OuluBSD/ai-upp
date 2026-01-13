@@ -1,15 +1,20 @@
 #ifndef _AudioCore_AudioCore_h_
 #define _AudioCore_AudioCore_h_
 
+#include <Core/Core.h>
+
 #if (defined(__OS_IRIX__) || defined(__OS_LINUX__) || defined(__OS_MACOSX__))
 	#include <unistd.h>
-#elif defined(__OS_WINDOWS__)
+#elif defined(__OS_WINDOWS__) || defined(flagWIN32)
+	#define CY win32_CY_
+	#define FAR win32_FAR_
 	#include <windows.h>
+	#undef CY
+	#undef FAR
 #endif
 
 #include <sys/stat.h>
 
-#include <Core/Core.h>
 #include <Geometry/Geometry.h>
 #include <MidiFile/MidiFile.h>
 #include <Sound/Sound.h>
@@ -97,7 +102,16 @@
 
 
 #include "DevWaveOut.h"
+
+#ifdef flagWIN32
+	#define CY win32_CY_
+	#define FAR win32_FAR_
+#endif
 #include "PortaudioCore.h"
+#ifdef flagWIN32
+	#undef CY
+	#undef FAR
+#endif
 
 #include "ScriptTbl.h"
 #include "Script.h"

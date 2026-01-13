@@ -2,12 +2,11 @@
 
 #if defined flagHAL && defined flagSDL2
 
-#ifdef flagGUI
-#include <CtrlCore/CtrlCore.h>
-#endif
-
 #include <GLDraw/GLDraw.h>
 #include <plugin/png/png.h>
+#ifdef flagGUBO
+#include <GuboLib/GuboLib.h>
+#endif
 
 NAMESPACE_UPP
 
@@ -150,10 +149,12 @@ struct HalSdl::NativeEventsBase {
     bool is_rctrl;
     Point prev_mouse_pt;
     Vector<int> invalids;
-    #ifdef flagGUI
-    Ptr<WindowSystem> wins;
+    #ifdef flagGUBO
     Ptr<Gu::SurfaceSystem> surfs;
     Ptr<Gu::GuboSystem> gubos;
+    #endif
+    #ifdef flagGUI
+    Ptr<WindowSystem> wins;
     #endif
     
     void Clear() {
@@ -162,10 +163,12 @@ struct HalSdl::NativeEventsBase {
         ev_sendable = 0;
         prev_mouse_pt = Point(0,0);
         sz.Clear();
-        #ifdef flagGUI
-        wins = 0;
+        #ifdef flagGUBO
         surfs = 0;
         gubos = 0;
+        #endif
+        #ifdef flagGUI
+        wins = 0;
         #endif
     }
 };
@@ -183,8 +186,10 @@ struct HalSdl::NativeContextBase {
 #ifdef flagGUI
 struct HalSdl::NativeUppEventsBase {
 	Ptr<WindowSystem> wins;
+    #ifdef flagGUBO
     Ptr<Gu::SurfaceSystem> surfs;
     Ptr<Gu::GuboSystem> gubos;
+    #endif
     double time;
     dword seq;
     
@@ -201,9 +206,11 @@ struct HalSdl::NativeUppEventsBase {
     void Clear() {
         time = 0;
         seq = 0;
-        wins.Clear();
-        surfs.Clear();
-        gubos.Clear();
+        wins = nullptr;
+        #ifdef flagGUBO
+        surfs = nullptr;
+        gubos = nullptr;
+        #endif
     }
 };
 #endif
@@ -1410,7 +1417,7 @@ bool HalSdl::EventsBase_PostInitialize(NativeEventsBase& dev, AtomBase& a) {
 	a.AddAtomToUpdateList();
 	
 	
-	#ifdef flagGUI
+	#ifdef flagGUBO
 	{
 		Engine& m = a.GetEngine();
 		dev.surfs = a.val.FindOwnerWithCast<Gu::SurfaceSystem>();
@@ -1444,9 +1451,11 @@ void HalSdl::EventsBase_Stop(NativeEventsBase& dev, AtomBase& a) {
 void HalSdl::EventsBase_Uninitialize(NativeEventsBase& dev, AtomBase& a) {
 	
 	#ifdef flagGUI
-	dev.wins.Clear();
-	dev.surfs.Clear();
-	dev.gubos.Clear();
+	dev.wins = nullptr;
+	#endif
+	#ifdef flagGUBO
+	dev.surfs = nullptr;
+	dev.gubos = nullptr;
 	#endif
 	
 	a.RemoveAtomFromUpdateList();
@@ -1725,6 +1734,8 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	if (dev.wins) {
 		dev.wins->DoEvents(dev.ev);
 	}
+	#endif
+	#ifdef flagGUBO
 	if (dev.surfs) {
 		dev.surfs->DoEvents(dev.ev);
 	}
@@ -1868,8 +1879,10 @@ bool HalSdl::UppEventsBase_PostInitialize(NativeUppEventsBase& dev, AtomBase& a)
 	{
 		Engine& m = a.GetEngine();
 		
+		#ifdef flagGUBO
 		dev.surfs = m.Find<Gu::SurfaceSystem>();
 		dev.gubos = m.Find<Gu::GuboSystem>();
+		#endif
 		dev.wins = m.Get<WindowSystem>();
 		if (dev.wins) {
 			dev.wins->Set_SetMouseCursor(&HalSdl__SetMouseCursor, &dev);
@@ -1890,9 +1903,11 @@ void HalSdl::UppEventsBase_Stop(NativeUppEventsBase&, AtomBase& a) {
 }
 
 void HalSdl::UppEventsBase_Uninitialize(NativeUppEventsBase& dev, AtomBase& a) {
-	dev.wins.Clear();
-	dev.surfs.Clear();
-	dev.gubos.Clear();
+	dev.wins = nullptr;
+	#ifdef flagGUBO
+	dev.surfs = nullptr;
+	dev.gubos = nullptr;
+	#endif
 	
 	a.RemoveAtomFromUpdateList();
 }
@@ -1941,21 +1956,21 @@ void HalSdl::UppEventsBase_DetachContext(NativeUppEventsBase&, AtomBase& a, Atom
 
 
 #if defined flagOGL && defined flagGUI
-bool HalSdl::UppOglDevice_Create(NativeUppOglDevice*& dev) {
+bool HalSdl::NativeUppOglDevice_Create(NativeUppOglDevice*& dev) {
 	dev = new NativeUppOglDevice;
 	NativeUppOglDevice::last = &*dev;
 	return true;
 }
 
-void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
+void HalSdl::NativeUppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 	delete dev;
 }
 
-bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
+bool HalSdl::NativeUppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
 
-	auto ev_ctx = ResolveSdlContext(a, "HalSdl::UppOglDevice_Initialize");
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::NativeUppOglDevice_Initialize");
 	if (!ev_ctx) {
-		RTLOG("HalSdl::UppOglDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		RTLOG("HalSdl::NativeUppOglDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
 		VfsValue* owner = a.val.owner;
 		int depth = 0;
 		while (owner) {
@@ -2000,7 +2015,7 @@ bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const
 	return true;
 }
 
-bool HalSdl::UppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
+bool HalSdl::NativeUppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	if (!HalSdl_Ogl_PostInitialize(dev, a))
 		return false;
 	
@@ -2008,16 +2023,16 @@ bool HalSdl::UppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	return true;
 }
 
-bool HalSdl::UppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
+bool HalSdl::NativeUppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
 	
 	return true;
 }
 
-void HalSdl::UppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
+void HalSdl::NativeUppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
 	a.ClearDependencies();
 }
 
-void HalSdl::UppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
+void HalSdl::NativeUppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	if(dev.gl_ctx) {
 		SDL_GL_DeleteContext(dev.gl_ctx);
 		dev.gl_ctx = NULL;
@@ -2030,44 +2045,51 @@ void HalSdl::UppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	}
 }
 
-bool HalSdl::UppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalSdl::NativeUppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	return true;
 }
 
-void HalSdl::UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
+void HalSdl::NativeUppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::UppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
+bool HalSdl::NativeUppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
 	return true;
 }
 
-void HalSdl::UppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
+void HalSdl::NativeUppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
 	ASSERT(!dev.sz.IsEmpty());
 	dev.gldraw.Init(dev.sz, (uint64)dev.gl_ctx);
-	SystemDraw& sysdraw = UPP::VirtualGuiPtr->BeginDraw();
-	sysdraw.SetTarget(&dev.gldraw);
+	
+	Ptr<WindowSystem> wins = a.GetEngine().Get<WindowSystem>();
+	if (wins) {
+		auto& scope = wins->GetActiveScope();
+		auto& pd = scope.GetDraw();
+		pd.Realize(&a, dev.sz);
+		// TODO: How to connect pd to dev.gldraw in this architecture?
+		// In the old architecture it was vgui->SetTarget(pd);
+	}
 	
 	//Ctrl::PaintAll();
-	Ctrl::EventLoopIteration(NULL);
+	//Ctrl::EventLoopIteration(NULL);
 	
 	dev.gldraw.Finish();
 	SDL_GL_SwapWindow(dev.win);
 }
 
-void HalSdl::UppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
+void HalSdl::NativeUppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
 	TODO
 }
 
-bool HalSdl::UppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
+bool HalSdl::NativeUppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
 	return true;
 }
 
-bool HalSdl::UppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+bool HalSdl::NativeUppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
 	return true;
 }
 
-void HalSdl::UppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+void HalSdl::NativeUppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
 	
 }
 
@@ -2224,249 +2246,152 @@ dword fbKEYtoK(dword chr)
 #ifdef flagGUI
 void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 {
-	#if 1
-	dword& mouseb = ::UPP::mouseb;
-	dword& modkeys = ::UPP::modkeys;
-	bool&  sdlMouseIsIn = ::UPP::sdlMouseIsIn;
-	auto& isdblclick = ::UPP::isdblclick;
-	auto& lastbdowntime = ::UPP::lastbdowntime;
-	#else
-	dword& mouseb = dev.mouseb;
-	dword& modkeys = dev.modkeys;
-	bool&  sdlMouseIsIn = dev.sdlMouseIsIn;
-	auto& isdblclick = dev.isdblclick;
-	auto& lastbdowntime = dev.lastbdowntime;
-	#endif
-	
 	LLOG("HandleSDLEvent " << event->type);
-	SDL_Event next_event;
-	dword keycode;
+	
+	GeomEventCollection evec;
+	
 	switch(event->type) {
-//		case SDL_ACTIVEEVENT: //SDL_ActiveEvent
-//			break;
 	case SDL_TEXTINPUT: {
-			//send respective keyup things as char events as well
 		WString text = String(event->text.text).ToWString();
 		for(int i = 0; i < text.GetCount(); i++) {
 			int c = text[i];
-			if(c != 127)
-				Ctrl::DoKeyFB(c, 1);
+			if(c != 127) {
+				GeomEvent& e = evec.Add();
+				e.type = EVENT_KEYDOWN;
+				e.value = c;
+				e.n = 1;
+			}
 		}
 		break;
 	}
-	case SDL_KEYDOWN:
-		switch(event->key.keysym.sym) {
-			case SDLK_LSHIFT: modkeys |= KM_LSHIFT; break;
-			case SDLK_RSHIFT: modkeys |= KM_RSHIFT; break;
-			case SDLK_LCTRL: modkeys |= KM_LCTRL; break;
-			case SDLK_RCTRL: modkeys |= KM_RCTRL; break;
-			case SDLK_LALT: modkeys |= KM_LALT; break;
-			case SDLK_RALT: modkeys |= KM_RALT; break;
-		}
-		
-		keycode = fbKEYtoK((dword)event->key.keysym.sym);
-		
-		if(keycode != I_SPACE) { //dont send space on keydown
-			static int repeat_count;
-			SDL_PumpEvents();
-			if(SDL_PeepEvents(&next_event, 1, SDL_PEEKEVENT, SDL_KEYDOWN, SDL_KEYDOWN) &&
-			   next_event.key.keysym.sym == event->key.keysym.sym) {
-				repeat_count++; // Keyboard repeat compression
-				break;
-			}
-			Ctrl::DoKeyFB(keycode, 1 + repeat_count);
-			repeat_count = 0;
-		}
+	case SDL_KEYDOWN: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_KEYDOWN;
+		e.value = fbKEYtoK((dword)event->key.keysym.sym);
+		e.n = 1;
 		break;
-	case SDL_KEYUP: //SDL_KeyboardEvent
-		switch(event->key.keysym.sym) {
-			case SDLK_LSHIFT: modkeys &= ~KM_LSHIFT; break;
-			case SDLK_RSHIFT: modkeys &= ~KM_RSHIFT; break;
-			case SDLK_LCTRL: modkeys &= ~KM_LCTRL; break;
-			case SDLK_RCTRL: modkeys &= ~KM_RCTRL; break;
-			case SDLK_LALT: modkeys &= ~KM_LALT; break;
-			case SDLK_RALT: modkeys &= ~KM_RALT; break;
-		}
-
-		Ctrl::DoKeyFB(fbKEYtoK((dword)event->key.keysym.sym) | I_KEYUP, 1);
+	}
+	case SDL_KEYUP: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_KEYUP;
+		e.value = fbKEYtoK((dword)event->key.keysym.sym);
+		e.n = 1;
 		break;
-	case SDL_MOUSEMOTION:
-		SDL_PumpEvents();
-		if(SDL_PeepEvents(&next_event, 1, SDL_PEEKEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION) > 0)
-			break; // MouseMove compression
-		Ctrl::DoMouseFB(Ctrl::MOUSEMOVE, Point(event->motion.x, event->motion.y));
+	}
+	case SDL_MOUSEMOTION: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_MOUSEMOVE;
+		e.pt = Point(event->motion.x, event->motion.y);
 		break;
-	case SDL_MOUSEWHEEL:
-		Ctrl::DoMouseFB(Ctrl::MOUSEWHEEL, GetMousePos(), sgn((int)event->wheel.y) * 120);
+	}
+	case SDL_MOUSEWHEEL: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_MOUSEWHEEL;
+		e.n = sgn((int)event->wheel.y);
 		break;
+	}
 	case SDL_MOUSEBUTTONDOWN: {
-			Point p(event->button.x, event->button.y);
-			int bi = event->button.button;
-			dword ct = SDL_GetTicks();
-			if(isdblclick[bi] && (abs(int(ct) - int(lastbdowntime[bi])) < 400))
-			{
-				switch(bi)
-				{
-					case SDL_BUTTON_LEFT: Ctrl::DoMouseFB(Ctrl::LEFTDOUBLE, p); break;
-					case SDL_BUTTON_RIGHT: Ctrl::DoMouseFB(Ctrl::RIGHTDOUBLE, p); break;
-					case SDL_BUTTON_MIDDLE: Ctrl::DoMouseFB(Ctrl::MIDDLEDOUBLE, p); break;
-				}
-				isdblclick[bi] = 0; //reset, to go ahead sending repeats
-			}
-			else
-			{
-				lastbdowntime[bi] = ct;
-				isdblclick[bi] = 0; //prepare for repeat
-				switch(bi)
-				{
-					case SDL_BUTTON_LEFT: mouseb |= (1<<0); Ctrl::DoMouseFB(Ctrl::LEFTDOWN, p); break;
-					case SDL_BUTTON_RIGHT: mouseb |= (1<<1); Ctrl::DoMouseFB(Ctrl::RIGHTDOWN, p); break;
-					case SDL_BUTTON_MIDDLE: mouseb |= (1<<2); Ctrl::DoMouseFB(Ctrl::MIDDLEDOWN, p); break;
-				}
-			}
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_MOUSE_EVENT;
+		e.pt = Point(event->button.x, event->button.y);
+		switch(event->button.button) {
+			case SDL_BUTTON_LEFT: e.n = MOUSE_LEFTDOWN; break;
+			case SDL_BUTTON_RIGHT: e.n = MOUSE_RIGHTDOWN; break;
+			case SDL_BUTTON_MIDDLE: e.n = MOUSE_MIDDLEDOWN; break;
 		}
-		break;
-	case SDL_MOUSEBUTTONUP: {
-			int bi = event->button.button;
-			isdblclick[bi] = 1; //indicate maybe a dblclick
-	
-			Point p(event->button.x, event->button.y);
-			switch(bi)
-			{
-				case SDL_BUTTON_LEFT: mouseb &= ~(1<<0); Ctrl::DoMouseFB(Ctrl::LEFTUP, p); break;
-				case SDL_BUTTON_RIGHT: mouseb &= ~(1<<1); Ctrl::DoMouseFB(Ctrl::RIGHTUP, p); break;
-				case SDL_BUTTON_MIDDLE: mouseb &= ~(1<<2); Ctrl::DoMouseFB(Ctrl::MIDDLEUP, p); break;
-			}
-		}
-		break;
-/*		case SDL_VIDEORESIZE: //SDL_ResizeEvent
-		{
-			width = event->resize.w;
-			height = event->resize.h;
-	
-			SDL_FreeSurface(screen);
-			screen = CreateScreen(width, height, bpp, videoflags);
-			ASSERT(screen);
-			Ctrl::SetFramebufferSize(Size(width, height));
-		}
-			break;
-		case SDL_VIDEOEXPOSE: //SDL_ExposeEvent
-			break;*/
-	case SDL_WINDOWEVENT:
-        switch (event->window.event) {
-        case SDL_WINDOWEVENT_SHOWN:
-            break;
-        case SDL_WINDOWEVENT_HIDDEN:
-            break;
-        case SDL_WINDOWEVENT_EXPOSED:
-            break;
-        case SDL_WINDOWEVENT_MOVED:
-            break;
-//		case SDL_WINDOWEVENT_SIZE_CHANGED:
-//			SDLwidth = event->window.data1;
-//			SDLheight = event->window.data2;
-//      	break;
-        case SDL_WINDOWEVENT_RESIZED:
-            break;
-        case SDL_WINDOWEVENT_MINIMIZED:
-            break;
-        case SDL_WINDOWEVENT_MAXIMIZED:
-            break;
-        case SDL_WINDOWEVENT_RESTORED:
-            break;
-        case SDL_WINDOWEVENT_ENTER:
-			sdlMouseIsIn = true;
-			Ctrl::PaintAll();
-            break;
-        case SDL_WINDOWEVENT_LEAVE:
-			sdlMouseIsIn = false;
-			Ctrl::PaintAll();
-            break;
-        case SDL_WINDOWEVENT_FOCUS_GAINED:
-            break;
-        case SDL_WINDOWEVENT_FOCUS_LOST:
-            break;
-        case SDL_WINDOWEVENT_CLOSE:
-            break;
-        }
-		break;
-	case SDL_QUIT: //SDL_QuitEvent
-		Ctrl::EndSession();
 		break;
 	}
+	case SDL_MOUSEBUTTONUP: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_MOUSE_EVENT;
+		e.pt = Point(event->button.x, event->button.y);
+		switch(event->button.button) {
+			case SDL_BUTTON_LEFT: e.n = MOUSE_LEFTUP; break;
+			case SDL_BUTTON_RIGHT: e.n = MOUSE_RIGHTUP; break;
+			case SDL_BUTTON_MIDDLE: e.n = MOUSE_MIDDLEUP; break;
+		}
+		break;
+	}
+	case SDL_QUIT: {
+		GeomEvent& e = evec.Add();
+		e.type = EVENT_SHUTDOWN;
+		break;
+	}
+	}
 	
-	
-	
+	if (dev.wins && !evec.IsEmpty()) {
+		dev.wins->DoEvents(evec);
+	}
 }
 #endif
 
 // Stub implementations for UppOglDevice when OGL is defined but GUI is not
 #if defined flagOGL && !defined flagGUI
-bool HalSdl::UppOglDevice_Create(NativeUppOglDevice*& dev) {
+bool HalSdl::NativeUppOglDevice_Create(NativeUppOglDevice*& dev) {
 	TODO;
 	return false;
 }
 
-void HalSdl::UppOglDevice_Destroy(NativeUppOglDevice*& dev) {
+void HalSdl::NativeUppOglDevice_Destroy(NativeUppOglDevice*& dev) {
 	TODO;
 }
 
-bool HalSdl::UppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
-	TODO;
-	return false;
-}
-
-bool HalSdl::UppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
+bool HalSdl::NativeUppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
 	TODO;
 	return false;
 }
 
-bool HalSdl::UppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
+bool HalSdl::NativeUppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	TODO;
 	return false;
 }
 
-void HalSdl::UppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
-	TODO;
-}
-
-void HalSdl::UppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
-	TODO;
-}
-
-bool HalSdl::UppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalSdl::NativeUppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
 	TODO;
 	return false;
 }
 
-void HalSdl::UppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
+void HalSdl::NativeUppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
 	TODO;
 }
 
-bool HalSdl::UppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
-	TODO;
-	return false;
-}
-
-void HalSdl::UppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
+void HalSdl::NativeUppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
 	TODO;
 }
 
-void HalSdl::UppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
-	TODO;
-}
-
-bool HalSdl::UppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
+bool HalSdl::NativeUppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	TODO;
 	return false;
 }
 
-bool HalSdl::UppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+void HalSdl::NativeUppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
+	TODO;
+}
+
+bool HalSdl::NativeUppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
 	TODO;
 	return false;
 }
 
-void HalSdl::UppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+void HalSdl::NativeUppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
+	TODO;
+}
+
+void HalSdl::NativeUppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
+	TODO;
+}
+
+bool HalSdl::NativeUppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
+	TODO;
+	return false;
+}
+
+bool HalSdl::NativeUppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
+	TODO;
+	return false;
+}
+
+void HalSdl::NativeUppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
 	TODO;
 }
 #endif

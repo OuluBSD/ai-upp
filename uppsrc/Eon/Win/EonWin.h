@@ -1,6 +1,13 @@
 #ifndef _EonWin_EonWin_h_
 #define _EonWin_EonWin_h_
 
+#include <Core/Core.h>
+
+#ifdef flagWIN32
+#define CY win32_CY_
+#define FAR win32_FAR_
+#endif
+
 #include <Core/config.h>
 
 #include <optional>
@@ -138,21 +145,9 @@
 #include "Physics.h"
 #include "TransformUtil.h"
 
-/*
-#include "Shaders\Compiled\SkyBoxPixelShader.h"
-#include "Shaders\Compiled\SkyBoxVertexShaderVprt.h"
-#include "Shaders\Compiled\SkyBoxVertexShaderNoVprt.h"
-#include "Shaders\Compiled\SkyBoxGeometryShaderNoVprt.h"
-
-#include "Shaders\Compiled\QuadGeometryShader.h"
-#include "Shaders\Compiled\QuadPixelShaderRGB.h"
-#include "Shaders\Compiled\QuadVertexShader.h"
-#include "Shaders\Compiled\QuadVPRTVertexShader.h"
-
-#include "Shaders\Compiled\PbrPixelShader.h"
-#include "Shaders\Compiled\PbrVertexShaderVprt.h"
-#include "Shaders\Compiled\PbrVertexShaderNoVprt.h"
-#include "Shaders\Compiled\PbrGeometryShaderNoVprt.h"
-*/
+#ifdef flagWIN32
+#undef CY
+#undef FAR
+#endif
 
 #endif

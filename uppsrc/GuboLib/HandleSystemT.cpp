@@ -4,14 +4,13 @@ NAMESPACE_GUBO_BEGIN
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(Engine& m) :
-	RefScopeEnabler<MetaSystemBase, MetaMachineBase>::SP(m) {
+HandleSystemT<Dim>::HandleSystemT(VfsValue& m) :
+	System(m) {
 	
 }
 
 template <class Dim>
 bool HandleSystemT<Dim>::Initialize(const WorldState& ws) {
-	time = 0;
 	return true;
 }
 
@@ -22,31 +21,14 @@ bool HandleSystemT<Ctx2D>::Initialize(const WorldState& ws) {
 }
 
 template <class Dim>
-void HandleSystemT<Dim>::Start() {
-	
+bool HandleSystemT<Dim>::Start() {
+	return true;
 }
 
 template <class Dim>
 void HandleSystemT<Dim>::Update(double dt) {
-	bool closed = false;
-	
-	this->time += dt;
-	
-	for(int i = 0; i < scopes.GetCount(); i++) {
-		Scope& s = scopes[i];
-		
-		Event e;
-		while (s.Poll(e)) {
-			
-			if (e.type == EVENT_SHUTDOWN) {
-				if (close_machine_when_empty)
-					this->GetEngine
-			
-		}
-		closed = s.ProcessCloseQueue() || closed;
-		
-		s.Render();
-	}
+	// Processing events and rendering is typically handled by the engine update loop
+	// or specific system overrides.
 }
 
 template <class Dim>
@@ -67,7 +49,7 @@ typename HandleSystemT<Dim>::Scope& HandleSystemT<Dim>::AddScope() {
 	ASSERT_(scopes.IsEmpty(), "only 1 screen support is implemented for now: see static Surface::SetWindows");
 	lock.Enter();
 	Scope& s = scopes.Add();
-	s.SetParent(RefParent1<HandleSystemT<Dim>>(this));
+	// s.SetParent(RefParent1<HandleSystemT<Dim>>(this)); // TODO: verify RefParent usage in GuboLib
 	lock.Leave();
 	s.Init();
 	return s;
@@ -147,7 +129,26 @@ void HandleSystemT<Dim>::Set_GetMouseCursor(Image (*fn)(void*), void* arg) {
 
 template <class Dim>
 Image HandleSystemT<Dim>::OverrideCursor(const Image& img) {
-	TODO
+	Image cursor;
+	if (get_mouse_cursor) {
+		cursor = get_mouse_cursor(get_mouse_cursor_arg);
+	}
+	if (set_mouse_cursor) {
+		set_mouse_cursor(set_mouse_cursor_arg, img);
+	}
+	return cursor;
+}
+
+template <class Dim>
+Image HandleSystemT<Dim>::DefaultCursor() {
+	Image cursor;
+	if (get_mouse_cursor) {
+		cursor = get_mouse_cursor(get_mouse_cursor_arg);
+	}
+	if (set_mouse_cursor) {
+		set_mouse_cursor(set_mouse_cursor_arg, Image());
+	}
+	return cursor;
 }
 
 

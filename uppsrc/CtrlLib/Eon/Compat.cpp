@@ -144,15 +144,3 @@ Image RenderTextBlended(Font font, String s, Color ink) {
 
 
 END_UPP_NAMESPACE
-
-
-// PdfDraw is POSIX only package
-#ifdef flagWIN32
-NAMESPACE_UPP
-
-void __cdecl PdfDraw__initializer() {
-	
-}
-
-END_UPP_NAMESPACE
-#endif

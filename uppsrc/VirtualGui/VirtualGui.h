@@ -1,3 +1,6 @@
+#ifndef _VirtualGui_VirtualGui_h_
+#define _VirtualGui_VirtualGui_h_
+
 #ifdef PLATFORM_POSIX
 #include <CtrlCore/stdids.h>
 #endif
@@ -132,3 +135,5 @@ public:
 }
 
 #define GUIPLATFORM_INCLUDE_AFTER <VirtualGui/After.h>
+
+#endif

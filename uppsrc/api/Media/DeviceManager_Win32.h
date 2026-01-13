@@ -2,8 +2,9 @@
 #define _IMedia_DeviceManager_Win32_h_
 #if HAVE_WIN32_DEVMGR
 
-NAMESPACE_UPP
+#include "Capture_DShow.h"
 
+NAMESPACE_UPP
 
 class WIN32_Device {
 	String path, desc;
@@ -12,7 +13,7 @@ public:
 	WIN32_Device();
 	
 	int GetCaptureCount() const;
-	OpenCVCaptureDevice& GetCapture(int i);
+	DShowCaptureDevice& GetCapture(int i);
 	
 	String GetPath() const {return path;}
 	String GetDescription() const {return desc;}

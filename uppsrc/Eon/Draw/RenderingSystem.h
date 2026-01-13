@@ -2,7 +2,10 @@
 #define _Eon_Draw_RenderingSystem_h_
 
 
-class VirtualGui;
+struct VirtualGui;
+
+struct SdlSwGfx;
+struct SdlOglGfx;
 
 
 class RenderingSystem :
@@ -13,9 +16,9 @@ protected:
 	friend class VirtualGui;
 	
 	#if defined flagSDL2 && defined flagHAL
-	BufferT<SdlSwGfx>* sdl_sw_buf = 0;
+	Buffer<SdlSwGfx>* sdl_sw_buf = 0;
 	#ifdef flagOGL
-	BufferT<SdlOglGfx>* sdl_ogl_buf = 0;
+	Buffer<SdlOglGfx>* sdl_ogl_buf = 0;
 	#endif
 	#endif
 	Vector<RenderablePtr>		rends;
@@ -64,9 +67,9 @@ public:
 	
 	
 	#ifdef flagSDL2
-	void Attach(String key, BufferT<SdlSwGfx>* b);
+	void Attach(String key, Buffer<SdlSwGfx>* b);
 	#ifdef flagOGL
-	void Attach(String key, BufferT<SdlOglGfx>* b);
+	void Attach(String key, Buffer<SdlOglGfx>* b);
 	#endif
 	#endif
 	

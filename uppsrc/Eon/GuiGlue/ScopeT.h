@@ -105,7 +105,8 @@ public:
 	bool IsRender() const {return do_render;}
 	
 	hash_t GetHashValue() const { return (hash_t)(size_t)this; }
-	HandleSystem* GetManager() const { return this->GetParentUnsafe().Get(); }
+	Ptr<HandleSystem> GetParentUnsafe() const { return nullptr; }
+	HandleSystem* GetManager() const { return ~this->GetParentUnsafe(); }
 	Frame* GetFrame(TopContainer& ctrl);
 	Frame* GetActiveHandle();
 	int GetActiveHandlePos() { return active_pos; }

@@ -1,7 +1,7 @@
 #ifndef _IGraphics_IfaceOgl_h_
 #define _IGraphics_IfaceOgl_h_
 
-#error TODO
+// #error TODO
 
 #define gldBegin(x)			
 #define glEnd()				

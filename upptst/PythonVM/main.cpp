@@ -79,4 +79,7 @@ CONSOLE_APP_MAIN
 	     "    return fib(n-1) + fib(n-2)\n"
 	     "\n"
 	     "print(fib(7))\n");
+
+	Test("for i in range(5):\n"
+	     "    print(i)\n");
 }

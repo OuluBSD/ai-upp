@@ -66,12 +66,6 @@ PyValue::PyValue(PyIter *it)
 	iter = it;
 }
 
-const Vector<PyValue>& PyValue::GetArray() const
-{
-	ASSERT(type == PY_LIST || type == PY_TUPLE);
-	return type == PY_LIST ? list->l : tuple->l;
-}
-
 PyValue PyRangeIter::Next()
 {
 	if((step > 0 && current < stop) || (step < 0 && current > stop)) {
@@ -176,14 +170,6 @@ PyValue PyValue::GetItem(int i) const
 	return PyValue();
 }
 
-const Vector<PyValue>& PyValue::GetArray() const
-{
-	if(type == PY_LIST) return list->l;
-	if(type == PY_TUPLE) return tuple->l;
-	static Vector<PyValue> empty;
-	return empty;
-}
-
 void PyValue::SetItem(int i, const PyValue& v)
 {
 	if(type == PY_LIST) list->l[i] = v;
@@ -272,9 +258,6 @@ hash_t PyValue::GetHashValue() const
 		for(int i = 0; i < tuple->l.GetCount(); i++)
 			h << tuple->l[i].GetHashValue();
 		break;
-	// Mutable types should not be hashed in Python if they are keys, 
-	// but for internal use we might need it. 
-	// Python raises TypeError: unhashable type: 'list'
 	}
 	return h;
 }
@@ -282,10 +265,7 @@ hash_t PyValue::GetHashValue() const
 bool PyValue::operator==(const PyValue& other) const
 {
 	if(type != other.type) {
-		// Mixed numeric comparison
 		if(IsNumber() && other.IsNumber()) {
-			// complex == complex
-			// complex == float/int (imag == 0)
 			if(type == PY_COMPLEX || other.type == PY_COMPLEX)
 				return GetComplex() == other.GetComplex();
 			return GetFloat() == other.GetFloat();
@@ -314,7 +294,7 @@ bool PyValue::operator<(const PyValue& other) const
 	if(type != other.type) {
 		if(IsNumber() && other.IsNumber()) {
 			if(type == PY_COMPLEX || other.type == PY_COMPLEX)
-				return false; // Python: '<' not supported between complex and float
+				return false;
 			return GetFloat() < other.GetFloat();
 		}
 		return type < other.type;
@@ -324,7 +304,6 @@ bool PyValue::operator<(const PyValue& other) const
 	case PY_FLOAT: return f64 < other.f64;
 	case PY_STR: return wstr->s < other.wstr->s;
 	case PY_BYTES: return bytes->s < other.bytes->s;
-	// Python does list comparison element-wise
 	case PY_LIST:
 		for(int i = 0; i < min(list->l.GetCount(), other.list->l.GetCount()); i++) {
 			if(list->l[i] < other.list->l[i]) return true;

@@ -297,6 +297,8 @@ protected:
 	
 	Vector<String> post_load_file;
 	Vector<String> post_load_string;
+	Vector<String> post_load_python_file;
+	Vector<String> post_load_python_string;
 	//LoopStorePtr es;
 	//SpaceStorePtr ss;
     Eon::CompilationUnit cunit;
@@ -314,7 +316,10 @@ public:
 
 	void PostLoadFile(const String& path) {post_load_file << path;}
     void PostLoadString(const String& s) {post_load_string << s;}
+    void PostLoadPythonFile(const String& path) {post_load_python_file << path;}
+    void PostLoadPythonString(const String& s) {post_load_python_string << s;}
     void SetEagerChainBuild(bool b=true) { eager_build_chains = b; }
+	bool DoPostLoadPython();
 	
 	ScriptLoader&	GetLoader() {return *this;}
 	int&			GetSideIdCounter() {return tmp_side_id_counter;}

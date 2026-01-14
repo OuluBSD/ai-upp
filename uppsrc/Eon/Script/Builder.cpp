@@ -1,4 +1,5 @@
 #include "Script.h"
+#include <ByteVM/ByteVM.h>
 
 NAMESPACE_UPP
 
@@ -14,13 +15,12 @@ AstNode& AtomBuilder::CreateNode(AstNode& root) {
 	ASSERT(id.parts.GetCount());
 	FileLocation loc; // empty
 	AstNode* cont = &root;
-	if (cont->src == Cursor_LoopStmt) {
-		cont = &cont->GetAdd(loc, Cursor_CompoundStmt);
-	}
 	for (auto& p : id.parts) {
 		AstNode& n = cont->val.GetAdd<AstNode>(p);
 		cont = &n;
 		n.src = Cursor_NamePart;
+		n.val.id = p;
+		n.val.id = p;
 	}
 	cont->src = Cursor_AtomStmt;
 	if (!assigns.IsEmpty()) {
@@ -79,6 +79,7 @@ AstNode& LoopBuilder::CreateNode(AstNode& root) {
 		AstNode& n = cont->val.GetAdd<AstNode>(p);
 		cont = &n;
 		n.src = Cursor_NamePart;
+		n.val.id = p;
 	}
 	cont->src = Cursor_LoopStmt;
 	for(int i = 0; i < atoms.GetCount(); i++) {
@@ -100,6 +101,7 @@ AstNode& DriverBuilder::CreateNode(AstNode& root) {
 		AstNode& n = cont->val.GetAdd<AstNode>(p);
 		cont = &n;
 		n.src = Cursor_NamePart;
+		n.val.id = p;
 	}
 	cont->src = Cursor_DriverStmt;
 	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
@@ -122,11 +124,59 @@ AstNode& ChainBuilder::CreateNode(AstNode& root) {
 		AstNode& n = cont->val.GetAdd<AstNode>(p);
 		cont = &n;
 		n.src = Cursor_NamePart;
+		n.val.id = p;
 	}
 	cont->src = Cursor_ChainStmt;
 	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
 	for(int i = 0; i < loops.GetCount(); i++) {
 		loops[i].CreateNode(*compound);
+	}
+	return *cont;
+}
+
+AtomBuilder& NetBuilder::AddAtom(String id) {
+	auto& atom = atoms.Add();
+	atom.id.Parse(id);
+	return atom;
+}
+
+void NetBuilder::Connect(String from_atom, int from_port, String to_atom, int to_port) {
+	auto& c = connections.Add();
+	c.from_atom = from_atom;
+	c.from_port = from_port;
+	c.to_atom = to_atom;
+	c.to_port = to_port;
+}
+
+AstNode& NetBuilder::CreateNode(AstNode& root) {
+	ASSERT(id.parts.GetCount());
+	AstNode* cont = &root;
+	for (auto& p : id.parts) {
+		AstNode& n = cont->val.GetAdd<AstNode>(p);
+		cont = &n;
+		n.src = Cursor_NamePart;
+		n.val.id = p;
+	}
+	cont->src = Cursor_NetStmt;
+	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
+	for(int i = 0; i < atoms.GetCount(); i++) {
+		atoms[i].CreateNode(*compound);
+	}
+	for(int i = 0; i < connections.GetCount(); i++) {
+		auto& c = connections[i];
+		AstNode& n = compound->Add(FileLocation());
+		n.src = Cursor_Op_LINK;
+		
+		AstNode& from = n.val.GetAdd<AstNode>();
+		from.src = Cursor_Unresolved;
+		from.str = c.from_atom + "." + IntStr(c.from_port);
+		
+		AstNode& to = n.val.GetAdd<AstNode>();
+		to.src = Cursor_Unresolved;
+		to.str = c.to_atom + "." + IntStr(c.to_port);
+		
+		n.arg[0] = &from;
+		n.arg[1] = &to;
 	}
 	return *cont;
 }
@@ -143,6 +193,12 @@ ChainBuilder& MachineBuilder::AddChain(String id) {
 	return chain;
 }
 
+NetBuilder& MachineBuilder::AddNet(String id) {
+	auto& net = nets.Add();
+	net.id.Parse(id);
+	return net;
+}
+
 AstNode& MachineBuilder::CreateNode(AstNode& root) {
 	ASSERT(id.parts.GetCount());
 	AstNode* cont = &root;
@@ -150,6 +206,7 @@ AstNode& MachineBuilder::CreateNode(AstNode& root) {
 		AstNode& n = cont->val.GetAdd<AstNode>(p);
 		cont = &n;
 		n.src = Cursor_NamePart;
+		n.val.id = p;
 	}
 	cont->src = Cursor_MachineStmt;
 	AstNode* compound = &cont->GetAdd(FileLocation(), Cursor_CompoundStmt);
@@ -158,6 +215,9 @@ AstNode& MachineBuilder::CreateNode(AstNode& root) {
 	}
 	for(int i = 0; i < chains.GetCount(); i++) {
 		chains[i].CreateNode(*compound);
+	}
+	for(int i = 0; i < nets.GetCount(); i++) {
+		nets[i].CreateNode(*compound);
 	}
 	return *cont;
 }
@@ -174,6 +234,12 @@ MachineBuilder& Builder::AddMachine(String id) {
 	return machine;
 }
 
+NetBuilder& Builder::AddNet(String id) {
+	auto& net = nets.Add();
+	net.id.Parse(id);
+	return net;
+}
+
 AstNode* Builder::CompileAst() {
 	int i = val.Find("root");
 	if (i >= 0)
@@ -186,6 +252,9 @@ AstNode* Builder::CompileAst() {
 	}
 	for (auto& machine : machines) {
 		AstNode& n = machine.CreateNode(root);
+	}
+	for (auto& net : nets) {
+		AstNode& n = net.CreateNode(root);
 	}
 
 	return &root;

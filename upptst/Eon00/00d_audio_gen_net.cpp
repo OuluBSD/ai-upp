@@ -24,7 +24,10 @@ void Run00dAudioGenNet(Engine& eng, int method) {
 		// Load from .eon file using PacketRouter net syntax
 		sys->PostLoadFile(ShareDirFile("eon/tests/00d_audio_gen_net.eon"));
 		break;
-	case 2:
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00d_audio_gen_net_method4.py"));
+		break;
+	case 5:
 	case 3: {
 		// C++ version that builds the same net topology via RouterNetContext
 		RouterNetContext net("tester.generator");

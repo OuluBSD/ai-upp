@@ -177,6 +177,7 @@
 	CURSOR(Op_MODASS,,) \
 	CURSOR(Op_CALL,,) \
 	CURSOR(Op_SUBSCRIPT,,) \
+	CURSOR(Op_LINK,,) \
 
 typedef enum {
 	#define CURSOR(a,b,c) Cursor_##a b c,

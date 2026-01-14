@@ -140,6 +140,12 @@ void Run00aAudioGen(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/00a_audio_gen.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00a_audio_gen_method4.py"));
+		break;
+	case 5:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00a_audio_gen.py"));
+		break;
 	default:
 		throw Exc(Format("Run00aAudioGen: unknown method %d", method));
 	}

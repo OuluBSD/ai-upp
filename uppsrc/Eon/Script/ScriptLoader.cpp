@@ -1,4 +1,6 @@
 #include "Script.h"
+#include <ByteVM/ByteVM.h>
+#include <EonRouterSupport/EonRouterSupport.h>
 // For Core contexts (AST-free building)
 #include <Eon/Core/Core.h>
 
@@ -8,6 +10,84 @@ NAMESPACE_UPP
 
 extern void (*Eon_PostLoadString)(Engine& eng, String script_str);
 extern bool (*Eon_AddScriptLoader)(Engine& eng);
+
+struct PyRouterPortDesc : PyUserData {
+	RouterPortDesc port;
+	PyRouterPortDesc(const RouterPortDesc& p) : port(p) {}
+	String GetTypeName() const override { return "RouterPortDesc"; }
+	PyValue GetAttr(const String& name) override {
+		RTLOG("PyRouterPortDesc::GetAttr: " << name);
+		if (name == "index") return PyValue((int64)port.index);
+		return PyValue::None();
+	}
+};
+
+struct PyRouterAtomSpec : PyUserData {
+	String id;
+	PyRouterAtomSpec(String id) : id(id) {}
+	String GetTypeName() const override { return "RouterAtomSpec"; }
+	PyValue GetAttr(const String& name) override {
+		RTLOG("PyRouterAtomSpec::GetAttr: " << name);
+		if (name == "id") return PyValue(id);
+		return PyValue::None();
+	}
+};
+
+struct PyRouterNetContext : PyUserData {
+	RouterNetContext net;
+	Engine& eng;
+	PyRouterNetContext(const String& path, Engine& e) : net(path), eng(e) {}
+	String GetTypeName() const override { return "RouterNetContext"; }
+
+	static PyValue AddAtom(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 3) return PyValue::None();
+		if (!args[0].IsUserData()) {
+			RTLOG("PyRouterNetContext::AddAtom: self is NOT UserData! type=" << args[0].GetType());
+			return PyValue::None();
+		}
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		auto& atom = self->net.AddAtom(args[1].ToString(), args[2].ToString());
+		return PyValue(new PyRouterAtomSpec(atom.id));
+	}
+
+	static PyValue AddPort(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 3 || !args[0].IsUserData()) return PyValue::None();
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		RouterPortDesc::Direction dir = (RouterPortDesc::Direction)args[2].GetInt();
+		String name = args.GetCount() >= 4 ? args[3].ToString() : String();
+		auto& port = self->net.AddPort(args[1].ToString(), dir, name);
+		return PyValue(new PyRouterPortDesc(port));
+	}
+
+	static PyValue Connect(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		self->net.Connect(args[1].ToString(), (int)args[2].GetInt(), args[3].ToString(), (int)args[4].GetInt());
+		return PyValue::None();
+	}
+
+	static PyValue BuildLegacyLoop(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 1 || !args[0].IsUserData()) return PyValue::None();
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		RTLOG("PyRouterNetContext::BuildLegacyLoop: building for " << self->net.GetConnections().GetCount() << " connections");
+		return PyValue(self->net.BuildLegacyLoop(self->eng));
+	}
+
+	PyValue GetAttr(const String& name) override {
+		PyValue self(this);
+		if (name == "AddAtom") return PyValue::BoundMethod(PyValue::Function("AddAtom", AddAtom), self);
+		if (name == "AddPort") return PyValue::BoundMethod(PyValue::Function("AddPort", AddPort), self);
+		if (name == "Connect") return PyValue::BoundMethod(PyValue::Function("Connect", Connect), self);
+		if (name == "BuildLegacyLoop") return PyValue::BoundMethod(PyValue::Function("BuildLegacyLoop", BuildLegacyLoop), self);
+		return PyValue::None();
+	}
+};
+
+static PyValue PyRouterNetContext_Ctor(const Vector<PyValue>& args, void* user_data) {
+	Engine* eng = (Engine*)user_data;
+	if (args.GetCount() < 1) return PyValue::None();
+	return PyValue(new PyRouterNetContext(args[0].ToString(), *eng));
+}
 
 namespace Eon {
 
@@ -239,9 +319,56 @@ bool ScriptLoader::PostInitialize() {
 	return true;
 }
 
+bool ScriptLoader::DoPostLoadPython() {
+	return DoPostLoad();
+}
+
 bool ScriptLoader::DoPostLoad() {
 	bool success = true;
 	
+	if (!post_load_python_file.IsEmpty() || !post_load_python_string.IsEmpty()) {
+		PyVM vm;
+		PyValue router_mod = PyValue::Dict();
+		router_mod.SetItem(PyValue("RouterNetContext"), PyValue::Function("RouterNetContext", PyRouterNetContext_Ctor, &GetEngine()));
+		router_mod.SetItem(PyValue("Direction_Source"), PyValue((int64)RouterPortDesc::Direction::Source));
+		router_mod.SetItem(PyValue("Direction_Sink"), PyValue((int64)RouterPortDesc::Direction::Sink));
+		vm.GetGlobals().GetAdd(PyValue("router")) = router_mod;
+
+		auto RunPy = [&](const String& content, const String& name) {
+			try {
+				Tokenizer tokenizer;
+				tokenizer.SkipPythonComments();
+				tokenizer.SkipNewLines(false);
+				tokenizer.HaveIdents();
+				if (tokenizer.Process(content, name)) {
+					tokenizer.CombineTokens();
+					tokenizer.NewlineToEndStatement();
+					PyCompiler compiler(tokenizer.GetTokens());
+					Vector<PyIR> ir;
+					compiler.Compile(ir);
+					vm.SetIR(ir);
+					vm.Run();
+				}
+			}
+			catch (Exc& e) {
+				AddError(FileLocation(), "Python error in " + name + ": " + e);
+			}
+		};
+
+		while (!post_load_python_file.IsEmpty()) {
+			String path = post_load_python_file[0];
+			post_load_python_file.Remove(0);
+			String content = ::Upp::LoadFile(path);
+			RunPy(content, path);
+		}
+
+		while (!post_load_python_string.IsEmpty()) {
+			String s = post_load_python_string[0];
+			post_load_python_string.Remove(0);
+			RunPy(s, "input");
+		}
+	}
+
 	while (!post_load_file.IsEmpty()) {
 		String path = post_load_file[0];
 		post_load_file.Remove(0);
@@ -315,7 +442,7 @@ bool ScriptLoader::LoadFile(String path) {
 	String ext = GetFileExt(path);
 	if (ext == ".eon") {
 		// Native .eon files are loaded directly
-		eon_script = UPP::LoadFile(path);
+		eon_script = Upp::LoadFile(path);
 	}
 	else {
 		// Use SerialLoaderFactory to handle different file types (.toy, .mid, etc.)
@@ -1731,18 +1858,27 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 		AstNode* stmt_rval = stmt->rval;
 		LOG("LoadNet: processing connection stmt, stmt=" << (void*)stmt << " rval=" << (void*)stmt_rval);
 
-		// Try to parse connection expression
-		// We expect something like: osc.0 -> gain.0
-		// This might parse as Cursor_Op_SUB (minus) followed by Cursor_Op_GT (greater than)
-		// Or it might be a different operator structure
-		// For now, use a simple string-based parser as fallback
-
-		// Get the full expression text and parse it directly
-		// Format: atom_name.port_id -> atom_name.port_id
 		String expr_text;
 		bool looks_like_connection = false;
 
-		// Try to detect if this is a connection statement by checking for arrow-like patterns
+		if (stmt->src == Cursor_Op_LINK) {
+			if (stmt->arg[0] && stmt->arg[1]) {
+				expr_text = stmt->arg[0]->str + " -> " + stmt->arg[1]->str;
+				looks_like_connection = true;
+			}
+		}
+
+		if (!looks_like_connection) {
+			// Try to parse connection expression
+			// We expect something like: osc.0 -> gain.0
+			// This might parse as Cursor_Op_SUB (minus) followed by Cursor_Op_GT (greater than)
+			// Or it might be a different operator structure
+			// For now, use a simple string-based parser as fallback
+
+			// Get the full expression text and parse it directly
+			// Format: atom_name.port_id -> atom_name.port_id
+
+			// Try to detect if this is a connection statement by checking for arrow-like patterns
 		// or simple text extraction from the AST
 		// First check if connection string is stored directly in stmt->str (from SemanticParser)
 		LOG("LoadNet: reading statement text from source");
@@ -1779,9 +1915,10 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 				}
 			}
 		}
+	}
 
-		LOG("LoadNet: looks_like_connection=" << looks_like_connection);
-		if (!looks_like_connection)
+	LOG("LoadNet: looks_like_connection=" << looks_like_connection);
+	if (!looks_like_connection)
 			continue;
 
 		// Parse connection from text: "atom1.port1 -> atom2.port2" or "atom1:port1 -> atom2:port2"

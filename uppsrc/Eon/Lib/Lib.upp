@@ -32,8 +32,9 @@ acceptflags
 
 uses
 	Eon/Draw,
-	Painter,
-	CtrlLib/Eon;
+	Painter;
+
+uses(GUI) CtrlLib/Eon;
 
 uses(AUDIO) api/Effect;
 

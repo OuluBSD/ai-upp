@@ -1,9 +1,15 @@
-description "\377B0,128,0";
+description "Audio\377B0,128,0";
 
-	uses Eon;
-	uses Sound;
+acceptflags
+	AUDIO,
+	PORTAUDIO,
+	BUILTIN_PORTAUDIO;
 
-	library(PORTAUDIO) "portaudio";
+uses
+	Eon,
+	Sound;
+
+library(PORTAUDIO) portaudio;
 
 file
 	Audio.h,
@@ -11,4 +17,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

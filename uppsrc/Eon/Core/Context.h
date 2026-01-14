@@ -112,7 +112,9 @@ public:
     struct AtomInstance : Moveable<AtomInstance> {
         String name;              // atom name from definition
         AtomBasePtr atom;         // created atom
+        LinkBasePtr link;         // created link (if any)
         IfaceConnTuple iface;     // interface
+        One<RealtimeSourceConfig> cfg; // fallback config for LinkSystem (router nets)
     };
 
     struct Connection : Moveable<Connection> {

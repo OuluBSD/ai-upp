@@ -64,7 +64,11 @@
 	//#undef Display
 #endif
 
-
+#ifdef flagDEBUG_GFX
+	#define GFXLOG(x) LOG(x)
+#else
+	#define GFXLOG(x)
+#endif
 
 #include <Draw/Draw.h>
 #include <Geometry/Geometry.h>

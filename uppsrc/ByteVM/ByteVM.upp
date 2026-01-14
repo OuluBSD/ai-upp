@@ -1,5 +1,8 @@
 description "Python bytecode virtual machine implementation\377";
 
+acceptflags
+	DEBUG_RT;
+
 uses
 	Core;
 

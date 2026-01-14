@@ -1,0 +1,803 @@
+Pa_Initialize called.
+before paHostApiInitializers[0].
+BuildDeviceList: Ignoring ALSA plugin device [hw] of type [hw]
+BuildDeviceList: Ignoring ALSA plugin device [plughw] of type [plug]
+BuildDeviceList: Ignoring ALSA plugin device [plug] of type [plug]
+BuildDeviceList: Ignoring ALSA plugin device [shm] of type [shm]
+BuildDeviceList: Ignoring ALSA plugin device [tee] of type [file]
+BuildDeviceList: Ignoring ALSA plugin device [file] of type [file]
+BuildDeviceList: Ignoring ALSA plugin device [null] of type [null]
+BuildDeviceList: Ignoring ALSA plugin device [cards] of type [unknown]
+BuildDeviceList: Found plugin [sysdefault] of type [unknown]
+BuildDeviceList: Found plugin [front] of type [unknown]
+BuildDeviceList: Found plugin [rear] of type [unknown]
+BuildDeviceList: Found plugin [center_lfe] of type [unknown]
+BuildDeviceList: Found plugin [side] of type [unknown]
+BuildDeviceList: Found plugin [surround21] of type [unknown]
+BuildDeviceList: Found plugin [surround40] of type [unknown]
+BuildDeviceList: Found plugin [surround41] of type [unknown]
+BuildDeviceList: Found plugin [surround50] of type [unknown]
+BuildDeviceList: Found plugin [surround51] of type [unknown]
+BuildDeviceList: Found plugin [surround71] of type [unknown]
+BuildDeviceList: Found plugin [iec958] of type [unknown]
+BuildDeviceList: Found plugin [spdif] of type [unknown]
+BuildDeviceList: Found plugin [hdmi] of type [unknown]
+BuildDeviceList: Found plugin [dmix] of type [unknown]
+BuildDeviceList: Ignoring ALSA plugin device [dsnoop] of type [unknown]
+BuildDeviceList: Found plugin [modem] of type [unknown]
+BuildDeviceList: Found plugin [phoneline] of type [unknown]
+BuildDeviceList: Found plugin [lavrate] of type [rate]
+BuildDeviceList: Found plugin [samplerate] of type [rate]
+BuildDeviceList: Found plugin [speexrate] of type [rate]
+BuildDeviceList: Found plugin [jack] of type [jack]
+BuildDeviceList: Found plugin [pulse] of type [pulse]
+BuildDeviceList: Found plugin [a52] of type [a52]
+BuildDeviceList: Found plugin [speex] of type [speex]
+BuildDeviceList: Found plugin [upmix] of type [upmix]
+BuildDeviceList: Found plugin [vdownmix] of type [vdownmix]
+BuildDeviceList: Found plugin [usbstream] of type [usb_stream]
+BuildDeviceList: Found plugin [default] of type [pulse]
+BuildDeviceList: filling device info for 36 devices
+FillInDevInfo: filling device info for: HD-Audio Generic: HDMI 0 (hw:0,3)
+GropeDevice: collecting info ..
+Default output device: HD-Audio Generic: HDMI 0 (hw:0,3)
+FillInDevInfo: Adding device HD-Audio Generic: HDMI 0 (hw:0,3): 0
+FillInDevInfo: filling device info for: HD-Audio Generic: HDMI 1 (hw:0,7)
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device HD-Audio Generic: HDMI 1 (hw:0,7): 1
+FillInDevInfo: filling device info for: HD-Audio Generic: HDMI 2 (hw:0,8)
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device HD-Audio Generic: HDMI 2 (hw:0,8): 2
+FillInDevInfo: filling device info for: HD-Audio Generic: HDMI 3 (hw:0,9)
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device HD-Audio Generic: HDMI 3 (hw:0,9): 3
+FillInDevInfo: filling device info for: USB Audio Device: USB Audio (hw:2,0)
+GropeDevice: collecting info ..
+OpenPcm: Failed to open busy device 'hw:2,0'
+Default input device: USB Audio Device: USB Audio (hw:2,0)
+FillInDevInfo: Adding device USB Audio Device: USB Audio (hw:2,0): 4
+FillInDevInfo: filling device info for: USB Device 0x46d:0x825: USB Audio (hw:3,0)
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device USB Device 0x46d:0x825: USB Audio (hw:3,0): 5
+FillInDevInfo: filling device info for: FastTrack Pro: USB Audio (hw:4,0)
+GropeDevice: collecting info ..
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device FastTrack Pro: USB Audio (hw:4,0): 6
+FillInDevInfo: filling device info for: FastTrack Pro: USB Audio #1 (hw:4,1)
+GropeDevice: collecting info ..
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device FastTrack Pro: USB Audio #1 (hw:4,1): 7
+FillInDevInfo: filling device info for: sysdefault
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm_dsnoop.c:567:(snd_pcm_dsnoop_open) unable to open slave
+OpenPcm: Opened device 'sysdefault' ptr[(nil)] - result: [-2:No such file or directory]
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm_dmix.c:1000:(snd_pcm_dmix_open) unable to open slave
+OpenPcm: Opened device 'sysdefault' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: sysdefault, all channels - 0
+FillInDevInfo: filling device info for: front
+OpenPcm: Opened device 'front' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: front, all channels - 0
+FillInDevInfo: filling device info for: rear
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+OpenPcm: Opened device 'rear' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: rear, all channels - 0
+FillInDevInfo: filling device info for: center_lfe
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+OpenPcm: Opened device 'center_lfe' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: center_lfe, all channels - 0
+FillInDevInfo: filling device info for: side
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+OpenPcm: Opened device 'side' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: side, all channels - 0
+FillInDevInfo: filling device info for: surround21
+OpenPcm: Opened device 'surround21' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'surround21' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround21, all channels - 0
+FillInDevInfo: filling device info for: surround40
+OpenPcm: Opened device 'surround40' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround40, all channels - 0
+FillInDevInfo: filling device info for: surround41
+OpenPcm: Opened device 'surround41' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround41, all channels - 0
+FillInDevInfo: filling device info for: surround50
+OpenPcm: Opened device 'surround50' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround50, all channels - 0
+FillInDevInfo: filling device info for: surround51
+OpenPcm: Opened device 'surround51' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround51, all channels - 0
+FillInDevInfo: filling device info for: surround71
+OpenPcm: Opened device 'surround71' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: surround71, all channels - 0
+FillInDevInfo: filling device info for: iec958
+OpenPcm: Opened device 'iec958' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: iec958, all channels - 0
+FillInDevInfo: filling device info for: spdif
+OpenPcm: Opened device 'spdif' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'spdif' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: spdif, all channels - 0
+FillInDevInfo: filling device info for: hdmi
+OpenPcm: Opened device 'hdmi' ptr[(nil)] - result: [-2:No such file or directory]
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device hdmi: 8
+FillInDevInfo: filling device info for: modem
+OpenPcm: Opened device 'modem' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'modem' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: modem, all channels - 0
+FillInDevInfo: filling device info for: phoneline
+OpenPcm: Opened device 'phoneline' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'phoneline' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: phoneline, all channels - 0
+FillInDevInfo: filling device info for: lavrate
+OpenPcm: Opened device 'lavrate' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'lavrate' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: lavrate, all channels - 0
+FillInDevInfo: filling device info for: samplerate
+OpenPcm: Opened device 'samplerate' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'samplerate' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: samplerate, all channels - 0
+FillInDevInfo: filling device info for: speexrate
+OpenPcm: Opened device 'speexrate' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'speexrate' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: speexrate, all channels - 0
+FillInDevInfo: filling device info for: jack
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+OpenPcm: Opened device 'jack' ptr[(nil)] - result: [-2:No such file or directory]
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+OpenPcm: Opened device 'jack' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: jack, all channels - 0
+FillInDevInfo: filling device info for: pulse
+GropeDevice: collecting info ..
+GropeDevice: collecting info ..
+FillInDevInfo: Adding device pulse: 9
+FillInDevInfo: filling device info for: a52
+ALSA lib /var/tmp/portage/media-plugins/alsa-plugins-1.2.12/work/alsa-plugins-1.2.12/a52/pcm_a52.c:1036:(_snd_pcm_a52_open) a52 is only for playback
+OpenPcm: Opened device 'a52' ptr[(nil)] - result: [-22:Invalid argument]
+OpenPcm: Opened device 'a52' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: a52, all channels - 0
+FillInDevInfo: filling device info for: speex
+OpenPcm: Opened device 'speex' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'speex' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: speex, all channels - 0
+FillInDevInfo: filling device info for: upmix
+OpenPcm: Opened device 'upmix' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'upmix' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: upmix, all channels - 0
+FillInDevInfo: filling device info for: vdownmix
+OpenPcm: Opened device 'vdownmix' ptr[(nil)] - result: [-2:No such file or directory]
+OpenPcm: Opened device 'vdownmix' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: vdownmix, all channels - 0
+FillInDevInfo: filling device info for: usbstream
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib /var/tmp/portage/media-plugins/alsa-plugins-1.2.12/work/alsa-plugins-1.2.12/usb_stream/pcm_usb_stream.c:481:(_snd_pcm_usb_stream_open) Invalid card 'card'
+OpenPcm: Opened device 'usbstream' ptr[(nil)] - result: [-22:Invalid argument]
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib /var/tmp/portage/media-plugins/alsa-plugins-1.2.12/work/alsa-plugins-1.2.12/usb_stream/pcm_usb_stream.c:481:(_snd_pcm_usb_stream_open) Invalid card 'card'
+OpenPcm: Opened device 'usbstream' ptr[(nil)] - result: [-22:Invalid argument]
+FillInDevInfo: skipped device: usbstream, all channels - 0
+FillInDevInfo: filling device info for: dmix
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm_dmix.c:973:(snd_pcm_dmix_open) The dmix plugin supports only playback stream
+OpenPcm: Opened device 'dmix' ptr[(nil)] - result: [-22:Invalid argument]
+ALSA lib /var/tmp/portage/media-libs/alsa-lib-1.2.14/work/alsa-lib-1.2.14/src/pcm/pcm_dmix.c:1000:(snd_pcm_dmix_open) unable to open slave
+OpenPcm: Opened device 'dmix' ptr[(nil)] - result: [-2:No such file or directory]
+FillInDevInfo: skipped device: dmix, all channels - 0
+FillInDevInfo: filling device info for: default
+GropeDevice: collecting info ..
+GropeDevice: collecting info ..
+Default input device: default
+Default output device: default
+FillInDevInfo: Adding device default: 10
+BuildDeviceList: Building device list took 0.019640 seconds
+after paHostApiInitializers[0].
+Pa_Initialize returned:
+	PaError: 0 ( Success )
+Pa_OpenDefaultStream called:
+	PaStream** stream: 0x0x7faa9a521180
+	int inputChannelCount: 0
+	int outputChannelCount: 2
+	PaSampleFormat sampleFormat: 1
+	double sampleRate: 44100
+	unsigned long framesPerBuffer: 128
+	PaStreamCallback *streamCallback: 0x0x556bc0ab6c00
+	void *userData: 0x0x7faa9a47c680
+Pa_GetDefaultOutputDevice called.
+Pa_GetDefaultHostApi called.
+Pa_GetDefaultHostApi returned:
+	PaError: 0 ( Success )
+Pa_GetDefaultOutputDevice returned:
+	PaDeviceIndex: 10
+Pa_GetDeviceInfo called:
+	PaDeviceIndex device: 10
+Pa_GetDeviceInfo returned:
+	PaDeviceInfo*: 0x0x556bc7f42db0:
+	{
+		int structVersion: 2
+		const char *name: default
+		PaHostApiIndex hostApi: 0
+		int maxInputChannels: 32
+		int maxOutputChannels: 32
+	}
+Pa_OpenStream called:
+	PaStream** stream: 0x0x7faa9a521180
+	PaStreamParameters *inputParameters: NULL
+	PaStreamParameters *outputParameters: 0x0x7ffe1e08f538
+	PaDeviceIndex outputParameters->device: 10
+	int outputParameters->channelCount: 2
+	PaSampleFormat outputParameters->sampleFormat: 1
+	PaTime outputParameters->suggestedLatency: 0.046440
+	void *outputParameters->hostApiSpecificStreamInfo: 0x(nil)
+	double sampleRate: 44100
+	unsigned long framesPerBuffer: 128
+	PaStreamFlags streamFlags: 0x0
+	PaStreamCallback *streamCallback: 0x0x556bc0ab6c00
+	void *userData: 0x0x7faa9a47c680
+AlsaOpen: Opening device default
+PaAlsaStreamComponent_InitialConfigure: device MMAP SND_PCM_ACCESS_MMAP_INTERLEAVED: NO
+PaAlsaStreamComponent_InitialConfigure: device MMAP SND_PCM_ACCESS_MMAP_NONINTERLEAVED: NO
+PaAlsaStreamComponent_InitialConfigure: device can MMAP: NO
+PaAlsaStreamComponent_DetermineFramesPerBuffer: user-buffer (frames)           = 128
+PaAlsaStreamComponent_DetermineFramesPerBuffer: user-buffer (sec)              = 0.002902
+PaAlsaStreamComponent_DetermineFramesPerBuffer: suggested latency (sec)        = 0.046440
+PaAlsaStreamComponent_DetermineFramesPerBuffer: suggested host buffer (frames) = 2176
+PaAlsaStreamComponent_DetermineFramesPerBuffer: suggested host buffer (sec)    = 0.049342
+PaAlsaStreamComponent_DetermineFramesPerBuffer: periods min = 3, max = 1024, req = 4 
+PaAlsaStreamComponent_DetermineFramesPerBuffer: suggested host buffer period   = 640 
+PaAlsaStreamComponent_DetermineFramesPerBuffer: device period minimum          = 16
+PaAlsaStreamComponent_DetermineFramesPerBuffer: device period maximum          = 174763
+PaAlsaStreamComponent_DetermineFramesPerBuffer: host buffer period             = 640
+PaAlsaStreamComponent_DetermineFramesPerBuffer: host buffer period latency     = 0.014512
+PaAlsaStream_Configure: Playback period size: 640, latency: 0.043537
+Pa_GetSampleSize called:
+	PaSampleFormat format: 1
+Pa_GetSampleSize returned:
+	int: 4
+Pa_GetSampleSize called:
+	PaSampleFormat format: 1
+Pa_GetSampleSize returned:
+	int: 4
+OpenStream: Stream: framesPerBuffer = 128, maxFramesPerHostBuffer = 640, latency = i(0.000000)/o(0.043537), 
+Pa_OpenStream returned:
+	*(PaStream** stream): 0x0x556bc7ff1b50
+	PaError: 0 ( Success )
+Pa_OpenDefaultStream returned:
+	*(PaStream** stream): 0x0x556bc7ff1b50	PaError: 0 ( Success )
+Pa_SetStreamFinishedCallback called:
+	PaStream* stream: 0x0x556bc7ff1b50
+	PaStreamFinishedCallback* streamFinishedCallback: 0x0x556bc0ab6d10
+Pa_SetStreamFinishedCallback returned:
+	PaError: 0 ( Success )
+ScriptLoader::Load: Loading "/common/active/sblo/Dev/ai-upp/share/eon/tests/02a_audio_test.eon"
+ScriptLoader::Load: calling CompileAst
+Dumping tokenizer:
+	file: /common/active/sblo/Dev/ai-upp/share/eon/tests/02a_audio_test.eon
+	[0] (1:1) = id: loop
+	[1] (1:6) = id: player
+	[2] (1:12) = punct: .
+	[3] (1:13) = id: audio
+	[4] (1:18) = punct: .
+	[5] (1:19) = id: generator
+	[6] (1:28) = colon: :
+	[7] (2:2) = indent: <indent>
+	[8] (2:2) = id: center
+	[9] (2:8) = punct: .
+	[10] (2:9) = id: customer
+	[11] (2:17) = end-statement: END-STMT
+	[12] (3:2) = id: center
+	[13] (3:8) = punct: .
+	[14] (3:9) = id: audio
+	[15] (3:14) = punct: .
+	[16] (3:15) = id: src
+	[17] (3:18) = punct: .
+	[18] (3:19) = id: dbg_generator
+	[19] (3:32) = end-statement: END-STMT
+	[20] (4:2) = id: center
+	[21] (4:8) = punct: .
+	[22] (4:9) = id: audio
+	[23] (4:14) = punct: .
+	[24] (4:15) = id: sink
+	[25] (4:19) = punct: .
+	[26] (4:20) = id: hw
+	[27] (5:1) = end-statement: END-STMT
+	[28] (5:1) = dedent: <dedent>
+	[29] (5:1) = end-statement: END-STMT
+	[30] (5:1) = end-of-file: EOF
+Compiler::Parse: starting
+Compiler::Parse: calling sp.ProcessEon
+t.GetRoot().GetTreeString():
+<no token>
+	loop player . audio . generator
+		center . customer
+		center . audio . src . dbg_generator
+		center . audio . sink . hw
+	
+	
+
+SemanticParser: after tree string, calling ParseNamespaceBlock
+ParseNamespaceBlock: starting
+ParseNamespaceBlock: iterating over 3 nodes
+ParseNamespaceBlock: calling ParseDeclaration
+ParseNamespaceBlock: ParseDeclaration succeeded
+ParseNamespaceBlock: calling ParseDeclaration
+ParseNamespaceBlock: ParseDeclaration succeeded
+ParseNamespaceBlock: calling ParseDeclaration
+ParseNamespaceBlock: ParseDeclaration succeeded
+ParseNamespaceBlock: returning true
+SemanticParser: ParseNamespaceBlock returned true
+Compiler::Parse: ProcessEon succeeded, returning true
+TranslationUnit: root
+	Builtin: void
+	MetaBuiltin: expr
+	MetaBuiltin: loopstmt
+	FunctionBuiltin: LOG
+	NamePart: player
+		NamePart: audio
+			LoopStmt: generator
+				CompoundStmt: 
+					NamePart: center
+						AtomStmt: customer
+						NamePart: audio
+							NamePart: src
+								AtomStmt: dbg_generator
+							NamePart: sink
+								AtomStmt: hw
+
+Compiler::RunMeta: starting
+Compiler::RunMeta: got AstRunner
+Compiler::RunMeta: got SemanticParser
+Compiler::RunMeta: calling ar.Execute
+Compiler::RunMeta: Execute succeeded, returning true
+TranslationUnit: root
+	Builtin: void
+	MetaBuiltin: expr
+	MetaBuiltin: loopstmt
+	FunctionBuiltin: LOG
+	NamePart: player
+		NamePart: audio
+			LoopStmt: generator
+				CompoundStmt: 
+					NamePart: center
+						AtomStmt: customer
+						NamePart: audio
+							NamePart: src
+								AtomStmt: dbg_generator
+							NamePart: sink
+								AtomStmt: hw
+
+ScriptLoader::Load: CompileAst succeeded, calling LoadAst
+ScriptLoader::LoadAst: starting
+LoadCompilationUnit: starting
+LoadCompilationUnit: calling LoadGlobalScope
+LoadGlobalScope: starting
+LoadGlobalScope: finding MetaDecl endpoints
+LoadGlobalScope: sorting items, found 0
+LoadGlobalScope: iterating through items
+LoadMachine: starting
+LoadMachine: after GetTreeString
+LoadMachine: calling FindAllNonIdEndpoints2
+LoadMachine: calling Sort
+LoadMachine: Sort complete
+LoadMachine: found 1 items
+  item[0]: src=LoopStmt id=generator
+BuildChain[<anon>]: loop=generator driver=0 atoms=3
+Upp::CenterCustomer(0xB5505C33) linked to Upp::AudioDbgSrc(0x64342418)
+Upp::AudioDbgSrc(0x64342418) linked to Upp::PortaudioSink(0x1D031847)
+Upp::PortaudioSink(0x1D031847) linked to Upp::CenterCustomer(0xB5505C33)
+PacketRouter: Created
+PacketRouter::RegisterPort: sink port 0 for atom 0x7faa9a47b060 (vd=(1, center-receipt), router_idx=0)
+PacketRouter::RegisterPort: source port 0 for atom 0x7faa9a47b060 (vd=(1, center-order), router_idx=1)
+PacketRouter::RegisterPort: sink port 0 for atom 0x7faa9a479d80 (vd=(1, center-order), router_idx=2)
+PacketRouter::RegisterPort: source port 0 for atom 0x7faa9a479d80 (vd=(1, center-audio), router_idx=3)
+PacketRouter::RegisterPort: sink port 0 for atom 0x7faa9a47b2a0 (vd=(1, center-audio), router_idx=4)
+PacketRouter::RegisterPort: source port Pa_StartStream called:
+	PaStream* stream: 0x0x556bc7ff1b50
+PaUnixThread_New: Waited for 0.000299931 seconds for stream to start
+Pa_StartStream returned:
+	PaError: 0 ( Success )
+Pa_IsStreamStopped called:
+	PaStream* stream: 0x0x556bc7ff1b50
+Pa_IsStreamStopped returned:
+	PaError: 0 ( Success )
+0 for atom 0x7faa9a47b2a0 (vd=(1, center-receipt), router_idx=5)
+PacketRouter::Connect: src_port 1 -> dst_port 2 (conn_idx=0)
+PacketRouter::Connect: src_port 3 -> dst_port 4 (conn_idx=1)
+PacketRouter::Connect: src_port 5 -> dst_port 0 (conn_idx=2)
+LoadCompilationUnit: LoadGlobalScope succeeded
+LoadCompilationUnit: creating ScriptSystemLoader
+LoadCompilationUnit: ScriptSystemLoader created
+ScriptLoader::LoadAst: LoadCompilationUnit succeeded
+ScriptLoader::LoadAst: calling ImplementScript
+AudPortaudio::SinkDevice_PostInitialize: input queue min=10 max=10 current=0
+<-- Startup -->
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: Pa_StopStream called:
+	PaStream* stream: 0x0x556bc7ff1b50
+Stopping callback
+PaUnixThread_Terminate: Joining thread -1725978944
+Setting callbackResult to paComplete
+OnExit: Stopping ALSA handles
+AlsaStop: Dropped frames
+OnExit: Stoppage
+CallbackThreadFunc: Thread -1725978944 exiting
+ Pa_StopStream returned:
+	PaError: 0 ( Success )
+Pa_CloseStream called:
+	PaStream* stream: 0x0x556bc7ff1b50
+Pa_CloseStream returned:
+	PaError: 0 ( Success )
+Pa_Terminate called.
+TerminateHostApis in 
+TerminateHostApis out
+Pa_Terminate returned:
+	PaError: 0 ( Success )
+port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter::RequestCredits: port 3 requested 1, granted 1 (available now: 0)
+PacketRouter::AckCredits: port 3 acked 1 credits (available now: 1)
+PacketRouter: Destroyed (6 ports, 3 connections)

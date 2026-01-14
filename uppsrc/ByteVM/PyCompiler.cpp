@@ -56,7 +56,7 @@ int PyCompiler::GetLine() const
 
 void PyCompiler::Emit(int code)
 {
-	ir.Add(PyIR(code, GetLine()));
+	ir.Add(PyIR(code, 0, GetLine()));
 }
 
 void PyCompiler::Emit(int code, int iarg)
@@ -71,7 +71,7 @@ void PyCompiler::EmitConst(const PyValue& v)
 
 void PyCompiler::EmitName(int code, const String& name)
 {
-	PyIR r(code, GetLine());
+	PyIR r(code, 0, GetLine());
 	r.arg = PyValue(name);
 	ir.Add(r);
 }

@@ -27,6 +27,8 @@ String PyTypeName(int type)
 
 void PyValue::Free()
 {
+	if (type == PY_NONE) return;
+	//RTLOG("PyValue::Free: type=" << PyTypeName(type) << " ptr=" << ptr);
 	switch(type) {
 	case PY_COMPLEX: complex->Release(); break;
 	case PY_STR: wstr->Release(); break;
@@ -37,8 +39,18 @@ void PyValue::Free()
 	case PY_SET: set->Release(); break;
 	case PY_FUNCTION: lambda->Release(); break;
 	case PY_ITERATOR: iter->Release(); break;
-	case PY_USERDATA: userdata->Release(); break;
-	case PY_BOUND_METHOD: bound->Release(); break;
+	case PY_USERDATA: {
+		if (userdata) {
+			RTLOG("  Freeing UserData: " << (void*)userdata << " type=" << userdata->GetTypeName() << " count=" << (int)userdata->refcount);
+			userdata->Release(); 
+		}
+		break;
+	}
+	case PY_BOUND_METHOD: {
+		RTLOG("  Freeing BoundMethod: " << (void*)bound << " count=" << (int)bound->refcount);
+		bound->Release(); 
+		break;
+	}
 	}
 	type = PY_NONE;
 	ptr = nullptr;
@@ -47,23 +59,33 @@ void PyValue::Free()
 void PyValue::Assign(const PyValue& s)
 {
 	type = s.type;
-	switch(type) {
-	case PY_BOOL: b = s.b; break;
-	case PY_INT: i64 = s.i64; break;
-	case PY_FLOAT: f64 = s.f64; break;
-	case PY_COMPLEX: complex = s.complex; complex->Retain(); break;
-	case PY_STR: wstr = s.wstr; wstr->Retain(); break;
-	case PY_BYTES: bytes = s.bytes; bytes->Retain(); break;
-	case PY_LIST: list = s.list; list->Retain(); break;
-	case PY_TUPLE: tuple = s.tuple; tuple->Retain(); break;
-	case PY_DICT: dict = s.dict; dict->Retain(); break;
-	case PY_SET: set = s.set; set->Retain(); break;
-	case PY_FUNCTION: lambda = s.lambda; lambda->Retain(); break;
-	case PY_ITERATOR: iter = s.iter; iter->Retain(); break;
-	case PY_USERDATA: userdata = s.userdata; userdata->Retain(); break;
-	case PY_BOUND_METHOD: bound = s.bound; bound->Retain(); break;
-	default: ptr = s.ptr; break;
+	if (type == PY_BOOL) b = s.b;
+	else if (type == PY_INT) i64 = s.i64;
+	else if (type == PY_FLOAT) f64 = s.f64;
+	else if (type == PY_COMPLEX) { complex = s.complex; if (complex) complex->Retain(); }
+	else if (type == PY_STR) { wstr = s.wstr; if (wstr) wstr->Retain(); }
+	else if (type == PY_BYTES) { bytes = s.bytes; if (bytes) bytes->Retain(); }
+	else if (type == PY_LIST) { list = s.list; if (list) list->Retain(); }
+	else if (type == PY_TUPLE) { tuple = s.tuple; if (tuple) tuple->Retain(); }
+	else if (type == PY_DICT) { dict = s.dict; if (dict) dict->Retain(); }
+	else if (type == PY_SET) { set = s.set; if (set) set->Retain(); }
+	else if (type == PY_FUNCTION) { lambda = s.lambda; if (lambda) lambda->Retain(); }
+	else if (type == PY_ITERATOR) { iter = s.iter; if (iter) iter->Retain(); }
+	else if (type == PY_USERDATA) { 
+		userdata = s.userdata; 
+		if (userdata) {
+			RTLOG("  Assigning UserData: " << (void*)userdata << " type=" << userdata->GetTypeName() << " count=" << (int)userdata->refcount);
+			userdata->Retain(); 
+		}
 	}
+	else if (type == PY_BOUND_METHOD) {
+		bound = s.bound;
+		if (bound) {
+			RTLOG("  Assigning BoundMethod: " << (void*)bound << " count=" << (int)bound->refcount);
+			bound->Retain();
+		}
+	}
+	else ptr = s.ptr;
 }
 
 PyValue::PyValue(PyIter *it)
@@ -78,6 +100,14 @@ PyValue::PyValue(PyUserData *ud)
 	type = PY_USERDATA;
 	userdata = ud;
 	if (userdata) userdata->Retain();
+}
+
+PyValue PyValue::UserDataNonOwning(PyUserData *ud)
+{
+	PyValue v;
+	v.type = PY_USERDATA;
+	v.userdata = ud;
+	return v;
 }
 
 PyValue PyRangeIter::Next()
@@ -277,7 +307,7 @@ String PyValue::ToString() const
 		s << "}";
 		return s;
 	}
-	case PY_FUNCTION: return "<function>";
+	case PY_FUNCTION: return "<function " + lambda->name + ">";
 	case PY_USERDATA: return "<userdata " + userdata->GetTypeName() + ">";
 	case PY_BOUND_METHOD: return "<method " + bound->func.ToString() + ">";
 	default: return "<unknown>";
@@ -309,7 +339,7 @@ bool PyValue::operator==(const PyValue& other) const
 		if(IsNumber() && other.IsNumber()) {
 			if(type == PY_COMPLEX || other.type == PY_COMPLEX)
 				return GetComplex() == other.GetComplex();
-			return GetFloat() == other.GetFloat();
+			return AsDouble() == other.AsDouble();
 		}
 		return false;
 	}
@@ -336,7 +366,7 @@ bool PyValue::operator<(const PyValue& other) const
 		if(IsNumber() && other.IsNumber()) {
 			if(type == PY_COMPLEX || other.type == PY_COMPLEX)
 				return false;
-			return GetFloat() < other.GetFloat();
+			return AsDouble() < other.AsDouble();
 		}
 		return type < other.type;
 	}
@@ -408,8 +438,27 @@ PyValue PyValue::Function(const String& name, PyBuiltin builtin, void* user_data
 	return v;
 }
 
+PyValue::PyValue(int type, void *ptr)
+{
+	Clear();
+	this->type = type;
+	this->ptr = ptr;
+	if (type == PY_COMPLEX) complex->Retain();
+	else if (type == PY_STR) wstr->Retain();
+	else if (type == PY_BYTES) bytes->Retain();
+	else if (type == PY_LIST) list->Retain();
+	else if (type == PY_TUPLE) tuple->Retain();
+	else if (type == PY_DICT) dict->Retain();
+	else if (type == PY_SET) set->Retain();
+	else if (type == PY_FUNCTION) lambda->Retain();
+	else if (type == PY_ITERATOR) iter->Retain();
+	else if (type == PY_USERDATA) userdata->Retain();
+	else if (type == PY_BOUND_METHOD) bound->Retain();
+}
+
 PyValue PyValue::BoundMethod(const PyValue& func, const PyValue& self)
 {
+	RTLOG("PyValue::BoundMethod: func=" << func.ToString() << " self=" << self.ToString());
 	PyValue v;
 	v.type = PY_BOUND_METHOD;
 	v.bound = new PyBoundMethod;

@@ -9,7 +9,7 @@ struct PyKV : Moveable<PyKV> {
 	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
 };
 
-static PyValue BuiltinPrint(const Vector<PyValue>& args, void*)
+static PyValue builtin_print(const Vector<PyValue>& args, void*)
 {
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(i) Cout() << " ";
@@ -19,35 +19,32 @@ static PyValue BuiltinPrint(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
-static PyValue BuiltinLen(const Vector<PyValue>& args, void*)
+static PyValue builtin_len(const Vector<PyValue>& args, void*)
 {
-	if(args.GetCount() != 1) return PyValue::None();
-	return PyValue((int64)args[0].GetCount());
+	if(args.GetCount() == 0) return PyValue(0);
+	return PyValue(args[0].GetCount());
 }
 
-static PyValue BuiltinRange(const Vector<PyValue>& args, void*)
-{
+static PyValue builtin_range(const Vector<PyValue>& args, void*) {
 	int64 start = 0, stop = 0, step = 1;
-	if(args.GetCount() == 1) stop = args[0].GetInt();
-	else if(args.GetCount() == 2) { start = args[0].GetInt(); stop = args[1].GetInt(); }
-	else if(args.GetCount() == 3) { start = args[0].GetInt(); stop = args[1].GetInt(); step = args[2].GetInt(); }
-	
-	if(step == 0) return PyValue::None();
+	if(args.GetCount() == 1) stop = args[0].AsInt64();
+	else if(args.GetCount() == 2) { start = args[0].AsInt64(); stop = args[1].AsInt64(); }
+	else if(args.GetCount() == 3) { start = args[0].AsInt64(); stop = args[1].AsInt64(); step = args[2].AsInt64(); }
 	return PyValue(new PyRangeIter(start, stop, step));
 }
 
 PyVM::PyVM()
 {
 	PyValue p_print = PyValue::Function("print");
-	p_print.GetLambdaRW().builtin = BuiltinPrint;
+	p_print.GetLambdaRW().builtin = builtin_print;
 	globals.GetAdd(PyValue("print")) = p_print;
 
 	PyValue p_len = PyValue::Function("len");
-	p_len.GetLambdaRW().builtin = BuiltinLen;
+	p_len.GetLambdaRW().builtin = builtin_len;
 	globals.GetAdd(PyValue("len")) = p_len;
 	
 	PyValue p_range = PyValue::Function("range");
-	p_range.GetLambdaRW().builtin = BuiltinRange;
+	p_range.GetLambdaRW().builtin = builtin_range;
 	globals.GetAdd(PyValue("range")) = p_range;
 }
 
@@ -79,9 +76,8 @@ void PyVM::Run()
 		
 		case PY_UNARY_NEGATIVE: {
 			PyValue v = Pop();
-			if (v.IsInt()) Push(PyValue(-v.GetInt()));
-			else if (v.IsFloat()) Push(PyValue(-v.GetFloat()));
-			else Push(PyValue::None());
+			if (v.IsInt()) Push(PyValue(-v.AsInt64()));
+			else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
 			break;
 		}
 
@@ -93,8 +89,7 @@ void PyVM::Run()
 
 		case PY_UNARY_INVERT: {
 			PyValue v = Pop();
-			if (v.IsInt()) Push(PyValue(~v.GetInt()));
-			else Push(PyValue::None());
+			if (v.IsInt()) Push(PyValue(~v.AsInt64()));
 			break;
 		}
 
@@ -132,8 +127,10 @@ void PyVM::Run()
 			PyValue obj = Pop();
 			if (obj.GetType() == PY_DICT) {
 				Push(obj.GetItem(instr.arg));
-			} else if (obj.IsUserData()) {
-				Push(obj.GetUserData().GetAttr(instr.arg.ToString()));
+			} else if (obj.IsUserDataValid()) {
+				String attr_name = instr.arg.ToString();
+				RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
+				Push(obj.GetUserData().GetAttr(attr_name));
 			} else {
 				Push(PyValue::None());
 			}
@@ -176,43 +173,39 @@ void PyVM::Run()
 		case PY_BINARY_ADD: {
 			PyValue b = Pop();
 			PyValue a = Pop();
-			if(a.IsInt() && b.IsInt()) Push(PyValue(a.GetInt() + b.GetInt()));
-			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.GetFloat() + b.GetFloat()));
+			if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
+			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
 			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
-			else Push(PyValue::None());
 			break;
 		}
-		
+
 		case PY_BINARY_SUBTRACT: {
 			PyValue b = Pop();
 			PyValue a = Pop();
-			if(a.IsInt() && b.IsInt()) Push(PyValue(a.GetInt() - b.GetInt()));
-			else Push(PyValue(a.GetFloat() - b.GetFloat()));
+			if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
+			else Push(PyValue(a.AsDouble() - b.AsDouble()));
 			break;
 		}
 
-		case PY_BINARY_MULTIPLY: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			if(a.IsInt() && b.IsInt()) Push(PyValue(a.GetInt() * b.GetInt()));
-			else Push(PyValue(a.GetFloat() * b.GetFloat()));
-			break;
-		}
-
-		case PY_BINARY_TRUE_DIVIDE: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			double divisor = b.GetFloat();
-			if(divisor == 0) Push(PyValue::None()); 
-			else Push(PyValue(a.GetFloat() / divisor));
-			break;
-		}
-
+		        case PY_BINARY_MULTIPLY: {
+		            PyValue b = Pop();
+		            PyValue a = Pop();
+		            if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
+		            else Push(PyValue(a.AsDouble() * b.AsDouble()));
+		            break;
+		        }
+		
+		        case PY_BINARY_TRUE_DIVIDE: {
+		            PyValue b = Pop();
+		            PyValue a = Pop();
+		            Push(PyValue(a.AsDouble() / b.AsDouble()));
+		            break;
+		        }
 		case PY_BINARY_SUBSCR: {
 			PyValue sub = Pop();
 			PyValue container = Pop();
 			if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE))
-				Push(container.GetItem((int)sub.GetInt()));
+				Push(container.GetItem(sub.AsInt()));
 			else
 				Push(container.GetItem(sub));
 			break;
@@ -265,11 +258,13 @@ void PyVM::Run()
 			
 			PyValue callable = Pop();
 			if (callable.IsBoundMethod()) {
-				sorted_args.Insert(0, callable.GetBound().self);
-				callable = callable.GetBound().func;
+				PyValue func = callable.GetBound().func;
+				PyValue self = callable.GetBound().self;
+				sorted_args.Insert(0, self);
+				callable = func;
 			}
 
-			if(callable.GetType() == PY_FUNCTION) {
+			if(callable.IsFunction()) {
 				const PyLambda& l = callable.GetLambda();
 				if(l.builtin) {
 					Push(l.builtin(sorted_args, l.user_data));

@@ -16,7 +16,7 @@ struct PyRouterPortDesc : PyUserData {
 	PyRouterPortDesc(const RouterPortDesc& p) : port(p) {}
 	String GetTypeName() const override { return "RouterPortDesc"; }
 	PyValue GetAttr(const String& name) override {
-		if (name == "index") return PyValue((int64)port.index);
+		if (name == "index") return PyValue((int)port.index);
 		return PyValue::None();
 	}
 };
@@ -26,6 +26,7 @@ struct PyRouterAtomSpec : PyUserData {
 	PyRouterAtomSpec(String id) : id(id) {}
 	String GetTypeName() const override { return "RouterAtomSpec"; }
 	PyValue GetAttr(const String& name) override {
+		RTLOG("PyRouterAtomSpec::GetAttr: " << name);
 		if (name == "id") return PyValue(id);
 		return PyValue::None();
 	}
@@ -52,42 +53,67 @@ struct PyRouterNetContext : PyUserData {
 	static PyValue AddPort(const Vector<PyValue>& args, void*) {
 		if (args.GetCount() < 3 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
-		RouterPortDesc::Direction dir = (RouterPortDesc::Direction)args[2].GetInt();
-		String name = args.GetCount() >= 4 ? args[3].ToString() : String();
-		auto& port = self->net.AddPort(args[1].ToString(), dir, name);
+		const auto& port = self->net.AddPort(args[1].ToString(), (RouterPortDesc::Direction)args[2].AsInt());
 		return PyValue(new PyRouterPortDesc(port));
 	}
 
 	static PyValue Connect(const Vector<PyValue>& args, void*) {
 		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
-		self->net.Connect(args[1].ToString(), (int)args[2].GetInt(), args[3].ToString(), (int)args[4].GetInt());
+		self->net.Connect(args[1].ToString(), (int)args[2].AsInt(), args[3].ToString(), (int)args[4].AsInt());
 		return PyValue::None();
 	}
 
 	static PyValue BuildLegacyLoop(const Vector<PyValue>& args, void*) {
 		if (args.GetCount() < 1 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
-		RTLOG("PyRouterNetContext::BuildLegacyLoop: building for " << self->net.GetConnections().GetCount() << " connections");
-		return PyValue(self->net.BuildLegacyLoop(self->eng));
+		RTLOG("BuildLegacyLoop: path=" << self->net.GetLoopPath());
+		
+		Ptr<Eon::ScriptLoader> loader = self->eng.FindAdd<Eon::ScriptLoader>();
+		if (!loader) { RTLOG("BuildLegacyLoop: error: no ScriptLoader found"); return PyValue::None(); }
+		
+		Eon::ChainDefinition chain;
+		chain.id.Parse(self->net.GetLoopPath());
+		
+		Vector<Eon::ChainContext::AtomSpec> specs;
+		self->net.BuildAtomSpecs(specs);
+		
+		auto& loop_def = chain.loops.Add();
+		loop_def.id = chain.id;
+		loop_def.is_driver = false;
+		loop_def.make_primary_links = true;
+		for(const auto& s : specs) {
+			auto& a = loop_def.atoms.Add();
+			a.id.Set(s.action);
+			a.args <<= s.args;
+			a.iface = s.iface;
+			a.link = s.link;
+			RTLOG("  adding atom: " << s.action);
+		}
+		
+		bool ok = loader->BuildChain(chain);
+		RTLOG("BuildLegacyLoop result: " << ok);
+		
+		return PyValue(ok);
 	}
 
 	static PyValue SetSideSourceLink(const Vector<PyValue>& args, void*) {
 		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
-		self->net.SetSideSourceLink(args[1].ToString(), (int)args[2].GetInt(), (int)args[3].GetInt(), (int)args[4].GetInt());
+		self->net.SetSideSourceLink(args[1].ToString(), (int)args[2].AsInt(), (int)args[3].AsInt(), (int)args[4].AsInt());
 		return PyValue::None();
 	}
 
 	static PyValue SetSideSinkLink(const Vector<PyValue>& args, void*) {
 		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
-		self->net.SetSideSinkLink(args[1].ToString(), (int)args[2].GetInt(), (int)args[3].GetInt(), (int)args[4].GetInt());
+		self->net.SetSideSinkLink(args[1].ToString(), (int)args[2].AsInt(), (int)args[3].AsInt(), (int)args[4].AsInt());
 		return PyValue::None();
 	}
 
 	PyValue GetAttr(const String& name) override {
-		PyValue self = PyValue::UserDataNonOwning(this);
+		PyValue self(this);
+		RTLOG("PyRouterNetContext::GetAttr: " << name);
 		if (name == "AddAtom") return PyValue::BoundMethod(PyValue::Function("AddAtom", AddAtom), self);
 		if (name == "AddPort") return PyValue::BoundMethod(PyValue::Function("AddPort", AddPort), self);
 		if (name == "Connect") return PyValue::BoundMethod(PyValue::Function("Connect", Connect), self);
@@ -108,18 +134,63 @@ static PyValue PyBuildRouterChain(const Vector<PyValue>& args, void* user_data) 
 	Engine* eng = (Engine*)user_data;
 	if (args.GetCount() < 1 || args[0].GetType() != PY_LIST) return PyValue::None();
 	
+	Ptr<Eon::ScriptLoader> loader = eng->FindAdd<Eon::ScriptLoader>();
+	if (!loader) { RTLOG("PyBuildRouterChain: error: no ScriptLoader found"); return PyValue::None(); }
+
 	const Vector<PyValue>& list = args[0].GetArray();
-	Vector<RouterNetContext*> nets;
 	for (const PyValue& v : list) {
 		if (v.IsUserData() && v.GetUserData().GetTypeName() == "RouterNetContext") {
-			nets.Add(&((PyRouterNetContext&)v.GetUserData()).net);
+			PyRouterNetContext& py_net = (PyRouterNetContext&)v.GetUserData();
+			RTLOG("PyBuildRouterChain: path=" << py_net.net.GetLoopPath());
+			
+			// Extract NetDefinition from RouterNetContext
+			Eon::NetDefinition net;
+			net.id.Parse(py_net.net.GetLoopPath());
+			
+			// Convert atoms
+			const auto& atoms = py_net.net.GetAtoms();
+			for(int i = 0; i < atoms.GetCount(); i++) {
+				const auto& src = atoms[i];
+				auto& dst = net.atoms.Add();
+				dst.id.Parse(src.id);
+				dst.args <<= src.args;
+				if (src.EnsureTypeResolved()) {
+					dst.iface.Realize(src.atom_type);
+					dst.link = src.link_type;
+				}
+				RTLOG("  adding atom: " << src.id << " (" << src.action << ")");
+			}
+			
+			// Convert connections
+			for(const auto& src_conn : py_net.net.GetConnections()) {
+				auto& dst_conn = net.connections.Add();
+				dst_conn.from_atom = src_conn.from_atom;
+				dst_conn.from_port = src_conn.from_port;
+				dst_conn.to_atom = src_conn.to_atom;
+				dst_conn.to_port = src_conn.to_port;
+				for(int i = 0; i < src_conn.metadata.GetCount(); i++)
+					dst_conn.metadata.Add(src_conn.metadata.GetKey(i), src_conn.metadata[i]);
+			}
+			
+			if (!loader->BuildNet(net)) {
+				RTLOG("PyBuildRouterChain: error: BuildNet failed for " << net.id.ToString());
+				return PyValue(false);
+			}
+			
+			// Store metadata in VFS
+			VfsPath vp;
+			vp.SetDotPath(net.id.ToString());
+			VfsValue* loop_space = eng->GetRootLoop().FindPath(vp);
+			if (loop_space) {
+				RTLOG("  storing router metadata in VFS path: " << loop_space->GetPath());
+				py_net.net.StoreRouterMetadata(*loop_space);
+			} else {
+				RTLOG("  warning: could not find loop space in VFS for metadata storage: " << net.id.ToString());
+			}
 		}
 	}
 	
-	if (nets.IsEmpty()) return PyValue::None();
-	
-	String log_label = args.GetCount() >= 2 ? args[1].ToString() : String();
-	return PyValue(BuildRouterChain(*eng, nets, log_label));
+	return PyValue(true);
 }
 
 void RegisterEonModule(PyVM& vm, Engine& eng) {
@@ -362,12 +433,14 @@ bool ScriptLoader::PostInitialize() {
 }
 
 bool ScriptLoader::DoPostLoadPython() {
-	bool success = true;
+	bool any = false;
 	if (!post_load_python_file.IsEmpty() || !post_load_python_string.IsEmpty()) {
+		RTLOG("DoPostLoadPython: executing queued Python scripts");
 		PyVM vm;
 		RegisterEonModule(vm, GetEngine());
 
 		auto RunPy = [&](const String& content, const String& name) {
+			RTLOG("  running Python script: " << name);
 			try {
 				Tokenizer tokenizer;
 				tokenizer.SkipPythonComments();
@@ -400,8 +473,13 @@ bool ScriptLoader::DoPostLoadPython() {
 			post_load_python_string.Remove(0);
 			RunPy(s, "input");
 		}
+		any = true;
+		RTLOG("DoPostLoadPython: calling ImplementScript");
+		ImplementScript();
+		RTLOG("DoPostLoadPython: built_chains count=" << built_chains.GetCount());
+		RTLOG("DoPostLoadPython: built_nets count=" << built_nets.GetCount());
 	}
-	return success;
+	return any;
 }
 
 bool ScriptLoader::DoPostLoad() {
@@ -570,6 +648,7 @@ static void EnsurePrefix(Eon::Id& id, const Eon::Id& prefix) {
 }
 
 bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
+    RTLOG("BuildChain: chain=" << (chain.id.IsEmpty() ? "<anon>" : chain.id.ToString()));
     One<ChainContext> cc = new ChainContext();
     RTLOG("BuildChain: chain=" << (chain.id.IsEmpty() ? "<anon>" : chain.id.ToString())
         << " loops=" << chain.loops.GetCount()
@@ -694,7 +773,8 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
         RTLOG("\t resolved loop path=" << l->GetPath());
 
         Vector<ChainContext::AtomSpec> specs;
-        bool has_link = !loop_def.is_driver;
+        bool has_link = !loop_def.is_driver || loop_def.make_primary_links;
+        RTLOG("\t has_link=" << has_link << " (is_driver=" << loop_def.is_driver << " make_primary_links=" << loop_def.make_primary_links << ")");
         for (const Eon::AtomDefinition& a : loop_def.atoms) {
             ChainContext::AtomSpec& s = specs.Add();
             s.action = a.id.ToString();
@@ -718,6 +798,7 @@ bool ScriptLoader::BuildChain(const Eon::ChainDefinition& chain) {
                     return false;
 
     // Store the built chain context so ImplementScript can initialize and start it
+    RTLOG("BuildChain: adding to built_chains, new count=" << built_chains.GetCount() + 1);
     built_chains.Add(pick(cc));
 
     return true;
@@ -850,11 +931,8 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
     }
 
     // Store the built net context for later initialization in ImplementScript
+    RTLOG("BuildNet: adding to built_nets, new count=" << built_nets.GetCount() + 1);
     built_nets.Add(pick(nc));
-
-    LOG("BuildNet: Successfully built network " << net.id.ToString()
-        << " with " << built_nets.Top()->atoms.GetCount() << " atoms and "
-        << built_nets.Top()->connections.GetCount() << " connections");
 
     return true;
 }
@@ -864,130 +942,104 @@ void ScriptLoader::Cleanup() {
 }
 
 bool ScriptLoader::ImplementScript() {
-    RTLOG("ScriptLoader::ImplementScript: load states");
-    Vector<ScriptStateLoader*> states;
-    loader->GetStates(states);
-    for (ScriptStateLoader* dl: states)
-        if (!dl->Load())
-            return false;
-
-    if (!eager_build_chains || (built_chains.IsEmpty() && built_nets.IsEmpty())) {
-        RTLOG("ScriptLoader::ImplementScript: build chains (loops)");
-        if (!loader->Load())
-            return false;
-
-        // Collect loop pointers created by chain loaders for post steps
-        Vector<ScriptLoopLoader*> loops;
-        loader->GetLoops(loops);
-
-        RTLOG("ScriptLoader::ImplementScript: connect sides");
-        for (ScriptLoopLoader* loop0 : loops) {
-            for (ScriptLoopLoader* loop1 : loops) {
-                if (loop0 != loop1) {
-                    if (!ConnectSides(*loop0, *loop1)) {
-                        AddError(loop0->def.loc, "Side connecting failed");
-                        return false;
-                    }
-                }
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: loop post initialize");
-        for (ScriptLoopLoader* ll : loops) {
-            if (!ll->PostInitialize())
-                return false;
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: loop start");
-        for (ScriptLoopLoader* ll : loops) {
-            if (!ll->Start())
-                return false;
-        }
-
-        // Router nets built via BuildNet need the same lifecycle steps as chain contexts
-        if (!built_nets.IsEmpty()) {
-            RTLOG("ScriptLoader::ImplementScript: net post initialize");
-            for (int i = 0; i < built_nets.GetCount(); i++) {
-                NetContext& N = *built_nets[i];
-                if (!N.PostInitializeAll()) {
-                    AddError(FileLocation(), "Net PostInitialize failed");
-                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
-                    return false;
-                }
-            }
-
-            RTLOG("ScriptLoader::ImplementScript: net start");
-            for (int i = 0; i < built_nets.GetCount(); i++) {
-                NetContext& N = *built_nets[i];
-                if (!N.StartAll()) {
-                    AddError(FileLocation(), "Net Start failed");
-                    for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
-                    return false;
-                }
-            }
-        }
-    } else {
-        RTLOG("ScriptLoader::ImplementScript: eager mode: connect sides across built chains");
-        for (int i = 0; i < built_chains.GetCount(); i++) {
-            ChainContext& A = *built_chains[i];
-            for (int j = 0; j < built_chains.GetCount(); j++) if (i != j) {
-                ChainContext& B = *built_chains[j];
-                for (auto& la : A.loops)
-                    for (auto& lb : B.loops)
-                        if (!LoopContext::ConnectSides(la, lb))
-                            return false;
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: eager mode: validate side links");
-        for (int i = 0; i < built_chains.GetCount(); i++) {
-            String err_msg;
-            if (!built_chains[i]->ValidateSideLinks(&err_msg)) {
-                AddError(FileLocation(), String("Side-link validation failed: ") + err_msg);
-                for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
-                return false;
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize chains");
-        for (int i = 0; i < built_chains.GetCount(); i++) {
-            ChainContext& C = *built_chains[i];
-            if (!C.PostInitializeAll()) {
-                for (int k = i - 1; k >= 0; k--) built_chains[k]->UndoAll();
-                return false;
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize nets");
-        for (int i = 0; i < built_nets.GetCount(); i++) {
-            NetContext& N = *built_nets[i];
-            if (!N.PostInitializeAll()) {
-                AddError(FileLocation(), "Net PostInitialize failed");
-                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
-                return false;
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: eager mode: start chains");
-        for (int i = 0; i < built_chains.GetCount(); i++) {
-            ChainContext& C = *built_chains[i];
-            if (!C.StartAll()) {
-                for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
-                return false;
-            }
-        }
-
-        RTLOG("ScriptLoader::ImplementScript: eager mode: start nets");
-        for (int i = 0; i < built_nets.GetCount(); i++) {
-            NetContext& N = *built_nets[i];
-            if (!N.StartAll()) {
-                AddError(FileLocation(), "Net Start failed");
-                for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
-                return false;
-            }
-        }
-    }
+	RTLOG("ImplementScript: chains=" << built_chains.GetCount() << " nets=" << built_nets.GetCount());
+	bool success = true;
 	
+	if (!eager_build_chains || (built_chains.IsEmpty() && built_nets.IsEmpty())) {
+		if (loader) {
+			RTLOG("ScriptLoader::ImplementScript: build chains (loops) via loader");
+			if (!loader->Load())
+				return false;
+
+			// Collect loop pointers created by chain loaders for post steps
+			Vector<ScriptLoopLoader*> loops;
+			loader->GetLoops(loops);
+
+			RTLOG("ScriptLoader::ImplementScript: connect sides");
+			for (ScriptLoopLoader* loop0 : loops) {
+				for (ScriptLoopLoader* loop1 : loops) {
+					if (loop0 != loop1) {
+						if (!ConnectSides(*loop0, *loop1)) {
+							AddError(loop0->def.loc, "Side connecting failed");
+							return false;
+						}
+					}
+				}
+			}
+
+			RTLOG("ScriptLoader::ImplementScript: loop post initialize");
+			for (ScriptLoopLoader* ll : loops) {
+				if (!ll->PostInitialize())
+					return false;
+			}
+
+			RTLOG("ScriptLoader::ImplementScript: loop start");
+			for (ScriptLoopLoader* ll : loops) {
+				if (!ll->Start())
+					return false;
+			}
+		}
+	} else {
+		RTLOG("ScriptLoader::ImplementScript: eager mode: chains=" << built_chains.GetCount() << " nets=" << built_nets.GetCount());
+		RTLOG("ScriptLoader::ImplementScript: eager mode: connect sides across built chains");
+		for (int i = 0; i < built_chains.GetCount(); i++) {
+			ChainContext& A = *built_chains[i];
+			for (int j = 0; j < built_chains.GetCount(); j++) if (i != j) {
+				ChainContext& B = *built_chains[j];
+				for (auto& la : A.loops)
+					for (auto& lb : B.loops)
+						if (!LoopContext::ConnectSides(la, lb))
+							return false;
+			}
+		}
+
+		RTLOG("ScriptLoader::ImplementScript: eager mode: validate side links");
+		for (int i = 0; i < built_chains.GetCount(); i++) {
+			String err_msg;
+			if (!built_chains[i]->ValidateSideLinks(&err_msg)) {
+				AddError(FileLocation(), String("Side-link validation failed: ") + err_msg);
+				for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+				return false;
+			}
+		}
+
+		RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize chains");
+		for (int i = 0; i < built_chains.GetCount(); i++) {
+			ChainContext& C = *built_chains[i];
+			if (!C.PostInitializeAll()) {
+				for (int k = i - 1; k >= 0; k--) built_chains[k]->UndoAll();
+				return false;
+			}
+		}
+
+		RTLOG("ScriptLoader::ImplementScript: eager mode: start chains");
+		for (int i = 0; i < built_chains.GetCount(); i++) {
+			ChainContext& C = *built_chains[i];
+			if (!C.StartAll()) {
+				for (int k = i; k >= 0; k--) built_chains[k]->UndoAll();
+				return false;
+			}
+		}
+
+		RTLOG("ScriptLoader::ImplementScript: eager mode: post initialize nets");
+		for (int i = 0; i < built_nets.GetCount(); i++) {
+			NetContext& N = *built_nets[i];
+			if (!N.PostInitializeAll()) {
+				for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+				return false;
+			}
+		}
+
+		RTLOG("ScriptLoader::ImplementScript: eager mode: start nets");
+		for (int i = 0; i < built_nets.GetCount(); i++) {
+			NetContext& N = *built_nets[i];
+			if (!N.StartAll()) {
+				for (int k = i; k >= 0; k--) built_nets[k]->UndoAll();
+				return false;
+			}
+		}
+	}
+
 	return true;
 }
 

@@ -722,7 +722,7 @@ AtomTypeCls X11OglFboProg::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 String SdlSwFboProg::GetAction() {
 	return "sdl.sw.fbo.program";
 }
@@ -1004,7 +1004,7 @@ AtomTypeCls X11OglFboAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 String SdlSwFboAtomPipe::GetAction() {
 	return "sdl.sw.fbo.sink";
 }
@@ -1032,7 +1032,7 @@ AtomTypeCls SdlSwFboAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String SdlOglFboAtomPipe::GetAction() {
 	return "sdl.ogl.fbo.sink";
 }
@@ -1051,7 +1051,7 @@ LinkTypeCls SdlOglFboAtomPipe::GetLinkType() {
 }
 
 void SdlOglFboAtomPipe::Visit(Vis& v) {
-	VIS_THIS(SdlOglVideoSinkDevice);
+	VIS_THIS(SdlOglScreenSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtomPipe::GetType() const {
@@ -1060,7 +1060,7 @@ AtomTypeCls SdlOglFboAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String SdlOglProgAtomPipe::GetAction() {
 	return "sdl.ogl.prog.pipe";
 }
@@ -1079,7 +1079,7 @@ LinkTypeCls SdlOglProgAtomPipe::GetLinkType() {
 }
 
 void SdlOglProgAtomPipe::Visit(Vis& v) {
-	VIS_THIS(SdlOglVideoSinkDevice);
+	VIS_THIS(SdlOglScreenSinkDevice);
 }
 
 AtomTypeCls SdlOglProgAtomPipe::GetType() const {
@@ -1644,7 +1644,7 @@ AtomTypeCls HoloEventAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12)
+#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12 && defined flagSCREEN)
 String HoloD12FboAtomSA::GetAction() {
 	return "holo.fbo.standalone";
 }
@@ -1663,7 +1663,7 @@ LinkTypeCls HoloD12FboAtomSA::GetLinkType() {
 }
 
 void HoloD12FboAtomSA::Visit(Vis& v) {
-	VIS_THIS(HoloD12VideoSinkDevice);
+	VIS_THIS(HoloD12ScreenSinkDevice);
 }
 
 AtomTypeCls HoloD12FboAtomSA::GetType() const {
@@ -1813,7 +1813,7 @@ AtomTypeCls X11SwVideoAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String SdlOglFboAtomSA::GetAction() {
 	return "sdl.fbo.standalone";
 }
@@ -1832,7 +1832,7 @@ LinkTypeCls SdlOglFboAtomSA::GetLinkType() {
 }
 
 void SdlOglFboAtomSA::Visit(Vis& v) {
-	VIS_THIS(SdlOglVideoSinkDevice);
+	VIS_THIS(SdlOglScreenSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtomSA::GetType() const {
@@ -1841,7 +1841,7 @@ AtomTypeCls SdlOglFboAtomSA::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String SdlOglFboPipe::GetAction() {
 	return "sdl.fbo.sink";
 }
@@ -1860,7 +1860,7 @@ LinkTypeCls SdlOglFboPipe::GetLinkType() {
 }
 
 void SdlOglFboPipe::Visit(Vis& v) {
-	VIS_THIS(SdlOglVideoSinkDevice);
+	VIS_THIS(SdlOglScreenSinkDevice);
 }
 
 AtomTypeCls SdlOglFboPipe::GetType() const {
@@ -1869,7 +1869,7 @@ AtomTypeCls SdlOglFboPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String SdlOglFboAtom::GetAction() {
 	return "sdl.fbo";
 }
@@ -1896,7 +1896,7 @@ LinkTypeCls SdlOglFboAtom::GetLinkType() {
 }
 
 void SdlOglFboAtom::Visit(Vis& v) {
-	VIS_THIS(SdlOglVideoSinkDevice);
+	VIS_THIS(SdlOglScreenSinkDevice);
 }
 
 AtomTypeCls SdlOglFboAtom::GetType() const {
@@ -1933,7 +1933,7 @@ AtomTypeCls UppEventAtomPipe::GetType() const {
 #endif
 
 
-#if defined flagHAL
+#if (defined flagGUI && defined flagHAL)
 String CenterGuiFileSrc::GetAction() {
 	return "center.gui.filesrc";
 }
@@ -1952,7 +1952,7 @@ LinkTypeCls CenterGuiFileSrc::GetLinkType() {
 }
 
 void CenterGuiFileSrc::Visit(Vis& v) {
-	VIS_THIS(CenterGuiFileSrcBase);
+	VIS_THIS(UppGuiFileSrc);
 }
 
 AtomTypeCls CenterGuiFileSrc::GetType() const {
@@ -1989,7 +1989,7 @@ AtomTypeCls UppGuiSinkDevice::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 String SdlVideoAtomPipe::GetAction() {
 	return "sdl.video.pipe";
 }
@@ -2008,7 +2008,7 @@ LinkTypeCls SdlVideoAtomPipe::GetLinkType() {
 }
 
 void SdlVideoAtomPipe::Visit(Vis& v) {
-	VIS_THIS(SdlCenterVideoSinkDevice);
+	VIS_THIS(SdlCenterScreenSinkDevice);
 }
 
 AtomTypeCls SdlVideoAtomPipe::GetType() const {
@@ -2017,7 +2017,7 @@ AtomTypeCls SdlVideoAtomPipe::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 String SdlProgAtomPipe::GetAction() {
 	return "sdl.prog.pipe";
 }
@@ -2036,7 +2036,7 @@ LinkTypeCls SdlProgAtomPipe::GetLinkType() {
 }
 
 void SdlProgAtomPipe::Visit(Vis& v) {
-	VIS_THIS(SdlCenterVideoSinkDevice);
+	VIS_THIS(SdlCenterScreenSinkDevice);
 }
 
 AtomTypeCls SdlProgAtomPipe::GetType() const {
@@ -2160,7 +2160,7 @@ AtomTypeCls SdlOglFboGuiProg::GetType() const {
 #endif
 
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 String SdlVideoAtom::GetAction() {
 	return "sdl.video";
 }
@@ -2187,7 +2187,7 @@ LinkTypeCls SdlVideoAtom::GetLinkType() {
 }
 
 void SdlVideoAtom::Visit(Vis& v) {
-	VIS_THIS(SdlCenterVideoSinkDevice);
+	VIS_THIS(SdlCenterScreenSinkDevice);
 }
 
 AtomTypeCls SdlVideoAtom::GetType() const {

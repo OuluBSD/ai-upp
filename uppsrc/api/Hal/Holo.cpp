@@ -85,7 +85,7 @@ struct HalHolo::NativeContextBase {
 
 
 
-struct HalHolo::NativeD12VideoSinkDevice {
+struct HalHolo::NativeD12ScreenSinkDevice {
 	
     // Direct3D objects.
     Microsoft::WRL::ComPtr<ID3D11Device4>                   m_d3dDevice;
@@ -268,25 +268,25 @@ void HalHolo::ContextBase_DetachContext(NativeContextBase& dev, AtomBase& a, Ato
 
 
 
-void D12VideoSinkDevice_CreateDeviceResources(HalHolo::NativeD12VideoSinkDevice& dev);
+void D12ScreenSinkDevice_CreateDeviceResources(HalHolo::NativeD12ScreenSinkDevice& dev);
 
-bool HalHolo::D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev) {
-	dev = new NativeD12VideoSinkDevice;
+bool HalHolo::D12ScreenSinkDevice_Create(NativeD12ScreenSinkDevice*& dev) {
+	dev = new NativeD12ScreenSinkDevice;
 	return true;
 }
 
-void HalHolo::D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev) {
+void HalHolo::D12ScreenSinkDevice_Destroy(NativeD12ScreenSinkDevice*& dev) {
 	delete dev;
 }
 
-bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
+bool HalHolo::D12ScreenSinkDevice_Initialize(NativeD12ScreenSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 	if (!NativeContextBase::latest) {
-		LOG("D12VideoSinkDevice_Initialize: error: no context");
+		LOG("D12ScreenSinkDevice_Initialize: error: no context");
 		return false;
 	}
 	NativeContextBase& ctx = *NativeContextBase::latest;
 	if (!ctx.m_holographicSpace) {
-		LOG("HalHolo::D12VideoSinkDevice_Initialize: error: no holographic space in context");
+		LOG("HalHolo::D12ScreenSinkDevice_Initialize: error: no holographic space in context");
 		return false;
 	}
 	
@@ -334,12 +334,12 @@ bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomB
 	        dev.m_dxgiAdapter.Reset();
 	    }
 	
-	    D12VideoSinkDevice_CreateDeviceResources(dev);
+	    D12ScreenSinkDevice_CreateDeviceResources(dev);
 	
 	    ctx.m_holographicSpace.SetDirect3D11Device(dev.m_d3dInteropDevice);
 	}
 	catch (winrt::hresult_error e) {
-		LOG("HalHolo::D12VideoSinkDevice_Initialize: error: " << WString(e.message().c_str()).ToString());
+		LOG("HalHolo::D12ScreenSinkDevice_Initialize: error: " << WString(e.message().c_str()).ToString());
 		return false;
 	}
 	
@@ -349,7 +349,7 @@ bool HalHolo::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice& dev, AtomB
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void D12VideoSinkDevice_CreateDeviceResources(HalHolo::NativeD12VideoSinkDevice& dev)
+void D12ScreenSinkDevice_CreateDeviceResources(HalHolo::NativeD12ScreenSinkDevice& dev)
 {
     // This flag adds support for surfaces with a different color channel ordering
     // than the API default. It is required for compatibility with Direct2D.
@@ -444,51 +444,51 @@ void D12VideoSinkDevice_CreateDeviceResources(HalHolo::NativeD12VideoSinkDevice&
     }
 }
 
-bool HalHolo::D12VideoSinkDevice_PostInitialize(NativeD12VideoSinkDevice& dev, AtomBase& a) {
+bool HalHolo::D12ScreenSinkDevice_PostInitialize(NativeD12ScreenSinkDevice& dev, AtomBase& a) {
 	TODO
 }
 
-bool HalHolo::D12VideoSinkDevice_Start(NativeD12VideoSinkDevice& dev, AtomBase& a) {
+bool HalHolo::D12ScreenSinkDevice_Start(NativeD12ScreenSinkDevice& dev, AtomBase& a) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Stop(NativeD12VideoSinkDevice& dev, AtomBase& a) {
+void HalHolo::D12ScreenSinkDevice_Stop(NativeD12ScreenSinkDevice& dev, AtomBase& a) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Uninitialize(NativeD12VideoSinkDevice& dev, AtomBase& a) {
+void HalHolo::D12ScreenSinkDevice_Uninitialize(NativeD12ScreenSinkDevice& dev, AtomBase& a) {
 	TODO
 }
 
-bool HalHolo::D12VideoSinkDevice_Send(NativeD12VideoSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalHolo::D12ScreenSinkDevice_Send(NativeD12ScreenSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice& dev, AtomBase& a, Visitor& vis) {
+void HalHolo::D12ScreenSinkDevice_Visit(NativeD12ScreenSinkDevice& dev, AtomBase& a, Visitor& vis) {
 	TODO
 }
 
-bool HalHolo::D12VideoSinkDevice_Recv(NativeD12VideoSinkDevice& dev, AtomBase& a, int src, const Packet& p) {
+bool HalHolo::D12ScreenSinkDevice_Recv(NativeD12ScreenSinkDevice& dev, AtomBase& a, int src, const Packet& p) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Finalize(NativeD12VideoSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
+void HalHolo::D12ScreenSinkDevice_Finalize(NativeD12ScreenSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_Update(NativeD12VideoSinkDevice& dev, AtomBase& a, double dt) {
+void HalHolo::D12ScreenSinkDevice_Update(NativeD12ScreenSinkDevice& dev, AtomBase& a, double dt) {
 	TODO
 }
 
-bool HalHolo::D12VideoSinkDevice_IsReady(NativeD12VideoSinkDevice& dev, AtomBase& a, PacketIO& io) {
+bool HalHolo::D12ScreenSinkDevice_IsReady(NativeD12ScreenSinkDevice& dev, AtomBase& a, PacketIO& io) {
 	TODO
 }
 
-bool HalHolo::D12VideoSinkDevice_AttachContext(NativeD12VideoSinkDevice& dev, AtomBase& a, AtomBase& other) {
+bool HalHolo::D12ScreenSinkDevice_AttachContext(NativeD12ScreenSinkDevice& dev, AtomBase& a, AtomBase& other) {
 	TODO
 }
 
-void HalHolo::D12VideoSinkDevice_DetachContext(NativeD12VideoSinkDevice& dev, AtomBase& a, AtomBase& other) {
+void HalHolo::D12ScreenSinkDevice_DetachContext(NativeD12ScreenSinkDevice& dev, AtomBase& a, AtomBase& other) {
 	TODO
 }
 

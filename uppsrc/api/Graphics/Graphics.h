@@ -44,7 +44,7 @@
 #if defined flagX11
 	#define Time    XTime
 	#define Font    XFont
-	#define Display XDisplay
+	//#define Display XDisplay
 	#define Picture XPicture
 
 	//#define Time XTime
@@ -62,7 +62,7 @@
 	#undef Complex
 	#undef CurrentTime
 	#undef Picture
-	#undef Display
+	//#undef Display
 #endif
 
 

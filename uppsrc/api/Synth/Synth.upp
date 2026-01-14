@@ -1,5 +1,12 @@
 description "Audio Synth API\377B0,128,0";
 
+	uses(SOFTINSTRU) SoftInstru;
+	uses(SOFTSYNTH) SoftSynth;
+	uses(SOFTAUDIO) SoftAudio;
+	uses api/AudioHost;
+	uses(FLUIDLITE) plugin/fluidlite;
+	uses(LV2) plugin/lilv;
+
 acceptflags
 	MIDI,
 	AUDIO,
@@ -10,13 +17,14 @@ acceptflags
 	SOFTINSTRU,
 	SOFTSYNTH,
 	SOFTAUDIO;
-
 	uses(SOFTINSTRU) SoftInstru;
 	uses(SOFTSYNTH) SoftSynth;
 	uses(SOFTAUDIO) SoftAudio;
 	uses api/AudioHost;
 	uses(FLUIDLITE) plugin/fluidlite;
 	uses(LV2) plugin/lilv;
+	library(FLUIDSYNTH) "fluidsynth";
+	library(FLUIDSYNTH) "fluidsynth";
 
 	library(FLUIDSYNTH) "fluidsynth";
 

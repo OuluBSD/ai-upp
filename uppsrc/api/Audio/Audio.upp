@@ -1,12 +1,16 @@
 description "Audio\377B0,128,0";
 
+	uses Eon;
+	uses Sound;
+
 acceptflags
 	AUDIO,
 	PORTAUDIO,
 	BUILTIN_PORTAUDIO;
-
 	uses Eon;
 	uses Sound;
+	library(PORTAUDIO) "portaudio";
+	library(PORTAUDIO) "portaudio";
 
 	library(PORTAUDIO) "portaudio";
 

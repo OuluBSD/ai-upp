@@ -1,12 +1,13 @@
 description "Camera API\377B0,128,0";
 
+	uses api/Media;
+
 acceptflags
 	CAMERA,
 	OPENCV,
 	AUDIO,
 	VIDEO,
 	MEDIA;
-
 	uses api/Media;
 
 

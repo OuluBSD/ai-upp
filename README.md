@@ -136,6 +136,19 @@ The U++ repository is divided into several directories. Some of them are:
 * **rainbow** - area for new GUI backends development
 * **upptst** - manual testing code for the framework
 
+### Bootstrap umk build (no .bm files)
+
+This repository supports a Makefile-driven bootstrap path for building `umk` without any `.bm` files. It uses the exported Makefile at `/home/sblo/umk/Makefile` to compile from the current `uppsrc` tree and copies the resulting binary into `bin/umk`.
+
+Example:
+```sh
+script/build.py --bootstrap
+```
+
+Notes:
+* The bootstrap build is intended for Posix hosts and only builds `umk`.
+* The Makefile already encodes the include/library paths and flags; no `.bm` files are required.
+
 ## Telemetry & Analytics v1
 
 The system now supports a comprehensive telemetry and analytics layer that enables external AI agents to gain situational awareness of the workspace. This provides rich introspection capabilities through structured JSON APIs.
@@ -3013,4 +3026,3 @@ tests/playbooks/run_playbook_tests.sh
 * **NoGUI Compatible**: Full functionality available through command-line interface
 
 This subsystem enables AI agents to validate their behavior through **comprehensive deterministic testing**, ensuring that safety constraints are properly enforced and that playbook operations behave correctly under various conditions.
-

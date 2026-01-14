@@ -70,12 +70,14 @@ PyValue::PyValue(PyIter *it)
 {
 	type = PY_ITERATOR;
 	iter = it;
+	if (iter) iter->Retain();
 }
 
 PyValue::PyValue(PyUserData *ud)
 {
 	type = PY_USERDATA;
 	userdata = ud;
+	if (userdata) userdata->Retain();
 }
 
 PyValue PyRangeIter::Next()

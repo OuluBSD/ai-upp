@@ -78,6 +78,9 @@ void Run02cFluidsynth(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/02c_fluidsynth.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/02c_fluidsynth_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run02cFluidsynth: unknown method %d", method));
 	}

@@ -65,6 +65,9 @@ void Run02lPortmidiToFluidsynth(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/02l_portmidi_to_fluidsynth.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/02l_portmidi_to_fluidsynth_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run02lPortmidiToFluidsynth: unknown method %d", method));
 	}

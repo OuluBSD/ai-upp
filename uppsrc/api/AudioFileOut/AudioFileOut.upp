@@ -1,9 +1,8 @@
 description "Audio file out\377B0,128,0";
 
-
 acceptflags
-	AUDIO;
-
+	AUDIO,
+	DEBUG_RT;
 
 file
 	AudioFileOut.h,
@@ -11,4 +10,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

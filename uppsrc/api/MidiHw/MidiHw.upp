@@ -1,16 +1,22 @@
 description "Midi Hardware API\377B0,128,0";
 
-	uses MidiFile;
-	uses(BUILTIN_PORTMIDI) plugin/portmidi;
-
 acceptflags
-	MIDI;
-	uses MidiFile;
-	uses(BUILTIN_PORTMIDI) plugin/portmidi;
-	library(PORTMIDI) "portmidi";
-	library(PORTMIDI) "portmidi";
+	MIDI,
+	DEBUG_RT;
 
-	library(PORTMIDI) "portmidi";
+uses
+	MidiFile,
+	MidiFile;
+
+uses(BUILTIN_PORTMIDI) plugin/portmidi;
+
+uses(BUILTIN_PORTMIDI) plugin/portmidi;
+
+library(PORTMIDI) portmidi;
+
+library(PORTMIDI) portmidi;
+
+library(PORTMIDI) portmidi;
 
 file
 	MidiHw.h,
@@ -18,4 +24,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

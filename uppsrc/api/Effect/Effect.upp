@@ -1,16 +1,21 @@
 description "Audio Effect API\377B0,128,0";
 
-	uses(SOFTAUDIO) SoftAudio;
-	uses api/AudioHost;
-	uses(LV2) plugin/lilv;
-
 acceptflags
 	AUDIO,
-	LV2;
-	uses(SOFTAUDIO) SoftAudio;
-	uses api/AudioHost;
-	uses(LV2) plugin/lilv;
+	LV2,
+	DEBUG_RT;
 
+uses
+	api/AudioHost,
+	api/AudioHost;
+
+uses(SOFTAUDIO) SoftAudio;
+
+uses(LV2) plugin/lilv;
+
+uses(SOFTAUDIO) SoftAudio;
+
+uses(LV2) plugin/lilv;
 
 file
 	Effect.h,
@@ -19,4 +24,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

@@ -3,7 +3,8 @@ description "Physics api\377B0,128,0";
 acceptflags
 	PHYSICS,
 	ODE,
-	SOFTPHYS;
+	SOFTPHYS,
+	DEBUG_RT;
 
 library(ODE & DEBUG & WIN32) ode_doubled;
 

@@ -3,7 +3,8 @@ description "Loads midi files and makes lv2-instrument and effect system from th
 acceptflags
 	AUDIO,
 	LV2,
-	MIDI;
+	MIDI,
+	DEBUG_RT;
 
 file
 	Copying,

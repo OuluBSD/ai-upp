@@ -1,22 +1,30 @@
 description "Holographics API\377B0,128,0";
 
-	uses api/Media;
-	uses(LINUX) plugin/hcidump;
-	uses(SOFTHMD) SoftHMD;
-
 acceptflags
 	VR,
 	OPENHMD,
 	LOCALHMD,
 	OPENVR,
-	MEDIA;
-	uses api/Media;
-	uses(LINUX) plugin/hcidump;
-	uses(SOFTHMD) SoftHMD;
-	library(LINUX & OPENHMD) "openhmd hidapi-libusb";
-	library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+	MEDIA,
+	DEBUG_RT;
 
-	library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+uses
+	api/Media,
+	api/Media;
+
+uses(LINUX) plugin/hcidump;
+
+uses(SOFTHMD) SoftHMD;
+
+uses(LINUX) plugin/hcidump;
+
+uses(SOFTHMD) SoftHMD;
+
+library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+
+library(LINUX & OPENHMD) "openhmd hidapi-libusb";
+
+library(LINUX & OPENHMD) "openhmd hidapi-libusb";
 
 file
 	Holograph.h,
@@ -29,4 +37,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

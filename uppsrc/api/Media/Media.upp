@@ -5,7 +5,8 @@ acceptflags
 	VIDEO,
 	MEDIA,
 	FFMPEG,
-	OPENCV;
+	OPENCV,
+	DEBUG_RT;
 
 uses
 	Eon;

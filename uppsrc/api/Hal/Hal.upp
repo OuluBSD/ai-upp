@@ -14,7 +14,8 @@ acceptflags
 	UPP,
 	VR,
 	UWP,
-	OPENVR;
+	OPENVR,
+	DEBUG_RT;
 
 library(SDL2 & (!WIN32 | MSC)) "SDL2 SDL2_ttf SDL2_image";
 

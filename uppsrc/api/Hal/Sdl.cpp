@@ -91,7 +91,7 @@ struct HalSdl::NativeCenterScreenSinkDevice {
 };
 #endif
 
-#ifdef flagFBO
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 struct HalSdl::NativeCenterFboSinkDevice {
     SDL_Window* win;
     SDL_Renderer* rend;
@@ -102,7 +102,7 @@ struct HalSdl::NativeCenterFboSinkDevice {
 };
 #endif
 
-#if defined flagOGL
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
 struct HalSdl_CommonOgl {
     ::SDL_Window* win = 0;
     ::SDL_Renderer* rend = 0;
@@ -123,10 +123,6 @@ struct HalSdl::NativeOglScreenSinkDevice : HalSdl_CommonOgl {
 };
 #endif
 
-
-#ifdef flagGUI
-void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event);
-#endif
 
 struct HalSdl::NativeEventsBase {
     double time;
@@ -836,7 +832,7 @@ void HalSdl::CenterScreenSinkDevice_DetachContext(NativeCenterScreenSinkDevice&,
 
 
 
-#ifdef flagFBO
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 bool HalSdl::CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev) {
 	dev = new NativeCenterFboSinkDevice;
 	return true;
@@ -994,7 +990,7 @@ void HalSdl::CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice& dev, A
 
 
 
-#ifdef flagOGL
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
 bool HalSdl::OglScreenSinkDevice_Create(NativeOglScreenSinkDevice*& dev) {
 	dev = new NativeOglScreenSinkDevice;
 	return true;
@@ -1749,32 +1745,32 @@ bool HalSdl::EventsBase_IsReady(NativeEventsBase& dev, AtomBase& a, PacketIO& io
 			
 			auto s = a.GetSpace();
 			e.type = EVENT_WINDOW_RESIZE;
-			#ifdef flagSCREEN
+			#if (defined flagHAL && defined flagSCREEN)
 			auto v_sink   = s->FindOwnerWithCast<SdlCenterScreenSinkDevice>(2);
 			#endif
-			#ifdef flagFBO
+			#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 			auto sw_sink  = s->FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 			#endif
-			#ifdef flagOGL
+			#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
 			auto ogl_sink = s->FindOwnerWithCast<SdlOglScreenSinkDevice>(2);
 			#endif
 			
 			int x = 0, y = 0;
 			if (0) {}
 			
-			#ifdef flagSCREEN
+			#if (defined flagHAL && defined flagSCREEN)
 			if (v_sink) {
 				SDL_GetWindowPosition(v_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;
 			}
 			#endif
-			#ifdef flagFBO
+			#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 			else if (sw_sink) {
 				SDL_GetWindowPosition(sw_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;
 			}
 			#endif
-			#ifdef flagOGL
+			#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
 			else if (ogl_sink) {
 				SDL_GetWindowPosition(ogl_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;

@@ -8,7 +8,9 @@ uses
 	Vfs,
 	Geometry,
 	AI/Core,
-	Esc;
+	Esc,
+	ByteVM,
+	EonRouterSupport;
 
 file
 	AGENTS.md,

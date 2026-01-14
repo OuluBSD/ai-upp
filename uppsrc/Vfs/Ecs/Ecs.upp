@@ -1,5 +1,8 @@
 description "Vfs ECS runtime\377B128,0,0";
 
+acceptflags
+	DEBUG_RT;
+
 uses
 	Core,
 	Core/CompatExt,

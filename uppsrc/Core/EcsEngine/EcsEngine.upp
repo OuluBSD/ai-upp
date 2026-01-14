@@ -1,5 +1,8 @@
 description "ECS runtime lifecycle and scheduling\377B128,0,0";
 
+acceptflags
+	DEBUG_RT;
+
 uses
 	Core,
 	Core/EcsFoundation;

@@ -1,6 +1,6 @@
 #include "Synth.h"
 
-#ifdef defined flagAUDIO && defined flagMIDI && defined flagLV2
+#if defined flagAUDIO && defined flagMIDI && defined flagLV2
 
 #include <plugin/lilv/lilv.h>
 #include <plugin/lilv/lilv_config.h>
@@ -15,6 +15,10 @@ struct SynLV2::NativeInstrument {
     Index<String> lv2_list;
     One<Lv2Host> host;
     int nframes;
+    bool debug_sound_enabled = false;
+    String debug_sound_output;
+    int debug_sound_seed = 0;
+    bool debug_print_enabled = false;
 };
 
 
@@ -29,6 +33,10 @@ void SynLV2::Instrument_Destroy(NativeInstrument*& dev){
 
 bool SynLV2::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws){
 	String preset = ws.GetString("preset", "piano");
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	LoadAllLV2Plugins(dev.lv2_list);
 	
@@ -223,6 +231,22 @@ void SynLV2::Instrument_Finalize(NativeInstrument&, AtomBase&, RealtimeSourceCon
 
 bool SynLV2::Instrument_IsReady(NativeInstrument&, AtomBase&, PacketIO& io) {
 	return io.active_sink_mask & 0x1;
+}
+
+bool SynLV2::Instrument_IsDebugSoundEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String SynLV2::Instrument_GetDebugSoundOutput(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int SynLV2::Instrument_GetDebugSoundSeed(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool SynLV2::Instrument_IsDebugPrintEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
 }
 
 

@@ -52,6 +52,14 @@ void InterfaceBuilder::HaveContextFunctions() {
 	cur->have_context_fns = true;
 }
 
+void InterfaceBuilder::HaveSoundFunctions() {
+	cur->have_sound_fns = true;
+}
+
+void InterfaceBuilder::HaveDebugFunctions() {
+	cur->have_debug_fns = true;
+}
+
 void InterfaceBuilder::EnableIf(String conditional) {
 	cur->enable_if.Add(conditional);
 }
@@ -418,6 +426,24 @@ void InterfaceBuilder::Generate(bool write_actually) {
 						<< "\t\t"<<a<<"::"<<k<<"_DetachContext(*dev, *this, a);\n"
 						<< "\t}\n";
 				}
+				
+				if (pkg.have_sound_fns) {
+					s	<< "\tbool IsDebugSoundEnabled() const {\n"
+						<< "\t\treturn "<<a<<"::"<<k<<"_IsDebugSoundEnabled(*dev, *this);\n"
+						<< "\t}\n"
+						<< "\tString GetDebugSoundOutput() const {\n"
+						<< "\t\treturn "<<a<<"::"<<k<<"_GetDebugSoundOutput(*dev, *this);\n"
+						<< "\t}\n"
+						<< "\tint GetDebugSoundSeed() const {\n"
+						<< "\t\treturn "<<a<<"::"<<k<<"_GetDebugSoundSeed(*dev, *this);\n"
+						<< "\t}\n";
+				}
+				
+				if (pkg.have_debug_fns) {
+					s	<< "\tbool IsDebugPrintEnabled() const {\n"
+						<< "\t\treturn "<<a<<"::"<<k<<"_IsDebugPrintEnabled(*dev, *this);\n"
+						<< "\t}\n";
+				}
 				s	<< "};\n";
 				
 				if (v.GetCount())
@@ -510,6 +536,16 @@ void InterfaceBuilder::Generate(bool write_actually) {
 				if (pkg.have_context_fns) {
 					s	<< "static bool " << k << "_AttachContext(" << nat_this_ << "AtomBase& a, AtomBase& other);\n";
 					s	<< "static void " << k << "_DetachContext(" << nat_this_ << "AtomBase& a, AtomBase& other);\n";
+				}
+				
+				if (pkg.have_sound_fns) {
+					s	<< "static bool " << k << "_IsDebugSoundEnabled(const Native" << k << "&, const AtomBase&);\n";
+					s	<< "static String " << k << "_GetDebugSoundOutput(const Native" << k << "&, const AtomBase&);\n";
+					s	<< "static int " << k << "_GetDebugSoundSeed(const Native" << k << "&, const AtomBase&);\n";
+				}
+				
+				if (pkg.have_debug_fns) {
+					s	<< "static bool " << k << "_IsDebugPrintEnabled(const Native" << k << "&, const AtomBase&);\n";
 				}
 				
 				if (v.GetCount())

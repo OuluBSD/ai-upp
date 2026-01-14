@@ -2602,7 +2602,7 @@ AtomTypeCls FluidsynthPipe::GetType() const {
 #endif
 
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTINSTRU && defined flagAUDIO && defined flagMIDI)
 String SoftInstrumentPipe::GetAction() {
 	return "softinstru.pipe";
 }
@@ -2631,7 +2631,7 @@ AtomTypeCls SoftInstrumentPipe::GetType() const {
 #endif
 
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTSYNTH && defined flagAUDIO && defined flagMIDI)
 String FmSynthPipe::GetAction() {
 	return "fmsynth.pipe";
 }
@@ -2689,7 +2689,7 @@ AtomTypeCls LV2InstrumentPipe::GetType() const {
 #endif
 
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 String CoreSynthPipe::GetAction() {
 	return "coresynth.pipe";
 }
@@ -2718,7 +2718,7 @@ AtomTypeCls CoreSynthPipe::GetType() const {
 #endif
 
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 String CoreDrummerPipe::GetAction() {
 	return "coredrummer.pipe";
 }
@@ -2751,7 +2751,7 @@ AtomTypeCls CoreDrummerPipe::GetType() const {
 #endif
 
 
-#if defined flagAUDIO
+#if (defined flagSOFTAUDIO && defined flagAUDIO)
 String CoreEffectPipe::GetAction() {
 	return "corefx.pipe";
 }
@@ -2787,7 +2787,7 @@ AtomTypeCls CoreEffectPipe::GetType() const {
 #endif
 
 
-#if defined flagAUDIO
+#if (defined flagSOFTAUDIO && defined flagAUDIO)
 String CoreEffectAtom::GetAction() {
 	return "corefx.atom";
 }

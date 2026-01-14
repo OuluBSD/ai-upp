@@ -254,25 +254,25 @@ INITBLOCK {
 	#if (defined flagFLUIDLITE && defined flagAUDIO && defined flagMIDI) || (defined flagFLUIDSYNTH && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(FluidsynthPipe);
 	#endif
-	#if (defined flagAUDIO && defined flagMIDI)
+	#if (defined flagSOFTINSTRU && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(SoftInstrumentPipe);
 	#endif
-	#if (defined flagAUDIO && defined flagMIDI)
+	#if (defined flagSOFTSYNTH && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(FmSynthPipe);
 	#endif
 	#if (defined flagLV2 && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(LV2InstrumentPipe);
 	#endif
-	#if (defined flagAUDIO && defined flagMIDI)
+	#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(CoreSynthPipe);
 	#endif
-	#if (defined flagAUDIO && defined flagMIDI)
+	#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 	REGISTER_ATOM(CoreDrummerPipe);
 	#endif
-	#if defined flagAUDIO
+	#if (defined flagSOFTAUDIO && defined flagAUDIO)
 	REGISTER_ATOM(CoreEffectPipe);
 	#endif
-	#if defined flagAUDIO
+	#if (defined flagSOFTAUDIO && defined flagAUDIO)
 	REGISTER_ATOM(CoreEffectAtom);
 	#endif
 	#if (defined flagLV2 && defined flagAUDIO)

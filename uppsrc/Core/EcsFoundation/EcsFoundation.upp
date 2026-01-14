@@ -1,5 +1,8 @@
 description "ECS metadata and registration helpers\377B128,0,0";
 
+acceptflags
+	DEBUG_RT;
+
 uses
 	Core,
 	Core/MetaTraits,

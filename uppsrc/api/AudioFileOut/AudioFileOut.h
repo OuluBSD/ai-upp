@@ -91,6 +91,18 @@ template <class AFO> struct AudioFileOutSinkT : AFOSink {
 	bool IsReady(PacketIO& io) override {
 		return AFO::Sink_IsReady(*dev, *this, io);
 	}
+	bool IsDebugSoundEnabled() const {
+		return AFO::Sink_IsDebugSoundEnabled(*dev, *this);
+	}
+	String GetDebugSoundOutput() const {
+		return AFO::Sink_GetDebugSoundOutput(*dev, *this);
+	}
+	int GetDebugSoundSeed() const {
+		return AFO::Sink_GetDebugSoundSeed(*dev, *this);
+	}
+	bool IsDebugPrintEnabled() const {
+		return AFO::Sink_IsDebugPrintEnabled(*dev, *this);
+	}
 };
 #endif
 

@@ -1,6 +1,7 @@
 description "\377B0,0,255";
 
 acceptflags
+	DEBUG_RT,
 	AUDIO,
 	BUILTIN_PORTAUDIO,
 	CAMERA,
@@ -28,7 +29,8 @@ acceptflags
 	VIDEO,
 	VOLUMETRIC,
 	VR,
-	X11;
+	X11,
+	FFMPEG;
 
 uses
 	Eon/Draw,

@@ -5,9 +5,15 @@
 #define _ISynth_ISynth_h_
 
 #include <Eon/Eon.h>
+#if defined flagSOFTINSTRU
 #include <SoftInstru/SoftInstru.h>
+#endif
+#if defined flagSOFTSYNTH
 #include <SoftSynth/SoftSynth.h>
+#endif
+#if defined flagSOFTAUDIO
 #include <SoftAudio/SoftAudio.h>
+#endif
 #include <api/AudioHost/AudioHost.h>
 #if defined flagFLUIDLITE
 #include <plugin/fluidlite/fluidlite.h>
@@ -35,6 +41,7 @@ SYN_VNDR_LIST
 #undef SYN_VNDR
 #undef SYN_CLS
 
+#if defined flagSOFTINSTRU
 struct SynSoft {
 	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
@@ -49,6 +56,7 @@ struct SynSoft {
 	#include "IfaceFuncs.inl"
 	
 };
+#endif
 #if (defined flagFLUIDSYNTH) || (defined flagFLUIDLITE)
 struct SynFluidsynth {
 	#if (defined flagAUDIO && defined flagMIDI)
@@ -65,6 +73,7 @@ struct SynFluidsynth {
 	
 };
 #endif
+#if defined flagSOFTSYNTH
 struct SynFmSynth {
 	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
@@ -79,6 +88,8 @@ struct SynFmSynth {
 	#include "IfaceFuncs.inl"
 	
 };
+#endif
+#if defined flagSOFTAUDIO
 struct SynCoreSynth {
 	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
@@ -93,6 +104,8 @@ struct SynCoreSynth {
 	#include "IfaceFuncs.inl"
 	
 };
+#endif
+#if defined flagSOFTAUDIO
 struct SynCoreDrummer {
 	#if (defined flagAUDIO && defined flagMIDI)
 	struct NativeInstrument;
@@ -107,6 +120,7 @@ struct SynCoreDrummer {
 	#include "IfaceFuncs.inl"
 	
 };
+#endif
 #if defined flagLV2
 struct SynLV2 {
 	#if (defined flagAUDIO && defined flagMIDI)
@@ -180,25 +194,45 @@ template <class Syn> struct SynthInstrumentT : SynInstrument {
 	bool IsReady(PacketIO& io) override {
 		return Syn::Instrument_IsReady(*dev, *this, io);
 	}
+	bool IsDebugSoundEnabled() const {
+		return Syn::Instrument_IsDebugSoundEnabled(*dev, *this);
+	}
+	String GetDebugSoundOutput() const {
+		return Syn::Instrument_GetDebugSoundOutput(*dev, *this);
+	}
+	int GetDebugSoundSeed() const {
+		return Syn::Instrument_GetDebugSoundSeed(*dev, *this);
+	}
+	bool IsDebugPrintEnabled() const {
+		return Syn::Instrument_IsDebugPrintEnabled(*dev, *this);
+	}
 };
 #endif
 
+#if defined flagSOFTINSTRU
 #if (defined flagAUDIO && defined flagMIDI)
 using SoftInstrument = SynthInstrumentT<SynSoft>;
+#endif
 #endif
 #if (defined flagFLUIDSYNTH) || (defined flagFLUIDLITE)
 #if (defined flagAUDIO && defined flagMIDI)
 using FluidsynthInstrument = SynthInstrumentT<SynFluidsynth>;
 #endif
 #endif
+#if defined flagSOFTSYNTH
 #if (defined flagAUDIO && defined flagMIDI)
 using FmSynthInstrument = SynthInstrumentT<SynFmSynth>;
 #endif
+#endif
+#if defined flagSOFTAUDIO
 #if (defined flagAUDIO && defined flagMIDI)
 using CoreSynthInstrument = SynthInstrumentT<SynCoreSynth>;
 #endif
+#endif
+#if defined flagSOFTAUDIO
 #if (defined flagAUDIO && defined flagMIDI)
 using CoreDrummerInstrument = SynthInstrumentT<SynCoreDrummer>;
+#endif
 #endif
 #if defined flagLV2
 #if (defined flagAUDIO && defined flagMIDI)

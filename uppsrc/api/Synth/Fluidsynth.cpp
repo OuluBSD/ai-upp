@@ -85,6 +85,10 @@ bool SynFluidsynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, co
 	dev.debug_frame_cursor = 0;
 	dev.debug_logged_header = false;
 	dev.debug_print_enabled = false;
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	#if DETECT_DELAY
     dev.silence = true;
@@ -308,6 +312,22 @@ void SynFluidsynth::Instrument_Destroy(NativeInstrument*& dev) {
 
 void SynFluidsynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis) {
 	
+}
+
+bool SynFluidsynth::Instrument_IsDebugSoundEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String SynFluidsynth::Instrument_GetDebugSoundOutput(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int SynFluidsynth::Instrument_GetDebugSoundSeed(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool SynFluidsynth::Instrument_IsDebugPrintEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
 }
 
 bool SynFluidsynth_LoadAnyPreset(SynFluidsynth::NativeInstrument& dev) {

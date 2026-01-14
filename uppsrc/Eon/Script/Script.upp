@@ -1,5 +1,8 @@
 description "Eon/Script\377B85,42,0";
 
+acceptflags
+	DEBUG_RT;
+
 uses
 	Eon/Core,
 	Vfs,

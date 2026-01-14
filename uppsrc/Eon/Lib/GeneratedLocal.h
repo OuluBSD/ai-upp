@@ -1010,7 +1010,7 @@ public:
 	static LinkTypeCls GetLinkType();
 	void Visit(Vis& v) override;
 	AtomTypeCls GetType() const override;
-
+	
 };
 #endif
 
@@ -1329,7 +1329,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTINSTRU && defined flagAUDIO && defined flagMIDI)
 class SoftInstrumentPipe : public SoftInstrument {
 
 public:
@@ -1344,7 +1344,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTSYNTH && defined flagAUDIO && defined flagMIDI)
 class FmSynthPipe : public FmSynthInstrument {
 
 public:
@@ -1374,7 +1374,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 class CoreSynthPipe : public CoreSynthInstrument {
 
 public:
@@ -1389,7 +1389,7 @@ public:
 };
 #endif
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if (defined flagSOFTAUDIO && defined flagAUDIO && defined flagMIDI)
 class CoreDrummerPipe : public CoreDrummerInstrument {
 
 public:
@@ -1404,7 +1404,7 @@ public:
 };
 #endif
 
-#if defined flagAUDIO
+#if (defined flagSOFTAUDIO && defined flagAUDIO)
 class CoreEffectPipe : public AudioCoreEffect {
 
 public:
@@ -1419,7 +1419,7 @@ public:
 };
 #endif
 
-#if defined flagAUDIO
+#if (defined flagSOFTAUDIO && defined flagAUDIO)
 class CoreEffectAtom : public AudioCoreEffect {
 
 public:

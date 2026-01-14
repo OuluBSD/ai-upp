@@ -1,6 +1,6 @@
 #include "Synth.h"
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if defined flagAUDIO && defined flagMIDI && defined flagSOFTAUDIO
 NAMESPACE_UPP
 
 
@@ -12,6 +12,10 @@ struct SynCoreDrummer::NativeInstrument {
     float multiplier;
     int polyphone;
     dword seq;
+    bool debug_sound_enabled = false;
+    String debug_sound_output;
+    int debug_sound_seed = 0;
+    bool debug_print_enabled = false;
     
     enum {
         OH,
@@ -76,6 +80,10 @@ void SynCoreDrummer::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor&
 
 bool SynCoreDrummer::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	dev.polyphone = min(128, max(0, ws.GetInt(".polyphone", 12)));
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	String instrument = ToLower(ws.GetString(".instrument", "plucked"));
 	
@@ -305,10 +313,25 @@ bool SynCoreDrummer::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, Pack
 	return (io.active_sink_mask & 0x1) && io.full_src_mask == 0;
 }
 
+bool SynCoreDrummer::Instrument_IsDebugSoundEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String SynCoreDrummer::Instrument_GetDebugSoundOutput(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int SynCoreDrummer::Instrument_GetDebugSoundSeed(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool SynCoreDrummer::Instrument_IsDebugPrintEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
+}
+
 
 
 
 
 END_UPP_NAMESPACE
 #endif
-

@@ -4,7 +4,8 @@ acceptflags
 	SCREEN,
 	HAL,
 	SDL2,
-	OGL;
+	OGL,
+	DEBUG_RT;
 
 uses
 	Eon,

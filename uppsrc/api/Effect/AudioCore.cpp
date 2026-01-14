@@ -1,7 +1,7 @@
 #include "Effect.h"
 
 
-#if 1
+#ifdef flagSOFTAUDIO
 NAMESPACE_UPP
 
 
@@ -360,9 +360,6 @@ bool FxAudioCore::Effect_IsReady(NativeEffect& dev, AtomBase& a, PacketIO& io) {
 	bool b = ((io.active_sink_mask & dev.packet_in_mask) == dev.packet_in_mask) && io.full_src_mask == 0;
 	return b;
 }
-
-
-
 
 
 END_UPP_NAMESPACE

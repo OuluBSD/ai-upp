@@ -1,14 +1,9 @@
-description "Audio Effect API\377B0,128,0";
+description "\377B0,128,0";
 
-acceptflags
-	AUDIO,
-	LV2;
+	uses(SOFTAUDIO) SoftAudio;
+	uses api/AudioHost;
+	uses(LV2) plugin/lilv;
 
-uses
-	SoftAudio,
-	api/AudioHost;
-
-uses(LV2) plugin/lilv;
 
 file
 	Effect.h,
@@ -17,5 +12,4 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-	"" = "";
-
+        "" = "";

@@ -1,4 +1,5 @@
 #include "Lib.h"
+#include <api/Graphics/Graphics.h>
 
 
 #if defined flagGUI && defined flagVIRTUALGUI

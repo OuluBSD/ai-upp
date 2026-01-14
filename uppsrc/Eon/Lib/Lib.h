@@ -20,13 +20,58 @@
 
 #ifdef flagHAL
  #include <api/Hal/Hal.h>
-#endif
-
-NAMESPACE_UPP
-
-#ifdef flagHAL
  using CenterGuiFileSrcBase = Upp::UppGuiFileSrc;
 #endif
+
+#if defined flagPHYSICS
+ #include <api/Physics/Physics.h>
+#endif
+
+#include <api/Graphics/Graphics.h>
+
+#ifdef flagVR
+ #include <api/Holograph/Holograph.h>
+#endif
+
+#ifdef flagSCREEN
+ #include <api/Screen/Screen.h>
+#endif
+
+#ifdef flagMEDIA
+ #include <api/Media/Media.h>
+#endif
+
+#ifdef flagVOLUMETRIC
+ #include <api/Volumetric/Volumetric.h>
+#endif
+
+#ifdef flagCAMERA
+ #include <api/Camera/Camera.h>
+#endif
+
+
+#include <Eon/Draw/Draw.h>
+
+
+#ifdef flagGUI
+ #include <CtrlLib/CtrlLib.h>
+ #include <CtrlLib/Eon/Eon.h>
+ #include <Eon/Ecs/CommonComponents.h>
+ #include <Painter/Painter.h>
+ #include <Vfs/Ecs/Component.h>
+ #include <Vfs/Ecs/Entity.h>
+ #include <Geometry/GeomEvent.h>
+ #include <CtrlLib/Eon/Eon.h>
+#endif
+
+#ifdef flagGUBO
+ #include <GuboCore/CtrlEvent.h>
+#endif
+
+
+#define BIG_NUMBER 100000000
+
+NAMESPACE_UPP
 
 #include "Geom2DComponent.h"
 #include "Gui.h"

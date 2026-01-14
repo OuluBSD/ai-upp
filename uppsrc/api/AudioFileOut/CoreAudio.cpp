@@ -11,6 +11,10 @@ NAMESPACE_UPP
 struct AFOCoreAudio::NativeSink {
 	Audio::FileWaveOut waveout;
 	int size = 0;
+	bool debug_sound_enabled = false;
+	String debug_sound_output;
+	int debug_sound_seed = 0;
+	bool debug_print_enabled = false;
 	
 };
 
@@ -26,6 +30,10 @@ void AFOCoreAudio::Sink_Destroy(NativeSink*& dev) {
 
 bool AFOCoreAudio::Sink_Initialize(NativeSink& dev, AtomBase& a, const WorldState& ws) {
 	String filepath = ws.GetString(".filepath", "");
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	if (filepath.IsEmpty()) {
 		filepath = AppendFileName(GetHomeDirectory(), "audio-out.wav");
@@ -99,6 +107,22 @@ void AFOCoreAudio::Sink_Finalize(NativeSink&, AtomBase&, RealtimeSourceConfig&) 
 
 bool AFOCoreAudio::Sink_IsReady(NativeSink& dev, AtomBase& a, PacketIO& io) {
 	return io.active_sink_mask && !io.full_src_mask;
+}
+
+bool AFOCoreAudio::Sink_IsDebugSoundEnabled(const NativeSink& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String AFOCoreAudio::Sink_GetDebugSoundOutput(const NativeSink& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int AFOCoreAudio::Sink_GetDebugSoundSeed(const NativeSink& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool AFOCoreAudio::Sink_IsDebugPrintEnabled(const NativeSink& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
 }
 
 

@@ -12,6 +12,10 @@ static void SinkDevice_Uninitialize(NativeSinkDevice&, AtomBase&);
 static bool SinkDevice_Send(NativeSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
 static void SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis);
 static bool SinkDevice_NegotiateSinkFormat(NativeSinkDevice&, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
+static bool SinkDevice_IsDebugSoundEnabled(const NativeSinkDevice&, const AtomBase&);
+static String SinkDevice_GetDebugSoundOutput(const NativeSinkDevice&, const AtomBase&);
+static int SinkDevice_GetDebugSoundSeed(const NativeSinkDevice&, const AtomBase&);
+static bool SinkDevice_IsDebugPrintEnabled(const NativeSinkDevice&, const AtomBase&);
 #endif
 
 #if defined flagAUDIO
@@ -25,5 +29,9 @@ static void SourceDevice_Uninitialize(NativeSourceDevice&, AtomBase&);
 static bool SourceDevice_Send(NativeSourceDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
 static void SourceDevice_Visit(NativeSourceDevice&, AtomBase&, Visitor& vis);
 static bool SourceDevice_NegotiateSinkFormat(NativeSourceDevice&, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
+static bool SourceDevice_IsDebugSoundEnabled(const NativeSourceDevice&, const AtomBase&);
+static String SourceDevice_GetDebugSoundOutput(const NativeSourceDevice&, const AtomBase&);
+static int SourceDevice_GetDebugSoundSeed(const NativeSourceDevice&, const AtomBase&);
+static bool SourceDevice_IsDebugPrintEnabled(const NativeSourceDevice&, const AtomBase&);
 #endif
 

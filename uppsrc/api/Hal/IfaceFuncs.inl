@@ -163,21 +163,3 @@ static bool GuiFileSrc_AttachContext(NativeGuiFileSrc&, AtomBase& a, AtomBase& o
 static void GuiFileSrc_DetachContext(NativeGuiFileSrc&, AtomBase& a, AtomBase& other);
 #endif
 
-#if defined flagHAS_NATIVEUPPOGL
-static bool NativeUppOglDevice_Create(NativeUppOglDevice*& dev);
-static void NativeUppOglDevice_Destroy(NativeUppOglDevice*& dev);
-static bool NativeUppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws);
-static bool NativeUppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a);
-static bool NativeUppOglDevice_Start(NativeUppOglDevice&, AtomBase&);
-static void NativeUppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a);
-static void NativeUppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a);
-static bool NativeUppOglDevice_Send(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static bool NativeUppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int sink_ch, const Packet& in);
-static void NativeUppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg);
-static void NativeUppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt);
-static bool NativeUppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io);
-static void NativeUppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Vis& v);
-static bool NativeUppOglDevice_AttachContext(NativeUppOglDevice&, AtomBase&, AtomBase& a);
-static void NativeUppOglDevice_DetachContext(NativeUppOglDevice&, AtomBase&, AtomBase& a);
-#endif
-

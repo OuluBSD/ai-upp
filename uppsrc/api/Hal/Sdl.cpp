@@ -79,8 +79,8 @@ static SdlContextBase* ResolveSdlContext(AtomBase& a, const char* caller_tag) {
 
 SDL_TimerID waketimer_id;
 
-#ifdef flagVIDEO
-struct HalSdl::NativeCenterVideoSinkDevice {
+#ifdef flagSCREEN
+struct HalSdl::NativeCenterScreenSinkDevice {
     void* display;
     SDL_Window* win;
     SDL_Renderer* rend;
@@ -115,19 +115,12 @@ struct HalSdl_CommonOgl {
 	
 };
 
-struct HalSdl::NativeOglVideoSinkDevice : HalSdl_CommonOgl {
+struct HalSdl::NativeOglScreenSinkDevice : HalSdl_CommonOgl {
     void* display = 0;
     uint32 fb = 0;
     GfxAccelAtom<SdlOglGfx> accel;
     String dump_screen_path;  // Path where to dump the screen shot
 };
-
-struct HalSdl::NativeUppOglDevice : HalSdl_CommonOgl {
-	GLDraw gldraw;
-	Size sz = Size(0,0);
-	static NativeUppOglDevice* last;
-};
-HalSdl::NativeUppOglDevice* HalSdl::NativeUppOglDevice::last;
 #endif
 
 
@@ -538,24 +531,25 @@ bool HalSdl::ContextBase_IsReady(NativeContextBase& ctx, AtomBase&, PacketIO& io
 
 	
 
-#ifdef flagVIDEO
-bool HalSdl::CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev) {
-	dev = new NativeCenterVideoSinkDevice;
+#if defined flagSCREEN && defined flagSDL2
+
+bool HalSdl::CenterScreenSinkDevice_Create(NativeCenterScreenSinkDevice*& dev) {
+	dev = new NativeCenterScreenSinkDevice;
 	return true;
 }
 
-void HalSdl::CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev) {
+void HalSdl::CenterScreenSinkDevice_Destroy(NativeCenterScreenSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice& dev, AtomBase&, Visitor& vis) {
+void HalSdl::CenterScreenSinkDevice_Visit(NativeCenterScreenSinkDevice& dev, AtomBase&, Visitor& vis) {
 	
 }
 
-bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	auto ev_ctx = ResolveSdlContext(a, "HalSdl::CenterVideoSinkDevice_Initialize");
+bool HalSdl::CenterScreenSinkDevice_Initialize(NativeCenterScreenSinkDevice& dev, AtomBase& a, const WorldState& ws) {
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::CenterScreenSinkDevice_Initialize");
 	if (!ev_ctx) {
-		RTLOG("HalSdl::CenterVideoSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		RTLOG("HalSdl::CenterScreenSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
 		VfsValue* owner = a.val.owner;
 		int depth = 0;
 		while (owner) {
@@ -600,7 +594,7 @@ bool HalSdl::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice& dev, 
 	return true;
 }
 
-bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
+bool HalSdl::CenterScreenSinkDevice_PostInitialize(NativeCenterScreenSinkDevice& dev, AtomBase& a) {
 	AppFlags& app_flags = GetAppFlags();
 	dev.win = 0;
 	dev.rend = 0;
@@ -644,16 +638,16 @@ bool HalSdl::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice& d
 	return true;
 }
 
-bool HalSdl::CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
+bool HalSdl::CenterScreenSinkDevice_Start(NativeCenterScreenSinkDevice& dev, AtomBase& a) {
 
 	return true;
 }
 
-void HalSdl::CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
+void HalSdl::CenterScreenSinkDevice_Stop(NativeCenterScreenSinkDevice& dev, AtomBase& a) {
 	a.ClearDependencies();
 }
 
-void HalSdl::CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice& dev, AtomBase& a) {
+void HalSdl::CenterScreenSinkDevice_Uninitialize(NativeCenterScreenSinkDevice& dev, AtomBase& a) {
 	
 	if (dev.rend) {
 		SDL_DestroyRenderer(dev.rend);
@@ -665,11 +659,11 @@ void HalSdl::CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice& dev
 	}
 }
 
-bool HalSdl::CenterVideoSinkDevice_Send(NativeCenterVideoSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalSdl::CenterScreenSinkDevice_Send(NativeCenterScreenSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	return true;
 }
 
-bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {
+bool HalSdl::CenterScreenSinkDevice_Recv(NativeCenterScreenSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {
 	ValueFormat fmt = p->GetFormat();
 	if (fmt.IsVideo()) {
 		const Vector<byte>& data = p->GetData();
@@ -706,7 +700,7 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 		#if 0
 		while (begin && begin->type != DRAW_BIND_WINDOW) begin = begin->next;
 		if (!begin) {
-			LOG("HalSdl::CenterVideoSinkDevice_Recv: error: no ptr");
+			LOG("HalSdl::CenterScreenSinkDevice_Recv: error: no ptr");
 			ASSERT(0);
 			return false;
 		}
@@ -740,7 +734,7 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 		#endif
 		
 		{
-			RTLOG("HalSdl::CenterVideoSinkDevice_Recv: warning: slow screen buffer copy");
+			RTLOG("HalSdl::CenterScreenSinkDevice_Recv: warning: slow screen buffer copy");
 			
 			auto fb = dev.fb.GetActiveColorBuffer();
 			ASSERT(fb);
@@ -808,26 +802,26 @@ bool HalSdl::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice& dev, AtomBa
 	else return false;
 }
 
-void HalSdl::CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg) {
+void HalSdl::CenterScreenSinkDevice_Finalize(NativeCenterScreenSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg) {
 	SDL_SetRenderTarget(dev.rend, NULL); // Set render target to window
 	SDL_RenderClear(dev.rend);
 	SDL_RenderCopy(dev.rend, dev.fb.GetActiveColorBuffer(), NULL, NULL);
 	SDL_RenderPresent(dev.rend);
 }
 
-void HalSdl::CenterVideoSinkDevice_Update(NativeCenterVideoSinkDevice& dev, AtomBase&, double dt) {
+void HalSdl::CenterScreenSinkDevice_Update(NativeCenterScreenSinkDevice& dev, AtomBase&, double dt) {
 	// pass
 }
 
-bool HalSdl::CenterVideoSinkDevice_IsReady(NativeCenterVideoSinkDevice& dev, AtomBase&, PacketIO& io) {
+bool HalSdl::CenterScreenSinkDevice_IsReady(NativeCenterScreenSinkDevice& dev, AtomBase&, PacketIO& io) {
 	return true;
 }
 
-bool HalSdl::CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other) {
+bool HalSdl::CenterScreenSinkDevice_AttachContext(NativeCenterScreenSinkDevice&, AtomBase& a, AtomBase& other) {
 	return true;
 }
 
-void HalSdl::CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other) {
+void HalSdl::CenterScreenSinkDevice_DetachContext(NativeCenterScreenSinkDevice&, AtomBase& a, AtomBase& other) {
 	
 }
 #endif
@@ -1001,27 +995,27 @@ void HalSdl::CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice& dev, A
 
 
 #ifdef flagOGL
-bool HalSdl::OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev) {
-	dev = new NativeOglVideoSinkDevice;
+bool HalSdl::OglScreenSinkDevice_Create(NativeOglScreenSinkDevice*& dev) {
+	dev = new NativeOglScreenSinkDevice;
 	return true;
 }
 
-void HalSdl::OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev) {
+void HalSdl::OglScreenSinkDevice_Destroy(NativeOglScreenSinkDevice*& dev) {
 	delete dev;
 }
 
-void HalSdl::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice& dev, AtomBase&, Visitor& v) {
+void HalSdl::OglScreenSinkDevice_Visit(NativeOglScreenSinkDevice& dev, AtomBase&, Visitor& v) {
 	v VISN(dev.accel);
 }
 
-bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBase& a, const WorldState& ws) {
+bool HalSdl::OglScreenSinkDevice_Initialize(NativeOglScreenSinkDevice& dev, AtomBase& a, const WorldState& ws) {
 
 	if (!dev.accel.Initialize(a, ws))
 		return false;
 
-	auto ev_ctx = ResolveSdlContext(a, "HalSdl::OglVideoSinkDevice_Initialize");
+	auto ev_ctx = ResolveSdlContext(a, "HalSdl::OglScreenSinkDevice_Initialize");
 	if (!ev_ctx) {
-		RTLOG("HalSdl::OglVideoSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
+		RTLOG("HalSdl::OglScreenSinkDevice_Initialize: error: could not find SDL2 context; atom path=" << VfsPathOf(a.val));
 		VfsValue* owner = a.val.owner;
 		int depth = 0;
 		while (owner) {
@@ -1049,7 +1043,7 @@ bool HalSdl::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice& dev, AtomBa
 	bool maximized = ws.GetBool(".maximized", false);
 	String dump_screen_path = ws.GetString(".dump_screen", String()); // Extract dump_screen parameter
 
-	LOG("OglVideoSinkDevice_Initialize: dump_screen parameter = '" << dump_screen_path << "'");
+	LOG("OglScreenSinkDevice_Initialize: dump_screen parameter = '" << dump_screen_path << "'");
 
 	// Store the dump screen path in the device
 	dev.dump_screen_path = dump_screen_path;
@@ -1099,17 +1093,17 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	
 	if (SDL_CreateWindowAndRenderer(dev.screen_sz.cx, dev.screen_sz.cy, flags, &dev.win, &dev.rend) == -1) {
 		if (!headless_driver) {
-			LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: could not create window and renderer (" << SDL_GetError() << ")");
+			LOG("HalSdl::OglScreenSinkDevice_PostInitialize: error: could not create window and renderer (" << SDL_GetError() << ")");
 			return false;
 		}
 		flags |= SDL_WINDOW_HIDDEN;
 		dev.win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, dev.screen_sz.cx, dev.screen_sz.cy, flags);
 		dev.rend = 0;
 		if (!dev.win) {
-			LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: headless window creation failed (" << SDL_GetError() << ")");
+			LOG("HalSdl::OglScreenSinkDevice_PostInitialize: error: headless window creation failed (" << SDL_GetError() << ")");
 			return false;
 		}
-		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: using SDL dummy video driver fallback");
+		LOG("HalSdl::OglScreenSinkDevice_PostInitialize: using SDL dummy video driver fallback");
 	}
 	SDL_SetWindowTitle(dev.win, title);
     
@@ -1120,7 +1114,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	    SDL_GetRendererInfo(dev.rend, &dev.rend_info);
 		if ((dev.rend_info.flags & SDL_RENDERER_ACCELERATED) == 0 ||
 	        (dev.rend_info.flags & SDL_RENDERER_TARGETTEXTURE) == 0) {
-	        LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: renderer does not have acceleration");
+	        LOG("HalSdl::OglScreenSinkDevice_PostInitialize: error: renderer does not have acceleration");
 	        return false;
 	    }
 	}
@@ -1144,7 +1138,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
 	}
 	
 	if (SDL_GL_MakeCurrent(dev.win, dev.gl_ctx) != 0) {
-		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: SDL_GL_MakeCurrent failed: " << SDL_GetError());
+		LOG("HalSdl::OglScreenSinkDevice_PostInitialize: error: SDL_GL_MakeCurrent failed: " << SDL_GetError());
 		return false;
 	}
 	
@@ -1159,7 +1153,7 @@ bool HalSdl_Ogl_PostInitialize(T& dev, AtomBase& a) {
     return true;
 }
 
-bool HalSdl::OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice& dev, AtomBase& a) {
+bool HalSdl::OglScreenSinkDevice_PostInitialize(NativeOglScreenSinkDevice& dev, AtomBase& a) {
 	if (!HalSdl_Ogl_PostInitialize(dev, a))
 		return false;
 	
@@ -1167,7 +1161,7 @@ bool HalSdl::OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice& dev, At
 	
     int fb_stride = 3;
 	if (!dev.accel.Open(dev.screen_sz, fb_stride)) {
-		LOG("HalSdl::OglVideoSinkDevice_PostInitialize: error: could not open opengl atom");
+		LOG("HalSdl::OglScreenSinkDevice_PostInitialize: error: could not open opengl atom");
 		return false;
 	}
 	
@@ -1180,16 +1174,16 @@ bool HalSdl::OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice& dev, At
 	return true;
 }
 
-bool HalSdl::OglVideoSinkDevice_Start(NativeOglVideoSinkDevice& dev, AtomBase&) {
+bool HalSdl::OglScreenSinkDevice_Start(NativeOglScreenSinkDevice& dev, AtomBase&) {
 	
 	return true;
 }
 
-void HalSdl::OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice& dev, AtomBase& a) {
+void HalSdl::OglScreenSinkDevice_Stop(NativeOglScreenSinkDevice& dev, AtomBase& a) {
 	a.ClearDependencies();
 }
 
-void HalSdl::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice& dev, AtomBase& a) {
+void HalSdl::OglScreenSinkDevice_Uninitialize(NativeOglScreenSinkDevice& dev, AtomBase& a) {
 	
 	dev.accel.Uninitialize();
 	
@@ -1208,10 +1202,10 @@ void HalSdl::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice& dev, Atom
 	}
 }
 
-bool HalSdl::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+bool HalSdl::OglScreenSinkDevice_Send(NativeOglScreenSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	dev.accel.Render(cfg);
 
-	LOG("OglVideoSinkDevice_Send: called, dump_screen_path = '" << dev.dump_screen_path << "'");
+	LOG("OglScreenSinkDevice_Send: called, dump_screen_path = '" << dev.dump_screen_path << "'");
 
 	// Dump screen to PNG if dump_screen_path is specified
 	if (!dev.dump_screen_path.IsEmpty()) {
@@ -1224,13 +1218,13 @@ bool HalSdl::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice& dev, AtomBase&, R
 			dump_path = GetHomeDirFile(dump_path.Mid(2));
 		}
 
-		LOG("OglVideoSinkDevice_Send: Dumping screen to: " << dump_path);
+		LOG("OglScreenSinkDevice_Send: Dumping screen to: " << dump_path);
 
 		// Get the window size to capture
 		int width = dev.screen_sz.cx;
 		int height = dev.screen_sz.cy;
 
-		LOG("OglVideoSinkDevice_Send: Screen size: " << width << "x" << height);
+		LOG("OglScreenSinkDevice_Send: Screen size: " << width << "x" << height);
 
 		if (width > 0 && height > 0) {
 			// Create a buffer to store the pixel data
@@ -1261,34 +1255,34 @@ bool HalSdl::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice& dev, AtomBase&, R
 			// Convert ImageBuffer to Image and save as PNG
 			Image img(ib);
 			bool saved = PNGEncoder().SaveFile(dump_path, img);
-			LOG("OglVideoSinkDevice_Send: PNG save " << (saved ? "succeeded" : "failed"));
+			LOG("OglScreenSinkDevice_Send: PNG save " << (saved ? "succeeded" : "failed"));
 		}
 	}
 	
 	return true;
 }
 
-bool HalSdl::OglVideoSinkDevice_Recv(NativeOglVideoSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {
+bool HalSdl::OglScreenSinkDevice_Recv(NativeOglScreenSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {
 	return dev.accel.Recv(ch_i, p);
 }
 
-void HalSdl::OglVideoSinkDevice_Finalize(NativeOglVideoSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
+void HalSdl::OglScreenSinkDevice_Finalize(NativeOglScreenSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg) {
 	
 }
 
-void HalSdl::OglVideoSinkDevice_Update(NativeOglVideoSinkDevice& dev, AtomBase& a, double dt) {
+void HalSdl::OglScreenSinkDevice_Update(NativeOglScreenSinkDevice& dev, AtomBase& a, double dt) {
 	dev.accel.Update(dt);
 }
 
-bool HalSdl::OglVideoSinkDevice_IsReady(NativeOglVideoSinkDevice& dev, AtomBase&, PacketIO& io) {
+bool HalSdl::OglScreenSinkDevice_IsReady(NativeOglScreenSinkDevice& dev, AtomBase&, PacketIO& io) {
 	return true;
 }
 
-bool HalSdl::OglVideoSinkDevice_AttachContext(NativeOglVideoSinkDevice&, AtomBase& a, AtomBase& other) {
+bool HalSdl::OglScreenSinkDevice_AttachContext(NativeOglScreenSinkDevice&, AtomBase& a, AtomBase& other) {
 	return true;
 }
 
-void HalSdl::OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase& a, AtomBase& other) {
+void HalSdl::OglScreenSinkDevice_DetachContext(NativeOglScreenSinkDevice&, AtomBase& a, AtomBase& other) {
 	
 }
 
@@ -1524,8 +1518,8 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 #ifdef flagSCREEN
 	auto s = a.GetSpace();
 	::SDL_Renderer* rend = 0;
-#ifdef flagVIDEO
-	auto v_sink   = s->FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
+#ifdef flagSCREEN
+	auto v_sink   = s->FindOwnerWithCast<SdlCenterScreenSinkDevice>(2);
 	if (v_sink)   rend = v_sink->dev->rend;
 #endif
 #ifdef flagFBO
@@ -1533,7 +1527,7 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 	if (sw_sink)  rend = sw_sink->dev->rend;
 #endif
 #ifdef flagOGL
-	auto ogl_sink = s->FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
+	auto ogl_sink = s->FindOwnerWithCast<SdlOglScreenSinkDevice>(2);
 	if (ogl_sink) rend = ogl_sink->dev->rend;
 #endif
 #endif
@@ -1563,10 +1557,10 @@ bool Events__Poll(HalSdl::NativeEventsBase& dev, AtomBase& a) {
 				dev.sz = screen_sz;
 				e.type = EVENT_WINDOW_RESIZE;
 				e.sz = screen_sz;
-				#if defined flagOGL
-				if (HalSdl::NativeUppOglDevice::last)
-					HalSdl::NativeUppOglDevice::last->sz = screen_sz;
-				#endif
+//				#if defined flagOGL
+//				if (HalSdl::NativeUppOglDevice::last)
+//					HalSdl::NativeUppOglDevice::last->sz = screen_sz;
+//				#endif
 				continue;
 			}
 			break;
@@ -1755,20 +1749,20 @@ bool HalSdl::EventsBase_IsReady(NativeEventsBase& dev, AtomBase& a, PacketIO& io
 			
 			auto s = a.GetSpace();
 			e.type = EVENT_WINDOW_RESIZE;
-			#ifdef flagVIDEO
-			auto v_sink   = s->FindOwnerWithCast<SdlCenterVideoSinkDevice>(2);
+			#ifdef flagSCREEN
+			auto v_sink   = s->FindOwnerWithCast<SdlCenterScreenSinkDevice>(2);
 			#endif
 			#ifdef flagFBO
 			auto sw_sink  = s->FindOwnerWithCast<SdlCenterFboSinkDevice>(2);
 			#endif
 			#ifdef flagOGL
-			auto ogl_sink = s->FindOwnerWithCast<SdlOglVideoSinkDevice>(2);
+			auto ogl_sink = s->FindOwnerWithCast<SdlOglScreenSinkDevice>(2);
 			#endif
 			
 			int x = 0, y = 0;
 			if (0) {}
 			
-			#ifdef flagVIDEO
+			#ifdef flagSCREEN
 			if (v_sink) {
 				SDL_GetWindowPosition(v_sink->dev->win, &x, &y);
 				dev.ev_sendable = true;
@@ -2322,77 +2316,6 @@ void HalSdl__HandleSDLEvent(HalSdl::NativeUppEventsBase& dev, SDL_Event* event)
 	if (dev.wins && !evec.IsEmpty()) {
 		dev.wins->DoEvents(evec);
 	}
-}
-#endif
-
-// Stub implementations for UppOglDevice when OGL is defined but GUI is not
-#if defined flagOGL && !defined flagGUI
-bool HalSdl::NativeUppOglDevice_Create(NativeUppOglDevice*& dev) {
-	TODO;
-	return false;
-}
-
-void HalSdl::NativeUppOglDevice_Destroy(NativeUppOglDevice*& dev) {
-	TODO;
-}
-
-bool HalSdl::NativeUppOglDevice_Initialize(NativeUppOglDevice& dev, AtomBase& a, const WorldState& ws) {
-	TODO;
-	return false;
-}
-
-bool HalSdl::NativeUppOglDevice_PostInitialize(NativeUppOglDevice& dev, AtomBase& a) {
-	TODO;
-	return false;
-}
-
-bool HalSdl::NativeUppOglDevice_Start(NativeUppOglDevice&, AtomBase&) {
-	TODO;
-	return false;
-}
-
-void HalSdl::NativeUppOglDevice_Stop(NativeUppOglDevice&, AtomBase& a) {
-	TODO;
-}
-
-void HalSdl::NativeUppOglDevice_Uninitialize(NativeUppOglDevice& dev, AtomBase& a) {
-	TODO;
-}
-
-bool HalSdl::NativeUppOglDevice_Send(NativeUppOglDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	TODO;
-	return false;
-}
-
-void HalSdl::NativeUppOglDevice_Visit(NativeUppOglDevice&, AtomBase&, Visitor& vis) {
-	TODO;
-}
-
-bool HalSdl::NativeUppOglDevice_Recv(NativeUppOglDevice&, AtomBase&, int, const Packet&) {
-	TODO;
-	return false;
-}
-
-void HalSdl::NativeUppOglDevice_Finalize(NativeUppOglDevice& dev, AtomBase& a, RealtimeSourceConfig&) {
-	TODO;
-}
-
-void HalSdl::NativeUppOglDevice_Update(NativeUppOglDevice&, AtomBase&, double dt) {
-	TODO;
-}
-
-bool HalSdl::NativeUppOglDevice_IsReady(NativeUppOglDevice&, AtomBase&, PacketIO& io) {
-	TODO;
-	return false;
-}
-
-bool HalSdl::NativeUppOglDevice_AttachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
-	TODO;
-	return false;
-}
-
-void HalSdl::NativeUppOglDevice_DetachContext(NativeUppOglDevice& dev, AtomBase& a, AtomBase& other) {
-	TODO;
 }
 #endif
 

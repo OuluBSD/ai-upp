@@ -18,11 +18,11 @@ public:
 };
 #endif
 
-#if (defined flagGUI && defined flagHAL && defined flagOGL)
-class UppOglFboPipe : public UppOglVideoSinkDevice {
+#if (defined flagGUI && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class UppOglFboPipe : public UppOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(UppOglFboPipe, UppOglVideoSinkDevice)
+	ATOM_CTOR_(UppOglFboPipe, UppOglScreenSinkDevice)
 	//ATOMTYPE(UppOglFboPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();

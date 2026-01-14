@@ -33,7 +33,7 @@ AtomTypeCls X11SwFboAtomSA::GetType() const {
 #endif
 
 
-#if (defined flagGUI && defined flagHAL && defined flagOGL)
+#if (defined flagGUI && defined flagHAL && defined flagOGL && defined flagSCREEN)
 String UppOglFboPipe::GetAction() {
 	return "upp.fbo.sink";
 }
@@ -52,7 +52,7 @@ LinkTypeCls UppOglFboPipe::GetLinkType() {
 }
 
 void UppOglFboPipe::Visit(Vis& v) {
-	VIS_THIS(UppOglVideoSinkDevice);
+	VIS_THIS(UppOglScreenSinkDevice);
 }
 
 AtomTypeCls UppOglFboPipe::GetType() const {

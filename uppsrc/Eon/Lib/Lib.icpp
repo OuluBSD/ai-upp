@@ -65,7 +65,7 @@ INITBLOCK {
 	#if (defined flagX11 && defined flagSCREEN && defined flagOGL)
 	REGISTER_ATOM(X11OglFboProg);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+	#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 	REGISTER_ATOM(SdlSwFboProg);
 	#endif
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
@@ -95,13 +95,13 @@ INITBLOCK {
 	#if (defined flagX11 && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(X11OglFboAtomPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+	#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 	REGISTER_ATOM(SdlSwFboAtomPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+	#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(SdlOglFboAtomPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+	#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(SdlOglProgAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
@@ -158,7 +158,7 @@ INITBLOCK {
 	#if (defined flagUWP && defined flagDX12 && defined flagHAL)
 	REGISTER_ATOM(HoloEventAtomPipe);
 	#endif
-	#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12)
+	#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12 && defined flagSCREEN)
 	REGISTER_ATOM(HoloD12FboAtomSA);
 	#endif
 	#if defined flagVOLUMETRIC
@@ -176,28 +176,28 @@ INITBLOCK {
 	#if (defined flagX11 && defined flagSCREEN)
 	REGISTER_ATOM(X11SwVideoAtomPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+	#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(SdlOglFboAtomSA);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+	#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(SdlOglFboPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
+	#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(SdlOglFboAtom);
 	#endif
 	#if (defined flagGUI && defined flagHAL)
 	REGISTER_ATOM(UppEventAtomPipe);
 	#endif
-	#if defined flagHAL
+	#if (defined flagGUI && defined flagHAL)
 	REGISTER_ATOM(CenterGuiFileSrc);
 	#endif
 	#if (defined flagGUI && defined flagHAL)
 	REGISTER_ATOM(UppGuiSinkDevice);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+	#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 	REGISTER_ATOM(SdlVideoAtomPipe);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+	#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 	REGISTER_ATOM(SdlProgAtomPipe);
 	#endif
 	#if (defined flagX11 && defined flagSCREEN)
@@ -212,7 +212,7 @@ INITBLOCK {
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
 	REGISTER_ATOM(SdlOglFboGuiProg);
 	#endif
-	#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
+	#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
 	REGISTER_ATOM(SdlVideoAtom);
 	#endif
 	#if (defined flagSDL2 && defined flagHAL && defined flagAUDIO)
@@ -299,7 +299,7 @@ INITBLOCK {
 	#if (defined flagX11 && defined flagSCREEN)
 	REGISTER_ATOM(X11SwFboAtomSA);
 	#endif
-	#if (defined flagGUI && defined flagHAL && defined flagOGL)
+	#if (defined flagGUI && defined flagHAL && defined flagOGL && defined flagSCREEN)
 	REGISTER_ATOM(UppOglFboPipe);
 	#endif
 	

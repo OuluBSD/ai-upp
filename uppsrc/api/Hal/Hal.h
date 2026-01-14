@@ -11,10 +11,10 @@ NAMESPACE_UPP
 
 #define HAL_CLS_LIST(x) \
 	HAL_CLS(AudioSinkDevice, x) \
-	HAL_CLS(CenterVideoSinkDevice, x) \
+	HAL_CLS(CenterScreenSinkDevice, x) \
 	HAL_CLS(CenterFboSinkDevice, x) \
-	HAL_CLS(OglVideoSinkDevice, x) \
-	HAL_CLS(D12VideoSinkDevice, x) \
+	HAL_CLS(OglScreenSinkDevice, x) \
+	HAL_CLS(D12ScreenSinkDevice, x) \
 	HAL_CLS(ContextBase, x) \
 	HAL_CLS(EventsBase, x) \
 	HAL_CLS(GuiSinkBase, x) \
@@ -36,17 +36,17 @@ struct HalUpp {
 	#if (defined flagHAL && defined flagAUDIO)
 	struct NativeAudioSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagVIDEO)
-	struct NativeCenterVideoSinkDevice;
+	#if (defined flagHAL && defined flagSCREEN)
+	struct NativeCenterScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagFBO)
+	#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 	struct NativeCenterFboSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagOGL)
-	struct NativeOglVideoSinkDevice;
+	#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+	struct NativeOglScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagDX12)
-	struct NativeD12VideoSinkDevice;
+	#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+	struct NativeD12ScreenSinkDevice;
 	#endif
 	#if defined flagHAL
 	struct NativeContextBase;
@@ -76,17 +76,17 @@ struct HalSdl {
 	#if (defined flagHAL && defined flagAUDIO)
 	struct NativeAudioSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagVIDEO)
-	struct NativeCenterVideoSinkDevice;
+	#if (defined flagHAL && defined flagSCREEN)
+	struct NativeCenterScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagFBO)
+	#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 	struct NativeCenterFboSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagOGL)
-	struct NativeOglVideoSinkDevice;
+	#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+	struct NativeOglScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagDX12)
-	struct NativeD12VideoSinkDevice;
+	#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+	struct NativeD12ScreenSinkDevice;
 	#endif
 	#if defined flagHAL
 	struct NativeContextBase;
@@ -116,17 +116,17 @@ struct HalHolo {
 	#if (defined flagHAL && defined flagAUDIO)
 	struct NativeAudioSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagVIDEO)
-	struct NativeCenterVideoSinkDevice;
+	#if (defined flagHAL && defined flagSCREEN)
+	struct NativeCenterScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagFBO)
+	#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 	struct NativeCenterFboSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagOGL)
-	struct NativeOglVideoSinkDevice;
+	#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+	struct NativeOglScreenSinkDevice;
 	#endif
-	#if (defined flagHAL && defined flagDX12)
-	struct NativeD12VideoSinkDevice;
+	#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+	struct NativeD12ScreenSinkDevice;
 	#endif
 	#if defined flagHAL
 	struct NativeContextBase;
@@ -161,16 +161,16 @@ struct HalAudioSinkDevice : public Atom {
 };
 #endif
 
-#if (defined flagHAL && defined flagVIDEO)
-struct HalCenterVideoSinkDevice : public Atom {
+#if (defined flagHAL && defined flagSCREEN)
+struct HalCenterScreenSinkDevice : public Atom {
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	virtual ~HalCenterVideoSinkDevice() {}
+	virtual ~HalCenterScreenSinkDevice() {}
 };
 #endif
 
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 struct HalCenterFboSinkDevice : public Atom {
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
@@ -179,21 +179,21 @@ struct HalCenterFboSinkDevice : public Atom {
 };
 #endif
 
-#if (defined flagHAL && defined flagOGL)
-struct HalOglVideoSinkDevice : public Atom {
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+struct HalOglScreenSinkDevice : public Atom {
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	virtual ~HalOglVideoSinkDevice() {}
+	virtual ~HalOglScreenSinkDevice() {}
 };
 #endif
 
-#if (defined flagHAL && defined flagDX12)
-struct HalD12VideoSinkDevice : public Atom {
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+struct HalD12ScreenSinkDevice : public Atom {
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
-	virtual ~HalD12VideoSinkDevice() {}
+	virtual ~HalD12ScreenSinkDevice() {}
 };
 #endif
 
@@ -291,64 +291,64 @@ template <class Hal> struct HalAudioSinkDeviceT : HalAudioSinkDevice {
 	}
 };
 #endif
-#if (defined flagHAL && defined flagVIDEO)
-template <class Hal> struct HalCenterVideoSinkDeviceT : HalCenterVideoSinkDevice {
-	using CLASSNAME = HalCenterVideoSinkDeviceT<Hal>;
-	using HalCenterVideoSinkDevice::HalCenterVideoSinkDevice;
+#if (defined flagHAL && defined flagSCREEN)
+template <class Hal> struct HalCenterScreenSinkDeviceT : HalCenterScreenSinkDevice {
+	using CLASSNAME = HalCenterScreenSinkDeviceT<Hal>;
+	using HalCenterScreenSinkDevice::HalCenterScreenSinkDevice;
 	void Visit(Vis& v) override {
-		if (dev) Hal::CenterVideoSinkDevice_Visit(*dev, *this, v);
-		VIS_THIS(HalCenterVideoSinkDevice);
+		if (dev) Hal::CenterScreenSinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(HalCenterScreenSinkDevice);
 	}
-	typename Hal::NativeCenterVideoSinkDevice* dev = 0;
+	typename Hal::NativeCenterScreenSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
-		if (!Hal::CenterVideoSinkDevice_Create(dev))
+		if (!Hal::CenterScreenSinkDevice_Create(dev))
 			return false;
-		if (!Hal::CenterVideoSinkDevice_Initialize(*dev, *this, ws))
+		if (!Hal::CenterScreenSinkDevice_Initialize(*dev, *this, ws))
 			return false;
 		return true;
 	}
 	bool PostInitialize() override {
-		if (!Hal::CenterVideoSinkDevice_PostInitialize(*dev, *this))
+		if (!Hal::CenterScreenSinkDevice_PostInitialize(*dev, *this))
 			return false;
 		return true;
 	}
 	bool Start() override {
-		return Hal::CenterVideoSinkDevice_Start(*dev, *this);
+		return Hal::CenterScreenSinkDevice_Start(*dev, *this);
 	}
 	void Stop() override {
-		Hal::CenterVideoSinkDevice_Stop(*dev, *this);
+		Hal::CenterScreenSinkDevice_Stop(*dev, *this);
 	}
 	void Uninitialize() override {
 		ASSERT(this->GetDependencyCount() == 0);
-		Hal::CenterVideoSinkDevice_Uninitialize(*dev, *this);
-		Hal::CenterVideoSinkDevice_Destroy(dev);
+		Hal::CenterScreenSinkDevice_Uninitialize(*dev, *this);
+		Hal::CenterScreenSinkDevice_Destroy(dev);
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
-		if (!Hal::CenterVideoSinkDevice_Send(*dev, *this, cfg, out, src_ch))
+		if (!Hal::CenterScreenSinkDevice_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
 	bool Recv(int sink_ch, const Packet& in) override {
-		return Hal::CenterVideoSinkDevice_Recv(*dev, *this, sink_ch, in);
+		return Hal::CenterScreenSinkDevice_Recv(*dev, *this, sink_ch, in);
 	}
 	void Finalize(RealtimeSourceConfig& cfg) override {
-		return Hal::CenterVideoSinkDevice_Finalize(*dev, *this, cfg);
+		return Hal::CenterScreenSinkDevice_Finalize(*dev, *this, cfg);
 	}
 	void Update(double dt) override {
-		return Hal::CenterVideoSinkDevice_Update(*dev, *this, dt);
+		return Hal::CenterScreenSinkDevice_Update(*dev, *this, dt);
 	}
 	bool IsReady(PacketIO& io) override {
-		return Hal::CenterVideoSinkDevice_IsReady(*dev, *this, io);
+		return Hal::CenterScreenSinkDevice_IsReady(*dev, *this, io);
 	}
 	bool AttachContext(AtomBase& a) override {
-		return Hal::CenterVideoSinkDevice_AttachContext(*dev, *this, a);
+		return Hal::CenterScreenSinkDevice_AttachContext(*dev, *this, a);
 	}
 	void DetachContext(AtomBase& a) override {
-		Hal::CenterVideoSinkDevice_DetachContext(*dev, *this, a);
+		Hal::CenterScreenSinkDevice_DetachContext(*dev, *this, a);
 	}
 };
 #endif
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	using CLASSNAME = HalCenterFboSinkDeviceT<Hal>;
 	using HalCenterFboSinkDevice::HalCenterFboSinkDevice;
@@ -405,117 +405,117 @@ template <class Hal> struct HalCenterFboSinkDeviceT : HalCenterFboSinkDevice {
 	}
 };
 #endif
-#if (defined flagHAL && defined flagOGL)
-template <class Hal> struct HalOglVideoSinkDeviceT : HalOglVideoSinkDevice {
-	using CLASSNAME = HalOglVideoSinkDeviceT<Hal>;
-	using HalOglVideoSinkDevice::HalOglVideoSinkDevice;
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+template <class Hal> struct HalOglScreenSinkDeviceT : HalOglScreenSinkDevice {
+	using CLASSNAME = HalOglScreenSinkDeviceT<Hal>;
+	using HalOglScreenSinkDevice::HalOglScreenSinkDevice;
 	void Visit(Vis& v) override {
-		if (dev) Hal::OglVideoSinkDevice_Visit(*dev, *this, v);
-		VIS_THIS(HalOglVideoSinkDevice);
+		if (dev) Hal::OglScreenSinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(HalOglScreenSinkDevice);
 	}
-	typename Hal::NativeOglVideoSinkDevice* dev = 0;
+	typename Hal::NativeOglScreenSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
-		if (!Hal::OglVideoSinkDevice_Create(dev))
+		if (!Hal::OglScreenSinkDevice_Create(dev))
 			return false;
-		if (!Hal::OglVideoSinkDevice_Initialize(*dev, *this, ws))
+		if (!Hal::OglScreenSinkDevice_Initialize(*dev, *this, ws))
 			return false;
 		return true;
 	}
 	bool PostInitialize() override {
-		if (!Hal::OglVideoSinkDevice_PostInitialize(*dev, *this))
+		if (!Hal::OglScreenSinkDevice_PostInitialize(*dev, *this))
 			return false;
 		return true;
 	}
 	bool Start() override {
-		return Hal::OglVideoSinkDevice_Start(*dev, *this);
+		return Hal::OglScreenSinkDevice_Start(*dev, *this);
 	}
 	void Stop() override {
-		Hal::OglVideoSinkDevice_Stop(*dev, *this);
+		Hal::OglScreenSinkDevice_Stop(*dev, *this);
 	}
 	void Uninitialize() override {
 		ASSERT(this->GetDependencyCount() == 0);
-		Hal::OglVideoSinkDevice_Uninitialize(*dev, *this);
-		Hal::OglVideoSinkDevice_Destroy(dev);
+		Hal::OglScreenSinkDevice_Uninitialize(*dev, *this);
+		Hal::OglScreenSinkDevice_Destroy(dev);
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
-		if (!Hal::OglVideoSinkDevice_Send(*dev, *this, cfg, out, src_ch))
+		if (!Hal::OglScreenSinkDevice_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
 	bool Recv(int sink_ch, const Packet& in) override {
-		return Hal::OglVideoSinkDevice_Recv(*dev, *this, sink_ch, in);
+		return Hal::OglScreenSinkDevice_Recv(*dev, *this, sink_ch, in);
 	}
 	void Finalize(RealtimeSourceConfig& cfg) override {
-		return Hal::OglVideoSinkDevice_Finalize(*dev, *this, cfg);
+		return Hal::OglScreenSinkDevice_Finalize(*dev, *this, cfg);
 	}
 	void Update(double dt) override {
-		return Hal::OglVideoSinkDevice_Update(*dev, *this, dt);
+		return Hal::OglScreenSinkDevice_Update(*dev, *this, dt);
 	}
 	bool IsReady(PacketIO& io) override {
-		return Hal::OglVideoSinkDevice_IsReady(*dev, *this, io);
+		return Hal::OglScreenSinkDevice_IsReady(*dev, *this, io);
 	}
 	bool AttachContext(AtomBase& a) override {
-		return Hal::OglVideoSinkDevice_AttachContext(*dev, *this, a);
+		return Hal::OglScreenSinkDevice_AttachContext(*dev, *this, a);
 	}
 	void DetachContext(AtomBase& a) override {
-		Hal::OglVideoSinkDevice_DetachContext(*dev, *this, a);
+		Hal::OglScreenSinkDevice_DetachContext(*dev, *this, a);
 	}
 };
 #endif
-#if (defined flagHAL && defined flagDX12)
-template <class Hal> struct HalD12VideoSinkDeviceT : HalD12VideoSinkDevice {
-	using CLASSNAME = HalD12VideoSinkDeviceT<Hal>;
-	using HalD12VideoSinkDevice::HalD12VideoSinkDevice;
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+template <class Hal> struct HalD12ScreenSinkDeviceT : HalD12ScreenSinkDevice {
+	using CLASSNAME = HalD12ScreenSinkDeviceT<Hal>;
+	using HalD12ScreenSinkDevice::HalD12ScreenSinkDevice;
 	void Visit(Vis& v) override {
-		if (dev) Hal::D12VideoSinkDevice_Visit(*dev, *this, v);
-		VIS_THIS(HalD12VideoSinkDevice);
+		if (dev) Hal::D12ScreenSinkDevice_Visit(*dev, *this, v);
+		VIS_THIS(HalD12ScreenSinkDevice);
 	}
-	typename Hal::NativeD12VideoSinkDevice* dev = 0;
+	typename Hal::NativeD12ScreenSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
-		if (!Hal::D12VideoSinkDevice_Create(dev))
+		if (!Hal::D12ScreenSinkDevice_Create(dev))
 			return false;
-		if (!Hal::D12VideoSinkDevice_Initialize(*dev, *this, ws))
+		if (!Hal::D12ScreenSinkDevice_Initialize(*dev, *this, ws))
 			return false;
 		return true;
 	}
 	bool PostInitialize() override {
-		if (!Hal::D12VideoSinkDevice_PostInitialize(*dev, *this))
+		if (!Hal::D12ScreenSinkDevice_PostInitialize(*dev, *this))
 			return false;
 		return true;
 	}
 	bool Start() override {
-		return Hal::D12VideoSinkDevice_Start(*dev, *this);
+		return Hal::D12ScreenSinkDevice_Start(*dev, *this);
 	}
 	void Stop() override {
-		Hal::D12VideoSinkDevice_Stop(*dev, *this);
+		Hal::D12ScreenSinkDevice_Stop(*dev, *this);
 	}
 	void Uninitialize() override {
 		ASSERT(this->GetDependencyCount() == 0);
-		Hal::D12VideoSinkDevice_Uninitialize(*dev, *this);
-		Hal::D12VideoSinkDevice_Destroy(dev);
+		Hal::D12ScreenSinkDevice_Uninitialize(*dev, *this);
+		Hal::D12ScreenSinkDevice_Destroy(dev);
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
-		if (!Hal::D12VideoSinkDevice_Send(*dev, *this, cfg, out, src_ch))
+		if (!Hal::D12ScreenSinkDevice_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
 	bool Recv(int sink_ch, const Packet& in) override {
-		return Hal::D12VideoSinkDevice_Recv(*dev, *this, sink_ch, in);
+		return Hal::D12ScreenSinkDevice_Recv(*dev, *this, sink_ch, in);
 	}
 	void Finalize(RealtimeSourceConfig& cfg) override {
-		return Hal::D12VideoSinkDevice_Finalize(*dev, *this, cfg);
+		return Hal::D12ScreenSinkDevice_Finalize(*dev, *this, cfg);
 	}
 	void Update(double dt) override {
-		return Hal::D12VideoSinkDevice_Update(*dev, *this, dt);
+		return Hal::D12ScreenSinkDevice_Update(*dev, *this, dt);
 	}
 	bool IsReady(PacketIO& io) override {
-		return Hal::D12VideoSinkDevice_IsReady(*dev, *this, io);
+		return Hal::D12ScreenSinkDevice_IsReady(*dev, *this, io);
 	}
 	bool AttachContext(AtomBase& a) override {
-		return Hal::D12VideoSinkDevice_AttachContext(*dev, *this, a);
+		return Hal::D12ScreenSinkDevice_AttachContext(*dev, *this, a);
 	}
 	void DetachContext(AtomBase& a) override {
-		Hal::D12VideoSinkDevice_DetachContext(*dev, *this, a);
+		Hal::D12ScreenSinkDevice_DetachContext(*dev, *this, a);
 	}
 };
 #endif
@@ -752,17 +752,17 @@ template <class Hal> struct HalGuiFileSrcT : HalGuiFileSrc {
 #if (defined flagHAL && defined flagAUDIO)
 using UppAudioSinkDevice = HalAudioSinkDeviceT<HalUpp>;
 #endif
-#if (defined flagHAL && defined flagVIDEO)
-using UppCenterVideoSinkDevice = HalCenterVideoSinkDeviceT<HalUpp>;
+#if (defined flagHAL && defined flagSCREEN)
+using UppCenterScreenSinkDevice = HalCenterScreenSinkDeviceT<HalUpp>;
 #endif
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 using UppCenterFboSinkDevice = HalCenterFboSinkDeviceT<HalUpp>;
 #endif
-#if (defined flagHAL && defined flagOGL)
-using UppOglVideoSinkDevice = HalOglVideoSinkDeviceT<HalUpp>;
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+using UppOglScreenSinkDevice = HalOglScreenSinkDeviceT<HalUpp>;
 #endif
-#if (defined flagHAL && defined flagDX12)
-using UppD12VideoSinkDevice = HalD12VideoSinkDeviceT<HalUpp>;
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+using UppD12ScreenSinkDevice = HalD12ScreenSinkDeviceT<HalUpp>;
 #endif
 #if defined flagHAL
 using UppContextBase = HalContextBaseT<HalUpp>;
@@ -781,17 +781,17 @@ using UppGuiFileSrc = HalGuiFileSrcT<HalUpp>;
 #if (defined flagHAL && defined flagAUDIO)
 using SdlAudioSinkDevice = HalAudioSinkDeviceT<HalSdl>;
 #endif
-#if (defined flagHAL && defined flagVIDEO)
-using SdlCenterVideoSinkDevice = HalCenterVideoSinkDeviceT<HalSdl>;
+#if (defined flagHAL && defined flagSCREEN)
+using SdlCenterScreenSinkDevice = HalCenterScreenSinkDeviceT<HalSdl>;
 #endif
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 using SdlCenterFboSinkDevice = HalCenterFboSinkDeviceT<HalSdl>;
 #endif
-#if (defined flagHAL && defined flagOGL)
-using SdlOglVideoSinkDevice = HalOglVideoSinkDeviceT<HalSdl>;
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+using SdlOglScreenSinkDevice = HalOglScreenSinkDeviceT<HalSdl>;
 #endif
-#if (defined flagHAL && defined flagDX12)
-using SdlD12VideoSinkDevice = HalD12VideoSinkDeviceT<HalSdl>;
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+using SdlD12ScreenSinkDevice = HalD12ScreenSinkDeviceT<HalSdl>;
 #endif
 #if defined flagHAL
 using SdlContextBase = HalContextBaseT<HalSdl>;
@@ -810,17 +810,17 @@ using SdlGuiFileSrc = HalGuiFileSrcT<HalSdl>;
 #if (defined flagHAL && defined flagAUDIO)
 using HoloAudioSinkDevice = HalAudioSinkDeviceT<HalHolo>;
 #endif
-#if (defined flagHAL && defined flagVIDEO)
-using HoloCenterVideoSinkDevice = HalCenterVideoSinkDeviceT<HalHolo>;
+#if (defined flagHAL && defined flagSCREEN)
+using HoloCenterScreenSinkDevice = HalCenterScreenSinkDeviceT<HalHolo>;
 #endif
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 using HoloCenterFboSinkDevice = HalCenterFboSinkDeviceT<HalHolo>;
 #endif
-#if (defined flagHAL && defined flagOGL)
-using HoloOglVideoSinkDevice = HalOglVideoSinkDeviceT<HalHolo>;
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+using HoloOglScreenSinkDevice = HalOglScreenSinkDeviceT<HalHolo>;
 #endif
-#if (defined flagHAL && defined flagDX12)
-using HoloD12VideoSinkDevice = HalD12VideoSinkDeviceT<HalHolo>;
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+using HoloD12ScreenSinkDevice = HalD12ScreenSinkDeviceT<HalHolo>;
 #endif
 #if defined flagHAL
 using HoloContextBase = HalContextBaseT<HalHolo>;

@@ -19,25 +19,25 @@ static bool AudioSinkDevice_AttachContext(NativeAudioSinkDevice&, AtomBase& a, A
 static void AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if (defined flagHAL && defined flagVIDEO)
-static bool CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev);
-static void CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev);
-static bool CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const WorldState&);
-static bool CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice&, AtomBase&);
-static bool CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice&, AtomBase&);
-static void CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice&, AtomBase&);
-static void CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice&, AtomBase&);
-static bool CenterVideoSinkDevice_Send(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice&, AtomBase&, Visitor& vis);
-static bool CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice&, AtomBase&, int, const Packet&);
-static void CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&);
-static void CenterVideoSinkDevice_Update(NativeCenterVideoSinkDevice&, AtomBase&, double dt);
-static bool CenterVideoSinkDevice_IsReady(NativeCenterVideoSinkDevice&, AtomBase&, PacketIO& io);
-static bool CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other);
-static void CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase& a, AtomBase& other);
+#if (defined flagHAL && defined flagSCREEN)
+static bool CenterScreenSinkDevice_Create(NativeCenterScreenSinkDevice*& dev);
+static void CenterScreenSinkDevice_Destroy(NativeCenterScreenSinkDevice*& dev);
+static bool CenterScreenSinkDevice_Initialize(NativeCenterScreenSinkDevice&, AtomBase&, const WorldState&);
+static bool CenterScreenSinkDevice_PostInitialize(NativeCenterScreenSinkDevice&, AtomBase&);
+static bool CenterScreenSinkDevice_Start(NativeCenterScreenSinkDevice&, AtomBase&);
+static void CenterScreenSinkDevice_Stop(NativeCenterScreenSinkDevice&, AtomBase&);
+static void CenterScreenSinkDevice_Uninitialize(NativeCenterScreenSinkDevice&, AtomBase&);
+static bool CenterScreenSinkDevice_Send(NativeCenterScreenSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
+static void CenterScreenSinkDevice_Visit(NativeCenterScreenSinkDevice&, AtomBase&, Visitor& vis);
+static bool CenterScreenSinkDevice_Recv(NativeCenterScreenSinkDevice&, AtomBase&, int, const Packet&);
+static void CenterScreenSinkDevice_Finalize(NativeCenterScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&);
+static void CenterScreenSinkDevice_Update(NativeCenterScreenSinkDevice&, AtomBase&, double dt);
+static bool CenterScreenSinkDevice_IsReady(NativeCenterScreenSinkDevice&, AtomBase&, PacketIO& io);
+static bool CenterScreenSinkDevice_AttachContext(NativeCenterScreenSinkDevice&, AtomBase& a, AtomBase& other);
+static void CenterScreenSinkDevice_DetachContext(NativeCenterScreenSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if (defined flagHAL && defined flagFBO)
+#if (defined flagHAL && defined flagFBO && defined flagSCREEN)
 static bool CenterFboSinkDevice_Create(NativeCenterFboSinkDevice*& dev);
 static void CenterFboSinkDevice_Destroy(NativeCenterFboSinkDevice*& dev);
 static bool CenterFboSinkDevice_Initialize(NativeCenterFboSinkDevice&, AtomBase&, const WorldState&);
@@ -55,40 +55,40 @@ static bool CenterFboSinkDevice_AttachContext(NativeCenterFboSinkDevice&, AtomBa
 static void CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if (defined flagHAL && defined flagOGL)
-static bool OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev);
-static void OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev);
-static bool OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const WorldState&);
-static bool OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice&, AtomBase&);
-static bool OglVideoSinkDevice_Start(NativeOglVideoSinkDevice&, AtomBase&);
-static void OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice&, AtomBase&);
-static void OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice&, AtomBase&);
-static bool OglVideoSinkDevice_Send(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice&, AtomBase&, Visitor& vis);
-static bool OglVideoSinkDevice_Recv(NativeOglVideoSinkDevice&, AtomBase&, int, const Packet&);
-static void OglVideoSinkDevice_Finalize(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&);
-static void OglVideoSinkDevice_Update(NativeOglVideoSinkDevice&, AtomBase&, double dt);
-static bool OglVideoSinkDevice_IsReady(NativeOglVideoSinkDevice&, AtomBase&, PacketIO& io);
-static bool OglVideoSinkDevice_AttachContext(NativeOglVideoSinkDevice&, AtomBase& a, AtomBase& other);
-static void OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase& a, AtomBase& other);
+#if (defined flagHAL && defined flagOGL && defined flagSCREEN)
+static bool OglScreenSinkDevice_Create(NativeOglScreenSinkDevice*& dev);
+static void OglScreenSinkDevice_Destroy(NativeOglScreenSinkDevice*& dev);
+static bool OglScreenSinkDevice_Initialize(NativeOglScreenSinkDevice&, AtomBase&, const WorldState&);
+static bool OglScreenSinkDevice_PostInitialize(NativeOglScreenSinkDevice&, AtomBase&);
+static bool OglScreenSinkDevice_Start(NativeOglScreenSinkDevice&, AtomBase&);
+static void OglScreenSinkDevice_Stop(NativeOglScreenSinkDevice&, AtomBase&);
+static void OglScreenSinkDevice_Uninitialize(NativeOglScreenSinkDevice&, AtomBase&);
+static bool OglScreenSinkDevice_Send(NativeOglScreenSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
+static void OglScreenSinkDevice_Visit(NativeOglScreenSinkDevice&, AtomBase&, Visitor& vis);
+static bool OglScreenSinkDevice_Recv(NativeOglScreenSinkDevice&, AtomBase&, int, const Packet&);
+static void OglScreenSinkDevice_Finalize(NativeOglScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&);
+static void OglScreenSinkDevice_Update(NativeOglScreenSinkDevice&, AtomBase&, double dt);
+static bool OglScreenSinkDevice_IsReady(NativeOglScreenSinkDevice&, AtomBase&, PacketIO& io);
+static bool OglScreenSinkDevice_AttachContext(NativeOglScreenSinkDevice&, AtomBase& a, AtomBase& other);
+static void OglScreenSinkDevice_DetachContext(NativeOglScreenSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
-#if (defined flagHAL && defined flagDX12)
-static bool D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev);
-static void D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev);
-static bool D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const WorldState&);
-static bool D12VideoSinkDevice_PostInitialize(NativeD12VideoSinkDevice&, AtomBase&);
-static bool D12VideoSinkDevice_Start(NativeD12VideoSinkDevice&, AtomBase&);
-static void D12VideoSinkDevice_Stop(NativeD12VideoSinkDevice&, AtomBase&);
-static void D12VideoSinkDevice_Uninitialize(NativeD12VideoSinkDevice&, AtomBase&);
-static bool D12VideoSinkDevice_Send(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-static void D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice&, AtomBase&, Visitor& vis);
-static bool D12VideoSinkDevice_Recv(NativeD12VideoSinkDevice&, AtomBase&, int, const Packet&);
-static void D12VideoSinkDevice_Finalize(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig&);
-static void D12VideoSinkDevice_Update(NativeD12VideoSinkDevice&, AtomBase&, double dt);
-static bool D12VideoSinkDevice_IsReady(NativeD12VideoSinkDevice&, AtomBase&, PacketIO& io);
-static bool D12VideoSinkDevice_AttachContext(NativeD12VideoSinkDevice&, AtomBase& a, AtomBase& other);
-static void D12VideoSinkDevice_DetachContext(NativeD12VideoSinkDevice&, AtomBase& a, AtomBase& other);
+#if (defined flagHAL && defined flagDX12 && defined flagSCREEN)
+static bool D12ScreenSinkDevice_Create(NativeD12ScreenSinkDevice*& dev);
+static void D12ScreenSinkDevice_Destroy(NativeD12ScreenSinkDevice*& dev);
+static bool D12ScreenSinkDevice_Initialize(NativeD12ScreenSinkDevice&, AtomBase&, const WorldState&);
+static bool D12ScreenSinkDevice_PostInitialize(NativeD12ScreenSinkDevice&, AtomBase&);
+static bool D12ScreenSinkDevice_Start(NativeD12ScreenSinkDevice&, AtomBase&);
+static void D12ScreenSinkDevice_Stop(NativeD12ScreenSinkDevice&, AtomBase&);
+static void D12ScreenSinkDevice_Uninitialize(NativeD12ScreenSinkDevice&, AtomBase&);
+static bool D12ScreenSinkDevice_Send(NativeD12ScreenSinkDevice&, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
+static void D12ScreenSinkDevice_Visit(NativeD12ScreenSinkDevice&, AtomBase&, Visitor& vis);
+static bool D12ScreenSinkDevice_Recv(NativeD12ScreenSinkDevice&, AtomBase&, int, const Packet&);
+static void D12ScreenSinkDevice_Finalize(NativeD12ScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&);
+static void D12ScreenSinkDevice_Update(NativeD12ScreenSinkDevice&, AtomBase&, double dt);
+static bool D12ScreenSinkDevice_IsReady(NativeD12ScreenSinkDevice&, AtomBase&, PacketIO& io);
+static bool D12ScreenSinkDevice_AttachContext(NativeD12ScreenSinkDevice&, AtomBase& a, AtomBase& other);
+static void D12ScreenSinkDevice_DetachContext(NativeD12ScreenSinkDevice&, AtomBase& a, AtomBase& other);
 #endif
 
 #if defined flagHAL

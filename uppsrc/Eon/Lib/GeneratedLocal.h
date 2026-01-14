@@ -360,7 +360,7 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 class SdlSwFboProg : public SdlCenterFboSinkDevice {
 
 public:
@@ -510,7 +510,7 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagFBO)
+#if (defined flagSDL2 && defined flagHAL && defined flagFBO && defined flagSCREEN)
 class SdlSwFboAtomPipe : public SdlCenterFboSinkDevice {
 
 public:
@@ -525,11 +525,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
-class SdlOglFboAtomPipe : public SdlOglVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class SdlOglFboAtomPipe : public SdlOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlOglFboAtomPipe, SdlOglVideoSinkDevice)
+	ATOM_CTOR_(SdlOglFboAtomPipe, SdlOglScreenSinkDevice)
 	//ATOMTYPE(SdlOglFboAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -540,11 +540,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
-class SdlOglProgAtomPipe : public SdlOglVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class SdlOglProgAtomPipe : public SdlOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlOglProgAtomPipe, SdlOglVideoSinkDevice)
+	ATOM_CTOR_(SdlOglProgAtomPipe, SdlOglScreenSinkDevice)
 	//ATOMTYPE(SdlOglProgAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -849,11 +849,11 @@ public:
 };
 #endif
 
-#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12)
-class HoloD12FboAtomSA : public HoloD12VideoSinkDevice {
+#if (defined flagUWP && defined flagDX12 && defined flagHAL && defined flagDX12 && defined flagSCREEN)
+class HoloD12FboAtomSA : public HoloD12ScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(HoloD12FboAtomSA, HoloD12VideoSinkDevice)
+	ATOM_CTOR_(HoloD12FboAtomSA, HoloD12ScreenSinkDevice)
 	//ATOMTYPE(HoloD12FboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -939,11 +939,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
-class SdlOglFboAtomSA : public SdlOglVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class SdlOglFboAtomSA : public SdlOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlOglFboAtomSA, SdlOglVideoSinkDevice)
+	ATOM_CTOR_(SdlOglFboAtomSA, SdlOglScreenSinkDevice)
 	//ATOMTYPE(SdlOglFboAtomSA)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -954,11 +954,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
-class SdlOglFboPipe : public SdlOglVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class SdlOglFboPipe : public SdlOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlOglFboPipe, SdlOglVideoSinkDevice)
+	ATOM_CTOR_(SdlOglFboPipe, SdlOglScreenSinkDevice)
 	//ATOMTYPE(SdlOglFboPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -969,11 +969,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagOGL)
-class SdlOglFboAtom : public SdlOglVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagOGL && defined flagSCREEN)
+class SdlOglFboAtom : public SdlOglScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlOglFboAtom, SdlOglVideoSinkDevice)
+	ATOM_CTOR_(SdlOglFboAtom, SdlOglScreenSinkDevice)
 	//ATOMTYPE(SdlOglFboAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -999,11 +999,11 @@ public:
 };
 #endif
 
-#if defined flagHAL
-class CenterGuiFileSrc : public CenterGuiFileSrcBase {
+#if (defined flagGUI && defined flagHAL)
+class CenterGuiFileSrc : public UppGuiFileSrc {
 
 public:
-	ATOM_CTOR_(CenterGuiFileSrc, CenterGuiFileSrcBase)
+	ATOM_CTOR_(CenterGuiFileSrc, UppGuiFileSrc)
 	//ATOMTYPE(CenterGuiFileSrc)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -1029,11 +1029,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
-class SdlVideoAtomPipe : public SdlCenterVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
+class SdlVideoAtomPipe : public SdlCenterScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlVideoAtomPipe, SdlCenterVideoSinkDevice)
+	ATOM_CTOR_(SdlVideoAtomPipe, SdlCenterScreenSinkDevice)
 	//ATOMTYPE(SdlVideoAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -1044,11 +1044,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
-class SdlProgAtomPipe : public SdlCenterVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
+class SdlProgAtomPipe : public SdlCenterScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlProgAtomPipe, SdlCenterVideoSinkDevice)
+	ATOM_CTOR_(SdlProgAtomPipe, SdlCenterScreenSinkDevice)
 	//ATOMTYPE(SdlProgAtomPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
@@ -1119,11 +1119,11 @@ public:
 };
 #endif
 
-#if (defined flagSDL2 && defined flagHAL && defined flagVIDEO)
-class SdlVideoAtom : public SdlCenterVideoSinkDevice {
+#if (defined flagSDL2 && defined flagHAL && defined flagSCREEN)
+class SdlVideoAtom : public SdlCenterScreenSinkDevice {
 
 public:
-	ATOM_CTOR_(SdlVideoAtom, SdlCenterVideoSinkDevice)
+	ATOM_CTOR_(SdlVideoAtom, SdlCenterScreenSinkDevice)
 	//ATOMTYPE(SdlVideoAtom)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();

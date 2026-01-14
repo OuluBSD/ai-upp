@@ -311,13 +311,13 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlOglFboAtomPipe", "SdlOglVideoSinkDevice", "pipe")
+	AddHeader("SdlOglFboAtomPipe", "SdlOglScreenSinkDevice", "pipe")
 		.In("OglFbo").Out("OglReceipt")
 		.Action("sdl.ogl.fbo.sink")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlOglProgAtomPipe", "SdlOglVideoSinkDevice", "pipe")
+	AddHeader("SdlOglProgAtomPipe", "SdlOglScreenSinkDevice", "pipe")
 		.In("OglProg").Out("OglReceipt")
 		.Action("sdl.ogl.prog.pipe")
 		.Link("POLLER_PIPE", "PROCESS")
@@ -503,7 +503,7 @@ void InterfaceBuilder::Headers() {
 			.Link("POLLER_PIPE", "PROCESS")
 		;
 		
-		AddHeader("HoloD12FboAtomSA", "HoloD12VideoSinkDevice", "pipe")
+		AddHeader("HoloD12FboAtomSA", "HoloD12ScreenSinkDevice", "pipe")
 			.In("DxOrder").Out("DxReceipt")
 			.Action("holo.fbo.standalone")
 			//.Arg("reqdef_flagHOLOLENS", "1")
@@ -554,7 +554,7 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlOglFboAtomSA", "SdlOglVideoSinkDevice", "pipe")
+	AddHeader("SdlOglFboAtomSA", "SdlOglScreenSinkDevice", "pipe")
 		.In("OglOrder").Out("OglReceipt")
 		.Action("sdl.fbo.standalone")
 		//.Arg("reqdef_flagSDL2", "1")
@@ -562,14 +562,14 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("UppOglFboPipe", "UppOglVideoSinkDevice", "pipe")
+	AddHeader("UppOglFboPipe", "UppOglScreenSinkDevice", "pipe")
 		.In("OglFbo").Out("OglReceipt")
 		.Action("upp.fbo.sink")
 		.Arg("HINT_PKG", "AtomMinimal")
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlOglFboPipe", "SdlOglVideoSinkDevice", "pipe")
+	AddHeader("SdlOglFboPipe", "SdlOglScreenSinkDevice", "pipe")
 		.In("OglFbo").Out("OglReceipt")
 		.Action("sdl.fbo.sink")
 		//.Arg("reqdef_flagSDL2", "1")
@@ -577,7 +577,7 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlOglFboAtom", "SdlOglVideoSinkDevice", "pipe")
+	AddHeader("SdlOglFboAtom", "SdlOglScreenSinkDevice", "pipe")
 		.In("OglOrder").InOpt("OglFbo").InOpt("OglFbo").InOpt("OglFbo").InOpt("OglFbo")
 		.Out("OglReceipt").OutOpt("OglFbo").OutOpt("OglFbo").OutOpt("OglFbo").OutOpt("OglFbo")
 		.Action("sdl.fbo")
@@ -592,7 +592,7 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 
-	AddHeader("CenterGuiFileSrc", "CenterGuiFileSrcBase", "pipe")
+	AddHeader("CenterGuiFileSrc", "UppGuiFileSrc", "pipe")
 		.In("CenterOrder").Out("CenterGui")
 		.Action("center.gui.filesrc")
 		.Link("PIPE", "PROCESS")
@@ -608,7 +608,7 @@ void InterfaceBuilder::Headers() {
 		.Arg("close_machine", "true")
 	;
 
-	AddHeader("SdlVideoAtomPipe", "SdlCenterVideoSinkDevice", "pipe")
+	AddHeader("SdlVideoAtomPipe", "SdlCenterScreenSinkDevice", "pipe")
 		.In("CenterVideo").Out("CenterReceipt")
 		.Action("sdl.video.pipe")
 		//.Arg("reqdef_flagSCREEN", "1")
@@ -616,7 +616,7 @@ void InterfaceBuilder::Headers() {
 		.Link("POLLER_PIPE", "PROCESS")
 	;
 	
-	AddHeader("SdlProgAtomPipe", "SdlCenterVideoSinkDevice", "pipe")
+	AddHeader("SdlProgAtomPipe", "SdlCenterScreenSinkDevice", "pipe")
 		.In("CenterProg")
 		.Out("CenterReceipt")
 		.Action("sdl.prog.pipe")
@@ -656,7 +656,7 @@ void InterfaceBuilder::Headers() {
 		.Link("PIPE_OPTSIDE", "PROCESS")
 	;
 	
-	AddHeader("SdlVideoAtom", "SdlCenterVideoSinkDevice", "pipe")
+	AddHeader("SdlVideoAtom", "SdlCenterScreenSinkDevice", "pipe")
 		.In("CenterOrder").InOpt("CenterVideo").InOpt("CenterVideo").InOpt("CenterVideo").InOpt("CenterVideo")
 		.Out("CenterReceipt").OutOpt("CenterVideo").OutOpt("CenterVideo").OutOpt("CenterVideo").OutOpt("CenterVideo")
 		.Action("sdl.video")

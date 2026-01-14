@@ -1,10 +1,14 @@
 description "Midi Hardware API\377B0,128,0";
 
-acceptflags
-	MIDI;
-
 	uses MidiFile;
 	uses(BUILTIN_PORTMIDI) plugin/portmidi;
+
+acceptflags
+	MIDI;
+	uses MidiFile;
+	uses(BUILTIN_PORTMIDI) plugin/portmidi;
+	library(PORTMIDI) "portmidi";
+	library(PORTMIDI) "portmidi";
 
 	library(PORTMIDI) "portmidi";
 

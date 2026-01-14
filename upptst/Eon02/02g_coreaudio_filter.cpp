@@ -80,6 +80,9 @@ void Run02gCoreaudioFilter(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/02g_coreaudio_filter.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/02g_coreaudio_filter_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run02gCoreaudioFilter: unknown method %d", method));
 	}

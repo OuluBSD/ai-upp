@@ -36,6 +36,5 @@ sink_sink = input_net.AddPort("sink0", router.Direction_Sink, "in").index
 input_net.Connect("customer_in0", customer_in_src, "side_sink0", side_sink_sink)
 input_net.Connect("side_sink0", side_sink_src, "sink0", sink_sink)
 
-# Build both
-output.BuildLegacyLoop()
-input_net.BuildLegacyLoop()
+# Build both linked together
+router.BuildRouterChain([output, input_net], "00j linked")

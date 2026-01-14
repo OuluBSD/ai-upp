@@ -668,7 +668,7 @@ def build_command(
 ):
     args = [umk_path, roots, target, str(build_model), build_flags]
     if jobs:
-        args.append(f"-j{jobs}")
+        args.append(f"-H{jobs}")
     if flags:
         args.append(f"+{flags}")
     args.append(str(output_path))
@@ -896,6 +896,8 @@ def main():
     build_flags = "-bsH1" if opts["release"] else "-bsdH1"
     if opts["clean"]:
         build_flags += "a"
+    if opts["jobs"]:
+        build_flags = re.sub(r"H\\d+", "", build_flags)
 
     roots = "./upptst,./uppsrc,./examples,./tutorial,./reference"
     output_name = f"{target}.exe" if is_windows else target

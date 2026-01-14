@@ -16,9 +16,6 @@ acceptflags
 	UWP,
 	OPENVR;
 
-uses
-	acceptflags;
-
 library(SDL2 & (!WIN32 | MSC)) "SDL2 SDL2_ttf SDL2_image";
 
 library(UWP&DX12) "D3D11 DXGI D2d1 Dwrite";

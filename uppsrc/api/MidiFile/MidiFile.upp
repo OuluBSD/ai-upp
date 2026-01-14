@@ -1,7 +1,8 @@
 description "Midi File IO\377B0,128,0";
 
 acceptflags
-	MIDI;
+	MIDI,
+	DEBUG_RT;
 
 uses
 	MidiFile;

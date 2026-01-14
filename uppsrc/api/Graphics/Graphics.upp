@@ -11,7 +11,9 @@ acceptflags
 	DX11,
 	DX12,
 	FBO,
-	SDL2;
+	SDL2,
+	DEBUG_GFX,
+	DEBUG_RT;
 
 uses
 	Geometry,

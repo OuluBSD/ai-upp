@@ -81,6 +81,7 @@ void RunAllTests(int method) {
 } // namespace
 
 CONSOLE_APP_MAIN {
+	SetCoutLog();
 	CommandLineArguments cmd;
 	cmd.AddPositional("test number", INT_V, -1);
 	cmd.AddPositional("method number", INT_V, 0);

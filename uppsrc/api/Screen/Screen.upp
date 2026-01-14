@@ -1,4 +1,15 @@
-description "\377B0,128,0";
+description "Screen API\377B0,128,0";
+
+acceptflags
+	SCREEN,
+	X11,
+	OGL,
+	FBO,
+	DX9,
+	DX10,
+	DX11,
+	DX12,
+	EMSCRIPTEN;
 
 	uses api/Graphics;
 

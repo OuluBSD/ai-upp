@@ -9,7 +9,7 @@ struct PyKV : Moveable<PyKV> {
 	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
 };
 
-static PyValue BuiltinPrint(const Vector<PyValue>& args)
+static PyValue BuiltinPrint(const Vector<PyValue>& args, void*)
 {
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(i) Cout() << " ";
@@ -19,13 +19,13 @@ static PyValue BuiltinPrint(const Vector<PyValue>& args)
 	return PyValue::None();
 }
 
-static PyValue BuiltinLen(const Vector<PyValue>& args)
+static PyValue BuiltinLen(const Vector<PyValue>& args, void*)
 {
 	if(args.GetCount() != 1) return PyValue::None();
 	return PyValue((int64)args[0].GetCount());
 }
 
-static PyValue BuiltinRange(const Vector<PyValue>& args)
+static PyValue BuiltinRange(const Vector<PyValue>& args, void*)
 {
 	int64 start = 0, stop = 0, step = 1;
 	if(args.GetCount() == 1) stop = args[0].GetInt();
@@ -63,6 +63,12 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 void PyVM::Run()
 {
+	if (!frames.IsEmpty()) {
+		const auto& ir = *TopFrame().ir;
+		LOG("PyVM::Run: total instructions=" << ir.GetCount());
+		for (int i = 0; i < ir.GetCount(); i++)
+			LOG(Format("[%d] code=%d", i, (int)ir[i].code));
+	}
 	while(!frames.IsEmpty()) {
 		Frame& frame = TopFrame();
 		if(frame.pc >= frame.ir->GetCount()) {
@@ -71,10 +77,38 @@ void PyVM::Run()
 		}
 		
 		const PyIR& instr = (*frame.ir)[frame.pc++];
+		LOG(Format("PC %d: opcode %d", frame.pc - 1, (int)instr.code));
 		
 		switch(instr.code) {
 		case PY_NOP: break;
 		
+		case PY_UNARY_POSITIVE: break; // Identity
+		
+		case PY_UNARY_NEGATIVE: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(-v.GetInt()));
+			else if (v.IsFloat()) Push(PyValue(-v.GetFloat()));
+			else Push(PyValue::None());
+			break;
+		}
+
+		case PY_UNARY_NOT: {
+			PyValue v = Pop();
+			Push(PyValue(!v.IsTrue()));
+			break;
+		}
+
+		case PY_UNARY_INVERT: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(~v.GetInt()));
+			else Push(PyValue::None());
+			break;
+		}
+
+		case PY_POP_TOP:
+			Pop();
+			break;
+
 		case PY_LOAD_CONST:
 			Push(instr.arg);
 			break;
@@ -87,7 +121,7 @@ void PyVM::Run()
 		}
 		
 		case PY_STORE_NAME:
-			if(frames.GetCount() == 1)
+			if(frames.GetCount() <= 1)
 				globals.GetAdd(instr.arg) = Pop();
 			else
 				frame.locals.GetAdd(instr.arg) = Pop();
@@ -100,6 +134,28 @@ void PyVM::Run()
 		case PY_STORE_GLOBAL:
 			globals.GetAdd(instr.arg) = Pop();
 			break;
+
+		case PY_LOAD_ATTR: {
+			PyValue obj = Pop();
+			LOG("PY_LOAD_ATTR: obj type=" << obj.GetType() << " ptr=" << obj.GetPtr() << " attr=" << instr.arg.ToString());
+			if (obj.GetType() == PY_DICT) {
+				Push(obj.GetItem(instr.arg));
+			} else if (obj.IsUserData()) {
+				Push(obj.GetUserData().GetAttr(instr.arg.ToString()));
+			} else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_STORE_ATTR: {
+			PyValue val = Pop();
+			PyValue obj = Pop();
+			if (obj.GetType() == PY_DICT) {
+				obj.SetItem(instr.arg, val);
+			} // TODO: support UserData store
+			break;
+		}
 			
 		case PY_BUILD_LIST: {
 			int n = instr.iarg;
@@ -124,10 +180,6 @@ void PyVM::Run()
 			Push(dict);
 			break;
 		}
-			
-		case PY_POP_TOP:
-			Pop();
-			break;
 			
 		case PY_BINARY_ADD: {
 			PyValue b = Pop();
@@ -219,15 +271,20 @@ void PyVM::Run()
 			Vector<PyValue> sorted_args;
 			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
 			
-			PyValue func = Pop();
-			if(func.GetType() == PY_FUNCTION) {
-				const PyLambda& l = func.GetLambda();
+			PyValue callable = Pop();
+			if (callable.IsBoundMethod()) {
+				sorted_args.Insert(0, callable.GetBound().self);
+				callable = callable.GetBound().func;
+			}
+
+			if(callable.GetType() == PY_FUNCTION) {
+				const PyLambda& l = callable.GetLambda();
 				if(l.builtin) {
-					Push(l.builtin(sorted_args));
+					Push(l.builtin(sorted_args, l.user_data));
 				}
 				else {
 					Frame& f = frames.Add();
-					f.func = func;
+					f.func = callable;
 					f.ir = &l.ir;
 					f.pc = 0;
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
@@ -279,10 +336,15 @@ void PyVM::Run()
 			break;
 		}
 			
-default:
-			Cout() << "Unknown opcode: " << instr.code << "\n";
+		default:
+			
+			Cout() << "Unknown opcode: " << (int)instr.code << " at PC " << frame.pc - 1 << "\n";
+			
 			return;
+			
 		}
+			
+
 	}
 }
 

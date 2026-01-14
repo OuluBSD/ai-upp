@@ -18,6 +18,8 @@ String PyTypeName(int type)
 	case PY_SET: return "set";
 	case PY_FUNCTION: return "function";
 	case PY_ITERATOR: return "iterator";
+	case PY_USERDATA: return "userdata";
+	case PY_BOUND_METHOD: return "method";
 	case PY_STOP_ITERATION: return "StopIteration";
 	default: return "unknown";
 	}
@@ -35,6 +37,8 @@ void PyValue::Free()
 	case PY_SET: set->Release(); break;
 	case PY_FUNCTION: lambda->Release(); break;
 	case PY_ITERATOR: iter->Release(); break;
+	case PY_USERDATA: userdata->Release(); break;
+	case PY_BOUND_METHOD: bound->Release(); break;
 	}
 	type = PY_NONE;
 	ptr = nullptr;
@@ -56,6 +60,8 @@ void PyValue::Assign(const PyValue& s)
 	case PY_SET: set = s.set; set->Retain(); break;
 	case PY_FUNCTION: lambda = s.lambda; lambda->Retain(); break;
 	case PY_ITERATOR: iter = s.iter; iter->Retain(); break;
+	case PY_USERDATA: userdata = s.userdata; userdata->Retain(); break;
+	case PY_BOUND_METHOD: bound = s.bound; bound->Retain(); break;
 	default: ptr = s.ptr; break;
 	}
 }
@@ -64,6 +70,12 @@ PyValue::PyValue(PyIter *it)
 {
 	type = PY_ITERATOR;
 	iter = it;
+}
+
+PyValue::PyValue(PyUserData *ud)
+{
+	type = PY_USERDATA;
+	userdata = ud;
 }
 
 PyValue PyRangeIter::Next()
@@ -126,6 +138,8 @@ bool PyValue::IsTrue() const
 	case PY_DICT: return !dict->d.IsEmpty();
 	case PY_SET: return !set->s.IsEmpty();
 	case PY_FUNCTION: return true;
+	case PY_USERDATA: return true;
+	case PY_BOUND_METHOD: return true;
 	default: return false;
 	}
 }
@@ -191,6 +205,29 @@ void PyValue::SetItem(const PyValue& key, const PyValue& v)
 	if(type == PY_DICT) dict->d.GetAdd(key) = v;
 }
 
+Value PyValue::ToValue() const
+{
+	switch(type) {
+	case PY_NONE: return Value();
+	case PY_BOOL: return b;
+	case PY_INT: return i64;
+	case PY_FLOAT: return f64;
+	case PY_STR: return wstr->s.ToString();
+	case PY_LIST: {
+		ValueArray va;
+		for(const auto& v : list->l) va.Add(v.ToValue());
+		return va;
+	}
+	case PY_DICT: {
+		ValueMap vm;
+		for(int i = 0; i < dict->d.GetCount(); i++)
+			vm.Add(dict->d.GetKey(i).ToValue(), dict->d[i].ToValue());
+		return vm;
+	}
+	default: return Value();
+	}
+}
+
 String PyValue::ToString() const
 {
 	switch(type) {
@@ -239,6 +276,8 @@ String PyValue::ToString() const
 		return s;
 	}
 	case PY_FUNCTION: return "<function>";
+	case PY_USERDATA: return "<userdata " + userdata->GetTypeName() + ">";
+	case PY_BOUND_METHOD: return "<method " + bound->func.ToString() + ">";
 	default: return "<unknown>";
 	}
 }
@@ -356,12 +395,24 @@ PyValue PyValue::Set()
 	return v;
 }
 
-PyValue PyValue::Function(const String& name)
+PyValue PyValue::Function(const String& name, PyBuiltin builtin, void* user_data)
 {
 	PyValue v;
 	v.type = PY_FUNCTION;
 	v.lambda = new PyLambda;
 	v.lambda->name = name;
+	v.lambda->builtin = builtin;
+	v.lambda->user_data = user_data;
+	return v;
+}
+
+PyValue PyValue::BoundMethod(const PyValue& func, const PyValue& self)
+{
+	PyValue v;
+	v.type = PY_BOUND_METHOD;
+	v.bound = new PyBoundMethod;
+	v.bound->func = func;
+	v.bound->self = self;
 	return v;
 }
 

@@ -15,6 +15,7 @@ def print_help(prog):
         "\n".join(
             [
                 f"Usage: {prog} [options] <target>",
+                f"       {prog} tutorial",
                 "",
                 "Options:",
                 "  --conf-release, -ConfRelease, -cr  Select Release mainconfig",
@@ -30,6 +31,35 @@ def print_help(prog):
                 "  --jobs N, -j N, -jN                Parallel jobs",
                 "  --verbose, -Verbose, -v            Verbose output",
                 "  --help, -Help                      Show this help",
+            ]
+        )
+    )
+
+
+def print_tutorial(prog):
+    print(
+        "\n".join(
+            [
+                "Build tutorial",
+                "",
+                "Common usage:",
+                f"  {prog} --conf-release --release Eon00",
+                f"  {prog} -cr -r Eon00",
+                f"  {prog} --conf-debug --release Eon04",
+                f"  {prog} -cd -r Eon04",
+                "",
+                "Select a mainconfig explicitly:",
+                f"  {prog} --list-conf Eon00",
+                f"  {prog} --mainconf 0 Eon00",
+                f"  {prog} --mainconf \"Release (Posix)\" Eon07",
+                "",
+                "Control method selection:",
+                f"  {prog} --list-methods",
+                f"  {prog} --method 0 Eon00",
+                f"  {prog} --android --method ANDROID Eon00",
+                "",
+                "Bootstrap umk:",
+                f"  {prog} --bootstrap",
             ]
         )
     )
@@ -286,8 +316,6 @@ def split_flags(flags):
         token = token.strip(",;")
         if not token:
             continue
-        if token.startswith("."):
-            token = token[1:]
         normalized.append(token)
     return normalized
 
@@ -296,7 +324,12 @@ def apply_debug_full(flags, release):
     if not flags:
         return []
     normalized = split_flags(flags) if isinstance(flags, str) else list(flags)
-    filtered = [flag for flag in normalized if flag not in ("DEBUG_FULL", "FULL_DEBUG")]
+    filtered = []
+    for flag in normalized:
+        check = flag.lstrip(".")
+        if check in ("DEBUG_FULL", "FULL_DEBUG"):
+            continue
+        filtered.append(flag)
     if not release:
         filtered.append("DEBUG_FULL")
     return filtered
@@ -815,6 +848,9 @@ def main():
         print("Missing target.", file=sys.stderr)
         print_help(Path(sys.argv[0]).name)
         return 2
+    if opts["target"].lower() == "tutorial":
+        print_tutorial(Path(sys.argv[0]).name)
+        return 0
     if opts["conf_mode"] and opts["mainconf"]:
         print("Use either --conf-* or --mainconf, not both.", file=sys.stderr)
         return 2

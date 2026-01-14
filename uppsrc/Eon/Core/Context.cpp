@@ -576,8 +576,32 @@ AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const 
     sub_atom.ext = ab;
     sub_atom.type_hash = ab->GetTypeHash();
 
+    // Create link if the atom definition specifies one
+    LinkBasePtr lb;
+    if (link_type.IsValid()) {
+        VfsValue& sub_link = net_space.Add();
+        int li = VfsValueExtFactory::LinkDataMap().Find(link_type);
+        if (li >= 0) {
+            const auto& lf = VfsValueExtFactory::LinkDataMap()[li];
+            VfsValueExt* lext = lf.new_fn(sub_link);
+            lb = CastPtr<LinkBase>(lext);
+            sub_link.id = ToVarName(ClassPathTop(lf.name));
+            sub_link.ext = lb;
+            sub_link.type_hash = lb->GetTypeHash();
+        }
+        if (!lb) {
+            RTLOG("NetContext::AddAtom: link creation failed for '" << name << "'");
+            failed = true;
+            return nullptr;
+        }
+        lb->atom = CastPtr<Atom>(&*ab);
+        ab->link = &*lb;
+        lb->SetId(atoms.GetCount());
+    }
+
     // Set interface
     ab->SetInterface(iface);
+    ab->SetIdx(atoms.GetCount());
 
     // Initialize with args
     WorldState ws;
@@ -597,11 +621,25 @@ AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const 
 
     ab->SetInitialized();
 
+    if (lb) {
+        if (!lb->Initialize(ws)) {
+            RTLOG("NetContext::AddAtom: link initialization failed for '" << name << "'");
+            failed = true;
+            return nullptr;
+        }
+        lb->SetInitialized();
+    }
+
     // Store atom instance
     AtomInstance& inst = atoms.Add();
     inst.name = name;
     inst.atom = ab;
+    inst.link = lb;
     inst.iface = iface;
+    if (inst.link) {
+        inst.cfg.Create(packet_offset_gen);
+        inst.link->last_cfg = &*inst.cfg;
+    }
 
     RTLOG("NetContext::AddAtom: created atom '" << name << "' (" << action << ")");
     return ab;
@@ -708,6 +746,10 @@ bool NetContext::PostInitializeAll() {
             RTLOG("NetContext::PostInitializeAll: atom " << atoms[i].name << " failed");
             return false;
         }
+        if (atoms[i].link && !atoms[i].link->PostInitialize()) {
+            RTLOG("NetContext::PostInitializeAll: link for " << atoms[i].name << " failed");
+            return false;
+        }
     }
     return true;
 }
@@ -722,20 +764,28 @@ bool NetContext::StartAll() {
             }
             atoms[i].atom->SetRunning();
         }
+        if (atoms[i].link) {
+            if (!atoms[i].link->Start()) {
+                RTLOG("NetContext::StartAll: link for " << atoms[i].name << " failed to start");
+                return false;
+            }
+        }
     }
     return true;
 }
 
 void NetContext::UndoAll() {
     for (int i = atoms.GetCount() - 1; i >= 0; i--) {
-        if (atoms[i].atom) {
+        if (atoms[i].atom)
             atoms[i].atom->Stop();
-        }
+        if (atoms[i].link)
+            atoms[i].link->Stop();
     }
     for (int i = atoms.GetCount() - 1; i >= 0; i--) {
-        if (atoms[i].atom) {
+        if (atoms[i].link)
+            atoms[i].link->UninitializeDeep();
+        if (atoms[i].atom)
             atoms[i].atom->UninitializeDeep();
-        }
     }
 }
 

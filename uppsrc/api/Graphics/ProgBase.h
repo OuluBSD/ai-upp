@@ -12,10 +12,12 @@ struct FboProgAtomT :
 	using ModelState = ModelStateT<Gfx>;
 	using Material = MaterialT<Gfx>;
 	using NativeColorBufferPtr = typename Gfx::NativeColorBufferPtr;
+	using StateDraw = StateDrawT<Gfx>;
 	
     FramebufferT<Gfx> fb;
     Size sz;
 	DataState data;
+	StateDraw accel_sd;
 	bool dbg_info = 1;
 	int dbg_win_id;
 	double resize_multiplier = 0.01;

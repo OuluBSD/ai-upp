@@ -578,6 +578,49 @@ bool ScriptLoader::BuildNet(const Eon::NetDefinition& net) {
         return false;
     }
 
+    // Pre-create state environments so downstream atoms can resolve targets
+    for (const Eon::StateDeclaration& state_def : net.states) {
+        if (state_def.id.IsEmpty())
+            continue;
+
+        const Vector<String>& parts = state_def.id.parts;
+        if (parts.IsEmpty())
+            continue;
+
+        String state_leaf = parts.Top();
+        Vector<String> parent_parts;
+        parent_parts <<= parts;
+        if (!parent_parts.IsEmpty())
+            parent_parts.SetCount(parent_parts.GetCount() - 1);
+
+        VfsValue* loop_parent = nullptr;
+        VfsValue* space_parent = nullptr;
+        if (parent_parts.IsEmpty()) {
+            loop_parent = &mach->GetRootLoop();
+            space_parent = &mach->GetRootSpace();
+        }
+        else {
+            Eon::Id loop_id;
+            loop_id.parts <<= parent_parts;
+            loop_parent = ResolveLoop(loop_id, &space_parent);
+            if (!loop_parent) {
+                AddError(state_def.loc,
+                         String("Could not resolve state parent loop: ") + loop_id.ToString());
+                return false;
+            }
+        }
+
+        if (!space_parent)
+            space_parent = &mach->GetRootSpace();
+
+        RTLOG("BuildNet: add EnvState parent="
+            << (parent_parts.IsEmpty() ? String("<root>") : Join(parent_parts, "."))
+            << " name=" << state_leaf);
+        EnvState& env = loop_parent->GetAdd<EnvState>(state_leaf);
+        space_parent->GetAdd(state_leaf, 0);
+        env.SetName(state_leaf);
+    }
+
     // Create NetContext
     One<NetContext> nc = new NetContext(*net_space);
     LOG("BuildNet: Creating network for " << net.id.ToString());
@@ -1798,7 +1841,20 @@ bool ScriptLoader::LoadChain(Eon::ChainDefinition& chain, AstNode* n) {
 	RTLOG("LoadNet: successfully parsed net with " << net.atoms.GetCount() << " atoms, "
 		<< net.states.GetCount() << " states, " << net.connections.GetCount() << " connections");
 
-	return true;
+    bool ok = true;
+    if (eager_build_chains) {
+        RTLOG("LoadNet: eager build kick, defs before BuildNet: atoms=" << net.atoms.GetCount()
+            << " states=" << net.states.GetCount()
+            << " connections=" << net.connections.GetCount());
+        if (!BuildNet(net))
+            ok = false;
+        // shrink stored definition to avoid duplicate instantiation
+        net.atoms.Clear();
+        net.states.Clear();
+        net.connections.Clear();
+    }
+
+    return ok;
 }
 
 bool ScriptLoader::LoadArguments(ArrayMap<String, Value>& args, AstNode* n) {

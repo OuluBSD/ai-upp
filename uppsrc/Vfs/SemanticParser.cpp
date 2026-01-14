@@ -2058,6 +2058,10 @@ bool SemanticParser::ParseNetStatement(int& cookie) {
 			if (!ParseMeta(cookie))
 				return false;
 		}
+		else if (IsId("state")) {
+			if (!ParseState())
+				return false;
+		}
 		else if (Id("pass")) {
 			// pass
 		}

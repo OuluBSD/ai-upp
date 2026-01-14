@@ -6,6 +6,7 @@ class ScriptLoopLoader;
 class ScriptDriverLoader;
 class ScriptLoader;
 class LoopContext;
+class NetContext;
 }
 
 #define LINK_CTORH(x) \
@@ -28,6 +29,7 @@ protected:
 	friend class LoopSystem;
 	friend class LinkSystem;
 	friend class Eon::LoopContext;
+	friend class Eon::NetContext;
 	
 	AtomBasePtr atom;
 	

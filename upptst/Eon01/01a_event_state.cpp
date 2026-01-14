@@ -180,6 +180,9 @@ void Run01aEventState(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/01a_event_state.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/01a_event_state_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run01aEventState: unknown method %d", method));
 	}

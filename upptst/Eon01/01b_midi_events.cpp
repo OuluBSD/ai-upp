@@ -27,6 +27,9 @@ void Run01bMidiEvents(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/01b_midi_events.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/01b_midi_events_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run01bMidiEvents: unknown method %d", method));
 	}

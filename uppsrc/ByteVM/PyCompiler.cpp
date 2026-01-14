@@ -104,9 +104,10 @@ void PyCompiler::Compile(Vector<PyIR>& out)
 {
 	try {
 		while(!IsEof()) {
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))
+			if (IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) {
 				Next();
-			if(IsEof()) break;
+				continue;
+			}
 			Statement();
 		}
 		EmitConst(PyValue()); // Load None

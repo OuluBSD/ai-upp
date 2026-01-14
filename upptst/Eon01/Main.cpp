@@ -22,7 +22,15 @@ void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 	eng.WhenInitialize << callback(MachineEcsInit);
 	eng.WhenPreFirstUpdate << callback(DefaultStartup);
 	eng.WhenBoot << callback(DefaultSerialInitializerInternalEon);
-	eng.WhenUserInitialize << callback1(runner, method);
+	if (method == 4) {
+		eng.WhenUserInitialize << [=](Engine& eng) {
+			Ptr<Eon::ScriptLoader> script = eng.FindAdd<Eon::ScriptLoader>();
+			if (script)
+				script->DoPostLoadPython();
+		};
+	} else {
+		eng.WhenUserInitialize << callback1(runner, method);
+	}
 }
 
 void RunScenario(void (*runner)(Engine&, int), int method, const char* label) {

@@ -6,23 +6,25 @@ NAMESPACE_UPP
 void InterfaceBuilder::AddSynth() {
 	Package("Synth", "Syn");
 	SetColor(0, 128, 0);
-	Dependency("SoftInstru");
-	Dependency("SoftSynth");
-	Dependency("SoftAudio");
+	Dependency("SoftInstru", "SOFTINSTRU");
+	Dependency("SoftSynth", "SOFTSYNTH");
+	Dependency("SoftAudio", "SOFTAUDIO");
 	Dependency("api/AudioHost");
 	Dependency("plugin/fluidlite", "FLUIDLITE");
 	Dependency("plugin/lilv", "LV2");
 	Library("fluidsynth", "FLUIDSYNTH");
 	HaveRecvFinalize();
 	HaveIsReady();
+	HaveSoundFunctions();
+	HaveDebugFunctions();
 	
 	Interface("Instrument", "AUDIO&MIDI");
 	
-	Vendor("Soft");
+	Vendor("Soft", "SOFTINSTRU");
 	Vendor("Fluidsynth", "FLUIDSYNTH|FLUIDLITE");
-	Vendor("FmSynth");
-	Vendor("CoreSynth");
-	Vendor("CoreDrummer");
+	Vendor("FmSynth", "SOFTSYNTH");
+	Vendor("CoreSynth", "SOFTAUDIO");
+	Vendor("CoreDrummer", "SOFTAUDIO");
 	Vendor("LV2", "LV2");
 	
 }

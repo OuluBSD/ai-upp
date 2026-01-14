@@ -6,7 +6,7 @@ NAMESPACE_UPP
 void InterfaceBuilder::AddEffect() {
 	Package("Effect", "Fx");
 	SetColor(0, 128, 0);
-	Dependency("SoftAudio");
+	Dependency("SoftAudio", "SOFTAUDIO");
 	Dependency("api/AudioHost");
 	Dependency("plugin/lilv", "LV2");
 	HaveRecvFinalize();
@@ -14,7 +14,7 @@ void InterfaceBuilder::AddEffect() {
 	
 	Interface("Effect", "AUDIO");
 	
-	Vendor("AudioCore");
+	Vendor("AudioCore", "SOFTAUDIO");
 	Vendor("LV2", "LV2");
 	
 }

@@ -5,6 +5,7 @@
 #define _IAudio_IAudio_h_
 
 #include <Eon/Eon.h>
+#include <Eon/Eon.h>
 #include <Sound/Sound.h>
 
 NAMESPACE_UPP
@@ -19,8 +20,8 @@ NAMESPACE_UPP
 #define AUD_CLS(x, v) struct v##x;
 #define AUD_VNDR(x) AUD_CLS_LIST(x)
 AUD_VNDR_LIST
-#undef HAL_VNDR
-#undef HAL_CLS
+#undef AUD_VNDR
+#undef AUD_CLS
 
 #if (defined flagBUILTIN_PORTAUDIO) || (defined flagPORTAUDIO)
 struct AudPortaudio {
@@ -31,35 +32,13 @@ struct AudPortaudio {
 	struct NativeSourceDevice;
 	#endif
 	
-	#if defined flagAUDIO
-	static bool SinkDevice_Create(NativeSinkDevice*& dev);
-	static void SinkDevice_Destroy(NativeSinkDevice*& dev);
-	static bool SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, const WorldState& ws);
-	static bool SinkDevice_PostInitialize(NativeSinkDevice& dev, AtomBase& a);
-	static bool SinkDevice_Start(NativeSinkDevice& dev, AtomBase&);
-	static void SinkDevice_Stop(NativeSinkDevice& dev, AtomBase&);
-	static void SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase&);
-	static bool SinkDevice_Send(NativeSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-	static bool SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
-	static void SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis);
-	
-	static bool SourceDevice_Create(NativeSourceDevice*& dev);
-	static void SourceDevice_Destroy(NativeSourceDevice*& dev);
-	static bool SourceDevice_Initialize(NativeSourceDevice& dev, AtomBase& a, const WorldState& ws);
-	static bool SourceDevice_PostInitialize(NativeSourceDevice& dev, AtomBase& a);
-	static bool SourceDevice_Start(NativeSourceDevice& dev, AtomBase&);
-	static void SourceDevice_Stop(NativeSourceDevice& dev, AtomBase&);
-	static void SourceDevice_Uninitialize(NativeSourceDevice& dev, AtomBase&);
-	static bool SourceDevice_Send(NativeSourceDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
-	static bool SourceDevice_NegotiateSinkFormat(NativeSourceDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt);
-	static void SourceDevice_Visit(NativeSourceDevice&, AtomBase&, Visitor& vis);
-	#endif
-	
 	struct Thread {
 		
 	};
 	
 	static Thread& Local() {thread_local static Thread t; return t;}
+	
+	#include "IfaceFuncs.inl"
 	
 };
 #endif
@@ -123,6 +102,18 @@ template <class Aud> struct AudioSinkDeviceT : AudSinkDevice {
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Aud::SinkDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
 	}
+	bool IsDebugSoundEnabled() const {
+		return Aud::SinkDevice_IsDebugSoundEnabled(*dev, *this);
+	}
+	String GetDebugSoundOutput() const {
+		return Aud::SinkDevice_GetDebugSoundOutput(*dev, *this);
+	}
+	int GetDebugSoundSeed() const {
+		return Aud::SinkDevice_GetDebugSoundSeed(*dev, *this);
+	}
+	bool IsDebugPrintEnabled() const {
+		return Aud::SinkDevice_IsDebugPrintEnabled(*dev, *this);
+	}
 };
 #endif
 #if defined flagAUDIO
@@ -164,6 +155,18 @@ template <class Aud> struct AudioSourceDeviceT : AudSourceDevice {
 	}
 	bool NegotiateSinkFormat(LinkBase& link, int sink_ch, const ValueFormat& new_fmt) override {
 		return Aud::SourceDevice_NegotiateSinkFormat(*dev, *this, link, sink_ch, new_fmt);
+	}
+	bool IsDebugSoundEnabled() const {
+		return Aud::SourceDevice_IsDebugSoundEnabled(*dev, *this);
+	}
+	String GetDebugSoundOutput() const {
+		return Aud::SourceDevice_GetDebugSoundOutput(*dev, *this);
+	}
+	int GetDebugSoundSeed() const {
+		return Aud::SourceDevice_GetDebugSoundSeed(*dev, *this);
+	}
+	bool IsDebugPrintEnabled() const {
+		return Aud::SourceDevice_IsDebugPrintEnabled(*dev, *this);
 	}
 };
 #endif

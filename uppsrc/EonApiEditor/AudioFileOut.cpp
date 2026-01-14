@@ -8,6 +8,8 @@ void InterfaceBuilder::AddAudioFileOut() {
 	SetColor(0, 128, 0);
 	HaveRecvFinalize();
 	HaveIsReady();
+	HaveSoundFunctions();
+	HaveDebugFunctions();
 	
 	Interface("Sink", "AUDIO");
 	

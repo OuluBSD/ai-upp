@@ -10,6 +10,8 @@ void InterfaceBuilder::AddAudio() {
 	Dependency("Sound");
 	Library("portaudio", "PORTAUDIO");
 	HaveNegotiateFormat();
+	HaveSoundFunctions();
+	HaveDebugFunctions();
 	
 	Interface("SinkDevice", "AUDIO");
 	Interface("SourceDevice", "AUDIO");

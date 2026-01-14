@@ -22,6 +22,8 @@ class InterfaceBuilder {
 		bool have_is_ready = false;
 		bool have_negotiate_format = false;
 		bool have_context_fns = false;
+		bool have_sound_fns = false;
+		bool have_debug_fns = false;
 		
 	};
 	
@@ -65,6 +67,8 @@ public:
 	void HaveIsReady();
 	void HaveNegotiateFormat();
 	void HaveContextFunctions();
+	void HaveSoundFunctions();
+	void HaveDebugFunctions();
 	void EnableIf(String conditional);
 	void EnableAlways();
 	void Interface(String name, String conditional="");

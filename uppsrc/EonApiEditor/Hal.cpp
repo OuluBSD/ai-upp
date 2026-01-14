@@ -18,10 +18,10 @@ void InterfaceBuilder::AddHal() {
 	HaveContextFunctions();
 	
 	Interface("AudioSinkDevice", "HAL & AUDIO");
-	Interface("CenterVideoSinkDevice", "HAL & VIDEO");
-	Interface("CenterFboSinkDevice", "HAL & FBO");
-	Interface("OglVideoSinkDevice", "HAL & OGL");
-	Interface("D12VideoSinkDevice", "HAL & DX12");
+	Interface("CenterScreenSinkDevice", "HAL & SCREEN");
+	Interface("CenterFboSinkDevice", "HAL & FBO & SCREEN");
+	Interface("OglScreenSinkDevice", "HAL & OGL & SCREEN");
+	Interface("D12ScreenSinkDevice", "HAL & DX12 & SCREEN");
 	Interface("ContextBase","HAL");
 	Interface("EventsBase","HAL");
 	Interface("GuiSinkBase","HAL");

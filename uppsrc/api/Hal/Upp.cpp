@@ -427,23 +427,23 @@ bool HalUpp::AudioSinkDevice_AttachContext(NativeAudioSinkDevice&, AtomBase&, At
 void HalUpp::AudioSinkDevice_DetachContext(NativeAudioSinkDevice&, AtomBase&, AtomBase&) {}
 #endif
 
-#if (defined flagHAL && defined flagVIDEO)
-struct HalUpp::NativeCenterVideoSinkDevice {};
-bool HalUpp::CenterVideoSinkDevice_Create(NativeCenterVideoSinkDevice*& dev) { return false; }
-void HalUpp::CenterVideoSinkDevice_Destroy(NativeCenterVideoSinkDevice*& dev) {}
-bool HalUpp::CenterVideoSinkDevice_Initialize(NativeCenterVideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
-bool HalUpp::CenterVideoSinkDevice_PostInitialize(NativeCenterVideoSinkDevice&, AtomBase&) { return false; }
-bool HalUpp::CenterVideoSinkDevice_Start(NativeCenterVideoSinkDevice&, AtomBase&) { return false; }
-void HalUpp::CenterVideoSinkDevice_Stop(NativeCenterVideoSinkDevice&, AtomBase&) {}
-void HalUpp::CenterVideoSinkDevice_Uninitialize(NativeCenterVideoSinkDevice&, AtomBase&) {}
-bool HalUpp::CenterVideoSinkDevice_Send(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
-void HalUpp::CenterVideoSinkDevice_Visit(NativeCenterVideoSinkDevice&, AtomBase&, Visitor&) {}
-bool HalUpp::CenterVideoSinkDevice_Recv(NativeCenterVideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
-void HalUpp::CenterVideoSinkDevice_Finalize(NativeCenterVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
-void HalUpp::CenterVideoSinkDevice_Update(NativeCenterVideoSinkDevice&, AtomBase&, double) {}
-bool HalUpp::CenterVideoSinkDevice_IsReady(NativeCenterVideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
-bool HalUpp::CenterVideoSinkDevice_AttachContext(NativeCenterVideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
-void HalUpp::CenterVideoSinkDevice_DetachContext(NativeCenterVideoSinkDevice&, AtomBase&, AtomBase&) {}
+#if (defined flagHAL && defined flagSCREEN)
+struct HalUpp::NativeCenterScreenSinkDevice {};
+bool HalUpp::CenterScreenSinkDevice_Create(NativeCenterScreenSinkDevice*& dev) { return false; }
+void HalUpp::CenterScreenSinkDevice_Destroy(NativeCenterScreenSinkDevice*& dev) {}
+bool HalUpp::CenterScreenSinkDevice_Initialize(NativeCenterScreenSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::CenterScreenSinkDevice_PostInitialize(NativeCenterScreenSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::CenterScreenSinkDevice_Start(NativeCenterScreenSinkDevice&, AtomBase&) { return false; }
+void HalUpp::CenterScreenSinkDevice_Stop(NativeCenterScreenSinkDevice&, AtomBase&) {}
+void HalUpp::CenterScreenSinkDevice_Uninitialize(NativeCenterScreenSinkDevice&, AtomBase&) {}
+bool HalUpp::CenterScreenSinkDevice_Send(NativeCenterScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::CenterScreenSinkDevice_Visit(NativeCenterScreenSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::CenterScreenSinkDevice_Recv(NativeCenterScreenSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::CenterScreenSinkDevice_Finalize(NativeCenterScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::CenterScreenSinkDevice_Update(NativeCenterScreenSinkDevice&, AtomBase&, double) {}
+bool HalUpp::CenterScreenSinkDevice_IsReady(NativeCenterScreenSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::CenterScreenSinkDevice_AttachContext(NativeCenterScreenSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::CenterScreenSinkDevice_DetachContext(NativeCenterScreenSinkDevice&, AtomBase&, AtomBase&) {}
 #endif
 
 #if (defined flagHAL && defined flagFBO)
@@ -466,41 +466,41 @@ void HalUpp::CenterFboSinkDevice_DetachContext(NativeCenterFboSinkDevice&, AtomB
 #endif
 
 #if (defined flagHAL && defined flagOGL)
-struct HalUpp::NativeOglVideoSinkDevice {};
-bool HalUpp::OglVideoSinkDevice_Create(NativeOglVideoSinkDevice*& dev) { return false; }
-void HalUpp::OglVideoSinkDevice_Destroy(NativeOglVideoSinkDevice*& dev) {}
-bool HalUpp::OglVideoSinkDevice_Initialize(NativeOglVideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
-bool HalUpp::OglVideoSinkDevice_PostInitialize(NativeOglVideoSinkDevice&, AtomBase&) { return false; }
-bool HalUpp::OglVideoSinkDevice_Start(NativeOglVideoSinkDevice&, AtomBase&) { return false; }
-void HalUpp::OglVideoSinkDevice_Stop(NativeOglVideoSinkDevice&, AtomBase&) {}
-void HalUpp::OglVideoSinkDevice_Uninitialize(NativeOglVideoSinkDevice&, AtomBase&) {}
-bool HalUpp::OglVideoSinkDevice_Send(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
-void HalUpp::OglVideoSinkDevice_Visit(NativeOglVideoSinkDevice&, AtomBase&, Visitor&) {}
-bool HalUpp::OglVideoSinkDevice_Recv(NativeOglVideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
-void HalUpp::OglVideoSinkDevice_Finalize(NativeOglVideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
-void HalUpp::OglVideoSinkDevice_Update(NativeOglVideoSinkDevice&, AtomBase&, double) {}
-bool HalUpp::OglVideoSinkDevice_IsReady(NativeOglVideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
-bool HalUpp::OglVideoSinkDevice_AttachContext(NativeOglVideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
-void HalUpp::OglVideoSinkDevice_DetachContext(NativeOglVideoSinkDevice&, AtomBase&, AtomBase&) {}
+struct HalUpp::NativeOglScreenSinkDevice {};
+bool HalUpp::OglScreenSinkDevice_Create(NativeOglScreenSinkDevice*& dev) { return false; }
+void HalUpp::OglScreenSinkDevice_Destroy(NativeOglScreenSinkDevice*& dev) {}
+bool HalUpp::OglScreenSinkDevice_Initialize(NativeOglScreenSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::OglScreenSinkDevice_PostInitialize(NativeOglScreenSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::OglScreenSinkDevice_Start(NativeOglScreenSinkDevice&, AtomBase&) { return false; }
+void HalUpp::OglScreenSinkDevice_Stop(NativeOglScreenSinkDevice&, AtomBase&) {}
+void HalUpp::OglScreenSinkDevice_Uninitialize(NativeOglScreenSinkDevice&, AtomBase&) {}
+bool HalUpp::OglScreenSinkDevice_Send(NativeOglScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::OglScreenSinkDevice_Visit(NativeOglScreenSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::OglScreenSinkDevice_Recv(NativeOglScreenSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::OglScreenSinkDevice_Finalize(NativeOglScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::OglScreenSinkDevice_Update(NativeOglScreenSinkDevice&, AtomBase&, double) {}
+bool HalUpp::OglScreenSinkDevice_IsReady(NativeOglScreenSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::OglScreenSinkDevice_AttachContext(NativeOglScreenSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::OglScreenSinkDevice_DetachContext(NativeOglScreenSinkDevice&, AtomBase&, AtomBase&) {}
 #endif
 
 #if (defined flagHAL && defined flagDX12)
-struct HalUpp::NativeD12VideoSinkDevice {};
-bool HalUpp::D12VideoSinkDevice_Create(NativeD12VideoSinkDevice*& dev) { return false; }
-void HalUpp::D12VideoSinkDevice_Destroy(NativeD12VideoSinkDevice*& dev) {}
-bool HalUpp::D12VideoSinkDevice_Initialize(NativeD12VideoSinkDevice&, AtomBase&, const WorldState&) { return false; }
-bool HalUpp::D12VideoSinkDevice_PostInitialize(NativeD12VideoSinkDevice&, AtomBase&) { return false; }
-bool HalUpp::D12VideoSinkDevice_Start(NativeD12VideoSinkDevice&, AtomBase&) { return false; }
-void HalUpp::D12VideoSinkDevice_Stop(NativeD12VideoSinkDevice&, AtomBase&) {}
-void HalUpp::D12VideoSinkDevice_Uninitialize(NativeD12VideoSinkDevice&, AtomBase&) {}
-bool HalUpp::D12VideoSinkDevice_Send(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
-void HalUpp::D12VideoSinkDevice_Visit(NativeD12VideoSinkDevice&, AtomBase&, Visitor&) {}
-bool HalUpp::D12VideoSinkDevice_Recv(NativeD12VideoSinkDevice&, AtomBase&, int, const Packet&) { return false; }
-void HalUpp::D12VideoSinkDevice_Finalize(NativeD12VideoSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
-void HalUpp::D12VideoSinkDevice_Update(NativeD12VideoSinkDevice&, AtomBase&, double) {}
-bool HalUpp::D12VideoSinkDevice_IsReady(NativeD12VideoSinkDevice&, AtomBase&, PacketIO&) { return false; }
-bool HalUpp::D12VideoSinkDevice_AttachContext(NativeD12VideoSinkDevice&, AtomBase&, AtomBase&) { return false; }
-void HalUpp::D12VideoSinkDevice_DetachContext(NativeD12VideoSinkDevice&, AtomBase&, AtomBase&) {}
+struct HalUpp::NativeD12ScreenSinkDevice {};
+bool HalUpp::D12ScreenSinkDevice_Create(NativeD12ScreenSinkDevice*& dev) { return false; }
+void HalUpp::D12ScreenSinkDevice_Destroy(NativeD12ScreenSinkDevice*& dev) {}
+bool HalUpp::D12ScreenSinkDevice_Initialize(NativeD12ScreenSinkDevice&, AtomBase&, const WorldState&) { return false; }
+bool HalUpp::D12ScreenSinkDevice_PostInitialize(NativeD12ScreenSinkDevice&, AtomBase&) { return false; }
+bool HalUpp::D12ScreenSinkDevice_Start(NativeD12ScreenSinkDevice&, AtomBase&) { return false; }
+void HalUpp::D12ScreenSinkDevice_Stop(NativeD12ScreenSinkDevice&, AtomBase&) {}
+void HalUpp::D12ScreenSinkDevice_Uninitialize(NativeD12ScreenSinkDevice&, AtomBase&) {}
+bool HalUpp::D12ScreenSinkDevice_Send(NativeD12ScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&, PacketValue&, int) { return false; }
+void HalUpp::D12ScreenSinkDevice_Visit(NativeD12ScreenSinkDevice&, AtomBase&, Visitor&) {}
+bool HalUpp::D12ScreenSinkDevice_Recv(NativeD12ScreenSinkDevice&, AtomBase&, int, const Packet&) { return false; }
+void HalUpp::D12ScreenSinkDevice_Finalize(NativeD12ScreenSinkDevice&, AtomBase&, RealtimeSourceConfig&) {}
+void HalUpp::D12ScreenSinkDevice_Update(NativeD12ScreenSinkDevice&, AtomBase&, double) {}
+bool HalUpp::D12ScreenSinkDevice_IsReady(NativeD12ScreenSinkDevice&, AtomBase&, PacketIO&) { return false; }
+bool HalUpp::D12ScreenSinkDevice_AttachContext(NativeD12ScreenSinkDevice&, AtomBase&, AtomBase&) { return false; }
+void HalUpp::D12ScreenSinkDevice_DetachContext(NativeD12ScreenSinkDevice&, AtomBase&, AtomBase&) {}
 #endif
 
 #if defined flagHAL

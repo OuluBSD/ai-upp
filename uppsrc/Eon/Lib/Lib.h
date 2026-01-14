@@ -20,7 +20,6 @@
 
 #ifdef flagHAL
  #include <api/Hal/Hal.h>
- using CenterGuiFileSrcBase = Upp::UppGuiFileSrc;
 #endif
 
 #if defined flagPHYSICS

@@ -1,13 +1,30 @@
-description "\377B0,128,0";
+description "Audio Synth API\377B0,128,0";
 
-	uses SoftInstru;
-	uses SoftSynth;
-	uses SoftAudio;
-	uses api/AudioHost;
-	uses(FLUIDLITE) plugin/fluidlite;
-	uses(LV2) plugin/lilv;
+acceptflags
+	MIDI,
+	AUDIO,
+	LV2,
+	VST,
+	FLUIDSYNTH,
+	FLUIDLITE,
+	SOFTINSTRU,
+	SOFTSYNTH,
+	SOFTAUDIO;
 
-	library(FLUIDSYNTH) "fluidsynth";
+uses
+	api/AudioHost;
+
+uses(SOFTAUDIO) SoftAudio;
+
+uses(SOFTSYNTH) SoftSynth;
+
+uses(SOFTINSTRU) SoftInstru;
+
+uses(FLUIDLITE) plugin/fluidlite;
+
+uses(LV2) plugin/lilv;
+
+library(FLUIDSYNTH) fluidsynth;
 
 file
 	Synth.h,
@@ -20,4 +37,5 @@ file
 	IfaceFuncs.inl highlight cpp;
 
 mainconfig
-        "" = "";
+	"" = "";
+

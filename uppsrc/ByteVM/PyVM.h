@@ -20,7 +20,15 @@ private:
 	VectorMap<PyValue, PyValue> globals;
 
 	void Push(const PyValue& v) { stack.Add(v); }
-	PyValue Pop() { if(stack.IsEmpty()) return PyValue(); PyValue v = stack.Top(); stack.Drop(); return v; }
+	PyValue Pop() {
+		if(stack.IsEmpty()) {
+			Panic("Stack underflow!");
+			return PyValue();
+		}
+		PyValue v = stack.Top();
+		stack.Drop();
+		return v;
+	}
 
 	Frame& TopFrame() { return frames.Top(); }
 
@@ -30,6 +38,7 @@ public:
 	void SetIR(Vector<PyIR>& _ir);
 	void Run();
 	
+	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
 	PyValue GetGlobal(const String& name) { return globals.Get(PyValue(name), PyValue()); }
 	void SetGlobal(const String& name, const PyValue& v) { globals.GetAdd(PyValue(name)) = v; }
 	

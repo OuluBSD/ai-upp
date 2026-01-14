@@ -23,16 +23,17 @@ struct PyIR : Moveable<PyIR> {
 };
 
 struct PyLambda : PyValue::RefCount {
-	String          name;
-	Vector<String>  arg;
-	Vector<PyValue> def;
-	bool            varargs = false;
-	bool            kwargs = false;
-	PyBuiltin       builtin = nullptr;
-	
-	Vector<PyIR>    ir;
+	String         name;
+	Vector<String> arg;
+	Vector<PyIR>   ir;
+	PyBuiltin      builtin = nullptr;
+	void*          user_data = nullptr;
 };
 
+struct PyBoundMethod : PyValue::RefCount {
+	PyValue func;
+	PyValue self;
+};
 }
 
 #endif

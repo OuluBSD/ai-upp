@@ -56,21 +56,25 @@ int PyCompiler::GetLine() const
 
 void PyCompiler::Emit(int code)
 {
+	LOG(Format("Emit [%d] code=%d", ir.GetCount(), code));
 	ir.Add(PyIR(code, GetLine()));
 }
 
 void PyCompiler::Emit(int code, int iarg)
 {
+	LOG(Format("Emit [%d] code=%d iarg=%d", ir.GetCount(), code, iarg));
 	ir.Add(PyIR(code, iarg, GetLine()));
 }
 
 void PyCompiler::EmitConst(const PyValue& v)
 {
+	LOG(Format("Emit [%d] code=LOAD_CONST val=%s", ir.GetCount(), v.ToString()));
 	ir.Add(PyIR::Const(v, GetLine()));
 }
 
 void PyCompiler::EmitName(int code, const String& name)
 {
+	LOG(Format("Emit [%d] code=%d name=%s", ir.GetCount(), code, name));
 	PyIR r(code, GetLine());
 	r.arg = PyValue(name);
 	ir.Add(r);
@@ -104,7 +108,7 @@ void PyCompiler::Compile(Vector<PyIR>& out)
 {
 	try {
 		while(!IsEof()) {
-			while(IsToken(TK_END_STMT))
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))
 				Next();
 			if(IsEof()) break;
 			Statement();
@@ -123,7 +127,7 @@ void PyCompiler::CompileBlock(Vector<PyIR>& out)
 	ir.Clear();
 	try {
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT)) Next();
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
@@ -147,16 +151,16 @@ void PyCompiler::Statement()
 		int jump_false = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0);
 		
-		while(IsToken(TK_END_STMT)) Next();
+		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT)) Next();
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
 		Expect(TK_DEDENT);
 		
-		while(IsToken(TK_END_STMT)) Next();
+		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		
 		if(IsId("else")) {
 			Next();
@@ -164,10 +168,10 @@ void PyCompiler::Statement()
 			Emit(PY_JUMP_ABSOLUTE, 0);
 			Patch(jump_false, Label());
 			Expect(TK_COLON);
-			while(IsToken(TK_END_STMT)) Next();
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			Expect(TK_INDENT);
 			while(!IsToken(TK_DEDENT) && !IsEof()) {
-				while(IsToken(TK_END_STMT)) Next();
+				while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 				if(IsToken(TK_DEDENT) || IsEof()) break;
 				Statement();
 			}
@@ -186,10 +190,10 @@ void PyCompiler::Statement()
 		int jump_end = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0);
 		
-		while(IsToken(TK_END_STMT)) Next();
+		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT)) Next();
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
@@ -213,10 +217,10 @@ void PyCompiler::Statement()
 		EmitName(PY_STORE_NAME, target);
 		
 		Expect(TK_COLON);
-		while(IsToken(TK_END_STMT)) Next();
+		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT)) Next();
+			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
@@ -239,7 +243,7 @@ void PyCompiler::Statement()
 		}
 		Expect(TK_PARENTHESIS_END);
 		Expect(TK_COLON);
-		while(IsToken(TK_END_STMT)) Next();
+		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		Expect(TK_INDENT);
 		
 		PyCompiler sub(tokens);
@@ -265,6 +269,15 @@ void PyCompiler::Statement()
 			Expression();
 		}
 		Emit(PY_RETURN_VALUE);
+		Expect(TK_END_STMT);
+	}
+	else if(IsId("import")) {
+		Next();
+		while(IsId()) {
+			Next();
+			if(IsToken(TK_COMMA)) Next();
+			else break;
+		}
 		Expect(TK_END_STMT);
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_ASS) {
@@ -377,7 +390,7 @@ void PyCompiler::PowerExpr()
 void PyCompiler::PrimaryExpr()
 {
 	Atom();
-	while(IsToken(TK_PARENTHESIS_BEGIN) || IsToken(TK_SQUARE_BEGIN)) {
+	while(IsToken(TK_PARENTHESIS_BEGIN) || IsToken(TK_SQUARE_BEGIN) || IsToken(TK_PUNCT)) {
 		if(IsToken(TK_PARENTHESIS_BEGIN)) {
 			Next();
 			int nargs = 0;
@@ -390,11 +403,21 @@ void PyCompiler::PrimaryExpr()
 			Expect(TK_PARENTHESIS_END);
 			Emit(PY_CALL_FUNCTION, nargs);
 		}
-		else { // TK_SQUARE_BEGIN
+		else if(IsToken(TK_SQUARE_BEGIN)) {
 			Next();
 			Expression();
 			Expect(TK_SQUARE_END);
 			Emit(PY_BINARY_SUBSCR);
+		}
+		else if(IsToken(TK_PUNCT)) {
+			Next();
+			if (IsId()) {
+				String id = Peek().str_value;
+				Next();
+				EmitName(PY_LOAD_ATTR, id);
+			} else {
+				throw Exc(Format("Line %d: Expected member name after '.', found %s", GetLine(), Peek().GetTypeString()));
+			}
 		}
 	}
 }

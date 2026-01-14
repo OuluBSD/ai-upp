@@ -1,6 +1,8 @@
 description "Media IO\377B0,128,0";
 
 acceptflags
+	AUDIO,
+	VIDEO,
 	MEDIA,
 	FFMPEG,
 	OPENCV;

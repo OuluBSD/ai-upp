@@ -2,14 +2,13 @@
 #define _CtrlLib_Eon_Eon_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include <Draw/Draw.h>
+#include <Geometry/Geometry.h>
 
 #include "Defs.h"
 #include "Compat.h"
 
 NAMESPACE_UPP
 
-#include <Geometry/GeomEvent.h>
 
 #include "Image.h"
 #include "BlueBar.h"

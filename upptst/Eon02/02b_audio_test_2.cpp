@@ -66,6 +66,9 @@ void Run02bAudioTest2(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/02b_audio_test_2.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/02b_audio_test_2_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run02bAudioTest2: unknown method %d", method));
 	}

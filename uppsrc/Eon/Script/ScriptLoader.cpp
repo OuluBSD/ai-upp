@@ -16,7 +16,6 @@ struct PyRouterPortDesc : PyUserData {
 	PyRouterPortDesc(const RouterPortDesc& p) : port(p) {}
 	String GetTypeName() const override { return "RouterPortDesc"; }
 	PyValue GetAttr(const String& name) override {
-		RTLOG("PyRouterPortDesc::GetAttr: " << name);
 		if (name == "index") return PyValue((int64)port.index);
 		return PyValue::None();
 	}
@@ -27,7 +26,6 @@ struct PyRouterAtomSpec : PyUserData {
 	PyRouterAtomSpec(String id) : id(id) {}
 	String GetTypeName() const override { return "RouterAtomSpec"; }
 	PyValue GetAttr(const String& name) override {
-		RTLOG("PyRouterAtomSpec::GetAttr: " << name);
 		if (name == "id") return PyValue(id);
 		return PyValue::None();
 	}

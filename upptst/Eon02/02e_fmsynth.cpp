@@ -72,6 +72,9 @@ void Run02eFmsynth(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/02e_fmsynth.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/02e_fmsynth_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run02eFmsynth: unknown method %d", method));
 	}

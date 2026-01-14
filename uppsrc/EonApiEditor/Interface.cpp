@@ -140,6 +140,13 @@ void InterfaceBuilder::Generate(bool write_actually) {
 	String api_dir = AppendFileName(par_dir, "api");
 	String eon_lib_dir = AppendFileName(par_dir, "Eon" DIR_SEPS "Lib");
 	
+	auto ltrim = [](const String& s) {
+		int i = 0;
+		while (i < s.GetCount() && IsSpace(s[i]))
+			i++;
+		return s.Mid(i);
+	};
+	
 	
 	// Generate API packages
 	for (const Pkg& pkg : packages) {
@@ -163,25 +170,67 @@ void InterfaceBuilder::Generate(bool write_actually) {
 		
 		// .upp file
 		{
+			String existing_desc;
+			String existing_uses;
+			String existing_acceptflags;
+			if (FileExists(upp_file)) {
+				String content = LoadFile(upp_file);
+				Vector<String> lines = Split(content, '\n');
+				for (int i = 0; i < lines.GetCount(); i++) {
+					const String& line = lines[i];
+					String trimmed = ltrim(line);
+					if (existing_desc.IsEmpty() && trimmed.Left(11) == "description")
+						existing_desc = line;
+					if (trimmed.Left(4) == "uses") {
+						existing_uses << line << "\n";
+						continue;
+					}
+					if (trimmed.Left(11) == "acceptflags") {
+						existing_acceptflags << line << "\n";
+						for (int j = i + 1; j < lines.GetCount(); j++) {
+							const String& next = lines[j];
+							if (next.IsEmpty())
+								break;
+							if (next[0] == '\t' || next[0] == ' ')
+								existing_acceptflags << next << "\n";
+							else
+								break;
+							i = j;
+						}
+					}
+				}
+			}
+			
 			String s;
 			int r = pkg.clr.GetR();
 			int g = pkg.clr.GetG();
 			int b = pkg.clr.GetB();
 			
-			s	<< "description \"\\377B" << IntStr(r) << "," << IntStr(g) << "," << IntStr(b) << "\";\n"
-				<< "\n";
+			if (!existing_desc.IsEmpty())
+				s << existing_desc << "\n";
+			else
+				s << "description \"\\377B" << IntStr(r) << "," << IntStr(g) << "," << IntStr(b) << "\";\n";
+			s << "\n";
 				
-			for(int i = 0; i < pkg.deps.GetCount(); i++) {
-				String k = pkg.deps.GetKey(i);
-				const struct Dependency& dep = pkg.deps[i];
-				
-				if (dep.conditional.IsEmpty())
-					s << "\tuses " << k << ";\n";
-				else
-					s << "\tuses(" << dep.conditional << ") " << k << ";\n";
+			if (!existing_uses.IsEmpty()) {
+				s << existing_uses;
+			}
+			else {
+				for(int i = 0; i < pkg.deps.GetCount(); i++) {
+					String k = pkg.deps.GetKey(i);
+					const struct Dependency& dep = pkg.deps[i];
+					
+					if (dep.conditional.IsEmpty())
+						s << "\tuses " << k << ";\n";
+					else
+						s << "\tuses(" << dep.conditional << ") " << k << ";\n";
+				}
 			}
 			
 			s	<< "\n";
+			
+			if (!existing_acceptflags.IsEmpty())
+				s << existing_acceptflags << "\n";
 			
 			for(int i = 0; i < pkg.libs.GetCount(); i++) {
 				String k = pkg.libs.GetKey(i);

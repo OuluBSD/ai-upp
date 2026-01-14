@@ -16,6 +16,9 @@ void Run00gBranchNet(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/00g_branch_net.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00g_branch_net_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run00gBranchNet: method %d not implemented yet", method));
 	}

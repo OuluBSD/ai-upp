@@ -22,6 +22,9 @@ void Run00hRouterFlow(Engine& eng, int method) {
 		// Load from .eon file using PacketRouter
 		sys->PostLoadFile(ShareDirFile("eon/tests/00h_router_flow.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00h_router_flow_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run00hRouterFlow: method %d not implemented yet", method));
 	}

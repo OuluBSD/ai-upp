@@ -38,17 +38,17 @@ static PyValue BuiltinRange(const Vector<PyValue>& args)
 
 PyVM::PyVM()
 {
-	PyValue p = PyValue::Function("print");
-	p.GetLambdaRW().builtin = BuiltinPrint;
-	globals.GetAdd(PyValue("print")) = p;
+	PyValue p_print = PyValue::Function("print");
+	p_print.GetLambdaRW().builtin = BuiltinPrint;
+	globals.GetAdd(PyValue("print")) = p_print;
 
-	PyValue l = PyValue::Function("len");
-	l.GetLambdaRW().builtin = BuiltinLen;
-	globals.GetAdd(PyValue("len")) = l;
-
-	PyValue r = PyValue::Function("range");
-	r.GetLambdaRW().builtin = BuiltinRange;
-	globals.GetAdd(PyValue("range")) = r;
+	PyValue p_len = PyValue::Function("len");
+	p_len.GetLambdaRW().builtin = BuiltinLen;
+	globals.GetAdd(PyValue("len")) = p_len;
+	
+	PyValue p_range = PyValue::Function("range");
+	p_range.GetLambdaRW().builtin = BuiltinRange;
+	globals.GetAdd(PyValue("range")) = p_range;
 }
 
 void PyVM::SetIR(Vector<PyIR>& _ir)
@@ -85,7 +85,7 @@ void PyVM::Run()
 			Push(v);
 			break;
 		}
-			
+		
 		case PY_STORE_NAME:
 			if(frames.GetCount() == 1)
 				globals.GetAdd(instr.arg) = Pop();
@@ -118,7 +118,7 @@ void PyVM::Run()
 			for(int i = 0; i < n; i++) {
 				PyValue v = Pop();
 				PyValue k = Pop();
-				items.Add({k, v});
+				items.Add(PyKV(k, v));
 			}
 			for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
 			Push(dict);
@@ -212,102 +212,78 @@ void PyVM::Run()
 			break;
 		}
 
-		        case PY_CALL_FUNCTION: {
-		            int nargs = instr.iarg;
-		            Vector<PyValue> args;
-		            for(int i = 0; i < nargs; i++) args.Add(Pop());
-		            Vector<PyValue> sorted_args;
-		            for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
-		            
-		            PyValue func = Pop();
-		            if(func.GetType() == PY_FUNCTION) {
-		                const PyLambda& l = func.GetLambda();
-		                if(l.builtin) {
-		                    Push(l.builtin(sorted_args));
-		                }
-		                else {
-		                    Frame& f = frames.Add();
-		                    f.func = func;
-		                    f.ir = &l.ir;
-		                    f.pc = 0;
-		                    for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
-		                        f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
-		                }
-		            }
-		            else {
-		                Push(PyValue::None());
-		            }
-		            break;
-		        }
-		        
-		        case PY_GET_ITER: {
-		            PyValue obj = Pop();
-		            if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
-		                Push(PyValue(new PyVectorIter(obj.GetArray())));
-		            }
-		            else if(obj.IsIterator()) {
-		                Push(obj);
-		            }
-		            else {
-		                Push(PyValue::None());
-		            }
-		            break;
-		        }
-		        
-		        case PY_FOR_ITER: {
-		            PyValue iterator = Pop();
-		            if(iterator.IsIterator()) {
-		                PyValue next_val = iterator.GetIter().Next();
-		                if(next_val.IsStopIteration()) {
-		                    frame.pc = instr.iarg;
-		                }
-		                else {
-		                    Push(iterator);
-		                    Push(next_val);
-		                }
-		            }
-		            else {
-		                frame.pc = instr.iarg;
-		            }
-		            break;
-		        }
+		case PY_CALL_FUNCTION: {
+			int nargs = instr.iarg;
+			Vector<PyValue> args;
+			for(int i = 0; i < nargs; i++) args.Add(Pop());
+			Vector<PyValue> sorted_args;
+			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
+			
+			PyValue func = Pop();
+			if(func.GetType() == PY_FUNCTION) {
+				const PyLambda& l = func.GetLambda();
+				if(l.builtin) {
+					Push(l.builtin(sorted_args));
+				}
+				else {
+					Frame& f = frames.Add();
+					f.func = func;
+					f.ir = &l.ir;
+					f.pc = 0;
+					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
+						f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+				}
+			}
+			else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_GET_ITER: {
+			PyValue obj = Pop();
+			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
+				Push(PyValue(new PyVectorIter(obj.GetArray())));
+			}
+			else if(obj.IsIterator()) {
+				Push(obj);
+			}
+			else {
+				Push(PyValue::None());
+			}
+			break;
+		}
 		
-		        case PY_RETURN_VALUE: {			PyValue ret = Pop();
+		case PY_FOR_ITER: {
+			PyValue iterator = Pop();
+			if(iterator.IsIterator()) {
+				PyValue next_val = iterator.GetIter().Next();
+				if(next_val.IsStopIteration()) {
+					frame.pc = instr.iarg;
+				}
+				else {
+					Push(iterator);
+					Push(next_val);
+				}
+			}
+			else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_RETURN_VALUE: {
+			PyValue ret = Pop();
 			frames.Drop();
 			if(!frames.IsEmpty()) Push(ret);
 			break;
 		}
 			
-		default:
+default:
 			Cout() << "Unknown opcode: " << instr.code << "\n";
 			return;
 		}
 	}
-}
-
-PyVM::PyVM()
-{
-	PyValue p_print = PyValue::Function("print");
-	p_print.GetLambdaRW().builtin = BuiltinPrint;
-	globals.GetAdd(PyValue("print")) = p_print;
-
-	PyValue p_len = PyValue::Function("len");
-	p_len.GetLambdaRW().builtin = BuiltinLen;
-	globals.GetAdd(PyValue("len")) = p_len;
-	
-	PyValue p_range = PyValue::Function("range");
-	p_range.GetLambdaRW().builtin = BuiltinRange;
-	globals.GetAdd(PyValue("range")) = p_range;
-}
-
-void PyVM::SetIR(Vector<PyIR>& _ir)
-{
-	frames.Clear();
-	Frame& f = frames.Add();
-	f.func = PyValue::Function("__main__");
-	f.func.GetLambdaRW().ir = pick(_ir);
-	f.ir = &f.func.GetLambda().ir;
-	f.pc = 0;
 }
 
 }

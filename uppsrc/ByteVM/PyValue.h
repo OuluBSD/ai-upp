@@ -23,30 +23,13 @@ enum PyTypeKind {
 	PY_STOP_ITERATION
 };
 
+class PyValue;
+
 typedef PyValue (*PyBuiltin)(const Vector<PyValue>& args);
 
 String PyTypeName(int type);
 
 struct PyLambda;
-class PyValue;
-
-struct PyIter : RefCount {
-	virtual PyValue Next() = 0;
-	virtual ~PyIter() {}
-};
-
-struct PyRangeIter : PyIter {
-	int64 current, stop, step;
-	PyRangeIter(int64 start, int64 stop, int64 step) : current(start), stop(stop), step(step) {}
-	virtual PyValue Next() override;
-};
-
-struct PyVectorIter : PyIter {
-	const Vector<PyValue>& v;
-	int i = 0;
-	PyVectorIter(const Vector<PyValue>& v) : v(v) {}
-	virtual PyValue Next() override;
-};
 
 class PyValue : Moveable<PyValue> {
 public:
@@ -79,7 +62,7 @@ private:
 		PyDict       *dict;
 		PySet        *set;
 		PyLambda     *lambda;
-		PyIter       *iter;
+		struct PyIter *iter;
 		void         *ptr;
 	};
 
@@ -98,7 +81,7 @@ public:
 	PyValue(const char *s);
 	PyValue(const WString& s);
 	PyValue(const String& s);
-	PyValue(PyIter *it);
+	PyValue(struct PyIter *it);
 	
 	~PyValue() { Free(); }
 	PyValue(const PyValue& src) { type = PY_NONE; Assign(src); }
@@ -120,7 +103,7 @@ public:
 	std::complex<double> GetComplex() const;
 	WString     GetStr() const;
 	String      GetBytes() const;
-	PyIter&     GetIter() const { ASSERT(type == PY_ITERATOR); return *iter; }
+	struct PyIter& GetIter() const { ASSERT(type == PY_ITERATOR); return *(struct PyIter*)iter; }
 
 	// List/Tuple operations
 	int         GetCount() const;
@@ -153,6 +136,24 @@ public:
 
 	const PyLambda& GetLambda() const { ASSERT(type == PY_FUNCTION); return *lambda; }
 	PyLambda&       GetLambdaRW() { ASSERT(type == PY_FUNCTION); return *lambda; }
+};
+
+struct PyIter : PyValue::RefCount {
+	virtual PyValue Next() = 0;
+	virtual ~PyIter() {}
+};
+
+struct PyRangeIter : PyIter {
+	int64 current, stop, step;
+	PyRangeIter(int64 start, int64 stop, int64 step) : current(start), stop(stop), step(step) {}
+	virtual PyValue Next() override;
+};
+
+struct PyVectorIter : PyIter {
+	const Vector<PyValue>& v;
+	int i = 0;
+	PyVectorIter(const Vector<PyValue>& v) : v(v) {}
+	virtual PyValue Next() override;
 };
 
 template <>

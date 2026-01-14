@@ -42,13 +42,12 @@
 #undef main
 
 #if defined flagX11
-	#define Time    XTime
-	#define Font    XFont
+	//#define Time    XTime
+	//#define Font    XFont
 	//#define Display XDisplay
-	#define Picture XPicture
-
-	//#define Time XTime
-	//#define Font XFont
+	//#define Picture XPicture
+	//#define Time    XTime
+	//#define Font    XFont
 	#include <X11/Xlib.h>
 	#include <X11/Xutil.h>
 	#include <X11/extensions/xf86vmode.h>

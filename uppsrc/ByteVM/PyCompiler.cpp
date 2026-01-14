@@ -225,33 +225,6 @@ void PyCompiler::Statement()
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
 	}
-	else if(IsId("for")) {
-		Next();
-		String target = Peek().str_value;
-		Expect(TK_ID);
-		ExpectId("in");
-		Expression();
-		Emit(PY_GET_ITER);
-		
-		int start = Label();
-		int jump_end = Label();
-		Emit(PY_FOR_ITER, 0);
-		
-		EmitName(PY_STORE_NAME, target);
-		
-		Expect(TK_COLON);
-		while(IsToken(TK_END_STMT)) Next();
-		Expect(TK_INDENT);
-		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT)) Next();
-			if(IsToken(TK_DEDENT) || IsEof()) break;
-			Statement();
-		}
-		Expect(TK_DEDENT);
-		
-		Emit(PY_JUMP_ABSOLUTE, start);
-		Patch(jump_end, Label());
-	}
 	else if(IsId("def")) {
 		Next();
 		String name = Peek().str_value;
@@ -292,12 +265,6 @@ void PyCompiler::Statement()
 			Expression();
 		}
 		Emit(PY_RETURN_VALUE);
-		Expect(TK_END_STMT);
-	}
-	else if(IsId("print")) {
-		Next();
-		Expression();
-		Emit(PY_PRINT_EXPR);
 		Expect(TK_END_STMT);
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_ASS) {

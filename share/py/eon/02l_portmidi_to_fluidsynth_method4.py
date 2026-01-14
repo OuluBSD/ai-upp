@@ -35,5 +35,4 @@ input_net.Connect("customer_input0", customer_input_src, "side_sink0", 0)
 input_net.Connect("side_sink0", 0, "synth0", synth_sink)
 input_net.Connect("synth0", synth_src, "sink0", sink_in)
 
-event.BuildLegacyLoop()
-input_net.BuildLegacyLoop()
+router.BuildRouterChain([event, input_net], "02l linked")

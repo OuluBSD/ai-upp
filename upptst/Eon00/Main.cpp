@@ -25,9 +25,13 @@ void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 	if (method == 4) {
 		eng.WhenUserInitialize << [=](Engine& eng) {
 			Ptr<Eon::ScriptLoader> script = eng.FindAdd<Eon::ScriptLoader>();
-			if (script)
+			if (script) {
+				script->SetEagerChainBuild(true);
+				runner(eng, method);
 				script->DoPostLoadPython();
+			}
 		};
+	}
 	} else {
 		eng.WhenUserInitialize << callback1(runner, method);
 	}

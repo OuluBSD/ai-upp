@@ -68,12 +68,10 @@ void Run02dSoftinstru(Engine& eng, int method) {
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02dSoftinstru: method %d not implemented yet", method));
-	case 0:
-		sys->PostLoadFile(ShareDirFile("eon/tests/02d_softinstru.eon"));
-		break;
 	case 4:
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/02d_softinstru_method4.py"));
-		break;
+		return;
+	case 0:
 	default:
 		throw Exc(Format("Run02dSoftinstru: unknown method %d", method));
 	}

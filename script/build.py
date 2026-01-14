@@ -868,6 +868,7 @@ def main():
     is_windows = os.name == "nt"
     methods = collect_methods_windows() if is_windows else collect_methods_posix()
     configs = read_mainconfigs(upp_path)
+
     if opts["mainconf"]:
         try:
             selected, index = select_config_by_token(configs, opts["mainconf"])
@@ -875,7 +876,15 @@ def main():
             print(exc, file=sys.stderr)
             return 2
     else:
-        selected, index = select_config(configs, opts["conf_mode"], is_windows)
+        if not opts["release"] and opts["conf_mode"] is None:
+            # Automatically prefer 'debug' mode if available
+            selected, index = select_config(configs, "debug", is_windows)
+            if selected:
+                opts["conf_mode"] = "debug"
+            else:
+                selected, index = select_config(configs, None, is_windows)
+        else:
+            selected, index = select_config(configs, opts["conf_mode"], is_windows)
     if not opts["conf_mode"] and not opts["mainconf"] and configs and not selected:
         available = ", ".join(
             f"[{idx}] {cfg['name']}" for idx, cfg in enumerate(configs)

@@ -67,12 +67,10 @@ void Run02fCoreaudioInstru(Engine& eng, int method) {
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02fCoreaudioInstru: method %d not implemented yet", method));
-	case 0:
-		sys->PostLoadFile(ShareDirFile("eon/tests/02f_coreaudio_instru.eon"));
-		break;
 	case 4:
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/02f_coreaudio_instru_method4.py"));
-		break;
+		return;
+	case 0:
 	default:
 		throw Exc(Format("Run02fCoreaudioInstru: unknown method %d", method));
 	}

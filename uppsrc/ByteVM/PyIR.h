@@ -1,24 +1,25 @@
 #ifndef _ByteVM_PyIR_h_
 #define _ByteVM_PyIR_h_
 
-namespace Upp {
+NAMESPACE_UPP
 
 struct PyIR : Moveable<PyIR> {
-	int     code;
+	int code;
 	PyValue arg;
-	int     iarg; 
-	int     line;
+	int iarg;
+	int line;
 
 	PyIR() : code(PY_NOP), iarg(0), line(0) {}
-	PyIR(int c, int l = 0) : code(c), iarg(0), line(l) {}
-	PyIR(int c, int i, int l) : code(c), iarg(i), line(l) {}
-	
+	PyIR(int code, int line = 0) : code(code), iarg(0), line(line) {}
+	PyIR(int code, int iarg, int line = 0) : code(code), iarg(iarg), line(line) {}
+	PyIR(int code, PyValue arg, int line = 0) : code(code), arg(arg), iarg(0), line(line) {}
+
 	static PyIR Const(const PyValue& v, int l = 0) {
-		PyIR ir(PY_LOAD_CONST, l);
+		PyIR ir(PY_LOAD_CONST, 0, l);
 		ir.arg = v;
 		return ir;
 	}
-
+	
 	String ToString() const;
 };
 
@@ -27,13 +28,14 @@ struct PyLambda : PyValue::RefCount {
 	Vector<String> arg;
 	Vector<PyIR>   ir;
 	PyBuiltin      builtin = nullptr;
-	void*          user_data = nullptr;
+	void          *user_data = nullptr;
 };
 
 struct PyBoundMethod : PyValue::RefCount {
 	PyValue func;
 	PyValue self;
 };
-}
+
+END_UPP_NAMESPACE
 
 #endif

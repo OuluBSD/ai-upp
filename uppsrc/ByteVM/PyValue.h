@@ -20,16 +20,20 @@ enum PyTypeKind {
 	PY_SET,
 	PY_FUNCTION,
 	PY_ITERATOR,
+	PY_USERDATA,
+	PY_BOUND_METHOD,
 	PY_STOP_ITERATION
 };
 
 class PyValue;
 
-typedef PyValue (*PyBuiltin)(const Vector<PyValue>& args);
+typedef PyValue (*PyBuiltin)(const Vector<PyValue>& args, void* user_data);
 
 String PyTypeName(int type);
 
 struct PyLambda;
+struct PyUserData;
+struct PyBoundMethod;
 
 class PyValue : Moveable<PyValue> {
 public:
@@ -63,6 +67,8 @@ private:
 		PySet        *set;
 		PyLambda     *lambda;
 		struct PyIter *iter;
+		struct PyUserData *userdata;
+		PyBoundMethod *bound;
 		void         *ptr;
 	};
 
@@ -82,18 +88,22 @@ public:
 	PyValue(const WString& s);
 	PyValue(const String& s);
 	PyValue(struct PyIter *it);
+	PyValue(struct PyUserData *ud);
 	
 	~PyValue() { Free(); }
 	PyValue(const PyValue& src) { type = PY_NONE; Assign(src); }
 	PyValue& operator=(const PyValue& s) { if(this != &s) { Free(); Assign(s); } return *this; }
 
 	int GetType() const { return type; }
+	void* GetPtr() const { return ptr; }
 	bool IsNone() const { return type == PY_NONE; }
 	bool IsBool() const { return type == PY_BOOL; }
 	bool IsInt() const { return type == PY_INT; }
 	bool IsFloat() const { return type == PY_FLOAT; }
 	bool IsNumber() const { return type == PY_INT || type == PY_FLOAT || type == PY_COMPLEX; }
 	bool IsIterator() const { return type == PY_ITERATOR; }
+	bool IsUserData() const { return type == PY_USERDATA; }
+	bool IsBoundMethod() const { return type == PY_BOUND_METHOD; }
 	bool IsStopIteration() const { return type == PY_STOP_ITERATION; }
 
 	bool IsTrue() const;
@@ -104,6 +114,8 @@ public:
 	WString     GetStr() const;
 	String      GetBytes() const;
 	struct PyIter& GetIter() const { ASSERT(type == PY_ITERATOR); return *(struct PyIter*)iter; }
+	struct PyUserData& GetUserData() const { ASSERT(type == PY_USERDATA); return *(struct PyUserData*)userdata; }
+	struct PyBoundMethod& GetBound() const { ASSERT(type == PY_BOUND_METHOD); return *bound; }
 
 	// List/Tuple operations
 	int         GetCount() const;
@@ -117,6 +129,9 @@ public:
 	PyValue     GetItem(const PyValue& key) const;
 	void        SetItem(const PyValue& key, const PyValue& v);
 
+	const VectorMap<PyValue, PyValue>& GetDict() const { ASSERT(type == PY_DICT); return dict->d; }
+
+	Value       ToValue() const;
 	String      ToString() const;
 	hash_t      GetHashValue() const;
 
@@ -131,11 +146,18 @@ public:
 	static PyValue Tuple();
 	static PyValue Dict();
 	static PyValue Set();
-	static PyValue Function(const String& name);
+	static PyValue Function(const String& name, PyBuiltin builtin = nullptr, void* user_data = nullptr);
+	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
 	static PyValue StopIteration() { PyValue v; v.type = PY_STOP_ITERATION; return v; }
 
 	const PyLambda& GetLambda() const { ASSERT(type == PY_FUNCTION); return *lambda; }
 	PyLambda&       GetLambdaRW() { ASSERT(type == PY_FUNCTION); return *lambda; }
+};
+
+struct PyUserData : PyValue::RefCount {
+	virtual String GetTypeName() const = 0;
+	virtual PyValue GetAttr(const String& name) { return PyValue::None(); }
+	virtual ~PyUserData() {}
 };
 
 struct PyIter : PyValue::RefCount {

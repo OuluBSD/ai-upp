@@ -3,7 +3,8 @@ description "Audio\377B0,128,0";
 acceptflags
 	AUDIO,
 	PORTAUDIO,
-	BUILTIN_PORTAUDIO;
+	BUILTIN_PORTAUDIO,
+	DEBUG_RT;
 
 uses
 	Eon,

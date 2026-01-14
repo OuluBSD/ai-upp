@@ -40,13 +40,14 @@ struct PyRouterNetContext : PyUserData {
 	String GetTypeName() const override { return "RouterNetContext"; }
 
 	static PyValue AddAtom(const Vector<PyValue>& args, void*) {
-		if (args.GetCount() < 3) return PyValue::None();
-		if (!args[0].IsUserData()) {
-			RTLOG("PyRouterNetContext::AddAtom: self is NOT UserData! type=" << args[0].GetType());
-			return PyValue::None();
-		}
+		if (args.GetCount() < 3 || !args[0].IsUserData()) return PyValue::None();
 		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
 		auto& atom = self->net.AddAtom(args[1].ToString(), args[2].ToString());
+		if (args.GetCount() >= 4 && args[3].GetType() == PY_DICT) {
+			const auto& d = args[3].GetDict();
+			for(int i = 0; i < d.GetCount(); i++)
+				atom.args.GetAdd(d.GetKey(i).ToString()) = d[i].ToValue();
+		}
 		return PyValue(new PyRouterAtomSpec(atom.id));
 	}
 
@@ -73,11 +74,27 @@ struct PyRouterNetContext : PyUserData {
 		return PyValue(self->net.BuildLegacyLoop(self->eng));
 	}
 
+	static PyValue SetSideSourceLink(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		self->net.SetSideSourceLink(args[1].ToString(), (int)args[2].GetInt(), (int)args[3].GetInt(), (int)args[4].GetInt());
+		return PyValue::None();
+	}
+
+	static PyValue SetSideSinkLink(const Vector<PyValue>& args, void*) {
+		if (args.GetCount() < 5 || !args[0].IsUserData()) return PyValue::None();
+		PyRouterNetContext* self = (PyRouterNetContext*)&args[0].GetUserData();
+		self->net.SetSideSinkLink(args[1].ToString(), (int)args[2].GetInt(), (int)args[3].GetInt(), (int)args[4].GetInt());
+		return PyValue::None();
+	}
+
 	PyValue GetAttr(const String& name) override {
-		PyValue self(this);
+		PyValue self = PyValue::UserDataNonOwning(this);
 		if (name == "AddAtom") return PyValue::BoundMethod(PyValue::Function("AddAtom", AddAtom), self);
 		if (name == "AddPort") return PyValue::BoundMethod(PyValue::Function("AddPort", AddPort), self);
 		if (name == "Connect") return PyValue::BoundMethod(PyValue::Function("Connect", Connect), self);
+		if (name == "SetSideSourceLink") return PyValue::BoundMethod(PyValue::Function("SetSideSourceLink", SetSideSourceLink), self);
+		if (name == "SetSideSinkLink") return PyValue::BoundMethod(PyValue::Function("SetSideSinkLink", SetSideSinkLink), self);
 		if (name == "BuildLegacyLoop") return PyValue::BoundMethod(PyValue::Function("BuildLegacyLoop", BuildLegacyLoop), self);
 		return PyValue::None();
 	}
@@ -87,6 +104,14 @@ static PyValue PyRouterNetContext_Ctor(const Vector<PyValue>& args, void* user_d
 	Engine* eng = (Engine*)user_data;
 	if (args.GetCount() < 1) return PyValue::None();
 	return PyValue(new PyRouterNetContext(args[0].ToString(), *eng));
+}
+
+void RegisterEonModule(PyVM& vm, Engine& eng) {
+	PyValue router_mod = PyValue::Dict();
+	router_mod.SetItem(PyValue("RouterNetContext"), PyValue::Function("RouterNetContext", PyRouterNetContext_Ctor, &eng));
+	router_mod.SetItem(PyValue("Direction_Source"), PyValue((int64)RouterPortDesc::Direction::Source));
+	router_mod.SetItem(PyValue("Direction_Sink"), PyValue((int64)RouterPortDesc::Direction::Sink));
+	vm.GetGlobals().GetAdd(PyValue("router")) = router_mod;
 }
 
 namespace Eon {
@@ -320,19 +345,10 @@ bool ScriptLoader::PostInitialize() {
 }
 
 bool ScriptLoader::DoPostLoadPython() {
-	return DoPostLoad();
-}
-
-bool ScriptLoader::DoPostLoad() {
 	bool success = true;
-	
 	if (!post_load_python_file.IsEmpty() || !post_load_python_string.IsEmpty()) {
 		PyVM vm;
-		PyValue router_mod = PyValue::Dict();
-		router_mod.SetItem(PyValue("RouterNetContext"), PyValue::Function("RouterNetContext", PyRouterNetContext_Ctor, &GetEngine()));
-		router_mod.SetItem(PyValue("Direction_Source"), PyValue((int64)RouterPortDesc::Direction::Source));
-		router_mod.SetItem(PyValue("Direction_Sink"), PyValue((int64)RouterPortDesc::Direction::Sink));
-		vm.GetGlobals().GetAdd(PyValue("router")) = router_mod;
+		RegisterEonModule(vm, GetEngine());
 
 		auto RunPy = [&](const String& content, const String& name) {
 			try {
@@ -368,7 +384,12 @@ bool ScriptLoader::DoPostLoad() {
 			RunPy(s, "input");
 		}
 	}
+	return success;
+}
 
+bool ScriptLoader::DoPostLoad() {
+	bool success = true;
+	
 	while (!post_load_file.IsEmpty()) {
 		String path = post_load_file[0];
 		post_load_file.Remove(0);
@@ -2210,3 +2231,7 @@ bool ScriptLoader::ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1
 
 }
 END_UPP_NAMESPACE
+
+void RegisterEon(Upp::PyVM& vm, Upp::Engine& eng) {
+	Upp::RegisterEonModule(vm, eng);
+}

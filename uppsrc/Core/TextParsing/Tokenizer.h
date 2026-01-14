@@ -40,9 +40,12 @@ enum {
 	TK_INTEGER,
 	TK_HEX,
 	TK_OCT,
+	TK_BIN,
 	TK_FLOAT,
 	TK_DOUBLE,
+	TK_IMAGINARY,
 	TK_STRING,
+	TK_STRING_MULTILINE,
 	TK_CHAR,
 	TK_BLOCK_COMMENT,
 	TK_COMMENT,
@@ -73,6 +76,15 @@ enum {
 	TK_LSHIFTASS,
 	TK_RSHIFTASS,
 	
+	TK_FLOORDIV,
+	TK_EXP,
+	TK_FLOORDIVASS,
+	TK_EXPASS,
+	TK_ATASS,
+	TK_WALRUS,
+	TK_RETURN_HINT,
+	TK_ELLIPSIS,
+	
 	TK_EOF = 100000,
 	TK_COMBINED2_BEGIN = TK_INC,
 	TK_COMBINED3_BEGIN = TK_LSHIFTASS,
@@ -83,12 +95,13 @@ struct Token : Moveable<Token> {
 	int type = 0;
 	String str_value;
 	int spaces = 0;
+	int bracket_level = 0;
 	
 	Token() {}
 	Token(const Token& t) {*this = t;}
-	void Clear() {loc.Clear(); end.Clear(); type = 0; str_value.Clear(); spaces = 0;}
-	void operator=(const Token& t) {type = t.type; str_value = t.str_value; loc = t.loc; end = t.end; spaces = t.spaces;}
-	bool operator==(const Token& t) const {return t.type == type && t.str_value == str_value && t.loc == loc && end == t.end && t.spaces == spaces;}
+	void Clear() {loc.Clear(); end.Clear(); type = 0; str_value.Clear(); spaces = 0; bracket_level = 0;}
+	void operator=(const Token& t) {type = t.type; str_value = t.str_value; loc = t.loc; end = t.end; spaces = t.spaces; bracket_level = t.bracket_level;}
+	bool operator==(const Token& t) const {return t.type == type && t.str_value == str_value && t.loc == loc && end == t.end && t.spaces == spaces && t.bracket_level == bracket_level;}
 	bool operator!=(const Token& t) const {return !(t == *this);}
 	bool IsType(int i) const {return type == i;}
 	String GetString() const {return str_value;}
@@ -135,6 +148,7 @@ struct Token : Moveable<Token> {
 			case TK_DEDENT: return "dedent";
 			case TK_HEX: return "hex-number";
 			case TK_OCT: return "oct-number";
+			case TK_BIN: return "bin-number";
 			case TK_INVALID: return "invalid";
 			case TK_END_STMT: return "end-statement";
 			case TK_EOF: return "end-of-file";
@@ -159,6 +173,17 @@ struct Token : Moveable<Token> {
 			case TK_ORASS: return "assign-bitwise-or";
 			case TK_LSHIFTASS: return "assign-left-shifted";
 			case TK_RSHIFTASS: return "assign-right-shifted";
+			
+			case TK_FLOORDIV: return "floor-division";
+			case TK_EXP: return "exponentiation";
+			case TK_FLOORDIVASS: return "assign-floor-divided";
+			case TK_EXPASS: return "assign-exponentiated";
+			case TK_ATASS: return "assign-at";
+			case TK_WALRUS: return "walrus";
+			case TK_RETURN_HINT: return "return-hint";
+			case TK_ELLIPSIS: return "ellipsis";
+			case TK_IMAGINARY: return "imaginary";
+			case TK_STRING_MULTILINE: return "multiline-string";
 		}
 		return "";
 	}
@@ -209,6 +234,7 @@ struct Token : Moveable<Token> {
 			case TK_DEDENT: return "<dedent>";
 			case TK_HEX: return str_value;
 			case TK_OCT: return str_value;
+			case TK_BIN: return str_value;
 			case TK_DOLLARSIGN: return "$";
 			case TK_END_STMT: return "END-STMT";
 			case TK_EOF: return "EOF";
@@ -234,6 +260,17 @@ struct Token : Moveable<Token> {
 			case TK_LSHIFTASS: return "<<=";
 			case TK_RSHIFTASS: return ">>=";
 			
+			case TK_FLOORDIV: return "//";
+			case TK_EXP: return "**";
+			case TK_FLOORDIVASS: return "//=";
+			case TK_EXPASS: return "**=";
+			case TK_ATASS: return "@=";
+			case TK_WALRUS: return ":=";
+			case TK_RETURN_HINT: return "->";
+			case TK_ELLIPSIS: return "...";
+			case TK_IMAGINARY: return str_value + "j";
+			case TK_STRING_MULTILINE: return "\"\"\"" + EscapeString(str_value) + "\"\"\"";
+			
 			default: Panic("Unhandled token type");
 		}
 		return "";
@@ -249,6 +286,7 @@ class Tokenizer : public ErrorSource {
 	FileLocation loc;
 	String input;
 	bool skip_comments = false;
+	bool skip_python_comments = false;
 	bool skip_newlines = false;
 	bool skip_separateunary = false;
 	bool have_indent_tokens = true;
@@ -256,6 +294,8 @@ class Tokenizer : public ErrorSource {
 	bool parse_indent = false;
 	int user_spaces = -1;
 	int indent = -1;
+	Vector<int> indent_stack;
+	int bracket_level = 0;
 	
 	int tab_size = 4;
 	
@@ -276,6 +316,7 @@ public:
 	void Load(const Vector<Token>& tokens);
 	bool Process(String str, String path);
 	void SkipComments(bool b=true) {skip_comments = b;}
+	void SkipPythonComments(bool b=true) {skip_python_comments = b;}
 	void SkipNewLines(bool b=true) {skip_newlines = b;}
 	void SkipSeparateUnary(bool b=true) {skip_separateunary = b;}
 	void HaveIdents(bool b=true) {have_indent_tokens = b;}

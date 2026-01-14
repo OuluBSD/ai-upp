@@ -14,6 +14,7 @@ Token& Tokenizer::Add(int token_id) {
 	t.end = loc;
 	t.end.col++;
 	t.type = token_id;
+	t.bracket_level = bracket_level;
 	return t;
 }
 
@@ -47,13 +48,34 @@ bool Tokenizer::ReadId(String& s) {
 }
 
 bool Tokenizer::ReadInt(int64& i) {
-	if (!IsToken(TK_INTEGER)) return ThrowError("Unexpected token");
-	i = StrInt64(tokens[pass_cursor++].str_value);
-	return true;
+	if (pass_cursor < tokens.GetCount()) {
+		const Token& tk = tokens[pass_cursor];
+		if (tk.type == TK_INTEGER) {
+			i = StrInt64(tk.str_value);
+			pass_cursor++;
+			return true;
+		}
+		if (tk.type == TK_HEX) {
+			i = HexInt64(tk.str_value);
+			pass_cursor++;
+			return true;
+		}
+		if (tk.type == TK_OCT) {
+			i = OctInt64(tk.str_value);
+			pass_cursor++;
+			return true;
+		}
+		if (tk.type == TK_BIN) {
+			i = BinInt64(tk.str_value);
+			pass_cursor++;
+			return true;
+		}
+	}
+	return ThrowError("Unexpected token");
 }
 
 bool Tokenizer::ReadDouble(double& d) {
-	if (!IsToken(TK_DOUBLE) && !IsToken(TK_FLOAT)) return ThrowError("Unexpected token");
+	if (!IsToken(TK_DOUBLE) && !IsToken(TK_FLOAT) && !IsToken(TK_IMAGINARY)) return ThrowError("Unexpected token");
 	d = StrDbl(tokens[pass_cursor++].str_value);
 	return true;
 }
@@ -69,6 +91,9 @@ bool Tokenizer::Process(String str, String path) {
 	parse_indent = have_indent_tokens;
 	user_spaces = 0;
 	indent = 0;
+	indent_stack.Clear();
+	indent_stack.Add(0);
+	bracket_level = 0;
 	
 	int& cursor = loc.cursor;
 	
@@ -117,40 +142,141 @@ bool Tokenizer::Process(String str, String path) {
 			if (fail)
 				break;
 			
-			if (line_indent < indent) {
-				int dedents = indent - line_indent;
-				for(int i = 0; i < dedents; i++)
-					Add(TK_DEDENT);
-			}
-			else if (line_indent == indent) {
-				// do nothing
-			}
-			else if (line_indent == indent + 1) {
-				Add(TK_INDENT);
-			}
-			else {
-				AddError(loc, "Too many indentation levels: " + IntStr(line_indent - indent));
-				fail = true;
-				break;
+			if (bracket_level == 0) {
+				if (line_indent > indent_stack.Top()) {
+					indent_stack.Add(line_indent);
+					Add(TK_INDENT);
+				}
+				else if (line_indent < indent_stack.Top()) {
+					while (indent_stack.GetCount() > 1 && line_indent < indent_stack.Top()) {
+						indent_stack.Pop();
+						Add(TK_DEDENT);
+					}
+					if (line_indent != indent_stack.Top()) {
+						AddError(loc, "Invalid indentation level");
+						fail = true;
+						break;
+					}
+				}
 			}
 			
 			indent = line_indent;
 			parse_indent = false;
 		}
 		else if (IsAlpha(chr) || chr == '_') {
-			Token& t = Add(TK_ID);
-			t.str_value.Cat(chr);
-			Next();
-			while (cursor < input.GetCount()) {
-				int chr = input[cursor];
-				if (IsAlpha(chr) || chr == '_' || IsDigit(chr)) {
-					t.str_value.Cat(chr);
+			bool is_prefix = false;
+			int prefix_len = 0;
+			int next_chr = cursor + 1 < input.GetCount() ? input[cursor+1] : 0;
+			int next_chr2 = cursor + 2 < input.GetCount() ? input[cursor+2] : 0;
+			
+			// Python string prefixes: r, b, f, u, rb, fr, etc.
+			if (chr == 'r' || chr == 'R' || chr == 'b' || chr == 'B' || chr == 'f' || chr == 'F' || chr == 'u' || chr == 'U') {
+				if (next_chr == '\"' || next_chr == '\'') {
+					is_prefix = true;
+					prefix_len = 1;
+				}
+				else if ((chr == 'r' || chr == 'R' || chr == 'b' || chr == 'B' || chr == 'f' || chr == 'F') && 
+				         (next_chr == 'r' || next_chr == 'R' || next_chr == 'b' || next_chr == 'B' || next_chr == 'f' || next_chr == 'F') &&
+				         (next_chr2 == '\"' || next_chr2 == '\'')) {
+					is_prefix = true;
+					prefix_len = 2;
+				}
+			}
+			
+			if (is_prefix) {
+				String prefix;
+				for(int i = 0; i < prefix_len; i++) {
+					prefix.Cat(input[cursor]);
 					Next();
 				}
-				else
-					break;
+				chr = input[cursor];
+				int tk_type = TK_STRING;
+				int delim = chr;
+				bool multiline = false;
+				if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+					multiline = true;
+					tk_type = TK_STRING_MULTILINE;
+					Next(); Next(); Next();
+				}
+				else {
+					Next();
+				}
+				
+				Token& tk = Add(tk_type);
+				// TODO: handle prefix in tk? For now just store string value
+				String str;
+				bool success = false;
+				while (cursor < input.GetCount()) {
+					int c = input[cursor];
+					if (!multiline && c == '\n') {
+						AddError(tk.loc, "no newline allowed in string literal");
+						Next();
+						parse_indent = have_indent_tokens;
+						loc.line++;
+						loc.col = 1;
+					}
+					else if (c == delim) {
+						if (multiline) {
+							if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+								Next(); Next(); Next();
+								success = true;
+								break;
+							}
+							else {
+								str.Cat(c);
+								Next();
+							}
+						}
+						else {
+							Next();
+							success = true;
+							break;
+						}
+					}
+					else if (c == '\\') {
+						if (prefix.Find('r') >= 0 || prefix.Find('R') >= 0) {
+							str.Cat(c);
+							Next();
+							if (cursor < input.GetCount()) {
+								str.Cat(input[cursor]);
+								Next();
+							}
+						}
+						else {
+							AppendString(str);
+						}
+					}
+					else {
+						str.Cat(c);
+						if (c == '\n') {
+							loc.line++;
+							loc.col = 1;
+						}
+						Next();
+					}
+				}
+				tk.end = loc;
+				if (success) tk.str_value = str;
+				else {
+					AddError(tk.loc, "no finishing " + String(delim, 1) + " in string literal");
+					return false;
+				}
 			}
-			t.end = loc;
+			else {
+				Token& t = Add(TK_ID);
+				t.str_value.Cat(chr);
+				Next();
+				while (cursor < input.GetCount()) {
+					int chr = input[cursor];
+					if (IsAlpha(chr) || chr == '_' || IsDigit(chr)) {
+						t.str_value.Cat(chr);
+						Next();
+					}
+					else
+						break;
+				}
+				t.end = loc;
+			}
 		}
 		else if (IsDigit(chr)) {
 			String n;
@@ -164,10 +290,10 @@ bool Tokenizer::Process(String str, String path) {
 				}
 			}
 			Token& tk = Add(TK_INTEGER);
-			bool is_double = false, is_float = false;
+			bool is_double = false, is_float = false, is_imaginary = false;
 			n.Cat(chr);
 			Next();
-			enum {INT, DEC, FRAC, SIGN, EXP, F, END, OCTHEX, OCT, HEX};
+			enum {INT, DEC, FRAC, SIGN, EXP, F, END, OCTHEX, OCT, HEX, BIN, IMAGINARY};
 			int exp = chr == '0' ? OCTHEX : INT;
 			while (cursor < input.GetCount()) {
 				int chr = input[cursor];
@@ -176,6 +302,10 @@ bool Tokenizer::Process(String str, String path) {
 				if (exp == INT) {
 					if (IsDigit(chr))
 						cat = true;
+					else if (chr == '_') {
+						Next();
+						continue;
+					}
 					else if (chr == '.') {
 						exp = FRAC;
 						cat = true;
@@ -186,14 +316,26 @@ bool Tokenizer::Process(String str, String path) {
 						cat = true;
 						is_double = true;
 					}
+					else if (chr == 'j' || chr == 'J') {
+						exp = IMAGINARY;
+						is_imaginary = true;
+					}
 				}
 				else if (exp == FRAC) {
 					if (IsDigit(chr))
 						cat = true;
+					else if (chr == '_') {
+						Next();
+						continue;
+					}
 					else if (chr == 'e' || chr == 'E') {
 						exp = SIGN;
 						cat = true;
 						is_double = true;
+					}
+					else if (chr == 'j' || chr == 'J') {
+						exp = IMAGINARY;
+						is_imaginary = true;
 					}
 				}
 				else if (exp == SIGN) {
@@ -210,15 +352,31 @@ bool Tokenizer::Process(String str, String path) {
 				else if (exp == EXP) {
 					if (IsDigit(chr))
 						cat = true;
+					else if (chr == '_') {
+						Next();
+						continue;
+					}
 					else if (chr == 'f' || chr == 'F') {
 						exp = END;
 						cat = true;
 						is_float = true;
 					}
+					else if (chr == 'j' || chr == 'J') {
+						exp = IMAGINARY;
+						is_imaginary = true;
+					}
 				}
 				else if (exp == OCTHEX) {
 					if (chr == 'x' || chr == 'X') {
 						exp = HEX;
+						cat = true;
+					}
+					else if (chr == 'o' || chr == 'O') {
+						exp = OCT;
+						cat = true;
+					}
+					else if (chr == 'b' || chr == 'B') {
+						exp = BIN;
 						cat = true;
 					}
 					else if (chr >= '0' && chr <= '7') {
@@ -230,6 +388,10 @@ bool Tokenizer::Process(String str, String path) {
 						cat = true;
 						is_double = true;
 					}
+					else if (chr == 'j' || chr == 'J') {
+						exp = IMAGINARY;
+						is_imaginary = true;
+					}
 				}
 				else if (exp == HEX) {
 					if ((chr >= '0' && chr <= '9') ||
@@ -237,10 +399,27 @@ bool Tokenizer::Process(String str, String path) {
 						(chr >= 'A' && chr <= 'F')) {
 						cat = true;
 					}
+					else if (chr == '_') {
+						Next();
+						continue;
+					}
 				}
 				else if (exp == OCT) {
 					if (chr >= '0' && chr <= '7') {
 						cat = true;
+					}
+					else if (chr == '_') {
+						Next();
+						continue;
+					}
+				}
+				else if (exp == BIN) {
+					if (chr == '0' || chr == '1') {
+						cat = true;
+					}
+					else if (chr == '_') {
+						Next();
+						continue;
 					}
 				}
 				
@@ -248,6 +427,10 @@ bool Tokenizer::Process(String str, String path) {
 					Next();
 					n.Cat(chr);
 					if (exp == END) break;
+				}
+				else if (exp == IMAGINARY) {
+					Next();
+					break;
 				}
 				else break;
 			}
@@ -258,6 +441,10 @@ bool Tokenizer::Process(String str, String path) {
 				tk.type = TK_HEX;
 			else if (exp == OCT)
 				tk.type = TK_OCT;
+			else if (exp == BIN)
+				tk.type = TK_BIN;
+			else if (is_imaginary)
+				tk.type = TK_IMAGINARY;
 			else if (is_double) {
 				if (!is_float)
 					tk.type = TK_DOUBLE;
@@ -273,31 +460,57 @@ bool Tokenizer::Process(String str, String path) {
 			tk.end = loc;
 		}
 		else if (chr == '\"') {
-			Token& tk = Add(TK_STRING);
-			Next();
+			int tk_type = TK_STRING;
+			int delim = '\"';
+			bool multiline = false;
+			if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+				multiline = true;
+				tk_type = TK_STRING_MULTILINE;
+				Next(); Next(); Next();
+			}
+			else {
+				Next();
+			}
+			
+			Token& tk = Add(tk_type);
 			String str;
 			bool success = false;
 			while (cursor < input.GetCount()) {
 				int chr = input[cursor];
-				String tmp;
-				tmp.Cat(chr);
-				if (chr == '\n') {
+				if (!multiline && chr == '\n') {
 					AddError(tk.loc, "no newline allowed in string literal");
 					Next();
 					parse_indent = have_indent_tokens;
 					loc.line++;
 					loc.col = 1;
 				}
-				else if (chr == '\"') {
-					Next();
-					success = true;
-					break;
+				else if (chr == delim) {
+					if (multiline) {
+						if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+							Next(); Next(); Next();
+							success = true;
+							break;
+						}
+						else {
+							str.Cat(chr);
+							Next();
+						}
+					}
+					else {
+						Next();
+						success = true;
+						break;
+					}
 				}
 				else if (chr == '\\') {
 					AppendString(str);
 				}
 				else {
 					str.Cat(chr);
+					if (chr == '\n') {
+						loc.line++;
+						loc.col = 1;
+					}
 					Next();
 				}
 			}
@@ -312,9 +525,35 @@ bool Tokenizer::Process(String str, String path) {
 			}
 		}
 		else if (chr == '#') {
-			Token& tk = Add(TK_NUMBERSIGN);
-			Next();
-			tk.end = loc;
+			if (skip_python_comments) {
+				Token* tk = NULL;
+				if (!skip_comments)
+					tk = &Add(TK_COMMENT);
+				Next();
+				String c;
+				bool add_line = false;
+				while (cursor < input.GetCount()) {
+					chr = input[cursor];
+					if (chr == '\n') {
+						if (tk) tk->str_value = c;
+						add_line = true;
+						break;
+					}
+					else c.Cat(chr);
+					Next();
+				}
+				if (tk) tk->end = loc;
+				if (add_line) {
+					parse_indent = have_indent_tokens;
+					loc.line++;
+					loc.col = 1;
+				}
+			}
+			else {
+				Token& tk = Add(TK_NUMBERSIGN);
+				Next();
+				tk.end = loc;
+			}
 		}
 		else if (chr == '%') {
 			Token& tk = Add(TK_PERCENT);
@@ -329,7 +568,7 @@ bool Tokenizer::Process(String str, String path) {
 		else if (chr == '/') {
 			//int begin_line = loc.line, begin_col = loc.col;
 			int chr1 = cursor+1 < input.GetCount() ? input[cursor+1] : 0;
-			if (chr1 == '*') {
+			if (chr1 == '*' && !skip_python_comments) {
 				Token* tk = NULL;
 				if (!skip_comments)
 					tk = &Add(TK_BLOCK_COMMENT);
@@ -359,7 +598,7 @@ bool Tokenizer::Process(String str, String path) {
 						AddError(tk->loc, "unterminated /* comment");
 				}
 			}
-			else if (chr1 == '/') {
+			else if (chr1 == '/' && !skip_python_comments) {
 				Token* tk = NULL;
 				if (!skip_comments)
 					tk = &Add(TK_COMMENT);
@@ -392,26 +631,32 @@ bool Tokenizer::Process(String str, String path) {
 		}
 		else if (chr == '{') {
 			Add(TK_BRACKET_BEGIN);
+			bracket_level++;
 			Next();
 		}
 		else if (chr == '}') {
 			Add(TK_BRACKET_END);
+			bracket_level--;
 			Next();
 		}
 		else if (chr == '(') {
 			Add(TK_PARENTHESIS_BEGIN);
+			bracket_level++;
 			Next();
 		}
 		else if (chr == ')') {
 			Add(TK_PARENTHESIS_END);
+			bracket_level--;
 			Next();
 		}
 		else if (chr == '[') {
 			Add(TK_SQUARE_BEGIN);
+			bracket_level++;
 			Next();
 		}
 		else if (chr == ']') {
 			Add(TK_SQUARE_END);
+			bracket_level--;
 			Next();
 		}
 		else if (chr == '=') {
@@ -447,29 +692,57 @@ bool Tokenizer::Process(String str, String path) {
 			Next();
 		}
 		else if (chr == '\'') {
-			Token& tk = Add(TK_CHAR);
-			Next();
+			int tk_type = TK_STRING;
+			int delim = '\'';
+			bool multiline = false;
+			if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+				multiline = true;
+				tk_type = TK_STRING_MULTILINE;
+				Next(); Next(); Next();
+			}
+			else {
+				Next();
+			}
+			
+			Token& tk = Add(tk_type);
 			String str;
 			bool success = false;
 			while (cursor < input.GetCount()) {
 				int chr = input[cursor];
-				if (chr == '\n') {
+				if (!multiline && chr == '\n') {
 					AddError(tk.loc, "no newline allowed in char literal");
 					Next();
 					parse_indent = have_indent_tokens;
 					loc.line++;
 					loc.col = 1;
 				}
-				else if (chr == '\'') {
-					Next();
-					success = true;
-					break;
+				else if (chr == delim) {
+					if (multiline) {
+						if (cursor + 2 < input.GetCount() && input[cursor+1] == delim && input[cursor+2] == delim) {
+							Next(); Next(); Next();
+							success = true;
+							break;
+						}
+						else {
+							str.Cat(chr);
+							Next();
+						}
+					}
+					else {
+						Next();
+						success = true;
+						break;
+					}
 				}
 				else if (chr == '\\') {
 					AppendString(str);
 				}
 				else {
 					str.Cat(chr);
+					if (chr == '\n') {
+						loc.line++;
+						loc.col = 1;
+					}
 					Next();
 				}
 			}
@@ -479,7 +752,7 @@ bool Tokenizer::Process(String str, String path) {
 				tk.str_value = str;
 			}
 			else {
-				AddError(tk.loc, "no finishing \' in char literal");
+				AddError(tk.loc, "no finishing ' in char literal");
 				return false;
 			}
 		}
@@ -567,8 +840,10 @@ bool Tokenizer::Process(String str, String path) {
 		}
 	}
 	
-	for(int i = 0; i < indent; i++)
+	while (indent_stack.GetCount() > 1) {
+		indent_stack.Pop();
 		Add(TK_DEDENT);
+	}
 	indent = 0;
 	
 	Add(TK_EOF);
@@ -668,7 +943,10 @@ void Tokenizer::NewlineToEndStatement() {
 			i+=2;
 		}
 		else if (tk.IsType(TK_NEWLINE)) {
-			tk.type = TK_END_STMT;
+			if (tk.bracket_level == 0)
+				tk.type = TK_END_STMT;
+			else
+				tokens.Remove(i--);
 		}
 	}
 	
@@ -731,6 +1009,60 @@ void Tokenizer::CombineTokens() {
 				}
 				else if (tk1.type == '=') {
 					new_tk = TK_SUBASS;
+					rem = 1;
+				}
+				else if (tk1.type == '>') {
+					new_tk = TK_RETURN_HINT;
+					rem = 1;
+				}
+			}
+			else if (tk0.type == ':') {
+				if (tk1.type == '=') {
+					new_tk = TK_WALRUS;
+					rem = 1;
+				}
+			}
+			else if (tk0.type == '/') {
+				if (tk1.type == '/') {
+					if (tk1.spaces == 0 && third && tokens[i + 2].type == '=') {
+						new_tk = TK_FLOORDIVASS;
+						rem = 2;
+					}
+					else {
+						new_tk = TK_FLOORDIV;
+						rem = 1;
+					}
+				}
+				else if (tk1.type == '=') {
+					new_tk = TK_DIVASS;
+					rem = 1;
+				}
+			}
+			else if (tk0.type == '*') {
+				if (tk1.type == '*') {
+					if (tk1.spaces == 0 && third && tokens[i + 2].type == '=') {
+						new_tk = TK_EXPASS;
+						rem = 2;
+					}
+					else {
+						new_tk = TK_EXP;
+						rem = 1;
+					}
+				}
+				else if (tk1.type == '=') {
+					new_tk = TK_MULASS;
+					rem = 1;
+				}
+			}
+			else if (tk0.type == '.') {
+				if (tk1.type == '.' && tk1.spaces == 0 && third && tokens[i + 2].type == '.') {
+					new_tk = TK_ELLIPSIS;
+					rem = 2;
+				}
+			}
+			else if (tk0.type == '@') {
+				if (tk1.type == '=') {
+					new_tk = TK_ATASS;
 					rem = 1;
 				}
 			}

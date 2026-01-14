@@ -62,6 +62,7 @@ void Run00iRouterPerf(Engine& eng, int method) {
 
 	switch(method) {
 	case 0:
+	case 4:
 		port_count = 100;
 		break;
 	case 1:

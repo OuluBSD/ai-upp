@@ -104,9 +104,28 @@ static PyValue PyRouterNetContext_Ctor(const Vector<PyValue>& args, void* user_d
 	return PyValue(new PyRouterNetContext(args[0].ToString(), *eng));
 }
 
+static PyValue PyBuildRouterChain(const Vector<PyValue>& args, void* user_data) {
+	Engine* eng = (Engine*)user_data;
+	if (args.GetCount() < 1 || args[0].GetType() != PY_LIST) return PyValue::None();
+	
+	const Vector<PyValue>& list = args[0].GetArray();
+	Vector<RouterNetContext*> nets;
+	for (const PyValue& v : list) {
+		if (v.IsUserData() && v.GetUserData().GetTypeName() == "RouterNetContext") {
+			nets.Add(&((PyRouterNetContext&)v.GetUserData()).net);
+		}
+	}
+	
+	if (nets.IsEmpty()) return PyValue::None();
+	
+	String log_label = args.GetCount() >= 2 ? args[1].ToString() : String();
+	return PyValue(BuildRouterChain(*eng, nets, log_label));
+}
+
 void RegisterEonModule(PyVM& vm, Engine& eng) {
 	PyValue router_mod = PyValue::Dict();
 	router_mod.SetItem(PyValue("RouterNetContext"), PyValue::Function("RouterNetContext", PyRouterNetContext_Ctor, &eng));
+	router_mod.SetItem(PyValue("BuildRouterChain"), PyValue::Function("BuildRouterChain", PyBuildRouterChain, &eng));
 	router_mod.SetItem(PyValue("Direction_Source"), PyValue((int64)RouterPortDesc::Direction::Source));
 	router_mod.SetItem(PyValue("Direction_Sink"), PyValue((int64)RouterPortDesc::Direction::Sink));
 	vm.GetGlobals().GetAdd(PyValue("router")) = router_mod;

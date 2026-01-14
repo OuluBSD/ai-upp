@@ -1,6 +1,7 @@
 description "Eon/Core\377B85,42,0";
 
 acceptflags
+	DEBUG_RT,
 	SCREEN;
 
 uses

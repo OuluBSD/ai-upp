@@ -14,5 +14,9 @@ static void Instrument_Visit(NativeInstrument&, AtomBase&, Visitor& vis);
 static bool Instrument_Recv(NativeInstrument&, AtomBase&, int, const Packet&);
 static void Instrument_Finalize(NativeInstrument&, AtomBase&, RealtimeSourceConfig&);
 static bool Instrument_IsReady(NativeInstrument&, AtomBase&, PacketIO& io);
+static bool Instrument_IsDebugSoundEnabled(const NativeInstrument&, const AtomBase&);
+static String Instrument_GetDebugSoundOutput(const NativeInstrument&, const AtomBase&);
+static int Instrument_GetDebugSoundSeed(const NativeInstrument&, const AtomBase&);
+static bool Instrument_IsDebugPrintEnabled(const NativeInstrument&, const AtomBase&);
 #endif
 

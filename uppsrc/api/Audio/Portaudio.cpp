@@ -124,10 +124,10 @@ struct PortaudioCallbackData {
 	    debug_mismatch_logged = false;
 	    debug_print_enabled = false;
 	    if (auto* sink = dynamic_cast<PortaudioSinkDevice*>(atom)) {
-			debug_sound_enabled = 1; //sink->IsDebugSoundEnabled();
-			debug_sound_output = 0; //sink->GetDebugSoundOutput();
-			debug_sound_seed = 0; //sink->GetDebugSoundSeed();
-			debug_print_enabled = 1; //sink->IsDebugPrintEnabled();
+			debug_sound_enabled = sink->IsDebugSoundEnabled();
+			debug_sound_output = sink->GetDebugSoundOutput();
+			debug_sound_seed = sink->GetDebugSoundSeed();
+			debug_print_enabled = sink->IsDebugPrintEnabled();
 	    }
 	}
 	
@@ -334,11 +334,19 @@ bool PortaudioStatic::exists = false;
 struct AudPortaudio::NativeSinkDevice {
 	PaStream* p;
 	bool started;
+	bool debug_sound_enabled = false;
+	String debug_sound_output;
+	int debug_sound_seed = 0;
+	bool debug_print_enabled = false;
 	NativeSinkDevice() : p(nullptr), started(false) {}
 };
 
 struct AudPortaudio::NativeSourceDevice {
 	PaStream* p;
+	bool debug_sound_enabled = false;
+	String debug_sound_output;
+	int debug_sound_seed = 0;
+	bool debug_print_enabled = false;
 };
 
 void AudPortaudio::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) {}
@@ -356,6 +364,10 @@ bool AudPortaudio::SinkDevice_Initialize(NativeSinkDevice& dev_, AtomBase& a, co
 	PaStream*& dev = dev_.p;
 	
 	bool realtime = ws.GetBool(".realtime", false);
+	dev_.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev_.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev_.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev_.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	// Housekeeping vars
 	PaError err = paNoError;
@@ -464,6 +476,22 @@ bool AudPortaudio::SinkDevice_Send(NativeSinkDevice& dev, AtomBase&, RealtimeSou
 	return false;
 }
 
+bool AudPortaudio::SinkDevice_IsDebugSoundEnabled(const NativeSinkDevice& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String AudPortaudio::SinkDevice_GetDebugSoundOutput(const NativeSinkDevice& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int AudPortaudio::SinkDevice_GetDebugSoundSeed(const NativeSinkDevice& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool AudPortaudio::SinkDevice_IsDebugPrintEnabled(const NativeSinkDevice& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
+}
+
 bool AudPortaudio::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
 	
 	// accept all valid audio formats for now (because packets can be converted)
@@ -502,6 +530,22 @@ void AudPortaudio::SourceDevice_Uninitialize(NativeSourceDevice& dev, AtomBase&)
 
 bool AudPortaudio::SourceDevice_Send(NativeSourceDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	TODO
+}
+
+bool AudPortaudio::SourceDevice_IsDebugSoundEnabled(const NativeSourceDevice& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String AudPortaudio::SourceDevice_GetDebugSoundOutput(const NativeSourceDevice& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int AudPortaudio::SourceDevice_GetDebugSoundSeed(const NativeSourceDevice& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool AudPortaudio::SourceDevice_IsDebugPrintEnabled(const NativeSourceDevice& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
 }
 
 #endif

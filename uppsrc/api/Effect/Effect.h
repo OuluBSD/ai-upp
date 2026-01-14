@@ -5,7 +5,9 @@
 #define _IEffect_IEffect_h_
 
 #include <Eon/Eon.h>
+#if defined flagSOFTAUDIO
 #include <SoftAudio/SoftAudio.h>
+#endif
 #include <api/AudioHost/AudioHost.h>
 #if defined flagLV2
 #include <plugin/lilv/lilv.h>
@@ -26,6 +28,7 @@ FX_VNDR_LIST
 #undef FX_VNDR
 #undef FX_CLS
 
+#if defined flagSOFTAUDIO
 struct FxAudioCore {
 	#if defined flagAUDIO
 	struct NativeEffect;
@@ -40,6 +43,7 @@ struct FxAudioCore {
 	#include "IfaceFuncs.inl"
 	
 };
+#endif
 #if defined flagLV2
 struct FxLV2 {
 	#if defined flagAUDIO
@@ -116,8 +120,10 @@ template <class Fx> struct EffectEffectT : FxEffect {
 };
 #endif
 
+#if defined flagSOFTAUDIO
 #if defined flagAUDIO
 using AudioCoreEffect = EffectEffectT<FxAudioCore>;
+#endif
 #endif
 #if defined flagLV2
 #if defined flagAUDIO

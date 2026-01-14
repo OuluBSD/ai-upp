@@ -14,5 +14,9 @@ static void Sink_Visit(NativeSink&, AtomBase&, Visitor& vis);
 static bool Sink_Recv(NativeSink&, AtomBase&, int, const Packet&);
 static void Sink_Finalize(NativeSink&, AtomBase&, RealtimeSourceConfig&);
 static bool Sink_IsReady(NativeSink&, AtomBase&, PacketIO& io);
+static bool Sink_IsDebugSoundEnabled(const NativeSink&, const AtomBase&);
+static String Sink_GetDebugSoundOutput(const NativeSink&, const AtomBase&);
+static int Sink_GetDebugSoundSeed(const NativeSink&, const AtomBase&);
+static bool Sink_IsDebugPrintEnabled(const NativeSink&, const AtomBase&);
 #endif
 

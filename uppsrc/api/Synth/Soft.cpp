@@ -1,6 +1,6 @@
 #include "Synth.h"
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if defined flagAUDIO && defined flagMIDI && defined flagSOFTINSTRU
 
 #include <MidiFile/MidiFile.h>
 #include <atomic>
@@ -19,6 +19,10 @@ struct SynSoft::NativeInstrument {
     bool received_midi;
     bool emitted_audio;
     bool debug_logging;
+    bool debug_sound_enabled = false;
+    String debug_sound_output;
+    int debug_sound_seed = 0;
+    bool debug_print_enabled = false;
 };
 
 
@@ -53,6 +57,10 @@ bool SynSoft::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const Wo
 	dev.received_midi = false;
 	dev.emitted_audio = false;
 	dev.debug_logging = ws.GetBool(".debug", ws.GetBool(".verbose", false));
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	//String sf2 = ws.GetString(".filepath", "FluidR3_GM.sf2");
 	String sf2 = ws.GetString(".filepath", "TimGM6mb.sf2");
@@ -209,6 +217,22 @@ bool SynSoft::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, PacketIO& i
 	// Primary sink is required always (continuous audio) so ignore midi input, which is mixed
 	// to primary occasionally.
 	return (io.active_sink_mask & 0x1) && io.full_src_mask == 0;
+}
+
+bool SynSoft::Instrument_IsDebugSoundEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String SynSoft::Instrument_GetDebugSoundOutput(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int SynSoft::Instrument_GetDebugSoundSeed(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool SynSoft::Instrument_IsDebugPrintEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
 }
 
 END_UPP_NAMESPACE

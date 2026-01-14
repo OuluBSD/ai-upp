@@ -1,11 +1,15 @@
 #include "Synth.h"
 
-#if (defined flagAUDIO && defined flagMIDI)
+#if defined flagAUDIO && defined flagMIDI && defined flagSOFTSYNTH
 NAMESPACE_UPP
 
 struct SynFmSynth::NativeInstrument {
     SoftSynth::FmSynth instrument;
     int sample_rate;
+    bool debug_sound_enabled = false;
+    String debug_sound_output;
+    int debug_sound_seed = 0;
+    bool debug_print_enabled = false;
 };
 
 
@@ -27,6 +31,10 @@ void SynFmSynth::Instrument_Visit(NativeInstrument& dev, AtomBase&, Visitor& vis
 
 bool SynFmSynth::Instrument_Initialize(NativeInstrument& dev, AtomBase& a, const WorldState& ws) {
 	dev.sample_rate = ws.GetInt(".samplerate", 1024);
+	dev.debug_sound_enabled = ws.GetBool(".debug_sound_enabled", false);
+	dev.debug_sound_output = ws.GetString(".debug_sound_output", "");
+	dev.debug_sound_seed = ws.GetInt(".debug_sound_seed", 0);
+	dev.debug_print_enabled = ws.GetBool(".debug_print_enabled", false);
 	
 	#if 1
 	String filepath = RealizeShareFile(ws.GetString(".filepath"));
@@ -161,6 +169,22 @@ bool SynFmSynth::Instrument_IsReady(NativeInstrument& dev, AtomBase& a, PacketIO
 
 
 
+bool SynFmSynth::Instrument_IsDebugSoundEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_enabled;
+}
+
+String SynFmSynth::Instrument_GetDebugSoundOutput(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_output;
+}
+
+int SynFmSynth::Instrument_GetDebugSoundSeed(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_sound_seed;
+}
+
+bool SynFmSynth::Instrument_IsDebugPrintEnabled(const NativeInstrument& dev, const AtomBase&) {
+	return dev.debug_print_enabled;
+}
+
+
 END_UPP_NAMESPACE
 #endif
-

@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <Core/ProcessUtil/ProcessUtil.h>
+#include <Core/CompatExt/Compat.h>
 
 NAMESPACE_UPP
 

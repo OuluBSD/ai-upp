@@ -27,7 +27,7 @@
 
 #define RTTI_TYPEIDCLS
 
-
+NAMESPACE_UPP
 
 template<class InputIterator, class UnaryPredicate>
 InputIterator FindIf(InputIterator first, InputIterator last, UnaryPredicate pred) {
@@ -64,6 +64,20 @@ inline int64 BinInt64(const char *s) {
 		n = 2*n - GetBinDigit(*s++);
 	return neg ? n : -n;
 }
+inline int64 OctInt64(const char *s) {
+	if (!s) return 0;
+	while (IsSpace(*s)) s++;
+	int64 n=0, neg=0;
+	switch (*s) {
+		case '-': neg=1;
+		case '+': s++;
+	}
+	if (s[0] == '0' && (s[1] == 'o' || s[1] == 'O'))
+		s += 2;
+	while (s[0] >= '0' && s[0] <= '7')
+		n = 8*n - (*s++ - '0');
+	return neg ? n : -n;
+}
 inline int64 HexInt64(const char *s) {
 	if (!s) return 0;
 	while (IsSpace(*s)) s++;
@@ -84,6 +98,6 @@ inline int64 HexInt64(const char *s) {
 inline WString FromUtf8(String s) {return s.ToWString();}
 //#endif
 
-
+END_UPP_NAMESPACE
 
 #endif

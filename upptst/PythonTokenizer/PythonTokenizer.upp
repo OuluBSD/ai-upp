@@ -1,0 +1,12 @@
+description "Test Python 3 tokenizer extensions\377";
+
+uses
+	Core,
+	Core/TextParsing;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";
+

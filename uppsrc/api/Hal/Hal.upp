@@ -1,6 +1,7 @@
 description "Hardware Abstraction Layer\377B0,128,0";
 
 acceptflags
+	SCREEN,
 	AUDIO,
 	OGL,
 	HAL,

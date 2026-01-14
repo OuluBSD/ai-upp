@@ -917,7 +917,16 @@ void Tokenizer::NewlineToEndStatement() {
 	for(int i = 0; i < tokens.GetCount(); i++) {
 		Token& tk = tokens[i];
 		
-		if (tk.IsType(TK_COLON)) {
+		if (tk.IsType(TK_EOF)) {
+			// Ensure we have an END_STMT before EOF if the previous wasn't one
+			if (i > 0 && !tokens[i-1].IsType(TK_END_STMT) && !tokens[i-1].IsType(TK_DEDENT)) {
+				Token& end_stmt = tokens.Insert(i);
+				end_stmt.loc = tk.loc;
+				end_stmt.type = TK_END_STMT;
+				i++;
+			}
+		}
+		else if (tk.IsType(TK_COLON)) {
 			int nl_count = 0;
 			for(int j = i+1; j < tokens.GetCount(); j++) {
 				Token& tk0 = tokens[j];

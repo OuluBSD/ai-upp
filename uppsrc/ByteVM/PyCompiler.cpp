@@ -56,25 +56,21 @@ int PyCompiler::GetLine() const
 
 void PyCompiler::Emit(int code)
 {
-	LOG(Format("Emit [%d] code=%d", ir.GetCount(), code));
 	ir.Add(PyIR(code, GetLine()));
 }
 
 void PyCompiler::Emit(int code, int iarg)
 {
-	LOG(Format("Emit [%d] code=%d iarg=%d", ir.GetCount(), code, iarg));
 	ir.Add(PyIR(code, iarg, GetLine()));
 }
 
 void PyCompiler::EmitConst(const PyValue& v)
 {
-	LOG(Format("Emit [%d] code=LOAD_CONST val=%s", ir.GetCount(), v.ToString()));
 	ir.Add(PyIR::Const(v, GetLine()));
 }
 
 void PyCompiler::EmitName(int code, const String& name)
 {
-	LOG(Format("Emit [%d] code=%d name=%s", ir.GetCount(), code, name));
 	PyIR r(code, GetLine());
 	r.arg = PyValue(name);
 	ir.Add(r);

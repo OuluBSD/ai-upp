@@ -1,0 +1,16 @@
+description "Python bytecode virtual machine implementation\377";
+
+uses
+	Core;
+
+file
+	ByteVM.h,
+	PyValue.cpp,
+	PyValue.h,
+	PyCode.h,
+	PyIR.h,
+	PyCompiler.h,
+	PyCompiler.cpp,
+	PyVM.h,
+	PyVM.cpp;
+

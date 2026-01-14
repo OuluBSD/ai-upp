@@ -1,0 +1,13 @@
+description "Test for Python bytecode VM\377";
+
+uses
+	Core,
+	ByteVM,
+	Core/TextParsing;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";
+

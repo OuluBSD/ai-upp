@@ -10,6 +10,10 @@ template <class Gfx>
 bool FboProgAtomT<Gfx>::Initialize(const WorldState& ws) {
 	dbg_info = 0;
 	
+	if (!this->bf.Initialize(*this, ws))
+		return false;
+	this->SetQueueSize(1);
+
 	resize_multiplier = ws.GetDouble(".resize.multiplier", 0.004);
 	
 	write_ecs = ws.GetBool(".write.ecs", false);
@@ -19,13 +23,17 @@ bool FboProgAtomT<Gfx>::Initialize(const WorldState& ws) {
 	if (link->SideSinks().IsEmpty())
 		write_ecs = true;
 	
+	data.eng = &this->GetEngine();
+	accel_sd.SetTarget(data);
+	
 	return true;
 }
 
 template <class Gfx>
 bool FboProgAtomT<Gfx>::PostInitialize() {
-	
-	return true;
+	if (!this->bf.ImageInitialize(false, Size(0, 0)))
+		return false;
+	return this->bf.PostInitialize();
 }
 
 template <class Gfx>
@@ -36,7 +44,7 @@ void FboProgAtomT<Gfx>::Uninitialize() {
 template <class Gfx>
 bool FboProgAtomT<Gfx>::IsReady(PacketIO& io) {
 	dword iface_sink_mask = this->iface.GetSinkMask();
-	bool b = io.active_sink_mask == iface_sink_mask && io.full_src_mask == 0;
+	bool b = (io.active_sink_mask & 0x1) && io.full_src_mask == 0;
 	RTLOG("FboProgAtomT<Gfx>::IsReady: " << (b ? "true" : "false") << " (" << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
 	return b;
 }
@@ -68,12 +76,19 @@ bool FboProgAtomT<Gfx>::Recv(int sink_ch, const Packet& p) {
 		
 		return true;
 	}
-	else return false;
+	
+	if (fmt.IsOrder()) {
+		GFXLOG("FboProgAtomT<Gfx>::Recv: order tick on sink " << sink_ch);
+		return true;
+	}
+	
+	GFXLOG("FboProgAtomT<Gfx>::Recv: skip unsupported format " << fmt.ToString());
+	return true;
 }
 
 template <class Gfx>
 void FboProgAtomT<Gfx>::Finalize(RealtimeSourceConfig& cfg) {
-	
+	this->last_cfg = &cfg;
 }
 
 template <class Gfx>

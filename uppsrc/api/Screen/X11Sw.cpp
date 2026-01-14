@@ -25,6 +25,9 @@ struct ScrX11Sw::NativeSinkDevice {
     ByteImage accel_buf_tmp;
     DepthImage accel_zbuf;
     SoftFramebuffer accel_fbo;
+    bool log_avg = false;
+    int avg_log_interval = 16;
+    int frame_counter = 0;
 };
 
 struct ScrX11Sw::NativeEventsBase {
@@ -63,6 +66,11 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	if (!ctx_) {LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
+	dev.log_avg = ws.GetBool(".avg_color_log", false);
+	int interval = ws.GetInt(".avg_color_interval", 16);
+	if (interval <= 0)
+		interval = 1;
+	dev.avg_log_interval = interval;
 	
 	::Display*& display = ctx.display;	// pointer to X Display structure.
 	int screen_num;						// number of screen to place the window on.
@@ -289,6 +297,32 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 		// Since the issue is that R and B are swapped, we enable the swap to correct it
 		dev.accel_buf_tmp.SetSwapRedBlue(dev.accel_buf, true);
 		ASSERT(dev.accel_buf_tmp.GetLength() == len);
+
+		if (dev.log_avg) {
+			dev.frame_counter++;
+			if ((dev.frame_counter % dev.avg_log_interval) == 0) {
+				const byte* frame = dev.accel_buf_tmp.Begin();
+				int ch = dev.accel_buf_tmp.channels;
+				if (frame && ch >= 3 && width > 0 && height > 0) {
+					uint64 sum_b = 0, sum_g = 0, sum_r = 0;
+					for (int y = 0; y < height; y++) {
+						const byte* px = frame + y * dev.accel_buf_tmp.pitch;
+						for (int x = 0; x < width; x++) {
+							sum_b += px[0];
+							sum_g += px[1];
+							sum_r += px[2];
+							px += ch;
+						}
+					}
+					int pixels = width * height;
+					int avg_b = (int)(sum_b / pixels);
+					int avg_g = (int)(sum_g / pixels);
+					int avg_r = (int)(sum_r / pixels);
+					GFXLOG("X11Sw frame avg color (BGR)=" << avg_b << "," << avg_g << "," << avg_r);
+				}
+			}
+		}
+
 		ctx.fb->data = (char*)(const unsigned char*)dev.accel_buf_tmp.Begin();
 	    ctx.fb->bytes_per_line = width * bpp;
 	    
@@ -412,4 +446,3 @@ bool ScrX11Sw::Context_IsReady(NativeContext& dev, AtomBase&, PacketIO& io) {
 
 END_UPP_NAMESPACE
 #endif
-

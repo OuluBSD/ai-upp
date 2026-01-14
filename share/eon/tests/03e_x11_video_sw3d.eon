@@ -1,20 +1,25 @@
 machine x11.app:
-	
 	driver context:
 		x11.sw.context
-	
-	chain program:
+
+	// Router-based version of the old loop video chain
+	net video:
 		state event.register
-		
-		loop video:
-			center.customer
-			x11.sw.fbo.program:
-				drawmem =		"false"
-				program =		"obj_view"
-				shader.default.frag.name =	"obj_view"
-				shader.default.vtx.name =	"obj_view"
-			
-			x11.sw.video.pipe:
-				close_machine =	true
-				sizeable =		true
-				env = "/event/register"
+
+		center.customer
+		x11.sw.fbo.program:
+			drawmem = "false"
+			program = "obj_view"
+			shader.default.frag.name = "obj_view"
+			shader.default.vtx.name = "obj_view"
+
+		x11.sw.video.pipe:
+			close_machine = true
+			sizeable = true
+			env = "/event/register"
+			avg_color_log = true
+			avg_color_interval = 16
+
+		center.customer.0 -> x11.sw.fbo.program.0
+		x11.sw.fbo.program.0 -> x11.sw.video.pipe.0
+		x11.sw.video.pipe.0 -> center.customer.0

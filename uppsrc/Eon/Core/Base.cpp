@@ -12,6 +12,10 @@ bool CustomerBase::Initialize(const WorldState& ws) {
 	int queue = max(1, ws.GetInt(".queue", 1));
 	this->SetQueueSize(queue);
 	
+	// Ensure we always have at least one in-flight packet budget so first Send succeeds
+	ValueBase& sink0 = GetSink()->GetValue(0);
+	packet_thrds = max(1, sink0.GetMinPackets());
+	
 	return true;
 }
 

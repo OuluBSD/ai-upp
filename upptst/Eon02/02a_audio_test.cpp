@@ -118,12 +118,10 @@ void Run02aAudioTest(Engine& eng, int method) {
 		sys->LoadAst(root);
 		break;
 	}
-	case 0:
-		sys->PostLoadFile(ShareDirFile("eon/tests/02a_audio_test.eon"));
-		break;
 	case 4:
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/02a_audio_test_method4.py"));
-		break;
+		return;
+	case 0:
 	default:
 		throw Exc(Format("Run02aAudioTest: unknown method %d", method));
 	}

@@ -3,7 +3,8 @@ description "Audio Effect API\377B0,128,0";
 acceptflags
 	AUDIO,
 	LV2,
-	DEBUG_RT;
+	DEBUG_RT,
+	SOFTAUDIO;
 
 uses
 	api/AudioHost,

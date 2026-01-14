@@ -4,7 +4,7 @@
 #include <Core/Core.h>
 #include <complex>
 
-namespace Upp {
+NAMESPACE_UPP
 
 enum PyTypeKind {
 	PY_NONE,
@@ -68,7 +68,7 @@ private:
 		PyLambda     *lambda;
 		struct PyIter *iter;
 		struct PyUserData *userdata;
-		PyBoundMethod *bound;
+		struct PyBoundMethod *bound;
 		void         *ptr;
 	};
 
@@ -78,17 +78,19 @@ private:
 	void Assign(const PyValue& s);
 
 public:
-	PyValue() { type = PY_NONE; ptr = nullptr; }
-	PyValue(bool b) { type = PY_BOOL; this->b = b; }
-	PyValue(int64 i) { type = PY_INT; i64 = i; }
-	PyValue(int i) { type = PY_INT; i64 = i; }
-	PyValue(double d) { type = PY_FLOAT; f64 = d; }
+	void Clear() { type = PY_NONE; ptr = nullptr; }
+	PyValue() { Clear(); }
+	PyValue(bool b) { Clear(); type = PY_BOOL; this->b = b; }
+	PyValue(int64 i) { Clear(); type = PY_INT; i64 = i; }
+	PyValue(int i) { Clear(); type = PY_INT; i64 = i; }
+	PyValue(double d) { Clear(); type = PY_FLOAT; f64 = d; }
 	PyValue(std::complex<double> c);
 	PyValue(const char *s);
 	PyValue(const WString& s);
 	PyValue(const String& s);
 	PyValue(struct PyIter *it);
 	PyValue(struct PyUserData *ud);
+	PyValue(int type, void *ptr);
 	
 	~PyValue() { Free(); }
 	PyValue(const PyValue& src) { type = PY_NONE; Assign(src); }
@@ -100,22 +102,26 @@ public:
 	bool IsBool() const { return type == PY_BOOL; }
 	bool IsInt() const { return type == PY_INT; }
 	bool IsFloat() const { return type == PY_FLOAT; }
+	bool IsFunction() const { return type == PY_FUNCTION; }
 	bool IsNumber() const { return type == PY_INT || type == PY_FLOAT || type == PY_COMPLEX; }
 	bool IsIterator() const { return type == PY_ITERATOR; }
 	bool IsUserData() const { return type == PY_USERDATA; }
+	bool IsUserDataValid() const { return type == PY_USERDATA && userdata; }
 	bool IsBoundMethod() const { return type == PY_BOUND_METHOD; }
 	bool IsStopIteration() const { return type == PY_STOP_ITERATION; }
 
-	bool IsTrue() const;
-	
-	int64       GetInt() const { return type == PY_INT ? i64 : 0; }
-	double      GetFloat() const { return type == PY_FLOAT ? f64 : (type == PY_INT ? (double)i64 : 0.0); }
+	struct PyUserData& GetUserData() const { ASSERT(type == PY_USERDATA && userdata); return *userdata; }
+	struct PyBoundMethod& GetBound() const { ASSERT(type == PY_BOUND_METHOD && bound); return *bound; }
+	struct PyIter&      GetIter() const { ASSERT(type == PY_ITERATOR && iter); return *iter; }
+
+	int64       AsInt64() const { return type == PY_INT ? i64 : (type == PY_FLOAT ? (int64)f64 : 0); }
+	int         AsInt() const { return (int)AsInt64(); }
+	double      AsDouble() const { return type == PY_FLOAT ? f64 : (type == PY_INT ? (double)i64 : 0.0); }
+
+	bool        IsTrue() const;
 	std::complex<double> GetComplex() const;
 	WString     GetStr() const;
 	String      GetBytes() const;
-	struct PyIter& GetIter() const { ASSERT(type == PY_ITERATOR); return *(struct PyIter*)iter; }
-	struct PyUserData& GetUserData() const { ASSERT(type == PY_USERDATA); return *(struct PyUserData*)userdata; }
-	struct PyBoundMethod& GetBound() const { ASSERT(type == PY_BOUND_METHOD); return *bound; }
 
 	// List/Tuple operations
 	int         GetCount() const;
@@ -147,6 +153,7 @@ public:
 	static PyValue Dict();
 	static PyValue Set();
 	static PyValue Function(const String& name, PyBuiltin builtin = nullptr, void* user_data = nullptr);
+	static PyValue UserDataNonOwning(PyUserData *ud);
 	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
 	static PyValue StopIteration() { PyValue v; v.type = PY_STOP_ITERATION; return v; }
 
@@ -181,6 +188,6 @@ struct PyVectorIter : PyIter {
 template <>
 inline hash_t GetHashValue(const PyValue& v) { return v.GetHashValue(); }
 
-}
+END_UPP_NAMESPACE
 
 #endif

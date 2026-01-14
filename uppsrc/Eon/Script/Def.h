@@ -54,8 +54,9 @@ struct LoopDefinition {
 	Id								id;
 	FileLocation					loc;
 	ArrayMap<String, Value>			args;
-	Array<AtomDefinition>			atoms;
-	bool							is_driver = false;
+		bool is_driver = false;
+		bool make_primary_links = false;
+		Array<AtomDefinition> atoms;
 	
 	LoopDefinition() {}
 	LoopDefinition(const LoopDefinition& v) {*this = v;}

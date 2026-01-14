@@ -30,4 +30,4 @@ sink_in = input_net.AddPort("sink0", router.Direction_Sink, "in").index
 input_net.Connect("customer_in0", customer_in_src, "side_sink0", side_sink_sink)
 input_net.Connect("side_sink0", side_sink_src, "sink0", sink_in)
 
-router.BuildRouterChain([output, input_net], "02b linked")
+router.BuildRouterChain([output, input_net], "02b linked", dbg_limit=0)

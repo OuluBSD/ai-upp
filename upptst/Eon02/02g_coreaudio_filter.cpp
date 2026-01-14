@@ -77,12 +77,10 @@ void Run02gCoreaudioFilter(Engine& eng, int method) {
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02gCoreaudioFilter: method %d not implemented yet", method));
-	case 0:
-		sys->PostLoadFile(ShareDirFile("eon/tests/02g_coreaudio_filter.eon"));
-		break;
 	case 4:
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/02g_coreaudio_filter_method4.py"));
-		break;
+		return;
+	case 0:
 	default:
 		throw Exc(Format("Run02gCoreaudioFilter: unknown method %d", method));
 	}

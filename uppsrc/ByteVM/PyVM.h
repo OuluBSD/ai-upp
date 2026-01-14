@@ -1,50 +1,33 @@
 #ifndef _ByteVM_PyVM_h_
 #define _ByteVM_PyVM_h_
 
-#include "PyIR.h"
-
-namespace Upp {
+NAMESPACE_UPP
 
 class PyVM {
-public:
-	struct Frame {
-		const Vector<PyIR> *ir;
+	struct Frame : Moveable<Frame> {
 		PyValue func;
-		int pc = 0;
+		const Vector<PyIR>* ir;
+		int pc;
 		VectorMap<PyValue, PyValue> locals;
 	};
-
-private:
-	Array<Frame> frames;
+	
+	Vector<Frame> frames;
 	Vector<PyValue> stack;
 	VectorMap<PyValue, PyValue> globals;
 
-	void Push(const PyValue& v) { stack.Add(v); }
-	PyValue Pop() {
-		if(stack.IsEmpty()) {
-			Panic("Stack underflow!");
-			return PyValue();
-		}
-		PyValue v = stack.Top();
-		stack.Drop();
-		return v;
-	}
-
 	Frame& TopFrame() { return frames.Top(); }
+	void Push(PyValue v) { stack.Add(v); }
+	PyValue Pop() { return stack.Pop(); }
 
 public:
 	PyVM();
 	
-	void SetIR(Vector<PyIR>& _ir);
+	void SetIR(Vector<PyIR>& ir);
 	void Run();
 	
 	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
-	PyValue GetGlobal(const String& name) { return globals.Get(PyValue(name), PyValue()); }
-	void SetGlobal(const String& name, const PyValue& v) { globals.GetAdd(PyValue(name)) = v; }
-	
-	PyValue Call(const PyValue& func, Vector<PyValue>& args);
 };
 
-}
+END_UPP_NAMESPACE
 
 #endif

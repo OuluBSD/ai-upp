@@ -62,12 +62,10 @@ void Run02lPortmidiToFluidsynth(Engine& eng, int method) {
 	case 1:
 	case 2:
 		LOG(Format("warning: Run02lPortmidiToFluidsynth: method %d not implemented yet", method));
-	case 0:
-		sys->PostLoadFile(ShareDirFile("eon/tests/02l_portmidi_to_fluidsynth.eon"));
-		break;
 	case 4:
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/02l_portmidi_to_fluidsynth_method4.py"));
-		break;
+		return;
+	case 0:
 	default:
 		throw Exc(Format("Run02lPortmidiToFluidsynth: unknown method %d", method));
 	}

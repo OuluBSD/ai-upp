@@ -97,9 +97,31 @@ public:
 		return atom->AddPort(dir, name);
 	}
 
-	const RouterAtomSpec* GetAtom(const String& id) const {
-		return FindAtom(id);
+	RouterAtomSpec* FindAtom(const String& id) {
+		int idx = atom_index.Find(id);
+		return idx >= 0 ? &atoms[idx] : nullptr;
 	}
+
+	const RouterAtomSpec* FindAtom(const String& id) const {
+		int idx = atom_index.Find(id);
+		return idx >= 0 ? &atoms[idx] : nullptr;
+	}
+
+	VfsValue* EnsureLoopPath(Engine& eng) const {
+		VfsValue* loop = &eng.GetRootLoop();
+		VfsValue* space = &eng.GetRootSpace();
+		for (const String& part : Split(loop_path, ".")) {
+			loop = &loop->GetAdd(part, 0);
+			space = &space->GetAdd(part, 0);
+		}
+		(void)space;
+		if (VfsValue* resolved = Eon::ResolveLoopPath(eng, loop_path))
+			return resolved;
+		return loop;
+	}
+
+	const Array<RouterAtomSpec>& GetAtoms() const { return atoms; }
+	const String& GetLoopPath() const { return loop_path; }
 
 	const Vector<RouterConnectionDesc>& GetConnections() const {
 		return connections;
@@ -141,6 +163,25 @@ public:
 		conn.metadata.Set("policy", String("legacy-loop"));
 		conn.metadata.Set("credits", 1);
 		return conn;
+	}
+
+	void BuildAtomSpecs(Vector<Eon::ChainContext::AtomSpec>& atom_specs) const {
+		using namespace Eon;
+
+		for (int i = 0; i < atoms.GetCount(); i++) {
+			const RouterAtomSpec& net_atom = atoms[i];
+			ChainContext::AtomSpec& spec = atom_specs.Add();
+			spec.idx = i;
+			spec.action = net_atom.action;
+			for (int j = 0; j < net_atom.args.GetCount(); j++)
+				spec.args.GetAdd(net_atom.args.GetKey(j)) = net_atom.args[j];
+
+			if (!net_atom.EnsureTypeResolved())
+				throw Exc(Format("RouterNetContext: unknown atom action '%s'", spec.action));
+			spec.iface.Realize(net_atom.atom_type);
+			ApplySideLinks(spec.iface, net_atom.id);
+			spec.link = net_atom.link_type;
+		}
 	}
 
 	Eon::LoopContext* AppendToChain(Engine& eng, Eon::ChainContext& cc, bool make_primary_links = true) const {
@@ -216,6 +257,17 @@ public:
 		AddSideLink(atom_id, false, sink_ch, conn_id, src_ch);
 	}
 
+	void StoreRouterMetadata(VfsValue& loop_space) const {
+		ValueMap router_value = StoreRouterSchema(BuildRouterSchema());
+		if (router_value.IsEmpty())
+			return;
+		ValueMap loop_value;
+		if (loop_space.value.Is<ValueMap>())
+			loop_value = ValueMap(loop_space.value);
+		loop_value.Set("router", router_value);
+		loop_space.value = loop_value;
+	}
+
 private:
 	struct SideLinkSpec : Moveable<SideLinkSpec> {
 		String atom_id;
@@ -224,48 +276,6 @@ private:
 		int other_ch = -1;
 		int conn_id = -1;
 	};
-
-	void BuildAtomSpecs(Vector<Eon::ChainContext::AtomSpec>& atom_specs) const {
-		using namespace Eon;
-
-		for (int i = 0; i < atoms.GetCount(); i++) {
-			const RouterAtomSpec& net_atom = atoms[i];
-			ChainContext::AtomSpec& spec = atom_specs.Add();
-			spec.idx = i;
-			spec.action = net_atom.action;
-			for (int j = 0; j < net_atom.args.GetCount(); j++)
-				spec.args.GetAdd(net_atom.args.GetKey(j)) = net_atom.args[j];
-
-			if (!net_atom.EnsureTypeResolved())
-				throw Exc(Format("RouterNetContext: unknown atom action '%s'", spec.action));
-			spec.iface.Realize(net_atom.atom_type);
-			ApplySideLinks(spec.iface, net_atom.id);
-			spec.link = net_atom.link_type;
-		}
-	}
-
-	RouterAtomSpec* FindAtom(const String& id) {
-		int idx = atom_index.Find(id);
-		return idx >= 0 ? &atoms[idx] : nullptr;
-	}
-
-	const RouterAtomSpec* FindAtom(const String& id) const {
-		int idx = atom_index.Find(id);
-		return idx >= 0 ? &atoms[idx] : nullptr;
-	}
-
-	VfsValue* EnsureLoopPath(Engine& eng) const {
-		VfsValue* loop = &eng.GetRootLoop();
-		VfsValue* space = &eng.GetRootSpace();
-		for (const String& part : Split(loop_path, ".")) {
-			loop = &loop->GetAdd(part, 0);
-			space = &space->GetAdd(part, 0);
-		}
-		(void)space;
-		if (VfsValue* resolved = Eon::ResolveLoopPath(eng, loop_path))
-			return resolved;
-		return loop;
-	}
 
 	String loop_path;
 	Array<RouterAtomSpec> atoms;
@@ -294,17 +304,6 @@ private:
 		return schema;
 	}
 
-	void StoreRouterMetadata(VfsValue& loop_space) const {
-		ValueMap router_value = StoreRouterSchema(BuildRouterSchema());
-		if (router_value.IsEmpty())
-			return;
-		ValueMap loop_value;
-		if (loop_space.value.Is<ValueMap>())
-			loop_value = ValueMap(loop_space.value);
-		loop_value.Set("router", router_value);
-		loop_space.value = loop_value;
-	}
-private:
 	void AddSideLink(const String& atom_id, bool is_source, int local_ch, int conn_id, int other_ch) {
 		SideLinkSpec& link = side_links.Add();
 		link.atom_id = atom_id;

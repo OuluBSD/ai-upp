@@ -6,6 +6,9 @@ uses
 	Draw/Extensions,
 	Core/MathNumeric;
 
+acceptflags
+	DEBUG_RT;
+
 uses(!UWP) plugin/tiny_gltf;
 
 uses(!UWP & (BUILTIN_ASSIMP | LINUX)) plugin/assimp;
@@ -17,6 +20,7 @@ library(!BUILTIN_ASSIMP WIN32 (CLANG | GCC) MSYS) libassimp.dll.a;
 file
 	AGENTS.md,
 	Geometry.h,
+	GeometryBindings.cpp,
 	Common.h,
 	Matrix.h,
 	Matrix.cpp,
@@ -60,7 +64,6 @@ file
 	Uncamera.cpp,
 	Vr.h,
 	Vr.cpp,
-	GeometryBindings.cpp,
 	GeomEvent.h,
 	GeomEvent.cpp,
 	Trash readonly separator,

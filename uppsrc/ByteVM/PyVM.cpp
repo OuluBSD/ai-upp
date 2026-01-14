@@ -63,12 +63,6 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 void PyVM::Run()
 {
-	if (!frames.IsEmpty()) {
-		const auto& ir = *TopFrame().ir;
-		LOG("PyVM::Run: total instructions=" << ir.GetCount());
-		for (int i = 0; i < ir.GetCount(); i++)
-			LOG(Format("[%d] code=%d", i, (int)ir[i].code));
-	}
 	while(!frames.IsEmpty()) {
 		Frame& frame = TopFrame();
 		if(frame.pc >= frame.ir->GetCount()) {
@@ -77,7 +71,6 @@ void PyVM::Run()
 		}
 		
 		const PyIR& instr = (*frame.ir)[frame.pc++];
-		LOG(Format("PC %d: opcode %d", frame.pc - 1, (int)instr.code));
 		
 		switch(instr.code) {
 		case PY_NOP: break;
@@ -137,7 +130,6 @@ void PyVM::Run()
 
 		case PY_LOAD_ATTR: {
 			PyValue obj = Pop();
-			LOG("PY_LOAD_ATTR: obj type=" << obj.GetType() << " ptr=" << obj.GetPtr() << " attr=" << instr.arg.ToString());
 			if (obj.GetType() == PY_DICT) {
 				Push(obj.GetItem(instr.arg));
 			} else if (obj.IsUserData()) {

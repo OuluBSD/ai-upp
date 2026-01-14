@@ -28,6 +28,9 @@ void Run00eForkNet(Engine& eng, int method) {
 		// Load from .eon file using PacketRouter fork topology
 		sys->PostLoadFile(ShareDirFile("eon/tests/00e_fork_net.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/00e_fork_net_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run00eForkNet: method %d not implemented yet", method));
 	}

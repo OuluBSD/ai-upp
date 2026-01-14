@@ -60,6 +60,7 @@ file
 	Uncamera.cpp,
 	Vr.h,
 	Vr.cpp,
+	GeometryBindings.cpp,
 	GeomEvent.h,
 	GeomEvent.cpp,
 	Trash readonly separator,

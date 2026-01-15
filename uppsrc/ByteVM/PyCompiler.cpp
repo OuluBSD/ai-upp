@@ -49,6 +49,14 @@ bool PyCompiler::IsString() const
 	return !IsEof() && (tokens[pos].type == TK_STRING || tokens[pos].type == TK_STRING_MULTILINE);
 }
 
+bool PyCompiler::IsStmtEnd() const
+{
+	if (IsEof()) return true;
+	if (tokens[pos].type == TK_END_STMT) return true;
+	if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
+	return false;
+}
+
 int PyCompiler::GetLine() const
 {
 	return Peek().loc.line;
@@ -104,7 +112,7 @@ void PyCompiler::Compile(Vector<PyIR>& out)
 {
 	try {
 		while(!IsEof()) {
-			if (IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) {
+			if (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) {
 				Next();
 				continue;
 			}
@@ -124,7 +132,7 @@ void PyCompiler::CompileBlock(Vector<PyIR>& out)
 	ir.Clear();
 	try {
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
@@ -144,35 +152,35 @@ void PyCompiler::Statement()
 	if(IsId("if")) {
 		Next();
 		Expression();
-		Expect(TK_COLON);
+		this->Expect(TK_COLON);
 		int jump_false = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0);
 		
-		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		Expect(TK_INDENT);
+		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		this->Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
-		Expect(TK_DEDENT);
+		this->Expect(TK_DEDENT);
 		
-		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		
 		if(IsId("else")) {
 			Next();
 			int jump_end = Label();
 			Emit(PY_JUMP_ABSOLUTE, 0);
 			Patch(jump_false, Label());
-			Expect(TK_COLON);
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			Expect(TK_INDENT);
+			this->Expect(TK_COLON);
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			this->Expect(TK_INDENT);
 			while(!IsToken(TK_DEDENT) && !IsEof()) {
-				while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 				if(IsToken(TK_DEDENT) || IsEof()) break;
 				Statement();
 			}
-			Expect(TK_DEDENT);
+			this->Expect(TK_DEDENT);
 			Patch(jump_end, Label());
 		}
 		else {
@@ -183,18 +191,18 @@ void PyCompiler::Statement()
 		Next();
 		int start = Label();
 		Expression();
-		Expect(TK_COLON);
+		this->Expect(TK_COLON);
 		int jump_end = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0);
 		
-		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		Expect(TK_INDENT);
+		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		this->Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
-		Expect(TK_DEDENT);
+		this->Expect(TK_DEDENT);
 		
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
@@ -202,8 +210,8 @@ void PyCompiler::Statement()
 	else if(IsId("for")) {
 		Next();
 		String target = Peek().str_value;
-		Expect(TK_ID);
-		ExpectId("in");
+		this->Expect(TK_ID);
+		this->ExpectId("in");
 		Expression();
 		Emit(PY_GET_ITER);
 		
@@ -213,15 +221,15 @@ void PyCompiler::Statement()
 		
 		EmitName(PY_STORE_NAME, target);
 		
-		Expect(TK_COLON);
-		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		Expect(TK_INDENT);
+		this->Expect(TK_COLON);
+		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		this->Expect(TK_INDENT);
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
-		Expect(TK_DEDENT);
+		this->Expect(TK_DEDENT);
 		
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
@@ -229,26 +237,26 @@ void PyCompiler::Statement()
 	else if(IsId("def")) {
 		Next();
 		String name = Peek().str_value;
-		Expect(TK_ID);
-		Expect(TK_PARENTHESIS_BEGIN);
+		this->Expect(TK_ID);
+		this->Expect(TK_PARENTHESIS_BEGIN);
 		Vector<String> args;
 		if(!IsToken(TK_PARENTHESIS_END)) {
 			do {
 				args.Add(Peek().str_value);
-				Expect(TK_ID);
+				this->Expect(TK_ID);
 			} while(IsToken(TK_COMMA) && (Next(), true));
 		}
-		Expect(TK_PARENTHESIS_END);
-		Expect(TK_COLON);
-		while(IsToken(TK_END_STMT) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		Expect(TK_INDENT);
+		this->Expect(TK_PARENTHESIS_END);
+		this->Expect(TK_COLON);
+		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		this->Expect(TK_INDENT);
 		
 		PyCompiler sub(tokens);
 		sub.pos = pos;
 		Vector<PyIR> body;
 		sub.CompileBlock(body);
 		pos = sub.pos;
-		Expect(TK_DEDENT);
+		this->Expect(TK_DEDENT);
 		
 		PyValue func = PyValue::Function(name);
 		func.GetLambdaRW().ir = pick(body);
@@ -259,18 +267,20 @@ void PyCompiler::Statement()
 	}
 	else if(IsId("pass")) {
 		Next();
-		Expect(TK_END_STMT);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));
+		Next();
 	}
 	else if(IsId("return")) {
 		Next();
-		if(IsToken(TK_END_STMT)) {
+		if(IsStmtEnd()) {
 			EmitConst(PyValue());
 		}
 		else {
 			Expression();
 		}
 		Emit(PY_RETURN_VALUE);
-		Expect(TK_END_STMT);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'return', found %s", GetLine(), Peek().GetTypeString()));
+		Next();
 	}
 	else if(IsId("import")) {
 		Next();
@@ -282,7 +292,8 @@ void PyCompiler::Statement()
 			if(IsToken(TK_COMMA)) Next();
 			else break;
 		}
-		Expect(TK_END_STMT);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
+		Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_ASS) {
 		String id = Peek().str_value;
@@ -290,7 +301,8 @@ void PyCompiler::Statement()
 		Next(); // =
 		Expression();
 		EmitName(PY_STORE_NAME, id);
-		Expect(TK_END_STMT);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
+		Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_SQUARE_BEGIN) {
 		int start_pos = pos;
@@ -298,14 +310,15 @@ void PyCompiler::Statement()
 		String id = Peek().str_value;
 		Next(); // id
 		EmitName(PY_LOAD_NAME, id);
-		Expect(TK_SQUARE_BEGIN);
+		this->Expect(TK_SQUARE_BEGIN);
 		Expression();
-		Expect(TK_SQUARE_END);
+		this->Expect(TK_SQUARE_END);
 		if(IsToken(TK_ASS)) {
 			Next(); // =
 			Expression();
 			Emit(PY_STORE_SUBSCR);
-			Expect(TK_END_STMT);
+			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after subscription assignment, found %s", GetLine(), Peek().GetTypeString()));
+			Next();
 		}
 		else {
 			// Not an assignment, backtrack and use normal expression parsing
@@ -313,13 +326,15 @@ void PyCompiler::Statement()
 			ir.SetCount(start_ir);
 			Expression();
 			Emit(PY_POP_TOP);
-			Expect(TK_END_STMT);
+			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
+			Next();
 		}
 	}
 	else {
 		Expression();
 		Emit(PY_POP_TOP);
-		Expect(TK_END_STMT);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
+		Next();
 	}
 }
 
@@ -428,13 +443,13 @@ void PyCompiler::PrimaryExpr()
 					nargs++;
 				} while(IsToken(TK_COMMA) && (Next(), true));
 			}
-			Expect(TK_PARENTHESIS_END);
+			this->Expect(TK_PARENTHESIS_END);
 			Emit(PY_CALL_FUNCTION, nargs);
 		}
 		else if(IsToken(TK_SQUARE_BEGIN)) {
 			Next();
 			Expression();
-			Expect(TK_SQUARE_END);
+			this->Expect(TK_SQUARE_END);
 			Emit(PY_BINARY_SUBSCR);
 		}
 		else if(IsToken(TK_PUNCT)) {
@@ -483,7 +498,7 @@ void PyCompiler::Atom()
 	else if(IsToken(TK_PARENTHESIS_BEGIN)) {
 		Next();
 		Expression();
-		Expect(TK_PARENTHESIS_END);
+		this->Expect(TK_PARENTHESIS_END);
 	}
 	else if(IsToken(TK_SQUARE_BEGIN)) {
 		Next();
@@ -494,7 +509,7 @@ void PyCompiler::Atom()
 				n++;
 			} while(IsToken(TK_COMMA) && (Next(), true));
 		}
-		Expect(TK_SQUARE_END);
+		this->Expect(TK_SQUARE_END);
 		Emit(PY_BUILD_LIST, n);
 	}
 	else if(IsToken(TK_BRACKET_BEGIN)) {
@@ -503,12 +518,12 @@ void PyCompiler::Atom()
 		if(!IsToken(TK_BRACKET_END)) {
 			do {
 				Expression(); // key
-				Expect(TK_COLON);
+				this->Expect(TK_COLON);
 				Expression(); // value
 				n++;
 			} while(IsToken(TK_COMMA) && (Next(), true));
 		}
-		Expect(TK_BRACKET_END);
+		this->Expect(TK_BRACKET_END);
 		Emit(PY_BUILD_MAP, n);
 	}
 	else {

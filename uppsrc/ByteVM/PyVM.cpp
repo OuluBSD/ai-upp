@@ -339,6 +339,141 @@ static PyValue builtin_math_remainder(const Vector<PyValue>& args, void*) { if(a
 static PyValue builtin_math_copysign(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(copysign(args[0].AsDouble(), args[1].AsDouble())); }
 static PyValue builtin_math_nextafter(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(nextafter(args[0].AsDouble(), args[1].AsDouble())); }
 
+static PyValue builtin_math_cbrt(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(cbrt(args[0].AsDouble())); }
+static PyValue builtin_math_exp2(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(exp2(args[0].AsDouble())); }
+
+static PyValue builtin_math_isclose(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(false);
+	double a = args[0].AsDouble();
+	double b = args[1].AsDouble();
+	double rel_tol = 1e-09;
+	double abs_tol = 0.0;
+	if(args.GetCount() >= 3) rel_tol = args[2].AsDouble();
+	if(args.GetCount() >= 4) abs_tol = args[3].AsDouble();
+	if(std::isinf(a) || std::isinf(b)) return PyValue(a == b);
+	return PyValue(std::abs(a - b) <= std::max(rel_tol * std::max(std::abs(a), std::abs(b)), abs_tol));
+}
+
+static PyValue builtin_math_isqrt(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	if(n < 0) return PyValue(0); // Should really raise ValueError
+	if(n == 0) return PyValue(0);
+	int64 x = (int64)sqrt((double)n);
+	if((x + 1) * (x + 1) <= n) x++;
+	else if(x * x > n) x--;
+	return PyValue(x);
+}
+
+static int64 py_gcd(int64 a, int64 b) {
+	while(b) { a %= b; Swap(a, b); }
+	return a;
+}
+
+static PyValue builtin_math_lcm(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 res = std::abs(args[0].AsInt64());
+	for(int i = 1; i < args.GetCount(); i++) {
+		int64 b = std::abs(args[i].AsInt64());
+		if(res == 0 || b == 0) { res = 0; break; }
+		res = (res / py_gcd(res, b)) * b;
+	}
+	return PyValue(res);
+}
+
+static PyValue builtin_math_ldexp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(ldexp(args[0].AsDouble(), (int)args[1].AsInt64()));
+}
+
+static PyValue builtin_math_frexp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	int exp;
+	double m = frexp(args[0].AsDouble(), &exp);
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(m));
+	res.Add(PyValue(exp));
+	return res;
+}
+
+static PyValue builtin_math_modf(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	double iptr;
+	double f = modf(args[0].AsDouble(), &iptr);
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(f));
+	res.Add(PyValue(iptr));
+	return res;
+}
+
+static PyValue builtin_math_ulp(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	double x = args[0].AsDouble();
+	if(std::isnan(x)) return PyValue(x);
+	if(std::isinf(x)) return PyValue(std::numeric_limits<double>::infinity());
+	x = std::abs(x);
+	return PyValue(nextafter(x, std::numeric_limits<double>::infinity()) - x);
+}
+
+static PyValue builtin_math_comb(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	int64 k = args[1].AsInt64();
+	if(k < 0 || k > n) return PyValue(0);
+	if(k == 0 || k == n) return PyValue(1);
+	if(k > n / 2) k = n - k;
+	double r = 1;
+	for(int64 i = 1; i <= k; i++) r = r * (n - i + 1) / i;
+	return PyValue((int64)(r + 0.5));
+}
+
+static PyValue builtin_math_perm(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	int64 k = n;
+	if(args.GetCount() >= 2) k = args[1].AsInt64();
+	if(k < 0 || k > n) return PyValue(0);
+	int64 r = 1;
+	for(int64 i = 0; i < k; i++) r *= (n - i);
+	return PyValue(r);
+}
+
+static PyValue builtin_math_dist(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	const Vector<PyValue>& p = args[0].GetArray();
+	const Vector<PyValue>& q = args[1].GetArray();
+	int n = std::min(p.GetCount(), q.GetCount());
+	double s2 = 0;
+	for(int i = 0; i < n; i++) {
+		double d = p[i].AsDouble() - q[i].AsDouble();
+		s2 += d * d;
+	}
+	return PyValue(sqrt(s2));
+}
+
+static PyValue builtin_math_prod(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(1.0);
+	const Vector<PyValue> *items = &args;
+	double start = 1.0;
+	if(args.GetCount() >= 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE)) {
+		items = &args[0].GetArray();
+		if(args.GetCount() >= 2) start = args[1].AsDouble();
+	}
+	double p = start;
+	for(const auto& v : *items) p *= v.AsDouble();
+	return PyValue(p);
+}
+
+static PyValue builtin_math_sumprod(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	const Vector<PyValue>& p = args[0].GetArray();
+	const Vector<PyValue>& q = args[1].GetArray();
+	int n = std::min(p.GetCount(), q.GetCount());
+	double s = 0;
+	for(int i = 0; i < n; i++) s += p[i].AsDouble() * q[i].AsDouble();
+	return PyValue(s);
+}
+
 static PyValue builtin_math_sqrt(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0.0);
 	return PyValue(sqrt(args[0].AsDouble()));
@@ -362,11 +497,6 @@ static PyValue builtin_math_isnan(const Vector<PyValue>& args, void*) {
 static PyValue builtin_math_isfinite(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(false);
 	return PyValue(std::isfinite(args[0].AsDouble()));
-}
-
-static int64 py_gcd(int64 a, int64 b) {
-	while(b) { a %= b; Swap(a, b); }
-	return a;
 }
 
 static PyValue builtin_math_gcd(const Vector<PyValue>& args, void*) {
@@ -699,6 +829,20 @@ globals.GetAdd(PyValue("sys")) = sys;
 	math.SetItem(PyValue("__file__"), PyValue("built-in"));
 
 	math.SetItem(PyValue("sqrt"), PyValue::Function("sqrt", builtin_math_sqrt));
+	math.SetItem(PyValue("cbrt"), PyValue::Function("cbrt", builtin_math_cbrt));
+	math.SetItem(PyValue("exp2"), PyValue::Function("exp2", builtin_math_exp2));
+	math.SetItem(PyValue("isclose"), PyValue::Function("isclose", builtin_math_isclose));
+	math.SetItem(PyValue("isqrt"), PyValue::Function("isqrt", builtin_math_isqrt));
+	math.SetItem(PyValue("lcm"), PyValue::Function("lcm", builtin_math_lcm));
+	math.SetItem(PyValue("ldexp"), PyValue::Function("ldexp", builtin_math_ldexp));
+	math.SetItem(PyValue("frexp"), PyValue::Function("frexp", builtin_math_frexp));
+	math.SetItem(PyValue("modf"), PyValue::Function("modf", builtin_math_modf));
+	math.SetItem(PyValue("ulp"), PyValue::Function("ulp", builtin_math_ulp));
+	math.SetItem(PyValue("comb"), PyValue::Function("comb", builtin_math_comb));
+	math.SetItem(PyValue("perm"), PyValue::Function("perm", builtin_math_perm));
+	math.SetItem(PyValue("dist"), PyValue::Function("dist", builtin_math_dist));
+	math.SetItem(PyValue("prod"), PyValue::Function("prod", builtin_math_prod));
+	math.SetItem(PyValue("sumprod"), PyValue::Function("sumprod", builtin_math_sumprod));
 	math.SetItem(PyValue("fabs"), PyValue::Function("fabs", builtin_math_fabs));
 	math.SetItem(PyValue("asin"), PyValue::Function("asin", builtin_math_asin));
 	math.SetItem(PyValue("acos"), PyValue::Function("acos", builtin_math_acos));

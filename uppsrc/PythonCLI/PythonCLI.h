@@ -16,9 +16,13 @@ public:
 	void RunScript(const String& filename);
 
 private:
+	Vector<String> history;
+	PyVM vm;
+
 	void PrintBanner();
 	void PrintPrompt();
-	bool ProcessInput(const String& input);
+	bool ProcessInput(const String& input, bool is_interactive);
+	String ReadLine();
 };
 
 END_UPP_NAMESPACE

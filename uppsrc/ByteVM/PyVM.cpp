@@ -33,6 +33,91 @@ static PyValue builtin_range(const Vector<PyValue>& args, void*) {
 	return PyValue(new PyRangeIter(start, stop, step));
 }
 
+static PyValue builtin_complex(const Vector<PyValue>& args, void*) {
+	double real = 0, imag = 0;
+	if(args.GetCount() >= 1) real = args[0].AsDouble();
+	if(args.GetCount() >= 2) imag = args[1].AsDouble();
+	return PyValue(std::complex<double>(real, imag));
+}
+
+static PyValue builtin_bool(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() >= 1) return PyValue(args[0].IsTrue());
+	return PyValue(false);
+}
+
+static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue obj = args[0];
+	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE)
+		return PyValue(new PyVectorIter(obj.GetArray()));
+	if(obj.IsIterator())
+		return obj;
+	return PyValue::None();
+}
+
+static PyValue builtin_next(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue iterator = args[0];
+	if(iterator.IsIterator())
+		return iterator.GetIter().Next();
+	return PyValue::None();
+}
+
+static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	PyValue v = args[0];
+	if(v.IsInt()) return PyValue(std::abs(v.AsInt64()));
+	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
+	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
+	return v;
+}
+
+static PyValue builtin_min(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue m;
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	if(items->IsEmpty()) return PyValue::None();
+	m = (*items)[0];
+	for(int i = 1; i < items->GetCount(); i++)
+		if((*items)[i] < m) m = (*items)[i];
+	return m;
+}
+
+static PyValue builtin_max(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::None();
+	PyValue m;
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	if(items->IsEmpty()) return PyValue::None();
+	m = (*items)[0];
+	for(int i = 1; i < items->GetCount(); i++)
+		if(m < (*items)[i]) m = (*items)[i];
+	return m;
+}
+
+static PyValue builtin_sum(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() >= 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	
+	PyValue s(0);
+	if (items->GetCount() > 0 && (*items)[0].GetType() == PY_STR) s = PyValue("");
+	
+	for(const auto& v : *items) {
+		if(s.GetType() == PY_STR) s = PyValue(s.GetStr() + v.GetStr());
+		else if(s.GetType() == PY_COMPLEX || v.GetType() == PY_COMPLEX) s = PyValue(s.GetComplex() + v.GetComplex());
+		else if(s.IsFloat() || v.IsFloat()) s = PyValue(s.AsDouble() + v.AsDouble());
+		else s = PyValue(s.AsInt64() + v.AsInt64());
+	}
+	return s;
+}
+
 PyVM::PyVM()
 {
 	PyValue p_print = PyValue::Function("print");
@@ -46,6 +131,38 @@ PyVM::PyVM()
 	PyValue p_range = PyValue::Function("range");
 	p_range.GetLambdaRW().builtin = builtin_range;
 	globals.GetAdd(PyValue("range")) = p_range;
+
+	PyValue p_complex = PyValue::Function("complex");
+	p_complex.GetLambdaRW().builtin = builtin_complex;
+	globals.GetAdd(PyValue("complex")) = p_complex;
+
+	PyValue p_bool = PyValue::Function("bool");
+	p_bool.GetLambdaRW().builtin = builtin_bool;
+	globals.GetAdd(PyValue("bool")) = p_bool;
+
+	PyValue p_iter = PyValue::Function("iter");
+	p_iter.GetLambdaRW().builtin = builtin_iter;
+	globals.GetAdd(PyValue("iter")) = p_iter;
+
+	PyValue p_next = PyValue::Function("next");
+	p_next.GetLambdaRW().builtin = builtin_next;
+	globals.GetAdd(PyValue("next")) = p_next;
+
+	PyValue p_abs = PyValue::Function("abs");
+	p_abs.GetLambdaRW().builtin = builtin_abs;
+	globals.GetAdd(PyValue("abs")) = p_abs;
+
+	PyValue p_min = PyValue::Function("min");
+	p_min.GetLambdaRW().builtin = builtin_min;
+	globals.GetAdd(PyValue("min")) = p_min;
+
+	PyValue p_max = PyValue::Function("max");
+	p_max.GetLambdaRW().builtin = builtin_max;
+	globals.GetAdd(PyValue("max")) = p_max;
+
+	PyValue p_sum = PyValue::Function("sum");
+	p_sum.GetLambdaRW().builtin = builtin_sum;
+	globals.GetAdd(PyValue("sum")) = p_sum;
 }
 
 void PyVM::SetIR(Vector<PyIR>& _ir)
@@ -173,7 +290,9 @@ void PyVM::Run()
 		case PY_BINARY_ADD: {
 			PyValue b = Pop();
 			PyValue a = Pop();
-			if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() + b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
 			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
 			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
 			break;
@@ -182,18 +301,22 @@ void PyVM::Run()
 		case PY_BINARY_SUBTRACT: {
 			PyValue b = Pop();
 			PyValue a = Pop();
-			if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() - b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
 			else Push(PyValue(a.AsDouble() - b.AsDouble()));
 			break;
 		}
 
-		        case PY_BINARY_MULTIPLY: {
-		            PyValue b = Pop();
-		            PyValue a = Pop();
-		            if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
-		            else Push(PyValue(a.AsDouble() * b.AsDouble()));
-		            break;
-		        }
+		case PY_BINARY_MULTIPLY: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() * b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
+			else Push(PyValue(a.AsDouble() * b.AsDouble()));
+			break;
+		}
 		
 		        case PY_BINARY_TRUE_DIVIDE: {
 		            PyValue b = Pop();
@@ -208,6 +331,17 @@ void PyVM::Run()
 				Push(container.GetItem(sub.AsInt()));
 			else
 				Push(container.GetItem(sub));
+			break;
+		}
+
+		case PY_STORE_SUBSCR: {
+			PyValue val = Pop();
+			PyValue sub = Pop();
+			PyValue obj = Pop();
+			if(sub.IsInt() && obj.GetType() == PY_LIST)
+				obj.SetItem(sub.AsInt(), val);
+			else
+				obj.SetItem(sub, val);
 			break;
 		}
 

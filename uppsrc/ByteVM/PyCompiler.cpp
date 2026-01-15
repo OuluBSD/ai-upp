@@ -257,6 +257,10 @@ void PyCompiler::Statement()
 		EmitConst(func);
 		EmitName(PY_STORE_NAME, name);
 	}
+	else if(IsId("pass")) {
+		Next();
+		Expect(TK_END_STMT);
+	}
 	else if(IsId("return")) {
 		Next();
 		if(IsToken(TK_END_STMT)) {
@@ -284,6 +288,30 @@ void PyCompiler::Statement()
 		Expression();
 		EmitName(PY_STORE_NAME, id);
 		Expect(TK_END_STMT);
+	}
+	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_SQUARE_BEGIN) {
+		int start_pos = pos;
+		int start_ir = ir.GetCount();
+		String id = Peek().str_value;
+		Next(); // id
+		EmitName(PY_LOAD_NAME, id);
+		Expect(TK_SQUARE_BEGIN);
+		Expression();
+		Expect(TK_SQUARE_END);
+		if(IsToken(TK_ASS)) {
+			Next(); // =
+			Expression();
+			Emit(PY_STORE_SUBSCR);
+			Expect(TK_END_STMT);
+		}
+		else {
+			// Not an assignment, backtrack and use normal expression parsing
+			pos = start_pos;
+			ir.SetCount(start_ir);
+			Expression();
+			Emit(PY_POP_TOP);
+			Expect(TK_END_STMT);
+		}
 	}
 	else {
 		Expression();

@@ -322,7 +322,8 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 					int avg_b = (int)(sum_b / pixels);
 					int avg_g = (int)(sum_g / pixels);
 					int avg_r = (int)(sum_r / pixels);
-					GFXLOG("X11Sw frame avg color (BGR)=" << avg_b << "," << avg_g << "," << avg_r);
+					// Use LOG instead of GFXLOG so output is visible when avg_color_log=true
+					LOG("X11Sw frame #" << dev.frame_counter << " avg color (BGR)=" << avg_b << "," << avg_g << "," << avg_r);
 				}
 			}
 		}

@@ -31,7 +31,6 @@ void ConfigureEngine(Engine& eng, void (*runner)(Engine&, int), int method) {
 				script->DoPostLoadPython();
 			}
 		};
-	}
 	} else {
 		eng.WhenUserInitialize << callback1(runner, method);
 	}

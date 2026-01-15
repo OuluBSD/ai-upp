@@ -18,16 +18,24 @@ customer_sink = net.AddPort("customer0", router.Direction_Sink, "video.in").inde
 customer_src = net.AddPort("customer0", router.Direction_Source, "video.out").index
 
 # x11.sw.fbo.pipe with shaders
-# Note: Argument assignment not fully supported in Python bindings yet
-fbo_pipe = net.AddAtom("fbo_pipe0", "x11.sw.fbo.pipe")
-# TODO: fbo_pipe.args - shader.vtx.name, shader.frag.name
+fbo_pipe = net.AddAtom("fbo_pipe0", "x11.sw.fbo.pipe", {
+    "shader.vtx.name": "pass",
+    "shader.frag.name": "color_test"
+})
 fbo_pipe_sink = net.AddPort("fbo_pipe0", router.Direction_Sink, "video.in").index
 fbo_pipe_src = net.AddPort("fbo_pipe0", router.Direction_Source, "video.out").index
 
 # x11.sw.fbo.sink with arguments
-# Note: Argument assignment not fully supported in Python bindings yet
-fbo_sink = net.AddAtom("fbo_sink0", "x11.sw.fbo.sink")
-# TODO: fbo_sink.args - close_machine, sizeable, env, recv.data, shader.vtx.name, shader.frag.name, avg_color_log, avg_color_interval
+fbo_sink = net.AddAtom("fbo_sink0", "x11.sw.fbo.sink", {
+    "close_machine": True,
+    "sizeable": True,
+    "env": "/event/register",
+    "recv.data": False,
+    "shader.vtx.name": "pass",
+    "shader.frag.name": "proxy_input0",
+    "avg_color_log": True,
+    "avg_color_interval": 16
+})
 fbo_sink_sink = net.AddPort("fbo_sink0", router.Direction_Sink, "video.in").index
 fbo_sink_src = net.AddPort("fbo_sink0", router.Direction_Source, "video.out").index
 

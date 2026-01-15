@@ -27,11 +27,12 @@ Type "help", "copyright", "credits" or "license" for more information.
   - Builtins: `abs()`, `bool()`, `complex()`, `iter()`, `next()`, `len()`, `min()`, `max()`, `sum()`, `range()`, `print()`
   - `pass` statement support
   - **Modules**:
-    - `os`: `getcwd()`, `mkdir()`, `rmdir()`, `listdir()`, `remove()`, `chdir()`, `path.exists()`, `path.isdir()`, `path.isfile()`, `path.getsize()`, `path.join()`
-    - `sys`: `platform`, `version`, `argv`, `exit()`
-    - `math`: `pi`, `e`, `sqrt()`, `sin()`, `cos()`, `tan()`, `exp()`, `log()`, `ceil()`, `floor()`
-    - `time`: `time()`, `sleep()`
-    - `json`: `dumps()`, `loads()`
+    - `os`: `getcwd()`, `mkdir()`, `rmdir()`, `listdir()`, `remove()`, `chdir()`, `rename()`, `getenv()`, `putenv()`, `getpid()`, `environ`
+    - `os.path`: `exists()`, `isdir()`, `isfile()`, `getsize()`, `join()`, `abspath()`, `basename()`, `dirname()`, `split()`, `splitext()`
+    - `sys`: `platform`, `version`, `argv`, `exit()`, `executable()`
+    - `math`: `pi`, `e`, `sqrt()`, `asin()`, `acos()`, `atan()`, `atan2()`, `sin()`, `cos()`, `tan()`, `radians()`, `degrees()`, `exp()`, `log()`, `ceil()`, `floor()`
+    - `time`: `time()`, `sleep()`, `ctime()`
+    - `json`: `dumps()`, `loads()`, `dump()`, `load()`
 
 ## Tests
 Regular Python tests are located in `share/py/tests/`:

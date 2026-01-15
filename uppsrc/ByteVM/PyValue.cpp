@@ -228,6 +228,7 @@ void PyValue::SetItem(int i, const PyValue& v)
 void PyValue::Add(const PyValue& v)
 {
 	if(type == PY_LIST) list->l.Add(v);
+	if(type == PY_TUPLE) tuple->l.Add(v);
 }
 
 PyValue PyValue::GetItem(const PyValue& key) const
@@ -497,6 +498,13 @@ PyValue PyValue::FromValue(const Value& v)
 		return dict;
 	}
 	return PyValue::None();
+}
+
+PyValue PyValue::FromVector(const Vector<PyValue>& v, bool tuple)
+{
+	PyValue res = tuple ? PyValue::Tuple() : PyValue::List();
+	for(const auto& x : v) res.Add(x);
+	return res;
 }
 
 }

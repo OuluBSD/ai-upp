@@ -134,6 +134,35 @@ static PyValue builtin_os_rmdir(const Vector<PyValue>& args, void*) {
 	return PyValue::None();
 }
 
+static PyValue builtin_os_rename(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
+}
+
+static PyValue builtin_os_getenv(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	String val = GetEnv(args[0].ToString());
+	if(::Upp::IsNull(val)) {
+		if(args.GetCount() >= 2) return args[1];
+		return PyValue::None();
+	}
+	return PyValue(val);
+}
+
+static PyValue builtin_os_putenv(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	SetEnv(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_getpid(const Vector<PyValue>& args, void*) {
+#ifdef flagWIN32
+	return PyValue((int64)GetCurrentProcessId());
+#else
+	return PyValue((int64)getpid());
+#endif
+}
+
 static PyValue builtin_os_listdir(const Vector<PyValue>& args, void*) {
 	String path = ".";
 	if(args.GetCount() >= 1) path = args[0].ToString();
@@ -188,6 +217,45 @@ static PyValue builtin_os_path_join(const Vector<PyValue>& args, void*) {
 	return PyValue(path);
 }
 
+static PyValue builtin_os_path_abspath(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFullPath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_basename(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFileName(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_dirname(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFileFolder(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_split(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::Tuple();
+	String path = args[0].ToString();
+	PyValue t = PyValue::Tuple();
+	t.Add(PyValue(GetFileFolder(path)));
+	t.Add(PyValue(GetFileName(path)));
+	return t;
+}
+
+static PyValue builtin_os_path_splitext(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::Tuple();
+	String path = args[0].ToString();
+	PyValue t = PyValue::Tuple();
+	String ext = GetFileExt(path);
+	if(ext.GetCount()) {
+		t.Add(PyValue(path.Left(path.GetCount() - ext.GetCount() - 1)));
+		t.Add(PyValue("." + ext));
+	} else {
+		t.Add(PyValue(path));
+		t.Add(PyValue(""));
+	}
+	return t;
+}
+
 static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	int code = 0;
 	if(args.GetCount() >= 1) code = args[0].AsInt();
@@ -195,9 +263,33 @@ static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	return PyValue::None();
 }
 
+static PyValue builtin_sys_executable(const Vector<PyValue>& args, void*) {
+	return PyValue(GetExeFilePath());
+}
+
 static PyValue builtin_math_sqrt(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0.0);
 	return PyValue(sqrt(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_asin(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(asin(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_acos(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(acos(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_atan(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(atan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_atan2(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(atan2(args[0].AsDouble(), args[1].AsDouble()));
 }
 
 static PyValue builtin_math_sin(const Vector<PyValue>& args, void*) {
@@ -213,6 +305,16 @@ static PyValue builtin_math_cos(const Vector<PyValue>& args, void*) {
 static PyValue builtin_math_tan(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0.0);
 	return PyValue(tan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_radians(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(args[0].AsDouble() * M_PI / 180.0);
+}
+
+static PyValue builtin_math_degrees(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	return PyValue(args[0].AsDouble() * 180.0 / M_PI);
 }
 
 static PyValue builtin_math_exp(const Vector<PyValue>& args, void*) {
@@ -237,13 +339,19 @@ static PyValue builtin_math_floor(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_time_time(const Vector<PyValue>& args, void*) {
-	return PyValue((double)(GetUtcTime().Get() - Time(1970, 1, 1).Get()));
+	return PyValue((double)(GetUtcTime() - Time(1970, 1, 1)));
 }
 
 static PyValue builtin_time_sleep(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue::None();
 	Upp::Sleep((int)(args[0].AsDouble() * 1000));
 	return PyValue::None();
+}
+
+static PyValue builtin_time_ctime(const Vector<PyValue>& args, void*) {
+	Time t = GetSysTime();
+	if(args.GetCount() >= 1) t = Time(1970, 1, 1) + (int64)args[0].AsDouble();
+	return PyValue(Format(t));
 }
 
 static PyValue builtin_json_dumps(const Vector<PyValue>& args, void*) {
@@ -254,6 +362,17 @@ static PyValue builtin_json_dumps(const Vector<PyValue>& args, void*) {
 static PyValue builtin_json_loads(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue::None();
 	return PyValue::FromValue(ParseJSON(args[0].ToString()));
+}
+
+static PyValue builtin_json_dump(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	SaveFile(args[1].ToString(), AsJSON(args[0].ToValue()));
+	return PyValue::None();
+}
+
+static PyValue builtin_json_load(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	return PyValue::FromValue(ParseJSON(LoadFile(args[0].ToString())));
 }
 
 PyVM::PyVM()
@@ -307,9 +426,19 @@ PyVM::PyVM()
 	os.SetItem(PyValue("getcwd"), PyValue::Function("getcwd", builtin_os_getcwd));
 	os.SetItem(PyValue("mkdir"), PyValue::Function("mkdir", builtin_os_mkdir));
 	os.SetItem(PyValue("rmdir"), PyValue::Function("rmdir", builtin_os_rmdir));
+	os.SetItem(PyValue("rename"), PyValue::Function("rename", builtin_os_rename));
+	os.SetItem(PyValue("getenv"), PyValue::Function("getenv", builtin_os_getenv));
+	os.SetItem(PyValue("putenv"), PyValue::Function("putenv", builtin_os_putenv));
+	os.SetItem(PyValue("getpid"), PyValue::Function("getpid", builtin_os_getpid));
 	os.SetItem(PyValue("listdir"), PyValue::Function("listdir", builtin_os_listdir));
 	os.SetItem(PyValue("remove"), PyValue::Function("remove", builtin_os_remove));
 	os.SetItem(PyValue("chdir"), PyValue::Function("chdir", builtin_os_chdir));
+	
+	PyValue environ = PyValue::Dict();
+	const auto& env = Environment();
+	for(int i = 0; i < env.GetCount(); i++)
+		environ.SetItem(PyValue(env.GetKey(i)), PyValue(env[i]));
+	os.SetItem(PyValue("environ"), environ);
 	
 	PyValue os_path = PyValue::Dict();
 	os_path.SetItem(PyValue("exists"), PyValue::Function("exists", builtin_os_path_exists));
@@ -317,7 +446,12 @@ PyVM::PyVM()
 	os_path.SetItem(PyValue("isfile"), PyValue::Function("isfile", builtin_os_path_isfile));
 	os_path.SetItem(PyValue("getsize"), PyValue::Function("getsize", builtin_os_path_getsize));
 	os_path.SetItem(PyValue("join"), PyValue::Function("join", builtin_os_path_join));
-	os.SetItem(PyValue("path"), os_path); // recursive path reference is common in python
+	os_path.SetItem(PyValue("abspath"), PyValue::Function("abspath", builtin_os_path_abspath));
+	os_path.SetItem(PyValue("basename"), PyValue::Function("basename", builtin_os_path_basename));
+	os_path.SetItem(PyValue("dirname"), PyValue::Function("dirname", builtin_os_path_dirname));
+	os_path.SetItem(PyValue("split"), PyValue::Function("split", builtin_os_path_split));
+	os_path.SetItem(PyValue("splitext"), PyValue::Function("splitext", builtin_os_path_splitext));
+	os_path.SetItem(PyValue("path"), os_path); // recursive path reference is common in python
 	
 	os.SetItem(PyValue("path"), os_path);
 	globals.GetAdd(PyValue("os")) = os;
@@ -325,6 +459,7 @@ PyVM::PyVM()
 	// sys module
 	PyValue sys = PyValue::Dict();
 	sys.SetItem(PyValue("exit"), PyValue::Function("exit", builtin_sys_exit));
+	sys.SetItem(PyValue("executable"), PyValue::Function("executable", builtin_sys_executable));
 	
 #ifdef flagWIN32
 	sys.SetItem(PyValue("platform"), PyValue("win32"));
@@ -348,9 +483,15 @@ PyVM::PyVM()
 	// math module
 	PyValue math = PyValue::Dict();
 	math.SetItem(PyValue("sqrt"), PyValue::Function("sqrt", builtin_math_sqrt));
+	math.SetItem(PyValue("asin"), PyValue::Function("asin", builtin_math_asin));
+	math.SetItem(PyValue("acos"), PyValue::Function("acos", builtin_math_acos));
+	math.SetItem(PyValue("atan"), PyValue::Function("atan", builtin_math_atan));
+	math.SetItem(PyValue("atan2"), PyValue::Function("atan2", builtin_math_atan2));
 	math.SetItem(PyValue("sin"), PyValue::Function("sin", builtin_math_sin));
 	math.SetItem(PyValue("cos"), PyValue::Function("cos", builtin_math_cos));
 	math.SetItem(PyValue("tan"), PyValue::Function("tan", builtin_math_tan));
+	math.SetItem(PyValue("radians"), PyValue::Function("radians", builtin_math_radians));
+	math.SetItem(PyValue("degrees"), PyValue::Function("degrees", builtin_math_degrees));
 	math.SetItem(PyValue("exp"), PyValue::Function("exp", builtin_math_exp));
 	math.SetItem(PyValue("log"), PyValue::Function("log", builtin_math_log));
 	math.SetItem(PyValue("ceil"), PyValue::Function("ceil", builtin_math_ceil));
@@ -363,12 +504,15 @@ PyVM::PyVM()
 	PyValue time = PyValue::Dict();
 	time.SetItem(PyValue("time"), PyValue::Function("time", builtin_time_time));
 	time.SetItem(PyValue("sleep"), PyValue::Function("sleep", builtin_time_sleep));
+	time.SetItem(PyValue("ctime"), PyValue::Function("ctime", builtin_time_ctime));
 	globals.GetAdd(PyValue("time")) = time;
 
 	// json module
 	PyValue json = PyValue::Dict();
 	json.SetItem(PyValue("dumps"), PyValue::Function("dumps", builtin_json_dumps));
 	json.SetItem(PyValue("loads"), PyValue::Function("loads", builtin_json_loads));
+	json.SetItem(PyValue("dump"), PyValue::Function("dump", builtin_json_dump));
+	json.SetItem(PyValue("load"), PyValue::Function("load", builtin_json_load));
 	globals.GetAdd(PyValue("json")) = json;
 }
 

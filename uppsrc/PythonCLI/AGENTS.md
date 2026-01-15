@@ -26,6 +26,12 @@ Type "help", "copyright", "credits" or "license" for more information.
   - Complex numbers support in arithmetic
   - Builtins: `abs()`, `bool()`, `complex()`, `iter()`, `next()`, `len()`, `min()`, `max()`, `sum()`, `range()`, `print()`
   - `pass` statement support
+  - **Modules**:
+    - `os`: `getcwd()`, `mkdir()`, `rmdir()`, `listdir()`, `remove()`, `chdir()`, `path.exists()`, `path.isdir()`, `path.isfile()`, `path.getsize()`, `path.join()`
+    - `sys`: `platform`, `version`, `argv`, `exit()`
+    - `math`: `pi`, `e`, `sqrt()`, `sin()`, `cos()`, `tan()`, `exp()`, `log()`, `ceil()`, `floor()`
+    - `time`: `time()`, `sleep()`
+    - `json`: `dumps()`, `loads()`
 
 ## Tests
 Regular Python tests are located in `share/py/tests/`:
@@ -38,6 +44,10 @@ Regular Python tests are located in `share/py/tests/`:
 - `07_iterators.py`: iter() and next() builtins
 - `08_builtins.py`: abs, min, max, sum builtins
 - `09_misc.py`: pass statement
+- `10_os_sys.py`: os and sys modules tests
+- `11_math.py`: math module tests
+- `12_time.py`: time module tests
+- `13_json.py`: json module tests
 
 ## Architecture
 - Uses Tokenizer from Core/TextParsing

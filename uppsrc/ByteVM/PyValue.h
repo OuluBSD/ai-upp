@@ -156,6 +156,7 @@ public:
 	static PyValue UserDataNonOwning(PyUserData *ud);
 	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
 	static PyValue StopIteration() { PyValue v; v.type = PY_STOP_ITERATION; return v; }
+	static PyValue FromValue(const Value& v);
 
 	const PyLambda& GetLambda() const { ASSERT(type == PY_FUNCTION); return *lambda; }
 	PyLambda&       GetLambdaRW() { ASSERT(type == PY_FUNCTION); return *lambda; }

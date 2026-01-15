@@ -1275,10 +1275,14 @@ PyValue PyVM::Run()
 
 			case PY_IMPORT_NAME: {
 				String name = instr.arg.ToString();
-				// Check if it's already in globals (builtin modules are there for now)
-				int q = globals.Find(name);
+				// Support dotted names like os.path
+				Vector<String> parts = Split(name, '.');
+				PyValue current;
+				
+				// Check first part in globals
+				int q = globals.Find(parts[0]);
 				if(q >= 0) {
-					Push(globals[q]);
+					current = globals[q];
 				}
 				else {
 					// Check sys.modules
@@ -1286,16 +1290,23 @@ PyValue PyVM::Run()
 					if(sys.GetType() == PY_DICT) {
 						PyValue modules = sys.GetItem(PyValue("modules"));
 						if(modules.GetType() == PY_DICT) {
-							PyValue mod = modules.GetItem(PyValue(name));
-							if(!mod.IsNone()) {
-								Push(mod);
-								break;
-							}
+							current = modules.GetItem(PyValue(parts[0]));
 						}
 					}
-					// If not found, for now we don't have a filesystem loader, so just push None
-					Push(PyValue::None());
 				}
+				
+				if(!current.IsNone()) {
+					for(int i = 1; i < parts.GetCount(); i++) {
+						if(current.GetType() == PY_DICT) {
+							current = current.GetItem(PyValue(parts[i]));
+						} else {
+							current = PyValue::None();
+							break;
+						}
+					}
+				}
+				
+				Push(current);
 				break;
 			}
 

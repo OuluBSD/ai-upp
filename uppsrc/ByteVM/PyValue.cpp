@@ -213,6 +213,10 @@ PyValue PyValue::GetItem(int i) const
 {
 	if(type == PY_LIST) return list->l[i];
 	if(type == PY_TUPLE) return tuple->l[i];
+	if(type == PY_STR) {
+		if(i >= 0 && i < wstr->s.GetCount())
+			return PyValue(WString(wstr->s[i], 1));
+	}
 	return PyValue();
 }
 
@@ -229,6 +233,7 @@ void PyValue::Add(const PyValue& v)
 PyValue PyValue::GetItem(const PyValue& key) const
 {
 	if(type == PY_DICT) return dict->d.Get(key, PyValue());
+	if(type == PY_STR && key.IsInt()) return GetItem(key.AsInt());
 	return PyValue();
 }
 
@@ -267,7 +272,7 @@ String PyValue::ToString() const
 	case PY_BOOL: return b ? "True" : "False";
 	case PY_INT: return IntStr64(i64);
 	case PY_FLOAT: return FormatDouble(f64);
-	case PY_COMPLEX: return Format("(%g+%gj)", complex->c.real(), complex->c.imag());
+	case PY_COMPLEX: return Format("(%g + %g j)", complex->c.real(), complex->c.imag());
 	case PY_STR: return wstr->s.ToString();
 	case PY_BYTES: return Format("b'%s'", bytes->s); // Simple escape
 	case PY_LIST: {

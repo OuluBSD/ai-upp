@@ -20,6 +20,24 @@ Type "help", "copyright", "credits" or "license" for more information.
 - Support for basic Python-like syntax
 - Integration with U++ ByteVM for execution
 - Ability to run script files
+- **New (0.1v+)**:
+  - Subscription assignment (`list[idx] = val`, `dict[key] = val`)
+  - String indexing (`str[idx]`)
+  - Complex numbers support in arithmetic
+  - Builtins: `abs()`, `bool()`, `complex()`, `iter()`, `next()`, `len()`, `min()`, `max()`, `sum()`, `range()`, `print()`
+  - `pass` statement support
+
+## Tests
+Regular Python tests are located in `share/py/tests/`:
+- `01_basic.py`: Arithmetic, variables, booleans
+- `02_types.py`: Lists and Dicts (including assignment)
+- `03_control_flow.py`: if, while, for loops
+- `04_functions.py`: Function definitions and recursion (Fibonacci)
+- `05_complex.py`: Complex numbers arithmetic
+- `06_strings.py`: String concatenation and indexing
+- `07_iterators.py`: iter() and next() builtins
+- `08_builtins.py`: abs, min, max, sum builtins
+- `09_misc.py`: pass statement
 
 ## Architecture
 - Uses Tokenizer from Core/TextParsing

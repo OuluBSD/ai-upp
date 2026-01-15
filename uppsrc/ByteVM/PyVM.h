@@ -23,7 +23,7 @@ public:
 	PyVM();
 	
 	void SetIR(Vector<PyIR>& ir);
-	void Run();
+	PyValue Run();
 	
 	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
 };

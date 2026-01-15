@@ -256,6 +256,38 @@ static PyValue builtin_os_path_splitext(const Vector<PyValue>& args, void*) {
 	return t;
 }
 
+static PyValue builtin_os_path_isabs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	String path = args[0].ToString();
+#ifdef flagWIN32
+	return PyValue((path.GetCount() >= 2 && IsAlpha(path[0]) && path[1] == ':') || path.StartsWith("\\\\") || path.StartsWith("/"));
+#else
+	return PyValue(path.StartsWith("/"));
+#endif
+}
+
+static PyValue builtin_os_getlogin(const Vector<PyValue>& args, void*) {
+	return PyValue(GetUserName());
+}
+
+static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
+	PyValue t = PyValue::Tuple();
+#ifdef flagWIN32
+	t.Add(PyValue("Windows"));
+#elif defined(flagLINUX)
+	t.Add(PyValue("Linux"));
+#elif defined(flagMACOS)
+	t.Add(PyValue("Darwin"));
+#else
+	t.Add(PyValue("Unknown"));
+#endif
+	t.Add(PyValue(GetHostName()));
+	t.Add(PyValue("")); // release
+	t.Add(PyValue("")); // version
+	t.Add(PyValue("")); // machine
+	return t;
+}
+
 static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	int code = 0;
 	if(args.GetCount() >= 1) code = args[0].AsInt();
@@ -270,6 +302,69 @@ static PyValue builtin_sys_executable(const Vector<PyValue>& args, void*) {
 static PyValue builtin_math_sqrt(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0.0);
 	return PyValue(sqrt(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_pow(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0.0);
+	return PyValue(pow(args[0].AsDouble(), args[1].AsDouble()));
+}
+
+static PyValue builtin_math_isinf(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isinf(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_isnan(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isnan(args[0].AsDouble()));
+}
+
+static PyValue builtin_math_isfinite(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	return PyValue(std::isfinite(args[0].AsDouble()));
+}
+
+static int64 py_gcd(int64 a, int64 b) {
+	while(b) { a %= b; Swap(a, b); }
+	return a;
+}
+
+static PyValue builtin_math_gcd(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(0);
+	return PyValue(py_gcd(args[0].AsInt64(), args[1].AsInt64()));
+}
+
+static PyValue builtin_math_factorial(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	int64 n = args[0].AsInt64();
+	if(n < 0) return PyValue(0);
+	int64 r = 1;
+	for(int64 i = 2; i <= n; i++) r *= i;
+	return PyValue(r);
+}
+
+static PyValue builtin_math_hypot(const Vector<PyValue>& args, void*) {
+	double s2 = 0;
+	for(const auto& v : args) {
+		double d = v.AsDouble();
+		s2 += d * d;
+	}
+	return PyValue(sqrt(s2));
+}
+
+static PyValue builtin_math_trunc(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0);
+	return PyValue((int64)args[0].AsDouble());
+}
+
+static PyValue builtin_math_fsum(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	const Vector<PyValue> *items = &args;
+	if(args.GetCount() == 1 && (args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE))
+		items = &args[0].GetArray();
+	double s = 0;
+	for(const auto& v : *items) s += v.AsDouble();
+	return PyValue(s);
 }
 
 static PyValue builtin_math_asin(const Vector<PyValue>& args, void*) {

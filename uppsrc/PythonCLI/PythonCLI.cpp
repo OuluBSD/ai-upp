@@ -217,6 +217,10 @@ String PythonCLI::ReadLine()
 					Cout() << res.Repr() << "\n";
 				}
 			} catch (Exc& e) {
+				if (e.StartsWith("EXIT:")) {
+					exit_code = StrInt(e.Mid(5));
+					return false;
+				}
 				if (is_interactive) {
 					Cout() << e << "\n";
 				} else {
@@ -267,10 +271,10 @@ String PythonCLI::ReadLine()
 				}
 			}
 		}
-		return 0;
+		return exit_code;
 	}
 
-	bool PythonCLI::RunScript(const String& filename)
+	int PythonCLI::RunScript(const String& filename)
 	{
 		String content = LoadFile(filename);
 
@@ -297,20 +301,30 @@ String PythonCLI::ReadLine()
 			}
 
 			vm.SetIR(ir);
-			try {
-				vm.Run();
-			} catch (Exc& e) {
-				Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
-				return false;
+					try {
+						vm.Run();
+					} catch (Exc& e) {
+						if (e.StartsWith("EXIT:")) {
+							exit_code = StrInt(e.Mid(5));
+							return exit_code == 0; // if non-zero, usually means error/exit
+						}
+						Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
+						exit_code = 1;
+						return 1;
+					}
+				} catch (...) {
+					Cout() << "Internal error occurred while processing file '" << filename << "'\n";
+					exit_code = 1;
+					return 1;
+				}
+				return exit_code;
 			}
-		} catch (...) {
-			Cout() << "Internal error occurred while processing file '" << filename << "'\n";
-			return false;
-		}
-		return true;
-	}
-
-	int PythonCLI::Run()
-	{
-		return RunInteractive();
-	}
+			
+			int PythonCLI::Run()
+			{
+				const auto& cmds = CommandLine();
+				if (cmds.GetCount() > 0)
+					return RunScript(cmds[0]);
+				return RunInteractive();
+			}
+			

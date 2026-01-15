@@ -1,13 +1,16 @@
 description "Classes for 2D/3D/etc operations.\377B128,0,54";
 
+acceptflags
+	DEBUG_RT,
+	ASSIMP,
+	BUILTIN_ASSIMP,
+	UWP;
+
 uses
 	plugin/mikktspace,
 	Draw,
 	Draw/Extensions,
 	Core/MathNumeric;
-
-acceptflags
-	DEBUG_RT;
 
 uses(!UWP) plugin/tiny_gltf;
 

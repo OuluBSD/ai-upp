@@ -281,7 +281,7 @@ static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
 #else
 	t.Add(PyValue("Unknown"));
 #endif
-	t.Add(PyValue(GetHostName()));
+	t.Add(PyValue(GetComputerName()));
 	t.Add(PyValue("")); // release
 	t.Add(PyValue("")); // version
 	t.Add(PyValue("")); // machine
@@ -449,9 +449,46 @@ static PyValue builtin_time_ctime(const Vector<PyValue>& args, void*) {
 	return PyValue(Format(t));
 }
 
+static PyValue builtin_time_perf_counter(const Vector<PyValue>& args, void*) {
+	static int64 start = msecs();
+	return PyValue((double)(msecs() - start) / 1000.0);
+}
+
+static PyValue time_to_tuple(Time t) {
+	PyValue res = PyValue::Tuple();
+	res.Add(PyValue(t.year));
+	res.Add(PyValue(t.month));
+	res.Add(PyValue(t.day));
+	res.Add(PyValue(t.hour));
+	res.Add(PyValue(t.minute));
+	res.Add(PyValue(t.second));
+	res.Add(PyValue(DayOfWeek(t))); // tm_wday
+	res.Add(PyValue(DayOfYear(t))); // tm_yday
+	res.Add(PyValue(-1)); // tm_isdst
+	return res;
+}
+
+static PyValue builtin_time_gmtime(const Vector<PyValue>& args, void*) {
+	Time t = GetUtcTime();
+	if(args.GetCount() >= 1) t = Time(1970, 1, 1) + (int64)args[0].AsDouble();
+	return time_to_tuple(t);
+}
+
+static PyValue builtin_time_localtime(const Vector<PyValue>& args, void*) {
+	Time t = GetSysTime();
+	if(args.GetCount() >= 1) {
+		t = Time(1970, 1, 1) + (int64)args[0].AsDouble(); // Not perfect as it doesn't account for local TZ properly but okay for now
+	}
+	return time_to_tuple(t);
+}
+
 static PyValue builtin_json_dumps(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue("");
-	return PyValue(AsJSON(args[0].ToValue()));
+	bool pretty = false;
+	if(args.GetCount() >= 2) {
+		if(args[1].IsInt() && args[1].AsInt() > 0) pretty = true;
+	}
+	return PyValue(AsJSON(args[0].ToValue(), pretty));
 }
 
 static PyValue builtin_json_loads(const Vector<PyValue>& args, void*) {
@@ -528,6 +565,26 @@ PyVM::PyVM()
 	os.SetItem(PyValue("listdir"), PyValue::Function("listdir", builtin_os_listdir));
 	os.SetItem(PyValue("remove"), PyValue::Function("remove", builtin_os_remove));
 	os.SetItem(PyValue("chdir"), PyValue::Function("chdir", builtin_os_chdir));
+	os.SetItem(PyValue("getlogin"), PyValue::Function("getlogin", builtin_os_getlogin));
+	os.SetItem(PyValue("uname"), PyValue::Function("uname", builtin_os_uname));
+	
+#ifdef flagWIN32
+	os.SetItem(PyValue("name"), PyValue("nt"));
+	os.SetItem(PyValue("sep"), PyValue("\\"));
+	os.SetItem(PyValue("altsep"), PyValue("/"));
+	os.SetItem(PyValue("extsep"), PyValue("."));
+	os.SetItem(PyValue("pathsep"), PyValue(";"));
+	os.SetItem(PyValue("linesep"), PyValue("\r\n"));
+	os.SetItem(PyValue("devnull"), PyValue("nul"));
+#else
+	os.SetItem(PyValue("name"), PyValue("posix"));
+	os.SetItem(PyValue("sep"), PyValue("/"));
+	os.SetItem(PyValue("altsep"), PyValue::None());
+	os.SetItem(PyValue("extsep"), PyValue("."));
+	os.SetItem(PyValue("pathsep"), PyValue(":"));
+	os.SetItem(PyValue("linesep"), PyValue("\n"));
+	os.SetItem(PyValue("devnull"), PyValue("/dev/null"));
+#endif
 	
 	PyValue environ = PyValue::Dict();
 	const auto& env = Environment();
@@ -546,8 +603,13 @@ PyVM::PyVM()
 	os_path.SetItem(PyValue("dirname"), PyValue::Function("dirname", builtin_os_path_dirname));
 	os_path.SetItem(PyValue("split"), PyValue::Function("split", builtin_os_path_split));
 	os_path.SetItem(PyValue("splitext"), PyValue::Function("splitext", builtin_os_path_splitext));
-	os_path.SetItem(PyValue("path"), os_path); // recursive path reference is common in python
+	os_path.SetItem(PyValue("isabs"), PyValue::Function("isabs", builtin_os_path_isabs));
 	
+	os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
+	os_path.SetItem(PyValue("altsep"), os.GetItem(PyValue("altsep")));
+	os_path.SetItem(PyValue("extsep"), os.GetItem(PyValue("extsep")));
+	os_path.SetItem(PyValue("pathsep"), os.GetItem(PyValue("pathsep")));
+
 	os.SetItem(PyValue("path"), os_path);
 	globals.GetAdd(PyValue("os")) = os;
 
@@ -555,6 +617,14 @@ PyVM::PyVM()
 	PyValue sys = PyValue::Dict();
 	sys.SetItem(PyValue("exit"), PyValue::Function("exit", builtin_sys_exit));
 	sys.SetItem(PyValue("executable"), PyValue::Function("executable", builtin_sys_executable));
+	sys.SetItem(PyValue("path"), PyValue::List());
+	sys.SetItem(PyValue("modules"), PyValue::Dict());
+	
+#ifdef CPU_LE
+	sys.SetItem(PyValue("byteorder"), PyValue("little"));
+#else
+	sys.SetItem(PyValue("byteorder"), PyValue("big"));
+#endif
 	
 #ifdef flagWIN32
 	sys.SetItem(PyValue("platform"), PyValue("win32"));
@@ -591,6 +661,15 @@ PyVM::PyVM()
 	math.SetItem(PyValue("log"), PyValue::Function("log", builtin_math_log));
 	math.SetItem(PyValue("ceil"), PyValue::Function("ceil", builtin_math_ceil));
 	math.SetItem(PyValue("floor"), PyValue::Function("floor", builtin_math_floor));
+	math.SetItem(PyValue("pow"), PyValue::Function("pow", builtin_math_pow));
+	math.SetItem(PyValue("isinf"), PyValue::Function("isinf", builtin_math_isinf));
+	math.SetItem(PyValue("isnan"), PyValue::Function("isnan", builtin_math_isnan));
+	math.SetItem(PyValue("isfinite"), PyValue::Function("isfinite", builtin_math_isfinite));
+	math.SetItem(PyValue("gcd"), PyValue::Function("gcd", builtin_math_gcd));
+	math.SetItem(PyValue("factorial"), PyValue::Function("factorial", builtin_math_factorial));
+	math.SetItem(PyValue("hypot"), PyValue::Function("hypot", builtin_math_hypot));
+	math.SetItem(PyValue("trunc"), PyValue::Function("trunc", builtin_math_trunc));
+	math.SetItem(PyValue("fsum"), PyValue::Function("fsum", builtin_math_fsum));
 	math.SetItem(PyValue("pi"), PyValue(M_PI));
 	math.SetItem(PyValue("e"), PyValue(2.718281828459045));
 	globals.GetAdd(PyValue("math")) = math;
@@ -600,6 +679,9 @@ PyVM::PyVM()
 	time.SetItem(PyValue("time"), PyValue::Function("time", builtin_time_time));
 	time.SetItem(PyValue("sleep"), PyValue::Function("sleep", builtin_time_sleep));
 	time.SetItem(PyValue("ctime"), PyValue::Function("ctime", builtin_time_ctime));
+	time.SetItem(PyValue("perf_counter"), PyValue::Function("perf_counter", builtin_time_perf_counter));
+	time.SetItem(PyValue("gmtime"), PyValue::Function("gmtime", builtin_time_gmtime));
+	time.SetItem(PyValue("localtime"), PyValue::Function("localtime", builtin_time_localtime));
 	globals.GetAdd(PyValue("time")) = time;
 
 	// json module

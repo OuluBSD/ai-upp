@@ -26,31 +26,31 @@ Type "help", "copyright", "credits" or "license" for more information.
   - Complex numbers support in arithmetic
   - Builtins: `abs()`, `bool()`, `complex()`, `iter()`, `next()`, `len()`, `min()`, `max()`, `sum()`, `range()`, `print()`
   - `pass` statement support
-  - **Modules**:
-    - `os`: `getcwd()`, `mkdir()`, `rmdir()`, `listdir()`, `remove()`, `chdir()`, `rename()`, `getenv()`, `putenv()`, `getpid()`, `environ`
-    - `os.path`: `exists()`, `isdir()`, `isfile()`, `getsize()`, `join()`, `abspath()`, `basename()`, `dirname()`, `split()`, `splitext()`
-    - `sys`: `platform`, `version`, `argv`, `exit()`, `executable()`
-    - `math`: `pi`, `e`, `sqrt()`, `asin()`, `acos()`, `atan()`, `atan2()`, `sin()`, `cos()`, `tan()`, `radians()`, `degrees()`, `exp()`, `log()`, `ceil()`, `floor()`
-    - `time`: `time()`, `sleep()`, `ctime()`
-    - `json`: `dumps()`, `loads()`, `dump()`, `load()`
-
-## Tests
-Regular Python tests are located in `share/py/tests/`:
-- `01_basic.py`: Arithmetic, variables, booleans
-- `02_types.py`: Lists and Dicts (including assignment)
-- `03_control_flow.py`: if, while, for loops
-- `04_functions.py`: Function definitions and recursion (Fibonacci)
-- `05_complex.py`: Complex numbers arithmetic
-- `06_strings.py`: String concatenation and indexing
-- `07_iterators.py`: iter() and next() builtins
-- `08_builtins.py`: abs, min, max, sum builtins
-- `09_misc.py`: pass statement
-- `10_os_sys.py`: os and sys modules tests
-- `11_math.py`: math module tests
-- `12_time.py`: time module tests
-- `13_json.py`: json module tests
-
-## Architecture
+      - **Modules**:
+        - `os`: `getcwd()`, `mkdir()`, `rmdir()`, `listdir()`, `remove()`, `chdir()`, `rename()`, `getenv()`, `putenv()`, `getpid()`, `getlogin()`, `uname()`, `environ`, `name`, `sep`, `altsep`, `extsep`, `pathsep`, `linesep`, `devnull`
+        - `os.path`: `exists()`, `isdir()`, `isfile()`, `getsize()`, `join()`, `abspath()`, `basename()`, `dirname()`, `split()`, `splitext()`, `isabs()`
+        - `sys`: `platform`, `version`, `argv`, `byteorder`, `path`, `modules`, `exit()`, `executable()`
+        - `math`: `pi`, `e`, `sqrt()`, `asin()`, `acos()`, `atan()`, `atan2()`, `sin()`, `cos()`, `tan()`, `radians()`, `degrees()`, `exp()`, `log()`, `ceil()`, `floor()`, `pow()`, `isinf()`, `isnan()`, `isfinite()`, `gcd()`, `factorial()`, `hypot()`, `trunc()`, `fsum()`
+        - `time`: `time()`, `sleep()`, `ctime()`, `perf_counter()`, `gmtime()`, `localtime()`
+        - `json`: `dumps()` (with indent support), `loads()`, `dump()`, `load()`
+  
+  ## Tests
+  Regular Python tests are located in `share/py/tests/`:
+  - `01_basic.py`: Arithmetic, variables, booleans
+  - `02_types.py`: Lists and Dicts (including assignment)
+  - `03_control_flow.py`: if, while, for loops
+  - `04_functions.py`: Function definitions and recursion (Fibonacci)
+  - `05_complex.py`: Complex numbers arithmetic
+  - `06_strings.py`: String concatenation and indexing
+  - `07_iterators.py`: iter() and next() builtins
+  - `08_builtins.py`: abs, min, max, sum builtins
+  - `09_misc.py`: pass statement
+  - `10_os_sys.py`: os and sys modules tests
+  - `11_math.py`: math module tests
+  - `12_time.py`: time module tests
+  - `13_json.py`: json module tests
+  - `14_expanded_modules.py`: Tests for expanded functions in math, os, sys, time, and json
+  ## Architecture
 - Uses Tokenizer from Core/TextParsing
 - PyCompiler and PyVM from ByteVM package
 - Standard U++ console application pattern

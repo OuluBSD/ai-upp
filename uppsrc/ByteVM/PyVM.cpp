@@ -1,7 +1,23 @@
 #include "ByteVM.h"
 #include <Core/Core.h>
 
+#ifdef PLATFORM_POSIX
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 namespace Upp {
+
+static String GetRelPath(String path, String base) {
+	path = NormalizePath(path);
+	base = NormalizePath(base);
+	if(path.StartsWith(base)) {
+		String res = path.Mid(base.GetCount());
+		if(res.StartsWith("/") || res.StartsWith("\\")) res = res.Mid(1);
+		return res;
+	}
+	return path;
+}
 
 struct PyKV : Moveable<PyKV> {
 	PyValue k, v;
@@ -75,6 +91,11 @@ static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
 	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
 	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
 	return v;
+}
+
+static PyValue builtin_str(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	return PyValue(args[0].ToString());
 }
 
 static PyValue builtin_dir(const Vector<PyValue>& args, void*) {
@@ -184,6 +205,22 @@ static PyValue builtin_os_getpid(const Vector<PyValue>& args, void*) {
 #endif
 }
 
+static PyValue builtin_os_getuid(const Vector<PyValue>& args, void*) {
+#ifdef flagWIN32
+	return PyValue((int64)0);
+#else
+	return PyValue((int64)getuid());
+#endif
+}
+
+static PyValue builtin_os_getgid(const Vector<PyValue>& args, void*) {
+#ifdef flagWIN32
+	return PyValue((int64)0);
+#else
+	return PyValue((int64)getgid());
+#endif
+}
+
 static PyValue builtin_os_listdir(const Vector<PyValue>& args, void*) {
 	String path = ".";
 	if(args.GetCount() >= 1) path = args[0].ToString();
@@ -228,6 +265,73 @@ static PyValue builtin_os_path_isfile(const Vector<PyValue>& args, void*) {
 static PyValue builtin_os_path_getsize(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0);
 	return PyValue((int64)GetFileLength(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_islink(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+#ifdef flagWIN32
+	return PyValue(false);
+#else
+	struct stat st;
+	if(lstat(args[0].ToString(), &st) == 0)
+		return PyValue(S_ISLNK(st.st_mode));
+	return PyValue(false);
+#endif
+}
+
+static PyValue builtin_os_path_lexists(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+#ifdef flagWIN32
+	return builtin_os_path_exists(args, NULL);
+#else
+	struct stat st;
+	return PyValue(lstat(args[0].ToString(), &st) == 0);
+#endif
+}
+
+static PyValue builtin_os_path_getatime(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) return PyValue((double)(Time(ff.GetLastAccessTime()) - Time(1970, 1, 1)));
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_getmtime(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) return PyValue((double)(Time(ff.GetLastWriteTime()) - Time(1970, 1, 1)));
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_getctime(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(0.0);
+	FindFile ff(args[0].ToString());
+	if(ff) {
+#ifdef flagWIN32
+		return PyValue((double)(Time(ff.GetCreationTime()) - Time(1970, 1, 1)));
+#else
+		return PyValue((double)(Time(ff.GetLastChangeTime()) - Time(1970, 1, 1)));
+#endif
+	}
+	return PyValue(0.0);
+}
+
+static PyValue builtin_os_path_realpath(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(GetFullPath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_relpath(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	String path = args[0].ToString();
+	String start = GetCurrentDirectory();
+	if(args.GetCount() >= 2) start = args[1].ToString();
+	return PyValue(GetRelPath(path, start));
+}
+
+static PyValue builtin_os_path_samefile(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(false);
+	return PyValue(PathIsEqual(args[0].ToString(), args[1].ToString()));
 }
 
 static PyValue builtin_os_path_join(const Vector<PyValue>& args, void*) {
@@ -287,8 +391,154 @@ static PyValue builtin_os_path_isabs(const Vector<PyValue>& args, void*) {
 #endif
 }
 
+static PyValue builtin_os_path_normpath(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	return PyValue(NormalizePath(args[0].ToString()));
+}
+
+static PyValue builtin_os_path_normcase(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+#ifdef flagWIN32
+	return PyValue(ToLower(args[0].ToString()));
+#else
+	return args[0];
+#endif
+}
+
 static PyValue builtin_os_getlogin(const Vector<PyValue>& args, void*) {
 	return PyValue(GetUserName());
+}
+
+static PyValue builtin_os_getppid(const Vector<PyValue>& args, void*) {
+#ifdef flagWIN32
+	return PyValue((int64)0); 
+#else
+	return PyValue((int64)getppid());
+#endif
+}
+
+static PyValue builtin_os_makedirs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	RealizeDirectory(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_removedirs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	DeleteFolderDeep(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue builtin_os_replace(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
+}
+
+static PyValue builtin_os_truncate(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	String path = args[0].ToString();
+	int64 length = args[1].AsInt64();
+	FileOut out(path);
+	if(out) out.SetSize(length);
+	return PyValue::None();
+}
+
+static PyValue builtin_os_system(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(-1);
+	return PyValue((int64)system(args[0].ToString()));
+}
+
+static PyValue builtin_os_cpu_count(const Vector<PyValue>& args, void*) {
+	return PyValue((int64)CPU_Cores());
+}
+
+static PyValue builtin_os_urandom(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+	int n = args[0].AsInt();
+	Buffer<byte> b(n);
+	for(int i = 0; i < n; i++) b[i] = (byte)Random(256);
+	return PyValue(String((const char*)~b, n));
+}
+
+static PyValue builtin_os_readlink(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue("");
+#ifdef flagWIN32
+	return PyValue(""); 
+#else
+	char buf[1024];
+	ssize_t len = readlink(args[0].ToString(), buf, sizeof(buf)-1);
+	if(len != -1) {
+		buf[len] = '\0';
+		return PyValue(String(buf));
+	}
+	return PyValue("");
+#endif
+}
+
+static PyValue builtin_os_symlink(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+#ifdef flagWIN32
+	return PyValue::None();
+#else
+	symlink(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+#endif
+}
+
+static PyValue builtin_os_abort(const Vector<PyValue>& args, void*) {
+	abort();
+	return PyValue::None();
+}
+
+static PyValue builtin_os_access(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue(false);
+	String path = args[0].ToString();
+	int mode = 0;
+	if(args.GetCount() >= 2) mode = args[1].AsInt();
+	return PyValue(access(path, mode) == 0);
+}
+
+static PyValue builtin_os_chmod(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	chmod(args[0].ToString(), args[1].AsInt());
+	return PyValue::None();
+}
+
+static PyValue builtin_subprocess_run(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	String cmd;
+	if(args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE) {
+		const Vector<PyValue>& v = args[0].GetArray();
+		for(int i = 0; i < v.GetCount(); i++) {
+			if(i) cmd << " ";
+			cmd << v[i].ToString();
+		}
+	} else {
+		cmd = args[0].ToString();
+	}
+	
+	int res = system(cmd);
+	PyValue obj = PyValue::Dict();
+	obj.SetItem(PyValue("returncode"), PyValue(res == 0 ? 0 : (res >> 8)));
+	return obj;
+}
+
+static PyValue builtin_str_endswith(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue(false);
+	String self = args[0].ToString();
+	return PyValue(self.EndsWith(args[1].ToString()));
+}
+
+static PyValue builtin_str_join(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue("");
+	String self = args[0].ToString();
+	String res;
+	PyValue list = args[1];
+	for(int i = 0; i < list.GetCount(); i++) {
+		if(i) res << self;
+		res << list.GetItem(i).ToString();
+	}
+	return PyValue(res);
 }
 
 static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
@@ -312,12 +562,8 @@ static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
 static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	int code = 0;
 	if(args.GetCount() >= 1) code = args[0].AsInt();
-	exit(code);
+	throw Exc("EXIT:" + AsString(code));
 	return PyValue::None();
-}
-
-static PyValue builtin_sys_executable(const Vector<PyValue>& args, void*) {
-	return PyValue(GetExeFilePath());
 }
 
 static PyValue builtin_math_asinh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(asinh(args[0].AsDouble())); }
@@ -699,6 +945,11 @@ PyVM::PyVM()
 	p_bool.GetLambdaRW().builtin = builtin_bool;
 	globals.GetAdd(PyValue("bool")) = p_bool;
 
+	PyValue p_str = PyValue::Function("str");
+	p_str.GetLambdaRW().builtin = builtin_str;
+	globals.GetAdd(PyValue("str")) = p_str;
+
+
 	PyValue p_iter = PyValue::Function("iter");
 	p_iter.GetLambdaRW().builtin = builtin_iter;
 	globals.GetAdd(PyValue("iter")) = p_iter;
@@ -706,10 +957,6 @@ PyVM::PyVM()
 	PyValue p_next = PyValue::Function("next");
 	p_next.GetLambdaRW().builtin = builtin_next;
 	globals.GetAdd(PyValue("next")) = p_next;
-
-	PyValue p_abs = PyValue::Function("abs");
-	p_abs.GetLambdaRW().builtin = builtin_abs;
-	globals.GetAdd(PyValue("abs")) = p_abs;
 
 	PyValue p_dir = PyValue::Function("dir");
 	p_dir.GetLambdaRW().builtin = builtin_dir;
@@ -736,10 +983,25 @@ PyVM::PyVM()
 	os.SetItem(PyValue("getenv"), PyValue::Function("getenv", builtin_os_getenv));
 	os.SetItem(PyValue("putenv"), PyValue::Function("putenv", builtin_os_putenv));
 	os.SetItem(PyValue("getpid"), PyValue::Function("getpid", builtin_os_getpid));
+	os.SetItem(PyValue("getuid"), PyValue::Function("getuid", builtin_os_getuid));
+	os.SetItem(PyValue("getgid"), PyValue::Function("getgid", builtin_os_getgid));
 	os.SetItem(PyValue("listdir"), PyValue::Function("listdir", builtin_os_listdir));
 	os.SetItem(PyValue("remove"), PyValue::Function("remove", builtin_os_remove));
 	os.SetItem(PyValue("chdir"), PyValue::Function("chdir", builtin_os_chdir));
 	os.SetItem(PyValue("getlogin"), PyValue::Function("getlogin", builtin_os_getlogin));
+	os.SetItem(PyValue("getppid"), PyValue::Function("getppid", builtin_os_getppid));
+	os.SetItem(PyValue("makedirs"), PyValue::Function("makedirs", builtin_os_makedirs));
+	os.SetItem(PyValue("removedirs"), PyValue::Function("removedirs", builtin_os_removedirs));
+	os.SetItem(PyValue("replace"), PyValue::Function("replace", builtin_os_replace));
+	os.SetItem(PyValue("truncate"), PyValue::Function("truncate", builtin_os_truncate));
+	os.SetItem(PyValue("system"), PyValue::Function("system", builtin_os_system));
+	os.SetItem(PyValue("cpu_count"), PyValue::Function("cpu_count", builtin_os_cpu_count));
+	os.SetItem(PyValue("urandom"), PyValue::Function("urandom", builtin_os_urandom));
+	os.SetItem(PyValue("readlink"), PyValue::Function("readlink", builtin_os_readlink));
+	os.SetItem(PyValue("symlink"), PyValue::Function("symlink", builtin_os_symlink));
+	os.SetItem(PyValue("abort"), PyValue::Function("abort", builtin_os_abort));
+	os.SetItem(PyValue("access"), PyValue::Function("access", builtin_os_access));
+	os.SetItem(PyValue("chmod"), PyValue::Function("chmod", builtin_os_chmod));
 	os.SetItem(PyValue("uname"), PyValue::Function("uname", builtin_os_uname));
 	
 #ifdef flagWIN32
@@ -770,14 +1032,24 @@ PyVM::PyVM()
 	os_path.SetItem(PyValue("exists"), PyValue::Function("exists", builtin_os_path_exists));
 	os_path.SetItem(PyValue("isdir"), PyValue::Function("isdir", builtin_os_path_isdir));
 	os_path.SetItem(PyValue("isfile"), PyValue::Function("isfile", builtin_os_path_isfile));
+	os_path.SetItem(PyValue("islink"), PyValue::Function("islink", builtin_os_path_islink));
+	os_path.SetItem(PyValue("lexists"), PyValue::Function("lexists", builtin_os_path_lexists));
 	os_path.SetItem(PyValue("getsize"), PyValue::Function("getsize", builtin_os_path_getsize));
+	os_path.SetItem(PyValue("getatime"), PyValue::Function("getatime", builtin_os_path_getatime));
+	os_path.SetItem(PyValue("getmtime"), PyValue::Function("getmtime", builtin_os_path_getmtime));
+	os_path.SetItem(PyValue("getctime"), PyValue::Function("getctime", builtin_os_path_getctime));
 	os_path.SetItem(PyValue("join"), PyValue::Function("join", builtin_os_path_join));
 	os_path.SetItem(PyValue("abspath"), PyValue::Function("abspath", builtin_os_path_abspath));
+	os_path.SetItem(PyValue("realpath"), PyValue::Function("realpath", builtin_os_path_realpath));
+	os_path.SetItem(PyValue("relpath"), PyValue::Function("relpath", builtin_os_path_relpath));
+	os_path.SetItem(PyValue("samefile"), PyValue::Function("samefile", builtin_os_path_samefile));
 	os_path.SetItem(PyValue("basename"), PyValue::Function("basename", builtin_os_path_basename));
 	os_path.SetItem(PyValue("dirname"), PyValue::Function("dirname", builtin_os_path_dirname));
 	os_path.SetItem(PyValue("split"), PyValue::Function("split", builtin_os_path_split));
 	os_path.SetItem(PyValue("splitext"), PyValue::Function("splitext", builtin_os_path_splitext));
 	os_path.SetItem(PyValue("isabs"), PyValue::Function("isabs", builtin_os_path_isabs));
+	os_path.SetItem(PyValue("normpath"), PyValue::Function("normpath", builtin_os_path_normpath));
+	os_path.SetItem(PyValue("normcase"), PyValue::Function("normcase", builtin_os_path_normcase));
 	
 os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 	os_path.SetItem(PyValue("altsep"), os.GetItem(PyValue("altsep")));
@@ -790,7 +1062,14 @@ os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 	// sys module
 	PyValue sys = PyValue::Dict();
 	sys.SetItem(PyValue("exit"), PyValue::Function("exit", builtin_sys_exit));
-	sys.SetItem(PyValue("executable"), PyValue::Function("executable", builtin_sys_executable));
+	sys.SetItem(PyValue("executable"), PyValue(GetExeFilePath()));
+	
+	PyValue argv = PyValue::List();
+	const Vector<String>& cmd = CommandLine();
+	for(int i = 0; i < cmd.GetCount(); i++)
+		argv.Add(PyValue(cmd[i]));
+	sys.SetItem(PyValue("argv"), argv);
+
 	sys.SetItem(PyValue("path"), PyValue::List());
 	sys.SetItem(PyValue("modules"), PyValue::Dict());
 	
@@ -811,11 +1090,6 @@ os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 #endif
 
 	sys.SetItem(PyValue("version"), PyValue("0.1v (Uppy)"));
-	
-	PyValue argv = PyValue::List();
-	const Vector<String>& cmd = CommandLine();
-	for(const String& s : cmd) argv.Add(PyValue(s));
-	sys.SetItem(PyValue("argv"), argv);
 	
 globals.GetAdd(PyValue("sys")) = sys;
 
@@ -908,6 +1182,11 @@ globals.GetAdd(PyValue("sys")) = sys;
 	json.SetItem(PyValue("dump"), PyValue::Function("dump", builtin_json_dump));
 	json.SetItem(PyValue("load"), PyValue::Function("load", builtin_json_load));
 	globals.GetAdd(PyValue("json")) = json;
+	
+	// subprocess module
+	PyValue subprocess = PyValue::Dict();
+	subprocess.SetItem(PyValue("run"), PyValue::Function("run", builtin_subprocess_run));
+	globals.GetAdd(PyValue("subprocess")) = subprocess;
 }
 
 void PyVM::SetIR(Vector<PyIR>& _ir)
@@ -1019,11 +1298,47 @@ PyValue PyVM::Run()
 				}
 				break;
 			}
+
+			case PY_IMPORT_FROM: {
+				PyValue name = instr.arg;
+				PyValue mod = stack.Top();
+				if (mod.GetType() == PY_DICT) {
+					Push(mod.GetItem(name));
+				} else if (mod.IsUserDataValid()) {
+					Push(mod.GetUserData().GetAttr(name.ToString()));
+				} else {
+					Push(PyValue::None());
+				}
+				break;
+			}
+
+			case PY_IMPORT_STAR: {
+				PyValue mod = Pop();
+				if(mod.GetType() == PY_DICT) {
+					const VectorMap<PyValue, PyValue>& m = mod.GetDict();
+					for(int i = 0; i < m.GetCount(); i++) {
+						String name = m.GetKey(i).ToString();
+						if(!name.StartsWith("_")) {
+							globals.GetAdd(m.GetKey(i)) = m[i];
+						}
+					}
+				}
+				break;
+			}
 	
 			case PY_LOAD_ATTR: {
 				PyValue obj = Pop();
 				if (obj.GetType() == PY_DICT) {
 					Push(obj.GetItem(instr.arg));
+				} else if (obj.GetType() == PY_STR) {
+					String attr = instr.arg.ToString();
+					if(attr == "endswith") {
+						Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
+					} else if(attr == "join") {
+						Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
+					} else {
+						Push(PyValue::None());
+					}
 				} else if (obj.IsUserDataValid()) {
 					String attr_name = instr.arg.ToString();
 					RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
@@ -1053,6 +1368,16 @@ PyValue PyVM::Run()
 				break;
 			}
 			
+			case PY_BUILD_TUPLE: {
+				int n = instr.iarg;
+				PyValue tuple = PyValue::Tuple();
+				Vector<PyValue> items;
+				for(int i = 0; i < n; i++) items.Add(Pop());
+				for(int i = n - 1; i >= 0; i--) tuple.Add(items[i]);
+				Push(tuple);
+				break;
+			}
+			
 			case PY_BUILD_MAP: {
 				int n = instr.iarg;
 				PyValue dict = PyValue::Dict();
@@ -1075,6 +1400,14 @@ PyValue PyVM::Run()
 				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
 				else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
 				else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
+				else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
+					PyValue res = PyValue::List();
+					const Vector<PyValue>& va = a.GetArray();
+					const Vector<PyValue>& vb = b.GetArray();
+					for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
+					for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
+					Push(res);
+				}
 				break;
 			}
 	
@@ -1095,6 +1428,52 @@ PyValue PyVM::Run()
 					Push(PyValue(a.GetComplex() * b.GetComplex()));
 				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
 				else Push(PyValue(a.AsDouble() * b.AsDouble()));
+				break;
+			}
+			
+			case PY_BINARY_MODULO: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				if(a.GetType() == PY_STR) {
+					String fmt = a.ToString();
+					if(b.GetType() == PY_TUPLE || b.GetType() == PY_LIST) {
+						// Very basic multiple arg formatting
+						String res;
+						int arg_idx = 0;
+						for(int i = 0; i < fmt.GetCount(); i++) {
+							if(fmt[i] == '%' && i + 1 < fmt.GetCount() && arg_idx < b.GetCount()) {
+								char spec = fmt[i+1];
+								if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.GetItem(arg_idx++).ToString();
+									i++;
+									continue;
+								}
+							}
+							res.Cat(fmt[i]);
+						}
+						Push(PyValue(res));
+					} else {
+						// Single arg formatting
+						String res;
+						for(int i = 0; i < fmt.GetCount(); i++) {
+							if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
+								char spec = fmt[i+1];
+								if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.ToString();
+									i++;
+									continue;
+								}
+							}
+							res.Cat(fmt[i]);
+						}
+						Push(PyValue(res));
+					}
+				} else if(a.IsInt() && b.IsInt()) {
+					if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
+					Push(PyValue(a.AsInt64() % b.AsInt64()));
+				} else {
+					Push(PyValue(fmod(a.AsDouble(), b.AsDouble())));
+				}
 				break;
 			}
 			
@@ -1231,6 +1610,14 @@ PyValue PyVM::Run()
 				else {
 					throw Exc("TypeError: '" + iterator.ToString() + "' object is not an iterator");
 				}
+				break;
+			}
+	
+			case PY_LIST_APPEND: {
+				PyValue val = Pop();
+				int offset = instr.iarg;
+				PyValue& list = stack[stack.GetCount() - offset];
+				list.Add(val);
 				break;
 			}
 	

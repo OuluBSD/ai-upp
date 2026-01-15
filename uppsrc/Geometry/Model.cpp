@@ -444,7 +444,6 @@ void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMateri
 	            Image tmp_img = StreamRaster::LoadFileAny(path);
 	            if (!tmp_img.IsEmpty()) {
 	                img.Set(tmp_img);
-	                img.SwapRedBlue();
 	            }
 	        }
 

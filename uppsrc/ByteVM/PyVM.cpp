@@ -260,7 +260,7 @@ static PyValue builtin_os_path_isabs(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(false);
 	String path = args[0].ToString();
 #ifdef flagWIN32
-	return PyValue((path.GetCount() >= 2 && IsAlpha(path[0]) && path[1] == ':') || path.StartsWith("\\\\") || path.StartsWith("/"));
+	return PyValue((path.GetCount() >= 2 && IsAlpha(path[0]) && path[1] == ':') || path.StartsWith("\\") || path.StartsWith("/"));
 #else
 	return PyValue(path.StartsWith("/"));
 #endif
@@ -605,7 +605,7 @@ PyVM::PyVM()
 	os_path.SetItem(PyValue("splitext"), PyValue::Function("splitext", builtin_os_path_splitext));
 	os_path.SetItem(PyValue("isabs"), PyValue::Function("isabs", builtin_os_path_isabs));
 	
-	os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
+os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 	os_path.SetItem(PyValue("altsep"), os.GetItem(PyValue("altsep")));
 	os_path.SetItem(PyValue("extsep"), os.GetItem(PyValue("extsep")));
 	os_path.SetItem(PyValue("pathsep"), os.GetItem(PyValue("pathsep")));
@@ -643,7 +643,7 @@ PyVM::PyVM()
 	for(const String& s : cmd) argv.Add(PyValue(s));
 	sys.SetItem(PyValue("argv"), argv);
 	
-	globals.GetAdd(PyValue("sys")) = sys;
+globals.GetAdd(PyValue("sys")) = sys;
 
 	// math module
 	PyValue math = PyValue::Dict();
@@ -703,8 +703,9 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 	f.pc = 0;
 }
 
-void PyVM::Run()
+PyValue PyVM::Run()
 {
+	PyValue last_result = PyValue::None();
 	while(!frames.IsEmpty()) {
 		Frame& frame = TopFrame();
 		if(frame.pc >= frame.ir->GetCount()) {
@@ -714,287 +715,307 @@ void PyVM::Run()
 		
 		const PyIR& instr = (*frame.ir)[frame.pc++];
 		
-		switch(instr.code) {
-		case PY_NOP: break;
-		
-		case PY_UNARY_POSITIVE: break; // Identity
-		
-		case PY_UNARY_NEGATIVE: {
-			PyValue v = Pop();
-			if (v.IsInt()) Push(PyValue(-v.AsInt64()));
-			else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
-			break;
-		}
-
-		case PY_UNARY_NOT: {
-			PyValue v = Pop();
-			Push(PyValue(!v.IsTrue()));
-			break;
-		}
-
-		case PY_UNARY_INVERT: {
-			PyValue v = Pop();
-			if (v.IsInt()) Push(PyValue(~v.AsInt64()));
-			break;
-		}
-
-		case PY_POP_TOP:
-			Pop();
-			break;
-
-		case PY_LOAD_CONST:
-			Push(instr.arg);
-			break;
+		try {
+			switch(instr.code) {
+			case PY_NOP: break;
 			
-		case PY_LOAD_NAME: {
-			PyValue v = frame.locals.Get(instr.arg, PyValue::None());
-			if(v.IsNone()) v = globals.Get(instr.arg, PyValue::None());
-			Push(v);
-			break;
-		}
-		
-		case PY_STORE_NAME:
-			if(frames.GetCount() <= 1)
-				globals.GetAdd(instr.arg) = Pop();
-			else
-				frame.locals.GetAdd(instr.arg) = Pop();
-			break;
-
-		case PY_LOAD_GLOBAL:
-			Push(globals.Get(instr.arg, PyValue::None()));
-			break;
+			case PY_UNARY_POSITIVE: break; // Identity
 			
-		case PY_STORE_GLOBAL:
-			globals.GetAdd(instr.arg) = Pop();
-			break;
-
-		case PY_LOAD_ATTR: {
-			PyValue obj = Pop();
-			if (obj.GetType() == PY_DICT) {
-				Push(obj.GetItem(instr.arg));
-			} else if (obj.IsUserDataValid()) {
-				String attr_name = instr.arg.ToString();
-				RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
-				Push(obj.GetUserData().GetAttr(attr_name));
-			} else {
-				Push(PyValue::None());
-			}
-			break;
-		}
-
-		case PY_STORE_ATTR: {
-			PyValue val = Pop();
-			PyValue obj = Pop();
-			if (obj.GetType() == PY_DICT) {
-				obj.SetItem(instr.arg, val);
-			} // TODO: support UserData store
-			break;
-		}
-			
-		case PY_BUILD_LIST: {
-			int n = instr.iarg;
-			PyValue list = PyValue::List();
-			Vector<PyValue> items;
-			for(int i = 0; i < n; i++) items.Add(Pop());
-			for(int i = n - 1; i >= 0; i--) list.Add(items[i]);
-			Push(list);
-			break;
-		}
-		
-		case PY_BUILD_MAP: {
-			int n = instr.iarg;
-			PyValue dict = PyValue::Dict();
-			Vector<PyKV> items;
-			for(int i = 0; i < n; i++) {
+			case PY_UNARY_NEGATIVE: {
 				PyValue v = Pop();
-				PyValue k = Pop();
-				items.Add(PyKV(k, v));
+				if (v.IsInt()) Push(PyValue(-v.AsInt64()));
+				else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
+				break;
 			}
-			for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
-			Push(dict);
-			break;
-		}
+	
+			case PY_UNARY_NOT: {
+				PyValue v = Pop();
+				Push(PyValue(!v.IsTrue()));
+				break;
+			}
+	
+			case PY_UNARY_INVERT: {
+				PyValue v = Pop();
+				if (v.IsInt()) Push(PyValue(~v.AsInt64()));
+				break;
+			}
+	
+			case PY_POP_TOP:
+				last_result = Pop();
+				break;
+	
+			case PY_LOAD_CONST:
+				Push(instr.arg);
+				break;
 			
-		case PY_BINARY_ADD: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-				Push(PyValue(a.GetComplex() + b.GetComplex()));
-			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
-			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
-			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
-			break;
-		}
-
-		case PY_BINARY_SUBTRACT: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-				Push(PyValue(a.GetComplex() - b.GetComplex()));
-			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
-			else Push(PyValue(a.AsDouble() - b.AsDouble()));
-			break;
-		}
-
-		case PY_BINARY_MULTIPLY: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-				Push(PyValue(a.GetComplex() * b.GetComplex()));
-			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
-			else Push(PyValue(a.AsDouble() * b.AsDouble()));
-			break;
-		}
+			case PY_LOAD_NAME: {
+				int q = frame.locals.Find(instr.arg);
+				if(q >= 0) Push(frame.locals[q]);
+				else {
+					q = globals.Find(instr.arg);
+					if(q >= 0) Push(globals[q]);
+					else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+				}
+				break;
+			}
 		
-		        case PY_BINARY_TRUE_DIVIDE: {
-		            PyValue b = Pop();
-		            PyValue a = Pop();
-		            Push(PyValue(a.AsDouble() / b.AsDouble()));
-		            break;
-		        }
-		case PY_BINARY_SUBSCR: {
-			PyValue sub = Pop();
-			PyValue container = Pop();
-			if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE))
-				Push(container.GetItem(sub.AsInt()));
-			else
-				Push(container.GetItem(sub));
-			break;
-		}
-
-		case PY_STORE_SUBSCR: {
-			PyValue val = Pop();
-			PyValue sub = Pop();
-			PyValue obj = Pop();
-			if(sub.IsInt() && obj.GetType() == PY_LIST)
-				obj.SetItem(sub.AsInt(), val);
-			else
-				obj.SetItem(sub, val);
-			break;
-		}
-
-		case PY_COMPARE_OP: {
-			PyValue b = Pop();
-			PyValue a = Pop();
-			bool res = false;
-			switch(instr.iarg) {
-			case PY_CMP_EQ: res = (a == b); break;
-			case PY_CMP_NE: res = (a != b); break;
-			case PY_CMP_LT: res = (a < b); break;
-			case PY_CMP_LE: res = (a < b || a == b); break;
-			case PY_CMP_GT: res = (b < a); break;
-			case PY_CMP_GE: res = (b < a || a == b); break;
+			case PY_STORE_NAME:
+				if(frames.GetCount() <= 1)
+					globals.GetAdd(instr.arg) = Pop();
+				else
+					frame.locals.GetAdd(instr.arg) = Pop();
+				break;
+	
+			case PY_LOAD_GLOBAL: {
+				int q = globals.Find(instr.arg);
+				if(q >= 0) Push(globals[q]);
+				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+				break;
 			}
-			Push(PyValue(res));
-			break;
-		}
-
-		case PY_JUMP_ABSOLUTE:
-			frame.pc = instr.iarg;
-			break;
-			
-		case PY_POP_JUMP_IF_FALSE: {
-			PyValue v = Pop();
-			if(!v.IsTrue()) frame.pc = instr.iarg;
-			break;
-		}
-
-		case PY_JUMP_IF_FALSE_OR_POP: {
-			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
-			else Pop();
-			break;
-		}
-
-		case PY_JUMP_IF_TRUE_OR_POP: {
-			if(stack.Top().IsTrue()) frame.pc = instr.iarg;
-			else Pop();
-			break;
-		}
-
-		case PY_CALL_FUNCTION: {
-			int nargs = instr.iarg;
-			Vector<PyValue> args;
-			for(int i = 0; i < nargs; i++) args.Add(Pop());
-			Vector<PyValue> sorted_args;
-			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
-			
-			PyValue callable = Pop();
-			if (callable.IsBoundMethod()) {
-				PyValue func = callable.GetBound().func;
-				PyValue self = callable.GetBound().self;
-				sorted_args.Insert(0, self);
-				callable = func;
+				
+			case PY_STORE_GLOBAL:
+				globals.GetAdd(instr.arg) = Pop();
+				break;
+	
+			case PY_LOAD_ATTR: {
+				PyValue obj = Pop();
+				if (obj.GetType() == PY_DICT) {
+					Push(obj.GetItem(instr.arg));
+				} else if (obj.IsUserDataValid()) {
+					String attr_name = instr.arg.ToString();
+					RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
+					Push(obj.GetUserData().GetAttr(attr_name));
+				} else {
+					Push(PyValue::None());
+				}
+				break;
 			}
-
-			if(callable.IsFunction()) {
-				const PyLambda& l = callable.GetLambda();
-				if(l.builtin) {
-					Push(l.builtin(sorted_args, l.user_data));
+	
+			case PY_STORE_ATTR: {
+				PyValue val = Pop();
+				PyValue obj = Pop();
+				if (obj.GetType() == PY_DICT) {
+					obj.SetItem(instr.arg, val);
+				} // TODO: support UserData store
+				break;
+			}
+				
+			case PY_BUILD_LIST: {
+				int n = instr.iarg;
+				PyValue list = PyValue::List();
+				Vector<PyValue> items;
+				for(int i = 0; i < n; i++) items.Add(Pop());
+				for(int i = n - 1; i >= 0; i--) list.Add(items[i]);
+				Push(list);
+				break;
+			}
+			
+			case PY_BUILD_MAP: {
+				int n = instr.iarg;
+				PyValue dict = PyValue::Dict();
+				Vector<PyKV> items;
+				for(int i = 0; i < n; i++) {
+					PyValue v = Pop();
+					PyValue k = Pop();
+					items.Add(PyKV(k, v));
+				}
+				for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
+				Push(dict);
+				break;
+			}
+				
+			case PY_BINARY_ADD: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+					Push(PyValue(a.GetComplex() + b.GetComplex()));
+				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
+				else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
+				else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
+				break;
+			}
+	
+			case PY_BINARY_SUBTRACT: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+					Push(PyValue(a.GetComplex() - b.GetComplex()));
+				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
+				else Push(PyValue(a.AsDouble() - b.AsDouble()));
+				break;
+			}
+	
+			case PY_BINARY_MULTIPLY: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+					Push(PyValue(a.GetComplex() * b.GetComplex()));
+				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
+				else Push(PyValue(a.AsDouble() * b.AsDouble()));
+				break;
+			}
+			
+			case PY_BINARY_TRUE_DIVIDE: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				if (b.AsDouble() == 0) throw Exc("ZeroDivisionError: division by zero");
+				Push(PyValue(a.AsDouble() / b.AsDouble()));
+				break;
+			}
+			case PY_BINARY_SUBSCR: {
+				PyValue sub = Pop();
+				PyValue container = Pop();
+				if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE)) {
+					int idx = sub.AsInt();
+					if (idx < 0 || idx >= container.GetCount()) throw Exc("IndexError: list index out of range");
+					Push(container.GetItem(idx));
+				}
+				else
+					Push(container.GetItem(sub));
+				break;
+			}
+	
+			case PY_STORE_SUBSCR: {
+				PyValue val = Pop();
+				PyValue sub = Pop();
+				PyValue obj = Pop();
+				if(sub.IsInt() && obj.GetType() == PY_LIST)
+					obj.SetItem(sub.AsInt(), val);
+				else
+					obj.SetItem(sub, val);
+				break;
+			}
+	
+			case PY_COMPARE_OP: {
+				PyValue b = Pop();
+				PyValue a = Pop();
+				bool res = false;
+				switch(instr.iarg) {
+				case PY_CMP_EQ: res = (a == b); break;
+				case PY_CMP_NE: res = (a != b); break;
+				case PY_CMP_LT: res = (a < b); break;
+				case PY_CMP_LE: res = (a < b || a == b); break;
+				case PY_CMP_GT: res = (b < a); break;
+				case PY_CMP_GE: res = (b < a || a == b); break;
+				}
+				Push(PyValue(res));
+				break;
+			}
+	
+			case PY_JUMP_ABSOLUTE:
+				frame.pc = instr.iarg;
+				break;
+				
+			case PY_POP_JUMP_IF_FALSE: {
+				PyValue v = Pop();
+				if(!v.IsTrue()) frame.pc = instr.iarg;
+				break;
+			}
+	
+			case PY_JUMP_IF_FALSE_OR_POP: {
+				if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
+				else Pop();
+				break;
+			}
+	
+			case PY_JUMP_IF_TRUE_OR_POP: {
+				if(stack.Top().IsTrue()) frame.pc = instr.iarg;
+				else Pop();
+				break;
+			}
+	
+			case PY_CALL_FUNCTION: {
+				int nargs = instr.iarg;
+				Vector<PyValue> args;
+				for(int i = 0; i < nargs; i++) args.Add(Pop());
+				Vector<PyValue> sorted_args;
+				for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
+				
+				PyValue callable = Pop();
+				if (callable.IsBoundMethod()) {
+					PyValue func = callable.GetBound().func;
+					PyValue self = callable.GetBound().self;
+					sorted_args.Insert(0, self);
+					callable = func;
+				}
+	
+				if(callable.IsFunction()) {
+					const PyLambda& l = callable.GetLambda();
+					if(l.builtin) {
+						Push(l.builtin(sorted_args, l.user_data));
+					}
+					else {
+						Frame& f = frames.Add();
+						f.func = callable;
+						f.ir = &l.ir;
+						f.pc = 0;
+						for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
+							f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+					}
 				}
 				else {
-					Frame& f = frames.Add();
-					f.func = callable;
-					f.ir = &l.ir;
-					f.pc = 0;
-					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
-						f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+					throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
 				}
+				break;
 			}
-			else {
-				Push(PyValue::None());
-			}
-			break;
-		}
-
-		case PY_GET_ITER: {
-			PyValue obj = Pop();
-			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
-				Push(PyValue(new PyVectorIter(obj.GetArray())));
-			}
-			else if(obj.IsIterator()) {
-				Push(obj);
-			}
-			else {
-				Push(PyValue::None());
-			}
-			break;
-		}
-		
-		case PY_FOR_ITER: {
-			PyValue iterator = Pop();
-			if(iterator.IsIterator()) {
-				PyValue next_val = iterator.GetIter().Next();
-				if(next_val.IsStopIteration()) {
-					frame.pc = instr.iarg;
+	
+			case PY_GET_ITER: {
+				PyValue obj = Pop();
+				if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
+					Push(PyValue(new PyVectorIter(obj.GetArray())));
+				}
+				else if(obj.IsIterator()) {
+					Push(obj);
 				}
 				else {
-					Push(iterator);
-					Push(next_val);
+					throw Exc("TypeError: '" + obj.ToString() + "' object is not iterable");
 				}
+				break;
 			}
-			else {
-				Push(PyValue::None());
+			
+			case PY_FOR_ITER: {
+				PyValue iterator = Pop();
+				if(iterator.IsIterator()) {
+					PyValue next_val = iterator.GetIter().Next();
+					if(next_val.IsStopIteration()) {
+						frame.pc = instr.iarg;
+					}
+					else {
+						Push(iterator);
+						Push(next_val);
+					}
+				}
+				else {
+					throw Exc("TypeError: '" + iterator.ToString() + "' object is not an iterator");
+				}
+				break;
 			}
-			break;
+	
+			case PY_RETURN_VALUE: {
+				last_result = Pop();
+				frames.Drop();
+				if(!frames.IsEmpty()) Push(last_result);
+				break;
+			}
+				
+default:
+				throw Exc("RuntimeError: Unknown opcode: " + AsString((int)instr.code));
+			}
+		} catch (Exc& e) {
+			String func_name = "<module>";
+			if (frame.func.IsFunction()) func_name = frame.func.GetLambda().name;
+			String loc = "  File \"<stdin>\", line " + AsString(instr.line) + ", in " + func_name;
+			if (e.Find("Traceback") < 0) {
+				throw Exc("Traceback (most recent call last):\n" + loc + "\n" + e);
+			} else {
+				String msg = e;
+				int q = msg.Find('\n');
+				if (q >= 0) msg.Insert(q + 1, loc + "\n");
+				throw Exc(msg);
+			}
 		}
-
-		case PY_RETURN_VALUE: {
-			PyValue ret = Pop();
-			frames.Drop();
-			if(!frames.IsEmpty()) Push(ret);
-			break;
-		}
-			
-		default:
-			
-			Cout() << "Unknown opcode: " << (int)instr.code << " at PC " << frame.pc - 1 << "\n";
-			
-			return;
-			
-		}
-			
-
 	}
+	return last_result;
 }
 
 }

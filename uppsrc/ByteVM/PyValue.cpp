@@ -472,4 +472,31 @@ PyValue PyValue::BoundMethod(const PyValue& func, const PyValue& self)
 	return v;
 }
 
+PyValue PyValue::FromValue(const Value& v)
+{
+	if(IsNull(v)) return PyValue::None();
+	if(v.Is<bool>()) return PyValue((bool)v);
+	if(::Upp::IsNumber(v)) {
+		if(v.Is<double>()) return PyValue((double)v);
+		if(v.Is<int>()) return PyValue((int)v);
+		return PyValue((int64)v);
+	}
+	if(::Upp::IsString(v)) return PyValue((String)v);
+	if(v.Is<ValueArray>()) {
+		PyValue list = PyValue::List();
+		ValueArray va = v;
+		for(int i = 0; i < va.GetCount(); i++)
+			list.Add(PyValue::FromValue(va[i]));
+		return list;
+	}
+	if(v.Is<ValueMap>()) {
+		PyValue dict = PyValue::Dict();
+		ValueMap vm = v;
+		for(int i = 0; i < vm.GetCount(); i++)
+			dict.SetItem(PyValue::FromValue(vm.GetKey(i)), PyValue::FromValue(vm.GetValue(i)));
+		return dict;
+	}
+	return PyValue::None();
+}
+
 }

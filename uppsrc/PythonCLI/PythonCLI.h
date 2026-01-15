@@ -13,11 +13,12 @@ class PythonCLI {
 public:
 	int  Run();
 	int  RunInteractive();
-	bool RunScript(const String& filename);
+	int  RunScript(const String& filename);
 
 private:
 	Vector<String> history;
 	PyVM vm;
+	int exit_code = 0;
 
 	void PrintBanner();
 	void PrintPrompt();

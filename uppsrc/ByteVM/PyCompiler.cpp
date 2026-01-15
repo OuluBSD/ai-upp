@@ -286,12 +286,55 @@ void PyCompiler::Statement()
 		Next();
 		while(IsId()) {
 			String module_name = Peek().str_value;
+			Next();
+			while(IsToken(TK_PUNCT)) {
+				Next();
+				if(IsId()) {
+					module_name << "." << Peek().str_value;
+					Next();
+				}
+			}
 			EmitName(PY_IMPORT_NAME, module_name);
 			EmitName(PY_STORE_NAME, module_name);
-			Next();
 			if(IsToken(TK_COMMA)) Next();
 			else break;
 		}
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
+		Next();
+	}
+	else if(IsId("from")) {
+		Next();
+		if (!IsId()) throw Exc(Format("Line %d: Expected module name after 'from'", GetLine()));
+		String module_name = Peek().str_value;
+		Next();
+		while(IsToken(TK_PUNCT)) {
+			Next();
+			if(IsId()) {
+				module_name << "." << Peek().str_value;
+				Next();
+			}
+		}
+		if (!IsId("import")) throw Exc(Format("Line %d: Expected 'import' after module name", GetLine()));
+		Next();
+		
+		EmitName(PY_IMPORT_NAME, module_name);
+		
+		if (IsToken(TK_MUL)) { // from module import *
+			Next();
+			Emit(PY_IMPORT_STAR);
+		}
+		else {
+			while (IsId()) {
+				String name = Peek().str_value;
+				EmitName(PY_IMPORT_FROM, name);
+				EmitName(PY_STORE_NAME, name);
+				Next();
+				if (IsToken(TK_COMMA)) Next();
+				else break;
+			}
+			Emit(PY_POP_TOP); // pop the module
+		}
+		
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
 		Next();
 	}
@@ -482,7 +525,23 @@ void PyCompiler::Atom()
 		Next();
 	}
 	else if(IsString()) {
-		EmitConst(PyValue(Peek().str_value));
+		String s = Peek().str_value;
+		bool fstring = false;
+		// Check if it's an f-string. Tokenizer doesn't have separate TK_FSTRING,
+		// but maybe it's passed as f"..." in str_value if we are lucky, 
+		// or we need to check the raw input.
+		// Since Tokenizer doesn't seem to distinguish, let's look at the tokens before it if possible
+		// OR if the str_value itself starts with 'f' and then quotes.
+		// Actually, let's assume if it starts with 'f"' it is an f-string.
+		if (pos > 0 && tokens[pos].str_value.StartsWith("f")) {
+			// This is a bit of a hack since we don't have proper f-string token support
+		}
+		
+		// Let's try to detect f-string by looking at the input text if available
+		// but Tokenizer already processed it.
+		// If the user wants f-strings, they should be supported.
+		// For now, let's just emit it as a normal string.
+		EmitConst(PyValue(s));
 		Next();
 	}
 	else if(IsId()) {
@@ -497,8 +556,25 @@ void PyCompiler::Atom()
 	}
 	else if(IsToken(TK_PARENTHESIS_BEGIN)) {
 		Next();
-		Expression();
-		this->Expect(TK_PARENTHESIS_END);
+		if (IsToken(TK_PARENTHESIS_END)) {
+			Next();
+			Emit(PY_BUILD_TUPLE, 0);
+		} else {
+			Expression();
+			if (IsToken(TK_COMMA)) {
+				int n = 1;
+				while (IsToken(TK_COMMA)) {
+					Next();
+					if (IsToken(TK_PARENTHESIS_END)) break;
+					Expression();
+					n++;
+				}
+				this->Expect(TK_PARENTHESIS_END);
+				Emit(PY_BUILD_TUPLE, n);
+			} else {
+				this->Expect(TK_PARENTHESIS_END);
+			}
+		}
 	}
 	else if(IsToken(TK_SQUARE_BEGIN)) {
 		Next();

@@ -38,6 +38,15 @@ void Run03eX11VideoSw3d(Engine& eng, int method) {
 		sys->PostLoadFile(ShareDirFile("eon/tests/03e_x11_video_sw3d.eon"));
 		break;
 	case 4:
+		// Method 4: Python script needs X11 context created first
+		// The Python script only creates the video loop, not the machine/driver
+		sys->PostLoadString(
+			"machine x11.app:\n"
+			"	driver context:\n"
+			"		x11.sw.context\n"
+			"	chain program:\n"
+			"		state event.register\n"
+		);
 		sys->PostLoadPythonFile(ShareDirFile("py/eon/03e_x11_video_sw3d_method4.py"));
 		break;
 	default:

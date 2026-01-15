@@ -37,6 +37,9 @@ void Run03eX11VideoSw3d(Engine& eng, int method) {
 	case 0:
 		sys->PostLoadFile(ShareDirFile("eon/tests/03e_x11_video_sw3d.eon"));
 		break;
+	case 4:
+		sys->PostLoadPythonFile(ShareDirFile("py/eon/03e_x11_video_sw3d_method4.py"));
+		break;
 	default:
 		throw Exc(Format("Run03eX11VideoSw3d: unknown method %d", method));
 	}

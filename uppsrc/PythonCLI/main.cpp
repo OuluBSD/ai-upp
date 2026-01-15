@@ -11,11 +11,12 @@ CONSOLE_APP_MAIN
 		String filename = cmds[0];
 		Cout() << "Loading script file: " << filename << "\n";
 		PythonCLI cli;
-		cli.RunScript(filename);
+		if (!cli.RunScript(filename))
+			SetExitCode(1);
 	} else {
 		// Otherwise, run in interactive mode
 		Cout() << "No arguments, running in interactive mode\n";
 		PythonCLI cli;
-		cli.Run();
+		SetExitCode(cli.Run());
 	}
 }

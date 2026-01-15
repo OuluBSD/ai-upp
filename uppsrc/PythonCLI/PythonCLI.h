@@ -11,9 +11,9 @@ NAMESPACE_UPP
 
 class PythonCLI {
 public:
-	void Run();
-	void RunInteractive();
-	void RunScript(const String& filename);
+	int  Run();
+	int  RunInteractive();
+	bool RunScript(const String& filename);
 
 private:
 	Vector<String> history;

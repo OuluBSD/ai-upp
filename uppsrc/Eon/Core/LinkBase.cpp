@@ -22,27 +22,33 @@ void CustomerLink::Uninitialize() {
 
 bool CustomerLink::ProcessPackets(PacketIO& io) {
 	RTLOG("CustomerLink::ProcessPackets");
-	
+
 	PacketIO::Sink& sink = io.sinks[0];
 	PacketIO::Source& src = io.srcs[0];
-	
+
 	ASSERT(sink.p);
 	PacketTracker_StopTracking("CustomerLink::ProcessPackets", __FILE__, __LINE__, *sink.p);
-	
+
 	sink.may_remove = true;
 	src.from_sink_ch = 0;
 	src.p = sink.p;
 	src.p->SetFormat(src.val->GetFormat());
 	src.p->SetOffset(off_gen.Create());
-	
-	bool r = atom->Recv(0, sink.p) && atom->Send(*last_cfg, *src.p, 0);
-	
+
+	RTSrcConfig* cfg = GetConfig();
+	if (!cfg) {
+		RTLOG("CustomerLink::ProcessPackets: error: GetConfig returns NULL");
+		return false;
+	}
+
+	bool r = atom->Recv(0, sink.p) && atom->Send(*cfg, *src.p, 0);
+
 	if (r)
 		PacketTracker_Track("CustomerLink::ProcessPackets", __FILE__, __LINE__, *src.p);
 	else {
 		RTLOG("CustomerLink::ProcessPackets: error: ProcessPacket failed");
 	}
-	
+
 	return r;
 }
 

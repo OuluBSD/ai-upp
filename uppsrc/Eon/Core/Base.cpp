@@ -52,7 +52,9 @@ void CustomerBase::UpdateConfig(double dt) {
 }
 
 bool CustomerBase::Recv(int sink_ch, const Packet& in) {
-	// pass
+	// Receipt received - decrement in-flight packet count
+	if (packet_count > 0)
+		packet_count--;
 	return true;
 }
 

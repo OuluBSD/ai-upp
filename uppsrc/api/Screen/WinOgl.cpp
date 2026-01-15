@@ -152,6 +152,8 @@ bool ScrWinOgl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
     auto& ctx = *ctx_->dev;
     dev.ctx = &ctx;
     
+    a.AddDependency(*ctx_);
+    
     // Get window dimensions from WorldState
     int width = ws.GetInt(".width", 1280);
     int height = ws.GetInt(".height", 720);
@@ -389,6 +391,7 @@ bool ScrWinOgl::Context_Create(NativeContext*& dev) {
 
 void ScrWinOgl::Context_Destroy(NativeContext*& dev) {
     delete dev;
+    dev = 0;
 }
 
 void ScrWinOgl::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {

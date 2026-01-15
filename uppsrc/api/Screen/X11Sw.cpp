@@ -4,6 +4,7 @@
 #if (defined flagX11 && defined flagSCREEN)
 NAMESPACE_UPP
 
+#define None 0
 
 struct ScrX11Sw::NativeContext {
     ::Window win;
@@ -66,6 +67,9 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	if (!ctx_) {LOG("error: could not find X11 context"); return false;}
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
+	
+	a.AddDependency(*ctx_);
+	
 	dev.log_avg = ws.GetBool(".avg_color_log", false);
 	int interval = ws.GetInt(".avg_color_interval", 16);
 	if (interval <= 0)
@@ -253,14 +257,14 @@ void ScrX11Sw::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 		//XFreeColormap(dev.display, dev.attr.colormap);
 		
 	// flush all pending requests to the X server.
-	if (ctx.running) {
+	if (ctx.display) {
 		XFlush(ctx.display);
 		
 		// close the connection to the X server.
 		XCloseDisplay(ctx.display);
 		ctx.display = 0;
-	
 	}
+	ctx.running = false;
 	
 }
 
@@ -386,6 +390,7 @@ bool ScrX11Sw::Context_Create(NativeContext*& dev) {
 
 void ScrX11Sw::Context_Destroy(NativeContext*& dev) {
 	delete dev;
+	dev = 0;
 }
 
 void ScrX11Sw::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {

@@ -14,11 +14,11 @@ void LinkSystem::ForwardLinks(double dt, const char* id, LinkedList<LinkBasePtr>
 		RealtimeSourceConfig* cfg = c->GetConfig();
 		if (!cfg) {
 			AtomTypeCls type = c->GetAtomType();
-			#if 1
+			#if 0  // Disabled during net-routing migration - some atoms don't need config
 			DUMP(type);
 			ASSERT(0); // this is not fatal necessarily. Probably some atom is stuck and won't send packets
 			#endif
-			RTLOG("LinkSystem::ForwardLinks: warning: GetConfig returns NULL");
+			RTLOG("LinkSystem::ForwardLinks: warning: GetConfig returns NULL for " << c->ToString() << ", skipping");
 			continue;
 		}
 		

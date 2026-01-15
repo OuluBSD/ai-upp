@@ -484,23 +484,26 @@ bool ScriptLoader::DoPostLoadPython() {
 
 bool ScriptLoader::DoPostLoad() {
 	bool success = true;
-	
+
 	while (!post_load_file.IsEmpty()) {
 		String path = post_load_file[0];
 		post_load_file.Remove(0);
-		
+
 		if (!LoadFile(path))
 			success = false;
 	}
-	
+
 	while (!post_load_string.IsEmpty()) {
 		String s = post_load_string[0];
 		post_load_string.Remove(0);
-		
+
 		if (!Load(s, "input"))
 			success = false;
 	}
-	
+
+	// Handle Python files
+	DoPostLoadPython();
+
 	return success;
 }
 

@@ -8,7 +8,7 @@ def test_math_expanded():
     print("Testing math expanded...")
     print("math.pow(2, 3) =", math.pow(2, 3))
     print("math.isinf(1e308 * 2) =", math.isinf(1e308 * 2))
-    print("math.isnan(0.0/0.0) =", math.isnan(0.0/0.0))
+    print("math.isnan(math.nan) =", math.isnan(math.nan))
     print("math.isfinite(1.23) =", math.isfinite(1.23))
     print("math.gcd(48, 18) =", math.gcd(48, 18))
     print("math.factorial(5) =", math.factorial(5))

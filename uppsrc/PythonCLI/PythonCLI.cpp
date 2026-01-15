@@ -231,7 +231,7 @@ String PythonCLI::ReadLine()
 		return true; // Continue processing
 	}
 
-	void PythonCLI::RunInteractive()
+	int PythonCLI::RunInteractive()
 	{
 		bool is_interactive = isatty(STDIN_FILENO);
 
@@ -267,22 +267,23 @@ String PythonCLI::ReadLine()
 				}
 			}
 		}
+		return 0;
 	}
 
-	void PythonCLI::RunScript(const String& filename)
+	bool PythonCLI::RunScript(const String& filename)
 	{
 		String content = LoadFile(filename);
 
 		if(content.IsEmpty()) {
 			Cout() << "Error: Could not read file '" << filename << "'\n";
-			return;
+			return false;
 		}
 
 		try {
 			Tokenizer tk;
 			tk.SkipPythonComments();
 			if(!tk.Process(content, filename)) {
-				return;
+				return false;
 			}
 			tk.CombineTokens();
 			tk.NewlineToEndStatement();
@@ -292,7 +293,7 @@ String PythonCLI::ReadLine()
 			try {
 				compiler.Compile(ir);
 			} catch (Exc& e) {
-				return;
+				return false;
 			}
 
 			vm.SetIR(ir);
@@ -300,13 +301,16 @@ String PythonCLI::ReadLine()
 				vm.Run();
 			} catch (Exc& e) {
 				Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
+				return false;
 			}
 		} catch (...) {
 			Cout() << "Internal error occurred while processing file '" << filename << "'\n";
+			return false;
 		}
+		return true;
 	}
 
-	void PythonCLI::Run()
+	int PythonCLI::Run()
 	{
-		RunInteractive();
+		return RunInteractive();
 	}

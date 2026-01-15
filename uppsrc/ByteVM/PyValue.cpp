@@ -280,7 +280,7 @@ String PyValue::ToString() const
 		String s = "[";
 		for(int i = 0; i < list->l.GetCount(); i++) {
 			if(i) s << ", ";
-			s << list->l[i].ToString();
+			s << list->l[i].Repr();
 		}
 		s << "]";
 		return s;
@@ -289,7 +289,7 @@ String PyValue::ToString() const
 		String s = "(";
 		for(int i = 0; i < tuple->l.GetCount(); i++) {
 			if(i) s << ", ";
-			s << tuple->l[i].ToString();
+			s << tuple->l[i].Repr();
 		}
 		if(tuple->l.GetCount() == 1) s << ",";
 		s << ")";
@@ -299,7 +299,7 @@ String PyValue::ToString() const
 		String s = "{";
 		for(int i = 0; i < dict->d.GetCount(); i++) {
 			if(i) s << ", ";
-			s << dict->d.GetKey(i).ToString() << ": " << dict->d[i].ToString();
+			s << dict->d.GetKey(i).Repr() << ": " << dict->d[i].Repr();
 		}
 		s << "}";
 		return s;
@@ -308,7 +308,7 @@ String PyValue::ToString() const
 		String s = "{";
 		for(int i = 0; i < set->s.GetCount(); i++) {
 			if(i) s << ", ";
-			s << set->s[i].ToString();
+			s << set->s[i].Repr();
 		}
 		s << "}";
 		return s;
@@ -318,6 +318,26 @@ String PyValue::ToString() const
 	case PY_BOUND_METHOD: return "<method " + bound->func.ToString() + ">";
 	default: return "<unknown>";
 	}
+}
+
+String PyValue::Repr() const
+{
+	if (type == PY_STR) {
+		String s = "'";
+		String raw = wstr->s.ToString();
+		for (int i = 0; i < raw.GetCount(); i++) {
+			char c = raw[i];
+			if (c == '\'') s << "\\'";
+			else if (c == '\\') s << "\\\\";
+			else if (c == '\n') s << "\\n";
+			else if (c == '\r') s << "\\r";
+			else if (c == '\t') s << "\\t";
+			else s << c;
+		}
+		s << "'";
+		return s;
+	}
+	return ToString();
 }
 
 hash_t PyValue::GetHashValue() const

@@ -214,7 +214,7 @@ String PythonCLI::ReadLine()
 			try {
 				PyValue res = vm.Run();
 				if (is_interactive && !res.IsNone()) {
-					Cout() << res.ToString() << "\n";
+					Cout() << res.Repr() << "\n";
 				}
 			} catch (Exc& e) {
 				if (is_interactive) {

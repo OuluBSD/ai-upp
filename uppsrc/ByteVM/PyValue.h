@@ -137,9 +137,13 @@ public:
 
 	const VectorMap<PyValue, PyValue>& GetDict() const { ASSERT(type == PY_DICT); return dict->d; }
 
-	Value       ToValue() const;
-	String      ToString() const;
-	hash_t      GetHashValue() const;
+		Value  ToValue() const;
+
+		String ToString() const;
+
+		String Repr() const;
+
+		hash_t GetHashValue() const;
 
 	bool operator==(const PyValue& other) const;
 	bool operator!=(const PyValue& other) const { return !(*this == other); }

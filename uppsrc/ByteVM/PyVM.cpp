@@ -63,6 +63,11 @@ static PyValue builtin_next(const Vector<PyValue>& args, void*) {
 	return PyValue::None();
 }
 
+static PyValue builtin_math_fabs(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	return PyValue(std::abs(args[0].AsDouble()));
+}
+
 static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue(0);
 	PyValue v = args[0];
@@ -70,6 +75,19 @@ static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
 	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
 	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
 	return v;
+}
+
+static PyValue builtin_dir(const Vector<PyValue>& args, void*) {
+	PyValue list = PyValue::List();
+	if(args.GetCount() == 0) return list; // TODO: return local scope
+	PyValue obj = args[0];
+	if(obj.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& dict = obj.GetDict();
+		for(int i = 0; i < dict.GetCount(); i++)
+			list.Add(dict.GetKey(i));
+	}
+	// TODO: support other types
+	return list;
 }
 
 static PyValue builtin_min(const Vector<PyValue>& args, void*) {
@@ -541,6 +559,10 @@ PyVM::PyVM()
 	p_abs.GetLambdaRW().builtin = builtin_abs;
 	globals.GetAdd(PyValue("abs")) = p_abs;
 
+	PyValue p_dir = PyValue::Function("dir");
+	p_dir.GetLambdaRW().builtin = builtin_dir;
+	globals.GetAdd(PyValue("dir")) = p_dir;
+
 	PyValue p_min = PyValue::Function("min");
 	p_min.GetLambdaRW().builtin = builtin_min;
 	globals.GetAdd(PyValue("min")) = p_min;
@@ -648,6 +670,7 @@ globals.GetAdd(PyValue("sys")) = sys;
 	// math module
 	PyValue math = PyValue::Dict();
 	math.SetItem(PyValue("sqrt"), PyValue::Function("sqrt", builtin_math_sqrt));
+	math.SetItem(PyValue("fabs"), PyValue::Function("fabs", builtin_math_fabs));
 	math.SetItem(PyValue("asin"), PyValue::Function("asin", builtin_math_asin));
 	math.SetItem(PyValue("acos"), PyValue::Function("acos", builtin_math_acos));
 	math.SetItem(PyValue("atan"), PyValue::Function("atan", builtin_math_atan));
@@ -776,6 +799,32 @@ PyValue PyVM::Run()
 			case PY_STORE_GLOBAL:
 				globals.GetAdd(instr.arg) = Pop();
 				break;
+
+			case PY_IMPORT_NAME: {
+				String name = instr.arg.ToString();
+				// Check if it's already in globals (builtin modules are there for now)
+				int q = globals.Find(name);
+				if(q >= 0) {
+					Push(globals[q]);
+				}
+				else {
+					// Check sys.modules
+					PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
+					if(sys.GetType() == PY_DICT) {
+						PyValue modules = sys.GetItem(PyValue("modules"));
+						if(modules.GetType() == PY_DICT) {
+							PyValue mod = modules.GetItem(PyValue(name));
+							if(!mod.IsNone()) {
+								Push(mod);
+								break;
+							}
+						}
+					}
+					// If not found, for now we don't have a filesystem loader, so just push None
+					Push(PyValue::None());
+				}
+				break;
+			}
 	
 			case PY_LOAD_ATTR: {
 				PyValue obj = Pop();
@@ -992,9 +1041,15 @@ PyValue PyVM::Run()
 			}
 	
 			case PY_RETURN_VALUE: {
-				last_result = Pop();
+				PyValue val = Pop();
 				frames.Drop();
-				if(!frames.IsEmpty()) Push(last_result);
+				if(!frames.IsEmpty()) {
+					Push(val);
+				}
+				else {
+					if(!val.IsNone() || last_result.IsNone())
+						last_result = val;
+				}
 				break;
 			}
 				

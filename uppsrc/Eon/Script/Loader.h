@@ -322,7 +322,8 @@ public:
     void PostLoadPythonString(const String& s) {post_load_python_string << s;}
     void SetEagerChainBuild(bool b=true) { eager_build_chains = b; }
 	bool DoPostLoadPython();
-	
+	bool DoPostLoad();
+
 	ScriptLoader&	GetLoader() {return *this;}
 	int&			GetSideIdCounter() {return tmp_side_id_counter;}
 	int				NewConnectionId() {return tmp_side_id_counter++;}
@@ -350,7 +351,6 @@ protected:
     
     void		LogMessage(ProcMsg msg);
     void		Cleanup();
-    bool		DoPostLoad();
 	bool		LoadFile(String path);
 	bool		Load(const String& content, const String& filepath="temp");
 	bool		ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1);

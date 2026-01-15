@@ -1,8 +1,9 @@
 #include "Screen.h"
-
-
 		
 #if defined flagX11 && defined flagSCREEN && defined flagOGL
+
+#define None 0
+
 NAMESPACE_UPP
 
 struct ScrX11Ogl::NativeContext {
@@ -109,6 +110,8 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 	auto& ctx = *ctx_->dev;
 	dev.ctx = &ctx;
 	
+	a.AddDependency(*ctx_);
+	
 	bool is_borderless = ws.IsTrue(".borderless");
 	bool is_fullscreen = ws.IsTrue(".fullscreen");
 	bool print_modes = ws.IsTrue(".print_modes");
@@ -175,7 +178,7 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		GLX_DEPTH_SIZE      , 24,
 		GLX_STENCIL_SIZE    , 8,
 		GLX_DOUBLEBUFFER    , True,
-		None
+		0
 	};
 
 	
@@ -532,6 +535,7 @@ bool ScrX11Ogl::Context_Create(NativeContext*& dev) {
 
 void ScrX11Ogl::Context_Destroy(NativeContext*& dev) {
 	delete dev;
+	dev = 0;
 }
 
 void ScrX11Ogl::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {

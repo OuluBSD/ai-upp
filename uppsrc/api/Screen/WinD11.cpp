@@ -426,6 +426,7 @@ bool ScrWinD11::Context_Create(NativeContext*& dev) {
 
 void ScrWinD11::Context_Destroy(NativeContext*& dev) {
 	delete dev;
+	dev = 0;
 }
 
 void ScrWinD11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {

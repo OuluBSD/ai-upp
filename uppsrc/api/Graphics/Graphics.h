@@ -61,6 +61,7 @@
 	#undef Complex
 	#undef CurrentTime
 	#undef Picture
+	#undef None
 	//#undef Display
 #endif
 

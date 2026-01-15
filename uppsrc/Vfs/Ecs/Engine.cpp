@@ -155,20 +155,20 @@ void Engine::Stop() {
 	
 	RunCallbacks();
 	
-	// Stop components
-	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
-		Component* comp = v->ext ? CastPtr<Component>(&*v->ext) : 0;
-		if (comp)
-			comp->Stop();
+	// Stop components in reverse order
+	{
+		auto exts = val.FindAllDeep<Component>();
+		for (int i = exts.GetCount() - 1; i >= 0; i--)
+			exts[i]->Stop();
 	}
 	
 	RunCallbacks();
 	
-	// Stop atoms
-	for (VfsValue::IteratorDeep v = val.BeginDeep(); v; v++) {
-		AtomBase* atom = v->ext ? CastPtr<AtomBase>(&*v->ext) : 0;
-		if (atom)
-			atom->Stop();
+	// Stop atoms in reverse order
+	{
+		auto exts = val.FindAllDeep<AtomBase>();
+		for (int i = exts.GetCount() - 1; i >= 0; i--)
+			exts[i]->Stop();
 	}
 	
 	RunCallbacks();
@@ -182,6 +182,18 @@ void Engine::Stop() {
 	is_initialized = false;
 	
 	RunCallbacks();
+	
+	// Uninitialize components and atoms in reverse order
+	{
+		auto exts = val.FindAllDeep<Component>();
+		for (int i = exts.GetCount() - 1; i >= 0; i--)
+			exts[i]->UninitializeDeep();
+	}
+	{
+		auto exts = val.FindAllDeep<AtomBase>();
+		for (int i = exts.GetCount() - 1; i >= 0; i--)
+			exts[i]->UninitializeDeep();
+	}
 	
 	for (auto it = systems.End()-1; it != systems.Begin()-1; --it) {
 		if ((*it)->IsInitialized()) {

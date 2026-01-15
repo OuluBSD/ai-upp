@@ -2,6 +2,9 @@
 
 #if (defined flagX11 && defined flagSCREEN)
 #include <Painter/Painter.h>
+
+#define None 0
+
 NAMESPACE_UPP
 
 static String VfsPathOf(const VfsValue& v) {
@@ -430,6 +433,7 @@ bool ScrX11::Context_Create(NativeContext*& dev) {
 
 void ScrX11::Context_Destroy(NativeContext*& dev) {
 	delete dev;
+	dev = 0;
 }
 
 void ScrX11::Context_Visit(NativeContext& dev, AtomBase&, Visitor& vis) {

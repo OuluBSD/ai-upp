@@ -40,17 +40,17 @@ class FramePollerBase :
 {
 	double		dt = 0;
 	double		frame_age = 0;
-	
-	
+
+
 public:
 	LINK_CTOR(FramePollerBase)
 	void	Update(double dt) override;
 	bool	IsReady(PacketIO& io) override;
-	
+
 	void	Visit(Vis& vis) override {vis.VisitT<LinkBase>("LinkBase", *this);}
-	
+
 	void	SetFPS(int fps) {dt = 1.0 / (double)fps;}
-	
+
 };
 
 

@@ -83,8 +83,11 @@ static PyValue builtin_dir(const Vector<PyValue>& args, void*) {
 	PyValue obj = args[0];
 	if(obj.GetType() == PY_DICT) {
 		const VectorMap<PyValue, PyValue>& dict = obj.GetDict();
-		for(int i = 0; i < dict.GetCount(); i++)
-			list.Add(dict.GetKey(i));
+		for(int i = 0; i < dict.GetCount(); i++) {
+			PyValue k = dict.GetKey(i);
+			if (k.GetType() == PY_STR) list.Add(k);
+			else list.Add(PyValue(k.ToString()));
+		}
 	}
 	// TODO: support other types
 	return list;
@@ -316,6 +319,25 @@ static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 static PyValue builtin_sys_executable(const Vector<PyValue>& args, void*) {
 	return PyValue(GetExeFilePath());
 }
+
+static PyValue builtin_math_asinh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(asinh(args[0].AsDouble())); }
+static PyValue builtin_math_acosh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(acosh(args[0].AsDouble())); }
+static PyValue builtin_math_atanh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(atanh(args[0].AsDouble())); }
+static PyValue builtin_math_sinh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(sinh(args[0].AsDouble())); }
+static PyValue builtin_math_cosh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(cosh(args[0].AsDouble())); }
+static PyValue builtin_math_tanh(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(tanh(args[0].AsDouble())); }
+static PyValue builtin_math_log10(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log10(args[0].AsDouble())); }
+static PyValue builtin_math_log2(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log2(args[0].AsDouble())); }
+static PyValue builtin_math_log1p(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(log1p(args[0].AsDouble())); }
+static PyValue builtin_math_expm1(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(expm1(args[0].AsDouble())); }
+static PyValue builtin_math_erf(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(erf(args[0].AsDouble())); }
+static PyValue builtin_math_erfc(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(erfc(args[0].AsDouble())); }
+static PyValue builtin_math_gamma(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(tgamma(args[0].AsDouble())); }
+static PyValue builtin_math_lgamma(const Vector<PyValue>& args, void*) { if(args.GetCount() < 1) return PyValue(0.0); return PyValue(lgamma(args[0].AsDouble())); }
+static PyValue builtin_math_fmod(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(fmod(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_remainder(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(remainder(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_copysign(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(copysign(args[0].AsDouble(), args[1].AsDouble())); }
+static PyValue builtin_math_nextafter(const Vector<PyValue>& args, void*) { if(args.GetCount() < 2) return PyValue(0.0); return PyValue(nextafter(args[0].AsDouble(), args[1].AsDouble())); }
 
 static PyValue builtin_math_sqrt(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue(0.0);
@@ -669,19 +691,36 @@ globals.GetAdd(PyValue("sys")) = sys;
 
 	// math module
 	PyValue math = PyValue::Dict();
+	math.SetItem(PyValue("__name__"), PyValue("math"));
+	math.SetItem(PyValue("__doc__"), PyValue("This module provides access to the mathematical functions defined by the C standard."));
+	math.SetItem(PyValue("__package__"), PyValue(""));
+	math.SetItem(PyValue("__loader__"), PyValue::None());
+	math.SetItem(PyValue("__spec__"), PyValue::None());
+	math.SetItem(PyValue("__file__"), PyValue("built-in"));
+
 	math.SetItem(PyValue("sqrt"), PyValue::Function("sqrt", builtin_math_sqrt));
 	math.SetItem(PyValue("fabs"), PyValue::Function("fabs", builtin_math_fabs));
 	math.SetItem(PyValue("asin"), PyValue::Function("asin", builtin_math_asin));
 	math.SetItem(PyValue("acos"), PyValue::Function("acos", builtin_math_acos));
 	math.SetItem(PyValue("atan"), PyValue::Function("atan", builtin_math_atan));
 	math.SetItem(PyValue("atan2"), PyValue::Function("atan2", builtin_math_atan2));
+	math.SetItem(PyValue("asinh"), PyValue::Function("asinh", builtin_math_asinh));
+	math.SetItem(PyValue("acosh"), PyValue::Function("acosh", builtin_math_acosh));
+	math.SetItem(PyValue("atanh"), PyValue::Function("atanh", builtin_math_atanh));
 	math.SetItem(PyValue("sin"), PyValue::Function("sin", builtin_math_sin));
 	math.SetItem(PyValue("cos"), PyValue::Function("cos", builtin_math_cos));
 	math.SetItem(PyValue("tan"), PyValue::Function("tan", builtin_math_tan));
+	math.SetItem(PyValue("sinh"), PyValue::Function("sinh", builtin_math_sinh));
+	math.SetItem(PyValue("cosh"), PyValue::Function("cosh", builtin_math_cosh));
+	math.SetItem(PyValue("tanh"), PyValue::Function("tanh", builtin_math_tanh));
 	math.SetItem(PyValue("radians"), PyValue::Function("radians", builtin_math_radians));
 	math.SetItem(PyValue("degrees"), PyValue::Function("degrees", builtin_math_degrees));
 	math.SetItem(PyValue("exp"), PyValue::Function("exp", builtin_math_exp));
+	math.SetItem(PyValue("expm1"), PyValue::Function("expm1", builtin_math_expm1));
 	math.SetItem(PyValue("log"), PyValue::Function("log", builtin_math_log));
+	math.SetItem(PyValue("log10"), PyValue::Function("log10", builtin_math_log10));
+	math.SetItem(PyValue("log2"), PyValue::Function("log2", builtin_math_log2));
+	math.SetItem(PyValue("log1p"), PyValue::Function("log1p", builtin_math_log1p));
 	math.SetItem(PyValue("ceil"), PyValue::Function("ceil", builtin_math_ceil));
 	math.SetItem(PyValue("floor"), PyValue::Function("floor", builtin_math_floor));
 	math.SetItem(PyValue("pow"), PyValue::Function("pow", builtin_math_pow));
@@ -693,8 +732,19 @@ globals.GetAdd(PyValue("sys")) = sys;
 	math.SetItem(PyValue("hypot"), PyValue::Function("hypot", builtin_math_hypot));
 	math.SetItem(PyValue("trunc"), PyValue::Function("trunc", builtin_math_trunc));
 	math.SetItem(PyValue("fsum"), PyValue::Function("fsum", builtin_math_fsum));
+	math.SetItem(PyValue("fmod"), PyValue::Function("fmod", builtin_math_fmod));
+	math.SetItem(PyValue("remainder"), PyValue::Function("remainder", builtin_math_remainder));
+	math.SetItem(PyValue("copysign"), PyValue::Function("copysign", builtin_math_copysign));
+	math.SetItem(PyValue("nextafter"), PyValue::Function("nextafter", builtin_math_nextafter));
+	math.SetItem(PyValue("erf"), PyValue::Function("erf", builtin_math_erf));
+	math.SetItem(PyValue("erfc"), PyValue::Function("erfc", builtin_math_erfc));
+	math.SetItem(PyValue("gamma"), PyValue::Function("gamma", builtin_math_gamma));
+	math.SetItem(PyValue("lgamma"), PyValue::Function("lgamma", builtin_math_lgamma));
 	math.SetItem(PyValue("pi"), PyValue(M_PI));
-	math.SetItem(PyValue("e"), PyValue(2.718281828459045));
+	math.SetItem(PyValue("e"), PyValue(M_E));
+	math.SetItem(PyValue("tau"), PyValue(2.0 * M_PI));
+	math.SetItem(PyValue("inf"), PyValue(std::numeric_limits<double>::infinity()));
+	math.SetItem(PyValue("nan"), PyValue(std::numeric_limits<double>::quiet_NaN()));
 	globals.GetAdd(PyValue("math")) = math;
 
 	// time module

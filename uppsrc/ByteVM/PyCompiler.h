@@ -20,12 +20,12 @@ class PyCompiler {
 	bool IsInt() const;
 	bool IsDouble() const;
 	bool IsString() const;
-	
+	bool IsStmtEnd() const;
+	int  GetLine() const;
+
 	void Expect(int token);
 	void ExpectId(const char *id);
-	
-	int GetLine() const;
-	
+
 	void Statement();
 	void Expression();
 	void OrExpr();

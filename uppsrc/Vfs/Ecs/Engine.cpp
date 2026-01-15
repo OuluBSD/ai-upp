@@ -183,6 +183,8 @@ void Engine::Stop() {
 	
 	RunCallbacks();
 	
+	val.ClearDependenciesDeep();
+	
 	// Uninitialize components and atoms in reverse order
 	{
 		auto exts = val.FindAllDeep<Component>();

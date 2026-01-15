@@ -1,0 +1,18 @@
+description "Uppy Python-like interpreter CLI\377";
+
+uses
+	Core,
+	ByteVM,
+	Core/TextParsing;
+
+file
+	PythonCLI.h,
+	PythonCLI.cpp,
+	main.cpp;
+
+mainconfig
+	"Release (Posix)" = "",
+	"Debug (Posix)" = "USEMALLOC",
+	"Release (Windows)" = "",
+	"Debug (Windows)" = "USEMALLOC";
+

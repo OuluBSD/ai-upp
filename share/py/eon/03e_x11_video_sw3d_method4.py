@@ -6,7 +6,8 @@ print("Loading 03e_x11_video_sw3d_method4.py")
 # This corresponds to share/eon/tests/03e_x11_video_sw3d.eon
 
 # Router-based version of the loop video chain
-net = router.RouterNetContext("video")
+# Loop must be under x11.app.program to find X11 context
+net = router.RouterNetContext("x11.app.program.video")
 
 # state event.register
 # TODO: Add support for state declarations in Python bindings
@@ -39,7 +40,9 @@ net.Connect("fbo_pipe0", fbo_pipe_src, "fbo_sink0", fbo_sink_sink)
 # Connections: x11.sw.fbo.sink -> center.customer
 net.Connect("fbo_sink0", fbo_sink_src, "customer0", customer_sink)
 
-# Build the network
+# Build the video loop - X11 context is initialized at this point
+print("Building video network...")
 if not net.BuildLegacyLoop():
     print("Failed to build legacy loop")
-print("Successfully built video network")
+else:
+    print("Successfully built video network")

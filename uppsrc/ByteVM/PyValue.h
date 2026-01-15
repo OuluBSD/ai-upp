@@ -157,6 +157,7 @@ public:
 	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
 	static PyValue StopIteration() { PyValue v; v.type = PY_STOP_ITERATION; return v; }
 	static PyValue FromValue(const Value& v);
+	static PyValue FromVector(const Vector<PyValue>& v, bool tuple = false);
 
 	const PyLambda& GetLambda() const { ASSERT(type == PY_FUNCTION); return *lambda; }
 	PyLambda&       GetLambdaRW() { ASSERT(type == PY_FUNCTION); return *lambda; }

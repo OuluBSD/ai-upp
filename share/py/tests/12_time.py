@@ -3,6 +3,8 @@ import time
 print("Time module tests:")
 t1 = time.time()
 print("Current time (Unix epoch):", t1)
+print("Current time (ctime):", time.ctime())
+print("Epoch time (ctime):", time.ctime(0))
 
 print("Sleeping for 0.5 seconds...")
 time.sleep(0.5)

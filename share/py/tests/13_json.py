@@ -27,4 +27,15 @@ parsed_list = json.loads(json_list)
 print("Parsed list second element:", parsed_list[1])
 print("Parsed list third element key 'a':", parsed_list[2]["a"])
 
+# Test file dump/load
+test_json_file = "test_json.json"
+json.dump(data, test_json_file)
+print("JSON dumped to file")
+loaded_from_file = json.load(test_json_file)
+print("Loaded from file name:", loaded_from_file["name"])
+
+import os
+os.remove(test_json_file)
+print("Test JSON file removed")
+
 print("JSON tests completed successfully")

@@ -275,6 +275,9 @@ void PyCompiler::Statement()
 	else if(IsId("import")) {
 		Next();
 		while(IsId()) {
+			String module_name = Peek().str_value;
+			EmitName(PY_IMPORT_NAME, module_name);
+			EmitName(PY_STORE_NAME, module_name);
 			Next();
 			if(IsToken(TK_COMMA)) Next();
 			else break;

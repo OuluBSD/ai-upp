@@ -516,7 +516,14 @@ bool ScrX11Ogl::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSour
 	return true;
 }
 
-bool ScrX11Ogl::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase&, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
+bool ScrX11Ogl::SinkDevice_NegotiateSinkFormat(NativeSinkDevice& dev, AtomBase& a, LinkBase& link, int sink_ch, const ValueFormat& new_fmt) {
+	// accept all valid video formats for now
+	if (new_fmt.IsValid() && new_fmt.IsVideo()) {
+		ISinkPtr sink = a.GetSink();
+		ValueBase& val = sink->GetValue(sink_ch);
+		val.SetFormat(new_fmt);
+		return true;
+	}
 	return false;
 }
 

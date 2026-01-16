@@ -293,6 +293,7 @@ void PyCompiler::Statement()
 					module_name << "." << Peek().str_value;
 					Next();
 				}
+				else break;
 			}
 			EmitName(PY_IMPORT_NAME, module_name);
 			EmitName(PY_STORE_NAME, module_name);
@@ -313,6 +314,7 @@ void PyCompiler::Statement()
 				module_name << "." << Peek().str_value;
 				Next();
 			}
+			else break;
 		}
 		if (!IsId("import")) throw Exc(Format("Line %d: Expected 'import' after module name", GetLine()));
 		Next();

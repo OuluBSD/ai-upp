@@ -459,51 +459,15 @@ bool ScrX11Ogl::SinkDevice_Start(NativeSinkDevice& dev, AtomBase& a) {
 }
 
 void ScrX11Ogl::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
-	
+	// Don't access ctx here - it may already be destroyed during VFS teardown
 }
 
 void ScrX11Ogl::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
-	auto& ctx = *dev.ctx;
-	
 	dev.accel.Uninitialize();
-	
-	//XkbFreeKeyboard(ctx.xkb, XkbAllComponentsMask, True);
 
-	// Only destroy the context if it's valid
-	if (dev.gl_ctx && ctx.display) {
-		// Make sure we're not using the context before destroying it
-		glXMakeCurrent(ctx.display, None, NULL);
-		glXDestroyContext(ctx.display, dev.gl_ctx);
-		dev.gl_ctx = 0; // Set to NULL to avoid double destruction
-	}
-	
-	// Free the visual info that was allocated during initialization
-	if (ctx.visual_info) {
-		XFree(ctx.visual_info);
-		ctx.visual_info = nullptr;
-	}
-	
-	// Only free colormap if it's valid
-	if (ctx.display && ctx.attr.colormap) {
-		XFreeColormap(ctx.display, ctx.attr.colormap);
-		ctx.attr.colormap = 0;
-	}
-	
-	// Only destroy window if it's valid
-	if (ctx.display && ctx.win) {
-		XDestroyWindow(ctx.display, ctx.win);
-		ctx.win = 0;
-	}
-
-	if (ctx.running && ctx.display) {
-		// flush all pending requests to the X server.
-		XFlush(ctx.display);
-		
-		// close the connection to the X server.
-		XCloseDisplay(ctx.display);
-		ctx.display = nullptr;
-	}
-	ctx.running = false; // Mark context as no longer running
+	// Don't access ctx here - it may already be destroyed during VFS teardown
+	// The Context will handle X11 Display, Window, and visual cleanup
+	// GL context cleanup is skipped as it requires valid Display pointer
 }
 
 bool ScrX11Ogl::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {

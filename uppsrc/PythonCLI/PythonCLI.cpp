@@ -147,15 +147,17 @@ String PythonCLI::ReadLine()
 							}
 						}
 						}
+						}
+						}
 						Redraw();
+						}
+						}
+						else if ((byte)c >= 32) {
+						line.Insert(cursor_pos, (char)c);
+						cursor_pos++;
+						Redraw();
+						}
 					}
-				}
-				else if ((byte)c >= 32) {
-					line.Insert(cursor_pos, (char)c);
-					cursor_pos++;
-					Redraw();
-				}
-			}
 
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 		return line;
@@ -279,14 +281,14 @@ String PythonCLI::ReadLine()
 
 		if(content.IsEmpty()) {
 			Cout() << "Error: Could not read file '" << filename << "'\n";
-			return false;
+			return 1;
 		}
 
 		try {
 			Tokenizer tk;
 			tk.SkipPythonComments();
 			if(!tk.Process(content, filename)) {
-				return false;
+				return 1;
 			}
 			tk.CombineTokens();
 
@@ -295,7 +297,7 @@ String PythonCLI::ReadLine()
 			try {
 				compiler.Compile(ir);
 			} catch (Exc& e) {
-				return false;
+				return 1;
 			}
 
 			vm.SetIR(ir);
@@ -304,7 +306,7 @@ String PythonCLI::ReadLine()
 					} catch (Exc& e) {
 						if (e.StartsWith("EXIT:")) {
 							exit_code = StrInt(e.Mid(5));
-							return exit_code == 0; // if non-zero, usually means error/exit
+							return exit_code;
 						}
 						Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
 						exit_code = 1;
@@ -325,4 +327,3 @@ String PythonCLI::ReadLine()
 					return RunScript(cmds[0]);
 				return RunInteractive();
 			}
-			

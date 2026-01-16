@@ -44,6 +44,7 @@ void ModelComponent::Visit(Vis& v) {
 }
 
 bool ModelComponent::Initialize(const WorldState& ws) {
+	RTLOG("ModelComponent::Initialize: called");
 	color = one<vec4>();
 	prefab_name.Clear();
 	offset = zero<vec3>();
@@ -54,12 +55,13 @@ bool ModelComponent::Initialize(const WorldState& ws) {
 	ext_model = Identity<mat4>();
 	have_ext_model = false;
 	model_changed = false;
-	
+
 	RenderingSystemPtr rend = this->GetEngine().TryGet<RenderingSystem>();
 	if (rend) {
+		RTLOG("ModelComponent::Initialize: adding to RenderingSystem");
 		rend->AddModel(this);
 	} else {
-		LOG("ModelComponent::Initialize: RenderingSystem not available yet");
+		RTLOG("ModelComponent::Initialize: RenderingSystem not available yet");
 	}
 
 	return true;
@@ -119,6 +121,17 @@ bool ModelComponent::Arg(String key, Value value) {
 		model_changed = true;
 		loader = mb;
 		model = loader.GetModel();
+		if (model) {
+			int vert_count = 0, face_count = 0;
+			for (int i = 0; i < model->GetMeshCount(); i++) {
+				const Mesh& m = model->GetMesh(i);
+				vert_count += m.vertices.GetCount();
+				face_count += m.indices.GetCount() / 3;
+			}
+			LOG("ModelComponent::Arg: created builtin model '" << name << "' with " << vert_count << " vertices, " << face_count << " faces");
+		} else {
+			LOG("ModelComponent::Arg: error: failed to create builtin model '" << name << "'");
+		}
 	}
 	else if (key == "skybox.diffuse") {
 		skybox_diffuse = value;

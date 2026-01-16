@@ -49,6 +49,7 @@ void RenderingSystem::RemoveRenderable(RenderablePtr b) {
 void RenderingSystem::AddModel(ModelComponentPtr m) {
 	ASSERT(m);
 	VectorFindAdd(models, m);
+	LOG("RenderingSystem::AddModel: added model, total models=" << models.GetCount());
 }
 
 void RenderingSystem::RemoveModel(ModelComponentPtr m) {
@@ -70,18 +71,23 @@ void RenderingSystem::Update(double dt) {
 }
 
 void RenderingSystem::Render(GfxDataState& state) {
-	for (ModelComponentPtr& m : models) {
-		
-		m->Load(state);
-		
+	static int render_count = 0;
+	if ((render_count++ % 60) == 0) {
+		LOG("RenderingSystem::Render: models=" << models.GetCount() << " cameras=" << cams.GetCount());
 	}
-	
+
+	for (ModelComponentPtr& m : models) {
+
+		m->Load(state);
+
+	}
+
 	for (CameraBase* cb : cams) {
 		if (calib.is_enabled) {
 			cb->calib = calib;
 			cb->UpdateCalibration();
 		}
-		
+
 		cb->Load(state);
 	}
 }

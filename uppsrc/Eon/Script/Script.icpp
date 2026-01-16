@@ -9,7 +9,7 @@ INITBLOCK {
 	SerialLoaderFactory::Register<SerialShadertoyLoader>(".toy");
 
 	// Expose the ScriptLoader system
-	REGISTER_SYSTEM_ECS(ScriptLoader, "script.loader", "Ecs|Script");
+	REGISTER_EON_SYSTEM(ScriptLoader, "script.loader", "Ecs|Script");
 	
 	
 

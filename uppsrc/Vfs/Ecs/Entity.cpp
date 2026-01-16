@@ -102,13 +102,14 @@ void Entity::Initialize(String prefab) {
 }
 
 ComponentPtr Entity::CreateEon(String id) {
-	auto* f = VfsValueExtFactory::FindFactory(id);
+	auto* f = VfsValueExtFactory::FindFactoryEon(id, VFSEXT_COMPONENT);
 	if (!f)
 		return ComponentPtr();
-	
-	if (f->type != VFSEXT_COMPONENT)
-		return ComponentPtr();
-	
+
+	// Type check no longer needed - FindFactoryEon now filters by type
+	//if (f->type != VFSEXT_COMPONENT)
+	//	return ComponentPtr();
+
 	VfsValue& val = this->val.Add();
 	val.ext = f->new_fn(val);
 	val.type_hash = val.ext ? val.ext->GetTypeHash() : 0;

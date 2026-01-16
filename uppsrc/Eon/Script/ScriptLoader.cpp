@@ -1148,37 +1148,51 @@ bool ScriptLoader::LoadGlobalScope(Eon::GlobalScope& def, AstNode* n) {
 				return false;
 		}
 	}
-	
+
 	if (!has_machine) {
+		LOG("LoadGlobalScope: no machine found, creating anonymous machine");
 		Eon::MachineDefinition& mach = def.machs.Add();
-		return LoadMachine(mach, n);
+		if (!LoadMachine(mach, n))
+			return false;
+		has_machine = true;
 	}
-	
-	
+
+
 	// Entity machine / ecs-engine part
 	items.SetCount(0);
+	LOG("LoadGlobalScope: searching for EcsStmt to find worlds");
 	n->FindAllNonIdEndpoints(items, Cursor_EcsStmt);
 	Sort(items, AstNodeLess());
-	
+	LOG("LoadGlobalScope: found " << items.GetCount() << " EcsStmt items");
+
+	for (int i = 0; i < items.GetCount(); i++) {
+		LOG("  EcsStmt item[" << i << "]: src=" << GetCodeCursorString(items[i].n->src) << " id=" << items[i].n->val.id);
+	}
+
 	bool has_world = false;
 	for (const Endpoint& ep : items) {
 		AstNode* item = ep.n;
+		LOG("LoadGlobalScope: checking item with src=" << GetCodeCursorString(item->src));
 		#if VERBOSE_SCRIPT_LOADER
 		LOG(item->GetTreeString(0));
 		#endif
 		if (item->src == Cursor_WorldStmt) {
+			LOG("ScriptLoader::LoadGlobalScope: found WorldStmt");
 			AstNode* block = item->Find(Cursor_CompoundStmt);
 			if (!block) {AddError(n->loc, "internal error: no stmt block"); return false;}
-			
+
 			Eon::WorldDefinition& world_def = def.worlds.Add();
-			
+			LOG("ScriptLoader::LoadGlobalScope: added world to def.worlds, count=" << def.worlds.GetCount());
+
 			if (!GetPathId(world_def.id, n, item))
 				return false;
-			
+
+			LOG("ScriptLoader::LoadGlobalScope: world_def.id=" << world_def.id.ToString());
 			ASSERT(!world_def.id.IsEmpty());
 			if (!LoadWorld(world_def, block))
 				return false;
 			has_world = true;
+			LOG("ScriptLoader::LoadGlobalScope: LoadWorld succeeded, has_world=true");
 		}
 		else if (item->src == Cursor_SystemStmt) {
 			// System statements are not allowed at the machine level, they should be inside worlds
@@ -1283,6 +1297,11 @@ bool ScriptLoader::LoadMachine(Eon::MachineDefinition& def, AstNode* n) {
 			if (!LoadNet(net_def, block))
 				return false;
 			has_chain = true;
+		}
+		else if (item->src == Cursor_WorldStmt) {
+			LOG("LoadMachine: found WorldStmt but skipping it - worlds should be handled by LoadGlobalScope");
+			// WorldStmt found inside machine block, but it should be handled at global scope
+			// Skip it here and let LoadGlobalScope handle it
 		}
 		else if (item->src == Cursor_DriverStmt || item->src == Cursor_LoopStmt) {
 			if (!anon_chain)

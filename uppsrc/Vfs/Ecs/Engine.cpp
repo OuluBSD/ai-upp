@@ -265,10 +265,19 @@ Ptr<System> Engine::Add(TypeCls type, bool startup)
 }
 
 Ptr<System> Engine::GetAdd(String id, bool startup) {
-    int i = VfsValueExtFactory::EonToType().Find(id);
-    if (i < 0)
+    LOG("Engine::GetAdd: looking for system with id='" << id << "'");
+    const auto& eon_to_type = VfsValueExtFactory::EonToType();
+    LOG("Engine::GetAdd: registered systems count=" << eon_to_type.GetCount());
+    for (int j = 0; j < eon_to_type.GetCount(); j++) {
+        LOG("  registered[" << j << "]: " << eon_to_type.GetKey(j));
+    }
+
+    int i = eon_to_type.Find(id);
+    if (i < 0) {
+        LOG("Engine::GetAdd: system '" << id << "' not found in registration");
         return Ptr<System>();
-    TypeCls type = VfsValueExtFactory::EonToType()[i];
+    }
+    TypeCls type = eon_to_type[i];
     auto v = val.FindAll(type);
     if (v.GetCount())
         return v[0]->ext ? CastPtr<System>(&*v[0]->ext) : 0;

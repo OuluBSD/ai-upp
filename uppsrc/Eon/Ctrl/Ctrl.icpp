@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 INITBLOCK {
-	REGISTER_SYSTEM_ECS(DesktopSuiteSystem, "desktop.system", "Ecs|OS");
+	REGISTER_EON_SYSTEM(DesktopSuiteSystem, "desktop.system", "Ecs|OS");
 }
 
 END_UPP_NAMESPACE

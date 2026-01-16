@@ -23,6 +23,9 @@ struct ScrX11Ogl::NativeSinkDevice {
     NativeContext* ctx;
     ::GLXContext gl_ctx;
     GfxAccelAtom<X11OglGfx> accel;
+    bool log_avg = false;
+    int avg_log_interval = 16;
+    int frame_counter = 0;
 };
 
 struct ScrX11Ogl::NativeEventsBase {
@@ -117,7 +120,13 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 	bool print_modes = ws.IsTrue(".print_modes");
 	bool find_vr = ws.IsTrue(".find.vr.screen");
 	int screen_idx = ws.GetInt(".screen", -1);
-	
+
+	dev.log_avg = ws.GetBool(".avg_color_log", false);
+	int interval = ws.GetInt(".avg_color_interval", 16);
+	if (interval <= 0)
+		interval = 1;
+	dev.avg_log_interval = interval;
+
 	if (!dev.accel.Initialize(a, ws)) {
 		LOG("ScrX11Ogl::SinkDevice_Initialize: error: accelerator initialization failed");
 		return false;
@@ -510,9 +519,44 @@ void ScrX11Ogl::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase&, RealtimeSo
 }
 
 bool ScrX11Ogl::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
-	
+
 	dev.accel.Render(cfg);
-	
+
+	// Average color logging for debugging
+	if (dev.log_avg) {
+		dev.frame_counter++;
+		if (dev.frame_counter % dev.avg_log_interval == 0) {
+			GLint viewport[4];
+			glGetIntegerv(GL_VIEWPORT, viewport);
+			int width = viewport[2];
+			int height = viewport[3];
+
+			if (width > 0 && height > 0) {
+				// Read back framebuffer from GPU
+				Vector<byte> pixels;
+				pixels.SetCount(width * height * 3);
+				glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.Begin());
+
+				// Calculate average color
+				uint64 sum_r = 0, sum_g = 0, sum_b = 0;
+				const byte* px = pixels.Begin();
+				for (int i = 0; i < width * height; i++) {
+					sum_r += px[0];
+					sum_g += px[1];
+					sum_b += px[2];
+					px += 3;
+				}
+				int pixel_count = width * height;
+				int avg_r = (int)(sum_r / pixel_count);
+				int avg_g = (int)(sum_g / pixel_count);
+				int avg_b = (int)(sum_b / pixel_count);
+
+				// Use LOG instead of GFXLOG so output is visible when avg_color_log=true
+				LOG("X11Ogl frame #" << dev.frame_counter << " avg color (RGB)=" << avg_r << "," << avg_g << "," << avg_b);
+			}
+		}
+	}
+
 	return true;
 }
 

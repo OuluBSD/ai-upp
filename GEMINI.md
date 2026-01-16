@@ -31,4 +31,14 @@ This document serves as an internal guide for the Gemini AI agent.
   #endif
   ```
 
+## Uppy Python Interpreter (ByteVM) Insights
+
+- **Module Imports**: Support for `from module import *` and dotted paths (e.g., `os.path`) requires recursive traversal of module dictionaries. If a module is not in `globals`, check `sys.modules`.
+- **Statement Termination**: To prevent infinite loops in `PyCompiler`, ensure that every statement path (including `if`, `while`, `for`, `def`, `return`, `import`) explicitly consumes its terminator (usually `TK_NEWLINE` or `TK_END_STMT`) if `IsStmtEnd()` is true.
+- **Python-like Methods**: Methods like `str.endswith()` and `str.join()` are implemented using `PyValue::BoundMethod`, which binds a builtin function to a specific object instance on the stack.
+- **Built-in Modules**: Modules like `os` and `sys` are implemented as `PyValue::Dict()` populated with `PyValue::Function` wrappers around C++ functions.
+- **Exit Handling**: `sys.exit(code)` should throw an `Exc` with a specific prefix (e.g., `"EXIT:code"`). The main `PythonCLI` loop catches this to extract the exit status and terminate gracefully.
+- **String Formatting**: Basic `%` formatting support is implemented in `PY_BINARY_MODULO` by checking if the left operand is `PY_STR`.
+- **Recursive CLI Calls**: Be cautious with `subprocess.run` implementations that call `bin/PythonCLI` recursively; ensure the underlying process management (e.g., `system()`) doesn't lead to deadlocks or output buffering issues.
+
 Familiarity with these guides is essential for effective and compliant operation within this codebase.

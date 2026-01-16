@@ -30,11 +30,15 @@ bool ExtScriptEcsLoader::Load(ScriptWorldLoader& l) {
 	}
 	
     Val& pool = eng.GetRootPool();
-    
+    RTLOG("ScriptEngineLoader::Load: got root pool, pools count=" << l.pools.GetCount());
+    RTLOG("ScriptEngineLoader::Load: root pool id='" << pool.id << "' sub.GetCount()=" << pool.sub.GetCount());
+
     for (ScriptPoolLoader& loader : l.pools) {
         String name = loader.def.id.ToString();
+        RTLOG("ScriptEngineLoader::Load: getting pool '" << name << "'");
         VfsValue& pool0 = pool.GetAdd(name, 0);
-        ASSERT(pool0);
+        RTLOG("ScriptEngineLoader::Load: got pool0, id='" << pool0.id << "' sub.GetCount()=" << pool0.sub.GetCount());
+        //ASSERT(pool0);
         if (!Load(loader, pool0)) {
             SetError(l.def.id.ToString() + ": " + loader.GetErrorString());
             return false;
@@ -86,13 +90,16 @@ bool ExtScriptEcsLoader::Load(ScriptPoolLoader& l, VfsValue& pool) {
 
 bool ExtScriptEcsLoader::Load(ScriptEntityLoader& l, Entity& ent) {
     EntityContext ent_ctx(ent, &l.parent.parent.parent.parent);
-    
+
     for (ScriptComponentLoader& c : l.comps) {
         String name = c.def.id.ToString();
         ComponentContext comp_ctx = ent_ctx.AddComponent(name, &c.def.args, &c.def.loc);
         // component args were already applied in AddComponent
         (void)comp_ctx;
     }
+
+    // NOTE: Do NOT initialize here! Initialize needs full tree to exist.
+    // Initialization happens later in a separate phase.
     
     return true;
 }

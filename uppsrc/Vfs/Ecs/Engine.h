@@ -35,9 +35,9 @@ public:
 #define SYS_DEF_VISIT_I(cls, x) void cls::Visit(Vis& vis) {x; vis.VisitT<System>("System",*this);}
 
 #define REGISTER_SYSTEM_ATOM(x, eon, cat) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ATOM, eon, cat);
-#define REGISTER_SYSTEM_ECS(x, eon, cat) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ECS, eon, cat);
-#define REGISTER_COMPONENT(x, eon, cat) VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT, eon, cat);
-#define REGISTER_COMPONENT_(x, str, eon, cat) VfsValueExtFactory::Register<x>(str, VFSEXT_COMPONENT, eon, cat);
+#define REGISTER_EON_SYSTEM(x, eon, cat) VfsValueExtFactory::Register<x>(#x, VFSEXT_SYSTEM_ECS, eon, cat);
+#define REGISTER_EON_COMPONENT(x, eon, cat) VfsValueExtFactory::Register<x>(#x, VFSEXT_COMPONENT, eon, cat);
+#define REGISTER_EON_COMPONENT_(x, str, eon, cat) VfsValueExtFactory::Register<x>(str, VFSEXT_COMPONENT, eon, cat);
 #define REGISTER_EXCHANGE(x, dev, val) VfsValueExtFactory::RegisterExchange<x>(#x, dev, val);
 
 class Engine : public VfsValueExt

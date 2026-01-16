@@ -3,16 +3,16 @@
 INITBLOCK {
 	using namespace Upp;
 	
-	REGISTER_COMPONENT(CompletionThread,           "ai.completion", "AI|Completion")
-	REGISTER_COMPONENT(ChatThread,                 "ai.chat",       "AI|Chat")
-	REGISTER_COMPONENT(ChainThread,                "ai.chain",      "AI")
-	REGISTER_COMPONENT(MetaEnvThread,              "ai.env",        "Util")
-	REGISTER_COMPONENT(Agent,                      "ai.agent",      "AI|Agent")
-	REGISTER_COMPONENT(SpeechTranscriptionThread,  "ai.transcribe", "AI|Speech")
-	REGISTER_COMPONENT(SpeechGenerationThread,     "ai.speech",     "AI|Speech")
-	REGISTER_COMPONENT(ImageGenerationThread,      "ai.image",      "AI|Image")
-	REGISTER_COMPONENT(ImageVisionThread,          "ai.vision",     "AI|Image")
-	REGISTER_COMPONENT(AgentTaskExt,               "ai.agent.task", "AI|Task")
+	REGISTER_EON_COMPONENT(CompletionThread,           "ai.completion", "AI|Completion")
+	REGISTER_EON_COMPONENT(ChatThread,                 "ai.chat",       "AI|Chat")
+	REGISTER_EON_COMPONENT(ChainThread,                "ai.chain",      "AI")
+	REGISTER_EON_COMPONENT(MetaEnvThread,              "ai.env",        "Util")
+	REGISTER_EON_COMPONENT(Agent,                      "ai.agent",      "AI|Agent")
+	REGISTER_EON_COMPONENT(SpeechTranscriptionThread,  "ai.transcribe", "AI|Speech")
+	REGISTER_EON_COMPONENT(SpeechGenerationThread,     "ai.speech",     "AI|Speech")
+	REGISTER_EON_COMPONENT(ImageGenerationThread,      "ai.image",      "AI|Image")
+	REGISTER_EON_COMPONENT(ImageVisionThread,          "ai.vision",     "AI|Image")
+	REGISTER_EON_COMPONENT(AgentTaskExt,               "ai.agent.task", "AI|Task")
 	
 	VfsValueExtFactory::Register<VfsFarStage>("VfsFarStage", VFSEXT_DEFAULT, "ai.stage", "Vfs");
 	VfsValueExtFactory::Register<AgentInteractionSession>("AgentInteractionSession", VFSEXT_DEFAULT, "ai.agent.interaction.session", "AI|Agent");

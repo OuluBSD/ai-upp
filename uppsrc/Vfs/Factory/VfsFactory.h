@@ -162,6 +162,12 @@ struct VfsValueExtFactory {
 				return &f;
 		return 0;
 	}
+	inline static Factory* FindFactoryEon(String eon_name, VfsExtType type) {
+		for (auto& f : List())
+			if (f.eon_name == eon_name && f.type == type)
+				return &f;
+		return 0;
+	}
 	template <class T> inline static void Register(String name, VfsExtType type, String eon_name, String category) {
 		Factory& f = GetFactory<T>();
 		ASSERT(!f.type_hash);
@@ -175,7 +181,7 @@ struct VfsValueExtFactory {
 		//f.set_data_ed_fn = &DatasetEntityData<T>;
 		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
 		if (type == VFSEXT_SYSTEM_ECS)
-			EonToType().Add(name, f.type_cls);
+			EonToType().Add(eon_name, f.type_cls);  // Use eon_name (Eon ID) instead of name (class name)
 		if (type == VFSEXT_SYSTEM_ECS)
 			f.set_ptr_fn = &SetDatasetData<T>;
 		ASSERT(f.name.Find("|") < 0);

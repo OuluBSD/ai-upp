@@ -200,7 +200,6 @@ String PythonCLI::ReadLine()
 				return true; 
 			}
 			tk.CombineTokens();
-			tk.NewlineToEndStatement();
 
 			PyCompiler compiler(tk.GetTokens());
 			Vector<PyIR> ir;
@@ -290,7 +289,6 @@ String PythonCLI::ReadLine()
 				return false;
 			}
 			tk.CombineTokens();
-			tk.NewlineToEndStatement();
 
 			PyCompiler compiler(tk.GetTokens());
 			Vector<PyIR> ir;

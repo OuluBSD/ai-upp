@@ -120,6 +120,9 @@ struct HalSdl::NativeOglScreenSinkDevice : HalSdl_CommonOgl {
     uint32 fb = 0;
     GfxAccelAtom<SdlOglGfx> accel;
     String dump_screen_path;  // Path where to dump the screen shot
+    bool log_avg = false;
+    int avg_log_interval = 16;
+    int frame_counter = 0;
 };
 #endif
 
@@ -1043,6 +1046,13 @@ bool HalSdl::OglScreenSinkDevice_Initialize(NativeOglScreenSinkDevice& dev, Atom
 
 	// Store the dump screen path in the device
 	dev.dump_screen_path = dump_screen_path;
+
+	// Initialize avg_color_log feature
+	dev.log_avg = ws.GetBool(".avg_color_log", false);
+	int interval = ws.GetInt(".avg_color_interval", 16);
+	if (interval <= 0)
+		interval = 1;
+	dev.avg_log_interval = interval;
 	
 	ValueMap data = a.UserData();
 	data("cx") = sz.cx;
@@ -1200,6 +1210,36 @@ void HalSdl::OglScreenSinkDevice_Uninitialize(NativeOglScreenSinkDevice& dev, At
 
 bool HalSdl::OglScreenSinkDevice_Send(NativeOglScreenSinkDevice& dev, AtomBase&, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	dev.accel.Render(cfg);
+
+	// Log average color if enabled
+	if (dev.log_avg) {
+		dev.frame_counter++;
+		if ((dev.frame_counter % dev.avg_log_interval) == 0) {
+			int width = dev.screen_sz.cx;
+			int height = dev.screen_sz.cy;
+			if (width > 0 && height > 0) {
+				Vector<byte> pixels;
+				pixels.SetCount(width * height * 4); // RGBA format
+				glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.Begin());
+
+				uint64 sum_r = 0, sum_g = 0, sum_b = 0;
+				const byte* frame = pixels.Begin();
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < width; x++) {
+						int idx = (y * width + x) * 4;
+						sum_r += frame[idx];
+						sum_g += frame[idx + 1];
+						sum_b += frame[idx + 2];
+					}
+				}
+				int pixel_count = width * height;
+				int avg_r = (int)(sum_r / pixel_count);
+				int avg_g = (int)(sum_g / pixel_count);
+				int avg_b = (int)(sum_b / pixel_count);
+				LOG("SdlOgl frame #" << dev.frame_counter << " avg color (RGB)=" << avg_r << "," << avg_g << "," << avg_b);
+			}
+		}
+	}
 
 	LOG("OglScreenSinkDevice_Send: called, dump_screen_path = '" << dev.dump_screen_path << "'");
 

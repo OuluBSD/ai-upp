@@ -976,6 +976,10 @@ PyVM::PyVM()
 	p_sum.GetLambdaRW().builtin = builtin_sum;
 	globals.GetAdd(PyValue("sum")) = p_sum;
 
+	PyValue p_abs = PyValue::Function("abs");
+	p_abs.GetLambdaRW().builtin = builtin_abs;
+	globals.GetAdd(PyValue("abs")) = p_abs;
+
 	// os module
 	PyValue os = PyValue::Dict();
 	os.SetItem(PyValue("getcwd"), PyValue::Function("getcwd", builtin_os_getcwd));

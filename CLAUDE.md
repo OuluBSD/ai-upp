@@ -124,6 +124,54 @@ Use these strengths when working with this codebase.
 
 ---
 
+## Meta-Awareness: Improving Code Readability
+
+When debugging, pay attention to **why** problems were hard to detect. Your reasoning capabilities make you excellent at identifying structural issues that hide bugs.
+
+### Ask These Questions
+
+After finding a difficult bug:
+1. **What made this hard to find?** Was naming misleading? Were types ambiguous?
+2. **Would renaming help?** Could better names make this class of bug obvious?
+3. **Are error messages helpful?** Do they point to root cause or just symptoms?
+4. **Is this pattern repeated?** Are there other places with similar ambiguity?
+
+### Propose Improvements Proactively
+
+You are **encouraged** to suggest:
+- **Renaming operations**: Find-and-replace across all files is welcome (commit first!)
+- **Better error messages**: Add context that explains what went wrong and why
+- **Type disambiguation**: Add parameters to prevent incorrect matches
+- **Macro improvements**: Make hidden information explicit in macro names
+
+### Example: The `REGISTER_EON_*` Refactoring
+
+**Original Problem**: Macros `REGISTER_COMPONENT` and `REGISTER_SYSTEM_ECS` both registered into the same global factory with `eon_name` keys, but the different macro names falsely suggested separate namespaces. This caused a name collision (`"physics"` registered as both system and component) that was hard to detect.
+
+**Root Cause Analysis**:
+- Macro names suggested separation that didn't exist
+- The shared namespace (eon_name) was not emphasized
+- No type checking prevented collisions
+
+**Solution Applied**:
+1. Renamed macros to `REGISTER_EON_COMPONENT` and `REGISTER_EON_SYSTEM` to emphasize shared namespace
+2. Modified `FindFactoryEon()` to accept type parameter for disambiguation
+3. Added better error messages showing type mismatches
+
+**Key Insight**: The macro abstraction **hid** that both registrations shared the same key space. Making this explicit prevented the bug class entirely.
+
+### Your Role in Code Quality
+
+Use your analytical strengths to:
+- Spot patterns that obscure problems
+- Identify where explicitness would prevent bugs
+- Propose structural improvements, not just bug fixes
+- Think about future AI agents and developers reading this code
+
+**Remember**: This project values **clarity over cleverness**. Suggestions that make problems obvious are always welcome.
+
+---
+
 ## Important: Read AGENTS.md
 
 **All the core conventions are in [AGENTS.md](AGENTS.md)**. This file assumes you've read:

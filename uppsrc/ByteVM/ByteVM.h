@@ -15,5 +15,7 @@
 #include "PyIR.h"
 #include "PyCompiler.h"
 #include "PyVM.h"
+#include "PolicyKit.h"
+#include "PyScheduler.h"
 
 #endif

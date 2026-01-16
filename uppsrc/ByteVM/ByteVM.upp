@@ -15,5 +15,9 @@ file
 	PyCompiler.h,
 	PyCompiler.cpp,
 	PyVM.h,
-	PyVM.cpp;
+	PyVM.cpp,
+	PolicyKit.h,
+	PolicyKit.cpp,
+	PyScheduler.h,
+	PyScheduler.cpp;
 

@@ -25,8 +25,7 @@ struct PyKV : Moveable<PyKV> {
 	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
 };
 
-static PyValue builtin_print(const Vector<PyValue>& args, void*)
-{
+static PyValue builtin_print(const Vector<PyValue>& args, void*) {
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(i) Cout() << " ";
 		Cout() << args[i].ToString();
@@ -35,8 +34,7 @@ static PyValue builtin_print(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
-static PyValue builtin_len(const Vector<PyValue>& args, void*)
-{
+static PyValue builtin_len(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue(0);
 	return PyValue(args[0].GetCount());
 }
@@ -161,6 +159,8 @@ static PyValue builtin_sum(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_shutil_copy(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	String src = args[0].ToString();
 	String dst = args[1].ToString();
@@ -170,6 +170,7 @@ static PyValue builtin_shutil_copy(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_glob_glob(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue::List();
 	String pattern = args[0].ToString();
 	PyValue res = PyValue::List();
@@ -184,27 +185,32 @@ static PyValue builtin_glob_glob(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_getcwd(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	return PyValue(GetCurrentDirectory());
 }
 
 static PyValue builtin_os_mkdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	RealizeDirectory(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_rmdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	DeleteFolderDeep(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_rename(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
 }
 
 static PyValue builtin_os_getenv(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_ENVIRONMENT)) throw Exc("PermissionError: environment access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	String val = GetEnv(args[0].ToString());
 	if(::Upp::IsNull(val)) {
@@ -215,12 +221,14 @@ static PyValue builtin_os_getenv(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_putenv(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_ENVIRONMENT)) throw Exc("PermissionError: environment access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	SetEnv(args[0].ToString(), args[1].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_getpid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
 #ifdef flagWIN32
 	return PyValue((int64)GetCurrentProcessId());
 #else
@@ -229,6 +237,7 @@ static PyValue builtin_os_getpid(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_getuid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
 #ifdef flagWIN32
 	return PyValue((int64)0);
 #else
@@ -237,6 +246,7 @@ static PyValue builtin_os_getuid(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_getgid(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process info access denied");
 #ifdef flagWIN32
 	return PyValue((int64)0);
 #else
@@ -245,6 +255,7 @@ static PyValue builtin_os_getgid(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_listdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	String path = ".";
 	if(args.GetCount() >= 1) path = args[0].ToString();
 	PyValue list = PyValue::List();
@@ -258,39 +269,46 @@ static PyValue builtin_os_listdir(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_remove(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	FileDelete(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_chdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	SetCurrentDirectory(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_path_exists(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(false);
 	String path = args[0].ToString();
 	return PyValue(FileExists(path) || DirectoryExists(path));
 }
 
 static PyValue builtin_os_path_isdir(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(false);
 	return PyValue(DirectoryExists(args[0].ToString()));
 }
 
 static PyValue builtin_os_path_isfile(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(false);
 	return PyValue(FileExists(args[0].ToString()));
 }
 
 static PyValue builtin_os_path_getsize(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(0);
 	return PyValue((int64)GetFileLength(args[0].ToString()));
 }
 
 static PyValue builtin_os_path_islink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(false);
 #ifdef flagWIN32
 	return PyValue(false);
@@ -303,6 +321,7 @@ static PyValue builtin_os_path_islink(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_path_lexists(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(false);
 #ifdef flagWIN32
 	return builtin_os_path_exists(args, NULL);
@@ -313,6 +332,7 @@ static PyValue builtin_os_path_lexists(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_path_getatime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(0.0);
 	FindFile ff(args[0].ToString());
 	if(ff) return PyValue((double)(Time(ff.GetLastAccessTime()) - Time(1970, 1, 1)));
@@ -320,6 +340,7 @@ static PyValue builtin_os_path_getatime(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_path_getmtime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(0.0);
 	FindFile ff(args[0].ToString());
 	if(ff) return PyValue((double)(Time(ff.GetLastWriteTime()) - Time(1970, 1, 1)));
@@ -327,6 +348,7 @@ static PyValue builtin_os_path_getmtime(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_path_getctime(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue(0.0);
 	FindFile ff(args[0].ToString());
 	if(ff) {
@@ -340,19 +362,19 @@ static PyValue builtin_os_path_getctime(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_path_realpath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue("");
 	return PyValue(GetFullPath(args[0].ToString()));
 }
 
-static PyValue builtin_os_path_relpath(const Vector<PyValue>& args, void*) {
+static PyValue builtin_os_path_abspath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue("");
-	String path = args[0].ToString();
-	String start = GetCurrentDirectory();
-	if(args.GetCount() >= 2) start = args[1].ToString();
-	return PyValue(GetRelPath(path, start));
+	return PyValue(GetFullPath(args[0].ToString()));
 }
 
 static PyValue builtin_os_path_samefile(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 2) return PyValue(false);
 	return PyValue(PathIsEqual(args[0].ToString(), args[1].ToString()));
 }
@@ -363,11 +385,6 @@ static PyValue builtin_os_path_join(const Vector<PyValue>& args, void*) {
 	for(int i = 1; i < args.GetCount(); i++)
 		path = AppendFileName(path, args[i].ToString());
 	return PyValue(path);
-}
-
-static PyValue builtin_os_path_abspath(const Vector<PyValue>& args, void*) {
-	if(args.GetCount() < 1) return PyValue("");
-	return PyValue(GetFullPath(args[0].ToString()));
 }
 
 static PyValue builtin_os_path_basename(const Vector<PyValue>& args, void*) {
@@ -441,23 +458,27 @@ static PyValue builtin_os_getppid(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_makedirs(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	RealizeDirectory(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_removedirs(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	DeleteFolderDeep(args[0].ToString());
 	return PyValue::None();
 }
 
 static PyValue builtin_os_replace(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	return PyValue(FileMove(args[0].ToString(), args[1].ToString()));
 }
 
 static PyValue builtin_os_truncate(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	String path = args[0].ToString();
 	int64 length = args[1].AsInt64();
@@ -467,6 +488,7 @@ static PyValue builtin_os_truncate(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_system(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process execution denied");
 	if(args.GetCount() < 1) return PyValue(-1);
 	return PyValue((int64)system(args[0].ToString()));
 }
@@ -484,6 +506,7 @@ static PyValue builtin_os_urandom(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_readlink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue("");
 #ifdef flagWIN32
 	return PyValue(""); 
@@ -499,6 +522,7 @@ static PyValue builtin_os_readlink(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_symlink(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 #ifdef flagWIN32
 	return PyValue::None();
@@ -522,12 +546,14 @@ static PyValue builtin_os_access(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_os_chmod(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	chmod(args[0].ToString(), args[1].AsInt());
 	return PyValue::None();
 }
 
 static PyValue builtin_subprocess_run(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_PROCESS_EXEC)) throw Exc("PermissionError: process execution denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	String cmd;
 	if(args[0].GetType() == PY_LIST || args[0].GetType() == PY_TUPLE) {
@@ -996,14 +1022,40 @@ static PyValue builtin_json_loads(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_json_dump(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_WRITE)) throw Exc("PermissionError: file write access denied");
 	if(args.GetCount() < 2) return PyValue::None();
 	SaveFile(args[1].ToString(), AsJSON(args[0].ToValue()));
 	return PyValue::None();
 }
 
 static PyValue builtin_json_load(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
 	if(args.GetCount() < 1) return PyValue::None();
 	return PyValue::FromValue(ParseJSON(LoadFile(args[0].ToString())));
+}
+
+static PyValue builtin_os_path_relpath(const Vector<PyValue>& args, void*) {
+	if(!PolicyKit::Get().Check(PYPERM_FILE_READ)) throw Exc("PermissionError: file read access denied");
+	if(args.GetCount() < 1) return PyValue("");
+	String path = args[0].ToString();
+	String start = GetCurrentDirectory();
+	if(args.GetCount() >= 2) start = args[1].ToString();
+	return PyValue(GetRelPath(path, start));
+}
+
+static PyValue builtin_threading_Thread(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	PyValue target = args[0];
+	Vector<PyValue> targs;
+	if(args.GetCount() >= 2 && (args[1].GetType() == PY_LIST || args[1].GetType() == PY_TUPLE)) {
+		const Vector<PyValue>& va = args[1].GetArray();
+		for(int i = 0; i < va.GetCount(); i++) targs.Add(va[i]);
+	}
+	return PyScheduler::Get().CreateThread(target, pick(targs));
+}
+
+static PyValue builtin_threading_current_thread(const Vector<PyValue>& args, void*) {
+	return PyValue("MainThread"); // Simplified
 }
 
 PyVM::PyVM()
@@ -1072,6 +1124,12 @@ PyVM::PyVM()
 	PyValue glob = PyValue::Dict();
 	glob.SetItem(PyValue("glob"), PyValue::Function("glob", builtin_glob_glob));
 	globals.GetAdd(PyValue("glob")) = glob;
+
+	// threading module
+	PyValue threading = PyValue::Dict();
+	threading.SetItem(PyValue("Thread"), PyValue::Function("Thread", builtin_threading_Thread));
+	threading.SetItem(PyValue("current_thread"), PyValue::Function("current_thread", builtin_threading_current_thread));
+	globals.GetAdd(PyValue("threading")) = threading;
 
 	// os module
 	PyValue os = PyValue::Dict();
@@ -1296,479 +1354,488 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 	f.func.GetLambdaRW().ir = pick(_ir);
 	f.ir = &f.func.GetLambda().ir;
 	f.pc = 0;
+	last_result = PyValue::None();
 }
 
 PyValue PyVM::Run()
 {
-	PyValue last_result = PyValue::None();
-	while(!frames.IsEmpty()) {
-		Frame& frame = TopFrame();
-		if(frame.pc >= frame.ir->GetCount()) {
-			frames.Drop();
-			continue;
-		}
-		
-		const PyIR& instr = (*frame.ir)[frame.pc++];
-		
-		try {
-			switch(instr.code) {
-			case PY_NOP: break;
-			
-			case PY_UNARY_POSITIVE: break; // Identity
-			
-			case PY_UNARY_NEGATIVE: {
-				PyValue v = Pop();
-				if (v.IsInt()) Push(PyValue(-v.AsInt64()));
-				else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
-				break;
-			}
-	
-			case PY_UNARY_NOT: {
-				PyValue v = Pop();
-				Push(PyValue(!v.IsTrue()));
-				break;
-			}
-	
-			case PY_UNARY_INVERT: {
-				PyValue v = Pop();
-				if (v.IsInt()) Push(PyValue(~v.AsInt64()));
-				break;
-			}
-	
-			case PY_POP_TOP:
-				last_result = Pop();
-				break;
-	
-			case PY_LOAD_CONST:
-				Push(instr.arg);
-				break;
-			
-			case PY_LOAD_NAME: {
-				int q = frame.locals.Find(instr.arg);
-				if(q >= 0) Push(frame.locals[q]);
-				else {
-					q = globals.Find(instr.arg);
-					if(q >= 0) Push(globals[q]);
-					else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
-				}
-				break;
-			}
-		
-			case PY_STORE_NAME:
-				if(frames.GetCount() <= 1)
-					globals.GetAdd(instr.arg) = Pop();
-				else
-					frame.locals.GetAdd(instr.arg) = Pop();
-				break;
-	
-			case PY_LOAD_GLOBAL: {
-				int q = globals.Find(instr.arg);
-				if(q >= 0) Push(globals[q]);
-				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
-				break;
-			}
-				
-			case PY_STORE_GLOBAL:
-				globals.GetAdd(instr.arg) = Pop();
-				break;
-
-			case PY_IMPORT_NAME: {
-				String name = instr.arg.ToString();
-				// Support dotted names like os.path
-				Vector<String> parts = Split(name, '.');
-				PyValue current;
-				
-				// Check first part in globals
-				int q = globals.Find(parts[0]);
-				if(q >= 0) {
-					current = globals[q];
-				}
-				else {
-					// Check sys.modules
-					PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
-					if(sys.GetType() == PY_DICT) {
-						PyValue modules = sys.GetItem(PyValue("modules"));
-						if(modules.GetType() == PY_DICT) {
-							current = modules.GetItem(PyValue(parts[0]));
-						}
-					}
-				}
-				
-				if(!current.IsNone()) {
-					for(int i = 1; i < parts.GetCount(); i++) {
-						if(current.GetType() == PY_DICT) {
-							current = current.GetItem(PyValue(parts[i]));
-						} else {
-							current = PyValue::None();
-							break;
-						}
-					}
-				}
-				
-				Push(current);
-				break;
-			}
-
-			case PY_IMPORT_FROM: {
-				PyValue name = instr.arg;
-				PyValue mod = stack.Top();
-				if (mod.GetType() == PY_DICT) {
-					Push(mod.GetItem(name));
-				} else if (mod.IsUserDataValid()) {
-					Push(mod.GetUserData().GetAttr(name.ToString()));
-				} else {
-					Push(PyValue::None());
-				}
-				break;
-			}
-
-			case PY_IMPORT_STAR: {
-				PyValue mod = Pop();
-				if(mod.GetType() == PY_DICT) {
-					const VectorMap<PyValue, PyValue>& m = mod.GetDict();
-					for(int i = 0; i < m.GetCount(); i++) {
-						String name = m.GetKey(i).ToString();
-						if(!name.StartsWith("_")) {
-							globals.GetAdd(m.GetKey(i)) = m[i];
-						}
-					}
-				}
-				break;
-			}
-	
-			case PY_LOAD_ATTR: {				PyValue obj = Pop();
-				if (obj.GetType() == PY_DICT) {
-					Push(obj.GetItem(instr.arg));
-				} else if (obj.GetType() == PY_STR) {
-					String attr = instr.arg.ToString();
-					if(attr == "endswith") {
-						Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
-					} else if(attr == "startswith") {
-						Push(PyValue::BoundMethod(PyValue::Function("startswith", builtin_str_startswith), obj));
-					} else if(attr == "strip") {
-						Push(PyValue::BoundMethod(PyValue::Function("strip", builtin_str_strip), obj));
-					} else if(attr == "replace") {
-						Push(PyValue::BoundMethod(PyValue::Function("replace", builtin_str_replace), obj));
-					} else if(attr == "split") {
-						Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
-					} else if(attr == "join") {
-						Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
-					} else {
-						Push(PyValue::None());
-					}
-				} else if (obj.IsUserDataValid()) {
-					String attr_name = instr.arg.ToString();
-					RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
-					Push(obj.GetUserData().GetAttr(attr_name));
-				} else {
-					Push(PyValue::None());
-				}
-				break;
-			}
-	
-			case PY_STORE_ATTR: {
-				PyValue val = Pop();
-				PyValue obj = Pop();
-				if (obj.GetType() == PY_DICT) {
-					obj.SetItem(instr.arg, val);
-				} // TODO: support UserData store
-				break;
-			}
-				
-			case PY_BUILD_LIST: {
-				int n = instr.iarg;
-				PyValue list = PyValue::List();
-				Vector<PyValue> items;
-				for(int i = 0; i < n; i++) items.Add(Pop());
-				for(int i = n - 1; i >= 0; i--) list.Add(items[i]);
-				Push(list);
-				break;
-			}
-			
-			case PY_BUILD_TUPLE: {
-				int n = instr.iarg;
-				PyValue tuple = PyValue::Tuple();
-				Vector<PyValue> items;
-				for(int i = 0; i < n; i++) items.Add(Pop());
-				for(int i = n - 1; i >= 0; i--) tuple.Add(items[i]);
-				Push(tuple);
-				break;
-			}
-			
-			case PY_BUILD_MAP: {
-				int n = instr.iarg;
-				PyValue dict = PyValue::Dict();
-				Vector<PyKV> items;
-				for(int i = 0; i < n; i++) {
-					PyValue v = Pop();
-					PyValue k = Pop();
-					items.Add(PyKV(k, v));
-				}
-				for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
-				Push(dict);
-				break;
-			}
-				
-			case PY_BINARY_ADD: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-					Push(PyValue(a.GetComplex() + b.GetComplex()));
-				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
-				else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
-				else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
-				else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
-					PyValue res = PyValue::List();
-					const Vector<PyValue>& va = a.GetArray();
-					const Vector<PyValue>& vb = b.GetArray();
-					for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
-					for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
-					Push(res);
-				}
-				break;
-			}
-	
-			case PY_BINARY_SUBTRACT: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-					Push(PyValue(a.GetComplex() - b.GetComplex()));
-				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
-				else Push(PyValue(a.AsDouble() - b.AsDouble()));
-				break;
-			}
-	
-			case PY_BINARY_MULTIPLY: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
-					Push(PyValue(a.GetComplex() * b.GetComplex()));
-				else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
-				else Push(PyValue(a.AsDouble() * b.AsDouble()));
-				break;
-			}
-			
-			case PY_BINARY_MODULO: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				if(a.GetType() == PY_STR) {
-					String fmt = a.ToString();
-					if(b.GetType() == PY_TUPLE || b.GetType() == PY_LIST) {
-						// Very basic multiple arg formatting
-						String res;
-						int arg_idx = 0;
-						for(int i = 0; i < fmt.GetCount(); i++) {
-							if(fmt[i] == '%' && i + 1 < fmt.GetCount() && arg_idx < b.GetCount()) {
-								char spec = fmt[i+1];
-								if(spec == 's' || spec == 'd' || spec == 'g') {
-									res << b.GetItem(arg_idx++).ToString();
-									i++;
-									continue;
-								}
-							}
-							res.Cat(fmt[i]);
-						}
-						Push(PyValue(res));
-					} else {
-						// Single arg formatting
-						String res;
-						for(int i = 0; i < fmt.GetCount(); i++) {
-							if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
-								char spec = fmt[i+1];
-								if(spec == 's' || spec == 'd' || spec == 'g') {
-									res << b.ToString();
-									i++;
-									continue;
-								}
-							}
-							res.Cat(fmt[i]);
-						}
-						Push(PyValue(res));
-					}
-				} else if(a.IsInt() && b.IsInt()) {
-					if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
-					Push(PyValue(a.AsInt64() % b.AsInt64()));
-				} else {
-					Push(PyValue(fmod(a.AsDouble(), b.AsDouble())));
-				}
-				break;
-			}
-			
-			case PY_BINARY_TRUE_DIVIDE: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				if (b.AsDouble() == 0) throw Exc("ZeroDivisionError: division by zero");
-				Push(PyValue(a.AsDouble() / b.AsDouble()));
-				break;
-			}
-			case PY_BINARY_SUBSCR: {
-				PyValue sub = Pop();
-				PyValue container = Pop();
-				if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE)) {
-					int idx = sub.AsInt();
-					if (idx < 0 || idx >= container.GetCount()) throw Exc("IndexError: list index out of range");
-					Push(container.GetItem(idx));
-				}
-				else
-					Push(container.GetItem(sub));
-				break;
-			}
-	
-			case PY_STORE_SUBSCR: {
-				PyValue val = Pop();
-				PyValue sub = Pop();
-				PyValue obj = Pop();
-				if(sub.IsInt() && obj.GetType() == PY_LIST)
-					obj.SetItem(sub.AsInt(), val);
-				else
-					obj.SetItem(sub, val);
-				break;
-			}
-	
-			case PY_COMPARE_OP: {
-				PyValue b = Pop();
-				PyValue a = Pop();
-				bool res = false;
-				switch(instr.iarg) {
-				case PY_CMP_EQ: res = (a == b); break;
-				case PY_CMP_NE: res = (a != b); break;
-				case PY_CMP_LT: res = (a < b); break;
-				case PY_CMP_LE: res = (a < b || a == b); break;
-				case PY_CMP_GT: res = (b < a); break;
-				case PY_CMP_GE: res = (b < a || a == b); break;
-				}
-				Push(PyValue(res));
-				break;
-			}
-	
-			case PY_JUMP_ABSOLUTE:
-				frame.pc = instr.iarg;
-				break;
-				
-			case PY_POP_JUMP_IF_FALSE: {
-				PyValue v = Pop();
-				if(!v.IsTrue()) frame.pc = instr.iarg;
-				break;
-			}
-	
-			case PY_JUMP_IF_FALSE_OR_POP: {
-				if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
-				else Pop();
-				break;
-			}
-	
-			case PY_JUMP_IF_TRUE_OR_POP: {
-				if(stack.Top().IsTrue()) frame.pc = instr.iarg;
-				else Pop();
-				break;
-			}
-	
-			case PY_CALL_FUNCTION: {
-				int nargs = instr.iarg;
-				Vector<PyValue> args;
-				for(int i = 0; i < nargs; i++) args.Add(Pop());
-				Vector<PyValue> sorted_args;
-				for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
-				
-				PyValue callable = Pop();
-				if (callable.IsBoundMethod()) {
-					PyValue func = callable.GetBound().func;
-					PyValue self = callable.GetBound().self;
-					sorted_args.Insert(0, self);
-					callable = func;
-				}
-	
-				if(callable.IsFunction()) {
-					const PyLambda& l = callable.GetLambda();
-					if(l.builtin) {
-						Push(l.builtin(sorted_args, l.user_data));
-					}
-					else {
-						Frame& f = frames.Add();
-						f.func = callable;
-						f.ir = &l.ir;
-						f.pc = 0;
-						for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
-							f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
-					}
-				}
-				else {
-					throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
-				}
-				break;
-			}
-	
-			case PY_GET_ITER: {
-				PyValue obj = Pop();
-				if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
-					Push(PyValue(new PyVectorIter(obj.GetArray())));
-				}
-				else if(obj.IsIterator()) {
-					Push(obj);
-				}
-				else {
-					throw Exc("TypeError: '" + obj.ToString() + "' object is not iterable");
-				}
-				break;
-			}
-			
-			case PY_FOR_ITER: {
-				PyValue iterator = Pop();
-				if(iterator.IsIterator()) {
-					PyValue next_val = iterator.GetIter().Next();
-					if(next_val.IsStopIteration()) {
-						frame.pc = instr.iarg;
-					}
-					else {
-						Push(iterator);
-						Push(next_val);
-					}
-				}
-				else {
-					throw Exc("TypeError: '" + iterator.ToString() + "' object is not an iterator");
-				}
-				break;
-			}
-	
-			case PY_LIST_APPEND: {
-				PyValue val = Pop();
-				int offset = instr.iarg;
-				PyValue& list = stack[stack.GetCount() - offset];
-				list.Add(val);
-				break;
-			}
-	
-			case PY_RETURN_VALUE: {
-				PyValue val = Pop();
-				frames.Drop();
-				if(!frames.IsEmpty()) {
-					Push(val);
-				}
-				else {
-					if(!val.IsNone() || last_result.IsNone())
-						last_result = val;
-				}
-				break;
-			}
-				
-default:
-				throw Exc("RuntimeError: Unknown opcode: " + AsString((int)instr.code));
-			}
-		} catch (Exc& e) {
-			String func_name = "<module>";
-			if (frame.func.IsFunction()) func_name = frame.func.GetLambda().name;
-			String loc = "  File \"<stdin>\", line " + AsString(instr.line) + ", in " + func_name;
-			if (e.Find("Traceback") < 0) {
-				throw Exc("Traceback (most recent call last):\n" + loc + "\n" + e);
-			} else {
-				String msg = e;
-				int q = msg.Find('\n');
-				if (q >= 0) msg.Insert(q + 1, loc + "\n");
-				throw Exc(msg);
-			}
-		}
+	while(IsRunning()) {
+		Step();
 	}
 	return last_result;
+}
+
+bool PyVM::Step()
+{
+	if(frames.IsEmpty()) return false;
+	
+	Frame& frame = TopFrame();
+	if(frame.pc >= frame.ir->GetCount()) {
+		frames.Drop();
+		return !frames.IsEmpty();
+	}
+	
+	const PyIR& instr = (*frame.ir)[frame.pc++];
+	
+try {
+		switch(instr.code) {
+		case PY_NOP: break;
+		
+		case PY_UNARY_POSITIVE: break; // Identity
+		
+		case PY_UNARY_NEGATIVE: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(-v.AsInt64()));
+			else if (v.IsFloat()) Push(PyValue(-v.AsDouble()));
+			break;
+		}
+
+		case PY_UNARY_NOT: {
+			PyValue v = Pop();
+			Push(PyValue(!v.IsTrue()));
+			break;
+		}
+
+		case PY_UNARY_INVERT: {
+			PyValue v = Pop();
+			if (v.IsInt()) Push(PyValue(~v.AsInt64()));
+			break;
+		}
+
+		case PY_POP_TOP:
+			last_result = Pop();
+			break;
+
+		case PY_LOAD_CONST:
+			Push(instr.arg);
+			break;
+		
+		case PY_LOAD_NAME: {
+			int q = frame.locals.Find(instr.arg);
+			if(q >= 0) Push(frame.locals[q]);
+			else {
+				q = globals.Find(instr.arg);
+				if(q >= 0) Push(globals[q]);
+				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+			}
+			break;
+		}
+	
+		case PY_STORE_NAME:
+			if(frames.GetCount() <= 1)
+				globals.GetAdd(instr.arg) = Pop();
+			else
+				frame.locals.GetAdd(instr.arg) = Pop();
+			break;
+
+		case PY_LOAD_GLOBAL: {
+			int q = globals.Find(instr.arg);
+			if(q >= 0) Push(globals[q]);
+			else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+			break;
+		}
+			
+		case PY_STORE_GLOBAL:
+			globals.GetAdd(instr.arg) = Pop();
+			break;
+
+		case PY_IMPORT_NAME: {
+			String name = instr.arg.ToString();
+			// Support dotted names like os.path
+			Vector<String> parts = Split(name, '.');
+			PyValue current;
+			
+			// Check first part in globals
+			int q = globals.Find(parts[0]);
+			if(q >= 0) {
+				current = globals[q];
+			}
+			else {
+				// Check sys.modules
+				PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
+				if(sys.GetType() == PY_DICT) {
+					PyValue modules = sys.GetItem(PyValue("modules"));
+					if(modules.GetType() == PY_DICT) {
+						current = modules.GetItem(PyValue(parts[0]));
+					}
+				}
+			}
+			
+			if(!current.IsNone()) {
+				for(int i = 1; i < parts.GetCount(); i++) {
+					if(current.GetType() == PY_DICT) {
+						current = current.GetItem(PyValue(parts[i]));
+					} else {
+						current = PyValue::None();
+						break;
+					}
+				}
+			}
+			
+			Push(current);
+			break;
+		}
+
+		case PY_IMPORT_FROM: {
+			PyValue name = instr.arg;
+			PyValue mod = stack.Top();
+			if (mod.GetType() == PY_DICT) {
+				Push(mod.GetItem(name));
+			} else if (mod.IsUserDataValid()) {
+				Push(mod.GetUserData().GetAttr(name.ToString()));
+			} else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_IMPORT_STAR: {
+			PyValue mod = Pop();
+			if(mod.GetType() == PY_DICT) {
+				const VectorMap<PyValue, PyValue>& m = mod.GetDict();
+				for(int i = 0; i < m.GetCount(); i++) {
+					String name = m.GetKey(i).ToString();
+					if(!name.StartsWith("_")) {
+						globals.GetAdd(m.GetKey(i)) = m[i];
+					}
+				}
+			}
+			break;
+		}
+
+		case PY_LOAD_ATTR: {
+			PyValue obj = Pop();
+			if (obj.GetType() == PY_DICT) {
+				Push(obj.GetItem(instr.arg));
+			} else if (obj.GetType() == PY_STR) {
+				String attr = instr.arg.ToString();
+				if(attr == "endswith") {
+					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
+				} else if(attr == "startswith") {
+					Push(PyValue::BoundMethod(PyValue::Function("startswith", builtin_str_startswith), obj));
+				} else if(attr == "strip") {
+					Push(PyValue::BoundMethod(PyValue::Function("strip", builtin_str_strip), obj));
+				} else if(attr == "replace") {
+					Push(PyValue::BoundMethod(PyValue::Function("replace", builtin_str_replace), obj));
+				} else if(attr == "split") {
+					Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
+				} else if(attr == "join") {
+					Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
+				} else {
+					Push(PyValue::None());
+				}
+			} else if (obj.IsUserDataValid()) {
+				String attr_name = instr.arg.ToString();
+				RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
+				Push(obj.GetUserData().GetAttr(attr_name));
+			} else {
+				Push(PyValue::None());
+			}
+			break;
+		}
+
+		case PY_STORE_ATTR: {
+			PyValue val = Pop();
+			PyValue obj = Pop();
+			if (obj.GetType() == PY_DICT) {
+				obj.SetItem(instr.arg, val);
+			} // TODO: support UserData store
+			break;
+		}
+			
+		case PY_BUILD_LIST: {
+			int n = instr.iarg;
+			PyValue list = PyValue::List();
+			Vector<PyValue> items;
+			for(int i = 0; i < n; i++) items.Add(Pop());
+			for(int i = n - 1; i >= 0; i--) list.Add(items[i]);
+			Push(list);
+			break;
+		}
+		
+		case PY_BUILD_TUPLE: {
+			int n = instr.iarg;
+			PyValue tuple = PyValue::Tuple();
+			Vector<PyValue> items;
+			for(int i = 0; i < n; i++) items.Add(Pop());
+			for(int i = n - 1; i >= 0; i--) tuple.Add(items[i]);
+			Push(tuple);
+			break;
+		}
+		
+		case PY_BUILD_MAP: {
+			int n = instr.iarg;
+			PyValue dict = PyValue::Dict();
+			Vector<PyKV> items;
+			for(int i = 0; i < n; i++) {
+				PyValue v = Pop();
+				PyValue k = Pop();
+				items.Add(PyKV(k, v));
+			}
+			for(int i = n - 1; i >= 0; i--) dict.SetItem(items[i].k, items[i].v);
+			Push(dict);
+			break;
+		}
+			
+		case PY_BINARY_ADD: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() + b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
+			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
+			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
+			else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
+				PyValue res = PyValue::List();
+				const Vector<PyValue>& va = a.GetArray();
+				const Vector<PyValue>& vb = b.GetArray();
+				for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
+				for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
+				Push(res);
+			}
+			break;
+		}
+
+		case PY_BINARY_SUBTRACT: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() - b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() - b.AsInt64()));
+			else Push(PyValue(a.AsDouble() - b.AsDouble()));
+			break;
+		}
+
+		case PY_BINARY_MULTIPLY: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_COMPLEX || b.GetType() == PY_COMPLEX)
+				Push(PyValue(a.GetComplex() * b.GetComplex()));
+			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() * b.AsInt64()));
+			else Push(PyValue(a.AsDouble() * b.AsDouble()));
+			break;
+		}
+		
+		case PY_BINARY_MODULO: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if(a.GetType() == PY_STR) {
+				String fmt = a.ToString();
+				if(b.GetType() == PY_TUPLE || b.GetType() == PY_LIST) {
+					// Very basic multiple arg formatting
+					String res;
+					int arg_idx = 0;
+					for(int i = 0; i < fmt.GetCount(); i++) {
+						if(fmt[i] == '%' && i + 1 < fmt.GetCount() && arg_idx < b.GetCount()) {
+							char spec = fmt[i+1];
+							if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.GetItem(arg_idx++).ToString();
+								i++;
+								continue;
+							}
+						}
+						res.Cat(fmt[i]);
+					}
+					Push(PyValue(res));
+				} else {
+					// Single arg formatting
+					String res;
+					for(int i = 0; i < fmt.GetCount(); i++) {
+						if(fmt[i] == '%' && i + 1 < fmt.GetCount()) {
+							char spec = fmt[i+1];
+							if(spec == 's' || spec == 'd' || spec == 'g') {
+									res << b.ToString();
+								i++;
+								continue;
+							}
+						}
+						res.Cat(fmt[i]);
+					}
+					Push(PyValue(res));
+				}
+			} else if(a.IsInt() && b.IsInt()) {
+				if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
+				Push(PyValue(a.AsInt64() % b.AsInt64()));
+			} else {
+				Push(PyValue(fmod(a.AsDouble(), b.AsDouble())));
+			}
+			break;
+		}
+		
+		case PY_BINARY_TRUE_DIVIDE: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			if (b.AsDouble() == 0) throw Exc("ZeroDivisionError: division by zero");
+			Push(PyValue(a.AsDouble() / b.AsDouble()));
+			break;
+		}
+		case PY_BINARY_SUBSCR: {
+			PyValue sub = Pop();
+			PyValue container = Pop();
+			if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE)) {
+				int idx = sub.AsInt();
+				if (idx < 0 || idx >= container.GetCount()) throw Exc("IndexError: list index out of range");
+				Push(container.GetItem(idx));
+			}
+			else
+				Push(container.GetItem(sub));
+			break;
+		}
+
+		case PY_STORE_SUBSCR: {
+			PyValue val = Pop();
+			PyValue sub = Pop();
+			PyValue obj = Pop();
+			if(sub.IsInt() && obj.GetType() == PY_LIST)
+				obj.SetItem(sub.AsInt(), val);
+			else
+				obj.SetItem(sub, val);
+			break;
+		}
+
+		case PY_COMPARE_OP: {
+			PyValue b = Pop();
+			PyValue a = Pop();
+			bool res = false;
+			switch(instr.iarg) {
+			case PY_CMP_EQ: res = (a == b); break;
+			case PY_CMP_NE: res = (a != b); break;
+			case PY_CMP_LT: res = (a < b); break;
+			case PY_CMP_LE: res = (a < b || a == b); break;
+			case PY_CMP_GT: res = (b < a); break;
+			case PY_CMP_GE: res = (b < a || a == b); break;
+			}
+			Push(PyValue(res));
+			break;
+		}
+
+		case PY_JUMP_ABSOLUTE:
+			frame.pc = instr.iarg;
+			break;
+			
+		case PY_POP_JUMP_IF_FALSE: {
+			PyValue v = Pop();
+			if(!v.IsTrue()) frame.pc = instr.iarg;
+			break;
+		}
+
+		case PY_JUMP_IF_FALSE_OR_POP: {
+			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
+			else Pop();
+			break;
+		}
+
+		case PY_JUMP_IF_TRUE_OR_POP: {
+			if(stack.Top().IsTrue()) frame.pc = instr.iarg;
+			else Pop();
+			break;
+		}
+
+		case PY_CALL_FUNCTION: {
+			int nargs = instr.iarg;
+			Vector<PyValue> args;
+			for(int i = 0; i < nargs; i++) args.Add(Pop());
+			Vector<PyValue> sorted_args;
+			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
+			
+			PyValue callable = Pop();
+			if (callable.IsBoundMethod()) {
+				PyValue func = callable.GetBound().func;
+				PyValue self = callable.GetBound().self;
+				sorted_args.Insert(0, self);
+				callable = func;
+			}
+
+			if(callable.IsFunction()) {
+				const PyLambda& l = callable.GetLambda();
+				if(l.builtin) {
+					Push(l.builtin(sorted_args, l.user_data));
+				}
+				else {
+					Frame& f = frames.Add();
+					f.func = callable;
+					f.ir = &l.ir;
+					f.pc = 0;
+					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
+						f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+				}
+			}
+			else {
+				throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
+			}
+			break;
+		}
+
+		case PY_GET_ITER: {
+			PyValue obj = Pop();
+			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
+				Push(PyValue(new PyVectorIter(obj.GetArray())));
+			}
+			else if(obj.IsIterator()) {
+				Push(obj);
+			}
+			else {
+				throw Exc("TypeError: '" + obj.ToString() + "' object is not iterable");
+			}
+			break;
+		}
+		
+		case PY_FOR_ITER: {
+			PyValue iterator = Pop();
+			if(iterator.IsIterator()) {
+				PyValue next_val = iterator.GetIter().Next();
+				if(next_val.IsStopIteration()) {
+					frame.pc = instr.iarg;
+				}
+				else {
+					Push(iterator);
+					Push(next_val);
+				}
+			}
+			else {
+				throw Exc("TypeError: '" + iterator.ToString() + "' object is not an iterator");
+			}
+			break;
+		}
+
+		case PY_LIST_APPEND: {
+			PyValue val = Pop();
+			int offset = instr.iarg;
+			PyValue& list = stack[stack.GetCount() - offset];
+			list.Add(val);
+			break;
+		}
+
+		case PY_RETURN_VALUE: {
+			PyValue val = Pop();
+			frames.Drop();
+			if(!frames.IsEmpty()) {
+				Push(val);
+			}
+			else {
+				if(!val.IsNone() || last_result.IsNone())
+					last_result = val;
+			}
+			break;
+		}
+			
+		default:
+			throw Exc("RuntimeError: Unknown opcode: " + AsString((int)instr.code));
+		}
+	} catch (Exc& e) {
+		String func_name = "<module>";
+		if (frame.func.IsFunction()) func_name = frame.func.GetLambda().name;
+		String loc = "  File \"<stdin>\", line " + AsString(instr.line) + ", in " + func_name;
+		if (e.Find("Traceback") < 0) {
+			throw Exc("Traceback (most recent call last):\n" + loc + "\n" + e);
+		} else {
+			String msg = e;
+			int q = msg.Find('\n');
+			if (q >= 0) msg.Insert(q + 1, loc + "\n");
+			throw Exc(msg);
+		}
+	}
+	return !frames.IsEmpty();
 }
 
 }

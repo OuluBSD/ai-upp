@@ -319,9 +319,32 @@ String PythonCLI::ReadLine()
 	int PythonCLI::Run()
 	{
 		const auto& cmds = CommandLine();
-		if (cmds.GetCount() > 0)
-			return RunScript(cmds[0]);
-		return RunInteractive();
+		int start_idx = 0;
+		while (cmds.GetCount() > start_idx) {
+			if (cmds[start_idx] == "--threading") {
+				if (cmds.GetCount() > start_idx + 1) {
+					if (cmds[start_idx + 1] == "scheduled") PyScheduler::Get().SetMode(PYTHREAD_SCHEDULED);
+					else PyScheduler::Get().SetMode(PYTHREAD_NATIVE);
+					start_idx += 2;
+				} else start_idx++;
+			}
+			else if (cmds[start_idx] == "--sandbox") {
+				PolicyKit::Get().Set(PYPERM_FILE_READ, false);
+				PolicyKit::Get().Set(PYPERM_FILE_WRITE, false);
+				PolicyKit::Get().Set(PYPERM_PROCESS_EXEC, false);
+				start_idx++;
+			}
+			else break;
+		}
+
+		int res = 0;
+		if (cmds.GetCount() > start_idx)
+			res = RunScript(cmds[start_idx]);
+		else
+			res = RunInteractive();
+		
+		PyScheduler::Get().Run();
+		return res;
 	}
 
 END_UPP_NAMESPACE

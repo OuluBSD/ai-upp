@@ -4,7 +4,7 @@ import sys
 print("System Information:")
 print("Platform:", sys.platform)
 print("Version:", sys.version)
-print("Executable:", sys.executable())
+print("Executable:", sys.executable)
 
 print("PID:", os.getpid())
 

@@ -1336,40 +1336,10 @@ PyValue PyVM::Run()
 						}
 					}
 				}
-									// If not found, for now we don't have a filesystem loader, so just push None
-									Push(PyValue::None());
-								}
-								break;
-							}
-				
-							case PY_IMPORT_FROM: {
-								PyValue name = instr.arg;
-								PyValue mod = stack.Top();
-								if (mod.GetType() == PY_DICT) {
-									Push(mod.GetItem(name));
-								} else if (mod.IsUserDataValid()) {
-									Push(mod.GetUserData().GetAttr(name.ToString()));
-								} else {
-									Push(PyValue::None());
-								}
-								break;
-							}
-				
-							case PY_IMPORT_STAR: {
-								PyValue mod = Pop();
-								if(mod.GetType() == PY_DICT) {
-									const VectorMap<PyValue, PyValue>& m = mod.GetDict();
-									for(int i = 0; i < m.GetCount(); i++) {
-										String name = m.GetKey(i).ToString();
-										if(!name.StartsWith("_")) {
-											globals.GetAdd(m.GetKey(i)) = m[i];
-										}
-									}
-								}
-								break;
-							}
-					
-							case PY_LOAD_ATTR: {				PyValue obj = Pop();
+				break;
+			}
+	
+			case PY_LOAD_ATTR: {				PyValue obj = Pop();
 				if (obj.GetType() == PY_DICT) {
 					Push(obj.GetItem(instr.arg));
 				} else if (obj.GetType() == PY_STR) {

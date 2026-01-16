@@ -78,6 +78,49 @@ Current Task Files (`CURRENT_TASK.md`)
 - Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
 - AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
 
+## Memory Leak Detection & Valgrind
+
+When the debug build reports heap leaks (e.g., "PANIC: Heap leaks detected!"), you **must** validate with Valgrind to confirm real leaks vs false positives:
+
+### Step-by-step procedure:
+
+1. **Check available configurations**:
+   ```bash
+   script/build.py --list-conf upptst/Eon03
+   ```
+
+2. **Look for a "Valgrind" or "Release (Valgrind)" configuration**:
+   - If it exists, use it: `script/build.py -mc <num> -j12 upptst/Eon03`
+   - Then run under valgrind: `valgrind --leak-check=full bin/Eon03 <args>`
+
+3. **If no Valgrind config exists, create one**:
+   - Edit the package's `.upp` file (e.g., `upptst/Eon03/Eon03.upp`)
+   - Add a new mainconfig entry with **USEMALLOC** flag:
+     ```
+     mainconfig
+         "Release" = ".AI .SCREEN .AUDIO ...",
+         "Debug" = ".AI .SCREEN .AUDIO ... .DEBUG_RT",
+         "Release (Valgrind)" = "USEMALLOC .AI .SCREEN .AUDIO ...";
+     ```
+   - **USEMALLOC is critical** - it disables U++'s custom allocator and uses system malloc, which valgrind can track
+   - Then build: `script/build.py -mc <valgrind-num> -j12 upptst/Eon03`
+
+4. **Run under valgrind**:
+   ```bash
+   valgrind --leak-check=full --show-reachable=yes --show-leak-kinds=all \
+            --track-origins=yes bin/Eon03 <test-args>
+   ```
+
+5. **Interpret results**:
+   - "Definitely lost" = real leaks that must be fixed
+   - "Possibly lost" = often false positives from C++ containers/strings
+   - "Still reachable" = intentional static allocations (normal for globals)
+   - Debug builds may show false positives; always use Valgrind for confirmation
+
+**Example**: See `upptst/Eon03/Eon03.upp` line 26 for the Valgrind configuration pattern.
+
+**Why this matters**: Debug heap checker shows internal "Free" markers as leaks, but these are allocator artifacts. Only Valgrind can distinguish real leaks from allocator bookkeeping.
+
 
 Header Include Policy (U++ BLITZ)
 - Source files (`.cpp`, `.icpp`, `.c`) in any package (with a `.upp` file) must include only the package's main header first, using a relative include: `#include "PackageName.h"`.

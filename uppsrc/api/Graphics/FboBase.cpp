@@ -242,9 +242,16 @@ template <class Gfx>
 bool FboAtomT<Gfx>::Recv(int sink_ch, const Packet& in) {
 	ValueFormat fmt = in->GetFormat();
 	RTLOG("FboAtomT::Recv: sink=" << sink_ch << " vd=" << (int)fmt.vd.val);
+
+	// Order and Receipt packets are control flow packets - accept them without processing
+	if (fmt.IsOrder() || fmt.IsReceipt()) {
+		RTLOG("FboAtomT::Recv: order/receipt packet, accepting");
+		return true;
+	}
+
 	if (!in->IsData<InternalPacketData>())
 		return true;
-	
+
 	const InternalPacketData& data = in->GetData<InternalPacketData>();
 	if (!data.ptr) {
 		RTLOG("FboAtomT::Recv: data.ptr is null, returning false");

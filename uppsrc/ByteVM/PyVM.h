@@ -26,6 +26,14 @@ public:
 	PyValue Run();
 	
 	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
+	
+	bool    Step();
+	PyValue GetLastResult() const { return last_result; }
+	bool    IsRunning() const { return !frames.IsEmpty(); }
+	int     GetFramesCount() const { return frames.GetCount(); }
+
+private:
+	PyValue last_result = PyValue::None();
 };
 
 END_UPP_NAMESPACE

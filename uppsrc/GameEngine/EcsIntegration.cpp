@@ -219,11 +219,11 @@ void GameEcsIntegration::RegisterComponents() {
     static bool registered = false;
     if (registered) return;
     
-    REGISTER_COMPONENT(TransformComponent, "game.transform", "Game|ECS");
-    REGISTER_COMPONENT(RenderComponent, "game.render", "Game|ECS");
-    REGISTER_COMPONENT(PhysicsComponent, "game.physics", "Game|ECS");
-    REGISTER_COMPONENT(TagComponent, "game.tag", "Game|ECS");
-    REGISTER_COMPONENT(GameEcsSystem, "game.ecs_system", "Game|ECS");
+    REGISTER_EON_COMPONENT(TransformComponent, "game.transform", "Game|ECS");
+    REGISTER_EON_COMPONENT(RenderComponent, "game.render", "Game|ECS");
+    REGISTER_EON_COMPONENT(PhysicsComponent, "game.physics", "Game|ECS");
+    REGISTER_EON_COMPONENT(TagComponent, "game.tag", "Game|ECS");
+    REGISTER_EON_COMPONENT(GameEcsSystem, "game.ecs_system", "Game|ECS");
     
     registered = true;
 }

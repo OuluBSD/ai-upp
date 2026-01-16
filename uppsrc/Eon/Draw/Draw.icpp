@@ -4,11 +4,13 @@ NAMESPACE_UPP
 
 INITBLOCK {
 	//GfxProgramLibrary::template AddProgramClass<RendererBase>("the_renderer_program");
-	
-	
+	LOG("Draw.icpp INITBLOCK: registering ECS systems and components");
+
 	// System
-	VfsValueExtFactory::Register<EventSystem>("EventSystem", VFSEXT_SYSTEM_ECS, "system.event", "Ecs|System");
-	VfsValueExtFactory::Register<RenderingSystem>("RenderingSystem", VFSEXT_SYSTEM_ECS, "system.rendering", "Ecs|System");
+	LOG("Draw.icpp: Registering EventSystem as 'events'");
+	VfsValueExtFactory::Register<EventSystem>("EventSystem", VFSEXT_SYSTEM_ECS, "events", "Ecs|System");
+	LOG("Draw.icpp: Registering RenderingSystem as 'rendering'");
+	VfsValueExtFactory::Register<RenderingSystem>("RenderingSystem", VFSEXT_SYSTEM_ECS, "rendering", "Ecs|System");
 	VfsValueExtFactory::Register<PaintStrokeSystemBase>("PaintStrokeSystemBase", VFSEXT_SYSTEM_ECS, "system.paintstroke", "Ecs|System");
 	VfsValueExtFactory::Register<ToolboxSystemBase>("ToolboxSystemBase", VFSEXT_SYSTEM_ECS, "system.toolbox", "Ecs|System");
 	VfsValueExtFactory::Register<PaintingInteractionSystemBase>("PaintingInteractionSystemBase", VFSEXT_SYSTEM_ECS, "system.interaction.painting", "Ecs|System");

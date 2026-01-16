@@ -6,16 +6,16 @@ INITBLOCK {
 	using namespace Eon;
 
 	// ECS systems
-	REGISTER_SYSTEM_ECS(WorldLogicSystem, "worldlogic.system", "Ecs|Util");
-	REGISTER_SYSTEM_ECS(PhysicsSystem,    "physics.system",     "Ecs|Util");
+	REGISTER_EON_SYSTEM(WorldLogicSystem, "worldlogic", "Ecs|Util");
+	REGISTER_EON_SYSTEM(PhysicsSystem,    "physics",     "Ecs|Util");
 
 	// Components
-	REGISTER_COMPONENT(RigidBody,   "body",        "Ecs|Physics");
-	REGISTER_COMPONENT(TextRenderable, "text",     "Ecs|3D");
-	REGISTER_COMPONENT(Easing,      "easing",      "Ecs|3D");
-	REGISTER_COMPONENT(PhysicsBody, "physics",     "Ecs|Physics");
-	REGISTER_COMPONENT(Transform,   "transform3",  "Ecs|3D");
-	REGISTER_COMPONENT(Transform2D, "transform2",  "Ecs|3D");
+	REGISTER_EON_COMPONENT(RigidBody,   "body",        "Ecs|Physics");
+	REGISTER_EON_COMPONENT(TextRenderable, "text",     "Ecs|3D");
+	REGISTER_EON_COMPONENT(Easing,      "easing",      "Ecs|3D");
+	REGISTER_EON_COMPONENT(PhysicsBody, "physics",     "Ecs|Physics");
+	REGISTER_EON_COMPONENT(Transform,   "transform3",  "Ecs|3D");
+	REGISTER_EON_COMPONENT(Transform2D, "transform2",  "Ecs|3D");
 }
 
 END_UPP_NAMESPACE

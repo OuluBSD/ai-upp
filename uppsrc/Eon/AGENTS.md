@@ -195,11 +195,11 @@ Extending Eon
 
 - New Component
   - Derive from `Component` and define your data/behavior; override at least `Initialize`, `Uninitialize`, `Visit`, `Arg` as needed.
-  - Register with: `REGISTER_COMPONENT(YourComponent, "your.eon.id", "Category|Sub")` (see `Eon.icpp`).
+  - Register with: `REGISTER_EON_COMPONENT(YourComponent, "your.eon.id", "Category|Sub")` (see `Eon.icpp`).
 
 - New System
   - Derive from `System`; implement `Initialize`, `Update`, `Uninitialize`, optional `Arg` for configuration.
-  - Register with: `REGISTER_SYSTEM_ECS(YourSystem, "your.system.id", "Category|Sub")`.
+  - Register with: `REGISTER_EON_SYSTEM(YourSystem, "your.system.id", "Category|Sub")`.
   - To consume input events, implement an `InteractionListener` and register with `InteractionSystem`.
 
 - New Atom

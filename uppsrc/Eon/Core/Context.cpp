@@ -124,13 +124,17 @@ EntityContext::EntityContext(Entity& e, ErrorSource* err)
     : ent(e), err(err) {}
 
 ComponentContext EntityContext::AddComponent(const String& comp_id, const ArrayMap<String, Value>* args, const FileLocation* /*loc*/) {
+    LOG("EntityContext::AddComponent: comp_id='" << comp_id << "' args_count=" << (args ? args->GetCount() : 0));
     ComponentPtr cb = ent.CreateEon(comp_id);
-    if (!cb)
+    if (!cb) {
+        LOG("EntityContext::AddComponent: error: failed to create component '" << comp_id << "'");
         return ComponentContext();
+    }
     if (args) {
         for (int i = 0; i < args->GetCount(); i++) {
             String key = args->GetKey(i);
             const Value& value = args->operator[](i);
+            LOG("EntityContext::AddComponent: calling Arg('" << key << "', '" << value.ToString() << "')");
             if (!value.IsVoid())
                 cb->Arg(key, value);
         }

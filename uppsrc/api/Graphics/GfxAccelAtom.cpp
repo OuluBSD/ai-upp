@@ -443,9 +443,10 @@ bool GfxAccelAtom<Gfx>::Recv(int ch_i, const Packet& p) {
 		*/
 	}
 	else {
+		LOG("GfxAccelAtom::Recv: unexpected packet format: " << fmt.ToString());
 		DUMP(fmt);
 		//RTLOG("GfxAccelAtom::Render: error: unexpected packet: " << last_packet->ToString());
-		ASSERT(0);
+		//ASSERT(0);
 		succ = false;
 	}
 	

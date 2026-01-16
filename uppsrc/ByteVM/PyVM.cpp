@@ -160,6 +160,29 @@ static PyValue builtin_sum(const Vector<PyValue>& args, void*) {
 	return s;
 }
 
+static PyValue builtin_shutil_copy(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	String src = args[0].ToString();
+	String dst = args[1].ToString();
+	String data = LoadFile(src);
+	if(data.IsVoid()) return PyValue(false);
+	return PyValue(SaveFile(dst, data));
+}
+
+static PyValue builtin_glob_glob(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::List();
+	String pattern = args[0].ToString();
+	PyValue res = PyValue::List();
+	FindFile ff;
+	if(ff.Search(pattern)) {
+		do {
+			if(ff.GetName() != "." && ff.GetName() != "..")
+				res.Add(PyValue(ff.GetPath()));
+		} while(ff.Next());
+	}
+	return res;
+}
+
 static PyValue builtin_os_getcwd(const Vector<PyValue>& args, void*) {
 	return PyValue(GetCurrentDirectory());
 }
@@ -511,15 +534,34 @@ static PyValue builtin_subprocess_run(const Vector<PyValue>& args, void*) {
 		const Vector<PyValue>& v = args[0].GetArray();
 		for(int i = 0; i < v.GetCount(); i++) {
 			if(i) cmd << " ";
-			cmd << v[i].ToString();
+			String arg = v[i].ToString();
+			if(arg.Find(' ') >= 0) cmd << "\"" << arg << "\"";
+			else cmd << arg;
 		}
 	} else {
 		cmd = args[0].ToString();
 	}
 	
-	int res = system(cmd);
+	LocalProcess lp;
+	if(!lp.Start(cmd)) {
+		PyValue obj = PyValue::Dict();
+		obj.SetItem(PyValue("returncode"), PyValue(1));
+		obj.SetItem(PyValue("stdout"), PyValue(""));
+		obj.SetItem(PyValue("stderr"), PyValue("Failed to start process"));
+		return obj;
+	}
+
+	String out;
+	while(lp.IsRunning()) {
+		out.Cat(lp.Get());
+		Sleep(1);
+	}
+	out.Cat(lp.Get());
+
 	PyValue obj = PyValue::Dict();
-	obj.SetItem(PyValue("returncode"), PyValue(res == 0 ? 0 : (res >> 8)));
+	obj.SetItem(PyValue("returncode"), PyValue(lp.GetExitCode()));
+	obj.SetItem(PyValue("stdout"), PyValue(out));
+	obj.SetItem(PyValue("stderr"), PyValue(""));
 	return obj;
 }
 
@@ -527,6 +569,47 @@ static PyValue builtin_str_endswith(const Vector<PyValue>& args, void* user_data
 	if(args.GetCount() < 2) return PyValue(false);
 	String self = args[0].ToString();
 	return PyValue(self.EndsWith(args[1].ToString()));
+}
+
+static PyValue builtin_str_startswith(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue(false);
+	String self = args[0].ToString();
+	return PyValue(self.StartsWith(args[1].ToString()));
+}
+
+static PyValue builtin_str_strip(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue("");
+	String self = args[0].ToString();
+	return PyValue(TrimBoth(self));
+}
+
+static PyValue builtin_str_replace(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 3) return PyValue(args[0]);
+	String self = args[0].ToString();
+	String old_s = args[1].ToString();
+	String new_s = args[2].ToString();
+	String res = self;
+	res.Replace(old_s, new_s);
+	return PyValue(res);
+}
+
+static int IsSpaceFilter(int c) { return IsSpace(c); }
+
+static PyValue builtin_str_split(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue::List();
+	String self = args[0].ToString();
+	PyValue res = PyValue::List();
+	if(args.GetCount() >= 2) {
+		String sep = args[1].ToString();
+		Vector<String> v = Split(self, sep);
+		for(int i = 0; i < v.GetCount(); i++) res.Add(PyValue(v[i]));
+	} else {
+		Vector<String> v = Split(self, IsSpaceFilter);
+		for(int i = 0; i < v.GetCount(); i++) {
+			if(!v[i].IsEmpty()) res.Add(PyValue(v[i]));
+		}
+	}
+	return res;
 }
 
 static PyValue builtin_str_join(const Vector<PyValue>& args, void* user_data) {
@@ -980,6 +1063,16 @@ PyVM::PyVM()
 	p_abs.GetLambdaRW().builtin = builtin_abs;
 	globals.GetAdd(PyValue("abs")) = p_abs;
 
+	// shutil module
+	PyValue shutil = PyValue::Dict();
+	shutil.SetItem(PyValue("copy"), PyValue::Function("copy", builtin_shutil_copy));
+	globals.GetAdd(PyValue("shutil")) = shutil;
+
+	// glob module
+	PyValue glob = PyValue::Dict();
+	glob.SetItem(PyValue("glob"), PyValue::Function("glob", builtin_glob_glob));
+	globals.GetAdd(PyValue("glob")) = glob;
+
 	// os module
 	PyValue os = PyValue::Dict();
 	os.SetItem(PyValue("getcwd"), PyValue::Function("getcwd", builtin_os_getcwd));
@@ -1350,6 +1443,14 @@ PyValue PyVM::Run()
 					String attr = instr.arg.ToString();
 					if(attr == "endswith") {
 						Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
+					} else if(attr == "startswith") {
+						Push(PyValue::BoundMethod(PyValue::Function("startswith", builtin_str_startswith), obj));
+					} else if(attr == "strip") {
+						Push(PyValue::BoundMethod(PyValue::Function("strip", builtin_str_strip), obj));
+					} else if(attr == "replace") {
+						Push(PyValue::BoundMethod(PyValue::Function("replace", builtin_str_replace), obj));
+					} else if(attr == "split") {
+						Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
 					} else if(attr == "join") {
 						Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
 					} else {

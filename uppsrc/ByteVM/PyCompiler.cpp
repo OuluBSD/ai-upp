@@ -183,6 +183,9 @@ void PyCompiler::Statement()
 	else if(IsId("while")) {
 		Next();
 		int start = Label();
+		continue_targets.Add(start);
+		break_targets.Add();
+
 		Expression();
 		this->Expect(TK_COLON);
 		int jump_end = Label();
@@ -199,6 +202,10 @@ void PyCompiler::Statement()
 		
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
+
+		for (int pc : break_targets.Top()) Patch(pc, Label());
+		break_targets.Pop();
+		continue_targets.Pop();
 	}
 	else if(IsId("for")) {
 		Next();
@@ -209,6 +216,9 @@ void PyCompiler::Statement()
 		Emit(PY_GET_ITER);
 		
 		int start = Label();
+		continue_targets.Add(start);
+		break_targets.Add();
+
 		int jump_end = Label();
 		Emit(PY_FOR_ITER, 0);
 		
@@ -226,6 +236,27 @@ void PyCompiler::Statement()
 		
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
+
+		for (int pc : break_targets.Top()) Patch(pc, Label());
+		break_targets.Pop();
+		continue_targets.Pop();
+	}
+	else if(IsId("break")) {
+		Next();
+		if (break_targets.IsEmpty()) throw Exc(Format("Line %d: 'break' outside loop", GetLine()));
+		break_targets.Top().Add(Label());
+		Emit(PY_JUMP_ABSOLUTE, 0);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'break', found %s", GetLine(), Peek().GetTypeString()));
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
+	else if(IsId("continue")) {
+		Next();
+		if (continue_targets.IsEmpty()) throw Exc(Format("Line %d: 'continue' outside loop", GetLine()));
+		Emit(PY_JUMP_ABSOLUTE, continue_targets.Top());
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'continue', found %s", GetLine(), Peek().GetTypeString()));
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId("def")) {
 		Next();

@@ -15,6 +15,9 @@ class PyCompiler {
 	bool IsToken(int type) const;
 	bool HaveToken(int type) { if(IsToken(type)) { Next(); return true; } return false; }
 	
+	Vector<Vector<int>> break_targets;
+	Vector<int> continue_targets;
+
 	bool IsId() const;
 	bool IsId(const char *id) const;
 	bool IsInt() const;
@@ -24,6 +27,7 @@ class PyCompiler {
 		if (IsEof()) return true;
 		if (tokens[pos].type == TK_END_STMT) return true;
 		if (tokens[pos].type == TK_NEWLINE) return true;
+		if (tokens[pos].type == TK_SEMICOLON) return true;
 		if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
 		return false;
 	}

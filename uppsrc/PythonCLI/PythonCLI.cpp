@@ -1,9 +1,8 @@
 #include "PythonCLI.h"
-#include <cstdio>
-#include <unistd.h>
 #include <termios.h>
+#include <unistd.h>
 
-using namespace Upp;
+NAMESPACE_UPP
 
 String PythonCLI::ReadLine()
 {
@@ -30,11 +29,7 @@ String PythonCLI::ReadLine()
 	}
 
 	struct termios raw = orig_termios;
-	raw.c_lflag &= ~(ECHO | ICANON | ISIG | IEXTEN);
-	raw.c_iflag &= ~(BRKINT | IXON | ICRNL);
-	raw.c_cflag |= (CS8);
-	raw.c_cc[VMIN] = 1;
-	raw.c_cc[VTIME] = 0;
+	raw.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 
 	String line;
@@ -43,8 +38,9 @@ String PythonCLI::ReadLine()
 	String saved_line;
 
 	auto Redraw = [&]() {
-		printf("\r\x1b[K>>> %s", line.Begin());
-		printf("\r\x1b[%dG", cursor_pos + 5);
+		printf("\r\x1b[K>>> %s", ~line);
+		if (cursor_pos < line.GetCount())
+			printf("\x1b[%dD", line.GetCount() - cursor_pos);
 		fflush(stdout);
 	};
 
@@ -115,49 +111,47 @@ String PythonCLI::ReadLine()
 								break;
 							}
 						}
-						}
-						else {
-							switch (seq[1]) {
-							case 'A': // Up
-								if (h_index > 0) {
-									if (h_index == history.GetCount()) saved_line = line;
-									h_index--;
-									line = history[h_index];
-									cursor_pos = line.GetCount();
-								}
-								break;
-							case 'B': // Down
-								if (h_index < history.GetCount()) {
-									h_index++;
-									if (h_index == history.GetCount()) line = saved_line;
-									else line = history[h_index];
-									cursor_pos = line.GetCount();
-								}
-								break;
-							case 'C': // Right
-								if (cursor_pos < line.GetCount()) cursor_pos++;
-								break;
-							case 'D': // Left
-								if (cursor_pos > 0) cursor_pos--;
-								break;
-							case 'H': // Home
-								cursor_pos = 0; break;
-							case 'F': // End
-								cursor_pos = line.GetCount(); break;
+					}
+					else {
+						switch (seq[1]) {
+						case 'A': // Up
+							if (h_index > 0) {
+								if (h_index == history.GetCount()) saved_line = line;
+								h_index--;
+								line = history[h_index];
+								cursor_pos = line.GetCount();
 							}
-						}
-						}
-						}
-						}
-						Redraw();
-						}
-						}
-						else if ((byte)c >= 32) {
-						line.Insert(cursor_pos, (char)c);
-						cursor_pos++;
-						Redraw();
+							break;
+						case 'B': // Down
+							if (h_index < history.GetCount()) {
+								h_index++;
+								if (h_index == history.GetCount()) line = saved_line;
+								else line = history[h_index];
+								cursor_pos = line.GetCount();
+							}
+							break;
+						case 'C': // Right
+							if (cursor_pos < line.GetCount()) cursor_pos++;
+							break;
+						case 'D': // Left
+							if (cursor_pos > 0) cursor_pos--;
+							break;
+						case 'H': // Home
+							cursor_pos = 0; break;
+						case 'F': // End
+							cursor_pos = line.GetCount(); break;
 						}
 					}
+				}
+			}
+			Redraw();
+		}
+		else if ((byte)c >= 32) {
+			line.Insert(cursor_pos, (char)c);
+			cursor_pos++;
+			Redraw();
+		}
+	}
 
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 		return line;
@@ -201,6 +195,7 @@ String PythonCLI::ReadLine()
 			if(!tk.Process(input, "<stdin>")) {
 				return true; 
 			}
+			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
 			PyCompiler compiler(tk.GetTokens());
@@ -290,6 +285,7 @@ String PythonCLI::ReadLine()
 			if(!tk.Process(content, filename)) {
 				return 1;
 			}
+			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
 			PyCompiler compiler(tk.GetTokens());
@@ -301,29 +297,31 @@ String PythonCLI::ReadLine()
 			}
 
 			vm.SetIR(ir);
-					try {
-						vm.Run();
-					} catch (Exc& e) {
-						if (e.StartsWith("EXIT:")) {
-							exit_code = StrInt(e.Mid(5));
-							return exit_code;
-						}
-						Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
-						exit_code = 1;
-						return 1;
-					}
-				} catch (...) {
-					Cout() << "Internal error occurred while processing file '" << filename << "'\n";
-					exit_code = 1;
-					return 1;
+			try {
+				vm.Run();
+			} catch (Exc& e) {
+				if (e.StartsWith("EXIT:")) {
+					exit_code = StrInt(e.Mid(5));
+					return exit_code;
 				}
-				return exit_code;
+				Cout() << "Runtime error in file '" << filename << "': " << e << "\n";
+				exit_code = 1;
+				return 1;
 			}
-			
-			int PythonCLI::Run()
-			{
-				const auto& cmds = CommandLine();
-				if (cmds.GetCount() > 0)
-					return RunScript(cmds[0]);
-				return RunInteractive();
-			}
+		} catch (...) {
+			Cout() << "Internal error occurred while processing file '" << filename << "'\n";
+			exit_code = 1;
+			return 1;
+		}
+		return exit_code;
+	}
+
+	int PythonCLI::Run()
+	{
+		const auto& cmds = CommandLine();
+		if (cmds.GetCount() > 0)
+			return RunScript(cmds[0]);
+		return RunInteractive();
+	}
+
+END_UPP_NAMESPACE

@@ -29,6 +29,11 @@ struct ScrX11Sw::NativeSinkDevice {
     bool log_avg = false;
     int avg_log_interval = 16;
     int frame_counter = 0;
+
+    // X11 resource handles owned by this device (for cleanup without accessing ctx)
+    ::Display* display = nullptr;
+    ::XImage* fb = nullptr;
+    ::GC gc = 0;
 };
 
 struct ScrX11Sw::NativeEventsBase {
@@ -99,6 +104,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 		LOG("ScrX11Sw::SinkDevice_Initialize: error: cannot connect to X server '" << display_name << "'");
 		return false;
 	}
+	dev.display = display;  // Store for cleanup without accessing ctx
 	
 	// get the geometry of the default screen for our display.
 	screen_num = DefaultScreen(display);
@@ -160,6 +166,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 			LOG("ScrX11Sw::SinkDevice_Initialize: error: XCreateGC failed");
 			return false;
 		}
+		dev.gc = gc;  // Store for cleanup without accessing ctx
 		
 		// allocate foreground and background colors for this GC.
 		if (reverse_video) {
@@ -195,6 +202,7 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 		0// does not work with: width * bpp
 	);
 	ASSERT(fb);
+	dev.fb = fb;  // Store for cleanup without accessing ctx
 	
 	int bpp = fb->bits_per_pixel / 8;
 	
@@ -241,8 +249,22 @@ void ScrX11Sw::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	dev.accel_buf.Clear();
 	dev.accel_buf_tmp.Clear();
 
-	// Don't access ctx here - it may already be destroyed during VFS teardown
-	// The Context will handle X11 Display cleanup
+	// Free X11 resources using stored handles (not ctx pointer which may be dangling)
+	if (dev.fb && dev.display) {
+		XDestroyImage(dev.fb);
+		dev.fb = nullptr;
+	}
+
+	if (dev.gc && dev.display) {
+		XFreeGC(dev.display, dev.gc);
+		dev.gc = 0;
+	}
+
+	if (dev.display) {
+		XFlush(dev.display);
+		XCloseDisplay(dev.display);
+		dev.display = nullptr;
+	}
 }
 
 bool ScrX11Sw::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase& a, int sink_ch, const Packet& in) {

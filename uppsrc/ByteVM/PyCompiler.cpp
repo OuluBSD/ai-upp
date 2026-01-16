@@ -49,18 +49,11 @@ bool PyCompiler::IsString() const
 	return !IsEof() && (tokens[pos].type == TK_STRING || tokens[pos].type == TK_STRING_MULTILINE);
 }
 
-bool PyCompiler::IsStmtEnd() const
-{
-	if (IsEof()) return true;
-	if (tokens[pos].type == TK_END_STMT) return true;
-	if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
-	return false;
-}
-
 int PyCompiler::GetLine() const
 {
 	return Peek().loc.line;
 }
+
 
 void PyCompiler::Emit(int code)
 {
@@ -268,7 +261,8 @@ void PyCompiler::Statement()
 	else if(IsId("pass")) {
 		Next();
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId("return")) {
 		Next();
@@ -280,7 +274,8 @@ void PyCompiler::Statement()
 		}
 		Emit(PY_RETURN_VALUE);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'return', found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId("import")) {
 		Next();
@@ -301,7 +296,8 @@ void PyCompiler::Statement()
 			else break;
 		}
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId("from")) {
 		Next();
@@ -338,7 +334,8 @@ void PyCompiler::Statement()
 		}
 		
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_ASS) {
 		String id = Peek().str_value;
@@ -347,7 +344,8 @@ void PyCompiler::Statement()
 		Expression();
 		EmitName(PY_STORE_NAME, id);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_SQUARE_BEGIN) {
 		int start_pos = pos;
@@ -363,7 +361,8 @@ void PyCompiler::Statement()
 			Expression();
 			Emit(PY_STORE_SUBSCR);
 			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after subscription assignment, found %s", GetLine(), Peek().GetTypeString()));
-			Next();
+			if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+				Next();
 		}
 		else {
 			// Not an assignment, backtrack and use normal expression parsing
@@ -372,14 +371,16 @@ void PyCompiler::Statement()
 			Expression();
 			Emit(PY_POP_TOP);
 			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
-			Next();
+			if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+				Next();
 		}
 	}
 	else {
 		Expression();
 		Emit(PY_POP_TOP);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
-		Next();
+		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
 	}
 }
 

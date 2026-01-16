@@ -20,7 +20,13 @@ class PyCompiler {
 	bool IsInt() const;
 	bool IsDouble() const;
 	bool IsString() const;
-	bool IsStmtEnd() const;
+	bool IsStmtEnd() const {
+		if (IsEof()) return true;
+		if (tokens[pos].type == TK_END_STMT) return true;
+		if (tokens[pos].type == TK_NEWLINE) return true;
+		if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
+		return false;
+	}
 	int  GetLine() const;
 
 	void Expect(int token);

@@ -60,6 +60,7 @@ Use these strengths when working with this codebase.
    - Run relevant tests (bin/Eon06 0 0, etc.)
    - Use build scripts to verify changes
    - Check for regressions
+   - **For memory leaks**: Always use Valgrind with USEMALLOC config (see AGENTS.md "Memory Leak Detection")
 
 4. **Document findings**:
    - Update CURRENT_TASK.md with discoveries
@@ -129,6 +130,7 @@ Use these strengths when working with this codebase.
 - flagV1 convention (upstream vs custom code)
 - Header include policy (U++ BLITZ)
 - Build & sandbox policy
+- Memory leak detection & Valgrind workflow
 - Subpackage independence rules
 - Documentation standards (AGENTS.md, CURRENT_TASK.md, Book)
 - Known graphics rendering issues

@@ -72,18 +72,20 @@ class ChaseCam :
 	TransformPtr target;
 	ViewablePtr viewable;
 	ViewportPtr vport;
-	
+
 	mat4 view;
 	mat4 projection;
 	mat4 port;
 	mat4 port_stereo;
 	vec2 viewport_sz;
-	
+
 	bool test_log = false;
 	double time = 0;
 	double phase_time = 1.5;
 	float fov = 110;
 	float used_fov = 0;
+
+	String target_path;  // Deferred entity resolution
 	
 	
 	float GetUsedFov();

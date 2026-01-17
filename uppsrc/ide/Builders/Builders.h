@@ -147,6 +147,16 @@ struct JavaBuilder : CppBuilder {
 	String         JarLine();
 };
 
+struct UwpBuilder : MscBuilder {
+	virtual void   AddFlags(Index<String>& cfg);
+	virtual bool   BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>& immfile,
+		String& linkoptions, const Vector<String>& all_uses, const Vector<String>& all_libraries, int optimize);
+	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
+
+	Index<String>  project_files;
+	bool           uwp_started = false;
+};
+
 struct ScriptBuilder : CppBuilder {
 	typedef ScriptBuilder CLASSNAME;
 	ScriptBuilder() : is_parsed(false), script_error(false) {}
@@ -188,6 +198,7 @@ String GetDefaultUppOut();
 INITIALIZE(GccBuilder)
 INITIALIZE(MscBuilder)
 INITIALIZE(JavaBuilder)
+INITIALIZE(UwpBuilder)
 INITIALIZE(AndroidBuilder)
 INITIALIZE(ScriptBuilder)
 

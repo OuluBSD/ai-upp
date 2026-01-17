@@ -7,6 +7,7 @@
 #include "Android.h"
 #include "BuilderComponents.h"
 #include "Build.h"
+#include "UwpProjectGen.h"
 
 void PutCompileTime(int time, int count);
 
@@ -157,6 +158,17 @@ struct UwpBuilder : MscBuilder {
 	bool           uwp_started = false;
 };
 
+struct DotnetBuilder : CppBuilder {
+	virtual void   AddFlags(Index<String>& cfg);
+	virtual bool   BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>& immfile,
+		String& linkoptions, const Vector<String>& all_uses, const Vector<String>& all_libraries, int optimize);
+	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
+	virtual String GetTargetExt() const;
+
+	Index<String>  project_files;
+	bool           dotnet_started = false;
+};
+
 struct ScriptBuilder : CppBuilder {
 	typedef ScriptBuilder CLASSNAME;
 	ScriptBuilder() : is_parsed(false), script_error(false) {}
@@ -199,6 +211,7 @@ INITIALIZE(GccBuilder)
 INITIALIZE(MscBuilder)
 INITIALIZE(JavaBuilder)
 INITIALIZE(UwpBuilder)
+INITIALIZE(DotnetBuilder)
 INITIALIZE(AndroidBuilder)
 INITIALIZE(ScriptBuilder)
 

@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31019.35
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{@PROJECT_TYPE_GUID@}") = "@PROJECT_NAME@", "@PROJECT_NAME@.vcxproj", "{@PROJECT_GUID@}"
+Project("{@PROJECT_TYPE_GUID@}") = "@PROJECT_NAME@", "@PROJECT_FILE@", "{@PROJECT_GUID@}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

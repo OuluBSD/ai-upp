@@ -8,8 +8,10 @@ const vec3 EarthGravity = { 0, -9.8f, 0 };
 
 
 bool Transform::Initialize(const WorldState& ws) {
-	data.position = zero<vec3>();
-	size = one<vec3>();
+	// NOTE: Do NOT reset data.position here - it's set by Arg() calls (x, y, z)
+	// data.position = zero<vec3>();  // BUG: This overwrites values from Arg()
+	if (size == zero<vec3>())  // Only set size if not already initialized
+		size = one<vec3>();
 	data.mode = TransformMatrix::MODE_LOOKAT; // use direction & up instead of orientation
 	data.orientation = Identity<quat>();
 	data.direction = VEC_FWD; // "look at" alternative to quaternion

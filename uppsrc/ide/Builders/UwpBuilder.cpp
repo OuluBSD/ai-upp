@@ -1,7 +1,7 @@
 #include "Builders.h"
 #include "UwpTemplates.brc"
 
-namespace {
+ 
 
 bool CopyUwpFolder(const String& dst, const String& src)
 {
@@ -112,6 +112,11 @@ bool IsHeaderFile(const String& path)
 {
 	String ext = ToLower(GetFileExt(path));
 	return findarg(ext, ".h", ".hh", ".hpp", ".hxx") >= 0;
+}
+
+bool IsCSharpFile(const String& path)
+{
+	return ToLower(GetFileExt(path)) == ".cs";
 }
 
 void CollectUwpProjectFiles(Index<String>& files, const String& source, const String& target)
@@ -286,8 +291,6 @@ String MakeUwpTargetPath(const String& outdir, const String& package, const Stri
 	return AppendFileName(outdir, AppendFileName(package, rel));
 }
 
-}
-
 void UwpBuilder::AddFlags(Index<String>& cfg)
 {
 	MscBuilder::AddFlags(cfg);
@@ -359,26 +362,45 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		project_name = "UwpApp";
 
 	String project_guid = UwpGuidString("UWPProject:" + project_name);
-	String project_type_guid = "BC8A1FFA-BEE3-4634-8014-F334798102B3";
+	String project_type_guid_cpp = "BC8A1FFA-BEE3-4634-8014-F334798102B3";
+	String project_type_guid_cs = "FAE04EC0-301F-11D3-BF4B-00C04F79EFBC";
 	String toolset = "v142";
 	String target_version = "10.0.19041.0";
 	String min_version = "10.0.17763.0";
 	String entry_point = "App";
+	String uwp_csharp_framework = "uap10.0.19041";
 
 	Index<String> clcompile;
 	Index<String> clincludes;
 	Index<String> none;
+	Index<String> cscompile;
+	bool has_cpp = false;
+	bool has_cs = false;
 
 	for(int i = 0; i < project_files.GetCount(); i++) {
 		const String& path = project_files[i];
-		if(IsCompileSourceFile(path))
+		if(IsCSharpFile(path)) {
+			cscompile.FindAdd(path);
+			has_cs = true;
+		}
+		else
+		if(IsCompileSourceFile(path)) {
 			clcompile.FindAdd(path);
+			has_cpp = true;
+		}
 		else
 		if(IsHeaderFile(path))
 			clincludes.FindAdd(path);
 		else
 			none.FindAdd(path);
 	}
+
+	bool use_csharp = has_cs && !has_cpp;
+	if(use_csharp)
+		entry_point = project_name + ".App";
+
+	String project_file = project_name + (use_csharp ? ".csproj" : ".vcxproj");
+	String project_type_guid = use_csharp ? project_type_guid_cs : project_type_guid_cpp;
 
 	String manifest_path = AppendFileName(solution_dir, "Package.appxmanifest");
 	Index<String> none_filters;
@@ -420,6 +442,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 	sln_tokens.Add("PROJECT_NAME", project_name);
 	sln_tokens.Add("PROJECT_GUID", project_guid);
 	sln_tokens.Add("PROJECT_TYPE_GUID", project_type_guid);
+	sln_tokens.Add("PROJECT_FILE", project_file);
 
 	String sln = ReplaceUwpTokens(UwpTemplate(uwp_sln_tpl, uwp_sln_tpl_length), sln_tokens);
 	SaveFile(AppendFileName(solution_dir, project_name + ".sln"), sln);
@@ -428,18 +451,28 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 	proj_tokens.Add("PROJECT_GUID", XmlEscape(project_guid));
 	proj_tokens.Add("ROOT_NAMESPACE", XmlEscape(project_name));
 	proj_tokens.Add("PROJECT_NAME", XmlEscape(project_name));
-	proj_tokens.Add("PLATFORM_TOOLSET", XmlEscape(toolset));
 	proj_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 	proj_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
-	proj_tokens.Add("INCLUDE_DIRS", XmlEscape(include_dirs));
-	proj_tokens.Add("DEFINES", XmlEscape(defines));
-	proj_tokens.Add("CLCOMPILE", MakeItemList(clcompile, solution_dir, "ClCompile"));
-	proj_tokens.Add("CLINCLUDE", MakeItemList(clincludes, solution_dir, "ClInclude"));
-	proj_tokens.Add("NONEITEMS", MakeItemList(none, solution_dir, "None"));
-	proj_tokens.Add("CONTENT_ITEMS", MakeContentItemList(assets, solution_dir));
 
-	String vcxproj = ReplaceUwpTokens(UwpTemplate(uwp_vcxproj_tpl, uwp_vcxproj_tpl_length), proj_tokens);
-	SaveFile(AppendFileName(solution_dir, project_name + ".vcxproj"), vcxproj);
+	if(use_csharp) {
+		proj_tokens.Add("TARGET_FRAMEWORK", XmlEscape(uwp_csharp_framework));
+		proj_tokens.Add("CSCOMPILE", MakeItemList(cscompile, solution_dir, "Compile"));
+		proj_tokens.Add("NONEITEMS", MakeItemList(none, solution_dir, "None"));
+		proj_tokens.Add("CONTENT_ITEMS", MakeContentItemList(assets, solution_dir));
+		String csproj = ReplaceUwpTokens(UwpTemplate(uwp_csproj_tpl, uwp_csproj_tpl_length), proj_tokens);
+		SaveFile(AppendFileName(solution_dir, project_name + ".csproj"), csproj);
+	}
+	else {
+		proj_tokens.Add("PLATFORM_TOOLSET", XmlEscape(toolset));
+		proj_tokens.Add("INCLUDE_DIRS", XmlEscape(include_dirs));
+		proj_tokens.Add("DEFINES", XmlEscape(defines));
+		proj_tokens.Add("CLCOMPILE", MakeItemList(clcompile, solution_dir, "ClCompile"));
+		proj_tokens.Add("CLINCLUDE", MakeItemList(clincludes, solution_dir, "ClInclude"));
+		proj_tokens.Add("NONEITEMS", MakeItemList(none, solution_dir, "None"));
+		proj_tokens.Add("CONTENT_ITEMS", MakeContentItemList(assets, solution_dir));
+		String vcxproj = ReplaceUwpTokens(UwpTemplate(uwp_vcxproj_tpl, uwp_vcxproj_tpl_length), proj_tokens);
+		SaveFile(AppendFileName(solution_dir, project_name + ".vcxproj"), vcxproj);
+	}
 
 	VectorMap<String, String> manifest_tokens;
 	manifest_tokens.Add("PACKAGE_NAME", XmlEscape(project_name));
@@ -470,15 +503,17 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 	        << "      <UniqueIdentifier>{" << filter_content_guid << "}</UniqueIdentifier>\n"
 	        << "    </Filter>\n";
 
-	VectorMap<String, String> filter_tokens;
-	filter_tokens.Add("FILTERS", String(filters));
-	filter_tokens.Add("FILTER_CLCOMPILE", MakeFilteredItemList(clcompile, solution_dir, "ClCompile", "Source Files"));
-	filter_tokens.Add("FILTER_CLINCLUDE", MakeFilteredItemList(clincludes, solution_dir, "ClInclude", "Header Files"));
-	filter_tokens.Add("FILTER_NONE", MakeFilteredItemList(none_filters, solution_dir, "None", "Resource Files"));
-	filter_tokens.Add("FILTER_CONTENT", MakeFilteredContentItemList(assets, solution_dir, "Content Files"));
+	if(!use_csharp) {
+		VectorMap<String, String> filter_tokens;
+		filter_tokens.Add("FILTERS", String(filters));
+		filter_tokens.Add("FILTER_CLCOMPILE", MakeFilteredItemList(clcompile, solution_dir, "ClCompile", "Source Files"));
+		filter_tokens.Add("FILTER_CLINCLUDE", MakeFilteredItemList(clincludes, solution_dir, "ClInclude", "Header Files"));
+		filter_tokens.Add("FILTER_NONE", MakeFilteredItemList(none_filters, solution_dir, "None", "Resource Files"));
+		filter_tokens.Add("FILTER_CONTENT", MakeFilteredContentItemList(assets, solution_dir, "Content Files"));
 
-	String vcxfilters = ReplaceUwpTokens(UwpTemplate(uwp_filters_tpl, uwp_filters_tpl_length), filter_tokens);
-	SaveFile(AppendFileName(solution_dir, project_name + ".vcxproj.filters"), vcxfilters);
+		String vcxfilters = ReplaceUwpTokens(UwpTemplate(uwp_filters_tpl, uwp_filters_tpl_length), filter_tokens);
+		SaveFile(AppendFileName(solution_dir, project_name + ".vcxproj.filters"), vcxfilters);
+	}
 
 	PutConsole(Format("UWP: wrote Visual Studio project files to %s", solution_dir));
 	uwp_started = false;

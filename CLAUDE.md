@@ -39,6 +39,8 @@ Use these strengths when working with this codebase.
 - **Eon06 test 06a**: Volumetric clouds texture artifacts
   - Location: `upptst/Eon06/`
   - See: task/Vfs.md for current status and investigation notes
+- **Eon07 test black screen**: Component initialization working, investigating rendering pipeline
+  - See: AGENTS.md "ECS Initialization and Component Lifecycle" for patterns learned
 
 ---
 
@@ -88,6 +90,24 @@ Use these strengths when working with this codebase.
    - Update AGENTS.md if adding new concepts
    - Add to CURRENT_TASK.md
    - Update thread status in task/*.md
+
+### When Working with ECS Components
+
+See **AGENTS.md "ECS Initialization and Component Lifecycle"** for critical patterns:
+
+1. **Arg() Phase**: Store configuration, **never resolve cross-references**
+   - Defer entity path resolution, component lookups to Initialize()
+
+2. **Initialize() Phase**: Resolve cross-references when full tree exists
+   - Use manual VfsValue path traversal for untyped intermediate nodes
+   - Access systems via `GetEngine().TryGet<System>()`, not entity scope
+
+3. **PostInitialize() Phase**: Handle dependencies on other Initialize() side effects
+
+4. **Common Pitfalls**:
+   - Starting boolean success tracking with `false` instead of `true`
+   - Using `FindPath<Entity>()` with untyped intermediate VfsValues
+   - Searching for systems in entity scope instead of engine scope
 
 ---
 

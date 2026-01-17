@@ -59,9 +59,35 @@ bool Engine::Start() {
 			return false;
 		}
 	}
-	
+
 	RunCallbacks();
-	
+
+	// Initialize all entities and their components after systems are initialized
+	RTLOG("Engine::Start: initializing all entities and components");
+	auto entities = val.FindAllDeep<Entity>();
+	RTLOG("Engine::Start: found " << entities.GetCount() << " entities");
+	for (auto& entity : entities) {
+		if (!entity->InitializeComponents(ws)) {
+			LOG("Could not initialize components for entity");
+			return false;
+		}
+	}
+
+	// PostInitialize all components
+	RTLOG("Engine::Start: post-initializing all components");
+	auto components = val.FindAllDeep<Component>();
+	RTLOG("Engine::Start: found " << components.GetCount() << " components");
+	for (auto& comp : components) {
+		if (!comp->IsInitialized())
+			continue; // Already handled by InitializeComponents
+		if (!comp->PostInitialize()) {
+			LOG("Could not post-initialize component " << comp->GetTypeName());
+			return false;
+		}
+	}
+
+	RunCallbacks();
+
 	is_initialized = true;
 	
 	for (auto it : systems) {

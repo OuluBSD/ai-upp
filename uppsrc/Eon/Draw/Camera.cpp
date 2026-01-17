@@ -123,23 +123,92 @@ bool ChaseCam::Initialize(const WorldState& ws) {
 	viewable	= e->val.Find<Viewable>();
 	vport		= e->val.Find<Viewport>();
 	SetViewportSize(Size(1280, 720));
-	
-	RenderingSystemPtr rend = e->val.Find<RenderingSystem>();
-	if (rend)
+
+	// Resolve deferred target entity path
+	if (!target_path.IsEmpty()) {
+		RTLOG("ChaseCam::Initialize: resolving target path '" << target_path << "'");
+		Val* root = &val.FindOwner<Engine>()->GetRootPool();
+		ASSERT(root);
+		if (!root) {
+			LOG("ChaseCam::Initialize: error: could not find root pool");
+			return false;
+		}
+
+		// Debug: print tree structure
+		RTLOG("ChaseCam::Initialize: root pool id='" << root->id << "' sub.GetCount()=" << root->sub.GetCount());
+		for (int i = 0; i < root->sub.GetCount(); i++) {
+			VfsValue& child = root->sub[i];
+			RTLOG("  [" << i << "] id='" << child.id << "' type_hash=" << child.type_hash << " sub.GetCount()=" << child.sub.GetCount());
+			for (int j = 0; j < child.sub.GetCount() && j < 5; j++) {
+				RTLOG("    [" << j << "] id='" << child.sub[j].id << "' type_hash=" << child.sub[j].type_hash);
+			}
+		}
+
+		VfsPath vfs_path;
+		vfs_path.SetDotPath(target_path);
+		EntityPtr tgt_ent = root->FindPath<Entity>(vfs_path);
+		if (!tgt_ent) {
+			LOG("ChaseCam::Initialize: error: could not find entity with path '" + target_path + "'");
+			LOG("ChaseCam::Initialize: attempting manual traversal");
+			// Try manual path resolution: remove leading "/" and split by "/"
+			String manual_path = target_path;
+			if (manual_path.StartsWith("/"))
+				manual_path = manual_path.Mid(1);  // Remove leading "/"
+			Vector<String> parts = Split(manual_path, '/');
+			RTLOG("ChaseCam::Initialize: manual path parts: " << parts.GetCount());
+
+			VfsValue* current = root;
+			for (const String& part : parts) {
+				RTLOG("ChaseCam::Initialize: looking for '" << part << "'");
+				int idx = -1;
+				for (int i = 0; i < current->sub.GetCount(); i++) {
+					if (current->sub[i].id == part) {
+						idx = i;
+						break;
+					}
+				}
+				if (idx < 0) {
+					LOG("ChaseCam::Initialize: error: could not find '" << part << "' in current node");
+					return false;
+				}
+				current = &current->sub[idx];
+				RTLOG("ChaseCam::Initialize: found '" << part << "' type_hash=" << current->type_hash);
+			}
+
+			// Found the target VfsValue, now get Entity from it
+			tgt_ent = current->FindExt<Entity>();
+			if (!tgt_ent) {
+				LOG("ChaseCam::Initialize: error: found node but it's not an Entity");
+				return false;
+			}
+			RTLOG("ChaseCam::Initialize: manual resolution succeeded!");
+		}
+
+		target = tgt_ent->Find<Transform>();
+		if (!target) {
+			LOG("ChaseCam::Initialize: error: target entity doesn't have Transform component");
+			return false;
+		}
+		RTLOG("ChaseCam::Initialize: successfully resolved target");
+	}
+
+	RenderingSystemPtr rend = GetEngine().TryGet<RenderingSystem>();
+	if (rend) {
 		rend->AddCamera(*this);
-	
+		RTLOG("ChaseCam::Initialize: added camera to RenderingSystem");
+	} else {
+		RTLOG("ChaseCam::Initialize: RenderingSystem not available");
+	}
+
 	AddToUpdateList();
 	return true;
 }
 
 void ChaseCam::Uninitialize() {
-	Entity* e = val.owner->FindExt<Entity>();
-	if (e) {
-		RenderingSystemPtr rend = e->val.Find<RenderingSystem>();
-		if (rend)
-			rend->RemoveCamera(*this);
-	}
-	
+	RenderingSystemPtr rend = GetEngine().TryGet<RenderingSystem>();
+	if (rend)
+		rend->RemoveCamera(*this);
+
 	RemoveFromUpdateList();
 }
 
@@ -150,38 +219,23 @@ void ChaseCam::Update(double dt) {
 }
 
 bool ChaseCam::Arg(String key, Value value) {
-	
+
 	if (key == "fov") {
 		fov = (float)max(0.10, min<double>(180.0, value));
 		return true;
 	}
 	if (key == "target") {
-		LOG(MetaEnv().root.GetTreeString());
-		Val* root = &val.FindOwner<Engine>()->GetRootPool();
-		ASSERT(root);
-		if (!root) return false;
-		
-		String path = value;
-		VfsPath vfs_path;
-		vfs_path.SetDotPath(path);
-		EntityPtr tgt_ent = root->FindPath<Entity>(vfs_path);
-		if (!tgt_ent) {
-			LOG("ChaseCam::Arg: error: could not find entity with path '" + path + "'");
-			return false;
-		}
-		
-		target = tgt_ent->Find<Transform>();
-		if (!tgt_ent) {
-			LOG("ChaseCam::Arg: error: target entity doesn't have Transform component");
-			return false;
-		}
+		// Defer entity resolution to Initialize() when all entities exist
+		target_path = value.ToString();
+		RTLOG("ChaseCam::Arg: storing target path '" << target_path << "' for deferred resolution");
+		return true;
 	}
 	else if (key == "log") {
 		test_log = value.ToString() == "test";
 	}
-	
+
 	else return false;
-	
+
 	return true;
 }
 

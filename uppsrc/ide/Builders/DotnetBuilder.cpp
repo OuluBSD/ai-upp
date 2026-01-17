@@ -119,6 +119,18 @@ bool DotnetBuilder::Link(const Vector<String>&, const String&, bool)
 		return false;
 	}
 
+	String dll_path = AppendFileName(
+		solution_dir,
+		AppendFileName(
+			"bin",
+			AppendFileName(
+				"x64",
+				AppendFileName(
+					conf,
+					AppendFileName(
+						target_framework,
+						project_name + ".dll")))));
+	PutConsole(Format("DOTNET: run with: dotnet %s", dll_path));
 	PutConsole(Format("DOTNET: wrote Visual Studio project files to %s", solution_dir));
 	dotnet_started = false;
 	return true;

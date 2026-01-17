@@ -52,25 +52,26 @@ struct HandActionSourceLocation : HandSourceLocation {
 
 
 class PlayerHandComponent : public Component {
-	
+
 public:
 	ECS_COMPONENT_CTOR(PlayerHandComponent)
 	void Visit(Vis& v) override;
 	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
-	
+
     bool IsSource(const ControllerSource& rhs) const;
-	
-	
+
+
 	PlayerBodyComponentPtr				body;
     const HandLocationSource*			source = 0;
     HandActionSourceLocation*			location = 0;
-	
+
 	bool								is_simulated = false;
     bool								attach_ctrl_model = false;
     byte								req_hand = Unspecified;
-    
+    String								body_path;  // Deferred entity resolution
+
 };
 
 using PlayerHandComponentPtr = Ptr<PlayerHandComponent>;
@@ -78,17 +79,18 @@ using PlayerHandComponentPtr = Ptr<PlayerHandComponent>;
 
 
 class PlayerHeadComponent : public Component {
-	
+
 public:
 	ECS_COMPONENT_CTOR(PlayerHeadComponent)
 	void Visit(Vis& v) override;
 	bool Initialize(const WorldState&) override;
 	void Uninitialize() override;
 	bool Arg(String key, Value value) override;
-	
-	
+
+
 	PlayerBodyComponentPtr				body;
-	
+	String								body_path;  // Deferred entity resolution
+
 };
 
 using PlayerHeadComponentPtr = Ptr<PlayerHeadComponent>;

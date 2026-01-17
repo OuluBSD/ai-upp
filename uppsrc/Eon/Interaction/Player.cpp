@@ -15,6 +15,77 @@ void PlayerHandComponent::Visit(Vis& v) {
 }
 
 bool PlayerHandComponent::Initialize(const WorldState& ws) {
+	// Resolve deferred body entity path
+	if (!body_path.IsEmpty()) {
+		Val* root = &val.FindOwner<Engine>()->GetRootPool();
+		ASSERT(root);
+		if (!root) {
+			LOG("PlayerHandComponent::Initialize: error: could not find root pool");
+			return false;
+		}
+
+		// Parse path: expect "pool/entity.name" or "pool/entity/subname"
+		// where entity name can contain dots or slashes as a single ID
+		String path = body_path;
+		if (path.StartsWith("/"))
+			path = path.Mid(1);
+
+		// Find the first slash - that separates pool from entity
+		int pool_sep = path.Find('/');
+		if (pool_sep < 0) {
+			LOG("PlayerHandComponent::Initialize: error: invalid path format '" + body_path + "'");
+			return false;
+		}
+
+		String pool_name = path.Left(pool_sep);
+		String entity_path = path.Mid(pool_sep + 1);  // Rest of path as entity ID
+
+		// Convert slashes to dots for entity ID (entity names use dots)
+		entity_path.Replace("/", ".");
+
+		// Find the pool
+		VfsValue* pool = nullptr;
+		for (int i = 0; i < root->sub.GetCount(); i++) {
+			if (root->sub[i].id == pool_name) {
+				pool = &root->sub[i];
+				break;
+			}
+		}
+
+		if (!pool) {
+			LOG("PlayerHandComponent::Initialize: error: could not find pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Find entity in pool by ID (entity ID is a single string, may contain dots)
+		EntityPtr e;
+		for (int i = 0; i < pool->sub.GetCount(); i++) {
+			if (pool->sub[i].id == entity_path) {
+				e = pool->sub[i].FindExt<Entity>();
+				break;
+			}
+		}
+
+		if (!e) {
+			LOG("PlayerHandComponent::Initialize: error: could not find entity '" << entity_path << "' in pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Get PlayerBodyComponent and register this hand
+		PlayerBodyComponentPtr bc = e->val.Find<PlayerBodyComponent>();
+		if (!bc) {
+			LOG("PlayerHandComponent::Initialize: error: entity doesn't have PlayerBodyComponent");
+			return false;
+		}
+
+		if (!bc->SetHand((PlayerHandedness)req_hand, this)) {
+			LOG("PlayerHandComponent::Initialize: error: SetHand failed");
+			return false;
+		}
+
+		body = bc;
+	}
+
 	return true;
 }
 
@@ -37,27 +108,12 @@ bool PlayerHandComponent::Arg(String key, Value value) {
 			return false;
 	}
 	else if (key == "body") {
-		TODO
-		#if 0
-		EntityStorePtr es = GetEngine().TryGet<EntityStore>();
-		if (!es)
-			return false;
-		EntityPtr e = es->FindEntity(value);
-		if (e) {
-			PlayerBodyComponentPtr bc = e->Find<PlayerBodyComponent>();
-			if (bc && bc->SetHand((PlayerHandedness)req_hand, this)) {
-				body = bc;
-			}
-		}
-		else {
-			LOG("PlayerHandComponent::Arg: could not find entity: " + value.ToString());
-			return false;
-		}
-		#endif
+		// Defer entity resolution to Initialize() when all entities exist
+		body_path = value.ToString();
 	}
 	else if (key == "simulated")
 		is_simulated = value.ToString() == "true";
-	
+
 	return true;
 }
 
@@ -76,6 +132,77 @@ void PlayerHeadComponent::Visit(Vis& v) {
 }
 
 bool PlayerHeadComponent::Initialize(const WorldState& ws) {
+	// Resolve deferred body entity path
+	if (!body_path.IsEmpty()) {
+		Val* root = &val.FindOwner<Engine>()->GetRootPool();
+		ASSERT(root);
+		if (!root) {
+			LOG("PlayerHeadComponent::Initialize: error: could not find root pool");
+			return false;
+		}
+
+		// Parse path: expect "pool/entity.name" or "pool/entity/subname"
+		// where entity name can contain dots or slashes as a single ID
+		String path = body_path;
+		if (path.StartsWith("/"))
+			path = path.Mid(1);
+
+		// Find the first slash - that separates pool from entity
+		int pool_sep = path.Find('/');
+		if (pool_sep < 0) {
+			LOG("PlayerHeadComponent::Initialize: error: invalid path format '" + body_path + "'");
+			return false;
+		}
+
+		String pool_name = path.Left(pool_sep);
+		String entity_path = path.Mid(pool_sep + 1);  // Rest of path as entity ID
+
+		// Convert slashes to dots for entity ID (entity names use dots)
+		entity_path.Replace("/", ".");
+
+		// Find the pool
+		VfsValue* pool = nullptr;
+		for (int i = 0; i < root->sub.GetCount(); i++) {
+			if (root->sub[i].id == pool_name) {
+				pool = &root->sub[i];
+				break;
+			}
+		}
+
+		if (!pool) {
+			LOG("PlayerHeadComponent::Initialize: error: could not find pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Find entity in pool by ID (entity ID is a single string, may contain dots)
+		EntityPtr e;
+		for (int i = 0; i < pool->sub.GetCount(); i++) {
+			if (pool->sub[i].id == entity_path) {
+				e = pool->sub[i].FindExt<Entity>();
+				break;
+			}
+		}
+
+		if (!e) {
+			LOG("PlayerHeadComponent::Initialize: error: could not find entity '" << entity_path << "' in pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Get PlayerBodyComponent and register this head
+		PlayerBodyComponentPtr bc = e->val.Find<PlayerBodyComponent>();
+		if (!bc) {
+			LOG("PlayerHeadComponent::Initialize: error: entity doesn't have PlayerBodyComponent");
+			return false;
+		}
+
+		if (!bc->SetHead(this)) {
+			LOG("PlayerHeadComponent::Initialize: error: SetHead failed");
+			return false;
+		}
+
+		body = bc;
+	}
+
 	return true;
 }
 
@@ -85,20 +212,8 @@ void PlayerHeadComponent::Uninitialize() {
 
 bool PlayerHeadComponent::Arg(String key, Value value) {
 	if (key == "body") {
-		TODO
-		#if 0
-		EntityPtr e = es->FindEntity(value);
-		if (e) {
-			PlayerBodyComponentPtr bc = e->Find<PlayerBodyComponent>();
-			if (bc && bc->SetHead(this)) {
-				body = bc;
-			}
-		}
-		else {
-			LOG("PlayerHeadComponent::Arg: could not find entity: " + value.ToString());
-			return false;
-		}
-		#endif
+		// Defer entity resolution to Initialize() when all entities exist
+		body_path = value.ToString();
 	}
 	return true;
 }

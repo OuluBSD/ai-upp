@@ -4,8 +4,8 @@ NAMESPACE_UPP
 
 INITBLOCK {
 	// Interaction and player body systems
-	REGISTER_EON_SYSTEM(InteractionSystem, "interaction.system", "Ecs|Util");
-	REGISTER_EON_SYSTEM(PlayerBodySystem,  "player.body.system", "Ecs|Util");
+	REGISTER_EON_SYSTEM(InteractionSystem, "interaction", "Ecs|Util");
+	REGISTER_EON_SYSTEM(PlayerBodySystem,  "player", "Ecs|Util");
 }
 
 END_UPP_NAMESPACE

@@ -108,7 +108,7 @@ bool IsCompileSourceFile(const String& path)
 	return findarg(ext, ".c", ".cc", ".cpp", ".cxx", ".icpp") >= 0;
 }
 
-bool IsHeaderFile(const String& path)
+bool UwpIsHeaderFile(const String& path)
 {
 	String ext = ToLower(GetFileExt(path));
 	return findarg(ext, ".h", ".hh", ".hpp", ".hxx") >= 0;
@@ -389,7 +389,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 			has_cpp = true;
 		}
 		else
-		if(IsHeaderFile(path))
+		if(UwpIsHeaderFile(path))
 			clincludes.FindAdd(path);
 		else
 			none.FindAdd(path);
@@ -456,7 +456,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 
 	if(use_csharp) {
 		proj_tokens.Add("TARGET_FRAMEWORK", XmlEscape(uwp_csharp_framework));
-		proj_tokens.Add("CSCOMPILE", MakeItemList(cscompile, solution_dir, "Compile"));
+		proj_tokens.Add("CSCOMPILE", String());
 		proj_tokens.Add("NONEITEMS", MakeItemList(none, solution_dir, "None"));
 		proj_tokens.Add("CONTENT_ITEMS", MakeContentItemList(assets, solution_dir));
 		String csproj = ReplaceUwpTokens(UwpTemplate(uwp_csproj_tpl, uwp_csproj_tpl_length), proj_tokens);
@@ -514,6 +514,21 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		String vcxfilters = ReplaceUwpTokens(UwpTemplate(uwp_filters_tpl, uwp_filters_tpl_length), filter_tokens);
 		SaveFile(AppendFileName(solution_dir, project_name + ".vcxproj.filters"), vcxfilters);
 	}
+
+#ifdef PLATFORM_WIN32
+	String conf = HasFlag("DEBUG") ? "Debug" : "Release";
+	String sln_path = AppendFileName(solution_dir, project_name + ".sln");
+	String cmd;
+	cmd << "msbuild " << GetPathQ(sln_path) << " /p:Configuration=" << conf << " /p:Platform=x64";
+	PutConsole("UWP: building solution with msbuild...");
+	if(Execute(cmd) != 0) {
+		PutConsole("UWP: msbuild failed.");
+		uwp_started = false;
+		return false;
+	}
+#else
+	PutConsole("UWP: build skipped (requires Windows MSBuild).");
+#endif
 
 	PutConsole(Format("UWP: wrote Visual Studio project files to %s", solution_dir));
 	uwp_started = false;

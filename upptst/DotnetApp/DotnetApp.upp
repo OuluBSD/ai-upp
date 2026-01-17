@@ -1,0 +1,6 @@
+file
+	AGENTS.md,
+	DotnetApp.cs;
+
+mainconfig
+	"" = "";

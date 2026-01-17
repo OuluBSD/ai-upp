@@ -24,9 +24,11 @@ file
 	GccBuilder.cpp,
 	MscBuilder.cpp,
 	JavaBuilder.cpp,
-	UwpBuilder.cpp,
 	DotnetBuilder.cpp,
+	ScriptBuilder.cpp,
+	Cocoa.cpp,
 	UWP readonly separator,
+	UwpBuilder.cpp,
 	UwpTemplates.brc,
 	UwpProjectGen.h,
 	UwpTemplates/UwpSolution.sln.tpl,
@@ -35,8 +37,6 @@ file
 	UwpTemplates/UwpPackage.appxmanifest.tpl,
 	UwpTemplates/DotnetProject.csproj.tpl,
 	UwpTemplates/UwpCSharp.csproj.tpl,
-	ScriptBuilder.cpp,
-	Cocoa.cpp,
 	Android readonly separator,
 	Android.h,
 	AndroidProject.cpp,
@@ -60,3 +60,4 @@ file
 	BuilderUtils.cpp,
 	Info readonly separator,
 	Copying;
+

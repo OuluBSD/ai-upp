@@ -1,6 +1,109 @@
 #include "Builders.h"
 #include "UwpTemplates.brc"
 
+namespace {
+
+struct DotnetRuntimeVersion {
+	int    major = 0;
+	int    minor = 0;
+	int    patch = 0;
+	String version;
+	String root;
+};
+
+static bool ParseDotnetVersion(const String& name, int& major, int& minor, int& patch)
+{
+	String clean;
+	for(int i = 0; i < name.GetCount(); i++) {
+		int c = name[i];
+		if(IsDigit(c) || c == '.')
+			clean.Cat(c);
+		else
+			break;
+	}
+	if(clean.IsEmpty())
+		return false;
+
+	Vector<String> parts = Split(clean, '.');
+	if(parts.GetCount() < 2)
+		return false;
+
+	major = ScanInt(parts[0]);
+	minor = ScanInt(parts[1]);
+	patch = parts.GetCount() >= 3 ? ScanInt(parts[2]) : 0;
+	return major > 0;
+}
+
+static bool IsBetterVersion(int major, int minor, int patch, const DotnetRuntimeVersion& best)
+{
+	if(major != best.major)
+		return major > best.major;
+	if(minor != best.minor)
+		return minor > best.minor;
+	return patch > best.patch;
+}
+
+static void AddDotnetRoot(Index<String>& roots, const String& root)
+{
+	if(!IsNull(root) && DirectoryExists(root))
+		roots.FindAdd(NativePath(root));
+}
+
+static void AddDotnetRoots(Index<String>& roots)
+{
+	AddDotnetRoot(roots, GetEnv("DOTNET_ROOT"));
+	AddDotnetRoot(roots, GetEnv("DOTNET_ROOT(x64)"));
+	AddDotnetRoot(roots, "/usr/share/dotnet");
+	AddDotnetRoot(roots, "/usr/lib/dotnet");
+	if(DirectoryExists("/opt")) {
+		FindFile ff(AppendFileName("/opt", "dotnet-sdk-bin-*"));
+		while(ff) {
+			if(ff.IsFolder())
+				AddDotnetRoot(roots, ff.GetPath());
+			ff.Next();
+		}
+	}
+}
+
+static String DetectDotnetTargetFramework(String& runtime_root, String& runtime_version)
+{
+	Index<String> roots;
+	AddDotnetRoots(roots);
+
+	DotnetRuntimeVersion best;
+	for(int i = 0; i < roots.GetCount(); i++) {
+		String shared_dir = AppendFileName(roots[i], AppendFileName("shared", "Microsoft.NETCore.App"));
+		if(!DirectoryExists(shared_dir))
+			continue;
+		FindFile ff(AppendFileName(shared_dir, "*"));
+		while(ff) {
+			if(ff.IsFolder()) {
+				int major = 0;
+				int minor = 0;
+				int patch = 0;
+				if(ParseDotnetVersion(ff.GetName(), major, minor, patch)) {
+					if(IsBetterVersion(major, minor, patch, best)) {
+						best.major = major;
+						best.minor = minor;
+						best.patch = patch;
+						best.version = ff.GetName();
+						best.root = roots[i];
+					}
+				}
+			}
+			ff.Next();
+		}
+	}
+
+	if(best.major == 0)
+		return String();
+	runtime_root = best.root;
+	runtime_version = best.version;
+	return Format("net%d.%d", best.major, best.minor);
+}
+
+}
+
 String DotnetBuilder::GetTargetExt() const
 {
 	return ".dll";
@@ -78,7 +181,15 @@ bool DotnetBuilder::Link(const Vector<String>&, const String&, bool)
 
 	String project_guid = UwpGuidString("DOTNET:" + project_name);
 	String project_type_guid = "FAE04EC0-301F-11D3-BF4B-00C04F79EFBC";
-	String target_framework = "net8.0";
+	String runtime_root;
+	String runtime_version;
+	String target_framework = DetectDotnetTargetFramework(runtime_root, runtime_version);
+	if(IsNull(target_framework)) {
+		target_framework = "net8.0";
+	}
+	else {
+		PutConsole(Format("DOTNET: detected runtime %s at %s", runtime_version, runtime_root));
+	}
 
 	Index<String> cscompile;
 	Index<String> none;

@@ -373,6 +373,235 @@ net audio_pipeline:
 
 ---
 
+## ECS Initialization and Component Lifecycle
+
+### Overview
+
+The ECS (Entity-Component-System) architecture has a precise initialization sequence. Understanding this lifecycle is critical for implementing components that reference other entities or systems.
+
+### Initialization Phases
+
+**Phase 1: Arg() - Configuration Storage**
+- **When**: Called during DSL parsing and entity creation
+- **Purpose**: Store configuration arguments for later use
+- **Limitation**: Other entities/components may not exist yet
+- **Best Practice**: Store paths, IDs, and configuration values; **defer resolution**
+
+**Phase 2: Initialize() - Cross-Reference Resolution**
+- **When**: Called after all entities and components are created
+- **Purpose**: Resolve cross-references, find other entities/components, register with systems
+- **Pattern**: This is where you resolve entity paths, find components on other entities, register with engine systems
+- **Return**: `bool` - return `false` on failure to block entity initialization
+
+**Phase 3: PostInitialize() - Dependency Completion**
+- **When**: Called after all Initialize() calls complete
+- **Purpose**: Handle dependencies on other components' Initialize() side effects
+- **Example**: If Component A needs data that Component B sets up in Initialize(), Component A should use PostInitialize()
+
+### Common Patterns
+
+#### Pattern 1: Deferred Entity Path Resolution
+
+**Problem**: Component needs to reference another entity by path (e.g., camera targeting a model).
+
+**Wrong Approach** (fails because target entity doesn't exist yet):
+```cpp
+bool ChaseCam::Arg(String key, Value value) {
+    if (key == "target") {
+        // WRONG: Trying to resolve path during Arg phase
+        EntityPtr target_ent = FindEntityByPath(value.ToString());
+        target = target_ent->Find<Transform>();
+    }
+}
+```
+
+**Correct Approach** (store path, resolve in Initialize):
+```cpp
+// In Camera.h
+String target_path;  // Store path for deferred resolution
+
+// In Camera.cpp
+bool ChaseCam::Arg(String key, Value value) {
+    if (key == "target") {
+        // Store path for later resolution
+        target_path = value.ToString();
+        return true;
+    }
+}
+
+bool ChaseCam::Initialize(const WorldState& ws) {
+    // Now resolve the path when all entities exist
+    if (!target_path.IsEmpty()) {
+        Val* root = &val.FindOwner<Engine>()->GetRootPool();
+        EntityPtr tgt_ent = ResolveEntityPath(root, target_path);
+        if (!tgt_ent) {
+            LOG("ChaseCam::Initialize: error: could not find target entity");
+            return false;
+        }
+        target = tgt_ent->Find<Transform>();
+    }
+    return true;
+}
+```
+
+#### Pattern 2: Manual VfsValue Path Traversal
+
+**Problem**: Standard `FindPath<Entity>()` requires all intermediate VfsValue nodes to be typed. Paths like `/world/ball` may have untyped intermediate nodes (`world` with `type_hash=0`).
+
+**Solution**: Manual path traversal that handles untyped nodes:
+```cpp
+// Parse path: "/world/ball" -> ["world", "ball"]
+String manual_path = target_path;
+if (manual_path.StartsWith("/"))
+    manual_path = manual_path.Mid(1);
+Vector<String> parts = Split(manual_path, '/');
+
+// Traverse VfsValue tree manually
+VfsValue* current = root;
+for (const String& part : parts) {
+    int idx = -1;
+    for (int i = 0; i < current->sub.GetCount(); i++) {
+        if (current->sub[i].id == part) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx < 0) {
+        LOG("Path traversal failed at: " << part);
+        return false;
+    }
+    current = &current->sub[idx];
+}
+
+// Extract Entity from final VfsValue
+EntityPtr tgt_ent = current->FindExt<Entity>();
+```
+
+#### Pattern 3: Component-to-System Access
+
+**Problem**: Component needs to register with an engine-level system.
+
+**Wrong Approach** (searches entity scope, not engine):
+```cpp
+bool ChaseCam::Initialize(const WorldState& ws) {
+    Entity* e = val.owner->FindExt<Entity>();
+    // WRONG: Searches in entity's VfsValue, not engine
+    RenderingSystemPtr rend = e->val.Find<RenderingSystem>();
+}
+```
+
+**Correct Approach** (use GetEngine() for system access):
+```cpp
+bool ChaseCam::Initialize(const WorldState& ws) {
+    // Systems live at engine level, not entity level
+    RenderingSystemPtr rend = GetEngine().TryGet<RenderingSystem>();
+    if (rend) {
+        rend->AddCamera(*this);
+    }
+    return true;
+}
+
+void ChaseCam::Uninitialize() {
+    // Mirror the registration in Uninitialize
+    RenderingSystemPtr rend = GetEngine().TryGet<RenderingSystem>();
+    if (rend)
+        rend->RemoveCamera(*this);
+}
+```
+
+#### Pattern 4: Entity Initialization Success Tracking
+
+**Problem**: Tracking whether all components initialized successfully.
+
+**Wrong Approach** (starts false, always returns false):
+```cpp
+bool Entity::InitializeComponents(const WorldState& ws) {
+    bool b = false;  // BUG: starts pessimistic
+    auto comps = val.FindAll<Component>();
+    for(auto& comp : comps) {
+        b = comp->Initialize(ws) && b;  // true && false = false!
+    }
+    return b;
+}
+```
+
+**Correct Approach** (start optimistic, track failures):
+```cpp
+bool Entity::InitializeComponents(const WorldState& ws) {
+    bool b = true;  // Start optimistic
+    auto comps = val.FindAll<Component>();
+    for(auto& comp : comps) {
+        if (!comp->IsInitialized()) {
+            bool success = comp->Initialize(ws);
+            if (!success) {
+                LOG("Entity::InitializeComponents: component "
+                    << comp->GetTypeName() << " failed to initialize");
+                b = false;
+            }
+            comp->SetInitialized(success);
+        }
+    }
+    return b;
+}
+```
+
+### Engine Initialization Sequence
+
+The Engine follows this exact sequence (see `uppsrc/Vfs/Ecs/Engine.cpp:31-107`):
+
+1. **System Initialize()**: Initialize all engine systems
+2. **System PostInitialize()**: Post-initialize systems (two-phase init)
+3. **Entity Component Initialize()**: Initialize all components in all entities
+4. **Component PostInitialize()**: Post-initialize all components
+5. **System Start()**: Start all systems (begin running)
+
+### Common Errors and Solutions
+
+**Error**: "Could not find entity with path '/world/ball'"
+- **Cause**: Using `FindPath<Entity>()` with untyped intermediate VfsValue nodes
+- **Fix**: Use manual path traversal (Pattern 2)
+
+**Error**: "System not found" when calling `e->val.Find<System>()`
+- **Cause**: Searching for system in entity scope instead of engine scope
+- **Fix**: Use `GetEngine().TryGet<System>()` (Pattern 3)
+
+**Error**: "Entity initialization failed" even when individual Initialize() calls succeed
+- **Cause**: Boolean accumulation logic bug (starting with `false`)
+- **Fix**: Start with `true`, only set to `false` on actual failure (Pattern 4)
+
+### Best Practices
+
+1. **Always defer cross-references**: Never resolve entity paths or find other entities in Arg()
+2. **Use Initialize() for registration**: Register with systems, resolve paths, find components in Initialize()
+3. **Check initialization order**: If Component A depends on Component B's Initialize() side effects, use PostInitialize() in A
+4. **Return false on real failure**: Initialize() should return false only when the component cannot function
+5. **Mirror registration/unregistration**: If you register with a system in Initialize(), unregister in Uninitialize()
+6. **Log failures clearly**: Include component name, what failed, and why in error messages
+
+### Debugging Tips
+
+**Enable runtime logging**: Use `RTLOG()` to see initialization flow:
+```cpp
+RTLOG("ChaseCam::Initialize: resolving target path '" << target_path << "'");
+```
+
+**Check VfsValue tree structure**: Print tree to see type_hash values:
+```cpp
+RTLOG("VfsValue id='" << val.id << "' type_hash=" << val.type_hash
+      << " sub.GetCount()=" << val.sub.GetCount());
+```
+
+**Verify initialization sequence**: Check Engine output shows correct order:
+```
+Engine::Start: initializing all systems
+Engine::Start: found 3 entities
+Engine::Start: initializing all entities and components
+Engine::Start: found 12 components
+Engine::Start: post-initializing all components
+```
+
+---
+
 ## Code Readability & AI-Friendly Refactoring Philosophy
 
 This project actively welcomes improvements to code readability and error detectability. The goal is to make problems **obvious** to both AI agents and human developers.

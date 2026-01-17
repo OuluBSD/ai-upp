@@ -169,8 +169,9 @@ bool PhysicsBody::Arg(String key, Value value) {
 	}
 	else if (key == "test.fn") {
 		String v = value.ToString();
-		
-		if      (v == "do.circle")			test_fn = TESTFN_CIRCLE;
+
+		// Accept both dot and slash formats for compatibility
+		if      (v == "do.circle" || v == "do/circle")	test_fn = TESTFN_CIRCLE;
 		else if (v == "fixed")				test_fn = TESTFN_FIXED;
 		else {
 			LOG("PhysicsBody::Arg: error: invalid test function: " + v);

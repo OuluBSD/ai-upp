@@ -1,0 +1,4 @@
+BINARY(uwp_sln_tpl, "UwpTemplates/UwpSolution.sln.tpl")
+BINARY(uwp_vcxproj_tpl, "UwpTemplates/UwpProject.vcxproj.tpl")
+BINARY(uwp_filters_tpl, "UwpTemplates/UwpProject.vcxproj.filters.tpl")
+BINARY(uwp_appxmanifest_tpl, "UwpTemplates/UwpPackage.appxmanifest.tpl")

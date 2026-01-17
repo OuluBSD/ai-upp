@@ -977,7 +977,8 @@ def main():
         return result.returncode
 
     copy_eon_files(upp_path, output_path.parent, opts["verbose"])
-    print(f"Executable compiled: {output_path}")
+    if output_path.exists():
+        print(f"Executable compiled: {output_path}")
     return 0
 
 

@@ -3,12 +3,16 @@
 NAMESPACE_UPP
 
 bool Entity::InitializeComponents(const WorldState& ws) {
-	bool b = false;
+	bool b = true;  // Start optimistic, set false on any failure
 	auto comps = val.FindAll<Component>();
 	for(auto& comp : comps) {
 		if (!comp->IsInitialized()) {
-			b = comp->Initialize(ws) && b;
-			comp->SetInitialized();
+			bool success = comp->Initialize(ws);
+			if (!success) {
+				LOG("Entity::InitializeComponents: component " << comp->GetTypeName() << " failed to initialize");
+				b = false;
+			}
+			comp->SetInitialized(success);
 		}
 	}
 	return b;

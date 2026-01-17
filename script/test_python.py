@@ -35,11 +35,37 @@ def main():
     failed_tests = []
     for test_file in test_files:
         path = os.path.join(test_dir, test_file)
-        test_cmd = [cli_path, path]
+        test_cmd = [cli_path]
+        
+        if test_file == "17_threading_scheduled.py":
+            test_cmd += ["--threading", "scheduled"]
+        elif test_file == "18_policy.py":
+            test_cmd += ["--sandbox"]
+            
+        test_cmd.append(path)
+        
         if not run_command(test_cmd, f"Running test: {test_file}"):
             failed_tests.append(test_file)
 
-    # 4. Summary
+    # 4. Special Sandbox negative test
+    print("\n--- Running negative Sandbox test ---")
+    negative_test_path = "share/py/tests/negative_sandbox.py"
+    with open(negative_test_path, "w") as f:
+        f.write("import os\nos.listdir('.')\n")
+    
+    test_cmd = [cli_path, "--sandbox", negative_test_path]
+    print(f"Executing: {' '.join(test_cmd)} (EXPECTED TO FAIL)")
+    result = subprocess.run(test_cmd, capture_output=True)
+    os.remove(negative_test_path)
+    
+    combined_output = result.stdout + result.stderr
+    if result.returncode != 0 and b"PermissionError" in combined_output:
+        print("Negative sandbox test passed (failed as expected with PermissionError)")
+    else:
+        print(f"Error: Negative sandbox test failed! returncode={result.returncode}, output={combined_output.decode()}")
+        failed_tests.append("negative_sandbox_test")
+
+    # 5. Summary
     print("\n--- Test Summary ---")
     if not failed_tests:
         print(f"ALL {len(test_files)} TESTS PASSED!")

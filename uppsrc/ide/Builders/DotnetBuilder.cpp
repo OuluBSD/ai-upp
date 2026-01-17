@@ -78,7 +78,7 @@ bool DotnetBuilder::Link(const Vector<String>&, const String&, bool)
 
 	String project_guid = UwpGuidString("DOTNET:" + project_name);
 	String project_type_guid = "FAE04EC0-301F-11D3-BF4B-00C04F79EFBC";
-	String target_framework = "net6.0";
+	String target_framework = "net8.0";
 
 	Index<String> cscompile;
 	Index<String> none;
@@ -102,11 +102,22 @@ bool DotnetBuilder::Link(const Vector<String>&, const String&, bool)
 	VectorMap<String, String> proj_tokens;
 	proj_tokens.Add("ROOT_NAMESPACE", XmlEscape(project_name));
 	proj_tokens.Add("TARGET_FRAMEWORK", XmlEscape(target_framework));
-	proj_tokens.Add("CSCOMPILE", MakeItemList(cscompile, solution_dir, "Compile"));
+	proj_tokens.Add("CSCOMPILE", String());
 	proj_tokens.Add("NONEITEMS", MakeItemList(none, solution_dir, "None"));
 
 	String csproj = ReplaceUwpTokens(UwpTemplate(dotnet_csproj_tpl, dotnet_csproj_tpl_length), proj_tokens);
 	SaveFile(AppendFileName(solution_dir, project_name + ".csproj"), csproj);
+
+	String conf = HasFlag("DEBUG") ? "Debug" : "Release";
+	String sln_path = AppendFileName(solution_dir, project_name + ".sln");
+	String cmd;
+	cmd << "dotnet build " << GetPathQ(sln_path) << " -c " << conf;
+	PutConsole("DOTNET: building solution with dotnet...");
+	if(Execute(cmd) != 0) {
+		PutConsole("DOTNET: dotnet build failed.");
+		dotnet_started = false;
+		return false;
+	}
 
 	PutConsole(Format("DOTNET: wrote Visual Studio project files to %s", solution_dir));
 	dotnet_started = false;

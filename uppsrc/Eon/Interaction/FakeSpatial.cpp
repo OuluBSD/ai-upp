@@ -78,8 +78,13 @@ void FakeSpatialInteractionManager::UpdateState() {
 }
 
 void FakeSpatialInteractionManager::UpdateStateKeyboard() {
+	if (!env) {
+		LOG("FakeSpatialInteractionManager::UpdateStateKeyboard: error: env is null");
+		return;
+	}
+
 	FboKbd::KeyVec& data = env->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
-	
+
 	if (env->GetBool(MOUSE_LEFTDOWN)) {
 		Point& drag = env->Set<Point>(MOUSE_TOYCOMPAT_DRAG, Point(0,0));
 		

@@ -41,6 +41,14 @@ bool ObjViewProg::Arg(const String& key, const String& value) {
 		have_skybox = true;
 		skybox_diffuse = value;
 	}
+	else if (key == "skybox.specular") {
+		have_skybox = true;
+		skybox_specular = value;
+	}
+	else if (key == "skybox.display") {
+		have_skybox = true;
+		skybox_display = value;
+	}
 	else if (key == "skybox.irradiance") {
 		have_skybox = true;
 		skybox_irradiance = value;
@@ -78,8 +86,15 @@ bool ObjViewProg::Render(Draw& fb) {
 				Mesh& box_mesh = mb.AddBox(vec3(0), vec3(skybox_sz), true, true);
 				Model& box = mb;
 				
-				if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DIFFUSE, skybox_diffuse)) {
-					LOG("ObjViewProg::Render: error: could not load skybox diffuse image '" << skybox_diffuse << "'");
+				String specular_map = skybox_specular.IsEmpty() ? skybox_diffuse : skybox_specular;
+				String display_map = skybox_display.IsEmpty() ? specular_map : skybox_display;
+				
+				if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DISPLAY, display_map)) {
+					LOG("ObjViewProg::Render: error: could not load skybox display image '" << display_map << "'");
+					return false;
+				}
+				if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DIFFUSE, specular_map)) {
+					LOG("ObjViewProg::Render: error: could not load skybox specular image '" << specular_map << "'");
 					return false;
 				}
 				if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_IRRADIANCE, skybox_irradiance)) {

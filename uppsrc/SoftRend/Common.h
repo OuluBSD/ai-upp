@@ -83,6 +83,7 @@ struct GenericFragmentShaderArgs {
 	int iUnknown;
 	int iCubeDiffuse;
 	int iCubeIrradiance;
+	int iCubeDisplay;
 	
 	const ByteImage* color_buf[TEXTYPE_COUNT];
 	

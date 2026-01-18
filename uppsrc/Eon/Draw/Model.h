@@ -81,6 +81,7 @@ public:
 	vec4 color;
 	String prefab_name;
 	String skybox_diffuse, skybox_irradiance;
+	String skybox_display, skybox_specular;
 	bool load_skybox = false;
 	bool always_enabled = false;
 	bool dbg = false;

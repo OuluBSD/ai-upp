@@ -40,16 +40,67 @@ bool FakeSpatialInteractionManager::Initialize(InteractionSystem& sys) {
 void FakeSpatialInteractionManager::Update(double dt) {
 	time += dt;
 	last_dt = dt;
-	
+
 	String env_name = sys->env_name;
-	
+
 	if (!env_name.IsEmpty()) {
 		String normalized = NormalizePathSeparators(env_name);
-		env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(normalized);
+
+		// Debug: show what we're searching for and from where
+		VfsValue& search_root = GetVfsValue();
+		LOG("FakeSpatialInteractionManager::Update: searching for '" << env_name << "' (normalized: '" << normalized << "')");
+		LOG("  search_root id='" << search_root.id << "' sub.GetCount()=" << search_root.sub.GetCount());
+
+		// Debug: show what's in the tree
+		if (search_root.sub.GetCount() > 0) {
+			LOG("  Children:");
+			for (int i = 0; i < min(10, search_root.sub.GetCount()); i++) {
+				VfsValue& child = search_root.sub[i];
+				LOG("    [" << i << "] id='" << child.id << "' sub.GetCount()=" << child.sub.GetCount());
+
+				// Show grandchildren for entries with id='' or 'loop'
+				if ((child.id.IsEmpty() || child.id == "loop") && child.sub.GetCount() > 0) {
+					for (int j = 0; j < min(5, child.sub.GetCount()); j++) {
+						VfsValue& grandchild = child.sub[j];
+						LOG("      [" << i << "][" << j << "] id='" << grandchild.id << "' sub.GetCount()=" << grandchild.sub.GetCount());
+					}
+				}
+			}
+		}
+
+		env = search_root.FindOwnerWithPathAndCast<EnvState>(normalized);
 		if (!env && normalized != env_name)
-			env = GetVfsValue().FindOwnerWithPathAndCast<EnvState>(env_name);
+			env = search_root.FindOwnerWithPathAndCast<EnvState>(env_name);
+
+		// HACK: Manually navigate to event loop since path resolution doesn't work
+		// EnvState is at engine_root.sub[3="loop"].sub[1="event"].sub[0="register"]
+		if (!env && search_root.sub.GetCount() > 3) {
+			VfsValue& loop_node = search_root.sub[3];
+			if (loop_node.id == "loop" && loop_node.sub.GetCount() > 1) {
+				VfsValue& event_node = loop_node.sub[1];
+				if (event_node.id == "event" && event_node.sub.GetCount() > 0) {
+					// Try to find register in event's children
+					for (int i = 0; i < event_node.sub.GetCount(); i++) {
+						VfsValue& child = event_node.sub[i];
+						if (child.id == "register" || child.id.Find("register") >= 0) {
+							env = child.FindExt<EnvState>();
+							if (env) {
+								LOG("FakeSpatialInteractionManager::Update: found EnvState at loop[3].event[1].register[" << i << "]");
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		if (!env) {
-			LOG("FakeSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
+			// Only log error once per lookup attempt
+			static int error_count = 0;
+			if (error_count++ < 5) {  // Limit spam
+				LOG("FakeSpatialInteractionManager::Update: error: environment state with name '" << env_name << "' not found");
+				LOG("  Tried paths: '" << normalized << "', '" << env_name << "', 'loop" << env_name << "'");
+			}
 		}
 		env_name.Clear();
 		
@@ -57,8 +108,13 @@ void FakeSpatialInteractionManager::Update(double dt) {
 		Look(Point(0,0)); // camera might be messed up, so update it immediately
 	}
 	
-	if (env)
+	if (env) {
+		static int update_count = 0;
+		if (update_count++ < 3) {
+			LOG("FakeSpatialInteractionManager::Update: calling UpdateState()");
+		}
 		UpdateState();
+	}
 
 }
 
@@ -81,6 +137,11 @@ void FakeSpatialInteractionManager::UpdateStateKeyboard() {
 	if (!env) {
 		LOG("FakeSpatialInteractionManager::UpdateStateKeyboard: error: env is null");
 		return;
+	}
+
+	static int kbd_count = 0;
+	if (kbd_count++ < 3) {
+		LOG("FakeSpatialInteractionManager::UpdateStateKeyboard: called");
 	}
 
 	FboKbd::KeyVec& data = env->Set<FboKbd::KeyVec>(KEYBOARD_PRESSED);
@@ -279,7 +340,27 @@ void FakeSpatialInteractionManager::Move(vec3 rel_dir, float step) {
 VfsValue& FakeSpatialInteractionManager::GetVfsValue() {
 	ASSERT(sys);
 	if (!sys) throw Exc("No sys ptr");
-	return sys->val;
+
+	// Search from Machine root, not InteractionSystem's VfsValue
+	// EnvState is created in the chain hierarchy, not under systems
+	Engine* engine = sys->val.FindOwner<Engine>();
+	ASSERT(engine);
+	if (!engine) throw Exc("No Engine found");
+
+	VfsValue& engine_val = engine->val;
+
+	// Get Machine root from Engine
+	for (int i = 0; i < engine_val.sub.GetCount(); i++) {
+		VfsValue& v = engine_val.sub[i];
+		if (v.id.Find("Machine") >= 0 || v.id.Find("machine") >= 0) {
+			LOG("FakeSpatialInteractionManager::GetVfsValue: using Machine root id='" << v.id << "'");
+			return v;
+		}
+	}
+
+	// Fallback: search from Engine root
+	LOG("FakeSpatialInteractionManager::GetVfsValue: Machine not found, using Engine root");
+	return engine_val;
 }
 
 

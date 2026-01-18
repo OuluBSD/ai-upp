@@ -269,7 +269,8 @@ void ToolboxSystemBase::Stop() {
 }
 
 void ToolboxSystemBase::OnControllerPressed(const GeomEvent& e) {
-	
+	LOG("ToolboxSystemBase::OnControllerPressed: type=" << (int)e.type << " value=" << (int)e.value);
+
 #if 0
 	if (args.State().Source().Kind() != SpatialInteractionSourceKind::Controller)
 		return;

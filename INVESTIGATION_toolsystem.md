@@ -67,13 +67,24 @@ void InteractionSystem::HandleSourcePressed(const InteractionManager&, const Geo
 
 ## Status: Test 4 Running Successfully ✅
 
-Test 07e_ecs_toolbox.eon now initializes completely and renders frames.
+Test 07e_ecs_toolbox.eon now initializes, renders frames, and exits cleanly.
+
+**Rendering Output**:
+- Average frame color: RGB=26,26,26 (dark gray, non-black)
+- Test completes without crashing (exit code 0)
+- Renders 300+ frames in 10 seconds
 
 **Fixed Issues**:
 1. ✅ System registration names (changed .eon to use long names)
 2. ✅ ToolComponent hand path resolution (deferred to Initialize)
 3. ✅ ModelCache system missing (registered and added to script)
 4. ✅ PaintingInteractionSystemBase::Attach TODO (commented out)
+5. ✅ PaintingSystem null pointer crashes (added null checks for disabled entities)
+6. ✅ FakeSpatialInteractionManager::UpdateStateKeyboard crash (added null check for env)
+
+**Remaining Issues**:
+- ⚠️ EnvState '/event/register' not found (doesn't crash, but logs error)
+- ⚠️ Very dark rendering (RGB=26,26,26 is almost black - lighting/camera issue?)
 
 **Previous Failure**
 

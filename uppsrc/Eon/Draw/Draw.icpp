@@ -11,6 +11,7 @@ INITBLOCK {
 	VfsValueExtFactory::Register<EventSystem>("EventSystem", VFSEXT_SYSTEM_ECS, "events", "Ecs|System");
 	LOG("Draw.icpp: Registering RenderingSystem as 'rendering'");
 	VfsValueExtFactory::Register<RenderingSystem>("RenderingSystem", VFSEXT_SYSTEM_ECS, "rendering", "Ecs|System");
+	VfsValueExtFactory::Register<ModelCache>("ModelCache", VFSEXT_SYSTEM_ECS, "modelcache", "Ecs|System");
 	VfsValueExtFactory::Register<PaintStrokeSystemBase>("PaintStrokeSystemBase", VFSEXT_SYSTEM_ECS, "system.paintstroke", "Ecs|System");
 	VfsValueExtFactory::Register<ToolboxSystemBase>("ToolboxSystemBase", VFSEXT_SYSTEM_ECS, "system.toolbox", "Ecs|System");
 	VfsValueExtFactory::Register<PaintingInteractionSystemBase>("PaintingInteractionSystemBase", VFSEXT_SYSTEM_ECS, "system.interaction.painting", "Ecs|System");

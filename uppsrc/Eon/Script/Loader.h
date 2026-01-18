@@ -352,7 +352,7 @@ protected:
     void		LogMessage(ProcMsg msg);
     void		Cleanup();
 	bool		LoadFile(String path);
-	bool		Load(const String& content, const String& filepath="temp");
+	bool		Load(const String& content, const String& filepath="temp", bool verbose=false);
 	bool		ConnectSides(ScriptLoopLoader& loop0, ScriptLoopLoader& loop1);
 	bool		ImplementScript();
 	

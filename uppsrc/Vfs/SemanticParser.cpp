@@ -27,7 +27,7 @@ bool SemanticParser::ProcessEon(const TokenStructure& t) {
 	
 	path.Add(&t.GetRoot());
 	
-	DLOG("t.GetRoot().GetTreeString():\n" << t.GetRoot().GetTreeString());
+	//DLOG("t.GetRoot().GetTreeString():\n" << t.GetRoot().GetTreeString());
 	LOG("SemanticParser: after tree string, calling ParseNamespaceBlock");
 	bool succ = ParseNamespaceBlock();
 	LOG("SemanticParser: ParseNamespaceBlock returned " << (succ ? "true" : "false"));

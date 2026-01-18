@@ -15,5 +15,7 @@ file
 	VfsEnum.h,
 	VfsEnum.cpp,
 	VfsValue_mcp_stubs.cpp,
+	Registry.h,
+	Registry.cpp,
 	VfsCore.h;
 

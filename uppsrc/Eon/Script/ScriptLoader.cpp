@@ -574,14 +574,14 @@ bool ScriptLoader::LoadFile(String path) {
 	return Load(eon_script, path);
 }
 
-bool ScriptLoader::Load(const String& content, const String& filepath) {
+bool ScriptLoader::Load(const String& content, const String& filepath, bool verbose) {
 	LOG("ScriptLoader::Load: Loading \"" << filepath << "\"");
 
 	WhenEnterScriptLoad(*this);
 
 	Compiler& c = val.GetAdd<Compiler>("cu");
 	LOG("ScriptLoader::Load: calling CompileAst");
-	AstNode* root = c.CompileAst(content, filepath, true);
+	AstNode* root = c.CompileAst(content, filepath, verbose);
 
 	if (!root) {
 		LOG("ScriptLoader::Load: CompileAst returned NULL");

@@ -14,7 +14,8 @@ file
 	07h_x11ogl_hmd_calibration.cpp,
 	07i_x11ogl_vrserver_hmd_test.cpp,
 	07j_ecs_toolbox_pbr.cpp,
-	07k_x11ogl_hmd_ecs_toolbox_pbr.cpp;
+	07k_x11ogl_hmd_ecs_toolbox_pbr.cpp,
+	07l_demoroom_fakespatial.cpp;
 
 mainconfig
 	"Release (Posix)" = ".AI .SCREEN .SDL2 .HAL .AUDIO .VIDEO .MEDIA .VOLUMETRIC .FBO .OGL .FFMPEG .CAMERA .X11 USEMALLOC .PORTAUDIO",

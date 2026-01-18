@@ -136,6 +136,12 @@ bool ModelComponent::Arg(String key, Value value) {
 	else if (key == "skybox.diffuse") {
 		skybox_diffuse = value;
 	}
+	else if (key == "skybox.specular") {
+		skybox_specular = value;
+	}
+	else if (key == "skybox.display") {
+		skybox_display = value;
+	}
 	else if (key == "skybox.irradiance") {
 		skybox_irradiance = value;
 	}
@@ -166,6 +172,9 @@ bool ModelComponent::Arg(String key, Value value) {
 	else if (key == "cx") {scale[0] = value; RefreshExtModel();}
 	else if (key == "cy") {scale[1] = value; RefreshExtModel();}
 	else if (key == "cz") {scale[2] = value; RefreshExtModel();}
+	else if (key == "scale_x") {scale[0] = value; RefreshExtModel();}
+	else if (key == "scale_y") {scale[1] = value; RefreshExtModel();}
+	else if (key == "scale_z") {scale[2] = value; RefreshExtModel();}
 	else if (key == "pitch") {pitch = DEG2RADf((float)value); RefreshExtModel();}
 	else if (key == "yaw") {yaw = DEG2RADf((float)value); RefreshExtModel();}
 	else if (key == "roll") {roll = DEG2RADf((float)value); RefreshExtModel();}
@@ -280,8 +289,15 @@ bool ModelComponent::Load(GfxDataState& state) {
 		Mesh& box_mesh = mb.AddBox(vec3(0), vec3(skybox_sz), true, true);
 		Model& box = mb;
 		
-		if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DIFFUSE, skybox_diffuse)) {
-			LOG("ModelComponent::Load: error: could not load skybox diffuse image '" << skybox_diffuse << "'");
+		String specular_map = skybox_specular.IsEmpty() ? skybox_diffuse : skybox_specular;
+		String display_map = skybox_display.IsEmpty() ? specular_map : skybox_display;
+		
+		if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DISPLAY, display_map)) {
+			LOG("ModelComponent::Load: error: could not load skybox display image '" << display_map << "'");
+			return false;
+		}
+		if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_DIFFUSE, specular_map)) {
+			LOG("ModelComponent::Load: error: could not load skybox specular image '" << specular_map << "'");
 			return false;
 		}
 		if (!box.LoadCubemapFile(box_mesh, TEXTYPE_CUBE_IRRADIANCE, skybox_irradiance)) {
@@ -335,6 +351,10 @@ bool ModelComponent::Load(GfxDataState& state) {
 			ModelCachePtr cache = val.FindOwnerWith<ModelCache>();
 			if (cache) {
 				model = cache->GetAddModelFile(path);
+				if (!model)
+					return false;
+				if (!mdl.LoadModel(*model))
+					return false;
 			}
 			else {
 				if (!loader.LoadModel(path))
@@ -419,4 +439,3 @@ void ModelComponent::SetPrefabModel(String prefab) {
 
 
 END_UPP_NAMESPACE
-

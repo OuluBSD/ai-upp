@@ -27,13 +27,13 @@ String GetPath(String name) {
 		TODO
 	}
 	else if (name == Baseball) {
-		path = "ms/Baseball.obj";
+		path = "ms/Baseball.glb";
 	}
 	else if (name == PaintBrush) {
-		path = "ms/Paintbrush.obj";
+		path = "ms/PaintBrush.glb";
 	}
 	else if (name == Gun) {
-		path = "ms/Gun.obj";
+		path = "ms/Gun.glb";
 	}
 	
 	path = ShareDirFile(AppendFileName("models", path));

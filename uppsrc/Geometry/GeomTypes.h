@@ -149,6 +149,7 @@ typedef enum {
     
     TEXTYPE_CUBE_DIFFUSE,
     TEXTYPE_CUBE_IRRADIANCE,
+    TEXTYPE_CUBE_DISPLAY,
     
     TEXTYPE_COUNT,
     

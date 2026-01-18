@@ -596,11 +596,12 @@ bool PaintComponent::LoadModel(ModelComponent& mdl) {
 	
 	String path = KnownModelNames::GetPath(KnownModelNames::PaintBrush);
 	ModelPtr m = sys->GetAddModelFile(path);
-	mdl.SetModelMatrix(Identity<mat4>());
+	mdl.SetRotation(0.0f, 0.0f, 0.0f);
+	mdl.SetTranslation(vec3{0.0f});
+	mdl.SetScale(vec3{1.0f});
 	mdl.SetModel(m);
 	return true;
 }
 
 
 END_UPP_NAMESPACE
-

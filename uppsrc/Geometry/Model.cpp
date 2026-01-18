@@ -99,7 +99,7 @@ bool Model::LoadCubemapFile(Mesh& mesh, TexType type, String path) {
 	
 	if (path.IsEmpty())
 		return false;
-	Index<String> ext_list; ext_list << "" << ".png" << ".jpg";
+	Index<String> ext_list; ext_list << "" << ".png" << ".jpg" << ".dds";
 	Index<String> dir_list; dir_list << "" << "imgs" << "imgs/skybox";
 	String abs_path;
 	for(int j = 0; j < ext_list.GetCount(); j++) {
@@ -121,26 +121,39 @@ bool Model::LoadCubemapFile(Mesh& mesh, TexType type, String path) {
 	int cubetex_id = GetAddCubeTexture(abs_path);
 	CubeTexture& cubetex = cube_textures.Get(cubetex_id);
 
-	// Load all 6 cube faces
-	String ext = GetFileExt(abs_path);
-	String base = abs_path.Left(abs_path.GetCount() - ext.GetCount());
-
-	for(int i = 0; i < 6; i++) {
-		String side_path = (i == 0) ? abs_path : (base + "_" + IntStr(i) + ext);
-		if (!FileExists(side_path)) {
-			LOG("Model::LoadCubemapFile: error: file does not exist: " << side_path);
+	String dds_ext = ToLower(GetFileExt(abs_path));
+	if (dds_ext == ".dds") {
+		Vector<Image> faces;
+		if (!LoadDdsImages(abs_path, faces) || faces.GetCount() != 6) {
+			LOG("Model::LoadCubemapFile: error: failed to load DDS cubemap: " << abs_path);
 			return false;
 		}
-
-		Image tmp_img = StreamRaster::LoadFileAny(side_path);
-		if (tmp_img.IsEmpty()) {
-			LOG("Model::LoadCubemapFile: error: failed to load cube side " << i);
-			return false;
+		for (int i = 0; i < 6; i++) {
+			cubetex.img[i].Set(faces[i]);
 		}
+	}
+	else {
+		// Load all 6 cube faces
+		String ext = GetFileExt(abs_path);
+		String base = abs_path.Left(abs_path.GetCount() - ext.GetCount());
 
-		// Convert to ByteImage and swap R/B channels
-		cubetex.img[i].Set(tmp_img);
-		cubetex.img[i].SwapRedBlue();
+		for(int i = 0; i < 6; i++) {
+			String side_path = (i == 0) ? abs_path : (base + "_" + IntStr(i) + ext);
+			if (!FileExists(side_path)) {
+				LOG("Model::LoadCubemapFile: error: file does not exist: " << side_path);
+				return false;
+			}
+
+			Image tmp_img = StreamRaster::LoadFileAny(side_path);
+			if (tmp_img.IsEmpty()) {
+				LOG("Model::LoadCubemapFile: error: failed to load cube side " << i);
+				return false;
+			}
+
+			// Convert to ByteImage and swap R/B channels
+			cubetex.img[i].Set(tmp_img);
+			cubetex.img[i].SwapRedBlue();
+		}
 	}
 	
 	if (mesh.material < 0) {
@@ -439,6 +452,12 @@ void ModelLoader::ProcessMaterial(Model& model, Upp::Material& m, const aiMateri
 	        if (ext == ".tga") {
 	            img = TgaReaderBackend::LoadByteImageAny(path);
 	        }
+	        else if (ext == ".dds") {
+	        	Image tmp_img;
+	        	if (LoadDdsImage(path, tmp_img)) {
+	        		img.Set(tmp_img);
+	        	}
+	        }
 	        else {
 	            // Use StreamRaster for PNG/JPG/etc
 	            Image tmp_img = StreamRaster::LoadFileAny(path);
@@ -522,4 +541,3 @@ void ModelLoader::operator=(ModelBuilder& mb) {
 
 
 END_UPP_NAMESPACE
-

@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include <Draw/Extensions/Extensions.h>
 
 #ifdef flagSCREEN
 
@@ -32,9 +33,24 @@ bool ImageBaseAtomT<Gfx>::Initialize(const WorldState& ws) {
 	seq = 0;
 	imgs.Clear();
 	String dir = GetFileDirectory(filepath);
-	String ext = GetFileExt(filepath);
+	String ext = ToLower(GetFileExt(filepath));
 	String title = GetFileTitle(filepath);
 	if (cubemap) {
+		if (ext == ".dds") {
+			Vector<Image> faces;
+			if (!LoadDdsImages(filepath, faces) || faces.GetCount() != 6) {
+				LOG("ImageBaseAtomT: error: failed to load DDS cubemap: " << filepath);
+				return false;
+			}
+			for (Image& img : faces) {
+				if (vflip)
+					img = MirrorVertical(img);
+				imgs.Add(img);
+			}
+			if (swap_top_bottom)
+				Swap(imgs[2], imgs[3]);
+			return true;
+		}
 		for(int i = 0; i < 6; i++) {
 			String side_path;
 			if (i == 0)
@@ -42,20 +58,17 @@ bool ImageBaseAtomT<Gfx>::Initialize(const WorldState& ws) {
 			else
 				side_path = AppendFileName(dir, title + "_" + IntStr(i) + ext);
 			
-			String ext = GetFileExt(side_path);
+			String ext = ToLower(GetFileExt(side_path));
 			Image img;
-			#if 1
-			if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(side_path);
+			if (ext == ".dds") {
+				if (!LoadDdsImage(side_path, img)) {
+					LOG("ImageBaseAtomT: error: failed to load DDS image: " << side_path);
+					return false;
+				}
+			}
+			else if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(side_path);
 			else if (ext == ".png") img = PNGRaster().LoadFile(side_path);
 			else img = StreamRaster::LoadFileAny(side_path);
-			#else
-			StaticIfaceBackend* iface = StaticIfaceFactory::GetReader(ext);
-			if (!iface) {
-				LOG("ImageBaseAtomT: error: no decoder for: " << side_path);
-				return false;
-			}
-			img = iface->LoadFileAny(side_path);
-			#endif
 			
 			if (img.IsEmpty()) {
 				LOG("ImageBaseAtomT: error: empty image: " << side_path);
@@ -74,7 +87,13 @@ bool ImageBaseAtomT<Gfx>::Initialize(const WorldState& ws) {
 	}
 	else {
 		Image img;
-		if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(filepath);
+		if (ext == ".dds") {
+			if (!LoadDdsImage(filepath, img)) {
+				LOG("ImageBaseAtomT: error: failed to load DDS image: " << filepath);
+				return false;
+			}
+		}
+		else if (ext == ".jpg" || ext == ".jpeg") img = JPGRaster().LoadFile(filepath);
 		else if (ext == ".png") img = PNGRaster().LoadFile(filepath);
 		else img = StreamRaster::LoadFileAny(filepath		);
 		if (img.IsEmpty()) {

@@ -23,6 +23,7 @@ struct ObjViewProg :
 	
 	bool have_skybox = false;
 	String skybox_diffuse, skybox_irradiance;
+	String skybox_display, skybox_specular;
 	
 	ObjViewProg();
 	void operator=(const ObjViewProg& t) {Panic("Can't copy ObjViewProgT");}

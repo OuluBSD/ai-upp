@@ -432,6 +432,7 @@ uniform sampler2D iReflection;
 uniform sampler2D iUnknown;
 uniform samplerCube iCubeDiffuse;
 uniform samplerCube iCubeIrradiance;
+uniform samplerCube iCubeDisplay;
 uniform bool iIsNone;
 uniform bool iIsDiffuse;
 uniform bool iIsSpecular;
@@ -447,6 +448,7 @@ uniform bool iIsReflection;
 uniform bool iIsUnknown;
 uniform bool iIsCubeDiffuse;
 uniform bool iIsCubeIrradiance;
+uniform bool iIsCubeDisplay;
 
 uniform ${SAMPLER0} iChannel0;
 uniform ${SAMPLER1} iChannel1;

@@ -235,6 +235,14 @@ Book Contribution Gate (Mandatory)
 - The rendered content is transmitted through the packet system to video sink atoms
 - Video sink atoms display the framebuffer content to the screen
 
+## Skybox Cubemap Keys
+
+### Skybox Bindings
+- `skybox.display` controls the visible background cubemap (shader uniform `iCubeDisplay`, texture slot `TEXTYPE_CUBE_DISPLAY`)
+- `skybox.specular` is the prefiltered specular IBL cubemap (falls back to `skybox.diffuse` for legacy content)
+- `skybox.irradiance` is the diffuse IBL cubemap
+- If `skybox.display` is not provided, the renderer uses the specular cubemap for display
+
 ## Known Graphics Rendering Issues and Fixes
 
 ### Stereo Rendering (BufferStageT::SetStereo)
@@ -291,6 +299,33 @@ int id = cube_textures.IsEmpty() ? 0 : cube_textures.GetKey(cube_textures.GetCou
 1. Add the hash-to-name mapping in `ToyShaderHashToName()` in `Util2.cpp`
 2. Place the texture file(s) in `share/imgs/`
 3. For cubemaps, ensure all 6 faces exist with the `_1`, `_2`, etc. suffix pattern
+
+## DemoRoom Assets and DDS
+
+### DemoRoom Assets
+- DemoRoom environment maps + BRDF LUT live in `share/demoroom/Environment/` and `share/demoroom/PBR/`.
+- `share/demoroom/Copying` is the MIT license from MixedRealityToolkit; keep it with any new DemoRoom assets.
+- HLSL shader sources from MixedRealityToolkit are mirrored in `share/shaders/hlsl/`.
+- DemoRoom glb models live in `share/models/ms/` (Baseball/Gun/PaintBrush). `KnownModelNames::GetPath` uses `.glb` paths.
+- DemoRoom tool scale reference: Baseball `0.15`, Gun `0.35`, PaintBrush `1.0`.
+- DemoRoom `.glb` hashes should match the originals in `MixedRealityToolkit/SpatialInput/Samples/DemoRoom/Media/Models`.
+
+### DDS Loader Notes
+- `Draw/Extensions/SimpleImage` provides `LoadDdsImage`/`LoadDdsImages` for uncompressed RGBA and float RGBA DDS (A32B32G32R32F, A16B16G16R16F), including cubemaps.
+- `ImageBaseAtomT` and `Model::LoadCubemapFile` use these helpers for `.dds` input.
+
+### OpenGL Program Binding (ECS Rendering)
+- `BufferStageT::Process` uses `Gfx::UseProgram` per model; on OpenGL do not keep a program pipeline bound at the same time.
+- If `glDrawElements` throws `GL_INVALID_OPERATION`, ensure OpenGL path unbinds the program pipeline before draw (`Gfx::UnbindProgramPipeline`).
+- apitrace “shader compiler issue … Shader Stats” lines are driver info, not link failures; only treat it as an error if the log reports a failed link (e.g. “program is not linked successfully”).
+
+### ECS Script Args (DemoRoom)
+- `ModelComponent` accepts `scale_x/scale_y/scale_z` aliases (same as `cx/cy/cz`); use these in `.eon` files for clarity.
+- `PhysicsBody::test.fn` only supports `fixed` and `do.circle` (no `dynamic`).
+- If prefab models are loaded via `ModelCache`, `GfxModelState::LoadModel` must still be called to populate GL buffers (otherwise only the skybox renders).
+
+### Model Asset Paths
+- `KnownModelNames::GetPath` resolves to `share/models/...` (e.g., `share/models/ms/Baseball.glb`, `share/models/ms/Gun.glb`, `share/models/ms/PaintBrush.glb`).
 
 ### Graphics Base Class Templates (GFXTYPE Macro Pattern)
 **Location**: `uppsrc/api/Graphics/Base.h:185-192`

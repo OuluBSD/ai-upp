@@ -45,6 +45,7 @@ String ThrowingInteractionSystemBase::GetDisplayName() const {
 EntityPtr ThrowingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool(), ws_at_init);
 	selector->Get<ModelComponent>().SetPrefabModel("Baseball");
+	selector->Get<ModelComponent>().SetScale(vec3{0.15f});
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
 }
@@ -226,7 +227,16 @@ void ThrowingComponent::Destroy() {
 }
 
 bool ThrowingComponent::LoadModel(ModelComponent& mdl) {
-	mdl.Clear();
+	ModelCachePtr sys = GetEngine().val.Find<ModelCache>();
+	if (!sys)
+		return false;
+	
+	String path = KnownModelNames::GetPath(KnownModelNames::Baseball);
+	ModelPtr m = sys->GetAddModelFile(path);
+	mdl.SetRotation(0.0f, 0.0f, 0.0f);
+	mdl.SetTranslation(vec3{0.0f});
+	mdl.SetScale(vec3{scale});
+	mdl.SetModel(m);
 	return true;
 }
 

@@ -98,6 +98,7 @@ int SoftProgram::GetVarSize(int i) const {
 		case GVar::VAR_UNKNOWN:
 		case GVar::VAR_CUBE_DIFFUSE:
 		case GVar::VAR_CUBE_IRRADIANCE:
+		case GVar::VAR_CUBE_DISPLAY:
 		case GVar::VAR_COMPAT_CHANNEL0:
 		case GVar::VAR_COMPAT_CHANNEL1:
 		case GVar::VAR_COMPAT_CHANNEL2:
@@ -176,6 +177,7 @@ void SoftProgram::SetVar(int i, int j) {
 	if (idx == GVar::VAR_UNKNOWN) {fargs.iUnknown = j; return;}
 	if (idx == GVar::VAR_CUBE_DIFFUSE) {fargs.iCubeDiffuse = j; return;}
 	if (idx == GVar::VAR_CUBE_IRRADIANCE) {fargs.iCubeIrradiance = j; return;}
+	if (idx == GVar::VAR_CUBE_DISPLAY) {fargs.iCubeDisplay = j; return;}
 	TODO
 }
 
@@ -204,6 +206,7 @@ void SoftProgram::SetVar(int i, float f) {
 		case GVar::VAR_UNKNOWN:
 		case GVar::VAR_CUBE_DIFFUSE:
 		case GVar::VAR_CUBE_IRRADIANCE:
+		case GVar::VAR_CUBE_DISPLAY:
 			if (obj_i < 0) return; // Avoid using uninitialized obj_i
 			tex = idx - GVar::VAR_NONE;
 			args.color_buf[tex] = objs[obj_i].fargs.color_buf[tex];

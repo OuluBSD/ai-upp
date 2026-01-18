@@ -80,8 +80,8 @@ EntityPtr PaintingInteractionSystemBase::CreateToolSelector() const {
 
 void PaintingInteractionSystemBase::Attach(PaintComponentPtr paint) {
 	VectorFindAdd(comps, paint);
-	
-	TODO
+
+	// TODO: Additional paint brush entity setup (currently disabled)
 	#if 0
 	EntityStorePtr es = GetEngine().Get<EntityStore>();
 	EntityPtr entity = paint->GetEntity();

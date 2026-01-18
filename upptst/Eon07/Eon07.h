@@ -16,6 +16,7 @@ void Run07hX11oglHmdCalibration(Engine& eng, int method);
 void Run07iX11oglVrserverHmdTest(Engine& eng, int method);
 void Run07jEcsToolboxPbr(Engine& eng, int method);
 void Run07kX11oglHmdEcsToolboxPbr(Engine& eng, int method);
+void Run07lDemoroomFakespatial(Engine& eng, int method);
 
 END_UPP_NAMESPACE
 

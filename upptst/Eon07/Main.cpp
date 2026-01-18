@@ -56,6 +56,7 @@ const TestCase kTests[] = {
 	{ Run07iX11oglVrserverHmdTest, "Run07iX11oglVrserverHmdTest" },
 	{ Run07jEcsToolboxPbr, "Run07jEcsToolboxPbr" },
 	{ Run07kX11oglHmdEcsToolboxPbr, "Run07kX11oglHmdEcsToolboxPbr" },
+	{ Run07lDemoroomFakespatial, "Run07lDemoroomFakespatial" },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

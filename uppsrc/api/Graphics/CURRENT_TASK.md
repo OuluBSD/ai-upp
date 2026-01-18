@@ -4,6 +4,10 @@ Context
 - Package implements Software (SoftRend) and OpenGL backends. A Direct3D 11 backend (flagDX11, WinD11) is being implemented.
 - Windowing for DX11 is provided by Screen/WinD11.cpp (DeviceResources style). Graphics/Dx.cpp provides the rendering API used by the engine (BufferStage/ProgramState/etc.).
 
+Recent Updates (Skybox)
+- Added `TEXTYPE_CUBE_DISPLAY` and shader uniform `iCubeDisplay` for a dedicated skybox/background cubemap.
+- `skybox.display` now drives background display; `skybox.specular` (or legacy `skybox.diffuse`) and `skybox.irradiance` remain for IBL.
+
 Current State (D3D11)
 - Device bridge: After creating swapchain and backbuffer RTV, Screen/WinD11 calls D11_Internal_SetDeviceAndTargets(device, context, swapchain, rtv) to expose objects to the Gfx layer.
 - Frame setup: BindFramebufferDefault (OMSetRenderTargets), SetViewport, SetClearValue, Clear(COLOR_BUFFER), Present.

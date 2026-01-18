@@ -379,7 +379,11 @@ void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	auto& fb = this->fb[0];
 	
 	Gfx::SetViewport(fb.size);
+	#ifdef flagOGL
+	Gfx::UnbindProgramPipeline();
+	#else
 	Gfx::BindProgramPipeline(pipeline.native);
+	#endif
 	
 	int bi = NewWriteBuffer();
 	
@@ -920,7 +924,12 @@ void BufferStageT<Gfx>::SetVar(ProgramState& prog, int var, const RealtimeSource
 	}
 	else if (var == VAR_BRDF_SPEC) {
 		if (brdf_img.IsEmpty()) {
-			MakeSpecBRDF(brdf_img, 32);
+			String brdf_path = RealizeShareFile("demoroom/PBR/brdf_lut.png");
+			Image brdf_file = StreamRaster::LoadFileAny(brdf_path);
+			if (!brdf_file.IsEmpty())
+				brdf_img.Set(brdf_file);
+			else
+				MakeSpecBRDF(brdf_img, 32);
 			brdf_tex.Load(brdf_img);
 		}
 		//int ch = var - VAR_GLOBAL_BEGIN;

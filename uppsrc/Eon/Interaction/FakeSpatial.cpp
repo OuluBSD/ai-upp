@@ -4,6 +4,52 @@
 NAMESPACE_UPP
 
 
+namespace {
+
+static EnvState* FindEnvStateByPath(VfsValue& root, const String& path) {
+	Vector<String> raw_parts = Split(path, "/");
+	Vector<String> parts;
+	for (const String& part : raw_parts)
+		if (!part.IsEmpty())
+			parts.Add(part);
+	if (parts.IsEmpty()) {
+		if (root.ext)
+			return CastPtr<EnvState>(&*root.ext);
+		return 0;
+	}
+
+	struct Finder {
+		static EnvState* Match(VfsValue& node, const Vector<String>& parts, int part_idx) {
+			if (part_idx >= parts.GetCount()) {
+				if (node.ext)
+					return CastPtr<EnvState>(&*node.ext);
+				return 0;
+			}
+			for (VfsValue& child : node.sub) {
+				if (child.id == parts[part_idx]) {
+					if (EnvState* env = Match(child, parts, part_idx + 1))
+						return env;
+				}
+			}
+			return 0;
+		}
+
+		static EnvState* FindAnywhere(VfsValue& node, const Vector<String>& parts) {
+			if (EnvState* env = Match(node, parts, 0))
+				return env;
+			for (VfsValue& child : node.sub) {
+				if (EnvState* env = FindAnywhere(child, parts))
+					return env;
+			}
+			return 0;
+		}
+	};
+
+	return Finder::FindAnywhere(root, parts);
+}
+
+}
+
 void FakeControllerSource::GetVelocity(float* v3) const {
 	COPY3(v3, mgr->hand_velocity);
 }
@@ -68,31 +114,9 @@ void FakeSpatialInteractionManager::Update(double dt) {
 			}
 		}
 
-		env = search_root.FindOwnerWithPathAndCast<EnvState>(normalized);
+		env = FindEnvStateByPath(search_root, normalized);
 		if (!env && normalized != env_name)
-			env = search_root.FindOwnerWithPathAndCast<EnvState>(env_name);
-
-		// HACK: Manually navigate to event loop since path resolution doesn't work
-		// EnvState is at engine_root.sub[3="loop"].sub[1="event"].sub[0="register"]
-		if (!env && search_root.sub.GetCount() > 3) {
-			VfsValue& loop_node = search_root.sub[3];
-			if (loop_node.id == "loop" && loop_node.sub.GetCount() > 1) {
-				VfsValue& event_node = loop_node.sub[1];
-				if (event_node.id == "event" && event_node.sub.GetCount() > 0) {
-					// Try to find register in event's children
-					for (int i = 0; i < event_node.sub.GetCount(); i++) {
-						VfsValue& child = event_node.sub[i];
-						if (child.id == "register" || child.id.Find("register") >= 0) {
-							env = child.FindExt<EnvState>();
-							if (env) {
-								LOG("FakeSpatialInteractionManager::Update: found EnvState at loop[3].event[1].register[" << i << "]");
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
+			env = FindEnvStateByPath(search_root, env_name);
 
 		if (!env) {
 			// Only log error once per lookup attempt

@@ -18,7 +18,7 @@ public:
 	EntityPtr ball_object;
 	
 	float distance_from_pointer = 0.05f;
-	float scale = 0.25f;
+	float scale = 0.15f;
 };
 
 using ThrowingComponentPtr = Ptr<ThrowingComponent>;

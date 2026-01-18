@@ -41,6 +41,7 @@ String ShootingInteractionSystemBase::GetDisplayName() const {
 EntityPtr ShootingInteractionSystemBase::CreateToolSelector() const {
 	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool(), ws_at_init);
 	selector->Get<ModelComponent>().SetPrefabModel("Gun");
+	selector->Get<ModelComponent>().SetScale(vec3{0.35f});
 	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
 }
@@ -185,7 +186,9 @@ bool ShootingComponent::LoadModel(ModelComponent& mdl) {
 	
 	String path = KnownModelNames::GetPath(KnownModelNames::Gun);
 	ModelPtr m = sys->GetAddModelFile(path);
-	mdl.SetModelMatrix(YRotation(M_PIf));
+	mdl.SetRotation(M_PIf, 0.0f, 0.0f);
+	mdl.SetTranslation(vec3{0.0f});
+	mdl.SetScale(vec3{0.35f});
 	mdl.SetModel(m);
 	
 	if (0) {

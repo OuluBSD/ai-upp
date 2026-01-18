@@ -102,6 +102,8 @@ typedef const ByteImage ConstByteImage;
 
 void	DataFromImage(const Image& img, Vector<byte>& data);
 Image	MirrorVertical(const Image& img);
+bool	LoadDdsImage(const String& path, Image& out);
+bool	LoadDdsImages(const String& path, Vector<Image>& out);
 
 
 template <int bytes>

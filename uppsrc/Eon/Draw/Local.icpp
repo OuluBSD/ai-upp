@@ -37,6 +37,7 @@ INITBLOCK {
 	gvars[VAR_UNKNOWN].Set("iUnknown", true);
 	gvars[VAR_CUBE_DIFFUSE].Set("iCubeDiffuse", true);
 	gvars[VAR_CUBE_IRRADIANCE].Set("iCubeIrradiance", true);
+	gvars[VAR_CUBE_DISPLAY].Set("iCubeDisplay", true);
 	gvars[VAR_IS_NONE].Set("iIsNone", true);
 	gvars[VAR_IS_DIFFUSE].Set("iIsDiffuse", true);
 	gvars[VAR_IS_SPECULAR].Set("iIsSpecular", true);
@@ -52,6 +53,7 @@ INITBLOCK {
 	gvars[VAR_IS_UNKNOWN].Set("iIsUnknown", true);
 	gvars[VAR_IS_CUBE_DIFFUSE].Set("iIsCubeDiffuse", true);
 	gvars[VAR_IS_CUBE_IRRADIANCE].Set("iIsCubeIrradiance", true);
+	gvars[VAR_IS_CUBE_DISPLAY].Set("iIsCubeDisplay", true);
 	
 	
 	gvars[VAR_BUFFERSTAGE0_COLOR].Set("iStageColor0", false);

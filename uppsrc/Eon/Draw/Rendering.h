@@ -20,6 +20,7 @@ struct RendererBase :
 	
 	bool have_skybox = false;
 	String skybox_diffuse, skybox_irradiance;
+	String skybox_display, skybox_specular;
 	
 	RendererBase();
 	void operator=(const RendererBase& t) {Panic("Can't copy RendererBase");}

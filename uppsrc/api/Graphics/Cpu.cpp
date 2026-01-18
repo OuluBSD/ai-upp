@@ -614,12 +614,12 @@ template <class Gfx> void SwGfxT<Gfx>::UnbindFramebuffer() {
 
 template <class Gfx>
 void SwGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size sz, GVar::Sample sample, int channels, const byte* data) {
-	TODO
+	LOG("SwGfxT::SetTexture TODO");
 }
 
 template <class Gfx>
 void SwGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size3 sz, GVar::Sample sample, int channels, const byte* data) {
-	TODO
+	LOG("SwGfxT::SetTexture (3D) TODO");
 }
 
 template <class Gfx>

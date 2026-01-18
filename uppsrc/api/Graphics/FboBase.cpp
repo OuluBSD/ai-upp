@@ -20,6 +20,10 @@ template <class Gfx>
 bool FboAtomT<Gfx>::Initialize(const WorldState& ws) {
 	ws_at_init = ws;
 	
+	#ifdef flagDEBUG
+	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Initialize BEGIN ERROR: " << HexStr(err));}
+	#endif
+
 	ISourcePtr src = this->GetSource();
 	int src_count = src->GetSourceCount();
 	ValueBase& val = src->GetSourceValue(src_count-1);
@@ -174,17 +178,32 @@ bool FboAtomT<Gfx>::IsReady(PacketIO& io) {
 		io.full_src_mask == 0 &&
 		binders.GetCount() > 0;
 	
-	for (BinderIfaceVideo* binder : binders)
-		if (!binder->Render(accel_sd))
-			b = false;
-	
 	RTLOG("FboAtomT::IsReady: " << (b ? "true" : "false") << " (" << io.nonempty_sinks << ", " << io.sinks.GetCount() << ", " << HexStr(iface_sink_mask) << ", " << HexStr(io.active_sink_mask) << ")");
 	return b;
 }
 
 template <class Gfx>
 bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	LOG("FboAtomT::Send called, thread ID=" << (uint64)Thread::GetCurrentId());
+	#ifdef flagDEBUG
+	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Send BEGIN ERROR: " << HexStr(err));}
+	#endif
+
 	RTLOG("FboAtomT::ProcessPackets:");
+	
+	for (BinderIfaceVideo* binder : binders)
+		if (!binder->Render(accel_sd))
+			return false;
+
+	#ifdef flagDEBUG
+	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Send AFTER RENDER ERROR: " << HexStr(err));}
+	#endif
+
+	if (GetEnv("EON_ONE_FRAME_AND_EXIT") == "1") {
+		LOG("EON_ONE_FRAME_AND_EXIT: Exiting after one frame.");
+		exit(0);
+	}
+	
 	ValueFormat fmt = out.GetFormat();
 	 
 	if (src_type == VD(CENTER,FBO) ||

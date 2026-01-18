@@ -80,14 +80,26 @@ void DataObjectT<Gfx>::Refresh(Mesh& m) {
 		Gfx::ElementBufferData(m.indices);
 		element_count = m.indices.GetCount();
 	
-		Gfx::SetupVertexStructure();
-		
-		Gfx::UnbindVertexBuffer();
-		Gfx::UnbindElementBuffer();
-		Gfx::UnbindVertexArray();
-	}
+				Gfx::SetupVertexStructure();
 	
-}
+				
+	
+		
+	
+				Gfx::UnbindVertexArray();
+	
+				if (Gfx::Type == GVar::OGL) {
+					Gfx::UnbindVertexBuffer();
+					Gfx::UnbindElementBuffer();
+				}
+	
+			}
+	
+			
+	
+		}
+	
+		
 
 template <class Gfx>
 void DataObjectT<Gfx>::RefreshTexture(Mesh& m) {
@@ -99,6 +111,8 @@ void DataObjectT<Gfx>::Paint(ModelState& state) {
 	if (!element_count)
 		return;
 	
+	LOG("DataObjectT::Paint: count=" << element_count);
+
 	if (material >= 0) {
 		MaterialT<Gfx>& mat = state.materials.Get(material);
 		
@@ -134,17 +148,22 @@ void DataObjectT<Gfx>::Paint(ModelState& state) {
 	Gfx::BindVertexArray(vao);
 	Gfx::BindVertexBuffer(vbo);
 	Gfx::BindElementBuffer(ebo);
-	Gfx::ActivateVertexStructure();
+	
+	if (Gfx::Type != GVar::OGL)
+		Gfx::ActivateVertexStructure();
 	
 	// draw 6 faces using offset of index array
 	Gfx::DrawVertexElements(element_count, use_quad);
 	
-	Gfx::DeactivateVertexStructure();
+	if (Gfx::Type != GVar::OGL)
+		Gfx::DeactivateVertexStructure();
 	
 	// bind with 0, so, switch back to normal pointer operation
-	Gfx::UnbindVertexBuffer();
-	Gfx::UnbindElementBuffer();
 	Gfx::UnbindVertexArray();
+	if (Gfx::Type == GVar::OGL) {
+		Gfx::UnbindVertexBuffer();
+		Gfx::UnbindElementBuffer();
+	}
 }
 
 

@@ -27,6 +27,7 @@ bool EcsViewProg::Arg(const String& key, const String& value) {
 
 
 bool EcsViewProg::Render(Draw& fb) {
+	GFXLOG("EcsViewProg::Render: called");
 	GfxStateDraw* sd = CastPtr<GfxStateDraw>(&fb);
 	ASSERT(sd);
 	

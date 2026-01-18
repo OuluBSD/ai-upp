@@ -323,6 +323,7 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 			dev.gl_ctx = glXCreateNewContext( display, bestFbc, GLX_RGBA_TYPE, 0, True );
 		}
 		else {
+			LOG("ScrX11Ogl::SinkDevice_Initialize: creating context via glXCreateContextAttribsARB");
 			dev.gl_ctx = glXCreateContextAttribsARB( display, bestFbc, 0, true, context_attribs );
 		}
 		XSync( display, False );
@@ -333,9 +334,10 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 			LOG("ScrX11Ogl::SinkDevice_Initialize: warning: indirect GLX rendering context obtained");
 		}
 		else {
-			LOG("ScrX11Ogl::SinkDevice_Initialize: direct GLX rendering context obtained");
+			LOG("ScrX11Ogl::SinkDevice_Initialize: direct GLX rendering context obtained, thread ID=" << (uint64)UPP::Thread::GetCurrentId());
 		}
 		glXMakeCurrent(display, win, dev.gl_ctx);
+
 
 		
 		LOG("GL Vendor: " << (const char*)glGetString(GL_VENDOR));
@@ -350,6 +352,10 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 			LOG("Glew error: " << (const char*)glewGetErrorString(err));
 			return false;
 		}
+		
+		#ifdef flagDEBUG
+		{GLenum gerr = glGetError(); if(gerr != GL_NO_ERROR) LOG("glewInit generated error: " << HexStr(gerr));}
+		#endif
 		
 	
 		// make the window actually appear on the screen.
@@ -447,6 +453,9 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		return false;
 	}
 	
+	// Clear any errors generated during initialization (e.g. by glewInit or driver quirks)
+	while(glGetError() != GL_NO_ERROR);
+
 	return true;
 }
 

@@ -52,6 +52,7 @@ public:
 	//ModelPtr GetAddModelFile(String path);
 	
 	void Render(GfxDataState& s);
+	void RenderDebug(GfxDataState& s);
 	
 	void AddViewable(ViewablePtr v);
 	void AddRenderable(RenderablePtr b);

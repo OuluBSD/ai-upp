@@ -1,0 +1,213 @@
+machine x11.app:
+
+	driver context:
+		x11.sw.context
+
+	chain program:
+		state event.register
+
+		loop sw.fbo:
+			center.customer
+			x11.sw.fbo.program:
+				drawmem =		"false"
+				program =		"ecs_view"
+				shader.default.frag.name =	"obj_view"
+				shader.default.vtx.name =	"obj_view"
+				shader.sky.frag.name =	"obj_view"
+				shader.sky.vtx.name =	"obj_view"
+			
+			x11.sw.video.pipe:
+				close_machine =	true
+				sizeable =		true
+				env = "/event/register"
+				recv.data =      true
+
+
+world demoroom:
+	system rendering
+	system modelcache
+	system events
+	system interaction:
+		env = "/event/register"
+	system physics:
+		rm.outsiders = true
+		rm.area.size = 40
+	system player
+	system system.paintstroke
+	system system.toolbox:
+		test.tool.changer = true
+	system system.interaction.painting
+	system system.interaction.shooting
+	system system.interaction.throwing
+
+
+	pool world:
+		entity skybox:
+			comp model:
+				skybox.display =	"demoroom/Environment/EnvHDR.dds"
+				skybox.specular =	"demoroom/Environment/SpecularHDR.dds"
+				skybox.irradiance =	"demoroom/Environment/DiffuseHDR.dds"
+				builtin =			"skybox"
+
+		entity room.floor:
+			comp transform3:
+				y = 0
+			comp model:
+				builtin = plane
+				scale_x = 20
+				scale_z = 20
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity room.ceiling:
+			comp transform3:
+				y = 4
+			comp model:
+				builtin = plane
+				scale_x = 20
+				scale_z = 20
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity room.wall.north:
+			comp transform3:
+				z = -10
+				y = 2
+			comp model:
+				builtin = plane
+				pitch = 90
+				scale_x = 20
+				scale_y = 4
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity room.wall.south:
+			comp transform3:
+				z = 10
+				y = 2
+			comp model:
+				builtin = plane
+				pitch = -90
+				scale_x = 20
+				scale_y = 4
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity room.wall.east:
+			comp transform3:
+				x = 10
+				y = 2
+			comp model:
+				builtin = plane
+				yaw = -90
+				pitch = 90
+				scale_x = 20
+				scale_y = 4
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity room.wall.west:
+			comp transform3:
+				x = -10
+				y = 2
+			comp model:
+				builtin = plane
+				yaw = 90
+				pitch = 90
+				scale_x = 20
+				scale_y = 4
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity box.test1:
+			comp transform3:
+				x = 2
+				y = 1
+				z = 2
+			comp body
+			comp model:
+				builtin = box
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity box.test2:
+			comp transform3:
+				x = -2
+				y = 1
+				z = 2
+			comp body
+			comp model:
+				builtin = box
+			comp physics:
+				bind = physics
+				test.fn = fixed
+
+		entity sphere.test:
+			comp transform3:
+				x = 0
+				y = 1.5
+				z = -3
+			comp body
+			comp model:
+				builtin = sphere
+			comp physics:
+				bind = physics
+
+		entity player.body:
+			comp transform3:
+				x = 0
+				y = 1.74
+				z = 8
+			comp physics:
+				bind = physics
+			comp player.body:
+				height = 1.74
+
+		entity player.head:
+			comp transform3
+			comp viewable
+			comp viewport:
+				fov = 90
+			comp camera.chase
+			comp player.head:
+				body = world.player.body
+
+		entity player.hand.left:
+			comp transform3
+			comp body
+			comp model:
+				builtin = "cylinder,0.02,0.2"
+				yaw = +90
+			comp player.hand:
+				hand = left
+				body = world.player.body
+				simulated = true
+
+		entity player.hand.right:
+			comp transform3
+			comp body
+			comp model:
+				builtin = "cylinder,0.02,0.2"
+				yaw = +90
+			comp player.hand:
+				hand = right
+				body = world.player.body
+				simulated = true
+
+		entity tool:
+			comp transform3
+			comp tool:
+				hand = world.player.hand.right
+			comp model:
+				builtin = "box,0.05,0.05,0.3"
+				always.enabled = true
+			comp paint
+			comp shoot
+			comp throw

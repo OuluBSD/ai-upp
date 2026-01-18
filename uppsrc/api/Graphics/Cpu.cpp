@@ -121,7 +121,7 @@ template <class Gfx>
 void SwGfxT<Gfx>::Uniform1i(int idx, int i) {
 	auto& prog = Local().prog;
 	ASSERT(prog);
-	if (prog) prog->SetVar(idx, (float)i);
+	if (prog) prog->SetVar(idx, i);
 }
 
 template <class Gfx>

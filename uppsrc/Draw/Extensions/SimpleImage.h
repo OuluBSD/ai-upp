@@ -43,14 +43,16 @@ public:
 typedef const FloatImage ConstFloatImage;
 
 
-struct ByteImage {
+struct ByteImage : Moveable<ByteImage> {
 	byte* data = 0;
 	Size sz;
 	int pitch = 0;
 	int channels = 0;
 	int size = 0;
 	bool lock_channels = false;
-
+	
+	Vector<ByteImage> faces; // For CubeMap
+	
 public:
 	typedef ByteImage CLASSNAME;
 	ByteImage() : data(0), sz(0,0), pitch(0), channels(0), size(0), lock_channels(false) {}

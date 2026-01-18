@@ -614,7 +614,27 @@ template <class Gfx> void SwGfxT<Gfx>::UnbindFramebuffer() {
 
 template <class Gfx>
 void SwGfxT<Gfx>::SetTexture(GVar::TextureMode type, Size sz, GVar::Sample sample, int channels, const byte* data) {
-	LOG("SwGfxT::SetTexture TODO");
+	auto& l = Local();
+	ByteImage* tex = l.T().rw;
+	ASSERT(tex);
+	if (!tex) return;
+
+	int stride = channels * GVar::GetSampleSize(sample);
+	int pitch = sz.cx * stride;
+
+	if (type >= GVar::TEXMODE_CUBE_MAP_SIDE_0 && type <= GVar::TEXMODE_CUBE_MAP_SIDE_5) {
+		int face = type - GVar::TEXMODE_CUBE_MAP_SIDE_0;
+		if (tex->faces.GetCount() != 6)
+			tex->faces.SetCount(6);
+		
+		tex->faces[face].Set(sz.cx, sz.cy, stride, pitch, data);
+	}
+	else if (type == GVar::TEXMODE_2D) {
+		tex->Set(sz.cx, sz.cy, stride, pitch, data);
+	}
+	else {
+		LOG("SwGfxT::SetTexture TODO for type " << (int)type);
+	}
 }
 
 template <class Gfx>

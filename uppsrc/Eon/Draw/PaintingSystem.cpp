@@ -244,12 +244,15 @@ void PaintingInteractionSystemBase::OnControllerReleased(const GeomEvent& e) {
 
 void PaintingInteractionSystemBase::OnControllerUpdated(const GeomEvent& e) {
 	const bool dbg_log = 0;
-	
+
 	for (PaintComponentPtr& paint : comps) {
 		if (!paint->IsEnabled()) continue;
-		
+
 		EntityPtr entity = paint->GetEntity();
-		
+
+		// Skip if paint_brush entity is not initialized (Attach code is disabled)
+		if (!paint->paint_brush) continue;
+
 		bool new_stroke_started = false;
 		Ptr<Model> paint_brush_model = paint->paint_brush->Get<ModelComponent>().GetModel();
 		
@@ -390,8 +393,10 @@ void PaintingInteractionSystemBase::Update(double dt) {
 		PlayerHandComponent* controller = tool->active_hand;
 		if (!controller)
 			continue;
-		
-		ASSERT(paint->beam);
+
+		// Skip if required entities are not initialized (Attach code is disabled)
+		if (!paint->beam || !paint->touchpad_indicator) continue;
+
 		paint->beam->Get<ModelComponent>().SetEnabled(paint->cur_state == PaintComponent::State::Manipulating);
 		
 		// Set properties required for rendering

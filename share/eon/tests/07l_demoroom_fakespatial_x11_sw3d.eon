@@ -11,10 +11,10 @@ machine x11.app:
 			x11.sw.fbo.program:
 				drawmem =		"false"
 				program =		"ecs_view"
-				shader.default.frag.name =	"obj_view"
-				shader.default.vtx.name =	"obj_view"
-				shader.sky.frag.name =	"obj_view"
-				shader.sky.vtx.name =	"obj_view"
+				shader.default.frag.name =	"pbr"
+				shader.default.vtx.name =	"pbr"
+				shader.sky.frag.name =	"skybox"
+				shader.sky.vtx.name =	"skybox"
 			
 			x11.sw.video.pipe:
 				close_machine =	true

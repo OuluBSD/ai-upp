@@ -109,12 +109,11 @@ void ByteImage::Visit(Vis& v) {
 }
 
 void ByteImage::operator=(const ByteImage& i) {
-	LOG("ByteImage::operator=: this=" << (void*)this << " from ByteImage at " << (void*)&i << " i.data=" << (void*)i.data << " i.sz=" << i.sz.cx << "x" << i.sz.cy << " i.channels=" << i.channels);
 	if (i.data)
 		Set(i.sz.cx, i.sz.cy, i.channels, i.pitch, i.data);
 	else
 		Clear();
-	LOG("ByteImage::operator=: after Set, this->data=" << (void*)this->data << " this->sz=" << this->sz.cx << "x" << this->sz.cy);
+	faces <<= i.faces;
 }
 
 void ByteImage::FlipVert() {
@@ -198,6 +197,7 @@ void ByteImage::Clear() {
 		size = 0;
 		data = 0;
 	}
+	faces.Clear();
 }
 
 void ByteImage::Zero(RGBA clr) {

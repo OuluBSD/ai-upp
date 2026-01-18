@@ -99,28 +99,21 @@ struct PbrVertex : SoftShaderBase {
 
 struct PbrFragment : SoftShaderBase {
 	void Process(FragmentShaderArgs& args) override {
-		vec3 lightDir = vec3(1, 1, 1).GetNormalized();
+		vec3 lightDir = args.fa->light_dir.GetNormalized();
 		vec3 normal = args.normal.GetNormalized();
 		float diff = max(normal.Dot(lightDir), 0.0f);
 		
-		RGBA color = MakeRGBA(200, 200, 200, 255);
+		vec3 baseColor = args.fa->iIsDiffuse ? ToVec4(SampleTexture(*args.GetTexture(args.fa->iDiffuse), args.tex_coord)).Splice() : vec3(0.8f, 0.8f, 0.8f);
 		
-		ConstByteImage* diffTex = args.GetTexture(args.fa->iDiffuse);
-		if (diffTex && !diffTex->IsEmpty()) {
-			RGBA texColor = SampleTexture(*diffTex, args.tex_coord);
-			color = MakeRGBA(
-				(color.r * texColor.r) >> 8,
-				(color.g * texColor.g) >> 8,
-				(color.b * texColor.b) >> 8,
-				color.a
-			);
+		// Simple ambient + diffuse
+		vec3 color = baseColor * (0.2f + 0.8f * diff);
+		
+		// Emissive
+		if (args.fa->iIsEmissive) {
+			color += ToVec4(SampleTexture(*args.GetTexture(args.fa->iEmissive), args.tex_coord)).Splice();
 		}
 		
-		color.r = (byte)(color.r * (0.2f + 0.8f * diff));
-		color.g = (byte)(color.g * (0.2f + 0.8f * diff));
-		color.b = (byte)(color.b * (0.2f + 0.8f * diff));
-		
-		args.frag_color_out = ToVec4(color);
+		args.frag_color_out = vec4(color[0], color[1], color[2], 1.0f);
 	}
 };
 

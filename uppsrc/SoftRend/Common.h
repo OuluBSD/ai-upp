@@ -85,6 +85,23 @@ struct GenericFragmentShaderArgs {
 	int iCubeIrradiance;
 	int iCubeDisplay;
 	
+	bool iIsNone;
+	bool iIsDiffuse;
+	bool iIsSpecular;
+	bool iIsAmbient;
+	bool iIsEmissive;
+	bool iIsHeight;
+	bool iIsNormals;
+	bool iIsShininess;
+	bool iIsOpacity;
+	bool iIsDisplacement;
+	bool iIsLightmap;
+	bool iIsReflection;
+	bool iIsUnknown;
+	bool iIsCubeDiffuse;
+	bool iIsCubeIrradiance;
+	bool iIsCubeDisplay;
+	
 	const ByteImage* color_buf[TEXTYPE_COUNT];
 	
 	GenericFragmentShaderArgs();

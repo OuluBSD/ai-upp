@@ -23,6 +23,9 @@ machine sdl.app:
 				close_machine =	true
 				sizeable =		true
 				env = "/event/register"
+				recv.data = true
+				avg_color_log = true
+				avg_color_interval = 16
 
 
 world ecs.dummy:

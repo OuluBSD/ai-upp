@@ -114,13 +114,11 @@ int SoftProgram::GetVarSize(int i) const {
 		default: break;
 	}
 	
-	TODO
-	
+	return 0;
 }
 
 
 int SoftProgram::GetVarType(int i) const {
-	//int idx = uniforms.GetKey(i);
 	return 1;
 }
 
@@ -132,8 +130,7 @@ String SoftProgram::GetVar(int i) const {
 	if (idx < GVar::VAR_COUNT)
 		return GVar::gvars[idx].name;
 		
-	TODO
-	
+	return "";
 }
 
 
@@ -178,6 +175,24 @@ void SoftProgram::SetVar(int i, int j) {
 	if (idx == GVar::VAR_CUBE_DIFFUSE) {fargs.iCubeDiffuse = j; return;}
 	if (idx == GVar::VAR_CUBE_IRRADIANCE) {fargs.iCubeIrradiance = j; return;}
 	if (idx == GVar::VAR_CUBE_DISPLAY) {fargs.iCubeDisplay = j; return;}
+
+	if (idx == GVar::VAR_IS_NONE) {fargs.iIsNone = (bool)j; return;}
+	if (idx == GVar::VAR_IS_DIFFUSE) {fargs.iIsDiffuse = (bool)j; return;}
+	if (idx == GVar::VAR_IS_SPECULAR) {fargs.iIsSpecular = (bool)j; return;}
+	if (idx == GVar::VAR_IS_AMBIENT) {fargs.iIsAmbient = (bool)j; return;}
+	if (idx == GVar::VAR_IS_EMISSIVE) {fargs.iIsEmissive = (bool)j; return;}
+	if (idx == GVar::VAR_IS_HEIGHT) {fargs.iIsHeight = (bool)j; return;}
+	if (idx == GVar::VAR_IS_NORMALS) {fargs.iIsNormals = (bool)j; return;}
+	if (idx == GVar::VAR_IS_SHININESS) {fargs.iIsShininess = (bool)j; return;}
+	if (idx == GVar::VAR_IS_OPACITY) {fargs.iIsOpacity = (bool)j; return;}
+	if (idx == GVar::VAR_IS_DISPLACEMENT) {fargs.iIsDisplacement = (bool)j; return;}
+	if (idx == GVar::VAR_IS_LIGHTMAP) {fargs.iIsLightmap = (bool)j; return;}
+	if (idx == GVar::VAR_IS_REFLECTION) {fargs.iIsReflection = (bool)j; return;}
+	if (idx == GVar::VAR_IS_UNKNOWN) {fargs.iIsUnknown = (bool)j; return;}
+	if (idx == GVar::VAR_IS_CUBE_DIFFUSE) {fargs.iIsCubeDiffuse = (bool)j; return;}
+	if (idx == GVar::VAR_IS_CUBE_IRRADIANCE) {fargs.iIsCubeIrradiance = (bool)j; return;}
+	if (idx == GVar::VAR_IS_CUBE_DISPLAY) {fargs.iIsCubeDisplay = (bool)j; return;}
+	
 	TODO
 }
 

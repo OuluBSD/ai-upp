@@ -533,8 +533,8 @@ layout (location = 0) in vec4 iPos;
 layout (location = 1) in vec3 iNormal;
 layout (location = 2) in vec2 iTexCoord;
 
-in int iVertexID;
-in int iInstanceID;
+/*in int iVertexID;
+in int iInstanceID;*/
 
 out vec2 TexCoords;
 )SH4D3R"
@@ -804,6 +804,12 @@ bool OglGfxT<Gfx>::CreateFramebuffer(NativeFrameBufferPtr& fbo) {
 
 template <class Gfx> void OglGfxT<Gfx>::GenVertexArray(NativeVertexArray& vao) {
 	glGenVertexArrays(1, &vao);
+	#ifdef flagDEBUG
+	GLenum err = glGetError();
+	if (err != GL_NO_ERROR) {
+		LOG("OglGfx::GenVertexArray ERROR: " << HexStr(err));
+	}
+	#endif
 }
 
 template <class Gfx> void OglGfxT<Gfx>::GenVertexBuffer(NativeVertexBuffer& vbo) {
@@ -868,6 +874,15 @@ template <class Gfx> void OglGfxT<Gfx>::ActivateVertexStructure() {
 	const int vtx = 0;
 	const int nm = 1;
 	const int tex = 2;
+
+	#ifdef flagDEBUG
+	GLint max_attribs = 0;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_attribs);
+	for(int i = 3; i < max_attribs; i++) {
+		glDisableVertexAttribArray(i);
+	}
+	#endif
+
 	glEnableVertexAttribArray(vtx);          // activate vertex position array
 	glEnableVertexAttribArray(nm);           // activate vertex normal array
 	glEnableVertexAttribArray(tex);          // activate texture coords array
@@ -893,8 +908,20 @@ template <class Gfx> void OglGfxT<Gfx>::DeactivateVertexStructure() {
 }
 
 template <class Gfx> void OglGfxT<Gfx>::DrawVertexElements(int element_limit, bool use_quad) {
-	if (!use_quad)
+	if (!use_quad) {
+		#ifdef flagDEBUG
+		GLenum pre_err = glGetError();
+		if (pre_err != GL_NO_ERROR) {
+			LOG("OglGfx::DrawVertexElements: PRE-DRAW ERROR: " << HexStr(pre_err));
+		}
+		GLint prog = 0;
+		glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+		if (prog == 0) {
+			LOG("OglGfx::DrawVertexElements: error: NO PROGRAM BOUND!");
+		}
+		#endif
 		glDrawElements(GL_TRIANGLES, element_limit, GL_UNSIGNED_INT, 0);
+	}
 	else
 		Panic("quads not supported in opengl");
 }

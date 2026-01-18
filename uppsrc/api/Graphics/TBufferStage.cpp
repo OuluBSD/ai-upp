@@ -266,6 +266,9 @@ bool BufferStageT<Gfx>::RealizeData() {
 	auto& fb = this->fb[0];
 	ASSERT(pipeline_str.GetCount());
 	ASSERT(program_str.GetCount());
+	
+	LOG("BufferStageT::RealizeData: pipeline=" << pipeline_str << " main_program=" << program_str);
+
 	pipeline = data->FindPipeline(pipeline_str);
 	ProgramState* prog = pipeline ? pipeline->FindProgram(program_str) : 0;
 	
@@ -369,6 +372,11 @@ template <class Gfx>
 void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	if (!data)
 		return;
+	
+	#ifdef flagDEBUG
+	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("Process BEGIN ERROR: " << HexStr(err));}
+	#endif
+
 	ASSERT(this->pipeline);
 	auto& pipeline = *this->pipeline;
 	

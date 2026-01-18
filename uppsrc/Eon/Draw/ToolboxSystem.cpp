@@ -21,6 +21,72 @@ bool HitTest(vec3 positionA, vec3 positionB, float diameter) {
 
 
 bool ToolComponent::Initialize(const WorldState& ws) {
+	// Resolve deferred hand entity path (if specified)
+	if (!hand_path.IsEmpty()) {
+		Val* root = &val.FindOwner<Engine>()->GetRootPool();
+		ASSERT(root);
+		if (!root) {
+			LOG("ToolComponent::Initialize: error: could not find root pool");
+			return false;
+		}
+
+		// Parse path: expect "pool/entity.name" or "pool/entity/subname"
+		// where entity name can contain dots or slashes as a single ID
+		String path = hand_path;
+		if (path.StartsWith("/"))
+			path = path.Mid(1);
+
+		// Find the first slash - that separates pool from entity
+		int pool_sep = path.Find('/');
+		if (pool_sep < 0) {
+			LOG("ToolComponent::Initialize: error: invalid path format '" + hand_path + "'");
+			return false;
+		}
+
+		String pool_name = path.Left(pool_sep);
+		String entity_path = path.Mid(pool_sep + 1);  // Rest of path as entity ID
+
+		// Convert slashes to dots for entity ID (entity names use dots)
+		entity_path.Replace("/", ".");
+
+		// Find the pool
+		VfsValue* pool = nullptr;
+		for (int i = 0; i < root->sub.GetCount(); i++) {
+			if (root->sub[i].id == pool_name) {
+				pool = &root->sub[i];
+				break;
+			}
+		}
+
+		if (!pool) {
+			LOG("ToolComponent::Initialize: error: could not find pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Find entity in pool by ID (entity ID is a single string, may contain dots)
+		EntityPtr e;
+		for (int i = 0; i < pool->sub.GetCount(); i++) {
+			if (pool->sub[i].id == entity_path) {
+				e = pool->sub[i].FindExt<Entity>();
+				break;
+			}
+		}
+
+		if (!e) {
+			LOG("ToolComponent::Initialize: error: could not find entity '" << entity_path << "' in pool '" << pool_name << "'");
+			return false;
+		}
+
+		// Get PlayerHandComponent from the entity
+		PlayerHandComponentPtr hc = e->val.Find<PlayerHandComponent>();
+		if (!hc) {
+			LOG("ToolComponent::Initialize: error: entity doesn't have PlayerHandComponent");
+			return false;
+		}
+
+		active_hand = &*hc;
+	}
+
 	ToolboxSystemBasePtr sys = GetEngine().TryGet<ToolboxSystemBase>();
 	if (sys)
 		sys->Attach(this);
@@ -35,21 +101,8 @@ void ToolComponent::Uninitialize() {
 
 bool ToolComponent::Arg(String key, Value value) {
 	if (key == "hand") {
-		String path = value;
-		TODO
-		#if 0
-		EntityStorePtr es = GetEngine().Get<EntityStore>();
-		EntityPtr hand_ent = es->FindEntity(path);
-		if (!hand_ent) {
-			LOG("ToolComponent::Arg: error: could not find entity with path: " << path);
-			return false;
-		}
-		this->active_hand = hand_ent->Find<PlayerHandComponent>();
-		if (!this->active_hand) {
-			LOG("ToolComponent::Arg: error: entity does not have PlayerHandComponent: " << path);
-			return false;
-		}
-		#endif
+		// Defer entity resolution to Initialize() when all entities exist
+		hand_path = value.ToString();
 	}
 	return true;
 }
@@ -176,7 +229,9 @@ void ToolboxSystemBase::RemoveToolSystem(ToolSystemBasePtr system) {
 }
 
 bool ToolboxSystemBase::Start() {
-	TODO
+	// TODO: Create controller entities programmatically (like Neso)?
+	// For now, entities are defined in .eon script, so just return true
+	return true;
 	#if 0
 	auto es = GetEngine().Get<EntityStore>();
 	

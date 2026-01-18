@@ -43,7 +43,8 @@ public:
 	CustomToolComponentPtr active_tool;
 	Array<CustomToolComponentPtr> tools;
 	PlayerHandComponent* active_hand = 0;
-	
+	String hand_path;  // Deferred entity path resolution
+
 };
 
 using ToolComponentPtr = Ptr<ToolComponent>;

@@ -493,7 +493,8 @@ void ScrX11Ogl::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase&, RealtimeSo
 
 bool ScrX11Ogl::SinkDevice_Send(NativeSinkDevice& dev, AtomBase& a, RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 
-	dev.accel.Render(cfg);
+	if (!dev.accel.Send(cfg, out, src_ch))
+		return false;
 
 	// Average color logging for debugging
 	if (dev.log_avg) {

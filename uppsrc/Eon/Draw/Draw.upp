@@ -9,7 +9,8 @@ acceptflags
 
 uses
 	Eon,
-	Draw/Extensions;
+	Draw/Extensions,
+	api/Graphics;
 
 file
 	Draw.h,

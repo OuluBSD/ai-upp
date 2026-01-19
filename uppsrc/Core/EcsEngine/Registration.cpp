@@ -3,7 +3,7 @@
 
 NAMESPACE_UPP
 
-INITBLOCK {
+INITIALIZER(EcsRegistration) {
 	TypedStringHasher<Engine>("Engine");
 	
 	REGISTER_SYSTEM_ATOM(LinkSystem, "sys.link", "Atom|Net")

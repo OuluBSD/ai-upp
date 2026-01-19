@@ -111,9 +111,12 @@ void DataObjectT<Gfx>::Paint(ModelState& state) {
 	if (!element_count)
 		return;
 	
-	LOG("DataObjectT::Paint: count=" << element_count);
-
 	if (material >= 0) {
+		if (state.materials.Find(material) < 0) {
+			LOG("DataObjectT::Paint: error: material index " << material << " not found in state.materials (count=" << state.materials.GetCount() << ")");
+			for(int i = 0; i < state.materials.GetCount(); i++)
+				LOG("  available material key[" << i << "]=" << state.materials.GetKey(i));
+		}
 		MaterialT<Gfx>& mat = state.materials.Get(material);
 		
 		for(int i = 0; i < TEXTYPE_CUBE_DIFFUSE; i++) {

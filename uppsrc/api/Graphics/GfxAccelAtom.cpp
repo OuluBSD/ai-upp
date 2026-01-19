@@ -162,7 +162,11 @@ void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, 
 }
 
 template <class Gfx>
+GfxAccelAtom<Gfx>* GfxAccelAtom<Gfx>::latest = 0;
+
+template <class Gfx>
 bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
+	latest = this;
 	this->ab = &a;
 	
 	LinkBase* link = a.GetLink();
@@ -354,17 +358,7 @@ void GfxAccelAtom<Gfx>::SetRect(Rect r) {
 
 template <class Gfx>
 void GfxAccelAtom<Gfx>::Render(const RealtimeSourceConfig& cfg) {
-	
-	if (raw_packet) {
-		ValueFormat fmt = raw_packet->GetFormat();
-		const auto& vfmt = Gfx::GetFormat(fmt);
-		const Vector<byte>& data = raw_packet->GetData();
-		BeginDraw();
-		FrameCopy(vfmt, (const byte*)data.Begin(), data.GetCount());
-		CommitDraw();
-		raw_packet.Clear();
-	}
-	else if (fb_packet) {
+	if (fb_packet) {
 		ValueFormat fmt = fb_packet->GetFormat();
 		const auto& vfmt = Gfx::GetFormat(fmt);
 		const InternalPacketData& d = fb_packet->GetData<InternalPacketData>();
@@ -376,10 +370,34 @@ void GfxAccelAtom<Gfx>::Render(const RealtimeSourceConfig& cfg) {
 	}
 	else {
 		BeginDraw();
+		if (is_sw) {
+		    auto& buf = bf.GetBuffer();
+		    if (buf.stages.GetCount() > 0 && buf.Top().pipeline)
+		        Gfx::BindProgramPipeline(buf.Top().pipeline->native);
+		}
 		bf.GetBuffer().Process(cfg);
 		CommitDraw();
 	}
 	
+}
+
+template <class Gfx>
+bool GfxAccelAtom<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
+	if (src_ch == 0) {
+		Render(cfg);
+		
+		ValueFormat fmt = out.GetFormat();
+		if (fmt.vd.val == ValCls::RECEIPT) {
+			// pass
+		}
+		else if (fmt.vd.val == ValCls::FBO) {
+			InternalPacketData& data = out.SetData<InternalPacketData>();
+			this->GetBuffer().StoreOutputLink(data);
+		}
+		
+		return true;
+	}
+	return false;
 }
 
 template <class Gfx>
@@ -465,6 +483,19 @@ Draw& GfxAccelAtom<Gfx>::BeginDraw() {
 	    sysdraw.SetTarget(&draw);
 	    
 	    rend.PreFrame();
+	    
+	    if (is_sw) {
+	        auto& buf = bf.GetBuffer();
+	        typename Gfx::NativePipeline* pipe = 0;
+	        if (buf.stages.GetCount() > 0) {
+	            auto& stage = buf.Top();
+	            if (stage.pipeline)
+	                pipe = &stage.pipeline->native;
+	        }
+	        
+	        if (pipe)
+	            Gfx::BindProgramPipeline(*pipe);
+	    }
 	}
 	/*else if (is_dx11) {
 		TODO

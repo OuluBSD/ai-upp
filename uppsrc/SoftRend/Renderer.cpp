@@ -144,7 +144,7 @@ void SoftRend::RenderScreenRect0(bool elements) {
 					SoftProgram& prog = *rs.prog;
 					GenericShaderArgs& g = prog.GetArgs();
 					frag_args.generic = &g;
-					frag_args.fa = &prog.GetFragmentArgs(src_id);
+					frag_args.fa = &prog.GetFragmentArgs(rs.obj_id);
 					if (g.iResolution[0] == 0 || g.iResolution[1] == 0)
 						g.iResolution = vec3((float)w, (float)h, 0);
 					
@@ -262,7 +262,7 @@ void SoftRend::ProcessVertexShader(SoftShader& shdr, SoftVertexArray& vao, uint1
 	VertexShaderArgs vtx_args;
 	GenericShaderArgs& g = prog.GetArgs();
 	vtx_args.generic = &g;
-	vtx_args.va = &prog.GetVertexArgs(src_id);
+	vtx_args.va = &prog.GetVertexArgs(rs.obj_id);
 	
 	int vtx_count = vbo.vertices.GetCount();
 	processed_vertices.vertices.SetCount(vtx_count);
@@ -479,6 +479,7 @@ void SoftRend::Render(SoftProgram& prog, SoftVertexArray& vao, bool use_quad) {
 		rs.vbo = vao.vbo;
 		rs.ebo = vao.ebo;
 		rs.prog = &prog;
+		rs.obj_id = prog.obj_i;
 		
 		rs.vtx = 0;
 		rs.frag = 0;

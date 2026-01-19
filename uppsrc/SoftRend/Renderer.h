@@ -40,6 +40,7 @@ class SoftRend {
 		SoftProgram* prog = 0;
 		SoftShader* frag = 0;
 		SoftShader* vtx = 0;
+		int obj_id = -1;
 		bool use_processed_vertices = false;
 		SoftVertexBuffer processed_vertices;
 		

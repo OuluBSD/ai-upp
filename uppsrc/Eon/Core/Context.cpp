@@ -496,9 +496,10 @@ LoopContext& ChainContext::AddLoop(VfsValue& loop_space, const Vector<AtomSpec>&
                 customer->EnsureAudioDefaultQueue();
         }
     }
-    if (make_primary_links)
-        lc.MakePrimaryLinks();
-
+    	if (make_primary_links) {
+    		RTLOG("ChainContext::AddLoop: making primary links");
+    		lc.MakePrimaryLinks();
+    	}
     // Router integration (Phase 2)
     // Register ports and generate router connections
     lc.RegisterRouterPorts();

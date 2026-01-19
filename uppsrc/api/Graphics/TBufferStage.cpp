@@ -370,10 +370,8 @@ void BufferStageT<Gfx>::MakeFrameQuad(int count) {
 
 template <class Gfx>
 void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
-	if (!data)
-		return;
 	
-	#ifdef flagDEBUG
+	#if defined(flagDEBUG) && defined(flagOGL)
 	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("Process BEGIN ERROR: " << HexStr(err));}
 	#endif
 
@@ -387,11 +385,10 @@ void BufferStageT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 	auto& fb = this->fb[0];
 	
 	Gfx::SetViewport(fb.size);
-	#ifdef flagOGL
-	Gfx::UnbindProgramPipeline();
-	#else
-	Gfx::BindProgramPipeline(pipeline.native);
-	#endif
+	if (Gfx::Type == GVar::OGL)
+		Gfx::UnbindProgramPipeline();
+	else
+		Gfx::BindProgramPipeline(pipeline.native);
 	
 	int bi = NewWriteBuffer();
 	

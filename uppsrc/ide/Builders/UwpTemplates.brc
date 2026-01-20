@@ -4,3 +4,5 @@ BINARY(uwp_filters_tpl, "UwpTemplates/UwpProject.vcxproj.filters.tpl")
 BINARY(uwp_appxmanifest_tpl, "UwpTemplates/UwpPackage.appxmanifest.tpl")
 BINARY(dotnet_csproj_tpl, "UwpTemplates/DotnetProject.csproj.tpl")
 BINARY(uwp_csproj_tpl, "UwpTemplates/UwpCSharp.csproj.tpl")
+// Keep template resources in sync with per-package project generation.
+// Updated for CompileAsWinRT default override.

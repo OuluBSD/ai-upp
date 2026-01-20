@@ -5,6 +5,7 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   IgnorableNamespaces="uap mp">
   <Identity Name="@PACKAGE_NAME@" Publisher="CN=UppUwp" Version="1.0.0.0" />
+  <mp:PhoneIdentity PhoneProductId="@PHONE_PRODUCT_ID@" PhonePublisherId="@PHONE_PUBLISHER_ID@" />
   <Properties>
     <DisplayName>@PROJECT_NAME@</DisplayName>
     <PublisherDisplayName>Upp</PublisherDisplayName>

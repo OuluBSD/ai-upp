@@ -44,3 +44,6 @@ Extending
 - New UI: create `AI/Ctrl/<Domain>` and wire views/dialogs; expose minimal headers for integration.
 - When adding new packages, include an `AGENTS.md` and list it first in the `.upp` file list.
 
+Testing
+- Always test the compilation with `script/build.py -j <cpu_count-2> <pkgname>` before stopping.
+

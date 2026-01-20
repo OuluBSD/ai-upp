@@ -154,10 +154,84 @@ int UppParser::ParseFiles(const Vector<String>& lines, int i) {
 	return j + 1;
 }
 
-int UppParser::ParseMainConfig(const Vector<String>& lines, int i) { return i + 1; }
-int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) { return i + 1; }
-int UppParser::ParseLibrary(const Vector<String>& lines, int i, bool is_static) { return i + 1; }
-int UppParser::ParseLink(const Vector<String>& lines, int i) { return i + 1; }
+int UppParser::ParseMainConfig(const Vector<String>& lines, int i) {
+	String accumulated;
+	int j = i;
+	while(j < lines.GetCount()) {
+		accumulated << " " << TrimBoth(lines[j]);
+		if(lines[j].Find(';') >= 0) break;
+		j++;
+	}
+	
+	RegExp re("\"([^\"]*)\"\\s*=\\s*\"([^\"]*)\"");
+	while(re.GlobalMatch(accumulated)) {
+		UppConfigEntry& ce = mainconfigs.Add();
+		ce.name = re[0];
+		ce.param = re[1];
+	}
+	
+	return j + 1;
+}
+
+int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) {
+	String accumulated;
+	int j = i;
+	while(j < lines.GetCount()) {
+		accumulated << " " << TrimBoth(lines[j]);
+		if(lines[j].Find(';') >= 0) break;
+		j++;
+	}
+	
+	String content = accumulated;
+	content.Replace("acceptflags", "");
+	content.Replace(";", "");
+	
+	Vector<String> tokens = Split(content, [](int c) { return IsSpace(c) || c == ',' ? 1 : 0; });
+	for(String token : tokens) {
+		token = TrimBoth(token);
+		if(!token.IsEmpty())
+			acceptflags.Add(token);
+	}
+	
+	return j + 1;
+}
+
+int UppParser::ParseLibrary(const Vector<String>& lines, int i, bool is_static) {
+	String line = TrimBoth(lines[i]);
+	
+	RegExp reCondQuoted("library\\(([^)]+)\\)\\s+\"([^\"]+)\"");
+	RegExp reCondUnquoted("library\\(([^)]+)\\)\\s+(\\w+)");
+	RegExp reStaticCondUnquoted("static_library\\(([^)]+)\\)\\s+(\\w+)");
+	
+	auto Process = [&](RegExp& re) {
+		if(re.Match(line)) {
+			UppLibraryEntry& le = is_static ? static_libraries.Add() : libraries.Add();
+			le.condition = re[0];
+			le.libs = re[1];
+			return true;
+		}
+		return false;
+	};
+	
+	if(!Process(reCondQuoted))
+		if(!Process(reCondUnquoted))
+			Process(reStaticCondUnquoted);
+			
+	return i + 1;
+}
+
+int UppParser::ParseLink(const Vector<String>& lines, int i) {
+	String line = TrimBoth(lines[i]);
+	
+	RegExp re("^link\\(([^)]+)\\)\\s+(.+?);");
+	if(re.Match(line)) {
+		UppLinkEntry& le = links.Add();
+		le.condition = re[0];
+		le.flags = re[1];
+	}
+	
+	return i + 1;
+}
 
 UppFileEntry UppParser::ParseFileEntry(const String& line) {
 	UppFileEntry fe;

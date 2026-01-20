@@ -1,5 +1,5 @@
 # Task: FileGroup Struct
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Define the `FileGroup` struct in `uppsrc/Maestro/PackageInfo.h` (create file).

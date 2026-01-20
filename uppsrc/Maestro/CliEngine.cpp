@@ -155,15 +155,47 @@ bool CliMaestroEngine::Do() {
 				if(e.type == "turn.delta" || e.type == "partial_message" || e.type == "stream_event") e.delta = true;
 				
 				// Capture session_id
-				// Capture tool usage
-				if(v["type"] == "assistant" || v["type"] == "user") {
+				// Capture tool usage (Generalized)
+				String type = v["type"].ToString();
+				if(type == "tool_use") {
+					e.type = "tool_use";
+					e.tool_name = v["tool_name"].ToString();
+					if(e.tool_name.IsEmpty()) e.tool_name = v["name"].ToString();
+					
+					Value params = v["parameters"];
+					if(params.IsVoid()) params = v["input"];
+					
+					if(params.Is<ValueMap>()) {
+						const ValueMap& vm = params;
+						for(int i = 0; i < vm.GetCount(); i++) {
+							if(i > 0) e.tool_input << "\n";
+							e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+						}
+					} else {
+						e.tool_input = AsJSON(params);
+					}
+				} else if(type == "tool_result") {
+					e.type = "tool_result";
+					e.tool_name = "result";
+					e.text = v["output"].ToString();
+					if(e.text.IsEmpty()) e.text = v["content"].ToString();
+				} else if(type == "assistant" || type == "user") {
 					Value content = v["message"]["content"];
 					if(content.Is<ValueArray>() && content.GetCount() > 0) {
 						Value c0 = content[0];
 						if(c0["type"] == "tool_use") {
 							e.type = "tool_use";
 							e.tool_name = c0["name"].ToString();
-							e.tool_input = AsJSON(c0["input"]);
+							Value params = c0["input"];
+							if(params.Is<ValueMap>()) {
+								const ValueMap& vm = params;
+								for(int i = 0; i < vm.GetCount(); i++) {
+									if(i > 0) e.tool_input << "\n";
+									e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+								}
+							} else {
+								e.tool_input = AsJSON(params);
+							}
 						} else if(c0["type"] == "tool_result") {
 							e.type = "tool_result";
 							e.tool_name = "result";
@@ -181,6 +213,19 @@ bool CliMaestroEngine::Do() {
 				}
 				
 				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid=" + e.session_id) << "\n";
+				
+				// Final check: if it's a tool_use and tool_input is still JSON, format it
+				if(e.type == "tool_use" && !e.tool_input.IsEmpty() && (e.tool_input.StartsWith("{") || e.tool_input.StartsWith("["))) {
+					Value v_in = ParseJSON(e.tool_input);
+					if(!v_in.IsError() && v_in.Is<ValueMap>()) {
+						e.tool_input.Clear();
+						const ValueMap& vm = v_in;
+						for(int i = 0; i < vm.GetCount(); i++) {
+							if(i > 0) e.tool_input << "\n";
+							e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+						}
+					}
+				}
 				
 				if(callback) callback(e);
 			} else {

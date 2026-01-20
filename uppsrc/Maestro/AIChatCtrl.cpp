@@ -27,13 +27,10 @@ int MaestroItem::GetHeight(int width) const {
 }
 
 AIChatCtrl::AIChatCtrl() {
-	Add(menu);
 	Add(vscroll);
 	Add(input);
 	Add(send.SetLabel("Send"));
 	Add(engine_select);
-	
-	menu.Set([=](Bar& bar) { MainMenu(bar); });
 	
 	engine_select.Add("gemini", "Gemini");
 	engine_select.Add("qwen", "Qwen");
@@ -49,15 +46,6 @@ vscroll.WhenScroll = [=] { Layout(); };
 	SetTimeCallback(-50, [=] { Poll(); }); // 50ms poll
 }
 
-void AIChatCtrl::MainMenu(Bar& bar) {
-	Function<void(Bar&)> submenu = [=](Bar& bar) { EditMenu(bar); };
-	bar.Sub("Edit", submenu);
-}
-
-void AIChatCtrl::EditMenu(Bar& bar) {
-	bar.Add("Copy All Chat", [=] { CopyAllChat(); });
-}
-
 void AIChatCtrl::CopyAllChat() {
 	String full_chat;
 	for(const auto& item : items) {
@@ -68,10 +56,6 @@ void AIChatCtrl::CopyAllChat() {
 
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
-	
-	int menu_h = menu.GetStdHeight();
-	menu.SetRect(0, 0, sz.cx, menu_h);
-	
 	int bottom_h = 100;
 	
 	// Layout bottom controls
@@ -82,12 +66,12 @@ void AIChatCtrl::Layout() {
 	input.SetRect(10, sz.cy - bottom_h + 10, sz.cx - 20, 50);
 	
 	// Layout items
-	int view_y = menu_h;
-	int view_h = sz.cy - bottom_h - menu_h;
+	int view_y = 0;
+	int view_h = sz.cy - bottom_h;
 	
-vscroll.SetRect(sz.cx - 16, view_y, 16, view_h);
+vscroll.SetRect(sz.cx - 16, 0, 16, view_h);
 	
-	int y = view_y - vscroll.Get();
+	int y = -vscroll.Get();
 	int w = sz.cx - 16;
 	
 	int total_h = 0;
@@ -169,4 +153,4 @@ void AIChatCtrl::Poll() {
 	engine.Do();
 }
 
-}
+}    

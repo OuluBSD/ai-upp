@@ -7,9 +7,12 @@
 using namespace Upp;
 
 class AIChat : public TopWindow {
+	MenuBar    menu;
 	TabCtrl    tabs;
 	AIChatCtrl chat;
 	StaticText system_view;
+	
+	void MainMenu(Bar& bar);
 	
 public:
 	typedef AIChat CLASSNAME;

@@ -25,7 +25,6 @@ public:
 	Array<MaestroItem> items;
 	ScrollBar          vscroll;
 	
-	MenuBar            menu;
 	DocEdit            input;
 	Button             send;
 	DropList           engine_select;
@@ -38,8 +37,6 @@ public:
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);
 	void CopyAllChat();
-	void MainMenu(Bar& bar);
-	void EditMenu(Bar& bar);
 
 	virtual void Layout() override;
 	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;

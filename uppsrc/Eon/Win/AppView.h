@@ -21,6 +21,10 @@ struct ShellConnectorApp {
     
 };
 
+using UwpVrAppFactory = std::unique_ptr<ShellConnectorApp>(*)();
+void SetUwpVrAppFactory(UwpVrAppFactory factory);
+UwpVrAppFactory GetUwpVrAppFactory();
+
 	
 // IFrameworkView class. Connects the app with the Windows shell and handles application lifecycle events.
 class AppView sealed : public winrt::implements<AppView, winrt::Windows::ApplicationModel::Core::IFrameworkView>
@@ -68,7 +72,6 @@ private:
     
 #if defined(_DEBUG) && !defined(WINRT_NO_MAKE_DETECTION)
 	void use_make_function_to_create_this_object() override {
-		TODO
 	}
 #endif
 };
@@ -85,7 +88,6 @@ private:
     
 #if defined(_DEBUG) && !defined(WINRT_NO_MAKE_DETECTION)
 	void use_make_function_to_create_this_object() override {
-		TODO
 	}
 #endif
 };

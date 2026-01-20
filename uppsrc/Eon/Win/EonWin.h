@@ -79,6 +79,7 @@
 #include <winrt\Windows.UI.Core.h>
 #include <winrt\Windows.UI.Input.Spatial.h>
 
+#include <windows.h>
 
 #include <EcsLocal/EcsLocal.h>
 
@@ -148,6 +149,21 @@
 #ifdef flagWIN32
 #undef CY
 #undef FAR
+#endif
+
+#ifdef flagUWP
+#define UWPVR_APP_MAIN \
+	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__(); \
+	int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) \
+	{ \
+		winrt::init_apartment(); \
+		Upp::SetUwpVrAppFactory(&CreateUwpVrApp__); \
+		winrt::Windows::ApplicationModel::Core::CoreApplication::Run(Upp::AppViewSource()); \
+		return 0; \
+	} \
+	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__()
+#else
+#define UWPVR_APP_MAIN CONSOLE_APP_MAIN
 #endif
 
 #endif

@@ -1,75 +1,82 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+namespace Pbr {
+    struct Resources;
+}
 
-NAMESPACE_UPP
+namespace DX { class DeviceResources; }
 
-using namespace ::Upp::Ecs;
-
-class HolographicScene;
-class TextRenderer;
-class QuadRenderer;
-class SkyboxRenderer;
-
-
-// HolographicRenderer
-// A stereoscopic 3D rendering system, manages rendering everything in the scene
-// Updated to work with multiple VR platforms (OpenVR, OpenHMD, WinRT)
-class HolographicRenderer :
-	public System,
-	public IDeviceNotify
+namespace DemoRoom
 {
-public:
-	using System::System;
-	using Base = System;
-	//RTTI_DECL2(HolographicRenderer, Base, IDeviceNotify)
-	
-    HolographicRenderer(
-        Engine& core,
-        std::shared_ptr<DeviceResources> deviceResources,
-        std::shared_ptr<Pbr::Resources> pbrResources,
-        ID3D11ShaderResourceView* skyboxTexture);
+	class HolographicScene;
+	class TextRenderer;
+	class QuadRenderer;
+	class SkyboxRenderer;
 
-    ~HolographicRenderer();
+	////////////////////////////////////////////////////////////////////////////////
+	// HolographicRenderer
+	// A stereoscopic 3D rendering system, manages rendering everything in the scene
+	// through DirectX 11 and Windows::Perception APIs
+	class HolographicRenderer : public System, public DX::IDeviceNotify
+	{
+	public:
+		CLASSTYPE(HolographicRenderer)
+		HolographicRenderer(
+			VfsValue& v,
+			DX::DeviceResources& deviceResources,
+			Pbr::Resources& pbrResources,
+			ID3D11ShaderResourceView* skyboxTexture);
 
-    std::shared_ptr<Pbr::Resources> GetPbrResources();
-    std::shared_ptr<DeviceResources> GetDeviceResources();
+		~HolographicRenderer();
 
-    void OnDeviceLost() override;
-    void OnDeviceRestored() override;
+		Pbr::Resources* GetPbrResources();
+		DX::DeviceResources* GetDeviceResources();
 
-protected:
-    bool Initialize(const WorldState&) override;
-    bool Start() override;
-    void Update(double) override;
-    void Stop() override;
-    void Uninitialize() override;
+		void OnDeviceLost() override;
+		void OnDeviceRestored() override;
 
-private:
-    //EntityStorePtr m_entityStore;
-    
-    Ptr<HolographicScene> m_holoScene;
+	protected:
+		bool Initialize(const WorldState& ws) override;
+		bool Start() override;
+		void Update(double dt) override;
+		void Stop() override;
+		void Uninitialize() override;
 
-    std::unique_ptr<SkyboxRenderer> m_skyboxRenderer{ nullptr };
+		void BindEventHandlers(
+			const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace);
 
-    std::unordered_map<float, std::unique_ptr<TextRenderer>> m_textRenderers;
-    std::unique_ptr<QuadRenderer> m_quadRenderer{ nullptr };
+		void ReleaseEventHandlers(
+			const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace);
 
-    std::shared_ptr<Pbr::Resources> m_pbrResources{ nullptr };
+	private:
+		Ptr<HolographicScene> holo_scene;
+		One<SkyboxRenderer> skybox_renderer;
+		ArrayMap<float, One<TextRenderer>> text_renderers;
+		One<QuadRenderer> quad_renderer;
+		Pbr::Resources* pbr_resources = nullptr;
+		DX::DeviceResources* device_resources = nullptr;
 
-    std::shared_ptr<DeviceResources> m_deviceResources{ nullptr };
+		winrt::event_token camera_added_token{};
+		winrt::event_token camera_removed_token{};
 
-    TextRenderer* GetTextRendererForFontSize(float fontSize);
+		TextRenderer* GetTextRendererForFontSize(float fontSize);
 
-    // Platform-agnostic rendering method
-    bool RenderAtCameraPose(
-        IVRCamera* camera,
-        void* coordinateSystem,
-        void* prediction);
+		bool RenderAtCameraPose(
+			DX::CameraResources *pCameraResources,
+			winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& coordinateSystem,
+			winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction,
+			winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters const& renderingParameters,
+			winrt::Windows::Graphics::Holographic::HolographicCameraPose const& cameraPose);
 
-    // Platform-specific handlers that work through VRPlatform abstraction
-    void BindEventHandlers();
-    void ReleaseEventHandlers();
-};
+		void OnCameraAdded(
+			winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
+			winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs const& args);
 
-
-END_UPP_NAMESPACE
+		void OnCameraRemoved(
+			winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
+			winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs const& args);
+	};
+}

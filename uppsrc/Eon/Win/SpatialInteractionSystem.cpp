@@ -1,18 +1,19 @@
-#if 0
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace winrt::Windows::UI::Input::Spatial;
 using namespace std::placeholders;
 
+namespace DemoRoom {
+
 bool SpatialInteractionSystem::Initialize(const WorldState& ws)
 {
+	(void)ws;
     m_spatialInteractionManager = SpatialInteractionManager::GetForCurrentView();
     BindEventHandlers();
-    return true;
+	return true;
 }
 
 void SpatialInteractionSystem::Uninitialize()
@@ -56,7 +57,7 @@ void SpatialInteractionSystem::HandleSourceDetected(
     const SpatialInteractionManager& /*sender*/,
     const SpatialInteractionSourceEventArgs& args)
 {
-    for (const auto& listener : m_spatialInteractionListeners.PurgeAndGetListeners())
+    for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
         listener->OnSourceDetected(args);
     }
@@ -66,7 +67,7 @@ void SpatialInteractionSystem::HandleSourceLost(
     const SpatialInteractionManager& /*sender*/,
     const SpatialInteractionSourceEventArgs& args)
 {
-    for (const auto& listener : m_spatialInteractionListeners.PurgeAndGetListeners())
+    for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
         listener->OnSourceLost(args);
     }
@@ -76,7 +77,7 @@ void SpatialInteractionSystem::HandleSourcePressed(
     const SpatialInteractionManager& /*sender*/,
     const SpatialInteractionSourceEventArgs& args)
 {
-    for (const auto& listener : m_spatialInteractionListeners.PurgeAndGetListeners())
+    for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
         listener->OnSourcePressed(args);
     }
@@ -86,7 +87,7 @@ void SpatialInteractionSystem::HandleSourceUpdated(
     const SpatialInteractionManager& /*sender*/,
     const SpatialInteractionSourceEventArgs& args)
 {
-    for (const auto& listener : m_spatialInteractionListeners.PurgeAndGetListeners())
+    for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
         listener->OnSourceUpdated(args);
     }
@@ -96,12 +97,11 @@ void SpatialInteractionSystem::HandleSourceReleased(
     const SpatialInteractionManager& /*sender*/,
     const SpatialInteractionSourceEventArgs& args)
 {
-    for (const auto& listener : m_spatialInteractionListeners.PurgeAndGetListeners())
+    for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
         listener->OnSourceReleased(args);
     }
 }
 
+} // namespace DemoRoom
 
-END_UPP_NAMESPACE
-#endif

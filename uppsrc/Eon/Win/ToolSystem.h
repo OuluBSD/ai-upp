@@ -1,160 +1,151 @@
-#if 0
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
-
-NAMESPACE_UPP
-
-
-////////////////////////////////////////////////////////////////////////////////
-// ToolSystemBase
-// Base abstract class for all ToolSystems
-class ToolSystemBase abstract :
-	public System
+namespace DemoRoom
 {
-public:
-	//RTTI_DECL1(ToolSystemBase, SystemBase)
-    using SystemBase::SystemBase;
-
-    virtual std::wstring_view GetInstructions() const = 0;
-    virtual std::wstring_view GetDisplayName() const = 0;
-    
-    virtual EntityPtr CreateToolSelector() const = 0;
-
-    virtual void Register(Array<EntityPtr>& entities) = 0;
-    virtual void Unregister() = 0;
-    virtual void Activate(Entity& entity) = 0;
-    virtual void Deactivate(Entity& entity) = 0;
-};
-
-struct ToolSelectorKey : Component
-{
-	COPY_PANIC(ToolSelectorKey)
-	
-    //detail::type_id type{ typeid(nullptr_t) };
-    TypeCls type;
-    
-	
-};
-
-struct ToolSelectorPrefab : EntityPrefab<Transform, PbrRenderable, ToolSelectorKey, RigidBody, Easing>
-{
-    static Components Make(Entity& e);
-};
-
-// CRTP implementation helper
-// Usage: class MyToolSystem : ToolSystem<MyToolSystem> { /* functions + data members */ };
-// Adds functionality to automatically register to listeners and helpers to access entities 
-// that actually have the associated ToolComponent attached and enabled
-template<typename T, typename ToolComponent>
-class ToolSystem abstract :
-    public ToolSystemBase,
-    public ISpatialInteractionListener
-    //public std::enable_shared_from_this<T>
-{
-public:
-	using ToolSystemT = ToolSystem<T,ToolComponent>;
-    using ToolSystemBase::ToolSystemBase;
-	
-	//RTTI_DECL2(ToolSystemT, ToolSystemBase, ISpatialInteractionListener)
-	
-    // System
-    //detail::type_id type() const override {return typeid(T);}
-
-protected:
-    // System
-    void Start() override
-    {
-        auto tb = GetEngine().TryGet<ToolboxSystem>();
-        if (tb) {
-            tb->AddToolSystem(*this);
-        }
-    }
-
-    void Stop() override
-    {
-        auto tb = GetEngine().TryGet<ToolboxSystem>();
-        if (tb) {
-            tb->RemoveToolSystem(*this);
-        }
-    }
-
+    ////////////////////////////////////////////////////////////////////////////////
     // ToolSystemBase
-    void Register(Array<EntityPtr>& entities) override
+    // Base abstract class for all ToolSystems
+    class ToolSystemBase abstract : public System
     {
-        m_entities <<= entities;
+    public:
+        SYS_CTOR(ToolSystemBase)
 
-        for (auto& entity : m_entities) {
-            entity->Add<ToolComponent>()->SetEnabled(false);
-        }
+        virtual std::wstring_view GetInstructions() const = 0;
+        virtual std::wstring_view GetDisplayName() const = 0;
 
-        auto sys = GetEngine().TryGet<SpatialInteractionSystem>();
-        if (sys) {
-            sys->AddListener(*this);
-        }
-    }
+        virtual EntityPtr CreateToolSelector() const = 0;
 
-    void Unregister() override
-    {
-        auto sys = GetEngine().TryGet<SpatialInteractionSystem>();
-        if (sys) {
-            sys->RemoveListener(*this);
-        }
+        virtual void Register(Vector<EntityPtr> entities) = 0;
+        virtual void Unregister() = 0;
+        virtual void Activate(Entity& entity) = 0;
+        virtual void Deactivate(Entity& entity) = 0;
 
-        for (auto& entity : m_entities)
+    protected:
+        bool Initialize(const WorldState& ws) override
         {
-            entity->Remove<ToolComponent>();
+            ws_at_init = ws;
+            return true;
         }
 
-        m_entities.Clear();
-    }
+        WorldState ws_at_init;
+    };
 
-    void Activate(Entity& entity) override
+    struct ToolSelectorKey : Component
     {
-        entity.Get<ToolComponent>()->SetEnabled(true);
-    }
+        ECS_COMPONENT_CTOR(ToolSelectorKey)
 
-    void Deactivate(Entity& entity) override
+        TypeCls type;
+    };
+
+    struct ToolSelectorPrefab : EntityPrefab<Transform, PbrRenderable, ToolSelectorKey, RigidBody, Easing>
     {
-        entity.Get<ToolComponent>()->SetEnabled(false);
-    }
+        static Components Make(Entity& e, const WorldState& ws);
+    };
 
-    // Internal helpers
-    std::vector<std::tuple<Entity*, ToolComponent*>> GetEnabledEntities() const
+    // CRTP implementation helper
+    // Usage: class MyToolSystem : ToolSystem<MyToolSystem> { /* functions + data members */ };
+    // Adds functionality to automatically register to listeners and helpers to access entities 
+    // that actually have the associated ToolComponent attached and enabled
+    template<typename T, typename ToolComponent>
+    class ToolSystem abstract : 
+        public ToolSystemBase, 
+        public ISpatialInteractionListener
     {
-        std::vector<std::tuple<Entity*, ToolComponent*>> entities;
+    public:
+        using ToolSystemBase::ToolSystemBase;
 
-        for (auto& entity : m_entities)
+    protected:
+        // System
+        bool Start() override
         {
-            auto comp = entity->Get<ToolComponent>();
-            if (comp->IsEnabled())
+            GetEngine().Get<ToolboxSystem>()->AddToolSystem(*this);
+            return true;
+        }
+
+        void Stop() override
+        {
+            GetEngine().Get<ToolboxSystem>()->RemoveToolSystem(*this);
+        }
+
+        // ToolSystemBase
+        void Register(Vector<EntityPtr> entities) override
+        {
+            m_entities = pick(entities);
+
+            for (auto& entity : m_entities)
             {
-                entities.push_back(std::make_tuple(entity.get(), std::move(comp)));
-            }
-        }
-
-        return entities;
-    }
-
-    std::optional<std::tuple<Entity*, ToolComponent*>> TryGetEntityFromSource(const winrt::Windows::UI::Input::Spatial::SpatialInteractionSource& source) const
-    {
-        for (auto& entity : m_entities)
-        {
-            auto comp = entity->Get<ToolComponent>();
-            if (comp->IsEnabled())
-            {
-                if (entity->Get<MotionControllerComponent>()->IsSource(source))
-                {
-                    return std::make_tuple(entity.get(), std::move(comp));
+                if (!entity)
+                    continue;
+                auto comp = entity->val.Find<ToolComponent>();
+                if (!comp) {
+                    auto tuple = entity->CreateComponents<ToolComponent>(ws_at_init);
+                    comp = tuple.Get<Ptr<ToolComponent>>();
                 }
+                comp->SetEnabled(false);
             }
+
+            GetEngine().Get<SpatialInteractionSystem>()->AddListener(this);
         }
-        
-        return std::nullopt;
-    }
 
-    Array<EntityPtr> m_entities;
-};
+        void Unregister() override 
+        {
+            GetEngine().Get<SpatialInteractionSystem>()->RemoveListener(this);
 
+            for (auto& entity : m_entities)
+            {
+                if (entity)
+                    entity->val.RemoveAllShallow<ToolComponent>();
+            }
 
-END_UPP_NAMESPACE
-#endif
+            m_entities.Clear();
+        }
+
+        void Activate(Entity& entity) override
+        {
+            if (auto comp = entity.val.Find<ToolComponent>())
+                comp->SetEnabled(true);
+        }
+
+        void Deactivate(Entity& entity) override
+        {
+            if (auto comp = entity.val.Find<ToolComponent>())
+                comp->SetEnabled(false);
+        }
+
+        // Internal helpers
+        Vector<Tuple<Entity*, ToolComponent*>> GetEnabledEntities() const
+        {
+            Vector<Tuple<Entity*, ToolComponent*>> entities;
+
+            for (auto& entity : m_entities)
+            {
+                if (!entity)
+                    continue;
+                auto comp = entity->val.Find<ToolComponent>();
+                if (comp && comp->IsEnabled())
+                    entities.Add(MakeTuple(~entity, comp));
+            }
+            return entities;
+        }
+
+        std::optional<Tuple<Entity*, ToolComponent*>> TryGetEntityFromSource(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSource& source) const
+        {
+            auto entities = GetEnabledEntities();
+            for (auto& entity : entities)
+            {
+                auto ent = entity.Get<0>();
+                auto controller = ent->val.Find<MotionControllerComponent>();
+                if (controller && controller->IsSource(source))
+                    return entity;
+            }
+            return std::nullopt;
+        }
+
+    protected:
+        Vector<EntityPtr> m_entities;
+    };
+}

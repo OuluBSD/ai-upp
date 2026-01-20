@@ -2,7 +2,8 @@ description "Maestro AI Engine Interface\377B";
 
 uses
 	Core,
-	CtrlLib;
+	CtrlLib,
+	plugin/pcre;
 
 file
 	Maestro.h,

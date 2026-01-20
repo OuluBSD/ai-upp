@@ -59,7 +59,34 @@ void UppParser::Parse(const String& content) {
 	}
 }
 
-int UppParser::ParseDescription(const Vector<String>& lines, int i) { return i + 1; }
+int UppParser::ParseDescription(const Vector<String>& lines, int i) {
+	String line = TrimBoth(lines[i]);
+	RegExp re("^description\\s+\"([^\"]*)\"");
+	if(re.Match(line)) {
+		raw_description = re[0];
+		description_text = raw_description;
+		
+		RegExp reColor("\\\\377B(\\d+),(\\d+),(\\d+)$");
+		RegExp reColorOct("\377B(\\d+),(\\d+),(\\d+)$");
+		
+		auto ExtractColor = [&](RegExp& rc) {
+			if(rc.Match(description_text)) {
+				description_color = Color(StrInt(rc[0]), StrInt(rc[1]), StrInt(rc[2]));
+				int s, e;
+				rc.GetMatchPos(0, s, e);
+				description_text = description_text.Left(s);
+				return true;
+			}
+			return false;
+		};
+		
+		if(!ExtractColor(reColor))
+			ExtractColor(reColorOct);
+	} else {
+		unparsed_lines.Add(lines[i]);
+	}
+	return i + 1;
+}
 int UppParser::ParseUses(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseFiles(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseMainConfig(const Vector<String>& lines, int i) { return i + 1; }

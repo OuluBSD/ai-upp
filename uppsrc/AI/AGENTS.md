@@ -48,7 +48,10 @@ Testing
 - Always test the compilation with `script/build.py -j <cpu_count-2> <pkgname>` before stopping.
 
 ## Planning System & Continuity
-- **Plan Storage**: The project roadmap is stored in `uppsrc/AI/plan/<track>/<phase>/<task>.md`. Each file contains the task status and objective.
+- **Plan Structure**: The project roadmap is stored in `uppsrc/AI/plan/<track>/<phase>/<task>.md`.
+  - **Granularity**: Plans must be fine-grained, focusing on individual source files, functions, and classes.
+  - **Compilability**: The codebase MUST be compilable after *every* single task.
+  - **Commits**: Git commits must be performed after *every* task is completed.
 - **State Persistence**: The current working context is stored in `uppsrc/AI/cookie.txt` (KEY=VALUE format).
   - `TRACK`: Current active track directory name.
   - `PHASE`: Current active phase directory name.

@@ -31,6 +31,8 @@ public:
 	
 	String             current_response;
 	
+	Event<>            WhenDone;
+	
 	void OnSend();
 	void OnEvent(const MaestroEvent& e);
 	void Poll();

@@ -47,3 +47,16 @@ Extending
 Testing
 - Always test the compilation with `script/build.py -j <cpu_count-2> <pkgname>` before stopping.
 
+## Planning System & Continuity
+- **Plan Storage**: The project roadmap is stored in `uppsrc/AI/plan/<track>/<phase>/<task>.md`. Each file contains the task status and objective.
+- **State Persistence**: The current working context is stored in `uppsrc/AI/cookie.txt` (KEY=VALUE format).
+  - `TRACK`: Current active track directory name.
+  - `PHASE`: Current active phase directory name.
+  - `TASK`: Current active task filename.
+  - `STATUS`: Status of the current task (IN_PROGRESS, DONE).
+- **Workflow**:
+  - When asked to "continue", read `uppsrc/AI/cookie.txt`.
+  - If `STATUS=IN_PROGRESS`, resume the specified task.
+  - If `STATUS=DONE`, find the next task in the directory structure (alphabetical order) and start it.
+  - Update `cookie.txt` and the task `.md` file status as you progress.
+

@@ -1,0 +1,4 @@
+TRACK=MaestroPort
+PHASE=01_Foundation
+TASK=02_BasicChatGUI.md
+STATUS=DONE

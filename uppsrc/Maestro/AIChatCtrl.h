@@ -37,6 +37,7 @@ public:
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);
 	void CopyAllChat();
+	void CopyDebugData();
 
 	virtual void Layout() override;
 	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;

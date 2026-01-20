@@ -12,6 +12,8 @@ struct MaestroEvent {
 
 class MaestroEngine {
 public:
+	String debug_log;
+
 	virtual ~MaestroEngine() {}
 	virtual void Send(const String& prompt, Function<void(const MaestroEvent&)> cb) = 0;
 	virtual void Cancel() = 0;

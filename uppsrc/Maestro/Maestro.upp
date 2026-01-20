@@ -22,5 +22,7 @@ file
 	PlanParser.cpp,
 	RepoView.h,
 	RepoView.cpp,
+	PlanView.h,
+	PlanView.cpp,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

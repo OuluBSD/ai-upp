@@ -7,3 +7,4 @@ BINARY(uwp_csproj_tpl, "UwpTemplates/UwpCSharp.csproj.tpl")
 // Keep template resources in sync with per-package project generation.
 // Updated for CompileAsWinRT default override.
 // Updated for per-app SubSystem selection.
+// Updated for PhoneIdentity tokens.

@@ -81,7 +81,7 @@ bool CliMaestroEngine::Do() {
 				
 				if(callback) callback(e);
 			} else {
-				debug_log << "WARN: Failed to parse JSON\n";
+				debug_log << "WARN: Failed to parse JSON: " << line << "\n";
 			}
 		}
 	}

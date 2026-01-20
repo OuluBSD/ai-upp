@@ -1,0 +1,14 @@
+description "Maestro AI Engine Interface\377B";
+
+uses
+	Core,
+	CtrlLib;
+
+file
+	Maestro.h,
+	Engine.h,
+	CliEngine.h,
+	CliEngine.cpp,
+	Engines.h,
+	AIChatCtrl.h,
+	AIChatCtrl.cpp;

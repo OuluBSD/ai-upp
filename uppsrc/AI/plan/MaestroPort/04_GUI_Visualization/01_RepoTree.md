@@ -1,5 +1,5 @@
 # Task: Repo Tree View
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Create a `TreeCtrl` based view to display the scanned repository structure (Assemblies -> Packages -> Files).

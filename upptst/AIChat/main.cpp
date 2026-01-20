@@ -40,6 +40,7 @@ system_splitter.Horz() << repo_view << plan_view;
 	String backend;
 	String input;
 	bool dump_sessions = false;
+	bool test_session_window = false;
 	
 	for(int i = 0; i < cmdline.GetCount(); i++) {
 		if(cmdline[i] == "--backend" && i + 1 < cmdline.GetCount())
@@ -48,6 +49,18 @@ system_splitter.Horz() << repo_view << plan_view;
 			input = cmdline[++i];
 		else if(cmdline[i] == "--dump-sessions")
 			dump_sessions = true;
+		else if(cmdline[i] == "--test-session-window")
+			test_session_window = true;
+	}
+	
+	if(test_session_window && !backend.IsEmpty()) {
+		chat.engine_select.SetData(backend);
+		PostCallback([=] {
+			chat.OnSelectSession();
+		});
+		SetTimeCallback(2000, [=] {
+			PostCallback(callback(const_cast<AIChat*>(this), &TopWindow::Close));
+		});
 	}
 	
 	if(dump_sessions && !backend.IsEmpty()) {

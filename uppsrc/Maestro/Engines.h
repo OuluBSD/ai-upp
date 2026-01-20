@@ -31,6 +31,7 @@ inline CliMaestroEngine& ConfigureCodex(CliMaestroEngine& e) {
 	e.Binary("codex")
 	 .Arg("exec")
 	 .Arg("--dangerously-bypass-approvals-and-sandbox")
+	 .Arg("--skip-git-repo-check")
 	 .Arg("--json");
 	return e;
 }

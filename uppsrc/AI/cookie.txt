@@ -1,4 +1,4 @@
 TRACK=MaestroPort
 PHASE=02_RepoScanning
-TASK=12_AssemblyInfo.md
+TASK=13_AssemblyDetection.md
 STATUS=DONE

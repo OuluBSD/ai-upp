@@ -340,6 +340,9 @@ bool UwpBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 	pkg.Load(PackageFile(package));
 	String packagedir = PackageDirectory(package);
 	GetProjectData(package);
+	if(package == mainpackage) {
+		main_uses_gui = FindIndex(all_uses, "CtrlLib") >= 0 || FindIndex(all_uses, "CtrlCore") >= 0;
+	}
 
 	ChDir(packagedir);
 	PutVerbose("cd " + packagedir);
@@ -760,6 +763,15 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 				project_defines = JoinUwpList(filtered, ";");
 			}
 
+			String link_settings;
+			if(is_app) {
+				StringBuffer link;
+				link << "    <Link>\n"
+				     << "      <SubSystem>" << (main_uses_gui ? "Windows" : "Console") << "</SubSystem>\n"
+				     << "    </Link>\n";
+				link_settings = String(link);
+			}
+
 			VectorMap<String, String> proj_tokens;
 			proj_tokens.Add("PROJECT_GUID", XmlEscape(project_guids.Get(pkg)));
 			proj_tokens.Add("ROOT_NAMESPACE", XmlEscape(project_names.Get(pkg)));
@@ -777,6 +789,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 			proj_tokens.Add("PROJECT_REFERENCES", project_refs);
 			proj_tokens.Add("APPX_MANIFEST_ITEM", appx_item);
 			proj_tokens.Add("APPX_PACKAGE", appx_package);
+			proj_tokens.Add("LINK_SETTINGS", link_settings);
 			project_tokens.GetAdd(pkg) = pick(proj_tokens);
 
 			VectorMap<String, String> filter_tokens;

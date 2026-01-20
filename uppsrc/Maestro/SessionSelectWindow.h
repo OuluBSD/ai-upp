@@ -13,13 +13,14 @@ public:
 	CliMaestroEngine* engine = nullptr;
 	String    selected_id;
 	
+	void DataDirectories();
 	void OnDirCursor();
 	void OnSessionDouble();
 	
 	void Load(CliMaestroEngine& engine);
 
 	typedef SessionSelectWindow CLASSNAME;
-	SessionSelectWindow();
+	SessionSelectWindow(CliMaestroEngine& engine);
 };
 
 #endif

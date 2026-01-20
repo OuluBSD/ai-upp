@@ -3,7 +3,7 @@
 
 namespace Upp {
 
-SessionSelectWindow::SessionSelectWindow() {
+SessionSelectWindow::SessionSelectWindow(CliMaestroEngine& e) : engine(&e) {
 	Title("Select AI Session");
 	SetRect(0, 0, 800, 500);
 	Sizeable().Zoomable();
@@ -20,12 +20,14 @@ SessionSelectWindow::SessionSelectWindow() {
 	
 	dirs.WhenCursor = [=] { OnDirCursor(); };
 	sessions.WhenLeftDouble = [=] { OnSessionDouble(); };
+	
+	PostCallback(THISBACK(DataDirectories));
 }
 
-void SessionSelectWindow::Load(CliMaestroEngine& e) {
-	engine = &e;
+void SessionSelectWindow::DataDirectories() {
 	dirs.Clear();
 	sessions.Clear();
+	if(!engine) return;
 	
 	// Ensure we have scanned projects
 	engine->ListSessions("", [](const Array<SessionInfo>&) {}); // Trigger scan
@@ -35,11 +37,18 @@ void SessionSelectWindow::Load(CliMaestroEngine& e) {
 	}
 }
 
+void SessionSelectWindow::Load(CliMaestroEngine& e) {
+	engine = &e;
+	DataDirectories();
+}
+
 void SessionSelectWindow::OnDirCursor() {
 	sessions.Clear();
 	if(!dirs.IsCursor() || !engine) return;
 	
 	int idx = dirs.Get("IDX");
+	if(idx < 0 || idx >= engine->project_sessions.GetCount()) return;
+	
 	const Array<SessionInfo>& s_list = engine->project_sessions[idx];
 	
 	for(const auto& s : s_list) {

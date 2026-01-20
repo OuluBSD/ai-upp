@@ -67,16 +67,23 @@ static void sNoBlock(int fd)
 
 #ifdef PLATFORM_WIN32
 bool Win32CreateProcess(const char *command, const char *envptr, STARTUPINFOW& si, PROCESS_INFORMATION& pi, const char *cd)
-{ // provides conversion of charset for cmdline
+{
+#ifdef flagUWP
+	return false;
+#else
 	Vector<WCHAR> cmd = ToSystemCharsetW(command);
 	cmd.Add(0);
-	return CreateProcessW(NULL, cmd, NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, (void *)envptr,
+	return CreateProcessW(NULL, cmd.begin(), NULL, NULL, TRUE, NORMAL_PRIORITY_CLASS, (void *)envptr,
 	                      cd ? ToSystemCharsetW(cd).begin() : NULL, &si, &pi);
+#endif
 }
 #endif
 
 bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool spliterr, const char *envptr, const char *cd)
 {
+#ifdef flagUWP
+	return false;
+#else
 	LLOG("LocalProcess::Start(\"" << command << "\")");
 
 	Kill();
@@ -117,7 +124,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 	PROCESS_INFORMATION pi;
 	STARTUPINFOW si;
 	ZeroMemory(&si, sizeof(STARTUPINFOW));
-	si.cb = sizeof(STARTUPINFO);
+	si.cb = sizeof(STARTUPINFOW);
 	si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
 	si.wShowWindow = SW_HIDE;
 	si.hStdInput  = hInputRead;
@@ -129,12 +136,13 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 		for(int i = 0; i < arg->GetCount(); i++) {
 			cmdh << ' ';
 			String argument = (*arg)[i];
-			if(argument.GetCount() && argument.FindFirstOf(" \t\n\v\"") < 0)
+			if(argument.GetCount() && argument.FindFirstOf(" \t\n\v\"" ) < 0)
 				cmdh << argument;
 			else {
-				cmdh << '\"';
+				cmdh << '"';
 				const char *s = argument;
-				for(;;) {
+				for(;;)
+				{
 					int num_backslashes = 0;
 					while(*s == '\\') {
 						s++;
@@ -145,9 +153,9 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 						break;
 					}
 					else
-					if(*s == '\"') {
+					if(*s == '"') {
 						cmdh.Cat('\\', 2 * num_backslashes + 1);
-						cmdh << '\"';
+						cmdh << '"';
 					}
 					else {
 						cmdh.Cat('\\', num_backslashes);
@@ -155,7 +163,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 					}
 					s++;
 				}
-				cmdh << '\"';
+				cmdh << '"';
 			}
 	    }
 		command = cmdh;
@@ -188,7 +196,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 		cmd_buf.Alloc(n + 1);
 		char *p = cmd_buf;
 		args.Add(p);
-		int l = strlen(command) + 1;
+		int l = (int)strlen(command) + 1;
 		memcpy(p, command, l);
 		p += l;
 		for(int i = 0; i < arg->GetCount(); i++) {
@@ -197,6 +205,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 			memcpy(p, ~(*arg)[i], l);
 			p += l;
 		}
+		args.Add(NULL);
 	}
 	else { // parse command line for execve
 		cmd_buf.Alloc(strlen(command) + 1);
@@ -213,7 +222,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 						if(*++p)
 							*cmd_out++ = *p++;
 					}
-					else if(c == '\"' || c == '\'') {
+					else if(c == '"' || c == '"') {
 						p++;
 						while(*p && *p != c)
 							if(*p == '\\') {
@@ -347,6 +356,7 @@ bool LocalProcess::DoStart(const char *command, const Vector<String> *arg, bool 
 //	printf("Error running '%s', error code %d\n", command, errno);
 	abort(); // do not use exit here: it calls global destructors...
 	return true;
+#endif
 #endif
 }
 
@@ -545,7 +555,7 @@ bool LocalProcess::Read2(String& reso, String& rese)
 		rese << FromSystemCharset(res[1]);
 	} else {
 		reso << res[0];
-		rese << res[1];
+		reso << res[1];
 	}
 	return !IsNull(res[0]) || !IsNull(res[1]) || was_running;
 #endif
@@ -629,7 +639,8 @@ int LocalProcess::Finish(String& out)
 			out.Cat(h);
 	}
 	LLOG("Finish: About to read the rest of output");
-	for(;;) {
+	for(;;)
+	{
 		String h = Get();
 		if(h.IsVoid())
 			break;
@@ -668,4 +679,4 @@ String Sys(const char *cmd, const Vector<String>& arg, bool convertcharset)
 	return Sys(cmd, arg, r, convertcharset) ? String::GetVoid() : r;
 }
 
-}
+}    

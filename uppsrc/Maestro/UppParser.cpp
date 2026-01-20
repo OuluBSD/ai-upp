@@ -87,7 +87,42 @@ int UppParser::ParseDescription(const Vector<String>& lines, int i) {
 	}
 	return i + 1;
 }
-int UppParser::ParseUses(const Vector<String>& lines, int i) { return i + 1; }
+int UppParser::ParseUses(const Vector<String>& lines, int i) {
+	String accumulated;
+	int j = i;
+	while(j < lines.GetCount()) {
+		accumulated << " " << TrimBoth(lines[j]);
+		if(lines[j].Find(';') >= 0) break;
+		j++;
+	}
+	
+	String content = accumulated;
+	content.Replace("uses", "");
+	content.Replace(";", "");
+	content = TrimBoth(content);
+	
+	String condition;
+	RegExp reCond("^\\(([^)]+)\\)\\s+(.+)");
+	if(reCond.Match(content)) {
+		condition = reCond[0];
+		content = reCond[1];
+	}
+	
+	Vector<String> tokens = Split(content, [](int c) { return IsSpace(c) || c == ',' ? 1 : 0; });
+	for(String token : tokens) {
+		token = TrimBoth(token);
+		if(token.IsEmpty()) continue;
+		if(token == "|" || token == "&" || token == "!" || token == "(" || token == ")") continue;
+		if(IsUpper(token[0])) continue; // Likely a flag
+		
+		UppUseEntry& u = uses.Add();
+		u.package = token;
+		u.package.Replace("\\", "/");
+		u.condition = condition;
+	}
+	
+	return j + 1;
+}
 int UppParser::ParseFiles(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseMainConfig(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) { return i + 1; }

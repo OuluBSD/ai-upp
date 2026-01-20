@@ -14,5 +14,7 @@ file
 	PackageInfo.h,
 	UppParser.h,
 	UppParser.cpp,
+	RepoScanner.h,
+	AssemblyInfo.h,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

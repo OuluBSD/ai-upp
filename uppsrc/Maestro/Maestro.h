@@ -9,6 +9,7 @@ namespace Upp {
 #include "Engine.h"
 #include "CliEngine.h"
 #include "Engines.h"
+#include "PackageInfo.h"
 
 }
 

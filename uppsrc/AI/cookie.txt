@@ -1,4 +1,4 @@
 TRACK=MaestroPort
-PHASE=01_Foundation
-TASK=02_BasicChatGUI.md
+PHASE=02_RepoScanning
+TASK=01_FileGroup_Struct.md
 STATUS=DONE

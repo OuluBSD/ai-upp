@@ -1,5 +1,5 @@
 # Task: UppParser Config
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement `ParseMainConfig`, `ParseAcceptFlags`, `ParseLibraries`, `ParseLink`.

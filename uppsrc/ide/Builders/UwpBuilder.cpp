@@ -690,11 +690,16 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		    << "\tEndGlobalSection\n"
 		    << "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n";
 		for(int i = 0; i < packages.GetCount(); i++) {
-			String guid = project_guids.Get(packages[i]);
+			String pkg = packages[i];
+			String guid = project_guids.Get(pkg);
 			sln << "\t\t{" << guid << "}.Debug|x64.ActiveCfg = Debug|x64\n"
 			    << "\t\t{" << guid << "}.Debug|x64.Build.0 = Debug|x64\n"
 			    << "\t\t{" << guid << "}.Release|x64.ActiveCfg = Release|x64\n"
 			    << "\t\t{" << guid << "}.Release|x64.Build.0 = Release|x64\n";
+			if(pkg == mainpackage && !HasFlag("UWP_SMOKETEST")) {
+				sln << "\t\t{" << guid << "}.Debug|x64.Deploy.0 = Debug|x64\n"
+				    << "\t\t{" << guid << "}.Release|x64.Deploy.0 = Release|x64\n";
+			}
 		}
 		sln << "\tEndGlobalSection\n"
 		    << "\tGlobalSection(SolutionProperties) = preSolution\n"

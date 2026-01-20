@@ -18,6 +18,7 @@ namespace Upp {
 #include "PlanParser.h"
 #include "RepoView.h"
 #include "PlanView.h"
+#include "SessionSelectWindow.h"
 
 }
 

@@ -19,6 +19,10 @@ public:
 	
 	bool IsRunning() { return p && p->IsRunning(); }
 	virtual bool Do() override;
+	
+	virtual void ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) override;
+	
+	VectorMap<String, Array<SessionInfo>> project_sessions;
 };
 
 #endif

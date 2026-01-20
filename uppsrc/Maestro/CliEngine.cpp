@@ -174,4 +174,60 @@ bool CliMaestroEngine::Do() {
 	return p->IsRunning() || !buffer.IsEmpty();
 }
 
+void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) {
+	if(binary == "qwen") {
+		// Qwen doesn't have a list-sessions CLI yet, so we parse ~/.qwen/projects/
+		String home = GetHomeDirectory();
+		String projects_dir = AppendFileName(home, ".qwen/projects");
+		
+		project_sessions.Clear();
+		
+		FindFile ff(AppendFileName(projects_dir, "*"));
+		while(ff) {
+			if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
+				String dir_name = ff.GetName();
+				// Convert - to / for path
+				String resolved_path = dir_name;
+				resolved_path.Replace("-", "/");
+				if(!resolved_path.StartsWith("/"))
+					resolved_path = "/" + resolved_path;
+				
+				Array<SessionInfo>& sessions = project_sessions.GetAdd(resolved_path);
+				
+				String chats_dir = AppendFileName(ff.GetPath(), "chats");
+				FindFile fchat(AppendFileName(chats_dir, "*.jsonl"));
+				while(fchat) {
+					SessionInfo& s = sessions.Add();
+					s.id = GetFileTitle(fchat.GetName());
+					s.timestamp = fchat.GetLastWriteTime();
+					
+					// Parse first line of jsonl for name
+					String first_line = FileIn(fchat.GetPath()).GetLine();
+					Value v = ParseJSON(first_line);
+					if(!v.IsError() && !v["message"]["parts"][0]["text"].IsVoid()) {
+						s.name = v["message"]["parts"][0]["text"].ToString().Left(100);
+						s.name.Replace("\n", " ");
+					} else {
+						s.name = s.id;
+					}
+					
+					fchat.Next();
+				}
+			}
+			ff.Next();
+		}
+		
+		// Find sessions for current cwd
+		int q = project_sessions.Find(cwd);
+		if(q >= 0) {
+			cb(project_sessions[q]);
+		} else {
+			cb(Array<SessionInfo>());
+		}
+	} else {
+		// Generic placeholder for other engines
+		cb(Array<SessionInfo>());
+	}
+}
+
 } // namespace Upp

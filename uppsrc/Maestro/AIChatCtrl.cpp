@@ -157,9 +157,11 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
 		}
 		current_response.Clear();
+		WhenDone();
 	}
 	else if(e.type == "error") {
 		AddItem("Error", e.text, true);
+		WhenDone();
 	}
 }
 

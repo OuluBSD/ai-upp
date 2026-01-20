@@ -61,6 +61,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
+@LINK_SETTINGS@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -72,6 +73,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
+@LINK_SETTINGS@
   </ItemDefinitionGroup>
   <ItemGroup>
 @CLCOMPILE@

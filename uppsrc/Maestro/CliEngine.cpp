@@ -175,10 +175,11 @@ bool CliMaestroEngine::Do() {
 }
 
 void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) {
+	debug_log << "=== LIST SESSIONS (CWD: " << cwd << ") ===\n";
 	if(binary == "qwen") {
-		// Qwen doesn't have a list-sessions CLI yet, so we parse ~/.qwen/projects/
 		String home = GetHomeDirectory();
 		String projects_dir = AppendFileName(home, ".qwen/projects");
+		debug_log << "Scanning projects in: " << projects_dir << "\n";
 		
 		project_sessions.Clear();
 		
@@ -186,11 +187,12 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 		while(ff) {
 			if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
 				String dir_name = ff.GetName();
-				// Convert - to / for path
 				String resolved_path = dir_name;
 				resolved_path.Replace("-", "/");
 				if(!resolved_path.StartsWith("/"))
 					resolved_path = "/" + resolved_path;
+				
+				debug_log << "Found project: " << dir_name << " -> " << resolved_path << "\n";
 				
 				Array<SessionInfo>& sessions = project_sessions.GetAdd(resolved_path);
 				
@@ -201,11 +203,20 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 					s.id = GetFileTitle(fchat.GetName());
 					s.timestamp = fchat.GetLastWriteTime();
 					
+					debug_log << "  Session: " << s.id << "\n";
+					
 					// Parse first line of jsonl for name
 					String first_line = FileIn(fchat.GetPath()).GetLine();
 					Value v = ParseJSON(first_line);
 					if(!v.IsError() && !v["message"]["parts"][0]["text"].IsVoid()) {
 						s.name = v["message"]["parts"][0]["text"].ToString().Left(100);
+						s.name.Replace("\n", " ");
+					} else if(!v.IsError() && !v["message"]["content"].IsVoid()) { // Some versions use content
+						Value content = v["message"]["content"];
+						if(content.Is<ValueArray>() && content.GetCount() > 0)
+							s.name = content[0]["text"].ToString().Left(100);
+						else
+							s.name = content.ToString().Left(100);
 						s.name.Replace("\n", " ");
 					} else {
 						s.name = s.id;
@@ -217,15 +228,25 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 			ff.Next();
 		}
 		
+		debug_log << "Total projects scanned: " << project_sessions.GetCount() << "\n";
+		
 		// Find sessions for current cwd
 		int q = project_sessions.Find(cwd);
+		if(q < 0) {
+			// Try normalized version (remove trailing slash)
+			String ncwd = cwd;
+			while(ncwd.EndsWith("/") || ncwd.EndsWith("\\")) ncwd.Trim(ncwd.GetCount() - 1);
+			q = project_sessions.Find(ncwd);
+		}
+		
 		if(q >= 0) {
+			debug_log << "Matched sessions for CWD: " << project_sessions.GetKey(q) << " (count: " << project_sessions[q].GetCount() << ")\n";
 			cb(project_sessions[q]);
 		} else {
+			debug_log << "No match for CWD: " << cwd << "\n";
 			cb(Array<SessionInfo>());
 		}
 	} else {
-		// Generic placeholder for other engines
 		cb(Array<SessionInfo>());
 	}
 }

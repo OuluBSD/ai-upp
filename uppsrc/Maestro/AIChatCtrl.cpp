@@ -35,6 +35,7 @@ AIChatCtrl::AIChatCtrl() {
 	engine_select.Add("gemini", "Gemini");
 	engine_select.Add("qwen", "Qwen");
 	engine_select.Add("claude", "Claude");
+	engine_select.Add("codex", "Codex");
 	engine_select.SetIndex(0);
 	
 	send << [=] { OnSend(); };
@@ -107,6 +108,7 @@ void AIChatCtrl::OnSend() {
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
+	else if(key == "codex") ConfigureCodex(engine);
 	
 	engine.Send(prompt, [=](const MaestroEvent& e) { OnEvent(e); });
 }

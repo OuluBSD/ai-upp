@@ -21,4 +21,12 @@ inline CliMaestroEngine& ConfigureClaude(CliMaestroEngine& e) {
 	return e;
 }
 
+inline CliMaestroEngine& ConfigureCodex(CliMaestroEngine& e) {
+	e.Binary("codex")
+	 .Arg("exec")
+	 .Arg("--dangerously-bypass-approvals-and-sandbox")
+	 .Arg("--json");
+	return e;
+}
+
 #endif

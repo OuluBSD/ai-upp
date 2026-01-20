@@ -11,5 +11,6 @@ file
 	CliEngine.cpp,
 	Engines.h,
 	PackageInfo.h,
+	UppParser.h,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

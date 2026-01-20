@@ -23,60 +23,78 @@ void MaestroItem::Paint(Draw& d) {
 	
 	if(w < 20) return;
 	
-	const char *s = text;
-	while(*s) {
-		int n = 0;
-		int total_w = 0;
-		while(s[n] && total_w + tfnt[s[n]] <= w) {
-			total_w += tfnt[s[n]];
-			n++;
+	String txt = text;
+	txt.Replace("\r", "");
+	Vector<String> paragraphs = Split(txt, '\n', false);
+	
+	for(const String& p : paragraphs) {
+		const char *s = p;
+		if(!*s) { // Empty line
+			ty += line_h;
+			continue;
 		}
-		if(n == 0) break;
-		
-		int sn = n;
-		if(n < (int)strlen(s)) {
-			// Find last space to avoid mid-word break
-			const char *space = NULL;
-			for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
-			if(space) sn = (int)(space - s) + 1;
+		while(*s) {
+			int n = 0;
+			int total_w = 0;
+			while(s[n] && total_w + tfnt[(byte)s[n]] <= w) {
+				total_w += tfnt[(byte)s[n]];
+				n++;
+			}
+			if(n == 0) break;
+			
+			int sn = n;
+			if(n < (int)strlen(s)) {
+				const char *space = NULL;
+				for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
+				if(space) sn = (int)(space - s) + 1;
+			}
+			
+			d.DrawText(5, ty, s, tfnt, SColorText(), sn);
+			s += sn;
+			ty += line_h;
+			if(ty > sz.cy) break;
 		}
-		
-		d.DrawText(5, ty, s, tfnt, SColorText(), sn);
-		s += sn;
-		ty += line_h;
 		if(ty > sz.cy) break;
 	}
 }
 
 int MaestroItem::GetHeight(int width) const {
-	Font fnt = StdFont().Bold();
 	int ty = 22;
-	
 	Font tfnt = StdFont();
 	int line_h = tfnt.GetLineHeight();
 	int w = width - 10;
 	
 	if(w < 20) return ty + line_h;
 	
+	String txt = text;
+	txt.Replace("\r", "");
+	Vector<String> paragraphs = Split(txt, '\n', false);
+	
 	int count = 0;
-	const char *s = text;
-	while(*s) {
-		int n = 0;
-		int total_w = 0;
-		while(s[n] && total_w + tfnt[s[n]] <= w) {
-			total_w += tfnt[s[n]];
-			n++;
+	for(const String& p : paragraphs) {
+		const char *s = p;
+		if(!*s) {
+			count++;
+			continue;
 		}
-		if(n == 0) break;
-		
-		int sn = n;
-		if(n < (int)strlen(s)) {
-			const char *space = NULL;
-			for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
-			if(space) sn = (int)(space - s) + 1;
+		while(*s) {
+			int n = 0;
+			int total_w = 0;
+			while(s[n] && total_w + tfnt[(byte)s[n]] <= w) {
+				total_w += tfnt[(byte)s[n]];
+				n++;
+			}
+			if(n == 0) break;
+			
+			int sn = n;
+			if(n < (int)strlen(s)) {
+				const char *space = NULL;
+				for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
+				if(space) sn = (int)(space - s) + 1;
+			}
+			s += sn;
+			count++;
 		}
-		s += sn;
-		count++;
 	}
 	
 	return ty + count * line_h + 4;

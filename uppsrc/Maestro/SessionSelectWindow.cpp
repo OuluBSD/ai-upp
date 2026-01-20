@@ -20,8 +20,6 @@ SessionSelectWindow::SessionSelectWindow(CliMaestroEngine& e) : engine(&e) {
 	
 	dirs.WhenCursor = [=] { OnDirCursor(); };
 	sessions.WhenLeftDouble = [=] { OnSessionDouble(); };
-	
-	PostCallback(THISBACK(DataDirectories));
 }
 
 void SessionSelectWindow::DataDirectories() {
@@ -34,6 +32,10 @@ void SessionSelectWindow::DataDirectories() {
 	
 	for(int i = 0; i < engine->project_sessions.GetCount(); i++) {
 		dirs.Add(engine->project_sessions.GetKey(i), i);
+	}
+	
+	if(dirs.GetCount() > 0) {
+		dirs.SetCursor(0);
 	}
 }
 

@@ -5,7 +5,8 @@ inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 	e.Binary("gemini")
 	 .Arg("-m").Arg("gemini-3-flash-preview")
 	 .Arg("--approval-mode").Arg("yolo")
-	 .Arg("-o").Arg("stream-json");
+	 .Arg("-o").Arg("stream-json")
+	 .Arg("-p");
 	return e;
 }
 

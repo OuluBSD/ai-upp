@@ -1,5 +1,5 @@
 # Task: PackageInfo Struct
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Define the `PackageInfo` struct in `uppsrc/Maestro/PackageInfo.h`.

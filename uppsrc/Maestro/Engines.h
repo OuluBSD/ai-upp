@@ -15,7 +15,8 @@ inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
 	e.Reset();
 	e.Binary("qwen")
 	 .Arg("-y")
-	 .Arg("-o").Arg("stream-json");
+	 .Arg("-o").Arg("stream-json")
+	 .Arg("-p");
 	return e;
 }
 

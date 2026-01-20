@@ -108,7 +108,13 @@ bool CliMaestroEngine::Do() {
 				
 				if(!v["text_delta"].IsVoid()) e.text = v["text_delta"].ToString();
 				else if(!v["text_full"].IsVoid()) e.text = v["text_full"].ToString();
-				else if(!v["content"].IsVoid()) e.text = v["content"].ToString();
+				else if(!v["content"].IsVoid()) {
+					Value content = v["content"];
+					if(content.Is<ValueArray>() && content.GetCount() > 0)
+						e.text = content[0]["text"].ToString();
+					else
+						e.text = content.ToString();
+				}
 				else if(!v["chunk"].IsVoid()) e.text = v["chunk"].ToString(); 
 				else if(!v["message"].IsVoid()) {
 					Value msg = v["message"];
@@ -122,6 +128,15 @@ bool CliMaestroEngine::Do() {
 						e.text = msg.ToString();
 					}
 				}
+				else if(!v["event"].IsVoid()) {
+					Value event = v["event"];
+					if(event["type"] == "content_block_delta") {
+						Value delta = event["delta"];
+						if(!delta["text"].IsVoid()) e.text = delta["text"].ToString();
+						else if(!delta["text_delta"].IsVoid()) e.text = delta["text_delta"].ToString();
+						e.delta = true;
+					}
+				}
 				else if(!v["result"].IsVoid()) e.text = v["result"].ToString();
 				else if(!v["error"].IsVoid()) {
 					if(v["error"].Is<ValueMap>() && !v["error"]["message"].IsVoid())
@@ -131,8 +146,11 @@ bool CliMaestroEngine::Do() {
 				}
 				
 				e.role = v["role"].ToString();
-				e.delta = (bool)v["delta"];
-				if(e.type == "turn.delta" || e.type == "partial_message") e.delta = true;
+				if(e.role.IsEmpty() && !v["event"].IsVoid())
+					e.role = v["event"]["message"]["role"].ToString();
+				
+				if(!e.delta) e.delta = (bool)v["delta"];
+				if(e.type == "turn.delta" || e.type == "partial_message" || e.type == "stream_event") e.delta = true;
 				
 				// Capture session_id
 				if(!v["session_id"].IsVoid()) {

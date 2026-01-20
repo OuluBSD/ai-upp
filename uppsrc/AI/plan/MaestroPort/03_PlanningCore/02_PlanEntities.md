@@ -1,5 +1,5 @@
 # Task: Plan Entities
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Define `Task`, `Phase`, `Track` structs in `uppsrc/Maestro/PlanModels.h`.

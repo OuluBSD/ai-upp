@@ -26,4 +26,50 @@ inline TaskStatus StringToStatus(const String& s) {
 	return STATUS_TODO;
 }
 
+struct Task : Moveable<Task> {
+	String     name;
+	String     description;
+	TaskStatus status = STATUS_TODO;
+	String     path;
+
+	void Jsonize(JsonIO& jio) {
+		String s = StatusToString(status);
+		jio
+			("name", name)
+			("description", description)
+			("status", s)
+			("path", path)
+		;
+		if(jio.IsLoading()) status = StringToStatus(s);
+	}
+};
+
+struct Phase : Moveable<Phase> {
+	String      name;
+	Array<Task> tasks;
+	String      path;
+
+	void Jsonize(JsonIO& jio) {
+		jio
+			("name", name)
+			("tasks", tasks)
+			("path", path)
+		;
+	}
+};
+
+struct Track : Moveable<Track> {
+	String       name;
+	Array<Phase> phases;
+	String       path;
+
+	void Jsonize(JsonIO& jio) {
+		jio
+			("name", name)
+			("phases", phases)
+			("path", path)
+		;
+	}
+};
+
 #endif

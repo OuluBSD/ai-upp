@@ -11,7 +11,9 @@ namespace Upp {
 #include "CliEngine.h"
 #include "Engines.h"
 #include "PackageInfo.h"
+#include "AssemblyInfo.h"
 #include "UppParser.h"
+#include "RepoScanner.h"
 
 }
 

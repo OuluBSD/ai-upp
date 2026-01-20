@@ -2,12 +2,15 @@
 #define _Maestro_Engine_h_
 
 struct MaestroEvent {
-	String type;        // "init", "delta", "message", "result", "error"
+	String type;        // "init", "delta", "message", "result", "error", "tool_use", "tool_result"
 	String role;
 	String text;        // delta or full text
 	Value  json;        // raw event data
 	bool   delta = false;
 	String session_id;
+	
+	String tool_name;
+	String tool_input;
 	
 	String ToString() const { return String().Cat() << type << (delta ? " (delta)" : "") << ": " << text; }
 };

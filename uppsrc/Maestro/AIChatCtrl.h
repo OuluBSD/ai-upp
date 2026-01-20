@@ -11,6 +11,7 @@ public:
 	String role;
 	String text;
 	bool   is_error = false;
+	bool   is_tool = false;
 	
 	virtual void Paint(Draw& d) override;
 	int GetHeight(int width) const;
@@ -38,6 +39,7 @@ public:
 	void Poll();
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);
+	void AddToolItem(const String& role, const String& text);
 	void CopyAllChat();
 	void CopyDebugData();
 	void OnSelectSession();

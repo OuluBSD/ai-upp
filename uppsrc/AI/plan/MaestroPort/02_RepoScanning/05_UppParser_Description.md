@@ -1,5 +1,5 @@
 # Task: UppParser Description
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement `ParseDescription` in `UppParser.cpp`.

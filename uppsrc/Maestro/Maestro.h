@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <CtrlLib/CtrlLib.h>
+#include <plugin/pcre/Pcre.h>
 
 namespace Upp {
 

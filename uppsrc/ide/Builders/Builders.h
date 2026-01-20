@@ -154,8 +154,22 @@ struct UwpBuilder : MscBuilder {
 		String& linkoptions, const Vector<String>& all_uses, const Vector<String>& all_libraries, int optimize);
 	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
 
-	Index<String>  project_files;
-	bool           uwp_started = false;
+	String         GetMsBuildPath() const;
+
+	struct UwpProjectData : Moveable<UwpProjectData> {
+		Index<String> clcompile;
+		Index<String> clincludes;
+		Index<String> none;
+		Index<String> content;
+		String        root;
+	};
+
+	UwpProjectData& GetProjectData(const String& package);
+
+	static Index<String>  project_files;
+	static bool           uwp_started;
+	static VectorMap<String, UwpProjectData> project_map;
+	bool                  main_uses_gui = false;
 };
 
 struct DotnetBuilder : CppBuilder {

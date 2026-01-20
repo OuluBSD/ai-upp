@@ -1,6 +1,6 @@
 #include "Maestro.h"
 
-namespace Upp {
+NAMESPACE_UPP
 
 void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEvent&)> cb) {
 	callback = cb;
@@ -23,13 +23,13 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 			cmd_args.Add("exec");
 			cmd_args.Add("resume");
 			cmd_args.Add(session_id);
-			for(const auto& arg : args)
-				if(arg != "exec") cmd_args.Add(arg);
+			for(const auto& a : args)
+				if(a != "exec") cmd_args.Add(a);
 		} else if(binary == "claude") {
 			cmd_args.Add("--session-id");
 			cmd_args.Add(session_id);
-			for(const auto& arg : args)
-				cmd_args.Add(arg);
+			for(const auto& a : args)
+				cmd_args.Add(a);
 		} else {
 			// Generic flag-based resumption (Gemini, Qwen, Claude)
 			for(int i = 0; i < args.GetCount(); i++) {
@@ -41,8 +41,8 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 			}
 		}
 	} else {
-		for(const auto& arg : args)
-			cmd_args.Add(arg);
+		for(const auto& a : args)
+			cmd_args.Add(a);
 	}
 	
 	if(use_arg) {
@@ -51,7 +51,8 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	
 	debug_log << "=== START SEND ===\n";
 	
-	String dir = ConfigFile("ai-discussion");
+	String dir = working_dir;
+	if(dir.IsEmpty()) dir = ConfigFile("ai-discussion");
 	RealizeDirectory(dir);
 	debug_log << "CWD: " << dir << "\n";
 	
@@ -212,10 +213,10 @@ bool CliMaestroEngine::Do() {
 					session_id = e.session_id;
 				}
 				
-				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid=" + e.session_id) << "\n";
+				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid="+ e.session_id) << "\n";
 				
 				// Final check: if it's a tool_use and tool_input is still JSON, format it
-				if(e.type == "tool_use" && !e.tool_input.IsEmpty() && (e.tool_input.StartsWith("{") || e.tool_input.StartsWith("["))) {
+				if(e.type == "tool_use" && !e.tool_input.IsEmpty() && (e.tool_input.StartsWith("{ ") || e.tool_input.StartsWith("["))) {
 					Value v_in = ParseJSON(e.tool_input);
 					if(!v_in.IsError() && v_in.Is<ValueMap>()) {
 						e.tool_input.Clear();
@@ -252,7 +253,7 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 				String resolved_path = dir_name;
 				resolved_path.Replace("-", "/");
 				if(!resolved_path.StartsWith("/"))
-					resolved_path = "/" + resolved_path;
+						resolved_path = "/" + resolved_path;
 				
 				debug_log << "Found project: " << dir_name << " -> " << resolved_path << "\n";
 				
@@ -313,4 +314,4 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 	}
 }
 
-} // namespace Upp
+END_UPP_NAMESPACE

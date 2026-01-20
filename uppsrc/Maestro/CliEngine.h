@@ -1,13 +1,19 @@
 #ifndef _Maestro_CliEngine_h_
 #define _Maestro_CliEngine_h_
 
+#include "Engine.h"
+
+NAMESPACE_UPP
+
 class CliMaestroEngine : public MaestroEngine {
 	One<LocalProcess> p;
-	String       binary;
-	Vector<String> args;
 	String       buffer;
 	
 public:
+	String       binary;
+	Vector<String> args;
+	String       working_dir;
+	
 	Function<void(const MaestroEvent&)> callback;
 
 	CliMaestroEngine& Binary(const String& b) { binary = b; return *this; }
@@ -24,5 +30,7 @@ public:
 	
 	VectorMap<String, Array<SessionInfo>> project_sessions;
 };
+
+END_UPP_NAMESPACE
 
 #endif

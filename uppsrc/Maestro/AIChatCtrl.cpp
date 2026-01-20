@@ -6,6 +6,9 @@ void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, SColorPaper());
 	
+	// Background for role header
+	d.DrawRect(0, 0, sz.cx, 20, SColorFace());
+	
 	Color clr = SColorText();
 	if(is_error) clr = Red();
 	else if(role == "User") clr = Blue();
@@ -13,17 +16,70 @@ void MaestroItem::Paint(Draw& d) {
 	Font fnt = StdFont().Bold();
 	d.DrawText(2, 2, role, fnt, clr);
 	
-	int ty = 2 + fnt.GetLineHeight();
-	d.DrawText(5, ty, text, StdFont(), SColorText());
+	int ty = 22;
+	Font tfnt = StdFont();
+	int line_h = tfnt.GetLineHeight();
+	int w = sz.cx - 10;
+	
+	if(w < 20) return;
+	
+	const char *s = text;
+	while(*s) {
+		int n = 0;
+		int total_w = 0;
+		while(s[n] && total_w + tfnt[s[n]] <= w) {
+			total_w += tfnt[s[n]];
+			n++;
+		}
+		if(n == 0) break;
+		
+		int sn = n;
+		if(n < (int)strlen(s)) {
+			// Find last space to avoid mid-word break
+			const char *space = NULL;
+			for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
+			if(space) sn = (int)(space - s) + 1;
+		}
+		
+		d.DrawText(5, ty, s, tfnt, SColorText(), sn);
+		s += sn;
+		ty += line_h;
+		if(ty > sz.cy) break;
+	}
 }
 
 int MaestroItem::GetHeight(int width) const {
-	// Very simple height calculation for now
-	Font fnt = StdFont();
-	int n = GetTextSize(text, fnt).cx;
-	int rows = 1;
-	if(width > 10) rows = (n / (width - 10)) + 1;
-	return 4 + fnt.GetLineHeight() * (rows + 1);
+	Font fnt = StdFont().Bold();
+	int ty = 22;
+	
+	Font tfnt = StdFont();
+	int line_h = tfnt.GetLineHeight();
+	int w = width - 10;
+	
+	if(w < 20) return ty + line_h;
+	
+	int count = 0;
+	const char *s = text;
+	while(*s) {
+		int n = 0;
+		int total_w = 0;
+		while(s[n] && total_w + tfnt[s[n]] <= w) {
+			total_w += tfnt[s[n]];
+			n++;
+		}
+		if(n == 0) break;
+		
+		int sn = n;
+		if(n < (int)strlen(s)) {
+			const char *space = NULL;
+			for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
+			if(space) sn = (int)(space - s) + 1;
+		}
+		s += sn;
+		count++;
+	}
+	
+	return ty + count * line_h + 4;
 }
 
 AIChatCtrl::AIChatCtrl() {
@@ -136,8 +192,8 @@ void AIChatCtrl::OnSend() {
 }
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
-	if(e.type == "delta" || (e.type == "message" && e.delta)) {
-		if(e.role != "assistant" && !e.role.IsEmpty()) return;
+	if(e.delta) {
+		if(e.role == "user") return;
 		
 		current_response << e.text;
 		// Update last item if it's from AI
@@ -149,14 +205,10 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
 		}
 	}
-	else if(e.type == "message") {
-		if(e.role == "user") {
-			// We already added the user message locally when sending.
-			// Gemini echo can be ignored or used to sync.
-			return;
-		}
+	else if(e.type == "message" || e.type == "assistant") {
+		if(e.role == "user") return;
 		
-		current_response = e.text;
+		if(!e.text.IsEmpty()) current_response = e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
@@ -165,7 +217,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
 		}
 		
-		if(e.role == "assistant") {
+		if(e.role == "assistant" || e.type == "assistant") {
 			current_response.Clear();
 			WhenDone();
 		}
@@ -174,7 +226,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		current_response.Clear();
 		WhenDone();
 	}
-	else if(e.type == "error") {
+	else if(e.type == "turn.failed" || e.type == "error") {
 		AddItem("Error", e.text, true);
 		WhenDone();
 	}
@@ -184,4 +236,4 @@ void AIChatCtrl::Poll() {
 	engine.Do();
 }
 
-}
+} // namespace Upp

@@ -146,6 +146,8 @@ bool CliMaestroEngine::Do() {
 				}
 				
 				e.role = v["role"].ToString();
+				if(e.role.IsEmpty() && !v["message"].IsVoid())
+					e.role = v["message"]["role"].ToString();
 				if(e.role.IsEmpty() && !v["event"].IsVoid())
 					e.role = v["event"]["message"]["role"].ToString();
 				

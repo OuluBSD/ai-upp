@@ -1,7 +1,7 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 
 using namespace DirectX;
@@ -11,7 +11,7 @@ using namespace winrt::Windows::Graphics::DirectX::Direct3D11;
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::Perception::Spatial;
 
-CameraResources::CameraResources(HolographicCamera const& camera) :
+DX::CameraResources::CameraResources(HolographicCamera const& camera) :
     m_holographicCamera(camera),
     m_isStereo(camera.IsStereo()),
     m_d3dRenderTargetSize(camera.RenderTargetSize())
@@ -26,8 +26,8 @@ CameraResources::CameraResources(HolographicCamera const& camera) :
 // Updates resources associated with a holographic camera's swap chain.
 // The app does not access the swap chain directly, but it does create
 // resource views for the back buffer.
-void CameraResources::CreateResourcesForBackBuffer(
-    const DeviceResources* pDeviceResources,
+void DX::CameraResources::CreateResourcesForBackBuffer(
+    const DX::DeviceResources* pDeviceResources,
     HolographicCameraRenderingParameters const& cameraParameters
     )
 {
@@ -114,7 +114,7 @@ void CameraResources::CreateResourcesForBackBuffer(
 }
 
 // Releases resources associated with a back buffer.
-void CameraResources::ReleaseResourcesForBackBuffer(const DeviceResources* pDeviceResources)
+void DX::CameraResources::ReleaseResourcesForBackBuffer(const DX::DeviceResources* pDeviceResources)
 {
     ID3D11DeviceContext* context = pDeviceResources->GetD3DDeviceContext();
 
@@ -132,8 +132,8 @@ void CameraResources::ReleaseResourcesForBackBuffer(const DeviceResources* pDevi
 }
 
 // Gets the view/projection transforms for a holographic camera.
-bool CameraResources::GetViewProjectionTransform(
-    std::shared_ptr<DeviceResources> deviceResources,
+bool DX::CameraResources::GetViewProjectionTransform(
+    const DX::DeviceResources* deviceResources,
     HolographicCameraPose const& cameraPose,
     SpatialCoordinateSystem const& coordinateSystem,
     _Out_ HolographicStereoTransform* viewTransform,
@@ -175,7 +175,7 @@ bool CameraResources::GetViewProjectionTransform(
     return false;
 }
 
-void CameraResources::CommitDirect3D11DepthBuffer(HolographicCameraRenderingParameters const& renderingParameters) const
+void DX::CameraResources::CommitDirect3D11DepthBuffer(HolographicCameraRenderingParameters const& renderingParameters) const
 {
     // Direct3D interop APIs are used to provide the buffer to the WinRT API.
     ComPtr<IDXGIResource1> depthStencilResource;
@@ -185,13 +185,12 @@ void CameraResources::CommitDirect3D11DepthBuffer(HolographicCameraRenderingPara
     winrt::check_hresult(depthStencilResource->CreateSubresourceSurface(0, &depthDxgiSurface));
 
     winrt::com_ptr<::IInspectable> inspectableSurface;
-    winrt::check_hresult(CreateDirect3D11SurfaceFromDXGISurface(depthDxgiSurface.Get(), (IInspectable**)winrt::put_abi(inspectableSurface)));
+    winrt::check_hresult(CreateDirect3D11SurfaceFromDXGISurface(
+        depthDxgiSurface.Get(),
+        reinterpret_cast<IInspectable**>(winrt::put_abi(inspectableSurface))));
 
-    // Calling CommitDirect3D11DepthBuffer causes the system to queue Direct3D commands to
+    // Calling CommitDirect3D11DepthBuffer causes the system to queue Direct3D commands to 
     // read the depth buffer. It will then use that information to stabilize the image as
     // the HolographicFrame is presented.
     renderingParameters.CommitDirect3D11DepthBuffer(inspectableSurface.as<IDirect3DSurface>());
 }
-
-
-END_UPP_NAMESPACE

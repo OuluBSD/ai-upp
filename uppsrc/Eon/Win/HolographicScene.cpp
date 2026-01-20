@@ -1,21 +1,22 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::Perception;
 using namespace winrt::Windows::Perception::Spatial;
 
+namespace DemoRoom {
+
 HolographicScene::HolographicScene(
-    Engine& core,
-    winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace) :
-    SP(core),
-    m_holographicSpace(std::move(holographicSpace))
+    VfsValue& v,
+    winrt::Windows::Graphics::Holographic::HolographicSpace holographic_space) :
+    System(v),
+    m_holographicSpace(std::move(holographic_space))
 {}
 
-bool HolographicScene::Initialize(const WorldState& ws)
+bool HolographicScene::Initialize(const WorldState&)
 {
     m_stageFrameOfReference = SpatialStageFrameOfReference::Current();
 
@@ -25,7 +26,7 @@ bool HolographicScene::Initialize(const WorldState& ws)
 
     m_spatialStageCurrentChanged = SpatialStageFrameOfReference::CurrentChanged(
         std::bind(&HolographicScene::OnCurrentStageChanged, this));
-    
+
     return true;
 }
 
@@ -63,20 +64,19 @@ void HolographicScene::OnPredictionChanged(IPredictionUpdateListener::Prediction
     const HolographicFramePrediction prediction = m_currentFrame.CurrentPrediction();
     const SpatialCoordinateSystem coordinateSystem = WorldCoordinateSystem();
 
-    for (auto& listener : m_predictionUpdatelisteners.PurgeAndGetListeners())
-    {
+    for (const auto& listener : m_predictionUpdateListeners.GetListeners()) {
         listener->OnPredictionUpdated(reason, coordinateSystem, prediction);
     }
 }
 
-void HolographicScene::AddPredictionUpdateListener(IPredictionUpdateListener& listener)
+void HolographicScene::AddPredictionUpdateListener(IPredictionUpdateListener* listener)
 {
-    TODO //m_predictionUpdatelisteners.Add(std::move(listener));
+    m_predictionUpdateListeners.Add(listener);
 }
 
-void HolographicScene::RemovePredictionUpdateListener(IPredictionUpdateListener& listener)
+void HolographicScene::RemovePredictionUpdateListener(IPredictionUpdateListener* listener)
 {
-    TODO //m_predictionUpdatelisteners.Remove(std::move(listener));
+    m_predictionUpdateListeners.Remove(listener);
 }
 
 SpatialCoordinateSystem HolographicScene::WorldCoordinateSystem() const
@@ -109,5 +109,4 @@ HolographicSpace HolographicScene::HolographicSpace() const
     return m_holographicSpace;
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

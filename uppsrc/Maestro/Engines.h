@@ -2,6 +2,7 @@
 #define _Maestro_Engines_h_
 
 inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
+	e.Reset();
 	e.Binary("gemini")
 	 .Arg("-m").Arg("gemini-3-flash-preview")
 	 .Arg("--approval-mode").Arg("yolo")
@@ -11,6 +12,7 @@ inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 }
 
 inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
+	e.Reset();
 	e.Binary("qwen")
 	 .Arg("-y")
 	 .Arg("-o").Arg("stream-json");
@@ -18,12 +20,14 @@ inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
 }
 
 inline CliMaestroEngine& ConfigureClaude(CliMaestroEngine& e) {
+	e.Reset();
 	e.Binary("claude")
 	 .Arg("--output-format").Arg("stream-json");
 	return e;
 }
 
 inline CliMaestroEngine& ConfigureCodex(CliMaestroEngine& e) {
+	e.Reset();
 	e.Binary("codex")
 	 .Arg("exec")
 	 .Arg("--dangerously-bypass-approvals-and-sandbox")

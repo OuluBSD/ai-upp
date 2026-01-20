@@ -2,7 +2,7 @@
 #define _Maestro_CliEngine_h_
 
 class CliMaestroEngine : public MaestroEngine {
-	LocalProcess p;
+	One<LocalProcess> p;
 	String       binary;
 	Vector<String> args;
 	String       buffer;
@@ -12,11 +12,12 @@ public:
 
 	CliMaestroEngine& Binary(const String& b) { binary = b; return *this; }
 	CliMaestroEngine& Arg(const String& a)    { args.Add(a); return *this; }
+	void             Reset()                  { binary.Clear(); args.Clear(); }
 
 	virtual void Send(const String& prompt, Function<void(const MaestroEvent&)> cb) override;
 	virtual void Cancel() override;
 	
-	bool IsRunning() { return p.IsRunning(); }
+	bool IsRunning() { return p && p->IsRunning(); }
 	virtual bool Do() override;
 };
 

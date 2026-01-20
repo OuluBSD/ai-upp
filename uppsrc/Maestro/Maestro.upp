@@ -18,5 +18,6 @@ file
 	RepoScanner.cpp,
 	AssemblyInfo.h,
 	PlanModels.h,
+	PlanParser.h,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

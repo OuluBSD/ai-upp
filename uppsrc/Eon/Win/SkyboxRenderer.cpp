@@ -1,15 +1,16 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace winrt::Windows::Foundation::Numerics;
 
+namespace DemoRoom {
+
 SkyboxRenderer::SkyboxRenderer(
-    std::shared_ptr<DeviceResources> deviceResources,
+    DX::DeviceResources& deviceResources,
     ID3D11ShaderResourceView* skyboxTexture) :
-    m_deviceResources(std::move(deviceResources)),
+    device_resources(&deviceResources),
     m_skyboxTexture(skyboxTexture)
 {
     CreateDeviceDependentResources();
@@ -34,29 +35,24 @@ void SkyboxRenderer::SetViewProjection(
     invViewProjection[0] = transpose(invViewProjection[0]);
     invViewProjection[1] = transpose(invViewProjection[1]);
 
-    m_deviceResources->GetD3DDeviceContext()->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &invViewProjection, 0, 0);
+    device_resources->GetD3DDeviceContext()->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &invViewProjection, 0, 0);
 }
 
 void SkyboxRenderer::CreateDeviceDependentResources()
 {
-	String g_SkyBoxPixelShader = LoadFile(ShareDirFile("shaders/hlsl/SkyBoxPixelShader.hlsl"));
-	String g_SkyBoxVertexShaderVprt = LoadFile(ShareDirFile("shaders/hlsl/SkyBoxVertexShaderVprt.hlsl"));
-	String g_SkyBoxVertexShaderNoVprt = LoadFile(ShareDirFile("shaders/hlsl/SkyBoxVertexShaderNoVprt.hlsl"));
-	String g_SkyBoxGeometryShaderNoVprt = LoadFile(ShareDirFile("shaders/hlsl/SkyBoxGeometryShaderNoVprt.hlsl"));
-	
-    const auto device = m_deviceResources->GetD3DDevice();
+    const auto device = device_resources->GetD3DDevice();
 
     DirectX::ThrowIfFailed(device->CreatePixelShader(
-        g_SkyBoxPixelShader, g_SkyBoxPixelShader.GetCount(), nullptr, &m_pixelShader));
+        g_SkyBoxPixelShader, sizeof(g_SkyBoxPixelShader), nullptr, &m_pixelShader));
 
-    const bool useVprt = m_deviceResources->GetDeviceSupportsVprt();
+    const bool useVprt = device_resources->GetDeviceSupportsVprt();
     const void* vertexShader = (useVprt) ? g_SkyBoxVertexShaderVprt : g_SkyBoxVertexShaderNoVprt;
-    const size_t vertexShaderSize = (useVprt) ? g_SkyBoxVertexShaderVprt.GetCount() : g_SkyBoxVertexShaderNoVprt.GetCount();
+    const size_t vertexShaderSize = (useVprt) ? _countof(g_SkyBoxVertexShaderVprt) : _countof(g_SkyBoxVertexShaderNoVprt);
 
     if (!useVprt)
     {
         DirectX::ThrowIfFailed(device->CreateGeometryShader(
-            g_SkyBoxGeometryShaderNoVprt, g_SkyBoxGeometryShaderNoVprt.GetCount(), nullptr, &m_geometryShader));
+            g_SkyBoxGeometryShaderNoVprt, sizeof(g_SkyBoxGeometryShaderNoVprt), nullptr, &m_geometryShader));
     }
 
     DirectX::ThrowIfFailed(device->CreateVertexShader(
@@ -136,7 +132,7 @@ void SkyboxRenderer::ReleaseDeviceDependentResources()
 
 void SkyboxRenderer::Bind()
 {
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
 
     context->OMGetDepthStencilState(&m_depthStencilState_Backup, &m_stencilRef_Backup);
 
@@ -158,7 +154,7 @@ void SkyboxRenderer::Bind()
 
 void SkyboxRenderer::Render()
 {
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
 
     // Fullscreen Quad: 6 vertices
     context->DrawInstanced(6, 2, 0, 0);
@@ -166,7 +162,7 @@ void SkyboxRenderer::Render()
 
 void SkyboxRenderer::Unbind()
 {
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
 
     context->OMSetDepthStencilState(m_depthStencilState_Backup.Get(), m_stencilRef_Backup);
 
@@ -174,5 +170,5 @@ void SkyboxRenderer::Unbind()
     m_stencilRef_Backup = 0;
 }
 
+} // namespace DemoRoom
 
-END_UPP_NAMESPACE

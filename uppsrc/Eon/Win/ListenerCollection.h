@@ -1,70 +1,36 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
-
-NAMESPACE_UPP
-
+#include <mutex>
+#include <vector>
 
 // ListenerCollection
-// Collection of weak_ptr's and helper functions to remove objects that don't exist anymore
-template<typename T, typename Parent=T::Parent>
+// Collection of raw pointers; owner is external and must unregister on teardown.
+template<typename T>
 class ListenerCollection
 {
 public:
-	using R = Ref<T,Parent>;
-	
-    void Add(R listener)
+    void Add(T* listener)
     {
-        TODO
-        /*std::unique_lock<std::mutex> lock(m_mutex);
-        m_listeners.push_back(std::move(listener));*/
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_listeners.push_back(listener);
     }
 
-    void Remove(R listener)
+    void Remove(T* listener)
     {
-        TODO
-        /*std::unique_lock<std::mutex> lock(m_mutex);
-        erase_if(&m_listeners, [&listener](const std::weak_ptr<T>& weak)
-        {
-            std::shared_ptr<T> ptr = weak.lock();
-            return ptr == listener;
-        });*/
+        std::unique_lock<std::mutex> lock(m_mutex);
+        erase_if(&m_listeners, [listener](T* ptr) { return ptr == listener; });
     }
 
-    Array<R> PurgeAndGetListeners()
+    std::vector<T*> GetListeners() const
     {
-        TODO
-        /*Array<Ptr<T>> result;
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            erase_if(&m_listeners, [&result](const std::weak_ptr<T>& weak)
-            {
-                std::shared_ptr<T> ptr = weak.lock();
-                if (ptr)
-                {
-                    result.push_back(std::move(ptr));
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            });
-        }
-        return result;*/
-    }
-
-    virtual ~ListenerCollection()
-    {
-        TODO
-        //fail_fast_if(!m_listeners.empty());
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_listeners;
     }
 
 private:
-    Mutex m_mutex;
-    Array<R> m_listeners;
-    
-    
+    mutable std::mutex m_mutex;
+    std::vector<T*> m_listeners;
 };
-
-
-END_UPP_NAMESPACE

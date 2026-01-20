@@ -12,3 +12,6 @@ Conventions
 - Keep UWP entrypoint via `AppView` and `CoreApplication::Run`.
 - Register all DemoRoom systems/components in a `.icpp` with `REGISTER_EON_SYSTEM`/`REGISTER_EON_COMPONENT`.
 - Assets must be packaged for UWP and referenced via `ms-appx:///` paths.
+- Prefer ownership via `One<>`/`Array<T>` with clear single owners; avoid `std::shared_ptr` and `std::weak_ptr`.
+- Use `Ptr<>` only when the target class inherits `Pte<>` and lifetime is owned elsewhere; otherwise use raw refs/ptrs with explicit unregister in `Uninitialize()`/`Stop()`.
+- `Ptr<>` is non-owning and requires `Pte<>`; prefer `One<>` for ownership and `Array<T>` over `Vector<One<>>`.

@@ -1,41 +1,45 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
-
-NAMESPACE_UPP
-
+namespace DX {
+    class DeviceResources;
+    class StepTimer;
+}
+namespace Pbr {
+    struct Resources;
+}
+namespace Upp {
+    class Engine;
+}
 
 // Updates, renders, and presents holographic content using Direct3D.
-
-	
-class DemoRoomMain
+namespace DemoRoom
 {
-public:
-    DemoRoomMain();
-    ~DemoRoomMain();
+    class DemoRoomMain
+    {
+    public:
+        DemoRoomMain();
+        ~DemoRoomMain();
 
-    // Sets the holographic space. This is our closest analogue to setting a new window
-    // for the app.
-    void SetHolographicSpace(
-        winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace);
+        // Sets the holographic space. This is our closest analogue to setting a new window
+        // for the app.
+        void SetHolographicSpace(
+            winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace);
 
-    // Starts the holographic frame and updates the content.
-    void Update();
+        // Starts the holographic frame and updates the content.
+        void Update();
 
-    // Handle saving and loading of app state owned by AppMain.
-    void SaveAppState();
-    void LoadAppState();
+        // Handle saving and loading of app state owned by AppMain.
+        void SaveAppState();
+        void LoadAppState();
 
-private:
-    //std::unique_ptr<Engine>        m_engine;
+    private:
+        Ptr<Upp::Engine> engine;
+        One<DX::DeviceResources> device_resources;
+        One<Pbr::Resources> pbr_resources;
+        DX::StepTimer m_timer;
+    };
+}
 
-    // Cached pointer to device resources.
-    std::shared_ptr<DeviceResources> m_deviceResources;
-
-    // Render loop timer.
-    StepTimer                        m_timer;
-    
-    
-};
-
-
-END_UPP_NAMESPACE

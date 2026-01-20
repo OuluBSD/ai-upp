@@ -1,18 +1,25 @@
-#if 0
-#include "EcsWin.h"
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace winrt::Windows::Foundation::Numerics;
 
+namespace DemoRoom {
+
 void EasingSystem::Update(double dt)
 {
-    for (auto& componentSet : m_engine.Get<EntityStore>()->GetComponents<Transform, Easing>())
-    {
-        auto transform = std::get<Transform*>(componentSet);
-        auto easing = std::get<Easing*>(componentSet);
+	auto& root = GetEngine().GetRootPool();
+	auto entities = root.FindAllDeep<Entity>();
+	for (auto& entity : entities) {
+		auto transform = entity->val.Find<Transform>();
+		auto easing = entity->val.Find<Easing>();
+		if (!transform || !easing)
+			continue;
 
-        transform->position = lerp(transform->position, easing->TargetPosition, easing->PositionEasingFactor);
-        transform->orientation = slerp(transform->orientation, easing->TargetOrientation, easing->OrientationEasingFactor);
-    }
+		transform->position = lerp(transform->position, easing->TargetPosition, easing->PositionEasingFactor);
+		transform->orientation = slerp(transform->orientation, easing->TargetOrientation, easing->OrientationEasingFactor);
+	}
 }
-#endif
+
+} // namespace DemoRoom

@@ -1,51 +1,49 @@
-#if 0
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+#include "ToolSystem.h"
 
-NAMESPACE_UPP
-
-
-struct ShootingComponent : Component
+namespace DemoRoom
 {
-    void SetEnabled(bool enable) override;
-    void Destroy() override;
+    struct ShootingComponent : Component
+    {
+        ECS_COMPONENT_CTOR(ShootingComponent)
 
-    EntityPtr gun;
+        void SetEnabled(bool enable) override;
+        void Destroy() override;
 
-    float bulletSpeed = 20.0f;
-    winrt::Windows::Foundation::Numerics::float4x4 barrelToController;
+        EntityPtr gun;
+
+        float bulletSpeed = 20.0f;
+        winrt::Windows::Foundation::Numerics::float4x4 barrelToController;
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // ShootingInteractionSystem
+    // This ToolSystem manages the Gun tool which allows you to shoot balls in the 3D scene
     
-    COPY_PANIC(ShootingComponent)
-    
-};
+    class ShootingInteractionSystem : public ToolSystem<ShootingInteractionSystem, ShootingComponent>
+    {
+    public:
+        using ToolSystem::ToolSystem;
 
-////////////////////////////////////////////////////////////////////////////////
-// ShootingInteractionSystem
-// This ToolSystem manages the Gun tool which allows you to shoot balls in the 3D scene
+    protected:
+        // ToolSystemBase
+        std::wstring_view GetInstructions() const override;
+        std::wstring_view GetDisplayName() const override;
+        EntityPtr CreateToolSelector() const override;
 
-class ShootingInteractionSystem : public ToolSystem<ShootingInteractionSystem, ShootingComponent>
-{
-public:
-    using ToolSystem::ToolSystem;
+        void Register(Vector<EntityPtr> entities) override;
+        void Activate(Entity& entity) override;
+        void Deactivate(Entity& entity) override;
 
-protected:
-    // ToolSystemBase
-    std::wstring_view GetInstructions() const override;
-    std::wstring_view GetDisplayName() const override;
-    EntityPtr CreateToolSelector() const override;
+        // ISpatialInteractionListener
+        void OnSourcePressed(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
 
-    void Register(Array<EntityPtr>& entities) override;
-    void Activate(Entity& entity) override;
-    void Deactivate(Entity& entity) override;
-
-    // ISpatialInteractionListener
-    void OnSourcePressed(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
-
-    void OnSourceUpdated(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
-};
-
-
-END_UPP_NAMESPACE
-#endif
+        void OnSourceUpdated(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
+    };
+}

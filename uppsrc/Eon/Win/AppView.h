@@ -3,17 +3,20 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+NAMESPACE_UPP
+
 struct ShellConnectorApp {
+    virtual ~ShellConnectorApp() = default;
     // Sets the holographic space. This is our closest analogue to setting a new window.
-    void SetHolographicSpace(
+    virtual void SetHolographicSpace(
         winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace);
 
     // Starts the holographic frame and updates the content.
-    void Update();
+    virtual void Update();
 
     // Handle saving and loading of app state owned by the app.
-    void SaveAppState();
-    void LoadAppState();
+    virtual void SaveAppState();
+    virtual void LoadAppState();
 };
 
 using UwpVrAppFactory = std::unique_ptr<ShellConnectorApp>(*)();
@@ -83,4 +86,6 @@ private:
 	}
 #endif
 };
+
+END_UPP_NAMESPACE
 

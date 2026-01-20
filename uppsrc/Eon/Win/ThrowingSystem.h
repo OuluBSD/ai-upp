@@ -1,49 +1,48 @@
-#if 0
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+#include "ToolSystem.h"
 
-NAMESPACE_UPP
-
-
-struct ThrowingComponent : Component
+namespace DemoRoom
 {
-    void SetEnabled(bool enable) override;
-    void Destroy() override;
+    struct ThrowingComponent : Component
+    {
+        ECS_COMPONENT_CTOR(ThrowingComponent)
 
-    EntityPtr ballObject;
+        void SetEnabled(bool enable) override;
+        void Destroy() override;
 
-    float distanceFromPointer = 0.05f;
-    float scale = 0.25f;
-    
-    COPY_PANIC(ThrowingComponent)
-    
-};
+        EntityPtr ballObject;
 
-////////////////////////////////////////////////////////////////////////////////
-// ThrowingInteractionSystem
-// This ToolSystem manages the Throwing tool which allows you to throw baseballs in 3D scene
-class ThrowingInteractionSystem : public ToolSystem<ThrowingInteractionSystem, ThrowingComponent>
-{
-public:
-    using ToolSystem::ToolSystem;
+        float distanceFromPointer = 0.05f;
+        float scale = 0.25f;
+    };
 
-protected:
-    // System
-    void Update(double dt) override;
+    ////////////////////////////////////////////////////////////////////////////////
+    // ThrowingInteractionSystem
+    // This ToolSystem manages the Throwing tool which allows you to throw baseballs in 3D scene
+    class ThrowingInteractionSystem : public ToolSystem<ThrowingInteractionSystem, ThrowingComponent>
+    {
+    public:
+        using ToolSystem::ToolSystem;
 
-    // IInteractionModeSystem
-    std::wstring_view GetInstructions() const override;
-    std::wstring_view GetDisplayName() const override;
-    EntityPtr CreateToolSelector() const override;
+    protected:
+        // System
+        void Update(double dt) override;
 
-    // ISpatialInteractionListener
-    void OnSourcePressed(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
+        // IInteractionModeSystem
+        std::wstring_view GetInstructions() const override;
+        std::wstring_view GetDisplayName() const override;
+        EntityPtr CreateToolSelector() const override;
 
-    void OnSourceReleased(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
-};
+        // ISpatialInteractionListener
+        void OnSourcePressed(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
 
+        void OnSourceReleased(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) override;
+    };
+}
 
-END_UPP_NAMESPACE
-#endif

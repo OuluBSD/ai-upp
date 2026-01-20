@@ -1,5 +1,5 @@
 # Task: Status Enum
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Define `TaskStatus` enum in `uppsrc/Maestro/PlanModels.h`.

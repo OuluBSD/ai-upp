@@ -560,6 +560,8 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 		manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
 		manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
+		manifest_tokens.Add("PHONE_PRODUCT_ID", XmlEscape(UwpGuidString("PhoneProduct:" + solution_name)));
+		manifest_tokens.Add("PHONE_PUBLISHER_ID", XmlEscape(UwpGuidString("PhonePublisher:" + solution_name)));
 
 		String manifest = ReplaceUwpTokens(UwpTemplate(uwp_appxmanifest_tpl, uwp_appxmanifest_tpl_length), manifest_tokens);
 		SaveFile(manifest_path, manifest);
@@ -684,6 +686,8 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 		manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
 		manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
+		manifest_tokens.Add("PHONE_PRODUCT_ID", XmlEscape(UwpGuidString("PhoneProduct:" + solution_name)));
+		manifest_tokens.Add("PHONE_PUBLISHER_ID", XmlEscape(UwpGuidString("PhonePublisher:" + solution_name)));
 		String manifest = ReplaceUwpTokens(UwpTemplate(uwp_appxmanifest_tpl, uwp_appxmanifest_tpl_length), manifest_tokens);
 		SaveFile(manifest_path, manifest);
 

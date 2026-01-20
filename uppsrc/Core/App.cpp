@@ -52,6 +52,13 @@ struct UwpAppView : winrt::implements<UwpAppView, winrt::Windows::ApplicationMod
 	void Load(winrt::hstring const&) {}
 	void Run()
 	{
+		static bool init_done = false;
+		if(!init_done) {
+			AppInitEnvironment__();
+			init_done = true;
+		}
+		auto window = winrt::Windows::UI::Core::CoreWindow::GetForCurrentThread();
+		window.Activate();
 		AppExecute__(app);
 		AppExit__();
 	}

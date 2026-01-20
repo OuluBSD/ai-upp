@@ -60,6 +60,7 @@ bool CliMaestroEngine::Do() {
 				
 				if(!v["text_delta"].IsVoid()) e.text = v["text_delta"];
 				else if(!v["text_full"].IsVoid()) e.text = v["text_full"];
+				else if(!v["content"].IsVoid()) e.text = v["content"];
 				else if(!v["error"].IsVoid()) e.text = v["error"];
 				
 e.role = v["role"];

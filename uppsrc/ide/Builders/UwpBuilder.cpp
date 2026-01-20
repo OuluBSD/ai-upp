@@ -148,6 +148,69 @@ void CollectUwpProjectFiles(Index<String>& files, const String& source, const St
 	}
 }
 
+struct UwpAssetMapping : Moveable<UwpAssetMapping> {
+	String source;
+	String target;
+};
+
+String FindUwpRepoRoot(const String& start_dir)
+{
+	String dir = NormalizePath(start_dir);
+	while(!dir.IsEmpty()) {
+		if(DirectoryExists(AppendFileName(dir, "share")) && DirectoryExists(AppendFileName(dir, "uppsrc")))
+			return dir;
+		String parent = GetFileFolder(dir);
+		if(parent.IsEmpty() || parent == dir)
+			break;
+		dir = parent;
+	}
+	return NormalizePath(start_dir);
+}
+
+bool LoadUwpAssetMappings(const String& package, Vector<UwpAssetMapping>& mappings)
+{
+	String cfg_path = AppendFileName(PackageDirectory(package), "UwpAssets.json");
+	if(!FileExists(cfg_path))
+		return false;
+
+	Value json;
+	try {
+		json = ParseJSON(LoadFile(cfg_path));
+	}
+	catch(CParser::Error& e) {
+		PutConsole("UWP: failed to parse " + cfg_path + ": " + String(e));
+		return false;
+	}
+
+	if(!json.Is<ValueMap>()) {
+		PutConsole("UWP: invalid " + cfg_path + ": root must be object");
+		return false;
+	}
+
+	ValueMap root = json;
+	Value items = root.Get("mappings", Value());
+	if(!items.Is<ValueArray>()) {
+		PutConsole("UWP: invalid " + cfg_path + ": mappings must be array");
+		return false;
+	}
+
+	ValueArray arr = items;
+	for(int i = 0; i < arr.GetCount(); i++) {
+		if(!arr[i].Is<ValueMap>())
+			continue;
+		ValueMap item = arr[i];
+		String source = item.Get("source", String());
+		String target = item.Get("target", String());
+		if(source.IsEmpty() || target.IsEmpty())
+			continue;
+		UwpAssetMapping& mapping = mappings.Add();
+		mapping.source = source;
+		mapping.target = target;
+	}
+
+	return !mappings.IsEmpty();
+}
+
 String MakeItemList(const Index<String>& files, const String& root, const String& tag)
 {
 	StringBuffer out;
@@ -620,6 +683,9 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 			if(IsNull(package))
 				continue;
 			UwpProjectData& data = project_map.Get(package);
+			if(data.content.Find(project_files[i]) >= 0)
+				data.content.FindAdd(project_files[i]);
+			else
 			if(IsCompileSourceFile(project_files[i]))
 				data.clcompile.FindAdd(project_files[i]);
 			else
@@ -817,7 +883,14 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 			proj_tokens.Add("CLCOMPILE", MakeItemList(data.clcompile, solution_dir, "ClCompile"));
 			proj_tokens.Add("CLINCLUDE", MakeItemList(data.clincludes, solution_dir, "ClInclude"));
 			proj_tokens.Add("NONEITEMS", MakeItemList(data.none, solution_dir, "None"));
-			proj_tokens.Add("CONTENT_ITEMS", is_app ? MakeContentItemList(assets, solution_dir) : String());
+			Index<String> content_items;
+			if(is_app) {
+				for(int a = 0; a < assets.GetCount(); a++)
+					content_items.FindAdd(assets[a]);
+			}
+			for(int c = 0; c < data.content.GetCount(); c++)
+				content_items.FindAdd(data.content[c]);
+			proj_tokens.Add("CONTENT_ITEMS", MakeContentItemList(content_items, solution_dir));
 			proj_tokens.Add("PROJECT_REFERENCES", project_refs);
 			proj_tokens.Add("APPX_MANIFEST_ITEM", appx_item);
 			proj_tokens.Add("APPX_PACKAGE", appx_package);
@@ -834,11 +907,44 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 			if(is_main)
 				none_filters.FindAdd(manifest_path);
 			filter_tokens.Add("FILTER_NONE", MakeFilteredItemList(none_filters, solution_dir, "None", "Resource Files"));
-			filter_tokens.Add("FILTER_CONTENT", is_main ? MakeFilteredContentItemList(assets, solution_dir, "Content Files") : String());
+			Index<String> filter_content_items;
+			if(is_main) {
+				for(int a = 0; a < assets.GetCount(); a++)
+					filter_content_items.FindAdd(assets[a]);
+			}
+			for(int c = 0; c < data.content.GetCount(); c++)
+				filter_content_items.FindAdd(data.content[c]);
+			filter_tokens.Add("FILTER_CONTENT", MakeFilteredContentItemList(filter_content_items, solution_dir, "Content Files"));
 
 			String vcxfilters = ReplaceUwpTokens(UwpTemplate(uwp_filters_tpl, uwp_filters_tpl_length), filter_tokens);
 			SaveFile(AppendFileName(solution_dir, project_names.Get(pkg) + ".vcxproj.filters"), vcxfilters);
 
+		}
+	}
+
+	Vector<UwpAssetMapping> asset_mappings;
+	if(LoadUwpAssetMappings(package, asset_mappings)) {
+		String repo_root = FindUwpRepoRoot(packagedir);
+		UwpProjectData& data = project_map.Get(package);
+		for(int i = 0; i < asset_mappings.GetCount(); i++) {
+			const UwpAssetMapping& mapping = asset_mappings[i];
+			String source = mapping.source;
+			if(!IsFullPath(source))
+				source = AppendFileName(repo_root, source);
+			String target = AppendFileName(AppendFileName(outdir, package), NativePath(mapping.target));
+
+			bool updated = false;
+			Index<String> content_files;
+			CollectUwpProjectFiles(content_files, source, target);
+			for(int j = 0; j < content_files.GetCount(); j++) {
+				const String& item = content_files[j];
+				data.content.FindAdd(item);
+				project_files.FindAdd(item);
+			}
+			if(!StageUwpFile(source, target, updated))
+				error = true;
+			else if(updated)
+				staged++;
 		}
 	}
 

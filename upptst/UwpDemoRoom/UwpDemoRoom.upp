@@ -1,0 +1,11 @@
+uses
+	EonRouterSupport;
+
+file
+	AGENTS.md,
+	UwpAssets.json,
+	UwpDemoRoom.h,
+	UwpDemoRoom.cpp;
+
+mainconfig
+	"" = "UWP DX12";

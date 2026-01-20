@@ -1,5 +1,5 @@
 # Task: UppParser Uses
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement `ParseUses` in `UppParser.cpp`.

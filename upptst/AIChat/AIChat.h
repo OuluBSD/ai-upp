@@ -10,7 +10,10 @@ class AIChat : public TopWindow {
 	MenuBar    menu;
 	TabCtrl    tabs;
 	AIChatCtrl chat;
-	StaticText system_view;
+	
+	Splitter   system_splitter;
+	RepoView   repo_view;
+	PlanView   plan_view;
 	
 	void MainMenu(Bar& bar);
 	

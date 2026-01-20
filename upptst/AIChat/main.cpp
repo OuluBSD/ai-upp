@@ -20,6 +20,7 @@ AIChat::AIChat() {
 void AIChat::MainMenu(Bar& bar) {
 	bar.Sub("Edit", [=](Bar& bar) {
 		bar.Add("Copy All Chat", [=] { chat.CopyAllChat(); });
+		bar.Add("Copy Debug Data", [=] { chat.CopyDebugData(); });
 	});
 }
 

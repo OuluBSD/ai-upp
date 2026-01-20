@@ -54,6 +54,20 @@ void AIChatCtrl::CopyAllChat() {
 	WriteClipboardText(full_chat);
 }
 
+void AIChatCtrl::CopyDebugData() {
+	String debug;
+	debug << "=== ENGINE LOG ===\n";
+	debug << engine.debug_log << "\n";
+	debug << "=== CHAT STATE ===\n";
+	debug << "Items: " << items.GetCount() << "\n";
+	for(int i = 0; i < items.GetCount(); i++) {
+		debug << "[" << i << "] Role: " << items[i].role 
+		      << " Len: " << items[i].text.GetCount() 
+		      << " Error: " << items[i].is_error << "\n";
+	}
+	WriteClipboardText(debug);
+}
+
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
 	int bottom_h = 100;
@@ -153,4 +167,4 @@ void AIChatCtrl::Poll() {
 	engine.Do();
 }
 
-}    
+}

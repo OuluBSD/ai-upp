@@ -142,6 +142,15 @@ void AIChatCtrl::CopyDebugData() {
 	WriteClipboardText(debug);
 }
 
+void AIChatCtrl::OnSelectSession() {
+	SessionSelectWindow sw;
+	sw.Load(engine);
+	if(sw.Run() == IDOK) {
+		engine.session_id = sw.selected_id;
+		AddItem("System", "Resumed session: " + engine.session_id);
+	}
+}
+
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
 	int bottom_h = 100;

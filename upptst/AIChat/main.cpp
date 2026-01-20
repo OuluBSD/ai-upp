@@ -85,6 +85,7 @@ system_splitter.Horz() << repo_view << plan_view;
 
 void AIChat::MainMenu(Bar& bar) {
 	bar.Sub("Edit", [=](Bar& bar) {
+		bar.Add("Select Session", [=] { chat.OnSelectSession(); });
 		bar.Add("Copy All Chat", [=] { chat.CopyAllChat(); });
 		bar.Add("Copy Debug Data", [=] { chat.CopyDebugData(); });
 	});

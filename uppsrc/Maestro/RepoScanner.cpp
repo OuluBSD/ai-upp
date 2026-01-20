@@ -34,6 +34,23 @@ void RepoScanner::AddPackage(const String& path, const String& build_system) {
 	p.name = GetFileTitle(p.dir);
 	if(p.name.IsEmpty()) p.name = GetFileTitle(path);
 	p.build_system = build_system;
+	
+	if(build_system == "upp") {
+		UppParser parser;
+		parser.ParseFile(path);
+		
+		for(const auto& u : parser.uses)
+			p.dependencies.Add(u.package);
+		
+		for(const auto& fe : parser.files)
+			p.files.Add(fe.path);
+			
+		parser.ProcessFileGroups(p.groups, p.ungrouped_files);
+		
+		p.metadata.Add("description", parser.description_text);
+		if(!IsNull(parser.description_color))
+			p.metadata.Add("color", ColorToHtml(parser.description_color));
+	}
 }
 
 void RepoScanner::DetectAssemblies() {}

@@ -1,5 +1,5 @@
 # Task: RepoScanner Integrate
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Use `UppParser` inside `RepoScanner` to fill detailed `PackageInfo`.

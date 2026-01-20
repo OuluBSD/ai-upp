@@ -39,6 +39,7 @@ Conventions
 - Each subpackage carries its own `AGENTS.md`; consult those for deeper details and extension points.
 - Prefer adding documentation topics in `.tpp` when exposing public APIs.
 - All classes and structs used in NTL containers (Vector, Array, etc.) MUST inherit from `Moveable<T>` (e.g., `struct MyData : Moveable<MyData> { ... };`) to be compatible with U++ memory management.
+- When adding a `MenuBar` to a `TopWindow`, use `AddFrame(menu);` in the constructor followed by `menu.Set(THISBACK(MainMenu));`.
 
 Extending
 - New domain: create `AI/Core/<Domain>` and register in `AI/Core/Core.upp` aggregate.

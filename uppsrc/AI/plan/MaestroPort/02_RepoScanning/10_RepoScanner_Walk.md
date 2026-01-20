@@ -1,5 +1,5 @@
 # Task: RepoScanner Walk
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement `RepoScanner::Scan` in `RepoScanner.cpp`.

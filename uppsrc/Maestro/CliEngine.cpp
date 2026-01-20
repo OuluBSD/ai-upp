@@ -155,6 +155,23 @@ bool CliMaestroEngine::Do() {
 				if(e.type == "turn.delta" || e.type == "partial_message" || e.type == "stream_event") e.delta = true;
 				
 				// Capture session_id
+				// Capture tool usage
+				if(v["type"] == "assistant" || v["type"] == "user") {
+					Value content = v["message"]["content"];
+					if(content.Is<ValueArray>() && content.GetCount() > 0) {
+						Value c0 = content[0];
+						if(c0["type"] == "tool_use") {
+							e.type = "tool_use";
+							e.tool_name = c0["name"].ToString();
+							e.tool_input = AsJSON(c0["input"]);
+						} else if(c0["type"] == "tool_result") {
+							e.type = "tool_result";
+							e.tool_name = "result";
+							e.text = c0["content"].ToString();
+						}
+					}
+				}
+				
 				if(!v["session_id"].IsVoid()) {
 					e.session_id = v["session_id"].ToString();
 					session_id = e.session_id;

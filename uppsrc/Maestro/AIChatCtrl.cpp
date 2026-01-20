@@ -4,7 +4,7 @@ namespace Upp {
 
 void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
-	d.DrawRect(sz, SColorPaper());
+	d.DrawRect(sz, is_tool ? Color(240, 240, 240) : SColorPaper());
 	
 	// Background for role header
 	d.DrawRect(0, 0, sz.cx, 20, SColorFace());
@@ -12,12 +12,13 @@ void MaestroItem::Paint(Draw& d) {
 	Color clr = SColorText();
 	if(is_error) clr = Red();
 	else if(role == "User") clr = Blue();
+	else if(is_tool) clr = Color(0, 120, 0);
 	
 	Font fnt = StdFont().Bold();
 	d.DrawText(2, 2, role, fnt, clr);
 	
 	int ty = 22;
-	Font tfnt = StdFont();
+	Font tfnt = is_tool ? Courier(StdFont().GetHeight()) : StdFont();
 	int line_h = tfnt.GetLineHeight();
 	int w = sz.cx - 10;
 	
@@ -44,6 +45,7 @@ void MaestroItem::Paint(Draw& d) {
 			
 			int sn = n;
 			if(n < (int)strlen(s)) {
+				// Find last space to avoid mid-word break
 				const char *space = NULL;
 				for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
 				if(space) sn = (int)(space - s) + 1;
@@ -60,7 +62,7 @@ void MaestroItem::Paint(Draw& d) {
 
 int MaestroItem::GetHeight(int width) const {
 	int ty = 22;
-	Font tfnt = StdFont();
+	Font tfnt = is_tool ? Courier(StdFont().GetHeight()) : StdFont();
 	int line_h = tfnt.GetLineHeight();
 	int w = width - 10;
 	
@@ -137,13 +139,22 @@ void AIChatCtrl::CopyDebugData() {
 	for(int i = 0; i < items.GetCount(); i++) {
 		debug << "[" << i << "] Role: " << items[i].role 
 		      << " Len: " << items[i].text.GetCount() 
-		      << " Error: " << items[i].is_error << "\n";
+		      << " Error: " << items[i].is_error << " Tool: " << items[i].is_tool << "\n";
 	}
 	WriteClipboardText(debug);
 }
 
 void AIChatCtrl::OnSelectSession() {
+	int idx = engine_select.GetIndex();
+	String key = engine_select.GetKey(idx);
+	
+	if(key == "gemini") ConfigureGemini(engine);
+	else if(key == "qwen") ConfigureQwen(engine);
+	else if(key == "claude") ConfigureClaude(engine);
+	else if(key == "codex") ConfigureCodex(engine);
+
 	SessionSelectWindow sw(engine);
+	sw.DataDirectories();
 	if(sw.Run() == IDOK) {
 		engine.session_id = sw.selected_id;
 		AddItem("System", "Resumed session: " + engine.session_id);
@@ -191,6 +202,18 @@ void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) 
 	item.role = role;
 	item.text = text;
 	item.is_error = is_error;
+	item.is_tool = false;
+	Add(item);
+	Layout();
+	vscroll.End();
+}
+
+void AIChatCtrl::AddToolItem(const String& role, const String& text) {
+	MaestroItem& item = items.Add();
+	item.role = role;
+	item.text = text;
+	item.is_error = false;
+	item.is_tool = true;
 	Add(item);
 	Layout();
 	vscroll.End();
@@ -218,7 +241,13 @@ void AIChatCtrl::OnSend() {
 }
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
-	if(e.delta) {
+	if(e.type == "tool_use") {
+		AddToolItem("Tool Call: " + e.tool_name, e.tool_input);
+	}
+	else if(e.type == "tool_result") {
+		AddToolItem("Tool Result: " + e.tool_name, e.text);
+	}
+	else if(e.delta) {
 		if(e.role == "user") return;
 		
 		current_response << e.text;

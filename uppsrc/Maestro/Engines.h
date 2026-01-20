@@ -22,7 +22,10 @@ inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
 inline CliMaestroEngine& ConfigureClaude(CliMaestroEngine& e) {
 	e.Reset();
 	e.Binary("claude")
-	 .Arg("--output-format").Arg("stream-json");
+	 .Arg("-p")
+	 .Arg("--output-format").Arg("stream-json")
+	 .Arg("--include-partial-messages")
+	 .Arg("--verbose");
 	return e;
 }
 

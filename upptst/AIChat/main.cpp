@@ -39,12 +39,33 @@ system_splitter.Horz() << repo_view << plan_view;
 	const Vector<String>& cmdline = CommandLine();
 	String backend;
 	String input;
+	bool dump_sessions = false;
 	
 	for(int i = 0; i < cmdline.GetCount(); i++) {
 		if(cmdline[i] == "--backend" && i + 1 < cmdline.GetCount())
 			backend = cmdline[++i];
 		else if(cmdline[i] == "--input" && i + 1 < cmdline.GetCount())
 			input = cmdline[++i];
+		else if(cmdline[i] == "--dump-sessions")
+			dump_sessions = true;
+	}
+	
+	if(dump_sessions && !backend.IsEmpty()) {
+		chat.engine_select.SetData(backend);
+		if(backend == "qwen") ConfigureQwen(chat.engine);
+		
+		chat.engine.ListSessions(GetFileDirectory(GetExeFilePath()), [](const Array<SessionInfo>&) {});
+		
+		Cout() << "=== SESSION DUMP ===\n";
+		for(int i = 0; i < chat.engine.project_sessions.GetCount(); i++) {
+			Cout() << "Project: " << chat.engine.project_sessions.GetKey(i) << "\n";
+			for(const auto& s : chat.engine.project_sessions[i]) {
+				Cout() << "  Session: " << s.id << " (" << s.name << ")\n";
+			}
+		}
+		Cout() << "=== END DUMP ===\n";
+		Cout().Flush();
+		Exit(0);
 	}
 	
 	if(!backend.IsEmpty() && !input.IsEmpty()) {

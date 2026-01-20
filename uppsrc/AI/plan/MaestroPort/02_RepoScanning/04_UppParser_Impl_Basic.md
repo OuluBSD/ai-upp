@@ -1,5 +1,5 @@
 # Task: UppParser Basic Impl
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Create `uppsrc/Maestro/UppParser.cpp` and implement `Reset()` and basic parsing loop.

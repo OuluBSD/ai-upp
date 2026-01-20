@@ -1,5 +1,5 @@
 # Task: RepoScanner Header
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Create `uppsrc/Maestro/RepoScanner.h`.

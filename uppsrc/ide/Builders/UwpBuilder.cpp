@@ -220,15 +220,35 @@ String UwpProjectFileFromPackage(const String& package)
 
 void WriteUwpAssets(const String& assets_dir)
 {
-	static const char *kPngBase64 =
-		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/"
-		"x8AAwMBApU3a6QAAAAASUVORK5CYII=";
-	String png = Base64Decode(kPngBase64);
+	static const char *kStoreLogoBase64 =
+		"iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAAXNSR0IArs4c6QAAAARn"
+		"QU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAgSURBVGhD7cEBAQAAAIIg"
+		"/69uSEAAAAAAAAAAAABwqAYnQgABPpNbOAAAAABJRU5ErkJggg==";
+	static const char *kSquare150Base64 =
+		"iVBORw0KGgoAAAANSUhEUgAAAJYAAACWCAYAAAA8AXHiAAAAAXNSR0IArs4c6QAAAARn"
+		"QU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVHhe7cExAQAAAMKg"
+		"9U9tCy8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAbmpgNQABECgQtgAAAABJRU5ErkJggg==";
+	static const char *kSquare44Base64 =
+		"iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAAAXNSR0IArs4c6QAAAARn"
+		"QU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAfSURBVFhH7cExAQAAAMKg"
+		"9U9tBn8gAAAAAAAAALjUAB5sAAHaZvU3AAAAAElFTkSuQmCC";
+	static const char *kWideBase64 =
+		"iVBORw0KGgoAAAANSUhEUgAAATYAAACWCAYAAABU16TzAAAAAXNSR0IArs4c6QAAAARn"
+		"QU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADLSURBVHhe7cExAQAAAMKg"
+		"9U9tDB8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA7mrXRAABseYNLQAA"
+		"AABJRU5ErkJggg==";
+	String store_png = Base64Decode(kStoreLogoBase64);
+	String square150_png = Base64Decode(kSquare150Base64);
+	String square44_png = Base64Decode(kSquare44Base64);
+	String wide_png = Base64Decode(kWideBase64);
 	RealizeDirectory(assets_dir);
-	SaveFile(AppendFileName(assets_dir, "StoreLogo.png"), png);
-	SaveFile(AppendFileName(assets_dir, "Square150x150Logo.png"), png);
-	SaveFile(AppendFileName(assets_dir, "Square44x44Logo.png"), png);
-	SaveFile(AppendFileName(assets_dir, "Wide310x150Logo.png"), png);
+	SaveFile(AppendFileName(assets_dir, "StoreLogo.png"), store_png);
+	SaveFile(AppendFileName(assets_dir, "Square150x150Logo.png"), square150_png);
+	SaveFile(AppendFileName(assets_dir, "Square44x44Logo.png"), square44_png);
+	SaveFile(AppendFileName(assets_dir, "Wide310x150Logo.png"), wide_png);
 }
 
 String GetUwpRelativePath(const String& package, const String& path)

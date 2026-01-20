@@ -327,7 +327,7 @@ void UwpBuilder::AddFlags(Index<String>& cfg)
 }
 
 bool UwpBuilder::BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>&,
-	String& linkoptions, const Vector<String>&, const Vector<String>&, int)
+	String& linkoptions, const Vector<String>& all_uses, const Vector<String>&, int)
 {
 	if(!uwp_started) {
 		project_files.Clear();

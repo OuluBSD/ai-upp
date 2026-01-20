@@ -28,6 +28,7 @@ def print_help(prog):
                 "  --list-methods, -ListMethods       List build methods and exit",
                 "  --android, -Android                Select Android build method (BUILDER=ANDROID)",
                 "  --bootstrap, -Bootstrap, -bs       Bootstrap-build umk via Makefile",
+                "  --smoketest, -Smoketest            Build a single source file (UWP smoke test)",
                 "  --clean, -Clean, -c                Clean build",
                 "  --jobs N, -j N, -jN                Parallel jobs",
                 "  --verbose, -Verbose, -v            Verbose output",
@@ -79,6 +80,7 @@ def parse_args(argv):
         "mainconf": None,
         "android": False,
         "bootstrap": False,
+        "smoketest": False,
         "target": None,
         "help": False,
     }
@@ -134,6 +136,10 @@ def parse_args(argv):
             continue
         if lower in ("--bootstrap", "-bootstrap", "-bs"):
             opts["bootstrap"] = True
+            i += 1
+            continue
+        if lower in ("--smoketest", "-smoketest"):
+            opts["smoketest"] = True
             i += 1
             continue
         if lower in ("--method", "-method", "-m"):
@@ -959,20 +965,49 @@ def bootstrap_build_umk_windows(repo_root, opts):
     bin_dir.mkdir(parents=True, exist_ok=True)
     out_file = bin_dir / "umk.exe"
     
+    temp_out_file = bin_dir / f"umk_tmp_{os.getpid()}.exe"
+    
     libs = [
         "kernel32.lib", "user32.lib", "gdi32.lib", "ole32.lib", "oleaut32.lib",
         "uuid.lib", "ws2_32.lib", "advapi32.lib", "shell32.lib", "winmm.lib",
         "mpr.lib", "crypt32.lib", "usp10.lib"
     ]
     
-    link_cmd = [link_path, "/nologo", "/OUT:" + str(out_file), "/STACK:20000000", "/OPT:REF", "/OPT:ICF"] + obj_files + libs
+    link_cmd = [link_path, "/nologo", "/OUT:" + str(temp_out_file), "/STACK:20000000", "/OPT:REF", "/OPT:ICF"] + obj_files + libs
     print(f"Linking {out_file}...")
     if opts["verbose"]:
         print(" ".join(link_cmd))
     res = subprocess.run(link_cmd, env=env)
     if res.returncode != 0:
         print("Linking failed", file=sys.stderr)
+        if temp_out_file.exists():
+            try:
+                temp_out_file.unlink()
+            except OSError:
+                pass
         return res.returncode
+    
+    if out_file.exists():
+        try:
+            out_file.unlink()
+        except OSError:
+            old_path = out_file.with_suffix(".old")
+            if old_path.exists():
+                try:
+                    old_path.unlink()
+                except OSError:
+                    pass
+            try:
+                out_file.rename(old_path)
+            except OSError:
+                print(f"Warning: Could not replace {out_file}. It may be in use.", file=sys.stderr)
+                return 1
+
+    try:
+        temp_out_file.rename(out_file)
+    except OSError as exc:
+        print(f"Error: Failed to move {temp_out_file} to {out_file}: {exc}", file=sys.stderr)
+        return 1
         
     print(f"umk.exe successfully bootstrapped to {out_file}")
     return 0
@@ -1159,6 +1194,8 @@ def main():
         flags = ",".join(apply_debug_full(flags, opts["release"]))
     elif not opts["release"]:
         flags = "DEBUG_FULL"
+    if opts["smoketest"]:
+        flags = f"{flags},UWP_SMOKETEST" if flags else "UWP_SMOKETEST"
 
     try:
         resolved_method = resolve_method(methods, opts["method"])
@@ -1195,6 +1232,13 @@ def main():
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    real_output_path = output_path
+    temp_output_path = None
+    if is_windows and target.lower() == "umk":
+        # Build to a temporary file to avoid overwriting the running umk.exe
+        temp_output_path = output_path.with_name(f"{output_path.stem}_tmp_{os.getpid()}.exe")
+        output_path = temp_output_path
+
     if opts["verbose"]:
         if selected:
             print(f"Mainconfig: [{index}] {selected['name']}")
@@ -1223,7 +1267,39 @@ def main():
         opts["verbose"],
     )
     result = subprocess.run(args)
+
+    if result.returncode == 0 and temp_output_path:
+        if temp_output_path.exists():
+            if real_output_path.exists():
+                try:
+                    real_output_path.unlink()
+                except OSError:
+                    # If we cannot delete it, it might still be in use.
+                    # On Windows, we can often rename it even if it's in use.
+                    old_path = real_output_path.with_suffix(".old")
+                    if old_path.exists():
+                        try:
+                            old_path.unlink()
+                        except OSError:
+                            pass
+                    try:
+                        real_output_path.rename(old_path)
+                    except OSError:
+                        print(f"Warning: Could not replace {real_output_path}. It may be in use.", file=sys.stderr)
+                        return 1
+            try:
+                temp_output_path.rename(real_output_path)
+                output_path = real_output_path
+            except OSError as exc:
+                print(f"Error: Failed to move {temp_output_path} to {real_output_path}: {exc}", file=sys.stderr)
+                return 1
+
     if result.returncode != 0:
+        if temp_output_path and temp_output_path.exists():
+            try:
+                temp_output_path.unlink()
+            except OSError:
+                pass
         return result.returncode
 
     copy_eon_files(upp_path, output_path.parent, opts["verbose"])

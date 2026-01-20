@@ -6,8 +6,8 @@ inline int tmGetTime() {
 }
 #else
 inline int tmGetTime() {
-	#if defined flagCLANG || defined flagGCC
-	return tmGetTime();
+	#if defined flagCLANG || defined flagGCC || defined flagUWP
+	return GetTickCount();
 	#else
 	return timeGetTime();
 	#endif

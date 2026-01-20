@@ -12,5 +12,6 @@ file
 	Engines.h,
 	PackageInfo.h,
 	UppParser.h,
+	UppParser.cpp,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

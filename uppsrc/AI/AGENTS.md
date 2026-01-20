@@ -38,6 +38,7 @@ Conventions
 - Keep domain logic in `AI/Core/*` and UI code in `AI/Ctrl/*`.
 - Each subpackage carries its own `AGENTS.md`; consult those for deeper details and extension points.
 - Prefer adding documentation topics in `.tpp` when exposing public APIs.
+- All classes and structs used in NTL containers (Vector, Array, etc.) MUST inherit from `Moveable<T>` (e.g., `struct MyData : Moveable<MyData> { ... };`) to be compatible with U++ memory management.
 
 Extending
 - New domain: create `AI/Core/<Domain>` and register in `AI/Core/Core.upp` aggregate.

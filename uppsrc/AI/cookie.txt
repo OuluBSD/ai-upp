@@ -1,4 +1,4 @@
 TRACK=MaestroPort
 PHASE=02_RepoScanning
-TASK=01_FileGroup_Struct.md
+TASK=02_PackageInfo_Struct.md
 STATUS=DONE

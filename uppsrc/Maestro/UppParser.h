@@ -50,6 +50,7 @@ public:
 	void Reset();
 	void Parse(const String& content);
 	void ParseFile(const String& path);
+	void ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files);
 
 private:
 	int ParseDescription(const Vector<String>& lines, int i);
@@ -61,7 +62,6 @@ private:
 	int ParseLink(const Vector<String>& lines, int i);
 	
 	UppFileEntry ParseFileEntry(const String& line);
-	void ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files);
 };
 
 #endif

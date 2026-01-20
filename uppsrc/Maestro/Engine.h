@@ -7,6 +7,7 @@ struct MaestroEvent {
 	String text;        // delta or full text
 	Value  json;        // raw event data
 	bool   delta = false;
+	String session_id;
 	
 	String ToString() const { return String().Cat() << type << (delta ? " (delta)" : "") << ": " << text; }
 };
@@ -14,6 +15,7 @@ struct MaestroEvent {
 class MaestroEngine {
 public:
 	String debug_log;
+	String session_id;
 
 	virtual ~MaestroEngine() {}
 	virtual void Send(const String& prompt, Function<void(const MaestroEvent&)> cb) = 0;

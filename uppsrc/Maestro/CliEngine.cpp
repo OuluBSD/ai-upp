@@ -4,11 +4,16 @@ namespace Upp {
 
 void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEvent&)> cb) {
 	callback = cb;
-	if(p.IsRunning()) p.Kill();
+	if(p && p->IsRunning()) p->Kill();
+	p.Create();
 	
 	String cmd = binary;
-	for(const auto& arg : args)
-		cmd << " " << arg;
+	for(int i = 0; i < args.GetCount(); i++) {
+		if((args[i] == "-p" || args[i] == "--prompt") && !session_id.IsEmpty()) {
+			cmd << " -r " << session_id;
+		}
+		cmd << " " << args[i];
+	}
 	
 	debug_log << "=== START SEND ===\n";
 	
@@ -19,13 +24,13 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	bool use_arg = false;
 	if(args.GetCount() > 0 && (args.Top() == "-p" || args.Top() == "--prompt")) {
 		use_arg = true;
-		cmd << " " << "\"" << prompt << "\"";
+		cmd << " " << "'" << prompt << "'";
 	}
 	
 	debug_log << "Command: " << cmd << "\n";
 	if(!use_arg) debug_log << "Prompt (stdin): " << prompt << "\n";
 	
-	if(!p.Start(cmd, NULL, dir)) {
+	if(!p->Start(cmd, NULL, dir)) {
 		debug_log << "ERROR: Failed to start process\n";
 		MaestroEvent e;
 		e.type = "error";
@@ -35,22 +40,23 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	}
 	
 	if(!use_arg) {
-		p.Write(prompt);
-		p.CloseWrite();
+		p->Write(prompt);
+		p->CloseWrite();
 	}
 	buffer.Clear();
 }
 
 void CliMaestroEngine::Cancel() {
-	if(p.IsRunning()) {
+	if(p && p->IsRunning()) {
 		debug_log << "=== CANCELLED ===\n";
-		p.Kill();
+		p->Kill();
 	}
 }
 
 bool CliMaestroEngine::Do() {
+	if(!p) return false;
 	String out;
-	if(p.Read(out)) {
+	if(p->Read(out)) {
 		buffer.Cat(out);
 		debug_log << "READ: " << out.GetCount() << " bytes\n";
 		
@@ -77,8 +83,12 @@ bool CliMaestroEngine::Do() {
 				
 				e.role = v["role"];
 				e.delta = v["delta"];
+				if(!v["session_id"].IsVoid()) {
+					e.session_id = v["session_id"];
+					session_id = e.session_id;
+				}
 				
-				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << "\n";
+				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid=" + e.session_id) << "\n";
 				
 				if(callback) callback(e);
 			} else {
@@ -86,7 +96,7 @@ bool CliMaestroEngine::Do() {
 			}
 		}
 	}
-	return p.IsRunning() || !buffer.IsEmpty();
+	return p->IsRunning() || !buffer.IsEmpty();
 }
 
 } // namespace Upp

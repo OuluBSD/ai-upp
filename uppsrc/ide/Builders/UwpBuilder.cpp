@@ -185,6 +185,7 @@ String MakeContentItemList(const Index<String>& files, const String& root)
 		String rel = XmlEscape(ToWindowsPath(MakeUwpRelativePath(root, files[i])));
 		out << "    <Content Include=\"" << rel << "\">\n"
 		    << "      <DeploymentContent>true</DeploymentContent>\n"
+		    << "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n"
 		    << "    </Content>\n";
 	}
 	return String(out);
@@ -196,6 +197,8 @@ String MakeFilteredContentItemList(const Index<String>& files, const String& roo
 	for(int i = 0; i < files.GetCount(); i++) {
 		String rel = XmlEscape(ToWindowsPath(MakeUwpRelativePath(root, files[i])));
 		out << "    <Content Include=\"" << rel << "\">\n"
+		    << "      <DeploymentContent>true</DeploymentContent>\n"
+		    << "      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n"
 		    << "      <Filter>" << XmlEscape(filter) << "</Filter>\n"
 		    << "    </Content>\n";
 	}

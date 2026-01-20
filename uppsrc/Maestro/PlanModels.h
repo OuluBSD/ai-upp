@@ -1,6 +1,10 @@
 #ifndef _Maestro_PlanModels_h_
 #define _Maestro_PlanModels_h_
 
+#include <Core/Core.h>
+
+NAMESPACE_UPP
+
 enum TaskStatus {
 	STATUS_TODO,
 	STATUS_IN_PROGRESS,
@@ -34,42 +38,31 @@ struct Task : Moveable<Task> {
 
 	void Jsonize(JsonIO& jio) {
 		String s = StatusToString(status);
-		jio
-			("name", name)
-			("description", description)
-			("status", s)
-			("path", path)
-		;
+		jio("name", name)("description", description)("status", s)("path", path);
 		if(jio.IsLoading()) status = StringToStatus(s);
 	}
 };
 
 struct Phase : Moveable<Phase> {
 	String      name;
-	Array<Task> tasks;
 	String      path;
+	Array<Task> tasks;
 
 	void Jsonize(JsonIO& jio) {
-		jio
-			("name", name)
-			("tasks", tasks)
-			("path", path)
-		;
+		jio("name", name)("path", path)("tasks", tasks);
 	}
 };
 
 struct Track : Moveable<Track> {
 	String       name;
-	Array<Phase> phases;
 	String       path;
+	Array<Phase> phases;
 
 	void Jsonize(JsonIO& jio) {
-		jio
-			("name", name)
-			("phases", phases)
-			("path", path)
-		;
+		jio("name", name)("path", path)("phases", phases);
 	}
 };
+
+END_UPP_NAMESPACE
 
 #endif

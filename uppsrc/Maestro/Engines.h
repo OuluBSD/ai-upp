@@ -1,6 +1,10 @@
 #ifndef _Maestro_Engines_h_
 #define _Maestro_Engines_h_
 
+#include "CliEngine.h"
+
+NAMESPACE_UPP
+
 inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 	e.Reset();
 	e.Binary("gemini")
@@ -23,21 +27,18 @@ inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
 inline CliMaestroEngine& ConfigureClaude(CliMaestroEngine& e) {
 	e.Reset();
 	e.Binary("claude")
-	 .Arg("-p")
+	 .Arg("--verbose")
 	 .Arg("--output-format").Arg("stream-json")
-	 .Arg("--include-partial-messages")
-	 .Arg("--verbose");
+	 .Arg("-p");
 	return e;
 }
 
 inline CliMaestroEngine& ConfigureCodex(CliMaestroEngine& e) {
 	e.Reset();
-	e.Binary("codex")
-	 .Arg("exec")
-	 .Arg("--dangerously-bypass-approvals-and-sandbox")
-	 .Arg("--skip-git-repo-check")
-	 .Arg("--json");
+	e.Binary("codex");
 	return e;
 }
+
+END_UPP_NAMESPACE
 
 #endif

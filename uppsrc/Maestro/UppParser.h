@@ -1,6 +1,16 @@
 #ifndef _Maestro_UppParser_h_
 #define _Maestro_UppParser_h_
 
+#include <Core/Core.h>
+#include <plugin/pcre/Pcre.h>
+
+NAMESPACE_UPP
+
+struct UppUseEntry : Moveable<UppUseEntry> {
+	String package;
+	String condition;
+};
+
 struct UppFileEntry : Moveable<UppFileEntry> {
 	String path;
 	String options;
@@ -8,48 +18,51 @@ struct UppFileEntry : Moveable<UppFileEntry> {
 	bool   separator = false;
 	String highlight;
 	String charset;
-};
-
-struct UppUseEntry : Moveable<UppUseEntry> {
-	String package;
 	String condition;
 };
 
 struct UppConfigEntry : Moveable<UppConfigEntry> {
 	String name;
 	String param;
+	String condition;
 };
 
 struct UppLibraryEntry : Moveable<UppLibraryEntry> {
-	String condition;
 	String libs;
+	String condition;
 };
 
 struct UppLinkEntry : Moveable<UppLinkEntry> {
-	String condition;
 	String flags;
+	String condition;
+};
+
+struct FileGroup : Moveable<FileGroup> {
+	String name;
+	bool   readonly = false;
+	Vector<String> files;
 };
 
 class UppParser {
 public:
-	String              raw_description;
-	String              description_text;
-	Color               description_color = Null;
+	String raw_description;
+	String description_text;
+	Color  description_color;
 	
-	Vector<UppUseEntry>     uses;
-	Vector<UppFileEntry>    files;
-	Vector<UppConfigEntry>  mainconfigs;
-	Vector<String>          acceptflags;
-	Vector<UppLibraryEntry> libraries;
-	Vector<UppLibraryEntry> static_libraries;
-	Vector<UppLinkEntry>    links;
+	Array<UppUseEntry> uses;
+	Array<UppFileEntry> files;
+	Array<UppConfigEntry> mainconfigs;
+	Vector<String> acceptflags;
+	Array<UppLibraryEntry> libraries;
+	Array<UppLibraryEntry> static_libraries;
+	Array<UppLinkEntry> links;
 	
-	Vector<String>          unparsed_lines;
-	Vector<String>          raw_lines;
+	Vector<String> unparsed_lines;
+	Vector<String> raw_lines;
 
 	void Reset();
-	void Parse(const String& content);
 	void ParseFile(const String& path);
+	void Parse(const String& content);
 	void ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files);
 
 private:
@@ -63,5 +76,7 @@ private:
 	
 	UppFileEntry ParseFileEntry(const String& line);
 };
+
+END_UPP_NAMESPACE
 
 #endif

@@ -67,6 +67,22 @@ void AppExecute__(void (*app)());
 void AppInit__(int argc, const char **argv);
 void AppInitEnvironment__();
 
+#ifdef flagUWP
+
+void UwpAppMain__(void (*app)());
+
+#define CONSOLE_APP_MAIN \
+void ConsoleMainFn_(); \
+ \
+int main() { \
+	UPP::UwpAppMain__(ConsoleMainFn_); \
+	return UPP::GetExitCode(); \
+} \
+ \
+void ConsoleMainFn_()
+
+#else
+
 #define CONSOLE_APP_MAIN \
 void ConsoleMainFn_(); \
  \
@@ -78,6 +94,8 @@ int main(int argc, char *argv[]) { \
 } \
  \
 void ConsoleMainFn_()
+
+#endif
 
 #endif
 

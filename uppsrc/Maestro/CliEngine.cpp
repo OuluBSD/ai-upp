@@ -10,13 +10,16 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	for(const auto& arg : args)
 		cmd << " " << arg;
 	
-debug_log << "=== START SEND ===\n";
-debug_log << "Command: " << cmd << "\n";
-debug_log << "Prompt: " << prompt << "\n";
-
-	if(!p.Start(cmd)) {
-		debug_log << "ERROR: Failed to start process\n";
-		MaestroEvent e;
+	debug_log << "=== START SEND ===\n";
+	debug_log << "Command: " << cmd << "\n";
+	debug_log << "Prompt: " << prompt << "\n";
+	
+	String dir = ConfigFile("ai-discussion");
+	RealizeDirectory(dir);
+	debug_log << "CWD: " << dir << "\n";
+	
+	if(!p.Start(cmd, NULL, dir)) {
+		debug_log << "ERROR: Failed to start process\n";		MaestroEvent e;
 		e.type = "error";
 		e.text = "Failed to start process: " + cmd;
 		if(callback) callback(e);

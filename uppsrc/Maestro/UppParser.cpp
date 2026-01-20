@@ -123,13 +123,104 @@ int UppParser::ParseUses(const Vector<String>& lines, int i) {
 	
 	return j + 1;
 }
-int UppParser::ParseFiles(const Vector<String>& lines, int i) { return i + 1; }
+int UppParser::ParseFiles(const Vector<String>& lines, int i) {
+	String line = TrimBoth(lines[i]);
+	
+	// Single line format: file "a.cpp", "b.h";
+	if(line.Find(';') >= 0) {
+		RegExp re("\"([^\"]+)\"");
+		while(re.GlobalMatch(line)) {
+			UppFileEntry& fe = files.Add();
+			fe.path = re[0];
+		}
+		return i + 1;
+	}
+	
+	// Multi-line format
+	int j = i + 1;
+	while(j < lines.GetCount()) {
+		String l = TrimBoth(lines[j]);
+		if(l.IsEmpty()) { j++; continue; }
+		if(l == ";") break;
+		
+		UppFileEntry fe = ParseFileEntry(l);
+		if(!fe.path.IsEmpty())
+			files.Add(fe);
+		
+		if(l.Find(';') >= 0) break;
+		j++;
+	}
+	
+	return j + 1;
+}
+
 int UppParser::ParseMainConfig(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) { return i + 1; }
 int UppParser::ParseLibrary(const Vector<String>& lines, int i, bool is_static) { return i + 1; }
 int UppParser::ParseLink(const Vector<String>& lines, int i) { return i + 1; }
 
-UppFileEntry UppParser::ParseFileEntry(const String& line) { return UppFileEntry(); }
-void UppParser::ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files) {}
+UppFileEntry UppParser::ParseFileEntry(const String& line) {
+	UppFileEntry fe;
+	
+	RegExp reQuoted("^\"([^\"]+)\"");
+	RegExp reUnquoted("^([^\\s,;]+)");
+	
+	if(reQuoted.Match(line)) {
+		fe.path = reQuoted[0];
+	} else if(reUnquoted.Match(line)) {
+		fe.path = reUnquoted[0];
+	} else {
+		return fe;
+	}
+	
+	if(line.Find("options(") >= 0) {
+		RegExp reOpt("options\\(([^)]+)\\)");
+		if(reOpt.Match(line)) fe.options = reOpt[0];
+	}
+	
+	if(line.Find("readonly") >= 0) fe.readonly = true;
+	if(line.Find("separator") >= 0) fe.separator = true;
+	
+	RegExp reHighlight("highlight\\s+(\\w+)");
+	if(reHighlight.Match(line)) fe.highlight = reHighlight[0];
+	
+	RegExp reCharset("charset\\s+\"([^\"]+)\"");
+	if(reCharset.Match(line)) fe.charset = reCharset[0];
+	
+	return fe;
+}
+
+void UppParser::ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files) {
+	String current_group;
+	Vector<String> current_files;
+	bool current_readonly = false;
+	
+	for(const auto& fe : files) {
+		if(fe.separator) {
+			if(!current_group.IsEmpty() && current_files.GetCount() > 0) {
+				FileGroup& g = groups.Add();
+				g.name = current_group;
+				g.files <<= current_files;
+				g.readonly = current_readonly;
+			}
+			current_group = fe.path;
+			current_files.Clear();
+			current_readonly = fe.readonly;
+		} else {
+			if(!current_group.IsEmpty()) {
+				current_files.Add(fe.path);
+			} else {
+				ungrouped_files.Add(fe.path);
+			}
+		}
+	}
+	
+	if(!current_group.IsEmpty() && current_files.GetCount() > 0) {
+		FileGroup& g = groups.Add();
+		g.name = current_group;
+		g.files <<= current_files;
+		g.readonly = current_readonly;
+	}
+}
 
 }

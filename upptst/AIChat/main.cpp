@@ -49,16 +49,37 @@ system_splitter.Horz() << repo_view << plan_view;
 	
 	if(!backend.IsEmpty() && !input.IsEmpty()) {
 		chat.engine_select.SetData(backend);
-		chat.input.SetData(input);
+		
+		static Vector<String> inputs;
+		inputs = Split(input, ';');
 		
 		chat.WhenDone = [=] {
-			Cout() << "=== TEST RESULT DEBUG DUMP ===\n";
-			Cout() << chat.engine.debug_log << "\n";
-			Cout() << "=== END DUMP ===\n";
-			PostCallback(callback(this, &TopWindow::Close));
+			static int idx = 0;
+			idx++;
+			if(idx < inputs.GetCount()) {
+				chat.input.SetData(inputs[idx]);
+				chat.OnSend();
+			} else {
+				Cout() << "=== TEST RESULT DEBUG DUMP ===\n";
+				Cout() << chat.engine.debug_log << "\n";
+				Cout() << "=== END DUMP ===\n";
+				Cout().Flush();
+				PostCallback(callback(const_cast<AIChat*>(this), &TopWindow::Close));
+			}
 		};
 		
+		chat.input.SetData(inputs[0]);
 		PostCallback([=] { chat.OnSend(); });
+		
+		// Global test timeout (30 seconds)
+		SetTimeCallback(30000, [=] {
+			Cout() << "ERROR: Test timed out after 30s\n";
+			Cout() << "=== PARTIAL DEBUG DUMP ===\n";
+			Cout() << chat.engine.debug_log << "\n";
+			Cout() << "=== END DUMP ===\n";
+			Cout().Flush();
+			PostCallback(callback(const_cast<AIChat*>(this), &TopWindow::Close));
+		});
 	}
 }
 

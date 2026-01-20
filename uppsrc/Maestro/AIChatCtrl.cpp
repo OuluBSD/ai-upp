@@ -136,7 +136,7 @@ void AIChatCtrl::OnSend() {
 }
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
-	if(e.type == "delta") {
+	if(e.type == "delta" || (e.type == "message" && e.delta)) {
 		if(e.role != "assistant" && !e.role.IsEmpty()) return;
 		
 		current_response << e.text;
@@ -156,7 +156,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			return;
 		}
 		
-		if(!e.text.IsEmpty()) current_response = e.text;
+		current_response = e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
 			items.Top().text = current_response;
 			items.Top().Refresh();

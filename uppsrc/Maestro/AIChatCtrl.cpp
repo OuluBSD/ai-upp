@@ -4,15 +4,15 @@ namespace Upp {
 
 void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
-	d.DrawRect(sz, is_tool ? Color(240, 240, 240) : SColorPaper());
+	d.DrawRect(sz, is_tool ? Blend(SColorPaper(), SColorText(), 50) : SColorPaper());
 	
 	// Background for role header
 	d.DrawRect(0, 0, sz.cx, 20, SColorFace());
 	
 	Color clr = SColorText();
-	if(is_error) clr = Red();
-	else if(role == "User") clr = Blue();
-	else if(is_tool) clr = Color(0, 120, 0);
+	if(is_error) clr = LtRed();
+	else if(role == "User") clr = LtBlue();
+	else if(is_tool) clr = LtGreen();
 	
 	Font fnt = StdFont().Bold();
 	d.DrawText(2, 2, role, fnt, clr);
@@ -242,17 +242,32 @@ void AIChatCtrl::OnSend() {
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	if(e.type == "tool_use") {
-		AddToolItem("Tool Call: " + e.tool_name, e.tool_input);
+		// Update last item if it's already a Tool Call for this tool
+		String role = "Tool Call: " + e.tool_name;
+		if(items.GetCount() > 0 && items.Top().role == role) {
+			items.Top().text = e.tool_input;
+			items.Top().Refresh();
+			Layout();
+		} else {
+			AddToolItem(role, e.tool_input);
+		}
 	}
 	else if(e.type == "tool_result") {
-		AddToolItem("Tool Result: " + e.tool_name, e.text);
+		String role = "Tool Result: " + e.tool_name;
+		if(items.GetCount() > 0 && items.Top().role == role) {
+			items.Top().text = e.text;
+			items.Top().Refresh();
+			Layout();
+		} else {
+			AddToolItem(role, e.text);
+		}
 	}
 	else if(e.delta) {
 		if(e.role == "user") return;
 		
 		current_response << e.text;
-		// Update last item if it's from AI
-		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
+		// Update last item if it's from AI and NOT a tool (or we match the tool)
+		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
 			Layout();
@@ -264,7 +279,8 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		if(e.role == "user") return;
 		
 		if(!e.text.IsEmpty()) current_response = e.text;
-		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
+		
+		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
 			Layout();

@@ -42,7 +42,7 @@ uses(GUI & VIRTUALGUI) DesktopSuite;
 
 uses(GUI GUBO) GuboSuite;
 
-uses(DX12) Eon/Win;
+uses(DX12 UWP) Eon/Win;
 
 uses(GUI) Eon/Ctrl;
 

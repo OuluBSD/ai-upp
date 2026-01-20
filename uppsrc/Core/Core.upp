@@ -67,6 +67,7 @@ file
 	UnicodeInfo.cpp,
 	CharSet.cpp,
 	Bom.cpp,
+	Uwp.h,
 	Path.h,
 	Path.cpp,
 	NetNode.cpp,

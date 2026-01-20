@@ -10,7 +10,8 @@ uses
 	plugin/mikktspace,
 	Draw,
 	Draw/Extensions,
-	Core/MathNumeric;
+	Core/MathNumeric,
+	ByteVM;
 
 uses(!UWP) plugin/tiny_gltf;
 

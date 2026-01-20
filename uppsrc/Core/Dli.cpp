@@ -105,6 +105,9 @@ const char *PeFile::FindExportRaw(const char *name, bool case_sensitive) const
 
 HMODULE CheckDll__(const char *fn, const char *const *names, UPP::Vector<void *>& plist)
 {
+#ifdef flagUWP
+	return 0;
+#else
 	HMODULE hmod = LoadLibrary(fn);
 	
 	if(!hmod)
@@ -139,6 +142,7 @@ HMODULE CheckDll__(const char *fn, const char *const *names, UPP::Vector<void *>
 		return 0;
 	}
 	return hmod;
+#endif
 }
 
 void FreeDll__(HMODULE hmod)

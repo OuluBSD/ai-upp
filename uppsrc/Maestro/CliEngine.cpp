@@ -11,23 +11,33 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 		cmd << " " << arg;
 	
 	debug_log << "=== START SEND ===\n";
-	debug_log << "Command: " << cmd << "\n";
-	debug_log << "Prompt: " << prompt << "\n";
 	
 	String dir = ConfigFile("ai-discussion");
 	RealizeDirectory(dir);
 	debug_log << "CWD: " << dir << "\n";
 	
+	bool use_arg = false;
+	if(args.GetCount() > 0 && (args.Top() == "-p" || args.Top() == "--prompt")) {
+		use_arg = true;
+		cmd << " " << "\"" << prompt << "\"";
+	}
+	
+	debug_log << "Command: " << cmd << "\n";
+	if(!use_arg) debug_log << "Prompt (stdin): " << prompt << "\n";
+	
 	if(!p.Start(cmd, NULL, dir)) {
-		debug_log << "ERROR: Failed to start process\n";		MaestroEvent e;
+		debug_log << "ERROR: Failed to start process\n";
+		MaestroEvent e;
 		e.type = "error";
 		e.text = "Failed to start process: " + cmd;
 		if(callback) callback(e);
 		return;
 	}
 	
-p.Write(prompt);
-	p.CloseWrite();
+	if(!use_arg) {
+		p.Write(prompt);
+		p.CloseWrite();
+	}
 	buffer.Clear();
 }
 
@@ -43,7 +53,6 @@ bool CliMaestroEngine::Do() {
 	if(p.Read(out)) {
 		buffer.Cat(out);
 		debug_log << "READ: " << out.GetCount() << " bytes\n";
-		// Optional: debug_log << "RAW: " << out << "\n"; 
 		
 		int pos;
 		while((pos = buffer.Find('\n')) >= 0) {
@@ -66,9 +75,9 @@ bool CliMaestroEngine::Do() {
 				else if(!v["content"].IsVoid()) e.text = v["content"];
 				else if(!v["error"].IsVoid()) e.text = v["error"];
 				
-e.role = v["role"];
+				e.role = v["role"];
 				
-debug_log << "EVENT: " << e.type << ", role=" << e.role << ", len=" << e.text.GetCount() << "\n";
+				debug_log << "EVENT: " << e.type << ", role=" << e.role << ", len=" << e.text.GetCount() << "\n";
 				
 				if(callback) callback(e);
 			} else {

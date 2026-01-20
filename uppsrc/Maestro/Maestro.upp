@@ -10,5 +10,6 @@ file
 	CliEngine.h,
 	CliEngine.cpp,
 	Engines.h,
+	PackageInfo.h,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

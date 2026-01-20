@@ -81,7 +81,7 @@
 
 #include <windows.h>
 
-#include <EcsLocal/EcsLocal.h>
+#include <Vfs/Ecs/Ecs.h>
 
 	
 #include <plugin/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION

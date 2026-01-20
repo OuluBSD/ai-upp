@@ -76,8 +76,9 @@ bool CliMaestroEngine::Do() {
 				else if(!v["error"].IsVoid()) e.text = v["error"];
 				
 				e.role = v["role"];
+				e.delta = v["delta"];
 				
-				debug_log << "EVENT: " << e.type << ", role=" << e.role << ", len=" << e.text.GetCount() << "\n";
+				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << "\n";
 				
 				if(callback) callback(e);
 			} else {

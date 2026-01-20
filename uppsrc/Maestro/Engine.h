@@ -6,8 +6,9 @@ struct MaestroEvent {
 	String role;
 	String text;        // delta or full text
 	Value  json;        // raw event data
+	bool   delta = false;
 	
-	String ToString() const { return String().Cat() << type << ": " << text; }
+	String ToString() const { return String().Cat() << type << (delta ? " (delta)" : "") << ": " << text; }
 };
 
 class MaestroEngine {

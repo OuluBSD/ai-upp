@@ -1,5 +1,5 @@
 # Task: Assembly Detection
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement `DetectAssemblies(const Array<PackageInfo>&)` in `RepoScanner`.

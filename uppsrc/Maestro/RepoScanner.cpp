@@ -53,6 +53,31 @@ void RepoScanner::AddPackage(const String& path, const String& build_system) {
 	}
 }
 
-void RepoScanner::DetectAssemblies() {}
+void RepoScanner::DetectAssemblies() {
+	assemblies.Clear();
+	
+	VectorMap<String, Vector<int>> dir_to_pkgs;
+	for(int i = 0; i < packages.GetCount(); i++) {
+		String parent = GetFileDirectory(packages[i].dir);
+		dir_to_pkgs.GetAdd(parent).Add(i);
+	}
+	
+	for(int i = 0; i < dir_to_pkgs.GetCount(); i++) {
+		const Vector<int>& indices = dir_to_pkgs[i];
+		String dir = dir_to_pkgs.GetKey(i);
+		
+		AssemblyInfo& a = assemblies.Add();
+		a.dir = dir;
+		a.name = GetFileTitle(dir);
+		a.assembly_type = "upp";
+		
+		for(int idx : indices) {
+			a.packages.Add(packages[idx].name);
+			a.package_dirs.Add(packages[idx].dir);
+			if(FindIndex(a.build_systems, packages[idx].build_system) < 0)
+				a.build_systems.Add(packages[idx].build_system);
+		}
+	}
+}
 
 }

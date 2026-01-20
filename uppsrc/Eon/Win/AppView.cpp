@@ -1,6 +1,7 @@
-#include "EcsWin.h"
-
-NAMESPACE_UPP
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace concurrency;
 using namespace std::placeholders;
@@ -10,6 +11,8 @@ using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::UI::Core;
+
+NAMESPACE_UPP
 
 static UwpVrAppFactory& UwpVrAppFactoryRef()
 {
@@ -193,30 +196,21 @@ void AppView::OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const
     m_windowClosed = true;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 void ShellConnectorApp::SetHolographicSpace(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace) {
+    winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace)
+{
 }
 
-void ShellConnectorApp::Update() {
+void ShellConnectorApp::Update()
+{
 }
 
-void ShellConnectorApp::SaveAppState() {
+void ShellConnectorApp::SaveAppState()
+{
 }
 
-void ShellConnectorApp::LoadAppState() {
+void ShellConnectorApp::LoadAppState()
+{
 }
-
-
 
 END_UPP_NAMESPACE

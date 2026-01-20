@@ -143,8 +143,7 @@ void AIChatCtrl::CopyDebugData() {
 }
 
 void AIChatCtrl::OnSelectSession() {
-	SessionSelectWindow sw;
-	sw.Load(engine);
+	SessionSelectWindow sw(engine);
 	if(sw.Run() == IDOK) {
 		engine.session_id = sw.selected_id;
 		AddItem("System", "Resumed session: " + engine.session_id);

@@ -137,6 +137,8 @@ void AIChatCtrl::OnSend() {
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	if(e.type == "delta") {
+		if(e.role != "assistant" && !e.role.IsEmpty()) return;
+		
 		current_response << e.text;
 		// Update last item if it's from AI
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
@@ -147,7 +149,13 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
 		}
 	}
-	else if(e.type == "message" || e.type == "result") {
+	else if(e.type == "message") {
+		if(e.role == "user") {
+			// We already added the user message locally when sending.
+			// Gemini echo can be ignored or used to sync.
+			return;
+		}
+		
 		if(!e.text.IsEmpty()) current_response = e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI")) {
 			items.Top().text = current_response;
@@ -156,6 +164,13 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		} else {
 			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
 		}
+		
+		if(e.role == "assistant") {
+			current_response.Clear();
+			WhenDone();
+		}
+	}
+	else if(e.type == "result") {
 		current_response.Clear();
 		WhenDone();
 	}

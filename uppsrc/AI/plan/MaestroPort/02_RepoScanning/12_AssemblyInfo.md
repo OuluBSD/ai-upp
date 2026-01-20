@@ -1,5 +1,5 @@
 # Task: AssemblyInfo Struct
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Define `AssemblyInfo` in `uppsrc/Maestro/AssemblyInfo.h`.

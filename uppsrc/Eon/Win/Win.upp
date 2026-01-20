@@ -10,6 +10,7 @@ library
 
 file
 	Copying,
+	AGENTS.md,
 	Eon/Win.h,
 	AppView.h,
 	AppView.cpp,

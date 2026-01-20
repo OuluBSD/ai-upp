@@ -1,0 +1,12 @@
+{
+  "mappings": [
+    {
+      "source": "share/demoroom",
+      "target": "Media"
+    },
+    {
+      "source": "share/models/ms",
+      "target": "Media/Models"
+    }
+  ]
+}

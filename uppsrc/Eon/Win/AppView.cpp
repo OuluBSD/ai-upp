@@ -11,12 +11,20 @@ using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Graphics::Holographic;
 using namespace winrt::Windows::UI::Core;
 
-// The main function bootstraps into the IFrameworkView.
-int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+static UwpVrAppFactory& UwpVrAppFactoryRef()
 {
-    winrt::init_apartment();
-    CoreApplication::Run(AppViewSource());
-    return 0;
+	static UwpVrAppFactory factory = nullptr;
+	return factory;
+}
+
+void SetUwpVrAppFactory(UwpVrAppFactory factory)
+{
+	UwpVrAppFactoryRef() = factory;
+}
+
+UwpVrAppFactory GetUwpVrAppFactory()
+{
+	return UwpVrAppFactoryRef();
 }
 
 // IFrameworkViewSource methods
@@ -39,7 +47,11 @@ void AppView::Initialize(CoreApplicationView const& applicationView)
 
     m_resumingEventToken = CoreApplication::Resuming(std::bind(&AppView::OnResuming, this, _1, _2));
 
-    TODO //m_main = std::make_unique<DemoRoomMain>();
+    auto factory = GetUwpVrAppFactory();
+    if(factory)
+        m_main = factory();
+    if(!m_main)
+        m_main = std::make_unique<ShellConnectorApp>();
 }
 
 void AppView::OnKeyPressed(winrt::Windows::UI::Core::CoreWindow const& sender, winrt::Windows::UI::Core::KeyEventArgs const& args)
@@ -194,19 +206,15 @@ void AppView::OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const
 
 void ShellConnectorApp::SetHolographicSpace(
     winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace) {
-	TODO
 }
 
 void ShellConnectorApp::Update() {
-	TODO
 }
 
 void ShellConnectorApp::SaveAppState() {
-	TODO
 }
 
 void ShellConnectorApp::LoadAppState() {
-	TODO
 }
 
 

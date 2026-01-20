@@ -19,5 +19,6 @@ file
 	AssemblyInfo.h,
 	PlanModels.h,
 	PlanParser.h,
+	PlanParser.cpp,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;

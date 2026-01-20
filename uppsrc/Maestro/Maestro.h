@@ -14,6 +14,7 @@ namespace Upp {
 #include "AssemblyInfo.h"
 #include "UppParser.h"
 #include "RepoScanner.h"
+#include "PlanModels.h"
 
 }
 

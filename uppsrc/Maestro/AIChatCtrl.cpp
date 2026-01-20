@@ -1,6 +1,6 @@
 #include "Maestro.h"
 
-namespace Upp {
+NAMESPACE_UPP
 
 void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
@@ -11,7 +11,7 @@ void MaestroItem::Paint(Draw& d) {
 	
 	Color clr = SColorText();
 	if(is_error) clr = LtRed();
-	else if(role == "User") clr = LtBlue();
+	else if(role == "User") clr = Blue();
 	else if(is_tool) clr = LtGreen();
 	
 	Font fnt = StdFont().Bold();
@@ -106,13 +106,6 @@ AIChatCtrl::AIChatCtrl() {
 	Add(vscroll);
 	Add(input);
 	Add(send.SetLabel("Send"));
-	Add(engine_select);
-	
-	engine_select.Add("gemini", "Gemini");
-	engine_select.Add("qwen", "Qwen");
-	engine_select.Add("claude", "Claude");
-	engine_select.Add("codex", "Codex");
-	engine_select.SetIndex(0);
 	
 	send << [=] { OnSend(); };
 	
@@ -145,8 +138,7 @@ void AIChatCtrl::CopyDebugData() {
 }
 
 void AIChatCtrl::OnSelectSession() {
-	int idx = engine_select.GetIndex();
-	String key = engine_select.GetKey(idx);
+	String key = backend;
 	
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
@@ -166,9 +158,7 @@ void AIChatCtrl::Layout() {
 	int bottom_h = 100;
 	
 	// Layout bottom controls
-	int bw = 150;
 	int bh = 25;
-	engine_select.SetRect(10, sz.cy - bh - 10, bw, bh);
 	send.SetRect(sz.cx - 90, sz.cy - bh - 10, 80, bh);
 	input.SetRect(10, sz.cy - bottom_h + 10, sz.cx - 20, 50);
 	
@@ -229,13 +219,16 @@ void AIChatCtrl::OnSend() {
 	current_response.Clear();
 	
 	// Configure engine
-	int idx = engine_select.GetIndex();
-	String key = engine_select.GetKey(idx);
+	String key = ToLower(backend);
+	engine.debug_log << "AIChatCtrl::OnSend - Backend key: '" << backend << "' -> normalized: '" << key << "'\n";
 	
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
 	else if(key == "codex") ConfigureCodex(engine);
+	else {
+		engine.debug_log << "ERROR: Unknown backend: '" << key << "'\n";
+	}
 	
 	engine.Send(prompt, [=](const MaestroEvent& e) { OnEvent(e); });
 }
@@ -272,7 +265,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			items.Top().Refresh();
 			Layout();
 		} else {
-			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
+			AddItem("AI (" + backend + ")", current_response);
 		}
 	}
 	else if(e.type == "message" || e.type == "assistant") {
@@ -285,7 +278,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 			items.Top().Refresh();
 			Layout();
 		} else {
-			AddItem("AI (" + engine_select.GetValue().ToString() + ")", current_response);
+			AddItem("AI (" + backend + ")", current_response);
 		}
 		
 		if(e.role == "assistant" || e.type == "assistant") {
@@ -307,4 +300,4 @@ void AIChatCtrl::Poll() {
 	engine.Do();
 }
 
-} // namespace Upp
+END_UPP_NAMESPACE

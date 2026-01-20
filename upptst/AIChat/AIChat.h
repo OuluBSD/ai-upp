@@ -9,14 +9,21 @@ using namespace Upp;
 class AIChat : public TopWindow {
 	MenuBar    menu;
 	TabCtrl    tabs;
-	AIChatCtrl chat;
 	
-	Splitter   system_splitter;
-	RepoView   repo_view;
-	PlanView   plan_view;
+	Array<AIChatCtrl> chat_tabs;
+	RecentConfig      config;
 	
 	void MainMenu(Bar& bar);
+	void AppMenu(Bar& bar);
+	void EditMenu(Bar& bar);
 	
+	void NewSession();
+	void CloseSession();
+	void CloseAllSessions();
+	void SendCurrent();
+	
+	virtual bool Key(dword key, int count) override;
+
 public:
 	typedef AIChat CLASSNAME;
 	AIChat();

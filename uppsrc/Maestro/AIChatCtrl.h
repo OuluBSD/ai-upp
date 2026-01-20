@@ -2,9 +2,9 @@
 #define _Maestro_AIChatCtrl_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include "Maestro.h"
+#include "CliEngine.h"
 
-namespace Upp {
+NAMESPACE_UPP
 
 class MaestroItem : public Ctrl {
 public:
@@ -16,23 +16,20 @@ public:
 	virtual void Paint(Draw& d) override;
 	int GetHeight(int width) const;
 	
+	typedef MaestroItem CLASSNAME;
 	MaestroItem() {}
 };
 
 class AIChatCtrl : public Ctrl {
-public:
-	CliMaestroEngine engine;
-	
 	Array<MaestroItem> items;
+	String             current_response;
 	ScrollBar          vscroll;
 	
-	DocEdit            input;
+public:
+	EditString         input;
 	Button             send;
-	DropList           engine_select;
-	
-	String             current_response;
-	
-	Event<>            WhenDone;
+	String             backend;
+	CliMaestroEngine   engine;
 	
 	void OnSend();
 	void OnEvent(const MaestroEvent& e);
@@ -49,8 +46,10 @@ public:
 
 	typedef AIChatCtrl CLASSNAME;
 	AIChatCtrl();
+	
+	Function<void()> WhenDone;
 };
 
-}
+END_UPP_NAMESPACE
 
 #endif

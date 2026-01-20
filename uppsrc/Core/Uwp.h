@@ -19,11 +19,6 @@ inline unsigned long timeGetTime() { return GetTickCount(); }
 #undef GetUserDefaultLCID
 inline unsigned long GetUserDefaultLCID() { return 0x0409; }
 
-#ifndef _WINNLS_
-#undef GetLocaleInfoW
-inline int GetLocaleInfoW(unsigned long, unsigned long, wchar_t*, int) { return 0; }
-#endif
-
 #undef ShellExecuteW
 inline void* ShellExecuteW(void*, const wchar_t*, const wchar_t*, const wchar_t*, const wchar_t*, int) { return (void*)33; }
 

@@ -922,32 +922,6 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		}
 	}
 
-	Vector<UwpAssetMapping> asset_mappings;
-	if(LoadUwpAssetMappings(package, asset_mappings)) {
-		String repo_root = FindUwpRepoRoot(packagedir);
-		UwpProjectData& data = project_map.Get(package);
-		for(int i = 0; i < asset_mappings.GetCount(); i++) {
-			const UwpAssetMapping& mapping = asset_mappings[i];
-			String source = mapping.source;
-			if(!IsFullPath(source))
-				source = AppendFileName(repo_root, source);
-			String target = AppendFileName(AppendFileName(outdir, package), NativePath(mapping.target));
-
-			bool updated = false;
-			Index<String> content_files;
-			CollectUwpProjectFiles(content_files, source, target);
-			for(int j = 0; j < content_files.GetCount(); j++) {
-				const String& item = content_files[j];
-				data.content.FindAdd(item);
-				project_files.FindAdd(item);
-			}
-			if(!StageUwpFile(source, target, updated))
-				error = true;
-			else if(updated)
-				staged++;
-		}
-	}
-
 #ifdef PLATFORM_WIN32
 	String conf = HasFlag("DEBUG") ? "Debug" : "Release";
 	String sln_path = AppendFileName(solution_dir, solution_name + ".sln");

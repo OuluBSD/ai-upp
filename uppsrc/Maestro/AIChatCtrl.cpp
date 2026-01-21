@@ -23,7 +23,6 @@ void TodoManager::ParseFromJson(const String& jsonStr) {
 }
 
 void TodoManager::Refresh() {
-	// Repaint the control
 	if (ctrl) ctrl->Refresh();
 }
 
@@ -74,7 +73,6 @@ void MaestroItem::Paint(Draw& d) {
 			
 			int sn = n;
 			if(n < (int)strlen(s)) {
-				// Find last space to avoid mid-word break
 				const char *space = NULL;
 				for(int i = 0; i < n; i++) if(s[i] == ' ') space = s + i;
 				if(space) sn = (int)(space - s) + 1;
@@ -145,11 +143,13 @@ AIChatCtrl::AIChatCtrl() {
 	Add(send_continue.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
 	Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
 	
-	send_continue.SetLabel("Continue");
-	send.SetLabel("Send");
+send_continue.SetLabel("Continue");
+send.SetLabel("Send");
+	
+	RegisterMaestroTools(tools);
 	
 	send.WhenAction = THISBACK(OnSend);
-	vscroll.WhenScroll = THISBACK(Layout);
+	vscroll.WhenScroll = [=] { Layout(); };
 	vscroll.SetLine(30);
 	
 	// Poll timer
@@ -171,8 +171,8 @@ void AIChatCtrl::CopyDebugData() {
 	debug << "=== CHAT STATE ===\n";
 	debug << "Items: " << items.GetCount() << "\n";
 	for(int i = 0; i < items.GetCount(); i++) {
-		debug << "[" << i << "] Role: " << items[i].role
-		      << " Len: " << items[i].text.GetCount()
+		debug << "[" << i << "] Role: " << items[i].role 
+		      << " Len: " << items[i].text.GetCount() 
 		      << " Error: " << items[i].is_error << " Tool: " << items[i].is_tool << "\n";
 	}
 	WriteClipboardText(debug);
@@ -196,12 +196,7 @@ void AIChatCtrl::OnSelectSession() {
 
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
-	
-	
-	// Layout items
-	int view_y = 0;
 	int view_h = chat.GetSize().cy;
-	
 	
 	int y = -vscroll.Get();
 	int w = sz.cx;
@@ -214,7 +209,7 @@ void AIChatCtrl::Layout() {
 		total_h += ih;
 	}
 	
-	vscroll.SetTotal(total_h);
+vscroll.SetTotal(total_h);
 	vscroll.SetPage(view_h);
 }
 
@@ -247,24 +242,22 @@ void AIChatCtrl::AddToolItem(const String& role, const String& text) {
 void AIChatCtrl::OnSend() {
 	String prompt = input.GetData();
 	if(prompt.IsEmpty()) return;
-
-	// Check if engine is currently processing
+	
 	if (engine.IsRunning()) {
-		// Store the prompt to be sent later and set waiting flag
 		queued_prompt = prompt;
 		waiting_to_send = true;
-		return; // Exit early, message will be sent when current processing completes
+		return;
 	}
 
 	input.Clear();
 	AddItem("User", prompt);
-
+	
 	current_response.Clear();
-
+	
 	// Configure engine
 	String key = ToLower(backend);
 	engine.debug_log << "AIChatCtrl::OnSend - Backend key: '" << backend << "' -> normalized: '" << key << "'\n";
-
+	
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
@@ -272,27 +265,37 @@ void AIChatCtrl::OnSend() {
 	else {
 		engine.debug_log << "ERROR: Unknown backend: '" << key << "'\n";
 	}
-
+	
 	engine.Send(prompt, [=](const MaestroEvent& e) { OnEvent(e); });
 }
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
+	if(WhenEvent) WhenEvent(e);
+	
 	if(e.type == "tool_use") {
 		// Special handling for todo_write tool
 		if (e.tool_name == "todo_write") {
-			// Parse the tool_input to extract todos
-			ValueMap vm = e.json["input"]; // Get the input map
+			ValueMap vm = e.json["input"];
 			for(int i = 0; i < vm.GetCount(); i++) {
 				if(vm.GetKey(i) == "todos") {
 					String todos_json = vm.GetValue(i).ToString();
 					todo_manager.ParseFromJson(todos_json);
-					todo_manager.SetCtrl(&todo); // Set the control to refresh
-					todo.Refresh(); // Refresh the todo list display
+					todo_manager.SetCtrl(&todo);
+					todo.Refresh();
 					break;
 				}
 			}
 		} else {
-			// Update last item if it's already a Tool Call for this tool
+			const MaestroTool* t = tools.Find(e.tool_name);
+			if(t) {
+				AddToolItem("Local Tool Call: " + e.tool_name, e.tool_input);
+				Value params = ParseJSON(e.tool_input);
+				Value result = t->Execute(params.Is<ValueMap>() ? (ValueMap)params : ValueMap());
+				AddToolItem("Local Tool Result: " + e.tool_name, AsString(result));
+				engine.WriteToolResult(e.tool_id, result);
+				return;
+			}
+			
 			String role = "Tool Call: " + e.tool_name;
 			if(items.GetCount() > 0 && items.Top().role == role) {
 				items.Top().text = e.tool_input;
@@ -315,9 +318,8 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.delta) {
 		if(e.role == "user") return;
-
+		
 		current_response << e.text;
-		// Update last item if it's from AI and NOT a tool (or we match the tool)
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
@@ -328,9 +330,9 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.type == "message" || e.type == "assistant") {
 		if(e.role == "user") return;
-
+		
 		if(!e.text.IsEmpty()) current_response = e.text;
-
+		
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
@@ -338,14 +340,12 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		} else {
 			AddItem("AI (" + backend + ")", current_response);
 		}
-
+		
 		if(e.role == "assistant" || e.type == "assistant") {
-			current_response.Clear();
 			OnDone(false, false);
 		}
 	}
 	else if(e.type == "result") {
-		current_response.Clear();
 		OnDone(true, false);
 	}
 	else if(e.type == "turn.failed" || e.type == "error") {
@@ -353,24 +353,22 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		OnDone(false, true);
 	}
 }
+
 void AIChatCtrl::OnDone(bool result, bool fail) {
-	WhenDone();
+	if(WhenDone) WhenDone();
+	
+	current_response.Clear();
 
-	// Check if there's a message waiting to be sent
 	if (waiting_to_send) {
-		waiting_to_send = false; // Clear the waiting flag
-
-		// Store the queued prompt temporarily and send it
+		waiting_to_send = false;
 		String temp_prompt = queued_prompt;
-		queued_prompt.Clear(); // Clear the queued prompt
-
-		// Temporarily store the current input to restore later
+		queued_prompt.Clear();
 		String saved_input = input.GetData();
-		input.SetData(temp_prompt); // Set the queued prompt
-		OnSend(); // Send the queued message
-		input.SetData(saved_input); // Restore original input (if any)
+		input.SetData(temp_prompt);
+		OnSend();
+		input.SetData(saved_input);
 	}
-	else if (result && send_continue.Get()) {
+	else if (result && send_continue.GetData()) {
 		PostCallback([this]{
 			input.SetData("continue");
 			OnSend();
@@ -381,8 +379,6 @@ void AIChatCtrl::OnDone(bool result, bool fail) {
 void MaestroTodoList::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, SColorPaper());
-
-	// Title
 	d.DrawText(5, 5, "TODO List", StdFont().Bold(), Blue());
 
 	int y_offset = 25;
@@ -390,37 +386,27 @@ void MaestroTodoList::Paint(Draw& d) {
 
 	for (int i = 0; i < todo_manager.todos.GetCount(); i++) {
 		const TodoItem& item = todo_manager.todos[i];
-
-		// Determine color based on status
 		Color clr = SColorText();
-		if (item.status == "completed") {
-			clr = Green();
-		} else if (item.status == "in_progress") {
-			clr = Orange();
-		} else if (item.status == "pending") {
-			clr = LtGray();
-		}
+		if (item.status == "completed") clr = Green();
+		else if (item.status == "in_progress") clr = Orange();
+		else if (item.status == "pending") clr = LtGray();
 
-		// Draw status indicator
 		Rect status_rect(10, y_offset + 5, 20, y_offset + item_height - 5);
-		if (item.status == "completed") {
-			d.DrawRect(status_rect, Green());
-		} else if (item.status == "in_progress") {
-			d.DrawRect(status_rect, Orange());
-		} else {
-			d.DrawRect(status_rect, LtGray());
-		}
+		if (item.status == "completed") d.DrawRect(status_rect, Green());
+		else if (item.status == "in_progress") d.DrawRect(status_rect, Orange());
+		else d.DrawRect(status_rect, LtGray());
 
-		// Draw todo content
 		String display_text = "[" + item.id + "] " + item.content + " (" + item.status + ")";
 		d.DrawText(30, y_offset, display_text, StdFont(), clr);
-
 		y_offset += item_height;
 	}
 }
 
 void AIChatCtrl::Poll() {
-	engine.Do();
+	bool running = engine.Do();
+	if(!running && !engine.IsRunning() && items.GetCount() > 0 && !current_response.IsEmpty()) {
+		OnDone(true, false);
+	}
 }
 
 END_UPP_NAMESPACE

@@ -1,12 +1,6 @@
 #ifndef _Maestro_PlanModels_h_
 #define _Maestro_PlanModels_h_
 
-#include <Core/Core.h>
-
-NAMESPACE_UPP
-
-// --- Track / Phase / Task System ---
-
 enum TaskStatus {
 	STATUS_TODO,
 	STATUS_IN_PROGRESS,
@@ -82,8 +76,6 @@ struct Track : Moveable<Track> {
 	}
 };
 
-// --- Runbook System ---
-
 struct RunbookStep : Moveable<RunbookStep> {
 	int    n = 0;
 	String actor;
@@ -116,8 +108,6 @@ struct Runbook : Moveable<Runbook> {
 		   ("created_at", created_at)("updated_at", updated_at);
 	}
 };
-
-// --- WorkGraph (Workflow) System ---
 
 struct DefinitionOfDone : Moveable<DefinitionOfDone> {
 	String kind;
@@ -184,7 +174,5 @@ struct WorkGraph : Moveable<WorkGraph> {
 		   ("track", track)("phases", phases)("created_at", created_at);
 	}
 };
-
-END_UPP_NAMESPACE
 
 #endif

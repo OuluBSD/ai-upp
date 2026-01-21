@@ -2,42 +2,64 @@
 
 NAMESPACE_UPP
 
+static String GetWhich(const String& bin) {
+	if(bin.StartsWith("/") || bin.Find('/') != -1) return bin;
+#ifdef PLATFORM_POSIX
+	String p = TrimBoth(Sys("which " + bin));
+	return p.IsEmpty() ? bin : p;
+#else
+	return bin;
+#endif
+}
+
 void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEvent&)> cb) {
 	callback = cb;
 	if(p && p->IsRunning()) p->Kill();
 	p.Create();
 	
+	String full_binary = GetWhich(binary);
 	Vector<String> cmd_args;
-	bool use_arg = !stdin;
+	bool use_stdin = true;
 	
+	// 1. Build initial arguments from configured defaults, but filter out overridden model
+	// and prompt flags (we handle prompt differently now)
+	for(int i = 0; i < args.GetCount(); i++) {
+		const String& a = args[i];
+		if(!model.IsEmpty() && (a == "-m" || a == "--model")) {
+			i++; // Skip the default model value
+			continue;
+		}
+		if(a == "-p" || a == "--prompt" || a == "--print") {
+			use_stdin = false;
+			continue;
+		}
+		cmd_args.Add(a);
+	}
+	
+	// 2. Add overridden model if provided
+	if(!model.IsEmpty()) {
+		cmd_args.Add("-m");
+		cmd_args.Add(model);
+	}
+	
+	// 3. Handle session resumption
 	if(!session_id.IsEmpty()) {
 		if(binary == "codex") {
 			cmd_args.Add("exec");
 			cmd_args.Add("resume");
 			cmd_args.Add(session_id);
-			for(const auto& a : args)
-				if(a != "exec") cmd_args.Add(a);
 		} else if(binary == "claude") {
 			cmd_args.Add("--session-id");
 			cmd_args.Add(session_id);
-			for(const auto& a : args)
-				cmd_args.Add(a);
 		} else {
-			// Generic flag-based resumption (Gemini, Qwen, Claude)
-			for(int i = 0; i < args.GetCount(); i++) {
-				if(args[i] == "-p" || args[i] == "--prompt" || args[i] == "--print") {
-					cmd_args.Add("-r");
-					cmd_args.Add(session_id);
-				}
-				cmd_args.Add(args[i]);
-			}
+			// Resume flag for Gemini/Qwen
+			cmd_args.Add("-r");
+			cmd_args.Add(session_id);
 		}
-	} else {
-		for(const auto& a : args)
-			cmd_args.Add(a);
 	}
 	
-	if(use_arg) {
+	// 4. Add prompt as positional argument if not using stdin
+	if(!use_stdin) {
 		cmd_args.Add(prompt);
 	}
 	
@@ -48,18 +70,12 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	RealizeDirectory(dir);
 	debug_log << "CWD: " << dir << "\n";
 	
-	String dbg_cmd = binary;
+	String dbg_cmd = full_binary;
 	for(const auto& a : cmd_args) dbg_cmd << " " << a;
 	debug_log << "Command: " << dbg_cmd << "\n";
-	if(!use_arg) debug_log << "Prompt (stdin): " << prompt << "\n";
+	if(use_stdin) debug_log << "Prompt (stdin): " << prompt << "\n";
 	
-	
-	if(!use_arg) {
-		p->Write(prompt);
-		p->CloseWrite();
-	}
-	
-	if(!p->Start(binary, cmd_args, NULL, dir)) {
+	if(!p->Start(full_binary, cmd_args, NULL, dir)) {
 		debug_log << "ERROR: Failed to start process: " << dbg_cmd << "\n";
 		MaestroEvent e;
 		e.type = "error";
@@ -68,7 +84,12 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 		return;
 	}
 	
-	buffer.Clear();
+	if(use_stdin) {
+		p->Write(prompt + "\n");
+		p->CloseWrite();
+	}
+	
+buffer.Clear();
 }
 
 void CliMaestroEngine::Cancel() {
@@ -94,7 +115,6 @@ bool CliMaestroEngine::Do() {
 			
 			debug_log << "LINE: " << line << "\n";
 			
-			// Parse JSON
 			Value v = ParseJSON(line);
 			if(!v.IsError()) {
 				MaestroEvent e;
@@ -115,11 +135,12 @@ bool CliMaestroEngine::Do() {
 					Value msg = v["message"];
 					if(msg.Is<ValueMap>() && !msg["content"].IsVoid()) {
 						Value content = msg["content"];
-						if(content.Is<ValueArray>() && content.GetCount() > 0)
-							e.text = content[0]["text"].ToString();
-						else
-							e.text = content.ToString();
-					} else {
+							if(content.Is<ValueArray>() && content.GetCount() > 0)
+									e.text = content[0]["text"].ToString();
+							else
+								e.text = content.ToString();
+					}
+					else {
 						e.text = msg.ToString();
 					}
 				}
@@ -145,17 +166,17 @@ bool CliMaestroEngine::Do() {
 					e.role = v["message"]["role"].ToString();
 				if(e.role.IsEmpty() && !v["event"].IsVoid())
 					e.role = v["event"]["message"]["role"].ToString();
-				
+			
 				if(!e.delta) e.delta = (bool)v["delta"];
 				if(e.type == "turn.delta" || e.type == "partial_message" || e.type == "stream_event") e.delta = true;
 				
-				// Capture session_id
-				// Capture tool usage (Generalized)
 				String type = v["type"].ToString();
 				if(type == "tool_use") {
 					e.type = "tool_use";
+					e.tool_id = v["tool_id"].ToString();
 					e.tool_name = v["tool_name"].ToString();
 					if(e.tool_name.IsEmpty()) e.tool_name = v["name"].ToString();
+					if(e.tool_id.IsEmpty()) e.tool_id = v["id"].ToString();
 					
 					Value params = v["parameters"];
 					if(params.IsVoid()) params = v["input"];
@@ -164,7 +185,7 @@ bool CliMaestroEngine::Do() {
 						const ValueMap& vm = params;
 						for(int i = 0; i < vm.GetCount(); i++) {
 							if(i > 0) e.tool_input << "\n";
-							e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+								e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
 						}
 					} else {
 						e.tool_input = AsJSON(params);
@@ -180,13 +201,14 @@ bool CliMaestroEngine::Do() {
 						Value c0 = content[0];
 						if(c0["type"] == "tool_use") {
 							e.type = "tool_use";
+							e.tool_id = c0["id"].ToString();
 							e.tool_name = c0["name"].ToString();
 							Value params = c0["input"];
 							if(params.Is<ValueMap>()) {
 								const ValueMap& vm = params;
 								for(int i = 0; i < vm.GetCount(); i++) {
 									if(i > 0) e.tool_input << "\n";
-									e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+										e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
 								}
 							} else {
 								e.tool_input = AsJSON(params);
@@ -207,17 +229,16 @@ bool CliMaestroEngine::Do() {
 					session_id = e.session_id;
 				}
 				
-				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid="+ e.session_id) << "\n";
+				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid=" + e.session_id) << "\n";
 				
-				// Final check: if it's a tool_use and tool_input is still JSON, format it
-				if(e.type == "tool_use" && !e.tool_input.IsEmpty() && (e.tool_input.StartsWith("{ ") || e.tool_input.StartsWith("["))) {
+				if(e.type == "tool_use" && !e.tool_input.IsEmpty() && (e.tool_input.StartsWith("{ ") || e.tool_input.StartsWith("[ "))) {
 					Value v_in = ParseJSON(e.tool_input);
 					if(!v_in.IsError() && v_in.Is<ValueMap>()) {
 						e.tool_input.Clear();
 						const ValueMap& vm = v_in;
 						for(int i = 0; i < vm.GetCount(); i++) {
 							if(i > 0) e.tool_input << "\n";
-							e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
+								e.tool_input << vm.GetKey(i) << ": " << vm.GetValue(i).ToString();
 						}
 					}
 				}
@@ -228,7 +249,18 @@ bool CliMaestroEngine::Do() {
 			}
 		}
 	}
-	return p->IsRunning() || !buffer.IsEmpty();
+	return p && (p->IsRunning() || !buffer.IsEmpty());
+}
+
+void CliMaestroEngine::WriteToolResult(const String& tool_id, const Value& result) {
+	if(!p || !p->IsRunning()) return;
+	
+	ValueMap res;
+	res.Add("type", "message");
+	res.Add("role", "user");
+	res.Add("content", "TOOL_RESULT [" + tool_id + "]: " + AsString(result));
+	
+	p->Write(AsJSON(res) + "\n");
 }
 
 void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) {
@@ -247,7 +279,7 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 				String resolved_path = dir_name;
 				resolved_path.Replace("-", "/");
 				if(!resolved_path.StartsWith("/"))
-						resolved_path = "/" + resolved_path;
+							resolved_path = "/" + resolved_path;
 				
 				debug_log << "Found project: " << dir_name << " -> " << resolved_path << "\n";
 				
@@ -262,16 +294,15 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 					
 					debug_log << "  Session: " << s.id << "\n";
 					
-					// Parse first line of jsonl for name
 					String first_line = FileIn(fchat.GetPath()).GetLine();
 					Value v = ParseJSON(first_line);
 					if(!v.IsError() && !v["message"]["parts"][0]["text"].IsVoid()) {
 						s.name = v["message"]["parts"][0]["text"].ToString().Left(100);
 						s.name.Replace("\n", " ");
-					} else if(!v.IsError() && !v["message"]["content"].IsVoid()) { // Some versions use content
+					} else if(!v.IsError() && !v["message"]["content"].IsVoid()) {
 						Value content = v["message"]["content"];
 						if(content.Is<ValueArray>() && content.GetCount() > 0)
-							s.name = content[0]["text"].ToString().Left(100);
+								s.name = content[0]["text"].ToString().Left(100);
 						else
 							s.name = content.ToString().Left(100);
 						s.name.Replace("\n", " ");
@@ -287,10 +318,8 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 		
 		debug_log << "Total projects scanned: " << project_sessions.GetCount() << "\n";
 		
-		// Find sessions for current cwd
 		int q = project_sessions.Find(cwd);
 		if(q < 0) {
-			// Try normalized version (remove trailing slash)
 			String ncwd = cwd;
 			while(ncwd.EndsWith("/") || ncwd.EndsWith("\\")) ncwd.Trim(ncwd.GetCount() - 1);
 			q = project_sessions.Find(ncwd);

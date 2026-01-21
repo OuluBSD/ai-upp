@@ -1,11 +1,6 @@
 #ifndef _Maestro_RepoScanner_h_
 #define _Maestro_RepoScanner_h_
 
-#include <Core/Core.h>
-#include "UppParser.h"
-
-NAMESPACE_UPP
-
 struct PackageInfo : Moveable<PackageInfo> {
 	String name;
 	String path;
@@ -40,7 +35,5 @@ private:
 	void Walk(const String& dir);
 	void AddPackage(const String& path, const String& build_system);
 };
-
-END_UPP_NAMESPACE
 
 #endif

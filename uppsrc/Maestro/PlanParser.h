@@ -1,10 +1,6 @@
 #ifndef _Maestro_PlanParser_h_
 #define _Maestro_PlanParser_h_
 
-#include "PlanModels.h"
-
-NAMESPACE_UPP
-
 class PlanParser {
 public:
 	Array<Track> tracks;
@@ -22,7 +18,5 @@ public:
 	void LoadWorkGraphs(const String& docs_root);
 	void LoadMaestroTracks(const String& docs_root);
 };
-
-END_UPP_NAMESPACE
 
 #endif

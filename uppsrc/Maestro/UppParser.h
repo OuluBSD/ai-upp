@@ -1,11 +1,6 @@
 #ifndef _Maestro_UppParser_h_
 #define _Maestro_UppParser_h_
 
-#include <Core/Core.h>
-#include <plugin/pcre/Pcre.h>
-
-NAMESPACE_UPP
-
 struct UppUseEntry : Moveable<UppUseEntry> {
 	String package;
 	String condition;
@@ -76,7 +71,5 @@ private:
 	
 	UppFileEntry ParseFileEntry(const String& line);
 };
-
-END_UPP_NAMESPACE
 
 #endif

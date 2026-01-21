@@ -15,3 +15,7 @@ Conventions
 - Prefer ownership via `One<>`/`Array<T>` with clear single owners; avoid `std::shared_ptr` and `std::weak_ptr`.
 - Use `Ptr<>` only when the target class inherits `Pte<>` and lifetime is owned elsewhere; otherwise use raw refs/ptrs with explicit unregister in `Uninitialize()`/`Stop()`.
 - `Ptr<>` is non-owning and requires `Pte<>`; prefer `One<>` for ownership and `Array<T>` over `Vector<One<>>`.
+
+Known Issues
+- **Build Failure (hstring.h)**: The `UWP` build method (`UWP_INTERNAL`) appears to include Clang headers (`upp/bin/clang/include/hstring.h`) even when building with MSVC (`flagMSC`), causing syntax errors due to incompatible or missing macro definitions (e.g., `DECLARE_HANDLE`). This suggests a misconfiguration in the build environment or `UWP.bm` include paths.
+- **Missing Shaders**: `ShaderBytecode.h` contains placeholder byte arrays. Compiled HLSL shaders are required for rendering to work.

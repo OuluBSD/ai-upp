@@ -17,6 +17,10 @@ public:
 	void LoadRunbooks(const String& docs_root);
 	void LoadWorkGraphs(const String& docs_root);
 	void LoadMaestroTracks(const String& docs_root);
+	
+	// Persistence
+	bool SaveMaestroPhase(const String& docs_root, const String& track_id, const String& phase_id);
+	bool UpdateTaskStatus(const String& docs_root, const String& track_id, const String& phase_id, const String& task_id, TaskStatus status);
 };
 
 #endif

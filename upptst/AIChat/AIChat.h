@@ -7,20 +7,23 @@
 using namespace Upp;
 
 class AIChat : public TopWindow {
-	MenuBar    menu;
+public:
 	TabCtrl    tabs;
-	
 	Array<AIChatCtrl> chat_tabs;
+	
+	void NewSession();
+	void CreateSession(const String& backend, const String& model, const String& working_dir);
+	void CloseSession();
+	void CloseAllSessions();
+	void SendCurrent();
+
+private:
+	MenuBar    menu;
 	RecentConfig      config;
 	
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);
 	void EditMenu(Bar& bar);
-	
-	void NewSession();
-	void CloseSession();
-	void CloseAllSessions();
-	void SendCurrent();
 	
 	virtual bool Key(dword key, int count) override;
 

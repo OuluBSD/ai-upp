@@ -1,27 +1,20 @@
 #ifndef _Maestro_AIChatCtrl_h_
 #define _Maestro_AIChatCtrl_h_
 
-#include <CtrlLib/CtrlLib.h>
-#include "CliEngine.h"
-
-NAMESPACE_UPP
-
-struct TodoItem {
+struct TodoItem : Moveable<TodoItem> {
 	String id;
 	String content;
-	String status; // "pending", "in_progress", "completed"
+	String status;
 };
 
 class TodoManager {
 public:
 	Array<TodoItem> todos;
+	Ctrl* ctrl = nullptr;
 
 	void ParseFromJson(const String& jsonStr);
 	void Refresh();
 	void SetCtrl(Ctrl* c);
-
-private:
-	Ctrl* ctrl = nullptr;
 };
 
 extern TodoManager todo_manager;
@@ -50,20 +43,23 @@ class AIChatCtrl : public Ctrl {
 	String             current_response;
 	ScrollBar          vscroll;
 	
+	String             queued_prompt;
+	bool               waiting_to_send = false;
+	
+	// User additions
+	ParentCtrl      chat;
+	MaestroTodoList todo;
+	Switch          send_continue;
+	
 public:
-	MaestroTodoList    todo;
-	DocEdit            input;
+	EditString         input;
 	Button             send;
-	Option             send_continue;
-	Ctrl               chat;
 	String             backend;
 	CliMaestroEngine   engine;
-	bool               waiting_to_send = false;
-	String             queued_prompt;
+	MaestroToolRegistry tools;
 	
-	virtual void OnSend();
-	virtual void OnEvent(const MaestroEvent& e);
-	virtual void OnDone(bool result, bool fail);
+	void OnSend();
+	void OnEvent(const MaestroEvent& e);
 	void Poll();
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);
@@ -71,6 +67,9 @@ public:
 	void CopyAllChat();
 	void CopyDebugData();
 	void OnSelectSession();
+	void OnDone(bool result, bool fail);
+	
+	String GetResponse() const { return current_response; }
 
 	virtual void Layout() override;
 	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;
@@ -79,8 +78,7 @@ public:
 	AIChatCtrl();
 	
 	Function<void()> WhenDone;
+	Function<void(const MaestroEvent& e)> WhenEvent;
 };
-
-END_UPP_NAMESPACE
 
 #endif

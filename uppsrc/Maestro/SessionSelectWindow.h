@@ -1,11 +1,6 @@
 #ifndef _Maestro_SessionSelectWindow_h_
 #define _Maestro_SessionSelectWindow_h_
 
-#include <CtrlLib/CtrlLib.h>
-#include "CliEngine.h"
-
-NAMESPACE_UPP
-
 struct RecentConfig {
 	Vector<String> recent_dirs;
 	
@@ -64,10 +59,10 @@ public:
 	Button      btn_resume;
 	Button      btn_cancel;
 	
-	Upp::String      session_id;
-	Upp::String      selected_backend;
-	Upp::String      selected_dir;
-	RecentConfig&    config;
+	String      session_id;
+	String      selected_backend;
+	String      selected_dir;
+	RecentConfig& config;
 	
 	void OnRecent();
 	void OnResume();
@@ -76,7 +71,5 @@ public:
 	typedef NewSessionWindow CLASSNAME;
 	NewSessionWindow(RecentConfig& cfg);
 };
-
-END_UPP_NAMESPACE
 
 #endif

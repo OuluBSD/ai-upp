@@ -11,186 +11,25 @@ AIChat::AIChat() {
 	Add(tabs.SizePos());
 	
 	config.Load();
-	
-	// Automated testing support
-	const Vector<String>& cmdline = CommandLine();
-	String backend;
-	String input;
-	bool dump_sessions = false;
-	bool test_session_window = false;
-	bool test_new_session = false;
-	bool test_new_tab_dialog = false;
-	
-	for(int i = 0; i < cmdline.GetCount(); i++) {
-		if(cmdline[i] == "--backend" && i + 1 < cmdline.GetCount())
-			backend = cmdline[++i];
-		else if(cmdline[i] == "--input" && i + 1 < cmdline.GetCount())
-			input = cmdline[++i];
-		else if(cmdline[i] == "--dump-sessions")
-			dump_sessions = true;
-		else if(cmdline[i] == "--test-session-window")
-			test_session_window = true;
-		else if(cmdline[i] == "--test-new-session")
-			test_new_session = true;
-		else if(cmdline[i] == "--test-new-tab-dialog")
-			test_new_tab_dialog = true;
-	}
-	
-	if(test_new_tab_dialog && !backend.IsEmpty()) {
-		PostCallback([=] {
-			NewSessionWindow sw(config);
-			sw.backend.SetData(backend);
-			sw.dir.SetData(GetFileDirectory(GetExeFilePath()));
-			PostCallback([&sw] { sw.OnNew(); }); // Simulate clicking "New Session"
-			
-			if(sw.Run() == IDOK) {
-				String b = sw.selected_backend;
-				String d = sw.selected_dir;
-				
-				AIChatCtrl& chat = chat_tabs.Add();
-				chat.backend = b;
-				chat.engine.working_dir = d;
-				tabs.Add(chat.SizePos(), b);
-				tabs.Set(tabs.GetCount() - 1);
-				
-				chat.AddItem("System", "Started via Dialog Test");
-				chat.input.SetData("test via dialog");
-				chat.OnSend();
-				
-				SetTimeCallback(10000, [=] {
-					if(chat_tabs.GetCount() > 0) {
-						Cout() << "=== ENGINE LOG ===\n";
-						Cout() << chat_tabs.Top().engine.debug_log << "\n";
-						Cout() << "=== END DUMP ===\n";
-						Cout().Flush();
-					}
-					PostCallback([=] { Close(); });
-				});
-			} else {
-				Cout() << "ERROR: Dialog did not return IDOK\n";
-				Cout().Flush();
-				Close();
-			}
-		});
-	}
-	
-	if(dump_sessions && !backend.IsEmpty()) {
-		CliMaestroEngine engine;
-		if(backend == "qwen") ConfigureQwen(engine);
-		else if(backend == "gemini") ConfigureGemini(engine);
-		
-		engine.ListSessions(GetFileDirectory(GetExeFilePath()), [](const Array<SessionInfo>&) {});
-		
-		Cout() << "=== SESSION DUMP ===\n";
-		for(int i = 0; i < engine.project_sessions.GetCount(); i++) {
-			Cout() << "Project: " << engine.project_sessions.GetKey(i) << "\n";
-			for(const auto& s : engine.project_sessions[i]) {
-				Cout() << "  Session: " << s.id << " (" << s.name << ")\n";
-			}
-		}
-		Cout() << "=== END DUMP ===\n";
-		Cout().Flush();
-		Exit(0);
-	}
-	
-	if(test_session_window && !backend.IsEmpty()) {
-		PostCallback([=] {
-			NewSession();
-		});
-		SetTimeCallback(2000, [=] {
-			PostCallback([=] { Close(); });
-		});
-	}
-	
-	if(test_new_session && !backend.IsEmpty()) {
-		PostCallback([=] {
-			Cout() << "DEBUG: Starting test-new-session for backend: " << backend << "\n";
-			AIChatCtrl& chat = chat_tabs.Add();
-			chat.backend = backend;
-			chat.engine.working_dir = GetFileDirectory(GetExeFilePath());
-			tabs.Add(chat.SizePos(), backend);
-			tabs.Set(tabs.GetCount() - 1);
-			Cout() << "DEBUG: Tab added, count: " << tabs.GetCount() << "\n";
-			Cout().Flush();
-			
-			chat.AddItem("System", "Starting automated test...");
-			chat.input.SetData("test message for " + backend);
-			chat.OnSend();
-			
-			SetTimeCallback(15000, [=] {
-				if(chat_tabs.GetCount() > 0) {
-					Cout() << "=== ENGINE LOG ===\n";
-					Cout() << chat_tabs.Top().engine.debug_log << "\n";
-					Cout() << "=== END DUMP ===\n";
-					Cout().Flush();
-				}
-				PostCallback([=] { Close(); });
-			});
-		});
-	}
-	
-	if(!backend.IsEmpty() && !input.IsEmpty() && !test_new_session) {
-		PostCallback([=] {
-			AIChatCtrl& chat = chat_tabs.Add();
-			chat.backend = backend;
-			chat.engine.working_dir = GetFileDirectory(GetExeFilePath());
-			tabs.Add(chat.SizePos(), backend);
-			tabs.Set(tabs.GetCount() - 1);
-			
-			static Vector<String> inputs;
-			inputs = Split(input, ';');
-			
-			chat.WhenDone = [=] {
-				static int idx = 0;
-				idx++;
-				if(idx < inputs.GetCount()) {
-					chat_tabs.Top().input.SetData(inputs[idx]);
-					chat_tabs.Top().OnSend();
-				} else {
-					Cout() << "=== TEST RESULT DEBUG DUMP ===\n";
-					Cout() << chat_tabs.Top().engine.debug_log << "\n";
-					Cout() << "=== END DUMP ===\n";
-					Cout().Flush();
-					PostCallback([=] { Close(); });
-				}
-			};
-			
-			chat.input.SetData(inputs[0]);
-			chat.OnSend();
-		});
-		
-		SetTimeCallback(30000, [=] {
-			Cout() << "ERROR: Test timed out after 30s\n";
-			Cout().Flush();
-			PostCallback([=] { Close(); });
-		});
-	}
+}
 
-	if(cmdline.GetCount() == 0) {
-		// Create initial session
-		PostCallback([=] { NewSession(); });
-	}
+void AIChat::CreateSession(const String& backend, const String& model, const String& working_dir) {
+	AIChatCtrl& c = chat_tabs.Add();
+	c.backend = backend;
+	c.engine.model = model;
+	c.engine.working_dir = working_dir;
+	tabs.Add(c.SizePos(), backend + (model.IsEmpty() ? "" : " [" + model + "]"));
+	tabs.Set(tabs.GetCount() - 1);
 }
 
 void AIChat::NewSession() {
 	NewSessionWindow sw(config);
 	if(sw.Run() == IDOK) {
-		String backend = sw.selected_backend;
-		String dir = sw.selected_dir;
-		String sid = sw.session_id;
-		
-		if (dir.Right(1) == DIR_SEPS) dir = dir.Left(dir.GetCount()-1);
-		
-		AIChatCtrl& chat = chat_tabs.Add();
-		chat.backend = backend;
-		chat.engine.working_dir = dir;
-		if(!sid.IsEmpty()) {
-			chat.engine.session_id = sid;
-			chat.AddItem("System", "Resumed session: " + sid);
+		CreateSession(sw.selected_backend, "", sw.selected_dir);
+		if(!sw.session_id.IsEmpty()) {
+			chat_tabs.Top().engine.session_id = sw.session_id;
+			chat_tabs.Top().AddItem("System", "Resumed session: " + sw.session_id);
 		}
-		
-		tabs.Add(chat.SizePos(), backend + " (" + GetFileName(dir) + ")");
-		tabs.Set(tabs.GetCount() - 1);
 	}
 }
 
@@ -257,5 +96,49 @@ void AIChat::MainMenu(Bar& bar) {
 }
 
 GUI_APP_MAIN {
-	AIChat().Run();
+	AIChat chat;
+	
+	const Vector<String>& cmdline = CommandLine();
+	String backend, model, input;
+	for(int i = 0; i < cmdline.GetCount(); i++) {
+		if(cmdline[i] == "--backend" && i + 1 < cmdline.GetCount())
+			backend = cmdline[++i];
+		else if(cmdline[i] == "--model" && i + 1 < cmdline.GetCount())
+			model = cmdline[++i];
+		else if(cmdline[i] == "--input" && i + 1 < cmdline.GetCount())
+			input = cmdline[++i];
+	}
+	
+	if(!backend.IsEmpty()) {
+		chat.PostCallback([=, &chat] {
+			chat.CreateSession(backend, model, GetCurrentDirectory());
+			if(!input.IsEmpty()) {
+				AIChatCtrl& c = chat.chat_tabs.Top();
+				c.input.SetData(input);
+				
+				c.WhenDone = [&chat, &c] {
+					Cout() << "=== TEST RESULT DEBUG DUMP ===\n";
+					Cout() << c.engine.debug_log << "\n";
+					Cout() << "=== END DUMP ===\n";
+					Cout().Flush();
+					chat.PostCallback([&chat] { chat.Close(); });
+				};
+				
+				c.OnSend();
+				
+				chat.SetTimeCallback(60000, [&chat, &c] {
+					Cout() << "ERROR: Test timed out after 60s\n";
+					Cout() << "=== ENGINE LOG AT TIMEOUT ===\n";
+					Cout() << c.engine.debug_log << "\n";
+					Cout() << "=== END DUMP ===\n";
+					Cout().Flush();
+					chat.PostCallback([&chat] { chat.Close(); });
+				});
+			}
+		});
+	} else {
+		chat.PostCallback([&chat] { chat.NewSession(); });
+	}
+	
+	chat.Run();
 }

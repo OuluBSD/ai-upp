@@ -24,6 +24,7 @@ file
 	RepoView.cpp,
 	PlanView.h,
 	PlanView.cpp,
+	Tools.cpp,
 	SessionSelectWindow.h,
 	SessionSelectWindow.cpp,
 	AIChatCtrl.h,

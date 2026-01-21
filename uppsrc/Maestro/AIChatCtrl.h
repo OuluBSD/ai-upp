@@ -26,13 +26,16 @@ class AIChatCtrl : public Ctrl {
 	ScrollBar          vscroll;
 	
 public:
-	EditString         input;
+	DocEdit            input;
 	Button             send;
+	Option             send_continue;
+	Ctrl               chat;
 	String             backend;
 	CliMaestroEngine   engine;
 	
-	void OnSend();
-	void OnEvent(const MaestroEvent& e);
+	virtual void OnSend();
+	virtual void OnEvent(const MaestroEvent& e);
+	virtual void OnDone();
 	void Poll();
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);

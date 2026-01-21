@@ -11,6 +11,8 @@
 
 namespace Pbr
 {
+    struct Model;
+
     // A primitive holds a vertex buffer, index buffer, and a pointer to a PBR material.
     struct Primitive
     {

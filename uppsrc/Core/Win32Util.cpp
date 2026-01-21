@@ -304,11 +304,6 @@ void *GetDllFn(const char *, const char *)
 	return nullptr;
 }
 
-bool Win32CreateProcess(const char *, const char *, STARTUPINFOW&, PROCESS_INFORMATION&, const char *)
-{
-	return false;
-}
-
 #ifndef PLATFORM_WINCE
 String GetSystemDirectory()
 {

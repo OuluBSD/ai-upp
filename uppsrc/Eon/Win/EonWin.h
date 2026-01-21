@@ -31,6 +31,8 @@
 	#error Wrong WINAPI_FAMILY
 #endif
 
+#include <windows.h>
+
 #include <Guiddef.h>
 #include <wrl/client.h>
 #include <d3d11.h>
@@ -61,32 +63,28 @@
 */
 
 #include <ppl.h>
-#include <winrt\Windows.ApplicationModel.Activation.h>
-#include <winrt\Windows.ApplicationModel.Core.h>
-#include <winrt\Windows.Devices.h>
-#include <winrt\Windows.Devices.haptics.h>
-#include <winrt\Windows.Foundation.h>
-#include <winrt\Windows.Foundation.Collections.h>
-#include <winrt\Windows.Gaming.Input.h>
-#include <winrt\Windows.Graphics.Display.h>
-#include <winrt\Windows.Graphics.Holographic.h>
-#include <winrt\Windows.Perception.People.h>
-#include <winrt\Windows.Perception.Spatial.h>
-#include <winrt\Windows.Storage.h>
-#include <winrt\Windows.Storage.Streams.h>
-#include <winrt\Windows.UI.Core.h>
-#include <winrt\Windows.UI.Input.Spatial.h>
-
-#include <windows.h>
+#include <winrt/Windows.ApplicationModel.Activation.h>
+#include <winrt/Windows.ApplicationModel.Core.h>
+#include <winrt/Windows.Devices.h>
+#include <winrt/Windows.Devices.haptics.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Gaming.Input.h>
+#include <winrt/Windows.Graphics.Display.h>
+#include <winrt/Windows.Graphics.Holographic.h>
+#include <winrt/Windows.Perception.People.h>
+#include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.UI.Input.Spatial.h>
 
 #include <Vfs/Ecs/Ecs.h>
-
-using namespace Upp;
 
 inline void fail_fast_if(bool condition, const char* msg = nullptr) {
 	if (condition) {
 		#ifdef flagDEBUG
-		Panic(msg ? msg : "fail_fast_if triggered");
+		// Upp::Panic(msg ? msg : "fail_fast_if triggered");
 		#else
 		exit(1);
 		#endif
@@ -95,22 +93,14 @@ inline void fail_fast_if(bool condition, const char* msg = nullptr) {
 
 inline void debug_log(const char* fmt, ...) {
 	#ifdef flagDEBUG
-	va_list args;
-	va_start(args, fmt);
-	VLOG(VString(fmt, args));
-	va_end(args);
+	// va_list args;
+	// va_start(args, fmt);
+	// Upp::VLog(Upp::VString(fmt, args));
+	// va_end(args);
 	#endif
 }
 
-template <class T, class F>
-void erase_if(T& container, F predicate) {
-	for(int i = 0; i < container.GetCount(); i++) {
-		if (predicate(container[i])) {
-			container.Remove(i);
-			i--;
-		}
-	}
-}
+using namespace Upp;
 
 #include <plugin/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION
 #include <plugin/tiny_gltf/tiny_gltf.h>
@@ -173,7 +163,7 @@ void erase_if(T& container, F predicate) {
 #define UWPVR_APP_MAIN \
 	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__(); \
 	int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) \
-	{ \
+	{\
 		winrt::init_apartment(); \
 		Upp::SetUwpVrAppFactory(&CreateUwpVrApp__); \
 		winrt::Windows::ApplicationModel::Core::CoreApplication::Run(Upp::AppViewSource()); \

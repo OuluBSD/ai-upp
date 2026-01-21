@@ -70,7 +70,7 @@ void DemoRoomMain::SetHolographicSpace(HolographicSpace const& holographicSpace)
 		specularEnvironmentMap.Get(),
 		diffuseEnvironmentMap.Get());
 
-	engine = MetaEnv().root.GetAdd<Engine>("UwpDemoRoom");
+	engine = &MetaEnv().root.GetAdd<Engine>("UwpDemoRoom");
 
 	engine->Add<HolographicScene>(holographicSpace);
 	engine->Add<EasingSystem>();

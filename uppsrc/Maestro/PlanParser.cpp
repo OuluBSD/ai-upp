@@ -2,8 +2,15 @@
 
 namespace Upp {
 
+void PlanParser::Reset() {
+	tracks.Clear();
+	runbooks.Clear();
+	workgraphs.Clear();
+}
+
 void PlanParser::Load(const String& plan_root) {
 	tracks.Clear();
+	// This is the legacy loader for .md files in tracks/phases/tasks
 	FindFile ff(AppendFileName(plan_root, "*"));
 	while(ff) {
 		if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
@@ -16,7 +23,8 @@ void PlanParser::Load(const String& plan_root) {
 void PlanParser::LoadTrack(const String& track_dir) {
 	Track& t = tracks.Add();
 	t.path = track_dir;
-	t.name = GetFileTitle(track_dir);
+	t.id = GetFileTitle(track_dir);
+	t.name = t.id;
 	
 	FindFile ff(AppendFileName(track_dir, "*"));
 	while(ff) {
@@ -27,27 +35,52 @@ void PlanParser::LoadTrack(const String& track_dir) {
 	}
 }
 
-void PlanParser::LoadPhase(Track& track, const String& phase_dir) {
-	Phase& p = track.phases.Add();
-	p.path = phase_dir;
-	p.name = GetFileTitle(phase_dir);
-	
-	FindFile ff(AppendFileName(phase_dir, "*.md"));
-	while(ff) {
-		LoadTask(p, ff.GetPath());
-		ff.Next();
+void PlanParser::LoadPhase(Track& track, const String& phase_path) {
+	if(DirectoryExists(phase_path)) {
+		Phase& p = track.phases.Add();
+		p.path = phase_path;
+		p.id = GetFileTitle(phase_path);
+		p.name = p.id;
+		
+		FindFile ff(AppendFileName(phase_path, "*.md"));
+		while(ff) {
+			LoadTask(p, ff.GetPath());
+			ff.Next();
+		}
+	} else if(FileExists(phase_path)) {
+		Phase& p = track.phases.Add();
+		p.path = phase_path;
+		p.id = GetFileTitle(phase_path);
+		p.name = p.id;
+		
+		String content = LoadFile(phase_path);
+		// Parse tasks from markdown list
+		// - [ ] **ID: Name** Description
+		Vector<String> lines = Split(content, '\n');
+		for(const String& l : lines) {
+			RegExp reTask("- \\[(.)\\] \\*\\*(.+)\\*\\*");
+			if(reTask.Match(l)) {
+				Task& t = p.tasks.Add();
+				t.name = reTask[1];
+				String status_char = reTask[0];
+				if(status_char == "x") t.status = STATUS_DONE;
+				else if(status_char == "/") t.status = STATUS_IN_PROGRESS;
+				else t.status = STATUS_TODO;
+			}
+		}
 	}
 }
 
 void PlanParser::LoadTask(Phase& phase, const String& task_file) {
 	Task& t = phase.tasks.Add();
 	t.path = task_file;
-	t.name = GetFileTitle(task_file);
+	t.id = GetFileTitle(task_file);
+	t.name = t.id;
 	
 	String content = LoadFile(task_file);
 	RegExp reStatus("# Status:\\s+(\\w+)");
 	if(reStatus.Match(content)) {
-		t.status = StringToStatus(reStatus[0]);
+		t.status = StringToStatus(ToLower(reStatus[0]));
 	}
 	
 	RegExp reDesc("## Objective\\n([^#]+)");
@@ -56,4 +89,70 @@ void PlanParser::LoadTask(Phase& phase, const String& task_file) {
 	}
 }
 
-} 
+void PlanParser::LoadRunbooks(const String& docs_root) {
+	String rb_dir = AppendFileName(docs_root, "docs/maestro/runbooks/items");
+	FindFile ff(AppendFileName(rb_dir, "*.json"));
+	while(ff) {
+		String content = LoadFile(ff.GetPath());
+		Value v = ParseJSON(content);
+		if(!v.IsError()) {
+			Runbook& rb = runbooks.Add();
+			LoadFromJson(rb, content);
+		}
+		ff.Next();
+	}
+}
+
+void PlanParser::LoadWorkGraphs(const String& docs_root) {
+	String wg_dir = AppendFileName(docs_root, "docs/maestro/plans/workgraphs");
+	FindFile ff(AppendFileName(wg_dir, "*.json"));
+	while(ff) {
+		if(ff.GetName() == "index.json") {
+			ff.Next();
+			continue;
+		}
+		String content = LoadFile(ff.GetPath());
+		Value v = ParseJSON(content);
+		if(!v.IsError()) {
+			WorkGraph& wg = workgraphs.Add();
+			LoadFromJson(wg, content);
+		}
+		ff.Next();
+	}
+}
+
+void PlanParser::LoadMaestroTracks(const String& docs_root) {
+	String track_dir = AppendFileName(docs_root, "docs/maestro/tracks");
+	String phase_root = AppendFileName(docs_root, "docs/phases");
+	
+	FindFile ff(AppendFileName(track_dir, "*.json"));
+	while(ff) {
+		String content = LoadFile(ff.GetPath());
+		Value v = ParseJSON(content);
+		if(!v.IsError()) {
+			Track& t = tracks.Add();
+			t.id = v["track_id"];
+			t.name = v["name"];
+			t.status = v["status"];
+			t.completion = v["completion"];
+			
+			Value phases = v["phases"];
+			if(phases.Is<ValueArray>()) {
+				for(int i = 0; i < phases.GetCount(); i++) {
+					String phase_id = phases[i];
+					String phase_file = AppendFileName(phase_root, ToLower(phase_id) + ".md");
+					if(FileExists(phase_file)) {
+						LoadPhase(t, phase_file);
+					} else {
+						Phase& p = t.phases.Add();
+						p.id = phase_id;
+						p.name = phase_id;
+					}
+				}
+			}
+		}
+		ff.Next();
+	}
+}
+
+}

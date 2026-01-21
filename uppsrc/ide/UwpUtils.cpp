@@ -24,6 +24,7 @@ bool IsUwpApp(const String& path)
 	String folder = GetFileFolder(path);
 	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;
 	if(FileExists(AppendFileName(folder, "../AppxManifest.xml")) && GetFileTitle(folder) == "AppxLayout") return true;
+	if(FileExists(AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml"))) return true;
 	return false;
 }
 

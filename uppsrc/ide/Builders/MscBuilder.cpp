@@ -810,6 +810,13 @@ bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& link
 		PutConsole("Error copying executable to AppxLayout");
 		return false;
 	}
+	
+	// Copy the PDB
+	String pdb_path = ForceExt(target, ".pdb");
+	if(FileExists(pdb_path)) {
+		String dest_pdb = AppendFileName(layout_dir, GetFileName(pdb_path));
+		SaveFile(dest_pdb, LoadFile(pdb_path));
+	}
 
 	// Create Assets
 	String assets_dir = AppendFileName(layout_dir, "Assets");

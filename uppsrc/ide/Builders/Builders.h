@@ -119,7 +119,7 @@ struct MscBuilder : CppBuilder {
 	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
 	virtual bool   Preprocess(const String& package, const String& file, const String& target, bool asmout);
 
-	String CmdLine(const String& package, const Package& pkg);
+	virtual String CmdLine(const String& package, const Package& pkg, bool is_c = false);
 	String MachineName() const;
 	String LinkerName() const;
 	String Pdb(String package, int slot, bool separate_pdb) const;

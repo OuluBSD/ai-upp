@@ -8,15 +8,7 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	p.Create();
 	
 	Vector<String> cmd_args;
-	bool use_arg = false;
-	
-	// Check if we should use positional prompt argument or stdin
-	for(const auto& a : args) {
-		if(a == "-p" || a == "--prompt" || a == "--print") {
-			use_arg = true;
-			break;
-		}
-	}
+	bool use_arg = !stdin;
 	
 	if(!session_id.IsEmpty()) {
 		if(binary == "codex") {
@@ -61,6 +53,12 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 	debug_log << "Command: " << dbg_cmd << "\n";
 	if(!use_arg) debug_log << "Prompt (stdin): " << prompt << "\n";
 	
+	
+	if(!use_arg) {
+		p->Write(prompt);
+		p->CloseWrite();
+	}
+	
 	if(!p->Start(binary, cmd_args, NULL, dir)) {
 		debug_log << "ERROR: Failed to start process: " << dbg_cmd << "\n";
 		MaestroEvent e;
@@ -70,10 +68,6 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 		return;
 	}
 	
-	if(!use_arg) {
-		p->Write(prompt);
-		p->CloseWrite();
-	}
 	buffer.Clear();
 }
 

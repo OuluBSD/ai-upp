@@ -17,7 +17,7 @@ inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 
 inline CliMaestroEngine& ConfigureQwen(CliMaestroEngine& e) {
 	e.Reset();
-	e.Binary("qwen")
+	e.Binary(GetHomeDirFile("node_modules/.bin/qwen"))
 	 .Arg("-y")
 	 .Arg("-o").Arg("stream-json")
 	 .Arg("-p");

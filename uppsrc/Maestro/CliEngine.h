@@ -13,11 +13,13 @@ public:
 	String       binary;
 	Vector<String> args;
 	String       working_dir;
+	bool         stdin = false;
 	
 	Function<void(const MaestroEvent&)> callback;
 
 	CliMaestroEngine& Binary(const String& b) { binary = b; return *this; }
 	CliMaestroEngine& Arg(const String& a)    { args.Add(a); return *this; }
+	CliMaestroEngine& SetStdin(bool b=true)   { stdin = b; return *this; }
 	void             Reset()                  { binary.Clear(); args.Clear(); }
 
 	virtual void Send(const String& prompt, Function<void(const MaestroEvent&)> cb) override;

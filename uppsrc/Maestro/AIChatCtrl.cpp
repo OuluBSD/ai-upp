@@ -103,13 +103,22 @@ int MaestroItem::GetHeight(int width) const {
 }
 
 AIChatCtrl::AIChatCtrl() {
-	Add(vscroll);
-	Add(input);
-	Add(send.SetLabel("Send"));
+	AddFrame(vscroll);
+	vscroll.Vert();
 	
-	send << [=] { OnSend(); };
+	int edit_height = 100;
+	int offset = 3;
+	int btn_height = 30;
+	Add(input.HSizePos(offset,100+offset).BottomPos(0,edit_height));
+	Add(send_continue.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
+	Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
+	Add(chat.VSizePos(0,edit_height+offset).HSizePos());
 	
-vscroll.WhenScroll = [=] { Layout(); };
+	send_continue.SetLabel("Continue");
+	send.SetLabel("Send");
+	
+	send.WhenAction = THISBACK(OnSend);
+	vscroll.WhenScroll = THISBACK(Layout);
 	
 	// Poll timer
 	SetTimeCallback(-50, [=] { Poll(); }); // 50ms poll
@@ -130,8 +139,8 @@ void AIChatCtrl::CopyDebugData() {
 	debug << "=== CHAT STATE ===\n";
 	debug << "Items: " << items.GetCount() << "\n";
 	for(int i = 0; i < items.GetCount(); i++) {
-		debug << "[" << i << "] Role: " << items[i].role 
-		      << " Len: " << items[i].text.GetCount() 
+		debug << "[" << i << "] Role: " << items[i].role
+		      << " Len: " << items[i].text.GetCount()
 		      << " Error: " << items[i].is_error << " Tool: " << items[i].is_tool << "\n";
 	}
 	WriteClipboardText(debug);
@@ -155,18 +164,12 @@ void AIChatCtrl::OnSelectSession() {
 
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
-	int bottom_h = 100;
 	
-	// Layout bottom controls
-	int bh = 25;
-	send.SetRect(sz.cx - 90, sz.cy - bh - 10, 80, bh);
-	input.SetRect(10, sz.cy - bottom_h + 10, sz.cx - 20, 50);
 	
 	// Layout items
 	int view_y = 0;
-	int view_h = sz.cy - bottom_h;
+	int view_h = chat.GetSize().cy;
 	
-vscroll.SetRect(sz.cx - 16, 0, 16, view_h);
 	
 	int y = -vscroll.Get();
 	int w = sz.cx - 16;
@@ -179,7 +182,7 @@ vscroll.SetRect(sz.cx - 16, 0, 16, view_h);
 		total_h += ih;
 	}
 	
-vscroll.SetTotal(total_h);
+	vscroll.SetTotal(total_h);
 	vscroll.SetPage(view_h);
 }
 
@@ -193,7 +196,7 @@ void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) 
 	item.text = text;
 	item.is_error = is_error;
 	item.is_tool = false;
-	Add(item);
+	chat.Add(item);
 	Layout();
 	vscroll.End();
 }
@@ -204,7 +207,7 @@ void AIChatCtrl::AddToolItem(const String& role, const String& text) {
 	item.text = text;
 	item.is_error = false;
 	item.is_tool = true;
-	Add(item);
+	chat.Add(item);
 	Layout();
 	vscroll.End();
 }
@@ -283,16 +286,25 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		
 		if(e.role == "assistant" || e.type == "assistant") {
 			current_response.Clear();
-			WhenDone();
+			OnDone();
 		}
 	}
 	else if(e.type == "result") {
 		current_response.Clear();
-		WhenDone();
+		OnDone();
 	}
 	else if(e.type == "turn.failed" || e.type == "error") {
 		AddItem("Error", e.text, true);
-		WhenDone();
+		OnDone();
+	}
+}
+void AIChatCtrl::OnDone() {
+	WhenDone();
+	if (send_continue.Get()) {
+		PostCallback([this]{
+			input.SetData("continue");
+			OnSend();
+		});
 	}
 }
 

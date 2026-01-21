@@ -7,13 +7,17 @@
 #define byte byte_
 #define CY win32_CY_
 
-#include <shobjidl.h>
-#include <appmodel.h>
-#include <shlwapi.h>
-
 #undef Ptr
 #undef byte
 #undef CY
+
+#ifdef PACKAGE_VERSION
+#undef PACKAGE_VERSION
+#endif
+
+#include <shobjidl.h>
+#include <appmodel.h>
+#include <shlwapi.h>
 
 #pragma comment(lib, "shlwapi.lib")
 

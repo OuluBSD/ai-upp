@@ -1,5 +1,6 @@
 #ifdef flagGUI
 #include "ide.h"
+#include "UwpUtils.h"
 
 namespace Upp {
 	bool IsSystemThemeDark();
@@ -140,6 +141,18 @@ void Ide::ExecuteBinary()
 	Host h;
 	CreateHostRunDir(h);
 	h.ChDir(Nvl(rundir, GetFileFolder(target)));
+	
+#ifdef PLATFORM_WIN32
+	if(IsUwpApp(target)) {
+		DWORD pid;
+		if(LaunchUwpApp(target, runarg, false, pid))
+			PutConsole("Launched UWP App (PID: " + AsString(pid) + ")");
+		else
+			PutConsole("Failed to launch UWP App");
+		return;
+	}
+#endif
+
 	String cmdline;
 	if(minimize)
 		Minimize();

@@ -1,0 +1,146 @@
+#include "UwpUtils.h"
+
+#ifdef PLATFORM_WIN32
+
+#include <shobjidl.h>
+#include <appmodel.h>
+#include <shlwapi.h>
+
+#pragma comment(lib, "shlwapi.lib")
+
+// IPackageDebugSettings is in shobjidl.h (Windows 8+)
+// IApplicationActivationManager is in shobjidl.h
+
+bool IsUwpApp(const String& path)
+{
+	String folder = GetFileFolder(path);
+	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;
+	if(FileExists(AppendFileName(folder, "../AppxManifest.xml")) && GetFileTitle(folder) == "AppxLayout") return true;
+	return false;
+}
+
+String GetUwpPackageName(const String& folder)
+{
+	String manifestPath = AppendFileName(folder, "AppxManifest.xml");
+	if(!FileExists(manifestPath)) {
+		// Check for AppxLayout structure
+		if(GetFileTitle(folder) == "AppxLayout") // We might be inside AppxLayout/
+			manifestPath = AppendFileName(folder, "AppxManifest.xml");
+		else
+		if (GetFileTitle(folder) == "AppxLayout") // path passed might be the exe
+			manifestPath = AppendFileName(folder, "AppxManifest.xml");
+		else
+		{
+			// Try parent folder if we are in AppxLayout
+			String parent = GetFileFolder(folder);
+			if(GetFileTitle(parent) == "AppxLayout")
+				manifestPath = AppendFileName(parent, "AppxManifest.xml");
+			else // Or maybe we are in bin directory and AppxLayout is subdirectory?
+			    manifestPath = AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml");
+		}
+	}
+	
+	if(!FileExists(manifestPath)) {
+		// Try one more: if path is the executable, folder is its dir.
+		// If structure is bin/out/Package/AppxLayout/App.exe
+		// manifest is in AppxLayout/AppxManifest.xml.
+		return Null;
+	}
+
+	try {
+		XmlNode n = ParseXMLFile(manifestPath);
+		if(n.GetTag() == "Package") {
+			XmlNode identity = n["Identity"];
+			if(!identity.IsVoid())
+				return identity.Attr("Name");
+		}
+	}
+	catch(...) {}
+	return Null;
+}
+
+String GetUwpPackageFamilyName(const String& pkgName)
+{
+	String cmd;
+	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFamilyName\""
+;	String out;
+	if(Sys(cmd, out) == 0) {
+		return TrimBoth(out);
+	}
+	return Null;
+}
+
+bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid)
+{
+	String folder = GetFileFolder(path);
+	String name = GetUwpPackageName(folder);
+	if(IsNull(name)) return false;
+	
+	String pfn = GetUwpPackageFamilyName(name);
+	if(IsNull(pfn)) {
+		PutConsole("UWP: Could not find Package Family Name for " + name);
+		return false;
+	}
+	
+	String aumid = pfn + "!App"; // Hardcoded "App" ID for now, matches MscBuilder template
+
+	HRESULT hr;
+	CoInitialize(NULL);
+
+	if(debug) {
+		IPackageDebugSettings *pds = NULL;
+		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
+		if(SUCCEEDED(hr) && pds) {
+			hr = pds->EnableDebugging(ToSystemCharsetW(pfn), NULL, NULL);
+			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging");
+			pds->Release();
+		}
+		
+		else {
+			PutConsole("UWP: Failed to create IPackageDebugSettings");
+		}
+	}
+
+	IApplicationActivationManager *aam = NULL;
+	hr = CoCreateInstance(CLSID_ApplicationActivationManager, NULL, CLSCTX_LOCAL_SERVER, IID_IApplicationActivationManager, (void**)&aam);
+	if(SUCCEEDED(hr) && aam) {
+		// Args are usually passed differently to UWP, often via ActivationArguments or not supported easily via ActivateApplication
+		// ActivateApplication does not take command line arguments in the string sense.
+		// It takes 'arguments' string which is passed to OnActivated.
+		hr = aam->ActivateApplication(ToSystemCharsetW(aumid), 
+		                              IsNull(args) ? NULL : ToSystemCharsetW(args), 
+		                              AO_NONE, &pid);
+		if(FAILED(hr)) {
+			PutConsole("UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr));
+			if(hr == 0x8027025b) PutConsole(" (The app didn't start in the required time)");
+		}
+		aam->Release();
+	}
+	
+	else {
+		PutConsole("UWP: Failed to create IApplicationActivationManager");
+	}
+	
+	CoUninitialize();
+	return SUCCEEDED(hr);
+}
+
+void StopUwpDebug(const String& path)
+{
+	String folder = GetFileFolder(path);
+	String name = GetUwpPackageName(folder);
+	if(IsNull(name)) return;
+	String pfn = GetUwpPackageFamilyName(name);
+	if(IsNull(pfn)) return;
+	
+	CoInitialize(NULL);
+	IPackageDebugSettings *pds = NULL;
+	HRESULT hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
+	if(SUCCEEDED(hr) && pds) {
+		pds->DisableDebugging(ToSystemCharsetW(pfn));
+		pds->Release();
+	}
+	CoUninitialize();
+}
+
+#endif

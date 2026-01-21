@@ -2,6 +2,35 @@
 
 NAMESPACE_UPP
 
+TodoManager todo_manager;
+
+void TodoManager::ParseFromJson(const String& jsonStr) {
+	todos.Clear();
+	Value v = ParseJSON(jsonStr);
+	if (v.IsError() || !v.Is<ValueArray>()) return;
+
+	ValueArray arr = v;
+	for (int i = 0; i < arr.GetCount(); i++) {
+		Value item = arr[i];
+		if (item.Is<ValueMap>()) {
+			TodoItem t;
+			t.id = item["id"].ToString();
+			t.content = item["content"].ToString();
+			t.status = item["status"].ToString();
+			todos.Add(t);
+		}
+	}
+}
+
+void TodoManager::Refresh() {
+	// Repaint the control
+	if (ctrl) ctrl->Refresh();
+}
+
+void TodoManager::SetCtrl(Ctrl* c) {
+	ctrl = c;
+}
+
 void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, is_tool ? Blend(SColorPaper(), SColorText(), 50) : SColorPaper());
@@ -103,16 +132,18 @@ int MaestroItem::GetHeight(int width) const {
 }
 
 AIChatCtrl::AIChatCtrl() {
-	AddFrame(vscroll);
+	chat.AddFrame(vscroll);
 	vscroll.Vert();
 	
+	int todo_height = 100;
 	int edit_height = 100;
 	int offset = 3;
 	int btn_height = 30;
+	Add(todo.TopPos(0,todo_height).HSizePos());
+	Add(chat.VSizePos(todo_height,edit_height+offset).HSizePos());
 	Add(input.HSizePos(offset,100+offset).BottomPos(0,edit_height));
 	Add(send_continue.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
 	Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
-	Add(chat.VSizePos(0,edit_height+offset).HSizePos());
 	
 	send_continue.SetLabel("Continue");
 	send.SetLabel("Send");
@@ -173,7 +204,7 @@ void AIChatCtrl::Layout() {
 	
 	
 	int y = -vscroll.Get();
-	int w = sz.cx - 16;
+	int w = sz.cx;
 	
 	int total_h = 0;
 	for(int i = 0; i < items.GetCount(); i++) {
@@ -216,16 +247,24 @@ void AIChatCtrl::AddToolItem(const String& role, const String& text) {
 void AIChatCtrl::OnSend() {
 	String prompt = input.GetData();
 	if(prompt.IsEmpty()) return;
-	
+
+	// Check if engine is currently processing
+	if (engine.IsRunning()) {
+		// Store the prompt to be sent later and set waiting flag
+		queued_prompt = prompt;
+		waiting_to_send = true;
+		return; // Exit early, message will be sent when current processing completes
+	}
+
 	input.Clear();
 	AddItem("User", prompt);
-	
+
 	current_response.Clear();
-	
+
 	// Configure engine
 	String key = ToLower(backend);
 	engine.debug_log << "AIChatCtrl::OnSend - Backend key: '" << backend << "' -> normalized: '" << key << "'\n";
-	
+
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
@@ -233,20 +272,35 @@ void AIChatCtrl::OnSend() {
 	else {
 		engine.debug_log << "ERROR: Unknown backend: '" << key << "'\n";
 	}
-	
+
 	engine.Send(prompt, [=](const MaestroEvent& e) { OnEvent(e); });
 }
 
 void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	if(e.type == "tool_use") {
-		// Update last item if it's already a Tool Call for this tool
-		String role = "Tool Call: " + e.tool_name;
-		if(items.GetCount() > 0 && items.Top().role == role) {
-			items.Top().text = e.tool_input;
-			items.Top().Refresh();
-			Layout();
+		// Special handling for todo_write tool
+		if (e.tool_name == "todo_write") {
+			// Parse the tool_input to extract todos
+			ValueMap vm = e.json["input"]; // Get the input map
+			for(int i = 0; i < vm.GetCount(); i++) {
+				if(vm.GetKey(i) == "todos") {
+					String todos_json = vm.GetValue(i).ToString();
+					todo_manager.ParseFromJson(todos_json);
+					todo_manager.SetCtrl(&todo); // Set the control to refresh
+					todo.Refresh(); // Refresh the todo list display
+					break;
+				}
+			}
 		} else {
-			AddToolItem(role, e.tool_input);
+			// Update last item if it's already a Tool Call for this tool
+			String role = "Tool Call: " + e.tool_name;
+			if(items.GetCount() > 0 && items.Top().role == role) {
+				items.Top().text = e.tool_input;
+				items.Top().Refresh();
+				Layout();
+			} else {
+				AddToolItem(role, e.tool_input);
+			}
 		}
 	}
 	else if(e.type == "tool_result") {
@@ -261,7 +315,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.delta) {
 		if(e.role == "user") return;
-		
+
 		current_response << e.text;
 		// Update last item if it's from AI and NOT a tool (or we match the tool)
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
@@ -274,9 +328,9 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.type == "message" || e.type == "assistant") {
 		if(e.role == "user") return;
-		
+
 		if(!e.text.IsEmpty()) current_response = e.text;
-		
+
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
@@ -284,28 +338,84 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		} else {
 			AddItem("AI (" + backend + ")", current_response);
 		}
-		
+
 		if(e.role == "assistant" || e.type == "assistant") {
 			current_response.Clear();
-			OnDone();
+			OnDone(false, false);
 		}
 	}
 	else if(e.type == "result") {
 		current_response.Clear();
-		OnDone();
+		OnDone(true, false);
 	}
 	else if(e.type == "turn.failed" || e.type == "error") {
 		AddItem("Error", e.text, true);
-		OnDone();
+		OnDone(false, true);
 	}
 }
-void AIChatCtrl::OnDone() {
+void AIChatCtrl::OnDone(bool result, bool fail) {
 	WhenDone();
-	if (send_continue.Get()) {
+
+	// Check if there's a message waiting to be sent
+	if (waiting_to_send) {
+		waiting_to_send = false; // Clear the waiting flag
+
+		// Store the queued prompt temporarily and send it
+		String temp_prompt = queued_prompt;
+		queued_prompt.Clear(); // Clear the queued prompt
+
+		// Temporarily store the current input to restore later
+		String saved_input = input.GetData();
+		input.SetData(temp_prompt); // Set the queued prompt
+		OnSend(); // Send the queued message
+		input.SetData(saved_input); // Restore original input (if any)
+	}
+	else if (result && send_continue.Get()) {
 		PostCallback([this]{
 			input.SetData("continue");
 			OnSend();
 		});
+	}
+}
+
+void MaestroTodoList::Paint(Draw& d) {
+	Size sz = GetSize();
+	d.DrawRect(sz, SColorPaper());
+
+	// Title
+	d.DrawText(5, 5, "TODO List", StdFont().Bold(), Blue());
+
+	int y_offset = 25;
+	int item_height = 25;
+
+	for (int i = 0; i < todo_manager.todos.GetCount(); i++) {
+		const TodoItem& item = todo_manager.todos[i];
+
+		// Determine color based on status
+		Color clr = SColorText();
+		if (item.status == "completed") {
+			clr = Green();
+		} else if (item.status == "in_progress") {
+			clr = Orange();
+		} else if (item.status == "pending") {
+			clr = LtGray();
+		}
+
+		// Draw status indicator
+		Rect status_rect(10, y_offset + 5, 20, y_offset + item_height - 5);
+		if (item.status == "completed") {
+			d.DrawRect(status_rect, Green());
+		} else if (item.status == "in_progress") {
+			d.DrawRect(status_rect, Orange());
+		} else {
+			d.DrawRect(status_rect, LtGray());
+		}
+
+		// Draw todo content
+		String display_text = "[" + item.id + "] " + item.content + " (" + item.status + ")";
+		d.DrawText(30, y_offset, display_text, StdFont(), clr);
+
+		y_offset += item_height;
 	}
 }
 

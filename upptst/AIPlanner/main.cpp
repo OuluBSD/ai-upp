@@ -95,7 +95,7 @@ tracks = pick(pp.tracks);
 	
 	// Update Tracks Tree
 	track_tree.Clear();
-	int root_id = track_tree.Add(0, CtrlImg::Dir(), "Tracks");
+	int root_id = track_tree.Add(0, CtrlImg::Dir(), String("root"), "Tracks");
 	for(int i = 0; i < tracks.GetCount(); i++) {
 		const auto& track = tracks[i];
 		int tid = track_tree.Add(root_id, CtrlImg::Dir(), i, track.name);
@@ -128,7 +128,10 @@ void AIPlanner::OnTrackSelect() {
 	if(id < 0) return;
 	
 	Value key = track_tree.Get(id);
-	if (key.IsVoid()) return;
+	if (!key.Is<int>()) {
+		track_detail.SetQTF("");
+		return;
+	}
 	
 	int val = (int)key;
 	String qtf;
@@ -196,6 +199,7 @@ void AIPlanner::OnWorkflowSelect() {
 	qtf << "[*@3 " << DeQtf(wg.title) << "]" << "&";
 	qtf << "[* ID:] " << DeQtf(wg.id) << "&";
 	qtf << "[* Goal:]&" << DeQtf(wg.goal) << "&";
+	
 	qtf << "[* Domain:] " << DeQtf(wg.domain) << " [* Profile:] " << DeQtf(wg.profile) << "&";
 	
 	qtf << "[* Track Summary:]&";
@@ -206,7 +210,7 @@ void AIPlanner::OnWorkflowSelect() {
 	for(const auto& p : wg.phases) {
 		qtf << "  [* Phase:] " << DeQtf(p.name) << "&";
 		for(const auto& tk : p.tasks) {
-			qtf << "    - [* " << DeQtf(tk.title) << "*]" << "&";
+			qtf << "    - [* " << DeQtf(tk.title) << "*]&";
 			qtf << "      [* Intent:] " << DeQtf(tk.intent) << "&";
 			if(tk.definition_of_done.GetCount() > 0) {
 				qtf << "      [* DoD:]&";

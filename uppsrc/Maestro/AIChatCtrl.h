@@ -6,6 +6,31 @@
 
 NAMESPACE_UPP
 
+struct TodoItem {
+	String id;
+	String content;
+	String status; // "pending", "in_progress", "completed"
+};
+
+class TodoManager {
+public:
+	Array<TodoItem> todos;
+
+	void ParseFromJson(const String& jsonStr);
+	void Refresh();
+	void SetCtrl(Ctrl* c);
+
+private:
+	Ctrl* ctrl = nullptr;
+};
+
+extern TodoManager todo_manager;
+
+class MaestroTodoList : public Ctrl {
+public:
+	virtual void Paint(Draw& d) override;
+};
+
 class MaestroItem : public Ctrl {
 public:
 	String role;
@@ -26,16 +51,19 @@ class AIChatCtrl : public Ctrl {
 	ScrollBar          vscroll;
 	
 public:
+	MaestroTodoList    todo;
 	DocEdit            input;
 	Button             send;
 	Option             send_continue;
 	Ctrl               chat;
 	String             backend;
 	CliMaestroEngine   engine;
+	bool               waiting_to_send = false;
+	String             queued_prompt;
 	
 	virtual void OnSend();
 	virtual void OnEvent(const MaestroEvent& e);
-	virtual void OnDone();
+	virtual void OnDone(bool result, bool fail);
 	void Poll();
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);

@@ -3,13 +3,20 @@
 
 #ifdef PLATFORM_WIN32
 
-#define Ptr Ptr_
-#define byte byte_
-#define CY win32_CY_
-
+#ifdef Ptr
 #undef Ptr
+#endif
+#define Ptr Ptr_
+
+#ifdef byte
 #undef byte
+#endif
+#define byte byte_
+
+#ifdef CY
 #undef CY
+#endif
+#define CY win32_CY_
 
 #ifdef PACKAGE_VERSION
 #undef PACKAGE_VERSION

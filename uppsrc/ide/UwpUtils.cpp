@@ -58,7 +58,7 @@ String GetUwpPackageName(const String& folder)
 	try {
 		XmlNode n = ParseXMLFile(manifestPath);
 		if(n.GetTag() == "Package") {
-			XmlNode identity = n["Identity"];
+			const XmlNode& identity = n["Identity"];
 			if(!identity.IsVoid())
 				return identity.Attr("Name");
 		}

@@ -21,22 +21,17 @@
 
 bool IsUwpApp(const String& path)
 {
-	String folder = GetFileFolder(NormalizePath(path));
+	String path_norm = NormalizePath(path);
+	String folder = GetFileFolder(path_norm);
 	
+	// Debugging:
+	::MessageBoxW(NULL, ToSystemCharsetW(path_norm), L"IsUwpApp Path", MB_OK);
+
 	// Check 1: Manifest in the same folder (e.g. running from AppxLayout)
 	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;
 	
 	// Check 2: Manifest in AppxLayout subdirectory (standard U++ build)
 	if(FileExists(AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml"))) return true;
-
-	// Check 3: We are in AppxLayout, check parent (less likely if Check 1 failed, but possible if folder is nested)
-	// Actually, if we are in AppxLayout, Check 1 should pass.
-	
-	// Check 4: Check if we are in a directory named "AppxLayout"
-	if(GetFileTitle(folder) == "AppxLayout") {
-		// If manifest not in folder, maybe it's one level up? (Unlikely for standard layout)
-		if(FileExists(AppendFileName(GetFileFolder(folder), "AppxManifest.xml"))) return true;
-	}
 
 	return false;
 }

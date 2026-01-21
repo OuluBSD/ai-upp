@@ -75,13 +75,26 @@ String GetUwpPackageName(const String& folder)
 
 	try {
 		XmlNode n = ParseXMLFile(manifestPath);
+		if(n.IsVoid()) {
+			Exclamation("UWPUtils: ParseXMLFile returned empty node for:\n" + manifestPath);
+			return Null;
+		}
 		if(n.GetTag() == "Package") {
 			const XmlNode& identity = n["Identity"];
 			if(!identity.IsVoid())
 				return identity.Attr("Name");
+			else
+				Exclamation("UWPUtils: <Identity> tag not found in:\n" + manifestPath);
+		} else {
+			Exclamation("UWPUtils: Root tag is '" + n.GetTag() + "', expected 'Package' in:\n" + manifestPath);
 		}
 	}
-	catch(...) {}
+	catch(XmlError e) {
+		Exclamation("UWPUtils: XML Parse Error: " + e + "\nFile: " + manifestPath);
+	}
+	catch(...) {
+		Exclamation("UWPUtils: Unknown exception while parsing:\n" + manifestPath);
+	}
 	return Null;
 }
 

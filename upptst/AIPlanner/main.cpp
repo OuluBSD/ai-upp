@@ -1,5 +1,34 @@
 #include "AIPlanner.h"
 
+String GetPlanSummaryText(const Array<Track>& tracks, const String& current_track, const String& current_phase, const String& current_task) {
+	String res;
+	res << "# Maestro Project Plan Summary\n\n";
+	res << "## Current Context\n";
+	res << "- **Track:** " << current_track << "\n";
+	res << "- **Phase:** " << current_phase << "\n";
+	res << "- **Task:** " << current_task << "\n\n";
+	
+	res << "## Project Overview\n";
+	for(const auto& t : tracks) {
+		res << "### Track: " << t.name << " (" << t.status << ", " << t.completion << " %)\n";
+		for(const auto& p : t.phases) {
+			bool is_active_phase = (t.id == current_track && p.id == current_phase);
+			res << "- " << (is_active_phase ? "**[ACTIVE]** " : "") << "Phase: " << p.name 
+			    << " (" << p.status << ", " << p.completion << " %)\n";
+			
+			if(is_active_phase) {
+				for(const auto& tk : p.tasks) {
+					bool is_active_task = (tk.id == current_task || tk.path.EndsWith(current_task));
+					res << "  - " << (is_active_task ? "**[CURRENT]** " : "") << tk.name 
+					    << " [" << StatusToString(tk.status) << "]\n";
+				}
+			}
+		}
+		res << "\n";
+	}
+	return res;
+}
+
 AIPlanner::AIPlanner() {
 	Title("Maestro AI Planner");
 	SetRect(0, 0, 1200, 800);
@@ -29,7 +58,7 @@ AIPlanner::AIPlanner() {
 	workflow_list.AddColumn("ID");
 	workflow_list.AddColumn("Title");
 	
-track_tree.WhenSel = THISBACK(OnTrackSelect);
+	track_tree.WhenSel = THISBACK(OnTrackSelect);
 	runbook_list.WhenCursor = THISBACK(OnRunbookSelect);
 	workflow_list.WhenCursor = THISBACK(OnWorkflowSelect);
 	
@@ -135,9 +164,11 @@ void AIPlanner::OnTrackSelect() {
 	
 	int val = (int)key;
 	String qtf;
+	String context_track, context_phase, context_task;
 	
 	if (val < 1024) { // Track
 		const auto& t = tracks[val];
+		context_track = t.id;
 		qtf << "[*@3 " << DeQtf(t.name) << "]" << "&";
 		qtf << "[* Status:] " << DeQtf(t.status) << "&";
 		qtf << "[* Completion:] " << t.completion << "%&";
@@ -146,7 +177,10 @@ void AIPlanner::OnTrackSelect() {
 		int ti = val >> 16;
 		int pi = (val & 0xFFFF) - 1;
 		if (ti >= 0 && ti < tracks.GetCount() && pi >= 0 && pi < tracks[ti].phases.GetCount()) {
-			const auto& p = tracks[ti].phases[pi];
+			const auto& t = tracks[ti];
+			const auto& p = t.phases[pi];
+			context_track = t.id;
+			context_phase = p.id;
 			qtf << "[*@3 " << DeQtf(p.name) << "]" << "&";
 			qtf << "[* Status:] " << DeQtf(p.status) << "&";
 			qtf << "[* Completion:] " << p.completion << "%&";
@@ -159,7 +193,13 @@ void AIPlanner::OnTrackSelect() {
 		if (ti >= 0 && ti < tracks.GetCount() && 
 		    pi >= 0 && pi < tracks[ti].phases.GetCount() &&
 		    tai >= 0 && tai < tracks[ti].phases[pi].tasks.GetCount()) {
-			const auto& t = tracks[ti].phases[pi].tasks[tai];
+			const auto& tr = tracks[ti];
+			const auto& ph = tr.phases[pi];
+			const auto& t = ph.tasks[tai];
+			context_track = tr.id;
+			context_phase = ph.id;
+			context_task = t.id;
+			
 			qtf << "[*@3 " << DeQtf(t.name) << "]" << "&";
 			qtf << "[* Status:] " << StatusToString(t.status) << "&";
 			qtf << "[* Priority:] " << DeQtf(t.priority) << "&";
@@ -167,7 +207,12 @@ void AIPlanner::OnTrackSelect() {
 		}
 	}
 	
-track_detail.SetQTF(qtf);
+	qtf << "[--------- ]&";
+	qtf << "[*@2 Programmatic AI Summary:]&";
+	String summary = GetPlanSummaryText(tracks, context_track, context_phase, context_task);
+	qtf << "[C1 " << DeQtf(summary) << "]";
+	
+	track_detail.SetQTF(qtf);
 }
 
 void AIPlanner::OnRunbookSelect() {
@@ -199,7 +244,6 @@ void AIPlanner::OnWorkflowSelect() {
 	qtf << "[*@3 " << DeQtf(wg.title) << "]" << "&";
 	qtf << "[* ID:] " << DeQtf(wg.id) << "&";
 	qtf << "[* Goal:]&" << DeQtf(wg.goal) << "&";
-	
 	qtf << "[* Domain:] " << DeQtf(wg.domain) << " [* Profile:] " << DeQtf(wg.profile) << "&";
 	
 	qtf << "[* Track Summary:]&";

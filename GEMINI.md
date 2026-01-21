@@ -12,6 +12,7 @@ This document serves as an internal guide for the Gemini AI agent.
 - `flagV1` convention for distinguishing original U++ code from custom additions.
 - Current task status and priority in `task/` directory.
 - Debugging strategies and environment-specific considerations (e.g., sandbox detection).
+- **Windows Environment**: Note that `busybox` might be present on Windows systems. It should be used when necessary to perform Unix-like operations or when standard Windows shell commands are insufficient or problematic (e.g., creating files with specific content without escape sequence issues).
 
 ## Naming Conflicts and Include Policies (MSVC/Win32)
 

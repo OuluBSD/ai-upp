@@ -64,14 +64,8 @@ inline unsigned int GetSystemDirectoryW(wchar_t*, unsigned int) { return 0; }
 #undef GetModuleHandle
 inline void* GetModuleHandle(const char*) { return (void*)0; }
 
-#undef GetModuleHandleW
-inline void* GetModuleHandleW(const wchar_t*) { return (void*)0; }
-
 #undef LoadLibrary
 inline void* LoadLibrary(const char*) { return (void*)0; }
-
-#undef LoadLibraryW
-inline void* LoadLibraryW(const wchar_t*) { return (void*)0; }
 
 #undef RegOpenKeyEx
 inline long RegOpenKeyEx(void*, const char*, unsigned long, unsigned long, void**) { return 1; }

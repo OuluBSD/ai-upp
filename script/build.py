@@ -32,6 +32,7 @@ def print_help(prog):
                 "  --clean, -Clean, -c                Clean build",
                 "  --jobs N, -j N, -jN                Parallel jobs",
                 "  --verbose, -Verbose, -v            Verbose output",
+                "  --dump-cmd                         Dump the umk command and exit",
                 "  --help, -Help                      Show this help",
             ]
         )
@@ -82,6 +83,7 @@ def parse_args(argv):
         "bootstrap": False,
         "smoketest": False,
         "target": None,
+        "dump_cmd": False,
         "help": False,
     }
     i = 0
@@ -163,6 +165,10 @@ def parse_args(argv):
             continue
         if lower in ("--verbose", "-verbose", "-v"):
             opts["verbose"] = True
+            i += 1
+            continue
+        if lower in ("--dump-cmd", "-dump-cmd"):
+            opts["dump_cmd"] = True
             i += 1
             continue
         if lower in ("--jobs", "-jobs", "-j"):
@@ -905,10 +911,11 @@ def bootstrap_build_umk_windows(repo_root, opts):
                         fpath = pkg_src_root / fn
                         if fpath.exists():
                             data = fpath.read_bytes()
-                            cpp_content.append(f'extern "C" const unsigned char {sym}[] = {{')
+                            cpp_content.append(f'static const unsigned char {sym}_[] = {{')
                             cpp_content.append(", ".join(str(b) for b in data))
                             cpp_content.append("};")
                             cpp_content.append(f'extern "C" const int {sym}_length = {len(data)};')
+                            cpp_content.append(f'extern "C" const unsigned char *{sym} = {sym}_;')
                 brc_cpp.write_text("\n".join(cpp_content), encoding="utf-8")
             
             obj_name = brc.name + "_brc.obj"
@@ -1266,6 +1273,9 @@ def main():
         opts["jobs"],
         opts["verbose"],
     )
+    if opts["dump_cmd"]:
+        print(" ".join(args))
+        return 0
     result = subprocess.run(args)
 
     if result.returncode == 0 and temp_output_path:

@@ -85,6 +85,17 @@ String GetUwpPackageFamilyName(const String& pkgName)
 	return Null;
 }
 
+void RegisterUwpApp(const String& folder)
+{
+	String manifest = AppendFileName(folder, "AppxManifest.xml");
+	if(!FileExists(manifest)) return;
+	
+	String cmd;
+	cmd << "powershell -Command \"Add-AppxPackage -Register '" << manifest << "' -ForceApplicationShutdown\"";
+	String out;
+	Sys(cmd, out);
+}
+
 bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid)
 {
 	String folder = GetFileFolder(path);
@@ -93,6 +104,8 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		Exclamation("UWP: Could not determine Package Name from manifest.");
 		return false;
 	}
+	
+	RegisterUwpApp(folder); // Ensure the app is registered from this location
 	
 	String pfn = GetUwpPackageFamilyName(name);
 	if(IsNull(pfn)) {

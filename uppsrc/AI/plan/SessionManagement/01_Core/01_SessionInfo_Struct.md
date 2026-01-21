@@ -1,5 +1,5 @@
 # Task: SessionInfo Struct
-# Status: IN_PROGRESS
+# Status: DONE
 
 ## Objective
 Define the `SessionInfo` struct in `uppsrc/Maestro/Engine.h`.

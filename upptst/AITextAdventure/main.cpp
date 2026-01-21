@@ -120,6 +120,9 @@ void AITextAdventure::OnGameEvent(const MaestroEvent& e) {
 	if(e.type == "tool_result" && e.tool_name != "result") {
 		game_chat.AddItem("World", e.text);
 	}
+	else if(e.type == "tool_use") {
+		game_chat.AddItem("AI Action", e.tool_name + "(" + e.tool_input + ")");
+	}
 }
 
 void AITextAdventure::OnGameTurnDone() {

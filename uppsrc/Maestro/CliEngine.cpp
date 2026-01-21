@@ -192,9 +192,9 @@ bool CliMaestroEngine::Do() {
 					}
 				} else if(type == "tool_result") {
 					e.type = "tool_result";
-					e.tool_name = "result";
-					e.text = v["output"].ToString();
-					if(e.text.IsEmpty()) e.text = v["content"].ToString();
+				e.tool_name = "result";
+				e.text = v["output"].ToString();
+				if(e.text.IsEmpty()) e.text = v["content"].ToString();
 				} else if(type == "assistant" || type == "user") {
 					Value content = v["message"]["content"];
 					if(content.Is<ValueArray>() && content.GetCount() > 0) {
@@ -223,10 +223,10 @@ bool CliMaestroEngine::Do() {
 				
 				if(!v["session_id"].IsVoid()) {
 					e.session_id = v["session_id"].ToString();
-					session_id = e.session_id;
+				session_id = e.session_id;
 				} else if(!v["thread_id"].IsVoid()) {
 					e.session_id = v["thread_id"].ToString();
-					session_id = e.session_id;
+				session_id = e.session_id;
 				}
 				
 				debug_log << "EVENT: " << e.type << (e.delta ? " (delta)" : "") << ", role=" << e.role << ", len=" << e.text.GetCount() << (e.session_id.IsEmpty() ? "" : ", sid=" + e.session_id) << "\n";
@@ -255,6 +255,10 @@ bool CliMaestroEngine::Do() {
 void CliMaestroEngine::WriteToolResult(const String& tool_id, const Value& result) {
 	if(!p || !p->IsRunning()) return;
 	
+	// If the backend didn't register the tool, sending "tool_result" type
+	// often causes "Tool not found in registry" errors in the CLI wrapper.
+	// We bypass this by sending it as a hidden user message that provides the context.
+	
 	ValueMap res;
 	res.Add("type", "message");
 	res.Add("role", "user");
@@ -263,78 +267,116 @@ void CliMaestroEngine::WriteToolResult(const String& tool_id, const Value& resul
 	p->Write(AsJSON(res) + "\n");
 }
 
-void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) {
-	debug_log << "=== LIST SESSIONS (CWD: " << cwd << ") ===\n";
-	if(binary == "qwen") {
-		String home = GetHomeDirectory();
-		String projects_dir = AppendFileName(home, ".qwen/projects");
-		debug_log << "Scanning projects in: " << projects_dir << "\n";
-		
-		project_sessions.Clear();
-		
-		FindFile ff(AppendFileName(projects_dir, "*"));
-		while(ff) {
-			if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
-				String dir_name = ff.GetName();
-				String resolved_path = dir_name;
-				resolved_path.Replace("-", "/");
-				if(!resolved_path.StartsWith("/"))
-							resolved_path = "/" + resolved_path;
+static void ScanMaestroProjects(const String& projects_dir, VectorMap<String, Array<SessionInfo>>& project_sessions, const String& ext) {
+	FindFile ff(AppendFileName(projects_dir, "*"));
+	while(ff) {
+		if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
+			String dir_name = ff.GetName();
+			String resolved_path = dir_name;
+			resolved_path.Replace("-", "/");
+			if(!resolved_path.StartsWith("/")) resolved_path = "/" + resolved_path;
+			
+			Array<SessionInfo>& sessions = project_sessions.GetAdd(resolved_path);
+			
+			String chats_dir = AppendFileName(ff.GetPath(), "chats");
+			FindFile fchat(AppendFileName(chats_dir, "*." + ext));
+			while(fchat) {
+				SessionInfo& s = sessions.Add();
+				s.id = GetFileTitle(fchat.GetName());
+				s.timestamp = fchat.GetLastWriteTime();
 				
-				debug_log << "Found project: " << dir_name << " -> " << resolved_path << "\n";
-				
-				Array<SessionInfo>& sessions = project_sessions.GetAdd(resolved_path);
-				
-				String chats_dir = AppendFileName(ff.GetPath(), "chats");
-				FindFile fchat(AppendFileName(chats_dir, "*.jsonl"));
-				while(fchat) {
-					SessionInfo& s = sessions.Add();
-					s.id = GetFileTitle(fchat.GetName());
-					s.timestamp = fchat.GetLastWriteTime();
-					
-					debug_log << "  Session: " << s.id << "\n";
-					
-					String first_line = FileIn(fchat.GetPath()).GetLine();
-					Value v = ParseJSON(first_line);
-					if(!v.IsError() && !v["message"]["parts"][0]["text"].IsVoid()) {
+				String first_line = FileIn(fchat.GetPath()).GetLine();
+				Value v = ParseJSON(first_line);
+				if(!v.IsError()) {
+					if(!v["message"]["parts"][0]["text"].IsVoid())
 						s.name = v["message"]["parts"][0]["text"].ToString().Left(100);
-						s.name.Replace("\n", " ");
-					} else if(!v.IsError() && !v["message"]["content"].IsVoid()) {
+					else if(!v["message"]["content"].IsVoid()) {
 						Value content = v["message"]["content"];
 						if(content.Is<ValueArray>() && content.GetCount() > 0)
 								s.name = content[0]["text"].ToString().Left(100);
 						else
 							s.name = content.ToString().Left(100);
-						s.name.Replace("\n", " ");
-					} else {
-						s.name = s.id;
 					}
-					
+					s.name.Replace("\n", " ");
+				}
+				if(s.name.IsEmpty()) s.name = s.id;
+				fchat.Next();
+			}
+		}
+		ff.Next();
+	}
+}
+
+void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) {
+	debug_log << "=== LIST SESSIONS (CWD: " << cwd << ") ===\n";
+	project_sessions.Clear();
+	Array<SessionInfo> list;
+	
+	String home = GetHomeDirectory();
+	
+	if(binary == "gemini") {
+		// 1. Try CLI command
+		String out = Sys(GetWhich("gemini") + " --list-sessions");
+		Vector<String> lines = Split(out, '\n');
+		for(const String& l : lines) {
+			Value v = ParseJSON(l);
+			if(!v.IsError() && !v["session_id"].IsVoid()) {
+				SessionInfo& s = list.Add();
+				s.id = v["session_id"];
+				s.name = v["title"];
+				if(s.name.IsEmpty()) s.name = s.id;
+			}
+		}
+		// 2. Try tmp directory
+		String tmp_dir = AppendFileName(home, ".gemini/tmp");
+		FindFile ff(AppendFileName(tmp_dir, "*"));
+		while(ff) {
+			if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
+				String chats_dir = AppendFileName(ff.GetPath(), "chats");
+				FindFile fchat(AppendFileName(chats_dir, "*.json"));
+				while(fchat) {
+					SessionInfo& s = list.Add();
+					s.id = GetFileTitle(fchat.GetName());
+					if(s.id.StartsWith("session-")) s.id = s.id.Mid(8);
+					s.timestamp = fchat.GetLastWriteTime();
+					s.name = s.id;
 					fchat.Next();
 				}
 			}
 			ff.Next();
 		}
-		
-		debug_log << "Total projects scanned: " << project_sessions.GetCount() << "\n";
-		
-		int q = project_sessions.Find(cwd);
-		if(q < 0) {
-			String ncwd = cwd;
-			while(ncwd.EndsWith("/") || ncwd.EndsWith("\\")) ncwd.Trim(ncwd.GetCount() - 1);
-			q = project_sessions.Find(ncwd);
-		}
-		
-		if(q >= 0) {
-			debug_log << "Matched sessions for CWD: " << project_sessions.GetKey(q) << " (count: " << project_sessions[q].GetCount() << ")\n";
-			cb(project_sessions[q]);
-		} else {
-			debug_log << "No match for CWD: " << cwd << "\n";
-			cb(Array<SessionInfo>());
-		}
-	} else {
-		cb(Array<SessionInfo>());
+		cb(list);
+		return;
 	}
+	
+	if(binary == "qwen") {
+		ScanMaestroProjects(AppendFileName(home, ".qwen/projects"), project_sessions, "jsonl");
+	} else if(binary == "claude") {
+		ScanMaestroProjects(AppendFileName(home, ".claude/projects"), project_sessions, "jsonl");
+	} else if(binary == "codex") {
+		String codex_dir = AppendFileName(home, ".codex/sessions");
+		FindFile ff(AppendFileName(codex_dir, "*.json"));
+		while(ff) {
+			SessionInfo& s = list.Add();
+			s.id = GetFileTitle(ff.GetName());
+			s.timestamp = ff.GetLastWriteTime();
+			s.name = s.id;
+			ff.Next();
+		}
+		cb(list);
+		return;
+	}
+	
+	// Default matching logic for ScanMaestroProjects results
+	int q = project_sessions.Find(cwd);
+	if(q < 0) {
+		String ncwd = cwd;
+		while(ncwd.EndsWith("/") || ncwd.EndsWith("\\")) ncwd.Trim(ncwd.GetCount() - 1);
+		q = project_sessions.Find(ncwd);
+	}
+	
+	if(q >= 0) cb(project_sessions[q]);
+	else cb(list); // Use flat list if project-match fails
 }
 
 END_UPP_NAMESPACE

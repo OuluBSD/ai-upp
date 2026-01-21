@@ -30,6 +30,16 @@ void TodoManager::SetCtrl(Ctrl* c) {
 	ctrl = c;
 }
 
+MaestroItem::MaestroItem() {
+	Add(approve.SetLabel("Approve").LeftPos(5, 80).BottomPos(5, 25));
+	Add(reject.SetLabel("Reject").LeftPos(90, 80).BottomPos(5, 25));
+	approve.Hide();
+	reject.Hide();
+	
+	approve << [=] { if(WhenApprove) WhenApprove(); };
+	reject  << [=] { if(WhenReject) WhenReject(); };
+}
+
 void MaestroItem::Paint(Draw& d) {
 	Size sz = GetSize();
 	d.DrawRect(sz, is_tool ? Blend(SColorPaper(), SColorText(), 50) : SColorPaper());
@@ -81,9 +91,17 @@ void MaestroItem::Paint(Draw& d) {
 			d.DrawText(5, ty, s, tfnt, SColorText(), sn);
 			s += sn;
 			ty += line_h;
-			if(ty > sz.cy) break;
+			if(ty > sz.cy - (pending ? 35 : 0)) break;
 		}
-		if(ty > sz.cy) break;
+		if(ty > sz.cy - (pending ? 35 : 0)) break;
+	}
+	
+	if(pending) {
+		approve.Show();
+		reject.Show();
+	} else {
+		approve.Hide();
+		reject.Hide();
 	}
 }
 
@@ -93,7 +111,7 @@ int MaestroItem::GetHeight(int width) const {
 	int line_h = tfnt.GetLineHeight();
 	int w = width - 10;
 	
-	if(w < 20) return ty + line_h;
+	if(w < 20) return ty + line_h + (pending ? 35 : 0);
 	
 	String txt = text;
 	txt.Replace("\r", "");
@@ -126,7 +144,7 @@ int MaestroItem::GetHeight(int width) const {
 		}
 	}
 	
-	return ty + count * line_h + 4;
+	return ty + count * line_h + 4 + (pending ? 35 : 0);
 }
 
 AIChatCtrl::AIChatCtrl() {
@@ -140,11 +158,24 @@ AIChatCtrl::AIChatCtrl() {
 	Add(todo.TopPos(0,todo_height).HSizePos());
 	Add(chat.VSizePos(todo_height,edit_height+offset).HSizePos());
 	Add(input.HSizePos(offset,100+offset).BottomPos(0,edit_height));
-	Add(send_continue.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
-	Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
 	
-send_continue.SetLabel("Continue");
-send.SetLabel("Send");
+		Add(send_continue.RightPos(0,100+offset).BottomPos(2*btn_height,btn_height));
+	
+		Add(yolo_mode.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
+	
+		Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
+	
+		
+	
+		send_continue.SetLabel("Auto-Continue");
+	
+		yolo_mode.SetLabel("YOLO Mode");
+	
+		send.SetLabel("Send");
+	
+		
+	
+		yolo_mode.Set(1);
 	
 	RegisterMaestroTools(tools);
 	
@@ -152,8 +183,7 @@ send.SetLabel("Send");
 	vscroll.WhenScroll = [=] { Layout(); };
 	vscroll.SetLine(30);
 	
-	// Poll timer
-	SetTimeCallback(-50, [=] { Poll(); }); // 50ms poll
+	SetTimeCallback(-50, [=] { Poll(); });
 }
 
 void AIChatCtrl::CopyAllChat() {
@@ -180,7 +210,6 @@ void AIChatCtrl::CopyDebugData() {
 
 void AIChatCtrl::OnSelectSession() {
 	String key = backend;
-	
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
@@ -197,10 +226,8 @@ void AIChatCtrl::OnSelectSession() {
 void AIChatCtrl::Layout() {
 	Size sz = GetSize();
 	int view_h = chat.GetSize().cy;
-	
 	int y = -vscroll.Get();
 	int w = sz.cx;
-	
 	int total_h = 0;
 	for(int i = 0; i < items.GetCount(); i++) {
 		int ih = items[i].GetHeight(w);
@@ -208,8 +235,7 @@ void AIChatCtrl::Layout() {
 		y += ih;
 		total_h += ih;
 	}
-	
-vscroll.SetTotal(total_h);
+	vscroll.SetTotal(total_h);
 	vscroll.SetPage(view_h);
 }
 
@@ -228,7 +254,7 @@ void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) 
 	vscroll.End();
 }
 
-void AIChatCtrl::AddToolItem(const String& role, const String& text) {
+MaestroItem& AIChatCtrl::AddToolItem(const String& role, const String& text) {
 	MaestroItem& item = items.Add();
 	item.role = role;
 	item.text = text;
@@ -237,35 +263,25 @@ void AIChatCtrl::AddToolItem(const String& role, const String& text) {
 	chat.Add(item);
 	Layout();
 	vscroll.End();
+	return item;
 }
 
 void AIChatCtrl::OnSend() {
 	String prompt = input.GetData();
 	if(prompt.IsEmpty()) return;
-	
 	if (engine.IsRunning()) {
 		queued_prompt = prompt;
 		waiting_to_send = true;
 		return;
 	}
-
 	input.Clear();
 	AddItem("User", prompt);
-	
 	current_response.Clear();
-	
-	// Configure engine
 	String key = ToLower(backend);
-	engine.debug_log << "AIChatCtrl::OnSend - Backend key: '" << backend << "' -> normalized: '" << key << "'\n";
-	
 	if(key == "gemini") ConfigureGemini(engine);
 	else if(key == "qwen") ConfigureQwen(engine);
 	else if(key == "claude") ConfigureClaude(engine);
 	else if(key == "codex") ConfigureCodex(engine);
-	else {
-		engine.debug_log << "ERROR: Unknown backend: '" << key << "'\n";
-	}
-	
 	engine.Send(prompt, [=](const MaestroEvent& e) { OnEvent(e); });
 }
 
@@ -273,13 +289,11 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	if(WhenEvent) WhenEvent(e);
 	
 	if(e.type == "tool_use") {
-		// Special handling for todo_write tool
 		if (e.tool_name == "todo_write") {
 			ValueMap vm = e.json["input"];
 			for(int i = 0; i < vm.GetCount(); i++) {
 				if(vm.GetKey(i) == "todos") {
-					String todos_json = vm.GetValue(i).ToString();
-					todo_manager.ParseFromJson(todos_json);
+					todo_manager.ParseFromJson(vm.GetValue(i).ToString());
 					todo_manager.SetCtrl(&todo);
 					todo.Refresh();
 					break;
@@ -288,11 +302,33 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		} else {
 			const MaestroTool* t = tools.Find(e.tool_name);
 			if(t) {
-				AddToolItem("Local Tool Call: " + e.tool_name, e.tool_input);
-				Value params = ParseJSON(e.tool_input);
-				Value result = t->Execute(params.Is<ValueMap>() ? (ValueMap)params : ValueMap());
-				AddToolItem("Local Tool Result: " + e.tool_name, AsString(result));
-				engine.WriteToolResult(e.tool_id, result);
+				MaestroItem& item = AddToolItem("Local Tool Call: " + e.tool_name, e.tool_input);
+				
+				auto ExecuteLocal = [this, &item, t, e]() {
+					item.pending = false;
+					item.Refresh();
+					Layout();
+					Value params = ParseJSON(e.tool_input);
+					Value result = t->Execute(params.Is<ValueMap>() ? (ValueMap)params : ValueMap());
+					AddToolItem("Local Tool Result: " + e.tool_name, AsString(result));
+					engine.WriteToolResult(e.tool_id, result);
+				};
+				
+				if(yolo_mode.GetData()) {
+					ExecuteLocal();
+				} else {
+					item.pending = true;
+					item.WhenApprove = ExecuteLocal;
+					item.WhenReject = [this, &item, e]() {
+						item.pending = false;
+						item.is_error = true;
+						item.Refresh();
+						Layout();
+						engine.WriteToolResult(e.tool_id, "Error: Tool execution rejected by user.");
+					};
+					item.Refresh();
+					Layout();
+				}
 				return;
 			}
 			
@@ -305,7 +341,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 				AddToolItem(role, e.tool_input);
 			}
 		}
-	}
+	} 
 	else if(e.type == "tool_result") {
 		String role = "Tool Result: " + e.tool_name;
 		if(items.GetCount() > 0 && items.Top().role == role) {
@@ -318,7 +354,6 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.delta) {
 		if(e.role == "user") return;
-		
 		current_response << e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
@@ -330,9 +365,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 	}
 	else if(e.type == "message" || e.type == "assistant") {
 		if(e.role == "user") return;
-		
 		if(!e.text.IsEmpty()) current_response = e.text;
-		
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
 			items.Top().Refresh();
@@ -340,14 +373,9 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		} else {
 			AddItem("AI (" + backend + ")", current_response);
 		}
-		
-		if(e.role == "assistant" || e.type == "assistant") {
-			OnDone(false, false);
-		}
+		if(e.role == "assistant" || e.type == "assistant") OnDone(false, false);
 	}
-	else if(e.type == "result") {
-		OnDone(true, false);
-	}
+	else if(e.type == "result") OnDone(true, false);
 	else if(e.type == "turn.failed" || e.type == "error") {
 		AddItem("Error", e.text, true);
 		OnDone(false, true);
@@ -356,9 +384,7 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 
 void AIChatCtrl::OnDone(bool result, bool fail) {
 	if(WhenDone) WhenDone();
-	
 	current_response.Clear();
-
 	if (waiting_to_send) {
 		waiting_to_send = false;
 		String temp_prompt = queued_prompt;

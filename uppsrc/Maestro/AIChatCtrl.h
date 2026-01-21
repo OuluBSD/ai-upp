@@ -30,12 +30,18 @@ public:
 	String text;
 	bool   is_error = false;
 	bool   is_tool = false;
+	bool   pending = false;
+	
+	Button approve, reject;
+	
+	Function<void()> WhenApprove;
+	Function<void()> WhenReject;
 	
 	virtual void Paint(Draw& d) override;
 	int GetHeight(int width) const;
 	
 	typedef MaestroItem CLASSNAME;
-	MaestroItem() {}
+	MaestroItem();
 };
 
 class AIChatCtrl : public Ctrl {
@@ -46,14 +52,15 @@ class AIChatCtrl : public Ctrl {
 	String             queued_prompt;
 	bool               waiting_to_send = false;
 	
-	// User additions
 	ParentCtrl      chat;
 	MaestroTodoList todo;
-	Switch          send_continue;
 	
 public:
 	EditString         input;
 	Button             send;
+	Option             send_continue;
+	Option             yolo_mode;
+	
 	String             backend;
 	CliMaestroEngine   engine;
 	MaestroToolRegistry tools;
@@ -63,7 +70,7 @@ public:
 	void Poll();
 	
 	void AddItem(const String& role, const String& text, bool is_error = false);
-	void AddToolItem(const String& role, const String& text);
+	MaestroItem& AddToolItem(const String& role, const String& text);
 	void CopyAllChat();
 	void CopyDebugData();
 	void OnSelectSession();

@@ -1,5 +1,6 @@
 #ifdef flagGUI
 #include "Debuggers.h"
+#include <ide/UwpUtils.h>
 
 #define KEYGROUPNAME "Debugger"
 #define KEYNAMESPACE PdbKeys
@@ -167,9 +168,41 @@ bool Pdb::Create(Host& local, const String& exefile, const String& cmdline, bool
 	ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 	Buffer<char> env(local.environment.GetCount() + 1);
 	memcpy(env, ~local.environment, local.environment.GetCount() + 1);
-	bool h = CreateProcess(exefile, cmd, NULL, NULL, TRUE,
-	                       /*NORMAL_PRIORITY_CLASS|CREATE_NEW_CONSOLE|*/DEBUG_ONLY_THIS_PROCESS/*|DEBUG_PROCESS*/,
-	                       local.environment.GetCount() ? ~env : NULL, NULL, &si, &pi);
+	
+	bool uwp = IsUwpApp(exefile);
+	bool h = false;
+	
+	if(uwp) {
+		if(LaunchUwpApp(exefile, cmdline, true, pi.dwProcessId)) {
+			if(DebugActiveProcess(pi.dwProcessId)) {
+				h = true;
+				pi.hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pi.dwProcessId);
+				
+				// Find main thread
+				HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+				if (hSnap != INVALID_HANDLE_VALUE) {
+					THREADENTRY32 te;
+					te.dwSize = sizeof(te);
+					if (Thread32First(hSnap, &te)) {
+						do {
+							if (te.th32OwnerProcessID == pi.dwProcessId) {
+								pi.dwThreadId = te.th32ThreadID;
+								pi.hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+								break;
+							}
+						} while (Thread32Next(hSnap, &te));
+					}
+					CloseHandle(hSnap);
+				}
+			}
+		}
+	}
+	else {
+		h = CreateProcess(exefile, cmd, NULL, NULL, TRUE,
+		                       /*NORMAL_PRIORITY_CLASS|CREATE_NEW_CONSOLE|*/DEBUG_ONLY_THIS_PROCESS/*|DEBUG_PROCESS*/,
+		                       local.environment.GetCount() ? ~env : NULL, NULL, &si, &pi);
+	}
+
 	if(!h) {
 		Exclamation("Error creating process&[* " + DeQtf(exefile) + "]&" +
 		            "Windows error: " + DeQtf(GetLastErrorMessage()));

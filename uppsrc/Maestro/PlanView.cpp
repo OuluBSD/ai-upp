@@ -1,25 +1,21 @@
 #include "Maestro.h"
 
-namespace Upp {
+#ifdef flagGUI
+
+NAMESPACE_UPP
 
 struct ColoredDisplay : public Display {
-	Color color;
 	virtual void Paint(Draw& w, const Rect& r, const Value& v, Color fg, Color bg, dword style) const {
-		Display::Paint(w, r, v, color, bg, style);
+		Color color = fg;
+		String status = v;
+		if(status == "done") color = Green();
+		else if(status == "in_progress") color = Yellow();
+		else if(status == "blocked") color = Red();
+		
+		w.DrawRect(r, bg);
+		w.DrawText(r.left, r.top, status, StdFont(), color);
 	}
 };
-
-static ColoredDisplay& StatusDisplay(Color c) {
-	static VectorMap<Color, One<ColoredDisplay>> cache;
-	int q = cache.Find(c);
-	if(q < 0) {
-		ColoredDisplay *d = new ColoredDisplay;
-		d->color = c;
-		cache.Add(c, d);
-		return *d;
-	}
-	return *cache[q];
-}
 
 PlanView::PlanView() {
 	Add(tree.SizePos());
@@ -27,32 +23,19 @@ PlanView::PlanView() {
 
 void PlanView::Set(const Array<Track>& tracks) {
 	tree.Clear();
-	int root = tree.Add(0, CtrlImg::Dir(), "Planning");
-	
+	int root_id = tree.Add(0, CtrlImg::Dir(), "Plans");
 	for(const auto& t : tracks) {
-		int tid = tree.Add(root, CtrlImg::Dir(), t.name);
-		
+		int tid = tree.Add(root_id, CtrlImg::Dir(), t.name);
 		for(const auto& p : t.phases) {
 			int pid = tree.Add(tid, CtrlImg::Dir(), p.name);
-			
-			for(const auto& task : p.tasks) {
-				String label = task.name + " [" + StatusToString(task.status) + "]";
-				Color clr = SColorText();
-				
-				switch(task.status) {
-					case STATUS_DONE: clr = Green(); break;
-					case STATUS_IN_PROGRESS: clr = LtYellow(); break;
-					case STATUS_BLOCKED: clr = Red(); break;
-					default: clr = SColorDisabled(); break;
-				}
-				
-				int id = tree.Add(pid, CtrlImg::File(), label);
-				tree.SetDisplay(id, StatusDisplay(clr));
+			for(const auto& tk : p.tasks) {
+				tree.Add(pid, CtrlImg::File(), tk.name);
 			}
 		}
 	}
-	
-	tree.Open(root);
+	tree.OpenDeep(root_id);
 }
 
-}
+END_UPP_NAMESPACE
+
+#endif

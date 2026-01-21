@@ -1,5 +1,7 @@
 #include "Maestro.h"
 
+#ifdef flagGUI
+
 NAMESPACE_UPP
 
 TodoManager todo_manager;
@@ -167,15 +169,15 @@ AIChatCtrl::AIChatCtrl() {
 	
 		
 	
-		send_continue.SetLabel("Auto-Continue");
+send_continue.SetLabel("Auto-Continue");
 	
 		yolo_mode.SetLabel("YOLO Mode");
 	
-		send.SetLabel("Send");
+send.SetLabel("Send");
 	
 		
 	
-		yolo_mode.Set(1);
+yolo_mode.Set(1);
 	
 	RegisterMaestroTools(tools);
 	
@@ -436,3 +438,5 @@ void AIChatCtrl::Poll() {
 }
 
 END_UPP_NAMESPACE
+
+#endif

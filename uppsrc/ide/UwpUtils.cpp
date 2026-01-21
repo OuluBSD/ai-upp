@@ -2,9 +2,17 @@
 
 #ifdef PLATFORM_WIN32
 
+#define Ptr Ptr_
+#define byte byte_
+#define CY win32_CY_
+
 #include <shobjidl.h>
 #include <appmodel.h>
 #include <shlwapi.h>
+
+#undef Ptr
+#undef byte
+#undef CY
 
 #pragma comment(lib, "shlwapi.lib")
 
@@ -62,8 +70,8 @@ String GetUwpPackageName(const String& folder)
 String GetUwpPackageFamilyName(const String& pkgName)
 {
 	String cmd;
-	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFamilyName\""
-;	String out;
+	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFamilyName\"";
+	String out;
 	if(Sys(cmd, out) == 0) {
 		return TrimBoth(out);
 	}
@@ -84,7 +92,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	
 	String aumid = pfn + "!App"; // Hardcoded "App" ID for now, matches MscBuilder template
 
-	HRESULT hr;
+	HRESULT hr = E_FAIL;
 	CoInitialize(NULL);
 
 	if(debug) {
@@ -94,9 +102,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 			hr = pds->EnableDebugging(ToSystemCharsetW(pfn), NULL, NULL);
 			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging");
 			pds->Release();
-		}
-		
-		else {
+		} else {
 			PutConsole("UWP: Failed to create IPackageDebugSettings");
 		}
 	}
@@ -104,20 +110,19 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	IApplicationActivationManager *aam = NULL;
 	hr = CoCreateInstance(CLSID_ApplicationActivationManager, NULL, CLSCTX_LOCAL_SERVER, IID_IApplicationActivationManager, (void**)&aam);
 	if(SUCCEEDED(hr) && aam) {
-		// Args are usually passed differently to UWP, often via ActivationArguments or not supported easily via ActivateApplication
-		// ActivateApplication does not take command line arguments in the string sense.
-		// It takes 'arguments' string which is passed to OnActivated.
-		hr = aam->ActivateApplication(ToSystemCharsetW(aumid), 
-		                              IsNull(args) ? NULL : ToSystemCharsetW(args), 
+		Vector<wchar_t> w_aumid = ToSystemCharsetW(aumid);
+		Vector<wchar_t> w_args;
+		if(!IsNull(args)) w_args = ToSystemCharsetW(args);
+
+		hr = aam->ActivateApplication(w_aumid, 
+		                              IsNull(args) ? (LPCWSTR)NULL : w_args, 
 		                              AO_NONE, &pid);
 		if(FAILED(hr)) {
 			PutConsole("UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr));
 			if(hr == 0x8027025b) PutConsole(" (The app didn't start in the required time)");
 		}
 		aam->Release();
-	}
-	
-	else {
+	} else {
 		PutConsole("UWP: Failed to create IApplicationActivationManager");
 	}
 	

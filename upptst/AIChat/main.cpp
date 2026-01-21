@@ -179,6 +179,8 @@ void AIChat::NewSession() {
 		String dir = sw.selected_dir;
 		String sid = sw.session_id;
 		
+		if (dir.Right(1) == DIR_SEPS) dir = dir.Left(dir.GetCount()-1);
+		
 		AIChatCtrl& chat = chat_tabs.Add();
 		chat.backend = backend;
 		chat.engine.working_dir = dir;

@@ -25,7 +25,7 @@ bool IsUwpApp(const String& path)
 	String folder = GetFileFolder(path_norm);
 	
 	// Debugging:
-	::MessageBoxW(NULL, ToSystemCharsetW(path_norm), L"IsUwpApp Path", MB_OK);
+	// ::MessageBoxW(NULL, ToSystemCharsetW(path_norm), L"IsUwpApp Path", MB_OK);
 
 	// Check 1: Manifest in the same folder (e.g. running from AppxLayout)
 	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;

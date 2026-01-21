@@ -799,7 +799,7 @@ bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& link
 	String pkg_name = GetFileTitle(mainpackage);
 	if(IsNull(pkg_name)) pkg_name = "UwpApp";
 	
-	String layout_dir = AppendFileName(outdir, "AppxLayout");
+	String layout_dir = AppendFileName(GetFileFolder(target), "AppxLayout");
 	RealizeDirectory(layout_dir);
 
 	// Copy the executable

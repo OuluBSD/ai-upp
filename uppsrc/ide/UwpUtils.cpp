@@ -1,3 +1,4 @@
+#include "ide.h"
 #include "UwpUtils.h"
 
 #ifdef PLATFORM_WIN32
@@ -24,9 +25,6 @@ bool IsUwpApp(const String& path)
 	String path_norm = NormalizePath(path);
 	String folder = GetFileFolder(path_norm);
 	
-	// Debugging:
-	// ::MessageBoxW(NULL, ToSystemCharsetW(path_norm), L"IsUwpApp Path", MB_OK);
-
 	// Check 1: Manifest in the same folder (e.g. running from AppxLayout)
 	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;
 	
@@ -91,11 +89,14 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 {
 	String folder = GetFileFolder(path);
 	String name = GetUwpPackageName(folder);
-	if(IsNull(name)) return false;
+	if(IsNull(name)) {
+		Exclamation("UWP: Could not determine Package Name from manifest.");
+		return false;
+	}
 	
 	String pfn = GetUwpPackageFamilyName(name);
 	if(IsNull(pfn)) {
-		PutConsole("UWP: Could not find Package Family Name for " + name);
+		Exclamation("UWP: Could not find Package Family Name for " + name + ".\nEnsure the package is registered (deploy/build successfully).");
 		return false;
 	}
 	
@@ -109,10 +110,10 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 		if(SUCCEEDED(hr) && pds) {
 			hr = pds->EnableDebugging(ToSystemCharsetW(pfn), NULL, NULL);
-			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging");
+			if(FAILED(hr)) Exclamation("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr));
 			pds->Release();
 		} else {
-			PutConsole("UWP: Failed to create IPackageDebugSettings");
+			Exclamation("UWP: Failed to create IPackageDebugSettings. HRESULT: " + FormatIntHex(hr));
 		}
 	}
 
@@ -127,12 +128,13 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		                              IsNull(args) ? (LPCWSTR)NULL : w_args, 
 		                              AO_NONE, &pid);
 		if(FAILED(hr)) {
-			PutConsole("UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr));
-			if(hr == 0x8027025b) PutConsole(" (The app didn't start in the required time)");
+			String msg = "UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr);
+			if(hr == 0x8027025b) msg << "\n(The app didn't start in the required time)";
+			Exclamation(msg);
 		}
 		aam->Release();
 	} else {
-		PutConsole("UWP: Failed to create IApplicationActivationManager");
+		Exclamation("UWP: Failed to create IApplicationActivationManager. HRESULT: " + FormatIntHex(hr));
 	}
 	
 	CoUninitialize();

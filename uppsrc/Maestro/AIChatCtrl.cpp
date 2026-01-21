@@ -119,6 +119,7 @@ AIChatCtrl::AIChatCtrl() {
 	
 	send.WhenAction = THISBACK(OnSend);
 	vscroll.WhenScroll = THISBACK(Layout);
+	vscroll.SetLine(30);
 	
 	// Poll timer
 	SetTimeCallback(-50, [=] { Poll(); }); // 50ms poll

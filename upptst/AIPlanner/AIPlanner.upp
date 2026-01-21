@@ -1,0 +1,10 @@
+uses
+	CtrlLib,
+	Maestro;
+
+file
+	AIPlanner.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

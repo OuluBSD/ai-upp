@@ -8,6 +8,7 @@
 bool IsUwpApp(const String& path);
 String GetUwpPackageName(const String& folder);
 String GetUwpPackageFamilyName(const String& pkgName);
+String GetUwpPackageFullName(const String& pkgName);
 bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid);
 void StopUwpDebug(const String& path);
 

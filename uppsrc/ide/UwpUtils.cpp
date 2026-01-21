@@ -119,6 +119,17 @@ String GetUwpPackageFamilyName(const String& pkgName)
 	return Null;
 }
 
+String GetUwpPackageFullName(const String& pkgName)
+{
+	String cmd;
+	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFullName\"";
+	String out;
+	if(Sys(cmd, out) == 0) {
+		return TrimBoth(out);
+	}
+	return Null;
+}
+
 void RegisterUwpApp(const String& folder)
 {
 	String manifest = AppendFileName(folder, "AppxManifest.xml");
@@ -142,8 +153,10 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	RegisterUwpApp(folder); // Ensure the app is registered from this location
 	
 	String pfn = GetUwpPackageFamilyName(name);
-	if(IsNull(pfn)) {
-		Exclamation("UWP: Could not find Package Family Name for " + name + ".\nEnsure the package is registered (deploy/build successfully).");
+	String pfull = GetUwpPackageFullName(name);
+	
+	if(IsNull(pfn) || IsNull(pfull)) {
+		Exclamation("UWP: Could not find Package Family/Full Name for " + name + ".\nEnsure the package is registered (deploy/build successfully).");
 		return false;
 	}
 	
@@ -156,8 +169,8 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		IPackageDebugSettings *pds = NULL;
 		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 		if(SUCCEEDED(hr) && pds) {
-			hr = pds->EnableDebugging(ToSystemCharsetW(pfn), NULL, NULL);
-			if(FAILED(hr)) Exclamation("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr));
+			hr = pds->EnableDebugging(ToSystemCharsetW(pfull), NULL, NULL);
+			if(FAILED(hr)) Exclamation("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr) + "\nPackage: " + pfull);
 			pds->Release();
 		} else {
 			Exclamation("UWP: Failed to create IPackageDebugSettings. HRESULT: " + FormatIntHex(hr));

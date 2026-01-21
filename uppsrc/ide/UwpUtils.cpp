@@ -76,24 +76,34 @@ String GetUwpPackageName(const String& folder)
 	try {
 		XmlNode n = ParseXMLFile(manifestPath);
 		if(n.IsVoid()) {
-			Exclamation("UWPUtils: ParseXMLFile returned empty node for:\n" + manifestPath);
+			Exclamation("UWPUtils: ParseXMLFile returned empty node for:\n" + DeQtf(manifestPath));
 			return Null;
 		}
-		if(n.GetTag() == "Package") {
-			const XmlNode& identity = n["Identity"];
-			if(!identity.IsVoid())
-				return identity.Attr("Name");
-			else
-				Exclamation("UWPUtils: <Identity> tag not found in:\n" + manifestPath);
-		} else {
-			Exclamation("UWPUtils: Root tag is '" + n.GetTag() + "', expected 'Package' in:\n" + manifestPath);
+		
+		const XmlNode* packageNode = &n;
+		if(n.GetType() == XML_DOC) {
+			const XmlNode& p = n["Package"];
+			if(p.IsVoid()) {
+				Exclamation("UWPUtils: <Package> tag not found in:\n" + DeQtf(manifestPath));
+				return Null;
+			}
+			packageNode = &p;
+		} else if(n.GetTag() != "Package") {
+			Exclamation("UWPUtils: Root tag is '" + DeQtf(n.GetTag()) + "', expected 'Package' in:\n" + DeQtf(manifestPath));
+			return Null;
 		}
+
+		const XmlNode& identity = (*packageNode)["Identity"];
+		if(!identity.IsVoid())
+			return identity.Attr("Name");
+		else
+			Exclamation("UWPUtils: <Identity> tag not found in:\n" + DeQtf(manifestPath));
 	}
 	catch(XmlError e) {
-		Exclamation("UWPUtils: XML Parse Error: " + e + "\nFile: " + manifestPath);
+		Exclamation("UWPUtils: XML Parse Error: " + DeQtf(e) + "\nFile: " + DeQtf(manifestPath));
 	}
 	catch(...) {
-		Exclamation("UWPUtils: Unknown exception while parsing:\n" + manifestPath);
+		Exclamation("UWPUtils: Unknown exception while parsing:\n" + DeQtf(manifestPath));
 	}
 	return Null;
 }

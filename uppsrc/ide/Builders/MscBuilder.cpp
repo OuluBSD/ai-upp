@@ -269,7 +269,7 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 		cc_c << " -EHac";
 	}
 	else
-	if(IsMsc89()) {
+	if(IsMsc89() || HasFlag("UWP")) {
 		cc << " -EHsc";
 		cc_c << " -EHsc";
 	}
@@ -293,7 +293,7 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 		cc_c << " -Zi";
 	}
 	String common_options = ' ' + Gather(pkg.option, config.GetKeys());
-	common_options << (HasFlag("SHARED") || is_shared || is_clr ? " -MD" : " -MT");
+	common_options << (HasFlag("SHARED") || is_shared || is_clr || HasFlag("UWP") ? " -MD" : " -MT");
 	cc << common_options;
 	cc_c << common_options;
 
@@ -777,7 +777,7 @@ void UwpInternalBuilder::AddFlags(Index<String>& cfg)
 String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bool is_c)
 {
 	String cc = MscBuilder::CmdLine(package, pkg, is_c);
-	cc << " /std:c++17 /EHsc /D \"WINAPI_FAMILY=WINAPI_FAMILY_APP\"";
+	cc << " /std:c++17 /D \"WINAPI_FAMILY=WINAPI_FAMILY_APP\"";
 	if(!is_c) {
 		cc << " /ZW";
 		cc << " /I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\cppwinrt\"";

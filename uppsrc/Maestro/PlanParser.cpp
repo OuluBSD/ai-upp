@@ -54,13 +54,12 @@ void PlanParser::LoadPhase(Track& track, const String& phase_path) {
 		p.name = p.id;
 		
 		String content = LoadFile(phase_path);
-		// Parse tasks from markdown list
-		// - [ ] **ID: Name** Description
-		Vector<String> lines = Split(content, '\n');
+		Vector<String> lines = Split(content, '\n', false);
 		for(const String& l : lines) {
-			RegExp reTask("- \\[(.)\\] \\*\\*(.+)\\*\\*");
+			RegExp reTask("- \\\\[(.)\\\\] \\\*\\\*(.+)\\\\*\\\*");
 			if(reTask.Match(l)) {
 				Task& t = p.tasks.Add();
+				t.id = reTask[1];
 				t.name = reTask[1];
 				String status_char = reTask[0];
 				if(status_char == "x") t.status = STATUS_DONE;
@@ -104,6 +103,7 @@ void PlanParser::LoadRunbooks(const String& docs_root) {
 }
 
 void PlanParser::LoadWorkGraphs(const String& docs_root) {
+	workgraphs.Clear();
 	String wg_dir = AppendFileName(docs_root, "docs/maestro/plans/workgraphs");
 	FindFile ff(AppendFileName(wg_dir, "*.json"));
 	while(ff) {
@@ -155,4 +155,32 @@ void PlanParser::LoadMaestroTracks(const String& docs_root) {
 	}
 }
 
+bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_id, const String& phase_id, const String& task_id, TaskStatus status) {
+	String phase_file = AppendFileName(AppendFileName(docs_root, "docs/phases"), ToLower(phase_id) + ".md");
+	if(!FileExists(phase_file)) return false;
+	
+	String content = LoadFile(phase_file);
+	Vector<String> lines = Split(content, '\n', false);
+	String new_content;
+	char status_char = ' ';
+	if(status == STATUS_DONE) status_char = 'x';
+	else if(status == STATUS_IN_PROGRESS) status_char = '/';
+	
+	bool found = false;
+	for(String l : lines) {
+		RegExp reTask("- \\\\[(.)\\\\] \\\*\\\*(.+)\\\\*\\\*");
+		if(reTask.Match(l)) {
+			String tid = reTask[1];
+			if(tid == task_id) {
+				l = "- [" + String(status_char, 1) + "] **" + tid + "**" + l.Mid(reTask.GetPos(1) + reTask.GetLength(1));
+				found = true;
+			}
+		}
+		new_content << l << "\n";
+	}
+	
+	if(found) return SaveFile(phase_file, new_content);
+	return false;
 }
+
+} 

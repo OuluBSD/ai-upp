@@ -3,13 +3,19 @@ description "\377B0,0,255";
 noblitz;
 
 uses
-	plugin/DirectXTK;
+	plugin/DirectXTK,
+	Vfs/Ecs;
 
 library
 	"ole32 oleaut32 Kernel32";
 
+include(WIN32) "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/winrt";
+
+include(WIN32) "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/cppwinrt";
+
 file
 	AGENTS.md,
+	EonWin.h,
 	Win.h,
 	Win.icpp,
 	Copying,

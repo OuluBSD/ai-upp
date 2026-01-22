@@ -764,6 +764,90 @@ bool MscBuilder::Preprocess(const String& package, const String& file, const Str
 
 // --- UwpInternalBuilder ---
 
+static int CompareVersions(const String& a, const String& b)
+{
+	Vector<String> va = Split(a, '.');
+	Vector<String> vb = Split(b, '.');
+	for(int i = 0; i < min(va.GetCount(), vb.GetCount()); i++) {
+		int na = atoi(va[i]);
+		int nb = atoi(vb[i]);
+		if(na != nb)
+			return na - nb;
+	}
+	return va.GetCount() - vb.GetCount();
+}
+
+static String GetHostEnv(Host *host, const char *id)
+{
+	String env = host->GetEnvironment();
+	const char *p = env;
+	int len = (int)strlen(id);
+	while(*p) {
+		if(strncmp(p, id, len) == 0 && p[len] == '=')
+			return p + len + 1;
+		p += strlen(p) + 1;
+	}
+	return Null;
+}
+
+static String GetLatestSubfolder(const String& path)
+{
+	if(path.IsEmpty()) return String();
+	String latest;
+	FindFile ff(AppendFileName(path, "*"));
+	while(ff) {
+		if(ff.IsFolder()) {
+			String n = ff.GetName();
+			if(IsDigit(n[0])) {
+				if(latest.IsEmpty() || CompareVersions(n, latest) > 0)
+					latest = n;
+			}
+		}
+		ff.Next();
+	}
+	return latest;
+}
+
+static String GetLatestSDK(String& sdk_ver)
+{
+	String sdk10;
+	for(const char *pf : { "C:\\Program Files (x86)\\Windows Kits\\10", "C:\\Program Files\\Windows Kits\\10" }) {
+		String ver = GetLatestSubfolder(AppendFileName(pf, "Include"));
+		if(ver.GetCount()) {
+			sdk10 = pf;
+			sdk_ver = ver;
+			break;
+		}
+	}
+	return sdk10;
+}
+
+static String GetLatestMSVC(String& vs_ver)
+{
+	String vs_base;
+	String latest_year;
+	for(const char *root : { "C:\\Program Files\\Microsoft Visual Studio", "C:\\Program Files (x86)\\Microsoft Visual Studio" }) {
+		FindFile ff(AppendFileName(root, "*"));
+		while(ff) {
+			if(ff.IsFolder() && IsDigit(ff.GetName()[0])) {
+				String year = ff.GetName();
+				if(vs_base.IsEmpty() || year > latest_year) {
+					for(const char *edition : { "Community", "Professional", "Enterprise", "BuildTools" }) {
+						String p = AppendFileName(AppendFileName(ff.GetPath(), edition), "VC\\Tools\\MSVC");
+						if(DirectoryExists(p)) {
+							vs_base = p;
+							latest_year = year;
+						}
+					}
+				}
+			}
+			ff.Next();
+		}
+	}
+	vs_ver = GetLatestSubfolder(vs_base);
+	return vs_base;
+}
+
 struct UwpInternalBuilder : MscBuilder {
 	typedef UwpInternalBuilder CLASSNAME;
 
@@ -784,10 +868,37 @@ String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bo
 	cc << " /std:c++17 /D \"WINAPI_FAMILY=WINAPI_FAMILY_APP\"";
 	if(!is_c) {
 		cc << " /ZW";
-		cc << " /I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\cppwinrt\"";
-		cc << " /AI\"C:\\Program Files (x86)\\Windows Kits\\10\\UnionMetadata\\10.0.26100.0\"";
-		cc << " /AI\"C:\\Program Files (x86)\\Windows Kits\\10\\UnionMetadata\\10.0.26100.0\\Facade\"";
-		cc << " /AI\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.44.35207\\lib\\x86\\store\\references\"";
+		
+		String sdk10, sdk_ver;
+		String vs_base, vs_ver;
+		
+		String inc_env = GetHostEnv(host, "INCLUDE");
+		Vector<String> paths = Split(inc_env, ';');
+		for(const String& p : paths) {
+			String lp = ToLower(p);
+			int q = lp.Find("\\windows kits\\10\\include\\");
+			if(q >= 0 && sdk10.IsEmpty()) {
+				sdk10 = p.Left(q + 17);
+				int e = lp.Find("\\", q + 25);
+				if(e >= 0)
+					sdk_ver = p.Mid(q + 25, e - (q + 25));
+			}
+			q = lp.Find("\\vc\\tools\\msvc\\");
+			if(q >= 0 && vs_base.IsEmpty()) {
+				vs_base = p.Left(q + 15);
+				int e = lp.Find("\\", q + 15);
+				if(e >= 0)
+					vs_ver = p.Mid(q + 15, e - (q + 15));
+			}
+		}
+		
+		if(sdk10.IsEmpty()) sdk10 = GetLatestSDK(sdk_ver);
+		if(vs_base.IsEmpty()) vs_base = GetLatestMSVC(vs_ver);
+
+		cc << " /I\"" << sdk10 << "\\Include\\" << sdk_ver << "\\cppwinrt\"";
+		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\"";
+		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\\Facade\"";
+		cc << " /AI\"" << vs_base << "\\" << vs_ver << "\\lib\\" << (IsMsc64() ? "x64" : "x86") << "\\store\\references\"";
 	}
 	return cc;
 }
@@ -795,7 +906,7 @@ String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bo
 bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap)
 {
 	// 1. Link the executable
-	String uwp_link_options = linkoptions + " /APPCONTAINER /MACHINE:X64 \"WindowsApp.lib\"";
+	String uwp_link_options = linkoptions + " /APPCONTAINER /MACHINE:" + (IsMsc64() ? "X64" : "X86") + " \"WindowsApp.lib\"";
 	if(!MscBuilder::Link(linkfile, uwp_link_options, createmap))
 		return false;
 
@@ -827,7 +938,23 @@ bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& link
 	WriteUwpAssets(assets_dir);
 
 	// Create Manifest
-	String target_version = "10.0.19041.0";
+	String sdk_ver;
+	String inc_env = GetHostEnv(host, "INCLUDE");
+	Vector<String> paths = Split(inc_env, ';');
+	for(const String& p : paths) {
+		String lp = ToLower(p);
+		int q = lp.Find("\\windows kits\\10\\include\\");
+		if(q >= 0) {
+			int e = lp.Find("\\", q + 25);
+			if(e >= 0) {
+				sdk_ver = p.Mid(q + 25, e - (q + 25));
+				break;
+			}
+		}
+	}
+	if(sdk_ver.IsEmpty()) GetLatestSDK(sdk_ver);
+
+	String target_version = Nvl(sdk_ver, "10.0.19041.0");
 	String min_version = "10.0.17763.0";
 	String entry_point = "App"; // Default for U++ UWP apps usually
 	

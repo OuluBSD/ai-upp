@@ -126,6 +126,11 @@ bool Host::Wait(int slot)
 	return IdeConsoleWait(slot);
 }
 
+bool Host::GetError() const
+{
+	return IdeConsoleGetError();
+}
+
 void Host::OnFinish(Event<>  cb)
 {
 	IdeConsoleOnFinish(cb);

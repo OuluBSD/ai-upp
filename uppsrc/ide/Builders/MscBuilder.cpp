@@ -432,6 +432,10 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 				DeleteFile(objfile);
 			error |= execerr;
 			PutVerbose("compiled in " + GetPrintTime(time));
+			if(host->GetError()) {
+				error = true;
+				break;
+			}
 		}
 		if(init)
 			linkfile.Add(objfile);

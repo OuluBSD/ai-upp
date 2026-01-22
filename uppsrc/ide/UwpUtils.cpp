@@ -6,17 +6,17 @@
 #ifdef Ptr
 #undef Ptr
 #endif
-#define Ptr Ptr_
+#define Ptr Ptr_ 
 
 #ifdef byte
 #undef byte
 #endif
-#define byte byte_
+#define byte byte_ 
 
 #ifdef CY
 #undef CY
 #endif
-#define CY win32_CY_
+#define CY win32_CY_ 
 
 #ifdef PACKAGE_VERSION
 #undef PACKAGE_VERSION
@@ -31,52 +31,45 @@
 // IPackageDebugSettings is in shobjidl.h (Windows 8+)
 // IApplicationActivationManager is in shobjidl.h
 
+String FindUwpManifest(const String& folder)
+{
+	String manifestPath = AppendFileName(folder, "AppxManifest.xml");
+	if(FileExists(manifestPath)) return manifestPath;
+	
+	// Check for AppxLayout subdirectory
+	manifestPath = AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml");
+	if(FileExists(manifestPath)) return manifestPath;
+	
+	// Check if we are inside AppxLayout
+	if(GetFileTitle(folder) == "AppxLayout") {
+		manifestPath = AppendFileName(folder, "AppxManifest.xml");
+		if(FileExists(manifestPath)) return manifestPath;
+	}
+	
+	// Check parent if it's AppxLayout
+	String parent = GetFileFolder(folder);
+	if(GetFileTitle(parent) == "AppxLayout") {
+		manifestPath = AppendFileName(parent, "AppxManifest.xml");
+		if(FileExists(manifestPath)) return manifestPath;
+	}
+
+	return Null;
+}
+
 bool IsUwpApp(const String& path)
 {
-	String path_norm = NormalizePath(path);
-	String folder = GetFileFolder(path_norm);
-	
-	// Check 1: Manifest in the same folder (e.g. running from AppxLayout)
-	if(FileExists(AppendFileName(folder, "AppxManifest.xml"))) return true;
-	
-	// Check 2: Manifest in AppxLayout subdirectory (standard U++ build)
-	if(FileExists(AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml"))) return true;
-
-	return false;
+	return !IsNull(FindUwpManifest(GetFileFolder(path)));
 }
 
 String GetUwpPackageName(const String& folder)
 {
-	String manifestPath = AppendFileName(folder, "AppxManifest.xml");
-	if(!FileExists(manifestPath)) {
-		// Check for AppxLayout structure
-		if(GetFileTitle(folder) == "AppxLayout") // We might be inside AppxLayout/
-			manifestPath = AppendFileName(folder, "AppxManifest.xml");
-		else
-		if (GetFileTitle(folder) == "AppxLayout") // path passed might be the exe
-			manifestPath = AppendFileName(folder, "AppxManifest.xml");
-		else
-		{
-			// Try parent folder if we are in AppxLayout
-			String parent = GetFileFolder(folder);
-			if(GetFileTitle(parent) == "AppxLayout")
-				manifestPath = AppendFileName(parent, "AppxManifest.xml");
-			else // Or maybe we are in bin directory and AppxLayout is subdirectory?
-			    manifestPath = AppendFileName(AppendFileName(folder, "AppxLayout"), "AppxManifest.xml");
-		}
-	}
-	
-	if(!FileExists(manifestPath)) {
-		// Try one more: if path is the executable, folder is its dir.
-		// If structure is bin/out/Package/AppxLayout/App.exe
-		// manifest is in AppxLayout/AppxManifest.xml.
-		return Null;
-	}
+	String manifestPath = FindUwpManifest(folder);
+	if(IsNull(manifestPath)) return Null;
 
 	try {
 		XmlNode n = ParseXMLFile(manifestPath);
 		if(n.IsVoid()) {
-			Exclamation("UWPUtils: ParseXMLFile returned empty node for:\n" + DeQtf(manifestPath));
+			PutConsole("UWPUtils: ParseXMLFile returned empty node for: " + manifestPath);
 			return Null;
 		}
 		
@@ -84,12 +77,12 @@ String GetUwpPackageName(const String& folder)
 		if(n.GetType() == XML_DOC) {
 			const XmlNode& p = n["Package"];
 			if(p.IsVoid()) {
-				Exclamation("UWPUtils: <Package> tag not found in:\n" + DeQtf(manifestPath));
+				PutConsole("UWPUtils: <Package> tag not found in: " + manifestPath);
 				return Null;
 			}
 			packageNode = &p;
 		} else if(n.GetTag() != "Package") {
-			Exclamation("UWPUtils: Root tag is '" + DeQtf(n.GetTag()) + "', expected 'Package' in:\n" + DeQtf(manifestPath));
+			PutConsole("UWPUtils: Root tag is '" + n.GetTag() + "', expected 'Package' in: " + manifestPath);
 			return Null;
 		}
 
@@ -97,13 +90,14 @@ String GetUwpPackageName(const String& folder)
 		if(!identity.IsVoid())
 			return identity.Attr("Name");
 		else
-			Exclamation("UWPUtils: <Identity> tag not found in:\n" + DeQtf(manifestPath));
+			PutConsole("UWPUtils: <Identity> tag not found in: " + manifestPath);
 	}
 	catch(XmlError e) {
-		Exclamation("UWPUtils: XML Parse Error: " + DeQtf(e) + "\nFile: " + DeQtf(manifestPath));
+		PutConsole("UWPUtils: XML Parse Error: " + e + "\nFile: " + manifestPath);
 	}
-	catch(...) {
-		Exclamation("UWPUtils: Unknown exception while parsing:\n" + DeQtf(manifestPath));
+	catch(...)
+	{
+		PutConsole("UWPUtils: Unknown exception while parsing: " + manifestPath);
 	}
 	return Null;
 }
@@ -111,7 +105,7 @@ String GetUwpPackageName(const String& folder)
 String GetUwpPackageFamilyName(const String& pkgName)
 {
 	String cmd;
-	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFamilyName\"";
+	cmd << "powershell -NoProfile -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFamilyName\"";
 	String out;
 	if(Sys(cmd, out) == 0) {
 		return TrimBoth(out);
@@ -122,7 +116,7 @@ String GetUwpPackageFamilyName(const String& pkgName)
 String GetUwpPackageFullName(const String& pkgName)
 {
 	String cmd;
-	cmd << "powershell -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFullName\"";
+	cmd << "powershell -NoProfile -Command \"(Get-AppxPackage -Name '" << pkgName << "').PackageFullName\"";
 	String out;
 	if(Sys(cmd, out) == 0) {
 		return TrimBoth(out);
@@ -132,13 +126,19 @@ String GetUwpPackageFullName(const String& pkgName)
 
 void RegisterUwpApp(const String& folder)
 {
-	String manifest = AppendFileName(folder, "AppxManifest.xml");
-	if(!FileExists(manifest)) return;
+	String manifest = FindUwpManifest(folder);
+	if(IsNull(manifest)) {
+		PutConsole("UWP: Could not find manifest to register in " + folder);
+		return;
+	}
 	
+	PutConsole("UWP: Registering application from " + manifest);
 	String cmd;
-	cmd << "powershell -Command \"Add-AppxPackage -Register '" << manifest << "' -ForceApplicationShutdown\"";
+	cmd << "powershell -NoProfile -Command \"Add-AppxPackage -Register '" << manifest << "' -ForceApplicationShutdown\"";
 	String out;
-	Sys(cmd, out);
+	if(Sys(cmd, out) != 0) {
+		PutConsole("UWP: Registration failed:\n" + out);
+	}
 }
 
 bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid)
@@ -146,7 +146,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	String folder = GetFileFolder(path);
 	String name = GetUwpPackageName(folder);
 	if(IsNull(name)) {
-		Exclamation("UWP: Could not determine Package Name from manifest.");
+		Exclamation("UWP: Could not determine Package Name from manifest at " + folder);
 		return false;
 	}
 	
@@ -156,7 +156,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	String pfull = GetUwpPackageFullName(name);
 	
 	if(IsNull(pfn) || IsNull(pfull)) {
-		Exclamation("UWP: Could not find Package Family/Full Name for " + name + ".\nEnsure the package is registered (deploy/build successfully).");
+		Exclamation("UWP: Could not find Package Family/Full Name for " + name + ".\nEnsure the package is registered correctly.");
 		return false;
 	}
 	
@@ -170,10 +170,10 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 		if(SUCCEEDED(hr) && pds) {
 			hr = pds->EnableDebugging(ToSystemCharsetW(pfull), NULL, NULL);
-			if(FAILED(hr)) Exclamation("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr) + "\nPackage: " + pfull);
+			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr) + "\nPackage: " + pfull);
 			pds->Release();
 		} else {
-			Exclamation("UWP: Failed to create IPackageDebugSettings. HRESULT: " + FormatIntHex(hr));
+			PutConsole("UWP: Failed to create IPackageDebugSettings. HRESULT: " + FormatIntHex(hr));
 		}
 	}
 
@@ -190,6 +190,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		if(FAILED(hr)) {
 			String msg = "UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr);
 			if(hr == 0x8027025b) msg << "\n(The app didn't start in the required time)";
+			PutConsole(msg);
 			Exclamation(msg);
 		}
 		aam->Release();

@@ -40,6 +40,7 @@ public:
 	bool                  Run(const char *cmdline, Stream& out, int slot, String key, int blitz_count);
 	bool                  Wait();
 	bool                  Wait(int slot);
+	bool                  GetError() const;
 	void                  OnFinish(Event<> cb);
 	bool                  StartProcess(LocalProcess& p, const char *cmdline);
 	void                  Launch(const char *cmdline, bool console = false);

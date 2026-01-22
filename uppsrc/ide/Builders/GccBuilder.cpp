@@ -312,6 +312,10 @@ bool GccBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 				DeleteFile(objfile);
 			error |= execerr;
 			PutVerbose("compiled in " + GetPrintTime(time));
+			if(host->GetError()) {
+				error = true;
+				break;
+			}
 		}
 		immfile.Add(objfile);
 		if(init)

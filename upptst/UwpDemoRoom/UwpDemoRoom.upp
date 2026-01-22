@@ -2,10 +2,12 @@ uses
 	Eon/Win;
 
 file
-	AGENTS.md,
 	UwpAssets.json,
 	UwpDemoRoom.h,
-	UwpDemoRoom.cpp;
+	UwpDemoRoom.cpp,
+	AGENTS.md;
 
 mainconfig
-	"" = "UWP DX12";
+	"" = "UWP DX12",
+	"For clang compilation errors" = "DX12";
+

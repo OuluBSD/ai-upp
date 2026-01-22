@@ -6,11 +6,12 @@
 using namespace concurrency;
 using namespace DirectX;
 using namespace std::placeholders;
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Gaming::Input;
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::Perception::Spatial;
-using namespace winrt::Windows::UI::Input::Spatial;
+
+namespace winrt_num = winrt::Windows::Foundation::Numerics;
+namespace winrt_gaming = winrt::Windows::Gaming::Input;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
+namespace winrt_input = winrt::Windows::UI::Input::Spatial;
 
 namespace DemoRoom {
 
@@ -20,7 +21,7 @@ DemoRoomMain::DemoRoomMain()
 	device_resources.Create();
 }
 
-void DemoRoomMain::SetHolographicSpace(HolographicSpace const& holographicSpace)
+void DemoRoomMain::SetHolographicSpace(winrt_holo::HolographicSpace const& holographicSpace)
 {
 	if (engine && engine->IsStarted()) {
 		engine->Stop();

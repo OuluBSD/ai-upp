@@ -153,8 +153,8 @@ void LocalApp::DrawObj(SdlCpuStateDraw& fb, bool use_texture) {
 }
 
 void LocalVertexShader::Process(SdlCpuVertexShaderArgs& a) {
-	int width = a.generic->iResolution[0];
-	int height = a.generic->iResolution[1];
+	int width = a.gen->iResolution[0];
+	int height = a.gen->iResolution[1];
 	vec4 pos = a.v.position.Splice().Embed();
 	pos[2] = -pos[2] + 2; // hack
 	vec4 screen = a.va->view * pos;
@@ -168,8 +168,8 @@ void LocalVertexShader::Process(SdlCpuVertexShaderArgs& a) {
 
 void LocalFragmentShader::Process(SdlCpuFragmentShaderArgs& args) {
 	#if 0
-	float w = args.generic->iResolution[0];
-	float h = args.generic->iResolution[1];
+	float w = args.gen->iResolution[0];
+	float h = args.gen->iResolution[1];
 	float x = args.frag_coord[0] / w;
 	float y = args.frag_coord[1] / h;
 	args.frag_color_out = vec4(x, y, 0, 1);
@@ -222,5 +222,6 @@ NAMESPACE_ECS_END
 
 
 SIMPLE_ECS_APP_(Upp::ECS::LocalApp, "geom_tutorial_base.eon", "FRAGMENT=softphystest_fragment;VERTEX=softphystest_vertex;DRAWMEM=false")
+
 
 

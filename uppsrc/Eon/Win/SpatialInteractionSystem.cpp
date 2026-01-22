@@ -3,15 +3,16 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 #include "EonWin.h"
 
-using namespace winrt::Windows::UI::Input::Spatial;
 using namespace std::placeholders;
+
+namespace winrt_spatial = winrt::Windows::UI::Input::Spatial;
 
 namespace DemoRoom {
 
 bool SpatialInteractionSystem::Initialize(const WorldState& ws)
 {
 	(void)ws;
-    m_spatialInteractionManager = SpatialInteractionManager::GetForCurrentView();
+    m_spatialInteractionManager = winrt_spatial::SpatialInteractionManager::GetForCurrentView();
     BindEventHandlers();
 	return true;
 }
@@ -54,8 +55,8 @@ void SpatialInteractionSystem::ReleaseEventHandlers()
 }
 
 void SpatialInteractionSystem::HandleSourceDetected(
-    const SpatialInteractionManager& /*sender*/,
-    const SpatialInteractionSourceEventArgs& args)
+    const winrt_spatial::SpatialInteractionManager& /*sender*/,
+    const winrt_spatial::SpatialInteractionSourceEventArgs& args)
 {
     for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
@@ -64,8 +65,8 @@ void SpatialInteractionSystem::HandleSourceDetected(
 }
 
 void SpatialInteractionSystem::HandleSourceLost(
-    const SpatialInteractionManager& /*sender*/,
-    const SpatialInteractionSourceEventArgs& args)
+    const winrt_spatial::SpatialInteractionManager& /*sender*/,
+    const winrt_spatial::SpatialInteractionSourceEventArgs& args)
 {
     for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
@@ -74,8 +75,8 @@ void SpatialInteractionSystem::HandleSourceLost(
 }
 
 void SpatialInteractionSystem::HandleSourcePressed(
-    const SpatialInteractionManager& /*sender*/,
-    const SpatialInteractionSourceEventArgs& args)
+    const winrt_spatial::SpatialInteractionManager& /*sender*/,
+    const winrt_spatial::SpatialInteractionSourceEventArgs& args)
 {
     for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
@@ -84,8 +85,8 @@ void SpatialInteractionSystem::HandleSourcePressed(
 }
 
 void SpatialInteractionSystem::HandleSourceUpdated(
-    const SpatialInteractionManager& /*sender*/,
-    const SpatialInteractionSourceEventArgs& args)
+    const winrt_spatial::SpatialInteractionManager& /*sender*/,
+    const winrt_spatial::SpatialInteractionSourceEventArgs& args)
 {
     for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
@@ -94,8 +95,8 @@ void SpatialInteractionSystem::HandleSourceUpdated(
 }
 
 void SpatialInteractionSystem::HandleSourceReleased(
-    const SpatialInteractionManager& /*sender*/,
-    const SpatialInteractionSourceEventArgs& args)
+    const winrt_spatial::SpatialInteractionManager& /*sender*/,
+    const winrt_spatial::SpatialInteractionSourceEventArgs& args)
 {
     for (auto* listener : m_spatialInteractionListeners.GetListeners())
     {
@@ -104,4 +105,3 @@ void SpatialInteractionSystem::HandleSourceReleased(
 }
 
 } // namespace DemoRoom
-

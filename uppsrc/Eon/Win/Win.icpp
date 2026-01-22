@@ -31,4 +31,10 @@ INITBLOCK {
 	REGISTER_EON_COMPONENT_(::DemoRoom::Transform,               "DemoRoom::Transform",               "demoroom.transform",        "DemoRoom|Component");
 }
 
+CommonFontInfo GetFontInfoSys(Font font) { return CommonFontInfo(); }
+GlyphInfo GetGlyphInfoSys(Font font, int chr) { return GlyphInfo(); }
+Vector<FaceInfo> GetAllFacesSys() { return {}; }
+String GetFontDataSys(Font font, const char *table, int offset, int size) { return String(); }
+void RenderCharacterSys(FontGlyphConsumer& c, double x, double y, int chr, Font font) {}
+
 END_UPP_NAMESPACE

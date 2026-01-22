@@ -6,8 +6,9 @@
 using namespace std::placeholders;
 using namespace DirectX;
 using namespace Microsoft::WRL;
-using namespace winrt::Windows::Storage::Streams;
-using namespace winrt::Windows::UI::Input::Spatial;
+
+namespace winrt_streams = winrt::Windows::Storage::Streams;
+namespace winrt_spatial = winrt::Windows::UI::Input::Spatial;
 
 namespace
 {
@@ -42,7 +43,7 @@ namespace
         touchIndicatorMaterial->Hidden = true;
 
         // Add a touch indicator primitive parented to the TOUCH node. This material will be hidden or visible based on the touch state.
-        for (auto i = 0; i < controllerModel.GetNodeCount(); i++)
+        for (auto i = 0; i < (int)controllerModel.GetNodeCount(); i++)
         {
             Pbr::Node& node = controllerModel.GetNode(i);
             if (node.Name == "TOUCH") // Add a touch indicator sphere to the TOUCH node.
@@ -62,7 +63,7 @@ namespace
 
 namespace ControllerRendering
 {
-    ControllerModelKey GetControllerModelKey(SpatialInteractionSource const& source)
+    ControllerModelKey GetControllerModelKey(winrt_spatial::SpatialInteractionSource const& source)
     {
         if (!source.Controller())
         {
@@ -72,23 +73,23 @@ namespace ControllerRendering
         return std::make_tuple(source.Controller().ProductId(), source.Controller().VendorId(), source.Controller().Version(), source.Handedness());
     }
 
-    std::future<std::shared_ptr<const Pbr::Model>> ControllerRendering::TryLoadRenderModelAsync(
+    std::future<std::shared_ptr<const Pbr::Model>> TryLoadRenderModelAsync(
         Pbr::Resources& pbrResources,
-        SpatialInteractionSource source)
+        winrt_spatial::SpatialInteractionSource source)
     {
         return std::async(std::launch::async, [&pbrResources, source]() -> std::shared_ptr<const Pbr::Model> {
-            const SpatialInteractionController controller = source.Controller();
+            const winrt_spatial::SpatialInteractionController controller = source.Controller();
             if (!controller)
                 return {};
 
-            IRandomAccessStreamWithContentType modelStream = controller.TryGetRenderableModelAsync().get();
+            winrt_streams::IRandomAccessStreamWithContentType modelStream = controller.TryGetRenderableModelAsync().get();
             if (modelStream == nullptr) // Mesh data is optional. If not available, a null stream is returned.
                 return {};
 
             // Read all data out of the stream.
-            DataReader dr(modelStream.GetInputStreamAt(0));
+            winrt_streams::DataReader dr(modelStream.GetInputStreamAt(0));
             dr.LoadAsync(static_cast<unsigned int>(modelStream.Size())).get();
-            const IBuffer buffer = dr.DetachBuffer();
+            const winrt_streams::IBuffer buffer = dr.DetachBuffer();
 
             uint8_t* rawBuffer = nullptr;
             winrt::check_hresult(buffer.as<::Windows::Storage::Streams::IBufferByteAccess>()->Buffer(&rawBuffer));
@@ -99,8 +100,8 @@ namespace ControllerRendering
                 return {};
 
             // Give the model a debug friendly name.
-            model->Name = source.Handedness() == SpatialInteractionSourceHandedness::Left ? "Left" :
-                          source.Handedness() == SpatialInteractionSourceHandedness::Right ? "Right" : "Unspecified";
+            model->Name = source.Handedness() == winrt_spatial::SpatialInteractionSourceHandedness::Left ? "Left" :
+                          source.Handedness() == winrt_spatial::SpatialInteractionSourceHandedness::Right ? "Right" : "Unspecified";
 
             // Add a touchpad touch indicator node and primitive/material to the model.
             AddTouchpadTouchIndicator(*model, pbrResources);
@@ -109,7 +110,7 @@ namespace ControllerRendering
         });
     }
 
-    ArticulateValues GetArticulateValues(winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceState const& sourceState)
+    ArticulateValues GetArticulateValues(winrt_spatial::SpatialInteractionSourceState const& sourceState)
     {
         ArticulateValues articulateValues;
 
@@ -172,7 +173,7 @@ namespace ControllerRendering
 
     std::future<std::shared_ptr<const Pbr::Model>> ControllerModelCache::TryGetControllerModelAsync(
         Pbr::Resources& pbrResources,
-        SpatialInteractionSource source)
+        winrt_spatial::SpatialInteractionSource source)
     {
         return std::async(std::launch::async, [this, &pbrResources, source]() -> std::shared_ptr<const Pbr::Model> {
             const ControllerRendering::ControllerModelKey modelKey = ControllerRendering::GetControllerModelKey(source);

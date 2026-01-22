@@ -30,7 +30,7 @@ namespace DemoRoom
 	class HolographicScene : public System
 	{
 	public:
-		CLASSTYPE(HolographicScene)
+		SYS_CTOR(HolographicScene)
 		HolographicScene(VfsValue& v, winrt::Windows::Graphics::Holographic::HolographicSpace holographic_space);
 
 		winrt::Windows::Graphics::Holographic::HolographicFrame CurrentFrame() const;

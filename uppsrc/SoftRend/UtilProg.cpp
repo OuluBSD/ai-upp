@@ -18,15 +18,15 @@ void PassVertex::Process(VertexShaderArgs& a) {
 	pos[0] = (pos[0] + 1) * 0.5;
 	pos[1] = (pos[1] + 1) * 0.5;
 	tex = pos.template Splice<0,2>();
-	pos[0] *= a.generic->iResolution[0];
-	pos[1] *= a.generic->iResolution[1];
+	pos[0] *= a.gen->iResolution[0];
+	pos[1] *= a.gen->iResolution[1];
 	#endif
 }
 
 
 void PassFragment::Process(FragmentShaderArgs& args) {
-	float w = args.generic->iResolution[0];
-	float h = args.generic->iResolution[1];
+	float w = args.gen->iResolution[0];
+	float h = args.gen->iResolution[1];
 	float x = args.frag_coord[0] / w;
 	float y = args.frag_coord[1] / h;
 	args.frag_color_out = vec4(x, y, 0, 1);
@@ -72,9 +72,9 @@ void PassFragment::Process(FragmentShaderArgs& args) {
 
 
 void ColorTestFragment::Process(FragmentShaderArgs& args) {
-	const vec3& res = args.generic->iResolution;
+	const vec3& res = args.gen->iResolution;
 	
-	float t = args.generic->iTime;
+	float t = args.gen->iTime;
 	
 	vec3 shift = vec3(			sinf(t),
 								sinf(t + M_PIf / 3.0f),
@@ -111,10 +111,10 @@ vec4 texture(const ByteImage* ch, const vec2& uv) {
 
 
 void ProxyInput0Fragment::Process(FragmentShaderArgs& args) {
-	const ByteImage* iChannel0 = args.GetTexture(args.generic->iChannel0);
+	const ByteImage* iChannel0 = args.GetTexture(args.gen->iChannel0);
 	ASSERT(iChannel0);
 	
-	const auto& iResolution = args.generic->iResolution;
+	const auto& iResolution = args.gen->iResolution;
 	const auto& fragCoord = args.frag_coord;
 	auto& fragColor = args.frag_color_out;
 	
@@ -156,7 +156,7 @@ void StereoShader::Process(FragmentShaderArgs& a) {
 	vec4 clr;
 	
 	if (0 && (int)a.frag_coord[0] % 2) {
-		const auto& iResolution = a.generic->iResolution;
+		const auto& iResolution = a.gen->iResolution;
 		const auto& fragCoord = a.frag_coord;
 		auto& fragColor = a.frag_color_out;
 		
@@ -255,3 +255,4 @@ void ObjViewFragment::Process(FragmentShaderArgs& args) {
 
 
 END_UPP_NAMESPACE
+

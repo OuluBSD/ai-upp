@@ -6,10 +6,10 @@
 #include "PbrModel.h"
 #include "Physics.h"
 
-using namespace winrt::Windows::Foundation;
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Perception::Spatial;
-using namespace winrt::Windows::UI::Input::Spatial;
+namespace winrt_foundation = winrt::Windows::Foundation;
+namespace winrt_num = winrt::Windows::Foundation::Numerics;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
+namespace winrt_input = winrt::Windows::UI::Input::Spatial;
 
 namespace DemoRoom {
 
@@ -44,39 +44,39 @@ void ThrowingInteractionSystem::Update(double dt)
 		auto throwing = enabledEntity.Get<1>();
 
 		if (throwing->ballObject) {
-			if (const SpatialInteractionSourceLocation location =
+			if (const winrt_input::SpatialInteractionSourceLocation location =
 					entity->Get<MotionControllerComponent>().location) {
-				if (const SpatialPointerInteractionSourcePose pointerPose = location.SourcePointerPose()) {
+				if (const winrt_input::SpatialPointerInteractionSourcePose pointerPose = location.SourcePointerPose()) {
 					auto& transform = throwing->ballObject->Get<Transform>();
 					transform.position = pointerPose.Position() + pointerPose.ForwardDirection() * BallHoldingDistance;
 					transform.orientation = pointerPose.Orientation();
 
 					if (transform.scale.x < 1.0f)
-						transform.scale += float3{ 2.0f * (float)dt };
+						transform.scale += winrt_num::float3{ 2.0f * (float)dt };
 				}
 			}
 		}
 	}
 }
 
-void ThrowingInteractionSystem::OnSourcePressed(const SpatialInteractionSourceEventArgs& args)
+void ThrowingInteractionSystem::OnSourcePressed(const winrt_input::SpatialInteractionSourceEventArgs& args)
 {
-	if (args.PressKind() == SpatialInteractionPressKind::Select) {
+	if (args.PressKind() == winrt_input::SpatialInteractionPressKind::Select) {
 		if (auto enabledEntity = TryGetEntityFromSource(args.State().Source())) {
 			auto throwing = (*enabledEntity).Get<1>();
 
 			auto& pool = GetEngine().GetRootPool();
 			auto ball = CreatePrefab<Baseball>(pool, ws_at_init);
-			ball->Get<Transform>().scale = float3{ throwing->scale };
+			ball->Get<Transform>().scale = winrt_num::float3{ throwing->scale };
 			ball->Get<RigidBody>().SetEnabled(false);
 			throwing->ballObject = ball;
 		}
 	}
 }
 
-void ThrowingInteractionSystem::OnSourceReleased(const SpatialInteractionSourceEventArgs& args)
+void ThrowingInteractionSystem::OnSourceReleased(const winrt_input::SpatialInteractionSourceEventArgs& args)
 {
-	if (args.PressKind() == SpatialInteractionPressKind::Select) {
+	if (args.PressKind() == winrt_input::SpatialInteractionPressKind::Select) {
 		if (auto enabledEntity = TryGetEntityFromSource(args.State().Source())) {
 			auto throwing = (*enabledEntity).Get<1>();
 			fail_fast_if(!throwing);
@@ -93,16 +93,16 @@ void ThrowingInteractionSystem::OnSourceReleased(const SpatialInteractionSourceE
 				rigid.angularVelocity = {};
 
 				// If controller has motion, use velocity and angular velocity at ball's holding distances.
-				const SpatialCoordinateSystem coordinateSystem =
+				const winrt_spatial::SpatialCoordinateSystem coordinateSystem =
 					GetEngine().Get<HolographicScene>()->WorldCoordinateSystem();
-				if (const SpatialInteractionSourceLocation graspLocation =
+				if (const winrt_input::SpatialInteractionSourceLocation graspLocation =
 						args.State().Properties().TryGetLocation(coordinateSystem)) {
-					if (const SpatialPointerInteractionSourcePose pointerPose = graspLocation.SourcePointerPose()) {
-						if (const IReference<float3> graspAngularVelocity = graspLocation.AngularVelocity()) {
-							const float3 ballPosition =
+					if (const winrt_input::SpatialPointerInteractionSourcePose pointerPose = graspLocation.SourcePointerPose()) {
+						if (const winrt_foundation::IReference<winrt_num::float3> graspAngularVelocity = graspLocation.AngularVelocity()) {
+							const winrt_num::float3 ballPosition =
 								pointerPose.Position() + (pointerPose.ForwardDirection() * BallHoldingDistance);
 
-							if (const std::optional<float3> ballVelocity =
+							if (const std::optional<winrt_num::float3> ballVelocity =
 									SpatialInputUtilities::Physics::GetVelocityNearSourceLocation(graspLocation, ballPosition)) {
 								auto& transform = ball->Get<Transform>();
 								transform.position = ballPosition;

@@ -95,7 +95,7 @@ struct PhotoPromptLink : Moveable<PhotoPromptLink> {
 struct MarketplaceItem : Moveable<MarketplaceItem> {
 	int priority = 0;
 	Time added;
-	String generic, brand, model;
+	String generic_name, brand, model;
 	double price = 0., cx = 0., cy = 0., cz = 0., weight = 0.;
 	String faults, works;
 	bool broken = false, good = false;
@@ -110,7 +110,7 @@ struct MarketplaceItem : Moveable<MarketplaceItem> {
 		v.Ver(1)
 		(1)	("priority",priority)
 			("added",added)
-			("generic",generic)
+			("generic",generic_name)
 			("brand",brand)
 			("model",model)
 			("price",price)
@@ -135,7 +135,7 @@ struct MarketplaceItem : Moveable<MarketplaceItem> {
 	
 	String GetTitle() const {
 		String s;
-		s << generic;
+		s << generic_name;
 		if (brand.GetCount()) {if (!s.IsEmpty()) s << " "; s << brand;}
 		if (model.GetCount()) {if (!s.IsEmpty()) s << " "; s << model;}
 		return s;

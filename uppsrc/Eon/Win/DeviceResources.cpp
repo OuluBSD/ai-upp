@@ -6,9 +6,10 @@
 
 using namespace D2D1;
 using namespace Microsoft::WRL;
-using namespace winrt::Windows::Graphics::DirectX::Direct3D11;
-using namespace winrt::Windows::Graphics::Display;
-using namespace winrt::Windows::Graphics::Holographic;
+
+namespace winrt_d3d11 = winrt::Windows::Graphics::DirectX::Direct3D11;
+namespace winrt_display = winrt::Windows::Graphics::Display;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
 
 // Constructor for DeviceResources.
 DX::DeviceResources::DeviceResources()
@@ -54,7 +55,7 @@ void DX::DeviceResources::CreateDeviceIndependentResources()
         ));
 }
 
-void DX::DeviceResources::SetHolographicSpace(HolographicSpace holographicSpace)
+void DX::DeviceResources::SetHolographicSpace(winrt_holo::HolographicSpace holographicSpace)
 {
     // Cache the holographic space. Used to re-initalize during device-lost scenarios.
     m_holographicSpace = holographicSpace;
@@ -192,7 +193,7 @@ void DX::DeviceResources::CreateDeviceResources()
     winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(
         dxgiDevice.Get(),
         reinterpret_cast<IInspectable**>(winrt::put_abi(object))));
-    m_d3dInteropDevice = object.as<IDirect3DDevice>();
+    m_d3dInteropDevice = object.as<winrt_d3d11::IDirect3DDevice>();
 
     // Cache the DXGI adapter.
     // This is for the case of no preferred DXGI adapter, or fallback to WARP.
@@ -213,14 +214,14 @@ void DX::DeviceResources::CreateDeviceResources()
 // resources for back buffers that have changed.
 // Locks the set of holographic camera resources until the function exits.
 void DX::DeviceResources::EnsureCameraResources(
-    HolographicFrame frame,
-    HolographicFramePrediction prediction)
+    winrt_holo::HolographicFrame frame,
+    winrt_holo::HolographicFramePrediction prediction)
 {
     UseHolographicCameraResources<void>([this, frame, prediction](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
-        for (HolographicCameraPose const& cameraPose : prediction.CameraPoses())
+        for (winrt_holo::HolographicCameraPose const& cameraPose : prediction.CameraPoses())
         {
-            HolographicCameraRenderingParameters renderingParameters = frame.GetRenderingParameters(cameraPose);
+            winrt_holo::HolographicCameraRenderingParameters renderingParameters = frame.GetRenderingParameters(cameraPose);
             CameraResources* pCameraResources = cameraResourceMap[cameraPose.HolographicCamera().Id()].get();
 
             pCameraResources->CreateResourcesForBackBuffer(this, renderingParameters);
@@ -230,7 +231,7 @@ void DX::DeviceResources::EnsureCameraResources(
 
 // Prepares to allocate resources and adds resource views for a camera.
 // Locks the set of holographic camera resources until the function exits.
-void DX::DeviceResources::AddHolographicCamera(HolographicCamera camera)
+void DX::DeviceResources::AddHolographicCamera(winrt_holo::HolographicCamera camera)
 {
     UseHolographicCameraResources<void>([this, camera](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
@@ -240,7 +241,7 @@ void DX::DeviceResources::AddHolographicCamera(HolographicCamera camera)
 
 // Deallocates resources for a camera and removes the camera from the set.
 // Locks the set of holographic camera resources until the function exits.
-void DX::DeviceResources::RemoveHolographicCamera(HolographicCamera camera)
+void DX::DeviceResources::RemoveHolographicCamera(winrt_holo::HolographicCamera camera)
 {
     UseHolographicCameraResources<void>([this, camera](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
@@ -299,21 +300,20 @@ void DX::DeviceResources::Trim()
 
 // Present the contents of the swap chain to the screen.
 // Locks the set of holographic camera resources until the function exits.
-void DX::DeviceResources::Present(HolographicFrame frame)
+void DX::DeviceResources::Present(winrt_holo::HolographicFrame frame)
 {
     // By default, this API waits for the frame to finish before it returns.
     // Holographic apps should wait for the previous frame to finish before
     // starting work on a new frame. This allows for better results from
     // holographic frame predictions.
-    HolographicFramePresentResult presentResult = frame.PresentUsingCurrentPrediction();
+    winrt_holo::HolographicFramePresentResult presentResult = frame.PresentUsingCurrentPrediction();
 
     // The PresentUsingCurrentPrediction API will detect when the graphics device
     // changes or becomes invalid. When this happens, it is considered a Direct3D
     // device lost scenario.
-    if (presentResult == HolographicFramePresentResult::DeviceRemoved)
+    if (presentResult == winrt_holo::HolographicFramePresentResult::DeviceRemoved)
     {
         // The Direct3D device, context, and resources should be recreated.
         HandleDeviceLost();
     }
 }
-

@@ -32,7 +32,7 @@ namespace DemoRoom
     class PaintStrokeSystem : public System
     {
     public:
-        CLASSTYPE(PaintStrokeSystem)
+        SYS_CTOR(PaintStrokeSystem)
         PaintStrokeSystem(VfsValue& v, Pbr::Resources& pbr_resources);
         ~PaintStrokeSystem() = default;
 

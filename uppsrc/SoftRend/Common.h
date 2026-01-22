@@ -135,7 +135,7 @@ struct VertexShaderArgs : GfxVertexShaderArgs {
 	//RTTI_DECL1(VertexShaderArgs, GfxVertexShaderArgs)
 	
 	
-	GenericShaderArgs* generic = 0;
+	GenericShaderArgs* gen = 0;
 	GenericVertexShaderArgs* va = 0;
 	
 	Vertex v;
@@ -147,7 +147,7 @@ struct FragmentShaderArgs : GfxFragmentShaderArgs {
 	//RTTI_DECL1(FragmentShaderArgs, GfxFragmentShaderArgs)
 	
 	
-	GenericShaderArgs* generic = 0;
+	GenericShaderArgs* gen = 0;
 	GenericFragmentShaderArgs* fa = 0;
 	//ConstByteImage* tex_img[TEXTYPE_COUNT];
 	
@@ -164,13 +164,13 @@ struct FragmentShaderArgs : GfxFragmentShaderArgs {
 		//	tex_img[i] = 0;
 	}
 	
-	vec3 GetResolution() const {return generic->iResolution;}
-	float GetTime() const {return generic->iTime;}
+	vec3 GetResolution() const {return gen->iResolution;}
+	float GetTime() const {return gen->iTime;}
 	ConstByteImage* GetTexture(int i) {
 		ASSERT(i >= 0 && i < CHANNEL_COUNT);
 		if (i < 0) return 0;
 		if (i < TEXTYPE_COUNT && fa->color_buf[i]) return fa->color_buf[i];
-		if (i < CHANNEL_COUNT) return generic->color_buf[i];
+		if (i < CHANNEL_COUNT) return gen->color_buf[i];
 		return 0;
 	}
 };

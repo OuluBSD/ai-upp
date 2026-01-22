@@ -24,7 +24,7 @@ void SetUwpVrAppFactory(UwpVrAppFactory factory);
 UwpVrAppFactory GetUwpVrAppFactory();
 
 // IFrameworkView class. Connects the app with the Windows shell and handles application lifecycle events.
-class AppView sealed : public winrt::implements<AppView, winrt::Windows::ApplicationModel::Core::IFrameworkView>
+class AppView : public winrt::implements<AppView, winrt::Windows::ApplicationModel::Core::IFrameworkView>
 {
 public:
     // IFrameworkView methods.
@@ -72,7 +72,7 @@ private:
 #endif
 };
 
-class AppViewSource sealed : public winrt::implements<AppViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource>
+class AppViewSource : public winrt::implements<AppViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource>
 {
 public:
     // IFrameworkViewSource method.

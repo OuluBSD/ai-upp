@@ -34,11 +34,3 @@ UWPVR_APP_MAIN
 {
 	return std::make_unique<DemoRoomApp>();
 }
-
-#ifdef flagUWP
-[Platform::MTAThread]
-int main(Platform::Array<Platform::String^>^ args)
-{
-	return 0;
-}
-#endif

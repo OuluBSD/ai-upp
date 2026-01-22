@@ -168,11 +168,13 @@ inline void debug_log(const char* fmt, ...) {
 #ifdef flagUWP
 #define UWPVR_APP_MAIN \
 	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__(); \
-	int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) \
+	[Platform::MTAThread] \
+	int main(Platform::Array<Platform::String^>^ args) \
 	{\
+		(void)args; \
 		winrt::init_apartment(); \
 		Upp::SetUwpVrAppFactory(&CreateUwpVrApp__); \
-		winrt::Windows::ApplicationModel::Core::CoreApplication::Run(Upp::AppViewSource()); \
+		winrt::Windows::ApplicationModel::Core::CoreApplication::Run(winrt::make<Upp::AppViewSource>()); \
 		return 0; \
 	} \
 	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__()

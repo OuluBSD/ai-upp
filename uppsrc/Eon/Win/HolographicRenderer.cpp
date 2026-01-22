@@ -3,11 +3,13 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 #include "EonWin.h"
 #include <limits>
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
+
 using namespace DirectX;
+
+namespace winrt_num = winrt::Windows::Foundation::Numerics;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+namespace winrt_perception = winrt::Windows::Perception;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
 
 namespace DemoRoom {
 
@@ -98,11 +100,11 @@ void HolographicRenderer::Update(double)
         // allow more accurate positioning of holograms.
         holo_scene->UpdateCurrentPrediction();
 
-        HolographicFramePrediction prediction = holographicFrame.CurrentPrediction();
-        SpatialCoordinateSystem coordinateSystem = holo_scene->WorldCoordinateSystem();
+        winrt_holo::HolographicFramePrediction prediction = holographicFrame.CurrentPrediction();
+        winrt_spatial::SpatialCoordinateSystem coordinateSystem = holo_scene->WorldCoordinateSystem();
 
         bool atLeastOneCameraRendered = false;
-        for (HolographicCameraPose const& cameraPose : prediction.CameraPoses())
+        for (winrt_holo::HolographicCameraPose const& cameraPose : prediction.CameraPoses())
         {
             // This represents the device-based resources for a HolographicCamera.
             DX::CameraResources* pCameraResources = cameraResourceMap[cameraPose.HolographicCamera().Id()].get();
@@ -137,10 +139,10 @@ TextRenderer* HolographicRenderer::GetTextRendererForFontSize(float fontSize)
 
 bool HolographicRenderer::RenderAtCameraPose(
     DX::CameraResources *pCameraResources,
-    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& coordinateSystem,
-    winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction,
-    winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters const& renderingParameters,
-    winrt::Windows::Graphics::Holographic::HolographicCameraPose const& cameraPose)
+    winrt_spatial::SpatialCoordinateSystem const& coordinateSystem,
+    winrt_holo::HolographicFramePrediction& prediction,
+    winrt_holo::HolographicCameraRenderingParameters const& renderingParameters,
+    winrt_holo::HolographicCameraPose const& cameraPose)
 {
     // Get the device context.
     const auto context = device_resources->GetD3DDeviceContext();
@@ -157,8 +159,8 @@ bool HolographicRenderer::RenderAtCameraPose(
 
     // The view and projection matrices for each holographic camera will change
     // every frame. This function will return false when positional tracking is lost.
-    HolographicStereoTransform coordinateSystemToView;
-    HolographicStereoTransform viewToProjection;
+    winrt_holo::HolographicStereoTransform coordinateSystemToView;
+    winrt_holo::HolographicStereoTransform viewToProjection;
     bool cameraActive = pCameraResources->GetViewProjectionTransform(device_resources, cameraPose, coordinateSystem, &coordinateSystemToView, &viewToProjection);
 
     // Only render world-locked content when positional tracking is active.
@@ -182,7 +184,7 @@ bool HolographicRenderer::RenderAtCameraPose(
             if (!transform || !pbr || !pbr->Model)
                 continue;
 
-            float4x4 transformMtx = transform->GetMatrix();
+            winrt_num::float4x4 transformMtx = transform->GetMatrix();
             if (pbr->Offset)
                 transformMtx = *pbr->Offset * transformMtx;
 
@@ -222,10 +224,10 @@ bool HolographicRenderer::RenderAtCameraPose(
 
         ////////////////////////////////////////////////////////////////////////////////
         // Skybox Rendering
-        float4x4 cameraToCoordinateSystem = float4x4::identity();
-        if (auto location = SpatialLocator::GetDefault().TryLocateAtTimestamp(prediction.Timestamp(), coordinateSystem))
+        winrt_num::float4x4 cameraToCoordinateSystem = winrt_num::float4x4::identity();
+        if (auto location = winrt_spatial::SpatialLocator::GetDefault().TryLocateAtTimestamp(prediction.Timestamp(), coordinateSystem))
         {
-            cameraToCoordinateSystem = make_float4x4_translation(location.Position());
+            cameraToCoordinateSystem = winrt_num::make_float4x4_translation(location.Position());
         }
 
         skybox_renderer->SetViewProjection(
@@ -243,7 +245,7 @@ bool HolographicRenderer::RenderAtCameraPose(
 }
 
 void HolographicRenderer::BindEventHandlers(
-    const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace)
+    const winrt_holo::HolographicSpace& holographicSpace)
 {
     fail_fast_if(holographicSpace == nullptr);
 
@@ -255,7 +257,7 @@ void HolographicRenderer::BindEventHandlers(
 }
 
 void HolographicRenderer::ReleaseEventHandlers(
-    const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace)
+    const winrt_holo::HolographicSpace& holographicSpace)
 {
     fail_fast_if(holographicSpace == nullptr);
 
@@ -265,11 +267,11 @@ void HolographicRenderer::ReleaseEventHandlers(
 
 // Asynchronously creates resources for new holographic cameras.
 void HolographicRenderer::OnCameraAdded(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-    winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs const& args)
+    winrt_holo::HolographicSpace const& sender,
+    winrt_holo::HolographicSpaceCameraAddedEventArgs const& args)
 {
     winrt::Windows::Foundation::Deferral deferral = args.GetDeferral();
-    HolographicCamera holographicCamera = args.Camera();
+    winrt_holo::HolographicCamera holographicCamera = args.Camera();
     concurrency::create_task([this, deferral, holographicCamera]()
     {
         //
@@ -299,8 +301,8 @@ void HolographicRenderer::OnCameraAdded(
 // attached to the system.
 
 void HolographicRenderer::OnCameraRemoved(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-    winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs const& args)
+    winrt_holo::HolographicSpace const& sender,
+    winrt_holo::HolographicSpaceCameraRemovedEventArgs const& args)
 {
     concurrency::create_task([this]()
     {

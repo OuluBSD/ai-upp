@@ -47,3 +47,4 @@ void SoftPipeline::Use(SoftProgram& prog, uint32 bmask) {
 
 
 END_UPP_NAMESPACE
+

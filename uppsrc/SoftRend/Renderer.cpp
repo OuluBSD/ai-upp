@@ -143,7 +143,7 @@ void SoftRend::RenderScreenRect0(bool elements) {
 					
 					SoftProgram& prog = *rs.prog;
 					GenericShaderArgs& g = prog.GetArgs();
-					frag_args.generic = &g;
+					frag_args.gen = &g;
 					frag_args.fa = &prog.GetFragmentArgs(src_id);
 					if (g.iResolution[0] == 0 || g.iResolution[1] == 0)
 						g.iResolution = vec3((float)w, (float)h, 0);
@@ -261,7 +261,7 @@ void SoftRend::ProcessVertexShader(SoftShader& shdr, SoftVertexArray& vao, uint1
 	
 	VertexShaderArgs vtx_args;
 	GenericShaderArgs& g = prog.GetArgs();
-	vtx_args.generic = &g;
+	vtx_args.gen = &g;
 	vtx_args.va = &prog.GetVertexArgs(src_id);
 	
 	int vtx_count = vbo.vertices.GetCount();
@@ -273,8 +273,8 @@ void SoftRend::ProcessVertexShader(SoftShader& shdr, SoftVertexArray& vao, uint1
 	const Vertex* iter_in_end = iter_in + vtx_count;
 	Vertex*       iter_out    = (Vertex*)processed_vertices.vertices.Begin();
 	
-	int width = (int)vtx_args.generic->iResolution[0];
-	int height = (int)vtx_args.generic->iResolution[1];
+	int width = (int)vtx_args.gen->iResolution[0];
+	int height = (int)vtx_args.gen->iResolution[1];
 	ASSERT(width && height); // crash here: vertex shdaer did not call this in ctor: UseUniform(GVar::VAR_COMPAT_RESOLUTION);
 	while (iter_in != iter_in_end) {
 		vtx_args.v = *iter_in++;
@@ -579,3 +579,4 @@ void SoftRend::UnlockTextureToSurface(SoftFramebuffer* tex) {
 
 
 END_UPP_NAMESPACE
+

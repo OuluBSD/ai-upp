@@ -21,7 +21,7 @@ namespace DemoRoom {
 	class PbrModelCache : public System
 	{
 	public:
-		CLASSTYPE(PbrModelCache)
+		SYS_CTOR(PbrModelCache)
 		PbrModelCache(VfsValue& v, Pbr::Resources& pbr_resources);
 
 		void RegisterModel(String name, One<Pbr::Model> model);

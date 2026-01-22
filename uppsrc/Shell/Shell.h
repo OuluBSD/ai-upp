@@ -10,13 +10,13 @@
 #include <api/Graphics/Graphics.h>
 
 
+#ifdef flagUWP
+ #include <Eon/Win/Win.h>
+#endif
+
 #ifdef flagGUI
  #include <CtrlLib/Eon/Eon.h>
  #include <Eon/Ctrl/Ctrl.h>
-
- #if defined flagUWP && defined flagDX12
-  #include <EcsWin/EcsWin.h>
- #endif
 #endif
 
 #ifdef flagGUI

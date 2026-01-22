@@ -18,3 +18,4 @@ bool SoftCompiler::Compile(SoftShader& s) {
 
 
 END_UPP_NAMESPACE
+

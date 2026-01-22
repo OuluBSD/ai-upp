@@ -81,10 +81,18 @@
 
 #include <Vfs/Ecs/Ecs.h>
 
+using namespace Upp;
+
+template <class T, class F>
+void erase_if(std::vector<T>* container, F predicate) {
+	if (container)
+		container->erase(std::remove_if(container->begin(), container->end(), predicate), container->end());
+}
+
 inline void fail_fast_if(bool condition, const char* msg = nullptr) {
 	if (condition) {
 		#ifdef flagDEBUG
-		// Upp::Panic(msg ? msg : "fail_fast_if triggered");
+		// Panic(msg ? msg : "fail_fast_if triggered");
 		#else
 		exit(1);
 		#endif
@@ -95,12 +103,10 @@ inline void debug_log(const char* fmt, ...) {
 	#ifdef flagDEBUG
 	// va_list args;
 	// va_start(args, fmt);
-	// Upp::VLog(Upp::VString(fmt, args));
+	// VLog(VString(fmt, args));
 	// va_end(args);
 	#endif
 }
-
-using namespace Upp;
 
 #include <plugin/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION
 #include <plugin/tiny_gltf/tiny_gltf.h>

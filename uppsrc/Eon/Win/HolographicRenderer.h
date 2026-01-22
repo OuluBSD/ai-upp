@@ -23,7 +23,7 @@ namespace DemoRoom
 	class HolographicRenderer : public System, public DX::IDeviceNotify
 	{
 	public:
-		CLASSTYPE(HolographicRenderer)
+		SYS_CTOR(HolographicRenderer)
 		HolographicRenderer(
 			VfsValue& v,
 			DX::DeviceResources& deviceResources,

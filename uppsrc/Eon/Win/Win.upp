@@ -4,14 +4,12 @@ noblitz;
 
 uses
 	plugin/DirectXTK,
-	Vfs/Ecs;
+	Vfs/Ecs,
+	plugin/stb,
+	plugin/tiny_gltf;
 
 library
 	"ole32 oleaut32 Kernel32";
-
-include(WIN32) "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/winrt";
-
-include(WIN32) "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/cppwinrt";
 
 file
 	AGENTS.md,

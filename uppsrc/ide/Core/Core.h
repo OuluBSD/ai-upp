@@ -155,6 +155,7 @@ public:
 	virtual void             IdeConsoleEndGroup() = 0;
 	virtual bool             IdeConsoleWait() = 0;
 	virtual bool             IdeConsoleWait(int slot) = 0;
+	virtual bool             IdeConsoleGetError() = 0;
 	virtual void             IdeConsoleOnFinish(Event<>  cb) = 0;
 	
 	virtual void             IdeProcessEvents() = 0;
@@ -220,6 +221,7 @@ void             IdeConsoleBeginGroup(String group);
 void             IdeConsoleEndGroup();
 bool             IdeConsoleWait();
 bool             IdeConsoleWait(int slot);
+bool             IdeConsoleGetError();
 void             IdeConsoleOnFinish(Event<>  cb);
 
 void             IdeProcessEvents();

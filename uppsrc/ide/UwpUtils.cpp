@@ -61,45 +61,48 @@ bool IsUwpApp(const String& path)
 	return !IsNull(FindUwpManifest(GetFileFolder(path)));
 }
 
-String GetUwpPackageName(const String& folder)
+struct UwpManifestInfo {
+	String name;
+	String appId;
+};
+
+UwpManifestInfo GetUwpManifestInfo(const String& folder)
 {
+	UwpManifestInfo info;
 	String manifestPath = FindUwpManifest(folder);
-	if(IsNull(manifestPath)) return Null;
+	if(IsNull(manifestPath)) return info;
 
 	try {
 		XmlNode n = ParseXMLFile(manifestPath);
-		if(n.IsVoid()) {
-			PutConsole("UWPUtils: ParseXMLFile returned empty node for: " + manifestPath);
-			return Null;
-		}
+		if(n.IsVoid()) return info;
 		
 		const XmlNode* packageNode = &n;
 		if(n.GetType() == XML_DOC) {
 			const XmlNode& p = n["Package"];
-			if(p.IsVoid()) {
-				PutConsole("UWPUtils: <Package> tag not found in: " + manifestPath);
-				return Null;
-			}
+			if(p.IsVoid()) return info;
 			packageNode = &p;
 		} else if(n.GetTag() != "Package") {
-			PutConsole("UWPUtils: Root tag is '" + n.GetTag() + "', expected 'Package' in: " + manifestPath);
-			return Null;
+			return info;
 		}
 
 		const XmlNode& identity = (*packageNode)["Identity"];
 		if(!identity.IsVoid())
-			return identity.Attr("Name");
-		else
-			PutConsole("UWPUtils: <Identity> tag not found in: " + manifestPath);
+			info.name = identity.Attr("Name");
+		
+		const XmlNode& apps = (*packageNode)["Applications"];
+		if(!apps.IsVoid()) {
+			const XmlNode& app = apps["Application"];
+			if(!app.IsVoid())
+				info.appId = app.Attr("Id");
+		}
 	}
-	catch(XmlError e) {
-		PutConsole("UWPUtils: XML Parse Error: " + e + "\nFile: " + manifestPath);
-	}
-	catch(...)
-	{
-		PutConsole("UWPUtils: Unknown exception while parsing: " + manifestPath);
-	}
-	return Null;
+	catch(...) {}
+	return info;
+}
+
+String GetUwpPackageName(const String& folder)
+{
+	return GetUwpManifestInfo(folder).name;
 }
 
 String GetUwpPackageFamilyName(const String& pkgName)
@@ -127,10 +130,7 @@ String GetUwpPackageFullName(const String& pkgName)
 void RegisterUwpApp(const String& folder)
 {
 	String manifest = FindUwpManifest(folder);
-	if(IsNull(manifest)) {
-		PutConsole("UWP: Could not find manifest to register in " + folder);
-		return;
-	}
+	if(IsNull(manifest)) return;
 	
 	PutConsole("UWP: Registering application from " + manifest);
 	String cmd;
@@ -144,23 +144,26 @@ void RegisterUwpApp(const String& folder)
 bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid)
 {
 	String folder = GetFileFolder(path);
-	String name = GetUwpPackageName(folder);
-	if(IsNull(name)) {
+	UwpManifestInfo info = GetUwpManifestInfo(folder);
+	if(IsNull(info.name)) {
 		Exclamation("UWP: Could not determine Package Name from manifest at " + folder);
 		return false;
 	}
 	
 	RegisterUwpApp(folder); // Ensure the app is registered from this location
 	
-	String pfn = GetUwpPackageFamilyName(name);
-	String pfull = GetUwpPackageFullName(name);
+	String pfn = GetUwpPackageFamilyName(info.name);
+	String pfull = GetUwpPackageFullName(info.name);
 	
 	if(IsNull(pfn) || IsNull(pfull)) {
-		Exclamation("UWP: Could not find Package Family/Full Name for " + name + ".\nEnsure the package is registered correctly.");
+		Exclamation("UWP: Could not find Package Family/Full Name for " + info.name + ".\nEnsure the package is registered correctly.");
 		return false;
 	}
 	
-	String aumid = pfn + "!App"; // Hardcoded "App" ID for now, matches MscBuilder template
+	String appId = Nvl(info.appId, "App");
+	String aumid = pfn + "!" + appId;
+
+	PutConsole("UWP: Activating AUMID: " + aumid);
 
 	HRESULT hr = E_FAIL;
 	CoInitialize(NULL);
@@ -169,7 +172,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		IPackageDebugSettings *pds = NULL;
 		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 		if(SUCCEEDED(hr) && pds) {
-			hr = pds->EnableDebugging(ToSystemCharsetW(pfull), NULL, NULL);
+			hr = pds->EnableDebugging(WString(pfull), NULL, NULL);
 			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr) + "\nPackage: " + pfull);
 			pds->Release();
 		} else {
@@ -180,22 +183,22 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	IApplicationActivationManager *aam = NULL;
 	hr = CoCreateInstance(CLSID_ApplicationActivationManager, NULL, CLSCTX_LOCAL_SERVER, IID_IApplicationActivationManager, (void**)&aam);
 	if(SUCCEEDED(hr) && aam) {
-		Vector<wchar_t> w_aumid = ToSystemCharsetW(aumid);
-		Vector<wchar_t> w_args;
-		if(!IsNull(args)) w_args = ToSystemCharsetW(args);
+		WString w_aumid(aumid);
+		WString w_args(args);
 
 		hr = aam->ActivateApplication(w_aumid, 
-		                              IsNull(args) ? (LPCWSTR)NULL : w_args, 
+		                              args.IsEmpty() ? (LPCWSTR)NULL : ~w_args, 
 		                              AO_NONE, &pid);
 		if(FAILED(hr)) {
-			String msg = "UWP: ActivateApplication failed. HRESULT: " + FormatIntHex(hr);
-			if(hr == 0x8027025b) msg << "\n(The app didn't start in the required time)";
+			String msg = "UWP: ActivateApplication failed. HRESULT: " + FormatIntHex((dword)hr);
+			if((dword)hr == 0x8027025b) msg << "\n(The app didn't start in the required time)";
+			if((dword)hr == 0x80070057) msg << "\n(Invalid argument - check AUMID or AppId)";
 			PutConsole(msg);
 			Exclamation(msg);
 		}
 		aam->Release();
 	} else {
-		Exclamation("UWP: Failed to create IApplicationActivationManager. HRESULT: " + FormatIntHex(hr));
+		Exclamation("UWP: Failed to create IApplicationActivationManager. HRESULT: " + FormatIntHex((dword)hr));
 	}
 	
 	CoUninitialize();
@@ -214,7 +217,7 @@ void StopUwpDebug(const String& path)
 	IPackageDebugSettings *pds = NULL;
 	HRESULT hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 	if(SUCCEEDED(hr) && pds) {
-		pds->DisableDebugging(ToSystemCharsetW(pfn));
+		pds->DisableDebugging(WString(pfn));
 		pds->Release();
 	}
 	CoUninitialize();

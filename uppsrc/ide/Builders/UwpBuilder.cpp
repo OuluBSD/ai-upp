@@ -410,6 +410,10 @@ void UwpBuilder::AddFlags(Index<String>& cfg)
 {
 	MscBuilder::AddFlags(cfg);
 	cfg.FindAdd("UWP");
+	if(cfg.Find("ARM") < 0 && cfg.Find("MIPS") < 0 && !IsMsc64()) {
+		cfg.FindAdd("WIN64");
+		cfg.FindAdd("MSC22X64");
+	}
 }
 
 bool UwpBuilder::BuildPackage(const String& package, Vector<String>& linkfile, Vector<String>&,

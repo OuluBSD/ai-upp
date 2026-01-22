@@ -172,7 +172,7 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 		IPackageDebugSettings *pds = NULL;
 		hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 		if(SUCCEEDED(hr) && pds) {
-			hr = pds->EnableDebugging(WString(pfull), NULL, NULL);
+			hr = pds->EnableDebugging(ToSystemCharsetW(pfull).begin(), NULL, NULL);
 			if(FAILED(hr)) PutConsole("UWP: Failed to EnableDebugging. HRESULT: " + FormatIntHex(hr) + "\nPackage: " + pfull);
 			pds->Release();
 		} else {
@@ -183,11 +183,11 @@ bool LaunchUwpApp(const String& path, const String& args, bool debug, DWORD& pid
 	IApplicationActivationManager *aam = NULL;
 	hr = CoCreateInstance(CLSID_ApplicationActivationManager, NULL, CLSCTX_LOCAL_SERVER, IID_IApplicationActivationManager, (void**)&aam);
 	if(SUCCEEDED(hr) && aam) {
-		WString w_aumid(aumid);
-		WString w_args(args);
+		auto w_aumid = ToSystemCharsetW(aumid);
+		auto w_args = ToSystemCharsetW(args);
 
-		hr = aam->ActivateApplication(w_aumid, 
-		                              args.IsEmpty() ? (LPCWSTR)NULL : ~w_args, 
+		hr = aam->ActivateApplication(w_aumid.begin(), 
+		                              args.IsEmpty() ? (LPCWSTR)NULL : w_args.begin(), 
 		                              AO_NONE, &pid);
 		if(FAILED(hr)) {
 			String msg = "UWP: ActivateApplication failed. HRESULT: " + FormatIntHex((dword)hr);
@@ -217,7 +217,7 @@ void StopUwpDebug(const String& path)
 	IPackageDebugSettings *pds = NULL;
 	HRESULT hr = CoCreateInstance(CLSID_PackageDebugSettings, NULL, CLSCTX_INPROC_SERVER, IID_IPackageDebugSettings, (void**)&pds);
 	if(SUCCEEDED(hr) && pds) {
-		pds->DisableDebugging(WString(pfn));
+		pds->DisableDebugging(ToSystemCharsetW(pfn).begin());
 		pds->Release();
 	}
 	CoUninitialize();

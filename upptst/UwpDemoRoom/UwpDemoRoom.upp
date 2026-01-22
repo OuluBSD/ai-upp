@@ -8,6 +8,5 @@ file
 	AGENTS.md;
 
 mainconfig
-	"" = "UWP DX12",
-	"For clang compilation errors" = "DX12";
+	"" = "UWP DX12";
 

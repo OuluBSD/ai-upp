@@ -860,6 +860,10 @@ void UwpInternalBuilder::AddFlags(Index<String>& cfg)
 {
 	MscBuilder::AddFlags(cfg);
 	cfg.FindAdd("UWP");
+	if(cfg.Find("ARM") < 0 && cfg.Find("MIPS") < 0 && !IsMsc64()) {
+		cfg.FindAdd("WIN64");
+		cfg.FindAdd("MSC22X64");
+	}
 }
 
 String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bool is_c)
@@ -898,7 +902,11 @@ String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bo
 		cc << " /I\"" << sdk10 << "\\Include\\" << sdk_ver << "\\cppwinrt\"";
 		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\"";
 		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\\Facade\"";
-		cc << " /AI\"" << vs_base << "\\" << vs_ver << "\\lib\\" << (IsMsc64() ? "x64" : "x86") << "\\store\\references\"";
+		
+		String ref_path = vs_base + "\\" + vs_ver + "\\lib\\x64\\store\\references";
+		if(!DirectoryExists(ref_path))
+			ref_path = vs_base + "\\" + vs_ver + "\\lib\\x86\\store\\references";
+		cc << " /AI\"" << ref_path << "\"";
 	}
 	return cc;
 }

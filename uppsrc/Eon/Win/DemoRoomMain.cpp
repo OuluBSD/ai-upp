@@ -1,219 +1,215 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace concurrency;
 using namespace DirectX;
 using namespace std::placeholders;
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Gaming::Input;
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::Perception::Spatial;
-using namespace winrt::Windows::UI::Input::Spatial;
 
+namespace winrt_num = winrt::Windows::Foundation::Numerics;
+namespace winrt_gaming = winrt::Windows::Gaming::Input;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
+namespace winrt_input = winrt::Windows::UI::Input::Spatial;
 
-
-#if 0
+namespace DemoRoom {
 
 // Loads and initializes application assets when the application is loaded.
-DemoRoomMain::DemoRoomMain() :
-    m_deviceResources(std::make_shared<DeviceResources>())
-{}
-
-void DemoRoomMain::SetHolographicSpace(HolographicSpace const& holographicSpace)
+DemoRoomMain::DemoRoomMain()
 {
-	TODO
-	Engine& m_engine = GetActiveEngine();
-	
-    /*if (m_engine.HasStarted())
-    {
-        m_engine.Stop();
-    }*/
+	device_resources.Create();
+}
 
-    if (holographicSpace == nullptr)
-    {
-        return;
-    }
+void DemoRoomMain::SetHolographicSpace(winrt_holo::HolographicSpace const& holographicSpace)
+{
+	if (engine && engine->IsStarted()) {
+		engine->Stop();
+		Engine::Uninstall(true, engine);
+		engine = nullptr;
+	}
 
-    m_deviceResources->SetHolographicSpace(holographicSpace);
+	if (holographicSpace == nullptr)
+		return;
 
-    const auto pbrResources = std::make_shared<Pbr::Resources>(m_deviceResources->GetD3DDevice());
+	device_resources->SetHolographicSpace(holographicSpace);
 
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> diffuseEnvironmentMap;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> specularEnvironmentMap;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brdlutTexture;
-    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> skyboxTexture;
+	pbr_resources.Create(device_resources->GetD3DDevice());
 
-    auto resourceLoadingTask = std::async(std::launch::async, [&]
-    {
-        auto diffuseTextureFuture = LoadDDSTextureAsync(m_deviceResources->GetD3DDevice(), L"ms-appx:///Media/Environment/DiffuseHDR.dds");
-        auto specularTextureFuture = LoadDDSTextureAsync(m_deviceResources->GetD3DDevice(), L"ms-appx:///Media/Environment/SpecularHDR.dds");
-        auto skyboxTextureFuture = LoadDDSTextureAsync(m_deviceResources->GetD3DDevice(), L"ms-appx:///Media/Environment/EnvHDR.dds");
-        auto brdfLutFileDataFuture = ReadDataAsync(L"ms-appx:///PBR/brdf_lut.png");
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> diffuseEnvironmentMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> specularEnvironmentMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brdlutTexture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> skyboxTexture;
 
-        diffuseEnvironmentMap = diffuseTextureFuture.get();
-        specularEnvironmentMap = specularTextureFuture.get();
-        skyboxTexture = skyboxTextureFuture.get();
-        std::vector<byte> brdfLutFileData = brdfLutFileDataFuture.get();
+	auto resourceLoadingTask = std::async(std::launch::async, [&]
+	{
+		auto diffuseTextureFuture = DX::LoadDDSTextureAsync(
+			device_resources->GetD3DDevice(), L"ms-appx:///Media/Environment/DiffuseHDR.dds");
+		auto specularTextureFuture = DX::LoadDDSTextureAsync(
+			device_resources->GetD3DDevice(), L"ms-appx:///Media/Environment/SpecularHDR.dds");
+		auto skyboxTextureFuture = DX::LoadDDSTextureAsync(
+			device_resources->GetD3DDevice(), L"ms-appx:///Media/Environment/EnvHDR.dds");
+		auto brdfLutFileDataFuture = DX::ReadDataAsync(L"ms-appx:///PBR/brdf_lut.png");
 
-        // Read the BRDF Lookup Table used by the PBR system into a DirectX texture.
-        brdlutTexture = Pbr::Texture::LoadImage(m_deviceResources->GetD3DDevice(), brdfLutFileData.data(), static_cast<uint32_t>(brdfLutFileData.size()));
-    });
+		diffuseEnvironmentMap = diffuseTextureFuture.get();
+		specularEnvironmentMap = specularTextureFuture.get();
+		skyboxTexture = skyboxTextureFuture.get();
+		std::vector<byte> brdfLutFileData = brdfLutFileDataFuture.get();
 
-    // Launch the loading tasks on another thread and wait for them to complete
-    resourceLoadingTask.wait();
+		// Read the BRDF Lookup Table used by the PBR system into a DirectX texture.
+		brdlutTexture = Pbr::Texture::LoadImage(
+			device_resources->GetD3DDevice(),
+			brdfLutFileData.data(),
+			static_cast<uint32_t>(brdfLutFileData.size()));
+	});
 
-    pbrResources->SetBrdfLut(brdlutTexture.Get());
-    pbrResources->SetEnvironmentMap(m_deviceResources->GetD3DDeviceContext(), specularEnvironmentMap.Get(), diffuseEnvironmentMap.Get());
+	resourceLoadingTask.wait();
 
-    // System::Update is called in the order they were added to the Engine
-    // Which is why we put the factories at the start, and the rendering at the end.
-    //m_engine = std::make_unique<Engine>();
+	pbr_resources->SetBrdfLut(brdlutTexture.Get());
+	pbr_resources->SetEnvironmentMap(
+		device_resources->GetD3DDeviceContext(),
+		specularEnvironmentMap.Get(),
+		diffuseEnvironmentMap.Get());
 
-    m_engine.Add<EntityStore>();
-    m_engine.Add<ComponentStore>();
-    m_engine.Add<HolographicScene>(holographicSpace);
-    m_engine.Add<EasingSystem>();
-    m_engine.Add<PhysicsSystem>();
-    m_engine.Add<PbrModelCache>(pbrResources);
+	engine = &MetaEnv().root.GetAdd<Engine>("UwpDemoRoom");
 
-    m_engine.Add<SpatialInteractionSystem>();
-    m_engine.Add<MotionControllerSystem>();
-    m_engine.Add<AppLogicSystem>();
+	engine->Add<HolographicScene>(holographicSpace);
+	engine->Add<EasingSystem>();
+	engine->Add<PhysicsSystem>();
+	engine->Add<PbrModelCache>(*pbr_resources);
+	engine->Add<SpatialInteractionSystem>();
+	engine->Add<MotionControllerSystem>();
+	engine->Add<AppLogicSystem>();
+	engine->Add<ToolboxSystem>();
+	engine->Add<ShootingInteractionSystem>();
+	engine->Add<PaintingInteractionSystem>();
+	engine->Add<ThrowingInteractionSystem>();
+	engine->Add<PaintStrokeSystem>(*pbr_resources);
+	engine->Add<HolographicRenderer>(*device_resources, *pbr_resources, skyboxTexture.Get());
 
-    m_engine.Add<ToolboxSystem>();
-    m_engine.Add<ShootingInteractionSystem>();
-    m_engine.Add<PaintingInteractionSystem>();
-    m_engine.Add<ThrowingInteractionSystem>();
+	if (!engine->Start()) {
+		LOG("DemoRoomMain: engine failed to start");
+		return;
+	}
 
-    m_engine.Add<PaintStrokeSystem>(pbrResources);
+	// Seed model cache
+	auto pbrModelCache = engine->Get<PbrModelCache>();
 
-    m_engine.Add<HolographicRenderer>(m_deviceResources, pbrResources, skyboxTexture.Get());
+	// Register a low poly sphere model.
+	{
+		Pbr::Primitive spherePrimitive(
+			*pbr_resources,
+			Pbr::PrimitiveBuilder().AddSphere(1.0f, 3),
+			Pbr::Material::CreateFlat(*pbr_resources, DirectX::Colors::White, 0.15f));
 
-    m_engine.Start();
+		One<Pbr::Model> sphereModel;
+		sphereModel.Create();
+		sphereModel->AddPrimitive(std::move(spherePrimitive));
+		pbrModelCache->RegisterModel(KnownModelNames::UnitSphere, pick(sphereModel));
+	}
 
-    // Seed model cache
-    auto pbrModelCache = m_engine.Get<PbrModelCache>();
+	// Register a cube model.
+	{
+		Pbr::Primitive cubePrimitive(
+			*pbr_resources,
+			Pbr::PrimitiveBuilder().AddCube(1.0f),
+			Pbr::Material::CreateFlat(*pbr_resources, DirectX::Colors::White, 0.15f));
 
-    // Register a low poly sphere model.
-    {
-        Pbr::Primitive spherePrimitive(
-            *pbrResources, 
-            Pbr::PrimitiveBuilder().AddSphere(1.0f, 3), 
-            Pbr::Material::CreateFlat(*pbrResources, Colors::White, 0.15f));
+		One<Pbr::Model> cubeModel;
+		cubeModel.Create();
+		cubeModel->AddPrimitive(std::move(cubePrimitive));
+		pbrModelCache->RegisterModel(KnownModelNames::UnitCube, pick(cubeModel));
+	}
 
-        // Add the primitive into a new model.
-        auto sphereModel = std::make_shared<Pbr::Model>();
-        sphereModel->AddPrimitive(std::move(spherePrimitive));
-        pbrModelCache->RegisterModel(KnownModelNames::UnitSphere, std::move(sphereModel));
-    }
+	// Register glb models.
+	auto loadGLBModels = [this](
+		std::wstring_view path,
+		String name,
+		std::optional<DirectX::XMFLOAT4X4> transform = std::nullopt,
+		std::optional<DirectX::XMFLOAT4> color = std::nullopt) -> std::future<void>
+	{
+		return std::async(std::launch::async, [this, path = std::wstring(path), name, transform, color] {
+			auto pbrModelCache = engine->Get<PbrModelCache>();
 
-    // Register a cube model.
-    {
-        // Load the primitive into D3D buffers with associated material
-        Pbr::Primitive cubePrimitive(
-            *pbrResources,
-            Pbr::PrimitiveBuilder().AddCube(1.0f),
-            Pbr::Material::CreateFlat(*pbrResources, Colors::White, 0.15f));
+			std::vector<byte> fileData = DX::ReadDataAsync(path).get();
 
-        // Add the primitive into a new model.
-        auto cubeModel = std::make_shared<Pbr::Model>();
-        cubeModel->AddPrimitive(std::move(cubePrimitive));
-        pbrModelCache->RegisterModel(KnownModelNames::UnitCube, std::move(cubeModel));
-    }
+			const DirectX::XMMATRIX modelTransform = transform.has_value()
+				? DirectX::XMLoadFloat4x4(&transform.value())
+				: DirectX::XMMatrixIdentity();
 
-    // Register glb models.
-    auto loadGLBModels = [this](
-        std::wstring_view path,
-        std::string_view name,
-        std::optional<DirectX::XMFLOAT4X4> transform = std::nullopt,
-        std::optional<DirectX::XMFLOAT4> color = std::nullopt) -> std::future<void>
-    {
-        auto pbrModelCache = m_engine.Get<PbrModelCache>();
-        auto pbrResources = m_engine.Get<HolographicRenderer>()->GetPbrResources();
+			std::shared_ptr<Pbr::Model> pbrModel = Gltf::FromGltfBinary(
+				*pbr_resources,
+				fileData.data(),
+				(uint32_t)fileData.size(),
+				modelTransform);
 
-        std::vector<byte> fileData = co_await ReadDataAsync(std::wstring(path));
+			if (color) {
+				for (uint32_t i = 0; i < pbrModel->GetPrimitiveCount(); ++i) {
+					pbrModel->GetPrimitive(i).GetMaterial()->Parameters.Set([&](Pbr::Material::ConstantBufferData& data) {
+						data.BaseColorFactor = color.value();
+					});
+				}
+			}
 
-        const DirectX::XMMATRIX modelTransform = transform.has_value()
-            ? DirectX::XMLoadFloat4x4(&transform.value())
-            : DirectX::XMMatrixIdentity();
+			debug_log("Loaded Model: %s", name.Begin());
 
-        std::shared_ptr<Pbr::Model> pbrModel = FromGltfBinary(
-            *pbrResources,
-            fileData.data(),
-            (uint32_t)fileData.size(),
-            modelTransform);
+			One<Pbr::Model> owned;
+			owned.Create(*pbrModel);
+			pbrModelCache->RegisterModel(name, pick(owned));
+		});
+	};
 
-        if (color) {
-            for (uint32_t i = 0; i < pbrModel->GetPrimitiveCount(); ++i) {
-                pbrModel->GetPrimitive(i).GetMaterial()->Parameters.Set([&](Pbr::Material::ConstantBufferData& data) {
-                    data.BaseColorFactor = color.value();
-                });
-            }
-        }
+	DirectX::XMFLOAT4X4 baseballScale;
+	DirectX::XMStoreFloat4x4(&baseballScale, DirectX::XMMatrixScaling(0.15f, 0.15f, 0.15f));
+	loadGLBModels(L"ms-appx:///Media/Models/Baseball.glb", KnownModelNames::Baseball, baseballScale,
+	              DirectX::XMFLOAT4{ 2.0f, 2.0f, 2.0f, 1.0f });
 
-        debug_log("Loaded Model: %s", name.data());
+	DirectX::XMFLOAT4X4 gunScale;
+	DirectX::XMStoreFloat4x4(&gunScale, DirectX::XMMatrixScaling(0.35f, 0.35f, 0.35f));
+	loadGLBModels(L"ms-appx:///Media/Models/Gun.glb", KnownModelNames::Gun, gunScale);
 
-        pbrModelCache->RegisterModel(name, std::move(pbrModel));
-    };
+	loadGLBModels(L"ms-appx:///Media/Models/PaintBrush.glb", KnownModelNames::PaintBrush);
 
-    DirectX::XMFLOAT4X4 baseballScale;
-    DirectX::XMStoreFloat4x4(&baseballScale, DirectX::XMMatrixScaling(0.15f, 0.15f, 0.15f));
-    loadGLBModels(L"ms-appx:///Media/Models/Baseball.glb", KnownModelNames::Baseball, baseballScale, DirectX::XMFLOAT4{ 2.0f, 2.0f, 2.0f, 1.0f });
+	// Keep floor entity around forever.
+	{
+		WorldState ws;
+		CreatePrefab<FloorPrefab>(engine->GetRootPool(), ws);
+	}
 
-    DirectX::XMFLOAT4X4 gunScale;
-    DirectX::XMStoreFloat4x4(&gunScale, DirectX::XMMatrixScaling(0.35f, 0.35f, 0.35f));
-    loadGLBModels(L"ms-appx:///Media/Models/Gun.glb", KnownModelNames::Gun, gunScale);
-
-    loadGLBModels(L"ms-appx:///Media/Models/PaintBrush.glb", KnownModelNames::PaintBrush);
-
-    // We don't store the returned Floor Entity locally, so it lives foreeevvverrr
-    m_engine.Get<EntityStore>()->Create<FloorPrefab>();
-
-    // Reset timer on startup so the first update's delta time is sensible (albeit still small)
-    m_timer.ResetElapsedTime();
-    
+	m_timer.ResetElapsedTime();
 }
 
 DemoRoomMain::~DemoRoomMain()
 {
-    if (m_engine)
-    {
-        m_engine.Stop();
-        m_engine.reset();
-    }
+	if (engine) {
+		engine->Stop();
+		Engine::Uninstall(true, engine);
+		engine = nullptr;
+	}
 }
 
 // Updates the application state once per frame.
 void DemoRoomMain::Update()
 {
-    m_timer.Tick([&]
-    {
-        m_engine.Update(static_cast<float>(m_timer.GetElapsedSeconds()));
-    });
+	m_timer.Tick([&]
+	{
+		if (engine)
+			engine->Update(m_timer.GetElapsedSeconds());
+	});
 }
 
 void DemoRoomMain::SaveAppState()
 {
-    m_deviceResources->Trim();
+	device_resources->Trim();
 
-    if (m_engine)
-    {
-        m_engine.Suspend();
-    }
+	if (engine)
+		engine->Suspend();
 }
 
 void DemoRoomMain::LoadAppState()
 {
-    if (m_engine)
-    {
-        m_engine.Resume();
-    }
+	if (engine)
+		engine->Resume();
 }
 
-#endif
-
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

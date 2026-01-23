@@ -92,6 +92,11 @@ bool Ide::IdeConsoleWait(int slot)
 	return true;
 }
 
+bool Ide::IdeConsoleGetError()
+{
+	return console.GetError();
+}
+
 void Ide::IdeConsoleOnFinish(Event<> cb)
 {
 	console.OnFinish(cb);

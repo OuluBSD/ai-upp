@@ -1,0 +1,40 @@
+#include "Win.h"
+
+NAMESPACE_UPP
+
+INITBLOCK {
+	REGISTER_EON_SYSTEM(::DemoRoom::AppLogicSystem,           "demoroom.app.logic",        "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::EasingSystem,             "demoroom.easing",           "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::HolographicRenderer,       "demoroom.holo.renderer",    "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::HolographicScene,          "demoroom.holo.scene",       "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::MotionControllerSystem,    "demoroom.motion.controller","DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::PaintStrokeSystem,         "demoroom.paint.stroke",     "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::PaintingInteractionSystem, "demoroom.tool.painting",    "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::PbrModelCache,             "demoroom.pbr.cache",        "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::PhysicsSystem,             "demoroom.physics",          "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::ShootingInteractionSystem, "demoroom.tool.shooting",    "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::SpatialInteractionSystem,  "demoroom.spatial.input",    "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::ThrowingInteractionSystem, "demoroom.tool.throwing",    "DemoRoom|System");
+	REGISTER_EON_SYSTEM(::DemoRoom::ToolboxSystem,             "demoroom.toolbox",          "DemoRoom|System");
+
+	REGISTER_EON_COMPONENT_(::DemoRoom::Easing,                 "DemoRoom::Easing",                 "demoroom.easing",           "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::MotionControllerComponent, "DemoRoom::MotionControllerComponent", "demoroom.motion.controller","DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::PaintComponent,          "DemoRoom::PaintComponent",          "demoroom.paint",            "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::PaintStrokeComponent,    "DemoRoom::PaintStrokeComponent",    "demoroom.paint.stroke",     "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::PbrRenderable,           "DemoRoom::PbrRenderable",           "demoroom.pbr.renderable",   "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::RigidBody,               "DemoRoom::RigidBody",               "demoroom.rigidbody",        "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::ShootingComponent,       "DemoRoom::ShootingComponent",       "demoroom.shooting",         "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::TextRenderable,          "DemoRoom::TextRenderable",          "demoroom.text",             "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::ThrowingComponent,       "DemoRoom::ThrowingComponent",       "demoroom.throwing",         "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::ToolComponent,           "DemoRoom::ToolComponent",           "demoroom.tool",             "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::ToolSelectorKey,         "DemoRoom::ToolSelectorKey",         "demoroom.tool.selector",    "DemoRoom|Component");
+	REGISTER_EON_COMPONENT_(::DemoRoom::Transform,               "DemoRoom::Transform",               "demoroom.transform",        "DemoRoom|Component");
+}
+
+CommonFontInfo GetFontInfoSys(Font font) { return CommonFontInfo(); }
+GlyphInfo GetGlyphInfoSys(Font font, int chr) { return GlyphInfo(); }
+Vector<FaceInfo> GetAllFacesSys() { return {}; }
+String GetFontDataSys(Font font, const char *table, int offset, int size) { return String(); }
+void RenderCharacterSys(FontGlyphConsumer& c, double x, double y, int chr, Font font) {}
+
+END_UPP_NAMESPACE

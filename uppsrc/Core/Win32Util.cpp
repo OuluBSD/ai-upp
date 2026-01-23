@@ -2,7 +2,7 @@
 
 namespace Upp {
 
-#ifdef PLATFORM_WIN32
+#if defined(PLATFORM_WIN32) && !defined(flagUWP)
 
 static HINSTANCE app_instance;
 
@@ -234,6 +234,92 @@ void Win32Event::Set()
 	SetEvent(handle);
 }
 #endif
+
+#else
+
+HINSTANCE AppGetHandle()
+{
+	return NULL;
+}
+
+void AppSetHandle(HINSTANCE)
+{
+}
+
+String AsString(const wchar_t *buffer)
+{
+	if(!buffer)
+		return Null;
+	return AsString(buffer, (int)wcslen(buffer));
+}
+
+String AsString(const wchar_t *buffer, int count)
+{
+	if(!buffer)
+		return Null;
+	StringBuffer temp(count);
+	for(char *p = temp, *e = p + count; p < e;)
+		*p++ = (char)*buffer++;
+	return String(temp);
+}
+
+String AsString(const wchar_t *buffer, const wchar_t *end)
+{
+	if(!buffer)
+		return Null;
+	return AsString(buffer, (int)(end - buffer));
+}
+
+String GetWinRegString(const char *, const char *, HKEY, dword)
+{
+	return String::GetVoid();
+}
+
+int GetWinRegInt(const char *, const char *, HKEY, dword)
+{
+	return Null;
+}
+
+bool SetWinRegString(const String&, const char *, const char *, HKEY, dword)
+{
+	return false;
+}
+
+bool SetWinRegExpandString(const String&, const char *, const char *, HKEY, dword)
+{
+	return false;
+}
+
+bool SetWinRegInt(int, const char *, const char *, HKEY, dword)
+{
+	return false;
+}
+
+void DeleteWinReg(const String&, HKEY, dword)
+{
+}
+
+void *GetDllFn(const char *, const char *)
+{
+	return nullptr;
+}
+
+#ifndef PLATFORM_WINCE
+String GetSystemDirectory()
+{
+	return String();
+}
+
+String GetWindowsDirectory()
+{
+	return String();
+}
+#endif
+
+String GetModuleFileName(HINSTANCE)
+{
+	return String();
+}
 
 #endif
 

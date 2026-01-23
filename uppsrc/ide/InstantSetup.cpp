@@ -391,6 +391,13 @@ void InstantSetup()
 				bm.GetAdd("LIB") = Join(libs, ";");
 				
 				SaveVarFile(ConfigFile(method + ".bm"), bm);
+				
+				if(version >= VS_2017) {
+					bm.GetAdd("BUILDER") = "UWP_INTERNAL";
+					bm.GetAdd("COMMON_FLAGS") = (x64 ? "UWP " : "CPU32 UWP ") + builder;
+					SaveVarFile(ConfigFile(x86method + "UWP" + x64s + ".bm"), bm);
+				}
+
 				dirty = true;
 	
 				if(!x64)

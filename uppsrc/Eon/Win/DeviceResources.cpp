@@ -1,23 +1,24 @@
-#include "EcsWin.h"
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 
-
-NAMESPACE_UPP
-
+#include "EonWin.h"
 
 using namespace D2D1;
 using namespace Microsoft::WRL;
-using namespace winrt::Windows::Graphics::DirectX::Direct3D11;
-using namespace winrt::Windows::Graphics::Display;
-using namespace winrt::Windows::Graphics::Holographic;
+
+namespace winrt_d3d11 = winrt::Windows::Graphics::DirectX::Direct3D11;
+namespace winrt_display = winrt::Windows::Graphics::Display;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
 
 // Constructor for DeviceResources.
-DeviceResources::DeviceResources()
+DX::DeviceResources::DeviceResources()
 {
     CreateDeviceIndependentResources();
 }
 
 // Configures resources that don't depend on the Direct3D device.
-void DeviceResources::CreateDeviceIndependentResources()
+void DX::DeviceResources::CreateDeviceIndependentResources()
 {
     // Initialize Direct2D resources.
     D2D1_FACTORY_OPTIONS options{};
@@ -54,7 +55,7 @@ void DeviceResources::CreateDeviceIndependentResources()
         ));
 }
 
-void DeviceResources::SetHolographicSpace(HolographicSpace holographicSpace)
+void DX::DeviceResources::SetHolographicSpace(winrt_holo::HolographicSpace holographicSpace)
 {
     // Cache the holographic space. Used to re-initalize during device-lost scenarios.
     m_holographicSpace = holographicSpace;
@@ -62,7 +63,7 @@ void DeviceResources::SetHolographicSpace(HolographicSpace holographicSpace)
     InitializeUsingHolographicSpace();
 }
 
-void DeviceResources::InitializeUsingHolographicSpace()
+void DX::DeviceResources::InitializeUsingHolographicSpace()
 {
     // The holographic space might need to determine which adapter supports
     // holograms, in which case it will specify a non-zero PrimaryAdapterId.
@@ -80,7 +81,7 @@ void DeviceResources::InitializeUsingHolographicSpace()
     {
         UINT createFlags = 0;
 #ifdef DEBUG
-        if (SdkLayersAvailable())
+        if (DX::SdkLayersAvailable())
         {
             createFlags |= DXGI_CREATE_FACTORY_DEBUG;
         }
@@ -113,14 +114,14 @@ void DeviceResources::InitializeUsingHolographicSpace()
 }
 
 // Configures the Direct3D device, and stores handles to it and the device context.
-void DeviceResources::CreateDeviceResources()
+void DX::DeviceResources::CreateDeviceResources()
 {
     // This flag adds support for surfaces with a different color channel ordering
     // than the API default. It is required for compatibility with Direct2D.
     UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(_DEBUG)
-    if (SdkLayersAvailable())
+    if (DX::SdkLayersAvailable())
     {
         // If the project is in a debug build, enable debugging via SDK Layers with this flag.
         creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -191,8 +192,8 @@ void DeviceResources::CreateDeviceResources()
     winrt::com_ptr<::IInspectable> object;
     winrt::check_hresult(CreateDirect3D11DeviceFromDXGIDevice(
         dxgiDevice.Get(),
-        (IInspectable**)winrt::put_abi(object)));
-    m_d3dInteropDevice = object.as<IDirect3DDevice>();
+        reinterpret_cast<IInspectable**>(winrt::put_abi(object))));
+    m_d3dInteropDevice = object.as<winrt_d3d11::IDirect3DDevice>();
 
     // Cache the DXGI adapter.
     // This is for the case of no preferred DXGI adapter, or fallback to WARP.
@@ -212,15 +213,15 @@ void DeviceResources::CreateDeviceResources()
 // Validates the back buffer for each HolographicCamera and recreates
 // resources for back buffers that have changed.
 // Locks the set of holographic camera resources until the function exits.
-void DeviceResources::EnsureCameraResources(
-    HolographicFrame frame,
-    HolographicFramePrediction prediction)
+void DX::DeviceResources::EnsureCameraResources(
+    winrt_holo::HolographicFrame frame,
+    winrt_holo::HolographicFramePrediction prediction)
 {
     UseHolographicCameraResources<void>([this, frame, prediction](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
-        for (HolographicCameraPose const& cameraPose : prediction.CameraPoses())
+        for (winrt_holo::HolographicCameraPose const& cameraPose : prediction.CameraPoses())
         {
-            HolographicCameraRenderingParameters renderingParameters = frame.GetRenderingParameters(cameraPose);
+            winrt_holo::HolographicCameraRenderingParameters renderingParameters = frame.GetRenderingParameters(cameraPose);
             CameraResources* pCameraResources = cameraResourceMap[cameraPose.HolographicCamera().Id()].get();
 
             pCameraResources->CreateResourcesForBackBuffer(this, renderingParameters);
@@ -230,7 +231,7 @@ void DeviceResources::EnsureCameraResources(
 
 // Prepares to allocate resources and adds resource views for a camera.
 // Locks the set of holographic camera resources until the function exits.
-void DeviceResources::AddHolographicCamera(HolographicCamera camera)
+void DX::DeviceResources::AddHolographicCamera(winrt_holo::HolographicCamera camera)
 {
     UseHolographicCameraResources<void>([this, camera](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
@@ -240,7 +241,7 @@ void DeviceResources::AddHolographicCamera(HolographicCamera camera)
 
 // Deallocates resources for a camera and removes the camera from the set.
 // Locks the set of holographic camera resources until the function exits.
-void DeviceResources::RemoveHolographicCamera(HolographicCamera camera)
+void DX::DeviceResources::RemoveHolographicCamera(winrt_holo::HolographicCamera camera)
 {
     UseHolographicCameraResources<void>([this, camera](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
     {
@@ -256,7 +257,7 @@ void DeviceResources::RemoveHolographicCamera(HolographicCamera camera)
 
 // Recreate all device resources and set them back to the current state.
 // Locks the set of holographic camera resources until the function exits.
-void DeviceResources::HandleDeviceLost()
+void DX::DeviceResources::HandleDeviceLost()
 {
     if (m_deviceNotify != nullptr)
     {
@@ -281,14 +282,14 @@ void DeviceResources::HandleDeviceLost()
 }
 
 // Register our DeviceNotify to be informed on device lost and creation.
-void DeviceResources::RegisterDeviceNotify(IDeviceNotify* deviceNotify)
+void DX::DeviceResources::RegisterDeviceNotify(DX::IDeviceNotify* deviceNotify)
 {
     m_deviceNotify = deviceNotify;
 }
 
 // Call this method when the app suspends. It provides a hint to the driver that the app
 // is entering an idle state and that temporary buffers can be reclaimed for use by other apps.
-void DeviceResources::Trim()
+void DX::DeviceResources::Trim()
 {
     m_d3dContext->ClearState();
 
@@ -299,24 +300,20 @@ void DeviceResources::Trim()
 
 // Present the contents of the swap chain to the screen.
 // Locks the set of holographic camera resources until the function exits.
-void DeviceResources::Present(HolographicFrame frame)
+void DX::DeviceResources::Present(winrt_holo::HolographicFrame frame)
 {
     // By default, this API waits for the frame to finish before it returns.
     // Holographic apps should wait for the previous frame to finish before
     // starting work on a new frame. This allows for better results from
     // holographic frame predictions.
-    HolographicFramePresentResult presentResult = frame.PresentUsingCurrentPrediction();
+    winrt_holo::HolographicFramePresentResult presentResult = frame.PresentUsingCurrentPrediction();
 
     // The PresentUsingCurrentPrediction API will detect when the graphics device
     // changes or becomes invalid. When this happens, it is considered a Direct3D
     // device lost scenario.
-    if (presentResult == HolographicFramePresentResult::DeviceRemoved)
+    if (presentResult == winrt_holo::HolographicFramePresentResult::DeviceRemoved)
     {
         // The Direct3D device, context, and resources should be recreated.
         HandleDeviceLost();
     }
 }
-
-
-END_UPP_NAMESPACE
-

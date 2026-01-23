@@ -79,6 +79,9 @@ void LogOut::Create(bool append)
 	filesize = 0;
 
 #ifdef PLATFORM_WIN32
+#ifdef flagUWP
+	hfile = (void*)-1;
+#else
 	hfile = CreateFile(filepath,
 		GENERIC_READ|GENERIC_WRITE,
 		FILE_SHARE_READ|FILE_SHARE_WRITE,
@@ -89,6 +92,7 @@ void LogOut::Create(bool append)
 	);
 	if(append)
 		filesize = (int)SetFilePointer(hfile, 0, NULL, FILE_END);
+#endif
 #else
 	hfile = open(filepath, append ? O_CREAT|O_RDWR|O_APPEND : O_CREAT|O_RDWR|O_TRUNC, 0644);
 	if(append)
@@ -104,10 +108,14 @@ void LogOut::Create(bool append)
 	*user = 0;
 
 #ifdef PLATFORM_WIN32
+#ifdef flagUWP
+	strcpy(exe, "UwpApp");
+#else
 	GetModuleFileName(AppGetHandle(), exe, 512);
 #ifndef PLATFORM_WINCE
 	dword w = 2048;
 	::GetUserNameA(user, &w);
+#endif
 #endif
 #else //#
 	const char *procexepath_(void);
@@ -209,7 +217,7 @@ void LogOut::Line(const char *s, int len, int depth)
 		}
 	if(options & LOG_DBG) {
 		*p = 0;
-		::OutputDebugString((LPCSTR)h);
+		::OutputDebugStringA((LPCSTR)h);
 	}
 #else
 	if(options & LOG_FILE)
@@ -333,7 +341,7 @@ void InitBlockEnd__(const char *fn, int line) {
 #ifdef PLATFORM_WIN32
 static void sLogFile(char *fn, const char *app = ".log")
 {
-	::GetModuleFileName(NULL, fn, 512);
+	::GetModuleFileNameA(NULL, fn, 512);
 	char *e = fn + strlen(fn), *s = e;
 	while(s > fn && *--s != '\\' && *s != '.')
 		;

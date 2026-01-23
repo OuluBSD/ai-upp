@@ -143,6 +143,7 @@ public:
 	void Kill();
 	void ClearError()                         { error_keys.Clear(); line.Clear(); WhenRunEnd(); }
 	Vector<String> PickErrors()               { Vector<String> e = pick(error_keys); error_keys.Clear(); return pick(e); }
+	bool GetError() const                     { return !error_keys.IsEmpty(); }
 	void Wait(int slot);
 	bool Wait();
 
@@ -419,9 +420,10 @@ public:
 	virtual   void             IdeConsoleFlush();
 	virtual   void             IdeConsoleBeginGroup(String group);
 	virtual   void             IdeConsoleEndGroup();
-	virtual   bool             IdeConsoleWait();
-	virtual   bool             IdeConsoleWait(int slot);
-	virtual   void             IdeConsoleOnFinish(Event<>  cb);
+		virtual bool             IdeConsoleWait();
+		virtual bool             IdeConsoleWait(int slot);
+		virtual bool             IdeConsoleGetError();
+		virtual void             IdeConsoleOnFinish(Event<>  cb);
 	virtual   void             IdeProcessEvents();
 
 	virtual   bool      IdeIsDebug() const;
@@ -538,6 +540,7 @@ public:
 		BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };
 
 	FileOut    stdout_fout;
+	Stream*    console_capture = nullptr; // For capturing console output in test modes
 
 	Splitter      editorsplit;
 	Splitter      pfsplit;

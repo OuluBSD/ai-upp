@@ -34,6 +34,21 @@ void GuiMainFn_()
 
 #else
 
+#ifdef flagUWP
+
+#define GUI_APP_MAIN \
+void GuiMainFn_();\
+\
+int main() \
+{ \
+	UPP::UwpAppMain__(GuiMainFn_); \
+	return UPP::GetExitCode(); \
+} \
+\
+void GuiMainFn_()
+
+#else
+
 #define GUI_APP_MAIN \
 void GuiMainFn_();\
 \
@@ -51,6 +66,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdSh
 } \
 \
 void GuiMainFn_()
+
+#endif
 
 #define DLL_APP_MAIN \
 void _DllMainAppInit(); \

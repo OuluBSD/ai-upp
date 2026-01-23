@@ -1,33 +1,32 @@
-#if 0
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
-
-namespace DemoRoom
+namespace DemoRoom 
 {
-
-////////////////////////////////////////////////////////////////////////////////
-// AppLogicSystem
-// Simple system to destroy objects that get too far away from the user
-class AppLogicSystem : public System
-{
-public:
-    using System::System;
-
-protected:
-    void Update(double /*dt*/) override
+    ////////////////////////////////////////////////////////////////////////////////
+    // AppLogicSystem
+    // Simple system to destroy objects that get too far away from the user
+    class AppLogicSystem : public System
     {
-        for (auto &componentSet : m_engine.Get<EntityStore>()->GetComponentsWithEntity<Transform>())
-        {
-            auto[entity, transform] = componentSet;
+    public:
+        SYS_CTOR(AppLogicSystem)
 
-            // Destroy any objects that fall too far away (Baseballs and Bullets)
-            if (transform->position.y < -10.0f)
-            {
-                entity->Destroy();
+    protected:
+        void Update(double /*dt*/) override
+        {
+            auto& root = GetEngine().GetRootPool();
+            auto entities = root.FindAllDeep<Entity>();
+            for (auto& entity : entities) {
+                auto transform = entity->val.Find<Transform>();
+                if (!transform)
+                    continue;
+
+                // Destroy any objects that fall too far away (Baseballs and Bullets)
+                if (transform->position.y < -10.0f)
+                    entity->Destroy();
             }
         }
-    }
-};
-
+    };
 }
-#endif

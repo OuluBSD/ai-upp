@@ -278,6 +278,10 @@ namespace std {
 
 // deprecated, use 'namespace' directly instead of macros
 #define NAMESPACE_UPP     namespace Upp {
+
+#ifdef flagUWP
+#include "Uwp.h"
+#endif
 #define END_UPP_NAMESPACE }
 #define UPP               Upp
 

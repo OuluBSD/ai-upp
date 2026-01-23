@@ -1,36 +1,40 @@
-#if 0
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace winrt::Windows::Foundation::Numerics;
+
+namespace DemoRoom {
 
 const float3 PhysicsSystem::EarthGravity = { 0, -9.8f, 0 };
 
 void PhysicsSystem::Update(double dt)
 {
-    for (auto[transform, rigidBody] : m_engine.Get<EntityStore>()->GetComponents<Transform, RigidBody>())
-    {
-        rigidBody->velocity += rigidBody->acceleration * dt;
-        transform->position += rigidBody->velocity * dt;
+	auto& root = GetEngine().GetRootPool();
+	auto entities = root.FindAllDeep<Entity>();
+	for (auto& entity : entities) {
+		auto transform = entity->val.Find<Transform>();
+		auto rigid_body = entity->val.Find<RigidBody>();
+		if (!transform || !rigid_body)
+			continue;
 
-        const float3 adjustedAngular = winrt::Windows::Foundation::Numerics::transform(rigidBody->angularVelocity, inverse(transform->orientation));
+		rigid_body->velocity += rigid_body->acceleration * (float)dt;
+		transform->position += rigid_body->velocity * (float)dt;
 
-        const float angle = length(adjustedAngular);
-        if (angle > 0.0f)
-        {
-            const float3 axis = adjustedAngular / angle;
-            transform->orientation *= make_quaternion_from_axis_angle(axis, angle * dt);
-        }
+		const float3 adjusted_angular = winrt::Windows::Foundation::Numerics::transform(
+			rigid_body->angularVelocity, inverse(transform->orientation));
 
-        rigidBody->velocity *= rigidBody->dampingFactor;
-        rigidBody->angularVelocity *= rigidBody->dampingFactor;
-    }
+		const float angle = length(adjusted_angular);
+		if (angle > 0.0f) {
+			const float3 axis = adjusted_angular / angle;
+			transform->orientation *= make_quaternion_from_axis_angle(axis, angle * (float)dt);
+		}
+
+		rigid_body->velocity *= rigid_body->dampingFactor;
+		rigid_body->angularVelocity *= rigid_body->dampingFactor;
+	}
 }
 
+} // namespace DemoRoom
 
-END_UPP_NAMESPACE
-#endif

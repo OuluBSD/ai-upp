@@ -1,80 +1,75 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
-
-NAMESPACE_UPP
-
-
 namespace Pbr {
-struct Model;
+	struct Model;
 }
 
-
-#if 0
-// These are a few commonly used components
-struct Transform : Component
+namespace DemoRoom
 {
-	COPY_PANIC(Transform)
-	
-    winrt::Windows::Foundation::Numerics::float3 position = winrt::Windows::Foundation::Numerics::float3::zero();
-    winrt::Windows::Foundation::Numerics::float3 scale = winrt::Windows::Foundation::Numerics::float3::one();
-    winrt::Windows::Foundation::Numerics::quaternion orientation = winrt::Windows::Foundation::Numerics::quaternion::identity();
+	// These are a few commonly used components
+	struct Transform : Component
+	{
+		ECS_COMPONENT_CTOR(Transform)
 
-    void SetFromMatrix(const winrt::Windows::Foundation::Numerics::float4x4& matrix)
-    {
-        fail_fast_if(!decompose(matrix, &scale, &orientation, &position));
-    }
+		winrt::Windows::Foundation::Numerics::float3 position = winrt::Windows::Foundation::Numerics::float3::zero();
+		winrt::Windows::Foundation::Numerics::float3 scale = winrt::Windows::Foundation::Numerics::float3::one();
+		winrt::Windows::Foundation::Numerics::quaternion orientation = winrt::Windows::Foundation::Numerics::quaternion::identity();
 
-    winrt::Windows::Foundation::Numerics::float4x4 GetMatrix() const
-    {
-        using namespace winrt::Windows::Foundation::Numerics;
+		void SetFromMatrix(const winrt::Windows::Foundation::Numerics::float4x4& matrix)
+		{
+			fail_fast_if(!decompose(matrix, &scale, &orientation, &position));
+		}
 
-        return make_float4x4_scale(scale) * make_float4x4_from_quaternion(orientation) * make_float4x4_translation(position);
-    }
-};
+		winrt::Windows::Foundation::Numerics::float4x4 GetMatrix() const
+		{
+			using namespace winrt::Windows::Foundation::Numerics;
+			return make_float4x4_scale(scale)
+				* make_float4x4_from_quaternion(orientation)
+				* make_float4x4_translation(position);
+		}
+	};
 
-struct RigidBody : Component
-{
-	COPY_PANIC(RigidBody)
-	
-    winrt::Windows::Foundation::Numerics::float3 velocity = winrt::Windows::Foundation::Numerics::float3::zero();
-    winrt::Windows::Foundation::Numerics::float3 acceleration = winrt::Windows::Foundation::Numerics::float3::zero();
-    winrt::Windows::Foundation::Numerics::float3 angularVelocity = winrt::Windows::Foundation::Numerics::float3::zero();
-    winrt::Windows::Foundation::Numerics::float3 angularAcceleration = winrt::Windows::Foundation::Numerics::float3::zero();
+	struct RigidBody : Component
+	{
+		ECS_COMPONENT_CTOR(RigidBody)
 
-    float dampingFactor = 0.999f;
-};
-#endif
+		winrt::Windows::Foundation::Numerics::float3 velocity = winrt::Windows::Foundation::Numerics::float3::zero();
+		winrt::Windows::Foundation::Numerics::float3 acceleration = winrt::Windows::Foundation::Numerics::float3::zero();
+		winrt::Windows::Foundation::Numerics::float3 angularVelocity = winrt::Windows::Foundation::Numerics::float3::zero();
+		winrt::Windows::Foundation::Numerics::float3 angularAcceleration = winrt::Windows::Foundation::Numerics::float3::zero();
 
-struct PbrRenderable : Component
-{
-	COPY_PANIC(PbrRenderable)
-	
-    void ResetModel(std::string name, std::optional<winrt::Windows::Foundation::Numerics::float4x4> offset = std::nullopt)
-    {
-        ModelName = std::move(name);
-        Offset = std::move(offset);
-        Model = nullptr;
-    }
+		float dampingFactor = 0.999f;
+	};
 
-    std::string ModelName;
-    std::shared_ptr<Pbr::Model> Model = nullptr;
-    std::optional<DirectX::XMVECTORF32> Color;
-    std::optional<winrt::Windows::Foundation::Numerics::float4x4> Offset;
-    std::optional<float> AlphaMultiplier;
-};
+	struct PbrRenderable : Component
+	{
+		ECS_COMPONENT_CTOR(PbrRenderable)
 
-typedef Ptr<PbrRenderable> PbrRenderablePtr;
+		void ResetModel(String name,
+		                std::optional<winrt::Windows::Foundation::Numerics::float4x4> offset = std::nullopt)
+		{
+			ModelName = pick(name);
+			Offset = std::move(offset);
+			Model = nullptr;
+			OwnedModel.Clear();
+		}
 
+		String ModelName;
+		One<Pbr::Model> OwnedModel;
+		Pbr::Model* Model = nullptr;
+		std::optional<DirectX::XMVECTORF32> Color;
+		std::optional<winrt::Windows::Foundation::Numerics::float4x4> Offset;
+		std::optional<float> AlphaMultiplier;
+	};
 
-/*struct TextRenderable : Component
-{
-	COPY_PANIC(TextRenderable)
-	
-    std::wstring Text = L"";
-    float FontSize = 60.0f;
-};*/
+	struct TextRenderable : Component
+	{
+		ECS_COMPONENT_CTOR(TextRenderable)
 
-
-
-END_UPP_NAMESPACE
-
+		WString Text;
+		float FontSize = 60.0f;
+	};
+}

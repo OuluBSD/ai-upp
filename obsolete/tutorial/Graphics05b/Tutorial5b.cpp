@@ -99,8 +99,8 @@ void Tutorial5b::DrawObj(SdlCpuStateDraw& fb, bool use_texture) {
 }
 
 void VertexShader5::Process(SdlCpuVertexShaderArgs& a) {
-	int width = a.generic->iResolution[0];
-	int height = a.generic->iResolution[1];
+	int width = a.gen->iResolution[0];
+	int height = a.gen->iResolution[1];
 	vec4 pos = a.v.position.Splice().Embed();
 	pos[2] = -pos[2] + 2; // hack
 	vec4 screen = a.va->view * pos;
@@ -158,3 +158,4 @@ void FragmentShader5::Process(SdlCpuFragmentShaderArgs& args) {
 
 
 SIMPLE_ECS_APP_(Tutorial5b, "geom_tutorial_base.eon", "FRAGMENT=tutorial5_fragment;VERTEX=tutorial5_vertex;DRAWMEM=false")
+

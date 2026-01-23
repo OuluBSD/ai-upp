@@ -1,27 +1,39 @@
-#include "EcsWin.h"
-
-NAMESPACE_UPP
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace concurrency;
 using namespace std::placeholders;
-using namespace winrt::Windows::ApplicationModel;
-using namespace winrt::Windows::ApplicationModel::Activation;
-using namespace winrt::Windows::ApplicationModel::Core;
-using namespace winrt::Windows::Foundation;
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::UI::Core;
 
-// The main function bootstraps into the IFrameworkView.
-int __stdcall wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+namespace winrt_app = winrt::Windows::ApplicationModel;
+namespace winrt_core = winrt::Windows::ApplicationModel::Core;
+namespace winrt_ui_core = winrt::Windows::UI::Core;
+namespace winrt_activation = winrt::Windows::ApplicationModel::Activation;
+namespace winrt_foundation = winrt::Windows::Foundation;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+
+NAMESPACE_UPP
+
+static UwpVrAppFactory& UwpVrAppFactoryRef()
 {
-    winrt::init_apartment();
-    CoreApplication::Run(AppViewSource());
-    return 0;
+	static UwpVrAppFactory factory = nullptr;
+	return factory;
+}
+
+void SetUwpVrAppFactory(UwpVrAppFactory factory)
+{
+	UwpVrAppFactoryRef() = factory;
+}
+
+UwpVrAppFactory GetUwpVrAppFactory()
+{
+	return UwpVrAppFactoryRef();
 }
 
 // IFrameworkViewSource methods
 
-IFrameworkView AppViewSource::CreateView()
+winrt_core::IFrameworkView AppViewSource::CreateView()
 {
     return holographicView;
 }
@@ -30,28 +42,32 @@ IFrameworkView AppViewSource::CreateView()
 
 // The first method called when the IFrameworkView is being created.
 // Use this method to subscribe for Windows shell events and to initialize your app.
-void AppView::Initialize(CoreApplicationView const& applicationView)
+void AppView::Initialize(winrt_core::CoreApplicationView const& applicationView)
 {
     applicationView.Activated(std::bind(&AppView::OnViewActivated, this, _1, _2));
 
     // Register event handlers for app lifecycle.
-    m_suspendingEventToken = CoreApplication::Suspending(std::bind(&AppView::OnSuspending, this, _1, _2));
+    m_suspendingEventToken = winrt_core::CoreApplication::Suspending(std::bind(&AppView::OnSuspending, this, _1, _2));
 
-    m_resumingEventToken = CoreApplication::Resuming(std::bind(&AppView::OnResuming, this, _1, _2));
+    m_resumingEventToken = winrt_core::CoreApplication::Resuming(std::bind(&AppView::OnResuming, this, _1, _2));
 
-    TODO //m_main = std::make_unique<DemoRoomMain>();
+    auto factory = GetUwpVrAppFactory();
+    if(factory)
+        m_main = factory();
+    if(!m_main)
+        m_main = std::make_unique<ShellConnectorApp>();
 }
 
-void AppView::OnKeyPressed(winrt::Windows::UI::Core::CoreWindow const& sender, winrt::Windows::UI::Core::KeyEventArgs const& args)
+void AppView::OnKeyPressed(winrt_ui_core::CoreWindow const& sender, winrt_ui_core::KeyEventArgs const& args)
 {
 }
 
-void AppView::OnPointerPressed(winrt::Windows::UI::Core::CoreWindow const& sender, winrt::Windows::UI::Core::PointerEventArgs const& args)
+void AppView::OnPointerPressed(winrt_ui_core::CoreWindow const& sender, winrt_ui_core::PointerEventArgs const& args)
 {
 }
 
 // Called when the CoreWindow object is created (or re-created).
-void AppView::SetWindow(CoreWindow const& window)
+void AppView::SetWindow(winrt_ui_core::CoreWindow const& window)
 {
     // Register for keypress notifications.
     m_keyDownEventToken = window.KeyDown(std::bind(&AppView::OnKeyPressed, this, _1, _2));
@@ -68,7 +84,7 @@ void AppView::SetWindow(CoreWindow const& window)
     // Create a holographic space for the core window for the current view.
     // Presenting holographic frames that are created by this holographic space will put
     // the app into exclusive mode.
-    m_holographicSpace = HolographicSpace::CreateForCoreWindow(window);
+    m_holographicSpace = winrt_holo::HolographicSpace::CreateForCoreWindow(window);
 
     // The main class uses the holographic space for updates and rendering.
     m_main->SetHolographicSpace(m_holographicSpace);
@@ -88,13 +104,13 @@ void AppView::Run()
     {
         if (m_windowVisible && (m_holographicSpace != nullptr))
         {
-            CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+            winrt_ui_core::CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(winrt_ui_core::CoreProcessEventsOption::ProcessAllIfPresent);
 
             m_main->Update();
         }
         else
         {
-            CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessOneAndAllPending);
+            winrt_ui_core::CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(winrt_ui_core::CoreProcessEventsOption::ProcessOneAndAllPending);
         }
     }
 }
@@ -105,10 +121,10 @@ void AppView::Uninitialize()
 {
     m_main.reset();
 
-    CoreApplication::Suspending(m_suspendingEventToken);
-    CoreApplication::Resuming(m_resumingEventToken);
+    winrt_core::CoreApplication::Suspending(m_suspendingEventToken);
+    winrt_core::CoreApplication::Resuming(m_resumingEventToken);
 
-    auto const& window = CoreWindow::GetForCurrentThread();
+    auto const& window = winrt_ui_core::CoreWindow::GetForCurrentThread();
     window.KeyDown(m_keyDownEventToken);
     window.PointerPressed(m_pointerPressedEventToken);
     window.Closed(m_windowClosedEventToken);
@@ -120,7 +136,7 @@ void AppView::Uninitialize()
 
 // Called when the app is prelaunched. Use this method to load resources ahead of time
 // and enable faster launch times.
-void AppView::OnLaunched(LaunchActivatedEventArgs const& args)
+void AppView::OnLaunched(winrt_activation::LaunchActivatedEventArgs const& args)
 {
     if (args.PrelaunchActivated())
     {
@@ -131,19 +147,19 @@ void AppView::OnLaunched(LaunchActivatedEventArgs const& args)
 }
 
 // Called when the app view is activated. Activates the app's CoreWindow.
-void AppView::OnViewActivated(CoreApplicationView const& sender, IActivatedEventArgs const& args)
+void AppView::OnViewActivated(winrt_core::CoreApplicationView const& sender, winrt_activation::IActivatedEventArgs const& args)
 {
     // Run() won't start until the CoreWindow is activated.
     sender.CoreWindow().Activate();
 }
 
-void AppView::OnSuspending(winrt::Windows::Foundation::IInspectable const& sender, SuspendingEventArgs const& args)
+void AppView::OnSuspending(winrt_foundation::IInspectable const& sender, winrt_app::SuspendingEventArgs const& args)
 {
     // Save app state asynchronously after requesting a deferral. Holding a deferral
     // indicates that the application is busy performing suspending operations. Be
     // aware that a deferral may not be held indefinitely; after about five seconds,
     // the app will be forced to exit.
-    SuspendingDeferral deferral = args.SuspendingOperation().GetDeferral();
+    winrt_app::SuspendingDeferral deferral = args.SuspendingOperation().GetDeferral();
 
     create_task([this, deferral]
     {
@@ -156,7 +172,7 @@ void AppView::OnSuspending(winrt::Windows::Foundation::IInspectable const& sende
     });
 }
 
-void AppView::OnResuming(winrt::Windows::Foundation::IInspectable const& sender, winrt::Windows::Foundation::IInspectable const& args)
+void AppView::OnResuming(winrt_foundation::IInspectable const& sender, winrt_foundation::IInspectable const& args)
 {
     // Restore any data or state that was unloaded on suspend. By default, data
     // and state are persisted when resuming from suspend. Note that this event
@@ -171,44 +187,31 @@ void AppView::OnResuming(winrt::Windows::Foundation::IInspectable const& sender,
 
 // Window event handlers
 
-void AppView::OnVisibilityChanged(CoreWindow const& sender, VisibilityChangedEventArgs const& args)
+void AppView::OnVisibilityChanged(winrt_ui_core::CoreWindow const& sender, winrt_ui_core::VisibilityChangedEventArgs const& args)
 {
     m_windowVisible = args.Visible();
 }
 
-void AppView::OnWindowClosed(CoreWindow const& sender, CoreWindowEventArgs const& args)
+void AppView::OnWindowClosed(winrt_ui_core::CoreWindow const& sender, winrt_ui_core::CoreWindowEventArgs const& args)
 {
-    m_windowClosed = true;
+	m_windowClosed = true;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 void ShellConnectorApp::SetHolographicSpace(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& holographicSpace) {
-	TODO
+    winrt_holo::HolographicSpace const& holographicSpace)
+{
 }
 
-void ShellConnectorApp::Update() {
-	TODO
+void ShellConnectorApp::Update()
+{
 }
 
-void ShellConnectorApp::SaveAppState() {
-	TODO
+void ShellConnectorApp::SaveAppState()
+{
 }
 
-void ShellConnectorApp::LoadAppState() {
-	TODO
+void ShellConnectorApp::LoadAppState()
+{
 }
-
-
 
 END_UPP_NAMESPACE

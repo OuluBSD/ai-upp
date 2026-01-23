@@ -162,7 +162,7 @@ One<Builder> MakeBuild::CreateBuilder(Host *host)
 		ConsoleShow();
 		return nullptr;
 	}
-	Builder* b = (*BuilderMap().Get(builder))();
+	Builder* b = (*BuilderMap()[q])();
 	b->host = host;
 	b->script = bm.Get("SCRIPT", "");
 	if(AndroidBuilder::GetBuildersNames().Find(builder) > -1) {
@@ -651,7 +651,10 @@ bool MakeBuild::IsAndroidMethod(const String& method) const
 	if (builder.IsEmpty())
 		return false;
 	
-	One<Builder> pBuilder = (*BuilderMap().Get(builder))();
+	int i = BuilderMap().Find(builder);
+	if(i < 0)
+		return false;
+	One<Builder> pBuilder = (*BuilderMap()[i])();
 	if (!pBuilder)
 		return false;
 	

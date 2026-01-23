@@ -85,7 +85,9 @@ int LNGFromText(const char *s)
 
 String GetUserLocale(dword type)
 {
-#ifdef PLATFORM_WINCE
+#ifdef flagUWP
+	return "en-US";
+#elif defined(PLATFORM_WINCE)
 	wchar h[256];
 	int n = ::GetLocaleInfo(GetUserDefaultLCID(), type, h, 256);
 	return n ? WString(h, n - 1).ToString() : String();

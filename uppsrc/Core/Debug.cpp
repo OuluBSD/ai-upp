@@ -61,7 +61,7 @@ TimingInspector::TimingInspector(const char *_name) {
 	all_count = call_count = max_nesting = min_time = max_time = total_time = 0;
 	static bool init;
 	if(!init) {
-#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE)
+#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE) && !defined(flagUWP)
 		timeBeginPeriod(1);
 #endif
 		init = true;
@@ -246,14 +246,17 @@ void SetCrashFileName(const char *cfile)
 }
 
 LONG __stdcall sDumpHandler(LPEXCEPTION_POINTERS ep) {
+#ifdef flagUWP
+	return 0;
+#else
 	SYSTEMTIME st;
 	GetLocalTime(&st);
 	if(!*crashfilename) {
-		::GetModuleFileName(NULL, crashfilename, 512);
-		wsprintf(crashfilename + strlen(crashfilename), ".%d-%02d-%02d-%02d-%02d-%02d%s.crash",
+		::GetModuleFileNameA(NULL, crashfilename, 512);
+		sprintf(crashfilename + strlen(crashfilename), ".%d-%02d-%02d-%02d-%02d-%02d%s.crash",
 			st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, appInfo);
 	}
-	HANDLE file = CreateFile(crashfilename, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
+	HANDLE file = CreateFileA(crashfilename, GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL,
 		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL|FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 	dword v = 1;
 	Put(file, v);
@@ -288,6 +291,7 @@ LONG __stdcall sDumpHandler(LPEXCEPTION_POINTERS ep) {
 	RLOG("============ CRASH ================================================");
 	RLOG(h);
 	return sPrev ? (*sPrev)(ep) : 0 /*EXCEPTION_CONTINUE_SEARCH*/;
+#endif
 }
 
 void InstallCrashDump(const char *info) {
@@ -352,12 +356,16 @@ String CppDemangle(const char* name) {
 namespace Upp {
 
 String CppDemangle(const char* decorated_name) {
+#ifdef flagUWP
+    return decorated_name;
+#else
     char undecorated_name[1024];
     int len = UnDecorateSymbolName(decorated_name, undecorated_name, 1024, 0x2800);
     String str(undecorated_name, len);
     if (str.Compare("class ") > 0) str = str.Mid(6);
     if (str.Compare("struct ") > 0) str = str.Mid(7);
     return str;
+#endif
 }
 
 }

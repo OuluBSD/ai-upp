@@ -1,14 +1,13 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 using namespace Concurrency;
 using namespace DirectX;
 using namespace winrt::Windows::Foundation::Numerics;
 using namespace winrt::Windows::UI::Input::Spatial;
+
+namespace DemoRoom {
 
 struct QuadModelConstantBuffer
 {
@@ -30,15 +29,15 @@ struct VertexPositionTex
 };
 
 // Loads vertex and pixel shaders from files and instantiates the quad geometry.
-QuadRenderer::QuadRenderer(std::shared_ptr<DeviceResources> deviceResources) :
-    m_deviceResources(std::move(deviceResources))
+QuadRenderer::QuadRenderer(DX::DeviceResources& deviceResources) :
+    device_resources(&deviceResources)
 {
     CreateDeviceDependentResources();
 }
 
 void QuadRenderer::Bind()
 {
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
 
     const UINT strides[] = { sizeof(VertexPositionTex) };
     const UINT offsets[] = { 0 };
@@ -52,7 +51,7 @@ void QuadRenderer::Bind()
     context->VSSetConstantBuffers(0, 1, m_modelConstantBuffer.GetAddressOf());
     context->VSSetConstantBuffers(1, 1, m_renderingConstantBuffer.GetAddressOf());
 
-    if (!m_deviceResources->GetDeviceSupportsVprt())
+    if (!device_resources->GetDeviceSupportsVprt())
     {
         // On devices that do not support the D3D11_FEATURE_D3D11_OPTIONS3::
         // VPAndRTArrayIndexFromAnyShaderFeedingRasterizer optional feature,
@@ -66,7 +65,7 @@ void QuadRenderer::Bind()
 
 void QuadRenderer::Render(winrt::Windows::Foundation::Numerics::float4x4 const& matrix, ID3D11ShaderResourceView* texture)
 {
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
 
     QuadModelConstantBuffer cb;
     cb.model = transpose(matrix);
@@ -92,22 +91,17 @@ void QuadRenderer::SetViewProjection(
     viewProjection[0] = transpose(worldToViewLeft * viewToProjLeft);
     viewProjection[1] = transpose(worldToViewRight * viewToProjRight);
 
-    m_deviceResources->GetD3DDeviceContext()->UpdateSubresource(m_renderingConstantBuffer.Get(), 0, nullptr, &viewProjection, 0, 0);
+    device_resources->GetD3DDeviceContext()->UpdateSubresource(m_renderingConstantBuffer.Get(), 0, nullptr, &viewProjection, 0, 0);
 }
 
 void QuadRenderer::CreateDeviceDependentResources()
 {
-	String g_QuadVPRTVertexShader = LoadFile(ShareDirFile("shaders/hlsl/QuadVPRTVertexShader.hlsl"));
-	String g_QuadVertexShader = LoadFile(ShareDirFile("shaders/hlsl/QuadVertexShader.hlsl"));
-	String g_QuadPixelShaderRGB = LoadFile(ShareDirFile("shaders/hlsl/QuadPixelShaderRGB.hlsl"));
-	String g_QuadGeometryShader = LoadFile(ShareDirFile("shaders/hlsl/QuadGeometryShader.hlsl"));
-	
-    const bool usingVprt = m_deviceResources->GetDeviceSupportsVprt();
+    const bool usingVprt = device_resources->GetDeviceSupportsVprt();
     const void* vertexShader = (usingVprt) ? g_QuadVPRTVertexShader : g_QuadVertexShader;
-    const size_t vertexShaderSize = (usingVprt) ? g_QuadVPRTVertexShader.GetCount() : g_QuadVertexShader.GetCount();
+    const size_t vertexShaderSize = (usingVprt) ? _countof(g_QuadVPRTVertexShader) : _countof(g_QuadVertexShader);
 
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreateVertexShader(
+        device_resources->GetD3DDevice()->CreateVertexShader(
             vertexShader,
             vertexShaderSize,
             nullptr,
@@ -121,7 +115,7 @@ void QuadRenderer::CreateDeviceDependentResources()
     }};
 
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreateInputLayout(
+        device_resources->GetD3DDevice()->CreateInputLayout(
             vertexDesc.data(),
             static_cast<UINT>(vertexDesc.size()),
             vertexShader,
@@ -131,9 +125,9 @@ void QuadRenderer::CreateDeviceDependentResources()
     );
 
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreatePixelShader(
+        device_resources->GetD3DDevice()->CreatePixelShader(
             g_QuadPixelShaderRGB,
-            g_QuadPixelShaderRGB.GetCount(),
+            _countof(g_QuadPixelShaderRGB),
             nullptr,
             &m_pixelShaderRGB
         )
@@ -142,9 +136,9 @@ void QuadRenderer::CreateDeviceDependentResources()
     if (!usingVprt)
     {
         DirectX::ThrowIfFailed(
-            m_deviceResources->GetD3DDevice()->CreateGeometryShader(
+            device_resources->GetD3DDevice()->CreateGeometryShader(
                 g_QuadGeometryShader,
-                g_QuadGeometryShader.GetCount(),
+                _countof(g_QuadGeometryShader),
                 nullptr,
                 &m_geometryShader
             )
@@ -166,7 +160,7 @@ void QuadRenderer::CreateDeviceDependentResources()
     };
 
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreateBuffer(
+        device_resources->GetD3DDevice()->CreateBuffer(
             &vertexBufferDesc,
             &vertexBufferData,
             &m_vertexBuffer
@@ -192,7 +186,7 @@ void QuadRenderer::CreateDeviceDependentResources()
         D3D11_BIND_INDEX_BUFFER
     };
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreateBuffer(
+        device_resources->GetD3DDevice()->CreateBuffer(
             &indexBufferDesc,
             &indexBufferData,
             &m_indexBuffer
@@ -202,7 +196,7 @@ void QuadRenderer::CreateDeviceDependentResources()
     const D3D11_SAMPLER_DESC desc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
 
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetD3DDevice()->CreateSamplerState(
+        device_resources->GetD3DDevice()->CreateSamplerState(
             &desc,
             &m_samplerState
         )
@@ -214,7 +208,7 @@ void QuadRenderer::CreateDeviceDependentResources()
         };
 
         DirectX::ThrowIfFailed(
-            m_deviceResources->GetD3DDevice()->CreateBuffer(
+            device_resources->GetD3DDevice()->CreateBuffer(
                 &constantBufferDesc,
                 nullptr,
                 &m_modelConstantBuffer
@@ -228,7 +222,7 @@ void QuadRenderer::CreateDeviceDependentResources()
         };
 
         DirectX::ThrowIfFailed(
-            m_deviceResources->GetD3DDevice()->CreateBuffer(
+            device_resources->GetD3DDevice()->CreateBuffer(
                 &constantBufferDesc,
                 nullptr,
                 &m_renderingConstantBuffer
@@ -253,5 +247,4 @@ void QuadRenderer::ReleaseDeviceDependentResources()
     m_samplerState.Reset();
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

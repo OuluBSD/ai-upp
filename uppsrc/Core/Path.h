@@ -321,7 +321,7 @@ public:
 
 FileSystemInfo& StdFileSystemInfo();
 
-#ifdef PLATFORM_WIN32
+#if defined(PLATFORM_WIN32) && !defined(flagUWP)
 
 class NetNode : Moveable<NetNode> {
 	NETRESOURCEW net;

@@ -48,7 +48,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Ctor() {
 	
 	form.priority	<<= THISBACK(OnValueChange);
 	form.added		<<= THISBACK(OnValueChange);
-	form.generic	<<= THISBACK(OnValueChange);
+	form.generic_name	<<= THISBACK(OnValueChange);
 	form.brand		<<= THISBACK(OnValueChange);
 	form.model		<<= THISBACK(OnValueChange);
 	form.price		<<= THISBACK(OnValueChange);
@@ -138,7 +138,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::ToolMenu(Bar& bar) {
 
 void BiographyPlatformCtrl::Platforms::Marketplace::ClearForm() {
 	form.added.Clear();
-	form.generic.Clear();
+	form.generic_name.Clear();
 	form.brand.Clear();
 	form.model.Clear();
 	form.price.Clear();
@@ -172,7 +172,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::DataItem() {
 	
 	form.priority.SetIndex(mi.priority);
 	form.added.SetData(mi.added);
-	form.generic.SetData(mi.generic);
+	form.generic_name.SetData(mi.generic_name);
 	form.brand.SetData(mi.brand);
 	form.model.SetData(mi.model);
 	form.price.SetData(mi.price);
@@ -378,8 +378,8 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 		}
 		String fname = GetFileName(dir);
 		MarketplaceItem& mi = p.analysis->market_items[item_i];
-		if (mi.generic.IsEmpty())
-			mi.generic = fname;
+		if (mi.generic_name.IsEmpty())
+			mi.generic_name = fname;
 		FindFile ff(AppendFileName(dir, "*.jpg"));
 		do {
 			String fname = ff.GetName();
@@ -405,7 +405,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 			
 			bool found = false;
 			for (MarketplaceItem& mi : p.analysis->market_items) {
-				if (mi.generic == dir_name) {
+				if (mi.generic_name == dir_name) {
 					found = true;
 					break;
 				}
@@ -418,8 +418,8 @@ void BiographyPlatformCtrl::Platforms::Marketplace::Do(int fn) {
 			items.Set(item_i,"IDX",item_i);
 			items.SetCursor(item_i);
 			MarketplaceItem& mi = p.analysis->market_items.Add();
-			if (mi.generic.IsEmpty())
-				mi.generic = dir_name;
+			if (mi.generic_name.IsEmpty())
+				mi.generic_name = dir_name;
 			FindFile ff(AppendFileName(dir, "*.jpg"));
 			do {
 				String fname = ff.GetName();
@@ -515,7 +515,7 @@ void BiographyPlatformCtrl::Platforms::Marketplace::OnValueChange() {
 	
 	mi.priority = form.priority.GetIndex();
 	mi.added = form.added.GetData();
-	mi.generic = form.generic.GetData();
+	mi.generic_name = form.generic_name.GetData();
 	mi.brand = form.brand.GetData();
 	mi.model = form.model.GetData();
 	mi.price = form.price.GetData();
@@ -710,3 +710,4 @@ void BiographyPlatformCtrl::Platforms::Marketplace::ShowItems(int priority) {
 
 
 END_UPP_NAMESPACE
+

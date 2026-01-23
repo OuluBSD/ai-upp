@@ -1,58 +1,52 @@
-#if 0
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
 using namespace DirectX;
 using namespace winrt::Windows::Foundation::Numerics;
 
+namespace DemoRoom {
 
 PaintStrokeSystem::PaintStrokeSystem(
-    Engine& core,
-    std::shared_ptr<Pbr::Resources> pbrResources) :
-    SP(core),
-    m_pbrResources(std::move(pbrResources))
+    VfsValue& v,
+    Pbr::Resources& pbr_resources) :
+    System(v),
+    pbr_resources(&pbr_resources)
 {}
 
 void PaintStrokeSystem::Update(double)
 {
-	Engine& m_engine = GetEngine();
-	
-	TODO
-	#if 0
-	auto comps = m_engine.Get<EntityStore>()->GetComponents<PaintStrokeComponent, PbrRenderable>();
-	
-    for (auto& componentSet : comps)
-    {
-        auto[paintStroke, pbr] = componentSet;
+	auto& root = GetEngine().GetRootPool();
+	auto entities = root.FindAllDeep<Entity>();
+	for (auto& entity : entities) {
+		auto paintStroke = entity->val.Find<PaintStrokeComponent>();
+		auto pbr = entity->val.Find<PbrRenderable>();
+		if (!paintStroke || !pbr || !pbr_resources)
+			continue;
 
-        if (paintStroke->strokeChanged)
-        {
-            std::shared_ptr<Pbr::Material> strokeMaterial = Pbr::Material::CreateFlat(
-                *m_pbrResources,
-                *pbr->Color /* base color */,
-                0.95f /* roughness */);
+		if (paintStroke->strokeChanged) {
+			DirectX::XMVECTORF32 stroke_color = pbr->Color ? *pbr->Color : DirectX::Colors::White;
+			std::shared_ptr<Pbr::Material> strokeMaterial = Pbr::Material::CreateFlat(
+				*pbr_resources,
+				stroke_color /* base color */,
+				0.95f /* roughness */);
 
-            // Load the primitive into D3D buffers with associated materia.
-            Pbr::Primitive strokePrimitive(*m_pbrResources, paintStroke->GetPrimitiveData(), std::move(strokeMaterial));
+			// Load the primitive into D3D buffers with associated material.
+			Pbr::Primitive strokePrimitive(*pbr_resources, paintStroke->GetPrimitiveData(), std::move(strokeMaterial));
 
-            // Add the primitive into the model.
-            if (auto& model = pbr->Model)
-            {
-                model->Clear();
-                model->AddPrimitive(std::move(strokePrimitive));
-            }
+			// Add the primitive into the model.
+			if (auto model = pbr->Model) {
+				model->Clear();
+				model->AddPrimitive(std::move(strokePrimitive));
+			}
 
-            paintStroke->strokeChanged = false;
-        }
-    }
-    #endif
+			paintStroke->strokeChanged = false;
+		}
+	}
 }
 
-void PaintStrokeComponent::AddPoint(const mat4& transformation, float width)
+void PaintStrokeComponent::AddPoint(const float4x4& transformation, float width)
 {
     const float halfWidth = width / 2.0f;
 
@@ -85,10 +79,10 @@ Pbr::PrimitiveBuilder PaintStrokeComponent::GetPrimitiveData()
 
         for (auto& square : squares)
         {
-            vertices.push_back({ HelperCastRef<XMFLOAT3>(square.TopLeft), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
-            vertices.push_back({ HelperCastRef<XMFLOAT3>(square.TopRight), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
-            vertices.push_back({ HelperCastRef<XMFLOAT3>(square.BottomRight), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
-            vertices.push_back({ HelperCastRef<XMFLOAT3>(square.BottomLeft), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
+            vertices.push_back({ AsRef<XMFLOAT3>(square.TopLeft), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
+            vertices.push_back({ AsRef<XMFLOAT3>(square.TopRight), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
+            vertices.push_back({ AsRef<XMFLOAT3>(square.BottomRight), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
+            vertices.push_back({ AsRef<XMFLOAT3>(square.BottomLeft), Normal, Tangent, TexCoord, Pbr::RootNodeIndex });
         }
 
         constexpr size_t numIndicesPerFace = 6u;
@@ -146,6 +140,4 @@ Pbr::PrimitiveBuilder PaintStrokeComponent::GetPrimitiveData()
     return primitiveBuilder;
 }
 
-
-END_UPP_NAMESPACE
-#endif
+} // namespace DemoRoom

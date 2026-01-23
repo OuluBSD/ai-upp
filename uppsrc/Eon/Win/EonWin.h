@@ -5,7 +5,6 @@
 
 #ifdef flagWIN32
 #define CY win32_CY_
-#define FAR win32_FAR_
 #endif
 
 #include <Core/config.h>
@@ -22,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <map>
+#include <string>
 #include <sstream>
 #include <optional>
 
@@ -31,8 +31,9 @@
 	#error Wrong WINAPI_FAMILY
 #endif
 
+#include <windows.h>
+
 #include <Guiddef.h>
-#include <wrl.h>
 #include <wrl/client.h>
 #include <d3d11.h>
 #include <d3d11_3.h>
@@ -50,7 +51,6 @@
 #include <WindowsNumerics.h>
 #include <Windows.Graphics.Directx.Direct3D11.Interop.h>
 
-#include <wrl\client.h>
 
 /*
 #if WINAPI_FAMILY != WINAPI_FAMILY_APP
@@ -63,31 +63,54 @@
 */
 
 #include <ppl.h>
-#include <winrt\Windows.ApplicationModel.Activation.h>
-#include <winrt\Windows.ApplicationModel.Core.h>
-#include <winrt\Windows.Devices.h>
-#include <winrt\Windows.Devices.haptics.h>
-#include <winrt\Windows.Foundation.h>
-#include <winrt\Windows.Foundation.Collections.h>
-#include <winrt\Windows.Gaming.Input.h>
-#include <winrt\Windows.Graphics.Display.h>
-#include <winrt\Windows.Graphics.Holographic.h>
-#include <winrt\Windows.Perception.People.h>
-#include <winrt\Windows.Perception.Spatial.h>
-#include <winrt\Windows.Storage.h>
-#include <winrt\Windows.Storage.Streams.h>
-#include <winrt\Windows.UI.Core.h>
-#include <winrt\Windows.UI.Input.Spatial.h>
+#include <winrt/Windows.ApplicationModel.Activation.h>
+#include <winrt/Windows.ApplicationModel.Core.h>
+#include <winrt/Windows.Devices.h>
+#include <winrt/Windows.Devices.haptics.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Gaming.Input.h>
+#include <winrt/Windows.Graphics.Display.h>
+#include <winrt/Windows.Graphics.Holographic.h>
+#include <winrt/Windows.Perception.People.h>
+#include <winrt/Windows.Perception.Spatial.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.UI.Input.Spatial.h>
 
+#include <Vfs/Ecs/Ecs.h>
 
-#include <EcsLocal/EcsLocal.h>
+using namespace Upp;
 
-	
+template <class T, class F>
+void erase_if(std::vector<T>* container, F predicate) {
+	if (container)
+		container->erase(std::remove_if(container->begin(), container->end(), predicate), container->end());
+}
+
+inline void fail_fast_if(bool condition, const char* msg = nullptr) {
+	if (condition) {
+		#ifdef flagDEBUG
+		// Panic(msg ? msg : "fail_fast_if triggered");
+		#else
+		exit(1);
+		#endif
+	}
+}
+
+inline void debug_log(const char* fmt, ...) {
+	#ifdef flagDEBUG
+	// va_list args;
+	// va_start(args, fmt);
+	// VLog(VString(fmt, args));
+	// va_end(args);
+	#endif
+}
+
 #include <plugin/stb/stb_image.h> // not needed: #define STB_IMAGE_IMPLEMENTATION
 #include <plugin/tiny_gltf/tiny_gltf.h>
 #include <plugin/mikktspace/mikktspace.h>
-#include <plugin/DirectXTK/DirectXTK.h>
-
 #include "PbrResources.h"
 #include "PbrCommon.h"
 #include "PbrMaterial.h"
@@ -95,6 +118,7 @@
 #include "PbrModel.h"
 #include "CommonComponents.h"
 #include "PbrModelCache.h"
+#include "ShaderBytecode.h"
 
 #include "CameraResources.h"
 #include "DeviceResources.h"
@@ -102,28 +126,22 @@
 #include "DirectXHelper.h"
 #include <plugin/DirectXTK/PlatformHelpers.h>
 
-#include "EngineTypeTraits.h"
-#include "Engine.h"
-#include "EngineCommon.h"
-#include "Component.h"
 #include "AppLogicSystem.h"
 #include "ListenerCollection.h"
 #include "HolographicScene.h"
 #include "SpatialInteractionSystem.h"
 #include "MotionControllerSystem.h"
 
+#include "EasingSystem.h"
 #include "ToolboxSystem.h"
 #include "ToolSystem.h"
 #include "PaintingSystem.h"
 #include "ShootingSystem.h"
 #include "ThrowingSystem.h"
 #include "PaintStrokeSystem.h"
-#include "EasingSystem.h"
-#include "EntityStore.h"
 
-#include "ComponentStore.h"
 #include "ControllerRendering.h"
-#include "GltfHelper.h"
+#include <plugin/DirectXTK/GltfHelper.h>
 #include "GltfLoader.h"
 
 #include "PhysicsSystem.h"
@@ -132,8 +150,6 @@
 #include "EntityPrefabs.h"
 
 #include "Haptics.h"
-
-#include "Entity.h"
 
 #include "AppView.h"
 
@@ -147,7 +163,23 @@
 
 #ifdef flagWIN32
 #undef CY
-#undef FAR
+#endif
+
+#ifdef flagUWP
+#define UWPVR_APP_MAIN \
+	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__(); \
+	[Platform::MTAThread] \
+	int main(Platform::Array<Platform::String^>^ args) \
+	{\
+		(void)args; \
+		winrt::init_apartment(); \
+		Upp::SetUwpVrAppFactory(&CreateUwpVrApp__); \
+		winrt::Windows::ApplicationModel::Core::CoreApplication::Run(winrt::make<Upp::AppViewSource>()); \
+		return 0; \
+	} \
+	static std::unique_ptr<Upp::ShellConnectorApp> CreateUwpVrApp__()
+#else
+#define UWPVR_APP_MAIN CONSOLE_APP_MAIN
 #endif
 
 #endif

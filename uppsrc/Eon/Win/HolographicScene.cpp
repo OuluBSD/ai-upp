@@ -1,31 +1,32 @@
-#include "EcsWin.h"
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+namespace winrt_perception = winrt::Windows::Perception;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
 
-NAMESPACE_UPP
-
-
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
+namespace DemoRoom {
 
 HolographicScene::HolographicScene(
-    Engine& core,
-    winrt::Windows::Graphics::Holographic::HolographicSpace holographicSpace) :
-    SP(core),
-    m_holographicSpace(std::move(holographicSpace))
+    VfsValue& v,
+    winrt_holo::HolographicSpace holographic_space) :
+    System(v),
+    m_holographicSpace(std::move(holographic_space))
 {}
 
-bool HolographicScene::Initialize(const WorldState& ws)
+bool HolographicScene::Initialize(const WorldState&)
 {
-    m_stageFrameOfReference = SpatialStageFrameOfReference::Current();
+    m_stageFrameOfReference = winrt_spatial::SpatialStageFrameOfReference::Current();
 
     // Create a fallback frame of reference 1.5 meters under the HMD when we start-up
-    m_stationaryFrameOfReference = SpatialLocator::GetDefault().CreateStationaryFrameOfReferenceAtCurrentLocation(
+    m_stationaryFrameOfReference = winrt_spatial::SpatialLocator::GetDefault().CreateStationaryFrameOfReferenceAtCurrentLocation(
         winrt::Windows::Foundation::Numerics::float3{0.0f, -1.5f, 0.0f});
 
-    m_spatialStageCurrentChanged = SpatialStageFrameOfReference::CurrentChanged(
+    m_spatialStageCurrentChanged = winrt_spatial::SpatialStageFrameOfReference::CurrentChanged(
         std::bind(&HolographicScene::OnCurrentStageChanged, this));
-    
+
     return true;
 }
 
@@ -38,7 +39,7 @@ void HolographicScene::Update(double)
 
 void HolographicScene::Uninitialize()
 {
-    SpatialStageFrameOfReference::CurrentChanged(m_spatialStageCurrentChanged);
+    winrt_spatial::SpatialStageFrameOfReference::CurrentChanged(m_spatialStageCurrentChanged);
 
     m_currentFrame = nullptr;
     m_stationaryFrameOfReference = nullptr;
@@ -55,31 +56,30 @@ void HolographicScene::UpdateCurrentPrediction()
 void HolographicScene::OnCurrentStageChanged()
 {
     std::unique_lock<std::shared_mutex> lock(m_mutex);
-    m_stageFrameOfReference = SpatialStageFrameOfReference::Current();
+    m_stageFrameOfReference = winrt_spatial::SpatialStageFrameOfReference::Current();
 }
 
 void HolographicScene::OnPredictionChanged(IPredictionUpdateListener::PredictionUpdateReason reason)
 {
-    const HolographicFramePrediction prediction = m_currentFrame.CurrentPrediction();
-    const SpatialCoordinateSystem coordinateSystem = WorldCoordinateSystem();
+    const winrt_holo::HolographicFramePrediction prediction = m_currentFrame.CurrentPrediction();
+    const winrt_spatial::SpatialCoordinateSystem coordinateSystem = WorldCoordinateSystem();
 
-    for (auto& listener : m_predictionUpdatelisteners.PurgeAndGetListeners())
-    {
+    for (const auto& listener : m_predictionUpdateListeners.GetListeners()) {
         listener->OnPredictionUpdated(reason, coordinateSystem, prediction);
     }
 }
 
-void HolographicScene::AddPredictionUpdateListener(IPredictionUpdateListener& listener)
+void HolographicScene::AddPredictionUpdateListener(IPredictionUpdateListener* listener)
 {
-    TODO //m_predictionUpdatelisteners.Add(std::move(listener));
+    m_predictionUpdateListeners.Add(listener);
 }
 
-void HolographicScene::RemovePredictionUpdateListener(IPredictionUpdateListener& listener)
+void HolographicScene::RemovePredictionUpdateListener(IPredictionUpdateListener* listener)
 {
-    TODO //m_predictionUpdatelisteners.Remove(std::move(listener));
+    m_predictionUpdateListeners.Remove(listener);
 }
 
-SpatialCoordinateSystem HolographicScene::WorldCoordinateSystem() const
+winrt_spatial::SpatialCoordinateSystem HolographicScene::WorldCoordinateSystem() const
 {
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     if (m_stageFrameOfReference)
@@ -92,22 +92,21 @@ SpatialCoordinateSystem HolographicScene::WorldCoordinateSystem() const
     }
 }
 
-PerceptionTimestamp HolographicScene::CurrentTimestamp() const
+winrt_perception::PerceptionTimestamp HolographicScene::CurrentTimestamp() const
 {
     return CurrentFrame().CurrentPrediction().Timestamp();
 }
 
-HolographicFrame HolographicScene::CurrentFrame() const
+winrt_holo::HolographicFrame HolographicScene::CurrentFrame() const
 {
     fail_fast_if(m_currentFrame == nullptr);
     return m_currentFrame;
 }
 
-HolographicSpace HolographicScene::HolographicSpace() const
+winrt_holo::HolographicSpace HolographicScene::HolographicSpace() const
 {
     fail_fast_if(m_holographicSpace == nullptr);
     return m_holographicSpace;
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

@@ -79,6 +79,7 @@ public:
 	void Kill();
 	void ClearError()                         { error_keys.Clear(); }
 	Vector<String> PickErrors()               { Vector<String> e = pick(error_keys); error_keys.Clear(); return e; }
+	bool GetError() const                     { return !error_keys.IsEmpty(); }
 	void Wait(int slot);
 	bool Wait();
 
@@ -119,6 +120,7 @@ struct Ide : public IdeContext, public MakeBuild {
 	virtual void             IdeConsoleEndGroup();
 	virtual bool             IdeConsoleWait();
 	virtual bool             IdeConsoleWait(int slot);
+	virtual bool             IdeConsoleGetError();
 	virtual void             IdeConsoleOnFinish(Event<> cb);
 	virtual void             IdeProcessEvents() {}
 

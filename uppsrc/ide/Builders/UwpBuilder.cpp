@@ -571,8 +571,28 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 	
 	String target_version = "10.0.19041.0";
 	String min_version = "10.0.17763.0";
-	String entry_point = "App";
+	String entry_point = "Upp.AppView"; // C++/WinRT IFrameworkView class in Upp namespace
 	String uwp_csharp_framework = "uap10.0.19041";
+
+	// Auto-increment package version based on installed version
+	// Query installed package version and increment the revision
+	int build_number = 0;
+	String cmd;
+	cmd << "powershell -NoProfile -Command \"(Get-AppxPackage -Name '" << solution_name << "').Version\"";
+	String installed_version;
+	if(Sys(cmd, installed_version) == 0) {
+		installed_version = TrimBoth(installed_version);
+		if(!IsNull(installed_version)) {
+			// Parse version like "1.0.0.5" and get the last number
+			Vector<String> parts = Split(installed_version, '.');
+			if(parts.GetCount() >= 4) {
+				build_number = ScanInt(parts[3]);
+			}
+		}
+	}
+	build_number++;
+	String package_version = Format("1.0.0.%d", build_number);
+	PutConsole("UWP: Package version: " + package_version + (IsNull(installed_version) ? " (new)" : " (was: " + installed_version + ")"));
 
 	Index<String> clcompile;
 	Index<String> clincludes;
@@ -673,6 +693,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		VectorMap<String, String> manifest_tokens;
 		manifest_tokens.Add("PACKAGE_NAME", XmlEscape(solution_name));
 		manifest_tokens.Add("PROJECT_NAME", XmlEscape(solution_name));
+		manifest_tokens.Add("PACKAGE_VERSION", XmlEscape(package_version));
 		manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 		manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
 		manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
@@ -807,6 +828,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 		VectorMap<String, String> manifest_tokens;
 		manifest_tokens.Add("PACKAGE_NAME", XmlEscape(solution_name));
 		manifest_tokens.Add("PROJECT_NAME", XmlEscape(solution_name));
+		manifest_tokens.Add("PACKAGE_VERSION", XmlEscape(package_version));
 		manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 		manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
 		manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
@@ -956,7 +978,7 @@ bool UwpBuilder::Link(const Vector<String>&, const String&, bool)
 	String conf = HasFlag("DEBUG") ? "Debug" : "Release";
 	String sln_path = AppendFileName(solution_dir, solution_name + ".sln");
 	String msbuild = GetMsBuildPath();
-	String cmd;
+	cmd.Clear();
 	cmd << GetPathQ(msbuild) << " " << GetPathQ(sln_path) << " /p:Configuration=" << conf << " /p:Platform=x64";
 	PutConsole("UWP: building solution with msbuild...");
 	

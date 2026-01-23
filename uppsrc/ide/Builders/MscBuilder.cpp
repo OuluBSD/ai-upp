@@ -945,30 +945,35 @@ bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& link
 	String assets_dir = AppendFileName(layout_dir, "Assets");
 	WriteUwpAssets(assets_dir);
 
-	// Create Manifest
-	String sdk_ver;
-	String inc_env = GetHostEnv(host, "INCLUDE");
-	Vector<String> paths = Split(inc_env, ';');
-	for(const String& p : paths) {
-		String lp = ToLower(p);
-		int q = lp.Find("\\windows kits\\10\\include\\");
-		if(q >= 0) {
-			int e = lp.Find("\\", q + 25);
-			if(e >= 0) {
-				sdk_ver = p.Mid(q + 25, e - (q + 25));
-				break;
+	// Create Manifest - use fixed SDK versions for compatibility
+	String target_version = "10.0.19041.0";
+	String min_version = "10.0.17763.0";
+	String entry_point = "Upp.AppView"; // C++/WinRT IFrameworkView class in Upp namespace
+
+	// Auto-increment package version based on installed version
+	// Query installed package version and increment the revision
+	int build_number = 0;
+	String cmd;
+	cmd << "powershell -NoProfile -Command \"(Get-AppxPackage -Name '" << pkg_name << "').Version\"";
+	String installed_version;
+	if(Sys(cmd, installed_version) == 0) {
+		installed_version = TrimBoth(installed_version);
+		if(!IsNull(installed_version)) {
+			// Parse version like "1.0.0.5" and get the last number
+			Vector<String> parts = Split(installed_version, '.');
+			if(parts.GetCount() >= 4) {
+				build_number = ScanInt(parts[3]);
 			}
 		}
 	}
-	if(sdk_ver.IsEmpty()) GetLatestSDK(sdk_ver);
+	build_number++;
+	String package_version = Format("1.0.0.%d", build_number);
+	PutConsole("UWP: Package version: " + package_version + (IsNull(installed_version) ? " (new)" : " (was: " + installed_version + ")"));
 
-	String target_version = Nvl(sdk_ver, "10.0.19041.0");
-	String min_version = "10.0.17763.0";
-	String entry_point = "App"; // Default for U++ UWP apps usually
-	
 	VectorMap<String, String> manifest_tokens;
 	manifest_tokens.Add("PACKAGE_NAME", XmlEscape(pkg_name));
 	manifest_tokens.Add("PROJECT_NAME", XmlEscape(pkg_name));
+	manifest_tokens.Add("PACKAGE_VERSION", XmlEscape(package_version));
 	manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
 	manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
 	manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
@@ -986,7 +991,7 @@ bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& link
 	String msix_name = pkg_name + ".msix";
 	String msix_path = AppendFileName(outdir, msix_name);
 	
-	String cmd;
+	cmd.Clear();
 	cmd << makeappx << " pack /d " << GetPathQ(layout_dir) << " /p " << GetPathQ(msix_path) << " /o";
 	
 	PutConsole("Packaging " + msix_name + "...");

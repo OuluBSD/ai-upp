@@ -540,6 +540,7 @@ public:
 		BDEBUG, BFINDINFILES1, BFINDINFILES2, BFINDINFILES3 };
 
 	FileOut    stdout_fout;
+	Stream*    console_capture = nullptr; // For capturing console output in test modes
 
 	Splitter      editorsplit;
 	Splitter      pfsplit;

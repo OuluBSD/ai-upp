@@ -24,6 +24,7 @@ void DelTemps()
 #ifdef PLATFORM_WIN32
 #include <mmsystem.h>
 #pragma comment( lib, "winmm.lib" )
+#include "UwpUtils.h"
 #endif
 
 extern int MemoryProbeFlags;
@@ -253,7 +254,18 @@ void AppMain___()
 
 	bool dosplash = true;
 	bool debug_exe_mode = false;
-	
+	bool uwp_test_mode = false;
+	bool uwp_prelaunch_mode = false;
+
+	// Check for --uwp-test and --uwp-prelaunch flags
+	for(int i = 0; i < CommandLine().GetCount(); i++) {
+		if(CommandLine()[i] == "--uwp-test") {
+			uwp_test_mode = true;
+		}
+		else if(CommandLine()[i] == "--uwp-prelaunch") {
+			uwp_prelaunch_mode = true;
+		}
+	}
 
 	Vector<String> arg = clone(CommandLine());
 	
@@ -310,6 +322,18 @@ void AppMain___()
 		else
 		if(ca == "--debug") {
 			debug_exe_mode = true;
+			arg.Remove(i);
+		}
+		else
+		if(ca == "--uwp-test") {
+			uwp_test_mode = true;
+			dosplash = false;
+			arg.Remove(i);
+		}
+		else
+		if(ca == "--uwp-prelaunch") {
+			uwp_prelaunch_mode = true;
+			dosplash = false;
 			arg.Remove(i);
 		}
 		else
@@ -468,6 +492,85 @@ void AppMain___()
 		}
 		
 		ide.LoadAbbr();
+
+#ifdef PLATFORM_WIN32
+		if(uwp_test_mode || uwp_prelaunch_mode) {
+			// UWP test/prelaunch mode: build with UWP method, enable debug, launch, and exit
+			// Write output to file since GUI apps don't have console
+			String logPath = GetHomeDirFile(uwp_prelaunch_mode ? "uwp_prelaunch.log" : "uwp_test.log");
+			FileOut log(logPath);
+
+			auto Log = [&](const char* s) {
+				log << s;
+				log.Flush();
+			};
+
+			Log(uwp_prelaunch_mode ? "UWP Prelaunch Mode\n" : "UWP Test Mode\n");
+			Log("clset: "); Log(clset ? "true" : "false"); Log("\n");
+			Log("Assembly: "); Log(GetVarsName()); Log("\n");
+			Log("Package: "); Log(ide.GetMain()); Log("\n");
+
+			if(!clset) {
+				Log("ERROR: Assembly/package not set. Make sure .var files exist in IDE directory.\n");
+				SetExitCode(1);
+				return;
+			}
+
+			ide.SetMethod("UWP");
+			ide.mainconfigparam = "UWP DX12 UWP_INTERNAL DEBUG DEBUG_FULL";
+			ide.targetmode = 0; // debug
+
+			Log("Building...\n");
+			SetTheIde(&ide);
+
+			// Capture all PutConsole output to the log file
+			ide.console_capture = &log;
+
+			if(ide.Build()) {
+				Log("Build succeeded.\n");
+				Log("Target: "); Log(ide.target); Log("\n");
+
+				if(uwp_prelaunch_mode) {
+					// Prelaunch mode: enable debugging, launch, and prepare for debugger attach
+					Log("Enabling UWP prelaunch debugging...\n");
+					if(EnableUwpPrelaunch(ide.target, String())) {
+						Log("Prelaunch debugging enabled.\n");
+
+						// Launch the app with debug flag
+						DWORD pid = 0;
+						Log("Launching UWP app with debug...\n");
+						if(LaunchUwpApp(ide.target, String(), true, pid)) {
+							Log("UWP app launched. PID: "); Log(AsString(pid)); Log("\n");
+							if(pid > 0) {
+								Log("Process is ready for debugger attach.\n");
+								// TODO: Could auto-attach debugger here
+							}
+						} else {
+							Log("UWP app launch failed.\n");
+							SetExitCode(1);
+						}
+					} else {
+						Log("Failed to enable prelaunch debugging.\n");
+						SetExitCode(1);
+					}
+				} else {
+					// Normal test mode
+					Log("Attempting to launch UWP app...\n");
+					ide.ExecuteBinary();
+					Log("ExecuteBinary returned.\n");
+				}
+			}
+			else {
+				Log("Build failed.\n");
+				SetExitCode(1);
+			}
+
+			ide.console_capture = nullptr;
+			Log("Done.\n");
+			log.Close();
+			return;
+		}
+#endif
 
 		DelTemps();
 

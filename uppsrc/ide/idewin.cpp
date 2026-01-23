@@ -60,6 +60,11 @@ bool Ide::IsVerbose() const
 void Ide::PutConsole(const char *s)
 {
 	console << s << "\n";
+	if(console_capture) {
+		console_capture->Put(s);
+		console_capture->Put('\n');
+		console_capture->Flush();
+	}
 }
 
 void Ide::PutVerbose(const char *s)

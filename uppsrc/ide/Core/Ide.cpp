@@ -137,6 +137,11 @@ bool IdeConsoleWait(int slot)
 	return the_ide && the_ide->IdeConsoleWait(slot);
 }
 
+bool IdeConsoleGetError()
+{
+	return the_ide && the_ide->IdeConsoleGetError();
+}
+
 void IdeConsoleOnFinish(Event<>  cb)
 {
 	if(the_ide) the_ide->IdeConsoleOnFinish(cb);

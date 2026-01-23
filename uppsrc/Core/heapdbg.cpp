@@ -268,7 +268,7 @@ void MemoryDumpLeaks()
 	}
 	if(!leaks)
 		return;
-#ifdef PLATFORM_WIN32
+#if defined(PLATFORM_WIN32) && !defined(flagUWP)
 	MessageBox(::GetActiveWindow(),
 	           "Heap leaks detected !",
 	           "Warning",

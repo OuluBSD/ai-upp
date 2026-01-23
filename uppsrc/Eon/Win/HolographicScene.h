@@ -1,75 +1,66 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+#include "ListenerCollection.h"
 
-NAMESPACE_UPP
-
-
-// PredictionUpdated event listener
-class IPredictionUpdateListener abstract :
-	public RefScopeEnabler<IPredictionUpdateListener,Machine>
+namespace DemoRoom
 {
-public:
-    enum PredictionUpdateReason
-    {
-        HolographicSpaceCreateNextFrame,
-        HolographicFrameUpdatePrediction,
-    };
+	// PredictionUpdated event listener
+	class IPredictionUpdateListener abstract
+	{
+	public:
+		enum PredictionUpdateReason
+		{
+			HolographicSpaceCreateNextFrame,
+			HolographicFrameUpdatePrediction,
+		};
 
-    virtual void OnPredictionUpdated(
-        PredictionUpdateReason reason,
-        void* coordinateSystem,  // Platform-agnostic coordinate system
-        void* prediction) = 0;  // Platform-agnostic prediction
-};
+		virtual void OnPredictionUpdated(
+			PredictionUpdateReason reason,
+			const winrt::Windows::Perception::Spatial::SpatialCoordinateSystem& coordinateSystem,
+			const winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction) = 0;
+	};
 
+	////////////////////////////////////////////////////////////////////////////////
+	// HolographicScene
+	// Maintains a list of our current state of Windows::Perception objects, ensuring the rest of the systems
+	// use the same coordinate system, timestamp, etc. 
+	class HolographicScene : public System
+	{
+	public:
+		SYS_CTOR(HolographicScene)
+		HolographicScene(VfsValue& v, winrt::Windows::Graphics::Holographic::HolographicSpace holographic_space);
 
-// HolographicScene
-// Maintains a list of our current state of VR objects, ensuring the rest of the systems
-// use the same coordinate system, timestamp, etc.
-// Updated to work with multiple VR platforms (OpenVR, OpenHMD, WinRT)
-class HolographicScene : public System
-{
-public:
-    using System::System;
-    using Base = System;
-	//RTTI_DECL1(HolographicScene, Base)
+		winrt::Windows::Graphics::Holographic::HolographicFrame CurrentFrame() const;
+		winrt::Windows::Graphics::Holographic::HolographicSpace HolographicSpace() const;
 
-    HolographicScene(Engine& core);
+		winrt::Windows::Perception::Spatial::SpatialCoordinateSystem WorldCoordinateSystem() const;
+		winrt::Windows::Perception::PerceptionTimestamp CurrentTimestamp() const;
 
-    // Platform-agnostic frame and timestamp access
-    void* CurrentFrame() const;
-    Time CurrentTimestamp() const;
+		void UpdateCurrentPrediction();
 
-    void* WorldCoordinateSystem() const;
-    void UpdateCurrentPrediction();
+		void AddPredictionUpdateListener(IPredictionUpdateListener* listener);
+		void RemovePredictionUpdateListener(IPredictionUpdateListener* listener);
 
-    void AddPredictionUpdateListener(IPredictionUpdateListener& listener);
-    void RemovePredictionUpdateListener(IPredictionUpdateListener& listener);
+	protected:
+		bool Initialize(const WorldState& ws) override;
+		void Update(double dt) override;
+		void Uninitialize() override;
 
-    // Platform-agnostic camera management
-    int GetCameraCount() const;
-    IVRCamera* GetCamera(int index) const;
-    void AddCameraListener(void* listener);
-    void RemoveCameraListener(void* listener);
+		void OnCurrentStageChanged();
+		void OnPredictionChanged(IPredictionUpdateListener::PredictionUpdateReason reason);
 
-    // Platform management
-    VRPlatform::Type GetPlatformType() const;
-    void SetPlatformType(VRPlatform::Type type);
+	private:
+		mutable std::shared_mutex m_mutex;
+		winrt::Windows::Perception::Spatial::SpatialStageFrameOfReference m_stageFrameOfReference{ nullptr };
+		winrt::Windows::Perception::Spatial::SpatialStationaryFrameOfReference m_stationaryFrameOfReference{ nullptr };
+		winrt::event_token m_spatialStageCurrentChanged;
 
-protected:
-    bool Initialize(const WorldState&) override;
-    void Update(double) override;
-    void Uninitialize() override;
+		winrt::Windows::Graphics::Holographic::HolographicSpace m_holographicSpace{ nullptr };
+		winrt::Windows::Graphics::Holographic::HolographicFrame m_currentFrame{ nullptr };
 
-    void OnCurrentStageChanged();
-
-    void OnPredictionChanged(IPredictionUpdateListener::PredictionUpdateReason reason);
-
-private:
-    mutable std::shared_mutex m_mutex;
-    std::unique_ptr<IVRScene> m_platformScene;  // Platform-specific scene implementation
-
-    ListenerCollection<IPredictionUpdateListener> m_predictionUpdatelisteners;
-};
-
-
-END_UPP_NAMESPACE
+		ListenerCollection<IPredictionUpdateListener> m_predictionUpdateListeners;
+	};
+}

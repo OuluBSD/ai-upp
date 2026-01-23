@@ -48,8 +48,7 @@ MarketplaceProcess& MarketplaceProcess::Get(DatasetPtrs p) {
 
 void MarketplaceProcess::MakeArgs(MarketplaceArgs& args) {
 	MarketplaceItem& it = p.analysis->market_items[batch];
-	args.map.Add("generic", it.generic);
-	args.map.Add("brand", it.brand);
+			args.map.Add("generic", it.generic_name);	args.map.Add("brand", it.brand);
 	args.map.Add("model", it.model);
 	args.map.Add("price", DblStr(it.price) + "€");
 	args.map.Add("faults", it.faults);

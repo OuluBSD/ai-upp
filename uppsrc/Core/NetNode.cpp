@@ -1,6 +1,6 @@
 #include "Core.h"
 
-#ifdef PLATFORM_WIN32
+#if defined(PLATFORM_WIN32) && !defined(flagUWP)
 
 namespace Upp {
 

@@ -8,7 +8,7 @@ namespace Shaders {
 
 void FS_SimpleSingle::Process(SdlCpuFragmentShaderArgs& a)
 {
-	GenericShaderArgs& g = *a.generic;
+	GenericShaderArgs& g = *a.gen;
     vec3 res = g.iResolution;
     ASSERT(res[0] > 0 && res[1] > 0);
     float t = g.iTime;
@@ -26,3 +26,4 @@ void FS_SimpleSingle::Process(SdlCpuFragmentShaderArgs& a)
 
 }
 END_UPP_NAMESPACE
+

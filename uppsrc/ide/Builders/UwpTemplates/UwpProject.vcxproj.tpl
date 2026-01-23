@@ -17,17 +17,17 @@
     <AppContainerApplication>true</AppContainerApplication>
     <ApplicationType>Windows Store</ApplicationType>
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
-    <TargetPlatformVersion>@TARGET_PLATFORM_VERSION@</TargetPlatformVersion>
-    <TargetPlatformMinVersion>@TARGET_PLATFORM_MIN_VERSION@</TargetPlatformMinVersion>
+    <WindowsTargetPlatformVersion>@TARGET_PLATFORM_VERSION@</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>@TARGET_PLATFORM_MIN_VERSION@</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>@CONFIGURATION_TYPE@</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>@PLATFORM_TOOLSET@</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>@CONFIGURATION_TYPE@</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>@PLATFORM_TOOLSET@</PlatformToolset>
   </PropertyGroup>
@@ -43,11 +43,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)AppX\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)AppX\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)AppX\Intermediate\$(Configuration)\@PROJECT_NAME@\</IntDir>
+@APPX_PACKAGE@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)AppX\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)AppX\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)AppX\Intermediate\$(Configuration)\@PROJECT_NAME@\</IntDir>
+@APPX_PACKAGE@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -55,7 +57,11 @@
       <PreprocessorDefinitions>@DEFINES@</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
+@LINK_SETTINGS@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -63,7 +69,11 @@
       <PreprocessorDefinitions>@DEFINES@</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
+@LINK_SETTINGS@
   </ItemDefinitionGroup>
   <ItemGroup>
 @CLCOMPILE@
@@ -77,9 +87,8 @@
   <ItemGroup>
 @CONTENT_ITEMS@
   </ItemGroup>
-  <ItemGroup>
-    <AppxManifest Include="Package.appxmanifest" />
-  </ItemGroup>
+@PROJECT_REFERENCES@
+@APPX_MANIFEST_ITEM@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
 </Project>

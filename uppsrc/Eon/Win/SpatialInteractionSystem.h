@@ -1,100 +1,92 @@
-#if 0
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
 #pragma once
 
+#include "ListenerCollection.h"
 
-NAMESPACE_UPP
-
-
-////////////////////////////////////////////////////////////////////////////////
-// SpatialInteraction event listener
-class ISpatialInteractionListener abstract :
-	public WeakRefScopeEnabler<ISpatialInteractionListener,Engine>
+namespace DemoRoom
 {
-public:
-    virtual void OnSourceDetected(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {};
-
-    virtual void OnSourceLost(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {};
-
-    virtual void OnSourcePressed(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {};
-
-    virtual void OnSourceUpdated(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {};
-
-    virtual void OnSourceReleased(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {};
-};
-
-using ISpatialInteractionListenerRef = Ref<ISpatialInteractionListener, Engine>;
-
-
-
-// SpatialInteractionSystem
-// Responsible for managing the events from SpatialInteractionManager with additional filtering
-class SpatialInteractionSystem final : public SpatialInteractionSystem
-{
-public:
-    using System::System;
-
-    void AddListener(ISpatialInteractionListener& listener)
+    // SpatialInteraction event listener
+    class ISpatialInteractionListener abstract
     {
-        m_spatialInteractionListeners.Add(listener);
-    }
+    public:
+        virtual void OnSourceDetected(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {}
 
-    void RemoveListener(ISpatialInteractionListener& listener)
-    {
-        m_spatialInteractionListeners.Remove(listener);
-    }
+        virtual void OnSourceLost(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {}
 
-    winrt::Windows::UI::Input::Spatial::ISpatialInteractionManager GetInteractionManager() const
-    {
-        fail_fast_if(m_spatialInteractionManager == nullptr);
-        return m_spatialInteractionManager;
-    }
+        virtual void OnSourcePressed(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {}
 
-protected:
-    bool Initialize(const WorldState&) override;
-    void Uninitialize() override;
+        virtual void OnSourceUpdated(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {}
 
-private:
-    winrt::Windows::UI::Input::Spatial::ISpatialInteractionManager m_spatialInteractionManager{ nullptr };
-
-    enum SourceEvent {
-        Detected, Pressed, Updated, Released, Lost, Count
+        virtual void OnSourceReleased(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args) {}
     };
 
-    winrt::event_token m_sourceTokens[SourceEvent::Count];
+    // SpatialInteractionSystem
+    // Responsible for managing the events from SpatialInteractionManager with additional filtering
+    class SpatialInteractionSystem final : public System
+    {
+    public:
+        SYS_CTOR(SpatialInteractionSystem)
 
-    ListenerCollection<ISpatialInteractionListener,Engine> m_spatialInteractionListeners;
+        void AddListener(ISpatialInteractionListener* listener)
+        {
+            m_spatialInteractionListeners.Add(listener);
+        }
 
-    void BindEventHandlers();
-    void ReleaseEventHandlers();
+        void RemoveListener(ISpatialInteractionListener* listener)
+        {
+            m_spatialInteractionListeners.Remove(listener);
+        }
 
-    // Events Handlers
-    void HandleSourceDetected(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs&  args);
+        winrt::Windows::UI::Input::Spatial::ISpatialInteractionManager GetInteractionManager() const
+        {
+            fail_fast_if(m_spatialInteractionManager == nullptr);
+            return m_spatialInteractionManager;
+        }
 
-    void HandleSourceLost(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+    protected:
+        bool Initialize(const WorldState& ws) override;
+        void Uninitialize() override;
 
-    void HandleSourcePressed(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+    private:
+        winrt::Windows::UI::Input::Spatial::ISpatialInteractionManager m_spatialInteractionManager{ nullptr };
 
-    void HandleSourceUpdated(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+        enum SourceEvent {
+            Detected, Pressed, Updated, Released, Lost, Count
+        };
 
-    void HandleSourceReleased(
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
-        const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+        winrt::event_token m_sourceTokens[SourceEvent::Count];
 
-};
+        ListenerCollection<ISpatialInteractionListener> m_spatialInteractionListeners;
 
+        void BindEventHandlers();
+        void ReleaseEventHandlers();
 
-END_UPP_NAMESPACE
-#endif
+        // Events Handlers
+        void HandleSourceDetected(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs&  args);
+
+        void HandleSourceLost(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+
+        void HandleSourcePressed(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+
+        void HandleSourceUpdated(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+
+        void HandleSourceReleased(
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionManager& sender,
+            const winrt::Windows::UI::Input::Spatial::SpatialInteractionSourceEventArgs& args);
+    };
+}

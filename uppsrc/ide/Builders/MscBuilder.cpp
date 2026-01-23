@@ -1,4 +1,5 @@
 #include "Builders.h"
+#include "UwpTemplates.brc"
 
 #include "coff.h"
 
@@ -77,7 +78,7 @@ void   MscBuilder::AddFlags(Index<String>& cfg)
 	cfg.FindAdd("MSC");
 }
 
-String MscBuilder::CmdLine(const String& package, const Package& pkg)
+String MscBuilder::CmdLine(const String& package, const Package& pkg, bool is_c)
 {
 	String cc;
 	if(HasFlag("ARM"))
@@ -254,21 +255,28 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 	
 	String nvcc = "nvcc -c " + IncludesDefinesTargetTime(package, pkg) + " ";
 
-	String cc = CmdLine(package, pkg);
+	String cc = CmdLine(package, pkg, false);
+	String cc_c = CmdLine(package, pkg, true);
 	if(HasFlag("EVC")) {
-		if(!HasFlag("SH3") && !HasFlag("SH4"))
-			cc << " -Gs8192"; // disable stack checking
+		cc << " -Gs8192"; // disable stack checking
 		cc << " -GF" // read-only string pooling
 		      " -GX-"; // turn off exception handling
+		cc_c << " -Gs8192 -GF -GX-";
 	}
 	else
-	if(is_clr)
+	if(is_clr) {
 		cc << " -EHac";
+		cc_c << " -EHac";
+	}
 	else
-	if(IsMsc89())
+	if(IsMsc89() || HasFlag("UWP")) {
 		cc << " -EHsc";
-	else
+		cc_c << " -EHsc";
+	}
+	else {
 		cc << " -GX";
+		cc_c << " -GX";
+	}
 //	String pdb = GetPathQ(CatAnyPath(outdir, GetAnyFileName(package) + ".pdb"));
 //	String pch;
 //	if(!HasFlag("MSC8")) // MSC8 does not support automatic precompiled headers...
@@ -276,20 +284,30 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 //	cc << " -Gy -Fd" << pdb;
 //	if(HasFlag("SSE2") && !IsMsc64())
 //		cc << " /arch:SSE2";
-	if(HasFlag("DEBUG_MINIMAL"))
+	if(HasFlag("DEBUG_MINIMAL")) {
 		cc << " -Zd";
-	if(HasFlag("DEBUG_FULL"))
+		cc_c << " -Zd";
+	}
+	if(HasFlag("DEBUG_FULL")) {
 		cc << " -Zi";
-	cc << ' ' << Gather(pkg.option, config.GetKeys());
-	cc << (HasFlag("SHARED") || is_shared || is_clr ? " -MD" : " -MT");
+		cc_c << " -Zi";
+	}
+	String common_options = ' ' + Gather(pkg.option, config.GetKeys());
+	common_options << (HasFlag("SHARED") || is_shared || is_clr || HasFlag("UWP") ? " -MD" : " -MT");
+	cc << common_options;
+	cc_c << common_options;
 
 	String cc_size = cc;
 	String cc_speed = cc;
 
-	if(release)
+	if(release) {
 		cc << ' ' << release_options;
-	else
+		cc_c << ' ' << release_options;
+	}
+	else {
 		cc << "d " << debug_options;
+		cc_c << "d " << debug_options;
+	}
 	
 	int recompile = 0;
 	Blitz b;
@@ -399,9 +417,9 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 					c << nvcc << (release ? release_cuda : debug_cuda) << " " << soptions[i]
 					  << " -o " << GetPathQ(objfile) << " " << GetPathQ(fn);
 				else {
-					c = cc;
+					c = (ext == ".c" ? cc_c : cc);
 					if(HasAnyDebug())
-						c << Pdb(package, slot, !sContainsPchOptions(cc) && !sContainsPchOptions(soptions[i]));
+						c << Pdb(package, slot, !sContainsPchOptions(c) && !sContainsPchOptions(soptions[i]));
 					c << " " + soptions[i] + (ext == ".c" ? Join(c_options, " -Tc") : Join(cpp_options, " -Tp")) + ' '
 					     + GetPathQ(fn) + " -Fo" + GetPathQ(objfile);
 					if(nopch.Find(fn) < 0)
@@ -414,6 +432,10 @@ bool MscBuilder::BuildPackage(const String& package, Vector<String>& linkfile, V
 				DeleteFile(objfile);
 			error |= execerr;
 			PutVerbose("compiled in " + GetPrintTime(time));
+			if(host->GetError()) {
+				error = true;
+				break;
+			}
 		}
 		if(init)
 			linkfile.Add(objfile);
@@ -579,9 +601,9 @@ bool MscBuilder::CreateLib(const String& product, const Vector<String>& obj,
 			{
 				char c = lib[i];
 				if(isspace(c) && !quotes)
-					found = i;
+						found = i;
 				else if(c == '"')
-					quotes = !quotes;
+						quotes = !quotes;
 			}
 			if(!found)
 				found = lib.GetCount();
@@ -646,10 +668,10 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 				else
 					link << " -incremental:no -release -OPT:REF,ICF";
 			else
-				if(HasAnyDebug())
-					link << " -debug -OPT:NOREF";
-				else
-					link << " -release -OPT:REF,ICF";
+			if(HasAnyDebug())
+				link << " -debug -OPT:NOREF";
+			else
+				link << " -release -OPT:REF,ICF";
 			if(IsMscArm())
 				link << " -subsystem:windowsce,4.20 /ARMPADCODE -NODEFAULTLIB:\"oldnames.lib\" ";
 			else
@@ -665,7 +687,7 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 				link << " -DLL";
 
 			for(i = 0; i < libpath.GetCount(); i++)
-				link << " -LIBPATH:\"" << libpath[i] << '\"';
+				link << " -LIBPATH:\"" << libpath[i] << '"';
 			link << ' ' << linkoptions << ' ';
 			for(i = 0; i < linkfile.GetCount(); i++)
 				lib << ' ' << GetPathQ(AppendExt(linkfile[i], ".lib"));
@@ -689,9 +711,9 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 					{
 						char c = lib[i];
 						if(isspace(c) && !quotes)
-							found = i;
+								found = i;
 						else if(c == '"')
-							quotes = !quotes;
+								quotes = !quotes;
 					}
 					if(!found)
 						found = lib.GetCount();
@@ -712,7 +734,7 @@ bool MscBuilder::Link(const Vector<String>& linkfile, const String& linkoptions,
 					if(FileExists(manifest)) {
 						String mt("mt -nologo -manifest ");
 						mt << GetPathQ(manifest) << " -outputresource:" << GetPathQ(target)
-					           << (HasFlag("DLL") ? ";2" : ";1");
+						           << (HasFlag("DLL") ? ";2" : ";1");
 						Execute(mt);
 					}
 				}
@@ -738,6 +760,253 @@ bool MscBuilder::Preprocess(const String& package, const String& file, const Str
 	Package pkg;
 	pkg.Load(PackageFile(package));
 	return Execute(CmdLine(package, pkg) + " -E " + file, out);
+}
+
+// --- UwpInternalBuilder ---
+
+static int CompareVersions(const String& a, const String& b)
+{
+	Vector<String> va = Split(a, '.');
+	Vector<String> vb = Split(b, '.');
+	for(int i = 0; i < min(va.GetCount(), vb.GetCount()); i++) {
+		int na = atoi(va[i]);
+		int nb = atoi(vb[i]);
+		if(na != nb)
+			return na - nb;
+	}
+	return va.GetCount() - vb.GetCount();
+}
+
+static String GetHostEnv(Host *host, const char *id)
+{
+	String env = host->GetEnvironment();
+	const char *p = env;
+	int len = (int)strlen(id);
+	while(*p) {
+		if(strncmp(p, id, len) == 0 && p[len] == '=')
+			return p + len + 1;
+		p += strlen(p) + 1;
+	}
+	return Null;
+}
+
+static String GetLatestSubfolder(const String& path)
+{
+	if(path.IsEmpty()) return String();
+	String latest;
+	FindFile ff(AppendFileName(path, "*"));
+	while(ff) {
+		if(ff.IsFolder()) {
+			String n = ff.GetName();
+			if(IsDigit(n[0])) {
+				if(latest.IsEmpty() || CompareVersions(n, latest) > 0)
+					latest = n;
+			}
+		}
+		ff.Next();
+	}
+	return latest;
+}
+
+static String GetLatestSDK(String& sdk_ver)
+{
+	String sdk10;
+	for(const char *pf : { "C:\\Program Files (x86)\\Windows Kits\\10", "C:\\Program Files\\Windows Kits\\10" }) {
+		String ver = GetLatestSubfolder(AppendFileName(pf, "Include"));
+		if(ver.GetCount()) {
+			sdk10 = pf;
+			sdk_ver = ver;
+			break;
+		}
+	}
+	return sdk10;
+}
+
+static String GetLatestMSVC(String& vs_ver)
+{
+	String vs_base;
+	String latest_year;
+	for(const char *root : { "C:\\Program Files\\Microsoft Visual Studio", "C:\\Program Files (x86)\\Microsoft Visual Studio" }) {
+		FindFile ff(AppendFileName(root, "*"));
+		while(ff) {
+			if(ff.IsFolder() && IsDigit(ff.GetName()[0])) {
+				String year = ff.GetName();
+				if(vs_base.IsEmpty() || year > latest_year) {
+					for(const char *edition : { "Community", "Professional", "Enterprise", "BuildTools" }) {
+						String p = AppendFileName(AppendFileName(ff.GetPath(), edition), "VC\\Tools\\MSVC");
+						if(DirectoryExists(p)) {
+							vs_base = p;
+							latest_year = year;
+						}
+					}
+				}
+			}
+			ff.Next();
+		}
+	}
+	vs_ver = GetLatestSubfolder(vs_base);
+	return vs_base;
+}
+
+struct UwpInternalBuilder : MscBuilder {
+	typedef UwpInternalBuilder CLASSNAME;
+
+	virtual void   AddFlags(Index<String>& cfg);
+	virtual String CmdLine(const String& package, const Package& pkg, bool is_c);
+	virtual bool   Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap);
+};
+
+void UwpInternalBuilder::AddFlags(Index<String>& cfg)
+{
+	MscBuilder::AddFlags(cfg);
+	cfg.FindAdd("UWP");
+	if(cfg.Find("ARM") < 0 && cfg.Find("MIPS") < 0 && !IsMsc64()) {
+		cfg.FindAdd("WIN64");
+		cfg.FindAdd("MSC22X64");
+	}
+}
+
+String UwpInternalBuilder::CmdLine(const String& package, const Package& pkg, bool is_c)
+{
+	String cc = MscBuilder::CmdLine(package, pkg, is_c);
+	cc << " /std:c++17 /D \"WINAPI_FAMILY=WINAPI_FAMILY_APP\"";
+	if(!is_c) {
+		cc << " /ZW";
+		
+		String sdk10, sdk_ver;
+		String vs_base, vs_ver;
+		
+		String inc_env = GetHostEnv(host, "INCLUDE");
+		Vector<String> paths = Split(inc_env, ';');
+		for(const String& p : paths) {
+			String lp = ToLower(p);
+			int q = lp.Find("\\windows kits\\10\\include\\");
+			if(q >= 0 && sdk10.IsEmpty()) {
+				sdk10 = p.Left(q + 17);
+				int e = lp.Find("\\", q + 25);
+				if(e >= 0)
+					sdk_ver = p.Mid(q + 25, e - (q + 25));
+			}
+			q = lp.Find("\\vc\\tools\\msvc\\");
+			if(q >= 0 && vs_base.IsEmpty()) {
+				vs_base = p.Left(q + 15);
+				int e = lp.Find("\\", q + 15);
+				if(e >= 0)
+					vs_ver = p.Mid(q + 15, e - (q + 15));
+			}
+		}
+		
+		if(sdk10.IsEmpty()) sdk10 = GetLatestSDK(sdk_ver);
+		if(vs_base.IsEmpty()) vs_base = GetLatestMSVC(vs_ver);
+
+		cc << " /I\"" << sdk10 << "\\Include\\" << sdk_ver << "\\cppwinrt\"";
+		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\"";
+		cc << " /AI\"" << sdk10 << "\\UnionMetadata\\" << sdk_ver << "\\Facade\"";
+		
+		String ref_path = vs_base + "\\" + vs_ver + "\\lib\\x64\\store\\references";
+		if(!DirectoryExists(ref_path))
+			ref_path = vs_base + "\\" + vs_ver + "\\lib\\x86\\store\\references";
+		cc << " /AI\"" << ref_path << "\"";
+	}
+	return cc;
+}
+
+bool UwpInternalBuilder::Link(const Vector<String>& linkfile, const String& linkoptions, bool createmap)
+{
+	// 1. Link the executable
+	String uwp_link_options = linkoptions + " /APPCONTAINER /MACHINE:" + (IsMsc64() ? "X64" : "X86") + " \"WindowsApp.lib\"";
+	if(!MscBuilder::Link(linkfile, uwp_link_options, createmap))
+		return false;
+
+	// 2. Prepare Appx layout
+	String pkg_name = GetFileTitle(mainpackage);
+	if(IsNull(pkg_name)) pkg_name = "UwpApp";
+	
+	String layout_dir = AppendFileName(GetFileFolder(target), "AppxLayout");
+	RealizeDirectory(layout_dir);
+
+	// Copy the executable
+	String exe_name = GetFileName(target);
+	String dest_exe = AppendFileName(layout_dir, exe_name);
+	
+	if(!SaveFile(dest_exe, LoadFile(target))) {
+		PutConsole("Error copying executable to AppxLayout");
+		return false;
+	}
+	
+	// Copy the PDB
+	String pdb_path = ForceExt(target, ".pdb");
+	if(FileExists(pdb_path)) {
+		String dest_pdb = AppendFileName(layout_dir, GetFileName(pdb_path));
+		SaveFile(dest_pdb, LoadFile(pdb_path));
+	}
+
+	// Create Assets
+	String assets_dir = AppendFileName(layout_dir, "Assets");
+	WriteUwpAssets(assets_dir);
+
+	// Create Manifest - use fixed SDK versions for compatibility
+	String target_version = "10.0.19041.0";
+	String min_version = "10.0.17763.0";
+	String entry_point = "Upp.AppView"; // C++/WinRT IFrameworkView class in Upp namespace
+
+	// Auto-increment package version based on installed version
+	// Query installed package version and increment the revision
+	int build_number = 0;
+	String cmd;
+	cmd << "powershell -NoProfile -Command \"(Get-AppxPackage -Name '" << pkg_name << "').Version\"";
+	String installed_version;
+	if(Sys(cmd, installed_version) == 0) {
+		installed_version = TrimBoth(installed_version);
+		if(!IsNull(installed_version)) {
+			// Parse version like "1.0.0.5" and get the last number
+			Vector<String> parts = Split(installed_version, '.');
+			if(parts.GetCount() >= 4) {
+				build_number = ScanInt(parts[3]);
+			}
+		}
+	}
+	build_number++;
+	String package_version = Format("1.0.0.%d", build_number);
+	PutConsole("UWP: Package version: " + package_version + (IsNull(installed_version) ? " (new)" : " (was: " + installed_version + ")"));
+
+	VectorMap<String, String> manifest_tokens;
+	manifest_tokens.Add("PACKAGE_NAME", XmlEscape(pkg_name));
+	manifest_tokens.Add("PROJECT_NAME", XmlEscape(pkg_name));
+	manifest_tokens.Add("PACKAGE_VERSION", XmlEscape(package_version));
+	manifest_tokens.Add("TARGET_PLATFORM_VERSION", XmlEscape(target_version));
+	manifest_tokens.Add("TARGET_PLATFORM_MIN_VERSION", XmlEscape(min_version));
+	manifest_tokens.Add("ENTRY_POINT", XmlEscape(entry_point));
+	manifest_tokens.Add("PHONE_PRODUCT_ID", XmlEscape(UwpGuidString("PhoneProduct:" + pkg_name)));
+	manifest_tokens.Add("PHONE_PUBLISHER_ID", XmlEscape(UwpGuidString("PhonePublisher:" + pkg_name)));
+
+	String manifest = ReplaceUwpTokens(UwpTemplate(uwp_appxmanifest_tpl, uwp_appxmanifest_tpl_length), manifest_tokens);
+	manifest.Replace("$targetnametoken$", pkg_name);
+	String manifest_path = AppendFileName(layout_dir, "AppxManifest.xml");
+	SaveFile(manifest_path, manifest);
+
+	// 3. Package using MakeAppx
+	String makeappx = "makeappx.exe";
+	
+	String msix_name = pkg_name + ".msix";
+	String msix_path = AppendFileName(outdir, msix_name);
+	
+	cmd.Clear();
+	cmd << makeappx << " pack /d " << GetPathQ(layout_dir) << " /p " << GetPathQ(msix_path) << " /o";
+	
+	PutConsole("Packaging " + msix_name + "...");
+	if(Execute(cmd) != 0) {
+		PutConsole("Error executing MakeAppx. Ensure Windows SDK is in PATH.");
+		return false;
+	}
+
+	PutConsole(msix_name + " created successfully.");
+	return true;
+}
+
+static Builder *CreateUwpInternalBuilder()
+{
+	return new UwpInternalBuilder;
 }
 
 Builder *CreateMscBuilder()
@@ -770,6 +1039,7 @@ INITIALIZER(MscBuilder)
 	RegisterBuilder("MSC19X64", CreateMscBuilder);
 	RegisterBuilder("MSC22", CreateMscBuilder);
 	RegisterBuilder("MSC22X64", CreateMscBuilder);
+	RegisterBuilder("UWP_INTERNAL", CreateUwpInternalBuilder);
 	RegisterBuilder("EVC_ARM", CreateMscBuilder);
 	RegisterBuilder("EVC_MIPS", CreateMscBuilder);
 	RegisterBuilder("EVC_SH3", CreateMscBuilder);

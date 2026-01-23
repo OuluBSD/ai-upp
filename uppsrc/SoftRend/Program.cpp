@@ -318,3 +318,4 @@ void SoftProgram::BindTexture(int tex, const ByteImage* buf) {
 
 
 END_UPP_NAMESPACE
+

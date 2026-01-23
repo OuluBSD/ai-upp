@@ -19,7 +19,7 @@ The U++ integrated development environment, TheIDE, introduces modular concepts 
 
 TheIDE can work with GCC, Clang, MinGW and Visual C++ while containing a fully featured debugger. It can also be used for developing non-U++ applications.
 
-U++ supports following platforms on the production level: **Windows**, **macOS**, **GNU/Linux** & **FreeBSD**.
+U++ supports following platforms on the production level: **Windows** (Win32 & UWP), **macOS**, **GNU/Linux** & **FreeBSD**.
 
 ## What you can get with U++?
 

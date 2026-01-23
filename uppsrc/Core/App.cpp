@@ -23,7 +23,68 @@
 #undef CY
 #endif
 
+#ifdef flagUWP
+#ifndef CSIDL_DESKTOP
+#define CSIDL_DESKTOP 0
+#define CSIDL_PROGRAM_FILES 0
+#define CSIDL_APPDATA 0
+#define CSIDL_MYMUSIC 0
+#define CSIDL_MYPICTURES 0
+#define CSIDL_MYVIDEO 0
+#define CSIDL_TEMPLATES 0
+#define CSIDL_COMMON_APPDATA 0
+#endif
+#include <winrt/Windows.ApplicationModel.Core.h>
+#include <winrt/Windows.UI.Core.h>
+#endif
+
 namespace Upp {
+
+#ifdef flagUWP
+
+struct UwpAppView : winrt::implements<UwpAppView, winrt::Windows::ApplicationModel::Core::IFrameworkView> {
+	void (*app)() = nullptr;
+
+	UwpAppView(void (*fn)()) : app(fn) {}
+
+	void Initialize(winrt::Windows::ApplicationModel::Core::CoreApplicationView const&) {}
+	void SetWindow(winrt::Windows::UI::Core::CoreWindow const&) {}
+	void Load(winrt::hstring const&) {}
+	void Run()
+	{
+		static bool init_done = false;
+		if(!init_done) {
+			AppInitEnvironment__();
+			init_done = true;
+		}
+		auto window = winrt::Windows::UI::Core::CoreWindow::GetForCurrentThread();
+		window.Activate();
+		AppExecute__(app);
+		AppExit__();
+	}
+	void Uninitialize() {}
+};
+
+struct UwpAppViewSource
+	: winrt::implements<UwpAppViewSource, winrt::Windows::ApplicationModel::Core::IFrameworkViewSource> {
+	void (*app)() = nullptr;
+
+	UwpAppViewSource(void (*fn)()) : app(fn) {}
+
+	winrt::Windows::ApplicationModel::Core::IFrameworkView CreateView()
+	{
+		return winrt::make<UwpAppView>(app);
+	}
+};
+
+void UwpAppMain__(void (*app)())
+{
+	winrt::init_apartment();
+	auto source = winrt::make<UwpAppViewSource>(app);
+	winrt::Windows::ApplicationModel::Core::CoreApplication::Run(source);
+}
+
+#endif
 
 static StaticMutex sHlock;
 
@@ -386,7 +447,7 @@ VectorMap<WString, WString>& EnvMap()
 
 const VectorMap<String, String>& Environment()
 {
-	VectorMap<String, String> *ptr;
+	VectorMap<String, String> *ptr = NULL;
 	INTERLOCKED {
 		static ArrayMap< byte, VectorMap<String, String> > charset_env;
 		byte cs = GetDefaultCharset();
@@ -570,6 +631,9 @@ static BOOL WINAPI s_consoleCtrlHandler(DWORD signal) {
 void AppInitEnvironment__()
 {
 	SetLanguage(LNG_('E', 'N', 'U', 'S'));
+#ifdef flagUWP
+	// UWP command line handling is different, stub for now
+#else
 	int nArgs;
     LPWSTR *szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 	if(szArglist) {
@@ -596,6 +660,7 @@ void AppInitEnvironment__()
 		EnvMap().GetAdd(ToUpper(varname)) = ToUtf32(b, int(ptr - b));
 	}
 	FreeEnvironmentStringsW(env);
+#endif
 
 	CommonInit();
 }
@@ -630,7 +695,7 @@ void LaunchWebBrowser(const String& url)
 
 #else
 
-#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE)
+#if defined(PLATFORM_WIN32) && !defined(PLATFORM_WINCE) && !defined(flagUWP)
 static auxthread_t auxthread__ sShellExecuteOpen(void *str)
 {
 	ShellExecuteW(NULL, L"open", (WCHAR *)str, NULL, L".", SW_SHOWDEFAULT);
@@ -647,6 +712,13 @@ void LaunchWebBrowser(const String& url)
 		memcpy(curl, wurl, l);
 		StartAuxThread(sShellExecuteOpen, curl);
 	}
+}
+#endif
+
+#ifdef flagUWP
+void LaunchWebBrowser(const String& url)
+{
+	// UWP LaunchWebBrowser should use Windows::System::Launcher::LaunchUriAsync
 }
 #endif
 
@@ -704,21 +776,25 @@ String LoadDataFile(const char *filename)
 
 String GetComputerName()
 {
-#if defined(PLATFORM_WIN32)
+#if defined(flagUWP)
+	return "UWP-Machine";
+#elif defined(PLATFORM_WIN32)
 	WCHAR temp[256];
-	*temp = 0;
 	dword w = 255;
 	::GetComputerNameW(temp, &w);
+	return temp;
 #else
 	char temp[256];
 	gethostname(temp, sizeof(temp));
-#endif
 	return temp;
+#endif
 }
 
 String GetUserName()
 {
-#if defined(PLATFORM_WIN32)
+#if defined(flagUWP)
+	return "UWP-User";
+#elif defined(PLATFORM_WIN32)
 	WCHAR temp[256];
 	*temp = 0;
 	dword w = 255;
@@ -747,10 +823,14 @@ String GetDesktopManager()
 
 String GetShellFolder(int clsid) 
 {
+#ifdef flagUWP
+	return ".";
+#else
 	WCHAR path[MAX_PATH];
 	if(SHGetFolderPathW(NULL, clsid, NULL, /*SHGFP_TYPE_CURRENT*/0, path) == S_OK)
 		return FromSystemCharsetW(path);
 	return Null;
+#endif
 }
 
 String GetDesktopFolder()	  { return GetShellFolder(CSIDL_DESKTOP); }
@@ -771,6 +851,9 @@ MY_DEFINE_KNOWN_FOLDER(MY_FOLDERID_Downloads, 0x374de290, 0x123f, 0x4565, 0x91, 
 
 String GetDownloadFolder()	
 {
+#ifdef flagUWP
+	return ".";
+#else
 	static HRESULT (STDAPICALLTYPE * SHGetKnownFolderPath)(const void *rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath);
 	ONCELOCK {
 		DllFn(SHGetKnownFolderPath, "shell32.dll", "SHGetKnownFolderPath");
@@ -784,7 +867,8 @@ String GetDownloadFolder()
 		}
 	}
 	return Null;
-};
+#endif
+}
 #endif
 
 #ifdef PLATFORM_POSIX

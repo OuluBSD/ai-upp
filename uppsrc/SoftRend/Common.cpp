@@ -18,3 +18,4 @@ GenericFragmentShaderArgs::GenericFragmentShaderArgs() {
 }
 
 END_UPP_NAMESPACE
+

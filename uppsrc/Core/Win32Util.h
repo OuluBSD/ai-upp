@@ -8,6 +8,13 @@ inline bool IsWinXP()    { return false; }
 inline bool IsWin2K()    { return false; }
 inline bool IsWinVista() { return false; }
 inline bool IsWin7()     { return false; }
+#elif defined(flagUWP)
+inline bool IsWinNT()    { return true; }
+inline bool IsWin2K()    { return true; }
+inline bool IsWinXP()    { return true; }
+inline bool IsWinVista() { return true; }
+inline bool IsWin7()     { return true; }
+inline bool IsWin11()    { return false; } // Should be properly detected if needed
 #else
 inline bool IsWinNT() { return GetVersion() < 0x80000000; }
 bool IsWin2K();

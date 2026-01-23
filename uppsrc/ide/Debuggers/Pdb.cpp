@@ -1,5 +1,6 @@
 #ifdef flagGUI
 #include "Debuggers.h"
+#include <ide/UwpUtils.h>
 
 #define KEYGROUPNAME "Debugger"
 #define KEYNAMESPACE PdbKeys
@@ -167,9 +168,25 @@ bool Pdb::Create(Host& local, const String& exefile, const String& cmdline, bool
 	ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 	Buffer<char> env(local.environment.GetCount() + 1);
 	memcpy(env, ~local.environment, local.environment.GetCount() + 1);
-	bool h = CreateProcess(exefile, cmd, NULL, NULL, TRUE,
-	                       /*NORMAL_PRIORITY_CLASS|CREATE_NEW_CONSOLE|*/DEBUG_ONLY_THIS_PROCESS/*|DEBUG_PROCESS*/,
-	                       local.environment.GetCount() ? ~env : NULL, NULL, &si, &pi);
+	
+	bool uwp = IsUwpApp(exefile);
+	bool h = false;
+
+	if(uwp) {
+		// Use LaunchUwpAppForDebug which creates process with DEBUG_ONLY_THIS_PROCESS
+		// and keeps it suspended. Returns handles directly.
+		if(LaunchUwpAppForDebug(exefile, pi.dwProcessId, pi.hProcess, pi.hThread)) {
+			h = true;
+			// Find the main thread ID from the handle
+			pi.dwThreadId = GetThreadId(pi.hThread);
+		}
+	}
+	else {
+		h = CreateProcess(exefile, cmd, NULL, NULL, TRUE,
+		                       /*NORMAL_PRIORITY_CLASS|CREATE_NEW_CONSOLE|*/DEBUG_ONLY_THIS_PROCESS/*|DEBUG_PROCESS*/,
+		                       local.environment.GetCount() ? ~env : NULL, NULL, &si, &pi);
+	}
+
 	if(!h) {
 		Exclamation("Error creating process&[* " + DeQtf(exefile) + "]&" +
 		            "Windows error: " + DeQtf(GetLastErrorMessage()));

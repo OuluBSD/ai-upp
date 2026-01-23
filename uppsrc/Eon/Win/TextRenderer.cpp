@@ -1,15 +1,15 @@
-#include "EcsWin.h"
-
-
-NAMESPACE_UPP
-
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
+namespace DemoRoom {
 
 TextRenderer::TextRenderer(
-    std::shared_ptr<DeviceResources> deviceResources,
+    DX::DeviceResources& deviceResources,
     uint32_t textureWidth,
     uint32_t textureHeight,
     float fontSize) :
-    m_deviceResources(std::move(deviceResources)),
+    device_resources(&deviceResources),
     m_textureWidth(textureWidth),
     m_textureHeight(textureHeight),
     m_fontSize(fontSize)
@@ -22,14 +22,14 @@ TextRenderer::~TextRenderer() = default;
 void TextRenderer::RenderTextOffscreen(const std::wstring& str)
 {
     // Clear the off-screen render target.
-    m_deviceResources->GetD3DDeviceContext()->ClearRenderTargetView(m_renderTargetView.Get(), DirectX::Colors::Transparent);
+    device_resources->GetD3DDeviceContext()->ClearRenderTargetView(m_renderTargetView.Get(), DirectX::Colors::Transparent);
 
     // Begin drawing with D2D.
     m_d2dRenderTarget->BeginDraw();
 
     // Create a text layout to match the screen.
     Microsoft::WRL::ComPtr<IDWriteTextLayout> textLayout;
-    m_deviceResources->GetDWriteFactory()->CreateTextLayout(
+    device_resources->GetDWriteFactory()->CreateTextLayout(
         str.c_str(),
         static_cast<UINT32>(str.length()),
         m_textFormat.Get(),
@@ -80,7 +80,7 @@ void TextRenderer::CreateDeviceDependentResources()
 {
     // Create a default sampler state, which will use point sampling.
     const CD3D11_SAMPLER_DESC desc{ CD3D11_DEFAULT{} };
-    DirectX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateSamplerState(&desc, &m_pointSampler));
+    DirectX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateSamplerState(&desc, &m_pointSampler));
 
     // Create the texture that will be used as the offscreen render target.
     const CD3D11_TEXTURE2D_DESC textureDesc{
@@ -91,12 +91,12 @@ void TextRenderer::CreateDeviceDependentResources()
         1,
         D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET
     };
-    DirectX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateTexture2D(&textureDesc, nullptr, &m_texture));
+    DirectX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateTexture2D(&textureDesc, nullptr, &m_texture));
 
     // Create read and write views for the offscreen render target.
-    DirectX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateShaderResourceView(m_texture.Get(), nullptr, &m_shaderResourceView));
+    DirectX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateShaderResourceView(m_texture.Get(), nullptr, &m_shaderResourceView));
 
-    DirectX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateRenderTargetView(m_texture.Get(), nullptr, &m_renderTargetView));
+    DirectX::ThrowIfFailed(device_resources->GetD3DDevice()->CreateRenderTargetView(m_texture.Get(), nullptr, &m_renderTargetView));
 
     // In this example, we are using D2D and DirectWrite; so, we need to create a D2D render target as well.
     D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
@@ -109,14 +109,14 @@ void TextRenderer::CreateDeviceDependentResources()
     // The DXGI surface is used to create the render target.
     Microsoft::WRL::ComPtr<IDXGISurface> dxgiSurface;
     DirectX::ThrowIfFailed(m_texture.As(&dxgiSurface));
-    DirectX::ThrowIfFailed(m_deviceResources->GetD2DFactory()->CreateDxgiSurfaceRenderTarget(dxgiSurface.Get(), &props, &m_d2dRenderTarget));
+    DirectX::ThrowIfFailed(device_resources->GetD2DFactory()->CreateDxgiSurfaceRenderTarget(dxgiSurface.Get(), &props, &m_d2dRenderTarget));
 
     // Create a solid color brush that will be used to render the text.
     DirectX::ThrowIfFailed(m_d2dRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Cornsilk), &m_whiteBrush));
 
     // This is where we format the text that will be written on the render target.
     DirectX::ThrowIfFailed(
-        m_deviceResources->GetDWriteFactory()->CreateTextFormat(
+        device_resources->GetDWriteFactory()->CreateTextFormat(
             L"Consolas",
             NULL,
             DWRITE_FONT_WEIGHT_NORMAL,
@@ -131,5 +131,4 @@ void TextRenderer::CreateDeviceDependentResources()
     DirectX::ThrowIfFailed(m_textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR));
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

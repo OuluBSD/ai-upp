@@ -89,3 +89,4 @@ void SoftFramebuffer::SetParam(GVar::TextureMode type, GVar::Filter filter, GVar
 
 
 END_UPP_NAMESPACE
+

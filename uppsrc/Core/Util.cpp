@@ -792,7 +792,7 @@ String GetErrorMessage(DWORD dwError) {
 #ifdef PLATFORM_WINCE //TODO
 	return h;
 #else
-	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		          NULL, dwError, 0, h, 2048, NULL);
 	String result = h;
 	String modf;

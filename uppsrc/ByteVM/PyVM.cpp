@@ -6,6 +6,8 @@
 #include <unistd.h>
 #endif
 
+#undef environ
+
 namespace Upp {
 
 static String GetRelPath(String path, String base) {
@@ -964,7 +966,11 @@ static PyValue builtin_time_time(const Vector<PyValue>& args, void*) {
 
 static PyValue builtin_time_sleep(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue::None();
+	#ifdef flagWIN32
+	::Sleep((int)(args[0].AsDouble() * 1000));
+	#else
 	Upp::Sleep((int)(args[0].AsDouble() * 1000));
+	#endif
 	return PyValue::None();
 }
 

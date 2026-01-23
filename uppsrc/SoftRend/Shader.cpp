@@ -31,3 +31,4 @@ void SoftShader::SetSource(String s) {
 
 
 END_UPP_NAMESPACE
+

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import platform
+import datetime
 from pathlib import Path
 
 
@@ -27,9 +28,11 @@ def print_help(prog):
                 "  --list-methods, -ListMethods       List build methods and exit",
                 "  --android, -Android                Select Android build method (BUILDER=ANDROID)",
                 "  --bootstrap, -Bootstrap, -bs       Bootstrap-build umk via Makefile",
+                "  --smoketest, -Smoketest            Build a single source file (UWP smoke test)",
                 "  --clean, -Clean, -c                Clean build",
                 "  --jobs N, -j N, -jN                Parallel jobs",
                 "  --verbose, -Verbose, -v            Verbose output",
+                "  --dump-cmd                         Dump the umk command and exit",
                 "  --help, -Help                      Show this help",
             ]
         )
@@ -78,7 +81,9 @@ def parse_args(argv):
         "mainconf": None,
         "android": False,
         "bootstrap": False,
+        "smoketest": False,
         "target": None,
+        "dump_cmd": False,
         "help": False,
     }
     i = 0
@@ -135,6 +140,10 @@ def parse_args(argv):
             opts["bootstrap"] = True
             i += 1
             continue
+        if lower in ("--smoketest", "-smoketest"):
+            opts["smoketest"] = True
+            i += 1
+            continue
         if lower in ("--method", "-method", "-m"):
             if i + 1 >= len(argv):
                 raise ValueError("Missing value for method")
@@ -156,6 +165,10 @@ def parse_args(argv):
             continue
         if lower in ("--verbose", "-verbose", "-v"):
             opts["verbose"] = True
+            i += 1
+            continue
+        if lower in ("--dump-cmd", "-dump-cmd"):
+            opts["dump_cmd"] = True
             i += 1
             continue
         if lower in ("--jobs", "-jobs", "-j"):
@@ -716,7 +729,11 @@ def resolve_umk_path():
     for path in candidates:
         if path.exists():
             return str(path)
-    return "umk"
+    raise FileNotFoundError(
+        "umk executable not found. Please ensure 'umk.exe' (Windows) or 'umk' (Posix) "
+        "is in the 'bin' directory, or available in your system's PATH. "
+        "Refer to COMPILING.md for instructions on setting up the U++ environment."
+    )
 
 
 def copy_eon_files(upp_path, bin_dir, verbose):
@@ -729,6 +746,278 @@ def copy_eon_files(upp_path, bin_dir, verbose):
         shutil.copy2(path, dest)
         if verbose:
             print(f"Copied: {path} -> {dest}")
+
+
+def find_msvc():
+    vswhere_path = Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe"
+    if not vswhere_path.exists():
+        return None
+    try:
+        res = subprocess.run([str(vswhere_path), "-latest", "-property", "installationPath"], capture_output=True, text=True, check=True)
+        vs_path = Path(res.stdout.strip())
+        vcvarsall = vs_path / "VC" / "Auxiliary" / "Build" / "vcvarsall.bat"
+        if vcvarsall.exists():
+            return vcvarsall
+    except Exception:
+        pass
+    return None
+
+
+def get_msvc_env():
+    if shutil.which("cl.exe"):
+        return os.environ.copy()
+    vcvarsall = find_msvc()
+    if not vcvarsall:
+        return None
+    cmd = f'"{vcvarsall}" x64 && set'
+    res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        return None
+    env = os.environ.copy()
+    for line in res.stdout.splitlines():
+        if "=" in line:
+            parts = line.split("=", 1)
+            if len(parts) == 2:
+                key, val = parts
+                env[key.upper()] = val
+    return env
+
+
+def get_upp_sources(repo_root, package):
+    pkg_path = repo_root / "uppsrc" / package
+    upp_file = pkg_path / f"{pkg_path.name}.upp"
+    if not upp_file.exists():
+        # Fallback for nested packages like ide/Builders
+        upp_file = pkg_path / f"{Path(package).name}.upp"
+    
+    if not upp_file.exists():
+        return []
+        
+    sources = []
+    try:
+        text = upp_file.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return []
+        
+    lines = text.splitlines()
+    
+    in_file_section = False
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        if line == "file":
+            in_file_section = True
+            continue
+        if in_file_section:
+            if line.endswith(";"):
+                in_file_section = False
+                line = line[:-1].strip()
+            if not line: continue
+            if "readonly separator" in line: continue
+            
+            # Match filename at start of line, handle optional quotes and trailing comma/options
+            match = re.match(r'^"?([^",\s\)]+)"?', line)
+            if match:
+                fname = match.group(1).replace('\\', os.sep)
+                if fname.lower().endswith(('.cpp', '.c', '.icpp', '.brcc')):
+                    sources.append(fname)
+    return sources
+
+
+def bootstrap_build_umk_windows(repo_root, opts):
+    env = get_msvc_env()
+    if not env:
+        print("MSVC (cl.exe) not found. Please run from a Developer Command Prompt or install Visual Studio.", file=sys.stderr)
+        return 2
+    
+    out_dir = repo_root / "_out"
+    if opts["clean"] and out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate build_info.h
+    build_info = out_dir / "build_info.h"
+    now = datetime.datetime.now()
+    info_content = [
+        f'#define bmYEAR    {now.year % 100}',
+        f'#define bmMONTH   {now.month}',
+        f'#define bmDAY     {now.day}',
+        f'#define bmHOUR    {now.hour}',
+        f'#define bmMINUTE  {now.minute}',
+        f'#define bmSECOND  {now.second}',
+        f'#define bmTIME    Time({now.year}, {now.month}, {now.day}, {now.hour}, {now.minute}, {now.second})',
+        f'#define bmMACHINE "{platform.node()}"',
+        f'#define bmUSER    "{os.environ.get("USERNAME", "unknown")}"',
+    ]
+    # Try to get git info
+    try:
+        git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, cwd=str(repo_root)).strip()
+        git_rev = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], text=True, cwd=str(repo_root)).strip()
+        git_branch = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True, cwd=str(repo_root)).strip()
+        info_content.extend([
+            f'#define bmGIT_REVCOUNT "{git_rev}"',
+            f'#define bmGIT_HASH "{git_hash}"',
+            f'#define bmGIT_BRANCH "{git_branch}"',
+        ])
+    except Exception:
+        pass
+    build_info.write_text("\n".join(info_content) + "\n", encoding="utf-8")
+
+    packages = [
+        "plugin/z", "plugin/pcre", "plugin/bz2", "plugin/lzma",
+        "plugin/lz4", "plugin/zstd", "plugin/png", "Core", "Draw", "Esc",
+        "ide/Core", "ide/Android", "ide/Java", "ide/Builders", "umk"
+    ]
+    
+    # MSVC flags
+    common_flags = ["/nologo", "/bigobj", "/D_CRT_SECURE_NO_WARNINGS", "/O2", "/std:c++17", "/EHsc", "/MT"]
+    common_macros = [
+        "/DflagMSC", "/DflagWIN32", "/DflagBLITZ", "/DflagRELEASE",
+        "/DflagSTATIC_Z", "/DflagSTATIC_PNG", "/DflagSTATIC_BZ2",
+        "/DDYNAMIC_LIBCLANG"
+    ]
+    
+    includes = [f"/I{repo_root / 'uppsrc'}", f"/I{out_dir}"]
+    
+    cl_path = shutil.which("cl.exe", path=env.get("PATH"))
+    link_path = shutil.which("link.exe", path=env.get("PATH"))
+    if not cl_path or not link_path:
+        print("cl.exe or link.exe not found in captured environment.", file=sys.stderr)
+        return 2
+
+    obj_files = []
+    
+    print("Bootstrapping umk (Windows/MSVC)...")
+    
+    for pkg in packages:
+        pkg_out = out_dir / pkg.replace('/', '_').replace('\\', '_')
+        pkg_out.mkdir(parents=True, exist_ok=True)
+        pkg_src_root = repo_root / "uppsrc" / pkg
+        
+        # Handle .brc files by converting them to .cpp
+        brc_files = list(pkg_src_root.glob("*.brc"))
+        for brc in brc_files:
+            brc_cpp = pkg_out / (brc.name + ".cpp")
+            if not brc_cpp.exists() or brc.stat().st_mtime > brc_cpp.stat().st_mtime:
+                if opts["verbose"]:
+                    print(f"Converting {brc} to {brc_cpp}...")
+                content = brc.read_text(encoding="utf-8", errors="replace")
+                cpp_content = []
+                for line in content.splitlines():
+                    m = re.match(r'BINARY\s*\(\s*([^,]+)\s*,\s*"([^"]+)"\s*\)', line)
+                    if m:
+                        sym = m.group(1).strip()
+                        fn = m.group(2).strip()
+                        fpath = pkg_src_root / fn
+                        if fpath.exists():
+                            data = fpath.read_bytes()
+                            cpp_content.append(f'static const unsigned char {sym}_[] = {{')
+                            cpp_content.append(", ".join(str(b) for b in data))
+                            cpp_content.append("};")
+                            cpp_content.append(f'extern "C" const int {sym}_length = {len(data)};')
+                            cpp_content.append(f'extern "C" const unsigned char *{sym} = {sym}_;')
+                brc_cpp.write_text("\n".join(cpp_content), encoding="utf-8")
+            
+            obj_name = brc.name + "_brc.obj"
+            obj_path = pkg_out / obj_name
+            if not obj_path.exists() or brc_cpp.stat().st_mtime > obj_path.stat().st_mtime:
+                cmd = [cl_path, "/c"] + common_flags + ["/DflagMSC", "/DflagWIN32"] + includes + [f"/Fo{obj_path}", f"/Tp{brc_cpp}"]
+                subprocess.run(cmd, env=env)
+            obj_files.append(str(obj_path))
+
+        sources = get_upp_sources(repo_root, pkg)
+        if not sources:
+            print(f"Warning: No source files found for package {pkg}")
+            continue
+            
+        pkg_macro = list(common_macros)
+        if pkg == "umk":
+            pkg_macro.append("-DflagMAIN")
+            
+        for src in sources:
+            src_path = pkg_src_root / src
+            if not src_path.exists():
+                if opts["verbose"]:
+                    print(f"Skipping missing source: {src_path}")
+                continue
+
+            # Replace all possible separators to keep obj files flat in pkg_out
+            obj_name = src.replace('/', '_').replace('\\', '_').replace('.', '_') + ".obj"
+            obj_path = pkg_out / obj_name
+            
+            if obj_path.exists() and src_path.stat().st_mtime < obj_path.stat().st_mtime:
+                obj_files.append(str(obj_path))
+                continue
+            
+            cmd = [cl_path, "/c"] + common_flags + pkg_macro + includes + [f"/Fo{obj_path}"]
+            
+            # For C files or .brcc, use /Tc (Compile as C), otherwise /Tp (Compile as C++)
+            if src.lower().endswith(('.c', '.brcc')):
+                cmd.append(f"/Tc{src_path}")
+            else:
+                cmd.append(f"/Tp{src_path}")
+            
+            if opts["verbose"]:
+                print(" ".join(cmd))
+            else:
+                print(f"Compiling {pkg}/{src}...")
+                
+            res = subprocess.run(cmd, env=env)
+            if res.returncode != 0:
+                print(f"Compilation failed for {src_path}", file=sys.stderr)
+                return res.returncode
+            obj_files.append(str(obj_path))
+            
+    bin_dir = repo_root / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    out_file = bin_dir / "umk.exe"
+    
+    temp_out_file = bin_dir / f"umk_tmp_{os.getpid()}.exe"
+    
+    libs = [
+        "kernel32.lib", "user32.lib", "gdi32.lib", "ole32.lib", "oleaut32.lib",
+        "uuid.lib", "ws2_32.lib", "advapi32.lib", "shell32.lib", "winmm.lib",
+        "mpr.lib", "crypt32.lib", "usp10.lib"
+    ]
+    
+    link_cmd = [link_path, "/nologo", "/OUT:" + str(temp_out_file), "/STACK:20000000", "/OPT:REF", "/OPT:ICF"] + obj_files + libs
+    print(f"Linking {out_file}...")
+    if opts["verbose"]:
+        print(" ".join(link_cmd))
+    res = subprocess.run(link_cmd, env=env)
+    if res.returncode != 0:
+        print("Linking failed", file=sys.stderr)
+        if temp_out_file.exists():
+            try:
+                temp_out_file.unlink()
+            except OSError:
+                pass
+        return res.returncode
+    
+    if out_file.exists():
+        try:
+            out_file.unlink()
+        except OSError:
+            old_path = out_file.with_suffix(".old")
+            if old_path.exists():
+                try:
+                    old_path.unlink()
+                except OSError:
+                    pass
+            try:
+                out_file.rename(old_path)
+            except OSError:
+                print(f"Warning: Could not replace {out_file}. It may be in use.", file=sys.stderr)
+                return 1
+
+    try:
+        temp_out_file.rename(out_file)
+    except OSError as exc:
+        print(f"Error: Failed to move {temp_out_file} to {out_file}: {exc}", file=sys.stderr)
+        return 1
+        
+    print(f"umk.exe successfully bootstrapped to {out_file}")
+    return 0
 
 
 def parse_makefile_vars(makefile_path):
@@ -747,8 +1036,7 @@ def parse_makefile_vars(makefile_path):
 
 def bootstrap_build_umk(repo_root, opts):
     if os.name == "nt":
-        print("Bootstrap build is only supported on Posix hosts.", file=sys.stderr)
-        return 2
+        return bootstrap_build_umk_windows(repo_root, opts)
     makefile = Path("/home/sblo/umk/Makefile")
     if not makefile.exists():
         print(f"Missing bootstrap Makefile: {makefile}", file=sys.stderr)
@@ -913,6 +1201,8 @@ def main():
         flags = ",".join(apply_debug_full(flags, opts["release"]))
     elif not opts["release"]:
         flags = "DEBUG_FULL"
+    if opts["smoketest"]:
+        flags = f"{flags},UWP_SMOKETEST" if flags else "UWP_SMOKETEST"
 
     try:
         resolved_method = resolve_method(methods, opts["method"])
@@ -949,6 +1239,13 @@ def main():
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    real_output_path = output_path
+    temp_output_path = None
+    if is_windows and target.lower() == "umk":
+        # Build to a temporary file to avoid overwriting the running umk.exe
+        temp_output_path = output_path.with_name(f"{output_path.stem}_tmp_{os.getpid()}.exe")
+        output_path = temp_output_path
+
     if opts["verbose"]:
         if selected:
             print(f"Mainconfig: [{index}] {selected['name']}")
@@ -960,7 +1257,11 @@ def main():
         print(f"Build model: {build_model}{builder_note}")
         print(f"Build flags: {build_flags}")
 
-    umk_path = resolve_umk_path()
+    try:
+        umk_path = resolve_umk_path()
+    except FileNotFoundError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     args = build_command(
         umk_path,
         roots,
@@ -972,8 +1273,43 @@ def main():
         opts["jobs"],
         opts["verbose"],
     )
+    if opts["dump_cmd"]:
+        print(" ".join(args))
+        return 0
     result = subprocess.run(args)
+
+    if result.returncode == 0 and temp_output_path:
+        if temp_output_path.exists():
+            if real_output_path.exists():
+                try:
+                    real_output_path.unlink()
+                except OSError:
+                    # If we cannot delete it, it might still be in use.
+                    # On Windows, we can often rename it even if it's in use.
+                    old_path = real_output_path.with_suffix(".old")
+                    if old_path.exists():
+                        try:
+                            old_path.unlink()
+                        except OSError:
+                            pass
+                    try:
+                        real_output_path.rename(old_path)
+                    except OSError:
+                        print(f"Warning: Could not replace {real_output_path}. It may be in use.", file=sys.stderr)
+                        return 1
+            try:
+                temp_output_path.rename(real_output_path)
+                output_path = real_output_path
+            except OSError as exc:
+                print(f"Error: Failed to move {temp_output_path} to {real_output_path}: {exc}", file=sys.stderr)
+                return 1
+
     if result.returncode != 0:
+        if temp_output_path and temp_output_path.exists():
+            try:
+                temp_output_path.unlink()
+            except OSError:
+                pass
         return result.returncode
 
     copy_eon_files(upp_path, output_path.parent, opts["verbose"])

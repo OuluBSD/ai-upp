@@ -208,7 +208,9 @@ bool   PathIsEqual(const char *p1, const char *p2)
 #endif
 
 String GetCurrentDirectory() {
-#if defined(PLATFORM_WIN32)
+#if defined(flagUWP)
+	return ".";
+#elif defined(PLATFORM_WIN32)
 	WCHAR h[MAX_PATH];
 	GetCurrentDirectoryW(MAX_PATH, h);
 	return FromSystemCharsetW(h);
@@ -238,7 +240,7 @@ bool ChangeCurrentDirectory(const char *path)
 #ifdef PLATFORM_WIN32
 bool ChangeCurrentDirectory(const char *path)
 {
-	return SetCurrentDirectory(ToSystemCharset(path));
+	return SetCurrentDirectoryW(ToSystemCharsetW(path));
 }
 #endif
 
@@ -246,9 +248,13 @@ bool ChangeCurrentDirectory(const char *path)
 
 String GetTempPath()
 {
+#ifdef flagUWP
+	return ".";
+#else
 	WCHAR h[MAX_PATH];
 	GetTempPathW(MAX_PATH, h);
 	return FromSystemCharsetW(h);
+#endif
 }
 
 #endif
@@ -397,6 +403,9 @@ bool FindFile::Search(const char *name) {
 
 static bool sGetSymLinkPath0(const char *linkpath, String *path)
 {
+#ifdef flagUWP
+	return false;
+#else
 	bool ret = false;
 	HRESULT hres;
 	IShellLinkW* psl;
@@ -423,6 +432,7 @@ static bool sGetSymLinkPath0(const char *linkpath, String *path)
 	}
 	CoUninitialize();
 	return ret;
+#endif
 }
 
 bool FindFile::IsSymLink() const
@@ -925,7 +935,7 @@ bool RealizeDirectory(const String& d)
 void SetWritePermission(const char *path)
 {
 #ifdef PLATFORM_WIN32
-	SetFileAttributes(path, GetFileAttributes(path) & ~FILE_ATTRIBUTE_READONLY);
+	SetFileAttributesW(ToSystemCharsetW(path), GetFileAttributesW(ToSystemCharsetW(path)) & ~FILE_ATTRIBUTE_READONLY);
 #endif
 #ifdef PLATFORM_POSIX
 	chmod(path, S_IRWXU);

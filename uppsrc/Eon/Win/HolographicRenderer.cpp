@@ -1,119 +1,113 @@
-#include "EcsWin.h"
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
+#include <limits>
 
-
-NAMESPACE_UPP
-
-
-
-using namespace winrt::Windows::Foundation::Numerics;
-using namespace winrt::Windows::Graphics::Holographic;
-using namespace winrt::Windows::Perception;
-using namespace winrt::Windows::Perception::Spatial;
 using namespace DirectX;
+
+namespace winrt_num = winrt::Windows::Foundation::Numerics;
+namespace winrt_holo = winrt::Windows::Graphics::Holographic;
+namespace winrt_perception = winrt::Windows::Perception;
+namespace winrt_spatial = winrt::Windows::Perception::Spatial;
+
+namespace DemoRoom {
 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Holographic Renderer 
 ////////////////////////////////////////////////////////////////////////////////
 HolographicRenderer::HolographicRenderer(
-    Engine& core,
-    std::shared_ptr<DeviceResources> deviceResources,
-    std::shared_ptr<Pbr::Resources> pbrResources,
+    VfsValue& v,
+    DX::DeviceResources& deviceResources,
+    Pbr::Resources& pbrResources,
     ID3D11ShaderResourceView* skyboxTexture) :
-    SP(core),
-    m_deviceResources(std::move(deviceResources)),
-    m_pbrResources(std::move(pbrResources))
+    System(v),
+    pbr_resources(&pbrResources),
+    device_resources(&deviceResources)
 {
-    m_quadRenderer = std::make_unique<QuadRenderer>(m_deviceResources);
-    m_skyboxRenderer = std::make_unique<SkyboxRenderer>(m_deviceResources, skyboxTexture);
+    quad_renderer.Create(deviceResources);
+    skybox_renderer.Create(deviceResources, skyboxTexture);
 }
 
 HolographicRenderer::~HolographicRenderer() = default;
 
-std::shared_ptr<Pbr::Resources> HolographicRenderer::GetPbrResources()
+Pbr::Resources* HolographicRenderer::GetPbrResources()
 {
-    fail_fast_if(m_pbrResources == nullptr);
-    return m_pbrResources;
+    fail_fast_if(pbr_resources == nullptr);
+    return pbr_resources;
 }
 
-std::shared_ptr<DeviceResources> HolographicRenderer::GetDeviceResources()
+DX::DeviceResources* HolographicRenderer::GetDeviceResources()
 {
-    fail_fast_if(m_deviceResources == nullptr);
-    return m_deviceResources;
+    fail_fast_if(device_resources == nullptr);
+    return device_resources;
 }
 
 void HolographicRenderer::OnDeviceLost()
 {
-    m_pbrResources->ReleaseDeviceDependentResources();
-    for (auto& rendererPair : m_textRenderers)
-    {
-        rendererPair.second->ReleaseDeviceDependentResources();
-    }
-    m_quadRenderer->ReleaseDeviceDependentResources();
-    m_skyboxRenderer->ReleaseDeviceDependentResources();
+    pbr_resources->ReleaseDeviceDependentResources();
+    for (int i = 0; i < text_renderers.GetCount(); ++i)
+        text_renderers[i]->ReleaseDeviceDependentResources();
+    quad_renderer->ReleaseDeviceDependentResources();
+    skybox_renderer->ReleaseDeviceDependentResources();
 }
 
 void HolographicRenderer::OnDeviceRestored()
 {
-    m_pbrResources->CreateDeviceDependentResources(m_deviceResources->GetD3DDevice());
-    for (auto& rendererPair : m_textRenderers)
-    {
-        rendererPair.second->CreateDeviceDependentResources();
-    }
-    m_quadRenderer->CreateDeviceDependentResources();
-    m_skyboxRenderer->CreateDeviceDependentResources();
+    pbr_resources->CreateDeviceDependentResources(device_resources->GetD3DDevice());
+    for (int i = 0; i < text_renderers.GetCount(); ++i)
+        text_renderers[i]->CreateDeviceDependentResources();
+    quad_renderer->CreateDeviceDependentResources();
+    skybox_renderer->CreateDeviceDependentResources();
 }
 
-bool HolographicRenderer::Initialize(const WorldState& ws)
+bool HolographicRenderer::Initialize(const WorldState&)
 {
-    m_deviceResources->RegisterDeviceNotify(this);
-    m_pbrResources->SetLight(XMVECTORF32{ 0.0f, 0.7071067811865475f, -0.7071067811865475f }, ToDxVec(Colors::White));
+    device_resources->RegisterDeviceNotify(this);
+    pbr_resources->SetLight(XMVECTORF32{ 0.0f, 0.7071067811865475f, -0.7071067811865475f }, DirectX::Colors::White);
     return true;
 }
 
 void HolographicRenderer::Uninitialize()
 {
-    m_deviceResources->RegisterDeviceNotify(nullptr);
+    device_resources->RegisterDeviceNotify(nullptr);
 }
 
-void HolographicRenderer::Start()
+bool HolographicRenderer::Start()
 {
-	Engine& m_engine = this->GetEngine();
-    //m_entityStore = m_engine.Get<EntityStore>();
-    m_holoScene = m_engine.Get<HolographicScene>();
-
-    BindEventHandlers(m_holoScene->HolographicSpace());
+    holo_scene = GetEngine().Get<HolographicScene>();
+    BindEventHandlers(holo_scene->HolographicSpace());
+    return true;
 }
 
 void HolographicRenderer::Stop()
 {
-    ReleaseEventHandlers(m_holoScene->HolographicSpace());
-
-    m_holoScene.Clear();
-    //m_entityStore = nullptr;
+    ReleaseEventHandlers(holo_scene->HolographicSpace());
+    holo_scene = nullptr;
 }
 
 void HolographicRenderer::Update(double)
 {
-    auto holographicFrame = m_holoScene->CurrentFrame();
+    auto holographicFrame = holo_scene->CurrentFrame();
 
-    m_deviceResources->EnsureCameraResources(holographicFrame, holographicFrame.CurrentPrediction());
+    device_resources->EnsureCameraResources(holographicFrame, holographicFrame.CurrentPrediction());
 
-    const bool shouldPresent = m_deviceResources->UseHolographicCameraResources<bool>(
-        [this, holographicFrame](std::map<UINT32, std::unique_ptr<CameraResources>>& cameraResourceMap)
+    const bool shouldPresent = device_resources->UseHolographicCameraResources<bool>(
+        [this, holographicFrame](std::map<UINT32, std::unique_ptr<DX::CameraResources>>& cameraResourceMap)
     {
         // Up-to-date frame predictions enhance the effectiveness of image stablization and
         // allow more accurate positioning of holograms.
-        m_holoScene->UpdateCurrentPrediction();
+        holo_scene->UpdateCurrentPrediction();
 
-        HolographicFramePrediction prediction = holographicFrame.CurrentPrediction();
-        SpatialCoordinateSystem coordinateSystem = m_holoScene->WorldCoordinateSystem();
+        winrt_holo::HolographicFramePrediction prediction = holographicFrame.CurrentPrediction();
+        winrt_spatial::SpatialCoordinateSystem coordinateSystem = holo_scene->WorldCoordinateSystem();
 
         bool atLeastOneCameraRendered = false;
-        for (HolographicCameraPose const& cameraPose : prediction.CameraPoses())
+        for (winrt_holo::HolographicCameraPose const& cameraPose : prediction.CameraPoses())
         {
             // This represents the device-based resources for a HolographicCamera.
-            CameraResources* pCameraResources = cameraResourceMap[cameraPose.HolographicCamera().Id()].get();
+            DX::CameraResources* pCameraResources = cameraResourceMap[cameraPose.HolographicCamera().Id()].get();
 
             if (RenderAtCameraPose(pCameraResources, coordinateSystem, prediction, holographicFrame.GetRenderingParameters(cameraPose), cameraPose))
             {
@@ -126,31 +120,32 @@ void HolographicRenderer::Update(double)
 
     if (shouldPresent)
     {
-        m_deviceResources->Present(holographicFrame);
+        device_resources->Present(holographicFrame);
     }
 }
 
 TextRenderer* HolographicRenderer::GetTextRendererForFontSize(float fontSize)
 {
-    auto it = m_textRenderers.find(fontSize);
-    if (it == m_textRenderers.end())
-    {
-        auto textRenderer = std::make_unique<TextRenderer>(m_deviceResources, 1024u, 1024u, fontSize);
-        it = m_textRenderers.insert(it, { fontSize, std::move(textRenderer) });
+    int idx = text_renderers.Find(fontSize);
+    if (idx < 0) {
+        One<TextRenderer> renderer;
+        renderer.Create(*device_resources, 1024u, 1024u, fontSize);
+        text_renderers.Add(fontSize, pick(renderer));
+        idx = text_renderers.GetCount() - 1;
     }
 
-    return it->second.get();
+    return text_renderers[idx].Get();
 }
 
 bool HolographicRenderer::RenderAtCameraPose(
-    CameraResources *pCameraResources,
-    winrt::Windows::Perception::Spatial::SpatialCoordinateSystem const& coordinateSystem,
-    winrt::Windows::Graphics::Holographic::HolographicFramePrediction& prediction,
-    winrt::Windows::Graphics::Holographic::HolographicCameraRenderingParameters const& renderingParameters,
-    winrt::Windows::Graphics::Holographic::HolographicCameraPose const& cameraPose)
+    DX::CameraResources *pCameraResources,
+    winrt_spatial::SpatialCoordinateSystem const& coordinateSystem,
+    winrt_holo::HolographicFramePrediction& prediction,
+    winrt_holo::HolographicCameraRenderingParameters const& renderingParameters,
+    winrt_holo::HolographicCameraPose const& cameraPose)
 {
     // Get the device context.
-    const auto context = m_deviceResources->GetD3DDeviceContext();
+    const auto context = device_resources->GetD3DDeviceContext();
     const auto depthStencilView = pCameraResources->GetDepthStencilView();
 
     // Set render targets to the current holographic camera.
@@ -164,83 +159,84 @@ bool HolographicRenderer::RenderAtCameraPose(
 
     // The view and projection matrices for each holographic camera will change
     // every frame. This function will return false when positional tracking is lost.
-    HolographicStereoTransform coordinateSystemToView;
-    HolographicStereoTransform viewToProjection;
-    bool cameraActive = pCameraResources->GetViewProjectionTransform(m_deviceResources, cameraPose, coordinateSystem, &coordinateSystemToView, &viewToProjection);
+    winrt_holo::HolographicStereoTransform coordinateSystemToView;
+    winrt_holo::HolographicStereoTransform viewToProjection;
+    bool cameraActive = pCameraResources->GetViewProjectionTransform(device_resources, cameraPose, coordinateSystem, &coordinateSystemToView, &viewToProjection);
 
     // Only render world-locked content when positional tracking is active.
     if (cameraActive)
     {
         ////////////////////////////////////////////////////////////////////////////////
         // Pbr Rendering
-        m_pbrResources->SetViewProjection(
+        pbr_resources->SetViewProjection(
             XMLoadFloat4x4(&coordinateSystemToView.Left),
             XMLoadFloat4x4(&coordinateSystemToView.Right),
             XMLoadFloat4x4(&viewToProjection.Left),
             XMLoadFloat4x4(&viewToProjection.Right));
 
-        m_pbrResources->Bind(m_deviceResources->GetD3DDeviceContext());
-		
-		TODO
-        /*for (auto[transform, pbr] : m_entityStore->GetComponents<Transform, PbrRenderable>())
-        {
-            if (pbr->Model)
-            {
-                float4x4 transformMtx = transform->GetMatrix();
+        pbr_resources->Bind(device_resources->GetD3DDeviceContext());
 
-                if (pbr->Offset)
-                {
-                    transformMtx = *pbr->Offset * transformMtx;
-                }
+        auto& root = GetEngine().GetRootPool();
+        auto entities = root.FindAllDeep<Entity>();
+        for (auto& entity : entities) {
+            auto transform = entity->val.Find<Transform>();
+            auto pbr = entity->val.Find<PbrRenderable>();
+            if (!transform || !pbr || !pbr->Model)
+                continue;
 
-                pbr->Model->GetNode(Pbr::RootNodeIndex).SetTransform(XMLoadFloat4x4(&transformMtx));
-                pbr->Model->Render(*m_pbrResources, m_deviceResources->GetD3DDeviceContext());
-            }
-        }*/
+            winrt_num::float4x4 transformMtx = transform->GetMatrix();
+            if (pbr->Offset)
+                transformMtx = *pbr->Offset * transformMtx;
+
+            pbr->Model->GetNode(Pbr::RootNodeIndex).SetTransform(XMLoadFloat4x4(&transformMtx));
+            pbr->Model->Render(*pbr_resources, device_resources->GetD3DDeviceContext());
+        }
 
         ////////////////////////////////////////////////////////////////////////////////
         // Text Rendering
-        m_quadRenderer->SetViewProjection(
+        quad_renderer->SetViewProjection(
             coordinateSystemToView.Left,
             viewToProjection.Left,
             coordinateSystemToView.Right,
             viewToProjection.Right);
 
-        m_quadRenderer->Bind();
+        quad_renderer->Bind();
 
         float prevFontSize = std::numeric_limits<float>::quiet_NaN();
         TextRenderer* textRenderer = nullptr;
-		
-		TODO
-        /*for (auto[transform, textRenderable] : m_entityStore->GetComponents<Transform, TextRenderable>())
-        {
-            if (prevFontSize != textRenderable->FontSize)
-            {
+
+        for (auto& entity : entities) {
+            auto transform = entity->val.Find<Transform>();
+            auto textRenderable = entity->val.Find<TextRenderable>();
+            if (!transform || !textRenderable)
+                continue;
+
+            if (prevFontSize != textRenderable->FontSize) {
                 prevFontSize = textRenderable->FontSize;
                 textRenderer = GetTextRendererForFontSize(prevFontSize);
             }
 
-            textRenderer->RenderTextOffscreen(textRenderable->Text);
-            m_quadRenderer->Render(transform->GetMatrix(), textRenderer->GetTexture());
-        }*/
+            textRenderer->RenderTextOffscreen(textRenderable->Text.ToStd());
+            quad_renderer->Render(transform->GetMatrix(), textRenderer->GetTexture());
+        }
 
-        m_quadRenderer->Unbind();
+        quad_renderer->Unbind();
 
         ////////////////////////////////////////////////////////////////////////////////
         // Skybox Rendering
-        float4x4 cameraToCoordinateSystem = float4x4::identity();
-        if (auto location = SpatialLocator::GetDefault().TryLocateAtTimestamp(prediction.Timestamp(), coordinateSystem))
+        winrt_num::float4x4 cameraToCoordinateSystem = winrt_num::float4x4::identity();
+        if (auto location = winrt_spatial::SpatialLocator::GetDefault().TryLocateAtTimestamp(prediction.Timestamp(), coordinateSystem))
         {
-            cameraToCoordinateSystem = make_float4x4_translation(location.Position());
+            cameraToCoordinateSystem = winrt_num::make_float4x4_translation(location.Position());
         }
 
-        m_skyboxRenderer->SetViewProjection(
+        skybox_renderer->SetViewProjection(
             cameraToCoordinateSystem * coordinateSystemToView.Left,  viewToProjection.Left,
             cameraToCoordinateSystem * coordinateSystemToView.Right, viewToProjection.Right);
 
-        m_skyboxRenderer->Bind();
-        m_skyboxRenderer->Render();
-        m_skyboxRenderer->Unbind();
+        skybox_renderer->Bind();
+        skybox_renderer->Render();
+        skybox_renderer->Unbind();
 
         pCameraResources->CommitDirect3D11DepthBuffer(renderingParameters);
     }
@@ -249,33 +245,33 @@ bool HolographicRenderer::RenderAtCameraPose(
 }
 
 void HolographicRenderer::BindEventHandlers(
-    const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace)
+    const winrt_holo::HolographicSpace& holographicSpace)
 {
     fail_fast_if(holographicSpace == nullptr);
 
-    m_cameraAddedToken = holographicSpace.CameraAdded(
+    camera_added_token = holographicSpace.CameraAdded(
         std::bind(&HolographicRenderer::OnCameraAdded, this, std::placeholders::_1, std::placeholders::_2));
 
-    m_cameraRemovedToken = holographicSpace.CameraRemoved(
+    camera_removed_token = holographicSpace.CameraRemoved(
         std::bind(&HolographicRenderer::OnCameraRemoved, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void HolographicRenderer::ReleaseEventHandlers(
-    const winrt::Windows::Graphics::Holographic::HolographicSpace& holographicSpace)
+    const winrt_holo::HolographicSpace& holographicSpace)
 {
     fail_fast_if(holographicSpace == nullptr);
 
-    holographicSpace.CameraRemoved(m_cameraRemovedToken);
-    holographicSpace.CameraAdded(m_cameraAddedToken);
+    holographicSpace.CameraRemoved(camera_removed_token);
+    holographicSpace.CameraAdded(camera_added_token);
 }
 
 // Asynchronously creates resources for new holographic cameras.
 void HolographicRenderer::OnCameraAdded(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-    winrt::Windows::Graphics::Holographic::HolographicSpaceCameraAddedEventArgs const& args)
+    winrt_holo::HolographicSpace const& sender,
+    winrt_holo::HolographicSpaceCameraAddedEventArgs const& args)
 {
     winrt::Windows::Foundation::Deferral deferral = args.GetDeferral();
-    HolographicCamera holographicCamera = args.Camera();
+    winrt_holo::HolographicCamera holographicCamera = args.Camera();
     concurrency::create_task([this, deferral, holographicCamera]()
     {
         //
@@ -293,7 +289,7 @@ void HolographicRenderer::OnCameraAdded(
         //   * A subsequent Update will take the back buffer from the RenderingParameters of this
         //     camera's CameraPose and use it to create the ID3D11RenderTargetView for this camera.
         //     Content can then be rendered for the HolographicCamera.
-        m_deviceResources->AddHolographicCamera(holographicCamera);
+        device_resources->AddHolographicCamera(holographicCamera);
 
         // Holographic frame predictions will not include any information about this camera until
         // the deferral is completed.
@@ -305,8 +301,8 @@ void HolographicRenderer::OnCameraAdded(
 // attached to the system.
 
 void HolographicRenderer::OnCameraRemoved(
-    winrt::Windows::Graphics::Holographic::HolographicSpace const& sender,
-    winrt::Windows::Graphics::Holographic::HolographicSpaceCameraRemovedEventArgs const& args)
+    winrt_holo::HolographicSpace const& sender,
+    winrt_holo::HolographicSpaceCameraRemovedEventArgs const& args)
 {
     concurrency::create_task([this]()
     {
@@ -322,8 +318,7 @@ void HolographicRenderer::OnCameraRemoved(
     // waits until it can get a lock on the set of holographic camera resources before
     // deallocating resources for this camera. At 60 frames per second this wait should
     // not take long.
-    m_deviceResources->RemoveHolographicCamera(args.Camera());
+    device_resources->RemoveHolographicCamera(args.Camera());
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

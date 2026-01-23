@@ -3,14 +3,20 @@ description "\377B0,0,255";
 noblitz;
 
 uses
-	plugin/DirectXTK;
+	plugin/DirectXTK,
+	Vfs/Ecs,
+	plugin/stb,
+	plugin/tiny_gltf;
 
 library
 	"ole32 oleaut32 Kernel32";
 
 file
+	AGENTS.md,
+	EonWin.h,
+	Win.h,
+	Win.icpp,
 	Copying,
-	Eon/Win.h,
 	AppView.h,
 	AppView.cpp,
 	CameraResources.h,
@@ -24,8 +30,6 @@ file
 	DeviceResources.cpp,
 	DirectXHelper.h,
 	EntityPrefabs.h,
-	GltfHelper.h,
-	GltfHelper.cpp,
 	GltfLoader.h,
 	GltfLoader.cpp,
 	Haptics.h,
@@ -49,13 +53,13 @@ file
 	Physics.h,
 	QuadRenderer.h,
 	QuadRenderer.cpp,
+	ShaderBytecode.h,
 	SkyboxRenderer.h,
 	SkyboxRenderer.cpp,
 	StepTimer.h,
 	TextRenderer.h,
 	TextRenderer.cpp,
 	TransformUtil.h,
-	EngineTypeTraits.h,
 	"Trash (tools)" readonly separator,
 	MotionControllerSystem.h,
 	MotionControllerSystem.cpp,
@@ -76,17 +80,7 @@ file
 	Trash readonly separator,
 	PhysicsSystem.h,
 	PhysicsSystem.cpp,
-	Engine.h,
-	Engine.cpp,
-	Entity.h,
-	Entity.cpp,
 	AppLogicSystem.h,
-	Component.h,
-	ComponentStore.h,
-	ComponentStore.cpp,
 	EasingSystem.h,
-	EasingSystem.cpp,
-	EngineCommon.h,
-	EntityStore.h,
-	EntityStore.cpp;
+	EasingSystem.cpp;
 

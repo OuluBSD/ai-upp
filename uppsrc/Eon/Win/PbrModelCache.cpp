@@ -1,101 +1,102 @@
-#include "EcsWin.h"
+////////////////////////////////////////////////////////////////////////////////
+// Copyright (C) Microsoft Corporation.  All Rights Reserved
+// Licensed under the MIT License. See License.txt in the project root for license information.
+#include "EonWin.h"
 
+#include "PbrModel.h"
+#include <stdexcept>
 
-NAMESPACE_UPP
+namespace DemoRoom {
 
-
-PbrModelCache::PbrModelCache(
-    Engine& core,
-    std::shared_ptr<Pbr::Resources> pbrResources) :
-    SP(core),
-    m_pbrResources(std::move(pbrResources))
-{}
-
-void PbrModelCache::RegisterModel(std::string_view name, std::shared_ptr<Pbr::Model> model)
+PbrModelCache::PbrModelCache(VfsValue& v, Pbr::Resources& pbr_resources)
+	: System(v), pbr_resources(&pbr_resources)
 {
-    if (name.empty())
-    {
-        throw std::invalid_argument("Cannot register model with empty name");
-    }
-
-    m_modelMap[std::string(name)] = std::move(model);
 }
 
-PbrRenderableRef PbrModelCache::SetModel(std::string_view name, PbrRenderableRef pbrRenderableComponent)
+void PbrModelCache::RegisterModel(String name, One<Pbr::Model> model)
 {
-    pbrRenderableComponent->ModelName = name;
+	if (name.IsEmpty())
+		throw std::invalid_argument("Cannot register model with empty name");
 
-    auto it = m_modelMap.find(std::string(name));
-    if (it != m_modelMap.end())
-    {
-        // Each instance gets its own copy of the model data (the heavyweight model data is immutable and reference counted).
-        pbrRenderableComponent->Model = it->second->Clone(*m_pbrResources);
-        debug_log("Model %s successfully attached to Entity [Deferred]", pbrRenderableComponent->ModelName.c_str());
-    }
-
-    return pbrRenderableComponent;
+	model_map.GetAdd(name) = pick(model);
 }
 
-PbrRenderableRef PbrModelCache::SetModel(std::string_view name, ComponentMap& componentMap)
+static One<Pbr::Model> CloneModel(const Pbr::Model& model, Pbr::Resources& resources)
 {
-    PbrRenderableRef pbrRenderableComponent = componentMap.Get<PbrRenderable>();
-    return SetModel(name, pbrRenderableComponent);
+	One<Pbr::Model> cloned;
+	auto shared = model.Clone(resources);
+	if (!shared)
+		return cloned;
+
+	cloned.Create(*shared);
+	return cloned;
 }
 
-bool PbrModelCache::ModelExists(std::string_view name)
+PbrRenderable* PbrModelCache::SetModel(const String& name, PbrRenderable* pbr_renderable)
 {
-    return m_modelMap.find(std::string(name)) != m_modelMap.end();
+	pbr_renderable->ModelName = name;
+
+	int idx = model_map.Find(name);
+	if (idx >= 0 && pbr_resources) {
+		One<Pbr::Model> owned = CloneModel(*model_map[idx], *pbr_resources);
+		pbr_renderable->OwnedModel = pick(owned);
+		pbr_renderable->Model = pbr_renderable->OwnedModel.Get();
+	}
+
+	return pbr_renderable;
 }
 
-void PbrModelCache::Update(double dt)
+PbrRenderable* PbrModelCache::SetModel(const String& name, Entity& entity)
 {
-	Engine& m_engine = GetEngine();
-	auto comps = m_engine.Get<EntityStore>()->GetRoot()->GetComponents<PbrRenderable>();
-    for (auto& componentSet : comps)
-    {
-        auto[pbrRenderable] = componentSet;
+	auto pbr_renderable = entity.val.Find<PbrRenderable>();
+	if (!pbr_renderable)
+		return nullptr;
+	return SetModel(name, pbr_renderable);
+}
 
-        // Find any PbrRenderable component which is waiting for a model to be loaded.
-        if (!pbrRenderable->Model && pbrRenderable->ModelName.size() > 0)
-        {
-            (void)SetModel(pbrRenderable->ModelName.data(), pbrRenderable);
-        }
+bool PbrModelCache::ModelExists(String name)
+{
+	return model_map.Find(name) >= 0;
+}
 
-        // Apply any material updates as needed.
-        if (pbrRenderable->Model)
-        {
-            for (uint32_t i = 0; i < pbrRenderable->Model->GetPrimitiveCount(); ++i)
-            {
-                const auto& material = pbrRenderable->Model->GetPrimitive(i).GetMaterial();
+void PbrModelCache::Update(double)
+{
+	auto& root = GetEngine().GetRootPool();
+	auto renderables = root.FindAllDeep<PbrRenderable>();
 
-                DirectX::XMFLOAT4 currentColor = material->Parameters.Get().BaseColorFactor;
-                if (pbrRenderable->Color && i == 0)
-                {
-                    currentColor = DirectX::XMFLOAT4(*pbrRenderable->Color);
-                }
+	for (auto& pbr_renderable : renderables) {
+		// Find any PbrRenderable component which is waiting for a model to be loaded.
+		if (!pbr_renderable->Model && !pbr_renderable->ModelName.IsEmpty())
+			(void)SetModel(pbr_renderable->ModelName, pbr_renderable);
 
-                currentColor.w = (pbrRenderable->AlphaMultiplier) ? *pbrRenderable->AlphaMultiplier : 1.0f;
+		// Apply any material updates as needed.
+		if (pbr_renderable->Model) {
+			for (uint32_t i = 0; i < pbr_renderable->Model->GetPrimitiveCount(); ++i) {
+				const auto& material = pbr_renderable->Model->GetPrimitive(i).GetMaterial();
 
-                const DirectX::XMFLOAT4& materialBaseColor = material->Parameters.Get().BaseColorFactor;
+				DirectX::XMFLOAT4 current_color = material->Parameters.Get().BaseColorFactor;
+				if (pbr_renderable->Color && i == 0)
+					current_color = DirectX::XMFLOAT4(*pbr_renderable->Color);
 
-                if (currentColor.x != materialBaseColor.x ||
-                    currentColor.y != materialBaseColor.y ||
-                    currentColor.z != materialBaseColor.z ||
-                    currentColor.w != materialBaseColor.w)
-                {
-                    material->Parameters.Set([&](Pbr::Material::ConstantBufferData& data) {
-                        data.BaseColorFactor = currentColor;
-                    });
-                }
-            }
-        }
-    }
+				current_color.w = pbr_renderable->AlphaMultiplier ? *pbr_renderable->AlphaMultiplier : 1.0f;
+
+				const DirectX::XMFLOAT4& material_base = material->Parameters.Get().BaseColorFactor;
+				if (current_color.x != material_base.x ||
+				    current_color.y != material_base.y ||
+				    current_color.z != material_base.z ||
+				    current_color.w != material_base.w) {
+					material->Parameters.Set([&](Pbr::Material::ConstantBufferData& data) {
+						data.BaseColorFactor = current_color;
+					});
+				}
+			}
+		}
+	}
 }
 
 void PbrModelCache::Uninitialize()
 {
-    m_modelMap.clear();
+	model_map.Clear();
 }
 
-
-END_UPP_NAMESPACE
+} // namespace DemoRoom

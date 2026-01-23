@@ -77,6 +77,16 @@ Current Task Files (`CURRENT_TASK.md`)
 - Build entrypoints live in `script/`. We do **not** maintain repo-level `Makefile` or `umkMakefile`; use our custom U++ make utility `uppsrc/umk` via the helper scripts (e.g., `script/build_ide_console.sh` for TheIDE console builds).
 - Repository build scripts (e.g., those under `script/`) assume full filesystem access. Running them inside a sandboxed environment (read-only cache paths) causes permission failures in `~/.cache/upp.out`.
 - AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
+- **Windows Environment**: In Windows environments, `busybox` might be available and should be preferred for shell-like operations where standard Windows commands (cmd/PowerShell) might behave unexpectedly or when Unix-like behavior is needed (e.g., `busybox sh`, `busybox base64`).
+
+## UWP Development
+
+TheIDE now fully supports building, deploying, and debugging Universal Windows Platform (UWP) applications.
+
+- **Builder**: Use `UWP_INTERNAL` builder in `umk` or TheIDE.
+- **Auto-Registration**: The debugger (`LaunchUwpApp`) automatically registers the package from the build output directory (`AppxLayout`) before launching, ensuring you debug the latest build.
+- **Debugging**: The `Pdb` debugger supports attaching to UWP processes via `IApplicationActivationManager` (launch) and `IPackageDebugSettings` (suspend-on-launch).
+- **Diagnostics**: If debugging fails, check the Exclamation popups for details (e.g., missing manifest, invalid PFN). Ensure developer mode is enabled in Windows Settings.
 
 ## Memory Leak Detection & Valgrind
 

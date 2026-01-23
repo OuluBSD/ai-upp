@@ -1,0 +1,16 @@
+{
+  "mappings": [
+    {
+      "source": "share/demoroom/Environment",
+      "target": "Media/Environment"
+    },
+    {
+      "source": "share/demoroom/PBR",
+      "target": "PBR"
+    },
+    {
+      "source": "share/models/ms",
+      "target": "Media/Models"
+    }
+  ]
+}

@@ -171,30 +171,14 @@ bool Pdb::Create(Host& local, const String& exefile, const String& cmdline, bool
 	
 	bool uwp = IsUwpApp(exefile);
 	bool h = false;
-	
+
 	if(uwp) {
-		if(LaunchUwpApp(exefile, cmdline, true, pi.dwProcessId)) {
-			if(DebugActiveProcess(pi.dwProcessId)) {
-				h = true;
-				pi.hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pi.dwProcessId);
-				
-				// Find main thread
-				HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-				if (hSnap != INVALID_HANDLE_VALUE) {
-					THREADENTRY32 te;
-					te.dwSize = sizeof(te);
-					if (Thread32First(hSnap, &te)) {
-						do {
-							if (te.th32OwnerProcessID == pi.dwProcessId) {
-								pi.dwThreadId = te.th32ThreadID;
-								pi.hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
-								break;
-							}
-						} while (Thread32Next(hSnap, &te));
-					}
-					CloseHandle(hSnap);
-				}
-			}
+		// Use LaunchUwpAppForDebug which creates process with DEBUG_ONLY_THIS_PROCESS
+		// and keeps it suspended. Returns handles directly.
+		if(LaunchUwpAppForDebug(exefile, pi.dwProcessId, pi.hProcess, pi.hThread)) {
+			h = true;
+			// Find the main thread ID from the handle
+			pi.dwThreadId = GetThreadId(pi.hThread);
 		}
 	}
 	else {

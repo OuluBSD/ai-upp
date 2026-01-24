@@ -4,6 +4,19 @@
 
 NAMESPACE_UPP
 
+SessionListView::SessionListView() {
+	AddColumn("Session ID");
+	AddColumn("Title");
+	AddColumn("Time");
+}
+
+void SessionListView::SetSessions(const Array<SessionInfo>& s) {
+	Clear();
+	for(const auto& info : s) {
+		Add(info.id, info.name, info.timestamp);
+	}
+}
+
 SessionSelectWindow::SessionSelectWindow(CliMaestroEngine& e) {
 	engine = &e;
 	Title("Select AI Session");
@@ -13,12 +26,10 @@ SessionSelectWindow::SessionSelectWindow(CliMaestroEngine& e) {
 	split.Horz(dirs, sessions);
 	
 	dirs.AddColumn("Project Directory");
-	sessions.AddColumn("Session ID");
-	sessions.AddColumn("Title");
-	sessions.AddColumn("Time");
 	
 	dirs.WhenCursor = THISBACK(OnDirCursor);
 	sessions.WhenLeftDouble = THISBACK(OnSessionDouble);
+	sessions.WhenBar = THISBACK(OnSessionMenu);
 }
 
 void SessionSelectWindow::DataDirectories() {
@@ -29,14 +40,15 @@ void SessionSelectWindow::DataDirectories() {
 }
 
 void SessionSelectWindow::OnDirCursor() {
-	sessions.Clear();
-	if(!dirs.IsCursor()) return;
+	if(!dirs.IsCursor()) {
+		sessions.Clear();
+		return;
+	}
 	
 	String dir = dirs.Get(0);
 	int q = engine->project_sessions.Find(dir);
 	if(q >= 0) {
-		for(const auto& s : engine->project_sessions[q])
-			sessions.Add(s.id, s.name, s.timestamp);
+		sessions.SetSessions(engine->project_sessions[q]);
 	}
 }
 
@@ -44,6 +56,18 @@ void SessionSelectWindow::OnSessionDouble() {
 	if(!sessions.IsCursor()) return;
 	selected_id = sessions.Get(0);
 	Break(IDOK);
+}
+
+void SessionSelectWindow::OnSessionMenu(Bar& bar) {
+	if(!sessions.IsCursor()) return;
+	bar.Add("Delete Session", [=] {
+		String id = sessions.Get(0);
+		if(PromptYesNo("Delete session " + id + "?")) {
+			// TODO: Implement actual deletion via Engine interface
+			// engine->DeleteSession(id);
+			sessions.Remove(sessions.GetCursor());
+		}
+	});
 }
 
 NewSessionWindow::NewSessionWindow(RecentConfig& cfg) : config(cfg) {
@@ -91,8 +115,13 @@ void NewSessionWindow::OnResume() {
 	
 	CliMaestroEngine e;
 	e.binary = selected_backend;
-	// We need to list sessions first
+	
 	e.ListSessions(selected_dir, [this, &e](const Array<SessionInfo>& sessions) {
+		// If project_sessions is empty (e.g. Gemini), manually add the list to a dummy key
+		if(e.project_sessions.IsEmpty() && sessions.GetCount() > 0) {
+			e.project_sessions.Add("Generic Sessions", clone(sessions));
+		}
+		
 		SessionSelectWindow sw(e);
 		sw.DataDirectories();
 		if(sw.Run() == IDOK) {

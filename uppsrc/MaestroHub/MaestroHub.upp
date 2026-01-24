@@ -17,7 +17,11 @@ file
 	
 	"Maintenance" block,
 	Maintenance.h,
-	Maintenance.cpp;
+	Maintenance.cpp,
+	
+	"Management" block,
+	SessionManagement.h,
+	SessionManagement.cpp;
 
 mainconfig
 	"" = "GUI";

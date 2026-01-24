@@ -9,15 +9,17 @@ NAMESPACE_UPP
 class TechnologyPane;
 class ProductPane;
 class MaintenancePane;
+class SessionManagementPane;
 
 class MaestroHub : public TopWindow {
 	MenuBar menu;
 	TabCtrl tabs;
 	
 	// Pointers to avoid circular include issues during refactor
-	One<TechnologyPane>  technology;
-	One<ProductPane>     product;
-	One<MaintenancePane> maintenance;
+	One<TechnologyPane>        technology;
+	One<ProductPane>           product;
+	One<MaintenancePane>       maintenance;
+	One<SessionManagementPane> sessions;
 	
 	RecentConfig config;
 	String       current_root;

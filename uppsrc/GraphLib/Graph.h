@@ -9,6 +9,8 @@ using namespace Upp;
 
 enum class PinKind { Input, Output };
 
+struct Edge;
+
 struct Pin : Moveable<Pin> {
 	String id;
 	String label;
@@ -17,9 +19,20 @@ struct Pin : Moveable<Pin> {
 	Color color;
 	int type;
 	Size size;
-	Vector<struct Edge*> connections;
+	Vector<Edge*> connections;
 	
 	Pin() : kind(PinKind::Input), color(Black()), type(0), size(10, 10) {}
+	
+	Pin(const Pin& o, int) {
+		id = o.id;
+		label = o.label;
+		kind = o.kind;
+		position = o.position;
+		color = o.color;
+		type = o.type;
+		size = o.size;
+		connections <<= o.connections;
+	}
 };
 
 struct Node : Moveable<Node> {
@@ -28,6 +41,7 @@ struct Node : Moveable<Node> {
 	Pointf point;
 	
 	double layout_pos_x, layout_pos_y;
+	double layout_force_x, layout_force_y;
 	
 	Color fill_clr, line_clr;
 	int line_width;
@@ -35,11 +49,13 @@ struct Node : Moveable<Node> {
 	Size sz;
 	
 	Vector<Pin> pins;
-	Vector<struct Edge*> edges;
+	Vector<Edge*> edges;
 	
-	// Dijkstra
+	// Dijkstra & Sort
 	Node* predecessor;
 	double distance;
+	bool optimized;
+	int sort_importance;
 	
 	bool isSelected;
 	
@@ -47,9 +63,36 @@ struct Node : Moveable<Node> {
 	Pointf targetPoint;
 	bool isAnimating;
 	
-	Node() : layout_pos_x(0), layout_pos_y(0), 
+	Node() : layout_pos_x(0), layout_pos_y(0), layout_force_x(0), layout_force_y(0),
 		fill_clr(White()), line_clr(Black()), line_width(1), shape(0), sz(100, 50),
-		predecessor(NULL), distance(1e300), isSelected(false), isAnimating(false) {}
+		predecessor(NULL), distance(1e300), optimized(false), sort_importance(0),
+		isSelected(false), isAnimating(false) {}
+		
+	Node(const Node& o, int) {
+		id = o.id;
+		label = o.label;
+		point = o.point;
+		layout_pos_x = o.layout_pos_x;
+		layout_pos_y = o.layout_pos_y;
+		layout_force_x = o.layout_force_x;
+		layout_force_y = o.layout_force_y;
+		fill_clr = o.fill_clr;
+		line_clr = o.line_clr;
+		line_width = o.line_width;
+		shape = o.shape;
+		sz = o.sz;
+		for(const auto& p : o.pins) {
+			Pin& np = pins.Add();
+			new (&np) Pin(p, 1);
+		}
+		edges <<= o.edges;
+		predecessor = NULL;
+		distance = 1e300;
+		optimized = false;
+		sort_importance = 0;
+		isSelected = false;
+		isAnimating = false;
+	}
 		
 	Node& SetLabel(const String& s) {label = s; return *this;}
 	Node& SetFill(Color c) {fill_clr = c; return *this;}
@@ -59,7 +102,7 @@ struct Node : Moveable<Node> {
 		return RectC((int)point.x, (int)point.y, sz.cx, sz.cy);
 	}
 	
-	RectC GetScreenRect(Point offset, double zoom) const {
+	Rect GetScreenRect(Point offset, double zoom) const {
 		return RectC((int)((point.x + offset.x) * zoom), (int)((point.y + offset.y) * zoom), 
 					 (int)(sz.cx * zoom), (int)(sz.cy * zoom));
 	}
@@ -137,6 +180,7 @@ struct Edge : Moveable<Edge> {
 	int line_width;
 	Color stroke_clr;
 	bool directed;
+	double attraction;
 	
 	bool isSelected;
 	
@@ -145,7 +189,7 @@ struct Edge : Moveable<Edge> {
 	bool isFlowAnimating;
 	double flowSpeed;
 	
-	Edge() : weight(1.0), line_width(1), stroke_clr(Black()), directed(false), isSelected(false), 
+	Edge() : weight(1.0), line_width(1), stroke_clr(Black()), directed(false), attraction(1.0), isSelected(false), 
 		flowOffset(0), isFlowAnimating(false), flowSpeed(0) {}
 	
 	Edge& SetLabel(const String& s) {label = s; return *this;}
@@ -171,10 +215,12 @@ struct Edge : Moveable<Edge> {
 };
 
 class Graph {
-protected:
+public:
 	Vector<Node> nodes;
 	Vector<Edge> edges;
 	Vector<GroupNode> groups;
+	
+	double layout_min_x, layout_max_x, layout_min_y, layout_max_y;
 	
 public:
 	Node& AddNode(const String& id);
@@ -201,6 +247,8 @@ public:
 	void MoveNodeToGroup(const String& nodeId, const String& groupId);
 	
 	void Clear();
+	
+	Graph() : layout_min_x(0), layout_max_x(0), layout_min_y(0), layout_max_y(0) {}
 };
 
 }

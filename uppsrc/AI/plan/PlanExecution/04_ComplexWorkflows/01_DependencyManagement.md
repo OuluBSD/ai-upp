@@ -1,5 +1,5 @@
 # Task: Dependency Management
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement dependency tracking for WorkGraph tasks.

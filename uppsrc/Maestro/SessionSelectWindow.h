@@ -30,11 +30,19 @@ struct RecentConfig {
 	}
 };
 
+class SessionListView : public ArrayCtrl {
+public:
+	void SetSessions(const Array<SessionInfo>& sessions);
+	
+	typedef SessionListView CLASSNAME;
+	SessionListView();
+};
+
 class SessionSelectWindow : public TopWindow {
 public:
 	Splitter  split;
 	ArrayCtrl dirs;
-	ArrayCtrl sessions;
+	SessionListView sessions; // Upgraded from ArrayCtrl
 	
 	CliMaestroEngine* engine = nullptr;
 	String    selected_id;
@@ -42,6 +50,7 @@ public:
 	void DataDirectories();
 	void OnDirCursor();
 	void OnSessionDouble();
+	void OnSessionMenu(Bar& bar);
 	
 	void Load(CliMaestroEngine& engine);
 

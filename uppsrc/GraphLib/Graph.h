@@ -1,336 +1,204 @@
-#ifndef _GraphLib_Graph_h
-#define _GraphLib_Graph_h
+#ifndef _GraphLib_Graph_h_
+#define _GraphLib_Graph_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include "GroupNode.h"  // Include GroupNode functionality
-using namespace Upp;
 
 namespace GraphLib {
 
-enum class PinKind {
-    Input,
-    Output
-};
+using namespace Upp;
 
-struct Edge;  // Forward declaration for Pin struct
+enum class PinKind { Input, Output };
 
 struct Pin : Moveable<Pin> {
-    String id;
-    String label;
-    PinKind kind;
-    Pointf position;  // Position relative to node
-    Color color;
-    int type;         // For type matching during connections
-    Vector<Edge*> connections;  // Edges connected to this pin
-    Size size;
-    bool isConnected;
-
-    Pin() : kind(PinKind::Input), type(0), size(8, 8), isConnected(false) {}
-    Pin(String id, PinKind kind, int type = 0) : id(id), kind(kind), type(type), size(8, 8), isConnected(false) {}
-
-    // Define a custom copy constructor that doesn't copy connections
-    Pin(const Pin& other) : id(other.id), label(other.label), kind(other.kind), 
-                            position(other.position), color(other.color), type(other.type),
-                            size(other.size), isConnected(other.isConnected) {
-        // Don't copy connections - they need to be re-established after node copying
-    }
-
-    // Define assignment operator that doesn't copy connections
-    Pin& operator=(const Pin& other) {
-        if (this != &other) {
-            id = other.id;
-            label = other.label;
-            kind = other.kind;
-            position = other.position;
-            color = other.color;
-            type = other.type;
-            size = other.size;
-            isConnected = other.isConnected;
-            // Don't copy connections - they need to be re-established after node copying
-        }
-        return *this;
-    }
-
-    Rect GetBounds() const { 
-        return RectC(position.x - size.cx/2, position.y - size.cy/2, size.cx, size.cy); 
-    }
+	String id;
+	String label;
+	PinKind kind;
+	Pointf position;
+	Color color;
+	int type;
+	Size size;
+	Vector<struct Edge*> connections;
+	
+	Pin() : kind(PinKind::Input), color(Black()), type(0), size(10, 10) {}
 };
 
-struct Node;
+struct Node : Moveable<Node> {
+	String id;
+	String label;
+	Pointf point;
+	
+	double layout_pos_x, layout_pos_y;
+	
+	Color fill_clr, line_clr;
+	int line_width;
+	int shape; // 0:rect, 1:circle
+	Size sz;
+	
+	Vector<Pin> pins;
+	Vector<struct Edge*> edges;
+	
+	// Dijkstra
+	Node* predecessor;
+	double distance;
+	
+	bool isSelected;
+	
+	// Animation state
+	Pointf targetPoint;
+	bool isAnimating;
+	
+	Node() : layout_pos_x(0), layout_pos_y(0), 
+		fill_clr(White()), line_clr(Black()), line_width(1), shape(0), sz(100, 50),
+		predecessor(NULL), distance(1e300), isSelected(false), isAnimating(false) {}
+		
+	Node& SetLabel(const String& s) {label = s; return *this;}
+	Node& SetFill(Color c) {fill_clr = c; return *this;}
+	Node& SetStroke(int w, Color c) {line_width = w; line_clr = c; return *this;}
+	
+	Rect GetBoundingBox() const {
+		return RectC((int)point.x, (int)point.y, sz.cx, sz.cy);
+	}
+	
+	RectC GetScreenRect(Point offset, double zoom) const {
+		return RectC((int)((point.x + offset.x) * zoom), (int)((point.y + offset.y) * zoom), 
+					 (int)(sz.cx * zoom), (int)(sz.cy * zoom));
+	}
+	
+	Point CenterPoint() const { return Point((int)point.x + sz.cx/2, (int)point.y + sz.cy/2); }
+	
+	Pin& AddPin(String id, PinKind kind, int type=0);
+	Pin* FindPin(String id);
+	
+	void Select() { isSelected = true; }
+	void Deselect() { isSelected = false; }
+	
+	void StartMovementAnimation(Pointf target) {
+		targetPoint = target;
+		isAnimating = true;
+	}
+	
+	void UpdateMovementAnimation() {
+		if (isAnimating) {
+			double dx = targetPoint.x - point.x;
+			double dy = targetPoint.y - point.y;
+			double dist = sqrt(dx*dx + dy*dy);
+			if (dist < 1.0) {
+				point = targetPoint;
+				isAnimating = false;
+			} else {
+				point.x += dx * 0.1;
+				point.y += dy * 0.1;
+			}
+		}
+	}
+};
+
+struct GroupNode : Moveable<GroupNode> {
+	String id;
+	String label;
+	Pointf position;
+	Size size;
+	
+	Color header_clr;
+	Color body_clr;
+	Color border_clr;
+	int border_width;
+	
+	bool is_collapsed;
+	bool isSelected;
+	
+	Vector<String> node_ids;
+	
+	GroupNode() : position(0,0), size(200, 150), 
+		header_clr(LtBlue()), body_clr(White()), border_clr(Black()), border_width(1),
+		is_collapsed(false), isSelected(false) {}
+		
+	Rect GetBoundingBox() const {
+		return RectC((int)position.x, (int)position.y, size.cx, size.cy);
+	}
+	
+	Rect GetHeaderRect() const {
+		return RectC((int)position.x, (int)position.y, size.cx, 20); // Assuming 20px header
+	}
+	
+	bool ContainsHeader(Point p) const {
+		return GetHeaderRect().Contains(p);
+	}
+	
+	void Select() { isSelected = true; }
+	void Deselect() { isSelected = false; }
+};
 
 struct Edge : Moveable<Edge> {
-
-	Node *source, *target;
-	Color stroke_clr;
+	Node* source;
+	Node* target;
 	String label;
 	double weight;
 	int line_width;
-	bool attraction;
+	Color stroke_clr;
 	bool directed;
-	bool isSelected;  // Added for selection system
-	// Animation properties for flow animation
-	double flowPosition;
+	
+	bool isSelected;
+	
+	// Animation state
+	double flowOffset;
+	bool isFlowAnimating;
 	double flowSpeed;
-	Color animatedStrokeClr;
-
-	Edge() : source(NULL), target(NULL), attraction(false), weight(1), directed(false), isSelected(false), 
-	         flowPosition(0.0), flowSpeed(0.01) {
-		stroke_clr = Black();
-		line_width = 1;
-		weight = 1;
-		animatedStrokeClr = stroke_clr;
-	}
-
+	
+	Edge() : weight(1.0), line_width(1), stroke_clr(Black()), directed(false), isSelected(false), 
+		flowOffset(0), isFlowAnimating(false), flowSpeed(0) {}
+	
+	Edge& SetLabel(const String& s) {label = s; return *this;}
+	Edge& SetWeight(double w) {weight = w; return *this;}
+	Edge& SetStroke(int w, Color c) {line_width = w; stroke_clr = c; return *this;}
 	Edge& SetDirected(bool b=true) {directed = b; return *this;}
-	Edge& SetLabel(String lbl) {label = lbl; return *this;}
-	Edge& SetStroke(int line_width, Color clr) {this->line_width = line_width; stroke_clr = clr; animatedStrokeClr = clr; return *this;}
-	Edge& SetWeight(double d) {weight = d; return *this;}
-	Edge& SetFlowSpeed(double speed) {flowSpeed = speed; return *this;}
-
-	// Selection
-	Edge& Select() {isSelected = true; return *this;}
-	Edge& Deselect() {isSelected = false; return *this;}
-
-	// Animation methods
-	Edge& StartFlowAnimation() {flowPosition = 0.0; return *this;}
-	Edge& UpdateFlowAnimation() {
-		flowPosition += flowSpeed;
-		if (flowPosition > 1.0) flowPosition = 0.0;
-		return *this;
-	}
 	
-	double GetFlowPosition() const {return flowPosition;}
-	double GetFlowSpeed() const {return flowSpeed;}
-
 	double GetWeight() const {return weight;}
-
+	
+	void Select() { isSelected = true; }
+	void Deselect() { isSelected = false; }
+	
+	void StartFlowAnimation() { isFlowAnimating = true; }
+	void StopFlowAnimation() { isFlowAnimating = false; }
+	void SetFlowSpeed(double speed) { flowSpeed = speed; }
+	
+	void UpdateFlowAnimation() {
+		if (isFlowAnimating) {
+			flowOffset += flowSpeed;
+			if (flowOffset > 1.0) flowOffset -= 1.0;
+		}
+	}
 };
 
-inline Size MinFactor(Size sz, int w, int h) {
-	sz *= 2.2;
-	double factor = (double)sz.cx / sz.cy;
-	double target = (double)w / h;
-	if (factor < target)
-		sz.cx = sz.cy * target;
-	return sz;
-}
-
-struct Node : Moveable<Node> {
-	Node* predecessor;
-	String id, label;
-	Color line_clr, fill_clr;
-	Pointf point;
-	double layout_pos_x, layout_pos_y;
-	double layout_force_x, layout_force_y;
-	double distance;
-	int line_width;
-	int shape;
-	int sort_importance;
-	Size sz;
-	bool optimized;
-	bool isSelected;  // Added for selection system
-	Vector<Edge*> edges;
-	Vector<Pin> pins;  // Pins for this node
-
-	// Animation properties for movement
-	Pointf targetPoint;
-	bool isAnimating;
-	double animationProgress;
-	Pointf startAnimationPoint;
-
-	enum {SHAPE_ELLIPSE, SHAPE_RECT, SHAPE_DIAMOND};
-
-	Node();
-	Node(const Node& src);
-
-	Rect GetBoundingBox() const {return RectC(point.x - sz.cx/2, point.y - sz.cy/2, sz.cx, sz.cy);}
-
-	Node& SetSize(Size sz) {this->sz = sz; return *this;}
-	Node& SetLabel(String s);
-	Node& SetShapeEllipse() {shape = SHAPE_ELLIPSE; return *this;}
-	Node& SetShapeRectangle() {shape = SHAPE_RECT; return *this;}
-	Node& SetShapeDiamond() {shape = SHAPE_DIAMOND; return *this;}
-	Node& SetStroke(int line_width, Color clr) {this->line_width = line_width; line_clr = clr; return *this;}
-	Node& SetFill(Color clr) {fill_clr = clr; return *this;}
-	
-	// Selection
-	Node& Select() {isSelected = true; return *this;}
-	Node& Deselect() {isSelected = false; return *this;}
-	
-	// Pin management
-	Node& AddPin(String pinId, PinKind kind, int type = 0) { 
-		pins.Add().id = pinId; 
-		pins.Top().kind = kind; 
-		pins.Top().type = type; 
-		return *this; 
-	}
-	Node& SetPinPosition(String pinId, Pointf pos) { 
-		for(int i = 0; i < pins.GetCount(); i++) {
-			if(pins[i].id == pinId) {
-				pins[i].position = pos;
-				break;
-			}
-		}
-		return *this; 
-	}
-	Pin* FindPin(String pinId) { 
-		for(int i = 0; i < pins.GetCount(); i++) {
-			if(pins[i].id == pinId) {
-				return &pins[i];
-			}
-		}
-		return nullptr; 
-	}
-	const Pin* FindPin(String pinId) const { 
-		for(int i = 0; i < pins.GetCount(); i++) {
-			if(pins[i].id == pinId) {
-				return &pins[i];
-			}
-		}
-		return nullptr; 
-	}
-	
-	// Animation methods
-	Node& StartMovementAnimation() {
-		startAnimationPoint = point;
-		animationProgress = 0.0;
-		isAnimating = true;
-		return *this;
-	}
-	Node& UpdateMovementAnimation() {
-		if (isAnimating) {
-			animationProgress += 0.05; // Adjust speed as needed
-			if (animationProgress >= 1.0) {
-				animationProgress = 1.0;
-				isAnimating = false;
-			}
-			// Interpolate position
-			double x = startAnimationPoint.x + (targetPoint.x - startAnimationPoint.x) * animationProgress;
-			double y = startAnimationPoint.y + (targetPoint.y - startAnimationPoint.y) * animationProgress;
-			point.x = x;
-			point.y = y;
-		}
-		return *this;
-	}
-	bool IsAnimationComplete() const {return !isAnimating && animationProgress >= 1.0;}
-};
-
-
-// Graph Data Structure
 class Graph {
-
 protected:
-	friend class Renderer;
-	friend class Layout;
-	friend class TournamentTree;
-	friend class TopologicalSort;
-	friend class Spring;
-	friend class TournamentTree;
-	friend class OrderedTree;
-	friend void Dijkstra(Graph& g, Node& source);
-
-	ArrayMap<String, Node> nodes;
-	Array<Edge> edges;
-	ArrayMap<String, GroupNode> groups;  // Added GroupNode support
-	Color fill_clr, border_clr, line_clr;
-	double layout_max_x, layout_min_x;
-	double layout_max_y, layout_min_y;
-	int node_line_width, edge_line_width;
-
+	Vector<Node> nodes;
+	Vector<Edge> edges;
+	Vector<GroupNode> groups;
+	
 public:
-	Graph();
-
-
-	Graph& SetFillColor(Color clr) {fill_clr = clr; return *this;}
-	Graph& SetNodeStroke(int line_width, Color clr) {node_line_width = line_width; border_clr = clr; return *this;}
-	Graph& SetEdgeStroke(int line_width, Color clr) {edge_line_width = line_width; line_clr = clr; return *this;}
-
-	int GetEdgeCount() const {return edges.GetCount();}
-	int GetNodeCount() const {return nodes.GetCount();}
-	Edge& GetEdge(int i) {return edges[i];}
-	Node& GetNode(int i) {return nodes[i];}
-
-	//    Add node if it doesn't exist yet.
-	//
-	//    This method does not update an existing node.
-	//    If you want to update a node, just update the node object.
-	//
-	//    @param {string|number|object} id or node data
-	//    @param {object|} node_data (optional)
-	//    @returns {Node} the new or existing node
-	Node& AddNode(String id, Node* copy_data_from=NULL);
-
-	//    @param {string|number|object} source node or ID
-	//    @param {string|number|object} target node or ID
-	//    @param {object|} (optional) edge data, e.g. styles
-	//    @returns {Edge}
-
-	Edge& AddEdge(int source, int target, double weight=1.0, Edge* copy_data_from=NULL);
-	Edge& AddEdge(String source, String target, double weight=1.0, Edge* copy_data_from=NULL);
-	Edge& AddEdge(String sourceNodeId, String sourcePinId, String targetNodeId, String targetPinId, double weight=1.0, Edge* copy_data_from=NULL);
-
-	//    @param {string|number|Node} node node or ID
-	//    @return {Node}
-	void RemoveNode(String id);
-
-	//    Remove an edge by providing either two nodes (or ids) or the edge instance
-	//    @param {string|number|Node|Edge} node edge, node or ID
-	//    @param {string|number|Node} node node or ID
-	//    @return {Edge}
-	void RemoveEdge(Edge& source_edge);
-
-	// Public access methods for nodes
-	int FindNode(String id) const { return nodes.Find(id); }
-	Node& GetNode(String id) { return nodes.Get(id); }
-	const Node& GetNode(String id) const { return nodes.Get(id); }
-
-	// Group management methods
-	GroupNode& AddGroup(String id) {
-		int pos = groups.Find(id);
-		if (pos < 0) {
-			groups.Add(id, GroupNode(id));
-			pos = groups.GetCount() - 1; // Get the index of the last added item
-		}
-		return groups[pos];
-	}
+	Node& AddNode(const String& id);
+	void RemoveNode(const String& id);
+	int FindNode(const String& id);
+	Node& GetNode(int i) { return nodes[i]; }
+	const Node& GetNode(int i) const { return nodes[i]; }
+	int GetNodeCount() const { return nodes.GetCount(); }
 	
-	void RemoveGroup(String id) {
-		int pos = groups.Find(id);
-		if (pos >= 0) {
-			groups.Unlink(pos);
-		}
-	}
+	Edge& AddEdge(const String& n1, const String& n2, double weight=1.0);
+	Edge& AddEdge(const String& n1, const String& p1, const String& n2, const String& p2, double weight=1.0);
+	void RemoveEdge(Edge& e);
+	Edge& GetEdge(int i) { return edges[i]; }
+	const Edge& GetEdge(int i) const { return edges[i]; }
+	int GetEdgeCount() const { return edges.GetCount(); }
 	
-	int FindGroup(String id) const { return groups.Find(id); }
-	GroupNode& GetGroup(String id) { return groups.Get(id); }
-	const GroupNode& GetGroup(String id) const { return groups.Get(id); }
-	
-	int GetGroupCount() const { return groups.GetCount(); }
+	GroupNode& AddGroup(const String& id);
+	void RemoveGroup(const String& id);
+	int FindGroup(const String& id);
 	GroupNode& GetGroup(int i) { return groups[i]; }
+	const GroupNode& GetGroup(int i) const { return groups[i]; }
+	int GetGroupCount() const { return groups.GetCount(); }
 	
-	// Move nodes between groups or to no group
-	void MoveNodeToGroup(String nodeId, String groupId) {
-		Node* node = nullptr;
-		int nodeIdx = FindNode(nodeId);
-		if (nodeIdx >= 0) {
-			node = &GetNode(nodeIdx);
-		} else {
-			return; // Node doesn't exist
-		}
-		
-		// Remove from any existing group
-		for (int i = 0; i < groups.GetCount(); i++) {
-			GroupNode& group = groups[i];
-			group.RemoveNode(nodeId);
-		}
-		
-		// Add to the specified group if it exists
-		int groupIdx = FindGroup(groupId);
-		if (groupIdx >= 0) {
-			GroupNode& group = GetGroup(groupIdx);
-			group.AddNode(nodeId);
-		}
-	}
+	void MoveNodeToGroup(const String& nodeId, const String& groupId);
 	
 	void Clear();
 };

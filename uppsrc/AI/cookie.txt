@@ -1,4 +1,4 @@
-TRACK=PlanExecution
-PHASE=03_AutomatedWorkflows
+TRACK=SessionManagement
+PHASE=03_GUI
 TASK=
 STATUS=DONE

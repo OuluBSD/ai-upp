@@ -2,21 +2,20 @@
 
 namespace GraphLib {
 
+Renderer::Renderer(Graph& graph) : graph(&graph), pt_sz(0, 0) {}
+
+void Renderer::SetImageSize(Size s, int border) {
+	sz = s;
+}
+
 void Renderer::Paint(Draw& w) {
 	w.DrawRect(sz, White());
 	
 	// Draw groups (behind nodes)
-	for(int i = 0; i < graph.GetGroupCount(); i++) {
-		const GroupNode& g = graph.GetGroup(i);
+	for(int i = 0; i < graph->GetGroupCount(); i++) {
+		const GroupNode& g = graph->GetGroup(i);
 		Rect r = g.GetBoundingBox();
 		Rect hr = g.GetHeaderRect();
-		
-		// Convert to screen coordinates
-		// Note: This basic renderer assumes 1:1 mapping if not transformed.
-		// GraphLayout handles the transformation logic in its Paint but here we draw relative to 0,0 
-		// if we assume w is already transformed or we draw into an ImageDraw buffer of full size.
-		// Given GraphLayout usage: rend.SetImageSize(id_sz); rend.Paint(*id);
-		// So we draw in graph coordinates.
 		
 		w.DrawRect(r, g.body_clr);
 		w.DrawRect(hr, g.header_clr);
@@ -28,16 +27,10 @@ void Renderer::Paint(Draw& w) {
 	}
 	
 	// Draw edges
-	for(int i = 0; i < graph.GetEdgeCount(); i++) {
-		const Edge& e = graph.GetEdge(i);
-		Point p1 = (Point)e.source->point + e.source->sz/2; // Simple center connection if no pins
+	for(int i = 0; i < graph->GetEdgeCount(); i++) {
+		const Edge& e = graph->GetEdge(i);
+		Point p1 = (Point)e.source->point + e.source->sz/2;
 		Point p2 = (Point)e.target->point + e.target->sz/2;
-		
-		// If pins are connected, use pin positions
-		// This requires reverse lookup or Edge storing Pin pointers directly.
-		// Current Edge struct only has Node* source/target.
-		// However, Pins have 'connections' vector.
-		// We can scan nodes to find pins connected to this edge.
 		
 		Point pin1 = p1;
 		Point pin2 = p2;
@@ -71,11 +64,6 @@ void Renderer::Paint(Draw& w) {
 		
 		w.DrawLine(pin1, pin2, e.line_width, c);
 		
-		if(e.directed) {
-			// Draw arrow
-			// ...
-		}
-		
 		if(!e.label.IsEmpty()) {
 			Point mid = (pin1 + pin2) / 2;
 			w.DrawText(mid.x, mid.y, e.label);
@@ -83,8 +71,8 @@ void Renderer::Paint(Draw& w) {
 	}
 	
 	// Draw nodes
-	for(int i = 0; i < graph.GetNodeCount(); i++) {
-		const Node& n = graph.GetNode(i);
+	for(int i = 0; i < graph->GetNodeCount(); i++) {
+		const Node& n = graph->GetNode(i);
 		Rect r = n.GetBoundingBox();
 		
 		if(n.shape == 0) // Rect
@@ -112,8 +100,8 @@ void Renderer::Paint(Draw& w) {
 }
 
 Node* Renderer::FindNode(Point pt) {
-	for(int i = graph.GetNodeCount() - 1; i >= 0; i--) {
-		Node& n = graph.GetNode(i);
+	for(int i = graph->GetNodeCount() - 1; i >= 0; i--) {
+		Node& n = graph->GetNode(i);
 		if(n.GetBoundingBox().Contains(pt))
 			return &n;
 	}
@@ -121,13 +109,12 @@ Node* Renderer::FindNode(Point pt) {
 }
 
 Pin* Renderer::FindPin(Point pt) {
-	for(int i = graph.GetNodeCount() - 1; i >= 0; i--) {
-		Node& n = graph.GetNode(i);
+	for(int i = graph->GetNodeCount() - 1; i >= 0; i--) {
+		Node& n = graph->GetNode(i);
 		for(int j = 0; j < n.pins.GetCount(); j++) {
 			Pin& p = n.pins[j];
 			Point pp = (Point)n.point + (Point)p.position;
 			Rect pr(pp.x - p.size.cx/2, pp.y - p.size.cy/2, p.size.cx, p.size.cy);
-			// Add a small hit tolerance
 			if(pr.Inflated(2).Contains(pt))
 				return &p;
 		}
@@ -136,8 +123,8 @@ Pin* Renderer::FindPin(Point pt) {
 }
 
 GroupNode* Renderer::FindGroup(Point pt) {
-	for(int i = graph.GetGroupCount() - 1; i >= 0; i--) {
-		GroupNode& g = graph.GetGroup(i);
+	for(int i = graph->GetGroupCount() - 1; i >= 0; i--) {
+		GroupNode& g = graph->GetGroup(i);
 		if(g.GetBoundingBox().Contains(pt))
 			return &g;
 	}

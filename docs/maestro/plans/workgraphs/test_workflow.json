@@ -1,0 +1,39 @@
+{
+  "id": "wg-test-001",
+  "title": "Test Complex Workflow",
+  "goal": "Verify graph visualization and dependency tracking.",
+  "phases": [
+    {
+      "name": "Phase 1: Setup",
+      "tasks": [
+        {
+          "title": "Initialize Repository",
+          "status": "done",
+          "intent": "Prepare the git repo."
+        },
+        {
+          "title": "Configure Build",
+          "status": "done",
+          "intent": "Set up build.py."
+        }
+      ]
+    },
+    {
+      "name": "Phase 2: Implementation",
+      "tasks": [
+        {
+          "title": "Implement Feature A",
+          "status": "todo",
+          "intent": "Add core logic.",
+          "depends_on": ["Initialize Repository"]
+        },
+        {
+          "title": "Implement Feature B",
+          "status": "blocked",
+          "intent": "Add UI logic.",
+          "depends_on": ["Configure Build"]
+        }
+      ]
+    }
+  ]
+}

@@ -38,7 +38,7 @@ MaestroHub::MaestroHub() {
 	if(config.recent_dirs.GetCount() > 0)
 		current_root = config.recent_dirs[0];
 	else
-		current_root = GetHomeDirectory() + "/Dev/Maestro";
+		current_root = GetCurrentDirectory();
 	
 	PostCallback(THISBACK(LoadData));
 	
@@ -104,6 +104,30 @@ MaestroHub::MaestroHub() {
 					}
 				} else {
 					Cout() << "WARNING: No session directories found.\n";
+				}
+				Cout() << "=== END DUMP ===\n";
+				Cout().Flush();
+				Close();
+			});
+		}
+		else if(arg == "--test-graph") {
+			SetTimeCallback(1000, [=] {
+				tabs.Set(1); // Product
+				Cout() << "=== GRAPH TEST DUMP ===\n";
+				if(product->workflows.GetCount() > 0) {
+					product->workflows.SetCursor(0);
+					Ctrl::ProcessEvents();
+					
+					const auto& g = product->workflow_graph.GetGraph();
+					Cout() << "Graph Node Count: " << g.GetNodeCount() << "\n";
+					Cout() << "Graph Edge Count: " << g.GetEdgeCount() << "\n";
+					Cout() << "Graph Group Count: " << g.GetGroupCount() << "\n";
+					
+					if(g.GetNodeCount() > 0) {
+						Cout() << "First Node ID: " << g.GetNode(0).id << "\n";
+					}
+				} else {
+					Cout() << "WARNING: No workflows found for graph test.\n";
 				}
 				Cout() << "=== END DUMP ===\n";
 				Cout().Flush();

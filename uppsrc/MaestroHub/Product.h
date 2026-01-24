@@ -2,6 +2,7 @@
 #define _MaestroHub_Product_h_
 
 #include "MaestroHub.h"
+#include <GraphLib/GraphNodeCtrl.h>
 
 NAMESPACE_UPP
 
@@ -16,6 +17,11 @@ public:
 	
 	ArrayCtrl    workflows;
 	RichTextView wg_detail;
+	
+	// Workflow Graph Visualization
+	GraphLib::GraphNodeCtrl workflow_graph;
+	ParentCtrl              workflow_view; // Container for detail + graph
+	Splitter                wg_split;
 	
 	Array<Runbook>  runbook_data;
 	Array<WorkGraph> workflow_data;

@@ -1,7 +1,8 @@
 description "Maestro Main Hub Application\377B";
 
 uses
-	Maestro;
+	Maestro,
+	GraphLib;
 
 file
 	MaestroHub.h,

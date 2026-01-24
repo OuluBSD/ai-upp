@@ -7,6 +7,9 @@
 #include <Core/Core.h>
 #include <plugin/pcre/Pcre.h>
 
+#include <AI/Engine/CliEngine.h>
+#include <AI/Engine/Engines.h>
+
 NAMESPACE_UPP
 
 // 1. Data Models
@@ -14,11 +17,6 @@ NAMESPACE_UPP
 #include "UppParser.h"
 #include "RepoScanner.h"
 #include "PlanParser.h"
-
-// 2. Engine and Tools
-#include "Engine.h"
-#include "CliEngine.h"
-#include "Engines.h"
 
 #ifdef flagGUI
 // 3. UI

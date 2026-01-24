@@ -1,0 +1,23 @@
+description "Maestro Main Hub Application\377B";
+
+uses
+	Maestro;
+
+file
+	MaestroHub.h,
+	main.cpp,
+	
+	"Technology" block,
+	Technology.h,
+	Technology.cpp,
+	
+	"Product" block,
+	Product.h,
+	Product.cpp,
+	
+	"Maintenance" block,
+	Maintenance.h,
+	Maintenance.cpp;
+
+mainconfig
+	"" = "GUI";

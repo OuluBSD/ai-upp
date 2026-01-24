@@ -2,16 +2,13 @@ description "Maestro AI Engine Interface\377B";
 
 uses
 	Core,
-	plugin/pcre;
+	plugin/pcre,
+	AI/Engine;
 
 uses(GUI) CtrlLib;
 
 file
 	Maestro.h,
-	Engine.h,
-	CliEngine.h,
-	CliEngine.cpp,
-	Engines.h,
 	PackageInfo.h,
 	UppParser.h,
 	UppParser.cpp,

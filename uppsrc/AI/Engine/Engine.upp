@@ -1,0 +1,10 @@
+description "AI Engine Backend Support\377";
+
+uses
+	Core;
+
+file
+	Engine.h,
+	CliEngine.h,
+	CliEngine.cpp,
+	Engines.h;

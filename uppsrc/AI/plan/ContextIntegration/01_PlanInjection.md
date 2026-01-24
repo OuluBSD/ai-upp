@@ -1,5 +1,5 @@
 # Task: Automatic Plan Injection
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Automatically inject the current project plan (from `PlanParser`) into the system prompt of every new AI session.

@@ -9,6 +9,7 @@
 
 #include <AI/Engine/CliEngine.h>
 #include <AI/Engine/Engines.h>
+#include <AI/Engine/PlanSummarizer.h>
 
 NAMESPACE_UPP
 

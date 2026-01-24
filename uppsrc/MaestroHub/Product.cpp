@@ -11,6 +11,8 @@ ProductPane::ProductPane() {
 	
 	workflows.AddColumn("Workflow ID");
 	workflows.AddColumn("Title");
+	
+	// Add selection handlers to show summary (future enhancement: detailed view)
 }
 
 void ProductPane::Load(const String& root) {

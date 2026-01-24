@@ -1,4 +1,4 @@
-TRACK=SessionManagement
-PHASE=03_GUI
-TASK=
-STATUS=DONE
+TRACK=PlanExecution
+PHASE=04_ComplexWorkflows
+TASK=01_DependencyManagement.md
+STATUS=TODO

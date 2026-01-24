@@ -27,6 +27,7 @@ class MaestroHub : public TopWindow {
 	void SelectRoot();
 	
 	void OnEnact(String track, String phase, String task);
+	void OnEnactStep(String runbook_title, int step_n, String instruction);
 	
 	void LoadData();
 

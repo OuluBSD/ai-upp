@@ -2,36 +2,14 @@
 #include "Technology.h"
 #include "Product.h"
 #include "Maintenance.h"
+#include <AI/Engine/PlanSummarizer.h>
 
 NAMESPACE_UPP
 
 // Helper to generate context (moved from AIPlanner/main.cpp logic but adapted)
 String GetPlanSummaryText(const Array<Track>& tracks, const String& current_track, const String& current_phase, const String& current_task) {
-	String res;
-	res << "# Maestro Project Plan Summary\n\n";
-	res << "## Current Context\n";
-	res << "- **Track:** " << current_track << "\n";
-	res << "- **Phase:** " << current_phase << "\n";
-	res << "- **Task:** " << current_task << "\n\n";
-		res << "## Project Overview\n";
-	for(const auto& t : tracks) {
-		res << "### Track: " << t.name << " (" << t.status << ", " << t.completion << " %)\n";
-		for(const auto& p : t.phases) {
-			bool is_active_phase = (t.id == current_track && p.id == current_phase);
-			res << "- " << (is_active_phase ? "**[ACTIVE]** " : "") << "Phase: " << p.name 
-			    << " (" << p.status << ", " << p.completion << " %)\n";
-			
-			if(is_active_phase) {
-				for(const auto& tk : p.tasks) {
-					bool is_active_task = (tk.id == current_task || tk.path.EndsWith(current_task));
-					res << "  - " << (is_active_task ? "**[CURRENT]** " : "") << tk.name 
-					    << " [" << StatusToString(tk.status) << "]\n";
-				}
-			}
-		}
-		res << "\n";
-	}
-	return res;
+	// Replaced by PlanSummarizer usage below
+	return PlanSummarizer::GetPlanSummaryText(tracks, current_track, current_phase, current_task);
 }
 
 MaestroHub::MaestroHub() {
@@ -52,6 +30,7 @@ MaestroHub::MaestroHub() {
 	tabs.Add(maintenance->SizePos(), "Maintenance");
 	
 	technology->WhenEnact = THISBACK(OnEnact);
+	product->WhenEnactStep = THISBACK(OnEnactStep);
 	
 	config.Load();
 	if(config.recent_dirs.GetCount() > 0)
@@ -86,6 +65,36 @@ MaestroHub::MaestroHub() {
 					Cout().Flush();
 					Close();
 				}
+			});
+		}
+		else if(arg == "--test-product") {
+			SetTimeCallback(1000, [=] {
+				tabs.Set(1); // Switch to Product
+				
+				// Select first runbook
+				if(product->runbooks.GetCount() > 0) {
+					product->runbooks.SetCursor(0);
+					Ctrl::ProcessEvents(); // Allow UI update
+					Cout() << "=== PRODUCT TEST DUMP ===\n";
+					Cout() << "Selected Runbook: " << product->runbooks.Get(0) << "\n";
+					// We can't easily get QTF content programmatically without accessors, 
+					// but successful selection implies logic ran.
+				} else {
+					Cout() << "WARNING: No runbooks found.\n";
+				}
+			
+				// Select first workflow
+				if(product->workflows.GetCount() > 0) {
+					product->workflows.SetCursor(0);
+					Ctrl::ProcessEvents();
+					Cout() << "Selected Workflow: " << product->workflows.Get(0) << "\n";
+				} else {
+					Cout() << "WARNING: No workflows found.\n";
+				}
+			
+				Cout() << "=== END DUMP ===\n";
+				Cout().Flush();
+				Close();
 			});
 		}
 	}
@@ -132,6 +141,20 @@ void MaestroHub::OnEnact(String track, String phase, String task) {
 		prompt << context << "\n\n";
 		prompt << "I am starting work on **Task: " << task << "**.\n";
 		prompt << "Please analyze the requirements and provide a plan or begin execution.";
+		
+		maintenance->chat.input.SetData(prompt);
+	}
+}
+
+void MaestroHub::OnEnactStep(String runbook_title, int step_n, String instruction) {
+	int maint_idx = 2;
+	tabs.Set(maint_idx);
+	
+	if(maintenance) {
+		String prompt;
+		prompt << "Runbook: **" << runbook_title << "**\n";
+		prompt << instruction << "\n";
+		prompt << "Please execute this step or provide guidance.";
 		
 		maintenance->chat.input.SetData(prompt);
 	}

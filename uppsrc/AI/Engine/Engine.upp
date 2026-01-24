@@ -1,10 +1,13 @@
 description "AI Engine Backend Support\377";
 
 uses
-	Core;
+	Core,
+	Maestro;
 
 file
 	Engine.h,
 	CliEngine.h,
 	CliEngine.cpp,
-	Engines.h;
+	Engines.h,
+	PlanSummarizer.h,
+	PlanSummarizer.cpp;

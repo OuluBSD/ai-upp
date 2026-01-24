@@ -13,8 +13,7 @@ String GetPlanSummaryText(const Array<Track>& tracks, const String& current_trac
 	res << "- **Track:** " << current_track << "\n";
 	res << "- **Phase:** " << current_phase << "\n";
 	res << "- **Task:** " << current_task << "\n\n";
-	
-	res << "## Project Overview\n";
+		res << "## Project Overview\n";
 	for(const auto& t : tracks) {
 		res << "### Track: " << t.name << " (" << t.status << ", " << t.completion << " %)\n";
 		for(const auto& p : t.phases) {
@@ -61,6 +60,35 @@ MaestroHub::MaestroHub() {
 		current_root = GetHomeDirectory() + "/Dev/Maestro";
 	
 	PostCallback(THISBACK(LoadData));
+	
+	// Automated testing support
+	const Vector<String>& cmdline = CommandLine();
+	for(const auto& arg : cmdline) {
+		if(arg == "--test-enact") {
+			// Delay slightly to allow layout and data load
+			SetTimeCallback(1000, [=] {
+				PlanParser pp;
+				pp.LoadMaestroTracks(current_root);
+				if(pp.tracks.GetCount() > 0 && pp.tracks[0].phases.GetCount() > 0 && pp.tracks[0].phases[0].tasks.GetCount() > 0) {
+					String t = pp.tracks[0].id;
+					String p = pp.tracks[0].phases[0].id;
+					String k = pp.tracks[0].phases[0].tasks[0].id;
+					OnEnact(t, p, k);
+					
+					Cout() << "=== ENACT TEST DUMP ===\n";
+					Cout() << "Enacted Task: " << k << "\n";
+					Cout() << "Prompt Input: " << maintenance->chat.input.GetData() << "\n";
+					Cout() << "=== END DUMP ===\n";
+					Cout().Flush();
+					Close();
+				} else {
+					Cout() << "ERROR: No tasks found to enact.\n";
+					Cout().Flush();
+					Close();
+				}
+			});
+		}
+	}
 }
 
 void MaestroHub::MainMenu(Bar& bar) {
@@ -91,18 +119,14 @@ void MaestroHub::LoadData() {
 }
 
 void MaestroHub::OnEnact(String track, String phase, String task) {
-	// 1. Switch to Maintenance tab
-	int maint_idx = 2; // Technology=0, Product=1, Maintenance=2
+	int maint_idx = 2;
 	tabs.Set(maint_idx);
 	
-	// 2. Generate context from PlanParser (we need to load it again or access TechnologyPane's data)
-	// Accessing TechnologyPane's data is cleaner but PlanParser is fast enough for now
 	PlanParser pp;
 	pp.LoadMaestroTracks(current_root);
 	
-	String context = GetPlanSummaryText(pp.tracks, track, phase, task);
+	String context = PlanSummarizer::GetPlanSummaryText(pp.tracks, track, phase, task);
 	
-	// 3. Inject into Chat
 	if(maintenance) {
 		String prompt;
 		prompt << context << "\n\n";
@@ -110,8 +134,6 @@ void MaestroHub::OnEnact(String track, String phase, String task) {
 		prompt << "Please analyze the requirements and provide a plan or begin execution.";
 		
 		maintenance->chat.input.SetData(prompt);
-		// Optionally auto-send:
-		// maintenance->chat.OnSend(); 
 	}
 }
 

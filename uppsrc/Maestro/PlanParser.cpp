@@ -10,7 +10,6 @@ void PlanParser::Reset() {
 
 void PlanParser::Load(const String& plan_root) {
 	tracks.Clear();
-	// This is the legacy loader for .md files in tracks/phases/tasks
 	FindFile ff(AppendFileName(plan_root, "*"));
 	while(ff) {
 		if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
@@ -56,7 +55,7 @@ void PlanParser::LoadPhase(Track& track, const String& phase_path) {
 		String content = LoadFile(phase_path);
 		Vector<String> lines = Split(content, '\n', false);
 		for(const String& l : lines) {
-			RegExp reTask("- \\\\[(.)\\\\] \\\*\\\*(.+)\\\\*\\\*");
+			RegExp reTask("- \\\\[(.)\\\\] \\\\*\\\*(.+)\\\\*\\\*");
 			if(reTask.Match(l)) {
 				Task& t = p.tasks.Add();
 				t.id = reTask[1];
@@ -162,18 +161,21 @@ bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_i
 	String content = LoadFile(phase_file);
 	Vector<String> lines = Split(content, '\n', false);
 	String new_content;
-	char status_char = ' ';
-	if(status == STATUS_DONE) status_char = 'x';
-	else if(status == STATUS_IN_PROGRESS) status_char = '/';
+	String status_char = " ";
+	if(status == STATUS_DONE) status_char = "x";
+	else if(status == STATUS_IN_PROGRESS) status_char = "/";
 	
 	bool found = false;
 	for(String l : lines) {
-		RegExp reTask("- \\\\[(.)\\\\] \\\*\\\*(.+)\\\\*\\\*");
+		RegExp reTask("- \\\\[(.)\\\\] \\\\*\\\*(.+)\\\\\*\\\*");
 		if(reTask.Match(l)) {
 			String tid = reTask[1];
 			if(tid == task_id) {
-				l = "- [" + String(status_char, 1) + "] **" + tid + "**" + l.Mid(reTask.GetPos(1) + reTask.GetLength(1));
-				found = true;
+				if(l.GetCount() > 2) {
+					l.Insert(2, status_char);
+					l.Remove(3);
+					found = true;
+				}
 			}
 		}
 		new_content << l << "\n";
@@ -183,4 +185,4 @@ bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_i
 	return false;
 }
 
-} 
+}

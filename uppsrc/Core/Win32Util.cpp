@@ -237,6 +237,9 @@ void Win32Event::Set()
 
 #else
 
+typedef void *HINSTANCE;
+typedef void *HKEY;
+
 HINSTANCE AppGetHandle()
 {
 	return NULL;
@@ -245,6 +248,8 @@ HINSTANCE AppGetHandle()
 void AppSetHandle(HINSTANCE)
 {
 }
+
+String AsString(const wchar_t *buffer, int count);
 
 String AsString(const wchar_t *buffer)
 {

@@ -48,3 +48,9 @@ out/
 
 _out/
 __pycache__/
+
+build.log
+capture.png
+run.err
+run.log
+

@@ -109,8 +109,10 @@ bool ExtScriptEcsLoader::Load(ScriptComponentLoader& l, Component& cb) {
 		String key = l.def.args.GetKey(i);
 		const Value& value = l.def.args[i];
 		if (!value.IsVoid()) {
-			if (!cb.Arg(key, value))
+			if (!cb.Arg(key, value)) {
+				LOG("ExtScriptEcsLoader::Load: Arg failed for key '" << key << "' value '" << value.ToString() << "'");
 				return false;
+			}
 		}
 	}
 	

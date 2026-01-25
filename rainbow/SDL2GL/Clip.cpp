@@ -4,9 +4,14 @@
 
 NAMESPACE_UPP
 
-#define LLOG(x)  // LOG(x)
+static String Unicode__(const WString& w)
+{
+	return String((const char *)~w, w.GetLength() * sizeof(wchar));
+}
 
-static VectorMap<String, ClipData> fbClipboard;
+#define LLOG(x)
+
+VectorMap<String, ClipData> fbClipboard;
 
 void ClearClipboard()
 {
@@ -66,7 +71,7 @@ String GetString(PasteClip& clip)
 	GuiLock __;
 	if(clip.Accept("wtext")) {
 		String s = ~clip;
-		return WString((const wchar *)~s, wstrlen((const wchar *)~s)).ToString();
+		return WString((const wchar *)~s, s.GetLength() / sizeof(wchar)).ToString();
 	}
 	if(clip.IsAvailable("text"))
 		return ~clip;
@@ -78,7 +83,7 @@ WString GetWString(PasteClip& clip)
 	GuiLock __;
 	if(clip.Accept("wtext")) {
 		String s = ~clip;
-		return WString((const wchar *)~s, wstrlen((const wchar *)~s));
+		return WString((const wchar *)~s, s.GetLength() / sizeof(wchar));
 	}
 	if(clip.IsAvailable("text"))
 		return (~clip).ToWString();

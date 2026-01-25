@@ -1,5 +1,5 @@
-#ifndef _GuboCore_GuboCore_h_
-#define _GuboCore_GuboCore_h_
+#ifndef _GuboCore_CtrlCore_h_
+#define _GuboCore_CtrlCore_h_
 
 #include "Defs.h"
 

@@ -49,13 +49,17 @@ void BufferStageT<Gfx>::SetStereoLens() {
 
 template <class Gfx>
 void BufferStageT<Gfx>::SetDataState(DataState* s, bool data_writable) {
-	ASSERT(data == 0 || data == s); // it's too confusing for debugging to allow this to be overwritten
+	//ASSERT(data == 0 || data == s); // it's too confusing for debugging to allow this to be overwritten
 	// with eon files; add "recv.data: true;" to your atom to avoid crashing
 	// if you skip this: clean quad ptr, etc... who know's what
 	
 	data = s;
 	this->data_writable = data_writable;
 	pipeline = 0;
+	
+	if (data) {
+		data->GetAddPipeline(pipeline_str).GetAddProgram(program_str);
+	}
 	
 	if (data && initialized)
 		RealizeData();
@@ -77,7 +81,8 @@ void BufferStageT<Gfx>::SetDataState(DataState* s, bool data_writable) {
 		}
 	}
 	
-	CompileJIT();
+	if (initialized)
+		CompileJIT();
 }
 
 template <class Gfx>

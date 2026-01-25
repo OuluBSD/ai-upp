@@ -15,6 +15,8 @@
 
 NAMESPACE_UPP
 
+void ForceLinkDraw();
+
 #include "GEnums.h"
 #include "ProgPainter.h"
 #include "ProgDraw.h"

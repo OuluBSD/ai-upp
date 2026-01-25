@@ -92,7 +92,6 @@ void ProductPane::OnWorkflowSelect() {
 	}
 	
 	const WorkGraph& wg = workflow_data[workflows.GetCursor()];
-	Cout() << "DEBUG: Selecting Workflow: " << wg.title << " Phases: " << wg.phases.GetCount() << "\n";
 	String summary = PlanSummarizer::GetWorkGraphSummary(wg);
 	wg_detail.SetQTF("[C1 " + DeQtf(summary) + "]");
 	

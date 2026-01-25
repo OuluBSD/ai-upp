@@ -245,6 +245,16 @@ void AIChatCtrl::MouseWheel(Point p, int zdelta, dword keyflags) {
 	vscroll.Wheel(zdelta);
 }
 
+void AIChatCtrl::Load(const String& root) {
+	// Initialize with root
+}
+
+void AIChatCtrl::SetSession(const String& b, const String& id) {
+	backend = b;
+	engine.binary = b;
+	engine.session_id = id;
+}
+
 void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) {
 	MaestroItem& item = items.Add();
 	item.role = role;

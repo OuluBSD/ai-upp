@@ -30,6 +30,7 @@ struct System {
 	bool require_left = true;
 	bool require_right = true;
 	bool verbose = false;
+	bool emulate = false;
 	bool use_calibration_values = true;
 	int user_hmd_idx = -1;
 	int user_ctrl_idx[2] = {-1,-1};

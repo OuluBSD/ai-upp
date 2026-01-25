@@ -4,8 +4,8 @@ NAMESPACE_GUBO_BEGIN
 
 
 template <class Dim>
-HandleSystemT<Dim>::HandleSystemT(VfsValue& m) :
-	System(m) {
+HandleSystemT<Dim>::HandleSystemT(Engine& m) :
+	BaseSystem(m) {
 	
 }
 
@@ -84,8 +84,11 @@ void HandleSystemT<Dim>::DoEvents(const EventCollection& ev) {
 	Scope& scope = GetActiveScope();
 	
 	for (const Event& e : ev) {
-		if (e.type == EVENT_SHUTDOWN)
+		if (e.type == EVENT_SHUTDOWN) {
+#ifdef flagEON
 			this->GetEngine().SetNotRunning();
+#endif
+		}
 		else
 			scope.Dispatch(e);
 	}

@@ -4,6 +4,7 @@ NAMESPACE_UPP
 
 
 void TopGubo::CreateGeom3DComponent() {
+#ifdef flagEON
 	using namespace Ecs;
 	
 	
@@ -12,7 +13,7 @@ void TopGubo::CreateGeom3DComponent() {
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
 	Gu::GuboManager& mgr = wins->GetActiveScope();
 	mgr.AddInterface(*this);
-	
+#endif
 }
 
 

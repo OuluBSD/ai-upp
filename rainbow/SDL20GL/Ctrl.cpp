@@ -71,8 +71,8 @@ String Ctrl::Name() const {
 #else
 	String s = String(typeid(*this).name()) + " : " + Format("0x%x", (int) this);
 #endif
-	if(IsChild())
-		s << "(parent " << String(typeid(*parent).name()) << ")";
+		if(uparent)
+			s << "(parent " << String(typeid(*uparent).name()) << ")";
 	return s;
 }
 

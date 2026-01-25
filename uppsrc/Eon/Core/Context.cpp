@@ -197,7 +197,7 @@ AtomBasePtr LoopContext::AddAtom(AtomTypeCls atom, LinkTypeCls link, const Iface
 
     // set interface and initialize
     ab->SetInterface(iface);
-    WorldState ws;
+    WorldState ws = ab->GetEngine().GetWorldState();
     if (args) {
         for (int i = 0; i < args->GetCount(); i++) {
             String key = args->GetKey(i);
@@ -609,7 +609,7 @@ AtomBasePtr NetContext::AddAtom(const String& name, const String& action, const 
     ab->SetIdx(atoms.GetCount());
 
     // Initialize with args
-    WorldState ws;
+    WorldState ws = ab->GetEngine().GetWorldState();
     if (args) {
         for (int i = 0; i < args->GetCount(); i++) {
             String key = args->GetKey(i);

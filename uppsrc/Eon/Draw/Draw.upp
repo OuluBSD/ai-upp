@@ -5,6 +5,8 @@ acceptflags
 	HAL,
 	SDL2,
 	OGL,
+	OPENVR,
+	ASSIMP,
 	DEBUG_RT;
 
 uses

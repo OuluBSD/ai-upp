@@ -34,7 +34,7 @@ HOLO_VNDR_LIST
 
 #if (defined flagLINUX && defined flagOPENHMD) || (defined flagFREEBSD && defined flagOPENHMD)
 struct HoloOpenHMD {
-	#if defined flagVR
+	#if defined flagVR || defined flagOPENHMD || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -50,7 +50,7 @@ struct HoloOpenHMD {
 #endif
 #if defined flagLOCALHMD
 struct HoloLocalHMD {
-	#if defined flagVR
+	#if defined flagVR || defined flagLOCALHMD || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -66,7 +66,7 @@ struct HoloLocalHMD {
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
 struct HoloRemoteVRServer {
-	#if defined flagVR
+	#if defined flagVR || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -82,7 +82,7 @@ struct HoloRemoteVRServer {
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
 struct HoloDevUsb {
-	#if defined flagVR
+	#if defined flagVR || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -98,7 +98,7 @@ struct HoloDevUsb {
 #endif
 #if (defined flagLINUX && defined flagHACK) || (defined flagFREEBSD && defined flagHACK)
 struct HoloDevBluetooth {
-	#if defined flagVR
+	#if defined flagVR || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -112,9 +112,9 @@ struct HoloDevBluetooth {
 	
 };
 #endif
-#if (defined flagWIN32 && defined flagOPENVR)
+#if (defined flagWIN32 && defined flagOPENVR) || (defined flagLINUX && defined flagOPENVR)
 struct HoloOpenVR {
-	#if defined flagVR
+	#if defined flagVR || defined flagOPENVR
 	struct NativeSinkDevice;
 	#endif
 	
@@ -129,17 +129,14 @@ struct HoloOpenVR {
 };
 #endif
 
-#if defined flagVR
 struct HoloSinkDevice : public Atom {
 	using Atom::Atom;
 	void Visit(Vis& v) override {VIS_THIS(Atom);}
 	
 	virtual ~HoloSinkDevice() {}
 };
-#endif
 
 
-#if defined flagVR
 template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	using CLASSNAME = HolographSinkDeviceT<Holo>;
 	using HoloSinkDevice::HoloSinkDevice;
@@ -149,10 +146,15 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 	}
 	typename Holo::NativeSinkDevice* dev = 0;
 	bool Initialize(const WorldState& ws) override {
-		if (!Holo::SinkDevice_Create(dev))
+		if (!Holo::SinkDevice_Create(dev)) {
+			LOG("HolographSinkDeviceT::Initialize: SinkDevice_Create failed");
 			return false;
-		if (!Holo::SinkDevice_Initialize(*dev, *this, ws))
+		}
+		if (!Holo::SinkDevice_Initialize(*dev, *this, ws)) {
+			LOG("HolographSinkDeviceT::Initialize: SinkDevice_Initialize failed");
 			return false;
+		}
+		LOG("HolographSinkDeviceT::Initialize: success");
 		return true;
 	}
 	bool PostInitialize() override {
@@ -186,37 +188,24 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 		return Holo::SinkDevice_IsReady(*dev, *this, io);
 	}
 };
-#endif
 
 #if (defined flagLINUX && defined flagOPENHMD) || (defined flagFREEBSD && defined flagOPENHMD)
-#if defined flagVR
-using OpenHMDSinkDevice = HolographSinkDeviceT<HoloOpenHMD>;
-#endif
+using OpenHMDSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
 #if defined flagLOCALHMD
-#if defined flagVR
-using LocalHMDSinkDevice = HolographSinkDeviceT<HoloLocalHMD>;
-#endif
+using LocalHMDSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
-#if defined flagVR
-using RemoteVRServerSinkDevice = HolographSinkDeviceT<HoloRemoteVRServer>;
-#endif
+using RemoteVRServerSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)
-#if defined flagVR
-using DevUsbSinkDevice = HolographSinkDeviceT<HoloDevUsb>;
-#endif
+using DevUsbSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
 #if (defined flagLINUX && defined flagHACK) || (defined flagFREEBSD && defined flagHACK)
-#if defined flagVR
-using DevBluetoothSinkDevice = HolographSinkDeviceT<HoloDevBluetooth>;
+using DevBluetoothSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
 #endif
-#endif
-#if (defined flagWIN32 && defined flagOPENVR)
-#if defined flagVR
+#if (defined flagWIN32 && defined flagOPENVR) || (defined flagLINUX && defined flagOPENVR)
 using OpenVRSinkDevice = HolographSinkDeviceT<HoloOpenVR>;
-#endif
 #endif
 
 END_UPP_NAMESPACE

@@ -882,7 +882,7 @@ void FormEdit<T>::OpenFile()
 {
 	UpdateChildZ();
 
-	FileSelNative fs;
+	FileSel fs;
 	fs.Type(t_("Form files"), "*.form");
 	fs.Type(t_("Form archives"), "*.fz");
 	fs.AllFilesType();
@@ -955,7 +955,7 @@ void FormEdit<T>::SaveAsFile()
 
 	UpdateChildZ();
 
-	FileSelector fs;
+	FileSel fs;
 	fs.Type(t_("Form files (*.form)"), "*.form");
 	fs.Type(t_("Form archives (*.fz)"), "*.fz");
 	fs.AllFilesType();
@@ -1003,7 +1003,7 @@ void FormEdit<T>::EmbeddedExportFile() {
 
 	UpdateChildZ();
 
-	FileSelector fs;
+	FileSel fs;
 	fs.Type(t_("Form files (*.form)"), "*.form");
 	fs.Type(t_("Form archives (*.fz)"), "*.fz");
 	fs.AllFilesType();
@@ -1027,7 +1027,7 @@ template <class T>
 void FormEdit<T>::EmbeddedImportFile() {
 	UpdateChildZ();
 
-	FileSelector fs;
+	FileSel fs;
 	fs.Type(t_("Form files"), "*.form");
 	fs.Type(t_("Form archives"), "*.fz");
 	fs.AllFilesType();

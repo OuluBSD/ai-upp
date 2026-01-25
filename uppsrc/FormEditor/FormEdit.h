@@ -1,6 +1,7 @@
 #ifndef FORM_EDIT_H
 #define FORM_EDIT_H
 
+#include <CtrlLib/CtrlLib.h>
 
 class CtrlContEx : public Ctrl
 {

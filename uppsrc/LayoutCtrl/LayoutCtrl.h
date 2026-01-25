@@ -1,7 +1,7 @@
 #ifndef _LayoutCtrl_LayoutCtrl_h
 #define _LayoutCtrl_LayoutCtrl_h
 
-#include <Core2/Core.h>
+#include <Vfs/Core/Core.h>
 #include <CtrlLib/CtrlLib.h>
 
 

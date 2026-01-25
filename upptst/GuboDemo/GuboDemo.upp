@@ -1,0 +1,19 @@
+description "Gubo Demo - 3D GUI demonstration";
+
+uses
+	GuboLib,
+	GuboCore,
+	Draw/Cuboid,
+	SDL2GL,
+	GLDraw,
+	CtrlLib;
+
+file
+	AGENTS.md,
+	GuboDemo.h,
+	GuboDemo.cpp;
+
+mainconfig
+	"" = "GUI SCREEN SDL2GL SDL2 OGL GUBO";
+
+library(POSIX) "SDL2 SDL2_image SDL2_ttf GL";

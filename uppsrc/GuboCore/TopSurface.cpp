@@ -1,5 +1,5 @@
 #include "GuboCore.h"
-#include <GuboLib/ScopeT.h>
+#include <GuboLib/GuboLib.h>
 #include <Eon/Eon.h>
 
 
@@ -33,6 +33,7 @@ void TopSurface::RunInMachine() {
 }
 
 void TopSurface::FocusEvent() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
@@ -40,6 +41,7 @@ void TopSurface::FocusEvent() {
 		Gu::SurfaceManager& mgr = wins->GetActiveScope();
 		mgr.FocusHandle(this);
 	}
+#endif
 }
 
 #if 0

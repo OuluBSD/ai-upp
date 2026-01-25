@@ -295,7 +295,7 @@ template <class Gfx>
 void GfxAccelAtom<Gfx>::Update(double dt) {
 	auto& buf = bf.GetBuffer();
 	auto& env = buf.env;
-	auto& fb = buf.Single().GetFramebuffer();
+	auto& fb = buf.Top().GetFramebuffer();
 	
 	if (env) {
 		Size& video_size = env->template Set<Size>(SCREEN0_SIZE, Size(0,0));
@@ -370,6 +370,13 @@ void GfxAccelAtom<Gfx>::Render(const RealtimeSourceConfig& cfg) {
 	}
 	else {
 		BeginDraw();
+		{
+			auto& buf = bf.GetBuffer();
+			LOG("GfxAccelAtom::Render: buf.stages.GetCount()=" << buf.stages.GetCount());
+			if (buf.stages.GetCount() > 0) {
+				LOG("GfxAccelAtom::Render: buf.Top().pipeline=" << (void*)buf.Top().pipeline);
+			}
+		}
 		if (is_sw) {
 		    auto& buf = bf.GetBuffer();
 		    if (buf.stages.GetCount() > 0 && buf.Top().pipeline)

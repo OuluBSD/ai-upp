@@ -71,10 +71,7 @@ struct VfsValueExtFactory {
 		NewExpt new_fn;
 	};*/
 	
-	static VectorMap<String, TypeCls>& EonToType() {
-		static VectorMap<String, TypeCls> m;
-		return m;
-	}
+	static VectorMap<String, TypeCls>& EonToType();
     
 	template<class T> struct Functions {
 		static VfsValueExt* Create(VfsValue& owner) {VfsValueExt* c = new T(owner); return c;}
@@ -180,8 +177,10 @@ struct VfsValueExtFactory {
 		f.is_fn = &Functions<T>::IsNodeExt;
 		//f.set_data_ed_fn = &DatasetEntityData<T>;
 		f.create_ed_fn = &EntityDataCreator<std::is_base_of<::UPP::EntityData,T>::value,T>::New;
-		if (type == VFSEXT_SYSTEM_ECS)
-			EonToType().Add(eon_name, f.type_cls);  // Use eon_name (Eon ID) instead of name (class name)
+		if (type == VFSEXT_SYSTEM_ECS) {
+			LOG("VfsValueExtFactory::Register: adding system '" << eon_name << "' to EonToType");
+			EonToType().GetAdd(eon_name) = f.type_cls;  // Use eon_name (Eon ID) instead of name (class name)
+		}
 		if (type == VFSEXT_SYSTEM_ECS)
 			f.set_ptr_fn = &SetDatasetData<T>;
 		ASSERT(f.name.Find("|") < 0);

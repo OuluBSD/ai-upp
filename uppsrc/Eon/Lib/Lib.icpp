@@ -294,6 +294,10 @@ INITBLOCK {
 	REGISTER_ATOM(OpenHMDPipe);
 	#endif
 	
+	#if (defined flagOPENVR)
+	REGISTER_ATOM(OpenVRPipe);
+	#endif
+	
 	// AtomMinimal
 	
 	#if (defined flagX11 && defined flagSCREEN)
@@ -319,6 +323,17 @@ INITBLOCK {
 	REGISTER_LINK(SplitterLink);
 	REGISTER_LINK(PollerLink);
 	#undef REGISTER_LINK
+
+	if (!VfsValueExtFactory::GetFactory<PaintStrokeSystemBase>().type_hash)
+		REGISTER_EON_SYSTEM(PaintStrokeSystemBase, "system.paintstroke", "Sys|Ecs");
+	if (!VfsValueExtFactory::GetFactory<ToolboxSystemBase>().type_hash)
+		REGISTER_EON_SYSTEM(ToolboxSystemBase, "system.toolbox", "Sys|Ecs");
+	if (!VfsValueExtFactory::GetFactory<PaintingInteractionSystemBase>().type_hash)
+		REGISTER_EON_SYSTEM(PaintingInteractionSystemBase, "system.interaction.painting", "Sys|Ecs");
+	if (!VfsValueExtFactory::GetFactory<ShootingInteractionSystemBase>().type_hash)
+		REGISTER_EON_SYSTEM(ShootingInteractionSystemBase, "system.interaction.shooting", "Sys|Ecs");
+	if (!VfsValueExtFactory::GetFactory<ThrowingInteractionSystemBase>().type_hash)
+		REGISTER_EON_SYSTEM(ThrowingInteractionSystemBase, "system.interaction.throwing", "Sys|Ecs");
 	
 }
 

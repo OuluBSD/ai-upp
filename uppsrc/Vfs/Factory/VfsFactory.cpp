@@ -9,6 +9,11 @@ bool VfsValueExtFactory::IsType(hash_t type_hash, VfsExtType t) {
 	return false;
 }
 
+VectorMap<String, TypeCls>& VfsValueExtFactory::EonToType() {
+	static VectorMap<String, TypeCls> m;
+	return m;
+}
+
 VfsValueExt* VfsValueExtFactory::Create(hash_t type_hash, VfsValue& owner) {
 	int i = FindTypeHashFactory(type_hash);
 	if (i < 0)

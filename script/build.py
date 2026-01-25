@@ -1234,7 +1234,7 @@ def main():
     if opts["jobs"]:
         build_flags = re.sub(r"H\\d+", "", build_flags)
 
-    roots = "./upptst,./uppsrc,./examples,./tutorial,./reference"
+    roots = "./upptst,./rainbow,./uppsrc,./examples,./tutorial,./reference"
     output_name = f"{target}.exe" if is_windows else target
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)

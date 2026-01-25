@@ -210,6 +210,9 @@ public:
 	static void Uninstall(bool clear_root=true, Engine* e=0);
 	static void PostCallback(Event<> cb);
 	
+	const WorldState& GetWorldState() const { return ws; }
+	const ValueMap& GetEonParams() const { return eon_params; }
+
 private:
 	Vector<AtomBasePtr> updated;
 	

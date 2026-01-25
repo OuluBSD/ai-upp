@@ -33,6 +33,7 @@ MaestroHub::MaestroHub() {
 	
 	technology->WhenEnact = THISBACK(OnEnact);
 	product->WhenEnactStep = THISBACK(OnEnactStep);
+	sessions->WhenSelect = THISBACK(OnSessionSelect);
 	
 	config.Load();
 	if(config.recent_dirs.GetCount() > 0)
@@ -134,6 +135,56 @@ MaestroHub::MaestroHub() {
 				Close();
 			});
 		}
+		else if(arg == "--test-demo") {
+			Cout() << "Starting visual demo tour...\n";
+			
+			// 1. Initial view: Technology
+			SetTimeCallback(2000, [=] {
+				Cout() << "Step 1: Browsing Technology Plan...\n";
+				tabs.Set(0);
+				if(technology->plan.tree.GetChildCount(0) > 0) 
+					technology->plan.tree.SetCursor(technology->plan.tree.GetChild(0, 0));
+			});
+			
+			// 2. Switch to Product
+			SetTimeCallback(4000, [=] {
+				Cout() << "Step 2: Viewing Product Workflows...\n";
+				tabs.Set(1);
+				if(product->workflows.GetCount() > 0) {
+					product->workflows.SetCursor(0);
+					Cout() << "Visualizing Workflow Graph...\n";
+				}
+			});
+			
+			// 3. Select Runbook
+			SetTimeCallback(6000, [=] {
+				Cout() << "Step 3: Checking Runbooks...\n";
+				if(product->runbooks.GetCount() > 0) product->runbooks.SetCursor(0);
+			});
+			
+			// 4. Enact Step (simulate click)
+			SetTimeCallback(8000, [=] {
+				Cout() << "Step 4: Simulating 'Execute Step' enactment...\n";
+				if(product->runbook_data.GetCount() > 0) {
+					const auto& rb = product->runbook_data[0];
+					if(rb.steps.GetCount() > 0)
+						OnEnactStep(rb.title, 1, "Demo step execution logic");
+				}
+			});
+			
+			// 5. Switch to Sessions
+			SetTimeCallback(10000, [=] {
+				Cout() << "Step 5: Managing Sessions...\n";
+				tabs.Set(3);
+				if(sessions->dirs.GetCount() > 0) sessions->dirs.SetCursor(0);
+			});
+			
+			// 6. Finish
+			SetTimeCallback(12000, [=] {
+				Cout() << "Demo complete. Closing.\n";
+				Close();
+			});
+		}
 	}
 }
 
@@ -175,6 +226,7 @@ void MaestroHub::OnEnact(String track, String phase, String task) {
 	String context = PlanSummarizer::GetPlanSummaryText(pp.tracks, track, phase, task);
 	
 	if(maintenance) {
+		maintenance->SessionStatus("ENACT TASK", task);
 		String prompt;
 		prompt << context << "\n\n";
 		prompt << "I am starting work on **Task: " << task << "**.\n";
@@ -189,12 +241,21 @@ void MaestroHub::OnEnactStep(String runbook_title, int step_n, String instructio
 	tabs.Set(maint_idx);
 	
 	if(maintenance) {
+		maintenance->SessionStatus("ENACT STEP", runbook_title + " / " + IntStr(step_n));
 		String prompt;
 		prompt << "Runbook: **" << runbook_title << "**\n";
 		prompt << instruction << "\n";
 		prompt << "Please execute this step or provide guidance.";
 		
 		maintenance->chat.input.SetData(prompt);
+	}
+}
+
+void MaestroHub::OnSessionSelect(String backend, String session_id) {
+	tabs.Set(2); // Maintenance
+	if(maintenance) {
+		maintenance->SessionStatus(backend, session_id);
+		maintenance->chat.SetSession(backend, session_id);
 	}
 }
 

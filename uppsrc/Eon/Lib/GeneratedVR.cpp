@@ -33,5 +33,32 @@ AtomTypeCls OpenHMDPipe::GetType() const {
 #endif
 
 
+#if (defined flagOPENVR)
+String OpenVRPipe::GetAction() {
+	return "openvr.ogl.holo.events";
+}
+
+AtomTypeCls OpenVRPipe::GetAtomType() {
+	AtomTypeCls t;
+	t.sub = SUB_ATOM_CLS; //OPENVRPIPE;
+	t.role = AtomRole::PIPE;
+	t.AddIn(VD(CENTER,ORDER),0);
+	t.AddOut(VD(CENTER,EVENT),0);
+	return t;
+}
+
+LinkTypeCls OpenVRPipe::GetLinkType() {
+	return LINKTYPE(PIPE, PROCESS);
+}
+
+void OpenVRPipe::Visit(Vis& v) {
+	VIS_THIS(OpenVRSinkDevice);
+}
+
+AtomTypeCls OpenVRPipe::GetType() const {
+	return GetAtomType();
+}
+#endif
+
 
 END_UPP_NAMESPACE

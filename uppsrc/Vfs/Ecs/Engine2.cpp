@@ -48,8 +48,16 @@ bool Engine::StartLoad(String app_name, String override_eon_file, ValueMap extra
 		eon_file = override_eon_file;
 	
 	{
-		for(int i = 0; i < extra_args.GetCount(); i++)
-			eon_params(extra_args.GetKey(i)) = extra_args.GetValue(i);
+		for(int i = 0; i < extra_args.GetCount(); i++) {
+			String key = extra_args.GetKey(i);
+			Value val = extra_args.GetValue(i);
+			eon_params(key) = val;
+			if (val.Is<bool>()) {
+				if ((bool)val) ws.SetTrue(key);
+				else ws.SetFalse(key);
+			}
+			else ws.Set(key, val.ToString());
+		}
 	}
 	
 	if (extra_str) {

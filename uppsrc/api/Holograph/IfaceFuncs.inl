@@ -1,7 +1,7 @@
 // This file have been generated automatically.
 // DO NOT MODIFY THIS FILE!
 
-#if defined flagVR
+#if defined flagVR || defined flagOPENVR
 static bool SinkDevice_Create(NativeSinkDevice*& dev);
 static void SinkDevice_Destroy(NativeSinkDevice*& dev);
 static bool SinkDevice_Initialize(NativeSinkDevice&, AtomBase&, const WorldState&);

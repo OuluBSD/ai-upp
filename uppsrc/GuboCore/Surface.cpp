@@ -1,6 +1,8 @@
 #include "GuboCore.h"
+#ifdef flagEON
 #include <Eon/Eon.h>
-#include <GuboLib/ScopeT.h>
+#endif
+#include <GuboLib/GuboLib.h>
 
 NAMESPACE_UPP
 
@@ -511,30 +513,38 @@ void Surface::SetWithMouse(Surface* c) {
 
 SurfaceFrame* Surface::GetFrameCaptured() {
 	SurfaceFrame* f = 0;
+#ifdef flagEON
 	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
 	if (wm)
 		f = CastPtr<SurfaceFrame>(wm->GetFrameCaptured());
+#endif
 	return f;
 }
 
 SurfaceFrame* Surface::GetFrameWithMouse() {
 	SurfaceFrame* f = 0;
+#ifdef flagEON
 	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
 	if (wm)
 		f = CastPtr<SurfaceFrame>(wm->GetFrameWithMouse());
+#endif
 	return f;
 }
 
 void Surface::SetFrameCaptured(SurfaceFrame* c) {
+#ifdef flagEON
 	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
 	if (wm)
 		wm->SetFrameCaptured(c);
+#endif
 }
 
 void Surface::SetFrameWithMouse(SurfaceFrame* c) {
+#ifdef flagEON
 	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
 	if (wm)
 		wm->SetFrameWithMouse(c);
+#endif
 }
 
 
@@ -552,16 +562,19 @@ void Surface::DeepFrameLayout() {
 
 
 Rect Surface::GetWorkArea() const {
-	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(GetGeomDrawBegin());
+#ifdef flagEON
+	Gu::SurfaceManager* wm = CastPtr<Gu::SurfaceManager>(const_cast<GeomInteraction*>(GetGeomDrawBegin()));
 	if (wm) {
 		Size sz = wm->GetFrameSize();
 		return Rect(sz);
 	}
+#endif
 	return Rect(GetFrameSize());
 }
 
 
 bool Surface::ReleaseSurfaceCapture() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
@@ -570,9 +583,13 @@ bool Surface::ReleaseSurfaceCapture() {
 	Gu::SurfaceManager& mgr = wins->GetActiveScope();
 	mgr.SetCaptured((GeomInteraction*)NULL);
 	return true;
+#else
+	return false;
+#endif
 }
 
 Surface* Surface::GetCaptureSurface() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::SurfaceSystemRef wins = mach.Get<Gu::SurfaceSystem>();
@@ -581,6 +598,9 @@ Surface* Surface::GetCaptureSurface() {
 	Gu::SurfaceManager& mgr = wins->GetActiveScope();
 	GeomInteraction* gi = mgr.GetCaptured();
 	return CastPtr<Surface>(gi);
+#else
+	return 0;
+#endif
 }
 
 void Surface::Update() {
@@ -648,6 +668,7 @@ void Surface::PaintAll(bool b) {
 void Surface::InitFB() {
 	SetStdFont(ScreenSans(12));
 	
+#ifdef flagEON
 	using namespace Upp;
 	
 	Engine& mach = GetActiveMachine();
@@ -660,6 +681,7 @@ void Surface::InitFB() {
 		//x.Background(Cyan());
 		//SetDesktop(x);
 	}
+#endif
 }
 
 void Surface::ExitFB() {

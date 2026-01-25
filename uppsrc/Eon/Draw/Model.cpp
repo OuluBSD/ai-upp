@@ -95,14 +95,15 @@ bool ModelComponent::Arg(String key, Value value) {
 			vec2 size(10,10);
 			mb.AddPlane(pos, size);
 		}
-		else if (name == "box") {
+		else if (name == "box" || name == "cube") {
 			vec3 pos(0,0,0);
-			vec3 dim(2,2,2);
+			vec3 dim(1,1,1);
 			mb.AddBox(pos, dim, true);
 		}
-		else if (name == "sphere") {
+		else if (name == "sphere" || name == "ball") {
 			vec3 pos(0,0,0);
-			mb.AddSphere(pos, 2, 3, 3);
+			float rad = 1 < parts.GetCount() ? (float)StrDbl(parts[1]) : 0.5f;
+			mb.AddSphere(pos, rad, 16, 16);
 		}
 		else if (name == "cylinder") {
 			float rad = 1 < parts.GetCount() ? (float)StrDbl(parts[1]) : 1.0f;
@@ -178,6 +179,17 @@ bool ModelComponent::Arg(String key, Value value) {
 	else if (key == "pitch") {pitch = DEG2RADf((float)value); RefreshExtModel();}
 	else if (key == "yaw") {yaw = DEG2RADf((float)value); RefreshExtModel();}
 	else if (key == "roll") {roll = DEG2RADf((float)value); RefreshExtModel();}
+	else if (key == "color") {
+		Vector<String> parts = Split(value.ToString(), ",");
+		if (parts.GetCount() >= 3) {
+			color.Set(
+				(float)StrDbl(parts[0]),
+				(float)StrDbl(parts[1]),
+				(float)StrDbl(parts[2]),
+				parts.GetCount() >= 4 ? (float)StrDbl(parts[3]) : 1.0f
+			);
+		}
+	}
 	else if (key == "always.enabled") {always_enabled = value.ToString() == "true";}
 	else {
 		LOG("ModelComponent::Arg: error: invalid key '" << key << "'");

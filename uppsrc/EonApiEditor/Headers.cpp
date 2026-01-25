@@ -244,6 +244,14 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagOPENHMD", "1")
 	;
 	
+	AddHeader("OpenVRPipe", "OpenVRSinkDevice", "pipe")
+		.In("CenterOrder")
+		.Out("CenterEvent")
+		.Action("openvr.ogl.holo.events")
+		.Arg("HINT_PKG", "AtomVR")
+		.Link("PIPE", "PROCESS")
+	;
+	
 	AddHeader("LocalHMDPipe", "LocalHMDSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.holo.events")

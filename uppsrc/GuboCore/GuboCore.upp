@@ -2,13 +2,19 @@ description "\377B28,127,255";
 
 uses
 	CtrlCore,
+	Geometry,
+	Core/CompatExt,
 	Draw/Cuboid,
+	Eon/Core,
 	Eon/Draw;
+
+uses(EON) Eon/Draw;
 
 file
 	AGENTS.md,
 	CURRENT_TASK.md,
 	GuboCore.h,
+	CtrlEvent.h,
 	Generic readonly separator,
 	GeomInteraction.h,
 	GIBase.cpp,
@@ -35,7 +41,7 @@ file
 	Images.h,
 	Images.cpp,
 	2D readonly separator,
-	CtrlCore.h,
+	GuboCtrlCore.h,
 	Surface.h,
 	Surface.cpp,
 	TopSurface.h,

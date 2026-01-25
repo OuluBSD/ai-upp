@@ -1,5 +1,8 @@
 description "Eon/Interaction\377B85,42,0";
 
+acceptflags
+	OPENVR;
+
 uses
 	Eon/Core,
 	Eon/Ecs,

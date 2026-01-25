@@ -28,6 +28,7 @@ void HoloLocalHMD::SinkDevice_Visit(NativeSinkDevice&, AtomBase&, Visitor& vis) 
 }
 
 bool HoloLocalHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
+	bool emulate = ws.IsTrue(".emulatedevice", false);
 	dev.sys.require_hmd = !ws.IsTrue(".device.optional.hmd", false);
 	dev.sys.require_left = !ws.IsTrue(".device.optional.left", true);
 	dev.sys.require_right = !ws.IsTrue(".device.optional.right", true);
@@ -36,7 +37,12 @@ bool HoloLocalHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, con
 	dev.sys.user_ctrl_idx[1] = ws.GetInt(".device.right.idx", dev.sys.require_right ? 0 : -1);
 	dev.sys.verbose = ws.IsTrue(".verbose", false);
 	
-	if (!dev.sys.Initialise())
+	if (emulate) {
+		dev.sys.require_hmd = false;
+		dev.sys.user_hmd_idx = -1;
+	}
+	
+	if (!dev.sys.Initialise() && !emulate)
 		return false;
 		
 	dev.ts.Reset();

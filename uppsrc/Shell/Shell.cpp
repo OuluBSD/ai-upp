@@ -72,6 +72,10 @@ void ShellMain(bool skip_eon)
 {
 	using namespace Upp;
 	
+	extern int ForceLinkDraw_Dummy;
+	ForceLinkDraw_Dummy++;
+	ForceLinkDraw();
+
 	Engine& eng = ShellMainEngine();
 	eng.WhenInitialize << callback(::Upp::MachineEcsInit);
 	eng.WhenInitialize << callback(::Upp::EngineEcsInit);

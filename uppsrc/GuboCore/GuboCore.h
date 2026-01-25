@@ -2,12 +2,21 @@
 #define _GuboCore_GuboCore_h_
 
 #include <Draw/Draw.h>
+#ifdef flagEON
 #include <CtrlLib/Eon/Eon.h>
+#endif
 #include <CtrlCore/CtrlCore.h>
-#include <Draw/Cuboid/Cuboid.h>
+#include <Core/CompatExt/CompatExt.h>
+#include <Eon/Core/Core.h>
 #include <Eon/Draw/Draw.h>
+#include <Draw/Cuboid/Cuboid.h>
+#ifdef flagEON
+#include <Eon/Draw/Draw.h>
+#endif
 
 #include "Defs.h"
+#include "Util.h"
+#include "CtrlEvent.h"
 #include "DrawCommand.h"
 #include "Draw3.h"
 #include "SDraw3.h"

@@ -18,4 +18,18 @@ public:
 };
 #endif
 
+#if (defined flagOPENVR)
+class OpenVRPipe : public OpenVRSinkDevice {
+
+public:
+	ATOM_CTOR_(OpenVRPipe, OpenVRSinkDevice)
+	static String GetAction();
+	static AtomTypeCls GetAtomType();
+	static LinkTypeCls GetLinkType();
+	void Visit(Vis& v) override;
+	AtomTypeCls GetType() const override;
+	
+};
+#endif
+
 #endif

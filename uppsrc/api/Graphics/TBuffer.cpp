@@ -182,8 +182,11 @@ bool BufferT<Gfx>::ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_dat
 			s.SetDataState(&d, true);
 		}
 		
-		if (rename_stages)
+		if (rename_stages) {
 			s.program_str = "s" + IntStr(i);
+			if (s.data)
+				s.data->GetAddPipeline(s.pipeline_str).GetAddProgram(s.program_str);
+		}
 		
 		if (!s.ImageInitialize())
 			return false;
@@ -391,7 +394,12 @@ void BufferT<Gfx>::Process(const RealtimeSourceConfig& cfg) {
 			auto& top_stage = stages.Top();
 			if (top_stage.data_writable && !top_stage.quad)
 				top_stage.MakeFrameQuad(2);
-			ASSERT(top_stage.data && top_stage.data->models.GetCount() == 1);
+			ASSERT(top_stage.data);
+			if (top_stage.data && top_stage.data->models.IsEmpty()) {
+				LOG("BufferT::Process: MULTI_STEREO: top_stage.data->models was empty, adding one");
+				top_stage.LocalState().AddModelT();
+			}
+			ASSERT(top_stage.data && top_stage.data->models.GetCount() >= 1);
 			ModelState& m = top_stage.data->models[0];
 			ASSERT(m.objects.GetCount() == 2);
 			ASSERT(m.prog >= 0);

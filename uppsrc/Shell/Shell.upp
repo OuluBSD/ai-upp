@@ -36,16 +36,8 @@ uses(PHYSICS) SoftPhys;
 
 uses(AUDIO) SoftAudio;
 
-uses(LINUX & VR) SoftVR;
-
-uses(GUI & VIRTUALGUI) DesktopSuite;
-
-uses(GUI GUBO) GuboSuite;
-
-uses(DX12 UWP) Eon/Win;
 
 uses(GUI) Eon/Ctrl;
-
 uses(GUI | SCREEN) api/Graphics;
 
 uses(HAL (GUI | SCREEN)) api/Hal;

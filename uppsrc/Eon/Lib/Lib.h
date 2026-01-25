@@ -28,7 +28,7 @@
 
 #include <api/Graphics/Graphics.h>
 
-#ifdef flagVR
+#if defined(flagVR) || defined(flagOPENVR)
  #include <api/Holograph/Holograph.h>
 #endif
 
@@ -64,6 +64,7 @@
 #endif
 
 #ifdef flagGUBO
+ #include <GuboLib/GuboLib.h>
  #include <GuboCore/CtrlEvent.h>
 #endif
 

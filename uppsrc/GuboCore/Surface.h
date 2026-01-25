@@ -84,7 +84,6 @@ using KeyInfo = ::UPP::KeyInfo;
 class TopSurface;
 
 class Surface :
-	public Pte<Surface>,
 	public GeomInteraction2D
 {
 	

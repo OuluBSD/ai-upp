@@ -289,6 +289,7 @@ void Diagnostics(CXTranslationUnit tu, Stream& out)
 #ifdef PLATFORM_WIN32
 String GetLibClangVersion()
 {
-	return FetchString(clang_getClangVersion());
+	// clang_getClangVersion was removed in newer libclang versions
+	return "libclang";
 }
 #endif

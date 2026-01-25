@@ -565,7 +565,7 @@ ${USER_LIBRARY}
 ${USER_CODE}
 
 void main() {
-	vPosition = gl_Position.xyz;
+	vPosition = iPos.xyz;
 	vTexCoord = vec3(iTexCoord, 0);
 	vNormal = iNormal;
 	mainVertex(gl_Position);
@@ -912,12 +912,12 @@ template <class Gfx> void OglGfxT<Gfx>::DrawVertexElements(int element_limit, bo
 		#ifdef flagDEBUG
 		GLenum pre_err = glGetError();
 		if (pre_err != GL_NO_ERROR) {
-			LOG("OglGfx::DrawVertexElements: PRE-DRAW ERROR: " << HexStr(pre_err));
+			LOG("OglGfx::DrawVertexElements: PRE-DRAW ERROR: " << HexStr(pre_err) << " element_limit=" << element_limit);
 		}
 		GLint prog = 0;
 		glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
 		if (prog == 0) {
-			LOG("OglGfx::DrawVertexElements: error: NO PROGRAM BOUND!");
+			LOG("OglGfx::DrawVertexElements: error: NO PROGRAM BOUND! element_limit=" << element_limit);
 		}
 		#endif
 		glDrawElements(GL_TRIANGLES, element_limit, GL_UNSIGNED_INT, 0);

@@ -3,6 +3,8 @@ description "\3770,0,128";
 uses
 	SoftHMD;
 
+options(LINUX) "-I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/include/libusb-1.0";
+
 library
 	"glib-2.0 gobject-2.0",
 	usb-1.0,

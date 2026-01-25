@@ -68,6 +68,12 @@ int  GetGuboLockLevel()
 	return sGLockLevel;
 }
 
-
+void SetCenterHotSpot(Image& img)
+{
+	ImageBuffer ib(img);
+	Size sz = ib.GetSize();
+	ib.SetHotSpot(Point(sz.cx / 2, sz.cy / 2));
+	img = ib;
+}
 
 END_UPP_NAMESPACE

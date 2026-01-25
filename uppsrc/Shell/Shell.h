@@ -24,7 +24,7 @@
 #endif
 
 #ifdef flagVR
-	#include <EcsVR/EcsVR.h>
+//	#include <EcsVR/EcsVR.h>
 #endif
 
 #ifdef flagGUBO

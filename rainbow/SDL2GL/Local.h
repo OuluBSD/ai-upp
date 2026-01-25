@@ -1,4 +1,6 @@
 #include <CtrlLib/CtrlLib.h>
+#include "SDL2GL.h"
+#include <GuboCore/GuboCore.h>
 
 #ifdef GUI_SDL20GL
 

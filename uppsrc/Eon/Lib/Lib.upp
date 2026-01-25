@@ -16,6 +16,7 @@ acceptflags
 	HACK,
 	HAL,
 	LOCALHMD,
+	OPENVR,
 	LV2,
 	MEDIA,
 	MIDI,
@@ -33,9 +34,11 @@ acceptflags
 	FFMPEG;
 
 uses
-	Eon/Draw,
-	Painter;
+        Eon/Draw,
+        Painter;
 
+uses(GUBO) GuboCore;
+uses(GUBO) GuboLib;
 uses(GUI) CtrlLib/Eon;
 
 uses(AUDIO) api/Effect;
@@ -49,6 +52,8 @@ uses(AUDIO) api/Synth;
 uses(AUDIO) api/Audio;
 
 uses(VR) api/Holograph;
+
+uses(OPENVR) api/Holograph;
 
 uses(!EMSCRIPTEN VR) api/Holograph;
 

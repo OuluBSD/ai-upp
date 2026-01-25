@@ -10,6 +10,10 @@ SessionManagementPane::SessionManagementPane() {
 	dirs.WhenCursor = THISBACK(OnDirCursor);
 	
 	sessions.WhenBar = THISBACK(OnSessionMenu);
+	sessions.WhenLeftDouble = [=] {
+		if(sessions.IsCursor() && WhenSelect)
+			WhenSelect(engine.binary, sessions.Get(0));
+	};
 }
 
 void SessionManagementPane::Load(const String& root) {

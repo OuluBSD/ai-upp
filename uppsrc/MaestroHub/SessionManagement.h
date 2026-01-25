@@ -15,6 +15,8 @@ public:
 	CliMaestroEngine engine;
 	String          current_root;
 	
+	Function<void(String backend, String session_id)> WhenSelect;
+	
 	void Load(const String& root);
 	void OnDirCursor();
 	void OnSessionMenu(Bar& bar);

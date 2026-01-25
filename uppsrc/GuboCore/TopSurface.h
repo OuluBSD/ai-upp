@@ -7,16 +7,19 @@ NAMESPACE_UPP
 
 
 class TopSurface :
-	public Surface
+        public Surface
 {
-	
+	String title;
+
 public:
-	//RTTI_DECL1(TopSurface, Surface)
-	TopSurface();
-	virtual ~TopSurface() {}
-	
-	void CreateGeom2DComponent();
-	void UpdateFromTransform2D();
+        //RTTI_DECL1(TopSurface, Surface)
+        TopSurface();
+        virtual ~TopSurface() {}
+
+	void Title(const String& s) { title = s; }
+	String GetTitle() const { return title; }
+
+        void CreateGeom2DComponent();	void UpdateFromTransform2D();
 	void OpenMain();
 	void Run();
 	void RunInMachine();

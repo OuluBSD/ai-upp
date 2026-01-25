@@ -69,6 +69,9 @@ public:
 	void OnEvent(const MaestroEvent& e);
 	void Poll();
 	
+	void Load(const String& root);
+	void SetSession(const String& backend, const String& session_id);
+	
 	void AddItem(const String& role, const String& text, bool is_error = false);
 	MaestroItem& AddToolItem(const String& role, const String& text);
 	void CopyAllChat();

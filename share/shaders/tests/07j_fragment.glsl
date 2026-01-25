@@ -46,60 +46,110 @@ float GGX(vec3 N, vec3 V, vec3 L, float roughness, float F0) {
 	return /*dotNL */ D * F * vis;
 }
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord)
-{
-	vec2 tex_coord = vTexCoord.xy / vTexCoord.z;
-	
-	float intensity = dot(vNormal, iLightDir);
-	intensity = (1.0 + intensity) * 0.5;
-	if (iIsDiffuse == false) {
-		fragColor = vec4(intensity, intensity, intensity, 0);
-		return;
-	}
-	else if (iIsDiffuse == true && (iIsSpecular == false || iIsCubeDiffuse == false || iIsCubeIrradiance == false)) {
-		fragColor = texture(iDiffuse, tex_coord) * intensity;
-		return;
-	}
-	
-	vec3 normal = normalize(vNormal);
-	vec3 ray = iCameraDir;
-	
-	// material
-	float metallic = 0.04;
-	float spec_value = texture(iSpecular, tex_coord).r;
-	float shininess_value = spec_value * 0.25 + 0.75; // hack
-	float roughness = step(fract(shininess_value * 2.02), 0.5) + 0.1;
-	float fresnel_pow = mix(5.0, 3.5,metallic);
-	vec3 light_color = pow(vec3(1.0, 1.0, 1.0), vec3(2.2));
-	vec3 clr = texture(iDiffuse, tex_coord).rgb;
-	vec3 color_mod = vec3(1.0);
-			
-			
-	// IBL
-	vec3 ibl_diffuse = pow(texture(iDiffuse, tex_coord).rgb, vec3(2.2));
-	vec3 ibl_reflection = pow(texture(iCubeIrradiance,reflect(ray,normal)).rgb, vec3(2.2));
-	
-	// fresnel
-	float fresnel = max(1.0 - dot(normal,-ray), 0.0);
-	fresnel = pow(fresnel,fresnel_pow);    
-	
-	// reflection        
-	vec3 refl = pow(texture(iCubeDiffuse,reflect(ray,normal)).rgb, vec3(2.2));
-	refl = mix(refl,ibl_reflection,(1.0-fresnel)*roughness);
-	refl = mix(refl,ibl_reflection,roughness);
-	
-	// specular
-	vec3 light = iLightDir;
-	float power = 1.0 / max(roughness * 0.4,0.01);
-	//vec3 spec = light_color * phong(light,ray,normal,power);
-	vec3 spec = light_color * GGX(normal,-ray,light,roughness*0.7, 0.2);
-	refl -= spec;
-	
-	// diffuse
-	vec3 diff = ibl_diffuse * spec_value;
-	diff = mix(diff * color_mod,refl,fresnel);        
+uniform vec4 iModelColor;
 
-	vec3 color = mix(diff,refl * color_mod,metallic) + spec;
-	fragColor = vec4(pow(color, vec3(1.0/2.2)), 1.0);
-    
+
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+
+{
+
+	float intensity = dot(normalize(vNormal), iLightDir);
+
+	intensity = (1.0 + intensity) * 0.5;
+
+	
+
+	if (iIsDiffuse == false) {
+
+		fragColor = iModelColor * intensity;
+
+		fragColor.a = 1.0;
+
+		return;
+
+	}
+
+	
+
+	vec2 tex_coord = vTexCoord.xy / vTexCoord.z;
+
+	vec3 ray = normalize(vPosition - iCameraPos);
+
+	vec3 normal = normalize(vNormal);
+
+	
+
+	// material
+
+	float metallic = 0.9;
+
+	float spec_value = iIsSpecular ? texture(iSpecular, tex_coord).r : 0.5;
+
+	float roughness = 0.5;
+
+	float fresnel_pow = mix(5.0, 3.5, metallic);
+
+	vec3 light_color = vec3(1.0);
+
+	vec3 clr = texture(iDiffuse, tex_coord).rgb;
+
+	vec3 color_mod = iModelColor.rgb;
+
+	
+
+	// IBL
+
+	vec3 ibl_diffuse = clr;
+
+	vec3 ibl_reflection = iIsCubeIrradiance ? texture(iCubeIrradiance, reflect(ray, normal)).rgb : vec3(0.1);
+
+	
+
+	// fresnel
+
+	float fresnel = max(1.0 - dot(normal, -ray), 0.0);
+
+	fresnel = pow(fresnel, fresnel_pow);    
+
+	
+
+	// reflection        
+
+	vec3 refl = iIsCubeDiffuse ? texture(iCubeDiffuse, reflect(ray, normal)).rgb : ibl_reflection;
+
+	refl = mix(refl, ibl_reflection, (1.0 - fresnel) * roughness);
+
+	refl = mix(refl, ibl_reflection, roughness);
+
+	
+
+	// specular
+
+	vec3 light = iLightDir;
+
+	vec3 spec = light_color * GGX(normal, -ray, light, roughness * 0.7, 0.2);
+
+	refl -= spec;
+
+	
+
+	// diffuse
+
+	vec3 diff = ibl_diffuse * spec_value;
+
+	diff = mix(diff * color_mod, refl, fresnel);        
+
+	
+
+	vec3 color = mix(diff, refl * color_mod, metallic) + spec;
+
+	fragColor = vec4(color * intensity, 1.0);
+
 }
+
+
+
+
+
+

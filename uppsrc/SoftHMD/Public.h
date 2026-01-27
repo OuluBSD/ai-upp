@@ -153,6 +153,13 @@ typedef enum {
 	// float[HMD_CONTROL_COUNT] (get): Get the state of the device's controls.
 	HMD_CONTROLS_STATE                = 22,
 	
+	// float[3] (get): A 3-D vector representing the raw accelerometer values.
+	HMD_ACCELEROMETER_VECTOR          = 23,
+	// float[3] (get): A 3-D vector representing the raw gyroscope values.
+	HMD_GYROSCOPE_VECTOR              = 24,
+	// float[3] (get): A 3-D vector representing the raw magnetometer values.
+	HMD_MAGNETOMETER_VECTOR           = 25,
+	
 } FloatValue;
 
 // A collection of int value information types used for getting information with GetDeviceInt().

@@ -6,4 +6,5 @@ file
 	WmrTest.cpp;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI USEMALLOC";

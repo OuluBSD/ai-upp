@@ -227,6 +227,7 @@ void System::UpdateData() {
 	HMD::UpdateContext(ctx);
 	
 	HMD::GetDeviceFloat(hmd, HMD::HMD_ROTATION_QUAT, trans.orientation.data.data);
+	LOGI("UpdateData: orient=%f %f %f %f", trans.orientation.data.data[0], trans.orientation.data.data[1], trans.orientation.data.data[2], trans.orientation.data.data[3]);
 	
 	if (!has_initial_orient) {
 		has_initial_orient = true;

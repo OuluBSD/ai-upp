@@ -4,22 +4,18 @@
 extern "C" {
 #include <libusb-1.0/libusb.h>
 }
+#include <vector>
 
 NAMESPACE_HMD_BEGIN
 
-
-class Camera {
+class HMD_APIENTRYDLL Camera {
 public:
-	HMD_APIENTRYDLL Camera();
-	HMD_APIENTRYDLL ~Camera();
+	struct CameraFrame : public Moveable<CameraFrame> {
+		Image img;
+		bool is_bright;
+		int exposure;
+	};
 
-	bool HMD_APIENTRYDLL Open();
-	void HMD_APIENTRYDLL Close();
-	
-	bool HMD_APIENTRYDLL IsOpen() const { return opened; }
-	
-	Image HMD_APIENTRYDLL GetImage();
-	
 	struct Stats {
 		int frame_count;
 		int bright_frames;
@@ -38,9 +34,20 @@ public:
 		}
 	};
 
-	Stats HMD_APIENTRYDLL GetStats();
+	Camera();
+	~Camera();
+
+	bool Open();
+	void Close();
+	
+	bool IsOpen() const { return opened; }
+	
+	void PopFrames(Vector<CameraFrame>& out);
+	Stats GetStats();
 	
 	typedef Camera CLASSNAME;
+
+	static void LIBUSB_CALL TransferCallback(struct libusb_transfer* transfer);
 
 private:
 	void Process();
@@ -51,14 +58,20 @@ private:
 	
 	Upp::Thread thread;
 	Upp::Mutex mutex;
-	Image bright_img, dark_img;
+	Vector<CameraFrame> queue;
 	Stats stats;
 	
 	libusb_context* usb_ctx;
 	libusb_device_handle* usb_handle;
 	
-	Buffer<byte> frame_buffer;
-	Buffer<byte> raw_buffer;
+	static const int ASYNC_BUFFERS = 4;
+	struct Transfer {
+		struct libusb_transfer* libusb_xfer;
+		byte* buffer;
+		Camera* camera;
+	} transfers[ASYNC_BUFFERS];
+	
+	std::vector<byte> raw_buffer;
 };
 
 

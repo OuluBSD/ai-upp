@@ -59,6 +59,7 @@ static void vec3_from_hololens_accel(int32 smp[3][4], int i, vec3* out_vec)
 
 static void HandleTrackerSensorMsg(WmrPrivateData* priv, unsigned char* buffer, int size)
 {
+	LOGI("HandleTrackerSensorMsg: size=%d", size);
 	uint64 last_sample_tick = priv->sensor.gyro_timestamp[3];
 
 	if(!HololensSensorsDecodePacket(&priv->sensor, buffer, size)){
@@ -92,6 +93,7 @@ static void Wmr_UpdateDevice(Device* device)
 
 	unsigned char buffer[FEATURE_BUFFER_SIZE];
 
+	int read_count = 0;
 	while(true){
 		int size = hid_read(priv->hmd_imu, buffer, FEATURE_BUFFER_SIZE);
 		if(size < 0){
@@ -101,11 +103,15 @@ static void Wmr_UpdateDevice(Device* device)
 			return; // No more messages, return.
 		}
 
+		if (read_count == 0) {
+			LOGI("HID read: first byte=%02x, size=%d", buffer[0], size);
+		}
+		read_count++;
 		// currently the only message type the hardware supports (I think)
 		if(buffer[0] == HOLOLENS_IRQ_SENSORS){
 			HandleTrackerSensorMsg(priv, buffer, size);
 		}else if(buffer[0] != HOLOLENS_IRQ_DEBUG){
-			LOGE("unknown message type: %u", buffer[0]);
+			LOGE("unknown message type: %d, size=%d, data=%02x %02x %02x", (int)buffer[0], size, buffer[0], buffer[1], buffer[2]);
 		}
 	}
 }
@@ -419,7 +425,10 @@ static Device* OpenHmdDevice(Driver* driver, DeviceDescription* desc)
 	}
 
 	// turn the IMU on
-	hid_write(priv->hmd_imu, HololensSensorsImuOn, sizeof(HololensSensorsImuOn));
+	{
+		int wr = hid_write(priv->hmd_imu, HololensSensorsImuOn, sizeof(HololensSensorsImuOn));
+		LOGI("IMU on command sent, result=%d", wr);
+	}
 
 	// Set default device properties
 	SetDefaultDeviceProperties(&priv->base.properties);

@@ -4,16 +4,21 @@
 using namespace Upp;
 
 struct CameraCtrl : public Ctrl {
-	Image img;
+	Image bright, dark;
 	
 	virtual void Paint(Draw& w) override {
 		Size sz = GetSize();
 		w.DrawRect(sz, Black());
-		if(img) {
-			w.DrawImage(0, 0, sz.cx, sz.cy, img);
+		int h = sz.cy / 2;
+		if(bright) {
+			w.DrawImage(0, 0, sz.cx, h, bright);
 		}
-		else {
-			w.DrawText(10, 10, "No camera image", Arial(20).Bold(), White());
+		if(dark) {
+			w.DrawImage(0, h, sz.cx, h, dark);
+		}
+		
+		if(!bright && !dark) {
+			w.DrawText(10, 10, "No camera images", Arial(20).Bold(), White());
 		}
 	}
 };
@@ -23,7 +28,7 @@ public:
 	typedef WmrTest CLASSNAME;
 	
 	HMD::System sys;
-	HMD::Camera cam;
+	One<HMD::Camera> cam;
 	
 	CameraCtrl camera;
 	ArrayCtrl list;
@@ -47,7 +52,8 @@ public:
 			data.Add("Error", "Failed to initialise HMD system");
 		}
 		
-		if(!cam.Open()) {
+		cam.Create();
+		if(!cam->Open()) {
 			data.Add("Camera Error", "Failed to open HMD camera");
 		}
 		
@@ -61,30 +67,40 @@ public:
 	
 	~WmrTest() {
 		tc.Kill();
-		cam.Close();
+		if(cam) cam->Close();
+		cam.Clear();
 		sys.Uninitialise();
 	}
 	
 	void Data() {
 		sys.UpdateData();
-		camera.img = cam.GetImage();
-		HMD::Camera::Stats cs = cam.GetStats();
-		
-		data.Clear();
-		data.Add("Camera", cam.IsOpen() ? "Open" : "Closed");
-		if(cam.IsOpen()) {
-			data.Add("Cam Frame Count", IntStr(cs.frame_count));
-			data.Add("Cam Bright Frames", IntStr(cs.bright_frames));
-			data.Add("Cam Dark Frames", IntStr(cs.dark_frames));
-			data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
-			data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
-			data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
-			data.Add("Cam Last Error (r)", IntStr(cs.last_r));
-			data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
-			data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
+		if(cam) {
+			Vector<HMD::Camera::CameraFrame> frames;
+			cam->PopFrames(frames);
+			for(const auto& f : frames) {
+				if(f.is_bright) camera.bright = f.img;
+				else camera.dark = f.img;
+			}
+			
+			HMD::Camera::Stats cs = cam->GetStats();
+			
+			data.Clear();
+			data.Add("Camera", cam->IsOpen() ? "Open" : "Closed");
+			if(cam->IsOpen()) {
+				data.Add("Cam Frame Count", IntStr(cs.frame_count));
+				data.Add("Cam Bright Frames", IntStr(cs.bright_frames));
+				data.Add("Cam Dark Frames", IntStr(cs.dark_frames));
+				data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
+				data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
+				data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
+				data.Add("Cam Last Error (r)", IntStr(cs.last_r));
+				data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
+				data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
+			}
 		}
-		if(camera.img)
-			data.Add("Camera Resolution", Format("%d x %d", camera.img.GetWidth(), camera.img.GetHeight()));
+		
+		if(camera.bright)
+			data.Add("Camera Resolution", Format("%d x %d (x2)", camera.bright.GetWidth(), camera.bright.GetHeight()));
 		
 		// HMD Transform
 		data.Add("HMD Orientation", sys.trans.orientation.ToString());
@@ -143,24 +159,27 @@ public:
 
 void TestDump(int seconds)
 {
-	HMD::System sys;
-	HMD::Camera cam;
+	StdLogSetup(LOG_COUT | LOG_FILE);
+	One<HMD::Camera> cam;
+	cam.Create();
 	
+	if(!cam->Open()) {
+		Cout() << "Camera Error: Failed to open HMD camera\n";
+	}
+
+	HMD::System sys;
 	if(!sys.Initialise()) {
 		Cout() << "Error: Failed to initialise HMD system\n";
-	}
-	
-	if(!cam.Open()) {
-		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 	
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();
-		HMD::Camera::Stats cs = cam.GetStats();
+		HMD::Camera::Stats cs = cam->GetStats();
 		
-		Cout() << "\r" << Format("Frames: %d, Last: %d, Error: %d, Bright: %.2f", 
-			cs.frame_count, cs.last_transferred, cs.last_r, cs.avg_brightness);
+		Cout() << "\r" << Format("Frames: %d, Last: %d, Error: %d, Bright: %.2f, HMD: %s", 
+			cs.frame_count, cs.last_transferred, cs.last_r, cs.avg_brightness,
+			sys.hmd ? "Yes" : "No");
 		
 		Sleep(100);
 	}
@@ -170,12 +189,14 @@ void TestDump(int seconds)
 	Cout() << "Final HMD Orientation: " << trans.orientation.ToString() << "\n";
 	Cout() << "Final HMD Position: " << trans.position.ToString() << "\n";
 	
-	cam.Close();
+	cam->Close();
+	cam.Clear();
 	sys.Uninitialise();
 }
 
 GUI_APP_MAIN
 {
+	StdLogSetup(LOG_COUT | LOG_FILE);
 	const Vector<String>& args = CommandLine();
 	int dump_time = -1;
 	for(int i = 0; i < args.GetCount(); i++) {

@@ -1,0 +1,22 @@
+description "SingerTrainer: Professional vocal training tool";
+
+uses
+	Core,
+	ByteVM,
+	Core/TextParsing;
+
+uses(GUI) CtrlLib;
+
+file
+	SingerTrainer.h,
+	Scripting.h,
+	Scripting.cpp,
+	ExerciseEngine.h,
+	ExerciseEngine.cpp,
+	VocalPlotter.h,
+	VocalPlotter.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "CONSOLE";

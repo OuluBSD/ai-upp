@@ -33,6 +33,8 @@ class MaestroHub : public TopWindow {
 	void OnSessionSelect(String backend, String session_id);
 	
 	void LoadData();
+	void PlanWatcher();
+	Time last_plan_check;
 
 public:
 	typedef MaestroHub CLASSNAME;

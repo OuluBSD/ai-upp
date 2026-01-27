@@ -29,6 +29,7 @@ NAMESPACE_UPP
 
 // 4. Global Tool Registration
 void RegisterMaestroTools(MaestroToolRegistry& reg);
+Value MaestroUpdateTaskStatus(const ValueMap& params);
 
 END_UPP_NAMESPACE
 

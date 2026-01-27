@@ -155,6 +155,31 @@ void PlanParser::LoadMaestroTracks(const String& docs_root) {
 }
 
 bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_id, const String& phase_id, const String& task_id, TaskStatus status) {
+	// 1. Try finding the task as a separate file in the phase directory
+	String task_file = AppendFileName(AppendFileName(AppendFileName(docs_root, "uppsrc/AI/plan"), track_id), phase_id);
+	task_file = AppendFileName(task_file, task_id + ".md"); // Assume task_id matches filename
+	
+	if(FileExists(task_file)) {
+		String content = LoadFile(task_file);
+		String s = ToUpper(StatusToString(status));
+		
+		// Replace # Status: ... with new status
+		RegExp reStatus("# Status:\\s+(\\w+)");
+		if(reStatus.Match(content)) {
+			// Simple replace for now, ideally we'd use the match position
+			// This assumes only one "Status:" line which is standard for these files
+			int pos = content.Find("# Status:");
+			int end = content.Find("\n", pos);
+			if(pos >= 0 && end > pos) {
+				content.Replace(content.Mid(pos, end - pos), "# Status: " + s);
+				return SaveFile(task_file, content);
+			}
+		}
+		// If no status line found, append it? For now, return false if format differs
+		return false;
+	}
+
+	// 2. Fallback: Try finding the phase file (Maestro legacy format)
 	String phase_file = AppendFileName(AppendFileName(docs_root, "docs/phases"), ToLower(phase_id) + ".md");
 	if(!FileExists(phase_file)) return false;
 	

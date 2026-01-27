@@ -60,6 +60,7 @@
 #include "Wmr.h"
 #include "Oculus.h"
 #include "Android.h"
+#include "Camera.h"
 #include "Psvr.h"
 #include "ConfigKey.h"
 #include "Miniz.h"

@@ -7,7 +7,7 @@ uses
 
 library(LINUX USBONLY) hidapi-libusb;
 
-library(LINUX) hidapi-hidraw;
+library(LINUX) "hidapi-hidraw usb-1.0";
 
 library(FREEBSD) hidapi;
 
@@ -46,6 +46,8 @@ file
 	PsvrPacket.cpp,
 	Android.h,
 	Android.cpp,
+	Camera.h,
+	Camera.cpp,
 	Math.h,
 	Math.cpp,
 	Miniz.h,

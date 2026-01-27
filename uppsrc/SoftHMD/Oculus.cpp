@@ -950,6 +950,18 @@ static int getf(Device* device, FloatValue type, float* out)
 			*(vec3*)out = priv->imu.pos;
 			return HMD_S_OK;
 
+		case HMD_ACCELEROMETER_VECTOR:
+			*(vec3*)out = priv->raw_accel;
+			return HMD_S_OK;
+
+		case HMD_GYROSCOPE_VECTOR:
+			*(vec3*)out = priv->raw_gyro;
+			return HMD_S_OK;
+
+		case HMD_MAGNETOMETER_VECTOR:
+			*(vec3*)out = priv->raw_mag;
+			return HMD_S_OK;
+
 		case HMD_CONTROLS_STATE:
 			out[0] = (priv->remote_buttons_state & RIFT_REMOTE_BUTTON_UP) ? 1.0f : 0.0f;
 			out[1] = (priv->remote_buttons_state & RIFT_REMOTE_BUTTON_DOWN) ? 1.0f : 0.0f;

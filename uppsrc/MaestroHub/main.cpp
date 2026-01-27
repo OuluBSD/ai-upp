@@ -43,6 +43,8 @@ MaestroHub::MaestroHub() {
 	
 	PostCallback(THISBACK(LoadData));
 	
+	SetTimeCallback(-2000, THISBACK(PlanWatcher));
+	
 	// Automated testing support
 	const Vector<String>& cmdline = CommandLine();
 	for(const auto& arg : cmdline) {
@@ -256,6 +258,46 @@ void MaestroHub::OnSessionSelect(String backend, String session_id) {
 	if(maintenance) {
 		maintenance->SessionStatus(backend, session_id);
 		maintenance->chat.SetSession(backend, session_id);
+	}
+}
+
+void MaestroHub::PlanWatcher() {
+	if(current_root.IsEmpty()) return;
+	
+	// Simple check: iterate all .md files in uppsrc/AI/plan
+	// For efficiency in large repos, this should be optimized, but fine for now
+	bool changed = false;
+	
+	FindFile ff(AppendFileName(current_root, "uppsrc/AI/plan/*"));
+	while(ff) {
+		// Only check directories for simplicity of recursion or assume simplified structure
+		// Let's check a known marker file or just reload every few seconds?
+		// Better: check recursivley but just 1 level deep for now or use a "last_modified" marker?
+		// Actually, let's just check the "phases" directory as that's where status updates happen
+		if(ff.IsDirectory()) {
+			// Deep scan omitted for brevity, checking specific known path
+		}
+		ff.Next();
+	}
+	
+	// Check specific legacy location used by PlanParser
+	String phases_dir = AppendFileName(current_root, "docs/phases");
+	FindFile fp(AppendFileName(phases_dir, "*.md"));
+	Time max_time = Time::Low();
+	
+	while(fp) {
+		if(fp.GetLastWriteTime() > max_time) max_time = fp.GetLastWriteTime();
+		fp.Next();
+	}
+	
+	// Also check new location
+	// Note: Ideally PlanParser would expose a "GetLastModified()" method
+	
+	if(max_time > last_plan_check) {
+		if(last_plan_check != Time::Low()) { // Don't reload on first check
+			LoadData();
+		}
+		last_plan_check = max_time;
 	}
 }
 

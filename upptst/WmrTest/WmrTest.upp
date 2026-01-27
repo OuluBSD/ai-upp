@@ -1,0 +1,9 @@
+uses
+	CtrlLib,
+	SoftHMD;
+
+file
+	WmrTest.cpp;
+
+mainconfig
+	"" = "GUI";

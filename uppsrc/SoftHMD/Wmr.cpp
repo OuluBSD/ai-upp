@@ -123,6 +123,18 @@ static int GetFloat(Device* device, FloatValue type, float* out)
 		out[0] = out[1] = out[2] = 0;
 		break;
 
+	case HMD_ACCELEROMETER_VECTOR:
+		*(vec3*)out = priv->raw_accel;
+		break;
+
+	case HMD_GYROSCOPE_VECTOR:
+		*(vec3*)out = priv->raw_gyro;
+		break;
+
+	case HMD_MAGNETOMETER_VECTOR:
+		out[0] = out[1] = out[2] = 0; // WMR doesn't have magnetometer data yet
+		break;
+
 	case HMD_DISTORTION_K:
 		// TODO this should be set to the equivalent of no distortion
 		memset(out, 0, sizeof(float) * 6);
@@ -335,13 +347,13 @@ static Device* OpenHmdDevice(Driver* driver, DeviceDescription* desc)
 
 	priv->base.ctx = driver->ctx;
 
-	int idx = atoi(desc->path);
-
 	// Open the HMD device
-	priv->hmd_imu = OpenDevice_idx(MICROSOFT_VID, HOLOLENS_SENSORS_PID, 0, 1, idx);
+	priv->hmd_imu = hid_open_path(desc->path);
 
-	if(!priv->hmd_imu)
+	if(!priv->hmd_imu) {
+		lhmd_set_error(driver->ctx, "Could not open %s", desc->path);
 		goto cleanup;
+	}
 
 	//Bunch of temp variables to set to the display configs
 	int resolution_h, resolution_v;
@@ -527,7 +539,7 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 
 			desc->revision = 0;
 
-			snprintf(desc->path, HMD_STR_SIZE, "%d", hmd_idx);
+			strcpy(desc->path, cur_dev->path);
 
 			desc->driver_ptr = driver;
 			desc->id = id++;
@@ -551,7 +563,7 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 
 			desc->revision = 0;
 
-			snprintf(desc->path, HMD_STR_SIZE, "%d", controller_idx);
+			strcpy(desc->path, cur_dev->path);
 
 			desc->driver_ptr = driver;
 			desc->id = id++;

@@ -38,6 +38,7 @@ struct Task : Moveable<Task> {
 	TaskStatus status = STATUS_TODO;
 	String     path; // Path to task file
 	String     priority = "P2";
+	Vector<String> depends_on;
 	
 	Time       created_at;
 	Time       updated_at;

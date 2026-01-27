@@ -2,86 +2,47 @@
 
 NAMESPACE_UPP
 
-class ListPackagesTool : public MaestroTool {
+class LambdaMaestroTool : public MaestroTool {
+	String name;
+	String desc;
+	Function<Value(const ValueMap&)> exec;
 public:
-	virtual String GetName() const override { return "maestro_list_packages"; }
-	virtual String GetDescription() const override { return "Returns the list of assemblies and packages in the current project."; }
-	virtual Value  GetSchema() const override { return Value(); } // Simple tool, no params
-	
-	virtual Value Execute(const ValueMap& params) const override {
-		// Use RepoScanner to get structure
-		RepoScanner rs;
-		rs.Scan(GetCurrentDirectory());
-		rs.DetectAssemblies();
+	LambdaMaestroTool(String n, String d, Function<Value(const ValueMap&)> e) 
+		: name(n), desc(d), exec(e) {}
 		
-		ValueMap res;
-		ValueArray assemblies;
-		for(const auto& a : rs.assemblies) {
-			ValueMap am;
-			am.Add("name", a.name);
-			am.Add("type", a.assembly_type);
-			assemblies.Add(am);
-		}
-		res.Add("assemblies", assemblies);
-		
-		ValueArray packages;
-		for(const auto& p : rs.packages) {
-			ValueMap pm;
-			pm.Add("name", p.name);
-			pm.Add("path", p.path);
-			packages.Add(pm);
-		}
-		res.Add("packages", packages);
-		
-		return res;
-	}
+	virtual String GetName() const override { return name; }
+	virtual String GetDescription() const override { return desc; }
+	virtual Value  GetSchema() const override { return ValueMap(); } // Schema not yet supported/needed for this internal registry
+	virtual Value  Execute(const ValueMap& params) const override { return exec(params); }
 };
 
-class GetPlanTool : public MaestroTool {
-public:
-	virtual String GetName() const override { return "maestro_get_plan"; }
-	virtual String GetDescription() const override { return "Returns the current project plan (tracks, phases, tasks)."; }
-	virtual Value  GetSchema() const override { return Value(); }
+Value MaestroUpdateTaskStatus(const ValueMap& params) {
+	String track = params["track"];
+	String phase = params["phase"];
+	String task = params["task"];
+	String status_str = params["status"];
 	
-	virtual Value Execute(const ValueMap& params) const override {
-		PlanParser pp;
-		pp.LoadMaestroTracks(GetCurrentDirectory());
+	if(track.IsEmpty() || phase.IsEmpty() || task.IsEmpty() || status_str.IsEmpty())
+		return "Error: Missing required parameters (track, phase, task, status).";
 		
-		ValueArray tracks;
-		for(const auto& t : pp.tracks) {
-			ValueMap tm;
-			tm.Add("id", t.id);
-			tm.Add("name", t.name);
-			tm.Add("status", t.status);
-			tm.Add("completion", t.completion);
-			tracks.Add(tm);
-		}
-		return tracks;
-	}
-};
-
-class ReadFileTool : public MaestroTool {
-public:
-	virtual String GetName() const override { return "maestro_read_file"; }
-	virtual String GetDescription() const override { return "Reads a file from the current project."; }
-	virtual Value  GetSchema() const override {
-		ValueMap vm;
-		vm.Add("path", "string");
-		return vm;
-	}
-	
-	virtual Value Execute(const ValueMap& params) const override {
-		String path = params["path"];
-		if(FileExists(path))
-			return LoadFile(path);
-		return "Error: File not found: " + path;
-	}
-};
+	TaskStatus status = StringToStatus(ToLower(status_str));
+	if(status == STATUS_UNKNOWN)
+		return "Error: Invalid status. Use 'todo', 'in_progress', 'done', or 'blocked'.";
+		
+	PlanParser pp;
+	// Use current directory as root, assuming running from project root
+	if(pp.UpdateTaskStatus(GetCurrentDirectory(), track, phase, task, status))
+		return "Success: Task status updated.";
+	else
+		return "Error: Failed to update task status. File not found or write error.";
+}
 
 void RegisterMaestroTools(MaestroToolRegistry& reg) {
-	reg.Add(new ListPackagesTool());
-	reg.Add(new GetPlanTool());
-	reg.Add(new ReadFileTool());
+	reg.Add(new LambdaMaestroTool("update_task_status", "Update the status of a project plan task. Params: track, phase, task, status.", 
+		[](const ValueMap& params) -> Value {
+			return MaestroUpdateTaskStatus(params);
+		}
+	));
 }
 
 END_UPP_NAMESPACE

@@ -75,14 +75,14 @@ public:
 	void Data() {
 		sys.UpdateData();
 		if(cam) {
-			Vector<HMD::Camera::CameraFrame> frames;
+			Vector<HMD::CameraFrame> frames;
 			cam->PopFrames(frames);
 			for(const auto& f : frames) {
 				if(f.is_bright) camera.bright = f.img;
 				else camera.dark = f.img;
 			}
 			
-			HMD::Camera::Stats cs = cam->GetStats();
+			HMD::CameraStats cs = cam->GetStats();
 			
 			data.Clear();
 			data.Add("Camera", cam->IsOpen() ? "Open" : "Closed");
@@ -90,10 +90,17 @@ public:
 				data.Add("Cam Frame Count", IntStr(cs.frame_count));
 				data.Add("Cam Bright Frames", IntStr(cs.bright_frames));
 				data.Add("Cam Dark Frames", IntStr(cs.dark_frames));
+				data.Add("Cam Bright Balance", IntStr(cs.bright_balance));
 				data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
 				data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
 				data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
 				data.Add("Cam Last Error (r)", IntStr(cs.last_r));
+				data.Add("Cam Mutex Fails", IntStr(cs.mutex_fails));
+				data.Add("Cam USB Errors", IntStr(cs.usb_errors));
+				data.Add("Cam Timeout Errors", IntStr(cs.timeout_errors));
+				data.Add("Cam Overflow Errors", IntStr(cs.overflow_errors));
+				data.Add("Cam Skips", IntStr(cs.other_errors));
+				data.Add("Cam Handle (usecs)", IntStr(cs.handle_usecs));
 				data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
 				data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
 			}
@@ -175,7 +182,7 @@ void TestDump(int seconds)
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();
-		HMD::Camera::Stats cs = cam->GetStats();
+		HMD::CameraStats cs = cam->GetStats();
 		
 		Cout() << "\r" << Format("Frames: %d, Last: %d, Error: %d, Bright: %.2f, HMD: %s", 
 			cs.frame_count, cs.last_transferred, cs.last_r, cs.avg_brightness,
@@ -199,9 +206,13 @@ GUI_APP_MAIN
 	StdLogSetup(LOG_COUT | LOG_FILE);
 	const Vector<String>& args = CommandLine();
 	int dump_time = -1;
+	bool verbose = false;
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--test-dump" && i + 1 < args.GetCount()) {
 			dump_time = atoi(args[i+1]);
+		}
+		if(args[i] == "-v" || args[i] == "--verbose") {
+			verbose = true;
 		}
 	}
 
@@ -210,5 +221,7 @@ GUI_APP_MAIN
 		return;
 	}
 
-	WmrTest().Run();
+	WmrTest wt;
+	wt.cam->SetVerbose(verbose);
+	wt.Run();
 }

@@ -8,42 +8,52 @@ extern "C" {
 
 NAMESPACE_HMD_BEGIN
 
-class HMD_APIENTRYDLL Camera {
+struct CameraFrame : public Moveable<CameraFrame> {
+	Image img;
+	bool is_bright;
+	int exposure;
+};
+
+struct CameraStats {
+	int frame_count;
+	int bright_frames;
+	int dark_frames;
+	int last_exposure;
+	int last_transferred;
+	int last_error;
+	int last_r;
+	int min_transferred, max_transferred;
+	double avg_brightness;
+	byte min_pixel, max_pixel;
+	
+	int mutex_fails;
+	int usb_errors;
+	int timeout_errors;
+	int overflow_errors;
+	int other_errors;
+	
+	int bright_balance; // bright_frames - dark_frames
+	int handle_usecs;
+	
+	CameraStats() { 
+		memset(this, 0, sizeof(*this)); 
+		min_transferred = 1000000000;
+	}
+};
+
+class Camera {
 public:
-	struct CameraFrame : public Moveable<CameraFrame> {
-		Image img;
-		bool is_bright;
-		int exposure;
-	};
+	HMD_APIENTRYDLL Camera();
+	HMD_APIENTRYDLL ~Camera();
 
-	struct Stats {
-		int frame_count;
-		int bright_frames;
-		int dark_frames;
-		int last_exposure;
-		int last_transferred;
-		int last_error;
-		int last_r;
-		int min_transferred, max_transferred;
-		double avg_brightness;
-		byte min_pixel, max_pixel;
-		
-		Stats() { 
-			memset(this, 0, sizeof(*this)); 
-			min_transferred = 1000000000;
-		}
-	};
-
-	Camera();
-	~Camera();
-
-	bool Open();
-	void Close();
+	bool HMD_APIENTRYDLL Open();
+	void HMD_APIENTRYDLL Close();
 	
-	bool IsOpen() const { return opened; }
+	bool HMD_APIENTRYDLL IsOpen() const { return opened; }
 	
-	void PopFrames(Vector<CameraFrame>& out);
-	Stats GetStats();
+	void HMD_APIENTRYDLL PopFrames(Vector<CameraFrame>& out);
+	CameraStats HMD_APIENTRYDLL GetStats();
+	void HMD_APIENTRYDLL SetVerbose(bool v) { verbose = v; }
 	
 	typedef Camera CLASSNAME;
 
@@ -55,11 +65,12 @@ private:
 
 	bool opened;
 	bool quit;
+	bool verbose;
 	
 	Upp::Thread thread;
 	Upp::Mutex mutex;
 	Vector<CameraFrame> queue;
-	Stats stats;
+	CameraStats stats;
 	
 	libusb_context* usb_ctx;
 	libusb_device_handle* usb_handle;
@@ -72,6 +83,8 @@ private:
 	} transfers[ASYNC_BUFFERS];
 	
 	std::vector<byte> raw_buffer;
+	int raw_buffer_ptr;
+	std::vector<byte> stripped_buffer;
 };
 
 

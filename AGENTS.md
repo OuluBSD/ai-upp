@@ -268,6 +268,21 @@ Added bounds checking with ASSERT to prevent invalid stereo_id values.
 
 **Remaining Issue**: While stereo tests now run without crashing, the left image doesn't update - it stays frozen while the right image animates correctly. This points to a framebuffer update issue specific to the left eye buffer.
 
+### X11 OpenGL HMD Initialization Bug (ScrX11Ogl::SinkDevice_Initialize)
+**Location**: `uppsrc/api/Screen/X11Ogl.cpp:125`
+
+**Issue**: 
+1. The initialization was skipping the call to `dev.accel.Initialize(a, ws)`, which meant graphics stages were never populated. This led to an assertion failure `stages.GetCount()` in `TBuffer.cpp`.
+2. Calls to `system()` for `start_hmd_x.py` and `xrandr` were wrapped in `IGNORE_RESULT`, causing the application to proceed even if HMD setup failed.
+3. Fallback to "HDMI-A-1" masked detection failures.
+
+**Fix**: 
+1. Added the missing `dev.accel.Initialize(a, ws)` call.
+2. Removed `IGNORE_RESULT` and added exit code checks for all system calls; `SinkDevice_Initialize` now returns `false` on script failure.
+3. Removed the hardcoded "HDMI-A-1" fallback to ensure failure when detection fails.
+4. Added post-setup verification to ensure the HMD output is reported as "connected" by `xrandr`, using a 5-second polling loop to handle hardware startup delays.
+5. Implemented forced window placement: The X-coordinate is now set to the detected width of the "connected primary" screen, and the resolution is fixed to 2880x1440, ensuring correct HMD placement even when Window Managers attempt to override positions.
+
 ### Cube Texture Index Bug (Model::AddCubeTexture)
 **Location**: `uppsrc/Geometry/Model.cpp:271`
 

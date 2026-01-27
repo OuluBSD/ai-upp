@@ -26,6 +26,11 @@ struct ScrX11Ogl::NativeSinkDevice {
     bool log_avg = false;
     int avg_log_interval = 16;
     int frame_counter = 0;
+    bool desktop_with_hmd = false;
+    bool xrandr_setup = true;
+    String hmd_output;
+    int x_display_idx = -1;
+    bool started_hmd = false;
 };
 
 struct ScrX11Ogl::NativeEventsBase {
@@ -115,21 +120,116 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 	
 	a.AddDependency(*ctx_);
 	
+	if (!dev.accel.Initialize(a, ws))
+		return false;
+	
 	bool is_borderless = ws.IsTrue(".borderless");
 	bool is_fullscreen = ws.IsTrue(".fullscreen");
 	bool print_modes = ws.IsTrue(".print_modes");
 	bool find_vr = ws.IsTrue(".find.vr.screen");
 	int screen_idx = ws.GetInt(".screen", -1);
 
-	dev.log_avg = ws.GetBool(".avg_color_log", false);
-	int interval = ws.GetInt(".avg_color_interval", 16);
-	if (interval <= 0)
-		interval = 1;
-	dev.avg_log_interval = interval;
+	dev.hmd_output = ws.Get(".hmd_output", "");
+	String primary_output = ws.Get(".primary_output", "DisplayPort-0");
+	bool use_display_1 = ws.GetBool(".hmd_use_display_1", true);
+	dev.xrandr_setup = ws.GetBool(".xrandr_setup", true);
+	
+	int x_display_idx = -1;
+	String seat_conf = GetHomeDirFile(".ai-upp/hmd_seat.conf");
+	bool has_seat_conf = FileExists(seat_conf);
 
-	if (!dev.accel.Initialize(a, ws)) {
-		LOG("ScrX11Ogl::SinkDevice_Initialize: error: accelerator initialization failed");
-		return false;
+	int x = 0;
+	int y = 0;
+	unsigned int width = 1280;
+	unsigned int height = 720;
+
+	if (has_seat_conf) {
+		FileIn in(seat_conf);
+		while(!in.IsEof()) {
+			String line = in.GetLine();
+			if(line.StartsWith("HMD_DISPLAY=")) {
+				String d = line.Mid(12);
+				if(d.StartsWith(":")) x_display_idx = ScanInt(d.Mid(1));
+			}
+			if(line.StartsWith("HMD_OUTPUT=") && dev.hmd_output.IsEmpty()) {
+				dev.hmd_output = TrimBoth(line.Mid(11));
+			}
+		}
+		in.Close();
+	}
+	
+	if (x_display_idx < 0) x_display_idx = 1;
+
+	if (!dev.desktop_with_hmd && dev.xrandr_setup) {
+		// 1. Auto-detect HMD if not specified (look for disconnected device with VR resolution)
+		if (dev.hmd_output.IsEmpty()) {
+			String tmp_file = GetTempFileName();
+			if (system("xrandr > " + tmp_file) == 0) {
+				FileIn in(tmp_file);
+				String current_output;
+				while(!in.IsEof()) {
+					String line = in.GetLine();
+					if (line.IsEmpty()) continue;
+					if (!IsSpace(line[0])) {
+						int space_idx = line.Find(' ');
+						if (space_idx > 0)
+							current_output = line.Left(space_idx);
+					}
+					// Look for the resolution in the supported modes of any output
+					if (line.Find("2880x1440") >= 0 && !current_output.IsEmpty()) {
+						dev.hmd_output = current_output;
+						LOG("ScrX11Ogl::SinkDevice_Initialize: detected HMD on " << dev.hmd_output);
+						break;
+					}
+				}
+				in.Close();
+				FileDelete(tmp_file);
+			}
+		}
+
+		if (!dev.hmd_output.IsEmpty()) {
+			// 2. Check if X server is already running on target display
+			String disp_name = Format(":%d", x_display_idx);
+			bool is_active = false;
+			::Display* d = XOpenDisplay(disp_name);
+			if (d) {
+				is_active = true;
+				XCloseDisplay(d);
+			}
+			else {
+				// If XOpenDisplay fails, it might be due to permissions but the server could still be active.
+				// Check for the lock file as a fallback.
+				if (FileExists(Format("/tmp/.X%d-lock", x_display_idx))) {
+					is_active = true;
+				}
+			}
+
+			if (is_active) {
+				LOG("ScrX11Ogl::SinkDevice_Initialize: X server " << disp_name << " already active, skipping start");
+				dev.started_hmd = false; // We didn't start it
+				dev.x_display_idx = x_display_idx;
+			}
+			else {
+				// 3. Disconnect from current desktop if it's there
+				String cmd_off = "sudo xrandr --output " + dev.hmd_output + " --off";
+				LOG("ScrX11Ogl::SinkDevice_Initialize: ensuring HMD off on current desktop: " << cmd_off);
+				IGNORE_RESULT(system(cmd_off));
+
+				// 4. Start X server
+				LOG("ScrX11Ogl::SinkDevice_Initialize: starting X server on " << disp_name);
+				String cmd_x = Format("sudo X %s -ac -nolisten tcp -extension GLX &", disp_name);
+				IGNORE_RESULT(system(cmd_x));
+				dev.started_hmd = true;
+				dev.x_display_idx = x_display_idx;
+				Sleep(2000);
+			}
+
+			// 5. Configure HMD on the target display (whether we started it or not)
+			String cfg_cmd = Format("env DISPLAY=:%d xrandr --output %s --mode 2880x1440 --primary", x_display_idx, dev.hmd_output);
+			LOG("ScrX11Ogl::SinkDevice_Initialize: configuring HMD on " << disp_name << ": " << cfg_cmd);
+			IGNORE_RESULT(system(cfg_cmd));
+			Sleep(1000);
+		}
 	}
 	
 	::Display*& display = ctx.display;	// pointer to X Display structure.
@@ -137,11 +237,11 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 	::XVisualInfo*& visual = ctx.visual_info;
 	unsigned int display_width,
 	             display_height;		// height and width of the X display.
-	unsigned int width, height;			// height and width for the new window.
-	char *display_name = getenv("DISPLAY"); // address of the X display.
 	
-	int x = 0;
-	int y = 0;
+	String display_str = ws.Get(".display", getenv("DISPLAY"));
+	if (!dev.desktop_with_hmd && x_display_idx > 0)
+		display_str = Format(":%d", x_display_idx);
+	char *display_name = (char*)~display_str; // address of the X display.
 	
 	bool reverse_video = false;
 	
@@ -244,34 +344,90 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		return false;
 	}
 	
-	// default resolution is 1280x720 for now
-	width = 1280;
-	height = 720;
-	RTLOG("ScrX11Ogl::SinkDevice_Initialize: window width - '" << width << "'; height - '" << height << "'");
+	// Pre-calculate target screen coordinates
+	bool is_extended_hmd = false;
+	if (x > 0) {
+		// Coordinates already forced by xrandr detection above
+		is_extended_hmd = true;
+	}
+	else if ((find_vr || screen_idx >= 0 || !dev.hmd_output.IsEmpty()) && is_fullscreen) {
+		Index<Rect> screens;
+		XRRScreenResources *xrrr = XRRGetScreenResources(display, RootWindow(display, screen_num));
+		XRRCrtcInfo *xrrci;
+		int i;
+		int ncrtc = xrrr->ncrtc;
+		for (i = 0; i < ncrtc; ++i) {
+			xrrci = XRRGetCrtcInfo(display, xrrr, xrrr->crtcs[i]);
+			if (xrrci->width > 0 && xrrci->height > 0) {
+				bool match = false;
+				if (!dev.hmd_output.IsEmpty()) {
+					for (int j = 0; j < xrrci->noutput; j++) {
+						XRROutputInfo *oi = XRRGetOutputInfo(display, xrrr, xrrci->outputs[j]);
+						if (oi) {
+							if (String(oi->name) == dev.hmd_output) {
+								match = true;
+							}
+							XRRFreeOutputInfo(oi);
+						}
+						if (match) break;
+					}
+				}
+				else if (find_vr && xrrci->width == 1440*2 && xrrci->height == 1440) {
+					match = true;
+				}
+				
+				if (match)
+					screen_idx = screens.GetCount();
+					
+				screens.FindAdd(RectC(xrrci->x, xrrci->y, xrrci->width, xrrci->height));
+			}
+			XRRFreeCrtcInfo(xrrci);
+		}
+		XRRFreeScreenResources(xrrr);
+		
+		if (screen_idx >= 0 && screen_idx < screens.GetCount()) {
+			Rect r = screens[screen_idx];
+			x = r.left;
+			y = r.top;
+			width = r.GetWidth();
+			height = r.GetHeight();
+			is_extended_hmd = true;
+			LOG("ScrX11Ogl::SinkDevice_Initialize: target screen " << screen_idx << " at " << AsString(r));
+		}
+		else {
+			LOG("ScrX11Ogl::SinkDevice_Initialize: error: screen index out of range (is HMD connected?)");
+			XCloseDisplay(display);
+			return false;
+		}
+	}
+	
+	RTLOG("ScrX11Ogl::SinkDevice_Initialize: creating window at [" << x << "," << y << "] size " << width << "x" << height);
 	
 	// create a simple window, as a direct child of the screen's
 	// root window. Use the screen's white color as the background
 	// color of the window. Place the new window's top-left corner
 	// at the given 'x,y' coordinates.
 	{
-		int screen_num = DefaultScreen(display);
-		int win_border_width = 2;
+		int win_border_width = 0;
 		
 		// Set window attributes
 		XSetWindowAttributes& attr = ctx.attr;
 		attr.border_pixel = BlackPixel(display, screen_num);
 		attr.background_pixel = WhitePixel(display, screen_num);
-		attr.override_redirect = True;
+		attr.override_redirect = is_extended_hmd ? True : False;
 		attr.colormap = XCreateColormap(display, RootWindow(display, screen_num), visual->visual, AllocNone);
 		attr.event_mask = ExposureMask;
 		
+		unsigned long mask = CWBackPixel | CWColormap | CWBorderPixel | CWEventMask;
+		if (is_extended_hmd) mask |= CWOverrideRedirect;
+
 		// Open window
 		win = XCreateWindow(
 			display, RootWindow(display, screen_num),
 			x, y, width, height,
 			win_border_width, visual->depth,
 			InputOutput, visual->visual,
-			CWBackPixel | CWColormap | CWBorderPixel | CWEventMask,
+			mask,
 			&attr);
 		
 		// Redirect Close
@@ -362,78 +518,18 @@ bool ScrX11Ogl::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const 
 		XMapWindow(display, win);
 		
 		// Configure borderless & fullscreen related properties
-		if ((find_vr || screen_idx >= 0) && is_fullscreen) {
-			Index<Rect> screens;
-			XRRScreenResources *xrrr = XRRGetScreenResources(display, win);
-		    XRRCrtcInfo *xrrci;
-		    int i;
-		    int ncrtc = xrrr->ncrtc;
-		    for (i = 0; i < ncrtc; ++i) {
-		        xrrci = XRRGetCrtcInfo(display, xrrr, xrrr->crtcs[i]);
-		        if (xrrci->width > 0 && xrrci->height > 0) {
-		            if (find_vr && xrrci->width == 1440*2 && xrrci->height == 1440)
-		                screen_idx = screens.GetCount();
-					screens.FindAdd(RectC(xrrci->x, xrrci->y, xrrci->width, xrrci->height));
-		        }
-		        //LOG("\tscreen " << i << ": " << xrrci->width << "x" << xrrci->height << "," << xrrci->x << "," << xrrci->y);
-		        XRRFreeCrtcInfo(xrrci);
-		    }
-		    XRRFreeScreenResources(xrrr);
-		    
-		    DUMPC(screens);
-		    if (screen_idx < 0 || screen_idx >= screens.GetCount()) {
-		        LOG("ScrX11Ogl::SinkDevice_Initialize: error: screen index out of range (is HMD connected?)");
-				return false;
-		    }
-		    Rect r = screens[screen_idx];
-			LOG("ScrX11Ogl::SinkDevice_Initialize: info: moving x11 window to " << AsString(r));
-			
-			int mode_count = 0;
-			XF86VidModeModeInfo** modes = 0;
-			XF86VidModeGetAllModeLines(display, screen_num, &mode_count, &modes);
-			if (!mode_count) {
-				LOG("ScrX11Ogl::SinkDevice_Initialize: error: could not get video modes");
-				return false;
-			}
-			if (print_modes) {
-				for(int i = 0; i < mode_count; i++) {
-					XF86VidModeModeInfo* mode = modes[i];
-					LOG("XF86 mode " << i << ":\n"
-						"\tdotclock: " << (int)mode->dotclock << "\n"
-						"\thdisplay: " << (int)mode->hdisplay << "\n"
-						"\thsyncstart: " << (int)mode->hsyncstart << "\n"
-						"\thsyncend: " << (int)mode->hsyncend << "\n"
-						"\thtotal: " << (int)mode->htotal << "\n"
-						"\thskew: " << (int)mode->hskew << "\n"
-						"\tvdisplay: " << (int)mode->vdisplay << "\n"
-						"\tvsyncstart: " << (int)mode->vsyncstart << "\n"
-						"\tvsyncend: " << (int)mode->vsyncend << "\n"
-						"\tvtotal: " << (int)mode->vtotal << "\n"
-						"\tflags: " << (int)mode->flags << "\n"
-						"\tprivsize: " << (int)mode->privsize << "\n");
-				}
-			}
-			XF86VidModeModeInfo* video_mode = modes[0];
-			XChangeProperty(display, win, hints_property, hints_property, 32, PropModeReplace, (unsigned char *)&hints, 5);
-			XF86VidModeSwitchToMode(display, screen_num, video_mode);
-			if (is_fullscreen) {
-				int x = r.left;
-				int y = r.top;
-				width = r.GetWidth();
-				height = r.GetHeight();
-				XF86VidModeSetViewPort(display, screen_num, 0, 0);
+		if (is_fullscreen) {
+			if (is_extended_hmd) {
+				XChangeProperty(display, win, hints_property, hints_property, 32, PropModeReplace, (unsigned char *)&hints, 5);
 				XMoveResizeWindow(display, win, x, y, width, height);
 				XMapRaised(display, win);
 			}
-			//XGrabPointer(display, win, True, 0, GrabModeAsync, GrabModeAsync, win, 0L, CurrentTime);
-			//XGrabKeyboard(display, win, False, GrabModeAsync, GrabModeAsync, CurrentTime);
-		}
-		else if (is_fullscreen) {
-			::Atom wm_state = XInternAtom (display, "_NET_WM_STATE", true );
-			::Atom wm_fullscreen = XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", true );
-			
-			XChangeProperty(display, win, wm_state, ((::Atom) 4), 32,
-			    PropModeReplace, (unsigned char *)&wm_fullscreen, 1);
+			else {
+				::Atom wm_state = XInternAtom (display, "_NET_WM_STATE", true );
+				::Atom wm_fullscreen = XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", true );
+				XChangeProperty(display, win, wm_state, ((::Atom) 4), 32,
+				    PropModeReplace, (unsigned char *)&wm_fullscreen, 1);
+			}
 		}
 		
 		// flush all pending requests to the X server.
@@ -474,9 +570,46 @@ void ScrX11Ogl::SinkDevice_Stop(NativeSinkDevice& dev, AtomBase& a) {
 void ScrX11Ogl::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	dev.accel.Uninitialize();
 
+	if (dev.started_hmd) {
+		String stop_script = GetHomeDirFile(".ai-upp/bin/stop_hmd_x.sh");
+		if (FileExists(stop_script)) {
+			LOG("ScrX11Ogl::SinkDevice_Uninitialize: executing " << stop_script);
+			IGNORE_RESULT(system(stop_script));
+		}
+		else if (!dev.desktop_with_hmd && dev.xrandr_setup) {
+			LOG("ScrX11Ogl::SinkDevice_Uninitialize: turning off HMD output " << dev.hmd_output);
+			IGNORE_RESULT(system("sudo xrandr --output " + dev.hmd_output + " --off"));
+			
+			if (dev.x_display_idx > 0) {
+				LOG("ScrX11Ogl::SinkDevice_Uninitialize: killing X server on :" << dev.x_display_idx);
+				// Find PID from lock file
+				String lock_file = Format("/tmp/.X%d-lock", dev.x_display_idx);
+				FileIn in(lock_file);
+				if (in.IsOpen()) {
+					String pid_str = in.GetLine();
+					if (!pid_str.IsEmpty()) {
+						// The lock file format is text containing the PID as a decimal ASCII number (11 chars).
+						pid_str = TrimBoth(pid_str); // Remove spaces/newlines
+						int pid = ScanInt(pid_str);
+						if (pid > 0) {
+							String cmd = Format("sudo kill %d", pid);
+							LOG("ScrX11Ogl::SinkDevice_Uninitialize: executing " << cmd);
+							IGNORE_RESULT(system(cmd));
+						}
+					}
+					in.Close();
+				}
+				// Fallback: simple kill command pattern if lock file was gone or unreadable
+				else {
+					String cmd = Format("sudo pkill -f \"X :%d\"", dev.x_display_idx);
+					LOG("ScrX11Ogl::SinkDevice_Uninitialize: fallback kill: " << cmd);
+					IGNORE_RESULT(system(cmd));
+				}
+			}
+		}
+	}
+
 	// Don't access ctx here - it may already be destroyed during VFS teardown
-	// The Context will handle X11 Display, Window, and visual cleanup
-	// GL context cleanup is skipped as it requires valid Display pointer
 }
 
 bool ScrX11Ogl::SinkDevice_Recv(NativeSinkDevice& dev, AtomBase&, int ch_i, const Packet& p) {

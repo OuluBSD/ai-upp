@@ -39,6 +39,8 @@ file
 	Wmr.cpp,
 	WmrPacket.cpp,
 	WmrController.cpp,
+	Oculus.h,
+	Oculus.cpp,
 	Psvr.h,
 	Psvr.cpp,
 	PsvrPacket.cpp,

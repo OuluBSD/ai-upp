@@ -43,7 +43,6 @@
 
 
 #include <Geometry/Geometry.h>
-#include <Eon/Eon.h>
 
 
 #define NAMESPACE_HMD_BEGIN		namespace Upp { namespace HMD {
@@ -59,6 +58,7 @@
 #include "Utils.h"
 #include "Shaders.h"
 #include "Wmr.h"
+#include "Oculus.h"
 #include "Android.h"
 #include "Psvr.h"
 #include "ConfigKey.h"

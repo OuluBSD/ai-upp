@@ -22,8 +22,8 @@ class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;
 	
-	HMD::Context* ctx;
-	HMD::Device* hmd;
+	HMD::System sys;
+	HMD::Camera cam;
 	
 	CameraCtrl camera;
 	ArrayCtrl list;
@@ -43,38 +43,12 @@ public:
 		list.AddColumn("Key");
 		list.AddColumn("Value");
 		
-		ctx = HMD::CreateContext();
-		hmd = NULL;
-		
-		if(ctx) {
-			int n = HMD::ProbeContext(ctx);
-			if(n > 0) {
-				for(int i = 0; i < n; i++) {
-					const char* vendor = HMD::GetListString(ctx, i, HMD::HMD_VENDOR);
-					const char* product = HMD::GetListString(ctx, i, HMD::HMD_PRODUCT);
-					const char* path = HMD::GetListString(ctx, i, HMD::HMD_PATH);
-					int flags = 0;
-					HMD::GetListInt(ctx, i, HMD::HMD_DEVICE_FLAGS, &flags);
-					
-					data.Add(Format("Device %d", i), Format("%s %s (%s)", vendor, product, path));
-					
-					if(!hmd && !(flags & HMD::HMD_DEVICE_FLAGS_NULL_DEVICE)) {
-						hmd = HMD::OpenListDevice(ctx, i);
-						if(!hmd) {
-							data.Add("Error Opening", HMD::GetContextError(ctx));
-						}
-						else {
-							data.Add("Opened Device", product);
-						}
-					}
-				}
-			}
-			else {
-				data.Add("Error", "No devices found");
-			}
+		if(!sys.Initialise()) {
+			data.Add("Error", "Failed to initialise HMD system");
 		}
-		else {
-			data.Add("Error", "Failed to create context");
+		
+		if(!cam.Open()) {
+			data.Add("Camera Error", "Failed to open HMD camera");
 		}
 		
 		// Initial refresh of list to show error if any
@@ -87,78 +61,133 @@ public:
 	
 	~WmrTest() {
 		tc.Kill();
-		if(hmd) HMD::CloseDevice(hmd);
-		if(ctx) HMD::DestroyContext(ctx);
+		cam.Close();
+		sys.Uninitialise();
 	}
 	
 	void Data() {
-		if(!ctx) return;
+		sys.UpdateData();
+		camera.img = cam.GetImage();
+		HMD::Camera::Stats cs = cam.GetStats();
 		
-		HMD::UpdateContext(ctx);
+		data.Clear();
+		data.Add("Camera", cam.IsOpen() ? "Open" : "Closed");
+		if(cam.IsOpen()) {
+			data.Add("Cam Frame Count", IntStr(cs.frame_count));
+			data.Add("Cam Bright Frames", IntStr(cs.bright_frames));
+			data.Add("Cam Dark Frames", IntStr(cs.dark_frames));
+			data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
+			data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
+			data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
+			data.Add("Cam Last Error (r)", IntStr(cs.last_r));
+			data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
+			data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
+		}
+		if(camera.img)
+			data.Add("Camera Resolution", Format("%d x %d", camera.img.GetWidth(), camera.img.GetHeight()));
 		
-		if(hmd) {
-			data.Clear();
-			
-			float f[16];
-			int i[16];
-			
-			if(HMD::GetDeviceFloat(hmd, HMD::HMD_ROTATION_QUAT, f) == HMD::HMD_S_OK)
-				data.Add("Rotation", Format("%f, %f, %f, %f", f[0], f[1], f[2], f[3]));
-			
-			if(HMD::GetDeviceFloat(hmd, HMD::HMD_POSITION_VECTOR, f) == HMD::HMD_S_OK)
-				data.Add("Position", Format("%f, %f, %f", f[0], f[1], f[2]));
-
-			if(HMD::GetDeviceFloat(hmd, HMD::HMD_ACCELEROMETER_VECTOR, f) == HMD::HMD_S_OK)
-				data.Add("Accelerometer", Format("%f, %f, %f", f[0], f[1], f[2]));
-
-			if(HMD::GetDeviceFloat(hmd, HMD::HMD_GYROSCOPE_VECTOR, f) == HMD::HMD_S_OK)
-				data.Add("Gyroscope", Format("%f, %f, %f", f[0], f[1], f[2]));
-
-			if(HMD::GetDeviceFloat(hmd, HMD::HMD_MAGNETOMETER_VECTOR, f) == HMD::HMD_S_OK)
-				data.Add("Magnetometer", Format("%f, %f, %f", f[0], f[1], f[2]));
-			
-			int ctrl_count = 0;
-			if(HMD::GetDeviceInt(hmd, HMD::HMD_CONTROL_COUNT, &ctrl_count) == HMD::HMD_S_OK) {
-				data.Add("Control Count", IntStr(ctrl_count));
+		// HMD Transform
+		data.Add("HMD Orientation", sys.trans.orientation.ToString());
+		data.Add("HMD Position", sys.trans.position.ToString());
+		data.Add("HMD Eye Dist", Format("%f", sys.trans.eye_dist));
+		
+		// Raw sensor data from HMD device if opened
+		if(sys.hmd) {
+			float f[3];
+			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, f) == HMD::HMD_S_OK)
+				data.Add("HMD Accel", Format("%f, %f, %f", f[0], f[1], f[2]));
+			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, f) == HMD::HMD_S_OK)
+				data.Add("HMD Gyro", Format("%f, %f, %f", f[0], f[1], f[2]));
+		}
+		
+		// Controllers
+		const char* ctrl_names[] = {"Left Controller", "Right Controller"};
+		const char* button_names[] = {
+			"GENERIC", "TRIGGER", "TRIGGER_CLICK", "SQUEEZE", "MENU", "HOME",
+			"ANALOG_X0", "ANALOG_X1", "ANALOG_X2", "ANALOG_X3",
+			"ANALOG_Y0", "ANALOG_Y1", "ANALOG_Y2", "ANALOG_Y3",
+			"ANALOG_PRESS0", "ANALOG_PRESS1", "ANALOG_PRESS2", "ANALOG_PRESS3",
+			"BUTTON_A", "BUTTON_B", "BUTTON_X", "BUTTON_Y",
+			"VOLUME_PLUS", "VOLUME_MINUS", "MIC_MUTE"
+		};
+		
+		for(int i = 0; i < 2; i++) {
+			ControllerMatrix::Ctrl& h = sys.ev3d.ctrl[i];
+			String prefix = ctrl_names[i];
+			data.Add(prefix + " Enabled", h.is_enabled ? "Yes" : "No");
+			if(h.is_enabled) {
+				data.Add(prefix + " Orient", h.trans.orientation.ToString());
+				data.Add(prefix + " Pos", h.trans.position.ToString());
 				
-				float values[64];
-				int hints[64];
-				int types[64];
-				
-				HMD::GetDeviceFloat(hmd, HMD::HMD_CONTROLS_STATE, values);
-				HMD::GetDeviceInt(hmd, HMD::HMD_CONTROLS_HINTS, hints);
-				HMD::GetDeviceInt(hmd, HMD::HMD_CONTROLS_TYPES, types);
-				
-				const char* hint_names[] = {
-					"generic", "trigger", "trigger_click", "squeeze", "menu", "home",
-					"analog-x", "analog-y", "analog_press", "button-a", "button-b",
-					"button-x", "button-y", "volume-up", "volume-down", "mic-mute"
-				};
-				
-				for(int j = 0; j < ctrl_count; j++) {
-					String key = Format("Ctrl %d (%s)", j, hints[j] < 16 ? hint_names[hints[j]] : "unknown");
-					data.Add(key, Format("%f (%s)", values[j], types[j] == HMD::HMD_ANALOG ? "analog" : "digital"));
+				for(int b = 0; b < (int)ControllerMatrix::VALUE_COUNT; b++) {
+					if(h.is_value[b]) {
+						data.Add(prefix + " " + button_names[b], Format("%f", h.value[b]));
+					}
 				}
-			}
-			
-			if(HMD::GetDeviceInt(hmd, HMD::HMD_SCREEN_HORIZONTAL_RESOLUTION, &i[0]) == HMD::HMD_S_OK)
-				data.Add("H-Res", IntStr(i[0]));
-			if(HMD::GetDeviceInt(hmd, HMD::HMD_SCREEN_VERTICAL_RESOLUTION, &i[0]) == HMD::HMD_S_OK)
-				data.Add("V-Res", IntStr(i[0]));
-			
-			// Refresh list
-			list.Clear();
-			for(int j = 0; j < data.GetCount(); j++) {
-				list.Add(data.GetKey(j), data[j]);
 			}
 		}
 		
-		// camera.img = ... // Placeholder for future
+		// Refresh list while preserving selection if possible
+		int scroll = list.GetScroll();
+		int cursor = list.GetCursor();
+		list.Clear();
+		for(int j = 0; j < data.GetCount(); j++) {
+			list.Add(data.GetKey(j), data[j]);
+		}
+		list.ScrollTo(scroll);
+		list.SetCursor(cursor);
+		
 		camera.Refresh();
 	}
 };
 
+void TestDump(int seconds)
+{
+	HMD::System sys;
+	HMD::Camera cam;
+	
+	if(!sys.Initialise()) {
+		Cout() << "Error: Failed to initialise HMD system\n";
+	}
+	
+	if(!cam.Open()) {
+		Cout() << "Camera Error: Failed to open HMD camera\n";
+	}
+	
+	TimeStop ts;
+	while(ts.Elapsed() < seconds * 1000) {
+		sys.UpdateData();
+		HMD::Camera::Stats cs = cam.GetStats();
+		
+		Cout() << "\r" << Format("Frames: %d, Last: %d, Error: %d, Bright: %.2f", 
+			cs.frame_count, cs.last_transferred, cs.last_r, cs.avg_brightness);
+		
+		Sleep(100);
+	}
+	Cout() << "\n";
+	
+	TransformMatrix& trans = sys.trans;
+	Cout() << "Final HMD Orientation: " << trans.orientation.ToString() << "\n";
+	Cout() << "Final HMD Position: " << trans.position.ToString() << "\n";
+	
+	cam.Close();
+	sys.Uninitialise();
+}
+
 GUI_APP_MAIN
 {
+	const Vector<String>& args = CommandLine();
+	int dump_time = -1;
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] == "--test-dump" && i + 1 < args.GetCount()) {
+			dump_time = atoi(args[i+1]);
+		}
+	}
+
+	if(dump_time >= 0) {
+		TestDump(dump_time);
+		return;
+	}
+
 	WmrTest().Run();
 }

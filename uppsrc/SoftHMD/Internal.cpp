@@ -57,6 +57,11 @@ Context* CreateContext(void)
 	ctx->drivers[ctx->num_drivers++] = CreateWmrDriver(ctx);
 #endif
 
+#define DRIVER_OCULUS 1
+#if DRIVER_OCULUS
+	ctx->drivers[ctx->num_drivers++] = CreateOculusDriver(ctx);
+#endif
+
 #if DRIVER_PSVR
 	ctx->drivers[ctx->num_drivers++] = CreatePsvrDriver(ctx);
 #endif

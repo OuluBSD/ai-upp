@@ -140,6 +140,7 @@ void SetUniversalAberrationK(DeviceProperties* props, float r, float g, float b)
 // drivers
 Driver* CreateDummyDriver(Context* ctx);
 Driver* CreateWmrDriver(Context* ctx);
+Driver* CreateOculusDriver(Context* ctx);
 Driver* CreatePsvrDriver(Context* ctx);
 Driver* CreateAndroidDriver(Context* ctx);
 

@@ -34,6 +34,7 @@ MaestroHub::MaestroHub() {
 	technology->WhenEnact = THISBACK(OnEnact);
 	product->WhenEnactStep = THISBACK(OnEnactStep);
 	sessions->WhenSelect = THISBACK(OnSessionSelect);
+	maintenance->chat.enact_suggested.WhenAction = THISBACK(OnSuggestEnact);
 	
 	config.Load();
 	if(config.recent_dirs.GetCount() > 0)
@@ -216,6 +217,44 @@ void MaestroHub::LoadData() {
 	if(product) product->Load(current_root);
 	if(maintenance) maintenance->Load(current_root);
 	if(sessions) sessions->Load(current_root);
+	
+	ScanForUnblockedTasks();
+}
+
+void MaestroHub::ScanForUnblockedTasks() {
+	if(!maintenance || current_root.IsEmpty()) return;
+	
+	PlanParser pp;
+	pp.LoadMaestroTracks(current_root);
+	
+	// Index all tasks by ID for dependency checking
+	Index<String> done_tasks;
+	for(const auto& t : pp.tracks)
+		for(const auto& p : t.phases)
+			for(const auto& tk : p.tasks)
+				if(tk.status == STATUS_DONE)
+					done_tasks.Add(tk.id);
+					
+	// Find first TODO task whose dependencies are all DONE
+	for(const auto& t : pp.tracks) {
+		for(const auto& p : t.phases) {
+			for(const auto& tk : p.tasks) {
+				if(tk.status == STATUS_TODO) {
+					bool unblocked = true;
+					for(const String& dep : tk.depends_on) {
+						if(done_tasks.Find(dep) < 0) {
+							unblocked = false;
+							break;
+						}
+					}
+					if(unblocked) {
+						maintenance->chat.SuggestEnactment(t.id, p.id, tk.id);
+						return; // Suggest only the first one found
+					}
+				}
+			}
+		}
+	}
 }
 
 void MaestroHub::OnEnact(String track, String phase, String task) {
@@ -258,6 +297,15 @@ void MaestroHub::OnSessionSelect(String backend, String session_id) {
 	if(maintenance) {
 		maintenance->SessionStatus(backend, session_id);
 		maintenance->chat.SetSession(backend, session_id);
+	}
+}
+
+void MaestroHub::OnSuggestEnact() {
+	if(maintenance) {
+		ValueMap vm = maintenance->chat.suggested_task;
+		maintenance->chat.suggestion.Hide();
+		maintenance->chat.Layout();
+		OnEnact(vm["track"], vm["phase"], vm["task"]);
 	}
 }
 

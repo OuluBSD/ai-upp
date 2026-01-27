@@ -2,6 +2,15 @@
 
 NAMESPACE_UPP
 
+CliMaestroEngine::GeminiSessionCache CliMaestroEngine::gemini_cache;
+Mutex CliMaestroEngine::gemini_mutex;
+bool CliMaestroEngine::gemini_updating = false;
+Thread CliMaestroEngine::update_thread;
+
+CliMaestroEngine::~CliMaestroEngine() {
+	// Note: static update_thread might still be running, but it doesn't touch 'this' anymore
+}
+
 static String GetWhich(const String& bin) {
 	if(bin.StartsWith("/") || bin.Find('/') != -1) return bin;
 #ifdef PLATFORM_POSIX
@@ -13,7 +22,7 @@ static String GetWhich(const String& bin) {
 }
 
 void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEvent&)> cb) {
-	callback = cb;
+	event_callback = cb;
 	if(p && p->IsRunning()) p->Kill();
 	p.Create();
 	
@@ -74,7 +83,7 @@ void CliMaestroEngine::Send(const String& prompt, Function<void(const MaestroEve
 		MaestroEvent e;
 		e.type = "error";
 		e.text = "Failed to start process: " + dbg_cmd;
-		if(callback) callback(e);
+		if(event_callback) event_callback(e);
 		return;
 	}
 	
@@ -236,7 +245,7 @@ bool CliMaestroEngine::Do() {
 					}
 				}
 				
-				if(callback) callback(e);
+				if(event_callback) event_callback(e);
 			} else {
 				debug_log << "WARN: Failed to parse JSON: " << line << "\n";
 			}
@@ -304,34 +313,26 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 	String home = GetHomeDirectory();
 	
 	if(binary == "gemini") {
-		String out = Sys(GetWhich("gemini") + " --list-sessions");
-		Vector<String> lines = Split(out, '\n');
-		for(const String& l : lines) {
-			Value v = ParseJSON(l);
-			if(!v.IsError() && !v["session_id"].IsVoid()) {
-				SessionInfo& s = list.Add();
-				s.id = v["session_id"];
-				s.name = v["title"];
-				if(s.name.IsEmpty()) s.name = s.id;
-			}
-		}
-		String tmp_dir = AppendFileName(home, ".gemini/tmp");
-		FindFile ff(AppendFileName(tmp_dir, "*"));
-		while(ff) {
-			if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
-				String chats_dir = AppendFileName(ff.GetPath(), "chats");
-				FindFile fchat(AppendFileName(chats_dir, "*.json"));
-				while(fchat) {
-					SessionInfo& s = list.Add();
-					s.id = GetFileTitle(fchat.GetName());
-					if(s.id.StartsWith("session-")) s.id = s.id.Mid(8);
-					s.timestamp = fchat.GetLastWriteTime();
-					s.name = s.id;
-					fchat.Next();
+		// Use cache if available
+		LoadGeminiCache();
+		
+		{
+			Mutex::Lock __(gemini_mutex);
+			if(gemini_cache.sessions.GetCount() > 0) {
+				for(const auto& s : gemini_cache.sessions) {
+					list.Add(s);
 				}
 			}
-			ff.Next();
+			
+			// Trigger background update if not already running
+			if(!gemini_updating) {
+				gemini_updating = true;
+				update_thread.Start(callback(&CliMaestroEngine::UpdateGeminiSessions));
+			}
 		}
+		
+		// If cache was empty, we might need to wait or return empty and let callback handle update?
+		// For now, return what we have (potentially stale or empty, but fast)
 		cb(list);
 		return;
 	}
@@ -363,6 +364,73 @@ void CliMaestroEngine::ListSessions(const String& cwd, Function<void(const Array
 	
 	if(q >= 0) cb(project_sessions[q]);
 	else cb(list); 
+}
+
+void CliMaestroEngine::UpdateGeminiSessions() {
+	String home = GetHomeDirectory();
+	Vector<SessionInfo> new_list;
+	
+	String out = Sys(GetWhich("gemini") + " --list-sessions");
+	Vector<String> lines = Split(out, '\n');
+	for(const String& l : lines) {
+		Value v = ParseJSON(l);
+		if(!v.IsError() && !v["session_id"].IsVoid()) {
+			SessionInfo& s = new_list.Add();
+			s.id = v["session_id"];
+			s.name = v["title"];
+			if(s.name.IsEmpty()) s.name = s.id;
+		}
+	}
+	
+	// Also scan tmp dir for loose files (legacy/fallback)
+	String tmp_dir = AppendFileName(home, ".gemini/tmp");
+	FindFile ff(AppendFileName(tmp_dir, "*"));
+	while(ff) {
+		if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
+			String chats_dir = AppendFileName(ff.GetPath(), "chats");
+			FindFile fchat(AppendFileName(chats_dir, "*.json"));
+			while(fchat) {
+				String id = GetFileTitle(fchat.GetName());
+				if(id.StartsWith("session-")) id = id.Mid(8);
+				
+				// Dedup check
+				bool exists = false;
+				for(const auto& s : new_list) if(s.id == id) { exists = true; break; }
+				
+				if(!exists) {
+					SessionInfo& s = new_list.Add();
+					s.id = id;
+					s.timestamp = fchat.GetLastWriteTime();
+					s.name = id;
+				}
+				fchat.Next();
+			}
+		}
+		ff.Next();
+	}
+	
+	{
+		Mutex::Lock __(gemini_mutex);
+		gemini_cache.sessions = pick(new_list);
+		gemini_cache.last_update = GetSysTime();
+	}
+	SaveGeminiCache();
+	gemini_updating = false;
+}
+
+void CliMaestroEngine::LoadGeminiCache() {
+	String path = ConfigFile("gemini_sessions.json");
+	String json = LoadFile(path);
+	if(json.IsEmpty()) return;
+	
+	Mutex::Lock __(gemini_mutex);
+	LoadFromJson(gemini_cache, json);
+}
+
+void CliMaestroEngine::SaveGeminiCache() {
+	String path = ConfigFile("gemini_sessions.json");
+	Mutex::Lock __(gemini_mutex);
+	StoreAsJsonFile(gemini_cache, path);
 }
 
 END_UPP_NAMESPACE

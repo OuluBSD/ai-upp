@@ -157,8 +157,16 @@ AIChatCtrl::AIChatCtrl() {
 	int edit_height = 100;
 	int offset = 3;
 	int btn_height = 30;
+	int suggest_h = 40;
+	
 	Add(todo.TopPos(0,todo_height).HSizePos());
-	Add(chat.VSizePos(todo_height,edit_height+offset).HSizePos());
+	Add(chat.VSizePos(todo_height, edit_height + offset + suggest_h).HSizePos());
+	
+	Add(suggestion.BottomPos(edit_height + offset, suggest_h).HSizePos());
+	suggestion.Add(suggest_label.VSizePos().LeftPos(5, 400));
+	suggestion.Add(enact_suggested.SetLabel("Enact Suggestion").VSizePos(5, 5).RightPos(5, 150));
+	suggestion.Hide();
+	
 	Add(input.HSizePos(offset,100+offset).BottomPos(0,edit_height));
 	
 		Add(send_continue.RightPos(0,100+offset).BottomPos(2*btn_height,btn_height));
@@ -445,6 +453,17 @@ void AIChatCtrl::Poll() {
 	if(!running && !engine.IsRunning() && items.GetCount() > 0 && !current_response.IsEmpty()) {
 		OnDone(true, false);
 	}
+}
+
+void AIChatCtrl::SuggestEnactment(String track, String phase, String task) {
+	suggested_task.Clear();
+	suggested_task.Add("track", track);
+	suggested_task.Add("phase", phase);
+	suggested_task.Add("task", task);
+	
+	suggest_label.SetText("Suggest next: **" + task + "**");
+	suggestion.Show();
+	Layout();
 }
 
 END_UPP_NAMESPACE

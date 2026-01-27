@@ -56,6 +56,12 @@ class AIChatCtrl : public Ctrl {
 	MaestroTodoList todo;
 	
 public:
+	// Suggestion UI
+	ParentCtrl      suggestion;
+	Label           suggest_label;
+	Button          enact_suggested;
+	ValueMap        suggested_task;
+	
 	EditString         input;
 	Button             send;
 	Option             send_continue;
@@ -78,6 +84,7 @@ public:
 	void CopyDebugData();
 	void OnSelectSession();
 	void OnDone(bool result, bool fail);
+	void SuggestEnactment(String track, String phase, String task);
 	
 	String GetResponse() const { return current_response; }
 

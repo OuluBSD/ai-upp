@@ -31,9 +31,11 @@ class MaestroHub : public TopWindow {
 	void OnEnact(String track, String phase, String task);
 	void OnEnactStep(String runbook_title, int step_n, String instruction);
 	void OnSessionSelect(String backend, String session_id);
+	void OnSuggestEnact();
 	
 	void LoadData();
 	void PlanWatcher();
+	void ScanForUnblockedTasks();
 	Time last_plan_check;
 
 public:

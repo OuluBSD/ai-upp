@@ -14,6 +14,11 @@ struct SessionInfo : Moveable<SessionInfo> {
 	void Jsonize(JsonIO& jio) {
 		jio("id", id)("name", name)("timestamp", timestamp)("metadata", metadata);
 	}
+	
+	template <class T>
+	void Visit(T& v) {
+		v("id", id)("name", name)("timestamp", timestamp)("metadata", metadata);
+	}
 };
 
 struct MaestroEvent {

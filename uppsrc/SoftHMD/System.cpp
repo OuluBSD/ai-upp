@@ -345,6 +345,55 @@ void System::UpdateData() {
 	
 	if (WhenSensorEvent)
 		WhenSensorEvent(ev);
+	
+	if (WhenSensorEvent && emit_stream_events) {
+		int64 ts_ms = (int64)GetTickCount();
+		
+		GeomEvent pose_ev;
+		pose_ev.Clear();
+		pose_ev.type = EVENT_HMD_POSE;
+		pose_ev.payload.hmd_pose.timestamp_ms = ts_ms;
+		pose_ev.payload.hmd_pose.flags = GEOM_EVENT_FLAG_HAS_HMD_POSE | (trans.is_stereo ? GEOM_EVENT_FLAG_STEREO : 0);
+		for (int i = 0; i < 3; i++) {
+			pose_ev.payload.hmd_pose.position[i] = trans.position[i];
+			pose_ev.payload.hmd_pose.axes[i] = trans.axes[i];
+		}
+		for (int i = 0; i < 4; i++)
+			pose_ev.payload.hmd_pose.orientation[i] = trans.orientation[i];
+		pose_ev.payload.hmd_pose.fov[0] = trans.fov;
+		pose_ev.payload.hmd_pose.fov[1] = trans.fov;
+		pose_ev.payload.hmd_pose.eye_dist = trans.eye_dist;
+		pose_ev.payload.hmd_pose.quality = 1.0f;
+		WhenSensorEvent(pose_ev);
+		
+		GeomEvent ctrl_ev;
+		ctrl_ev.Clear();
+		ctrl_ev.type = EVENT_HMD_CONTROLLER;
+		ctrl_ev.payload.controller.timestamp_ms = ts_ms;
+		ctrl_ev.payload.controller.flags = 0;
+		ctrl_ev.payload.controller.controller_count = 0;
+		for (int i = 0; i < GEOM_EVENT_MAX_CONTROLLERS; i++) {
+			const ControllerMatrix::Ctrl& c = ev3d.ctrl[i];
+			if (!c.is_enabled)
+				continue;
+			ctrl_ev.payload.controller.controller_count++;
+			for (int k = 0; k < 3; k++)
+				ctrl_ev.payload.controller.position[i][k] = c.trans.position[k];
+			for (int k = 0; k < 4; k++)
+				ctrl_ev.payload.controller.orientation[i][k] = c.trans.orientation[k];
+			uint32 mask = 0;
+			for (int j = 0; j < ControllerMatrix::VALUE_COUNT && j < 32; j++) {
+				if (c.is_value[j] && c.value[j] != 0.0f)
+					mask |= (1u << j);
+			}
+			ctrl_ev.payload.controller.button_mask[i] = mask;
+			ctrl_ev.payload.controller.analog[i][0] = c.value[ControllerMatrix::ANALOG_X];
+			ctrl_ev.payload.controller.analog[i][1] = c.value[ControllerMatrix::ANALOG_Y];
+		}
+		if (ctrl_ev.payload.controller.controller_count > 0)
+			ctrl_ev.payload.controller.flags |= GEOM_EVENT_FLAG_HAS_CONTROLLER;
+		WhenSensorEvent(ctrl_ev);
+	}
 }
 
 void System::PrintHMD(String name, int len, HMD::FloatValue val) {

@@ -51,6 +51,8 @@ file
 	Camera.cpp,
 	Tracking.h,
 	Tracking.cpp,
+	TrackingImpl.h,
+	TrackingImpl.cpp,
 	Math.h,
 	Math.cpp,
 	Miniz.h,
@@ -58,4 +60,3 @@ file
 	NxJson.h,
 	NxJson.c,
 	_ readonly separator;
-

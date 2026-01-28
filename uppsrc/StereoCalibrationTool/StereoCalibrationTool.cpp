@@ -1,5 +1,14 @@
 #include "StereoCalibrationTool.h"
 
+#ifdef flagLINUX
+#include <linux/videodev2.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 NAMESPACE_UPP
 
 static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
@@ -33,6 +42,68 @@ static Image CopyFrameImage(const VisualFrame& frame) {
 		memcpy(ib[y], src + y * frame.width, frame.width * sizeof(RGBA));
 	return ib;
 }
+
+#ifdef flagLINUX
+static int V4L2Ioctl(int fd, unsigned long req, void* arg) {
+	int r;
+	do {
+		r = ioctl(fd, req, arg);
+	} while (r == -1 && errno == EINTR);
+	return r;
+}
+
+static Image ConvertRgb24ToImage(const byte* data, int width, int height) {
+	if (!data || width <= 0 || height <= 0)
+		return Image();
+	ImageBuffer ib(width, height);
+	const byte* src = data;
+	for (int y = 0; y < height; y++) {
+		RGBA* dst = ib[y];
+		for (int x = 0; x < width; x++) {
+			dst[x].r = *src++;
+			dst[x].g = *src++;
+			dst[x].b = *src++;
+			dst[x].a = 255;
+		}
+	}
+	return ib;
+}
+
+static Image ConvertYuyvToImage(const byte* data, int width, int height) {
+	if (!data || width <= 0 || height <= 0)
+		return Image();
+	ImageBuffer ib(width, height);
+	const byte* src = data;
+	for (int y = 0; y < height; y++) {
+		RGBA* dst = ib[y];
+		for (int x = 0; x < width; x += 2) {
+			int y0 = src[0];
+			int u = src[1] - 128;
+			int y1 = src[2];
+			int v = src[3] - 128;
+			src += 4;
+			auto conv = [&](int yy) -> RGBA {
+				int c = yy - 16;
+				int d = u;
+				int e = v;
+				int r = (298 * c + 409 * e + 128) >> 8;
+				int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+				int b = (298 * c + 516 * d + 128) >> 8;
+				RGBA out;
+				out.r = (byte)Clamp(r, 0, 255);
+				out.g = (byte)Clamp(g, 0, 255);
+				out.b = (byte)Clamp(b, 0, 255);
+				out.a = 255;
+				return out;
+			};
+			dst[x] = conv(y0);
+			if (x + 1 < width)
+				dst[x + 1] = conv(y1);
+		}
+	}
+	return ib;
+}
+#endif
 
 bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (running)
@@ -94,6 +165,189 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 
 	return true;
 }
+
+#ifdef flagLINUX
+bool StereoCalibrationTool::UsbStereoSource::Start() {
+	if (running)
+		return true;
+	if (device_path.IsEmpty())
+		device_path = "/dev/video0";
+	fd = open(device_path, O_RDWR | O_NONBLOCK, 0);
+	if (fd < 0)
+		return false;
+
+	v4l2_capability cap;
+	memset(&cap, 0, sizeof(cap));
+	if (V4L2Ioctl(fd, VIDIOC_QUERYCAP, &cap) < 0) {
+		Stop();
+		return false;
+	}
+	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) ||
+	    !(cap.capabilities & V4L2_CAP_STREAMING)) {
+		Stop();
+		return false;
+	}
+
+	v4l2_format fmt;
+	memset(&fmt, 0, sizeof(fmt));
+	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	fmt.fmt.pix.width = 2560;
+	fmt.fmt.pix.height = 720;
+	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
+	fmt.fmt.pix.field = V4L2_FIELD_ANY;
+	if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
+		memset(&fmt, 0, sizeof(fmt));
+		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		fmt.fmt.pix.width = 2560;
+		fmt.fmt.pix.height = 720;
+		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+		fmt.fmt.pix.field = V4L2_FIELD_ANY;
+		if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
+			memset(&fmt, 0, sizeof(fmt));
+			fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			fmt.fmt.pix.width = 1280;
+			fmt.fmt.pix.height = 720;
+			fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+			fmt.fmt.pix.field = V4L2_FIELD_ANY;
+			if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
+				Stop();
+				return false;
+			}
+		}
+	}
+
+	width = fmt.fmt.pix.width;
+	height = fmt.fmt.pix.height;
+	pixfmt = fmt.fmt.pix.pixelformat;
+
+	v4l2_requestbuffers req;
+	memset(&req, 0, sizeof(req));
+	req.count = 2;
+	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	req.memory = V4L2_MEMORY_MMAP;
+	if (V4L2Ioctl(fd, VIDIOC_REQBUFS, &req) < 0 || req.count < 2) {
+		Stop();
+		return false;
+	}
+
+	buffers.SetCount(req.count);
+	buffer_sizes.SetCount(req.count);
+	for (unsigned i = 0; i < req.count; i++) {
+		v4l2_buffer buf;
+		memset(&buf, 0, sizeof(buf));
+		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory = V4L2_MEMORY_MMAP;
+		buf.index = i;
+		if (V4L2Ioctl(fd, VIDIOC_QUERYBUF, &buf) < 0) {
+			Stop();
+			return false;
+		}
+		void* ptr = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
+		if (ptr == MAP_FAILED) {
+			Stop();
+			return false;
+		}
+		buffers[i] = ptr;
+		buffer_sizes[i] = buf.length;
+		memset(&buf, 0, sizeof(buf));
+		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory = V4L2_MEMORY_MMAP;
+		buf.index = i;
+		if (V4L2Ioctl(fd, VIDIOC_QBUF, &buf) < 0) {
+			Stop();
+			return false;
+		}
+	}
+
+	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (V4L2Ioctl(fd, VIDIOC_STREAMON, &type) < 0) {
+		Stop();
+		return false;
+	}
+	running = true;
+	return true;
+}
+
+void StereoCalibrationTool::UsbStereoSource::Stop() {
+	if (fd >= 0) {
+		int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		V4L2Ioctl(fd, VIDIOC_STREAMOFF, &type);
+		for (int i = 0; i < buffers.GetCount(); i++) {
+			if (buffers[i])
+				munmap(buffers[i], buffer_sizes[i]);
+		}
+		buffers.Clear();
+		buffer_sizes.Clear();
+		close(fd);
+		fd = -1;
+	}
+	running = false;
+	last_left = Image();
+	last_right = Image();
+}
+
+bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right) {
+	if (fd < 0)
+		return false;
+
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+	timeval tv;
+	tv.tv_sec = 1;
+	tv.tv_usec = 0;
+	int r = select(fd + 1, &fds, NULL, NULL, &tv);
+	if (r <= 0)
+		return false;
+
+	v4l2_buffer buf;
+	memset(&buf, 0, sizeof(buf));
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	if (V4L2Ioctl(fd, VIDIOC_DQBUF, &buf) < 0)
+		return false;
+
+	Image frame;
+	const byte* data = (const byte*)buffers[buf.index];
+	if (pixfmt == V4L2_PIX_FMT_RGB24)
+		frame = ConvertRgb24ToImage(data, width, height);
+	else if (pixfmt == V4L2_PIX_FMT_YUYV)
+		frame = ConvertYuyvToImage(data, width, height);
+
+	V4L2Ioctl(fd, VIDIOC_QBUF, &buf);
+
+	if (frame.IsEmpty())
+		return false;
+	if (!SplitStereoImage(frame, last_left, last_right))
+		return false;
+
+	left.timestamp_us = usecs();
+	left.format = GEOM_EVENT_CAM_RGBA8;
+	left.width = last_left.GetWidth();
+	left.height = last_left.GetHeight();
+	left.stride = left.width * (int)sizeof(RGBA);
+	left.eye = 0;
+	left.data = (const byte*)~last_left;
+	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
+	left.flags = VIS_FRAME_BRIGHT;
+
+	right.timestamp_us = left.timestamp_us;
+	right.format = GEOM_EVENT_CAM_RGBA8;
+	right.width = last_right.GetWidth();
+	right.height = last_right.GetHeight();
+	right.stride = right.width * (int)sizeof(RGBA);
+	right.eye = 1;
+	right.data = (const byte*)~last_right;
+	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
+	right.flags = VIS_FRAME_BRIGHT;
+
+	return true;
+}
+#else
+bool StereoCalibrationTool::UsbStereoSource::Start() { return false; }
+void StereoCalibrationTool::UsbStereoSource::Stop() { running = false; }
+bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame&, VisualFrame&) { return false; }
+#endif
 
 StereoCalibrationTool::StereoCalibrationTool() {
 	Title("Stereo Calibration Tool");

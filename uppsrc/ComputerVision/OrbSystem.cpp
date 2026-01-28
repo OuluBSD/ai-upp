@@ -13,6 +13,8 @@ void OrbSystem::SetInput(Image i) {
 
 void OrbSystem::TrainPattern() {
 	const auto& img_u8 = input;
+	if (img_u8.cols <= 0 || img_u8.rows <= 0)
+		return;
 	auto& lev0_img = tmp0;
 	auto& lev_img = tmp1;
 	auto& pattern_preview = tmp2;

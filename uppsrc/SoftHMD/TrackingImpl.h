@@ -3,7 +3,7 @@
 
 NAMESPACE_HMD_BEGIN
 
-class SoftHmdVisualTracker : public VisualTracker {
+class SoftHmdVisualTracker : public ::Upp::VisualTracker {
 public:
 	SoftHmdVisualTracker();
 	void Reset() override;
@@ -29,7 +29,7 @@ private:
 	bool has_state = false;
 };
 
-class SoftHmdImuTracker : public ImuTracker {
+class SoftHmdImuTracker : public ::Upp::ImuTracker {
 public:
 	void Reset() override;
 	void PutSample(const ImuSample& sample) override;
@@ -42,7 +42,7 @@ private:
 	bool has_sample = false;
 };
 
-class SoftHmdFusion : public Fusion {
+class SoftHmdFusion : public ::Upp::Fusion {
 public:
 	void Reset() override;
 	void PutVisual(const VisualFrame& frame) override;
@@ -74,7 +74,7 @@ private:
 	bool has_last_dark = false;
 };
 
-class SoftHmdRelocalizer : public Relocalizer {
+class SoftHmdRelocalizer : public ::Upp::Relocalizer {
 public:
 	void Reset() override {}
 	bool Relocalize(const VisualFrame&, FusionState&) override { return false; }

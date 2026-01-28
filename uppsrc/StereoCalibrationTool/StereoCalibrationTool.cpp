@@ -21,12 +21,14 @@ StereoCalibrationTool::StereoCalibrationTool() {
 
 	BuildLayout();
 	LoadLastCalibration();
+	LoadState();
 	SyncEditsFromCalibration();
 	Data();
 }
 
 StereoCalibrationTool::~StereoCalibrationTool() {
 	SaveLastCalibration();
+	SaveState();
 }
 
 void StereoCalibrationTool::BuildLayout() {
@@ -161,11 +163,26 @@ void StereoCalibrationTool::Data() {
 void StereoCalibrationTool::DataCapturedFrame() {
 	if (preview.live)
 		return;
+	if (pending_capture_row >= 0 && captures_list.GetCount() > pending_capture_row) {
+		int set_row = pending_capture_row;
+		pending_capture_row = -1;
+		captures_list.SetCursor(set_row);
+		return;
+	}
 	int row = captures_list.GetCursor();
 	if (row < 0) {
 		preview.SetOverlay("No capture selected");
 		return;
 	}
+	if (row >= captured_frames.GetCount()) {
+		preview.SetOverlay("Capture data unavailable");
+		return;
+	}
+	const CapturedFrame& frame = captured_frames[row];
+	matches_list.Clear();
+	for (const MatchPair& pair : frame.matches)
+		matches_list.Add(pair.left, pair.right);
+	preview.SetImages(frame.left_img, frame.right_img);
 	String time = AsString(captures_list.Get(row, 0));
 	String source = AsString(captures_list.Get(row, 1));
 	Value samples = captures_list.Get(row, 2);
@@ -206,6 +223,7 @@ void StereoCalibrationTool::StopSource() {
 
 void StereoCalibrationTool::LiveView() {
 	preview.SetLive(true);
+	preview.SetImages(Image(), Image());
 	preview.SetOverlay("Live view");
 	status.Set("Live view enabled.");
 }
@@ -216,6 +234,10 @@ void StereoCalibrationTool::CaptureFrame() {
 	Time now = GetSysTime();
 	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
 	captures_list.SetCursor(captures_list.GetCount() - 1);
+	CapturedFrame frame;
+	frame.time = now;
+	frame.source = name;
+	captured_frames.Add(pick(frame));
 	bottom_tabs.Set(0);
 	DataCapturedFrame();
 	status.Set("Captured snapshot.");
@@ -345,6 +367,10 @@ String StereoCalibrationTool::GetPersistPath() const {
 	return ConfigFile("StereoCalibrationTool.stcal");
 }
 
+String StereoCalibrationTool::GetStatePath() const {
+	return ConfigFile("StereoCalibrationTool.state");
+}
+
 void StereoCalibrationTool::LoadLastCalibration() {
 	StereoCalibrationData data;
 	String path = GetPersistPath();
@@ -355,6 +381,30 @@ void StereoCalibrationTool::LoadLastCalibration() {
 void StereoCalibrationTool::SaveLastCalibration() {
 	SyncCalibrationFromEdits();
 	SaveCalibrationFile(GetPersistPath(), last_calibration);
+}
+
+void StereoCalibrationTool::LoadState() {
+	String text = LoadFile(GetStatePath());
+	Vector<String> lines = Split(text, '\n');
+	for (String line : lines) {
+		line = TrimBoth(line);
+		if (line.IsEmpty() || line[0] == '#')
+			continue;
+		int eq = line.Find('=');
+		if (eq < 0)
+			continue;
+		String key = TrimBoth(line.Left(eq));
+		String val = TrimBoth(line.Mid(eq + 1));
+		if (key == "capture_row")
+			pending_capture_row = atoi(val);
+	}
+}
+
+void StereoCalibrationTool::SaveState() {
+	int row = captures_list.GetCursor();
+	Vector<String> lines;
+	lines.Add(Format("capture_row=%d", row));
+	SaveFile(GetStatePath(), Join(lines, "\n") + "\n");
 }
 
 void StereoCalibrationTool::MainMenu(Bar& bar) {

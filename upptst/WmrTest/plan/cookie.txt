@@ -30,3 +30,7 @@
   task: phase-00-foundations/track-calibration/task-0002-stereo-calibration-app.md
   status: done
   note: Drafted app UI, input source stubs, and calibration data flow.
+- date: 2026-01-28
+  task: phase-01-tracking/track-pointcloud/task-0001-pointcloud-lifecycle.md
+  status: done
+  note: Defined insert/update/prune rules, confidence decay, and octree resolution strategy.

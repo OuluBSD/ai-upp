@@ -86,14 +86,14 @@ Camera::Camera()
 	quit = false;
 	usb_ctx = NULL;
 	usb_handle = NULL;
+	async_buffers = 2;
+	transfer_timeout_ms = 0;
 	raw_buffer.assign(4000000, 0); // 4MB buffer
 	raw_buffer_ptr = 0;
-	stripped_buffer.assign(1000000, 0); // 1MB buffer
 	last_halt_clear_usecs = 0;
-	for(int i = 0; i < ASYNC_BUFFERS; i++) {
-		transfers[i].libusb_xfer = NULL;
-		transfers[i].buffer = NULL;
-	}
+	transfers.clear();
+	skip_streak_bright = 0;
+	skip_streak_dark = 0;
 }
 
 Camera::~Camera()
@@ -105,10 +105,14 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 {
 	Transfer* t = (Transfer*)xfer->user_data;
 	Camera* cam = t->camera;
+	const int status = (int)xfer->status;
+	const bool locked = cam->mutex.TryEnter();
+	if(locked && status >= 0 && status <= LIBUSB_TRANSFER_OVERFLOW)
+		cam->stats.status_counts[status]++;
 	
 	if(xfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		if(xfer->actual_length > 0) {
-			if(cam->mutex.TryEnter()) {
+			if(locked) {
 				cam->stats.last_transferred = xfer->actual_length;
 				if(xfer->actual_length < cam->stats.min_transferred)
 					cam->stats.min_transferred = xfer->actual_length;
@@ -116,58 +120,68 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 					cam->stats.max_transferred = xfer->actual_length;
 				cam->stats.last_error = 0;
 				cam->stats.last_r = 0;
-				cam->mutex.Leave();
-			} else {
-				cam->stats.mutex_fails++;
 			}
-			cam->HandleFrame(xfer->buffer, xfer->actual_length);
+			cam->AppendRaw(xfer->buffer, xfer->actual_length);
 		} else {
 			if(cam->verbose) Cout() << "USB: Zero-byte transfer completed\n";
 		}
 	}
 	else {
-		Cout() << "USB Error: Transfer status " << (int)xfer->status << "\n";
-		if(cam->mutex.TryEnter()) {
+		Cout() << "USB Error: Transfer status " << status << "\n";
+		if(locked) {
 			cam->stats.last_error = xfer->status;
 			cam->stats.last_r = xfer->status;
 			cam->stats.usb_errors++;
+			if(xfer->status == LIBUSB_TRANSFER_NO_DEVICE) cam->stats.no_device_errors++;
 			if (xfer->status == LIBUSB_TRANSFER_TIMED_OUT) cam->stats.timeout_errors++;
 			else if (xfer->status == LIBUSB_TRANSFER_OVERFLOW) cam->stats.overflow_errors++;
 			else cam->stats.other_errors++;
-			cam->mutex.Leave();
-		} else {
-			cam->stats.mutex_fails++;
-			Cout() << "USB Error: Mutex locked during error reporting\n";
 		}
 	}
 	
 	if(!cam->quit) {
 		if(xfer->status == LIBUSB_TRANSFER_ERROR || xfer->status == LIBUSB_TRANSFER_STALL) {
 			bool should_clear = true;
-			if(cam->mutex.TryEnter()) {
+			if(locked) {
 				const int64 now = usecs();
 				if(cam->last_halt_clear_usecs != 0 && now - cam->last_halt_clear_usecs < 500000)
 					should_clear = false;
 				if(should_clear)
 					cam->last_halt_clear_usecs = now;
-				cam->mutex.Leave();
 			}
 			if(should_clear) {
 				int ch = libusb_clear_halt(cam->usb_handle, WMR_VIDEO_ENDPOINT);
+				if(locked) {
+					cam->stats.halt_clear_attempts++;
+					if(ch != 0)
+						cam->stats.halt_clear_failures++;
+				}
 				if(ch != 0)
 					Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
 			}
 		}
-		int r = libusb_submit_transfer(xfer);
-		if (r != 0) {
-			Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
-			if(cam->mutex.TryEnter()) {
-				cam->stats.usb_errors++;
-				cam->stats.last_r = r;
-				cam->mutex.Leave();
+		bool allow_resubmit = true;
+		if(xfer->status == LIBUSB_TRANSFER_NO_DEVICE || xfer->status == LIBUSB_TRANSFER_CANCELLED)
+			allow_resubmit = false;
+		if(allow_resubmit) {
+			int r = libusb_submit_transfer(xfer);
+			if (r != 0) {
+				Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
+				if(locked) {
+					cam->stats.usb_errors++;
+					cam->stats.last_r = r;
+					cam->stats.resubmit_failures++;
+				}
+			}
+		} else {
+			if(locked) {
+				cam->stats.resubmit_skips++;
 			}
 		}
 	}
+	
+	if(locked)
+		cam->mutex.Leave();
 }
 
 void HMD_APIENTRYDLL Camera::PopFrames(Vector<CameraFrame>& out)
@@ -185,12 +199,19 @@ CameraStats HMD_APIENTRYDLL Camera::GetStats()
 bool HMD_APIENTRYDLL Camera::Open()
 {
 	if(opened) return true;
+	if(async_buffers <= 0) async_buffers = 1;
+	if(mutex.TryEnter()) {
+		stats.async_buffers = async_buffers;
+		stats.transfer_timeout_ms = transfer_timeout_ms;
+		mutex.Leave();
+	}
 	
-	if(libusb_init(NULL) != 0) return false;
+	if(libusb_init(&usb_ctx) != 0) return false;
 	
-	usb_handle = libusb_open_device_with_vid_pid(NULL, WMR_VID, WMR_PID);
+	usb_handle = libusb_open_device_with_vid_pid(usb_ctx, WMR_VID, WMR_PID);
 	if(!usb_handle) {
-		libusb_exit(NULL);
+		libusb_exit(usb_ctx);
+		usb_ctx = NULL;
 		return false;
 	}
 	
@@ -213,18 +234,28 @@ bool HMD_APIENTRYDLL Camera::Open()
 	wmr_camera_set_gain(usb_handle, 1, 0x80);
 	Upp::Sleep(100);
 	
-	for(int i = 0; i < ASYNC_BUFFERS; i++) {
+	int effective_timeout_ms = transfer_timeout_ms;
+	if(effective_timeout_ms <= 0)
+		effective_timeout_ms = 1000;
+	if(mutex.TryEnter()) {
+		stats.transfer_timeout_ms = effective_timeout_ms;
+		mutex.Leave();
+	}
+	
+	transfers.assign(async_buffers, Transfer{});
+	for(int i = 0; i < async_buffers; i++) {
 		transfers[i].camera = this;
 		transfers[i].buffer = (byte*)malloc(WMR_BULK_SIZE + 4096);
 		transfers[i].libusb_xfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfers[i].libusb_xfer, usb_handle, WMR_VIDEO_ENDPOINT,
 		                          transfers[i].buffer, WMR_BULK_SIZE + 4096,
-		                          TransferCallback, &transfers[i], 0);
+		                          TransferCallback, &transfers[i], effective_timeout_ms);
 		libusb_submit_transfer(transfers[i].libusb_xfer);
 	}
 
 	quit = false;
-	thread.Start(THISBACK(Process));
+	usb_thread.Start(THISBACK(Process));
+	process_thread.Start(THISBACK(ProcessFrames));
 	opened = true;
 	
 	return true;
@@ -235,12 +266,13 @@ void HMD_APIENTRYDLL Camera::Close()
 	if(!opened) return;
 	
 	quit = true;
-	for(int i = 0; i < ASYNC_BUFFERS; i++) {
+	for(int i = 0; i < transfers.size(); i++) {
 		if(transfers[i].libusb_xfer)
 			libusb_cancel_transfer(transfers[i].libusb_xfer);
 	}
 	
-	thread.Wait();
+	usb_thread.Wait();
+	process_thread.Wait();
 	
 	if(usb_handle) {
 		wmr_camera_set_active(usb_handle, false);
@@ -250,9 +282,10 @@ void HMD_APIENTRYDLL Camera::Close()
 		libusb_close(usb_handle);
 	}
 	
-	libusb_exit(NULL);
+	libusb_exit(usb_ctx);
+	usb_ctx = NULL;
 	
-	for(int i = 0; i < ASYNC_BUFFERS; i++) {
+	for(int i = 0; i < transfers.size(); i++) {
 		if(transfers[i].libusb_xfer)
 			libusb_free_transfer(transfers[i].libusb_xfer);
 		if(transfers[i].buffer)
@@ -260,6 +293,7 @@ void HMD_APIENTRYDLL Camera::Close()
 		transfers[i].libusb_xfer = NULL;
 		transfers[i].buffer = NULL;
 	}
+	transfers.clear();
 	
 	usb_handle = NULL;
 	opened = false;
@@ -269,36 +303,72 @@ void Camera::Process()
 {
 	struct timeval tv = { 0, 10000 };
 	while(!quit) {
-		libusb_handle_events_timeout_completed(NULL, &tv, NULL);
+		libusb_handle_events_timeout_completed(usb_ctx, &tv, NULL);
 	}
 }
 
-void Camera::HandleFrame(const byte* buffer, int size)
+void Camera::ProcessFrames()
 {
-	int64 start_usecs = usecs();
-	if(verbose) Cout() << "HandleFrame: size=" << size << ", raw_ptr=" << raw_buffer_ptr << "\n";
+	while(!quit) {
+		if(!ProcessRawFrames())
+			Upp::Sleep(1);
+	}
+}
 
+void Camera::AppendRaw(const byte* buffer, int size)
+{
+	Upp::Mutex::Lock __(raw_mutex);
+	AppendRawLocked(buffer, size);
+}
+
+void Camera::AppendRawLocked(const byte* buffer, int size)
+{
 	if(raw_buffer_ptr + size > (int)raw_buffer.size()) {
 		if(verbose) Cout() << "Buffer overflow, resetting raw_buffer_ptr\n";
 		raw_buffer_ptr = 0;
 	}
 	memcpy(raw_buffer.data() + raw_buffer_ptr, buffer, size);
 	raw_buffer_ptr += size;
-	
+}
+
+bool Camera::ProcessRawFrames()
+{
+	int64 start_usecs = usecs();
+	std::vector<byte> local_raw;
+	int local_size = 0;
+	{
+		Upp::Mutex::Lock __(raw_mutex);
+		if(raw_buffer_ptr > 0) {
+			local_raw.assign(raw_buffer.data(), raw_buffer.data() + raw_buffer_ptr);
+			local_size = raw_buffer_ptr;
+			raw_buffer_ptr = 0;
+		}
+	}
+	if(local_size == 0)
+		return false;
+	if(verbose)
+		Cout() << "HandleFrame: size=" << local_size << ", raw_ptr=" << local_size << "\n";
+
 	const int RAW_FRAME_SIZE = 616538;
 	const int STRIPPED_FRAME_SIZE = 615706;
+	static thread_local std::vector<byte> stripped;
+	if((int)stripped.size() < STRIPPED_FRAME_SIZE)
+		stripped.assign(STRIPPED_FRAME_SIZE, 0);
 	
-	while(raw_buffer_ptr >= RAW_FRAME_SIZE) {
-		uint16 exposure = (raw_buffer[32 + 6] << 8) | raw_buffer[32 + 7];
+	int local_ptr = local_size;
+	byte* local_data = local_raw.data();
+	while(local_ptr >= RAW_FRAME_SIZE) {
+		uint16 exposure = (local_data[32 + 6] << 8) | local_data[32 + 7];
 		bool is_bright = (exposure != 0);
 		
 		if(verbose) Cout() << "  Frame found: exposure=" << exposure << ", is_bright=" << is_bright << ", balance=" << stats.bright_balance << "\n";
 
 		bool skipped = false;
+		bool balance_skip = false;
 		if(mutex.TryEnter()) {
 			const int MAX_BALANCE = 5;
-			if (is_bright && stats.bright_balance >= MAX_BALANCE) skipped = true;
-			else if (!is_bright && stats.bright_balance <= -MAX_BALANCE) skipped = true;
+			if (is_bright && stats.bright_balance >= MAX_BALANCE) { skipped = true; balance_skip = true; }
+			else if (!is_bright && stats.bright_balance <= -MAX_BALANCE) { skipped = true; balance_skip = true; }
 			
 			if (skipped) {
 				stats.other_errors++; // Skip counter
@@ -311,21 +381,43 @@ void Camera::HandleFrame(const byte* buffer, int size)
 			if(verbose) Cout() << "    Skipped (mutex fail)\n";
 		}
 		
+		if(balance_skip) {
+			const int MAX_SKIP_STREAK = 5;
+			if(is_bright) {
+				skip_streak_bright++;
+				if(skip_streak_bright >= MAX_SKIP_STREAK) {
+					skip_streak_bright = 0;
+					skipped = false;
+				}
+			} else {
+				skip_streak_dark++;
+				if(skip_streak_dark >= MAX_SKIP_STREAK) {
+					skip_streak_dark = 0;
+					skipped = false;
+				}
+			}
+		} else {
+			skip_streak_bright = 0;
+			skip_streak_dark = 0;
+		}
+		
 		if(!skipped) {
 			int sj = 0;
 			for (int i = 0; i < RAW_FRAME_SIZE; i += WMR_PACKET_SIZE) {
 				int payload_offset = i + WMR_HEADER_SIZE;
 				int n = WMR_PACKET_SIZE - WMR_HEADER_SIZE;
 				if (i + WMR_PACKET_SIZE > RAW_FRAME_SIZE) n = RAW_FRAME_SIZE - payload_offset;
+				if(sj + n > STRIPPED_FRAME_SIZE)
+					n = STRIPPED_FRAME_SIZE - sj;
 				if (n > 0) {
-					memcpy(stripped_buffer.data() + sj, raw_buffer.data() + payload_offset, n);
+					memcpy(stripped.data() + sj, local_data + payload_offset, n);
 					sj += n;
 				}
 			}
 			
 			if(sj >= STRIPPED_FRAME_SIZE) {
 				ImageBuffer ib(1280, 481);
-				const byte* src = stripped_buffer.data() + 26;
+				const byte* src = stripped.data() + 26;
 				uint64 sum = 0;
 				byte min_p = 255, max_p = 0;
 				RGBA* dst = ib;
@@ -359,9 +451,19 @@ void Camera::HandleFrame(const byte* buffer, int size)
 			}
 		}
 		
-		memmove(raw_buffer.data(), raw_buffer.data() + RAW_FRAME_SIZE, raw_buffer_ptr - RAW_FRAME_SIZE);
-		raw_buffer_ptr -= RAW_FRAME_SIZE;
+		memmove(local_data, local_data + RAW_FRAME_SIZE, local_ptr - RAW_FRAME_SIZE);
+		local_ptr -= RAW_FRAME_SIZE;
 	}
+	
+	if(local_ptr > 0) {
+		Upp::Mutex::Lock __(raw_mutex);
+		if(local_ptr > (int)raw_buffer.size())
+			local_ptr = (int)raw_buffer.size();
+		memcpy(raw_buffer.data(), local_data, local_ptr);
+		raw_buffer_ptr = local_ptr;
+	}
+	
+	return true;
 }
 
 NAMESPACE_HMD_END

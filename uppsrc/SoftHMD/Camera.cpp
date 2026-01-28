@@ -89,6 +89,7 @@ Camera::Camera()
 	raw_buffer.assign(4000000, 0); // 4MB buffer
 	raw_buffer_ptr = 0;
 	stripped_buffer.assign(1000000, 0); // 1MB buffer
+	last_halt_clear_usecs = 0;
 	for(int i = 0; i < ASYNC_BUFFERS; i++) {
 		transfers[i].libusb_xfer = NULL;
 		transfers[i].buffer = NULL;
@@ -107,10 +108,25 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 	
 	if(xfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		if(xfer->actual_length > 0) {
+			if(cam->mutex.TryEnter()) {
+				cam->stats.last_transferred = xfer->actual_length;
+				if(xfer->actual_length < cam->stats.min_transferred)
+					cam->stats.min_transferred = xfer->actual_length;
+				if(xfer->actual_length > cam->stats.max_transferred)
+					cam->stats.max_transferred = xfer->actual_length;
+				cam->stats.last_error = 0;
+				cam->stats.last_r = 0;
+				cam->mutex.Leave();
+			} else {
+				cam->stats.mutex_fails++;
+			}
 			cam->HandleFrame(xfer->buffer, xfer->actual_length);
+		} else {
+			if(cam->verbose) Cout() << "USB: Zero-byte transfer completed\n";
 		}
 	}
 	else {
+		Cout() << "USB Error: Transfer status " << (int)xfer->status << "\n";
 		if(cam->mutex.TryEnter()) {
 			cam->stats.last_error = xfer->status;
 			cam->stats.last_r = xfer->status;
@@ -121,12 +137,30 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 			cam->mutex.Leave();
 		} else {
 			cam->stats.mutex_fails++;
+			Cout() << "USB Error: Mutex locked during error reporting\n";
 		}
 	}
 	
 	if(!cam->quit) {
+		if(xfer->status == LIBUSB_TRANSFER_ERROR || xfer->status == LIBUSB_TRANSFER_STALL) {
+			bool should_clear = true;
+			if(cam->mutex.TryEnter()) {
+				const int64 now = usecs();
+				if(cam->last_halt_clear_usecs != 0 && now - cam->last_halt_clear_usecs < 500000)
+					should_clear = false;
+				if(should_clear)
+					cam->last_halt_clear_usecs = now;
+				cam->mutex.Leave();
+			}
+			if(should_clear) {
+				int ch = libusb_clear_halt(cam->usb_handle, WMR_VIDEO_ENDPOINT);
+				if(ch != 0)
+					Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
+			}
+		}
 		int r = libusb_submit_transfer(xfer);
 		if (r != 0) {
+			Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
 			if(cam->mutex.TryEnter()) {
 				cam->stats.usb_errors++;
 				cam->stats.last_r = r;

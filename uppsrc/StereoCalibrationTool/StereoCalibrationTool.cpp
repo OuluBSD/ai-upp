@@ -22,7 +22,7 @@ StereoCalibrationTool::StereoCalibrationTool() {
 	BuildLayout();
 	LoadLastCalibration();
 	SyncEditsFromCalibration();
-	UpdatePreview();
+	Data();
 }
 
 StereoCalibrationTool::~StereoCalibrationTool() {
@@ -140,14 +140,37 @@ void StereoCalibrationTool::BuildBottomTabs() {
 	captures_list.AddColumn("Time");
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("Samples");
+	captures_list.WhenCursor = THISBACK(DataCapturedFrame);
 	matches_list.AddColumn("Left");
 	matches_list.AddColumn("Right");
 	report_text.SetReadOnly();
 	report_text <<= "Solve report and .stcal preview will appear here.";
 
-	bottom_tabs.Add(captures_list.SizePos(), "Captured Frames");
-	bottom_tabs.Add(matches_list.SizePos(), "Matches");
+	captures_split.Horz(captures_list, matches_list);
+	captures_split.SetPos(4000);
+
+	bottom_tabs.Add(captures_split.SizePos(), "Captured Frames");
 	bottom_tabs.Add(report_text.SizePos(), "Report");
+}
+
+void StereoCalibrationTool::Data() {
+	UpdatePreview();
+	DataCapturedFrame();
+}
+
+void StereoCalibrationTool::DataCapturedFrame() {
+	if (preview.live)
+		return;
+	int row = captures_list.GetCursor();
+	if (row < 0) {
+		preview.SetOverlay("No capture selected");
+		return;
+	}
+	String time = AsString(captures_list.Get(row, 0));
+	String source = AsString(captures_list.Get(row, 1));
+	Value samples = captures_list.Get(row, 2);
+	preview.SetOverlay(Format("Capture %s (%s), samples %s", time, source, samples));
+	status.Set(Format("Selected capture %s from %s", time, source));
 }
 
 void StereoCalibrationTool::OnSourceChanged() {
@@ -194,13 +217,13 @@ void StereoCalibrationTool::CaptureFrame() {
 	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
 	captures_list.SetCursor(captures_list.GetCount() - 1);
 	bottom_tabs.Set(0);
-	preview.SetOverlay(Format("Captured frame from %s", name));
+	DataCapturedFrame();
 	status.Set("Captured snapshot.");
 }
 
 void StereoCalibrationTool::ExportCalibration() {
 	SyncCalibrationFromEdits();
-	UpdatePreview();
+	Data();
 	FileSel fs;
 	fs.Type("Stereo Calibration", "*.stcal");
 	fs.AllFilesType();
@@ -233,7 +256,7 @@ void StereoCalibrationTool::LoadCalibration() {
 	}
 	last_calibration = data;
 	SyncEditsFromCalibration();
-	UpdatePreview();
+	Data();
 	PromptOK("Calibration loaded.");
 }
 
@@ -292,7 +315,7 @@ void StereoCalibrationTool::SyncCalibrationFromEdits() {
 	last_calibration.angle_to_pixel[1] = (float)~calib_poly_b;
 	last_calibration.angle_to_pixel[2] = (float)~calib_poly_c;
 	last_calibration.angle_to_pixel[3] = (float)~calib_poly_d;
-	UpdatePreview();
+	Data();
 }
 
 void StereoCalibrationTool::SyncEditsFromCalibration() {
@@ -346,8 +369,7 @@ void StereoCalibrationTool::AppMenu(Bar& bar) {
 
 void StereoCalibrationTool::ViewMenu(Bar& bar) {
 	bar.Add("Captured Frames", [=] { bottom_tabs.Set(0); });
-	bar.Add("Matches", [=] { bottom_tabs.Set(1); });
-	bar.Add("Report", [=] { bottom_tabs.Set(2); });
+	bar.Add("Report", [=] { bottom_tabs.Set(1); });
 }
 
 void StereoCalibrationTool::HelpMenu(Bar& bar) {

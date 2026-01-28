@@ -10,14 +10,25 @@ NAMESPACE_UPP
 struct StereoCalibrationTool : TopWindow {
 	struct PreviewCtrl : Ctrl {
 		bool live = true;
+		bool has_images = false;
+		Image left_img;
+		Image right_img;
 		String overlay;
 		
 		void SetLive(bool b) { live = b; Refresh(); }
+		void SetImages(const Image& l, const Image& r) { left_img = l; right_img = r; has_images = !IsNull(l) || !IsNull(r); Refresh(); }
 		void SetOverlay(const String& s) { overlay = s; Refresh(); }
 		
 		virtual void Paint(Draw& w) override {
 			Size sz = GetSize();
 			w.DrawRect(sz, Black());
+			if (has_images) {
+				int half = max(1, sz.cx / 2);
+				if (!IsNull(left_img))
+					w.DrawImage(0, 0, half, sz.cy, left_img);
+				if (!IsNull(right_img))
+					w.DrawImage(half, 0, sz.cx - half, sz.cy, right_img);
+			}
 			String title = live ? "Live Preview" : "Captured Snapshot";
 			w.DrawText(10, 10, title, Arial(18).Bold(), White());
 			if (!overlay.IsEmpty())
@@ -62,6 +73,20 @@ struct StereoCalibrationTool : TopWindow {
 		bool ReadFrame(VisualFrame&, VisualFrame&) override { return false; }
 	};
 	
+	struct MatchPair : Moveable<MatchPair> {
+		String left;
+		String right;
+	};
+
+	struct CapturedFrame : Moveable<CapturedFrame> {
+		Time time;
+		String source;
+		int samples = 0;
+		Image left_img;
+		Image right_img;
+		Vector<MatchPair> matches;
+	};
+
 	MenuBar menu;
 	StatusBar status;
 	Splitter vsplitter;
@@ -107,6 +132,8 @@ struct StereoCalibrationTool : TopWindow {
 	DocEdit report_text;
 	Vector<One<StereoSource>> sources;
 	StereoCalibrationData last_calibration;
+	Vector<CapturedFrame> captured_frames;
+	int pending_capture_row = -1;
 
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
@@ -129,9 +156,12 @@ struct StereoCalibrationTool : TopWindow {
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
 	void UpdatePreview();
+	String GetStatePath() const;
 	String GetPersistPath() const;
 	void LoadLastCalibration();
 	void SaveLastCalibration();
+	void LoadState();
+	void SaveState();
 
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);

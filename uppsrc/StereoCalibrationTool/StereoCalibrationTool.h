@@ -53,6 +53,18 @@ struct StereoCalibrationTool : TopWindow {
 	Label calibration_info;
 	Label calibration_schema;
 	Button export_calibration;
+	Button load_calibration;
+	Label calib_enabled_lbl;
+	Option calib_enabled;
+	Label calib_eye_lbl;
+	EditDouble calib_eye_dist;
+	Label calib_outward_lbl;
+	EditDouble calib_outward_angle;
+	Label calib_poly_lbl;
+	EditDouble calib_poly_a;
+	EditDouble calib_poly_b;
+	EditDouble calib_poly_c;
+	EditDouble calib_poly_d;
 	DropList source_list;
 	Button start_source;
 	Button stop_source;
@@ -69,7 +81,11 @@ struct StereoCalibrationTool : TopWindow {
 	void StartSource();
 	void StopSource();
 	void ExportCalibration();
+	void LoadCalibration();
 	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);
+	bool LoadCalibrationFile(const String& path, StereoCalibrationData& out);
+	void SyncCalibrationFromEdits();
+	void SyncEditsFromCalibration();
 
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);

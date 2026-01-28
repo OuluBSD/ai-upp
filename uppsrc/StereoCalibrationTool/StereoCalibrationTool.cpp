@@ -55,9 +55,30 @@ void StereoCalibrationTool::BuildSourceTab() {
 void StereoCalibrationTool::BuildCalibrationTab() {
 	export_calibration.SetLabel("Export .stcal");
 	export_calibration <<= THISBACK(ExportCalibration);
+	load_calibration.SetLabel("Load .stcal");
+	load_calibration <<= THISBACK(LoadCalibration);
+	calib_enabled_lbl.SetLabel("Enabled");
+	calib_eye_lbl.SetLabel("Eye dist");
+	calib_outward_lbl.SetLabel("Outward angle");
+	calib_poly_lbl.SetLabel("Angle poly");
+
 	calibration_tab.Add(calibration_info.TopPos(8, 24).HSizePos(8, 8));
 	calibration_tab.Add(calibration_schema.TopPos(40, 120).HSizePos(8, 8));
-	calibration_tab.Add(export_calibration.BottomPos(8, 24).LeftPos(8, 120));
+	calibration_tab.Add(calib_enabled_lbl.TopPos(170, 20).LeftPos(8, 80));
+	calibration_tab.Add(calib_enabled.TopPos(168, 20).LeftPos(96, 20));
+	calibration_tab.Add(calib_eye_lbl.TopPos(196, 20).LeftPos(8, 80));
+	calibration_tab.Add(calib_eye_dist.TopPos(194, 20).LeftPos(96, 120));
+	calibration_tab.Add(calib_outward_lbl.TopPos(222, 20).LeftPos(8, 80));
+	calibration_tab.Add(calib_outward_angle.TopPos(220, 20).LeftPos(96, 120));
+	calibration_tab.Add(calib_poly_lbl.TopPos(248, 20).LeftPos(8, 80));
+	calibration_tab.Add(calib_poly_a.TopPos(246, 20).LeftPos(96, 80));
+	calibration_tab.Add(calib_poly_b.TopPos(246, 20).LeftPos(182, 80));
+	calibration_tab.Add(calib_poly_c.TopPos(246, 20).LeftPos(268, 80));
+	calibration_tab.Add(calib_poly_d.TopPos(246, 20).LeftPos(354, 80));
+	calibration_tab.Add(load_calibration.BottomPos(8, 24).LeftPos(8, 120));
+	calibration_tab.Add(export_calibration.BottomPos(8, 24).LeftPos(136, 120));
+
+	SyncEditsFromCalibration();
 }
 
 void StereoCalibrationTool::OnSourceChanged() {
@@ -84,6 +105,7 @@ void StereoCalibrationTool::StopSource() {
 }
 
 void StereoCalibrationTool::ExportCalibration() {
+	SyncCalibrationFromEdits();
 	FileSel fs;
 	fs.Type("Stereo Calibration", "*.stcal");
 	fs.AllFilesType();
@@ -103,6 +125,22 @@ void StereoCalibrationTool::ExportCalibration() {
 	PromptOK("Calibration exported.");
 }
 
+void StereoCalibrationTool::LoadCalibration() {
+	FileSel fs;
+	fs.Type("Stereo Calibration", "*.stcal");
+	fs.AllFilesType();
+	if (!fs.ExecuteOpen("Load Stereo Calibration"))
+		return;
+	StereoCalibrationData data;
+	if (!LoadCalibrationFile(fs, data)) {
+		PromptOK("Failed to load calibration.");
+		return;
+	}
+	last_calibration = data;
+	SyncEditsFromCalibration();
+	PromptOK("Calibration loaded.");
+}
+
 bool StereoCalibrationTool::SaveCalibrationFile(const String& path, const StereoCalibrationData& data) {
 	Vector<String> lines;
 	lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
@@ -113,6 +151,61 @@ bool StereoCalibrationTool::SaveCalibrationFile(const String& path, const Stereo
 		(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
 	String text = Join(lines, "\n") + "\n";
 	return SaveFile(path, text);
+}
+
+bool StereoCalibrationTool::LoadCalibrationFile(const String& path, StereoCalibrationData& out) {
+	String text = LoadFile(path);
+	if (text.IsEmpty())
+		return false;
+	StereoCalibrationData data;
+	Vector<String> lines = Split(text, '\n');
+	for (String line : lines) {
+		line = TrimBoth(line);
+		if (line.IsEmpty() || line[0] == '#')
+			continue;
+		int eq = line.Find('=');
+		if (eq < 0)
+			continue;
+		String key = TrimBoth(line.Left(eq));
+		String val = TrimBoth(line.Mid(eq + 1));
+		if (key == "enabled")
+			data.is_enabled = atoi(val) != 0;
+		else if (key == "eye_dist")
+			data.eye_dist = (float)atof(val);
+		else if (key == "outward_angle")
+			data.outward_angle = (float)atof(val);
+		else if (key == "angle_poly") {
+			Vector<String> parts = Split(val, ',');
+			if (parts.GetCount() >= 4) {
+				data.angle_to_pixel[0] = (float)atof(parts[0]);
+				data.angle_to_pixel[1] = (float)atof(parts[1]);
+				data.angle_to_pixel[2] = (float)atof(parts[2]);
+				data.angle_to_pixel[3] = (float)atof(parts[3]);
+			}
+		}
+	}
+	out = data;
+	return true;
+}
+
+void StereoCalibrationTool::SyncCalibrationFromEdits() {
+	last_calibration.is_enabled = calib_enabled;
+	last_calibration.eye_dist = (float)~calib_eye_dist;
+	last_calibration.outward_angle = (float)~calib_outward_angle;
+	last_calibration.angle_to_pixel[0] = (float)~calib_poly_a;
+	last_calibration.angle_to_pixel[1] = (float)~calib_poly_b;
+	last_calibration.angle_to_pixel[2] = (float)~calib_poly_c;
+	last_calibration.angle_to_pixel[3] = (float)~calib_poly_d;
+}
+
+void StereoCalibrationTool::SyncEditsFromCalibration() {
+	calib_enabled = last_calibration.is_enabled;
+	calib_eye_dist <<= (double)last_calibration.eye_dist;
+	calib_outward_angle <<= (double)last_calibration.outward_angle;
+	calib_poly_a <<= (double)last_calibration.angle_to_pixel[0];
+	calib_poly_b <<= (double)last_calibration.angle_to_pixel[1];
+	calib_poly_c <<= (double)last_calibration.angle_to_pixel[2];
+	calib_poly_d <<= (double)last_calibration.angle_to_pixel[3];
 }
 
 void StereoCalibrationTool::MainMenu(Bar& bar) {

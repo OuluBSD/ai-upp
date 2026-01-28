@@ -27,6 +27,11 @@ typedef enum {
 	
 	
 	EVENT_HOLO_STATE,
+	EVENT_HMD_POSE,
+	EVENT_HMD_CONTROLLER,
+	EVENT_HMD_IMU,
+	EVENT_HMD_CAMERA,
+	EVENT_HMD_FUSION,
 	EVENT_HOLO_LOOK,
 	EVENT_HOLO_CALIB,
 	
@@ -55,6 +60,11 @@ inline String GetEventTypeString(int event) {
 		case EVENT_MOUSE_EVENT:		return "Mouse Event";
 		
 		case EVENT_HOLO_STATE:					return "Holographic full state";
+		case EVENT_HMD_POSE:					return "HMD pose";
+		case EVENT_HMD_CONTROLLER:				return "HMD controller state";
+		case EVENT_HMD_IMU:						return "HMD IMU sample";
+		case EVENT_HMD_CAMERA:					return "HMD camera frame";
+		case EVENT_HMD_FUSION:					return "HMD fusion state";
 		case EVENT_HOLO_LOOK:					return "Holographic Look";
 		case EVENT_HOLO_CALIB:					return "Holographic Calibration";
 		
@@ -71,6 +81,138 @@ inline String GetEventTypeString(int event) {
 	}
 }
 
+enum {
+	GEOM_EVENT_PAYLOAD_BYTES = 128,
+	GEOM_EVENT_MAX_CONTROLLERS = 2,
+	GEOM_EVENT_MAX_ANALOG = 2,
+};
+
+enum GeomEventFlags {
+	GEOM_EVENT_FLAG_HAS_HMD_POSE   = 1 << 0,
+	GEOM_EVENT_FLAG_HAS_CONTROLLER = 1 << 1,
+	GEOM_EVENT_FLAG_HAS_IMU        = 1 << 2,
+	GEOM_EVENT_FLAG_HAS_CAMERA     = 1 << 3,
+	GEOM_EVENT_FLAG_HAS_FUSION     = 1 << 4,
+	GEOM_EVENT_FLAG_LEFT           = 1 << 5,
+	GEOM_EVENT_FLAG_RIGHT          = 1 << 6,
+	GEOM_EVENT_FLAG_STEREO         = 1 << 7,
+};
+
+enum GeomEventCameraFormat {
+	GEOM_EVENT_CAM_UNKNOWN = 0,
+	GEOM_EVENT_CAM_LUMA8,
+	GEOM_EVENT_CAM_RGB8,
+	GEOM_EVENT_CAM_BGR8,
+	GEOM_EVENT_CAM_RGBA8,
+	GEOM_EVENT_CAM_BGRA8,
+};
+
+struct HoloStatePayload {
+	int64 timestamp_ms;
+	int flags;
+	int controller_count;
+	float hmd_position[3];
+	float hmd_orientation[4];
+	float ctrl_position[GEOM_EVENT_MAX_CONTROLLERS][3];
+	float ctrl_orientation[GEOM_EVENT_MAX_CONTROLLERS][4];
+	uint32 button_mask[GEOM_EVENT_MAX_CONTROLLERS];
+	float analog[GEOM_EVENT_MAX_CONTROLLERS][GEOM_EVENT_MAX_ANALOG];
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 124];
+};
+
+struct HoloStatePtrPayload {
+	TransformMatrix* trans;
+	ControllerMatrix* ctrl;
+	ControllerState* state;
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 24];
+};
+
+struct HmdPosePayload {
+	int64 timestamp_ms;
+	int flags;
+	int reserved0;
+	float position[3];
+	float orientation[4];
+	float axes[3];
+	float fov[2];
+	float eye_dist;
+	float quality;
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 72];
+};
+
+struct ControllerPayload {
+	int64 timestamp_ms;
+	int flags;
+	int controller_count;
+	float position[GEOM_EVENT_MAX_CONTROLLERS][3];
+	float orientation[GEOM_EVENT_MAX_CONTROLLERS][4];
+	uint32 button_mask[GEOM_EVENT_MAX_CONTROLLERS];
+	float analog[GEOM_EVENT_MAX_CONTROLLERS][GEOM_EVENT_MAX_ANALOG];
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 96];
+};
+
+struct ImuSamplePayload {
+	int64 timestamp_ms;
+	int flags;
+	int reserved0;
+	float accel[3];
+	float gyro[3];
+	float mag[3];
+	float gravity[3];
+	float temperature;
+	float sample_rate;
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 72];
+};
+
+struct CameraFramePayload {
+	int64 timestamp_ms;
+	int flags;
+	int format;
+	int width;
+	int height;
+	int stride;
+	int eye;
+	int reserved0;
+	uint64 data_ptr;
+	int data_bytes;
+	int frame_id;
+	float exposure;
+	float gain;
+	float gamma;
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 64];
+};
+
+struct FusionPayload {
+	int64 timestamp_ms;
+	int flags;
+	int reserved0;
+	float position[3];
+	float orientation[4];
+	float velocity[3];
+	float angular_velocity[3];
+	float covariance[6];
+	float quality;
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 96];
+};
+
+union GeomEventPayload {
+	byte raw[GEOM_EVENT_PAYLOAD_BYTES];
+	HoloStatePayload holo_state;
+	HoloStatePtrPayload holo_state_ptr;
+	HmdPosePayload hmd_pose;
+	ControllerPayload controller;
+	ImuSamplePayload imu;
+	CameraFramePayload camera;
+	FusionPayload fusion;
+};
+
+static_assert(sizeof(HoloStatePayload) == GEOM_EVENT_PAYLOAD_BYTES, "HoloStatePayload size mismatch");
+static_assert(sizeof(HoloStatePtrPayload) == GEOM_EVENT_PAYLOAD_BYTES, "HoloStatePtrPayload size mismatch");
+static_assert(sizeof(HmdPosePayload) == GEOM_EVENT_PAYLOAD_BYTES, "HmdPosePayload size mismatch");
+static_assert(sizeof(ControllerPayload) == GEOM_EVENT_PAYLOAD_BYTES, "ControllerPayload size mismatch");
+static_assert(sizeof(ImuSamplePayload) == GEOM_EVENT_PAYLOAD_BYTES, "ImuSamplePayload size mismatch");
+static_assert(sizeof(CameraFramePayload) == GEOM_EVENT_PAYLOAD_BYTES, "CameraFramePayload size mismatch");
+static_assert(sizeof(FusionPayload) == GEOM_EVENT_PAYLOAD_BYTES, "FusionPayload size mismatch");
 
 struct ControllerProperties {
 	typedef enum {
@@ -134,6 +276,7 @@ struct GeomEvent : Moveable<GeomEvent> {
 	Point pt;
 	float pt3[3];
 	Size sz;
+	GeomEventPayload payload;
 	
 	// Device extension
 	TransformMatrix* trans = 0;
@@ -156,6 +299,7 @@ struct GeomEvent : Moveable<GeomEvent> {
 		ctrl = e.ctrl;
 		state = e.state;
 		for(int i = 0; i < 3; i++) pt3[i] = e.pt3[i];
+		memcpy(payload.raw, e.payload.raw, GEOM_EVENT_PAYLOAD_BYTES);
 	}
 	
 	void Clear() {
@@ -168,6 +312,7 @@ struct GeomEvent : Moveable<GeomEvent> {
 		ctrl = 0;
 		state = 0;
 		for(int i = 0; i < 3; i++) pt3[i] = 0;
+		memset(payload.raw, 0, GEOM_EVENT_PAYLOAD_BYTES);
 	}
 	
 	String ToString() const {

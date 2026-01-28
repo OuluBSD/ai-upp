@@ -17,6 +17,7 @@ public:
 	void SetDistanceLimit(int limit);
 	StereoTrackerStats GetStats() const;
 	const Octree* GetPointcloud() const;
+	bool GetOverlay(StereoOverlay& out) const;
 	bool HasPose() const;
 	vec3 GetPosition() const;
 	quat GetOrientation() const;

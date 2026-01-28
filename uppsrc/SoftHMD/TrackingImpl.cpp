@@ -40,6 +40,10 @@ const Octree* SoftHmdVisualTracker::GetPointcloud() const {
 	return tracker.GetPointcloud();
 }
 
+bool SoftHmdVisualTracker::GetOverlay(StereoOverlay& out) const {
+	return tracker.GetOverlay(out);
+}
+
 bool SoftHmdVisualTracker::HasPose() const {
 	return tracker.HasPose();
 }

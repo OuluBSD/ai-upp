@@ -403,6 +403,11 @@ public:
 	int transfer_timeout_ms;
 	String last_track_stream;
 
+	Thread background_thread;
+	std::atomic<bool> background_quit;
+	Mutex background_mutex;
+	Vector<HMD::CameraFrame> background_frames;
+
 public:
 	WmrTest(int async_buffers_, int transfer_timeout_ms_) {
 		async_buffers = async_buffers_;
@@ -415,8 +420,8 @@ public:
 		Add(tabs.SizePos());
 		camera_tab.Add(splitter.Horz(camera, list).SizePos());
 		tracking_tab.Add(tracking.SizePos());
-		tabs.Add(camera_tab, "Camera");
-		tabs.Add(tracking_tab, "Tracking");
+		tabs.Add(camera_tab.SizePos(), "Camera");
+		tabs.Add(tracking_tab.SizePos(), "Tracking");
 		splitter.SetPos(7500);
 		
 		list.AddColumn("Key");
@@ -450,39 +455,81 @@ public:
 			list.Add(data.GetKey(j), data[j]);
 		}
 		
+		background_quit = false;
+		background_thread.Start(THISBACK(BackgroundProcess));
+		
 		tc.Set(-1000/60, THISBACK(Data));
 	}
 	
 	~WmrTest() {
 		tc.Kill();
+		background_quit = true;
+		background_thread.Wait();
 		if(cam) cam->Close();
 		cam.Clear();
 		sys.Uninitialise();
 	}
 	
+	void BackgroundProcess() {
+		while (!background_quit) {
+			if (cam && cam->IsOpen()) {
+				Vector<HMD::CameraFrame> frames;
+				cam->PopFrames(frames);
+				if (frames.IsEmpty()) {
+					Sleep(1);
+					continue;
+				}
+				
+				for (const auto& f : frames) {
+					VisualFrame vf;
+					vf.timestamp_us = usecs();
+					vf.format = GEOM_EVENT_CAM_RGBA8;
+					vf.width = f.img.GetWidth();
+					vf.height = f.img.GetHeight();
+					vf.stride = vf.width * (int)sizeof(RGBA);
+					vf.data = (const byte*)~f.img;
+					vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
+					vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+					
+					// VERY HEAVY PART BEGINS
+					fusion.PutVisual(vf);
+					// VERY HEAVY PART ENDS
+				}
+				
+				{
+					Mutex::Lock __(background_mutex);
+					if (background_frames.GetCount() > 10)
+						background_frames.Remove(0, background_frames.GetCount() - 10);
+					background_frames.Append(pick(frames));
+				}
+			}
+			else {
+				Sleep(10);
+			}
+		}
+	}
+
 	void Data() {
+		switch (tabs.Get()) {
+			case 0: DataCameraTab(); break;
+		}
+	}
+	void DataCameraTab() {
 		sys.UpdateData();
 		data.Clear();
 
 		if(cam) {
 			Vector<HMD::CameraFrame> frames;
-			cam->PopFrames(frames);
+			{
+				Mutex::Lock __(background_mutex);
+				frames = pick(background_frames);
+			}
+			
 			int prev_bright = fusion.GetBrightTracker().GetStats().processed_frames;
 			int prev_dark = fusion.GetDarkTracker().GetStats().processed_frames;
 			for(const auto& f : frames) {
 				if(f.is_bright) camera.bright = f.img;
 				else camera.dark = f.img;
-				
-				VisualFrame vf;
-				vf.timestamp_us = usecs();
-				vf.format = GEOM_EVENT_CAM_RGBA8;
-				vf.width = f.img.GetWidth();
-				vf.height = f.img.GetHeight();
-				vf.stride = vf.width * (int)sizeof(RGBA);
-				vf.data = (const byte*)~f.img;
-				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
-				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-				fusion.PutVisual(vf);
 				last_track_stream = f.is_bright ? "Bright" : "Dark";
 			}
 			if (fusion.GetBrightTracker().GetStats().processed_frames != prev_bright ||

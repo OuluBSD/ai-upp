@@ -18,3 +18,11 @@
   task: phase-00-foundations/track-calibration/task-0001-stereo-calibration.md
   status: done
   note: Documented calibration spec, file format proposal, and Geometry helpers to reuse.
+- date: 2026-01-28
+  task: phase-00-foundations/track-architecture/task-0001-space-graph.md
+  status: done
+  note: Clarified space graph, handedness, and camera-to-world conversion.
+- date: 2026-01-28
+  task: phase-00-foundations/track-architecture/task-0002-timestamps.md
+  status: done
+  note: Locked to host usecs() timebase and noted frame timestamp choice.

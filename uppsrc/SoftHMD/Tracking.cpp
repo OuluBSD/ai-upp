@@ -83,6 +83,41 @@ const Octree* StereoTracker::GetPointcloud() const {
 	return &frames[latest_index].otree;
 }
 
+bool StereoTracker::GetOverlay(StereoOverlay& out) const {
+	Upp::Mutex::Lock __(mutex);
+	if (latest_index < 0)
+		return false;
+	const UncameraFrame& frame = frames[latest_index];
+	out.left_size = frame.l_dimg.GetResolution();
+	out.right_size = frame.r_dimg.GetResolution();
+	out.left_points.Clear();
+	out.right_points.Clear();
+	out.match_left.Clear();
+	out.match_right.Clear();
+
+	const Vector<Descriptor32>& left_desc = frame.l_dimg.GetDescriptors();
+	out.left_points.SetCount(left_desc.GetCount());
+	for (int i = 0; i < left_desc.GetCount(); i++) {
+		const Descriptor32& d = left_desc[i];
+		out.left_points[i] = vec2(d.x, d.y);
+	}
+
+	const Vector<Descriptor32>& right_desc = frame.r_dimg.GetDescriptors();
+	out.right_points.SetCount(right_desc.GetCount());
+	for (int i = 0; i < right_desc.GetCount(); i++) {
+		const Descriptor32& d = right_desc[i];
+		out.right_points[i] = vec2(d.x, d.y);
+	}
+
+	for (const HorizontalMatch& match : frame.horz_match) {
+		if (!match.l || !match.r)
+			continue;
+		out.match_left.Add(vec2(match.l->x, match.l->y));
+		out.match_right.Add(vec2(match.r->x, match.r->y));
+	}
+	return true;
+}
+
 bool StereoTracker::SplitStereo(const Image& frame, Image& left, Image& right) const {
 	Size sz = frame.GetSize();
 	if (sz.cx < 4 || sz.cy < 4)

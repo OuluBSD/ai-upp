@@ -15,6 +15,24 @@ struct StereoTrackerStats {
 	bool has_pose = false;
 };
 
+struct StereoOverlay {
+	Size left_size;
+	Size right_size;
+	Vector<vec2> left_points;
+	Vector<vec2> right_points;
+	Vector<vec2> match_left;
+	Vector<vec2> match_right;
+	
+	void Clear() {
+		left_size.Clear();
+		right_size.Clear();
+		left_points.Clear();
+		right_points.Clear();
+		match_left.Clear();
+		match_right.Clear();
+	}
+};
+
 class StereoTracker {
 public:
 	HMD_APIENTRYDLL StereoTracker();
@@ -33,6 +51,7 @@ public:
 	HMD_APIENTRYDLL quat GetOrientation() const;
 	HMD_APIENTRYDLL bool HasPose() const;
 	HMD_APIENTRYDLL const Octree* GetPointcloud() const;
+	HMD_APIENTRYDLL bool GetOverlay(StereoOverlay& out) const;
 
 private:
 	bool SplitStereo(const Image& frame, Image& left, Image& right) const;

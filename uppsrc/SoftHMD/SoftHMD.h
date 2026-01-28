@@ -43,6 +43,7 @@
 
 
 #include <Geometry/Geometry.h>
+#include <ComputerVision/ComputerVision.h>
 
 
 #define NAMESPACE_HMD_BEGIN		namespace Upp { namespace HMD {
@@ -61,6 +62,7 @@
 #include "Oculus.h"
 #include "Android.h"
 #include "Camera.h"
+#include "Tracking.h"
 #include "Psvr.h"
 #include "ConfigKey.h"
 #include "Miniz.h"

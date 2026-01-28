@@ -3,7 +3,8 @@ description "\3770,0,128";
 noblitz;
 
 uses
-	Geometry;
+	Geometry,
+	ComputerVision;
 
 library(LINUX USBONLY) hidapi-libusb;
 
@@ -48,12 +49,13 @@ file
 	Android.cpp,
 	Camera.h,
 	Camera.cpp,
+	Tracking.h,
+	Tracking.cpp,
 	Math.h,
 	Math.cpp,
 	Miniz.h,
 	Miniz.c,
 	NxJson.h,
 	NxJson.c,
-	Trash readonly separator,
 	_ readonly separator;
 

@@ -13,3 +13,6 @@ Workflow
 - Keep UI/debug toggles in WmrTest minimal and explicit; prefer menu-driven toggles.
 - Interface naming convention: abstract interfaces use concrete names without a `Base` suffix; implementations are prefixed (e.g., `SoftHmdVisualTracker`).
 - GeomEvent should be extended for VR/HMD/controller events; watch out for trivial/union constraints if required.
+- Build and test before considering a task done:
+  - Build: `python3 script/build.py -mc 1 -j12 WmrTest`
+  - Run cmdline tests added under `WmrTest` (e.g., `--test-dump` or `--test-track`) and fix any failures.

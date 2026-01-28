@@ -99,7 +99,7 @@ struct TrackRenderer : public Ctrl {
 		Frustum frustum = cam.GetFrustum();
 		mat4 view = cam.GetViewMatrix();
 
-		OctreeFrustumIterator iter = octree->GetFrustumIterator(frustum);
+		OctreeFrustumIterator iter = const_cast<Octree*>(octree)->GetFrustumIterator(frustum);
 		while (iter) {
 			const OctreeNode& n = *iter;
 			for (const auto& one_obj : n.objs) {
@@ -442,17 +442,73 @@ void TestDump(int seconds, int async_buffers, int transfer_timeout_ms)
 	sys.Uninitialise();
 }
 
+void TestTrack(int seconds, int async_buffers, int transfer_timeout_ms)
+{
+	StdLogSetup(LOG_COUT | LOG_FILE);
+	One<HMD::Camera> cam;
+	cam.Create();
+	if(async_buffers > 0)
+		cam->SetAsyncBuffers(async_buffers);
+	if(transfer_timeout_ms >= 0)
+		cam->SetTransferTimeoutMs(transfer_timeout_ms);
+	
+	if(!cam->Open()) {
+		Cout() << "Camera Error: Failed to open HMD camera\n";
+	}
+	
+	HMD::System sys;
+	if(!sys.Initialise()) {
+		Cout() << "Error: Failed to initialise HMD system\n";
+	}
+	
+	HMD::SoftHmdFusion fusion;
+	TimeStop ts;
+	while(ts.Elapsed() < seconds * 1000) {
+		sys.UpdateData();
+		Vector<HMD::CameraFrame> frames;
+		cam->PopFrames(frames);
+		for(const auto& f : frames) {
+			VisualFrame vf;
+			vf.timestamp_us = usecs();
+			vf.format = GEOM_EVENT_CAM_RGBA8;
+			vf.width = f.img.GetWidth();
+			vf.height = f.img.GetHeight();
+			vf.stride = vf.width * (int)sizeof(RGBA);
+			vf.data = (const byte*)~f.img;
+			vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
+			vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+			fusion.PutVisual(vf);
+		}
+		
+		FusionState fs;
+		if (fusion.GetState(fs)) {
+			Cout() << "\r" << Format("Track: pos=%s orient=%s",
+				fs.position.ToString(), fs.orientation.ToString());
+		}
+		Sleep(50);
+	}
+	Cout() << "\n";
+	
+	cam->Close();
+	cam.Clear();
+	sys.Uninitialise();
+}
+
 GUI_APP_MAIN
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 	const Vector<String>& args = CommandLine();
 	int dump_time = -1;
+	int track_time = -1;
 	bool verbose = false;
 	int async_buffers = -1;
 	int transfer_timeout_ms = -1;
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--test-dump" && i + 1 < args.GetCount()) {
 			dump_time = atoi(args[i+1]);
+		}
+		if(args[i] == "--test-track" && i + 1 < args.GetCount()) {
+			track_time = atoi(args[i+1]);
 		}
 		if(args[i] == "-v" || args[i] == "--verbose") {
 			verbose = true;
@@ -466,7 +522,22 @@ GUI_APP_MAIN
 	}
 
 	if(dump_time >= 0) {
+		SetAssertFailedHook([](const char *s) {
+			Cout() << "ASSERT: " << s << "\n";
+			fflush(stdout);
+			abort();
+		});
 		TestDump(dump_time, async_buffers, transfer_timeout_ms);
+		return;
+	}
+	
+	if(track_time >= 0) {
+		SetAssertFailedHook([](const char *s) {
+			Cout() << "ASSERT: " << s << "\n";
+			fflush(stdout);
+			abort();
+		});
+		TestTrack(track_time, async_buffers, transfer_timeout_ms);
 		return;
 	}
 

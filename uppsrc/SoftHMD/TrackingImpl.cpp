@@ -66,7 +66,12 @@ bool SoftHmdVisualTracker::DecodeFrame(const VisualFrame& frame, Image& out) con
 				RGBA* dst = ib[y];
 				for (int x = 0; x < sz.cx; x++) {
 					byte v = src[x];
-					dst[x] = RGBA(v, v, v, 255);
+					RGBA c;
+					c.r = v;
+					c.g = v;
+					c.b = v;
+					c.a = 255;
+					dst[x] = c;
 				}
 			}
 			break;
@@ -77,7 +82,12 @@ bool SoftHmdVisualTracker::DecodeFrame(const VisualFrame& frame, Image& out) con
 				RGBA* dst = ib[y];
 				for (int x = 0; x < sz.cx; x++) {
 					const byte* p = src + x * 4;
-					dst[x] = RGBA(p[2], p[1], p[0], p[3]);
+					RGBA c;
+					c.r = p[2];
+					c.g = p[1];
+					c.b = p[0];
+					c.a = p[3];
+					dst[x] = c;
 				}
 			}
 			break;
@@ -88,7 +98,12 @@ bool SoftHmdVisualTracker::DecodeFrame(const VisualFrame& frame, Image& out) con
 				RGBA* dst = ib[y];
 				for (int x = 0; x < sz.cx; x++) {
 					const byte* p = src + x * 4;
-					dst[x] = RGBA(p[0], p[1], p[2], p[3]);
+					RGBA c;
+					c.r = p[0];
+					c.g = p[1];
+					c.b = p[2];
+					c.a = p[3];
+					dst[x] = c;
 				}
 			}
 			break;

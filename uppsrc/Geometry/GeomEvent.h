@@ -179,7 +179,7 @@ struct CameraFramePayload {
 	float exposure;
 	float gain;
 	float gamma;
-	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 64];
+	byte _pad[GEOM_EVENT_PAYLOAD_BYTES - 68];
 };
 
 struct FusionPayload {

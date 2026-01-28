@@ -86,7 +86,11 @@ void SoftHmdVisualTracker::PutFrame(const VisualFrame& frame) {
 	if (!DecodeFrame(frame, img))
 		return;
 	
-	if (!tracker.PushFrame(img, true))
+	bool is_bright = (frame.flags & VIS_FRAME_BRIGHT) != 0;
+	if ((frame.flags & (VIS_FRAME_BRIGHT | VIS_FRAME_DARK)) == 0)
+		is_bright = true;
+	
+	if (!tracker.PushFrame(img, is_bright))
 		return;
 	
 	if (tracker.HasPose()) {

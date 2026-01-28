@@ -11,6 +11,12 @@ struct VisualFrame {
 	int eye = -1; // 0=left, 1=right, -1=mono
 	const byte* data = 0;
 	int data_bytes = 0;
+	int flags = 0;
+};
+
+enum VisualFrameFlags {
+	VIS_FRAME_BRIGHT = 1 << 0,
+	VIS_FRAME_DARK   = 1 << 1,
 };
 
 struct ImuSample {

@@ -72,10 +72,12 @@ void DrawLine3D(Size sz, Draw& d, const mat4& view, const vec3& a, const vec3& b
 
 struct TrackRenderer : public Ctrl {
 	HMD::SoftHmdVisualTracker* tracker = 0;
+	HMD::SoftHmdFusion* fusion = 0;
 	TrackViewMode view_mode = TRACKVIEW_PERSPECTIVE;
 	TrackCamera camera;
 
 	void SetTracker(HMD::SoftHmdVisualTracker* t) { tracker = t; }
+	void SetFusion(HMD::SoftHmdFusion* f) { fusion = f; }
 	void SetViewMode(TrackViewMode m) { view_mode = m; }
 
 	virtual void Paint(Draw& d) override {
@@ -108,9 +110,11 @@ struct TrackRenderer : public Ctrl {
 			iter++;
 		}
 
-		if (tracker->HasPose()) {
-			vec3 pos = tracker->GetPosition();
-			quat orient = tracker->GetOrientation();
+		FusionState fs;
+		bool has_pose = fusion && fusion->GetState(fs);
+		vec3 pos = has_pose ? fs.position : tracker->GetPosition();
+		quat orient = has_pose ? fs.orientation : tracker->GetOrientation();
+		if (has_pose || tracker->HasPose()) {
 			mat4 rot = QuatMat(orient);
 			vec3 axes[3] = { vec3(1,0,0), vec3(0,1,0), vec3(0,0,1) };
 			Color clr[3] = { LtRed(), LtGreen(), LtBlue() };
@@ -143,6 +147,11 @@ struct TrackingCtrl : public Ctrl {
 		for (int i = 0; i < 4; i++)
 			rends[i].SetTracker(tracker);
 	}
+	
+	void SetFusion(HMD::SoftHmdFusion* fusion) {
+		for (int i = 0; i < 4; i++)
+			rends[i].SetFusion(fusion);
+	}
 };
 
 }
@@ -173,7 +182,7 @@ public:
 	
 	HMD::System sys;
 	One<HMD::Camera> cam;
-	HMD::SoftHmdVisualTracker tracker;
+	HMD::SoftHmdFusion fusion;
 	
 	CameraCtrl camera;
 	TrackingCtrl tracking;
@@ -219,7 +228,8 @@ public:
 			data.Add("Camera Error", "Failed to open HMD camera");
 		}
 
-		tracking.SetTracker(&tracker);
+		tracking.SetTracker(&fusion.GetBrightTracker());
+		tracking.SetFusion(&fusion);
 		
 		// Initial refresh of list to show error if any
 		for(int j = 0; j < data.GetCount(); j++) {
@@ -243,7 +253,8 @@ public:
 		if(cam) {
 			Vector<HMD::CameraFrame> frames;
 			cam->PopFrames(frames);
-			int prev_processed = tracker.GetStats().processed_frames;
+			int prev_bright = fusion.GetBrightTracker().GetStats().processed_frames;
+			int prev_dark = fusion.GetDarkTracker().GetStats().processed_frames;
 			for(const auto& f : frames) {
 				if(f.is_bright) camera.bright = f.img;
 				else camera.dark = f.img;
@@ -257,10 +268,11 @@ public:
 				vf.data = (const byte*)~f.img;
 				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
 				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-				tracker.PutFrame(vf);
+				fusion.PutVisual(vf);
 				last_track_stream = f.is_bright ? "Bright" : "Dark";
 			}
-			if (tracker.GetStats().processed_frames != prev_processed)
+			if (fusion.GetBrightTracker().GetStats().processed_frames != prev_bright ||
+			    fusion.GetDarkTracker().GetStats().processed_frames != prev_dark)
 				tracking.Refresh();
 
 			HMD::CameraStats cs = cam->GetStats();
@@ -306,18 +318,27 @@ public:
 			data.Add("Camera", "Missing");
 		}
 
-		HMD::StereoTrackerStats ts = tracker.GetStats();
-		data.Add("Track Frames", IntStr(ts.processed_frames));
-		data.Add("Track Skips", IntStr(ts.skipped_frames));
-		data.Add("Track Keypoints", Format("%d / %d", ts.last_left_keypoints, ts.last_right_keypoints));
-		data.Add("Track Points", IntStr(ts.last_tracked_points));
-		data.Add("Track Triangles", IntStr(ts.last_tracked_triangles));
-		data.Add("Track Process (usecs)", IntStr(ts.last_process_usecs));
+		HMD::StereoTrackerStats tb = fusion.GetBrightTracker().GetStats();
+		HMD::StereoTrackerStats td = fusion.GetDarkTracker().GetStats();
+		data.Add("Track Bright Frames", IntStr(tb.processed_frames));
+		data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
+		data.Add("Track Bright Keypoints", Format("%d / %d", tb.last_left_keypoints, tb.last_right_keypoints));
+		data.Add("Track Bright Points", IntStr(tb.last_tracked_points));
+		data.Add("Track Bright Triangles", IntStr(tb.last_tracked_triangles));
+		data.Add("Track Bright Process (usecs)", IntStr(tb.last_process_usecs));
+		data.Add("Track Dark Frames", IntStr(td.processed_frames));
+		data.Add("Track Dark Skips", IntStr(td.skipped_frames));
+		data.Add("Track Dark Keypoints", Format("%d / %d", td.last_left_keypoints, td.last_right_keypoints));
+		data.Add("Track Dark Points", IntStr(td.last_tracked_points));
+		data.Add("Track Dark Triangles", IntStr(td.last_tracked_triangles));
+		data.Add("Track Dark Process (usecs)", IntStr(td.last_process_usecs));
 		data.Add("Track Last Stream", last_track_stream.IsEmpty() ? "-" : last_track_stream);
-		if(ts.has_pose) {
-			data.Add("Track Position", tracker.GetPosition().ToString());
-			data.Add("Track Orientation", tracker.GetOrientation().ToString());
-		} else {
+		FusionState fs;
+		if(fusion.GetState(fs)) {
+			data.Add("Track Position", fs.position.ToString());
+			data.Add("Track Orientation", fs.orientation.ToString());
+		}
+		else {
 			data.Add("Track Position", "-");
 			data.Add("Track Orientation", "-");
 		}

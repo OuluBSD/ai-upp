@@ -26,3 +26,7 @@
   task: phase-00-foundations/track-architecture/task-0002-timestamps.md
   status: done
   note: Locked to host usecs() timebase and noted frame timestamp choice.
+- date: 2026-01-28
+  task: phase-00-foundations/track-calibration/task-0002-stereo-calibration-app.md
+  status: done
+  note: Drafted app UI, input source stubs, and calibration data flow.

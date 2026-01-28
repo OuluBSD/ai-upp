@@ -2,6 +2,99 @@
 
 NAMESPACE_UPP
 
+static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
+	Size sz = src.GetSize();
+	if (sz.cx < 2 || sz.cy <= 0)
+		return false;
+	int half = sz.cx / 2;
+	if (half <= 0)
+		return false;
+	const RGBA* src_data = ~src;
+	if (!src_data)
+		return false;
+	ImageBuffer lb(half, sz.cy);
+	ImageBuffer rb(half, sz.cy);
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* row = src_data + y * sz.cx;
+		memcpy(lb[y], row, half * sizeof(RGBA));
+		memcpy(rb[y], row + half, half * sizeof(RGBA));
+	}
+	left = lb;
+	right = rb;
+	return true;
+}
+
+static Image CopyFrameImage(const VisualFrame& frame) {
+	if (frame.format != GEOM_EVENT_CAM_RGBA8 || frame.width <= 0 || frame.height <= 0 || !frame.data)
+		return Image();
+	ImageBuffer ib(frame.width, frame.height);
+	const RGBA* src = (const RGBA*)frame.data;
+	for (int y = 0; y < frame.height; y++)
+		memcpy(ib[y], src + y * frame.width, frame.width * sizeof(RGBA));
+	return ib;
+}
+
+bool StereoCalibrationTool::HmdStereoSource::Start() {
+	if (running)
+		return true;
+	if (!sys.Initialise())
+		return false;
+	cam.Create();
+	if (!cam->Open()) {
+		cam.Clear();
+		sys.Uninitialise();
+		return false;
+	}
+	running = true;
+	return true;
+}
+
+void StereoCalibrationTool::HmdStereoSource::Stop() {
+	if (cam)
+		cam->Close();
+	cam.Clear();
+	if (running)
+		sys.Uninitialise();
+	running = false;
+	last_left = Image();
+	last_right = Image();
+}
+
+bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right) {
+	if (!cam || !cam->IsOpen())
+		return false;
+	Vector<HMD::CameraFrame> frames;
+	cam->PopFrames(frames);
+	if (frames.IsEmpty())
+		return false;
+	const HMD::CameraFrame& f = frames.Top();
+	if (!SplitStereoImage(f.img, last_left, last_right))
+		return false;
+	last_is_bright = f.is_bright;
+
+	left.timestamp_us = usecs();
+	left.format = GEOM_EVENT_CAM_RGBA8;
+	left.width = last_left.GetWidth();
+	left.height = last_left.GetHeight();
+	left.stride = left.width * (int)sizeof(RGBA);
+	left.eye = 0;
+	left.data = (const byte*)~last_left;
+	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
+	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+
+	right.timestamp_us = left.timestamp_us;
+	right.format = GEOM_EVENT_CAM_RGBA8;
+	right.width = last_right.GetWidth();
+	right.height = last_right.GetHeight();
+	right.stride = right.width * (int)sizeof(RGBA);
+	right.eye = 1;
+	right.data = (const byte*)~last_right;
+	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
+	right.flags = left.flags;
+
+	return true;
+}
+
 StereoCalibrationTool::StereoCalibrationTool() {
 	Title("Stereo Calibration Tool");
 	Sizeable().Zoomable();
@@ -237,6 +330,15 @@ void StereoCalibrationTool::CaptureFrame() {
 	CapturedFrame frame;
 	frame.time = now;
 	frame.source = name;
+	int idx = source_list.GetIndex();
+	if (idx >= 0 && idx < sources.GetCount()) {
+		VisualFrame lf;
+		VisualFrame rf;
+		if (sources[idx]->ReadFrame(lf, rf)) {
+			frame.left_img = CopyFrameImage(lf);
+			frame.right_img = CopyFrameImage(rf);
+		}
+	}
 	captured_frames.Add(pick(frame));
 	bottom_tabs.Set(0);
 	DataCapturedFrame();

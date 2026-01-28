@@ -4,6 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
+#include <SoftHMD/SoftHMD.h>
 
 NAMESPACE_UPP
 
@@ -47,11 +48,17 @@ struct StereoCalibrationTool : TopWindow {
 	
 	struct HmdStereoSource : StereoSource {
 		bool running = false;
+		HMD::System sys;
+		One<HMD::Camera> cam;
+		Image last_left;
+		Image last_right;
+		bool last_is_bright = false;
+
 		String GetName() const override { return "HMD Stereo Camera"; }
-		bool Start() override { running = true; return true; }
-		void Stop() override { running = false; }
+		bool Start() override;
+		void Stop() override;
 		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&) override { return false; }
+		bool ReadFrame(VisualFrame& left, VisualFrame& right) override;
 	};
 	
 	struct UsbStereoSource : StereoSource {

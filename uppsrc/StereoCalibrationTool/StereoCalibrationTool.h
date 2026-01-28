@@ -155,6 +155,21 @@ struct StereoCalibrationTool : TopWindow {
 	StereoCalibrationData last_calibration;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
+	TimeCallback usb_test_cb;
+	bool usb_test_enabled = false;
+	bool usb_test_active = false;
+	int usb_test_timeout_ms = 4000;
+	String usb_test_device;
+	int64 usb_test_start_us = 0;
+	int64 usb_test_last_start_us = 0;
+	int usb_test_attempts = 0;
+	TimeCallback hmd_test_cb;
+	bool hmd_test_enabled = false;
+	bool hmd_test_active = false;
+	int hmd_test_timeout_ms = 4000;
+	int64 hmd_test_start_us = 0;
+	int hmd_test_last_start_us = 0;
+	int hmd_test_attempts = 0;
 
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
@@ -165,6 +180,12 @@ struct StereoCalibrationTool : TopWindow {
 	void BuildBottomTabs();
 	void Data();
 	void DataCapturedFrame();
+	void EnableUsbTest(const String& dev, int timeout_ms);
+	void StartUsbTest();
+	void RunUsbTest();
+	void EnableHmdTest(int timeout_ms);
+	void StartHmdTest();
+	void RunHmdTest();
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();

@@ -34,6 +34,24 @@ static Image CopyFrameImage(const VisualFrame& frame) {
 	return ib;
 }
 
+static bool IsFrameNonBlack(const Image& img) {
+	if (img.IsEmpty())
+		return false;
+	const RGBA* src = ~img;
+	if (!src)
+		return false;
+	int count = img.GetLength();
+	if (count <= 0)
+		return false;
+	int step = max(1, count / 2048);
+	for (int i = 0; i < count; i += step) {
+		const RGBA& c = src[i];
+		if (c.r > 8 || c.g > 8 || c.b > 8)
+			return true;
+	}
+	return false;
+}
+
 static Image ConvertRgb24ToImage(const byte* data, int width, int height) {
 	if (!data || width <= 0 || height <= 0)
 		return Image();
@@ -85,6 +103,14 @@ static Image ConvertYuyvToImage(const byte* data, int width, int height) {
 	}
 	return ib;
 }
+
+static Image ConvertMjpegToImage(const byte* data, int bytes) {
+	if (!data || bytes <= 0)
+		return Image();
+	String s((const char*)data, bytes);
+	return StreamRaster::LoadStringAny(s);
+}
+
 bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (running)
 		return true;
@@ -150,11 +176,14 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 bool StereoCalibrationTool::UsbStereoSource::Start() {
 	if (running)
 		return true;
+	if (capture)
+		capture.Clear();
 	if (device_path.IsEmpty())
 		device_path = "/dev/video0";
 	std::list<unsigned int> formats;
 	formats.push_back(V4L2_PIX_FMT_RGB24);
 	formats.push_back(V4L2_PIX_FMT_YUYV);
+	formats.push_back(V4L2_PIX_FMT_MJPEG);
 	V4L2DeviceParameters params(device_path.Begin(), formats, 2560, 720, 30, 0);
 	capture = V4l2Capture::create(params, V4l2Access::IOTYPE_MMAP);
 	if (!capture) {
@@ -163,8 +192,10 @@ bool StereoCalibrationTool::UsbStereoSource::Start() {
 	}
 	if (!capture)
 		return false;
-	if (!capture->start())
+	if (!capture->start()) {
+		capture.Clear();
 		return false;
+	}
 
 	width = (int)capture->getWidth();
 	height = (int)capture->getHeight();
@@ -190,7 +221,7 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 		return false;
 
 	timeval tv;
-	tv.tv_sec = 1;
+	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 	if (capture->isReadable(&tv) <= 0)
 		return false;
@@ -203,6 +234,8 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 		frame = ConvertRgb24ToImage(raw.Begin(), width, height);
 	else if (pixfmt == V4L2_PIX_FMT_YUYV)
 		frame = ConvertYuyvToImage(raw.Begin(), width, height);
+	else if (pixfmt == V4L2_PIX_FMT_MJPEG)
+		frame = ConvertMjpegToImage(raw.Begin(), (int)read_bytes);
 
 	if (frame.IsEmpty())
 		return false;
@@ -262,6 +295,9 @@ StereoCalibrationTool::StereoCalibrationTool() {
 }
 
 StereoCalibrationTool::~StereoCalibrationTool() {
+	usb_test_cb.Kill();
+	hmd_test_cb.Kill();
+	StopSource();
 	SaveLastCalibration();
 	SaveState();
 }
@@ -423,6 +459,175 @@ void StereoCalibrationTool::DataCapturedFrame() {
 	Value samples = captures_list.Get(row, 2);
 	preview.SetOverlay(Format("Capture %s (%s), samples %s", time, source, samples));
 	status.Set(Format("Selected capture %s from %s", time, source));
+}
+
+void StereoCalibrationTool::EnableUsbTest(const String& dev, int timeout_ms) {
+	usb_test_enabled = true;
+	usb_test_device = dev;
+	if (timeout_ms > 0)
+		usb_test_timeout_ms = timeout_ms;
+	PostCallback(THISBACK(StartUsbTest));
+}
+
+void StereoCalibrationTool::StartUsbTest() {
+	if (!usb_test_enabled || usb_test_active)
+		return;
+	usb_test_active = true;
+	usb_test_start_us = usecs();
+	usb_test_last_start_us = 0;
+	usb_test_attempts = 0;
+	usb_test_cb.Set(-100, THISBACK(RunUsbTest));
+	status.Set("USB test: starting...");
+}
+
+void StereoCalibrationTool::RunUsbTest() {
+	if (!usb_test_active)
+		return;
+	int64 elapsed_ms = (usecs() - usb_test_start_us) / 1000;
+	if (elapsed_ms > usb_test_timeout_ms) {
+		usb_test_active = false;
+		usb_test_cb.Kill();
+		status.Set("USB test: timeout waiting for frame.");
+		StopSource();
+		Exit(1);
+		return;
+	}
+
+	if (source_list.GetIndex() != 1) {
+		source_list.SetIndex(1);
+		OnSourceChanged();
+	}
+	if (sources.GetCount() <= 1)
+		return;
+	UsbStereoSource* usb = dynamic_cast<UsbStereoSource*>(~sources[1]);
+	if (!usb)
+		return;
+	if (usb && !usb_test_device.IsEmpty())
+		usb->device_path = usb_test_device;
+	if (!usb->IsRunning()) {
+		int64 now_us = usecs();
+		if (usb_test_last_start_us == 0 || now_us - usb_test_last_start_us > 500000) {
+			usb_test_last_start_us = now_us;
+			StartSource();
+			status.Set(Format("USB test: opening (%d)...", ++usb_test_attempts));
+		}
+		return;
+	}
+
+	VisualFrame lf, rf;
+	if (!usb->ReadFrame(lf, rf)) {
+		status.Set(Format("USB test: waiting for frame (%d)...", ++usb_test_attempts));
+		return;
+	}
+
+	Image left_img = CopyFrameImage(lf);
+	Image right_img = CopyFrameImage(rf);
+	if (!IsFrameNonBlack(left_img) && !IsFrameNonBlack(right_img)) {
+		status.Set(Format("USB test: black frame (%d), retrying...", ++usb_test_attempts));
+		return;
+	}
+
+	Time now = GetSysTime();
+	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), usb->GetName(), 1);
+	captures_list.SetCursor(captures_list.GetCount() - 1);
+	CapturedFrame frame;
+	frame.time = now;
+	frame.source = usb->GetName();
+	frame.samples = 1;
+	frame.left_img = left_img;
+	frame.right_img = right_img;
+	captured_frames.Add(pick(frame));
+	preview.SetLive(false);
+	bottom_tabs.Set(0);
+	DataCapturedFrame();
+	status.Set("USB test: captured frame OK.");
+	usb_test_active = false;
+	usb_test_cb.Kill();
+	StopSource();
+	Exit(0);
+}
+
+void StereoCalibrationTool::EnableHmdTest(int timeout_ms) {
+	hmd_test_enabled = true;
+	if (timeout_ms > 0)
+		hmd_test_timeout_ms = timeout_ms;
+	PostCallback(THISBACK(StartHmdTest));
+}
+
+void StereoCalibrationTool::StartHmdTest() {
+	if (!hmd_test_enabled || hmd_test_active)
+		return;
+	hmd_test_active = true;
+	hmd_test_start_us = usecs();
+	hmd_test_last_start_us = 0;
+	hmd_test_attempts = 0;
+	hmd_test_cb.Set(-100, THISBACK(RunHmdTest));
+	status.Set("HMD test: starting...");
+}
+
+void StereoCalibrationTool::RunHmdTest() {
+	if (!hmd_test_active)
+		return;
+	int64 elapsed_ms = (usecs() - hmd_test_start_us) / 1000;
+	if (elapsed_ms > hmd_test_timeout_ms) {
+		hmd_test_active = false;
+		hmd_test_cb.Kill();
+		status.Set("HMD test: timeout waiting for frame.");
+		StopSource();
+		Exit(1);
+		return;
+	}
+
+	if (source_list.GetIndex() != 0) {
+		source_list.SetIndex(0);
+		OnSourceChanged();
+	}
+	if (sources.GetCount() <= 0)
+		return;
+	HmdStereoSource* hmd = dynamic_cast<HmdStereoSource*>(~sources[0]);
+	if (!hmd)
+		return;
+	if (!hmd->IsRunning()) {
+		int64 now_us = usecs();
+		if (hmd_test_last_start_us == 0 || now_us - hmd_test_last_start_us > 500000) {
+			hmd_test_last_start_us = now_us;
+			StartSource();
+			status.Set(Format("HMD test: opening (%d)...", ++hmd_test_attempts));
+		}
+		return;
+	}
+
+	VisualFrame lf, rf;
+	if (!hmd->ReadFrame(lf, rf)) {
+		status.Set(Format("HMD test: waiting for frame (%d)...", ++hmd_test_attempts));
+		return;
+	}
+
+	Image left_img = CopyFrameImage(lf);
+	Image right_img = CopyFrameImage(rf);
+	if (!IsFrameNonBlack(left_img) && !IsFrameNonBlack(right_img)) {
+		status.Set(Format("HMD test: black frame (%d), retrying...", ++hmd_test_attempts));
+		return;
+	}
+
+	Time now = GetSysTime();
+	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), hmd->GetName(), 1);
+	captures_list.SetCursor(captures_list.GetCount() - 1);
+	CapturedFrame frame;
+	frame.time = now;
+	frame.source = hmd->GetName();
+	frame.samples = 1;
+	frame.left_img = left_img;
+	frame.right_img = right_img;
+	captured_frames.Add(pick(frame));
+	preview.SetLive(false);
+	bottom_tabs.Set(0);
+	DataCapturedFrame();
+	status.Set("HMD test: captured frame OK.");
+	hmd_test_active = false;
+	hmd_test_cb.Kill();
+	StopSource();
+	Exit(0);
 }
 
 void StereoCalibrationTool::OnSourceChanged() {

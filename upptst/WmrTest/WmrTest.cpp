@@ -216,6 +216,7 @@ struct CameraCtrl : public Ctrl {
 	bool show_descriptors = true;
 	bool show_descriptor_ids = false;
 	bool show_match_lines = false;
+	bool show_match_ids = false;
 	bool show_stats_overlay = true;
 	bool show_split_view = true;
 
@@ -251,6 +252,7 @@ struct CameraCtrl : public Ctrl {
 	void SetShowDescriptors(bool b) { show_descriptors = b; }
 	void SetShowDescriptorIds(bool b) { show_descriptor_ids = b; }
 	void SetShowMatchLines(bool b) { show_match_lines = b; }
+	void SetShowMatchIds(bool b) { show_match_ids = b; }
 	void SetShowStatsOverlay(bool b) { show_stats_overlay = b; }
 	void SetShowSplitView(bool b) { show_split_view = b; }
 
@@ -309,15 +311,22 @@ struct CameraCtrl : public Ctrl {
 				Pointf a = MapPoint(overlay.match_left[i], 0);
 				Pointf b = MapPoint(overlay.match_right[i], right_offset);
 				w.DrawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y, 1, match_color);
+				if (show_match_ids) {
+					Pointf mid((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+					w.DrawText((int)mid.x + 2, (int)mid.y + 2, IntStr(i), Arial(9), match_color);
+				}
 			}
 		}
 
 		if (show_stats_overlay) {
+			int match_count = overlay.match_left.GetCount();
+			if (match_count > overlay.match_right.GetCount())
+				match_count = overlay.match_right.GetCount();
 			String line1 = Format("%s: frames=%d, kp=%d/%d, points=%d",
 				label, stats.processed_frames, stats.last_left_keypoints,
 				stats.last_right_keypoints, stats.last_tracked_points);
-			String line2 = Format("tri=%d, usecs=%d, pose=%s",
-				stats.last_tracked_triangles, stats.last_process_usecs,
+			String line2 = Format("tri=%d, matches=%d, usecs=%d, pose=%s",
+				stats.last_tracked_triangles, match_count, stats.last_process_usecs,
 				stats.has_pose ? "yes" : "no");
 			w.DrawText(r.left + 6, r.top + 6, line1, Arial(12).Bold(), White());
 			w.DrawText(r.left + 6, r.top + 22, line2, Arial(11), White());
@@ -383,8 +392,10 @@ public:
 	bool show_descriptors = true;
 	bool show_descriptor_ids = false;
 	bool show_match_lines = false;
+	bool show_match_ids = false;
 	bool show_stats_overlay = true;
 	bool show_split_view = true;
+	bool capture_enabled = true;
 	
 	VectorMap<String, String> data;
 	int async_buffers;
@@ -428,8 +439,10 @@ public:
 		camera.SetShowDescriptors(show_descriptors);
 		camera.SetShowDescriptorIds(show_descriptor_ids);
 		camera.SetShowMatchLines(show_match_lines);
+		camera.SetShowMatchIds(show_match_ids);
 		camera.SetShowStatsOverlay(show_stats_overlay);
 		camera.SetShowSplitView(show_split_view);
+		capture_enabled = cam && cam->IsOpen();
 		
 		// Initial refresh of list to show error if any
 		for(int j = 0; j < data.GetCount(); j++) {
@@ -625,6 +638,13 @@ public:
 	}
 	
 	void AppMenu(Bar& bar) {
+		if (capture_enabled)
+			bar.Add("Stop Capture", [=] { StopCapture(); });
+		else
+			bar.Add("Start Capture", [=] { StartCapture(); });
+		bar.Add("Load Calibration...", [=] { LoadCalibration(); });
+		bar.Add("Save Calibration...", [=] { SaveCalibration(); });
+		bar.Separator();
 		bar.Add("Exit", [=] { Close(); });
 	}
 	
@@ -635,6 +655,8 @@ public:
 		   .Check(show_descriptor_ids);
 		bar.Add("Show match lines", [=] { ToggleShowMatchLines(); })
 		   .Check(show_match_lines);
+		bar.Add("Show match IDs", [=] { ToggleShowMatchIds(); })
+		   .Check(show_match_ids);
 		bar.Add("Show stats overlay", [=] { ToggleShowStatsOverlay(); })
 		   .Check(show_stats_overlay);
 		bar.Add("Show split view", [=] { ToggleShowSplitView(); })
@@ -678,6 +700,12 @@ public:
 		camera.Refresh();
 	}
 
+	void ToggleShowMatchIds() {
+		show_match_ids = !show_match_ids;
+		camera.SetShowMatchIds(show_match_ids);
+		camera.Refresh();
+	}
+
 	void ToggleShowStatsOverlay() {
 		show_stats_overlay = !show_stats_overlay;
 		camera.SetShowStatsOverlay(show_stats_overlay);
@@ -688,6 +716,40 @@ public:
 		show_split_view = !show_split_view;
 		camera.SetShowSplitView(show_split_view);
 		camera.Refresh();
+	}
+	
+	void StartCapture() {
+		if (!cam)
+			return;
+		if (cam->IsOpen())
+			return;
+		if (!cam->Open()) {
+			PromptOK("Failed to start capture.");
+			return;
+		}
+		capture_enabled = true;
+	}
+	
+	void StopCapture() {
+		if (!cam)
+			return;
+		if (!cam->IsOpen())
+			return;
+		cam->Close();
+		capture_enabled = false;
+		camera.bright.Clear();
+		camera.dark.Clear();
+		camera.ClearOverlay(true);
+		camera.ClearOverlay(false);
+		camera.Refresh();
+	}
+	
+	void LoadCalibration() {
+		PromptOK("Stereo calibration load is not implemented yet.");
+	}
+	
+	void SaveCalibration() {
+		PromptOK("Stereo calibration save is not implemented yet.");
 	}
 
 };

@@ -63,11 +63,21 @@ struct StereoCalibrationTool : TopWindow {
 	
 	struct UsbStereoSource : StereoSource {
 		bool running = false;
+		String device_path;
+		Image last_left;
+		Image last_right;
+		bool last_is_bright = false;
+		int width = 0;
+		int height = 0;
+		int pixfmt = 0;
+		int fd = -1;
+		Vector<void*> buffers;
+		Vector<size_t> buffer_sizes;
 		String GetName() const override { return "USB Stereo (Side-by-side)"; }
-		bool Start() override { running = true; return true; }
-		void Stop() override { running = false; }
+		bool Start() override;
+		void Stop() override;
 		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&) override { return false; }
+		bool ReadFrame(VisualFrame&, VisualFrame&) override;
 	};
 	
 	struct VideoStereoSource : StereoSource {

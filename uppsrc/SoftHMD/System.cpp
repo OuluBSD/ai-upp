@@ -15,8 +15,14 @@ bool System::Initialise() {
 	LOG("System::Initialise: starting");
 	seq = 0;
 	ev.type = EVENT_HOLO_STATE;
-	ev.trans = &trans;
-	ev.ctrl = &ev3d;
+	if (use_payload_only) {
+		ev.trans = 0;
+		ev.ctrl = 0;
+	}
+	else {
+		ev.trans = &trans;
+		ev.ctrl = &ev3d;
+	}
 	has_initial_orient = 0;
 	initial_orient.SetNull();
 	
@@ -287,6 +293,53 @@ void System::UpdateData() {
 					case HMD::HMD_BUTTON_Y: h.value[ControllerMatrix::BUTTON_Y] = val; h.is_value[ControllerMatrix::BUTTON_Y] = true; break;
 				}
 			}
+		}
+	}
+	
+	if (use_payload_only) {
+		ev.trans = 0;
+		ev.ctrl = 0;
+	}
+	
+	memset(ev.payload.raw, 0, GEOM_EVENT_PAYLOAD_BYTES);
+	if (use_payload_only) {
+		ev.payload.holo_state_ptr.trans = &trans;
+		ev.payload.holo_state_ptr.ctrl = &ev3d;
+		ev.payload.holo_state_ptr.state = 0;
+	}
+	HoloStatePayload& hs = ev.payload.holo_state;
+	hs.timestamp_ms = (int64)GetTickCount();
+	hs.flags = GEOM_EVENT_FLAG_HAS_HMD_POSE;
+	if (trans.is_stereo)
+		hs.flags |= GEOM_EVENT_FLAG_STEREO;
+	hs.controller_count = 0;
+	for (int i = 0; i < 3; i++)
+		hs.hmd_position[i] = trans.position[i];
+	for (int i = 0; i < 4; i++)
+		hs.hmd_orientation[i] = trans.orientation[i];
+	for (int i = 0; i < GEOM_EVENT_MAX_CONTROLLERS; i++) {
+		const ControllerMatrix::Ctrl& h = ev3d.ctrl[i];
+		if (!h.is_enabled)
+			continue;
+		hs.flags |= GEOM_EVENT_FLAG_HAS_CONTROLLER;
+		hs.controller_count++;
+		for (int k = 0; k < 3; k++)
+			hs.ctrl_position[i][k] = h.trans.position[k];
+		for (int k = 0; k < 4; k++)
+			hs.ctrl_orientation[i][k] = h.trans.orientation[k];
+		uint32 mask = 0;
+		for (int j = 0; j < ControllerMatrix::VALUE_COUNT && j < 32; j++) {
+			if (h.is_value[j] && h.value[j] != 0.0f)
+				mask |= (1u << j);
+		}
+		hs.button_mask[i] = mask;
+		if (ControllerMatrix::ANALOG_X < ControllerMatrix::VALUE_COUNT) {
+			hs.analog[i][0] = h.value[ControllerMatrix::ANALOG_X];
+			hs.flags |= GEOM_EVENT_FLAG_HAS_CONTROLLER;
+		}
+		if (ControllerMatrix::ANALOG_Y < ControllerMatrix::VALUE_COUNT) {
+			hs.analog[i][1] = h.value[ControllerMatrix::ANALOG_Y];
+			hs.flags |= GEOM_EVENT_FLAG_HAS_CONTROLLER;
 		}
 	}
 	

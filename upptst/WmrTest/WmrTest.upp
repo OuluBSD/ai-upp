@@ -3,8 +3,10 @@ uses
 	SoftHMD;
 
 file
+	AGENTS.md,
 	WmrTest.cpp;
 
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
+

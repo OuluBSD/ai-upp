@@ -15,6 +15,11 @@ public:
 	void SetSplitStereo(bool b);
 	void SetPointLimit(int limit);
 	void SetDistanceLimit(int limit);
+	StereoTrackerStats GetStats() const;
+	const Octree* GetPointcloud() const;
+	bool HasPose() const;
+	vec3 GetPosition() const;
+	quat GetOrientation() const;
 	
 private:
 	bool DecodeFrame(const VisualFrame& frame, Image& out) const;

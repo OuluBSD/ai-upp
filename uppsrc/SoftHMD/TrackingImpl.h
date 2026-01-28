@@ -18,6 +18,8 @@ public:
 	StereoTrackerStats GetStats() const;
 	const Octree* GetPointcloud() const;
 	bool GetOverlay(StereoOverlay& out) const;
+	void SetCalibration(const StereoCalibrationData& data);
+	StereoCalibrationData GetCalibration() const;
 	bool HasPose() const;
 	vec3 GetPosition() const;
 	quat GetOrientation() const;

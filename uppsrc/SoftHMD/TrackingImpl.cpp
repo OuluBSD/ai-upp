@@ -44,6 +44,14 @@ bool SoftHmdVisualTracker::GetOverlay(StereoOverlay& out) const {
 	return tracker.GetOverlay(out);
 }
 
+void SoftHmdVisualTracker::SetCalibration(const StereoCalibrationData& data) {
+	tracker.SetCalibration(data);
+}
+
+StereoCalibrationData SoftHmdVisualTracker::GetCalibration() const {
+	return tracker.GetCalibration();
+}
+
 bool SoftHmdVisualTracker::HasPose() const {
 	return tracker.HasPose();
 }

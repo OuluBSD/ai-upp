@@ -66,3 +66,7 @@
   task: phase-04-ui/track-overlays/task-0003-app-menu-and-match-ids.md
   status: done
   note: Added App menu capture/calibration stubs plus match ID toggle and overlay counts.
+- date: 2026-01-28
+  task: phase-04-ui/track-overlays/task-0004-calib-load-save-and-match-stats.md
+  status: done
+  note: Added .stcal load/save with tracker calibration apply plus match stats in list.

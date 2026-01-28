@@ -386,10 +386,11 @@ bool Camera::ProcessRawFrames()
 	}
 	if(local_size == 0)
 		return false;
-	if(verbose)
-		Cout() << "HandleFrame: size=" << local_size << ", raw_ptr=" << local_size << "\n";
 
 	const int RAW_FRAME_SIZE = 616538;
+	if(verbose && local_size >= RAW_FRAME_SIZE)
+		Cout() << "HandleFrame: size=" << local_size << ", raw_ptr=" << local_size << "\n";
+
 	const int STRIPPED_FRAME_SIZE = 615706;
 	static thread_local std::vector<byte> stripped;
 	if((int)stripped.size() < STRIPPED_FRAME_SIZE)
@@ -397,6 +398,7 @@ bool Camera::ProcessRawFrames()
 	
 	int local_ptr = local_size;
 	byte* local_data = process_buffer.data();
+	bool processed = false;
 	while(local_ptr >= RAW_FRAME_SIZE) {
 		uint16 exposure = (local_data[32 + 6] << 8) | local_data[32 + 7];
 		bool is_bright = (exposure != 0);
@@ -424,12 +426,14 @@ bool Camera::ProcessRawFrames()
 				if(skip_streak_bright >= MAX_SKIP_STREAK) {
 					skip_streak_bright = 0;
 					skipped = false;
+					{ Upp::Mutex::Lock __(mutex); stats.bright_balance = 0; }
 				}
 			} else {
 				skip_streak_dark++;
 				if(skip_streak_dark >= MAX_SKIP_STREAK) {
 					skip_streak_dark = 0;
 					skipped = false;
+					{ Upp::Mutex::Lock __(mutex); stats.bright_balance = 0; }
 				}
 			}
 		} else {
@@ -438,6 +442,7 @@ bool Camera::ProcessRawFrames()
 		}
 		
 		if(!skipped) {
+			processed = true;
 			int sj = 0;
 			for (int i = 0; i < RAW_FRAME_SIZE; i += WMR_PACKET_SIZE) {
 				int payload_offset = i + WMR_HEADER_SIZE;
@@ -476,6 +481,7 @@ bool Camera::ProcessRawFrames()
 					stats.frame_count++;
 					if(is_bright) { stats.bright_frames++; stats.bright_balance++; } 
 					else { stats.dark_frames++; stats.bright_balance--; }
+					stats.bright_balance = Clamp(stats.bright_balance, -20, 20);
 					stats.last_exposure = exposure;
 					stats.avg_brightness = (double)sum / (1280 * 481);
 					stats.min_pixel = min_p;
@@ -524,7 +530,7 @@ bool Camera::ProcessRawFrames()
 		raw_buffer_ptr = local_ptr + new_data_size;
 	}
 	
-	return true;
+	return processed;
 }
 
 NAMESPACE_HMD_END

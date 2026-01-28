@@ -38,3 +38,7 @@
   task: phase-01-tracking/track-pointcloud/task-0002-octree-improvements.md
   status: done
   note: Listed octree query/maintenance improvements and target API additions.
+- date: 2026-01-28
+  task: phase-01-tracking/track-stereo/task-0001-feature-pipeline.md
+  status: done
+  note: Specified feature pipeline stages, matching strategy, and module boundaries.

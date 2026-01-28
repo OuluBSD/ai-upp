@@ -74,3 +74,7 @@
   task: phase-04-ui/track-overlays/task-0005-stcal-schema-and-telemetry.md
   status: done
   note: StereoCalibrationTool exports .stcal schema; WmrTest shows calibration fields.
+- date: 2026-01-28
+  task: phase-04-ui/track-overlays/task-0006-stcal-editable-ui.md
+  status: done
+  note: Added editable calibration fields and load/export controls in StereoCalibrationTool.

@@ -1,0 +1,13 @@
+description "V4L2 Camera Test";
+
+uses
+	Core,
+	plugin/libv4l2,
+	plugin/jpg;
+
+file
+	CameraV4L2.cpp;
+
+mainconfig
+	"" = "USEMALLOC",
+	"" = "";

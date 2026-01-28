@@ -46,3 +46,7 @@
   task: phase-02-fusion/track-imu/task-0001-imu-calibration.md
   status: done
   note: Defined IMU bias/scale model, initialization, and online update strategy.
+- date: 2026-01-28
+  task: phase-02-fusion/track-visual-inertial/task-0001-filter-design.md
+  status: done
+  note: Chose ESKF path, state vector, and update triggers.

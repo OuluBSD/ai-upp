@@ -78,3 +78,7 @@
   task: phase-04-ui/track-overlays/task-0006-stcal-editable-ui.md
   status: done
   note: Added editable calibration fields and load/export controls in StereoCalibrationTool.
+- date: 2026-01-28
+  task: phase-04-ui/track-overlays/task-0007-stcal-persist-preview.md
+  status: done
+  note: Persisted calibration and added live preview update in StereoCalibrationTool.

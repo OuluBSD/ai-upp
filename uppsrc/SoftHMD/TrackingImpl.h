@@ -49,14 +49,29 @@ public:
 	void PutImu(const ImuSample& sample) override;
 	bool GetState(FusionState& out) const override;
 	
-	SoftHmdVisualTracker& GetVisual() { return visual; }
+	SoftHmdVisualTracker& GetBrightTracker() { return visual_bright; }
+	SoftHmdVisualTracker& GetDarkTracker() { return visual_dark; }
 	SoftHmdImuTracker& GetImu() { return imu; }
 	
 private:
-	SoftHmdVisualTracker visual;
+	struct PoseSample {
+		int64 timestamp_us = 0;
+		vec3 position = vec3(0,0,0);
+		quat orientation;
+	};
+	
+	void ApplyInterleavedConstraint(bool is_bright);
+	bool GetTrackerState(bool is_bright, PoseSample& out) const;
+	
+	SoftHmdVisualTracker visual_bright;
+	SoftHmdVisualTracker visual_dark;
 	SoftHmdImuTracker imu;
 	FusionState state;
 	bool has_state = false;
+	PoseSample prev_dark;
+	PoseSample last_dark;
+	bool has_prev_dark = false;
+	bool has_last_dark = false;
 };
 
 class SoftHmdRelocalizer : public Relocalizer {

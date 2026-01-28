@@ -141,18 +141,43 @@ void SoftHmdImuTracker::PutSample(const ImuSample& sample) {
 
 
 void SoftHmdFusion::Reset() {
-	visual.Reset();
+	visual_bright.Reset();
+	visual_dark.Reset();
 	imu.Reset();
 	has_state = false;
 	state = FusionState();
+	has_prev_dark = false;
+	has_last_dark = false;
 }
 
 void SoftHmdFusion::PutVisual(const VisualFrame& frame) {
-	visual.PutFrame(frame);
-	FusionState st;
-	if (visual.GetState(st)) {
-		state = st;
+	bool is_bright = (frame.flags & VIS_FRAME_BRIGHT) != 0;
+	bool is_dark = (frame.flags & VIS_FRAME_DARK) != 0;
+	if (!is_bright && !is_dark)
+		is_bright = true;
+	
+	if (is_bright)
+		visual_bright.PutFrame(frame);
+	if (is_dark)
+		visual_dark.PutFrame(frame);
+	
+	PoseSample sample;
+	if (is_dark && GetTrackerState(false, sample)) {
+		prev_dark = last_dark;
+		has_prev_dark = has_last_dark;
+		last_dark = sample;
+		has_last_dark = true;
+		state.timestamp_us = sample.timestamp_us;
+		state.position = sample.position;
+		state.orientation = sample.orientation;
 		has_state = true;
+	}
+	else if (is_bright && GetTrackerState(true, sample)) {
+		state.timestamp_us = sample.timestamp_us;
+		state.position = sample.position;
+		state.orientation = sample.orientation;
+		has_state = true;
+		ApplyInterleavedConstraint(true);
 	}
 }
 
@@ -165,6 +190,41 @@ bool SoftHmdFusion::GetState(FusionState& out) const {
 		return false;
 	out = state;
 	return true;
+}
+
+bool SoftHmdFusion::GetTrackerState(bool is_bright, PoseSample& out) const {
+	FusionState st;
+	if (is_bright) {
+		if (!visual_bright.GetState(st))
+			return false;
+	}
+	else {
+		if (!visual_dark.GetState(st))
+			return false;
+	}
+	out.timestamp_us = st.timestamp_us;
+	out.position = st.position;
+	out.orientation = st.orientation;
+	return true;
+}
+
+void SoftHmdFusion::ApplyInterleavedConstraint(bool is_bright) {
+	if (!is_bright)
+		return;
+	if (!has_prev_dark || !has_last_dark)
+		return;
+	if (state.timestamp_us <= prev_dark.timestamp_us || state.timestamp_us >= last_dark.timestamp_us)
+		return;
+	
+	double denom = (double)(last_dark.timestamp_us - prev_dark.timestamp_us);
+	if (denom <= 0)
+		return;
+	double t = (double)(state.timestamp_us - prev_dark.timestamp_us) / denom;
+	vec3 interp_pos = Mix(prev_dark.position, last_dark.position, (float)t);
+	quat interp_orient = Slerp(prev_dark.orientation, last_dark.orientation, (float)t);
+	
+	state.position = Mix(state.position, interp_pos, 0.5f);
+	state.orientation = Slerp(state.orientation, interp_orient, 0.5f);
 }
 
 NAMESPACE_HMD_END

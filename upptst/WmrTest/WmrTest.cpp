@@ -12,6 +12,12 @@ enum TrackViewMode {
 	TRACKVIEW_PERSPECTIVE,
 };
 
+enum PointcloudMode {
+	POINTCLOUD_BRIGHT,
+	POINTCLOUD_DARK,
+	POINTCLOUD_BOTH,
+};
+
 struct TrackCamera {
 	vec3 position = vec3(0, 0, 2);
 	quat orientation = Identity<quat>();
@@ -71,25 +77,35 @@ void DrawLine3D(Size sz, Draw& d, const mat4& view, const vec3& a, const vec3& b
 }
 
 struct TrackRenderer : public Ctrl {
-	HMD::SoftHmdVisualTracker* tracker = 0;
+	HMD::SoftHmdVisualTracker* bright = 0;
+	HMD::SoftHmdVisualTracker* dark = 0;
 	HMD::SoftHmdFusion* fusion = 0;
 	TrackViewMode view_mode = TRACKVIEW_PERSPECTIVE;
+	PointcloudMode cloud_mode = POINTCLOUD_BRIGHT;
 	TrackCamera camera;
 
-	void SetTracker(HMD::SoftHmdVisualTracker* t) { tracker = t; }
+	void SetTrackers(HMD::SoftHmdVisualTracker* b, HMD::SoftHmdVisualTracker* d) { bright = b; dark = d; }
 	void SetFusion(HMD::SoftHmdFusion* f) { fusion = f; }
 	void SetViewMode(TrackViewMode m) { view_mode = m; }
+	void SetPointcloudMode(PointcloudMode m) { cloud_mode = m; }
 
 	virtual void Paint(Draw& d) override {
 		Size sz = GetSize();
 		d.DrawRect(sz, Black());
-		if (!tracker) {
+		if (!bright && !dark) {
 			d.DrawText(10, 10, "No tracker", Arial(16).Bold(), White());
 			return;
 		}
 
-		const Octree* octree = tracker->GetPointcloud();
-		if (!octree) {
+		const Octree* octree_bright = bright ? bright->GetPointcloud() : 0;
+		const Octree* octree_dark = dark ? dark->GetPointcloud() : 0;
+		const Octree* octree = 0;
+		if (cloud_mode == POINTCLOUD_BRIGHT)
+			octree = octree_bright;
+		else if (cloud_mode == POINTCLOUD_DARK)
+			octree = octree_dark;
+		
+		if (cloud_mode != POINTCLOUD_BOTH && !octree) {
 			d.DrawText(10, 10, "No pointcloud", Arial(16).Bold(), White());
 			return;
 		}
@@ -99,22 +115,50 @@ struct TrackRenderer : public Ctrl {
 		Frustum frustum = cam.GetFrustum();
 		mat4 view = cam.GetViewMatrix();
 
-		OctreeFrustumIterator iter = const_cast<Octree*>(octree)->GetFrustumIterator(frustum);
-		while (iter) {
-			const OctreeNode& n = *iter;
-			for (const auto& one_obj : n.objs) {
-				const OctreeObject& obj = *one_obj;
-				vec3 pos = obj.GetPosition();
-				DrawRect3D(sz, d, view, pos, Size(2, 2), White());
+		if (cloud_mode == POINTCLOUD_BOTH) {
+			if (octree_bright) {
+				OctreeFrustumIterator iter = const_cast<Octree*>(octree_bright)->GetFrustumIterator(frustum);
+				while (iter) {
+					const OctreeNode& n = *iter;
+					for (const auto& one_obj : n.objs) {
+						const OctreeObject& obj = *one_obj;
+						vec3 pos = obj.GetPosition();
+						DrawRect3D(sz, d, view, pos, Size(2, 2), LtYellow());
+					}
+					iter++;
+				}
 			}
-			iter++;
+			if (octree_dark) {
+				OctreeFrustumIterator iter = const_cast<Octree*>(octree_dark)->GetFrustumIterator(frustum);
+				while (iter) {
+					const OctreeNode& n = *iter;
+					for (const auto& one_obj : n.objs) {
+						const OctreeObject& obj = *one_obj;
+						vec3 pos = obj.GetPosition();
+						DrawRect3D(sz, d, view, pos, Size(2, 2), LtBlue());
+					}
+					iter++;
+				}
+			}
+		}
+		else {
+			OctreeFrustumIterator iter = const_cast<Octree*>(octree)->GetFrustumIterator(frustum);
+			while (iter) {
+				const OctreeNode& n = *iter;
+				for (const auto& one_obj : n.objs) {
+					const OctreeObject& obj = *one_obj;
+					vec3 pos = obj.GetPosition();
+					DrawRect3D(sz, d, view, pos, Size(2, 2), White());
+				}
+				iter++;
+			}
 		}
 
 		FusionState fs;
 		bool has_pose = fusion && fusion->GetState(fs);
-		vec3 pos = has_pose ? fs.position : tracker->GetPosition();
-		quat orient = has_pose ? fs.orientation : tracker->GetOrientation();
-		if (has_pose || tracker->HasPose()) {
+		vec3 pos = has_pose ? fs.position : (bright ? bright->GetPosition() : vec3(0,0,0));
+		quat orient = has_pose ? fs.orientation : (bright ? bright->GetOrientation() : Identity<quat>());
+		if (has_pose || (bright && bright->HasPose())) {
 			mat4 rot = QuatMat(orient);
 			vec3 axes[3] = { vec3(1,0,0), vec3(0,1,0), vec3(0,0,1) };
 			Color clr[3] = { LtRed(), LtGreen(), LtBlue() };
@@ -143,14 +187,19 @@ struct TrackingCtrl : public Ctrl {
 		Add(grid.SizePos());
 	}
 
-	void SetTracker(HMD::SoftHmdVisualTracker* tracker) {
+	void SetTrackers(HMD::SoftHmdVisualTracker* bright, HMD::SoftHmdVisualTracker* dark) {
 		for (int i = 0; i < 4; i++)
-			rends[i].SetTracker(tracker);
+			rends[i].SetTrackers(bright, dark);
 	}
 	
 	void SetFusion(HMD::SoftHmdFusion* fusion) {
 		for (int i = 0; i < 4; i++)
 			rends[i].SetFusion(fusion);
+	}
+	
+	void SetPointcloudMode(PointcloudMode mode) {
+		for (int i = 0; i < 4; i++)
+			rends[i].SetPointcloudMode(mode);
 	}
 };
 
@@ -192,6 +241,8 @@ public:
 	ParentCtrl camera_tab;
 	ParentCtrl tracking_tab;
 	TimeCallback tc;
+	MenuBar menu;
+	PointcloudMode cloud_mode = POINTCLOUD_BRIGHT;
 	
 	VectorMap<String, String> data;
 	int async_buffers;
@@ -205,6 +256,8 @@ public:
 		Title("WMR / HMD Test");
 		Sizeable().Zoomable();
 		
+		AddFrame(menu);
+		menu.Set(THISBACK(MainMenu));
 		Add(tabs.SizePos());
 		camera_tab.Add(splitter.Horz(camera, list).SizePos());
 		tracking_tab.Add(tracking.SizePos());
@@ -228,7 +281,7 @@ public:
 			data.Add("Camera Error", "Failed to open HMD camera");
 		}
 
-		tracking.SetTracker(&fusion.GetBrightTracker());
+		tracking.SetTrackers(&fusion.GetBrightTracker(), &fusion.GetDarkTracker());
 		tracking.SetFusion(&fusion);
 		
 		// Initial refresh of list to show error if any
@@ -358,6 +411,13 @@ public:
 				data.Add("HMD Accel", Format("%f, %f, %f", f[0], f[1], f[2]));
 			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, f) == HMD::HMD_S_OK)
 				data.Add("HMD Gyro", Format("%f, %f, %f", f[0], f[1], f[2]));
+			
+			ImuSample imu;
+			imu.timestamp_us = usecs();
+			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, imu.accel.data) == HMD::HMD_S_OK)
+				fusion.PutImu(imu);
+			else if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
+				fusion.PutImu(imu);
 		}
 
 		// Controllers
@@ -398,6 +458,37 @@ public:
 
 		camera.Refresh();
 }
+
+	void MainMenu(Bar& bar) {
+		bar.Sub("App", THISBACK(AppMenu));
+		bar.Sub("View", THISBACK(ViewMenu));
+		bar.Sub("Help", THISBACK(HelpMenu));
+	}
+	
+	void AppMenu(Bar& bar) {
+		bar.Add("Exit", [=] { Close(); });
+	}
+	
+	void ViewMenu(Bar& bar) {
+		bar.Add("Pointcloud: Bright", [=] { SetPointcloudMode(POINTCLOUD_BRIGHT); })
+		   .Check(cloud_mode == POINTCLOUD_BRIGHT);
+		bar.Add("Pointcloud: Dark", [=] { SetPointcloudMode(POINTCLOUD_DARK); })
+		   .Check(cloud_mode == POINTCLOUD_DARK);
+		bar.Add("Pointcloud: Both", [=] { SetPointcloudMode(POINTCLOUD_BOTH); })
+		   .Check(cloud_mode == POINTCLOUD_BOTH);
+	}
+	
+	void HelpMenu(Bar& bar) {
+		bar.Add("About", [=] {
+			PromptOK("WmrTest\n\nTracking + fusion debug tool.");
+		});
+	}
+	
+	void SetPointcloudMode(PointcloudMode mode) {
+		cloud_mode = mode;
+		tracking.SetPointcloudMode(mode);
+		tracking.Refresh();
+	}
 
 };
 

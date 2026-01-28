@@ -66,6 +66,7 @@ file
 	MeshTracker.cpp,
 	Uncamera.h,
 	Uncamera.cpp,
+	TrackingInterfaces.h,
 	Vr.h,
 	Vr.cpp,
 	GeomEvent.h,
@@ -75,4 +76,3 @@ file
 	ModelPainter.cpp,
 	ModelDraw.h,
 	ModelDraw.cpp;
-

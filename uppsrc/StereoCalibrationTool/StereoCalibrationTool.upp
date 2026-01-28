@@ -1,7 +1,8 @@
 uses
 	CtrlLib,
 	Geometry,
-	ComputerVision;
+	ComputerVision,
+	SoftHMD;
 
 file
 	AGENTS.md,

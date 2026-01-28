@@ -31,6 +31,14 @@ struct CameraStats {
 	int timeout_errors;
 	int overflow_errors;
 	int other_errors;
+	int no_device_errors;
+	int resubmit_failures;
+	int resubmit_skips;
+	int halt_clear_attempts;
+	int halt_clear_failures;
+	int status_counts[LIBUSB_TRANSFER_OVERFLOW + 1];
+	int async_buffers;
+	int transfer_timeout_ms;
 	
 	int bright_balance; // bright_frames - dark_frames
 	int handle_usecs;
@@ -54,6 +62,8 @@ public:
 	void HMD_APIENTRYDLL PopFrames(Vector<CameraFrame>& out);
 	CameraStats HMD_APIENTRYDLL GetStats();
 	void HMD_APIENTRYDLL SetVerbose(bool v) { verbose = v; }
+	void HMD_APIENTRYDLL SetAsyncBuffers(int count) { async_buffers = count; }
+	void HMD_APIENTRYDLL SetTransferTimeoutMs(int ms) { transfer_timeout_ms = ms; }
 	
 	typedef Camera CLASSNAME;
 
@@ -61,30 +71,38 @@ public:
 
 private:
 	void Process();
-	void HandleFrame(const byte* buffer, int size);
+	void ProcessFrames();
+	void AppendRaw(const byte* buffer, int size);
+	void AppendRawLocked(const byte* buffer, int size);
+	bool ProcessRawFrames();
 
 	bool opened;
 	bool quit;
 	bool verbose;
 	
-	Upp::Thread thread;
+	Upp::Thread usb_thread;
+	Upp::Thread process_thread;
 	Upp::Mutex mutex;
+	Upp::Mutex raw_mutex;
 	Vector<CameraFrame> queue;
 	CameraStats stats;
+	int skip_streak_bright;
+	int skip_streak_dark;
 	
 	libusb_context* usb_ctx;
 	libusb_device_handle* usb_handle;
 	
-	static const int ASYNC_BUFFERS = 4;
+	int async_buffers;
 	struct Transfer {
 		struct libusb_transfer* libusb_xfer;
 		byte* buffer;
 		Camera* camera;
-	} transfers[ASYNC_BUFFERS];
+	};
+	std::vector<Transfer> transfers;
+	int transfer_timeout_ms;
 	
 	std::vector<byte> raw_buffer;
 	int raw_buffer_ptr;
-	std::vector<byte> stripped_buffer;
 	int64 last_halt_clear_usecs;
 };
 

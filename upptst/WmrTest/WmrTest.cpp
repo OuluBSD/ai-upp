@@ -36,9 +36,13 @@ public:
 	TimeCallback tc;
 	
 	VectorMap<String, String> data;
+	int async_buffers;
+	int transfer_timeout_ms;
 
 public:
-	WmrTest() {
+	WmrTest(int async_buffers_, int transfer_timeout_ms_) {
+		async_buffers = async_buffers_;
+		transfer_timeout_ms = transfer_timeout_ms_;
 		Title("WMR / HMD Test");
 		Sizeable().Zoomable();
 		
@@ -53,6 +57,10 @@ public:
 		}
 		
 		cam.Create();
+		if(async_buffers > 0)
+			cam->SetAsyncBuffers(async_buffers);
+		if(transfer_timeout_ms >= 0)
+			cam->SetTransferTimeoutMs(transfer_timeout_ms);
 		if(!cam->Open()) {
 			data.Add("Camera Error", "Failed to open HMD camera");
 		}
@@ -93,18 +101,37 @@ public:
 				data.Add("Cam Bright Balance", IntStr(cs.bright_balance));
 				data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
 				data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
-				data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
-				data.Add("Cam Last Error (r)", IntStr(cs.last_r));
-				data.Add("Cam Mutex Fails", IntStr(cs.mutex_fails));
-				data.Add("Cam USB Errors", IntStr(cs.usb_errors));
-				data.Add("Cam Timeout Errors", IntStr(cs.timeout_errors));
-				data.Add("Cam Overflow Errors", IntStr(cs.overflow_errors));
-				data.Add("Cam Skips", IntStr(cs.other_errors));
-				data.Add("Cam Handle (usecs)", IntStr(cs.handle_usecs));
-				data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
-				data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
+			data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
+			data.Add("Cam Last Error (r)", IntStr(cs.last_r));
+			data.Add("Cam Mutex Fails", IntStr(cs.mutex_fails));
+			data.Add("Cam USB Errors", IntStr(cs.usb_errors));
+			data.Add("Cam Timeout Errors", IntStr(cs.timeout_errors));
+			data.Add("Cam Overflow Errors", IntStr(cs.overflow_errors));
+			data.Add("Cam Skips", IntStr(cs.other_errors));
+			data.Add("Cam No-Device Errors", IntStr(cs.no_device_errors));
+			data.Add("Cam Resubmit Fails", IntStr(cs.resubmit_failures));
+			data.Add("Cam Resubmit Skips", IntStr(cs.resubmit_skips));
+			data.Add("Cam Halt Clears", Format("%d / %d", cs.halt_clear_attempts, cs.halt_clear_failures));
+			data.Add("Cam Async Buffers", IntStr(cs.async_buffers));
+			data.Add("Cam Timeout (ms)", IntStr(cs.transfer_timeout_ms));
+			data.Add("Cam Handle (usecs)", IntStr(cs.handle_usecs));
+			data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
+			data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
+			static const char* status_names[] = {
+				"COMPLETED", "ERROR", "TIMED_OUT", "CANCELLED", "STALL", "NO_DEVICE", "OVERFLOW"
+			};
+			const int status_name_count = (int)(sizeof(status_names) / sizeof(status_names[0]));
+			String status_line;
+			for(int i = 0; i <= LIBUSB_TRANSFER_OVERFLOW; i++) {
+				if(i) status_line << ", ";
+				if(i < status_name_count)
+					status_line << status_names[i] << "=" << cs.status_counts[i];
+				else
+					status_line << i << "=" << cs.status_counts[i];
 			}
+			data.Add("Cam Status Counts", status_line);
 		}
+	}
 		
 		if(camera.bright)
 			data.Add("Camera Resolution", Format("%d x %d (x2)", camera.bright.GetWidth(), camera.bright.GetHeight()));
@@ -164,11 +191,15 @@ public:
 	}
 };
 
-void TestDump(int seconds)
+void TestDump(int seconds, int async_buffers, int transfer_timeout_ms)
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
 	One<HMD::Camera> cam;
 	cam.Create();
+	if(async_buffers > 0)
+		cam->SetAsyncBuffers(async_buffers);
+	if(transfer_timeout_ms >= 0)
+		cam->SetTransferTimeoutMs(transfer_timeout_ms);
 	
 	if(!cam->Open()) {
 		Cout() << "Camera Error: Failed to open HMD camera\n";
@@ -207,6 +238,8 @@ GUI_APP_MAIN
 	const Vector<String>& args = CommandLine();
 	int dump_time = -1;
 	bool verbose = false;
+	int async_buffers = -1;
+	int transfer_timeout_ms = -1;
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--test-dump" && i + 1 < args.GetCount()) {
 			dump_time = atoi(args[i+1]);
@@ -214,14 +247,20 @@ GUI_APP_MAIN
 		if(args[i] == "-v" || args[i] == "--verbose") {
 			verbose = true;
 		}
+		if(args[i] == "--async-buffers" && i + 1 < args.GetCount()) {
+			async_buffers = atoi(args[i+1]);
+		}
+		if(args[i] == "--timeout-ms" && i + 1 < args.GetCount()) {
+			transfer_timeout_ms = atoi(args[i+1]);
+		}
 	}
 
 	if(dump_time >= 0) {
-		TestDump(dump_time);
+		TestDump(dump_time, async_buffers, transfer_timeout_ms);
 		return;
 	}
 
-	WmrTest wt;
+	WmrTest wt(async_buffers, transfer_timeout_ms);
 	wt.cam->SetVerbose(verbose);
 	wt.Run();
 }

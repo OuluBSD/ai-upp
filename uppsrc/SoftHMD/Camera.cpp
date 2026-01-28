@@ -323,6 +323,17 @@ void Camera::AppendRaw(const byte* buffer, int size)
 
 void Camera::AppendRawLocked(const byte* buffer, int size)
 {
+	if (size <= 0)
+		return;
+	int buf_size = (int)raw_buffer.size();
+	if (buf_size <= 0)
+		return;
+	if (size > buf_size) {
+		if (verbose) Cout() << "Raw append size exceeds buffer, clamping\n";
+		size = buf_size;
+	}
+	if (raw_buffer_ptr < 0)
+		raw_buffer_ptr = 0;
 	if(raw_buffer_ptr + size > (int)raw_buffer.size()) {
 		if(verbose) Cout() << "Buffer overflow, resetting raw_buffer_ptr\n";
 		raw_buffer_ptr = 0;
@@ -338,6 +349,10 @@ bool Camera::ProcessRawFrames()
 	int local_size = 0;
 	{
 		Upp::Mutex::Lock __(raw_mutex);
+		if (raw_buffer_ptr < 0)
+			raw_buffer_ptr = 0;
+		if (raw_buffer_ptr > (int)raw_buffer.size())
+			raw_buffer_ptr = (int)raw_buffer.size();
 		if(raw_buffer_ptr > 0) {
 			local_raw.assign(raw_buffer.data(), raw_buffer.data() + raw_buffer_ptr);
 			local_size = raw_buffer_ptr;

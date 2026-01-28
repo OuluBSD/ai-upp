@@ -207,16 +207,153 @@ struct TrackingCtrl : public Ctrl {
 
 struct CameraCtrl : public Ctrl {
 	Image bright, dark;
+	HMD::StereoOverlay bright_overlay;
+	HMD::StereoOverlay dark_overlay;
+	HMD::StereoTrackerStats bright_stats;
+	HMD::StereoTrackerStats dark_stats;
+	bool has_bright_overlay = false;
+	bool has_dark_overlay = false;
+	bool show_descriptors = true;
+	bool show_descriptor_ids = false;
+	bool show_match_lines = false;
+	bool show_stats_overlay = true;
+	bool show_split_view = true;
+
+	void SetOverlay(bool is_bright, HMD::StereoOverlay& overlay) {
+		if (is_bright) {
+			Swap(bright_overlay, overlay);
+			has_bright_overlay = true;
+		}
+		else {
+			Swap(dark_overlay, overlay);
+			has_dark_overlay = true;
+		}
+	}
+
+	void ClearOverlay(bool is_bright) {
+		if (is_bright) {
+			bright_overlay.Clear();
+			has_bright_overlay = false;
+		}
+		else {
+			dark_overlay.Clear();
+			has_dark_overlay = false;
+		}
+	}
+
+	void SetStats(bool is_bright, const HMD::StereoTrackerStats& stats) {
+		if (is_bright)
+			bright_stats = stats;
+		else
+			dark_stats = stats;
+	}
+
+	void SetShowDescriptors(bool b) { show_descriptors = b; }
+	void SetShowDescriptorIds(bool b) { show_descriptor_ids = b; }
+	void SetShowMatchLines(bool b) { show_match_lines = b; }
+	void SetShowStatsOverlay(bool b) { show_stats_overlay = b; }
+	void SetShowSplitView(bool b) { show_split_view = b; }
+
+	void DrawOverlay(Draw& w, const Rect& r, const Image& img, const HMD::StereoOverlay& overlay,
+	                 const HMD::StereoTrackerStats& stats, const char* label,
+	                 const Color& point_color, const Color& match_color) const {
+		if (img.IsEmpty())
+			return;
+		Size src = img.GetSize();
+		if (src.cx <= 0 || src.cy <= 0)
+			return;
+		if (!show_descriptors && !show_match_lines && !show_stats_overlay)
+			return;
+
+		Size dst_sz = r.GetSize();
+		double sx = (double)dst_sz.cx / (double)src.cx;
+		double sy = (double)dst_sz.cy / (double)src.cy;
+		int right_offset = 0;
+		if (overlay.left_size.cx > 0 && src.cx == overlay.left_size.cx * 2)
+			right_offset = overlay.left_size.cx;
+
+		auto MapPoint = [&](const vec2& p, int offset_x) -> Pointf {
+			return Pointf((double)r.left + (p[0] + offset_x) * sx,
+			              (double)r.top + p[1] * sy);
+		};
+
+		const int max_points = 512;
+		if (show_descriptors) {
+			int left_count = overlay.left_points.GetCount();
+			if (left_count > max_points)
+				left_count = max_points;
+			for (int i = 0; i < left_count; i++) {
+				Pointf pt = MapPoint(overlay.left_points[i], 0);
+				w.DrawRect((int)pt.x - 1, (int)pt.y - 1, 3, 3, point_color);
+				if (show_descriptor_ids)
+					w.DrawText((int)pt.x + 2, (int)pt.y + 2, IntStr(i), Arial(9), point_color);
+			}
+			int right_count = overlay.right_points.GetCount();
+			if (right_count > max_points)
+				right_count = max_points;
+			for (int i = 0; i < right_count; i++) {
+				Pointf pt = MapPoint(overlay.right_points[i], right_offset);
+				w.DrawRect((int)pt.x - 1, (int)pt.y - 1, 3, 3, point_color);
+				if (show_descriptor_ids)
+					w.DrawText((int)pt.x + 2, (int)pt.y + 2, IntStr(i), Arial(9), point_color);
+			}
+		}
+
+		if (show_match_lines) {
+			int match_count = overlay.match_left.GetCount();
+			if (match_count > overlay.match_right.GetCount())
+				match_count = overlay.match_right.GetCount();
+			if (match_count > max_points)
+				match_count = max_points;
+			for (int i = 0; i < match_count; i++) {
+				Pointf a = MapPoint(overlay.match_left[i], 0);
+				Pointf b = MapPoint(overlay.match_right[i], right_offset);
+				w.DrawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y, 1, match_color);
+			}
+		}
+
+		if (show_stats_overlay) {
+			String line1 = Format("%s: frames=%d, kp=%d/%d, points=%d",
+				label, stats.processed_frames, stats.last_left_keypoints,
+				stats.last_right_keypoints, stats.last_tracked_points);
+			String line2 = Format("tri=%d, usecs=%d, pose=%s",
+				stats.last_tracked_triangles, stats.last_process_usecs,
+				stats.has_pose ? "yes" : "no");
+			w.DrawText(r.left + 6, r.top + 6, line1, Arial(12).Bold(), White());
+			w.DrawText(r.left + 6, r.top + 22, line2, Arial(11), White());
+		}
+	}
 	
 	virtual void Paint(Draw& w) override {
 		Size sz = GetSize();
 		w.DrawRect(sz, Black());
 		int h = sz.cy / 2;
-		if(bright) {
-			w.DrawImage(0, 0, sz.cx, h, bright);
+		bool draw_split = show_split_view;
+		Rect bright_rc = draw_split ? RectC(0, 0, sz.cx, h) : RectC(0, 0, sz.cx, sz.cy);
+		Rect dark_rc = draw_split ? RectC(0, h, sz.cx, h) : Rect();
+
+		if (draw_split) {
+			if (bright)
+				w.DrawImage(bright_rc, bright);
+			if (dark)
+				w.DrawImage(dark_rc, dark);
+
+			if (bright && has_bright_overlay)
+				DrawOverlay(w, bright_rc, bright, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
+			if (dark && has_dark_overlay)
+				DrawOverlay(w, dark_rc, dark, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
 		}
-		if(dark) {
-			w.DrawImage(0, h, sz.cx, h, dark);
+		else {
+			if (bright) {
+				w.DrawImage(bright_rc, bright);
+				if (has_bright_overlay)
+					DrawOverlay(w, bright_rc, bright, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
+			}
+			else if (dark) {
+				w.DrawImage(bright_rc, dark);
+				if (has_dark_overlay)
+					DrawOverlay(w, bright_rc, dark, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
+			}
 		}
 		
 		if(!bright && !dark) {
@@ -243,6 +380,11 @@ public:
 	TimeCallback tc;
 	MenuBar menu;
 	PointcloudMode cloud_mode = POINTCLOUD_BRIGHT;
+	bool show_descriptors = true;
+	bool show_descriptor_ids = false;
+	bool show_match_lines = false;
+	bool show_stats_overlay = true;
+	bool show_split_view = true;
 	
 	VectorMap<String, String> data;
 	int async_buffers;
@@ -283,6 +425,11 @@ public:
 
 		tracking.SetTrackers(&fusion.GetBrightTracker(), &fusion.GetDarkTracker());
 		tracking.SetFusion(&fusion);
+		camera.SetShowDescriptors(show_descriptors);
+		camera.SetShowDescriptorIds(show_descriptor_ids);
+		camera.SetShowMatchLines(show_match_lines);
+		camera.SetShowStatsOverlay(show_stats_overlay);
+		camera.SetShowSplitView(show_split_view);
 		
 		// Initial refresh of list to show error if any
 		for(int j = 0; j < data.GetCount(); j++) {
@@ -327,6 +474,16 @@ public:
 			if (fusion.GetBrightTracker().GetStats().processed_frames != prev_bright ||
 			    fusion.GetDarkTracker().GetStats().processed_frames != prev_dark)
 				tracking.Refresh();
+			HMD::StereoOverlay bright_overlay;
+			if (fusion.GetBrightTracker().GetOverlay(bright_overlay))
+				camera.SetOverlay(true, bright_overlay);
+			else
+				camera.ClearOverlay(true);
+			HMD::StereoOverlay dark_overlay;
+			if (fusion.GetDarkTracker().GetOverlay(dark_overlay))
+				camera.SetOverlay(false, dark_overlay);
+			else
+				camera.ClearOverlay(false);
 
 			HMD::CameraStats cs = cam->GetStats();
 			data.Add("Camera", cam->IsOpen() ? "Open" : "Closed");
@@ -373,6 +530,8 @@ public:
 
 		HMD::StereoTrackerStats tb = fusion.GetBrightTracker().GetStats();
 		HMD::StereoTrackerStats td = fusion.GetDarkTracker().GetStats();
+		camera.SetStats(true, tb);
+		camera.SetStats(false, td);
 		data.Add("Track Bright Frames", IntStr(tb.processed_frames));
 		data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
 		data.Add("Track Bright Keypoints", Format("%d / %d", tb.last_left_keypoints, tb.last_right_keypoints));
@@ -470,6 +629,17 @@ public:
 	}
 	
 	void ViewMenu(Bar& bar) {
+		bar.Add("Show descriptors", [=] { ToggleShowDescriptors(); })
+		   .Check(show_descriptors);
+		bar.Add("Show descriptor IDs", [=] { ToggleShowDescriptorIds(); })
+		   .Check(show_descriptor_ids);
+		bar.Add("Show match lines", [=] { ToggleShowMatchLines(); })
+		   .Check(show_match_lines);
+		bar.Add("Show stats overlay", [=] { ToggleShowStatsOverlay(); })
+		   .Check(show_stats_overlay);
+		bar.Add("Show split view", [=] { ToggleShowSplitView(); })
+		   .Check(show_split_view);
+		bar.Separator();
 		bar.Add("Pointcloud: Bright", [=] { SetPointcloudMode(POINTCLOUD_BRIGHT); })
 		   .Check(cloud_mode == POINTCLOUD_BRIGHT);
 		bar.Add("Pointcloud: Dark", [=] { SetPointcloudMode(POINTCLOUD_DARK); })
@@ -488,6 +658,36 @@ public:
 		cloud_mode = mode;
 		tracking.SetPointcloudMode(mode);
 		tracking.Refresh();
+	}
+
+	void ToggleShowDescriptors() {
+		show_descriptors = !show_descriptors;
+		camera.SetShowDescriptors(show_descriptors);
+		camera.Refresh();
+	}
+
+	void ToggleShowDescriptorIds() {
+		show_descriptor_ids = !show_descriptor_ids;
+		camera.SetShowDescriptorIds(show_descriptor_ids);
+		camera.Refresh();
+	}
+
+	void ToggleShowMatchLines() {
+		show_match_lines = !show_match_lines;
+		camera.SetShowMatchLines(show_match_lines);
+		camera.Refresh();
+	}
+
+	void ToggleShowStatsOverlay() {
+		show_stats_overlay = !show_stats_overlay;
+		camera.SetShowStatsOverlay(show_stats_overlay);
+		camera.Refresh();
+	}
+
+	void ToggleShowSplitView() {
+		show_split_view = !show_split_view;
+		camera.SetShowSplitView(show_split_view);
+		camera.Refresh();
 	}
 
 };

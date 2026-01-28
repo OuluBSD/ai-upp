@@ -396,6 +396,7 @@ public:
 	bool show_stats_overlay = true;
 	bool show_split_view = true;
 	bool capture_enabled = true;
+	HMD::StereoCalibrationData calib;
 	
 	VectorMap<String, String> data;
 	int async_buffers;
@@ -548,12 +549,14 @@ public:
 		data.Add("Track Bright Frames", IntStr(tb.processed_frames));
 		data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
 		data.Add("Track Bright Keypoints", Format("%d / %d", tb.last_left_keypoints, tb.last_right_keypoints));
+		data.Add("Track Bright Matches", IntStr(tb.last_stereo_matches));
 		data.Add("Track Bright Points", IntStr(tb.last_tracked_points));
 		data.Add("Track Bright Triangles", IntStr(tb.last_tracked_triangles));
 		data.Add("Track Bright Process (usecs)", IntStr(tb.last_process_usecs));
 		data.Add("Track Dark Frames", IntStr(td.processed_frames));
 		data.Add("Track Dark Skips", IntStr(td.skipped_frames));
 		data.Add("Track Dark Keypoints", Format("%d / %d", td.last_left_keypoints, td.last_right_keypoints));
+		data.Add("Track Dark Matches", IntStr(td.last_stereo_matches));
 		data.Add("Track Dark Points", IntStr(td.last_tracked_points));
 		data.Add("Track Dark Triangles", IntStr(td.last_tracked_triangles));
 		data.Add("Track Dark Process (usecs)", IntStr(td.last_process_usecs));
@@ -745,11 +748,89 @@ public:
 	}
 	
 	void LoadCalibration() {
-		PromptOK("Stereo calibration load is not implemented yet.");
+		FileSel fs;
+		fs.Type("Stereo Calibration", "*.stcal");
+		fs.AllFilesType();
+		if (!fs.ExecuteOpen("Load Stereo Calibration"))
+			return;
+		String path = fs;
+		HMD::StereoCalibrationData loaded;
+		if (!LoadCalibrationFile(path, loaded)) {
+			PromptOK("Failed to load calibration file.");
+			return;
+		}
+		calib = loaded;
+		ApplyCalibration(calib);
+		PromptOK("Stereo calibration loaded.");
 	}
 	
 	void SaveCalibration() {
-		PromptOK("Stereo calibration save is not implemented yet.");
+		FileSel fs;
+		fs.Type("Stereo Calibration", "*.stcal");
+		fs.AllFilesType();
+		if (!fs.ExecuteSaveAs("Save Stereo Calibration"))
+			return;
+		String path = fs;
+		HMD::StereoCalibrationData data = calib;
+		if (!data.is_enabled)
+			data = fusion.GetBrightTracker().GetCalibration();
+		if (!SaveCalibrationFile(path, data)) {
+			PromptOK("Failed to save calibration file.");
+			return;
+		}
+		PromptOK("Stereo calibration saved.");
+	}
+
+	void ApplyCalibration(const HMD::StereoCalibrationData& data) {
+		fusion.GetBrightTracker().SetCalibration(data);
+		fusion.GetDarkTracker().SetCalibration(data);
+	}
+
+	bool SaveCalibrationFile(const String& path, const HMD::StereoCalibrationData& data) {
+		Vector<String> lines;
+		lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
+		lines.Add(Format("eye_dist=%g", (double)data.eye_dist));
+		lines.Add(Format("outward_angle=%g", (double)data.outward_angle));
+		lines.Add(Format("angle_poly=%g,%g,%g,%g",
+			(double)data.angle_to_pixel[0], (double)data.angle_to_pixel[1],
+			(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
+		String text = Join(lines, "\n") + "\n";
+		return SaveFile(path, text);
+	}
+
+	bool LoadCalibrationFile(const String& path, HMD::StereoCalibrationData& out) {
+		String text = LoadFile(path);
+		if (text.IsEmpty())
+			return false;
+		HMD::StereoCalibrationData data;
+		Vector<String> lines = Split(text, '\n');
+		for (String line : lines) {
+			line = TrimBoth(line);
+			if (line.IsEmpty() || line[0] == '#')
+				continue;
+			int eq = line.Find('=');
+			if (eq < 0)
+				continue;
+			String key = TrimBoth(line.Left(eq));
+			String val = TrimBoth(line.Mid(eq + 1));
+			if (key == "enabled")
+				data.is_enabled = atoi(val) != 0;
+			else if (key == "eye_dist")
+				data.eye_dist = (float)atof(val);
+			else if (key == "outward_angle")
+				data.outward_angle = (float)atof(val);
+			else if (key == "angle_poly") {
+				Vector<String> parts = Split(val, ',');
+				if (parts.GetCount() >= 4) {
+					data.angle_to_pixel[0] = (float)atof(parts[0]);
+					data.angle_to_pixel[1] = (float)atof(parts[1]);
+					data.angle_to_pixel[2] = (float)atof(parts[2]);
+					data.angle_to_pixel[3] = (float)atof(parts[3]);
+				}
+			}
+		}
+		out = data;
+		return true;
 	}
 
 };

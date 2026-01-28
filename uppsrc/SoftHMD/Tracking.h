@@ -11,6 +11,7 @@ struct StereoTrackerStats {
 	int last_right_keypoints = 0;
 	int last_tracked_points = 0;
 	int last_tracked_triangles = 0;
+	int last_stereo_matches = 0;
 	int last_process_usecs = 0;
 	bool has_pose = false;
 };
@@ -33,6 +34,13 @@ struct StereoOverlay {
 	}
 };
 
+struct StereoCalibrationData {
+	bool is_enabled = false;
+	vec4 angle_to_pixel = vec4(0,0,0,0);
+	float outward_angle = 0;
+	float eye_dist = 0;
+};
+
 class StereoTracker {
 public:
 	HMD_APIENTRYDLL StereoTracker();
@@ -52,6 +60,8 @@ public:
 	HMD_APIENTRYDLL bool HasPose() const;
 	HMD_APIENTRYDLL const Octree* GetPointcloud() const;
 	HMD_APIENTRYDLL bool GetOverlay(StereoOverlay& out) const;
+	HMD_APIENTRYDLL void SetCalibration(const StereoCalibrationData& data);
+	HMD_APIENTRYDLL StereoCalibrationData GetCalibration() const;
 
 private:
 	bool SplitStereo(const Image& frame, Image& left, Image& right) const;
@@ -71,6 +81,7 @@ private:
 	int point_limit = 2048;
 	bool octree_inited = false;
 	StereoTrackerStats stats;
+	StereoCalibrationData calib;
 	vec3 position = vec3(0,0,0);
 	quat orientation = Identity<quat>();
 };

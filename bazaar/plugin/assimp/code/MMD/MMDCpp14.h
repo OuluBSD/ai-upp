@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <cstdint>
 
 namespace mmd {
     template<class T> struct _Unique_if {

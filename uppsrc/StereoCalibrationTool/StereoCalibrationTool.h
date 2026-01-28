@@ -8,6 +8,23 @@
 NAMESPACE_UPP
 
 struct StereoCalibrationTool : TopWindow {
+	struct PreviewCtrl : Ctrl {
+		bool live = true;
+		String overlay;
+		
+		void SetLive(bool b) { live = b; Refresh(); }
+		void SetOverlay(const String& s) { overlay = s; Refresh(); }
+		
+		virtual void Paint(Draw& w) override {
+			Size sz = GetSize();
+			w.DrawRect(sz, Black());
+			String title = live ? "Live Preview" : "Captured Snapshot";
+			w.DrawText(10, 10, title, Arial(18).Bold(), White());
+			if (!overlay.IsEmpty())
+				w.DrawText(10, 34, overlay, Arial(12), White());
+		}
+	};
+	
 	struct StereoSource {
 		virtual ~StereoSource() {}
 		virtual String GetName() const = 0;
@@ -46,15 +63,22 @@ struct StereoCalibrationTool : TopWindow {
 	};
 	
 	MenuBar menu;
-	TabCtrl tabs;
-	ParentCtrl source_tab;
-	ParentCtrl calibration_tab;
+	StatusBar status;
+	Splitter vsplitter;
+	Splitter hsplitter;
+	ParentCtrl left;
+	ParentCtrl right;
+	TabCtrl bottom_tabs;
+	PreviewCtrl preview;
+	
 	Label source_info;
 	Label calibration_info;
 	Label calibration_schema;
 	Label calibration_preview;
 	Button export_calibration;
 	Button load_calibration;
+	Button live_view;
+	Button capture_frame;
 	Label calib_enabled_lbl;
 	Option calib_enabled;
 	Label calib_eye_lbl;
@@ -66,10 +90,20 @@ struct StereoCalibrationTool : TopWindow {
 	EditDouble calib_poly_b;
 	EditDouble calib_poly_c;
 	EditDouble calib_poly_d;
+	Label mode_lbl;
+	DropList mode_list;
 	DropList source_list;
 	Button start_source;
 	Button stop_source;
 	Label source_status;
+	LabelBox sep_source;
+	LabelBox sep_mode;
+	LabelBox sep_calib;
+	LabelBox sep_diag;
+	
+	ArrayCtrl captures_list;
+	ArrayCtrl matches_list;
+	DocEdit report_text;
 	Vector<One<StereoSource>> sources;
 	StereoCalibrationData last_calibration;
 
@@ -77,11 +111,14 @@ struct StereoCalibrationTool : TopWindow {
 	StereoCalibrationTool();
 	~StereoCalibrationTool();
 	
-	void BuildSourceTab();
-	void BuildCalibrationTab();
+	void BuildLayout();
+	void BuildLeftPanel();
+	void BuildBottomTabs();
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();
+	void LiveView();
+	void CaptureFrame();
 	void ExportCalibration();
 	void LoadCalibration();
 	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);

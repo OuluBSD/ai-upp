@@ -14,3 +14,7 @@
   task: phase-00-foundations/track-architecture/task-0004-descriptor-matching-accel.md
   status: done
   note: Specified popcount strategy, LSH hashing plan, and octree scope for spatial queries only.
+- date: 2026-01-28
+  task: phase-00-foundations/track-calibration/task-0001-stereo-calibration.md
+  status: done
+  note: Documented calibration spec, file format proposal, and Geometry helpers to reuse.

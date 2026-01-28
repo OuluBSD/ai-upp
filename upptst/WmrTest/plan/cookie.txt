@@ -54,3 +54,7 @@
   task: phase-03-localization/track-relocalization/task-0001-known-map-lookup.md
   status: done
   note: Defined relocalization pipeline and map storage format.
+- date: 2026-01-28
+  task: phase-04-ui/track-overlays/task-0001-menu-and-toggles.md
+  status: done
+  note: Specified menu items and overlay layering/toggles.

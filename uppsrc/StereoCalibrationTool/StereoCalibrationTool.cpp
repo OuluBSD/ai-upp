@@ -8,6 +8,7 @@ StereoCalibrationTool::StereoCalibrationTool() {
 
 	AddFrame(menu);
 	menu.Set(THISBACK(MainMenu));
+	AddFrame(status);
 
 	source_info.SetLabel("Source setup goes here (live HMD, USB stereo, or video file).");
 	calibration_info.SetLabel("Calibration workflow goes here (checkerboard/aruco capture).");
@@ -18,14 +19,7 @@ StereoCalibrationTool::StereoCalibrationTool() {
 		"  angle_poly=a,b,c,d\n");
 	calibration_preview.SetLabel("Preview: (no calibration loaded)");
 
-	BuildSourceTab();
-	BuildCalibrationTab();
-	source_tab.Add(source_info.BottomPos(8, StdFont().GetHeight() + 8).HSizePos(8, 8));
-
-	tabs.Add(source_tab, "Source");
-	tabs.Add(calibration_tab, "Calibration");
-
-	Add(tabs.SizePos());
+	BuildLayout();
 	LoadLastCalibration();
 	SyncEditsFromCalibration();
 	UpdatePreview();
@@ -35,32 +29,45 @@ StereoCalibrationTool::~StereoCalibrationTool() {
 	SaveLastCalibration();
 }
 
-void StereoCalibrationTool::BuildSourceTab() {
+void StereoCalibrationTool::BuildLayout() {
+	hsplitter.Horz(left, right);
+	hsplitter.SetPos(2000);
+	vsplitter.Vert(hsplitter, bottom_tabs);
+	vsplitter.SetPos(7000);
+	Add(vsplitter.SizePos());
+
+	BuildLeftPanel();
+	BuildBottomTabs();
+	right.Add(preview.SizePos());
+	status.Set("Status: idle");
+}
+
+void StereoCalibrationTool::BuildLeftPanel() {
 	source_list.Add(0, "HMD Stereo Camera");
 	source_list.Add(1, "USB Stereo (Side-by-side)");
 	source_list.Add(2, "Stereo Video File");
 	source_list.SetIndex(0);
 	source_list.WhenAction = THISBACK(OnSourceChanged);
-	
+
 	start_source.SetLabel("Start");
 	stop_source.SetLabel("Stop");
+	live_view.SetLabel("Live view");
+	capture_frame.SetLabel("Capture");
 	start_source <<= THISBACK(StartSource);
 	stop_source <<= THISBACK(StopSource);
-	
-	source_status.SetLabel("Status: idle");
-	
-	source_tab.Add(source_list.TopPos(8, 24).HSizePos(8, 8));
-	source_tab.Add(start_source.TopPos(40, 24).LeftPos(8, 80));
-	source_tab.Add(stop_source.TopPos(40, 24).LeftPos(96, 80));
-	source_tab.Add(source_status.TopPos(72, 24).HSizePos(8, 8));
-	
-	sources.Clear();
-	sources.Add(MakeOne<HmdStereoSource>());
-	sources.Add(MakeOne<UsbStereoSource>());
-	sources.Add(MakeOne<VideoStereoSource>());
-}
+	live_view <<= THISBACK(LiveView);
+	capture_frame <<= THISBACK(CaptureFrame);
 
-void StereoCalibrationTool::BuildCalibrationTab() {
+	source_status.SetLabel("Status: idle");
+	sep_source.SetLabel("Source");
+	sep_mode.SetLabel("Mode");
+	sep_calib.SetLabel("Calibration");
+	sep_diag.SetLabel("Diagnostics");
+	mode_lbl.SetLabel("Match mode");
+	mode_list.Add(0, "Point pairs");
+	mode_list.Add(1, "Line pairs");
+	mode_list.SetIndex(0);
+
 	export_calibration.SetLabel("Export .stcal");
 	export_calibration <<= THISBACK(ExportCalibration);
 	load_calibration.SetLabel("Load .stcal");
@@ -77,40 +84,91 @@ void StereoCalibrationTool::BuildCalibrationTab() {
 	calib_poly_c.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_poly_d.WhenAction = THISBACK(SyncCalibrationFromEdits);
 
-	calibration_tab.Add(calibration_info.TopPos(8, 24).HSizePos(8, 8));
-	calibration_tab.Add(calibration_schema.TopPos(40, 120).HSizePos(8, 8));
-	calibration_tab.Add(calib_enabled_lbl.TopPos(170, 20).LeftPos(8, 80));
-	calibration_tab.Add(calib_enabled.TopPos(168, 20).LeftPos(96, 20));
-	calibration_tab.Add(calib_eye_lbl.TopPos(196, 20).LeftPos(8, 80));
-	calibration_tab.Add(calib_eye_dist.TopPos(194, 20).LeftPos(96, 120));
-	calibration_tab.Add(calib_outward_lbl.TopPos(222, 20).LeftPos(8, 80));
-	calibration_tab.Add(calib_outward_angle.TopPos(220, 20).LeftPos(96, 120));
-	calibration_tab.Add(calib_poly_lbl.TopPos(248, 20).LeftPos(8, 80));
-	calibration_tab.Add(calib_poly_a.TopPos(246, 20).LeftPos(96, 80));
-	calibration_tab.Add(calib_poly_b.TopPos(246, 20).LeftPos(182, 80));
-	calibration_tab.Add(calib_poly_c.TopPos(246, 20).LeftPos(268, 80));
-	calibration_tab.Add(calib_poly_d.TopPos(246, 20).LeftPos(354, 80));
-	calibration_tab.Add(calibration_preview.TopPos(276, 40).HSizePos(8, 8));
-	calibration_tab.Add(load_calibration.BottomPos(8, 24).LeftPos(8, 120));
-	calibration_tab.Add(export_calibration.BottomPos(8, 24).LeftPos(136, 120));
+	int y = 8;
+	left.Add(sep_source.TopPos(y, 18).HSizePos(8, 8));
+	y += 24;
+	left.Add(source_list.TopPos(y, 24).HSizePos(8, 8));
+	y += 32;
+	left.Add(start_source.TopPos(y, 24).LeftPos(8, 80));
+	left.Add(stop_source.TopPos(y, 24).LeftPos(96, 80));
+	left.Add(live_view.TopPos(y, 24).LeftPos(184, 80));
+	left.Add(capture_frame.TopPos(y, 24).LeftPos(272, 80));
+	y += 32;
+	left.Add(source_status.TopPos(y, 20).HSizePos(8, 8));
+	y += 28;
 
-	SyncEditsFromCalibration();
-	UpdatePreview();
+	left.Add(sep_mode.TopPos(y, 18).HSizePos(8, 8));
+	y += 24;
+	left.Add(mode_lbl.TopPos(y, 20).LeftPos(8, 80));
+	left.Add(mode_list.TopPos(y, 20).LeftPos(96, 160));
+	y += 28;
+
+	left.Add(sep_calib.TopPos(y, 18).HSizePos(8, 8));
+	y += 24;
+	left.Add(calib_enabled_lbl.TopPos(y, 20).LeftPos(8, 80));
+	left.Add(calib_enabled.TopPos(y, 20).LeftPos(96, 20));
+	y += 24;
+	left.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 80));
+	left.Add(calib_eye_dist.TopPos(y, 20).LeftPos(96, 120));
+	y += 24;
+	left.Add(calib_outward_lbl.TopPos(y, 20).LeftPos(8, 80));
+	left.Add(calib_outward_angle.TopPos(y, 20).LeftPos(96, 120));
+	y += 24;
+	left.Add(calib_poly_lbl.TopPos(y, 20).LeftPos(8, 80));
+	left.Add(calib_poly_a.TopPos(y, 20).LeftPos(96, 70));
+	left.Add(calib_poly_b.TopPos(y, 20).LeftPos(170, 70));
+	left.Add(calib_poly_c.TopPos(y, 20).LeftPos(244, 70));
+	left.Add(calib_poly_d.TopPos(y, 20).LeftPos(318, 70));
+	y += 28;
+	left.Add(load_calibration.TopPos(y, 24).LeftPos(8, 120));
+	left.Add(export_calibration.TopPos(y, 24).LeftPos(136, 120));
+	y += 32;
+
+	left.Add(sep_diag.TopPos(y, 18).HSizePos(8, 8));
+	y += 24;
+	left.Add(calibration_schema.TopPos(y, 110).HSizePos(8, 8));
+	y += 118;
+	left.Add(calibration_preview.TopPos(y, 60).HSizePos(8, 8));
+
+	sources.Clear();
+	sources.Add(MakeOne<HmdStereoSource>());
+	sources.Add(MakeOne<UsbStereoSource>());
+	sources.Add(MakeOne<VideoStereoSource>());
+}
+
+void StereoCalibrationTool::BuildBottomTabs() {
+	captures_list.AddColumn("Time");
+	captures_list.AddColumn("Source");
+	captures_list.AddColumn("Samples");
+	matches_list.AddColumn("Left");
+	matches_list.AddColumn("Right");
+	report_text.SetReadOnly();
+	report_text <<= "Solve report and .stcal preview will appear here.";
+
+	bottom_tabs.Add(captures_list.SizePos(), "Captured Frames");
+	bottom_tabs.Add(matches_list.SizePos(), "Matches");
+	bottom_tabs.Add(report_text.SizePos(), "Report");
 }
 
 void StereoCalibrationTool::OnSourceChanged() {
 	StopSource();
-	source_status.SetLabel(Format("Status: ready (%s)", AsString(source_list.GetValue())));
+	String name = AsString(source_list.GetValue());
+	source_status.SetLabel(Format("Status: ready (%s)", name));
+	status.Set(Format("Source ready: %s", name));
 }
 
 void StereoCalibrationTool::StartSource() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
-	if (sources[idx]->Start())
-		source_status.SetLabel(Format("Status: running (%s)", AsString(source_list.GetValue())));
-	else
-		source_status.SetLabel(Format("Status: failed (%s)", AsString(source_list.GetValue())));
+	String name = AsString(source_list.GetValue());
+	if (sources[idx]->Start()) {
+		source_status.SetLabel(Format("Status: running (%s)", name));
+		status.Set(Format("Source running: %s", name));
+	} else {
+		source_status.SetLabel(Format("Status: failed (%s)", name));
+		status.Set(Format("Source failed: %s", name));
+	}
 }
 
 void StereoCalibrationTool::StopSource() {
@@ -118,7 +176,26 @@ void StereoCalibrationTool::StopSource() {
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
 	sources[idx]->Stop();
-	source_status.SetLabel(Format("Status: stopped (%s)", AsString(source_list.GetValue())));
+	String name = AsString(source_list.GetValue());
+	source_status.SetLabel(Format("Status: stopped (%s)", name));
+	status.Set(Format("Source stopped: %s", name));
+}
+
+void StereoCalibrationTool::LiveView() {
+	preview.SetLive(true);
+	preview.SetOverlay("Live view");
+	status.Set("Live view enabled.");
+}
+
+void StereoCalibrationTool::CaptureFrame() {
+	preview.SetLive(false);
+	String name = AsString(source_list.GetValue());
+	Time now = GetSysTime();
+	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
+	captures_list.SetCursor(captures_list.GetCount() - 1);
+	bottom_tabs.Set(0);
+	preview.SetOverlay(Format("Captured frame from %s", name));
+	status.Set("Captured snapshot.");
 }
 
 void StereoCalibrationTool::ExportCalibration() {
@@ -268,8 +345,9 @@ void StereoCalibrationTool::AppMenu(Bar& bar) {
 }
 
 void StereoCalibrationTool::ViewMenu(Bar& bar) {
-	bar.Add("Source", [=] { tabs.Set(0); });
-	bar.Add("Calibration", [=] { tabs.Set(1); });
+	bar.Add("Captured Frames", [=] { bottom_tabs.Set(0); });
+	bar.Add("Matches", [=] { bottom_tabs.Set(1); });
+	bar.Add("Report", [=] { bottom_tabs.Set(2); });
 }
 
 void StereoCalibrationTool::HelpMenu(Bar& bar) {

@@ -51,19 +51,25 @@ struct StereoCalibrationTool : TopWindow {
 	ParentCtrl calibration_tab;
 	Label source_info;
 	Label calibration_info;
+	Label calibration_schema;
+	Button export_calibration;
 	DropList source_list;
 	Button start_source;
 	Button stop_source;
 	Label source_status;
 	Vector<One<StereoSource>> sources;
+	StereoCalibrationData last_calibration;
 
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
 	
 	void BuildSourceTab();
+	void BuildCalibrationTab();
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();
+	void ExportCalibration();
+	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);
 
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);

@@ -1,0 +1,14 @@
+uses
+	CtrlLib,
+	Geometry,
+	ComputerVision;
+
+file
+	AGENTS.md,
+	StereoCalibrationTool.h,
+	StereoCalibrationTool.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI USEMALLOC";

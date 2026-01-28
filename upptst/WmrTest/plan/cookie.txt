@@ -10,3 +10,7 @@
   task: phase-00-foundations/track-architecture/task-0003-geometry-base-classes.md
   status: done
   note: GeomEvent union payload added with pointer/value variants; SoftHMD fills HOLO_STATE payload; EventStateBase consumes payload.
+- date: 2026-01-28
+  task: phase-00-foundations/track-architecture/task-0004-descriptor-matching-accel.md
+  status: done
+  note: Specified popcount strategy, LSH hashing plan, and octree scope for spatial queries only.

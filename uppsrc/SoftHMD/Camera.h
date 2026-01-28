@@ -85,6 +85,7 @@ private:
 	std::vector<byte> raw_buffer;
 	int raw_buffer_ptr;
 	std::vector<byte> stripped_buffer;
+	int64 last_halt_clear_usecs;
 };
 
 

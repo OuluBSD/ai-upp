@@ -52,6 +52,7 @@ struct StereoCalibrationTool : TopWindow {
 	Label source_info;
 	Label calibration_info;
 	Label calibration_schema;
+	Label calibration_preview;
 	Button export_calibration;
 	Button load_calibration;
 	Label calib_enabled_lbl;
@@ -74,6 +75,7 @@ struct StereoCalibrationTool : TopWindow {
 
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
+	~StereoCalibrationTool();
 	
 	void BuildSourceTab();
 	void BuildCalibrationTab();
@@ -86,6 +88,10 @@ struct StereoCalibrationTool : TopWindow {
 	bool LoadCalibrationFile(const String& path, StereoCalibrationData& out);
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
+	void UpdatePreview();
+	String GetPersistPath() const;
+	void LoadLastCalibration();
+	void SaveLastCalibration();
 
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);

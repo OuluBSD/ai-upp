@@ -16,6 +16,7 @@ StereoCalibrationTool::StereoCalibrationTool() {
 		"  eye_dist=<float>\n"
 		"  outward_angle=<float>\n"
 		"  angle_poly=a,b,c,d\n");
+	calibration_preview.SetLabel("Preview: (no calibration loaded)");
 
 	BuildSourceTab();
 	BuildCalibrationTab();
@@ -25,6 +26,13 @@ StereoCalibrationTool::StereoCalibrationTool() {
 	tabs.Add(calibration_tab, "Calibration");
 
 	Add(tabs.SizePos());
+	LoadLastCalibration();
+	SyncEditsFromCalibration();
+	UpdatePreview();
+}
+
+StereoCalibrationTool::~StereoCalibrationTool() {
+	SaveLastCalibration();
 }
 
 void StereoCalibrationTool::BuildSourceTab() {
@@ -61,6 +69,13 @@ void StereoCalibrationTool::BuildCalibrationTab() {
 	calib_eye_lbl.SetLabel("Eye dist");
 	calib_outward_lbl.SetLabel("Outward angle");
 	calib_poly_lbl.SetLabel("Angle poly");
+	calib_enabled.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_eye_dist.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_outward_angle.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_a.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_b.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_c.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_d.WhenAction = THISBACK(SyncCalibrationFromEdits);
 
 	calibration_tab.Add(calibration_info.TopPos(8, 24).HSizePos(8, 8));
 	calibration_tab.Add(calibration_schema.TopPos(40, 120).HSizePos(8, 8));
@@ -75,10 +90,12 @@ void StereoCalibrationTool::BuildCalibrationTab() {
 	calibration_tab.Add(calib_poly_b.TopPos(246, 20).LeftPos(182, 80));
 	calibration_tab.Add(calib_poly_c.TopPos(246, 20).LeftPos(268, 80));
 	calibration_tab.Add(calib_poly_d.TopPos(246, 20).LeftPos(354, 80));
+	calibration_tab.Add(calibration_preview.TopPos(276, 40).HSizePos(8, 8));
 	calibration_tab.Add(load_calibration.BottomPos(8, 24).LeftPos(8, 120));
 	calibration_tab.Add(export_calibration.BottomPos(8, 24).LeftPos(136, 120));
 
 	SyncEditsFromCalibration();
+	UpdatePreview();
 }
 
 void StereoCalibrationTool::OnSourceChanged() {
@@ -106,6 +123,7 @@ void StereoCalibrationTool::StopSource() {
 
 void StereoCalibrationTool::ExportCalibration() {
 	SyncCalibrationFromEdits();
+	UpdatePreview();
 	FileSel fs;
 	fs.Type("Stereo Calibration", "*.stcal");
 	fs.AllFilesType();
@@ -138,6 +156,7 @@ void StereoCalibrationTool::LoadCalibration() {
 	}
 	last_calibration = data;
 	SyncEditsFromCalibration();
+	UpdatePreview();
 	PromptOK("Calibration loaded.");
 }
 
@@ -196,6 +215,7 @@ void StereoCalibrationTool::SyncCalibrationFromEdits() {
 	last_calibration.angle_to_pixel[1] = (float)~calib_poly_b;
 	last_calibration.angle_to_pixel[2] = (float)~calib_poly_c;
 	last_calibration.angle_to_pixel[3] = (float)~calib_poly_d;
+	UpdatePreview();
 }
 
 void StereoCalibrationTool::SyncEditsFromCalibration() {
@@ -206,6 +226,35 @@ void StereoCalibrationTool::SyncEditsFromCalibration() {
 	calib_poly_b <<= (double)last_calibration.angle_to_pixel[1];
 	calib_poly_c <<= (double)last_calibration.angle_to_pixel[2];
 	calib_poly_d <<= (double)last_calibration.angle_to_pixel[3];
+}
+
+void StereoCalibrationTool::UpdatePreview() {
+	String s;
+	s << "Preview:\n";
+	s << "  enabled=" << (last_calibration.is_enabled ? "1" : "0") << "\n";
+	s << "  eye_dist=" << last_calibration.eye_dist << "\n";
+	s << "  outward_angle=" << last_calibration.outward_angle << "\n";
+	s << "  angle_poly=" << last_calibration.angle_to_pixel[0] << ", "
+	  << last_calibration.angle_to_pixel[1] << ", "
+	  << last_calibration.angle_to_pixel[2] << ", "
+	  << last_calibration.angle_to_pixel[3] << "\n";
+	calibration_preview.SetLabel(s);
+}
+
+String StereoCalibrationTool::GetPersistPath() const {
+	return ConfigFile("StereoCalibrationTool.stcal");
+}
+
+void StereoCalibrationTool::LoadLastCalibration() {
+	StereoCalibrationData data;
+	String path = GetPersistPath();
+	if (FileExists(path) && LoadCalibrationFile(path, data))
+		last_calibration = data;
+}
+
+void StereoCalibrationTool::SaveLastCalibration() {
+	SyncCalibrationFromEdits();
+	SaveCalibrationFile(GetPersistPath(), last_calibration);
 }
 
 void StereoCalibrationTool::MainMenu(Bar& bar) {

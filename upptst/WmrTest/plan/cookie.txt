@@ -50,3 +50,7 @@
   task: phase-02-fusion/track-visual-inertial/task-0001-filter-design.md
   status: done
   note: Chose ESKF path, state vector, and update triggers.
+- date: 2026-01-28
+  task: phase-03-localization/track-relocalization/task-0001-known-map-lookup.md
+  status: done
+  note: Defined relocalization pipeline and map storage format.

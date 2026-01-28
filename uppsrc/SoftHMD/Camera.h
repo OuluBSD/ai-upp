@@ -5,6 +5,7 @@ extern "C" {
 #include <libusb-1.0/libusb.h>
 }
 #include <vector>
+#include <atomic>
 
 NAMESPACE_HMD_BEGIN
 
@@ -78,7 +79,9 @@ private:
 
 	bool opened;
 	bool quit;
+	bool quit_usb;
 	bool verbose;
+	std::atomic<int> active_transfers;
 	
 	Upp::Thread usb_thread;
 	Upp::Thread process_thread;
@@ -102,6 +105,7 @@ private:
 	int transfer_timeout_ms;
 	
 	std::vector<byte> raw_buffer;
+	std::vector<byte> process_buffer;
 	int raw_buffer_ptr;
 	int64 last_halt_clear_usecs;
 };

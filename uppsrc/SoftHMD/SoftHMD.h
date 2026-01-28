@@ -63,6 +63,7 @@
 #include "Android.h"
 #include "Camera.h"
 #include "Tracking.h"
+#include "TrackingImpl.h"
 #include "Psvr.h"
 #include "ConfigKey.h"
 #include "Miniz.h"

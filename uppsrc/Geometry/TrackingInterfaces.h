@@ -37,6 +37,13 @@ struct FusionState {
 	float quality = 0;
 };
 
+struct StereoCalibrationData {
+	bool is_enabled = false;
+	vec4 angle_to_pixel = vec4(0,0,0,0);
+	float outward_angle = 0;
+	float eye_dist = 0;
+};
+
 struct StereoCalibrationResult {
 	int width = 0;
 	int height = 0;

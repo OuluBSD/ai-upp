@@ -100,7 +100,7 @@ void StereoCalibrationTool::BuildCalibrationTab() {
 
 void StereoCalibrationTool::OnSourceChanged() {
 	StopSource();
-	source_status.SetLabel(Format("Status: ready (%s)", source_list.GetText()));
+	source_status.SetLabel(Format("Status: ready (%s)", AsString(source_list.GetValue())));
 }
 
 void StereoCalibrationTool::StartSource() {
@@ -108,9 +108,9 @@ void StereoCalibrationTool::StartSource() {
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
 	if (sources[idx]->Start())
-		source_status.SetLabel(Format("Status: running (%s)", source_list.GetText()));
+		source_status.SetLabel(Format("Status: running (%s)", AsString(source_list.GetValue())));
 	else
-		source_status.SetLabel(Format("Status: failed (%s)", source_list.GetText()));
+		source_status.SetLabel(Format("Status: failed (%s)", AsString(source_list.GetValue())));
 }
 
 void StereoCalibrationTool::StopSource() {
@@ -118,7 +118,7 @@ void StereoCalibrationTool::StopSource() {
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
 	sources[idx]->Stop();
-	source_status.SetLabel(Format("Status: stopped (%s)", source_list.GetText()));
+	source_status.SetLabel(Format("Status: stopped (%s)", AsString(source_list.GetValue())));
 }
 
 void StereoCalibrationTool::ExportCalibration() {
@@ -268,8 +268,8 @@ void StereoCalibrationTool::AppMenu(Bar& bar) {
 }
 
 void StereoCalibrationTool::ViewMenu(Bar& bar) {
-	bar.Add("Source", [=] { tabs.SetCursor(0); });
-	bar.Add("Calibration", [=] { tabs.SetCursor(1); });
+	bar.Add("Source", [=] { tabs.Set(0); });
+	bar.Add("Calibration", [=] { tabs.Set(1); });
 }
 
 void StereoCalibrationTool::HelpMenu(Bar& bar) {

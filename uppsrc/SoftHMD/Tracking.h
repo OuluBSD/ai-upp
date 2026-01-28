@@ -34,12 +34,7 @@ struct StereoOverlay {
 	}
 };
 
-struct StereoCalibrationData {
-	bool is_enabled = false;
-	vec4 angle_to_pixel = vec4(0,0,0,0);
-	float outward_angle = 0;
-	float eye_dist = 0;
-};
+using ::Upp::StereoCalibrationData;
 
 class StereoTracker {
 public:

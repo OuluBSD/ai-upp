@@ -69,6 +69,7 @@ struct StereoCalibrationTool : TopWindow {
 	ParentCtrl left;
 	ParentCtrl right;
 	TabCtrl bottom_tabs;
+	Splitter captures_split;
 	PreviewCtrl preview;
 	
 	Label source_info;
@@ -114,6 +115,8 @@ struct StereoCalibrationTool : TopWindow {
 	void BuildLayout();
 	void BuildLeftPanel();
 	void BuildBottomTabs();
+	void Data();
+	void DataCapturedFrame();
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();

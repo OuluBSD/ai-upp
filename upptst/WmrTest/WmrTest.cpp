@@ -1,5 +1,6 @@
 #include <CtrlLib/CtrlLib.h>
 #include <SoftHMD/SoftHMD.h>
+#include <atomic>
 
 using namespace Upp;
 
@@ -203,7 +204,7 @@ struct TrackingCtrl : public Ctrl {
 	}
 };
 
-}
+} // namespace
 
 struct CameraCtrl : public Ctrl {
 	Image bright, dark;
@@ -406,7 +407,9 @@ public:
 	Thread background_thread;
 	std::atomic<bool> background_quit;
 	Mutex background_mutex;
-	Vector<HMD::CameraFrame> background_frames;
+	Image background_bright, background_dark;
+	TransformMatrix background_trans;
+	ControllerMatrix background_ev3d;
 
 public:
 	WmrTest(int async_buffers_, int transfer_timeout_ms_) {
@@ -474,13 +477,22 @@ public:
 		while (!background_quit) {
 			sys.UpdateData();
 			
+			{
+				Mutex::Lock __(background_mutex);
+				background_trans = sys.trans;
+				background_ev3d = sys.ev3d;
+			}
+
 			// IMU processing
 			if(sys.hmd) {
 				ImuSample imu;
 				imu.timestamp_us = usecs();
+				bool has_imu = false;
 				if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, imu.accel.data) == HMD::HMD_S_OK)
-					fusion.PutImu(imu);
-				else if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
+					has_imu = true;
+				if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
+					has_imu = true;
+				if(has_imu)
 					fusion.PutImu(imu);
 			}
 
@@ -492,27 +504,27 @@ public:
 					continue;
 				}
 				
+				// Delivery images to GUI immediately to avoid frozen preview during heavy tracking
+				{
+					Mutex::Lock __(background_mutex);
+					for(const auto& f : frames) {
+						if(f.is_bright) background_bright = f.img;
+						else background_dark = f.img;
+					}
+				}
+
 				for (const auto& f : frames) {
 					VisualFrame vf;
 					vf.timestamp_us = usecs();
 					vf.format = GEOM_EVENT_CAM_RGBA8;
-					vf.width = f.img.GetWidth();
-					vf.height = f.img.GetHeight();
-					vf.stride = vf.width * (int)sizeof(RGBA);
-					vf.data = (const byte*)~f.img;
-					vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
-					vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-					
-					// VERY HEAVY PART BEGINS
-					fusion.PutVisual(vf);
-					// VERY HEAVY PART ENDS
-				}
+				vf.width = f.img.GetWidth();
+				vf.height = f.img.GetHeight();
+				vf.stride = vf.width * (int)sizeof(RGBA);
+				vf.data = (const byte*)~f.img;
+				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
+				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
 				
-				{
-					Mutex::Lock __(background_mutex);
-					if (background_frames.GetCount() > 10)
-						background_frames.Remove(0, background_frames.GetCount() - 10);
-					background_frames.Append(pick(frames));
+				fusion.PutVisual(vf);
 				}
 			}
 			else {
@@ -529,37 +541,18 @@ public:
 
 	void DataCameraTab() {
 		data.Clear();
-
-		Vector<HMD::CameraFrame> frames;
+		
+		TransformMatrix trans;
+		ControllerMatrix ev3d;
 		{
 			Mutex::Lock __(background_mutex);
-			frames = pick(background_frames);
+			camera.bright = background_bright;
+			camera.dark = background_dark;
+			trans = background_trans;
+			ev3d = background_ev3d;
 		}
-		
-		if(cam) {
-			int prev_bright = fusion.GetBrightTracker().GetStats().processed_frames;
-			int prev_dark = fusion.GetDarkTracker().GetStats().processed_frames;
-			for(const auto& f : frames) {
-				if(f.is_bright) camera.bright = f.img;
-				else camera.dark = f.img;
-				last_track_stream = f.is_bright ? "Bright" : "Dark";
-			}
-			if (fusion.GetBrightTracker().GetStats().processed_frames != prev_bright ||
-			    fusion.GetDarkTracker().GetStats().processed_frames != prev_dark)
-				tracking.Refresh();
-			
-			HMD::StereoOverlay bright_overlay;
-			if (fusion.GetBrightTracker().GetOverlay(bright_overlay))
-				camera.SetOverlay(true, bright_overlay);
-			else
-				camera.ClearOverlay(true);
-			
-			HMD::StereoOverlay dark_overlay;
-			if (fusion.GetDarkTracker().GetOverlay(dark_overlay))
-				camera.SetOverlay(false, dark_overlay);
-			else
-				camera.ClearOverlay(false);
 
+		if(cam) {
 			HMD::CameraStats cs = cam->GetStats();
 			data.Add("Camera", cam->IsOpen() ? "Open" : "Closed");
 			if(cam->IsOpen()) {
@@ -643,9 +636,9 @@ public:
 			data.Add("Camera Resolution", Format("%d x %d (x2)", camera.bright.GetWidth(), camera.bright.GetHeight()));
 
 		// HMD Transform
-		data.Add("HMD Orientation", sys.trans.orientation.ToString());
-		data.Add("HMD Position", sys.trans.position.ToString());
-		data.Add("HMD Eye Dist", Format("%f", sys.trans.eye_dist));
+		data.Add("HMD Orientation", trans.orientation.ToString());
+		data.Add("HMD Position", trans.position.ToString());
+		data.Add("HMD Eye Dist", Format("%f", trans.eye_dist));
 
 		// Raw sensor data from HMD device if opened
 		if(sys.hmd) {
@@ -668,7 +661,7 @@ public:
 		};
 
 		for(int i = 0; i < 2; i++) {
-			ControllerMatrix::Ctrl& h = sys.ev3d.ctrl[i];
+			ControllerMatrix::Ctrl& h = ev3d.ctrl[i];
 			String prefix = ctrl_names[i];
 			data.Add(prefix + " Enabled", h.is_enabled ? "Yes" : "No");
 			if(h.is_enabled) {
@@ -681,6 +674,20 @@ public:
 				}
 			}
 		}
+
+		HMD::StereoOverlay bright_overlay;
+		if (fusion.GetBrightTracker().GetOverlay(bright_overlay))
+			camera.SetOverlay(true, bright_overlay);
+		else
+			camera.ClearOverlay(true);
+		
+		HMD::StereoOverlay dark_overlay;
+		if (fusion.GetDarkTracker().GetOverlay(dark_overlay))
+			camera.SetOverlay(false, dark_overlay);
+		else
+			camera.ClearOverlay(false);
+		
+		tracking.Refresh();
 
 		// Refresh list while preserving selection if possible
 		int scroll = list.GetScroll();
@@ -951,12 +958,12 @@ void TestTrack(int seconds, int async_buffers, int transfer_timeout_ms)
 		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 	
-	HMD::System sys;
+HMD::System sys;
 	if(!sys.Initialise()) {
 		Cout() << "Error: Failed to initialise HMD system\n";
 	}
 	
-	HMD::SoftHmdFusion fusion;
+HMD::SoftHmdFusion fusion;
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();

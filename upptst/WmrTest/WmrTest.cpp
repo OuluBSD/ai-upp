@@ -544,6 +544,7 @@ public:
 
 		HMD::StereoTrackerStats tb = fusion.GetBrightTracker().GetStats();
 		HMD::StereoTrackerStats td = fusion.GetDarkTracker().GetStats();
+		HMD::StereoCalibrationData calib_state = fusion.GetBrightTracker().GetCalibration();
 		camera.SetStats(true, tb);
 		camera.SetStats(false, td);
 		data.Add("Track Bright Frames", IntStr(tb.processed_frames));
@@ -561,6 +562,12 @@ public:
 		data.Add("Track Dark Triangles", IntStr(td.last_tracked_triangles));
 		data.Add("Track Dark Process (usecs)", IntStr(td.last_process_usecs));
 		data.Add("Track Last Stream", last_track_stream.IsEmpty() ? "-" : last_track_stream);
+		data.Add("Calib Enabled", calib_state.is_enabled ? "Yes" : "No");
+		data.Add("Calib Eye Dist", Format("%g", (double)calib_state.eye_dist));
+		data.Add("Calib Outward Angle", Format("%g", (double)calib_state.outward_angle));
+		data.Add("Calib Angle Poly", Format("%g, %g, %g, %g",
+			(double)calib_state.angle_to_pixel[0], (double)calib_state.angle_to_pixel[1],
+			(double)calib_state.angle_to_pixel[2], (double)calib_state.angle_to_pixel[3]));
 		FusionState fs;
 		if(fusion.GetState(fs)) {
 			data.Add("Track Position", fs.position.ToString());

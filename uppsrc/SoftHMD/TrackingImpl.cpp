@@ -32,6 +32,26 @@ void SoftHmdVisualTracker::SetDistanceLimit(int limit) {
 	tracker.SetDistanceLimit(limit);
 }
 
+StereoTrackerStats SoftHmdVisualTracker::GetStats() const {
+	return tracker.GetStats();
+}
+
+const Octree* SoftHmdVisualTracker::GetPointcloud() const {
+	return tracker.GetPointcloud();
+}
+
+bool SoftHmdVisualTracker::HasPose() const {
+	return tracker.HasPose();
+}
+
+vec3 SoftHmdVisualTracker::GetPosition() const {
+	return tracker.GetPosition();
+}
+
+quat SoftHmdVisualTracker::GetOrientation() const {
+	return tracker.GetOrientation();
+}
+
 bool SoftHmdVisualTracker::DecodeFrame(const VisualFrame& frame, Image& out) const {
 	if (!frame.data || frame.width <= 0 || frame.height <= 0 || frame.stride <= 0)
 		return false;

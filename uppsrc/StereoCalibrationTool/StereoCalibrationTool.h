@@ -5,6 +5,9 @@
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
 #include <SoftHMD/SoftHMD.h>
+#ifdef flagLINUX
+#include <plugin/libv4l2/libv4l2.h>
+#endif
 
 NAMESPACE_UPP
 
@@ -67,12 +70,13 @@ struct StereoCalibrationTool : TopWindow {
 		Image last_left;
 		Image last_right;
 		bool last_is_bright = false;
+#ifdef flagLINUX
+		One<V4l2Capture> capture;
+		Vector<byte> raw;
 		int width = 0;
 		int height = 0;
 		int pixfmt = 0;
-		int fd = -1;
-		Vector<void*> buffers;
-		Vector<size_t> buffer_sizes;
+#endif
 		String GetName() const override { return "USB Stereo (Side-by-side)"; }
 		bool Start() override;
 		void Stop() override;

@@ -1,14 +1,5 @@
 #include "StereoCalibrationTool.h"
 
-#ifdef flagLINUX
-#include <linux/videodev2.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#endif
-
 NAMESPACE_UPP
 
 static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
@@ -41,15 +32,6 @@ static Image CopyFrameImage(const VisualFrame& frame) {
 	for (int y = 0; y < frame.height; y++)
 		memcpy(ib[y], src + y * frame.width, frame.width * sizeof(RGBA));
 	return ib;
-}
-
-#ifdef flagLINUX
-static int V4L2Ioctl(int fd, unsigned long req, void* arg) {
-	int r;
-	do {
-		r = ioctl(fd, req, arg);
-	} while (r == -1 && errno == EINTR);
-	return r;
 }
 
 static Image ConvertRgb24ToImage(const byte* data, int width, int height) {
@@ -103,8 +85,6 @@ static Image ConvertYuyvToImage(const byte* data, int width, int height) {
 	}
 	return ib;
 }
-#endif
-
 bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (running)
 		return true;
@@ -172,149 +152,57 @@ bool StereoCalibrationTool::UsbStereoSource::Start() {
 		return true;
 	if (device_path.IsEmpty())
 		device_path = "/dev/video0";
-	fd = open(device_path, O_RDWR | O_NONBLOCK, 0);
-	if (fd < 0)
+	std::list<unsigned int> formats;
+	formats.push_back(V4L2_PIX_FMT_RGB24);
+	formats.push_back(V4L2_PIX_FMT_YUYV);
+	V4L2DeviceParameters params(device_path.Begin(), formats, 2560, 720, 30, 0);
+	capture = V4l2Capture::create(params, V4l2Access::IOTYPE_MMAP);
+	if (!capture) {
+		V4L2DeviceParameters fallback(device_path.Begin(), formats, 1280, 720, 30, 0);
+		capture = V4l2Capture::create(fallback, V4l2Access::IOTYPE_MMAP);
+	}
+	if (!capture)
+		return false;
+	if (!capture->start())
 		return false;
 
-	v4l2_capability cap;
-	memset(&cap, 0, sizeof(cap));
-	if (V4L2Ioctl(fd, VIDIOC_QUERYCAP, &cap) < 0) {
-		Stop();
-		return false;
-	}
-	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) ||
-	    !(cap.capabilities & V4L2_CAP_STREAMING)) {
-		Stop();
-		return false;
-	}
-
-	v4l2_format fmt;
-	memset(&fmt, 0, sizeof(fmt));
-	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	fmt.fmt.pix.width = 2560;
-	fmt.fmt.pix.height = 720;
-	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_RGB24;
-	fmt.fmt.pix.field = V4L2_FIELD_ANY;
-	if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
-		memset(&fmt, 0, sizeof(fmt));
-		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		fmt.fmt.pix.width = 2560;
-		fmt.fmt.pix.height = 720;
-		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-		fmt.fmt.pix.field = V4L2_FIELD_ANY;
-		if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
-			memset(&fmt, 0, sizeof(fmt));
-			fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-			fmt.fmt.pix.width = 1280;
-			fmt.fmt.pix.height = 720;
-			fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-			fmt.fmt.pix.field = V4L2_FIELD_ANY;
-			if (V4L2Ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
-				Stop();
-				return false;
-			}
-		}
-	}
-
-	width = fmt.fmt.pix.width;
-	height = fmt.fmt.pix.height;
-	pixfmt = fmt.fmt.pix.pixelformat;
-
-	v4l2_requestbuffers req;
-	memset(&req, 0, sizeof(req));
-	req.count = 2;
-	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	req.memory = V4L2_MEMORY_MMAP;
-	if (V4L2Ioctl(fd, VIDIOC_REQBUFS, &req) < 0 || req.count < 2) {
-		Stop();
-		return false;
-	}
-
-	buffers.SetCount(req.count);
-	buffer_sizes.SetCount(req.count);
-	for (unsigned i = 0; i < req.count; i++) {
-		v4l2_buffer buf;
-		memset(&buf, 0, sizeof(buf));
-		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		buf.memory = V4L2_MEMORY_MMAP;
-		buf.index = i;
-		if (V4L2Ioctl(fd, VIDIOC_QUERYBUF, &buf) < 0) {
-			Stop();
-			return false;
-		}
-		void* ptr = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
-		if (ptr == MAP_FAILED) {
-			Stop();
-			return false;
-		}
-		buffers[i] = ptr;
-		buffer_sizes[i] = buf.length;
-		memset(&buf, 0, sizeof(buf));
-		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		buf.memory = V4L2_MEMORY_MMAP;
-		buf.index = i;
-		if (V4L2Ioctl(fd, VIDIOC_QBUF, &buf) < 0) {
-			Stop();
-			return false;
-		}
-	}
-
-	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (V4L2Ioctl(fd, VIDIOC_STREAMON, &type) < 0) {
-		Stop();
-		return false;
-	}
+	width = (int)capture->getWidth();
+	height = (int)capture->getHeight();
+	pixfmt = (int)capture->getFormat();
+	raw.SetCount((int)capture->getBufferSize());
 	running = true;
 	return true;
 }
 
 void StereoCalibrationTool::UsbStereoSource::Stop() {
-	if (fd >= 0) {
-		int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		V4L2Ioctl(fd, VIDIOC_STREAMOFF, &type);
-		for (int i = 0; i < buffers.GetCount(); i++) {
-			if (buffers[i])
-				munmap(buffers[i], buffer_sizes[i]);
-		}
-		buffers.Clear();
-		buffer_sizes.Clear();
-		close(fd);
-		fd = -1;
+	if (capture) {
+		capture->stop();
+		capture.Clear();
 	}
+	raw.Clear();
 	running = false;
 	last_left = Image();
 	last_right = Image();
 }
 
 bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right) {
-	if (fd < 0)
+	if (!capture)
 		return false;
 
-	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(fd, &fds);
 	timeval tv;
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
-	int r = select(fd + 1, &fds, NULL, NULL, &tv);
-	if (r <= 0)
+	if (capture->isReadable(&tv) <= 0)
 		return false;
 
-	v4l2_buffer buf;
-	memset(&buf, 0, sizeof(buf));
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_MMAP;
-	if (V4L2Ioctl(fd, VIDIOC_DQBUF, &buf) < 0)
+	size_t read_bytes = capture->read((char*)raw.Begin(), raw.GetCount());
+	if (read_bytes == 0)
 		return false;
-
 	Image frame;
-	const byte* data = (const byte*)buffers[buf.index];
 	if (pixfmt == V4L2_PIX_FMT_RGB24)
-		frame = ConvertRgb24ToImage(data, width, height);
+		frame = ConvertRgb24ToImage(raw.Begin(), width, height);
 	else if (pixfmt == V4L2_PIX_FMT_YUYV)
-		frame = ConvertYuyvToImage(data, width, height);
-
-	V4L2Ioctl(fd, VIDIOC_QBUF, &buf);
+		frame = ConvertYuyvToImage(raw.Begin(), width, height);
 
 	if (frame.IsEmpty())
 		return false;

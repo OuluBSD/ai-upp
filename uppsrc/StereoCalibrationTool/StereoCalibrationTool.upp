@@ -2,7 +2,8 @@ uses
 	CtrlLib,
 	Geometry,
 	ComputerVision,
-	SoftHMD;
+	SoftHMD,
+	plugin/libv4l2;
 
 file
 	AGENTS.md,
@@ -13,3 +14,4 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
+

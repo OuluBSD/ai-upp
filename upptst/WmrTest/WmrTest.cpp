@@ -472,6 +472,18 @@ public:
 	
 	void BackgroundProcess() {
 		while (!background_quit) {
+			sys.UpdateData();
+			
+			// IMU processing
+			if(sys.hmd) {
+				ImuSample imu;
+				imu.timestamp_us = usecs();
+				if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, imu.accel.data) == HMD::HMD_S_OK)
+					fusion.PutImu(imu);
+				else if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
+					fusion.PutImu(imu);
+			}
+
 			if (cam && cam->IsOpen()) {
 				Vector<HMD::CameraFrame> frames;
 				cam->PopFrames(frames);
@@ -514,17 +526,17 @@ public:
 			case 0: DataCameraTab(); break;
 		}
 	}
+
 	void DataCameraTab() {
-		sys.UpdateData();
 		data.Clear();
 
+		Vector<HMD::CameraFrame> frames;
+		{
+			Mutex::Lock __(background_mutex);
+			frames = pick(background_frames);
+		}
+		
 		if(cam) {
-			Vector<HMD::CameraFrame> frames;
-			{
-				Mutex::Lock __(background_mutex);
-				frames = pick(background_frames);
-			}
-			
 			int prev_bright = fusion.GetBrightTracker().GetStats().processed_frames;
 			int prev_dark = fusion.GetDarkTracker().GetStats().processed_frames;
 			for(const auto& f : frames) {
@@ -535,11 +547,13 @@ public:
 			if (fusion.GetBrightTracker().GetStats().processed_frames != prev_bright ||
 			    fusion.GetDarkTracker().GetStats().processed_frames != prev_dark)
 				tracking.Refresh();
+			
 			HMD::StereoOverlay bright_overlay;
 			if (fusion.GetBrightTracker().GetOverlay(bright_overlay))
 				camera.SetOverlay(true, bright_overlay);
 			else
 				camera.ClearOverlay(true);
+			
 			HMD::StereoOverlay dark_overlay;
 			if (fusion.GetDarkTracker().GetOverlay(dark_overlay))
 				camera.SetOverlay(false, dark_overlay);
@@ -640,13 +654,6 @@ public:
 				data.Add("HMD Accel", Format("%f, %f, %f", f[0], f[1], f[2]));
 			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, f) == HMD::HMD_S_OK)
 				data.Add("HMD Gyro", Format("%f, %f, %f", f[0], f[1], f[2]));
-			
-			ImuSample imu;
-			imu.timestamp_us = usecs();
-			if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, imu.accel.data) == HMD::HMD_S_OK)
-				fusion.PutImu(imu);
-			else if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
-				fusion.PutImu(imu);
 		}
 
 		// Controllers
@@ -686,7 +693,7 @@ public:
 		list.SetCursor(cursor);
 
 		camera.Refresh();
-}
+	}
 
 	void MainMenu(Bar& bar) {
 		bar.Sub("App", THISBACK(AppMenu));

@@ -3,7 +3,8 @@ uses
 	Geometry,
 	ComputerVision,
 	SoftHMD,
-	plugin/libv4l2;
+	plugin/libv4l2,
+	plugin/jpg;
 
 file
 	AGENTS.md,
@@ -14,4 +15,3 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
-

@@ -29,6 +29,10 @@ void StereoTracker::SetWmrDefaults() {
 	uncam.SetYLevelHeight(10);
 	uncam.SetEyeOutwardAngle(DEG2RAD(35.50f));
 	uncam.SetDistanceLimit(128);
+	calib.is_enabled = true;
+	calib.angle_to_pixel = vec4(17.4932f, 153.022f, 175.333f, -25.7489f);
+	calib.eye_dist = 0.12f;
+	calib.outward_angle = DEG2RAD(35.50f);
 }
 
 void StereoTracker::SetPointLimit(int limit) {
@@ -118,6 +122,23 @@ bool StereoTracker::GetOverlay(StereoOverlay& out) const {
 	return true;
 }
 
+void StereoTracker::SetCalibration(const StereoCalibrationData& data) {
+	Upp::Mutex::Lock __(mutex);
+	calib = data;
+	if (!calib.is_enabled)
+		return;
+	uncam.SetAnglePixel(calib.angle_to_pixel[0], calib.angle_to_pixel[1],
+	                    calib.angle_to_pixel[2], calib.angle_to_pixel[3]);
+	uncam.SetEyeOutwardAngle(calib.outward_angle);
+	if (calib.eye_dist > 0)
+		uncam.SetEyeDistance(calib.eye_dist);
+}
+
+StereoCalibrationData StereoTracker::GetCalibration() const {
+	Upp::Mutex::Lock __(mutex);
+	return calib;
+}
+
 bool StereoTracker::SplitStereo(const Image& frame, Image& left, Image& right) const {
 	Size sz = frame.GetSize();
 	if (sz.cx < 4 || sz.cy < 4)
@@ -198,6 +219,7 @@ bool StereoTracker::PushFrame(const Image& frame, bool is_bright) {
 
 	stats.last_tracked_points = cur.tracked_points.GetCount();
 	stats.last_tracked_triangles = cur.tracked_triangles.GetCount();
+	stats.last_stereo_matches = cur.horz_match.GetCount();
 	stats.last_process_usecs = (int)(usecs() - start_usecs);
 	stats.processed_frames++;
 

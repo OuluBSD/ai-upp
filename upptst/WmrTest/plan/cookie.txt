@@ -88,5 +88,5 @@
   note: Captured GUI layout plan with splitters, sections, mode selector, and tabs.
 - date: 2026-01-28
   task: phase-00-foundations/track-calibration/task-0003-stereo-calib-cmdline-capture.md
-  status: in_progress
-  note: Added CLI capture tests in StereoCalibrationTool; HMD/USB runtime verification pending.
+  status: done
+  note: Added CLI capture tests in StereoCalibrationTool; verified HMD capture at runtime and fixed SoftHMD camera mutex contention.

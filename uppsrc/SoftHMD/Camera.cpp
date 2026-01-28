@@ -88,9 +88,9 @@ Camera::Camera()
 	active_transfers = 0;
 	usb_ctx = NULL;
 	usb_handle = NULL;
-	async_buffers = 2;
+	async_buffers = 8;
 	transfer_timeout_ms = 0;
-	raw_buffer.assign(4000000, 0); // 4MB buffer
+	raw_buffer.assign(8000000, 0); // 8MB buffer
 	raw_buffer_ptr = 0;
 	last_halt_clear_usecs = 0;
 	transfers.clear();
@@ -146,6 +146,7 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 			bool should_clear = true;
 			if(locked) {
 				const int64 now = usecs();
+				// Limit clear_halt frequency to once per 500ms per error to avoid spamming the controller
 				if(cam->last_halt_clear_usecs != 0 && now - cam->last_halt_clear_usecs < 500000)
 					should_clear = false;
 				if(should_clear)
@@ -160,6 +161,8 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 				}
 				if(ch != 0)
 					Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
+				else
+					Cout() << "USB: Successfully cleared halt on video endpoint\n";
 			}
 		}
 		bool allow_resubmit = true;
@@ -339,18 +342,26 @@ void Camera::AppendRawLocked(const byte* buffer, int size)
 {
 	if (size <= 0)
 		return;
-	int buf_size = (int)raw_buffer.size();
-	if (buf_size <= 0)
-		return;
-	if (size > buf_size) {
-		if (verbose) Cout() << "Raw append size exceeds buffer, clamping\n";
-		size = buf_size;
+	int capacity = (int)raw_buffer.size();
+	if (size > capacity) {
+		if (verbose) Cout() << "Raw append size exceeds capacity, taking tail\n";
+		buffer += (size - capacity);
+		size = capacity;
 	}
+	
 	if (raw_buffer_ptr < 0)
 		raw_buffer_ptr = 0;
-	if(raw_buffer_ptr + size > (int)raw_buffer.size()) {
-		if(verbose) Cout() << "Buffer overflow, resetting raw_buffer_ptr\n";
-		raw_buffer_ptr = 0;
+
+	if(raw_buffer_ptr + size > capacity) {
+		if(verbose) Cout() << "Buffer overflow in AppendRawLocked, shifting data\n";
+		int overflow = (raw_buffer_ptr + size) - capacity;
+		int keep = raw_buffer_ptr - overflow;
+		if (keep > 0) {
+			memmove(raw_buffer.data(), raw_buffer.data() + overflow, keep);
+			raw_buffer_ptr = keep;
+		} else {
+			raw_buffer_ptr = 0;
+		}
 	}
 	memcpy(raw_buffer.data() + raw_buffer_ptr, buffer, size);
 	raw_buffer_ptr += size;

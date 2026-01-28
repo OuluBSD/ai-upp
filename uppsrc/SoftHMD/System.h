@@ -33,6 +33,7 @@ struct System {
 	bool emulate = false;
 	bool use_calibration_values = true;
 	bool use_payload_only = true;
+	bool emit_stream_events = true;
 	int user_hmd_idx = -1;
 	int user_ctrl_idx[2] = {-1,-1};
 	

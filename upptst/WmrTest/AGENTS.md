@@ -16,3 +16,6 @@ Workflow
 - Build and test before considering a task done:
   - Build: `python3 script/build.py -mc 1 -j12 WmrTest`
   - Run cmdline tests added under `WmrTest` (e.g., `--test-dump` or `--test-track`) and fix any failures.
+  - StereoCalibrationTool cmdline capture checks:
+    - `bin/StereoCalibrationTool --test-hmd --hmd-timeout-ms=8000`
+    - `bin/StereoCalibrationTool --test-usb --usb-device=/dev/videoX --usb-timeout-ms=8000`

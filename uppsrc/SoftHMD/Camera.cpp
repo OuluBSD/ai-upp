@@ -88,12 +88,11 @@ Camera::Camera()
 	usb_handle = NULL;
 	async_buffers = 8;
 	transfer_timeout_ms = 0;
-	raw_buffer.assign(8000000, 0); // 8MB buffer
-	raw_buffer_ptr = 0;
 	last_halt_clear_usecs = 0;
 	transfers.clear();
 	skip_streak_bright = 0;
 	skip_streak_dark = 0;
+	gap_occurred = false;
 }
 
 Camera::~Camera()
@@ -335,71 +334,75 @@ void Camera::ProcessFrames()
 
 void Camera::AppendRaw(const byte* buffer, int size)
 {
+	if (size <= 0) return;
+	
+	RawDataBlock* block = buffer_pool.New();
+	block->data.SetCount(size);
+	memcpy(block->data.Begin(), buffer, size);
+	
 	Upp::Mutex::Lock __(raw_mutex);
-	AppendRawLocked(buffer, size);
+	if(raw_queue.GetCount() > 100) {
+		if(verbose) Cout() << "Raw queue overflow, clearing to resync\n";
+		while(raw_queue.GetCount())
+			buffer_pool.Return(raw_queue.PopHead());
+		gap_occurred = true;
+	}
+	raw_queue.AddTail(block);
 }
 
 void Camera::AppendRawLocked(const byte* buffer, int size)
 {
-	if (size <= 0)
-		return;
-	int capacity = (int)raw_buffer.size();
-	if (size > capacity) {
-		if (verbose) Cout() << "Raw append size exceeds capacity, taking tail\n";
-		buffer += (size - capacity);
-		size = capacity;
-	}
-	
-	if (raw_buffer_ptr < 0)
-		raw_buffer_ptr = 0;
-
-	if(raw_buffer_ptr + size > capacity) {
-		if(verbose) Cout() << "Buffer overflow in AppendRawLocked, shifting data\n";
-		int overflow = (raw_buffer_ptr + size) - capacity;
-		int keep = raw_buffer_ptr - overflow;
-		if (keep > 0) {
-			memmove(raw_buffer.data(), raw_buffer.data() + overflow, keep);
-			raw_buffer_ptr = keep;
-		} else {
-			raw_buffer_ptr = 0;
-		}
-	}
-	memcpy(raw_buffer.data() + raw_buffer_ptr, buffer, size);
-	raw_buffer_ptr += size;
+	// Deprecated/Unused
 }
 
 bool Camera::ProcessRawFrames()
 {
 	int64 start_usecs = usecs();
-	process_buffer.clear();
-	int local_size = 0;
+	
+	BiVector<RawDataBlock*> local_queue;
+	bool local_gap = false;
+	
 	{
 		Upp::Mutex::Lock __(raw_mutex);
-		if (raw_buffer_ptr < 0)
-			raw_buffer_ptr = 0;
-		if (raw_buffer_ptr > (int)raw_buffer.size())
-			raw_buffer_ptr = (int)raw_buffer.size();
-		if(raw_buffer_ptr > 0) {
-			process_buffer.assign(raw_buffer.data(), raw_buffer.data() + raw_buffer_ptr);
-			local_size = raw_buffer_ptr;
-			raw_buffer_ptr = 0;
+		if(raw_queue.GetCount()) {
+			local_queue = pick(raw_queue); // Move/Pick queue content
+			// raw_queue is now empty (if pick works for BiVector, otherwise swap)
+			// BiVector pick might not clear source? 
+			// Actually Upp::pick usually transfers ownership. 
+			// Let's assume pick works or use swap logic if needed.
+			// Upp containers usually support pick/clone.
+			// Re-check: pick() clears source? Yes.
 		}
+		local_gap = gap_occurred;
+		gap_occurred = false;
 	}
-	if(local_size == 0)
+	
+	if(local_queue.IsEmpty())
 		return false;
 
+	if(local_gap) {
+		assembly_buffer.Clear();
+	}
+	
+	for(RawDataBlock* block : local_queue) {
+		assembly_buffer.Append(block->data);
+		buffer_pool.Return(block);
+	}
+	
+	int local_ptr = assembly_buffer.GetCount();
+	byte* local_data = assembly_buffer.Begin();
+	bool processed = false;
+
 	const int RAW_FRAME_SIZE = 616538;
-	if(verbose && local_size >= RAW_FRAME_SIZE)
-		Cout() << "HandleFrame: size=" << local_size << ", raw_ptr=" << local_size << "\n";
+	if(verbose && local_ptr >= RAW_FRAME_SIZE)
+		Cout() << "HandleFrame: size=" << local_ptr << "\n";
 
 	const int STRIPPED_FRAME_SIZE = 615706;
 	static thread_local std::vector<byte> stripped;
 	if((int)stripped.size() < STRIPPED_FRAME_SIZE)
 		stripped.assign(STRIPPED_FRAME_SIZE, 0);
 	
-	int local_ptr = local_size;
-	byte* local_data = process_buffer.data();
-	bool processed = false;
+	int processed_bytes = 0;
 	while(local_ptr >= RAW_FRAME_SIZE) {
 		uint16 exposure = (local_data[32 + 6] << 8) | local_data[32 + 7];
 		bool is_bright = (exposure != 0);
@@ -492,43 +495,13 @@ bool Camera::ProcessRawFrames()
 			}
 		}
 		
-		memmove(local_data, local_data + RAW_FRAME_SIZE, local_ptr - RAW_FRAME_SIZE);
+		local_data += RAW_FRAME_SIZE;
 		local_ptr -= RAW_FRAME_SIZE;
+		processed_bytes += RAW_FRAME_SIZE;
 	}
 	
-	if(local_ptr > 0) {
-		Upp::Mutex::Lock __(raw_mutex);
-		
-		// We need to prepend 'local_ptr' bytes (leftovers) to whatever new data 
-		// has been appended to raw_buffer while we were processing.
-		
-		int new_data_size = raw_buffer_ptr;
-		if (new_data_size < 0) new_data_size = 0;
-		int capacity = (int)raw_buffer.size();
-
-		// Safety clamp for leftovers
-		if (local_ptr > capacity)
-			local_ptr = capacity;
-		
-		// Check total size
-		if (local_ptr + new_data_size > capacity) {
-			if (verbose) Cout() << "Buffer full/overflow in ProcessRawFrames prepending leftovers.\n";
-			// Prioritize stream continuity: keep leftovers, truncate new data if needed
-			int space_for_new = capacity - local_ptr;
-			if (new_data_size > space_for_new)
-				new_data_size = space_for_new;
-		}
-
-		// Shift new data to the right to make room for leftovers
-		if (new_data_size > 0) {
-			memmove(raw_buffer.data() + local_ptr, raw_buffer.data(), new_data_size);
-		}
-		
-		// Copy leftovers to the front
-		memcpy(raw_buffer.data(), local_data, local_ptr);
-		
-		// Update size
-		raw_buffer_ptr = local_ptr + new_data_size;
+	if(processed_bytes > 0) {
+		assembly_buffer.Remove(0, processed_bytes);
 	}
 	
 	return processed;

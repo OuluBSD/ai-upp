@@ -105,9 +105,13 @@ private:
 	std::vector<Transfer> transfers;
 	int transfer_timeout_ms;
 	
-	std::vector<byte> raw_buffer;
-	std::vector<byte> process_buffer;
-	int raw_buffer_ptr;
+	struct RawDataBlock {
+		Vector<byte> data;
+	};
+	
+	RecyclerPool<RawDataBlock, true> buffer_pool;
+	BiVector<RawDataBlock*> raw_queue;
+	Vector<byte> assembly_buffer;
 	int64 last_halt_clear_usecs;
 };
 

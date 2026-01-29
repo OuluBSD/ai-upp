@@ -1,6 +1,83 @@
 #include "StereoCalibrationTool.h"
+#include <plugin/Eigen/Eigen.h>
 
 NAMESPACE_UPP
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// Helper for ray-ray distance
+static double RayRayDistance(const vec3& p1, const vec3& d1, const vec3& p2, const vec3& d2) {
+	vec3 w0 = p1 - p2;
+	double a = Dot(d1, d1);
+	double b = Dot(d1, d2);
+	double c = Dot(d2, d2);
+	double d = Dot(d1, w0);
+	double e = Dot(d2, w0);
+	double denom = a * c - b * b;
+	if (fabs(denom) < 1e-9) return (w0 - d1 * (float)(Dot(w0, d1) / a)).GetLength(); // Parallel
+	double sc = (b * e - c * d) / denom;
+	double tc = (a * e - b * d) / denom;
+	return (w0 + d1 * (float)sc - d2 * (float)tc).GetLength();
+}
+
+struct CalibrationSolver {
+	struct PointPair : Moveable<PointPair> {
+		Pointf l, r;
+		Size sz;
+	};
+	Vector<PointPair> pairs;
+	double eye_dist;
+
+	int Solve(double& a, double& b, double& c, double& d, double& outward_angle) {
+		Eigen::VectorXd y(5);
+		y[0] = a; y[1] = b; y[2] = c; y[3] = d; y[4] = outward_angle;
+
+		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
+			double cur_a = x[0], cur_b = x[1], cur_c = x[2], cur_d = x[3], cur_phi = x[4];
+			res.resize(pairs.GetCount());
+			for (int i = 0; i < pairs.GetCount(); i++) {
+				const auto& p = pairs[i];
+				auto unproject = [&](Pointf pix, int eye) -> vec3 {
+					double cx = p.sz.cx / 2.0, cy = p.sz.cy / 2.0;
+					double dx = pix.x * p.sz.cx - cx, dy = pix.y * p.sz.cy - cy;
+					double r = sqrt(dx * dx + dy * dy);
+					if (r < 1e-6) return vec3(0, 0, -1);
+					
+					// Newton to find theta
+					double theta = r / cur_a;
+					for (int it = 0; it < 5; it++) {
+						double t2 = theta * theta;
+						double t3 = t2 * theta;
+						double t4 = t3 * theta;
+						double f = cur_a * theta + cur_b * t2 + cur_c * t3 + cur_d * t4 - r;
+						double df = cur_a + 2 * cur_b * theta + 3 * cur_c * t2 + 4 * cur_d * t3;
+						if (fabs(df) < 1e-9) break;
+						theta -= f / df;
+					}
+					
+					double roll = -atan2(dx, dy);
+					vec3 dir = AxesDirRoll((float)theta, (float)roll);
+					axes2 axes = GetDirAxes(dir).Splice();
+					if (eye == 0) axes[0] += (float)cur_phi; else axes[0] -= (float)cur_phi;
+					return GetAxesDir(axes);
+				};
+
+				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject(p.l, 0);
+				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject(p.r, 1);
+				res[i] = RayRayDistance(pL, dL, pR, dR);
+			}
+			return 0;
+		};
+
+		if (NonLinearOptimization(y, pairs.GetCount(), residual)) {
+			a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
+			return 1;
+		}
+		return 0;
+	}
+};
 
 static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
 	Size sz = src.GetSize();
@@ -562,6 +639,71 @@ void StereoCalibrationTool::Sync() {
 	}
 }
 
+void StereoCalibrationTool::ClearMatches() {
+	int row = captures_list.GetCursor();
+	if (row >= 0 && row < captured_frames.GetCount()) {
+		captured_frames[row].matches.Clear();
+		DataCapturedFrame();
+		status.Set("Matches cleared.");
+	}
+}
+
+void StereoCalibrationTool::SolveCalibration() {
+	CalibrationSolver solver;
+	solver.eye_dist = (double)calib_eye_dist;
+	
+	for(const auto& f : captured_frames) {
+		Size sz = f.left_img.GetSize();
+		if (sz.cx <= 0 || sz.cy <= 0) continue;
+		for(const auto& m : f.matches) {
+			auto& p = solver.pairs.Add();
+			p.l = m.left;
+			p.r = m.right;
+			p.sz = sz;
+		}
+	}
+	
+	if (solver.pairs.GetCount() < 5) {
+		PromptOK("At least 5 match pairs across all frames are required to solve for 5 parameters.");
+		return;
+	}
+	
+	double a = calib_poly_a, b = calib_poly_b, c = calib_poly_c, d = calib_poly_d;
+	double phi = calib_outward_angle;
+	
+	// Initial guesses if they are zero
+	if (a == 0) a = 2.0 * solver.pairs[0].sz.cx / M_PI; 
+	
+	status.Set("Solving calibration...");
+	if (solver.Solve(a, b, c, d, phi)) {
+		calib_poly_a <<= a;
+		calib_poly_b <<= b;
+		calib_poly_c <<= c;
+		calib_poly_d <<= d;
+		calib_outward_angle <<= phi;
+		
+		SyncCalibrationFromEdits();
+		
+		String report;
+		report << "Solver converged successfully.\n";
+		report << "Matches: " << solver.pairs.GetCount() << "\n";
+		report << "Final parameters:\n";
+		report << "  a: " << a << "\n";
+		report << "  b: " << b << "\n";
+		report << "  c: " << c << "\n";
+		report << "  d: " << d << "\n";
+		report << "  phi: " << phi << " rad (" << phi * 180 / M_PI << " deg)\n";
+		
+		report_text <<= report;
+		bottom_tabs.Set(1);
+		status.Set("Calibration solved.");
+	}
+	else {
+		status.Set("Solver failed to converge.");
+		PromptOK("Calibration solver failed. Check your matches.");
+	}
+}
+
 void StereoCalibrationTool::CaptureFrame() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount()) return;
@@ -662,14 +804,9 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	stop_source <<= THISBACK(StopSource);
 	live_view <<= THISBACK(LiveView);
 	capture_frame <<= THISBACK(CaptureFrame);
-	clear_matches.WhenAction = [=] {
-		int row = captures_list.GetCursor();
-		if (row >= 0 && row < captured_frames.GetCount()) {
-			captured_frames[row].matches.Clear();
-			DataCapturedFrame();
-			status.Set("Matches cleared.");
-		}
-	};
+	solve_calibration.SetLabel("Solve");
+	solve_calibration <<= THISBACK(SolveCalibration);
+	clear_matches.WhenAction = THISBACK(ClearMatches);
 
 	source_status.SetLabel("Status: idle");
 	sep_source.SetLabel("Source");
@@ -707,6 +844,7 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	left.Add(live_view.TopPos(y, 24).LeftPos(184, 80));
 	left.Add(capture_frame.TopPos(y, 24).LeftPos(272, 80));
 	y += 28;
+	left.Add(solve_calibration.TopPos(y, 24).LeftPos(184, 80));
 	left.Add(clear_matches.TopPos(y, 24).LeftPos(272, 100));
 	y += 32;
 	left.Add(source_status.TopPos(y, 20).HSizePos(8, 8));
@@ -1157,27 +1295,35 @@ void StereoCalibrationTool::SaveLastCalibration() {
 }
 
 void StereoCalibrationTool::LoadState() {
-	String text = LoadFile(GetStatePath());
-	Vector<String> lines = Split(text, '\n');
-	for (String line : lines) {
-		line = TrimBoth(line);
-		if (line.IsEmpty() || line[0] == '#')
-			continue;
-		int eq = line.Find('=');
-		if (eq < 0)
-			continue;
-		String key = TrimBoth(line.Left(eq));
-		String val = TrimBoth(line.Mid(eq + 1));
-		if (key == "capture_row")
-			pending_capture_row = atoi(val);
+	String path = GetStatePath();
+	if (FileExists(path)) {
+		String json = LoadFile(path);
+		if (!json.IsEmpty()) {
+			LoadFromJson(captured_frames, json);
+			
+			String dir = AppendFileName(GetFileDirectory(path), "captures");
+			captures_list.Clear();
+			for(int i = 0; i < captured_frames.GetCount(); i++) {
+				auto& f = captured_frames[i];
+				f.left_img = StreamRaster::LoadFileAny(AppendFileName(dir, Format("frame_%d_l.png", i)));
+				f.right_img = StreamRaster::LoadFileAny(AppendFileName(dir, Format("frame_%d_r.png", i)));
+				captures_list.Add(Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), f.source, f.matches.GetCount());
+			}
+		}
 	}
 }
 
 void StereoCalibrationTool::SaveState() {
-	int row = captures_list.GetCursor();
-	Vector<String> lines;
-	lines.Add(Format("capture_row=%d", row));
-	SaveFile(GetStatePath(), Join(lines, "\n") + "\n");
+	String path = GetStatePath();
+	SaveFile(path, StoreAsJson(captured_frames));
+	
+	String dir = AppendFileName(GetFileDirectory(path), "captures");
+	RealizeDirectory(dir);
+	for(int i = 0; i < captured_frames.GetCount(); i++) {
+		auto& f = captured_frames[i];
+		PNGEncoder().SaveFile(AppendFileName(dir, Format("frame_%d_l.png", i)), f.left_img);
+		PNGEncoder().SaveFile(AppendFileName(dir, Format("frame_%d_r.png", i)), f.right_img);
+	}
 }
 
 void StereoCalibrationTool::MainMenu(Bar& bar) {

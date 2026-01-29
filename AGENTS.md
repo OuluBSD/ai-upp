@@ -433,6 +433,7 @@ net audio_pipeline:
 
 ---
 
+
 ## ECS Initialization and Component Lifecycle
 
 ### Overview
@@ -662,6 +663,7 @@ Engine::Start: post-initializing all components
 
 ---
 
+
 ## Code Readability & AI-Friendly Refactoring Philosophy
 
 This project actively welcomes improvements to code readability and error detectability. The goal is to make problems **obvious** to both AI agents and human developers.
@@ -726,3 +728,31 @@ When you encounter a bug that was hard to detect, ask:
 - Are there other places with similar ambiguity?
 
 **Remember**: This codebase prioritizes clarity over brevity. Making problems obvious is more valuable than elegant abstraction.
+
+## Memory Management & Pooling
+
+### RecyclerPool and BiVectorRecycler
+
+For high-performance scenarios involving frequent allocation/deallocation of fixed-size objects (like network buffers or image frames), prefer `RecyclerPool` and `BiVectorRecycler` over standard containers (`Vector`, `Array`).
+
+#### RecyclerPool<T, keep_as_constructed>
+- **Purpose**: Manages a pool of allocated objects of type `T`.
+- **`keep_as_constructed=true`**: If true, the destructor of `T` is NOT called when returning to the pool, and the constructor is NOT called when allocating new items (after the initial allocation). This is ideal for reuse of complex objects like `Vector` buffers where you want to retain capacity.
+- **Thread Safety**: Internally synchronized (can be used from multiple threads).
+
+#### BiVectorRecycler<T, keep_as_constructed>
+- **Purpose**: A double-ended queue (deque) that automatically manages object reuse via an internal `RecyclerPool`.
+- **Usage**:
+  ```cpp
+  BiVectorRecycler<RawDataBlock, true> queue;
+  RawDataBlock* block = queue.AddTail(); // Allocates or reuses
+  // ... use block ...
+  queue.DropHead(); // Returns to pool
+  ```
+- **Ownership**: The container owns the *pointers* and manages their lifecycle relative to the pool. Use `pick()` to transfer ownership of the active queue items to another `BiVectorRecycler` (e.g., passing data between threads).
+- **Move Semantics**: Supports moving (`pick`, `std::move`). When moved, the source container becomes empty, and the destination takes over the active items. The underlying pools remain separate, but items can safely cross between compatible pools.
+
+**Use Case Example (SoftHMD Camera)**:
+- Replaced `std::vector` and manual shifting with `BiVectorRecycler<RawDataBlock, true>`.
+- `RawDataBlock` contains a `Vector<byte>`.
+- `keep_as_constructed=true` ensures the internal capacity of `Vector<byte>` is preserved when blocks are recycled, minimizing heap allocations.

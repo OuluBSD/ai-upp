@@ -1,9 +1,9 @@
-Task 0001 - Stereo calibration program and data format
+Task 0001 - Stereo calibration program and data format [DONE]
 
 Checklist
-- Define a calibration capture flow (checkerboard/aruco).
-- Define output parameters: intrinsics, distortion, extrinsics, baseline, per-eye FOV, inter-eye angle.
-- Decide where calibration data lives and how it is loaded.
+- [x] Define a calibration capture flow (checkerboard/aruco).
+- [x] Define output parameters: intrinsics, distortion, extrinsics, baseline, per-eye FOV, inter-eye angle.
+- [x] Decide where calibration data lives and how it is loaded.
 
 Required calibration outputs (explicit)
 - Angle between images (if not parallel).

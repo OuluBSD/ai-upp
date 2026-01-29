@@ -11,33 +11,42 @@
 
 NAMESPACE_UPP
 
-struct StereoCalibrationTool : TopWindow {
-	struct PreviewCtrl : Ctrl {
+struct StereoCalibrationTool : public Upp::TopWindow {
+	struct MatchPair : Moveable<MatchPair> {
+		Pointf left = Null;
+		Pointf right = Null;
+		String left_text;
+		String right_text;
+	};
+
+	struct CapturedFrame : Moveable<CapturedFrame> {
+		Time time;
+		String source;
+		int samples = 0;
+		Image left_img;
+		Image right_img;
+		Vector<MatchPair> matches;
+	};
+
+	struct PreviewCtrl : public Upp::Ctrl {
 		bool live = true;
 		bool has_images = false;
 		Image left_img;
 		Image right_img;
 		String overlay;
+		Pointf pending_left = Null;
+		Vector<MatchPair> matches;
+		
+		Event<Pointf, int> WhenClick;
 		
 		void SetLive(bool b) { live = b; Refresh(); }
 		void SetImages(const Image& l, const Image& r) { left_img = l; right_img = r; has_images = !IsNull(l) || !IsNull(r); Refresh(); }
 		void SetOverlay(const String& s) { overlay = s; Refresh(); }
+		void SetPendingLeft(Pointf p) { pending_left = p; Refresh(); }
+		void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
 		
-		virtual void Paint(Draw& w) override {
-			Size sz = GetSize();
-			w.DrawRect(sz, Black());
-			if (has_images) {
-				int half = max(1, sz.cx / 2);
-				if (!IsNull(left_img))
-					w.DrawImage(0, 0, half, sz.cy, left_img);
-				if (!IsNull(right_img))
-					w.DrawImage(half, 0, sz.cx - half, sz.cy, right_img);
-			}
-			String title = live ? "Live Preview" : "Captured Snapshot";
-			w.DrawText(10, 10, title, Arial(18).Bold(), White());
-			if (!overlay.IsEmpty())
-				w.DrawText(10, 34, overlay, Arial(12), White());
-		}
+		virtual void Paint(Draw& w) override;
+		virtual void LeftDown(Point p, dword flags) override;
 	};
 	
 	struct StereoSource {
@@ -93,20 +102,6 @@ struct StereoCalibrationTool : TopWindow {
 		bool IsRunning() const override { return running; }
 		bool ReadFrame(VisualFrame&, VisualFrame&) override { return false; }
 	};
-	
-	struct MatchPair : Moveable<MatchPair> {
-		String left;
-		String right;
-	};
-
-	struct CapturedFrame : Moveable<CapturedFrame> {
-		Time time;
-		String source;
-		int samples = 0;
-		Image left_img;
-		Image right_img;
-		Vector<MatchPair> matches;
-	};
 
 	MenuBar menu;
 	StatusBar status;
@@ -126,6 +121,7 @@ struct StereoCalibrationTool : TopWindow {
 	Button load_calibration;
 	Button live_view;
 	Button capture_frame;
+	Button clear_matches;
 	Label calib_enabled_lbl;
 	Option calib_enabled;
 	Label calib_eye_lbl;
@@ -168,7 +164,7 @@ struct StereoCalibrationTool : TopWindow {
 	bool hmd_test_active = false;
 	int hmd_test_timeout_ms = 4000;
 	int64 hmd_test_start_us = 0;
-	int hmd_test_last_start_us = 0;
+	int64 hmd_test_last_start_us = 0;
 	int hmd_test_attempts = 0;
 
 	typedef StereoCalibrationTool CLASSNAME;

@@ -270,6 +270,57 @@ void StereoCalibrationTool::UsbStereoSource::Stop() { running = false; }
 bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame&, VisualFrame&) { return false; }
 #endif
 
+void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
+	Size sz = GetSize();
+	w.DrawRect(sz, Black());
+	if (has_images) {
+		int half = max(1, sz.cx / 2);
+		if (!IsNull(left_img))
+			w.DrawImage(0, 0, half, sz.cy, left_img);
+		if (!IsNull(right_img))
+			w.DrawImage(half, 0, sz.cx - half, sz.cy, right_img);
+		
+		// Draw matches
+		for (int i = 0; i < matches.GetCount(); i++) {
+			const MatchPair& m = matches[i];
+			if (!IsNull(m.left)) {
+				Point p(int(m.left.x * half), int(m.left.y * sz.cy));
+				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
+				w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
+			}
+			if (!IsNull(m.right)) {
+				Point p(int(half + m.right.x * (sz.cx - half)), int(m.right.y * sz.cy));
+				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
+				w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
+			}
+		}
+		
+		// Draw pending point
+		if (!IsNull(pending_left)) {
+			Point p(int(pending_left.x * half), int(pending_left.y * sz.cy));
+			w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Yellow());
+		}
+	}
+	String title = live ? "Live Preview" : "Captured Snapshot";
+	w.DrawText(10, 10, title, Arial(18).Bold(), White());
+	if (!overlay.IsEmpty())
+		w.DrawText(10, 34, overlay, Arial(12), White());
+}
+
+void StereoCalibrationTool::PreviewCtrl::LeftDown(Point p, dword flags) {
+	Size sz = GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0) return;
+	int half = sz.cx / 2;
+	if (p.x < half) {
+		Pointf img_p(float(p.x) / half, float(p.y) / sz.cy);
+		WhenClick(img_p, 0);
+	}
+	else {
+		Pointf img_p(float(p.x - half) / (sz.cx - half), float(p.y) / sz.cy);
+		WhenClick(img_p, 1);
+	}
+}
+
 StereoCalibrationTool::StereoCalibrationTool() {
 	Title("Stereo Calibration Tool");
 	Sizeable().Zoomable();
@@ -286,6 +337,33 @@ StereoCalibrationTool::StereoCalibrationTool() {
 		"  outward_angle=<float>\n"
 		"  angle_poly=a,b,c,d\n");
 	calibration_preview.SetLabel("Preview: (no calibration loaded)");
+
+	preview.WhenClick = [=](Pointf p, int eye) {
+		if (preview.live) return;
+		int row = captures_list.GetCursor();
+		if (row < 0 || row >= captured_frames.GetCount()) return;
+		CapturedFrame& frame = captured_frames[row];
+		
+		if (eye == 0) {
+			preview.SetPendingLeft(p);
+			status.Set(Format("Left point selected at %.3f, %.3f. Select matching right point.", p.x, p.y));
+		}
+		else if (eye == 1) {
+			if (IsNull(preview.pending_left)) {
+				status.Set("Select left point first.");
+				return;
+			}
+			MatchPair& m = frame.matches.Add();
+			m.left = preview.pending_left;
+			m.right = p;
+			m.left_text = Format("%.3f, %.3f", m.left.x, m.left.y);
+			m.right_text = Format("%.3f, %.3f", m.right.x, m.right.y);
+			preview.SetPendingLeft(Null);
+			preview.SetMatches(frame.matches);
+			DataCapturedFrame();
+			status.Set("Match pair added.");
+		}
+	};
 
 	BuildLayout();
 	LoadLastCalibration();
@@ -326,10 +404,19 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	stop_source.SetLabel("Stop");
 	live_view.SetLabel("Live view");
 	capture_frame.SetLabel("Capture");
+	clear_matches.SetLabel("Clear matches");
 	start_source <<= THISBACK(StartSource);
 	stop_source <<= THISBACK(StopSource);
 	live_view <<= THISBACK(LiveView);
 	capture_frame <<= THISBACK(CaptureFrame);
+	clear_matches.WhenAction = [=] {
+		int row = captures_list.GetCursor();
+		if (row >= 0 && row < captured_frames.GetCount()) {
+			captured_frames[row].matches.Clear();
+			DataCapturedFrame();
+			status.Set("Matches cleared.");
+		}
+	};
 
 	source_status.SetLabel("Status: idle");
 	sep_source.SetLabel("Source");
@@ -366,6 +453,8 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	left.Add(stop_source.TopPos(y, 24).LeftPos(96, 80));
 	left.Add(live_view.TopPos(y, 24).LeftPos(184, 80));
 	left.Add(capture_frame.TopPos(y, 24).LeftPos(272, 80));
+	y += 28;
+	left.Add(clear_matches.TopPos(y, 24).LeftPos(272, 100));
 	y += 32;
 	left.Add(source_status.TopPos(y, 20).HSizePos(8, 8));
 	y += 28;
@@ -452,12 +541,14 @@ void StereoCalibrationTool::DataCapturedFrame() {
 	const CapturedFrame& frame = captured_frames[row];
 	matches_list.Clear();
 	for (const MatchPair& pair : frame.matches)
-		matches_list.Add(pair.left, pair.right);
+		matches_list.Add(pair.left_text, pair.right_text);
 	preview.SetImages(frame.left_img, frame.right_img);
+	preview.SetMatches(frame.matches);
 	String time = AsString(captures_list.Get(row, 0));
 	String source = AsString(captures_list.Get(row, 1));
-	Value samples = captures_list.Get(row, 2);
-	preview.SetOverlay(Format("Capture %s (%s), samples %s", time, source, samples));
+	int samples = frame.matches.GetCount();
+	captures_list.Set(row, 2, samples);
+	preview.SetOverlay(Format("Capture %s (%s), samples %d", time, source, samples));
 	status.Set(Format("Selected capture %s from %s", time, source));
 }
 

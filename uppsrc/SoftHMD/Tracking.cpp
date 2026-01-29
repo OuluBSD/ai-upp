@@ -23,16 +23,90 @@ void StereoTracker::Reset() {
 }
 
 void StereoTracker::SetWmrDefaults() {
+	SetWmrDefaults(0, 0);
+}
+
+void StereoTracker::SetWmrDefaults(int vendor_id, int product_id) {
 	Upp::Mutex::Lock __(mutex);
-	uncam.SetAnglePixel(17.4932f, 153.022f, 175.333f, -25.7489f);
-	uncam.SetEyeDistance(0.12f);
+	
+	// Default WMR/HoloLens values
+	float a = 17.4932f, b = 153.022f, c = 175.333f, d = -25.7489f;
+	float eye_dist = 0.12f;
+	float outward_angle = DEG2RAD(35.50f);
+	
+	bool loaded = false;
+	if (vendor_id == 0x03f0 || vendor_id == 0x04b4) {
+		String path = "share/calibration/hp_vr1000/calibration.stcal";
+		StereoCalibrationData cal;
+		if (LoadCalibrationFile(path, cal)) {
+			a = cal.angle_to_pixel[0];
+			b = cal.angle_to_pixel[1];
+			c = cal.angle_to_pixel[2];
+			d = cal.angle_to_pixel[3];
+			eye_dist = cal.eye_dist / 1000.0f; // mm to m
+			outward_angle = cal.outward_angle;
+			loaded = true;
+			LOG("StereoTracker: Loaded calibration from " << path);
+		}
+	}
+
+	uncam.SetAnglePixel(a, b, c, d);
+	uncam.SetEyeDistance(eye_dist);
 	uncam.SetYLevelHeight(10);
-	uncam.SetEyeOutwardAngle(DEG2RAD(35.50f));
+	uncam.SetEyeOutwardAngle(outward_angle);
 	uncam.SetDistanceLimit(128);
+	
 	calib.is_enabled = true;
-	calib.angle_to_pixel = vec4(17.4932f, 153.022f, 175.333f, -25.7489f);
-	calib.eye_dist = 0.12f;
-	calib.outward_angle = DEG2RAD(35.50f);
+	calib.angle_to_pixel = vec4(a, b, c, d);
+	calib.eye_dist = eye_dist * 1000.0f; // m to mm
+	calib.outward_angle = outward_angle;
+}
+
+bool StereoTracker::LoadCalibrationFile(const String& path, StereoCalibrationData& out) {
+	String text = LoadFile(path);
+	if (text.IsEmpty())
+		return false;
+	StereoCalibrationData data;
+	Vector<String> lines = Split(text, '\n');
+	for (String line : lines) {
+		line = TrimBoth(line);
+		if (line.IsEmpty() || line[0] == '#')
+			continue;
+		int eq = line.Find('=');
+		if (eq < 0)
+			continue;
+		String key = TrimBoth(line.Left(eq));
+		String val = TrimBoth(line.Mid(eq + 1));
+		if (key == "enabled")
+			data.is_enabled = atoi(val) != 0;
+		else if (key == "eye_dist")
+			data.eye_dist = (float)atof(val);
+		else if (key == "outward_angle")
+			data.outward_angle = (float)atof(val);
+		else if (key == "angle_poly") {
+			Vector<String> parts = Split(val, ',');
+			if (parts.GetCount() >= 4) {
+				data.angle_to_pixel[0] = (float)atof(parts[0]);
+				data.angle_to_pixel[1] = (float)atof(parts[1]);
+				data.angle_to_pixel[2] = (float)atof(parts[2]);
+				data.angle_to_pixel[3] = (float)atof(parts[3]);
+			}
+		}
+	}
+	out = data;
+	return true;
+}
+
+bool StereoTracker::SaveCalibrationFile(const String& path, const StereoCalibrationData& data) {
+	Vector<String> lines;
+	lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
+	lines.Add(Format("eye_dist=%g", (double)data.eye_dist));
+	lines.Add(Format("outward_angle=%g", (double)data.outward_angle));
+	lines.Add(Format("angle_poly=%g,%g,%g,%g",
+		(double)data.angle_to_pixel[0], (double)data.angle_to_pixel[1],
+		(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
+	String text = Join(lines, "\n") + "\n";
+	return SaveFile(path, text);
 }
 
 void StereoTracker::SetPointLimit(int limit) {

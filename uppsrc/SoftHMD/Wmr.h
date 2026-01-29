@@ -10,6 +10,11 @@ NAMESPACE_HMD_BEGIN
 #define MOTION_CONTROLLER_PID           0x065b
 #define MOTION_CONTROLLER_PID_SAMSUNG   0x065d
 
+#define HP_VID                          0x03f0
+#define HP_QHMD_PID                     0x0367
+#define CYPRESS_VID                     0x04b4
+#define HP_WMR_PID                      0x6504
+
 
 typedef enum {
 	HOLOLENS_IRQ_SENSORS = 1,

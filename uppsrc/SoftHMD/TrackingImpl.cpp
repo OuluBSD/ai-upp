@@ -3,7 +3,10 @@
 NAMESPACE_HMD_BEGIN
 
 SoftHmdVisualTracker::SoftHmdVisualTracker() {
-	tracker.SetWmrDefaults();
+}
+
+void SoftHmdVisualTracker::SetWmrDefaults(int vendor_id, int product_id) {
+	tracker.SetWmrDefaults(vendor_id, product_id);
 }
 
 void SoftHmdVisualTracker::Reset() {

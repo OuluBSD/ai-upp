@@ -32,6 +32,8 @@ typedef struct {
 	char vendor[HMD_STR_SIZE];
 	char product[HMD_STR_SIZE];
 	char path[HMD_STR_SIZE];
+	int vendor_id;
+	int product_id;
 	int revision;
 	int id;
 	uint32 device_flags; // DeviceFlags

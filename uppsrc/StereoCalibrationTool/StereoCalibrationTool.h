@@ -228,8 +228,6 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void RemoveMatchPair();
 	void ExportCalibration();
 	void LoadCalibration();
-	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);
-	bool LoadCalibrationFile(const String& path, StereoCalibrationData& out);
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
 	void UpdatePreview();

@@ -41,6 +41,7 @@ public:
 	HMD_APIENTRYDLL StereoTracker();
 	HMD_APIENTRYDLL void Reset();
 	HMD_APIENTRYDLL void SetWmrDefaults();
+	HMD_APIENTRYDLL void SetWmrDefaults(int vendor_id, int product_id);
 	HMD_APIENTRYDLL void SetPointLimit(int limit);
 	HMD_APIENTRYDLL void SetDistanceLimit(int limit);
 	HMD_APIENTRYDLL void SetUseBright(bool b);
@@ -57,6 +58,9 @@ public:
 	HMD_APIENTRYDLL bool GetOverlay(StereoOverlay& out) const;
 	HMD_APIENTRYDLL void SetCalibration(const StereoCalibrationData& data);
 	HMD_APIENTRYDLL StereoCalibrationData GetCalibration() const;
+	
+	HMD_APIENTRYDLL static bool LoadCalibrationFile(const String& path, StereoCalibrationData& out);
+	HMD_APIENTRYDLL static bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);
 
 private:
 	bool SplitStereo(const Image& frame, Image& left, Image& right) const;

@@ -9,6 +9,7 @@ public:
 	void Reset() override;
 	void PutFrame(const VisualFrame& frame) override;
 	bool GetState(FusionState& out) const override;
+	void SetWmrDefaults(int vendor_id = 0, int product_id = 0) override;
 	
 	void SetUseBright(bool b);
 	void SetUseDark(bool b);

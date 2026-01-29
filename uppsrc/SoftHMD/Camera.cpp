@@ -395,26 +395,16 @@ bool Camera::ProcessRawFrames()
 		assembly_buffer.Clear();
 	}
 
-	while(true) {
-		RawDataBlock* block = NULL;
-		{
-			Upp::RWMutex::ReadLock __(raw_mutex);
-			for(auto& b : raw_queue) {
-				if(!b.ready) break;
-				if(b.processed) continue;
-				block = &b;
-				block->in_use++;
-				break;
-			}
+	{
+		Upp::RWMutex::ReadLock __(raw_mutex);
+		for(auto& b : raw_queue) {
+			if(!b.ready) break;
+			if(b.processed) continue;
+			
+			assembly_buffer.Append(b.data);
+			b.processed = true;
+			processed_any = true;
 		}
-		
-		if(!block) break;
-		
-		// Process WITHOUT lock
-		assembly_buffer.Append(block->data);
-		block->processed = true;
-		block->in_use--;
-		processed_any = true;
 	}
 	
 	if(!processed_any)

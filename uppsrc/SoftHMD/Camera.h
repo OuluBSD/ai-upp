@@ -87,7 +87,7 @@ private:
 	Upp::Thread usb_thread;
 	Upp::Thread process_thread;
 	Upp::Mutex mutex;
-	Upp::Mutex raw_mutex;
+	Upp::RWMutex raw_mutex;
 	Vector<CameraFrame> queue;
 	CameraStats stats;
 	int skip_streak_bright;
@@ -107,10 +107,14 @@ private:
 	
 	struct RawDataBlock {
 		Vector<byte> data;
+		std::atomic<bool> ready;
+		std::atomic<bool> processed;
+		std::atomic<int> in_use;
+		
+		RawDataBlock() : ready(false), processed(false), in_use(0) {}
 	};
 	
-	RecyclerPool<RawDataBlock, true> buffer_pool;
-	BiVector<RawDataBlock*> raw_queue;
+	LinkedList<RawDataBlock, true> raw_queue;
 	Vector<byte> assembly_buffer;
 	int64 last_halt_clear_usecs;
 };

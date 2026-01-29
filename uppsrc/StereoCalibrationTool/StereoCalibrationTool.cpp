@@ -788,27 +788,45 @@ void StereoCalibrationTool::LiveView() {
 }
 
 void StereoCalibrationTool::CaptureFrame() {
+	int idx = source_list.GetIndex();
+	if (idx < 0 || idx >= sources.GetCount()) return;
+	
+	VisualFrame lf, rf;
+	bool found = false;
+	TimeStop ts;
+	// Wait up to 500ms for a bright frame
+	while(ts.Elapsed() < 500) {
+		if (sources[idx]->ReadFrame(lf, rf)) {
+			if (lf.flags & VIS_FRAME_BRIGHT) {
+				found = true;
+				break;
+			}
+		}
+		Sleep(5);
+	}
+	
+	if (!found) {
+		status.Set("Failed to capture bright frame.");
+		return;
+	}
+
 	preview.SetLive(false);
 	String name = AsString(source_list.GetValue());
 	Time now = GetSysTime();
-	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
-	captures_list.SetCursor(captures_list.GetCount() - 1);
+	
 	CapturedFrame frame;
 	frame.time = now;
 	frame.source = name;
-	int idx = source_list.GetIndex();
-	if (idx >= 0 && idx < sources.GetCount()) {
-		VisualFrame lf;
-		VisualFrame rf;
-		if (sources[idx]->ReadFrame(lf, rf)) {
-			frame.left_img = CopyFrameImage(lf);
-			frame.right_img = CopyFrameImage(rf);
-		}
-	}
+	frame.left_img = CopyFrameImage(lf);
+	frame.right_img = CopyFrameImage(rf);
+	
 	captured_frames.Add(pick(frame));
+	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
+	captures_list.SetCursor(captures_list.GetCount() - 1);
+	
 	bottom_tabs.Set(0);
 	DataCapturedFrame();
-	status.Set("Captured snapshot.");
+	status.Set("Captured bright snapshot.");
 }
 
 void StereoCalibrationTool::ExportCalibration() {

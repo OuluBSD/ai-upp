@@ -20,6 +20,10 @@ Edit3D::Edit3D() :
 	state.prj = &prj;
 	anim.state = &state;
 	video.anim = &anim;
+	render_ctx.conf = &conf;
+	render_ctx.state = &state;
+	render_ctx.anim = &anim;
+	render_ctx.video = &video;
 	
 	anim.WhenSceneEnd << THISBACK(OnSceneEnd);
 	
@@ -293,14 +297,6 @@ void Edit3D::LoadRemote(EditClientService* svc, bool debug) {
 void Edit3D::OnDebugMetadata() {
 	
 	TODO
-	
-}
-
-
-
-EditConfiguration::EditConfiguration() {
-	background_clr = Color(43, 44, 46);
-	
 	
 }
 

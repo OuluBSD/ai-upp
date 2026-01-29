@@ -1,5 +1,4 @@
-#ifdef flagGUI
-#include "Edit3D.h"
+#include "Render.h"
 
 NAMESPACE_UPP
 
@@ -111,9 +110,11 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 
 void EditRenderer::Paint(Draw& d) {
 	Size sz = GetSize();
-	d.DrawRect(sz, owner->conf.background_clr);
+	if (!ctx || !ctx->state || !ctx->conf)
+		return;
+	d.DrawRect(sz, ctx->conf->background_clr);
 	
-	GeomWorldState& state = owner->state;
+	GeomWorldState& state = *ctx->state;
 	GeomScene& scene = state.GetActiveScene();
 	GeomCamera& camera = GetGeomCamera();
 	
@@ -132,10 +133,12 @@ void EditRenderer::Paint(Draw& d) {
 	
 	if (cam_src == CAMSRC_VIDEOIMPORT_FOCUS ||
 		cam_src == CAMSRC_VIDEOIMPORT_PROGRAM) {
-		int frame_i = owner->anim.position;
-		if (frame_i < 0 || frame_i >= owner->video.uncam.frames.GetCount())
+		if (!ctx->anim || !ctx->video)
 			return;
-		UncameraFrame& frame = owner->video.uncam.frames[frame_i];
+		int frame_i = ctx->anim->position;
+		if (frame_i < 0 || frame_i >= ctx->video->uncam.frames.GetCount())
+			return;
+		UncameraFrame& frame = ctx->video->uncam.frames[frame_i];
 		
 		GeomObjectState os;
 		GeomObject go;
@@ -144,7 +147,7 @@ void EditRenderer::Paint(Draw& d) {
 		go.octree_ptr = &frame.otree;
 		PaintObject(d, os, view, frustum);
 	}
-	if (owner->anim.is_playing) {
+	if (ctx->anim && ctx->anim->is_playing) {
 		for (GeomObjectState& os : state.objs) {
 			PaintObject(d, os, view, frustum);
 		}
@@ -159,19 +162,19 @@ void EditRenderer::Paint(Draw& d) {
 	}
 	
 	
-	if (&camera != &owner->state.program) {
+	if (&camera != &state.program) {
 		Color clr = Color(255, 255, 172);
 		
 		Vector<vec3> corners;
 		{
 			Camera cam;
-			owner->state.program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz, 3.0);
+			state.program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz, 3.0);
 			Frustum frustum = cam.GetFrustum();
 			corners.SetCount(8);
 			frustum.GetCorners(corners.Begin());
 		}
 		
-		DrawRect(sz, d, view, owner->state.program.position, Size(2,2), clr, z_cull);
+		DrawRect(sz, d, view, state.program.position, Size(2,2), clr, z_cull);
 		
 		int lw = 1;
 		DrawLine(sz, d, view, corners[0], corners[1], lw, clr, z_cull);
@@ -247,7 +250,9 @@ void EditRenderer::MouseMove(Point p, dword keyflags) {
 	
 	if (is_captured_mouse) {
 		Point diff = p - cap_mouse_pos;
-		float s = owner->conf.mouse_move_sensitivity * camera.scale;
+		if (!ctx || !ctx->conf)
+			return;
+		float s = ctx->conf->mouse_move_sensitivity * camera.scale;
 		switch (cap_mode) {
 			case CAPMODE_MOVE_XY: MoveRel(vec3(-diff.x * s, diff.y * s, 0)); break;
 			case CAPMODE_MOVE_YZ: MoveRel(vec3(-diff.x * s, 0, -diff.y * s * SCALAR_FWD_Z)); break;
@@ -280,7 +285,7 @@ void EditRenderer::Move(const vec3& v) {
 		
 	}
 	
-	owner->RefrehRenderers();
+	WhenChanged();
 }
 
 void EditRenderer::MoveRel(const vec3& v) {
@@ -306,7 +311,7 @@ void EditRenderer::MoveRel(const vec3& v) {
 		
 	}
 	
-	owner->RefrehRenderers();
+	WhenChanged();
 }
 
 void EditRenderer::Rotate(const axes3& v) {
@@ -314,7 +319,7 @@ void EditRenderer::Rotate(const axes3& v) {
 	
 	camera.orientation = MatQuat(QuatMat(camera.orientation) * AxesMat(v));
 	
-	owner->RefrehRenderers();
+	WhenChanged();
 }
 
 void EditRenderer::RotateRel(const axes3& v) {
@@ -322,7 +327,7 @@ void EditRenderer::RotateRel(const axes3& v) {
 	
 	camera.orientation = MatQuat(QuatMat(cap_begin_orientation) * AxesMat(v));
 	
-	owner->RefrehRenderers();
+	WhenChanged();
 }
 
 void EditRenderer::MouseWheel(Point p, int zdelta, dword keyflags) {
@@ -336,7 +341,7 @@ void EditRenderer::MouseWheel(Point p, int zdelta, dword keyflags) {
 		camera.scale *= scale;
 	}
 	
-	owner->RefrehRenderers();
+	WhenChanged();
 }
 
 GeomCamera& EditRenderer::GetGeomCamera() const {
@@ -344,12 +349,14 @@ GeomCamera& EditRenderer::GetGeomCamera() const {
 		
 	case CAMSRC_FOCUS:
 	case CAMSRC_VIDEOIMPORT_FOCUS:
-		return owner->state.focus;
+		ASSERT(ctx && ctx->state);
+		return ctx->state->focus;
 		break;
 		
 	case CAMSRC_PROGRAM:
 	case CAMSRC_VIDEOIMPORT_PROGRAM:
-		return owner->state.program;
+		ASSERT(ctx && ctx->state);
+		return ctx->state->program;
 		break;
 		
 	}
@@ -427,4 +434,3 @@ bool EditRenderer::Key(dword key, int count) {
 
 
 END_UPP_NAMESPACE
-#endif // flagGUI

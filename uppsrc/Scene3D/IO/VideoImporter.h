@@ -1,7 +1,5 @@
-#ifndef _Edit3D_VideoImporter_h_
-#define _Edit3D_VideoImporter_h_
-
-NAMESPACE_UPP
+#ifndef _Scene3D_IO_VideoImporter_h_
+#define _Scene3D_IO_VideoImporter_h_
 
 
 struct GeomVideo {
@@ -32,8 +30,5 @@ public:
 	void Update(double dt);
 	
 };
-
-
-END_UPP_NAMESPACE
 
 #endif

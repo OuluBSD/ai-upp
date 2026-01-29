@@ -78,10 +78,11 @@ private:
 	bool ProcessRawFrames();
 
 	bool opened;
-	bool quit;
-	bool quit_usb;
+	RunningFlagSingle usb_flag;
+	RunningFlagSingle process_flag;
 	bool verbose;
 	std::atomic<int> active_transfers;
+	bool gap_occurred;
 	
 	Upp::Thread usb_thread;
 	Upp::Thread process_thread;

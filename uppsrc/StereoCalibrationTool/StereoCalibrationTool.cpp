@@ -958,8 +958,6 @@ void StereoCalibrationTool::Data() {
 }
 
 void StereoCalibrationTool::DataCapturedFrame() {
-	if (preview.live)
-		return;
 	if (pending_capture_row >= 0 && captures_list.GetCount() > pending_capture_row) {
 		int set_row = pending_capture_row;
 		pending_capture_row = -1;
@@ -968,13 +966,19 @@ void StereoCalibrationTool::DataCapturedFrame() {
 	}
 	int row = captures_list.GetCursor();
 	if (row < 0) {
-		preview.SetOverlay("No capture selected");
+		if (!preview.live)
+			preview.SetOverlay("No capture selected");
 		return;
 	}
 	if (row >= captured_frames.GetCount()) {
-		preview.SetOverlay("Capture data unavailable");
+		if (!preview.live)
+			preview.SetOverlay("Capture data unavailable");
 		return;
 	}
+	
+	// If we have a selection, we definitely want to see it, so switch off live view.
+	preview.SetLive(false);
+	
 	const CapturedFrame& frame = captured_frames[row];
 	matches_list.Clear();
 	for (const MatchPair& pair : frame.matches)

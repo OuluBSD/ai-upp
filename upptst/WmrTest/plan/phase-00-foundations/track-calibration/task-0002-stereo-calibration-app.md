@@ -7,15 +7,15 @@ Checklist
 - Define stub interfaces for non-live sources.
 
 Deliverables
-- App spec (UI + input sources) and data flow.
+- App spec (UI + input sources) and data flow. [DONE]
 
 App spec (UI)
-- Tabs: Sources | Capture | Solve | Review | Export.
-- Sources: select input type (HMD, USB stereo, file), resolution, fps, side-by-side split settings.
-- Capture: live view + frame quality indicator + sample count; store accepted frames.
-- Solve: run calibration, show residuals and coverage.
-- Review: preview undistort + rectification, overlay reprojection errors.
-- Export: save JSON/.cfg to `share/calibration/<device-id>/stereo.json`.
+- Tabs: Sources | Capture | Solve | Review | Export. [DONE]
+- Sources: select input type (HMD, USB stereo, file), resolution, fps, side-by-side split settings. [DONE]
+- Capture: live view + frame quality indicator + sample count; store accepted frames. [DONE]
+- Solve: run calibration, show residuals and coverage. [DONE]
+- Review: preview undistort + rectification, overlay reprojection errors. [PARTIAL - TODO: epipolar lines]
+- Export: save JSON/.cfg to `share/calibration/<device-id>/stereo.json`. [DONE]
 
 Input sources (stubs)
 - HMD camera: via SoftHMD/USB capture (frame + timestamp).

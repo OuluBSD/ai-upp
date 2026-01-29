@@ -182,6 +182,11 @@ typedef enum {
 	
 	// int[HMD_CONTROL_COUNT] (get, lhmd_geti()): Get whether controls are digital or analog.
 	HMD_CONTROLS_TYPES                   =  6,
+	
+	// int[1] (GetListInt()): Gets the USB vendor ID of the device.
+	HMD_VENDOR_ID                        =  7,
+	// int[1] (GetListInt()): Gets the USB product ID of the device.
+	HMD_PRODUCT_ID                       =  8,
 } IntValue;
 
 // A collection of data information types used for setting information with lhmd_SetData().

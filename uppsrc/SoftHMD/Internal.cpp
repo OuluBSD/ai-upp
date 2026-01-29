@@ -184,6 +184,14 @@ int GetListInt(Context* ctx, int index, IntValue type, int* out)
 		*out = ctx->list.devices[index].device_flags;
 		return HMD_S_OK;
 
+	case HMD_VENDOR_ID:
+		*out = ctx->list.devices[index].vendor_id;
+		return HMD_S_OK;
+
+	case HMD_PRODUCT_ID:
+		*out = ctx->list.devices[index].product_id;
+		return HMD_S_OK;
+
 	default:
 		return HMD_S_INVALID_PARAMETER;
 	}

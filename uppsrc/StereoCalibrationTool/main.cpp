@@ -36,7 +36,7 @@ GUI_APP_MAIN
 			project_dir = arg;
 	}
 	
-	if (project_dir.IsEmpty()) {
+	if (project_dir.IsEmpty() && args.IsEmpty()) {
 		String default_dir = "share/calibration/hp_vr1000/";
 		if (DirectoryExists(default_dir))
 			project_dir = default_dir;

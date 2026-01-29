@@ -55,7 +55,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		virtual bool Start() = 0;
 		virtual void Stop() = 0;
 		virtual bool IsRunning() const = 0;
-		virtual bool ReadFrame(VisualFrame& left, VisualFrame& right) = 0;
+		virtual bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
+		virtual bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
 	};
 	
 	struct HmdStereoSource : StereoSource {
@@ -70,7 +71,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		bool Start() override;
 		void Stop() override;
 		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame& left, VisualFrame& right) override;
+		bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
+		bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
 	};
 	
 	struct UsbStereoSource : StereoSource {
@@ -90,7 +92,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		bool Start() override;
 		void Stop() override;
 		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&) override;
+		bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
+		bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
 	};
 	
 	struct VideoStereoSource : StereoSource {
@@ -100,7 +103,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		bool Start() override { running = true; return true; }
 		void Stop() override { running = false; }
 		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&) override { return false; }
+		bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
+		bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
 	};
 
 	MenuBar menu;
@@ -148,9 +152,12 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	ArrayCtrl matches_list;
 	DocEdit report_text;
 	Vector<One<StereoSource>> sources;
+	Upp::Mutex source_mutex;
 	StereoCalibrationData last_calibration;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
+	int64 last_serial = -1;
+	bool verbose = false;
 	TimeCallback tc;
 	TimeCallback usb_test_cb;
 	bool usb_test_enabled = false;
@@ -167,6 +174,11 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	int64 hmd_test_start_us = 0;
 	int64 hmd_test_last_start_us = 0;
 	int hmd_test_attempts = 0;
+	
+	TimeCallback live_test_cb;
+	bool live_test_active = false;
+	int live_test_timeout_ms = 5000;
+	int64 live_test_start_us = 0;
 
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
@@ -184,6 +196,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void EnableHmdTest(int timeout_ms);
 	void StartHmdTest();
 	void RunHmdTest();
+	void EnableLiveTest(int timeout_ms);
+	void StartLiveTest();
+	void RunLiveTest();
+	void SetVerbose(bool v) { verbose = v; }
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();

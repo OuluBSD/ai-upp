@@ -5,6 +5,7 @@
 
 struct VisualFrame {
 	int64 timestamp_us = 0;
+	int64 serial = 0;
 	int format = 0;
 	int width = 0;
 	int height = 0;

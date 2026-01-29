@@ -13,6 +13,7 @@ struct CameraFrame : public Moveable<CameraFrame> {
 	Image img;
 	bool is_bright;
 	int exposure;
+	int64 serial;
 };
 
 struct CameraStats {
@@ -61,6 +62,7 @@ public:
 	bool HMD_APIENTRYDLL IsOpen() const { return opened; }
 	
 	void HMD_APIENTRYDLL PopFrames(Vector<CameraFrame>& out);
+	void HMD_APIENTRYDLL PeakFrames(Vector<CameraFrame>& out);
 	CameraStats HMD_APIENTRYDLL GetStats();
 	void HMD_APIENTRYDLL SetVerbose(bool v) { verbose = v; }
 	void HMD_APIENTRYDLL SetAsyncBuffers(int count) { async_buffers = count; }
@@ -89,6 +91,7 @@ private:
 	Upp::Mutex mutex;
 	Upp::RWMutex raw_mutex;
 	Vector<CameraFrame> queue;
+	int64 serial_counter;
 	CameraStats stats;
 	int skip_streak_bright;
 	int skip_streak_dark;

@@ -15,10 +15,25 @@
 - Draw green circles and index labels for selected match pairs - DONE
 - Track match coordinates in `matches_list` - DONE
 
-## Phase 3: Diagnostics and State
+## Phase 3: Diagnostics and Project Persistence
 - Add `--test-live` and `--verbose` arguments for systematic testing - DONE
 - Implement verbose logging for synchronization and capture processes - DONE
 - Fix frame backlog issue by consuming only latest bright frame in ReadFrame - DONE
 - Add `last_serial` tracking to prevent redundant UI updates - DONE
-- [TODO] Calibration Solve logic (Phase 2 extension)
-- [TODO] .stcal persistence for point pairs (Phase 2 extension)
+- Implement Project Directory support (CLI and startup selection) - DONE
+- Auto-save/load `project.json` (matches), `report.txt`, and PNG frames - DONE
+- Support separate `dist_l` and `dist_r` (mm) per match pair - DONE
+- Add "Edit" menu for removing snapshots and matches - DONE
+
+## Phase 4: Calibration Solver
+- Integrate `plugin/Eigen` for non-linear optimization - DONE
+- Implement Bundle Adjustment solver minimizing reprojection and metric range errors - DONE
+- Support fisheye distortion model (4th order polynomial) - DONE
+- Auto-save solved parameters to `calibration.stcal` in project directory - DONE
+- Implement automatic calibration loading in SoftHMD based on USB VID/PID (HP VR1000) - DONE
+
+## Phase 5: Verification and Review (Next)
+- [TODO] Implement Rectification Preview (show horizontal epipolar lines over stereo images).
+- [TODO] Visual "Undistort" toggle in PreviewCtrl to check polynomial fit quality.
+- [TODO] Residual heatmap or error overlay per match point.
+- [TODO] Export to "production" path (`share/calibration/hp_vr1000/calibration.stcal`) with confirmation.

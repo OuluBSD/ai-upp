@@ -472,7 +472,7 @@ bool Camera::ProcessRawFrames()
 				
 				{
 					Upp::Mutex::Lock __(mutex);
-					if(queue.GetCount() > 30) queue.Remove(0);
+					if(queue.GetCount() >= 2) queue.Remove(0, queue.GetCount() - 1);
 					CameraFrame& f = queue.Add();
 					f.img = ib;
 					f.is_bright = is_bright;

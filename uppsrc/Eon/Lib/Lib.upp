@@ -15,7 +15,6 @@ acceptflags
 	GUBO,
 	HACK,
 	HAL,
-	LOCALHMD,
 	OPENVR,
 	LV2,
 	MEDIA,

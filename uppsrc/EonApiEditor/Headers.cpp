@@ -252,11 +252,11 @@ void InterfaceBuilder::Headers() {
 		.Link("PIPE", "PROCESS")
 	;
 	
-	AddHeader("LocalHMDPipe", "LocalHMDSinkDevice", "pipe")
+	AddHeader("SoftHMDPipe", "SoftHMDSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.holo.events")
 		.Link("PIPE", "PROCESS")
-		//.Arg("reqdef_flagLOCALHMD", "1")
+		//.Arg("reqdef_flagSOFTHMD", "1")
 	;
 	
 	AddHeader("RemoteVRServerPipe", "RemoteVRServerSinkDevice", "pipe")

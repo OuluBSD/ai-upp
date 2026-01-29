@@ -7,22 +7,19 @@ uses
 file
 	MaestroHub.h,
 	main.cpp,
-	
-	"Technology" block,
+	Technology,
 	Technology.h,
 	Technology.cpp,
-	
-	"Product" block,
+	Product,
 	Product.h,
 	Product.cpp,
-	
-	"Maintenance" block,
+	Maintenance,
 	Maintenance.h,
 	Maintenance.cpp,
-	
-	"Management" block,
+	Management,
 	SessionManagement.h,
 	SessionManagement.cpp;
 
 mainconfig
 	"" = "GUI";
+

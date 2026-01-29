@@ -390,12 +390,12 @@ public:
 };
 #endif
 
-#if (defined flagLOCALHMD && defined flagVR)
-class LocalHMDPipe : public LocalHMDSinkDevice {
+#if (defined flagSOFTHMD && defined flagVR)
+class SoftHMDPipe : public SoftHMDSinkDevice {
 
 public:
-	ATOM_CTOR_(LocalHMDPipe, LocalHMDSinkDevice)
-	//ATOMTYPE(LocalHMDPipe)
+	ATOM_CTOR_(SoftHMDPipe, SoftHMDSinkDevice)
+	//ATOMTYPE(SoftHMDPipe)
 	static String GetAction();
 	static AtomTypeCls GetAtomType();
 	static LinkTypeCls GetLinkType();

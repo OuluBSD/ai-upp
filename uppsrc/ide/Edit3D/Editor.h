@@ -10,14 +10,6 @@ NAMESPACE_UPP
 
 struct Edit3D;
 
-struct EditConfiguration {
-	Color background_clr;
-	float mouse_move_sensitivity = 0.01f;
-	
-	EditConfiguration();
-	
-};
-
 struct GeomProjectCtrl : Ctrl {
 	Edit3D* e;
 	
@@ -39,6 +31,7 @@ struct GeomProjectCtrl : Ctrl {
 	void TreeSelect();
 	void OnCursor(int kp_i);
 	void TreeDirectory(int id, GeomDirectory& dir);
+	void RefreshRenderer(int i);
 	
 };
 
@@ -57,7 +50,8 @@ struct Edit3D : TopWindow {
 	MenuBar menu;
 	ToolBar tool;
 	
-	EditConfiguration conf;
+	Scene3DRenderConfig conf;
+	Scene3DRenderContext render_ctx;
 	
 	
 	GeomProject prj;

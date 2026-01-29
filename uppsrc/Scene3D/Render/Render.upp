@@ -1,10 +1,16 @@
 uses
 	CtrlLib,
 	Geometry,
-	Scene3D/Core;
+	Scene3D/Core,
+	Scene3D/IO;
 
 file
 	AGENTS.md;
+	Render.h;
+	Renderer.h;
+	Renderer.cpp;
+	SoftRendCtrl.h;
+	SoftRendCtrl.cpp;
 
 mainconfig
 	"" = "";

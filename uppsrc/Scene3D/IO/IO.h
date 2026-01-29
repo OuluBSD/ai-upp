@@ -1,0 +1,13 @@
+#ifndef _Scene3D_IO_IO_h_
+#define _Scene3D_IO_IO_h_
+
+#include <Scene3D/Core/Core.h>
+
+NAMESPACE_UPP
+
+#include "VideoImporter.h"
+#include "StagedVideoImporter.h"
+
+END_UPP_NAMESPACE
+
+#endif

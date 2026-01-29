@@ -1,7 +1,5 @@
-#ifndef _Edit3D_StagedVideoImporter_h_
-#define _Edit3D_StagedVideoImporter_h_
-
-NAMESPACE_UPP
+#ifndef _Scene3D_IO_StagedVideoImporter_h_
+#define _Scene3D_IO_StagedVideoImporter_h_
 
 
 struct GeomStagedVideo : GeomVideo {
@@ -52,8 +50,5 @@ public:
 	void Stop();
 	
 };
-
-
-END_UPP_NAMESPACE
 
 #endif

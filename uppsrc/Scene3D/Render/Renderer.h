@@ -1,14 +1,9 @@
-#ifndef _Edit3D_Renderer_h_
-#define _Edit3D_Renderer_h_
-
-NAMESPACE_UPP
-
-
-struct Edit3D;
+#ifndef _Scene3D_Render_Renderer_h_
+#define _Scene3D_Render_Renderer_h_
 
 
 struct EditRenderer : public Ctrl {
-	Edit3D* owner = 0;
+	Scene3DRenderContext* ctx = 0;
 	ViewMode view_mode = VIEWMODE_YZ;
 	CameraSource cam_src = CAMSRC_FOCUS;
 	
@@ -28,6 +23,8 @@ struct EditRenderer : public Ctrl {
 public:
 	typedef EditRenderer CLASSNAME;
 	EditRenderer();
+
+	Event<> WhenChanged;
 	
 	void Paint(Draw& d) override;
 	void LeftDown(Point p, dword keyflags) override;
@@ -49,7 +46,5 @@ public:
 	
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

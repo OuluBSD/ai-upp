@@ -16,7 +16,8 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	
 	grid.SetGridSize(2,2);
 	for(int i = 0; i < 4; i++) {
-		rends[i].owner = e;
+		rends[i].ctx = &e->render_ctx;
+		rends[i].WhenChanged = THISBACK1(RefreshRenderer, i);
 		grid.Add(rends[i]);
 	}
 	rends[0].SetViewMode(VIEWMODE_YZ);
@@ -29,6 +30,11 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends[3].SetCameraSource(CAMSRC_PROGRAM);
 	
 	
+}
+
+void GeomProjectCtrl::RefreshRenderer(int i) {
+	if (i >= 0 && i < 4)
+		rends[i].Refresh();
 }
 
 void GeomProjectCtrl::Update(double dt) {

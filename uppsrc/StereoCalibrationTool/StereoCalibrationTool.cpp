@@ -32,69 +32,108 @@ struct CalibrationSolver {
 	double eye_dist;
 
 	int Solve(double& a, double& b, double& c, double& d, double& outward_angle) {
-		Eigen::VectorXd y(5);
+		int N = pairs.GetCount();
+		if (N < 5) return 0;
+
+		Eigen::VectorXd y(5 + 3 * N);
 		y[0] = a; y[1] = b; y[2] = c; y[3] = d; y[4] = outward_angle;
 
+		auto unproject_dir = [&](Pointf pix, Size sz, double cur_a, double cur_b, double cur_c, double cur_d, double cur_phi, int eye) -> vec3 {
+			double cx = sz.cx / 2.0, cy = sz.cy / 2.0;
+			double dx = pix.x * sz.cx - cx, dy = pix.y * sz.cy - cy;
+			double r = sqrt(dx * dx + dy * dy);
+			if (r < 1e-6) return vec3(0, 0, -1);
+			
+			// Newton to find theta
+			double theta = r / cur_a;
+			for (int it = 0; it < 5; it++) {
+				double t2 = theta * theta;
+				double t3 = t2 * theta;
+				double t4 = t3 * theta;
+				double f = cur_a * theta + cur_b * t2 + cur_c * t3 + cur_d * t4 - r;
+				double df = cur_a + 2 * cur_b * theta + 3 * cur_c * t2 + 4 * cur_d * t3;
+				if (fabs(df) < 1e-9) break;
+				theta -= f / df;
+			}
+			
+			double roll = -atan2(dx, dy);
+			vec3 dir = AxesDirRoll((float)theta, (float)roll);
+			axes2 axes = GetDirAxes(dir).Splice();
+			if (eye == 0) axes[0] += (float)cur_phi; else axes[0] -= (float)cur_phi;
+			return GetAxesDir(axes);
+		};
+
+		// 1. Initial guess for 3D points using current rays
+		for(int i = 0; i < N; i++) {
+			const auto& p = pairs[i];
+			vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject_dir(p.l, p.sz, a, b, c, d, outward_angle, 0);
+			vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject_dir(p.r, p.sz, a, b, c, d, outward_angle, 1);
+			
+			vec3 w0 = pL - pR;
+			double a_dot = Dot(dL, dL), b_dot = Dot(dL, dR), c_dot = Dot(dR, dR);
+			double d_dot = Dot(dL, w0), e_dot = Dot(dR, w0);
+			double denom = a_dot * c_dot - b_dot * b_dot;
+			vec3 pt;
+			if (fabs(denom) > 1e-9) {
+				double sc = (b_dot * e_dot - c_dot * d_dot) / denom;
+				double tc = (a_dot * e_dot - b_dot * d_dot) / denom;
+				pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
+			} else {
+				pt = (pL + pR) * 0.5f + dL * 1000.0f; // 1m away
+			}
+			y[5 + i*3 + 0] = pt[0];
+			y[5 + i*3 + 1] = pt[1];
+			y[5 + i*3 + 2] = pt[2];
+		}
+
+		// 2. Optimization loop
 		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
 			double cur_a = x[0], cur_b = x[1], cur_c = x[2], cur_d = x[3], cur_phi = x[4];
-			res.resize(pairs.GetCount() * 3); // Ray-ray distance + dist_l + dist_r
-			for (int i = 0; i < pairs.GetCount(); i++) {
-				const auto& p = pairs[i];
-				auto unproject_dir = [&](Pointf pix, int eye) -> vec3 {
-					double cx = p.sz.cx / 2.0, cy = p.sz.cy / 2.0;
-					double dx = pix.x * p.sz.cx - cx, dy = pix.y * p.sz.cy - cy;
-					double r = sqrt(dx * dx + dy * dy);
-					if (r < 1e-6) return vec3(0, 0, -1);
-					
-					// Newton to find theta
-					double theta = r / cur_a;
-					for (int it = 0; it < 5; it++) {
-						double t2 = theta * theta;
-						double t3 = t2 * theta;
-						double t4 = t3 * theta;
-						double f = cur_a * theta + cur_b * t2 + cur_c * t3 + cur_d * t4 - r;
-						double df = cur_a + 2 * cur_b * theta + 3 * cur_c * t2 + 4 * cur_d * t3;
-						if (fabs(df) < 1e-9) break;
-						theta -= f / df;
-					}
-					
-					double roll = -atan2(dx, dy);
-					vec3 dir = AxesDirRoll((float)theta, (float)roll);
-					axes2 axes = GetDirAxes(dir).Splice();
-					if (eye == 0) axes[0] += (float)cur_phi; else axes[0] -= (float)cur_phi;
-					return GetAxesDir(axes);
-				};
+			res.resize(N * 6);
+			
+			auto project = [&](vec3 P, int eye) -> Pointf {
+				vec3 localP = P;
+				if (eye == 0) localP[0] += (float)eye_dist / 2.0f;
+				else localP[0] -= (float)eye_dist / 2.0f;
+				
+				vec3 dir = localP.GetNormalized();
+				axes2 axes = GetDirAxes(dir).Splice();
+				if (eye == 0) axes[0] -= (float)cur_phi;
+				else axes[0] += (float)cur_phi;
+				
+				axes2 roll_axes = GetDirAxesRoll(GetAxesDir(axes));
+				double theta = roll_axes.data[0];
+				double roll = roll_axes.data[1];
+				double r = cur_a * theta + cur_b * theta*theta + cur_c * theta*theta*theta + cur_d * theta*theta*theta*theta;
+				double dx = r * -sin(roll);
+				double dy = r * cos(roll);
+				
+				const auto& pp = pairs[0];
+				return Pointf((dx + pp.sz.cx/2.0) / pp.sz.cx, (dy + pp.sz.cy/2.0) / pp.sz.cy);
+			};
 
-				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject_dir(p.l, 0);
-				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject_dir(p.r, 1);
+			for (int i = 0; i < N; i++) {
+				const auto& p = pairs[i];
+				vec3 X(x[5 + i*3 + 0], x[5 + i*3 + 1], x[5 + i*3 + 2]);
 				
-				// 1. Ray-ray closest distance (minimizes vertical disparity and baseline alignment)
-				res[i*3 + 0] = RayRayDistance(pL, dL, pR, dR);
+				Pointf uvL = project(X, 0);
+				Pointf uvR = project(X, 1);
 				
-				// 2. Calculated 3D point distance from cameras
-				// (We find the midpoint of the shortest segment connecting the two rays)
-				vec3 w0 = pL - pR;
-				double a_dot = Dot(dL, dL), b_dot = Dot(dL, dR), c_dot = Dot(dR, dR);
-				double d_dot = Dot(dL, w0), e_dot = Dot(dR, w0);
-				double denom = a_dot * c_dot - b_dot * b_dot;
-				if (fabs(denom) > 1e-9) {
-					double sc = (b_dot * e_dot - c_dot * d_dot) / denom;
-					double tc = (a_dot * e_dot - b_dot * d_dot) / denom;
-					vec3 ptL = pL + dL * (float)sc;
-					vec3 ptR = pR + dR * (float)tc;
-					vec3 pt = (ptL + ptR) * 0.5f;
-					
-					if (p.dist_l > 0) res[i*3 + 1] = pt.GetLength() - p.dist_l; else res[i*3 + 1] = 0;
-					if (p.dist_r > 0) res[i*3 + 2] = pt.GetLength() - p.dist_r; else res[i*3 + 2] = 0;
-				} else {
-					res[i*3 + 1] = 0;
-					res[i*3 + 2] = 0;
-				}
+				res[i*6 + 0] = (uvL.x - p.l.x) * p.sz.cx;
+				res[i*6 + 1] = (uvL.y - p.l.y) * p.sz.cy;
+				res[i*6 + 2] = (uvR.x - p.r.x) * p.sz.cx;
+				res[i*6 + 3] = (uvR.y - p.r.y) * p.sz.cy;
+				
+				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0);
+				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0);
+				double w_range = 0.02;
+				if (p.dist_l > 0) res[i*6 + 4] = ((X - pL).GetLength() - p.dist_l) * w_range; else res[i*6 + 4] = 0;
+				if (p.dist_r > 0) res[i*6 + 5] = ((X - pR).GetLength() - p.dist_r) * w_range; else res[i*6 + 5] = 0;
 			}
 			return 0;
 		};
 
-		if (NonLinearOptimization(y, pairs.GetCount() * 3, residual)) {
+		if (NonLinearOptimization(y, N * 6, residual)) {
 			a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
 			return 1;
 		}

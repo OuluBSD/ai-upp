@@ -151,6 +151,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	StereoCalibrationData last_calibration;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
+	TimeCallback tc;
 	TimeCallback usb_test_cb;
 	bool usb_test_enabled = false;
 	bool usb_test_active = false;
@@ -175,6 +176,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void BuildLeftPanel();
 	void BuildBottomTabs();
 	void Data();
+	void Sync();
 	void DataCapturedFrame();
 	void EnableUsbTest(const String& dev, int timeout_ms);
 	void StartUsbTest();

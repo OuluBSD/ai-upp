@@ -25,6 +25,8 @@ static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
 }
 
 static Image CopyFrameImage(const VisualFrame& frame) {
+	if (!IsNull(frame.img))
+		return frame.img;
 	if (frame.format != GEOM_EVENT_CAM_RGBA8 || frame.width <= 0 || frame.height <= 0 || !frame.data)
 		return Image();
 	ImageBuffer ib(frame.width, frame.height);
@@ -157,6 +159,7 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 	left.eye = 0;
 	left.data = (const byte*)~last_left;
 	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
+	left.img = last_left;
 	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
 
 	right.timestamp_us = left.timestamp_us;
@@ -167,6 +170,7 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 	right.eye = 1;
 	right.data = (const byte*)~last_right;
 	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
+	right.img = last_right;
 	right.flags = left.flags;
 
 	return true;
@@ -250,6 +254,7 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 	left.eye = 0;
 	left.data = (const byte*)~last_left;
 	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
+	left.img = last_left;
 	left.flags = VIS_FRAME_BRIGHT;
 
 	right.timestamp_us = left.timestamp_us;
@@ -260,6 +265,7 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 	right.eye = 1;
 	right.data = (const byte*)~last_right;
 	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
+	right.img = last_right;
 	right.flags = VIS_FRAME_BRIGHT;
 
 	return true;
@@ -370,6 +376,27 @@ StereoCalibrationTool::StereoCalibrationTool() {
 	LoadState();
 	SyncEditsFromCalibration();
 	Data();
+	
+	tc.Set(-1000/60, [=] { Sync(); });
+}
+
+void StereoCalibrationTool::Sync() {
+	if (!preview.live) return;
+	
+	int idx = source_list.GetIndex();
+	if (idx >= 0 && idx < sources.GetCount()) {
+		if (sources[idx]->IsRunning()) {
+			VisualFrame lf, rf;
+			if (sources[idx]->ReadFrame(lf, rf)) {
+				Image left_img = CopyFrameImage(lf);
+				Image right_img = CopyFrameImage(rf);
+				if (!IsNull(left_img) || !IsNull(right_img)) {
+					preview.SetImages(left_img, right_img);
+					preview.SetOverlay("Live view");
+				}
+			}
+		}
+	}
 }
 
 StereoCalibrationTool::~StereoCalibrationTool() {
@@ -754,6 +781,7 @@ void StereoCalibrationTool::StopSource() {
 
 void StereoCalibrationTool::LiveView() {
 	preview.SetLive(true);
+	preview.SetMatches(Vector<MatchPair>());
 	preview.SetImages(Image(), Image());
 	preview.SetOverlay("Live view");
 	status.Set("Live view enabled.");

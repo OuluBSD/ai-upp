@@ -83,8 +83,6 @@ static void wmr_camera_set_gain(libusb_device_handle* usb_handle, uint8 camera, 
 Camera::Camera()
 {
 	opened = false;
-	quit = false;
-	quit_usb = false;
 	active_transfers = 0;
 	usb_ctx = NULL;
 	usb_handle = NULL;
@@ -122,8 +120,8 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 					cam->stats.max_transferred = xfer->actual_length;
 				cam->stats.last_error = 0;
 				cam->stats.last_r = 0;
+				cam->AppendRaw(xfer->buffer, xfer->actual_length);
 			}
-			cam->AppendRaw(xfer->buffer, xfer->actual_length);
 		} else {
 			if(cam->verbose) Cout() << "USB: Zero-byte transfer completed\n";
 		}
@@ -141,7 +139,7 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 		}
 	}
 	
-	if(!cam->quit) {
+	if(cam->usb_flag.IsRunning()) {
 		if(xfer->status == LIBUSB_TRANSFER_ERROR || xfer->status == LIBUSB_TRANSFER_STALL) {
 			bool should_clear = true;
 			if(locked) {
@@ -261,8 +259,9 @@ bool HMD_APIENTRYDLL Camera::Open()
 	}
 	active_transfers = async_buffers;
 
-	quit = false;
-	quit_usb = false;
+	usb_flag.Start();
+	process_flag.Start();
+	
 	usb_thread.Start(THISBACK(Process));
 	process_thread.Start(THISBACK(ProcessFrames));
 	opened = true;
@@ -274,7 +273,9 @@ void HMD_APIENTRYDLL Camera::Close()
 {
 	if(!opened) return;
 	
-	quit = true;
+	process_flag.Stop();
+	usb_flag.Stop();
+	
 	for(int i = 0; i < transfers.size(); i++) {
 		if(transfers[i].libusb_xfer)
 			libusb_cancel_transfer(transfers[i].libusb_xfer);
@@ -285,8 +286,6 @@ void HMD_APIENTRYDLL Camera::Close()
 		Upp::Sleep(10);
 		attempts++;
 	}
-	
-	quit_usb = true;
 	
 	usb_thread.Wait();
 	process_thread.Wait();
@@ -319,17 +318,19 @@ void HMD_APIENTRYDLL Camera::Close()
 void Camera::Process()
 {
 	struct timeval tv = { 0, 10000 };
-	while(!quit_usb) {
+	while(usb_flag.IsRunning()) {
 		libusb_handle_events_timeout_completed(usb_ctx, &tv, NULL);
 	}
+	usb_flag.SetStopped();
 }
 
 void Camera::ProcessFrames()
 {
-	while(!quit) {
+	while(process_flag.IsRunning()) {
 		if(!ProcessRawFrames())
 			Upp::Sleep(1);
 	}
+	process_flag.SetStopped();
 }
 
 void Camera::AppendRaw(const byte* buffer, int size)

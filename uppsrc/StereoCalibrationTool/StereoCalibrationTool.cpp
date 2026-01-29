@@ -648,6 +648,45 @@ void StereoCalibrationTool::ClearMatches() {
 	}
 }
 
+void StereoCalibrationTool::SetProjectDir(const String& dir) {
+	project_dir = dir;
+	if (project_dir.IsEmpty()) return;
+	RealizeDirectory(project_dir);
+	LoadLastCalibration();
+	LoadState();
+	if (FileExists(GetReportPath())) {
+		report_text <<= LoadFile(GetReportPath());
+	}
+	SyncEditsFromCalibration();
+	Data();
+}
+
+void StereoCalibrationTool::RemoveSnapshot() {
+	int row = captures_list.GetCursor();
+	if (row >= 0 && row < captured_frames.GetCount()) {
+		if (PromptYesNo("Remove selected snapshot and all its matches?")) {
+			captured_frames.Remove(row);
+			SaveState();
+			LoadState(); // Refresh list and images
+			status.Set("Snapshot removed.");
+		}
+	}
+}
+
+void StereoCalibrationTool::RemoveMatchPair() {
+	int row = captures_list.GetCursor();
+	int mrow = matches_list.GetCursor();
+	if (row >= 0 && row < captured_frames.GetCount() && mrow >= 0) {
+		CapturedFrame& f = captured_frames[row];
+		if (mrow < f.matches.GetCount()) {
+			f.matches.Remove(mrow);
+			DataCapturedFrame();
+			SaveState();
+			status.Set("Match pair removed.");
+		}
+	}
+}
+
 void StereoCalibrationTool::SolveCalibration() {
 	CalibrationSolver solver;
 	solver.eye_dist = (double)calib_eye_dist;
@@ -695,8 +734,11 @@ void StereoCalibrationTool::SolveCalibration() {
 		report << "  phi: " << phi << " rad (" << phi * 180 / M_PI << " deg)\n";
 		
 		report_text <<= report;
+		SaveFile(GetReportPath(), report);
+		SaveLastCalibration();
+		
 		bottom_tabs.Set(1);
-		status.Set("Calibration solved.");
+		status.Set("Calibration solved and saved.");
 	}
 	else {
 		status.Set("Solver failed to converge.");
@@ -757,12 +799,14 @@ void StereoCalibrationTool::CaptureFrame() {
 	frame.right_img = CopyFrameImage(rf);
 	
 	captured_frames.Add(pick(frame));
-	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
+	SaveState(); // Auto-save on capture
+	LoadState(); // Refresh list
+	
 	captures_list.SetCursor(captures_list.GetCount() - 1);
 	
 	bottom_tabs.Set(0);
 	DataCapturedFrame();
-	status.Set("Captured bright snapshot.");
+	status.Set("Captured and saved bright snapshot.");
 }
 
 StereoCalibrationTool::~StereoCalibrationTool() {
@@ -771,8 +815,10 @@ StereoCalibrationTool::~StereoCalibrationTool() {
 	live_test_cb.Kill();
 	tc.Kill();
 	StopSource();
-	SaveLastCalibration();
-	SaveState();
+	if (!project_dir.IsEmpty()) {
+		SaveLastCalibration();
+		SaveState();
+	}
 }
 
 void StereoCalibrationTool::BuildLayout() {
@@ -1275,33 +1321,39 @@ void StereoCalibrationTool::UpdatePreview() {
 }
 
 String StereoCalibrationTool::GetPersistPath() const {
-	return ConfigFile("StereoCalibrationTool.stcal");
+	return AppendFileName(project_dir, "calibration.stcal");
 }
 
 String StereoCalibrationTool::GetStatePath() const {
-	return ConfigFile("StereoCalibrationTool.state");
+	return AppendFileName(project_dir, "project.json");
+}
+
+String StereoCalibrationTool::GetReportPath() const {
+	return AppendFileName(project_dir, "report.txt");
 }
 
 void StereoCalibrationTool::LoadLastCalibration() {
 	StereoCalibrationData data;
 	String path = GetPersistPath();
-	if (FileExists(path) && LoadCalibrationFile(path, data))
+	if (!project_dir.IsEmpty() && FileExists(path) && LoadCalibrationFile(path, data))
 		last_calibration = data;
 }
 
 void StereoCalibrationTool::SaveLastCalibration() {
+	if (project_dir.IsEmpty()) return;
 	SyncCalibrationFromEdits();
 	SaveCalibrationFile(GetPersistPath(), last_calibration);
 }
 
 void StereoCalibrationTool::LoadState() {
+	if (project_dir.IsEmpty()) return;
 	String path = GetStatePath();
 	if (FileExists(path)) {
 		String json = LoadFile(path);
 		if (!json.IsEmpty()) {
 			LoadFromJson(captured_frames, json);
 			
-			String dir = AppendFileName(GetFileDirectory(path), "captures");
+			String dir = AppendFileName(project_dir, "captures");
 			captures_list.Clear();
 			for(int i = 0; i < captured_frames.GetCount(); i++) {
 				auto& f = captured_frames[i];
@@ -1314,10 +1366,11 @@ void StereoCalibrationTool::LoadState() {
 }
 
 void StereoCalibrationTool::SaveState() {
+	if (project_dir.IsEmpty()) return;
 	String path = GetStatePath();
 	SaveFile(path, StoreAsJson(captured_frames));
 	
-	String dir = AppendFileName(GetFileDirectory(path), "captures");
+	String dir = AppendFileName(project_dir, "captures");
 	RealizeDirectory(dir);
 	for(int i = 0; i < captured_frames.GetCount(); i++) {
 		auto& f = captured_frames[i];
@@ -1328,12 +1381,29 @@ void StereoCalibrationTool::SaveState() {
 
 void StereoCalibrationTool::MainMenu(Bar& bar) {
 	bar.Sub("App", THISBACK(AppMenu));
+	bar.Sub("Edit", THISBACK(EditMenu));
 	bar.Sub("View", THISBACK(ViewMenu));
 	bar.Sub("Help", THISBACK(HelpMenu));
 }
 
 void StereoCalibrationTool::AppMenu(Bar& bar) {
+	bar.Add("Open Project...", [=] {
+		FileSel fs;
+		if (fs.ExecuteSelectDir("Select Project Directory")) {
+			SetProjectDir(fs.Get());
+		}
+	});
+	bar.Separator();
 	bar.Add("Exit", [=] { Close(); });
+}
+
+void StereoCalibrationTool::EditMenu(Bar& bar) {
+	bar.Add("Remove snapshot", THISBACK(RemoveSnapshot))
+	   .Key(K_CTRL_DELETE)
+	   .Enable(captures_list.IsCursor());
+	bar.Add("Remove match pair", THISBACK(RemoveMatchPair))
+	   .Key(K_DELETE)
+	   .Enable(matches_list.IsCursor());
 }
 
 void StereoCalibrationTool::ViewMenu(Bar& bar) {

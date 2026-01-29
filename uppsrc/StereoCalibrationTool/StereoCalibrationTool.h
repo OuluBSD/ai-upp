@@ -164,6 +164,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	DocEdit report_text;
 	Vector<One<StereoSource>> sources;
 	Upp::Mutex source_mutex;
+	String project_dir;
 	StereoCalibrationData last_calibration;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
@@ -211,6 +212,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void StartLiveTest();
 	void RunLiveTest();
 	void SetVerbose(bool v) { verbose = v; }
+	void SetProjectDir(const String& dir);
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();
@@ -218,6 +220,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void CaptureFrame();
 	void SolveCalibration();
 	void ClearMatches();
+	void RemoveSnapshot();
+	void RemoveMatchPair();
 	void ExportCalibration();
 	void LoadCalibration();
 	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);
@@ -227,6 +231,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void UpdatePreview();
 	String GetStatePath() const;
 	String GetPersistPath() const;
+	String GetReportPath() const;
 	void LoadLastCalibration();
 	void SaveLastCalibration();
 	void LoadState();
@@ -235,6 +240,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);
 	void ViewMenu(Bar& bar);
+	void EditMenu(Bar& bar);
 	void HelpMenu(Bar& bar);
 };
 

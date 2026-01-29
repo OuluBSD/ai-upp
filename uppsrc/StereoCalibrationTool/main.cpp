@@ -8,6 +8,7 @@ GUI_APP_MAIN
 	StereoCalibrationTool app;
 	const Vector<String>& args = CommandLine();
 	String usb_device;
+	String project_dir;
 	int usb_timeout_ms = 0;
 	bool test_usb = false;
 	bool test_hmd = false;
@@ -31,7 +32,26 @@ GUI_APP_MAIN
 			hmd_timeout_ms = atoi(arg.Mid(strlen("--hmd-timeout-ms=")));
 		else if (arg.StartsWith("--live-timeout-ms="))
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
+		else if (!arg.StartsWith("--"))
+			project_dir = arg;
 	}
+	
+	if (project_dir.IsEmpty()) {
+		String default_dir = "share/calibration/hp_vr1000/";
+		if (DirectoryExists(default_dir))
+			project_dir = default_dir;
+	}
+	
+	if (project_dir.IsEmpty()) {
+		FileSel fs;
+		if (fs.ExecuteSelectDir("Select Project Directory"))
+			project_dir = fs.Get();
+		else
+			return;
+	}
+	
+	app.SetProjectDir(project_dir);
+
 	if (test_usb)
 		app.EnableUsbTest(usb_device, usb_timeout_ms);
 	if (test_hmd)

@@ -280,7 +280,7 @@ struct CameraCtrl : public Ctrl {
 			              (double)r.top + p[1] * sy);
 		};
 
-		const int max_points = 512;
+		const int max_points = 1536;
 		if (show_descriptors) {
 			int left_count = overlay.left_points.GetCount();
 			if (left_count > max_points)
@@ -410,6 +410,8 @@ HMD::System sys;
 	Image background_bright, background_dark;
 	TransformMatrix background_trans;
 	ControllerMatrix background_ev3d;
+	
+	BiVector<Image> frame_history;
 
 public:
 	WmrTest(int async_buffers_, int transfer_timeout_ms_) {
@@ -514,6 +516,12 @@ public:
 				}
 
 				for (const auto& f : frames) {
+					// Prevent use-after-free race condition by keeping image ref alive
+					// for a short while, in case fusion.PutVisual is async/queued.
+					frame_history.AddTail(f.img);
+					if(frame_history.GetCount() > 20)
+						frame_history.DropHead();
+
 					VisualFrame vf;
 					vf.timestamp_us = usecs();
 					vf.format = GEOM_EVENT_CAM_RGBA8;
@@ -523,7 +531,7 @@ public:
 				vf.data = (const byte*)~f.img;
 				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
 				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-					
+				
 				fusion.PutVisual(vf);
 				}
 			}
@@ -958,12 +966,12 @@ void TestTrack(int seconds, int async_buffers, int transfer_timeout_ms)
 		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 	
-HMD::System sys;
+	HMD::System sys;
 	if(!sys.Initialise()) {
 		Cout() << "Error: Failed to initialise HMD system\n";
 	}
 	
-HMD::SoftHmdFusion fusion;
+	HMD::SoftHmdFusion fusion;
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();

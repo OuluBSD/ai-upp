@@ -26,6 +26,7 @@ struct CalibrationSolver {
 	struct PointPair : Moveable<PointPair> {
 		Pointf l, r;
 		Size sz;
+		double dist_l, dist_r;
 	};
 	Vector<PointPair> pairs;
 	double eye_dist;
@@ -36,10 +37,10 @@ struct CalibrationSolver {
 
 		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
 			double cur_a = x[0], cur_b = x[1], cur_c = x[2], cur_d = x[3], cur_phi = x[4];
-			res.resize(pairs.GetCount());
+			res.resize(pairs.GetCount() * 3); // Ray-ray distance + dist_l + dist_r
 			for (int i = 0; i < pairs.GetCount(); i++) {
 				const auto& p = pairs[i];
-				auto unproject = [&](Pointf pix, int eye) -> vec3 {
+				auto unproject_dir = [&](Pointf pix, int eye) -> vec3 {
 					double cx = p.sz.cx / 2.0, cy = p.sz.cy / 2.0;
 					double dx = pix.x * p.sz.cx - cx, dy = pix.y * p.sz.cy - cy;
 					double r = sqrt(dx * dx + dy * dy);
@@ -64,14 +65,36 @@ struct CalibrationSolver {
 					return GetAxesDir(axes);
 				};
 
-				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject(p.l, 0);
-				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject(p.r, 1);
-				res[i] = RayRayDistance(pL, dL, pR, dR);
+				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject_dir(p.l, 0);
+				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject_dir(p.r, 1);
+				
+				// 1. Ray-ray closest distance (minimizes vertical disparity and baseline alignment)
+				res[i*3 + 0] = RayRayDistance(pL, dL, pR, dR);
+				
+				// 2. Calculated 3D point distance from cameras
+				// (We find the midpoint of the shortest segment connecting the two rays)
+				vec3 w0 = pL - pR;
+				double a_dot = Dot(dL, dL), b_dot = Dot(dL, dR), c_dot = Dot(dR, dR);
+				double d_dot = Dot(dL, w0), e_dot = Dot(dR, w0);
+				double denom = a_dot * c_dot - b_dot * b_dot;
+				if (fabs(denom) > 1e-9) {
+					double sc = (b_dot * e_dot - c_dot * d_dot) / denom;
+					double tc = (a_dot * e_dot - b_dot * d_dot) / denom;
+					vec3 ptL = pL + dL * (float)sc;
+					vec3 ptR = pR + dR * (float)tc;
+					vec3 pt = (ptL + ptR) * 0.5f;
+					
+					if (p.dist_l > 0) res[i*3 + 1] = pt.GetLength() - p.dist_l; else res[i*3 + 1] = 0;
+					if (p.dist_r > 0) res[i*3 + 2] = pt.GetLength() - p.dist_r; else res[i*3 + 2] = 0;
+				} else {
+					res[i*3 + 1] = 0;
+					res[i*3 + 2] = 0;
+				}
 			}
 			return 0;
 		};
 
-		if (NonLinearOptimization(y, pairs.GetCount(), residual)) {
+		if (NonLinearOptimization(y, pairs.GetCount() * 3, residual)) {
 			a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
 			return 1;
 		}
@@ -699,6 +722,8 @@ void StereoCalibrationTool::SolveCalibration() {
 			p.l = m.left;
 			p.r = m.right;
 			p.sz = sz;
+			p.dist_l = m.dist_l;
+			p.dist_r = m.dist_r;
 		}
 	}
 	
@@ -870,7 +895,7 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	load_calibration <<= THISBACK(LoadCalibration);
 	calib_enabled_lbl.SetLabel("Enabled");
 	calib_enabled.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_eye_lbl.SetLabel("Eye dist");
+	calib_eye_lbl.SetLabel("Eye dist (mm)");
 	calib_eye_dist.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_outward_lbl.SetLabel("Outward angle");
 	calib_outward_angle.WhenAction = THISBACK(SyncCalibrationFromEdits);
@@ -943,14 +968,16 @@ void StereoCalibrationTool::BuildBottomTabs() {
 	
 	matches_list.AddColumn("Left");
 	matches_list.AddColumn("Right");
-	matches_list.AddColumn("Distance (cm)").Edit(distance_editor);
+	matches_list.AddColumn("Dist L (mm)").Edit(dist_l_editor);
+	matches_list.AddColumn("Dist R (mm)").Edit(dist_r_editor);
 	matches_list.WhenAcceptRow = [=] {
 		int row = captures_list.GetCursor();
 		int mrow = matches_list.GetCursor();
 		if (row >= 0 && row < captured_frames.GetCount() && mrow >= 0) {
 			CapturedFrame& f = captured_frames[row];
 			if (mrow < f.matches.GetCount()) {
-				f.matches[mrow].distance = matches_list.Get(mrow, 2);
+				f.matches[mrow].dist_l = matches_list.Get(mrow, 2);
+				f.matches[mrow].dist_r = matches_list.Get(mrow, 3);
 				SaveState();
 			}
 		}
@@ -997,7 +1024,7 @@ void StereoCalibrationTool::DataCapturedFrame() {
 	const CapturedFrame& frame = captured_frames[row];
 	matches_list.Clear();
 	for (const MatchPair& pair : frame.matches)
-		matches_list.Add(pair.left_text, pair.right_text, pair.distance);
+		matches_list.Add(pair.left_text, pair.right_text, pair.dist_l, pair.dist_r);
 	preview.SetImages(frame.left_img, frame.right_img);
 	preview.SetMatches(frame.matches);
 	String time = AsString(captures_list.Get(row, 0));

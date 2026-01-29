@@ -139,14 +139,26 @@ void StereoCalibrationTool::HmdStereoSource::Stop() {
 	last_right = Image();
 }
 
-bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right) {
+bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
 	if (!cam || !cam->IsOpen())
 		return false;
 	Vector<HMD::CameraFrame> frames;
 	cam->PopFrames(frames);
 	if (frames.IsEmpty())
 		return false;
-	const HMD::CameraFrame& f = frames.Top();
+	
+	int best_idx = -1;
+	if (prefer_bright) {
+		for(int i = 0; i < frames.GetCount(); i++) {
+			if(frames[i].is_bright) {
+				best_idx = i;
+			}
+		}
+	}
+	
+	if (best_idx < 0) best_idx = frames.GetCount() - 1;
+	
+	const HMD::CameraFrame& f = frames[best_idx];
 	if (!SplitStereoImage(f.img, last_left, last_right))
 		return false;
 	last_is_bright = f.is_bright;
@@ -161,6 +173,7 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
 	left.img = last_left;
 	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+	left.serial = f.serial;
 
 	right.timestamp_us = left.timestamp_us;
 	right.format = GEOM_EVENT_CAM_RGBA8;
@@ -172,6 +185,58 @@ bool StereoCalibrationTool::HmdStereoSource::ReadFrame(VisualFrame& left, Visual
 	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
 	right.img = last_right;
 	right.flags = left.flags;
+	right.serial = left.serial;
+
+	return true;
+}
+
+bool StereoCalibrationTool::HmdStereoSource::PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
+	if (!cam || !cam->IsOpen())
+		return false;
+	Vector<HMD::CameraFrame> frames;
+	cam->PeakFrames(frames);
+	if (frames.IsEmpty())
+		return false;
+	
+	int best_idx = -1;
+	if (prefer_bright) {
+		for(int i = 0; i < frames.GetCount(); i++) {
+			if(frames[i].is_bright) {
+				best_idx = i;
+			}
+		}
+	}
+	
+	if (best_idx < 0) best_idx = frames.GetCount() - 1;
+	
+	const HMD::CameraFrame& f = frames[best_idx];
+	if (!SplitStereoImage(f.img, last_left, last_right))
+		return false;
+	last_is_bright = f.is_bright;
+
+	left.timestamp_us = usecs();
+	left.format = GEOM_EVENT_CAM_RGBA8;
+	left.width = last_left.GetWidth();
+	left.height = last_left.GetHeight();
+	left.stride = left.width * (int)sizeof(RGBA);
+	left.eye = 0;
+	left.data = (const byte*)~last_left;
+	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
+	left.img = last_left;
+	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+	left.serial = f.serial;
+
+	right.timestamp_us = left.timestamp_us;
+	right.format = GEOM_EVENT_CAM_RGBA8;
+	right.width = last_right.GetWidth();
+	right.height = last_right.GetHeight();
+	right.stride = right.width * (int)sizeof(RGBA);
+	right.eye = 1;
+	right.data = (const byte*)~last_right;
+	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
+	right.img = last_right;
+	right.flags = left.flags;
+	right.serial = left.serial;
 
 	return true;
 }
@@ -220,31 +285,52 @@ void StereoCalibrationTool::UsbStereoSource::Stop() {
 	last_right = Image();
 }
 
-bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right) {
+bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
 	if (!capture)
 		return false;
 
 	timeval tv;
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
-	if (capture->isReadable(&tv) <= 0)
-		return false;
+	
+bool found = false;
+	bool found_bright = false;
+	
+	while(capture->isReadable(&tv) > 0) {
+		size_t read_bytes = capture->read((char*)raw.Begin(), raw.GetCount());
+		if (read_bytes == 0) break;
+		
+		Image frame;
+		if (pixfmt == V4L2_PIX_FMT_RGB24)
+			frame = ConvertRgb24ToImage(raw.Begin(), width, height);
+		else if (pixfmt == V4L2_PIX_FMT_YUYV)
+			frame = ConvertYuyvToImage(raw.Begin(), width, height);
+		else if (pixfmt == V4L2_PIX_FMT_MJPEG)
+			frame = ConvertMjpegToImage(raw.Begin(), (int)read_bytes);
 
-	size_t read_bytes = capture->read((char*)raw.Begin(), raw.GetCount());
-	if (read_bytes == 0)
-		return false;
-	Image frame;
-	if (pixfmt == V4L2_PIX_FMT_RGB24)
-		frame = ConvertRgb24ToImage(raw.Begin(), width, height);
-	else if (pixfmt == V4L2_PIX_FMT_YUYV)
-		frame = ConvertYuyvToImage(raw.Begin(), width, height);
-	else if (pixfmt == V4L2_PIX_FMT_MJPEG)
-		frame = ConvertMjpegToImage(raw.Begin(), (int)read_bytes);
-
-	if (frame.IsEmpty())
-		return false;
-	if (!SplitStereoImage(frame, last_left, last_right))
-		return false;
+		if (frame.IsEmpty()) continue;
+		
+		int64 sum = 0;
+		int samples = 0;
+		for(int y = 0; y < frame.GetHeight(); y += 20) {
+			for(int x = 0; x < frame.GetWidth(); x += 20) {
+				sum += frame[y][x].g;
+				samples++;
+			}
+		}
+		int avg = (samples > 0) ? (int)(sum / samples) : 0;
+		bool is_bright = (avg > 10);
+		
+		if (!found || (prefer_bright && is_bright) || !found_bright) {
+			if (SplitStereoImage(frame, last_left, last_right)) {
+				found = true;
+				last_is_bright = is_bright;
+				if (is_bright) found_bright = true;
+			}
+		}
+	}
+	
+	if (!found) return false;
 
 	left.timestamp_us = usecs();
 	left.format = GEOM_EVENT_CAM_RGBA8;
@@ -255,7 +341,8 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 	left.data = (const byte*)~last_left;
 	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
 	left.img = last_left;
-	left.flags = VIS_FRAME_BRIGHT;
+	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+	left.serial = 0;
 
 	right.timestamp_us = left.timestamp_us;
 	right.format = GEOM_EVENT_CAM_RGBA8;
@@ -266,14 +353,21 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 	right.data = (const byte*)~last_right;
 	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
 	right.img = last_right;
-	right.flags = VIS_FRAME_BRIGHT;
+	right.flags = left.flags;
+	right.serial = left.serial;
 
 	return true;
+}
+
+bool StereoCalibrationTool::UsbStereoSource::PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
+	// PeakFrame not supported for USB, fallback to ReadFrame
+	return ReadFrame(left, right, prefer_bright);
 }
 #else
 bool StereoCalibrationTool::UsbStereoSource::Start() { return false; }
 void StereoCalibrationTool::UsbStereoSource::Stop() { running = false; }
-bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame&, VisualFrame&) { return false; }
+bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame&, VisualFrame&, bool) { return false; }
+bool StereoCalibrationTool::UsbStereoSource::PeakFrame(VisualFrame&, VisualFrame&, bool) { return false; }
 #endif
 
 void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
@@ -337,10 +431,10 @@ StereoCalibrationTool::StereoCalibrationTool() {
 
 	source_info.SetLabel("Source setup goes here (live HMD, USB stereo, or video file).");
 	calibration_info.SetLabel("Calibration workflow goes here (checkerboard/aruco capture).");
-	calibration_schema.SetLabel("Output schema (.stcal):\n"
-		"  enabled=0|1\n"
-		"  eye_dist=<float>\n"
-		"  outward_angle=<float>\n"
+	calibration_schema.SetLabel("Output schema (.stcal):\n" 
+		"  enabled=0|1\n" 
+		"  eye_dist=<float>\n" 
+		"  outward_angle=<float>\n" 
 		"  angle_poly=a,b,c,d\n");
 	calibration_preview.SetLabel("Preview: (no calibration loaded)");
 
@@ -380,6 +474,59 @@ StereoCalibrationTool::StereoCalibrationTool() {
 	tc.Set(-1000/60, [=] { Sync(); });
 }
 
+void StereoCalibrationTool::EnableLiveTest(int timeout_ms) {
+	if (timeout_ms > 0) live_test_timeout_ms = timeout_ms;
+	PostCallback(THISBACK(StartLiveTest));
+}
+
+void StereoCalibrationTool::StartLiveTest() {
+	if (live_test_active) return;
+	live_test_active = true;
+	live_test_start_us = usecs();
+	live_test_cb.Set(-100, THISBACK(RunLiveTest));
+	Cout() << "Live Test: Starting. Will check for dark frame flickering and try capture.\n";
+	
+	// Ensure source is running
+	if (!sources[source_list.GetIndex()]->IsRunning())
+		StartSource();
+	
+	LiveView();
+}
+
+void StereoCalibrationTool::RunLiveTest() {
+	if (!live_test_active) return;
+	
+	int64 elapsed_ms = (usecs() - live_test_start_us) / 1000;
+	if (elapsed_ms > live_test_timeout_ms) {
+		Cout() << "Live Test: FAILED (Timeout)\n";
+		Exit(1);
+	}
+	
+	int idx = source_list.GetIndex();
+	VisualFrame lf, rf;
+	
+	bool read_ok = false;
+	{
+		Mutex::Lock __(source_mutex);
+		read_ok = sources[idx]->PeakFrame(lf, rf, false); // Peak for test too
+	}
+	
+	if (read_ok) {
+		if (lf.flags & VIS_FRAME_DARK) {
+			Cout() << "Live Test: DARK frame received. SYNC SHOULD SKIP THIS.\n";
+		}
+		
+		if (lf.flags & VIS_FRAME_BRIGHT) {
+			Cout() << "Live Test: Bright frame detected. Attempting capture...\n";
+			CaptureFrame();
+			if (captured_frames.GetCount() > 0) {
+				Cout() << "Live Test: SUCCESS (Captured bright frame)\n";
+				Exit(0);
+			}
+		}
+	}
+}
+
 void StereoCalibrationTool::Sync() {
 	if (!preview.live) return;
 	
@@ -387,7 +534,23 @@ void StereoCalibrationTool::Sync() {
 	if (idx >= 0 && idx < sources.GetCount()) {
 		if (sources[idx]->IsRunning()) {
 			VisualFrame lf, rf;
-			if (sources[idx]->ReadFrame(lf, rf)) {
+			
+			// Use PeakFrame for Sync to avoid clear backlog for CaptureFrame
+			if (!source_mutex.TryEnter()) return;
+			bool success = sources[idx]->PeakFrame(lf, rf, false);
+			source_mutex.Leave();
+			
+			if (success) {
+				if (verbose) Cout() << Format("Sync: Frame serial=%d, flags=%d (Bright=%d, Dark=%d)\n", 
+					(int)lf.serial, lf.flags, (int)(lf.flags & VIS_FRAME_BRIGHT), (int)(lf.flags & VIS_FRAME_DARK));
+
+				if (!(lf.flags & VIS_FRAME_BRIGHT))
+					return;
+				
+				if (lf.serial > 0 && lf.serial == last_serial)
+					return;
+				last_serial = lf.serial;
+				
 				Image left_img = CopyFrameImage(lf);
 				Image right_img = CopyFrameImage(rf);
 				if (!IsNull(left_img) || !IsNull(right_img)) {
@@ -399,9 +562,72 @@ void StereoCalibrationTool::Sync() {
 	}
 }
 
+void StereoCalibrationTool::CaptureFrame() {
+	int idx = source_list.GetIndex();
+	if (idx < 0 || idx >= sources.GetCount()) return;
+	
+	if (verbose) Cout() << "CaptureFrame: Waiting for bright frame...\n";
+	
+	VisualFrame lf, rf;
+	bool found = false;
+	TimeStop ts;
+	
+	// Step 1: Poll using PeakFrame (non-destructive)
+	while(ts.Elapsed() < 2000) {
+		bool read_ok = false;
+		{
+			if (source_mutex.TryEnter()) {
+				read_ok = sources[idx]->PeakFrame(lf, rf, true);
+				source_mutex.Leave();
+			}
+		}
+		
+		if (read_ok && (lf.flags & VIS_FRAME_BRIGHT)) {
+			found = true;
+			break;
+		}
+		Sleep(5);
+	}
+	
+	if (!found) {
+		String msg = "Failed to capture bright frame after 2000ms.";
+		if (verbose) Cout() << "CaptureFrame: " << msg << "\n";
+		status.Set(msg);
+		return;
+	}
+
+	// Step 2: Now destructively pop the frame
+	{
+		Mutex::Lock __(source_mutex);
+		sources[idx]->ReadFrame(lf, rf, true);
+	}
+
+	if (verbose) Cout() << "CaptureFrame: Bright frame found! Capturing.\n";
+
+	preview.SetLive(false);
+	String name = AsString(source_list.GetValue());
+	Time now = GetSysTime();
+	
+	CapturedFrame frame;
+	frame.time = now;
+	frame.source = name;
+	frame.left_img = CopyFrameImage(lf);
+	frame.right_img = CopyFrameImage(rf);
+	
+	captured_frames.Add(pick(frame));
+	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
+	captures_list.SetCursor(captures_list.GetCount() - 1);
+	
+	bottom_tabs.Set(0);
+	DataCapturedFrame();
+	status.Set("Captured bright snapshot.");
+}
+
 StereoCalibrationTool::~StereoCalibrationTool() {
 	usb_test_cb.Kill();
 	hmd_test_cb.Kill();
+	live_test_cb.Kill();
+	tc.Kill();
 	StopSource();
 	SaveLastCalibration();
 	SaveState();
@@ -460,12 +686,12 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	load_calibration.SetLabel("Load .stcal");
 	load_calibration <<= THISBACK(LoadCalibration);
 	calib_enabled_lbl.SetLabel("Enabled");
-	calib_eye_lbl.SetLabel("Eye dist");
-	calib_outward_lbl.SetLabel("Outward angle");
-	calib_poly_lbl.SetLabel("Angle poly");
 	calib_enabled.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_eye_lbl.SetLabel("Eye dist");
 	calib_eye_dist.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_outward_lbl.SetLabel("Outward angle");
 	calib_outward_angle.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_lbl.SetLabel("Angle poly");
 	calib_poly_a.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_poly_b.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_poly_c.WhenAction = THISBACK(SyncCalibrationFromEdits);
@@ -633,7 +859,7 @@ void StereoCalibrationTool::RunUsbTest() {
 	}
 
 	VisualFrame lf, rf;
-	if (!usb->ReadFrame(lf, rf)) {
+	if (!usb->ReadFrame(lf, rf, true)) {
 		status.Set(Format("USB test: waiting for frame (%d)...", ++usb_test_attempts));
 		return;
 	}
@@ -716,7 +942,7 @@ void StereoCalibrationTool::RunHmdTest() {
 	}
 
 	VisualFrame lf, rf;
-	if (!hmd->ReadFrame(lf, rf)) {
+	if (!hmd->ReadFrame(lf, rf, true)) {
 		status.Set(Format("HMD test: waiting for frame (%d)...", ++hmd_test_attempts));
 		return;
 	}
@@ -749,6 +975,7 @@ void StereoCalibrationTool::RunHmdTest() {
 }
 
 void StereoCalibrationTool::OnSourceChanged() {
+	if (verbose) Cout() << "OnSourceChanged: Source index=" << source_list.GetIndex() << "\n";
 	StopSource();
 	String name = AsString(source_list.GetValue());
 	source_status.SetLabel(Format("Status: ready (%s)", name));
@@ -757,22 +984,23 @@ void StereoCalibrationTool::OnSourceChanged() {
 
 void StereoCalibrationTool::StartSource() {
 	int idx = source_list.GetIndex();
-	if (idx < 0 || idx >= sources.GetCount())
-		return;
+	if (idx < 0 || idx >= sources.GetCount()) return;
 	String name = AsString(source_list.GetValue());
+	if (verbose) Cout() << "StartSource: Starting " << name << "\n";
 	if (sources[idx]->Start()) {
 		source_status.SetLabel(Format("Status: running (%s)", name));
 		status.Set(Format("Source running: %s", name));
 	} else {
 		source_status.SetLabel(Format("Status: failed (%s)", name));
 		status.Set(Format("Source failed: %s", name));
+		if (verbose) Cout() << "StartSource: FAILED\n";
 	}
 }
 
 void StereoCalibrationTool::StopSource() {
 	int idx = source_list.GetIndex();
-	if (idx < 0 || idx >= sources.GetCount())
-		return;
+	if (idx < 0 || idx >= sources.GetCount()) return;
+	if (verbose) Cout() << "StopSource: Stopping " << AsString(source_list.GetValue()) << "\n";
 	sources[idx]->Stop();
 	String name = AsString(source_list.GetValue());
 	source_status.SetLabel(Format("Status: stopped (%s)", name));
@@ -780,53 +1008,12 @@ void StereoCalibrationTool::StopSource() {
 }
 
 void StereoCalibrationTool::LiveView() {
+	if (verbose) Cout() << "LiveView: Enabling live view\n";
 	preview.SetLive(true);
 	preview.SetMatches(Vector<MatchPair>());
 	preview.SetImages(Image(), Image());
 	preview.SetOverlay("Live view");
 	status.Set("Live view enabled.");
-}
-
-void StereoCalibrationTool::CaptureFrame() {
-	int idx = source_list.GetIndex();
-	if (idx < 0 || idx >= sources.GetCount()) return;
-	
-	VisualFrame lf, rf;
-	bool found = false;
-	TimeStop ts;
-	// Wait up to 500ms for a bright frame
-	while(ts.Elapsed() < 500) {
-		if (sources[idx]->ReadFrame(lf, rf)) {
-			if (lf.flags & VIS_FRAME_BRIGHT) {
-				found = true;
-				break;
-			}
-		}
-		Sleep(5);
-	}
-	
-	if (!found) {
-		status.Set("Failed to capture bright frame.");
-		return;
-	}
-
-	preview.SetLive(false);
-	String name = AsString(source_list.GetValue());
-	Time now = GetSysTime();
-	
-	CapturedFrame frame;
-	frame.time = now;
-	frame.source = name;
-	frame.left_img = CopyFrameImage(lf);
-	frame.right_img = CopyFrameImage(rf);
-	
-	captured_frames.Add(pick(frame));
-	captures_list.Add(Format("%02d:%02d:%02d", now.hour, now.minute, now.second), name, 0);
-	captures_list.SetCursor(captures_list.GetCount() - 1);
-	
-	bottom_tabs.Set(0);
-	DataCapturedFrame();
-	status.Set("Captured bright snapshot.");
 }
 
 void StereoCalibrationTool::ExportCalibration() {
@@ -943,9 +1130,9 @@ void StereoCalibrationTool::UpdatePreview() {
 	s << "  eye_dist=" << last_calibration.eye_dist << "\n";
 	s << "  outward_angle=" << last_calibration.outward_angle << "\n";
 	s << "  angle_poly=" << last_calibration.angle_to_pixel[0] << ", "
-	  << last_calibration.angle_to_pixel[1] << ", "
-	  << last_calibration.angle_to_pixel[2] << ", "
-	  << last_calibration.angle_to_pixel[3] << "\n";
+	  << 	last_calibration.angle_to_pixel[1] << ", "
+	  << 	last_calibration.angle_to_pixel[2] << ", "
+	  << 	last_calibration.angle_to_pixel[3] << "\n";
 	calibration_preview.SetLabel(s);
 }
 

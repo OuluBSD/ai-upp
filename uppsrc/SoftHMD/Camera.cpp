@@ -93,6 +93,7 @@ Camera::Camera()
 	skip_streak_bright = 0;
 	skip_streak_dark = 0;
 	gap_occurred = false;
+	serial_counter = 0;
 }
 
 Camera::~Camera()
@@ -193,6 +194,12 @@ void HMD_APIENTRYDLL Camera::PopFrames(Vector<CameraFrame>& out)
 {
 	Upp::Mutex::Lock __(mutex);
 	out = pick(queue);
+}
+
+void HMD_APIENTRYDLL Camera::PeakFrames(Vector<CameraFrame>& out)
+{
+	Upp::Mutex::Lock __(mutex);
+	out <<= queue;
 }
 
 CameraStats HMD_APIENTRYDLL Camera::GetStats()
@@ -497,11 +504,12 @@ bool Camera::ProcessRawFrames()
 				
 				{
 					Upp::Mutex::Lock __(mutex);
-					if(queue.GetCount() >= 2) queue.Remove(0, queue.GetCount() - 1);
+					if(queue.GetCount() >= 4) queue.Remove(0); // Keep up to 4 frames
 					CameraFrame& f = queue.Add();
 					f.img = ib;
 					f.is_bright = is_bright;
 					f.exposure = exposure;
+					f.serial = ++serial_counter;
 					
 					stats.frame_count++;
 					if(is_bright) { stats.bright_frames++; stats.bright_balance++; } 

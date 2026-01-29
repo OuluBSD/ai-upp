@@ -432,7 +432,7 @@ bool StereoCalibrationTool::UsbStereoSource::ReadFrame(VisualFrame& left, Visual
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
 	
-bool found = false;
+	bool found = false;
 	bool found_bright = false;
 	
 	while(capture->isReadable(&tv) > 0) {
@@ -1300,7 +1300,7 @@ void StereoCalibrationTool::ExportCalibration() {
 		data.outward_angle = 0;
 		data.angle_to_pixel = vec4(0,0,0,0);
 	}
-	if (!SaveCalibrationFile(fs, data)) {
+	if (!HMD::StereoTracker::SaveCalibrationFile(fs, data)) {
 		PromptOK("Failed to export calibration.");
 		return;
 	}
@@ -1314,7 +1314,7 @@ void StereoCalibrationTool::LoadCalibration() {
 	if (!fs.ExecuteOpen("Load Stereo Calibration"))
 		return;
 	StereoCalibrationData data;
-	if (!LoadCalibrationFile(fs, data)) {
+	if (!HMD::StereoTracker::LoadCalibrationFile(fs, data)) {
 		PromptOK("Failed to load calibration.");
 		return;
 	}
@@ -1322,53 +1322,6 @@ void StereoCalibrationTool::LoadCalibration() {
 	SyncEditsFromCalibration();
 	Data();
 	PromptOK("Calibration loaded.");
-}
-
-bool StereoCalibrationTool::SaveCalibrationFile(const String& path, const StereoCalibrationData& data) {
-	Vector<String> lines;
-	lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
-	lines.Add(Format("eye_dist=%g", (double)data.eye_dist));
-	lines.Add(Format("outward_angle=%g", (double)data.outward_angle));
-	lines.Add(Format("angle_poly=%g,%g,%g,%g",
-		(double)data.angle_to_pixel[0], (double)data.angle_to_pixel[1],
-		(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
-	String text = Join(lines, "\n") + "\n";
-	return SaveFile(path, text);
-}
-
-bool StereoCalibrationTool::LoadCalibrationFile(const String& path, StereoCalibrationData& out) {
-	String text = LoadFile(path);
-	if (text.IsEmpty())
-		return false;
-	StereoCalibrationData data;
-	Vector<String> lines = Split(text, '\n');
-	for (String line : lines) {
-		line = TrimBoth(line);
-		if (line.IsEmpty() || line[0] == '#')
-			continue;
-		int eq = line.Find('=');
-		if (eq < 0)
-			continue;
-		String key = TrimBoth(line.Left(eq));
-		String val = TrimBoth(line.Mid(eq + 1));
-		if (key == "enabled")
-			data.is_enabled = atoi(val) != 0;
-		else if (key == "eye_dist")
-			data.eye_dist = (float)atof(val);
-		else if (key == "outward_angle")
-			data.outward_angle = (float)atof(val);
-		else if (key == "angle_poly") {
-			Vector<String> parts = Split(val, ',');
-			if (parts.GetCount() >= 4) {
-				data.angle_to_pixel[0] = (float)atof(parts[0]);
-				data.angle_to_pixel[1] = (float)atof(parts[1]);
-				data.angle_to_pixel[2] = (float)atof(parts[2]);
-				data.angle_to_pixel[3] = (float)atof(parts[3]);
-			}
-		}
-	}
-	out = data;
-	return true;
 }
 
 void StereoCalibrationTool::SyncCalibrationFromEdits() {
@@ -1420,14 +1373,14 @@ String StereoCalibrationTool::GetReportPath() const {
 void StereoCalibrationTool::LoadLastCalibration() {
 	StereoCalibrationData data;
 	String path = GetPersistPath();
-	if (!project_dir.IsEmpty() && FileExists(path) && LoadCalibrationFile(path, data))
+	if (!project_dir.IsEmpty() && FileExists(path) && HMD::StereoTracker::LoadCalibrationFile(path, data))
 		last_calibration = data;
 }
 
 void StereoCalibrationTool::SaveLastCalibration() {
 	if (project_dir.IsEmpty()) return;
 	SyncCalibrationFromEdits();
-	SaveCalibrationFile(GetPersistPath(), last_calibration);
+	HMD::StereoTracker::SaveCalibrationFile(GetPersistPath(), last_calibration);
 }
 
 void StereoCalibrationTool::LoadState() {

@@ -70,9 +70,12 @@ bool System::Initialise() {
 		if (!emulate && (device_flags & HMD::HMD_DEVICE_FLAGS_NULL_DEVICE))
 			continue;
 		
-		if (device_class == HMD::HMD_DEVICE_CLASS_HMD && (emulate || path != "(none)")) {
-			if (hmd_count == user_hmd_idx || hmd_idx < 0)
+		if (device_class == HMD_DEVICE_CLASS_HMD && (emulate || path != "(none)")) {
+			if (hmd_count == user_hmd_idx || hmd_idx < 0) {
 				hmd_idx = i;
+				HMD::GetListInt(ctx, i, HMD::HMD_VENDOR_ID, &vendor_id);
+				HMD::GetListInt(ctx, i, HMD::HMD_PRODUCT_ID, &product_id);
+			}
 			hmd_count++;
 		}
 		else if (device_class == HMD::HMD_DEVICE_CLASS_CONTROLLER) {

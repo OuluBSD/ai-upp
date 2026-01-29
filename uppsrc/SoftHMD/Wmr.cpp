@@ -530,12 +530,12 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 		LOG(i << ": " << HexStrPtr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
 		#endif
 		
-		if (cur_dev->vendor_id != MICROSOFT_VID) {
+		if (cur_dev->vendor_id != MICROSOFT_VID && cur_dev->vendor_id != HP_VID && cur_dev->vendor_id != CYPRESS_VID) {
 			cur_dev = cur_dev->next;
 			continue;
 		}
 		
-		if (cur_dev->product_id == HOLOLENS_SENSORS_PID) {
+		if (cur_dev->product_id == HOLOLENS_SENSORS_PID || cur_dev->product_id == HP_QHMD_PID || cur_dev->product_id == HP_WMR_PID) {
 			DeviceDescription* desc = &list->devices[list->num_devices++];
 
 			#ifdef flagDEBUG
@@ -543,9 +543,16 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 			#endif
 			
 			strcpy(desc->driver, "OpenHMD Windows Mixed Reality Driver");
-			strcpy(desc->vendor, "Microsoft");
+			if (cur_dev->vendor_id == HP_VID)
+				strcpy(desc->vendor, "HP");
+			else if (cur_dev->vendor_id == CYPRESS_VID)
+				strcpy(desc->vendor, "Cypress");
+			else
+				strcpy(desc->vendor, "Microsoft");
 			strcpy(desc->product, "HoloLens Sensors");
 
+			desc->vendor_id = cur_dev->vendor_id;
+			desc->product_id = cur_dev->product_id;
 			desc->revision = 0;
 
 			strcpy(desc->path, cur_dev->path);
@@ -570,6 +577,8 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 			// "Motion controller - Left" or "Motion controller - Right"
 			snprintf(desc->product, HMD_STR_SIZE, "%S", cur_dev->product_string);
 
+			desc->vendor_id = cur_dev->vendor_id;
+			desc->product_id = cur_dev->product_id;
 			desc->revision = 0;
 
 			strcpy(desc->path, cur_dev->path);

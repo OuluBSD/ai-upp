@@ -437,6 +437,11 @@ public:
 		if(!sys.Initialise()) {
 			data.Add("Error", "Failed to initialise HMD system");
 		}
+		else {
+			fusion.GetBrightTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
+			fusion.GetDarkTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
+			calib = fusion.GetBrightTracker().GetCalibration();
+		}
 		
 		cam.Create();
 		if(async_buffers > 0)
@@ -897,7 +902,7 @@ public:
 			return;
 		String path = fs;
 		HMD::StereoCalibrationData loaded;
-		if (!LoadCalibrationFile(path, loaded)) {
+		if (!HMD::StereoTracker::LoadCalibrationFile(path, loaded)) {
 			PromptOK("Failed to load calibration file.");
 			return;
 		}
@@ -916,7 +921,7 @@ public:
 		HMD::StereoCalibrationData data = calib;
 		if (!data.is_enabled)
 			data = fusion.GetBrightTracker().GetCalibration();
-		if (!SaveCalibrationFile(path, data)) {
+		if (!HMD::StereoTracker::SaveCalibrationFile(path, data)) {
 			PromptOK("Failed to save calibration file.");
 			return;
 		}
@@ -926,53 +931,6 @@ public:
 	void ApplyCalibration(const HMD::StereoCalibrationData& data) {
 		fusion.GetBrightTracker().SetCalibration(data);
 		fusion.GetDarkTracker().SetCalibration(data);
-	}
-
-	bool SaveCalibrationFile(const String& path, const HMD::StereoCalibrationData& data) {
-		Vector<String> lines;
-		lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
-		lines.Add(Format("eye_dist=%g", (double)data.eye_dist));
-		lines.Add(Format("outward_angle=%g", (double)data.outward_angle));
-		lines.Add(Format("angle_poly=%g,%g,%g,%g",
-			(double)data.angle_to_pixel[0], (double)data.angle_to_pixel[1],
-			(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
-		String text = Join(lines, "\n") + "\n";
-		return SaveFile(path, text);
-	}
-
-	bool LoadCalibrationFile(const String& path, HMD::StereoCalibrationData& out) {
-		String text = LoadFile(path);
-		if (text.IsEmpty())
-			return false;
-		HMD::StereoCalibrationData data;
-		Vector<String> lines = Split(text, '\n');
-		for (String line : lines) {
-			line = TrimBoth(line);
-			if (line.IsEmpty() || line[0] == '#')
-				continue;
-			int eq = line.Find('=');
-			if (eq < 0)
-				continue;
-			String key = TrimBoth(line.Left(eq));
-			String val = TrimBoth(line.Mid(eq + 1));
-			if (key == "enabled")
-				data.is_enabled = atoi(val) != 0;
-			else if (key == "eye_dist")
-				data.eye_dist = (float)atof(val);
-			else if (key == "outward_angle")
-				data.outward_angle = (float)atof(val);
-			else if (key == "angle_poly") {
-				Vector<String> parts = Split(val, ',');
-				if (parts.GetCount() >= 4) {
-					data.angle_to_pixel[0] = (float)atof(parts[0]);
-					data.angle_to_pixel[1] = (float)atof(parts[1]);
-					data.angle_to_pixel[2] = (float)atof(parts[2]);
-					data.angle_to_pixel[3] = (float)atof(parts[3]);
-				}
-			}
-		}
-		out = data;
-		return true;
 	}
 
 };

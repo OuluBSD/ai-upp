@@ -72,6 +72,7 @@ public:
 	virtual void Reset() = 0;
 	virtual void PutFrame(const VisualFrame& frame) = 0;
 	virtual bool GetState(FusionState& out) const = 0;
+	virtual void SetWmrDefaults(int vendor_id = 0, int product_id = 0) = 0;
 };
 
 class ImuTracker {

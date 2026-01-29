@@ -36,6 +36,8 @@ struct System {
 	bool emit_stream_events = true;
 	int user_hmd_idx = -1;
 	int user_ctrl_idx[2] = {-1,-1};
+	int vendor_id = 0;
+	int product_id = 0;
 	
 
 	void PrintHMD(String name, int len, HMD::FloatValue val);

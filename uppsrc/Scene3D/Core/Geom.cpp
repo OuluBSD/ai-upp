@@ -1,7 +1,4 @@
-#ifdef flagGUI
-#include "Edit3D.h"
-
-NAMESPACE_UPP
+#include "Core.h"
 
 
 GeomObjectCollection::GeomObjectCollection(GeomDirectory& d) {
@@ -404,4 +401,3 @@ void GeomAnim::Play() {
 
 
 END_UPP_NAMESPACE
-#endif // flagGUI

@@ -398,6 +398,30 @@ void LensPoly::SetAnglePixel(float a, float b, float c, float d) {
 	angle_to_pixel_poly[3] = d;
 }
 
+float LensPoly::AngleToPixel(float angle) const {
+	return
+		angle_to_pixel_poly.data[0] * angle +
+		angle_to_pixel_poly.data[1] * angle * angle +
+		angle_to_pixel_poly.data[2] * angle * angle * angle +
+		angle_to_pixel_poly.data[3] * angle * angle * angle * angle;
+}
+
+float LensPoly::PixelToAngle(float pixel_radius) const {
+	if (pixel_to_angle.IsEmpty())
+		return 0;
+	if (pixel_radius <= 0)
+		return 0;
+	int leni0 = (int)(pixel_radius * PIX_MUL);
+	if (leni0 < 0)
+		return 0;
+	if (leni0 >= pixel_to_angle.GetCount())
+		leni0 = pixel_to_angle.GetCount() - 1;
+	int leni1 = leni0 + 1 < pixel_to_angle.GetCount() ? leni0 + 1 : leni0;
+	float f1 = fmodf(pixel_radius, 1.0f);
+	float f0 = 1.0f - f1;
+	return pixel_to_angle[leni0] * f0 + pixel_to_angle[leni1] * f1;
+}
+
 vec2 LensPoly::Project(int lens_i, axes2 axes) {
 	ASSERT(img_sz.cx && img_sz.cy);
 	
@@ -427,11 +451,7 @@ vec2 LensPoly::Project(int lens_i, axes2 axes) {
 	float angle = roll_axes.data[0];
 	float roll_angle = roll_axes.data[1];
 	
-	float pix_dist =
-		angle_to_pixel_poly.data[0] * angle +
-		angle_to_pixel_poly.data[1] * angle * angle +
-		angle_to_pixel_poly.data[2] * angle * angle * angle +
-		angle_to_pixel_poly.data[3] * angle * angle * angle * angle;
+	float pix_dist = AngleToPixel(angle);
 	
 	vec2 px;
 	px.data[0] = pix_dist * -sin(roll_angle);
@@ -469,7 +489,7 @@ axes2 LensPoly::Unproject(int lens_i, const vec2& pixel) {
 	ASSERT(leni0 >= 0 && leni0 < pixel_to_angle.GetCount());
 	if (leni0 >= pixel_to_angle.GetCount()) return axes2(0,0);
 	
-	float angle = pixel_to_angle[leni0] * f0 + pixel_to_angle[leni1] * f1;
+	float angle = PixelToAngle(len);
 	//float deg = angle / M_PI * 180;
 	//vec3 v0(sin(angle), 0, -cos(angle));
 	

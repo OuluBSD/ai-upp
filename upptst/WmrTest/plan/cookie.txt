@@ -90,3 +90,11 @@
   task: phase-00-foundations/track-calibration/task-0003-stereo-calib-cmdline-capture.md
   status: done
   note: Added CLI capture tests in StereoCalibrationTool; verified HMD capture at runtime and fixed SoftHMD camera mutex contention.
+- date: 2026-01-29
+  task: phase-04-ui/track-overlays/task-0009-calib-required.md
+  status: done
+  note: WmrTest now blocks capture/tracking when production calibration is missing and prompts the user.
+- date: 2026-01-29
+  task: phase-04-ui/track-overlays/task-0006-stcal-editable-ui.md
+  status: done
+  note: StereoCalibrationTool editable fields + load/export were implemented earlier; plan file marked done.

@@ -1,7 +1,5 @@
-#ifndef _Edit3D_Geom_h_
-#define _Edit3D_Geom_h_
-
-NAMESPACE_UPP
+#ifndef _Scene3D_Core_Geom_h_
+#define _Scene3D_Core_Geom_h_
 
 
 
@@ -210,8 +208,4 @@ struct GeomAnim {
 	Callback WhenSceneEnd;
 	
 };
-
-
-END_UPP_NAMESPACE
-
 #endif

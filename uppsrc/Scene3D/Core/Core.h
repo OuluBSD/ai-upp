@@ -1,0 +1,12 @@
+#ifndef _Scene3D_Core_Core_h_
+#define _Scene3D_Core_Core_h_
+
+#include <Geometry/Geometry.h>
+
+NAMESPACE_UPP
+
+#include "Geom.h"
+
+END_UPP_NAMESPACE
+
+#endif

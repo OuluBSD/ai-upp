@@ -402,6 +402,7 @@ HMD::System sys;
 	VectorMap<String, String> data;
 	int async_buffers;
 	int transfer_timeout_ms;
+	bool heavy_checks;
 	String last_track_stream;
 
 	Thread background_thread;
@@ -414,9 +415,10 @@ HMD::System sys;
 	BiVector<Image> frame_history;
 
 public:
-	WmrTest(int async_buffers_, int transfer_timeout_ms_) {
+	WmrTest(int async_buffers_, int transfer_timeout_ms_, bool heavy_checks_) {
 		async_buffers = async_buffers_;
 		transfer_timeout_ms = transfer_timeout_ms_;
+		heavy_checks = heavy_checks_;
 		Title("WMR / HMD Test");
 		Sizeable().Zoomable();
 		
@@ -475,7 +477,62 @@ public:
 		sys.Uninitialise();
 	}
 	
+	void CheckVerticalDiscontinuities(const Image& img) {
+		Size sz = img.GetSize();
+		int64 total_diff = 0;
+		int count = 0;
+		// Sample differences between adjacent columns
+		for(int y = 0; y < sz.cy; y += 10) {
+			for(int x = 0; x < sz.cx - 1; x += 10) {
+				RGBA a = img[y][x];
+				RGBA b = img[y][x+1];
+				int diff = abs((int)a.g - (int)b.g);
+				total_diff += diff;
+				count++;
+			}
+		}
+		if (count == 0) return;
+		int avg_diff = (int)(total_diff / count);
+		
+		int discontinuities = 0;
+		for(int x = 0; x < sz.cx - 1; x++) {
+			int col_diff = 0;
+			int rows = 0;
+			for(int y = 0; y < sz.cy; y += 5) {
+				RGBA a = img[y][x];
+				RGBA b = img[y][x+1];
+				col_diff += abs((int)a.g - (int)b.g);
+				rows++;
+			}
+			if (rows == 0) continue;
+			int avg_col_diff = col_diff / rows;
+			// Threshold: if a column jump is significantly higher than average image noise
+			if (avg_col_diff > avg_diff * 5 && avg_col_diff > 30) {
+				discontinuities++;
+			}
+		}
+		
+		ASSERT(discontinuities < 3); // "Too many vertical discontinuities detected in bright frame!"
+	}
+
+	void CheckFrameBrightness(const Image& img) {
+		Size sz = img.GetSize();
+		int64 sum = 0;
+		for(int y = 0; y < sz.cy; y += 5) {
+			for(int x = 0; x < sz.cx; x += 5) {
+				sum += img[y][x].g;
+			}
+		}
+		int samples = (sz.cy / 5) * (sz.cx / 5);
+		if (samples == 0) return;
+		int avg = (int)(sum / samples);
+		
+		// If average brightness is extremely low, it might be a dark frame mislabeled as bright
+		ASSERT(avg > 10); // "Bright frame is too dark! Possible frame mismatch."
+	}
+
 	void BackgroundProcess() {
+		int frames_checked = 0;
 		while (!background_quit) {
 			sys.UpdateData();
 			
@@ -521,6 +578,14 @@ public:
 					frame_history.AddTail(f.img);
 					if(frame_history.GetCount() > 20)
 						frame_history.DropHead();
+
+					if(heavy_checks && f.is_bright) {
+						frames_checked++;
+						if(frames_checked > 6) { // Wait for a few frames to settle
+							CheckVerticalDiscontinuities(f.img);
+							CheckFrameBrightness(f.img);
+						}
+					}
 
 					VisualFrame vf;
 					vf.timestamp_us = usecs();
@@ -966,12 +1031,12 @@ void TestTrack(int seconds, int async_buffers, int transfer_timeout_ms)
 		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 	
-	HMD::System sys;
+HMD::System sys;
 	if(!sys.Initialise()) {
 		Cout() << "Error: Failed to initialise HMD system\n";
 	}
 	
-	HMD::SoftHmdFusion fusion;
+HMD::SoftHmdFusion fusion;
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();
@@ -1011,9 +1076,22 @@ GUI_APP_MAIN
 	int dump_time = -1;
 	int track_time = -1;
 	bool verbose = false;
+	bool heavy_checks = false;
 	int async_buffers = -1;
 	int transfer_timeout_ms = -1;
 	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] == "--help" || args[i] == "-h") {
+			Cout() << "Usage: WmrTest [options]\n\n" 
+			       << "Options:\n"
+			       << "  --test-dump <secs>    Run data dump test for n seconds\n"
+			       << "  --test-track <secs>   Run tracking test for n seconds\n"
+			       << "  --async-buffers <n>   Set USB async transfer count (default: 8)\n"
+			       << "  --timeout-ms <ms>     Set USB transfer timeout (default: 1000)\n"
+			       << "  --heavy-checks        Enable intensive debug checks (asserts on frame corruption)\n"
+			       << "  --verbose, -v         Enable verbose logging\n"
+			       << "  --help, -h            Show this help message\n";
+			return;
+		}
 		if(args[i] == "--test-dump" && i + 1 < args.GetCount()) {
 			dump_time = atoi(args[i+1]);
 		}
@@ -1022,6 +1100,9 @@ GUI_APP_MAIN
 		}
 		if(args[i] == "-v" || args[i] == "--verbose") {
 			verbose = true;
+		}
+		if(args[i] == "--heavy-checks") {
+			heavy_checks = true;
 		}
 		if(args[i] == "--async-buffers" && i + 1 < args.GetCount()) {
 			async_buffers = atoi(args[i+1]);
@@ -1051,7 +1132,7 @@ GUI_APP_MAIN
 		return;
 	}
 
-	WmrTest wt(async_buffers, transfer_timeout_ms);
+	WmrTest wt(async_buffers, transfer_timeout_ms, heavy_checks);
 	wt.cam->SetVerbose(verbose);
 	wt.Run();
 }

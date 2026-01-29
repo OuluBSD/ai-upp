@@ -376,7 +376,7 @@ class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;
 	
-	HMD::System sys;
+HMD::System sys;
 	One<HMD::Camera> cam;
 	HMD::SoftHmdFusion fusion;
 	
@@ -523,7 +523,7 @@ public:
 				vf.data = (const byte*)~f.img;
 				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
 				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-				
+					
 				fusion.PutVisual(vf);
 				}
 			}

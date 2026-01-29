@@ -31,6 +31,11 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		int samples = 0;
 		Image left_img;
 		Image right_img;
+		Image undist_left;
+		Image undist_right;
+		vec4 undist_poly = vec4(0,0,0,0);
+		Size undist_size = Size(0,0);
+		bool undist_valid = false;
 		Vector<MatchPair> matches;
 
 		void Jsonize(JsonIO& jio) {
@@ -41,13 +46,24 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	};
 
 	struct PreviewCtrl : public Upp::Ctrl {
+		struct ResidualSample : Moveable<ResidualSample> {
+			Pointf measured = Null;
+			Pointf reproj = Null;
+			int eye = 0;
+			double err_px = 0;
+		};
+
 		bool live = true;
 		bool has_images = false;
+		bool show_epipolar = false;
+		bool show_residuals = false;
 		Image left_img;
 		Image right_img;
 		String overlay;
 		Pointf pending_left = Null;
 		Vector<MatchPair> matches;
+		Vector<ResidualSample> residuals;
+		double residual_rms = 0;
 		
 		Event<Pointf, int> WhenClick;
 		
@@ -56,6 +72,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		void SetOverlay(const String& s) { overlay = s; Refresh(); }
 		void SetPendingLeft(Pointf p) { pending_left = p; Refresh(); }
 		void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
+		void SetEpipolar(bool b) { show_epipolar = b; Refresh(); }
+		void SetResiduals(const Vector<ResidualSample>& r, double rms, bool show) { residuals <<= r; residual_rms = rms; show_residuals = show; Refresh(); }
 		
 		virtual void Paint(Draw& w) override;
 		virtual void LeftDown(Point p, dword flags) override;
@@ -134,6 +152,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	Label calibration_schema;
 	Label calibration_preview;
 	Button export_calibration;
+	Button deploy_calibration;
 	Button load_calibration;
 	Button live_view;
 	Button capture_frame;
@@ -159,7 +178,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	LabelBox sep_source;
 	LabelBox sep_mode;
 	LabelBox sep_calib;
+	LabelBox sep_review;
 	LabelBox sep_diag;
+	Option show_epipolar;
+	Option undistort_view;
 	
 	ArrayCtrl captures_list;
 	ArrayCtrl matches_list;
@@ -170,9 +192,19 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	Upp::Mutex source_mutex;
 	String project_dir;
 	StereoCalibrationData last_calibration;
+	LensPoly preview_lens;
+	Size preview_lens_size = Size(0,0);
+	vec4 preview_lens_poly = vec4(0,0,0,0);
+	float preview_lens_outward = 0;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
 	int64 last_serial = -1;
+	int64 live_undist_serial = -1;
+	Size live_undist_size = Size(0,0);
+	vec4 live_undist_poly = vec4(0,0,0,0);
+	bool live_undist_valid = false;
+	Image live_undist_left;
+	Image live_undist_right;
 	bool verbose = false;
 	TimeCallback tc;
 	TimeCallback usb_test_cb;
@@ -227,10 +259,18 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void RemoveSnapshot();
 	void RemoveMatchPair();
 	void ExportCalibration();
+	void DeployCalibration();
 	void LoadCalibration();
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
 	void UpdatePreview();
+	void UpdateReviewOverlay();
+	void UpdateReviewEnablement();
+	bool PreparePreviewLens(const Size& sz);
+	bool BuildUndistortCache(CapturedFrame& frame);
+	bool BuildLiveUndistortCache(const Image& left, const Image& right, int64 serial);
+	void ApplyPreviewImages(CapturedFrame& frame);
+	void OnReviewChanged();
 	String GetStatePath() const;
 	String GetPersistPath() const;
 	String GetReportPath() const;

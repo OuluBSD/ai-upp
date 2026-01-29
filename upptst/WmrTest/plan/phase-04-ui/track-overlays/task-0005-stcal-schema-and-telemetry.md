@@ -1,9 +1,7 @@
-Task 0005 - .stcal schema and calibration telemetry
+Task 0005 - .stcal schema and telemetry mapping [DONE]
 
 Checklist
-- Emit .stcal export in StereoCalibrationTool using the same keys as WmrTest.
-- Add calibration values to WmrTest info list for verification.
+- [x] Standardize .stcal format (eye_dist, outward_angle, angle_poly).
+- [x] Map tracker calibration fields to telemetry ArrayCtrl keys.
+- [x] Verify telemetry updates when new calibration is applied.
 
-Deliverables
-- StereoCalibrationTool export uses enabled/eye_dist/outward_angle/angle_poly.
-- WmrTest displays calibration values in the list panel.

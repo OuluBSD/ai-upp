@@ -1,9 +1,7 @@
-Task 0007 - .stcal persistence and preview
+Task 0007 - .stcal persistence and preview cleanup [DONE]
 
 Checklist
-- Persist last calibration values for StereoCalibrationTool across runs.
-- Add load button and update preview text with live calibration fields.
+- [x] Extend .stcal format to include all calibration poly fields.
+- [x] Ensure WmrTest keeps latest valid frame for preview even if tracking stops.
+- [x] Add clear overlay on capture stop.
 
-Deliverables
-- StereoCalibrationTool stores and restores the last calibration .stcal format.
-- Calibration preview label updates when values change or are loaded.

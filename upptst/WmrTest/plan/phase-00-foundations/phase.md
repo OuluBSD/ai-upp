@@ -1,11 +1,16 @@
 Phase 00 - Foundations
 
 Goals
-- Define coordinate spaces and transforms for camera, IMU, fusion, and world/map.
-- Define data model, timing model, and storage for frames, keypoints, matches, and pose history.
-- Decide on SoftHMD vs SoftVR merging strategy.
+- Robust timestamping and data structures.
+- Calibration storage and loading.
+- Basic visualizer for raw streams.
+
+Status
+- [x] Monotonic usecs timestamping for all sensor data.
+- [x] Geometry-level interfaces for Tracking, IMU, and Fusion.
+- [x] RecyclerPool and BiVectorRecycler for high-perf buffer management.
+- [x] .stcal format standardized and integrated.
 
 Exit Criteria
-- Documented space graph and transform conventions.
-- Clear interface for sensor packets and timestamps.
-- A plan for calibration artifacts and persistence.
+- Application starts, captures frames, and allows calibration loading.
+

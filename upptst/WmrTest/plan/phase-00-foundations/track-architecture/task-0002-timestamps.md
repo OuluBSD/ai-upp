@@ -1,9 +1,9 @@
-Task 0002 - Timestamp model and sensor packet format
+Task 0002 - Timestamp model and sensor packet format [DONE]
 
 Checklist
-- Decide timestamp source for camera packets (device vs host assigned).
-- Define monotonic clock used for fusion.
-- Define a packet struct for camera + IMU with timestamp and sequence id.
+- [x] Decide timestamp source for camera packets (device vs host assigned).
+- [x] Define monotonic clock used for fusion.
+- [x] Define a packet struct for camera + IMU with timestamp and sequence id.
 
 Timestamp model (proposal)
 - Use a single monotonic timebase (usecs) from host (`usecs()`).

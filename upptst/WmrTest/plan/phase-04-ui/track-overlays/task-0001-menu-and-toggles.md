@@ -1,9 +1,9 @@
-Task 0001 - Menu and overlay toggles
+Task 0001 - Menu and overlay toggles [DONE]
 
 Checklist
-- Add MenuBar with App/View/Help.
-- View toggles: show descriptors, show matches, show stereo split, show stats overlay.
-- Define overlay rendering layers and priority.
+- [x] Add MenuBar with App/View/Help.
+- [x] View toggles: show descriptors, show matches, show stereo split, show stats overlay.
+- [x] Define overlay rendering layers and priority.
 
 Deliverables
 - UI toggle spec and rendering plan.

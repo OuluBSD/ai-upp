@@ -105,13 +105,15 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 	Transfer* t = (Transfer*)xfer->user_data;
 	Camera* cam = t->camera;
 	const int status = (int)xfer->status;
-	const bool locked = cam->mutex.TryEnter();
-	if(locked && status >= 0 && status <= LIBUSB_TRANSFER_OVERFLOW)
-		cam->stats.status_counts[status]++;
 	
-	if(xfer->status == LIBUSB_TRANSFER_COMPLETED) {
-		if(xfer->actual_length > 0) {
-			if(locked) {
+	// Lock 'mutex' only for stats updates
+	const bool locked = cam->mutex.TryEnter();
+	if(locked) {
+		if(status >= 0 && status <= LIBUSB_TRANSFER_OVERFLOW)
+			cam->stats.status_counts[status]++;
+		
+		if(xfer->status == LIBUSB_TRANSFER_COMPLETED) {
+			if(xfer->actual_length > 0) {
 				cam->stats.last_transferred = xfer->actual_length;
 				if(xfer->actual_length < cam->stats.min_transferred)
 					cam->stats.min_transferred = xfer->actual_length;
@@ -119,15 +121,9 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 					cam->stats.max_transferred = xfer->actual_length;
 				cam->stats.last_error = 0;
 				cam->stats.last_r = 0;
-				cam->AppendRaw(xfer->buffer, xfer->actual_length);
 			}
-		} else {
-			if(cam->verbose) Cout() << "USB: Zero-byte transfer completed\n";
 		}
-	}
-	else {
-		Cout() << "USB Error: Transfer status " << status << "\n";
-		if(locked) {
+		else {
 			cam->stats.last_error = xfer->status;
 			cam->stats.last_r = xfer->status;
 			cam->stats.usb_errors++;
@@ -136,56 +132,61 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 			else if (xfer->status == LIBUSB_TRANSFER_OVERFLOW) cam->stats.overflow_errors++;
 			else cam->stats.other_errors++;
 		}
+		cam->mutex.Leave();
 	}
 	
+	// AppendRaw takes 'raw_mutex' - call it WITHOUT holding 'mutex' to avoid AB-BA deadlock
+	if(xfer->status == LIBUSB_TRANSFER_COMPLETED && xfer->actual_length > 0) {
+		cam->AppendRaw(xfer->buffer, xfer->actual_length);
+	}
+	else if(xfer->status != LIBUSB_TRANSFER_COMPLETED) {
+		Cout() << "USB Error: Transfer status " << status << "\n";
+	}
+	
+	// Final checks using flag only (no mutex needed for IsRunning)
 	if(cam->usb_flag.IsRunning()) {
 		if(xfer->status == LIBUSB_TRANSFER_ERROR || xfer->status == LIBUSB_TRANSFER_STALL) {
-			bool should_clear = true;
-			if(locked) {
+			// Halt clear needs mutex for throttling
+			if(cam->mutex.TryEnter()) {
 				const int64 now = usecs();
-				// Limit clear_halt frequency to once per 500ms per error to avoid spamming the controller
-				if(cam->last_halt_clear_usecs != 0 && now - cam->last_halt_clear_usecs < 500000)
-					should_clear = false;
-				if(should_clear)
+				if(cam->last_halt_clear_usecs == 0 || now - cam->last_halt_clear_usecs >= 500000) {
 					cam->last_halt_clear_usecs = now;
-			}
-			if(should_clear) {
-				int ch = libusb_clear_halt(cam->usb_handle, WMR_VIDEO_ENDPOINT);
-				if(locked) {
 					cam->stats.halt_clear_attempts++;
-					if(ch != 0)
+					int ch = libusb_clear_halt(cam->usb_handle, WMR_VIDEO_ENDPOINT);
+					if(ch != 0) {
 						cam->stats.halt_clear_failures++;
+						Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
+					}
+					else Cout() << "USB: Successfully cleared halt on video endpoint\n";
 				}
-				if(ch != 0)
-					Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
-				else
-					Cout() << "USB: Successfully cleared halt on video endpoint\n";
+				cam->mutex.Leave();
 			}
 		}
+		
 		bool allow_resubmit = true;
 		if(xfer->status == LIBUSB_TRANSFER_NO_DEVICE || xfer->status == LIBUSB_TRANSFER_CANCELLED)
 			allow_resubmit = false;
+		
 		if(allow_resubmit) {
 			int r = libusb_submit_transfer(xfer);
 			if (r != 0) {
 				Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
 				cam->active_transfers--;
-				if(locked) {
+				if(cam->mutex.TryEnter()) {
 					cam->stats.usb_errors++;
 					cam->stats.last_r = r;
 					cam->stats.resubmit_failures++;
+					cam->mutex.Leave();
 				}
 			}
 		} else {
 			cam->active_transfers--;
-			if(locked) {
+			if(cam->mutex.TryEnter()) {
 				cam->stats.resubmit_skips++;
+				cam->mutex.Leave();
 			}
 		}
 	}
-	
-	if(locked)
-		cam->mutex.Leave();
 }
 
 void HMD_APIENTRYDLL Camera::PopFrames(Vector<CameraFrame>& out)

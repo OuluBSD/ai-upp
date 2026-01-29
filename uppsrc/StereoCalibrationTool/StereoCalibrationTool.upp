@@ -4,7 +4,9 @@ uses
 	ComputerVision,
 	SoftHMD,
 	plugin/libv4l2,
-	plugin/jpg;
+	plugin/jpg,
+	plugin/png,
+	plugin/Eigen;
 
 file
 	AGENTS.md,

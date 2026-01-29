@@ -17,6 +17,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		Pointf right = Null;
 		String left_text;
 		String right_text;
+
+		void Jsonize(JsonIO& jio) {
+			jio("left", left)("right", right)("left_text", left_text)("right_text", right_text);
+		}
 	};
 
 	struct CapturedFrame : Moveable<CapturedFrame> {
@@ -26,6 +30,12 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		Image left_img;
 		Image right_img;
 		Vector<MatchPair> matches;
+
+		void Jsonize(JsonIO& jio) {
+			jio("time", time)("source", source)("samples", samples)("matches", matches);
+			// Images are not jsonized for simplicity now, or could be base64. 
+			// For now we persist coordinates mainly.
+		}
 	};
 
 	struct PreviewCtrl : public Upp::Ctrl {
@@ -125,6 +135,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	Button load_calibration;
 	Button live_view;
 	Button capture_frame;
+	Button solve_calibration;
 	Button clear_matches;
 	Label calib_enabled_lbl;
 	Option calib_enabled;
@@ -205,6 +216,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void StopSource();
 	void LiveView();
 	void CaptureFrame();
+	void SolveCalibration();
+	void ClearMatches();
 	void ExportCalibration();
 	void LoadCalibration();
 	bool SaveCalibrationFile(const String& path, const StereoCalibrationData& data);

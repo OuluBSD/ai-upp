@@ -4,10 +4,10 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
+#include <Scene3D/Core/Core.h>
 #include <plugin/enet/enet.h>
 
 #include "SoftRendCtrl.h"
-#include "Geom.h"
 #include "Renderer.h"
 #include "VideoImporter.h"
 #include "StagedVideoImporter.h"

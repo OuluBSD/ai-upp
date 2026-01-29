@@ -397,6 +397,9 @@ public:
 	bool show_stats_overlay = true;
 	bool show_split_view = true;
 	bool capture_enabled = true;
+	bool calibration_ok = true;
+	bool calibration_prompted = false;
+	String calibration_error;
 	HMD::StereoCalibrationData calib;
 	
 	VectorMap<String, String> data;
@@ -438,6 +441,21 @@ public:
 			data.Add("Error", "Failed to initialise HMD system");
 		}
 		else {
+			const bool needs_calib = (sys.vendor_id == 0x03f0 || sys.vendor_id == 0x04b4);
+			if (needs_calib) {
+				String path = "share/calibration/hp_vr1000/calibration.stcal";
+				if (!FileExists(path)) {
+					calibration_ok = false;
+					calibration_error = "Missing calibration: " + path;
+					data.Add("Calibration Error", calibration_error);
+					if (!calibration_prompted) {
+						calibration_prompted = true;
+						PostCallback([=] {
+							PromptOK("Calibration missing.\n\nPlease deploy or load a valid calibration file before tracking.");
+						});
+					}
+				}
+			}
 			fusion.GetBrightTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
 			fusion.GetDarkTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
 			calib = fusion.GetBrightTracker().GetCalibration();
@@ -448,7 +466,10 @@ public:
 			cam->SetAsyncBuffers(async_buffers);
 		if(transfer_timeout_ms >= 0)
 			cam->SetTransferTimeoutMs(transfer_timeout_ms);
-		if(!cam->Open()) {
+		if (!calibration_ok) {
+			capture_enabled = false;
+		}
+		else if(!cam->Open()) {
 			data.Add("Camera Error", "Failed to open HMD camera");
 		}
 
@@ -460,7 +481,7 @@ public:
 		camera.SetShowMatchIds(show_match_ids);
 		camera.SetShowStatsOverlay(show_stats_overlay);
 		camera.SetShowSplitView(show_split_view);
-		capture_enabled = cam && cam->IsOpen();
+		capture_enabled = calibration_ok && cam && cam->IsOpen();
 		
 		// Initial refresh of list to show error if any
 		for(int j = 0; j < data.GetCount(); j++) {
@@ -603,7 +624,8 @@ public:
 					vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
 					vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
 					
-					fusion.PutVisual(vf);
+					if (calibration_ok)
+						fusion.PutVisual(vf);
 				}
 			}
 			else {
@@ -674,27 +696,34 @@ public:
 		} else {
 			data.Add("Camera", "Missing");
 		}
+		if (!calibration_ok) {
+			data.Add("Calibration Error", calibration_error.IsEmpty() ? "Missing calibration" : calibration_error);
+		}
 
 		HMD::StereoTrackerStats tb = fusion.GetBrightTracker().GetStats();
 		HMD::StereoTrackerStats td = fusion.GetDarkTracker().GetStats();
 		HMD::StereoCalibrationData calib_state = fusion.GetBrightTracker().GetCalibration();
 		camera.SetStats(true, tb);
 		camera.SetStats(false, td);
-		data.Add("Track Bright Frames", IntStr(tb.processed_frames));
-		data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
-		data.Add("Track Bright Keypoints", Format("%d / %d", tb.last_left_keypoints, tb.last_right_keypoints));
-		data.Add("Track Bright Matches", IntStr(tb.last_stereo_matches));
-		data.Add("Track Bright Points", IntStr(tb.last_tracked_points));
-		data.Add("Track Bright Triangles", IntStr(tb.last_tracked_triangles));
-		data.Add("Track Bright Process (usecs)", IntStr(tb.last_process_usecs));
-		data.Add("Track Dark Frames", IntStr(td.processed_frames));
-		data.Add("Track Dark Skips", IntStr(td.skipped_frames));
-		data.Add("Track Dark Keypoints", Format("%d / %d", td.last_left_keypoints, td.last_right_keypoints));
-		data.Add("Track Dark Matches", IntStr(td.last_stereo_matches));
-		data.Add("Track Dark Points", IntStr(td.last_tracked_points));
-		data.Add("Track Dark Triangles", IntStr(td.last_tracked_triangles));
-		data.Add("Track Dark Process (usecs)", IntStr(td.last_process_usecs));
-		data.Add("Track Last Stream", last_track_stream.IsEmpty() ? "-" : last_track_stream);
+		if (calibration_ok) {
+			data.Add("Track Bright Frames", IntStr(tb.processed_frames));
+			data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
+			data.Add("Track Bright Keypoints", Format("%d / %d", tb.last_left_keypoints, tb.last_right_keypoints));
+			data.Add("Track Bright Matches", IntStr(tb.last_stereo_matches));
+			data.Add("Track Bright Points", IntStr(tb.last_tracked_points));
+			data.Add("Track Bright Triangles", IntStr(tb.last_tracked_triangles));
+			data.Add("Track Bright Process (usecs)", IntStr(tb.last_process_usecs));
+			data.Add("Track Dark Frames", IntStr(td.processed_frames));
+			data.Add("Track Dark Skips", IntStr(td.skipped_frames));
+			data.Add("Track Dark Keypoints", Format("%d / %d", td.last_left_keypoints, td.last_right_keypoints));
+			data.Add("Track Dark Matches", IntStr(td.last_stereo_matches));
+			data.Add("Track Dark Points", IntStr(td.last_tracked_points));
+			data.Add("Track Dark Triangles", IntStr(td.last_tracked_triangles));
+			data.Add("Track Dark Process (usecs)", IntStr(td.last_process_usecs));
+			data.Add("Track Last Stream", last_track_stream.IsEmpty() ? "-" : last_track_stream);
+		} else {
+			data.Add("Tracking", "Disabled (missing calibration)");
+		}
 		data.Add("Calib Enabled", calib_state.is_enabled ? "Yes" : "No");
 		data.Add("Calib Eye Dist", Format("%g", (double)calib_state.eye_dist));
 		data.Add("Calib Outward Angle", Format("%g", (double)calib_state.outward_angle));
@@ -869,6 +898,10 @@ public:
 	}
 	
 	void StartCapture() {
+		if (!calibration_ok) {
+			PromptOK("Cannot start capture: calibration missing. Load calibration first.");
+			return;
+		}
 		if (!cam)
 			return;
 		if (cam->IsOpen())
@@ -908,6 +941,9 @@ public:
 		}
 		calib = loaded;
 		ApplyCalibration(calib);
+		calibration_ok = true;
+		calibration_error.Clear();
+		capture_enabled = cam && cam->IsOpen();
 		PromptOK("Stereo calibration loaded.");
 	}
 	

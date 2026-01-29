@@ -4,6 +4,7 @@ uses
 	CtrlLib,
 	Geometry,
 	ComputerVision,
+	Scene3D/Core,
 	plugin/jpg,
 	plugin/enet;
 
@@ -14,8 +15,6 @@ file
 	Editor.h,
 	Editor.cpp,
 	GeomProjectCtrl.cpp,
-	Geom.h,
-	Geom.cpp,
 	Renderer.h,
 	Renderer.cpp,
 	VideoImporter.h,
@@ -36,4 +35,3 @@ file
 
 mainconfig
 	"" = "GUI";
-

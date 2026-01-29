@@ -101,6 +101,8 @@ struct LensPoly {
 	vec2 Project(int lens_i, axes2 local);
 	axes2 Unproject(int lens_i, const vec2& pixel);
 	void SetAnglePixel(float a, float b, float c, float d);
+	float AngleToPixel(float angle) const;
+	float PixelToAngle(float pixel_radius) const;
 	void SetEyeOutwardAngle(float f) {outward_angle = f;}
 	
 	

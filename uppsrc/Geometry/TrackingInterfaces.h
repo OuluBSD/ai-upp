@@ -1,6 +1,7 @@
 #ifndef _Geometry_TrackingInterfaces_h_
 #define _Geometry_TrackingInterfaces_h_
 
+#include <Draw/Draw.h>
 
 struct VisualFrame {
 	int64 timestamp_us = 0;
@@ -12,6 +13,7 @@ struct VisualFrame {
 	const byte* data = 0;
 	int data_bytes = 0;
 	int flags = 0;
+	Image img;
 };
 
 enum VisualFrameFlags {

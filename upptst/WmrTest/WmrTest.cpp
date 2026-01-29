@@ -376,7 +376,7 @@ class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;
 	
-HMD::System sys;
+	HMD::System sys;
 	One<HMD::Camera> cam;
 	HMD::SoftHmdFusion fusion;
 	
@@ -590,14 +590,15 @@ public:
 					VisualFrame vf;
 					vf.timestamp_us = usecs();
 					vf.format = GEOM_EVENT_CAM_RGBA8;
-				vf.width = f.img.GetWidth();
-				vf.height = f.img.GetHeight();
-				vf.stride = vf.width * (int)sizeof(RGBA);
-				vf.data = (const byte*)~f.img;
-				vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
-				vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-				
-				fusion.PutVisual(vf);
+					vf.width = f.img.GetWidth();
+					vf.height = f.img.GetHeight();
+					vf.stride = vf.width * (int)sizeof(RGBA);
+					vf.img = f.img;
+					vf.data = 0;
+					vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
+					vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+					
+					fusion.PutVisual(vf);
 				}
 			}
 			else {
@@ -1049,7 +1050,8 @@ HMD::SoftHmdFusion fusion;
 			vf.width = f.img.GetWidth();
 			vf.height = f.img.GetHeight();
 			vf.stride = vf.width * (int)sizeof(RGBA);
-			vf.data = (const byte*)~f.img;
+			vf.img = f.img;
+			vf.data = 0;
 			vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
 			vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
 			fusion.PutVisual(vf);

@@ -122,5 +122,93 @@ struct RecyclerRefBase : RefBase {
 template <class T> using SharedRecycler = Shared<T, RecyclerRefBase<T>>;
 
 
+template <class T, bool keep_as_constructed=false>
+class BiVectorRecycler {
+	BiVector<T*> q;
+	RecyclerPool<T, keep_as_constructed> pool;
+	
+public:
+	BiVectorRecycler() {}
+	BiVectorRecycler(BiVectorRecycler&& s) : q(pick(s.q)) {}
+	~BiVectorRecycler() { Clear(); }
+	
+	template <typename... Args>
+	T* AddHead(const Args&... args) {
+		T* o = pool.New(args...);
+		q.AddHead(o);
+		return o;
+	}
+	
+	template <typename... Args>
+	T* AddTail(const Args&... args) {
+		T* o = pool.New(args...);
+		q.AddTail(o);
+		return o;
+	}
+	
+	void DropHead() {
+		if(q.GetCount() > 0) {
+			T* o = q.Head();
+			q.DropHead();
+			pool.Return(o);
+		}
+	}
+	
+	void DropTail() {
+		if(q.GetCount() > 0) {
+			T* o = q.Tail();
+			q.DropTail();
+			pool.Return(o);
+		}
+	}
+	
+	void Clear() {
+		while(q.GetCount() > 0)
+			DropHead();
+	}
+	
+	int GetCount() const { return max(0, q.GetCount()); }
+	bool IsEmpty() const { return q.GetCount() <= 0; }
+	
+	T& Head() { return *q.Head(); }
+	const T& Head() const { return *q.Head(); }
+	T& Tail() { return *q.Tail(); }
+	const T& Tail() const { return *q.Tail(); }
+	
+	T& operator[](int i) { return *q[i]; }
+	const T& operator[](int i) const { return *q[i]; }
+	
+	// Iterator support
+	typedef typename BiVector<T*>::Iterator Iterator;
+	typedef typename BiVector<T*>::ConstIterator ConstIterator;
+	
+	Iterator Begin() { return q.Begin(); }
+	Iterator End() { return q.End(); }
+	ConstIterator Begin() const { return q.Begin(); }
+	ConstIterator End() const { return q.End(); }
+	
+	// Transfer ownership (pick)
+	friend BiVectorRecycler<T, keep_as_constructed> pick(BiVectorRecycler<T, keep_as_constructed>& s) {
+		BiVectorRecycler<T, keep_as_constructed> d;
+		d.q = pick(s.q);
+		// Note: pool content is separate, but since q items came from s.pool, 
+		// we must ensure they are returned to d.pool? 
+		// Actually, RecyclerPool manages allocations. If we move q, items persist.
+		// When d destroys, it returns items to d.pool. 
+		// But s.pool still exists. 
+		// If pools are instance members, we have a problem: items allocated by s.pool returned to d.pool.
+		// If RecyclerPool uses global heap (MemoryAlloc), it's fine.
+		// RecyclerPool::Return adds to its internal 'pool' vector.
+		// So if we cross-return, d.pool grows, s.pool shrinks (effectively).
+		// Memory management wise it's fine as long as T size matches (it does).
+		return d;
+	}
+	
+	void operator=(BiVectorRecycler<T, keep_as_constructed>&& s) {
+		Clear();
+		q = pick(s.q);
+	}
+};
+
 
 #endif

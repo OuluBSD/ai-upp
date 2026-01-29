@@ -940,8 +940,23 @@ void StereoCalibrationTool::BuildBottomTabs() {
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("Samples");
 	captures_list.WhenCursor = THISBACK(DataCapturedFrame);
+	
 	matches_list.AddColumn("Left");
 	matches_list.AddColumn("Right");
+	matches_list.AddColumn("Distance (cm)").Edit(distance_editor);
+	matches_list.WhenAcceptRow = [=] {
+		int row = captures_list.GetCursor();
+		int mrow = matches_list.GetCursor();
+		if (row >= 0 && row < captured_frames.GetCount() && mrow >= 0) {
+			CapturedFrame& f = captured_frames[row];
+			if (mrow < f.matches.GetCount()) {
+				f.matches[mrow].distance = matches_list.Get(mrow, 2);
+				SaveState();
+			}
+		}
+		return true;
+	};
+	
 	report_text.SetReadOnly();
 	report_text <<= "Solve report and .stcal preview will appear here.";
 
@@ -982,7 +997,7 @@ void StereoCalibrationTool::DataCapturedFrame() {
 	const CapturedFrame& frame = captured_frames[row];
 	matches_list.Clear();
 	for (const MatchPair& pair : frame.matches)
-		matches_list.Add(pair.left_text, pair.right_text);
+		matches_list.Add(pair.left_text, pair.right_text, pair.distance);
 	preview.SetImages(frame.left_img, frame.right_img);
 	preview.SetMatches(frame.matches);
 	String time = AsString(captures_list.Get(row, 0));

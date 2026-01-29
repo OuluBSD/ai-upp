@@ -17,9 +17,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		Pointf right = Null;
 		String left_text;
 		String right_text;
+		double distance = 0;
 
 		void Jsonize(JsonIO& jio) {
-			jio("left", left)("right", right)("left_text", left_text)("right_text", right_text);
+			jio("left", left)("right", right)("left_text", left_text)("right_text", right_text)("distance", distance);
 		}
 	};
 
@@ -161,6 +162,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	
 	ArrayCtrl captures_list;
 	ArrayCtrl matches_list;
+	EditDouble distance_editor;
 	DocEdit report_text;
 	Vector<One<StereoSource>> sources;
 	Upp::Mutex source_mutex;

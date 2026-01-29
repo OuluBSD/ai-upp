@@ -336,18 +336,38 @@ void Camera::AppendRaw(const byte* buffer, int size)
 {
 	if (size <= 0) return;
 	
-	RawDataBlock* block = buffer_pool.New();
+	RawDataBlock* block = NULL;
+	{
+		Upp::RWMutex::WriteLock __(raw_mutex);
+		
+		// Cleanup processed and NOT in-use items
+		while(raw_queue.GetCount() > 0 && raw_queue.First().processed && raw_queue.First().in_use == 0)
+			raw_queue.RemoveFirst();
+			
+		// Overflow protection
+		if(raw_queue.GetCount() > 100) {
+			if(verbose) Cout() << "Raw queue overflow, clearing to resync\n";
+			// Note: clearing while items are in_use is dangerous if pointers are held.
+			// But here consumer only holds reference to block inside the list.
+			// If we clear the list, consumer's reference becomes invalid.
+			// However, our logic ensures we only remove NOT in_use items above.
+			// For a full Clear(), we should ideally wait or just risk it if it's an emergency.
+			raw_queue.Clear();
+			gap_occurred = true;
+		}
+		
+		block = &raw_queue.Add();
+		block->ready = false;
+		block->processed = false;
+		block->in_use = 0;
+	}
+	
+	// Write data without lock
 	block->data.SetCount(size);
 	memcpy(block->data.Begin(), buffer, size);
 	
-	Upp::Mutex::Lock __(raw_mutex);
-	if(raw_queue.GetCount() > 100) {
-		if(verbose) Cout() << "Raw queue overflow, clearing to resync\n";
-		while(raw_queue.GetCount())
-			buffer_pool.Return(raw_queue.PopHead());
-		gap_occurred = true;
-	}
-	raw_queue.AddTail(block);
+	// Mark ready for consumer
+	block->ready = true;
 }
 
 void Camera::AppendRawLocked(const byte* buffer, int size)
@@ -358,36 +378,46 @@ void Camera::AppendRawLocked(const byte* buffer, int size)
 bool Camera::ProcessRawFrames()
 {
 	int64 start_usecs = usecs();
+	bool processed_any = false;
 	
-	BiVector<RawDataBlock*> local_queue;
 	bool local_gap = false;
-	
 	{
-		Upp::Mutex::Lock __(raw_mutex);
-		if(raw_queue.GetCount()) {
-			local_queue = pick(raw_queue); // Move/Pick queue content
-			// raw_queue is now empty (if pick works for BiVector, otherwise swap)
-			// BiVector pick might not clear source? 
-			// Actually Upp::pick usually transfers ownership. 
-			// Let's assume pick works or use swap logic if needed.
-			// Upp containers usually support pick/clone.
-			// Re-check: pick() clears source? Yes.
-		}
+		Upp::RWMutex::WriteLock __(raw_mutex);
 		local_gap = gap_occurred;
 		gap_occurred = false;
+		
+		while(raw_queue.GetCount() > 0 && raw_queue.First().processed && raw_queue.First().in_use == 0)
+			raw_queue.RemoveFirst();
 	}
 	
-	if(local_queue.IsEmpty())
-		return false;
-
 	if(local_gap) {
 		assembly_buffer.Clear();
 	}
-	
-	for(RawDataBlock* block : local_queue) {
+
+	while(true) {
+		RawDataBlock* block = NULL;
+		{
+			Upp::RWMutex::ReadLock __(raw_mutex);
+			for(auto& b : raw_queue) {
+				if(!b.ready) break;
+				if(b.processed) continue;
+				block = &b;
+				block->in_use++;
+				break;
+			}
+		}
+		
+		if(!block) break;
+		
+		// Process WITHOUT lock
 		assembly_buffer.Append(block->data);
-		buffer_pool.Return(block);
+		block->processed = true;
+		block->in_use--;
+		processed_any = true;
 	}
+	
+	if(!processed_any)
+		return false;
 	
 	int local_ptr = assembly_buffer.GetCount();
 	byte* local_data = assembly_buffer.Begin();

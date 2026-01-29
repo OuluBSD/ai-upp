@@ -65,6 +65,11 @@ quat SoftHmdVisualTracker::GetOrientation() const {
 }
 
 bool SoftHmdVisualTracker::DecodeFrame(const VisualFrame& frame, Image& out) const {
+	if (!frame.img.IsEmpty()) {
+		out = frame.img;
+		return true;
+	}
+	
 	if (!frame.data || frame.width <= 0 || frame.height <= 0 || frame.stride <= 0)
 		return false;
 	

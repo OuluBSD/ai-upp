@@ -780,29 +780,29 @@ AtomTypeCls SdlOglFboProg::GetType() const {
 #endif
 
 
-#if (defined flagLOCALHMD && defined flagVR)
-String LocalHMDPipe::GetAction() {
+#if (defined flagSOFTHMD && defined flagVR)
+String SoftHMDPipe::GetAction() {
 	return "x11.ogl.holo.events";
 }
 
-AtomTypeCls LocalHMDPipe::GetAtomType() {
+AtomTypeCls SoftHMDPipe::GetAtomType() {
 	AtomTypeCls t;
-	t.sub = SUB_ATOM_CLS; //LOCALHMDPIPE;
+	t.sub = SUB_ATOM_CLS; //SOFTHMDPIPE;
 	t.role = AtomRole::PIPE;
 	t.AddIn(VD(CENTER,ORDER),0);
 	t.AddOut(VD(CENTER,EVENT),0);
 	return t;
 }
 
-LinkTypeCls LocalHMDPipe::GetLinkType() {
+LinkTypeCls SoftHMDPipe::GetLinkType() {
 	return LINKTYPE(PIPE, PROCESS);
 }
 
-void LocalHMDPipe::Visit(Vis& v) {
-	VIS_THIS(LocalHMDSinkDevice);
+void SoftHMDPipe::Visit(Vis& v) {
+	VIS_THIS(SoftHMDSinkDevice);
 }
 
-AtomTypeCls LocalHMDPipe::GetType() const {
+AtomTypeCls SoftHMDPipe::GetType() const {
 	return GetAtomType();
 }
 #endif

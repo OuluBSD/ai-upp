@@ -33,7 +33,7 @@ AtomTypeCls OpenHMDPipe::GetType() const {
 #endif
 
 
-#if (defined flagOPENVR)
+#if (defined flagWIN32 && defined flagOPENVR && defined flagVR)
 String OpenVRPipe::GetAction() {
 	return "openvr.ogl.holo.events";
 }
@@ -59,6 +59,7 @@ AtomTypeCls OpenVRPipe::GetType() const {
 	return GetAtomType();
 }
 #endif
+
 
 
 END_UPP_NAMESPACE

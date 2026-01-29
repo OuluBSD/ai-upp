@@ -182,10 +182,10 @@ public:
 	typedef typename BiVector<T*>::Iterator Iterator;
 	typedef typename BiVector<T*>::ConstIterator ConstIterator;
 	
-	Iterator Begin() { return q.Begin(); }
-	Iterator End() { return q.End(); }
-	ConstIterator Begin() const { return q.Begin(); }
-	ConstIterator End() const { return q.End(); }
+	Iterator begin() { return q.Begin(); }
+	Iterator end() { return q.End(); }
+	ConstIterator begin() const { return q.Begin(); }
+	ConstIterator end() const { return q.End(); }
 	
 	// Transfer ownership (pick)
 	friend BiVectorRecycler<T, keep_as_constructed> pick(BiVectorRecycler<T, keep_as_constructed>& s) {
@@ -207,6 +207,10 @@ public:
 	void operator=(BiVectorRecycler<T, keep_as_constructed>&& s) {
 		Clear();
 		q = pick(s.q);
+	}
+	
+	friend void Swap(BiVectorRecycler& a, BiVectorRecycler& b) {
+		Upp::Swap(a.q, b.q);
 	}
 };
 

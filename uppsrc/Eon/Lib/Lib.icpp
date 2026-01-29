@@ -71,8 +71,8 @@ INITBLOCK {
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
 	REGISTER_ATOM(SdlOglFboProg);
 	#endif
-	#if (defined flagLOCALHMD && defined flagVR)
-	REGISTER_ATOM(LocalHMDPipe);
+	#if (defined flagSOFTHMD && defined flagVR)
+	REGISTER_ATOM(SoftHMDPipe);
 	#endif
 	#if (defined flagFREEBSD && defined flagVR) || (defined flagLINUX && defined flagVR)
 	REGISTER_ATOM(RemoteVRServerPipe);
@@ -293,8 +293,7 @@ INITBLOCK {
 	#if (defined flagFREEBSD && defined flagOPENHMD && defined flagVR) || (defined flagLINUX && defined flagOPENHMD && defined flagVR)
 	REGISTER_ATOM(OpenHMDPipe);
 	#endif
-	
-	#if (defined flagOPENVR)
+	#if (defined flagWIN32 && defined flagOPENVR && defined flagVR)
 	REGISTER_ATOM(OpenVRPipe);
 	#endif
 	
@@ -323,17 +322,6 @@ INITBLOCK {
 	REGISTER_LINK(SplitterLink);
 	REGISTER_LINK(PollerLink);
 	#undef REGISTER_LINK
-
-	if (!VfsValueExtFactory::GetFactory<PaintStrokeSystemBase>().type_hash)
-		REGISTER_EON_SYSTEM(PaintStrokeSystemBase, "system.paintstroke", "Sys|Ecs");
-	if (!VfsValueExtFactory::GetFactory<ToolboxSystemBase>().type_hash)
-		REGISTER_EON_SYSTEM(ToolboxSystemBase, "system.toolbox", "Sys|Ecs");
-	if (!VfsValueExtFactory::GetFactory<PaintingInteractionSystemBase>().type_hash)
-		REGISTER_EON_SYSTEM(PaintingInteractionSystemBase, "system.interaction.painting", "Sys|Ecs");
-	if (!VfsValueExtFactory::GetFactory<ShootingInteractionSystemBase>().type_hash)
-		REGISTER_EON_SYSTEM(ShootingInteractionSystemBase, "system.interaction.shooting", "Sys|Ecs");
-	if (!VfsValueExtFactory::GetFactory<ThrowingInteractionSystemBase>().type_hash)
-		REGISTER_EON_SYSTEM(ThrowingInteractionSystemBase, "system.interaction.throwing", "Sys|Ecs");
 	
 }
 

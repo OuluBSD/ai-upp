@@ -21,8 +21,10 @@ VideoImportCtrl::VideoImportCtrl(Edit3D* e) {
 	kp.Add(kp.hsplit.SizePos());
 	kp.hsplit.Horz(kp.st, kp.vsplit);
 	kp.vsplit.Vert(kp.rends[0], kp.rends[1]);
-	for(int i = 0; i < 2; i++)
-		kp.rends[i].owner = e;
+	for(int i = 0; i < 2; i++) {
+		kp.rends[i].ctx = &e->render_ctx;
+		kp.rends[i].WhenChanged = THISBACK(RefreshRenderers);
+	}
 	kp.rends[0].SetCameraSource(CAMSRC_VIDEOIMPORT_FOCUS);
 	kp.rends[0].SetViewMode(VIEWMODE_XZ);
 	kp.rends[1].SetCameraSource(CAMSRC_VIDEOIMPORT_PROGRAM);
@@ -32,8 +34,10 @@ VideoImportCtrl::VideoImportCtrl(Edit3D* e) {
 	tri.Add(tri.hsplit.SizePos());
 	tri.hsplit.Horz(tri.st, tri.vsplit);
 	tri.vsplit.Vert(tri.rends[0], tri.rends[1]);
-	for(int i = 0; i < 2; i++)
-		tri.rends[i].owner = e;
+	for(int i = 0; i < 2; i++) {
+		tri.rends[i].ctx = &e->render_ctx;
+		tri.rends[i].WhenChanged = THISBACK(RefreshRenderers);
+	}
 	tri.rends[0].SetCameraSource(CAMSRC_VIDEOIMPORT_FOCUS);
 	tri.rends[0].SetViewMode(VIEWMODE_XZ);
 	tri.rends[1].SetCameraSource(CAMSRC_VIDEOIMPORT_PROGRAM);
@@ -45,7 +49,8 @@ VideoImportCtrl::VideoImportCtrl(Edit3D* e) {
 	for(int i = 0; i < 4; i++)
 		w.grid.Add(w.rends[i].SizePos());
 	for(int i = 0; i < 4; i++) {
-		w.rends[i].owner = e;
+		w.rends[i].ctx = &e->render_ctx;
+		w.rends[i].WhenChanged = THISBACK(RefreshRenderers);
 		w.rends[i].SetCameraSource(i < 3 ? CAMSRC_VIDEOIMPORT_FOCUS : CAMSRC_VIDEOIMPORT_PROGRAM);
 		w.rends[i].SetViewMode((ViewMode)i);
 	}

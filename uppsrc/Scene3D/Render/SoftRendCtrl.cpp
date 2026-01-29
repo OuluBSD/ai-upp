@@ -1,5 +1,4 @@
-#ifdef flagGUI
-#include "Edit3D.h"
+#include "Render.h"
 
 #if 0
 
@@ -71,4 +70,3 @@ void SoftRendCtrl::ProcessStage() {
 END_UPP_NAMESPACE
 
 #endif
-#endif // flagGUI

@@ -1,11 +1,7 @@
-#ifndef _Edit3D_SoftRendCtrl_h_
-#define _Edit3D_SoftRendCtrl_h_
+#ifndef _Scene3D_Render_SoftRendCtrl_h_
+#define _Scene3D_Render_SoftRendCtrl_h_
 
 #if 0
-
-NAMESPACE_UPP
-
-struct EditConfiguration;
 
 
 struct SoftRendCtrl : Ctrl {
@@ -24,11 +20,9 @@ public:
 	void ProcessStage();
 	
 	
-	EditConfiguration* conf = 0;
+	Scene3DRenderConfig* conf = 0;
 };
 
-
-END_UPP_NAMESPACE
 
 #endif
 #endif

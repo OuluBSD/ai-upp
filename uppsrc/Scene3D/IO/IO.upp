@@ -5,6 +5,11 @@ uses
 
 file
 	AGENTS.md;
+	IO.h;
+	VideoImporter.h;
+	VideoImporter.cpp;
+	StagedVideoImporter.h;
+	StagedVideoImporter.cpp;
 
 mainconfig
 	"" = "";

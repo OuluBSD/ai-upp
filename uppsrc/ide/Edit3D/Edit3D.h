@@ -5,12 +5,10 @@
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
 #include <Scene3D/Core/Core.h>
+#include <Scene3D/IO/IO.h>
+#include <Scene3D/Render/Render.h>
 #include <plugin/enet/enet.h>
 
-#include "SoftRendCtrl.h"
-#include "Renderer.h"
-#include "VideoImporter.h"
-#include "StagedVideoImporter.h"
 #include "VideoImportCtrl.h"
 #include "Remote.h"
 #include "Editor.h"

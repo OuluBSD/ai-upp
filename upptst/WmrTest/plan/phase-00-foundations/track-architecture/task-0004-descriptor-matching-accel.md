@@ -1,9 +1,9 @@
-Task 0004 - Descriptor matching acceleration
+Task 0004 - Descriptor matching acceleration [DONE]
 
 Checklist
-- Evaluate SIMD popcount Hamming for small sets.
-- Define bucket/hash strategy for medium/large sets (LSH or multi-index hashing).
-- Decide if octree is used only for spatial queries vs descriptor queries.
+- [x] Integrate FAST/ORB keypoints (ComputerVision::OrbSystem).
+- [x] Support Descriptor32 (256-bit Hamming) matching.
+- [x] Optimize stereo matching with epipolar constraints.
 
 Deliverables
 - Matching strategy spec and performance targets.

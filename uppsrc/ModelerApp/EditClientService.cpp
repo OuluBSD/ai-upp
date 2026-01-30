@@ -1,5 +1,5 @@
 #ifdef flagGUI
-#include "Edit3D.h"
+#include "ModelerApp.h"
 
 #if 0
 

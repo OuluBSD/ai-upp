@@ -1,9 +1,7 @@
-#ifndef _Edit3D_Remote_h_
-#define _Edit3D_Remote_h_
+#ifndef _ModelerApp_Remote_h_
+#define _ModelerApp_Remote_h_
 
 #if 0
-
-NAMESPACE_UPP
 
 
 class EngineSerializer {
@@ -65,8 +63,5 @@ public:
 	
 	
 };
-
-END_UPP_NAMESPACE
-
 #endif
 #endif

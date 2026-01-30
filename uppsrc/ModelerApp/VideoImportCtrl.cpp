@@ -1,5 +1,4 @@
-#ifdef flagGUI
-#include "Edit3D.h"
+#include "ModelerApp.h"
 
 NAMESPACE_UPP
 
@@ -257,4 +256,3 @@ void TriangleImageCtrl::Paint(Draw& w) {
 
 
 END_UPP_NAMESPACE
-#endif // flagGUI

@@ -1,12 +1,8 @@
-#ifdef flagGUI
-#include "Edit3D.h"
-
+#include "ModelerApp.h"
 
 #define IMAGECLASS ImagesImg
-#define IMAGEFILE <ide/Edit3D/Images.iml>
+#define IMAGEFILE <ModelerApp/Images.iml>
 #include <Draw/iml_source.h>
-
-
 
 NAMESPACE_UPP
 
@@ -303,11 +299,3 @@ void Edit3D::OnDebugMetadata() {
 
 
 END_UPP_NAMESPACE
-
-
-
-
-
-
-
-#endif // flagGUI

@@ -1,5 +1,4 @@
-#ifdef flagGUI
-#include "Edit3D.h"
+#include "ModelerApp.h"
 
 NAMESPACE_UPP
 
@@ -157,4 +156,3 @@ void GeomProjectCtrl::TimelineData() {
 }
 
 END_UPP_NAMESPACE
-#endif // flagGUI

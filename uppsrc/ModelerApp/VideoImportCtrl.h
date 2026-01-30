@@ -1,9 +1,9 @@
-#ifndef _Edit3D_VideoImportCtrl_h_
-#define _Edit3D_VideoImportCtrl_h_
-
-NAMESPACE_UPP
+#ifndef _ModelerApp_VideoImportCtrl_h_
+#define _ModelerApp_VideoImportCtrl_h_
 
 
+struct Edit3D;
+struct EditRenderer;
 struct VideoImportCtrl;
 
 struct VideoImportImageCtrl : Ctrl {
@@ -77,8 +77,5 @@ struct VideoImportCtrl : ParentCtrl {
 	void RefreshRenderers();
 	
 };
-
-
-END_UPP_NAMESPACE
 
 #endif

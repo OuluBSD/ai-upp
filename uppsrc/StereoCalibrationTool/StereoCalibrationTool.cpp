@@ -30,10 +30,33 @@ struct CalibrationSolver {
 	};
 	Vector<PointPair> pairs;
 	double eye_dist;
+	String* log = NULL;
 
 	int Solve(double& a, double& b, double& c, double& d, double& outward_angle, bool lock_distortion) {
 		int N = pairs.GetCount();
 		if (N < 5) return 0;
+		
+		if(log) {
+			*log << "Starting Solver (lock_distortion=" << AsString(lock_distortion) << ")\n";
+			*log << "  Initial guess: a=" << a << ", phi=" << outward_angle << ", eye_dist=" << eye_dist << "\n";
+			if (!lock_distortion) *log << "                 b=" << b << ", c=" << c << ", d=" << d << "\n";
+			*log << "  Optimization variables: 3D points (X,Y,Z) for " << N << " matches + " << (lock_distortion ? "2" : "5") << " parameters.\n";
+			*log << "  Equations:\n";
+			*log << "    1. Unproject (Pixel -> 3D Ray):\n";
+			*log << "       r_pix = sqrt(dx^2 + dy^2)\n";
+			*log << "       Theta (angle from optical axis) solved via Newton-Raphson from polynomial:\n";
+			*log << "       r_pix = a*theta + b*theta^2 + c*theta^3 + d*theta^4\n";
+			*log << "       Ray direction vector calculated from Theta and Roll (-atan2(dx, dy)).\n";
+			*log << "       Ray rotated by +/- phi (outward angle) around Y axis to head space.\n";
+			*log << "    2. Triangulate (Ray L, Ray R -> 3D Point X):\n";
+			*log << "       Find midpoint of shortest segment between skewed rays from cameras at +/- eye_dist/2.\n";
+			*log << "    3. Project (3D Point X -> Pixel):\n";
+			*log << "       Transform X to camera local space (translate by -/+ eye_dist/2, rotate by -/+ phi).\n";
+			*log << "       Calculate Theta (angle with Z) and Roll.\n";
+			*log << "       r_pix = a*theta + b*theta^2 + c*theta^3 + d*theta^4\n";
+			*log << "       Convert polar (r_pix, roll) to cartesian (dx, dy) and map to pixel coordinates.\n";
+			*log << "  Target: Minimize sum of squared projection errors (dx, dy) and distance constraint errors.\n\n";
+		}
 
 		int num_params = lock_distortion ? 2 : 5;
 		Eigen::VectorXd y(num_params + 3 * N);
@@ -70,6 +93,7 @@ struct CalibrationSolver {
 		};
 
 		// 1. Initial guess for 3D points using current rays
+		if(log) *log << "  Step 1: Initializing 3D point guesses using triangulation of current rays...\n";
 		for(int i = 0; i < N; i++) {
 			const auto& p = pairs[i];
 			vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject_dir(p.l, p.sz, a, b, c, d, outward_angle, 0);
@@ -93,7 +117,10 @@ struct CalibrationSolver {
 		}
 
 		// 2. Optimization loop
+		if(log) *log << "  Step 2: Non-linear optimization (Levenberg-Marquardt)...\n";
+		int iter = 0;
 		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
+			iter++;
 			double cur_a, cur_b, cur_c, cur_d, cur_phi;
 			if (lock_distortion) {
 				cur_a = x[0]; cur_phi = x[1];
@@ -101,6 +128,13 @@ struct CalibrationSolver {
 			} else {
 				cur_a = x[0]; cur_b = x[1]; cur_c = x[2]; cur_d = x[3]; cur_phi = x[4];
 			}
+			
+			if (log && (iter == 1 || iter % 10 == 0)) {
+				*log << "    Iter " << iter << ": a=" << Format("%.4f", cur_a) << ", phi=" << Format("%.4f", cur_phi);
+				if(!lock_distortion) *log << ", b=" << Format("%.4f", cur_b) << ", c=" << Format("%.4f", cur_c);
+				*log << "\n";
+			}
+
 			res.resize(N * 6);
 			
 			auto project = [&](vec3 P, int eye, Size sz) -> Pointf {
@@ -145,6 +179,7 @@ struct CalibrationSolver {
 		};
 
 		if (NonLinearOptimization(y, N * 6, residual)) {
+			if (log) *log << "  Optimization converged in " << iter << " iterations.\n\n";
 			if (lock_distortion) {
 				a = y[0]; outward_angle = y[1];
 			} else {
@@ -152,6 +187,7 @@ struct CalibrationSolver {
 			}
 			return 1;
 		}
+		if (log) *log << "  Optimization FAILED.\n\n";
 		return 0;
 	}
 };
@@ -872,7 +908,9 @@ void StereoCalibrationTool::RemoveMatchPair() {
 }
 
 void StereoCalibrationTool::SolveCalibration() {
+	String math_log;
 	CalibrationSolver solver;
+	solver.log = &math_log;
 	solver.eye_dist = (double)calib_eye_dist;
 	
 	for(const auto& f : captured_frames) {
@@ -990,7 +1028,7 @@ void StereoCalibrationTool::SolveCalibration() {
 			report << "Residual RMS: " << rms_val << " px (" << rms_count << " samples)\n";
 		}
 		
-		String math_log;
+		math_log << "\n\n";
 		math_log << "Stereo Calibration Math Report\n";
 		math_log << "==============================\n\n";
 		math_log << "Parameters:\n";

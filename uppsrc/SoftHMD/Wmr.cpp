@@ -222,8 +222,8 @@ static int config_command_sync(hid_device* hmd_imu, unsigned char type,
 
 	hid_write(hmd_imu, cmd, sizeof(cmd));
 	do {
-		int size = hid_read(hmd_imu, buf, len);
-		if (size == -1)
+		int size = hid_read_timeout(hmd_imu, buf, len, 1000);
+		if (size <= 0)
 			return -1;
 		if (buf[0] == HOLOLENS_IRQ_CONTROL)
 			return size;

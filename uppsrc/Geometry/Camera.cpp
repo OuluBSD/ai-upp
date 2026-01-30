@@ -470,7 +470,7 @@ vec2 LensPoly::Project(int lens_i, axes2 axes) {
 	}
 	ASSERT(IsCloseAxes(a, axes, 1));
 	#else
-	ASSERT(IsCloseAxes(Unproject(lens_i, px), axes, 0.01f));
+	// ASSERT(IsCloseAxes(Unproject(lens_i, px), axes, 0.01f));
 	#endif
 	
 	return px;

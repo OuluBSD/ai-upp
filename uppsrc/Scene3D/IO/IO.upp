@@ -1,16 +1,16 @@
 uses
 	CtrlCore,
 	Geometry,
+	ComputerVision,
 	Scene3D/Core;
 
 file
-	AGENTS.md;
-	IO.h;
-	Scene3DFormat.md;
-	VideoImporter.h;
+	AGENTS.md,
+	IO.h,
+	StagedVideoImporter.h,
+	StagedVideoImporter.cpp,
+	VideoImporter.h,
 	VideoImporter.cpp;
-	StagedVideoImporter.h;
-	StagedVideoImporter.cpp;
 
 mainconfig
 	"" = "";

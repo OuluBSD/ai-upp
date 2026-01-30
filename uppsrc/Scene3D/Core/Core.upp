@@ -3,10 +3,11 @@ uses
 	Geometry;
 
 file
-	AGENTS.md;
-	Core.h;
-	Geom.h;
+	AGENTS.md,
+	Core.h,
+	Geom.h,
 	Geom.cpp;
 
 mainconfig
 	"" = "";
+

@@ -91,7 +91,7 @@ struct CalibrationSolver {
 			double cur_a = x[0], cur_b = x[1], cur_c = x[2], cur_d = x[3], cur_phi = x[4];
 			res.resize(N * 6);
 			
-			auto project = [&](vec3 P, int eye) -> Pointf {
+			auto project = [&](vec3 P, int eye, Size sz) -> Pointf {
 				vec3 localP = P;
 				if (eye == 0) localP[0] += (float)eye_dist / 2.0f;
 				else localP[0] -= (float)eye_dist / 2.0f;
@@ -108,16 +108,15 @@ struct CalibrationSolver {
 				double dx = r * -sin(roll);
 				double dy = r * cos(roll);
 				
-				const auto& pp = pairs[0];
-				return Pointf((dx + pp.sz.cx/2.0) / pp.sz.cx, (dy + pp.sz.cy/2.0) / pp.sz.cy);
+				return Pointf((dx + sz.cx/2.0) / sz.cx, (dy + sz.cy/2.0) / sz.cy);
 			};
 
 			for (int i = 0; i < N; i++) {
 				const auto& p = pairs[i];
 				vec3 X(x[5 + i*3 + 0], x[5 + i*3 + 1], x[5 + i*3 + 2]);
 				
-				Pointf uvL = project(X, 0);
-				Pointf uvR = project(X, 1);
+				Pointf uvL = project(X, 0, p.sz);
+				Pointf uvR = project(X, 1, p.sz);
 				
 				res[i*6 + 0] = (uvL.x - p.l.x) * p.sz.cx;
 				res[i*6 + 1] = (uvL.y - p.l.y) * p.sz.cy;
@@ -876,6 +875,11 @@ void StereoCalibrationTool::SolveCalibration() {
 	if (solver.pairs.GetCount() < 5) {
 		PromptOK("At least 5 match pairs across all frames are required to solve for 5 parameters.");
 		return;
+	}
+	
+	if (fabs(solver.eye_dist) < 1e-6) {
+		if(!PromptYesNo("Eye distance is close to zero. This may cause the solver to fail or produce invalid results (points at infinity). Continue?"))
+			return;
 	}
 	
 	double a = calib_poly_a, b = calib_poly_b, c = calib_poly_c, d = calib_poly_d;

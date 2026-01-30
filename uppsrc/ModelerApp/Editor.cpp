@@ -43,7 +43,8 @@ Edit3D::Edit3D() :
 	
 	AddFrame(tool);
 	RefrehToolbar();
-	
+
+	LoadEmptyProject();
 	
 	tc.Set(-1000/60, THISBACK(Update));
 	

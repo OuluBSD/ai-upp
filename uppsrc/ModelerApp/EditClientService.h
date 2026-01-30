@@ -1,8 +1,6 @@
-#ifndef _Edit3D_EditClientService_h_
-#define _Edit3D_EditClientService_h_
+#ifndef _ModelerApp_EditClientService_h_
+#define _ModelerApp_EditClientService_h_
 #if 0
-
-NAMESPACE_UPP
 
 
 class EditClientService : public DaemonService {
@@ -27,9 +25,6 @@ public:
 	void SetDebuggingMode() {debug = true;}
 	
 };
-
-
-END_UPP_NAMESPACE
 
 #endif
 #endif

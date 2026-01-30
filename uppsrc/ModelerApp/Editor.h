@@ -1,12 +1,5 @@
-#ifndef _Edit3D_Editor_h_
-#define _Edit3D_Editor_h_
-
-#define IMAGECLASS ImagesImg
-#define IMAGEFILE <ide/Edit3D/Images.iml>
-#include <Draw/iml_header.h>
-
-
-NAMESPACE_UPP
+#ifndef _ModelerApp_Editor_h_
+#define _ModelerApp_Editor_h_
 
 struct Edit3D;
 
@@ -93,7 +86,5 @@ public:
 	
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

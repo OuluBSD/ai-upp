@@ -10,6 +10,7 @@ uses
 
 file
 	AGENTS.md,
+	CALIBRATION_DEBUG.md,
 	StereoCalibrationTool.h,
 	StereoCalibrationTool.cpp,
 	main.cpp;
@@ -17,4 +18,3 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
-

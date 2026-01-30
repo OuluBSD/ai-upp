@@ -398,6 +398,21 @@ void LensPoly::SetAnglePixel(float a, float b, float c, float d) {
 	angle_to_pixel_poly[3] = d;
 }
 
+void LensPoly::SetPrincipalPoint(float cx, float cy) {
+	principal_point = vec2(cx, cy);
+	use_principal_point = true;
+}
+
+void LensPoly::ClearPrincipalPoint() {
+	use_principal_point = false;
+	principal_point = vec2(img_sz.cx / 2.f, img_sz.cy / 2.f);
+}
+
+void LensPoly::SetRightTilt(float pitch, float roll) {
+	right_pitch = pitch;
+	right_roll = roll;
+}
+
 float LensPoly::AngleToPixel(float angle) const {
 	return
 		angle_to_pixel_poly.data[0] * angle +
@@ -424,95 +439,60 @@ float LensPoly::PixelToAngle(float pixel_radius) const {
 
 vec2 LensPoly::Project(int lens_i, axes2 axes) {
 	ASSERT(img_sz.cx && img_sz.cy);
-	
-	// Angle from center of "the lens"
-	#if 0
-	vec3 fwd = VEC_FWD;
-	vec3 right = VEC_RIGHT;
-	float angle = VectorAngle(fwd, local);
-	float deg = angle / M_PI * 180;
-	ASSERT(deg < 90);
-	
-	// Angle from local right vector
-	vec3 roll_ortho = Cross(local, fwd);
-	vec3 roll = Cross(fwd, roll_ortho);
-	float roll_angle = VectorAngle(right, roll);
-	if (roll.data[1] < 0)
-		roll_angle = -roll_angle;
-	float roll_deg = roll_angle / M_PI * 180;
-	#endif
-	
-	if (lens_i == 0)
-		axes[0] -= outward_angle;
-	else
-		axes[0] += outward_angle;
-	
-	axes2 roll_axes = GetDirAxesRoll(GetAxesDir(axes));
-	float angle = roll_axes.data[0];
-	float roll_angle = roll_axes.data[1];
-	
-	float pix_dist = AngleToPixel(angle);
-	
+
+	vec3 dir_head = GetAxesDir(axes);
+	vec3 dir_cam = dir_head;
+	if (lens_i == 1) {
+		mat4 rot = AxesMat(outward_angle, right_pitch, right_roll);
+		dir_cam = (rot.GetTransposed() * dir_head.Embed()).Splice();
+	}
+	dir_cam.Normalize();
+	double zf = IS_NEGATIVE_Z ? -dir_cam[2] : dir_cam[2];
+	zf = zf < -1.0 ? -1.0 : (zf > 1.0 ? 1.0 : zf);
+	double theta = atan2(sqrt((double)dir_cam[0] * dir_cam[0] + (double)dir_cam[1] * dir_cam[1]), zf);
+	double roll_angle = atan2(-dir_cam[1], dir_cam[0]);
+	float pix_dist = AngleToPixel((float)theta);
+
 	vec2 px;
-	px.data[0] = pix_dist * -sin(roll_angle);
-	px.data[1] = pix_dist * cos(roll_angle);
-	px.data[0] += img_sz.cx / 2;
-	px.data[1] += img_sz.cy / 2;
-	if (0) {
-		px.data[0] = floor(px.data[0] + 0.5f);
-		px.data[1] = floor(px.data[1] + 0.5f);
-	}
-	
-	#if 0
-	axes2 a = Unproject(px);
-	if (!IsClose(a, axes, 1)) {
-		DUMP(Unproject(px));
-	}
-	ASSERT(IsCloseAxes(a, axes, 1));
-	#else
-	// ASSERT(IsCloseAxes(Unproject(lens_i, px), axes, 0.01f));
-	#endif
-	
+	px.data[0] = (float)(principal_point[0] + pix_dist * cos(roll_angle));
+	px.data[1] = (float)(principal_point[1] + pix_dist * sin(roll_angle));
 	return px;
 }
 
 axes2 LensPoly::Unproject(int lens_i, const vec2& pixel) {
 	ASSERT(img_sz.cx && img_sz.cy);
-	
-	vec2 ct_rel = pixel - vec2(img_sz.cx / 2.f, img_sz.cy / 2.f);
+
+	vec2 ct_rel = pixel - principal_point;
 	float len = ct_rel.GetLength();
 	int leni0 = (int)(len * PIX_MUL);
-	int leni1 = leni0 + 1 < pixel_to_angle.GetCount() ? leni0 + 1 : leni0;
-	float f1 = fmodf(len, 1.0f);
-	float f0 = 1.0f - f1;
-	
-	ASSERT(leni0 >= 0 && leni0 < pixel_to_angle.GetCount());
-	if (leni0 >= pixel_to_angle.GetCount()) return axes2(0,0);
-	
+	if (leni0 < 0)
+		return axes2(0,0);
+	if (leni0 >= pixel_to_angle.GetCount())
+		leni0 = pixel_to_angle.GetCount() - 1;
 	float angle = PixelToAngle(len);
-	//float deg = angle / M_PI * 180;
-	//vec3 v0(sin(angle), 0, -cos(angle));
-	
-	float roll_angle = -atan2f(ct_rel[0], ct_rel[1]);
-	//float roll_deg = roll_angle / M_PI * 180;
-	//mat4 rot = ZRotation(roll_angle);
-	
-	//vec3 dir = (rot * v0.Embed()).Splice();
-	//dir.Normalize();
-	vec3 dir = AxesDirRoll(angle, roll_angle);
-	axes2 axes = GetDirAxes(dir).Splice();
-	
-	if (lens_i == 0)
-		axes[0] += outward_angle;
-	else
-		axes[0] -= outward_angle;
-	
+	float roll_angle = atan2f(ct_rel[1], ct_rel[0]);
+
+	float sin_theta = sinf(angle);
+	float cos_theta = cosf(angle);
+	vec3 dir_cam(
+		sin_theta * cosf(roll_angle),
+		-sin_theta * sinf(roll_angle),
+		IS_NEGATIVE_Z ? -cos_theta : cos_theta);
+
+	vec3 dir_head = dir_cam;
+	if (lens_i == 1) {
+		mat4 rot = AxesMat(outward_angle, right_pitch, right_roll);
+		dir_head = (rot * dir_cam.Embed()).Splice();
+	}
+	axes2 axes = GetDirAxes(dir_head).Splice();
 	return axes;
 }
 
 void LensPoly::SetSize(Size sz) {
 	if (img_sz != sz) {
 		img_sz = sz;
+		if (!use_principal_point)
+			principal_point = vec2(img_sz.cx / 2.f, img_sz.cy / 2.f);
 		MakePixelToAngle();
 	}
 }

@@ -15,6 +15,7 @@ struct GeomKeypoint {
 	vec3 position;
 	quat orientation;
 	
+	void Visit(Vis& v);
 };
 
 struct GeomTimeline {
@@ -24,6 +25,7 @@ struct GeomTimeline {
 	int FindPre(int kp_i) const;
 	int FindPost(int kp_i) const;
 	
+	void Visit(Vis& v);
 };
 
 struct GeomObject {
@@ -55,6 +57,7 @@ struct GeomObject {
 	bool IsCamera() const {return type == O_CAMERA;}
 	String GetPath() const;
 	
+	void Visit(Vis& v);
 };
 
 struct GeomDirectory {
@@ -74,6 +77,7 @@ struct GeomDirectory {
 	GeomObject* FindObject(String name, GeomObject::Type type);
 	GeomObject* FindCamera(String name);
 	
+	void Visit(Vis& v);
 };
 
 struct GeomObjectIterator {
@@ -119,6 +123,7 @@ struct GeomScene : GeomDirectory {
 	GeomProject* owner = 0;
 	int length = 0;
 	
+	void Visit(Vis& v);
 };
 
 struct GeomProject {
@@ -140,6 +145,7 @@ struct GeomProject {
 	
 	hash_t NewKey() {return key_counter++;}
 	
+	void Visit(Vis& v);
 };
 
 typedef enum {
@@ -168,6 +174,7 @@ struct GeomCamera {
 	mat4 GetViewMatrix(ViewMode m, Size sz) const;
 	Frustum GetFrustum(ViewMode m, Size sz) const;
 	
+	void Visit(Vis& v);
 };
 
 struct GeomObjectState {

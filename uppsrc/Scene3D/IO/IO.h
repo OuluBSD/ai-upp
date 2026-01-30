@@ -6,6 +6,7 @@
 
 NAMESPACE_UPP
 
+#include "Scene3DIO.h"
 #include "VideoImporter.h"
 #include "StagedVideoImporter.h"
 

@@ -18,7 +18,6 @@ struct GeomStagedVideo : GeomVideo {
 	GeomObject* go = 0;
 	GeomObject* cam = 0;
 	*/
-	StagedVirtualStereoUncamera uncam;
 	TimeStop ts;
 	RunningFlag flag;
 	

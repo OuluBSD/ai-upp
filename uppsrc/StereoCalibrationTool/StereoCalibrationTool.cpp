@@ -898,8 +898,11 @@ void StereoCalibrationTool::SolveCalibration() {
 			return;
 	}
 	
-	double a = calib_poly_a, b = calib_poly_b, c = calib_poly_c, d = calib_poly_d;
-	double phi = calib_outward_angle;
+	double a = Nvl((double)calib_poly_a, 0.0);
+	double b = Nvl((double)calib_poly_b, 0.0);
+	double c = Nvl((double)calib_poly_c, 0.0);
+	double d = Nvl((double)calib_poly_d, 0.0);
+	double phi = Nvl((double)calib_outward_angle, 0.0);
 	
 	// Initial guesses if they are zero
 	if (a == 0) a = 2.0 * solver.pairs[0].sz.cx / M_PI; 

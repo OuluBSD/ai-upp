@@ -330,6 +330,7 @@ bool StereoCalibrationTool::HmdStereoSource::Start() {
 		sys.Uninitialise();
 		return false;
 	}
+	cam->SetVerbose(verbose);
 	running = true;
 	return true;
 }
@@ -759,6 +760,13 @@ void StereoCalibrationTool::RunLiveTest() {
 			}
 		}
 	}
+}
+
+void StereoCalibrationTool::SetVerbose(bool v) {
+	verbose = v;
+	for(int i = 0; i < sources.GetCount(); i++)
+		if(sources[i])
+			sources[i]->SetVerbose(v);
 }
 
 void StereoCalibrationTool::Sync() {
@@ -1437,6 +1445,7 @@ void StereoCalibrationTool::StartSource() {
 	if (idx < 0 || idx >= sources.GetCount() || !sources[idx]) return;
 	String name = AsString(source_list.GetValue());
 	if (verbose) Cout() << "StartSource: Starting " << name << "\n";
+	sources[idx]->SetVerbose(verbose);
 	if (sources[idx]->Start()) {
 		source_status.SetLabel(Format("Status: running (%s)", name));
 		status.Set(Format("Source running: %s", name));

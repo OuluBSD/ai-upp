@@ -87,10 +87,12 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		virtual bool IsRunning() const = 0;
 		virtual bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
 		virtual bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
+		virtual void SetVerbose(bool v) {}
 	};
 	
 	struct HmdStereoSource : StereoSource {
 		bool running = false;
+		bool verbose = false;
 		HMD::System sys;
 		One<HMD::Camera> cam;
 		Image last_left;
@@ -103,6 +105,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		bool IsRunning() const override { return running; }
 		bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
 		bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
+		void SetVerbose(bool v) override { verbose = v; }
 	};
 	
 	struct UsbStereoSource : StereoSource {
@@ -247,7 +250,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void EnableLiveTest(int timeout_ms);
 	void StartLiveTest();
 	void RunLiveTest();
-	void SetVerbose(bool v) { verbose = v; }
+	void SetVerbose(bool v);
 	void SetProjectDir(const String& dir);
 	void OnSourceChanged();
 	void StartSource();

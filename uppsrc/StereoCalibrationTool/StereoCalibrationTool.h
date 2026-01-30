@@ -191,6 +191,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	EditDouble dist_l_editor;
 	EditDouble dist_r_editor;
 	DocEdit report_text;
+	DocEdit math_text;
 	Vector<One<StereoSource>> sources;
 	Upp::Mutex source_mutex;
 	String project_dir;

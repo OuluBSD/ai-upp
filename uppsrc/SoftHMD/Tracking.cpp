@@ -33,6 +33,9 @@ void StereoTracker::SetWmrDefaults(int vendor_id, int product_id) {
 	float a = 17.4932f, b = 153.022f, c = 175.333f, d = -25.7489f;
 	float eye_dist = 0.12f;
 	float outward_angle = DEG2RAD(35.50f);
+	float right_pitch = 0;
+	float right_roll = 0;
+	vec2 principal_point(0, 0);
 	
 	bool loaded = false;
 	if (vendor_id == 0x03f0 || vendor_id == 0x04b4) {
@@ -45,6 +48,9 @@ void StereoTracker::SetWmrDefaults(int vendor_id, int product_id) {
 			d = cal.angle_to_pixel[3];
 			eye_dist = cal.eye_dist / 1000.0f; // mm to m
 			outward_angle = cal.outward_angle;
+			right_pitch = cal.right_pitch;
+			right_roll = cal.right_roll;
+			principal_point = cal.principal_point;
 			loaded = true;
 			LOG("StereoTracker: Loaded calibration from " << path);
 		}
@@ -54,12 +60,18 @@ void StereoTracker::SetWmrDefaults(int vendor_id, int product_id) {
 	uncam.SetEyeDistance(eye_dist);
 	uncam.SetYLevelHeight(10);
 	uncam.SetEyeOutwardAngle(outward_angle);
+	uncam.SetRightTilt(right_pitch, right_roll);
+	if (principal_point[0] > 0 && principal_point[1] > 0)
+		uncam.SetPrincipalPoint(principal_point[0], principal_point[1]);
 	uncam.SetDistanceLimit(128);
 	
 	calib.is_enabled = true;
 	calib.angle_to_pixel = vec4(a, b, c, d);
 	calib.eye_dist = eye_dist * 1000.0f; // m to mm
 	calib.outward_angle = outward_angle;
+	calib.right_pitch = right_pitch;
+	calib.right_roll = right_roll;
+	calib.principal_point = principal_point;
 }
 
 bool StereoTracker::LoadCalibrationFile(const String& path, StereoCalibrationData& out) {
@@ -83,6 +95,17 @@ bool StereoTracker::LoadCalibrationFile(const String& path, StereoCalibrationDat
 			data.eye_dist = (float)atof(val);
 		else if (key == "outward_angle")
 			data.outward_angle = (float)atof(val);
+		else if (key == "right_pitch")
+			data.right_pitch = (float)atof(val);
+		else if (key == "right_roll")
+			data.right_roll = (float)atof(val);
+		else if (key == "principal_point") {
+			Vector<String> parts = Split(val, ',');
+			if (parts.GetCount() >= 2) {
+				data.principal_point[0] = (float)atof(parts[0]);
+				data.principal_point[1] = (float)atof(parts[1]);
+			}
+		}
 		else if (key == "angle_poly") {
 			Vector<String> parts = Split(val, ',');
 			if (parts.GetCount() >= 4) {
@@ -102,6 +125,9 @@ bool StereoTracker::SaveCalibrationFile(const String& path, const StereoCalibrat
 	lines.Add("enabled=" + String(data.is_enabled ? "1" : "0"));
 	lines.Add(Format("eye_dist=%g", (double)data.eye_dist));
 	lines.Add(Format("outward_angle=%g", (double)data.outward_angle));
+	lines.Add(Format("right_pitch=%g", (double)data.right_pitch));
+	lines.Add(Format("right_roll=%g", (double)data.right_roll));
+	lines.Add(Format("principal_point=%g,%g", (double)data.principal_point[0], (double)data.principal_point[1]));
 	lines.Add(Format("angle_poly=%g,%g,%g,%g",
 		(double)data.angle_to_pixel[0], (double)data.angle_to_pixel[1],
 		(double)data.angle_to_pixel[2], (double)data.angle_to_pixel[3]));
@@ -204,6 +230,9 @@ void StereoTracker::SetCalibration(const StereoCalibrationData& data) {
 	uncam.SetAnglePixel(calib.angle_to_pixel[0], calib.angle_to_pixel[1],
 	                    calib.angle_to_pixel[2], calib.angle_to_pixel[3]);
 	uncam.SetEyeOutwardAngle(calib.outward_angle);
+	uncam.SetRightTilt(calib.right_pitch, calib.right_roll);
+	if (calib.principal_point[0] > 0 && calib.principal_point[1] > 0)
+		uncam.SetPrincipalPoint(calib.principal_point[0], calib.principal_point[1]);
 	if (calib.eye_dist > 0)
 		uncam.SetEyeDistance(calib.eye_dist);
 }

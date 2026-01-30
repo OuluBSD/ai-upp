@@ -7,6 +7,7 @@ acceptflags
 	UWP;
 
 uses
+	plugin/Eigen,
 	plugin/mikktspace,
 	Draw,
 	Draw/Extensions,
@@ -66,6 +67,8 @@ file
 	MeshTracker.cpp,
 	Uncamera.h,
 	Uncamera.cpp,
+	StereoCalibrationSolver.h,
+	StereoCalibrationSolver.cpp,
 	TrackingInterfaces.h,
 	Vr.h,
 	Vr.cpp,

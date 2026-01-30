@@ -44,6 +44,9 @@ struct StereoCalibrationData {
 	bool is_enabled = false;
 	vec4 angle_to_pixel = vec4(0,0,0,0);
 	float outward_angle = 0;
+	float right_pitch = 0;
+	float right_roll = 0;
+	vec2 principal_point = vec2(0,0);
 	float eye_dist = 0;
 };
 

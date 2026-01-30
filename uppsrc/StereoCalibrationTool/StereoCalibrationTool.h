@@ -200,6 +200,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	Size preview_lens_size = Size(0,0);
 	vec4 preview_lens_poly = vec4(0,0,0,0);
 	float preview_lens_outward = 0;
+	vec2 preview_lens_pp = vec2(0,0);
+	vec2 preview_lens_tilt = vec2(0,0);
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
 	int64 last_serial = -1;

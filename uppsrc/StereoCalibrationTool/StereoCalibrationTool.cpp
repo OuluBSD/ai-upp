@@ -1,196 +1,9 @@
 #include "StereoCalibrationTool.h"
-#include <plugin/Eigen/Eigen.h>
-
 NAMESPACE_UPP
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
-
-// Helper for ray-ray distance
-static double RayRayDistance(const vec3& p1, const vec3& d1, const vec3& p2, const vec3& d2) {
-	vec3 w0 = p1 - p2;
-	double a = Dot(d1, d1);
-	double b = Dot(d1, d2);
-	double c = Dot(d2, d2);
-	double d = Dot(d1, w0);
-	double e = Dot(d2, w0);
-	double denom = a * c - b * b;
-	if (fabs(denom) < 1e-9) return (w0 - d1 * (float)(Dot(w0, d1) / a)).GetLength(); // Parallel
-	double sc = (b * e - c * d) / denom;
-	double tc = (a * e - b * d) / denom;
-	return (w0 + d1 * (float)sc - d2 * (float)tc).GetLength();
-}
-
-struct CalibrationSolver {
-	struct PointPair : Moveable<PointPair> {
-		Pointf l, r;
-		Size sz;
-		double dist_l, dist_r;
-	};
-	Vector<PointPair> pairs;
-	double eye_dist;
-	String* log = NULL;
-
-	int Solve(double& a, double& b, double& c, double& d, double& outward_angle, bool lock_distortion) {
-		int N = pairs.GetCount();
-		if (N < 5) return 0;
-		
-		if(log) {
-			*log << "Starting Solver (lock_distortion=" << AsString(lock_distortion) << ")\n";
-			*log << "  Initial guess: a=" << a << ", phi=" << outward_angle << ", eye_dist=" << eye_dist << "\n";
-			if (!lock_distortion) *log << "                 b=" << b << ", c=" << c << ", d=" << d << "\n";
-			*log << "  Optimization variables: 3D points (X,Y,Z) for " << N << " matches + " << (lock_distortion ? "2" : "5") << " parameters.\n";
-			*log << "  Equations:\n";
-			*log << "    1. Unproject (Pixel -> 3D Ray):\n";
-			*log << "       r_pix = sqrt(dx^2 + dy^2)\n";
-			*log << "       Theta (angle from optical axis) solved via Newton-Raphson from polynomial:\n";
-			*log << "       r_pix = a*theta + b*theta^2 + c*theta^3 + d*theta^4\n";
-			*log << "       Ray direction vector calculated from Theta and Roll (-atan2(dx, dy)).\n";
-			*log << "       Ray rotated by +/- phi (outward angle) around Y axis to head space.\n";
-			*log << "    2. Triangulate (Ray L, Ray R -> 3D Point X):\n";
-			*log << "       Find midpoint of shortest segment between skewed rays from cameras at +/- eye_dist/2.\n";
-			*log << "    3. Project (3D Point X -> Pixel):\n";
-			*log << "       Transform X to camera local space (translate by -/+ eye_dist/2, rotate by -/+ phi).\n";
-			*log << "       Calculate Theta (angle with Z) and Roll.\n";
-			*log << "       r_pix = a*theta + b*theta^2 + c*theta^3 + d*theta^4\n";
-			*log << "       Convert polar (r_pix, roll) to cartesian (dx, dy) and map to pixel coordinates.\n";
-			*log << "  Target: Minimize sum of squared projection errors (dx, dy) and distance constraint errors.\n\n";
-		}
-
-		int num_params = lock_distortion ? 2 : 5;
-		Eigen::VectorXd y(num_params + 3 * N);
-		
-		if (lock_distortion) {
-			y[0] = a; y[1] = outward_angle;
-		} else {
-			y[0] = a; y[1] = b; y[2] = c; y[3] = d; y[4] = outward_angle;
-		}
-
-		auto unproject_dir = [&](Pointf pix, Size sz, double cur_a, double cur_b, double cur_c, double cur_d, double cur_phi, int eye) -> vec3 {
-			double cx = sz.cx / 2.0, cy = sz.cy / 2.0;
-			double dx = pix.x * sz.cx - cx, dy = pix.y * sz.cy - cy;
-			double r = sqrt(dx * dx + dy * dy);
-			if (r < 1e-6) return vec3(0, 0, -1);
-			
-			// Newton to find theta
-			double theta = r / cur_a;
-			for (int it = 0; it < 5; it++) {
-				double t2 = theta * theta;
-				double t3 = t2 * theta;
-				double t4 = t3 * theta;
-				double f = cur_a * theta + cur_b * t2 + cur_c * t3 + cur_d * t4 - r;
-				double df = cur_a + 2 * cur_b * theta + 3 * cur_c * t2 + 4 * cur_d * t3;
-				if (fabs(df) < 1e-9) break;
-				theta -= f / df;
-			}
-			
-			double roll = -atan2(dx, dy);
-			vec3 dir = AxesDirRoll((float)theta, (float)roll);
-			axes2 axes = GetDirAxes(dir).Splice();
-			if (eye == 0) axes[0] += (float)cur_phi; else axes[0] -= (float)cur_phi;
-			return GetAxesDir(axes);
-		};
-
-		// 1. Initial guess for 3D points using current rays
-		if(log) *log << "  Step 1: Initializing 3D point guesses using triangulation of current rays...\n";
-		for(int i = 0; i < N; i++) {
-			const auto& p = pairs[i];
-			vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0), dL = unproject_dir(p.l, p.sz, a, b, c, d, outward_angle, 0);
-			vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0), dR = unproject_dir(p.r, p.sz, a, b, c, d, outward_angle, 1);
-			
-			vec3 w0 = pL - pR;
-			double a_dot = Dot(dL, dL), b_dot = Dot(dL, dR), c_dot = Dot(dR, dR);
-			double d_dot = Dot(dL, w0), e_dot = Dot(dR, w0);
-			double denom = a_dot * c_dot - b_dot * b_dot;
-			vec3 pt;
-			if (fabs(denom) > 1e-9) {
-				double sc = (b_dot * e_dot - c_dot * d_dot) / denom;
-				double tc = (a_dot * e_dot - b_dot * d_dot) / denom;
-				pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
-			} else {
-				pt = (pL + pR) * 0.5f + dL * 1000.0f; // 1m away
-			}
-			y[num_params + i*3 + 0] = pt[0];
-			y[num_params + i*3 + 1] = pt[1];
-			y[num_params + i*3 + 2] = pt[2];
-		}
-
-		// 2. Optimization loop
-		if(log) *log << "  Step 2: Non-linear optimization (Levenberg-Marquardt)...\n";
-		int iter = 0;
-		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
-			iter++;
-			double cur_a, cur_b, cur_c, cur_d, cur_phi;
-			if (lock_distortion) {
-				cur_a = x[0]; cur_phi = x[1];
-				cur_b = b; cur_c = c; cur_d = d;
-			} else {
-				cur_a = x[0]; cur_b = x[1]; cur_c = x[2]; cur_d = x[3]; cur_phi = x[4];
-			}
-			
-			if (log && (iter == 1 || iter % 10 == 0)) {
-				*log << "    Iter " << iter << ": a=" << Format("%.4f", cur_a) << ", phi=" << Format("%.4f", cur_phi);
-				if(!lock_distortion) *log << ", b=" << Format("%.4f", cur_b) << ", c=" << Format("%.4f", cur_c);
-				*log << "\n";
-			}
-
-			res.resize(N * 6);
-			
-			auto project = [&](vec3 P, int eye, Size sz) -> Pointf {
-				vec3 localP = P;
-				if (eye == 0) localP[0] += (float)eye_dist / 2.0f;
-				else localP[0] -= (float)eye_dist / 2.0f;
-				
-				vec3 dir = localP.GetNormalized();
-				axes2 axes = GetDirAxes(dir).Splice();
-				if (eye == 0) axes[0] -= (float)cur_phi;
-				else axes[0] += (float)cur_phi;
-				
-				axes2 roll_axes = GetDirAxesRoll(GetAxesDir(axes));
-				double theta = roll_axes.data[0];
-				double roll = roll_axes.data[1];
-				double r = cur_a * theta + cur_b * theta*theta + cur_c * theta*theta*theta + cur_d * theta*theta*theta*theta;
-				double dx = r * -sin(roll);
-				double dy = r * cos(roll);
-				
-				return Pointf((dx + sz.cx/2.0) / sz.cx, (dy + sz.cy/2.0) / sz.cy);
-			};
-
-			for (int i = 0; i < N; i++) {
-				const auto& p = pairs[i];
-				vec3 X(x[num_params + i*3 + 0], x[num_params + i*3 + 1], x[num_params + i*3 + 2]);
-				
-				Pointf uvL = project(X, 0, p.sz);
-				Pointf uvR = project(X, 1, p.sz);
-				
-				res[i*6 + 0] = (uvL.x - p.l.x) * p.sz.cx;
-				res[i*6 + 1] = (uvL.y - p.l.y) * p.sz.cy;
-				res[i*6 + 2] = (uvR.x - p.r.x) * p.sz.cx;
-				res[i*6 + 3] = (uvR.y - p.r.y) * p.sz.cy;
-				
-				vec3 pL = vec3(-(float)eye_dist / 2.0f, 0, 0);
-				vec3 pR = vec3((float)eye_dist / 2.0f, 0, 0);
-				double w_range = 0.02;
-				if (p.dist_l > 0) res[i*6 + 4] = ((X - pL).GetLength() - p.dist_l) * w_range; else res[i*6 + 4] = 0;
-				if (p.dist_r > 0) res[i*6 + 5] = ((X - pR).GetLength() - p.dist_r) * w_range; else res[i*6 + 5] = 0;
-			}
-			return 0;
-		};
-
-		if (NonLinearOptimization(y, N * 6, residual)) {
-			if (log) *log << "  Optimization converged in " << iter << " iterations.\n\n";
-			if (lock_distortion) {
-				a = y[0]; outward_angle = y[1];
-			} else {
-				a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
-			}
-			return 1;
-		}
-		if (log) *log << "  Optimization FAILED.\n\n";
-		return 0;
-	}
-};
 
 static bool SplitStereoImage(const Image& src, Image& left, Image& right) {
 	Size sz = src.GetSize();
@@ -347,8 +160,13 @@ static Image UndistortImage(const Image& src, const LensPoly& lens, float linear
 		return Image();
 	Size sz = src.GetSize();
 	ImageBuffer out(sz);
-	float cx = sz.cx * 0.5f;
-	float cy = sz.cy * 0.5f;
+	vec2 pp = lens.GetPrincipalPoint();
+	float cx = pp[0];
+	float cy = pp[1];
+	if (cx <= 0 || cy <= 0) {
+		cx = sz.cx * 0.5f;
+		cy = sz.cy * 0.5f;
+	}
 	for (int y = 0; y < sz.cy; y++) {
 		RGBA* dst = out[y];
 		float dy = y - cy;
@@ -721,6 +539,9 @@ StereoCalibrationTool::StereoCalibrationTool() {
 		"  enabled=0|1\n" 
 		"  eye_dist=<float>\n" 
 		"  outward_angle=<float>\n" 
+		"  right_pitch=<float>\n"
+		"  right_roll=<float>\n"
+		"  principal_point=<cx,cy>\n"
 		"  angle_poly=a,b,c,d\n");
 	calibration_preview.SetLabel("Preview: (no calibration loaded)");
 
@@ -927,27 +748,42 @@ void StereoCalibrationTool::SolveCalibration() {
 		if (lsz != rsz) math_log << "  WARNING: Left/Right size mismatch!\n";
 		math_log << "\n";
 	}
+	math_log << "Ray Mapping:\n";
+	math_log << "  dx = u - cx, dy = v - cy (v grows downward)\n";
+	math_log << "  roll = atan2(dy, dx)\n";
+	math_log << "  Right pixels are interpreted in right sub-image coordinates (0..width-1)\n\n";
 
-	CalibrationSolver solver;
+	StereoCalibrationSolver solver;
 	solver.log = &math_log;
 	solver.eye_dist = (double)calib_eye_dist;
 	
-	for(const auto& f : captured_frames) {
+	int out_of_range_right = 0;
+	for (const auto& f : captured_frames) {
 		Size sz = f.left_img.GetSize();
-		if (sz.cx <= 0 || sz.cy <= 0) continue;
-		for(const auto& m : f.matches) {
-			auto& p = solver.pairs.Add();
-			p.l = m.left;
-			p.r = m.right;
-			p.sz = sz;
+		if (sz.cx <= 0 || sz.cy <= 0)
+			continue;
+		for (const auto& m : f.matches) {
+			if (IsNull(m.left) || IsNull(m.right))
+				continue;
+			auto& p = solver.matches.Add();
+			p.left_px = vec2((float)(m.left.x * sz.cx), (float)(m.left.y * sz.cy));
+			p.right_px = vec2((float)(m.right.x * sz.cx), (float)(m.right.y * sz.cy));
+			p.image_size = sz;
 			p.dist_l = m.dist_l;
 			p.dist_r = m.dist_r;
+			if (m.right.x < 0 || m.right.x > 1 || m.right.y < 0 || m.right.y > 1)
+				out_of_range_right++;
 		}
 	}
 	
-	if (solver.pairs.GetCount() < 5) {
-		PromptOK("At least 5 match pairs across all frames are required to solve for 5 parameters.");
+	if (solver.matches.GetCount() < 5) {
+		PromptOK("At least 5 match pairs across all frames are required to solve for calibration.");
 		return;
+	}
+	
+	if (out_of_range_right > 0) {
+		math_log << "WARNING: " << out_of_range_right << " right-eye coordinates are outside [0..1].\n";
+		math_log << "         Ensure right points are in the right sub-image coordinates (not combined).\n\n";
 	}
 	
 	if (fabs(solver.eye_dist) < 1e-6) {
@@ -956,183 +792,130 @@ void StereoCalibrationTool::SolveCalibration() {
 	}
 	
 	// Always start with fresh heuristics, ignoring previous UI values (which are outputs)
-	double a = 2.0 * solver.pairs[0].sz.cx / M_PI; 
-	double b = 0, c = 0, d = 0;
-	double phi = 0;
+	Size init_sz = solver.matches[0].image_size;
+	StereoCalibrationParams params;
+	params.a = 2.0 * init_sz.cx / M_PI;
+	params.b = 0;
+	params.c = 0;
+	params.d = 0;
+	params.cx = init_sz.cx * 0.5;
+	params.cy = init_sz.cy * 0.5;
+	params.yaw = 0;
+	params.pitch = 0;
+	params.roll = 0;
 	
 	status.Set("Solving calibration (Stage 1/2)...");
-	// Stage 1: Optimize only 'a' (focal length) and 'phi' (outward angle), locking distortion
-	solver.Solve(a, b, c, d, phi, true);
+	solver.Solve(params, true);
 	
 	status.Set("Solving calibration (Stage 2/2)...");
-	// Stage 2: Optimize all parameters
-	if (solver.Solve(a, b, c, d, phi, false)) {
-		calib_poly_a <<= a;
-		calib_poly_b <<= b;
-		calib_poly_c <<= c;
-		calib_poly_d <<= d;
-		calib_outward_angle <<= phi;
-		
+	if (solver.Solve(params, false)) {
+		calib_poly_a <<= params.a;
+		calib_poly_b <<= params.b;
+		calib_poly_c <<= params.c;
+		calib_poly_d <<= params.d;
+		calib_outward_angle <<= params.yaw;
+
+		last_calibration.right_pitch = (float)params.pitch;
+		last_calibration.right_roll = (float)params.roll;
+		last_calibration.principal_point = vec2((float)params.cx, (float)params.cy);
 		SyncCalibrationFromEdits();
+		
+		StereoCalibrationDiagnostics diag;
+		solver.ComputeDiagnostics(params, diag);
 		
 		String report;
 		report << "Solver converged successfully.\n";
-		report << "Matches: " << solver.pairs.GetCount() << "\n";
+		report << "Matches: " << solver.matches.GetCount() << "\n";
 		report << "Final parameters:\n";
-		report << "  a: " << a << "\n";
-		report << "  b: " << b << "\n";
-		report << "  c: " << c << "\n";
-		report << "  d: " << d << "\n";
-		report << "  phi: " << phi << " rad (" << phi * 180 / M_PI << " deg)\n";
+		report << "  a: " << params.a << "\n";
+		report << "  b: " << params.b << "\n";
+		report << "  c: " << params.c << "\n";
+		report << "  d: " << params.d << "\n";
+		report << "  cx: " << params.cx << "\n";
+		report << "  cy: " << params.cy << "\n";
+		report << "  yaw (outward): " << params.yaw << " rad (" << params.yaw * 180 / M_PI << " deg)\n";
+		report << "  pitch: " << params.pitch << " rad (" << params.pitch * 180 / M_PI << " deg)\n";
+		report << "  roll: " << params.roll << " rad (" << params.roll * 180 / M_PI << " deg)\n";
 
-		double rms = 0;
-		int rms_count = 0;
-		if (fabs(a) > 1e-9) {
-			for (const auto& f : captured_frames) {
-				Size sz = f.left_img.GetSize();
-				if (sz.cx <= 0 || sz.cy <= 0 || f.matches.IsEmpty())
-					continue;
-				LensPoly lens;
-				lens.SetAnglePixel((float)a, (float)b, (float)c, (float)d);
-				lens.SetEyeOutwardAngle((float)phi);
-				lens.SetSize(sz);
-				float eye_dist = (float)calib_eye_dist;
-				for (const auto& m : f.matches) {
-					if (IsNull(m.left) || IsNull(m.right))
-						continue;
-					vec2 lp(m.left.x * sz.cx, m.left.y * sz.cy);
-					vec2 rp(m.right.x * sz.cx, m.right.y * sz.cy);
-					axes2 axesL = lens.Unproject(0, lp);
-					axes2 axesR = lens.Unproject(1, rp);
-					vec3 dL = GetAxesDir(axesL);
-					vec3 dR = GetAxesDir(axesR);
-					vec3 pL = vec3(-eye_dist / 2.0f, 0, 0);
-					vec3 pR = vec3(eye_dist / 2.0f, 0, 0);
-					vec3 w0 = pL - pR;
-					double aa = Dot(dL, dL);
-					double bb = Dot(dL, dR);
-					double cc = Dot(dR, dR);
-					double dd = Dot(dL, w0);
-					double ee = Dot(dR, w0);
-					double denom = aa * cc - bb * bb;
-					vec3 pt;
-					if (fabs(denom) > 1e-9) {
-						double sc = (bb * ee - cc * dd) / denom;
-						double tc = (aa * ee - bb * dd) / denom;
-						pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
-					} else {
-						pt = (pL + pR) * 0.5f + dL * 1000.0f;
-					}
-					vec3 dirL = (pt - pL).GetNormalized();
-					vec3 dirR = (pt - pR).GetNormalized();
-					vec2 projL = lens.Project(0, GetDirAxes(dirL).Splice());
-					vec2 projR = lens.Project(1, GetDirAxes(dirR).Splice());
-					Pointf uvL(projL[0] / sz.cx, projL[1] / sz.cy);
-					Pointf uvR(projR[0] / sz.cx, projR[1] / sz.cy);
+		report << "Diagnostics:\n";
+		report << Format("  Reprojection RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		report << Format("  Distance RMS (L/R):     %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		report << Format("  Points behind camera (L/R): %d / %d (%.1f%% / %.1f%%)\n",
+			diag.behind_left, diag.behind_right,
+			diag.reproj_count_l ? 100.0 * diag.behind_left / diag.reproj_count_l : 0.0,
+			diag.reproj_count_r ? 100.0 * diag.behind_right / diag.reproj_count_r : 0.0);
+		report << Format("  Baseline (fixed): %.3f mm\n", solver.eye_dist);
 
-					double dxL = (uvL.x - m.left.x) * sz.cx;
-					double dyL = (uvL.y - m.left.y) * sz.cy;
-					double errL = sqrt(dxL * dxL + dyL * dyL);
-					double dxR = (uvR.x - m.right.x) * sz.cx;
-					double dyR = (uvR.y - m.right.y) * sz.cy;
-					double errR = sqrt(dxR * dxR + dyR * dyR);
-
-					rms += errL * errL + errR * errR;
-					rms_count += 2;
-				}
+		double disp_rel_sum = 0;
+		int disp_rel_count = 0;
+		for (const auto& r : diag.residuals) {
+			double disp = fabs(r.disparity_px);
+			if (disp > 1e-3 && r.z_l > 0) {
+				double depth_disp = (params.a * solver.eye_dist) / disp;
+				double rel = (depth_disp - r.z_l) / r.z_l;
+				disp_rel_sum += rel * rel;
+				disp_rel_count++;
 			}
 		}
-		if (rms_count > 0) {
-			double rms_val = sqrt(rms / rms_count);
-			report << "Residual RMS: " << rms_val << " px (" << rms_count << " samples)\n";
+		if (disp_rel_count > 0) {
+			double disp_rel_rms = sqrt(disp_rel_sum / disp_rel_count) * 100.0;
+			report << Format("  Disparity-depth RMS: %.2f%% (%d samples)\n", disp_rel_rms, disp_rel_count);
 		}
-		
-		math_log << "\n\nPer-Match Analysis:\n";
-		math_log << "-------------------\n";
-		
-		int match_idx = 0;
-		if (fabs(a) > 1e-9) {
-			for (int i = 0; i < captured_frames.GetCount(); i++) {
-				const auto& f = captured_frames[i];
-				Size sz = f.left_img.GetSize();
-				if (sz.cx <= 0 || sz.cy <= 0 || f.matches.IsEmpty())
-					continue;
-				
-				LensPoly lens;
-				lens.SetAnglePixel((float)a, (float)b, (float)c, (float)d);
-				lens.SetEyeOutwardAngle((float)phi);
-				lens.SetSize(sz);
-				float eye_dist = (float)calib_eye_dist;
-				
-				for (const auto& m : f.matches) {
-					if (IsNull(m.left) || IsNull(m.right)) continue;
-					
-					math_log << Format("Match #%d (Frame %d - %s)\n", ++match_idx, i + 1, f.source);
-					
-					// Pixel Coordinates
-					vec2 lp(m.left.x * sz.cx, m.left.y * sz.cy);
-					vec2 rp(m.right.x * sz.cx, m.right.y * sz.cy);
-					
-					math_log << "  Pixel Coordinates (Split Image):\n";
-					math_log << Format("    Left:  (%.2f, %.2f)\n", lp[0], lp[1]);
-					math_log << Format("    Right: (%.2f, %.2f)\n", rp[0], rp[1]);
-					
-					math_log << "  Pixel Coordinates (Combined Side-by-Side):\n";
-					math_log << Format("    Left:  (%.2f, %.2f)\n", lp[0], lp[1]);
-					math_log << Format("    Right: (%.2f, %.2f)\n", rp[0] + sz.cx, rp[1]); // Assuming side-by-side
-					
-					// Triangulation
-					axes2 axesL = lens.Unproject(0, lp);
-					axes2 axesR = lens.Unproject(1, rp);
-					vec3 dL = GetAxesDir(axesL);
-					vec3 dR = GetAxesDir(axesR);
-					vec3 pL = vec3(-eye_dist / 2.0f, 0, 0);
-					vec3 pR = vec3(eye_dist / 2.0f, 0, 0);
-					vec3 w0 = pL - pR;
-					double aa = Dot(dL, dL);
-					double bb = Dot(dL, dR);
-					double cc = Dot(dR, dR);
-					double dd = Dot(dL, w0);
-					double ee = Dot(dR, w0);
-					double denom = aa * cc - bb * bb;
-					vec3 pt;
-					if (fabs(denom) > 1e-9) {
-						double sc = (bb * ee - cc * dd) / denom;
-						double tc = (aa * ee - bb * dd) / denom;
-						pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
-					} else {
-						pt = (pL + pR) * 0.5f + dL * 1000.0f;
-						math_log << "    WARNING: Rays are parallel or divergent (denom approx 0).\n";
-					}
-					
-					math_log << Format("  Triangulated 3D Point (local head space): (%.4f, %.4f, %.4f) m\n", pt[0], pt[1], pt[2]);
-					
-					// Distances
-					double calc_dist_l = (pt - pL).GetLength();
-					double calc_dist_r = (pt - pR).GetLength();
-					
-					math_log << "  Distances:\n";
-					math_log << Format("    Left Camera:  Calculated: %.4f m", calc_dist_l);
-					if (m.dist_l > 0) {
-						double err = calc_dist_l - m.dist_l;
-						double pct = (err / m.dist_l) * 100.0;
-						math_log << Format(" | Measured: %.4f m | Error: %.4f m (%.2f%%)", m.dist_l, err, pct);
-					} else {
-						math_log << " | Measured: N/A";
-					}
-					math_log << "\n";
-					
-					math_log << Format("    Right Camera: Calculated: %.4f m", calc_dist_r);
-					if (m.dist_r > 0) {
-						double err = calc_dist_r - m.dist_r;
-						double pct = (err / m.dist_r) * 100.0;
-						math_log << Format(" | Measured: %.4f m | Error: %.4f m (%.2f%%)", m.dist_r, err, pct);
-					} else {
-						math_log << " | Measured: N/A";
-					}
-					math_log << "\n\n";
-				}
+
+		double dist_pct_sum = 0;
+		int dist_pct_cnt = 0;
+		for (int i = 0; i < diag.residuals.GetCount(); i++) {
+			const auto& m = solver.matches[i];
+			const auto& r = diag.residuals[i];
+			if (m.dist_l > 0) {
+				dist_pct_sum += fabs(r.dist_l_err) / m.dist_l;
+				dist_pct_cnt++;
 			}
+			if (m.dist_r > 0) {
+				dist_pct_sum += fabs(r.dist_r_err) / m.dist_r;
+				dist_pct_cnt++;
+			}
+		}
+		double dist_pct_avg = dist_pct_cnt ? (dist_pct_sum / dist_pct_cnt) : 0;
+		if (dist_pct_cnt > 0)
+			report << Format("  Avg distance error: %.2f%% (%d samples)\n", dist_pct_avg * 100.0, dist_pct_cnt);
+
+		if (dist_pct_cnt > 0 && dist_pct_avg > 0.5 && diag.reproj_rms_l < 1.5 && diag.reproj_rms_r < 1.5) {
+			report << "WARNING: Distance errors remain >50% while reprojection is small.\n";
+			report << "         Coordinate mapping/sign conventions are likely wrong.\n";
+			math_log << "\nWARNING: Distance errors remain >50% while reprojection is small.\n";
+			math_log << "         Coordinate mapping/sign conventions are likely wrong.\n";
+		}
+
+		math_log << "\nDiagnostics Summary:\n";
+		math_log << Format("  Reprojection RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		math_log << Format("  Distance RMS (L/R):     %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		math_log << Format("  Behind camera (L/R):    %d / %d\n", diag.behind_left, diag.behind_right);
+		math_log << Format("  Baseline (fixed):       %.3f mm\n", solver.eye_dist);
+
+		Vector<int> order;
+		order.SetCount(diag.residuals.GetCount());
+		for (int i = 0; i < order.GetCount(); i++)
+			order[i] = i;
+		Sort(order, [&](int a, int b) {
+			const auto& ra = diag.residuals[a];
+			const auto& rb = diag.residuals[b];
+			double ea = max(ra.err_l_px, ra.err_r_px) + fabs(ra.dist_l_err) * solver.dist_weight + fabs(ra.dist_r_err) * solver.dist_weight;
+			double eb = max(rb.err_l_px, rb.err_r_px) + fabs(rb.dist_l_err) * solver.dist_weight + fabs(rb.dist_r_err) * solver.dist_weight;
+			return ea > eb;
+		});
+
+		math_log << "\nTop Residual Offenders:\n";
+		int topn = min(10, order.GetCount());
+		for (int i = 0; i < topn; i++) {
+			const auto& r = diag.residuals[order[i]];
+			const auto& m = solver.matches[order[i]];
+			math_log << Format("  #%d: reproj L/R=%.2f/%.2f px, dist L/R=%.2f/%.2f mm, disp=%.2f px\n",
+				order[i] + 1, r.err_l_px, r.err_r_px, r.dist_l_err, r.dist_r_err, r.disparity_px);
+			math_log << Format("      measured L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
+				m.left_px[0], m.left_px[1], m.right_px[0], m.right_px[1]);
+			math_log << Format("      reproj  L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
+				r.reproj_l[0], r.reproj_l[1], r.reproj_r[0], r.reproj_r[1]);
 		}
 		
 		report_text <<= report;
@@ -1140,7 +923,7 @@ void StereoCalibrationTool::SolveCalibration() {
 		SaveFile(GetReportPath(), report);
 		SaveLastCalibration();
 		
-		bottom_tabs.Set(1); // Set to Report tab default, or maybe 2 for Math?
+		bottom_tabs.Set(1);
 		status.Set("Calibration solved and saved.");
 	}
 	else {
@@ -1753,6 +1536,10 @@ void StereoCalibrationTool::UpdatePreview() {
 	s << "  enabled=" << (last_calibration.is_enabled ? "1" : "0") << "\n";
 	s << "  eye_dist=" << last_calibration.eye_dist << "\n";
 	s << "  outward_angle=" << last_calibration.outward_angle << "\n";
+	s << "  right_pitch=" << last_calibration.right_pitch << "\n";
+	s << "  right_roll=" << last_calibration.right_roll << "\n";
+	s << "  principal_point=" << last_calibration.principal_point[0] << ", "
+	  <<  last_calibration.principal_point[1] << "\n";
 	s << "  angle_poly=" << last_calibration.angle_to_pixel[0] << ", "
 	  << 	last_calibration.angle_to_pixel[1] << ", "
 	  << 	last_calibration.angle_to_pixel[2] << ", "
@@ -1785,15 +1572,28 @@ bool StereoCalibrationTool::PreparePreviewLens(const Size& sz) {
 	vec4 poly = last_calibration.angle_to_pixel;
 	if (!IsValidAnglePoly(poly))
 		return false;
+	vec2 pp = last_calibration.principal_point;
+	vec2 tilt = vec2(last_calibration.right_pitch, last_calibration.right_roll);
 	bool needs = (preview_lens_size != sz) || !IsSamePoly(preview_lens_poly, poly) ||
-		fabs(preview_lens_outward - last_calibration.outward_angle) > 1e-6;
+		fabs(preview_lens_outward - last_calibration.outward_angle) > 1e-6 ||
+		fabs(preview_lens_pp[0] - pp[0]) > 1e-3 ||
+		fabs(preview_lens_pp[1] - pp[1]) > 1e-3 ||
+		fabs(preview_lens_tilt[0] - tilt[0]) > 1e-6 ||
+		fabs(preview_lens_tilt[1] - tilt[1]) > 1e-6;
 	if (needs) {
 		preview_lens.SetAnglePixel(poly.data[0], poly.data[1], poly.data[2], poly.data[3]);
 		preview_lens.SetEyeOutwardAngle(last_calibration.outward_angle);
+		preview_lens.SetRightTilt(last_calibration.right_pitch, last_calibration.right_roll);
+		if (pp[0] > 0 && pp[1] > 0)
+			preview_lens.SetPrincipalPoint(pp[0], pp[1]);
+		else
+			preview_lens.ClearPrincipalPoint();
 		preview_lens.SetSize(sz);
 		preview_lens_size = sz;
 		preview_lens_poly = poly;
 		preview_lens_outward = last_calibration.outward_angle;
+		preview_lens_pp = pp;
+		preview_lens_tilt = tilt;
 	}
 	return true;
 }

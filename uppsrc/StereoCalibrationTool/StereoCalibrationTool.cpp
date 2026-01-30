@@ -909,6 +909,25 @@ void StereoCalibrationTool::RemoveMatchPair() {
 
 void StereoCalibrationTool::SolveCalibration() {
 	String math_log;
+	
+	math_log << "Stereo Calibration Math Report\n";
+	math_log << "==============================\n\n";
+	
+	math_log << "Input Data Analysis:\n";
+	math_log << "--------------------\n";
+	for(int i = 0; i < captured_frames.GetCount(); i++) {
+		const auto& f = captured_frames[i];
+		Size lsz = f.left_img.GetSize();
+		Size rsz = f.right_img.GetSize();
+		math_log << Format("Frame %d (Source: %s):\n", i + 1, f.source);
+		math_log << Format("  Left Image Resolution:  %d x %d\n", lsz.cx, lsz.cy);
+		math_log << Format("  Right Image Resolution: %d x %d\n", rsz.cx, rsz.cy);
+		math_log << Format("  Split Position (x):     %d (assuming side-by-side)\n", lsz.cx);
+		math_log << Format("  Active Matches:         %d\n", f.matches.GetCount());
+		if (lsz != rsz) math_log << "  WARNING: Left/Right size mismatch!\n";
+		math_log << "\n";
+	}
+
 	CalibrationSolver solver;
 	solver.log = &math_log;
 	solver.eye_dist = (double)calib_eye_dist;
@@ -1028,21 +1047,13 @@ void StereoCalibrationTool::SolveCalibration() {
 			report << "Residual RMS: " << rms_val << " px (" << rms_count << " samples)\n";
 		}
 		
-		math_log << "\n\n";
-		math_log << "Stereo Calibration Math Report\n";
-		math_log << "==============================\n\n";
-		math_log << "Parameters:\n";
-		math_log << Format("  Focal Length (a): %.4f px\n", a);
-		math_log << Format("  Distortion (b, c, d): %.4f, %.4f, %.4f\n", b, c, d);
-		math_log << Format("  Outward Angle (phi): %.4f rad (%.2f deg)\n", phi, phi * 180.0 / M_PI);
-		math_log << Format("  Eye Distance: %.4f m\n\n", (double)calib_eye_dist);
-		
-		math_log << "Per-Match Analysis:\n";
+		math_log << "\n\nPer-Match Analysis:\n";
 		math_log << "-------------------\n";
 		
 		int match_idx = 0;
 		if (fabs(a) > 1e-9) {
-			for (const auto& f : captured_frames) {
+			for (int i = 0; i < captured_frames.GetCount(); i++) {
+				const auto& f = captured_frames[i];
 				Size sz = f.left_img.GetSize();
 				if (sz.cx <= 0 || sz.cy <= 0 || f.matches.IsEmpty())
 					continue;
@@ -1056,7 +1067,7 @@ void StereoCalibrationTool::SolveCalibration() {
 				for (const auto& m : f.matches) {
 					if (IsNull(m.left) || IsNull(m.right)) continue;
 					
-					math_log << Format("Match #%d (Source: %s)\n", ++match_idx, f.source);
+					math_log << Format("Match #%d (Frame %d - %s)\n", ++match_idx, i + 1, f.source);
 					
 					// Pixel Coordinates
 					vec2 lp(m.left.x * sz.cx, m.left.y * sz.cy);

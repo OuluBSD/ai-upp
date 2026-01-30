@@ -1,0 +1,29 @@
+uses
+	CtrlLib,
+	Geometry,
+	ComputerVision,
+	Scene3D/Core,
+	Scene3D/IO,
+	Scene3D/Render,
+	plugin/jpg,
+	plugin/enet;
+
+file
+	AGENTS.md,
+	ModelerApp.h,
+	main.cpp,
+	Editor.h,
+	Editor.cpp,
+	GeomProjectCtrl.cpp,
+	VideoImportCtrl.h,
+	VideoImportCtrl.cpp,
+	Images.iml,
+	Trash readonly separator,
+	EditClientService.h,
+	EditClientService.cpp,
+	Remote.h,
+	Remote.cpp,
+	RemoteCtrl.cpp;
+
+mainconfig
+	"" = "GUI";

@@ -94,6 +94,7 @@ Camera::Camera()
 	skip_streak_dark = 0;
 	gap_occurred = false;
 	serial_counter = 0;
+	verbose = false;
 }
 
 Camera::~Camera()

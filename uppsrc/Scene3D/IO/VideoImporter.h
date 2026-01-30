@@ -6,7 +6,7 @@ struct GeomVideo {
 	GeomAnim* anim = 0;
 	int video_length = 0;
 	DescriptorImage l_dimg, r_dimg;
-	VirtualStereoUncamera uncam;
+	StagedVirtualStereoUncamera uncam;
 	OrbSystem orb;
 	bool is_importing = false;
 	int point_limit = 2048;

@@ -5,12 +5,13 @@ uses
 	Scene3D/IO;
 
 file
-	AGENTS.md;
-	Render.h;
-	Renderer.h;
-	Renderer.cpp;
-	SoftRendCtrl.h;
+	AGENTS.md,
+	Render.h,
+	Renderer.h,
+	Renderer.cpp,
+	SoftRendCtrl.h,
 	SoftRendCtrl.cpp;
 
 mainconfig
 	"" = "";
+

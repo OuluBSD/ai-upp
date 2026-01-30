@@ -1,5 +1,7 @@
 #include "Core.h"
 
+NAMESPACE_UPP
+
 
 GeomObjectCollection::GeomObjectCollection(GeomDirectory& d) {
 	iter.addr[0] = &d;

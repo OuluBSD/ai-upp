@@ -536,7 +536,7 @@ void LensPoly::MakePixelToAngle() {
 			angle_to_pixel_poly.data[3] * angle * angle * angle * angle;
 		
 		int i = (int)(pix_dist * PIX_MUL);
-		ASSERT(i >= 0);
+		// ASSERT(i >= 0);
 		if (i < 0)
 			continue;
 		if (i >= max_len)

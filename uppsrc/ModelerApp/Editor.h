@@ -81,6 +81,8 @@ public:
 	void LoadEmptyProject();
 	void LoadTestProject(int test_i);
 	void LoadWmrStereoPointcloud(String directory);
+	bool LoadScene3D(const String& path);
+	bool SaveScene3D(const String& path, bool pretty = true);
 	
 	GeomScene& GetActiveScene();
 	

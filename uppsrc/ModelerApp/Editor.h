@@ -54,6 +54,14 @@ struct Edit3D : TopWindow {
 	GeomStagedVideo video;
 	TimeCallback tc;
 	TimeStop ts;
+	String scene3d_path;
+	String scene3d_created;
+	String scene3d_modified;
+	String scene3d_data_dir;
+	Array<Scene3DExternalFile> scene3d_external_files;
+	Array<Scene3DMetaEntry> scene3d_meta;
+	bool scene3d_use_json = true;
+	bool repeat_playback = false;
 	
 	void CreateDefaultInit();
 	void CreateDefaultPostInit();
@@ -77,12 +85,25 @@ public:
 	void OnSceneEnd();
 	void OnDebugMetadata();
 	void Toolbar(Bar& bar);
+	void UpdateWindowTitle();
+	void SetScene3DFormat(bool use_json);
+	void ToggleRepeatPlayback();
+	void OpenScene3D();
+	void SaveScene3DInteractive();
+	void SaveScene3DAs();
+	void SaveScene3DAsJson();
+	void SaveScene3DAsBinary();
+	bool SaveScene3DWithDialog(bool use_json);
+	bool LoadScene3DWithDialog();
+	bool IsScene3DBinaryPath(const String& path) const;
+	bool IsScene3DJsonPath(const String& path) const;
+	String EnsureScene3DExtension(const String& path, bool use_json) const;
 	
 	void LoadEmptyProject();
 	void LoadTestProject(int test_i);
 	void LoadWmrStereoPointcloud(String directory);
 	bool LoadScene3D(const String& path);
-	bool SaveScene3D(const String& path, bool pretty = true);
+	bool SaveScene3D(const String& path, bool use_json, bool pretty = true);
 	
 	GeomScene& GetActiveScene();
 	

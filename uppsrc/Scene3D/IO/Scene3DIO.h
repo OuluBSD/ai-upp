@@ -1,18 +1,42 @@
 #ifndef _Scene3D_IO_Scene3DIO_h_
 #define _Scene3D_IO_Scene3DIO_h_
 
+struct Scene3DExternalFile {
+	String id;
+	String type;
+	String path;
+	String note;
+	String created_utc;
+	String modified_utc;
+	int64 size = -1;
+
+	void Visit(Vis& v);
+};
+
+struct Scene3DMetaEntry {
+	String key;
+	String value;
+
+	void Visit(Vis& v);
+};
+
 struct Scene3DDocument {
-	int version = 1;
+	int version = 2;
 	String name;
 	GeomProject project;
 	int active_scene = 0;
 	GeomCamera focus;
 	GeomCamera program;
+	String created_utc;
+	String modified_utc;
+	String data_dir;
+	Array<Scene3DExternalFile> external_files;
+	Array<Scene3DMetaEntry> meta;
 
 	void Visit(Vis& v);
 };
 
-static const int SCENE3D_VERSION = 1;
+static const int SCENE3D_VERSION = 2;
 
 void FixupScene3DOwners(GeomProject& prj);
 

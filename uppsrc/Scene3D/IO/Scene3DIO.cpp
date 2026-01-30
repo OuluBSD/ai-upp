@@ -2,6 +2,23 @@
 
 NAMESPACE_UPP
 
+void Scene3DExternalFile::Visit(Vis& v) {
+	v.Ver(1)
+	(1) VIS_(id)
+	    VIS_(type)
+	    VIS_(path)
+	    VIS_(note)
+	    VIS_(created_utc)
+	    VIS_(modified_utc)
+	    VIS_(size);
+}
+
+void Scene3DMetaEntry::Visit(Vis& v) {
+	v.Ver(1)
+	(1) VIS_(key)
+	    VIS_(value);
+}
+
 void Scene3DDocument::Visit(Vis& v) {
 	v VIS_(version)
 	  VIS_(name)
@@ -9,6 +26,13 @@ void Scene3DDocument::Visit(Vis& v) {
 	  VIS_(active_scene)
 	  VISN(focus)
 	  VISN(program);
+	if (version >= 2) {
+		v VIS_(created_utc)
+		  VIS_(modified_utc)
+		  VIS_(data_dir)
+		  VISV(external_files)
+		  VISV(meta);
+	}
 }
 
 static void FixupDirectoryOwners(GeomDirectory& dir, GeomDirectory* owner) {

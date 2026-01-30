@@ -75,7 +75,7 @@ GUI_APP_MAIN {
 	if (cmd.IsArg('d')) {
 		app.LoadTestProject(0);
 		RealizeDirectory(GetFileFolder(test_scene_path));
-		if (!app.SaveScene3D(test_scene_path))
+		if (!app.SaveScene3D(test_scene_path, true))
 			Cout() << "Failed to write " << test_scene_path << "\n";
 		return;
 	}
@@ -89,12 +89,16 @@ GUI_APP_MAIN {
 	#endif
 	if (mode == POINTCLOUD)
 		app.LoadWmrStereoPointcloud(pointcloud_dir);
-	else if (mode == PROJECT0)
+	else if (mode == PROJECT0) {
 		if (!app.LoadScene3D(test_scene_path)) {
 			app.LoadTestProject(0);
 			RealizeDirectory(GetFileFolder(test_scene_path));
-			app.SaveScene3D(test_scene_path);
+			app.SaveScene3D(test_scene_path, true);
 		}
+		app.SetScene3DFormat(true);
+		app.ToggleRepeatPlayback();
+		app.Play();
+	}
 	
 	app.Run();
 	

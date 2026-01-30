@@ -25,6 +25,7 @@ Edit3D::Edit3D() :
 	
 	Sizeable().MaximizeBox();
 	Title("Edit3D");
+	scene3d_data_dir = "data";
 	
 	SetView(VIEW_GEOMPROJECT);
 	Add(v0.hsplit.SizePos());
@@ -32,6 +33,20 @@ Edit3D::Edit3D() :
 	AddFrame(menu);
 	menu.Set([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
+			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);
+			bar.Add(t_("Open..."), THISBACK(OpenScene3D)).Key(K_CTRL|K_O);
+			bar.Add(t_("Save"), THISBACK(SaveScene3DInteractive)).Key(K_CTRL|K_S);
+			bar.Add(t_("Save As..."), THISBACK(SaveScene3DAs)).Key(K_CTRL|K_SHIFT|K_S);
+			bar.Add(t_("Save as JSON..."), THISBACK(SaveScene3DAsJson));
+			bar.Add(t_("Save as Binary..."), THISBACK(SaveScene3DAsBinary));
+			bar.Separator();
+			bar.Sub(t_("Format"), [this](Bar& bar) {
+				bar.Add(t_("JSON (default)"), THISBACK1(SetScene3DFormat, true))
+					.Check(scene3d_use_json);
+				bar.Add(t_("Binary (default)"), THISBACK1(SetScene3DFormat, false))
+					.Check(!scene3d_use_json);
+			});
+			bar.Separator();
 			bar.Add(t_("Exit"), THISBACK(Exit));
 		});
 		bar.Sub(t_("View"), [this](Bar& bar) {
@@ -45,6 +60,7 @@ Edit3D::Edit3D() :
 	RefrehToolbar();
 
 	LoadEmptyProject();
+	UpdateWindowTitle();
 	
 	tc.Set(-1000/60, THISBACK(Update));
 	
@@ -77,6 +93,8 @@ void Edit3D::Toolbar(Bar& bar) {
 		bar.Add(true, t_("Pause"), ImagesImg::Pause(), THISBACK(Pause)).Key(K_F5);
 	else
 		bar.Add(true,  t_("Play"),  ImagesImg::Play(),  THISBACK(Play)).Key(K_F5);
+	bar.Separator();
+	bar.Add(t_("Repeat"), THISBACK(ToggleRepeatPlayback)).Check(repeat_playback);
 	
 }
 
@@ -108,6 +126,10 @@ void Edit3D::Play() {
 }
 
 void Edit3D::OnSceneEnd() {
+	if (repeat_playback) {
+		anim.Reset();
+		anim.Play();
+	}
 	RefrehToolbar();
 }
 
@@ -169,8 +191,17 @@ void Edit3D::CreateDefaultPostInit() {
 }
 
 void Edit3D::LoadEmptyProject() {
+	scene3d_path.Clear();
+	scene3d_created.Clear();
+	scene3d_modified.Clear();
+	scene3d_data_dir = "data";
+	scene3d_external_files.Clear();
+	scene3d_meta.Clear();
+	scene3d_use_json = true;
+	repeat_playback = false;
 	CreateDefaultInit();
 	CreateDefaultPostInit();
+	UpdateWindowTitle();
 	
 }
 
@@ -267,24 +298,138 @@ void Edit3D::LoadWmrStereoPointcloud(String directory) {
 	SetView(VIEW_VIDEOIMPORT);
 }
 
+void Edit3D::UpdateWindowTitle() {
+	String format = scene3d_use_json ? "JSON" : "Binary";
+	String filename;
+	if (!scene3d_path.IsEmpty())
+		filename = " - " + GetFileName(scene3d_path);
+	Title(Format("ModelerApp - Scene3D v%d (%s)%s", SCENE3D_VERSION, format, filename));
+}
+
+void Edit3D::SetScene3DFormat(bool use_json) {
+	scene3d_use_json = use_json;
+	UpdateWindowTitle();
+}
+
+void Edit3D::ToggleRepeatPlayback() {
+	repeat_playback = !repeat_playback;
+	RefrehToolbar();
+}
+
+bool Edit3D::IsScene3DBinaryPath(const String& path) const {
+	String ext = ToLower(GetFileExt(path));
+	if (ext == ".scene3db")
+		return true;
+	if (ext == ".bin") {
+		String base = GetFileExt(GetFileTitle(path));
+		return ToLower(base) == ".scene3d";
+	}
+	return false;
+}
+
+bool Edit3D::IsScene3DJsonPath(const String& path) const {
+	return ToLower(GetFileExt(path)) == ".scene3d";
+}
+
+String Edit3D::EnsureScene3DExtension(const String& path, bool use_json) const {
+	String ext = ToLower(GetFileExt(path));
+	if (use_json) {
+		if (ext == ".scene3d")
+			return path;
+		return AppendFileName(GetFileFolder(path), GetFileTitle(path) + ".scene3d");
+	}
+	if (ext == ".scene3db")
+		return path;
+	if (ext == ".bin" && ToLower(GetFileExt(GetFileTitle(path))) == ".scene3d")
+		return path;
+	return AppendFileName(GetFileFolder(path), GetFileTitle(path) + ".scene3db");
+}
+
+void Edit3D::OpenScene3D() {
+	LoadScene3DWithDialog();
+}
+
+void Edit3D::SaveScene3DInteractive() {
+	if (scene3d_path.IsEmpty())
+		SaveScene3DAs();
+	else
+		SaveScene3D(scene3d_path, scene3d_use_json, true);
+}
+
+void Edit3D::SaveScene3DAs() {
+	SaveScene3DWithDialog(scene3d_use_json);
+}
+
+void Edit3D::SaveScene3DAsJson() {
+	SaveScene3DWithDialog(true);
+}
+
+void Edit3D::SaveScene3DAsBinary() {
+	SaveScene3DWithDialog(false);
+}
+
+bool Edit3D::SaveScene3DWithDialog(bool use_json) {
+	FileSel fs;
+	fs.Type(t_("Scene3D (JSON)"), "*.scene3d");
+	fs.Type(t_("Scene3D (Binary)"), "*.scene3db");
+	fs.AllFilesType();
+	if (!scene3d_path.IsEmpty())
+		fs.Set(scene3d_path);
+	if (!fs.ExecuteSaveAs())
+		return false;
+	String path = EnsureScene3DExtension(~fs, use_json);
+	return SaveScene3D(path, use_json, true);
+}
+
+bool Edit3D::LoadScene3DWithDialog() {
+	FileSel fs;
+	fs.Type(t_("Scene3D (JSON)"), "*.scene3d");
+	fs.Type(t_("Scene3D (Binary)"), "*.scene3db");
+	fs.AllFilesType();
+	if (!fs.ExecuteOpen())
+		return false;
+	return LoadScene3D(~fs);
+}
+
+static String Scene3DIsoTime(Time t) {
+	return Format("%04d-%02d-%02dT%02d:%02d:%02dZ",
+		t.year, t.month, t.day, t.hour, t.minute, t.second);
+}
+
 bool Edit3D::LoadScene3D(const String& path) {
 	Scene3DDocument doc;
-	if (!LoadScene3DJson(path, doc))
+	bool use_json = !IsScene3DBinaryPath(path);
+	if (use_json) {
+		if (!LoadScene3DJson(path, doc))
+			return false;
+	}
+	else if (!LoadScene3DBin(path, doc)) {
 		return false;
+	}
 	prj = pick(doc.project);
 	state.prj = &prj;
 	state.active_scene = doc.active_scene;
 	state.focus = doc.focus;
 	state.program = doc.program;
+	scene3d_path = path;
+	scene3d_use_json = use_json;
+	scene3d_created = doc.created_utc;
+	scene3d_modified = doc.modified_utc;
+	scene3d_data_dir = doc.data_dir;
+	scene3d_external_files = pick(doc.external_files);
+	scene3d_meta = pick(doc.meta);
+	if (scene3d_data_dir.IsEmpty())
+		scene3d_data_dir = "data";
 	state.UpdateObjects();
 	anim.Reset();
 	Data();
 	v0.TimelineData();
 	v0.tree.OpenDeep(v0.tree_scenes);
+	UpdateWindowTitle();
 	return true;
 }
 
-bool Edit3D::SaveScene3D(const String& path, bool pretty) {
+bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
 	Scene3DDocument doc;
 	doc.version = SCENE3D_VERSION;
 	doc.name = "ModelerApp";
@@ -292,7 +437,27 @@ bool Edit3D::SaveScene3D(const String& path, bool pretty) {
 	doc.active_scene = state.active_scene;
 	doc.focus = state.focus;
 	doc.program = state.program;
-	return SaveScene3DJson(path, doc, pretty);
+	if (scene3d_created.IsEmpty())
+		scene3d_created = Scene3DIsoTime(GetUtcTime());
+	scene3d_modified = Scene3DIsoTime(GetUtcTime());
+	if (scene3d_data_dir.IsEmpty())
+		scene3d_data_dir = "data";
+	doc.created_utc = scene3d_created;
+	doc.modified_utc = scene3d_modified;
+	doc.data_dir = scene3d_data_dir;
+	doc.external_files.Clear();
+	for (const Scene3DExternalFile& file : scene3d_external_files)
+		doc.external_files.Add(file);
+	doc.meta.Clear();
+	for (const Scene3DMetaEntry& entry : scene3d_meta)
+		doc.meta.Add(entry);
+	bool ok = use_json ? SaveScene3DJson(path, doc, pretty) : SaveScene3DBin(path, doc);
+	if (ok) {
+		scene3d_path = path;
+		scene3d_use_json = use_json;
+		UpdateWindowTitle();
+	}
+	return ok;
 }
 
 #if 0

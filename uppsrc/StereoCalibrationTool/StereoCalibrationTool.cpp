@@ -31,12 +31,18 @@ struct CalibrationSolver {
 	Vector<PointPair> pairs;
 	double eye_dist;
 
-	int Solve(double& a, double& b, double& c, double& d, double& outward_angle) {
+	int Solve(double& a, double& b, double& c, double& d, double& outward_angle, bool lock_distortion) {
 		int N = pairs.GetCount();
 		if (N < 5) return 0;
 
-		Eigen::VectorXd y(5 + 3 * N);
-		y[0] = a; y[1] = b; y[2] = c; y[3] = d; y[4] = outward_angle;
+		int num_params = lock_distortion ? 2 : 5;
+		Eigen::VectorXd y(num_params + 3 * N);
+		
+		if (lock_distortion) {
+			y[0] = a; y[1] = outward_angle;
+		} else {
+			y[0] = a; y[1] = b; y[2] = c; y[3] = d; y[4] = outward_angle;
+		}
 
 		auto unproject_dir = [&](Pointf pix, Size sz, double cur_a, double cur_b, double cur_c, double cur_d, double cur_phi, int eye) -> vec3 {
 			double cx = sz.cx / 2.0, cy = sz.cy / 2.0;
@@ -81,14 +87,20 @@ struct CalibrationSolver {
 			} else {
 				pt = (pL + pR) * 0.5f + dL * 1000.0f; // 1m away
 			}
-			y[5 + i*3 + 0] = pt[0];
-			y[5 + i*3 + 1] = pt[1];
-			y[5 + i*3 + 2] = pt[2];
+			y[num_params + i*3 + 0] = pt[0];
+			y[num_params + i*3 + 1] = pt[1];
+			y[num_params + i*3 + 2] = pt[2];
 		}
 
 		// 2. Optimization loop
 		auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
-			double cur_a = x[0], cur_b = x[1], cur_c = x[2], cur_d = x[3], cur_phi = x[4];
+			double cur_a, cur_b, cur_c, cur_d, cur_phi;
+			if (lock_distortion) {
+				cur_a = x[0]; cur_phi = x[1];
+				cur_b = b; cur_c = c; cur_d = d;
+			} else {
+				cur_a = x[0]; cur_b = x[1]; cur_c = x[2]; cur_d = x[3]; cur_phi = x[4];
+			}
 			res.resize(N * 6);
 			
 			auto project = [&](vec3 P, int eye, Size sz) -> Pointf {
@@ -113,7 +125,7 @@ struct CalibrationSolver {
 
 			for (int i = 0; i < N; i++) {
 				const auto& p = pairs[i];
-				vec3 X(x[5 + i*3 + 0], x[5 + i*3 + 1], x[5 + i*3 + 2]);
+				vec3 X(x[num_params + i*3 + 0], x[num_params + i*3 + 1], x[num_params + i*3 + 2]);
 				
 				Pointf uvL = project(X, 0, p.sz);
 				Pointf uvR = project(X, 1, p.sz);
@@ -133,7 +145,11 @@ struct CalibrationSolver {
 		};
 
 		if (NonLinearOptimization(y, N * 6, residual)) {
-			a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
+			if (lock_distortion) {
+				a = y[0]; outward_angle = y[1];
+			} else {
+				a = y[0]; b = y[1]; c = y[2]; d = y[3]; outward_angle = y[4];
+			}
 			return 1;
 		}
 		return 0;
@@ -888,8 +904,13 @@ void StereoCalibrationTool::SolveCalibration() {
 	// Initial guesses if they are zero
 	if (a == 0) a = 2.0 * solver.pairs[0].sz.cx / M_PI; 
 	
-	status.Set("Solving calibration...");
-	if (solver.Solve(a, b, c, d, phi)) {
+	status.Set("Solving calibration (Stage 1/2)...");
+	// Stage 1: Optimize only 'a' (focal length) and 'phi' (outward angle), locking distortion
+	solver.Solve(a, b, c, d, phi, true);
+	
+	status.Set("Solving calibration (Stage 2/2)...");
+	// Stage 2: Optimize all parameters
+	if (solver.Solve(a, b, c, d, phi, false)) {
 		calib_poly_a <<= a;
 		calib_poly_b <<= b;
 		calib_poly_c <<= c;

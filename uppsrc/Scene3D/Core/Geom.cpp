@@ -74,6 +74,15 @@ GeomObject* GeomObjectIterator::operator->() {
 	return &a->objs[p];
 }
 
+void GeomKeypoint::Visit(Vis& v) {
+	v VIS_(frame_id)
+	  VISN(position)
+	  VISN(orientation);
+}
+
+void GeomTimeline::Visit(Vis& v) {
+	v VISM(keypoints);
+}
 
 
 
@@ -151,6 +160,15 @@ String GeomObject::GetPath() const {
 	return path;
 }
 
+void GeomObject::Visit(Vis& v) {
+	int type_i = (int)type;
+	v VIS_(name)
+	  VIS_(type_i)
+	  VISN(timeline);
+	if (v.IsLoading())
+		type = (Type)type_i;
+}
+
 
 
 
@@ -171,6 +189,45 @@ GeomDirectory& GeomDirectory::GetAddDirectory(String name) {
 	dir.name = name;
 	dir.owner = this;
 	return dir;
+}
+
+void GeomDirectory::Visit(Vis& v) {
+	v VIS_(name);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			subdir.Clear();
+			const Value& va = v.json->Get()["subdir"];
+			subdir.Reserve(va.GetCount());
+			for (int i = 0; i < va.GetCount(); i++) {
+				String key;
+				LoadFromJsonValue(key, va[i]["key"]);
+				GeomDirectory& dir = subdir.Add(key);
+				JsonIO jio(va[i]["value"]);
+				Vis vis(jio);
+				dir.Visit(vis);
+			}
+		}
+		else {
+			Vector<Value> va;
+			va.SetCount(subdir.GetCount());
+			for (int i = 0; i < subdir.GetCount(); i++) {
+				ValueMap item;
+				item.Add("key", StoreAsJsonValue(subdir.GetKey(i)));
+				item.Add("value", v.VisitAsJsonValue(subdir[i]));
+				va[i] = item;
+			}
+			v.json->Set("subdir", ValueArray(pick(va)));
+		}
+	}
+	else {
+		if (v.mode == Vis::MODE_STREAM)
+			v.VisitMapSerialize(subdir);
+		else if (v.mode == Vis::MODE_HASH)
+			v.VisitMapHash(subdir);
+		else if (v.mode == Vis::MODE_VCS)
+			v.VisitMapVcs("subdir", subdir);
+	}
+	v VISV(objs);
 }
 
 GeomObject* GeomDirectory::FindObject(String name) {
@@ -201,6 +258,18 @@ GeomObject& GeomDirectory::GetAddModel(String name) {
 	o->name = name;
 	o->type = GeomObject::O_MODEL;
 	return *o;
+}
+
+void GeomScene::Visit(Vis& v) {
+	v.VisitT<GeomDirectory>("GeomDirectory", *this);
+	v VIS_(length);
+}
+
+void GeomProject::Visit(Vis& v) {
+	v VISV(scenes)
+	  VIS_(kps)
+	  VIS_(fps)
+	  VIS_(key_counter);
 }
 
 GeomObject& GeomDirectory::GetAddCamera(String name) {
@@ -399,6 +468,14 @@ void GeomAnim::Play() {
 		Reset();
 	is_playing = true;
 	state->UpdateObjects();
+}
+
+void GeomCamera::Visit(Vis& v) {
+	v VISN(position)
+	  VISN(orientation)
+	  VIS_(distance)
+	  VIS_(fov)
+	  VIS_(scale);
 }
 
 

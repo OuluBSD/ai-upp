@@ -1,0 +1,122 @@
+{
+	"version": 1,
+	"name": "ModelerApp",
+	"project": {
+		"scenes": [
+			{
+				"GeomDirectory": {
+					"name": "",
+					"subdir": [
+
+					],
+					"objs": [
+						{
+							"name": "camera",
+							"type_i": 2,
+							"timeline": {
+								"keypoints": [
+									{
+										"key": 0,
+										"value": {
+											"frame_id": 0,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											}
+										}
+									},
+									{
+										"key": 99,
+										"value": {
+											"frame_id": 93285,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											}
+										}
+									},
+									{
+										"key": -1,
+										"value": {
+											"frame_id": -1,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											}
+										}
+									},
+									{
+										"key": -1,
+										"value": {
+											"frame_id": -1,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											}
+										}
+									},
+									{
+										"key": -1,
+										"value": {
+											"frame_id": -1,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "",
+							"type_i": -1,
+							"timeline": {
+								"keypoints": [
+
+								]
+							}
+						}
+					]
+				},
+				"length": 0
+			}
+		],
+		"kps": 5,
+		"fps": 60,
+		"key_counter": 140727168597488
+	},
+	"active_scene": 0,
+	"focus": {
+		"position": {
+			"data": ""
+		},
+		"orientation": {
+			"data": ""
+		},
+		"distance": 10,
+		"fov": 120,
+		"scale": 1
+	},
+	"program": {
+		"position": {
+			"data": ""
+		},
+		"orientation": {
+			"data": ""
+		},
+		"distance": 10,
+		"fov": 120,
+		"scale": 1
+	}
+}

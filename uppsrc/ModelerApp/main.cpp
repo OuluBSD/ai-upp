@@ -17,6 +17,7 @@ GUI_APP_MAIN {
 	
 	cmd.AddArg('v', "Verbose", false);
 	cmd.AddArg('t', "Load test project", false);
+	cmd.AddArg('d', "Dump test .scene3d and exit", false);
 	cmd.AddArg('n', "Pointcloud directory", true, "directory");
 	cmd.AddArg('c', "Connect to a server", true, "address");
 	cmd.AddArg('p', "Port", true, "integer");
@@ -36,6 +37,7 @@ GUI_APP_MAIN {
 	int mode = EMPTY;
 	
 	String pointcloud_dir;
+	String test_scene_path = "share/animation/tests/01.scene3d";
 	
 	#if 0
 	if (cmd.IsArg('c')) {
@@ -69,6 +71,14 @@ GUI_APP_MAIN {
 	daemon.RunInThread();
 	
 	Edit3D app;
+
+	if (cmd.IsArg('d')) {
+		app.LoadTestProject(0);
+		RealizeDirectory(GetFileFolder(test_scene_path));
+		if (!app.SaveScene3D(test_scene_path))
+			Cout() << "Failed to write " << test_scene_path << "\n";
+		return;
+	}
 	
 	#if 0
 	if (mode == REMOTE_DEBUG)
@@ -80,7 +90,11 @@ GUI_APP_MAIN {
 	if (mode == POINTCLOUD)
 		app.LoadWmrStereoPointcloud(pointcloud_dir);
 	else if (mode == PROJECT0)
-		app.LoadTestProject(0);
+		if (!app.LoadScene3D(test_scene_path)) {
+			app.LoadTestProject(0);
+			RealizeDirectory(GetFileFolder(test_scene_path));
+			app.SaveScene3D(test_scene_path);
+		}
 	
 	app.Run();
 	

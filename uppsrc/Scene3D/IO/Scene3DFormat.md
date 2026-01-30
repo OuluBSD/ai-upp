@@ -1,6 +1,6 @@
-# Scene3D Project Format (Draft)
+# Scene3D Project Format
 
-Status: Draft v0
+Status: v1 (current)
 
 ## Goals
 - Store scene graph, object transforms, pointcloud references, and HMD pose streams.
@@ -10,91 +10,79 @@ Status: Draft v0
 ## File Extension
 - `.scene3d`
 
-## Encoding
-- UTF-8 text, line-based key/value with blocks.
-- Compatible with U++ `StoreAsJson` later if we move to JSON.
+## Encodings
+- **JSON**: human-readable for tests, review, and hand edits.
+- **Binary**: compact format for large scenes and pointclouds.
 
-## High-Level Layout
-- Header
-- Project
-- Scenes
-- Objects
-- Assets
-- Pointcloud
-- Pose Stream
+Both encodings use the same field layout and are serialized via U++ `Vis`.
 
-## Header
+## Top-Level Document
 ```
-scene3d_version=0
-created=YYYY-MM-DDTHH:MM:SSZ
+{
+  "version": 1,
+  "name": "ProjectName",
+  "project": { ... },
+  "active_scene": 0,
+  "focus": [0, 0, 0],
+  "program": "ModelerApp"
+}
 ```
 
-## Project Block
+## Project
 ```
 project {
-    name=MyScene
-    units=meters
-    fps=60
-    kps=5
+  scenes: [ Scene, ... ]
 }
 ```
 
-## Scene Block
+## Scene
 ```
-scene {
-    id=scene0
-    name=Default Scene
-    length=120
+Scene {
+  GeomDirectory: { ... }
 }
 ```
 
-## Object Block
+## Directory
 ```
-object {
-    id=obj0
-    name=HMD
-    type=camera|model|octree|pointcloud|empty
-    parent=scene0
-    pose_ref=pose0
-    model_ref=model0
-    octree_ref=pc0
+GeomDirectory {
+  name: "",
+  subdir: { "dir_name": GeomDirectory, ... },
+  objs: [ GeomObject, ... ]
 }
 ```
 
-## Pose Stream Block
+## Object
 ```
-pose_stream {
-    id=pose0
-    format=quat
-    unit=meters
-    samples=120
-    data=[
-        t, px, py, pz, qx, qy, qz, qw
-        ...
-    ]
+GeomObject {
+  name: "camera",
+  type_i: 2,          // enum index
+  timeline: GeomTimeline,
+  data: GeomObjectData
 }
 ```
 
-## Pointcloud Block
+## Timeline
 ```
-pointcloud {
-    id=pc0
-    format=xyz
-    source=octree
-    data_ref=pc0.bin
+GeomTimeline {
+  keypoints: [ GeomKeypoint, ... ]
+}
+
+GeomKeypoint {
+  key: 0,
+  value: GeomObjectData
 }
 ```
 
-## Assets Block
+## Object Data (current)
 ```
-asset {
-    id=model0
-    type=model
-    path=share/models/...
+GeomObjectData {
+  frame_id: 0,
+  position: vec3,
+  orientation: quat
 }
 ```
 
 ## Notes
-- Binary blobs (pointcloud, mesh) should be stored alongside the `.scene3d` file.
-- A future version can embed JSON or binary chunks if needed.
-- Calibration can be referenced via asset path (e.g., `calibration_ref=share/calibration/...`).
+- JSON uses the same fields as binary; binary storage is recommended for large scenes.
+- Versioning is mandatory; loaders should refuse unknown major versions.
+- Additional fields should be introduced with backward-compatible defaults.

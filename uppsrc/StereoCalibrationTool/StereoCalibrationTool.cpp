@@ -325,7 +325,7 @@ bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (!sys.Initialise())
 		return false;
 	cam.Create();
-	if (!cam->Open()) {
+	if (!cam || !cam->Open()) {
 		cam.Clear();
 		sys.Uninitialise();
 		return false;

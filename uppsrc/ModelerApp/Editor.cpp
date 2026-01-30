@@ -267,6 +267,34 @@ void Edit3D::LoadWmrStereoPointcloud(String directory) {
 	SetView(VIEW_VIDEOIMPORT);
 }
 
+bool Edit3D::LoadScene3D(const String& path) {
+	Scene3DDocument doc;
+	if (!LoadScene3DJson(path, doc))
+		return false;
+	prj = pick(doc.project);
+	state.prj = &prj;
+	state.active_scene = doc.active_scene;
+	state.focus = doc.focus;
+	state.program = doc.program;
+	state.UpdateObjects();
+	anim.Reset();
+	Data();
+	v0.TimelineData();
+	v0.tree.OpenDeep(v0.tree_scenes);
+	return true;
+}
+
+bool Edit3D::SaveScene3D(const String& path, bool pretty) {
+	Scene3DDocument doc;
+	doc.version = SCENE3D_VERSION;
+	doc.name = "ModelerApp";
+	VisitCopy(prj, doc.project);
+	doc.active_scene = state.active_scene;
+	doc.focus = state.focus;
+	doc.program = state.program;
+	return SaveScene3DJson(path, doc, pretty);
+}
+
 #if 0
 void Edit3D::LoadRemote(EditClientService* svc, bool debug) {
 	this->svc = svc;

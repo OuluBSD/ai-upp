@@ -1,0 +1,20 @@
+# Scene3D plan cookie
+# Format:
+# - date: YYYY-MM-DD
+#   task: relative/path/to/task.md
+#   status: done|skipped|blocked
+#   note: short note
+#
+# Completed tasks will be appended here.
+- date: 2026-01-29
+  task: track-hmd-visualization/phase-00-foundations/task-0001-core-geom-migration.md
+  status: done
+  note: Created Scene3D top-level + subpackages and moved core geom types from Edit3D.
+- date: 2026-01-29
+  task: track-hmd-visualization/phase-00-foundations/task-0002-render-io-migration.md
+  status: done
+  note: Migrated renderer and IO imports into Scene3D and rewired Edit3D context.
+- date: 2026-01-30
+  task: track-hmd-visualization/phase-00-foundations/task-0003-scene3d-schema.md
+  status: done
+  note: Added draft .scene3d format outline in Scene3D/IO.

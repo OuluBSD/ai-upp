@@ -325,7 +325,7 @@ bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (!sys.Initialise())
 		return false;
 	cam.Create();
-	if (!cam || !cam->Open()) {
+	if (cam.IsEmpty() || !cam->Open()) {
 		cam.Clear();
 		sys.Uninitialise();
 		return false;
@@ -1434,7 +1434,7 @@ void StereoCalibrationTool::OnSourceChanged() {
 
 void StereoCalibrationTool::StartSource() {
 	int idx = source_list.GetIndex();
-	if (idx < 0 || idx >= sources.GetCount()) return;
+	if (idx < 0 || idx >= sources.GetCount() || !sources[idx]) return;
 	String name = AsString(source_list.GetValue());
 	if (verbose) Cout() << "StartSource: Starting " << name << "\n";
 	if (sources[idx]->Start()) {
@@ -1449,7 +1449,7 @@ void StereoCalibrationTool::StartSource() {
 
 void StereoCalibrationTool::StopSource() {
 	int idx = source_list.GetIndex();
-	if (idx < 0 || idx >= sources.GetCount()) return;
+	if (idx < 0 || idx >= sources.GetCount() || !sources[idx]) return;
 	if (verbose) Cout() << "StopSource: Stopping " << AsString(source_list.GetValue()) << "\n";
 	sources[idx]->Stop();
 	String name = AsString(source_list.GetValue());

@@ -525,9 +525,7 @@ void LensPoly::MakePixelToAngle() {
 	
 	pixel_to_angle.SetCount(max_len, 0);
 	
-	for(int i = 0; i < 4; i++) {
-		ASSERT(angle_to_pixel_poly.data[i] != 0);
-	}
+	ASSERT(angle_to_pixel_poly.data[0] != 0);
 	
 	float step = 0.0001f / (float)PIX_MUL;
 	for (float angle = 0; angle <= M_PI; angle += step) {

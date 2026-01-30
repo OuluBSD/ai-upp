@@ -991,11 +991,108 @@ void StereoCalibrationTool::SolveCalibration() {
 			report << "Residual RMS: " << rms_val << " px (" << rms_count << " samples)\n";
 		}
 		
+		String math_log;
+		math_log << "Stereo Calibration Math Report\n";
+		math_log << "==============================\n\n";
+		math_log << "Parameters:\n";
+		math_log << Format("  Focal Length (a): %.4f px\n", a);
+		math_log << Format("  Distortion (b, c, d): %.4f, %.4f, %.4f\n", b, c, d);
+		math_log << Format("  Outward Angle (phi): %.4f rad (%.2f deg)\n", phi, phi * 180.0 / M_PI);
+		math_log << Format("  Eye Distance: %.4f m\n\n", (double)calib_eye_dist);
+		
+		math_log << "Per-Match Analysis:\n";
+		math_log << "-------------------\n";
+		
+		int match_idx = 0;
+		if (fabs(a) > 1e-9) {
+			for (const auto& f : captured_frames) {
+				Size sz = f.left_img.GetSize();
+				if (sz.cx <= 0 || sz.cy <= 0 || f.matches.IsEmpty())
+					continue;
+				
+				LensPoly lens;
+				lens.SetAnglePixel((float)a, (float)b, (float)c, (float)d);
+				lens.SetEyeOutwardAngle((float)phi);
+				lens.SetSize(sz);
+				float eye_dist = (float)calib_eye_dist;
+				
+				for (const auto& m : f.matches) {
+					if (IsNull(m.left) || IsNull(m.right)) continue;
+					
+					math_log << Format("Match #%d (Source: %s)\n", ++match_idx, f.source);
+					
+					// Pixel Coordinates
+					vec2 lp(m.left.x * sz.cx, m.left.y * sz.cy);
+					vec2 rp(m.right.x * sz.cx, m.right.y * sz.cy);
+					
+					math_log << "  Pixel Coordinates (Split Image):\n";
+					math_log << Format("    Left:  (%.2f, %.2f)\n", lp[0], lp[1]);
+					math_log << Format("    Right: (%.2f, %.2f)\n", rp[0], rp[1]);
+					
+					math_log << "  Pixel Coordinates (Combined Side-by-Side):\n";
+					math_log << Format("    Left:  (%.2f, %.2f)\n", lp[0], lp[1]);
+					math_log << Format("    Right: (%.2f, %.2f)\n", rp[0] + sz.cx, rp[1]); // Assuming side-by-side
+					
+					// Triangulation
+					axes2 axesL = lens.Unproject(0, lp);
+					axes2 axesR = lens.Unproject(1, rp);
+					vec3 dL = GetAxesDir(axesL);
+					vec3 dR = GetAxesDir(axesR);
+					vec3 pL = vec3(-eye_dist / 2.0f, 0, 0);
+					vec3 pR = vec3(eye_dist / 2.0f, 0, 0);
+					vec3 w0 = pL - pR;
+					double aa = Dot(dL, dL);
+					double bb = Dot(dL, dR);
+					double cc = Dot(dR, dR);
+					double dd = Dot(dL, w0);
+					double ee = Dot(dR, w0);
+					double denom = aa * cc - bb * bb;
+					vec3 pt;
+					if (fabs(denom) > 1e-9) {
+						double sc = (bb * ee - cc * dd) / denom;
+						double tc = (aa * ee - bb * dd) / denom;
+						pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
+					} else {
+						pt = (pL + pR) * 0.5f + dL * 1000.0f;
+						math_log << "    WARNING: Rays are parallel or divergent (denom approx 0).\n";
+					}
+					
+					math_log << Format("  Triangulated 3D Point (local head space): (%.4f, %.4f, %.4f) m\n", pt[0], pt[1], pt[2]);
+					
+					// Distances
+					double calc_dist_l = (pt - pL).GetLength();
+					double calc_dist_r = (pt - pR).GetLength();
+					
+					math_log << "  Distances:\n";
+					math_log << Format("    Left Camera:  Calculated: %.4f m", calc_dist_l);
+					if (m.dist_l > 0) {
+						double err = calc_dist_l - m.dist_l;
+						double pct = (err / m.dist_l) * 100.0;
+						math_log << Format(" | Measured: %.4f m | Error: %.4f m (%.2f%%)", m.dist_l, err, pct);
+					} else {
+						math_log << " | Measured: N/A";
+					}
+					math_log << "\n";
+					
+					math_log << Format("    Right Camera: Calculated: %.4f m", calc_dist_r);
+					if (m.dist_r > 0) {
+						double err = calc_dist_r - m.dist_r;
+						double pct = (err / m.dist_r) * 100.0;
+						math_log << Format(" | Measured: %.4f m | Error: %.4f m (%.2f%%)", m.dist_r, err, pct);
+					} else {
+						math_log << " | Measured: N/A";
+					}
+					math_log << "\n\n";
+				}
+			}
+		}
+		
 		report_text <<= report;
+		math_text <<= math_log;
 		SaveFile(GetReportPath(), report);
 		SaveLastCalibration();
 		
-		bottom_tabs.Set(1);
+		bottom_tabs.Set(1); // Set to Report tab default, or maybe 2 for Math?
 		status.Set("Calibration solved and saved.");
 	}
 	else {
@@ -1235,12 +1332,17 @@ void StereoCalibrationTool::BuildBottomTabs() {
 	
 	report_text.SetReadOnly();
 	report_text <<= "Solve report and .stcal preview will appear here.";
+	
+	math_text.SetReadOnly();
+	math_text.SetFont(Courier(12));
+	math_text <<= "Detailed math calculation log will appear here after solving.";
 
 	captures_split.Horz(captures_list, matches_list);
 	captures_split.SetPos(4000);
 
 	bottom_tabs.Add(captures_split.SizePos(), "Captured Frames");
 	bottom_tabs.Add(report_text.SizePos(), "Report");
+	bottom_tabs.Add(math_text.SizePos(), "Math");
 }
 
 void StereoCalibrationTool::Data() {

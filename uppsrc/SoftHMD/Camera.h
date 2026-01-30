@@ -84,6 +84,7 @@ private:
 	RunningFlagSingle process_flag;
 	bool verbose;
 	std::atomic<int> active_transfers;
+	std::atomic<bool> stopping;
 	bool gap_occurred;
 	
 	Upp::Thread usb_thread;

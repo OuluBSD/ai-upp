@@ -95,6 +95,7 @@ Camera::Camera()
 	gap_occurred = false;
 	serial_counter = 0;
 	verbose = false;
+	stopping = false;
 }
 
 Camera::~Camera()
@@ -281,8 +282,8 @@ void HMD_APIENTRYDLL Camera::Close()
 {
 	if(!opened) return;
 	
+	stopping = true;
 	process_flag.Stop();
-	usb_flag.Stop();
 	
 	for(int i = 0; i < transfers.size(); i++) {
 		if(transfers[i].libusb_xfer)
@@ -294,6 +295,8 @@ void HMD_APIENTRYDLL Camera::Close()
 		Upp::Sleep(10);
 		attempts++;
 	}
+	
+	usb_flag.Stop();
 	
 	usb_thread.Wait();
 	process_thread.Wait();
@@ -334,7 +337,7 @@ void Camera::Process()
 
 void Camera::ProcessFrames()
 {
-	while(process_flag.IsRunning()) {
+	while(process_flag.IsRunning() && !stopping) {
 		if(!ProcessRawFrames())
 			Upp::Sleep(1);
 	}

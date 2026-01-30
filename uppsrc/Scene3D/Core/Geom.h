@@ -43,6 +43,8 @@ struct GeomObject {
 	hash_t key;
 	String name;
 	Type type = O_NULL;
+	String asset_ref;
+	String pointcloud_ref;
 	
 	GeomObject() {}
 	One<Model> mdl;

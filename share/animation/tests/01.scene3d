@@ -1,5 +1,5 @@
 {
-	"version": 1,
+	"version": 2,
 	"name": "ModelerApp",
 	"project": {
 		"scenes": [
@@ -13,6 +13,8 @@
 						{
 							"name": "camera",
 							"type_i": 2,
+							"asset_ref": "",
+							"pointcloud_ref": "",
 							"timeline": {
 								"keypoints": [
 									{
@@ -81,6 +83,8 @@
 						{
 							"name": "",
 							"type_i": -1,
+							"asset_ref": "",
+							"pointcloud_ref": "",
 							"timeline": {
 								"keypoints": [
 
@@ -94,7 +98,7 @@
 		],
 		"kps": 5,
 		"fps": 60,
-		"key_counter": 140727168597488
+		"key_counter": 94814829303001
 	},
 	"active_scene": 0,
 	"focus": {
@@ -118,5 +122,14 @@
 		"distance": 10,
 		"fov": 120,
 		"scale": 1
-	}
+	},
+	"created_utc": "2026-01-<N/A 'dT' for type 1>12:40:<N/A 'dZ' for type 1>",
+	"modified_utc": "2026-01-<N/A 'dT' for type 1>12:40:<N/A 'dZ' for type 1>",
+	"data_dir": "data",
+	"external_files": [
+
+	],
+	"meta": [
+
+	]
 }

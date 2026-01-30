@@ -898,14 +898,10 @@ void StereoCalibrationTool::SolveCalibration() {
 			return;
 	}
 	
-	double a = Nvl((double)calib_poly_a, 0.0);
-	double b = Nvl((double)calib_poly_b, 0.0);
-	double c = Nvl((double)calib_poly_c, 0.0);
-	double d = Nvl((double)calib_poly_d, 0.0);
-	double phi = Nvl((double)calib_outward_angle, 0.0);
-	
-	// Initial guesses if they are zero
-	if (a == 0) a = 2.0 * solver.pairs[0].sz.cx / M_PI; 
+	// Always start with fresh heuristics, ignoring previous UI values (which are outputs)
+	double a = 2.0 * solver.pairs[0].sz.cx / M_PI; 
+	double b = 0, c = 0, d = 0;
+	double phi = 0;
 	
 	status.Set("Solving calibration (Stage 1/2)...");
 	// Stage 1: Optimize only 'a' (focal length) and 'phi' (outward angle), locking distortion
@@ -1234,11 +1230,16 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	calib_eye_lbl.SetLabel("Eye dist (mm)");
 	calib_eye_dist.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_outward_lbl.SetLabel("Outward angle");
+	calib_outward_angle.SetReadOnly();
 	calib_outward_angle.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	calib_poly_lbl.SetLabel("Angle poly");
+	calib_poly_a.SetReadOnly();
 	calib_poly_a.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_b.SetReadOnly();
 	calib_poly_b.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_c.SetReadOnly();
 	calib_poly_c.WhenAction = THISBACK(SyncCalibrationFromEdits);
+	calib_poly_d.SetReadOnly();
 	calib_poly_d.WhenAction = THISBACK(SyncCalibrationFromEdits);
 	show_epipolar.SetLabel("Show Epipolar Lines");
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);

@@ -41,6 +41,8 @@ private:
 	EditDoubleSpin yaw_r, pitch_r, roll_r;
 	Option preview_extrinsics;
 	Option preview_intrinsics;
+	Option tint_overlay;
+	Option show_crosshair;
 	Label barrel_lbl, fov_lbl;
 	EditDoubleSpin barrel_strength, fov_deg;
 	DocEdit basic_params_doc;
@@ -79,6 +81,10 @@ private:
 	vec2 preview_lens_pp = vec2(0, 0);
 	vec2 preview_lens_tilt = vec2(0, 0);
 
+	// Cached per-eye preview images (avoid big refactor; used for overlay/tint/crosshair)
+	Image last_left_preview;
+	Image last_right_preview;
+
 	void BuildLayout();
 	void BuildStageAControls();
 	void BuildCaptureLists();
@@ -92,6 +98,7 @@ private:
 	bool BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale); // DEPRECATED
 #endif
 	void ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
+	void ComposeFinalDisplayImages();
 	void OnReviewChanged();
 	void OnYawCenter();
 	void OnPitchCenter();

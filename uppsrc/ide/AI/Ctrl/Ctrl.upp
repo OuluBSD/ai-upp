@@ -1,0 +1,22 @@
+description "ide/AI/Ctrl Aggregate\377B0,0,255";
+
+uses
+	ide/AI/Ctrl/Base,
+	ide/AI/Ctrl/App,
+	ide/AI/Ctrl/Agent,
+	ide/AI/Ctrl/Text,
+	ide/AI/Ctrl/Audio,
+	ide/AI/Ctrl/Video,
+	ide/AI/Ctrl/Imaging,
+	ide/AI/Ctrl/Biography,
+	ide/AI/Ctrl/Public,
+	ide/AI/Ctrl/Platform,
+	ide/AI/Ctrl/People,
+	ide/AI/Ctrl/Leads,
+	ide/AI/Ctrl/Internal,
+	AI/Core;
+
+file
+	AGENTS.md,
+	Ctrl.h;
+

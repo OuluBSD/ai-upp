@@ -11,6 +11,7 @@
 #define IMAGEFILE <ide/Browser/Browser.iml>
 #include <Draw/iml_header.h>
 
+#error NO
 INITIALIZE(CodeBase)
 
 inline Font BrowserFont() { return StdFont(); }

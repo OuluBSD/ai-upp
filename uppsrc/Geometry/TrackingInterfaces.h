@@ -47,7 +47,27 @@ struct StereoCalibrationData {
 	float right_pitch = 0;
 	float right_roll = 0;
 	vec2 principal_point = vec2(0,0);
-	float eye_dist = 0;
+	float eye_dist = 0;  // Always in meters (m)
+
+	template <class V>
+	void Visit(V& v) {
+		v("enabled", is_enabled)
+		 ("angle_poly_a", angle_to_pixel[0])
+		 ("angle_poly_b", angle_to_pixel[1])
+		 ("angle_poly_c", angle_to_pixel[2])
+		 ("angle_poly_d", angle_to_pixel[3])
+		 ("outward_angle", outward_angle)
+		 ("right_pitch", right_pitch)
+		 ("right_roll", right_roll)
+		 ("principal_point_x", principal_point[0])
+		 ("principal_point_y", principal_point[1])
+		 ("eye_dist", eye_dist);
+	}
+
+	template <class V>
+	void Visit(V& v) const {
+		const_cast<StereoCalibrationData*>(this)->Visit(v);
+	}
 };
 
 struct StereoCalibrationResult {

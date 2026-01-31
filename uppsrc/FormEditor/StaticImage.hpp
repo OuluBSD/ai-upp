@@ -1,8 +1,6 @@
 #ifndef STATIC_IMAGE_HPP
 #define STATIC_IMAGE_HPP
 
-#include <CtrlLib/CtrlLib.h>
-using namespace Upp;
 
 class StaticImage : public Ctrl
 {

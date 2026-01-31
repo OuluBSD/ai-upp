@@ -8,6 +8,10 @@ namespace Upp {
 #define IMAGEFILE <CtrlCore/CtrlCore.iml>
 #include <Draw/iml_source.h>
 
+#define IMAGECLASS FBImg
+#define IMAGEFILE <VirtualGui/FB.iml>
+#include <Draw/iml_source.h>
+
 static bool StdDisplayErrorFn(const Value& e)
 {
 	GuiLock __;

@@ -50,6 +50,10 @@
 
 namespace Upp {
 
+#define IMAGECLASS FBImg
+#define IMAGEFILE <VirtualGui/FB.iml>
+#include <Draw/iml_header.h>
+
 INITIALIZE(CtrlCore)
 
 void EnterGuiMutex();

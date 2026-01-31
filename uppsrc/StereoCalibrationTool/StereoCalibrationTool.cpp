@@ -171,6 +171,9 @@ RGBA SampleBilinear(const Image& img, float x, float y) {
 	return out;
 }
 
+// Undistorts an image: removes barrel distortion from source, producing rectilinear output.
+// Source has barrel/pincushion distortion (from real camera), output is linear.
+// For each LINEAR output pixel, find the DISTORTED source pixel.
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 	if (src.IsEmpty() || linear_scale <= 0)
 		return Image();
@@ -188,14 +191,54 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 		float dy = y - cy;
 		for (int x = 0; x < sz.cx; x++) {
 			float dx = x - cx;
-			float r = sqrtf(dx * dx + dy * dy);
-			if (r < 1e-6f) {
+			float r_out = sqrtf(dx * dx + dy * dy);
+			if (r_out < 1e-6f) {
 				dst[x] = SampleBilinear(src, cx, cy);
 				continue;
 			}
-			float angle = r / linear_scale;
-			float rd = lens.AngleToPixel(angle);
-			float scale = rd / r;
+			// Output pixel at radius r_out (linear) corresponds to angle theta
+			float theta = r_out / linear_scale;
+			// In distorted source, that angle is at radius r_src
+			float r_src = lens.AngleToPixel(theta);
+			float scale = r_src / r_out;
+			float sx = cx + dx * scale;
+			float sy = cy + dy * scale;
+			dst[x] = SampleBilinear(src, sx, sy);
+		}
+	}
+	return out;
+}
+
+// Distorts an image: adds barrel distortion to source, producing distorted output.
+// Source is linear/rectilinear, output has barrel/pincushion distortion.
+// For each DISTORTED output pixel, find the LINEAR source pixel.
+Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
+	if (src.IsEmpty() || linear_scale <= 0)
+		return Image();
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+	vec2 pp = lens.GetPrincipalPoint();
+	float cx = pp[0];
+	float cy = pp[1];
+	if (cx <= 0 || cy <= 0) {
+		cx = sz.cx * 0.5f;
+		cy = sz.cy * 0.5f;
+	}
+	for (int y = 0; y < sz.cy; y++) {
+		RGBA* dst = out[y];
+		float dy = y - cy;
+		for (int x = 0; x < sz.cx; x++) {
+			float dx = x - cx;
+			float r_out = sqrtf(dx * dx + dy * dy);
+			if (r_out < 1e-6f) {
+				dst[x] = SampleBilinear(src, cx, cy);
+				continue;
+			}
+			// Output pixel at radius r_out (distorted) corresponds to angle theta
+			float theta = lens.PixelToAngle(r_out);
+			// In linear source, that angle is at radius r_src
+			float r_src = theta * linear_scale;
+			float scale = r_src / r_out;
 			float sx = cx + dx * scale;
 			float sy = cy + dy * scale;
 			dst[x] = SampleBilinear(src, sx, sy);
@@ -261,10 +304,14 @@ Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, 
 	return out;
 }
 
-// Applies ONLY intrinsics (lens distortion/undistortion) without rotation.
-// Currently identical to UndistortImage for simplicity.
-Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale) {
-	return UndistortImage(src, lens, linear_scale);
+// Applies ONLY intrinsics (lens undistortion or distortion) without rotation.
+// undistort=true: remove distortion (for viewing raw camera images)
+// undistort=false: add distortion (for synthetic rendering)
+Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale, bool undistort) {
+	if (undistort)
+		return UndistortImage(src, lens, linear_scale);
+	else
+		return DistortImage(src, lens, linear_scale);
 }
 
 // ------------------------------------------------------------

@@ -32,6 +32,114 @@ bool IsSamePoly(const vec4& a, const vec4& b) {
 	return true;
 }
 
+// Tint image blue (reduce R and G channels) - view-only for overlay
+Image TintBlue(const Image& src) {
+	if (src.IsEmpty())
+		return Image();
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* s = src[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			d[x].r = (byte)(s[x].r * 0.25);
+			d[x].g = (byte)(s[x].g * 0.25);
+			d[x].b = s[x].b;
+			d[x].a = s[x].a;
+		}
+	}
+	return out;
+}
+
+// Tint image red (reduce G and B channels) - view-only for overlay
+Image TintRed(const Image& src) {
+	if (src.IsEmpty())
+		return Image();
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* s = src[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			d[x].r = s[x].r;
+			d[x].g = (byte)(s[x].g * 0.25);
+			d[x].b = (byte)(s[x].b * 0.25);
+			d[x].a = s[x].a;
+		}
+	}
+	return out;
+}
+
+// Alpha blend two images: out = base*(1-alpha) + top*alpha
+Image AlphaBlend(const Image& base, const Image& top, float alpha) {
+	if (base.IsEmpty())
+		return top;
+	if (top.IsEmpty())
+		return base;
+	Size sz = base.GetSize();
+	if (top.GetSize() != sz)
+		return base; // Size mismatch, return base
+
+	alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
+	float inv_alpha = 1.0f - alpha;
+
+	ImageBuffer out(sz);
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* b = base[y];
+		const RGBA* t = top[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			d[x].r = (byte)(b[x].r * inv_alpha + t[x].r * alpha);
+			d[x].g = (byte)(b[x].g * inv_alpha + t[x].g * alpha);
+			d[x].b = (byte)(b[x].b * inv_alpha + t[x].b * alpha);
+			d[x].a = 255;
+		}
+	}
+	return out;
+}
+
+// Draw red crosshair (1px lines through center) - view-only
+Image DrawCrosshair(const Image& src) {
+	if (src.IsEmpty())
+		return Image();
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+
+	// Copy source image
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* s = src[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			d[x] = s[x];
+		}
+	}
+
+	int cx = sz.cx / 2;
+	int cy = sz.cy / 2;
+
+	RGBA red;
+	red.r = 255;
+	red.g = 0;
+	red.b = 0;
+	red.a = 255;
+
+	// Vertical line
+	for (int y = 0; y < sz.cy; y++) {
+		if (cx >= 0 && cx < sz.cx) {
+			out[y][cx] = red;
+		}
+	}
+
+	// Horizontal line
+	if (cy >= 0 && cy < sz.cy) {
+		for (int x = 0; x < sz.cx; x++) {
+			out[cy][x] = red;
+		}
+	}
+
+	return out;
+}
+
 vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3& dR) {
 	vec3 w0 = pL - pR;
 	double a = Dot(dL, dL);
@@ -88,6 +196,8 @@ void StageAWindow::RefreshFromModel() {
 	overlay_swap <<= ps.overlay_swap;
 	show_difference <<= ps.show_difference;
 	show_epipolar <<= ps.show_epipolar;
+	tint_overlay <<= ps.tint_overlay;
+	show_crosshair <<= ps.show_crosshair;
 	alpha_slider <<= ps.alpha;
 
 	captures_list.Clear();
@@ -167,6 +277,14 @@ void StageAWindow::BuildStageAControls() {
 	show_epipolar.SetLabel("Show epipolar line");
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);
 
+	tint_overlay.SetLabel("Tint overlay (L=blue, R=red)");
+	tint_overlay <<= false;
+	tint_overlay.WhenAction = THISBACK(OnReviewChanged);
+
+	show_crosshair.SetLabel("Show center crosshair");
+	show_crosshair <<= false;
+	show_crosshair.WhenAction = THISBACK(OnReviewChanged);
+
 	alpha_lbl.SetLabel("Alpha");
 	alpha_slider.MinMax(0, 100);
 	alpha_slider <<= 50;
@@ -229,6 +347,10 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(alpha_lbl.TopPos(y, 20).LeftPos(8, 40));
 	controls.Add(alpha_slider.TopPos(y, 20).LeftPos(52, 200));
 	y += 24;
+	controls.Add(tint_overlay.TopPos(y, 20).LeftPos(8, 200));
+	y += 24;
+	controls.Add(show_crosshair.TopPos(y, 20).LeftPos(8, 180));
+	y += 24;
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
 }
 
@@ -289,6 +411,8 @@ void StageAWindow::OnReviewChanged() {
 	ps.overlay_swap = (bool)overlay_swap;
 	ps.show_difference = (bool)show_difference;
 	ps.show_epipolar = (bool)show_epipolar;
+	ps.tint_overlay = (bool)tint_overlay;
+	ps.show_crosshair = (bool)show_crosshair;
 	ps.alpha = (int)~alpha_slider;
 
 	for (auto& frame : model->captured_frames)
@@ -540,8 +664,63 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 		}
 	}
 
-	left_plot.SetImage(left_out);
-	right_plot.SetImage(right_out);
+	// Store previews for overlay/tint/crosshair composition (avoid big refactor)
+	last_left_preview = left_out;
+	last_right_preview = right_out;
+
+	// Compose final display images (handles overlay, tint, crosshair)
+	ComposeFinalDisplayImages();
+}
+
+// Composes final display images from cached per-eye previews.
+// Handles overlay, tint, crosshair - all view-only operations.
+void StageAWindow::ComposeFinalDisplayImages() {
+	if (!model)
+		return;
+
+	const ProjectState& ps = model->project_state;
+	bool do_overlay = ps.overlay_eyes;
+	bool do_tint = ps.tint_overlay;
+	bool do_crosshair = ps.show_crosshair;
+	bool swap_order = ps.overlay_swap;
+	float alpha = ps.alpha / 100.0f; // Convert 0..100 to 0..1
+
+	Image left_display = last_left_preview;
+	Image right_display = last_right_preview;
+
+	if (do_overlay) {
+		// Apply tint before blending if enabled
+		Image base_img = swap_order ? last_right_preview : last_left_preview;
+		Image top_img = swap_order ? last_left_preview : last_right_preview;
+
+		if (do_tint) {
+			// Left = blue, Right = red
+			Image left_tinted = TintBlue(last_left_preview);
+			Image right_tinted = TintRed(last_right_preview);
+			base_img = swap_order ? right_tinted : left_tinted;
+			top_img = swap_order ? left_tinted : right_tinted;
+		}
+
+		// Alpha blend
+		Image composited = AlphaBlend(base_img, top_img, alpha);
+
+		// Apply crosshair to composited image
+		if (do_crosshair)
+			composited = DrawCrosshair(composited);
+
+		// Show composited in left plotter, hide right (or show same in both)
+		left_plot.SetImage(composited);
+		right_plot.SetImage(Image()); // Hide right plotter in overlay mode
+	} else {
+		// Side-by-side mode: apply crosshair to each eye independently
+		if (do_crosshair) {
+			left_display = DrawCrosshair(left_display);
+			right_display = DrawCrosshair(right_display);
+		}
+
+		left_plot.SetImage(left_display);
+		right_plot.SetImage(right_display);
+	}
 }
 
 // Auto-centers yaw using the latest match pair in the selected capture.

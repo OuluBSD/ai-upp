@@ -66,13 +66,15 @@ static inline vec3 RotateVec(const mat4& m, const vec3& v) {
 	return (m * v.Embed()).Splice();
 }
 
-static inline mat4 RightRotation(const StereoCalibrationParams& p) {
-	return AxesMat((float)p.yaw, (float)p.pitch, (float)p.roll);
+static inline mat4 EyeRotation(const StereoCalibrationParams& p, int eye) {
+	if (eye == 0)
+		return AxesMat((float)p.yaw_l, (float)p.pitch_l, (float)p.roll_l);
+	else
+		return AxesMat((float)p.yaw, (float)p.pitch, (float)p.roll);
 }
 
-static inline mat4 RightRotationInv(const StereoCalibrationParams& p) {
-	mat4 rot = RightRotation(p);
-	return rot.GetTransposed();
+static inline mat4 EyeRotationInv(const StereoCalibrationParams& p, int eye) {
+	return EyeRotation(p, eye).GetTransposed();
 }
 
 static inline vec3 DirectionFromThetaRoll(double theta, double roll) {
@@ -172,18 +174,15 @@ static bool UnprojectDir(const StereoCalibrationParams& p, const vec2& pix, int 
 	double theta = PixelToAngle(p, r);
 	double roll = atan2(dy, dx);
 	vec3 dir_cam = DirectionFromThetaRoll(theta, roll);
-	if (eye == 1)
-		dir_head = RotateVec(RightRotation(p), dir_cam);
-	else
-		dir_head = dir_cam;
+	dir_head = RotateVec(EyeRotation(p, eye), dir_cam);
 	return true;
 }
 
 static bool ProjectPoint(const StereoCalibrationParams& p, const vec3& point, int eye, double eye_dist, vec2& out_pix, double& zf_out) {
 	vec3 cam_center = eye == 0 ? vec3(-(float)eye_dist / 2.0f, 0, 0) : vec3((float)eye_dist / 2.0f, 0, 0);
 	vec3 v = point - cam_center;
-	if (eye == 1)
-		v = RotateVec(RightRotationInv(p), v);
+	v = RotateVec(EyeRotationInv(p, eye), v);
+	
 	if (v.GetLength() < 1e-9) {
 		zf_out = 0;
 		out_pix = vec2((float)p.cx, (float)p.cy);
@@ -320,6 +319,9 @@ static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
 		*solver.log << "  Step: Genetic algorithm bootstrap (extrinsics initialization)...\n";
 	}
 
+	double baseline_cost = ComputeCalibrationCost(solver, params, solver.eye_dist,
+	                                              solver.dist_weight, solver.huber_px, solver.huber_m);
+
 	if (solver.trace.enabled && solver.trace.verbosity >= 1) {
 		solver.trace.Add("========================================\n");
 		solver.trace.Add("Genetic Algorithm Bootstrap\n");
@@ -327,7 +329,12 @@ static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
 		solver.trace.Addf("Configuration:\n");
 		solver.trace.Addf("  Population: %d\n", population);
 		solver.trace.Addf("  Generations: %d\n", generations);
-		solver.trace.Addf("  Top candidates for LM: %d\n\n", top_candidates);
+		solver.trace.Addf("  Top candidates for LM: %d\n", top_candidates);
+		solver.trace.Addf("  Baseline cost: %.6f\n", baseline_cost);
+		solver.trace.Addf("  Bounds (deg): yaw [%.1f, %.1f], pitch [%.1f, %.1f], roll [%.1f, %.1f]\n\n", 
+			solver.ga_bounds.yaw_min, solver.ga_bounds.yaw_max,
+			solver.ga_bounds.pitch_min, solver.ga_bounds.pitch_max,
+			solver.ga_bounds.roll_min, solver.ga_bounds.roll_max);
 	}
 
 	// Dimension: 3 extrinsic parameters (yaw, pitch, roll)
@@ -336,20 +343,55 @@ static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
 	GeneticOptimizer ga;
 	ga.SetMaxGenerations(generations);
 	ga.SetRandomTypeUniform();
-	ga.MinMax(-M_PI, M_PI);  // All rotation parameters in [-pi, pi]
+	// Init with dummy bounds, we will override
+	ga.MinMax(-1.0, 1.0); 
 	ga.Init(dimension, population, StrategyBest1Exp);
 
-	// Initialize population with random perturbations around current values
+	// Apply specific bounds
+	ga.min_values[0] = solver.ga_bounds.yaw_min * M_PI / 180.0;
+	ga.max_values[0] = solver.ga_bounds.yaw_max * M_PI / 180.0;
+	ga.min_values[1] = solver.ga_bounds.pitch_min * M_PI / 180.0;
+	ga.max_values[1] = solver.ga_bounds.pitch_max * M_PI / 180.0;
+	ga.min_values[2] = solver.ga_bounds.roll_min * M_PI / 180.0;
+	ga.max_values[2] = solver.ga_bounds.roll_max * M_PI / 180.0;
+
+	// Re-initialize population uniformly within specific bounds
 	for (int i = 0; i < population; i++) {
-		ga.population[i][0] = params.yaw + (Randomf() - 0.5) * M_PI / 2.0;    // ±45 degrees
-		ga.population[i][1] = params.pitch + (Randomf() - 0.5) * M_PI / 4.0;  // ±22.5 degrees
-		ga.population[i][2] = params.roll + (Randomf() - 0.5) * M_PI / 4.0;   // ±22.5 degrees
+		for (int j = 0; j < dimension; j++) {
+			ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+		}
+		// Also evaluate initial population? 
+		// GeneticOptimizer evaluates lazily or in loop?
+		// Typically Init sets energy to max. We should evaluate them if we want sorting later?
+		// But the loop handles evolution. We can just let the first generation evolve.
+		// However, to ensure we have valid energies for all, we might need to evaluate them or just accept that 
+		// the 'best' tracking handles it.
+		// Actually, standard DE evaluates initial population. GeneticOptimizer::Init sets pop_energy to DBL_MAX.
+		// We should evaluate initial population manually or just rely on loop replacement.
+		// Let's evaluate initial population.
+		StereoCalibrationParams p = params;
+		p.yaw = ga.population[i][0];
+		p.pitch = ga.population[i][1];
+		p.roll = ga.population[i][2];
+		double cost = ComputeCalibrationCost(solver, p, solver.eye_dist, solver.dist_weight, solver.huber_px, solver.huber_m);
+		// Guard against non-finite
+		if (!std::isfinite(cost)) cost = 1e9;
+		ga.pop_energy[i] = -cost; // GA maximizes energy
+		if (-cost > ga.best_energy) {
+			ga.best_energy = -cost;
+			ga.best_solution <<= ga.population[i];
+		}
 	}
 
 	// Run GA
 	int iter = 0;
 	while (!ga.IsEnd()) {
-		const Vector<double>& trial = ga.GetTrialSolution();
+		Vector<double> trial = clone(ga.GetTrialSolution());
+
+		// Clamp trial to bounds
+		for(int j=0; j<dimension; j++) {
+			trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
+		}
 
 		// Create trial parameters
 		StereoCalibrationParams trial_params = params;
@@ -361,37 +403,328 @@ static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
 		ga.Start();
 		double cost = ComputeCalibrationCost(solver, trial_params, solver.eye_dist,
 		                                      solver.dist_weight, solver.huber_px, solver.huber_m);
+		
+		// Penalize invalid/extreme results
+		if (!std::isfinite(cost)) cost = 1e9;
+		
 		double energy = -cost;  // GA maximizes energy, we minimize cost
 		ga.Stop(energy);
 
 		if (solver.trace.enabled && solver.trace.verbosity >= 2 && iter % population == 0) {
 			int gen = iter / population;
-			solver.trace.Addf("Generation %d/%d: best energy=%.6f (cost=%.6f)\n",
-			                   gen + 1, generations, ga.Energy(), -ga.Energy());
+			solver.trace.Addf("Generation %d/%d: best cost=%.6f\n",
+			                   gen + 1, generations, -ga.Energy());
 		}
 
 		iter++;
 	}
 
-	// Extract best solution
-	const Vector<double>& best = ga.GetBestSolution();
-	params.yaw = best[0];
-	params.pitch = best[1];
-	params.roll = best[2];
+	// Filter and select candidates
+	// We want to check if the best GA result is actually decent compared to baseline.
+	// Also we can look at the top N from the population.
+	
+	struct Candidate {
+		double cost;
+		Vector<double> solution;
+	};
+	Array<Candidate> candidates;
+	
+	// Add best solution found
+	Candidate& best = candidates.Add();
+	best.cost = -ga.best_energy;
+	best.solution <<= ga.best_solution;
+	
+	// Add population
+	for(int i=0; i<population; i++) {
+		Candidate& c = candidates.Add();
+		c.cost = -ga.pop_energy[i];
+		c.solution <<= ga.population[i];
+	}
+	
+	// Sort by cost
+	Sort(candidates, [](const Candidate& a, const Candidate& b) { return a.cost < b.cost; });
+	
+	// Check if we should use GA result
+	double best_ga_cost = candidates[0].cost;
+	bool use_ga = false;
+	
+	// Heuristic:
+	// If baseline is invalid (huge cost), take GA.
+	// If baseline is valid, only take GA if it's not significantly worse (e.g. < 1.2x baseline).
+	// Actually, GA is supposed to IMPROVE. So if GA < baseline, take it.
+	// If GA > baseline * 1.2, reject.
+	// If GA is slightly worse, maybe we are just in a local basin, but usually we prefer baseline if GA failed to improve.
+	
+	if (baseline_cost > 1e6) {
+		use_ga = true; // Baseline is broken, trust GA
+	} else {
+		if (best_ga_cost < baseline_cost) {
+			use_ga = true; // GA improved
+		} else if (best_ga_cost < baseline_cost * 1.2) {
+			use_ga = true; // GA is comparable, maybe good seed?
+		}
+	}
+	
+	if (use_ga) {
+		const Vector<double>& sol = candidates[0].solution;
+		params.yaw = sol[0];
+		params.pitch = sol[1];
+		params.roll = sol[2];
+		
+		if (solver.log) {
+			*solver.log << Format("  GA accepted. Cost: %.6f (Baseline: %.6f)\n", best_ga_cost, baseline_cost);
+			*solver.log << "  Best extrinsics: yaw=" << Format("%.4f", params.yaw)
+			            << ", pitch=" << Format("%.4f", params.pitch)
+			            << ", roll=" << Format("%.4f", params.roll) << "\n";
+		}
+		if (solver.trace.enabled) {
+			solver.trace.Addf("GA accepted. Cost: %.6f (Baseline: %.6f)\n", best_ga_cost, baseline_cost);
+		}
+	} else {
+		if (solver.log) {
+			*solver.log << Format("  GA rejected. Best Cost: %.6f vs Baseline: %.6f\n", best_ga_cost, baseline_cost);
+		}
+		if (solver.trace.enabled) {
+			solver.trace.Addf("GA rejected. Best Cost: %.6f vs Baseline: %.6f\n", best_ga_cost, baseline_cost);
+		}
+		// Params remain as baseline
+	}
+}
 
-	// Log completion to GUI report
-	if (solver.log) {
-		*solver.log << "  GA bootstrap completed. Best extrinsics: yaw=" << Format("%.4f", params.yaw)
-		            << ", pitch=" << Format("%.4f", params.pitch)
-		            << ", roll=" << Format("%.4f", params.roll) << "\n";
+bool StereoCalibrationSolver::SolveIntrinsicsOnly(StereoCalibrationParams& params) {
+	last_failure_reason.Clear();
+	int N = matches.GetCount();
+	if (N < 5) return false;
+
+	Eigen::VectorXd y(6 + 3 * N);
+	y[0] = params.a;
+	y[1] = params.b;
+	y[2] = params.c;
+	y[3] = params.d;
+	y[4] = params.cx;
+	y[5] = params.cy;
+	
+	StereoCalibrationParams base_params = params;
+	vec3 pL(-(float)eye_dist / 2.0f, 0, 0);
+	vec3 pR((float)eye_dist / 2.0f, 0, 0);
+	
+	for(int i = 0; i < N; i++) {
+		vec3 dL, dR;
+		UnprojectDir(base_params, matches[i].left_px, 0, dL);
+		UnprojectDir(base_params, matches[i].right_px, 1, dR);
+		vec3 pt = TriangulatePoint(pL, dL, pR, dR);
+		y[6 + i * 3 + 0] = pt[0];
+		y[6 + i * 3 + 1] = pt[1];
+		y[6 + i * 3 + 2] = pt[2];
 	}
 
-	if (solver.trace.enabled && solver.trace.verbosity >= 1) {
-		solver.trace.Addf("\nGA Bootstrap complete:\n");
-		solver.trace.Addf("  Final best energy: %.6f (cost: %.6f)\n", ga.Energy(), -ga.Energy());
-		solver.trace.Addf("  Best extrinsics: yaw=%.6f, pitch=%.6f, roll=%.6f\n\n",
-		                   params.yaw, params.pitch, params.roll);
+	int iter = 0;
+	auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
+		iter++;
+		StereoCalibrationParams cur = base_params;
+		cur.a = x[0];
+		cur.b = x[1];
+		cur.c = x[2];
+		cur.d = x[3];
+		cur.cx = x[4];
+		cur.cy = x[5];
+
+		res.resize(N * 6);
+		for (int i = 0; i < N; i++) {
+			const auto& m = matches[i];
+			vec3 X((float)x[6 + i * 3 + 0], (float)x[6 + i * 3 + 1], (float)x[6 + i * 3 + 2]);
+			vec2 projL, projR;
+			double zL = 0, zR = 0;
+			ProjectPoint(cur, X, 0, eye_dist, projL, zL);
+			ProjectPoint(cur, X, 1, eye_dist, projR, zR);
+
+			res[i * 6 + 0] = projL[0] - m.left_px[0];
+			res[i * 6 + 1] = projL[1] - m.left_px[1];
+			res[i * 6 + 2] = projR[0] - m.right_px[0];
+			res[i * 6 + 3] = projR[1] - m.right_px[1];
+			res[i * 6 + 4] = (m.dist_l > 0) ? ((X - pL).GetLength() - m.dist_l) * dist_weight : 0;
+			res[i * 6 + 5] = (m.dist_r > 0) ? ((X - pR).GetLength() - m.dist_r) * dist_weight : 0;
+		}
+		return 0;
+	};
+
+	bool opt_success = NonLinearOptimization(y, N * 6, residual, 1e-10, 1e-10, 1000);
+	if (opt_success) {
+		params.a = y[0];
+		params.b = y[1];
+		params.c = y[2];
+		params.d = y[3];
+		params.cx = y[4];
+		params.cy = y[5];
+		
+		last_points.SetCount(N);
+		for (int i = 0; i < N; i++) {
+			last_points[i][0] = (float)y[6 + i * 3 + 0];
+			last_points[i][1] = (float)y[6 + i * 3 + 1];
+			last_points[i][2] = (float)y[6 + i * 3 + 2];
+		}
 	}
+	return opt_success;
+}
+
+bool StereoCalibrationSolver::SolveExtrinsicsOnlyMicroRefine(StereoCalibrationParams& params, 
+                                                             const vec3& bounds_deg, 
+                                                             double lambda, 
+                                                             bool per_eye_mode) {
+	last_failure_reason.Clear();
+	int N = matches.GetCount();
+	if (N < 5) return false;
+
+	int num_delta = per_eye_mode ? 6 : 3;
+	// Layout: 
+	// If relative: 0=dyaw, 1=dpitch, 2=droll (for Right)
+	// If per-eye: 0..2 (Left dyaw,dpitch,droll), 3..5 (Right dyaw,dpitch,droll)
+	// + 3 * N point coords
+	Eigen::VectorXd y(num_delta + 3 * N);
+	for(int i=0; i<num_delta; i++) y[i] = 0;
+	
+	StereoCalibrationParams base_params = params;
+	vec3 pL(-(float)eye_dist / 2.0f, 0, 0);
+	vec3 pR((float)eye_dist / 2.0f, 0, 0);
+	
+	// Initialize 3D points
+	for(int i = 0; i < N; i++) {
+		vec3 dL, dR;
+		UnprojectDir(base_params, matches[i].left_px, 0, dL);
+		UnprojectDir(base_params, matches[i].right_px, 1, dR);
+		vec3 pt = TriangulatePoint(pL, dL, pR, dR);
+		y[num_delta + i * 3 + 0] = pt[0];
+		y[num_delta + i * 3 + 1] = pt[1];
+		y[num_delta + i * 3 + 2] = pt[2];
+	}
+
+	double max_dy = bounds_deg[0] * M_PI / 180.0;
+	double max_dp = bounds_deg[1] * M_PI / 180.0;
+	double max_dr = bounds_deg[2] * M_PI / 180.0;
+
+	if (trace.enabled) {
+		trace.Add("========================================\n");
+		trace.Add("Stage C Micro-Refine\n");
+		trace.Add("========================================\n\n");
+		trace.Addf("Mode: %s\n", per_eye_mode ? "Per-eye" : "Relative-only");
+		trace.Addf("Lambda: %.6f\n", lambda);
+		trace.Addf("Bounds (deg): yaw=%.2f, pitch=%.2f, roll=%.2f\n", bounds_deg[0], bounds_deg[1], bounds_deg[2]);
+		trace.Addf("Bounds (rad): yaw=%.6f, pitch=%.6f, roll=%.6f\n", max_dy, max_dp, max_dr);
+		trace.Addf("Initial Extrinsics:\n");
+		trace.Addf("  L: %.6f, %.6f, %.6f\n", base_params.yaw_l, base_params.pitch_l, base_params.roll_l);
+		trace.Addf("  R: %.6f, %.6f, %.6f\n", base_params.yaw, base_params.pitch, base_params.roll);
+	}
+
+	int iter = 0;
+	auto residual = [&](const Eigen::VectorXd& x, Eigen::VectorXd& res) {
+		iter++;
+		StereoCalibrationParams cur = base_params;
+		
+		double dy_L = 0, dp_L = 0, dr_L = 0;
+		double dy_R = 0, dp_R = 0, dr_R = 0;
+		
+		if (per_eye_mode) {
+			dy_L = Clamp(x[0], -max_dy, max_dy);
+			dp_L = Clamp(x[1], -max_dp, max_dp);
+			dr_L = Clamp(x[2], -max_dr, max_dr);
+			dy_R = Clamp(x[3], -max_dy, max_dy);
+			dp_R = Clamp(x[4], -max_dp, max_dp);
+			dr_R = Clamp(x[5], -max_dr, max_dr);
+		} else {
+			dy_R = Clamp(x[0], -max_dy, max_dy);
+			dp_R = Clamp(x[1], -max_dp, max_dp);
+			dr_R = Clamp(x[2], -max_dr, max_dr);
+		}
+		
+		cur.yaw_l += dy_L;
+		cur.pitch_l += dp_L;
+		cur.roll_l += dr_L;
+		cur.yaw += dy_R;
+		cur.pitch += dp_R;
+		cur.roll += dr_R;
+
+		res.resize(N * 6 + num_delta); // N matches * 6 residuals + regularization
+		
+		for (int i = 0; i < N; i++) {
+			const auto& m = matches[i];
+			vec3 X((float)x[num_delta + i * 3 + 0], (float)x[num_delta + i * 3 + 1], (float)x[num_delta + i * 3 + 2]);
+			vec2 projL, projR;
+			double zL = 0, zR = 0;
+			ProjectPoint(cur, X, 0, eye_dist, projL, zL);
+			ProjectPoint(cur, X, 1, eye_dist, projR, zR);
+
+			res[i * 6 + 0] = projL[0] - m.left_px[0];
+			res[i * 6 + 1] = projL[1] - m.left_px[1];
+			res[i * 6 + 2] = projR[0] - m.right_px[0];
+			res[i * 6 + 3] = projR[1] - m.right_px[1];
+			res[i * 6 + 4] = (m.dist_l > 0) ? ((X - pL).GetLength() - m.dist_l) * dist_weight : 0;
+			res[i * 6 + 5] = (m.dist_r > 0) ? ((X - pR).GetLength() - m.dist_r) * dist_weight : 0;
+		}
+		
+		// Regularization: lambda * ||delta||^2 -> residual term sqrt(lambda) * delta
+		// We want cost += lambda * delta^2. LM minimizes sum(res^2).
+		// So res = sqrt(lambda) * delta.
+		double sqrt_lambda = sqrt(max(0.0, lambda));
+		if (per_eye_mode) {
+			res[N * 6 + 0] = x[0] * sqrt_lambda;
+			res[N * 6 + 1] = x[1] * sqrt_lambda;
+			res[N * 6 + 2] = x[2] * sqrt_lambda;
+			res[N * 6 + 3] = x[3] * sqrt_lambda;
+			res[N * 6 + 4] = x[4] * sqrt_lambda;
+			res[N * 6 + 5] = x[5] * sqrt_lambda;
+		} else {
+			res[N * 6 + 0] = x[0] * sqrt_lambda;
+			res[N * 6 + 1] = x[1] * sqrt_lambda;
+			res[N * 6 + 2] = x[2] * sqrt_lambda;
+		}
+
+		return 0;
+	};
+
+	int num_residuals = N * 6 + num_delta;
+	bool opt_success = NonLinearOptimization(y, num_residuals, residual, 1e-10, 1e-10, 1000);
+	if (opt_success) {
+		double dy_L = 0, dp_L = 0, dr_L = 0;
+		double dy_R = 0, dp_R = 0, dr_R = 0;
+		
+		if (per_eye_mode) {
+			dy_L = Clamp(y[0], -max_dy, max_dy);
+			dp_L = Clamp(y[1], -max_dp, max_dp);
+			dr_L = Clamp(y[2], -max_dr, max_dr);
+			dy_R = Clamp(y[3], -max_dy, max_dy);
+			dp_R = Clamp(y[4], -max_dp, max_dp);
+			dr_R = Clamp(y[5], -max_dr, max_dr);
+		} else {
+			dy_R = Clamp(y[0], -max_dy, max_dy);
+			dp_R = Clamp(y[1], -max_dp, max_dp);
+			dr_R = Clamp(y[2], -max_dr, max_dr);
+		}
+		
+		params.yaw_l += dy_L;
+		params.pitch_l += dp_L;
+		params.roll_l += dr_L;
+		params.yaw += dy_R;
+		params.pitch += dp_R;
+		params.roll += dr_R;
+		
+		last_points.SetCount(N);
+		for (int i = 0; i < N; i++) {
+			last_points[i][0] = (float)y[num_delta + i * 3 + 0];
+			last_points[i][1] = (float)y[num_delta + i * 3 + 1];
+			last_points[i][2] = (float)y[num_delta + i * 3 + 2];
+		}
+
+		if (trace.enabled) {
+			trace.Addf("Final Extrinsics:\n");
+			trace.Addf("  L: %.6f, %.6f, %.6f (Delta: %.6f, %.6f, %.6f)\n", 
+				params.yaw_l, params.pitch_l, params.roll_l, dy_L, dp_L, dr_L);
+			trace.Addf("  R: %.6f, %.6f, %.6f (Delta: %.6f, %.6f, %.6f)\n", 
+				params.yaw, params.pitch, params.roll, dy_R, dp_R, dr_R);
+		}
+	} else {
+		if (trace.enabled) trace.Add("Stage C Optimization FAILED.\n");
+	}
+	return opt_success;
 }
 
 bool StereoCalibrationSolver::Solve(StereoCalibrationParams& params, bool lock_distortion) {

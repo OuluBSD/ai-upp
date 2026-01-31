@@ -7,10 +7,6 @@
 
 namespace Upp {
 
-#define IMAGECLASS FBImg
-#define IMAGEFILE <VirtualGui/FB.iml>
-#include <Draw/iml_header.h>
-
 class SystemDraw : public DrawProxy {
 public:
 	bool    CanSetSurface()                         { return false; }

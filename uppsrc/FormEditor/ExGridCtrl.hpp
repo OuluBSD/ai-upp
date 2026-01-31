@@ -1,8 +1,6 @@
 #ifndef EX_GRID_CTRL_HPP
 #define EX_GRID_CTRL_HPP
 
-#include <GridCtrl/GridCtrl.h>
-using namespace Upp;
 
 class ExGridCtrl : public GridCtrl
 {

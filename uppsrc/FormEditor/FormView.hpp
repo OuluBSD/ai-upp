@@ -1,16 +1,6 @@
 #ifndef FORM_VIEW_HPP
 #define FORM_VIEW_HPP
 
-#include <CtrlLib/CtrlLib.h>
-#include <GridCtrl/GridCtrl.h>
-using namespace Upp;
-
-#include <Form/FormLayout.hpp>
-
-#define IMAGECLASS FormViewImg
-#define IMAGEFILE <FormEditor/FormView.iml>
-#include <Draw/iml_header.h>
-
 class ScrollContainer;
 
 class FormView : public Ctrl, public XMLConfig

@@ -1,4 +1,1 @@
-enabled=1
-eye_dist=10
-outward_angle=0.0126685
-angle_poly=274.024,208.113,-74.1175,87.7398
+{"enabled":true,"angle_poly_a":365.2488,"angle_poly_b":0,"angle_poly_c":0,"angle_poly_d":0,"outward_angle":0.824412,"right_pitch":0.3559504,"right_roll":0.1675333,"principal_point_x":287.2444,"principal_point_y":260.0449,"eye_dist":0.118}

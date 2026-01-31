@@ -188,6 +188,22 @@ static Image UndistortImage(const Image& src, const LensPoly& lens, float linear
 	return out;
 }
 
+static vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3& dR) {
+	vec3 w0 = pL - pR;
+	double a = Dot(dL, dL);
+	double b = Dot(dL, dR);
+	double c = Dot(dR, dR);
+	double d = Dot(dL, w0);
+	double e = Dot(dR, w0);
+	double denom = a * c - b * b;
+	if (fabs(denom) > 1e-9) {
+		double sc = (b * e - c * d) / denom;
+		double tc = (a * e - b * d) / denom;
+		return (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
+	}
+	return (pL + pR) * 0.5f + dL * 1000.0f;
+}
+
 bool StereoCalibrationTool::HmdStereoSource::Start() {
 	if (running)
 		return true;
@@ -451,10 +467,45 @@ void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
 	w.DrawRect(sz, Black());
 	if (has_images) {
 		int half = max(1, sz.cx / 2);
-		if (!IsNull(left_img))
-			w.DrawImage(0, 0, half, sz.cy, left_img);
-		if (!IsNull(right_img))
-			w.DrawImage(half, 0, sz.cx - half, sz.cy, right_img);
+		
+		if (show_difference && !IsNull(left_img) && !IsNull(right_img)) {
+			// Difference view
+			Size isz = left_img.GetSize();
+			if (right_img.GetSize() != isz) {
+				// Fallback if sizes differ
+				w.DrawText(10, 30, "Image size mismatch for difference view", Arial(12), Red());
+			} else {
+				ImageBuffer ib(isz);
+				const RGBA* l = ~left_img;
+				const RGBA* r = ~right_img;
+				RGBA* t = ib;
+				int n = isz.cx * isz.cy;
+				for (int i = 0; i < n; i++) {
+					t[i].r = (byte)abs((int)l[i].r - (int)r[i].r);
+					t[i].g = (byte)abs((int)l[i].g - (int)r[i].g);
+					t[i].b = (byte)abs((int)l[i].b - (int)r[i].b);
+					t[i].a = 255;
+				}
+				w.DrawImage(0, 0, sz.cx, sz.cy, ib);
+			}
+		} else if (overlay_mode) {
+			Image base = (overlay_base_eye == 0) ? left_img : right_img;
+			Image over = (overlay_base_eye == 0) ? right_img : left_img;
+			if (!IsNull(base))
+				w.DrawImage(0, 0, sz.cx, sz.cy, base);
+			if (!IsNull(over)) {
+				ImageBuffer ib(over);
+				int a = (int)(overlay_alpha * 255);
+				for(RGBA* p = ib.Begin(), *e = ib.End(); p < e; p++)
+					p->a = (byte)((p->a * a) >> 8);
+				w.DrawImage(0, 0, sz.cx, sz.cy, Image(ib));
+			}
+		} else {
+			if (!IsNull(left_img))
+				w.DrawImage(0, 0, half, sz.cy, left_img);
+			if (!IsNull(right_img))
+				w.DrawImage(half, 0, sz.cx - half, sz.cy, right_img);
+		}
 
 		if (show_epipolar) {
 			int step = max(8, sz.cy / 24);
@@ -466,15 +517,26 @@ void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
 		// Draw matches
 		for (int i = 0; i < matches.GetCount(); i++) {
 			const MatchPair& m = matches[i];
-			if (!IsNull(m.left)) {
-				Point p(int(m.left.x * half), int(m.left.y * sz.cy));
-				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
-				w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
-			}
-			if (!IsNull(m.right)) {
-				Point p(int(half + m.right.x * (sz.cx - half)), int(m.right.y * sz.cy));
-				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
-				w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
+			if (overlay_mode || show_difference) {
+				if (!IsNull(m.left)) {
+					Point p(int(m.left.x * sz.cx), int(m.left.y * sz.cy));
+					w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
+				}
+				if (!IsNull(m.right)) {
+					Point p(int(m.right.x * sz.cx), int(m.right.y * sz.cy));
+					w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Blue());
+				}
+			} else {
+				if (!IsNull(m.left)) {
+					Point p(int(m.left.x * half), int(m.left.y * sz.cy));
+					w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
+					w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
+				}
+				if (!IsNull(m.right)) {
+					Point p(int(half + m.right.x * (sz.cx - half)), int(m.right.y * sz.cy));
+					w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Green());
+					w.DrawText(p.x + 5, p.y + 5, AsString(i), Arial(12), Green());
+				}
 			}
 		}
 
@@ -486,13 +548,18 @@ void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
 				else if (r.err_px >= 1.0)
 					c = Yellow();
 				Point p0, p1;
-				if (r.eye == 0) {
-					p0 = Point(int(r.measured.x * half), int(r.measured.y * sz.cy));
-					p1 = Point(int(r.reproj.x * half), int(r.reproj.y * sz.cy));
-				}
-				else {
-					p0 = Point(int(half + r.measured.x * (sz.cx - half)), int(r.measured.y * sz.cy));
-					p1 = Point(int(half + r.reproj.x * (sz.cx - half)), int(r.reproj.y * sz.cy));
+				if (overlay_mode || show_difference) {
+					p0 = Point(int(r.measured.x * sz.cx), int(r.measured.y * sz.cy));
+					p1 = Point(int(r.reproj.x * sz.cx), int(r.reproj.y * sz.cy));
+				} else {
+					if (r.eye == 0) {
+						p0 = Point(int(r.measured.x * half), int(r.measured.y * sz.cy));
+						p1 = Point(int(r.reproj.x * half), int(r.reproj.y * sz.cy));
+					}
+					else {
+						p0 = Point(int(half + r.measured.x * (sz.cx - half)), int(r.measured.y * sz.cy));
+						p1 = Point(int(half + r.reproj.x * (sz.cx - half)), int(r.reproj.y * sz.cy));
+					}
 				}
 				w.DrawLine(p0.x, p0.y, p1.x, p1.y, 1, c);
 				w.DrawEllipse(p1.x - 2, p1.y - 2, 4, 4, c);
@@ -501,8 +568,13 @@ void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
 		
 		// Draw pending point
 		if (!IsNull(pending_left)) {
-			Point p(int(pending_left.x * half), int(pending_left.y * sz.cy));
-			w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Yellow());
+			if (overlay_mode || show_difference) {
+				Point p(int(pending_left.x * sz.cx), int(pending_left.y * sz.cy));
+				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Yellow());
+			} else {
+				Point p(int(pending_left.x * half), int(pending_left.y * sz.cy));
+				w.DrawEllipse(p.x - 3, p.y - 3, 6, 6, Yellow());
+			}
 		}
 	}
 	String title = live ? "Live Preview" : "Captured Snapshot";
@@ -514,14 +586,20 @@ void StereoCalibrationTool::PreviewCtrl::Paint(Draw& w) {
 void StereoCalibrationTool::PreviewCtrl::LeftDown(Point p, dword flags) {
 	Size sz = GetSize();
 	if (sz.cx <= 0 || sz.cy <= 0) return;
-	int half = sz.cx / 2;
-	if (p.x < half) {
-		Pointf img_p(float(p.x) / half, float(p.y) / sz.cy);
-		WhenClick(img_p, 0);
-	}
-	else {
-		Pointf img_p(float(p.x - half) / (sz.cx - half), float(p.y) / sz.cy);
-		WhenClick(img_p, 1);
+	if (overlay_mode || show_difference) {
+		Pointf img_p(float(p.x) / sz.cx, float(p.y) / sz.cy);
+		// In overlay mode, we use the pending_left state to distinguish between left/right eye clicks
+		WhenClick(img_p, IsNull(pending_left) ? 0 : 1);
+	} else {
+		int half = sz.cx / 2;
+		if (p.x < half) {
+			Pointf img_p(float(p.x) / half, float(p.y) / sz.cy);
+			WhenClick(img_p, 0);
+		}
+		else {
+			Pointf img_p(float(p.x - half) / (sz.cx - half), float(p.y) / sz.cy);
+			WhenClick(img_p, 1);
+		}
 	}
 }
 
@@ -551,24 +629,42 @@ StereoCalibrationTool::StereoCalibrationTool() {
 		if (row < 0 || row >= captured_frames.GetCount()) return;
 		CapturedFrame& frame = captured_frames[row];
 		
+		int mode = mode_list.GetIndex();
+		
+		// Map click to raw coordinates (if viewing undistorted)
+		Pointf raw_p = MapClickToRaw(p);
+		
 		if (eye == 0) {
-			preview.SetPendingLeft(p);
-			status.Set(Format("Left point selected at %.3f, %.3f. Select matching right point.", p.x, p.y));
+			preview.SetPendingLeft(raw_p);
+			status.Set(Format("Left point selected at %.3f, %.3f. Select matching right point.", raw_p.x, raw_p.y));
 		}
 		else if (eye == 1) {
 			if (IsNull(preview.pending_left)) {
 				status.Set("Select left point first.");
 				return;
 			}
-			MatchPair& m = frame.matches.Add();
-			m.left = preview.pending_left;
-			m.right = p;
-			m.left_text = Format("%.3f, %.3f", m.left.x, m.left.y);
-			m.right_text = Format("%.3f, %.3f", m.right.x, m.right.y);
-			preview.SetPendingLeft(Null);
-			preview.SetMatches(frame.matches);
-			DataCapturedFrame();
-			status.Set("Match pair added.");
+			
+			if (mode == 0) { // Point pairs
+				MatchPair& m = frame.matches.Add();
+				m.left = preview.pending_left;
+				m.right = raw_p;
+				m.left_text = Format("%.3f, %.3f", m.left.x, m.left.y);
+				m.right_text = Format("%.3f, %.3f", m.right.x, m.right.y);
+				preview.SetPendingLeft(Null);
+				preview.SetMatches(frame.matches);
+				DataCapturedFrame();
+				status.Set("Match pair added.");
+			}
+			else if (mode == 2 || mode == 3) { // Yaw or Pitch center
+				MatchPair m;
+				m.left = preview.pending_left;
+				m.right = raw_p;
+				frame.matches.Add(m); // Temporarily add to use existing logic or just call centering
+				if (mode == 2) OnYawCenter();
+				else OnPitchCenter();
+				frame.matches.Drop(); // Remove temporary pair
+				preview.SetPendingLeft(Null);
+			}
 		}
 	};
 
@@ -677,7 +773,7 @@ void StereoCalibrationTool::Sync() {
 				Image left_img = CopyFrameImage(lf);
 				Image right_img = CopyFrameImage(rf);
 				if (!IsNull(left_img) || !IsNull(right_img)) {
-					if (undistort_view && BuildLiveUndistortCache(left_img, right_img, lf.serial))
+					if (BuildLiveUndistortCache(left_img, right_img, lf.serial))
 						preview.SetImages(live_undist_left, live_undist_right);
 					else
 						preview.SetImages(left_img, right_img);
@@ -739,270 +835,222 @@ void StereoCalibrationTool::RemoveMatchPair() {
 
 void StereoCalibrationTool::SolveCalibration() {
 	String math_log;
-	
-	math_log << "Stereo Calibration Math Report\n";
-	math_log << "==============================\n\n";
-	
-	math_log << "Input Data Analysis:\n";
-	math_log << "--------------------\n";
-	for(int i = 0; i < captured_frames.GetCount(); i++) {
-		const auto& f = captured_frames[i];
-		Size lsz = f.left_img.GetSize();
-		Size rsz = f.right_img.GetSize();
-		math_log << Format("Frame %d (Source: %s):\n", i + 1, f.source);
-		math_log << Format("  Left Image Resolution:  %d x %d\n", lsz.cx, lsz.cy);
-		math_log << Format("  Right Image Resolution: %d x %d\n", rsz.cx, rsz.cy);
-		math_log << Format("  Split Position (x):     %d (assuming side-by-side)\n", lsz.cx);
-		math_log << Format("  Active Matches:         %d\n", f.matches.GetCount());
-		if (lsz != rsz) math_log << "  WARNING: Left/Right size mismatch!\n";
-		math_log << "\n";
-	}
-	math_log << "Ray Mapping:\n";
-	math_log << "  dx = u - cx, dy = v - cy (v grows downward)\n";
-	math_log << "  roll = atan2(dy, dx)\n";
-	math_log << "  Right pixels are interpreted in right sub-image coordinates (0..width-1)\n\n";
+	math_log << "Stereo Calibration Math Report (Stage B)\n";
+	math_log << "========================================\n\n";
 
 	StereoCalibrationSolver solver;
 	solver.log = &math_log;
-
-	double eye_dist_ui_mm = (double)calib_eye_dist;  // UI shows millimeters
-	double eye_dist_m = eye_dist_ui_mm / 1000.0;     // Convert to meters for solver
-	double eye_dist_last_m = (double)last_calibration.eye_dist;  // Already in meters
-	WString eye_dist_ui_text = calib_eye_dist.GetText();
-
-	math_log << "Eye Distance Configuration:\n";
-	math_log << Format("  UI field text: '%s' mm\n", eye_dist_ui_text.ToString());
-	math_log << Format("  UI field value: %.3f mm = %.6f m\n", eye_dist_ui_mm, eye_dist_m);
-	math_log << Format("  last_calibration.eye_dist: %.6f m (%.3f mm)\n", eye_dist_last_m, eye_dist_last_m * 1000.0);
-	math_log << "  Source: UI field → solver\n";
-	math_log << "\n";
-
-	if (fabs(eye_dist_m - eye_dist_last_m) > 0.00001) {
-		math_log << "WARNING: UI field value differs from last_calibration!\n";
-		math_log << Format("  Using UI field value: %.6f m (%.3f mm)\n", eye_dist_m, eye_dist_ui_mm);
-		math_log << "\n";
-	}
-
-	solver.eye_dist = eye_dist_m;  // Solver uses meters
-
-	bool enable_trace = verbose_math_log;
-	solver.EnableTrace(enable_trace, 2, 20000);
+	solver.eye_dist = (double)calib_eye_dist / 1000.0;
+	solver.EnableTrace(verbose_math_log, 2, 20000);
 	
-	int out_of_range_right = 0;
 	for (const auto& f : captured_frames) {
 		Size sz = f.left_img.GetSize();
-		if (sz.cx <= 0 || sz.cy <= 0)
-			continue;
+		if (sz.cx <= 0) continue;
 		for (const auto& m : f.matches) {
-			if (IsNull(m.left) || IsNull(m.right))
-				continue;
+			if (IsNull(m.left) || IsNull(m.right)) continue;
 			auto& p = solver.matches.Add();
 			p.left_px = vec2((float)(m.left.x * sz.cx), (float)(m.left.y * sz.cy));
 			p.right_px = vec2((float)(m.right.x * sz.cx), (float)(m.right.y * sz.cy));
 			p.image_size = sz;
-			// Convert distances from UI (millimeters) to solver (meters)
 			p.dist_l = m.dist_l / 1000.0;
 			p.dist_r = m.dist_r / 1000.0;
-			if (m.right.x < 0 || m.right.x > 1 || m.right.y < 0 || m.right.y > 1)
-				out_of_range_right++;
 		}
 	}
 	
 	if (solver.matches.GetCount() < 5) {
-		PromptOK("At least 5 match pairs across all frames are required to solve for calibration.");
+		PromptOK("At least 5 match pairs across all frames are required.");
 		return;
 	}
 	
-	if (out_of_range_right > 0) {
-		math_log << "WARNING: " << out_of_range_right << " right-eye coordinates are outside [0..1].\n";
-		math_log << "         Ensure right points are in the right sub-image coordinates (not combined).\n\n";
-	}
-	
-	if (fabs(solver.eye_dist) < 1e-6) {
-		if(!PromptYesNo("Eye distance is close to zero. This may cause the solver to fail or produce invalid results (points at infinity). Continue?"))
-			return;
-	}
-	
-	// Always start with fresh heuristics, ignoring previous UI values (which are outputs)
-	Size init_sz = solver.matches[0].image_size;
+	// Map Stage A extrinsics to solver params
 	StereoCalibrationParams params;
-	params.a = 2.0 * init_sz.cx / M_PI;
-	params.b = 0;
-	params.c = 0;
-	params.d = 0;
+	params.yaw = (double)yaw_r - (double)yaw_l;
+	params.pitch = (double)pitch_r - (double)pitch_l;
+	params.roll = (double)roll_r - (double)roll_l;
+	
+	// Use Stage A basic intrinsics as starting point or heuristics
+	Size init_sz = solver.matches[0].image_size;
+	double fov_rad = (double)fov_deg * M_PI / 180.0;
+	params.a = (init_sz.cx * 0.5) / (fov_rad * 0.5);
+	double s = (double)barrel_strength * 0.01;
+	params.b = params.a * s;
+	params.c = params.a * s;
+	params.d = params.a * s;
 	params.cx = init_sz.cx * 0.5;
 	params.cy = init_sz.cy * 0.5;
-	params.yaw = 0;
-	params.pitch = 0;
-	params.roll = 0;
 
-	// Configure GA bootstrap if enabled
-	solver.use_ga_init = use_ga_bootstrap;
-	solver.ga_population = ga_population;
-	solver.ga_generations = ga_generations;
-	solver.ga_top_candidates = 3;  // Always use 3 top candidates for LM refinement
-
-	status.Set("Solving calibration (Stage 1/2)...");
-	bool stage1_ok = solver.Solve(params, true);
-
-	if (!stage1_ok && enable_trace) {
-		math_log << "\n========================================\n";
-		math_log << "Stage 1 failed, trace log:\n";
-		math_log << "========================================\n\n";
-		math_log << solver.GetTraceText();
-	}
-
-	status.Set("Solving calibration (Stage 2/2)...");
-	bool stage2_ok = solver.Solve(params, false);
-
-	if (stage2_ok) {
-		calib_poly_a <<= params.a;
-		calib_poly_b <<= params.b;
-		calib_poly_c <<= params.c;
-		calib_poly_d <<= params.d;
-		calib_outward_angle <<= params.yaw;
-
+	status.Set("Solving intrinsics (extrinsics locked from Stage A)...");
+	if (solver.SolveIntrinsicsOnly(params)) {
+		last_calibration.is_enabled = true;
+		last_calibration.eye_dist = (float)solver.eye_dist;
+		last_calibration.outward_angle = (float)params.yaw; // Solver's yaw is relative yaw
 		last_calibration.right_pitch = (float)params.pitch;
 		last_calibration.right_roll = (float)params.roll;
 		last_calibration.principal_point = vec2((float)params.cx, (float)params.cy);
-		SyncCalibrationFromEdits();
+		last_calibration.angle_to_pixel = vec4((float)params.a, (float)params.b, (float)params.c, (float)params.d);
+		
+		// Note: We might want to store the Stage A baseline yaw_l separately if we want to support absolute orientations.
+		// For now, solver's yaw IS the delta.
+		
+		SyncEditsFromCalibration();
+		UpdatePreview();
+		
+		StereoCalibrationDiagnostics diag;
+		solver.ComputeDiagnostics(params, diag);
+		report_text <<= "Stage B Solve Success.\n" + Format("Reproj RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		math_text <<= math_log + solver.GetTraceText();
+		bottom_tabs.Set(1);
+		status.Set("Intrinsics solved.");
+	} else {
+		PromptOK("Solver failed: " + solver.last_failure_reason);
+	}
+}
+
+void StereoCalibrationTool::RefineExtrinsics() {
+	if (!enable_stage_c) {
+		PromptOK("Enable Stage C first.");
+		return;
+	}
+	
+	String math_log;
+	math_log << "Stage C Micro-Refine\n====================\n\n";
+	
+	StereoCalibrationSolver solver;
+	solver.log = &math_log;
+	solver.eye_dist = (double)calib_eye_dist / 1000.0;
+	solver.EnableTrace(verbose_math_log, 2, 20000);
+	
+	for (const auto& f : captured_frames) {
+		Size sz = f.left_img.GetSize();
+		if (sz.cx <= 0) continue;
+		for (const auto& m : f.matches) {
+			if (IsNull(m.left) || IsNull(m.right)) continue;
+			auto& p = solver.matches.Add();
+			p.left_px = vec2((float)(m.left.x * sz.cx), (float)(m.left.y * sz.cy));
+			p.right_px = vec2((float)(m.right.x * sz.cx), (float)(m.right.y * sz.cy));
+			p.image_size = sz;
+			p.dist_l = m.dist_l / 1000.0;
+			p.dist_r = m.dist_r / 1000.0;
+		}
+	}
+	
+	if (solver.matches.GetCount() < 5) {
+		PromptOK("Need at least 5 matches.");
+		return;
+	}
+	
+	StereoCalibrationParams params;
+	// Intrinsics from solved Stage B (or current calibration)
+	params.a = last_calibration.angle_to_pixel[0];
+	params.b = last_calibration.angle_to_pixel[1];
+	params.c = last_calibration.angle_to_pixel[2];
+	params.d = last_calibration.angle_to_pixel[3];
+	params.cx = last_calibration.principal_point[0];
+	params.cy = last_calibration.principal_point[1];
+	
+	// Extrinsics from Stage A (Baseline)
+	double base_yaw_l = (double)yaw_l;
+	double base_pitch_l = (double)pitch_l;
+	double base_roll_l = (double)roll_l;
+	double base_yaw_r = (double)yaw_r;
+	double base_pitch_r = (double)pitch_r;
+	double base_roll_r = (double)roll_r;
+	
+	params.yaw_l = base_yaw_l;
+	params.pitch_l = base_pitch_l;
+	params.roll_l = base_roll_l;
+	params.yaw = base_yaw_r - base_yaw_l; // Relative for solver if relative mode
+	// But for per-eye mode, solver uses params.yaw as Right absolute (or relative? Check solver)
+	// My solver update uses:
+	// if per_eye: 
+	//   cur.yaw_l += dy_L; 
+	//   cur.yaw += dy_R; (This means params.yaw is treated as Right ABSOLUTE in the solver update logic I wrote?)
+	
+	// Let's re-read my solver update:
+	// cur.yaw += dy_R;
+	// And helper: EyeRotation(p, 1) -> AxesMat(p.yaw...);
+	// So p.yaw IS the Right Eye Rotation.
+	// In legacy/relative mode, Left is 0, so p.yaw is Relative.
+	// In per-eye mode, Left is p.yaw_l.
+	// So p.yaw MUST BE Right Eye Absolute if we use it in EyeRotation(1).
+	// So I should set params.yaw = base_yaw_r;
+	
+	params.yaw = base_yaw_r;
+	params.pitch = base_pitch_r;
+	params.roll = base_roll_r;
+	
+	vec3 bounds((double)max_dyaw, (double)max_dpitch, (double)max_droll);
+	double lambda = (double)lambda_edit;
+	bool per_eye = ((int)stage_c_mode == 1);
+	
+	status.Set("Refining extrinsics (Stage C)...");
+	if (solver.SolveExtrinsicsOnlyMicroRefine(params, bounds, lambda, per_eye)) {
+		// Update Stage C deltas for display
+		dyaw_c = (float)(params.yaw - base_yaw_r); // These are now deltas from Stage A
+		dpitch_c = (float)(params.pitch - base_pitch_r);
+		droll_c = (float)(params.roll - base_roll_r);
+		// Note: params.yaw_l is also updated if per-eye
+		
+		// Update last_calibration
+		// We need to decide what to store. The system generally expects relative R (outward).
+		// If Left is rotated, the relative transform is R * L_inv.
+		// Or we just store the new "Outward Angle" as the relative yaw?
+		// SoftHMD generally assumes headset frame is Left frame? Or symmetrical?
+		// If SoftHMD assumes L is identity, we must store the Relative transform.
+		// Let's compute relative rotation: R_rel = R_abs * L_abs^-1.
+		// Then extract yaw/pitch/roll from R_rel.
+		// Simple approx for small angles: yaw_rel = yaw_r - yaw_l.
+		
+		last_calibration.outward_angle = (float)(params.yaw - params.yaw_l);
+		last_calibration.right_pitch = (float)(params.pitch - params.pitch_l);
+		last_calibration.right_roll = (float)(params.roll - params.roll_l);
+		
+		// We also store absolute L if we want to preview it correctly in "Refined" mode?
+		// But PreparePreviewLens calculates relative if we are in Stage C mode?
+		// Let's check PreparePreviewLens logic. It adds dyaw_c to last_calibration.outward.
+		// If I update last_calibration with the NEW relative, then PreparePreviewLens should NOT add deltas again?
+		// OR: PreparePreviewLens uses Stage A + Deltas.
+		// If I update last_calibration, I am "Committing" the result.
+		// If I want "Preview" style where I can toggle, I should perhaps NOT update last_calibration immediately?
+		// But "RefineExtrinsics" implies we are updating the calibration.
+		// Let's stick to: Refine updates last_calibration (the "Solved" state).
+		// dyaw_c is just for info.
+		
+		SyncEditsFromCalibration(); // This might overwrite Stage A edits if we are not careful? 
+		// SyncEditsFromCalibration updates UI fields (yaw_l, etc) from last_calibration? 
+		// No, SyncEditsFromCalibration updates "calib_eye_dist", "calib_poly_a", etc.
+		// It does NOT update yaw_l/yaw_r controls (those are Stage A inputs).
+		// So Stage A inputs remain as "Baseline".
+		
+		// Wait, SyncEditsFromCalibration reads last_calibration.outward_angle -> calib_outward_angle.
+		
+		UpdatePreview();
 		
 		StereoCalibrationDiagnostics diag;
 		solver.ComputeDiagnostics(params, diag);
 		
 		String report;
-		report << "Solver converged successfully.\n";
-		report << "Matches: " << solver.matches.GetCount() << "\n";
-		report << "Final parameters:\n";
-		report << "  a: " << params.a << "\n";
-		report << "  b: " << params.b << "\n";
-		report << "  c: " << params.c << "\n";
-		report << "  d: " << params.d << "\n";
-		report << "  cx: " << params.cx << "\n";
-		report << "  cy: " << params.cy << "\n";
-		report << "  yaw (outward): " << params.yaw << " rad (" << params.yaw * 180 / M_PI << " deg)\n";
-		report << "  pitch: " << params.pitch << " rad (" << params.pitch * 180 / M_PI << " deg)\n";
-		report << "  roll: " << params.roll << " rad (" << params.roll * 180 / M_PI << " deg)\n";
-
-		report << "Diagnostics:\n";
-		report << Format("  Reprojection RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
-		report << Format("  Distance RMS (L/R):     %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
-		report << Format("  Points behind camera (L/R): %d / %d (%.1f%% / %.1f%%)\n",
-			diag.behind_left, diag.behind_right,
-			diag.reproj_count_l ? 100.0 * diag.behind_left / diag.reproj_count_l : 0.0,
-			diag.reproj_count_r ? 100.0 * diag.behind_right / diag.reproj_count_r : 0.0);
-		report << Format("  Baseline (fixed): %.6f m (%.3f mm)\n", solver.eye_dist, solver.eye_dist * 1000.0);
-
-		double disp_rel_sum = 0;
-		int disp_rel_count = 0;
-		for (const auto& r : diag.residuals) {
-			double disp = fabs(r.disparity_px);
-			if (disp > 1e-3 && r.z_l > 0) {
-				double depth_disp = (params.a * solver.eye_dist) / disp;
-				double rel = (depth_disp - r.z_l) / r.z_l;
-				disp_rel_sum += rel * rel;
-				disp_rel_count++;
-			}
+		report << "Stage C Refinement Success.\n";
+		report << Format("Mode: %s\n", per_eye ? "Per-eye" : "Relative-only");
+		report << Format("Bounds: %.1f, %.1f, %.1f deg\n", bounds[0], bounds[1], bounds[2]);
+		report << Format("Lambda: %.4f\n", lambda);
+		report << "Final Deltas (deg):\n";
+		if (per_eye) {
+			report << Format("  Left:  %.3f, %.3f, %.3f\n", 
+				(params.yaw_l - base_yaw_l)*180/M_PI, (params.pitch_l - base_pitch_l)*180/M_PI, (params.roll_l - base_roll_l)*180/M_PI);
 		}
-		if (disp_rel_count > 0) {
-			double disp_rel_rms = sqrt(disp_rel_sum / disp_rel_count) * 100.0;
-			report << Format("  Disparity-depth RMS: %.2f%% (%d samples)\n", disp_rel_rms, disp_rel_count);
-		}
-
-		double dist_pct_sum = 0;
-		int dist_pct_cnt = 0;
-		for (int i = 0; i < diag.residuals.GetCount(); i++) {
-			const auto& m = solver.matches[i];
-			const auto& r = diag.residuals[i];
-			if (m.dist_l > 0) {
-				dist_pct_sum += fabs(r.dist_l_err) / m.dist_l;
-				dist_pct_cnt++;
-			}
-			if (m.dist_r > 0) {
-				dist_pct_sum += fabs(r.dist_r_err) / m.dist_r;
-				dist_pct_cnt++;
-			}
-		}
-		double dist_pct_avg = dist_pct_cnt ? (dist_pct_sum / dist_pct_cnt) : 0;
-		if (dist_pct_cnt > 0)
-			report << Format("  Avg distance error: %.2f%% (%d samples)\n", dist_pct_avg * 100.0, dist_pct_cnt);
-
-		if (dist_pct_cnt > 0 && dist_pct_avg > 0.5 && diag.reproj_rms_l < 1.5 && diag.reproj_rms_r < 1.5) {
-			report << "WARNING: Distance errors remain >50% while reprojection is small.\n";
-			report << "         Coordinate mapping/sign conventions are likely wrong.\n";
-			math_log << "\nWARNING: Distance errors remain >50% while reprojection is small.\n";
-			math_log << "         Coordinate mapping/sign conventions are likely wrong.\n";
-		}
-
-		math_log << "\nDiagnostics Summary:\n";
-		math_log << Format("  Reprojection RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
-		math_log << Format("  Distance RMS (L/R):     %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
-		math_log << Format("  Behind camera (L/R):    %d / %d\n", diag.behind_left, diag.behind_right);
-		math_log << Format("  Baseline (fixed):       %.6f m (%.3f mm)\n", solver.eye_dist, solver.eye_dist * 1000.0);
-
-		Vector<int> order;
-		order.SetCount(diag.residuals.GetCount());
-		for (int i = 0; i < order.GetCount(); i++)
-			order[i] = i;
-		Sort(order, [&](int a, int b) {
-			const auto& ra = diag.residuals[a];
-			const auto& rb = diag.residuals[b];
-			double ea = max(ra.err_l_px, ra.err_r_px) + fabs(ra.dist_l_err) * solver.dist_weight + fabs(ra.dist_r_err) * solver.dist_weight;
-			double eb = max(rb.err_l_px, rb.err_r_px) + fabs(rb.dist_l_err) * solver.dist_weight + fabs(rb.dist_r_err) * solver.dist_weight;
-			return ea > eb;
-		});
-
-		math_log << "\nTop Residual Offenders:\n";
-		int topn = min(10, order.GetCount());
-		for (int i = 0; i < topn; i++) {
-			const auto& r = diag.residuals[order[i]];
-			const auto& m = solver.matches[order[i]];
-			math_log << Format("  #%d: reproj L/R=%.2f/%.2f px, dist L/R=%.2f/%.2f mm, disp=%.2f px\n",
-				order[i] + 1, r.err_l_px, r.err_r_px, r.dist_l_err, r.dist_r_err, r.disparity_px);
-			math_log << Format("      measured L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
-				m.left_px[0], m.left_px[1], m.right_px[0], m.right_px[1]);
-			math_log << Format("      reproj  L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
-				r.reproj_l[0], r.reproj_l[1], r.reproj_r[0], r.reproj_r[1]);
-		}
-
-		if (enable_trace || solver.trace.enabled) {
-			math_log << "\n========================================\n";
-			math_log << "Detailed Math Trace\n";
-			math_log << "========================================\n\n";
-			math_log << solver.GetTraceText();
-		}
-
+		report << Format("  Right: %.3f, %.3f, %.3f\n", 
+			(params.yaw - base_yaw_r)*180/M_PI, (params.pitch - base_pitch_r)*180/M_PI, (params.roll - base_roll_r)*180/M_PI);
+			
+		report << Format("Reproj RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		report << Format("Dist RMS (L/R): %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		
 		report_text <<= report;
-		math_text <<= math_log;
-		SaveFile(GetReportPath(), report);
-		SaveLastCalibration();
-
+		math_text <<= math_log + solver.GetTraceText();
 		bottom_tabs.Set(1);
-		status.Set("Calibration solved and saved.");
-	}
-	else {
-		String failure_msg = "Calibration solver failed.";
-		if (!solver.last_failure_reason.IsEmpty())
-			failure_msg << "\nReason: " << solver.last_failure_reason;
-		failure_msg << "\n\nCheck your matches and the Math tab for details.";
-
-		math_log << "\n========================================\n";
-		math_log << "SOLVER FAILED\n";
-		math_log << "========================================\n\n";
-		if (!solver.last_failure_reason.IsEmpty())
-			math_log << "Failure reason: " << solver.last_failure_reason << "\n\n";
-
-		if (!enable_trace) {
-			solver.EnableTrace(true, 2, 20000);
-			solver.Solve(params, false);
-		}
-
-		math_log << solver.GetTraceText();
-
-		math_text <<= math_log;
-		bottom_tabs.Set(2);
-		status.Set("Solver failed to converge.");
-		PromptOK(failure_msg);
+		status.Set("Extrinsics refined.");
+	} else {
+		PromptOK("Refinement failed.");
 	}
 }
 
@@ -1082,19 +1130,26 @@ StereoCalibrationTool::~StereoCalibrationTool() {
 }
 
 void StereoCalibrationTool::BuildLayout() {
-	hsplitter.Horz(left, right);
+	hsplitter.Horz(left_panel, right_panel);
 	hsplitter.SetPos(2000);
 	vsplitter.Vert(hsplitter, bottom_tabs);
-	vsplitter.SetPos(7000);
+	vsplitter.SetPos(8000);
 	Add(vsplitter.SizePos());
 
 	BuildLeftPanel();
 	BuildBottomTabs();
-	right.Add(preview.SizePos());
+	right_panel.Add(preview.SizePos());
 	status.Set("Status: idle");
 }
 
 void StereoCalibrationTool::BuildLeftPanel() {
+	mode_lbl.SetLabel("Match mode");
+	mode_list.Add(0, "Point pairs");
+	mode_list.Add(1, "Line pairs");
+	mode_list.Add(2, "Yaw center");
+	mode_list.Add(3, "Pitch center");
+	mode_list.SetIndex(0);
+
 	source_list.Add(0, "HMD Stereo Camera");
 	source_list.Add(1, "USB Stereo (Side-by-side)");
 	source_list.Add(2, "Stereo Video File");
@@ -1110,114 +1165,220 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	stop_source <<= THISBACK(StopSource);
 	live_view <<= THISBACK(LiveView);
 	capture_frame <<= THISBACK(CaptureFrame);
-	solve_calibration.SetLabel("Solve");
-	solve_calibration <<= THISBACK(SolveCalibration);
 	clear_matches.WhenAction = THISBACK(ClearMatches);
 
 	source_status.SetLabel("Status: idle");
-	sep_source.SetLabel("Source");
-	sep_mode.SetLabel("Mode");
-	sep_calib.SetLabel("Calibration");
-	sep_review.SetLabel("Review");
-	sep_diag.SetLabel("Diagnostics");
-	mode_lbl.SetLabel("Match mode");
-	mode_list.Add(0, "Point pairs");
-	mode_list.Add(1, "Line pairs");
-	mode_list.SetIndex(0);
+	sep_source.SetLabel("Camera Controls");
+	
+	view_mode_lbl.SetLabel("View Mode");
+	view_mode_list.Add(VIEW_RAW, "Raw");
+	view_mode_list.Add(VIEW_BASIC, "Basic Undistort");
+	view_mode_list.Add(VIEW_SOLVED, "Solved Undistort");
+	view_mode_list.SetIndex(0);
+	view_mode_list.WhenAction = THISBACK(OnReviewChanged);
 
-	export_calibration.SetLabel("Export .stcal");
-	export_calibration <<= THISBACK(ExportCalibration);
-	deploy_calibration.SetLabel("Deploy Calibration");
-	deploy_calibration <<= THISBACK(DeployCalibration);
-	load_calibration.SetLabel("Load .stcal");
-	load_calibration <<= THISBACK(LoadCalibration);
-	calib_enabled_lbl.SetLabel("Enabled");
-	calib_enabled.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_eye_lbl.SetLabel("Eye dist (mm)");
-	calib_eye_dist.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_outward_lbl.SetLabel("Outward angle");
-	calib_outward_angle.SetReadOnly();
-	calib_outward_angle.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_poly_lbl.SetLabel("Angle poly");
-	calib_poly_a.SetReadOnly();
-	calib_poly_a.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_poly_b.SetReadOnly();
-	calib_poly_b.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_poly_c.SetReadOnly();
-	calib_poly_c.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	calib_poly_d.SetReadOnly();
-	calib_poly_d.WhenAction = THISBACK(SyncCalibrationFromEdits);
-	show_epipolar.SetLabel("Show Epipolar Lines");
+	overlay_eyes.SetLabel("Overlay Eyes");
+	overlay_eyes.WhenAction = THISBACK(OnReviewChanged);
+	
+	overlay_swap.SetLabel("Swap Order");
+	overlay_swap.WhenAction = THISBACK(OnReviewChanged);
+	
+	show_difference.SetLabel("Show Diff");
+	show_difference.WhenAction = THISBACK(OnReviewChanged);
+	
+	alpha_lbl.SetLabel("Alpha");
+	alpha_slider.MinMax(0, 100);
+	alpha_slider <<= 50;
+	alpha_slider.WhenAction = THISBACK(OnReviewChanged);
+
+	show_epipolar.SetLabel("Show epipolar line");
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);
-	undistort_view.SetLabel("Undistort View");
-	undistort_view.WhenAction = THISBACK(OnReviewChanged);
-	verbose_math_log.SetLabel("Verbose Math Log");
-	verbose_math_log = false;
 
-	int y = 8;
-	left.Add(sep_source.TopPos(y, 18).HSizePos(8, 8));
-	y += 24;
-	left.Add(source_list.TopPos(y, 24).HSizePos(8, 8));
-	y += 32;
-	left.Add(start_source.TopPos(y, 24).LeftPos(8, 80));
-	left.Add(stop_source.TopPos(y, 24).LeftPos(96, 80));
-	left.Add(live_view.TopPos(y, 24).LeftPos(184, 80));
-	left.Add(capture_frame.TopPos(y, 24).LeftPos(272, 80));
+	int y = 4;
+	pinned_camera_controls.Add(sep_source.TopPos(y, 18).HSizePos(4, 4));
+	y += 22;
+	pinned_camera_controls.Add(source_list.TopPos(y, 24).HSizePos(4, 4));
 	y += 28;
-	left.Add(solve_calibration.TopPos(y, 24).LeftPos(184, 80));
-	left.Add(clear_matches.TopPos(y, 24).LeftPos(272, 100));
-	y += 32;
-	left.Add(source_status.TopPos(y, 20).HSizePos(8, 8));
+	
+	pinned_camera_controls.Add(mode_lbl.TopPos(y, 20).LeftPos(4, 70));
+	pinned_camera_controls.Add(mode_list.TopPos(y, 20).HSizePos(78, 4));
 	y += 28;
 
-	left.Add(sep_mode.TopPos(y, 18).HSizePos(8, 8));
-	y += 24;
-	left.Add(mode_lbl.TopPos(y, 20).LeftPos(8, 80));
-	left.Add(mode_list.TopPos(y, 20).LeftPos(96, 160));
+	pinned_camera_controls.Add(start_source.TopPos(y, 24).LeftPos(4, 60));
+	pinned_camera_controls.Add(stop_source.TopPos(y, 24).LeftPos(68, 60));
+	pinned_camera_controls.Add(live_view.TopPos(y, 24).LeftPos(132, 70));
+	pinned_camera_controls.Add(capture_frame.TopPos(y, 24).LeftPos(206, 70));
 	y += 28;
+	pinned_camera_controls.Add(source_status.TopPos(y, 20).HSizePos(4, 4));
+	y += 24;
+	
+	pinned_camera_controls.Add(view_mode_lbl.TopPos(y, 20).LeftPos(4, 70));
+	pinned_camera_controls.Add(view_mode_list.TopPos(y, 20).HSizePos(78, 4));
+	y += 24;
+	
+	pinned_camera_controls.Add(overlay_eyes.TopPos(y, 20).LeftPos(4, 100));
+	pinned_camera_controls.Add(overlay_swap.TopPos(y, 20).LeftPos(110, 90));
+	pinned_camera_controls.Add(show_difference.TopPos(y, 20).LeftPos(200, 80));
+	y += 24;
+	
+	pinned_camera_controls.Add(alpha_lbl.TopPos(y, 20).LeftPos(4, 40));
+	pinned_camera_controls.Add(alpha_slider.TopPos(y, 20).HSizePos(48, 4));
+	y += 24;
 
-	left.Add(sep_calib.TopPos(y, 18).HSizePos(8, 8));
+	pinned_camera_controls.Add(show_epipolar.TopPos(y, 20).LeftPos(4, 180));
 	y += 24;
-	left.Add(calib_enabled_lbl.TopPos(y, 20).LeftPos(8, 80));
-	left.Add(calib_enabled.TopPos(y, 20).LeftPos(96, 20));
-	y += 24;
-	left.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 80));
-	left.Add(calib_eye_dist.TopPos(y, 20).LeftPos(96, 120));
-	y += 24;
-	left.Add(calib_outward_lbl.TopPos(y, 20).LeftPos(8, 80));
-	left.Add(calib_outward_angle.TopPos(y, 20).LeftPos(96, 120));
-	y += 24;
-	left.Add(calib_poly_lbl.TopPos(y, 20).LeftPos(8, 80));
-	left.Add(calib_poly_a.TopPos(y, 20).LeftPos(96, 70));
-	left.Add(calib_poly_b.TopPos(y, 20).LeftPos(170, 70));
-	left.Add(calib_poly_c.TopPos(y, 20).LeftPos(244, 70));
-	left.Add(calib_poly_d.TopPos(y, 20).LeftPos(318, 70));
-	y += 28;
-	left.Add(load_calibration.TopPos(y, 24).LeftPos(8, 120));
-	left.Add(export_calibration.TopPos(y, 24).LeftPos(136, 120));
-	y += 28;
-	left.Add(deploy_calibration.TopPos(y, 24).LeftPos(8, 248));
-	y += 32;
+	
+	left_panel.Add(pinned_camera_controls.TopPos(0, y).HSizePos());
+	left_panel.Add(stage_tabs.VSizePos(y, 0).HSizePos());
 
-	left.Add(sep_review.TopPos(y, 18).HSizePos(8, 8));
-	y += 24;
-	left.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
-	y += 24;
-	left.Add(undistort_view.TopPos(y, 20).LeftPos(8, 180));
-	y += 24;
-	left.Add(verbose_math_log.TopPos(y, 20).LeftPos(8, 180));
-	y += 28;
-
-	left.Add(sep_diag.TopPos(y, 18).HSizePos(8, 8));
-	y += 24;
-	left.Add(calibration_schema.TopPos(y, 110).HSizePos(8, 8));
-	y += 118;
-	left.Add(calibration_preview.TopPos(y, 60).HSizePos(8, 8));
+	BuildStageA();
+	BuildStageB();
+	BuildStageC();
+	
+	stage_tabs.Add(stage_a_ctrl.SizePos(), "Stage A (Basic)");
+	stage_tabs.Add(stage_b_ctrl.SizePos(), "Stage B (Solve)");
+	stage_tabs.Add(stage_c_ctrl.SizePos(), "Stage C (Refine)");
 
 	sources.Clear();
 	sources.Add(MakeOne<HmdStereoSource>());
 	sources.Add(MakeOne<UsbStereoSource>());
 	sources.Add(MakeOne<VideoStereoSource>());
+}
+
+void StereoCalibrationTool::BuildStageA() {
+	int y = 8;
+	stage_a_ctrl.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 80));
+	stage_a_ctrl.Add(calib_eye_dist.TopPos(y, 20).LeftPos(96, 80));
+	calib_eye_lbl.SetLabel("Eye dist (mm)");
+	calib_eye_dist.WhenAction = THISBACK(SyncStageA);
+	y += 24;
+
+	eye_l_group.SetLabel("Left Eye");
+	stage_a_ctrl.Add(eye_l_group.TopPos(y, 100).HSizePos(4, 4));
+	int gy = y + 20;
+	yaw_l_lbl.SetLabel("Yaw"); stage_a_ctrl.Add(yaw_l_lbl.TopPos(gy, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(yaw_l.TopPos(gy, 20).LeftPos(52, 80));
+	pitch_l_lbl.SetLabel("Pitch"); stage_a_ctrl.Add(pitch_l_lbl.TopPos(gy + 24, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(pitch_l.TopPos(gy + 24, 20).LeftPos(52, 80));
+	roll_l_lbl.SetLabel("Roll"); stage_a_ctrl.Add(roll_l_lbl.TopPos(gy + 48, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(roll_l.TopPos(gy + 48, 20).LeftPos(52, 80));
+	y += gy - y + 80;
+
+	eye_r_group.SetLabel("Right Eye");
+	stage_a_ctrl.Add(eye_r_group.TopPos(y, 100).HSizePos(4, 4));
+	gy = y + 20;
+	yaw_r_lbl.SetLabel("Yaw"); stage_a_ctrl.Add(yaw_r_lbl.TopPos(gy, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(yaw_r.TopPos(gy, 20).LeftPos(52, 80));
+	pitch_r_lbl.SetLabel("Pitch"); stage_a_ctrl.Add(pitch_r_lbl.TopPos(gy + 24, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(pitch_r.TopPos(gy + 24, 20).LeftPos(52, 80));
+	roll_r_lbl.SetLabel("Roll"); stage_a_ctrl.Add(roll_r_lbl.TopPos(gy + 48, 20).LeftPos(12, 40));
+	stage_a_ctrl.Add(roll_r.TopPos(gy + 48, 20).LeftPos(52, 80));
+	y += gy - y + 80;
+
+	yaw_l.SetInc(0.01); yaw_l.MinMax(-1.2, 1.2); yaw_l.WhenAction = THISBACK(SyncStageA);
+	pitch_l.SetInc(0.01); pitch_l.MinMax(-0.6, 0.6); pitch_l.WhenAction = THISBACK(SyncStageA);
+	roll_l.SetInc(0.01); roll_l.MinMax(-1.2, 1.2); roll_l.WhenAction = THISBACK(SyncStageA);
+	yaw_r.SetInc(0.01); yaw_r.MinMax(-1.2, 1.2); yaw_r.WhenAction = THISBACK(SyncStageA);
+	pitch_r.SetInc(0.01); pitch_r.MinMax(-0.6, 0.6); pitch_r.WhenAction = THISBACK(SyncStageA);
+	roll_r.SetInc(0.01); roll_r.MinMax(-1.2, 1.2); roll_r.WhenAction = THISBACK(SyncStageA);
+
+	stage_a_ctrl.Add(preview_extrinsics.TopPos(y, 20).LeftPos(8, 180));
+	preview_extrinsics.SetLabel("Preview extrinsics");
+	preview_extrinsics <<= true;
+	preview_extrinsics.WhenAction = THISBACK(SyncStageA);
+	y += 24;
+
+	stage_a_ctrl.Add(barrel_lbl.TopPos(y, 20).LeftPos(8, 120)); barrel_lbl.SetLabel("Barrel distortion");
+	stage_a_ctrl.Add(barrel_strength.TopPos(y, 20).LeftPos(132, 60));
+	barrel_strength.SetInc(0.1); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncStageA);
+	y += 24;
+
+	stage_a_ctrl.Add(fov_lbl.TopPos(y, 20).LeftPos(8, 120)); fov_lbl.SetLabel("FOV (deg)");
+	stage_a_ctrl.Add(fov_deg.TopPos(y, 20).LeftPos(132, 60));
+	fov_deg.SetInc(1.0); fov_deg <<= 90; fov_deg.WhenAction = THISBACK(SyncStageA);
+	y += 24;
+
+	stage_a_ctrl.Add(basic_params_doc.TopPos(y, 100).HSizePos(4, 4));
+	basic_params_doc.SetReadOnly();
+	y += 104;
+
+	stage_a_ctrl.Add(yaw_center_btn.TopPos(y, 24).LeftPos(4, 90));
+	yaw_center_btn.SetLabel("Yaw center");
+	yaw_center_btn <<= THISBACK(OnYawCenter);
+	stage_a_ctrl.Add(pitch_center_btn.TopPos(y, 24).LeftPos(98, 90));
+	pitch_center_btn.SetLabel("Pitch center");
+	pitch_center_btn <<= THISBACK(OnPitchCenter);
+	y += 28;
+}
+
+void StereoCalibrationTool::BuildStageB() {
+	int y = 8;
+	stage_b_ctrl.Add(solve_calibration.TopPos(y, 24).HSizePos(4, 4));
+	solve_calibration.SetLabel("Solve Intrinsics");
+	solve_calibration <<= THISBACK(SolveCalibration);
+	y += 32;
+
+	stage_b_ctrl.Add(verbose_math_log.TopPos(y, 20).HSizePos(4, 4));
+	verbose_math_log.SetLabel("Verbose math log");
+	y += 24;
+
+	stage_b_ctrl.Add(stage_b_compare_basic.TopPos(y, 20).HSizePos(4, 4));
+	stage_b_compare_basic.SetLabel("Compare Basic Params");
+	stage_b_compare_basic.WhenAction = THISBACK(OnReviewChanged);
+	y += 24;
+
+	stage_b_ctrl.Add(clear_matches.TopPos(y, 24).HSizePos(4, 4));
+	y += 28;
+
+	stage_b_ctrl.Add(sep_calib.TopPos(y, 18).HSizePos(4, 4)); y += 22;
+	stage_b_ctrl.Add(load_calibration.TopPos(y, 24).LeftPos(4, 100));
+	stage_b_ctrl.Add(export_calibration.TopPos(y, 24).LeftPos(108, 100));
+	y += 28;
+	stage_b_ctrl.Add(deploy_calibration.TopPos(y, 24).HSizePos(4, 4));
+	y += 32;
+	
+	stage_b_ctrl.Add(calibration_preview.TopPos(y, 100).HSizePos(4, 4));
+}
+
+void StereoCalibrationTool::BuildStageC() {
+	int y = 8;
+	stage_c_ctrl.Add(enable_stage_c.TopPos(y, 20).HSizePos(4, 4));
+	enable_stage_c.SetLabel("Enable micro-refine");
+	enable_stage_c.WhenAction = THISBACK(OnReviewChanged);
+	y += 24;
+
+	stage_c_ctrl.Add(stage_c_mode_lbl.TopPos(y, 20).LeftPos(8, 60));
+	stage_c_mode_lbl.SetLabel("Mode:");
+	stage_c_ctrl.Add(stage_c_mode.TopPos(y, 20).LeftPos(72, 160));
+	stage_c_mode.Add(0, "Relative-only");
+	stage_c_mode.Add(1, "Per-eye");
+	stage_c_mode <<= 0;
+	y += 28;
+
+	stage_c_ctrl.Add(max_dyaw_lbl.TopPos(y, 20).LeftPos(8, 80)); max_dyaw_lbl.SetLabel("Max dYaw");
+	stage_c_ctrl.Add(max_dyaw.TopPos(y, 20).LeftPos(96, 80));
+	max_dyaw.SetInc(0.1); max_dyaw <<= 3.0;
+	y += 24;
+
+	stage_c_ctrl.Add(max_dpitch_lbl.TopPos(y, 20).LeftPos(8, 80)); max_dpitch_lbl.SetLabel("Max dPitch");
+	stage_c_ctrl.Add(max_dpitch.TopPos(y, 20).LeftPos(96, 80));
+	max_dpitch.SetInc(0.1); max_dpitch <<= 2.0;
+	y += 24;
+
+	stage_c_ctrl.Add(max_droll_lbl.TopPos(y, 20).LeftPos(8, 80)); max_droll_lbl.SetLabel("Max dRoll");
+	stage_c_ctrl.Add(max_droll.TopPos(y, 20).LeftPos(96, 80));
+	max_droll.SetInc(0.1); max_droll <<= 3.0;
+	y += 24;
+
+	stage_c_ctrl.Add(lambda_lbl.TopPos(y, 20).LeftPos(8, 80)); lambda_lbl.SetLabel("Lambda");
+	stage_c_ctrl.Add(lambda_edit.TopPos(y, 20).LeftPos(96, 80));
+	lambda_edit.SetInc(0.01); lambda_edit <<= 0.1;
+	y += 24;
+
+	stage_c_ctrl.Add(refine_btn.TopPos(y, 24).HSizePos(4, 4));
+	refine_btn.SetLabel("Run Stage C");
+	refine_btn <<= THISBACK(RefineExtrinsics);
+	y += 28;
 }
 
 void StereoCalibrationTool::BuildBottomTabs() {
@@ -1473,6 +1634,194 @@ void StereoCalibrationTool::RunHmdTest() {
 	Exit(0);
 }
 
+void StereoCalibrationTool::SyncStageA() {
+	// Derived lens params for Stage A
+	// FOV -> focal length 'a'
+	// a = (width/2) / tan(FOV_rad/2)
+	// But our model uses a*theta = radius.
+	// So radius_at_half_fov = a * (FOV_rad/2) => a = (width/2) / (FOV_rad/2)
+	
+	// We'll update the preview lens based on these Stage A values IF stage A is active OR "Preview extrinsics" is ON.
+	
+	// Map strength to b,c,d
+	// b = strength * 0.01, c = strength * 0.01, d = strength * 0.01 as a simple stable mapping
+	
+	String doc;
+	doc << "Stage A Basic Params:\n";
+	doc << "  Eye dist: " << (double)calib_eye_dist << " mm\n";
+	doc << Format("  Left Yaw/Pitch/Roll: %.3f, %.3f, %.3f\n", (double)yaw_l, (double)pitch_l, (double)roll_l);
+	doc << Format("  Right Yaw/Pitch/Roll: %.3f, %.3f, %.3f\n", (double)yaw_r, (double)pitch_r, (double)roll_r);
+	
+	double fov_rad = (double)fov_deg * M_PI / 180.0;
+	// We need a width to compute 'a'. Let's assume a default or use current image size.
+	Size sz = preview.left_img.GetSize();
+	if (sz.cx <= 0) sz = Size(1280, 720); // Fallback
+	
+	double a = (sz.cx * 0.5) / (fov_rad * 0.5);
+	double s = (double)barrel_strength * 0.01;
+	double b = a * s;
+	double c = a * s;
+	double d = a * s;
+	
+	doc << Format("  Derived a: %.3f\n", a);
+	doc << Format("  Derived b,c,d: %.3f, %.3f, %.3f\n", b, c, d);
+	
+	basic_params_doc <<= doc;
+	
+	OnReviewChanged();
+}
+
+Pointf StereoCalibrationTool::MapClickToRaw(Pointf p) {
+	int vmode = view_mode_list.GetIndex();
+	if (vmode == VIEW_RAW) return p;
+	
+	if (preview.left_img.IsEmpty()) return p;
+	Size isz = preview.left_img.GetSize();
+	
+	vec2 pp = preview_lens.GetPrincipalPoint();
+	float cx = (pp[0] > 0) ? pp[0] : isz.cx * 0.5f;
+	float cy = (pp[1] > 0) ? pp[1] : isz.cy * 0.5f;
+	
+	float dx = p.x * isz.cx - cx;
+	float dy = p.y * isz.cy - cy;
+	
+	float max_radius = (float)sqrt(isz.cx*isz.cx*0.25f + isz.cy*isz.cy*0.25f);
+	float max_angle = preview_lens.PixelToAngle(max_radius);
+	if (max_angle <= 1e-6f) return p;
+	float linear_scale = max_radius / max_angle;
+	
+	float r_undist = sqrt(dx*dx + dy*dy);
+	float theta = r_undist / linear_scale;
+	float roll = atan2(dy, dx);
+	
+	float r_raw = preview_lens.AngleToPixel(theta);
+	float raw_x = cx + r_raw * cos(roll);
+	float raw_y = cy + r_raw * sin(roll);
+	
+	return Pointf(raw_x / isz.cx, raw_y / isz.cy);
+}
+
+void StereoCalibrationTool::OnYawCenter() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= captured_frames.GetCount()) {
+		status.Set("Select a captured frame first.");
+		return;
+	}
+	CapturedFrame& frame = captured_frames[row];
+	if (frame.matches.IsEmpty()) {
+		status.Set("Add a match pair (same point in both eyes) to center.");
+		return;
+	}
+	
+	const MatchPair& m = frame.matches.Top();
+	if (IsNull(m.left) || IsNull(m.right)) return;
+	
+	Size sz = frame.left_img.GetSize();
+	if (sz.cx <= 0) return;
+	
+	// Construct LensPoly for Stage A
+	double fov_rad = (double)fov_deg * M_PI / 180.0;
+	double a = (sz.cx * 0.5) / (fov_rad * 0.5);
+	double s = (double)barrel_strength * 0.01;
+	double b = a * s;
+	double c = a * s;
+	double d = a * s;
+	
+	LensPoly lens;
+	lens.SetAnglePixel((float)a, (float)b, (float)c, (float)d);
+	lens.SetPrincipalPoint(sz.cx * 0.5f, sz.cy * 0.5f);
+	
+	auto GetHAngle = [&](Pointf p) -> double {
+		float cx = sz.cx * 0.5f;
+		float cy = sz.cy * 0.5f;
+		float dx = p.x * sz.cx - cx;
+		float dy = p.y * sz.cy - cy;
+		float r = sqrt(dx*dx + dy*dy);
+		float theta = lens.PixelToAngle(r);
+		float roll = atan2(dy, dx);
+		// Direction in camera space (z forward)
+		// x = sin(theta)cos(roll)
+		// z = cos(theta)
+		double x = sin(theta) * cos(roll);
+		double z = cos(theta);
+		return atan2(x, z);
+	};
+	
+	double angle_l = GetHAngle(m.left);
+	double angle_r = GetHAngle(m.right);
+	
+	// angle_l + yaw_l should match angle_r + yaw_r in world
+	// yaw_r = yaw_l + angle_l - angle_r
+	
+	double new_yaw_r = (double)yaw_l + angle_l - angle_r;
+	double delta = new_yaw_r - (double)yaw_r;
+	yaw_r <<= new_yaw_r;
+	
+	SyncStageA();
+	status.Set(Format("Yaw aligned. Delta: %.3f deg (%.4f rad)", delta * 180.0 / M_PI, delta));
+}
+
+void StereoCalibrationTool::OnPitchCenter() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= captured_frames.GetCount()) {
+		status.Set("Select a captured frame first.");
+		return;
+	}
+	CapturedFrame& frame = captured_frames[row];
+	if (frame.matches.IsEmpty()) {
+		status.Set("Add a match pair (same point in both eyes) to center.");
+		return;
+	}
+	
+	const MatchPair& m = frame.matches.Top();
+	if (IsNull(m.left) || IsNull(m.right)) return;
+	
+	Size sz = frame.left_img.GetSize();
+	if (sz.cx <= 0) return;
+	
+	double fov_rad = (double)fov_deg * M_PI / 180.0;
+	double a = (sz.cx * 0.5) / (fov_rad * 0.5);
+	double s = (double)barrel_strength * 0.01;
+	
+	LensPoly lens;
+	lens.SetAnglePixel((float)a, (float)(a*s), (float)(a*s), (float)(a*s));
+	lens.SetPrincipalPoint(sz.cx * 0.5f, sz.cy * 0.5f);
+	
+	auto GetVAngle = [&](Pointf p) -> double {
+		float cx = sz.cx * 0.5f;
+		float cy = sz.cy * 0.5f;
+		float dx = p.x * sz.cx - cx;
+		float dy = p.y * sz.cy - cy;
+		float r = sqrt(dx*dx + dy*dy);
+		float theta = lens.PixelToAngle(r);
+		float roll = atan2(dy, dx);
+		// y = -sin(theta)sin(roll)
+		// z = cos(theta)
+		// pitch is approx atan2(y, z) ?
+		// Actually pitch is rotation around X.
+		// If we pitch up, y decreases?
+		// Check coords: Y down?
+		// If Y down, dy positive is down.
+		// roll=90 => y = -sin(theta) * 1 = -sin(theta). (Up in 3D?)
+		// Let's use simple atan2(y, z) for relative pitch.
+		double y_val = -sin(theta) * sin(roll);
+		double z_val = cos(theta);
+		return atan2(y_val, z_val);
+	};
+	
+	double angle_l = GetVAngle(m.left);
+	double angle_r = GetVAngle(m.right);
+	
+	// pitch_r = pitch_l + angle_l - angle_r
+	
+	double new_pitch_r = (double)pitch_l + angle_l - angle_r;
+	double delta = new_pitch_r - (double)pitch_r;
+	pitch_r <<= new_pitch_r;
+	
+	SyncStageA();
+	status.Set(Format("Pitch aligned. Delta: %.3f deg (%.4f rad)", delta * 180.0 / M_PI, delta));
+}
+
 void StereoCalibrationTool::OnSourceChanged() {
 	if (verbose) Cout() << "OnSourceChanged: Source index=" << source_list.GetIndex() << "\n";
 	StopSource();
@@ -1635,10 +1984,9 @@ void StereoCalibrationTool::UpdateReviewEnablement() {
 	bool has_poly = IsValidAnglePoly(last_calibration.angle_to_pixel);
 	bool can_review = last_calibration.is_enabled && has_poly;
 	show_epipolar.Enable(can_review);
-	undistort_view.Enable(can_review);
+	// undistort_view removed
 	if (!can_review) {
 		show_epipolar = false;
-		undistort_view = false;
 		preview.SetEpipolar(false);
 		preview.SetResiduals(Vector<PreviewCtrl::ResidualSample>(), 0, false);
 	}
@@ -1647,29 +1995,91 @@ void StereoCalibrationTool::UpdateReviewEnablement() {
 bool StereoCalibrationTool::PreparePreviewLens(const Size& sz) {
 	if (sz.cx <= 0 || sz.cy <= 0)
 		return false;
-	vec4 poly = last_calibration.angle_to_pixel;
-	if (!IsValidAnglePoly(poly))
-		return false;
-	vec2 pp = last_calibration.principal_point;
-	vec2 tilt = vec2(last_calibration.right_pitch, last_calibration.right_roll);
+
+	// Determine which intrinsics to use
+	StereoCalibrationParams p;
+	bool use_basic = false;
+	
+	int vmode = view_mode_list.GetIndex();
+	if (vmode == VIEW_BASIC) use_basic = true;
+	else if (vmode == VIEW_SOLVED) use_basic = false;
+	else { // RAW
+		// Heuristic: If in Stage A, use Basic. Else use Solved.
+		if (stage_tabs.Get() == 0) use_basic = true;
+		else use_basic = false;
+	}
+	
+	// Stage B Override
+	if (stage_b_compare_basic) use_basic = true;
+
+	if (use_basic) {
+		double fov_rad = (double)fov_deg * M_PI / 180.0;
+		p.a = (sz.cx * 0.5) / (fov_rad * 0.5);
+		double s = (double)barrel_strength * 0.01;
+		p.b = p.a * s;
+		p.c = p.a * s;
+		p.d = p.a * s;
+		p.cx = sz.cx * 0.5;
+		p.cy = sz.cy * 0.5;
+	} else {
+		p.a = last_calibration.angle_to_pixel[0];
+		p.b = last_calibration.angle_to_pixel[1];
+		p.c = last_calibration.angle_to_pixel[2];
+		p.d = last_calibration.angle_to_pixel[3];
+		p.cx = last_calibration.principal_point[0];
+		p.cy = last_calibration.principal_point[1];
+	}
+
+	// Determine which extrinsics to use
+	// For Preview:
+	// Stage A: Use User Controls (yaw_l, yaw_r...) if "Preview Extrinsics" is checked.
+	// Stage B/C: Use Solved Extrinsics (last_calibration) + Stage C Deltas.
+	// But if "Preview Extrinsics" is ON in Stage A, we should probably use them regardless of ViewMode?
+	// Actually, Basic Mode usually implies Basic Extrinsics too?
+	// Let's allow Stage A controls to override if we are in Stage A.
+	
+	double yaw = 0, pitch = 0, roll = 0;
+	
+	bool use_stage_a_extrinsics = (stage_tabs.Get() == 0 && preview_extrinsics);
+	
+	if (use_stage_a_extrinsics) {
+		yaw = (double)yaw_r - (double)yaw_l;
+		pitch = (double)pitch_r - (double)pitch_l;
+		roll = (double)roll_r - (double)roll_l;
+	} else {
+		yaw = last_calibration.outward_angle;
+		pitch = last_calibration.right_pitch;
+		roll = last_calibration.right_roll;
+		if (enable_stage_c) {
+			yaw += dyaw_c;
+			pitch += dpitch_c;
+			roll += droll_c;
+		}
+	}
+	p.yaw = yaw;
+	p.pitch = pitch;
+	p.roll = roll;
+
+	vec4 poly((float)p.a, (float)p.b, (float)p.c, (float)p.d);
+	vec2 pp((float)p.cx, (float)p.cy);
+	vec2 tilt((float)p.pitch, (float)p.roll);
+	
 	bool needs = (preview_lens_size != sz) || !IsSamePoly(preview_lens_poly, poly) ||
-		fabs(preview_lens_outward - last_calibration.outward_angle) > 1e-6 ||
+		fabs(preview_lens_outward - (float)p.yaw) > 1e-6 ||
 		fabs(preview_lens_pp[0] - pp[0]) > 1e-3 ||
 		fabs(preview_lens_pp[1] - pp[1]) > 1e-3 ||
 		fabs(preview_lens_tilt[0] - tilt[0]) > 1e-6 ||
 		fabs(preview_lens_tilt[1] - tilt[1]) > 1e-6;
+
 	if (needs) {
 		preview_lens.SetAnglePixel(poly.data[0], poly.data[1], poly.data[2], poly.data[3]);
-		preview_lens.SetEyeOutwardAngle(last_calibration.outward_angle);
-		preview_lens.SetRightTilt(last_calibration.right_pitch, last_calibration.right_roll);
-		if (pp[0] > 0 && pp[1] > 0)
-			preview_lens.SetPrincipalPoint(pp[0], pp[1]);
-		else
-			preview_lens.ClearPrincipalPoint();
+		preview_lens.SetEyeOutwardAngle((float)p.yaw);
+		preview_lens.SetRightTilt((float)p.pitch, (float)p.roll);
+		preview_lens.SetPrincipalPoint(pp[0], pp[1]);
 		preview_lens.SetSize(sz);
 		preview_lens_size = sz;
 		preview_lens_poly = poly;
-		preview_lens_outward = last_calibration.outward_angle;
+		preview_lens_outward = (float)p.yaw;
 		preview_lens_pp = pp;
 		preview_lens_tilt = tilt;
 	}
@@ -1682,8 +2092,16 @@ bool StereoCalibrationTool::BuildUndistortCache(CapturedFrame& frame) {
 		return false;
 	if (!PreparePreviewLens(sz))
 		return false;
+	
+	int vmode = view_mode_list.GetIndex();
+	if (vmode == VIEW_RAW) {
+		frame.undist_valid = false;
+		return false;
+	}
+
 	if (frame.undist_valid && frame.undist_size == sz && IsSamePoly(frame.undist_poly, preview_lens_poly))
 		return true;
+	
 	float max_radius = (float)sqrt(sz.cx * sz.cx * 0.25f + sz.cy * sz.cy * 0.25f);
 	float max_angle = preview_lens.PixelToAngle(max_radius);
 	if (max_angle <= 1e-6f)
@@ -1709,6 +2127,13 @@ bool StereoCalibrationTool::BuildLiveUndistortCache(const Image& left, const Ima
 		return false;
 	if (!PreparePreviewLens(sz))
 		return false;
+	
+	int vmode = view_mode_list.GetIndex();
+	if (vmode == VIEW_RAW) {
+		live_undist_valid = false;
+		return false;
+	}
+
 	if (serial > 0 && live_undist_valid && live_undist_serial == serial &&
 		live_undist_size == sz && IsSamePoly(live_undist_poly, preview_lens_poly))
 		return true;
@@ -1733,7 +2158,7 @@ bool StereoCalibrationTool::BuildLiveUndistortCache(const Image& left, const Ima
 }
 
 void StereoCalibrationTool::ApplyPreviewImages(CapturedFrame& frame) {
-	if (undistort_view && BuildUndistortCache(frame))
+	if (BuildUndistortCache(frame))
 		preview.SetImages(frame.undist_left, frame.undist_right);
 	else
 		preview.SetImages(frame.left_img, frame.right_img);
@@ -1753,14 +2178,6 @@ void StereoCalibrationTool::UpdateReviewOverlay() {
 	CapturedFrame& frame = captured_frames[row];
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	if (sz.cx <= 0 || sz.cy <= 0 || frame.matches.IsEmpty() || !PreparePreviewLens(sz)) {
-		if (!IsValidAnglePoly(last_calibration.angle_to_pixel)) {
-			String base = preview.overlay;
-			int cut = base.Find("\nCalibration invalid");
-			if (cut >= 0)
-				base = base.Left(cut);
-			if (!base.IsEmpty())
-				preview.SetOverlay(base + "\nCalibration invalid (angle_poly missing)");
-		}
 		preview.SetResiduals(Vector<PreviewCtrl::ResidualSample>(), 0, false);
 		return;
 	}
@@ -1774,27 +2191,16 @@ void StereoCalibrationTool::UpdateReviewOverlay() {
 			continue;
 		vec2 lp(m.left.x * sz.cx, m.left.y * sz.cy);
 		vec2 rp(m.right.x * sz.cx, m.right.y * sz.cy);
+		
+		// Note: preview_lens already has the active Stage A/B/C params if PreparePreviewLens was called.
 		axes2 axesL = preview_lens.Unproject(0, lp);
 		axes2 axesR = preview_lens.Unproject(1, rp);
 		vec3 dL = GetAxesDir(axesL);
 		vec3 dR = GetAxesDir(axesR);
 		vec3 pL = vec3(-eye_dist / 2.0f, 0, 0);
 		vec3 pR = vec3(eye_dist / 2.0f, 0, 0);
-		vec3 w0 = pL - pR;
-		double a = Dot(dL, dL);
-		double b = Dot(dL, dR);
-		double c = Dot(dR, dR);
-		double d = Dot(dL, w0);
-		double e = Dot(dR, w0);
-		double denom = a * c - b * b;
-		vec3 pt;
-		if (fabs(denom) > 1e-9) {
-			double sc = (b * e - c * d) / denom;
-			double tc = (a * e - b * d) / denom;
-			pt = (pL + dL * (float)sc + pR + dR * (float)tc) * 0.5f;
-		} else {
-			pt = (pL + pR) * 0.5f + dL * 1000.0f;
-		}
+		
+		vec3 pt = TriangulatePoint(pL, dL, pR, dR);
 
 		vec3 dirL = (pt - pL).GetNormalized();
 		vec3 dirR = (pt - pR).GetNormalized();
@@ -1843,7 +2249,12 @@ void StereoCalibrationTool::OnReviewChanged() {
 	live_undist_valid = false;
 	for (auto& frame : captured_frames)
 		frame.undist_valid = false;
+	
+	// Sync Viewer Settings
+	preview.SetOverlayMode(overlay_eyes, (float)(int)~alpha_slider / 100.0f, overlay_swap ? 1 : 0);
+	preview.SetDifference(show_difference);
 	preview.SetEpipolar(show_epipolar);
+	
 	DataCapturedFrame();
 	UpdateReviewOverlay();
 }
@@ -1879,8 +2290,67 @@ void StereoCalibrationTool::LoadState() {
 	if (FileExists(path)) {
 		String json = LoadFile(path);
 		if (!json.IsEmpty()) {
-			LoadFromJson(captured_frames, json);
+			Value v = ParseJSON(json);
 			
+			// Migration Logic
+			Value state_val = v["state"];
+			int ver = state_val["schema_version"];
+			if (IsNull(state_val) || ver < 1) {
+				Cout() << "Migrating project state from legacy/v0 to v1...\n";
+				// Legacy to v1:
+				// Map stage_a_undistort (if exists) to view_mode
+				if (!IsNull(state_val["stage_a_undistort"]) && (bool)state_val["stage_a_undistort"]) {
+					// We can't modify Value directly easily if it's const reference or map logic is complex.
+					// Easier to load into struct then patch struct.
+				}
+			}
+
+			LoadFromJsonValue(captured_frames, v["frames"]);
+			LoadFromJsonValue(project_state, v["state"]);
+			
+			// Post-load patches for migration
+			if (ver < 1) {
+				// Restore view mode from legacy field if ViewMode is RAW (0)
+				// Accessing legacy field from 'v["state"]'
+				if (project_state.view_mode == VIEW_RAW && !IsNull(state_val["stage_a_undistort"]) && (bool)state_val["stage_a_undistort"]) {
+					project_state.view_mode = VIEW_BASIC;
+				}
+				project_state.schema_version = 1;
+			}
+			
+			// Sync UI from project_state
+			// Stage A
+			calib_eye_dist <<= project_state.eye_dist;
+			yaw_l <<= project_state.yaw_l;
+			pitch_l <<= project_state.pitch_l;
+			roll_l <<= project_state.roll_l;
+			yaw_r <<= project_state.yaw_r;
+			pitch_r <<= project_state.pitch_r;
+			roll_r <<= project_state.roll_r;
+			barrel_strength <<= project_state.barrel_strength;
+			fov_deg <<= project_state.fov_deg;
+			preview_extrinsics <<= project_state.preview_extrinsics;
+			
+			// Stage B
+			verbose_math_log <<= project_state.verbose_math_log;
+			stage_b_compare_basic <<= project_state.compare_basic_params;
+			
+			// Stage C
+			enable_stage_c <<= project_state.stage_c_enabled;
+			stage_c_mode <<= project_state.stage_c_mode;
+			max_dyaw <<= project_state.max_dyaw;
+			max_dpitch <<= project_state.max_dpitch;
+			max_droll <<= project_state.max_droll;
+			lambda_edit <<= project_state.lambda;
+			
+			// Viewer
+			view_mode_list.SetIndex(project_state.view_mode);
+			overlay_eyes <<= project_state.overlay_eyes;
+			alpha_slider <<= project_state.alpha;
+			overlay_swap <<= project_state.overlay_swap;
+			show_difference <<= project_state.show_difference;
+			show_epipolar <<= project_state.show_epipolar;
+
 			String dir = AppendFileName(project_dir, "captures");
 			captures_list.Clear();
 			for(int i = 0; i < captured_frames.GetCount(); i++) {
@@ -1891,12 +2361,53 @@ void StereoCalibrationTool::LoadState() {
 			}
 		}
 	}
+	SyncStageA();
 }
 
 void StereoCalibrationTool::SaveState() {
 	if (project_dir.IsEmpty()) return;
+	
+	// Sync project_state from UI
+	// Stage A
+	project_state.eye_dist = calib_eye_dist;
+	project_state.yaw_l = yaw_l;
+	project_state.pitch_l = pitch_l;
+	project_state.roll_l = roll_l;
+	project_state.yaw_r = yaw_r;
+	project_state.pitch_r = pitch_r;
+	project_state.roll_r = roll_r;
+	project_state.barrel_strength = barrel_strength;
+	project_state.fov_deg = fov_deg;
+	project_state.preview_extrinsics = preview_extrinsics;
+	
+	// Stage B
+	project_state.verbose_math_log = verbose_math_log;
+	project_state.compare_basic_params = stage_b_compare_basic;
+	
+	// Stage C
+	project_state.stage_c_enabled = enable_stage_c;
+	project_state.stage_c_mode = stage_c_mode;
+	project_state.max_dyaw = max_dyaw;
+	project_state.max_dpitch = max_dpitch;
+	project_state.max_droll = max_droll;
+	project_state.lambda = lambda_edit;
+	
+	// Viewer
+	project_state.view_mode = view_mode_list.GetIndex();
+	project_state.overlay_eyes = overlay_eyes;
+	project_state.alpha = ~alpha_slider;
+	project_state.overlay_swap = overlay_swap;
+	project_state.show_difference = show_difference;
+	project_state.show_epipolar = show_epipolar;
+	
+	project_state.schema_version = 1; // Ensure version is current
+
+	Json json;
+	json("frames", StoreAsJsonValue(captured_frames));
+	json("state", StoreAsJsonValue(project_state));
+	
 	String path = GetStatePath();
-	SaveFile(path, StoreAsJson(captured_frames));
+	SaveFile(path, json);
 	
 	String dir = AppendFileName(project_dir, "captures");
 	RealizeDirectory(dir);

@@ -57,6 +57,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		bool has_images = false;
 		bool show_epipolar = false;
 		bool show_residuals = false;
+		bool overlay_mode = false;
+		bool show_difference = false;
+		float overlay_alpha = 0.5f;
+		int overlay_base_eye = 0; // 0 = Left is base, 1 = Right is base
 		Image left_img;
 		Image right_img;
 		String overlay;
@@ -74,6 +78,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 		void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
 		void SetEpipolar(bool b) { show_epipolar = b; Refresh(); }
 		void SetResiduals(const Vector<ResidualSample>& r, double rms, bool show) { residuals <<= r; residual_rms = rms; show_residuals = show; Refresh(); }
+		void SetOverlayMode(bool m, float alpha, int base_eye) { overlay_mode = m; overlay_alpha = alpha; overlay_base_eye = base_eye; Refresh(); }
+		void SetDifference(bool b) { show_difference = b; Refresh(); }
 		
 		virtual void Paint(Draw& w) override;
 		virtual void LeftDown(Point p, dword flags) override;
@@ -144,8 +150,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	StatusBar status;
 	Splitter vsplitter;
 	Splitter hsplitter;
-	ParentCtrl left;
-	ParentCtrl right;
+	ParentCtrl left_panel;
+	ParentCtrl right_panel;
 	TabCtrl bottom_tabs;
 	Splitter captures_split;
 	PreviewCtrl preview;
@@ -184,8 +190,55 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	LabelBox sep_review;
 	LabelBox sep_diag;
 	Option show_epipolar;
-	Option undistort_view;
+	// Option undistort_view; // Replaced by View Mode
 	Option verbose_math_log;
+
+	// New Layout Elements
+	TabCtrl stage_tabs;
+	ParentCtrl pinned_camera_controls;
+	
+	Label view_mode_lbl;
+	DropList view_mode_list;
+	Option overlay_eyes;
+	Label alpha_lbl;
+	SliderCtrl alpha_slider;
+	Option overlay_swap; 
+	Option show_difference;
+
+	// Stage A controls
+	ParentCtrl stage_a_ctrl;
+	LabelBox eye_l_group, eye_r_group;
+	Label yaw_l_lbl, pitch_l_lbl, roll_l_lbl;
+	Label yaw_r_lbl, pitch_r_lbl, roll_r_lbl;
+	EditDoubleSpin yaw_l, pitch_l, roll_l;
+	EditDoubleSpin yaw_r, pitch_r, roll_r;
+	Option preview_extrinsics;
+	Label barrel_lbl, fov_lbl;
+	EditDoubleSpin barrel_strength, fov_deg;
+	// Option stage_a_undistort; // Removed/Integrated
+	DocEdit basic_params_doc;
+	// Option overlay_eyes; // Moved to pinned
+	// Label alpha_lbl;
+	// SliderCtrl alpha_slider;
+	// DropList overlay_base_eye; // Replaced/Moved
+	Button yaw_center_btn, pitch_center_btn;
+
+	// Stage B controls
+	ParentCtrl stage_b_ctrl;
+	// Option stage_b_undistort; // Removed/Integrated
+	Option stage_b_compare_basic;
+	// solve_calibration and verbose_math_log moved here logically
+
+	// Stage C controls
+	ParentCtrl stage_c_ctrl;
+	Option enable_stage_c;
+	Label stage_c_mode_lbl;
+	Switch stage_c_mode;
+	Label max_dyaw_lbl, max_dpitch_lbl, max_droll_lbl;
+	EditDoubleSpin max_dyaw, max_dpitch, max_droll;
+	Label lambda_lbl;
+	EditDoubleSpin lambda_edit;
+	Button refine_btn;
 	
 	ArrayCtrl captures_list;
 	ArrayCtrl matches_list;
@@ -203,6 +256,59 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	float preview_lens_outward = 0;
 	vec2 preview_lens_pp = vec2(0,0);
 	vec2 preview_lens_tilt = vec2(0,0);
+	struct ProjectState {
+		int schema_version = 1;
+		
+		// Stage A
+		double eye_dist = 64.0;
+		double yaw_l = 0, pitch_l = 0, roll_l = 0;
+		double yaw_r = 0, pitch_r = 0, roll_r = 0;
+		double fov_deg = 90.0;
+		double barrel_strength = 0;
+		bool preview_extrinsics = true;
+		
+		// Stage B
+		double distance_weight = 0.1;
+		double huber_px = 2.0;
+		double huber_m = 0.030;
+		bool lock_distortion = false;
+		bool verbose_math_log = false;
+		bool compare_basic_params = false;
+		
+		// Stage C
+		bool stage_c_enabled = false;
+		int stage_c_mode = 0; // 0=Relative, 1=Per-eye
+		double max_dyaw = 3.0;
+		double max_dpitch = 2.0;
+		double max_droll = 3.0;
+		double lambda = 0.1;
+		
+		// Viewer
+		int view_mode = 0; // 0=Raw, 1=Basic, 2=Solved
+		bool overlay_eyes = false;
+		int alpha = 50;
+		bool overlay_swap = false;
+		bool show_difference = false;
+		bool show_epipolar = false;
+
+		void Jsonize(JsonIO& jio) {
+			jio("schema_version", schema_version);
+			jio("eye_dist", eye_dist)("yaw_l", yaw_l)("pitch_l", pitch_l)("roll_l", roll_l);
+			jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
+			jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)("preview_extrinsics", preview_extrinsics);
+			
+			jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
+			jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)("compare_basic_params", compare_basic_params);
+			
+			jio("stage_c_enabled", stage_c_enabled)("stage_c_mode", stage_c_mode);
+			jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)("lambda", lambda);
+			
+			jio("view_mode", view_mode)("overlay_eyes", overlay_eyes)("alpha", alpha);
+			jio("overlay_swap", overlay_swap)("show_difference", show_difference)("show_epipolar", show_epipolar);
+		}
+	};
+	
+	ProjectState project_state;
 	Vector<CapturedFrame> captured_frames;
 	int pending_capture_row = -1;
 	int64 last_serial = -1;
@@ -212,6 +318,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	bool live_undist_valid = false;
 	Image live_undist_left;
 	Image live_undist_right;
+
+	// Stage C refined deltas
+	float dyaw_c = 0, dpitch_c = 0, droll_c = 0;
+
 	bool verbose = false;
 	TimeCallback tc;
 	TimeCallback usb_test_cb;
@@ -240,6 +350,8 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	int ga_population = 30;
 	int ga_generations = 20;
 
+	enum ViewMode { VIEW_RAW = 0, VIEW_BASIC, VIEW_SOLVED };
+
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
 	~StereoCalibrationTool();
@@ -247,6 +359,9 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void BuildLayout();
 	void BuildLeftPanel();
 	void BuildBottomTabs();
+	void BuildStageA();
+	void BuildStageB();
+	void BuildStageC();
 	void Data();
 	void Sync();
 	void DataCapturedFrame();
@@ -269,6 +384,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void LiveView();
 	void CaptureFrame();
 	void SolveCalibration();
+	void RefineExtrinsics();
 	void ClearMatches();
 	void RemoveSnapshot();
 	void RemoveMatchPair();
@@ -277,6 +393,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void LoadCalibration();
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
+	void SyncStageA();
 	void UpdatePreview();
 	void UpdateReviewOverlay();
 	void UpdateReviewEnablement();
@@ -284,7 +401,10 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	bool BuildUndistortCache(CapturedFrame& frame);
 	bool BuildLiveUndistortCache(const Image& left, const Image& right, int64 serial);
 	void ApplyPreviewImages(CapturedFrame& frame);
+	Pointf MapClickToRaw(Pointf p);
 	void OnReviewChanged();
+	void OnYawCenter();
+	void OnPitchCenter();
 	String GetStatePath() const;
 	String GetPersistPath() const;
 	String GetReportPath() const;

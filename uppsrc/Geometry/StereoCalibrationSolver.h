@@ -23,6 +23,10 @@ struct StereoCalibrationParams {
 	double yaw = 0;
 	double pitch = 0;
 	double roll = 0;
+	// Left eye rotation (optional, used for per-eye refinement)
+	double yaw_l = 0;
+	double pitch_l = 0;
+	double roll_l = 0;
 };
 
 struct StereoCalibrationResidual : Moveable<StereoCalibrationResidual> {
@@ -82,13 +86,36 @@ public:
 	mutable StereoCalibrationTrace trace;
 	String last_failure_reason;
 
+	struct GABounds {
+		double yaw_min = -15.0; // degrees
+		double yaw_max = 15.0;
+		double pitch_min = -10.0;
+		double pitch_max = 10.0;
+		double roll_min = -15.0;
+		double roll_max = 15.0;
+	};
+
 	// GA bootstrap parameters
 	bool use_ga_init = false;
 	int ga_population = 30;
 	int ga_generations = 20;
 	int ga_top_candidates = 3;  // Number of top GA candidates to refine with LM
+	GABounds ga_bounds;
 
 	bool Solve(StereoCalibrationParams& params, bool lock_distortion);
+	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);
+	
+	// SolveExtrinsicsOnlyMicroRefine
+	// Optimizes extrinsics deltas relative to input 'params'.
+	// If per_eye_mode is true, optimizes L and R deltas independently (6 DOF).
+	// If false, optimizes R relative to L (3 DOF).
+	// bounds_deg: {yaw, pitch, roll} limits in DEGREES.
+	// lambda: regularization weight for ||delta||^2
+	bool SolveExtrinsicsOnlyMicroRefine(StereoCalibrationParams& params, 
+	                                    const vec3& bounds_deg, 
+	                                    double lambda, 
+	                                    bool per_eye_mode);
+
 	void ComputeDiagnostics(const StereoCalibrationParams& params, StereoCalibrationDiagnostics& out) const;
 	void EnableTrace(bool on, int verbosity = 2, int max_lines = 20000);
 	String GetTraceText() const { return trace.GetText(); }

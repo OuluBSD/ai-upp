@@ -1,0 +1,33 @@
+description "AI Ctrl App\3770,0,255";
+
+uses
+	ide/AI/Ctrl/Base,
+	ide/AI/Ctrl/Agent,
+	ide/AI/Ctrl/Text,
+	ide/AI/Ctrl/Audio,
+	ide/AI/Ctrl/Video,
+	ide/AI/Ctrl/Imaging,
+	ide/AI/Ctrl/Biography,
+	ide/AI/Ctrl/Public,
+	ide/AI/Ctrl/Platform,
+	ide/AI/Ctrl/People,
+	ide/AI/Ctrl/Leads,
+	ide/AI/Ctrl/Internal;
+
+file
+	AGENTS.md,
+	App.h,
+	App.lay,
+	TaskCtrl.h,
+	TaskCtrl.cpp,
+	OmniCtrl.h,
+	OmniCtrl.cpp,
+	Playground.h,
+	Playground.cpp,
+	ProjectWizard.h,
+	ProjectWizard.cpp,
+	ProjectWizardInit.icpp,
+	AiChainCtrl.cpp,
+	Notepad.h,
+	Notepad.cpp;
+

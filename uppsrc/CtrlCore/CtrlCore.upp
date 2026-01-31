@@ -42,6 +42,7 @@ file
 	CtrlCore.iml,
 	CtrlCore.t,
 	CtrlCore.defs,
+	FB.iml,
 	Win32 readonly separator,
 	Win32Gui.h,
 	Win32GuiA.h,

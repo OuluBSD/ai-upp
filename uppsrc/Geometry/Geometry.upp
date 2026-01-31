@@ -12,7 +12,8 @@ uses
 	Draw,
 	Draw/Extensions,
 	Core/MathNumeric,
-	ByteVM;
+	ByteVM,
+	AI;
 
 uses(!UWP) plugin/tiny_gltf;
 

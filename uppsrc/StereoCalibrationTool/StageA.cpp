@@ -502,15 +502,16 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 
 		if (!left_is_identity) {
 			if (apply_extrinsics && apply_intrinsics) {
-				// Both: apply extrinsics rotation via LensPoly, then undistort
-				// For now, use UndistortImage which includes extrinsics via lens config
-				left_out = StereoCalibrationHelpers::UndistortImage(left_out, lens, linear_scale);
+				// Both: undistort first (barrel→linear), then rotate
+				// Sequential application loses some quality but is simple and correct
+				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale, true);
+				left_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(left_out, (float)yaw_l, (float)pitch_l, (float)roll_l, pp);
 			} else if (apply_extrinsics) {
 				// Extrinsics only
 				left_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(left_out, (float)yaw_l, (float)pitch_l, (float)roll_l, pp);
 			} else if (apply_intrinsics) {
-				// Intrinsics only (lens distortion, no rotation)
-				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale);
+				// Intrinsics only: undistort (remove barrel distortion from raw camera image)
+				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale, true);
 			}
 		}
 	}
@@ -525,14 +526,16 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 
 		if (!right_is_identity) {
 			if (apply_extrinsics && apply_intrinsics) {
-				// Both: apply extrinsics rotation via LensPoly, then undistort
-				right_out = StereoCalibrationHelpers::UndistortImage(right_out, lens, linear_scale);
+				// Both: undistort first (barrel→linear), then rotate
+				// Sequential application loses some quality but is simple and correct
+				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale, true);
+				right_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(right_out, (float)yaw_r, (float)pitch_r, (float)roll_r, pp);
 			} else if (apply_extrinsics) {
 				// Extrinsics only
 				right_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(right_out, (float)yaw_r, (float)pitch_r, (float)roll_r, pp);
 			} else if (apply_intrinsics) {
-				// Intrinsics only (lens distortion, no rotation)
-				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale);
+				// Intrinsics only: undistort (remove barrel distortion from raw camera image)
+				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale, true);
 			}
 		}
 	}

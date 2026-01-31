@@ -111,6 +111,9 @@ struct ProjectState {
 	bool overlay_swap = false;
 	bool show_difference = false;
 	bool show_epipolar = false;
+	bool tint_overlay = false;     // Tint left=blue, right=red in overlay mode
+	bool show_crosshair = false;   // Show red center crosshair lines
+	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
 
 	void Jsonize(JsonIO& jio) {
 		jio("schema_version", schema_version);
@@ -130,6 +133,7 @@ struct ProjectState {
 		jio("view_mode", view_mode)("overlay_eyes", overlay_eyes)("alpha", alpha);
 		jio("overlay_swap", overlay_swap)("show_difference", show_difference)
 		   ("show_epipolar", show_epipolar);
+		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode);
 	}
 };
 
@@ -303,8 +307,9 @@ Image ConvertMjpegToImage(const byte* data, int bytes);
 // Preview/undistort helpers used by StageA and LiveResult.
 RGBA SampleBilinear(const Image& img, float x, float y);
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale);
+Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale);
 Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp);
-Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale);
+Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale, bool undistort);
 
 // Persistence helpers (project.json + calibration file).
 String GetPersistPath(const AppModel& model);

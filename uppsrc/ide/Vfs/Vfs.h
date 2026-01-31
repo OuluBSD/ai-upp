@@ -20,6 +20,7 @@ NAMESPACE_UPP
 #include "MetaTempTask.h"
 #include "EditorCtrl.h"
 #include "Env.h"
+#include "TextDesigner.h"
 
 END_UPP_NAMESPACE
 	

@@ -1,8 +1,5 @@
 description "\377B";
 
-uses
-	AI/Ctrl;
-
 file
 	AGENTS.md,
 	Shell.h,

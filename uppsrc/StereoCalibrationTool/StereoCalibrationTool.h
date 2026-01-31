@@ -9,322 +9,364 @@
 #include <plugin/libv4l2/libv4l2.h>
 #endif
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 NAMESPACE_UPP
 
-struct StereoCalibrationTool : public Upp::TopWindow {
-	struct MatchPair : Moveable<MatchPair> {
-		Pointf left = Null;
-		Pointf right = Null;
-		String left_text;
-		String right_text;
-		double dist_l = 0;
-		double dist_r = 0;
+/*
+StereoCalibrationTool.h
+=======================
+Purpose:
+- Master header for the StereoCalibrationTool package.
+- Owns shared data types, AppModel, and shared UI helpers used by all
+  TopWindow modules (Menu/Camera/StageA/StageB/StageC/LiveResult).
 
-		void Jsonize(JsonIO& jio) {
-			jio("left", left)("right", right)("left_text", left_text)("right_text", right_text)("dist_l", dist_l)("dist_r", dist_r);
-		}
-	};
+How to run (smoke test):
+- build: python3 script/build.py -j 12 -mc 1 StereoCalibrationTool
+- run:   ./bin/StereoCalibrationTool
+*/
 
-	struct CapturedFrame : Moveable<CapturedFrame> {
-		Time time;
-		String source;
-		int samples = 0;
-		Image left_img;
-		Image right_img;
-		Image undist_left;
-		Image undist_right;
-		vec4 undist_poly = vec4(0,0,0,0);
-		Size undist_size = Size(0,0);
-		bool undist_valid = false;
-		Vector<MatchPair> matches;
+// ------------------------------------------------------------
+// Shared data model
+// ------------------------------------------------------------
 
-		void Jsonize(JsonIO& jio) {
-			jio("time", time)("source", source)("samples", samples)("matches", matches);
-			// Images are not jsonized for simplicity now, or could be base64. 
-			// For now we persist coordinates mainly.
-		}
-	};
+// Match pair between left/right views (normalized 0..1 coordinates).
+struct MatchPair : Moveable<MatchPair> {
+	Pointf left = Null;   // Left eye normalized coord (x,y in [0,1])
+	Pointf right = Null;  // Right eye normalized coord (x,y in [0,1])
+	String left_text;     // Display text for the left point (UI label)
+	String right_text;    // Display text for the right point (UI label)
+	double dist_l = 0;    // Optional distance hint for left ray (mm)
+	double dist_r = 0;    // Optional distance hint for right ray (mm)
 
-	struct PreviewCtrl : public Upp::Ctrl {
-		struct ResidualSample : Moveable<ResidualSample> {
-			Pointf measured = Null;
-			Pointf reproj = Null;
-			int eye = 0;
-			double err_px = 0;
-		};
+	void Jsonize(JsonIO& jio) {
+		jio("left", left)("right", right)
+		   ("left_text", left_text)("right_text", right_text)
+		   ("dist_l", dist_l)("dist_r", dist_r);
+	}
+};
 
-		bool live = true;
-		bool has_images = false;
-		bool show_epipolar = false;
-		bool show_residuals = false;
-		bool overlay_mode = false;
-		bool show_difference = false;
-		float overlay_alpha = 0.5f;
-		int overlay_base_eye = 0; // 0 = Left is base, 1 = Right is base
-		Image left_img;
-		Image right_img;
-		String overlay;
-		Pointf pending_left = Null;
-		Vector<MatchPair> matches;
-		Vector<ResidualSample> residuals;
-		double residual_rms = 0;
-		
-		Event<Pointf, int> WhenClick;
-		
-		void SetLive(bool b) { live = b; Refresh(); }
-		void SetImages(const Image& l, const Image& r) { left_img = l; right_img = r; has_images = !IsNull(l) || !IsNull(r); Refresh(); }
-		void SetOverlay(const String& s) { overlay = s; Refresh(); }
-		void SetPendingLeft(Pointf p) { pending_left = p; Refresh(); }
-		void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
-		void SetEpipolar(bool b) { show_epipolar = b; Refresh(); }
-		void SetResiduals(const Vector<ResidualSample>& r, double rms, bool show) { residuals <<= r; residual_rms = rms; show_residuals = show; Refresh(); }
-		void SetOverlayMode(bool m, float alpha, int base_eye) { overlay_mode = m; overlay_alpha = alpha; overlay_base_eye = base_eye; Refresh(); }
-		void SetDifference(bool b) { show_difference = b; Refresh(); }
-		
-		virtual void Paint(Draw& w) override;
-		virtual void LeftDown(Point p, dword flags) override;
-	};
-	
-	struct StereoSource {
-		virtual ~StereoSource() {}
-		virtual String GetName() const = 0;
-		virtual bool Start() = 0;
-		virtual void Stop() = 0;
-		virtual bool IsRunning() const = 0;
-		virtual bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
-		virtual bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
-		virtual void SetVerbose(bool v) {}
-	};
-	
-	struct HmdStereoSource : StereoSource {
-		bool running = false;
-		bool verbose = false;
-		HMD::System sys;
-		One<HMD::Camera> cam;
-		Image last_left;
-		Image last_right;
-		bool last_is_bright = false;
+// Shared view modes for preview/undistort handling.
+enum ViewMode {
+	VIEW_RAW = 0,
+	VIEW_BASIC = 1,
+	VIEW_SOLVED = 2
+};
 
-		String GetName() const override { return "HMD Stereo Camera"; }
-		bool Start() override;
-		void Stop() override;
-		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
-		bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
-		void SetVerbose(bool v) override { verbose = v; }
-	};
-	
-	struct UsbStereoSource : StereoSource {
-		bool running = false;
-		String device_path;
-		Image last_left;
-		Image last_right;
-		bool last_is_bright = false;
-#ifdef flagLINUX
-		One<V4l2Capture> capture;
-		Vector<byte> raw;
-		int width = 0;
-		int height = 0;
-		int pixfmt = 0;
-#endif
-		String GetName() const override { return "USB Stereo (Side-by-side)"; }
-		bool Start() override;
-		void Stop() override;
-		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
-		bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
-	};
-	
-	struct VideoStereoSource : StereoSource {
-		bool running = false;
-		String path;
-		String GetName() const override { return "Stereo Video File"; }
-		bool Start() override { running = true; return true; }
-		void Stop() override { running = false; }
-		bool IsRunning() const override { return running; }
-		bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
-		bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
-	};
+// One captured stereo frame and its stored match points.
+struct CapturedFrame : Moveable<CapturedFrame> {
+	Time time;                 // Capture timestamp
+	String source;             // Human-readable source label
+	int samples = 0;           // Total matches at capture time
+	Image left_img;            // Captured left image
+	Image right_img;           // Captured right image
+	Image undist_left;         // Cached undistorted left image (view mode)
+	Image undist_right;        // Cached undistorted right image (view mode)
+	vec4 undist_poly = vec4(0,0,0,0);
+	Size undist_size = Size(0,0);
+	bool undist_valid = false; // Cache validity flag
+	Vector<MatchPair> matches; // Stored match pairs
 
-	MenuBar menu;
-	StatusBar status;
-	Splitter vsplitter;
-	Splitter hsplitter;
-	ParentCtrl left_panel;
-	ParentCtrl right_panel;
-	TabCtrl bottom_tabs;
-	Splitter captures_split;
-	PreviewCtrl preview;
-	
-	Label source_info;
-	Label calibration_info;
-	Label calibration_schema;
-	Label calibration_preview;
-	Button export_calibration;
-	Button deploy_calibration;
-	Button load_calibration;
-	Button live_view;
-	Button capture_frame;
-	Button solve_calibration;
-	Button clear_matches;
-	Label calib_enabled_lbl;
-	Option calib_enabled;
-	Label calib_eye_lbl;
-	EditDouble calib_eye_dist;
-	Label calib_outward_lbl;
-	EditDouble calib_outward_angle;
-	Label calib_poly_lbl;
-	EditDouble calib_poly_a;
-	EditDouble calib_poly_b;
-	EditDouble calib_poly_c;
-	EditDouble calib_poly_d;
-	Label mode_lbl;
-	DropList mode_list;
-	DropList source_list;
-	Button start_source;
-	Button stop_source;
-	Label source_status;
-	LabelBox sep_source;
-	LabelBox sep_mode;
-	LabelBox sep_calib;
-	LabelBox sep_review;
-	LabelBox sep_diag;
-	Option show_epipolar;
-	// Option undistort_view; // Replaced by View Mode
-	Option verbose_math_log;
+	void Jsonize(JsonIO& jio) {
+		jio("time", time)("source", source)("samples", samples)("matches", matches);
+		// Images are intentionally not jsonized (stored as PNGs on disk).
+	}
+};
 
-	// New Layout Elements
-	TabCtrl stage_tabs;
-	ParentCtrl pinned_camera_controls;
-	
-	Label view_mode_lbl;
-	DropList view_mode_list;
-	Option overlay_eyes;
-	Label alpha_lbl;
-	SliderCtrl alpha_slider;
-	Option overlay_swap; 
-	Option show_difference;
+// User-editable state that persists to project.json.
+struct ProjectState {
+	int schema_version = 1;
 
-	// Stage A controls
-	ParentCtrl stage_a_ctrl;
-	LabelBox eye_l_group, eye_r_group;
-	Label yaw_l_lbl, pitch_l_lbl, roll_l_lbl;
-	Label yaw_r_lbl, pitch_r_lbl, roll_r_lbl;
-	EditDoubleSpin yaw_l, pitch_l, roll_l;
-	EditDoubleSpin yaw_r, pitch_r, roll_r;
-	Option preview_extrinsics;
-	Label barrel_lbl, fov_lbl;
-	EditDoubleSpin barrel_strength, fov_deg;
-	// Option stage_a_undistort; // Removed/Integrated
-	DocEdit basic_params_doc;
-	// Option overlay_eyes; // Moved to pinned
-	// Label alpha_lbl;
-	// SliderCtrl alpha_slider;
-	// DropList overlay_base_eye; // Replaced/Moved
-	Button yaw_center_btn, pitch_center_btn;
+	// Stage A (basic alignment)
+	double eye_dist = 64.0;          // mm
+	double yaw_l = 0, pitch_l = 0, roll_l = 0; // deg
+	double yaw_r = 0, pitch_r = 0, roll_r = 0; // deg
+	double fov_deg = 90.0;           // deg
+	double barrel_strength = 0;      // percent-ish scaler
+	bool preview_extrinsics = true;  // preview uses extrinsics if true
 
-	// Stage B controls
-	ParentCtrl stage_b_ctrl;
-	// Option stage_b_undistort; // Removed/Integrated
-	Option stage_b_compare_basic;
-	// solve_calibration and verbose_math_log moved here logically
+	// Stage B (solve)
+	double distance_weight = 0.1;
+	double huber_px = 2.0;
+	double huber_m = 0.030;
+	bool lock_distortion = false;
+	bool verbose_math_log = false;
+	bool compare_basic_params = false;
 
-	// Stage C controls
-	ParentCtrl stage_c_ctrl;
-	Option enable_stage_c;
-	Label stage_c_mode_lbl;
-	Switch stage_c_mode;
-	Label max_dyaw_lbl, max_dpitch_lbl, max_droll_lbl;
-	EditDoubleSpin max_dyaw, max_dpitch, max_droll;
-	Label lambda_lbl;
-	EditDoubleSpin lambda_edit;
-	Button refine_btn;
-	
-	ArrayCtrl captures_list;
-	ArrayCtrl matches_list;
-	EditDouble dist_l_editor;
-	EditDouble dist_r_editor;
-	DocEdit report_text;
-	DocEdit math_text;
-	Vector<One<StereoSource>> sources;
-	Upp::Mutex source_mutex;
-	String project_dir;
-	StereoCalibrationData last_calibration;
-	LensPoly preview_lens;
-	Size preview_lens_size = Size(0,0);
-	vec4 preview_lens_poly = vec4(0,0,0,0);
-	float preview_lens_outward = 0;
-	vec2 preview_lens_pp = vec2(0,0);
-	vec2 preview_lens_tilt = vec2(0,0);
-	struct ProjectState {
-		int schema_version = 1;
-		
-		// Stage A
-		double eye_dist = 64.0;
-		double yaw_l = 0, pitch_l = 0, roll_l = 0;
-		double yaw_r = 0, pitch_r = 0, roll_r = 0;
-		double fov_deg = 90.0;
-		double barrel_strength = 0;
-		bool preview_extrinsics = true;
-		
-		// Stage B
-		double distance_weight = 0.1;
-		double huber_px = 2.0;
-		double huber_m = 0.030;
-		bool lock_distortion = false;
-		bool verbose_math_log = false;
-		bool compare_basic_params = false;
-		
-		// Stage C
-		bool stage_c_enabled = false;
-		int stage_c_mode = 0; // 0=Relative, 1=Per-eye
-		double max_dyaw = 3.0;
-		double max_dpitch = 2.0;
-		double max_droll = 3.0;
-		double lambda = 0.1;
-		
-		// Viewer
-		int view_mode = 0; // 0=Raw, 1=Basic, 2=Solved
-		bool overlay_eyes = false;
-		int alpha = 50;
-		bool overlay_swap = false;
-		bool show_difference = false;
-		bool show_epipolar = false;
+	// Stage C (micro-refine)
+	bool stage_c_enabled = false;
+	int stage_c_mode = 0; // 0=Relative, 1=Per-eye
+	double max_dyaw = 3.0;
+	double max_dpitch = 2.0;
+	double max_droll = 3.0;
+	double lambda = 0.1;
 
-		void Jsonize(JsonIO& jio) {
-			jio("schema_version", schema_version);
-			jio("eye_dist", eye_dist)("yaw_l", yaw_l)("pitch_l", pitch_l)("roll_l", roll_l);
-			jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
-			jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)("preview_extrinsics", preview_extrinsics);
-			
-			jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
-			jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)("compare_basic_params", compare_basic_params);
-			
-			jio("stage_c_enabled", stage_c_enabled)("stage_c_mode", stage_c_mode);
-			jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)("lambda", lambda);
-			
-			jio("view_mode", view_mode)("overlay_eyes", overlay_eyes)("alpha", alpha);
-			jio("overlay_swap", overlay_swap)("show_difference", show_difference)("show_epipolar", show_epipolar);
-		}
-	};
-	
-	ProjectState project_state;
-	Vector<CapturedFrame> captured_frames;
-	int pending_capture_row = -1;
+	// Viewer
+	int view_mode = 0;   // 0=Raw, 1=Basic, 2=Solved
+	bool overlay_eyes = false;
+	int alpha = 50;      // 0..100
+	bool overlay_swap = false;
+	bool show_difference = false;
+	bool show_epipolar = false;
+
+	void Jsonize(JsonIO& jio) {
+		jio("schema_version", schema_version);
+		jio("eye_dist", eye_dist)("yaw_l", yaw_l)("pitch_l", pitch_l)("roll_l", roll_l);
+		jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
+		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)("preview_extrinsics", preview_extrinsics);
+
+		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
+		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
+		   ("compare_basic_params", compare_basic_params);
+
+		jio("stage_c_enabled", stage_c_enabled)("stage_c_mode", stage_c_mode);
+		jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)
+		   ("lambda", lambda);
+
+		jio("view_mode", view_mode)("overlay_eyes", overlay_eyes)("alpha", alpha);
+		jio("overlay_swap", overlay_swap)("show_difference", show_difference)
+		   ("show_epipolar", show_epipolar);
+	}
+};
+
+// Shared application state used by all windows.
+struct AppModel {
+	// Core project path and persistence data.
+	String project_dir;               // Root directory for the project
+	ProjectState project_state;       // User-editable controls that persist
+
+	// Captured data set (image files are stored by index in project_dir/captures).
+	Vector<CapturedFrame> captured_frames; // Persistent capture list
+	int selected_capture = -1;            // Selected capture index
+	int pending_capture_row = -1;         // UI convenience for list selection
+
+	// Calibration data.
+	StereoCalibrationData last_calibration; // Latest solved calibration
+
+	// Viewer caches (per capture and live).
 	int64 last_serial = -1;
 	int64 live_undist_serial = -1;
-	Size live_undist_size = Size(0,0);
+	Size live_undist_size = Size(0, 0);
 	vec4 live_undist_poly = vec4(0,0,0,0);
 	bool live_undist_valid = false;
 	Image live_undist_left;
 	Image live_undist_right;
 
-	// Stage C refined deltas
-	float dyaw_c = 0, dpitch_c = 0, droll_c = 0;
+	// Stage C deltas (diagnostic only).
+	float dyaw_c = 0;
+	float dpitch_c = 0;
+	float droll_c = 0;
 
+	// Output buffers (used by Stage B/Stage C UI).
+	String report_text;
+	String math_text;
+
+	// Global flags
 	bool verbose = false;
-	TimeCallback tc;
+
+	// GA bootstrap settings (headless or advanced use).
+	bool use_ga_bootstrap = false;
+	int ga_population = 30;
+	int ga_generations = 20;
+};
+
+// ------------------------------------------------------------
+// Shared UI helpers
+// ------------------------------------------------------------
+
+// Preview widget used by Camera, Stage A, and LiveResult.
+// Disabled per request (see module windows for simplified views).
+#if 0
+struct PreviewCtrl : public Ctrl {
+	struct ResidualSample : Moveable<ResidualSample> {
+		Pointf measured = Null;
+		Pointf reproj = Null;
+		int eye = 0;
+		double err_px = 0;
+	};
+
+	bool live = true;
+	bool has_images = false;
+	bool show_epipolar = false;
+	bool show_residuals = false;
+	bool overlay_mode = false;
+	bool show_difference = false;
+	float overlay_alpha = 0.5f;
+	int overlay_base_eye = 0; // 0 = Left is base, 1 = Right is base
+	Image left_img;
+	Image right_img;
+	String overlay;
+	Pointf pending_left = Null;
+	Vector<MatchPair> matches;
+	Vector<ResidualSample> residuals;
+	double residual_rms = 0;
+
+	Event<Pointf, int> WhenClick;
+
+	void SetLive(bool b) { live = b; Refresh(); }
+	void SetImages(const Image& l, const Image& r) { left_img = l; right_img = r; has_images = !IsNull(l) || !IsNull(r); Refresh(); }
+	void SetOverlay(const String& s) { overlay = s; Refresh(); }
+	void SetPendingLeft(Pointf p) { pending_left = p; Refresh(); }
+	void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
+	void SetEpipolar(bool b) { show_epipolar = b; Refresh(); }
+	void SetResiduals(const Vector<ResidualSample>& r, double rms, bool show) { residuals <<= r; residual_rms = rms; show_residuals = show; Refresh(); }
+	void SetOverlayMode(bool m, float alpha, int base_eye) { overlay_mode = m; overlay_alpha = alpha; overlay_base_eye = base_eye; Refresh(); }
+	void SetDifference(bool b) { show_difference = b; Refresh(); }
+
+	virtual void Paint(Draw& w) override;
+	virtual void LeftDown(Point p, dword flags) override;
+};
+#endif
+
+// ------------------------------------------------------------
+// Shared stereo camera sources
+// ------------------------------------------------------------
+
+struct StereoSource {
+	virtual ~StereoSource() {}
+	virtual String GetName() const = 0;
+	virtual bool Start() = 0;
+	virtual void Stop() = 0;
+	virtual bool IsRunning() const = 0;
+	virtual bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
+	virtual bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
+	virtual void SetVerbose(bool v) {}
+};
+
+struct HmdStereoSource : StereoSource {
+	bool running = false;
+	bool verbose = false;
+	HMD::System sys;
+	One<HMD::Camera> cam;
+	Image last_left;
+	Image last_right;
+	bool last_is_bright = false;
+
+	String GetName() const override { return "HMD Stereo Camera"; }
+	bool Start() override;
+	void Stop() override;
+	bool IsRunning() const override { return running; }
+	bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
+	bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
+	void SetVerbose(bool v) override { verbose = v; }
+};
+
+struct UsbStereoSource : StereoSource {
+	bool running = false;
+	String device_path;
+	Image last_left;
+	Image last_right;
+	bool last_is_bright = false;
+#ifdef flagLINUX
+	One<V4l2Capture> capture;
+	Vector<byte> raw;
+	int width = 0;
+	int height = 0;
+	int pixfmt = 0;
+#endif
+	String GetName() const override { return "USB Stereo (Side-by-side)"; }
+	bool Start() override;
+	void Stop() override;
+	bool IsRunning() const override { return running; }
+	bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
+	bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
+};
+
+struct VideoStereoSource : StereoSource {
+	bool running = false;
+	String path;
+	String GetName() const override { return "Stereo Video File"; }
+	bool Start() override { running = true; return true; }
+	void Stop() override { running = false; }
+	bool IsRunning() const override { return running; }
+	bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
+	bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
+};
+
+// ------------------------------------------------------------
+// Shared helper functions (implemented in StereoCalibrationTool.cpp)
+// ------------------------------------------------------------
+
+namespace StereoCalibrationHelpers {
+// Image/conversion helpers used by Camera and LiveResult.
+bool SplitStereoImage(const Image& src, Image& left, Image& right);
+Image CopyFrameImage(const VisualFrame& frame);
+bool IsFrameNonBlack(const Image& img);
+Image ConvertRgb24ToImage(const byte* data, int width, int height);
+Image ConvertYuyvToImage(const byte* data, int width, int height);
+Image ConvertMjpegToImage(const byte* data, int bytes);
+
+// Preview/undistort helpers used by StageA and LiveResult.
+RGBA SampleBilinear(const Image& img, float x, float y);
+Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale);
+
+// Persistence helpers (project.json + calibration file).
+String GetPersistPath(const AppModel& model);
+String GetStatePath(const AppModel& model);
+String GetReportPath(const AppModel& model);
+void LoadLastCalibration(AppModel& model);
+void SaveLastCalibration(AppModel& model);
+void LoadState(AppModel& model);
+void SaveState(const AppModel& model);
+}
+
+// ------------------------------------------------------------
+// Forward declarations for window modules
+// ------------------------------------------------------------
+
+class MenuWindow;
+class CameraWindow;
+class StageAWindow;
+class StageBWindow;
+class StageCWindow;
+class LiveResultWindow;
+
+// Identity test helper (headless diagnostic).
+int TestStageAIdentity(AppModel& model, const String& project_dir, const String& image_path = String());
+
+// ------------------------------------------------------------
+// Legacy controller (kept for reference, currently disabled).
+// ------------------------------------------------------------
+
+#if 0
+class StereoCalibrationTool {
+public:
+	StereoCalibrationTool();
+	~StereoCalibrationTool();
+
+	void Run();
+	void SetVerbose(bool v);
+	void SetProjectDir(const String& dir);
+	void EnableGABootstrap(bool enable, int population = 30, int generations = 20);
+
+	// Headless tools
+	int SolveHeadless(const String& project_dir);
+	int TestStageAIdentity(const String& project_dir, const String& image_path = String());
+
+	// Capture test hooks (used by CLI switches)
+	void EnableUsbTest(const String& dev, int timeout_ms);
+	void EnableHmdTest(int timeout_ms);
+	void EnableLiveTest(int timeout_ms);
+
+	AppModel& Model() { return model; }
+
+private:
+	AppModel model;
+
+	// Windows live for the lifetime of the app (Menu owns no logic).
+	MenuWindow* menu = nullptr;
+	CameraWindow* camera = nullptr;
+	StageAWindow* stage_a = nullptr;
+	StageBWindow* stage_b = nullptr;
+	StageCWindow* stage_c = nullptr;
+	LiveResultWindow* live = nullptr;
+
+	// Test / timer infrastructure (headless capture checks).
 	TimeCallback usb_test_cb;
+	TimeCallback hmd_test_cb;
+	TimeCallback live_test_cb;
 	bool usb_test_enabled = false;
 	bool usb_test_active = false;
 	int usb_test_timeout_ms = 4000;
@@ -332,93 +374,35 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	int64 usb_test_start_us = 0;
 	int64 usb_test_last_start_us = 0;
 	int usb_test_attempts = 0;
-	TimeCallback hmd_test_cb;
 	bool hmd_test_enabled = false;
 	bool hmd_test_active = false;
 	int hmd_test_timeout_ms = 4000;
 	int64 hmd_test_start_us = 0;
 	int64 hmd_test_last_start_us = 0;
 	int hmd_test_attempts = 0;
-	
-	TimeCallback live_test_cb;
 	bool live_test_active = false;
 	int live_test_timeout_ms = 5000;
 	int64 live_test_start_us = 0;
 
-	// GA bootstrap settings
-	bool use_ga_bootstrap = false;
-	int ga_population = 30;
-	int ga_generations = 20;
-
-	enum ViewMode { VIEW_RAW = 0, VIEW_BASIC, VIEW_SOLVED };
-
-	typedef StereoCalibrationTool CLASSNAME;
-	StereoCalibrationTool();
-	~StereoCalibrationTool();
-	
-	void BuildLayout();
-	void BuildLeftPanel();
-	void BuildBottomTabs();
-	void BuildStageA();
-	void BuildStageB();
-	void BuildStageC();
-	void Data();
-	void Sync();
-	void DataCapturedFrame();
-	void EnableUsbTest(const String& dev, int timeout_ms);
 	void StartUsbTest();
 	void RunUsbTest();
-	void EnableHmdTest(int timeout_ms);
 	void StartHmdTest();
 	void RunHmdTest();
-	void EnableLiveTest(int timeout_ms);
 	void StartLiveTest();
 	void RunLiveTest();
-	void SetVerbose(bool v);
-	void EnableGABootstrap(bool enable, int population = 30, int generations = 20);
-	void SetProjectDir(const String& dir);
-	int SolveHeadless(const String& project_dir);
-	void OnSourceChanged();
-	void StartSource();
-	void StopSource();
-	void LiveView();
-	void CaptureFrame();
-	void SolveCalibration();
-	void RefineExtrinsics();
-	void ClearMatches();
-	void RemoveSnapshot();
-	void RemoveMatchPair();
-	void ExportCalibration();
-	void DeployCalibration();
-	void LoadCalibration();
-	void SyncCalibrationFromEdits();
-	void SyncEditsFromCalibration();
-	void SyncStageA();
-	void UpdatePreview();
-	void UpdateReviewOverlay();
-	void UpdateReviewEnablement();
-	bool PreparePreviewLens(const Size& sz);
-	bool BuildUndistortCache(CapturedFrame& frame);
-	bool BuildLiveUndistortCache(const Image& left, const Image& right, int64 serial);
-	void ApplyPreviewImages(CapturedFrame& frame);
-	Pointf MapClickToRaw(Pointf p);
-	void OnReviewChanged();
-	void OnYawCenter();
-	void OnPitchCenter();
-	String GetStatePath() const;
-	String GetPersistPath() const;
-	String GetReportPath() const;
-	void LoadLastCalibration();
-	void SaveLastCalibration();
-	void LoadState();
-	void SaveState();
-
-	void MainMenu(Bar& bar);
-	void AppMenu(Bar& bar);
-	void ViewMenu(Bar& bar);
-	void EditMenu(Bar& bar);
-	void HelpMenu(Bar& bar);
 };
+#endif
+
+// ------------------------------------------------------------
+// Sub-headers (TopWindow modules)
+// ------------------------------------------------------------
+
+#include "Menu.h"
+#include "Camera.h"
+#include "StageA.h"
+#include "StageB.h"
+#include "StageC.h"
+#include "LiveResult.h"
 
 END_UPP_NAMESPACE
 

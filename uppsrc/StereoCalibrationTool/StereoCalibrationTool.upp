@@ -12,9 +12,23 @@ file
 	AGENTS.md,
 	CALIBRATION_DEBUG.md,
 	StereoCalibrationTool.h,
+	Menu.h,
+	Menu.cpp,
+	Camera.h,
+	Camera.cpp,
+	StageA.h,
+	StageA.cpp,
+	StageB.h,
+	StageB.cpp,
+	StageC.h,
+	StageC.cpp,
+	LiveResult.h,
+	LiveResult.cpp,
 	StereoCalibrationTool.cpp,
+	IdentityTest.cpp,
 	main.cpp;
 
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
+

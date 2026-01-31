@@ -1,13 +1,6 @@
 #ifndef EDIT_COLUMNS_HPP
 #define EDIT_COLUMNS_HPP
 
-#include <CtrlLib/CtrlLib.h>
-#include <GridCtrl/GridCtrl.h>
-using namespace Upp;
-
-#include <Form/IniConfig.hpp>
-#include <Form/Form.hpp>
-
 class EditColumns : public Button
 {
 	typedef EditColumns CLASSNAME;

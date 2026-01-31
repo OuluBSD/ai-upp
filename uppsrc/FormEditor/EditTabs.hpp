@@ -1,12 +1,6 @@
 #ifndef EDIT_TABS_HPP
 #define EDIT_TABS_HPP
 
-#include <CtrlLib/CtrlLib.h>
-#include <GridCtrl/GridCtrl.h>
-using namespace Upp;
-
-#include <Form/IniConfig.hpp>
-#include <Form/Form.hpp>
 
 class EditTabs : public Button
 {

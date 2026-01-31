@@ -8,14 +8,14 @@ NAMESPACE_UPP
 struct WmrCaseMatch : Moveable<WmrCaseMatch> {
 	vec2 left_px;
 	vec2 right_px;
-	double dist_l = 0;
-	double dist_r = 0;
-	vec3 point;
+	double dist_l = 0;  // meters
+	double dist_r = 0;  // meters
+	vec3 point;  // meters
 };
 
 struct WmrCaseData {
 	Size image_size;
-	double eye_dist = 0;
+	double eye_dist = 0;  // meters
 	double fov_x_deg = 0;
 	double fov_y_deg = 0;
 	double left_yaw_deg = 0;

@@ -1,12 +1,12 @@
-#ifndef _AI_TextCtrl_Entity_h_
-#define _AI_TextCtrl_Entity_h_
+#ifndef _ide_AI_Ctrl_Base_Entity_h_
+#define _ide_AI_Ctrl_Base_Entity_h_
 
 
 struct Script;
 class ToolAppCtrl;
 struct VfsSrcFile;
 
-struct ComponentCtrl : VfsValueExtCtrl, DatasetProvider {
+struct ComponentCtrl : ToolAppVfsValueExtCtrl, DatasetProvider {
 	void GetDataset(DatasetPtrs&) const override;
 };
 

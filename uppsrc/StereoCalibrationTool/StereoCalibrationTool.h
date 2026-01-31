@@ -86,6 +86,7 @@ struct ProjectState {
 	double fov_deg = 90.0;           // deg
 	double barrel_strength = 0;      // percent-ish scaler
 	bool preview_extrinsics = true;  // preview uses extrinsics if true
+	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
 
 	// Stage B (solve)
 	double distance_weight = 0.1;
@@ -115,7 +116,8 @@ struct ProjectState {
 		jio("schema_version", schema_version);
 		jio("eye_dist", eye_dist)("yaw_l", yaw_l)("pitch_l", pitch_l)("roll_l", roll_l);
 		jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
-		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)("preview_extrinsics", preview_extrinsics);
+		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)
+		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics);
 
 		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
 		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
@@ -301,6 +303,8 @@ Image ConvertMjpegToImage(const byte* data, int bytes);
 // Preview/undistort helpers used by StageA and LiveResult.
 RGBA SampleBilinear(const Image& img, float x, float y);
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale);
+Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp);
+Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale);
 
 // Persistence helpers (project.json + calibration file).
 String GetPersistPath(const AppModel& model);

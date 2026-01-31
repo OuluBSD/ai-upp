@@ -18,17 +18,22 @@ struct GeomKeypoint {
 	void Visit(Vis& v);
 };
 
-struct GeomTimeline {
+static inline bool IsVfsType(const VfsValue& v, hash_t h) {
+	return v.type_hash == h || (v.ext && v.ext->GetTypeHash() == h);
+}
+
+struct GeomTimeline : VfsValueExt {
 	ArrayMap<int, GeomKeypoint> keypoints;
 	
+	DEFAULT_EXT(GeomTimeline)
 	GeomKeypoint& GetAddKeypoint(int i);
 	int FindPre(int kp_i) const;
 	int FindPost(int kp_i) const;
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
-struct GeomObject {
+struct GeomObject : VfsValueExt {
 	typedef enum {
 		O_NULL,
 		O_MODEL,
@@ -38,39 +43,40 @@ struct GeomObject {
 		O_COUNT
 	} Type;
 	
-	GeomDirectory* owner = 0;
-	
 	hash_t key;
 	String name;
 	Type type = O_NULL;
 	String asset_ref;
 	String pointcloud_ref;
 	
-	GeomObject() {}
+	DEFAULT_EXT(GeomObject)
 	One<Model> mdl;
 	Camera cam;
 	OctreePointModel octree;
 	Octree* octree_ptr = 0;
 	
-	GeomTimeline timeline;
+	GeomTimeline& GetTimeline();
+	GeomTimeline* FindTimeline() const;
 	
 	bool IsModel() const {return type == O_MODEL;}
 	bool IsOctree() const {return type == O_OCTREE;}
 	bool IsCamera() const {return type == O_CAMERA;}
 	String GetPath() const;
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
-struct GeomDirectory {
+struct GeomDirectory : VfsValueExt {
 	virtual ~GeomDirectory() {}
 	
-	ArrayMap<String, GeomDirectory> subdir;
-	Array<GeomObject> objs;
 	String name;
-	GeomDirectory* owner = 0;
 	
+	DEFAULT_EXT(GeomDirectory)
 	GeomProject& GetProject() const;
+	int GetSubdirCount() const;
+	GeomDirectory& GetSubdir(int i) const;
+	int GetObjectCount() const;
+	GeomObject& GetObject(int i) const;
 	GeomDirectory& GetAddDirectory(String name);
 	GeomObject& GetAddModel(String name);
 	GeomObject& GetAddCamera(String name);
@@ -79,17 +85,18 @@ struct GeomDirectory {
 	GeomObject* FindObject(String name, GeomObject::Type type);
 	GeomObject* FindCamera(String name);
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
 struct GeomObjectIterator {
 	static const int MAX_LEVELS = 128;
 	int pos[MAX_LEVELS] = {0};
-	GeomDirectory* addr[MAX_LEVELS];
-	GeomObject* obj;
-	int level = 0;
+	VfsValue* addr[MAX_LEVELS];
+	GeomObject* obj = 0;
+	int level = -1;
 	
-	
+	GeomObjectIterator() {}
+	explicit GeomObjectIterator(GeomDirectory& d);
 	bool Next();
 	operator bool() const;
 	GeomObject& operator*();
@@ -122,32 +129,34 @@ struct GeomObjectCollection {
 };
 
 struct GeomScene : GeomDirectory {
-	GeomProject* owner = 0;
+	CLASSTYPE(GeomScene)
+	GeomScene(VfsValue& n) : GeomDirectory(n) {}
 	int length = 0;
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
-struct GeomProject {
-	Array<GeomScene> scenes;
+struct GeomProject : VfsValueExt {
 	int kps = 5;
 	int fps = 60;
 	
 	hash_t key_counter;
 	
+	DEFAULT_EXT(GeomProject)
 	void Clear() {
-		scenes.Clear();
+		val.sub.Clear();
 		kps = 5;
 		fps = 60;
 		key_counter = 1;
 	}
 	
 	GeomScene& AddScene();
-	GeomScene& GetScene(int i) {return scenes[i];}
+	int GetSceneCount() const;
+	GeomScene& GetScene(int i);
 	
 	hash_t NewKey() {return key_counter++;}
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
 typedef enum {
@@ -164,19 +173,19 @@ typedef enum {
 	CAMSRC_VIDEOIMPORT_PROGRAM,
 } CameraSource;
 
-struct GeomCamera {
+struct GeomCamera : VfsValueExt {
 	vec3 position = vec3(0);
 	quat orientation = Identity<quat>();
 	float distance = 10;
 	float fov = 120;
 	float scale = 1;
 	
-	
+	DEFAULT_EXT(GeomCamera)
 	void LoadCamera(ViewMode m, Camera& cam, Size sz, float far=1000) const;
 	mat4 GetViewMatrix(ViewMode m, Size sz) const;
 	Frustum GetFrustum(ViewMode m, Size sz) const;
 	
-	void Visit(Vis& v);
+	void Visit(Vis& v) override;
 };
 
 struct GeomObjectState {
@@ -185,36 +194,48 @@ struct GeomObjectState {
 	quat orientation;
 };
 
-struct GeomWorldState {
+struct GeomWorldState : VfsValueExt {
 	GeomProject* prj = 0;
-	GeomCamera focus, program;
 	int active_scene = -1;
 	int active_camera_obj_i = -1;
 	
 	Array<GeomObjectState> objs;
 	
+	DEFAULT_EXT(GeomWorldState)
+	GeomCamera& GetFocus();
+	GeomCamera& GetProgram();
 	
-	GeomWorldState();
-	
+	void Visit(Vis& v) override;
 	void UpdateObjects();
 	GeomScene& GetActiveScene();
 	bool HasActiveScene() const {return active_scene >= 0;}
 	
 };
 
-struct GeomAnim {
+struct GeomAnim : VfsValueExt {
 	GeomWorldState* state = 0;
 	double time = 0;
 	int position = 0;
 	bool is_playing = false;
 	
+	DEFAULT_EXT(GeomAnim)
 	void Reset();
 	void Play();
 	void Pause();
-	void Update(double dt);
+	void Update(double dt) override;
+	void Visit(Vis& v) override;
 	
 	
 	Callback WhenSceneEnd;
 	
 };
+
+INITIALIZE(GeomTimeline)
+INITIALIZE(GeomObject)
+INITIALIZE(GeomDirectory)
+INITIALIZE(GeomScene)
+INITIALIZE(GeomProject)
+INITIALIZE(GeomCamera)
+INITIALIZE(GeomWorldState)
+INITIALIZE(GeomAnim)
 #endif

@@ -1,4 +1,4 @@
-#include <AI/Ctrl/Ctrl.h>
+#include <ide/AI/Ctrl/Ctrl.h>
 #include <plugin/jpg/jpg.h>
 
 NAMESPACE_UPP

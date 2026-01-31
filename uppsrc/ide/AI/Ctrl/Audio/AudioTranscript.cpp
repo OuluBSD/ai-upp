@@ -1,4 +1,4 @@
-#include <AI/Ctrl/Ctrl.h>
+#include <ide/AI/Ctrl/Ctrl.h>
 //#include <ide/ide.h>
 
 NAMESPACE_UPP

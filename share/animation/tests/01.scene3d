@@ -30,9 +30,9 @@
 										}
 									},
 									{
-										"key": 99,
+										"key": 5,
 										"value": {
-											"frame_id": 93285,
+											"frame_id": 5,
 											"position": {
 												"data": ""
 											},
@@ -42,9 +42,9 @@
 										}
 									},
 									{
-										"key": -1,
+										"key": 10,
 										"value": {
-											"frame_id": -1,
+											"frame_id": 10,
 											"position": {
 												"data": ""
 											},
@@ -54,9 +54,9 @@
 										}
 									},
 									{
-										"key": -1,
+										"key": 15,
 										"value": {
-											"frame_id": -1,
+											"frame_id": 15,
 											"position": {
 												"data": ""
 											},
@@ -66,9 +66,9 @@
 										}
 									},
 									{
-										"key": -1,
+										"key": 20,
 										"value": {
-											"frame_id": -1,
+											"frame_id": 20,
 											"position": {
 												"data": ""
 											},
@@ -81,8 +81,8 @@
 							}
 						},
 						{
-							"name": "",
-							"type_i": -1,
+							"name": "some model",
+							"type_i": 1,
 							"asset_ref": "",
 							"pointcloud_ref": "",
 							"timeline": {
@@ -93,12 +93,12 @@
 						}
 					]
 				},
-				"length": 0
+				"length": 21
 			}
 		],
 		"kps": 5,
 		"fps": 60,
-		"key_counter": 94814829303001
+		"key_counter": 3
 	},
 	"active_scene": 0,
 	"focus": {
@@ -123,8 +123,8 @@
 		"fov": 120,
 		"scale": 1
 	},
-	"created_utc": "2026-01-<N/A 'dT' for type 1>12:40:<N/A 'dZ' for type 1>",
-	"modified_utc": "2026-01-<N/A 'dT' for type 1>12:40:<N/A 'dZ' for type 1>",
+	"created_utc": "2026-01-30T19:41:22Z",
+	"modified_utc": "2026-01-30T19:41:22Z",
 	"data_dir": "data",
 	"external_files": [
 

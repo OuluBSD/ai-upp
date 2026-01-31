@@ -123,7 +123,7 @@ void GeomVideo::Next() {
 	
 	{
 		GeomObject& o = *cam;
-		GeomTimeline& time = o.timeline;
+		GeomTimeline& time = o.GetTimeline();
 		ASSERT(time.keypoints.Find(position) < 0);
 		GeomKeypoint& kp = time.keypoints.Add(position);
 		kp.position = uncam.GetPosition();

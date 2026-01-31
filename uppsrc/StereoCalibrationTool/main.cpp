@@ -13,8 +13,12 @@ GUI_APP_MAIN
 	bool test_usb = false;
 	bool test_hmd = false;
 	bool test_live = false;
+	bool solve_mode = false;
 	int hmd_timeout_ms = 0;
 	int live_timeout_ms = 0;
+	bool use_ga = false;
+	int ga_population = 30;
+	int ga_generations = 20;
 	for (const String& arg : args) {
 		if (arg == "-h" || arg == "--help") {
 			Cout() << "Stereo Calibration Tool\n"
@@ -22,13 +26,17 @@ GUI_APP_MAIN
 			       << "Options:\n"
 			       << "  -h, --help               Show this help message\n"
 			       << "  -v, --verbose            Enable verbose logging\n"
+			       << "  --solve                  Run solver headlessly and output math log to stdout\n"
 			       << "  --test-usb               Run automated USB stereo source test\n"
 			       << "  --test-hmd               Run automated HMD stereo source test\n"
 			       << "  --test-live              Run automated live capture test\n"
 			       << "  --usb-device=<path>      Set USB video device path (default: /dev/video0)\n"
 			       << "  --usb-timeout-ms=<ms>    Set timeout for USB test\n"
 			       << "  --hmd-timeout-ms=<ms>    Set timeout for HMD test\n"
-			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n";
+			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
+			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
+			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
+			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n";
 			return;
 		}
 		if (arg == "--test-usb")
@@ -37,6 +45,8 @@ GUI_APP_MAIN
 			test_hmd = true;
 		else if (arg == "--test-live")
 			test_live = true;
+		else if (arg == "--solve")
+			solve_mode = true;
 		else if (arg == "-v" || arg == "--verbose")
 			app.SetVerbose(true);
 		else if (arg.StartsWith("--usb-device="))
@@ -47,18 +57,40 @@ GUI_APP_MAIN
 			hmd_timeout_ms = atoi(arg.Mid(strlen("--hmd-timeout-ms=")));
 		else if (arg.StartsWith("--live-timeout-ms="))
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
+		else if (arg == "--ga")
+			use_ga = true;
+		else if (arg.StartsWith("--ga-population="))
+			ga_population = atoi(arg.Mid(strlen("--ga-population=")));
+		else if (arg.StartsWith("--ga-generations="))
+			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
 		else if (!arg.StartsWith("--"))
 			project_dir = arg;
 	}
 	
 	if (project_dir.IsEmpty()) {
+		if (solve_mode) {
+			Cerr() << "Error: --solve requires project directory argument\n";
+			SetExitCode(1);
+			return;
+		}
 		FileSel fs;
 		if (fs.ExecuteSelectDir("Select Project Directory"))
 			project_dir = fs.Get();
 		else
 			return;
 	}
-	
+
+	// Configure GA bootstrap if requested (before headless solve)
+	if (use_ga)
+		app.EnableGABootstrap(true, ga_population, ga_generations);
+
+	// Headless solve mode
+	if (solve_mode) {
+		int result = app.SolveHeadless(project_dir);
+		SetExitCode(result);
+		return;
+	}
+
 	app.SetProjectDir(project_dir);
 
 	if (test_usb)

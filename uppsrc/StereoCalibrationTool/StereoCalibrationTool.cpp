@@ -641,6 +641,15 @@ void StereoCalibrationTool::SetVerbose(bool v) {
 			sources[i]->SetVerbose(v);
 }
 
+void StereoCalibrationTool::EnableGABootstrap(bool enable, int population, int generations) {
+	use_ga_bootstrap = enable;
+	ga_population = population;
+	ga_generations = generations;
+	if (verbose && enable) {
+		LOG("GA Bootstrap enabled: population=" << population << ", generations=" << generations);
+	}
+}
+
 void StereoCalibrationTool::Sync() {
 	if (!preview.live) return;
 	
@@ -755,7 +764,29 @@ void StereoCalibrationTool::SolveCalibration() {
 
 	StereoCalibrationSolver solver;
 	solver.log = &math_log;
-	solver.eye_dist = (double)calib_eye_dist;
+
+	double eye_dist_ui_mm = (double)calib_eye_dist;  // UI shows millimeters
+	double eye_dist_m = eye_dist_ui_mm / 1000.0;     // Convert to meters for solver
+	double eye_dist_last_m = (double)last_calibration.eye_dist;  // Already in meters
+	WString eye_dist_ui_text = calib_eye_dist.GetText();
+
+	math_log << "Eye Distance Configuration:\n";
+	math_log << Format("  UI field text: '%s' mm\n", eye_dist_ui_text.ToString());
+	math_log << Format("  UI field value: %.3f mm = %.6f m\n", eye_dist_ui_mm, eye_dist_m);
+	math_log << Format("  last_calibration.eye_dist: %.6f m (%.3f mm)\n", eye_dist_last_m, eye_dist_last_m * 1000.0);
+	math_log << "  Source: UI field → solver\n";
+	math_log << "\n";
+
+	if (fabs(eye_dist_m - eye_dist_last_m) > 0.00001) {
+		math_log << "WARNING: UI field value differs from last_calibration!\n";
+		math_log << Format("  Using UI field value: %.6f m (%.3f mm)\n", eye_dist_m, eye_dist_ui_mm);
+		math_log << "\n";
+	}
+
+	solver.eye_dist = eye_dist_m;  // Solver uses meters
+
+	bool enable_trace = verbose_math_log;
+	solver.EnableTrace(enable_trace, 2, 20000);
 	
 	int out_of_range_right = 0;
 	for (const auto& f : captured_frames) {
@@ -769,8 +800,9 @@ void StereoCalibrationTool::SolveCalibration() {
 			p.left_px = vec2((float)(m.left.x * sz.cx), (float)(m.left.y * sz.cy));
 			p.right_px = vec2((float)(m.right.x * sz.cx), (float)(m.right.y * sz.cy));
 			p.image_size = sz;
-			p.dist_l = m.dist_l;
-			p.dist_r = m.dist_r;
+			// Convert distances from UI (millimeters) to solver (meters)
+			p.dist_l = m.dist_l / 1000.0;
+			p.dist_r = m.dist_r / 1000.0;
 			if (m.right.x < 0 || m.right.x > 1 || m.right.y < 0 || m.right.y > 1)
 				out_of_range_right++;
 		}
@@ -803,12 +835,27 @@ void StereoCalibrationTool::SolveCalibration() {
 	params.yaw = 0;
 	params.pitch = 0;
 	params.roll = 0;
-	
+
+	// Configure GA bootstrap if enabled
+	solver.use_ga_init = use_ga_bootstrap;
+	solver.ga_population = ga_population;
+	solver.ga_generations = ga_generations;
+	solver.ga_top_candidates = 3;  // Always use 3 top candidates for LM refinement
+
 	status.Set("Solving calibration (Stage 1/2)...");
-	solver.Solve(params, true);
-	
+	bool stage1_ok = solver.Solve(params, true);
+
+	if (!stage1_ok && enable_trace) {
+		math_log << "\n========================================\n";
+		math_log << "Stage 1 failed, trace log:\n";
+		math_log << "========================================\n\n";
+		math_log << solver.GetTraceText();
+	}
+
 	status.Set("Solving calibration (Stage 2/2)...");
-	if (solver.Solve(params, false)) {
+	bool stage2_ok = solver.Solve(params, false);
+
+	if (stage2_ok) {
 		calib_poly_a <<= params.a;
 		calib_poly_b <<= params.b;
 		calib_poly_c <<= params.c;
@@ -844,7 +891,7 @@ void StereoCalibrationTool::SolveCalibration() {
 			diag.behind_left, diag.behind_right,
 			diag.reproj_count_l ? 100.0 * diag.behind_left / diag.reproj_count_l : 0.0,
 			diag.reproj_count_r ? 100.0 * diag.behind_right / diag.reproj_count_r : 0.0);
-		report << Format("  Baseline (fixed): %.3f mm\n", solver.eye_dist);
+		report << Format("  Baseline (fixed): %.6f m (%.3f mm)\n", solver.eye_dist, solver.eye_dist * 1000.0);
 
 		double disp_rel_sum = 0;
 		int disp_rel_count = 0;
@@ -891,7 +938,7 @@ void StereoCalibrationTool::SolveCalibration() {
 		math_log << Format("  Reprojection RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
 		math_log << Format("  Distance RMS (L/R):     %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
 		math_log << Format("  Behind camera (L/R):    %d / %d\n", diag.behind_left, diag.behind_right);
-		math_log << Format("  Baseline (fixed):       %.3f mm\n", solver.eye_dist);
+		math_log << Format("  Baseline (fixed):       %.6f m (%.3f mm)\n", solver.eye_dist, solver.eye_dist * 1000.0);
 
 		Vector<int> order;
 		order.SetCount(diag.residuals.GetCount());
@@ -917,18 +964,45 @@ void StereoCalibrationTool::SolveCalibration() {
 			math_log << Format("      reproj  L=(%.2f, %.2f), R=(%.2f, %.2f)\n",
 				r.reproj_l[0], r.reproj_l[1], r.reproj_r[0], r.reproj_r[1]);
 		}
-		
+
+		if (enable_trace || solver.trace.enabled) {
+			math_log << "\n========================================\n";
+			math_log << "Detailed Math Trace\n";
+			math_log << "========================================\n\n";
+			math_log << solver.GetTraceText();
+		}
+
 		report_text <<= report;
 		math_text <<= math_log;
 		SaveFile(GetReportPath(), report);
 		SaveLastCalibration();
-		
+
 		bottom_tabs.Set(1);
 		status.Set("Calibration solved and saved.");
 	}
 	else {
+		String failure_msg = "Calibration solver failed.";
+		if (!solver.last_failure_reason.IsEmpty())
+			failure_msg << "\nReason: " << solver.last_failure_reason;
+		failure_msg << "\n\nCheck your matches and the Math tab for details.";
+
+		math_log << "\n========================================\n";
+		math_log << "SOLVER FAILED\n";
+		math_log << "========================================\n\n";
+		if (!solver.last_failure_reason.IsEmpty())
+			math_log << "Failure reason: " << solver.last_failure_reason << "\n\n";
+
+		if (!enable_trace) {
+			solver.EnableTrace(true, 2, 20000);
+			solver.Solve(params, false);
+		}
+
+		math_log << solver.GetTraceText();
+
+		math_text <<= math_log;
+		bottom_tabs.Set(2);
 		status.Set("Solver failed to converge.");
-		PromptOK("Calibration solver failed. Check your matches.");
+		PromptOK(failure_msg);
 	}
 }
 
@@ -1077,6 +1151,8 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);
 	undistort_view.SetLabel("Undistort View");
 	undistort_view.WhenAction = THISBACK(OnReviewChanged);
+	verbose_math_log.SetLabel("Verbose Math Log");
+	verbose_math_log = false;
 
 	int y = 8;
 	left.Add(sep_source.TopPos(y, 18).HSizePos(8, 8));
@@ -1128,6 +1204,8 @@ void StereoCalibrationTool::BuildLeftPanel() {
 	left.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
 	y += 24;
 	left.Add(undistort_view.TopPos(y, 20).LeftPos(8, 180));
+	y += 24;
+	left.Add(verbose_math_log.TopPos(y, 20).LeftPos(8, 180));
 	y += 28;
 
 	left.Add(sep_diag.TopPos(y, 18).HSizePos(8, 8));
@@ -1505,7 +1583,7 @@ void StereoCalibrationTool::LoadCalibration() {
 
 void StereoCalibrationTool::SyncCalibrationFromEdits() {
 	last_calibration.is_enabled = calib_enabled;
-	last_calibration.eye_dist = (float)~calib_eye_dist;
+	last_calibration.eye_dist = (float)((double)~calib_eye_dist / 1000.0);  // UI is mm, storage is m
 	last_calibration.outward_angle = (float)~calib_outward_angle;
 	last_calibration.angle_to_pixel[0] = (float)~calib_poly_a;
 	last_calibration.angle_to_pixel[1] = (float)~calib_poly_b;
@@ -1522,7 +1600,7 @@ void StereoCalibrationTool::SyncCalibrationFromEdits() {
 
 void StereoCalibrationTool::SyncEditsFromCalibration() {
 	calib_enabled = last_calibration.is_enabled;
-	calib_eye_dist <<= (double)last_calibration.eye_dist;
+	calib_eye_dist <<= (double)last_calibration.eye_dist * 1000.0;  // Storage is m, UI is mm
 	calib_outward_angle <<= (double)last_calibration.outward_angle;
 	calib_poly_a <<= (double)last_calibration.angle_to_pixel[0];
 	calib_poly_b <<= (double)last_calibration.angle_to_pixel[1];
@@ -1534,10 +1612,10 @@ void StereoCalibrationTool::UpdatePreview() {
 	String s;
 	s << "Preview:\n";
 	s << "  enabled=" << (last_calibration.is_enabled ? "1" : "0") << "\n";
-	s << "  eye_dist=" << last_calibration.eye_dist << "\n";
-	s << "  outward_angle=" << last_calibration.outward_angle << "\n";
-	s << "  right_pitch=" << last_calibration.right_pitch << "\n";
-	s << "  right_roll=" << last_calibration.right_roll << "\n";
+	s << Format("  eye_dist=%.6f (m)\n", last_calibration.eye_dist);
+	s << Format("  outward_angle=%.6f\n", last_calibration.outward_angle);
+	s << Format("  right_pitch=%.6f\n", last_calibration.right_pitch);
+	s << Format("  right_roll=%.6f\n", last_calibration.right_roll);
 	s << "  principal_point=" << last_calibration.principal_point[0] << ", "
 	  <<  last_calibration.principal_point[1] << "\n";
 	s << "  angle_poly=" << last_calibration.angle_to_pixel[0] << ", "
@@ -1865,6 +1943,182 @@ void StereoCalibrationTool::HelpMenu(Bar& bar) {
 	bar.Add("About", [=] {
 		PromptOK("Stereo Calibration Tool\n\nWork-in-progress.");
 	});
+}
+
+int StereoCalibrationTool::SolveHeadless(const String& project_dir) {
+	// Load project
+	String project_file = AppendFileName(project_dir, "project.json");
+	if (!FileExists(project_file)) {
+		Cerr() << "Error: Project file not found: " << project_file << "\n";
+		return 1;
+	}
+
+	String json_text = LoadFile(project_file);
+	if (json_text.IsEmpty()) {
+		Cerr() << "Error: Failed to load project file\n";
+		return 1;
+	}
+
+	if (!LoadFromJson(captured_frames, json_text)) {
+		Cerr() << "Error: Failed to parse project JSON\n";
+		return 1;
+	}
+
+	if (captured_frames.IsEmpty()) {
+		Cerr() << "Error: No captured frames in project\n";
+		return 1;
+	}
+
+	// Load calibration
+	String calib_file = AppendFileName(project_dir, "calibration.stcal");
+	if (FileExists(calib_file)) {
+		if (!VisitFromJsonFile(last_calibration, calib_file)) {
+			Cerr() << "Warning: Failed to load calibration file, using defaults\n";
+		}
+	}
+
+	// Count matches
+	int total_matches = 0;
+	for (const auto& f : captured_frames) {
+		for (const auto& m : f.matches) {
+			if (!IsNull(m.left) && !IsNull(m.right))
+				total_matches++;
+		}
+	}
+
+	Cout() << "Loaded project from: " << project_dir << "\n";
+	Cout() << "Captured frames: " << captured_frames.GetCount() << "\n";
+	Cout() << "Total match pairs: " << total_matches << "\n";
+	Cout() << "\n";
+
+	if (total_matches < 5) {
+		Cerr() << "Error: Need at least 5 match pairs, found " << total_matches << "\n";
+		return 1;
+	}
+
+	// Run solver
+	Cout() << "Running solver...\n";
+	Cout() << "========================================\n";
+
+	// Populate solver (copied from SolveCalibration)
+	StereoCalibrationSolver solver;
+	String math_log;
+	solver.log = &math_log;
+	solver.EnableTrace(true, 2, 20000);
+
+	double eye_dist_m = (double)last_calibration.eye_dist;
+	if (eye_dist_m <= 0) {
+		eye_dist_m = 0.118;  // Default 118mm
+		Cout() << "Using default eye distance: " << eye_dist_m << " m (118 mm)\n";
+	}
+
+	solver.eye_dist = eye_dist_m;
+	solver.dist_weight = 0.1;
+	solver.huber_px = 2.0;
+	solver.huber_m = 0.030;
+	solver.max_fevals = 0;
+
+	// Configure GA bootstrap if enabled
+	solver.use_ga_init = use_ga_bootstrap;
+	solver.ga_population = ga_population;
+	solver.ga_generations = ga_generations;
+	solver.ga_top_candidates = 3;
+
+	Size sz(640, 480);
+	for (const auto& f : captured_frames) {
+		if (f.matches.IsEmpty())
+			continue;
+		for (const auto& m : f.matches) {
+			if (IsNull(m.left) || IsNull(m.right))
+				continue;
+			auto& p = solver.matches.Add();
+			p.left_px = vec2((float)(m.left.x * sz.cx), (float)(m.left.y * sz.cy));
+			p.right_px = vec2((float)(m.right.x * sz.cx), (float)(m.right.y * sz.cy));
+			p.image_size = sz;
+			// Convert distances from UI (millimeters) to solver (meters)
+			p.dist_l = m.dist_l / 1000.0;
+			p.dist_r = m.dist_r / 1000.0;
+		}
+	}
+
+	// Initial parameters using heuristics (same as GUI version)
+	StereoCalibrationParams params;
+	params.a = 2.0 * sz.cx / M_PI;  // Heuristic: assumes ~180° FOV maps to image width
+	params.b = 0.01;   // Small non-zero to help gradient computation
+	params.c = 0.01;
+	params.d = 0.01;
+	params.cx = sz.cx * 0.5;
+	params.cy = sz.cy * 0.5;
+	params.yaw = 0.01;      // Small non-zero for extrinsics
+	params.pitch = 0.01;
+	params.roll = 0.01;
+
+	// For headless mode with heuristic initialization, skip stage 1
+	// and go straight to full optimization to avoid getting stuck
+	Cout() << "Stage 1: Skipped (using heuristic init, going straight to full optimization)\n";
+	Cout() << "Stage 2: Full optimization (all parameters)...\n";
+	bool ok2 = solver.Solve(params, false);
+
+	// Output math log
+	Cout() << solver.GetTraceText();
+	Cout() << "\n========================================\n";
+
+	if (!ok2) {
+		Cerr() << "Solver failed: " << solver.last_failure_reason << "\n";
+		return 1;
+	}
+
+	// Compute diagnostics
+	StereoCalibrationDiagnostics diag;
+	solver.ComputeDiagnostics(params, diag);
+
+	Cout() << "\nFinal Diagnostics:\n";
+	Cout() << "========================================\n";
+	Cout() << Format("Reprojection RMS L/R: %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+	Cout() << Format("Distance RMS L/R: %.6f / %.6f m (%.2f / %.2f mm)\n",
+		diag.dist_rms_l, diag.dist_rms_r, diag.dist_rms_l * 1000.0, diag.dist_rms_r * 1000.0);
+	Cout() << Format("Behind camera L/R: %d / %d\n", diag.behind_left, diag.behind_right);
+	Cout() << "\nFinal parameters:\n";
+	Cout() << Format("  a=%.6f, b=%.6f, c=%.6f, d=%.6f\n", params.a, params.b, params.c, params.d);
+	Cout() << Format("  cx=%.2f, cy=%.2f\n", params.cx, params.cy);
+	Cout() << Format("  yaw=%.6f, pitch=%.6f, roll=%.6f (rad)\n", params.yaw, params.pitch, params.roll);
+	Cout() << Format("  yaw=%.3f, pitch=%.3f, roll=%.3f (deg)\n",
+		RAD2DEG(params.yaw), RAD2DEG(params.pitch), RAD2DEG(params.roll));
+
+	// Pass/fail criteria
+	double max_reproj_rms = max(diag.reproj_rms_l, diag.reproj_rms_r);
+	double max_dist_rms = max(diag.dist_rms_l, diag.dist_rms_r);
+
+	Cout() << "\n========================================\n";
+	Cout() << "Quality Assessment:\n";
+	Cout() << "========================================\n";
+
+	bool pass = true;
+	if (max_reproj_rms > 2.0) {
+		Cout() << Format("FAIL: Reprojection RMS (%.3f px) exceeds threshold (2.0 px)\n", max_reproj_rms);
+		pass = false;
+	} else {
+		Cout() << Format("PASS: Reprojection RMS (%.3f px) within threshold\n", max_reproj_rms);
+	}
+
+	if (max_dist_rms > 0.100) {  // 100mm = 0.1m
+		Cout() << Format("FAIL: Distance RMS (%.3f mm) exceeds threshold (100 mm)\n", max_dist_rms * 1000.0);
+		pass = false;
+	} else {
+		Cout() << Format("PASS: Distance RMS (%.3f mm) within threshold\n", max_dist_rms * 1000.0);
+	}
+
+	if (diag.behind_left > 0 || diag.behind_right > 0) {
+		Cout() << Format("WARN: %d points behind camera\n", diag.behind_left + diag.behind_right);
+	}
+
+	if (!pass) {
+		Cout() << "\n*** OVERALL: FAIL - Calibration quality insufficient ***\n";
+		return 1;
+	}
+
+	Cout() << "\n*** OVERALL: PASS - Calibration acceptable ***\n";
+	return 0;
 }
 
 END_UPP_NAMESPACE

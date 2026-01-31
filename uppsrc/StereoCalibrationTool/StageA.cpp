@@ -82,6 +82,7 @@ void StageAWindow::RefreshFromModel() {
 	barrel_strength <<= ps.barrel_strength;
 	fov_deg <<= ps.fov_deg;
 	preview_extrinsics <<= ps.preview_extrinsics;
+	preview_intrinsics <<= ps.preview_intrinsics;
 	view_mode_list.SetIndex(ps.view_mode);
 	overlay_eyes <<= ps.overlay_eyes;
 	overlay_swap <<= ps.overlay_swap;
@@ -138,6 +139,10 @@ void StageAWindow::BuildStageAControls() {
 	preview_extrinsics.SetLabel("Preview extrinsics");
 	preview_extrinsics <<= true;
 	preview_extrinsics.WhenAction = THISBACK(SyncStageA);
+
+	preview_intrinsics.SetLabel("Preview intrinsics");
+	preview_intrinsics <<= false;
+	preview_intrinsics.WhenAction = THISBACK(SyncStageA);
 
 	barrel_lbl.SetLabel("Barrel distortion");
 	barrel_strength.SetInc(0.1); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncStageA);
@@ -199,7 +204,8 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(roll_r.TopPos(gy + 48, 20).LeftPos(52, 80));
 	y += 100;
 
-	controls.Add(preview_extrinsics.TopPos(y, 20).LeftPos(8, 180));
+	controls.Add(preview_extrinsics.TopPos(y, 20).LeftPos(8, 140));
+	controls.Add(preview_intrinsics.TopPos(y, 20).LeftPos(152, 140));
 	y += 24;
 	controls.Add(barrel_lbl.TopPos(y, 20).LeftPos(8, 120));
 	controls.Add(barrel_strength.TopPos(y, 20).LeftPos(132, 80));
@@ -260,6 +266,7 @@ void StageAWindow::SyncStageA() {
 	ps.barrel_strength = (double)barrel_strength;
 	ps.fov_deg = (double)fov_deg;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
+	ps.preview_intrinsics = (bool)preview_intrinsics;
 
 	String doc;
 	doc << "Stage A Basic Params:\n";
@@ -435,7 +442,10 @@ bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& 
 	return true;
 }
 
-// Builds undistort cache for a captured frame, if view mode requires it.
+#if 0
+// DEPRECATED: Builds undistort cache for a captured frame, if view mode requires it.
+// NOTE: This is now deprecated since ApplyPreviewImages handles per-eye transforms directly.
+// Kept for potential future use with view_mode settings.
 bool StageAWindow::BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	if (sz.cx <= 0 || sz.cy <= 0)
@@ -459,19 +469,76 @@ bool StageAWindow::BuildUndistortCache(CapturedFrame& frame, const LensPoly& len
 	frame.undist_valid = true;
 	return true;
 }
+#endif
 
-// Applies raw or undistorted images to the plotters.
+// Applies raw or transformed images to the plotters based on preview flags.
+// Respects preview_extrinsics and preview_intrinsics toggles independently.
 void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
-	if (BuildUndistortCache(frame, lens, linear_scale))
-	{
-		left_plot.SetImage(frame.undist_left);
-		right_plot.SetImage(frame.undist_right);
+	if (!model)
+		return;
+
+	const ProjectState& ps = model->project_state;
+	bool apply_extrinsics = ps.preview_extrinsics;
+	bool apply_intrinsics = ps.preview_intrinsics;
+
+	// Determine per-eye parameters
+	double yaw_l = ps.yaw_l;
+	double pitch_l = ps.pitch_l;
+	double roll_l = ps.roll_l;
+	double yaw_r = ps.yaw_r;
+	double pitch_r = ps.pitch_r;
+	double roll_r = ps.roll_r;
+
+	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+	vec2 pp(sz.cx * 0.5f, sz.cy * 0.5f);
+
+	// Process left eye
+	Image left_out = frame.left_img;
+	if (!left_out.IsEmpty()) {
+		// Fast-path: identity (no preview effects)
+		bool left_is_identity = !apply_extrinsics && !apply_intrinsics;
+		if (!left_is_identity && apply_extrinsics && fabs(yaw_l) < 1e-6 && fabs(pitch_l) < 1e-6 && fabs(roll_l) < 1e-6 && !apply_intrinsics)
+			left_is_identity = true;
+
+		if (!left_is_identity) {
+			if (apply_extrinsics && apply_intrinsics) {
+				// Both: apply extrinsics rotation via LensPoly, then undistort
+				// For now, use UndistortImage which includes extrinsics via lens config
+				left_out = StereoCalibrationHelpers::UndistortImage(left_out, lens, linear_scale);
+			} else if (apply_extrinsics) {
+				// Extrinsics only
+				left_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(left_out, (float)yaw_l, (float)pitch_l, (float)roll_l, pp);
+			} else if (apply_intrinsics) {
+				// Intrinsics only (lens distortion, no rotation)
+				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale);
+			}
+		}
 	}
-	else
-	{
-		left_plot.SetImage(frame.left_img);
-		right_plot.SetImage(frame.right_img);
+
+	// Process right eye
+	Image right_out = frame.right_img;
+	if (!right_out.IsEmpty()) {
+		// Fast-path: identity (no preview effects)
+		bool right_is_identity = !apply_extrinsics && !apply_intrinsics;
+		if (!right_is_identity && apply_extrinsics && fabs(yaw_r) < 1e-6 && fabs(pitch_r) < 1e-6 && fabs(roll_r) < 1e-6 && !apply_intrinsics)
+			right_is_identity = true;
+
+		if (!right_is_identity) {
+			if (apply_extrinsics && apply_intrinsics) {
+				// Both: apply extrinsics rotation via LensPoly, then undistort
+				right_out = StereoCalibrationHelpers::UndistortImage(right_out, lens, linear_scale);
+			} else if (apply_extrinsics) {
+				// Extrinsics only
+				right_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(right_out, (float)yaw_r, (float)pitch_r, (float)roll_r, pp);
+			} else if (apply_intrinsics) {
+				// Intrinsics only (lens distortion, no rotation)
+				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale);
+			}
+		}
 	}
+
+	left_plot.SetImage(left_out);
+	right_plot.SetImage(right_out);
 }
 
 // Auto-centers yaw using the latest match pair in the selected capture.

@@ -9,7 +9,6 @@ file
 	Console.h,
 	Console.cpp,
 	Widget.h,
-	Widget.cpp,
 	IdeShell.h,
 	IdeShell.cpp,
 	IdeShellHost.cpp,

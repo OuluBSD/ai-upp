@@ -64,7 +64,7 @@ void VideoImportCtrl::Data() {
 	if (list.IsCursor()) {
 		int i = list.GetCursor();
 		//UncameraFrame& frame = uncam.frames[i];
-		owner->anim.position = i;
+		owner->anim->position = i;
 	}
 	
 	RefreshRenderers();
@@ -137,7 +137,7 @@ void VideoImportImageCtrl::Paint(Draw& w) {
 Rect VideoImportImageCtrl::DrawStereoImages(Draw& d) {
 	Size sz = GetSize();
 	
-	int frame_i = owner->owner->anim.position;
+	int frame_i = owner->owner->anim->position;
 	if (frame_i < 0 || frame_i >= owner->owner->video.uncam.frames.GetCount())
 		return Rect(0,0,0,0);
 	
@@ -175,7 +175,7 @@ void KeypointImageCtrl::Paint(Draw& w) {
 	if (r.Width() == 0)
 		return;
 	
-	int frame_i = owner->owner->anim.position;
+	int frame_i = owner->owner->anim->position;
 	UncameraFrame& frame = owner->owner->video.uncam.frames[frame_i];
 	
 	Size sz = GetSize();
@@ -214,7 +214,7 @@ void TriangleImageCtrl::Paint(Draw& w) {
 	if (r.Width() == 0)
 		return;
 	
-	int frame_i = owner->owner->anim.position;
+	int frame_i = owner->owner->anim->position;
 	UncameraFrame& frame = owner->owner->video.uncam.frames[frame_i];
 	
 	Size sz = GetSize();

@@ -68,7 +68,7 @@ static void WriteParams(String& out, const char* name, double v) {
 bool GenerateWmrCase(WmrCaseData& out, int seed) {
 	out = WmrCaseData();
 	out.image_size = Size(640, 480);
-	out.eye_dist = 63.0;
+	out.eye_dist = 0.063;  // 63mm in meters
 	out.fov_x_deg = 110.0;
 	out.fov_y_deg = out.fov_x_deg * out.image_size.cy / out.image_size.cx;
 
@@ -98,9 +98,9 @@ bool GenerateWmrCase(WmrCaseData& out, int seed) {
 	int attempts = 0;
 	while (out.matches.GetCount() < target && attempts < target * 200) {
 		attempts++;
-		double x = (Random(400) - 200) * 1.0;
-		double y = (Random(300) - 150) * 1.0;
-		double z = Random(800) + 400.0;
+		double x = (Random(400) - 200) * 0.001;  // -200 to 200 mm -> -0.2 to 0.2 m
+		double y = (Random(300) - 150) * 0.001;  // -150 to 150 mm -> -0.15 to 0.15 m
+		double z = (Random(800) + 400.0) * 0.001;  // 400 to 1200 mm -> 0.4 to 1.2 m
 		if (IS_NEGATIVE_Z)
 			z = -z;
 		vec3 pt((float)x, (float)y, (float)z);
@@ -139,7 +139,7 @@ bool SaveWmrCase(const WmrCaseData& data, const String& path) {
 	String out;
 	out << "# WMR synthetic stereo calibration dataset\n";
 	out << "image_size=" << data.image_size.cx << "x" << data.image_size.cy << "\n";
-	WriteParams(out, "eye_dist_mm", data.eye_dist);
+	WriteParams(out, "eye_dist_m", data.eye_dist);
 	WriteParams(out, "fov_x_deg", data.fov_x_deg);
 	WriteParams(out, "fov_y_deg", data.fov_y_deg);
 	WriteParams(out, "left_yaw_deg", data.left_yaw_deg);
@@ -162,7 +162,7 @@ bool SaveWmrCase(const WmrCaseData& data, const String& path) {
 	WriteParams(out, "pitch_deg", RadToDeg(data.gt.pitch));
 	WriteParams(out, "roll_deg", RadToDeg(data.gt.roll));
 	out << "matches=" << data.matches.GetCount() << "\n";
-	out << "# uL vL uR vR rL rR X Y Z\n";
+	out << "# uL vL uR vR rL(m) rR(m) X(m) Y(m) Z(m)\n";
 	for (const auto& m : data.matches) {
 		out << Format("%.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f\n",
 			(double)m.left_px[0], (double)m.left_px[1],
@@ -195,7 +195,7 @@ bool LoadWmrCase(WmrCaseData& out, const String& path) {
 					out.image_size.cy = atoi(parts[1]);
 				}
 			}
-			else if (key == "eye_dist_mm") out.eye_dist = atof(val);
+			else if (key == "eye_dist_m") out.eye_dist = atof(val);
 			else if (key == "fov_x_deg") out.fov_x_deg = atof(val);
 			else if (key == "fov_y_deg") out.fov_y_deg = atof(val);
 			else if (key == "left_yaw_deg") out.left_yaw_deg = atof(val);

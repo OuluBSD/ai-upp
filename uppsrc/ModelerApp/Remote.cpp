@@ -38,7 +38,7 @@ bool RemoteExchange::Update() {
 	if (!state.HasActiveScene())
 		return false;
 	GeomScene& scene = state.GetActiveScene();
-	GeomCamera& camera = state.program;
+	GeomCamera& camera = state.GetProgram();
 	
 	bool updated = false;
 	

@@ -38,7 +38,7 @@ public:
 	void RemoveEntity();
 	void AddComponent();
 	void RemoveComponent();
-	void SetExtensionCtrl(hash_t type_hash, VfsValueExtCtrl* ctrl);
+	void SetExtensionCtrl(hash_t type_hash, ToolAppVfsValueExtCtrl* ctrl);
 	void ClearExtensionCtrl() {SetExtensionCtrl(0,0);}
 	VfsValueExt* GetSelected();
 	void EditPos(JsonIO& jio) override;

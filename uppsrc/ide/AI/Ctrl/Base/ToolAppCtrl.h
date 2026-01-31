@@ -1,6 +1,7 @@
-#ifndef _ide_Vfs_TextDesigner_h_
-#define _ide_Vfs_TextDesigner_h_
+#ifndef _ide_AI_Ctrl_Base_ToolAppCtrl_h_
+#define _ide_AI_Ctrl_Base_ToolAppCtrl_h_
 
+NAMESPACE_UPP
 
 class SolverBaseIndicator : public ProgressIndicator {
 
@@ -81,5 +82,13 @@ public:
 	}
 };
 
+struct ToolAppVfsValueExtCtrl : VfsValueExtCtrl {
+	Ptr<ToolAppCtrl> owner;
+	
+	String GetFilePath() const;
+	VfsPath GetCursorPath() const override;
+};
+
+END_UPP_NAMESPACE
 
 #endif

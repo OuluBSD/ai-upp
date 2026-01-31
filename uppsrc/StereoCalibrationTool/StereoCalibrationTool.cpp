@@ -204,6 +204,69 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 	return out;
 }
 
+// Applies ONLY extrinsics (yaw/pitch/roll rotation) without any lens distortion.
+// This performs a 3D rotation of the camera rays and resamples the source image.
+Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp) {
+	if (src.IsEmpty())
+		return Image();
+
+	// Fast-path: if all rotations are zero, return copy of source
+	if (fabs(yaw) < 1e-6f && fabs(pitch) < 1e-6f && fabs(roll) < 1e-6f)
+		return clone(src);
+
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+	float cx = pp[0] > 0 ? pp[0] : sz.cx * 0.5f;
+	float cy = pp[1] > 0 ? pp[1] : sz.cy * 0.5f;
+
+	// Build rotation matrix (matches LensPoly::Project/Unproject for lens_i==1)
+	mat4 rot = AxesMat(yaw, pitch, roll);
+	mat4 rot_inv = rot.GetTransposed(); // Inverse rotation for unprojecting
+
+	for (int y = 0; y < sz.cy; y++) {
+		RGBA* dst = out[y];
+		float dy = y - cy;
+		for (int x = 0; x < sz.cx; x++) {
+			float dx = x - cx;
+
+			// Compute output ray direction (pinhole projection, no distortion)
+			float r = sqrtf(dx * dx + dy * dy);
+			float theta = atanf(r / cx); // Approximate FOV based on image width
+			float roll_angle = atan2f(dy, dx);
+
+			float sin_theta = sinf(theta);
+			float cos_theta = cosf(theta);
+			vec3 dir_out(
+				sin_theta * cosf(roll_angle),
+				-sin_theta * sinf(roll_angle),
+				IS_NEGATIVE_Z ? -cos_theta : cos_theta);
+
+			// Apply inverse rotation to get source ray
+			vec3 dir_src = (rot_inv * dir_out.Embed()).Splice();
+			dir_src.Normalize();
+
+			// Project source ray back to source image
+			float zf = IS_NEGATIVE_Z ? -dir_src[2] : dir_src[2];
+			zf = zf < -1.0f ? -1.0f : (zf > 1.0f ? 1.0f : zf);
+			float theta_src = atan2f(sqrtf(dir_src[0] * dir_src[0] + dir_src[1] * dir_src[1]), zf);
+			float roll_src = atan2f(-dir_src[1], dir_src[0]);
+
+			float r_src = cx * tanf(theta_src);
+			float sx = cx + r_src * cosf(roll_src);
+			float sy = cy + r_src * sinf(roll_src);
+
+			dst[x] = SampleBilinear(src, sx, sy);
+		}
+	}
+	return out;
+}
+
+// Applies ONLY intrinsics (lens distortion/undistortion) without rotation.
+// Currently identical to UndistortImage for simplicity.
+Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale) {
+	return UndistortImage(src, lens, linear_scale);
+}
+
 // ------------------------------------------------------------
 // Persistence helpers
 // ------------------------------------------------------------

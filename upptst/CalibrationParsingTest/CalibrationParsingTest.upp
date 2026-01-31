@@ -1,0 +1,14 @@
+description "Calibration parsing and round-trip tests\377";
+
+uses
+	Core,
+	SoftHMD,
+	Geometry;
+
+file
+	CalibrationParsingTest.h,
+	CalibrationParsingTest.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "DEBUG";

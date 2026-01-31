@@ -7,21 +7,77 @@
 NAMESPACE_UPP
 
 
+FilePoolCtrl::FilePoolCtrl(Edit3D* e) {
+	owner = e;
+	Title("Scene3D File Pool");
+	Sizeable().MaximizeBox();
+	Add(files.SizePos());
+	files.AddColumn("Path");
+	files.AddColumn("Type");
+	files.AddColumn("Info");
+	files.AddColumn("Usage");
+	files.AddColumn("Size");
+	files.AddColumn("Modified");
+	files.EvenRowColor();
+	files.SetLineCy(EditField::GetStdHeight());
+}
+
+void FilePoolCtrl::Data() {
+	files.Clear();
+	if (!owner || !owner->prj)
+		return;
+	
+	VectorMap<String, int> usage;
+	for (GeomScene& scene : owner->prj->val.Sub<GeomScene>()) {
+		GeomObjectCollection objs(scene);
+		for (GeomObject& o : objs) {
+			if (!o.asset_ref.IsEmpty())
+				usage.GetAdd(o.asset_ref, 0)++;
+			if (!o.pointcloud_ref.IsEmpty())
+				usage.GetAdd(o.pointcloud_ref, 0)++;
+		}
+	}
+	
+	const Array<Scene3DExternalFile>& files_list = owner->scene3d_external_files;
+	files.SetCount(files_list.GetCount());
+	for (int i = 0; i < files_list.GetCount(); i++) {
+		const Scene3DExternalFile& f = files_list[i];
+		String info = f.note;
+		if (info.IsEmpty())
+			info = f.id;
+		String size = f.size >= 0 ? FormatInt64(f.size) : String();
+		String usage_str;
+		int usage_count = usage.Find(f.path) >= 0 ? usage.Get(f.path) : 0;
+		if (usage_count > 0)
+			usage_str = IntStr(usage_count);
+		files.Set(i, 0, f.path);
+		files.Set(i, 1, f.type);
+		files.Set(i, 2, info);
+		files.Set(i, 3, usage_str);
+		files.Set(i, 4, size);
+		files.Set(i, 5, f.modified_utc);
+	}
+}
+
 
 
 Edit3D::Edit3D() :
 	v0(this),
-	v1(this)
+	v1(this),
+	file_pool(this)
 {
-	state.prj = &prj;
-	anim.state = &state;
-	video.anim = &anim;
+	prj = &prj_val.CreateExt<GeomProject>();
+	state = &state_val.CreateExt<GeomWorldState>();
+	anim = &anim_val.CreateExt<GeomAnim>();
+	state->prj = prj;
+	anim->state = state;
+	video.anim = anim;
 	render_ctx.conf = &conf;
-	render_ctx.state = &state;
-	render_ctx.anim = &anim;
+	render_ctx.state = state;
+	render_ctx.anim = anim;
 	render_ctx.video = &video;
 	
-	anim.WhenSceneEnd << THISBACK(OnSceneEnd);
+	anim->WhenSceneEnd << THISBACK(OnSceneEnd);
 	
 	Sizeable().MaximizeBox();
 	Title("Edit3D");
@@ -52,6 +108,8 @@ Edit3D::Edit3D() :
 		bar.Sub(t_("View"), [this](Bar& bar) {
 			bar.Add(t_("Geometry"), THISBACK1(SetView, VIEW_GEOMPROJECT)).Key(K_ALT|K_1);
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
+			bar.Separator();
+			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
 		});
 		
 	});
@@ -89,7 +147,7 @@ void Edit3D::RefrehToolbar() {
 void Edit3D::Toolbar(Bar& bar) {
 	bar.Add(true,  t_("Stop"),  ImagesImg::Stop(),  THISBACK(Stop)).Key(K_F6);
 	
-	if (anim.is_playing)
+	if (anim->is_playing)
 		bar.Add(true, t_("Pause"), ImagesImg::Pause(), THISBACK(Pause)).Key(K_F5);
 	else
 		bar.Add(true,  t_("Play"),  ImagesImg::Play(),  THISBACK(Play)).Key(K_F5);
@@ -99,7 +157,7 @@ void Edit3D::Toolbar(Bar& bar) {
 }
 
 GeomScene& Edit3D::GetActiveScene() {
-	return state.GetActiveScene();
+	return state->GetActiveScene();
 }
 
 void Edit3D::Exit() {
@@ -111,24 +169,24 @@ void Edit3D::RefreshData() {
 }
 
 void Edit3D::Stop() {
-	anim.Reset();
+	anim->Reset();
 	RefrehToolbar();
 }
 
 void Edit3D::Pause() {
-	anim.Pause();
+	anim->Pause();
 	RefrehToolbar();
 }
 
 void Edit3D::Play() {
-	anim.Play();
+	anim->Play();
 	RefrehToolbar();
 }
 
 void Edit3D::OnSceneEnd() {
 	if (repeat_playback) {
-		anim.Reset();
-		anim.Play();
+		anim->Reset();
+		anim->Play();
 	}
 	RefrehToolbar();
 }
@@ -161,29 +219,34 @@ void Edit3D::Data() {
 void Edit3D::CreateDefaultInit() {
 	
 	// Cler project
-	prj.Clear();
+	prj->Clear();
 	
 	// Add scene
-	GeomScene& scene = prj.AddScene();
+	GeomScene& scene = prj->AddScene();
 	
 	
 }
 
 void Edit3D::CreateDefaultPostInit() {
-	GeomScene& scene = prj.GetScene(0);
+	GeomScene& scene = prj->GetScene(0);
 	GeomObject* cam = scene.FindCamera("camera");
 	
 	if (cam) {
-		GeomKeypoint& kp = cam->timeline.keypoints.Get(0);
-		state.program.position = kp.position;
-		state.program.orientation = kp.orientation;
+		GeomTimeline* tl = cam->FindTimeline();
+		if (tl && !tl->keypoints.IsEmpty()) {
+			GeomKeypoint& kp = tl->keypoints.Get(0);
+			GeomCamera& program = state->GetProgram();
+			program.position = kp.position;
+			program.orientation = kp.orientation;
+		}
 	}
 	else {
-		state.program.position = vec3(0,0,0);
-		state.program.orientation = Identity<quat>();
+		GeomCamera& program = state->GetProgram();
+		program.position = vec3(0,0,0);
+		program.orientation = Identity<quat>();
 	}
 	
-	state.active_scene = 0;
+	state->active_scene = 0;
 	
 	Data();
 	v0.TimelineData();
@@ -206,7 +269,7 @@ void Edit3D::LoadEmptyProject() {
 }
 
 void Edit3D::LoadTestCirclingCube() {
-	GeomScene& scene = prj.GetScene(0);
+	GeomScene& scene = prj->GetScene(0);
 	GeomObject& cam = scene.GetAddCamera("camera");
 	GeomObject& mdl = scene.GetAddModel("some model");
 	
@@ -215,12 +278,12 @@ void Edit3D::LoadTestCirclingCube() {
 	
 	mdl.mdl = mb.Detach();
 	
-	scene.length = prj.kps * 4 + 1;
+	scene.length = prj->kps * 4 + 1;
 	float step = M_PIf * 2 / 4;
 	float angle = 0;
 	float cam_radius = 2;
 	for(int i = 0; i < 5; i++) {
-		GeomKeypoint& kp = cam.timeline.GetAddKeypoint(i * prj.kps);
+		GeomKeypoint& kp = cam.GetTimeline().GetAddKeypoint(i * prj->kps);
 		kp.position = vec3(sin(angle), 0, cos(angle)) * cam_radius;
 		kp.orientation = AxesQuat(angle, 0, 0);
 		angle += step;
@@ -228,7 +291,7 @@ void Edit3D::LoadTestCirclingCube() {
 }
 
 void Edit3D::LoadTestOctree() {
-	GeomScene& scene = prj.GetScene(0);
+	GeomScene& scene = prj->GetScene(0);
 	GeomObject& cam = scene.GetAddCamera("camera");
 	
 	// Create octree
@@ -262,13 +325,13 @@ void Edit3D::LoadTestOctree() {
 	
 	// Move camera linearly around sphere
 	int seconds = 3;
-	scene.length = prj.kps * seconds;
+	scene.length = prj->kps * seconds;
 	int kp_step = 3;
 	float step = M_PIf * 2 / (scene.length / kp_step - 1);
 	float angle = 0;
 	float cam_radius = radius + 2;
 	for(int i = 0; i < scene.length; i += kp_step) {
-		GeomKeypoint& kp = cam.timeline.GetAddKeypoint(i);
+		GeomKeypoint& kp = cam.GetTimeline().GetAddKeypoint(i);
 		kp.position = vec3(sin(angle), 0, cos(angle)) * cam_radius;
 		kp.orientation = AxesQuat(angle, 0, 0);
 		angle += step;
@@ -349,6 +412,13 @@ void Edit3D::OpenScene3D() {
 	LoadScene3DWithDialog();
 }
 
+void Edit3D::OpenFilePool() {
+	file_pool.Data();
+	if (!file_pool.IsOpen())
+		file_pool.Open();
+	file_pool.SetFocus();
+}
+
 void Edit3D::SaveScene3DInteractive() {
 	if (scene3d_path.IsEmpty())
 		SaveScene3DAs();
@@ -392,8 +462,9 @@ bool Edit3D::LoadScene3DWithDialog() {
 }
 
 static String Scene3DIsoTime(Time t) {
-	return Format("%04d-%02d-%02dT%02d:%02d:%02dZ",
-		t.year, t.month, t.day, t.hour, t.minute, t.second);
+	String date = Format("%04d-%02d-%02d", t.year, t.month, t.day);
+	String clock = Format("%02d:%02d:%02d", t.hour, t.minute, t.second);
+	return date + "T" + clock + "Z";
 }
 
 bool Edit3D::LoadScene3D(const String& path) {
@@ -406,11 +477,23 @@ bool Edit3D::LoadScene3D(const String& path) {
 	else if (!LoadScene3DBin(path, doc)) {
 		return false;
 	}
-	prj = pick(doc.project);
-	state.prj = &prj;
-	state.active_scene = doc.active_scene;
-	state.focus = doc.focus;
-	state.program = doc.program;
+	for (GeomScene& scene : doc.project->val.Sub<GeomScene>()) {
+		GeomObjectCollection objects(scene);
+		for (GeomObject& obj : objects) {
+			if (!obj.IsModel())
+				continue;
+			if (obj.mdl || !obj.asset_ref.IsEmpty())
+				continue;
+			ModelBuilder mb;
+			mb.AddBox(0, 1, 1);
+			obj.mdl = mb.Detach();
+		}
+	}
+	VisitCopy(*doc.project, *prj);
+	state->prj = prj;
+	state->active_scene = doc.active_scene;
+	VisitCopy(*doc.focus, state->GetFocus());
+	VisitCopy(*doc.program, state->GetProgram());
 	scene3d_path = path;
 	scene3d_use_json = use_json;
 	scene3d_created = doc.created_utc;
@@ -420,8 +503,8 @@ bool Edit3D::LoadScene3D(const String& path) {
 	scene3d_meta = pick(doc.meta);
 	if (scene3d_data_dir.IsEmpty())
 		scene3d_data_dir = "data";
-	state.UpdateObjects();
-	anim.Reset();
+	state->UpdateObjects();
+	anim->Reset();
 	Data();
 	v0.TimelineData();
 	v0.tree.OpenDeep(v0.tree_scenes);
@@ -433,10 +516,10 @@ bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
 	Scene3DDocument doc;
 	doc.version = SCENE3D_VERSION;
 	doc.name = "ModelerApp";
-	VisitCopy(prj, doc.project);
-	doc.active_scene = state.active_scene;
-	doc.focus = state.focus;
-	doc.program = state.program;
+	doc.project = prj;
+	doc.active_scene = state->active_scene;
+	doc.focus = &state->GetFocus();
+	doc.program = &state->GetProgram();
 	if (scene3d_created.IsEmpty())
 		scene3d_created = Scene3DIsoTime(GetUtcTime());
 	scene3d_modified = Scene3DIsoTime(GetUtcTime());
@@ -466,7 +549,7 @@ void Edit3D::LoadRemote(EditClientService* svc, bool debug) {
 	this->debug_remote = debug;
 	
 	if (svc) {
-		svc->sync.SetTarget(prj, state, anim, video);
+		svc->sync.SetTarget(*prj, *state, *anim, video);
 	}
 	
 	if (debug_remote) {

@@ -19,13 +19,25 @@ void Scene3DMetaEntry::Visit(Vis& v) {
 	    VIS_(value);
 }
 
+Scene3DDocument::Scene3DDocument() {
+	Init();
+}
+
+void Scene3DDocument::Init() {
+	project = &project_val.CreateExt<GeomProject>();
+	focus = &focus_val.CreateExt<GeomCamera>();
+	program = &program_val.CreateExt<GeomCamera>();
+}
+
 void Scene3DDocument::Visit(Vis& v) {
 	v VIS_(version)
-	  VIS_(name)
-	  VISN(project)
-	  VIS_(active_scene)
-	  VISN(focus)
-	  VISN(program);
+	  VIS_(name);
+	if (!project)
+		Init();
+	v("project", *project, VISIT_NODE)
+	  VIS_(active_scene);
+	v("focus", *focus, VISIT_NODE);
+	v("program", *program, VISIT_NODE);
 	if (version >= 2) {
 		v VIS_(created_utc)
 		  VIS_(modified_utc)
@@ -35,32 +47,45 @@ void Scene3DDocument::Visit(Vis& v) {
 	}
 }
 
-static void FixupDirectoryOwners(GeomDirectory& dir, GeomDirectory* owner) {
-	dir.owner = owner;
-	for (int i = 0; i < dir.subdir.GetCount(); i++) {
-		GeomDirectory& sub = dir.subdir[i];
-		sub.name = dir.subdir.GetKey(i);
-		FixupDirectoryOwners(sub, &dir);
-	}
-	for (GeomObject& o : dir.objs)
-		o.owner = &dir;
-}
-
 void FixupScene3DOwners(GeomProject& prj) {
-	for (int i = 0; i < prj.scenes.GetCount(); i++) {
-		GeomScene& scene = prj.scenes[i];
-		scene.owner = &prj;
-		FixupDirectoryOwners(scene, 0);
-	}
 	hash_t max_key = 0;
-	for (GeomScene& scene : prj.scenes) {
-		for (GeomObject& obj : GeomObjectCollection(scene)) {
+	for (GeomScene& scene : prj.val.Sub<GeomScene>())
+		for (GeomObject& obj : GeomObjectCollection(scene))
 			if (obj.key > max_key)
 				max_key = obj.key;
-		}
-	}
 	if (max_key >= prj.key_counter)
 		prj.key_counter = max_key + 1;
+}
+
+static void PruneEmptyObjects(GeomDirectory& dir) {
+	for (int i = 0; i < dir.val.sub.GetCount(); ) {
+		VfsValue& sub = dir.val.sub[i];
+		if (IsVfsType(sub, AsTypeHash<GeomDirectory>())) {
+			PruneEmptyObjects(sub.GetExt<GeomDirectory>());
+			i++;
+			continue;
+		}
+		if (IsVfsType(sub, AsTypeHash<GeomObject>())) {
+			GeomObject& obj = sub.GetExt<GeomObject>();
+			bool empty = obj.type == GeomObject::O_NULL &&
+			             obj.name.IsEmpty() &&
+			             obj.asset_ref.IsEmpty() &&
+			             obj.pointcloud_ref.IsEmpty();
+			GeomTimeline* tl = obj.FindTimeline();
+			if (tl && !tl->keypoints.IsEmpty())
+				empty = false;
+			if (empty) {
+				dir.val.sub.Remove(i);
+				continue;
+			}
+		}
+		i++;
+	}
+}
+
+static void PruneEmptyObjects(GeomProject& prj) {
+	for (GeomScene& scene : prj.val.Sub<GeomScene>())
+		PruneEmptyObjects(scene);
 }
 
 static bool CheckScene3DVersion(int version) {
@@ -84,7 +109,9 @@ bool LoadScene3DJson(const String& path, Scene3DDocument& doc) {
 		return false;
 	if (!CheckScene3DVersion(doc.version))
 		return false;
-	FixupScene3DOwners(doc.project);
+	doc.project_val.FixParent();
+	FixupScene3DOwners(*doc.project);
+	PruneEmptyObjects(*doc.project);
 	return true;
 }
 
@@ -110,7 +137,9 @@ bool LoadScene3DBin(const String& path, Scene3DDocument& doc) {
 		return false;
 	if (!CheckScene3DVersion(doc.version))
 		return false;
-	FixupScene3DOwners(doc.project);
+	doc.project_val.FixParent();
+	FixupScene3DOwners(*doc.project);
+	PruneEmptyObjects(*doc.project);
 	return true;
 }
 

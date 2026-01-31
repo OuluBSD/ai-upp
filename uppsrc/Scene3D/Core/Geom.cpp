@@ -3,75 +3,59 @@
 NAMESPACE_UPP
 
 
+static bool IsGeomDirectoryType(const VfsValue& v) {
+	return IsVfsType(v, AsTypeHash<GeomDirectory>()) ||
+	       IsVfsType(v, AsTypeHash<GeomScene>());
+}
+
+GeomObjectIterator::GeomObjectIterator(GeomDirectory& d) {
+	addr[0] = &d.val;
+	pos[0] = -1;
+	level = 0;
+}
+
 GeomObjectCollection::GeomObjectCollection(GeomDirectory& d) {
-	iter.addr[0] = &d;
+	iter = GeomObjectIterator(d);
+	iter.Next();
 }
 
 bool GeomObjectIterator::Next() {
-	if (!*this)
-		return false;
-	
-	while (1) {
-		ASSERT(level >= 0);
-		
-		{
-			GeomDirectory* a = addr[level];
-			int oc = a->objs.GetCount();
-			int sc = a->subdir.GetCount();
-			int& p = pos[level];
-			p++;
-			
-			if (p < oc)
-				; // pass
-			else if (p == oc + sc) {
-				if (!level)
-					break;
-				level--;
-				continue;
+	obj = 0;
+	while (level >= 0) {
+		ASSERT(addr[level]);
+		VfsValue& node = *addr[level];
+		int& p = pos[level];
+		while (++p < node.sub.GetCount()) {
+			VfsValue& child = node.sub[p];
+			if (IsVfsType(child, AsTypeHash<GeomObject>())) {
+				obj = &child.GetExt<GeomObject>();
+				return true;
 			}
-			else {
-				ASSERT(p >= oc && p < oc + sc);
-				int s = p - oc;
-				addr[level+1] = &a->subdir[s];
-				pos[level+1] = -1;
+			if (IsGeomDirectoryType(child)) {
 				level++;
-				continue;
+				ASSERT(level < MAX_LEVELS);
+				addr[level] = &child;
+				pos[level] = -1;
+				break;
 			}
 		}
-		
-		return true;
+		if (p >= node.sub.GetCount())
+			level--;
 	}
-	
 	return false;
 }
 
 GeomObjectIterator::operator bool() const {
-	if (!level) {
-		GeomDirectory* a = addr[level];
-		if (!a)
-			return false;
-		int oc = a->objs.GetCount();
-		int sc = a->subdir.GetCount();
-		if (pos[0] >= oc + sc)
-			return false;
-	}
-	return true;
+	return obj != 0;
 }
 
 GeomObject& GeomObjectIterator::operator*() {
-	GeomDirectory* a = addr[level];
-	int& p = pos[level];
-	return a->objs[p];
+	ASSERT(obj);
+	return *obj;
 }
 
 GeomObject* GeomObjectIterator::operator->() {
-	GeomDirectory* a = addr[level];
-	if (!a)
-		return 0;
-	int& p = pos[level];
-	if (p < 0 || p >= a->objs.GetCount())
-		return 0;
-	return &a->objs[p];
+	return obj;
 }
 
 void GeomKeypoint::Visit(Vis& v) {
@@ -138,9 +122,32 @@ int GeomTimeline::FindPost(int kp_i) const {
 
 	
 GeomScene& GeomProject::AddScene() {
-	GeomScene& s = scenes.Add();
-	s.owner = this;
+	VfsValue& n = val.Add(String(), AsTypeHash<GeomScene>());
+	GeomScene& s = n.GetExt<GeomScene>();
+	s.name = String();
 	return s;
+}
+
+int GeomProject::GetSceneCount() const {
+	int count = 0;
+	for (const auto& s : val.sub)
+		if (IsVfsType(s, AsTypeHash<GeomScene>()))
+			count++;
+	return count;
+}
+
+GeomScene& GeomProject::GetScene(int i) {
+	int count = 0;
+	for (auto& s : val.sub) {
+		if (IsVfsType(s, AsTypeHash<GeomScene>())) {
+			if (count == i)
+				return s.GetExt<GeomScene>();
+			count++;
+		}
+	}
+	Panic("GeomProject::GetScene: index out of range");
+	NEVER();
+	return val.sub[0].GetExt<GeomScene>();
 }
 
 /*GeomModel& GeomProject::AddModel() {
@@ -150,11 +157,27 @@ GeomScene& GeomProject::AddScene() {
 }*/
 
 
+GeomTimeline& GeomObject::GetTimeline() {
+	return val.GetAdd<GeomTimeline>("timeline");
+}
+
+GeomTimeline* GeomObject::FindTimeline() const {
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomTimeline>()) && sub.id == "timeline")
+			return &sub.GetExt<GeomTimeline>();
+	}
+	return 0;
+}
+
 String GeomObject::GetPath() const {
 	String path = name;
-	GeomDirectory* dir = owner;
+	const VfsValue* dir = val.owner;
 	while (dir) {
-		path = dir->name + "/" + path;
+		if (dir->ext) {
+			const GeomDirectory* d = CastConstPtr<GeomDirectory>(dir->ext.Get());
+			if (d && !d->name.IsEmpty())
+				path = d->name + "/" + path;
+		}
 		dir = dir->owner;
 	}
 	return path;
@@ -165,84 +188,201 @@ void GeomObject::Visit(Vis& v) {
 	v VIS_(name)
 	  VIS_(type_i)
 	  VIS_(asset_ref)
-	  VIS_(pointcloud_ref)
-	  VISN(timeline);
-	if (v.IsLoading())
+	  VIS_(pointcloud_ref);
+	GeomTimeline& tl = GetTimeline();
+	v("timeline", tl, VISIT_NODE);
+	if (v.IsLoading()) {
 		type = (Type)type_i;
+		if (!name.IsEmpty())
+			val.id = name;
+	}
 }
 
 
 
 
 GeomProject& GeomDirectory::GetProject() const {
-	const GeomDirectory* root = this;
-	while (root->owner)
-		root = root->owner;
-	const GeomScene* scene = CastConstPtr<GeomScene>(root);
-	ASSERT(scene && scene->GeomScene::owner);
-	return *scene->GeomScene::owner;
+	GeomProject* prj = val.FindOwner<GeomProject>();
+	ASSERT(prj);
+	return *prj;
+}
+
+int GeomDirectory::GetSubdirCount() const {
+	int count = 0;
+	for (const auto& s : val.sub)
+		if (IsVfsType(s, AsTypeHash<GeomDirectory>()))
+			count++;
+	return count;
+}
+
+GeomDirectory& GeomDirectory::GetSubdir(int i) const {
+	int count = 0;
+	for (auto& s : val.sub) {
+		if (IsVfsType(s, AsTypeHash<GeomDirectory>())) {
+			if (count == i)
+				return s.GetExt<GeomDirectory>();
+			count++;
+		}
+	}
+	Panic("GeomDirectory::GetSubdir: index out of range");
+	NEVER();
+	return val.sub[0].GetExt<GeomDirectory>();
+}
+
+int GeomDirectory::GetObjectCount() const {
+	int count = 0;
+	for (const auto& s : val.sub)
+		if (IsVfsType(s, AsTypeHash<GeomObject>()))
+			count++;
+	return count;
+}
+
+GeomObject& GeomDirectory::GetObject(int i) const {
+	int count = 0;
+	for (auto& s : val.sub) {
+		if (IsVfsType(s, AsTypeHash<GeomObject>())) {
+			if (count == i)
+				return s.GetExt<GeomObject>();
+			count++;
+		}
+	}
+	Panic("GeomDirectory::GetObject: index out of range");
+	NEVER();
+	return val.sub[0].GetExt<GeomObject>();
 }
 
 GeomDirectory& GeomDirectory::GetAddDirectory(String name) {
-	int i = subdir.Find(name);
-	if (i >= 0)
-		return subdir[i];
-	GeomDirectory& dir = subdir.Add(name);
+	GeomDirectory& dir = val.GetAdd<GeomDirectory>(name);
 	dir.name = name;
-	dir.owner = this;
+	dir.val.id = name;
 	return dir;
 }
 
 void GeomDirectory::Visit(Vis& v) {
 	v VIS_(name);
+	if (v.IsLoading() && !name.IsEmpty())
+		val.id = name;
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
-			subdir.Clear();
-			const Value& va = v.json->Get()["subdir"];
-			subdir.Reserve(va.GetCount());
-			for (int i = 0; i < va.GetCount(); i++) {
+			val.sub.Clear();
+			const Value& sub_va = v.json->Get()["subdir"];
+			for (int i = 0; i < sub_va.GetCount(); i++) {
 				String key;
-				LoadFromJsonValue(key, va[i]["key"]);
-				GeomDirectory& dir = subdir.Add(key);
-				JsonIO jio(va[i]["value"]);
+				LoadFromJsonValue(key, sub_va[i]["key"]);
+				VfsValue& n = val.Add(key, AsTypeHash<GeomDirectory>());
+				GeomDirectory& dir = n.GetExt<GeomDirectory>();
+				dir.name = key;
+				JsonIO jio(sub_va[i]["value"]);
 				Vis vis(jio);
 				dir.Visit(vis);
 			}
+			const Value& obj_va = v.json->Get()["objs"];
+			for (int i = 0; i < obj_va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomObject>());
+				GeomObject& o = n.GetExt<GeomObject>();
+				JsonIO jio(obj_va[i]);
+				Vis vis(jio);
+				o.Visit(vis);
+				if (!o.name.IsEmpty())
+					n.id = o.name;
+			}
 		}
 		else {
-			Vector<Value> va;
-			va.SetCount(subdir.GetCount());
-			for (int i = 0; i < subdir.GetCount(); i++) {
+			Vector<Value> subdir_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomDirectory>()))
+					continue;
+				GeomDirectory& dir = s.GetExt<GeomDirectory>();
 				ValueMap item;
-				item.Add("key", StoreAsJsonValue(subdir.GetKey(i)));
-				item.Add("value", v.VisitAsJsonValue(subdir[i]));
-				va[i] = item;
+				String key = dir.name;
+				if (key.IsEmpty())
+					key = s.id;
+				item.Add("key", StoreAsJsonValue(key));
+				item.Add("value", v.VisitAsJsonValue(dir));
+				subdir_values.Add(item);
 			}
-			v.json->Set("subdir", ValueArray(pick(va)));
+			v.json->Set("subdir", ValueArray(pick(subdir_values)));
+			Vector<Value> obj_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomObject>()))
+					continue;
+				GeomObject& o = s.GetExt<GeomObject>();
+				obj_values.Add(v.VisitAsJsonValue(o));
+			}
+			v.json->Set("objs", ValueArray(pick(obj_values)));
 		}
 	}
 	else {
-		if (v.mode == Vis::MODE_STREAM)
-			v.VisitMapSerialize(subdir);
-		else if (v.mode == Vis::MODE_HASH)
-			v.VisitMapHash(subdir);
-		else if (v.mode == Vis::MODE_VCS)
-			v.VisitMapVcs("subdir", subdir);
+		int subdir_count = 0;
+		int obj_count = 0;
+		if (!v.IsLoading()) {
+			for (auto& s : val.sub) {
+				if (IsVfsType(s, AsTypeHash<GeomDirectory>()))
+					subdir_count++;
+				else if (IsVfsType(s, AsTypeHash<GeomObject>()))
+					obj_count++;
+			}
+		}
+		v VIS_(subdir_count)
+		  VIS_(obj_count);
+		if (v.IsLoading()) {
+			val.sub.Clear();
+			for (int i = 0; i < subdir_count; i++) {
+				String key;
+				v VIS_(key);
+				VfsValue& n = val.Add(key, AsTypeHash<GeomDirectory>());
+				GeomDirectory& dir = n.GetExt<GeomDirectory>();
+				dir.name = key;
+				dir.Visit(v);
+			}
+			for (int i = 0; i < obj_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomObject>());
+				GeomObject& o = n.GetExt<GeomObject>();
+				o.Visit(v);
+				if (!o.name.IsEmpty())
+					n.id = o.name;
+			}
+		}
+		else {
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomDirectory>()))
+					continue;
+				GeomDirectory& dir = s.GetExt<GeomDirectory>();
+				String key = dir.name;
+				if (key.IsEmpty())
+					key = s.id;
+				v VIS_(key);
+				dir.Visit(v);
+			}
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomObject>()))
+					continue;
+				GeomObject& o = s.GetExt<GeomObject>();
+				o.Visit(v);
+			}
+		}
 	}
-	v VISV(objs);
 }
 
 GeomObject* GeomDirectory::FindObject(String name) {
-	for(GeomObject& o : objs)
+	for (auto& s : val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomObject>()))
+			continue;
+		GeomObject& o = s.GetExt<GeomObject>();
 		if (o.name == name)
 			return &o;
+	}
 	return 0;
 }
 
 GeomObject* GeomDirectory::FindObject(String name, GeomObject::Type type) {
-	for(GeomObject& o : objs)
+	for (auto& s : val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomObject>()))
+			continue;
+		GeomObject& o = s.GetExt<GeomObject>();
 		if (o.name == name && o.type == type)
 			return &o;
+	}
 	return 0;
 }
 
@@ -254,12 +394,12 @@ GeomObject& GeomDirectory::GetAddModel(String name) {
 	GeomObject* o = FindObject(name);
 	if (o)
 		return *o;
-	
-	o = &objs.Add();
-	o->key = GetProject().NewKey();
-	o->name = name;
-	o->type = GeomObject::O_MODEL;
-	return *o;
+	GeomObject& obj = val.GetAdd<GeomObject>(name);
+	obj.key = GetProject().NewKey();
+	obj.name = name;
+	obj.type = GeomObject::O_MODEL;
+	obj.val.id = name;
+	return obj;
 }
 
 void GeomScene::Visit(Vis& v) {
@@ -268,34 +408,84 @@ void GeomScene::Visit(Vis& v) {
 }
 
 void GeomProject::Visit(Vis& v) {
-	v VISV(scenes)
-	  VIS_(kps)
-	  VIS_(fps)
-	  VIS_(key_counter);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			val.sub.Clear();
+			const Value& va = v.json->Get()["scenes"];
+			for (int i = 0; i < va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomScene>());
+				GeomScene& scene = n.GetExt<GeomScene>();
+				JsonIO jio(va[i]);
+				Vis vis(jio);
+				scene.Visit(vis);
+			}
+		}
+		else {
+			Vector<Value> va;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+					continue;
+				GeomScene& scene = s.GetExt<GeomScene>();
+				va.Add(v.VisitAsJsonValue(scene));
+			}
+			v.json->Set("scenes", ValueArray(pick(va)));
+		}
+		v VIS_(kps)
+		  VIS_(fps)
+		  VIS_(key_counter);
+	}
+	else {
+		int scene_count = 0;
+		if (!v.IsLoading()) {
+			for (auto& s : val.sub)
+				if (IsVfsType(s, AsTypeHash<GeomScene>()))
+					scene_count++;
+		}
+		v VIS_(scene_count)
+		  VIS_(kps)
+		  VIS_(fps)
+		  VIS_(key_counter);
+		if (v.IsLoading()) {
+			val.sub.Clear();
+			for (int i = 0; i < scene_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomScene>());
+				GeomScene& scene = n.GetExt<GeomScene>();
+				scene.Visit(v);
+			}
+		}
+		else {
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+					continue;
+				GeomScene& scene = s.GetExt<GeomScene>();
+				scene.Visit(v);
+			}
+		}
+	}
 }
 
 GeomObject& GeomDirectory::GetAddCamera(String name) {
 	GeomObject* o = FindObject(name);
 	if (o)
 		return *o;
-	
-	o = &objs.Add();
-	o->key = GetProject().NewKey();
-	o->name = name;
-	o->type = GeomObject::O_CAMERA;
-	return *o;
+	GeomObject& obj = val.GetAdd<GeomObject>(name);
+	obj.key = GetProject().NewKey();
+	obj.name = name;
+	obj.type = GeomObject::O_CAMERA;
+	obj.val.id = name;
+	return obj;
 }
 
 GeomObject& GeomDirectory::GetAddOctree(String name) {
 	GeomObject* o = FindObject(name);
 	if (o)
 		return *o;
-	
-	o = &objs.Add();
-	o->key = GetProject().NewKey();
-	o->name = name;
-	o->type = GeomObject::O_OCTREE;
-	return *o;
+	GeomObject& obj = val.GetAdd<GeomObject>(name);
+	obj.key = GetProject().NewKey();
+	obj.name = name;
+	obj.type = GeomObject::O_OCTREE;
+	obj.val.id = name;
+	return obj;
 }
 
 
@@ -310,11 +500,23 @@ GeomObject& GeomDirectory::GetAddOctree(String name) {
 
 
 
-GeomWorldState::GeomWorldState() {
-	//focus.scale = 100;
-	//program.scale = 100;
-	//program.orientation = AxesQuat(M_PI/4, -M_PI/4, 0);
-	
+GeomCamera& GeomWorldState::GetFocus() {
+	GeomCamera& cam = val.GetAdd<GeomCamera>("focus");
+	return cam;
+}
+
+GeomCamera& GeomWorldState::GetProgram() {
+	GeomCamera& cam = val.GetAdd<GeomCamera>("program");
+	return cam;
+}
+
+void GeomWorldState::Visit(Vis& v) {
+	v VIS_(active_scene)
+	  VIS_(active_camera_obj_i);
+	GeomCamera& focus = GetFocus();
+	GeomCamera& program = GetProgram();
+	v("focus", focus, VISIT_NODE);
+	v("program", program, VISIT_NODE);
 }
 
 void GeomWorldState::UpdateObjects() {
@@ -326,6 +528,14 @@ void GeomWorldState::UpdateObjects() {
 	for (GeomObject& o : collection) {
 		GeomObjectState& s = objs.Add();
 		s.obj = &o;
+		s.position = vec3(0);
+		s.orientation = Identity<quat>();
+		GeomTimeline* tl = o.FindTimeline();
+		if (tl && !tl->keypoints.IsEmpty()) {
+			GeomKeypoint& kp = tl->keypoints[0];
+			s.position = kp.position;
+			s.orientation = kp.orientation;
+		}
 		if (active_camera_obj_i < 0 && o.IsCamera())
 			active_camera_obj_i = i;
 		i++;
@@ -333,8 +543,9 @@ void GeomWorldState::UpdateObjects() {
 }
 
 GeomScene& GeomWorldState::GetActiveScene() {
-	ASSERT(active_scene >= 0 && active_scene < prj->scenes.GetCount());
-	return prj->scenes[active_scene];
+	ASSERT(prj);
+	ASSERT(active_scene >= 0 && active_scene < prj->GetSceneCount());
+	return prj->GetScene(active_scene);
 }
 
 
@@ -423,13 +634,14 @@ void GeomAnim::Update(double dt) {
 	
 	for (GeomObjectState& os : state->objs) {
 		GeomObject& o = *os.obj;
-		if (!o.timeline.keypoints.IsEmpty()) {
-			int pre_i = o.timeline.FindPre(position);
-			int post_i = o.timeline.FindPost(position);
+		GeomTimeline* tl = o.FindTimeline();
+		if (tl && !tl->keypoints.IsEmpty()) {
+			int pre_i = tl->FindPre(position);
+			int post_i = tl->FindPost(position);
 			if (pre_i >= 0 && post_i >= 0) {
 				ASSERT(pre_i < post_i);
-				GeomKeypoint& pre = o.timeline.keypoints[pre_i];
-				GeomKeypoint& post = o.timeline.keypoints[post_i];
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				GeomKeypoint& post = tl->keypoints[post_i];
 				float pre_time = pre.frame_id / (float)prj.kps;
 				float post_time = post.frame_id / (float)prj.kps;
 				float f = (time - pre_time) / (post_time - pre_time);
@@ -447,7 +659,7 @@ void GeomAnim::Update(double dt) {
 	if (state->active_camera_obj_i >= 0) {
 		GeomObjectState& os = state->objs[state->active_camera_obj_i];
 		ASSERT(os.obj->IsCamera());
-		GeomCamera& cam = state->program;
+		GeomCamera& cam = state->GetProgram();
 		cam.position = os.position;
 		cam.orientation = os.orientation;
 	}
@@ -472,6 +684,12 @@ void GeomAnim::Play() {
 	state->UpdateObjects();
 }
 
+void GeomAnim::Visit(Vis& v) {
+	v VIS_(time)
+	  VIS_(position)
+	  VIS_(is_playing);
+}
+
 void GeomCamera::Visit(Vis& v) {
 	v VISN(position)
 	  VISN(orientation)
@@ -479,6 +697,15 @@ void GeomCamera::Visit(Vis& v) {
 	  VIS_(fov)
 	  VIS_(scale);
 }
+
+INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomObject, "scene3d.object", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomDirectory, "scene3d.directory", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomScene, "scene3d.scene", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomProject, "scene3d.project", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomCamera, "scene3d.camera", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomWorldState, "scene3d.world", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomAnim, "scene3d.anim", "Scene3D|Core")
 
 
 END_UPP_NAMESPACE

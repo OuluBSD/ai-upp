@@ -141,7 +141,8 @@ void EditRenderer::Paint(Draw& d) {
 		UncameraFrame& frame = ctx->video->uncam.frames[frame_i];
 		
 		GeomObjectState os;
-		GeomObject go;
+		VfsValue temp_node;
+		GeomObject& go = temp_node.CreateExt<GeomObject>();
 		go.type = GeomObject::O_OCTREE;
 		os.obj = &go;
 		go.octree_ptr = &frame.otree;
@@ -162,19 +163,20 @@ void EditRenderer::Paint(Draw& d) {
 	}
 	
 	
-	if (&camera != &state.program) {
+	GeomCamera& program = state.GetProgram();
+	if (&camera != &program) {
 		Color clr = Color(255, 255, 172);
 		
 		Vector<vec3> corners;
 		{
 			Camera cam;
-			state.program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz, 3.0);
+			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz, 3.0);
 			Frustum frustum = cam.GetFrustum();
 			corners.SetCount(8);
 			frustum.GetCorners(corners.Begin());
 		}
 		
-		DrawRect(sz, d, view, state.program.position, Size(2,2), clr, z_cull);
+		DrawRect(sz, d, view, program.position, Size(2,2), clr, z_cull);
 		
 		int lw = 1;
 		DrawLine(sz, d, view, corners[0], corners[1], lw, clr, z_cull);
@@ -350,13 +352,13 @@ GeomCamera& EditRenderer::GetGeomCamera() const {
 	case CAMSRC_FOCUS:
 	case CAMSRC_VIDEOIMPORT_FOCUS:
 		ASSERT(ctx && ctx->state);
-		return ctx->state->focus;
+		return ctx->state->GetFocus();
 		break;
 		
 	case CAMSRC_PROGRAM:
 	case CAMSRC_VIDEOIMPORT_PROGRAM:
 		ASSERT(ctx && ctx->state);
-		return ctx->state->program;
+		return ctx->state->GetProgram();
 		break;
 		
 	}

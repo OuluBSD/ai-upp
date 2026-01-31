@@ -54,3 +54,6 @@ capture.png
 run.err
 run.log
 
+# Ignore calibration images
+share/calibration/*/captures
+

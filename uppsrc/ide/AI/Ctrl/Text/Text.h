@@ -2,10 +2,10 @@
 #define _AI_Ctrl_Text_Text_h_
 
 // Base dependencies and UI macros
-#include <AI/Ctrl/Base/Base.h>
-#include <AI/Ctrl/Audio/Audio.h>
+#include <ide/AI/Ctrl/Base/Base.h>
+#include <ide/AI/Ctrl/Audio/Audio.h>
 
-#define LAYOUTFILE <AI/Ctrl/Text/Text.lay>
+#define LAYOUTFILE <ide/AI/Ctrl/Text/Text.lay>
 #include <CtrlCore/lay.h>
 
 

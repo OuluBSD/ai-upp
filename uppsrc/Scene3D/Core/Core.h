@@ -3,6 +3,7 @@
 
 #include <Geometry/Geometry.h>
 #include <Core/VfsBase/Visitor.h>
+#include <Vfs/Core/Core.h>
 
 NAMESPACE_UPP
 

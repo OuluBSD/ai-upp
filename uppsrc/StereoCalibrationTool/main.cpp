@@ -5,7 +5,6 @@ using namespace Upp;
 
 GUI_APP_MAIN
 {
-	StereoCalibrationTool app;
 	const Vector<String>& args = CommandLine();
 	String usb_device;
 	String project_dir;
@@ -14,11 +13,14 @@ GUI_APP_MAIN
 	bool test_hmd = false;
 	bool test_live = false;
 	bool solve_mode = false;
+	bool verbose = false;
 	int hmd_timeout_ms = 0;
 	int live_timeout_ms = 0;
 	bool use_ga = false;
 	int ga_population = 30;
 	int ga_generations = 20;
+	bool stagea_identity_test = false;
+	String test_image_path;
 	for (const String& arg : args) {
 		if (arg == "-h" || arg == "--help") {
 			Cout() << "Stereo Calibration Tool\n"
@@ -36,7 +38,9 @@ GUI_APP_MAIN
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
 			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
 			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
-			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n";
+			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
+			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
+			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
 		if (arg == "--test-usb")
@@ -48,7 +52,7 @@ GUI_APP_MAIN
 		else if (arg == "--solve")
 			solve_mode = true;
 		else if (arg == "-v" || arg == "--verbose")
-			app.SetVerbose(true);
+			verbose = true; // Applied after windows are created.
 		else if (arg.StartsWith("--usb-device="))
 			usb_device = arg.Mid(strlen("--usb-device="));
 		else if (arg.StartsWith("--usb-timeout-ms="))
@@ -63,6 +67,10 @@ GUI_APP_MAIN
 			ga_population = atoi(arg.Mid(strlen("--ga-population=")));
 		else if (arg.StartsWith("--ga-generations="))
 			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
+		else if (arg == "--stagea_identity_test")
+			stagea_identity_test = true;
+		else if (arg.StartsWith("--image="))
+			test_image_path = arg.Mid(strlen("--image="));
 		else if (!arg.StartsWith("--"))
 			project_dir = arg;
 	}
@@ -80,24 +88,68 @@ GUI_APP_MAIN
 			return;
 	}
 
-	// Configure GA bootstrap if requested (before headless solve)
-	if (use_ga)
-		app.EnableGABootstrap(true, ga_population, ga_generations);
+	AppModel model;
+	MenuWindow menu;
+	CameraWindow camera;
+	StageAWindow stage_a;
+	StageBWindow stage_b;
+	StageCWindow stage_c;
+	LiveResultWindow live;
 
-	// Headless solve mode
-	if (solve_mode) {
-		int result = app.SolveHeadless(project_dir);
+	menu.Init(model, camera, stage_a, stage_b, stage_c, live);
+	camera.Init(model);
+	stage_a.Init(model);
+	stage_b.Init(model);
+	stage_c.Init(model);
+	live.Init(model);
+
+	if (verbose) {
+		camera.SetVerbose(true);
+		live.SetVerbose(true);
+	}
+
+	if (!usb_device.IsEmpty())
+		camera.SetUsbDevicePath(usb_device);
+
+	if (use_ga) {
+		model.use_ga_bootstrap = true;
+		model.ga_population = ga_population;
+		model.ga_generations = ga_generations;
+	}
+
+	// Stage A identity test mode
+	if (stagea_identity_test) {
+		int result = TestStageAIdentity(model, project_dir, test_image_path);
 		SetExitCode(result);
 		return;
 	}
 
-	app.SetProjectDir(project_dir);
+	// Headless solve mode
+	if (solve_mode) {
+		model.project_dir = project_dir;
+		StereoCalibrationHelpers::LoadLastCalibration(model);
+		StereoCalibrationHelpers::LoadState(model);
+		stage_b.RefreshFromModel();
+		int result = stage_b.SolveCalibration() ? 0 : 1;
+		StereoCalibrationHelpers::SaveLastCalibration(model);
+		StereoCalibrationHelpers::SaveState(model);
+		SetExitCode(result);
+		return;
+	}
 
-	if (test_usb)
-		app.EnableUsbTest(usb_device, usb_timeout_ms);
-	if (test_hmd)
-		app.EnableHmdTest(hmd_timeout_ms);
-	if (test_live)
-		app.EnableLiveTest(live_timeout_ms);
-	app.Run();
+	model.project_dir = project_dir;
+	StereoCalibrationHelpers::LoadLastCalibration(model);
+	StereoCalibrationHelpers::LoadState(model);
+	camera.RefreshFromModel();
+	stage_a.RefreshFromModel();
+	stage_b.RefreshFromModel();
+	stage_c.RefreshFromModel();
+	menu.RefreshFromModel();
+
+	if (test_usb || test_hmd || test_live) {
+		PromptOK("Automated tests are only available via the disabled controller.");
+		return;
+	}
+
+	menu.Run();
 }

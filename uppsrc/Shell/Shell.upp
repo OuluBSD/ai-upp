@@ -16,8 +16,7 @@ acceptflags
 uses
 	AI/Core,
 	Eon/Draw,
-	Eon/Lib,
-	SoftVR;
+	Eon/Lib;
 
 uses(VOLUMETRIC) api/Volumetric;
 

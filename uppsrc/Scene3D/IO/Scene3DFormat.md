@@ -23,13 +23,24 @@ Both encodings use the same field layout and are serialized via U++ `Vis`.
   "name": "ProjectName",
   "project": { ... },
   "active_scene": 0,
-  "focus": [0, 0, 0],
-  "program": "ModelerApp",
+  "focus": { ... },
+  "program": { ... },
   "created_utc": "2026-01-30T00:00:00Z",
   "modified_utc": "2026-01-30T00:00:00Z",
   "data_dir": "data",
   "external_files": [ ... ],
   "meta": [ { "key": "source", "value": "ModelerApp" } ]
+}
+```
+
+## Camera
+```
+GeomCamera {
+  position: vec3,
+  orientation: quat,
+  distance: 10,
+  fov: 120,
+  scale: 1
 }
 ```
 

@@ -5,6 +5,7 @@
 #include <MetaCtrl/MetaCtrl.h>
 #include <Vfs/Runtime/Runtime.h>
 #include <Vfs/Storage/VfsStorage.h>
+#include <ide/AI/Ctrl/Ctrl.h>
 
 struct VfsDlg;
 
@@ -20,7 +21,6 @@ NAMESPACE_UPP
 #include "MetaTempTask.h"
 #include "EditorCtrl.h"
 #include "Env.h"
-#include "TextDesigner.h"
 
 END_UPP_NAMESPACE
 	

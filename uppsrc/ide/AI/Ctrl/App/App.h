@@ -13,10 +13,10 @@
 #error GUI flag is required
 #endif
 
-#include <AI/Ctrl/Agent/Agent.h>
-#include <AI/Ctrl/Imaging/Imaging.h>
+#include <ide/AI/Ctrl/Agent/Agent.h>
+#include <ide/AI/Ctrl/Imaging/Imaging.h>
 
-#define LAYOUTFILE <AI/Ctrl/App/App.lay>
+#define LAYOUTFILE <ide/AI/Ctrl/App/App.lay>
 #include <CtrlCore/lay.h>
 
 

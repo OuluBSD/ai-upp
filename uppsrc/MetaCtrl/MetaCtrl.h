@@ -27,7 +27,6 @@ NAMESPACE_UPP
 #include "Common.h"
 #include "Node.h"
 #include "ProcessCtrl.h"
-#include "Entity.h"
 
 END_UPP_NAMESPACE
 

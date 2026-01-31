@@ -16,7 +16,5 @@ file
 	Node.h,
 	Widget.cpp,
 	ProcessCtrl.h,
-	ProcessCtrl.cpp,
-	Entity.h,
-	Entity.cpp;
+	ProcessCtrl.cpp;
 

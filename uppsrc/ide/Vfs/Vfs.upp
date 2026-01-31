@@ -31,7 +31,5 @@ file
 	Env.h,
 	Env.cpp,
 	EcsLang.h,
-	EcsLang.cpp,
-	TextDesigner.h,
-	TextDesigner.cpp;
+	EcsLang.cpp;
 

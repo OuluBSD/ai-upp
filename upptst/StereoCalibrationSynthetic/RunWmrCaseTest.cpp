@@ -110,10 +110,11 @@ bool RunWmrCaseTest(const String& dataset_path) {
 	StereoCalibrationSolver solver;
 	solver.eye_dist = data.eye_dist;
 	solver.dist_weight = 10.0;
-	solver.huber_mm = 200.0;
+	solver.huber_m = 0.200;  // 200mm in meters
 	solver.max_fevals = 3000;
 	String solve_log;
 	solver.log = &solve_log;
+	solver.EnableTrace(true, 2, 20000);
 
 	for (const auto& m : data.matches) {
 		StereoCalibrationMatch sm;
@@ -174,6 +175,13 @@ bool RunWmrCaseTest(const String& dataset_path) {
 	Cout() << "Behind camera (EST fit) L/R: " << diag_est.behind_left << "/" << diag_est.behind_right << "\n";
 	if (diag_est.dist_rms_l > 10.0 || diag_est.dist_rms_r > 10.0)
 		Cout() << "WARN distance RMS from solver fit is high; check dist_weight or local minima.\n";
+
+	String trace_path = GetFileDirectory(dataset_path) + "/WmrCaseTrace.txt";
+	String trace_text = solver.GetTraceText();
+	if (!trace_text.IsEmpty()) {
+		SaveFile(trace_path, trace_text);
+		Cout() << "Trace log saved to: " << trace_path << "\n";
+	}
 
 	bool pass = true;
 	if (rms_l_est_on_gt > 1.5 || rms_r_est_on_gt > 1.5) {

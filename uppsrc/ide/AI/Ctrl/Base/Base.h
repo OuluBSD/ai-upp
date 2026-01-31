@@ -14,11 +14,13 @@
 #endif
 
 #define IMAGECLASS AIImgs
-#define IMAGEFILE <AI/Ctrl/Base/AIImgs.iml>
+#define IMAGEFILE <ide/AI/Ctrl/Base/AIImgs.iml>
 #include <Draw/iml_header.h>
 
+#include "Entity.h"
 #include "Fn.h"
 #include "VfsProgram.h"
+#include "TextDesigner.h"
 
 #endif
 

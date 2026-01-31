@@ -23,16 +23,21 @@ struct Scene3DMetaEntry {
 struct Scene3DDocument {
 	int version = 2;
 	String name;
-	GeomProject project;
+	VfsValue project_val;
+	GeomProject* project = 0;
 	int active_scene = 0;
-	GeomCamera focus;
-	GeomCamera program;
+	VfsValue focus_val;
+	GeomCamera* focus = 0;
+	VfsValue program_val;
+	GeomCamera* program = 0;
 	String created_utc;
 	String modified_utc;
 	String data_dir;
 	Array<Scene3DExternalFile> external_files;
 	Array<Scene3DMetaEntry> meta;
 
+	Scene3DDocument();
+	void Init();
 	void Visit(Vis& v);
 };
 

@@ -37,7 +37,7 @@ void GeomProjectCtrl::RefreshRenderer(int i) {
 }
 
 void GeomProjectCtrl::Update(double dt) {
-	GeomAnim& anim = e->anim;
+	GeomAnim& anim = *e->anim;
 	GeomVideo& video = e->video;
 	bool was_playing = anim.is_playing || video.is_importing;
 	
@@ -60,22 +60,26 @@ void GeomProjectCtrl::Update(double dt) {
 }
 
 void GeomProjectCtrl::Data() {
-	GeomProject& prj = e->prj;
+	GeomProject& prj = *e->prj;
 	
+	tree.Clear();
 	tree.SetRoot(ImagesImg::Root(), "Project");
 	
-	if (tree_scenes < 0)
-		tree_scenes = tree.Add(0, ImagesImg::Scenes(), "Scenes");
+	tree_scenes = tree.Add(0, ImagesImg::Scenes(), "Scenes");
 	
-	for(int i = 0; i < prj.scenes.GetCount(); i++) {
-		GeomScene& scene = prj.scenes[i];
-		String name = scene.name.IsEmpty() ? "Scene #" + IntStr(i) : scene.name;
-		int j = tree.Add(tree_scenes, ImagesImg::Scene(), i, name);
+	int scene_idx = 0;
+	for (auto& s : prj.val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+			continue;
+		GeomScene& scene = s.GetExt<GeomScene>();
+		String name = scene.name.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene.name;
+		int j = tree.Add(tree_scenes, ImagesImg::Scene(), RawToValue(&scene.val), name);
 		
-		TreeDirectory(j, scene);
+		TreeValue(j, scene.val);
 		
-		if (i == 0 && !tree.HasFocus())
+		if (scene_idx == 0 && !tree.HasFocus())
 			tree.SetCursor(j);
+		scene_idx++;
 	}
 	
 	/*for(int i = 0; i < prj.octrees.GetCount(); i++) {
@@ -90,32 +94,65 @@ void GeomProjectCtrl::Data() {
 }
 
 void GeomProjectCtrl::TreeSelect() {
-	if (!tree.HasFocus())
-		return;
-	
 	int cursor = tree.GetCursor();
-	int parent = tree.GetParent(cursor);
-	if (parent == tree_scenes) {
-		int i = tree.Get(cursor);
-		GeomScene& s = e->prj.scenes[i];
-		
+	if (cursor < 0)
+		return;
+	Value v = tree.Get(cursor);
+	if (!v.Is<VfsValue*>())
+		return;
+	VfsValue* node = ValueTo<VfsValue*>(v);
+	if (!node)
+		return;
+	if (IsVfsType(*node, AsTypeHash<GeomScene>())) {
+		int idx = 0;
+		for (auto& s : e->prj->val.sub) {
+			if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+				continue;
+			if (&s == node) {
+				e->state->active_scene = idx;
+				e->state->UpdateObjects();
+				RefreshRenderer(0);
+				RefreshRenderer(1);
+				RefreshRenderer(2);
+				RefreshRenderer(3);
+				break;
+			}
+			idx++;
+		}
 	}
 
 }
 
 void GeomProjectCtrl::OnCursor(int i) {
-	e->anim.position = i;
+	e->anim->position = i;
 }
 
-void GeomProjectCtrl::TreeDirectory(int id, GeomDirectory& dir) {
-	for(int i = 0; i < dir.subdir.GetCount(); i++) {
-		GeomDirectory& subdir = dir.subdir[i];
-		String name = dir.subdir.GetKey(i);
-		int j = tree.Add(id, ImagesImg::Directory(), i, name);
-		TreeDirectory(j, subdir);
+void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {
+	auto warn_unknown = [&](const VfsValue& n) {
+		hash_t type_hash = n.ext ? n.ext->GetTypeHash() : n.type_hash;
+		if (warned_tree_types.Find(type_hash) >= 0)
+			return;
+		warned_tree_types.Add(type_hash);
+		LOG("GeomProjectCtrl: unexpected VfsValue type in tree: " + n.GetTypeString());
+	};
+	Vector<VfsValue*> dirs;
+	Vector<VfsValue*> objs;
+	for (auto& s : node.sub) {
+		if (IsVfsType(s, AsTypeHash<GeomDirectory>()))
+			dirs.Add(&s);
+		else if (IsVfsType(s, AsTypeHash<GeomObject>()))
+			objs.Add(&s);
+		else
+			warn_unknown(s);
 	}
-	for(int i = 0; i < dir.objs.GetCount(); i++) {
-		GeomObject& o = dir.objs[i];
+	for (VfsValue* s : dirs) {
+		GeomDirectory& dir = s->GetExt<GeomDirectory>();
+		String name = dir.name.IsEmpty() ? dir.val.id : dir.name;
+		int j = tree.Add(id, ImagesImg::Directory(), RawToValue(s), name);
+		TreeValue(j, *s);
+	}
+	for (VfsValue* s : objs) {
+		GeomObject& o = s->GetExt<GeomObject>();
 		Image img;
 		switch (o.type) {
 			case GeomObject::O_CAMERA: img = ImagesImg::Camera(); break;
@@ -123,21 +160,26 @@ void GeomProjectCtrl::TreeDirectory(int id, GeomDirectory& dir) {
 			case GeomObject::O_OCTREE: img = ImagesImg::Octree(); break;
 			default: img = ImagesImg::Object();
 		}
-		int j = tree.Add(id, img, i, o.name);
+		String name = o.name.IsEmpty() ? s->id : o.name;
+		tree.Add(id, img, RawToValue(s), name);
 	}
 }
 
 void GeomProjectCtrl::TimelineData() {
-	GeomProject& prj = e->prj;
-	GeomScene& scene = e->state.GetActiveScene();
+	GeomProject& prj = *e->prj;
+	GeomScene& scene = e->state->GetActiveScene();
+	Vector<GeomObject*> objects;
+	GeomObjectCollection collection(scene);
+	for (GeomObject& o : collection)
+		objects.Add(&o);
 	
-	time.SetCount(scene.objs.GetCount());
+	time.SetCount(objects.GetCount());
 	time.SetKeypointRate(prj.kps);
 	time.SetLength(scene.length);
 	time.SetKeypointColumnWidth(13);
 	
-	for(int i = 0; i < scene.objs.GetCount(); i++) {
-		GeomObject& o = scene.objs[i];
+	for(int i = 0; i < objects.GetCount(); i++) {
+		GeomObject& o = *objects[i];
 		/*int j = prj.list[i];
 		int id = j / GeomProject::O_COUNT;
 		int type = j % GeomProject::O_COUNT;*/
@@ -147,7 +189,11 @@ void GeomProjectCtrl::TimelineData() {
 		TimelineRowCtrl& row = time.GetRowIndex(i);
 		row.SetTitle(name);
 		
-		row.SetKeypoints(o.timeline.keypoints.GetKeys());
+		GeomTimeline* tl = o.FindTimeline();
+		if (tl)
+			row.SetKeypoints(tl->keypoints.GetKeys());
+		else
+			row.SetKeypoints(Vector<int>());
 		
 		row.Refresh();
 	}

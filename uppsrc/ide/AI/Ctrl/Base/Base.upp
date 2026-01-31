@@ -16,5 +16,9 @@ file
 	Fn.cpp,
 	VfsProgram.h,
 	VfsProgram.cpp,
-	Images.cpp;
+	Images.cpp,
+	Entity.h,
+	Entity.cpp,
+	ToolAppCtrl.h,
+	ToolAppCtrl.cpp;
 

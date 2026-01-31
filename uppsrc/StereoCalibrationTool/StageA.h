@@ -40,6 +40,7 @@ private:
 	EditDoubleSpin yaw_l, pitch_l, roll_l;
 	EditDoubleSpin yaw_r, pitch_r, roll_r;
 	Option preview_extrinsics;
+	Option preview_intrinsics;
 	Label barrel_lbl, fov_lbl;
 	EditDoubleSpin barrel_strength, fov_deg;
 	DocEdit basic_params_doc;
@@ -87,7 +88,9 @@ private:
 	void UpdatePlotters();
 	void UpdateReviewEnablement();
 	bool PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& out_tilt);
-	bool BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
+#if 0
+	bool BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale); // DEPRECATED
+#endif
 	void ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
 	void OnReviewChanged();
 	void OnYawCenter();

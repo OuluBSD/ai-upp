@@ -14,6 +14,7 @@ struct GeomProjectCtrl : Ctrl {
 	EditRenderer rends[4];
 	
 	int tree_scenes = -1;
+	Index<hash_t> warned_tree_types;
 	
 	
 	typedef GeomProjectCtrl CLASSNAME;
@@ -23,9 +24,18 @@ struct GeomProjectCtrl : Ctrl {
 	void TimelineData();
 	void TreeSelect();
 	void OnCursor(int kp_i);
-	void TreeDirectory(int id, GeomDirectory& dir);
+	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
 	
+};
+
+struct FilePoolCtrl : TopWindow {
+	Edit3D* owner = 0;
+	ArrayCtrl files;
+
+	typedef FilePoolCtrl CLASSNAME;
+	FilePoolCtrl(Edit3D* e);
+	void Data();
 };
 
 struct Edit3D : TopWindow {
@@ -39,6 +49,7 @@ struct Edit3D : TopWindow {
 	
 	GeomProjectCtrl v0;
 	VideoImportCtrl v1;
+	FilePoolCtrl file_pool;
 	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
 	ToolBar tool;
@@ -47,9 +58,12 @@ struct Edit3D : TopWindow {
 	Scene3DRenderContext render_ctx;
 	
 	
-	GeomProject prj;
-	GeomWorldState state;
-	GeomAnim anim;
+	VfsValue prj_val;
+	GeomProject* prj = 0;
+	VfsValue state_val;
+	GeomWorldState* state = 0;
+	VfsValue anim_val;
+	GeomAnim* anim = 0;
 	//GeomVideo video;
 	GeomStagedVideo video;
 	TimeCallback tc;
@@ -89,6 +103,7 @@ public:
 	void SetScene3DFormat(bool use_json);
 	void ToggleRepeatPlayback();
 	void OpenScene3D();
+	void OpenFilePool();
 	void SaveScene3DInteractive();
 	void SaveScene3DAs();
 	void SaveScene3DAsJson();

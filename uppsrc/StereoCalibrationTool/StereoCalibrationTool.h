@@ -185,6 +185,7 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	LabelBox sep_diag;
 	Option show_epipolar;
 	Option undistort_view;
+	Option verbose_math_log;
 	
 	ArrayCtrl captures_list;
 	ArrayCtrl matches_list;
@@ -234,6 +235,11 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	int live_test_timeout_ms = 5000;
 	int64 live_test_start_us = 0;
 
+	// GA bootstrap settings
+	bool use_ga_bootstrap = false;
+	int ga_population = 30;
+	int ga_generations = 20;
+
 	typedef StereoCalibrationTool CLASSNAME;
 	StereoCalibrationTool();
 	~StereoCalibrationTool();
@@ -254,7 +260,9 @@ struct StereoCalibrationTool : public Upp::TopWindow {
 	void StartLiveTest();
 	void RunLiveTest();
 	void SetVerbose(bool v);
+	void EnableGABootstrap(bool enable, int population = 30, int generations = 20);
 	void SetProjectDir(const String& dir);
+	int SolveHeadless(const String& project_dir);
 	void OnSourceChanged();
 	void StartSource();
 	void StopSource();

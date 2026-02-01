@@ -254,6 +254,12 @@ void StageAWindow::RefreshFromModel() {
 	ga_roll_bound <<= ps.ga_bounds.roll_deg;
 	ga_fov_min <<= ps.ga_bounds.fov_min;
 	ga_fov_max <<= ps.ga_bounds.fov_max;
+	ga_cx_bound <<= ps.ga_bounds.cx_delta;
+	ga_cy_bound <<= ps.ga_bounds.cy_delta;
+	ga_k1_min <<= ps.ga_bounds.k1_min;
+	ga_k1_max <<= ps.ga_bounds.k1_max;
+	ga_k2_min <<= ps.ga_bounds.k2_min;
+	ga_k2_max <<= ps.ga_bounds.k2_max;
 	ga_use_all_frames <<= ps.ga_use_all_frames;
 
 	captures_list.Clear();
@@ -450,89 +456,117 @@ void StageAWindow::BuildStageAControls() {
 void StageAWindow::BuildGAPanel() {
 	int y = 6;
 	ga_group.SetLabel("Genetic Optimizer");
-	ga_tab_ctrl.Add(ga_group.TopPos(y, 420).HSizePos(4, 4));
+	ga_tab_ctrl.Add(ga_group.SizePos()); // Fill the whole area
 	
+	// Layout logic for wide area (approx 1000x300)
+	// Column 1: Control Buttons (0-240)
 	int gy = y + 20;
-	ga_start.SetLabel("Start GA");
-	ga_start <<= THISBACK(OnGAStart);
+	ga_start.SetLabel("Start GA"); ga_start <<= THISBACK(OnGAStart);
 	ga_tab_ctrl.Add(ga_start.TopPos(gy, 24).LeftPos(12, 80));
-	
-	ga_stop.SetLabel("Stop");
-	ga_stop <<= THISBACK(OnGAStop);
-	ga_stop.Disable();
+	ga_stop.SetLabel("Stop"); ga_stop <<= THISBACK(OnGAStop); ga_stop.Disable();
 	ga_tab_ctrl.Add(ga_stop.TopPos(gy, 24).LeftPos(100, 60));
-	
-	ga_apply.SetLabel("Apply Best");
-	ga_apply <<= THISBACK(OnGAApply);
-	ga_apply.Disable();
-	ga_tab_ctrl.Add(ga_apply.TopPos(gy, 24).LeftPos(170, 80));
+	ga_apply.SetLabel("Apply Best"); ga_apply <<= THISBACK(OnGAApply); ga_apply.Disable();
+	ga_tab_ctrl.Add(ga_apply.TopPos(gy, 24).LeftPos(166, 80));
 	
 	gy += 30;
+	ga_status_lbl.SetLabel("Status: Idle");
+	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 240));
+
+	gy += 24;
+	compare_ga_toggle.SetLabel("Compare with GA Best");
+	compare_ga_toggle.WhenAction = THISBACK(SyncStageA);
+	compare_ga_toggle.Disable();
+	ga_tab_ctrl.Add(compare_ga_toggle.TopPos(gy, 20).LeftPos(12, 200));
+
+	gy += 24;
+	ga_history_lbl.SetLabel("History (Gen):");
+	ga_tab_ctrl.Add(ga_history_lbl.TopPos(gy, 20).LeftPos(12, 100));
+	ga_history_slider.MinMax(0, 1); ga_history_slider.Disable(); ga_history_slider.WhenAction = THISBACK(OnGAHistoryScrub);
+	ga_tab_ctrl.Add(ga_history_slider.TopPos(gy, 20).LeftPos(116, 130));
+
+	// Column 2: Parameters (270-500)
+	int cx2 = 270;
+	gy = y + 20;
 	ga_phase_lbl.SetLabel("Phase:");
 	ga_phase_list.Add(GA_PHASE_EXTRINSICS, "Extrinsics Only");
 	ga_phase_list.Add(GA_PHASE_INTRINSICS, "Intrinsics Only");
 	ga_phase_list.Add(GA_PHASE_BOTH, "Both (Seq)");
-	ga_tab_ctrl.Add(ga_phase_lbl.TopPos(gy, 20).LeftPos(12, 50));
-	ga_tab_ctrl.Add(ga_phase_list.TopPos(gy, 20).LeftPos(66, 120));
-	
-	gy += 24;
-	ga_bounds_lbl.SetLabel("Bounds (deg / px):");
-	ga_tab_ctrl.Add(ga_bounds_lbl.TopPos(gy, 20).LeftPos(12, 120));
-	ga_tab_ctrl.Add(ga_yaw_bound.TopPos(gy, 20).LeftPos(132, 40));
-	ga_tab_ctrl.Add(ga_pitch_bound.TopPos(gy, 20).LeftPos(176, 40));
-	ga_tab_ctrl.Add(ga_roll_bound.TopPos(gy, 20).LeftPos(220, 40));
-	
-	gy += 24;
-	ga_fov_min.SetInc(1.0); ga_fov_max.SetInc(1.0);
-	ga_tab_ctrl.Add(ga_fov_min.TopPos(gy, 20).LeftPos(12, 40));
-	ga_tab_ctrl.Add(ga_fov_max.TopPos(gy, 20).LeftPos(56, 40));
-	
-	gy += 24;
-	ga_use_trimmed_loss.SetLabel("Trimmed loss");
-	ga_tab_ctrl.Add(ga_use_trimmed_loss.TopPos(gy, 20).LeftPos(12, 100));
-	ga_trim_lbl.SetLabel("Trim %:");
-	ga_tab_ctrl.Add(ga_trim_lbl.TopPos(gy, 20).LeftPos(120, 50));
-	ga_tab_ctrl.Add(ga_trim_percent.TopPos(gy, 20).LeftPos(174, 40));
+	ga_phase_list.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_phase_lbl.TopPos(gy, 20).LeftPos(cx2, 50));
+	ga_tab_ctrl.Add(ga_phase_list.TopPos(gy, 20).LeftPos(cx2 + 54, 120));
 
 	gy += 24;
-	ga_pop_lbl.SetLabel("Pop:");
-	ga_pop_edit.MinMax(10, 1000);
-	ga_tab_ctrl.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(12, 30));
-	ga_tab_ctrl.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(46, 50));
-	
-	ga_gen_lbl.SetLabel("Gen:");
-	ga_gen_edit.MinMax(1, 1000);
-	ga_tab_ctrl.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(104, 30));
-	ga_tab_ctrl.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(138, 50));
-	
+	ga_pop_lbl.SetLabel("Pop:"); ga_pop_edit.MinMax(10, 1000); ga_pop_edit.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(cx2, 30));
+	ga_tab_ctrl.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(cx2 + 34, 50));
+	ga_gen_lbl.SetLabel("Gen:"); ga_gen_edit.MinMax(1, 1000); ga_gen_edit.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(cx2 + 94, 30));
+	ga_tab_ctrl.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(cx2 + 128, 50));
+
 	gy += 24;
-	ga_use_all_frames.SetLabel("Use all frames");
-	ga_tab_ctrl.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(12, 100));
-	
+	ga_use_trimmed_loss.SetLabel("Trimmed loss"); ga_use_trimmed_loss.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_use_trimmed_loss.TopPos(gy, 20).LeftPos(cx2, 100));
+	ga_trim_lbl.SetLabel("Trim %:");
+	ga_tab_ctrl.Add(ga_trim_lbl.TopPos(gy, 20).LeftPos(cx2 + 110, 50));
+	ga_trim_percent.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_trim_percent.TopPos(gy, 20).LeftPos(cx2 + 164, 40));
+
 	gy += 24;
-	ga_status_lbl.SetLabel("Status: Idle");
-	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
-	
+	ga_use_all_frames.SetLabel("Use all frames"); ga_use_all_frames.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(cx2, 120));
+
+	// Column 3: Bounds (520-770)
+	int cx3 = 520;
+	gy = y + 20;
+	ga_bounds_lbl.SetLabel("Bounds (deg / px):");
+	ga_tab_ctrl.Add(ga_bounds_lbl.TopPos(gy, 20).LeftPos(cx3, 120));
+	ga_yaw_bound.WhenAction = THISBACK(SyncStageA);
+	ga_pitch_bound.WhenAction = THISBACK(SyncStageA);
+	ga_roll_bound.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_yaw_bound.TopPos(gy, 20).LeftPos(cx3 + 124, 40));
+	ga_tab_ctrl.Add(ga_pitch_bound.TopPos(gy, 20).LeftPos(cx3 + 168, 40));
+	ga_tab_ctrl.Add(ga_roll_bound.TopPos(gy, 20).LeftPos(cx3 + 212, 40));
+
 	gy += 24;
-	compare_ga_toggle.SetLabel("Compare with GA Best");
-	compare_ga_toggle.WhenAction = THISBACK(SyncStageA);
-	compare_ga_toggle.Disable(); // Enabled when GA finishes
-	ga_tab_ctrl.Add(compare_ga_toggle.TopPos(gy, 20).LeftPos(12, 200));
-	
+	ga_fov_lbl.SetLabel("FOV Range (min/max):");
+	ga_tab_ctrl.Add(ga_fov_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
+	ga_fov_min.WhenAction = THISBACK(SyncStageA);
+	ga_fov_max.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_fov_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
+	ga_tab_ctrl.Add(ga_fov_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
+
 	gy += 24;
-	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
-	
+	ga_center_lbl.SetLabel("Center delta (px):");
+	ga_tab_ctrl.Add(ga_center_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
+	ga_cx_bound.WhenAction = THISBACK(SyncStageA);
+	ga_cy_bound.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_cx_bound.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
+	ga_tab_ctrl.Add(ga_cy_bound.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
+
+	gy += 24;
+	ga_k1_lbl.SetLabel("K1 Range (min/max):");
+	ga_tab_ctrl.Add(ga_k1_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
+	ga_k1_min.WhenAction = THISBACK(SyncStageA);
+	ga_k1_max.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_k1_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
+	ga_tab_ctrl.Add(ga_k1_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
+
+	gy += 24;
+	ga_k2_lbl.SetLabel("K2 Range (min/max):");
+	ga_tab_ctrl.Add(ga_k2_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
+	ga_k2_min.WhenAction = THISBACK(SyncStageA);
+	ga_k2_max.WhenAction = THISBACK(SyncStageA);
+	ga_tab_ctrl.Add(ga_k2_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
+	ga_tab_ctrl.Add(ga_k2_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
+
+	// Column 4: Visualization (780+)
+	int cx4 = 780;
+	gy = y + 20;
+	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(cx4, 210));
 	gy += 84;
 	ga_diag_lbl.SetFont(Arial(10));
 	ga_diag_lbl.SetAlign(ALIGN_TOP);
-	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 100).LeftPos(12, 260));
-	
-	gy += 104;
-	ga_history_lbl.SetLabel("History Replay (Gen):");
-	ga_tab_ctrl.Add(ga_history_lbl.TopPos(gy, 20).LeftPos(12, 120));
-	ga_history_slider.MinMax(0, 0);
-	ga_history_slider.WhenAction = THISBACK(OnGAHistoryScrub);
-	ga_tab_ctrl.Add(ga_history_slider.TopPos(gy, 20).LeftPos(132, 140));
+	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 120).LeftPos(cx4, 210));
 }
 
 void StageAWindow::OnGAHistoryScrub() {
@@ -558,7 +592,8 @@ void StageAWindow::OnGAStart() {
 	ga_diag_lbl.SetLabel("");
 	ga_best_params.a = 0;
 	ga_history.Clear();
-	ga_history_slider.MinMax(0, 0);
+	ga_history_slider.MinMax(0, 1);
+	ga_history_slider.Disable();
 	ga_history_slider <<= 0;
 	
 	SyncStageA();
@@ -613,6 +648,12 @@ void StageAWindow::OnGAStart() {
 		solver.ga_bounds.roll_deg = start_state.ga_bounds.roll_deg;
 		solver.ga_bounds_intr.fov_min = start_state.ga_bounds.fov_min;
 		solver.ga_bounds_intr.fov_max = start_state.ga_bounds.fov_max;
+		solver.ga_bounds_intr.cx_delta = start_state.ga_bounds.cx_delta;
+		solver.ga_bounds_intr.cy_delta = start_state.ga_bounds.cy_delta;
+		solver.ga_bounds_intr.k1_min = start_state.ga_bounds.k1_min;
+		solver.ga_bounds_intr.k1_max = start_state.ga_bounds.k1_max;
+		solver.ga_bounds_intr.k2_min = start_state.ga_bounds.k2_min;
+		solver.ga_bounds_intr.k2_max = start_state.ga_bounds.k2_max;
 		
 		StereoCalibrationParams params;
 		// Initialize from baseline
@@ -661,7 +702,8 @@ void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams b
 	ga_plot.AddValue(best_cost);
 	
 	ga_history.Add(best_p);
-	ga_history_slider.MinMax(0, ga_history.GetCount());
+	ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));
+	if (ga_history.GetCount() > 0) ga_history_slider.Enable();
 }
 
 void StageAWindow::OnGAFinished() {
@@ -922,12 +964,18 @@ void StageAWindow::SyncStageA() {
 	ps.ga_phase = ga_phase_list.GetIndex();
 	ps.ga_use_trimmed_loss = (bool)ga_use_trimmed_loss;
 	ps.ga_trim_percent = (double)ga_trim_percent;
-	ps.ga_bounds.yaw_deg = (double)ga_yaw_bound;
-	ps.ga_bounds.pitch_deg = (double)ga_pitch_bound;
-	ps.ga_bounds.roll_deg = (double)ga_roll_bound;
-	ps.ga_bounds.fov_min = (double)ga_fov_min;
-	ps.ga_bounds.fov_max = (double)ga_fov_max;
-	ps.ga_use_all_frames = (bool)ga_use_all_frames;
+	ps.ga_bounds.yaw_deg = ~ga_yaw_bound;
+	ps.ga_bounds.pitch_deg = ~ga_pitch_bound;
+	ps.ga_bounds.roll_deg = ~ga_roll_bound;
+	ps.ga_bounds.fov_min = ~ga_fov_min;
+	ps.ga_bounds.fov_max = ~ga_fov_max;
+	ps.ga_bounds.cx_delta = ~ga_cx_bound;
+	ps.ga_bounds.cy_delta = ~ga_cy_bound;
+	ps.ga_bounds.k1_min = ~ga_k1_min;
+	ps.ga_bounds.k1_max = ~ga_k1_max;
+	ps.ga_bounds.k2_min = ~ga_k2_min;
+	ps.ga_bounds.k2_max = ~ga_k2_max;
+	ps.ga_use_all_frames = ~ga_use_all_frames;
 
 	ps.tool_mode = tool_list.GetIndex();
 

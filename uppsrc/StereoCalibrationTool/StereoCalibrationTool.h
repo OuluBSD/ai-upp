@@ -78,6 +78,26 @@ struct CapturedFrame : Moveable<CapturedFrame> {
 	}
 };
 
+struct GAResultDiagnostics : Moveable<GAResultDiagnostics> {
+	double best_cost = 0;
+	double initial_cost = 0;
+	double cost_improvement_ratio = 0;
+	int num_matches_used = 0;
+	int num_frames_used = 0;
+	double mean_reproj_error_px = 0;
+	double median_reproj_error_px = 0;
+	double max_reproj_error_px = 0;
+
+	void Jsonize(JsonIO& jio) {
+		jio("best_cost", best_cost)("initial_cost", initial_cost)
+		   ("cost_improvement_ratio", cost_improvement_ratio)
+		   ("num_matches_used", num_matches_used)("num_frames_used", num_frames_used)
+		   ("mean_reproj_error_px", mean_reproj_error_px)
+		   ("median_reproj_error_px", median_reproj_error_px)
+		   ("max_reproj_error_px", max_reproj_error_px);
+	}
+};
+
 // User-editable state that persists to project.json.
 struct ProjectState {
 	int schema_version = 1;
@@ -93,6 +113,7 @@ struct ProjectState {
 	double lens_k1 = 0, lens_k2 = 0; // distortion coefficients
 	bool preview_extrinsics = true;  // preview uses extrinsics if true
 	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
+	bool compare_ga_result = false;  // Compare mode toggle
 
 	// Stage B (solve)
 	double distance_weight = 0.1;
@@ -120,6 +141,9 @@ struct ProjectState {
 	bool tint_overlay = false;     // Tint left=blue, right=red in overlay mode
 	bool show_crosshair = false;   // Show red center crosshair lines
 	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
+	
+	// GA Result Persistence
+	GAResultDiagnostics last_ga_diagnostics;
 
 	void Jsonize(JsonIO& jio) {
 		jio("schema_version", schema_version);
@@ -128,7 +152,8 @@ struct ProjectState {
 		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)
 		   ("lens_f", lens_f)("lens_cx", lens_cx)("lens_cy", lens_cy)
 		   ("lens_k1", lens_k1)("lens_k2", lens_k2)
-		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics);
+		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics)
+		   ("compare_ga_result", compare_ga_result);
 
 		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
 		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
@@ -142,6 +167,8 @@ struct ProjectState {
 		jio("overlay_swap", overlay_swap)("show_difference", show_difference)
 		   ("show_epipolar", show_epipolar);
 		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode);
+		
+		jio("last_ga_diagnostics", last_ga_diagnostics);
 	}
 };
 

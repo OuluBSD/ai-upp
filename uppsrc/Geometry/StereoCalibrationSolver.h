@@ -113,6 +113,9 @@ public:
 	int ga_top_candidates = 3;  // Number of top GA candidates to refine with LM
 	GABounds ga_bounds;
 	GABoundsIntrinsics ga_bounds_intr;
+	
+	// Callback for GA progress: returns false to cancel
+	Function<bool(int gen, double best_cost, const StereoCalibrationParams& best_p)> ga_step_cb;
 
 	bool Solve(StereoCalibrationParams& params, bool lock_distortion);
 	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);

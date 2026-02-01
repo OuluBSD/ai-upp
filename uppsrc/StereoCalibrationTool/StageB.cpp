@@ -104,6 +104,32 @@ void StageBWindow::OnSolve() {
 bool StageBWindow::SolveCalibration() {
 	if (!model)
 		return false;
+
+	// Validation checks before solve
+	int total_matches = 0;
+	double max_radius_norm = 0;
+	for (const auto& f : model->captured_frames) {
+		for (const auto& m : f.matches) {
+			if (IsNull(m.left) || IsNull(m.right)) continue;
+			total_matches++;
+			double r_l = sqrt(pow(m.left.x - 0.5, 2) + pow(m.left.y - 0.5, 2));
+			double r_r = sqrt(pow(m.right.x - 0.5, 2) + pow(m.right.y - 0.5, 2));
+			max_radius_norm = max(max_radius_norm, max(r_l, r_r));
+		}
+	}
+
+	if (total_matches < 20) {
+		PromptOK(Format("Stage B requires at least 20 match pairs for a stable solve. (Current: %d)", total_matches));
+		return false;
+	}
+	// Normal image radius in normalized coords is ~0.5. 
+	// We want matches to reach at least 70% of that (0.35).
+	if (max_radius_norm < 0.30) {
+		PromptOK(Format("Match distribution is too clustered in the center (max radius: %.2f). "
+		                "Please add matches closer to the image edges.", max_radius_norm));
+		return false;
+	}
+
 	model->project_state.verbose_math_log = (bool)verbose_math_log;
 	model->project_state.compare_basic_params = (bool)stage_b_compare_basic;
 	String math_log;
@@ -137,22 +163,32 @@ bool StageBWindow::SolveCalibration() {
 	}
 
 	StereoCalibrationParams params;
-	params.yaw = model->project_state.yaw_r - model->project_state.yaw_l;
-	params.pitch = model->project_state.pitch_r - model->project_state.pitch_l;
-	params.roll = model->project_state.roll_r - model->project_state.roll_l;
+	params.yaw = (model->project_state.yaw_r - model->project_state.yaw_l) * M_PI / 180.0;
+	params.pitch = (model->project_state.pitch_r - model->project_state.pitch_l) * M_PI / 180.0;
+	params.roll = (model->project_state.roll_r - model->project_state.roll_l) * M_PI / 180.0;
 
 	Size init_sz = solver.matches[0].image_size;
-	double fov_rad = model->project_state.fov_deg * M_PI / 180.0;
-	params.a = (init_sz.cx * 0.5) / (fov_rad * 0.5);
-	double s = model->project_state.barrel_strength * 0.01;
-	params.b = params.a * s;
-	params.c = params.a * s;
-	params.d = params.a * s;
-	params.cx = init_sz.cx * 0.5;
-	params.cy = init_sz.cy * 0.5;
+	if (model->project_state.lens_f > 1.0) {
+		params.a = model->project_state.lens_f;
+		params.cx = model->project_state.lens_cx > 0 ? model->project_state.lens_cx : init_sz.cx * 0.5;
+		params.cy = model->project_state.lens_cy > 0 ? model->project_state.lens_cy : init_sz.cy * 0.5;
+		params.c = params.a * model->project_state.lens_k1;
+		params.d = params.a * model->project_state.lens_k2;
+		params.b = 0;
+	} else {
+		double fov_rad = model->project_state.fov_deg * M_PI / 180.0;
+		params.a = (init_sz.cx * 0.5) / tan(fov_rad * 0.5);
+		double k1 = -model->project_state.barrel_strength * 0.1;
+		params.c = params.a * k1;
+		params.d = 0;
+		params.b = 0;
+		params.cx = init_sz.cx * 0.5;
+		params.cy = init_sz.cy * 0.5;
+	}
 
 	status.Set("Solving intrinsics (extrinsics locked from Stage A)...");
 	if (solver.SolveIntrinsicsOnly(params)) {
+		model->project_state.calibration_state = CALIB_STAGE_B_SOLVED;
 		model->last_calibration.is_enabled = true;
 		model->last_calibration.eye_dist = (float)solver.eye_dist;
 		model->last_calibration.outward_angle = (float)params.yaw;
@@ -163,9 +199,22 @@ bool StageBWindow::SolveCalibration() {
 
 		StereoCalibrationDiagnostics diag;
 		solver.ComputeDiagnostics(params, diag);
+		
+		// Update persistent diagnostics
+		model->project_state.stage_b_diag.final_reproj_rms = (diag.reproj_rms_l + diag.reproj_rms_r) * 0.5;
+		model->project_state.stage_b_diag.final_dist_rms = (diag.dist_rms_l + diag.dist_rms_r) * 0.5;
+
 		String report;
 		report << "Stage B Solve Success.\n";
-		report << Format("Reproj RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		report << Format("  Reproj RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
+		report << Format("  Dist RMS (L/R): %.1f / %.1f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		
+		// Final deltas vs input
+		report << "\nIntrinsics Final (Deltas vs Input):\n";
+		report << Format("  f:  %.2f (Δ %.2f)\n", params.a, params.a - model->project_state.lens_f);
+		report << Format("  cx: %.1f (Δ %.1f)\n", params.cx, params.cx - (model->project_state.lens_cx > 0 ? model->project_state.lens_cx : init_sz.cx * 0.5));
+		report << Format("  cy: %.1f (Δ %.1f)\n", params.cy, params.cy - (model->project_state.lens_cy > 0 ? model->project_state.lens_cy : init_sz.cy * 0.5));
+
 		model->report_text = report;
 		model->math_text = math_log + solver.GetTraceText();
 		report_text <<= model->report_text;

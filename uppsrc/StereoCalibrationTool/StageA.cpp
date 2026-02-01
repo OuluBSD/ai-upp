@@ -334,11 +334,8 @@ void StageAWindow::BuildStageAControls() {
 
 	tool_lbl.SetLabel("Tool");
 	tool_list.Add(0, "None");
-	tool_list.Add(1, "Center Yaw");
-	tool_list.Add(2, "Center Pitch");
-	tool_list.Add(3, "Center Both");
-	tool_list.Add(4, "Pick Match");
-	tool_list.Add(5, "Line Annotate");
+	tool_list.Add(1, "Pick Match");
+	tool_list.Add(2, "Line Annotate");
 	tool_list.SetIndex(0);
 	tool_list.WhenAction = THISBACK(OnToolAction);
 
@@ -457,10 +454,26 @@ void StageAWindow::BuildPlotters() {
 	left_plot.SetEye(0);
 	left_plot.SetTitle("Left Eye");
 	left_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
+	left_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 0); };
 
 	right_plot.SetEye(1);
 	right_plot.SetTitle("Right Eye");
 	right_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
+	right_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 1); };
+}
+
+// Handler for hovering over plotters to drive epipolar lines
+void StageAWindow::OnHoverPoint(Pointf p_rect, int eye) {
+	hover_point = p_rect;
+	hover_eye = eye;
+	
+	if (show_epipolar_lines) {
+		left_plot.SetEpipolarY(p_rect.y);
+		right_plot.SetEpipolarY(p_rect.y);
+	} else {
+		left_plot.SetEpipolarY(-1);
+		right_plot.SetEpipolarY(-1);
+	}
 }
 
 // Syncs Stage A UI values into AppModel.project_state and updates preview.
@@ -513,6 +526,18 @@ void StageAWindow::OnReviewChanged() {
 	ps.show_crosshair = (bool)show_crosshair;
 	ps.alpha = (int)~alpha_slider;
 
+	// Local view-only diagnostics
+	left_plot.SetShowCurvature((bool)show_curvature_error);
+	right_plot.SetShowCurvature((bool)show_curvature_error);
+	
+	// Epipolar lines update
+	if (!(bool)show_epipolar_lines) {
+		left_plot.SetEpipolarY(-1);
+		right_plot.SetEpipolarY(-1);
+	} else if (!IsNull(hover_point)) {
+		OnHoverPoint(hover_point, hover_eye);
+	}
+
 	for (auto& frame : model->captured_frames)
 		frame.undist_valid = false;
 
@@ -527,9 +552,8 @@ void StageAWindow::OnToolAction() {
 	
 	ToolMode m = ToolMode::None;
 	int idx = tool_list.GetIndex();
-	if (idx >= 1 && idx <= 3) m = ToolMode::PickMatch; // Centering tools use same pick logic for now
-	if (idx == 4) m = ToolMode::PickMatch;
-	if (idx == 5) m = ToolMode::LineAnnotate;
+	if (idx == 1) m = ToolMode::PickMatch;
+	if (idx == 2) m = ToolMode::LineAnnotate;
 	
 	left_plot.SetToolMode(m);
 	right_plot.SetToolMode(m);
@@ -557,42 +581,8 @@ void StageAWindow::PushUndo() {
 void StageAWindow::OnPickMatchTool(int eye, Pointf p) {
 	int mode = tool_list.GetIndex();
 	
-	// Centering tools (1=yaw, 2=pitch, 3=both)
-	if (mode >= 1 && mode <= 3) {
-		PushUndo();
-		
-		// p is in image pixels. We need normalized coordinates for centering math.
-		int row = captures_list.GetCursor();
-		if (row < 0) return;
-		CapturedFrame& frame = model->captured_frames[row];
-		Size isz = frame.left_img.GetSize();
-		if (isz.cx <= 0) return;
-		
-		Pointf pn(p.x / isz.cx, p.y / isz.cy);
-		
-		double fov_h = model->project_state.fov_deg;
-		double fov_v = fov_h * 0.75;
-		double dy = (pn.x - 0.5) * fov_h;
-		double dp = (pn.y - 0.5) * fov_v;
-		dy = Clamp(dy, -5.0, 5.0);
-		dp = Clamp(dp, -5.0, 5.0);
-		
-		if (eye == 0) {
-			if (mode == 1 || mode == 3) model->project_state.yaw_l += dy;
-			if (mode == 2 || mode == 3) model->project_state.pitch_l += dp;
-		} else {
-			if (mode == 1 || mode == 3) model->project_state.yaw_r += dy;
-			if (mode == 2 || mode == 3) model->project_state.pitch_r += dp;
-		}
-		
-		status.Set(Format("Centered %s. Delta: %.2f, %.2f", eye == 0 ? "Left" : "Right", dy, dp));
-		RefreshFromModel();
-		SyncStageA();
-		return;
-	}
-
-	// Pick match point (4)
-	if (mode == 4) {
+	// Pick match point (1)
+	if (mode == 1) {
 		if (eye == 0) {
 			pending_left = p;
 			status.Set("Point picked in Left eye. Now click corresponding point in Right eye.");

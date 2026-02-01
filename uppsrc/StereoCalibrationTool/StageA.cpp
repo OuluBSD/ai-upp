@@ -231,6 +231,9 @@ void StageAWindow::RefreshFromModel() {
 	show_crosshair <<= ps.show_crosshair;
 	alpha_slider <<= ps.alpha;
 	tool_list.SetIndex(ps.tool_mode);
+	
+	ga_pop_edit <<= model->ga_population;
+	ga_gen_edit <<= model->ga_generations;
 
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
@@ -413,6 +416,59 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(show_crosshair.TopPos(y, 20).LeftPos(8, 180));
 	y += 24;
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
+	
+	// GA UI Construction
+	y += 30;
+	ga_group.SetLabel("Genetic Optimizer");
+	controls.Add(ga_group.TopPos(y, 140).HSizePos(4, 4));
+	
+	gy = y + 20;
+	ga_start.SetLabel("Start GA");
+	ga_start <<= THISBACK(OnGAStart);
+	controls.Add(ga_start.TopPos(gy, 24).LeftPos(12, 80));
+	
+	ga_stop.SetLabel("Stop");
+	ga_stop <<= THISBACK(OnGAStop);
+	ga_stop.Disable();
+	controls.Add(ga_stop.TopPos(gy, 24).LeftPos(100, 60));
+	
+	gy += 30;
+	ga_pop_lbl.SetLabel("Pop:");
+	ga_pop_edit.MinMax(10, 1000);
+	controls.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(12, 30));
+	controls.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(46, 50));
+	
+	ga_gen_lbl.SetLabel("Gen:");
+	ga_gen_edit.MinMax(1, 1000);
+	controls.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(104, 30));
+	controls.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(138, 50));
+	
+	gy += 30;
+	ga_use_all_frames.SetLabel("Use all frames");
+	ga_use_all_frames <<= true;
+	controls.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(12, 100));
+	
+	gy += 30;
+	ga_status_lbl.SetLabel("Status: Idle");
+	controls.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
+}
+
+void StageAWindow::OnGAStart() {
+	// TODO: Implement background runner
+	ga_status_lbl.SetLabel("Status: Running (Placeholder)");
+	ga_start.Disable();
+	ga_stop.Enable();
+}
+
+void StageAWindow::OnGAStop() {
+	// TODO: Implement cancellation
+	ga_status_lbl.SetLabel("Status: Stopped");
+	ga_start.Enable();
+	ga_stop.Disable();
+}
+
+void StageAWindow::OnGAApply() {
+	// TODO: Apply best params
 }
 
 // Configures columns and selection callbacks for capture/match lists.

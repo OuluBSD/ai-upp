@@ -152,6 +152,16 @@ private:
 	void OnGAStart();
 	void OnGAStop();
 	void OnGAApply();
+	void OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p); // Callback from thread
+	void OnGAFinished(); // Callback from thread
+
+private:
+	Thread ga_thread;
+	bool ga_running = false;
+	Atomic ga_cancel;
+	ProjectState ga_best_state; // To store best result
+	StereoCalibrationParams ga_best_params;
+	Vector<StereoCalibrationMatch> ga_input_matches; // Staging for thread
 };
 
 END_UPP_NAMESPACE

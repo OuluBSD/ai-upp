@@ -519,23 +519,27 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	ga.min_values[4] = ga_bounds_intr.k2_min;
 	ga.max_values[4] = ga_bounds_intr.k2_max;
 
+	auto MapParams = [&](const Vector<double>& v) {
+		StereoCalibrationParams p = params;
+		double fov_rad = v[0] * M_PI / 180.0;
+		// Need image width for f conversion. Assume width from first match.
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
+		p.a = (w * 0.5) / tan(fov_rad * 0.5);
+		p.cx = v[1];
+		p.cy = v[2];
+		p.c = p.a * v[3];
+		p.d = p.a * v[4];
+		p.b = 0;
+		return p;
+	};
+
 	// Re-initialize population uniformly within specific bounds
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) {
 			ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
 		}
 		
-		StereoCalibrationParams p = params;
-		double fov_rad = ga.population[i][0] * M_PI / 180.0;
-		// Need image width for f conversion. Assume width from first match.
-		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
-		p.a = (w * 0.5) / tan(fov_rad * 0.5);
-		p.cx = ga.population[i][1];
-		p.cy = ga.population[i][2];
-		p.c = p.a * ga.population[i][3]; // Map k1 to polynomial c (assuming equidist linear f*theta)
-		p.d = p.a * ga.population[i][4]; // Map k2 to polynomial d
-		// Set b=0 for GA since it's redundant with a/c/d in this simple mapping
-		p.b = 0;
+		StereoCalibrationParams p = MapParams(ga.population[i]);
 
 		double cost = ComputeCalibrationCost(*this, p, eye_dist, dist_weight, huber_px, huber_m);
 		if (!std::isfinite(cost)) cost = 1e9;
@@ -547,35 +551,29 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	}
 
 	// Run GA
+	int current_gen = 0;
 	while (!ga.IsEnd()) {
+		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
 
-		StereoCalibrationParams trial_params = params;
-		double fov_rad = trial[0] * M_PI / 180.0;
-		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
-		trial_params.a = (w * 0.5) / tan(fov_rad * 0.5);
-		trial_params.cx = trial[1];
-		trial_params.cy = trial[2];
-		trial_params.c = trial_params.a * trial[3];
-		trial_params.d = trial_params.a * trial[4];
-		trial_params.b = 0;
+		StereoCalibrationParams trial_params = MapParams(trial);
 
 		ga.Start();
 		double cost = ComputeCalibrationCost(*this, trial_params, eye_dist, dist_weight, huber_px, huber_m);
 		if (!std::isfinite(cost)) cost = 1e9;
 		ga.Stop(-cost);
+		
+		if (ga_step_cb) {
+			StereoCalibrationParams best_p = MapParams(ga.best_solution);
+			if (!ga_step_cb(current_gen, -ga.best_energy, best_p))
+				return;
+		}
 	}
 
 	if (-ga.best_energy < baseline_cost) {
-		double fov_rad = ga.best_solution[0] * M_PI / 180.0;
-		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
-		params.a = (w * 0.5) / tan(fov_rad * 0.5);
-		params.cx = ga.best_solution[1];
-		params.cy = ga.best_solution[2];
-		params.c = params.a * ga.best_solution[3];
-		params.d = params.a * ga.best_solution[4];
-		params.b = 0;
+		StereoCalibrationParams best_p = MapParams(ga.best_solution);
+		params = best_p; // Update output params
 		if (log) *log << Format("  GA Intrinsics accepted. Cost: %.6f (Baseline: %.6f)\n", -ga.best_energy, baseline_cost);
 	} else {
 		if (log) *log << Format("  GA Intrinsics rejected. Best Cost: %.6f vs Baseline: %.6f\n", -ga.best_energy, baseline_cost);

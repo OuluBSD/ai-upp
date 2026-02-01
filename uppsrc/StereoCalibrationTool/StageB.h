@@ -44,6 +44,8 @@ private:
 	Button deploy_calibration;
 	DocEdit report_text;
 	DocEdit math_text;
+	Label ga_summary_banner;
+	
 	StatusBar status;
 	LabelBox sep_calib;
 	Label calibration_preview;

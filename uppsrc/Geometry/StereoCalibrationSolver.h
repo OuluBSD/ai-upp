@@ -89,9 +89,15 @@ enum GAPhase {
 	GA_PHASE_BOTH = 2
 };
 
+struct StereoCalibrationLine : Moveable<StereoCalibrationLine> {
+	Vector<vec2> raw_norm; // [0, 1] normalized coordinates
+	int eye = 0; // 0=left, 1=right
+};
+
 class StereoCalibrationSolver {
 public:
 	Vector<StereoCalibrationMatch> matches;
+	Vector<StereoCalibrationLine> lines;
 	Vector<vec3> last_points;
 	double eye_dist = 0;  // meters
 	double dist_weight = 0.1;  // relative weight for distance residuals vs pixel residuals

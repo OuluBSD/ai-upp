@@ -59,6 +59,16 @@ struct StereoCalibrationDiagnostics {
 	Vector<StereoCalibrationResidual> residuals;
 };
 
+struct StereoCalibrationGADiagnostics {
+	double best_cost = 0;
+	double initial_cost = 0;
+	double cost_improvement_ratio = 0;
+	int num_matches_used = 0;
+	double mean_reproj_error_px = 0;
+	double median_reproj_error_px = 0;
+	double max_reproj_error_px = 0;
+};
+
 struct StereoCalibrationTrace {
 	bool enabled = false;
 	int verbosity = 2;
@@ -133,6 +143,7 @@ public:
 	                                    bool per_eye_mode);
 
 	void ComputeDiagnostics(const StereoCalibrationParams& params, StereoCalibrationDiagnostics& out) const;
+	void ComputeGADiagnostics(const StereoCalibrationParams& params, double initial_cost, double final_cost, StereoCalibrationGADiagnostics& out) const;
 	void EnableTrace(bool on, int verbosity = 2, int max_lines = 20000);
 	String GetTraceText() const { return trace.GetText(); }
 };

@@ -1460,4 +1460,38 @@ void StereoCalibrationSolver::ComputeDiagnostics(const StereoCalibrationParams& 
 	}
 }
 
+void StereoCalibrationSolver::ComputeGADiagnostics(const StereoCalibrationParams& params, double initial_cost, double final_cost, StereoCalibrationGADiagnostics& out) const {
+	out.best_cost = final_cost;
+	out.initial_cost = initial_cost;
+	out.cost_improvement_ratio = (initial_cost > 1e-9) ? (initial_cost / final_cost) : 1.0;
+	out.num_matches_used = matches.GetCount();
+	// num_frames_used is unknown here, caller sets it.
+
+	// Calculate stats
+	StereoCalibrationDiagnostics diag;
+	ComputeDiagnostics(params, diag); // Re-use existing diagnostics logic for reprojection errors
+
+	// Aggregate from diag.residuals
+	Vector<double> errors;
+	double sum_err = 0;
+	double max_err = 0;
+	for(const auto& r : diag.residuals) {
+		errors.Add(r.err_l_px);
+		errors.Add(r.err_r_px);
+		sum_err += r.err_l_px + r.err_r_px;
+		max_err = max(max_err, max(r.err_l_px, r.err_r_px));
+	}
+	
+	if (errors.GetCount() > 0) {
+		out.mean_reproj_error_px = sum_err / errors.GetCount();
+		out.max_reproj_error_px = max_err;
+		Sort(errors);
+		out.median_reproj_error_px = errors[errors.GetCount() / 2];
+	} else {
+		out.mean_reproj_error_px = 0;
+		out.max_reproj_error_px = 0;
+		out.median_reproj_error_px = 0;
+	}
+}
+
 END_UPP_NAMESPACE

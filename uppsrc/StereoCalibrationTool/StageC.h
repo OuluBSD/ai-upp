@@ -43,6 +43,7 @@ private:
 	DocEdit report_text;
 	DocEdit math_text;
 	StatusBar status;
+	Label pipeline_state_lbl;
 
 	void BuildLayout();
 	void OnRefine();

@@ -47,6 +47,7 @@ private:
 	Label ga_summary_banner;
 	
 	StatusBar status;
+	Label pipeline_state_lbl;
 	LabelBox sep_calib;
 	Label calibration_preview;
 

@@ -38,6 +38,8 @@ void StageCWindow::RefreshFromModel() {
 	max_dpitch <<= ps.max_dpitch;
 	max_droll <<= ps.max_droll;
 	lambda_edit <<= ps.lambda;
+	
+	pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
 }
 
 // Builds the Stage C UI and binds callbacks.
@@ -73,6 +75,11 @@ void StageCWindow::BuildLayout() {
 	math_text.SetFont(Courier(12));
 
 	int y = 6;
+	Add(pipeline_state_lbl.TopPos(y, 20).HSizePos(6, 6));
+	pipeline_state_lbl.SetFont(Arial(10).Bold());
+	pipeline_state_lbl.SetAlign(ALIGN_CENTER);
+	pipeline_state_lbl.SetInk(Blue());
+	y += 24;
 	Add(enable_stage_c.TopPos(y, 20).HSizePos(6, 6));
 	y += 24;
 	Add(stage_c_mode_lbl.TopPos(y, 20).LeftPos(6, 60));

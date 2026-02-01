@@ -235,6 +235,8 @@ void StageAWindow::RefreshFromModel() {
 	show_crosshair <<= ps.show_crosshair;
 	alpha_slider <<= ps.alpha;
 	
+	pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
+	
 	// Safety check for legacy tool modes
 	if (ps.tool_mode >= tool_list.GetCount())
 		const_cast<ProjectState&>(ps).tool_mode = 0; // Reset to None if invalid
@@ -371,6 +373,11 @@ void StageAWindow::BuildStageAControls() {
 	undo_btn.Disable();
 
 	int y = 6;
+	controls.Add(pipeline_state_lbl.TopPos(y, 20).HSizePos(8, 8));
+	pipeline_state_lbl.SetFont(Arial(10).Bold());
+	pipeline_state_lbl.SetAlign(ALIGN_CENTER);
+	pipeline_state_lbl.SetInk(Blue());
+	y += 24;
 	controls.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 120));
 	controls.Add(calib_eye_dist.TopPos(y, 20).LeftPos(132, 80));
 	y += 24;

@@ -36,6 +36,8 @@ void StageBWindow::RefreshFromModel() {
 	report_text <<= model->report_text;
 	math_text <<= model->math_text;
 	
+	pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(model->project_state.calibration_state);
+	
 	const GAResultDiagnostics& diag = model->project_state.last_ga_diagnostics;
 	if (diag.best_cost > 0) {
 		ga_summary_banner.SetLabel(Format("Stage A GA result: cost %.2f -> %.2f, improvement %.1fx", 
@@ -68,6 +70,11 @@ void StageBWindow::BuildLayout() {
 	math_text.SetFont(Courier(12));
 
 	int y = 6;
+	Add(pipeline_state_lbl.TopPos(y, 20).HSizePos(6, 6));
+	pipeline_state_lbl.SetFont(Arial(10).Bold());
+	pipeline_state_lbl.SetAlign(ALIGN_CENTER);
+	pipeline_state_lbl.SetInk(Blue());
+	y += 24;
 	Add(ga_summary_banner.TopPos(y, 20).HSizePos(6, 6));
 	ga_summary_banner.SetFont(Arial(10).Bold());
 	ga_summary_banner.SetInk(Blue());

@@ -118,6 +118,7 @@ private:
 	PreviewCtrl right_plot;
 
 	StatusBar status;
+	Label pipeline_state_lbl;
 
 	LensPoly preview_lens;
 	Size preview_lens_size = Size(0, 0);

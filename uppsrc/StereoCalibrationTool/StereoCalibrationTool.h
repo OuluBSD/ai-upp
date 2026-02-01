@@ -98,6 +98,42 @@ struct GAResultDiagnostics : Moveable<GAResultDiagnostics> {
 	}
 };
 
+enum CalibrationState {
+	CALIB_RAW = 0,
+	CALIB_STAGE_A_MANUAL = 1,
+	CALIB_GA_EXTRINSICS = 2,
+	CALIB_GA_INTRINSICS = 3,
+	CALIB_STAGE_B_SOLVED = 4,
+	CALIB_STAGE_C_REFINED = 5
+};
+
+struct StageBDiagnostics : Moveable<StageBDiagnostics> {
+	double initial_reproj_rms = 0;
+	double final_reproj_rms = 0;
+	double initial_dist_rms = 0;
+	double final_dist_rms = 0;
+	int num_iterations = 0;
+	
+	void Jsonize(JsonIO& jio) {
+		jio("init_reproj", initial_reproj_rms)("final_reproj", final_reproj_rms)
+		   ("init_dist", initial_dist_rms)("final_dist", final_dist_rms)
+		   ("iters", num_iterations);
+	}
+};
+
+struct StageCDiagnostics : Moveable<StageCDiagnostics> {
+	double delta_yaw = 0;
+	double delta_pitch = 0;
+	double delta_roll = 0;
+	double cost_before = 0;
+	double cost_after = 0;
+	
+	void Jsonize(JsonIO& jio) {
+		jio("dyaw", delta_yaw)("dpitch", delta_pitch)("droll", delta_roll)
+		   ("cost0", cost_before)("cost1", cost_after);
+	}
+};
+
 struct GAParamsBounds : Moveable<GAParamsBounds> {
 	double yaw_deg = 45.0;
 	double pitch_deg = 25.0;
@@ -171,6 +207,11 @@ struct ProjectState {
 	bool show_crosshair = false;   // Show red center crosshair lines
 	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
 	
+	// Pipeline State
+	int calibration_state = CALIB_RAW;
+	StageBDiagnostics stage_b_diag;
+	StageCDiagnostics stage_c_diag;
+
 	// GA Result Persistence
 	GAResultDiagnostics last_ga_diagnostics;
 
@@ -201,6 +242,8 @@ struct ProjectState {
 		   ("show_epipolar", show_epipolar);
 		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode);
 		
+		jio("calibration_state", calibration_state)
+		   ("stage_b_diag", stage_b_diag)("stage_c_diag", stage_c_diag);
 		jio("last_ga_diagnostics", last_ga_diagnostics);
 	}
 };
@@ -330,6 +373,8 @@ struct LensParams {
 	float cx = 0, cy = 0;
 	float k1 = 0, k2 = 0;
 };
+
+String GetCalibrationStateText(int state);
 
 RGBA SampleBilinear(const Image& img, float x, float y);
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale);

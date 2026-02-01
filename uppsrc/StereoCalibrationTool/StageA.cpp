@@ -471,6 +471,11 @@ void StageAWindow::BuildGAPanel() {
 	
 	gy += 24;
 	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
+	
+	gy += 84;
+	ga_diag_lbl.SetFont(Arial(10));
+	ga_diag_lbl.SetAlign(ALIGN_TOP);
+	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 100).LeftPos(12, 260));
 }
 
 void StageAWindow::OnGAStart() {
@@ -576,6 +581,81 @@ void StageAWindow::OnGAFinished() {
 	ga_stop.Disable();
 	ga_apply.Enable();
 	ga_status_lbl.SetLabel("Status: Finished");
+	
+	// Compute diagnostics
+	if (ga_input_matches.IsEmpty()) return;
+	
+	StereoCalibrationSolver solver;
+	solver.matches <<= ga_input_matches;
+	solver.eye_dist = model->project_state.eye_dist / 1000.0;
+	solver.dist_weight = model->project_state.distance_weight;
+	solver.huber_px = model->project_state.huber_px;
+	solver.huber_m = model->project_state.huber_m;
+	
+	// Reconstruct initial params from current project state (baseline)
+	const ProjectState& ps = model->project_state;
+	StereoCalibrationParams initial_p;
+	
+	// Assume width from first match
+	double w = solver.matches[0].image_size.cx;
+	double fov_rad = ps.fov_deg * M_PI / 180.0;
+	double f = (w * 0.5) / tan(fov_rad * 0.5);
+	
+	initial_p.a = f;
+	initial_p.b = 0;
+	initial_p.c = f * ps.lens_k1;
+	initial_p.d = f * ps.lens_k2;
+	initial_p.cx = ps.lens_cx > 0 ? ps.lens_cx : w*0.5;
+	initial_p.cy = ps.lens_cy > 0 ? ps.lens_cy : solver.matches[0].image_size.cy*0.5;
+	initial_p.yaw_l = ps.yaw_l * M_PI / 180.0;
+	initial_p.pitch_l = ps.pitch_l * M_PI / 180.0;
+	initial_p.roll_l = ps.roll_l * M_PI / 180.0;
+	initial_p.yaw = ps.yaw_r * M_PI / 180.0;
+	initial_p.pitch = ps.pitch_r * M_PI / 180.0;
+	initial_p.roll = ps.roll_r * M_PI / 180.0;
+	
+	StereoCalibrationGADiagnostics diag;
+	StereoCalibrationDiagnostics d_init, d_final;
+	
+	solver.ComputeDiagnostics(initial_p, d_init);
+	solver.ComputeDiagnostics(ga_best_params, d_final);
+	
+	auto CalcCost = [&](const StereoCalibrationDiagnostics& d) {
+		double c = 0;
+		for(const auto& r : d.residuals) {
+			c += r.err_l_px*r.err_l_px + r.err_r_px*r.err_r_px;
+		}
+		return c;
+	};
+	
+	double cost0 = CalcCost(d_init);
+	double cost1 = CalcCost(d_final);
+	
+	solver.ComputeGADiagnostics(ga_best_params, cost0, cost1, diag);
+	
+	// Store in model
+	model->project_state.last_ga_diagnostics.best_cost = diag.best_cost;
+	model->project_state.last_ga_diagnostics.initial_cost = diag.initial_cost;
+	model->project_state.last_ga_diagnostics.cost_improvement_ratio = diag.cost_improvement_ratio;
+	model->project_state.last_ga_diagnostics.num_matches_used = diag.num_matches_used;
+	model->project_state.last_ga_diagnostics.mean_reproj_error_px = diag.mean_reproj_error_px;
+	model->project_state.last_ga_diagnostics.max_reproj_error_px = diag.max_reproj_error_px;
+	model->project_state.last_ga_diagnostics.median_reproj_error_px = diag.median_reproj_error_px;
+	
+	// Update UI
+	String text;
+	text << "Diagnostics:\n";
+	text << Format("  Improvement: %.2fx (%.2f -> %.2f)\n", diag.cost_improvement_ratio, diag.initial_cost, diag.best_cost);
+	text << Format("  Mean Reproj Err: %.2f px\n", diag.mean_reproj_error_px);
+	text << Format("  Max Reproj Err: %.2f px\n", diag.max_reproj_error_px);
+	text << Format("  Matches: %d\n", diag.num_matches_used);
+	
+	if (diag.cost_improvement_ratio < 1.2)
+		text << "\nWARNING: Low improvement (< 1.2x)";
+	if (diag.mean_reproj_error_px > 5.0)
+		text << "\nWARNING: High reprojection error (> 5px)";
+		
+	ga_diag_lbl.SetLabel(text);
 }
 
 void StageAWindow::OnGAApply() {

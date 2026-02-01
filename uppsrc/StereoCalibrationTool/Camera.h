@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_Camera_h_
 #define _StereoCalibrationTool_Camera_h_
 
+NAMESPACE_UPP
+
 /*
 Camera.h
 --------
@@ -75,9 +77,13 @@ private:
 	void UpdateLivePreview();
 	void RefreshCapturesList();
 	void SyncSelectionFromModel();
+	void OnCapturesBar(Bar& bar);
+	void OnDeleteCapture();
 	void OnCaptureSelection();
 	void LoadProjectState();
 	void SaveProjectState();
 };
+
+END_UPP_NAMESPACE
 
 #endif

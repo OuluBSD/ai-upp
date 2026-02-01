@@ -85,6 +85,9 @@ struct ProjectState {
 	double yaw_r = 0, pitch_r = 0, roll_r = 0; // deg
 	double fov_deg = 90.0;           // deg
 	double barrel_strength = 0;      // percent-ish scaler
+	double lens_f = 0;               // focal length (derived if 0)
+	double lens_cx = 0, lens_cy = 0; // principal point (derived if 0)
+	double lens_k1 = 0, lens_k2 = 0; // distortion coefficients
 	bool preview_extrinsics = true;  // preview uses extrinsics if true
 	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
 
@@ -120,6 +123,8 @@ struct ProjectState {
 		jio("eye_dist", eye_dist)("yaw_l", yaw_l)("pitch_l", pitch_l)("roll_l", roll_l);
 		jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
 		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)
+		   ("lens_f", lens_f)("lens_cx", lens_cx)("lens_cy", lens_cy)
+		   ("lens_k1", lens_k1)("lens_k2", lens_k2)
 		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics);
 
 		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
@@ -177,54 +182,6 @@ struct AppModel {
 	int ga_population = 30;
 	int ga_generations = 20;
 };
-
-// ------------------------------------------------------------
-// Shared UI helpers
-// ------------------------------------------------------------
-
-// Preview widget used by Camera, Stage A, and LiveResult.
-// Disabled per request (see module windows for simplified views).
-#if 0
-struct PreviewCtrl : public Ctrl {
-	struct ResidualSample : Moveable<ResidualSample> {
-		Pointf measured = Null;
-		Pointf reproj = Null;
-		int eye = 0;
-		double err_px = 0;
-	};
-
-	bool live = true;
-	bool has_images = false;
-	bool show_epipolar = false;
-	bool show_residuals = false;
-	bool overlay_mode = false;
-	bool show_difference = false;
-	float overlay_alpha = 0.5f;
-	int overlay_base_eye = 0; // 0 = Left is base, 1 = Right is base
-	Image left_img;
-	Image right_img;
-	String overlay;
-	Pointf pending_left = Null;
-	Vector<MatchPair> matches;
-	Vector<ResidualSample> residuals;
-	double residual_rms = 0;
-
-	Event<Pointf, int> WhenClick;
-
-	void SetLive(bool b) { live = b; Refresh(); }
-	void SetImages(const Image& l, const Image& r) { left_img = l; right_img = r; has_images = !IsNull(l) || !IsNull(r); Refresh(); }
-	void SetOverlay(const String& s) { overlay = s; Refresh(); }
-	void SetPendingLeft(Pointf p) { pending_left = p; Refresh(); }
-	void SetMatches(const Vector<MatchPair>& m) { matches <<= m; Refresh(); }
-	void SetEpipolar(bool b) { show_epipolar = b; Refresh(); }
-	void SetResiduals(const Vector<ResidualSample>& r, double rms, bool show) { residuals <<= r; residual_rms = rms; show_residuals = show; Refresh(); }
-	void SetOverlayMode(bool m, float alpha, int base_eye) { overlay_mode = m; overlay_alpha = alpha; overlay_base_eye = base_eye; Refresh(); }
-	void SetDifference(bool b) { show_difference = b; Refresh(); }
-
-	virtual void Paint(Draw& w) override;
-	virtual void LeftDown(Point p, dword flags) override;
-};
-#endif
 
 // ------------------------------------------------------------
 // Shared stereo camera sources
@@ -305,11 +262,18 @@ Image ConvertYuyvToImage(const byte* data, int width, int height);
 Image ConvertMjpegToImage(const byte* data, int bytes);
 
 // Preview/undistort helpers used by StageA and LiveResult.
+struct LensParams {
+	float f = 0;
+	float cx = 0, cy = 0;
+	float k1 = 0, k2 = 0;
+};
+
 RGBA SampleBilinear(const Image& img, float x, float y);
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale);
 Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale);
 Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp);
 Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale, bool undistort);
+Image RectifyAndRotateOnePass(const Image& src, const LensParams& lp, float yaw, float pitch, float roll, Size out_sz);
 
 // Persistence helpers (project.json + calibration file).
 String GetPersistPath(const AppModel& model);
@@ -327,6 +291,7 @@ void SaveState(const AppModel& model);
 
 class MenuWindow;
 class CameraWindow;
+class PreviewCtrl;
 class StageAWindow;
 class StageBWindow;
 class StageCWindow;
@@ -338,72 +303,10 @@ int TestStageAIdentity(AppModel& model, const String& project_dir, const String&
 // Regression suite for Stage A viewer invariants (headless, no GUI/camera required).
 int RunStageARegression(const String& project_dir, bool verbose = false);
 
-// ------------------------------------------------------------
-// Legacy controller (kept for reference, currently disabled).
-// ------------------------------------------------------------
+// Self-check for Stage A distortion monotonic improvement.
+int RunStageADistortionSelfCheck(bool verbose = false);
 
-#if 0
-class StereoCalibrationTool {
-public:
-	StereoCalibrationTool();
-	~StereoCalibrationTool();
-
-	void Run();
-	void SetVerbose(bool v);
-	void SetProjectDir(const String& dir);
-	void EnableGABootstrap(bool enable, int population = 30, int generations = 20);
-
-	// Headless tools
-	int SolveHeadless(const String& project_dir);
-	int TestStageAIdentity(const String& project_dir, const String& image_path = String());
-
-	// Capture test hooks (used by CLI switches)
-	void EnableUsbTest(const String& dev, int timeout_ms);
-	void EnableHmdTest(int timeout_ms);
-	void EnableLiveTest(int timeout_ms);
-
-	AppModel& Model() { return model; }
-
-private:
-	AppModel model;
-
-	// Windows live for the lifetime of the app (Menu owns no logic).
-	MenuWindow* menu = nullptr;
-	CameraWindow* camera = nullptr;
-	StageAWindow* stage_a = nullptr;
-	StageBWindow* stage_b = nullptr;
-	StageCWindow* stage_c = nullptr;
-	LiveResultWindow* live = nullptr;
-
-	// Test / timer infrastructure (headless capture checks).
-	TimeCallback usb_test_cb;
-	TimeCallback hmd_test_cb;
-	TimeCallback live_test_cb;
-	bool usb_test_enabled = false;
-	bool usb_test_active = false;
-	int usb_test_timeout_ms = 4000;
-	String usb_test_device;
-	int64 usb_test_start_us = 0;
-	int64 usb_test_last_start_us = 0;
-	int usb_test_attempts = 0;
-	bool hmd_test_enabled = false;
-	bool hmd_test_active = false;
-	int hmd_test_timeout_ms = 4000;
-	int64 hmd_test_start_us = 0;
-	int64 hmd_test_last_start_us = 0;
-	int hmd_test_attempts = 0;
-	bool live_test_active = false;
-	int live_test_timeout_ms = 5000;
-	int64 live_test_start_us = 0;
-
-	void StartUsbTest();
-	void RunUsbTest();
-	void StartHmdTest();
-	void RunHmdTest();
-	void StartLiveTest();
-	void RunLiveTest();
-};
-#endif
+END_UPP_NAMESPACE
 
 // ------------------------------------------------------------
 // Sub-headers (TopWindow modules)
@@ -411,11 +314,10 @@ private:
 
 #include "Menu.h"
 #include "Camera.h"
+#include "PreviewCtrl.h"
 #include "StageA.h"
 #include "StageB.h"
 #include "StageC.h"
 #include "LiveResult.h"
-
-END_UPP_NAMESPACE
 
 #endif

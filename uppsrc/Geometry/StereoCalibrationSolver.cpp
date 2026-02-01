@@ -491,10 +491,105 @@ static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
 	}
 }
 
+void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& params) {
+	if (log) {
+		*log << "  Step: Genetic algorithm bootstrap (intrinsics optimization)...\n";
+	}
+
+	double baseline_cost = ComputeCalibrationCost(*this, params, eye_dist, dist_weight, huber_px, huber_m);
+
+	// Dimension: 5 intrinsic parameters (fov, cx, cy, k1, k2)
+	const int dimension = 5;
+
+	GeneticOptimizer ga;
+	ga.SetMaxGenerations(ga_generations);
+	ga.SetRandomTypeUniform();
+	ga.MinMax(-1.0, 1.0); 
+	ga.Init(dimension, ga_population, StrategyBest1Exp);
+
+	// Apply specific bounds
+	ga.min_values[0] = ga_bounds_intr.fov_min;
+	ga.max_values[0] = ga_bounds_intr.fov_max;
+	ga.min_values[1] = params.cx - ga_bounds_intr.cx_delta;
+	ga.max_values[1] = params.cx + ga_bounds_intr.cx_delta;
+	ga.min_values[2] = params.cy - ga_bounds_intr.cy_delta;
+	ga.max_values[2] = params.cy + ga_bounds_intr.cy_delta;
+	ga.min_values[3] = ga_bounds_intr.k1_min;
+	ga.max_values[3] = ga_bounds_intr.k1_max;
+	ga.min_values[4] = ga_bounds_intr.k2_min;
+	ga.max_values[4] = ga_bounds_intr.k2_max;
+
+	// Re-initialize population uniformly within specific bounds
+	for (int i = 0; i < ga_population; i++) {
+		for (int j = 0; j < dimension; j++) {
+			ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+		}
+		
+		StereoCalibrationParams p = params;
+		double fov_rad = ga.population[i][0] * M_PI / 180.0;
+		// Need image width for f conversion. Assume width from first match.
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
+		p.a = (w * 0.5) / tan(fov_rad * 0.5);
+		p.cx = ga.population[i][1];
+		p.cy = ga.population[i][2];
+		p.c = p.a * ga.population[i][3]; // Map k1 to polynomial c (assuming equidist linear f*theta)
+		p.d = p.a * ga.population[i][4]; // Map k2 to polynomial d
+		// Set b=0 for GA since it's redundant with a/c/d in this simple mapping
+		p.b = 0;
+
+		double cost = ComputeCalibrationCost(*this, p, eye_dist, dist_weight, huber_px, huber_m);
+		if (!std::isfinite(cost)) cost = 1e9;
+		ga.pop_energy[i] = -cost;
+		if (-cost > ga.best_energy) {
+			ga.best_energy = -cost;
+			ga.best_solution <<= ga.population[i];
+		}
+	}
+
+	// Run GA
+	while (!ga.IsEnd()) {
+		Vector<double> trial = clone(ga.GetTrialSolution());
+		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
+
+		StereoCalibrationParams trial_params = params;
+		double fov_rad = trial[0] * M_PI / 180.0;
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
+		trial_params.a = (w * 0.5) / tan(fov_rad * 0.5);
+		trial_params.cx = trial[1];
+		trial_params.cy = trial[2];
+		trial_params.c = trial_params.a * trial[3];
+		trial_params.d = trial_params.a * trial[4];
+		trial_params.b = 0;
+
+		ga.Start();
+		double cost = ComputeCalibrationCost(*this, trial_params, eye_dist, dist_weight, huber_px, huber_m);
+		if (!std::isfinite(cost)) cost = 1e9;
+		ga.Stop(-cost);
+	}
+
+	if (-ga.best_energy < baseline_cost) {
+		double fov_rad = ga.best_solution[0] * M_PI / 180.0;
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
+		params.a = (w * 0.5) / tan(fov_rad * 0.5);
+		params.cx = ga.best_solution[1];
+		params.cy = ga.best_solution[2];
+		params.c = params.a * ga.best_solution[3];
+		params.d = params.a * ga.best_solution[4];
+		params.b = 0;
+		if (log) *log << Format("  GA Intrinsics accepted. Cost: %.6f (Baseline: %.6f)\n", -ga.best_energy, baseline_cost);
+	} else {
+		if (log) *log << Format("  GA Intrinsics rejected. Best Cost: %.6f vs Baseline: %.6f\n", -ga.best_energy, baseline_cost);
+	}
+}
+
 bool StereoCalibrationSolver::SolveIntrinsicsOnly(StereoCalibrationParams& params) {
 	last_failure_reason.Clear();
 	int N = matches.GetCount();
 	if (N < 5) return false;
+
+	if (use_ga_init) {
+		GABootstrapIntrinsics(params);
+	}
 
 	Eigen::VectorXd y(6 + 3 * N);
 	y[0] = params.a;

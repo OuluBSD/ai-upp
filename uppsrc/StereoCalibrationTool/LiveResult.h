@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_LiveResult_h_
 #define _StereoCalibrationTool_LiveResult_h_
 
+NAMESPACE_UPP
+
 /*
 LiveResult.h
 ------------
@@ -59,5 +61,7 @@ private:
 	void UpdateLivePreview();
 	bool BuildLiveUndistortCache(const Image& left, const Image& right, int64 serial);
 };
+
+END_UPP_NAMESPACE
 
 #endif

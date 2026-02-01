@@ -19,7 +19,6 @@ Gotchas / invariants:
 - Identity expected when yaw/pitch/roll are all zero.
 */
 
-namespace {
 bool IsValidAnglePoly(const vec4& poly) {
 	return fabs(poly.data[0]) > 1e-9;
 }
@@ -183,7 +182,7 @@ vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3
 	}
 	return (pL + pR) * 0.5f + dL * 1000.0f;
 }
-}
+
 
 StageAWindow::StageAWindow() {
 	Title("Stereo Calibration Tool - Stage A");
@@ -217,6 +216,10 @@ void StageAWindow::RefreshFromModel() {
 	roll_r <<= ps.roll_r;
 	barrel_strength <<= ps.barrel_strength;
 	fov_deg <<= ps.fov_deg;
+	lens_cx <<= ps.lens_cx;
+	lens_cy <<= ps.lens_cy;
+	lens_k1 <<= ps.lens_k1;
+	lens_k2 <<= ps.lens_k2;
 	preview_extrinsics <<= ps.preview_extrinsics;
 	preview_intrinsics <<= ps.preview_intrinsics;
 	view_mode_list.SetIndex(ps.view_mode);
@@ -227,12 +230,18 @@ void StageAWindow::RefreshFromModel() {
 	tint_overlay <<= ps.tint_overlay;
 	show_crosshair <<= ps.show_crosshair;
 	alpha_slider <<= ps.alpha;
+	tool_list.SetIndex(ps.tool_mode);
 
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
 		auto& f = model->captured_frames[i];
 		captures_list.Add(Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), f.source, f.matches.GetCount());
 	}
+	
+	// If no selection or invalid selection, select the last image by default
+	if (model->selected_capture < 0 || model->selected_capture >= captures_list.GetCount())
+		model->selected_capture = captures_list.GetCount() - 1;
+
 	if (model->selected_capture >= 0 && model->selected_capture < captures_list.GetCount())
 		captures_list.SetCursor(model->selected_capture);
 	UpdatePreview();
@@ -267,12 +276,12 @@ void StageAWindow::BuildStageAControls() {
 	pitch_r_lbl.SetLabel("Pitch");
 	roll_r_lbl.SetLabel("Roll");
 
-	yaw_l.SetInc(0.01); yaw_l.MinMax(-1.2, 1.2); yaw_l.WhenAction = THISBACK(SyncStageA);
-	pitch_l.SetInc(0.01); pitch_l.MinMax(-0.6, 0.6); pitch_l.WhenAction = THISBACK(SyncStageA);
-	roll_l.SetInc(0.01); roll_l.MinMax(-1.2, 1.2); roll_l.WhenAction = THISBACK(SyncStageA);
-	yaw_r.SetInc(0.01); yaw_r.MinMax(-1.2, 1.2); yaw_r.WhenAction = THISBACK(SyncStageA);
-	pitch_r.SetInc(0.01); pitch_r.MinMax(-0.6, 0.6); pitch_r.WhenAction = THISBACK(SyncStageA);
-	roll_r.SetInc(0.01); roll_r.MinMax(-1.2, 1.2); roll_r.WhenAction = THISBACK(SyncStageA);
+	yaw_l.SetInc(0.01); yaw_l.MinMax(-180, 180); yaw_l.WhenAction = THISBACK(SyncStageA);
+	pitch_l.SetInc(0.01); pitch_l.MinMax(-90, 90); pitch_l.WhenAction = THISBACK(SyncStageA);
+	roll_l.SetInc(0.01); roll_l.MinMax(-180, 180); roll_l.WhenAction = THISBACK(SyncStageA);
+	yaw_r.SetInc(0.01); yaw_r.MinMax(-180, 180); yaw_r.WhenAction = THISBACK(SyncStageA);
+	pitch_r.SetInc(0.01); pitch_r.MinMax(-90, 90); pitch_r.WhenAction = THISBACK(SyncStageA);
+	roll_r.SetInc(0.01); roll_r.MinMax(-180, 180); roll_r.WhenAction = THISBACK(SyncStageA);
 
 	preview_extrinsics.SetLabel("Preview extrinsics");
 	preview_extrinsics <<= true;
@@ -282,10 +291,15 @@ void StageAWindow::BuildStageAControls() {
 	preview_intrinsics <<= false;
 	preview_intrinsics.WhenAction = THISBACK(SyncStageA);
 
-	barrel_lbl.SetLabel("Barrel distortion");
-	barrel_strength.SetInc(0.1); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncStageA);
+	barrel_lbl.SetLabel("Undistort strength");
+	barrel_strength.SetInc(0.1); barrel_strength.MinMax(0, 5.0); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncStageA);
 	fov_lbl.SetLabel("FOV (deg)");
-	fov_deg.SetInc(1.0); fov_deg <<= 90; fov_deg.WhenAction = THISBACK(SyncStageA);
+	fov_deg.SetInc(1.0); fov_deg.MinMax(10, 170); fov_deg <<= 90; fov_deg.WhenAction = THISBACK(SyncStageA);
+
+	cx_lbl.SetLabel("cx"); lens_cx.SetInc(1.0); lens_cx.WhenAction = THISBACK(SyncStageA);
+	cy_lbl.SetLabel("cy"); lens_cy.SetInc(1.0); lens_cy.WhenAction = THISBACK(SyncStageA);
+	k1_lbl.SetLabel("k1"); lens_k1.SetInc(0.01); lens_k1.MinMax(-2.0, 2.0); lens_k1.WhenAction = THISBACK(SyncStageA);
+	k2_lbl.SetLabel("k2"); lens_k2.SetInc(0.01); lens_k2.MinMax(-2.0, 2.0); lens_k2.WhenAction = THISBACK(SyncStageA);
 
 	basic_params_doc.SetReadOnly();
 
@@ -318,10 +332,19 @@ void StageAWindow::BuildStageAControls() {
 	alpha_slider <<= 50;
 	alpha_slider.WhenAction = THISBACK(OnReviewChanged);
 
-	yaw_center_btn.SetLabel("Yaw center");
-	yaw_center_btn <<= THISBACK(OnYawCenter);
-	pitch_center_btn.SetLabel("Pitch center");
-	pitch_center_btn <<= THISBACK(OnPitchCenter);
+	tool_lbl.SetLabel("Tool");
+	tool_list.Add(0, "None");
+	tool_list.Add(1, "Center Yaw");
+	tool_list.Add(2, "Center Pitch");
+	tool_list.Add(3, "Center Both");
+	tool_list.Add(4, "Pick Match");
+	tool_list.Add(5, "Line Annotate");
+	tool_list.SetIndex(0);
+	tool_list.WhenAction = THISBACK(OnToolAction);
+
+	undo_btn.SetLabel("Undo");
+	undo_btn <<= THISBACK(OnUndo);
+	undo_btn.Disable();
 
 	int y = 6;
 	controls.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 120));
@@ -354,15 +377,25 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(preview_intrinsics.TopPos(y, 20).LeftPos(152, 140));
 	y += 24;
 	controls.Add(barrel_lbl.TopPos(y, 20).LeftPos(8, 120));
-	controls.Add(barrel_strength.TopPos(y, 20).LeftPos(132, 80));
+	controls.Add(barrel_strength.TopPos(y, 20).LeftPos(132, 50));
+	controls.Add(k1_lbl.TopPos(y, 20).LeftPos(186, 20));
+	controls.Add(lens_k1.TopPos(y, 20).LeftPos(210, 40));
+	controls.Add(k2_lbl.TopPos(y, 20).LeftPos(254, 20));
+	controls.Add(lens_k2.TopPos(y, 20).LeftPos(278, 40));
 	y += 24;
 	controls.Add(fov_lbl.TopPos(y, 20).LeftPos(8, 120));
-	controls.Add(fov_deg.TopPos(y, 20).LeftPos(132, 80));
+	controls.Add(fov_deg.TopPos(y, 20).LeftPos(132, 50));
+	controls.Add(cx_lbl.TopPos(y, 20).LeftPos(186, 20));
+	controls.Add(lens_cx.TopPos(y, 20).LeftPos(210, 40));
+	controls.Add(cy_lbl.TopPos(y, 20).LeftPos(254, 20));
+	controls.Add(lens_cy.TopPos(y, 20).LeftPos(278, 40));
 	y += 24;
 	controls.Add(basic_params_doc.TopPos(y, 100).HSizePos(8, 8));
 	y += 104;
-	controls.Add(yaw_center_btn.TopPos(y, 24).LeftPos(8, 90));
-	controls.Add(pitch_center_btn.TopPos(y, 24).LeftPos(104, 90));
+	
+	controls.Add(tool_lbl.TopPos(y, 20).LeftPos(8, 40));
+	controls.Add(tool_list.TopPos(y, 20).LeftPos(52, 160));
+	controls.Add(undo_btn.TopPos(y, 20).LeftPos(216, 76));
 	y += 30;
 
 	// ViewMode DropList hidden in Stage A (simplified UI; toggles control all preview modes)
@@ -383,22 +416,51 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
 }
 
-// Configures capture and match lists (columns + callbacks).
+// Configures columns and selection callbacks for capture/match lists.
 void StageAWindow::BuildCaptureLists() {
 	captures_list.AddColumn("Time");
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("Samples");
 	captures_list.WhenCursor = THISBACK(OnCaptureSelection);
+	captures_list.WhenBar = THISBACK(OnCapturesBar);
 
 	matches_list.AddColumn("Left");
 	matches_list.AddColumn("Right");
 	matches_list.AddColumn("Dist L (mm)").Edit(dist_l_editor);
 	matches_list.AddColumn("Dist R (mm)").Edit(dist_r_editor);
-	matches_list.WhenAcceptRow = [=] { OnMatchEdited(); return true; };
+	matches_list.WhenAction = THISBACK(OnMatchEdited);
+}
+
+void StageAWindow::OnCapturesBar(Bar& bar) {
+	bar.Add("Delete selected", THISBACK(OnDeleteCapture))
+	   .Enable(captures_list.IsCursor());
+}
+
+void StageAWindow::OnDeleteCapture() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount())
+		return;
+	
+	if (!PromptOKCancel("Delete selected capture frame? This will rewrite indices on disk."))
+		return;
+	
+	model->captured_frames.Remove(row);
+	if (model->selected_capture >= model->captured_frames.GetCount())
+		model->selected_capture = model->captured_frames.GetCount() - 1;
+	
+	SaveProjectState();
+	RefreshFromModel();
 }
 
 // Initializes plotters (left/right images).
 void StageAWindow::BuildPlotters() {
+	left_plot.SetEye(0);
+	left_plot.SetTitle("Left Eye");
+	left_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
+
+	right_plot.SetEye(1);
+	right_plot.SetTitle("Right Eye");
+	right_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
 }
 
 // Syncs Stage A UI values into AppModel.project_state and updates preview.
@@ -416,12 +478,19 @@ void StageAWindow::SyncStageA() {
 	ps.roll_r = (double)roll_r;
 	ps.barrel_strength = (double)barrel_strength;
 	ps.fov_deg = (double)fov_deg;
+	ps.lens_cx = (double)lens_cx;
+	ps.lens_cy = (double)lens_cy;
+	ps.lens_k1 = (double)lens_k1;
+	ps.lens_k2 = (double)lens_k2;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
+	ps.tool_mode = tool_list.GetIndex();
 
 	String doc;
 	doc << "Stage A Basic Params:\n";
 	doc << "  Eye dist: " << ps.eye_dist << " mm\n";
+	doc << Format("  FOV: %.1f, k1: %.3f, k2: %.3f\n", ps.fov_deg, ps.lens_k1, ps.lens_k2);
+	doc << Format("  PP: %.1f, %.1f\n", ps.lens_cx, ps.lens_cy);
 	doc << Format("  Left Yaw/Pitch/Roll: %.3f, %.3f, %.3f\n", ps.yaw_l, ps.pitch_l, ps.roll_l);
 	doc << Format("  Right Yaw/Pitch/Roll: %.3f, %.3f, %.3f\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
 	basic_params_doc <<= doc;
@@ -452,6 +521,111 @@ void StageAWindow::OnReviewChanged() {
 	SaveProjectState();
 }
 
+void StageAWindow::OnToolAction() {
+	SyncStageA();
+	pending_left = Null;
+	
+	ToolMode m = ToolMode::None;
+	int idx = tool_list.GetIndex();
+	if (idx >= 1 && idx <= 3) m = ToolMode::PickMatch; // Centering tools use same pick logic for now
+	if (idx == 4) m = ToolMode::PickMatch;
+	if (idx == 5) m = ToolMode::LineAnnotate;
+	
+	left_plot.SetToolMode(m);
+	right_plot.SetToolMode(m);
+	
+	Refresh();
+}
+
+void StageAWindow::OnUndo() {
+	if (has_undo) {
+		model->project_state = undo_state;
+		has_undo = false;
+		undo_btn.Disable();
+		RefreshFromModel();
+		SyncStageA();
+	}
+}
+
+void StageAWindow::PushUndo() {
+	undo_state = model->project_state;
+	has_undo = true;
+	undo_btn.Enable();
+}
+
+
+void StageAWindow::OnPickMatchTool(int eye, Pointf p) {
+	int mode = tool_list.GetIndex();
+	
+	// Centering tools (1=yaw, 2=pitch, 3=both)
+	if (mode >= 1 && mode <= 3) {
+		PushUndo();
+		
+		// p is in image pixels. We need normalized coordinates for centering math.
+		int row = captures_list.GetCursor();
+		if (row < 0) return;
+		CapturedFrame& frame = model->captured_frames[row];
+		Size isz = frame.left_img.GetSize();
+		if (isz.cx <= 0) return;
+		
+		Pointf pn(p.x / isz.cx, p.y / isz.cy);
+		
+		double fov_h = model->project_state.fov_deg;
+		double fov_v = fov_h * 0.75;
+		double dy = (pn.x - 0.5) * fov_h;
+		double dp = (pn.y - 0.5) * fov_v;
+		dy = Clamp(dy, -5.0, 5.0);
+		dp = Clamp(dp, -5.0, 5.0);
+		
+		if (eye == 0) {
+			if (mode == 1 || mode == 3) model->project_state.yaw_l += dy;
+			if (mode == 2 || mode == 3) model->project_state.pitch_l += dp;
+		} else {
+			if (mode == 1 || mode == 3) model->project_state.yaw_r += dy;
+			if (mode == 2 || mode == 3) model->project_state.pitch_r += dp;
+		}
+		
+		status.Set(Format("Centered %s. Delta: %.2f, %.2f", eye == 0 ? "Left" : "Right", dy, dp));
+		RefreshFromModel();
+		SyncStageA();
+		return;
+	}
+
+	// Pick match point (4)
+	if (mode == 4) {
+		if (eye == 0) {
+			pending_left = p;
+			status.Set("Point picked in Left eye. Now click corresponding point in Right eye.");
+		} else {
+			if (IsNull(pending_left)) {
+				status.Set("Pick point in Left eye first.");
+				return;
+			}
+			
+			int row = captures_list.GetCursor();
+			if (row < 0) {
+				status.Set("Select a capture frame first.");
+				return;
+			}
+			
+			CapturedFrame& frame = model->captured_frames[row];
+			Size isz = frame.left_img.GetSize();
+			if (isz.cx <= 0) return;
+
+			MatchPair& m = frame.matches.Add();
+			m.left = Pointf(pending_left.x / isz.cx, pending_left.y / isz.cy);
+			m.right = Pointf(p.x / isz.cx, p.y / isz.cy);
+			m.left_text = Format("L%d", frame.matches.GetCount());
+			m.right_text = Format("R%d", frame.matches.GetCount());
+			
+			pending_left = Null;
+			status.Set("Match pair added.");
+			UpdatePreview();
+			SaveProjectState();
+		}
+	}
+}
+
 // Updates plotters + match list based on capture selection.
 void StageAWindow::UpdatePreview() {
 	if (!model)
@@ -467,8 +641,16 @@ void StageAWindow::UpdatePreview() {
 
     CapturedFrame& frame = model->captured_frames[row];
     matches_list.Clear();
-	for (const MatchPair& pair : frame.matches)
-		matches_list.Add(pair.left_text, pair.right_text, pair.dist_l, pair.dist_r);
+	for (int i = 0; i < frame.matches.GetCount(); i++) {
+		const MatchPair& pair = frame.matches[i];
+		matches_list.Add(
+			Format("%d", i),
+			Format("%.3f, %.3f", pair.left.x, pair.left.y),
+			Format("%.3f, %.3f", pair.right.x, pair.right.y),
+			pair.dist_l,
+			pair.dist_r
+		);
+	}
 
 	UpdatePlotters();
 }
@@ -526,12 +708,24 @@ bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& 
 		use_basic = true;
 
 	if (use_basic) {
-		double fov_rad = (double)model->project_state.fov_deg * M_PI / 180.0;
-		p.a = (sz.cx * 0.5) / (fov_rad * 0.5);
-		double s = (double)model->project_state.barrel_strength * 0.01;
-		p.b = p.a * s;
-		p.c = p.a * s;
-		p.d = p.a * s;
+		// Use k1 radial model: r_d = f * theta * (1 + k1 * theta^2)
+		// We use theta directly (equidistant-like) for the polynomial model
+		// but focal length f is derived from FOV.
+		double fov_deg = Clamp(model->project_state.fov_deg, 10.0, 170.0);
+		double fov_rad = fov_deg * M_PI / 180.0;
+		
+		// Focal length for pinhole: f = (w/2) / tan(fov/2)
+		double f = (sz.cx * 0.5) / tan(fov_rad * 0.5);
+		
+		p.a = f;
+		
+		// UI: barrel_strength increases => k1 becomes more negative => more barrel removed in Undistort
+		// scale chosen so 1.0 is a typical "heavy" distortion
+		double k1 = -model->project_state.barrel_strength * 0.1;
+		
+		p.b = 0;
+		p.c = f * k1;
+		p.d = 0;
 		p.cx = sz.cx * 0.5;
 		p.cy = sz.cy * 0.5;
 	} else {
@@ -631,71 +825,54 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 		return;
 
 	const ProjectState& ps = model->project_state;
-	bool apply_extrinsics = ps.preview_extrinsics;
-	bool apply_intrinsics = ps.preview_intrinsics;
-
-	// Determine per-eye parameters
-	double yaw_l = ps.yaw_l;
-	double pitch_l = ps.pitch_l;
-	double roll_l = ps.roll_l;
-	double yaw_r = ps.yaw_r;
-	double pitch_r = ps.pitch_r;
-	double roll_r = ps.roll_r;
+	bool apply_extr = ps.preview_extrinsics;
+	bool apply_intr = ps.preview_intrinsics;
 
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
-	vec2 pp(sz.cx * 0.5f, sz.cy * 0.5f);
-
-	// Process left eye
-	Image left_out = frame.left_img;
-	if (!left_out.IsEmpty()) {
-		// Fast-path: identity (no preview effects)
-		bool left_is_identity = !apply_extrinsics && !apply_intrinsics;
-		if (!left_is_identity && apply_extrinsics && fabs(yaw_l) < 1e-6 && fabs(pitch_l) < 1e-6 && fabs(roll_l) < 1e-6 && !apply_intrinsics)
-			left_is_identity = true;
-
-		if (!left_is_identity) {
-			if (apply_extrinsics && apply_intrinsics) {
-				// Both: undistort first (barrel→linear), then rotate
-				// Sequential application loses some quality but is simple and correct
-				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale, true);
-				left_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(left_out, (float)yaw_l, (float)pitch_l, (float)roll_l, pp);
-			} else if (apply_extrinsics) {
-				// Extrinsics only
-				left_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(left_out, (float)yaw_l, (float)pitch_l, (float)roll_l, pp);
-			} else if (apply_intrinsics) {
-				// Intrinsics only: undistort (remove barrel distortion from raw camera image)
-				left_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(left_out, lens, linear_scale, true);
-			}
-		}
+	
+	// Prepare common lens parameters for one-pass mapping
+	StereoCalibrationHelpers::LensParams lp;
+	lp.f = linear_scale;
+	lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
+	lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
+	
+	// Map "strength" to k1 if advanced params are zero (for backward compatibility / simple mode)
+	lp.k1 = (float)ps.lens_k1;
+	lp.k2 = (float)ps.lens_k2;
+	if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) {
+		lp.k1 = (float)(-ps.barrel_strength * 0.1);
 	}
 
-	// Process right eye
-	Image right_out = frame.right_img;
-	if (!right_out.IsEmpty()) {
-		// Fast-path: identity (no preview effects)
-		bool right_is_identity = !apply_extrinsics && !apply_intrinsics;
-		if (!right_is_identity && apply_extrinsics && fabs(yaw_r) < 1e-6 && fabs(pitch_r) < 1e-6 && fabs(roll_r) < 1e-6 && !apply_intrinsics)
-			right_is_identity = true;
-
-		if (!right_is_identity) {
-			if (apply_extrinsics && apply_intrinsics) {
-				// Both: undistort first (barrel→linear), then rotate
-				// Sequential application loses some quality but is simple and correct
-				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale, true);
-				right_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(right_out, (float)yaw_r, (float)pitch_r, (float)roll_r, pp);
-			} else if (apply_extrinsics) {
-				// Extrinsics only
-				right_out = StereoCalibrationHelpers::ApplyExtrinsicsOnly(right_out, (float)yaw_r, (float)pitch_r, (float)roll_r, pp);
-			} else if (apply_intrinsics) {
-				// Intrinsics only: undistort (remove barrel distortion from raw camera image)
-				right_out = StereoCalibrationHelpers::ApplyIntrinsicsOnly(right_out, lens, linear_scale, true);
-			}
+	auto ProcessEye = [&](const Image& src, double y, double p, double r) {
+		if (src.IsEmpty()) return Image();
+		
+		// Branch rules:
+		if (!apply_extr && !apply_intr) return src;
+		
+		if (apply_intr) {
+			// Intr ON: Use one-pass rectify (composed with rotate if extr ON)
+			float ry = apply_extr ? (float)(y * M_PI / 180.0) : 0.0f;
+			float rp = apply_extr ? (float)(p * M_PI / 180.0) : 0.0f;
+			float rr = apply_extr ? (float)(r * M_PI / 180.0) : 0.0f;
+			return StereoCalibrationHelpers::RectifyAndRotateOnePass(src, lp, ry, rp, rr, sz);
+		} else {
+			// Intr OFF, Extr ON: rotation-only mapping
+			vec2 pp(lp.cx, lp.cy);
+			return StereoCalibrationHelpers::ApplyExtrinsicsOnly(src, (float)(y * M_PI / 180.0), (float)(p * M_PI / 180.0), (float)(r * M_PI / 180.0), pp);
 		}
-	}
+	};
 
-	// Store previews for overlay/tint/crosshair composition (avoid big refactor)
-	last_left_preview = left_out;
-	last_right_preview = right_out;
+	last_left_preview = ProcessEye(frame.left_img, ps.yaw_l, ps.pitch_l, ps.roll_l);
+	last_right_preview = ProcessEye(frame.right_img, ps.yaw_r, ps.pitch_r, ps.roll_r);
+
+	// Sync points to plotters (in image pixels)
+	Vector<Pointf> pts_l, pts_r;
+	for (const MatchPair& m : frame.matches) {
+		pts_l.Add(Pointf(m.left.x * sz.cx, m.left.y * sz.cy));
+		pts_r.Add(Pointf(m.right.x * sz.cx, m.right.y * sz.cy));
+	}
+	left_plot.SetMatchingPoints(pts_l);
+	right_plot.SetMatchingPoints(pts_r);
 
 	// Compose final display images (handles overlay, tint, crosshair)
 	ComposeFinalDisplayImages();
@@ -763,104 +940,6 @@ void StageAWindow::ComposeFinalDisplayImages() {
 	}
 }
 
-// Auto-centers yaw using the latest match pair in the selected capture.
-void StageAWindow::OnYawCenter() {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) {
-		status.Set("Select a captured frame first.");
-		return;
-	}
-	CapturedFrame& frame = model->captured_frames[row];
-	if (frame.matches.IsEmpty()) {
-		status.Set("Add a match pair to center.");
-		return;
-	}
-	const MatchPair& m = frame.matches.Top();
-	if (IsNull(m.left) || IsNull(m.right))
-		return;
-	Size sz = frame.left_img.GetSize();
-	if (sz.cx <= 0)
-		return;
-
-	double fov_rad = (double)model->project_state.fov_deg * M_PI / 180.0;
-	double a = (sz.cx * 0.5) / (fov_rad * 0.5);
-	double s = (double)model->project_state.barrel_strength * 0.01;
-	LensPoly lens;
-	lens.SetAnglePixel((float)a, (float)(a*s), (float)(a*s), (float)(a*s));
-	lens.SetPrincipalPoint(sz.cx * 0.5f, sz.cy * 0.5f);
-
-	auto GetHAngle = [&](Pointf p) -> double {
-		float cx = sz.cx * 0.5f;
-		float cy = sz.cy * 0.5f;
-		float dx = p.x * sz.cx - cx;
-		float dy = p.y * sz.cy - cy;
-		float r = sqrt(dx*dx + dy*dy);
-		float theta = lens.PixelToAngle(r);
-		float roll = atan2(dy, dx);
-		double x = sin(theta) * cos(roll);
-		double z = cos(theta);
-		return atan2(x, z);
-	};
-
-	double angle_l = GetHAngle(m.left);
-	double angle_r = GetHAngle(m.right);
-	double new_yaw_r = model->project_state.yaw_l + angle_l - angle_r;
-	double delta = new_yaw_r - model->project_state.yaw_r;
-	model->project_state.yaw_r = new_yaw_r;
-	yaw_r <<= new_yaw_r;
-	SyncStageA();
-	status.Set(Format("Yaw aligned. Delta: %.3f deg", delta * 180.0 / M_PI));
-}
-
-// Auto-centers pitch using the latest match pair in the selected capture.
-void StageAWindow::OnPitchCenter() {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) {
-		status.Set("Select a captured frame first.");
-		return;
-	}
-	CapturedFrame& frame = model->captured_frames[row];
-	if (frame.matches.IsEmpty()) {
-		status.Set("Add a match pair to center.");
-		return;
-	}
-	const MatchPair& m = frame.matches.Top();
-	if (IsNull(m.left) || IsNull(m.right))
-		return;
-	Size sz = frame.left_img.GetSize();
-	if (sz.cx <= 0)
-		return;
-
-	double fov_rad = (double)model->project_state.fov_deg * M_PI / 180.0;
-	double a = (sz.cx * 0.5) / (fov_rad * 0.5);
-	double s = (double)model->project_state.barrel_strength * 0.01;
-	LensPoly lens;
-	lens.SetAnglePixel((float)a, (float)(a*s), (float)(a*s), (float)(a*s));
-	lens.SetPrincipalPoint(sz.cx * 0.5f, sz.cy * 0.5f);
-
-	auto GetVAngle = [&](Pointf p) -> double {
-		float cx = sz.cx * 0.5f;
-		float cy = sz.cy * 0.5f;
-		float dx = p.x * sz.cx - cx;
-		float dy = p.y * sz.cy - cy;
-		float r = sqrt(dx*dx + dy*dy);
-		float theta = lens.PixelToAngle(r);
-		float roll = atan2(dy, dx);
-		double y_val = -sin(theta) * sin(roll);
-		double z_val = cos(theta);
-		return atan2(y_val, z_val);
-	};
-
-	double angle_l = GetVAngle(m.left);
-	double angle_r = GetVAngle(m.right);
-	double new_pitch_r = model->project_state.pitch_l + angle_l - angle_r;
-	double delta = new_pitch_r - model->project_state.pitch_r;
-	model->project_state.pitch_r = new_pitch_r;
-	pitch_r <<= new_pitch_r;
-	SyncStageA();
-	status.Set(Format("Pitch aligned. Delta: %.3f deg", delta * 180.0 / M_PI));
-}
-
 // Capture list selection callback: refresh preview/match list.
 void StageAWindow::OnCaptureSelection() {
 	UpdatePreview();
@@ -886,5 +965,6 @@ void StageAWindow::SaveProjectState() {
 		return;
 	StereoCalibrationHelpers::SaveState(*model);
 }
+
 
 END_UPP_NAMESPACE

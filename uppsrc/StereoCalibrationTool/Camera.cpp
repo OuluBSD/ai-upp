@@ -113,6 +113,29 @@ void CameraWindow::BuildCapturesList() {
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("Samples");
 	captures_list.WhenCursor = THISBACK(OnCaptureSelection);
+	captures_list.WhenBar = THISBACK(OnCapturesBar);
+}
+
+void CameraWindow::OnCapturesBar(Bar& bar) {
+	bar.Add("Delete selected", THISBACK(OnDeleteCapture))
+	   .Enable(captures_list.IsCursor());
+}
+
+void CameraWindow::OnDeleteCapture() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount())
+		return;
+	
+	if (!PromptOKCancel("Delete selected capture frame? This will rewrite indices on disk."))
+		return;
+	
+	model->captured_frames.Remove(row);
+	if (model->selected_capture >= model->captured_frames.GetCount())
+		model->selected_capture = model->captured_frames.GetCount() - 1;
+	
+	StereoCalibrationHelpers::SaveState(*model);
+	RefreshCapturesList();
+	SyncSelectionFromModel();
 }
 
 // Updates the status label when the user selects a different source.

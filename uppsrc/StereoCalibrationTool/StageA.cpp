@@ -233,6 +233,11 @@ void StageAWindow::RefreshFromModel() {
 	tint_overlay <<= ps.tint_overlay;
 	show_crosshair <<= ps.show_crosshair;
 	alpha_slider <<= ps.alpha;
+	
+	// Safety check for legacy tool modes
+	if (ps.tool_mode >= tool_list.GetCount())
+		const_cast<ProjectState&>(ps).tool_mode = 0; // Reset to None if invalid
+	
 	tool_list.SetIndex(ps.tool_mode);
 	
 	ga_pop_edit <<= model->ga_population;

@@ -288,8 +288,8 @@ void StageAWindow::BuildLayout() {
 	list_split.Horz(captures_list, details_split);
 	list_split.SetPos(3500);
 	
-	tab_data.Add(list_split, "Data");
-	tab_data.Add(ga_tab_ctrl, "Genetic Optimizer");
+	tab_data.Add(list_split.SizePos(), "Data");
+	tab_data.Add(ga_tab_ctrl.SizePos(), "Genetic Optimizer");
 }
 
 // Builds Stage A controls (basic params + view controls).
@@ -1010,20 +1010,15 @@ void StageAWindow::PushUndo() {
 }
 
 
-void StageAWindow::OnFinalizeLine(int eye, const Vector<Pointf>& chain) {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
-	
-	CapturedFrame& frame = model->captured_frames[row];
-	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
-	if (sz.cx <= 0) return;
-
+Pointf StageAWindow::UnprojectPoint(int eye, Pointf p_view, Size sz) {
+	if (sz.cx <= 0) return p_view;
 	const ProjectState& ps = model->project_state;
-	
-	// Reconstruct lp (same as in UpdatePreview)
+	int vmode = view_mode_list.GetIndex();
+	if (vmode == 0 || (!ps.preview_extrinsics && !ps.preview_intrinsics))
+		return p_view;
+
 	double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
 	float f = (float)((sz.cx * 0.5) / tan(fov_rad * 0.5));
-	
 	StereoCalibrationHelpers::LensParams lp;
 	lp.f = f;
 	lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
@@ -1040,21 +1035,30 @@ void StageAWindow::OnFinalizeLine(int eye, const Vector<Pointf>& chain) {
 		rp = ps.preview_extrinsics ? (float)(ps.pitch_r * M_PI / 180.0) : 0;
 		rr = ps.preview_extrinsics ? (float)(ps.roll_r * M_PI / 180.0) : 0;
 	}
+	if (!ps.preview_intrinsics) { lp.k1 = 0; lp.k2 = 0; }
+	return StereoCalibrationHelpers::UnprojectPointOnePass(p_view, sz, lp, ry, rp, rr);
+}
+
+void StageAWindow::OnFinalizeLine(int eye, const Vector<Pointf>& chain) {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
 	
-	if (!ps.preview_intrinsics) {
-		lp.k1 = 0; lp.k2 = 0;
-	}
+	CapturedFrame& frame = model->captured_frames[row];
+	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+	if (sz.cx <= 0) return;
 
 	Vector<Pointf> norm_chain;
 	for(Pointf p_rect : chain) {
-		Pointf p_raw = StereoCalibrationHelpers::UnprojectPointOnePass(p_rect, sz, lp, ry, rp, rr);
-		norm_chain.Add(Pointf(p_raw.x / sz.cx, p_raw.y / sz.cy));
+		Pointf p_raw = UnprojectPoint(eye, p_rect, sz);
+		if (p_raw.x >= 0)
+			norm_chain.Add(Pointf(p_raw.x / sz.cx, p_raw.y / sz.cy));
 	}
 	
-	if (eye == 0) frame.annotation_lines_left.Add(pick(norm_chain));
-	else frame.annotation_lines_right.Add(pick(norm_chain));
-	
-	SaveProjectState();
+	if (norm_chain.GetCount() >= 2) {
+		if (eye == 0) frame.annotation_lines_left.Add(pick(norm_chain));
+		else frame.annotation_lines_right.Add(pick(norm_chain));
+		SaveProjectState();
+	}
 	UpdatePreview();
 }
 
@@ -1079,19 +1083,26 @@ void StageAWindow::OnPickMatchTool(int eye, Pointf p) {
 			}
 			
 			CapturedFrame& frame = model->captured_frames[row];
-			Size isz = frame.left_img.GetSize();
-			if (isz.cx <= 0) return;
+			Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+			if (sz.cx <= 0) return;
 
-			MatchPair& m = frame.matches.Add();
-			m.left = Pointf(pending_left.x / isz.cx, pending_left.y / isz.cy);
-			m.right = Pointf(p.x / isz.cx, p.y / isz.cy);
-			m.left_text = Format("L%d", frame.matches.GetCount());
-			m.right_text = Format("R%d", frame.matches.GetCount());
+			Pointf p_l_raw = UnprojectPoint(0, pending_left, sz);
+			Pointf p_r_raw = UnprojectPoint(1, p, sz);
+
+			if (p_l_raw.x >= 0 && p_r_raw.x >= 0) {
+				MatchPair& m = frame.matches.Add();
+				m.left = Pointf(p_l_raw.x / sz.cx, p_l_raw.y / sz.cy);
+				m.right = Pointf(p_r_raw.x / sz.cx, p_r_raw.y / sz.cy);
+				m.left_text = Format("L%d", frame.matches.GetCount());
+				m.right_text = Format("R%d", frame.matches.GetCount());
+				status.Set("Match pair added.");
+				SaveProjectState();
+			} else {
+				status.Set("Failed to unproject points.");
+			}
 			
 			pending_left = Null;
-			status.Set("Match pair added.");
 			UpdatePreview();
-			SaveProjectState();
 		}
 	}
 }
@@ -1132,8 +1143,10 @@ void StageAWindow::UpdatePreview() {
 	
 	// Sync annotation lines
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+	Vector<Vector<Pointf>> lines_l, lines_r;
 	if (sz.cx > 0) {
 		const ProjectState& ps = model->project_state;
+		int vmode = view_mode_list.GetIndex();
 		
 		// Lens params for projection
 		double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
@@ -1154,7 +1167,7 @@ void StageAWindow::UpdatePreview() {
 				Pointf p_raw(p_norm.x * sz.cx, p_norm.y * sz.cy);
 				
 				Pointf p_rect;
-				if (!ps.preview_extrinsics && !ps.preview_intrinsics) {
+				if (vmode == 0 || (!ps.preview_extrinsics && !ps.preview_intrinsics)) {
 					p_rect = p_raw;
 				} else {
 					float ry = ps.preview_extrinsics ? (float)(ps.yaw_l * M_PI / 180.0) : 0;
@@ -1180,13 +1193,11 @@ void StageAWindow::UpdatePreview() {
 			return rect_chain;
 		};
 
-		Vector<Vector<Pointf>> lines_l, lines_r;
 		for(const auto& chain : frame.annotation_lines_left) lines_l.Add(ProjectChain(chain, 0));
 		for(const auto& chain : frame.annotation_lines_right) lines_r.Add(ProjectChain(chain, 1));
-		
-		left_plot.SetAnnotationLines(lines_l);
-		right_plot.SetAnnotationLines(lines_r);
 	}
+	left_plot.SetAnnotationLines(lines_l);
+	right_plot.SetAnnotationLines(lines_r);
 }
 
 // Updates left/right plotter images (raw or undistorted).

@@ -455,23 +455,46 @@ static double ComputeCalibrationCost(const StereoCalibrationSolver& solver,
 void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& params) {
 	if (log) *log << "  Step: Genetic algorithm bootstrap (extrinsics)...\n";
 	
-	const int dimension = 3;
+	// Reparameterization for symmetry:
+	// 0: base_yaw, 1: base_pitch, 2: base_roll (common offset)
+	// 3: toe_yaw (symmetric horizontal angle: L=-toe, R=+toe)
+	// 4,5,6: asym_yaw, asym_pitch, asym_roll (small asymmetry deltas)
+	const int dimension = 7;
 	GeneticOptimizer ga;
 	ga.SetMaxGenerations(ga_generations);
 	ga.SetRandomTypeUniform();
 	ga.MinMax(-1.0, 1.0); 
 	ga.Init(dimension, ga_population, StrategyBest1Exp);
 
-	ga.min_values[0] = -ga_bounds.yaw_deg * M_PI / 180.0;
-	ga.max_values[0] =  ga_bounds.yaw_deg * M_PI / 180.0;
-	ga.min_values[1] = -ga_bounds.pitch_deg * M_PI / 180.0;
-	ga.max_values[1] =  ga_bounds.pitch_deg * M_PI / 180.0;
-	ga.min_values[2] = -ga_bounds.roll_deg * M_PI / 180.0;
-	ga.max_values[2] =  ga_bounds.roll_deg * M_PI / 180.0;
+	// Base angles: +/- 15 deg
+	ga.min_values[0] = -15 * M_PI / 180.0; ga.max_values[0] = 15 * M_PI / 180.0;
+	ga.min_values[1] = -15 * M_PI / 180.0; ga.max_values[1] = 15 * M_PI / 180.0;
+	ga.min_values[2] = -15 * M_PI / 180.0; ga.max_values[2] = 15 * M_PI / 180.0;
+	
+	// Toe yaw: 0 to 45 deg
+	ga.min_values[3] = 0; ga.max_values[3] = 45 * M_PI / 180.0;
+	
+	// Asymmetry deltas: +/- 5 deg
+	ga.min_values[4] = -5 * M_PI / 180.0; ga.max_values[4] = 5 * M_PI / 180.0;
+	ga.min_values[5] = -5 * M_PI / 180.0; ga.max_values[5] = 5 * M_PI / 180.0;
+	ga.min_values[6] = -5 * M_PI / 180.0; ga.max_values[6] = 5 * M_PI / 180.0;
 
 	auto Map = [&](const Vector<double>& v) {
 		StereoCalibrationParams p = params;
-		p.yaw = v[0]; p.pitch = v[1]; p.roll = v[2];
+		double by = v[0], bp = v[1], br = v[2];
+		double ty = v[3];
+		double ay = v[4], ap = v[5], ar = v[6];
+		
+		// Left eye: base - toe - delta/2
+		p.yaw_l   = by - ty - ay * 0.5;
+		p.pitch_l = bp      - ap * 0.5;
+		p.roll_l  = br      - ar * 0.5;
+		
+		// Right eye: base + toe + delta/2
+		p.yaw     = by + ty + ay * 0.5;
+		p.pitch   = bp      + ap * 0.5;
+		p.roll    = br      + ar * 0.5;
+		
 		return p;
 	};
 
@@ -492,8 +515,11 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
 			ga.best_solution = clone(ga.population[i]);
-			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
-				i, ga.best_energy, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
+			StereoCalibrationParams p_best = Map(ga.best_solution);
+			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f L_y/p/r: %.2f/%.2f/%.2f R_y/p/r: %.2f/%.2f/%.2f", 
+				i, ga.best_energy, 
+				p_best.yaw_l*180/M_PI, p_best.pitch_l*180/M_PI, p_best.roll_l*180/M_PI,
+				p_best.yaw*180/M_PI, p_best.pitch*180/M_PI, p_best.roll*180/M_PI));
 		}
 	}
 
@@ -513,11 +539,14 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 			}
 			cost = 1e12;
 		}
-		ga.Stop(cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
+		ga.Stop(cost); 
 		if (ga.best_energy < last_best && IsParamsFinite(Map(ga.best_solution))) {
 			last_best = ga.best_energy;
-			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
-				current_gen, ga.GetRound(), last_best, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
+			StereoCalibrationParams p_best = Map(ga.best_solution);
+			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f L_y/p/r: %.2f/%.2f/%.2f R_y/p/r: %.2f/%.2f/%.2f", 
+				current_gen, ga.GetRound(), last_best,
+				p_best.yaw_l*180/M_PI, p_best.pitch_l*180/M_PI, p_best.roll_l*180/M_PI,
+				p_best.yaw*180/M_PI, p_best.pitch*180/M_PI, p_best.roll*180/M_PI));
 		}
 		if (ga_step_cb) {
 			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
@@ -550,11 +579,12 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	auto Map = [&](const Vector<double>& v) {
 		StereoCalibrationParams p = params;
 		double fov_rad = v[0] * M_PI / 180.0;
-		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 1280;
 		p.a = (w * 0.5) / tan(fov_rad * 0.5);
 		p.cx = v[1]; p.cy = v[2];
 		p.c = p.a * v[3]; p.d = p.a * v[4];
 		p.b = 0;
+		// Intrinsics are shared; extrinsics remain as-is (e.g. from current bootstrap state)
 		return p;
 	};
 

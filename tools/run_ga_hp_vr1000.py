@@ -60,6 +60,7 @@ def main():
         project, 
         "--ga_run", 
         "--phase", "both_lens_then_pose", 
+        "--save",
         "--ga-population=200", 
         "--ga-generations=300", 
         "--verbose"

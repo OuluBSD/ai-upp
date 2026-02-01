@@ -254,7 +254,9 @@ void StageAWindow::RefreshFromModel() {
 	ga_gen_edit <<= model->ga_generations;
 	
 	ga_phase_list.SetIndex(ps.ga_phase);
-	ga_use_trimmed_loss <<= ps.ga_use_trimmed_loss;
+	ga_pop_edit <<= ps.ga_population;
+	ga_gen_edit <<= ps.ga_generations;
+	ga_use_trimmed_loss = ps.ga_use_trimmed_loss;
 	ga_trim_percent <<= ps.ga_trim_percent;
 	ga_yaw_bound <<= ps.ga_bounds.yaw_deg;
 	ga_pitch_bound <<= ps.ga_bounds.pitch_deg;
@@ -500,6 +502,7 @@ void StageAWindow::BuildGAPanel() {
 	int cx2 = 270;
 	gy = y + 20;
 	ga_phase_lbl.SetLabel("Phase:");
+	ga_phase_list.Clear();
 	ga_phase_list.Add(GA_PHASE_EXTRINSICS, "Extrinsics Only");
 	ga_phase_list.Add(GA_PHASE_INTRINSICS, "Intrinsics Only");
 	ga_phase_list.Add(GA_PHASE_BOTH, "Both (Seq)");
@@ -1037,6 +1040,8 @@ void StageAWindow::SyncStageA() {
 	ps.compare_ga_result = (bool)compare_ga_toggle;
 	
 	ps.ga_phase = ga_phase_list.GetIndex();
+	ps.ga_population = ~ga_pop_edit;
+	ps.ga_generations = ~ga_gen_edit;
 	ps.ga_use_trimmed_loss = (bool)ga_use_trimmed_loss;
 	ps.ga_trim_percent = (double)ga_trim_percent;
 	ps.ga_bounds.yaw_deg = ~ga_yaw_bound;

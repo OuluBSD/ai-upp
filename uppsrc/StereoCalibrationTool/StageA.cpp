@@ -225,6 +225,7 @@ void StageAWindow::RefreshFromModel() {
 	lens_k2 <<= ps.lens_k2;
 	preview_extrinsics <<= ps.preview_extrinsics;
 	preview_intrinsics <<= ps.preview_intrinsics;
+	compare_ga_toggle <<= ps.compare_ga_result;
 	view_mode_list.SetIndex(ps.view_mode);
 	overlay_eyes <<= ps.overlay_eyes;
 	overlay_swap <<= ps.overlay_swap;
@@ -468,6 +469,12 @@ void StageAWindow::BuildGAPanel() {
 	gy += 30;
 	ga_status_lbl.SetLabel("Status: Idle");
 	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
+	
+	gy += 24;
+	compare_ga_toggle.SetLabel("Compare with GA Best");
+	compare_ga_toggle.WhenAction = THISBACK(SyncStageA);
+	compare_ga_toggle.Disable(); // Enabled when GA finishes
+	ga_tab_ctrl.Add(compare_ga_toggle.TopPos(gy, 20).LeftPos(12, 200));
 	
 	gy += 24;
 	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
@@ -815,6 +822,7 @@ void StageAWindow::SyncStageA() {
 	ps.lens_k2 = (double)lens_k2;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
+	ps.compare_ga_result = (bool)compare_ga_toggle;
 	ps.tool_mode = tool_list.GetIndex();
 
 	String doc;
@@ -1199,43 +1207,99 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	const ProjectState& ps = model->project_state;
 	bool apply_extr = ps.preview_extrinsics;
 	bool apply_intr = ps.preview_intrinsics;
+	bool compare_ga = ps.compare_ga_result;
 
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	
-	// Prepare common lens parameters for one-pass mapping
-	StereoCalibrationHelpers::LensParams lp;
-	lp.f = linear_scale;
-	lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
-	lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
-	
-	// Map "strength" to k1 if advanced params are zero (for backward compatibility / simple mode)
-	lp.k1 = (float)ps.lens_k1;
-	lp.k2 = (float)ps.lens_k2;
-	if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) {
-		lp.k1 = (float)(-ps.barrel_strength * 0.1);
+	// Helper to build params from arbitrary sources
+	auto BuildParams = [&](const ProjectState& s) {
+		StereoCalibrationHelpers::LensParams lp;
+		lp.f = linear_scale; // Use common scale
+		lp.cx = (float)(s.lens_cx > 0 ? s.lens_cx : sz.cx * 0.5);
+		lp.cy = (float)(s.lens_cy > 0 ? s.lens_cy : sz.cy * 0.5);
+		lp.k1 = (float)s.lens_k1;
+		lp.k2 = (float)s.lens_k2;
+		if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) 
+			lp.k1 = (float)(-s.barrel_strength * 0.1);
+		return lp;
+	};
+
+	auto lp_curr = BuildParams(ps);
+
+	// GA params (if valid)
+	StereoCalibrationHelpers::LensParams lp_ga;
+	double ga_yaw_l=0, ga_pitch_l=0, ga_roll_l=0;
+	double ga_yaw_r=0, ga_pitch_r=0, ga_roll_r=0;
+	bool ga_valid = compare_ga && (fabs(ga_best_params.a) > 1e-6);
+
+	if (ga_valid) {
+		lp_ga.f = (float)ga_best_params.a;
+		lp_ga.cx = (float)ga_best_params.cx;
+		lp_ga.cy = (float)ga_best_params.cy;
+		lp_ga.k1 = (float)(ga_best_params.c / ga_best_params.a);
+		lp_ga.k2 = (float)(ga_best_params.d / ga_best_params.a);
+		ga_yaw_l = ga_best_params.yaw_l;
+		ga_pitch_l = ga_best_params.pitch_l;
+		ga_roll_l = ga_best_params.roll_l;
+		ga_yaw_r = ga_best_params.yaw;
+		ga_pitch_r = ga_best_params.pitch;
+		ga_roll_r = ga_best_params.roll;
 	}
 
-	auto ProcessEye = [&](const Image& src, double y, double p, double r) {
+	auto Render = [&](const Image& src, const StereoCalibrationHelpers::LensParams& lp, 
+					  double y_deg, double p_deg, double r_deg, bool is_rad) {
 		if (src.IsEmpty()) return Image();
-		
-		// Branch rules:
 		if (!apply_extr && !apply_intr) return src;
 		
+		float ry, rp, rr;
+		if (is_rad) {
+			ry = apply_extr ? (float)y_deg : 0;
+			rp = apply_extr ? (float)p_deg : 0;
+			rr = apply_extr ? (float)r_deg : 0;
+		} else {
+			ry = apply_extr ? (float)(y_deg * M_PI / 180.0) : 0;
+			rp = apply_extr ? (float)(p_deg * M_PI / 180.0) : 0;
+			rr = apply_extr ? (float)(r_deg * M_PI / 180.0) : 0;
+		}
+
 		if (apply_intr) {
-			// Intr ON: Use one-pass rectify (composed with rotate if extr ON)
-			float ry = apply_extr ? (float)(y * M_PI / 180.0) : 0.0f;
-			float rp = apply_extr ? (float)(p * M_PI / 180.0) : 0.0f;
-			float rr = apply_extr ? (float)(r * M_PI / 180.0) : 0.0f;
 			return StereoCalibrationHelpers::RectifyAndRotateOnePass(src, lp, ry, rp, rr, sz);
 		} else {
-			// Intr OFF, Extr ON: rotation-only mapping
 			vec2 pp(lp.cx, lp.cy);
-			return StereoCalibrationHelpers::ApplyExtrinsicsOnly(src, (float)(y * M_PI / 180.0), (float)(p * M_PI / 180.0), (float)(r * M_PI / 180.0), pp);
+			return StereoCalibrationHelpers::ApplyExtrinsicsOnly(src, ry, rp, rr, pp);
 		}
 	};
 
-	last_left_preview = ProcessEye(frame.left_img, ps.yaw_l, ps.pitch_l, ps.roll_l);
-	last_right_preview = ProcessEye(frame.right_img, ps.yaw_r, ps.pitch_r, ps.roll_r);
+	Image L_curr = Render(frame.left_img, lp_curr, ps.yaw_l, ps.pitch_l, ps.roll_l, false);
+	Image R_curr = Render(frame.right_img, lp_curr, ps.yaw_r, ps.pitch_r, ps.roll_r, false);
+
+	if (ga_valid) {
+		Image L_ga = Render(frame.left_img, lp_ga, ga_yaw_l, ga_pitch_l, ga_roll_l, true);
+		Image R_ga = Render(frame.right_img, lp_ga, ga_yaw_r, ga_pitch_r, ga_roll_r, true);
+		
+		auto MakeGray = [](const Image& src) {
+			if (src.IsEmpty()) return Image();
+			Size s = src.GetSize();
+			ImageBuffer b(s);
+			const RGBA* s_ptr = ~src;
+			RGBA* d_ptr = b;
+			for(int i=0; i<s.cx*s.cy; i++) {
+				int gray = (s_ptr[i].r + s_ptr[i].g + s_ptr[i].b)/3;
+				d_ptr[i].r = d_ptr[i].g = d_ptr[i].b = (byte)gray;
+				d_ptr[i].a = 255;
+			}
+			return (Image)b;
+		};
+		
+		L_curr = MakeGray(L_curr);
+		R_curr = MakeGray(R_curr);
+		
+		last_left_preview = AlphaBlend(L_curr, L_ga, 0.5f);
+		last_right_preview = AlphaBlend(R_curr, R_ga, 0.5f);
+	} else {
+		last_left_preview = L_curr;
+		last_right_preview = R_curr;
+	}
 
 	// Sync points to plotters (in image pixels)
 	Vector<Pointf> pts_l, pts_r;

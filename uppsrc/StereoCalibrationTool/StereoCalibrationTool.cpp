@@ -172,8 +172,8 @@ RGBA SampleBilinear(const Image& img, float x, float y) {
 }
 
 // Undistorts an image: removes barrel distortion from source, producing rectilinear output.
-// Source has barrel/pincushion distortion (from real camera), output is linear.
-// For each LINEAR output pixel, find the DISTORTED source pixel.
+// For each rectilinear output pixel (u,v), we find its angle theta, then find where 
+// that angle maps in the distorted source image using the forward lens model.
 Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 	if (src.IsEmpty() || linear_scale <= 0)
 		return Image();
@@ -186,6 +186,7 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 		cx = sz.cx * 0.5f;
 		cy = sz.cy * 0.5f;
 	}
+
 	for (int y = 0; y < sz.cy; y++) {
 		RGBA* dst = out[y];
 		float dy = y - cy;
@@ -196,23 +197,22 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 				dst[x] = SampleBilinear(src, cx, cy);
 				continue;
 			}
-			// Output pixel at radius r_out (linear) corresponds to angle theta
-			float theta = r_out / linear_scale;
-			// In distorted source, that angle is at radius r_src
+			
+			// Angle in rectilinear view
+			float theta = atanf(r_out / linear_scale);
+			
+			// Radius in distorted source
 			float r_src = lens.AngleToPixel(theta);
-			// Guard against invalid lens calculations producing NaN/inf
+			
 			if (!isfinite(r_src) || r_src < 0) {
-				dst[x] = src[y][x];  // Fallback: copy original pixel
+				dst[x] = RGBA{0,0,0,255};
 				continue;
 			}
+			
 			float scale = r_src / r_out;
 			float sx = cx + dx * scale;
 			float sy = cy + dy * scale;
-			// Validate coordinates before sampling
-			if (!isfinite(sx) || !isfinite(sy)) {
-				dst[x] = src[y][x];  // Fallback: copy original pixel
-				continue;
-			}
+			
 			dst[x] = SampleBilinear(src, sx, sy);
 		}
 	}
@@ -220,8 +220,8 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 }
 
 // Distorts an image: adds barrel distortion to source, producing distorted output.
-// Source is linear/rectilinear, output has barrel/pincushion distortion.
-// For each DISTORTED output pixel, find the LINEAR source pixel.
+// For each distorted output pixel (u,v), we find its angle theta using the inverse lens model,
+// then find where that angle maps in the linear source image.
 Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 	if (src.IsEmpty() || linear_scale <= 0)
 		return Image();
@@ -234,6 +234,7 @@ Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 		cx = sz.cx * 0.5f;
 		cy = sz.cy * 0.5f;
 	}
+
 	for (int y = 0; y < sz.cy; y++) {
 		RGBA* dst = out[y];
 		float dy = y - cy;
@@ -244,23 +245,27 @@ Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 				dst[x] = SampleBilinear(src, cx, cy);
 				continue;
 			}
-			// Output pixel at radius r_out (distorted) corresponds to angle theta
+			
+			// Angle in distorted view
 			float theta = lens.PixelToAngle(r_out);
-			// Guard against invalid lens calculations producing NaN/inf
+			
 			if (!isfinite(theta) || theta < 0) {
-				dst[x] = src[y][x];  // Fallback: copy original pixel
+				dst[x] = RGBA{0,0,0,255};
 				continue;
 			}
-			// In linear source, that angle is at radius r_src
-			float r_src = theta * linear_scale;
+			
+			// Radius in linear source
+			float r_src = linear_scale * tanf(theta);
+			
+			if (!isfinite(r_src) || r_src < 0) {
+				dst[x] = RGBA{0,0,0,255};
+				continue;
+			}
+			
 			float scale = r_src / r_out;
 			float sx = cx + dx * scale;
 			float sy = cy + dy * scale;
-			// Validate coordinates before sampling
-			if (!isfinite(sx) || !isfinite(sy)) {
-				dst[x] = src[y][x];  // Fallback: copy original pixel
-				continue;
-			}
+			
 			dst[x] = SampleBilinear(src, sx, sy);
 		}
 	}
@@ -269,22 +274,27 @@ Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 
 // Applies ONLY extrinsics (yaw/pitch/roll rotation) without any lens distortion.
 // This performs a 3D rotation of the camera rays and resamples the source image.
+// yaw, pitch, roll are in RADIANS.
 Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp) {
 	if (src.IsEmpty())
 		return Image();
 
-	// Fast-path: if all rotations are zero, return copy of source
+	// Fast-path: if all rotations are zero, return source (Image is a handle)
 	if (fabs(yaw) < 1e-6f && fabs(pitch) < 1e-6f && fabs(roll) < 1e-6f)
-		return clone(src);
+		return src;
 
 	Size sz = src.GetSize();
 	ImageBuffer out(sz);
 	float cx = pp[0] > 0 ? pp[0] : sz.cx * 0.5f;
 	float cy = pp[1] > 0 ? pp[1] : sz.cy * 0.5f;
 
-	// Build rotation matrix (matches LensPoly::Project/Unproject for lens_i==1)
+	// Build rotation matrix
 	mat4 rot = AxesMat(yaw, pitch, roll);
 	mat4 rot_inv = rot.GetTransposed(); // Inverse rotation for unprojecting
+
+	// We assume a default focal length for the "extrinsic-only" view if not provided.
+	// A reasonable default is width / 2 (approx 90 deg FOV).
+	float f = cx; 
 
 	for (int y = 0; y < sz.cy; y++) {
 		RGBA* dst = out[y];
@@ -292,31 +302,24 @@ Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, 
 		for (int x = 0; x < sz.cx; x++) {
 			float dx = x - cx;
 
-			// Compute output ray direction (pinhole projection, no distortion)
-			float r = sqrtf(dx * dx + dy * dy);
-			float theta = atanf(r / cx); // Approximate FOV based on image width
-			float roll_angle = atan2f(dy, dx);
-
-			float sin_theta = sinf(theta);
-			float cos_theta = cosf(theta);
-			vec3 dir_out(
-				sin_theta * cosf(roll_angle),
-				-sin_theta * sinf(roll_angle),
-				IS_NEGATIVE_Z ? -cos_theta : cos_theta);
+			// Direction of the ray for the output pixel (rectilinear)
+			vec3 dir_out(dx, -dy, IS_NEGATIVE_Z ? -f : f);
+			dir_out.Normalize();
 
 			// Apply inverse rotation to get source ray
 			vec3 dir_src = (rot_inv * dir_out.Embed()).Splice();
 			dir_src.Normalize();
 
-			// Project source ray back to source image
+			// Project source ray back to source image (pinhole)
 			float zf = IS_NEGATIVE_Z ? -dir_src[2] : dir_src[2];
-			zf = zf < -1.0f ? -1.0f : (zf > 1.0f ? 1.0f : zf);
-			float theta_src = atan2f(sqrtf(dir_src[0] * dir_src[0] + dir_src[1] * dir_src[1]), zf);
-			float roll_src = atan2f(-dir_src[1], dir_src[0]);
-
-			float r_src = cx * tanf(theta_src);
-			float sx = cx + r_src * cosf(roll_src);
-			float sy = cy + r_src * sinf(roll_src);
+			if (zf <= 1e-3f) {
+				dst[x] = RGBA{0,0,0,255}; // Ray points away or parallel to plane
+				continue;
+			}
+			
+			float scale = f / zf;
+			float sx = cx + dir_src[0] * scale;
+			float sy = cy - dir_src[1] * scale;
 
 			dst[x] = SampleBilinear(src, sx, sy);
 		}
@@ -332,6 +335,71 @@ Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_s
 		return UndistortImage(src, lens, linear_scale);
 	else
 		return DistortImage(src, lens, linear_scale);
+}
+
+// Single-pass rectify + rotate + distort mapping.
+// For each output pixel (u_out, v_out) in the rectified "linear" view:
+// 1. Compute undistorted normalized coords using f, cx, cy.
+// 2. Form ray.
+// 3. Apply extrinsics rotation R.
+// 4. Apply forward distortion model using k1, k2.
+// 5. Map to input pixel and sample.
+Image RectifyAndRotateOnePass(const Image& src, const LensParams& lp, float yaw, float pitch, float roll, Size out_sz) {
+	if (src.IsEmpty() || out_sz.cx <= 0 || out_sz.cy <= 0 || lp.f <= 1e-6f)
+		return Image();
+
+	ImageBuffer out(out_sz);
+	float cx_out = out_sz.cx * 0.5f;
+	float cy_out = out_sz.cy * 0.5f;
+
+	// Build rotation matrix
+	mat4 rot = AxesMat(yaw, pitch, roll);
+	mat4 rot_inv = rot.GetTransposed();
+
+	for (int y = 0; y < out_sz.cy; y++) {
+		RGBA* dst = out[y];
+		float dy_out = y - cy_out;
+		for (int x = 0; x < out_sz.cx; x++) {
+			float dx_out = x - cx_out;
+
+			// 1. Ray direction in output (rectilinear) space. 
+			// Focal length f is shared for simplicity or could be separate for output.
+			// Here we assume output focal length matches input focal length for a natural FOV.
+			vec3 dir_out(dx_out, -dy_out, IS_NEGATIVE_Z ? -lp.f : lp.f);
+			dir_out.Normalize();
+
+			// 2. Apply inverse rotation to get ray in camera (distorted) space.
+			vec3 dir_cam = (rot_inv * dir_out.Embed()).Splice();
+			dir_cam.Normalize();
+
+			// 3. Project to normalized camera plane (z=1).
+			float zf = IS_NEGATIVE_Z ? -dir_cam[2] : dir_cam[2];
+			if (zf <= 1e-3f) {
+				dst[x] = RGBA{0,0,0,255};
+				continue;
+			}
+			float nx = dir_cam[0] / zf;
+			float ny = -dir_cam[1] / zf;
+
+			// 4. Apply forward distortion model (k1, k2).
+			float r2 = nx*nx + ny*ny;
+			float dist_scale = 1.0f + lp.k1 * r2 + lp.k2 * r2 * r2;
+			
+			// Safety clamp for distortion blow-ups
+			if (dist_scale < 0.1f) dist_scale = 0.1f;
+			if (dist_scale > 10.0f) dist_scale = 10.0f;
+
+			float dx_dist = nx * dist_scale;
+			float dy_dist = ny * dist_scale;
+
+			// 5. Map to input pixel coordinates.
+			float sx = lp.cx + dx_dist * lp.f;
+			float sy = lp.cy + dy_dist * lp.f;
+
+			dst[x] = SampleBilinear(src, sx, sy);
+		}
+	}
+	return out;
 }
 
 // ------------------------------------------------------------

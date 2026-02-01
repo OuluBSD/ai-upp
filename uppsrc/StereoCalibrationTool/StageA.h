@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_StageA_h_
 #define _StereoCalibrationTool_StageA_h_
 
+NAMESPACE_UPP
+
 /*
 StageA.h
 --------
@@ -45,8 +47,12 @@ private:
 	Option show_crosshair;
 	Label barrel_lbl, fov_lbl;
 	EditDoubleSpin barrel_strength, fov_deg;
+	Label cx_lbl, cy_lbl, k1_lbl, k2_lbl;
+	EditDoubleSpin lens_cx, lens_cy, lens_k1, lens_k2;
 	DocEdit basic_params_doc;
-	Button yaw_center_btn, pitch_center_btn;
+	Label tool_lbl;
+	DropList tool_list;
+	Button undo_btn;
     Label view_mode_lbl;
     DropList view_mode_list;
     Option overlay_eyes;
@@ -69,8 +75,8 @@ private:
 	Splitter list_split;
 
 	// Plotters (per-eye, not shared with other modules).
-	ImageCtrl left_plot;
-	ImageCtrl right_plot;
+	PreviewCtrl left_plot;
+	PreviewCtrl right_plot;
 
 	StatusBar status;
 
@@ -84,6 +90,13 @@ private:
 	// Cached per-eye preview images (avoid big refactor; used for overlay/tint/crosshair)
 	Image last_left_preview;
 	Image last_right_preview;
+
+	// Point picking state
+	Pointf pending_left = Null;
+	
+	// Undo state (simple one-step for Stage A params)
+	ProjectState undo_state;
+	bool has_undo = false;
 
 	void BuildLayout();
 	void BuildStageAControls();
@@ -100,11 +113,17 @@ private:
 	void ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
 	void ComposeFinalDisplayImages();
 	void OnReviewChanged();
-	void OnYawCenter();
-	void OnPitchCenter();
+	void OnToolAction();
+	void OnUndo();
+	void OnPickMatchTool(int eye, Pointf p);
+	void OnCapturesBar(Bar& bar);
+	void OnDeleteCapture();
 	void OnCaptureSelection();
 	void OnMatchEdited();
 	void SaveProjectState();
+	void PushUndo();
 };
+
+END_UPP_NAMESPACE
 
 #endif

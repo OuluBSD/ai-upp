@@ -21,6 +21,7 @@ GUI_APP_MAIN
 	int ga_generations = 20;
 	bool stagea_identity_test = false;
 	bool stagea_regression = false;
+	bool stagea_distortion_selfcheck = false;
 	String test_image_path;
 	for (const String& arg : args) {
 		if (arg == "-h" || arg == "--help") {
@@ -42,6 +43,7 @@ GUI_APP_MAIN
 			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
 			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
+			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
@@ -73,6 +75,8 @@ GUI_APP_MAIN
 			stagea_identity_test = true;
 		else if (arg == "--stagea_regression")
 			stagea_regression = true;
+		else if (arg == "--stagea_distortion_selfcheck")
+			stagea_distortion_selfcheck = true;
 		else if (arg.StartsWith("--image="))
 			test_image_path = arg.Mid(strlen("--image="));
 		else if (!arg.StartsWith("--"))
@@ -131,6 +135,13 @@ GUI_APP_MAIN
 	// Stage A regression suite mode
 	if (stagea_regression) {
 		int result = RunStageARegression(project_dir, verbose);
+		SetExitCode(result);
+		return;
+	}
+
+	// Stage A distortion self-check mode
+	if (stagea_distortion_selfcheck) {
+		int result = RunStageADistortionSelfCheck(verbose);
 		SetExitCode(result);
 		return;
 	}

@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_StageB_h_
 #define _StereoCalibrationTool_StageB_h_
 
+NAMESPACE_UPP
+
 /*
 StageB.h
 --------
@@ -56,5 +58,7 @@ private:
 	void SyncEditsFromCalibration();
 	void SaveProjectState();
 };
+
+END_UPP_NAMESPACE
 
 #endif

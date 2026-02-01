@@ -182,12 +182,14 @@ bool LiveResultWindow::BuildLiveUndistortCache(const Image& left, const Image& r
 	StereoCalibrationParams p;
 	bool use_basic = (model->project_state.view_mode == 1);
 	if (use_basic) {
-		double fov_rad = model->project_state.fov_deg * M_PI / 180.0;
-		p.a = (sz.cx * 0.5) / (fov_rad * 0.5);
-		double s = model->project_state.barrel_strength * 0.01;
-		p.b = p.a * s;
-		p.c = p.a * s;
-		p.d = p.a * s;
+		double fov_deg = Clamp(model->project_state.fov_deg, 10.0, 170.0);
+		double fov_rad = fov_deg * M_PI / 180.0;
+		double f = (sz.cx * 0.5) / tan(fov_rad * 0.5);
+		p.a = f;
+		double k1 = -model->project_state.barrel_strength * 0.1;
+		p.b = 0;
+		p.c = f * k1;
+		p.d = 0;
 		p.cx = sz.cx * 0.5;
 		p.cy = sz.cy * 0.5;
 	} else {

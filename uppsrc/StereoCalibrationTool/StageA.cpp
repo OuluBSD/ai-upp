@@ -98,6 +98,34 @@ Image AlphaBlend(const Image& base, const Image& top, float alpha) {
 	return out;
 }
 
+// Compute difference image: diff = abs(left - right) per pixel
+Image ComputeDiff(const Image& left, const Image& right) {
+	if (left.IsEmpty() || right.IsEmpty())
+		return Image();
+	Size sz = left.GetSize();
+	if (right.GetSize() != sz)
+		return left; // Size mismatch
+
+	ImageBuffer out(sz);
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* l = left[y];
+		const RGBA* r = right[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			int diff_r = abs((int)l[x].r - (int)r[x].r);
+			int diff_g = abs((int)l[x].g - (int)r[x].g);
+			int diff_b = abs((int)l[x].b - (int)r[x].b);
+			// Use max diff across channels for visibility
+			int max_diff = max(max(diff_r, diff_g), diff_b);
+			// Amplify for visibility (2x gain)
+			max_diff = min(255, max_diff * 2);
+			d[x].r = d[x].g = d[x].b = (byte)max_diff;
+			d[x].a = 255;
+		}
+	}
+	return out;
+}
+
 // Draw red crosshair (1px lines through center) - view-only
 Image DrawCrosshair(const Image& src) {
 	if (src.IsEmpty())
@@ -337,9 +365,10 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(pitch_center_btn.TopPos(y, 24).LeftPos(104, 90));
 	y += 30;
 
-	controls.Add(view_mode_lbl.TopPos(y, 20).LeftPos(8, 80));
-	controls.Add(view_mode_list.TopPos(y, 20).LeftPos(92, 160));
-	y += 24;
+	// ViewMode DropList hidden in Stage A (simplified UI; toggles control all preview modes)
+	// controls.Add(view_mode_lbl.TopPos(y, 20).LeftPos(8, 80));
+	// controls.Add(view_mode_list.TopPos(y, 20).LeftPos(92, 160));
+	// y += 24;
 	controls.Add(overlay_eyes.TopPos(y, 20).LeftPos(8, 100));
 	controls.Add(overlay_swap.TopPos(y, 20).LeftPos(112, 90));
 	controls.Add(show_difference.TopPos(y, 20).LeftPos(206, 80));
@@ -682,11 +711,22 @@ void StageAWindow::ComposeFinalDisplayImages() {
 	bool do_overlay = ps.overlay_eyes;
 	bool do_tint = ps.tint_overlay;
 	bool do_crosshair = ps.show_crosshair;
+	bool do_diff = ps.show_difference;
 	bool swap_order = ps.overlay_swap;
 	float alpha = ps.alpha / 100.0f; // Convert 0..100 to 0..1
 
 	Image left_display = last_left_preview;
 	Image right_display = last_right_preview;
+
+	// Show difference mode (takes priority over overlay)
+	if (do_diff) {
+		Image diff_img = ComputeDiff(last_left_preview, last_right_preview);
+		if (do_crosshair)
+			diff_img = DrawCrosshair(diff_img);
+		left_plot.SetImage(diff_img);
+		right_plot.SetImage(Image()); // Hide right plotter
+		return;
+	}
 
 	if (do_overlay) {
 		// Apply tint before blending if enabled

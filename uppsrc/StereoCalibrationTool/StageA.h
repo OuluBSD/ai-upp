@@ -29,9 +29,13 @@ public:
 
 	void Init(AppModel& model);
 	void RefreshFromModel();
+	
+	virtual void MainMenu(Bar& bar);
 
 private:
 	AppModel* model = nullptr;
+	
+	MenuBar menu;
 
 	// Stage A controls.
 	Label calib_eye_lbl;
@@ -143,10 +147,17 @@ private:
 	void OnDeleteCapture();
 	void OnLinesBar(Bar& bar);
 	void OnDeleteLine();
+	void OnMatchesBar(Bar& bar);
+	void OnDeleteMatch();
+	void OnDeleteAllMatches();
+	void OnDeleteAllLines();
 	void OnCaptureSelection();
 	void OnMatchEdited();
 	void SaveProjectState();
 	void PushUndo();
+	
+	// Menu handlers
+	void SubMenuEdit(Bar& bar);
 	
 	// GA handlers
 	void OnGAStart();

@@ -187,7 +187,9 @@ vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3
 StageAWindow::StageAWindow() {
 	Title("Stereo Calibration Tool - Stage A");
 	Sizeable().Zoomable();
+	AddFrame(menu);
 	AddFrame(status);
+	menu.Set(THISBACK(MainMenu));
 	BuildLayout();
 }
 
@@ -617,6 +619,7 @@ void StageAWindow::BuildCaptureLists() {
 	matches_list.AddColumn("Dist L (mm)").Edit(dist_l_editor);
 	matches_list.AddColumn("Dist R (mm)").Edit(dist_r_editor);
 	matches_list.WhenAction = THISBACK(OnMatchEdited);
+	matches_list.WhenBar = THISBACK(OnMatchesBar);
 	
 	lines_list.AddColumn("Eye");
 	lines_list.AddColumn("Points");
@@ -1238,6 +1241,61 @@ void StageAWindow::SaveProjectState() {
 	if (!model || model->project_dir.IsEmpty())
 		return;
 	StereoCalibrationHelpers::SaveState(*model);
+}
+
+void StageAWindow::OnMatchesBar(Bar& bar) {
+	bar.Add("Delete selected match", THISBACK(OnDeleteMatch))
+	   .Enable(matches_list.IsCursor());
+}
+
+void StageAWindow::OnDeleteMatch() {
+	int row = captures_list.GetCursor();
+	int mrow = matches_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+	
+	CapturedFrame& f = model->captured_frames[row];
+	if (mrow < 0 || mrow >= f.matches.GetCount()) return;
+	
+	f.matches.Remove(mrow);
+	SaveProjectState();
+	UpdatePreview();
+}
+
+void StageAWindow::MainMenu(Bar& bar) {
+	bar.Add("Edit", THISBACK(SubMenuEdit));
+}
+
+void StageAWindow::SubMenuEdit(Bar& bar) {
+	bar.Add("Delete selected match point", THISBACK(OnDeleteMatch))
+	   .Enable(matches_list.IsCursor());
+	bar.Add("Delete all match points in frame", THISBACK(OnDeleteAllMatches))
+	   .Enable(model && model->selected_capture >= 0);
+	bar.Separator();
+	bar.Add("Delete selected annotation line", THISBACK(OnDeleteLine))
+	   .Enable(lines_list.IsCursor());
+	bar.Add("Delete all annotation lines in frame", THISBACK(OnDeleteAllLines))
+	   .Enable(model && model->selected_capture >= 0);
+}
+
+void StageAWindow::OnDeleteAllMatches() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+	if (!PromptOKCancel("Delete all match points in this frame?")) return;
+	
+	model->captured_frames[row].matches.Clear();
+	SaveProjectState();
+	UpdatePreview();
+}
+
+void StageAWindow::OnDeleteAllLines() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+	if (!PromptOKCancel("Delete all annotation lines in this frame?")) return;
+	
+	model->captured_frames[row].annotation_lines_left.Clear();
+	model->captured_frames[row].annotation_lines_right.Clear();
+	SaveProjectState();
+	UpdatePreview();
 }
 
 

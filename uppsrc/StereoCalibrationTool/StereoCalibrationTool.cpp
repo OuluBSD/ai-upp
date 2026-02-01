@@ -158,7 +158,7 @@ Image ConvertMjpegToImage(const byte* data, int bytes) {
 
 RGBA SampleBilinear(const Image& img, float x, float y) {
 	Size sz = img.GetSize();
-	if (sz.cx <= 0 || sz.cy <= 0)
+	if (sz.cx <= 0 || sz.cy <= 0 || !std::isfinite(x) || !std::isfinite(y))
 		return RGBA{0,0,0,0};
 	x = Clamp(x, 0.0f, (float)(sz.cx - 1));
 	y = Clamp(y, 0.0f, (float)(sz.cy - 1));

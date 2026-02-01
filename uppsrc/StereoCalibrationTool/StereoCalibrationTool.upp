@@ -16,6 +16,8 @@ file
 	Menu.cpp,
 	Camera.h,
 	Camera.cpp,
+	PreviewCtrl.h,
+	PreviewCtrl.cpp,
 	StageA.h,
 	StageA.cpp,
 	StageB.h,

@@ -95,15 +95,28 @@ public:
 		double roll_max = 15.0;
 	};
 
+	struct GABoundsIntrinsics {
+		double fov_min = 80.0; // degrees
+		double fov_max = 160.0;
+		double cx_delta = 40.0; // pixels
+		double cy_delta = 40.0;
+		double k1_min = -1.0;
+		double k1_max = 0.0;
+		double k2_min = -0.5;
+		double k2_max = 0.5;
+	};
+
 	// GA bootstrap parameters
 	bool use_ga_init = false;
 	int ga_population = 30;
 	int ga_generations = 20;
 	int ga_top_candidates = 3;  // Number of top GA candidates to refine with LM
 	GABounds ga_bounds;
+	GABoundsIntrinsics ga_bounds_intr;
 
 	bool Solve(StereoCalibrationParams& params, bool lock_distortion);
 	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);
+	void GABootstrapIntrinsics(StereoCalibrationParams& params);
 	
 	// SolveExtrinsicsOnlyMicroRefine
 	// Optimizes extrinsics deltas relative to input 'params'.

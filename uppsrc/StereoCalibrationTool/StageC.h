@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_StageC_h_
 #define _StereoCalibrationTool_StageC_h_
 
+NAMESPACE_UPP
+
 /*
 StageC.h
 --------
@@ -46,5 +48,7 @@ private:
 	void OnRefine();
 	void SaveProjectState();
 };
+
+END_UPP_NAMESPACE
 
 #endif

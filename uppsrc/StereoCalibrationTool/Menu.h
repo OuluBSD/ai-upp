@@ -1,6 +1,8 @@
 #ifndef _StereoCalibrationTool_Menu_h_
 #define _StereoCalibrationTool_Menu_h_
 
+NAMESPACE_UPP
+
 /*
 Menu.h
 ------
@@ -59,5 +61,7 @@ private:
 	void OpenLive();
 	void OpenAll();
 };
+
+END_UPP_NAMESPACE
 
 #endif

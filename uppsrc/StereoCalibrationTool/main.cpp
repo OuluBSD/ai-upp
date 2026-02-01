@@ -9,6 +9,7 @@ using namespace Upp;
 
 GUI_APP_MAIN
 {
+	SetLanguage(LNG_ENGLISH);
 	const Vector<String>& args = CommandLine();
 	String usb_device;
 	String project_dir;
@@ -39,7 +40,8 @@ GUI_APP_MAIN
 	bool launch_stagec = false;
 	bool launch_live = false;
 
-	for (const String& arg : args) {
+	for (int i = 0; i < args.GetCount(); i++) {
+		const String& arg = args[i];
 		if (arg == "-h" || arg == "--help") {
 			Cout() << "Stereo Calibration Tool\n"
 			       << "Usage: StereoCalibrationTool [project_dir] [options]\n\n"
@@ -61,7 +63,7 @@ GUI_APP_MAIN
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
 			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
 			       << "  --ga_run <project_dir>   Run GA headlessly\n"
-			       << "  --phase <ext|int|both>   Phase for --ga_run\n"
+			       << "  --phase <ext|int|both_lens_then_pose> Phase for --ga_run\n"
 			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
 			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
@@ -74,12 +76,22 @@ GUI_APP_MAIN
 		}
 		if (arg == "--ga_run")
 			ga_run_mode = true;
+		else if (arg == "--phase" && i + 1 < args.GetCount())
+			ga_run_phase = args[++i];
+		else if (arg.StartsWith("--phase="))
+			ga_run_phase = arg.Mid(strlen("--phase="));
+		else if (arg == "--ga-population" && i + 1 < args.GetCount())
+			ga_population = atoi(args[++i]);
+		else if (arg.StartsWith("--ga-population="))
+			ga_population = atoi(arg.Mid(strlen("--ga-population=")));
+		else if (arg == "--ga-generations" && i + 1 < args.GetCount())
+			ga_generations = atoi(args[++i]);
+		else if (arg.StartsWith("--ga-generations="))
+			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
 		else if (arg == "--pipeline_selfcheck")
 			pipeline_selfcheck = true;
 		else if (arg == "--stagea_ui_selfcheck")
 			stagea_ui_selfcheck = true;
-		else if (arg.StartsWith("--phase="))
-			ga_run_phase = arg.Mid(strlen("--phase="));
 		else if (arg == "--test-usb")
 			test_usb = true;
 		else if (arg == "--test-hmd")
@@ -99,7 +111,7 @@ GUI_APP_MAIN
 		else if (arg == "--live")
 			launch_live = true;
 		else if (arg == "-v" || arg == "--verbose")
-			verbose = true; // Applied after windows are created.
+			verbose = true;
 		else if (arg.StartsWith("--usb-device="))
 			usb_device = arg.Mid(strlen("--usb-device="));
 		else if (arg.StartsWith("--usb-timeout-ms="))
@@ -110,10 +122,6 @@ GUI_APP_MAIN
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
 		else if (arg == "--ga")
 			use_ga = true;
-		else if (arg.StartsWith("--ga-population="))
-			ga_population = atoi(arg.Mid(strlen("--ga-population=")));
-		else if (arg.StartsWith("--ga-generations="))
-			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
 		else if (arg == "--stagea_identity_test")
 			stagea_identity_test = true;
 		else if (arg == "--stagea_regression")
@@ -262,7 +270,7 @@ GUI_APP_MAIN
 		GAPhase phase = GA_PHASE_BOTH;
 		if (ga_run_phase == "ext" || ga_run_phase == "extrinsics") phase = GA_PHASE_EXTRINSICS;
 		else if (ga_run_phase == "int" || ga_run_phase == "intrinsics") phase = GA_PHASE_INTRINSICS;
-		else if (ga_run_phase == "both") phase = GA_PHASE_BOTH;
+		else if (ga_run_phase == "both" || ga_run_phase == "both_lens_then_pose") phase = GA_PHASE_BOTH;
 		
 		StereoCalibrationSolver solver;
 		solver.eye_dist = model.project_state.eye_dist / 1000.0;
@@ -270,11 +278,22 @@ GUI_APP_MAIN
 		solver.ga_generations = ga_generations;
 		solver.ga_use_trimmed_loss = model.project_state.ga_use_trimmed_loss;
 		solver.ga_trim_percent = model.project_state.ga_trim_percent;
-		solver.ga_bounds = model.project_state.ga_bounds; // Load bounds from state
+		
+		solver.ga_bounds.yaw_deg = model.project_state.ga_bounds.yaw_deg;
+		solver.ga_bounds.pitch_deg = model.project_state.ga_bounds.pitch_deg;
+		solver.ga_bounds.roll_deg = model.project_state.ga_bounds.roll_deg;
+		solver.ga_bounds_intr.fov_min = model.project_state.ga_bounds.fov_min;
+		solver.ga_bounds_intr.fov_max = model.project_state.ga_bounds.fov_max;
+		solver.ga_bounds_intr.cx_delta = model.project_state.ga_bounds.cx_delta;
+		solver.ga_bounds_intr.cy_delta = model.project_state.ga_bounds.cy_delta;
+		solver.ga_bounds_intr.k1_min = model.project_state.ga_bounds.k1_min;
+		solver.ga_bounds_intr.k1_max = model.project_state.ga_bounds.k1_max;
+		solver.ga_bounds_intr.k2_min = model.project_state.ga_bounds.k2_min;
+		solver.ga_bounds_intr.k2_max = model.project_state.ga_bounds.k2_max;
 		
 		for (const auto& f : model.captured_frames) {
 			Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : f.right_img.GetSize();
-			if (sz.cx <= 0) continue;
+			if (sz.cx <= 0) sz = Size(1280, 720); // Fallback for headless if images not loaded
 			for (const auto& m : f.matches) {
 				auto& sm = solver.matches.Add();
 				sm.left_px = vec2(m.left.x * sz.cx, m.left.y * sz.cy);

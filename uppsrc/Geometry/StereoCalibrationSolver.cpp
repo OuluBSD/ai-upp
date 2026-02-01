@@ -281,7 +281,7 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 		Vector<Pointf> pts;
 		for (const auto& p_norm : line.raw_norm) {
 			Size sz = matches.GetCount() > 0 ? matches[0].image_size : Size(1280, 720);
-			vec2 pix((float)p_norm.x * sz.cx, (float)p_norm.y * sz.cy);
+			vec2 pix((float)p_norm[0] * sz.cx, (float)p_norm[1] * sz.cy);
 			
 			double dx = pix[0] - params.cx;
 			double dy = pix[1] - params.cy;
@@ -434,6 +434,26 @@ static double ComputeCalibrationCost(const StereoCalibrationSolver& solver,
 void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& params) {
 	if (log) *log << "  Step: Genetic algorithm bootstrap (extrinsics)...\n";
 	
+	const int dimension = 3;
+	GeneticOptimizer ga;
+	ga.SetMaxGenerations(ga_generations);
+	ga.SetRandomTypeUniform();
+	ga.MinMax(-1.0, 1.0); 
+	ga.Init(dimension, ga_population, StrategyBest1Exp);
+
+	ga.min_values[0] = -ga_bounds.yaw_deg * M_PI / 180.0;
+	ga.max_values[0] =  ga_bounds.yaw_deg * M_PI / 180.0;
+	ga.min_values[1] = -ga_bounds.pitch_deg * M_PI / 180.0;
+	ga.max_values[1] =  ga_bounds.pitch_deg * M_PI / 180.0;
+	ga.min_values[2] = -ga_bounds.roll_deg * M_PI / 180.0;
+	ga.max_values[2] =  ga_bounds.roll_deg * M_PI / 180.0;
+
+	auto Map = [&](const Vector<double>& v) {
+		StereoCalibrationParams p = params;
+		p.yaw = v[0]; p.pitch = v[1]; p.roll = v[2];
+		return p;
+	};
+
 	ga.best_energy = 1e30;
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
@@ -442,8 +462,8 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
 			ga.best_solution <<= ga.population[i];
-			printf("NEW BEST (init): eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f\n", 
-				i, ga.best_energy, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI);
+			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
+				i, ga.best_energy, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
 		}
 	}
 
@@ -457,8 +477,8 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 		ga.Stop(-cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
 		if (ga.best_energy < last_best) {
 			last_best = ga.best_energy;
-			printf("NEW BEST: gen=%d eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f\n", 
-				current_gen, ga.GetEvaluations(), last_best, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI);
+			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
+				current_gen, ga.GetRound(), last_best, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
 		}
 		if (ga_step_cb) {
 			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
@@ -508,8 +528,8 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 			ga.best_energy = ga.pop_energy[i]; 
 			ga.best_solution <<= ga.population[i]; 
 			StereoCalibrationParams p = Map(ga.best_solution);
-			printf("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f\n", 
-				i, ga.best_energy, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a);
+			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
+				i, ga.best_energy, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a));
 		}
 	}
 
@@ -524,8 +544,8 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 		if (ga.best_energy < last_best) {
 			last_best = ga.best_energy;
 			StereoCalibrationParams p = Map(ga.best_solution);
-			printf("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f\n", 
-				current_gen, ga.GetEvaluations(), last_best, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a);
+			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
+				current_gen, ga.GetRound(), last_best, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a));
 		}
 		if (ga_step_cb) {
 			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
@@ -539,15 +559,15 @@ void StereoCalibrationSolver::GABootstrapPipeline(StereoCalibrationParams& param
 		if (log) *log << "Starting GA Intrinsics Phase...\n";
 		printf("GA: Starting Intrinsics Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
 		GABootstrapIntrinsics(params);
-		printf("GA: Intrinsics Phase Finished. f=%.2f, cx=%.2f, cy=%.2f, k1=%.4f, k2=%.4f\n", 
-			params.a, params.cx, params.cy, params.c/params.a, params.d/params.a);
+		printf("%s\n", ~Format("GA: Intrinsics Phase Finished. f=%.2f, cx=%.2f, cy=%.2f, k1=%.4f, k2=%.4f", 
+			params.a, params.cx, params.cy, params.c/params.a, params.d/params.a));
 	}
 	if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
 		if (log) *log << "Starting GA Extrinsics Phase...\n";
 		printf("GA: Starting Extrinsics Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
 		GABootstrapExtrinsics(params);
-		printf("GA: Extrinsics Phase Finished. yaw=%.3f, pitch=%.3f, roll=%.3f\n",
-			params.yaw * 180.0/M_PI, params.pitch * 180.0/M_PI, params.roll * 180.0/M_PI);
+		printf("%s\n", ~Format("GA: Extrinsics Phase Finished. yaw=%.3f, pitch=%.3f, roll=%.3f",
+			params.yaw * 180.0/M_PI, params.pitch * 180.0/M_PI, params.roll * 180.0/M_PI));
 	}
 }
 

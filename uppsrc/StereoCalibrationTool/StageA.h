@@ -64,6 +64,18 @@ private:
 	Option show_epipolar_lines;
 	Option show_curvature_error;
 	
+	// Genetic Optimizer UI
+	LabelBox ga_group;
+	Button ga_start;
+	Button ga_stop;
+	Button ga_apply;
+	Label ga_status_lbl;
+	Label ga_cost_lbl;
+	Label ga_pop_lbl, ga_gen_lbl;
+	EditIntSpin ga_pop_edit;
+	EditIntSpin ga_gen_edit;
+	Option ga_use_all_frames;
+	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
 	ParentCtrl controls;
@@ -108,6 +120,7 @@ private:
 
 	void BuildLayout();
 	void BuildStageAControls();
+	void BuildGAPanel();
 	void BuildCaptureLists();
 	void BuildPlotters();
 	void SyncStageA();
@@ -134,6 +147,11 @@ private:
 	void OnMatchEdited();
 	void SaveProjectState();
 	void PushUndo();
+	
+	// GA handlers
+	void OnGAStart();
+	void OnGAStop();
+	void OnGAApply();
 };
 
 END_UPP_NAMESPACE

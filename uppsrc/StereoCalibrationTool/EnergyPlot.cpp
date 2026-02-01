@@ -55,6 +55,7 @@ void EnergyPlot::Paint(Draw& w) {
 	
 	for (int i = 0; i < count; i++) {
 		double score = initial_cost - history_costs[i];
+		if (!std::isfinite(score)) score = 0;
 		scores.Add(score);
 		if (i == 0) {
 			min_score = max_score = score;
@@ -64,6 +65,9 @@ void EnergyPlot::Paint(Draw& w) {
 		}
 	}
 
+	if (!std::isfinite(min_score)) min_score = 0;
+	if (!std::isfinite(max_score)) max_score = 1.0;
+
 	// Stability: ensure we have some range
 	if (abs(max_score - min_score) < 1e-9)
 		max_score = min_score + 1.0;
@@ -72,16 +76,32 @@ void EnergyPlot::Paint(Draw& w) {
 	w.DrawLine(0, sz.cy / 2, sz.cx, sz.cy / 2, 1, Gray(230));
 
 	// Map to pixels
-	polyline_cache.SetCount(0);
-	double x_step = (double)sz.cx / max(1, count - 1);
+	double x_step = (double)sz.cx / max(1, history_costs.GetCount() - 1);
 	
-	for (int i = 0; i < count; i++) {
+	auto GetPoint = [&](int i) {
 		int x = (int)(i * x_step);
-		// Y = (1.0 - normalized) * height
-		// We want 0 improvement at bottom, max improvement at top.
 		double norm = (scores[i] - min_score) / (max_score - min_score);
 		int y = (int)((1.0 - norm) * (sz.cy - 20) + 10);
-		polyline_cache.Add(Point(x, y));
+		return Point(x, y);
+	};
+
+	// Draw full history in light gray if we are replaying
+	if (replay_index >= 0 && replay_index < history_costs.GetCount()) {
+		polyline_cache.SetCount(0);
+		for (int i = 0; i < history_costs.GetCount(); i++)
+			polyline_cache.Add(GetPoint(i));
+		if (polyline_cache.GetCount() >= 2)
+			w.DrawPolyline(polyline_cache, 1, Gray(220));
+			
+		// Vertical marker
+		int mx = (int)(replay_index * x_step);
+		w.DrawLine(mx, 0, mx, sz.cy, 1, PEN_DASHDOT, Black());
+	}
+
+	// Draw "active" history (up to count)
+	polyline_cache.SetCount(0);
+	for (int i = 0; i < count; i++) {
+		polyline_cache.Add(GetPoint(i));
 	}
 
 	if (polyline_cache.GetCount() >= 2) {
@@ -90,7 +110,7 @@ void EnergyPlot::Paint(Draw& w) {
 		w.DrawRect(polyline_cache[0].x - 2, polyline_cache[0].y - 2, 4, 4, Blue());
 	}
 
-	DrawLabels(w, sz, min_score, max_score, scores.Top());
+	DrawLabels(w, sz, min_score, max_score, scores[count - 1]);
 }
 
 void EnergyPlot::DrawLabels(Draw& w, Size sz, double min_v, double max_v, double last_v) {

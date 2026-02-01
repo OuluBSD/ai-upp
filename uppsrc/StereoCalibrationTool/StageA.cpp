@@ -184,6 +184,13 @@ vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3
 }
 
 
+static bool IsParamsValid(const StereoCalibrationParams& p) {
+	return std::isfinite(p.a) && std::isfinite(p.cx) && std::isfinite(p.cy) &&
+	       std::isfinite(p.c) && std::isfinite(p.d) &&
+	       std::isfinite(p.yaw) && std::isfinite(p.pitch) && std::isfinite(p.roll) &&
+	       std::isfinite(p.yaw_l) && std::isfinite(p.pitch_l) && std::isfinite(p.roll_l);
+}
+
 StageAWindow::StageAWindow() {
 	Title("Stereo Calibration Tool - Stage A");
 	Sizeable().Zoomable();
@@ -570,6 +577,8 @@ void StageAWindow::BuildGAPanel() {
 }
 
 void StageAWindow::OnGAHistoryScrub() {
+	int hist_idx = ~ga_history_slider;
+	ga_plot.SetReplayIndex(hist_idx - 1);
 	UpdatePreview();
 }
 
@@ -678,6 +687,7 @@ void StageAWindow::OnGAStart() {
 		};
 		
 		double initial_cost = solver.ComputeRobustCost(params);
+		if (!std::isfinite(initial_cost)) initial_cost = 1e9;
 		PostCallback([=] { ga_plot.SetInitialCost(initial_cost); });
 
 		solver.GABootstrapPipeline(params, (GAPhase)start_state.ga_phase);
@@ -704,9 +714,11 @@ void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams b
 	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
 	ga_plot.AddPoint(gen, best_cost);
 	
-	ga_history.Add(best_p);
-	ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));
-	if (ga_history.GetCount() > 0) ga_history_slider.Enable();
+	if (IsParamsValid(best_p)) {
+		ga_history.Add(best_p);
+		ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));
+		if (ga_history.GetCount() > 0) ga_history_slider.Enable();
+	}
 }
 
 void StageAWindow::OnGAFinished() {
@@ -1453,7 +1465,7 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	
 	const StereoCalibrationParams& active_ga = is_replay ? ga_history[hist_idx - 1] : ga_best_params;
 
-	if (ga_valid) {
+	if (ga_valid && IsParamsValid(active_ga)) {
 		lp_ga.f = (float)active_ga.a;
 		lp_ga.cx = (float)active_ga.cx;
 		lp_ga.cy = (float)active_ga.cy;
@@ -1465,6 +1477,8 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 		ga_yaw_r = active_ga.yaw;
 		ga_pitch_r = active_ga.pitch;
 		ga_roll_r = active_ga.roll;
+	} else {
+		ga_valid = false;
 	}
 
 	auto Render = [&](const Image& src, const StereoCalibrationHelpers::LensParams& lp, 

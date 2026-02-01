@@ -251,16 +251,18 @@ void StageAWindow::RefreshFromModel() {
 void StageAWindow::BuildLayout() {
 	Add(controls.VSizePos(0, 0).LeftPos(0, 300));
 
-	main_split.Horz(preview_split, right_split);
+	main_split.Vert(preview_split, list_split);
 	main_split.SetPos(6500);
 	Add(main_split.VSizePos(0, 0).HSizePos(300, 0));
 
 	preview_split.Horz(left_plot, right_plot);
 	preview_split.SetPos(5000);
-	list_split.Horz(captures_list, matches_list);
+	
+	details_split.Vert(matches_list, lines_list);
+	details_split.SetPos(5000);
+	
+	list_split.Horz(captures_list, details_split);
 	list_split.SetPos(3500);
-	right_split.Vert(preview_split, list_split);
-	right_split.SetPos(5000);
 }
 
 // Builds Stage A controls (basic params + view controls).
@@ -426,6 +428,35 @@ void StageAWindow::BuildCaptureLists() {
 	matches_list.AddColumn("Dist L (mm)").Edit(dist_l_editor);
 	matches_list.AddColumn("Dist R (mm)").Edit(dist_r_editor);
 	matches_list.WhenAction = THISBACK(OnMatchEdited);
+	
+	lines_list.AddColumn("Eye");
+	lines_list.AddColumn("Points");
+	lines_list.WhenBar = THISBACK(OnLinesBar);
+}
+
+void StageAWindow::OnLinesBar(Bar& bar) {
+	bar.Add("Delete selected", THISBACK(OnDeleteLine))
+	   .Enable(lines_list.IsCursor());
+}
+
+void StageAWindow::OnDeleteLine() {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+	
+	int lrow = lines_list.GetCursor();
+	if (lrow < 0) return;
+	
+	CapturedFrame& f = model->captured_frames[row];
+	// We need to map list row to left/right arrays.
+	// We populate list: Left lines then Right lines.
+	int n_left = f.annotation_lines_left.GetCount();
+	if (lrow < n_left) {
+		f.annotation_lines_left.Remove(lrow);
+	} else {
+		f.annotation_lines_right.Remove(lrow - n_left);
+	}
+	SaveProjectState();
+	UpdatePreview();
 }
 
 void StageAWindow::OnCapturesBar(Bar& bar) {
@@ -641,6 +672,12 @@ void StageAWindow::UpdatePreview() {
 			pair.dist_r
 		);
 	}
+	
+	lines_list.Clear();
+	for(int i=0; i<frame.annotation_lines_left.GetCount(); i++)
+		lines_list.Add("Left", frame.annotation_lines_left[i].GetCount());
+	for(int i=0; i<frame.annotation_lines_right.GetCount(); i++)
+		lines_list.Add("Right", frame.annotation_lines_right[i].GetCount());
 
 	UpdatePlotters();
 	

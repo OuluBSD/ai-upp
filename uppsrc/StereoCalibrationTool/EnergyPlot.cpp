@@ -73,7 +73,7 @@ void EnergyPlot::Paint(Draw& w) {
 		max_score = min_score + 1.0;
 
 	// Draw Grid (optional but helpful)
-	w.DrawLine(0, sz.cy / 2, sz.cx, sz.cy / 2, 1, Gray(230));
+	w.DrawLine(0, sz.cy / 2, sz.cx, sz.cy / 2, 1, Color(230, 230, 230));
 
 	// Map to pixels
 	double x_step = (double)sz.cx / max(1, history_costs.GetCount() - 1);
@@ -91,11 +91,11 @@ void EnergyPlot::Paint(Draw& w) {
 		for (int i = 0; i < history_costs.GetCount(); i++)
 			polyline_cache.Add(GetPoint(i));
 		if (polyline_cache.GetCount() >= 2)
-			w.DrawPolyline(polyline_cache, 1, Gray(220));
+			w.DrawPolyline(polyline_cache, 1, Color(220, 220, 220));
 			
 		// Vertical marker
 		int mx = (int)(replay_index * x_step);
-		w.DrawLine(mx, 0, mx, sz.cy, 1, PEN_DASHDOT, Black());
+		w.DrawLine(mx, 0, mx, sz.cy, 1, Black());
 	}
 
 	// Draw "active" history (up to count)

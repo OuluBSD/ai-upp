@@ -303,6 +303,11 @@ void StageAWindow::BuildLayout() {
 	
 	tab_data.Add(list_split.SizePos(), "Data");
 	tab_data.Add(ga_tab_ctrl.SizePos(), "Genetic Optimizer");
+	tab_data.Add(ga_results_ctrl.SizePos(), "GA Results");
+	
+	BuildGAPanel();
+	BuildGAResultsPanel();
+	BuildCaptureLists();
 }
 
 // Builds Stage A controls (basic params + view controls).
@@ -566,14 +571,22 @@ void StageAWindow::BuildGAPanel() {
 	ga_tab_ctrl.Add(ga_k2_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
 	ga_tab_ctrl.Add(ga_k2_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
 
-	// Column 4: Visualization (780+)
+	// Column 4: Diagnostics (780+)
 	int cx4 = 780;
 	gy = y + 20;
-	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(cx4, 210));
-	gy += 84;
 	ga_diag_lbl.SetFont(Arial(10));
 	ga_diag_lbl.SetAlign(ALIGN_TOP);
 	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 120).LeftPos(cx4, 210));
+}
+
+void StageAWindow::BuildGAResultsPanel() {
+	ga_results_ctrl.Add(ga_results_split.SizePos());
+	ga_results_split.Horz(ga_plot, ga_best_results_list);
+	ga_results_split.SetPos(8000); // 80% split
+	
+	ga_best_results_list.AddColumn("Rank").Width(40);
+	ga_best_results_list.AddColumn("Cost").Width(80);
+	ga_best_results_list.AddColumn("Parameters");
 }
 
 void StageAWindow::OnGAHistoryScrub() {

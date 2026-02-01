@@ -75,6 +75,7 @@ private:
 	Button ga_apply;
 	Label ga_status_lbl;
 	Label ga_cost_lbl;
+	Label ga_diag_lbl; // New diagnostics label
 	Label ga_pop_lbl, ga_gen_lbl;
 	EditIntSpin ga_pop_edit;
 	EditIntSpin ga_gen_edit;

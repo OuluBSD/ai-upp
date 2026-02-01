@@ -85,9 +85,12 @@ private:
 	Option ga_use_trimmed_loss;
 	Label ga_trim_lbl;
 	EditDoubleSpin ga_trim_percent;
-	Label ga_bounds_lbl;
+	Label ga_bounds_lbl, ga_fov_lbl, ga_center_lbl, ga_k1_lbl, ga_k2_lbl;
 	EditDoubleSpin ga_yaw_bound, ga_pitch_bound, ga_roll_bound;
 	EditDoubleSpin ga_fov_min, ga_fov_max;
+	EditDoubleSpin ga_cx_bound, ga_cy_bound;
+	EditDoubleSpin ga_k1_min, ga_k1_max;
+	EditDoubleSpin ga_k2_min, ga_k2_max;
 
 	Option ga_use_all_frames;
 	Option compare_ga_toggle; // Toggle to overlay GA result

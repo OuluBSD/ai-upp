@@ -59,6 +59,11 @@ private:
     Option overlay_swap;
     Option show_difference;
     Option show_epipolar;
+	// Diagnostics
+	LabelBox diagnostics_group;
+	Option show_epipolar_lines;
+	Option show_curvature_error;
+	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
 	ParentCtrl controls;
@@ -66,13 +71,14 @@ private:
 	// Capture + match lists.
 	ArrayCtrl captures_list;
 	ArrayCtrl matches_list;
+	ArrayCtrl lines_list;
 	EditDouble dist_l_editor;
 	EditDouble dist_r_editor;
 	Splitter captures_split;
 	Splitter main_split;
 	Splitter preview_split;
-	Splitter right_split;
 	Splitter list_split;
+	Splitter details_split;
 
 	// Plotters (per-eye, not shared with other modules).
 	PreviewCtrl left_plot;
@@ -93,6 +99,8 @@ private:
 
 	// Point picking state
 	Pointf pending_left = Null;
+	Pointf hover_point = Null; // Last hovered point (in rectified pixels)
+	int hover_eye = -1;
 	
 	// Undo state (simple one-step for Stage A params)
 	ProjectState undo_state;
@@ -116,8 +124,12 @@ private:
 	void OnToolAction();
 	void OnUndo();
 	void OnPickMatchTool(int eye, Pointf p);
+	void OnFinalizeLine(int eye, const Vector<Pointf>& chain);
+	void OnHoverPoint(Pointf p_rect, int eye);
 	void OnCapturesBar(Bar& bar);
 	void OnDeleteCapture();
+	void OnLinesBar(Bar& bar);
+	void OnDeleteLine();
 	void OnCaptureSelection();
 	void OnMatchEdited();
 	void SaveProjectState();

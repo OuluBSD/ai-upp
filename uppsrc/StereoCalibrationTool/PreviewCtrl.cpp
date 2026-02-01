@@ -30,6 +30,7 @@ void PreviewCtrl::Clear() {
 	img = Image();
 	match_points.Clear();
 	line_points.Clear();
+	persistent_lines.Clear();
 	title = "";
 	epipolar_y = -1.0;
 	zoom_level = 1.0;
@@ -177,6 +178,20 @@ void PreviewCtrl::Paint(Draw& w) {
 	}
 
 	// 3. Draw Line Annotation (point chain)
+	// Draw persistent lines first
+	for (const auto& chain : persistent_lines) {
+		if (chain.GetCount() > 1) {
+			for (int i = 0; i < chain.GetCount() - 1; i++) {
+				w.DrawLine(ImageToScreen(chain[i]), ImageToScreen(chain[i+1]), 2, LtBlue());
+			}
+		}
+		for (int i = 0; i < chain.GetCount(); i++) {
+			Point p = ImageToScreen(chain[i]);
+			w.DrawEllipse(p.x - 2, p.y - 2, 4, 4, LtBlue());
+		}
+	}
+
+	// Draw current transient line
 	if (line_points.GetCount() > 0) {
 		Color line_col = LtBlue();
 		if (show_curvature && line_points.GetCount() >= 3) {

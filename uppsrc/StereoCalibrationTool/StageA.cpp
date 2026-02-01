@@ -643,6 +643,64 @@ void StageAWindow::UpdatePreview() {
 	}
 
 	UpdatePlotters();
+	
+	// Sync annotation lines
+	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+	if (sz.cx > 0) {
+		const ProjectState& ps = model->project_state;
+		
+		// Lens params for projection
+		double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
+		float f = (float)((sz.cx * 0.5) / tan(fov_rad * 0.5));
+		
+		StereoCalibrationHelpers::LensParams lp;
+		lp.f = f;
+		lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
+		lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
+		lp.k1 = (float)ps.lens_k1;
+		lp.k2 = (float)ps.lens_k2;
+		if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) lp.k1 = (float)(-ps.barrel_strength * 0.1);
+
+		auto ProjectChain = [&](const Vector<Pointf>& raw_chain, int eye) {
+			Vector<Pointf> rect_chain;
+			for(Pointf p_norm : raw_chain) {
+				// Raw point in pixels
+				Pointf p_raw(p_norm.x * sz.cx, p_norm.y * sz.cy);
+				
+				Pointf p_rect;
+				if (!ps.preview_extrinsics && !ps.preview_intrinsics) {
+					p_rect = p_raw;
+				} else {
+					float ry = ps.preview_extrinsics ? (float)(ps.yaw_l * M_PI / 180.0) : 0;
+					float rp = ps.preview_extrinsics ? (float)(ps.pitch_l * M_PI / 180.0) : 0;
+					float rr = ps.preview_extrinsics ? (float)(ps.roll_l * M_PI / 180.0) : 0;
+					if (eye == 1) {
+						ry = ps.preview_extrinsics ? (float)(ps.yaw_r * M_PI / 180.0) : 0;
+						rp = ps.preview_extrinsics ? (float)(ps.pitch_r * M_PI / 180.0) : 0;
+						rr = ps.preview_extrinsics ? (float)(ps.roll_r * M_PI / 180.0) : 0;
+					}
+					
+					if (ps.preview_intrinsics) {
+						p_rect = StereoCalibrationHelpers::ProjectPointOnePass(p_raw, sz, lp, ry, rp, rr);
+					} else {
+						// Rotation only. We use ProjectPointOnePass with zero distortion.
+						StereoCalibrationHelpers::LensParams lp_nodist = lp;
+						lp_nodist.k1 = 0; lp_nodist.k2 = 0;
+						p_rect = StereoCalibrationHelpers::ProjectPointOnePass(p_raw, sz, lp_nodist, ry, rp, rr);
+					}
+				}
+				if (p_rect.x >= 0) rect_chain.Add(p_rect);
+			}
+			return rect_chain;
+		};
+
+		Vector<Vector<Pointf>> lines_l, lines_r;
+		for(const auto& chain : frame.annotation_lines_left) lines_l.Add(ProjectChain(chain, 0));
+		for(const auto& chain : frame.annotation_lines_right) lines_r.Add(ProjectChain(chain, 1));
+		
+		left_plot.SetAnnotationLines(lines_l);
+		right_plot.SetAnnotationLines(lines_r);
+	}
 }
 
 // Updates left/right plotter images (raw or undistorted).

@@ -402,6 +402,95 @@ Image RectifyAndRotateOnePass(const Image& src, const LensParams& lp, float yaw,
 	return out;
 }
 
+// Forward projection of a single point: Input(Source, Distorted) -> Output(Rectified, Linear)
+// Solves r_d = r_u(1 + k1*r_u^2 + k2*r_u^4) for r_u using Newton-Raphson.
+Pointf ProjectPointOnePass(Pointf src_norm, Size src_sz, const LensParams& lp, float yaw, float pitch, float roll) {
+	if (src_sz.cx <= 0 || src_sz.cy <= 0 || lp.f <= 1e-6f)
+		return Pointf(-1, -1);
+
+	// 1. Center the source point (relative to principal point)
+	float sx = (float)(src_norm.x * src_sz.cx);
+	float sy = (float)(src_norm.y * src_sz.cy);
+	
+	// Normalize to "distorted radius" space (relative to focal length f)
+	float dx = (sx - lp.cx) / lp.f;
+	float dy = (sy - lp.cy) / lp.f;
+	double rd = sqrt(dx*dx + dy*dy);
+	
+	// 2. Solve for undistorted radius r_u
+	// Model: r_d = r_u + k1*r_u^3 + k2*r_u^5
+	// f(r_u) = r_u + k1*r_u^3 + k2*r_u^5 - r_d = 0
+	// f'(r_u) = 1 + 3*k1*r_u^2 + 5*k2*r_u^4
+	double ru = rd; // Initial guess
+	for(int i=0; i<10; i++) {
+		double r2 = ru*ru;
+		double val = ru * (1.0 + lp.k1*r2 + lp.k2*r2*r2) - rd;
+		double deriv = 1.0 + 3.0*lp.k1*r2 + 5.0*lp.k2*r2*r2;
+		if (fabs(deriv) < 1e-6) break;
+		double step = val / deriv;
+		ru -= step;
+		if (fabs(step) < 1e-7) break;
+	}
+	
+	// 3. Recover camera ray (before rotation)
+	// Direction vector (nx, ny, 1). We know direction is same as (dx, dy).
+	double scale = (rd > 1e-9) ? (ru / rd) : 1.0;
+	vec3 dir_cam((float)(dx * scale), (float)(dy * scale), (float)(IS_NEGATIVE_Z ? -1.0 : 1.0));
+	dir_cam.Normalize();
+	
+	// 4. Apply forward rotation (Cam -> Rect)
+	mat4 rot = AxesMat(yaw, pitch, roll);
+	vec3 dir_rect = (rot * dir_cam.Embed()).Splice();
+	
+	// 5. Project to rectilinear pixels
+	float zf = IS_NEGATIVE_Z ? -dir_rect[2] : dir_rect[2];
+	if (zf <= 1e-3f) return Pointf(-1, -1);
+	
+	float px = dir_rect[0] / zf * lp.f + lp.cx; // Assuming output cx/cy matches input
+	float py = -dir_rect[1] / zf * lp.f + lp.cy;
+	
+	// Return as un-normalized pixels
+	return Pointf(px, py);
+}
+
+// Inverse of ProjectPointOnePass: Output(Rectified, Linear) -> Input(Source, Distorted)
+Pointf UnprojectPointOnePass(Pointf rect_px, Size rect_sz, const LensParams& lp, float yaw, float pitch, float roll) {
+	if (rect_sz.cx <= 0 || rect_sz.cy <= 0 || lp.f <= 1e-6f)
+		return Pointf(-1, -1);
+
+	float cx_out = rect_sz.cx * 0.5f;
+	float cy_out = rect_sz.cy * 0.5f;
+	float dx_out = (float)rect_px.x - cx_out;
+	float dy_out = (float)rect_px.y - cy_out;
+
+	// 1. Ray direction in output (rectilinear) space
+	vec3 dir_out(dx_out, -dy_out, IS_NEGATIVE_Z ? -lp.f : lp.f);
+	dir_out.Normalize();
+
+	// 2. Apply inverse rotation to get ray in camera (distorted) space
+	mat4 rot = AxesMat(yaw, pitch, roll);
+	mat4 rot_inv = rot.GetTransposed();
+	vec3 dir_cam = (rot_inv * dir_out.Embed()).Splice();
+	dir_cam.Normalize();
+
+	// 3. Project to normalized camera plane (z=1)
+	float zf = IS_NEGATIVE_Z ? -dir_cam[2] : dir_cam[2];
+	if (zf <= 1e-3f) return Pointf(-1, -1);
+	
+	float nx = dir_cam[0] / zf;
+	float ny = -dir_cam[1] / zf;
+
+	// 4. Apply forward distortion model
+	float r2 = nx*nx + ny*ny;
+	float dist_scale = 1.0f + lp.k1 * r2 + lp.k2 * r2 * r2;
+
+	// 5. Map to input pixel coordinates
+	float sx = lp.cx + nx * dist_scale * lp.f;
+	float sy = lp.cy + ny * dist_scale * lp.f;
+
+	return Pointf(sx, sy);
+}
+
 // ------------------------------------------------------------
 // Persistence helpers
 // ------------------------------------------------------------

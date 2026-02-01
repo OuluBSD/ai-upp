@@ -47,6 +47,7 @@ private:
 	bool verbose = false;
 
 	// UI controls.
+	MenuBar menu;
 	DropList source_list;
 	Button start_source;
 	Button stop_source;
@@ -67,6 +68,11 @@ private:
 	TimeCallback live_cb;
 	
 	virtual void Close() override;
+	virtual void MainMenu(Bar& bar);
+
+	void SubMenuFile(Bar& bar);
+	void SubMenuEdit(Bar& bar);
+	void OnDeleteAll();
 
 	void BuildLayout();
 	void BuildCapturesList();

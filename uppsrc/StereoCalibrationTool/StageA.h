@@ -81,6 +81,9 @@ private:
 	EditIntSpin ga_gen_edit;
 	Option ga_use_all_frames;
 	Option compare_ga_toggle; // Toggle to overlay GA result
+	SliderCtrl ga_history_slider;
+	Label ga_history_lbl;
+	Vector<StereoCalibrationParams> ga_history;
 	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
@@ -169,6 +172,7 @@ private:
 	void OnGAApply();
 	void OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p); // Callback from thread
 	void OnGAFinished(); // Callback from thread
+	void OnGAHistoryScrub();
 
 private:
 	struct CostPlot : public Ctrl {

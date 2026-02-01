@@ -33,6 +33,7 @@ private:
 	AppModel* model = nullptr;
 
 	Option enable_stage_c;
+	Option compare_stage_c;
 	Label stage_c_mode_lbl;
 	Switch stage_c_mode;
 	Label max_dyaw_lbl, max_dpitch_lbl, max_droll_lbl;

@@ -80,6 +80,7 @@ private:
 	EditIntSpin ga_pop_edit;
 	EditIntSpin ga_gen_edit;
 	Option ga_use_all_frames;
+	Option compare_ga_toggle; // Toggle to overlay GA result
 	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;

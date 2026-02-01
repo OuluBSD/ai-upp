@@ -27,6 +27,7 @@ GUI_APP_MAIN
 	bool stagea_regression = false;
 	bool stagea_distortion_selfcheck = false;
 	bool pipeline_selfcheck = false;
+	bool stagea_ui_selfcheck = false;
 	String test_image_path;
 	String ga_run_phase;
 	bool ga_run_mode = false;
@@ -67,6 +68,7 @@ GUI_APP_MAIN
 			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
 			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
 			       << "  --pipeline_selfcheck     Verify calibration pipeline invariants\n"
+			       << "  --stagea_ui_selfcheck    Verify Stage A UI data consistency\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
@@ -74,6 +76,8 @@ GUI_APP_MAIN
 			ga_run_mode = true;
 		else if (arg == "--pipeline_selfcheck")
 			pipeline_selfcheck = true;
+		else if (arg == "--stagea_ui_selfcheck")
+			stagea_ui_selfcheck = true;
 		else if (arg.StartsWith("--phase="))
 			ga_run_phase = arg.Mid(strlen("--phase="));
 		else if (arg == "--test-usb")
@@ -214,6 +218,25 @@ GUI_APP_MAIN
 			Cout() << "Pipeline self-check PASSED.\n";
 			SetExitCode(0);
 		}
+		return;
+	}
+
+	// Stage A UI self-check mode
+	if (stagea_ui_selfcheck) {
+		model.project_dir = project_dir;
+		StereoCalibrationHelpers::LoadState(model);
+		Cout() << "Stage A UI Self-Check: " << project_dir << "\n";
+		Cout() << "Frames: " << model.captured_frames.GetCount() << "\n";
+		int total_matches = 0, total_lines = 0;
+		for(const auto& f : model.captured_frames) {
+			total_matches += f.matches.GetCount();
+			total_lines += f.annotation_lines_left.GetCount() + f.annotation_lines_right.GetCount();
+			for(const auto& c : f.annotation_lines_left) if(c.GetCount() < 2) { Cerr() << "ERROR: Short line found\n"; SetExitCode(1); return; }
+			for(const auto& c : f.annotation_lines_right) if(c.GetCount() < 2) { Cerr() << "ERROR: Short line found\n"; SetExitCode(1); return; }
+		}
+		Cout() << "Matches: " << total_matches << ", Lines: " << total_lines << "\n";
+		Cout() << "Stage A UI self-check PASSED.\n";
+		SetExitCode(0);
 		return;
 	}
 

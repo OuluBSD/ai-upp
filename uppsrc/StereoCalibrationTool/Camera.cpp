@@ -25,7 +25,9 @@ Gotchas / invariants:
 CameraWindow::CameraWindow() {
 	Title("Stereo Calibration Tool - Camera");
 	Sizeable().Zoomable();
+	AddFrame(menu);
 	AddFrame(status);
+	menu.Set(THISBACK(MainMenu));
 	BuildLayout();
 }
 
@@ -322,6 +324,34 @@ void CameraWindow::SaveProjectState() {
 	if (!model || model->project_dir.IsEmpty())
 		return;
 	StereoCalibrationHelpers::SaveState(*model);
+}
+
+void CameraWindow::MainMenu(Bar& bar) {
+	bar.Add("File", THISBACK(SubMenuFile));
+	bar.Add("Edit", THISBACK(SubMenuEdit));
+}
+
+void CameraWindow::SubMenuFile(Bar& bar) {
+	bar.Add("Save project", THISBACK(SaveProjectState));
+}
+
+void CameraWindow::SubMenuEdit(Bar& bar) {
+	bar.Add("Delete selected frame", THISBACK(OnDeleteCapture))
+	   .Key(K_DELETE)
+	   .Enable(captures_list.IsCursor());
+	bar.Add("Delete all frames...", THISBACK(OnDeleteAll));
+}
+
+void CameraWindow::OnDeleteAll() {
+	if (model->captured_frames.IsEmpty()) return;
+	if (!PromptOKCancel("Delete ALL captured frames? This cannot be undone.")) return;
+	
+	model->captured_frames.Clear();
+	model->selected_capture = -1;
+	StereoCalibrationHelpers::SaveState(*model);
+	RefreshCapturesList();
+	left_view.SetImage(Image());
+	right_view.SetImage(Image());
 }
 
 // Ensures camera source is stopped when the window closes.

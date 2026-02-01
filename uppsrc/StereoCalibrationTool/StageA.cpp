@@ -483,6 +483,17 @@ void StageAWindow::BuildGAPanel() {
 	ga_diag_lbl.SetFont(Arial(10));
 	ga_diag_lbl.SetAlign(ALIGN_TOP);
 	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 100).LeftPos(12, 260));
+	
+	gy += 104;
+	ga_history_lbl.SetLabel("History Replay (Gen):");
+	ga_tab_ctrl.Add(ga_history_lbl.TopPos(gy, 20).LeftPos(12, 120));
+	ga_history_slider.MinMax(0, 0);
+	ga_history_slider.WhenAction = THISBACK(OnGAHistoryScrub);
+	ga_tab_ctrl.Add(ga_history_slider.TopPos(gy, 20).LeftPos(132, 140));
+}
+
+void StageAWindow::OnGAHistoryScrub() {
+	UpdatePreview();
 }
 
 void StageAWindow::OnGAStart() {
@@ -504,6 +515,9 @@ void StageAWindow::OnGAStart() {
 	ga_plot.Clear();
 	ga_diag_lbl.SetLabel("");
 	ga_best_params.a = 0;
+	ga_history.Clear();
+	ga_history_slider.MinMax(0, 0);
+	ga_history_slider <<= 0;
 	
 	// Prepare data for solver (copy to staging member)
 	ga_input_matches.Clear();
@@ -581,8 +595,8 @@ void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams b
 	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
 	ga_plot.AddValue(best_cost);
 	
-	// Optional: update best_p to UI? Maybe too frequent.
-	// But cost plot needs this.
+	ga_history.Add(best_p);
+	ga_history_slider.MinMax(0, ga_history.GetCount());
 }
 
 void StageAWindow::OnGAFinished() {
@@ -1242,20 +1256,25 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	StereoCalibrationHelpers::LensParams lp_ga;
 	double ga_yaw_l=0, ga_pitch_l=0, ga_roll_l=0;
 	double ga_yaw_r=0, ga_pitch_r=0, ga_roll_r=0;
-	bool ga_valid = compare_ga && (fabs(ga_best_params.a) > 1e-6);
+	
+	int hist_idx = ~ga_history_slider;
+	bool is_replay = (hist_idx > 0 && hist_idx <= ga_history.GetCount());
+	bool ga_valid = (compare_ga || is_replay) && (fabs(ga_best_params.a) > 1e-6);
+	
+	const StereoCalibrationParams& active_ga = is_replay ? ga_history[hist_idx - 1] : ga_best_params;
 
 	if (ga_valid) {
-		lp_ga.f = (float)ga_best_params.a;
-		lp_ga.cx = (float)ga_best_params.cx;
-		lp_ga.cy = (float)ga_best_params.cy;
-		lp_ga.k1 = (float)(ga_best_params.c / ga_best_params.a);
-		lp_ga.k2 = (float)(ga_best_params.d / ga_best_params.a);
-		ga_yaw_l = ga_best_params.yaw_l;
-		ga_pitch_l = ga_best_params.pitch_l;
-		ga_roll_l = ga_best_params.roll_l;
-		ga_yaw_r = ga_best_params.yaw;
-		ga_pitch_r = ga_best_params.pitch;
-		ga_roll_r = ga_best_params.roll;
+		lp_ga.f = (float)active_ga.a;
+		lp_ga.cx = (float)active_ga.cx;
+		lp_ga.cy = (float)active_ga.cy;
+		lp_ga.k1 = (float)(active_ga.c / active_ga.a);
+		lp_ga.k2 = (float)(active_ga.d / active_ga.a);
+		ga_yaw_l = active_ga.yaw_l;
+		ga_pitch_l = active_ga.pitch_l;
+		ga_roll_l = active_ga.roll_l;
+		ga_yaw_r = active_ga.yaw;
+		ga_pitch_r = active_ga.pitch;
+		ga_roll_r = active_ga.roll;
 	}
 
 	auto Render = [&](const Image& src, const StereoCalibrationHelpers::LensParams& lp, 

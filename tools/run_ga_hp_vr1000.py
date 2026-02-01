@@ -8,18 +8,27 @@ def run_command(cmd):
     
     best_count = 0
     last_cost = float('inf')
+    found_invalid = False
     
     while True:
         line = process.stdout.readline()
         if not line and process.poll() is not None:
             break
         if line:
-            print(line.strip())
-            if "NEW BEST" in line:
+            line_strip = line.strip()
+            print(line_strip)
+            
+            # Check for NaN/Inf in NEW BEST lines or summary
+            if "NEW BEST" in line_strip or "Best Results" in line_strip or "Focal:" in line_strip:
+                if "nan" in line_strip.lower() or "inf" in line_strip.lower():
+                    print(f"ERROR: Invalid value detected in line: {line_strip}")
+                    found_invalid = True
+            
+            if "NEW BEST" in line_strip:
                 best_count += 1
                 try:
                     # Extract cost=...
-                    parts = line.split()
+                    parts = line_strip.split()
                     for p in parts:
                         if p.startswith("cost="):
                             cost_str = p.split("=")[1].replace(",", ".")
@@ -32,7 +41,7 @@ def run_command(cmd):
     if stderr:
         print("STDERR:", stderr)
         
-    return process.returncode, best_count, last_cost
+    return process.returncode, best_count, last_cost, found_invalid
 
 def main():
     project = "share/calibration/hp_vr1000/"
@@ -56,19 +65,24 @@ def main():
         "--verbose"
     ]
     
-    ret, bests, final_cost = run_command(cmd)
+    ret, bests, final_cost, found_invalid = run_command(cmd)
     
     if ret != 0:
         print(f"Process exited with code {ret}")
-        print("Running under GDB for backtrace...")
-        gdb_cmd = [
-            "gdb", "-q", "--batch", 
-            "-ex", "run", 
-            "-ex", "bt", 
-            "-ex", "quit", 
-            "--args"
-        ] + cmd
-        subprocess.run(gdb_cmd)
+        if ret < 0 or ret == 139: # Crash
+            print("Running under GDB for backtrace...")
+            gdb_cmd = [
+                "gdb", "-q", "--batch", 
+                "-ex", "run", 
+                "-ex", "bt", 
+                "-ex", "quit", 
+                "--args"
+            ] + cmd
+            subprocess.run(gdb_cmd)
+        sys.exit(1)
+        
+    if found_invalid:
+        print("FAIL: NaN or Inf detected in GA output")
         sys.exit(1)
         
     print(f"\nGA Summary: Found {bests} improvements. Final cost: {final_cost}")

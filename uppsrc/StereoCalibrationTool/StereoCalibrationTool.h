@@ -68,9 +68,12 @@ struct CapturedFrame : Moveable<CapturedFrame> {
 	Size undist_size = Size(0,0);
 	bool undist_valid = false; // Cache validity flag
 	Vector<MatchPair> matches; // Stored match pairs
+	Vector<Vector<Pointf>> annotation_lines_left; // Line chains for left eye (rectified pixel coords)
+	Vector<Vector<Pointf>> annotation_lines_right; // Line chains for right eye
 
 	void Jsonize(JsonIO& jio) {
 		jio("time", time)("source", source)("samples", samples)("matches", matches);
+		jio("lines_l", annotation_lines_left)("lines_r", annotation_lines_right);
 		// Images are intentionally not jsonized (stored as PNGs on disk).
 	}
 };
@@ -274,6 +277,8 @@ Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale);
 Image ApplyExtrinsicsOnly(const Image& src, float yaw, float pitch, float roll, const vec2& pp);
 Image ApplyIntrinsicsOnly(const Image& src, const LensPoly& lens, float linear_scale, bool undistort);
 Image RectifyAndRotateOnePass(const Image& src, const LensParams& lp, float yaw, float pitch, float roll, Size out_sz);
+Pointf ProjectPointOnePass(Pointf src_norm, Size src_sz, const LensParams& lp, float yaw, float pitch, float roll);
+Pointf UnprojectPointOnePass(Pointf rect_px, Size rect_sz, const LensParams& lp, float yaw, float pitch, float roll);
 
 // Persistence helpers (project.json + calibration file).
 String GetPersistPath(const AppModel& model);

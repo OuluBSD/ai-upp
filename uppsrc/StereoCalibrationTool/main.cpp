@@ -23,6 +23,14 @@ GUI_APP_MAIN
 	bool stagea_regression = false;
 	bool stagea_distortion_selfcheck = false;
 	String test_image_path;
+	
+	// Direct launch flags
+	bool launch_camera = false;
+	bool launch_stagea = false;
+	bool launch_stageb = false;
+	bool launch_stagec = false;
+	bool launch_live = false;
+
 	for (const String& arg : args) {
 		if (arg == "-h" || arg == "--help") {
 			Cout() << "Stereo Calibration Tool\n"
@@ -30,6 +38,11 @@ GUI_APP_MAIN
 			       << "Options:\n"
 			       << "  -h, --help               Show this help message\n"
 			       << "  -v, --verbose            Enable verbose logging\n"
+			       << "  --camera                 Open Camera window directly\n"
+			       << "  --stagea                 Open Stage A window directly\n"
+			       << "  --stageb                 Open Stage B window directly\n"
+			       << "  --stagec                 Open Stage C window directly\n"
+			       << "  --live                   Open Live Result window directly\n"
 			       << "  --solve                  Run solver headlessly and output math log to stdout\n"
 			       << "  --test-usb               Run automated USB stereo source test\n"
 			       << "  --test-hmd               Run automated HMD stereo source test\n"
@@ -55,6 +68,16 @@ GUI_APP_MAIN
 			test_live = true;
 		else if (arg == "--solve")
 			solve_mode = true;
+		else if (arg == "--camera")
+			launch_camera = true;
+		else if (arg == "--stagea")
+			launch_stagea = true;
+		else if (arg == "--stageb")
+			launch_stageb = true;
+		else if (arg == "--stagec")
+			launch_stagec = true;
+		else if (arg == "--live")
+			launch_live = true;
 		else if (arg == "-v" || arg == "--verbose")
 			verbose = true; // Applied after windows are created.
 		else if (arg.StartsWith("--usb-device="))
@@ -173,5 +196,13 @@ GUI_APP_MAIN
 		return;
 	}
 
+	// Direct window launch (skips menu)
+	if (launch_camera) { camera.Run(); return; }
+	if (launch_stagea) { stage_a.Run(); return; }
+	if (launch_stageb) { stage_b.Run(); return; }
+	if (launch_stagec) { stage_c.Run(); return; }
+	if (launch_live) { live.Run(); return; }
+
+	// Default: open menu
 	menu.Run();
 }

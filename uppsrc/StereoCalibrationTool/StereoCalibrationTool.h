@@ -335,6 +335,9 @@ class LiveResultWindow;
 // Identity test helper (headless diagnostic).
 int TestStageAIdentity(AppModel& model, const String& project_dir, const String& image_path = String());
 
+// Regression suite for Stage A viewer invariants (headless, no GUI/camera required).
+int RunStageARegression(const String& project_dir, bool verbose = false);
+
 // ------------------------------------------------------------
 // Legacy controller (kept for reference, currently disabled).
 // ------------------------------------------------------------

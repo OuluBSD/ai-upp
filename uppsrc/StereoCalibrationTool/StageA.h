@@ -79,6 +79,16 @@ private:
 	Label ga_pop_lbl, ga_gen_lbl;
 	EditIntSpin ga_pop_edit;
 	EditIntSpin ga_gen_edit;
+	
+	Label ga_phase_lbl;
+	DropList ga_phase_list;
+	Option ga_use_trimmed_loss;
+	Label ga_trim_lbl;
+	EditDoubleSpin ga_trim_percent;
+	Label ga_bounds_lbl;
+	EditDoubleSpin ga_yaw_bound, ga_pitch_bound, ga_roll_bound;
+	EditDoubleSpin ga_fov_min, ga_fov_max;
+
 	Option ga_use_all_frames;
 	Option compare_ga_toggle; // Toggle to overlay GA result
 	SliderCtrl ga_history_slider;

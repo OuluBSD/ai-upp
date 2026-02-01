@@ -243,6 +243,16 @@ void StageAWindow::RefreshFromModel() {
 	
 	ga_pop_edit <<= model->ga_population;
 	ga_gen_edit <<= model->ga_generations;
+	
+	ga_phase_list.SetIndex(ps.ga_phase);
+	ga_use_trimmed_loss <<= ps.ga_use_trimmed_loss;
+	ga_trim_percent <<= ps.ga_trim_percent;
+	ga_yaw_bound <<= ps.ga_bounds.yaw_deg;
+	ga_pitch_bound <<= ps.ga_bounds.pitch_deg;
+	ga_roll_bound <<= ps.ga_bounds.roll_deg;
+	ga_fov_min <<= ps.ga_bounds.fov_min;
+	ga_fov_max <<= ps.ga_bounds.fov_max;
+	ga_use_all_frames <<= ps.ga_use_all_frames;
 
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
@@ -433,7 +443,7 @@ void StageAWindow::BuildStageAControls() {
 void StageAWindow::BuildGAPanel() {
 	int y = 6;
 	ga_group.SetLabel("Genetic Optimizer");
-	ga_tab_ctrl.Add(ga_group.TopPos(y, 240).HSizePos(4, 4));
+	ga_tab_ctrl.Add(ga_group.TopPos(y, 420).HSizePos(4, 4));
 	
 	int gy = y + 20;
 	ga_start.SetLabel("Start GA");
@@ -451,6 +461,33 @@ void StageAWindow::BuildGAPanel() {
 	ga_tab_ctrl.Add(ga_apply.TopPos(gy, 24).LeftPos(170, 80));
 	
 	gy += 30;
+	ga_phase_lbl.SetLabel("Phase:");
+	ga_phase_list.Add(GA_PHASE_EXTRINSICS, "Extrinsics Only");
+	ga_phase_list.Add(GA_PHASE_INTRINSICS, "Intrinsics Only");
+	ga_phase_list.Add(GA_PHASE_BOTH, "Both (Seq)");
+	ga_tab_ctrl.Add(ga_phase_lbl.TopPos(gy, 20).LeftPos(12, 50));
+	ga_tab_ctrl.Add(ga_phase_list.TopPos(gy, 20).LeftPos(66, 120));
+	
+	gy += 24;
+	ga_bounds_lbl.SetLabel("Bounds (deg / px):");
+	ga_tab_ctrl.Add(ga_bounds_lbl.TopPos(gy, 20).LeftPos(12, 120));
+	ga_tab_ctrl.Add(ga_yaw_bound.TopPos(gy, 20).LeftPos(132, 40));
+	ga_tab_ctrl.Add(ga_pitch_bound.TopPos(gy, 20).LeftPos(176, 40));
+	ga_tab_ctrl.Add(ga_roll_bound.TopPos(gy, 20).LeftPos(220, 40));
+	
+	gy += 24;
+	ga_fov_min.SetInc(1.0); ga_fov_max.SetInc(1.0);
+	ga_tab_ctrl.Add(ga_fov_min.TopPos(gy, 20).LeftPos(12, 40));
+	ga_tab_ctrl.Add(ga_fov_max.TopPos(gy, 20).LeftPos(56, 40));
+	
+	gy += 24;
+	ga_use_trimmed_loss.SetLabel("Trimmed loss");
+	ga_tab_ctrl.Add(ga_use_trimmed_loss.TopPos(gy, 20).LeftPos(12, 100));
+	ga_trim_lbl.SetLabel("Trim %:");
+	ga_tab_ctrl.Add(ga_trim_lbl.TopPos(gy, 20).LeftPos(120, 50));
+	ga_tab_ctrl.Add(ga_trim_percent.TopPos(gy, 20).LeftPos(174, 40));
+
+	gy += 24;
 	ga_pop_lbl.SetLabel("Pop:");
 	ga_pop_edit.MinMax(10, 1000);
 	ga_tab_ctrl.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(12, 30));
@@ -461,12 +498,11 @@ void StageAWindow::BuildGAPanel() {
 	ga_tab_ctrl.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(104, 30));
 	ga_tab_ctrl.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(138, 50));
 	
-	gy += 30;
+	gy += 24;
 	ga_use_all_frames.SetLabel("Use all frames");
-	ga_use_all_frames <<= true;
 	ga_tab_ctrl.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(12, 100));
 	
-	gy += 30;
+	gy += 24;
 	ga_status_lbl.SetLabel("Status: Idle");
 	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
 	
@@ -501,7 +537,6 @@ void StageAWindow::OnGAStart() {
 	
 	int pop = (int)ga_pop_edit;
 	int gen = (int)ga_gen_edit;
-	bool use_all = (bool)ga_use_all_frames;
 	
 	if (pop <= 0 || gen <= 0) return;
 	
@@ -519,6 +554,10 @@ void StageAWindow::OnGAStart() {
 	ga_history_slider.MinMax(0, 0);
 	ga_history_slider <<= 0;
 	
+	SyncStageA();
+	ProjectState start_state = model->project_state;
+	bool use_all = start_state.ga_use_all_frames;
+
 	// Prepare data for solver (copy to staging member)
 	ga_input_matches.Clear();
 	int row = captures_list.GetCursor();
@@ -547,8 +586,6 @@ void StageAWindow::OnGAStart() {
 		return;
 	}
 	
-	// Copy current state
-	ProjectState start_state = model->project_state;
 	double eye_dist = start_state.eye_dist / 1000.0; // mm -> m
 	
 	// Run worker thread
@@ -562,16 +599,37 @@ void StageAWindow::OnGAStart() {
 		solver.huber_px = start_state.huber_px;
 		solver.huber_m = start_state.huber_m;
 		
-		// Initial params
-		StereoCalibrationParams params;
+		solver.ga_use_trimmed_loss = start_state.ga_use_trimmed_loss;
+		solver.ga_trim_percent = start_state.ga_trim_percent;
+		solver.ga_bounds.yaw_deg = start_state.ga_bounds.yaw_deg;
+		solver.ga_bounds.pitch_deg = start_state.ga_bounds.pitch_deg;
+		solver.ga_bounds.roll_deg = start_state.ga_bounds.roll_deg;
+		solver.ga_bounds_intr.fov_min = start_state.ga_bounds.fov_min;
+		solver.ga_bounds_intr.fov_max = start_state.ga_bounds.fov_max;
 		
+		StereoCalibrationParams params;
+		// Initialize from baseline
+		double w = ga_input_matches[0].image_size.cx;
+		double fov_rad = start_state.fov_deg * M_PI / 180.0;
+		params.a = (w * 0.5) / tan(fov_rad * 0.5);
+		params.cx = start_state.lens_cx > 0 ? start_state.lens_cx : w*0.5;
+		params.cy = start_state.lens_cy > 0 ? start_state.lens_cy : ga_input_matches[0].image_size.cy*0.5;
+		params.c = params.a * start_state.lens_k1;
+		params.d = params.a * start_state.lens_k2;
+		params.yaw_l = start_state.yaw_l * M_PI / 180.0;
+		params.pitch_l = start_state.pitch_l * M_PI / 180.0;
+		params.roll_l = start_state.roll_l * M_PI / 180.0;
+		params.yaw = start_state.yaw_r * M_PI / 180.0;
+		params.pitch = start_state.pitch_r * M_PI / 180.0;
+		params.roll = start_state.roll_r * M_PI / 180.0;
+
 		solver.ga_step_cb = [&](int g, double cost, const StereoCalibrationParams& best_p) -> bool {
 			if (ga_cancel) return false;
 			PostCallback([=] { OnGAStep(g, cost, best_p); });
 			return true;
 		};
 		
-		solver.GABootstrapIntrinsics(params);
+		solver.GABootstrapPipeline(params, (GAPhase)start_state.ga_phase);
 		
 		if (ga_cancel) return; // Aborted
 		
@@ -694,38 +752,37 @@ void StageAWindow::OnGAFinished() {
 void StageAWindow::OnGAApply() {
 	if (ga_running) return;
 	
-	// Copy ga_best_params to model->project_state
-	// GA optimizes: a, cx, cy, c, d (k1, k2 derived)
-	// We need to map back to ProjectState fields.
-	// NOTE: Solver uses polynomial model (a,b,c,d). StageA uses (f, k1, k2).
-	// We need to convert back.
-	// solver: r_src = a*theta + b*theta^3 ...
-	// StageA: r_src = f*theta * (1 + k1*theta^2 + k2*theta^4) = f*theta + f*k1*theta^3 + f*k2*theta^5
-	// So: a = f. 
-	// b = f*k1 => k1 = b/a. (But GA solver uses c for 3rd order, d for 5th order?)
-	// Let's check GABootstrapIntrinsics mapping in Solver.cpp:
-	// p.c = p.a * k1; p.d = p.a * k2; (p.b=0)
-	// So k1 = c/a, k2 = d/a.
-	
 	double f = ga_best_params.a;
 	if (fabs(f) > 1e-6) {
-		model->project_state.lens_f = f;
-		model->project_state.lens_cx = ga_best_params.cx;
-		model->project_state.lens_cy = ga_best_params.cy;
-		model->project_state.lens_k1 = ga_best_params.c / f;
-		model->project_state.lens_k2 = ga_best_params.d / f;
+		ProjectState& ps = model->project_state;
+		int phase = ps.ga_phase;
 		
-		// Update FOV for UI consistency
-		// f = (w/2) / tan(fov/2) => tan(fov/2) = w/(2f) => fov = 2*atan(w/(2f))
-		// We need width. Assume first image width?
-		int row = captures_list.GetCursor();
-		if (row >= 0 && row < model->captured_frames.GetCount()) {
-			const CapturedFrame& cf = model->captured_frames[row];
-			Size sz = !cf.left_img.IsEmpty() ? cf.left_img.GetSize() : cf.right_img.GetSize();
-			if (sz.cx > 0) {
-				double fov_rad = 2.0 * atan((sz.cx * 0.5) / f);
-				model->project_state.fov_deg = fov_rad * 180.0 / M_PI;
+		if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
+			ps.lens_f = f;
+			ps.lens_cx = ga_best_params.cx;
+			ps.lens_cy = ga_best_params.cy;
+			ps.lens_k1 = ga_best_params.c / f;
+			ps.lens_k2 = ga_best_params.d / f;
+			
+			// Update FOV for UI consistency
+			int row = captures_list.GetCursor();
+			if (row >= 0 && row < model->captured_frames.GetCount()) {
+				const CapturedFrame& cf = model->captured_frames[row];
+				Size sz = !cf.left_img.IsEmpty() ? cf.left_img.GetSize() : cf.right_img.GetSize();
+				if (sz.cx > 0) {
+					double fov_rad = 2.0 * atan((sz.cx * 0.5) / f);
+					ps.fov_deg = fov_rad * 180.0 / M_PI;
+				}
 			}
+		}
+		
+		if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
+			ps.yaw_l = ga_best_params.yaw_l * 180.0 / M_PI;
+			ps.pitch_l = ga_best_params.pitch_l * 180.0 / M_PI;
+			ps.roll_l = ga_best_params.roll_l * 180.0 / M_PI;
+			ps.yaw_r = ga_best_params.yaw * 180.0 / M_PI;
+			ps.pitch_r = ga_best_params.pitch * 180.0 / M_PI;
+			ps.roll_r = ga_best_params.roll * 180.0 / M_PI;
 		}
 		
 		RefreshFromModel(); // Updates UI and Preview
@@ -849,6 +906,17 @@ void StageAWindow::SyncStageA() {
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
 	ps.compare_ga_result = (bool)compare_ga_toggle;
+	
+	ps.ga_phase = ga_phase_list.GetIndex();
+	ps.ga_use_trimmed_loss = (bool)ga_use_trimmed_loss;
+	ps.ga_trim_percent = (double)ga_trim_percent;
+	ps.ga_bounds.yaw_deg = (double)ga_yaw_bound;
+	ps.ga_bounds.pitch_deg = (double)ga_pitch_bound;
+	ps.ga_bounds.roll_deg = (double)ga_roll_bound;
+	ps.ga_bounds.fov_min = (double)ga_fov_min;
+	ps.ga_bounds.fov_max = (double)ga_fov_max;
+	ps.ga_use_all_frames = (bool)ga_use_all_frames;
+
 	ps.tool_mode = tool_list.GetIndex();
 
 	String doc;

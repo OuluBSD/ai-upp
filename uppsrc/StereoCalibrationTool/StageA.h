@@ -200,6 +200,8 @@ private:
 	void OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p); // Callback from thread
 	void OnGAFinished(); // Callback from thread
 	void OnGAHistoryScrub();
+	void OnGAResultSel();
+	void OnGAResultBar(Bar& bar);
 
 private:
 	EnergyPlot ga_plot;

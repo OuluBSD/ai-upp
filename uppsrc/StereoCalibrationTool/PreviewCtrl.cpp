@@ -259,6 +259,7 @@ void PreviewCtrl::LeftDown(Point p, dword flags) {
 void PreviewCtrl::RightDown(Point p, dword flags) {
 	if (mode == ToolMode::LineAnnotate) {
 		if (line_points.GetCount() >= 2) {
+			RLOG(Format("PreviewCtrl: Finalizing line with %d points", line_points.GetCount()));
 			WhenFinalizeLine(eye, line_points);
 			line_points.Clear();
 			Refresh();

@@ -175,6 +175,8 @@ struct ProjectState {
 
 	// GA Pipeline Settings
 	int ga_phase = GA_PHASE_BOTH;
+	int ga_population = 200;
+	int ga_generations = 300;
 	GAParamsBounds ga_bounds;
 	bool ga_use_trimmed_loss = true;
 	double ga_trim_percent = 15.0;
@@ -227,6 +229,7 @@ struct ProjectState {
 		   ("compare_ga_result", compare_ga_result);
 
 		jio("ga_phase", ga_phase)("ga_bounds", ga_bounds)
+		   ("ga_population", ga_population)("ga_generations", ga_generations)
 		   ("ga_use_trimmed_loss", ga_use_trimmed_loss)("ga_trim_percent", ga_trim_percent)
 		   ("ga_use_all_frames", ga_use_all_frames);
 

@@ -32,6 +32,7 @@ GUI_APP_MAIN
 	String test_image_path;
 	String ga_run_phase;
 	bool ga_run_mode = false;
+	bool ga_run_save = false;
 	
 	// Direct launch flags
 	bool launch_camera = false;
@@ -64,6 +65,7 @@ GUI_APP_MAIN
 			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
 			       << "  --ga_run <project_dir>   Run GA headlessly\n"
 			       << "  --phase <ext|int|both_lens_then_pose> Phase for --ga_run\n"
+			       << "  --save                   Save best result in --ga_run mode\n"
 			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
 			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
@@ -76,6 +78,8 @@ GUI_APP_MAIN
 		}
 		if (arg == "--ga_run")
 			ga_run_mode = true;
+		else if (arg == "--save")
+			ga_run_save = true;
 		else if (arg == "--phase" && i + 1 < args.GetCount())
 			ga_run_phase = args[++i];
 		else if (arg.StartsWith("--phase="))
@@ -172,8 +176,8 @@ GUI_APP_MAIN
 
 	if (use_ga) {
 		model.use_ga_bootstrap = true;
-		model.ga_population = ga_population;
-		model.ga_generations = ga_generations;
+		model.project_state.ga_population = ga_population;
+		model.project_state.ga_generations = ga_generations;
 	}
 
 	// Stage A identity test mode
@@ -343,6 +347,38 @@ GUI_APP_MAIN
 		Cout() << "Best Results:\n";
 		Cout() << Format("  Yaw L/R: %.3f / %.3f\n", params.yaw_l * 180/M_PI, params.yaw * 180/M_PI);
 		Cout() << Format("  Focal: %.2f, k1=%.4f, k2=%.4f\n", params.a, params.c/params.a, params.d/params.a);
+		
+		if (ga_run_save) {
+			ProjectState& ps = model.project_state;
+			if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
+				ps.lens_f = params.a;
+				ps.lens_cx = params.cx;
+				ps.lens_cy = params.cy;
+				ps.lens_k1 = params.c / params.a;
+				ps.lens_k2 = params.d / params.a;
+				
+				// Update FOV deg for consistency
+				double fov_rad = 2.0 * atan((w * 0.5) / params.a);
+				ps.fov_deg = fov_rad * 180.0 / M_PI;
+				
+				ps.calibration_state = CALIB_GA_INTRINSICS;
+			}
+			if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
+				ps.yaw_l = params.yaw_l * 180.0 / M_PI;
+				ps.pitch_l = params.pitch_l * 180.0 / M_PI;
+				ps.roll_l = params.roll_l * 180.0 / M_PI;
+				ps.yaw_r = params.yaw * 180.0 / M_PI;
+				ps.pitch_r = params.pitch * 180.0 / M_PI;
+				ps.roll_r = params.roll * 180.0 / M_PI;
+				if (phase == GA_PHASE_EXTRINSICS)
+					ps.calibration_state = CALIB_GA_EXTRINSICS;
+				else
+					ps.calibration_state = CALIB_GA_INTRINSICS; // Both implies int was also done or at least state 3+
+			}
+			
+			StereoCalibrationHelpers::SaveState(model);
+			Cout() << "Best results SAVED to project.json\n";
+		}
 		
 		SetExitCode(0);
 		return;

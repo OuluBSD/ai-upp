@@ -156,6 +156,44 @@ private:
 	void OnGAFinished(); // Callback from thread
 
 private:
+	struct CostPlot : public Ctrl {
+		Vector<double> history;
+		void AddValue(double v) { history.Add(v); Refresh(); }
+		void Clear() { history.Clear(); Refresh(); }
+		virtual void Paint(Draw& w) override {
+			Size sz = GetSize();
+			w.DrawRect(sz, White());
+			if (history.IsEmpty()) return;
+			double min_v = history[0], max_v = history[0];
+			for(double v : history) { min_v = min(min_v, v); max_v = max(max_v, v); }
+			if (abs(max_v - min_v) < 1e-9) max_v += 1.0;
+			
+			w.DrawText(2, 2, Format("Min: %.4f", min_v), Arial(10), Gray());
+			
+			Vector<Point> pts;
+			for(int i=0; i<history.GetCount(); i++) {
+				double x = (double)i / max(1, history.GetCount()-1) * sz.cx;
+				// Invert Y because screen Y is down, but we want higher cost (bad) up? 
+				// Usually plots: Y up. Screen: Y down.
+				// Cost is minimization. So lower is better.
+				// Let's put lower cost at BOTTOM (high Y) or TOP?
+				// Standard plot: Y axis goes UP. So lower value = lower pixel (higher Y).
+				// We want minimization curve to go DOWN visually.
+				// So Max cost at Top (Y=0), Min cost at Bottom (Y=H).
+				double norm = (history[i] - min_v) / (max_v - min_v);
+				double y = (1.0 - norm) * (sz.cy - 10) + 5; // 1.0 (max val) -> 5 (top). 0.0 (min val) -> H-5 (bottom).
+				// Wait, 1.0 - norm means:
+				// If val = max, norm=1, y = 5 (top).
+				// If val = min, norm=0, y = H-5 (bottom).
+				// So curve goes DOWN as cost decreases. Correct.
+				pts.Add(Point(x, y));
+			}
+			w.DrawPolyline(pts, 1, Blue());
+			w.DrawText(2, sz.cy - 14, Format("Max: %.4f", max_v), Arial(10), Gray());
+		}
+	};
+	CostPlot ga_plot;
+
 	Thread ga_thread;
 	bool ga_running = false;
 	Atomic ga_cancel;

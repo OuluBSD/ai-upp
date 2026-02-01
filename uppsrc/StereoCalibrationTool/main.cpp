@@ -20,6 +20,7 @@ GUI_APP_MAIN
 	int ga_population = 30;
 	int ga_generations = 20;
 	bool stagea_identity_test = false;
+	bool stagea_regression = false;
 	String test_image_path;
 	for (const String& arg : args) {
 		if (arg == "-h" || arg == "--help") {
@@ -40,6 +41,7 @@ GUI_APP_MAIN
 			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
 			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
+			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
@@ -69,6 +71,8 @@ GUI_APP_MAIN
 			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
 		else if (arg == "--stagea_identity_test")
 			stagea_identity_test = true;
+		else if (arg == "--stagea_regression")
+			stagea_regression = true;
 		else if (arg.StartsWith("--image="))
 			test_image_path = arg.Mid(strlen("--image="));
 		else if (!arg.StartsWith("--"))
@@ -120,6 +124,13 @@ GUI_APP_MAIN
 	// Stage A identity test mode
 	if (stagea_identity_test) {
 		int result = TestStageAIdentity(model, project_dir, test_image_path);
+		SetExitCode(result);
+		return;
+	}
+
+	// Stage A regression suite mode
+	if (stagea_regression) {
+		int result = RunStageARegression(project_dir, verbose);
 		SetExitCode(result);
 		return;
 	}

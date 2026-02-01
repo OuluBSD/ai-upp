@@ -728,7 +728,9 @@ void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams b
 	ga_plot.AddPoint(gen, best_cost);
 	
 	if (IsParamsValid(best_p)) {
-		ga_history.Add(best_p);
+		GAEntry& e = ga_history.Add();
+		e.params = best_p;
+		e.cost = best_cost;
 		ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));
 		if (ga_history.GetCount() > 0) ga_history_slider.Enable();
 	}
@@ -743,6 +745,21 @@ void StageAWindow::OnGAFinished() {
 		ga_apply.Enable();
 		compare_ga_toggle.Enable();
 		ga_status_lbl.SetLabel("Status: Finished");
+		
+		// Populate best results list
+		ga_best_results_list.Clear();
+		int n = 0;
+		for(int i = ga_history.GetCount() - 1; i >= 0 && n < 20; i--) {
+			const auto& e = ga_history[i];
+			const auto& p = e.params;
+			
+			String desc = Format("fov:%.1f, y/p/r:%.1f/%.1f/%.1f", 
+				2.0 * atan((ga_input_matches[0].image_size.cx * 0.5) / p.a) * 180.0 / M_PI,
+				p.yaw * 180.0 / M_PI, p.pitch * 180.0 / M_PI, p.roll * 180.0 / M_PI);
+			
+			ga_best_results_list.Add(n + 1, Format("%.4f", e.cost), desc);
+			n++;
+		}
 	} else {
 		ga_apply.Disable();
 		compare_ga_toggle.Disable();
@@ -1476,7 +1493,7 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	bool is_replay = (hist_idx > 0 && hist_idx <= ga_history.GetCount());
 	bool ga_valid = (compare_ga || is_replay) && (fabs(ga_best_params.a) > 1e-6);
 	
-	const StereoCalibrationParams& active_ga = is_replay ? ga_history[hist_idx - 1] : ga_best_params;
+	const StereoCalibrationParams& active_ga = is_replay ? ga_history[hist_idx - 1].params : ga_best_params;
 
 	if (ga_valid && IsParamsValid(active_ga)) {
 		lp_ga.f = (float)active_ga.a;

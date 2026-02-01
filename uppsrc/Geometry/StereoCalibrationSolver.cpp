@@ -62,6 +62,12 @@ static inline double HuberWeight(double r, double delta) {
 	return sqrt(delta / a);
 }
 
+static inline double Huber(double r, double delta) {
+	double a = fabs(r);
+	if (a <= delta) return 0.5 * r * r;
+	return delta * (a - 0.5 * delta);
+}
+
 static inline vec3 RotateVec(const mat4& m, const vec3& v) {
 	return (m * v.Embed()).Splice();
 }
@@ -215,6 +221,59 @@ static vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, con
 	return (pL + pR) * 0.5f + dL * 1000.0f;
 }
 
+double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams& params) const {
+	int N = matches.GetCount();
+	if (N == 0) return DBL_MAX;
+
+	vec3 pL(-(float)eye_dist / 2.0f, 0, 0);
+	vec3 pR((float)eye_dist / 2.0f, 0, 0);
+
+	Vector<double> point_costs;
+	point_costs.SetCount(N);
+
+	for (int i = 0; i < N; i++) {
+		const auto& m = matches[i];
+		vec3 dL, dR;
+		UnprojectDir(params, m.left_px, 0, dL);
+		UnprojectDir(params, m.right_px, 1, dR);
+
+		vec3 X = TriangulatePoint(pL, dL, pR, dR);
+		
+		double cost = 0;
+		if (!std::isfinite(X[0]) || !std::isfinite(X[1]) || !std::isfinite(X[2])) {
+			cost = 1e6;
+		} else {
+			vec2 projL, projR;
+			double zL = 0, zR = 0;
+			ProjectPoint(params, X, 0, eye_dist, projL, zL);
+			ProjectPoint(params, X, 1, eye_dist, projR, zR);
+
+			double eL = (projL - m.left_px).GetLength();
+			double eR = (projR - m.right_px).GetLength();
+			
+			cost = Huber(eL, huber_px) + Huber(eR, huber_px);
+			if (m.dist_l > 0) cost += dist_weight * Huber((X - pL).GetLength() - m.dist_l, huber_m);
+			if (m.dist_r > 0) cost += dist_weight * Huber((X - pR).GetLength() - m.dist_r, huber_m);
+			if (zL < 0.01 || zR < 0.01) cost += 1000.0;
+		}
+		point_costs[i] = cost;
+	}
+
+	double total_cost = 0;
+	if (ga_use_trimmed_loss) {
+		Sort(point_costs);
+		int count = (int)(N * (1.0 - ga_trim_percent / 100.0));
+		count = max(1, count);
+		for(int i = 0; i < count; i++) total_cost += point_costs[i];
+		total_cost /= count;
+	} else {
+		for(int i = 0; i < N; i++) total_cost += point_costs[i];
+		total_cost /= N;
+	}
+	if (params.a < 10.0) total_cost += 1e6;
+	return total_cost;
+}
+
 static double ComputeCalibrationCost(const StereoCalibrationSolver& solver,
                                       const StereoCalibrationParams& params,
                                       double eye_dist, double dist_weight,
@@ -311,203 +370,58 @@ static double ComputeCalibrationCost(const StereoCalibrationSolver& solver,
 	return total_cost / valid_count;  // Average cost per match
 }
 
-static void GABootstrapExtrinsics(StereoCalibrationSolver& solver,
-                                    StereoCalibrationParams& params,
-                                    int population, int generations, int top_candidates) {
-	// Log to GUI report
-	if (solver.log) {
-		*solver.log << "  Step: Genetic algorithm bootstrap (extrinsics initialization)...\n";
-	}
-
-	double baseline_cost = ComputeCalibrationCost(solver, params, solver.eye_dist,
-	                                              solver.dist_weight, solver.huber_px, solver.huber_m);
-
-	if (solver.trace.enabled && solver.trace.verbosity >= 1) {
-		solver.trace.Add("========================================\n");
-		solver.trace.Add("Genetic Algorithm Bootstrap\n");
-		solver.trace.Add("========================================\n\n");
-		solver.trace.Addf("Configuration:\n");
-		solver.trace.Addf("  Population: %d\n", population);
-		solver.trace.Addf("  Generations: %d\n", generations);
-		solver.trace.Addf("  Top candidates for LM: %d\n", top_candidates);
-		solver.trace.Addf("  Baseline cost: %.6f\n", baseline_cost);
-		solver.trace.Addf("  Bounds (deg): yaw [%.1f, %.1f], pitch [%.1f, %.1f], roll [%.1f, %.1f]\n\n", 
-			solver.ga_bounds.yaw_min, solver.ga_bounds.yaw_max,
-			solver.ga_bounds.pitch_min, solver.ga_bounds.pitch_max,
-			solver.ga_bounds.roll_min, solver.ga_bounds.roll_max);
-	}
-
-	// Dimension: 3 extrinsic parameters (yaw, pitch, roll)
+void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& params) {
+	if (log) *log << "  Step: Genetic algorithm bootstrap (extrinsics)...\n";
+	
 	const int dimension = 3;
-
-	GeneticOptimizer ga;
-	ga.SetMaxGenerations(generations);
-	ga.SetRandomTypeUniform();
-	// Init with dummy bounds, we will override
-	ga.MinMax(-1.0, 1.0); 
-	ga.Init(dimension, population, StrategyBest1Exp);
-
-	// Apply specific bounds
-	ga.min_values[0] = solver.ga_bounds.yaw_min * M_PI / 180.0;
-	ga.max_values[0] = solver.ga_bounds.yaw_max * M_PI / 180.0;
-	ga.min_values[1] = solver.ga_bounds.pitch_min * M_PI / 180.0;
-	ga.max_values[1] = solver.ga_bounds.pitch_max * M_PI / 180.0;
-	ga.min_values[2] = solver.ga_bounds.roll_min * M_PI / 180.0;
-	ga.max_values[2] = solver.ga_bounds.roll_max * M_PI / 180.0;
-
-	// Re-initialize population uniformly within specific bounds
-	for (int i = 0; i < population; i++) {
-		for (int j = 0; j < dimension; j++) {
-			ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		}
-		// Also evaluate initial population? 
-		// GeneticOptimizer evaluates lazily or in loop?
-		// Typically Init sets energy to max. We should evaluate them if we want sorting later?
-		// But the loop handles evolution. We can just let the first generation evolve.
-		// However, to ensure we have valid energies for all, we might need to evaluate them or just accept that 
-		// the 'best' tracking handles it.
-		// Actually, standard DE evaluates initial population. GeneticOptimizer::Init sets pop_energy to DBL_MAX.
-		// We should evaluate initial population manually or just rely on loop replacement.
-		// Let's evaluate initial population.
-		StereoCalibrationParams p = params;
-		p.yaw = ga.population[i][0];
-		p.pitch = ga.population[i][1];
-		p.roll = ga.population[i][2];
-		double cost = ComputeCalibrationCost(solver, p, solver.eye_dist, solver.dist_weight, solver.huber_px, solver.huber_m);
-		// Guard against non-finite
-		if (!std::isfinite(cost)) cost = 1e9;
-		ga.pop_energy[i] = -cost; // GA maximizes energy
-		if (-cost > ga.best_energy) {
-			ga.best_energy = -cost;
-			ga.best_solution <<= ga.population[i];
-		}
-	}
-
-	// Run GA
-	int iter = 0;
-	while (!ga.IsEnd()) {
-		Vector<double> trial = clone(ga.GetTrialSolution());
-
-		// Clamp trial to bounds
-		for(int j=0; j<dimension; j++) {
-			trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-		}
-
-		// Create trial parameters
-		StereoCalibrationParams trial_params = params;
-		trial_params.yaw = trial[0];
-		trial_params.pitch = trial[1];
-		trial_params.roll = trial[2];
-
-		// Evaluate fitness
-		ga.Start();
-		double cost = ComputeCalibrationCost(solver, trial_params, solver.eye_dist,
-		                                      solver.dist_weight, solver.huber_px, solver.huber_m);
-		
-		// Penalize invalid/extreme results
-		if (!std::isfinite(cost)) cost = 1e9;
-		
-		double energy = -cost;  // GA maximizes energy, we minimize cost
-		ga.Stop(energy);
-
-		if (solver.trace.enabled && solver.trace.verbosity >= 2 && iter % population == 0) {
-			int gen = iter / population;
-			solver.trace.Addf("Generation %d/%d: best cost=%.6f\n",
-			                   gen + 1, generations, -ga.Energy());
-		}
-
-		iter++;
-	}
-
-	// Filter and select candidates
-	// We want to check if the best GA result is actually decent compared to baseline.
-	// Also we can look at the top N from the population.
-	
-	struct Candidate {
-		double cost;
-		Vector<double> solution;
-	};
-	Array<Candidate> candidates;
-	
-	// Add best solution found
-	Candidate& best = candidates.Add();
-	best.cost = -ga.best_energy;
-	best.solution <<= ga.best_solution;
-	
-	// Add population
-	for(int i=0; i<population; i++) {
-		Candidate& c = candidates.Add();
-		c.cost = -ga.pop_energy[i];
-		c.solution <<= ga.population[i];
-	}
-	
-	// Sort by cost
-	Sort(candidates, [](const Candidate& a, const Candidate& b) { return a.cost < b.cost; });
-	
-	// Check if we should use GA result
-	double best_ga_cost = candidates[0].cost;
-	bool use_ga = false;
-	
-	// Heuristic:
-	// If baseline is invalid (huge cost), take GA.
-	// If baseline is valid, only take GA if it's not significantly worse (e.g. < 1.2x baseline).
-	// Actually, GA is supposed to IMPROVE. So if GA < baseline, take it.
-	// If GA > baseline * 1.2, reject.
-	// If GA is slightly worse, maybe we are just in a local basin, but usually we prefer baseline if GA failed to improve.
-	
-	if (baseline_cost > 1e6) {
-		use_ga = true; // Baseline is broken, trust GA
-	} else {
-		if (best_ga_cost < baseline_cost) {
-			use_ga = true; // GA improved
-		} else if (best_ga_cost < baseline_cost * 1.2) {
-			use_ga = true; // GA is comparable, maybe good seed?
-		}
-	}
-	
-	if (use_ga) {
-		const Vector<double>& sol = candidates[0].solution;
-		params.yaw = sol[0];
-		params.pitch = sol[1];
-		params.roll = sol[2];
-		
-		if (solver.log) {
-			*solver.log << Format("  GA accepted. Cost: %.6f (Baseline: %.6f)\n", best_ga_cost, baseline_cost);
-			*solver.log << "  Best extrinsics: yaw=" << Format("%.4f", params.yaw)
-			            << ", pitch=" << Format("%.4f", params.pitch)
-			            << ", roll=" << Format("%.4f", params.roll) << "\n";
-		}
-		if (solver.trace.enabled) {
-			solver.trace.Addf("GA accepted. Cost: %.6f (Baseline: %.6f)\n", best_ga_cost, baseline_cost);
-		}
-	} else {
-		if (solver.log) {
-			*solver.log << Format("  GA rejected. Best Cost: %.6f vs Baseline: %.6f\n", best_ga_cost, baseline_cost);
-		}
-		if (solver.trace.enabled) {
-			solver.trace.Addf("GA rejected. Best Cost: %.6f vs Baseline: %.6f\n", best_ga_cost, baseline_cost);
-		}
-		// Params remain as baseline
-	}
-}
-
-void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& params) {
-	if (log) {
-		*log << "  Step: Genetic algorithm bootstrap (intrinsics optimization)...\n";
-	}
-
-	double baseline_cost = ComputeCalibrationCost(*this, params, eye_dist, dist_weight, huber_px, huber_m);
-
-	// Dimension: 5 intrinsic parameters (fov, cx, cy, k1, k2)
-	const int dimension = 5;
-
 	GeneticOptimizer ga;
 	ga.SetMaxGenerations(ga_generations);
 	ga.SetRandomTypeUniform();
 	ga.MinMax(-1.0, 1.0); 
 	ga.Init(dimension, ga_population, StrategyBest1Exp);
 
-	// Apply specific bounds
+	ga.min_values[0] = -ga_bounds.yaw_deg * M_PI / 180.0;
+	ga.max_values[0] =  ga_bounds.yaw_deg * M_PI / 180.0;
+	ga.min_values[1] = -ga_bounds.pitch_deg * M_PI / 180.0;
+	ga.max_values[1] =  ga_bounds.pitch_deg * M_PI / 180.0;
+	ga.min_values[2] = -ga_bounds.roll_deg * M_PI / 180.0;
+	ga.max_values[2] =  ga_bounds.roll_deg * M_PI / 180.0;
+
+	auto Map = [&](const Vector<double>& v) {
+		StereoCalibrationParams p = params;
+		p.yaw = v[0]; p.pitch = v[1]; p.roll = v[2];
+		return p;
+	};
+
+	for (int i = 0; i < ga_population; i++) {
+		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+		ga.pop_energy[i] = -ComputeRobustCost(Map(ga.population[i]));
+		if (ga.pop_energy[i] > ga.best_energy) { ga.best_energy = ga.pop_energy[i]; ga.best_solution <<= ga.population[i]; }
+	}
+
+	int current_gen = 0;
+	while (!ga.IsEnd()) {
+		current_gen++;
+		Vector<double> trial = clone(ga.GetTrialSolution());
+		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
+		ga.Stop(-ComputeRobustCost(Map(trial)));
+		if (ga_step_cb) {
+			if (!ga_step_cb(current_gen, -ga.best_energy, Map(ga.best_solution))) return;
+		}
+	}
+	params = Map(ga.best_solution);
+}
+
+void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& params) {
+	if (log) *log << "  Step: Genetic algorithm bootstrap (intrinsics)...\n";
+	
+	const int dimension = 5;
+	GeneticOptimizer ga;
+	ga.SetMaxGenerations(ga_generations);
+	ga.SetRandomTypeUniform();
+	ga.MinMax(-1.0, 1.0); 
+	ga.Init(dimension, ga_population, StrategyBest1Exp);
+
 	ga.min_values[0] = ga_bounds_intr.fov_min;
 	ga.max_values[0] = ga_bounds_intr.fov_max;
 	ga.min_values[1] = params.cx - ga_bounds_intr.cx_delta;
@@ -519,64 +433,42 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	ga.min_values[4] = ga_bounds_intr.k2_min;
 	ga.max_values[4] = ga_bounds_intr.k2_max;
 
-	auto MapParams = [&](const Vector<double>& v) {
+	auto Map = [&](const Vector<double>& v) {
 		StereoCalibrationParams p = params;
 		double fov_rad = v[0] * M_PI / 180.0;
-		// Need image width for f conversion. Assume width from first match.
 		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 640;
 		p.a = (w * 0.5) / tan(fov_rad * 0.5);
-		p.cx = v[1];
-		p.cy = v[2];
-		p.c = p.a * v[3];
-		p.d = p.a * v[4];
+		p.cx = v[1]; p.cy = v[2];
+		p.c = p.a * v[3]; p.d = p.a * v[4];
 		p.b = 0;
 		return p;
 	};
 
-	// Re-initialize population uniformly within specific bounds
 	for (int i = 0; i < ga_population; i++) {
-		for (int j = 0; j < dimension; j++) {
-			ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		}
-		
-		StereoCalibrationParams p = MapParams(ga.population[i]);
-
-		double cost = ComputeCalibrationCost(*this, p, eye_dist, dist_weight, huber_px, huber_m);
-		if (!std::isfinite(cost)) cost = 1e9;
-		ga.pop_energy[i] = -cost;
-		if (-cost > ga.best_energy) {
-			ga.best_energy = -cost;
-			ga.best_solution <<= ga.population[i];
-		}
+		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+		ga.pop_energy[i] = -ComputeRobustCost(Map(ga.population[i]));
+		if (ga.pop_energy[i] > ga.best_energy) { ga.best_energy = ga.pop_energy[i]; ga.best_solution <<= ga.population[i]; }
 	}
 
-	// Run GA
 	int current_gen = 0;
 	while (!ga.IsEnd()) {
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-
-		StereoCalibrationParams trial_params = MapParams(trial);
-
-		ga.Start();
-		double cost = ComputeCalibrationCost(*this, trial_params, eye_dist, dist_weight, huber_px, huber_m);
-		if (!std::isfinite(cost)) cost = 1e9;
-		ga.Stop(-cost);
-		
+		ga.Stop(-ComputeRobustCost(Map(trial)));
 		if (ga_step_cb) {
-			StereoCalibrationParams best_p = MapParams(ga.best_solution);
-			if (!ga_step_cb(current_gen, -ga.best_energy, best_p))
-				return;
+			if (!ga_step_cb(current_gen, -ga.best_energy, Map(ga.best_solution))) return;
 		}
 	}
+	params = Map(ga.best_solution);
+}
 
-	if (-ga.best_energy < baseline_cost) {
-		StereoCalibrationParams best_p = MapParams(ga.best_solution);
-		params = best_p; // Update output params
-		if (log) *log << Format("  GA Intrinsics accepted. Cost: %.6f (Baseline: %.6f)\n", -ga.best_energy, baseline_cost);
-	} else {
-		if (log) *log << Format("  GA Intrinsics rejected. Best Cost: %.6f vs Baseline: %.6f\n", -ga.best_energy, baseline_cost);
+void StereoCalibrationSolver::GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase) {
+	if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
+		GABootstrapExtrinsics(params);
+	}
+	if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
+		GABootstrapIntrinsics(params);
 	}
 }
 
@@ -1073,7 +965,7 @@ bool StereoCalibrationSolver::Solve(StereoCalibrationParams& params, bool lock_d
 
 	// GA bootstrap for extrinsics (if enabled)
 	if (use_ga_init) {
-		GABootstrapExtrinsics(*this, params, ga_population, ga_generations, ga_top_candidates);
+		GABootstrapExtrinsics(params);
 
 		// Update y vector with GA-optimized extrinsics
 		if (lock_distortion) {

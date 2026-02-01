@@ -98,6 +98,28 @@ struct GAResultDiagnostics : Moveable<GAResultDiagnostics> {
 	}
 };
 
+struct GAParamsBounds : Moveable<GAParamsBounds> {
+	double yaw_deg = 45.0;
+	double pitch_deg = 25.0;
+	double roll_deg = 45.0;
+	double fov_min = 80.0;
+	double fov_max = 160.0;
+	double cx_delta = 60.0;
+	double cy_delta = 60.0;
+	double k1_min = -1.5;
+	double k1_max = 0.0;
+	double k2_min = -1.0;
+	double k2_max = 1.0;
+
+	void Jsonize(JsonIO& jio) {
+		jio("yaw_deg", yaw_deg)("pitch_deg", pitch_deg)("roll_deg", roll_deg)
+		   ("fov_min", fov_min)("fov_max", fov_max)
+		   ("cx_delta", cx_delta)("cy_delta", cy_delta)
+		   ("k1_min", k1_min)("k1_max", k1_max)
+		   ("k2_min", k2_min)("k2_max", k2_max);
+	}
+};
+
 // User-editable state that persists to project.json.
 struct ProjectState {
 	int schema_version = 1;
@@ -114,6 +136,13 @@ struct ProjectState {
 	bool preview_extrinsics = true;  // preview uses extrinsics if true
 	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
 	bool compare_ga_result = false;  // Compare mode toggle
+
+	// GA Pipeline Settings
+	int ga_phase = GA_PHASE_BOTH;
+	GAParamsBounds ga_bounds;
+	bool ga_use_trimmed_loss = true;
+	double ga_trim_percent = 15.0;
+	bool ga_use_all_frames = true;
 
 	// Stage B (solve)
 	double distance_weight = 0.1;
@@ -154,6 +183,10 @@ struct ProjectState {
 		   ("lens_k1", lens_k1)("lens_k2", lens_k2)
 		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics)
 		   ("compare_ga_result", compare_ga_result);
+
+		jio("ga_phase", ga_phase)("ga_bounds", ga_bounds)
+		   ("ga_use_trimmed_loss", ga_use_trimmed_loss)("ga_trim_percent", ga_trim_percent)
+		   ("ga_use_all_frames", ga_use_all_frames);
 
 		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
 		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)

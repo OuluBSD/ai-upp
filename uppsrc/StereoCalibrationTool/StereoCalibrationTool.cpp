@@ -200,9 +200,19 @@ Image UndistortImage(const Image& src, const LensPoly& lens, float linear_scale)
 			float theta = r_out / linear_scale;
 			// In distorted source, that angle is at radius r_src
 			float r_src = lens.AngleToPixel(theta);
+			// Guard against invalid lens calculations producing NaN/inf
+			if (!isfinite(r_src) || r_src < 0) {
+				dst[x] = src[y][x];  // Fallback: copy original pixel
+				continue;
+			}
 			float scale = r_src / r_out;
 			float sx = cx + dx * scale;
 			float sy = cy + dy * scale;
+			// Validate coordinates before sampling
+			if (!isfinite(sx) || !isfinite(sy)) {
+				dst[x] = src[y][x];  // Fallback: copy original pixel
+				continue;
+			}
 			dst[x] = SampleBilinear(src, sx, sy);
 		}
 	}
@@ -236,11 +246,21 @@ Image DistortImage(const Image& src, const LensPoly& lens, float linear_scale) {
 			}
 			// Output pixel at radius r_out (distorted) corresponds to angle theta
 			float theta = lens.PixelToAngle(r_out);
+			// Guard against invalid lens calculations producing NaN/inf
+			if (!isfinite(theta) || theta < 0) {
+				dst[x] = src[y][x];  // Fallback: copy original pixel
+				continue;
+			}
 			// In linear source, that angle is at radius r_src
 			float r_src = theta * linear_scale;
 			float scale = r_src / r_out;
 			float sx = cx + dx * scale;
 			float sy = cy + dy * scale;
+			// Validate coordinates before sampling
+			if (!isfinite(sx) || !isfinite(sy)) {
+				dst[x] = src[y][x];  // Fallback: copy original pixel
+				continue;
+			}
 			dst[x] = SampleBilinear(src, sx, sy);
 		}
 	}

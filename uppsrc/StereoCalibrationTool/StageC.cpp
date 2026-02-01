@@ -33,6 +33,7 @@ void StageCWindow::RefreshFromModel() {
 		return;
 	const ProjectState& ps = model->project_state;
 	enable_stage_c <<= ps.stage_c_enabled;
+	compare_stage_c <<= ps.stage_c_compare;
 	stage_c_mode <<= ps.stage_c_mode;
 	max_dyaw <<= ps.max_dyaw;
 	max_dpitch <<= ps.max_dpitch;
@@ -80,7 +81,10 @@ void StageCWindow::BuildLayout() {
 	pipeline_state_lbl.SetAlign(ALIGN_CENTER);
 	pipeline_state_lbl.SetInk(Blue());
 	y += 24;
-	Add(enable_stage_c.TopPos(y, 20).HSizePos(6, 6));
+	Add(enable_stage_c.TopPos(y, 20).LeftPos(6, 150));
+	compare_stage_c.SetLabel("Show Stage C preview");
+	compare_stage_c.WhenAction = THISBACK(SaveProjectState);
+	Add(compare_stage_c.TopPos(y, 20).LeftPos(160, 150));
 	y += 24;
 	Add(stage_c_mode_lbl.TopPos(y, 20).LeftPos(6, 60));
 	Add(stage_c_mode.TopPos(y, 20).LeftPos(70, 160));
@@ -162,26 +166,50 @@ bool StageCWindow::RefineExtrinsics() {
 	double base_pitch_r = model->project_state.pitch_r;
 	double base_roll_r = model->project_state.roll_r;
 
-	params.yaw_l = base_yaw_l;
-	params.pitch_l = base_pitch_l;
-	params.roll_l = base_roll_l;
-	params.yaw = base_yaw_r;
-	params.pitch = base_pitch_r;
-	params.roll = base_roll_r;
+	// Solver and ComputeRobustCost expect RADIANS
+	params.yaw_l = base_yaw_l * M_PI / 180.0;
+	params.pitch_l = base_pitch_l * M_PI / 180.0;
+	params.roll_l = base_roll_l * M_PI / 180.0;
+	params.yaw = base_yaw_r * M_PI / 180.0;
+	params.pitch = base_pitch_r * M_PI / 180.0;
+	params.roll = base_roll_r * M_PI / 180.0;
 
 	vec3 bounds((double)max_dyaw, (double)max_dpitch, (double)max_droll);
 	double lambda = (double)lambda_edit;
 	bool per_eye = ((int)stage_c_mode == 1);
 
+	// Baseline cost for acceptance check
+	double cost0 = solver.ComputeRobustCost(params);
+
 	status.Set("Refining extrinsics (Stage C)...");
 	if (solver.SolveExtrinsicsOnlyMicroRefine(params, bounds, lambda, per_eye)) {
-		model->dyaw_c = (float)(params.yaw - base_yaw_r);
-		model->dpitch_c = (float)(params.pitch - base_pitch_r);
-		model->droll_c = (float)(params.roll - base_roll_r);
+		double cost1 = solver.ComputeRobustCost(params);
+		
+		// Guard: Only apply if cost strictly improves
+		if (cost1 >= cost0) {
+			status.Set("Refinement rejected: Cost did not improve.");
+			if (solver.log) *solver.log << "  REJECTED: Cost did not improve ( " << cost0 << " -> " << cost1 << " )\n";
+			return false;
+		}
+		
+		// Guard: Hard clamp check
+		double dy = (params.yaw * 180.0 / M_PI - base_yaw_r);
+		double dp = (params.pitch * 180.0 / M_PI - base_pitch_r);
+		double dr = (params.roll * 180.0 / M_PI - base_roll_r);
+		
+		if (fabs(dy) > bounds[0] + 0.01 || fabs(dp) > bounds[1] + 0.01 || fabs(dr) > bounds[2] + 0.01) {
+			status.Set("Refinement rejected: Deltas exceeded bounds.");
+			return false;
+		}
 
-		model->last_calibration.outward_angle = (float)(params.yaw - params.yaw_l);
-		model->last_calibration.right_pitch = (float)(params.pitch - params.pitch_l);
-		model->last_calibration.right_roll = (float)(params.roll - params.roll_l);
+		model->project_state.calibration_state = CALIB_STAGE_C_REFINED;
+		model->dyaw_c = (float)dy;
+		model->dpitch_c = (float)dp;
+		model->droll_c = (float)dr;
+
+		model->last_calibration.outward_angle = (float)((params.yaw - params.yaw_l) * 180.0 / M_PI);
+		model->last_calibration.right_pitch = (float)((params.pitch - params.pitch_l) * 180.0 / M_PI);
+		model->last_calibration.right_roll = (float)((params.roll - params.roll_l) * 180.0 / M_PI);
 
 		StereoCalibrationDiagnostics diag;
 		solver.ComputeDiagnostics(params, diag);
@@ -192,12 +220,25 @@ bool StageCWindow::RefineExtrinsics() {
 		report << Format("Bounds: %.1f, %.1f, %.1f deg\n", bounds[0], bounds[1], bounds[2]);
 		report << Format("Lambda: %.4f\n", lambda);
 		report << Format("Reproj RMS (L/R): %.3f / %.3f px\n", diag.reproj_rms_l, diag.reproj_rms_r);
-		report << Format("Dist RMS (L/R): %.3f / %.3f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		report << Format("Dist RMS (L/R): %.1f / %.1f mm\n", diag.dist_rms_l, diag.dist_rms_r);
+		
+		report << "\nExtrinsics Final (Deltas vs Input):\n";
+		report << Format("  dYaw:   %.3f deg\n", dy);
+		report << Format("  dPitch: %.3f deg\n", dp);
+		report << Format("  dRoll:  %.3f deg\n", dr);
 
 		report_text <<= report;
 		math_text <<= math_log + solver.GetTraceText();
 		model->report_text = report;
 		model->math_text = math_log + solver.GetTraceText();
+		
+		// Update persistent diagnostics
+		model->project_state.stage_c_diag.delta_yaw = dy;
+		model->project_state.stage_c_diag.delta_pitch = dp;
+		model->project_state.stage_c_diag.delta_roll = dr;
+		model->project_state.stage_c_diag.cost_before = cost0;
+		model->project_state.stage_c_diag.cost_after = cost1;
+
 		StereoCalibrationHelpers::SaveLastCalibration(*model);
 		SaveProjectState();
 		return true;
@@ -213,6 +254,7 @@ void StageCWindow::SaveProjectState() {
 		return;
 	ProjectState& ps = model->project_state;
 	ps.stage_c_enabled = (bool)enable_stage_c;
+	ps.stage_c_compare = (bool)compare_stage_c;
 	ps.stage_c_mode = (int)stage_c_mode;
 	ps.max_dyaw = (double)max_dyaw;
 	ps.max_dpitch = (double)max_dpitch;

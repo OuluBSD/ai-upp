@@ -8,6 +8,13 @@ NAMESPACE_UPP
 #define M_PI 3.14159265358979323846
 #endif
 
+bool IsParamsFinite(const StereoCalibrationParams& p) {
+	return std::isfinite(p.a) && std::isfinite(p.b) && std::isfinite(p.c) && std::isfinite(p.d) &&
+	       std::isfinite(p.cx) && std::isfinite(p.cy) &&
+	       std::isfinite(p.yaw) && std::isfinite(p.pitch) && std::isfinite(p.roll) &&
+	       std::isfinite(p.yaw_l) && std::isfinite(p.pitch_l) && std::isfinite(p.roll_l);
+}
+
 void StereoCalibrationTrace::Add(const String& s) {
 	if (!enabled || s.IsEmpty())
 		return;
@@ -222,6 +229,8 @@ static vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, con
 }
 
 double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams& params) const {
+	if (!IsParamsFinite(params)) return 1e12; // Reject non-finite params immediately
+
 	int N = matches.GetCount();
 	if (N == 0 && lines.IsEmpty()) return 1e12; // Large finite penalty instead of DBL_MAX
 
@@ -275,11 +284,13 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 	}
 
 	// Line straightness cost
+	static bool dumped_invalid_line = false;
 	for (const auto& line : lines) {
 		if (line.raw_norm.GetCount() < 3) continue;
 		
 		Vector<Pointf> pts;
-		for (const auto& p_norm : line.raw_norm) {
+		for (int i = 0; i < line.raw_norm.GetCount(); i++) {
+			const auto& p_norm = line.raw_norm[i];
 			Size sz = matches.GetCount() > 0 ? matches[0].image_size : Size(1280, 720);
 			vec2 pix((float)p_norm[0] * sz.cx, (float)p_norm[1] * sz.cy);
 			
@@ -295,7 +306,17 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 			
 			// Rectilinear projection: r' = f * tan(theta)
 			double r_rect = params.a * tan(theta);
-			pts.Add(Pointf(r_rect * cos(roll), r_rect * sin(roll)));
+			
+			if (!std::isfinite(r_rect)) {
+				if (!dumped_invalid_line) {
+					printf("INVALID LINE POINT: f=%f, theta=%f, r_rect=%f, r=%f, dx=%f, dy=%f, cx=%f, cy=%f\n",
+						params.a, theta, r_rect, r, dx, dy, params.cx, params.cy);
+					dumped_invalid_line = true;
+				}
+				pts.Add(Pointf(1e6, 1e6)); // Large but finite error
+			} else {
+				pts.Add(Pointf(r_rect * cos(roll), r_rect * sin(roll)));
+			}
 		}
 		
 		// Fit line and calculate RMS error
@@ -455,9 +476,18 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 	};
 
 	ga.best_energy = 1e30;
+	bool dumped_invalid = false;
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		double cost = ComputeRobustCost(Map(ga.population[i]));
+		StereoCalibrationParams p = Map(ga.population[i]);
+		double cost = ComputeRobustCost(p);
+		if (!std::isfinite(cost) || !IsParamsFinite(p)) {
+			if (!dumped_invalid) {
+				printf("GA EXTRINSICS: Invalid candidate at init %d. cost=%f, params finite=%d\n", i, cost, IsParamsFinite(p));
+				dumped_invalid = true;
+			}
+			cost = 1e12;
+		}
 		ga.pop_energy[i] = cost;
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
@@ -473,7 +503,15 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-		double cost = ComputeRobustCost(Map(trial));
+		StereoCalibrationParams p_trial = Map(trial);
+		double cost = ComputeRobustCost(p_trial);
+		if (!std::isfinite(cost) || !IsParamsFinite(p_trial)) {
+			if (!dumped_invalid) {
+				printf("GA EXTRINSICS: Invalid candidate at gen %d. cost=%f, params finite=%d\n", current_gen, cost, IsParamsFinite(p_trial));
+				dumped_invalid = true;
+			}
+			cost = 1e12;
+		}
 		ga.Stop(-cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
 		if (ga.best_energy < last_best) {
 			last_best = ga.best_energy;
@@ -520,16 +558,25 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	};
 
 	ga.best_energy = 1e30;
+	bool dumped_invalid = false;
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		double cost = ComputeRobustCost(Map(ga.population[i]));
+		StereoCalibrationParams p = Map(ga.population[i]);
+		double cost = ComputeRobustCost(p);
+		if (!std::isfinite(cost) || !IsParamsFinite(p)) {
+			if (!dumped_invalid) {
+				printf("GA INTRINSICS: Invalid candidate at init %d. cost=%f, params finite=%d\n", i, cost, IsParamsFinite(p));
+				dumped_invalid = true;
+			}
+			cost = 1e12;
+		}
 		ga.pop_energy[i] = cost;
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
 			ga.best_solution <<= ga.population[i]; 
-			StereoCalibrationParams p = Map(ga.best_solution);
+			StereoCalibrationParams p_best = Map(ga.best_solution);
 			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
-				i, ga.best_energy, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a));
+				i, ga.best_energy, p_best.a, p_best.cx, p_best.cy, p_best.c/p_best.a, p_best.d/p_best.a));
 		}
 	}
 
@@ -539,13 +586,21 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-		double cost = ComputeRobustCost(Map(trial));
+		StereoCalibrationParams p_trial = Map(trial);
+		double cost = ComputeRobustCost(p_trial);
+		if (!std::isfinite(cost) || !IsParamsFinite(p_trial)) {
+			if (!dumped_invalid) {
+				printf("GA INTRINSICS: Invalid candidate at gen %d. cost=%f, params finite=%d\n", current_gen, cost, IsParamsFinite(p_trial));
+				dumped_invalid = true;
+			}
+			cost = 1e12;
+		}
 		ga.Stop(-cost);
 		if (ga.best_energy < last_best) {
 			last_best = ga.best_energy;
-			StereoCalibrationParams p = Map(ga.best_solution);
+			StereoCalibrationParams p_best = Map(ga.best_solution);
 			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
-				current_gen, ga.GetRound(), last_best, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a));
+				current_gen, ga.GetRound(), last_best, p_best.a, p_best.cx, p_best.cy, p_best.c/p_best.a, p_best.d/p_best.a));
 		}
 		if (ga_step_cb) {
 			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;

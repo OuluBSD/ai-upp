@@ -499,8 +499,11 @@ void StageAWindow::OnGAStart() {
 	ga_start.Disable();
 	ga_stop.Enable();
 	ga_apply.Disable();
+	compare_ga_toggle.Disable();
 	ga_status_lbl.SetLabel("Status: Initializing...");
 	ga_plot.Clear();
+	ga_diag_lbl.SetLabel("");
+	ga_best_params.a = 0;
 	
 	// Prepare data for solver (copy to staging member)
 	ga_input_matches.Clear();
@@ -586,8 +589,17 @@ void StageAWindow::OnGAFinished() {
 	ga_running = false;
 	ga_start.Enable();
 	ga_stop.Disable();
-	ga_apply.Enable();
-	ga_status_lbl.SetLabel("Status: Finished");
+	
+	if (ga_best_params.a > 1e-6) {
+		ga_apply.Enable();
+		compare_ga_toggle.Enable();
+		ga_status_lbl.SetLabel("Status: Finished");
+	} else {
+		ga_apply.Disable();
+		compare_ga_toggle.Disable();
+		ga_status_lbl.SetLabel("Status: Aborted/Failed");
+		return;
+	}
 	
 	// Compute diagnostics
 	if (ga_input_matches.IsEmpty()) return;

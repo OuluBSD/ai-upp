@@ -158,6 +158,7 @@ private:
 	void OnReviewChanged();
 	void OnToolAction();
 	void OnUndo();
+	Pointf UnprojectPoint(int eye, Pointf p_view, Size sz);
 	void OnPickMatchTool(int eye, Pointf p);
 	void OnFinalizeLine(int eye, const Vector<Pointf>& chain);
 	void OnHoverPoint(Pointf p_rect, int eye);

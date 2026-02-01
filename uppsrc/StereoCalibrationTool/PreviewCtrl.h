@@ -50,6 +50,10 @@ public:
 	const Vector<Pointf>& GetLinePoints() const { return line_points; }
 	void ClearLinePoints() { line_points.Clear(); Refresh(); }
 
+	// Diagnostics API
+	void SetEpipolarY(double y) { epipolar_y = y; Refresh(); } // y in image pixels (< 0 to hide)
+	void SetShowCurvature(bool b) { show_curvature = b; Refresh(); }
+
 	void Clear();
 
 	// Coordinate Mapping
@@ -58,6 +62,8 @@ public:
 
 	// Callbacks
 	Event<int /*eye*/, Pointf /*img_px*/> WhenClickPoint;
+	Event<Pointf /*img_px*/> WhenHoverPoint; // New: for driving epipolar lines
+	Event<int /*eye*/, const Vector<Pointf>& /*chain*/> WhenFinalizeLine; // Triggered on Right-click
 
 private:
 	Image img;
@@ -69,15 +75,25 @@ private:
 	Vector<Pointf> line_points;  // in image pixels
 	int highlight_idx = -1;
 
+	// Diagnostics
+	double epipolar_y = -1.0;
+	bool show_curvature = false;
+
 	// Computed fitting parameters (internal cache for mapping)
 	double img_scale = 1.0;
 	Pointf img_offset;
+
+	// Zoom state
+	double zoom_level = 1.0; // 1.0 = fit-to-window, >1.0 = zoom in
+	Pointf zoom_center = Pointf(0.5, 0.5); // Normalized 0..1 relative to image
 
 	void UpdateLayout();
 	
 	virtual void Paint(Draw& w) override;
 	virtual void LeftDown(Point p, dword flags) override;
+	virtual void RightDown(Point p, dword flags) override;
 	virtual void MouseMove(Point p, dword flags) override;
+	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;
 };
 
 END_UPP_NAMESPACE

@@ -106,6 +106,9 @@ private:
 	ParentCtrl controls;
 	TabCtrl tab_data;
 	ParentCtrl ga_tab_ctrl; // Container for GA controls
+	ParentCtrl ga_results_ctrl; // Container for GA Results
+	Splitter ga_results_split;
+	ArrayCtrl ga_best_results_list;
 
 	// Capture + match lists.
 	ArrayCtrl captures_list;
@@ -149,6 +152,7 @@ private:
 	void BuildLayout();
 	void BuildStageAControls();
 	void BuildGAPanel();
+	void BuildGAResultsPanel();
 	void BuildCaptureLists();
 	void BuildPlotters();
 	void SyncStageA();

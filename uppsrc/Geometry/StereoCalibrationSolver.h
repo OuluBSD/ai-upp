@@ -29,6 +29,8 @@ struct StereoCalibrationParams {
 	double roll_l = 0;
 };
 
+bool IsParamsFinite(const StereoCalibrationParams& p);
+
 struct StereoCalibrationResidual : Moveable<StereoCalibrationResidual> {
 	int match_index = -1;
 	vec2 measured_l;

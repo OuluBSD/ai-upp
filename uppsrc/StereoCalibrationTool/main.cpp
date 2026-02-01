@@ -341,8 +341,8 @@ GUI_APP_MAIN
 		
 		Cout() << "GA Run Finished.\n";
 		Cout() << "Best Results:\n";
-		Cout() << "  Yaw L/R: " << params.yaw_l * 180/M_PI << " / " << params.yaw * 180/M_PI << "\n";
-		Cout() << "  Focal: " << params.a << ", k1=" << params.c/params.a << ", k2=" << params.d/params.a << "\n";
+		Cout() << Format("  Yaw L/R: %.3f / %.3f\n", params.yaw_l * 180/M_PI, params.yaw * 180/M_PI);
+		Cout() << Format("  Focal: %.2f, k1=%.4f, k2=%.4f\n", params.a, params.c/params.a, params.d/params.a);
 		
 		SetExitCode(0);
 		return;

@@ -198,6 +198,7 @@ StageAWindow::StageAWindow() {
 void StageAWindow::Init(AppModel& m) {
 	model = &m;
 	BuildStageAControls();
+	BuildGAPanel();
 	BuildCaptureLists();
 	BuildPlotters();
 	RefreshFromModel();
@@ -256,7 +257,7 @@ void StageAWindow::RefreshFromModel() {
 void StageAWindow::BuildLayout() {
 	Add(controls.VSizePos(0, 0).LeftPos(0, 300));
 
-	main_split.Vert(preview_split, list_split);
+	main_split.Vert(preview_split, tab_data);
 	main_split.SetPos(6500);
 	Add(main_split.VSizePos(0, 0).HSizePos(300, 0));
 
@@ -268,6 +269,9 @@ void StageAWindow::BuildLayout() {
 	
 	list_split.Horz(captures_list, details_split);
 	list_split.SetPos(3500);
+	
+	tab_data.Add(list_split, "Data");
+	tab_data.Add(ga_tab_ctrl, "Genetic Optimizer");
 }
 
 // Builds Stage A controls (basic params + view controls).
@@ -418,44 +422,50 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(show_crosshair.TopPos(y, 20).LeftPos(8, 180));
 	y += 24;
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
-	
-	// GA UI Construction
-	y += 30;
+}
+
+void StageAWindow::BuildGAPanel() {
+	int y = 6;
 	ga_group.SetLabel("Genetic Optimizer");
-	controls.Add(ga_group.TopPos(y, 220).HSizePos(4, 4));
+	ga_tab_ctrl.Add(ga_group.TopPos(y, 240).HSizePos(4, 4));
 	
-	gy = y + 20;
+	int gy = y + 20;
 	ga_start.SetLabel("Start GA");
 	ga_start <<= THISBACK(OnGAStart);
-	controls.Add(ga_start.TopPos(gy, 24).LeftPos(12, 80));
+	ga_tab_ctrl.Add(ga_start.TopPos(gy, 24).LeftPos(12, 80));
 	
 	ga_stop.SetLabel("Stop");
 	ga_stop <<= THISBACK(OnGAStop);
 	ga_stop.Disable();
-	controls.Add(ga_stop.TopPos(gy, 24).LeftPos(100, 60));
+	ga_tab_ctrl.Add(ga_stop.TopPos(gy, 24).LeftPos(100, 60));
+	
+	ga_apply.SetLabel("Apply Best");
+	ga_apply <<= THISBACK(OnGAApply);
+	ga_apply.Disable();
+	ga_tab_ctrl.Add(ga_apply.TopPos(gy, 24).LeftPos(170, 80));
 	
 	gy += 30;
 	ga_pop_lbl.SetLabel("Pop:");
 	ga_pop_edit.MinMax(10, 1000);
-	controls.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(12, 30));
-	controls.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(46, 50));
+	ga_tab_ctrl.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(12, 30));
+	ga_tab_ctrl.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(46, 50));
 	
 	ga_gen_lbl.SetLabel("Gen:");
 	ga_gen_edit.MinMax(1, 1000);
-	controls.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(104, 30));
-	controls.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(138, 50));
+	ga_tab_ctrl.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(104, 30));
+	ga_tab_ctrl.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(138, 50));
 	
 	gy += 30;
 	ga_use_all_frames.SetLabel("Use all frames");
 	ga_use_all_frames <<= true;
-	controls.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(12, 100));
+	ga_tab_ctrl.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(12, 100));
 	
 	gy += 30;
 	ga_status_lbl.SetLabel("Status: Idle");
-	controls.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
+	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
 	
 	gy += 24;
-	controls.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
+	ga_tab_ctrl.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
 }
 
 void StageAWindow::OnGAStart() {

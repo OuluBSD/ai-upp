@@ -83,6 +83,8 @@ private:
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
 	ParentCtrl controls;
+	TabCtrl tab_data;
+	ParentCtrl ga_tab_ctrl; // Container for GA controls
 
 	// Capture + match lists.
 	ArrayCtrl captures_list;

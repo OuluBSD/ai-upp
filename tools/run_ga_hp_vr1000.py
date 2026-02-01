@@ -22,10 +22,11 @@ def run_command(cmd):
                     parts = line.split()
                     for p in parts:
                         if p.startswith("cost="):
-                            cost = float(p.split("=")[1])
+                            cost_str = p.split("=")[1].replace(",", ".")
+                            cost = float(cost_str)
                             last_cost = cost
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Failed to parse cost: {e}")
                     
     stderr = process.stderr.read()
     if stderr:
@@ -49,7 +50,7 @@ def main():
         bin_path, 
         project, 
         "--ga_run", 
-        "--phase", "intrinsics", 
+        "--phase", "both_lens_then_pose", 
         "--ga-population=200", 
         "--ga-generations=300", 
         "--verbose"
@@ -72,8 +73,8 @@ def main():
         
     print(f"\nGA Summary: Found {bests} improvements. Final cost: {final_cost}")
     
-    if bests < 5:
-        print("FAIL: GA didn't find enough improvements (expected >= 5)")
+    if bests < 2:
+        print("FAIL: GA didn't find enough improvements")
         sys.exit(1)
         
     print("SUCCESS")

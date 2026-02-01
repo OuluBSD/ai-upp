@@ -1,6 +1,10 @@
 #include "StereoCalibrationTool.h"
 #include <cstring>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 using namespace Upp;
 
 GUI_APP_MAIN
@@ -22,6 +26,7 @@ GUI_APP_MAIN
 	bool stagea_identity_test = false;
 	bool stagea_regression = false;
 	bool stagea_distortion_selfcheck = false;
+	bool pipeline_selfcheck = false;
 	String test_image_path;
 	String ga_run_phase;
 	bool ga_run_mode = false;
@@ -61,11 +66,14 @@ GUI_APP_MAIN
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
 			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
 			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
+			       << "  --pipeline_selfcheck     Verify calibration pipeline invariants\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
 		if (arg == "--ga_run")
 			ga_run_mode = true;
+		else if (arg == "--pipeline_selfcheck")
+			pipeline_selfcheck = true;
 		else if (arg.StartsWith("--phase="))
 			ga_run_phase = arg.Mid(strlen("--phase="));
 		else if (arg == "--test-usb")
@@ -174,6 +182,38 @@ GUI_APP_MAIN
 	if (stagea_distortion_selfcheck) {
 		int result = RunStageADistortionSelfCheck(verbose);
 		SetExitCode(result);
+		return;
+	}
+
+	// Pipeline self-check mode
+	if (pipeline_selfcheck) {
+		model.project_dir = project_dir;
+		StereoCalibrationHelpers::LoadState(model);
+		const ProjectState& ps = model.project_state;
+		Cout() << "Pipeline Self-Check: " << project_dir << "\n";
+		Cout() << "Current State: " << StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state) << "\n";
+		
+		int errors = 0;
+		if (ps.calibration_state >= CALIB_STAGE_B_SOLVED) {
+			if (ps.stage_b_diag.final_reproj_rms > 5.0) {
+				Cerr() << "ERROR: Stage B Reproj RMS too high: " << ps.stage_b_diag.final_reproj_rms << " px\n";
+				errors++;
+			}
+		}
+		if (ps.calibration_state >= CALIB_STAGE_C_REFINED) {
+			if (ps.stage_c_diag.cost_after >= ps.stage_c_diag.cost_before) {
+				Cerr() << "ERROR: Stage C cost did not improve.\n";
+				errors++;
+			}
+		}
+		
+		if (errors > 0) {
+			Cout() << "Pipeline self-check FAILED with " << errors << " error(s).\n";
+			SetExitCode(1);
+		} else {
+			Cout() << "Pipeline self-check PASSED.\n";
+			SetExitCode(0);
+		}
 		return;
 	}
 

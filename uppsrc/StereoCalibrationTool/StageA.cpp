@@ -454,21 +454,149 @@ void StageAWindow::BuildStageAControls() {
 }
 
 void StageAWindow::OnGAStart() {
-	// TODO: Implement background runner
-	ga_status_lbl.SetLabel("Status: Running (Placeholder)");
+	if (ga_running) return;
+	
+	int pop = (int)ga_pop_edit;
+	int gen = (int)ga_gen_edit;
+	bool use_all = (bool)ga_use_all_frames;
+	
+	if (pop <= 0 || gen <= 0) return;
+	
+	ga_running = true;
+	ga_cancel = 0;
 	ga_start.Disable();
 	ga_stop.Enable();
+	ga_apply.Disable();
+	ga_status_lbl.SetLabel("Status: Initializing...");
+	
+	// Prepare data for solver (copy to staging member)
+	ga_input_matches.Clear();
+	int row = captures_list.GetCursor();
+	
+	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
+		if (!use_all && i != row) continue; // Skip if single-frame mode
+		const CapturedFrame& f = model->captured_frames[i];
+		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : f.right_img.GetSize();
+		if (sz.cx <= 0) continue;
+		
+		for (const MatchPair& m : f.matches) {
+			StereoCalibrationMatch& sm = ga_input_matches.Add();
+			sm.left_px = vec2(m.left.x * sz.cx, m.left.y * sz.cy);
+			sm.right_px = vec2(m.right.x * sz.cx, m.right.y * sz.cy);
+			sm.image_size = sz;
+			sm.dist_l = m.dist_l / 1000.0; // mm -> m
+			sm.dist_r = m.dist_r / 1000.0;
+		}
+	}
+	
+	if (ga_input_matches.GetCount() < 5) {
+		ga_status_lbl.SetLabel("Status: Too few matches (<5)");
+		ga_running = false;
+		ga_start.Enable();
+		ga_stop.Disable();
+		return;
+	}
+	
+	// Copy current state
+	ProjectState start_state = model->project_state;
+	double eye_dist = start_state.eye_dist / 1000.0; // mm -> m
+	
+	// Run worker thread
+	ga_thread.Run([=] {
+		StereoCalibrationSolver solver;
+		solver.matches <<= ga_input_matches; // Deep copy from member
+		solver.eye_dist = eye_dist;
+		solver.ga_population = pop;
+		solver.ga_generations = gen;
+		solver.dist_weight = start_state.distance_weight;
+		solver.huber_px = start_state.huber_px;
+		solver.huber_m = start_state.huber_m;
+		
+		// Initial params
+		StereoCalibrationParams params;
+		
+		solver.ga_step_cb = [&](int g, double cost, const StereoCalibrationParams& best_p) -> bool {
+			if (ga_cancel) return false;
+			PostCallback([=] { OnGAStep(g, cost, best_p); });
+			return true;
+		};
+		
+		solver.GABootstrapIntrinsics(params);
+		
+		if (ga_cancel) return; // Aborted
+		
+		// Finished
+		PostCallback([=] {
+			ga_best_params = params;
+			OnGAFinished();
+		});
+	});
 }
 
 void StageAWindow::OnGAStop() {
-	// TODO: Implement cancellation
-	ga_status_lbl.SetLabel("Status: Stopped");
+	if (ga_running) {
+		ga_cancel = 1;
+		ga_status_lbl.SetLabel("Status: Stopping...");
+	}
+}
+
+void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p) {
+	if (!ga_running) return;
+	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
+	
+	// Optional: update best_p to UI? Maybe too frequent.
+	// But cost plot needs this.
+}
+
+void StageAWindow::OnGAFinished() {
+	ga_running = false;
 	ga_start.Enable();
 	ga_stop.Disable();
+	ga_apply.Enable();
+	ga_status_lbl.SetLabel("Status: Finished");
 }
 
 void StageAWindow::OnGAApply() {
-	// TODO: Apply best params
+	if (ga_running) return;
+	
+	// Copy ga_best_params to model->project_state
+	// GA optimizes: a, cx, cy, c, d (k1, k2 derived)
+	// We need to map back to ProjectState fields.
+	// NOTE: Solver uses polynomial model (a,b,c,d). StageA uses (f, k1, k2).
+	// We need to convert back.
+	// solver: r_src = a*theta + b*theta^3 ...
+	// StageA: r_src = f*theta * (1 + k1*theta^2 + k2*theta^4) = f*theta + f*k1*theta^3 + f*k2*theta^5
+	// So: a = f. 
+	// b = f*k1 => k1 = b/a. (But GA solver uses c for 3rd order, d for 5th order?)
+	// Let's check GABootstrapIntrinsics mapping in Solver.cpp:
+	// p.c = p.a * k1; p.d = p.a * k2; (p.b=0)
+	// So k1 = c/a, k2 = d/a.
+	
+	double f = ga_best_params.a;
+	if (fabs(f) > 1e-6) {
+		model->project_state.lens_f = f;
+		model->project_state.lens_cx = ga_best_params.cx;
+		model->project_state.lens_cy = ga_best_params.cy;
+		model->project_state.lens_k1 = ga_best_params.c / f;
+		model->project_state.lens_k2 = ga_best_params.d / f;
+		
+		// Update FOV for UI consistency
+		// f = (w/2) / tan(fov/2) => tan(fov/2) = w/(2f) => fov = 2*atan(w/(2f))
+		// We need width. Assume first image width?
+		int row = captures_list.GetCursor();
+		if (row >= 0 && row < model->captured_frames.GetCount()) {
+			const CapturedFrame& cf = model->captured_frames[row];
+			Size sz = !cf.left_img.IsEmpty() ? cf.left_img.GetSize() : cf.right_img.GetSize();
+			if (sz.cx > 0) {
+				double fov_rad = 2.0 * atan((sz.cx * 0.5) / f);
+				model->project_state.fov_deg = fov_rad * 180.0 / M_PI;
+			}
+		}
+		
+		RefreshFromModel(); // Updates UI and Preview
+		SaveProjectState();
+		PromptOK("Genetic optimization results applied.");
+	}
 }
 
 // Configures columns and selection callbacks for capture/match lists.

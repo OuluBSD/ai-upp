@@ -491,7 +491,7 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 		ga.pop_energy[i] = cost;
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
-			ga.best_solution <<= ga.population[i];
+			ga.best_solution = clone(ga.population[i]);
 			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
 				i, ga.best_energy, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
 		}
@@ -500,6 +500,7 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 	int current_gen = 0;
 	double last_best = ga.best_energy;
 	while (!ga.IsEnd()) {
+		ga.Start();
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
@@ -512,8 +513,8 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 			}
 			cost = 1e12;
 		}
-		ga.Stop(-cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
-		if (ga.best_energy < last_best) {
+		ga.Stop(cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
+		if (ga.best_energy < last_best && IsParamsFinite(Map(ga.best_solution))) {
 			last_best = ga.best_energy;
 			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f", 
 				current_gen, ga.GetRound(), last_best, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI));
@@ -573,7 +574,7 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 		ga.pop_energy[i] = cost;
 		if (ga.pop_energy[i] < ga.best_energy) { 
 			ga.best_energy = ga.pop_energy[i]; 
-			ga.best_solution <<= ga.population[i]; 
+			ga.best_solution = clone(ga.population[i]); 
 			StereoCalibrationParams p_best = Map(ga.best_solution);
 			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
 				i, ga.best_energy, p_best.a, p_best.cx, p_best.cy, p_best.c/p_best.a, p_best.d/p_best.a));
@@ -583,6 +584,7 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	int current_gen = 0;
 	double last_best = ga.best_energy;
 	while (!ga.IsEnd()) {
+		ga.Start();
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
@@ -595,8 +597,8 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 			}
 			cost = 1e12;
 		}
-		ga.Stop(-cost);
-		if (ga.best_energy < last_best) {
+		ga.Stop(cost);
+		if (ga.best_energy < last_best && IsParamsFinite(Map(ga.best_solution))) {
 			last_best = ga.best_energy;
 			StereoCalibrationParams p_best = Map(ga.best_solution);
 			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 

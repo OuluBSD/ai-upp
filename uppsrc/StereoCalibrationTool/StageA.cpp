@@ -1367,6 +1367,14 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 			rp = apply_extr ? (float)(p_deg * M_PI / 180.0) : 0;
 			rr = apply_extr ? (float)(r_deg * M_PI / 180.0) : 0;
 		}
+		
+		// Apply Stage C deltas if enabled and compare is active
+		if (ps.stage_c_compare) {
+			// model->dyaw_c etc are in degrees
+			ry += model->dyaw_c * M_PI / 180.0;
+			rp += model->dpitch_c * M_PI / 180.0;
+			rr += model->droll_c * M_PI / 180.0;
+		}
 
 		if (apply_intr) {
 			return StereoCalibrationHelpers::RectifyAndRotateOnePass(src, lp, ry, rp, rr, sz);

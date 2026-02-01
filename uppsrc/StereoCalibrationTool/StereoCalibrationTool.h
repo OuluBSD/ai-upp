@@ -190,6 +190,7 @@ struct ProjectState {
 
 	// Stage C (micro-refine)
 	bool stage_c_enabled = false;
+	bool stage_c_compare = false;
 	int stage_c_mode = 0; // 0=Relative, 1=Per-eye
 	double max_dyaw = 3.0;
 	double max_dpitch = 2.0;
@@ -233,7 +234,8 @@ struct ProjectState {
 		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
 		   ("compare_basic_params", compare_basic_params);
 
-		jio("stage_c_enabled", stage_c_enabled)("stage_c_mode", stage_c_mode);
+		jio("stage_c_enabled", stage_c_enabled)("stage_c_compare", stage_c_compare);
+		jio("stage_c_mode", stage_c_mode);
 		jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)
 		   ("lambda", lambda);
 

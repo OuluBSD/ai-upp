@@ -781,6 +781,7 @@ void StageAWindow::OnGAApply() {
 					ps.fov_deg = fov_rad * 180.0 / M_PI;
 				}
 			}
+			ps.calibration_state = CALIB_GA_INTRINSICS;
 		}
 		
 		if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
@@ -790,6 +791,8 @@ void StageAWindow::OnGAApply() {
 			ps.yaw_r = ga_best_params.yaw * 180.0 / M_PI;
 			ps.pitch_r = ga_best_params.pitch * 180.0 / M_PI;
 			ps.roll_r = ga_best_params.roll * 180.0 / M_PI;
+			if (phase == GA_PHASE_EXTRINSICS)
+				ps.calibration_state = CALIB_GA_EXTRINSICS;
 		}
 		
 		RefreshFromModel(); // Updates UI and Preview
@@ -870,11 +873,13 @@ void StageAWindow::BuildPlotters() {
 	left_plot.SetTitle("Left Eye");
 	left_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
 	left_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 0); };
+	left_plot.WhenFinalizeLine = THISBACK(OnFinalizeLine);
 
 	right_plot.SetEye(1);
 	right_plot.SetTitle("Right Eye");
 	right_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
 	right_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 1); };
+	right_plot.WhenFinalizeLine = THISBACK(OnFinalizeLine);
 }
 
 // Handler for hovering over plotters to drive epipolar lines
@@ -1004,6 +1009,54 @@ void StageAWindow::PushUndo() {
 	undo_btn.Enable();
 }
 
+
+void StageAWindow::OnFinalizeLine(int eye, const Vector<Pointf>& chain) {
+	int row = captures_list.GetCursor();
+	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+	
+	CapturedFrame& frame = model->captured_frames[row];
+	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
+	if (sz.cx <= 0) return;
+
+	const ProjectState& ps = model->project_state;
+	
+	// Reconstruct lp (same as in UpdatePreview)
+	double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
+	float f = (float)((sz.cx * 0.5) / tan(fov_rad * 0.5));
+	
+	StereoCalibrationHelpers::LensParams lp;
+	lp.f = f;
+	lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
+	lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
+	lp.k1 = (float)ps.lens_k1;
+	lp.k2 = (float)ps.lens_k2;
+	if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) lp.k1 = (float)(-ps.barrel_strength * 0.1);
+
+	float ry = ps.preview_extrinsics ? (float)(ps.yaw_l * M_PI / 180.0) : 0;
+	float rp = ps.preview_extrinsics ? (float)(ps.pitch_l * M_PI / 180.0) : 0;
+	float rr = ps.preview_extrinsics ? (float)(ps.roll_l * M_PI / 180.0) : 0;
+	if (eye == 1) {
+		ry = ps.preview_extrinsics ? (float)(ps.yaw_r * M_PI / 180.0) : 0;
+		rp = ps.preview_extrinsics ? (float)(ps.pitch_r * M_PI / 180.0) : 0;
+		rr = ps.preview_extrinsics ? (float)(ps.roll_r * M_PI / 180.0) : 0;
+	}
+	
+	if (!ps.preview_intrinsics) {
+		lp.k1 = 0; lp.k2 = 0;
+	}
+
+	Vector<Pointf> norm_chain;
+	for(Pointf p_rect : chain) {
+		Pointf p_raw = StereoCalibrationHelpers::UnprojectPointOnePass(p_rect, sz, lp, ry, rp, rr);
+		norm_chain.Add(Pointf(p_raw.x / sz.cx, p_raw.y / sz.cy));
+	}
+	
+	if (eye == 0) frame.annotation_lines_left.Add(pick(norm_chain));
+	else frame.annotation_lines_right.Add(pick(norm_chain));
+	
+	SaveProjectState();
+	UpdatePreview();
+}
 
 void StageAWindow::OnPickMatchTool(int eye, Pointf p) {
 	int mode = tool_list.GetIndex();

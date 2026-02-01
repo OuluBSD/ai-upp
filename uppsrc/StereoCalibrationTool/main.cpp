@@ -260,8 +260,9 @@ GUI_APP_MAIN
 		StereoCalibrationHelpers::LoadState(model);
 		
 		GAPhase phase = GA_PHASE_BOTH;
-		if (ga_run_phase == "ext") phase = GA_PHASE_EXTRINSICS;
-		else if (ga_run_phase == "int") phase = GA_PHASE_INTRINSICS;
+		if (ga_run_phase == "ext" || ga_run_phase == "extrinsics") phase = GA_PHASE_EXTRINSICS;
+		else if (ga_run_phase == "int" || ga_run_phase == "intrinsics") phase = GA_PHASE_INTRINSICS;
+		else if (ga_run_phase == "both") phase = GA_PHASE_BOTH;
 		
 		StereoCalibrationSolver solver;
 		solver.eye_dist = model.project_state.eye_dist / 1000.0;
@@ -269,6 +270,7 @@ GUI_APP_MAIN
 		solver.ga_generations = ga_generations;
 		solver.ga_use_trimmed_loss = model.project_state.ga_use_trimmed_loss;
 		solver.ga_trim_percent = model.project_state.ga_trim_percent;
+		solver.ga_bounds = model.project_state.ga_bounds; // Load bounds from state
 		
 		for (const auto& f : model.captured_frames) {
 			Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : f.right_img.GetSize();
@@ -281,21 +283,31 @@ GUI_APP_MAIN
 				sm.dist_l = m.dist_l / 1000.0;
 				sm.dist_r = m.dist_r / 1000.0;
 			}
+			for (const auto& line : f.annotation_lines_left) {
+				auto& sl = solver.lines.Add();
+				sl.eye = 0;
+				for (const auto& p : line) sl.raw_norm.Add(vec2(p.x, p.y));
+			}
+			for (const auto& line : f.annotation_lines_right) {
+				auto& sl = solver.lines.Add();
+				sl.eye = 1;
+				for (const auto& p : line) sl.raw_norm.Add(vec2(p.x, p.y));
+			}
 		}
 		
-		if (solver.matches.GetCount() < 5) {
-			Cerr() << "Error: Too few matches for GA run\n";
+		if (solver.matches.GetCount() < 5 && solver.lines.IsEmpty()) {
+			Cerr() << "Error: Too few matches/lines for GA run\n";
 			SetExitCode(1);
 			return;
 		}
 		
 		StereoCalibrationParams params;
 		// Initialize from project state
-		double w = solver.matches[0].image_size.cx;
+		double w = solver.matches.GetCount() > 0 ? solver.matches[0].image_size.cx : 1280;
 		double fov_rad = model.project_state.fov_deg * M_PI / 180.0;
 		params.a = (w * 0.5) / tan(fov_rad * 0.5);
 		params.cx = model.project_state.lens_cx > 0 ? model.project_state.lens_cx : w*0.5;
-		params.cy = model.project_state.lens_cy > 0 ? model.project_state.lens_cy : solver.matches[0].image_size.cy*0.5;
+		params.cy = model.project_state.lens_cy > 0 ? model.project_state.lens_cy : (solver.matches.GetCount() > 0 ? solver.matches[0].image_size.cy*0.5 : 720*0.5);
 		params.c = params.a * model.project_state.lens_k1;
 		params.d = params.a * model.project_state.lens_k2;
 		params.yaw_l = model.project_state.yaw_l * M_PI / 180.0;
@@ -305,7 +317,7 @@ GUI_APP_MAIN
 		params.pitch = model.project_state.pitch_r * M_PI / 180.0;
 		params.roll = model.project_state.roll_r * M_PI / 180.0;
 
-		Cout() << "Running GA Phase: " << ga_run_phase << "...\n";
+		Cout() << "Running GA Phase: " << ga_run_phase << " (pop=" << ga_population << ", gens=" << ga_generations << ")...\n";
 		solver.GABootstrapPipeline(params, phase);
 		
 		Cout() << "GA Run Finished.\n";

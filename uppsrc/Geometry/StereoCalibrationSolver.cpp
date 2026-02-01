@@ -223,54 +223,115 @@ static vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, con
 
 double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams& params) const {
 	int N = matches.GetCount();
-	if (N == 0) return DBL_MAX;
+	if (N == 0 && lines.IsEmpty()) return 1e12; // Large finite penalty instead of DBL_MAX
 
 	vec3 pL(-(float)eye_dist / 2.0f, 0, 0);
 	vec3 pR((float)eye_dist / 2.0f, 0, 0);
 
 	Vector<double> point_costs;
-	point_costs.SetCount(N);
+	if (N > 0) {
+		point_costs.SetCount(N);
+		for (int i = 0; i < N; i++) {
+			const auto& m = matches[i];
+			vec3 dL, dR;
+			UnprojectDir(params, m.left_px, 0, dL);
+			UnprojectDir(params, m.right_px, 1, dR);
 
-	for (int i = 0; i < N; i++) {
-		const auto& m = matches[i];
-		vec3 dL, dR;
-		UnprojectDir(params, m.left_px, 0, dL);
-		UnprojectDir(params, m.right_px, 1, dR);
-
-		vec3 X = TriangulatePoint(pL, dL, pR, dR);
-		
-		double cost = 0;
-		if (!std::isfinite(X[0]) || !std::isfinite(X[1]) || !std::isfinite(X[2])) {
-			cost = 1e6;
-		} else {
-			vec2 projL, projR;
-			double zL = 0, zR = 0;
-			ProjectPoint(params, X, 0, eye_dist, projL, zL);
-			ProjectPoint(params, X, 1, eye_dist, projR, zR);
-
-			double eL = (projL - m.left_px).GetLength();
-			double eR = (projR - m.right_px).GetLength();
+			vec3 X = TriangulatePoint(pL, dL, pR, dR);
 			
-			cost = Huber(eL, huber_px) + Huber(eR, huber_px);
-			if (m.dist_l > 0) cost += dist_weight * Huber((X - pL).GetLength() - m.dist_l, huber_m);
-			if (m.dist_r > 0) cost += dist_weight * Huber((X - pR).GetLength() - m.dist_r, huber_m);
-			if (zL < 0.01 || zR < 0.01) cost += 1000.0;
+			double cost = 0;
+			if (!std::isfinite(X[0]) || !std::isfinite(X[1]) || !std::isfinite(X[2])) {
+				cost = 1e6;
+			} else {
+				vec2 projL, projR;
+				double zL = 0, zR = 0;
+				ProjectPoint(params, X, 0, eye_dist, projL, zL);
+				ProjectPoint(params, X, 1, eye_dist, projR, zR);
+
+				double eL = (projL - m.left_px).GetLength();
+				double eR = (projR - m.right_px).GetLength();
+				
+				cost = Huber(eL, huber_px) + Huber(eR, huber_px);
+				if (m.dist_l > 0) cost += dist_weight * Huber((X - pL).GetLength() - m.dist_l, huber_m);
+				if (m.dist_r > 0) cost += dist_weight * Huber((X - pR).GetLength() - m.dist_r, huber_m);
+				if (zL < 0.01 || zR < 0.01) cost += 1000.0;
+			}
+			point_costs[i] = cost;
 		}
-		point_costs[i] = cost;
 	}
 
 	double total_cost = 0;
-	if (ga_use_trimmed_loss) {
-		Sort(point_costs);
-		int count = (int)(N * (1.0 - ga_trim_percent / 100.0));
-		count = max(1, count);
-		for(int i = 0; i < count; i++) total_cost += point_costs[i];
-		total_cost /= count;
-	} else {
-		for(int i = 0; i < N; i++) total_cost += point_costs[i];
-		total_cost /= N;
+	if (N > 0) {
+		if (ga_use_trimmed_loss) {
+			Sort(point_costs);
+			int count = (int)(N * (1.0 - ga_trim_percent / 100.0));
+			count = max(1, count);
+			for(int i = 0; i < count; i++) total_cost += point_costs[i];
+			total_cost /= count;
+		} else {
+			for(int i = 0; i < N; i++) total_cost += point_costs[i];
+			total_cost /= N;
+		}
 	}
-	if (params.a < 10.0) total_cost += 1e6;
+
+	// Line straightness cost
+	for (const auto& line : lines) {
+		if (line.raw_norm.GetCount() < 3) continue;
+		
+		Vector<Pointf> pts;
+		for (const auto& p_norm : line.raw_norm) {
+			Size sz = matches.GetCount() > 0 ? matches[0].image_size : Size(1280, 720);
+			vec2 pix((float)p_norm.x * sz.cx, (float)p_norm.y * sz.cy);
+			
+			double dx = pix[0] - params.cx;
+			double dy = pix[1] - params.cy;
+			double r = sqrt(dx * dx + dy * dy);
+			if (r < 1e-9) {
+				pts.Add(Pointf(0, 0));
+				continue;
+			}
+			double theta = PixelToAngle(params, r);
+			double roll = atan2(dy, dx);
+			
+			// Rectilinear projection: r' = f * tan(theta)
+			double r_rect = params.a * tan(theta);
+			pts.Add(Pointf(r_rect * cos(roll), r_rect * sin(roll)));
+		}
+		
+		// Fit line and calculate RMS error
+		if (pts.GetCount() >= 3) {
+			double sum_x = 0, sum_y = 0, sum_xx = 0, sum_xy = 0, sum_yy = 0;
+			for (const auto& p : pts) {
+				sum_x += p.x; sum_y += p.y;
+				sum_xx += p.x * p.x; sum_xy += p.x * p.y; sum_yy += p.y * p.y;
+			}
+			int n = pts.GetCount();
+			double var_x = sum_xx - sum_x * sum_x / n;
+			double var_y = sum_yy - sum_y * sum_y / n;
+			double cov_xy = sum_xy - sum_x * sum_y / n;
+			
+			double line_cost = 0;
+			if (fabs(var_x) > fabs(var_y)) {
+				double slope = cov_xy / var_x;
+				double intercept = (sum_y - slope * sum_x) / n;
+				for (const auto& p : pts) {
+					double err = p.y - (slope * p.x + intercept);
+					line_cost += err * err;
+				}
+			} else if (fabs(var_y) > 1e-9) {
+				double inv_slope = cov_xy / var_y;
+				double intercept = (sum_x - inv_slope * sum_y) / n;
+				for (const auto& p : pts) {
+					double err = p.x - (inv_slope * p.y + intercept);
+					line_cost += err * err;
+				}
+			}
+			total_cost += 100.0 * sqrt(line_cost / n); // Weight lines heavily for intrinsics
+		}
+	}
+
+	if (params.a < 10.0) total_cost += 1e9;
+	if (!std::isfinite(total_cost)) return 1e12;
 	return total_cost;
 }
 
@@ -373,40 +434,34 @@ static double ComputeCalibrationCost(const StereoCalibrationSolver& solver,
 void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& params) {
 	if (log) *log << "  Step: Genetic algorithm bootstrap (extrinsics)...\n";
 	
-	const int dimension = 3;
-	GeneticOptimizer ga;
-	ga.SetMaxGenerations(ga_generations);
-	ga.SetRandomTypeUniform();
-	ga.MinMax(-1.0, 1.0); 
-	ga.Init(dimension, ga_population, StrategyBest1Exp);
-
-	ga.min_values[0] = -ga_bounds.yaw_deg * M_PI / 180.0;
-	ga.max_values[0] =  ga_bounds.yaw_deg * M_PI / 180.0;
-	ga.min_values[1] = -ga_bounds.pitch_deg * M_PI / 180.0;
-	ga.max_values[1] =  ga_bounds.pitch_deg * M_PI / 180.0;
-	ga.min_values[2] = -ga_bounds.roll_deg * M_PI / 180.0;
-	ga.max_values[2] =  ga_bounds.roll_deg * M_PI / 180.0;
-
-	auto Map = [&](const Vector<double>& v) {
-		StereoCalibrationParams p = params;
-		p.yaw = v[0]; p.pitch = v[1]; p.roll = v[2];
-		return p;
-	};
-
+	ga.best_energy = 1e30;
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		ga.pop_energy[i] = -ComputeRobustCost(Map(ga.population[i]));
-		if (ga.pop_energy[i] > ga.best_energy) { ga.best_energy = ga.pop_energy[i]; ga.best_solution <<= ga.population[i]; }
+		double cost = ComputeRobustCost(Map(ga.population[i]));
+		ga.pop_energy[i] = cost;
+		if (ga.pop_energy[i] < ga.best_energy) { 
+			ga.best_energy = ga.pop_energy[i]; 
+			ga.best_solution <<= ga.population[i];
+			printf("NEW BEST (init): eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f\n", 
+				i, ga.best_energy, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI);
+		}
 	}
 
 	int current_gen = 0;
+	double last_best = ga.best_energy;
 	while (!ga.IsEnd()) {
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-		ga.Stop(-ComputeRobustCost(Map(trial)));
+		double cost = ComputeRobustCost(Map(trial));
+		ga.Stop(-cost); // GeneticOptimizer Stop negates the argument before SetTrialEnergy
+		if (ga.best_energy < last_best) {
+			last_best = ga.best_energy;
+			printf("NEW BEST: gen=%d eval=%d cost=%.4f yaw=%.3f pitch=%.3f roll=%.3f\n", 
+				current_gen, ga.GetEvaluations(), last_best, ga.best_solution[0]*180.0/M_PI, ga.best_solution[1]*180.0/M_PI, ga.best_solution[2]*180.0/M_PI);
+		}
 		if (ga_step_cb) {
-			if (!ga_step_cb(current_gen, -ga.best_energy, Map(ga.best_solution))) return;
+			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
 		}
 	}
 	params = Map(ga.best_solution);
@@ -444,31 +499,55 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 		return p;
 	};
 
+	ga.best_energy = 1e30;
 	for (int i = 0; i < ga_population; i++) {
 		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
-		ga.pop_energy[i] = -ComputeRobustCost(Map(ga.population[i]));
-		if (ga.pop_energy[i] > ga.best_energy) { ga.best_energy = ga.pop_energy[i]; ga.best_solution <<= ga.population[i]; }
+		double cost = ComputeRobustCost(Map(ga.population[i]));
+		ga.pop_energy[i] = cost;
+		if (ga.pop_energy[i] < ga.best_energy) { 
+			ga.best_energy = ga.pop_energy[i]; 
+			ga.best_solution <<= ga.population[i]; 
+			StereoCalibrationParams p = Map(ga.best_solution);
+			printf("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f\n", 
+				i, ga.best_energy, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a);
+		}
 	}
 
 	int current_gen = 0;
+	double last_best = ga.best_energy;
 	while (!ga.IsEnd()) {
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
-		ga.Stop(-ComputeRobustCost(Map(trial)));
+		double cost = ComputeRobustCost(Map(trial));
+		ga.Stop(-cost);
+		if (ga.best_energy < last_best) {
+			last_best = ga.best_energy;
+			StereoCalibrationParams p = Map(ga.best_solution);
+			printf("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f\n", 
+				current_gen, ga.GetEvaluations(), last_best, p.a, p.cx, p.cy, p.c/p.a, p.d/p.a);
+		}
 		if (ga_step_cb) {
-			if (!ga_step_cb(current_gen, -ga.best_energy, Map(ga.best_solution))) return;
+			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
 		}
 	}
 	params = Map(ga.best_solution);
 }
 
 void StereoCalibrationSolver::GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase) {
-	if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
-		GABootstrapExtrinsics(params);
-	}
 	if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
+		if (log) *log << "Starting GA Intrinsics Phase...\n";
+		printf("GA: Starting Intrinsics Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
 		GABootstrapIntrinsics(params);
+		printf("GA: Intrinsics Phase Finished. f=%.2f, cx=%.2f, cy=%.2f, k1=%.4f, k2=%.4f\n", 
+			params.a, params.cx, params.cy, params.c/params.a, params.d/params.a);
+	}
+	if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
+		if (log) *log << "Starting GA Extrinsics Phase...\n";
+		printf("GA: Starting Extrinsics Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
+		GABootstrapExtrinsics(params);
+		printf("GA: Extrinsics Phase Finished. yaw=%.3f, pitch=%.3f, roll=%.3f\n",
+			params.yaw * 180.0/M_PI, params.pitch * 180.0/M_PI, params.roll * 180.0/M_PI);
 	}
 }
 

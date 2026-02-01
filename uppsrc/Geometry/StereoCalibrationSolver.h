@@ -83,6 +83,12 @@ struct StereoCalibrationTrace {
 	void Clear();
 };
 
+enum GAPhase {
+	GA_PHASE_EXTRINSICS = 0,
+	GA_PHASE_INTRINSICS = 1,
+	GA_PHASE_BOTH = 2
+};
+
 class StereoCalibrationSolver {
 public:
 	Vector<StereoCalibrationMatch> matches;
@@ -97,23 +103,20 @@ public:
 	String last_failure_reason;
 
 	struct GABounds {
-		double yaw_min = -15.0; // degrees
-		double yaw_max = 15.0;
-		double pitch_min = -10.0;
-		double pitch_max = 10.0;
-		double roll_min = -15.0;
-		double roll_max = 15.0;
+		double yaw_deg = 45.0; // +/- degrees
+		double pitch_deg = 25.0;
+		double roll_deg = 45.0;
 	};
 
 	struct GABoundsIntrinsics {
 		double fov_min = 80.0; // degrees
 		double fov_max = 160.0;
-		double cx_delta = 40.0; // pixels
-		double cy_delta = 40.0;
-		double k1_min = -1.0;
+		double cx_delta = 60.0; // pixels
+		double cy_delta = 60.0;
+		double k1_min = -1.5;
 		double k1_max = 0.0;
-		double k2_min = -0.5;
-		double k2_max = 0.5;
+		double k2_min = -1.0;
+		double k2_max = 1.0;
 	};
 
 	// GA bootstrap parameters
@@ -124,12 +127,18 @@ public:
 	GABounds ga_bounds;
 	GABoundsIntrinsics ga_bounds_intr;
 	
+	// Robust GA settings
+	bool ga_use_trimmed_loss = true;
+	double ga_trim_percent = 15.0; // percent of worst matches to ignore (0..100)
+	
 	// Callback for GA progress: returns false to cancel
 	Function<bool(int gen, double best_cost, const StereoCalibrationParams& best_p)> ga_step_cb;
 
 	bool Solve(StereoCalibrationParams& params, bool lock_distortion);
 	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);
 	void GABootstrapIntrinsics(StereoCalibrationParams& params);
+	void GABootstrapExtrinsics(StereoCalibrationParams& params);
+	void GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase);
 	
 	// SolveExtrinsicsOnlyMicroRefine
 	// Optimizes extrinsics deltas relative to input 'params'.
@@ -141,6 +150,7 @@ public:
 	                                    const vec3& bounds_deg, 
 	                                    double lambda, 
 	                                    bool per_eye_mode);
+	double ComputeRobustCost(const StereoCalibrationParams& params) const;
 
 	void ComputeDiagnostics(const StereoCalibrationParams& params, StereoCalibrationDiagnostics& out) const;
 	void ComputeGADiagnostics(const StereoCalibrationParams& params, double initial_cost, double final_cost, StereoCalibrationGADiagnostics& out) const;

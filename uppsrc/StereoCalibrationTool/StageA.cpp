@@ -587,6 +587,34 @@ void StageAWindow::BuildGAResultsPanel() {
 	ga_best_results_list.AddColumn("Rank").Width(40);
 	ga_best_results_list.AddColumn("Cost").Width(80);
 	ga_best_results_list.AddColumn("Parameters");
+	
+	ga_best_results_list.WhenSel = THISBACK(OnGAResultSel);
+	ga_best_results_list.WhenBar = THISBACK(OnGAResultBar);
+}
+
+void StageAWindow::OnGAResultSel() {
+	int row = ga_best_results_list.GetCursor();
+	if (row >= 0 && row < ga_history.GetCount()) {
+		// Use the mapping logic: we showed results from the end of history
+		int idx = ga_history.GetCount() - 1 - row;
+		if (idx >= 0 && idx < ga_history.GetCount()) {
+			ga_history_slider <<= (idx + 1);
+			UpdatePreview();
+		}
+	}
+}
+
+void StageAWindow::OnGAResultBar(Bar& bar) {
+	int row = ga_best_results_list.GetCursor();
+	if (row >= 0) {
+		bar.Add("Apply Selected", [=] {
+			int idx = ga_history.GetCount() - 1 - row;
+			if (idx >= 0 && idx < ga_history.GetCount()) {
+				ga_best_params = ga_history[idx].params;
+				OnGAApply();
+			}
+		});
+	}
 }
 
 void StageAWindow::OnGAHistoryScrub() {

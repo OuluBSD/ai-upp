@@ -584,8 +584,10 @@ void StageAWindow::BuildGAResultsPanel() {
 	ga_results_split.Horz(ga_plot, ga_best_results_list);
 	ga_results_split.SetPos(8000); // 80% split
 	
-	ga_best_results_list.AddColumn("Rank").Width(40);
-	ga_best_results_list.AddColumn("Cost").Width(80);
+	ga_best_results_list.AddColumn("Rank");
+	ga_best_results_list.HeaderTab(0).Fixed(40);
+	ga_best_results_list.AddColumn("Cost");
+	ga_best_results_list.HeaderTab(1).Fixed(80);
 	ga_best_results_list.AddColumn("Parameters");
 	
 	ga_best_results_list.WhenSel = THISBACK(OnGAResultSel);

@@ -420,7 +420,7 @@ void StageAWindow::BuildStageAControls() {
 	// GA UI Construction
 	y += 30;
 	ga_group.SetLabel("Genetic Optimizer");
-	controls.Add(ga_group.TopPos(y, 140).HSizePos(4, 4));
+	controls.Add(ga_group.TopPos(y, 220).HSizePos(4, 4));
 	
 	gy = y + 20;
 	ga_start.SetLabel("Start GA");
@@ -451,6 +451,9 @@ void StageAWindow::BuildStageAControls() {
 	gy += 30;
 	ga_status_lbl.SetLabel("Status: Idle");
 	controls.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 200));
+	
+	gy += 24;
+	controls.Add(ga_plot.TopPos(gy, 80).LeftPos(12, 260));
 }
 
 void StageAWindow::OnGAStart() {
@@ -468,6 +471,7 @@ void StageAWindow::OnGAStart() {
 	ga_stop.Enable();
 	ga_apply.Disable();
 	ga_status_lbl.SetLabel("Status: Initializing...");
+	ga_plot.Clear();
 	
 	// Prepare data for solver (copy to staging member)
 	ga_input_matches.Clear();
@@ -543,6 +547,7 @@ void StageAWindow::OnGAStop() {
 void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p) {
 	if (!ga_running) return;
 	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
+	ga_plot.AddValue(best_cost);
 	
 	// Optional: update best_p to UI? Maybe too frequent.
 	// But cost plot needs this.

@@ -677,6 +677,9 @@ void StageAWindow::OnGAStart() {
 			return true;
 		};
 		
+		double initial_cost = solver.ComputeRobustCost(params);
+		PostCallback([=] { ga_plot.SetInitialCost(initial_cost); });
+
 		solver.GABootstrapPipeline(params, (GAPhase)start_state.ga_phase);
 		
 		if (ga_cancel) return; // Aborted
@@ -699,7 +702,7 @@ void StageAWindow::OnGAStop() {
 void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p) {
 	if (!ga_running) return;
 	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
-	ga_plot.AddValue(best_cost);
+	ga_plot.AddPoint(gen, best_cost);
 	
 	ga_history.Add(best_p);
 	ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));

@@ -47,6 +47,7 @@ public:
 	
 	// Line Annotation API (Forward clicks if mode == LineAnnotate)
 	void SetLinePoints(const Vector<Pointf>& pts_img_space) { line_points <<= pts_img_space; Refresh(); }
+	void SetAnnotationLines(const Vector<Vector<Pointf>>& lines) { persistent_lines <<= lines; Refresh(); }
 	const Vector<Pointf>& GetLinePoints() const { return line_points; }
 	void ClearLinePoints() { line_points.Clear(); Refresh(); }
 
@@ -72,7 +73,8 @@ private:
 	ToolMode mode = ToolMode::None;
 	
 	Vector<Pointf> match_points; // in image pixels
-	Vector<Pointf> line_points;  // in image pixels
+	Vector<Pointf> line_points;  // in image pixels (transient)
+	Vector<Vector<Pointf>> persistent_lines; // in image pixels (saved)
 	int highlight_idx = -1;
 
 	// Diagnostics

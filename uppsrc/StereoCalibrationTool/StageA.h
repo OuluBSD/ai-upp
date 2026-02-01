@@ -99,7 +99,12 @@ private:
 	Option compare_ga_toggle; // Toggle to overlay GA result
 	SliderCtrl ga_history_slider;
 	Label ga_history_lbl;
-	Vector<StereoCalibrationParams> ga_history;
+	
+	struct GAEntry {
+		StereoCalibrationParams params;
+		double cost;
+	};
+	Vector<GAEntry> ga_history;
 	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;

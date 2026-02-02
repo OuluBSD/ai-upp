@@ -29,8 +29,6 @@ String GetCalibrationStateText(int state) {
 	switch(state) {
 		case CALIB_RAW: return "RAW";
 		case CALIB_STAGE_A_MANUAL: return "STAGE A (MANUAL)";
-		case CALIB_GA_EXTRINSICS: return "GA EXTRINSICS";
-		case CALIB_GA_INTRINSICS: return "GA INTRINSICS";
 		case CALIB_STAGE_B_SOLVED: return "STAGE B (SOLVED)";
 		case CALIB_STAGE_C_REFINED: return "STAGE C (REFINED)";
 		default: return "UNKNOWN";

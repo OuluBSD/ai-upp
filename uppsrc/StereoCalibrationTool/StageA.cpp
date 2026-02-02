@@ -1,6 +1,27 @@
 #include "StereoCalibrationTool.h"
 
+#undef CPU_SSE2
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
+
 NAMESPACE_UPP
+
+// Helper: Convert U++ Image to OpenCV Gray Mat
+static cv::Mat ImageToGrayMat(const Image& img) {
+	if(img.IsEmpty()) return cv::Mat();
+	Size sz = img.GetSize();
+	cv::Mat m(sz.cy, sz.cx, CV_8UC1);
+	for(int y=0; y<sz.cy; y++) {
+		const RGBA* s = img[y];
+		uint8_t* d = m.ptr<uint8_t>(y);
+		for(int x=0; x<sz.cx; x++) {
+			// Simple grayscale: 0.299R + 0.587G + 0.114B
+			d[x] = (uint8_t)((s[x].r * 77 + s[x].g * 150 + s[x].b * 29) >> 8);
+		}
+	}
+	return m;
+}
 
 /*
 StageA.cpp
@@ -442,179 +463,6 @@ void StageAWindow::BuildStageAControls() {
 
 
 
-void StageAWindow::OnGAStop() {
-	if (ga_running) {
-		ga_cancel = 1;
-		ga_status_lbl.SetLabel("Status: Stopping...");
-	}
-}
-
-void StageAWindow::OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p) {
-	if (!ga_running) return;
-	ga_status_lbl.SetLabel(Format("Gen: %d, Cost: %.4f", gen, best_cost));
-	ga_plot.AddPoint(gen, best_cost);
-	
-	if (IsParamsValid(best_p)) {
-		GAEntry& e = ga_history.Add();
-		e.params = best_p;
-		e.cost = best_cost;
-		ga_history_slider.MinMax(0, max(1, ga_history.GetCount()));
-		if (ga_history.GetCount() > 0) ga_history_slider.Enable();
-	}
-}
-
-void StageAWindow::OnGAFinished() {
-	ga_running = false;
-	ga_start.Enable();
-	ga_stop.Disable();
-	
-	if (ga_best_params.a > 1e-6) {
-		ga_apply.Enable();
-		compare_ga_toggle.Enable();
-		ga_status_lbl.SetLabel("Status: Finished");
-		
-		// Populate best results list
-		ga_best_results_list.Clear();
-		int n = 0;
-		for(int i = ga_history.GetCount() - 1; i >= 0 && n < 20; i--) {
-			const auto& e = ga_history[i];
-			const auto& p = e.params;
-			
-			String desc = Format("fov:%.1f, y/p/r:%.1f/%.1f/%.1f", 
-				2.0 * atan((ga_input_matches[0].image_size.cx * 0.5) / p.a) * 180.0 / M_PI,
-				p.yaw * 180.0 / M_PI, p.pitch * 180.0 / M_PI, p.roll * 180.0 / M_PI);
-			
-			ga_best_results_list.Add(n + 1, Format("%.4f", e.cost), desc);
-			n++;
-		}
-	} else {
-		ga_apply.Disable();
-		compare_ga_toggle.Disable();
-		ga_status_lbl.SetLabel("Status: Aborted/Failed");
-		return;
-	}
-	
-	// Compute diagnostics
-	if (ga_input_matches.IsEmpty()) return;
-	
-	StereoCalibrationSolver solver;
-	solver.matches <<= ga_input_matches;
-	solver.eye_dist = model->project_state.eye_dist / 1000.0;
-	solver.dist_weight = model->project_state.distance_weight;
-	solver.huber_px = model->project_state.huber_px;
-	solver.huber_m = model->project_state.huber_m;
-	
-	// Reconstruct initial params from current project state (baseline)
-	const ProjectState& ps = model->project_state;
-	StereoCalibrationParams initial_p;
-	
-	// Assume width from first match
-	double w = solver.matches[0].image_size.cx;
-	double fov_rad = ps.fov_deg * M_PI / 180.0;
-	double f = (w * 0.5) / tan(fov_rad * 0.5);
-	
-	initial_p.a = f;
-	initial_p.b = 0;
-	initial_p.c = f * ps.lens_k1;
-	initial_p.d = f * ps.lens_k2;
-	initial_p.cx = ps.lens_cx > 0 ? ps.lens_cx : w*0.5;
-	initial_p.cy = ps.lens_cy > 0 ? ps.lens_cy : solver.matches[0].image_size.cy*0.5;
-	initial_p.yaw_l = ps.yaw_l * M_PI / 180.0;
-	initial_p.pitch_l = ps.pitch_l * M_PI / 180.0;
-	initial_p.roll_l = ps.roll_l * M_PI / 180.0;
-	initial_p.yaw = ps.yaw_r * M_PI / 180.0;
-	initial_p.pitch = ps.pitch_r * M_PI / 180.0;
-	initial_p.roll = ps.roll_r * M_PI / 180.0;
-	
-	StereoCalibrationGADiagnostics diag;
-	StereoCalibrationDiagnostics d_init, d_final;
-	
-	solver.ComputeDiagnostics(initial_p, d_init);
-	solver.ComputeDiagnostics(ga_best_params, d_final);
-	
-	auto CalcCost = [&](const StereoCalibrationDiagnostics& d) {
-		double c = 0;
-		for(const auto& r : d.residuals) {
-			c += r.err_l_px*r.err_l_px + r.err_r_px*r.err_r_px;
-		}
-		return c;
-	};
-	
-	double cost0 = CalcCost(d_init);
-	double cost1 = CalcCost(d_final);
-	
-	solver.ComputeGADiagnostics(ga_best_params, cost0, cost1, diag);
-	
-	// Store in model
-	model->project_state.last_ga_diagnostics.best_cost = diag.best_cost;
-	model->project_state.last_ga_diagnostics.initial_cost = diag.initial_cost;
-	model->project_state.last_ga_diagnostics.cost_improvement_ratio = diag.cost_improvement_ratio;
-	model->project_state.last_ga_diagnostics.num_matches_used = diag.num_matches_used;
-	model->project_state.last_ga_diagnostics.mean_reproj_error_px = diag.mean_reproj_error_px;
-	model->project_state.last_ga_diagnostics.max_reproj_error_px = diag.max_reproj_error_px;
-	model->project_state.last_ga_diagnostics.median_reproj_error_px = diag.median_reproj_error_px;
-	
-	// Update UI
-	String text;
-	text << "Diagnostics:\n";
-	text << Format("  Improvement: %.2fx (%.2f -> %.2f)\n", diag.cost_improvement_ratio, diag.initial_cost, diag.best_cost);
-	text << Format("  Mean Reproj Err: %.2f px\n", diag.mean_reproj_error_px);
-	text << Format("  Max Reproj Err: %.2f px\n", diag.max_reproj_error_px);
-	text << Format("  Matches: %d\n", diag.num_matches_used);
-	
-	if (diag.cost_improvement_ratio < 1.2)
-		text << "\nWARNING: Low improvement (< 1.2x)";
-	if (diag.mean_reproj_error_px > 5.0)
-		text << "\nWARNING: High reprojection error (> 5px)";
-		
-	ga_diag_lbl.SetLabel(text);
-}
-
-void StageAWindow::OnGAApply() {
-	if (ga_running) return;
-	
-	double f = ga_best_params.a;
-	if (fabs(f) > 1e-6) {
-		ProjectState& ps = model->project_state;
-		int phase = ps.ga_phase;
-		
-		if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
-			ps.lens_f = f;
-			ps.lens_cx = ga_best_params.cx;
-			ps.lens_cy = ga_best_params.cy;
-			ps.lens_k1 = ga_best_params.c / f;
-			ps.lens_k2 = ga_best_params.d / f;
-			
-			// Update FOV for UI consistency
-			int row = captures_list.GetCursor();
-			if (row >= 0 && row < model->captured_frames.GetCount()) {
-				const CapturedFrame& cf = model->captured_frames[row];
-				Size sz = !cf.left_img.IsEmpty() ? cf.left_img.GetSize() : cf.right_img.GetSize();
-				if (sz.cx > 0) {
-					double fov_rad = 2.0 * atan((sz.cx * 0.5) / f);
-					ps.fov_deg = fov_rad * 180.0 / M_PI;
-				}
-			}
-			ps.calibration_state = CALIB_GA_INTRINSICS;
-		}
-		
-		if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
-			ps.yaw_l = ga_best_params.yaw_l * 180.0 / M_PI;
-			ps.pitch_l = ga_best_params.pitch_l * 180.0 / M_PI;
-			ps.roll_l = ga_best_params.roll_l * 180.0 / M_PI;
-			ps.yaw_r = ga_best_params.yaw * 180.0 / M_PI;
-			ps.pitch_r = ga_best_params.pitch * 180.0 / M_PI;
-			ps.roll_r = ga_best_params.roll * 180.0 / M_PI;
-			if (phase == GA_PHASE_EXTRINSICS)
-				ps.calibration_state = CALIB_GA_EXTRINSICS;
-		}
-		
-		RefreshFromModel(); // Updates UI and Preview
-		SaveProjectState();
-		PromptOK("Genetic optimization results applied.");
-	}
-}
-
 // Configures the capture list columns and selection callback.
 void StageAWindow::BuildCaptureLists() {
 	captures_list.AddColumn("Time");
@@ -624,31 +472,6 @@ void StageAWindow::BuildCaptureLists() {
 	captures_list.AddColumn("Used");
 	captures_list.WhenCursor = THISBACK(OnCaptureSelection);
 	captures_list.WhenBar = THISBACK(OnCapturesBar);
-}
-
-void StageAWindow::OnLinesBar(Bar& bar) {
-	bar.Add("Delete selected", THISBACK(OnDeleteLine))
-	   .Enable(lines_list.IsCursor());
-}
-
-void StageAWindow::OnDeleteLine() {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
-	
-	int lrow = lines_list.GetCursor();
-	if (lrow < 0) return;
-	
-	CapturedFrame& f = model->captured_frames[row];
-	// We need to map list row to left/right arrays.
-	// We populate list: Left lines then Right lines.
-	int n_left = f.annotation_lines_left.GetCount();
-	if (lrow < n_left) {
-		f.annotation_lines_left.Remove(lrow);
-	} else {
-		f.annotation_lines_right.Remove(lrow - n_left);
-	}
-	SaveProjectState();
-	UpdatePreview();
 }
 
 void StageAWindow::OnCapturesBar(Bar& bar) {
@@ -676,29 +499,9 @@ void StageAWindow::OnDeleteCapture() {
 void StageAWindow::BuildPlotters() {
 	left_plot.SetEye(0);
 	left_plot.SetTitle("Left Eye");
-	left_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
-	left_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 0); };
-	left_plot.WhenFinalizeLine = THISBACK(OnFinalizeLine);
 
 	right_plot.SetEye(1);
 	right_plot.SetTitle("Right Eye");
-	right_plot.WhenClickPoint = THISBACK(OnPickMatchTool);
-	right_plot.WhenHoverPoint = [=](Pointf p) { OnHoverPoint(p, 1); };
-	right_plot.WhenFinalizeLine = THISBACK(OnFinalizeLine);
-}
-
-// Handler for hovering over plotters to drive epipolar lines
-void StageAWindow::OnHoverPoint(Pointf p_rect, int eye) {
-	hover_point = p_rect;
-	hover_eye = eye;
-	
-	if (show_epipolar_lines) {
-		left_plot.SetEpipolarY(p_rect.y);
-		right_plot.SetEpipolarY(p_rect.y);
-	} else {
-		left_plot.SetEpipolarY(-1);
-		right_plot.SetEpipolarY(-1);
-	}
 }
 
 // Syncs Stage A UI values into AppModel.project_state and updates preview.
@@ -755,39 +558,12 @@ void StageAWindow::OnReviewChanged() {
 	ps.show_crosshair = (bool)show_crosshair;
 	ps.alpha = (int)~alpha_slider;
 
-	// Local view-only diagnostics
-	left_plot.SetShowCurvature((bool)show_curvature_error);
-	right_plot.SetShowCurvature((bool)show_curvature_error);
-	
-	// Epipolar lines update
-	if (!(bool)show_epipolar_lines) {
-		left_plot.SetEpipolarY(-1);
-		right_plot.SetEpipolarY(-1);
-	} else if (!IsNull(hover_point)) {
-		OnHoverPoint(hover_point, hover_eye);
-	}
-
 	for (auto& frame : model->captured_frames)
 		frame.undist_valid = false;
 
 	UpdatePreview();
 	UpdateReviewEnablement();
 	SaveProjectState();
-}
-
-void StageAWindow::OnToolAction() {
-	SyncStageA();
-	pending_left = Null;
-	
-	ToolMode m = ToolMode::None;
-	int idx = tool_list.GetIndex();
-	if (idx == 1) m = ToolMode::PickMatch;
-	if (idx == 2) m = ToolMode::LineAnnotate;
-	
-	left_plot.SetToolMode(m);
-	right_plot.SetToolMode(m);
-	
-	Refresh();
 }
 
 void StageAWindow::OnUndo() {
@@ -806,195 +582,15 @@ void StageAWindow::PushUndo() {
 	undo_btn.Enable();
 }
 
-
-Pointf StageAWindow::UnprojectPoint(int eye, Pointf p_view, Size sz) {
-	if (sz.cx <= 0) return p_view;
-	const ProjectState& ps = model->project_state;
-	int vmode = view_mode_list.GetIndex();
-	if (vmode == 0 || (!ps.preview_extrinsics && !ps.preview_intrinsics))
-		return p_view;
-
-	double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
-	float f = (float)((sz.cx * 0.5) / tan(fov_rad * 0.5));
-	StereoCalibrationHelpers::LensParams lp;
-	lp.f = f;
-	lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
-	lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
-	lp.k1 = (float)ps.lens_k1;
-	lp.k2 = (float)ps.lens_k2;
-	if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) lp.k1 = (float)(-ps.barrel_strength * 0.1);
-
-	float ry = ps.preview_extrinsics ? (float)(ps.yaw_l * M_PI / 180.0) : 0;
-	float rp = ps.preview_extrinsics ? (float)(ps.pitch_l * M_PI / 180.0) : 0;
-	float rr = ps.preview_extrinsics ? (float)(ps.roll_l * M_PI / 180.0) : 0;
-	if (eye == 1) {
-		ry = ps.preview_extrinsics ? (float)(ps.yaw_r * M_PI / 180.0) : 0;
-		rp = ps.preview_extrinsics ? (float)(ps.pitch_r * M_PI / 180.0) : 0;
-		rr = ps.preview_extrinsics ? (float)(ps.roll_r * M_PI / 180.0) : 0;
-	}
-	if (!ps.preview_intrinsics) { lp.k1 = 0; lp.k2 = 0; }
-	return StereoCalibrationHelpers::UnprojectPointOnePass(p_view, sz, lp, ry, rp, rr);
-}
-
-void StageAWindow::OnFinalizeLine(int eye, const Vector<Pointf>& chain) {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
-	
-	CapturedFrame& frame = model->captured_frames[row];
-	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
-	if (sz.cx <= 0) return;
-
-	Vector<Pointf> norm_chain;
-	for(Pointf p_rect : chain) {
-		Pointf p_raw = UnprojectPoint(eye, p_rect, sz);
-		if (p_raw.x >= 0)
-			norm_chain.Add(Pointf(p_raw.x / sz.cx, p_raw.y / sz.cy));
-	}
-	
-	if (norm_chain.GetCount() >= 2) {
-		if (eye == 0) frame.annotation_lines_left.Add(pick(norm_chain));
-		else frame.annotation_lines_right.Add(pick(norm_chain));
-		SaveProjectState();
-	}
-	UpdatePreview();
-}
-
-void StageAWindow::OnPickMatchTool(int eye, Pointf p) {
-	int mode = tool_list.GetIndex();
-	
-	// Pick match point (1)
-	if (mode == 1) {
-		if (eye == 0) {
-			pending_left = p;
-			status.Set("Point picked in Left eye. Now click corresponding point in Right eye.");
-		} else {
-			if (IsNull(pending_left)) {
-				status.Set("Pick point in Left eye first.");
-				return;
-			}
-			
-			int row = captures_list.GetCursor();
-			if (row < 0) {
-				status.Set("Select a capture frame first.");
-				return;
-			}
-			
-			CapturedFrame& frame = model->captured_frames[row];
-			Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
-			if (sz.cx <= 0) return;
-
-			Pointf p_l_raw = UnprojectPoint(0, pending_left, sz);
-			Pointf p_r_raw = UnprojectPoint(1, p, sz);
-
-			if (p_l_raw.x >= 0 && p_r_raw.x >= 0) {
-				MatchPair& m = frame.matches.Add();
-				m.left = Pointf(p_l_raw.x / sz.cx, p_l_raw.y / sz.cy);
-				m.right = Pointf(p_r_raw.x / sz.cx, p_r_raw.y / sz.cy);
-				m.left_text = Format("L%d", frame.matches.GetCount());
-				m.right_text = Format("R%d", frame.matches.GetCount());
-				status.Set("Match pair added.");
-				SaveProjectState();
-			} else {
-				status.Set("Failed to unproject points.");
-			}
-			
-			pending_left = Null;
-			UpdatePreview();
-		}
-	}
-}
-
-// Updates plotters + match list based on capture selection.
+// Updates plotters based on capture selection.
 void StageAWindow::UpdatePreview() {
 	if (!model)
 		return;
 	UpdateReviewEnablement();
 	int row = captures_list.GetCursor();
 	model->selected_capture = row;
-	if (row < 0 || row >= model->captured_frames.GetCount()) {
-		matches_list.Clear();
-		UpdatePlotters();
-		return;
-	}
-
-    CapturedFrame& frame = model->captured_frames[row];
-    matches_list.Clear();
-	for (int i = 0; i < frame.matches.GetCount(); i++) {
-		const MatchPair& pair = frame.matches[i];
-		matches_list.Add(
-			Format("%d", i),
-			Format("%.3f, %.3f", pair.left.x, pair.left.y),
-			Format("%.3f, %.3f", pair.right.x, pair.right.y),
-			pair.dist_l,
-			pair.dist_r
-		);
-	}
 	
-	lines_list.Clear();
-	for(int i=0; i<frame.annotation_lines_left.GetCount(); i++)
-		lines_list.Add("Left", frame.annotation_lines_left[i].GetCount());
-	for(int i=0; i<frame.annotation_lines_right.GetCount(); i++)
-		lines_list.Add("Right", frame.annotation_lines_right[i].GetCount());
-
 	UpdatePlotters();
-	
-	// Sync annotation lines
-	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
-	Vector<Vector<Pointf>> lines_l, lines_r;
-	if (sz.cx > 0) {
-		const ProjectState& ps = model->project_state;
-		int vmode = view_mode_list.GetIndex();
-		
-		// Lens params for projection
-		double fov_rad = Clamp(ps.fov_deg, 10.0, 170.0) * M_PI / 180.0;
-		float f = (float)((sz.cx * 0.5) / tan(fov_rad * 0.5));
-		
-		StereoCalibrationHelpers::LensParams lp;
-		lp.f = f;
-		lp.cx = (float)(ps.lens_cx > 0 ? ps.lens_cx : sz.cx * 0.5);
-		lp.cy = (float)(ps.lens_cy > 0 ? ps.lens_cy : sz.cy * 0.5);
-		lp.k1 = (float)ps.lens_k1;
-		lp.k2 = (float)ps.lens_k2;
-		if (fabs(lp.k1) < 1e-6 && fabs(lp.k2) < 1e-6) lp.k1 = (float)(-ps.barrel_strength * 0.1);
-
-		auto ProjectChain = [&](const Vector<Pointf>& raw_chain, int eye) {
-			Vector<Pointf> rect_chain;
-			for(Pointf p_norm : raw_chain) {
-				// Raw point in pixels
-				Pointf p_raw(p_norm.x * sz.cx, p_norm.y * sz.cy);
-				
-				Pointf p_rect;
-				if (vmode == 0 || (!ps.preview_extrinsics && !ps.preview_intrinsics)) {
-					p_rect = p_raw;
-				} else {
-					float ry = ps.preview_extrinsics ? (float)(ps.yaw_l * M_PI / 180.0) : 0;
-					float rp = ps.preview_extrinsics ? (float)(ps.pitch_l * M_PI / 180.0) : 0;
-					float rr = ps.preview_extrinsics ? (float)(ps.roll_l * M_PI / 180.0) : 0;
-					if (eye == 1) {
-						ry = ps.preview_extrinsics ? (float)(ps.yaw_r * M_PI / 180.0) : 0;
-						rp = ps.preview_extrinsics ? (float)(ps.pitch_r * M_PI / 180.0) : 0;
-						rr = ps.preview_extrinsics ? (float)(ps.roll_r * M_PI / 180.0) : 0;
-					}
-					
-					if (ps.preview_intrinsics) {
-						p_rect = StereoCalibrationHelpers::ProjectPointOnePass(p_raw, sz, lp, ry, rp, rr);
-					} else {
-						// Rotation only. We use ProjectPointOnePass with zero distortion.
-						StereoCalibrationHelpers::LensParams lp_nodist = lp;
-						lp_nodist.k1 = 0; lp_nodist.k2 = 0;
-						p_rect = StereoCalibrationHelpers::ProjectPointOnePass(p_raw, sz, lp_nodist, ry, rp, rr);
-					}
-				}
-				if (p_rect.x >= 0) rect_chain.Add(p_rect);
-			}
-			return rect_chain;
-		};
-
-		for(const auto& chain : frame.annotation_lines_left) lines_l.Add(ProjectChain(chain, 0));
-		for(const auto& chain : frame.annotation_lines_right) lines_r.Add(ProjectChain(chain, 1));
-	}
-	left_plot.SetAnnotationLines(lines_l);
-	right_plot.SetAnnotationLines(lines_r);
 }
 
 // Updates left/right plotter images (raw or undistorted).
@@ -1169,7 +765,6 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	const ProjectState& ps = model->project_state;
 	bool apply_extr = ps.preview_extrinsics;
 	bool apply_intr = ps.preview_intrinsics;
-	bool compare_ga = ps.compare_ga_result;
 
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	
@@ -1306,20 +901,6 @@ void StageAWindow::OnCaptureSelection() {
 	UpdatePreview();
 }
 
-// Writes edited match distances back into AppModel.
-void StageAWindow::OnMatchEdited() {
-	int row = captures_list.GetCursor();
-	int mrow = matches_list.GetCursor();
-	if (row >= 0 && row < model->captured_frames.GetCount() && mrow >= 0) {
-		CapturedFrame& f = model->captured_frames[row];
-		if (mrow < f.matches.GetCount()) {
-			f.matches[mrow].dist_l = matches_list.Get(mrow, 2);
-			f.matches[mrow].dist_r = matches_list.Get(mrow, 3);
-			SaveProjectState();
-		}
-	}
-}
-
 // Persists AppModel (project.json + images) to disk.
 void StageAWindow::SaveProjectState() {
 	if (!model || model->project_dir.IsEmpty())
@@ -1327,22 +908,314 @@ void StageAWindow::SaveProjectState() {
 	StereoCalibrationHelpers::SaveState(*model);
 }
 
-void StageAWindow::OnMatchesBar(Bar& bar) {
-	bar.Add("Delete selected match", THISBACK(OnDeleteMatch))
-	   .Enable(matches_list.IsCursor());
+void StageAWindow::OnDetect() {
+	SyncStageA();
+	
+	int nx = (int)board_x;
+	int ny = (int)board_y;
+	if (nx < 3 || ny < 3) {
+		PromptOK("Invalid board dimensions.");
+		return;
+	}
+	
+	Progress pi;
+	pi.SetText("Detecting corners...");
+	pi.SetTotal(model->captured_frames.GetCount());
+	
+	int total_l = 0, total_r = 0;
+	
+	for(int i=0; i<model->captured_frames.GetCount(); i++) {
+		if (pi.Canceled()) break;
+		pi.SetPos(i);
+		
+		CapturedFrame& f = model->captured_frames[i];
+		
+		// Convert to cv::Mat
+		cv::Mat mL = ImageToGrayMat(f.left_img);
+		cv::Mat mR = ImageToGrayMat(f.right_img);
+		
+		if (mL.empty() || mR.empty()) continue;
+		
+		std::vector<cv::Point2f> cornersL, cornersR;
+		
+		int flags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_FAST_CHECK;
+		
+		f.detected_l = cv::findChessboardCorners(mL, cv::Size(nx, ny), cornersL, flags);
+		f.detected_r = cv::findChessboardCorners(mR, cv::Size(nx, ny), cornersR, flags);
+			
+		if(f.detected_l) {
+			cv::cornerSubPix(mL, cornersL, cv::Size(11, 11), cv::Size(-1, -1), 
+				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
+			f.corners_l.Clear();
+			for(const auto& p : cornersL) f.corners_l.Add(Pointf(p.x, p.y));
+			total_l++;
+		} else {
+			f.corners_l.Clear();
+		}
+		
+		if(f.detected_r) {
+			cv::cornerSubPix(mR, cornersR, cv::Size(11, 11), cv::Size(-1, -1), 
+				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
+			f.corners_r.Clear();
+			for(const auto& p : cornersR) f.corners_r.Add(Pointf(p.x, p.y));
+			total_r++;
+		} else {
+			f.corners_r.Clear();
+		}
+		
+		f.used = f.detected_l && f.detected_r;
+	}
+	
+	RefreshFromModel();
+	UpdateCoverageHeatmap();
+	SaveProjectState();
+	PromptOK(Format("Detection complete.\nLeft: %d\nRight: %d", total_l, total_r));
 }
 
-void StageAWindow::OnDeleteMatch() {
-	int row = captures_list.GetCursor();
-	int mrow = matches_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
+void StageAWindow::UpdateCoverageHeatmap() {
+	int rows = 6;
+	int cols = 8;
+	Vector<int> hits;
+	hits.SetCount(rows * cols, 0);
 	
-	CapturedFrame& f = model->captured_frames[row];
-	if (mrow < 0 || mrow >= f.matches.GetCount()) return;
+	int total_pts = 0;
+	Size img_sz(0,0);
 	
-	f.matches.Remove(mrow);
+	for(const auto& f : model->captured_frames) {
+		if(!f.used || !f.detected_l) continue;
+		
+		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : Size(0,0);
+		if(sz.cx <= 0) continue;
+		img_sz = sz;
+		
+		for(const auto& p : f.corners_l) {
+			int cx = (int)(p.x / sz.cx * cols);
+			int cy = (int)(p.y / sz.cy * rows);
+			if(cx >= 0 && cx < cols && cy >= 0 && cy < rows) {
+				hits[cy * cols + cx]++;
+				total_pts++;
+			}
+		}
+	}
+	
+	if(img_sz.cx == 0) return;
+	
+	ImageBuffer ib(300, 200);
+	Fill(ib, White(), 300*200);
+	
+	double cell_w = 300.0 / cols;
+	double cell_h = 200.0 / rows;
+	
+	int max_hits = 1;
+	for(int h : hits) max_hits = max(max_hits, h);
+	
+	for(int y=0; y<rows; y++) {
+		for(int x=0; x<cols; x++) {
+			int h = hits[y * cols + x];
+			double intensity = (double)h / max_hits;
+			
+			RGBA color;
+			if(h == 0) {
+				color = Gray(); // No data
+			} else {
+				// Green scale based on intensity
+				color.r = 0; 
+				color.g = (int)(100 + 155 * intensity); 
+				color.b = 0; 
+				color.a = 255;
+			}
+			
+			int x0 = (int)(x * cell_w);
+			int y0 = (int)(y * cell_h);
+			int x1 = (int)((x+1) * cell_w) - 2; // -2 for grid lines
+			int y1 = (int)((y+1) * cell_h) - 2;
+			
+			for(int py=y0; py<=y1; py++)
+				for(int px=x0; px<=x1; px++)
+					if(px < 300 && py < 200) ib[py][px] = color;
+		}
+	}
+	
+	coverage_heat.SetImage(ib);
+	
+	int covered = 0;
+	for(int h : hits) if(h > 0) covered++;
+	coverage_lbl.SetLabel(Format("Coverage: %d/%d cells (%.1f%%)", covered, rows*cols, 100.0*covered/(rows*cols)));
+}
+
+void StageAWindow::OnSolveIntrinsics() {
+	SyncStageA();
+	
+	int nx = (int)board_x;
+	int ny = (int)board_y;
+	double sz_mm = (double)board_size;
+	
+	if (nx < 3 || ny < 3) return;
+	
+	std::vector<std::vector<cv::Point3f>> objectPoints;
+	std::vector<std::vector<cv::Point2f>> imagePointsL, imagePointsR;
+	
+	std::vector<cv::Point3f> obj;
+	for(int y=0; y<ny; y++)
+		for(int x=0; x<nx; x++)
+			obj.push_back(cv::Point3f((float)(x * sz_mm), (float)(y * sz_mm), 0.0f));
+	
+	Size img_sz(0,0);
+	int n_frames = 0;
+	
+	for(const auto& f : model->captured_frames) {
+		if(!f.used || !f.detected_l || !f.detected_r) continue;
+		
+		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : Size(0,0);
+		if (sz.cx <= 0) continue;
+		img_sz = sz;
+		
+		objectPoints.push_back(obj);
+		
+		std::vector<cv::Point2f> ptsL, ptsR;
+		for(const auto& p : f.corners_l) ptsL.push_back(cv::Point2f(p.x, p.y));
+		for(const auto& p : f.corners_r) ptsR.push_back(cv::Point2f(p.x, p.y));
+		
+		imagePointsL.push_back(ptsL);
+		imagePointsR.push_back(ptsR);
+		n_frames++;
+	}
+	
+	if (n_frames < 3) {
+		PromptOK("Not enough valid frames (need >= 3).");
+		return;
+	}
+	
+	cv::Mat K_L = cv::Mat::eye(3, 3, CV_64F);
+	cv::Mat K_R = cv::Mat::eye(3, 3, CV_64F);
+	cv::Mat D_L, D_R;
+	std::vector<cv::Mat> rvecs, tvecs;
+	
+	double rmsL = cv::calibrateCamera(objectPoints, imagePointsL, cv::Size(img_sz.cx, img_sz.cy), K_L, D_L, rvecs, tvecs);
+	double rmsR = cv::calibrateCamera(objectPoints, imagePointsR, cv::Size(img_sz.cx, img_sz.cy), K_R, D_R, rvecs, tvecs);
+	
+	ProjectState& ps = model->project_state;
+	ps.lens_f = K_L.at<double>(0, 0); // Assuming square pixels, taking fx
+	ps.lens_cx = K_L.at<double>(0, 2);
+	ps.lens_cy = K_L.at<double>(1, 2);
+	// Store distortions
+	ps.lens_k1 = D_L.at<double>(0);
+	ps.lens_k2 = D_L.at<double>(1);
+	
+	// Calculate FOV
+	double fov_rad = 2.0 * atan((img_sz.cx * 0.5) / ps.lens_f);
+	ps.fov_deg = fov_rad * 180.0 / M_PI;
+	
+	// Assuming symmetric lens for now (or store per-eye later if we expand ProjectState)
+	// Currently StageA only has one set of intrinsics in ProjectState.
+	// We use Left eye as reference.
+	
+	String report = Format("Intrinsics Solved (%d frames)\n", n_frames);
+	report << Format("Left RMS: %.4f px\n", rmsL);
+	report << Format("Right RMS: %.4f px\n", rmsR);
+	report << Format("Focal: %.2f\n", ps.lens_f);
+	report << Format("Principal: %.2f, %.2f\n", ps.lens_cx, ps.lens_cy);
+	report << Format("Distortion: k1=%.4f, k2=%.4f\n", ps.lens_k1, ps.lens_k2);
+	
+	report_log <<= report;
+	RefreshFromModel(); // Updates UI params
 	SaveProjectState();
-	UpdatePreview();
+}
+
+void StageAWindow::OnSolveStereo() {
+	SyncStageA();
+	
+	int nx = (int)board_x;
+	int ny = (int)board_y;
+	double sz_mm = (double)board_size;
+	
+	if (nx < 3 || ny < 3) return;
+	
+	std::vector<std::vector<cv::Point3f>> objectPoints;
+	std::vector<std::vector<cv::Point2f>> imagePointsL, imagePointsR;
+	
+	std::vector<cv::Point3f> obj;
+	for(int y=0; y<ny; y++)
+		for(int x=0; x<nx; x++)
+			obj.push_back(cv::Point3f((float)(x * sz_mm), (float)(y * sz_mm), 0.0f));
+	
+	Size img_sz(0,0);
+	int n_frames = 0;
+	
+	for(const auto& f : model->captured_frames) {
+		if(!f.used || !f.detected_l || !f.detected_r) continue;
+		
+		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : Size(0,0);
+		if (sz.cx <= 0) continue;
+		img_sz = sz;
+		
+		objectPoints.push_back(obj);
+		
+		std::vector<cv::Point2f> ptsL, ptsR;
+		for(const auto& p : f.corners_l) ptsL.push_back(cv::Point2f(p.x, p.y));
+		for(const auto& p : f.corners_r) ptsR.push_back(cv::Point2f(p.x, p.y));
+		
+		imagePointsL.push_back(ptsL);
+		imagePointsR.push_back(ptsR);
+		n_frames++;
+	}
+	
+	if (n_frames < 3) {
+		PromptOK("Not enough valid frames (need >= 3).");
+		return;
+	}
+	
+	ProjectState& ps = model->project_state;
+	
+	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
+	K.at<double>(0,0) = ps.lens_f;
+	K.at<double>(1,1) = ps.lens_f;
+	K.at<double>(0,2) = ps.lens_cx;
+	K.at<double>(1,2) = ps.lens_cy;
+	
+	cv::Mat D = cv::Mat::zeros(5, 1, CV_64F);
+	D.at<double>(0) = ps.lens_k1;
+	D.at<double>(1) = ps.lens_k2;
+	
+	cv::Mat R, T, E, F;
+	
+	// Fix intrinsics to keep what we solved in previous step
+	double rms = cv::stereoCalibrate(objectPoints, imagePointsL, imagePointsR,
+		K, D, K, D,
+		cv::Size(img_sz.cx, img_sz.cy),
+		R, T, E, F,
+		cv::CALIB_FIX_INTRINSIC | cv::CALIB_SAME_FOCAL_LENGTH | cv::CALIB_FIX_PRINCIPAL_POINT,
+		cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5));
+		
+	// T is translation vector (x,y,z) in mm
+	double dist_mm = cv::norm(T);
+	ps.eye_dist = dist_mm;
+	
+	// R is rotation matrix from Left to Right
+	// Decompose R into Euler angles (Yaw-Pitch-Roll)
+	// cv::decomposeProjectionMatrix is one way, or manual.
+	// R = Rz(roll) * Ry(yaw) * Rx(pitch) ? convention matters.
+	// Typically we want Yaw, Pitch, Roll.
+	
+	// Use RQDecomp3x3 for Euler angles
+	cv::Mat mtxR, mtxQ, Qx, Qy, Qz;
+	cv::Vec3d eulerAngles = cv::RQDecomp3x3(R, mtxR, mtxQ, Qx, Qy, Qz);
+	
+	ps.yaw_l = 0; ps.pitch_l = 0; ps.roll_l = 0;
+	ps.yaw_r = eulerAngles[1];   // Y-axis rotation (Yaw)
+	ps.pitch_r = eulerAngles[0]; // X-axis rotation (Pitch)
+	ps.roll_r = eulerAngles[2];  // Z-axis rotation (Roll)
+	
+	String report;
+	report << report_log.Get() << "\n";
+	report << Format("Stereo Solved (%d frames)\n", n_frames);
+	report << Format("Stereo RMS: %.4f px\n", rms);
+	report << Format("Baseline: %.2f mm\n", dist_mm);
+	report << Format("Right Relative: Y=%.2f, P=%.2f, R=%.2f deg\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
+	
+	report_log <<= report;
+	RefreshFromModel();
+	SaveProjectState();
 }
 
 void StageAWindow::MainMenu(Bar& bar) {
@@ -1350,51 +1223,8 @@ void StageAWindow::MainMenu(Bar& bar) {
 }
 
 void StageAWindow::SubMenuEdit(Bar& bar) {
-	bar.Add("Delete selected match point", THISBACK(OnDeleteMatch))
-	   .Enable(matches_list.IsCursor());
-	bar.Add("Delete all match points in frame", THISBACK(OnDeleteAllMatches))
-	   .Enable(model && model->selected_capture >= 0);
-	bar.Separator();
-	bar.Add("Delete selected annotation line", THISBACK(OnDeleteLine))
-	   .Enable(lines_list.IsCursor());
-	bar.Add("Delete all annotation lines in frame", THISBACK(OnDeleteAllLines))
-	   .Enable(model && model->selected_capture >= 0);
-}
-
-void StageAWindow::OnDeleteAllMatches() {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
-	if (!PromptOKCancel("Delete all match points in this frame?")) return;
-	
-	model->captured_frames[row].matches.Clear();
-	SaveProjectState();
-	UpdatePreview();
-}
-
-void StageAWindow::OnDeleteAllLines() {
-	int row = captures_list.GetCursor();
-	if (row < 0 || row >= model->captured_frames.GetCount()) return;
-	if (!PromptOKCancel("Delete all annotation lines in this frame?")) return;
-	
-	model->captured_frames[row].annotation_lines_left.Clear();
-	model->captured_frames[row].annotation_lines_right.Clear();
-	SaveProjectState();
-	UpdatePreview();
-}
-
-void StageAWindow::OnDetect() {
-	SyncStageA();
-	PromptOK("Detection not implemented yet.");
-}
-
-void StageAWindow::OnSolveIntrinsics() {
-	SyncStageA();
-	PromptOK("Solve Intrinsics not implemented yet.");
-}
-
-void StageAWindow::OnSolveStereo() {
-	SyncStageA();
-	PromptOK("Solve Stereo not implemented yet.");
+	bar.Add("Delete selected frame", THISBACK(OnDeleteCapture))
+	   .Enable(captures_list.IsCursor());
 }
 
 END_UPP_NAMESPACE

@@ -37,15 +37,6 @@ void StageBWindow::RefreshFromModel() {
 	math_text <<= model->math_text;
 	
 	pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(model->project_state.calibration_state);
-	
-	const GAResultDiagnostics& diag = model->project_state.last_ga_diagnostics;
-	if (diag.best_cost > 0) {
-		ga_summary_banner.SetLabel(Format("Stage A GA result: cost %.2f -> %.2f, improvement %.1fx", 
-		                           diag.initial_cost, diag.best_cost, diag.cost_improvement_ratio));
-		ga_summary_banner.Show();
-	} else {
-		ga_summary_banner.Hide();
-	}
 }
 
 // Builds solver UI layout and report panes.

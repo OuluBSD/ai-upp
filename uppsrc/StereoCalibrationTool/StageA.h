@@ -119,6 +119,7 @@ private:
 	void BuildLayout();
 	void BuildStageAControls();
 	void BuildTabs();
+	void BuildCaptureLists();
 	void BuildPlotters();
 	void SyncStageA();
 	void UpdatePreview();
@@ -141,6 +142,7 @@ private:
 	void OnDetect();
 	void OnSolveIntrinsics();
 	void OnSolveStereo();
+	void UpdateCoverageHeatmap();
 	
 	// Menu handlers
 	void SubMenuEdit(Bar& bar);

@@ -8,6 +8,9 @@ uses
 	plugin/png,
 	plugin/Eigen;
 
+pkg_config
+	opencv4;
+
 file
 	AGENTS.md,
 	CALIBRATION_DEBUG.md,
@@ -18,8 +21,6 @@ file
 	Camera.cpp,
 	PreviewCtrl.h,
 	PreviewCtrl.cpp,
-	EnergyPlot.h,
-	EnergyPlot.cpp,
 	StageA.h,
 	StageA.cpp,
 	StageB.h,

@@ -190,7 +190,12 @@ struct ProjectState {
 	bool rectified_overlay = false;  // Show rectified overlay instead of raw overlay
 	double rectify_alpha = 0.0;      // stereoRectify alpha parameter [0..1]
 	                                 // 0=crop all invalid pixels, 1=retain all pixels
-	
+
+	// Stereo Calibration R matrix (rotation from stereoCalibrate)
+	// Stored as 9 doubles to preserve exact matrix from OpenCV
+	double stereo_R[9] = {1,0,0, 0,1,0, 0,0,1};  // Identity by default
+	bool stereo_R_valid = false;                 // True if R was computed by stereoCalibrate
+
 	// Pipeline State
 	int calibration_state = CALIB_RAW;
 	StageBDiagnostics stage_b_diag;
@@ -224,7 +229,15 @@ struct ProjectState {
 		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode)
 		   ("show_corners", show_corners)("show_reprojection", show_reprojection);
 		jio("rectified_overlay", rectified_overlay)("rectify_alpha", rectify_alpha);
-		
+
+		// Stereo R matrix (9 elements)
+		jio("stereo_R_valid", stereo_R_valid);
+		if (stereo_R_valid || jio.IsLoading()) {
+			jio("stereo_R_00", stereo_R[0])("stereo_R_01", stereo_R[1])("stereo_R_02", stereo_R[2])
+			   ("stereo_R_10", stereo_R[3])("stereo_R_11", stereo_R[4])("stereo_R_12", stereo_R[5])
+			   ("stereo_R_20", stereo_R[6])("stereo_R_21", stereo_R[7])("stereo_R_22", stereo_R[8]);
+		}
+
 		jio("calibration_state", calibration_state)
 		   ("stage_b_diag", stage_b_diag)("stage_c_diag", stage_c_diag);
 	}

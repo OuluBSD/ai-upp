@@ -186,11 +186,11 @@ struct BoardGenDialog : TopWindow {
 		Add(square_size_mm.TopPos(70, 20).LeftPos(100, 50));
 		
 		ok.SetLabel("Generate");
-		ok <<= [=] { run = true; Close(); };
+		ok.WhenAction = [=] { run = true; Close(); };
 		Add(ok.BottomPos(10, 24).RightPos(80, 80));
 		
 		cancel.SetLabel("Cancel");
-		cancel <<= [=] { Close(); };
+		cancel.WhenAction = [=] { Close(); };
 		Add(cancel.BottomPos(10, 24).RightPos(10, 60));
 	}
 };

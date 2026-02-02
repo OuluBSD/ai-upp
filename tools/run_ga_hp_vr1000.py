@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import re
 
 def run_command(cmd):
     print(f"Running: {' '.join(cmd)}")
@@ -9,6 +10,8 @@ def run_command(cmd):
     best_count = 0
     last_cost = float('inf')
     found_invalid = False
+    last_lypr = None
+    last_rypr = None
     
     while True:
         line = process.stdout.readline()
@@ -24,6 +27,13 @@ def run_command(cmd):
                     print(f"ERROR: Invalid value detected in line: {line_strip}")
                     found_invalid = True
             
+            # Parse symmetry for extrinsics
+            if "L_y/p/r:" in line_strip:
+                m = re.search(r"L_y/p/r:\s*([\d\.-]+)/([\d\.-]+)/([\d\.-]+)\s*R_y/p/r:\s*([\d\.-]+)/([\d\.-]+)/([\d\.-]+)", line_strip)
+                if m:
+                    last_lypr = [float(x) for x in m.groups()[0:3]]
+                    last_rypr = [float(x) for x in m.groups()[3:6]]
+
             if "NEW BEST" in line_strip:
                 best_count += 1
                 try:
@@ -41,7 +51,7 @@ def run_command(cmd):
     if stderr:
         print("STDERR:", stderr)
         
-    return process.returncode, best_count, last_cost, found_invalid
+    return process.returncode, best_count, last_cost, found_invalid, last_lypr, last_rypr
 
 def main():
     project = "share/calibration/hp_vr1000/"
@@ -66,19 +76,13 @@ def main():
         "--verbose"
     ]
     
-    ret, bests, final_cost, found_invalid = run_command(cmd)
+    ret, bests, final_cost, found_invalid, l_ext, r_ext = run_command(cmd)
     
     if ret != 0:
         print(f"Process exited with code {ret}")
         if ret < 0 or ret == 139: # Crash
             print("Running under GDB for backtrace...")
-            gdb_cmd = [
-                "gdb", "-q", "--batch", 
-                "-ex", "run", 
-                "-ex", "bt", 
-                "-ex", "quit", 
-                "--args"
-            ] + cmd
+            gdb_cmd = ["gdb", "-q", "--batch", "-ex", "run", "-ex", "bt", "-ex", "quit", "--args"] + cmd
             subprocess.run(gdb_cmd)
         sys.exit(1)
         
@@ -87,6 +91,17 @@ def main():
         sys.exit(1)
         
     print(f"\nGA Summary: Found {bests} improvements. Final cost: {final_cost}")
+    
+    if l_ext and r_ext:
+        print(f"Final Extrinsics L: {l_ext}")
+        print(f"Final Extrinsics R: {r_ext}")
+        # Verify near-symmetry: pitch and roll should be roughly same sign and magnitude (base offset)
+        # and yaw should be roughly opposite (toe-out)
+        # yaw_sum = l_ext[0] + r_ext[0] should be small (base_yaw * 2)
+        # pitch_diff = l_ext[1] - r_ext[1] should be small (asymmetry)
+        yaw_avg = (l_ext[0] + r_ext[0]) / 2.0
+        pitch_diff = abs(l_ext[1] - r_ext[1])
+        print(f"  Base Yaw: {yaw_avg:.2f}, Pitch Asym: {pitch_diff:.2f}")
     
     if bests < 2:
         print("FAIL: GA didn't find enough improvements")

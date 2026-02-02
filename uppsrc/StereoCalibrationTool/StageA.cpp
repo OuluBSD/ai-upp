@@ -226,6 +226,48 @@ Image DrawCrosshair(const Image& src) {
 	return out;
 }
 
+// Draw horizontal epipolar lines to verify rectification
+// In a properly rectified stereo pair, corresponding points lie on the same horizontal line
+Image DrawEpipolarLines(const Image& src) {
+	if (src.IsEmpty())
+		return Image();
+	Size sz = src.GetSize();
+	ImageBuffer out(sz);
+
+	// Copy source image
+	for (int y = 0; y < sz.cy; y++) {
+		const RGBA* s = src[y];
+		RGBA* d = out[y];
+		for (int x = 0; x < sz.cx; x++) {
+			d[x] = s[x];
+		}
+	}
+
+	// Draw horizontal lines at regular intervals
+	// Use semi-transparent green so they don't obscure the image
+	RGBA green;
+	green.r = 0;
+	green.g = 255;
+	green.b = 0;
+	green.a = 128;  // Semi-transparent
+
+	// Draw lines every 10% of image height
+	for (int i = 0; i <= 10; i++) {
+		int y = (sz.cy * i) / 10;
+		if (y >= 0 && y < sz.cy) {
+			for (int x = 0; x < sz.cx; x++) {
+				// Alpha blend with existing pixel
+				RGBA& pixel = out[y][x];
+				pixel.r = (byte)((pixel.r * (255 - green.a) + green.r * green.a) / 255);
+				pixel.g = (byte)((pixel.g * (255 - green.a) + green.g * green.a) / 255);
+				pixel.b = (byte)((pixel.b * (255 - green.a) + green.b * green.a) / 255);
+			}
+		}
+	}
+
+	return out;
+}
+
 vec3 TriangulatePoint(const vec3& pL, const vec3& dL, const vec3& pR, const vec3& dR) {
 	vec3 w0 = pL - pR;
 	double a = Dot(dL, dL);
@@ -962,6 +1004,7 @@ void StageAWindow::ComposeFinalDisplayImages() {
 	bool do_tint = ps.tint_overlay;
 	bool do_crosshair = ps.show_crosshair;
 	bool do_diff = ps.show_difference;
+	bool do_epipolar = ps.show_epipolar;
 	bool swap_order = ps.overlay_swap;
 	bool do_rectify = ps.rectified_overlay;
 	float alpha = ps.alpha / 100.0f; // Convert 0..100 to 0..1
@@ -1002,20 +1045,24 @@ void StageAWindow::ComposeFinalDisplayImages() {
 	}
 
 	if (do_overlay) {
-		// Apply tint before blending if enabled
-		Image base_img = swap_order ? last_right_preview : last_left_preview;
-		Image top_img = swap_order ? last_left_preview : last_right_preview;
+		// Use rectified images if rectification was applied, otherwise use raw previews
+		Image base_img = swap_order ? right_display : left_display;
+		Image top_img = swap_order ? left_display : right_display;
 
 		if (do_tint) {
 			// Left = blue, Right = red
-			Image left_tinted = TintBlue(last_left_preview);
-			Image right_tinted = TintRed(last_right_preview);
+			Image left_tinted = TintBlue(left_display);
+			Image right_tinted = TintRed(right_display);
 			base_img = swap_order ? right_tinted : left_tinted;
 			top_img = swap_order ? left_tinted : right_tinted;
 		}
 
 		// Alpha blend
 		Image composited = AlphaBlend(base_img, top_img, alpha);
+
+		// Apply epipolar lines to verify rectification (before crosshair so crosshair is on top)
+		if (do_epipolar)
+			composited = DrawEpipolarLines(composited);
 
 		// Apply crosshair to composited image
 		if (do_crosshair)
@@ -1025,7 +1072,12 @@ void StageAWindow::ComposeFinalDisplayImages() {
 		left_plot.SetImage(composited);
 		right_plot.SetImage(Image()); // Hide right plotter in overlay mode
 	} else {
-		// Side-by-side mode: apply crosshair to each eye independently
+		// Side-by-side mode: apply epipolar lines and crosshair to each eye independently
+		if (do_epipolar) {
+			left_display = DrawEpipolarLines(left_display);
+			right_display = DrawEpipolarLines(right_display);
+		}
+
 		if (do_crosshair) {
 			left_display = DrawCrosshair(left_display);
 			right_display = DrawCrosshair(right_display);

@@ -1508,10 +1508,18 @@ void StageAWindow::OnSolveStereo() {
 	cv::Vec3d eulerAngles = cv::RQDecomp3x3(R, mtxR, mtxQ, Qx, Qy, Qz);
 	
 	ps.yaw_l = 0; ps.pitch_l = 0; ps.roll_l = 0;
-	ps.yaw_r = eulerAngles[1];   
-	ps.pitch_r = eulerAngles[0]; 
-	ps.roll_r = eulerAngles[2];  
-	
+	ps.yaw_r = eulerAngles[1];
+	ps.pitch_r = eulerAngles[0];
+	ps.roll_r = eulerAngles[2];
+
+	// Save R matrix directly for exact rectification rebuild
+	for (int r = 0; r < 3; r++) {
+		for (int c = 0; c < 3; c++) {
+			ps.stereo_R[r * 3 + c] = R.at<double>(r, c);
+		}
+	}
+	ps.stereo_R_valid = true;
+
 	String report;
 	report << report_log.Get() << "\n";
 	report << Format("Stereo Solved (%d frames)\n", n_frames);
@@ -1731,18 +1739,17 @@ void StageAWindow::RebuildRectificationFromState() {
 	D.at<double>(1) = ps.lens_k2;    // k2 (radial distortion)
 	// k3, p1, p2 = 0 (not used in current calibration)
 
-	// Reconstruct R from right eye Euler angles
-	// Rotation matrix represents relative orientation of right camera w.r.t. left
-	double yaw_rad = ps.yaw_r * M_PI / 180.0;
-	double pitch_rad = ps.pitch_r * M_PI / 180.0;
-	double roll_rad = ps.roll_r * M_PI / 180.0;
-
-	mat4 rot = AxesMat(yaw_rad, pitch_rad, roll_rad);
+	// Reconstruct R from saved stereo calibration matrix
+	// This is the exact R from cv::stereoCalibrate, not reconstructed from Euler angles
+	if (!ps.stereo_R_valid) {
+		model->rectification_cache.Invalidate();
+		return;  // No valid R matrix saved
+	}
 
 	cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
 	for (int r = 0; r < 3; r++) {
 		for (int c = 0; c < 3; c++) {
-			R.at<double>(r, c) = rot[r][c];
+			R.at<double>(r, c) = ps.stereo_R[r * 3 + c];
 		}
 	}
 

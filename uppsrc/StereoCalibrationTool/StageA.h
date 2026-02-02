@@ -65,27 +65,34 @@ private:
     Option overlay_swap;
     Option show_difference;
     Option show_epipolar;
-	// Diagnostics
-	LabelBox diagnostics_group;
-	Option show_epipolar_lines;
-	Option show_curvature_error;
+	// Board Settings
+	Label board_x_lbl, board_y_lbl, board_sz_lbl;
+	EditInt board_x, board_y;
+	EditDouble board_size;
+	Button detect_btn;
 	
+	// Coverage & Solve
+	Label coverage_lbl;
+	ImageCtrl coverage_heat;
+	Button solve_int_btn;
+	Button solve_stereo_btn;
+	
+	// Report
+	DocEdit report_log;
+
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
 	ParentCtrl controls;
 	TabCtrl tab_data;
+	
+	ParentCtrl tab_frames, tab_board, tab_solve, tab_report;
 
-	// Capture + match lists.
+	// Capture list
 	ArrayCtrl captures_list;
-	ArrayCtrl matches_list;
-	ArrayCtrl lines_list;
-	EditDouble dist_l_editor;
-	EditDouble dist_r_editor;
-	Splitter captures_split;
+	
 	Splitter main_split;
 	Splitter preview_split;
-	Splitter list_split;
-	Splitter details_split;
+	Splitter right_split;
 
 	// Plotters (per-eye, not shared with other modules).
 	PreviewCtrl left_plot;
@@ -104,11 +111,6 @@ private:
 	// Cached per-eye preview images (avoid big refactor; used for overlay/tint/crosshair)
 	Image last_left_preview;
 	Image last_right_preview;
-
-	// Point picking state
-	Pointf pending_left = Null;
-	Pointf hover_point = Null; // Last hovered point (in rectified pixels)
-	int hover_eye = -1;
 	
 	// Undo state (simple one-step for Stage A params)
 	ProjectState undo_state;
@@ -116,7 +118,7 @@ private:
 
 	void BuildLayout();
 	void BuildStageAControls();
-	void BuildCaptureLists();
+	void BuildTabs();
 	void BuildPlotters();
 	void SyncStageA();
 	void UpdatePreview();
@@ -129,24 +131,16 @@ private:
 	void ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
 	void ComposeFinalDisplayImages();
 	void OnReviewChanged();
-	void OnToolAction();
 	void OnUndo();
-	Pointf UnprojectPoint(int eye, Pointf p_view, Size sz);
-	void OnPickMatchTool(int eye, Pointf p);
-	void OnFinalizeLine(int eye, const Vector<Pointf>& chain);
-	void OnHoverPoint(Pointf p_rect, int eye);
 	void OnCapturesBar(Bar& bar);
 	void OnDeleteCapture();
-	void OnLinesBar(Bar& bar);
-	void OnDeleteLine();
-	void OnMatchesBar(Bar& bar);
-	void OnDeleteMatch();
-	void OnDeleteAllMatches();
-	void OnDeleteAllLines();
 	void OnCaptureSelection();
-	void OnMatchEdited();
 	void SaveProjectState();
 	void PushUndo();
+	
+	void OnDetect();
+	void OnSolveIntrinsics();
+	void OnSolveStereo();
 	
 	// Menu handlers
 	void SubMenuEdit(Bar& bar);

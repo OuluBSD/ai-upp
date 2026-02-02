@@ -2,7 +2,6 @@
 #define _StereoCalibrationTool_StageA_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include "EnergyPlot.h"
 
 NAMESPACE_UPP
 
@@ -71,49 +70,10 @@ private:
 	Option show_epipolar_lines;
 	Option show_curvature_error;
 	
-	// Genetic Optimizer UI
-	LabelBox ga_group;
-	Button ga_start;
-	Button ga_stop;
-	Button ga_apply;
-	Label ga_status_lbl;
-	Label ga_cost_lbl;
-	Label ga_diag_lbl; // New diagnostics label
-	Label ga_pop_lbl, ga_gen_lbl;
-	EditIntSpin ga_pop_edit;
-	EditIntSpin ga_gen_edit;
-	
-	Label ga_phase_lbl;
-	DropList ga_phase_list;
-	Option ga_use_trimmed_loss;
-	Label ga_trim_lbl;
-	EditDoubleSpin ga_trim_percent;
-	Label ga_bounds_lbl, ga_fov_lbl, ga_center_lbl, ga_k1_lbl, ga_k2_lbl;
-	EditDoubleSpin ga_yaw_bound, ga_pitch_bound, ga_roll_bound;
-	EditDoubleSpin ga_fov_min, ga_fov_max;
-	EditDoubleSpin ga_cx_bound, ga_cy_bound;
-	EditDoubleSpin ga_k1_min, ga_k1_max;
-	EditDoubleSpin ga_k2_min, ga_k2_max;
-
-	Option ga_use_all_frames;
-	Option compare_ga_toggle; // Toggle to overlay GA result
-	SliderCtrl ga_history_slider;
-	Label ga_history_lbl;
-	
-	struct GAEntry {
-		StereoCalibrationParams params;
-		double cost;
-	};
-	Vector<GAEntry> ga_history;
-	
 	Label alpha_lbl;
 	SliderCtrl alpha_slider;
 	ParentCtrl controls;
 	TabCtrl tab_data;
-	ParentCtrl ga_tab_ctrl; // Container for GA controls
-	ParentCtrl ga_results_ctrl; // Container for GA Results
-	Splitter ga_results_split;
-	ArrayCtrl ga_best_results_list;
 
 	// Capture + match lists.
 	ArrayCtrl captures_list;
@@ -156,8 +116,6 @@ private:
 
 	void BuildLayout();
 	void BuildStageAControls();
-	void BuildGAPanel();
-	void BuildGAResultsPanel();
 	void BuildCaptureLists();
 	void BuildPlotters();
 	void SyncStageA();
@@ -192,26 +150,8 @@ private:
 	
 	// Menu handlers
 	void SubMenuEdit(Bar& bar);
-	
-	// GA handlers
-	void OnGAStart();
-	void OnGAStop();
-	void OnGAApply();
-	void OnGAStep(int gen, double best_cost, StereoCalibrationParams best_p); // Callback from thread
-	void OnGAFinished(); // Callback from thread
-	void OnGAHistoryScrub();
-	void OnGAResultSel();
-	void OnGAResultBar(Bar& bar);
 
 private:
-	EnergyPlot ga_plot;
-
-	Thread ga_thread;
-	bool ga_running = false;
-	Atomic ga_cancel;
-	ProjectState ga_best_state; // To store best result
-	StereoCalibrationParams ga_best_params;
-	Vector<StereoCalibrationMatch> ga_input_matches; // Staging for thread
 };
 
 END_UPP_NAMESPACE

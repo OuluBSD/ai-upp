@@ -229,6 +229,9 @@ void StageAWindow::RefreshFromModel() {
 	lens_cy <<= ps.lens_cy;
 	lens_k1 <<= ps.lens_k1;
 	lens_k2 <<= ps.lens_k2;
+	board_x <<= ps.board_x;
+	board_y <<= ps.board_y;
+	board_size <<= ps.square_size_mm;
 	preview_extrinsics <<= ps.preview_extrinsics;
 	preview_intrinsics <<= ps.preview_intrinsics;
 	view_mode_list.SetIndex(ps.view_mode);
@@ -251,7 +254,13 @@ void StageAWindow::RefreshFromModel() {
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
 		auto& f = model->captured_frames[i];
-		captures_list.Add(Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), f.source, f.matches.GetCount());
+		captures_list.Add(
+			Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), 
+			f.source, 
+			f.detected_l ? "Yes" : "No",
+			f.detected_r ? "Yes" : "No",
+			f.used ? "Yes" : "Skip"
+		);
 	}
 	
 	// If no selection or invalid selection, select the last image by default
@@ -274,36 +283,47 @@ void StageAWindow::BuildLayout() {
 	preview_split.Horz(left_plot, right_plot);
 	preview_split.SetPos(5000);
 	
-	details_split.Vert(matches_list, lines_list);
-	details_split.SetPos(5000);
-	
-	list_split.Horz(captures_list, details_split);
-	list_split.SetPos(3500);
-	
-	tab_data.Add(list_split.SizePos(), "Data");
-	
+	BuildTabs();
 	BuildCaptureLists();
 }
 
-// Builds Stage A controls (basic params + view controls).
+void StageAWindow::BuildTabs() {
+	tab_data.Add(tab_frames.SizePos(), "Frames");
+	tab_data.Add(tab_board.SizePos(), "Board");
+	tab_data.Add(tab_solve.SizePos(), "Solve");
+	tab_data.Add(tab_report.SizePos(), "Report");
+	
+	tab_frames.Add(captures_list.SizePos());
+	
+	coverage_lbl.SetLabel("Coverage Heatmap (8x6 grid)");
+	tab_board.Add(coverage_lbl.TopPos(10, 20).LeftPos(10, 200));
+	tab_board.Add(coverage_heat.TopPos(40, 200).LeftPos(10, 300));
+	
+	tab_report.Add(report_log.SizePos());
+	report_log.SetReadOnly();
+}
+
+// Builds Stage A controls (board params + view controls).
 void StageAWindow::BuildStageAControls() {
 	calib_eye_lbl.SetLabel("Eye dist (mm)");
 	calib_eye_dist.SetInc(0.1);
 	calib_eye_dist.WhenAction = THISBACK(SyncStageA);
 
-	yaw_l_lbl.SetLabel("Yaw");
-	pitch_l_lbl.SetLabel("Pitch");
-	roll_l_lbl.SetLabel("Roll");
-	yaw_r_lbl.SetLabel("Yaw");
-	pitch_r_lbl.SetLabel("Pitch");
-	roll_r_lbl.SetLabel("Roll");
-
-	yaw_l.SetInc(0.01); yaw_l.MinMax(-180, 180); yaw_l.WhenAction = THISBACK(SyncStageA);
-	pitch_l.SetInc(0.01); pitch_l.MinMax(-90, 90); pitch_l.WhenAction = THISBACK(SyncStageA);
-	roll_l.SetInc(0.01); roll_l.MinMax(-180, 180); roll_l.WhenAction = THISBACK(SyncStageA);
-	yaw_r.SetInc(0.01); yaw_r.MinMax(-180, 180); yaw_r.WhenAction = THISBACK(SyncStageA);
-	pitch_r.SetInc(0.01); pitch_r.MinMax(-90, 90); pitch_r.WhenAction = THISBACK(SyncStageA);
-	roll_r.SetInc(0.01); roll_r.MinMax(-180, 180); roll_r.WhenAction = THISBACK(SyncStageA);
+	board_x_lbl.SetLabel("Corners X");
+	board_x.MinMax(3, 20); board_x.WhenAction = THISBACK(SyncStageA);
+	board_y_lbl.SetLabel("Corners Y");
+	board_y.MinMax(3, 20); board_y.WhenAction = THISBACK(SyncStageA);
+	board_sz_lbl.SetLabel("Size (mm)");
+	board_size.MinMax(1.0, 1000.0); board_size.WhenAction = THISBACK(SyncStageA);
+	
+	detect_btn.SetLabel("Detect Corners");
+	detect_btn <<= THISBACK(OnDetect);
+	
+	solve_int_btn.SetLabel("Solve Intrinsics");
+	solve_int_btn <<= THISBACK(OnSolveIntrinsics);
+	
+	solve_stereo_btn.SetLabel("Solve Stereo");
+	solve_stereo_btn <<= THISBACK(OnSolveStereo);
 
 	preview_extrinsics.SetLabel("Preview extrinsics");
 	preview_extrinsics <<= true;
@@ -354,13 +374,6 @@ void StageAWindow::BuildStageAControls() {
 	alpha_slider <<= 50;
 	alpha_slider.WhenAction = THISBACK(OnReviewChanged);
 
-	tool_lbl.SetLabel("Tool");
-	tool_list.Add(0, "None");
-	tool_list.Add(1, "Pick Match");
-	tool_list.Add(2, "Line Annotate");
-	tool_list.SetIndex(0);
-	tool_list.WhenAction = THISBACK(OnToolAction);
-
 	undo_btn.SetLabel("Undo");
 	undo_btn <<= THISBACK(OnUndo);
 	undo_btn.Disable();
@@ -374,28 +387,20 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(calib_eye_lbl.TopPos(y, 20).LeftPos(8, 120));
 	controls.Add(calib_eye_dist.TopPos(y, 20).LeftPos(132, 80));
 	y += 24;
-
-	eye_l_group.SetLabel("Left Eye");
-	controls.Add(eye_l_group.TopPos(y, 100).HSizePos(8, 8));
-	int gy = y + 20;
-	controls.Add(yaw_l_lbl.TopPos(gy, 20).LeftPos(12, 40));
-	controls.Add(yaw_l.TopPos(gy, 20).LeftPos(52, 80));
-	controls.Add(pitch_l_lbl.TopPos(gy + 24, 20).LeftPos(12, 40));
-	controls.Add(pitch_l.TopPos(gy + 24, 20).LeftPos(52, 80));
-	controls.Add(roll_l_lbl.TopPos(gy + 48, 20).LeftPos(12, 40));
-	controls.Add(roll_l.TopPos(gy + 48, 20).LeftPos(52, 80));
-	y += 100;
-
-	eye_r_group.SetLabel("Right Eye");
-	controls.Add(eye_r_group.TopPos(y, 100).HSizePos(8, 8));
-	gy = y + 20;
-	controls.Add(yaw_r_lbl.TopPos(gy, 20).LeftPos(12, 40));
-	controls.Add(yaw_r.TopPos(gy, 20).LeftPos(52, 80));
-	controls.Add(pitch_r_lbl.TopPos(gy + 24, 20).LeftPos(12, 40));
-	controls.Add(pitch_r.TopPos(gy + 24, 20).LeftPos(52, 80));
-	controls.Add(roll_r_lbl.TopPos(gy + 48, 20).LeftPos(12, 40));
-	controls.Add(roll_r.TopPos(gy + 48, 20).LeftPos(52, 80));
-	y += 100;
+	
+	controls.Add(board_x_lbl.TopPos(y, 20).LeftPos(8, 80));
+	controls.Add(board_x.TopPos(y, 20).LeftPos(92, 50));
+	controls.Add(board_y_lbl.TopPos(y, 20).LeftPos(150, 80));
+	controls.Add(board_y.TopPos(y, 20).LeftPos(234, 50));
+	y += 24;
+	controls.Add(board_sz_lbl.TopPos(y, 20).LeftPos(8, 80));
+	controls.Add(board_size.TopPos(y, 20).LeftPos(92, 50));
+	controls.Add(detect_btn.TopPos(y, 20).LeftPos(150, 134));
+	y += 30;
+	
+	controls.Add(solve_int_btn.TopPos(y, 24).LeftPos(8, 136));
+	controls.Add(solve_stereo_btn.TopPos(y, 24).LeftPos(150, 134));
+	y += 30;
 
 	controls.Add(preview_extrinsics.TopPos(y, 20).LeftPos(8, 140));
 	controls.Add(preview_intrinsics.TopPos(y, 20).LeftPos(152, 140));
@@ -417,15 +422,9 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(basic_params_doc.TopPos(y, 100).HSizePos(8, 8));
 	y += 104;
 	
-	controls.Add(tool_lbl.TopPos(y, 20).LeftPos(8, 40));
-	controls.Add(tool_list.TopPos(y, 20).LeftPos(52, 160));
-	controls.Add(undo_btn.TopPos(y, 20).LeftPos(216, 76));
+	controls.Add(undo_btn.TopPos(y, 20).LeftPos(8, 80));
 	y += 30;
 
-	// ViewMode DropList hidden in Stage A (simplified UI; toggles control all preview modes)
-	// controls.Add(view_mode_lbl.TopPos(y, 20).LeftPos(8, 80));
-	// controls.Add(view_mode_list.TopPos(y, 20).LeftPos(92, 160));
-	// y += 24;
 	controls.Add(overlay_eyes.TopPos(y, 20).LeftPos(8, 100));
 	controls.Add(overlay_swap.TopPos(y, 20).LeftPos(112, 90));
 	controls.Add(show_difference.TopPos(y, 20).LeftPos(206, 80));
@@ -616,24 +615,15 @@ void StageAWindow::OnGAApply() {
 	}
 }
 
-// Configures columns and selection callbacks for capture/match lists.
+// Configures the capture list columns and selection callback.
 void StageAWindow::BuildCaptureLists() {
 	captures_list.AddColumn("Time");
 	captures_list.AddColumn("Source");
-	captures_list.AddColumn("Samples");
+	captures_list.AddColumn("L Det");
+	captures_list.AddColumn("R Det");
+	captures_list.AddColumn("Used");
 	captures_list.WhenCursor = THISBACK(OnCaptureSelection);
 	captures_list.WhenBar = THISBACK(OnCapturesBar);
-
-	matches_list.AddColumn("Left");
-	matches_list.AddColumn("Right");
-	matches_list.AddColumn("Dist L (mm)").Edit(dist_l_editor);
-	matches_list.AddColumn("Dist R (mm)").Edit(dist_r_editor);
-	matches_list.WhenAction = THISBACK(OnMatchEdited);
-	matches_list.WhenBar = THISBACK(OnMatchesBar);
-	
-	lines_list.AddColumn("Eye");
-	lines_list.AddColumn("Points");
-	lines_list.WhenBar = THISBACK(OnLinesBar);
 }
 
 void StageAWindow::OnLinesBar(Bar& bar) {
@@ -730,6 +720,9 @@ void StageAWindow::SyncStageA() {
 	ps.lens_cy = (double)lens_cy;
 	ps.lens_k1 = (double)lens_k1;
 	ps.lens_k2 = (double)lens_k2;
+	ps.board_x = (int)board_x;
+	ps.board_y = (int)board_y;
+	ps.square_size_mm = (double)board_size;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
 	
@@ -1389,5 +1382,19 @@ void StageAWindow::OnDeleteAllLines() {
 	UpdatePreview();
 }
 
+void StageAWindow::OnDetect() {
+	SyncStageA();
+	PromptOK("Detection not implemented yet.");
+}
+
+void StageAWindow::OnSolveIntrinsics() {
+	SyncStageA();
+	PromptOK("Solve Intrinsics not implemented yet.");
+}
+
+void StageAWindow::OnSolveStereo() {
+	SyncStageA();
+	PromptOK("Solve Stereo not implemented yet.");
+}
 
 END_UPP_NAMESPACE

@@ -70,10 +70,19 @@ struct CapturedFrame : Moveable<CapturedFrame> {
 	Vector<MatchPair> matches; // Stored match pairs
 	Vector<Vector<Pointf>> annotation_lines_left; // Line chains for left eye (rectified pixel coords)
 	Vector<Vector<Pointf>> annotation_lines_right; // Line chains for right eye
+	
+	// Board Detection (Pixel coords)
+	Vector<Pointf> corners_l;
+	Vector<Pointf> corners_r;
+	bool detected_l = false;
+	bool detected_r = false;
+	bool used = true; // Include in solve
 
 	void Jsonize(JsonIO& jio) {
 		jio("time", time)("source", source)("samples", samples)("matches", matches);
 		jio("lines_l", annotation_lines_left)("lines_r", annotation_lines_right);
+		jio("corners_l", corners_l)("corners_r", corners_r)
+		   ("detected_l", detected_l)("detected_r", detected_r)("used", used);
 		// Images are intentionally not jsonized (stored as PNGs on disk).
 	}
 };
@@ -128,6 +137,12 @@ struct ProjectState {
 	bool preview_extrinsics = true;  // preview uses extrinsics if true
 	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
 
+	// Board Settings
+	int board_x = 8;
+	int board_y = 5;
+	double square_size_mm = 30.0;
+	bool use_charuco = false;
+
 	// Stage B (solve)
 	double distance_weight = 0.1;
 	double huber_px = 2.0;
@@ -167,11 +182,12 @@ struct ProjectState {
 		jio("yaw_r", yaw_r)("pitch_r", pitch_r)("roll_r", roll_r);
 		jio("fov_deg", fov_deg)("barrel_strength", barrel_strength)
 		   ("lens_f", lens_f)("lens_cx", lens_cx)("lens_cy", lens_cy)
-		   ("lens_k1", lens_k1)("lens_k2", lens_k2)
-		   ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics);
-
-		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);
-		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
+		              ("lens_k1", lens_k1)("lens_k2", lens_k2)
+		              ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics)
+		              ("board_x", board_x)("board_y", board_y)
+		              ("square_size_mm", square_size_mm)("use_charuco", use_charuco);
+		   
+		   		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
 		   ("compare_basic_params", compare_basic_params);
 
 		jio("stage_c_enabled", stage_c_enabled)("stage_c_compare", stage_c_compare);

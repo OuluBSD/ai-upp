@@ -205,7 +205,6 @@ StageAWindow::StageAWindow() {
 void StageAWindow::Init(AppModel& m) {
 	model = &m;
 	BuildStageAControls();
-	BuildGAPanel();
 	BuildCaptureLists();
 	BuildPlotters();
 	RefreshFromModel();
@@ -232,7 +231,6 @@ void StageAWindow::RefreshFromModel() {
 	lens_k2 <<= ps.lens_k2;
 	preview_extrinsics <<= ps.preview_extrinsics;
 	preview_intrinsics <<= ps.preview_intrinsics;
-	compare_ga_toggle <<= ps.compare_ga_result;
 	view_mode_list.SetIndex(ps.view_mode);
 	overlay_eyes <<= ps.overlay_eyes;
 	overlay_swap <<= ps.overlay_swap;
@@ -249,27 +247,6 @@ void StageAWindow::RefreshFromModel() {
 		const_cast<ProjectState&>(ps).tool_mode = 0; // Reset to None if invalid
 	
 	tool_list.SetIndex(ps.tool_mode);
-	
-	ga_pop_edit <<= model->ga_population;
-	ga_gen_edit <<= model->ga_generations;
-	
-	ga_phase_list.SetIndex(ps.ga_phase);
-	ga_pop_edit <<= ps.ga_population;
-	ga_gen_edit <<= ps.ga_generations;
-	ga_use_trimmed_loss = ps.ga_use_trimmed_loss;
-	ga_trim_percent <<= ps.ga_trim_percent;
-	ga_yaw_bound <<= ps.ga_bounds.yaw_deg;
-	ga_pitch_bound <<= ps.ga_bounds.pitch_deg;
-	ga_roll_bound <<= ps.ga_bounds.roll_deg;
-	ga_fov_min <<= ps.ga_bounds.fov_min;
-	ga_fov_max <<= ps.ga_bounds.fov_max;
-	ga_cx_bound <<= ps.ga_bounds.cx_delta;
-	ga_cy_bound <<= ps.ga_bounds.cy_delta;
-	ga_k1_min <<= ps.ga_bounds.k1_min;
-	ga_k1_max <<= ps.ga_bounds.k1_max;
-	ga_k2_min <<= ps.ga_bounds.k2_min;
-	ga_k2_max <<= ps.ga_bounds.k2_max;
-	ga_use_all_frames <<= ps.ga_use_all_frames;
 
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
@@ -304,11 +281,7 @@ void StageAWindow::BuildLayout() {
 	list_split.SetPos(3500);
 	
 	tab_data.Add(list_split.SizePos(), "Data");
-	tab_data.Add(ga_tab_ctrl.SizePos(), "Genetic Optimizer");
-	tab_data.Add(ga_results_ctrl.SizePos(), "GA Results");
 	
-	BuildGAPanel();
-	BuildGAResultsPanel();
 	BuildCaptureLists();
 }
 
@@ -467,286 +440,8 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
 }
 
-void StageAWindow::BuildGAPanel() {
-	int y = 6;
-	ga_group.SetLabel("Genetic Optimizer");
-	ga_tab_ctrl.Add(ga_group.SizePos()); // Fill the whole area
-	
-	// Layout logic for wide area (approx 1000x300)
-	// Column 1: Control Buttons (0-240)
-	int gy = y + 20;
-	ga_start.SetLabel("Start GA"); ga_start <<= THISBACK(OnGAStart);
-	ga_tab_ctrl.Add(ga_start.TopPos(gy, 24).LeftPos(12, 80));
-	ga_stop.SetLabel("Stop"); ga_stop <<= THISBACK(OnGAStop); ga_stop.Disable();
-	ga_tab_ctrl.Add(ga_stop.TopPos(gy, 24).LeftPos(100, 60));
-	ga_apply.SetLabel("Apply Best"); ga_apply <<= THISBACK(OnGAApply); ga_apply.Disable();
-	ga_tab_ctrl.Add(ga_apply.TopPos(gy, 24).LeftPos(166, 80));
-	
-	gy += 30;
-	ga_status_lbl.SetLabel("Status: Idle");
-	ga_tab_ctrl.Add(ga_status_lbl.TopPos(gy, 20).LeftPos(12, 240));
 
-	gy += 24;
-	compare_ga_toggle.SetLabel("Compare with GA Best");
-	compare_ga_toggle.WhenAction = THISBACK(SyncStageA);
-	compare_ga_toggle.Disable();
-	ga_tab_ctrl.Add(compare_ga_toggle.TopPos(gy, 20).LeftPos(12, 200));
 
-	gy += 24;
-	ga_history_lbl.SetLabel("History (Gen):");
-	ga_tab_ctrl.Add(ga_history_lbl.TopPos(gy, 20).LeftPos(12, 100));
-	ga_history_slider.MinMax(0, 1); ga_history_slider.Disable(); ga_history_slider.WhenAction = THISBACK(OnGAHistoryScrub);
-	ga_tab_ctrl.Add(ga_history_slider.TopPos(gy, 20).LeftPos(116, 130));
-
-	// Column 2: Parameters (270-500)
-	int cx2 = 270;
-	gy = y + 20;
-	ga_phase_lbl.SetLabel("Phase:");
-	ga_phase_list.Clear();
-	ga_phase_list.Add(GA_PHASE_EXTRINSICS, "Extrinsics Only");
-	ga_phase_list.Add(GA_PHASE_INTRINSICS, "Intrinsics Only");
-	ga_phase_list.Add(GA_PHASE_BOTH, "Both (Seq)");
-	ga_phase_list.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_phase_lbl.TopPos(gy, 20).LeftPos(cx2, 50));
-	ga_tab_ctrl.Add(ga_phase_list.TopPos(gy, 20).LeftPos(cx2 + 54, 120));
-
-	gy += 24;
-	ga_pop_lbl.SetLabel("Pop:"); ga_pop_edit.MinMax(10, 1000); ga_pop_edit.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_pop_lbl.TopPos(gy, 20).LeftPos(cx2, 30));
-	ga_tab_ctrl.Add(ga_pop_edit.TopPos(gy, 20).LeftPos(cx2 + 34, 50));
-	ga_gen_lbl.SetLabel("Gen:"); ga_gen_edit.MinMax(1, 1000); ga_gen_edit.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_gen_lbl.TopPos(gy, 20).LeftPos(cx2 + 94, 30));
-	ga_tab_ctrl.Add(ga_gen_edit.TopPos(gy, 20).LeftPos(cx2 + 128, 50));
-
-	gy += 24;
-	ga_use_trimmed_loss.SetLabel("Trimmed loss"); ga_use_trimmed_loss.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_use_trimmed_loss.TopPos(gy, 20).LeftPos(cx2, 100));
-	ga_trim_lbl.SetLabel("Trim %:");
-	ga_tab_ctrl.Add(ga_trim_lbl.TopPos(gy, 20).LeftPos(cx2 + 110, 50));
-	ga_trim_percent.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_trim_percent.TopPos(gy, 20).LeftPos(cx2 + 164, 40));
-
-	gy += 24;
-	ga_use_all_frames.SetLabel("Use all frames"); ga_use_all_frames.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_use_all_frames.TopPos(gy, 20).LeftPos(cx2, 120));
-
-	// Column 3: Bounds (520-770)
-	int cx3 = 520;
-	gy = y + 20;
-	ga_bounds_lbl.SetLabel("Bounds (deg / px):");
-	ga_tab_ctrl.Add(ga_bounds_lbl.TopPos(gy, 20).LeftPos(cx3, 120));
-	ga_yaw_bound.WhenAction = THISBACK(SyncStageA);
-	ga_pitch_bound.WhenAction = THISBACK(SyncStageA);
-	ga_roll_bound.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_yaw_bound.TopPos(gy, 20).LeftPos(cx3 + 124, 40));
-	ga_tab_ctrl.Add(ga_pitch_bound.TopPos(gy, 20).LeftPos(cx3 + 168, 40));
-	ga_tab_ctrl.Add(ga_roll_bound.TopPos(gy, 20).LeftPos(cx3 + 212, 40));
-
-	gy += 24;
-	ga_fov_lbl.SetLabel("FOV Range (min/max):");
-	ga_tab_ctrl.Add(ga_fov_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
-	ga_fov_min.WhenAction = THISBACK(SyncStageA);
-	ga_fov_max.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_fov_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
-	ga_tab_ctrl.Add(ga_fov_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
-
-	gy += 24;
-	ga_center_lbl.SetLabel("Center delta (px):");
-	ga_tab_ctrl.Add(ga_center_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
-	ga_cx_bound.WhenAction = THISBACK(SyncStageA);
-	ga_cy_bound.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_cx_bound.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
-	ga_tab_ctrl.Add(ga_cy_bound.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
-
-	gy += 24;
-	ga_k1_lbl.SetLabel("K1 Range (min/max):");
-	ga_tab_ctrl.Add(ga_k1_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
-	ga_k1_min.WhenAction = THISBACK(SyncStageA);
-	ga_k1_max.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_k1_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
-	ga_tab_ctrl.Add(ga_k1_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
-
-	gy += 24;
-	ga_k2_lbl.SetLabel("K2 Range (min/max):");
-	ga_tab_ctrl.Add(ga_k2_lbl.TopPos(gy, 20).LeftPos(cx3, 150));
-	ga_k2_min.WhenAction = THISBACK(SyncStageA);
-	ga_k2_max.WhenAction = THISBACK(SyncStageA);
-	ga_tab_ctrl.Add(ga_k2_min.TopPos(gy, 20).LeftPos(cx3 + 154, 40));
-	ga_tab_ctrl.Add(ga_k2_max.TopPos(gy, 20).LeftPos(cx3 + 198, 40));
-
-	// Column 4: Diagnostics (780+)
-	int cx4 = 780;
-	gy = y + 20;
-	ga_diag_lbl.SetFont(Arial(10));
-	ga_diag_lbl.SetAlign(ALIGN_TOP);
-	ga_tab_ctrl.Add(ga_diag_lbl.TopPos(gy, 120).LeftPos(cx4, 210));
-}
-
-void StageAWindow::BuildGAResultsPanel() {
-	ga_results_ctrl.Add(ga_results_split.SizePos());
-	ga_results_split.Horz(ga_plot, ga_best_results_list);
-	ga_results_split.SetPos(8000); // 80% split
-	
-	ga_best_results_list.AddColumn("Rank");
-	ga_best_results_list.HeaderTab(0).Fixed(40);
-	ga_best_results_list.AddColumn("Cost");
-	ga_best_results_list.HeaderTab(1).Fixed(80);
-	ga_best_results_list.AddColumn("Parameters");
-	
-	ga_best_results_list.WhenSel = THISBACK(OnGAResultSel);
-	ga_best_results_list.WhenBar = THISBACK(OnGAResultBar);
-}
-
-void StageAWindow::OnGAResultSel() {
-	int row = ga_best_results_list.GetCursor();
-	if (row >= 0 && row < ga_history.GetCount()) {
-		// Use the mapping logic: we showed results from the end of history
-		int idx = ga_history.GetCount() - 1 - row;
-		if (idx >= 0 && idx < ga_history.GetCount()) {
-			ga_history_slider <<= (idx + 1);
-			UpdatePreview();
-		}
-	}
-}
-
-void StageAWindow::OnGAResultBar(Bar& bar) {
-	int row = ga_best_results_list.GetCursor();
-	if (row >= 0) {
-		bar.Add("Apply Selected", [=] {
-			int idx = ga_history.GetCount() - 1 - row;
-			if (idx >= 0 && idx < ga_history.GetCount()) {
-				ga_best_params = ga_history[idx].params;
-				OnGAApply();
-			}
-		});
-	}
-}
-
-void StageAWindow::OnGAHistoryScrub() {
-	int hist_idx = ~ga_history_slider;
-	ga_plot.SetReplayIndex(hist_idx - 1);
-	UpdatePreview();
-}
-
-void StageAWindow::OnGAStart() {
-	if (ga_running) return;
-	
-	int pop = (int)ga_pop_edit;
-	int gen = (int)ga_gen_edit;
-	
-	if (pop <= 0 || gen <= 0) return;
-	
-	ga_running = true;
-	ga_cancel = 0;
-	ga_start.Disable();
-	ga_stop.Enable();
-	ga_apply.Disable();
-	compare_ga_toggle.Disable();
-	ga_status_lbl.SetLabel("Status: Initializing...");
-	ga_plot.Clear();
-	ga_diag_lbl.SetLabel("");
-	ga_best_params.a = 0;
-	ga_history.Clear();
-	ga_history_slider.MinMax(0, 1);
-	ga_history_slider.Disable();
-	ga_history_slider <<= 0;
-	
-	SyncStageA();
-	ProjectState start_state = model->project_state;
-	bool use_all = start_state.ga_use_all_frames;
-
-	// Prepare data for solver (copy to staging member)
-	ga_input_matches.Clear();
-	int row = captures_list.GetCursor();
-	
-	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
-		if (!use_all && i != row) continue; // Skip if single-frame mode
-		const CapturedFrame& f = model->captured_frames[i];
-		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : f.right_img.GetSize();
-		if (sz.cx <= 0) continue;
-		
-		for (const MatchPair& m : f.matches) {
-			StereoCalibrationMatch& sm = ga_input_matches.Add();
-			sm.left_px = vec2(m.left.x * sz.cx, m.left.y * sz.cy);
-			sm.right_px = vec2(m.right.x * sz.cx, m.right.y * sz.cy);
-			sm.image_size = sz;
-			sm.dist_l = m.dist_l / 1000.0; // mm -> m
-			sm.dist_r = m.dist_r / 1000.0;
-		}
-	}
-	
-	if (ga_input_matches.GetCount() < 5) {
-		ga_status_lbl.SetLabel("Status: Too few matches (<5)");
-		ga_running = false;
-		ga_start.Enable();
-		ga_stop.Disable();
-		return;
-	}
-	
-	double eye_dist = start_state.eye_dist / 1000.0; // mm -> m
-	
-	// Run worker thread
-	ga_thread.Run([=] {
-		StereoCalibrationSolver solver;
-		solver.matches <<= ga_input_matches; // Deep copy from member
-		solver.eye_dist = eye_dist;
-		solver.ga_population = pop;
-		solver.ga_generations = gen;
-		solver.dist_weight = start_state.distance_weight;
-		solver.huber_px = start_state.huber_px;
-		solver.huber_m = start_state.huber_m;
-		
-		solver.ga_use_trimmed_loss = start_state.ga_use_trimmed_loss;
-		solver.ga_trim_percent = start_state.ga_trim_percent;
-		solver.ga_bounds.yaw_deg = start_state.ga_bounds.yaw_deg;
-		solver.ga_bounds.pitch_deg = start_state.ga_bounds.pitch_deg;
-		solver.ga_bounds.roll_deg = start_state.ga_bounds.roll_deg;
-		solver.ga_bounds_intr.fov_min = start_state.ga_bounds.fov_min;
-		solver.ga_bounds_intr.fov_max = start_state.ga_bounds.fov_max;
-		solver.ga_bounds_intr.cx_delta = start_state.ga_bounds.cx_delta;
-		solver.ga_bounds_intr.cy_delta = start_state.ga_bounds.cy_delta;
-		solver.ga_bounds_intr.k1_min = start_state.ga_bounds.k1_min;
-		solver.ga_bounds_intr.k1_max = start_state.ga_bounds.k1_max;
-		solver.ga_bounds_intr.k2_min = start_state.ga_bounds.k2_min;
-		solver.ga_bounds_intr.k2_max = start_state.ga_bounds.k2_max;
-		
-		StereoCalibrationParams params;
-		// Initialize from baseline
-		double w = ga_input_matches[0].image_size.cx;
-		double fov_rad = start_state.fov_deg * M_PI / 180.0;
-		params.a = (w * 0.5) / tan(fov_rad * 0.5);
-		params.cx = start_state.lens_cx > 0 ? start_state.lens_cx : w*0.5;
-		params.cy = start_state.lens_cy > 0 ? start_state.lens_cy : ga_input_matches[0].image_size.cy*0.5;
-		params.c = params.a * start_state.lens_k1;
-		params.d = params.a * start_state.lens_k2;
-		params.yaw_l = start_state.yaw_l * M_PI / 180.0;
-		params.pitch_l = start_state.pitch_l * M_PI / 180.0;
-		params.roll_l = start_state.roll_l * M_PI / 180.0;
-		params.yaw = start_state.yaw_r * M_PI / 180.0;
-		params.pitch = start_state.pitch_r * M_PI / 180.0;
-		params.roll = start_state.roll_r * M_PI / 180.0;
-
-		solver.ga_step_cb = [&](int g, double cost, const StereoCalibrationParams& best_p) -> bool {
-			if (ga_cancel) return false;
-			PostCallback([=] { OnGAStep(g, cost, best_p); });
-			return true;
-		};
-		
-		double initial_cost = solver.ComputeRobustCost(params);
-		if (!std::isfinite(initial_cost)) initial_cost = 1e9;
-		PostCallback([=] { ga_plot.SetInitialCost(initial_cost); });
-
-		solver.GABootstrapPipeline(params, (GAPhase)start_state.ga_phase);
-		
-		if (ga_cancel) return; // Aborted
-		
-		// Finished
-		PostCallback([=] {
-			ga_best_params = params;
-			OnGAFinished();
-		});
-	});
-}
 
 void StageAWindow::OnGAStop() {
 	if (ga_running) {
@@ -1037,26 +732,7 @@ void StageAWindow::SyncStageA() {
 	ps.lens_k2 = (double)lens_k2;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
-	ps.compare_ga_result = (bool)compare_ga_toggle;
 	
-	ps.ga_phase = ga_phase_list.GetIndex();
-	ps.ga_population = ~ga_pop_edit;
-	ps.ga_generations = ~ga_gen_edit;
-	ps.ga_use_trimmed_loss = (bool)ga_use_trimmed_loss;
-	ps.ga_trim_percent = (double)ga_trim_percent;
-	ps.ga_bounds.yaw_deg = ~ga_yaw_bound;
-	ps.ga_bounds.pitch_deg = ~ga_pitch_bound;
-	ps.ga_bounds.roll_deg = ~ga_roll_bound;
-	ps.ga_bounds.fov_min = ~ga_fov_min;
-	ps.ga_bounds.fov_max = ~ga_fov_max;
-	ps.ga_bounds.cx_delta = ~ga_cx_bound;
-	ps.ga_bounds.cy_delta = ~ga_cy_bound;
-	ps.ga_bounds.k1_min = ~ga_k1_min;
-	ps.ga_bounds.k1_max = ~ga_k1_max;
-	ps.ga_bounds.k2_min = ~ga_k2_min;
-	ps.ga_bounds.k2_max = ~ga_k2_max;
-	ps.ga_use_all_frames = ~ga_use_all_frames;
-
 	ps.tool_mode = tool_list.GetIndex();
 
 	String doc;
@@ -1519,33 +1195,6 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 
 	auto lp_curr = BuildParams(ps);
 
-	// GA params (if valid)
-	StereoCalibrationHelpers::LensParams lp_ga;
-	double ga_yaw_l=0, ga_pitch_l=0, ga_roll_l=0;
-	double ga_yaw_r=0, ga_pitch_r=0, ga_roll_r=0;
-	
-	int hist_idx = ~ga_history_slider;
-	bool is_replay = (hist_idx > 0 && hist_idx <= ga_history.GetCount());
-	bool ga_valid = (compare_ga || is_replay) && (fabs(ga_best_params.a) > 1e-6);
-	
-	const StereoCalibrationParams& active_ga = is_replay ? ga_history[hist_idx - 1].params : ga_best_params;
-
-	if (ga_valid && IsParamsValid(active_ga)) {
-		lp_ga.f = (float)active_ga.a;
-		lp_ga.cx = (float)active_ga.cx;
-		lp_ga.cy = (float)active_ga.cy;
-		lp_ga.k1 = (float)(active_ga.c / active_ga.a);
-		lp_ga.k2 = (float)(active_ga.d / active_ga.a);
-		ga_yaw_l = active_ga.yaw_l;
-		ga_pitch_l = active_ga.pitch_l;
-		ga_roll_l = active_ga.roll_l;
-		ga_yaw_r = active_ga.yaw;
-		ga_pitch_r = active_ga.pitch;
-		ga_roll_r = active_ga.roll;
-	} else {
-		ga_valid = false;
-	}
-
 	auto Render = [&](const Image& src, const StereoCalibrationHelpers::LensParams& lp, 
 					  double y_deg, double p_deg, double r_deg, bool is_rad) {
 		if (src.IsEmpty()) return Image();
@@ -1581,33 +1230,8 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	Image L_curr = Render(frame.left_img, lp_curr, ps.yaw_l, ps.pitch_l, ps.roll_l, false);
 	Image R_curr = Render(frame.right_img, lp_curr, ps.yaw_r, ps.pitch_r, ps.roll_r, false);
 
-	if (ga_valid) {
-		Image L_ga = Render(frame.left_img, lp_ga, ga_yaw_l, ga_pitch_l, ga_roll_l, true);
-		Image R_ga = Render(frame.right_img, lp_ga, ga_yaw_r, ga_pitch_r, ga_roll_r, true);
-		
-		auto MakeGray = [](const Image& src) {
-			if (src.IsEmpty()) return Image();
-			Size s = src.GetSize();
-			ImageBuffer b(s);
-			const RGBA* s_ptr = ~src;
-			RGBA* d_ptr = b;
-			for(int i=0; i<s.cx*s.cy; i++) {
-				int gray = (s_ptr[i].r + s_ptr[i].g + s_ptr[i].b)/3;
-				d_ptr[i].r = d_ptr[i].g = d_ptr[i].b = (byte)gray;
-				d_ptr[i].a = 255;
-			}
-			return (Image)b;
-		};
-		
-		L_curr = MakeGray(L_curr);
-		R_curr = MakeGray(R_curr);
-		
-		last_left_preview = AlphaBlend(L_curr, L_ga, 0.5f);
-		last_right_preview = AlphaBlend(R_curr, R_ga, 0.5f);
-	} else {
-		last_left_preview = L_curr;
-		last_right_preview = R_curr;
-	}
+	last_left_preview = L_curr;
+	last_right_preview = R_curr;
 
 	// Sync points to plotters (in image pixels)
 	Vector<Pointf> pts_l, pts_r;

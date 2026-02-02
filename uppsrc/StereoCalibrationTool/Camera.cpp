@@ -54,6 +54,11 @@ void CameraWindow::Init(AppModel& m) {
 
 	source_status.SetLabel("Status: idle");
 
+	board_group.SetLabel("Calibration Board");
+	board_info_lbl.SetLabel("Generate printable checkerboard for calibration.");
+	generate_board_btn.SetLabel("Generate Board...");
+	generate_board_btn <<= THISBACK(OnGenerateBoard);
+
 	BuildCapturesList();
 
 	sources.Clear();
@@ -98,6 +103,12 @@ void CameraWindow::BuildLayout() {
 	controls.Add(capture_frame.TopPos(y, 24).LeftPos(244, 80));
 	y += 28;
 	controls.Add(source_status.TopPos(y, 20).HSizePos(6, 6));
+	
+	y += 28;
+	controls.Add(board_group.TopPos(y, 60).HSizePos(6, 6));
+	controls.Add(board_info_lbl.TopPos(y + 20, 20).LeftPos(12, 200));
+	controls.Add(generate_board_btn.TopPos(y + 20, 24).RightPos(12, 120));
+	y += 60;
 
 	controls.SetRect(0, 0, 10, y + 30);
 	Add(controls.TopPos(0, y + 30).HSizePos());
@@ -145,6 +156,107 @@ void CameraWindow::OnSourceChanged() {
 	int idx = source_list.GetIndex();
 	if (idx >= 0 && idx < sources.GetCount())
 		source_status.SetLabel("Selected: " + sources[idx]->GetName());
+}
+
+struct BoardGenDialog : TopWindow {
+	EditInt squares_x, squares_y;
+	EditDouble square_size_mm;
+	Button ok, cancel;
+	Label lbl_x, lbl_y, lbl_sz;
+	
+	bool run = false;
+	
+	BoardGenDialog() {
+		Title("Generate Checkerboard");
+		SetRect(0, 0, 300, 160);
+		
+		lbl_x.SetLabel("Squares X:");
+		Add(lbl_x.TopPos(10, 20).LeftPos(10, 80));
+		squares_x.MinMax(3, 20) <<= 8;
+		Add(squares_x.TopPos(10, 20).LeftPos(100, 50));
+		
+		lbl_y.SetLabel("Squares Y:");
+		Add(lbl_y.TopPos(40, 20).LeftPos(10, 80));
+		squares_y.MinMax(3, 20) <<= 5;
+		Add(squares_y.TopPos(40, 20).LeftPos(100, 50));
+		
+		lbl_sz.SetLabel("Size (mm):");
+		Add(lbl_sz.TopPos(70, 20).LeftPos(10, 80));
+		square_size_mm.MinMax(5.0, 200.0) <<= 30.0;
+		Add(square_size_mm.TopPos(70, 20).LeftPos(100, 50));
+		
+		ok.SetLabel("Generate");
+		ok <<= [=] { run = true; Close(); };
+		Add(ok.BottomPos(10, 24).RightPos(80, 80));
+		
+		cancel.SetLabel("Cancel");
+		cancel <<= [=] { Close(); };
+		Add(cancel.BottomPos(10, 24).RightPos(10, 60));
+	}
+};
+
+void CameraWindow::OnGenerateBoard() {
+	BoardGenDialog dlg;
+	dlg.RunAppModal();
+	if (!dlg.run) return;
+	
+	int nx = (int)dlg.squares_x;
+	int ny = (int)dlg.squares_y;
+	double sz_mm = (double)dlg.square_size_mm;
+	
+	// A4 at 300 DPI
+	// A4 is 210mm x 297mm
+	// 300 DPI => 11.81 px/mm
+	double dpi = 300.0;
+	double px_per_mm = dpi / 25.4;
+	
+	int w = (int)(210 * px_per_mm);
+	int h = (int)(297 * px_per_mm);
+	
+	ImageBuffer ib(w, h);
+	RGBA white; white.r = white.g = white.b = 255; white.a = 255;
+	RGBA black; black.r = black.g = black.b = 0; black.a = 255;
+	
+	Fill(ib, white, w * h);
+	
+	// Draw checkerboard centered
+	double board_w_mm = nx * sz_mm;
+	double board_h_mm = ny * sz_mm;
+	
+	int margin_x = (int)((210 - board_w_mm) * 0.5 * px_per_mm);
+	int margin_y = (int)((297 - board_h_mm) * 0.5 * px_per_mm);
+	
+	int sq_px = (int)(sz_mm * px_per_mm);
+	
+	for (int y = 0; y < ny; y++) {
+		for (int x = 0; x < nx; x++) {
+			if ((x + y) % 2 == 1) {
+				int px = margin_x + x * sq_px;
+				int py = margin_y + y * sq_px;
+				
+				for (int dy = 0; dy < sq_px; dy++) {
+					for (int dx = 0; dx < sq_px; dx++) {
+						if (px+dx < w && py+dy < h)
+							ib[py+dy][px+dx] = black;
+					}
+				}
+			}
+		}
+	}
+	
+	String out_dir = model->project_dir.IsEmpty() ? GetCurrentDirectory() : model->project_dir;
+	String png_path = AppendFileName(out_dir, "calibration_board.png");
+	String txt_path = AppendFileName(out_dir, "calibration_board.txt");
+	
+	PNGEncoder().SaveFile(png_path, ib);
+	
+	FileOut out(txt_path);
+	out << "squares_x=" << nx << "\n";
+	out << "squares_y=" << ny << "\n";
+	out << "square_size_mm=" << sz_mm << "\n";
+	out.Close();
+	
+	PromptOK("Board generated in project directory:\n" + png_path);
 }
 
 // Starts the selected source index. Returns false on failure.

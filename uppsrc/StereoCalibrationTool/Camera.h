@@ -54,6 +54,11 @@ private:
 	Button live_view;
 	Button capture_frame;
 	Label source_status;
+	
+	LabelBox board_group;
+	Label board_info_lbl;
+	Button generate_board_btn;
+	
 	ArrayCtrl captures_list;
 	ImageCtrl left_view;
 	ImageCtrl right_view;
@@ -73,6 +78,7 @@ private:
 	void SubMenuFile(Bar& bar);
 	void SubMenuEdit(Bar& bar);
 	void OnDeleteAll();
+	void OnGenerateBoard();
 
 	void BuildLayout();
 	void BuildCapturesList();

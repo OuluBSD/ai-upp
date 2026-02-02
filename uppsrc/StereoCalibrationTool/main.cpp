@@ -21,18 +21,12 @@ GUI_APP_MAIN
 	bool verbose = false;
 	int hmd_timeout_ms = 0;
 	int live_timeout_ms = 0;
-	bool use_ga = false;
-	int ga_population = 30;
-	int ga_generations = 20;
 	bool stagea_identity_test = false;
 	bool stagea_regression = false;
 	bool stagea_distortion_selfcheck = false;
 	bool pipeline_selfcheck = false;
 	bool stagea_ui_selfcheck = false;
 	String test_image_path;
-	String ga_run_phase;
-	bool ga_run_mode = false;
-	bool ga_run_save = false;
 	
 	// Direct launch flags
 	bool launch_camera = false;
@@ -62,13 +56,6 @@ GUI_APP_MAIN
 			       << "  --usb-timeout-ms=<ms>    Set timeout for USB test\n"
 			       << "  --hmd-timeout-ms=<ms>    Set timeout for HMD test\n"
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
-			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
-			       << "  --ga_run <project_dir>   Run GA headlessly\n"
-			       << "  --phase <ext|int|both_lens_then_pose|joint> Phase for --ga_run\n"
-		       << "           joint = optimize all parameters simultaneously (recommended)\n"
-			       << "  --save                   Save best result in --ga_run mode\n"
-			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
-			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
 			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
 			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
@@ -77,23 +64,7 @@ GUI_APP_MAIN
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
-		if (arg == "--ga_run")
-			ga_run_mode = true;
-		else if (arg == "--save")
-			ga_run_save = true;
-		else if (arg == "--phase" && i + 1 < args.GetCount())
-			ga_run_phase = args[++i];
-		else if (arg.StartsWith("--phase="))
-			ga_run_phase = arg.Mid(strlen("--phase="));
-		else if (arg == "--ga-population" && i + 1 < args.GetCount())
-			ga_population = atoi(args[++i]);
-		else if (arg.StartsWith("--ga-population="))
-			ga_population = atoi(arg.Mid(strlen("--ga-population=")));
-		else if (arg == "--ga-generations" && i + 1 < args.GetCount())
-			ga_generations = atoi(args[++i]);
-		else if (arg.StartsWith("--ga-generations="))
-			ga_generations = atoi(arg.Mid(strlen("--ga-generations=")));
-		else if (arg == "--pipeline_selfcheck")
+		if (arg == "--pipeline_selfcheck")
 			pipeline_selfcheck = true;
 		else if (arg == "--stagea_ui_selfcheck")
 			stagea_ui_selfcheck = true;
@@ -125,8 +96,6 @@ GUI_APP_MAIN
 			hmd_timeout_ms = atoi(arg.Mid(strlen("--hmd-timeout-ms=")));
 		else if (arg.StartsWith("--live-timeout-ms="))
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
-		else if (arg == "--ga")
-			use_ga = true;
 		else if (arg == "--stagea_identity_test")
 			stagea_identity_test = true;
 		else if (arg == "--stagea_regression")
@@ -174,12 +143,6 @@ GUI_APP_MAIN
 
 	if (!usb_device.IsEmpty())
 		camera.SetUsbDevicePath(usb_device);
-
-	if (use_ga) {
-		model.use_ga_bootstrap = true;
-		model.project_state.ga_population = ga_population;
-		model.project_state.ga_generations = ga_generations;
-	}
 
 	// Stage A identity test mode
 	if (stagea_identity_test) {
@@ -263,126 +226,6 @@ GUI_APP_MAIN
 		StereoCalibrationHelpers::SaveLastCalibration(model);
 		StereoCalibrationHelpers::SaveState(model);
 		SetExitCode(result);
-		return;
-	}
-
-	// Headless GA run mode
-	if (ga_run_mode) {
-		model.project_dir = project_dir;
-		StereoCalibrationHelpers::LoadLastCalibration(model);
-		StereoCalibrationHelpers::LoadState(model);
-		
-		GAPhase phase = GA_PHASE_BOTH_JOINT;  // Default to joint optimization
-		if (ga_run_phase == "ext" || ga_run_phase == "extrinsics") phase = GA_PHASE_EXTRINSICS;
-		else if (ga_run_phase == "int" || ga_run_phase == "intrinsics") phase = GA_PHASE_INTRINSICS;
-		else if (ga_run_phase == "both" || ga_run_phase == "both_lens_then_pose") phase = GA_PHASE_BOTH;
-		else if (ga_run_phase == "joint") phase = GA_PHASE_BOTH_JOINT;
-		
-		StereoCalibrationSolver solver;
-		solver.eye_dist = model.project_state.eye_dist / 1000.0;
-		solver.ga_population = ga_population;
-		solver.ga_generations = ga_generations;
-		solver.ga_use_trimmed_loss = model.project_state.ga_use_trimmed_loss;
-		solver.ga_trim_percent = model.project_state.ga_trim_percent;
-		
-		solver.ga_bounds.yaw_deg = model.project_state.ga_bounds.yaw_deg;
-		solver.ga_bounds.pitch_deg = model.project_state.ga_bounds.pitch_deg;
-		solver.ga_bounds.roll_deg = model.project_state.ga_bounds.roll_deg;
-		solver.ga_bounds_intr.fov_min = model.project_state.ga_bounds.fov_min;
-		solver.ga_bounds_intr.fov_max = model.project_state.ga_bounds.fov_max;
-		solver.ga_bounds_intr.cx_delta = model.project_state.ga_bounds.cx_delta;
-		solver.ga_bounds_intr.cy_delta = model.project_state.ga_bounds.cy_delta;
-		solver.ga_bounds_intr.k1_min = model.project_state.ga_bounds.k1_min;
-		solver.ga_bounds_intr.k1_max = model.project_state.ga_bounds.k1_max;
-		solver.ga_bounds_intr.k2_min = model.project_state.ga_bounds.k2_min;
-		solver.ga_bounds_intr.k2_max = model.project_state.ga_bounds.k2_max;
-		
-		for (const auto& f : model.captured_frames) {
-			Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : f.right_img.GetSize();
-			if (sz.cx <= 0) sz = Size(1280, 720); // Fallback for headless if images not loaded
-			for (const auto& m : f.matches) {
-				auto& sm = solver.matches.Add();
-				sm.left_px = vec2(m.left.x * sz.cx, m.left.y * sz.cy);
-				sm.right_px = vec2(m.right.x * sz.cx, m.right.y * sz.cy);
-				sm.image_size = sz;
-				sm.dist_l = m.dist_l / 1000.0;
-				sm.dist_r = m.dist_r / 1000.0;
-			}
-			for (const auto& line : f.annotation_lines_left) {
-				auto& sl = solver.lines.Add();
-				sl.eye = 0;
-				for (const auto& p : line) sl.raw_norm.Add(vec2(p.x, p.y));
-			}
-			for (const auto& line : f.annotation_lines_right) {
-				auto& sl = solver.lines.Add();
-				sl.eye = 1;
-				for (const auto& p : line) sl.raw_norm.Add(vec2(p.x, p.y));
-			}
-		}
-		
-		if (solver.matches.GetCount() < 5 && solver.lines.IsEmpty()) {
-			Cerr() << "Error: Too few matches/lines for GA run\n";
-			SetExitCode(1);
-			return;
-		}
-		
-		StereoCalibrationParams params;
-		// Initialize from project state
-		double w = solver.matches.GetCount() > 0 ? solver.matches[0].image_size.cx : 1280;
-		double fov_rad = model.project_state.fov_deg * M_PI / 180.0;
-		params.a = (w * 0.5) / tan(fov_rad * 0.5);
-		params.cx = model.project_state.lens_cx > 0 ? model.project_state.lens_cx : w*0.5;
-		params.cy = model.project_state.lens_cy > 0 ? model.project_state.lens_cy : (solver.matches.GetCount() > 0 ? solver.matches[0].image_size.cy*0.5 : 720*0.5);
-		params.c = params.a * model.project_state.lens_k1;
-		params.d = params.a * model.project_state.lens_k2;
-		params.yaw_l = model.project_state.yaw_l * M_PI / 180.0;
-		params.pitch_l = model.project_state.pitch_l * M_PI / 180.0;
-		params.roll_l = model.project_state.roll_l * M_PI / 180.0;
-		params.yaw = model.project_state.yaw_r * M_PI / 180.0;
-		params.pitch = model.project_state.pitch_r * M_PI / 180.0;
-		params.roll = model.project_state.roll_r * M_PI / 180.0;
-
-		Cout() << "Running GA Phase: " << ga_run_phase << " (pop=" << ga_population << ", gens=" << ga_generations << ")...\n";
-		solver.GABootstrapPipeline(params, phase);
-		
-		Cout() << "GA Run Finished.\n";
-		Cout() << "Best Results:\n";
-		Cout() << Format("  Yaw L/R: %.3f / %.3f\n", params.yaw_l * 180/M_PI, params.yaw * 180/M_PI);
-		Cout() << Format("  Focal: %.2f, k1=%.4f, k2=%.4f\n", params.a, params.c/params.a, params.d/params.a);
-		
-		if (ga_run_save) {
-			ProjectState& ps = model.project_state;
-			if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
-				ps.lens_f = params.a;
-				ps.lens_cx = params.cx;
-				ps.lens_cy = params.cy;
-				ps.lens_k1 = params.c / params.a;
-				ps.lens_k2 = params.d / params.a;
-				
-				// Update FOV deg for consistency
-				double fov_rad = 2.0 * atan((w * 0.5) / params.a);
-				ps.fov_deg = fov_rad * 180.0 / M_PI;
-				
-				ps.calibration_state = CALIB_GA_INTRINSICS;
-			}
-			if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {
-				ps.yaw_l = params.yaw_l * 180.0 / M_PI;
-				ps.pitch_l = params.pitch_l * 180.0 / M_PI;
-				ps.roll_l = params.roll_l * 180.0 / M_PI;
-				ps.yaw_r = params.yaw * 180.0 / M_PI;
-				ps.pitch_r = params.pitch * 180.0 / M_PI;
-				ps.roll_r = params.roll * 180.0 / M_PI;
-				if (phase == GA_PHASE_EXTRINSICS)
-					ps.calibration_state = CALIB_GA_EXTRINSICS;
-				else
-					ps.calibration_state = CALIB_GA_INTRINSICS; // Both implies int was also done or at least state 3+
-			}
-			
-			StereoCalibrationHelpers::SaveState(model);
-			Cout() << "Best results SAVED to project.json\n";
-		}
-		
-		SetExitCode(0);
 		return;
 	}
 

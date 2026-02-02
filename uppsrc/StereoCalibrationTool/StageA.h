@@ -163,6 +163,7 @@ private:
 	                                 const cv::Mat& R, const cv::Mat& T,
 	                                 const Size& img_sz);
 	void BuildRectificationMaps();
+	void RebuildRectificationFromState();  // Rebuild rectification from saved ProjectState
 	void ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
 	                             const cv::Mat& K2, const cv::Mat& D2,
 	                             const cv::Mat& R, const cv::Mat& T);

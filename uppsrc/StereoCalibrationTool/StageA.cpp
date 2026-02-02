@@ -372,6 +372,14 @@ void StageAWindow::RefreshFromModel() {
 
 	if (model->selected_capture >= 0 && model->selected_capture < captures_list.GetCount())
 		captures_list.SetCursor(model->selected_capture);
+
+	// Rebuild rectification cache from saved calibration parameters (needed on restart)
+	// Only rebuild if cache is invalid (don't overwrite freshly-computed rectification)
+	if (!model->rectification_cache.valid) {
+		RebuildRectificationFromState();
+	}
+	UpdateEpipolarDisplay();
+
 	UpdatePreview();
 }
 
@@ -1669,6 +1677,81 @@ void StageAWindow::BuildRectificationMaps() {
 		cache.image_size, CV_32FC1,
 		cache.map2x, cache.map2y
 	);
+}
+
+/*
+RebuildRectificationFromState:
+- Rebuilds stereo rectification from saved ProjectState parameters after program restart
+- Reconstructs K, D, R, T matrices from saved calibration data
+- Called from RefreshFromModel() to restore rectification cache
+
+Why this is needed:
+- StereoRectificationCache is in-memory only (cv::Mat cannot be serialized to JSON)
+- When program restarts, rectification must be recomputed from saved parameters
+- Without this, rectified overlay only works during session, not after restart
+
+Implementation notes:
+- Assumes both eyes share same intrinsics (K matrix) - current calibration pipeline
+- Reconstructs R (rotation) from right eye Euler angles (yaw_r, pitch_r, roll_r)
+- T (translation) is just [eye_dist, 0, 0] baseline separation
+- Only rebuilds if calibration data exists (lens_f > 0) and frames are available
+*/
+void StageAWindow::RebuildRectificationFromState() {
+	if (!model) return;
+
+	const ProjectState& ps = model->project_state;
+
+	// Check if we have calibration data saved
+	if (ps.lens_f <= 0 || ps.eye_dist <= 0) {
+		model->rectification_cache.Invalidate();
+		return;
+	}
+
+	// Get image size from first captured frame (needed for rectification)
+	Size img_sz(0, 0);
+	if (model->captured_frames.GetCount() > 0) {
+		img_sz = model->captured_frames[0].left_img.GetSize();
+	}
+
+	if (img_sz.cx <= 0 || img_sz.cy <= 0) {
+		model->rectification_cache.Invalidate();
+		return;
+	}
+
+	// Reconstruct K matrix (same for both eyes in current implementation)
+	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
+	K.at<double>(0, 0) = ps.lens_f;  // fx
+	K.at<double>(1, 1) = ps.lens_f;  // fy
+	K.at<double>(0, 2) = ps.lens_cx; // cx (principal point x)
+	K.at<double>(1, 2) = ps.lens_cy; // cy (principal point y)
+
+	// Reconstruct D matrix (distortion coefficients)
+	cv::Mat D = cv::Mat::zeros(5, 1, CV_64F);
+	D.at<double>(0) = ps.lens_k1;    // k1 (radial distortion)
+	D.at<double>(1) = ps.lens_k2;    // k2 (radial distortion)
+	// k3, p1, p2 = 0 (not used in current calibration)
+
+	// Reconstruct R from right eye Euler angles
+	// Rotation matrix represents relative orientation of right camera w.r.t. left
+	double yaw_rad = ps.yaw_r * M_PI / 180.0;
+	double pitch_rad = ps.pitch_r * M_PI / 180.0;
+	double roll_rad = ps.roll_r * M_PI / 180.0;
+
+	mat4 rot = AxesMat(yaw_rad, pitch_rad, roll_rad);
+
+	cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
+	for (int r = 0; r < 3; r++) {
+		for (int c = 0; c < 3; c++) {
+			R.at<double>(r, c) = rot[r][c];
+		}
+	}
+
+	// Reconstruct T (translation vector: baseline separation)
+	// [eye_dist, 0, 0] means right camera is eye_dist mm to the right of left camera
+	cv::Mat T = (cv::Mat_<double>(3, 1) << ps.eye_dist, 0, 0);
+
+	// Rebuild rectification cache from reconstructed parameters
+	ComputeStereoRectification(K, D, K, D, R, T, img_sz);
 }
 
 /*

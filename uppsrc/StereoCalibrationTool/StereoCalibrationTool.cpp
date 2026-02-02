@@ -23,6 +23,31 @@ Gotchas / invariants:
 // Controller never mutates UI directly; it only delegates to windows.
 */
 
+// ------------------------------------------------------------
+// StereoRectificationCache implementation
+// ------------------------------------------------------------
+
+bool StereoRectificationCache::IsValid(const cv::Mat& k1, const cv::Mat& d1,
+                                        const cv::Mat& k2, const cv::Mat& d2,
+                                        const cv::Mat& r, const cv::Mat& t,
+                                        const cv::Size& sz, double a) const {
+	if (!valid) return false;
+	if (image_size != sz) return false;
+	if (fabs(alpha - a) > 1e-9) return false;
+
+	// Compare matrices using cv::norm (L2 norm)
+	auto mat_eq = [](const cv::Mat& m1, const cv::Mat& m2) -> bool {
+		if (m1.size() != m2.size()) return false;
+		if (m1.type() != m2.type()) return false;
+		double diff = cv::norm(m1, m2, cv::NORM_L2);
+		return diff < 1e-6;
+	};
+
+	return mat_eq(K1, k1) && mat_eq(D1, d1) &&
+	       mat_eq(K2, k2) && mat_eq(D2, d2) &&
+	       mat_eq(R, r) && mat_eq(T, t);
+}
+
 namespace StereoCalibrationHelpers {
 
 String GetCalibrationStateText(int state) {

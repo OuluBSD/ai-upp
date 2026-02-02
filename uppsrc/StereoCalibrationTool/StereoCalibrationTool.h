@@ -9,6 +9,10 @@
 #include <plugin/libv4l2/libv4l2.h>
 #endif
 
+// Include OpenCV headers for StereoRectificationCache
+#undef CPU_SSE2
+#include <opencv2/core.hpp>
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -181,6 +185,11 @@ struct ProjectState {
 	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
 	bool show_corners = true;      // show detected board corners
 	bool show_reprojection = true; // show re-projected points
+
+	// Rectified Overlay (OpenCV stereoRectify)
+	bool rectified_overlay = false;  // Show rectified overlay instead of raw overlay
+	double rectify_alpha = 0.0;      // stereoRectify alpha parameter [0..1]
+	                                 // 0=crop all invalid pixels, 1=retain all pixels
 	
 	// Pipeline State
 	int calibration_state = CALIB_RAW;
@@ -214,10 +223,42 @@ struct ProjectState {
 		   ("show_epipolar", show_epipolar);
 		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode)
 		   ("show_corners", show_corners)("show_reprojection", show_reprojection);
+		jio("rectified_overlay", rectified_overlay)("rectify_alpha", rectify_alpha);
 		
 		jio("calibration_state", calibration_state)
 		   ("stage_b_diag", stage_b_diag)("stage_c_diag", stage_c_diag);
 	}
+};
+
+// Stereo rectification cache (computed from stereo calibration results).
+// Stores outputs of cv::stereoRectify and cv::initUndistortRectifyMap.
+struct StereoRectificationCache {
+	// Input parameters (used to detect when cache is invalid)
+	cv::Mat K1, D1, K2, D2;  // Intrinsics from calibration
+	cv::Mat R, T;             // Extrinsics from stereo calibration
+	cv::Size image_size;      // Image resolution
+	double alpha = -1.0;      // stereoRectify alpha parameter
+
+	// Rectification outputs (from cv::stereoRectify)
+	cv::Mat R1, R2;           // Rectification rotations for each camera
+	cv::Mat P1, P2;           // Projection matrices in rectified coords
+	cv::Mat Q;                // Disparity-to-depth mapping matrix
+	cv::Rect roi1, roi2;      // Regions of interest (valid pixels)
+
+	// Remap maps (from cv::initUndistortRectifyMap)
+	cv::Mat map1x, map1y;     // Left eye remap maps
+	cv::Mat map2x, map2y;     // Right eye remap maps
+
+	bool valid = false;       // True if cache contains valid data
+
+	// Check if current inputs match cached parameters
+	bool IsValid(const cv::Mat& k1, const cv::Mat& d1,
+	             const cv::Mat& k2, const cv::Mat& d2,
+	             const cv::Mat& r, const cv::Mat& t,
+	             const cv::Size& sz, double a) const;
+
+	// Invalidate cache
+	void Invalidate() { valid = false; }
 };
 
 // Shared application state used by all windows.
@@ -233,6 +274,14 @@ struct AppModel {
 
 	// Calibration data.
 	StereoCalibrationData last_calibration; // Latest solved calibration
+
+	// Stereo rectification cache (OpenCV stereoRectify results)
+	StereoRectificationCache rectification_cache;
+
+	// Epipolar alignment metrics (computed after stereo solve)
+	double epipolar_median_dy = -1.0;  // Median |yL - yR| in rectified space (px)
+	double epipolar_p95_dy = -1.0;     // 95th percentile |Δy| (px)
+	int epipolar_num_points = 0;       // Number of points used for metric
 
 	// Viewer caches (per capture and live).
 	int64 last_serial = -1;

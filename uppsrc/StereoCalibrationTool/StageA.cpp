@@ -23,6 +23,44 @@ static cv::Mat ImageToGrayMat(const Image& img) {
 	return m;
 }
 
+// Helper: Convert U++ Image to OpenCV BGR Mat (for color operations like remap)
+static cv::Mat ImageToBGRMat(const Image& img) {
+	if(img.IsEmpty()) return cv::Mat();
+	Size sz = img.GetSize();
+	cv::Mat m(sz.cy, sz.cx, CV_8UC3);
+	for(int y=0; y<sz.cy; y++) {
+		const RGBA* s = img[y];
+		cv::Vec3b* d = m.ptr<cv::Vec3b>(y);
+		for(int x=0; x<sz.cx; x++) {
+			// OpenCV uses BGR order
+			d[x][0] = s[x].b;
+			d[x][1] = s[x].g;
+			d[x][2] = s[x].r;
+		}
+	}
+	return m;
+}
+
+// Helper: Convert OpenCV BGR Mat to U++ Image
+static Image MatToImage(const cv::Mat& mat) {
+	if(mat.empty()) return Image();
+	if(mat.type() != CV_8UC3) return Image();
+
+	ImageBuffer out(mat.cols, mat.rows);
+	for(int y=0; y<mat.rows; y++) {
+		const cv::Vec3b* s = mat.ptr<cv::Vec3b>(y);
+		RGBA* d = out[y];
+		for(int x=0; x<mat.cols; x++) {
+			// OpenCV uses BGR order, convert to RGBA
+			d[x].r = s[x][2];
+			d[x].g = s[x][1];
+			d[x].b = s[x][0];
+			d[x].a = 255;
+		}
+	}
+	return out;
+}
+
 /*
 StageA.cpp
 ==========
@@ -262,11 +300,13 @@ void StageAWindow::RefreshFromModel() {
 	overlay_swap <<= ps.overlay_swap;
 	show_difference <<= ps.show_difference;
 	show_epipolar <<= ps.show_epipolar;
-		tint_overlay <<= ps.tint_overlay;
-		show_crosshair <<= ps.show_crosshair;
-		show_corners <<= ps.show_corners;
-			show_reprojection <<= ps.show_reprojection;
-			alpha_slider <<= ps.alpha;
+	tint_overlay <<= ps.tint_overlay;
+	show_crosshair <<= ps.show_crosshair;
+	rectified_overlay <<= ps.rectified_overlay;
+	rectify_alpha_slider <<= (int)(ps.rectify_alpha * 100.0);  // alpha 0..1 to slider 0..100
+	show_corners <<= ps.show_corners;
+	show_reprojection <<= ps.show_reprojection;
+	alpha_slider <<= ps.alpha;
 			
 			pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
 			
@@ -327,7 +367,12 @@ void StageAWindow::BuildTabs() {
 	
 	coverage_score_lbl.SetFont(Arial(12).Bold());
 	tab_board.Add(coverage_score_lbl.TopPos(250, 24).LeftPos(10, 300));
-	
+
+	// Add epipolar metrics to Solve tab
+	tab_solve.Add(epipolar_metric_lbl.TopPos(50, 20).LeftPos(10, 120));
+	tab_solve.Add(epipolar_value_lbl.TopPos(50, 20).LeftPos(135, 400));
+	epipolar_value_lbl.SetFont(Arial(10).Bold());
+
 	tab_report.Add(report_log.SizePos());
 	report_log.SetReadOnly();
 }
@@ -406,6 +451,15 @@ void StageAWindow::BuildStageAControls() {
 	show_crosshair <<= false;
 	show_crosshair.WhenAction = THISBACK(OnReviewChanged);
 
+	rectified_overlay.SetLabel("Rectified Overlay (OpenCV stereoRectify)");
+	rectified_overlay <<= false;
+	rectified_overlay.WhenAction = THISBACK(OnReviewChanged);
+
+	rectify_alpha_lbl.SetLabel("Rectify α");
+	rectify_alpha_slider.MinMax(0, 100);
+	rectify_alpha_slider <<= 0;
+	rectify_alpha_slider.WhenAction = THISBACK(SyncStageA);
+
 	alpha_lbl.SetLabel("Alpha");
 	alpha_slider.MinMax(0, 100);
 	alpha_slider <<= 50;
@@ -414,6 +468,9 @@ void StageAWindow::BuildStageAControls() {
 	undo_btn.SetLabel("Undo");
 	undo_btn <<= THISBACK(OnUndo);
 	undo_btn.Disable();
+
+	epipolar_metric_lbl.SetLabel("Epipolar Δy:");
+	epipolar_value_lbl.SetLabel("Not computed");
 
 	int y = 6;
 	controls.Add(pipeline_state_lbl.TopPos(y, 20).HSizePos(8, 8));
@@ -481,6 +538,11 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(show_crosshair.TopPos(y, 20).LeftPos(8, 180));
 	y += 24;
 	controls.Add(show_epipolar.TopPos(y, 20).LeftPos(8, 180));
+	y += 24;
+	controls.Add(rectified_overlay.TopPos(y, 20).LeftPos(8, 280));
+	y += 24;
+	controls.Add(rectify_alpha_lbl.TopPos(y, 20).LeftPos(8, 60));
+	controls.Add(rectify_alpha_slider.TopPos(y, 20).LeftPos(72, 180));
 }
 
 
@@ -557,7 +619,13 @@ void StageAWindow::SyncStageA() {
 	ps.lock_yaw_symmetry = (bool)lock_yaw_symmetry;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
-	
+	ps.rectify_alpha = (int)~rectify_alpha_slider / 100.0;  // UI slider 0..100 maps to alpha 0..1
+
+	// If rectify_alpha changed, invalidate rectification cache
+	if (fabs(model->rectification_cache.alpha - ps.rectify_alpha) > 1e-6) {
+		model->rectification_cache.Invalidate();
+	}
+
 	String doc;
 	doc << "Stage A Basic Params:\n";
 	doc << "  Eye dist: " << ps.eye_dist << " mm\n";
@@ -582,6 +650,7 @@ void StageAWindow::OnReviewChanged() {
 	ps.show_epipolar = (bool)show_epipolar;
 	ps.tint_overlay = (bool)tint_overlay;
 	ps.show_crosshair = (bool)show_crosshair;
+	ps.rectified_overlay = (bool)rectified_overlay;
 	ps.show_corners = (bool)show_corners;
 	ps.alpha = (int)~alpha_slider;
 
@@ -894,10 +963,33 @@ void StageAWindow::ComposeFinalDisplayImages() {
 	bool do_crosshair = ps.show_crosshair;
 	bool do_diff = ps.show_difference;
 	bool swap_order = ps.overlay_swap;
+	bool do_rectify = ps.rectified_overlay;
 	float alpha = ps.alpha / 100.0f; // Convert 0..100 to 0..1
 
 	Image left_display = last_left_preview;
 	Image right_display = last_right_preview;
+
+	// Apply rectification if enabled and cache is valid
+	if (do_rectify && model->rectification_cache.valid) {
+		// Convert U++ Images to cv::Mat
+		cv::Mat left_mat = ImageToBGRMat(last_left_preview);
+		cv::Mat right_mat = ImageToBGRMat(last_right_preview);
+
+		// Apply rectification using cached remap maps
+		cv::Mat left_rect, right_rect;
+		cv::remap(left_mat, left_rect,
+		          model->rectification_cache.map1x,
+		          model->rectification_cache.map1y,
+		          cv::INTER_LINEAR);
+		cv::remap(right_mat, right_rect,
+		          model->rectification_cache.map2x,
+		          model->rectification_cache.map2y,
+		          cv::INTER_LINEAR);
+
+		// Convert back to U++ Images
+		left_display = MatToImage(left_rect);
+		right_display = MatToImage(right_rect);
+	}
 
 	// Show difference mode (takes priority over overlay)
 	if (do_diff) {
@@ -1368,13 +1460,29 @@ void StageAWindow::OnSolveStereo() {
 	report << Format("  Right Relative: Y=%.2f, P=%.2f, R=%.2f deg\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
 	
 	report_log <<= report;
-	
+
+	// Compute stereo rectification (for rectified overlay preview)
+	ComputeStereoRectification(K, D_L, K, D_R, R, T, img_sz);
+
+	// Compute epipolar alignment metrics
+	ComputeEpipolarMetrics(K, D_L, K, D_R, R, T);
+	UpdateEpipolarDisplay();
+
+	// Append epipolar metrics to report
+	if (model->epipolar_num_points > 0) {
+		String epipolar_report = Format("  Epipolar Δy: median=%.2f px, p95=%.2f px\n",
+		                                 model->epipolar_median_dy,
+		                                 model->epipolar_p95_dy);
+		report << epipolar_report;
+		report_log <<= epipolar_report;
+	}
+
 	// Save report.txt
 	String report_path = AppendFileName(model->project_dir, "report.txt");
 	FileOut out(report_path);
 	out << report;
 	out.Close();
-	
+
 	RefreshFromModel();
 	SaveProjectState();
 }
@@ -1408,6 +1516,210 @@ void StageAWindow::OnExportYaml() {
 	file.release();
 	
 	PromptOK("Exported calibration to:\n" + fs.Get());
+}
+
+// ------------------------------------------------------------
+// Stereo Rectification Pipeline
+// ------------------------------------------------------------
+
+/*
+ComputeStereoRectification:
+- Computes rectification transforms using cv::stereoRectify
+- Stores results in model->rectification_cache
+- Called after stereo calibration completes
+
+Why this is needed:
+- Rectification aligns epipolar lines horizontally, making stereo matching easier
+- Allows visual verification that stereo calibration is correct
+- Enables epipolar alignment metrics (median Δy should be ~0 after rectification)
+*/
+void StageAWindow::ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& D1,
+                                               const cv::Mat& K2, const cv::Mat& D2,
+                                               const cv::Mat& R, const cv::Mat& T,
+                                               const Size& img_sz) {
+	StereoRectificationCache& cache = model->rectification_cache;
+
+	// Get rectify alpha parameter from project state
+	double alpha = model->project_state.rectify_alpha;
+
+	// Check if cache is still valid
+	if (cache.IsValid(K1, D1, K2, D2, R, T, cv::Size(img_sz.cx, img_sz.cy), alpha)) {
+		return; // Cache is valid, no need to recompute
+	}
+
+	// Compute rectification using OpenCV stereoRectify
+	// This function computes the rotation matrices (R1, R2) and projection matrices (P1, P2)
+	// that transform the cameras into a common rectified coordinate system.
+	cv::stereoRectify(
+		K1, D1,           // Left camera intrinsics
+		K2, D2,           // Right camera intrinsics
+		cv::Size(img_sz.cx, img_sz.cy),
+		R, T,             // Stereo extrinsics
+		cache.R1,         // Output: left rectification rotation
+		cache.R2,         // Output: right rectification rotation
+		cache.P1,         // Output: left projection matrix in rectified coords
+		cache.P2,         // Output: right projection matrix in rectified coords
+		cache.Q,          // Output: disparity-to-depth mapping matrix
+		cv::CALIB_ZERO_DISPARITY, // Flags: principal points at same position after rectification
+		alpha,            // 0=crop all invalid, 1=retain all pixels
+		cv::Size(img_sz.cx, img_sz.cy), // newImageSize: keep same resolution
+		&cache.roi1,      // Output: left valid region
+		&cache.roi2       // Output: right valid region
+	);
+
+	// Store input parameters for cache validation
+	cache.K1 = K1.clone();
+	cache.D1 = D1.clone();
+	cache.K2 = K2.clone();
+	cache.D2 = D2.clone();
+	cache.R = R.clone();
+	cache.T = T.clone();
+	cache.image_size = cv::Size(img_sz.cx, img_sz.cy);
+	cache.alpha = alpha;
+	cache.valid = true;
+
+	// Now we need to build the remap maps
+	BuildRectificationMaps();
+}
+
+/*
+BuildRectificationMaps:
+- Builds undistort+rectify remap maps using cv::initUndistortRectifyMap
+- Uses cached rectification parameters from ComputeStereoRectification
+- These maps are applied with cv::remap to generate rectified preview images
+
+Why separate from ComputeStereoRectification:
+- Remap maps depend only on rectification parameters, not on frame content
+- Can be reused for all frames with same calibration
+*/
+void StageAWindow::BuildRectificationMaps() {
+	StereoRectificationCache& cache = model->rectification_cache;
+
+	if (!cache.valid) return;
+
+	// Build remap maps for left camera
+	// Maps pixels from rectified image coordinates back to original distorted coordinates
+	cv::initUndistortRectifyMap(
+		cache.K1,         // Camera intrinsics
+		cache.D1,         // Distortion coefficients
+		cache.R1,         // Rectification rotation
+		cache.P1,         // Projection matrix in rectified coords
+		cache.image_size, // Output image size
+		CV_32FC1,         // Map type (32-bit float, single channel per map)
+		cache.map1x,      // Output: x-coordinates map
+		cache.map1y       // Output: y-coordinates map
+	);
+
+	// Build remap maps for right camera
+	cv::initUndistortRectifyMap(
+		cache.K2, cache.D2, cache.R2, cache.P2,
+		cache.image_size, CV_32FC1,
+		cache.map2x, cache.map2y
+	);
+}
+
+/*
+ComputeEpipolarMetrics:
+- Computes epipolar alignment quality metrics after stereo calibration
+- Uses detected checkerboard corners from all frames with both eyes detected
+- Rectifies corner points and measures |yL - yR| (vertical disparity)
+- Good calibration should have median |Δy| < 2 pixels
+
+Why this matters:
+- Epipolar constraint says corresponding points lie on same horizontal line after rectification
+- Large vertical disparity indicates calibration error or misalignment
+- Provides quantitative validation of rectification quality
+*/
+void StageAWindow::ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
+                                           const cv::Mat& K2, const cv::Mat& D2,
+                                           const cv::Mat& R, const cv::Mat& T) {
+	StereoRectificationCache& cache = model->rectification_cache;
+
+	if (!cache.valid) {
+		model->epipolar_median_dy = -1.0;
+		model->epipolar_p95_dy = -1.0;
+		model->epipolar_num_points = 0;
+		return;
+	}
+
+	// Collect all corner pairs from frames with both eyes detected
+	std::vector<cv::Point2f> left_pts, right_pts;
+
+	for (const auto& f : model->captured_frames) {
+		if (!f.used || !f.detected_l || !f.detected_r) continue;
+
+		for (int i = 0; i < min(f.corners_l.GetCount(), f.corners_r.GetCount()); i++) {
+			left_pts.push_back(cv::Point2f(f.corners_l[i].x, f.corners_l[i].y));
+			right_pts.push_back(cv::Point2f(f.corners_r[i].x, f.corners_r[i].y));
+		}
+	}
+
+	if (left_pts.empty()) {
+		model->epipolar_median_dy = -1.0;
+		model->epipolar_p95_dy = -1.0;
+		model->epipolar_num_points = 0;
+		return;
+	}
+
+	// Undistort and rectify points
+	std::vector<cv::Point2f> left_rect, right_rect;
+	cv::undistortPoints(left_pts, left_rect, K1, D1, cache.R1, cache.P1);
+	cv::undistortPoints(right_pts, right_rect, K2, D2, cache.R2, cache.P2);
+
+	// Compute |yL - yR| for each point pair
+	Vector<double> dy_values;
+	dy_values.Reserve(left_rect.size());
+
+	for (int i = 0; i < (int)left_rect.size(); i++) {
+		double dy = fabs(left_rect[i].y - right_rect[i].y);
+		dy_values.Add(dy);
+	}
+
+	// Compute median and 95th percentile
+	Sort(dy_values);
+	int n = dy_values.GetCount();
+	model->epipolar_num_points = n;
+
+	if (n > 0) {
+		model->epipolar_median_dy = dy_values[n / 2];
+		int p95_idx = min(n - 1, (int)(n * 0.95));
+		model->epipolar_p95_dy = dy_values[p95_idx];
+	} else {
+		model->epipolar_median_dy = -1.0;
+		model->epipolar_p95_dy = -1.0;
+	}
+}
+
+/*
+UpdateEpipolarDisplay:
+- Updates UI labels showing epipolar alignment metrics
+- Color-codes results: green if good, yellow if ok, red if poor
+*/
+void StageAWindow::UpdateEpipolarDisplay() {
+	if (model->epipolar_num_points == 0 || model->epipolar_median_dy < 0) {
+		epipolar_metric_lbl.SetLabel("Epipolar Δy:");
+		epipolar_value_lbl.SetLabel("Not computed");
+		epipolar_value_lbl.SetInk(Black());
+		return;
+	}
+
+	epipolar_metric_lbl.SetLabel("Epipolar Δy:");
+
+	String value_text = Format("median=%.2f px, p95=%.2f px (%d pts)",
+	                           model->epipolar_median_dy,
+	                           model->epipolar_p95_dy,
+	                           model->epipolar_num_points);
+
+	epipolar_value_lbl.SetLabel(value_text);
+
+	// Color coding: < 1.0 px = excellent (green), < 2.0 px = good (yellow), >= 2.0 px = poor (red)
+	if (model->epipolar_median_dy < 1.0) {
+		epipolar_value_lbl.SetInk(Green());
+	} else if (model->epipolar_median_dy < 2.0) {
+		epipolar_value_lbl.SetInk(Color(200, 150, 0)); // Yellow-orange
+	} else {
+		epipolar_value_lbl.SetInk(Red());
+	}
 }
 
 void StageAWindow::MainMenu(Bar& bar) {

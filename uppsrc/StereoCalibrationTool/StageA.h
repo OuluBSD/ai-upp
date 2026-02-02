@@ -57,10 +57,13 @@ private:
 	EditDoubleSpin lens_cx, lens_cy, lens_k1, lens_k2;
 	DocEdit basic_params_doc;
 	Button undo_btn;
-    Option overlay_eyes;
-    Option overlay_swap;
-    Option show_difference;
-    Option show_epipolar;
+	Option overlay_eyes;
+	Option overlay_swap;
+	Option show_difference;
+	Option show_epipolar;
+	Option rectified_overlay;
+	Label rectify_alpha_lbl;
+	SliderCtrl rectify_alpha_slider;
 	// Board Settings
 	Label board_x_lbl, board_y_lbl, board_sz_lbl;
 	EditInt board_x, board_y;
@@ -76,6 +79,10 @@ private:
 	ImageCtrl coverage_heat;
 	Button solve_int_btn;
 	Button solve_stereo_btn;
+
+	// Epipolar Metrics (displayed after stereo solve)
+	Label epipolar_metric_lbl;
+	Label epipolar_value_lbl;
 	
 	// Viewer
 	Option show_corners;
@@ -149,6 +156,17 @@ private:
 	void OnExportYaml();
 	bool CheckPoseDiversity();
 	void UpdateCoverageHeatmap();
+
+	// Stereo rectification pipeline
+	void ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& D1,
+	                                 const cv::Mat& K2, const cv::Mat& D2,
+	                                 const cv::Mat& R, const cv::Mat& T,
+	                                 const Size& img_sz);
+	void BuildRectificationMaps();
+	void ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
+	                             const cv::Mat& K2, const cv::Mat& D2,
+	                             const cv::Mat& R, const cv::Mat& T);
+	void UpdateEpipolarDisplay();
 	
 	// Menu handlers
 	void SubMenuEdit(Bar& bar);

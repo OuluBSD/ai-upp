@@ -17,8 +17,18 @@ Data flow:
 StageBWindow::StageBWindow() {
 	Title("Stereo Calibration Tool - Stage B");
 	Sizeable().Zoomable();
+	AddFrame(menu);
 	AddFrame(status);
+	menu.Set(THISBACK(MainMenu));
 	BuildLayout();
+}
+
+void StageBWindow::MainMenu(Bar& bar) {
+	bar.Add("Help", THISBACK(SubMenuHelp));
+}
+
+void StageBWindow::SubMenuHelp(Bar& bar) {
+	bar.Add("Instructions", [] { StereoCalibrationHelpers::ShowInstructions(); });
 }
 
 // Binds AppModel and syncs UI state from it.

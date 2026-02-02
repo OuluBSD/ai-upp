@@ -77,12 +77,19 @@ struct CapturedFrame : Moveable<CapturedFrame> {
 	bool detected_l = false;
 	bool detected_r = false;
 	bool used = true; // Include in solve
+	
+	// Diagnostics
+	String reject_reason;
+	double reproj_rms_l = 0;
+	double reproj_rms_r = 0;
 
 	void Jsonize(JsonIO& jio) {
 		jio("time", time)("source", source)("samples", samples)("matches", matches);
 		jio("lines_l", annotation_lines_left)("lines_r", annotation_lines_right);
 		jio("corners_l", corners_l)("corners_r", corners_r)
-		   ("detected_l", detected_l)("detected_r", detected_r)("used", used);
+		   ("detected_l", detected_l)("detected_r", detected_r)("used", used)
+		   ("reject_reason", reject_reason)
+		   ("rms_l", reproj_rms_l)("rms_r", reproj_rms_r);
 		// Images are intentionally not jsonized (stored as PNGs on disk).
 	}
 };
@@ -138,10 +145,13 @@ struct ProjectState {
 	bool preview_intrinsics = false; // preview uses intrinsics (lens distortion/FOV) if true
 
 	// Board Settings
-	int board_x = 8;
-	int board_y = 5;
-	double square_size_mm = 30.0;
+	int board_x = 9;
+	int board_y = 6;
+	double square_size_mm = 20.0;
 	bool use_charuco = false;
+	bool lock_intrinsics = false;
+	bool lock_baseline = false;
+	bool lock_yaw_symmetry = false;
 
 	// Stage B (solve)
 	double distance_weight = 0.1;
@@ -161,7 +171,6 @@ struct ProjectState {
 	double lambda = 0.1;
 
 	// Viewer
-	int view_mode = 0;   // 0=Raw, 1=Basic, 2=Solved
 	bool overlay_eyes = false;
 	int alpha = 50;      // 0..100
 	bool overlay_swap = false;
@@ -170,6 +179,8 @@ struct ProjectState {
 	bool tint_overlay = false;     // Tint left=blue, right=red in overlay mode
 	bool show_crosshair = false;   // Show red center crosshair lines
 	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
+	bool show_corners = true;      // show detected board corners
+	bool show_reprojection = true; // show re-projected points
 	
 	// Pipeline State
 	int calibration_state = CALIB_RAW;
@@ -185,7 +196,10 @@ struct ProjectState {
 		              ("lens_k1", lens_k1)("lens_k2", lens_k2)
 		              ("preview_extrinsics", preview_extrinsics)("preview_intrinsics", preview_intrinsics)
 		              ("board_x", board_x)("board_y", board_y)
-		              ("square_size_mm", square_size_mm)("use_charuco", use_charuco);
+		              ("square_size_mm", square_size_mm)("use_charuco", use_charuco)
+		              ("lock_intrinsics", lock_intrinsics)
+		              ("lock_baseline", lock_baseline)
+		              ("lock_yaw_symmetry", lock_yaw_symmetry);
 		   
 		   		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
 		   ("compare_basic_params", compare_basic_params);
@@ -195,10 +209,11 @@ struct ProjectState {
 		jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)
 		   ("lambda", lambda);
 
-		jio("view_mode", view_mode)("overlay_eyes", overlay_eyes)("alpha", alpha);
+		jio("overlay_eyes", overlay_eyes)("alpha", alpha);
 		jio("overlay_swap", overlay_swap)("show_difference", show_difference)
 		   ("show_epipolar", show_epipolar);
-		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode);
+		jio("tint_overlay", tint_overlay)("show_crosshair", show_crosshair)("tool_mode", tool_mode)
+		   ("show_corners", show_corners)("show_reprojection", show_reprojection);
 		
 		jio("calibration_state", calibration_state)
 		   ("stage_b_diag", stage_b_diag)("stage_c_diag", stage_c_diag);
@@ -257,6 +272,7 @@ struct StereoSource {
 };
 
 struct HmdStereoSource : StereoSource {
+	typedef HmdStereoSource CLASSNAME;
 	bool running = false;
 	bool verbose = false;
 	HMD::System sys;
@@ -264,6 +280,17 @@ struct HmdStereoSource : StereoSource {
 	Image last_left;
 	Image last_right;
 	bool last_is_bright = false;
+	int64 last_serial = -1;
+
+	Upp::Thread background_thread;
+	std::atomic<bool> quit;
+	Upp::Mutex mutex;
+	Image bg_left_bright, bg_right_bright;
+	Image bg_left_dark, bg_right_dark;
+	int64 bg_serial_bright = -1;
+	int64 bg_serial_dark = -1;
+
+	void BackgroundProcess();
 
 	String GetName() const override { return "HMD Stereo Camera"; }
 	bool Start() override;
@@ -345,6 +372,8 @@ void LoadLastCalibration(AppModel& model);
 void SaveLastCalibration(AppModel& model);
 void LoadState(AppModel& model);
 void SaveState(const AppModel& model);
+
+void ShowInstructions();
 }
 
 // ------------------------------------------------------------

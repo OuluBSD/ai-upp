@@ -546,12 +546,7 @@ void LoadState(AppModel& model) {
 	LoadFromJsonValue(model.captured_frames, v["frames"]);
 	LoadFromJsonValue(model.project_state, v["state"]);
 
-	if (ver < 1) {
-		if (model.project_state.view_mode == 0 && !IsNull(state_val["stage_a_undistort"]) && (bool)state_val["stage_a_undistort"]) {
-			model.project_state.view_mode = 1;
-		}
-		model.project_state.schema_version = 1;
-	}
+	model.project_state.schema_version = 1;
 
 	String dir = AppendFileName(model.project_dir, "captures");
 	for (int i = 0; i < model.captured_frames.GetCount(); i++) {
@@ -578,6 +573,44 @@ void SaveState(const AppModel& model) {
 		PNGEncoder().SaveFile(AppendFileName(dir, Format("frame_%d_l.png", i)), f.left_img);
 		PNGEncoder().SaveFile(AppendFileName(dir, Format("frame_%d_r.png", i)), f.right_img);
 	}
+}
+
+void ShowInstructions() {
+	String text;
+	text << "Stereo Calibration Instructions\n";
+	text << "===============================\n\n";
+	text << "1. Print the Calibration Board:\n";
+	text << "   - Go to 'Camera / Capture' window.\n";
+	text << "   - Click 'Generate Board...' and choose dimensions (e.g., 8x5 corners).\n";
+	text << "   - Print the generated PNG at 100% scale (no fit-to-page).\n\n";
+	text << "2. Capture Calibration Frames:\n";
+	text << "   - Start your camera source.\n";
+	text << "   - Hold the board in front of the camera in various positions.\n";
+	text << "   - Ensure the board is visible in BOTH eyes.\n";
+	text << "   - Cover as much of the image area as possible (corners, edges, center).\n";
+	text << "   - Capture 20-40 frames for best results.\n\n";
+	text << "3. Detect and Solve (Stage A):\n";
+	text << "   - Open 'Stage A (Basic)' window.\n";
+	text << "   - Go to 'Board' tab and set the 'Corners X/Y' (e.g., 8 and 5).\n";
+	text << "   - Click 'Detect Corners'. The list will update with 'Yes' for detected eyes.\n";
+	text << "   - Go to 'Solve' tab.\n";
+	text << "   - Click 'Solve Intrinsics' to find lens distortion and focal length.\n";
+	text << "   - Click 'Solve Stereo' to find relative rotation and baseline.\n\n";
+	text << "4. Verify Results:\n";
+	text << "   - Use 'Preview intrinsics' and 'Preview extrinsics' toggles.\n";
+	text << "   - Check the 'Report' tab for RMS errors (lower is better, < 1.0 px is good).\n";
+	text << "   - Look at 'Live Result' to see the live rectified video.\n";
+
+	TopWindow dlg;
+	dlg.Title("Calibration Instructions");
+	dlg.SetRect(0, 0, 500, 600);
+	
+	DocEdit edit;
+	edit.SetReadOnly();
+	edit <<= text;
+	dlg.Add(edit.SizePos());
+	
+	dlg.RunAppModal();
 }
 
 } // namespace StereoCalibrationHelpers
@@ -738,11 +771,19 @@ bool HmdStereoSource::Start() {
 		return false;
 	}
 	cam->SetVerbose(verbose);
+	
+	quit = false;
+	background_thread.Start(THISBACK(BackgroundProcess));
+	
 	running = true;
 	return true;
 }
 
 void HmdStereoSource::Stop() {
+	if (running) {
+		quit = true;
+		background_thread.Wait();
+	}
 	if (cam)
 		cam->Close();
 	cam.Clear();
@@ -751,32 +792,92 @@ void HmdStereoSource::Stop() {
 	running = false;
 	last_left = Image();
 	last_right = Image();
+	{
+		Mutex::Lock __(mutex);
+		bg_left_bright = Image();
+		bg_right_bright = Image();
+		bg_left_dark = Image();
+		bg_right_dark = Image();
+		bg_serial_bright = -1;
+		bg_serial_dark = -1;
+	}
+}
+
+void HmdStereoSource::BackgroundProcess() {
+	while (!quit) {
+		sys.UpdateData();
+		
+		if (cam && cam->IsOpen()) {
+			Vector<HMD::CameraFrame> frames;
+			cam->PopFrames(frames);
+			if (frames.IsEmpty()) {
+				Sleep(1);
+				continue;
+			}
+			
+			for (const auto& f : frames) {
+				Image L, R;
+				if (StereoCalibrationHelpers::SplitStereoImage(f.img, L, R)) {
+					Mutex::Lock __(mutex);
+					if (f.is_bright) {
+						bg_left_bright = L;
+						bg_right_bright = R;
+						bg_serial_bright = f.serial;
+					} else {
+						bg_left_dark = L;
+						bg_right_dark = R;
+						bg_serial_dark = f.serial;
+					}
+				}
+			}
+		}
+		else {
+			Sleep(10);
+		}
+	}
 }
 
 bool HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
-	if (!cam || !cam->IsOpen())
-		return false;
-	Vector<HMD::CameraFrame> frames;
-	cam->PopFrames(frames);
-	if (frames.IsEmpty())
+	if (!running)
 		return false;
 
-	int best_idx = -1;
-	if (prefer_bright) {
-		for (int i = 0; i < frames.GetCount(); i++) {
-			if (frames[i].is_bright) {
-				best_idx = i;
+	Image L, R;
+	bool is_bright;
+	int64 serial;
+
+	{
+		Mutex::Lock __(mutex);
+		
+		bool has_new_bright = (bg_serial_bright > last_serial);
+		bool has_new_dark = (bg_serial_dark > last_serial);
+		
+		if (prefer_bright) {
+			if (has_new_bright) {
+				L = bg_left_bright; R = bg_right_bright;
+				is_bright = true; serial = bg_serial_bright;
+			} else if (has_new_dark) {
+				L = bg_left_dark; R = bg_right_dark;
+				is_bright = false; serial = bg_serial_dark;
+			} else return false;
+		} else {
+			if (bg_serial_bright > bg_serial_dark) {
+				if (has_new_bright) {
+					L = bg_left_bright; R = bg_right_bright;
+					is_bright = true; serial = bg_serial_bright;
+				} else return false;
+			} else {
+				if (has_new_dark) {
+					L = bg_left_dark; R = bg_right_dark;
+					is_bright = false; serial = bg_serial_dark;
+				} else return false;
 			}
 		}
+		
+		last_left = L;
+		last_right = R;
+		last_is_bright = is_bright;
+		last_serial = serial;
 	}
-
-	if (best_idx < 0)
-		best_idx = frames.GetCount() - 1;
-
-	const HMD::CameraFrame& f = frames[best_idx];
-	if (!StereoCalibrationHelpers::SplitStereoImage(f.img, last_left, last_right))
-		return false;
-	last_is_bright = f.is_bright;
 
 	left.timestamp_us = usecs();
 	left.format = GEOM_EVENT_CAM_RGBA8;
@@ -788,7 +889,7 @@ bool HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right, bool pref
 	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
 	left.img = last_left;
 	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-	left.serial = f.serial;
+	left.serial = last_serial;
 
 	right.timestamp_us = left.timestamp_us;
 	right.format = GEOM_EVENT_CAM_RGBA8;
@@ -800,59 +901,55 @@ bool HmdStereoSource::ReadFrame(VisualFrame& left, VisualFrame& right, bool pref
 	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
 	right.img = last_right;
 	right.flags = left.flags;
-	right.serial = left.serial;
+	right.serial = last_serial;
 
 	return true;
 }
 
 bool HmdStereoSource::PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright) {
-	if (!cam || !cam->IsOpen())
-		return false;
-	Vector<HMD::CameraFrame> frames;
-	cam->PeakFrames(frames);
-	if (frames.IsEmpty())
+	if (!running)
 		return false;
 
-	int best_idx = -1;
-	if (prefer_bright) {
-		for (int i = 0; i < frames.GetCount(); i++) {
-			if (frames[i].is_bright) {
-				best_idx = i;
-			}
-		}
+	Image L, R;
+	bool is_bright;
+	int64 serial;
+	{
+		Mutex::Lock __(mutex);
+		if (prefer_bright && !bg_left_bright.IsEmpty()) {
+			L = bg_left_bright; R = bg_right_bright;
+			is_bright = true; serial = bg_serial_bright;
+		} else if (!bg_left_dark.IsEmpty() && bg_serial_dark > bg_serial_bright) {
+			L = bg_left_dark; R = bg_right_dark;
+			is_bright = false; serial = bg_serial_dark;
+		} else if (!bg_left_bright.IsEmpty()) {
+			L = bg_left_bright; R = bg_right_bright;
+			is_bright = true; serial = bg_serial_bright;
+		} else return false;
 	}
-
-	if (best_idx < 0)
-		best_idx = frames.GetCount() - 1;
-
-	const HMD::CameraFrame& f = frames[best_idx];
-	if (!StereoCalibrationHelpers::SplitStereoImage(f.img, last_left, last_right))
-		return false;
-	last_is_bright = f.is_bright;
 
 	left.timestamp_us = usecs();
 	left.format = GEOM_EVENT_CAM_RGBA8;
-	left.width = last_left.GetWidth();
-	left.height = last_left.GetHeight();
+	left.width = L.GetWidth();
+	left.height = L.GetHeight();
 	left.stride = left.width * (int)sizeof(RGBA);
 	left.eye = 0;
-	left.data = (const byte*)~last_left;
-	left.data_bytes = last_left.GetLength() * (int)sizeof(RGBA);
-	left.img = last_left;
-	left.flags = last_is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-	left.serial = f.serial;
+	left.data = (const byte*)~L;
+	left.data_bytes = L.GetLength() * (int)sizeof(RGBA);
+	left.img = L;
+	left.flags = is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+	left.serial = serial;
 
 	right.timestamp_us = left.timestamp_us;
 	right.format = GEOM_EVENT_CAM_RGBA8;
-	right.width = last_right.GetWidth();
-	right.height = last_right.GetHeight();
+	right.width = R.GetWidth();
+	right.height = R.GetHeight();
 	right.stride = right.width * (int)sizeof(RGBA);
 	right.eye = 1;
-	right.data = (const byte*)~last_right;
-	right.data_bytes = last_right.GetLength() * (int)sizeof(RGBA);
-	right.img = last_right;
+	right.data = (const byte*)~R;
+	right.data_bytes = R.GetLength() * (int)sizeof(RGBA);
+	right.img = R;
 	right.flags = left.flags;
-	right.serial = left.serial;
+	right.serial = serial;
 
 	return true;
 }

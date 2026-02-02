@@ -482,7 +482,7 @@ void StageAWindow::BuildStageAControls() {
 	overlay_swap.WhenAction = THISBACK(OnReviewChanged);
 	show_difference.SetLabel("Show Diff");
 	show_difference.WhenAction = THISBACK(OnReviewChanged);
-	show_epipolar.SetLabel("Show epipolar line");
+	show_epipolar.SetLabel("Show epipolar lines (verify horizontal alignment)");
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);
 
 	tint_overlay.SetLabel("Tint overlay (L=blue, R=red)");
@@ -493,7 +493,7 @@ void StageAWindow::BuildStageAControls() {
 	show_crosshair <<= false;
 	show_crosshair.WhenAction = THISBACK(OnReviewChanged);
 
-	rectified_overlay.SetLabel("Rectified Overlay (OpenCV stereoRectify)");
+	rectified_overlay.SetLabel("Rectified Overlay (aligns epipolar lines horizontally)");
 	rectified_overlay <<= false;
 	rectified_overlay.WhenAction = THISBACK(OnReviewChanged);
 

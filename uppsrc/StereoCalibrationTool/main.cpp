@@ -64,7 +64,8 @@ GUI_APP_MAIN
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
 			       << "  --ga                     Enable genetic algorithm bootstrap for extrinsics\n"
 			       << "  --ga_run <project_dir>   Run GA headlessly\n"
-			       << "  --phase <ext|int|both_lens_then_pose> Phase for --ga_run\n"
+			       << "  --phase <ext|int|both_lens_then_pose|joint> Phase for --ga_run\n"
+		       << "           joint = optimize all parameters simultaneously (recommended)\n"
 			       << "  --save                   Save best result in --ga_run mode\n"
 			       << "  --ga-population=<n>      Set GA population size (default: 30)\n"
 			       << "  --ga-generations=<n>     Set GA generations (default: 20)\n"
@@ -271,10 +272,11 @@ GUI_APP_MAIN
 		StereoCalibrationHelpers::LoadLastCalibration(model);
 		StereoCalibrationHelpers::LoadState(model);
 		
-		GAPhase phase = GA_PHASE_BOTH;
+		GAPhase phase = GA_PHASE_BOTH_JOINT;  // Default to joint optimization
 		if (ga_run_phase == "ext" || ga_run_phase == "extrinsics") phase = GA_PHASE_EXTRINSICS;
 		else if (ga_run_phase == "int" || ga_run_phase == "intrinsics") phase = GA_PHASE_INTRINSICS;
 		else if (ga_run_phase == "both" || ga_run_phase == "both_lens_then_pose") phase = GA_PHASE_BOTH;
+		else if (ga_run_phase == "joint") phase = GA_PHASE_BOTH_JOINT;
 		
 		StereoCalibrationSolver solver;
 		solver.eye_dist = model.project_state.eye_dist / 1000.0;

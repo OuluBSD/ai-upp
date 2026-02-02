@@ -88,7 +88,8 @@ struct StereoCalibrationTrace {
 enum GAPhase {
 	GA_PHASE_EXTRINSICS = 0,
 	GA_PHASE_INTRINSICS = 1,
-	GA_PHASE_BOTH = 2
+	GA_PHASE_BOTH = 2,
+	GA_PHASE_BOTH_JOINT = 3  // Joint optimization: all params simultaneously
 };
 
 struct StereoCalibrationLine : Moveable<StereoCalibrationLine> {
@@ -146,6 +147,7 @@ public:
 	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);
 	void GABootstrapIntrinsics(StereoCalibrationParams& params);
 	void GABootstrapExtrinsics(StereoCalibrationParams& params);
+	void GABootstrapJoint(StereoCalibrationParams& params);  // Joint optimization
 	void GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase);
 	
 	// SolveExtrinsicsOnlyMicroRefine

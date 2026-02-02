@@ -147,7 +147,7 @@ def main():
     parser.add_argument('--dataset', default='share/calibration/test1', help='Dataset path')
     parser.add_argument('--population', type=int, default=200, help='GA population size')
     parser.add_argument('--generations', type=int, default=300, help='GA generations')
-    parser.add_argument('--phase', default='intrinsics', choices=['intrinsics', 'extrinsics', 'both_lens_then_pose'], help='GA phase')
+    parser.add_argument('--phase', default='joint', choices=['intrinsics', 'extrinsics', 'both_lens_then_pose', 'joint'], help='GA phase')
     args = parser.parse_args()
 
     dataset_path = args.dataset
@@ -271,7 +271,7 @@ def main():
     }
 
     # Only check extrinsics if phase includes them
-    if args.phase in ['extrinsics', 'both_lens_then_pose']:
+    if args.phase in ['extrinsics', 'both_lens_then_pose', 'joint']:
         tolerances['left_yaw'] = {'max': 5.0}   # ±5° (generous for now)
         tolerances['right_yaw'] = {'max': 5.0}
 

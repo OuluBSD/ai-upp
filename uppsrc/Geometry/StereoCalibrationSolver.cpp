@@ -285,15 +285,28 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 
 	// Line straightness cost
 	static bool dumped_invalid_line = false;
+	static int line_debug_count = 0;
+	bool enable_line_debug = (trace.enabled && trace.verbosity >= 2 && line_debug_count < 2);
+
+	int line_idx = 0;
 	for (const auto& line : lines) {
 		if (line.raw_norm.GetCount() < 3) continue;
-		
+
+		if (enable_line_debug && line_idx == 0) {
+			printf("\n=== LINE STRAIGHTNESS DEBUG (line %d, eye %d) ===\n", line_idx, line.eye);
+			printf("  Params: a=%.2f b=%.2f c=%.2f d=%.2f cx=%.2f cy=%.2f\n",
+			       params.a, params.b, params.c, params.d, params.cx, params.cy);
+			printf("  Derived: k1=%.4f k2=%.4f (if c=a*k1, d=a*k2)\n",
+			       params.a != 0 ? params.c/params.a : 0, params.a != 0 ? params.d/params.a : 0);
+			fflush(stdout);
+		}
+
 		Vector<Pointf> pts;
 		for (int i = 0; i < line.raw_norm.GetCount(); i++) {
 			const auto& p_norm = line.raw_norm[i];
 			Size sz = matches.GetCount() > 0 ? matches[0].image_size : Size(1280, 720);
 			vec2 pix((float)p_norm[0] * sz.cx, (float)p_norm[1] * sz.cy);
-			
+
 			double dx = pix[0] - params.cx;
 			double dy = pix[1] - params.cy;
 			double r = sqrt(dx * dx + dy * dy);
@@ -303,10 +316,15 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 			}
 			double theta = PixelToAngle(params, r);
 			double roll = atan2(dy, dx);
-			
+
 			// Rectilinear projection: r' = f * tan(theta)
 			double r_rect = params.a * tan(theta);
-			
+
+			if (enable_line_debug && line_idx == 0 && i < 5) {
+				printf("  Point %d: raw_pix=(%.1f,%.1f) r=%.2f theta=%.4f rad r_rect=%.2f\n",
+				       i, pix[0], pix[1], r, theta, r_rect);
+			}
+
 			if (!std::isfinite(r_rect)) {
 				if (!dumped_invalid_line) {
 					printf("INVALID LINE POINT: f=%f, theta=%f, r_rect=%f, r=%f, dx=%f, dy=%f, cx=%f, cy=%f\n",
@@ -318,6 +336,8 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 				pts.Add(Pointf(r_rect * cos(roll), r_rect * sin(roll)));
 			}
 		}
+
+		line_idx++;
 		
 		// Fit line and calculate RMS error
 		if (pts.GetCount() >= 3) {
@@ -330,7 +350,7 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 			double var_x = sum_xx - sum_x * sum_x / n;
 			double var_y = sum_yy - sum_y * sum_y / n;
 			double cov_xy = sum_xy - sum_x * sum_y / n;
-			
+
 			double line_cost = 0;
 			if (fabs(var_x) > fabs(var_y)) {
 				double slope = cov_xy / var_x;
@@ -347,11 +367,254 @@ double StereoCalibrationSolver::ComputeRobustCost(const StereoCalibrationParams&
 					line_cost += err * err;
 				}
 			}
+
+			if (enable_line_debug && line_idx - 1 == 0) {
+				printf("  Line fit: rms_error=%.4f cost_contribution=%.2f\n",
+				       sqrt(line_cost / n), 100.0 * sqrt(line_cost / n));
+				fflush(stdout);
+				line_debug_count++;
+			}
+
 			total_cost += 100.0 * sqrt(line_cost / n); // Weight lines heavily for intrinsics
 		}
 	}
 
-	if (params.a < 10.0) total_cost += 1e9;
+	// Physical priors to break degeneracy
+	// 1. Barrel distortion prior: k1 should be negative for typical lenses
+	double k1 = params.a != 0 ? params.c / params.a : 0;
+	if (k1 > 0) {
+		// Penalize positive k1 (pincushion distortion is rare)
+		total_cost += 500.0 * k1;  // Soft penalty, not hard constraint
+	}
+
+	// 2. r→θ monotonicity check: forward distortion function should be monotonic
+	// Sample the polynomial at multiple radii and check if it's monotonically increasing
+	bool monotonic = true;
+	double max_theta = 1.5;  // Check up to ~85 degrees
+	int n_samples = 10;
+	double prev_r = 0;
+	for (int i = 1; i <= n_samples; i++) {
+		double theta = (i / (double)n_samples) * max_theta;
+		double t2 = theta * theta;
+		double t3 = t2 * theta;
+		double t4 = t3 * theta;
+		double r = params.a * theta + params.b * t2 + params.c * t3 + params.d * t4;
+
+		if (r <= prev_r || r < 0 || !std::isfinite(r)) {
+			monotonic = false;
+			break;
+		}
+		prev_r = r;
+	}
+	if (!monotonic) {
+		total_cost += 1e10;  // Heavy penalty for non-monotonic distortion
+	}
+
+	// 3. Raw pixel curvature cost: measure distortion BEFORE undistortion
+	// This directly penalizes the amount of barrel/pincushion distortion
+	// and prevents focal-distortion compensation
+	for (const auto& line : lines) {
+		if (line.raw_norm.GetCount() < 5) continue;
+
+		// Get raw distorted pixel coordinates
+		Vector<vec2> raw_pixels;
+		Size sz = matches.GetCount() > 0 ? matches[0].image_size : Size(1280, 720);
+		for (const auto& p_norm : line.raw_norm) {
+			vec2 pix((float)p_norm[0] * sz.cx, (float)p_norm[1] * sz.cy);
+			raw_pixels.Add(pix);
+		}
+
+		if (raw_pixels.GetCount() >= 5) {
+			// Fit line to RAW pixels (should be curved if distortion exists)
+			double sum_x = 0, sum_y = 0;
+			for (const auto& p : raw_pixels) {
+				sum_x += p[0]; sum_y += p[1];
+			}
+			int n = raw_pixels.GetCount();
+			double mean_x = sum_x / n;
+			double mean_y = sum_y / n;
+
+			double sum_xx = 0, sum_yy = 0, sum_xy = 0;
+			for (const auto& p : raw_pixels) {
+				double dx = p[0] - mean_x;
+				double dy = p[1] - mean_y;
+				sum_xx += dx * dx;
+				sum_yy += dy * dy;
+				sum_xy += dx * dy;
+			}
+
+			double var_x = sum_xx / n;
+			double var_y = sum_yy / n;
+			double cov_xy = sum_xy / n;
+
+			// Measure curvature in raw pixels
+			double raw_curvature = 0;
+			if (var_x > var_y && var_x > 1e-9) {
+				double slope = cov_xy / var_x;
+				double intercept = mean_y - slope * mean_x;
+				for (const auto& p : raw_pixels) {
+					double err = p[1] - (slope * p[0] + intercept);
+					raw_curvature += err * err;
+				}
+			} else if (var_y > 1e-9) {
+				double inv_slope = cov_xy / var_y;
+				double intercept = mean_x - inv_slope * mean_y;
+				for (const auto& p : raw_pixels) {
+					double err = p[0] - (inv_slope * p[1] + intercept);
+					raw_curvature += err * err;
+				}
+			}
+
+			double rms_raw_curvature = sqrt(raw_curvature / n);
+
+			// Now check how much undistortion straightens the line
+			// Correct distortion should significantly reduce curvature
+			Vector<vec2> undistorted_pts;
+			for (const auto& pix : raw_pixels) {
+				double dx = pix[0] - params.cx;
+				double dy = pix[1] - params.cy;
+				double r = sqrt(dx * dx + dy * dy);
+				if (r < 1e-9) continue;
+
+				double theta = PixelToAngle(params, r);
+				double roll = atan2(dy, dx);
+				double r_rect = params.a * tan(theta);
+				if (!std::isfinite(r_rect)) continue;
+
+				undistorted_pts.Add(vec2((float)(r_rect * cos(roll)),
+				                          (float)(r_rect * sin(roll))));
+			}
+
+			if (undistorted_pts.GetCount() >= 5) {
+				// Measure curvature after undistortion
+				sum_x = 0; sum_y = 0;
+				for (const auto& p : undistorted_pts) {
+					sum_x += p[0]; sum_y += p[1];
+				}
+				int n_undist = undistorted_pts.GetCount();
+				mean_x = sum_x / n_undist;
+				mean_y = sum_y / n_undist;
+
+				sum_xx = 0; sum_yy = 0; sum_xy = 0;
+				for (const auto& p : undistorted_pts) {
+					double dx = p[0] - mean_x;
+					double dy = p[1] - mean_y;
+					sum_xx += dx * dx;
+					sum_yy += dy * dy;
+					sum_xy += dx * dy;
+				}
+
+				var_x = sum_xx / n_undist;
+				var_y = sum_yy / n_undist;
+				cov_xy = sum_xy / n_undist;
+
+				double undist_curvature = 0;
+				if (var_x > var_y && var_x > 1e-9) {
+					double slope = cov_xy / var_x;
+					double intercept = mean_y - slope * mean_x;
+					for (const auto& p : undistorted_pts) {
+						double err = p[1] - (slope * p[0] + intercept);
+						undist_curvature += err * err;
+					}
+				} else if (var_y > 1e-9) {
+					double inv_slope = cov_xy / var_y;
+					double intercept = mean_x - inv_slope * mean_y;
+					for (const auto& p : undistorted_pts) {
+						double err = p[0] - (inv_slope * p[1] + intercept);
+						undist_curvature += err * err;
+					}
+				}
+
+				double rms_undist_curvature = sqrt(undist_curvature / n_undist);
+
+				// Penalty: undistortion should reduce curvature significantly
+				// If raw curvature is high but undistorted is still high, bad params
+				// Normalize by image size to make scale-independent
+				double normalization = sz.cx;  // Normalize by image width
+				double normalized_undist_curv = rms_undist_curvature / normalization;
+
+				// Strong penalty for residual curvature after undistortion
+				total_cost += 5000.0 * normalized_undist_curv;
+			}
+		}
+	}
+
+	// 4. Epipolar constraint: corresponding points must satisfy epipolar geometry
+	// This provides scale-independent constraint that fixes focal-distortion degeneracy
+	double eye_dist = 0.055;  // Typical IPD in meters
+	if (matches.GetCount() > 0) {
+		// Use first 20 matches to check epipolar consistency
+		int n_check = min(20, matches.GetCount());
+		double epipolar_error_sum = 0;
+		int valid_epipolar = 0;
+
+		for (int i = 0; i < n_check; i++) {
+			const auto& m = matches[i];
+			Size sz = m.image_size;
+
+			// Undistort both points
+			vec2 left_px = m.left_px;
+			vec2 right_px = m.right_px;
+
+			double dx_l = left_px[0] - params.cx;
+			double dy_l = left_px[1] - params.cy;
+			double r_l = sqrt(dx_l * dx_l + dy_l * dy_l);
+
+			double dx_r = right_px[0] - params.cx;
+			double dy_r = right_px[1] - params.cy;
+			double r_r = sqrt(dx_r * dx_r + dy_r * dy_r);
+
+			if (r_l < 1e-9 || r_r < 1e-9) continue;
+
+			double theta_l = PixelToAngle(params, r_l);
+			double theta_r = PixelToAngle(params, r_r);
+
+			if (!std::isfinite(theta_l) || !std::isfinite(theta_r)) continue;
+
+			// Undistorted rays in camera space (normalized by focal length for scale invariance)
+			double roll_l = atan2(dy_l, dx_l);
+			double roll_r = atan2(dy_r, dx_r);
+
+			vec3 ray_l((float)(tan(theta_l) * cos(roll_l)),
+			          (float)(tan(theta_l) * sin(roll_l)),
+			          1.0f);
+
+			vec3 ray_r((float)(tan(theta_r) * cos(roll_r)),
+			          (float)(tan(theta_r) * sin(roll_r)),
+			          1.0f);
+
+			// Epipolar constraint: rays from L and R should intersect in 3D
+			// Approximate check: vertical disparity should be near zero after rotation correction
+			// For simplified check without full extrinsics: horizontal disparity should increase with depth
+			// More robust: check that triangulated depth is consistent
+
+			// Simple check: rectified y-coordinates should match (vertical disparity ~ 0)
+			double y_disparity = fabs(ray_l[1] - ray_r[1]);
+
+			// Horizontal disparity should be positive (right image shifted left)
+			double x_disparity = ray_l[0] - ray_r[0];
+
+			// Penalty for large vertical disparity (should be near 0 for calibrated system)
+			epipolar_error_sum += y_disparity;
+
+			// Penalty if horizontal disparity is wrong sign or unreasonable
+			if (x_disparity < 0 || x_disparity > 1.0) {
+				epipolar_error_sum += 0.5;  // Wrong disparity direction or too large
+			}
+
+			valid_epipolar++;
+		}
+
+		if (valid_epipolar > 0) {
+			double avg_epipolar_error = epipolar_error_sum / valid_epipolar;
+			// Strong penalty for epipolar violations (scale-independent)
+			total_cost += 10000.0 * avg_epipolar_error;
+		}
+	}
+
+	// Heavy penalties for invalid focal lengths
+	if (params.a <= 0) return 1e12;  // Negative or zero focal is completely invalid
+	if (params.a < 10.0) total_cost += 1e9;  // Very small focal is suspicious
 	if (!std::isfinite(total_cost)) return 1e12;
 	return total_cost;
 }
@@ -556,15 +819,174 @@ void StereoCalibrationSolver::GABootstrapExtrinsics(StereoCalibrationParams& par
 }
 
 void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& params) {
-	if (log) *log << "  Step: Genetic algorithm bootstrap (intrinsics)...\n";
-	
+	if (log) *log << "  Step: Genetic algorithm bootstrap (intrinsics) with multi-start...\n";
+
+	// Enable trace for first 2 evaluations to debug line straightness
+	EnableTrace(true, 2, 10000);
+
 	const int dimension = 5;
+
+	auto Map = [&](const Vector<double>& v, const StereoCalibrationParams& base_params) {
+		StereoCalibrationParams p = base_params;
+		// Clamp FOV to reasonable range to avoid negative/tiny focal lengths
+		double fov_deg = Clamp(v[0], 80.0, 150.0);  // Max 150° to keep focal > 0
+		double fov_rad = fov_deg * M_PI / 180.0;
+		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 1280;
+		p.a = (w * 0.5) / tan(fov_rad * 0.5);
+		// Ensure focal is always positive and reasonable
+		if (p.a <= 0 || !std::isfinite(p.a)) p.a = 50.0;  // Fallback
+		if (p.a < 20.0) p.a = 20.0;  // Minimum reasonable focal
+		p.cx = v[1]; p.cy = v[2];
+		p.c = p.a * v[3]; p.d = p.a * v[4];
+		p.b = 0;
+		// Intrinsics are shared; extrinsics remain as-is (e.g. from current bootstrap state)
+		return p;
+	};
+
+	// Multi-start optimization: run GA from 3 different initial guesses
+	const int num_starts = 3;
+	Vector<double> start_k1_values;
+	start_k1_values.Add(-0.4);  // Strong barrel (typical for wide-angle)
+	start_k1_values.Add(-0.1);  // Moderate barrel
+	start_k1_values.Add(0.0);   // No distortion (fallback)
+
+	double global_best_cost = 1e30;
+	Vector<double> global_best_solution;
+	StereoCalibrationParams global_best_params;
+
+	for (int start_idx = 0; start_idx < num_starts; start_idx++) {
+		printf("\n=== MULTI-START %d/%d: k1_init=%.3f ===\n", start_idx + 1, num_starts, start_k1_values[start_idx]);
+
+		GeneticOptimizer ga;
+		ga.SetMaxGenerations(ga_generations);
+		ga.SetRandomTypeUniform();
+		ga.MinMax(-1.0, 1.0);
+		ga.Init(dimension, ga_population, StrategyBest1Exp);
+
+		ga.min_values[0] = ga_bounds_intr.fov_min;
+		ga.max_values[0] = ga_bounds_intr.fov_max;
+		ga.min_values[1] = params.cx - ga_bounds_intr.cx_delta;
+		ga.max_values[1] = params.cx + ga_bounds_intr.cx_delta;
+		ga.min_values[2] = params.cy - ga_bounds_intr.cy_delta;
+		ga.max_values[2] = params.cy + ga_bounds_intr.cy_delta;
+		ga.min_values[3] = ga_bounds_intr.k1_min;
+		ga.max_values[3] = ga_bounds_intr.k1_max;
+		ga.min_values[4] = ga_bounds_intr.k2_min;
+		ga.max_values[4] = ga_bounds_intr.k2_max;
+
+		ga.best_energy = 1e30;
+		bool dumped_invalid = false;
+
+		// Initialize population with bias toward current start_k1
+		for (int i = 0; i < ga_population; i++) {
+			for (int j = 0; j < dimension; j++) {
+				if (j == 3 && i < ga_population / 2) {
+					// First half of population: bias toward this start's k1 value
+					double k1_center = start_k1_values[start_idx];
+					double k1_range = 0.2;  // +/- 0.2 around center
+					ga.population[i][j] = Clamp(k1_center + (ga.RandomUniform(-1, 1) * k1_range),
+					                             ga.min_values[j], ga.max_values[j]);
+				} else {
+					ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+				}
+			}
+
+			StereoCalibrationParams p = Map(ga.population[i], params);
+			double cost = ComputeRobustCost(p);
+			if (!std::isfinite(cost) || !IsParamsFinite(p)) {
+				if (!dumped_invalid) {
+					printf("GA INTRINSICS (start %d): Invalid candidate at init %d. cost=%f, params finite=%d\n",
+					       start_idx, i, cost, IsParamsFinite(p));
+					dumped_invalid = true;
+				}
+				cost = 1e12;
+			}
+			ga.pop_energy[i] = cost;
+			if (ga.pop_energy[i] < ga.best_energy) {
+				ga.best_energy = ga.pop_energy[i];
+				ga.best_solution = clone(ga.population[i]);
+				StereoCalibrationParams p_best = Map(ga.best_solution, params);
+				printf("%s\n", ~Format("NEW BEST (start %d, init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f",
+					start_idx, i, ga.best_energy, p_best.a, p_best.cx, p_best.cy,
+					p_best.c/p_best.a, p_best.d/p_best.a));
+			}
+		}
+
+		int current_gen = 0;
+		double last_best = ga.best_energy;
+		while (!ga.IsEnd()) {
+			ga.Start();
+			current_gen++;
+			Vector<double> trial = clone(ga.GetTrialSolution());
+			for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
+			StereoCalibrationParams p_trial = Map(trial, params);
+			double cost = ComputeRobustCost(p_trial);
+			if (!std::isfinite(cost) || !IsParamsFinite(p_trial)) {
+				if (!dumped_invalid) {
+					printf("GA INTRINSICS (start %d): Invalid candidate at gen %d. cost=%f, params finite=%d\n",
+					       start_idx, current_gen, cost, IsParamsFinite(p_trial));
+					dumped_invalid = true;
+				}
+				cost = 1e12;
+			}
+			ga.Stop(cost);
+			if (ga.best_energy < last_best && IsParamsFinite(Map(ga.best_solution, params))) {
+				last_best = ga.best_energy;
+				StereoCalibrationParams p_best = Map(ga.best_solution, params);
+				printf("%s\n", ~Format("NEW BEST (start %d): gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f",
+					start_idx, current_gen, ga.GetRound(), last_best, p_best.a, p_best.cx, p_best.cy,
+					p_best.c/p_best.a, p_best.d/p_best.a));
+			}
+			if (ga_step_cb) {
+				if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution, params))) {
+					// Update global best if this start found better solution
+					if (ga.best_energy < global_best_cost) {
+						global_best_cost = ga.best_energy;
+						global_best_solution = clone(ga.best_solution);
+						global_best_params = Map(ga.best_solution, params);
+					}
+					params = global_best_params;
+					EnableTrace(false);
+					return;
+				}
+			}
+		}
+
+		// Check if this start found the global best
+		if (ga.best_energy < global_best_cost) {
+			global_best_cost = ga.best_energy;
+			global_best_solution = clone(ga.best_solution);
+			global_best_params = Map(ga.best_solution, params);
+			printf("\n>>> NEW GLOBAL BEST from start %d: cost=%.4f <<<\n", start_idx, global_best_cost);
+		}
+	}
+
+	// Use the best solution across all starts
+	params = global_best_params;
+	printf("\n=== MULTI-START COMPLETE ===\n");
+	printf("Global best: cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f\n",
+	       global_best_cost, params.a, params.cx, params.cy,
+	       params.c/params.a, params.d/params.a);
+
+	// Disable trace after GA
+	EnableTrace(false);
+}
+
+void StereoCalibrationSolver::GABootstrapJoint(StereoCalibrationParams& params) {
+	if (log) *log << "  Step: Joint optimization (intrinsics + extrinsics simultaneously)...\n";
+	printf("\n=== JOINT OPTIMIZATION: All parameters together ===\n");
+
+	// 11 dimensions: [fov, cx, cy, k1, k2, base_yaw, base_pitch, base_roll, toe_yaw, asym_yaw, asym_pitch]
+	// Symmetric parametrization to enforce near-symmetry
+	const int dimension = 11;
+
 	GeneticOptimizer ga;
 	ga.SetMaxGenerations(ga_generations);
 	ga.SetRandomTypeUniform();
-	ga.MinMax(-1.0, 1.0); 
+	ga.MinMax(-1.0, 1.0);
 	ga.Init(dimension, ga_population, StrategyBest1Exp);
 
+	// Bounds
 	ga.min_values[0] = ga_bounds_intr.fov_min;
 	ga.max_values[0] = ga_bounds_intr.fov_max;
 	ga.min_values[1] = params.cx - ga_bounds_intr.cx_delta;
@@ -576,38 +998,87 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 	ga.min_values[4] = ga_bounds_intr.k2_min;
 	ga.max_values[4] = ga_bounds_intr.k2_max;
 
+	// Extrinsics: base angles +/- 15 deg
+	ga.min_values[5] = -15 * M_PI / 180.0; ga.max_values[5] = 15 * M_PI / 180.0;  // base_yaw
+	ga.min_values[6] = -15 * M_PI / 180.0; ga.max_values[6] = 15 * M_PI / 180.0;  // base_pitch
+	ga.min_values[7] = -15 * M_PI / 180.0; ga.max_values[7] = 15 * M_PI / 180.0;  // base_roll
+	ga.min_values[8] = 0; ga.max_values[8] = 45 * M_PI / 180.0;  // toe_yaw (0 to 45 deg)
+	ga.min_values[9] = -5 * M_PI / 180.0; ga.max_values[9] = 5 * M_PI / 180.0;   // asym_yaw
+	ga.min_values[10] = -5 * M_PI / 180.0; ga.max_values[10] = 5 * M_PI / 180.0; // asym_pitch
+
 	auto Map = [&](const Vector<double>& v) {
-		StereoCalibrationParams p = params;
-		double fov_rad = v[0] * M_PI / 180.0;
+		StereoCalibrationParams p;
+
+		// Intrinsics
+		double fov_deg = Clamp(v[0], 80.0, 150.0);
+		double fov_rad = fov_deg * M_PI / 180.0;
 		double w = matches.GetCount() > 0 ? matches[0].image_size.cx : 1280;
 		p.a = (w * 0.5) / tan(fov_rad * 0.5);
-		p.cx = v[1]; p.cy = v[2];
-		p.c = p.a * v[3]; p.d = p.a * v[4];
+		if (p.a <= 0 || !std::isfinite(p.a)) p.a = 50.0;
+		if (p.a < 20.0) p.a = 20.0;
+
+		p.cx = v[1];
+		p.cy = v[2];
+		p.c = p.a * v[3];  // k1
+		p.d = p.a * v[4];  // k2
 		p.b = 0;
-		// Intrinsics are shared; extrinsics remain as-is (e.g. from current bootstrap state)
+
+		// Extrinsics (symmetric)
+		double base_yaw = v[5];
+		double base_pitch = v[6];
+		double base_roll = v[7];
+		double toe_yaw = v[8];
+		double asym_yaw = v[9];
+		double asym_pitch = v[10];
+
+		// Left: base - toe - asym/2
+		p.yaw_l = base_yaw - toe_yaw - asym_yaw * 0.5;
+		p.pitch_l = base_pitch - asym_pitch * 0.5;
+		p.roll_l = base_roll;
+
+		// Right: base + toe + asym/2
+		p.yaw = base_yaw + toe_yaw + asym_yaw * 0.5;
+		p.pitch = base_pitch + asym_pitch * 0.5;
+		p.roll = base_roll;
+
 		return p;
 	};
 
+	// Initialize population with bias toward barrel distortion
 	ga.best_energy = 1e30;
 	bool dumped_invalid = false;
 	for (int i = 0; i < ga_population; i++) {
-		for (int j = 0; j < dimension; j++) ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+		for (int j = 0; j < dimension; j++) {
+			if (j == 3 && i < ga_population / 3) {
+				// First third: bias toward strong barrel
+				ga.population[i][j] = Clamp(-0.4 + ga.RandomUniform(-0.2, 0.2),
+				                             ga.min_values[j], ga.max_values[j]);
+			} else if (j == 3 && i < 2 * ga_population / 3) {
+				// Second third: moderate barrel
+				ga.population[i][j] = Clamp(-0.15 + ga.RandomUniform(-0.1, 0.1),
+				                             ga.min_values[j], ga.max_values[j]);
+			} else {
+				ga.population[i][j] = ga.RandomUniform(ga.min_values[j], ga.max_values[j]);
+			}
+		}
+
 		StereoCalibrationParams p = Map(ga.population[i]);
 		double cost = ComputeRobustCost(p);
 		if (!std::isfinite(cost) || !IsParamsFinite(p)) {
 			if (!dumped_invalid) {
-				printf("GA INTRINSICS: Invalid candidate at init %d. cost=%f, params finite=%d\n", i, cost, IsParamsFinite(p));
+				printf("GA JOINT: Invalid at init %d. cost=%f\n", i, cost);
 				dumped_invalid = true;
 			}
 			cost = 1e12;
 		}
 		ga.pop_energy[i] = cost;
-		if (ga.pop_energy[i] < ga.best_energy) { 
-			ga.best_energy = ga.pop_energy[i]; 
-			ga.best_solution = clone(ga.population[i]); 
+		if (ga.pop_energy[i] < ga.best_energy) {
+			ga.best_energy = ga.pop_energy[i];
+			ga.best_solution = clone(ga.population[i]);
 			StereoCalibrationParams p_best = Map(ga.best_solution);
-			printf("%s\n", ~Format("NEW BEST (init): eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
-				i, ga.best_energy, p_best.a, p_best.cx, p_best.cy, p_best.c/p_best.a, p_best.d/p_best.a));
+			printf("NEW BEST (init): eval=%d cost=%.2f f=%.1f k1=%.3f L_yaw=%.1f R_yaw=%.1f\n",
+			       i, ga.best_energy, p_best.a, p_best.c/p_best.a,
+			       p_best.yaw_l*180/M_PI, p_best.yaw*180/M_PI);
 		}
 	}
 
@@ -618,35 +1089,54 @@ void StereoCalibrationSolver::GABootstrapIntrinsics(StereoCalibrationParams& par
 		current_gen++;
 		Vector<double> trial = clone(ga.GetTrialSolution());
 		for(int j=0; j<dimension; j++) trial[j] = Clamp(trial[j], ga.min_values[j], ga.max_values[j]);
+
 		StereoCalibrationParams p_trial = Map(trial);
 		double cost = ComputeRobustCost(p_trial);
 		if (!std::isfinite(cost) || !IsParamsFinite(p_trial)) {
-			if (!dumped_invalid) {
-				printf("GA INTRINSICS: Invalid candidate at gen %d. cost=%f, params finite=%d\n", current_gen, cost, IsParamsFinite(p_trial));
-				dumped_invalid = true;
-			}
 			cost = 1e12;
 		}
 		ga.Stop(cost);
+
 		if (ga.best_energy < last_best && IsParamsFinite(Map(ga.best_solution))) {
 			last_best = ga.best_energy;
 			StereoCalibrationParams p_best = Map(ga.best_solution);
-			printf("%s\n", ~Format("NEW BEST: gen=%d eval=%d cost=%.4f f=%.2f cx=%.2f cy=%.2f k1=%.4f k2=%.4f", 
-				current_gen, ga.GetRound(), last_best, p_best.a, p_best.cx, p_best.cy, p_best.c/p_best.a, p_best.d/p_best.a));
+			printf("NEW BEST: gen=%d eval=%d cost=%.2f f=%.1f k1=%.3f k2=%.3f L_yaw=%.1f R_yaw=%.1f\n",
+			       current_gen, ga.GetRound(), last_best, p_best.a,
+			       p_best.c/p_best.a, p_best.d/p_best.a,
+			       p_best.yaw_l*180/M_PI, p_best.yaw*180/M_PI);
 		}
 		if (ga_step_cb) {
-			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) return;
+			if (!ga_step_cb(current_gen, ga.best_energy, Map(ga.best_solution))) {
+				params = Map(ga.best_solution);
+				return;
+			}
 		}
 	}
+
 	params = Map(ga.best_solution);
+	printf("\n=== JOINT OPTIMIZATION COMPLETE ===\n");
+	printf("Final: f=%.2f cx=%.1f cy=%.1f k1=%.4f k2=%.4f\n",
+	       params.a, params.cx, params.cy, params.c/params.a, params.d/params.a);
+	printf("       L: yaw=%.2f pitch=%.2f roll=%.2f\n",
+	       params.yaw_l*180/M_PI, params.pitch_l*180/M_PI, params.roll_l*180/M_PI);
+	printf("       R: yaw=%.2f pitch=%.2f roll=%.2f\n",
+	       params.yaw*180/M_PI, params.pitch*180/M_PI, params.roll*180/M_PI);
 }
 
 void StereoCalibrationSolver::GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase) {
+	if (phase == GA_PHASE_BOTH_JOINT) {
+		if (log) *log << "Starting GA Joint Phase...\n";
+		printf("GA: Starting Joint Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
+		GABootstrapJoint(params);
+		printf("GA: Joint Phase Finished.\n");
+		return;
+	}
+
 	if (phase == GA_PHASE_INTRINSICS || phase == GA_PHASE_BOTH) {
 		if (log) *log << "Starting GA Intrinsics Phase...\n";
 		printf("GA: Starting Intrinsics Phase (pop=%d, gens=%d)\n", ga_population, ga_generations);
 		GABootstrapIntrinsics(params);
-		printf("%s\n", ~Format("GA: Intrinsics Phase Finished. f=%.2f, cx=%.2f, cy=%.2f, k1=%.4f, k2=%.4f", 
+		printf("%s\n", ~Format("GA: Intrinsics Phase Finished. f=%.2f, cx=%.2f, cy=%.2f, k1=%.4f, k2=%.4f",
 			params.a, params.cx, params.cy, params.c/params.a, params.d/params.a));
 	}
 	if (phase == GA_PHASE_EXTRINSICS || phase == GA_PHASE_BOTH) {

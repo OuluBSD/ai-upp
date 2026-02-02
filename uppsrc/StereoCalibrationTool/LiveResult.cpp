@@ -112,7 +112,7 @@ void LiveResultWindow::StopSource() {
 void LiveResultWindow::ToggleLiveView() {
 	live_active = !live_active;
 	if (live_active)
-		live_cb.Set(-30, THISBACK(UpdateLivePreview));
+		live_cb.Set(-16, THISBACK(UpdateLivePreview));
 	else
 		live_cb.Kill();
 }
@@ -172,15 +172,13 @@ bool LiveResultWindow::BuildLiveUndistortCache(const Image& left, const Image& r
 	Size sz = !left.IsEmpty() ? left.GetSize() : right.GetSize();
 	if (sz.cx <= 0 || sz.cy <= 0)
 		return false;
-	if (model->project_state.view_mode == 0) {
+	if (!model->project_state.preview_intrinsics) {
 		model->live_undist_valid = false;
 		return false;
 	}
-	if (model->project_state.view_mode == VIEW_SOLVED && !model->last_calibration.is_enabled)
-		return false;
 
 	StereoCalibrationParams p;
-	bool use_basic = (model->project_state.view_mode == 1);
+	bool use_basic = true; // Simplified live view always uses basic/manual params for now
 	if (use_basic) {
 		double fov_deg = Clamp(model->project_state.fov_deg, 10.0, 170.0);
 		double fov_rad = fov_deg * M_PI / 180.0;

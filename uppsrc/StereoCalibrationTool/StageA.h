@@ -56,11 +56,7 @@ private:
 	Label cx_lbl, cy_lbl, k1_lbl, k2_lbl;
 	EditDoubleSpin lens_cx, lens_cy, lens_k1, lens_k2;
 	DocEdit basic_params_doc;
-	Label tool_lbl;
-	DropList tool_list;
 	Button undo_btn;
-    Label view_mode_lbl;
-    DropList view_mode_list;
     Option overlay_eyes;
     Option overlay_swap;
     Option show_difference;
@@ -70,12 +66,20 @@ private:
 	EditInt board_x, board_y;
 	EditDouble board_size;
 	Button detect_btn;
+	Option lock_intrinsics;
+	Option lock_baseline;
+	Option lock_yaw_symmetry;
 	
 	// Coverage & Solve
 	Label coverage_lbl;
+	Label coverage_score_lbl;
 	ImageCtrl coverage_heat;
 	Button solve_int_btn;
 	Button solve_stereo_btn;
+	
+	// Viewer
+	Option show_corners;
+	Option show_reprojection;
 	
 	// Report
 	DocEdit report_log;
@@ -142,10 +146,13 @@ private:
 	void OnDetect();
 	void OnSolveIntrinsics();
 	void OnSolveStereo();
+	void OnExportYaml();
+	bool CheckPoseDiversity();
 	void UpdateCoverageHeatmap();
 	
 	// Menu handlers
 	void SubMenuEdit(Bar& bar);
+	void SubMenuHelp(Bar& bar);
 
 private:
 };

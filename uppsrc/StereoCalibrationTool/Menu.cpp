@@ -16,7 +16,17 @@ Lifetime strategy:
 MenuWindow::MenuWindow() {
 	Title("Stereo Calibration Tool - Menu");
 	Sizeable().Zoomable();
+	AddFrame(menu);
+	menu.Set(THISBACK(MainMenu));
 	BuildLayout();
+}
+
+void MenuWindow::MainMenu(Bar& bar) {
+	bar.Add("Help", THISBACK(SubMenuHelp));
+}
+
+void MenuWindow::SubMenuHelp(Bar& bar) {
+	bar.Add("Instructions", [] { StereoCalibrationHelpers::ShowInstructions(); });
 }
 
 // Binds AppModel and window references. Menu does not own these objects.

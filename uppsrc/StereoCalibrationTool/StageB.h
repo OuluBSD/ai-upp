@@ -30,11 +30,15 @@ public:
 	void Init(AppModel& model);
 	void RefreshFromModel();
 
+	virtual void MainMenu(Bar& bar);
+
 	// Shared solver entry point (also used by headless controller).
 	bool SolveCalibration();
 
 private:
 	AppModel* model = nullptr;
+	
+	MenuBar menu;
 
 	Button solve_calibration;
 	Option verbose_math_log;
@@ -57,6 +61,7 @@ private:
 	void LoadCalibration();
 	void ExportCalibration();
 	void DeployCalibration();
+	void SubMenuHelp(Bar& bar);
 	void SyncCalibrationFromEdits();
 	void SyncEditsFromCalibration();
 	void SaveProjectState();

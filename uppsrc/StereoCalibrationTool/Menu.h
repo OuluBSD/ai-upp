@@ -35,8 +35,13 @@ public:
 	          LiveResultWindow& live);
 	void RefreshFromModel();
 
+	virtual void MainMenu(Bar& bar);
+
 private:
 	AppModel* model = nullptr;
+	
+	MenuBar menu;
+
 	CameraWindow* camera = nullptr;
 	StageAWindow* stage_a = nullptr;
 	StageBWindow* stage_b = nullptr;
@@ -60,6 +65,8 @@ private:
 	void OpenStageC();
 	void OpenLive();
 	void OpenAll();
+	
+	void SubMenuHelp(Bar& bar);
 };
 
 END_UPP_NAMESPACE

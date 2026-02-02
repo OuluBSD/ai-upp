@@ -759,9 +759,10 @@ void StageAWindow::UpdatePlotters() {
 void StageAWindow::UpdateReviewEnablement() {
 	bool has_poly = IsValidAnglePoly(model->last_calibration.angle_to_pixel);
 	bool can_review = model->last_calibration.is_enabled && has_poly;
-	show_epipolar.Enable(can_review);
-	if (!can_review)
-		show_epipolar = false;
+
+	// Epipolar lines don't require calibration - they can be shown on any captured frame
+	// They're especially useful for verifying rectified overlay alignment
+	show_epipolar.Enable(true);  // Always enable epipolar lines
 }
 
 // Builds/updates preview lens from AppModel settings and cache.

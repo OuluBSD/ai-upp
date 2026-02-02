@@ -77,6 +77,7 @@ private:
 
 	void SubMenuFile(Bar& bar);
 	void SubMenuEdit(Bar& bar);
+	void SubMenuHelp(Bar& bar);
 	void OnDeleteAll();
 	void OnGenerateBoard();
 

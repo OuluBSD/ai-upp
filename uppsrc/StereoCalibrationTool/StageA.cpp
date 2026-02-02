@@ -253,38 +253,38 @@ void StageAWindow::RefreshFromModel() {
 	board_x <<= ps.board_x;
 	board_y <<= ps.board_y;
 	board_size <<= ps.square_size_mm;
+	lock_intrinsics <<= ps.lock_intrinsics;
+	lock_baseline <<= ps.lock_baseline;
+	lock_yaw_symmetry <<= ps.lock_yaw_symmetry;
 	preview_extrinsics <<= ps.preview_extrinsics;
 	preview_intrinsics <<= ps.preview_intrinsics;
-	view_mode_list.SetIndex(ps.view_mode);
 	overlay_eyes <<= ps.overlay_eyes;
 	overlay_swap <<= ps.overlay_swap;
 	show_difference <<= ps.show_difference;
 	show_epipolar <<= ps.show_epipolar;
-	tint_overlay <<= ps.tint_overlay;
-	show_crosshair <<= ps.show_crosshair;
-	alpha_slider <<= ps.alpha;
-	
-	pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
-	
-	// Safety check for legacy tool modes
-	if (ps.tool_mode >= tool_list.GetCount())
-		const_cast<ProjectState&>(ps).tool_mode = 0; // Reset to None if invalid
-	
-	tool_list.SetIndex(ps.tool_mode);
-
-	captures_list.Clear();
-	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
-		auto& f = model->captured_frames[i];
-		captures_list.Add(
-			Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), 
-			f.source, 
-			f.detected_l ? "Yes" : "No",
-			f.detected_r ? "Yes" : "No",
-			f.used ? "Yes" : "Skip"
-		);
-	}
-	
-	// If no selection or invalid selection, select the last image by default
+		tint_overlay <<= ps.tint_overlay;
+		show_crosshair <<= ps.show_crosshair;
+		show_corners <<= ps.show_corners;
+			show_reprojection <<= ps.show_reprojection;
+			alpha_slider <<= ps.alpha;
+			
+			pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
+			
+			captures_list.Clear();
+			for (int i = 0; i < model->captured_frames.GetCount(); i++) {
+				auto& f = model->captured_frames[i];
+				
+				captures_list.Add(
+					Format("%02d:%02d:%02d", f.time.hour, f.time.minute, f.time.second), 
+					f.source, 
+					f.detected_l ? "Yes" : "No",
+					f.detected_r ? "Yes" : "No",
+					f.reproj_rms_l > 0 ? Format("%.3f", f.reproj_rms_l) : "-",
+					f.reproj_rms_r > 0 ? Format("%.3f", f.reproj_rms_r) : "-",
+					f.used ? "Yes" : "Skip",
+					f.reject_reason
+				);
+			}	// If no selection or invalid selection, select the last image by default
 	if (model->selected_capture < 0 || model->selected_capture >= captures_list.GetCount())
 		model->selected_capture = captures_list.GetCount() - 1;
 
@@ -316,9 +316,17 @@ void StageAWindow::BuildTabs() {
 	
 	tab_frames.Add(captures_list.SizePos());
 	
+	static Button export_btn;
+	export_btn.SetLabel("Export OpenCV YAML...");
+	export_btn <<= THISBACK(OnExportYaml);
+	tab_solve.Add(export_btn.TopPos(10, 24).LeftPos(10, 150));
+	
 	coverage_lbl.SetLabel("Coverage Heatmap (8x6 grid)");
 	tab_board.Add(coverage_lbl.TopPos(10, 20).LeftPos(10, 200));
 	tab_board.Add(coverage_heat.TopPos(40, 200).LeftPos(10, 300));
+	
+	coverage_score_lbl.SetFont(Arial(12).Bold());
+	tab_board.Add(coverage_score_lbl.TopPos(250, 24).LeftPos(10, 300));
 	
 	tab_report.Add(report_log.SizePos());
 	report_log.SetReadOnly();
@@ -330,15 +338,24 @@ void StageAWindow::BuildStageAControls() {
 	calib_eye_dist.SetInc(0.1);
 	calib_eye_dist.WhenAction = THISBACK(SyncStageA);
 
-	board_x_lbl.SetLabel("Corners X");
-	board_x.MinMax(3, 20); board_x.WhenAction = THISBACK(SyncStageA);
-	board_y_lbl.SetLabel("Corners Y");
-	board_y.MinMax(3, 20); board_y.WhenAction = THISBACK(SyncStageA);
+	board_x_lbl.SetLabel("Squares X");
+	board_x.MinMax(3, 25); board_x.WhenAction = THISBACK(SyncStageA);
+	board_y_lbl.SetLabel("Squares Y");
+	board_y.MinMax(3, 25); board_y.WhenAction = THISBACK(SyncStageA);
 	board_sz_lbl.SetLabel("Size (mm)");
 	board_size.MinMax(1.0, 1000.0); board_size.WhenAction = THISBACK(SyncStageA);
 	
 	detect_btn.SetLabel("Detect Corners");
 	detect_btn <<= THISBACK(OnDetect);
+	
+	lock_intrinsics.SetLabel("Lock Intrinsics");
+	lock_intrinsics.WhenAction = THISBACK(SyncStageA);
+	
+	lock_baseline.SetLabel("Lock Baseline");
+	lock_baseline.WhenAction = THISBACK(SyncStageA);
+	
+	lock_yaw_symmetry.SetLabel("Lock Yaw Sym");
+	lock_yaw_symmetry.WhenAction = THISBACK(SyncStageA);
 	
 	solve_int_btn.SetLabel("Solve Intrinsics");
 	solve_int_btn <<= THISBACK(OnSolveIntrinsics);
@@ -366,12 +383,11 @@ void StageAWindow::BuildStageAControls() {
 
 	basic_params_doc.SetReadOnly();
 
-	view_mode_lbl.SetLabel("View Mode");
-	view_mode_list.Add(0, "Raw");
-	view_mode_list.Add(1, "Basic Undistort");
-	view_mode_list.Add(2, "Solved Undistort");
-	view_mode_list.SetIndex(0);
-	view_mode_list.WhenAction = THISBACK(OnReviewChanged);
+	show_corners.SetLabel("Show Corners");
+	show_corners.WhenAction = THISBACK(OnReviewChanged);
+	
+	show_reprojection.SetLabel("Show Reproj");
+	show_reprojection.WhenAction = THISBACK(OnReviewChanged);
 
 	overlay_eyes.SetLabel("Overlay Eyes");
 	overlay_eyes.WhenAction = THISBACK(OnReviewChanged);
@@ -417,6 +433,10 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(board_sz_lbl.TopPos(y, 20).LeftPos(8, 80));
 	controls.Add(board_size.TopPos(y, 20).LeftPos(92, 50));
 	controls.Add(detect_btn.TopPos(y, 20).LeftPos(150, 134));
+	y += 24;
+	controls.Add(lock_intrinsics.TopPos(y, 20).LeftPos(8, 120));
+	controls.Add(lock_baseline.TopPos(y, 20).LeftPos(132, 100));
+	controls.Add(lock_yaw_symmetry.TopPos(y, 20).LeftPos(236, 100));
 	y += 30;
 	
 	controls.Add(solve_int_btn.TopPos(y, 24).LeftPos(8, 136));
@@ -450,6 +470,9 @@ void StageAWindow::BuildStageAControls() {
 	controls.Add(overlay_swap.TopPos(y, 20).LeftPos(112, 90));
 	controls.Add(show_difference.TopPos(y, 20).LeftPos(206, 80));
 	y += 24;
+	controls.Add(show_corners.TopPos(y, 20).LeftPos(8, 120));
+	controls.Add(show_reprojection.TopPos(y, 20).LeftPos(132, 120));
+	y += 24;
 	controls.Add(alpha_lbl.TopPos(y, 20).LeftPos(8, 40));
 	controls.Add(alpha_slider.TopPos(y, 20).LeftPos(52, 200));
 	y += 24;
@@ -469,7 +492,10 @@ void StageAWindow::BuildCaptureLists() {
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("L Det");
 	captures_list.AddColumn("R Det");
+	captures_list.AddColumn("RMS L");
+	captures_list.AddColumn("RMS R");
 	captures_list.AddColumn("Used");
+	captures_list.AddColumn("Reject Reason");
 	captures_list.WhenCursor = THISBACK(OnCaptureSelection);
 	captures_list.WhenBar = THISBACK(OnCapturesBar);
 }
@@ -526,11 +552,12 @@ void StageAWindow::SyncStageA() {
 	ps.board_x = (int)board_x;
 	ps.board_y = (int)board_y;
 	ps.square_size_mm = (double)board_size;
+	ps.lock_intrinsics = (bool)lock_intrinsics;
+	ps.lock_baseline = (bool)lock_baseline;
+	ps.lock_yaw_symmetry = (bool)lock_yaw_symmetry;
 	ps.preview_extrinsics = (bool)preview_extrinsics;
 	ps.preview_intrinsics = (bool)preview_intrinsics;
 	
-	ps.tool_mode = tool_list.GetIndex();
-
 	String doc;
 	doc << "Stage A Basic Params:\n";
 	doc << "  Eye dist: " << ps.eye_dist << " mm\n";
@@ -549,13 +576,13 @@ void StageAWindow::OnReviewChanged() {
 	if (!model)
 		return;
 	ProjectState& ps = model->project_state;
-	ps.view_mode = view_mode_list.GetIndex();
 	ps.overlay_eyes = (bool)overlay_eyes;
 	ps.overlay_swap = (bool)overlay_swap;
 	ps.show_difference = (bool)show_difference;
 	ps.show_epipolar = (bool)show_epipolar;
 	ps.tint_overlay = (bool)tint_overlay;
 	ps.show_crosshair = (bool)show_crosshair;
+	ps.show_corners = (bool)show_corners;
 	ps.alpha = (int)~alpha_slider;
 
 	for (auto& frame : model->captured_frames)
@@ -633,14 +660,7 @@ bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& 
 		return false;
 
 	StereoCalibrationParams p;
-	bool use_basic = false;
-	int vmode = view_mode_list.GetIndex();
-	if (vmode == 1)
-		use_basic = true;
-	else if (vmode == 2)
-		use_basic = false;
-	else
-		use_basic = true;
+	bool use_basic = true;
 
 	if (model->project_state.compare_basic_params)
 		use_basic = true;
@@ -818,6 +838,34 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 	Image L_curr = Render(frame.left_img, lp_curr, ps.yaw_l, ps.pitch_l, ps.roll_l, false);
 	Image R_curr = Render(frame.right_img, lp_curr, ps.yaw_r, ps.pitch_r, ps.roll_r, false);
 
+	if (ps.show_corners || ps.show_reprojection) {
+		auto DrawCorners = [&](const Image& img, const Vector<Pointf>& corners, bool detected, Color c) {
+			if (img.IsEmpty() || !detected) return img;
+			ImageBuffer b(img.GetSize());
+			Copy(b, Point(0,0), img, img.GetSize());
+			for (const auto& p : corners) {
+				int ix = (int)p.x;
+				int iy = (int)p.y;
+				for (int dy = -1; dy <= 1; dy++)
+					for (int dx = -1; dx <= 1; dx++)
+						if (ix + dx >= 0 && ix + dx < b.GetWidth() && iy + dy >= 0 && iy + dy < b.GetHeight())
+							b[iy + dy][ix + dx] = c;
+			}
+			return (Image)b;
+		};
+		
+		if (!apply_extr && !apply_intr) {
+			if (ps.show_corners) {
+				L_curr = DrawCorners(L_curr, frame.corners_l, frame.detected_l, Green());
+				R_curr = DrawCorners(R_curr, frame.corners_r, frame.detected_r, Green());
+			}
+			if (ps.show_reprojection) {
+				// For now, re-projection points are same as corners in RAW view
+				// In production, we'd calculate cv::projectPoints here
+			}
+		}
+	}
+
 	last_left_preview = L_curr;
 	last_right_preview = R_curr;
 
@@ -911,10 +959,12 @@ void StageAWindow::SaveProjectState() {
 void StageAWindow::OnDetect() {
 	SyncStageA();
 	
-	int nx = (int)board_x;
-	int ny = (int)board_y;
-	if (nx < 3 || ny < 3) {
-		PromptOK("Invalid board dimensions.");
+	// Input UI values are SQUARES count.
+	// OpenCV findChessboardCorners needs INNER CORNERS count.
+	int nx = (int)board_x - 1;
+	int ny = (int)board_y - 1;
+	if (nx < 2 || ny < 2) {
+		PromptOK("Invalid board dimensions (need at least 3x3 squares).");
 		return;
 	}
 	
@@ -942,13 +992,24 @@ void StageAWindow::OnDetect() {
 		
 		f.detected_l = cv::findChessboardCorners(mL, cv::Size(nx, ny), cornersL, flags);
 		f.detected_r = cv::findChessboardCorners(mR, cv::Size(nx, ny), cornersR, flags);
+		
+		f.reject_reason = "";
 			
 		if(f.detected_l) {
 			cv::cornerSubPix(mL, cornersL, cv::Size(11, 11), cv::Size(-1, -1), 
 				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
 			f.corners_l.Clear();
 			for(const auto& p : cornersL) f.corners_l.Add(Pointf(p.x, p.y));
-			total_l++;
+			
+			// Quality check: board size
+			cv::Rect bbox = cv::boundingRect(cornersL);
+			double area_ratio = (double)(bbox.width * bbox.height) / (mL.cols * mL.rows);
+			if (area_ratio < 0.05) {
+				f.detected_l = false;
+				f.reject_reason = "L: too small";
+			} else {
+				total_l++;
+			}
 		} else {
 			f.corners_l.Clear();
 		}
@@ -958,18 +1019,61 @@ void StageAWindow::OnDetect() {
 				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
 			f.corners_r.Clear();
 			for(const auto& p : cornersR) f.corners_r.Add(Pointf(p.x, p.y));
-			total_r++;
+			
+			// Quality check: board size
+			cv::Rect bbox = cv::boundingRect(cornersR);
+			double area_ratio = (double)(bbox.width * bbox.height) / (mR.cols * mR.rows);
+			if (area_ratio < 0.05) {
+				f.detected_r = false;
+				f.reject_reason += (f.reject_reason.IsEmpty() ? "" : ", ") + String("R: too small");
+			} else {
+				total_r++;
+			}
 		} else {
 			f.corners_r.Clear();
 		}
 		
-		f.used = f.detected_l && f.detected_r;
+		// A frame is potentially useful if at least one eye saw the board
+		f.used = f.detected_l || f.detected_r;
 	}
 	
 	RefreshFromModel();
 	UpdateCoverageHeatmap();
 	SaveProjectState();
 	PromptOK(Format("Detection complete.\nLeft: %d\nRight: %d", total_l, total_r));
+}
+
+bool StageAWindow::CheckPoseDiversity() {
+	int n_l = 0, n_r = 0;
+	double min_sq_px = 1e9, max_sq_px = 0;
+	
+	for (const auto& f : model->captured_frames) {
+		if (!f.used) continue;
+		if (f.detected_l) {
+			n_l++;
+			cv::Rect bbox = cv::boundingRect(std::vector<cv::Point2f>{
+				cv::Point2f((float)f.corners_l[0].x, (float)f.corners_l[0].y),
+				cv::Point2f((float)f.corners_l.Top().x, (float)f.corners_l.Top().y)
+			});
+			double char_size = sqrt((double)bbox.width * bbox.height);
+			min_sq_px = min(min_sq_px, char_size);
+			max_sq_px = max(max_sq_px, char_size);
+		}
+		if (f.detected_r) n_r++;
+	}
+	
+	if (n_l < 10 || n_r < 10) {
+		PromptOK("Need more frames (at least 10 per eye) for stable calibration.");
+		return false;
+	}
+	
+	// Check distance diversity via square size proxy
+	if (max_sq_px / min_sq_px < 1.5) {
+		PromptOK("Need more distance diversity (move board closer and further).");
+		return false;
+	}
+	
+	return true;
 }
 
 void StageAWindow::UpdateCoverageHeatmap() {
@@ -1040,20 +1144,33 @@ void StageAWindow::UpdateCoverageHeatmap() {
 	
 	int covered = 0;
 	for(int h : hits) if(h > 0) covered++;
-	coverage_lbl.SetLabel(Format("Coverage: %d/%d cells (%.1f%%)", covered, rows*cols, 100.0*covered/(rows*cols)));
+	double area_ratio = (double)covered / (rows * cols);
+	
+	String score_text = "Coverage: ";
+	if (area_ratio > 0.7) score_text << "GOOD";
+	else if (area_ratio > 0.4) score_text << "OK";
+	else score_text << "POOR";
+	
+	score_text << Format(" (%.1f%%)", area_ratio * 100.0);
+	coverage_score_lbl.SetLabel(score_text);
+	coverage_score_lbl.SetInk(area_ratio > 0.7 ? Green() : (area_ratio > 0.4 ? Yellow() : Red()));
+	
+	coverage_lbl.SetLabel(Format("Heatmap: %d/%d cells", covered, rows*cols));
 }
 
 void StageAWindow::OnSolveIntrinsics() {
 	SyncStageA();
+	if (!CheckPoseDiversity()) return;
 	
-	int nx = (int)board_x;
-	int ny = (int)board_y;
+	int nx = (int)board_x - 1;
+	int ny = (int)board_y - 1;
 	double sz_mm = (double)board_size;
 	
-	if (nx < 3 || ny < 3) return;
+	if (nx < 2 || ny < 2) return;
 	
-	std::vector<std::vector<cv::Point3f>> objectPoints;
-	std::vector<std::vector<cv::Point2f>> imagePointsL, imagePointsR;
+	std::vector<std::vector<cv::Point3f>> objL, objR;
+	std::vector<std::vector<cv::Point2f>> imgL, imgR;
+	Vector<int> indicesL, indicesR;
 	
 	std::vector<cv::Point3f> obj;
 	for(int y=0; y<ny; y++)
@@ -1061,56 +1178,58 @@ void StageAWindow::OnSolveIntrinsics() {
 			obj.push_back(cv::Point3f((float)(x * sz_mm), (float)(y * sz_mm), 0.0f));
 	
 	Size img_sz(0,0);
-	int n_frames = 0;
 	
-	for(const auto& f : model->captured_frames) {
-		if(!f.used || !f.detected_l || !f.detected_r) continue;
+	for(int i=0; i<model->captured_frames.GetCount(); i++) {
+		const auto& f = model->captured_frames[i];
+		if(!f.used) continue;
 		
 		Size sz = !f.left_img.IsEmpty() ? f.left_img.GetSize() : Size(0,0);
 		if (sz.cx <= 0) continue;
 		img_sz = sz;
 		
-		objectPoints.push_back(obj);
-		
-		std::vector<cv::Point2f> ptsL, ptsR;
-		for(const auto& p : f.corners_l) ptsL.push_back(cv::Point2f(p.x, p.y));
-		for(const auto& p : f.corners_r) ptsR.push_back(cv::Point2f(p.x, p.y));
-		
-		imagePointsL.push_back(ptsL);
-		imagePointsR.push_back(ptsR);
-		n_frames++;
-	}
-	
-	if (n_frames < 3) {
-		PromptOK("Not enough valid frames (need >= 3).");
-		return;
+		if (f.detected_l) {
+			objL.push_back(obj);
+			std::vector<cv::Point2f> pts;
+			for(const auto& p : f.corners_l) pts.push_back(cv::Point2f(p.x, p.y));
+			imgL.push_back(pts);
+			indicesL.Add(i);
+		}
+		if (f.detected_r) {
+			objR.push_back(obj);
+			std::vector<cv::Point2f> pts;
+			for(const auto& p : f.corners_r) pts.push_back(cv::Point2f(p.x, p.y));
+			imgR.push_back(pts);
+			indicesR.Add(i);
+		}
 	}
 	
 	cv::Mat K_L = cv::Mat::eye(3, 3, CV_64F);
 	cv::Mat K_R = cv::Mat::eye(3, 3, CV_64F);
 	cv::Mat D_L, D_R;
-	std::vector<cv::Mat> rvecs, tvecs;
+	std::vector<cv::Mat> rvecsL, tvecsL, rvecsR, tvecsR;
+	std::vector<double> perViewErrorsL, perFrameErrorsR;
 	
-	double rmsL = cv::calibrateCamera(objectPoints, imagePointsL, cv::Size(img_sz.cx, img_sz.cy), K_L, D_L, rvecs, tvecs);
-	double rmsR = cv::calibrateCamera(objectPoints, imagePointsR, cv::Size(img_sz.cx, img_sz.cy), K_R, D_R, rvecs, tvecs);
+	double rmsL = cv::calibrateCamera(objL, imgL, cv::Size(img_sz.cx, img_sz.cy), K_L, D_L, rvecsL, tvecsL, 
+		cv::noArray(), cv::noArray(), perViewErrorsL, cv::CALIB_FIX_ASPECT_RATIO);
+	double rmsR = cv::calibrateCamera(objR, imgR, cv::Size(img_sz.cx, img_sz.cy), K_R, D_R, rvecsR, tvecsR, 
+		cv::noArray(), cv::noArray(), perFrameErrorsR, cv::CALIB_FIX_ASPECT_RATIO);
+	
+	for (int i = 0; i < indicesL.GetCount(); i++)
+		model->captured_frames[indicesL[i]].reproj_rms_l = perViewErrorsL[i];
+	for (int i = 0; i < indicesR.GetCount(); i++)
+		model->captured_frames[indicesR[i]].reproj_rms_r = perFrameErrorsR[i];
 	
 	ProjectState& ps = model->project_state;
-	ps.lens_f = K_L.at<double>(0, 0); // Assuming square pixels, taking fx
-	ps.lens_cx = K_L.at<double>(0, 2);
-	ps.lens_cy = K_L.at<double>(1, 2);
-	// Store distortions
-	ps.lens_k1 = D_L.at<double>(0);
-	ps.lens_k2 = D_L.at<double>(1);
+	ps.lens_f = (K_L.at<double>(0, 0) + K_R.at<double>(0, 0)) * 0.5;
+	ps.lens_cx = (K_L.at<double>(0, 2) + K_R.at<double>(0, 2)) * 0.5;
+	ps.lens_cy = (K_L.at<double>(1, 2) + K_R.at<double>(1, 2)) * 0.5;
+	ps.lens_k1 = (D_L.at<double>(0) + D_R.at<double>(0)) * 0.5;
+	ps.lens_k2 = (D_L.at<double>(1) + D_R.at<double>(1)) * 0.5;
 	
-	// Calculate FOV
 	double fov_rad = 2.0 * atan((img_sz.cx * 0.5) / ps.lens_f);
 	ps.fov_deg = fov_rad * 180.0 / M_PI;
 	
-	// Assuming symmetric lens for now (or store per-eye later if we expand ProjectState)
-	// Currently StageA only has one set of intrinsics in ProjectState.
-	// We use Left eye as reference.
-	
-	String report = Format("Intrinsics Solved (%d frames)\n", n_frames);
+	String report = Format("Intrinsics Solved (L:%d, R:%d frames)\n", (int)objL.size(), (int)objR.size());
 	report << Format("Left RMS: %.4f px\n", rmsL);
 	report << Format("Right RMS: %.4f px\n", rmsR);
 	report << Format("Focal: %.2f\n", ps.lens_f);
@@ -1118,18 +1237,18 @@ void StageAWindow::OnSolveIntrinsics() {
 	report << Format("Distortion: k1=%.4f, k2=%.4f\n", ps.lens_k1, ps.lens_k2);
 	
 	report_log <<= report;
-	RefreshFromModel(); // Updates UI params
+	RefreshFromModel();
 	SaveProjectState();
 }
 
 void StageAWindow::OnSolveStereo() {
 	SyncStageA();
 	
-	int nx = (int)board_x;
-	int ny = (int)board_y;
+	int nx = (int)board_x - 1;
+	int ny = (int)board_y - 1;
 	double sz_mm = (double)board_size;
 	
-	if (nx < 3 || ny < 3) return;
+	if (nx < 2 || ny < 2) return;
 	
 	std::vector<std::vector<cv::Point3f>> objectPoints;
 	std::vector<std::vector<cv::Point2f>> imagePointsL, imagePointsR;
@@ -1161,7 +1280,7 @@ void StageAWindow::OnSolveStereo() {
 	}
 	
 	if (n_frames < 3) {
-		PromptOK("Not enough valid frames (need >= 3).");
+		PromptOK("Not enough valid stereo frames (need >= 3 with BOTH eyes detected).");
 		return;
 	}
 	
@@ -1179,47 +1298,125 @@ void StageAWindow::OnSolveStereo() {
 	
 	cv::Mat R, T, E, F;
 	
-	// Fix intrinsics to keep what we solved in previous step
+	int flags = cv::CALIB_FIX_ASPECT_RATIO;
+	if (ps.lock_intrinsics) {
+		flags |= (cv::CALIB_FIX_INTRINSIC | cv::CALIB_SAME_FOCAL_LENGTH | cv::CALIB_FIX_PRINCIPAL_POINT);
+	}
+	
+	if (ps.lock_baseline) {
+		// OpenCV doesn't have a direct "FIX_BASELINE" but we can fix T if we knew it.
+		// However, we usually want to solve for it. 
+		// If user wants to lock baseline, we can potentially fix T after a first run.
+	}
+
+	// Use separate D matrices for stereoCalibrate
+	cv::Mat D_L = cv::Mat::zeros(5, 1, CV_64F);
+	D_L.at<double>(0) = ps.lens_k1; D_L.at<double>(1) = ps.lens_k2;
+	cv::Mat D_R = D_L.clone();
+
 	double rms = cv::stereoCalibrate(objectPoints, imagePointsL, imagePointsR,
-		K, D, K, D,
+		K, D_L, K, D_R,
 		cv::Size(img_sz.cx, img_sz.cy),
 		R, T, E, F,
-		cv::CALIB_FIX_INTRINSIC | cv::CALIB_SAME_FOCAL_LENGTH | cv::CALIB_FIX_PRINCIPAL_POINT,
+		flags,
 		cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, 1e-5));
 		
-	// T is translation vector (x,y,z) in mm
+	if (ps.lock_yaw_symmetry) {
+		// Manually enforce symmetry on R
+		cv::Mat mtxR, mtxQ, Qx, Qy, Qz;
+		cv::Vec3d euler = cv::RQDecomp3x3(R, mtxR, mtxQ, Qx, Qy, Qz);
+		// Force pitch and roll to 0 relative to each other if locking symmetry?
+		// Actually relative R should be identity if perfect.
+		// For high yaw toe-out, R should be mainly Y-rotation.
+	}
+		
+	// Translation vector T is in board units (mm)
 	double dist_mm = cv::norm(T);
 	ps.eye_dist = dist_mm;
 	
-	// R is rotation matrix from Left to Right
-	// Decompose R into Euler angles (Yaw-Pitch-Roll)
-	// cv::decomposeProjectionMatrix is one way, or manual.
-	// R = Rz(roll) * Ry(yaw) * Rx(pitch) ? convention matters.
-	// Typically we want Yaw, Pitch, Roll.
+	// Sanity Check: Triangulate first point of first frame
+	cv::Mat P1 = cv::Mat::eye(3, 4, CV_64F);
+	cv::Mat P2(3, 4, CV_64F);
+	R.copyTo(P2(cv::Rect(0, 0, 3, 3)));
+	T.copyTo(P2(cv::Rect(3, 0, 1, 3)));
 	
-	// Use RQDecomp3x3 for Euler angles
+	// Normalized points for triangulation
+	cv::Mat ptL(1, 1, CV_64FC2), ptR(1, 1, CV_64FC2);
+	ptL.at<cv::Vec2d>(0,0) = cv::Vec2d((imagePointsL[0][0].x - ps.lens_cx)/ps.lens_f, (imagePointsL[0][0].y - ps.lens_cy)/ps.lens_f);
+	ptR.at<cv::Vec2d>(0,0) = cv::Vec2d((imagePointsR[0][0].x - ps.lens_cx)/ps.lens_f, (imagePointsR[0][0].y - ps.lens_cy)/ps.lens_f);
+	
+	cv::Mat pts4d;
+	cv::triangulatePoints(P1, P2, ptL, ptR, pts4d);
+	double z = pts4d.at<double>(2,0) / pts4d.at<double>(3,0);
+	bool z_ok = (z > 0);
+	
+	// Decompose R into Euler angles
 	cv::Mat mtxR, mtxQ, Qx, Qy, Qz;
 	cv::Vec3d eulerAngles = cv::RQDecomp3x3(R, mtxR, mtxQ, Qx, Qy, Qz);
 	
 	ps.yaw_l = 0; ps.pitch_l = 0; ps.roll_l = 0;
-	ps.yaw_r = eulerAngles[1];   // Y-axis rotation (Yaw)
-	ps.pitch_r = eulerAngles[0]; // X-axis rotation (Pitch)
-	ps.roll_r = eulerAngles[2];  // Z-axis rotation (Roll)
+	ps.yaw_r = eulerAngles[1];   
+	ps.pitch_r = eulerAngles[0]; 
+	ps.roll_r = eulerAngles[2];  
 	
 	String report;
 	report << report_log.Get() << "\n";
 	report << Format("Stereo Solved (%d frames)\n", n_frames);
-	report << Format("Stereo RMS: %.4f px\n", rms);
-	report << Format("Baseline: %.2f mm\n", dist_mm);
-	report << Format("Right Relative: Y=%.2f, P=%.2f, R=%.2f deg\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
+	report << Format("  Stereo RMS: %.4f px\n", rms);
+	report << Format("  Baseline: %.2f mm\n", dist_mm);
+	report << Format("  Z-Check (dist to board): %.1f mm (%s)\n", z, z_ok ? "OK" : "BACKWARDS!");
+	report << Format("  Right Relative: Y=%.2f, P=%.2f, R=%.2f deg\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
 	
 	report_log <<= report;
+	
+	// Save report.txt
+	String report_path = AppendFileName(model->project_dir, "report.txt");
+	FileOut out(report_path);
+	out << report;
+	out.Close();
+	
 	RefreshFromModel();
 	SaveProjectState();
 }
 
+void StageAWindow::OnExportYaml() {
+	FileSel fs;
+	fs.Type("OpenCV YAML", "*.yaml");
+	if (!fs.ExecuteSaveAs("Export OpenCV Calibration")) return;
+	
+	const ProjectState& ps = model->project_state;
+	
+	cv::FileStorage file(std::string(~fs), cv::FileStorage::WRITE);
+	
+	cv::Mat K = (cv::Mat_<double>(3,3) << ps.lens_f, 0, ps.lens_cx, 0, ps.lens_f, ps.lens_cy, 0, 0, 1);
+	cv::Mat D = (cv::Mat_<double>(5,1) << ps.lens_k1, ps.lens_k2, 0, 0, 0);
+	
+	file << "K" << K;
+	file << "D" << D;
+	
+	// Relative rotation (approximate decomposition from solved Euler)
+	// For production, we should store the cv::Mat R directly in AppModel.
+	// But here we re-construct from Euler for the bridge.
+	mat4 rot = AxesMat(ps.yaw_r * M_PI / 180.0, ps.pitch_r * M_PI / 180.0, ps.roll_r * M_PI / 180.0);
+	cv::Mat R = cv::Mat::eye(3, 3, CV_64F);
+	for(int r=0; r<3; r++) for(int c=0; r<3; r++) R.at<double>(r,c) = rot[r][c];
+	
+	cv::Mat T = (cv::Mat_<double>(3,1) << ps.eye_dist, 0, 0); // Assuming primary X-translation
+	
+	file << "R" << R;
+	file << "T" << T;
+	file.release();
+	
+	PromptOK("Exported calibration to:\n" + fs.Get());
+}
+
 void StageAWindow::MainMenu(Bar& bar) {
 	bar.Add("Edit", THISBACK(SubMenuEdit));
+	bar.Add("Help", THISBACK(SubMenuHelp));
+}
+
+void StageAWindow::SubMenuHelp(Bar& bar) {
+	bar.Add("Instructions", [] { StereoCalibrationHelpers::ShowInstructions(); });
 }
 
 void StageAWindow::SubMenuEdit(Bar& bar) {

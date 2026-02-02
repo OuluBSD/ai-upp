@@ -172,17 +172,17 @@ struct BoardGenDialog : TopWindow {
 		
 		lbl_x.SetLabel("Squares X:");
 		Add(lbl_x.TopPos(10, 20).LeftPos(10, 80));
-		squares_x.MinMax(3, 20) <<= 8;
+		squares_x.MinMax(3, 25) <<= 9;
 		Add(squares_x.TopPos(10, 20).LeftPos(100, 50));
 		
 		lbl_y.SetLabel("Squares Y:");
 		Add(lbl_y.TopPos(40, 20).LeftPos(10, 80));
-		squares_y.MinMax(3, 20) <<= 5;
+		squares_y.MinMax(3, 25) <<= 6;
 		Add(squares_y.TopPos(40, 20).LeftPos(100, 50));
 		
 		lbl_sz.SetLabel("Size (mm):");
 		Add(lbl_sz.TopPos(70, 20).LeftPos(10, 80));
-		square_size_mm.MinMax(5.0, 200.0) <<= 30.0;
+		square_size_mm.MinMax(2.0, 100.0) <<= 20.0;
 		Add(square_size_mm.TopPos(70, 20).LeftPos(100, 50));
 		
 		ok.SetLabel("Generate");
@@ -200,43 +200,63 @@ void CameraWindow::OnGenerateBoard() {
 	dlg.RunAppModal();
 	if (!dlg.run) return;
 	
-	int nx = (int)dlg.squares_x;
-	int ny = (int)dlg.squares_y;
+	int nx_squares = (int)dlg.squares_x;
+	int ny_squares = (int)dlg.squares_y;
 	double sz_mm = (double)dlg.square_size_mm;
 	
-	// A4 at 300 DPI
-	// A4 is 210mm x 297mm
-	// 300 DPI => 11.81 px/mm
+	// A4 Dimensions: 210mm x 297mm
+	const double A4_W = 210.0;
+	const double A4_H = 297.0;
+	
+	double board_w_mm = nx_squares * sz_mm;
+	double board_h_mm = ny_squares * sz_mm;
+	
+	// Quiet zone: OpenCV needs at least 1 square size of white border
+	if (board_w_mm > (A4_W - sz_mm * 2) || board_h_mm > (A4_H - sz_mm * 2)) {
+		if (!PromptOKCancel(Format("Board (%.0fx%.0f mm) is tight for A4.\nContinue?", board_w_mm, board_h_mm)))
+			return;
+	}
+	
 	double dpi = 300.0;
 	double px_per_mm = dpi / 25.4;
+	int w_px = (int)(A4_W * px_per_mm);
+	int h_px = (int)(A4_H * px_per_mm);
 	
-	int w = (int)(210 * px_per_mm);
-	int h = (int)(297 * px_per_mm);
+	ImageBuffer ib(w_px, h_px);
+	RGBA white = White();
+	RGBA black = Black();
+	RGBA gray = GrayColor(220); // Very light gray boundary
 	
-	ImageBuffer ib(w, h);
-	RGBA white; white.r = white.g = white.b = 255; white.a = 255;
-	RGBA black; black.r = black.g = black.b = 0; black.a = 255;
+	Fill(ib, white, w_px * h_px);
 	
-	Fill(ib, white, w * h);
-	
-	// Draw checkerboard centered
-	double board_w_mm = nx * sz_mm;
-	double board_h_mm = ny * sz_mm;
-	
-	int margin_x = (int)((210 - board_w_mm) * 0.5 * px_per_mm);
-	int margin_y = (int)((297 - board_h_mm) * 0.5 * px_per_mm);
-	
+	int margin_x = (int)((A4_W - board_w_mm) * 0.5 * px_per_mm);
+	int margin_y = (int)((A4_H - board_h_mm) * 0.5 * px_per_mm);
 	int sq_px = (int)(sz_mm * px_per_mm);
 	
-	for (int y = 0; y < ny; y++) {
-		for (int x = 0; x < nx; x++) {
-			if ((x + y) % 2 == 1) {
+	// Draw boundary
+	for (int i = 0; i <= nx_squares * sq_px; i++) {
+		int px = margin_x + i;
+		if (px >= 0 && px < w_px) {
+			if (margin_y >= 0) ib[margin_y][px] = gray;
+			if (margin_y + ny_squares * sq_px < h_px) ib[margin_y + ny_squares * sq_px][px] = gray;
+		}
+	}
+	for (int i = 0; i <= ny_squares * sq_px; i++) {
+		int py = margin_y + i;
+		if (py >= 0 && py < h_px) {
+			if (margin_x >= 0) ib[py][margin_x] = gray;
+			if (margin_x + nx_squares * sq_px < w_px) ib[py][margin_x + nx_squares * sq_px] = gray;
+		}
+	}
+
+	for (int y = 0; y < ny_squares; y++) {
+		for (int x = 0; x < nx_squares; x++) {
+			if ((x + y) % 2 == 0) {
 				int px = margin_x + x * sq_px;
 				int py = margin_y + y * sq_px;
-				
 				for (int dy = 0; dy < sq_px; dy++) {
 					for (int dx = 0; dx < sq_px; dx++) {
-						if (px+dx < w && py+dy < h)
+						if (px+dx < w_px && py+dy < h_px)
 							ib[py+dy][px+dx] = black;
 					}
 				}
@@ -251,12 +271,16 @@ void CameraWindow::OnGenerateBoard() {
 	PNGEncoder().SaveFile(png_path, ib);
 	
 	FileOut out(txt_path);
-	out << "squares_x=" << nx << "\n";
-	out << "squares_y=" << ny << "\n";
+	out << "squares_x=" << nx_squares << "\n";
+	out << "squares_y=" << ny_squares << "\n";
+	out << "corners_x=" << (nx_squares - 1) << "\n";
+	out << "corners_y=" << (ny_squares - 1) << "\n";
 	out << "square_size_mm=" << sz_mm << "\n";
 	out.Close();
 	
-	PromptOK("Board generated in project directory:\n" + png_path);
+	PromptOK("Board generated successfully.\n\n"
+	         "Term: Specifying 9x6 SQUARES results in 8x5 INNER CORNERS.\n"
+	         "Print at 'Actual Size' (100% scale).");
 }
 
 // Starts the selected source index. Returns false on failure.
@@ -295,7 +319,7 @@ void CameraWindow::StopSource() {
 void CameraWindow::ToggleLiveView() {
 	live_active = !live_active;
 	if (live_active)
-		live_cb.Set(-30, THISBACK(UpdateLivePreview));
+		live_cb.Set(-16, THISBACK(UpdateLivePreview));
 	else
 		live_cb.Kill();
 }
@@ -441,6 +465,11 @@ void CameraWindow::SaveProjectState() {
 void CameraWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(SubMenuFile));
 	bar.Add("Edit", THISBACK(SubMenuEdit));
+	bar.Add("Help", THISBACK(SubMenuHelp));
+}
+
+void CameraWindow::SubMenuHelp(Bar& bar) {
+	bar.Add("Instructions", [] { StereoCalibrationHelpers::ShowInstructions(); });
 }
 
 void CameraWindow::SubMenuFile(Bar& bar) {

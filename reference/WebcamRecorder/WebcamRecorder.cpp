@@ -24,6 +24,7 @@ class WebcamRecorder : public TopWindow {
 	Option backend_draw_video;
 	Label status;
 	TimeCallback tc;
+	TimeCallback timeout_tc;
 	
 	Thread work;
 	Atomic exit_flag;
@@ -506,7 +507,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 			work.Run(THISBACK(CaptureLoopThreaded));
 
 		if (timeout_ms > 0)
-			tc.Set(-timeout_ms, THISBACK(StopForTimeout));
+			timeout_tc.Set(-timeout_ms, THISBACK(StopForTimeout));
 	}
 	
 	void OnStop() {
@@ -552,7 +553,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 		resolutions.Enable();
 		start.Enable();
 		stop.Disable();
-		tc.Kill();
+		timeout_tc.Kill();
 	}
 
 	void DrawOverlay(Draw& d, const Rect& r, const Image& img) {
@@ -663,7 +664,7 @@ public:
 	}
 	
 	~WebcamRecorder() {
-		tc.Kill();
+		timeout_tc.Kill();
 		OnStop();
 	}
 };

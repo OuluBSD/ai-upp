@@ -130,18 +130,18 @@ struct PreviewPipeline {
 	Image ComposeFinalDisplay() {
 		ProjectState& ps = model->project_state;
 		
-		auto TintB = [](const Image& src) {
+		auto TintG = [](const Image& src) {
 			if (src.IsEmpty()) return Image();
 			ImageBuffer ib(src.GetSize());
 			const RGBA* s = ~src; RGBA* d = ~ib;
-			for(int i=0; i<src.GetLength(); i++) d[i] = RGBA{(byte)(s[i].r*0.25), (byte)(s[i].g*0.25), s[i].b, s[i].a};
+			for(int i=0; i<src.GetLength(); i++) d[i] = RGBA{(byte)(s[i].r*0.25), s[i].g, (byte)(s[i].b*0.25), s[i].a};
 			return Image(ib);
 		};
-		auto TintR = [](const Image& src) {
+		auto TintV = [](const Image& src) {
 			if (src.IsEmpty()) return Image();
 			ImageBuffer ib(src.GetSize());
 			const RGBA* s = ~src; RGBA* d = ~ib;
-			for(int i=0; i<src.GetLength(); i++) d[i] = RGBA{s[i].r, (byte)(s[i].g*0.25), (byte)(s[i].b*0.25), s[i].a};
+			for(int i=0; i<src.GetLength(); i++) d[i] = RGBA{s[i].r, (byte)(s[i].g*0.25), s[i].b, s[i].a};
 			return Image(ib);
 		};
 
@@ -160,8 +160,8 @@ struct PreviewPipeline {
 			Image base = ps.overlay_swap ? preview_right : preview_left;
 			Image top = ps.overlay_swap ? preview_left : preview_right;
 			if (ps.tint_overlay) {
-				base = ps.overlay_swap ? TintR(preview_right) : TintB(preview_left);
-				top = ps.overlay_swap ? TintB(preview_left) : TintR(preview_right);
+				base = ps.overlay_swap ? TintV(preview_right) : TintG(preview_left);
+				top = ps.overlay_swap ? TintG(preview_left) : TintV(preview_right);
 			}
 			ImageBuffer ib(base.GetSize());
 			const RGBA *bb = ~base, *tt = ~top;

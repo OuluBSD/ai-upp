@@ -135,7 +135,7 @@ struct ProjectState {
 	bool overlay_swap = false;
 	bool show_difference = false;
 	bool show_epipolar = false;
-	bool tint_overlay = false;     // Tint left=blue, right=red in overlay mode
+	bool tint_overlay = false;     // Tint left=green, right=violet in overlay mode
 	bool show_crosshair = false;   // Show red center crosshair lines
 	int tool_mode = 0;             // 0=None, 1=Center yaw, 2=Center pitch, 3=Center both
 	bool show_corners = true;      // show detected board corners

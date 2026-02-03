@@ -63,7 +63,24 @@ void MainCalibWindow::MainMenu(Bar& bar)
 
 void MainCalibWindow::SubMenuFile(Bar& bar)
 {
+	bar.Add("Save Project", THISBACK(OnSaveProject));
+	bar.Add("Export calibration.stcal", THISBACK(OnExportStcal));
+	bar.Separator();
 	bar.Add("Exit", THISBACK(Close));
+}
+
+void MainCalibWindow::OnSaveProject()
+{
+	if (!model || model->project_dir.IsEmpty()) return;
+	StereoCalibrationHelpers::SaveState(*model);
+	status.Set("Project saved to " + model->project_dir);
+}
+
+void MainCalibWindow::OnExportStcal()
+{
+	if (!model || model->project_dir.IsEmpty()) return;
+	StereoCalibrationHelpers::SaveLastCalibration(*model);
+	status.Set("Calibration exported to " + StereoCalibrationHelpers::GetPersistPath(*model));
 }
 
 void MainCalibWindow::SubMenuHelp(Bar& bar)

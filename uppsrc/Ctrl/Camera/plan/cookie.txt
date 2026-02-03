@@ -1,10 +1,10 @@
 Ctrl/Camera Plan Cookie
 
 Current Task:
-- track01-migration/phase01-setup/task03-video-core (active)
+- track01-migration/phase05-stereocalib/task02-backend-replace (completed)
 
 Next Task:
-- track01-migration/phase05-stereocalib/task02-backend-replace
+- track01-migration/phase04-webcamcv/task01-effects-surface (ready)
 
 Blocked / Requires Approval:
 - (none)

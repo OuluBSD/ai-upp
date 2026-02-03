@@ -2,12 +2,11 @@
 #define _StereoCalibrationTool_StereoCalibrationTool_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <Ctrl/Camera/Camera.h>
+#include <Draw/Camera/Camera.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
 #include <SoftHMD/SoftHMD.h>
-#ifdef flagLINUX
-#include <plugin/libv4l2/libv4l2.h>
-#endif
 
 // Include OpenCV headers for StereoRectificationCache
 #undef CPU_SSE2
@@ -279,68 +278,6 @@ struct AppModel {
 // Shared stereo camera sources
 // ------------------------------------------------------------
 
-struct StereoSource {
-	virtual ~StereoSource() {}
-	virtual String GetName() const = 0;
-	virtual bool Start() = 0;
-	virtual void Stop() = 0;
-	virtual bool IsRunning() const = 0;
-	virtual bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
-	virtual bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) = 0;
-	virtual void SetVerbose(bool v) {}
-};
-
-struct HmdStereoSource : StereoSource {
-	typedef HmdStereoSource CLASSNAME;
-	bool running = false;
-	bool verbose = false;
-	HMD::System sys;
-	One<HMD::Camera> cam;
-	Image last_left;
-	Image last_right;
-	bool last_is_bright = false;
-	int64 last_serial = -1;
-
-	Upp::Thread background_thread;
-	std::atomic<bool> quit;
-	Upp::Mutex mutex;
-	Image bg_left_bright, bg_right_bright;
-	Image bg_left_dark, bg_right_dark;
-	int64 bg_serial_bright = -1;
-	int64 bg_serial_dark = -1;
-
-	void BackgroundProcess();
-
-	String GetName() const override { return "HMD Stereo Camera"; }
-	bool Start() override;
-	void Stop() override;
-	bool IsRunning() const override { return running; }
-	bool ReadFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
-	bool PeakFrame(VisualFrame& left, VisualFrame& right, bool prefer_bright = false) override;
-	void SetVerbose(bool v) override { verbose = v; }
-};
-
-struct UsbStereoSource : StereoSource {
-	bool running = false;
-	String device_path;
-	Image last_left;
-	Image last_right;
-	bool last_is_bright = false;
-#ifdef flagLINUX
-	One<V4l2Capture> capture;
-	Vector<byte> raw;
-	int width = 0;
-	int height = 0;
-	int pixfmt = 0;
-#endif
-	String GetName() const override { return "USB Stereo (Side-by-side)"; }
-	bool Start() override;
-	void Stop() override;
-	bool IsRunning() const override { return running; }
-	bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
-	bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override;
-};
-
 struct VideoStereoSource : StereoSource {
 	bool running = false;
 	String path;
@@ -348,8 +285,8 @@ struct VideoStereoSource : StereoSource {
 	bool Start() override { running = true; return true; }
 	void Stop() override { running = false; }
 	bool IsRunning() const override { return running; }
-	bool ReadFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
-	bool PeakFrame(VisualFrame&, VisualFrame&, bool prefer_bright = false) override { return false; }
+	bool ReadFrame(CameraFrame&, CameraFrame&, bool prefer_bright = false) override { return false; }
+	bool PeakFrame(CameraFrame&, CameraFrame&, bool prefer_bright = false) override { return false; }
 };
 
 // ------------------------------------------------------------
@@ -357,13 +294,8 @@ struct VideoStereoSource : StereoSource {
 // ------------------------------------------------------------
 
 namespace StereoCalibrationHelpers {
-// Image/conversion helpers used by Camera and LiveResult.
-bool SplitStereoImage(const Image& src, Image& left, Image& right);
-Image CopyFrameImage(const VisualFrame& frame);
+// Image helpers used by Camera and LiveResult.
 bool IsFrameNonBlack(const Image& img);
-Image ConvertRgb24ToImage(const byte* data, int width, int height);
-Image ConvertYuyvToImage(const byte* data, int width, int height);
-Image ConvertMjpegToImage(const byte* data, int bytes);
 
 // Preview/undistort helpers used by Calibration and LiveResult.
 struct LensParams {
@@ -422,7 +354,6 @@ END_UPP_NAMESPACE
 
 #include "Menu.h"
 #include "Camera.h"
-#include "PreviewCtrl.h"
 #include "Calibration.h"
 #include "MainCalibWindow.h"
 

@@ -31,10 +31,6 @@ CameraPane::CameraPane() {
 void CameraPane::Init(AppModel& m) {
 	model = &m;
 
-	source_list.Add(0, "HMD Stereo Camera");
-	source_list.Add(1, "USB Stereo (Side-by-side)");
-	source_list.Add(2, "Stereo Video File");
-	source_list.SetIndex(0);
 	source_list.WhenAction = THISBACK(OnSourceChanged);
 
 	start_source.SetLabel("Start");
@@ -57,9 +53,18 @@ void CameraPane::Init(AppModel& m) {
 	BuildCapturesList();
 
 	sources.Clear();
-	sources.Add(MakeOne<HmdStereoSource>());
-	sources.Add(MakeOne<UsbStereoSource>());
+	source_ids.Clear();
+	source_list.Clear();
+	Vector<StereoSourceInfo> infos = GetStereoSources();
+	for (int i = 0; i < infos.GetCount(); i++) {
+		source_ids.Add(infos[i].id);
+		sources.Add(CreateStereoSource(infos[i].id));
+		source_list.Add(i, infos[i].label);
+	}
+	source_ids.Add("video");
 	sources.Add(MakeOne<VideoStereoSource>());
+	source_list.Add(source_ids.GetCount() - 1, "Stereo Video File");
+	source_list.SetIndex(0);
 
 	RefreshFromModel();
 }
@@ -67,18 +72,23 @@ void CameraPane::Init(AppModel& m) {
 // Updates verbose flag and forwards it to all sources.
 void CameraPane::SetVerbose(bool v) {
 	verbose = v;
-	for (auto& src : sources)
-		src->SetVerbose(v);
+	for (auto& src : sources) {
+		if (src)
+			src->SetVerbose(v);
+	}
 }
 
 // Overrides the USB device path used by the USB stereo source.
 // Safe to call before starting the source.
 void CameraPane::SetUsbDevicePath(const String& path) {
-	if (sources.GetCount() > 1) {
-		if (UsbStereoSource* usb = dynamic_cast<UsbStereoSource*>(~sources[1])) {
-			usb->device_path = path;
+	usb_device_path = path;
+	for (int i = 0; i < source_ids.GetCount(); i++) {
+		if (source_ids[i] == "usb" && sources[i]) {
+			sources[i]->SetOption("device", path);
+			break;
 		}
 	}
+	ApplyCalibrationForSource(source_list.GetIndex());
 }
 
 // Refreshes UI lists based on AppModel state (no disk IO).
@@ -108,9 +118,7 @@ void CameraPane::BuildLayout() {
 	controls.SetRect(0, 0, 10, y + 30);
 	Add(controls.TopPos(0, y + 30).HSizePos());
 
-	preview_split.Horz(left_view, right_view);
-	preview_split.SetPos(5000);
-	main_split.Horz(preview_split, captures_list);
+	main_split.Horz(preview, captures_list);
 	main_split.SetPos(6500);
 	Add(main_split.VSizePos(y + 30, 0).HSizePos());
 }
@@ -150,7 +158,7 @@ void CameraPane::OnDeleteCapture() {
 // Updates the status label when the user selects a different source.
 void CameraPane::OnSourceChanged() {
 	int idx = source_list.GetIndex();
-	if (idx >= 0 && idx < sources.GetCount())
+	if (idx >= 0 && idx < sources.GetCount() && sources[idx])
 		source_status.SetLabel("Selected: " + sources[idx]->GetName());
 }
 
@@ -279,17 +287,50 @@ void CameraPane::OnGenerateBoard() {
 	         "Print at 'Actual Size' (100% scale).");
 }
 
+void CameraPane::ApplyCalibrationForSource(int idx) {
+	if (idx < 0 || idx >= source_ids.GetCount()) {
+		preview.ClearCalibration();
+		return;
+	}
+	if (source_ids[idx] != "usb") {
+		preview.ClearCalibration();
+		return;
+	}
+	String device = usb_device_path.IsEmpty() ? "/dev/video0" : usb_device_path;
+	StereoCalibrationData data;
+	String path;
+	if (LoadStereoCalibrationFromUsbDevice(device, data, &path)) {
+		preview.SetCalibration(data);
+		StereoPreviewSettings s = preview.GetSettings();
+		s.overlay_eyes = true;
+		s.tint_overlay = true;
+		s.rectified_overlay = true;
+		preview.SetSettings(s);
+		source_status.SetLabel("Running: " + sources[idx]->GetName() + " (calib: " + GetFileName(path) + ")");
+	} else {
+		preview.ClearCalibration();
+		StereoPreviewSettings s = preview.GetSettings();
+		s.rectified_overlay = false;
+		s.tint_overlay = false;
+		s.overlay_eyes = false;
+		preview.SetSettings(s);
+	}
+}
+
 // Starts the selected source index. Returns false on failure.
 // Assumes the source is constructed in Init().
 bool CameraPane::StartSourceByIndex(int idx) {
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
 	Mutex::Lock __(source_mutex);
+	if (!sources[idx])
+		return false;
 	sources[idx]->SetVerbose(verbose);
 	if (!sources[idx]->Start())
 		return false;
 	source_list.SetIndex(idx);
 	source_status.SetLabel("Running: " + sources[idx]->GetName());
+	ApplyCalibrationForSource(idx);
 	return true;
 }
 
@@ -299,13 +340,17 @@ void CameraPane::StartSource() {
 	if (!StartSourceByIndex(idx)) {
 		// status.Set("Failed to start source."); // CameraPane doesn't have status bar
 	}
+	if (!live_active) {
+		live_active = true;
+		live_cb.Set(-16, THISBACK(UpdateLivePreview));
+	}
 }
 
 // Stops the current source and disables live view timers.
 void CameraPane::StopSource() {
 	Mutex::Lock __(source_mutex);
 	int idx = source_list.GetIndex();
-	if (idx >= 0 && idx < sources.GetCount())
+	if (idx >= 0 && idx < sources.GetCount() && sources[idx])
 		sources[idx]->Stop();
 	live_active = false;
 	live_cb.Kill();
@@ -327,20 +372,20 @@ void CameraPane::UpdateLivePreview() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
-	VisualFrame lf, rf;
+	if (!sources[idx])
+		return;
+	CameraFrame lf, rf;
 	bool ok = false;
 	{
 		Mutex::Lock __(source_mutex);
-		ok = sources[idx]->PeakFrame(lf, rf, false);
+		bool want_bright = sources[idx]->SupportsBrightDark();
+		ok = sources[idx]->PeakFrame(lf, rf, want_bright);
 	}
 	if (!ok)
 		return;
-	Image left = StereoCalibrationHelpers::CopyFrameImage(lf);
-	Image right = StereoCalibrationHelpers::CopyFrameImage(rf);
-	if (left.IsEmpty() || right.IsEmpty())
+	if (lf.img.IsEmpty() || rf.img.IsEmpty())
 		return;
-	left_view.SetImage(left);
-	right_view.SetImage(right);
+	preview.SetInputImages(lf.img, rf.img);
 }
 
 // Non-destructive peek for headless tests or preview checks.
@@ -348,16 +393,19 @@ bool CameraPane::PeekFrame(Image& left, Image& right, bool prefer_bright) {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
-	VisualFrame lf, rf;
+	if (!sources[idx])
+		return false;
+	CameraFrame lf, rf;
 	bool ok = false;
 	{
 		Mutex::Lock __(source_mutex);
-		ok = sources[idx]->PeakFrame(lf, rf, prefer_bright);
+		bool want_bright = prefer_bright && sources[idx]->SupportsBrightDark();
+		ok = sources[idx]->PeakFrame(lf, rf, want_bright);
 	}
 	if (!ok)
 		return false;
-	left = StereoCalibrationHelpers::CopyFrameImage(lf);
-	right = StereoCalibrationHelpers::CopyFrameImage(rf);
+	left = lf.img;
+	right = rf.img;
 	return !left.IsEmpty() && !right.IsEmpty();
 }
 
@@ -367,19 +415,22 @@ bool CameraPane::CaptureFrameOnce() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
+	if (!sources[idx])
+		return false;
 
-	VisualFrame lf, rf;
+	CameraFrame lf, rf;
 	bool found = false;
 	TimeStop ts;
+	bool want_bright = sources[idx]->SupportsBrightDark();
 	while (ts.Elapsed() < 2000) {
 		bool read_ok = false;
 		{
 			if (source_mutex.TryEnter()) {
-				read_ok = sources[idx]->PeakFrame(lf, rf, true);
+				read_ok = sources[idx]->PeakFrame(lf, rf, want_bright);
 				source_mutex.Leave();
 			}
 		}
-		if (read_ok && (lf.flags & VIS_FRAME_BRIGHT)) {
+		if (read_ok && (!want_bright || lf.is_bright || rf.is_bright)) {
 			found = true;
 			break;
 		}
@@ -390,14 +441,14 @@ bool CameraPane::CaptureFrameOnce() {
 
 	{
 		Mutex::Lock __(source_mutex);
-		sources[idx]->ReadFrame(lf, rf, true);
+		sources[idx]->ReadFrame(lf, rf, want_bright);
 	}
 
 	CapturedFrame frame;
 	frame.time = GetSysTime();
 	frame.source = AsString(source_list.GetValue());
-	frame.left_img = StereoCalibrationHelpers::CopyFrameImage(lf);
-	frame.right_img = StereoCalibrationHelpers::CopyFrameImage(rf);
+	frame.left_img = lf.img;
+	frame.right_img = rf.img;
 	if (frame.left_img.IsEmpty() || frame.right_img.IsEmpty())
 		return false;
 
@@ -437,8 +488,7 @@ void CameraPane::OnCaptureSelection() {
 	if (row < 0 || row >= model->captured_frames.GetCount())
 		return;
 	CapturedFrame& frame = model->captured_frames[row];
-	left_view.SetImage(frame.left_img);
-	right_view.SetImage(frame.right_img);
+	preview.SetDisplayImages(frame.left_img, frame.right_img);
 }
 
 // ------------------------------------------------------------
@@ -451,8 +501,7 @@ void CameraPane::OnDeleteAll() {
 	model->selected_capture = -1;
 	StereoCalibrationHelpers::SaveState(*model);
 	RefreshCapturesList();
-	left_view.SetImage(Image());
-	right_view.SetImage(Image());
+	preview.ClearImages();
 	WhenChange();
 }
 

@@ -42,8 +42,10 @@ public:
 private:
 	// Camera sources and synchronization.
 	Vector<One<StereoSource>> sources;
+	Vector<String> source_ids;
 	Mutex source_mutex;
 	bool verbose = false;
+	String usb_device_path;
 
 	// UI controls.
 	DropList source_list;
@@ -57,11 +59,9 @@ private:
 	Label board_info_lbl;
 	Button generate_board_btn;
 	
-	ImageCtrl left_view;
-	ImageCtrl right_view;
+	StereoPreviewCtrl preview;
 	ParentCtrl controls;
 	Splitter main_split;
-	Splitter preview_split;
 
 	// Internal state.
 	bool live_active = false;
@@ -80,6 +80,7 @@ private:
 	void OnCapturesBar(Bar& bar);
 	void OnCaptureSelection();
 	void OnGenerateBoard();
+	void ApplyCalibrationForSource(int idx);
 };
 
 class CameraWindow : public TopWindow {

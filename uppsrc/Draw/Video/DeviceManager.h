@@ -5,6 +5,9 @@ struct VideoDeviceInfo : Moveable<VideoDeviceInfo> {
 	String id;
 	String name;
 	String path;
+	String driver;
+	String bus_info;
+	uint32 capabilities = 0;
 };
 
 class VideoDeviceManager {

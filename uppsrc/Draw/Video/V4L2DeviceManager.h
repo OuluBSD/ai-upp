@@ -9,6 +9,7 @@ struct VideoDeviceFormatResolution : Moveable<VideoDeviceFormatResolution> {
 struct VideoDeviceFormat : Moveable<VideoDeviceFormat> {
 	String description;
 	VideoPixelFormat format = VID_PIX_UNKNOWN;
+	uint32 pixelformat = 0;
 	Vector<VideoDeviceFormatResolution> resolutions;
 };
 

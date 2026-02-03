@@ -10,6 +10,8 @@
 #include <AI/Engine/CliEngine.h>
 #include <AI/Engine/Engines.h>
 #include <AI/Engine/PlanSummarizer.h>
+#include "WorkSession.h"
+#include "Breadcrumb.h"
 
 NAMESPACE_UPP
 

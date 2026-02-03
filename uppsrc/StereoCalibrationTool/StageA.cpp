@@ -1741,8 +1741,8 @@ void StageAWindow::RebuildRectificationFromState() {
 		return;
 	}
 
-	LOG(Format("RebuildRectificationFromState: lens_f=%.2f, eye_dist=%.2f, img_sz=%dx%d, stereo_R_valid=%d",
-	    ps.lens_f, ps.eye_dist, img_sz.cx, img_sz.cy, (int)ps.stereo_R_valid));
+	LOG(Format("RebuildRectificationFromState: lens_f=%.2f, eye_dist=%.2f, img_sz=%d x %d, stereo_R_valid=%d",
+	    ps.lens_f, ps.eye_dist, (int)img_sz.cx, (int)img_sz.cy, (int)ps.stereo_R_valid));
 
 	// Reconstruct K matrix (same for both eyes in current implementation)
 	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);

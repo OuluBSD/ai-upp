@@ -27,6 +27,9 @@ private:
 	void MainMenu(Bar& bar);
 	void SubMenuFile(Bar& bar);
 	void SubMenuHelp(Bar& bar);
+
+	void OnSaveProject();
+	void OnExportStcal();
 };
 
 END_UPP_NAMESPACE

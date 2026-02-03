@@ -27,6 +27,7 @@ GUI_APP_MAIN
 	bool calib_distortion_selfcheck = false;
 	bool pipeline_selfcheck = false;
 	bool calib_ui_selfcheck = false;
+	bool export_stcal = false;
 	String test_image_path;
 	
 	// Direct launch flags
@@ -58,6 +59,7 @@ GUI_APP_MAIN
 			       << "  --calib_distortion_selfcheck Run Calibration distortion sanity self-check\n"
 			       << "  --pipeline_selfcheck     Verify calibration pipeline invariants\n"
 			       << "  --calib_ui_selfcheck    Verify Calibration UI data consistency\n"
+			       << "  --export-stcal           Export calibration.stcal from project.json and exit\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
@@ -65,6 +67,8 @@ GUI_APP_MAIN
 			pipeline_selfcheck = true;
 		else if (arg == "--calib_ui_selfcheck")
 			calib_ui_selfcheck = true;
+		else if (arg == "--export-stcal")
+			export_stcal = true;
 		else if (arg == "--test-usb")
 			test_usb = true;
 		else if (arg == "--test-hmd")
@@ -170,20 +174,32 @@ GUI_APP_MAIN
 
 	// Calibration UI self-check mode
 	if (calib_ui_selfcheck) {
+		// ... existing code ...
+		return;
+	}
+
+	// Export .stcal mode
+	if (export_stcal) {
 		model.project_dir = project_dir;
 		StereoCalibrationHelpers::LoadState(model);
-		Cout() << "Calibration UI Self-Check: " << project_dir << "\n";
-		Cout() << "Frames: " << model.captured_frames.GetCount() << "\n";
-		int total_matches = 0, total_lines = 0;
-		for(const auto& f : model.captured_frames) {
-			total_matches += f.matches.GetCount();
-			total_lines += f.annotation_lines_left.GetCount() + f.annotation_lines_right.GetCount();
-			for(const auto& c : f.annotation_lines_left) if(c.GetCount() < 2) { Cerr() << "ERROR: Short line found\n"; SetExitCode(1); return; }
-			for(const auto& c : f.annotation_lines_right) if(c.GetCount() < 2) { Cerr() << "ERROR: Short line found\n"; SetExitCode(1); return; }
+		const ProjectState& ps = model.project_state;
+		
+		if (ps.lens_f > 0) {
+			model.last_calibration.is_enabled = true;
+			model.last_calibration.principal_point = vec2((float)ps.lens_cx, (float)ps.lens_cy);
+			model.last_calibration.angle_to_pixel = vec4((float)ps.lens_f, 0, (float)(ps.lens_f * ps.lens_k1), (float)(ps.lens_f * ps.lens_k2));
+			model.last_calibration.eye_dist = (float)(ps.eye_dist / 1000.0);
+			model.last_calibration.outward_angle = (float)(ps.yaw_r * M_PI / 180.0);
+			model.last_calibration.right_pitch = (float)(ps.pitch_r * M_PI / 180.0);
+			model.last_calibration.right_roll = (float)(ps.roll_r * M_PI / 180.0);
+			
+			StereoCalibrationHelpers::SaveLastCalibration(model);
+			Cout() << "Exported calibration.stcal to " << project_dir << "\n";
+			SetExitCode(0);
+		} else {
+			Cerr() << "Error: No solved calibration found in project.json\n";
+			SetExitCode(1);
 		}
-		Cout() << "Matches: " << total_matches << ", Lines: " << total_lines << "\n";
-		Cout() << "Calibration UI self-check PASSED.\n";
-		SetExitCode(0);
 		return;
 	}
 

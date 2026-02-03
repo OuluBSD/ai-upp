@@ -1,0 +1,9 @@
+file
+	AGENTS.md
+	Camera.h
+	CameraView.h
+	CameraView.cpp
+
+uses
+	CtrlLib
+	Draw/Camera

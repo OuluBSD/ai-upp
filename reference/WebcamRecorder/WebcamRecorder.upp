@@ -2,6 +2,7 @@ description "Webcam Recorder and Preview";
 
 uses
 	CtrlLib,
+	Ctrl/Camera,
 	plugin/libv4l2,
 	plugin/jpg;
 
@@ -10,4 +11,5 @@ file
 	WebcamRecorder.cpp;
 
 mainconfig
+	"" = "GUI";
 	"" = "";

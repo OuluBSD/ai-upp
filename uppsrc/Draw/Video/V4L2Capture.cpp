@@ -1,9 +1,9 @@
-#include "Video.h"
-
 #ifdef flagLINUX
 #include <plugin/libv4l2/libv4l2.h>
 #include <plugin/jpg/jpg.h>
 #endif
+
+#include "Video.h"
 
 NAMESPACE_UPP
 

@@ -560,18 +560,25 @@ public:
 		// But changing resolution should stop.
 		resolutions.WhenAction = THISBACK(OnChange);
 		
-		// Enumerate devices
-		for(int i = 0; i < 64; i++) {
-			String path = "/dev/video" + AsString(i);
-			int fd = open(path, O_RDWR);
-			if(fd >= 0) {
-				struct v4l2_capability cap;
-				if(ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0) {
-					if(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) {
-						webcams.Add(path);
+		// Enumerate devices via Draw/Video manager (with fallback)
+		Vector<VideoDeviceInfo> devs;
+		V4L2DeviceManager mgr;
+		mgr.Enumerate(devs);
+		for (const auto& dev : devs)
+			webcams.Add(dev.path);
+		if (webcams.GetCount() == 0) {
+			for(int i = 0; i < 64; i++) {
+				String path = "/dev/video" + AsString(i);
+				int fd = open(path, O_RDWR);
+				if(fd >= 0) {
+					struct v4l2_capability cap;
+					if(ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0) {
+						if(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) {
+							webcams.Add(path);
+						}
 					}
+					close(fd);
 				}
-				close(fd);
 			}
 		}
 		

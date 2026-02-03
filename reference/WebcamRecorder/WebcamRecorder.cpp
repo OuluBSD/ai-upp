@@ -47,6 +47,11 @@ class WebcamRecorder : public TopWindow {
 	int background_frames = 0;
 	int background_drops = 0;
 	int background_decode_usecs = 0;
+	int64 background_start_us = 0;
+	int64 background_total_decode_us = 0;
+	int legacy_frames = 0;
+	int64 legacy_start_us = 0;
+	int64 legacy_total_decode_us = 0;
 
 	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 		ImageBuffer ib(w, h);
@@ -75,6 +80,9 @@ class WebcamRecorder : public TopWindow {
 	}
 
 	void CaptureLoopLegacy() {
+		legacy_start_us = usecs();
+		legacy_frames = 0;
+		legacy_total_decode_us = 0;
 		String dev = current_dev;
 		int width = 0, height = 0;
 		unsigned int fmt = 0;
@@ -153,6 +161,8 @@ class WebcamRecorder : public TopWindow {
 						YUYVToImage((const unsigned char*)~buffer, actualW, actualH, m);
 						decode_usecs = ts.Elapsed();
 					}
+					legacy_frames++;
+					legacy_total_decode_us += decode_usecs;
 					
 					if(!m.IsEmpty()) {
 						String statusText = "Active: " + AsString(actualW) + "x" + AsString(actualH);
@@ -214,6 +224,8 @@ class WebcamRecorder : public TopWindow {
 		
 		Buffer<char> buffer(capture->getBufferSize());
 		
+		background_start_us = usecs();
+		background_total_decode_us = 0;
 		while(!exit_flag) {
 			timeval tv;
 			tv.tv_sec = 0;
@@ -254,6 +266,7 @@ class WebcamRecorder : public TopWindow {
 							background_status = statusText;
 							background_frames++;
 							background_decode_usecs = decode_usecs;
+							background_total_decode_us += decode_usecs;
 						}
 					}
 					else {
@@ -378,6 +391,8 @@ class WebcamRecorder : public TopWindow {
 			background_frames = 0;
 			background_drops = 0;
 			background_decode_usecs = 0;
+			background_start_us = 0;
+			background_total_decode_us = 0;
 			background_status.Clear();
 		}
 		
@@ -401,9 +416,33 @@ class WebcamRecorder : public TopWindow {
 		is_recording = false;
 
 		if (!legacy_callbacks) {
+			int frames = 0;
+			int drops = 0;
+			int64 start_us = 0;
+			int64 total_decode_us = 0;
 			Mutex::Lock __(background_mutex);
+			frames = background_frames;
+			drops = background_drops;
+			start_us = background_start_us;
+			total_decode_us = background_total_decode_us;
 			background_img.Clear();
 			background_status = "Stopped";
+			if (start_us > 0) {
+				int64 elapsed_us = usecs() - start_us;
+				double fps = elapsed_us > 0 ? (double)frames * 1000000.0 / (double)elapsed_us : 0.0;
+				double avg_decode = frames > 0 ? (double)total_decode_us / (double)frames : 0.0;
+				Cout() << "Threaded: frames=" << frames << " drops=" << drops
+				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
+			}
+		}
+		else {
+			if (legacy_start_us > 0) {
+				int64 elapsed_us = usecs() - legacy_start_us;
+				double fps = elapsed_us > 0 ? (double)legacy_frames * 1000000.0 / (double)elapsed_us : 0.0;
+				double avg_decode = legacy_frames > 0 ? (double)legacy_total_decode_us / (double)legacy_frames : 0.0;
+				Cout() << "Legacy: frames=" << legacy_frames
+				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
+			}
 		}
 		
 		webcams.Enable();

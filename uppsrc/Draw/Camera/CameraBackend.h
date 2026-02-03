@@ -5,7 +5,9 @@ class CameraBackend : public VideoBackend {
 public:
 	virtual ~CameraBackend() = default;
 	virtual void PopFrames(Vector<CameraFrame>& out) = 0;
-	virtual CameraStats GetStats() const = 0;
+	virtual CameraStats GetCameraStats() const = 0;
+
+	VideoStats GetStats() const override { return GetCameraStats(); }
 };
 
 #endif

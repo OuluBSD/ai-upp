@@ -17,6 +17,7 @@ class WebcamRecorder : public TopWindow {
 	DropList webcams;
 	DropList formats;
 	DropList resolutions;
+	DropList fps_list;
 	Button start, stop;
 #ifdef flagLEGACY
 #ifdef flagLEGACY
@@ -40,6 +41,7 @@ class WebcamRecorder : public TopWindow {
 	
 	struct ResInfo : Moveable<ResInfo> {
 		int w, h;
+		Vector<double> fps;
 		String ToString() const { return AsString(w) + "x" + AsString(h); }
 	};
 	
@@ -133,7 +135,8 @@ class WebcamRecorder : public TopWindow {
 			height = StrInt(parts[1]);
 		} else return;
 
-		V4L2DeviceParameters param(dev.Begin(), fmt, width, height, 30, 1);
+		int fps = GetSelectedFps();
+		V4L2DeviceParameters param(dev.Begin(), fmt, width, height, fps, 1);
 		V4l2Capture* capture = V4l2Capture::create(param);
 		
 		if(!capture || !capture->isReady()) {
@@ -238,7 +241,8 @@ class WebcamRecorder : public TopWindow {
 			}
 			if (sz.cx <= 0 || sz.cy <= 0)
 				sz = Size(640, 480);
-			backend.SetFormat(vpix, sz, 30);
+			int fps = GetSelectedFps();
+			backend.SetFormat(vpix, sz, fps);
 			if (!backend.Open())
 				return;
 			background_start_us = usecs();
@@ -286,7 +290,8 @@ class WebcamRecorder : public TopWindow {
 			height = StrInt(parts[1]);
 		} else return;
 
-		V4L2DeviceParameters param(dev.Begin(), fmt, width, height, 30, 1);
+		int fps = GetSelectedFps();
+		V4L2DeviceParameters param(dev.Begin(), fmt, width, height, fps, 1);
 		V4l2Capture* capture = V4l2Capture::create(param);
 		
 		if(!capture || !capture->isReady()) {
@@ -397,12 +402,34 @@ class WebcamRecorder : public TopWindow {
 		format_map.Clear();
 		formats.Clear();
 		resolutions.Clear();
+		fps_list.Clear();
 		
 		current_dev = webcams.GetKey(webcams.GetIndex());
 		if (IsNull(current_dev) || current_dev.IsEmpty())
 			current_dev = webcams.GetValue();
 		if (IsNull(current_dev) || current_dev.IsEmpty()) return;
 		
+		auto AddResolution = [&](FormatInfo& fi, int w, int h, double fps) {
+			for (const auto& r : fi.resolutions) {
+				if (r.w == w && r.h == h) {
+					if (fps > 0) {
+						bool exists = false;
+						for (double f : r.fps) {
+							if (fabs(f - fps) < 0.01) { exists = true; break; }
+						}
+						if (!exists)
+							const_cast<ResInfo&>(r).fps.Add(fps);
+					}
+					return;
+				}
+			}
+			ResInfo& ri = fi.resolutions.Add();
+			ri.w = w;
+			ri.h = h;
+			if (fps > 0)
+				ri.fps.Add(fps);
+		};
+
 		VideoDeviceCaps caps;
 		V4L2DeviceManager mgr;
 		if (mgr.EnumerateCaps(current_dev, caps)) {
@@ -415,11 +442,8 @@ class WebcamRecorder : public TopWindow {
 				fi.description = capfmt.description;
 				fi.pixelformat = capfmt.pixelformat;
 				fi.video_format = MapVideoFormat(key);
-				for (const auto& res : capfmt.resolutions) {
-					ResInfo& ri = fi.resolutions.Add();
-					ri.w = res.size.cx;
-					ri.h = res.size.cy;
-				}
+				for (const auto& res : capfmt.resolutions)
+					AddResolution(fi, res.size.cx, res.size.cy, res.fps);
 				Sort(fi.resolutions, [](const ResInfo& a, const ResInfo& b) {
 					return a.w * a.h > b.w * b.h;
 				});
@@ -449,11 +473,8 @@ class WebcamRecorder : public TopWindow {
 				frmsize.pixel_format = fmt.pixelformat;
 				
 				while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
-					if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-						ResInfo& ri = fi.resolutions.Add();
-						ri.w = frmsize.discrete.width;
-						ri.h = frmsize.discrete.height;
-					}
+					if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE)
+						AddResolution(fi, frmsize.discrete.width, frmsize.discrete.height, 30.0);
 					frmsize.index++;
 				}
 				Sort(fi.resolutions, [](const ResInfo& a, const ResInfo& b) {
@@ -478,6 +499,7 @@ class WebcamRecorder : public TopWindow {
 	void OnWebcamFormat() {
 		OnStop();
 		resolutions.Clear();
+		fps_list.Clear();
 		int idx = formats.GetIndex();
 		if(idx < 0) return;
 		
@@ -488,7 +510,31 @@ class WebcamRecorder : public TopWindow {
 			resolutions.Add(r.ToString());
 		}
 		
-		if(resolutions.GetCount() > 0) resolutions.SetIndex(0); // Max resolution
+		if(resolutions.GetCount() > 0) {
+			resolutions.SetIndex(0);
+			OnResolution();
+		}
+	}
+
+	void OnResolution() {
+		fps_list.Clear();
+		int ridx = resolutions.GetIndex();
+		int fidx = formats.GetIndex();
+		if (ridx < 0 || fidx < 0)
+			return;
+		String key = formats.GetKey(fidx);
+		const FormatInfo& fi = format_map.Get(key);
+		if (ridx >= fi.resolutions.GetCount())
+			return;
+		const ResInfo& ri = fi.resolutions[ridx];
+		if (ri.fps.IsEmpty()) {
+			fps_list.Add("30");
+		} else {
+			for (double f : ri.fps)
+				fps_list.Add(Format("%.0f", f));
+		}
+		if (fps_list.GetCount() > 0)
+			fps_list.SetIndex(0);
 	}
 	
 	void OnStart() {
@@ -526,6 +572,7 @@ class WebcamRecorder : public TopWindow {
 		webcams.Disable();
 		formats.Disable();
 		resolutions.Disable();
+		fps_list.Disable();
 		start.Disable();
 		stop.Enable();
 		
@@ -614,6 +661,7 @@ class WebcamRecorder : public TopWindow {
 		webcams.Enable();
 		formats.Enable();
 		resolutions.Enable();
+		fps_list.Enable();
 		start.Enable();
 		stop.Disable();
 		timeout_tc.Kill();
@@ -632,6 +680,16 @@ class WebcamRecorder : public TopWindow {
 	
 	void OnChange() {
 		if(is_recording) OnStop();
+	}
+
+	int GetSelectedFps() const {
+		int idx = fps_list.GetIndex();
+		if (idx < 0)
+			return 30;
+		String s = fps_list.GetValue();
+		if (s.IsEmpty())
+			return 30;
+		return (int)ScanDouble(s);
 	}
 
 public:
@@ -670,16 +728,17 @@ public:
 		left_pane.Add(webcams.TopPos(10, 24).HSizePos(10, 10));
 		left_pane.Add(formats.TopPos(40, 24).HSizePos(10, 10));
 		left_pane.Add(resolutions.TopPos(70, 24).HSizePos(10, 10));
-		left_pane.Add(start.TopPos(100, 24).LeftPos(10, 80));
-		left_pane.Add(stop.TopPos(100, 24).RightPos(10, 80));
-		left_pane.Add(status.TopPos(130, 24).HSizePos(10, 10));
+		left_pane.Add(fps_list.TopPos(100, 24).HSizePos(10, 10));
+		left_pane.Add(start.TopPos(130, 24).LeftPos(10, 80));
+		left_pane.Add(stop.TopPos(130, 24).RightPos(10, 80));
+		left_pane.Add(status.TopPos(160, 24).HSizePos(10, 10));
 #ifdef flagLEGACY
-		left_pane.Add(legacy_callbacks.TopPos(160, 24).HSizePos(10, 10));
+		left_pane.Add(legacy_callbacks.TopPos(190, 24).HSizePos(10, 10));
 #endif
-		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
-		left_pane.Add(overlay_stats.TopPos(220, 24).HSizePos(10, 10));
+		left_pane.Add(show_stats.TopPos(220, 24).HSizePos(10, 10));
+		left_pane.Add(overlay_stats.TopPos(250, 24).HSizePos(10, 10));
 #ifdef flagLEGACY
-		left_pane.Add(backend_draw_video.TopPos(250, 24).HSizePos(10, 10));
+		left_pane.Add(backend_draw_video.TopPos(280, 24).HSizePos(10, 10));
 #endif
 		
 		start.SetLabel("Start").WhenAction = THISBACK(OnStart);
@@ -701,6 +760,7 @@ public:
 		
 		webcams.WhenAction = THISBACK(OnWebcamCursor);
 		formats.WhenAction = THISBACK(OnWebcamFormat);
+		fps_list.WhenAction = THISBACK(OnChange);
 		
 		// Hook dropdown changes to auto-stop if running (though OnWebcamCursor rebuilds lists anyway)
 		// But changing resolution should stop.

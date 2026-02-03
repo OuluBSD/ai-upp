@@ -673,7 +673,7 @@ class WebcamRecorder : public TopWindow {
 		String text;
 		{
 			Mutex::Lock __(background_mutex);
-			text = Format("frames=%d drops=%d decode=%dus", background_frames, background_drops, background_decode_usecs);
+			text = Format("frames=%d drops=%d decode=%d us", background_frames, background_drops, background_decode_usecs);
 		}
 		d.DrawText(r.left + 6, r.top + 6, text, Arial(12).Bold(), White());
 	}

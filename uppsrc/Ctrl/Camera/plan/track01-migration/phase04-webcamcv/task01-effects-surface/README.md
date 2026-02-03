@@ -1,6 +1,6 @@
 # Task 01 - WebcamCV Effects Surface
 
-Status: pending
+Status: in progress
 
 ## Goal
 Prepare Draw/Camera extension points for optional CV/effects adapters based on reference/WebcamCV.
@@ -13,3 +13,7 @@ Prepare Draw/Camera extension points for optional CV/effects adapters based on r
 ## Acceptance
 - Draw/Camera has a minimal effects interface with at least one no-op implementation.
 - No code moved out of uppsrc/ComputerVision.
+
+## Progress
+- Added CameraEffectChain + CameraNoopEffect in Draw/Camera.
+- Stereo sources can accept an effects chain and apply it per frame.

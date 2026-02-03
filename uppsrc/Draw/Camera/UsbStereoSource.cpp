@@ -77,6 +77,8 @@ public:
 		serial++;
 		FillFrame(left, l, vf.timestamp_us, serial);
 		FillFrame(right, r, vf.timestamp_us, serial);
+		ApplyEffects(left);
+		ApplyEffects(right);
 		last_left = l;
 		last_right = r;
 		last_timestamp_us = vf.timestamp_us;
@@ -94,6 +96,8 @@ public:
 			return false;
 		FillFrame(left, last_left, last_timestamp_us, serial);
 		FillFrame(right, last_right, last_timestamp_us, serial);
+		ApplyEffects(left);
+		ApplyEffects(right);
 		return true;
 	}
 

@@ -7,6 +7,8 @@ struct StereoSourceInfo : Moveable<StereoSourceInfo> {
 	int priority = 0;
 };
 
+class CameraEffectChain;
+
 class StereoSource {
 public:
 	virtual ~StereoSource() = default;
@@ -21,6 +23,14 @@ public:
 	virtual bool SetOption(const String& key, int value) { return false; }
 	virtual bool SetOption(const String& key, const String& value) { return false; }
 	virtual void GetStatsMap(VectorMap<String, String>& out) {}
+	virtual void SetEffects(CameraEffectChain* chain) { effects = chain; }
+	CameraEffectChain* GetEffects() const { return effects; }
+
+protected:
+	void ApplyEffects(CameraFrame& frame) { if (effects) effects->Process(frame); }
+
+private:
+	CameraEffectChain* effects = nullptr;
 };
 
 typedef One<StereoSource> (*StereoSourceFactory)();

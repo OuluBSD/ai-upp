@@ -35,6 +35,7 @@ bool V4L2DeviceManager::ReadFormats(int fd, VideoDeviceCaps& caps) {
 		VideoDeviceFormat& fmt = caps.formats.Add();
 		fmt.description = (const char*)fmtdesc.description;
 		fmt.format = MapFormat(fmtdesc.pixelformat);
+		fmt.pixelformat = fmtdesc.pixelformat;
 
 		struct v4l2_frmsizeenum frmsize;
 		memset(&frmsize, 0, sizeof(frmsize));
@@ -79,6 +80,9 @@ void V4L2DeviceManager::Enumerate(Vector<VideoDeviceInfo>& out) {
 				info.id = AsString(i);
 				info.name = (const char*)cap.card;
 				info.path = path;
+				info.driver = (const char*)cap.driver;
+				info.bus_info = (const char*)cap.bus_info;
+				info.capabilities = cap.capabilities;
 			}
 		}
 		close(fd);

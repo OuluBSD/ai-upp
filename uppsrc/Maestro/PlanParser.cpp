@@ -55,7 +55,7 @@ void PlanParser::LoadPhase(Track& track, const String& phase_path) {
 		String content = LoadFile(phase_path);
 		Vector<String> lines = Split(content, '\n', false);
 		for(const String& l : lines) {
-			RegExp reTask("- \\\\[(.)\\\\\] \\\\*\\\\*(.+)\\\\*\\\\");
+			RegExp reTask("- \\\\[(.)\\\\] \\*\\*\\*\\*(.+)\\*\\*\\*");
 			if(reTask.Match(l)) {
 				Task& t = p.tasks.Add();
 				t.id = reTask[1];
@@ -195,7 +195,7 @@ bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_i
 	
 	bool found = false;
 	for(String l : lines) {
-		RegExp reTask("- \\\\[(.)\\\\\] \\\\*\\\\*(.+)\\\\*\\\\");
+		RegExp reTask("- \\\\[(.)\\\\] \\*\\*\\*(.+)\\*\\*\\*");
 		if(reTask.Match(l)) {
 			String tid = reTask[1];
 			if(tid == task_id) {

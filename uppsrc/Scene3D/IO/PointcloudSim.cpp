@@ -141,6 +141,14 @@ bool RunSyntheticPointcloudSim(String& log, const SyntheticPointcloudConfig& cfg
 	log << "Synthetic sim: ref=" << state.reference.points.GetCount()
 	    << " obs=" << obs.points.GetCount()
 	    << " loc_ok=" << (int)loc.ok << "\n";
+	log << "  hmd_gt_pos=" << Format("(%.3f, %.3f, %.3f)",
+		state.hmd_pose_world.position[0],
+		state.hmd_pose_world.position[1],
+		state.hmd_pose_world.position[2]);
+	log << " est_pos=" << Format("(%.3f, %.3f, %.3f)",
+		loc.pose.position[0],
+		loc.pose.position[1],
+		loc.pose.position[2]) << "\n";
 
 	Vector<ControllerObservation> ctrl_obs = SimulateControllerObservations(state);
 	ControllerPatternTrackerStub tracker;
@@ -151,8 +159,13 @@ bool RunSyntheticPointcloudSim(String& log, const SyntheticPointcloudConfig& cfg
 		sample.has_orientation = true;
 		sample.orientation = pose.pose.orientation;
 		pose = fusion.Fuse(pose, sample);
+		const PointcloudPose& gt = state.controller_poses_world[i];
 		log << "  controller[" << i << "]=" << state.controllers[i].id
-		    << " ok=" << (int)pose.ok << "\n";
+		    << " ok=" << (int)pose.ok;
+		log << " gt_pos=" << Format("(%.3f, %.3f, %.3f)",
+			gt.position[0], gt.position[1], gt.position[2]);
+		log << " est_pos=" << Format("(%.3f, %.3f, %.3f)",
+			pose.pose.position[0], pose.pose.position[1], pose.pose.position[2]) << "\n";
 		ok = ok && pose.ok;
 	}
 

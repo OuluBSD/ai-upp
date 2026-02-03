@@ -60,6 +60,95 @@ void FilePoolCtrl::Data() {
 }
 
 
+bool HmdCapture::Start() {
+	if (running)
+		return true;
+	if (!sys.Initialise())
+		return false;
+	source = CreateStereoSource("hmd");
+	if (source.IsEmpty() || !source->Start()) {
+		source.Clear();
+		sys.Uninitialise();
+		return false;
+	}
+	ResetTracking();
+	running = true;
+	return true;
+}
+
+void HmdCapture::Stop() {
+	if (!running)
+		return;
+	recording = false;
+	if (source)
+		source->Stop();
+	source.Clear();
+	sys.Uninitialise();
+	running = false;
+	bright = Image();
+	dark = Image();
+	bright_serial = -1;
+	dark_serial = -1;
+}
+
+void HmdCapture::ResetTracking() {
+	fusion.Reset();
+	fusion.GetBrightTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
+	fusion.GetDarkTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
+}
+
+const Octree* HmdCapture::GetPointcloud(bool use_bright) const {
+	if (use_bright)
+		return const_cast<HMD::SoftHmdFusion&>(fusion).GetBrightTracker().GetPointcloud();
+	return const_cast<HMD::SoftHmdFusion&>(fusion).GetDarkTracker().GetPointcloud();
+}
+
+void HmdCapture::Poll() {
+	if (!running)
+		return;
+	sys.UpdateData();
+	if(sys.hmd) {
+		ImuSample imu;
+		imu.timestamp_us = usecs();
+		bool has_imu = false;
+		if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_ACCELEROMETER_VECTOR, imu.accel.data) == HMD::HMD_S_OK)
+			has_imu = true;
+		if(HMD::GetDeviceFloat(sys.hmd, HMD::HMD_GYROSCOPE_VECTOR, imu.gyro.data) == HMD::HMD_S_OK)
+			has_imu = true;
+		if(has_imu)
+			fusion.PutImu(imu);
+	}
+	if (!source || !source->IsRunning())
+		return;
+	CameraFrame lf, rf;
+	if (!source->ReadFrame(lf, rf, false))
+		return;
+	Image combined;
+	if (!JoinStereoImage(lf.img, rf.img, combined))
+		return;
+	if (lf.is_bright) {
+		bright = combined;
+		bright_serial = lf.serial;
+	} else {
+		dark = combined;
+		dark_serial = lf.serial;
+	}
+	if (!recording)
+		return;
+	VisualFrame vf;
+	vf.timestamp_us = usecs();
+	vf.format = GEOM_EVENT_CAM_RGBA8;
+	vf.width = combined.GetWidth();
+	vf.height = combined.GetHeight();
+	vf.stride = vf.width * (int)sizeof(RGBA);
+	vf.img = combined;
+	vf.data = 0;
+	vf.data_bytes = combined.GetLength() * (int)sizeof(RGBA);
+	vf.flags = lf.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+	fusion.PutVisual(vf);
+}
+
+
 
 Edit3D::Edit3D() :
 	v0(this),
@@ -110,6 +199,11 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
+		});
+		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
+			bar.Add(t_("Record"), THISBACK(TogglePointcloudRecording))
+				.Check(record_pointcloud);
+			bar.Add(t_("Run Synthetic Sim"), THISBACK(RunSyntheticPointcloudSimDialog));
 		});
 		
 	});
@@ -193,8 +287,7 @@ void Edit3D::OnSceneEnd() {
 
 void Edit3D::RefrehRenderers() {
 	if (view == VIEW_GEOMPROJECT) {
-		for(int i = 0; i < 4; i++)
-			v0.rends[i].Refresh();
+		v0.RefreshAll();
 	}
 	else if (view == VIEW_VIDEOIMPORT) {
 		v1.RefreshRenderers();
@@ -209,6 +302,13 @@ void Edit3D::Update() {
 		v0.Update(dt);
 	else if (view == VIEW_VIDEOIMPORT)
 		v1.Update(dt);
+	
+	if (hmd.IsRunning()) {
+		hmd.Poll();
+		UpdateHmdPreview();
+		if (record_pointcloud)
+			UpdateHmdCameraPose();
+	}
 }
 
 void Edit3D::Data() {
@@ -345,10 +445,18 @@ void Edit3D::LoadTestProject(int test_i) {
 	switch (test_i) {
 		case 0: LoadTestCirclingCube(); break;
 		case 1: LoadTestOctree(); break;
+		case 2: LoadTestHmdPointcloud(); break;
 		default: break;
 	}
 	
 	CreateDefaultPostInit();
+}
+
+void Edit3D::LoadTestHmdPointcloud() {
+	GeomScene& scene = prj->GetScene(0);
+	scene.name = "HMD Pointcloud";
+	scene.GetAddCamera("hmd_camera");
+	scene.GetAddOctree("hmd_pointcloud");
 }
 
 void Edit3D::LoadWmrStereoPointcloud(String directory) {
@@ -377,6 +485,79 @@ void Edit3D::SetScene3DFormat(bool use_json) {
 void Edit3D::ToggleRepeatPlayback() {
 	repeat_playback = !repeat_playback;
 	RefrehToolbar();
+}
+
+void Edit3D::EnsureHmdSceneObjects() {
+	GeomScene& scene = state->GetActiveScene();
+	scene.GetAddCamera("hmd_camera");
+	hmd_pointcloud = &scene.GetAddOctree("hmd_pointcloud");
+	state->UpdateObjects();
+	Data();
+	v0.TimelineData();
+	v0.tree.OpenDeep(v0.tree_scenes);
+}
+
+void Edit3D::TogglePointcloudRecording() {
+	if (record_pointcloud)
+		StopPointcloudRecording();
+	else
+		StartPointcloudRecording();
+}
+
+void Edit3D::StartPointcloudRecording() {
+	if (record_pointcloud)
+		return;
+	if (!hmd.Start()) {
+		PromptOK("Failed to initialise HMD camera.");
+		return;
+	}
+	hmd.ResetTracking();
+	hmd.recording = true;
+	record_pointcloud = true;
+	EnsureHmdSceneObjects();
+	if (hmd_pointcloud) {
+		const Octree* octree = hmd.GetPointcloud(true);
+		hmd_pointcloud->octree_ptr = octree ? const_cast<Octree*>(octree) : 0;
+	}
+}
+
+void Edit3D::StopPointcloudRecording() {
+	if (!record_pointcloud)
+		return;
+	record_pointcloud = false;
+	hmd.recording = false;
+	if (hmd_pointcloud)
+		hmd_pointcloud->octree_ptr = 0;
+	hmd.Stop();
+}
+
+void Edit3D::UpdateHmdPreview() {
+	if (view != VIEW_GEOMPROJECT)
+		return;
+	v0.SetHmdImages(hmd.bright, hmd.dark);
+	v0.RefreshHmdView();
+}
+
+void Edit3D::UpdateHmdCameraPose() {
+	GeomCamera& cam = state->GetProgram();
+	FusionState fs;
+	if (hmd.fusion.GetState(fs)) {
+		cam.position = fs.position;
+		cam.orientation = fs.orientation;
+		return;
+	}
+	HMD::SoftHmdVisualTracker& tracker = hmd.fusion.GetBrightTracker();
+	if (tracker.HasPose()) {
+		cam.position = tracker.GetPosition();
+		cam.orientation = tracker.GetOrientation();
+	}
+}
+
+void Edit3D::RunSyntheticPointcloudSimDialog() {
+	String log;
+	bool ok = RunSyntheticPointcloudSim(log);
+	log << "\nResult: " << (ok ? "OK" : "FAIL");
+	PromptOK(log);
 }
 
 bool Edit3D::IsScene3DBinaryPath(const String& path) const {

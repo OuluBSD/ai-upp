@@ -1,5 +1,6 @@
 #include <CtrlLib/CtrlLib.h>
 #include <SoftHMD/SoftHMD.h>
+#include <Ctrl/Camera/Camera.h>
 #include <atomic>
 
 using namespace Upp;
@@ -207,7 +208,7 @@ struct TrackingCtrl : public Ctrl {
 } // namespace
 
 struct CameraCtrl : public Ctrl {
-	Image bright, dark;
+	CameraStereoView view;
 	HMD::StereoOverlay bright_overlay;
 	HMD::StereoOverlay dark_overlay;
 	HMD::StereoTrackerStats bright_stats;
@@ -220,6 +221,16 @@ struct CameraCtrl : public Ctrl {
 	bool show_match_ids = false;
 	bool show_stats_overlay = true;
 	bool show_split_view = true;
+
+	CameraCtrl() {
+		view.SetLabels("Bright", "Dark");
+		view.WhenOverlay = THISBACK(OnOverlay);
+		Add(view.SizePos());
+	}
+
+	void SetImages(const Image& bright, const Image& dark) {
+		view.SetImages(bright, dark);
+	}
 
 	void SetOverlay(bool is_bright, HMD::StereoOverlay& overlay) {
 		if (is_bright) {
@@ -255,7 +266,10 @@ struct CameraCtrl : public Ctrl {
 	void SetShowMatchLines(bool b) { show_match_lines = b; }
 	void SetShowMatchIds(bool b) { show_match_ids = b; }
 	void SetShowStatsOverlay(bool b) { show_stats_overlay = b; }
-	void SetShowSplitView(bool b) { show_split_view = b; }
+	void SetShowSplitView(bool b) {
+		show_split_view = b;
+		view.SetSplitView(b);
+	}
 
 	void DrawOverlay(Draw& w, const Rect& r, const Image& img, const HMD::StereoOverlay& overlay,
 	                 const HMD::StereoTrackerStats& stats, const char* label,
@@ -333,45 +347,20 @@ struct CameraCtrl : public Ctrl {
 			w.DrawText(r.left + 6, r.top + 22, line2, Arial(11), White());
 		}
 	}
-	
-	virtual void Paint(Draw& w) override {
-		Size sz = GetSize();
-		w.DrawRect(sz, Black());
-		int h = sz.cy / 2;
-		bool draw_split = show_split_view;
-		Rect bright_rc = draw_split ? RectC(0, 0, sz.cx, h) : RectC(0, 0, sz.cx, sz.cy);
-		Rect dark_rc = draw_split ? RectC(0, h, sz.cx, h) : Rect();
 
-		if (draw_split) {
-			if (bright)
-				w.DrawImage(bright_rc, bright);
-			if (dark)
-				w.DrawImage(dark_rc, dark);
-
-			if (bright && has_bright_overlay)
-				DrawOverlay(w, bright_rc, bright, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
-			if (dark && has_dark_overlay)
-				DrawOverlay(w, dark_rc, dark, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
+	void OnOverlay(Draw& w, const Rect& r, const Image& img, int channel) {
+		if (channel == 0) {
+			if (has_bright_overlay)
+				DrawOverlay(w, r, img, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
 		}
 		else {
-			if (bright) {
-				w.DrawImage(bright_rc, bright);
-				if (has_bright_overlay)
-					DrawOverlay(w, bright_rc, bright, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
-			}
-			else if (dark) {
-				w.DrawImage(bright_rc, dark);
-				if (has_dark_overlay)
-					DrawOverlay(w, bright_rc, dark, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
-			}
-		}
-		
-		if(!bright && !dark) {
-			w.DrawText(10, 10, "No camera images", Arial(20).Bold(), White());
+			if (has_dark_overlay)
+				DrawOverlay(w, r, img, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
 		}
 	}
 };
 
+class WmrTest
 class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;
@@ -647,8 +636,7 @@ public:
 		ControllerMatrix ev3d;
 		{
 			Mutex::Lock __(background_mutex);
-			camera.bright = background_bright;
-			camera.dark = background_dark;
+			camera.SetImages(background_bright, background_dark);
 			trans = background_trans;
 			ev3d = background_ev3d;
 		}
@@ -740,8 +728,8 @@ public:
 			data.Add("Track Orientation", "-");
 		}
 
-		if(camera.bright)
-			data.Add("Camera Resolution", Format("%d x %d (x2)", camera.bright.GetWidth(), camera.bright.GetHeight()));
+		if(!background_bright.IsEmpty())
+			data.Add("Camera Resolution", Format("%d x %d (x2)", background_bright.GetWidth(), background_bright.GetHeight()));
 
 		// HMD Transform
 		data.Add("HMD Orientation", trans.orientation.ToString());
@@ -920,8 +908,7 @@ public:
 			return;
 		cam->Close();
 		capture_enabled = false;
-		camera.bright.Clear();
-		camera.dark.Clear();
+		camera.SetImages(Image(), Image());
 		camera.ClearOverlay(true);
 		camera.ClearOverlay(false);
 		camera.Refresh();

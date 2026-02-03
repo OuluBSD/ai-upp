@@ -99,12 +99,9 @@ private:
 	ArrayCtrl captures_list;
 	
 	Splitter main_split;
-	Splitter preview_split;
-	Splitter right_split;
 
-	// Plotters (per-eye, not shared with other modules).
-	PreviewCtrl left_plot;
-	PreviewCtrl right_plot;
+	// Stereo preview (shared control)
+	StereoPreviewCtrl preview;
 
 	Label pipeline_state_lbl;
 

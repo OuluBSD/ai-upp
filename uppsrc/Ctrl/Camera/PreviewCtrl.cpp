@@ -1,4 +1,4 @@
-#include "StereoCalibrationTool.h"
+#include "Camera.h"
 
 NAMESPACE_UPP
 
@@ -268,7 +268,10 @@ void PreviewCtrl::RightDown(Point p, dword flags) {
 			line_points.Clear();
 			Refresh();
 		}
+		return;
 	}
+	if (WhenContextMenu)
+		WhenContextMenu(p, flags);
 }
 
 void PreviewCtrl::MouseMove(Point p, dword flags) {

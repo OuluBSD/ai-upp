@@ -1,10 +1,10 @@
 uses
 	CtrlLib,
+	Ctrl/Camera,
+	Draw/Camera,
 	Geometry,
 	ComputerVision,
 	SoftHMD,
-	plugin/libv4l2,
-	plugin/jpg,
 	plugin/png,
 	plugin/Eigen;
 
@@ -21,8 +21,6 @@ file
 	Menu.cpp,
 	Camera.h,
 	Camera.cpp,
-	PreviewCtrl.h,
-	PreviewCtrl.cpp,
 	Calibration.h,
 	Calibration.cpp,
 	StereoCalibrationTool.cpp,
@@ -33,4 +31,3 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
-

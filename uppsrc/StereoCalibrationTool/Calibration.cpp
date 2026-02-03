@@ -345,6 +345,17 @@ void CalibrationPane::RefreshFromModel() {
 	show_corners <<= ps.show_corners;
 	show_reprojection <<= ps.show_reprojection;
 	alpha_slider <<= ps.alpha;
+
+	StereoPreviewSettings settings = preview.GetSettings();
+	settings.overlay_eyes = ps.overlay_eyes;
+	settings.overlay_swap = ps.overlay_swap;
+	settings.tint_overlay = ps.tint_overlay;
+	settings.rectified_overlay = ps.rectified_overlay;
+	settings.show_difference = ps.show_difference;
+	settings.show_epipolar = ps.show_epipolar;
+	settings.show_crosshair = ps.show_crosshair;
+	settings.overlay_alpha = (float)ps.alpha / 100.0f;
+	preview.SetSettings(settings);
 			
 			pipeline_state_lbl = "Pipeline: " + StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state);
 			
@@ -391,12 +402,9 @@ void CalibrationPane::RefreshFromModel() {
 void CalibrationPane::BuildLayout() {
 	Add(controls.VSizePos(0, 0).LeftPos(0, 300));
 
-	main_split.Vert(preview_split, tab_data);
+	main_split.Vert(preview, tab_data);
 	main_split.SetPos(6500);
 	Add(main_split.VSizePos(0, 0).HSizePos(300, 0));
-
-	preview_split.Horz(left_plot, right_plot);
-	preview_split.SetPos(5000);
 	
 	BuildTabs();
 	BuildCaptureLists();
@@ -640,11 +648,23 @@ void CalibrationPane::OnDeleteCapture() {
 
 // Initializes plotters (left/right images).
 void CalibrationPane::BuildPlotters() {
-	left_plot.SetEye(0);
-	left_plot.SetTitle("Left Eye");
+	preview.LeftPlot().SetEye(0);
+	preview.LeftPlot().SetTitle("Left Eye");
 
-	right_plot.SetEye(1);
-	right_plot.SetTitle("Right Eye");
+	preview.RightPlot().SetEye(1);
+	preview.RightPlot().SetTitle("Right Eye");
+
+	preview.WhenSettingsChanged = [=](const StereoPreviewSettings& s) {
+		overlay_eyes = s.overlay_eyes;
+		overlay_swap = s.overlay_swap;
+		tint_overlay = s.tint_overlay;
+		rectified_overlay = s.rectified_overlay;
+		show_difference = s.show_difference;
+		show_epipolar = s.show_epipolar;
+		show_crosshair = s.show_crosshair;
+		alpha_slider <<= (int)(Clamp(s.overlay_alpha, 0.0f, 1.0f) * 100.0f);
+		OnReviewChanged();
+	};
 }
 
 // Syncs Calibration UI values into AppModel.project_state and updates preview.
@@ -709,6 +729,17 @@ void CalibrationPane::OnReviewChanged() {
 	ps.show_corners = (bool)show_corners;
 	ps.alpha = (int)~alpha_slider;
 
+	StereoPreviewSettings s = preview.GetSettings();
+	s.overlay_eyes = ps.overlay_eyes;
+	s.overlay_swap = ps.overlay_swap;
+	s.tint_overlay = ps.tint_overlay;
+	s.rectified_overlay = ps.rectified_overlay;
+	s.show_difference = ps.show_difference;
+	s.show_epipolar = ps.show_epipolar;
+	s.show_crosshair = ps.show_crosshair;
+	s.overlay_alpha = (float)ps.alpha / 100.0f;
+	preview.SetSettings(s);
+
 	for (auto& frame : model->captured_frames)
 		frame.undist_valid = false;
 
@@ -748,15 +779,13 @@ void CalibrationPane::UpdatePreview() {
 void CalibrationPane::UpdatePlotters() {
 	int row = captures_list.GetCursor();
 	if (row < 0 || row >= model->captured_frames.GetCount()) {
-		left_plot.SetImage(Image());
-		right_plot.SetImage(Image());
+		preview.ClearImages();
 		return;
 	}
 	CapturedFrame& frame = model->captured_frames[row];
 	Size base_sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	if (base_sz.cx <= 0 || base_sz.cy <= 0) {
-		left_plot.SetImage(Image());
-		right_plot.SetImage(Image());
+		preview.ClearImages();
 		return;
 	}
 	LensPoly lens;
@@ -984,8 +1013,8 @@ void CalibrationPane::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& l
 		pts_l.Add(Pointf(m.left.x * sz.cx, m.left.y * sz.cy));
 		pts_r.Add(Pointf(m.right.x * sz.cx, m.right.y * sz.cy));
 	}
-	left_plot.SetMatchingPoints(pts_l);
-	right_plot.SetMatchingPoints(pts_r);
+	preview.LeftPlot().SetMatchingPoints(pts_l);
+	preview.RightPlot().SetMatchingPoints(pts_r);
 
 	// Compose final display images (handles overlay, tint, crosshair)
 	ComposeFinalDisplayImages();
@@ -1040,8 +1069,7 @@ void CalibrationPane::ComposeFinalDisplayImages() {
 		Image diff_img = ComputeDiff(last_left_preview, last_right_preview);
 		if (do_crosshair)
 			diff_img = DrawCrosshair(diff_img);
-		left_plot.SetImage(diff_img);
-		right_plot.SetImage(Image()); // Hide right plotter
+		preview.SetDisplayImages(diff_img, Image(), true);
 		return;
 	}
 
@@ -1070,8 +1098,7 @@ void CalibrationPane::ComposeFinalDisplayImages() {
 			composited = DrawCrosshair(composited);
 
 		// Show composited in left plotter, hide right (or show same in both)
-		left_plot.SetImage(composited);
-		right_plot.SetImage(Image()); // Hide right plotter in overlay mode
+		preview.SetDisplayImages(composited, Image(), true);
 	} else {
 		// Side-by-side mode: apply epipolar lines and crosshair to each eye independently
 		if (do_epipolar) {
@@ -1084,8 +1111,7 @@ void CalibrationPane::ComposeFinalDisplayImages() {
 			right_display = DrawCrosshair(right_display);
 		}
 
-		left_plot.SetImage(left_display);
-		right_plot.SetImage(right_display);
+		preview.SetDisplayImages(left_display, right_display, false);
 	}
 }
 

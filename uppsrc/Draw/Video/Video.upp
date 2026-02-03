@@ -11,7 +11,7 @@ file
 	V4L2DeviceManager.cpp;
 
 uses
-	Core
-	Draw
-	plugin/libv4l2
-	plugin/jpg
+	Core,
+	Draw,
+	plugin/libv4l2,
+	plugin/jpg;

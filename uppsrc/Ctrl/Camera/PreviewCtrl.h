@@ -1,7 +1,5 @@
-#ifndef _StereoCalibrationTool_PreviewCtrl_h_
-#define _StereoCalibrationTool_PreviewCtrl_h_
-
-NAMESPACE_UPP
+#ifndef _Ctrl_Camera_PreviewCtrl_h_
+#define _Ctrl_Camera_PreviewCtrl_h_
 
 /*
 PreviewCtrl.h
@@ -65,6 +63,7 @@ public:
 	Event<int /*eye*/, Pointf /*img_px*/> WhenClickPoint;
 	Event<Pointf /*img_px*/> WhenHoverPoint; // New: for driving epipolar lines
 	Event<int /*eye*/, const Vector<Pointf>& /*chain*/> WhenFinalizeLine; // Triggered on Right-click
+	Event<Point /*screen_px*/, dword /*flags*/> WhenContextMenu;
 
 private:
 	Image img;
@@ -97,7 +96,5 @@ private:
 	virtual void MouseMove(Point p, dword flags) override;
 	virtual void MouseWheel(Point p, int zdelta, dword keyflags) override;
 };
-
-END_UPP_NAMESPACE
 
 #endif

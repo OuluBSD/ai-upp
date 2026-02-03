@@ -1,0 +1,11 @@
+Ctrl/Camera Plan Cookie
+
+Current Task:
+- track01-migration/phase01-setup/task01-bootstrap (done)
+- track01-migration/phase01-setup/task02-plan-outline (active)
+
+Next Task:
+- track01-migration/phase01-setup/task03-video-core
+
+Blocked / Requires Approval:
+- track01-migration/phase05-stereocalib/task01-approval-gate (explicit yes/no required)

@@ -1,0 +1,11 @@
+file
+	AGENTS.md
+	Camera.h
+	CameraTypes.h
+	CameraBackend.h
+	CameraEffects.h
+
+uses
+	Core
+	Draw
+	Draw/Video

@@ -9,6 +9,7 @@
 NAMESPACE_UPP
 
 #include "CameraTypes.h"
+#include "CameraOverlay.h"
 #include "CameraBackend.h"
 #include "CameraEffects.h"
 #include "StereoSource.h"

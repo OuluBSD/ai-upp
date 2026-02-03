@@ -1,10 +1,10 @@
 Ctrl/Camera Plan Cookie
 
 Current Task:
-- track01-migration/phase04-webcamcv/task01-effects-surface (completed)
+- track01-migration/phase01-setup/task02-plan-outline (completed)
 
 Next Task:
-- track01-migration/phase03-webcamrecorder/task02-adapter-webcamrecorder (ready)
+- (define next task)
 
 Blocked / Requires Approval:
 - (none)

@@ -1,6 +1,6 @@
 # Task 02 - Plan Outline
 
-Status: pending
+Status: completed
 
 ## Goal
 Define the migration plan for Ctrl/Camera package and downstream integrations.
@@ -72,3 +72,6 @@ Define the migration plan for Ctrl/Camera package and downstream integrations.
 - WmrTest should keep tracking-specific UI and menu wiring local; only camera/overlay UI moves.
 - WebcamRecorder keeps encode/output logic; only capture + preview moves to Ctrl/Camera.
 - StereoCalibrationTool integration is blocked and requires explicit yes/no approval.
+
+## Progress
+- Plan executed; tasks tracked in phase02+.

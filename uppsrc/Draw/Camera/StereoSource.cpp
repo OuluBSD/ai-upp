@@ -89,4 +89,34 @@ bool SplitStereoImage(const Image& src, Image& left, Image& right) {
 	return true;
 }
 
+bool JoinStereoImage(const Image& left, const Image& right, Image& out) {
+	if (left.IsEmpty() || right.IsEmpty())
+		return false;
+	int lw = left.GetWidth();
+	int rw = right.GetWidth();
+	int lh = left.GetHeight();
+	int rh = right.GetHeight();
+	if (lw <= 0 || rw <= 0 || lh <= 0 || rh <= 0)
+		return false;
+
+	int w = lw + rw;
+	int h = max(lh, rh);
+	ImageBuffer ib(w, h);
+	RGBA black = Black();
+	RGBA* dst = ib.Begin();
+	for (int i = 0, n = w * h; i < n; i++)
+		dst[i] = black;
+
+	int copy_h = min(lh, rh);
+	for (int y = 0; y < copy_h; y++) {
+		const RGBA* lsrc = left[y];
+		const RGBA* rsrc = right[y];
+		RGBA* row = ib[y];
+		memcpy(row, lsrc, lw * sizeof(RGBA));
+		memcpy(row + lw, rsrc, rw * sizeof(RGBA));
+	}
+	out = ib;
+	return !out.IsEmpty();
+}
+
 END_UPP_NAMESPACE

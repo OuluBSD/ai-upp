@@ -1,6 +1,6 @@
 # Task 01 - WebcamCV Effects Surface
 
-Status: in progress
+Status: completed
 
 ## Goal
 Prepare Draw/Camera extension points for optional CV/effects adapters based on reference/WebcamCV.

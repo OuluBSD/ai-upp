@@ -1,10 +1,10 @@
 Ctrl/Camera Plan Cookie
 
 Current Task:
-- track01-migration/phase04-webcamcv/task01-effects-surface (active)
+- track01-migration/phase04-webcamcv/task01-effects-surface (completed)
 
 Next Task:
-- (set after effects surface is defined)
+- track01-migration/phase03-webcamrecorder/task02-adapter-webcamrecorder (ready)
 
 Blocked / Requires Approval:
 - (none)

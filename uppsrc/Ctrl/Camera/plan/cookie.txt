@@ -1,7 +1,7 @@
 Ctrl/Camera Plan Cookie
 
 Current Task:
-- track01-migration/phase01-setup/task02-plan-outline (completed)
+- track01-migration/phase06-media/task02-api-media-migration (completed)
 
 Next Task:
 - (define next task)

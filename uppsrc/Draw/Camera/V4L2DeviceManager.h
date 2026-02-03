@@ -1,5 +1,5 @@
-#ifndef _Draw_Video_V4L2DeviceManager_h_
-#define _Draw_Video_V4L2DeviceManager_h_
+#ifndef _Draw_Camera_V4L2DeviceManager_h_
+#define _Draw_Camera_V4L2DeviceManager_h_
 
 struct VideoDeviceFormatResolution : Moveable<VideoDeviceFormatResolution> {
 	Size size;

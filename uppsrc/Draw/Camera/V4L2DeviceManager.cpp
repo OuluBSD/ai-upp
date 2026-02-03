@@ -5,7 +5,7 @@
 #include <unistd.h>
 #endif
 
-#include "Video.h"
+#include "Camera.h"
 
 NAMESPACE_UPP
 

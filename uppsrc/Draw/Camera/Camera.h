@@ -12,6 +12,8 @@ NAMESPACE_UPP
 #include "CameraOverlay.h"
 #include "CameraBackend.h"
 #include "CameraEffects.h"
+#include "V4L2Capture.h"
+#include "V4L2DeviceManager.h"
 #include "StereoSource.h"
 #include "StereoPreviewCore.h"
 #include "CameraCalibration.h"

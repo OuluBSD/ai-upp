@@ -1,5 +1,5 @@
-#ifndef _Draw_Video_V4L2Capture_h_
-#define _Draw_Video_V4L2Capture_h_
+#ifndef _Draw_Camera_V4L2Capture_h_
+#define _Draw_Camera_V4L2Capture_h_
 
 class VideoV4L2Backend : public VideoBackend {
 	String device;

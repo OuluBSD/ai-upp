@@ -10,8 +10,6 @@ NAMESPACE_UPP
 #include "VideoBackend.h"
 #include "VideoEffects.h"
 #include "DeviceManager.h"
-#include "V4L2Capture.h"
-#include "V4L2DeviceManager.h"
 
 END_UPP_NAMESPACE
 

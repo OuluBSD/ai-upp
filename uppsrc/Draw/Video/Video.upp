@@ -4,11 +4,7 @@ file
 	VideoTypes.h,
 	VideoBackend.h,
 	VideoEffects.h,
-	DeviceManager.h,
-	V4L2Capture.h,
-	V4L2Capture.cpp,
-	V4L2DeviceManager.h,
-	V4L2DeviceManager.cpp;
+	DeviceManager.h;
 
 uses
 	Core,

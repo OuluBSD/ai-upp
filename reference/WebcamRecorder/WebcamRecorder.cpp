@@ -25,7 +25,9 @@ class WebcamRecorder : public TopWindow {
 #endif
 	Option show_stats;
 	Option overlay_stats;
+#ifdef flagLEGACY
 	Option backend_draw_video;
+#endif
 	Label status;
 	TimeCallback tc;
 	TimeCallback timeout_tc;
@@ -62,7 +64,7 @@ class WebcamRecorder : public TopWindow {
 	int64 legacy_start_us = 0;
 	int64 legacy_total_decode_us = 0;
 #endif
-	bool use_draw_video = false;
+	bool use_draw_video = true;
 	int timeout_ms = 0;
 
 	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
@@ -493,7 +495,11 @@ class WebcamRecorder : public TopWindow {
 		if(is_recording) return;
 		exit_flag = 0;
 		is_recording = true;
+#ifdef flagLEGACY
 		use_draw_video = backend_draw_video;
+#else
+		use_draw_video = true;
+#endif
 #ifdef flagLEGACY
 		if (!legacy_callbacks) {
 			Mutex::Lock __(background_mutex);
@@ -643,7 +649,11 @@ public:
 #else
 	void SetLegacy(bool) {}
 #endif
+#ifdef flagLEGACY
 	void SetBackendDrawVideo(bool b) { backend_draw_video = b; }
+#else
+	void SetBackendDrawVideo(bool) {}
+#endif
 	void SetTimeoutMs(int ms) { timeout_ms = ms; }
 	void AutoStartIfNeeded() {
 		if (timeout_ms > 0)
@@ -668,7 +678,9 @@ public:
 #endif
 		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
 		left_pane.Add(overlay_stats.TopPos(220, 24).HSizePos(10, 10));
+#ifdef flagLEGACY
 		left_pane.Add(backend_draw_video.TopPos(250, 24).HSizePos(10, 10));
+#endif
 		
 		start.SetLabel("Start").WhenAction = THISBACK(OnStart);
 		stop.SetLabel("Stop").WhenAction = THISBACK(OnStop);
@@ -682,8 +694,10 @@ public:
 		show_stats = true;
 		overlay_stats.SetLabel("Overlay stats");
 		overlay_stats = true;
+#ifdef flagLEGACY
 		backend_draw_video.SetLabel("Backend: Draw/Video");
 		backend_draw_video.WhenAction = THISBACK(OnChange);
+#endif
 		
 		webcams.WhenAction = THISBACK(OnWebcamCursor);
 		formats.WhenAction = THISBACK(OnWebcamFormat);
@@ -748,8 +762,10 @@ GUI_APP_MAIN
 		if(args[i] == "--legacy")
 			legacy = true;
 #endif
+#ifdef flagLEGACY
 		if(args[i] == "--backend-draw-video")
 			backend_dv = true;
+#endif
 		if(args[i] == "--timeout" && i + 1 < args.GetCount())
 			timeout_ms = atoi(args[i + 1]);
 	}
@@ -833,7 +849,11 @@ GUI_APP_MAIN
 #else
 	(void)legacy;
 #endif
+#ifdef flagLEGACY
 	app.SetBackendDrawVideo(backend_dv);
+#else
+	(void)backend_dv;
+#endif
 	app.SetTimeoutMs(timeout_ms);
 	app.AutoStartIfNeeded();
 	app.Run();

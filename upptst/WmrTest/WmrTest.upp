@@ -1,5 +1,6 @@
 uses
 	CtrlLib,
+	Ctrl/Camera,
 	SoftHMD;
 
 file
@@ -9,4 +10,3 @@ file
 mainconfig
 	"" = "GUI",
 	"" = "GUI USEMALLOC";
-

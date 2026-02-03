@@ -208,6 +208,8 @@ struct TrackingCtrl : public Ctrl {
 } // namespace
 
 struct CameraCtrl : public Ctrl {
+	typedef CameraCtrl CLASSNAME;
+
 	CameraStereoView view;
 	HMD::StereoOverlay bright_overlay;
 	HMD::StereoOverlay dark_overlay;
@@ -224,6 +226,7 @@ struct CameraCtrl : public Ctrl {
 
 	CameraCtrl() {
 		view.SetLabels("Bright", "Dark");
+		view.SetDrawLabel(true);
 		view.WhenOverlay = THISBACK(OnOverlay);
 		Add(view.SizePos());
 	}
@@ -360,7 +363,6 @@ struct CameraCtrl : public Ctrl {
 	}
 };
 
-class WmrTest
 class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;

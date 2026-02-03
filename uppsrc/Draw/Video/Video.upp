@@ -1,9 +1,9 @@
 file
-	AGENTS.md
-	Video.h
-	VideoTypes.h
-	VideoBackend.h
-	VideoEffects.h
+	AGENTS.md,
+	Video.h,
+	VideoTypes.h,
+	VideoBackend.h,
+	VideoEffects.h;
 
 uses
 	Core

@@ -308,7 +308,8 @@ void StageAWindow::Init(AppModel& m) {
 	BuildStageAControls();
 	BuildCaptureLists();
 	BuildPlotters();
-	RefreshFromModel();
+	// Note: RefreshFromModel() will be called explicitly after state is loaded in main.cpp
+	// Don't call it here as model->project_state is not yet populated
 }
 
 // Pulls AppModel.project_state into UI controls and refreshes lists.
@@ -1741,7 +1742,7 @@ void StageAWindow::RebuildRectificationFromState() {
 	}
 
 	LOG(Format("RebuildRectificationFromState: lens_f=%.2f, eye_dist=%.2f, img_sz=%dx%d, stereo_R_valid=%d",
-	    ps.lens_f, ps.eye_dist, img_sz.cx, img_sz.cy, ps.stereo_R_valid));
+	    ps.lens_f, ps.eye_dist, img_sz.cx, img_sz.cy, (int)ps.stereo_R_valid));
 
 	// Reconstruct K matrix (same for both eyes in current implementation)
 	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);

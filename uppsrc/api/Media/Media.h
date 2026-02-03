@@ -3,6 +3,7 @@
 
 
 #include <Eon/Eon.h>
+#include <Draw/Media/Media.h>
 
 
 #ifdef flagFFMPEG
@@ -19,11 +20,6 @@ extern "C" {
 #endif
 
 
-#include "Types.h"
-#include "Audio.h"
-#include "Video.h"
-#include "MediaStream.h"
-#include "FileIn.h"
 #include "MediaAtomBase.h"
 
 

@@ -9,7 +9,8 @@ acceptflags
 	DEBUG_RT;
 
 uses
-	Eon;
+	Eon,
+	Draw/Media;
 
 library(FFMPEG) "swscale avcodec avformat avutil swresample avdevice avfilter";
 
@@ -27,17 +28,7 @@ pkg_config(FFMPEG WIN32 (CLANG | GCC)) libavcodec;
 
 file
 	Media.h,
-	Types.h,
-	Types.cpp,
 	MediaAtomBase.h,
 	MediaAtomBase.cpp,
-	FileIn.h,
-	FileIn.cpp,
-	Audio.h,
-	Audio.cpp,
-	Video.h,
-	Video.cpp,
-	MediaStream.h,
-	MediaStream.cpp,
 	"Support classes" readonly separator,
 	_ readonly separator;

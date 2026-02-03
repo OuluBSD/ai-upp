@@ -1,4 +1,4 @@
-#ifndef _IMedia_Media_h_
+ #ifndef _IMedia_Media_h_
 #define _IMedia_Media_h_
 
 NAMESPACE_UPP

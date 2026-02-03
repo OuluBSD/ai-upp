@@ -376,7 +376,15 @@ void StageAWindow::RefreshFromModel() {
 	// Rebuild rectification cache from saved calibration parameters (needed on restart)
 	// Only rebuild if cache is invalid (don't overwrite freshly-computed rectification)
 	if (!model->rectification_cache.valid) {
+		LOG("RefreshFromModel: Rebuilding rectification from state (cache was invalid)");
 		RebuildRectificationFromState();
+		if (model->rectification_cache.valid) {
+			LOG("RefreshFromModel: Rectification rebuilt successfully");
+		} else {
+			LOG("RefreshFromModel: Rectification rebuild failed");
+		}
+	} else {
+		LOG("RefreshFromModel: Rectification cache already valid, skipping rebuild");
 	}
 	UpdateEpipolarDisplay();
 
@@ -1705,12 +1713,16 @@ Implementation notes:
 - Only rebuilds if calibration data exists (lens_f > 0) and frames are available
 */
 void StageAWindow::RebuildRectificationFromState() {
-	if (!model) return;
+	if (!model) {
+		LOG("RebuildRectificationFromState: model is null");
+		return;
+	}
 
 	const ProjectState& ps = model->project_state;
 
 	// Check if we have calibration data saved
 	if (ps.lens_f <= 0 || ps.eye_dist <= 0) {
+		LOG(Format("RebuildRectificationFromState: No calibration data (lens_f=%.2f, eye_dist=%.2f)", ps.lens_f, ps.eye_dist));
 		model->rectification_cache.Invalidate();
 		return;
 	}
@@ -1722,9 +1734,14 @@ void StageAWindow::RebuildRectificationFromState() {
 	}
 
 	if (img_sz.cx <= 0 || img_sz.cy <= 0) {
+		LOG(Format("RebuildRectificationFromState: Invalid image size (%d x %d), frames=%d",
+		    img_sz.cx, img_sz.cy, model->captured_frames.GetCount()));
 		model->rectification_cache.Invalidate();
 		return;
 	}
+
+	LOG(Format("RebuildRectificationFromState: lens_f=%.2f, eye_dist=%.2f, img_sz=%dx%d, stereo_R_valid=%d",
+	    ps.lens_f, ps.eye_dist, img_sz.cx, img_sz.cy, ps.stereo_R_valid));
 
 	// Reconstruct K matrix (same for both eyes in current implementation)
 	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);

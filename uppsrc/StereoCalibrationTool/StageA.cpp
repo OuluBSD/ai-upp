@@ -1032,6 +1032,7 @@ void StageAWindow::ComposeFinalDisplayImages() {
 
 	// Apply rectification if enabled and cache is valid
 	if (do_rectify && model->rectification_cache.valid) {
+		LOG(Format("ComposeFinalDisplayImages: Applying rectification (cache.alpha=%.3f)", model->rectification_cache.alpha));
 		// Convert U++ Images to cv::Mat
 		cv::Mat left_mat = ImageToBGRMat(last_left_preview);
 		cv::Mat right_mat = ImageToBGRMat(last_right_preview);
@@ -1050,6 +1051,8 @@ void StageAWindow::ComposeFinalDisplayImages() {
 		// Convert back to U++ Images
 		left_display = MatToImage(left_rect);
 		right_display = MatToImage(right_rect);
+	} else if (do_rectify && !model->rectification_cache.valid) {
+		LOG("ComposeFinalDisplayImages: Rectification requested but cache invalid!");
 	}
 
 	// Show difference mode (takes priority over overlay)
@@ -1540,6 +1543,13 @@ void StageAWindow::OnSolveStereo() {
 	report_log <<= report;
 
 	// Compute stereo rectification (for rectified overlay preview)
+	LOG("OnSolveStereo: Computing stereo rectification");
+	LOG("OnSolveStereo: R matrix from stereoCalibrate:");
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2)));
+	LOG(Format("OnSolveStereo: rectify_alpha=%.3f", ps.rectify_alpha));
+
 	ComputeStereoRectification(K, D_L, K, D_R, R, T, img_sz);
 
 	// Compute epipolar alignment metrics
@@ -1760,6 +1770,7 @@ void StageAWindow::RebuildRectificationFromState() {
 	// Reconstruct R from saved stereo calibration matrix
 	// This is the exact R from cv::stereoCalibrate, not reconstructed from Euler angles
 	if (!ps.stereo_R_valid) {
+		LOG("RebuildRectificationFromState: stereo_R_valid=false, no R matrix saved");
 		model->rectification_cache.Invalidate();
 		return;  // No valid R matrix saved
 	}
@@ -1771,12 +1782,24 @@ void StageAWindow::RebuildRectificationFromState() {
 		}
 	}
 
+	LOG("RebuildRectificationFromState: R matrix loaded:");
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2)));
+
 	// Reconstruct T (translation vector: baseline separation)
 	// [eye_dist, 0, 0] means right camera is eye_dist mm to the right of left camera
 	cv::Mat T = (cv::Mat_<double>(3, 1) << ps.eye_dist, 0, 0);
 
+	LOG(Format("RebuildRectificationFromState: K matrix: f=%.2f, cx=%.2f, cy=%.2f", ps.lens_f, ps.lens_cx, ps.lens_cy));
+	LOG(Format("RebuildRectificationFromState: D coeffs: k1=%.6f, k2=%.6f", ps.lens_k1, ps.lens_k2));
+	LOG(Format("RebuildRectificationFromState: T vector: [%.2f, 0, 0]", ps.eye_dist));
+	LOG(Format("RebuildRectificationFromState: rectify_alpha=%.3f", ps.rectify_alpha));
+
 	// Rebuild rectification cache from reconstructed parameters
 	ComputeStereoRectification(K, D, K, D, R, T, img_sz);
+
+	LOG(Format("RebuildRectificationFromState: Cache valid after rebuild = %d", (int)model->rectification_cache.valid));
 }
 
 /*

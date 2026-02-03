@@ -1450,27 +1450,31 @@ void StageAWindow::OnSolveStereo() {
 	}
 	
 	ProjectState& ps = model->project_state;
-	
-	cv::Mat K = cv::Mat::eye(3, 3, CV_64F);
-	K.at<double>(0,0) = ps.lens_f;
-	K.at<double>(1,1) = ps.lens_f;
-	K.at<double>(0,2) = ps.lens_cx;
-	K.at<double>(1,2) = ps.lens_cy;
-	
+
+	// Use separate K matrices for left and right cameras
+	// stereoCalibrate can refine them independently unless CALIB_FIX_INTRINSIC is set
+	cv::Mat K_L = cv::Mat::eye(3, 3, CV_64F);
+	K_L.at<double>(0,0) = ps.lens_f;
+	K_L.at<double>(1,1) = ps.lens_f;
+	K_L.at<double>(0,2) = ps.lens_cx;
+	K_L.at<double>(1,2) = ps.lens_cy;
+
+	cv::Mat K_R = K_L.clone();  // Start with same initial guess
+
 	cv::Mat D = cv::Mat::zeros(5, 1, CV_64F);
 	D.at<double>(0) = ps.lens_k1;
 	D.at<double>(1) = ps.lens_k2;
-	
+
 	cv::Mat R, T, E, F;
-	
+
 	int flags = cv::CALIB_FIX_ASPECT_RATIO;
 	if (ps.lock_intrinsics) {
 		flags |= (cv::CALIB_FIX_INTRINSIC | cv::CALIB_SAME_FOCAL_LENGTH | cv::CALIB_FIX_PRINCIPAL_POINT);
 	}
-	
+
 	if (ps.lock_baseline) {
 		// OpenCV doesn't have a direct "FIX_BASELINE" but we can fix T if we knew it.
-		// However, we usually want to solve for it. 
+		// However, we usually want to solve for it.
 		// If user wants to lock baseline, we can potentially fix T after a first run.
 	}
 
@@ -1480,7 +1484,7 @@ void StageAWindow::OnSolveStereo() {
 	cv::Mat D_R = D_L.clone();
 
 	double rms = cv::stereoCalibrate(objectPoints, imagePointsL, imagePointsR,
-		K, D_L, K, D_R,
+		K_L, D_L, K_R, D_R,
 		cv::Size(img_sz.cx, img_sz.cy),
 		R, T, E, F,
 		flags,
@@ -1524,6 +1528,37 @@ void StageAWindow::OnSolveStereo() {
 	ps.pitch_r = eulerAngles[0];
 	ps.roll_r = eulerAngles[2];
 
+	// Save EXACT K, D, and T from stereoCalibrate (left and right separately)
+	// These exact values are needed to reconstruct identical rectification on restart
+	ps.K_L_f = K_L.at<double>(0, 0);
+	ps.K_L_cx = K_L.at<double>(0, 2);
+	ps.K_L_cy = K_L.at<double>(1, 2);
+	ps.K_R_f = K_R.at<double>(0, 0);
+	ps.K_R_cx = K_R.at<double>(0, 2);
+	ps.K_R_cy = K_R.at<double>(1, 2);
+	ps.D_L_k1 = D_L.at<double>(0);
+	ps.D_L_k2 = D_L.at<double>(1);
+	ps.D_R_k1 = D_R.at<double>(0);
+	ps.D_R_k2 = D_R.at<double>(1);
+	ps.stereo_T[0] = T.at<double>(0);
+	ps.stereo_T[1] = T.at<double>(1);
+	ps.stereo_T[2] = T.at<double>(2);
+	ps.stereo_KD_valid = true;
+
+	// Also update averaged values for backwards compatibility and UI display
+	ps.lens_f = (K_L.at<double>(0, 0) + K_R.at<double>(0, 0)) * 0.5;
+	ps.lens_cx = (K_L.at<double>(0, 2) + K_R.at<double>(0, 2)) * 0.5;
+	ps.lens_cy = (K_L.at<double>(1, 2) + K_R.at<double>(1, 2)) * 0.5;
+	ps.lens_k1 = (D_L.at<double>(0) + D_R.at<double>(0)) * 0.5;
+	ps.lens_k2 = (D_L.at<double>(1) + D_R.at<double>(1)) * 0.5;
+
+	LOG("OnSolveStereo: Saving EXACT per-eye calibration parameters:");
+	LOG(Format("  K_L: f=%.6f, cx=%.6f, cy=%.6f", ps.K_L_f, ps.K_L_cx, ps.K_L_cy));
+	LOG(Format("  K_R: f=%.6f, cx=%.6f, cy=%.6f", ps.K_R_f, ps.K_R_cx, ps.K_R_cy));
+	LOG(Format("  D_L: k1=%.10f, k2=%.10f", ps.D_L_k1, ps.D_L_k2));
+	LOG(Format("  D_R: k1=%.10f, k2=%.10f", ps.D_R_k1, ps.D_R_k2));
+	LOG(Format("  T: [%.6f, %.6f, %.6f]", ps.stereo_T[0], ps.stereo_T[1], ps.stereo_T[2]));
+
 	// Save R matrix directly for exact rectification rebuild
 	for (int r = 0; r < 3; r++) {
 		for (int c = 0; c < 3; c++) {
@@ -1542,18 +1577,18 @@ void StageAWindow::OnSolveStereo() {
 	
 	report_log <<= report;
 
-	// Compute stereo rectification (for rectified overlay preview)
-	LOG("OnSolveStereo: Computing stereo rectification");
+	// Compute stereo rectification directly with the refined K_L, K_R from stereoCalibrate
+	LOG("OnSolveStereo: Computing stereo rectification with refined matrices");
 	LOG("OnSolveStereo: R matrix from stereoCalibrate:");
 	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2)));
 	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2)));
 	LOG(Format("  [%.6f, %.6f, %.6f]", R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2)));
 	LOG(Format("OnSolveStereo: rectify_alpha=%.3f", ps.rectify_alpha));
 
-	ComputeStereoRectification(K, D_L, K, D_R, R, T, img_sz);
+	ComputeStereoRectification(K_L, D_L, K_R, D_R, R, T, img_sz);
 
 	// Compute epipolar alignment metrics
-	ComputeEpipolarMetrics(K, D_L, K, D_R, R, T);
+	ComputeEpipolarMetrics(K_L, D_L, K_R, D_R, R, T);
 	UpdateEpipolarDisplay();
 
 	// Append epipolar metrics to report
@@ -1573,6 +1608,7 @@ void StageAWindow::OnSolveStereo() {
 
 	RefreshFromModel();
 	SaveProjectState();
+	LOG("OnSolveStereo: ProjectState saved to disk");
 }
 
 void StageAWindow::OnExportYaml() {
@@ -1627,8 +1663,22 @@ void StageAWindow::ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& 
                                                const Size& img_sz) {
 	StereoRectificationCache& cache = model->rectification_cache;
 
+	// Log input parameters to cv::stereoRectify
+	LOG("ComputeStereoRectification: Input parameters:");
+	LOG(Format("  K1: f=%.2f, cx=%.2f, cy=%.2f", K1.at<double>(0,0), K1.at<double>(0,2), K1.at<double>(1,2)));
+	LOG(Format("  K2: f=%.2f, cx=%.2f, cy=%.2f", K2.at<double>(0,0), K2.at<double>(0,2), K2.at<double>(1,2)));
+	LOG(Format("  D1: k1=%.6f, k2=%.6f", D1.at<double>(0), D1.at<double>(1)));
+	LOG(Format("  D2: k1=%.6f, k2=%.6f", D2.at<double>(0), D2.at<double>(1)));
+	LOG("  R:");
+	LOG(Format("    [%.6f, %.6f, %.6f]", R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2)));
+	LOG(Format("    [%.6f, %.6f, %.6f]", R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2)));
+	LOG(Format("    [%.6f, %.6f, %.6f]", R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2)));
+	LOG(Format("  T: [%.2f, %.2f, %.2f]", T.at<double>(0), T.at<double>(1), T.at<double>(2)));
+	LOG(Format("  img_sz: %d x %d", (int)img_sz.cx, (int)img_sz.cy));
+
 	// Get rectify alpha parameter from project state
 	double alpha = model->project_state.rectify_alpha;
+	LOG(Format("  alpha: %.3f", alpha));
 
 	// Check if cache is still valid
 	if (cache.IsValid(K1, D1, K2, D2, R, T, cv::Size(img_sz.cx, img_sz.cy), alpha)) {
@@ -1665,6 +1715,15 @@ void StageAWindow::ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& 
 	cache.image_size = cv::Size(img_sz.cx, img_sz.cy);
 	cache.alpha = alpha;
 	cache.valid = true;
+
+	LOG("ComputeStereoRectification: R1 (left rectification rotation):");
+	LOG(Format("  [%.6f, %.6f, %.6f]", cache.R1.at<double>(0,0), cache.R1.at<double>(0,1), cache.R1.at<double>(0,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", cache.R1.at<double>(1,0), cache.R1.at<double>(1,1), cache.R1.at<double>(1,2)));
+	LOG(Format("  [%.6f, %.6f, %.6f]", cache.R1.at<double>(2,0), cache.R1.at<double>(2,1), cache.R1.at<double>(2,2)));
+	LOG("ComputeStereoRectification: P1 (left projection matrix):");
+	LOG(Format("  [%.2f, %.2f, %.2f, %.2f]", cache.P1.at<double>(0,0), cache.P1.at<double>(0,1), cache.P1.at<double>(0,2), cache.P1.at<double>(0,3)));
+	LOG(Format("  [%.2f, %.2f, %.2f, %.2f]", cache.P1.at<double>(1,0), cache.P1.at<double>(1,1), cache.P1.at<double>(1,2), cache.P1.at<double>(1,3)));
+	LOG(Format("  [%.2f, %.2f, %.2f, %.2f]", cache.P1.at<double>(2,0), cache.P1.at<double>(2,1), cache.P1.at<double>(2,2), cache.P1.at<double>(2,3)));
 
 	// Now we need to build the remap maps
 	BuildRectificationMaps();
@@ -1791,13 +1850,65 @@ void StageAWindow::RebuildRectificationFromState() {
 	// [eye_dist, 0, 0] means right camera is eye_dist mm to the right of left camera
 	cv::Mat T = (cv::Mat_<double>(3, 1) << ps.eye_dist, 0, 0);
 
-	LOG(Format("RebuildRectificationFromState: K matrix: f=%.2f, cx=%.2f, cy=%.2f", ps.lens_f, ps.lens_cx, ps.lens_cy));
-	LOG(Format("RebuildRectificationFromState: D coeffs: k1=%.6f, k2=%.6f", ps.lens_k1, ps.lens_k2));
-	LOG(Format("RebuildRectificationFromState: T vector: [%.2f, 0, 0]", ps.eye_dist));
+	// Reconstruct K and D matrices
+	// Use exact per-eye values if available (stereo_KD_valid), otherwise use averaged values
+	cv::Mat K_L, K_R, D_L, D_R;
+
+	if (ps.stereo_KD_valid) {
+		LOG("RebuildRectificationFromState: Using EXACT per-eye K/D matrices");
+		K_L = cv::Mat::eye(3, 3, CV_64F);
+		K_L.at<double>(0,0) = ps.K_L_f;
+		K_L.at<double>(1,1) = ps.K_L_f;
+		K_L.at<double>(0,2) = ps.K_L_cx;
+		K_L.at<double>(1,2) = ps.K_L_cy;
+
+		K_R = cv::Mat::eye(3, 3, CV_64F);
+		K_R.at<double>(0,0) = ps.K_R_f;
+		K_R.at<double>(1,1) = ps.K_R_f;
+		K_R.at<double>(0,2) = ps.K_R_cx;
+		K_R.at<double>(1,2) = ps.K_R_cy;
+
+		D_L = cv::Mat::zeros(5, 1, CV_64F);
+		D_L.at<double>(0) = ps.D_L_k1;
+		D_L.at<double>(1) = ps.D_L_k2;
+
+		D_R = cv::Mat::zeros(5, 1, CV_64F);
+		D_R.at<double>(0) = ps.D_R_k1;
+		D_R.at<double>(1) = ps.D_R_k2;
+
+		LOG(Format("  K_L: f=%.6f, cx=%.6f, cy=%.6f", ps.K_L_f, ps.K_L_cx, ps.K_L_cy));
+		LOG(Format("  K_R: f=%.6f, cx=%.6f, cy=%.6f", ps.K_R_f, ps.K_R_cx, ps.K_R_cy));
+		LOG(Format("  D_L: k1=%.10f, k2=%.10f", ps.D_L_k1, ps.D_L_k2));
+		LOG(Format("  D_R: k1=%.10f, k2=%.10f", ps.D_R_k1, ps.D_R_k2));
+	} else {
+		LOG("RebuildRectificationFromState: Using averaged K/D matrices (legacy)");
+		K_L = K.clone();
+		K_R = K.clone();
+		D_L = D.clone();
+		D_R = D.clone();
+		LOG(Format("  K (avg): f=%.2f, cx=%.2f, cy=%.2f", ps.lens_f, ps.lens_cx, ps.lens_cy));
+		LOG(Format("  D (avg): k1=%.6f, k2=%.6f", ps.lens_k1, ps.lens_k2));
+	}
+
+	// Reconstruct T vector
+	double t_norm = sqrt(ps.stereo_T[0]*ps.stereo_T[0] + ps.stereo_T[1]*ps.stereo_T[1] + ps.stereo_T[2]*ps.stereo_T[2]);
+	if (ps.stereo_KD_valid && t_norm > 0.001) {
+		LOG("RebuildRectificationFromState: Using EXACT T vector from stereoCalibrate");
+		T = (cv::Mat_<double>(3, 1) << ps.stereo_T[0], ps.stereo_T[1], ps.stereo_T[2]);
+		LOG(Format("  T: [%.6f, %.6f, %.6f]", ps.stereo_T[0], ps.stereo_T[1], ps.stereo_T[2]));
+	} else {
+		LOG("RebuildRectificationFromState: Using legacy T vector [eye_dist, 0, 0]");
+		T = (cv::Mat_<double>(3, 1) << ps.eye_dist, 0, 0);
+		LOG(Format("  T: [%.2f, 0, 0]", ps.eye_dist));
+	}
+
 	LOG(Format("RebuildRectificationFromState: rectify_alpha=%.3f", ps.rectify_alpha));
 
-	// Rebuild rectification cache from reconstructed parameters
-	ComputeStereoRectification(K, D, K, D, R, T, img_sz);
+	// Rebuild rectification cache from reconstructed parameters (EXACT same call as OnSolveStereo!)
+	ComputeStereoRectification(K_L, D_L, K_R, D_R, R, T, img_sz);
+
+	// Compute epipolar alignment metrics (use same K_L/K_R/D_L/D_R as rectification)
+	ComputeEpipolarMetrics(K_L, D_L, K_R, D_R, R, T);
 
 	LOG(Format("RebuildRectificationFromState: Cache valid after rebuild = %d", (int)model->rectification_cache.valid));
 }

@@ -41,5 +41,6 @@ One<StereoSource> CreateStereoSource(const String& id);
 bool HasStereoSource(const String& id);
 
 bool SplitStereoImage(const Image& src, Image& left, Image& right);
+bool JoinStereoImage(const Image& left, const Image& right, Image& out);
 
 #endif

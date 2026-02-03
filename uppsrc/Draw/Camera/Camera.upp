@@ -3,6 +3,7 @@ file
 	Camera.h,
 	CameraTypes.h,
 	CameraBackend.h,
+	CameraOverlay.h,
 	CameraEffects.h,
 	StereoSource.h,
 	StereoSource.cpp,

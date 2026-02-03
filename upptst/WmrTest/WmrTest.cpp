@@ -207,171 +207,41 @@ struct TrackingCtrl : public Ctrl {
 
 } // namespace
 
-struct CameraCtrl : public Ctrl {
-	typedef CameraCtrl CLASSNAME;
+static StereoOverlayData ToOverlayData(const HMD::StereoOverlay& src) {
+	StereoOverlayData out;
+	out.left_size = src.left_size;
+	out.right_size = src.right_size;
+	out.left_points <<= src.left_points;
+	out.right_points <<= src.right_points;
+	out.match_left <<= src.match_left;
+	out.match_right <<= src.match_right;
+	return out;
+}
 
-	CameraStereoView view;
-	HMD::StereoOverlay bright_overlay;
-	HMD::StereoOverlay dark_overlay;
-	HMD::StereoTrackerStats bright_stats;
-	HMD::StereoTrackerStats dark_stats;
-	bool has_bright_overlay = false;
-	bool has_dark_overlay = false;
-	bool show_descriptors = true;
-	bool show_descriptor_ids = false;
-	bool show_match_lines = false;
-	bool show_match_ids = false;
-	bool show_stats_overlay = true;
-	bool show_split_view = true;
-
-	CameraCtrl() {
-		view.SetLabels("Bright", "Dark");
-		view.SetDrawLabel(true);
-		view.WhenOverlay = THISBACK(OnOverlay);
-		Add(view.SizePos());
-	}
-
-	void SetImages(const Image& bright, const Image& dark) {
-		view.SetImages(bright, dark);
-	}
-
-	void SetOverlay(bool is_bright, HMD::StereoOverlay& overlay) {
-		if (is_bright) {
-			Swap(bright_overlay, overlay);
-			has_bright_overlay = true;
-		}
-		else {
-			Swap(dark_overlay, overlay);
-			has_dark_overlay = true;
-		}
-	}
-
-	void ClearOverlay(bool is_bright) {
-		if (is_bright) {
-			bright_overlay.Clear();
-			has_bright_overlay = false;
-		}
-		else {
-			dark_overlay.Clear();
-			has_dark_overlay = false;
-		}
-	}
-
-	void SetStats(bool is_bright, const HMD::StereoTrackerStats& stats) {
-		if (is_bright)
-			bright_stats = stats;
-		else
-			dark_stats = stats;
-	}
-
-	void SetShowDescriptors(bool b) { show_descriptors = b; }
-	void SetShowDescriptorIds(bool b) { show_descriptor_ids = b; }
-	void SetShowMatchLines(bool b) { show_match_lines = b; }
-	void SetShowMatchIds(bool b) { show_match_ids = b; }
-	void SetShowStatsOverlay(bool b) { show_stats_overlay = b; }
-	void SetShowSplitView(bool b) {
-		show_split_view = b;
-		view.SetSplitView(b);
-	}
-
-	void DrawOverlay(Draw& w, const Rect& r, const Image& img, const HMD::StereoOverlay& overlay,
-	                 const HMD::StereoTrackerStats& stats, const char* label,
-	                 const Color& point_color, const Color& match_color) const {
-		if (img.IsEmpty())
-			return;
-		Size src = img.GetSize();
-		if (src.cx <= 0 || src.cy <= 0)
-			return;
-		if (!show_descriptors && !show_match_lines && !show_stats_overlay)
-			return;
-
-		Size dst_sz = r.GetSize();
-		double sx = (double)dst_sz.cx / (double)src.cx;
-		double sy = (double)dst_sz.cy / (double)src.cy;
-		int right_offset = 0;
-		if (overlay.left_size.cx > 0 && src.cx == overlay.left_size.cx * 2)
-			right_offset = overlay.left_size.cx;
-
-		auto MapPoint = [&](const vec2& p, int offset_x) -> Pointf {
-			return Pointf((double)r.left + (p[0] + offset_x) * sx,
-			              (double)r.top + p[1] * sy);
-		};
-
-		const int max_points = 1536;
-		if (show_descriptors) {
-			int left_count = overlay.left_points.GetCount();
-			if (left_count > max_points)
-				left_count = max_points;
-			for (int i = 0; i < left_count; i++) {
-				Pointf pt = MapPoint(overlay.left_points[i], 0);
-				w.DrawRect((int)pt.x - 1, (int)pt.y - 1, 3, 3, point_color);
-				if (show_descriptor_ids)
-					w.DrawText((int)pt.x + 2, (int)pt.y + 2, IntStr(i), Arial(9), point_color);
-			}
-			int right_count = overlay.right_points.GetCount();
-			if (right_count > max_points)
-				right_count = max_points;
-			for (int i = 0; i < right_count; i++) {
-				Pointf pt = MapPoint(overlay.right_points[i], right_offset);
-				w.DrawRect((int)pt.x - 1, (int)pt.y - 1, 3, 3, point_color);
-				if (show_descriptor_ids)
-					w.DrawText((int)pt.x + 2, (int)pt.y + 2, IntStr(i), Arial(9), point_color);
-			}
-		}
-
-		if (show_match_lines) {
-			int match_count = overlay.match_left.GetCount();
-			if (match_count > overlay.match_right.GetCount())
-				match_count = overlay.match_right.GetCount();
-			if (match_count > max_points)
-				match_count = max_points;
-			for (int i = 0; i < match_count; i++) {
-				Pointf a = MapPoint(overlay.match_left[i], 0);
-				Pointf b = MapPoint(overlay.match_right[i], right_offset);
-				w.DrawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y, 1, match_color);
-				if (show_match_ids) {
-					Pointf mid((a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
-					w.DrawText((int)mid.x + 2, (int)mid.y + 2, IntStr(i), Arial(9), match_color);
-				}
-			}
-		}
-
-		if (show_stats_overlay) {
-			int match_count = overlay.match_left.GetCount();
-			if (match_count > overlay.match_right.GetCount())
-				match_count = overlay.match_right.GetCount();
-			String line1 = Format("%s: frames=%d, kp=%d/%d, points=%d",
-				label, stats.processed_frames, stats.last_left_keypoints,
-				stats.last_right_keypoints, stats.last_tracked_points);
-			String line2 = Format("tri=%d, matches=%d, usecs=%d, pose=%s",
-				stats.last_tracked_triangles, match_count, stats.last_process_usecs,
-				stats.has_pose ? "yes" : "no");
-			w.DrawText(r.left + 6, r.top + 6, line1, Arial(12).Bold(), White());
-			w.DrawText(r.left + 6, r.top + 22, line2, Arial(11), White());
-		}
-	}
-
-	void OnOverlay(Draw& w, const Rect& r, const Image& img, int channel) {
-		if (channel == 0) {
-			if (has_bright_overlay)
-				DrawOverlay(w, r, img, bright_overlay, bright_stats, "Bright", LtYellow(), LtGreen());
-		}
-		else {
-			if (has_dark_overlay)
-				DrawOverlay(w, r, img, dark_overlay, dark_stats, "Dark", LtBlue(), LtGreen());
-		}
-	}
-};
+static StereoTrackerStatsData ToStatsData(const HMD::StereoTrackerStats& src) {
+	StereoTrackerStatsData out;
+	out.frame_count = src.frame_count;
+	out.processed_frames = src.processed_frames;
+	out.skipped_frames = src.skipped_frames;
+	out.last_left_keypoints = src.last_left_keypoints;
+	out.last_right_keypoints = src.last_right_keypoints;
+	out.last_tracked_points = src.last_tracked_points;
+	out.last_tracked_triangles = src.last_tracked_triangles;
+	out.last_stereo_matches = src.last_stereo_matches;
+	out.last_process_usecs = src.last_process_usecs;
+	out.has_pose = src.has_pose;
+	return out;
+}
 
 class WmrTest : public TopWindow {
 public:
 	typedef WmrTest CLASSNAME;
 	
 	HMD::System sys;
-	One<HMD::Camera> cam;
+	One<StereoSource> source;
 	HMD::SoftHmdFusion fusion;
 	
-	CameraCtrl camera;
+	StereoOverlayCtrl camera;
 	TrackingCtrl tracking;
 	ArrayCtrl list;
 	Splitter splitter;
@@ -452,16 +322,20 @@ public:
 			calib = fusion.GetBrightTracker().GetCalibration();
 		}
 		
-		cam.Create();
-		if(async_buffers > 0)
-			cam->SetAsyncBuffers(async_buffers);
-		if(transfer_timeout_ms >= 0)
-			cam->SetTransferTimeoutMs(transfer_timeout_ms);
-		if (!calibration_ok) {
-			capture_enabled = false;
-		}
-		else if(!cam->Open()) {
-			data.Add("Camera Error", "Failed to open HMD camera");
+		source = CreateStereoSource("hmd");
+		if (!source) {
+			data.Add("Camera Error", "Missing HMD stereo source");
+		} else {
+			if(async_buffers > 0)
+				source->SetOption("async_buffers", async_buffers);
+			if(transfer_timeout_ms >= 0)
+				source->SetOption("transfer_timeout_ms", transfer_timeout_ms);
+			if (!calibration_ok) {
+				capture_enabled = false;
+			}
+			else if(!source->Start()) {
+				data.Add("Camera Error", "Failed to open HMD camera");
+			}
 		}
 
 		tracking.SetTrackers(&fusion.GetBrightTracker(), &fusion.GetDarkTracker());
@@ -472,7 +346,7 @@ public:
 		camera.SetShowMatchIds(show_match_ids);
 		camera.SetShowStatsOverlay(show_stats_overlay);
 		camera.SetShowSplitView(show_split_view);
-		capture_enabled = calibration_ok && cam && cam->IsOpen();
+		capture_enabled = calibration_ok && source && source->IsRunning();
 		
 		// Initial refresh of list to show error if any
 		for(int j = 0; j < data.GetCount(); j++) {
@@ -489,8 +363,8 @@ public:
 		tc.Kill();
 		background_quit = true;
 		background_thread.Wait();
-		if(cam) cam->Close();
-		cam.Clear();
+		if(source) source->Stop();
+		source.Clear();
 		sys.Uninitialise();
 	}
 	
@@ -572,10 +446,15 @@ public:
 					fusion.PutImu(imu);
 			}
 
-			if (cam && cam->IsOpen()) {
-				Vector<HMD::CameraFrame> frames;
-				cam->PopFrames(frames);
-				if (frames.IsEmpty()) {
+			if (source && source->IsRunning()) {
+				CameraFrame lf, rf;
+				if (!source->ReadFrame(lf, rf, false)) {
+					Sleep(1);
+					continue;
+				}
+
+				Image combined;
+				if (!JoinStereoImage(lf.img, rf.img, combined)) {
 					Sleep(1);
 					continue;
 				}
@@ -583,41 +462,37 @@ public:
 				// Delivery images to GUI immediately to avoid frozen preview during heavy tracking
 				{
 					Mutex::Lock __(background_mutex);
-					for(const auto& f : frames) {
-						if(f.is_bright) background_bright = f.img;
-						else background_dark = f.img;
+					if (lf.is_bright) background_bright = combined;
+					else background_dark = combined;
+				}
+
+				// Prevent use-after-free race condition by keeping image ref alive
+				// for a short while, in case fusion.PutVisual is async/queued.
+				frame_history.AddTail(combined);
+				if(frame_history.GetCount() > 20)
+					frame_history.DropHead();
+
+				if(heavy_checks && lf.is_bright) {
+					frames_checked++;
+					if(frames_checked > 6) { // Wait for a few frames to settle
+						CheckVerticalDiscontinuities(combined);
+						CheckFrameBrightness(combined);
 					}
 				}
 
-				for (const auto& f : frames) {
-					// Prevent use-after-free race condition by keeping image ref alive
-					// for a short while, in case fusion.PutVisual is async/queued.
-					frame_history.AddTail(f.img);
-					if(frame_history.GetCount() > 20)
-						frame_history.DropHead();
-
-					if(heavy_checks && f.is_bright) {
-						frames_checked++;
-						if(frames_checked > 6) { // Wait for a few frames to settle
-							CheckVerticalDiscontinuities(f.img);
-							CheckFrameBrightness(f.img);
-						}
-					}
-
-					VisualFrame vf;
-					vf.timestamp_us = usecs();
-					vf.format = GEOM_EVENT_CAM_RGBA8;
-					vf.width = f.img.GetWidth();
-					vf.height = f.img.GetHeight();
-					vf.stride = vf.width * (int)sizeof(RGBA);
-					vf.img = f.img;
-					vf.data = 0;
-					vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
-					vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-					
-					if (calibration_ok)
-						fusion.PutVisual(vf);
-				}
+				VisualFrame vf;
+				vf.timestamp_us = usecs();
+				vf.format = GEOM_EVENT_CAM_RGBA8;
+				vf.width = combined.GetWidth();
+				vf.height = combined.GetHeight();
+				vf.stride = vf.width * (int)sizeof(RGBA);
+				vf.img = combined;
+				vf.data = 0;
+				vf.data_bytes = combined.GetLength() * (int)sizeof(RGBA);
+				vf.flags = lf.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+				
+				if (calibration_ok)
+					fusion.PutVisual(vf);
 			}
 			else {
 				Sleep(10);
@@ -643,45 +518,13 @@ public:
 			ev3d = background_ev3d;
 		}
 
-		if(cam) {
-			HMD::CameraStats cs = cam->GetStats();
-			data.Add("Camera", cam->IsOpen() ? "Open" : "Closed");
-			if(cam->IsOpen()) {
-				data.Add("Cam Frame Count", IntStr(cs.frame_count));
-				data.Add("Cam Bright Frames", IntStr(cs.bright_frames));
-				data.Add("Cam Dark Frames", IntStr(cs.dark_frames));
-				data.Add("Cam Bright Balance", IntStr(cs.bright_balance));
-				data.Add("Cam Last Exposure", IntStr(cs.last_exposure));
-				data.Add("Cam Last Transferred", IntStr(cs.last_transferred));
-				data.Add("Cam Min/Max Transferred", Format("%d / %d", cs.min_transferred, cs.max_transferred));
-				data.Add("Cam Last Error (r)", IntStr(cs.last_r));
-				data.Add("Cam Mutex Fails", IntStr(cs.mutex_fails));
-				data.Add("Cam USB Errors", IntStr(cs.usb_errors));
-				data.Add("Cam Timeout Errors", IntStr(cs.timeout_errors));
-				data.Add("Cam Overflow Errors", IntStr(cs.overflow_errors));
-				data.Add("Cam Skips", IntStr(cs.other_errors));
-				data.Add("Cam No-Device Errors", IntStr(cs.no_device_errors));
-				data.Add("Cam Resubmit Fails", IntStr(cs.resubmit_failures));
-				data.Add("Cam Resubmit Skips", IntStr(cs.resubmit_skips));
-				data.Add("Cam Halt Clears", Format("%d / %d", cs.halt_clear_attempts, cs.halt_clear_failures));
-				data.Add("Cam Async Buffers", IntStr(cs.async_buffers));
-				data.Add("Cam Timeout (ms)", IntStr(cs.transfer_timeout_ms));
-				data.Add("Cam Handle (usecs)", IntStr(cs.handle_usecs));
-				data.Add("Cam Avg Brightness", Format("%.2f", cs.avg_brightness));
-				data.Add("Cam Pixel Range", Format("%d - %d", (int)cs.min_pixel, (int)cs.max_pixel));
-				static const char* status_names[] = {
-					"COMPLETED", "ERROR", "TIMED_OUT", "CANCELLED", "STALL", "NO_DEVICE", "OVERFLOW"
-				};
-				const int status_name_count = (int)(sizeof(status_names) / sizeof(status_names[0]));
-				String status_line;
-				for(int i = 0; i <= LIBUSB_TRANSFER_OVERFLOW; i++) {
-					if(i) status_line << ", ";
-					if(i < status_name_count)
-						status_line << status_names[i] << "=" << cs.status_counts[i];
-					else
-						status_line << i << "=" << cs.status_counts[i];
-				}
-				data.Add("Cam Status Counts", status_line);
+		if(source) {
+			data.Add("Camera", source->IsRunning() ? "Open" : "Closed");
+			if(source->IsRunning()) {
+				VectorMap<String, String> cam_stats;
+				source->GetStatsMap(cam_stats);
+				for (int i = 0; i < cam_stats.GetCount(); i++)
+					data.Add(cam_stats.GetKey(i), cam_stats[i]);
 			}
 		} else {
 			data.Add("Camera", "Missing");
@@ -693,8 +536,8 @@ public:
 		HMD::StereoTrackerStats tb = fusion.GetBrightTracker().GetStats();
 		HMD::StereoTrackerStats td = fusion.GetDarkTracker().GetStats();
 		HMD::StereoCalibrationData calib_state = fusion.GetBrightTracker().GetCalibration();
-		camera.SetStats(true, tb);
-		camera.SetStats(false, td);
+		camera.SetStats(true, ToStatsData(tb));
+		camera.SetStats(false, ToStatsData(td));
 		if (calibration_ok) {
 			data.Add("Track Bright Frames", IntStr(tb.processed_frames));
 			data.Add("Track Bright Skips", IntStr(tb.skipped_frames));
@@ -775,13 +618,13 @@ public:
 
 		HMD::StereoOverlay bright_overlay;
 		if (fusion.GetBrightTracker().GetOverlay(bright_overlay))
-			camera.SetOverlay(true, bright_overlay);
+			camera.SetOverlay(true, ToOverlayData(bright_overlay));
 		else
 			camera.ClearOverlay(true);
 		
 		HMD::StereoOverlay dark_overlay;
 		if (fusion.GetDarkTracker().GetOverlay(dark_overlay))
-			camera.SetOverlay(false, dark_overlay);
+			camera.SetOverlay(false, ToOverlayData(dark_overlay));
 		else
 			camera.ClearOverlay(false);
 		
@@ -892,11 +735,11 @@ public:
 			PromptOK("Cannot start capture: calibration missing. Load calibration first.");
 			return;
 		}
-		if (!cam)
+		if (!source)
 			return;
-		if (cam->IsOpen())
+		if (source->IsRunning())
 			return;
-		if (!cam->Open()) {
+		if (!source->Start()) {
 			PromptOK("Failed to start capture.");
 			return;
 		}
@@ -904,11 +747,11 @@ public:
 	}
 	
 	void StopCapture() {
-		if (!cam)
+		if (!source)
 			return;
-		if (!cam->IsOpen())
+		if (!source->IsRunning())
 			return;
-		cam->Close();
+		source->Stop();
 		capture_enabled = false;
 		camera.SetImages(Image(), Image());
 		camera.ClearOverlay(true);
@@ -932,7 +775,7 @@ public:
 		ApplyCalibration(calib);
 		calibration_ok = true;
 		calibration_error.Clear();
-		capture_enabled = cam && cam->IsOpen();
+		capture_enabled = source && source->IsRunning();
 		PromptOK("Stereo calibration loaded.");
 	}
 	
@@ -963,14 +806,17 @@ public:
 void TestDump(int seconds, int async_buffers, int transfer_timeout_ms)
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
-	One<HMD::Camera> cam;
-	cam.Create();
+	One<StereoSource> source = CreateStereoSource("hmd");
+	if (!source) {
+		Cout() << "Camera Error: Missing HMD stereo source\n";
+		return;
+	}
 	if(async_buffers > 0)
-		cam->SetAsyncBuffers(async_buffers);
+		source->SetOption("async_buffers", async_buffers);
 	if(transfer_timeout_ms >= 0)
-		cam->SetTransferTimeoutMs(transfer_timeout_ms);
+		source->SetOption("transfer_timeout_ms", transfer_timeout_ms);
 	
-	if(!cam->Open()) {
+	if(!source->Start()) {
 		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 
@@ -982,11 +828,16 @@ void TestDump(int seconds, int async_buffers, int transfer_timeout_ms)
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();
-		HMD::CameraStats cs = cam->GetStats();
-		
-		Cout() << "\r" << Format("Frames: %d, Last: %d, Error: %d, Bright: %.2f, HMD: %s", 
-			cs.frame_count, cs.last_transferred, cs.last_r, cs.avg_brightness,
-			sys.hmd ? "Yes" : "No");
+		VectorMap<String, String> stats;
+		if (source)
+			source->GetStatsMap(stats);
+
+		String frames = stats.Get("Cam Frame Count", "?");
+		String last = stats.Get("Cam Last Transferred", "?");
+		String err = stats.Get("Cam Last Error (r)", "?");
+		String bright = stats.Get("Cam Avg Brightness", "?");
+		Cout() << "\r" << Format("Frames: %s, Last: %s, Error: %s, Bright: %s, HMD: %s",
+			frames, last, err, bright, sys.hmd ? "Yes" : "No");
 		
 		Sleep(100);
 	}
@@ -996,22 +847,26 @@ void TestDump(int seconds, int async_buffers, int transfer_timeout_ms)
 	Cout() << "Final HMD Orientation: " << trans.orientation.ToString() << "\n";
 	Cout() << "Final HMD Position: " << trans.position.ToString() << "\n";
 	
-	cam->Close();
-	cam.Clear();
+	if (source)
+		source->Stop();
+	source.Clear();
 	sys.Uninitialise();
 }
 
 void TestTrack(int seconds, int async_buffers, int transfer_timeout_ms)
 {
 	StdLogSetup(LOG_COUT | LOG_FILE);
-	One<HMD::Camera> cam;
-	cam.Create();
+	One<StereoSource> source = CreateStereoSource("hmd");
+	if (!source) {
+		Cout() << "Camera Error: Missing HMD stereo source\n";
+		return;
+	}
 	if(async_buffers > 0)
-		cam->SetAsyncBuffers(async_buffers);
+		source->SetOption("async_buffers", async_buffers);
 	if(transfer_timeout_ms >= 0)
-		cam->SetTransferTimeoutMs(transfer_timeout_ms);
+		source->SetOption("transfer_timeout_ms", transfer_timeout_ms);
 	
-	if(!cam->Open()) {
+	if(!source->Start()) {
 		Cout() << "Camera Error: Failed to open HMD camera\n";
 	}
 	
@@ -1021,23 +876,27 @@ HMD::System sys;
 	}
 	
 HMD::SoftHmdFusion fusion;
+	fusion.GetBrightTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
+	fusion.GetDarkTracker().SetWmrDefaults(sys.vendor_id, sys.product_id);
 	TimeStop ts;
 	while(ts.Elapsed() < seconds * 1000) {
 		sys.UpdateData();
-		Vector<HMD::CameraFrame> frames;
-		cam->PopFrames(frames);
-		for(const auto& f : frames) {
-			VisualFrame vf;
-			vf.timestamp_us = usecs();
-			vf.format = GEOM_EVENT_CAM_RGBA8;
-			vf.width = f.img.GetWidth();
-			vf.height = f.img.GetHeight();
-			vf.stride = vf.width * (int)sizeof(RGBA);
-			vf.img = f.img;
-			vf.data = 0;
-			vf.data_bytes = f.img.GetLength() * (int)sizeof(RGBA);
-			vf.flags = f.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
-			fusion.PutVisual(vf);
+		CameraFrame lf, rf;
+		if (source && source->IsRunning() && source->ReadFrame(lf, rf, false)) {
+			Image combined;
+			if (JoinStereoImage(lf.img, rf.img, combined)) {
+				VisualFrame vf;
+				vf.timestamp_us = usecs();
+				vf.format = GEOM_EVENT_CAM_RGBA8;
+				vf.width = combined.GetWidth();
+				vf.height = combined.GetHeight();
+				vf.stride = vf.width * (int)sizeof(RGBA);
+				vf.img = combined;
+				vf.data = 0;
+				vf.data_bytes = combined.GetLength() * (int)sizeof(RGBA);
+				vf.flags = lf.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
+				fusion.PutVisual(vf);
+			}
 		}
 		
 		FusionState fs;
@@ -1049,8 +908,9 @@ HMD::SoftHmdFusion fusion;
 	}
 	Cout() << "\n";
 	
-	cam->Close();
-	cam.Clear();
+	if (source)
+		source->Stop();
+	source.Clear();
 	sys.Uninitialise();
 }
 
@@ -1118,6 +978,7 @@ GUI_APP_MAIN
 	}
 
 	WmrTest wt(async_buffers, transfer_timeout_ms, heavy_checks);
-	wt.cam->SetVerbose(verbose);
+	if (wt.source)
+		wt.source->SetVerbose(verbose);
 	wt.Run();
 }

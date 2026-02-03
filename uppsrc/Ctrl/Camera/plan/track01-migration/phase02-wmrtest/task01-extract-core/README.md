@@ -1,6 +1,6 @@
 # Task 01 - Extract WmrTest Core into Ctrl/Camera
 
-Status: pending
+Status: completed
 
 ## Goal
 Move generic camera capture core into Draw/Camera and camera preview + overlay UI into Ctrl/Camera.
@@ -19,3 +19,8 @@ Move generic camera capture core into Draw/Camera and camera preview + overlay U
 - WmrTest builds and runs using Draw/Camera + Ctrl/Camera APIs.
 - Draw/Camera contains no UI code.
 - Ctrl/Camera contains no backend capture logic.
+
+## Progress
+- Added Draw/Camera overlay data types for generic stereo overlay rendering.
+- Added Ctrl/Camera StereoOverlayCtrl and migrated WmrTest overlay view to it.
+- Added Draw/Camera JoinStereoImage helper and switched WmrTest capture to Draw/Camera StereoSource.

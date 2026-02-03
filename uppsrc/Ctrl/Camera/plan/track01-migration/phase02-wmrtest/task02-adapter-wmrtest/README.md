@@ -1,6 +1,6 @@
 # Task 02 - Adapt WmrTest to Ctrl/Camera
 
-Status: pending
+Status: completed
 
 ## Goal
 Refactor WmrTest to use the new Draw/Camera + Ctrl/Camera packages.
@@ -14,3 +14,7 @@ Refactor WmrTest to use the new Draw/Camera + Ctrl/Camera packages.
 ## Acceptance
 - WmrTest compiles and behavior matches current app.
 - No regression in capture stats, overlay rendering, or tracking views.
+
+## Progress
+- Switched WmrTest test harnesses (dump/track) to Draw/Camera StereoSource.
+- WmrTest UI and capture path now use Ctrl/Camera + Draw/Camera.

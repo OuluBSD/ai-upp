@@ -31,11 +31,23 @@ Define the migration plan for CameraCtrl package and downstream integrations.
 - `reference/WebcamCV/YAPE*.cpp` (feature demo)
 - `uppsrc/ComputerVision/*` stays in place; CameraCtrl will add adapters only.
 
+### api/Media (candidate for Draw/Video)
+- `uppsrc/api/Media/Media.h` and core types (`Types.*`, `MediaStream.*`, `MediaAtomBase.*`)
+- Capture backends: `Capture_V4L2.*`, `DeviceManager_V4L2.*`, `Capture_DShow.*`, `DeviceManager_Win32.*`, `Capture_OpenCV.*`
+- Audio/Video helpers: `Audio.*`, `Video.*`, `FileIn.*`
+
 ## Proposed Package Skeletons
+### Draw/Video (shared headless base)
+- `uppsrc/Draw/Video/Video.upp`
+- `uppsrc/Draw/Video/Video.h` (public API)
+- `uppsrc/Draw/Video/VideoTypes.{h,cpp}` (frame/format types)
+- `uppsrc/Draw/Video/VideoBackend.{h,cpp}` (capture backend interface)
+- `uppsrc/Draw/Video/VideoEffects.{h,cpp}` (optional processing hooks)
+
 ### CameraDraw (headless/core)
 - `uppsrc/CameraDraw/CameraDraw.upp`
 - `uppsrc/CameraDraw/CameraDraw.h` (public API)
-- `uppsrc/CameraDraw/CameraBackend.{h,cpp}` (abstract backend interface + common types)
+- `uppsrc/CameraDraw/CameraBackend.{h,cpp}` (adapter to Draw/Video backend interface)
 - `uppsrc/CameraDraw/BackendSoftHMD.{h,cpp}` (SoftHMD input adapter)
 - `uppsrc/CameraDraw/BackendV4L2.{h,cpp}` (V4L2 input adapter)
 - `uppsrc/CameraDraw/Effects.{h,cpp}` (optional processing hooks; no CV code moved)
@@ -47,13 +59,15 @@ Define the migration plan for CameraCtrl package and downstream integrations.
 - Depends on `CameraDraw`
 
 ## Task Dependencies
-- Phase02 (WmrTest extraction) depends on CameraDraw + CameraCtrl skeletons.
-- Phase03 (WebcamRecorder) depends on V4L2 backend in CameraDraw and CameraCtrl UI.
-- Phase04 (WebcamCV) depends on CameraDraw effects surface.
+- Phase01 Task03 defines Draw/Video base and api/Media migration.
+- Phase02 (WmrTest extraction) depends on Draw/Video + CameraDraw + CameraCtrl skeletons.
+- Phase03 (WebcamRecorder) depends on V4L2 backend in Draw/Video/CameraDraw and CameraCtrl UI.
+- Phase04 (WebcamCV) depends on Draw/Video effects surface.
 - Phase05 (StereoCalibrationTool) is blocked pending explicit approval.
 
 ## Notes
-- Keep CameraDraw minimal at first (core capture + frame/overlay pipelines).
+- Keep Draw/Video minimal and headless; focus on high-performance capture/processing interfaces.
+- CameraDraw is headless and should adapt Draw/Video interfaces for camera-specific needs.
 - CameraCtrl is UI only and should not include backend capture logic.
 - WmrTest should keep tracking-specific UI and menu wiring local; only camera/overlay UI moves.
 - WebcamRecorder keeps encode/output logic; only capture + preview moves to CameraCtrl.

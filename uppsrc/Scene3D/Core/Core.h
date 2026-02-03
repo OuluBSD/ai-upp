@@ -8,6 +8,7 @@
 NAMESPACE_UPP
 
 #include "Geom.h"
+#include "PointcloudTracking.h"
 
 END_UPP_NAMESPACE
 

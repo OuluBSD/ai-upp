@@ -7,6 +7,11 @@ class VideoV4L2Backend : public VideoBackend {
 	Size size;
 	int fps = 0;
 	VideoStats stats;
+	void* cap = nullptr;
+#ifdef flagLINUX
+	Vector<byte> buffer;
+#endif
+	bool opened = false;
 
 public:
 	VideoV4L2Backend() = default;

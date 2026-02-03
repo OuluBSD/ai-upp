@@ -10,3 +10,5 @@ file
 uses
 	Core
 	Draw
+	plugin/libv4l2
+	plugin/jpg

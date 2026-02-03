@@ -3,6 +3,8 @@ file
 	Camera.h
 	CameraView.h
 	CameraView.cpp
+	CameraStereoView.h
+	CameraStereoView.cpp
 
 uses
 	CtrlLib

@@ -3,6 +3,7 @@ description "Webcam Recorder and Preview";
 uses
 	CtrlLib,
 	Ctrl/Camera,
+	Draw/Video,
 	plugin/libv4l2,
 	plugin/jpg;
 

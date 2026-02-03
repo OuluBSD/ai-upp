@@ -3,7 +3,7 @@
 #include <plugin/jpg/jpg.h>
 #endif
 
-#include "Video.h"
+#include "Camera.h"
 
 NAMESPACE_UPP
 

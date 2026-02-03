@@ -1,4 +1,5 @@
 #include <CtrlLib/CtrlLib.h>
+#include <Ctrl/Camera/Camera.h>
 #include <plugin/libv4l2/libv4l2.h>
 #include <plugin/jpg/jpg.h>
 
@@ -7,23 +8,6 @@
 #include <linux/videodev2.h>
 
 using namespace Upp;
-
-class CameraView : public Ctrl {
-	Image img;
-	
-public:
-	void SetImage(Image m) { img = m; Refresh(); }
-	
-	virtual void Paint(Draw& d) {
-		d.DrawRect(GetSize(), Black());
-		if(!img.IsEmpty()) {
-			Size isz = img.GetSize();
-			Size dsz = GetSize();
-			Size sz = GetFitSize(isz, dsz);
-			d.DrawImage((dsz.cx - sz.cx) / 2, (dsz.cy - sz.cy) / 2, sz.cx, sz.cy, img);
-		}
-	}
-};
 
 class WebcamRecorder : public TopWindow {
 	Splitter splitter;
@@ -34,7 +18,10 @@ class WebcamRecorder : public TopWindow {
 	DropList formats;
 	DropList resolutions;
 	Button start, stop;
+	Option legacy_callbacks;
+	Option show_stats;
 	Label status;
+	TimeCallback tc;
 	
 	Thread work;
 	Atomic exit_flag;
@@ -54,6 +41,12 @@ class WebcamRecorder : public TopWindow {
 	};
 	
 	ArrayMap<String, FormatInfo> format_map;
+	Mutex background_mutex;
+	Image background_img;
+	String background_status;
+	int background_frames = 0;
+	int background_drops = 0;
+	int background_decode_usecs = 0;
 
 	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 		ImageBuffer ib(w, h);
@@ -81,7 +74,7 @@ class WebcamRecorder : public TopWindow {
 		img = ib;
 	}
 
-	void CaptureLoop() {
+	void CaptureLoopLegacy() {
 		String dev = current_dev;
 		int width = 0, height = 0;
 		unsigned int fmt = 0;
@@ -132,7 +125,9 @@ class WebcamRecorder : public TopWindow {
 					Image m;
 					String fcc = V4l2Device::fourcc(capture->getFormat()).c_str();
 					
+					int decode_usecs = 0;
 					if(fcc == "MJPG") {
+						TimeStop ts;
 						// Use JPGRaster directly to avoid detection errors
 						JPGRaster raster;
 						m = raster.LoadString(String(~buffer, (int)n));
@@ -151,9 +146,12 @@ class WebcamRecorder : public TopWindow {
 								m = Rescale(m, actualW, actualH);
 							}
 						}
+						decode_usecs = ts.Elapsed();
 					}
 					else if(fcc == "YUYV") {
+						TimeStop ts;
 						YUYVToImage((const unsigned char*)~buffer, actualW, actualH, m);
+						decode_usecs = ts.Elapsed();
 					}
 					
 					if(!m.IsEmpty()) {
@@ -161,6 +159,7 @@ class WebcamRecorder : public TopWindow {
 						if(m.GetSize() != Size(actualW, actualH)) {
 							statusText << " (Img: " << m.GetSize().cx << "x" << m.GetSize().cy << ")";
 						}
+						statusText << " | decode=" << decode_usecs << "us";
 						PostCallback([=] { 
 							camera_view.SetImage(m); 
 							status.SetLabel(statusText);
@@ -173,6 +172,129 @@ class WebcamRecorder : public TopWindow {
 		
 		delete capture;
 		PostCallback([=] { status.SetLabel("Stopped"); });
+	}
+
+	void CaptureLoopThreaded() {
+		String dev = current_dev;
+		int width = 0, height = 0;
+		unsigned int fmt = 0;
+		
+		int fmtIdx = formats.GetIndex();
+		if(fmtIdx < 0) return;
+		
+		String fmtKey = formats.GetKey(fmtIdx);
+		const FormatInfo& fi = format_map.Get(fmtKey);
+		fmt = fi.pixelformat;
+		
+		int resIdx = resolutions.GetIndex();
+		if(resIdx < 0) return;
+		
+		String resStr = resolutions.GetValue();
+		Vector<String> parts = Split(resStr, 'x');
+		if(parts.GetCount() == 2) {
+			width = StrInt(parts[0]);
+			height = StrInt(parts[1]);
+		} else return;
+
+		V4L2DeviceParameters param(dev.Begin(), fmt, width, height, 30, 1);
+		V4l2Capture* capture = V4l2Capture::create(param);
+		
+		if(!capture || !capture->isReady()) {
+			if(capture) delete capture;
+			return;
+		}
+		
+		int actualW = capture->getWidth();
+		int actualH = capture->getHeight();
+		String actualRes = AsString(actualW) + "x" + AsString(actualH);
+		{
+			Mutex::Lock __(background_mutex);
+			background_status = "Active: " + actualRes;
+		}
+		
+		Buffer<char> buffer(capture->getBufferSize());
+		
+		while(!exit_flag) {
+			timeval tv;
+			tv.tv_sec = 0;
+			tv.tv_usec = 100000;
+			
+			if(capture->isReadable(&tv)) {
+				TimeStop ts;
+				size_t n = capture->read(buffer, capture->getBufferSize());
+				if(n > 0) {
+					Image m;
+					String fcc = V4l2Device::fourcc(capture->getFormat()).c_str();
+					
+					if(fcc == "MJPG") {
+						JPGRaster raster;
+						m = raster.LoadString(String(~buffer, (int)n));
+						if(!m.IsEmpty()) {
+							ImageBuffer ib(m);
+							for(RGBA& p : ib) Swap(p.r, p.b);
+							m = ib;
+							if(m.GetSize() != Size(actualW, actualH)) {
+								m = Rescale(m, actualW, actualH);
+							}
+						}
+					}
+					else if(fcc == "YUYV") {
+						YUYVToImage((const unsigned char*)~buffer, actualW, actualH, m);
+					}
+					
+					int decode_usecs = ts.Elapsed();
+					if(!m.IsEmpty()) {
+						String statusText = "Active: " + actualRes;
+						if(m.GetSize() != Size(actualW, actualH)) {
+							statusText << " (Img: " << m.GetSize().cx << "x" << m.GetSize().cy << ")";
+						}
+						{
+							Mutex::Lock __(background_mutex);
+							background_img = m;
+							background_status = statusText;
+							background_frames++;
+							background_decode_usecs = decode_usecs;
+						}
+					}
+					else {
+						Mutex::Lock __(background_mutex);
+						background_drops++;
+					}
+				}
+			}
+		}
+		
+		delete capture;
+		{
+			Mutex::Lock __(background_mutex);
+			background_status = "Stopped";
+		}
+	}
+
+	void Data() {
+		if (legacy_callbacks)
+			return;
+		Image img;
+		String statusText;
+		int frames = 0;
+		int drops = 0;
+		int decode_usecs = 0;
+		{
+			Mutex::Lock __(background_mutex);
+			img = background_img;
+			statusText = background_status;
+			frames = background_frames;
+			drops = background_drops;
+			decode_usecs = background_decode_usecs;
+		}
+		if (show_stats && !statusText.IsEmpty()) {
+			statusText << " | frames=" << frames << " drops=" << drops
+			           << " decode=" << decode_usecs << "us";
+		}
+		if (!img.IsEmpty())
+			camera_view.SetImage(img);
+		if (!statusText.IsEmpty())
+			status.SetLabel(statusText);
 	}
 
 	void OnWebcamCursor() {
@@ -251,6 +373,13 @@ class WebcamRecorder : public TopWindow {
 		if(is_recording) return;
 		exit_flag = 0;
 		is_recording = true;
+		if (!legacy_callbacks) {
+			Mutex::Lock __(background_mutex);
+			background_frames = 0;
+			background_drops = 0;
+			background_decode_usecs = 0;
+			background_status.Clear();
+		}
 		
 		// Disable controls
 		webcams.Disable();
@@ -259,7 +388,10 @@ class WebcamRecorder : public TopWindow {
 		start.Disable();
 		stop.Enable();
 		
-		work.Run(THISBACK(CaptureLoop));
+		if (legacy_callbacks)
+			work.Run(THISBACK(CaptureLoopLegacy));
+		else
+			work.Run(THISBACK(CaptureLoopThreaded));
 	}
 	
 	void OnStop() {
@@ -267,6 +399,12 @@ class WebcamRecorder : public TopWindow {
 		exit_flag = 1;
 		work.Wait();
 		is_recording = false;
+
+		if (!legacy_callbacks) {
+			Mutex::Lock __(background_mutex);
+			background_img.Clear();
+			background_status = "Stopped";
+		}
 		
 		webcams.Enable();
 		formats.Enable();
@@ -295,10 +433,17 @@ public:
 		left_pane.Add(start.TopPos(100, 24).LeftPos(10, 80));
 		left_pane.Add(stop.TopPos(100, 24).RightPos(10, 80));
 		left_pane.Add(status.TopPos(130, 24).HSizePos(10, 10));
+		left_pane.Add(legacy_callbacks.TopPos(160, 24).HSizePos(10, 10));
+		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
 		
 		start.SetLabel("Start").WhenAction = THISBACK(OnStart);
 		stop.SetLabel("Stop").WhenAction = THISBACK(OnStop);
 		stop.Disable();
+
+		legacy_callbacks.SetLabel("Legacy callbacks");
+		legacy_callbacks.WhenAction = THISBACK(OnChange);
+		show_stats.SetLabel("Show stats");
+		show_stats = true;
 		
 		webcams.WhenAction = THISBACK(OnWebcamCursor);
 		formats.WhenAction = THISBACK(OnWebcamFormat);
@@ -328,9 +473,11 @@ public:
 		}
 		
 		Sizeable().Zoomable();
+		tc.Set(-1000/60, THISBACK(Data));
 	}
 	
 	~WebcamRecorder() {
+		tc.Kill();
 		OnStop();
 	}
 };

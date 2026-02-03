@@ -4,7 +4,8 @@ noblitz;
 
 uses
 	Geometry,
-	ComputerVision;
+	ComputerVision,
+	Draw/Camera;
 
 library(LINUX USBONLY) hidapi-libusb;
 
@@ -49,6 +50,7 @@ file
 	Android.cpp,
 	Camera.h,
 	Camera.cpp,
+	SoftHMD.icpp,
 	Tracking.h,
 	Tracking.cpp,
 	TrackingImpl.h,
@@ -60,4 +62,3 @@ file
 	NxJson.h,
 	NxJson.c,
 	_ readonly separator;
-

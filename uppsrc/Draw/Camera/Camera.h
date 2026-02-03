@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <Draw/Draw.h>
+#include <Geometry/Geometry.h>
 #include <Draw/Video/Video.h>
 
 NAMESPACE_UPP
@@ -10,6 +11,9 @@ NAMESPACE_UPP
 #include "CameraTypes.h"
 #include "CameraBackend.h"
 #include "CameraEffects.h"
+#include "StereoSource.h"
+#include "StereoPreviewCore.h"
+#include "CameraCalibration.h"
 
 END_UPP_NAMESPACE
 

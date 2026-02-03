@@ -8,6 +8,8 @@ NAMESPACE_UPP
 
 #include "CameraView.h"
 #include "CameraStereoView.h"
+#include "PreviewCtrl.h"
+#include "StereoPreviewCtrl.h"
 
 END_UPP_NAMESPACE
 

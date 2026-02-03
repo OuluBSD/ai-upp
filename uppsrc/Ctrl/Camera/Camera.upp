@@ -4,7 +4,11 @@ file
 	CameraView.h,
 	CameraView.cpp,
 	CameraStereoView.h,
-	CameraStereoView.cpp;
+	CameraStereoView.cpp,
+	PreviewCtrl.h,
+	PreviewCtrl.cpp,
+	StereoPreviewCtrl.h,
+	StereoPreviewCtrl.cpp;
 
 uses
 	CtrlLib

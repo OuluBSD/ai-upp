@@ -9,6 +9,7 @@ NAMESPACE_UPP
 #include "VideoTypes.h"
 #include "VideoBackend.h"
 #include "VideoEffects.h"
+#include "V4L2Capture.h"
 
 END_UPP_NAMESPACE
 

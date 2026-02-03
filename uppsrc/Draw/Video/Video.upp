@@ -3,7 +3,9 @@ file
 	Video.h,
 	VideoTypes.h,
 	VideoBackend.h,
-	VideoEffects.h;
+	VideoEffects.h,
+	V4L2Capture.h,
+	V4L2Capture.cpp;
 
 uses
 	Core

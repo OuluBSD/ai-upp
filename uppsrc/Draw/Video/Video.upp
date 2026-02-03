@@ -4,6 +4,8 @@ file
 	VideoTypes.h,
 	VideoBackend.h,
 	VideoEffects.h,
+	DeviceManager.h,
+	DeviceManager.cpp,
 	V4L2Capture.h,
 	V4L2Capture.cpp;
 

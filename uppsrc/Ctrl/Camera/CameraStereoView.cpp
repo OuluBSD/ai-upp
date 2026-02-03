@@ -50,17 +50,28 @@ void CameraStereoView::Paint(Draw& d) {
 			WhenOverlay(d, rc_a, img_a, 0);
 		if (WhenOverlay && !img_b.IsEmpty())
 			WhenOverlay(d, rc_b, img_b, 1);
+
+		if (draw_label) {
+			if (!label_a.IsEmpty())
+				d.DrawText(rc_a.left + 6, rc_a.top + 6, label_a, Arial(12).Bold(), White());
+			if (!label_b.IsEmpty())
+				d.DrawText(rc_b.left + 6, rc_b.top + 6, label_b, Arial(12).Bold(), White());
+		}
 	}
 	else {
 		if (!img_a.IsEmpty()) {
 			DrawImage(d, rc_a, img_a);
 			if (WhenOverlay)
 				WhenOverlay(d, rc_a, img_a, 0);
+			if (draw_label && !label_a.IsEmpty())
+				d.DrawText(rc_a.left + 6, rc_a.top + 6, label_a, Arial(12).Bold(), White());
 		}
 		else if (!img_b.IsEmpty()) {
 			DrawImage(d, rc_a, img_b);
 			if (WhenOverlay)
 				WhenOverlay(d, rc_a, img_b, 1);
+			if (draw_label && !label_b.IsEmpty())
+				d.DrawText(rc_a.left + 6, rc_a.top + 6, label_b, Arial(12).Bold(), White());
 		}
 	}
 

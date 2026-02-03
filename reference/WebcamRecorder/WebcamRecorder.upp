@@ -6,7 +6,8 @@ uses
 	plugin/jpg;
 
 file
+	AGENTS.md,
 	WebcamRecorder.cpp;
 
 mainconfig
-	"" = "GUI";
+	"" = "";

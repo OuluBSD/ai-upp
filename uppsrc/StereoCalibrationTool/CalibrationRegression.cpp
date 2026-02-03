@@ -10,13 +10,13 @@ NAMESPACE_UPP
 StageARegression.cpp
 --------------------
 Purpose:
-- CLI regression suite for Stage A viewer invariants.
+- CLI regression suite for Calibration viewer invariants.
 - Tests all view-only features (overlay, tint, crosshair, diff) and preview toggles.
 - Ensures identity preservation at zero extrinsics.
 - Does NOT require GUI or camera hardware.
 
 Usage:
-  bin/StereoCalibrationTool --stagea_regression <project_dir> [--verbose]
+  bin/StereoCalibrationTool --calib_regression <project_dir> [--verbose]
 
 Exit codes:
   0 = PASS (all tests passed)
@@ -317,7 +317,7 @@ static bool Test7_Stability(PreviewPipeline& pipe, bool verbose) {
 	return true;
 }
 
-int RunStageADistortionSelfCheck(bool verbose) {
+int RunCalibrationDistortionSelfCheck(bool verbose) {
 	Cout() << "\n[Distortion Self-Check]\n";
 	const int w = 640, h = 480;
 	ImageBuffer ib(w, h);
@@ -358,7 +358,7 @@ int RunStageADistortionSelfCheck(bool verbose) {
 	return ok ? 0 : 1;
 }
 
-int RunStageARegression(const String& project_dir, bool verbose) {
+int RunCalibrationRegression(const String& project_dir, bool verbose) {
 	AppModel model;
 	Image l, r;
 	if (!LoadTestImages(project_dir, l, r, verbose)) return 1;

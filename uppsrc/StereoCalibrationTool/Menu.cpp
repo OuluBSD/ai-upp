@@ -33,16 +33,12 @@ void MenuWindow::SubMenuHelp(Bar& bar) {
 // Assumes the controller keeps all windows alive for the app lifetime.
 void MenuWindow::Init(AppModel& m,
                       CameraWindow& cam,
-                      StageAWindow& a,
-                      StageBWindow& b,
-                      StageCWindow& c,
-                      LiveResultWindow& l) {
+                      CalibrationWindow& c,
+                      MainCalibWindow& mw) {
 	model = &m;
 	camera = &cam;
-	stage_a = &a;
-	stage_b = &b;
-	stage_c = &c;
-	live = &l;
+	calib = &c;
+	main_win = &mw;
 	RefreshProjectLabel();
 }
 
@@ -58,17 +54,13 @@ void MenuWindow::BuildLayout() {
 	project_lbl.SetLabel("Project: (not set)");
 
 	open_camera.SetLabel("Camera / Capture");
-	open_stage_a.SetLabel("Stage A (Basic)");
-	open_stage_b.SetLabel("Stage B (Solve)");
-	open_stage_c.SetLabel("Stage C (Refine)");
-	open_live.SetLabel("Live Result");
+	open_calib.SetLabel("Calibration");
+	open_unified.SetLabel("Unified (New)");
 	open_all.SetLabel("Open All");
 
 	open_camera <<= THISBACK(OpenCamera);
-	open_stage_a <<= THISBACK(OpenStageA);
-	open_stage_b <<= THISBACK(OpenStageB);
-	open_stage_c <<= THISBACK(OpenStageC);
-	open_live <<= THISBACK(OpenLive);
+	open_calib <<= THISBACK(OpenCalibration);
+	open_unified <<= THISBACK(OpenUnified);
 	open_all <<= THISBACK(OpenAll);
 
 	int y = 10;
@@ -78,13 +70,9 @@ void MenuWindow::BuildLayout() {
 	y += 30;
 	Add(open_camera.TopPos(y, 28).HSizePos(10, 10));
 	y += 34;
-	Add(open_stage_a.TopPos(y, 28).HSizePos(10, 10));
+	Add(open_calib.TopPos(y, 28).HSizePos(10, 10));
 	y += 34;
-	Add(open_stage_b.TopPos(y, 28).HSizePos(10, 10));
-	y += 34;
-	Add(open_stage_c.TopPos(y, 28).HSizePos(10, 10));
-	y += 34;
-	Add(open_live.TopPos(y, 28).HSizePos(10, 10));
+	Add(open_unified.TopPos(y, 28).HSizePos(10, 10));
 	y += 40;
 	Add(open_all.TopPos(y, 28).HSizePos(10, 10));
 
@@ -108,45 +96,26 @@ void MenuWindow::OpenCamera() {
 	}
 }
 
-// Shows the Stage A window (does not create or destroy it).
-void MenuWindow::OpenStageA() {
-	if (stage_a) {
-		stage_a->Open();
-		stage_a->SetFocus();
+// Shows the Calibration window (does not create or destroy it).
+void MenuWindow::OpenCalibration() {
+	if (calib) {
+		calib->Open();
+		calib->SetFocus();
 	}
 }
 
-// Shows the Stage B window (does not create or destroy it).
-void MenuWindow::OpenStageB() {
-	if (stage_b) {
-		stage_b->Open();
-		stage_b->SetFocus();
-	}
-}
-
-// Shows the Stage C window (does not create or destroy it).
-void MenuWindow::OpenStageC() {
-	if (stage_c) {
-		stage_c->Open();
-		stage_c->SetFocus();
-	}
-}
-
-// Shows the Live Result window (does not create or destroy it).
-void MenuWindow::OpenLive() {
-	if (live) {
-		live->Open();
-		live->SetFocus();
+void MenuWindow::OpenUnified() {
+	if (main_win) {
+		main_win->Open();
+		main_win->SetFocus();
 	}
 }
 
 // Convenience helper to open all windows at once.
 void MenuWindow::OpenAll() {
 	OpenCamera();
-	OpenStageA();
-	OpenStageB();
-	OpenStageC();
-	OpenLive();
+	OpenCalibration();
+	OpenUnified();
 }
 
 END_UPP_NAMESPACE

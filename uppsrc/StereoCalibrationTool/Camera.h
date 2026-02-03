@@ -12,20 +12,13 @@ Purpose:
 
 Key classes:
 - CameraWindow: TopWindow for source selection, live preview, capture list.
-
-Data flow:
-- Reads/writes AppModel (captures, selection, project_state, calibration).
-- Delegates image conversion + capture logic to shared helpers.
-
-Gotchas / invariants:
-- Capture list is the authoritative list of frames.
-- Live preview should never mutate calibration state.
+- CameraPane: Embedded control for unified window.
 */
 
-class CameraWindow : public TopWindow {
+class CameraPane : public ParentCtrl {
 public:
-	typedef CameraWindow CLASSNAME;
-	CameraWindow();
+	typedef CameraPane CLASSNAME;
+	CameraPane();
 
 	void Init(AppModel& model);
 	void SetVerbose(bool v);
@@ -38,16 +31,21 @@ public:
 	bool CaptureFrameOnce();
 	bool PeekFrame(Image& left, Image& right, bool prefer_bright);
 
-private:
-	AppModel* model = nullptr;
+	void OnDeleteCapture();
+	void OnDeleteAll();
 
+	Event<> WhenChange;
+
+	AppModel* model = nullptr;
+	ArrayCtrl captures_list;
+
+private:
 	// Camera sources and synchronization.
 	Vector<One<StereoSource>> sources;
 	Mutex source_mutex;
 	bool verbose = false;
 
 	// UI controls.
-	MenuBar menu;
 	DropList source_list;
 	Button start_source;
 	Button stop_source;
@@ -59,10 +57,8 @@ private:
 	Label board_info_lbl;
 	Button generate_board_btn;
 	
-	ArrayCtrl captures_list;
 	ImageCtrl left_view;
 	ImageCtrl right_view;
-	StatusBar status;
 	ParentCtrl controls;
 	Splitter main_split;
 	Splitter preview_split;
@@ -71,15 +67,6 @@ private:
 	bool live_active = false;
 	int64 live_serial = -1;
 	TimeCallback live_cb;
-	
-	virtual void Close() override;
-	virtual void MainMenu(Bar& bar);
-
-	void SubMenuFile(Bar& bar);
-	void SubMenuEdit(Bar& bar);
-	void SubMenuHelp(Bar& bar);
-	void OnDeleteAll();
-	void OnGenerateBoard();
 
 	void BuildLayout();
 	void BuildCapturesList();
@@ -91,10 +78,37 @@ private:
 	void RefreshCapturesList();
 	void SyncSelectionFromModel();
 	void OnCapturesBar(Bar& bar);
-	void OnDeleteCapture();
 	void OnCaptureSelection();
-	void LoadProjectState();
-	void SaveProjectState();
+	void OnGenerateBoard();
+};
+
+class CameraWindow : public TopWindow {
+public:
+	typedef CameraWindow CLASSNAME;
+	CameraWindow();
+
+	void Init(AppModel& model) { pane.Init(model); }
+	void SetVerbose(bool v) { pane.SetVerbose(v); }
+	void RefreshFromModel() { pane.RefreshFromModel(); }
+	void SetUsbDevicePath(const String& path) { pane.SetUsbDevicePath(path); }
+
+	// External triggers used by the controller for headless tests.
+	bool StartSourceByIndex(int idx) { return pane.StartSourceByIndex(idx); }
+	void StopSource() { pane.StopSource(); }
+	bool CaptureFrameOnce() { return pane.CaptureFrameOnce(); }
+	bool PeekFrame(Image& left, Image& right, bool prefer_bright) { return pane.PeekFrame(left, right, prefer_bright); }
+
+private:
+	CameraPane pane;
+	MenuBar menu;
+	StatusBar status;
+	
+	virtual void Close() override;
+	virtual void MainMenu(Bar& bar);
+
+	void SubMenuFile(Bar& bar);
+	void SubMenuEdit(Bar& bar);
+	void SubMenuHelp(Bar& bar);
 };
 
 END_UPP_NAMESPACE

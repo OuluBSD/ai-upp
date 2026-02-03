@@ -21,6 +21,7 @@ GUI_APP_MAIN
 	bool verbose = false;
 	int hmd_timeout_ms = 0;
 	int live_timeout_ms = 0;
+	int global_timeout_ms = 0;
 	bool stagea_identity_test = false;
 	bool stagea_regression = false;
 	bool stagea_distortion_selfcheck = false;
@@ -56,6 +57,7 @@ GUI_APP_MAIN
 			       << "  --usb-timeout-ms=<ms>    Set timeout for USB test\n"
 			       << "  --hmd-timeout-ms=<ms>    Set timeout for HMD test\n"
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
+			       << "  --timeout=<ms>           Auto-close window after timeout (for Valgrind testing)\n"
 			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
 			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
 			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
@@ -96,6 +98,8 @@ GUI_APP_MAIN
 			hmd_timeout_ms = atoi(arg.Mid(strlen("--hmd-timeout-ms=")));
 		else if (arg.StartsWith("--live-timeout-ms="))
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
+		else if (arg.StartsWith("--timeout="))
+			global_timeout_ms = atoi(arg.Mid(strlen("--timeout=")));
 		else if (arg == "--stagea_identity_test")
 			stagea_identity_test = true;
 		else if (arg == "--stagea_regression")
@@ -241,6 +245,18 @@ GUI_APP_MAIN
 	if (test_usb || test_hmd || test_live) {
 		PromptOK("Automated tests are only available via the disabled controller.");
 		return;
+	}
+
+	// Setup global timeout if requested (for Valgrind testing)
+	if (global_timeout_ms > 0) {
+		SetTimeCallback(global_timeout_ms, [&]() {
+			if (launch_camera) camera.Break();
+			else if (launch_stagea) stage_a.Break();
+			else if (launch_stageb) stage_b.Break();
+			else if (launch_stagec) stage_c.Break();
+			else if (launch_live) live.Break();
+			else menu.Break();
+		});
 	}
 
 	// Direct window launch (skips menu)

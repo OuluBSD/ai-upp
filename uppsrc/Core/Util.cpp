@@ -1058,6 +1058,14 @@ int RunningFlag::DecreaseRunning()
 }
 bool RunningFlag::IsRunning() const { return running; }
 
+Vector<String> CommandLineArguments::GetRest() const
+{
+	Vector<String> rest;
+	for(int i = last_index + 1; i < full_args.GetCount(); i++)
+		rest.Add(full_args[i]);
+	return rest;
+}
+
 bool CommandLineArguments::IsArg(char c) const {
 	for (const CmdInput& in : inputs) {
 		if (in.key == c)
@@ -1094,14 +1102,20 @@ void CommandLineArguments::AddPositional(const char* desc, dword type, Value def
 }
 
 bool CommandLineArguments::Parse() {
-	const Vector<String>& args = CommandLine();
+	return Parse(CommandLine());
+}
+
+bool CommandLineArguments::Parse(const Vector<String>& args) {
 	//DUMPC(args);
+	full_args <<= args;
+	last_index = -1;
 	
 	inputs.Clear();
 	positionals.Clear();
 	vars = ValueMap();
 	
 	for(int i = 0; i < args.GetCount(); i++) {
+		last_index = i;
 		String arg = args[i];
 		
 		if (arg.IsEmpty()) {Cerr() << "Invalid argument: empty" << EOL; return false;}
@@ -1166,8 +1180,8 @@ bool CommandLineArguments::Parse() {
 		else {
 			int positional_index = positionals.GetCount();
 			if (!positional_desc.IsEmpty() && positional_index >= positional_desc.GetCount()) {
-				Cerr() << "Too many positional arguments (expected at most " << positional_desc.GetCount() << ")." << EOL;
-				return false;
+				last_index--; // Revert last_index so GetRest() includes this arg
+				return true;
 			}
 			Value positional = ParseJSON(arg);
 			if (IsError(positional))

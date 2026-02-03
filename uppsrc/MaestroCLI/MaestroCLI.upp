@@ -1,0 +1,12 @@
+description "Maestro Command Line Interface\n";
+
+uses
+	Core,
+	Maestro;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "USE_MALLOC";
+

@@ -18,12 +18,13 @@ file
 	PlanModels.h,
 	PlanParser.h,
 	PlanParser.cpp,
-	RepoView.h    (GUI) RepoView.h,
-	RepoView.cpp  (GUI) RepoView.cpp,
-	PlanView.h    (GUI) PlanView.h,
-	PlanView.cpp  (GUI) PlanView.cpp,
+	RepoView.h,
+	RepoView.cpp,
+	PlanView.h,
+	PlanView.cpp,
 	Tools.cpp,
-	SessionSelectWindow.h    (GUI) SessionSelectWindow.h,
-	SessionSelectWindow.cpp  (GUI) SessionSelectWindow.cpp,
-	AIChatCtrl.h    (GUI) AIChatCtrl.h,
-	AIChatCtrl.cpp  (GUI) AIChatCtrl.cpp;
+	SessionSelectWindow.h,
+	SessionSelectWindow.cpp,
+	AIChatCtrl.h,
+	AIChatCtrl.cpp;
+

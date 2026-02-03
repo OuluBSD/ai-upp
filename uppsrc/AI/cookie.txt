@@ -1,4 +1,4 @@
-TRACK=PlanExecution
-PHASE=05_FeedbackLoop
-TASK=
-STATUS=DONE
+TRACK=MaestroCLI
+PHASE=02_CommandImplementation
+TASK=Plan Management
+STATUS=TODO

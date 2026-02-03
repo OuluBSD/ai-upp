@@ -55,10 +55,10 @@ struct FormatInfo : Moveable<FormatInfo> {
 	int legacy_frames = 0;
 	int64 legacy_start_us = 0;
 	int64 legacy_total_decode_us = 0;
-bool use_draw_video = false;
-int timeout_ms = 0;
+	bool use_draw_video = false;
+	int timeout_ms = 0;
 
-void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
+	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 		ImageBuffer ib(w, h);
 		const unsigned char* s = src;
 		RGBA* t = ib.Begin();
@@ -82,21 +82,21 @@ void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 			YUV2RGB(y1, u0, v0, *t++);
 		}
 		img = ib;
-}
+	}
 
-VideoPixelFormat MapVideoFormat(const String& fourcc) const {
-	if (fourcc == "MJPG") return VID_PIX_MJPEG;
-	if (fourcc == "YUYV") return VID_PIX_YUYV;
-	if (fourcc == "RGB3") return VID_PIX_RGB8;
-	if (fourcc == "BGR3") return VID_PIX_BGR8;
-	return VID_PIX_UNKNOWN;
-}
+	VideoPixelFormat MapVideoFormat(const String& fourcc) const {
+		if (fourcc == "MJPG") return VID_PIX_MJPEG;
+		if (fourcc == "YUYV") return VID_PIX_YUYV;
+		if (fourcc == "RGB3") return VID_PIX_RGB8;
+		if (fourcc == "BGR3") return VID_PIX_BGR8;
+		return VID_PIX_UNKNOWN;
+	}
 
-void StopForTimeout() {
-	if (is_recording)
-		OnStop();
-	Close();
-}
+	void StopForTimeout() {
+		if (is_recording)
+			OnStop();
+		Close();
+	}
 
 	void CaptureLoopLegacy() {
 		legacy_start_us = usecs();
@@ -225,6 +225,8 @@ void StopForTimeout() {
 					sz.cy = StrInt(parts[1]);
 				}
 			}
+			if (sz.cx <= 0 || sz.cy <= 0)
+				sz = Size(640, 480);
 			backend.SetFormat(vpix, sz, 30);
 			if (!backend.Open())
 				return;
@@ -681,6 +683,78 @@ GUI_APP_MAIN
 		if(args[i] == "--timeout" && i + 1 < args.GetCount())
 			timeout_ms = atoi(args[i + 1]);
 	}
+	auto ListDevices = [] {
+		Vector<VideoDeviceInfo> devs;
+		V4L2DeviceManager mgr;
+		mgr.Enumerate(devs);
+		for (const auto& dev : devs) {
+			Cout() << dev.path;
+			if (!dev.name.IsEmpty())
+				Cout() << " | " << dev.name;
+			if (!dev.driver.IsEmpty())
+				Cout() << " | driver=" << dev.driver;
+			if (!dev.bus_info.IsEmpty())
+				Cout() << " | bus=" << dev.bus_info;
+			Cout() << "\n";
+		}
+	};
+
+	auto ListFormats = [](const String& devpath) {
+		VideoDeviceCaps caps;
+		V4L2DeviceManager mgr;
+		if (!mgr.EnumerateCaps(devpath, caps)) {
+			Cout() << "No formats for " << devpath << "\n";
+			return;
+		}
+		for (const auto& f : caps.formats) {
+			String fourcc = f.pixelformat ? String(V4l2Device::fourcc(f.pixelformat).c_str()) : String();
+			Cout() << (fourcc.IsEmpty() ? f.description : fourcc) << " | " << f.description << "\n";
+		}
+	};
+
+	auto ListResolutions = [](const String& devpath, const String& fmt_key) {
+		VideoDeviceCaps caps;
+		V4L2DeviceManager mgr;
+		if (!mgr.EnumerateCaps(devpath, caps)) {
+			Cout() << "No formats for " << devpath << "\n";
+			return;
+		}
+		for (const auto& f : caps.formats) {
+			String fourcc = f.pixelformat ? String(V4l2Device::fourcc(f.pixelformat).c_str()) : String();
+			if (!fmt_key.IsEmpty() && fourcc != fmt_key)
+				continue;
+			for (const auto& r : f.resolutions) {
+				Cout() << fourcc << " " << r.size.cx << "x" << r.size.cy;
+				if (r.fps > 0)
+					Cout() << " @" << r.fps;
+				Cout() << "\n";
+			}
+		}
+	};
+
+	bool list_devices = false;
+	bool list_formats = false;
+	bool list_resolutions = false;
+	String list_format_key;
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] == "--list-devices") list_devices = true;
+		if(args[i] == "--list-formats") list_formats = true;
+		if(args[i] == "--list-resolutions") list_resolutions = true;
+		if(args[i] == "--format" && i + 1 < args.GetCount())
+			list_format_key = args[i + 1];
+	}
+	if (list_devices) { ListDevices(); return; }
+	if (list_formats) {
+		if (device.IsEmpty()) device = "/dev/video0";
+		ListFormats(device);
+		return;
+	}
+	if (list_resolutions) {
+		if (device.IsEmpty()) device = "/dev/video0";
+		ListResolutions(device, list_format_key);
+		return;
+	}
+
 	WebcamRecorder app;
 	if (!device.IsEmpty())
 		app.SetDevice(device);

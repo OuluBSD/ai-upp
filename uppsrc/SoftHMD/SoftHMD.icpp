@@ -116,6 +116,8 @@ public:
 
 		FillFrame(left, last_left, last_is_bright, last_serial);
 		FillFrame(right, last_right, last_is_bright, last_serial);
+		ApplyEffects(left);
+		ApplyEffects(right);
 		return true;
 	}
 
@@ -142,6 +144,8 @@ public:
 
 		FillFrame(left, L, is_bright, serial);
 		FillFrame(right, R, is_bright, serial);
+		ApplyEffects(left);
+		ApplyEffects(right);
 		return true;
 	}
 

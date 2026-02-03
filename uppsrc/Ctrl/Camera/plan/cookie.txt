@@ -1,10 +1,10 @@
 Ctrl/Camera Plan Cookie
 
 Current Task:
-- track01-migration/phase05-stereocalib/task02-backend-replace (completed)
+- track01-migration/phase04-webcamcv/task01-effects-surface (active)
 
 Next Task:
-- track01-migration/phase04-webcamcv/task01-effects-surface (ready)
+- (set after effects surface is defined)
 
 Blocked / Requires Approval:
 - (none)

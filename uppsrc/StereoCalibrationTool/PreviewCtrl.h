@@ -7,7 +7,7 @@ NAMESPACE_UPP
 PreviewCtrl.h
 =============
 Purpose:
-- Specialized image viewer for stereo calibration Stage A.
+- Specialized image viewer for stereo calibration alignment and review.
 - Handles scaling-to-fit, coordinate mapping (screen <-> image), and overlays.
 
 Coordinate Spaces:

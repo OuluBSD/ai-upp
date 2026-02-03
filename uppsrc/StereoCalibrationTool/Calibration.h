@@ -1,45 +1,42 @@
-#ifndef _StereoCalibrationTool_StageA_h_
-#define _StereoCalibrationTool_StageA_h_
+#ifndef _StereoCalibrationTool_Calibration_h_
+#define _StereoCalibrationTool_Calibration_h_
 
 #include <CtrlLib/CtrlLib.h>
 
 NAMESPACE_UPP
 
 /*
-StageA.h
+Calibration.h
 --------
 Purpose:
-- Stage A basic alignment UI and match picking.
+- Calibration basic alignment UI and match picking.
 - Displays captured frame list and independent plotters for left/right eye.
 
 Key classes:
-- StageAWindow: TopWindow for Stage A controls and preview plotting.
-
-Data flow:
-- Reads captured frames from AppModel.
-- Writes Stage A parameters into AppModel.project_state.
-
-Gotchas / invariants:
-- Stage A does NOT own camera start/stop or capture.
-- When yaw/pitch/roll are all zero, preview should be identity.
+- CalibrationWindow: TopWindow for Calibration controls and preview plotting.
+- CalibrationPane: Embedded control for unified window.
 */
 
-class StageAWindow : public TopWindow {
+class CalibrationPane : public ParentCtrl {
 public:
-	typedef StageAWindow CLASSNAME;
-	StageAWindow();
+	typedef CalibrationPane CLASSNAME;
+	CalibrationPane();
 
 	void Init(AppModel& model);
 	void RefreshFromModel();
-	
-	virtual void MainMenu(Bar& bar);
+
+	AppModel* model = nullptr;
+
+	// These need to be accessible if we want to trigger them from outside
+	void OnDeleteCapture();
+	void OnUndo();
+	void OnSolveIntrinsics();
+	void OnSolveStereo();
+
+	Event<> WhenChange;
 
 private:
-	AppModel* model = nullptr;
-	
-	MenuBar menu;
-
-	// Stage A controls.
+	// Calibration controls.
 	Label calib_eye_lbl;
 	EditDoubleSpin calib_eye_dist;
 	LabelBox eye_l_group, eye_r_group;
@@ -109,7 +106,6 @@ private:
 	PreviewCtrl left_plot;
 	PreviewCtrl right_plot;
 
-	StatusBar status;
 	Label pipeline_state_lbl;
 
 	LensPoly preview_lens;
@@ -123,36 +119,29 @@ private:
 	Image last_left_preview;
 	Image last_right_preview;
 	
-	// Undo state (simple one-step for Stage A params)
+	// Undo state (simple one-step for Calibration params)
 	ProjectState undo_state;
 	bool has_undo = false;
 
 	void BuildLayout();
-	void BuildStageAControls();
+	void BuildCalibrationControls();
 	void BuildTabs();
 	void BuildCaptureLists();
 	void BuildPlotters();
-	void SyncStageA();
+	void SyncCalibration();
 	void UpdatePreview();
 	void UpdatePlotters();
 	void UpdateReviewEnablement();
 	bool PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& out_tilt);
-#if 0
-	bool BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale); // DEPRECATED
-#endif
 	void ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale);
 	void ComposeFinalDisplayImages();
 	void OnReviewChanged();
-	void OnUndo();
 	void OnCapturesBar(Bar& bar);
-	void OnDeleteCapture();
 	void OnCaptureSelection();
 	void SaveProjectState();
 	void PushUndo();
 	
 	void OnDetect();
-	void OnSolveIntrinsics();
-	void OnSolveStereo();
 	void OnExportYaml();
 	bool CheckPoseDiversity();
 	void UpdateCoverageHeatmap();
@@ -163,17 +152,29 @@ private:
 	                                 const cv::Mat& R, const cv::Mat& T,
 	                                 const Size& img_sz);
 	void BuildRectificationMaps();
-	void RebuildRectificationFromState();  // Rebuild rectification from saved ProjectState
+	void RebuildRectificationFromState();
 	void ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
 	                             const cv::Mat& K2, const cv::Mat& D2,
 	                             const cv::Mat& R, const cv::Mat& T);
 	void UpdateEpipolarDisplay();
+};
+
+class CalibrationWindow : public TopWindow {
+public:
+	typedef CalibrationWindow CLASSNAME;
+	CalibrationWindow();
+
+	void Init(AppModel& model) { pane.Init(model); }
+	void RefreshFromModel() { pane.RefreshFromModel(); }
 	
-	// Menu handlers
-	void SubMenuEdit(Bar& bar);
-	void SubMenuHelp(Bar& bar);
+	virtual void MainMenu(Bar& bar);
 
 private:
+	CalibrationPane pane;
+	MenuBar menu;
+
+	void SubMenuEdit(Bar& bar);
+	void SubMenuHelp(Bar& bar);
 };
 
 END_UPP_NAMESPACE

@@ -62,10 +62,10 @@ static Image MatToImage(const cv::Mat& mat) {
 }
 
 /*
-StageA.cpp
+Calibration.cpp
 ==========
 Purpose:
-- Stage A UI and basic preview/match picking.
+- Calibration UI and basic preview/match picking.
 - Owns its own plotters (left/right) and does not reuse Camera/LiveResult previews.
  - Does NOT start/stop the camera or capture new frames.
 
@@ -292,20 +292,15 @@ static bool IsParamsValid(const StereoCalibrationParams& p) {
 	       std::isfinite(p.yaw_l) && std::isfinite(p.pitch_l) && std::isfinite(p.roll_l);
 }
 
-StageAWindow::StageAWindow() {
-	Title("Stereo Calibration Tool - Stage A");
-	Sizeable().Zoomable();
-	AddFrame(menu);
-	AddFrame(status);
-	menu.Set(THISBACK(MainMenu));
+CalibrationPane::CalibrationPane() {
 	BuildLayout();
 }
 
-// Binds AppModel and builds all Stage A UI sections.
+// Binds AppModel and builds all Calibration UI sections.
 // Assumes AppModel is already loaded by the controller.
-void StageAWindow::Init(AppModel& m) {
+void CalibrationPane::Init(AppModel& m) {
 	model = &m;
-	BuildStageAControls();
+	BuildCalibrationControls();
 	BuildCaptureLists();
 	BuildPlotters();
 	// Note: RefreshFromModel() will be called explicitly after state is loaded in main.cpp
@@ -314,7 +309,7 @@ void StageAWindow::Init(AppModel& m) {
 
 // Pulls AppModel.project_state into UI controls and refreshes lists.
 // Does not write any state back to disk.
-void StageAWindow::RefreshFromModel() {
+void CalibrationPane::RefreshFromModel() {
 	if (!model)
 		return;
 	const ProjectState& ps = model->project_state;
@@ -393,7 +388,7 @@ void StageAWindow::RefreshFromModel() {
 }
 
 // Composes the main layout (left controls + right preview/list split).
-void StageAWindow::BuildLayout() {
+void CalibrationPane::BuildLayout() {
 	Add(controls.VSizePos(0, 0).LeftPos(0, 300));
 
 	main_split.Vert(preview_split, tab_data);
@@ -407,7 +402,7 @@ void StageAWindow::BuildLayout() {
 	BuildCaptureLists();
 }
 
-void StageAWindow::BuildTabs() {
+void CalibrationPane::BuildTabs() {
 	tab_data.Add(tab_frames.SizePos(), "Frames");
 	tab_data.Add(tab_board.SizePos(), "Board");
 	tab_data.Add(tab_solve.SizePos(), "Solve");
@@ -436,30 +431,30 @@ void StageAWindow::BuildTabs() {
 	report_log.SetReadOnly();
 }
 
-// Builds Stage A controls (board params + view controls).
-void StageAWindow::BuildStageAControls() {
+// Builds Calibration controls (board params + view controls).
+void CalibrationPane::BuildCalibrationControls() {
 	calib_eye_lbl.SetLabel("Eye dist (mm)");
 	calib_eye_dist.SetInc(0.1);
-	calib_eye_dist.WhenAction = THISBACK(SyncStageA);
+	calib_eye_dist.WhenAction = THISBACK(SyncCalibration);
 
 	board_x_lbl.SetLabel("Squares X");
-	board_x.MinMax(3, 25); board_x.WhenAction = THISBACK(SyncStageA);
+	board_x.MinMax(3, 25); board_x.WhenAction = THISBACK(SyncCalibration);
 	board_y_lbl.SetLabel("Squares Y");
-	board_y.MinMax(3, 25); board_y.WhenAction = THISBACK(SyncStageA);
+	board_y.MinMax(3, 25); board_y.WhenAction = THISBACK(SyncCalibration);
 	board_sz_lbl.SetLabel("Size (mm)");
-	board_size.MinMax(1.0, 1000.0); board_size.WhenAction = THISBACK(SyncStageA);
+	board_size.MinMax(1.0, 1000.0); board_size.WhenAction = THISBACK(SyncCalibration);
 	
 	detect_btn.SetLabel("Detect Corners");
 	detect_btn <<= THISBACK(OnDetect);
 	
 	lock_intrinsics.SetLabel("Lock Intrinsics");
-	lock_intrinsics.WhenAction = THISBACK(SyncStageA);
+	lock_intrinsics.WhenAction = THISBACK(SyncCalibration);
 	
 	lock_baseline.SetLabel("Lock Baseline");
-	lock_baseline.WhenAction = THISBACK(SyncStageA);
+	lock_baseline.WhenAction = THISBACK(SyncCalibration);
 	
 	lock_yaw_symmetry.SetLabel("Lock Yaw Sym");
-	lock_yaw_symmetry.WhenAction = THISBACK(SyncStageA);
+	lock_yaw_symmetry.WhenAction = THISBACK(SyncCalibration);
 	
 	solve_int_btn.SetLabel("Solve Intrinsics");
 	solve_int_btn <<= THISBACK(OnSolveIntrinsics);
@@ -469,21 +464,21 @@ void StageAWindow::BuildStageAControls() {
 
 	preview_extrinsics.SetLabel("Preview extrinsics");
 	preview_extrinsics <<= true;
-	preview_extrinsics.WhenAction = THISBACK(SyncStageA);
+	preview_extrinsics.WhenAction = THISBACK(SyncCalibration);
 
 	preview_intrinsics.SetLabel("Preview intrinsics");
 	preview_intrinsics <<= false;
-	preview_intrinsics.WhenAction = THISBACK(SyncStageA);
+	preview_intrinsics.WhenAction = THISBACK(SyncCalibration);
 
 	barrel_lbl.SetLabel("Undistort strength");
-	barrel_strength.SetInc(0.1); barrel_strength.MinMax(0, 5.0); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncStageA);
+	barrel_strength.SetInc(0.1); barrel_strength.MinMax(0, 5.0); barrel_strength <<= 0; barrel_strength.WhenAction = THISBACK(SyncCalibration);
 	fov_lbl.SetLabel("FOV (deg)");
-	fov_deg.SetInc(1.0); fov_deg.MinMax(10, 170); fov_deg <<= 90; fov_deg.WhenAction = THISBACK(SyncStageA);
+	fov_deg.SetInc(1.0); fov_deg.MinMax(10, 170); fov_deg <<= 90; fov_deg.WhenAction = THISBACK(SyncCalibration);
 
-	cx_lbl.SetLabel("cx"); lens_cx.SetInc(1.0); lens_cx.WhenAction = THISBACK(SyncStageA);
-	cy_lbl.SetLabel("cy"); lens_cy.SetInc(1.0); lens_cy.WhenAction = THISBACK(SyncStageA);
-	k1_lbl.SetLabel("k1"); lens_k1.SetInc(0.01); lens_k1.MinMax(-2.0, 2.0); lens_k1.WhenAction = THISBACK(SyncStageA);
-	k2_lbl.SetLabel("k2"); lens_k2.SetInc(0.01); lens_k2.MinMax(-2.0, 2.0); lens_k2.WhenAction = THISBACK(SyncStageA);
+	cx_lbl.SetLabel("cx"); lens_cx.SetInc(1.0); lens_cx.WhenAction = THISBACK(SyncCalibration);
+	cy_lbl.SetLabel("cy"); lens_cy.SetInc(1.0); lens_cy.WhenAction = THISBACK(SyncCalibration);
+	k1_lbl.SetLabel("k1"); lens_k1.SetInc(0.01); lens_k1.MinMax(-2.0, 2.0); lens_k1.WhenAction = THISBACK(SyncCalibration);
+	k2_lbl.SetLabel("k2"); lens_k2.SetInc(0.01); lens_k2.MinMax(-2.0, 2.0); lens_k2.WhenAction = THISBACK(SyncCalibration);
 
 	basic_params_doc.SetReadOnly();
 
@@ -517,7 +512,7 @@ void StageAWindow::BuildStageAControls() {
 	rectify_alpha_lbl.SetLabel("Rectify α");
 	rectify_alpha_slider.MinMax(0, 100);
 	rectify_alpha_slider <<= 0;
-	rectify_alpha_slider.WhenAction = THISBACK(SyncStageA);
+	rectify_alpha_slider.WhenAction = THISBACK(SyncCalibration);
 
 	alpha_lbl.SetLabel("Alpha");
 	alpha_slider.MinMax(0, 100);
@@ -608,7 +603,7 @@ void StageAWindow::BuildStageAControls() {
 
 
 // Configures the capture list columns and selection callback.
-void StageAWindow::BuildCaptureLists() {
+void CalibrationPane::BuildCaptureLists() {
 	captures_list.AddColumn("Time");
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("L Det");
@@ -621,12 +616,12 @@ void StageAWindow::BuildCaptureLists() {
 	captures_list.WhenBar = THISBACK(OnCapturesBar);
 }
 
-void StageAWindow::OnCapturesBar(Bar& bar) {
+void CalibrationPane::OnCapturesBar(Bar& bar) {
 	bar.Add("Delete selected", THISBACK(OnDeleteCapture))
 	   .Enable(captures_list.IsCursor());
 }
 
-void StageAWindow::OnDeleteCapture() {
+void CalibrationPane::OnDeleteCapture() {
 	int row = captures_list.GetCursor();
 	if (row < 0 || row >= model->captured_frames.GetCount())
 		return;
@@ -640,10 +635,11 @@ void StageAWindow::OnDeleteCapture() {
 	
 	SaveProjectState();
 	RefreshFromModel();
+	WhenChange();
 }
 
 // Initializes plotters (left/right images).
-void StageAWindow::BuildPlotters() {
+void CalibrationPane::BuildPlotters() {
 	left_plot.SetEye(0);
 	left_plot.SetTitle("Left Eye");
 
@@ -651,9 +647,9 @@ void StageAWindow::BuildPlotters() {
 	right_plot.SetTitle("Right Eye");
 }
 
-// Syncs Stage A UI values into AppModel.project_state and updates preview.
+// Syncs Calibration UI values into AppModel.project_state and updates preview.
 // Assumes controls contain valid numeric values.
-void StageAWindow::SyncStageA() {
+void CalibrationPane::SyncCalibration() {
 	if (!model)
 		return;
 	ProjectState& ps = model->project_state;
@@ -686,7 +682,7 @@ void StageAWindow::SyncStageA() {
 	}
 
 	String doc;
-	doc << "Stage A Basic Params:\n";
+	doc << "Calibration Basic Params:\n";
 	doc << "  Eye dist: " << ps.eye_dist << " mm\n";
 	doc << Format("  FOV: %.1f, k1: %.3f, k2: %.3f\n", ps.fov_deg, ps.lens_k1, ps.lens_k2);
 	doc << Format("  PP: %.1f, %.1f\n", ps.lens_cx, ps.lens_cy);
@@ -699,7 +695,7 @@ void StageAWindow::SyncStageA() {
 }
 
 // Applies view-mode changes (overlay, alpha, epipolar) and refreshes preview.
-void StageAWindow::OnReviewChanged() {
+void CalibrationPane::OnReviewChanged() {
 	if (!model)
 		return;
 	ProjectState& ps = model->project_state;
@@ -721,24 +717,24 @@ void StageAWindow::OnReviewChanged() {
 	SaveProjectState();
 }
 
-void StageAWindow::OnUndo() {
+void CalibrationPane::OnUndo() {
 	if (has_undo) {
 		model->project_state = undo_state;
 		has_undo = false;
 		undo_btn.Disable();
 		RefreshFromModel();
-		SyncStageA();
+		SyncCalibration();
 	}
 }
 
-void StageAWindow::PushUndo() {
+void CalibrationPane::PushUndo() {
 	undo_state = model->project_state;
 	has_undo = true;
 	undo_btn.Enable();
 }
 
 // Updates plotters based on capture selection.
-void StageAWindow::UpdatePreview() {
+void CalibrationPane::UpdatePreview() {
 	if (!model)
 		return;
 	UpdateReviewEnablement();
@@ -749,7 +745,7 @@ void StageAWindow::UpdatePreview() {
 }
 
 // Updates left/right plotter images (raw or undistorted).
-void StageAWindow::UpdatePlotters() {
+void CalibrationPane::UpdatePlotters() {
 	int row = captures_list.GetCursor();
 	if (row < 0 || row >= model->captured_frames.GetCount()) {
 		left_plot.SetImage(Image());
@@ -773,7 +769,7 @@ void StageAWindow::UpdatePlotters() {
 }
 
 // Enables/disables review overlays based on calibration availability.
-void StageAWindow::UpdateReviewEnablement() {
+void CalibrationPane::UpdateReviewEnablement() {
 	bool has_poly = IsValidAnglePoly(model->last_calibration.angle_to_pixel);
 	bool can_review = model->last_calibration.is_enabled && has_poly;
 
@@ -784,15 +780,12 @@ void StageAWindow::UpdateReviewEnablement() {
 
 // Builds/updates preview lens from AppModel settings and cache.
 // Returns false if lens cannot be built from current data.
-bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& out_tilt) {
+bool CalibrationPane::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& out_tilt) {
 	if (sz.cx <= 0 || sz.cy <= 0)
 		return false;
 
 	StereoCalibrationParams p;
 	bool use_basic = true;
-
-	if (model->project_state.compare_basic_params)
-		use_basic = true;
 
 	if (use_basic) {
 		// Use k1 radial model: r_d = f * theta * (1 + k1 * theta^2)
@@ -833,11 +826,6 @@ bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& 
 		yaw = model->last_calibration.outward_angle;
 		pitch = model->last_calibration.right_pitch;
 		roll = model->last_calibration.right_roll;
-		if (model->project_state.stage_c_enabled) {
-			yaw += model->dyaw_c;
-			pitch += model->dpitch_c;
-			roll += model->droll_c;
-		}
 	}
 	p.yaw = yaw;
 	p.pitch = pitch;
@@ -880,7 +868,7 @@ bool StageAWindow::PreparePreviewLens(const Size& sz, LensPoly& out_lens, vec2& 
 // DEPRECATED: Builds undistort cache for a captured frame, if view mode requires it.
 // NOTE: This is now deprecated since ApplyPreviewImages handles per-eye transforms directly.
 // Kept for potential future use with view_mode settings.
-bool StageAWindow::BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
+bool CalibrationPane::BuildUndistortCache(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
 	Size sz = !frame.left_img.IsEmpty() ? frame.left_img.GetSize() : frame.right_img.GetSize();
 	if (sz.cx <= 0 || sz.cy <= 0)
 		return false;
@@ -907,7 +895,7 @@ bool StageAWindow::BuildUndistortCache(CapturedFrame& frame, const LensPoly& len
 
 // Applies raw or transformed images to the plotters based on preview flags.
 // Respects preview_extrinsics and preview_intrinsics toggles independently.
-void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
+void CalibrationPane::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens, float linear_scale) {
 	if (!model)
 		return;
 
@@ -948,14 +936,6 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 			rr = apply_extr ? (float)(r_deg * M_PI / 180.0) : 0;
 		}
 		
-		// Apply Stage C deltas if enabled and compare is active
-		if (ps.stage_c_compare) {
-			// model->dyaw_c etc are in degrees
-			ry += model->dyaw_c * M_PI / 180.0;
-			rp += model->dpitch_c * M_PI / 180.0;
-			rr += model->droll_c * M_PI / 180.0;
-		}
-
 		if (apply_intr) {
 			return StereoCalibrationHelpers::RectifyAndRotateOnePass(src, lp, ry, rp, rr, sz);
 		} else {
@@ -1013,7 +993,7 @@ void StageAWindow::ApplyPreviewImages(CapturedFrame& frame, const LensPoly& lens
 
 // Composes final display images from cached per-eye previews.
 // Handles overlay, tint, crosshair - all view-only operations.
-void StageAWindow::ComposeFinalDisplayImages() {
+void CalibrationPane::ComposeFinalDisplayImages() {
 	if (!model)
 		return;
 
@@ -1110,19 +1090,19 @@ void StageAWindow::ComposeFinalDisplayImages() {
 }
 
 // Capture list selection callback: refresh preview/match list.
-void StageAWindow::OnCaptureSelection() {
+void CalibrationPane::OnCaptureSelection() {
 	UpdatePreview();
 }
 
 // Persists AppModel (project.json + images) to disk.
-void StageAWindow::SaveProjectState() {
+void CalibrationPane::SaveProjectState() {
 	if (!model || model->project_dir.IsEmpty())
 		return;
 	StereoCalibrationHelpers::SaveState(*model);
 }
 
-void StageAWindow::OnDetect() {
-	SyncStageA();
+void CalibrationPane::OnDetect() {
+	SyncCalibration();
 	
 	// Input UI values are SQUARES count.
 	// OpenCV findChessboardCorners needs INNER CORNERS count.
@@ -1208,7 +1188,7 @@ void StageAWindow::OnDetect() {
 	PromptOK(Format("Detection complete.\nLeft: %d\nRight: %d", total_l, total_r));
 }
 
-bool StageAWindow::CheckPoseDiversity() {
+bool CalibrationPane::CheckPoseDiversity() {
 	int n_l = 0, n_r = 0;
 	double min_sq_px = 1e9, max_sq_px = 0;
 	
@@ -1241,7 +1221,7 @@ bool StageAWindow::CheckPoseDiversity() {
 	return true;
 }
 
-void StageAWindow::UpdateCoverageHeatmap() {
+void CalibrationPane::UpdateCoverageHeatmap() {
 	int rows = 6;
 	int cols = 8;
 	Vector<int> hits;
@@ -1323,8 +1303,8 @@ void StageAWindow::UpdateCoverageHeatmap() {
 	coverage_lbl.SetLabel(Format("Heatmap: %d/%d cells", covered, rows*cols));
 }
 
-void StageAWindow::OnSolveIntrinsics() {
-	SyncStageA();
+void CalibrationPane::OnSolveIntrinsics() {
+	SyncCalibration();
 	if (!CheckPoseDiversity()) return;
 	
 	int nx = (int)board_x - 1;
@@ -1406,8 +1386,8 @@ void StageAWindow::OnSolveIntrinsics() {
 	SaveProjectState();
 }
 
-void StageAWindow::OnSolveStereo() {
-	SyncStageA();
+void CalibrationPane::OnSolveStereo() {
+	SyncCalibration();
 	
 	int nx = (int)board_x - 1;
 	int ny = (int)board_y - 1;
@@ -1611,7 +1591,7 @@ void StageAWindow::OnSolveStereo() {
 	LOG("OnSolveStereo: ProjectState saved to disk");
 }
 
-void StageAWindow::OnExportYaml() {
+void CalibrationPane::OnExportYaml() {
 	FileSel fs;
 	fs.Type("OpenCV YAML", "*.yaml");
 	if (!fs.ExecuteSaveAs("Export OpenCV Calibration")) return;
@@ -1657,7 +1637,7 @@ Why this is needed:
 - Allows visual verification that stereo calibration is correct
 - Enables epipolar alignment metrics (median Δy should be ~0 after rectification)
 */
-void StageAWindow::ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& D1,
+void CalibrationPane::ComputeStereoRectification(const cv::Mat& K1, const cv::Mat& D1,
                                                const cv::Mat& K2, const cv::Mat& D2,
                                                const cv::Mat& R, const cv::Mat& T,
                                                const Size& img_sz) {
@@ -1739,7 +1719,7 @@ Why separate from ComputeStereoRectification:
 - Remap maps depend only on rectification parameters, not on frame content
 - Can be reused for all frames with same calibration
 */
-void StageAWindow::BuildRectificationMaps() {
+void CalibrationPane::BuildRectificationMaps() {
 	StereoRectificationCache& cache = model->rectification_cache;
 
 	if (!cache.valid) return;
@@ -1782,7 +1762,7 @@ Implementation notes:
 - T (translation) is just [eye_dist, 0, 0] baseline separation
 - Only rebuilds if calibration data exists (lens_f > 0) and frames are available
 */
-void StageAWindow::RebuildRectificationFromState() {
+void CalibrationPane::RebuildRectificationFromState() {
 	if (!model) {
 		LOG("RebuildRectificationFromState: model is null");
 		return;
@@ -1925,7 +1905,7 @@ Why this matters:
 - Large vertical disparity indicates calibration error or misalignment
 - Provides quantitative validation of rectification quality
 */
-void StageAWindow::ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
+void CalibrationPane::ComputeEpipolarMetrics(const cv::Mat& K1, const cv::Mat& D1,
                                            const cv::Mat& K2, const cv::Mat& D2,
                                            const cv::Mat& R, const cv::Mat& T) {
 	StereoRectificationCache& cache = model->rectification_cache;
@@ -1990,7 +1970,7 @@ UpdateEpipolarDisplay:
 - Updates UI labels showing epipolar alignment metrics
 - Color-codes results: green if good, yellow if ok, red if poor
 */
-void StageAWindow::UpdateEpipolarDisplay() {
+void CalibrationPane::UpdateEpipolarDisplay() {
 	if (model->epipolar_num_points == 0 || model->epipolar_median_dy < 0) {
 		epipolar_metric_lbl.SetLabel("Epipolar Δy:");
 		epipolar_value_lbl.SetLabel("Not computed");
@@ -2017,18 +1997,26 @@ void StageAWindow::UpdateEpipolarDisplay() {
 	}
 }
 
-void StageAWindow::MainMenu(Bar& bar) {
+CalibrationWindow::CalibrationWindow() {
+	Title("Stereo Calibration Tool - Calibration");
+	Sizeable().Zoomable();
+	AddFrame(menu);
+	menu.Set(THISBACK(MainMenu));
+	Add(pane.SizePos());
+}
+
+void CalibrationWindow::MainMenu(Bar& bar) {
 	bar.Add("Edit", THISBACK(SubMenuEdit));
 	bar.Add("Help", THISBACK(SubMenuHelp));
 }
 
-void StageAWindow::SubMenuHelp(Bar& bar) {
+void CalibrationWindow::SubMenuHelp(Bar& bar) {
 	bar.Add("Instructions", [] { StereoCalibrationHelpers::ShowInstructions(); });
 }
 
-void StageAWindow::SubMenuEdit(Bar& bar) {
-	bar.Add("Delete selected frame", THISBACK(OnDeleteCapture))
-	   .Enable(captures_list.IsCursor());
+void CalibrationWindow::SubMenuEdit(Bar& bar) {
+	bar.Add("Delete selected frame", [=] { pane.OnDeleteCapture(); });
+	bar.Add("Undo", [=] { pane.OnUndo(); });
 }
 
 END_UPP_NAMESPACE

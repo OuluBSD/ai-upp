@@ -1,4 +1,5 @@
 #include "StereoCalibrationTool.h"
+#include "MainCalibWindow.h"
 #include <cstring>
 
 #ifndef M_PI
@@ -17,24 +18,21 @@ GUI_APP_MAIN
 	bool test_usb = false;
 	bool test_hmd = false;
 	bool test_live = false;
-	bool solve_mode = false;
 	bool verbose = false;
 	int hmd_timeout_ms = 0;
 	int live_timeout_ms = 0;
 	int global_timeout_ms = 0;
-	bool stagea_identity_test = false;
-	bool stagea_regression = false;
-	bool stagea_distortion_selfcheck = false;
+	bool calib_identity_test = false;
+	bool calib_regression = false;
+	bool calib_distortion_selfcheck = false;
 	bool pipeline_selfcheck = false;
-	bool stagea_ui_selfcheck = false;
+	bool calib_ui_selfcheck = false;
 	String test_image_path;
 	
 	// Direct launch flags
 	bool launch_camera = false;
-	bool launch_stagea = false;
-	bool launch_stageb = false;
-	bool launch_stagec = false;
-	bool launch_live = false;
+	bool launch_calib = false;
+	bool launch_unified = false;
 
 	for (int i = 0; i < args.GetCount(); i++) {
 		const String& arg = args[i];
@@ -45,11 +43,8 @@ GUI_APP_MAIN
 			       << "  -h, --help               Show this help message\n"
 			       << "  -v, --verbose            Enable verbose logging\n"
 			       << "  --camera                 Open Camera window directly\n"
-			       << "  --stagea                 Open Stage A window directly\n"
-			       << "  --stageb                 Open Stage B window directly\n"
-			       << "  --stagec                 Open Stage C window directly\n"
-			       << "  --live                   Open Live Result window directly\n"
-			       << "  --solve                  Run solver headlessly and output math log to stdout\n"
+			       << "  --calib                  Open Calibration window directly\n"
+			       << "  --unified                Open Unified window directly\n"
 			       << "  --test-usb               Run automated USB stereo source test\n"
 			       << "  --test-hmd               Run automated HMD stereo source test\n"
 			       << "  --test-live              Run automated live capture test\n"
@@ -58,36 +53,30 @@ GUI_APP_MAIN
 			       << "  --hmd-timeout-ms=<ms>    Set timeout for HMD test\n"
 			       << "  --live-timeout-ms=<ms>   Set timeout for live test\n"
 			       << "  --timeout=<ms>           Auto-close window after timeout (for Valgrind testing)\n"
-			       << "  --stagea_identity_test   Test Stage A preview identity at zero extrinsics\n"
-			       << "  --stagea_regression      Run Stage A viewer regression suite (all invariants)\n"
-			       << "  --stagea_distortion_selfcheck Run Stage A distortion sanity self-check\n"
+			       << "  --calib_identity_test   Test Calibration preview identity at zero extrinsics\n"
+			       << "  --calib_regression      Run Calibration viewer regression suite (all invariants)\n"
+			       << "  --calib_distortion_selfcheck Run Calibration distortion sanity self-check\n"
 			       << "  --pipeline_selfcheck     Verify calibration pipeline invariants\n"
-			       << "  --stagea_ui_selfcheck    Verify Stage A UI data consistency\n"
+			       << "  --calib_ui_selfcheck    Verify Calibration UI data consistency\n"
 			       << "  --image=<path>           Optional: specific image for identity test\n";
 			return;
 		}
 		if (arg == "--pipeline_selfcheck")
 			pipeline_selfcheck = true;
-		else if (arg == "--stagea_ui_selfcheck")
-			stagea_ui_selfcheck = true;
+		else if (arg == "--calib_ui_selfcheck")
+			calib_ui_selfcheck = true;
 		else if (arg == "--test-usb")
 			test_usb = true;
 		else if (arg == "--test-hmd")
 			test_hmd = true;
 		else if (arg == "--test-live")
 			test_live = true;
-		else if (arg == "--solve")
-			solve_mode = true;
 		else if (arg == "--camera")
 			launch_camera = true;
-		else if (arg == "--stagea")
-			launch_stagea = true;
-		else if (arg == "--stageb")
-			launch_stageb = true;
-		else if (arg == "--stagec")
-			launch_stagec = true;
-		else if (arg == "--live")
-			launch_live = true;
+		else if (arg == "--calib")
+			launch_calib = true;
+		else if (arg == "--unified")
+			launch_unified = true;
 		else if (arg == "-v" || arg == "--verbose")
 			verbose = true;
 		else if (arg.StartsWith("--usb-device="))
@@ -100,12 +89,12 @@ GUI_APP_MAIN
 			live_timeout_ms = atoi(arg.Mid(strlen("--live-timeout-ms=")));
 		else if (arg.StartsWith("--timeout="))
 			global_timeout_ms = atoi(arg.Mid(strlen("--timeout=")));
-		else if (arg == "--stagea_identity_test")
-			stagea_identity_test = true;
-		else if (arg == "--stagea_regression")
-			stagea_regression = true;
-		else if (arg == "--stagea_distortion_selfcheck")
-			stagea_distortion_selfcheck = true;
+		else if (arg == "--calib_identity_test")
+			calib_identity_test = true;
+		else if (arg == "--calib_regression")
+			calib_regression = true;
+		else if (arg == "--calib_distortion_selfcheck")
+			calib_distortion_selfcheck = true;
 		else if (arg.StartsWith("--image="))
 			test_image_path = arg.Mid(strlen("--image="));
 		else if (!arg.StartsWith("--"))
@@ -113,11 +102,6 @@ GUI_APP_MAIN
 	}
 	
 	if (project_dir.IsEmpty()) {
-		if (solve_mode) {
-			Cerr() << "Error: --solve requires project directory argument\n";
-			SetExitCode(1);
-			return;
-		}
 		FileSel fs;
 		if (fs.ExecuteSelectDir("Select Project Directory"))
 			project_dir = fs.Get();
@@ -128,43 +112,38 @@ GUI_APP_MAIN
 	AppModel model;
 	MenuWindow menu;
 	CameraWindow camera;
-	StageAWindow stage_a;
-	StageBWindow stage_b;
-	StageCWindow stage_c;
-	LiveResultWindow live;
+	CalibrationWindow calib;
+	MainCalibWindow unified;
 
-	menu.Init(model, camera, stage_a, stage_b, stage_c, live);
+	menu.Init(model, camera, calib, unified);
 	camera.Init(model);
-	stage_a.Init(model);
-	stage_b.Init(model);
-	stage_c.Init(model);
-	live.Init(model);
+	calib.Init(model);
+	unified.Init(model);
 
 	if (verbose) {
 		camera.SetVerbose(true);
-		live.SetVerbose(true);
 	}
 
 	if (!usb_device.IsEmpty())
 		camera.SetUsbDevicePath(usb_device);
 
-	// Stage A identity test mode
-	if (stagea_identity_test) {
-		int result = TestStageAIdentity(model, project_dir, test_image_path);
+	// Calibration identity test mode
+	if (calib_identity_test) {
+		int result = TestCalibrationIdentity(model, project_dir, test_image_path);
 		SetExitCode(result);
 		return;
 	}
 
-	// Stage A regression suite mode
-	if (stagea_regression) {
-		int result = RunStageARegression(project_dir, verbose);
+	// Calibration regression suite mode
+	if (calib_regression) {
+		int result = RunCalibrationRegression(project_dir, verbose);
 		SetExitCode(result);
 		return;
 	}
 
-	// Stage A distortion self-check mode
-	if (stagea_distortion_selfcheck) {
-		int result = RunStageADistortionSelfCheck(verbose);
+	// Calibration distortion self-check mode
+	if (calib_distortion_selfcheck) {
+		int result = RunCalibrationDistortionSelfCheck(verbose);
 		SetExitCode(result);
 		return;
 	}
@@ -178,18 +157,6 @@ GUI_APP_MAIN
 		Cout() << "Current State: " << StereoCalibrationHelpers::GetCalibrationStateText(ps.calibration_state) << "\n";
 		
 		int errors = 0;
-		if (ps.calibration_state >= CALIB_STAGE_B_SOLVED) {
-			if (ps.stage_b_diag.final_reproj_rms > 5.0) {
-				Cerr() << "ERROR: Stage B Reproj RMS too high: " << ps.stage_b_diag.final_reproj_rms << " px\n";
-				errors++;
-			}
-		}
-		if (ps.calibration_state >= CALIB_STAGE_C_REFINED) {
-			if (ps.stage_c_diag.cost_after >= ps.stage_c_diag.cost_before) {
-				Cerr() << "ERROR: Stage C cost did not improve.\n";
-				errors++;
-			}
-		}
 		
 		if (errors > 0) {
 			Cout() << "Pipeline self-check FAILED with " << errors << " error(s).\n";
@@ -201,11 +168,11 @@ GUI_APP_MAIN
 		return;
 	}
 
-	// Stage A UI self-check mode
-	if (stagea_ui_selfcheck) {
+	// Calibration UI self-check mode
+	if (calib_ui_selfcheck) {
 		model.project_dir = project_dir;
 		StereoCalibrationHelpers::LoadState(model);
-		Cout() << "Stage A UI Self-Check: " << project_dir << "\n";
+		Cout() << "Calibration UI Self-Check: " << project_dir << "\n";
 		Cout() << "Frames: " << model.captured_frames.GetCount() << "\n";
 		int total_matches = 0, total_lines = 0;
 		for(const auto& f : model.captured_frames) {
@@ -215,21 +182,8 @@ GUI_APP_MAIN
 			for(const auto& c : f.annotation_lines_right) if(c.GetCount() < 2) { Cerr() << "ERROR: Short line found\n"; SetExitCode(1); return; }
 		}
 		Cout() << "Matches: " << total_matches << ", Lines: " << total_lines << "\n";
-		Cout() << "Stage A UI self-check PASSED.\n";
+		Cout() << "Calibration UI self-check PASSED.\n";
 		SetExitCode(0);
-		return;
-	}
-
-	// Headless solve mode
-	if (solve_mode) {
-		model.project_dir = project_dir;
-		StereoCalibrationHelpers::LoadLastCalibration(model);
-		StereoCalibrationHelpers::LoadState(model);
-		stage_b.RefreshFromModel();
-		int result = stage_b.SolveCalibration() ? 0 : 1;
-		StereoCalibrationHelpers::SaveLastCalibration(model);
-		StereoCalibrationHelpers::SaveState(model);
-		SetExitCode(result);
 		return;
 	}
 
@@ -237,9 +191,8 @@ GUI_APP_MAIN
 	StereoCalibrationHelpers::LoadLastCalibration(model);
 	StereoCalibrationHelpers::LoadState(model);
 	camera.RefreshFromModel();
-	stage_a.RefreshFromModel();
-	stage_b.RefreshFromModel();
-	stage_c.RefreshFromModel();
+	calib.RefreshFromModel();
+	unified.RefreshFromModel();
 	menu.RefreshFromModel();
 
 	if (test_usb || test_hmd || test_live) {
@@ -251,21 +204,17 @@ GUI_APP_MAIN
 	if (global_timeout_ms > 0) {
 		SetTimeCallback(global_timeout_ms, [&]() {
 			if (launch_camera) camera.Break();
-			else if (launch_stagea) stage_a.Break();
-			else if (launch_stageb) stage_b.Break();
-			else if (launch_stagec) stage_c.Break();
-			else if (launch_live) live.Break();
+			else if (launch_calib) calib.Break();
+			else if (launch_unified) unified.Break();
 			else menu.Break();
 		});
 	}
 
 	// Direct window launch (skips menu)
 	if (launch_camera) { camera.Run(); return; }
-	if (launch_stagea) { stage_a.Run(); return; }
-	if (launch_stageb) { stage_b.Run(); return; }
-	if (launch_stagec) { stage_c.Run(); return; }
-	if (launch_live) { live.Run(); return; }
+	if (launch_calib) { calib.Run(); return; }
+	if (launch_unified) { unified.Run(); return; }
 
-	// Default: open menu
-	menu.Run();
+	// Default: open unified window
+	unified.Run();
 }

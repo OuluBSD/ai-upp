@@ -25,7 +25,7 @@ StereoCalibrationTool.h
 Purpose:
 - Master header for the StereoCalibrationTool package.
 - Owns shared data types, AppModel, and shared UI helpers used by all
-  TopWindow modules (Menu/Camera/StageA/StageB/StageC/LiveResult).
+  TopWindow modules (Menu/Camera/Calibration/StageB/StageC/LiveResult).
 
 How to run (smoke test):
 - build: python3 script/build.py -j 12 -mc 1 StereoCalibrationTool
@@ -100,43 +100,15 @@ struct CapturedFrame : Moveable<CapturedFrame> {
 
 enum CalibrationState {
 	CALIB_RAW = 0,
-	CALIB_STAGE_A_MANUAL = 1,
-	CALIB_STAGE_B_SOLVED = 4,
-	CALIB_STAGE_C_REFINED = 5
-};
-
-struct StageBDiagnostics : Moveable<StageBDiagnostics> {
-	double initial_reproj_rms = 0;
-	double final_reproj_rms = 0;
-	double initial_dist_rms = 0;
-	double final_dist_rms = 0;
-	int num_iterations = 0;
-	
-	void Jsonize(JsonIO& jio) {
-		jio("init_reproj", initial_reproj_rms)("final_reproj", final_reproj_rms)
-		   ("init_dist", initial_dist_rms)("final_dist", final_dist_rms)
-		   ("iters", num_iterations);
-	}
-};
-
-struct StageCDiagnostics : Moveable<StageCDiagnostics> {
-	double delta_yaw = 0;
-	double delta_pitch = 0;
-	double delta_roll = 0;
-	double cost_before = 0;
-	double cost_after = 0;
-	
-	void Jsonize(JsonIO& jio) {
-		jio("dyaw", delta_yaw)("dpitch", delta_pitch)("droll", delta_roll)
-		   ("cost0", cost_before)("cost1", cost_after);
-	}
+	CALIB_MANUAL = 1,
+	CALIB_SOLVED = 4
 };
 
 // User-editable state that persists to project.json.
 struct ProjectState {
 	int schema_version = 1;
 
-	// Stage A (basic alignment)
+	// Calibration (basic alignment)
 	double eye_dist = 64.0;          // mm
 	double yaw_l = 0, pitch_l = 0, roll_l = 0; // deg
 	double yaw_r = 0, pitch_r = 0, roll_r = 0; // deg
@@ -156,23 +128,6 @@ struct ProjectState {
 	bool lock_intrinsics = false;
 	bool lock_baseline = false;
 	bool lock_yaw_symmetry = false;
-
-	// Stage B (solve)
-	double distance_weight = 0.1;
-	double huber_px = 2.0;
-	double huber_m = 0.030;
-	bool lock_distortion = false;
-	bool verbose_math_log = false;
-	bool compare_basic_params = false;
-
-	// Stage C (micro-refine)
-	bool stage_c_enabled = false;
-	bool stage_c_compare = false;
-	int stage_c_mode = 0; // 0=Relative, 1=Per-eye
-	double max_dyaw = 3.0;
-	double max_dpitch = 2.0;
-	double max_droll = 3.0;
-	double lambda = 0.1;
 
 	// Viewer
 	bool overlay_eyes = false;
@@ -210,8 +165,6 @@ struct ProjectState {
 
 	// Pipeline State
 	int calibration_state = CALIB_RAW;
-	StageBDiagnostics stage_b_diag;
-	StageCDiagnostics stage_c_diag;
 
 	void Jsonize(JsonIO& jio) {
 		jio("schema_version", schema_version);
@@ -227,14 +180,6 @@ struct ProjectState {
 		              ("lock_baseline", lock_baseline)
 		              ("lock_yaw_symmetry", lock_yaw_symmetry);
 		   
-		   		jio("distance_weight", distance_weight)("huber_px", huber_px)("huber_m", huber_m);		jio("lock_distortion", lock_distortion)("verbose_math_log", verbose_math_log)
-		   ("compare_basic_params", compare_basic_params);
-
-		jio("stage_c_enabled", stage_c_enabled)("stage_c_compare", stage_c_compare);
-		jio("stage_c_mode", stage_c_mode);
-		jio("max_dyaw", max_dyaw)("max_dpitch", max_dpitch)("max_droll", max_droll)
-		   ("lambda", lambda);
-
 		jio("overlay_eyes", overlay_eyes)("alpha", alpha);
 		jio("overlay_swap", overlay_swap)("show_difference", show_difference)
 		   ("show_epipolar", show_epipolar);
@@ -260,8 +205,7 @@ struct ProjectState {
 			jio("stereo_T_x", stereo_T[0])("stereo_T_y", stereo_T[1])("stereo_T_z", stereo_T[2]);
 		}
 
-		jio("calibration_state", calibration_state)
-		   ("stage_b_diag", stage_b_diag)("stage_c_diag", stage_c_diag);
+		jio("calibration_state", calibration_state);
 	}
 };
 
@@ -326,15 +270,6 @@ struct AppModel {
 	bool live_undist_valid = false;
 	Image live_undist_left;
 	Image live_undist_right;
-
-	// Stage C deltas (diagnostic only).
-	float dyaw_c = 0;
-	float dpitch_c = 0;
-	float droll_c = 0;
-
-	// Output buffers (used by Stage B/Stage C UI).
-	String report_text;
-	String math_text;
 
 	// Global flags
 	bool verbose = false;
@@ -430,7 +365,7 @@ Image ConvertRgb24ToImage(const byte* data, int width, int height);
 Image ConvertYuyvToImage(const byte* data, int width, int height);
 Image ConvertMjpegToImage(const byte* data, int bytes);
 
-// Preview/undistort helpers used by StageA and LiveResult.
+// Preview/undistort helpers used by Calibration and LiveResult.
 struct LensParams {
 	float f = 0;
 	float cx = 0, cy = 0;
@@ -467,19 +402,17 @@ void ShowInstructions();
 class MenuWindow;
 class CameraWindow;
 class PreviewCtrl;
-class StageAWindow;
-class StageBWindow;
-class StageCWindow;
-class LiveResultWindow;
+class CalibrationWindow;
+class MainCalibWindow;
 
 // Identity test helper (headless diagnostic).
-int TestStageAIdentity(AppModel& model, const String& project_dir, const String& image_path = String());
+int TestCalibrationIdentity(AppModel& model, const String& project_dir, const String& image_path = String());
 
-// Regression suite for Stage A viewer invariants (headless, no GUI/camera required).
-int RunStageARegression(const String& project_dir, bool verbose = false);
+// Regression suite for Calibration viewer invariants (headless, no GUI/camera required).
+int RunCalibrationRegression(const String& project_dir, bool verbose = false);
 
-// Self-check for Stage A distortion monotonic improvement.
-int RunStageADistortionSelfCheck(bool verbose = false);
+// Self-check for Calibration distortion monotonic improvement.
+int RunCalibrationDistortionSelfCheck(bool verbose = false);
 
 END_UPP_NAMESPACE
 
@@ -490,9 +423,7 @@ END_UPP_NAMESPACE
 #include "Menu.h"
 #include "Camera.h"
 #include "PreviewCtrl.h"
-#include "StageA.h"
-#include "StageB.h"
-#include "StageC.h"
-#include "LiveResult.h"
+#include "Calibration.h"
+#include "MainCalibWindow.h"
 
 #endif

@@ -20,6 +20,7 @@ class WebcamRecorder : public TopWindow {
 	Button start, stop;
 	Option legacy_callbacks;
 	Option show_stats;
+	Option overlay_stats;
 	Label status;
 	TimeCallback tc;
 	
@@ -451,6 +452,17 @@ class WebcamRecorder : public TopWindow {
 		start.Enable();
 		stop.Disable();
 	}
+
+	void DrawOverlay(Draw& d, const Rect& r, const Image& img) {
+		if (!overlay_stats || img.IsEmpty())
+			return;
+		String text;
+		{
+			Mutex::Lock __(background_mutex);
+			text = Format("frames=%d drops=%d decode=%dus", background_frames, background_drops, background_decode_usecs);
+		}
+		d.DrawText(r.left + 6, r.top + 6, text, Arial(12).Bold(), White());
+	}
 	
 	void OnChange() {
 		if(is_recording) OnStop();
@@ -474,6 +486,7 @@ public:
 		left_pane.Add(status.TopPos(130, 24).HSizePos(10, 10));
 		left_pane.Add(legacy_callbacks.TopPos(160, 24).HSizePos(10, 10));
 		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
+		left_pane.Add(overlay_stats.TopPos(220, 24).HSizePos(10, 10));
 		
 		start.SetLabel("Start").WhenAction = THISBACK(OnStart);
 		stop.SetLabel("Stop").WhenAction = THISBACK(OnStop);
@@ -483,6 +496,8 @@ public:
 		legacy_callbacks.WhenAction = THISBACK(OnChange);
 		show_stats.SetLabel("Show stats");
 		show_stats = true;
+		overlay_stats.SetLabel("Overlay stats");
+		overlay_stats = true;
 		
 		webcams.WhenAction = THISBACK(OnWebcamCursor);
 		formats.WhenAction = THISBACK(OnWebcamFormat);
@@ -511,6 +526,7 @@ public:
 			OnWebcamCursor();
 		}
 		
+		camera_view.WhenOverlay = THISBACK(DrawOverlay);
 		Sizeable().Zoomable();
 		tc.Set(-1000/60, THISBACK(Data));
 	}

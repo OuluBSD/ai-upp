@@ -21,6 +21,12 @@ Gotchas / invariants:
 - Menu only launches windows; it must not capture frames or solve calibration.
 */
 
+class CameraWindow;
+class CalibrationWindow;
+class MainCalibWindow;
+
+// ------------------------------------------------------------
+
 class MenuWindow : public TopWindow {
 public:
 	typedef MenuWindow CLASSNAME;
@@ -29,10 +35,8 @@ public:
 	// Ownership model: windows are owned by the controller; Menu only shows/hides them.
 	void Init(AppModel& model,
 	          CameraWindow& camera,
-	          StageAWindow& stage_a,
-	          StageBWindow& stage_b,
-	          StageCWindow& stage_c,
-	          LiveResultWindow& live);
+	          CalibrationWindow& calib,
+	          MainCalibWindow& main_win);
 	void RefreshFromModel();
 
 	virtual void MainMenu(Bar& bar);
@@ -43,27 +47,21 @@ private:
 	MenuBar menu;
 
 	CameraWindow* camera = nullptr;
-	StageAWindow* stage_a = nullptr;
-	StageBWindow* stage_b = nullptr;
-	StageCWindow* stage_c = nullptr;
-	LiveResultWindow* live = nullptr;
+	CalibrationWindow* calib = nullptr;
+	MainCalibWindow* main_win = nullptr;
 
 	Label title;
 	Label project_lbl;
 	Button open_camera;
-	Button open_stage_a;
-	Button open_stage_b;
-	Button open_stage_c;
-	Button open_live;
+	Button open_calib;
+	Button open_unified;
 	Button open_all;
 
 	void BuildLayout();
 	void RefreshProjectLabel();
 	void OpenCamera();
-	void OpenStageA();
-	void OpenStageB();
-	void OpenStageC();
-	void OpenLive();
+	void OpenCalibration();
+	void OpenUnified();
 	void OpenAll();
 	
 	void SubMenuHelp(Bar& bar);

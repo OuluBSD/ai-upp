@@ -8,7 +8,7 @@ Camera.cpp
 Purpose:
 - Camera capture UI and capture list management.
 - Owns persistence of captures on disk (project.json + PNGs).
- - Does NOT solve calibration or run Stage A/B/C logic.
+ - Does NOT solve calibration or run alignment logic.
 
 Key classes:
 - CameraWindow
@@ -22,18 +22,13 @@ Gotchas / invariants:
 - Live preview should not mutate calibration or match lists.
 */
 
-CameraWindow::CameraWindow() {
-	Title("Stereo Calibration Tool - Camera");
-	Sizeable().Zoomable();
-	AddFrame(menu);
-	AddFrame(status);
-	menu.Set(THISBACK(MainMenu));
+CameraPane::CameraPane() {
 	BuildLayout();
 }
 
 // Binds AppModel and initializes source list + UI wiring.
 // Assumes AppModel is already loaded by the controller (if applicable).
-void CameraWindow::Init(AppModel& m) {
+void CameraPane::Init(AppModel& m) {
 	model = &m;
 
 	source_list.Add(0, "HMD Stereo Camera");
@@ -70,7 +65,7 @@ void CameraWindow::Init(AppModel& m) {
 }
 
 // Updates verbose flag and forwards it to all sources.
-void CameraWindow::SetVerbose(bool v) {
+void CameraPane::SetVerbose(bool v) {
 	verbose = v;
 	for (auto& src : sources)
 		src->SetVerbose(v);
@@ -78,7 +73,7 @@ void CameraWindow::SetVerbose(bool v) {
 
 // Overrides the USB device path used by the USB stereo source.
 // Safe to call before starting the source.
-void CameraWindow::SetUsbDevicePath(const String& path) {
+void CameraPane::SetUsbDevicePath(const String& path) {
 	if (sources.GetCount() > 1) {
 		if (UsbStereoSource* usb = dynamic_cast<UsbStereoSource*>(~sources[1])) {
 			usb->device_path = path;
@@ -87,13 +82,13 @@ void CameraWindow::SetUsbDevicePath(const String& path) {
 }
 
 // Refreshes UI lists based on AppModel state (no disk IO).
-void CameraWindow::RefreshFromModel() {
+void CameraPane::RefreshFromModel() {
 	RefreshCapturesList();
 	SyncSelectionFromModel();
 }
 
 // Builds the camera layout: top control row + preview/list split.
-void CameraWindow::BuildLayout() {
+void CameraPane::BuildLayout() {
 	int y = 6;
 	controls.Add(source_list.TopPos(y, 24).HSizePos(6, 6));
 	y += 28;
@@ -121,7 +116,7 @@ void CameraWindow::BuildLayout() {
 }
 
 // Configures the capture list columns and selection callback.
-void CameraWindow::BuildCapturesList() {
+void CameraPane::BuildCapturesList() {
 	captures_list.AddColumn("Time");
 	captures_list.AddColumn("Source");
 	captures_list.AddColumn("Samples");
@@ -129,12 +124,12 @@ void CameraWindow::BuildCapturesList() {
 	captures_list.WhenBar = THISBACK(OnCapturesBar);
 }
 
-void CameraWindow::OnCapturesBar(Bar& bar) {
+void CameraPane::OnCapturesBar(Bar& bar) {
 	bar.Add("Delete selected", THISBACK(OnDeleteCapture))
 	   .Enable(captures_list.IsCursor());
 }
 
-void CameraWindow::OnDeleteCapture() {
+void CameraPane::OnDeleteCapture() {
 	int row = captures_list.GetCursor();
 	if (row < 0 || row >= model->captured_frames.GetCount())
 		return;
@@ -149,10 +144,11 @@ void CameraWindow::OnDeleteCapture() {
 	StereoCalibrationHelpers::SaveState(*model);
 	RefreshCapturesList();
 	SyncSelectionFromModel();
+	WhenChange();
 }
 
 // Updates the status label when the user selects a different source.
-void CameraWindow::OnSourceChanged() {
+void CameraPane::OnSourceChanged() {
 	int idx = source_list.GetIndex();
 	if (idx >= 0 && idx < sources.GetCount())
 		source_status.SetLabel("Selected: " + sources[idx]->GetName());
@@ -195,7 +191,7 @@ struct BoardGenDialog : TopWindow {
 	}
 };
 
-void CameraWindow::OnGenerateBoard() {
+void CameraPane::OnGenerateBoard() {
 	BoardGenDialog dlg;
 	dlg.RunAppModal();
 	if (!dlg.run) return;
@@ -285,7 +281,7 @@ void CameraWindow::OnGenerateBoard() {
 
 // Starts the selected source index. Returns false on failure.
 // Assumes the source is constructed in Init().
-bool CameraWindow::StartSourceByIndex(int idx) {
+bool CameraPane::StartSourceByIndex(int idx) {
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
 	Mutex::Lock __(source_mutex);
@@ -298,14 +294,15 @@ bool CameraWindow::StartSourceByIndex(int idx) {
 }
 
 // Starts the current source selected in the UI.
-void CameraWindow::StartSource() {
+void CameraPane::StartSource() {
 	int idx = source_list.GetIndex();
-	if (!StartSourceByIndex(idx))
-		status.Set("Failed to start source.");
+	if (!StartSourceByIndex(idx)) {
+		// status.Set("Failed to start source."); // CameraPane doesn't have status bar
+	}
 }
 
 // Stops the current source and disables live view timers.
-void CameraWindow::StopSource() {
+void CameraPane::StopSource() {
 	Mutex::Lock __(source_mutex);
 	int idx = source_list.GetIndex();
 	if (idx >= 0 && idx < sources.GetCount())
@@ -316,7 +313,7 @@ void CameraWindow::StopSource() {
 }
 
 // Toggles continuous live preview. Does not write any captures.
-void CameraWindow::ToggleLiveView() {
+void CameraPane::ToggleLiveView() {
 	live_active = !live_active;
 	if (live_active)
 		live_cb.Set(-16, THISBACK(UpdateLivePreview));
@@ -326,7 +323,7 @@ void CameraWindow::ToggleLiveView() {
 
 // Polls the active source and updates the preview control.
 // Assumes source is already running.
-void CameraWindow::UpdateLivePreview() {
+void CameraPane::UpdateLivePreview() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return;
@@ -347,7 +344,7 @@ void CameraWindow::UpdateLivePreview() {
 }
 
 // Non-destructive peek for headless tests or preview checks.
-bool CameraWindow::PeekFrame(Image& left, Image& right, bool prefer_bright) {
+bool CameraPane::PeekFrame(Image& left, Image& right, bool prefer_bright) {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
@@ -366,7 +363,7 @@ bool CameraWindow::PeekFrame(Image& left, Image& right, bool prefer_bright) {
 
 // Captures a single bright frame (if available) and stores it in AppModel.
 // Returns false if no bright frame arrives within the timeout.
-bool CameraWindow::CaptureFrameOnce() {
+bool CameraPane::CaptureFrameOnce() {
 	int idx = source_list.GetIndex();
 	if (idx < 0 || idx >= sources.GetCount())
 		return false;
@@ -409,20 +406,17 @@ bool CameraWindow::CaptureFrameOnce() {
 	StereoCalibrationHelpers::SaveState(*model);
 	RefreshCapturesList();
 	captures_list.SetCursor(model->selected_capture);
+	WhenChange();
 	return true;
 }
 
 // UI wrapper for CaptureFrameOnce with status messaging.
-void CameraWindow::CaptureFrame() {
-	if (!CaptureFrameOnce()) {
-		status.Set("Capture failed (no bright frame).");
-		return;
-	}
-	status.Set("Captured and saved snapshot.");
+void CameraPane::CaptureFrame() {
+	CaptureFrameOnce();
 }
 
 // Rebuilds the capture list from AppModel.captured_frames.
-void CameraWindow::RefreshCapturesList() {
+void CameraPane::RefreshCapturesList() {
 	captures_list.Clear();
 	for (int i = 0; i < model->captured_frames.GetCount(); i++) {
 		auto& f = model->captured_frames[i];
@@ -431,13 +425,13 @@ void CameraWindow::RefreshCapturesList() {
 }
 
 // Syncs selection based on AppModel.selected_capture.
-void CameraWindow::SyncSelectionFromModel() {
+void CameraPane::SyncSelectionFromModel() {
 	if (model->selected_capture >= 0 && model->selected_capture < captures_list.GetCount())
 		captures_list.SetCursor(model->selected_capture);
 }
 
 // Handles capture list selection changes and updates preview.
-void CameraWindow::OnCaptureSelection() {
+void CameraPane::OnCaptureSelection() {
 	int row = captures_list.GetCursor();
 	model->selected_capture = row;
 	if (row < 0 || row >= model->captured_frames.GetCount())
@@ -447,19 +441,30 @@ void CameraWindow::OnCaptureSelection() {
 	right_view.SetImage(frame.right_img);
 }
 
-// Loads project state from disk into AppModel (explicit call).
-void CameraWindow::LoadProjectState() {
-	if (!model || model->project_dir.IsEmpty())
-		return;
-	StereoCalibrationHelpers::LoadState(*model);
+// ------------------------------------------------------------
+
+void CameraPane::OnDeleteAll() {
+	if (model->captured_frames.IsEmpty()) return;
+	if (!PromptOKCancel("Delete ALL captured frames? This cannot be undone.")) return;
+	
+	model->captured_frames.Clear();
+	model->selected_capture = -1;
+	StereoCalibrationHelpers::SaveState(*model);
 	RefreshCapturesList();
+	left_view.SetImage(Image());
+	right_view.SetImage(Image());
+	WhenChange();
 }
 
-// Writes project state + captures to disk (explicit call).
-void CameraWindow::SaveProjectState() {
-	if (!model || model->project_dir.IsEmpty())
-		return;
-	StereoCalibrationHelpers::SaveState(*model);
+// ------------------------------------------------------------
+
+CameraWindow::CameraWindow() {
+	Title("Stereo Calibration Tool - Camera");
+	Sizeable().Zoomable();
+	AddFrame(menu);
+	AddFrame(status);
+	menu.Set(THISBACK(MainMenu));
+	Add(pane.SizePos());
 }
 
 void CameraWindow::MainMenu(Bar& bar) {
@@ -473,31 +478,21 @@ void CameraWindow::SubMenuHelp(Bar& bar) {
 }
 
 void CameraWindow::SubMenuFile(Bar& bar) {
-	bar.Add("Save project", THISBACK(SaveProjectState));
+	bar.Add("Save project", [=] {
+		if (pane.model) StereoCalibrationHelpers::SaveState(*pane.model);
+	});
 }
 
 void CameraWindow::SubMenuEdit(Bar& bar) {
-	bar.Add("Delete selected frame", THISBACK(OnDeleteCapture))
+	bar.Add("Delete selected frame", [=] { pane.OnDeleteCapture(); })
 	   .Key(K_DELETE)
-	   .Enable(captures_list.IsCursor());
-	bar.Add("Delete all frames...", THISBACK(OnDeleteAll));
-}
-
-void CameraWindow::OnDeleteAll() {
-	if (model->captured_frames.IsEmpty()) return;
-	if (!PromptOKCancel("Delete ALL captured frames? This cannot be undone.")) return;
-	
-	model->captured_frames.Clear();
-	model->selected_capture = -1;
-	StereoCalibrationHelpers::SaveState(*model);
-	RefreshCapturesList();
-	left_view.SetImage(Image());
-	right_view.SetImage(Image());
+	   .Enable(pane.captures_list.IsCursor());
+	bar.Add("Delete all frames...", [=] { pane.OnDeleteAll(); });
 }
 
 // Ensures camera source is stopped when the window closes.
 void CameraWindow::Close() {
-	StopSource();
+	pane.StopSource();
 	TopWindow::Close();
 }
 

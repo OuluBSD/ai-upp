@@ -2,13 +2,13 @@
 
 NAMESPACE_UPP
 
-// Stage A Identity Test Implementation
+// Calibration Identity Test Implementation
 // Tests that zero extrinsics produce identity mapping (pixel-perfect copy)
 
-int TestStageAIdentity(AppModel& model, const String& proj_dir, const String& img_path) {
+int TestCalibrationIdentity(AppModel& model, const String& proj_dir, const String& img_path) {
 	Cout() << "\n";
 	Cout() << "╔═══════════════════════════════════════════════════════════════════╗\n";
-	Cout() << "║    Stage A Preview Identity Test (Zero Extrinsics)              ║\n";
+	Cout() << "║    Calibration Preview Identity Test (Zero Extrinsics)              ║\n";
 	Cout() << "╚═══════════════════════════════════════════════════════════════════╝\n\n";
 
 	// Set project directory and load calibration

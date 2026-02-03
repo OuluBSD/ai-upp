@@ -385,8 +385,10 @@ struct FormatInfo : Moveable<FormatInfo> {
 		formats.Clear();
 		resolutions.Clear();
 		
-		current_dev = webcams.GetValue();
-		if(IsNull(current_dev)) return;
+		current_dev = webcams.GetKey(webcams.GetIndex());
+		if (IsNull(current_dev) || current_dev.IsEmpty())
+			current_dev = webcams.GetValue();
+		if (IsNull(current_dev) || current_dev.IsEmpty()) return;
 		
 		VideoDeviceCaps caps;
 		V4L2DeviceManager mgr;

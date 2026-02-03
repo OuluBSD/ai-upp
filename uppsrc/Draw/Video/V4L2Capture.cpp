@@ -20,9 +20,9 @@ static Image DecodeYUYV(const byte* src, int w, int h) {
 			int r = (298 * c + 409 * e + 128) >> 8;
 			int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
 			int b = (298 * c + 516 * d + 128) >> 8;
-			p.r = (byte)clamp(r, 0, 255);
+			p.b = (byte)clamp(r, 0, 255);
 			p.g = (byte)clamp(g, 0, 255);
-			p.b = (byte)clamp(b, 0, 255);
+			p.r = (byte)clamp(b, 0, 255);
 			p.a = 255;
 		};
 		YUV2RGB(y0, u0, v0, *t++);

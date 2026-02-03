@@ -36,11 +36,12 @@ class WebcamRecorder : public TopWindow {
 		String ToString() const { return AsString(w) + "x" + AsString(h); }
 	};
 	
-	struct FormatInfo : Moveable<FormatInfo> {
-		String description;
-		unsigned int pixelformat;
-		Vector<ResInfo> resolutions;
-	};
+struct FormatInfo : Moveable<FormatInfo> {
+	String description;
+	unsigned int pixelformat;
+	VideoPixelFormat video_format = VID_PIX_UNKNOWN;
+	Vector<ResInfo> resolutions;
+};
 	
 	ArrayMap<String, FormatInfo> format_map;
 	Mutex background_mutex;
@@ -54,9 +55,10 @@ class WebcamRecorder : public TopWindow {
 	int legacy_frames = 0;
 	int64 legacy_start_us = 0;
 	int64 legacy_total_decode_us = 0;
-	bool use_draw_video = false;
+bool use_draw_video = false;
+int timeout_ms = 0;
 
-	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
+void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 		ImageBuffer ib(w, h);
 		const unsigned char* s = src;
 		RGBA* t = ib.Begin();
@@ -80,7 +82,21 @@ class WebcamRecorder : public TopWindow {
 			YUV2RGB(y1, u0, v0, *t++);
 		}
 		img = ib;
-	}
+}
+
+VideoPixelFormat MapVideoFormat(const String& fourcc) const {
+	if (fourcc == "MJPG") return VID_PIX_MJPEG;
+	if (fourcc == "YUYV") return VID_PIX_YUYV;
+	if (fourcc == "RGB3") return VID_PIX_RGB8;
+	if (fourcc == "BGR3") return VID_PIX_BGR8;
+	return VID_PIX_UNKNOWN;
+}
+
+void StopForTimeout() {
+	if (is_recording)
+		OnStop();
+	Close();
+}
 
 	void CaptureLoopLegacy() {
 		legacy_start_us = usecs();
@@ -195,7 +211,9 @@ class WebcamRecorder : public TopWindow {
 			int fmtIdx = formats.GetIndex();
 			if (fmtIdx >= 0) {
 				String fmtKey = formats.GetKey(fmtIdx);
-				if (fmtKey == "YUYV") vpix = VID_PIX_YUYV;
+				const FormatInfo& fi = format_map.Get(fmtKey);
+				if (fi.video_format != VID_PIX_UNKNOWN)
+					vpix = fi.video_format;
 			}
 			int resIdx = resolutions.GetIndex();
 			Size sz(0,0);
@@ -368,44 +386,69 @@ class WebcamRecorder : public TopWindow {
 		current_dev = webcams.GetValue();
 		if(IsNull(current_dev)) return;
 		
-		int fd = open(current_dev, O_RDWR);
-		if(fd < 0) return;
-		
-		struct v4l2_fmtdesc fmt;
-		memset(&fmt, 0, sizeof(fmt));
-		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		
-		while(ioctl(fd, VIDIOC_ENUM_FMT, &fmt) == 0) {
-			String desc = (char*)fmt.description;
-			String fourcc = V4l2Device::fourcc(fmt.pixelformat).c_str();
-			String key = fourcc; // Use FourCC as key
-			
-			FormatInfo& fi = format_map.GetAdd(key);
-			fi.description = desc;
-			fi.pixelformat = fmt.pixelformat;
-			
-			struct v4l2_frmsizeenum frmsize;
-			memset(&frmsize, 0, sizeof(frmsize));
-			frmsize.pixel_format = fmt.pixelformat;
-			
-			while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
-				if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+		VideoDeviceCaps caps;
+		V4L2DeviceManager mgr;
+		if (mgr.EnumerateCaps(current_dev, caps)) {
+			for (const auto& capfmt : caps.formats) {
+				String key = capfmt.pixelformat ? FormatIntHex(capfmt.pixelformat) : capfmt.description;
+				String fourcc = capfmt.pixelformat ? String(V4l2Device::fourcc(capfmt.pixelformat).c_str()) : String();
+				if (!fourcc.IsEmpty())
+					key = fourcc;
+				FormatInfo& fi = format_map.GetAdd(key);
+				fi.description = capfmt.description;
+				fi.pixelformat = capfmt.pixelformat;
+				fi.video_format = MapVideoFormat(key);
+				for (const auto& res : capfmt.resolutions) {
 					ResInfo& ri = fi.resolutions.Add();
-					ri.w = frmsize.discrete.width;
-					ri.h = frmsize.discrete.height;
+					ri.w = res.size.cx;
+					ri.h = res.size.cy;
 				}
-				frmsize.index++;
+				Sort(fi.resolutions, [](const ResInfo& a, const ResInfo& b) {
+					return a.w * a.h > b.w * b.h;
+				});
+				formats.Add(key, fi.description + " (" + key + ")");
 			}
-			// Sort resolutions descending
-			Sort(fi.resolutions, [](const ResInfo& a, const ResInfo& b) {
-				return a.w * a.h > b.w * b.h;
-			});
-			
-			formats.Add(key, desc + " (" + key + ")");
-			fmt.index++;
 		}
-		
-		close(fd);
+		else {
+			int fd = open(current_dev, O_RDWR);
+			if(fd < 0) return;
+			
+			struct v4l2_fmtdesc fmt;
+			memset(&fmt, 0, sizeof(fmt));
+			fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+			
+			while(ioctl(fd, VIDIOC_ENUM_FMT, &fmt) == 0) {
+				String desc = (char*)fmt.description;
+				String fourcc = V4l2Device::fourcc(fmt.pixelformat).c_str();
+				String key = fourcc; // Use FourCC as key
+				
+				FormatInfo& fi = format_map.GetAdd(key);
+				fi.description = desc;
+				fi.pixelformat = fmt.pixelformat;
+				fi.video_format = MapVideoFormat(key);
+				
+				struct v4l2_frmsizeenum frmsize;
+				memset(&frmsize, 0, sizeof(frmsize));
+				frmsize.pixel_format = fmt.pixelformat;
+				
+				while(ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0) {
+					if(frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+						ResInfo& ri = fi.resolutions.Add();
+						ri.w = frmsize.discrete.width;
+						ri.h = frmsize.discrete.height;
+					}
+					frmsize.index++;
+				}
+				Sort(fi.resolutions, [](const ResInfo& a, const ResInfo& b) {
+					return a.w * a.h > b.w * b.h;
+				});
+				
+				formats.Add(key, desc + " (" + key + ")");
+				fmt.index++;
+			}
+			
+			close(fd);
+		}
 		
 		// Prefer MJPG
 		int idx = formats.FindKey("MJPG");
@@ -457,6 +500,9 @@ class WebcamRecorder : public TopWindow {
 			work.Run(THISBACK(CaptureLoopLegacy));
 		else
 			work.Run(THISBACK(CaptureLoopThreaded));
+
+		if (timeout_ms > 0)
+			tc.Set(-timeout_ms, THISBACK(StopForTimeout));
 	}
 	
 	void OnStop() {
@@ -502,6 +548,7 @@ class WebcamRecorder : public TopWindow {
 		resolutions.Enable();
 		start.Enable();
 		stop.Disable();
+		tc.Kill();
 	}
 
 	void DrawOverlay(Draw& d, const Rect& r, const Image& img) {
@@ -521,6 +568,21 @@ class WebcamRecorder : public TopWindow {
 
 public:
 	typedef WebcamRecorder CLASSNAME;
+
+	void SetDevice(const String& path) {
+		int idx = webcams.Find(path);
+		if (idx >= 0) {
+			webcams.SetIndex(idx);
+			OnWebcamCursor();
+		}
+	}
+	void SetLegacy(bool b) { legacy_callbacks = b; }
+	void SetBackendDrawVideo(bool b) { backend_draw_video = b; }
+	void SetTimeoutMs(int ms) { timeout_ms = ms; }
+	void AutoStartIfNeeded() {
+		if (timeout_ms > 0)
+			PostCallback(THISBACK(OnStart));
+	}
 
 	WebcamRecorder() {
 		Title("Webcam Recorder");
@@ -604,5 +666,27 @@ public:
 
 GUI_APP_MAIN
 {
-	WebcamRecorder().Run();
+	const Vector<String>& args = CommandLine();
+	String device;
+	bool legacy = false;
+	bool backend_dv = false;
+	int timeout_ms = 0;
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] == "--device" && i + 1 < args.GetCount())
+			device = args[i + 1];
+		if(args[i] == "--legacy")
+			legacy = true;
+		if(args[i] == "--backend-draw-video")
+			backend_dv = true;
+		if(args[i] == "--timeout" && i + 1 < args.GetCount())
+			timeout_ms = atoi(args[i + 1]);
+	}
+	WebcamRecorder app;
+	if (!device.IsEmpty())
+		app.SetDevice(device);
+	app.SetLegacy(legacy);
+	app.SetBackendDrawVideo(backend_dv);
+	app.SetTimeoutMs(timeout_ms);
+	app.AutoStartIfNeeded();
+	app.Run();
 }

@@ -7,6 +7,7 @@
 NAMESPACE_UPP
 
 #include "CameraView.h"
+#include "CameraStereoView.h"
 
 END_UPP_NAMESPACE
 

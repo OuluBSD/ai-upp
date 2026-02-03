@@ -11,7 +11,8 @@ struct GeomProjectCtrl : Ctrl {
 	ArrayCtrl props;
 	FixedGridCtrl grid;
 	TimelineCtrl time;
-	EditRenderer rends[4];
+	EditRenderer rends[3];
+	StereoOverlayCtrl hmd_view;
 	
 	int tree_scenes = -1;
 	Index<hash_t> warned_tree_types;
@@ -26,6 +27,9 @@ struct GeomProjectCtrl : Ctrl {
 	void OnCursor(int kp_i);
 	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
+	void RefreshAll();
+	void RefreshHmdView();
+	void SetHmdImages(const Image& bright, const Image& dark);
 	
 };
 
@@ -36,6 +40,27 @@ struct FilePoolCtrl : TopWindow {
 	typedef FilePoolCtrl CLASSNAME;
 	FilePoolCtrl(Edit3D* e);
 	void Data();
+};
+
+struct HmdCapture {
+	HMD::System sys;
+	One<StereoSource> source;
+	HMD::SoftHmdFusion fusion;
+	Image bright;
+	Image dark;
+	int64 bright_serial = -1;
+	int64 dark_serial = -1;
+	bool running = false;
+	bool recording = false;
+
+	typedef HmdCapture CLASSNAME;
+	bool Start();
+	void Stop();
+	void ResetTracking();
+	void Poll();
+	bool IsRunning() const { return running; }
+	bool IsRecording() const { return recording; }
+	const Octree* GetPointcloud(bool bright) const;
 };
 
 struct Edit3D : TopWindow {
@@ -68,6 +93,7 @@ struct Edit3D : TopWindow {
 	GeomStagedVideo video;
 	TimeCallback tc;
 	TimeStop ts;
+	HmdCapture hmd;
 	String scene3d_path;
 	String scene3d_created;
 	String scene3d_modified;
@@ -76,11 +102,21 @@ struct Edit3D : TopWindow {
 	Array<Scene3DMetaEntry> scene3d_meta;
 	bool scene3d_use_json = true;
 	bool repeat_playback = false;
+	bool record_pointcloud = false;
+	GeomObject* hmd_pointcloud = 0;
 	
 	void CreateDefaultInit();
 	void CreateDefaultPostInit();
 	void LoadTestCirclingCube();
 	void LoadTestOctree();
+	void LoadTestHmdPointcloud();
+	void EnsureHmdSceneObjects();
+	void TogglePointcloudRecording();
+	void StartPointcloudRecording();
+	void StopPointcloudRecording();
+	void UpdateHmdPreview();
+	void UpdateHmdCameraPose();
+	void RunSyntheticPointcloudSimDialog();
 	
 public:
 	typedef Edit3D CLASSNAME;

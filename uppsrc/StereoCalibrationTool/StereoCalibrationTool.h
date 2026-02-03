@@ -196,6 +196,18 @@ struct ProjectState {
 	double stereo_R[9] = {1,0,0, 0,1,0, 0,0,1};  // Identity by default
 	bool stereo_R_valid = false;                 // True if R was computed by stereoCalibrate
 
+	// Separate K and D matrices for left and right eyes (from stereoCalibrate)
+	// These are needed to reconstruct EXACT rectification (averaging loses precision)
+	double K_L_f = 0, K_L_cx = 0, K_L_cy = 0;
+	double K_R_f = 0, K_R_cx = 0, K_R_cy = 0;
+	double D_L_k1 = 0, D_L_k2 = 0;
+	double D_R_k1 = 0, D_R_k2 = 0;
+
+	// Exact T vector from stereoCalibrate (translation between cameras)
+	double stereo_T[3] = {0, 0, 0};
+
+	bool stereo_KD_valid = false;  // True if per-eye K/D from stereoCalibrate are saved
+
 	// Pipeline State
 	int calibration_state = CALIB_RAW;
 	StageBDiagnostics stage_b_diag;
@@ -236,6 +248,16 @@ struct ProjectState {
 			jio("stereo_R_00", stereo_R[0])("stereo_R_01", stereo_R[1])("stereo_R_02", stereo_R[2])
 			   ("stereo_R_10", stereo_R[3])("stereo_R_11", stereo_R[4])("stereo_R_12", stereo_R[5])
 			   ("stereo_R_20", stereo_R[6])("stereo_R_21", stereo_R[7])("stereo_R_22", stereo_R[8]);
+		}
+
+		// Per-eye K and D matrices from stereoCalibrate (exact, not averaged)
+		jio("stereo_KD_valid", stereo_KD_valid);
+		if (stereo_KD_valid || jio.IsLoading()) {
+			jio("K_L_f", K_L_f)("K_L_cx", K_L_cx)("K_L_cy", K_L_cy);
+			jio("K_R_f", K_R_f)("K_R_cx", K_R_cx)("K_R_cy", K_R_cy);
+			jio("D_L_k1", D_L_k1)("D_L_k2", D_L_k2);
+			jio("D_R_k1", D_R_k1)("D_R_k2", D_R_k2);
+			jio("stereo_T_x", stereo_T[0])("stereo_T_y", stereo_T[1])("stereo_T_z", stereo_T[2]);
 		}
 
 		jio("calibration_state", calibration_state)

@@ -1,0 +1,16 @@
+file
+	AGENTS.md,
+	Media.h,
+	Types.h,
+	Types.cpp,
+	Audio.h,
+	Audio.cpp,
+	Video.h,
+	Video.cpp,
+	MediaStream.h,
+	MediaStream.cpp,
+	FileIn.h,
+	FileIn.cpp;
+
+uses
+	Core;

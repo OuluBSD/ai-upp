@@ -41,7 +41,7 @@
 - date: 2026-02-03
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0202-find-location-in-pointcloud.md
   status: done
-  note: Added localization data contracts + stub; ModelerApp caller pending.
+  note: Added localization data contracts + stub; ModelerApp caller wired.
 - date: 2026-02-03
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0203-bt-controller-cylinder-tracking-stubs.md
   status: done

@@ -18,7 +18,11 @@ class WebcamRecorder : public TopWindow {
 	DropList formats;
 	DropList resolutions;
 	Button start, stop;
+#ifdef flagLEGACY
+#ifdef flagLEGACY
 	Option legacy_callbacks;
+#endif
+#endif
 	Option show_stats;
 	Option overlay_stats;
 	Option backend_draw_video;
@@ -37,12 +41,12 @@ class WebcamRecorder : public TopWindow {
 		String ToString() const { return AsString(w) + "x" + AsString(h); }
 	};
 	
-struct FormatInfo : Moveable<FormatInfo> {
-	String description;
-	unsigned int pixelformat;
-	VideoPixelFormat video_format = VID_PIX_UNKNOWN;
-	Vector<ResInfo> resolutions;
-};
+	struct FormatInfo : Moveable<FormatInfo> {
+		String description;
+		unsigned int pixelformat;
+		VideoPixelFormat video_format = VID_PIX_UNKNOWN;
+		Vector<ResInfo> resolutions;
+	};
 	
 	ArrayMap<String, FormatInfo> format_map;
 	Mutex background_mutex;
@@ -53,9 +57,11 @@ struct FormatInfo : Moveable<FormatInfo> {
 	int background_decode_usecs = 0;
 	int64 background_start_us = 0;
 	int64 background_total_decode_us = 0;
+#ifdef flagLEGACY
 	int legacy_frames = 0;
 	int64 legacy_start_us = 0;
 	int64 legacy_total_decode_us = 0;
+#endif
 	bool use_draw_video = false;
 	int timeout_ms = 0;
 
@@ -99,6 +105,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 		Close();
 	}
 
+#ifdef flagLEGACY
 	void CaptureLoopLegacy() {
 		legacy_start_us = usecs();
 		legacy_frames = 0;
@@ -203,6 +210,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 		delete capture;
 		PostCallback([=] { status.SetLabel("Stopped"); });
 	}
+#endif
 
 	void CaptureLoopThreaded() {
 		if (use_draw_video) {
@@ -355,8 +363,10 @@ struct FormatInfo : Moveable<FormatInfo> {
 	}
 
 	void Data() {
+#ifdef flagLEGACY
 		if (legacy_callbacks)
 			return;
+#endif
 		Image img;
 		String statusText;
 		int frames = 0;
@@ -484,6 +494,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 		exit_flag = 0;
 		is_recording = true;
 		use_draw_video = backend_draw_video;
+#ifdef flagLEGACY
 		if (!legacy_callbacks) {
 			Mutex::Lock __(background_mutex);
 			background_frames = 0;
@@ -493,6 +504,17 @@ struct FormatInfo : Moveable<FormatInfo> {
 			background_total_decode_us = 0;
 			background_status.Clear();
 		}
+#else
+		{
+			Mutex::Lock __(background_mutex);
+			background_frames = 0;
+			background_drops = 0;
+			background_decode_usecs = 0;
+			background_start_us = 0;
+			background_total_decode_us = 0;
+			background_status.Clear();
+		}
+#endif
 		
 		// Disable controls
 		webcams.Disable();
@@ -501,10 +523,14 @@ struct FormatInfo : Moveable<FormatInfo> {
 		start.Disable();
 		stop.Enable();
 		
+#ifdef flagLEGACY
 		if (legacy_callbacks)
 			work.Run(THISBACK(CaptureLoopLegacy));
 		else
 			work.Run(THISBACK(CaptureLoopThreaded));
+#else
+		work.Run(THISBACK(CaptureLoopThreaded));
+#endif
 
 		if (timeout_ms > 0)
 			timeout_tc.Set(-timeout_ms, THISBACK(StopForTimeout));
@@ -516,6 +542,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 		work.Wait();
 		is_recording = false;
 
+#ifdef flagLEGACY
 		if (!legacy_callbacks) {
 			int frames = 0;
 			int drops = 0;
@@ -536,6 +563,7 @@ struct FormatInfo : Moveable<FormatInfo> {
 				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
 			}
 		}
+#ifdef flagLEGACY
 		else {
 			if (legacy_start_us > 0) {
 				int64 elapsed_us = usecs() - legacy_start_us;
@@ -545,8 +573,37 @@ struct FormatInfo : Moveable<FormatInfo> {
 				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
 			}
 		}
+#endif
+#else
+		{
+			int frames = 0;
+			int drops = 0;
+			int64 start_us = 0;
+			int64 total_decode_us = 0;
+			Mutex::Lock __(background_mutex);
+			frames = background_frames;
+			drops = background_drops;
+			start_us = background_start_us;
+			total_decode_us = background_total_decode_us;
+			background_img.Clear();
+			background_status = "Stopped";
+			if (start_us > 0) {
+				int64 elapsed_us = usecs() - start_us;
+				double fps = elapsed_us > 0 ? (double)frames * 1000000.0 / (double)elapsed_us : 0.0;
+				double avg_decode = frames > 0 ? (double)total_decode_us / (double)frames : 0.0;
+				Cout() << "Threaded: frames=" << frames << " drops=" << drops
+				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
+			}
+		}
+#endif
 		Cout() << "Backend: " << (use_draw_video ? "Draw/Video" : "Direct V4L2")
-		       << " | Mode: " << (legacy_callbacks ? "Legacy" : "Threaded") << "\n";
+		       << " | Mode: "
+#ifdef flagLEGACY
+		       << (legacy_callbacks ? "Legacy" : "Threaded")
+#else
+		       << "Threaded"
+#endif
+		       << "\n";
 		
 		webcams.Enable();
 		formats.Enable();
@@ -581,7 +638,11 @@ public:
 			OnWebcamCursor();
 		}
 	}
+#ifdef flagLEGACY
 	void SetLegacy(bool b) { legacy_callbacks = b; }
+#else
+	void SetLegacy(bool) {}
+#endif
 	void SetBackendDrawVideo(bool b) { backend_draw_video = b; }
 	void SetTimeoutMs(int ms) { timeout_ms = ms; }
 	void AutoStartIfNeeded() {
@@ -602,7 +663,9 @@ public:
 		left_pane.Add(start.TopPos(100, 24).LeftPos(10, 80));
 		left_pane.Add(stop.TopPos(100, 24).RightPos(10, 80));
 		left_pane.Add(status.TopPos(130, 24).HSizePos(10, 10));
+#ifdef flagLEGACY
 		left_pane.Add(legacy_callbacks.TopPos(160, 24).HSizePos(10, 10));
+#endif
 		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
 		left_pane.Add(overlay_stats.TopPos(220, 24).HSizePos(10, 10));
 		left_pane.Add(backend_draw_video.TopPos(250, 24).HSizePos(10, 10));
@@ -611,8 +674,10 @@ public:
 		stop.SetLabel("Stop").WhenAction = THISBACK(OnStop);
 		stop.Disable();
 
+#ifdef flagLEGACY
 		legacy_callbacks.SetLabel("Legacy callbacks");
 		legacy_callbacks.WhenAction = THISBACK(OnChange);
+#endif
 		show_stats.SetLabel("Show stats");
 		show_stats = true;
 		overlay_stats.SetLabel("Overlay stats");
@@ -679,8 +744,10 @@ GUI_APP_MAIN
 	for(int i = 0; i < args.GetCount(); i++) {
 		if(args[i] == "--device" && i + 1 < args.GetCount())
 			device = args[i + 1];
+#ifdef flagLEGACY
 		if(args[i] == "--legacy")
 			legacy = true;
+#endif
 		if(args[i] == "--backend-draw-video")
 			backend_dv = true;
 		if(args[i] == "--timeout" && i + 1 < args.GetCount())
@@ -761,7 +828,11 @@ GUI_APP_MAIN
 	WebcamRecorder app;
 	if (!device.IsEmpty())
 		app.SetDevice(device);
+#ifdef flagLEGACY
 	app.SetLegacy(legacy);
+#else
+	(void)legacy;
+#endif
 	app.SetBackendDrawVideo(backend_dv);
 	app.SetTimeoutMs(timeout_ms);
 	app.AutoStartIfNeeded();

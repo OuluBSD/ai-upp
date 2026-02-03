@@ -1,5 +1,5 @@
 # Task: Plan Management
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement the `plan` subcommand to list, show, and manage plans using `PlanParser`, matching the Python implementation's surface area.

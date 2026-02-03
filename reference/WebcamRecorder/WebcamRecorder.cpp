@@ -21,6 +21,7 @@ class WebcamRecorder : public TopWindow {
 	Option legacy_callbacks;
 	Option show_stats;
 	Option overlay_stats;
+	Option backend_draw_video;
 	Label status;
 	TimeCallback tc;
 	
@@ -53,6 +54,7 @@ class WebcamRecorder : public TopWindow {
 	int legacy_frames = 0;
 	int64 legacy_start_us = 0;
 	int64 legacy_total_decode_us = 0;
+	bool use_draw_video = false;
 
 	void YUYVToImage(const unsigned char* src, int w, int h, Image& img) {
 		ImageBuffer ib(w, h);
@@ -186,6 +188,52 @@ class WebcamRecorder : public TopWindow {
 	}
 
 	void CaptureLoopThreaded() {
+		if (use_draw_video) {
+			VideoV4L2Backend backend;
+			backend.SetDevice(current_dev);
+			VideoPixelFormat vpix = VID_PIX_MJPEG;
+			int fmtIdx = formats.GetIndex();
+			if (fmtIdx >= 0) {
+				String fmtKey = formats.GetKey(fmtIdx);
+				if (fmtKey == "YUYV") vpix = VID_PIX_YUYV;
+			}
+			int resIdx = resolutions.GetIndex();
+			Size sz(0,0);
+			if (resIdx >= 0) {
+				String resStr = resolutions.GetValue();
+				Vector<String> parts = Split(resStr, 'x');
+				if (parts.GetCount() == 2) {
+					sz.cx = StrInt(parts[0]);
+					sz.cy = StrInt(parts[1]);
+				}
+			}
+			backend.SetFormat(vpix, sz, 30);
+			if (!backend.Open())
+				return;
+			background_start_us = usecs();
+			background_total_decode_us = 0;
+			while (!exit_flag) {
+				Vector<VideoFrame> frames;
+				backend.PopFrames(frames);
+				if (frames.IsEmpty()) {
+					Sleep(1);
+					continue;
+				}
+				for (const auto& vf : frames) {
+					String statusText = "Active: " + AsString(vf.size.cx) + "x" + AsString(vf.size.cy);
+					Mutex::Lock __(background_mutex);
+					background_img = vf.img;
+					background_status = statusText;
+					background_frames++;
+					background_decode_usecs = 0;
+				}
+			}
+			backend.Close();
+			Mutex::Lock __(background_mutex);
+			background_status = "Stopped";
+			return;
+		}
+
 		String dev = current_dev;
 		int width = 0, height = 0;
 		unsigned int fmt = 0;
@@ -387,6 +435,7 @@ class WebcamRecorder : public TopWindow {
 		if(is_recording) return;
 		exit_flag = 0;
 		is_recording = true;
+		use_draw_video = backend_draw_video;
 		if (!legacy_callbacks) {
 			Mutex::Lock __(background_mutex);
 			background_frames = 0;
@@ -445,6 +494,8 @@ class WebcamRecorder : public TopWindow {
 				       << " fps=" << fps << " avg_decode_us=" << avg_decode << "\n";
 			}
 		}
+		Cout() << "Backend: " << (use_draw_video ? "Draw/Video" : "Direct V4L2")
+		       << " | Mode: " << (legacy_callbacks ? "Legacy" : "Threaded") << "\n";
 		
 		webcams.Enable();
 		formats.Enable();
@@ -487,6 +538,7 @@ public:
 		left_pane.Add(legacy_callbacks.TopPos(160, 24).HSizePos(10, 10));
 		left_pane.Add(show_stats.TopPos(190, 24).HSizePos(10, 10));
 		left_pane.Add(overlay_stats.TopPos(220, 24).HSizePos(10, 10));
+		left_pane.Add(backend_draw_video.TopPos(250, 24).HSizePos(10, 10));
 		
 		start.SetLabel("Start").WhenAction = THISBACK(OnStart);
 		stop.SetLabel("Stop").WhenAction = THISBACK(OnStop);
@@ -498,6 +550,8 @@ public:
 		show_stats = true;
 		overlay_stats.SetLabel("Overlay stats");
 		overlay_stats = true;
+		backend_draw_video.SetLabel("Backend: Draw/Video");
+		backend_draw_video.WhenAction = THISBACK(OnChange);
 		
 		webcams.WhenAction = THISBACK(OnWebcamCursor);
 		formats.WhenAction = THISBACK(OnWebcamFormat);

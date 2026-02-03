@@ -6,8 +6,9 @@ file
 	AGENTS.md,
 	Core.h,
 	Geom.h,
-	Geom.cpp;
+	Geom.cpp,
+	PointcloudTracking.h,
+	PointcloudTracking.cpp;
 
 mainconfig
 	"" = "";
-

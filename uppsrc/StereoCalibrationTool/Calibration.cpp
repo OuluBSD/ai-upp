@@ -90,8 +90,8 @@ bool IsSamePoly(const vec4& a, const vec4& b) {
 	return true;
 }
 
-// Tint image blue (reduce R and G channels) - view-only for overlay
-Image TintBlue(const Image& src) {
+// Tint image green (reduce R and B channels) - view-only for overlay
+Image TintGreen(const Image& src) {
 	if (src.IsEmpty())
 		return Image();
 	Size sz = src.GetSize();
@@ -101,16 +101,16 @@ Image TintBlue(const Image& src) {
 		RGBA* d = out[y];
 		for (int x = 0; x < sz.cx; x++) {
 			d[x].r = (byte)(s[x].r * 0.25);
-			d[x].g = (byte)(s[x].g * 0.25);
-			d[x].b = s[x].b;
+			d[x].g = s[x].g;
+			d[x].b = (byte)(s[x].b * 0.25);
 			d[x].a = s[x].a;
 		}
 	}
 	return out;
 }
 
-// Tint image red (reduce G and B channels) - view-only for overlay
-Image TintRed(const Image& src) {
+// Tint image violet/magenta (reduce G channel) - view-only for overlay
+Image TintViolet(const Image& src) {
 	if (src.IsEmpty())
 		return Image();
 	Size sz = src.GetSize();
@@ -121,7 +121,7 @@ Image TintRed(const Image& src) {
 		for (int x = 0; x < sz.cx; x++) {
 			d[x].r = s[x].r;
 			d[x].g = (byte)(s[x].g * 0.25);
-			d[x].b = (byte)(s[x].b * 0.25);
+			d[x].b = s[x].b;
 			d[x].a = s[x].a;
 		}
 	}
@@ -497,7 +497,7 @@ void CalibrationPane::BuildCalibrationControls() {
 	show_epipolar.SetLabel("Show epipolar lines (verify horizontal alignment)");
 	show_epipolar.WhenAction = THISBACK(OnReviewChanged);
 
-	tint_overlay.SetLabel("Tint overlay (L=blue, R=red)");
+	tint_overlay.SetLabel("Tint overlay (L=green, R=violet)");
 	tint_overlay <<= false;
 	tint_overlay.WhenAction = THISBACK(OnReviewChanged);
 
@@ -1051,9 +1051,9 @@ void CalibrationPane::ComposeFinalDisplayImages() {
 		Image top_img = swap_order ? left_display : right_display;
 
 		if (do_tint) {
-			// Left = blue, Right = red
-			Image left_tinted = TintBlue(left_display);
-			Image right_tinted = TintRed(right_display);
+			// Tint colors: Left=Green, Right=Violet (Magenta)
+			Image left_tinted = TintGreen(left_display);
+			Image right_tinted = TintViolet(right_display);
 			base_img = swap_order ? right_tinted : left_tinted;
 			top_img = swap_order ? left_tinted : right_tinted;
 		}
@@ -1381,6 +1381,12 @@ void CalibrationPane::OnSolveIntrinsics() {
 	report << Format("Principal: %.2f, %.2f\n", ps.lens_cx, ps.lens_cy);
 	report << Format("Distortion: k1=%.4f, k2=%.4f\n", ps.lens_k1, ps.lens_k2);
 	
+	// Populate model->last_calibration for stcal export
+	model->last_calibration.is_enabled = true;
+	model->last_calibration.principal_point = vec2((float)ps.lens_cx, (float)ps.lens_cy);
+	model->last_calibration.angle_to_pixel = vec4((float)ps.lens_f, 0, (float)(ps.lens_f * ps.lens_k1), (float)(ps.lens_f * ps.lens_k2));
+	model->last_calibration.eye_dist = (float)(ps.eye_dist / 1000.0); // mm to m
+
 	report_log <<= report;
 	RefreshFromModel();
 	SaveProjectState();
@@ -1555,7 +1561,14 @@ void CalibrationPane::OnSolveStereo() {
 	report << Format("  Z-Check (dist to board): %.1f mm (%s)\n", z, z_ok ? "OK" : "BACKWARDS!");
 	report << Format("  Right Relative: Y=%.2f, P=%.2f, R=%.2f deg\n", ps.yaw_r, ps.pitch_r, ps.roll_r);
 	
-	report_log <<= report;
+	// Populate model->last_calibration for stcal export
+	model->last_calibration.is_enabled = true;
+	model->last_calibration.principal_point = vec2((float)ps.lens_cx, (float)ps.lens_cy);
+	model->last_calibration.angle_to_pixel = vec4((float)ps.lens_f, 0, (float)(ps.lens_f * ps.lens_k1), (float)(ps.lens_f * ps.lens_k2));
+	model->last_calibration.eye_dist = (float)(ps.eye_dist / 1000.0); // mm to m
+	model->last_calibration.outward_angle = (float)(ps.yaw_r * M_PI / 180.0); // Decomposed R is relative to Left (0,0,0)
+	model->last_calibration.right_pitch = (float)(ps.pitch_r * M_PI / 180.0);
+	model->last_calibration.right_roll = (float)(ps.roll_r * M_PI / 180.0);
 
 	// Compute stereo rectification directly with the refined K_L, K_R from stereoCalibrate
 	LOG("OnSolveStereo: Computing stereo rectification with refined matrices");
@@ -1588,6 +1601,7 @@ void CalibrationPane::OnSolveStereo() {
 
 	RefreshFromModel();
 	SaveProjectState();
+	report_log <<= report;
 	LOG("OnSolveStereo: ProjectState saved to disk");
 }
 

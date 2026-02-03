@@ -1,14 +1,14 @@
-# Task 02 - Adapt WebcamRecorder to Ctrl/Camera
+# Task 02 - Adapt WebcamRecorder to Ctrl/Camera (Legacy Preserved)
 
-Status: pending
+Status: done
 
 ## Goal
-Refactor reference/WebcamRecorder to use Draw/Camera + Ctrl/Camera for capture and preview.
+Refactor reference/WebcamRecorder to use Draw/Video + Ctrl/Camera for capture and preview, while preserving legacy direct V4L2 under flagLEGACY.
 
 ## Scope
-- Replace internal capture loop with Draw/Camera backend.
-- Use Ctrl/Camera for preview UI.
-- Keep recorder-specific encode/output logic local to WebcamRecorder.
+- Add Draw/Video backend option and CLI for automated tests.
+- Use Ctrl/Camera for preview UI and overlay stats.
+- Keep direct V4L2 path behind flagLEGACY for comparisons.
 
 ## Acceptance
 - WebcamRecorder compiles and captures at least as fast as before.

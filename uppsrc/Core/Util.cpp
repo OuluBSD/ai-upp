@@ -1318,7 +1318,7 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 	for(int i = positionals.GetCount(); i < default_positionals.GetCount(); i++) {
 		Value def = default_positionals[i];
 		if (def.IsVoid() || def.IsNull()) {
-			Cerr() << "not all positional arguments were given" << EOL;
+			// Cerr() << "not all positional arguments were given" << EOL;
 			return false;
 		}
 		else positionals.Add(def);

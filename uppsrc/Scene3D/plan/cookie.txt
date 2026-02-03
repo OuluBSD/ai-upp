@@ -18,3 +18,35 @@
   task: track-hmd-visualization/phase-00-foundations/task-0003-scene3d-schema.md
   status: done
   note: Added draft .scene3d format outline in Scene3D/IO.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0100-enable-pointcloud-cli.md
+  status: done
+  note: Re-enabled pointcloud CLI path; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0101-hmd-preview-viewport.md
+  status: done
+  note: Implemented HMD preview viewport; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0102-record-pointcloud.md
+  status: done
+  note: Added record toggle, HMD scene objects, and pose override; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/phase.md
+  status: done
+  note: Added live pointcloud capture phase.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0201-live-preview-and-record.md
+  status: done
+  note: Live preview + record hooks implemented; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0202-find-location-in-pointcloud.md
+  status: done
+  note: Planned localization stub work.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0203-bt-controller-cylinder-tracking-stubs.md
+  status: done
+  note: Planned controller pattern/fusion stubs.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0204-synthetic-pointcloud-hmd-sim.md
+  status: done
+  note: Planned synthetic pointcloud + dummy HMD sim.

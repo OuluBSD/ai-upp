@@ -11,12 +11,24 @@ struct Command {
 	virtual void Execute(const Vector<String>& args) = 0;
 };
 
+String FindPlanRoot()
+{
+	String d = GetCurrentDirectory();
+	while(d.GetCount() > 1) {
+		String p = AppendFileName(d, "uppsrc/AI/plan");
+		if(DirectoryExists(p))
+			return p;
+		d = GetFileDirectory(d);
+	}
+	return "";
+}
+
 struct PlanCommand : Command {
 	String GetName() const override { return "plan"; }
 	String GetDescription() const override { return "Plan management"; }
 	
 	void ShowHelp() const override {
-		Cout() << "usage: MaestroCLI plan [-h] {add,list,remove,show}\n"
+		Cout() << "usage: MaestroCLI plan [-h] {add,list,ls,remove,show,sh}\n"
 		       << "\n"
 		       << "Plan subcommands:\n"
 		       << "    add (a)             Add a new plan\n"
@@ -28,19 +40,69 @@ struct PlanCommand : Command {
 	void Execute(const Vector<String>& args) override {
 		CommandLineArguments cla;
 		cla.AddPositional("subcommand", UNKNOWN_V);
-		if (!cla.Parse(args)) {
-			ShowHelp();
-			return;
-		}
+		cla.AddPositional("name", UNKNOWN_V);
+		
+		// Note: cla.Parse() might return false if name is missing but it's expected.
+		// We'll manually check GetPositionalCount instead.
+		cla.Parse(args);
 		
 		if (cla.GetPositionalCount() == 0) {
 			ShowHelp();
 			return;
 		}
 		
+		String plan_root = FindPlanRoot();
+		if(plan_root.IsEmpty()) {
+			Cerr() << "Error: Could not find 'uppsrc/AI/plan' directory.\n";
+			return;
+		}
+
+		PlanParser parser;
+		parser.Load(plan_root);
+
 		String sub = cla.GetPositional(0);
 		if (sub == "list" || sub == "ls") {
-			Cout() << "Listing plans...\n";
+			Cout() << "Plans (Tracks) found in " << plan_root << ":\n";
+			for(const auto& track : parser.tracks) {
+				Cout() << Format(" [%-10s] %s (%d phases)\n", 
+				                 track.status, track.name, track.phases.GetCount());
+				/*for(const auto& phase : track.phases) {
+					Cout() << Format("   - %-30s [%s]\n", phase.name, phase.status);
+				}*/
+			}
+		}
+		else if (sub == "show" || sub == "sh") {
+			if(cla.GetPositionalCount() < 2) {
+				Cerr() << "Error: 'plan show' requires a track name.\n";
+				return;
+			}
+			String name = cla.GetPositional(1);
+			const Track* found = nullptr;
+			for(const auto& track : parser.tracks) {
+				if(track.name == name || track.id == name) {
+					found = &track;
+					break;
+				}
+			}
+			
+			if(!found) {
+				Cerr() << "Error: Track '" << name << "' not found.\n";
+				return;
+			}
+			
+			Cout() << "Track: " << found->name << " [" << found->status << "]\n";
+			Cout() << "Path:  " << found->path << "\n\n";
+			for(const auto& phase : found->phases) {
+				Cout() << "Phase: " << phase.name << " [" << phase.status << "]\n";
+				for(int i = 0; i < phase.tasks.GetCount(); i++) {
+					const Task& task = phase.tasks[i];
+					Cout() << Format("  %d. [%-11s] %s\n", 
+					                 i + 1,
+					                 StatusToString(task.status),
+					                 task.name);
+				}
+				Cout() << "\n";
+			}
 		}
 		else {
 			Cout() << "Unknown plan subcommand: " << sub << "\n";

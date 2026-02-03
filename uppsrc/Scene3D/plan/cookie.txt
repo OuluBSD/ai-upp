@@ -41,12 +41,12 @@
 - date: 2026-02-03
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0202-find-location-in-pointcloud.md
   status: done
-  note: Planned localization stub work.
+  note: Added localization data contracts + stub; ModelerApp caller pending.
 - date: 2026-02-03
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0203-bt-controller-cylinder-tracking-stubs.md
   status: done
-  note: Planned controller pattern/fusion stubs.
+  note: Added controller pattern + tracking/fusion stubs; render integration pending.
 - date: 2026-02-03
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0204-synthetic-pointcloud-hmd-sim.md
   status: done
-  note: Planned synthetic pointcloud + dummy HMD sim.
+  note: Added synthetic pointcloud + dummy HMD sim (ideal data); debug view pending.

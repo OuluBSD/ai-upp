@@ -10,6 +10,8 @@ file
 	Scene3DFormat.md,
 	Scene3DIO.h,
 	Scene3DIO.cpp,
+	PointcloudSim.h,
+	PointcloudSim.cpp,
 	StagedVideoImporter.h,
 	StagedVideoImporter.cpp,
 	VideoImporter.h,

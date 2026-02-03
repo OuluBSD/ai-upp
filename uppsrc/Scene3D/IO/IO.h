@@ -9,6 +9,7 @@ NAMESPACE_UPP
 #include "Scene3DIO.h"
 #include "VideoImporter.h"
 #include "StagedVideoImporter.h"
+#include "PointcloudSim.h"
 
 END_UPP_NAMESPACE
 

@@ -564,8 +564,12 @@ public:
 		Vector<VideoDeviceInfo> devs;
 		V4L2DeviceManager mgr;
 		mgr.Enumerate(devs);
-		for (const auto& dev : devs)
-			webcams.Add(dev.path);
+		for (const auto& dev : devs) {
+			String label = dev.path;
+			if (!dev.name.IsEmpty())
+				label = dev.name + " (" + dev.path + ")";
+			webcams.Add(dev.path, label);
+		}
 		if (webcams.GetCount() == 0) {
 			for(int i = 0; i < 64; i++) {
 				String path = "/dev/video" + AsString(i);

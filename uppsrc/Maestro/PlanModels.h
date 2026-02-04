@@ -216,6 +216,74 @@ struct WorkGraph : Moveable<WorkGraph> {
 	}
 };
 
+struct ConversionStage : Moveable<ConversionStage> {
+	String   name;
+	String   status = "pending"; // "pending", "running", "completed", "failed", "skipped"
+	Time     started_at;
+	Time     completed_at;
+	String   error;
+	ValueMap details;
+
+	void Jsonize(JsonIO& jio) {
+		jio("name", name)("status", status)("started_at", started_at)
+		   ("completed_at", completed_at)("error", error)("details", details);
+	}
+};
+
+struct ConversionPipeline : Moveable<ConversionPipeline> {
+	String                  id;
+	String                  name;
+	String                  source;
+	String                  target;
+	Time                    created_at;
+	Time                    updated_at;
+	String                  status = "new"; // "new", "running", "completed", "failed", "paused"
+	Array<ConversionStage>  stages;
+	String                  active_stage;
+	String                  logs_dir;
+	String                  inputs_dir;
+	String                  outputs_dir;
+	ValueMap                source_repo;
+	ValueMap                target_repo;
+	String                  conversion_intent;
+
+	void Jsonize(JsonIO& jio) {
+		jio("id", id)("name", name)("source", source)("target", target)
+		   ("created_at", created_at)("updated_at", updated_at)("status", status)
+		   ("stages", stages)("active_stage", active_stage)("logs_dir", logs_dir)
+		   ("inputs_dir", inputs_dir)("outputs_dir", outputs_dir)
+		   ("source_repo", source_repo)("target_repo", target_repo)
+		   ("conversion_intent", conversion_intent);
+	}
+};
+
+struct RunManifest : Moveable<RunManifest> {
+	String         run_id;
+	Time           timestamp;
+	String         pipeline_id;
+	String         source_path;
+	String         source_revision;
+	String         target_path;
+	String         target_revision_before;
+	String         target_revision_after;
+	String         plan_revision;
+	String         decision_fingerprint;
+	ValueMap       engines_used;
+	Vector<String> flags_used;
+	Vector<ValueMap> task_execution_list;
+	String         status; // "completed", "failed", "interrupted"
+
+	void Jsonize(JsonIO& jio) {
+		jio("run_id", run_id)("timestamp", timestamp)("pipeline_id", pipeline_id)
+		   ("source_path", source_path)("source_revision", source_revision)
+		   ("target_path", target_path)("target_revision_before", target_revision_before)
+		   ("target_revision_after", target_revision_after)("plan_revision", plan_revision)
+		   ("decision_fingerprint", decision_fingerprint)("engines_used", engines_used)
+		   ("flags_used", flags_used)("task_execution_list", task_execution_list)
+		   ("status", status);
+	}
+};
+
 
 #endif
 

@@ -122,6 +122,13 @@ void ConversionOrchestrator::Run(const String& source, const String& target, int
 				RealizeDirectory(log_dir);
 				SaveFile(AppendFileName(log_dir, "response.md"), response);
 				
+				// Run semantic check
+				SemanticIntegrityChecker checker;
+				SemanticResult sem = checker.RunCheck(task, source, target);
+				Cout() << "  ✓ Semantic Check: " << sem.semantic_equivalence << " equivalence\n";
+				if(sem.requires_human_review)
+					Cout() << "  ⚠️  Requires human review due to potential loss or risk flags.\n";
+				
 				task.status = "done";
 				completed++;
 				Cout() << "  ✓ Task completed\n";
@@ -171,25 +178,100 @@ void ConvertCommand::Execute(const Vector<String>& args)
 {
 	CommandLineArguments cla;
 	cla.AddPositional("subcommand", UNKNOWN_V);
-	cla.AddPositional("source", UNKNOWN_V);
-	cla.AddPositional("target", UNKNOWN_V);
+	cla.AddPositional("arg1", UNKNOWN_V);
+	cla.AddPositional("arg2", UNKNOWN_V);
 	cla.AddArg('l', "limit", true);
 	cla.Parse(args);
 	
 	if (cla.GetPositionalCount() < 1) { ShowHelp(); return; }
 	
 	String sub = AsString(cla.GetPositional(0));
-	String src = cla.GetPositionalCount() > 1 ? AsString(cla.GetPositional(1)) : ".";
-	String tgt = cla.GetPositionalCount() > 2 ? AsString(cla.GetPositional(2)) : "out";
+	String a1 = cla.GetPositionalCount() > 1 ? AsString(cla.GetPositional(1)) : ".";
+	String a2 = cla.GetPositionalCount() > 2 ? AsString(cla.GetPositional(2)) : "out";
 	
-	if (sub == "inventory") ConversionOrchestrator::Inventory(src, tgt);
-	else if (sub == "plan") ConversionOrchestrator::Plan(src, tgt);
-	else if (sub == "run") {
+	if (sub == "inventory") ConversionOrchestrator::Inventory(a1, a2);
+	else if (sub == "help" || sub == "h") { ShowHelp(); return; }
+	else if (sub == "plan" || sub == "p") ConversionOrchestrator::Plan(a1, a2);
+	else if (sub == "run" || sub == "r") {
 		int limit = 0;
 		if(cla.IsArg('l')) limit = StrInt(cla.GetArg('l'));
-		ConversionOrchestrator::Run(src, tgt, limit);
+		ConversionOrchestrator::Run(a1, a2, limit);
 	}
-	else if (sub == "validate") ConversionOrchestrator::Validate(src, tgt);
+	else if (sub == "validate") ConversionOrchestrator::Validate(a1, a2);
+	else if (sub == "playbook") {
+		if(cla.GetPositionalCount() < 2) {
+			Cout() << "usage: MaestroCLI convert playbook {list,show,use} [id]\n";
+			return;
+		}
+		String pb_sub = AsString(cla.GetPositional(1));
+		PlaybookManager pbm;
+		if(pb_sub == "list" || pb_sub == "ls") {
+			Array<Playbook> list = pbm.ListPlaybooks();
+			Cout() << Format("% -25s % -50s % -10s\n", "ID", "TITLE", "VERSION");
+			Cout() << String('-', 85) << "\n";
+			for(const auto& pb : list)
+				Cout() << Format("% -25s % -50s % -10s\n", pb.id, pb.title, pb.version);
+		}
+		else if(pb_sub == "show" || pb_sub == "sh") {
+			if(cla.GetPositionalCount() < 3) { Cerr() << "Error: Requires playbook ID.\n"; return; }
+			String id = AsString(cla.GetPositional(2));
+			Playbook* pb = pbm.LoadPlaybook(id);
+			if(pb) {
+				Cout() << "Playbook: " << pb->title << " (" << pb->id << ")\n"
+				       << "Version:  " << pb->version << "\n"
+				       << "Intent:   " << pb->intent << "\n";
+				delete pb;
+			} else Cerr() << "Error: Playbook not found.\n";
+		}
+		else if(pb_sub == "use") {
+			if(cla.GetPositionalCount() < 3) { Cerr() << "Error: Requires playbook ID.\n"; return; }
+			String id = AsString(cla.GetPositional(2));
+			if(pbm.BindPlaybook(id)) Cout() << "✓ Playbook '" << id << "' bound to current conversion.\n";
+			else Cerr() << "Error: Failed to bind playbook.\n";
+		}
+		else Cout() << "Unknown playbook subcommand: " << pb_sub << "\n";
+	}
+	else if (sub == "add" || sub == "new" || sub == "n") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires pipeline name.\n"; return; }
+		PipelineRuntime pr;
+		ConversionPipeline p = pr.CreatePipeline(AsString(cla.GetPositional(1)), a1, a2);
+		Cout() << "✓ Created conversion pipeline: " << p.id << "\n";
+	}
+	else if (sub == "status" || sub == "s") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires pipeline ID.\n"; return; }
+		PipelineRuntime pr;
+		ConversionPipeline p = pr.LoadPipeline(AsString(cla.GetPositional(1)));
+		Cout() << "Pipeline ID: " << p.id << "\n" << "Name:        " << p.name << "\n" << "Status:      " << p.status << "\n";
+	}
+	else if (sub == "runs") {
+		if(cla.GetPositionalCount() < 2) { Cout() << "usage: MaestroCLI convert runs {list,show,diff} [run_id]\n"; return; }
+		String run_sub = AsString(cla.GetPositional(1));
+		RegressionReplay rr;
+		if(run_sub == "list" || run_sub == "ls") {
+			Array<RunManifest> list = rr.ListRuns();
+			Cout() << Format("% -36s % -12s % -20s\n", "RUN ID", "STATUS", "TIMESTAMP");
+			Cout() << String('-', 70) << "\n";
+			for(const auto& m : list)
+				Cout() << Format("% -36s % -12s % -20s\n", m.run_id, m.status, Format(m.timestamp));
+		}
+		else if(run_sub == "show" || run_sub == "sh") {
+			if(cla.GetPositionalCount() < 3) { Cerr() << "Error: Requires run ID.\n"; return; }
+			RunManifest m = rr.LoadManifest(AsString(cla.GetPositional(2)));
+			Cout() << "Run ID:    " << m.run_id << "\n" << "Status:    " << m.status << "\n" << "Timestamp: " << Format(m.timestamp) << "\n";
+		}
+	}
+	else if (sub == "replay") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires run ID.\n"; return; }
+		String run_id = AsString(cla.GetPositional(1));
+		RegressionReplay rr;
+		ConversionMemory memory; memory.Load(".");
+		DriftReport report = rr.DetectDrift(run_id, a2, memory);
+		Cout() << "Replaying run " << run_id << "...\n";
+		Cout() << "✓ Drift Detection: " << (report.drift_detected ? "DRIFT DETECTED" : "No drift") << "\n";
+	}
+	else if (sub == "show" || sub == "sh" || sub == "reset" || sub == "rst" || sub == "batch" || sub == "b") {
+		Cout() << "Subcommand '" << sub << "' is not yet fully implemented in C++ but is on the roadmap.\n";
+	}
 	else { Cout() << "Unknown convert subcommand: " << sub << "\n"; ShowHelp(); }
 }
 

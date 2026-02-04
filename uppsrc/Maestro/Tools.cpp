@@ -2,6 +2,24 @@
 
 NAMESPACE_UPP
 
+String FindPlanRoot()
+{
+	String d = GetCurrentDirectory();
+	while(d.GetCount() > 1) {
+		String p = AppendFileName(AppendFileName(AppendFileName(d, "uppsrc"), "AI"), "plan");
+		if(DirectoryExists(p))
+			return NormalizePath(p);
+		d = GetFileDirectory(d);
+	}
+	return "";
+}
+
+String GetDocsRoot(const String& plan_root)
+{
+	if(plan_root.IsEmpty()) return "";
+	return NormalizePath(AppendFileName(plan_root, "../../.."));
+}
+
 class LambdaMaestroTool : public MaestroTool {
 	String name;
 	String desc;

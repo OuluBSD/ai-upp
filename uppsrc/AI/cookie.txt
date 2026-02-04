@@ -1,4 +1,4 @@
 TRACK=MaestroCLI
-PHASE=02_CommandImplementation
-TASK=AI Discussion
+PHASE=05_FunctionalParity
+TASK=01_RunbookImplementation
 STATUS=IN_PROGRESS

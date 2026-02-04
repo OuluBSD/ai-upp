@@ -11,16 +11,23 @@ public:
 
 struct ConvertCommand : Command {
 	String GetName() const override { return "convert"; }
-	String GetDescription() const override { return "AI-driven conversion orchestration"; }
+	Vector<String> GetAliases() const override { return {"c", "cv"}; }
+	String GetDescription() const override { return "Format conversion tools and pipelines"; }
 	
 	void ShowHelp() const override {
-		Cout() << "usage: MaestroCLI convert [-h] {inventory,plan,validate,run}\n"
-		       << "\n"
-		       << "Conversion subcommands:\n"
-		       << "    inventory <src> <tgt>  Generate source and target inventories\n"
-		       << "    plan <src> <tgt>       Generate conversion plan JSON\n"
-		       << "    validate <src> <tgt>   Validate conversion plan\n"
-		       << "    run <src> <tgt>        Execute conversion plan\n";
+		Cout() << "usage: MaestroCLI convert [-h] {add,new,n,plan,p,run,r,status,s,show,sh,reset,rst,batch,b} ...\n"
+		       << "positional arguments:\n"
+		       << "  {add,new,n,plan,p,run,r,status,s,show,sh,reset,rst,batch,b}\n"
+		       << "                        Convert subcommands\n"
+		       << "    add (new, n)        Add new conversion pipeline\n"
+		       << "    plan (p)            Plan conversion approach\n"
+		       << "    run (r)             Run conversion pipeline\n"
+		       << "    status (s)          Get pipeline status\n"
+		       << "    show (sh)           Show pipeline details\n"
+		       << "    reset (rst)         Reset pipeline state\n"
+		       << "    batch (b)           Batch operations\n"
+		       << "options:\n"
+		       << "  -h, --help            show this help message and exit\n";
 	}
 	
 	void Execute(const Vector<String>& args) override;

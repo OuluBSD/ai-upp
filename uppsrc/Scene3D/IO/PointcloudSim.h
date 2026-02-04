@@ -8,6 +8,8 @@ struct SyntheticPointcloudConfig {
 	int controller_dots_per_ring = 12;
 	float controller_radius = 0.05f;
 	float controller_height = 0.03f;
+	float hmd_fov_deg = 90.0f;
+	float hmd_min_dist = 0.2f;
 	float max_range = 3.0f;
 	int seed = 1337;
 };
@@ -21,8 +23,9 @@ struct SyntheticPointcloudState {
 
 SyntheticPointcloudState BuildSyntheticPointcloud(const SyntheticPointcloudConfig& cfg);
 PointcloudObservation SimulateHmdObservation(const SyntheticPointcloudState& state,
-                                             float max_range);
-Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPointcloudState& state);
+                                             const SyntheticPointcloudConfig& cfg);
+Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPointcloudState& state,
+                                                             const SyntheticPointcloudConfig& cfg);
 bool RunSyntheticPointcloudSim(String& log, const SyntheticPointcloudConfig& cfg = SyntheticPointcloudConfig());
 
 #endif

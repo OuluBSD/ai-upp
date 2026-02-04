@@ -96,6 +96,8 @@ struct Edit3D : TopWindow {
 	SyntheticPointcloudState sim_state;
 	PointcloudObservation sim_obs;
 	Vector<ControllerObservation> sim_ctrl_obs;
+	PointcloudPose sim_fake_hmd_pose;
+	PointcloudPose sim_localized_pose;
 	bool sim_has_state = false;
 	bool sim_has_obs = false;
 	bool sim_has_ctrl_obs = false;

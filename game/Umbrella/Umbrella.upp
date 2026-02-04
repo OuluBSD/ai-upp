@@ -1,0 +1,11 @@
+description "Umbrella Game - U++ Conversion of RainbowGame";
+
+uses
+	CtrlLib;
+
+file
+	Umbrella.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

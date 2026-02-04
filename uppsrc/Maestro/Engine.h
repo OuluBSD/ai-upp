@@ -3,7 +3,6 @@
 
 #include <Core/Core.h>
 
-NAMESPACE_UPP
 
 struct SessionInfo : Moveable<SessionInfo> {
 	String   id;
@@ -68,6 +67,6 @@ public:
 	const ArrayMap<String, MaestroTool>& GetTools() const { return tools; }
 };
 
-END_UPP_NAMESPACE
+
 
 #endif

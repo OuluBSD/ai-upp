@@ -1,39 +1,35 @@
-#include "Breadcrumb.h"
+#include "Maestro.h"
 
 namespace Upp {
 
 Breadcrumb::Breadcrumb() {
-	breadcrumb_id = AsString(Uuid::Create());
 	timestamp_id = BreadcrumbManager::GenerateTimestampId();
 }
 
 void Breadcrumb::Jsonize(JsonIO& jio) {
-	jio("timestamp", timestamp_id)
-	   ("breadcrumb_id", breadcrumb_id)
-	   ("prompt", prompt)
-	   ("response", response)
-	   ("tools_called", tools_called)
-	   ("files_modified", files_modified)
-	   ("parent_session_id", parent_session_id)
+	jio("timestamp_id", timestamp_id)
+	   ("session_id", session_id)
 	   ("depth_level", depth_level)
 	   ("model_used", model_used)
+	   ("prompt", prompt)
+	   ("response", response)
+	   ("error", error)
 	   ("input_tokens", input_tokens)
 	   ("output_tokens", output_tokens)
 	   ("cost", cost)
-	   ("error", error)
-	   ("kind", kind)
-	   ("tags", tags)
-	   ("payload", payload);
+	   ("tools_called", tools_called)
+	   ("files_modified", files_modified)
+	   ("metadata", metadata);
 }
 
 String BreadcrumbManager::GenerateTimestampId() {
-	Time now = GetSysTime();
-	// For simplicity, using Time format, real version uses microseconds
-	return Format("%04d%02d%02d_%02d%02d%02d", now.year, now.month, now.day, now.hour, now.minute, now.second);
+	return Format((Date)GetSysTime(), "YYYYMMDD_HHMMSS");
 }
 
 bool BreadcrumbManager::SaveBreadcrumb(const Breadcrumb& b, const String& docs_root, const String& session_id) {
-	String base = AppendFileName(AppendFileName(AppendFileName(docs_root, "docs"), "sessions"), session_id);
+	String base = AppendFileName(AppendFileName(docs_root, "docs"), "sessions");
+	base = AppendFileName(base, session_id);
+	
 	String bdir = AppendFileName(AppendFileName(base, "breadcrumbs"), AsString(b.depth_level));
 	RealizeDirectory(bdir);
 	
@@ -42,38 +38,32 @@ bool BreadcrumbManager::SaveBreadcrumb(const Breadcrumb& b, const String& docs_r
 }
 
 Array<Breadcrumb> BreadcrumbManager::ListBreadcrumbs(const String& docs_root, const String& session_id, int depth) {
-	Array<Breadcrumb> list;
+	Array<Breadcrumb> result;
 	String base = AppendFileName(AppendFileName(AppendFileName(docs_root, "docs"), "sessions"), session_id);
-	String bdir = AppendFileName(base, "breadcrumbs");
+	String bread_root = AppendFileName(base, "breadcrumbs");
 	
-	if(!DirectoryExists(bdir)) return list;
+	if(!DirectoryExists(bread_root)) return result;
 	
-	auto scan_dir = [&](String d) {
-		FindFile ff(AppendFileName(d, "*.json"));
-		while(ff) {
-			String content = LoadFile(ff.GetPath());
-			if(!content.IsEmpty()) {
-				Breadcrumb& b = list.Add();
-				if(!LoadFromJson(b, content))
-					list.Drop();
+	FindFile ff(AppendFileName(bread_root, "*"));
+	while(ff) {
+		if(ff.IsDirectory() && ff.GetName() != "." && ff.GetName() != "..") {
+			int d = atoi(ff.GetName());
+			if(depth < 0 || d == depth) {
+				FindFile fjson(AppendFileName(ff.GetPath(), "*.json"));
+				while(fjson) {
+					Breadcrumb b;
+					if(LoadFromJsonFile(b, fjson.GetPath())) {
+						result.Add(pick(b));
+					}
+					fjson.Next();
+				}
 			}
-			ff.Next();
 		}
-	};
-	
-	if(depth >= 0) {
-		scan_dir(AppendFileName(bdir, AsString(depth)));
-	} else {
-		FindFile ff(AppendFileName(bdir, "*"));
-		while(ff) {
-			if(ff.IsDirectory())
-				scan_dir(ff.GetPath());
-			ff.Next();
-		}
+		ff.Next();
 	}
 	
-	Sort(list, [](const Breadcrumb& a, const Breadcrumb& b) { return a.timestamp_id < b.timestamp_id; });
-	return list;
+	Sort(result, [](const Breadcrumb& a, const Breadcrumb& b) { return a.timestamp_id < b.timestamp_id; });
+	return result;
 }
 
 }

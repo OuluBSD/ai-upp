@@ -3,6 +3,13 @@
 ## Overview
 With the main.cpp file created based on DesktopLauncher.java, outline the next steps for implementing the Umbrella game.
 
+## Shell Commands to Explore RainbowGame Structure
+```bash
+find /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java -name "*.java"
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/RainbowGame.java
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/editor/MapEditorScreen.java
+```
+
 ## Immediate Next Steps
 
 ### 1. Enhance the Game Window Class

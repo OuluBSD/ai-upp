@@ -16,6 +16,10 @@ file
 	Maintenance readonly separator,
 	Maintenance.h,
 	Maintenance.cpp,
+	IssuesView.h,
+	IssuesView.cpp,
+	WorkDashboard.h,
+	WorkDashboard.cpp,
 	Management readonly separator,
 	SessionManagement.h,
 	SessionManagement.cpp;

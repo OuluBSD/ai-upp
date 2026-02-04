@@ -1,5 +1,5 @@
 # Task: Project Skeleton & Maestro Integration
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Ensure MaestroHub is correctly set up to use the new C++ Maestro package and establishes the basic GUI application structure.

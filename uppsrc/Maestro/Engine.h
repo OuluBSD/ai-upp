@@ -1,7 +1,9 @@
 #ifndef _Maestro_Engine_h_
 #define _Maestro_Engine_h_
 
-#include <Core/Core.h>
+#ifdef _GraphLib_GraphLib_h_
+ #error Wrong inclusion order
+#endif
 
 
 struct SessionInfo : Moveable<SessionInfo> {

@@ -1,8 +1,6 @@
 #ifndef _GraphLib_Graph_h_
 #define _GraphLib_Graph_h_
 
-#include <CtrlLib/CtrlLib.h>
-
 namespace GraphLib {
 
 using namespace Upp;

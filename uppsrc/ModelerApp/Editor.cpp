@@ -60,9 +60,13 @@ PointcloudPose RandomHmdPose(const SyntheticPointcloudConfig& cfg) {
 	pose.position[0] = RandRange(cfg.bounds_min[0], cfg.bounds_max[0]);
 	pose.position[1] = RandRange(cfg.bounds_min[1], cfg.bounds_max[1]);
 	pose.position[2] = RandRange(cfg.bounds_min[2], cfg.bounds_max[2]);
-	float yaw = RandRange(-M_PIf, M_PIf);
-	float pitch = RandRange(-M_PIf * 0.25f, M_PIf * 0.25f);
-	float roll = RandRange(-M_PIf * 0.1f, M_PIf * 0.1f);
+	vec3 to_origin = -pose.position;
+	if (to_origin.GetLength() < 1e-3f)
+		to_origin = VEC_FWD;
+	vec3 axes = GetDirAxes(to_origin);
+	float yaw = axes[0] + RandRange(-0.2f, 0.2f);
+	float pitch = axes[1] + RandRange(-0.15f, 0.15f);
+	float roll = RandRange(-M_PIf * 0.05f, M_PIf * 0.05f);
 	pose.orientation = AxesQuat(yaw, pitch, roll);
 	return pose;
 }
@@ -859,11 +863,48 @@ void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
 	log << "reference points=" << sim_state.reference.points.GetCount() << "\n";
 	log << "observation points=" << sim_obs.points.GetCount() << "\n";
 	int obs_in_frustum = 0;
+	int ref_in_range = 0;
+	int ref_z_pos = 0;
+	int ref_z_neg = 0;
+	float min_z = 1e9f;
+	float max_z = -1e9f;
 	for (int i = 0; i < sim_obs.points.GetCount(); i++) {
 		if (VisibleInFrustumSimple(sim_obs.points[i], sim_cfg))
 			obs_in_frustum++;
 	}
+	for (int i = 0; i < sim_state.reference.points.GetCount(); i++) {
+		vec3 cam = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.reference.points[i]);
+		float len = cam.GetLength();
+		if (len <= sim_cfg.max_range)
+			ref_in_range++;
+		min_z = min(min_z, cam[2]);
+		max_z = max(max_z, cam[2]);
+		if (cam[2] >= 0)
+			ref_z_pos++;
+		else
+			ref_z_neg++;
+	}
+	if (sim_state.reference.points.GetCount() > 0) {
+		vec3 cam0 = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.reference.points[0]);
+		vec3 ref0 = sim_state.reference.points[0];
+		log << "reference0 world=(" << ref0[0] << " " << ref0[1] << " " << ref0[2] << ")\n";
+		log << "fake camera pos=(" << sim_fake_hmd_pose.position[0] << " "
+			<< sim_fake_hmd_pose.position[1] << " " << sim_fake_hmd_pose.position[2] << ")\n";
+		log << "fake camera orient=(" << sim_fake_hmd_pose.orientation[0] << " "
+			<< sim_fake_hmd_pose.orientation[1] << " " << sim_fake_hmd_pose.orientation[2]
+			<< " " << sim_fake_hmd_pose.orientation[3] << ")\n";
+		vec3 rel0 = ref0 - sim_fake_hmd_pose.position;
+		log << "reference0 rel=(" << rel0[0] << " " << rel0[1] << " " << rel0[2] << ")\n";
+		vec3 cam0_inv = VectorTransform(rel0, sim_fake_hmd_pose.orientation.GetInverse());
+		vec3 cam0_fwd = VectorTransform(rel0, sim_fake_hmd_pose.orientation);
+		log << "reference0 cam_inv=(" << cam0_inv[0] << " " << cam0_inv[1] << " " << cam0_inv[2] << ")\n";
+		log << "reference0 cam_fwd=(" << cam0_fwd[0] << " " << cam0_fwd[1] << " " << cam0_fwd[2] << ")\n";
+		log << "reference0 cam=(" << cam0[0] << " " << cam0[1] << " " << cam0[2] << ")\n";
+	}
 	log << "observation in-frustum=" << obs_in_frustum << "\n";
+	log << "reference in-range=" << ref_in_range << "\n";
+	log << "reference z>=0=" << ref_z_pos << " z<0=" << ref_z_neg << "\n";
+	log << "reference z min=" << min_z << " max=" << max_z << "\n";
 	log << RunLocalizationLog(false);
 	DebugSimulateControllerObservations();
 	log << "controller observations=" << sim_ctrl_obs.GetCount() << "\n";
@@ -874,7 +915,10 @@ void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
 	int ctrl_centers_in_frustum = 0;
 	for (int i = 0; i < sim_state.controller_poses_world.GetCount(); i++) {
 		vec3 center_cam = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.controller_poses_world[i].position);
-		if (VisibleInFrustumSimple(center_cam, sim_cfg))
+		bool visible = VisibleInFrustumSimple(center_cam, sim_cfg);
+		log << "controller[" << i << "] cam=(" << center_cam[0] << " " << center_cam[1] << " " << center_cam[2]
+			<< ") visible=" << (int)visible << "\n";
+		if (visible)
 			ctrl_centers_in_frustum++;
 	}
 	log << "controller centers in-frustum=" << ctrl_centers_in_frustum << "\n";

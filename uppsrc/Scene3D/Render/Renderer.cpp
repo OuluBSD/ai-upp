@@ -31,6 +31,59 @@ void DrawLine(Size sz, Draw& d, const mat4& view, const Vertex& a, const Vertex&
 	DrawLine(sz, d, view, a.position.Splice(), b.position.Splice(), line_width, c, z_cull);
 }
 
+void DrawCameraGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, const quat& orient,
+                     float fov_deg, float scale, const Color& clr, bool z_cull) {
+	vec3 fwd = VectorTransform(VEC_FWD, orient);
+	vec3 right = VectorTransform(VEC_RIGHT, orient);
+	vec3 up = VectorTransform(VEC_UP, orient);
+	float axis_len = scale * 0.25f;
+	DrawLine(sz, d, view, pos, pos + right * axis_len, 1, LtRed(), z_cull);
+	DrawLine(sz, d, view, pos, pos + up * axis_len, 1, LtGreen(), z_cull);
+	DrawLine(sz, d, view, pos, pos + fwd * axis_len, 1, LtBlue(), z_cull);
+	
+	float near_d = scale * 0.2f;
+	float far_d = scale * 0.7f;
+	float half = (fov_deg * 0.5f) * (float)M_PI / 180.0f;
+	float near_h = tan(half) * near_d;
+	float far_h = tan(half) * far_d;
+	vec3 near_c = pos + fwd * near_d;
+	vec3 far_c = pos + fwd * far_d;
+	vec3 n0 = near_c - right * near_h - up * near_h;
+	vec3 n1 = near_c + right * near_h - up * near_h;
+	vec3 n2 = near_c + right * near_h + up * near_h;
+	vec3 n3 = near_c - right * near_h + up * near_h;
+	vec3 f0 = far_c - right * far_h - up * far_h;
+	vec3 f1 = far_c + right * far_h - up * far_h;
+	vec3 f2 = far_c + right * far_h + up * far_h;
+	vec3 f3 = far_c - right * far_h + up * far_h;
+	
+	DrawLine(sz, d, view, n0, n1, 1, clr, z_cull);
+	DrawLine(sz, d, view, n1, n2, 1, clr, z_cull);
+	DrawLine(sz, d, view, n2, n3, 1, clr, z_cull);
+	DrawLine(sz, d, view, n3, n0, 1, clr, z_cull);
+	
+	DrawLine(sz, d, view, f0, f1, 1, clr, z_cull);
+	DrawLine(sz, d, view, f1, f2, 1, clr, z_cull);
+	DrawLine(sz, d, view, f2, f3, 1, clr, z_cull);
+	DrawLine(sz, d, view, f3, f0, 1, clr, z_cull);
+	
+	DrawLine(sz, d, view, n0, f0, 1, clr, z_cull);
+	DrawLine(sz, d, view, n1, f1, 1, clr, z_cull);
+	DrawLine(sz, d, view, n2, f2, 1, clr, z_cull);
+	DrawLine(sz, d, view, n3, f3, 1, clr, z_cull);
+}
+
+Color CameraColor(const GeomObject& go) {
+	String name = ToLower(go.name);
+	if (name.Find("fake") >= 0)
+		return Color(120, 220, 120);
+	if (name.Find("localized") >= 0)
+		return Color(220, 120, 120);
+	if (name.Find("hmd") >= 0)
+		return Color(120, 180, 240);
+	return Color(220, 220, 120);
+}
+
 
 
 
@@ -105,6 +158,16 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 			
 			iter++;
 		}
+	}
+	else if (go.IsCamera()) {
+		float fov_deg = 90.0f;
+		float scale = 0.8f;
+		if (ctx && ctx->state) {
+			GeomCamera& ref_cam = ctx->state->GetProgram();
+			fov_deg = ref_cam.fov;
+			scale = Max(0.2f, ref_cam.scale * 0.5f);
+		}
+		DrawCameraGizmo(sz, d, view, os.position, os.orientation, fov_deg, scale, CameraColor(go), z_cull);
 	}
 }
 
@@ -193,6 +256,25 @@ void EditRenderer::Paint(Draw& d) {
 		DrawLine(sz, d, view, corners[1], corners[5], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[2], corners[6], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[3], corners[7], lw, clr, z_cull);
+	}
+	
+	// Overlay: focus/program frustums for sanity checks
+	{
+		GeomCamera& focus = state.GetFocus();
+		DrawCameraGizmo(sz, d, view, focus.position, focus.orientation, focus.fov,
+			Max(0.2f, focus.scale * 0.5f), Color(120, 220, 120), z_cull);
+		DrawCameraGizmo(sz, d, view, program.position, program.orientation, program.fov,
+			Max(0.2f, program.scale * 0.5f), Color(220, 120, 120), z_cull);
+	}
+	
+	// Overlay: active camera axes and forward vector
+	{
+		vec3 fwd = VectorTransform(VEC_FWD, camera.orientation);
+		vec3 right = VectorTransform(VEC_RIGHT, camera.orientation);
+		vec3 up = VectorTransform(VEC_UP, camera.orientation);
+		String info = Format("cam fwd=(%.2f %.2f %.2f) right=(%.2f %.2f %.2f) up=(%.2f %.2f %.2f)",
+			fwd[0], fwd[1], fwd[2], right[0], right[1], right[2], up[0], up[1], up[2]);
+		d.DrawText(4, 4, info, StdFont().Bold(), LtGray());
 	}
 	
 	// Draw red-green-blue unit-vectors

@@ -25,8 +25,8 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends[3].SetViewMode(VIEWMODE_PERSPECTIVE);
 	rends[0].SetCameraSource(CAMSRC_FOCUS);
 	rends[1].SetCameraSource(CAMSRC_FOCUS);
-	rends[2].SetCameraSource(CAMSRC_FOCUS);
-	rends[3].SetCameraSource(CAMSRC_PROGRAM);
+	rends[2].SetCameraSource(CAMSRC_PROGRAM);
+	rends[3].SetCameraSource(CAMSRC_FOCUS);
 
 	grid.Add(rends[0]);
 	grid.Add(rends[1]);

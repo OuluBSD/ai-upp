@@ -264,8 +264,8 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Generate Source Pointcloud"), THISBACK(DebugGeneratePointcloud));
 				bar.Add(t_("Simulate HMD Observation"), THISBACK(DebugSimulateObservation));
 				bar.Add(t_("Run Localization"), THISBACK(DebugRunLocalization));
-				bar.Add(t_("Run Controller Localization"), THISBACK(DebugRunControllerLocalization));
 				bar.Add(t_("Simulate Controller Observations"), THISBACK(DebugSimulateControllerObservations));
+				bar.Add(t_("Run Controller Localization"), THISBACK(DebugRunControllerLocalization));
 				bar.Add(t_("Run Full Synthetic Sim"), THISBACK(RunSyntheticPointcloudSimDialog));
 				bar.Separator();
 				bar.Add(t_("Clear Synthetic Data"), THISBACK(DebugClearSynthetic));
@@ -650,6 +650,8 @@ void Edit3D::DebugGeneratePointcloud() {
 	sim_has_state = true;
 	sim_has_obs = false;
 	sim_has_ctrl_obs = false;
+	sim_fake_hmd_pose = PointcloudPose::MakeIdentity();
+	sim_localized_pose = PointcloudPose::MakeIdentity();
 	EnsureSimSceneObjects();
 	if (sim_pointcloud_obj) {
 		FillOctree(sim_pointcloud_obj->octree.octree, sim_state.reference.points, -3);
@@ -665,14 +667,21 @@ void Edit3D::DebugGeneratePointcloud() {
 			sim_controller_obj[i]->octree_ptr = 0;
 		}
 	}
+	GeomCamera& focus = state->GetFocus();
+	focus.position = sim_fake_hmd_pose.position;
+	focus.orientation = sim_fake_hmd_pose.orientation;
+	GeomCamera& program = state->GetProgram();
+	program.position = sim_localized_pose.position;
+	program.orientation = sim_localized_pose.orientation;
 	RefrehRenderers();
 }
 
 void Edit3D::DebugSimulateObservation() {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
-	sim_state.hmd_pose_world = RandomHmdPose(sim_cfg);
-	sim_obs = SimulateHmdObservation(sim_state, sim_cfg.max_range);
+	sim_fake_hmd_pose = RandomHmdPose(sim_cfg);
+	sim_state.hmd_pose_world = sim_fake_hmd_pose;
+	sim_obs = SimulateHmdObservation(sim_state, sim_cfg);
 	sim_has_obs = true;
 	EnsureSimSceneObjects();
 	if (sim_observation_obj) {
@@ -680,9 +689,9 @@ void Edit3D::DebugSimulateObservation() {
 		FillOctree(sim_observation_obj->octree.octree, world_points, -3);
 		sim_observation_obj->octree_ptr = 0;
 	}
-	GeomCamera& cam = state->GetProgram();
-	cam.position = sim_state.hmd_pose_world.position;
-	cam.orientation = sim_state.hmd_pose_world.orientation;
+	GeomCamera& cam = state->GetFocus();
+	cam.position = sim_fake_hmd_pose.position;
+	cam.orientation = sim_fake_hmd_pose.orientation;
 	RefrehRenderers();
 }
 
@@ -694,9 +703,10 @@ void Edit3D::DebugRunLocalization() {
 	PointcloudLocalizerStub localizer;
 	PointcloudLocalizationResult loc = localizer.Locate(sim_state.reference, sim_obs);
 	if (loc.ok) {
+		sim_localized_pose = loc.pose;
 		GeomCamera& cam = state->GetProgram();
-		cam.position = loc.pose.position;
-		cam.orientation = loc.pose.orientation;
+		cam.position = sim_localized_pose.position;
+		cam.orientation = sim_localized_pose.orientation;
 	}
 	String log;
 	log << "Localization: ok=" << (int)loc.ok;
@@ -719,6 +729,10 @@ void Edit3D::DebugRunControllerLocalization() {
 	ControllerFusionStub fusion;
 	String log;
 	for (int i = 0; i < sim_ctrl_obs.GetCount() && i < sim_state.controllers.GetCount(); i++) {
+		if (sim_ctrl_obs[i].points.IsEmpty()) {
+			log << "controller[" << i << "] ok=0 pos=(0.000, 0.000, 0.000)\n";
+			continue;
+		}
 		ControllerPoseResult pose = tracker.Track(sim_state.controllers[i], sim_ctrl_obs[i]);
 		ControllerFusionSample sample;
 		sample.has_orientation = true;
@@ -738,9 +752,10 @@ void Edit3D::DebugSimulateControllerObservations() {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
 	sim_state.controller_poses_world.SetCount(2);
-	sim_state.controller_poses_world[0] = RandomControllerPoseInFrustum(sim_state.hmd_pose_world, 0.4f, 1.2f);
-	sim_state.controller_poses_world[1] = RandomControllerPoseInFrustum(sim_state.hmd_pose_world, 0.4f, 1.2f);
-	sim_ctrl_obs = SimulateControllerObservations(sim_state);
+	sim_state.hmd_pose_world = sim_fake_hmd_pose;
+	sim_state.controller_poses_world[0] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, 0.4f, 1.2f);
+	sim_state.controller_poses_world[1] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, 0.4f, 1.2f);
+	sim_ctrl_obs = SimulateControllerObservations(sim_state, sim_cfg);
 	sim_has_ctrl_obs = true;
 	EnsureSimSceneObjects();
 	for (int i = 0; i < sim_ctrl_obs.GetCount() && i < 2; i++) {
@@ -758,9 +773,9 @@ void Edit3D::DebugSimulateControllerObservations() {
 			kp.orientation = sim_state.controller_poses_world[i].orientation;
 		}
 	}
-	GeomCamera& cam = state->GetProgram();
-	cam.position = sim_state.hmd_pose_world.position;
-	cam.orientation = sim_state.hmd_pose_world.orientation;
+	GeomCamera& cam = state->GetFocus();
+	cam.position = sim_fake_hmd_pose.position;
+	cam.orientation = sim_fake_hmd_pose.orientation;
 	RefrehRenderers();
 }
 

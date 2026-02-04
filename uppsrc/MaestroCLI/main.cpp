@@ -3,14 +3,6 @@
 
 using namespace Upp;
 
-struct Command {
-	virtual ~Command() {}
-	virtual String GetName() const = 0;
-	virtual String GetDescription() const = 0;
-	virtual void ShowHelp() const = 0;
-	virtual void Execute(const Vector<String>& args) = 0;
-};
-
 String FindPlanRoot()
 {
 	String d = GetCurrentDirectory();
@@ -778,6 +770,8 @@ CONSOLE_APP_MAIN
 	commands.Create<DiscussCommand>("d");
 	commands.Create<WSessionCommand>("wsession");
 	commands.Create<WSessionCommand>("ws");
+	commands.Create<ConvertCommand>("convert");
+	commands.Create<ConvertCommand>("cv");
 
 	CommandLineArguments cla;
 	cla.AddArg('v', "Verbose output", false);

@@ -10,6 +10,14 @@
 
 namespace Upp {
 
+struct Command {
+	virtual ~Command() {}
+	virtual String GetName() const = 0;
+	virtual String GetDescription() const = 0;
+	virtual void ShowHelp() const = 0;
+	virtual void Execute(const Vector<String>& args) = 0;
+};
+
 // 1. Core Data Models
 #include "AssemblyInfo.h"
 #include "PlanModels.h"
@@ -32,6 +40,10 @@ namespace Upp {
 #include "StructureTools.h"
 #include "VarFileParser.h"
 #include "DependencyResolver.h"
+#include "InventoryGenerator.h"
+#include "ConversionMemory.h"
+#include "ConversionPlanner.h"
+#include "ConversionOrchestrator.h"
 
 #ifdef flagGUI
 // 4. UI

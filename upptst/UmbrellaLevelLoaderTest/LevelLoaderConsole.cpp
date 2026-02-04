@@ -28,59 +28,108 @@ bool LevelLoader::Initialize() {
 }
 
 bool LevelLoader::LoadLevel(const String& filePath, LevelData& levelData) {
-    currentLevelPath = filePath;
-    
-    // This is a simplified implementation - in a real scenario, 
+    // Use ShareDirFile to locate the level file in the proper directory structure
+    String fullPath = ShareDirFile("mods/umbrella/levels/" + filePath);
+
+    // Check if the file exists
+    if (!FileExists(fullPath)) {
+        LOG("Level file does not exist: " + fullPath);
+        // For demonstration purposes, create a simple level if file doesn't exist
+        levelData.name = "Sample Level";
+        levelData.width = 20;
+        levelData.height = 15;
+
+        // Resize the tiles matrix
+        levelData.tiles.SetCount(levelData.height);
+        for(int i = 0; i < levelData.height; i++) {
+            levelData.tiles[i].SetCount(levelData.width, 0);  // Fill with empty tiles
+        }
+
+        // Add some sample tiles
+        for(int x = 5; x < 10; x++) {
+            for(int y = 5; y < 8; y++) {
+                levelData.tiles[y][x] = 1;  // Grass tile
+            }
+        }
+
+        // Add a stone area
+        for(int x = 12; x < 18; x++) {
+            levelData.tiles[7][x] = 2;  // Stone tile
+        }
+
+        // Add water
+        for(int x = 2; x < 5; x++) {
+            levelData.tiles[10][x] = 3;  // Water tile
+        }
+
+        // Add some spawn points
+        levelData.spawnPoints.Add(Point(1, 1));
+        levelData.spawnPoints.Add(Point(15, 5));
+
+        // Add some entities
+        levelData.entities.Add("PlayerStart");
+        levelData.entities.Add("Enemy:Goomba");
+
+        return true;
+    }
+
+    currentLevelPath = fullPath;
+
+    // This is a simplified implementation - in a real scenario,
     // this would parse a JSON or custom format file
-    
-    // For demonstration, create a simple level
-    levelData.name = "Sample Level";
+    // For now, we'll just simulate loading from the file
+
+    // For demonstration, create a simple level based on the file
+    levelData.name = filePath;
     levelData.width = 20;
     levelData.height = 15;
-    
+
     // Resize the tiles matrix
     levelData.tiles.SetCount(levelData.height);
     for(int i = 0; i < levelData.height; i++) {
         levelData.tiles[i].SetCount(levelData.width, 0);  // Fill with empty tiles
     }
-    
+
     // Add some sample tiles
     for(int x = 5; x < 10; x++) {
         for(int y = 5; y < 8; y++) {
             levelData.tiles[y][x] = 1;  // Grass tile
         }
     }
-    
+
     // Add a stone area
     for(int x = 12; x < 18; x++) {
         levelData.tiles[7][x] = 2;  // Stone tile
     }
-    
+
     // Add water
     for(int x = 2; x < 5; x++) {
         levelData.tiles[10][x] = 3;  // Water tile
     }
-    
+
     // Add some spawn points
     levelData.spawnPoints.Add(Point(1, 1));
     levelData.spawnPoints.Add(Point(15, 5));
-    
+
     // Add some entities
     levelData.entities.Add("PlayerStart");
     levelData.entities.Add("Enemy:Goomba");
-    
+
     return true;
 }
 
 bool LevelLoader::SaveLevel(const String& filePath, const LevelData& levelData) {
+    // Use ShareDirFile to determine the proper save location
+    String fullPath = ShareDirFile(filePath);
+
     // This would implement saving to a file format
     // For now, just simulate success
-    LOG("Saving level to: " + filePath);
+    LOG("Saving level to: " + fullPath);
     LOG("Level size: " + IntStr(levelData.width) + "x" + IntStr(levelData.height));
-    
+
     // In a real implementation, this would serialize the level data to a file
     // Could be JSON, binary format, or custom text format
-    
+
     return true;
 }
 

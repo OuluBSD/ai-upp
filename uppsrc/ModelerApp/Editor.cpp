@@ -27,6 +27,38 @@ Vector<vec3> TransformPointsToWorld(const PointcloudPose& pose, const Vector<vec
 	return out;
 }
 
+float RandRange(float a, float b) {
+	return a + (b - a) * (float)Randomf();
+}
+
+PointcloudPose RandomHmdPose(const SyntheticPointcloudConfig& cfg) {
+	PointcloudPose pose;
+	pose.position[0] = RandRange(cfg.bounds_min[0], cfg.bounds_max[0]);
+	pose.position[1] = RandRange(cfg.bounds_min[1], cfg.bounds_max[1]);
+	pose.position[2] = RandRange(cfg.bounds_min[2], cfg.bounds_max[2]);
+	float yaw = RandRange(-M_PIf, M_PIf);
+	float pitch = RandRange(-M_PIf * 0.25f, M_PIf * 0.25f);
+	float roll = RandRange(-M_PIf * 0.1f, M_PIf * 0.1f);
+	pose.orientation = AxesQuat(yaw, pitch, roll);
+	return pose;
+}
+
+PointcloudPose RandomControllerPoseInFrustum(const PointcloudPose& hmd_pose, float min_dist, float max_dist) {
+	PointcloudPose pose;
+	float dist = RandRange(min_dist, max_dist);
+	float horiz = RandRange(-0.4f, 0.4f);
+	float vert = RandRange(-0.2f, 0.2f);
+	vec3 fwd = VectorTransform(VEC_FWD, hmd_pose.orientation);
+	vec3 right = VectorTransform(VEC_RIGHT, hmd_pose.orientation);
+	vec3 up = VectorTransform(VEC_UP, hmd_pose.orientation);
+	pose.position = hmd_pose.position + fwd * dist + right * horiz + up * vert;
+	float yaw = RandRange(-M_PIf, M_PIf);
+	float pitch = RandRange(-M_PIf * 0.25f, M_PIf * 0.25f);
+	float roll = RandRange(-M_PIf * 0.1f, M_PIf * 0.1f);
+	pose.orientation = AxesQuat(yaw, pitch, roll);
+	return pose;
+}
+
 }
 
 FilePoolCtrl::FilePoolCtrl(Edit3D* e) {
@@ -232,6 +264,7 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Generate Source Pointcloud"), THISBACK(DebugGeneratePointcloud));
 				bar.Add(t_("Simulate HMD Observation"), THISBACK(DebugSimulateObservation));
 				bar.Add(t_("Run Localization"), THISBACK(DebugRunLocalization));
+				bar.Add(t_("Run Controller Localization"), THISBACK(DebugRunControllerLocalization));
 				bar.Add(t_("Simulate Controller Observations"), THISBACK(DebugSimulateControllerObservations));
 				bar.Add(t_("Run Full Synthetic Sim"), THISBACK(RunSyntheticPointcloudSimDialog));
 				bar.Separator();
@@ -634,6 +667,7 @@ void Edit3D::DebugGeneratePointcloud() {
 void Edit3D::DebugSimulateObservation() {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
+	sim_state.hmd_pose_world = RandomHmdPose(sim_cfg);
 	sim_obs = SimulateHmdObservation(sim_state, sim_cfg.max_range);
 	sim_has_obs = true;
 	EnsureSimSceneObjects();
@@ -669,9 +703,36 @@ void Edit3D::DebugRunLocalization() {
 	RefrehRenderers();
 }
 
+void Edit3D::DebugRunControllerLocalization() {
+	if (!sim_has_state)
+		DebugGeneratePointcloud();
+	if (!sim_has_ctrl_obs)
+		DebugSimulateControllerObservations();
+	ControllerPatternTrackerStub tracker;
+	ControllerFusionStub fusion;
+	String log;
+	for (int i = 0; i < sim_ctrl_obs.GetCount() && i < sim_state.controllers.GetCount(); i++) {
+		ControllerPoseResult pose = tracker.Track(sim_state.controllers[i], sim_ctrl_obs[i]);
+		ControllerFusionSample sample;
+		sample.has_orientation = true;
+		sample.orientation = pose.pose.orientation;
+		pose = fusion.Fuse(pose, sample);
+		log << "controller[" << i << "] ok=" << (int)pose.ok;
+		log << " pos=" << Format("(%.3f, %.3f, %.3f)",
+			pose.pose.position[0], pose.pose.position[1], pose.pose.position[2]) << "\n";
+	}
+	String safe = log;
+	safe.Replace("[", "(");
+	safe.Replace("]", ")");
+	PromptOK(safe);
+}
+
 void Edit3D::DebugSimulateControllerObservations() {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
+	sim_state.controller_poses_world.SetCount(2);
+	sim_state.controller_poses_world[0] = RandomControllerPoseInFrustum(sim_state.hmd_pose_world, 0.4f, 1.2f);
+	sim_state.controller_poses_world[1] = RandomControllerPoseInFrustum(sim_state.hmd_pose_world, 0.4f, 1.2f);
 	sim_ctrl_obs = SimulateControllerObservations(sim_state);
 	sim_has_ctrl_obs = true;
 	EnsureSimSceneObjects();

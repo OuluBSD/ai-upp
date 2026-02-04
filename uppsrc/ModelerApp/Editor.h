@@ -131,6 +131,7 @@ struct Edit3D : TopWindow {
 	void DebugGeneratePointcloud();
 	void DebugSimulateObservation();
 	void DebugRunLocalization();
+	void DebugRunControllerLocalization();
 	void DebugSimulateControllerObservations();
 	void DebugClearSynthetic();
 	

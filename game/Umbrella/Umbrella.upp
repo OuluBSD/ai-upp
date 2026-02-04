@@ -5,8 +5,13 @@ uses
 
 file
 	Umbrella.h,
-	main.cpp,
+	Tile.h,
+	Tile.cpp,
+	MapGrid.h,
+	MapGrid.cpp,
+	MapEditor.h,
 	MapEditor.cpp,
+	main.cpp,
 	LevelLoader.cpp,
 	EntitySystem.cpp,
 	AudioSystem.cpp;

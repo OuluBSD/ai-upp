@@ -102,6 +102,7 @@ struct Edit3D : TopWindow {
 	GeomObject* sim_pointcloud_obj = 0;
 	GeomObject* sim_observation_obj = 0;
 	GeomObject* sim_controller_obj[2] = {0, 0};
+	GeomObject* sim_controller_model_obj[2] = {0, 0};
 	String scene3d_path;
 	String scene3d_created;
 	String scene3d_modified;

@@ -1,66 +1,50 @@
 #ifndef _Maestro_UppParser_h_
 #define _Maestro_UppParser_h_
 
-struct UppUseEntry : Moveable<UppUseEntry> {
+struct UseEntry : Moveable<UseEntry> {
 	String package;
-	String condition;
-};
-
-struct UppFileEntry : Moveable<UppFileEntry> {
-	String path;
-	String options;
-	bool   readonly = false;
-	bool   separator = false;
-	String highlight;
-	String charset;
-	String condition;
-};
-
-struct UppConfigEntry : Moveable<UppConfigEntry> {
-	String name;
-	String param;
-	String condition;
-};
-
-struct UppLibraryEntry : Moveable<UppLibraryEntry> {
-	String libs;
-	String condition;
-};
-
-struct UppLinkEntry : Moveable<UppLinkEntry> {
 	String flags;
-	String condition;
+};
+
+struct FileEntry : Moveable<FileEntry> {
+	String path;
+	String flags;
+	bool separator = false;
+	bool readonly = false;
 };
 
 struct FileGroup : Moveable<FileGroup> {
 	String name;
-	bool   readonly = false;
 	Vector<String> files;
+	bool readonly = false;
+	
+	FileGroup() {}
+	FileGroup(const FileGroup& f) {
+		name = f.name;
+		files = clone(f.files);
+		readonly = f.readonly;
+	}
 };
 
 class UppParser {
 public:
-	String raw_description;
+	Vector<UseEntry> uses;
+	Vector<FileEntry> files;
 	String description_text;
-	Color  description_color;
+	Color  description_color = Null;
 	
-	Array<UppUseEntry> uses;
-	Array<UppFileEntry> files;
-	Array<UppConfigEntry> mainconfigs;
+	Vector<String> mainconfigs;
 	Vector<String> acceptflags;
-	Array<UppLibraryEntry> libraries;
-	Array<UppLibraryEntry> static_libraries;
-	Array<UppLinkEntry> links;
-	
+	Vector<String> libraries;
+	Vector<String> static_libraries;
 	Vector<String> unparsed_lines;
 	Vector<String> raw_lines;
+	String raw_description;
 
-	void Reset();
 	void ParseFile(const String& path);
 	void Parse(const String& content);
 	void ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files);
-
-private:
+	
 	int ParseDescription(const Vector<String>& lines, int i);
 	int ParseUses(const Vector<String>& lines, int i);
 	int ParseFiles(const Vector<String>& lines, int i);
@@ -69,7 +53,9 @@ private:
 	int ParseLibrary(const Vector<String>& lines, int i, bool is_static);
 	int ParseLink(const Vector<String>& lines, int i);
 	
-	UppFileEntry ParseFileEntry(const String& line);
+	FileEntry ParseFileEntry(const String& line);
+	
+	void Reset();
 };
 
 #endif

@@ -1,9 +1,7 @@
-#ifndef _AI_Engine_PlanSummarizer_h_
-#define _AI_Engine_PlanSummarizer_h_
+#ifndef _Maestro_PlanSummarizer_h_
+#define _Maestro_PlanSummarizer_h_
 
-#include <Maestro/PlanModels.h>
 
-NAMESPACE_UPP
 
 class PlanSummarizer {
 public:
@@ -12,6 +10,5 @@ public:
 	static String GetWorkGraphSummary(const WorkGraph& wg);
 };
 
-END_UPP_NAMESPACE
 
 #endif

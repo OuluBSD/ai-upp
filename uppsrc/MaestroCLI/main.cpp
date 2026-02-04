@@ -481,6 +481,28 @@ struct RepoCommand : Command {
 				Cerr() << "Error: Package '" << name << "' not found.\n";
 			}
 		}
+		else if (sub == "deps" || sub == "dependents") {
+			if(cla.GetPositionalCount() < 2) {
+				Cerr() << "Error: '" << sub << "' requires a package name.\n";
+				return;
+			}
+			String name = AsString(cla.GetPositional(1));
+			Vector<String> list;
+			if(sub == "deps") list = DependencyResolver::GetDependencies(scanner.packages, name);
+			else list = DependencyResolver::GetDependents(scanner.packages, name);
+			
+			Cout() << "Transitive " << sub << " for " << name << ":\n";
+			for(const auto& item : list) Cout() << "  - " << item << "\n";
+		}
+		else if (sub == "sort") {
+			try {
+				Array<PackageInfo> sorted = DependencyResolver::TopologicalSort(scanner.packages);
+				Cout() << "Build order (" << sorted.GetCount() << " packages):\n";
+				for(int i = 0; i < sorted.GetCount(); i++) Cout() << Format("%4d. %s\n", i + 1, sorted[i].name);
+			} catch (const Exc& e) {
+				Cerr() << "Error: " << e << "\n";
+			}
+		}
 		else if (sub == "asm") {
 			Array<UppAssemblyReader::AssemblyInfo> asms = UppAssemblyReader::ReadAll();
 			Cout() << "U++ IDE Assemblies (from ~/.config/u++/ide/*.var):\n";

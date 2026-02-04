@@ -3,6 +3,13 @@
 ## Overview
 Detailed strategy for replacing libGDX dependencies with U++ equivalents as outlined in the requirements.
 
+## Shell Commands to Explore RainbowGame Structure
+```bash
+find /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java -name "*.java"
+find /common/active/sblo/Dev/RainbowGame/trash/desktop
+cat /common/active/sblo/Dev/RainbowGame/trash/build.sh
+```
+
 ## Graphics System Replacement
 ### Current (libGDX)
 - Uses Batch, SpriteBatch for rendering

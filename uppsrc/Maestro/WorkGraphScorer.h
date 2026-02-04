@@ -1,14 +1,5 @@
-#ifndef MAESTRO_WORKGRAPHSCORER_H
-#define MAESTRO_WORKGRAPHSCORER_H
-
-// NOTE: This header is normally included inside namespace Upp
-
 #ifndef _Maestro_WorkGraphScorer_h_
 #define _Maestro_WorkGraphScorer_h_
-
-#include <Maestro/PlanModels.h>
-
-namespace Upp {
 
 struct ScoreResult : Moveable<ScoreResult> {
 	String task_id;
@@ -26,6 +17,18 @@ struct ScoreResult : Moveable<ScoreResult> {
 		   ("effort_bucket", effort_bucket)("impact", impact)("risk", risk)
 		   ("purpose", purpose)("rationale", rationale)("inferred_fields", inferred_fields);
 	}
+	ScoreResult() {}
+	ScoreResult(const ScoreResult& s) {
+		task_id = s.task_id;
+		task_title = s.task_title;
+		score = s.score;
+		effort_bucket = s.effort_bucket;
+		impact = s.impact;
+		risk = s.risk;
+		purpose = s.purpose;
+		rationale = s.rationale;
+		inferred_fields = clone(s.inferred_fields);
+	}
 };
 
 struct RankedWorkGraph : Moveable<RankedWorkGraph> {
@@ -37,6 +40,13 @@ struct RankedWorkGraph : Moveable<RankedWorkGraph> {
 	void Jsonize(JsonIO& jio) {
 		jio("workgraph_id", workgraph_id)("profile", profile)
 		   ("ranked_tasks", ranked_tasks)("summary", summary);
+	}
+	RankedWorkGraph() {}
+	RankedWorkGraph(const RankedWorkGraph& r) {
+		workgraph_id = r.workgraph_id;
+		profile = r.profile;
+		ranked_tasks = clone(r.ranked_tasks);
+		summary = clone(r.summary);
 	}
 };
 
@@ -52,8 +62,4 @@ private:
 	static int InferPurpose(const WorkGraphTask& t);
 };
 
-}
-
 #endif
-
-#endif // MAESTRO_WORKGRAPHSCORER_H

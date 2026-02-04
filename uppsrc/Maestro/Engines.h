@@ -1,7 +1,6 @@
 #ifndef _Maestro_Engines_h_
 #define _Maestro_Engines_h_
 
-NAMESPACE_UPP
 
 inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 	e.Reset();
@@ -37,6 +36,5 @@ inline CliMaestroEngine& ConfigureCodex(CliMaestroEngine& e) {
 	return e;
 }
 
-END_UPP_NAMESPACE
 
 #endif

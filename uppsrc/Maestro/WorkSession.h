@@ -1,20 +1,15 @@
 #ifndef _Maestro_WorkSession_h_
 #define _Maestro_WorkSession_h_
 
-#include <Core/Core.h>
-
-namespace Upp {
-
 enum class WorkSessionStatus {
 	RUNNING,
 	PAUSED,
 	COMPLETED,
-	INTERRUPTED,
 	FAILED,
 	UNKNOWN
 };
 
-String StatusToString(WorkSessionStatus s);
+String StatusToString(WorkSessionStatus status);
 WorkSessionStatus StringToWorkSessionStatus(const String& s);
 
 struct WorkSession : Moveable<WorkSession> {
@@ -34,22 +29,33 @@ struct WorkSession : Moveable<WorkSession> {
 
 	void Jsonize(JsonIO& jio);
 	
-	WorkSession();
-	WorkSession(WorkSession&& s) : Moveable<WorkSession>(s) {
-		session_id = pick(s.session_id);
-		session_type = pick(s.session_type);
-		parent_session_id = pick(s.parent_session_id);
-		children_ids = pick(s.children_ids);
+	WorkSession() { created = modified = GetSysTime(); }
+	WorkSession(const WorkSession& s) {
+		session_id = s.session_id;
+		session_type = s.session_type;
+		parent_session_id = s.parent_session_id;
+		children_ids = clone(s.children_ids);
 		status = s.status;
-		state = pick(s.state);
-		purpose = pick(s.purpose);
-		context = pick(s.context);
+		state = s.state;
+		purpose = s.purpose;
+		context = clone(s.context);
 		created = s.created;
 		modified = s.modified;
-		related_entity = pick(s.related_entity);
-		breadcrumbs_dir = pick(s.breadcrumbs_dir);
-		metadata = pick(s.metadata);
+		related_entity = clone(s.related_entity);
+		breadcrumbs_dir = s.breadcrumbs_dir;
+		metadata = clone(s.metadata);
 	}
+};
+
+struct SessionStats {
+	int    total_breadcrumbs = 0;
+	int    total_tokens_input = 0;
+	int    total_tokens_output = 0;
+	double estimated_cost = 0;
+	int    files_modified = 0;
+	int    tools_called = 0;
+	double duration_seconds = 0;
+	double success_rate = 0;
 };
 
 class WorkSessionManager {
@@ -60,8 +66,7 @@ public:
 	static bool SaveSession(const WorkSession& session, const String& path);
 	static String FindSessionPath(const String& docs_root, const String& session_id);
 	static WorkSession CreateSession(const String& docs_root, const String& type, const String& purpose = "");
+	static SessionStats CalculateSessionStats(const String& docs_root, const WorkSession& session);
 };
-
-}
 
 #endif

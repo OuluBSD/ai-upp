@@ -3,297 +3,124 @@
 namespace Upp {
 
 void UppParser::Reset() {
-	raw_description.Clear();
-	description_text.Clear();
-	description_color = Null;
 	uses.Clear();
 	files.Clear();
 	mainconfigs.Clear();
 	acceptflags.Clear();
 	libraries.Clear();
 	static_libraries.Clear();
-	links.Clear();
 	unparsed_lines.Clear();
 	raw_lines.Clear();
+	raw_description = "";
+	description_text = "";
+	description_color = Null;
 }
 
 void UppParser::ParseFile(const String& path) {
+	Reset();
 	Parse(LoadFile(path));
 }
 
 void UppParser::Parse(const String& content) {
-	Reset();
+	Vector<String> lines = Split(content, '\n', false);
+	raw_lines = clone(lines);
 	
-	raw_lines = Split(content, '\n');
-	
-	int i = 0;
-	while(i < raw_lines.GetCount()) {
-		String line = raw_lines[i];
-		String stripped = TrimBoth(line);
+	for(int i = 0; i < lines.GetCount(); i++) {
+		String l = TrimBoth(lines[i]);
+		if(l.IsEmpty()) continue;
 		
-		if(stripped.IsEmpty() || stripped.StartsWith("//")) {
-			i++;
-			continue;
-		}
-		
-		if(stripped.StartsWith("description")) {
-			i = ParseDescription(raw_lines, i);
-		} else if(stripped.StartsWith("uses")) {
-			i = ParseUses(raw_lines, i);
-		} else if(stripped.StartsWith("file")) {
-			i = ParseFiles(raw_lines, i);
-		} else if(stripped.StartsWith("mainconfig")) {
-			i = ParseMainConfig(raw_lines, i);
-		} else if(stripped.StartsWith("acceptflags")) {
-			i = ParseAcceptFlags(raw_lines, i);
-		} else if(stripped.StartsWith("library")) {
-			i = ParseLibrary(raw_lines, i, false);
-		} else if(stripped.StartsWith("static_library")) {
-			i = ParseLibrary(raw_lines, i, true);
-		} else if(stripped.StartsWith("link")) {
-			i = ParseLink(raw_lines, i);
-		} else {
-			unparsed_lines.Add(line);
-			i++;
-		}
+		if(l.StartsWith("description")) i = ParseDescription(lines, i);
+		else if(l.StartsWith("uses")) i = ParseUses(lines, i);
+		else if(l.StartsWith("file")) i = ParseFiles(lines, i);
+		else if(l.StartsWith("mainconfig")) i = ParseMainConfig(lines, i);
+		else if(l.StartsWith("acceptflags")) i = ParseAcceptFlags(lines, i);
+		else if(l.StartsWith("library")) i = ParseLibrary(lines, i, false);
+		else if(l.StartsWith("static_library")) i = ParseLibrary(lines, i, true);
+		else if(l.StartsWith("link")) i = ParseLink(lines, i);
+		else unparsed_lines.Add(lines[i]);
 	}
 }
 
 int UppParser::ParseDescription(const Vector<String>& lines, int i) {
-	String line = TrimBoth(lines[i]);
-	RegExp re("^description\\s+\"([^\"]*)\"");
-	if(re.Match(line)) {
-		raw_description = re[0];
-		description_text = raw_description;
-		
-		RegExp reColor("\\\\377B(\\d+),(\\d+),(\\d+)$");
-		RegExp reColorOct("\377B(\\d+),(\\d+),(\\d+)$");
-		
-		auto ExtractColor = [&](RegExp& rc) {
-			if(rc.Match(description_text)) {
-				description_color = Color(StrInt(rc[0]), StrInt(rc[1]), StrInt(rc[2]));
-				int s, e;
-				rc.GetMatchPos(0, s, e);
-				description_text = description_text.Left(s);
-				return true;
-			}
-			return false;
-		};
-		
-		if(!ExtractColor(reColor))
-			ExtractColor(reColorOct);
-	} else {
-		unparsed_lines.Add(lines[i]);
+	String l = lines[i];
+	int start = l.Find('"');
+	if(start >= 0) {
+		int end = l.Find('"', start + 1);
+		if(end >= 0) {
+			description_text = l.Mid(start + 1, end - start - 1);
+		}
 	}
-	return i + 1;
+	return i;
 }
+
 int UppParser::ParseUses(const Vector<String>& lines, int i) {
-	String accumulated;
-	int j = i;
-	while(j < lines.GetCount()) {
-		accumulated << " " << TrimBoth(lines[j]);
-		if(lines[j].Find(';') >= 0) break;
-		j++;
+	String l = lines[i];
+	RegExp re("\"([^\"]+)\"");
+	while(re.GlobalMatch(l)) {
+		UseEntry& u = uses.Add();
+		u.package = re[0];
 	}
-	
-	String content = accumulated;
-	content.Replace("uses", "");
-	content.Replace(";", "");
-	content = TrimBoth(content);
-	
-	String condition;
-	RegExp reCond("^\\(([^)]+)\\)\\s+(.+)");
-	if(reCond.Match(content)) {
-		condition = reCond[0];
-		content = reCond[1];
-	}
-	
-	Vector<String> tokens = Split(content, [](int c) { return IsSpace(c) || c == ',' ? 1 : 0; });
-	for(String token : tokens) {
-		token = TrimBoth(token);
-		if(token.IsEmpty()) continue;
-		if(token == "|" || token == "&" || token == "!" || token == "(" || token == ")") continue;
-		if(IsUpper(token[0])) continue; // Likely a flag
-		
-		UppUseEntry& u = uses.Add();
-		u.package = token;
-		u.package.Replace("\\", "/");
-		u.condition = condition;
-	}
-	
-	return j + 1;
+	return i;
 }
-int UppParser::ParseFiles(const Vector<String>& lines, int i) {
-	String line = TrimBoth(lines[i]);
-	
-	// Single line format: file "a.cpp", "b.h";
-	if(line.Find(';') >= 0) {
-		RegExp re("\"([^\"]+)\"");
-		while(re.GlobalMatch(line)) {
-			UppFileEntry& fe = files.Add();
-			fe.path = re[0];
+
+FileEntry UppParser::ParseFileEntry(const String& line) {
+	FileEntry fe;
+	int start = line.Find('"');
+	if(start >= 0) {
+		int end = line.Find('"', start + 1);
+		if(end >= 0) {
+			fe.path = line.Mid(start + 1, end - start - 1);
+			fe.flags = TrimBoth(line.Mid(end + 1));
+			if(fe.flags.EndsWith(";")) fe.flags.Remove(fe.flags.GetCount() - 1);
 		}
-		return i + 1;
 	}
-	
-	// Multi-line format
-	int j = i + 1;
-	while(j < lines.GetCount()) {
-		String l = TrimBoth(lines[j]);
-		if(l.IsEmpty()) { j++; continue; }
-		if(l == ";") break;
-		
-		UppFileEntry fe = ParseFileEntry(l);
-		if(!fe.path.IsEmpty())
-			files.Add(fe);
-		
-		if(l.Find(';') >= 0) break;
-		j++;
-	}
-	
-	return j + 1;
-}
-
-int UppParser::ParseMainConfig(const Vector<String>& lines, int i) {
-	String accumulated;
-	int j = i;
-	while(j < lines.GetCount()) {
-		accumulated << " " << TrimBoth(lines[j]);
-		if(lines[j].Find(';') >= 0) break;
-		j++;
-	}
-	
-	RegExp re("\"([^\"]*)\"\\s*=\\s*\"([^\"]*)\"");
-	while(re.GlobalMatch(accumulated)) {
-		UppConfigEntry& ce = mainconfigs.Add();
-		ce.name = re[0];
-		ce.param = re[1];
-	}
-	
-	return j + 1;
-}
-
-int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) {
-	String accumulated;
-	int j = i;
-	while(j < lines.GetCount()) {
-		accumulated << " " << TrimBoth(lines[j]);
-		if(lines[j].Find(';') >= 0) break;
-		j++;
-	}
-	
-	String content = accumulated;
-	content.Replace("acceptflags", "");
-	content.Replace(";", "");
-	
-	Vector<String> tokens = Split(content, [](int c) { return IsSpace(c) || c == ',' ? 1 : 0; });
-	for(String token : tokens) {
-		token = TrimBoth(token);
-		if(!token.IsEmpty())
-			acceptflags.Add(token);
-	}
-	
-	return j + 1;
-}
-
-int UppParser::ParseLibrary(const Vector<String>& lines, int i, bool is_static) {
-	String line = TrimBoth(lines[i]);
-	
-	RegExp reCondQuoted("library\\(([^)]+)\\)\\s+\"([^\"]+)\"");
-	RegExp reCondUnquoted("library\\(([^)]+)\\)\\s+(\\w+)");
-	RegExp reStaticCondUnquoted("static_library\\(([^)]+)\\)\\s+(\\w+)");
-	
-	auto Process = [&](RegExp& re) {
-		if(re.Match(line)) {
-			UppLibraryEntry& le = is_static ? static_libraries.Add() : libraries.Add();
-			le.condition = re[0];
-			le.libs = re[1];
-			return true;
-		}
-		return false;
-	};
-	
-	if(!Process(reCondQuoted))
-		if(!Process(reCondUnquoted))
-			Process(reStaticCondUnquoted);
-			
-	return i + 1;
-}
-
-int UppParser::ParseLink(const Vector<String>& lines, int i) {
-	String line = TrimBoth(lines[i]);
-	
-	RegExp re("^link\\(([^)]+)\\)\\s+(.+?);");
-	if(re.Match(line)) {
-		UppLinkEntry& le = links.Add();
-		le.condition = re[0];
-		le.flags = re[1];
-	}
-	
-	return i + 1;
-}
-
-UppFileEntry UppParser::ParseFileEntry(const String& line) {
-	UppFileEntry fe;
-	
-	RegExp reQuoted("^\"([^\"]+)\"");
-	RegExp reUnquoted("^([^\\s,;]+)");
-	
-	if(reQuoted.Match(line)) {
-		fe.path = reQuoted[0];
-	} else if(reUnquoted.Match(line)) {
-		fe.path = reUnquoted[0];
-	} else {
-		return fe;
-	}
-	
-	if(line.Find("options(") >= 0) {
-		RegExp reOpt("options\\(([^)]+)\\)");
-		if(reOpt.Match(line)) fe.options = reOpt[0];
-	}
-	
-	if(line.Find("readonly") >= 0) fe.readonly = true;
-	if(line.Find("separator") >= 0) fe.separator = true;
-	
-	RegExp reHighlight("highlight\\s+(\\w+)");
-	if(reHighlight.Match(line)) fe.highlight = reHighlight[0];
-	
-	RegExp reCharset("charset\\s+\"([^\"]+)\"");
-	if(reCharset.Match(line)) fe.charset = reCharset[0];
-	
 	return fe;
 }
 
+int UppParser::ParseFiles(const Vector<String>& lines, int i) {
+	FileEntry fe = ParseFileEntry(lines[i]);
+	if(!fe.path.IsEmpty())
+		files.Add(fe);
+	return i;
+}
+
+int UppParser::ParseMainConfig(const Vector<String>& lines, int i) {
+	mainconfigs.Add(lines[i]);
+	return i;
+}
+
+int UppParser::ParseAcceptFlags(const Vector<String>& lines, int i) {
+	acceptflags.Add(lines[i]);
+	return i;
+}
+
+int UppParser::ParseLibrary(const Vector<String>& lines, int i, bool is_static) {
+	if(is_static) static_libraries.Add(lines[i]);
+	else libraries.Add(lines[i]);
+	return i;
+}
+
+int UppParser::ParseLink(const Vector<String>& lines, int i) {
+	return i;
+}
+
 void UppParser::ProcessFileGroups(Vector<FileGroup>& groups, Vector<String>& ungrouped_files) {
-	String current_group;
-	Vector<String> current_files;
+	FileGroup* current_group = nullptr;
 	bool current_readonly = false;
 	
 	for(const auto& fe : files) {
 		if(fe.separator) {
-			if(!current_group.IsEmpty() && current_files.GetCount() > 0) {
-				FileGroup& g = groups.Add();
-				g.name = current_group;
-				g.files <<= current_files;
-				g.readonly = current_readonly;
-			}
-			current_group = fe.path;
-			current_files.Clear();
+			current_group = &groups.Add();
+			current_group->name = fe.path;
+			current_group->readonly = fe.readonly;
 			current_readonly = fe.readonly;
 		} else {
-			if(!current_group.IsEmpty()) {
-				current_files.Add(fe.path);
+			if(current_group) {
+				current_group->files.Add(fe.path);
 			} else {
 				ungrouped_files.Add(fe.path);
 			}
 		}
-	}
-	
-	if(!current_group.IsEmpty() && current_files.GetCount() > 0) {
-		FileGroup& g = groups.Add();
-		g.name = current_group;
-		g.files <<= current_files;
-		g.readonly = current_readonly;
 	}
 }
 

@@ -1,13 +1,12 @@
-#include "WorkSession.h"
+#include "Maestro.h"
 
 namespace Upp {
 
-String StatusToString(WorkSessionStatus s) {
-	switch(s) {
+String StatusToString(WorkSessionStatus status) {
+	switch(status) {
 		case WorkSessionStatus::RUNNING: return "running";
 		case WorkSessionStatus::PAUSED: return "paused";
 		case WorkSessionStatus::COMPLETED: return "completed";
-		case WorkSessionStatus::INTERRUPTED: return "interrupted";
 		case WorkSessionStatus::FAILED: return "failed";
 		default: return "unknown";
 	}
@@ -17,37 +16,28 @@ WorkSessionStatus StringToWorkSessionStatus(const String& s) {
 	if(s == "running") return WorkSessionStatus::RUNNING;
 	if(s == "paused") return WorkSessionStatus::PAUSED;
 	if(s == "completed") return WorkSessionStatus::COMPLETED;
-	if(s == "interrupted") return WorkSessionStatus::INTERRUPTED;
 	if(s == "failed") return WorkSessionStatus::FAILED;
 	return WorkSessionStatus::UNKNOWN;
-}
-
-WorkSession::WorkSession() {
-	created = modified = GetSysTime();
 }
 
 void WorkSession::Jsonize(JsonIO& jio) {
 	jio("session_id", session_id)
 	   ("session_type", session_type)
 	   ("parent_session_id", parent_session_id)
-	   ("children_wsession_ids", children_ids)
+	   ("children_ids", children_ids)
+	   ("status", (int&)status)
 	   ("state", state)
 	   ("purpose", purpose)
 	   ("context", context)
+	   ("created", created)
+	   ("modified", modified)
 	   ("related_entity", related_entity)
 	   ("breadcrumbs_dir", breadcrumbs_dir)
 	   ("metadata", metadata);
-	
-	String s = StatusToString(status);
-	jio("status", s);
-	if(jio.IsLoading()) status = StringToWorkSessionStatus(s);
-	
-jio("created", created)
-	   ("modified", modified);
 }
 
 String WorkSessionManager::GetSessionsBasePath(const String& docs_root) {
-	return AppendFileName(AppendFileName(docs_root, "docs"), "sessions");
+	return AppendFileName(docs_root, "docs/sessions");
 }
 
 Array<WorkSession> WorkSessionManager::ListSessions(const String& docs_root) {
@@ -68,14 +58,14 @@ Array<WorkSession> WorkSessionManager::ListSessions(const String& docs_root) {
 				}
 			}
 			
-			// Check one level deeper for nested sessions
+			// Legacy layout support: check subdirectories
 			FindFile nff(AppendFileName(ff.GetPath(), "*"));
 			while(nff) {
 				if(nff.IsDirectory() && nff.GetName() != "." && nff.GetName() != "..") {
-					String nested_file = AppendFileName(nff.GetPath(), "session.json");
-					if(FileExists(nested_file)) {
+					String ps = AppendFileName(nff.GetPath(), "session.json");
+					if(FileExists(ps)) {
 						WorkSession s;
-						if(LoadSession(nested_file, s) && seen.Find(s.session_id) < 0) {
+						if(LoadSession(ps, s) && seen.Find(s.session_id) < 0) {
 							seen.Add(s.session_id);
 							list.Add(pick(s));
 						}
@@ -91,7 +81,7 @@ Array<WorkSession> WorkSessionManager::ListSessions(const String& docs_root) {
 
 bool WorkSessionManager::LoadSession(const String& path, WorkSession& session) {
 	String json = LoadFile(path);
-	if(json.IsEmpty()) return false;
+	if(json.IsVoid()) return false;
 	return LoadFromJson(session, json);
 }
 
@@ -146,6 +136,30 @@ WorkSession WorkSessionManager::CreateSession(const String& docs_root, const Str
 	
 	SaveSession(s, AppendFileName(session_dir, "session.json"));
 	return s;
+}
+
+SessionStats WorkSessionManager::CalculateSessionStats(const String& docs_root, const WorkSession& session) {
+	Array<Breadcrumb> breadcrumbs = BreadcrumbManager::ListBreadcrumbs(docs_root, session.session_id);
+	
+	SessionStats st;
+	st.total_breadcrumbs = breadcrumbs.GetCount();
+	int success_count = 0;
+	
+	for(const auto& b : breadcrumbs) {
+		st.total_tokens_input += b.input_tokens;
+		st.total_tokens_output += b.output_tokens;
+		st.estimated_cost += b.cost;
+		st.files_modified += b.files_modified.GetCount();
+		st.tools_called += b.tools_called.GetCount();
+		if(b.error.IsEmpty()) success_count++;
+	}
+	
+	if(st.total_breadcrumbs > 0) {
+		st.success_rate = (double)success_count / st.total_breadcrumbs * 100.0;
+		st.duration_seconds = session.modified - session.created;
+	}
+	
+	return st;
 }
 
 } // namespace Upp

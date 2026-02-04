@@ -1,14 +1,6 @@
-#ifndef MAESTRO_PLANMODELS_H
-#define MAESTRO_PLANMODELS_H
-
-// NOTE: This header is normally included inside namespace Upp
-
 #ifndef _Maestro_PlanModels_h_
 #define _Maestro_PlanModels_h_
 
-#include <Core/Core.h>
-
-NAMESPACE_UPP
 
 enum TaskStatus {
 	STATUS_TODO,
@@ -47,6 +39,13 @@ struct Task : Moveable<Task> {
 	
 	Time       created_at;
 	Time       updated_at;
+
+	Task() {}
+	Task(const Task& t) {
+		id = t.id; name = t.name; description = t.description; status = t.status;
+		path = t.path; priority = t.priority; depends_on = clone(t.depends_on);
+		created_at = t.created_at; updated_at = t.updated_at;
+	}
 };
 
 struct Phase : Moveable<Phase> {
@@ -56,6 +55,12 @@ struct Phase : Moveable<Phase> {
 	int         completion = 0;
 	Array<Task> tasks;
 	String      path; // Directory path
+
+	Phase() {}
+	Phase(const Phase& p) {
+		id = p.id; name = p.name; status = p.status; completion = p.completion;
+		tasks = clone(p.tasks); path = p.path;
+	}
 };
 
 struct Track : Moveable<Track> {
@@ -65,6 +70,12 @@ struct Track : Moveable<Track> {
 	int          completion = 0;
 	Array<Phase> phases;
 	String       path; // Directory path
+
+	Track() {}
+	Track(const Track& t) {
+		id = t.id; name = t.name; status = t.status; completion = t.completion;
+		phases = clone(t.phases); path = t.path;
+	}
 };
 
 struct RunbookStep : Moveable<RunbookStep> {
@@ -87,6 +98,10 @@ struct Runbook : Moveable<Runbook> {
 	
 	void Jsonize(JsonIO& jio) {
 		jio("id", id)("title", title)("goal", goal)("steps", steps);
+	}
+	Runbook() {}
+	Runbook(const Runbook& r) {
+		id = r.id; title = r.title; goal = r.goal; steps = clone(r.steps);
 	}
 };
 
@@ -127,6 +142,16 @@ struct WorkGraphTask : Moveable<WorkGraphTask> {
 		   ("tags", tags)("effort", effort)("impact", impact)("risk_score", risk_score)
 		   ("purpose", purpose)("safe_to_execute", safe_to_execute);
 	}
+	WorkGraphTask() {}
+	WorkGraphTask(const WorkGraphTask& t) {
+		id = t.id; title = t.title; status = t.status; intent = t.intent;
+		definition_of_done = clone(t.definition_of_done);
+		verification = clone(t.verification);
+		inputs = clone(t.inputs); outputs = clone(t.outputs);
+		risk = clone(t.risk); depends_on = clone(t.depends_on); tags = clone(t.tags);
+		effort = clone(t.effort); impact = t.impact; risk_score = t.risk_score;
+		purpose = t.purpose; safe_to_execute = t.safe_to_execute;
+	}
 };
 
 struct WorkGraphPhase : Moveable<WorkGraphPhase> {
@@ -136,6 +161,10 @@ struct WorkGraphPhase : Moveable<WorkGraphPhase> {
 	
 	void Jsonize(JsonIO& jio) {
 		jio("id", id)("name", name)("tasks", tasks);
+	}
+	WorkGraphPhase() {}
+	WorkGraphPhase(const WorkGraphPhase& p) {
+		id = p.id; name = p.name; tasks = clone(p.tasks);
 	}
 };
 
@@ -177,10 +206,16 @@ struct WorkGraph : Moveable<WorkGraph> {
 		   ("domain", domain)("profile", profile)("track", track)("phases", phases)
 		   ("stop_conditions", stop_conditions)("repo_discovery", repo_discovery);
 	}
+	WorkGraph() {}
+	WorkGraph(const WorkGraph& w) {
+		schema_version = w.schema_version; id = w.id; title = w.title;
+		goal = w.goal; domain = w.domain; profile = w.profile;
+		track = w.track; phases = clone(w.phases);
+		stop_conditions = clone(w.stop_conditions);
+		repo_discovery = clone(w.repo_discovery);
+	}
 };
 
-END_UPP_NAMESPACE
 
 #endif
 
-#endif // MAESTRO_PLANMODELS_H

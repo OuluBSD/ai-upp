@@ -1,15 +1,5 @@
-#ifndef MAESTRO_WORKGRAPHGENERATOR_H
-#define MAESTRO_WORKGRAPHGENERATOR_H
-
-// NOTE: This header is normally included inside namespace Upp
-
 #ifndef _Maestro_WorkGraphGenerator_h_
 #define _Maestro_WorkGraphGenerator_h_
-
-#include <Maestro/PlanModels.h>
-#include <AI/Engine/CliEngine.h>
-
-namespace Upp {
 
 class WorkGraphGenerator {
 	MaestroEngine& engine;
@@ -26,8 +16,4 @@ private:
 	String ExtractJSON(const String& response);
 };
 
-}
-
 #endif
-
-#endif // MAESTRO_WORKGRAPHGENERATOR_H

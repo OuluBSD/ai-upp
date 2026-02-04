@@ -4,9 +4,12 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
+#include <Draw/Camera/Camera.h>
+#include <Ctrl/Camera/Camera.h>
 #include <Scene3D/Core/Core.h>
 #include <Scene3D/IO/IO.h>
 #include <Scene3D/Render/Render.h>
+#include <SoftHMD/SoftHMD.h>
 #include <plugin/enet/enet.h>
 
 #define IMAGECLASS ImagesImg

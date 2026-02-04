@@ -57,13 +57,13 @@ GUI_APP_MAIN {
 		if (!daemon.Init())
 			return;
 	}
-	else if (cmd.IsArg('n')) {
+	else
+	#endif
+	if (cmd.IsArg('n')) {
 		pointcloud_dir = cmd.GetArg('n');
 		mode = POINTCLOUD;
 	}
-	else
-	#endif
-	if (cmd.IsArg('t')) {
+	else if (cmd.IsArg('t')) {
 		mode = PROJECT0;
 	}
 	
@@ -90,11 +90,11 @@ GUI_APP_MAIN {
 	if (mode == POINTCLOUD)
 		app.LoadWmrStereoPointcloud(pointcloud_dir);
 	else if (mode == PROJECT0) {
-		if (!app.LoadScene3D(test_scene_path)) {
-			app.LoadTestProject(0);
+		//if (!app.LoadScene3D(test_scene_path)) {
+			app.LoadTestProject(2);
 			RealizeDirectory(GetFileFolder(test_scene_path));
 			app.SaveScene3D(test_scene_path, true);
-		}
+		//}
 		app.SetScene3DFormat(true);
 		app.ToggleRepeatPlayback();
 		app.Play();

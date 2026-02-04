@@ -2,9 +2,12 @@ uses
 	CtrlLib,
 	Geometry,
 	ComputerVision,
+	Draw/Camera,
+	Ctrl/Camera,
 	Scene3D/Core,
 	Scene3D/IO,
 	Scene3D/Render,
+	SoftHMD,
 	plugin/jpg,
 	plugin/enet;
 
@@ -27,4 +30,3 @@ file
 
 mainconfig
 	"" = "GUI";
-

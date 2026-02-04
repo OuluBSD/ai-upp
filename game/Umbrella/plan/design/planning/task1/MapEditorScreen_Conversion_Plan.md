@@ -3,6 +3,11 @@
 ## Overview
 Convert the RainbowGame MapEditorScreen.java from libGDX to U++ CtrlLib widgets as part of the Umbrella game project.
 
+## Shell Command to View File
+```bash
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/editor/MapEditorScreen.java
+```
+
 ## Current State Analysis
 - File: `/common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/editor/MapEditorScreen.java`
 - Uses libGDX framework extensively:

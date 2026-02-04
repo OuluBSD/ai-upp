@@ -1,10 +1,6 @@
 #ifndef _Maestro_VarFileParser_h_
 #define _Maestro_VarFileParser_h_
 
-#include <Core/Core.h>
-
-namespace Upp {
-
 class VarFileParser {
 public:
 	VectorMap<String, String> vars;
@@ -27,7 +23,5 @@ public:
 
 	static Array<AssemblyInfo> ReadAll(const String& repo_root = "");
 };
-
-}
 
 #endif

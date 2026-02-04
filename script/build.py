@@ -240,6 +240,7 @@ def find_upp_by_name(repo_root, filename):
         repo_root / "reference",
         repo_root / "stdsrc",
         repo_root / "stdtst",
+        repo_root / "game",
     ]
     matches = []
     for root in search_roots:
@@ -1234,7 +1235,7 @@ def main():
     if opts["jobs"]:
         build_flags = re.sub(r"H\\d+", "", build_flags)
 
-    roots = "./upptst,./rainbow,./uppsrc,./examples,./tutorial,./reference"
+    roots = "./upptst,./rainbow,./uppsrc,./examples,./tutorial,./reference,./game"
     output_name = f"{target}.exe" if is_windows else target
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)

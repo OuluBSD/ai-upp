@@ -1,8 +1,8 @@
-#include "StructureTools.h"
+#include "Maestro.h"
 
 namespace Upp {
 
-const char *NOTE_COMMENT = "// NOTE: This header is normally included inside namespace Upp";
+const char *MAESTRO_NOTE_COMMENT = "// NOTE: This header is normally included inside namespace Upp";
 
 String StructureTools::GetGuardName(const String& package_name, const String& header_path) {
 	String stem = GetFileTitle(header_path);
@@ -37,7 +37,7 @@ bool StructureTools::FixHeaderGuards(const String& header_path, const String& pa
 	String content;
 	content << "#ifndef " << guard << "\n"
 	        << "#define " << guard << "\n\n"
-	        << NOTE_COMMENT << "\n\n"
+	        << MAESTRO_NOTE_COMMENT << "\n\n"
 	        << body << "\n\n"
 	        << "#endif // " << guard << "\n";
 	        
@@ -49,7 +49,7 @@ bool StructureTools::EnsureMainHeaderContent(const String& main_header_path, con
 	String content;
 	content << "#ifndef " << guard << "\n"
 	        << "#define " << guard << "\n\n"
-	        << NOTE_COMMENT << "\n\n"
+	        << MAESTRO_NOTE_COMMENT << "\n\n"
 	        << "// Main header for " << package_name << "\n\n"
 	        << "#endif // " << guard << "\n";
 	return SaveFile(main_header_path, content);
@@ -62,13 +62,12 @@ bool StructureTools::NormalizeCppIncludes(const String& source_path, const Strin
 	Vector<String> lines = Split(original, '\n', false);
 	String includes;
 	String body;
-	bool found_main = false;
 	
 	for(const auto& l : lines) {
 		String nl = TrimBoth(l);
 		if(nl.StartsWith("#include")) {
-			if(nl.Find("\"" + main_header_name + "\"") >= 0) found_main = true;
-			else includes << l << "\n";
+			if(nl.Find("\"" + main_header_name + "\"") < 0)
+				includes << l << "\n";
 		} else {
 			body << l << "\n";
 		}
@@ -82,7 +81,7 @@ bool StructureTools::NormalizeCppIncludes(const String& source_path, const Strin
 bool StructureTools::ReduceSecondaryHeaderIncludes(const String& header_path) {
 	String original = LoadFile(header_path);
 	if(original.IsEmpty()) return false;
-	if(original.Find(NOTE_COMMENT) >= 0) return true;
+	if(original.Find(MAESTRO_NOTE_COMMENT) >= 0) return true;
 	
 	Vector<String> lines = Split(original, '\n', false);
 	int insert_at = 0;
@@ -94,7 +93,7 @@ bool StructureTools::ReduceSecondaryHeaderIncludes(const String& header_path) {
 	}
 	
 	lines.Insert(insert_at, "");
-	lines.Insert(insert_at + 1, NOTE_COMMENT);
+	lines.Insert(insert_at + 1, MAESTRO_NOTE_COMMENT);
 	
 	return SaveFile(header_path, Join(lines, "\n"));
 }

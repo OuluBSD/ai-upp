@@ -3,6 +3,11 @@
 ## Overview
 Document the successful build of the Umbrella project after creating main.cpp based on DesktopLauncher.java.
 
+## Shell Command to View Desktop Launcher
+```bash
+cat /common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java
+```
+
 ## Build Command
 `script/build.py -j12 -mc 0 Umbrella`
 

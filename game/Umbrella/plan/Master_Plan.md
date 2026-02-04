@@ -3,6 +3,16 @@
 ## Project Overview
 Convert the RainbowGame/libGDX project to a U++-based game framework as outlined in the requirements.
 
+## Shell Commands to Explore RainbowGame
+```bash
+find /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java -name "*.java"
+find /common/active/sblo/Dev/RainbowGame/trash/desktop
+cat /common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/RainbowGame.java
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/editor/MapEditorScreen.java
+cat /common/active/sblo/Dev/RainbowGame/trash/build.sh
+```
+
 ## Goals
 1. Convert RainbowGame from libGDX to U++ framework
 2. Replace libGDX dependencies with U++ equivalents

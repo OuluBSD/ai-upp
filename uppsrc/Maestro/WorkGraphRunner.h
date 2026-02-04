@@ -1,14 +1,5 @@
-#ifndef MAESTRO_WORKGRAPHRUNNER_H
-#define MAESTRO_WORKGRAPHRUNNER_H
-
-// NOTE: This header is normally included inside namespace Upp
-
 #ifndef _Maestro_WorkGraphRunner_h_
 #define _Maestro_WorkGraphRunner_h_
-
-#include <Maestro/PlanModels.h>
-
-namespace Upp {
 
 struct RunSummary {
 	String run_id;
@@ -43,8 +34,4 @@ private:
 	Array<const WorkGraphTask*> GetRunnableTasks(const VectorMap<String, Index<String>>& deps);
 };
 
-}
-
 #endif
-
-#endif // MAESTRO_WORKGRAPHRUNNER_H

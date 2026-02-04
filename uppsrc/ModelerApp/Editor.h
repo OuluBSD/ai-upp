@@ -128,6 +128,8 @@ struct Edit3D : TopWindow {
 	void StopPointcloudRecording();
 	void UpdateHmdCameraPose();
 	void RunSyntheticPointcloudSimDialog();
+	String RunLocalizationLog(bool show_dialog);
+	String RunControllerLocalizationLog(bool show_dialog);
 	void DebugGeneratePointcloud();
 	void DebugSimulateObservation();
 	void DebugRunLocalization();
@@ -170,6 +172,7 @@ public:
 	void LoadEmptyProject();
 	void LoadTestProject(int test_i);
 	void LoadWmrStereoPointcloud(String directory);
+	void RunSyntheticSimVisual(bool log_stdout);
 	bool LoadScene3D(const String& path);
 	bool SaveScene3D(const String& path, bool use_json, bool pretty = true);
 	

@@ -17,6 +17,7 @@ GUI_APP_MAIN {
 	
 	cmd.AddArg('v', "Verbose", false);
 	cmd.AddArg('t', "Load test project", false);
+	cmd.AddArg('s', "Run synthetic sim (visual)", false);
 	cmd.AddArg('d', "Dump test .scene3d and exit", false);
 	cmd.AddArg('n', "Pointcloud directory", true, "directory");
 	cmd.AddArg('c', "Connect to a server", true, "address");
@@ -31,6 +32,7 @@ GUI_APP_MAIN {
 		EMPTY,
 		POINTCLOUD,
 		PROJECT0,
+		SYNTHETIC,
 		REMOTE,
 		REMOTE_DEBUG,
 	};
@@ -66,6 +68,9 @@ GUI_APP_MAIN {
 	else if (cmd.IsArg('t')) {
 		mode = PROJECT0;
 	}
+	else if (cmd.IsArg('s')) {
+		mode = SYNTHETIC;
+	}
 	
 	
 	daemon.RunInThread();
@@ -98,6 +103,10 @@ GUI_APP_MAIN {
 		app.SetScene3DFormat(true);
 		app.ToggleRepeatPlayback();
 		app.Play();
+	}
+	else if (mode == SYNTHETIC) {
+		app.LoadEmptyProject();
+		app.RunSyntheticSimVisual(true);
 	}
 	
 	app.Run();

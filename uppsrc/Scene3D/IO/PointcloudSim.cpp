@@ -48,7 +48,7 @@ vec3 NormalizeVec(const vec3& v) {
 }
 
 bool VisibleInFrustum(const vec3& cam, float fov_deg, float min_dist, float max_dist) {
-	float z = -cam[2];
+	float z = cam[2] * SCALAR_FWD_Zf;
 	if (z < min_dist || z > max_dist)
 		return false;
 	float half = (fov_deg * 0.5f) * (float)M_PI / 180.0f;

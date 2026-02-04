@@ -2,6 +2,85 @@
 
 NAMESPACE_UPP
 
+namespace {
+
+struct IconToggle : Ctrl {
+	bool value = false;
+	
+	virtual void Paint(Draw& w) {
+		Size sz = GetSize();
+		Color bg = SColorPaper();
+		w.DrawRect(sz, bg);
+		DrawIcon(w, Rect(sz), value, IsEnabled() ? SColorText() : SColorDisabled());
+	}
+	
+	virtual void LeftDown(Point, dword) {
+		if (!IsEnabled())
+			return;
+		value = !value;
+		Refresh();
+		WhenAction();
+	}
+	
+	virtual void SetData(const Value& v) {
+		value = !IsNull(v) && (bool)v;
+		Refresh();
+	}
+	
+	virtual Value GetData() const {
+		return value;
+	}
+	
+	virtual Size GetMinSize() const {
+		return Size(16, 16);
+	}
+	
+protected:
+	virtual void DrawIcon(Draw& w, const Rect& r, bool on, Color c) = 0;
+};
+
+struct EyeToggle : IconToggle {
+	virtual void DrawIcon(Draw& w, const Rect& r, bool on, Color c) {
+		Rect rr = r.Deflated(2, 4);
+		if (rr.Width() <= 2 || rr.Height() <= 2)
+			return;
+		w.DrawEllipse(rr, Null, 1, c);
+		if (on) {
+			Rect pupil = rr.CenterRect(Size(4, 4));
+			w.DrawEllipse(pupil, c);
+		}
+		else {
+			w.DrawLine(rr.left, rr.bottom, rr.right, rr.top, 1, c);
+		}
+	}
+};
+
+struct LockToggle : IconToggle {
+	virtual void DrawIcon(Draw& w, const Rect& r, bool on, Color c) {
+		Rect body = r.Deflated(4, 5);
+		if (body.Width() <= 2 || body.Height() <= 2)
+			return;
+		w.DrawRect(body, c);
+		Rect shackle = RectC(body.left + body.Width() / 4, r.top + 2, body.Width() / 2, body.Height() / 2);
+		w.DrawEllipse(shackle, Null, 1, c);
+		if (!on)
+			w.DrawLine(body.left, body.top, body.right, body.bottom, 1, SColorPaper());
+	}
+};
+
+GeomObject* GetObjectFromTreeValue(const Value& v) {
+	if (!v.Is<VfsValue*>())
+		return 0;
+	VfsValue* node = ValueTo<VfsValue*>(v);
+	if (!node)
+		return 0;
+	if (!IsVfsType(*node, AsTypeHash<GeomObject>()))
+		return 0;
+	return &node->GetExt<GeomObject>();
+}
+
+}
+
 
 GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	this->e = e;
@@ -11,6 +90,45 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	
 	hsplit.Horz().SetPos(2000) << metasplit << vsplit,
 	metasplit.Vert() << tree << props;
+	
+	tree.NoHeader();
+	tree_col_visible = tree.GetColumnCount();
+	tree.AddColumn("", 22).NoEdit().Ctrls([=](int line, One<Ctrl>& ctrl) {
+		EyeToggle* t = new EyeToggle();
+		t->NoWantFocus();
+		int id = tree.GetItemAtLine(line);
+		if (!GetObjectFromTreeValue(tree.Get(id)))
+			t->Disable();
+		int linei = line;
+		t->WhenAction << [=] {
+			int id = tree.GetItemAtLine(linei);
+			GeomObject* obj = GetObjectFromTreeValue(tree.Get(id));
+			if (!obj)
+				return;
+			obj->is_visible = (bool)t->GetData();
+			tree.SetRowValue(id, tree_col_visible, obj->is_visible);
+			RefreshAll();
+		};
+		ctrl = t;
+	});
+	tree_col_locked = tree.GetColumnCount();
+	tree.AddColumn("", 22).NoEdit().Ctrls([=](int line, One<Ctrl>& ctrl) {
+		LockToggle* t = new LockToggle();
+		t->NoWantFocus();
+		int id = tree.GetItemAtLine(line);
+		if (!GetObjectFromTreeValue(tree.Get(id)))
+			t->Disable();
+		int linei = line;
+		t->WhenAction << [=] {
+			int id = tree.GetItemAtLine(linei);
+			GeomObject* obj = GetObjectFromTreeValue(tree.Get(id));
+			if (!obj)
+				return;
+			obj->is_locked = (bool)t->GetData();
+			tree.SetRowValue(id, tree_col_locked, obj->is_locked);
+		};
+		ctrl = t;
+	});
 	vsplit.Vert().SetPos(7500) << grid << time;
 	
 	grid.SetGridSize(2,2);
@@ -84,6 +202,8 @@ void GeomProjectCtrl::Data() {
 		GeomScene& scene = s.GetExt<GeomScene>();
 		String name = scene.name.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene.name;
 		int j = tree.Add(tree_scenes, ImagesImg::Scene(), RawToValue(&scene.val), name);
+		tree.SetRowValue(j, tree_col_visible, Null);
+		tree.SetRowValue(j, tree_col_locked, Null);
 		
 		TreeValue(j, scene.val);
 		
@@ -176,6 +296,8 @@ void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {
 		GeomDirectory& dir = s->GetExt<GeomDirectory>();
 		String name = dir.name.IsEmpty() ? dir.val.id : dir.name;
 		int j = tree.Add(id, ImagesImg::Directory(), RawToValue(s), name);
+		tree.SetRowValue(j, tree_col_visible, Null);
+		tree.SetRowValue(j, tree_col_locked, Null);
 		TreeValue(j, *s);
 	}
 	for (VfsValue* s : objs) {
@@ -188,7 +310,9 @@ void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {
 			default: img = ImagesImg::Object();
 		}
 		String name = o.name.IsEmpty() ? s->id : o.name;
-		tree.Add(id, img, RawToValue(s), name);
+		int j = tree.Add(id, img, RawToValue(s), name);
+		tree.SetRowValue(j, tree_col_visible, o.is_visible);
+		tree.SetRowValue(j, tree_col_locked, o.is_locked);
 	}
 }
 

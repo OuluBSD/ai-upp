@@ -188,7 +188,9 @@ void GeomObject::Visit(Vis& v) {
 	v VIS_(name)
 	  VIS_(type_i)
 	  VIS_(asset_ref)
-	  VIS_(pointcloud_ref);
+	  VIS_(pointcloud_ref)
+	  VIS_(is_visible)
+	  VIS_(is_locked);
 	GeomTimeline& tl = GetTimeline();
 	v("timeline", tl, VISIT_NODE);
 	if (v.IsLoading()) {

@@ -1,411 +1,316 @@
 #include "Umbrella.h"
+#include "MapEditor.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
 #include <Core/Core.h>
-#include <Sound/Sound.h>
 
 using namespace Upp;
 
-// Forward declarations
-class MapEditorApp;
-class MapCanvas;
-
-// Main Map Editor Application Class
-class MapEditorApp : public TopWindow {
-private:
-    bool editorMode = false;
-    String importConfigPath;
-    String modId;
-    
-    // UI Components
-    MenuBar mainMenuBar;
-    ToolBar mainToolBar;
-    StatusBar mainStatusBar;
-    
-    // Panels
-    Ctrl toolsPanel;
-    Ctrl entityPanel;
-    Ctrl mapCanvasContainer;
-    TabCtrl bottomTabs;
-    
-    // Buttons
-    Button newMapBtn;
-    Button openFileBtn;
-    Button saveFileBtn;
-    Button undoBtn;
-    Button redoBtn;
-    Button zoomInBtn;
-    Button zoomOutBtn;
-    Button resetZoomBtn;
-    Button addLayerBtn;
-    Button removeLayerBtn;
-    Button moveLayerUpBtn;
-    Button moveLayerDownBtn;
-    Button addEntityBtn;
-    Button removeEntityBtn;
-    
-    // Custom canvas for map editing
-    MapCanvas* mapCanvas;
-
-public:
-    MapEditorApp();
-    virtual ~MapEditorApp();
-
-    void OpenFile(const String& fileName);
-    void SaveFile(const String& fileName);
-    void NewMap();
-
-    // UI Setup
-    void SetupUI();
-    void SetupMenuBar();
-    void SetupToolBar();
-
-    // Event Handlers
-    virtual void Paint(Draw& draw) override;
-    virtual bool Key(dword key, int) override;
-    virtual void LeftDown(Point p, dword keyflags) override;
-
-    // UI Event Handlers
-    void NewMapAction();
-    void OpenFileAction();
-    void SaveFileAction();
-    void UndoAction();
-    void RedoAction();
-    void ZoomInAction();
-    void ZoomOutAction();
-    void ResetZoomAction();
-    void AddLayerAction();
-    void RemoveLayerAction();
-    void MoveLayerUpAction();
-    void MoveLayerDownAction();
-    void AddEntityAction();
-    void RemoveEntityAction();
-};
-
-// Canvas for drawing and editing the map
-class MapCanvas : public Ctrl {
-private:
-    // Map data and rendering
-    Image mapImage;
-    Point offset;
-    double zoom;
-
-public:
-    MapCanvas();
-    virtual ~MapCanvas();
-
-    void Paint(Draw& w) override;
-    void MouseMove(Point pos, dword flags) override;
-    void LeftDown(Point pos, dword flags) override;
-    void LeftUp(Point pos, dword flags) override;
-    void MouseWheel(Point pos, int zdelta, dword flags) override;
-
-    void SetZoom(double newZoom);
-    void PanTo(Point newOffset);
-};
-
-// Implementation of MapEditorApp
-MapEditorApp::MapEditorApp() {
-    Title("Umbrella Map Editor");
-    Sizeable().Zoomable();
-    SetRect(0, 0, 1400, 900);
-
-    AddFrame(mainMenuBar);
-    AddFrame(mainToolBar);
-    AddFrame(mainStatusBar);
-
-    SetupMenuBar();
-    SetupToolBar();
-    SetupUI();
-}
-
-MapEditorApp::~MapEditorApp() {
-    if(mapCanvas) {
-        delete mapCanvas;
-    }
-}
-
-void MapEditorApp::SetupMenuBar() {
-    // Set up the menu bar with proper callbacks
-    mainMenuBar.Add("File");
-    mainMenuBar.Add("New", K_CTRL_N, THISBACK(NewMapAction));
-    mainMenuBar.Add("Open...", K_CTRL_O, THISBACK(OpenFileAction));
-    mainMenuBar.Add("Save", K_CTRL_S, THISBACK(SaveFileAction));
-
-    mainMenuBar.Add("Edit");
-    mainMenuBar.Add("Undo", K_CTRL_Z, THISBACK(UndoAction));
-    mainMenuBar.Add("Redo", K_CTRL_Y, THISBACK(RedoAction));
-
-    mainMenuBar.Add("View");
-    mainMenuBar.Add("Zoom In", K_PLUS, THISBACK(ZoomInAction));
-    mainMenuBar.Add("Zoom Out", K_MINUS, THISBACK(ZoomOutAction));
-    mainMenuBar.Add("Reset Zoom", K_KEY0, THISBACK(ResetZoomAction));
-}
-
-void MapEditorApp::SetupToolBar() {
-    // Set up the toolbar with common actions
-    mainToolBar.Add(newMapBtn.SetLabel("New"));
-    mainToolBar.Add(openFileBtn.SetLabel("Open"));
-    mainToolBar.Add(saveFileBtn.SetLabel("Save"));
-    mainToolBar.Separator();
-    mainToolBar.Add(undoBtn.SetLabel("Undo"));
-    mainToolBar.Add(redoBtn.SetLabel("Redo"));
-    mainToolBar.Separator();
-    mainToolBar.Add(zoomInBtn.SetLabel("Zoom In"));
-    mainToolBar.Add(zoomOutBtn.SetLabel("Zoom Out"));
-    mainToolBar.Add(resetZoomBtn.SetLabel("Reset Zoom"));
-    mainToolBar.Separator();
-    mainToolBar.Add(addLayerBtn.SetLabel("Add Layer"));
-    mainToolBar.Add(removeLayerBtn.SetLabel("Remove Layer"));
-    mainToolBar.Separator();
-    mainToolBar.Add(addEntityBtn.SetLabel("Add Entity"));
-    mainToolBar.Add(removeEntityBtn.SetLabel("Remove Entity"));
-}
-
-void MapEditorApp::SetupUI() {
-    // Connect UI events to handlers
-    newMapBtn <<= THISBACK(NewMapAction);
-    openFileBtn <<= THISBACK(OpenFileAction);
-    saveFileBtn <<= THISBACK(SaveFileAction);
-
-    undoBtn <<= THISBACK(UndoAction);
-    redoBtn <<= THISBACK(RedoAction);
-
-    zoomInBtn <<= THISBACK(ZoomInAction);
-    zoomOutBtn <<= THISBACK(ZoomOutAction);
-    resetZoomBtn <<= THISBACK(ResetZoomAction);
-
-    addLayerBtn <<= THISBACK(AddLayerAction);
-    removeLayerBtn <<= THISBACK(RemoveLayerAction);
-    moveLayerUpBtn <<= THISBACK(MoveLayerUpAction);
-    moveLayerDownBtn <<= THISBACK(MoveLayerDownAction);
-
-    addEntityBtn <<= THISBACK(AddEntityAction);
-    removeEntityBtn <<= THISBACK(RemoveEntityAction);
-
-    // Create and set up the main layout using splitters
-    WithSplitterHorz<TopWindow> *mainSplitter = new WithSplitterHorz<TopWindow>;
-
-    // Left panel - Tools
-    toolsPanel.SetFrame(BlackFrame());
-    toolsPanel.SetRect(0, 0, 200, 600);
-
-    // Right panel - Entities
-    entityPanel.SetFrame(BlackFrame());
-    entityPanel.SetRect(0, 0, 200, 600);
-
-    // Center canvas area with bottom tabs
-    WithSplitterVert<Ctrl> *canvasSplitter = new WithSplitterVert<Ctrl>;
-
-    // Create the map canvas
-    mapCanvas = new MapCanvas();
-    mapCanvas->SetFrame(BlackFrame());
-    mapCanvas->NoWantFocus();
-
-    // Add canvas to the splitter
-    canvasSplitter->Set(0, *mapCanvas);
-    canvasSplitter->Set(1, bottomTabs);
-
-    // Set up the main splitter: left panel, center canvas/tabs, right panel
-    mainSplitter->Set(0, toolsPanel);
-    mainSplitter->Set(1, *canvasSplitter);
-    mainSplitter->Set(2, entityPanel);
-
-    AddFrame(*mainSplitter);
-
-    // Set up bottom tabs
-    bottomTabs.Add("Properties", SizePos());
-    bottomTabs.Add("Minimap", SizePos());
-    bottomTabs.Add("Tiles", SizePos());
-
-    // Update status bar
-    mainStatusBar.Set(0, "Ready");
-    mainStatusBar.Set(1, "(0,0)");
-    mainStatusBar.Set(2, "100%");
-}
-
-void MapEditorApp::Paint(Draw& draw) {
-    // Background
-    draw.DrawRect(GetSize(), White());
-}
-
-bool MapEditorApp::Key(dword key, int) {
-    switch(key) {
-        case K_ESCAPE:
-            Close();
-            return true;
-        case K_CTRL_S:  // Ctrl+S
-            SaveFileAction();
-            return true;
-        case K_CTRL_O:  // Ctrl+O
-            OpenFileAction();
-            return true;
-        case K_CTRL_N:  // Ctrl+N
-            NewMapAction();
-            return true;
-        case K_CTRL_Z:  // Ctrl+Z
-            UndoAction();
-            return true;
-        case K_CTRL_Y:  // Ctrl+Y
-            RedoAction();
-            return true;
-        default:
-            break;
-    }
-    return false;
-}
-
-void MapEditorApp::LeftDown(Point p, dword keyflags) {
-    Refresh();
-}
-
-void MapEditorApp::NewMapAction() {
-    PromptOK("Creating new map...");
-    // Implementation for creating a new map
-}
-
-void MapEditorApp::OpenFileAction() {
-    PromptOK("Open dialog would appear");
-    // Implementation for opening a file
-}
-
-void MapEditorApp::SaveFileAction() {
-    PromptOK("Save dialog would appear");
-    // Implementation for saving a file
-}
-
-void MapEditorApp::UndoAction() {
-    PromptOK("Undo action");
-}
-
-void MapEditorApp::RedoAction() {
-    PromptOK("Redo action");
-}
-
-void MapEditorApp::ZoomInAction() {
-    PromptOK("Zoom in");
-}
-
-void MapEditorApp::ZoomOutAction() {
-    PromptOK("Zoom out");
-}
-
-void MapEditorApp::ResetZoomAction() {
-    PromptOK("Reset zoom");
-}
-
-void MapEditorApp::AddLayerAction() {
-    PromptOK("Add layer");
-}
-
-void MapEditorApp::RemoveLayerAction() {
-    PromptOK("Remove layer");
-}
-
-void MapEditorApp::MoveLayerUpAction() {
-    PromptOK("Move layer up");
-}
-
-void MapEditorApp::MoveLayerDownAction() {
-    PromptOK("Move layer down");
-}
-
-void MapEditorApp::AddEntityAction() {
-    PromptOK("Add entity");
-}
-
-void MapEditorApp::RemoveEntityAction() {
-    PromptOK("Remove entity");
-}
-
-void MapEditorApp::NewMap() {
-    PromptOK("Creating new map...");
-    // Implementation for creating a new map
-}
-
-void MapEditorApp::OpenFile(const String& fileName) {
-    PromptOK("Opening file: " + fileName);
-    // Implementation for opening a file
-}
-
-void MapEditorApp::SaveFile(const String& fileName) {
-    PromptOK("Saving file: " + fileName);
-    // Implementation for saving a file
-}
-
 // Implementation of MapCanvas
 MapCanvas::MapCanvas() {
-    zoom = 1.0;
-    offset.x = 0;
-    offset.y = 0;
-}
-
-MapCanvas::~MapCanvas() {
+	zoom = 1.0;
+	offset = Point(0, 0);
 }
 
 void MapCanvas::Paint(Draw& w) {
-    // Draw the map grid
-    w.DrawRect(GetSize(), RGB(240, 240, 240));  // Light gray background
+	// Draw the map grid
+	w.DrawRect(GetSize(), SColorPaper());
 
-    // Draw grid lines
-    int gridSize = 32;
-    Size sz = GetSize();
+	// Draw grid lines
+	int gridSize = 32;
+	Size sz = GetSize();
 
-    for(int x = 0; x < sz.cx; x += gridSize) {
-        w.DrawLine(x, 0, x, sz.cy, 1, Gray());
-    }
+	for(int x = 0; x < sz.cx; x += gridSize) {
+		w.DrawLine(x, 0, x, sz.cy, 1, SColorShadow());
+	}
 
-    for(int y = 0; y < sz.cy; y += gridSize) {
-        w.DrawLine(0, y, sz.cx, y, 1, Gray());
-    }
+	for(int y = 0; y < sz.cy; y += gridSize) {
+		w.DrawLine(0, y, sz.cx, y, 1, SColorShadow());
+	}
 
-    // Draw a sample rectangle to represent a tile
-    w.DrawRect(100, 100, 64, 64, Blue());
-    w.DrawRect(200, 150, 64, 64, Green());
-    w.DrawRect(150, 200, 64, 64, Red());
+	// Draw sample tiles to demonstrate the canvas
+	w.DrawRect(100, 100, 64, 64, LtBlue());
+	w.DrawRect(200, 150, 64, 64, LtGreen());
+	w.DrawRect(150, 200, 64, 64, LtRed());
+
+	// Draw text overlay
+	w.DrawText(10, 10, "Map Canvas - Use mouse wheel to zoom", StdFont(), Black());
 }
 
 void MapCanvas::MouseMove(Point pos, dword flags) {
-    // Handle mouse movement for drawing
+	// Handle mouse movement for drawing
 }
 
 void MapCanvas::LeftDown(Point pos, dword flags) {
-    // Handle left click for placing tiles
-    Refresh();
+	// Handle left click for placing tiles
+	Refresh();
 }
 
 void MapCanvas::LeftUp(Point pos, dword flags) {
-    // Handle mouse up
+	// Handle mouse up
 }
 
 void MapCanvas::MouseWheel(Point pos, int zdelta, dword flags) {
-    // Handle zoom with mouse wheel
-    if(zdelta > 0) {
-        zoom *= 1.1;
-    } else {
-        zoom /= 1.1;
-    }
-    if(zoom < 0.1) zoom = 0.1;
-    if(zoom > 5.0) zoom = 5.0;
+	// Handle zoom with mouse wheel
+	if(zdelta > 0) {
+		zoom *= 1.1;
+	} else {
+		zoom /= 1.1;
+	}
+	if(zoom < 0.1) zoom = 0.1;
+	if(zoom > 5.0) zoom = 5.0;
 
-    Refresh();
+	Refresh();
 }
 
 void MapCanvas::SetZoom(double newZoom) {
-    zoom = newZoom;
-    if(zoom < 0.1) zoom = 0.1;
-    if(zoom > 5.0) zoom = 5.0;
-    Refresh();
+	zoom = newZoom;
+	if(zoom < 0.1) zoom = 0.1;
+	if(zoom > 5.0) zoom = 5.0;
+	Refresh();
 }
 
 void MapCanvas::PanTo(Point newOffset) {
-    offset = newOffset;
-    Refresh();
+	offset = newOffset;
+	Refresh();
 }
 
-// Main application function
-GUI_APP_MAIN
-{
-    MapEditorApp().Run();
+// Implementation of MapEditorApp
+MapEditorApp::MapEditorApp() {
+	Title("Umbrella Map Editor");
+	Sizeable().Zoomable();
+	SetRect(0, 0, 1400, 900);
+
+	AddFrame(mainMenuBar);
+	AddFrame(mainToolBar);
+	AddFrame(mainStatusBar);
+
+	mainMenuBar.Set(callback(this, &MapEditorApp::SetupMenuBar));
+	SetupToolBar();
+	SetupUI();
 }
+
+void MapEditorApp::SetupMenuBar(Bar& bar) {
+	bar.Sub("File", callback(this, &MapEditorApp::SetupFileMenu));
+	bar.Sub("Edit", callback(this, &MapEditorApp::SetupEditMenu));
+	bar.Sub("View", callback(this, &MapEditorApp::SetupViewMenu));
+}
+
+void MapEditorApp::SetupFileMenu(Bar& bar) {
+	bar.Add("New", CtrlImg::new_doc(), callback(this, &MapEditorApp::NewMapAction))
+		.Key(K_CTRL_N)
+		.Help("Create a new map");
+	bar.Add("Open...", CtrlImg::open(), callback(this, &MapEditorApp::OpenFileAction))
+		.Key(K_CTRL_O)
+		.Help("Open an existing map file");
+	bar.Add("Save", CtrlImg::save(), callback(this, &MapEditorApp::SaveFileAction))
+		.Key(K_CTRL_S)
+		.Help("Save the current map");
+	bar.Separator();
+	bar.Add("Exit", callback(this, &MapEditorApp::ExitAction))
+		.Key(K_ALT_F4)
+		.Help("Exit the map editor");
+}
+
+void MapEditorApp::SetupEditMenu(Bar& bar) {
+	bar.Add("Undo", CtrlImg::undo(), callback(this, &MapEditorApp::UndoAction))
+		.Key(K_CTRL_Z)
+		.Help("Undo the last action");
+	bar.Add("Redo", CtrlImg::redo(), callback(this, &MapEditorApp::RedoAction))
+		.Key(K_CTRL_Y)
+		.Help("Redo the last undone action");
+}
+
+void MapEditorApp::SetupViewMenu(Bar& bar) {
+	bar.Add("Zoom In", callback(this, &MapEditorApp::ZoomInAction))
+		.Key(K_PLUS)
+		.Help("Zoom in on the map");
+	bar.Add("Zoom Out", callback(this, &MapEditorApp::ZoomOutAction))
+		.Key(K_MINUS)
+		.Help("Zoom out from the map");
+	bar.Add("Reset Zoom", callback(this, &MapEditorApp::ResetZoomAction))
+		.Key(K_CTRL_0)
+		.Help("Reset zoom to 100%");
+}
+
+void MapEditorApp::SetupToolBar() {
+	// Set up the toolbar with common actions
+	newMapBtn.SetImage(CtrlImg::new_doc()).Tip("New Map");
+	newMapBtn <<= callback(this, &MapEditorApp::NewMapAction);
+	mainToolBar.Add(newMapBtn);
+
+	openFileBtn.SetImage(CtrlImg::open()).Tip("Open Map");
+	openFileBtn <<= callback(this, &MapEditorApp::OpenFileAction);
+	mainToolBar.Add(openFileBtn);
+
+	saveFileBtn.SetImage(CtrlImg::save()).Tip("Save Map");
+	saveFileBtn <<= callback(this, &MapEditorApp::SaveFileAction);
+	mainToolBar.Add(saveFileBtn);
+
+	mainToolBar.Separator();
+
+	undoBtn.SetImage(CtrlImg::undo()).Tip("Undo");
+	undoBtn <<= callback(this, &MapEditorApp::UndoAction);
+	mainToolBar.Add(undoBtn);
+
+	redoBtn.SetImage(CtrlImg::redo()).Tip("Redo");
+	redoBtn <<= callback(this, &MapEditorApp::RedoAction);
+	mainToolBar.Add(redoBtn);
+
+	mainToolBar.Separator();
+
+	zoomInBtn.SetImage(CtrlImg::plus()).Tip("Zoom In");
+	zoomInBtn <<= callback(this, &MapEditorApp::ZoomInAction);
+	mainToolBar.Add(zoomInBtn);
+
+	zoomOutBtn.SetImage(CtrlImg::minus()).Tip("Zoom Out");
+	zoomOutBtn <<= callback(this, &MapEditorApp::ZoomOutAction);
+	mainToolBar.Add(zoomOutBtn);
+
+	resetZoomBtn.SetLabel("100%").Tip("Reset Zoom");
+	resetZoomBtn <<= callback(this, &MapEditorApp::ResetZoomAction);
+	mainToolBar.Add(resetZoomBtn);
+}
+
+void MapEditorApp::SetupUI() {
+	// Set up the tools panel (left side)
+	toolsPanel.SetFrame(InsetFrame());
+	toolsLabel.SetText("Tools");
+	toolsLabel.SetAlign(ALIGN_CENTER);
+	toolsPanel.Add(toolsLabel.HSizePos(2, 2).TopPos(2, 20));
+
+	// Set up the entity panel (right side)
+	entityPanel.SetFrame(InsetFrame());
+	entityLabel.SetText("Entities");
+	entityLabel.SetAlign(ALIGN_CENTER);
+	entityPanel.Add(entityLabel.HSizePos(2, 2).TopPos(2, 20));
+
+	// Set up bottom tabs
+	propertiesPanel.SetFrame(InsetFrame());
+	propertiesLabel.SetText("Properties panel - TBD");
+	propertiesPanel.Add(propertiesLabel.HSizePos().VSizePos());
+
+	minimapPanel.SetFrame(InsetFrame());
+	minimapLabel.SetText("Minimap - TBD");
+	minimapPanel.Add(minimapLabel.HSizePos().VSizePos());
+
+	tilesPanel.SetFrame(InsetFrame());
+	tilesLabel.SetText("Tiles palette - TBD");
+	tilesPanel.Add(tilesLabel.HSizePos().VSizePos());
+
+	bottomTabs.Add(propertiesPanel.SizePos(), "Properties");
+	bottomTabs.Add(minimapPanel.SizePos(), "Minimap");
+	bottomTabs.Add(tilesPanel.SizePos(), "Tiles");
+
+	// Set up the map canvas
+	mapCanvas.SetFrame(InsetFrame());
+
+	// Create the layout using splitters
+	// Vertical splitter for canvas and bottom tabs
+	canvasSplitter.Vert(mapCanvas, bottomTabs);
+	canvasSplitter.SetPos(7000, 0);  // 70% for canvas, 30% for tabs
+
+	// Horizontal splitter for left panel, center (canvas+tabs), right panel
+	mainSplitter.Horz();
+	mainSplitter << toolsPanel << canvasSplitter << entityPanel;
+	mainSplitter.SetPos(1500, 0);  // Left panel position
+	mainSplitter.SetPos(8500, 1);  // Right panel position
+
+	Add(mainSplitter.SizePos());
+
+	// Set up status bar
+	mainStatusBar.Set("Ready");
+}
+
+bool MapEditorApp::Key(dword key, int) {
+	switch(key) {
+		case K_ESCAPE:
+			Close();
+			return true;
+		case K_CTRL_S:
+			SaveFileAction();
+			return true;
+		case K_CTRL_O:
+			OpenFileAction();
+			return true;
+		case K_CTRL_N:
+			NewMapAction();
+			return true;
+		case K_CTRL_Z:
+			UndoAction();
+			return true;
+		case K_CTRL_Y:
+			RedoAction();
+			return true;
+		default:
+			break;
+	}
+	return false;
+}
+
+void MapEditorApp::NewMapAction() {
+	PromptOK("Creating new map...");
+	// TODO: Implementation for creating a new map
+}
+
+void MapEditorApp::OpenFileAction() {
+	FileSel fs;
+	fs.Type("Map files", "*.map");
+	fs.AllFilesType();
+	if(fs.ExecuteOpen("Open Map File")) {
+		OpenFile(fs.Get());
+	}
+}
+
+void MapEditorApp::SaveFileAction() {
+	FileSel fs;
+	fs.Type("Map files", "*.map");
+	if(fs.ExecuteSaveAs("Save Map File")) {
+		SaveFile(fs.Get());
+	}
+}
+
+void MapEditorApp::ExitAction() {
+	Close();
+}
+
+void MapEditorApp::UndoAction() {
+	PromptOK("Undo action");
+	// TODO: Implementation for undo
+}
+
+void MapEditorApp::RedoAction() {
+	PromptOK("Redo action");
+	// TODO: Implementation for redo
+}
+
+void MapEditorApp::ZoomInAction() {
+	mapCanvas.SetZoom(1.2);
+}
+
+void MapEditorApp::ZoomOutAction() {
+	mapCanvas.SetZoom(0.8);
+}
+
+void MapEditorApp::ResetZoomAction() {
+	mapCanvas.SetZoom(1.0);
+}
+
+void MapEditorApp::NewMap() {
+	PromptOK("Creating new map...");
+	// TODO: Implementation for creating a new map
+}
+
+void MapEditorApp::OpenFile(const String& fileName) {
+	PromptOK("Opening file: " + fileName);
+	// TODO: Implementation for opening a file
+}
+
+void MapEditorApp::SaveFile(const String& fileName) {
+	PromptOK("Saving file: " + fileName);
+	// TODO: Implementation for saving a file
+}
+
+// MapEditorApp is now available for use from main.cpp
+// The GUI_APP_MAIN is in main.cpp, not here

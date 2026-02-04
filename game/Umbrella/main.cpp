@@ -1,4 +1,5 @@
 #include "Umbrella.h"
+#include "MapEditor.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
@@ -68,5 +69,18 @@ public:
 
 GUI_APP_MAIN
 {
-    UmbrellaApp().Run();
+    // Check for --editor flag to launch the map editor
+    bool editorMode = false;
+    for(const String& arg : CommandLine()) {
+        if(arg == "--editor" || arg == "--editor-parastar") {
+            editorMode = true;
+            break;
+        }
+    }
+
+    if(editorMode) {
+        MapEditorApp().Run();
+    } else {
+        UmbrellaApp().Run();
+    }
 }

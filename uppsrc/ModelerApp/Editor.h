@@ -172,7 +172,7 @@ public:
 	void LoadEmptyProject();
 	void LoadTestProject(int test_i);
 	void LoadWmrStereoPointcloud(String directory);
-	void RunSyntheticSimVisual(bool log_stdout);
+	void RunSyntheticSimVisual(bool log_stdout, bool verbose);
 	bool LoadScene3D(const String& path);
 	bool SaveScene3D(const String& path, bool use_json, bool pretty = true);
 	

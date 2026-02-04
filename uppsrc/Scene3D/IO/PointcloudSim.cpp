@@ -47,6 +47,18 @@ vec3 NormalizeVec(const vec3& v) {
 	return v * (1.0f / len);
 }
 
+bool VisibleInFrustum(const vec3& cam, float fov_deg, float min_dist, float max_dist) {
+	float z = -cam[2];
+	if (z < min_dist || z > max_dist)
+		return false;
+	float half = (fov_deg * 0.5f) * (float)M_PI / 180.0f;
+	float tan_half = tan(half);
+	float limit = z * tan_half;
+	if (fabs(cam[0]) > limit || fabs(cam[1]) > limit)
+		return false;
+	return true;
+}
+
 } // namespace
 
 SyntheticPointcloudState BuildSyntheticPointcloud(const SyntheticPointcloudConfig& cfg) {
@@ -98,14 +110,14 @@ SyntheticPointcloudState BuildSyntheticPointcloud(const SyntheticPointcloudConfi
 }
 
 PointcloudObservation SimulateHmdObservation(const SyntheticPointcloudState& state,
-                                             float max_range) {
+                                             const SyntheticPointcloudConfig& cfg) {
 	PointcloudObservation obs;
 	obs.has_ground_truth = true;
 	obs.ground_truth = state.hmd_pose_world;
 
 	for (int i = 0; i < state.reference.points.GetCount(); i++) {
 		vec3 cam = ApplyInversePose(state.hmd_pose_world, state.reference.points[i]);
-		if (cam.GetLength() <= max_range) {
+		if (cam.GetLength() <= cfg.max_range && VisibleInFrustum(cam, cfg.hmd_fov_deg, cfg.hmd_min_dist, cfg.max_range)) {
 			obs.points.Add(cam);
 			if (i < state.reference.ids.GetCount())
 				obs.ids.Add(state.reference.ids[i]);
@@ -117,7 +129,8 @@ PointcloudObservation SimulateHmdObservation(const SyntheticPointcloudState& sta
 	return obs;
 }
 
-Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPointcloudState& state) {
+Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPointcloudState& state,
+                                                             const SyntheticPointcloudConfig& cfg) {
 	Vector<ControllerObservation> out;
 	out.SetCount(state.controllers.GetCount());
 	for (int ci = 0; ci < state.controllers.GetCount(); ci++) {
@@ -126,6 +139,11 @@ Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPoin
 		ControllerObservation obs;
 		obs.has_ground_truth = true;
 		obs.ground_truth = ctrl_pose;
+		vec3 center_cam = ApplyInversePose(state.hmd_pose_world, ctrl_pose.position);
+		if (!VisibleInFrustum(center_cam, cfg.hmd_fov_deg, cfg.hmd_min_dist, cfg.max_range)) {
+			out[ci] = pick(obs);
+			continue;
+		}
 		for (int i = 0; i < pattern.dots_local.GetCount(); i++) {
 			const vec3& local = pattern.dots_local[i];
 			vec3 world = ApplyPose(ctrl_pose, local);
@@ -139,6 +157,8 @@ Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPoin
 			if (facing <= 0.0f)
 				continue;
 			vec3 cam = ApplyInversePose(state.hmd_pose_world, world);
+			if (!VisibleInFrustum(cam, cfg.hmd_fov_deg, cfg.hmd_min_dist, cfg.max_range))
+				continue;
 			obs.points.Add(cam);
 			obs.ids.Add(i);
 		}
@@ -149,7 +169,7 @@ Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPoin
 
 bool RunSyntheticPointcloudSim(String& log, const SyntheticPointcloudConfig& cfg) {
 	SyntheticPointcloudState state = BuildSyntheticPointcloud(cfg);
-	PointcloudObservation obs = SimulateHmdObservation(state, cfg.max_range);
+	PointcloudObservation obs = SimulateHmdObservation(state, cfg);
 
 	PointcloudLocalizerStub localizer;
 	PointcloudLocalizationResult loc = localizer.Locate(state.reference, obs);
@@ -167,7 +187,7 @@ bool RunSyntheticPointcloudSim(String& log, const SyntheticPointcloudConfig& cfg
 		loc.pose.position[1],
 		loc.pose.position[2]) << "\n";
 
-	Vector<ControllerObservation> ctrl_obs = SimulateControllerObservations(state);
+	Vector<ControllerObservation> ctrl_obs = SimulateControllerObservations(state, cfg);
 	ControllerPatternTrackerStub tracker;
 	ControllerFusionStub fusion;
 	for (int i = 0; i < ctrl_obs.GetCount(); i++) {

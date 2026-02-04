@@ -48,6 +48,8 @@ struct GeomObject : VfsValueExt {
 	Type type = O_NULL;
 	String asset_ref;
 	String pointcloud_ref;
+	bool is_visible = true;
+	bool is_locked = false;
 	
 	DEFAULT_EXT(GeomObject)
 	One<Model> mdl;

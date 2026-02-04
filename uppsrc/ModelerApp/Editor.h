@@ -7,13 +7,15 @@ struct GeomProjectCtrl : Ctrl {
 	Edit3D* e;
 	
 	Splitter metasplit, hsplit, vsplit;
-	TreeCtrl tree;
+	TreeArrayCtrl tree;
 	ArrayCtrl props;
 	FixedGridCtrl grid;
 	TimelineCtrl time;
 	EditRenderer rends[4];
 	
 	int tree_scenes = -1;
+	int tree_col_visible = -1;
+	int tree_col_locked = -1;
 	Index<hash_t> warned_tree_types;
 	
 	

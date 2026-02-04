@@ -321,6 +321,48 @@ struct MaestroIssue : Moveable<MaestroIssue> {
 	}
 };
 
+struct LogFinding : Moveable<LogFinding> {
+	String kind; // "error", "warning", "crash"
+	String severity; // "blocker", "critical", "warning", "info"
+	String message;
+	String fingerprint;
+	String file;
+	int    line = 0;
+	String tool;
+	String raw_line;
+
+	void Jsonize(JsonIO& jio) {
+		jio("kind", kind)("severity", severity)("message", message)
+		   ("fingerprint", fingerprint)("file", file)("line", line)
+		   ("tool", tool)("raw_line", raw_line);
+	}
+};
+
+struct LogScanMeta : Moveable<LogScanMeta> {
+	String scan_id;
+	Time   timestamp;
+	String source_path;
+	String kind;
+	String cwd;
+	String command_context;
+	int    finding_count = 0;
+
+	void Jsonize(JsonIO& jio) {
+		jio("scan_id", scan_id)("timestamp", timestamp)("source_path", source_path)
+		   ("kind", kind)("cwd", cwd)("command_context", command_context)
+		   ("finding_count", finding_count);
+	}
+};
+
+struct LogScan : Moveable<LogScan> {
+	LogScanMeta       meta;
+	Array<LogFinding> findings;
+
+	void Jsonize(JsonIO& jio) {
+		jio("meta", meta)("findings", findings);
+	}
+};
+
 
 #endif
 

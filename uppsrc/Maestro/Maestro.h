@@ -70,6 +70,36 @@ private:
 	void           RebuildIndex();
 };
 
+class WorkflowManager {
+	String base_path;
+	String workflows_dir;
+
+public:
+	WorkflowManager(const String& maestro_root = ".");
+	
+	Vector<String> ListWorkflows();
+	String         LoadWorkflow(const String& name);
+	bool           SaveWorkflow(const String& name, const String& content);
+	bool           DeleteWorkflow(const String& name);
+	String         Visualize(const String& name, const String& format = "plantuml");
+};
+
+class LogManager {
+	String base_path;
+	String scans_dir;
+
+public:
+	LogManager(const String& maestro_root = ".");
+	
+	String CreateScan(const String& source_path, const String& log_text, const String& kind = "any");
+	LogScan LoadScan(const String& scan_id);
+	Array<LogScanMeta> ListScans();
+	
+private:
+	Array<LogFinding> ExtractFindings(const String& log_text, const String& kind_filter);
+	String GenerateFingerprint(const String& message, const String& tool, const String& file);
+};
+
 class IssueManager {
 	String base_path;
 	String docs_issues_dir; // Legacy markdown storage

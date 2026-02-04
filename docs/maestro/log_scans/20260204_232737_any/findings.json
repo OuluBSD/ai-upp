@@ -1,0 +1,12 @@
+[
+	{
+		"kind": "error",
+		"severity": "blocker",
+		"message": "error: test failure",
+		"fingerprint": "c8cfc8c4471e8167072db40a766c83e353978cbdb25faaae266cf34cc20f7552",
+		"file": "",
+		"line": 0,
+		"tool": "",
+		"raw_line": "error: test failure"
+	}
+]

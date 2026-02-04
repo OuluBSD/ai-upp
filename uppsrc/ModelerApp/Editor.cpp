@@ -855,7 +855,7 @@ void Edit3D::DebugClearSynthetic() {
 	RefrehRenderers();
 }
 
-void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
+void Edit3D::RunSyntheticSimVisual(bool log_stdout, bool verbose) {
 	DebugGeneratePointcloud();
 	DebugSimulateObservation();
 	String log;
@@ -884,7 +884,13 @@ void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
 		else
 			ref_z_neg++;
 	}
-	if (sim_state.reference.points.GetCount() > 0) {
+	log << "observation in-frustum=" << obs_in_frustum << "\n";
+	if (verbose) {
+		log << "reference in-range=" << ref_in_range << "\n";
+		log << "reference z>=0=" << ref_z_pos << " z<0=" << ref_z_neg << "\n";
+		log << "reference z min=" << min_z << " max=" << max_z << "\n";
+	}
+	if (verbose && sim_state.reference.points.GetCount() > 0) {
 		vec3 cam0 = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.reference.points[0]);
 		vec3 ref0 = sim_state.reference.points[0];
 		log << "reference0 world=(" << ref0[0] << " " << ref0[1] << " " << ref0[2] << ")\n";
@@ -901,10 +907,6 @@ void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
 		log << "reference0 cam_fwd=(" << cam0_fwd[0] << " " << cam0_fwd[1] << " " << cam0_fwd[2] << ")\n";
 		log << "reference0 cam=(" << cam0[0] << " " << cam0[1] << " " << cam0[2] << ")\n";
 	}
-	log << "observation in-frustum=" << obs_in_frustum << "\n";
-	log << "reference in-range=" << ref_in_range << "\n";
-	log << "reference z>=0=" << ref_z_pos << " z<0=" << ref_z_neg << "\n";
-	log << "reference z min=" << min_z << " max=" << max_z << "\n";
 	log << RunLocalizationLog(false);
 	DebugSimulateControllerObservations();
 	log << "controller observations=" << sim_ctrl_obs.GetCount() << "\n";
@@ -916,18 +918,23 @@ void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
 	for (int i = 0; i < sim_state.controller_poses_world.GetCount(); i++) {
 		vec3 center_cam = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.controller_poses_world[i].position);
 		bool visible = VisibleInFrustumSimple(center_cam, sim_cfg);
-		log << "controller[" << i << "] cam=(" << center_cam[0] << " " << center_cam[1] << " " << center_cam[2]
-			<< ") visible=" << (int)visible << "\n";
+		if (verbose) {
+			log << "controller[" << i << "] cam=(" << center_cam[0] << " " << center_cam[1] << " " << center_cam[2]
+				<< ") visible=" << (int)visible << "\n";
+		}
 		if (visible)
 			ctrl_centers_in_frustum++;
 	}
 	log << "controller centers in-frustum=" << ctrl_centers_in_frustum << "\n";
 	if (sim_state.controller_poses_world.GetCount() >= 2) {
 		vec3 delta = sim_state.controller_poses_world[0].position - sim_state.controller_poses_world[1].position;
-		log << "controller separation=" << delta.GetLength() << "\n";
+		if (verbose)
+			log << "controller separation=" << delta.GetLength() << "\n";
 	}
-	vec3 cam_to_origin = sim_fake_hmd_pose.position;
-	log << "fake camera dist to origin=" << cam_to_origin.GetLength() << "\n";
+	if (verbose) {
+		vec3 cam_to_origin = sim_fake_hmd_pose.position;
+		log << "fake camera dist to origin=" << cam_to_origin.GetLength() << "\n";
+	}
 	log << RunControllerLocalizationLog(false);
 	bool ok = !sim_obs.points.IsEmpty();
 	ok = ok && (obs_in_frustum == sim_obs.points.GetCount());

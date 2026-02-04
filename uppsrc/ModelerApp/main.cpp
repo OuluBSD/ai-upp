@@ -106,7 +106,7 @@ GUI_APP_MAIN {
 	}
 	else if (mode == SYNTHETIC) {
 		app.LoadEmptyProject();
-		app.RunSyntheticSimVisual(true);
+		app.RunSyntheticSimVisual(true, cmd.IsArg('v'));
 	}
 	
 	app.Run();

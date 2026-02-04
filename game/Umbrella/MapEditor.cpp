@@ -86,6 +86,10 @@ MapEditorApp::MapEditorApp() {
 	AddFrame(mainToolBar);
 	AddFrame(mainStatusBar);
 
+	// Initialize grid with default 100x100, 14px tiles
+	mapGrid = MapGrid(100, 100, 14);
+	mapGrid.SetMapArea(32, 24);
+
 	mainMenuBar.Set(callback(this, &MapEditorApp::SetupMenuBar));
 	SetupToolBar();
 	SetupUI();

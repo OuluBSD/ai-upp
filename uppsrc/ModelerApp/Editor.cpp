@@ -27,6 +27,30 @@ Vector<vec3> TransformPointsToWorld(const PointcloudPose& pose, const Vector<vec
 	return out;
 }
 
+void UpdateCameraObject(GeomObject& cam, const PointcloudPose& pose) {
+	GeomTimeline& tl = cam.GetTimeline();
+	tl.keypoints.Clear();
+	GeomKeypoint& kp = tl.keypoints.Add(0);
+	kp.position = pose.position;
+	kp.orientation = pose.orientation;
+}
+
+vec3 ApplyInversePoseSimple(const PointcloudPose& pose, const vec3& p) {
+	quat inv = pose.orientation.GetInverse();
+	return VectorTransform(p - pose.position, inv);
+}
+
+bool VisibleInFrustumSimple(const vec3& cam, const SyntheticPointcloudConfig& cfg) {
+	float z = cam[2] * SCALAR_FWD_Zf;
+	if (z < cfg.hmd_min_dist || z > cfg.max_range)
+		return false;
+	float half = (cfg.hmd_fov_deg * 0.5f) * (float)M_PI / 180.0f;
+	float limit = tan(half) * z;
+	if (fabs(cam[0]) > limit || fabs(cam[1]) > limit)
+		return false;
+	return true;
+}
+
 float RandRange(float a, float b) {
 	return a + (b - a) * (float)Randomf();
 }
@@ -43,11 +67,16 @@ PointcloudPose RandomHmdPose(const SyntheticPointcloudConfig& cfg) {
 	return pose;
 }
 
-PointcloudPose RandomControllerPoseInFrustum(const PointcloudPose& hmd_pose, float min_dist, float max_dist) {
+PointcloudPose RandomControllerPoseInFrustum(const PointcloudPose& hmd_pose,
+                                             const SyntheticPointcloudConfig& cfg,
+                                             float min_dist,
+                                             float max_dist) {
 	PointcloudPose pose;
 	float dist = RandRange(min_dist, max_dist);
-	float horiz = RandRange(-0.4f, 0.4f);
-	float vert = RandRange(-0.2f, 0.2f);
+	float half = (cfg.hmd_fov_deg * 0.5f) * (float)M_PI / 180.0f;
+	float limit = tan(half) * dist;
+	float horiz = RandRange(-limit * 0.8f, limit * 0.8f);
+	float vert = RandRange(-limit * 0.6f, limit * 0.6f);
 	vec3 fwd = VectorTransform(VEC_FWD, hmd_pose.orientation);
 	vec3 right = VectorTransform(VEC_RIGHT, hmd_pose.orientation);
 	vec3 up = VectorTransform(VEC_UP, hmd_pose.orientation);
@@ -564,6 +593,8 @@ void Edit3D::EnsureHmdSceneObjects() {
 
 void Edit3D::EnsureSimSceneObjects() {
 	GeomScene& scene = state->GetActiveScene();
+	GeomObject& fake_cam = scene.GetAddCamera("sim_fake_camera");
+	GeomObject& localized_cam = scene.GetAddCamera("sim_localized_camera");
 	sim_pointcloud_obj = &scene.GetAddOctree("sim_pointcloud");
 	sim_observation_obj = &scene.GetAddOctree("sim_observation");
 	sim_controller_obj[0] = &scene.GetAddOctree("sim_controller_0");
@@ -580,6 +611,8 @@ void Edit3D::EnsureSimSceneObjects() {
 			obj.mdl = builder.Detach();
 		}
 	}
+	UpdateCameraObject(fake_cam, sim_fake_hmd_pose);
+	UpdateCameraObject(localized_cam, sim_localized_pose);
 	state->UpdateObjects();
 	Data();
 	v0.TimelineData();
@@ -673,6 +706,9 @@ void Edit3D::DebugGeneratePointcloud() {
 	GeomCamera& program = state->GetProgram();
 	program.position = sim_localized_pose.position;
 	program.orientation = sim_localized_pose.orientation;
+	GeomScene& scene = state->GetActiveScene();
+	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
+	UpdateCameraObject(scene.GetAddCamera("sim_localized_camera"), sim_localized_pose);
 	RefrehRenderers();
 }
 
@@ -692,10 +728,12 @@ void Edit3D::DebugSimulateObservation() {
 	GeomCamera& cam = state->GetFocus();
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
+	GeomScene& scene = state->GetActiveScene();
+	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
 	RefrehRenderers();
 }
 
-void Edit3D::DebugRunLocalization() {
+String Edit3D::RunLocalizationLog(bool show_dialog) {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
 	if (!sim_has_obs)
@@ -707,6 +745,8 @@ void Edit3D::DebugRunLocalization() {
 		GeomCamera& cam = state->GetProgram();
 		cam.position = sim_localized_pose.position;
 		cam.orientation = sim_localized_pose.orientation;
+		GeomScene& scene = state->GetActiveScene();
+		UpdateCameraObject(scene.GetAddCamera("sim_localized_camera"), sim_localized_pose);
 	}
 	String log;
 	log << "Localization: ok=" << (int)loc.ok;
@@ -716,11 +756,12 @@ void Edit3D::DebugRunLocalization() {
 	String safe = log;
 	safe.Replace("[", "(");
 	safe.Replace("]", ")");
-	PromptOK(safe);
-	RefrehRenderers();
+	if (show_dialog)
+		PromptOK(safe);
+	return safe;
 }
 
-void Edit3D::DebugRunControllerLocalization() {
+String Edit3D::RunControllerLocalizationLog(bool show_dialog) {
 	if (!sim_has_state)
 		DebugGeneratePointcloud();
 	if (!sim_has_ctrl_obs)
@@ -745,7 +786,18 @@ void Edit3D::DebugRunControllerLocalization() {
 	String safe = log;
 	safe.Replace("[", "(");
 	safe.Replace("]", ")");
-	PromptOK(safe);
+	if (show_dialog)
+		PromptOK(safe);
+	return safe;
+}
+
+void Edit3D::DebugRunLocalization() {
+	RunLocalizationLog(true);
+	RefrehRenderers();
+}
+
+void Edit3D::DebugRunControllerLocalization() {
+	RunControllerLocalizationLog(true);
 }
 
 void Edit3D::DebugSimulateControllerObservations() {
@@ -753,8 +805,8 @@ void Edit3D::DebugSimulateControllerObservations() {
 		DebugGeneratePointcloud();
 	sim_state.controller_poses_world.SetCount(2);
 	sim_state.hmd_pose_world = sim_fake_hmd_pose;
-	sim_state.controller_poses_world[0] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, 0.4f, 1.2f);
-	sim_state.controller_poses_world[1] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, 0.4f, 1.2f);
+	sim_state.controller_poses_world[0] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, sim_cfg, 0.4f, 1.2f);
+	sim_state.controller_poses_world[1] = RandomControllerPoseInFrustum(sim_fake_hmd_pose, sim_cfg, 0.4f, 1.2f);
 	sim_ctrl_obs = SimulateControllerObservations(sim_state, sim_cfg);
 	sim_has_ctrl_obs = true;
 	EnsureSimSceneObjects();
@@ -776,6 +828,8 @@ void Edit3D::DebugSimulateControllerObservations() {
 	GeomCamera& cam = state->GetFocus();
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
+	GeomScene& scene = state->GetActiveScene();
+	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
 	RefrehRenderers();
 }
 
@@ -795,6 +849,49 @@ void Edit3D::DebugClearSynthetic() {
 			sim_controller_obj[i]->octree.octree.Initialize(-3, 8);
 	}
 	RefrehRenderers();
+}
+
+void Edit3D::RunSyntheticSimVisual(bool log_stdout) {
+	DebugGeneratePointcloud();
+	DebugSimulateObservation();
+	String log;
+	log << "Synthetic sim (visual)\n";
+	log << "reference points=" << sim_state.reference.points.GetCount() << "\n";
+	log << "observation points=" << sim_obs.points.GetCount() << "\n";
+	int obs_in_frustum = 0;
+	for (int i = 0; i < sim_obs.points.GetCount(); i++) {
+		if (VisibleInFrustumSimple(sim_obs.points[i], sim_cfg))
+			obs_in_frustum++;
+	}
+	log << "observation in-frustum=" << obs_in_frustum << "\n";
+	log << RunLocalizationLog(false);
+	DebugSimulateControllerObservations();
+	log << "controller observations=" << sim_ctrl_obs.GetCount() << "\n";
+	int ctrl_points_total = 0;
+	for (int i = 0; i < sim_ctrl_obs.GetCount(); i++)
+		ctrl_points_total += sim_ctrl_obs[i].points.GetCount();
+	log << "controller points=" << ctrl_points_total << "\n";
+	int ctrl_centers_in_frustum = 0;
+	for (int i = 0; i < sim_state.controller_poses_world.GetCount(); i++) {
+		vec3 center_cam = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.controller_poses_world[i].position);
+		if (VisibleInFrustumSimple(center_cam, sim_cfg))
+			ctrl_centers_in_frustum++;
+	}
+	log << "controller centers in-frustum=" << ctrl_centers_in_frustum << "\n";
+	if (sim_state.controller_poses_world.GetCount() >= 2) {
+		vec3 delta = sim_state.controller_poses_world[0].position - sim_state.controller_poses_world[1].position;
+		log << "controller separation=" << delta.GetLength() << "\n";
+	}
+	vec3 cam_to_origin = sim_fake_hmd_pose.position;
+	log << "fake camera dist to origin=" << cam_to_origin.GetLength() << "\n";
+	log << RunControllerLocalizationLog(false);
+	bool ok = !sim_obs.points.IsEmpty();
+	ok = ok && (obs_in_frustum == sim_obs.points.GetCount());
+	ok = ok && (ctrl_centers_in_frustum == sim_state.controller_poses_world.GetCount());
+	ok = ok && (ctrl_points_total > 0);
+	log << "sanity ok=" << (int)ok << "\n";
+	if (log_stdout)
+		Cout() << log;
 }
 
 bool Edit3D::IsScene3DBinaryPath(const String& path) const {

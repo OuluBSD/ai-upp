@@ -4,10 +4,10 @@ namespace Upp {
 
 void TuCommand::ShowHelp() const {
 	Cout() << "usage: MaestroCLI tu [-h]\n"
-	       << "                     {build,info,query,complete,references,lsp,cache,transform,print-ast,draft}\n"
+	       << "                     {build,info,query,complete,references,lsp,cache,transform,print-ast,draft}\\n"
 	       << "                     ...\n"
 	       << "positional arguments:\n"
-	       << "  {build,info,query,complete,references,lsp,cache,transform,print-ast,draft}\n"
+	       << "  {build,info,query,complete,references,lsp,cache,transform,print-ast,draft}\\n"
 	       << "                        TU subcommands\n"
 	       << "    build               Build translation unit for package\n"
 	       << "    info                Show translation unit information\n"
@@ -24,7 +24,31 @@ void TuCommand::ShowHelp() const {
 }
 
 void TuCommand::Execute(const Vector<String>& args) {
-	Cout() << "Command 'tu' is not yet fully implemented in C++.\n";
+	CommandLineArguments cla;
+	cla.AddPositional("subcommand", UNKNOWN_V);
+	cla.AddPositional("arg1", UNKNOWN_V);
+	cla.Parse(args);
+	
+	if (cla.GetPositionalCount() == 0) { ShowHelp(); return; }
+	
+	String sub = AsString(cla.GetPositional(0));
+	TuManager tum;
+	
+	if (sub == "build") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires package name.\n"; return; }
+		tum.Build(AsString(cla.GetPositional(1)));
+	}
+	else if (sub == "info") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires package name.\n"; return; }
+		tum.Info(AsString(cla.GetPositional(1)));
+	}
+	else if (sub == "query") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: Requires query string.\n"; return; }
+		tum.Query(AsString(cla.GetPositional(1)));
+	}
+	else {
+		Cout() << "Subcommand '" << sub << "' is not yet fully implemented in C++ but is on the roadmap.\n";
+	}
 }
 
-} 
+}

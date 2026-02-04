@@ -5,7 +5,11 @@ uses
 
 file
 	Umbrella.h,
-	main.cpp;
+	main.cpp,
+	MapEditor.cpp,
+	LevelLoader.cpp,
+	EntitySystem.cpp,
+	AudioSystem.cpp;
 
 mainconfig
 	"" = "GUI";

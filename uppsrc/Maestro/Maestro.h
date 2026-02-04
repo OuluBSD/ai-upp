@@ -70,6 +70,67 @@ private:
 	void           RebuildIndex();
 };
 
+class IssueManager {
+	String base_path;
+	String docs_issues_dir; // Legacy markdown storage
+	String json_issues_dir; // Modern JSON storage
+
+public:
+	IssueManager(const String& maestro_root = ".");
+	
+	Array<MaestroIssue> ListIssues(const String& type = "", const String& severity = "", const String& status = "");
+	MaestroIssue        LoadIssue(const String& id);
+	bool                SaveIssue(const MaestroIssue& issue);
+	bool                DeleteIssue(const String& id);
+	
+	String              CreateFromLogFinding(const ValueMap& finding, const String& scan_id);
+	bool                Triage(const String& id, bool auto_mode = true);
+};
+
+class TuManager {
+	String base_path;
+	String cache_dir;
+
+public:
+	TuManager(const String& maestro_root = ".");
+	
+	void Build(const String& package);
+	void Info(const String& package);
+	void Query(const String& query);
+};
+
+class WorkManager {
+	String base_path;
+
+public:
+	WorkManager(const String& maestro_root = ".");
+	
+	// Work Item Selection
+	struct WorkItem : Moveable<WorkItem> {
+		String id;
+		String type; // "track", "phase", "issue", "task"
+		String name;
+		String status;
+		String description;
+		String reason; // Populated by AI
+		double confidence = 0.0;
+		
+		void Jsonize(JsonIO& jio) {
+			jio("id", id)("type", type)("name", name)("status", status)
+			   ("description", description)("reason", reason)("confidence", confidence);
+		}
+	};
+	
+	Array<WorkItem> LoadAvailableWork();
+	WorkItem        SelectBestWorkItem(const Array<WorkItem>& items);
+	Array<WorkItem> SelectTopWorkItems(const Array<WorkItem>& items, int count = 3);
+	
+	// Execution
+	bool StartWorkSession(const WorkItem& item);
+	bool AnalyzeTarget(const String& target, bool simulate = false);
+	bool FixTarget(const String& target, const String& issue_id = "", bool simulate = false);
+};
+
 // Command Definitions
 struct InitCommand : Command {
 	String GetName() const override { return "init"; }

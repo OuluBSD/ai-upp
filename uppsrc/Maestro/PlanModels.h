@@ -284,6 +284,43 @@ struct RunManifest : Moveable<RunManifest> {
 	}
 };
 
+struct MaestroIssue : Moveable<MaestroIssue> {
+	String         issue_id;
+	String         issue_type; // "hier", "convention", "build", etc.
+	String         state = "open";
+	int            priority = 50;
+	String         severity = "warning"; // "blocker", "critical", "warning", "info"
+	String         title;
+	String         description;
+	String         message;
+	String         file;
+	int            line = 0;
+	int            column = 0;
+	Time           created_at;
+	Time           modified_at;
+	String         tool;
+	String         rule;
+	Vector<String> solutions;
+	String         analysis_summary;
+	int            analysis_confidence = 0;
+	String         decision;
+	String         fix_session;
+	Vector<String> linked_tasks;
+	String         fingerprint;
+
+	void Jsonize(JsonIO& jio) {
+		jio("issue_id", issue_id)("issue_type", issue_type)("state", state)
+		   ("priority", priority)("severity", severity)("title", title)
+		   ("description", description)("message", message)("file", file)
+		   ("line", line)("column", column)("created_at", created_at)
+		   ("modified_at", modified_at)("tool", tool)("rule", rule)
+		   ("solutions", solutions)("analysis_summary", analysis_summary)
+		   ("analysis_confidence", analysis_confidence)("decision", decision)
+		   ("fix_session", fix_session)("linked_tasks", linked_tasks)
+		   ("fingerprint", fingerprint);
+	}
+};
+
 
 #endif
 

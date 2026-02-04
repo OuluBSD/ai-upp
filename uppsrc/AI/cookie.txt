@@ -1,4 +1,4 @@
 TRACK=MaestroCLI
 PHASE=05_FunctionalParity
-TASK=01_RunbookImplementation
+TASK=04_WorkLoop
 STATUS=IN_PROGRESS

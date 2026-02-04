@@ -99,6 +99,8 @@ EditRenderer::EditRenderer() {
 
 void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& view, const Frustum& frustum) {
 	GeomObject& go = *os.obj;
+	if (!go.is_visible)
+		return;
 	Size sz = GetSize();
 	Color clr = White();
 	int lw = 1;

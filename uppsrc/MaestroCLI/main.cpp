@@ -134,26 +134,371 @@ struct PlanCommand : Command {
 			if(SaveFile(task_file, content)) Cout() << "Created task file: " << task_file << "\n";
 			else Cerr() << "Error: Failed to create task file.\n";
 		}
-		else if (sub == "status") {
-			if(cla.GetPositionalCount() < 5) { Cerr() << "Error: Requires <track> <phase> <task> <status>.\n"; return; }
-			String track = AsString(cla.GetPositional(1));
-			String phase = AsString(cla.GetPositional(2));
-			String task = AsString(cla.GetPositional(3));
-			String status_str = AsString(cla.GetPositional(4));
-			TaskStatus status = StringToStatus(ToLower(status_str));
-			if(status == STATUS_UNKNOWN) { Cerr() << "Error: Unknown status '" << status_str << "'.\n"; return; }
-			PlanParser p;
-			if(p.UpdateTaskStatus(docs_root, track, phase, task, status)) Cout() << "Updated status of '" << task << "' to " << status_str << "\n";
-			else Cerr() << "Error: Failed to update task status.\n";
+				else if (sub == "status") {
+					if(cla.GetPositionalCount() < 5) { Cerr() << "Error: Requires <track> <phase> <task> <status>.\n"; return; }
+					String track = AsString(cla.GetPositional(1));
+					String phase = AsString(cla.GetPositional(2));
+					String task = AsString(cla.GetPositional(3));
+					String status_str = AsString(cla.GetPositional(4));
+					TaskStatus status = StringToStatus(ToLower(status_str));
+					if(status == STATUS_UNKNOWN) { Cerr() << "Error: Unknown status '" << status_str << "'.\n"; return; }
+					PlanParser p;
+					if(p.UpdateTaskStatus(docs_root, track, phase, task, status)) Cout() << "Updated status of '" << task << "' to " << status_str << "\n";
+					else Cerr() << "Error: Failed to update task status.\n";
 				}
-				else {
-					Cout() << "Unknown plan subcommand: " << sub << "\n";
-					ShowHelp();
-				}
-			}
+								else if (sub == "decompose") {
+									String freeform;
+									if(cla.GetPositionalCount() > 1) freeform = AsString(cla.GetPositional(1));
+									else {
+										Cout() << "Enter your request: ";
+										freeform = ReadStdIn();
+									}
+									if(freeform.IsEmpty()) return;
+						
+									CliMaestroEngine engine;
+									engine.binary = "gemini";
+									engine.model = "gemini-1.5-pro";
+									engine.Arg("-o").Arg("stream-json");
+									
+									WorkGraphGenerator wgg(engine, true);							try {
+								WorkGraph wg = wgg.Generate(freeform, ValueMap()); // Discovery empty for now
+								String out_dir = AppendFileName(docs_root, "docs/maestro/plans/workgraphs");
+								RealizeDirectory(out_dir);
+								String out_path = AppendFileName(out_dir, "plan_" + AsString(GetSysTime().Get()) + ".json");
+								if(StoreAsJsonFile(wg, out_path, true)) {
+									Cout() << "WorkGraph generated and saved to: " << out_path << "\n";
+								}
+							} catch(const Exc& e) {
+								Cerr() << "Error: " << e << "\n";
+							}
+						}
+								else if (sub == "enact") {
+									if(cla.GetPositionalCount() < 2) {
+										Cerr() << "Error: 'plan enact' requires a WorkGraph JSON file path.\n";
+										return;
+									}
+									String path = AsString(cla.GetPositional(1));
+									WorkGraph wg;
+									if(!LoadFromJsonFile(wg, path)) {
+										Cerr() << "Error: Failed to load WorkGraph from " << path << "\n";
+										return;
+									}
+									
+									String trk_dir = AppendFileName(plan_root, wg.track.name);
+									RealizeDirectory(trk_dir);
+									Cout() << "Enacting track: " << wg.track.name << "\n";
+									
+									for(const auto& phase : wg.phases) {
+										String ph_dir = AppendFileName(trk_dir, phase.name);
+										RealizeDirectory(ph_dir);
+										Cout() << "  - Phase: " << phase.name << "\n";
+										
+										for(const auto& task : phase.tasks) {
+											String task_file = AppendFileName(ph_dir, task.title + ".md");
+											String content;
+											content << "# Task: " << task.title << "\n"
+											        << "# Status: TODO\n\n"
+											        << "## Objective\n" << task.intent << "\n\n";
+											if(task.definition_of_done.GetCount() > 0) {
+												content << "## Definition of Done\n";
+												for(const auto& dod : task.definition_of_done) {
+													if(dod.kind == "command") content << "- [ ] Command: `" << dod.cmd << "`\n";
+													else if(dod.kind == "file") content << "- [ ] File: `" << dod.path << "`\n";
+												}
+												content << "\n";
+											}
+											if(SaveFile(task_file, content)) Cout() << "    * Task created: " << task.title << "\n";
+										}
+									}
+								}
+										else if (sub == "run") {
+											if(cla.GetPositionalCount() < 2) {
+												Cerr() << "Error: 'plan run' requires a WorkGraph JSON file path.\n";
+												return;
+											}
+											String path = AsString(cla.GetPositional(1));
+											WorkGraph wg;
+											if(!LoadFromJsonFile(wg, path)) {
+												Cerr() << "Error: Failed to load WorkGraph from " << path << "\n";
+												return;
+											}
+											
+											bool execute = false;
+											// Check for --execute flag
+											for(const auto& a : args) if(a == "--execute") execute = true;
+											
+											WorkGraphRunner runner(wg, !execute, true);
+											RunSummary rs = runner.Run();
+											
+											Cout() << "\nRun Summary:\n"
+											       << "  Tasks Completed: " << rs.tasks_completed << "\n"
+											       << "  Tasks Failed:    " << rs.tasks_failed << "\n"
+											       << "  Dry Run:         " << (rs.dry_run ? "yes" : "no") << "\n";
+										}
+										else if (sub == "score" || sub == "recommend") {
+											if(cla.GetPositionalCount() < 2) {
+												Cerr() << "Error: '" << sub << "' requires a WorkGraph JSON file path.\n";
+												return;
+											}
+											String path = AsString(cla.GetPositional(1));
+											WorkGraph wg;
+											if(!LoadFromJsonFile(wg, path)) {
+												Cerr() << "Error: Failed to load WorkGraph from " << path << "\n";
+												return;
+											}
+											
+											String profile = "default";
+											// Check for profile arg
+											if(cla.GetPositionalCount() > 2) profile = AsString(cla.GetPositional(2));
+											
+											RankedWorkGraph rwg = WorkGraphScorer::Rank(wg, profile);
+											
+											Cout() << "WorkGraph Scoring: " << wg.title << "\n"
+											       << "Profile: " << profile << "\n"
+											       << "Total tasks: " << rwg.summary["total_tasks"] << "\n\n";
+											
+											int limit = (sub == "recommend" ? 3 : 10);
+											for(int i = 0; i < min(limit, rwg.ranked_tasks.GetCount()); i++) {
+												const auto& t = rwg.ranked_tasks[i];
+												Cout() << Format("%d. [%.1f] %s (%s)\n", i + 1, t.score, t.task_title, t.task_id);
+											}
+										}
+										else { Cout() << "Unknown plan subcommand: " << sub << "\n"; ShowHelp(); }			}
 		};
 		
-		struct TrackCommand : Command {
+		struct MakeCommand : Command {
+	String GetName() const override { return "make"; }
+	String GetDescription() const override { return "Build orchestration commands"; }
+	
+	void ShowHelp() const override {
+		Cout() << "usage: MaestroCLI make [-h] {build,rebuild,clean}\n"
+		       << "\n"
+		       << "Make subcommands:\n"
+		       << "    build <pkg>         Build a package using umk\n"
+		       << "    rebuild <pkg>       Clean and build a package\n"
+		       << "    clean <pkg>         Clean build artifacts\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		CommandLineArguments cla;
+		cla.AddPositional("subcommand", UNKNOWN_V);
+		cla.AddPositional("pkg", UNKNOWN_V);
+		cla.Parse(args);
+		
+		if (cla.GetPositionalCount() < 2) {
+			ShowHelp();
+			return;
+		}
+		
+		String sub = AsString(cla.GetPositional(0));
+		String pkg = AsString(cla.GetPositional(1));
+		
+		String plan_root = FindPlanRoot();
+		String docs_root = GetDocsRoot(plan_root);
+
+		if (sub == "build" || sub == "rebuild") {
+			if(sub == "rebuild") {
+				Cout() << "Cleaning " << pkg << "...\n";
+				system("umk uppsrc,./uppsrc " + pkg + " GCC -clean");
+			}
+			Cout() << "Building " << pkg << "...\n";
+			int res = system("umk uppsrc,./uppsrc " + pkg + " GCC -bm -s");
+			if(res == 0) Cout() << "Build successful.\n";
+			else Cerr() << "Build failed with exit code " << res << "\n";
+		}
+		else if (sub == "clean") {
+			Cout() << "Cleaning " << pkg << "...\n";
+			system("umk uppsrc,./uppsrc " + pkg + " GCC -clean");
+		}
+		else {
+			Cout() << "Unknown make subcommand: " << sub << "\n";
+			ShowHelp();
+		}
+	}
+};
+
+struct FixCommand : Command {
+	String GetName() const override { return "fix"; }
+	String GetDescription() const override { return "Automated tools to fix project structure"; }
+	
+	void ShowHelp() const override {
+		Cout() << "usage: MaestroCLI fix [-h] {guards,main-header,includes,secondary}\n"
+		       << "\n"
+		       << "Fix subcommands:\n"
+		       << "    guards <pkg>        Fix header guards for a package\n"
+		       << "    main-header <pkg>   Ensure main header content for a package\n"
+		       << "    includes <pkg>      Normalize CPP includes for a package\n"
+		       << "    secondary <pkg>     Reduce secondary header includes\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		CommandLineArguments cla;
+		cla.AddPositional("subcommand", UNKNOWN_V);
+		cla.AddPositional("pkg", UNKNOWN_V);
+		cla.Parse(args);
+		
+		if (cla.GetPositionalCount() < 2) {
+			ShowHelp();
+			return;
+		}
+		
+		String plan_root = FindPlanRoot();
+		if(plan_root.IsEmpty()) { Cerr() << "Error: Could not find project root.\n"; return; }
+		String docs_root = GetDocsRoot(plan_root);
+
+		RepoScanner scanner;
+		scanner.Scan(docs_root);
+
+		String sub = AsString(cla.GetPositional(0));
+		String pkg_name = AsString(cla.GetPositional(1));
+		
+		const PackageInfo* pkg = nullptr;
+		for(const auto& p : scanner.packages) {
+			if(p.name == pkg_name) {
+				pkg = &p;
+				break;
+			}
+		}
+		
+		if(!pkg) { Cerr() << "Error: Package '" << pkg_name << "' not found.\n"; return; }
+
+		if (sub == "guards") {
+			for(const auto& f : pkg->files) {
+				if(f.EndsWith(".h")) {
+					Cout() << "Fixing guards in " << f << "\n";
+					StructureTools::FixHeaderGuards(AppendFileName(pkg->dir, f), pkg->name);
+				}
+			}
+		}
+		else if (sub == "main-header") {
+			String mh = AppendFileName(pkg->dir, pkg->name + ".h");
+			Cout() << "Fixing main header " << mh << "\n";
+			StructureTools::EnsureMainHeaderContent(mh, pkg->name);
+		}
+		else if (sub == "includes") {
+			for(const auto& f : pkg->files) {
+				if(f.EndsWith(".cpp")) {
+					Cout() << "Normalizing includes in " << f << "\n";
+					StructureTools::NormalizeCppIncludes(AppendFileName(pkg->dir, f), pkg->name + ".h");
+				}
+			}
+		}
+		else if (sub == "secondary") {
+			for(const auto& f : pkg->files) {
+				if(f.EndsWith(".h") && f != pkg->name + ".h") {
+					Cout() << "Reducing includes in " << f << "\n";
+					StructureTools::ReduceSecondaryHeaderIncludes(AppendFileName(pkg->dir, f));
+				}
+			}
+		}
+		else {
+			Cout() << "Unknown fix subcommand: " << sub << "\n";
+			ShowHelp();
+		}
+	}
+};
+
+struct RepoCommand : Command {
+	String GetName() const override { return "repo"; }
+	String GetDescription() const override { return "Repository analysis and resolution commands"; }
+	
+	void ShowHelp() const override {
+		Cout() << "usage: MaestroCLI repo [-h] {list,ls,show,sh,pkg,asm}\n"
+		       << "\n"
+		       << "Repository subcommands:\n"
+		       << "    list (ls)           List all packages in repository\n"
+		       << "    show (sh)           Show repository scan results\n"
+		       << "    pkg <name>          Show detailed package info\n"
+		       << "    asm                 Assembly management\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		CommandLineArguments cla;
+		cla.AddPositional("subcommand", UNKNOWN_V);
+		cla.AddPositional("arg1", UNKNOWN_V);
+		cla.Parse(args);
+		
+		if (cla.GetPositionalCount() == 0) {
+			ShowHelp();
+			return;
+		}
+		
+		String plan_root = FindPlanRoot();
+		if(plan_root.IsEmpty()) {
+			Cerr() << "Error: Could not find project root.\n";
+			return;
+		}
+		String docs_root = GetDocsRoot(plan_root);
+
+		RepoScanner scanner;
+		// Assume we want to scan the project root (docs_root)
+		scanner.Scan(docs_root);
+
+		String sub = AsString(cla.GetPositional(0));
+		if (sub == "list" || sub == "ls") {
+			Cout() << "Packages found in " << docs_root << ":\n";
+			for(const auto& pkg : scanner.packages) {
+				Cout() << Format(" [%-10s] %s (%s)\n", pkg.build_system, pkg.name, pkg.dir);
+			}
+		}
+		else if (sub == "show" || sub == "sh") {
+			Cout() << "Repository Scan Summary:\n"
+			       << "  Project Root: " << docs_root << "\n"
+			       << "  Total Packages: " << scanner.packages.GetCount() << "\n"
+			       << "  Total Assemblies: " << scanner.assemblies.GetCount() << "\n";
+			
+			if(scanner.assemblies.GetCount() > 0) {
+				Cout() << "\nAssemblies:\n";
+				for(const auto& asm_info : scanner.assemblies) {
+					Cout() << "  - " << asm_info.name << " (" << asm_info.packages.GetCount() << " packages)\n";
+				}
+			}
+		}
+		else if (sub == "pkg") {
+			if(cla.GetPositionalCount() < 2) {
+				Cerr() << "Error: 'repo pkg' requires a package name.\n";
+				return;
+			}
+			String name = AsString(cla.GetPositional(1));
+			const PackageInfo* found = nullptr;
+			for(const auto& pkg : scanner.packages) {
+				if(pkg.name == name) {
+					found = &pkg;
+					break;
+				}
+			}
+			
+			if(found) {
+				Cout() << "Package:      " << found->name << "\n"
+				       << "Directory:    " << found->dir << "\n"
+				       << "Build System: " << found->build_system << "\n"
+				       << "Dependencies: " << Join(found->dependencies, ", ") << "\n"
+				       << "File Groups:  " << found->groups.GetCount() << "\n";
+				for(const auto& group : found->groups) {
+					Cout() << "  - Group: " << group.name << " (" << group.files.GetCount() << " files)\n";
+				}
+			} else {
+				Cerr() << "Error: Package '" << name << "' not found.\n";
+			}
+		}
+		else if (sub == "asm") {
+			Array<UppAssemblyReader::AssemblyInfo> asms = UppAssemblyReader::ReadAll();
+			Cout() << "U++ IDE Assemblies (from ~/.config/u++/ide/*.var):\n";
+			for(const auto& a : asms) {
+				Cout() << "  - " << a.assembly_name << " (" << a.var_file << ")\n";
+				for(const auto& p : a.upp_paths) {
+					Cout() << "    " << p << "\n";
+				}
+			}
+		}
+		else {
+			Cout() << "Unknown repo subcommand: " << sub << "\n";
+			ShowHelp();
+		}
+	}
+};
+
+struct TrackCommand : Command {
 			String GetName() const override { return "track"; }
 			String GetDescription() const override { return "Manage project tracks"; }
 			
@@ -264,14 +609,15 @@ struct WSessionCommand : Command {
 	String GetDescription() const override { return "Work session management"; }
 	
 	void ShowHelp() const override {
-		Cout() << "usage: MaestroCLI wsession [-h] {list,ls,show,sh,create,breadcrumbs,timeline}\n"
+		Cout() << "usage: MaestroCLI wsession [-h] {list,ls,show,sh,create,breadcrumbs,timeline,stats}\n"
 		       << "\n"
 		       << "Work session subcommands:\n"
 		       << "    list (ls)           List all work sessions\n"
 		       << "    show (sh) <id>      Show work session details\n"
 		       << "    create <type> [purp] Create a new work session\n"
 		       << "    breadcrumbs <id>    Show breadcrumbs for a session\n"
-		       << "    timeline <id>       Show session timeline\n";
+		       << "    timeline <id>       Show session timeline\n"
+		       << "    stats [id]          Show work session statistics\n";
 	}
 	
 	void Execute(const Vector<String>& args) override {
@@ -311,6 +657,16 @@ struct WSessionCommand : Command {
 				Cout() << "Session ID:      " << s.session_id << "\n" << "Type:            " << s.session_type << "\n" << "Status:          " << StatusToString(s.status) << "\n" << "State:           " << s.state << "\n" << "Parent:          " << s.parent_session_id << "\n" << "Created:         " << s.created << "\n" << "Modified:        " << s.modified << "\n" << "Purpose:         " << s.purpose << "\n" << "Breadcrumbs Dir: " << s.breadcrumbs_dir << "\n";
 				if(s.related_entity.GetCount() > 0) Cout() << "Related Entity:  " << s.related_entity << "\n";
 				if(s.metadata.GetCount() > 0) Cout() << "Metadata:        " << s.metadata << "\n";
+				
+				SessionStats st = WorkSessionManager::CalculateSessionStats(docs_root, s);
+				Cout() << "\nStatistics:\n"
+				       << "  Breadcrumbs:   " << st.total_breadcrumbs << "\n"
+				       << "  Tokens:        In: " << st.total_tokens_input << ", Out: " << st.total_tokens_output << "\n"
+				       << "  Cost:          $" << Format("%.6f", st.estimated_cost) << "\n"
+				       << "  Files Modified: " << st.files_modified << "\n"
+				       << "  Tools Called:   " << st.tools_called << "\n"
+				       << "  Duration:      " << (int)st.duration_seconds << " seconds\n"
+				       << "  Success Rate:  " << Format("%.1f", st.success_rate) << "%\n";
 			} else Cerr() << "Error: Failed to load session.\n";
 		}
 		else if (sub == "breadcrumbs" || sub == "timeline") {
@@ -324,6 +680,47 @@ struct WSessionCommand : Command {
 				Cout() << Format("%d. [%s] - %s\n", i + 1, b.timestamp_id, b.model_used);
 				Cout() << "   Prompt:   " << b.prompt.Left(100) << (b.prompt.GetCount() > 100 ? "..." : "") << "\n";
 				Cout() << "   Response: " << b.response.Left(100) << (b.response.GetCount() > 100 ? "..." : "") << "\n\n";
+			}
+		}
+		else if (sub == "stats") {
+			if(cla.GetPositionalCount() >= 2) {
+				String id = AsString(cla.GetPositional(1));
+				String path = WorkSessionManager::FindSessionPath(docs_root, id);
+				WorkSession s;
+				if(!path.IsEmpty() && WorkSessionManager::LoadSession(path, s)) {
+					SessionStats st = WorkSessionManager::CalculateSessionStats(docs_root, s);
+					Cout() << "Statistics for " << s.session_id << ":\n"
+					       << "  Breadcrumbs:   " << st.total_breadcrumbs << "\n"
+					       << "  Tokens:        In: " << st.total_tokens_input << ", Out: " << st.total_tokens_output << "\n"
+					       << "  Cost:          $" << Format("%.6f", st.estimated_cost) << "\n"
+					       << "  Files Modified: " << st.files_modified << "\n"
+					       << "  Tools Called:   " << st.tools_called << "\n"
+					       << "  Duration:      " << (int)st.duration_seconds << " seconds\n"
+					       << "  Success Rate:  " << Format("%.1f", st.success_rate) << "%\n";
+				} else Cerr() << "Error: Session not found.\n";
+			} else {
+				Array<WorkSession> sessions = WorkSessionManager::ListSessions(docs_root);
+				int total_b = 0, total_ti = 0, total_to = 0, total_fm = 0, total_tc = 0;
+				double total_cost = 0, total_dur = 0, total_sr = 0;
+				for(const auto& s : sessions) {
+					SessionStats st = WorkSessionManager::CalculateSessionStats(docs_root, s);
+					total_b += st.total_breadcrumbs;
+					total_ti += st.total_tokens_input;
+					total_to += st.total_tokens_output;
+					total_cost += st.estimated_cost;
+					total_fm += st.files_modified;
+					total_tc += st.tools_called;
+					total_dur += st.duration_seconds;
+					total_sr += st.success_rate;
+				}
+				Cout() << "Aggregate Statistics for " << sessions.GetCount() << " Sessions:\n"
+				       << "  Total Breadcrumbs: " << total_b << "\n"
+				       << "  Total Tokens:      In: " << total_ti << ", Out: " << total_to << "\n"
+				       << "  Total Cost:        $" << Format("%.6f", total_cost) << "\n"
+				       << "  Files Modified:    " << total_fm << "\n"
+				       << "  Tools Called:      " << total_tc << "\n"
+				       << "  Total Duration:    " << (int)total_dur << " seconds\n"
+				       << "  Avg Success Rate:  " << (sessions.IsEmpty() ? 0 : total_sr / sessions.GetCount()) << "%\n";
 			}
 		}
 		else { Cout() << "Unknown wsession subcommand: " << sub << "\n"; ShowHelp(); }
@@ -349,6 +746,9 @@ CONSOLE_APP_MAIN
 	ArrayMap<String, Command> commands;
 	commands.Create<PlanCommand>("plan");
 	commands.Create<PlanCommand>("pl");
+	commands.Create<RepoCommand>("repo");
+	commands.Create<FixCommand>("fix");
+	commands.Create<MakeCommand>("make");
 	commands.Create<TrackCommand>("track");
 	commands.Create<TrackCommand>("tr");
 	commands.Create<TrackCommand>("t");

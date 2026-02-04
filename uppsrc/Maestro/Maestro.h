@@ -1,3 +1,8 @@
+#ifndef MAESTRO_MAESTRO_H
+#define MAESTRO_MAESTRO_H
+
+// NOTE: This header is normally included inside namespace Upp
+
 #ifndef _Maestro_Maestro_h_
 #define _Maestro_Maestro_h_
 
@@ -12,6 +17,11 @@
 #include <AI/Engine/PlanSummarizer.h>
 #include "WorkSession.h"
 #include "Breadcrumb.h"
+#include "WorkGraphGenerator.h"
+#include "WorkGraphRunner.h"
+#include "WorkGraphScorer.h"
+#include "StructureTools.h"
+#include "VarFileParser.h"
 
 NAMESPACE_UPP
 
@@ -36,3 +46,5 @@ Value MaestroUpdateTaskStatus(const ValueMap& params);
 END_UPP_NAMESPACE
 
 #endif
+
+#endif // MAESTRO_MAESTRO_H

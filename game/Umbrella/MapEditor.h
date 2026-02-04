@@ -2,6 +2,7 @@
 #define _Umbrella_MapEditor_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include "MapGrid.h"
 
 using namespace Upp;
 
@@ -61,6 +62,9 @@ private:
 
 	// Canvas
 	MapCanvas mapCanvas;
+
+	// Map data
+	MapGrid mapGrid;
 
 	// Buttons for toolbar
 	Button newMapBtn;

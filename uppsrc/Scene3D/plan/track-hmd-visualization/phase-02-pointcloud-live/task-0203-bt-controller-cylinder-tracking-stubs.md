@@ -7,7 +7,7 @@ Checklist
 - [x] Define controller pattern model (two dot circles on cylinder, with unique dot layout).
 - [x] Define stub tracker interface: detect pattern -> controller pose (relative to HMD).
 - [x] Define stub fusion interface: merge pattern pose with bluetooth IMU/controller data.
-- [ ] Define ephemeral pointcloud integration: add temporary controller points to render.
+- [x] Define ephemeral pointcloud integration: add temporary controller points to render.
 
 Notes
 - Keep detection algorithm as placeholder; wire data contracts only.

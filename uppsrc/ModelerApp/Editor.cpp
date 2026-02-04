@@ -568,6 +568,18 @@ void Edit3D::EnsureSimSceneObjects() {
 	sim_observation_obj = &scene.GetAddOctree("sim_observation");
 	sim_controller_obj[0] = &scene.GetAddOctree("sim_controller_0");
 	sim_controller_obj[1] = &scene.GetAddOctree("sim_controller_1");
+	sim_controller_model_obj[0] = &scene.GetAddModel("sim_controller_model_0");
+	sim_controller_model_obj[1] = &scene.GetAddModel("sim_controller_model_1");
+	for (int i = 0; i < 2; i++) {
+		if (!sim_controller_model_obj[i])
+			continue;
+		GeomObject& obj = *sim_controller_model_obj[i];
+		if (!obj.mdl) {
+			ModelBuilder builder;
+			builder.AddBox(vec3(0, 0, 0), vec3(0.06f, 0.02f, 0.12f), true);
+			obj.mdl = builder.Detach();
+		}
+	}
 	state->UpdateObjects();
 	Data();
 	v0.TimelineData();
@@ -668,6 +680,9 @@ void Edit3D::DebugSimulateObservation() {
 		FillOctree(sim_observation_obj->octree.octree, world_points, -3);
 		sim_observation_obj->octree_ptr = 0;
 	}
+	GeomCamera& cam = state->GetProgram();
+	cam.position = sim_state.hmd_pose_world.position;
+	cam.orientation = sim_state.hmd_pose_world.orientation;
 	RefrehRenderers();
 }
 
@@ -734,7 +749,18 @@ void Edit3D::DebugSimulateControllerObservations() {
 		Vector<vec3> world_points = TransformPointsToWorld(sim_state.hmd_pose_world, sim_ctrl_obs[i].points);
 		FillOctree(sim_controller_obj[i]->octree.octree, world_points, -3);
 		sim_controller_obj[i]->octree_ptr = 0;
+		if (sim_controller_model_obj[i]) {
+			GeomObject& obj = *sim_controller_model_obj[i];
+			GeomTimeline& tl = obj.GetTimeline();
+			tl.keypoints.Clear();
+			GeomKeypoint& kp = tl.keypoints.Add(0);
+			kp.position = sim_state.controller_poses_world[i].position;
+			kp.orientation = sim_state.controller_poses_world[i].orientation;
+		}
 	}
+	GeomCamera& cam = state->GetProgram();
+	cam.position = sim_state.hmd_pose_world.position;
+	cam.orientation = sim_state.hmd_pose_world.orientation;
 	RefrehRenderers();
 }
 

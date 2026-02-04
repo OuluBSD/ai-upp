@@ -57,6 +57,7 @@ file
 	PipelineRuntime.cpp,
 	RegressionReplay.h,
 	RegressionReplay.cpp,
+	RunbookManager.cpp,
 	PlanCommand.cpp,
 	RepoCommand.cpp,
 	MakeCommand.cpp,

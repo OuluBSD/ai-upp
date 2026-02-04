@@ -1183,12 +1183,21 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 				last_index--; // Revert last_index so GetRest() includes this arg
 				return true;
 			}
-			Value positional = ParseJSON(arg);
-			if (IsError(positional))
-				positional = Value(arg);
+			Value positional = arg; 
+			// Only try ParseJSON if it looks like JSON object/array
+			if((arg.StartsWith("{") && arg.EndsWith("}")) || (arg.StartsWith("[") && arg.EndsWith("]"))) {
+				Value v = ParseJSON(arg);
+				if(!IsError(v)) positional = v;
+			}
+			
 			if (positional_index < positional_type.GetCount()) {
 				dword expected = positional_type[positional_index];
 				if (expected != UNKNOWN_V) {
+					// If we have an expected type, we SHOULD try to parse it even if it doesn't look like JSON (e.g. simple number)
+					Value v = ParseJSON(arg);
+					if(IsError(v)) v = arg;
+					positional = v;
+					
 					auto fail_type = [&](const char* detail) {
 						Cerr() << "Invalid positional argument";
 						if (positional_index < positional_desc.GetCount())

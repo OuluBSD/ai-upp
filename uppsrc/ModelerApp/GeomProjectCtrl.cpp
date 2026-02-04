@@ -14,26 +14,46 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	vsplit.Vert().SetPos(7500) << grid << time;
 	
 	grid.SetGridSize(2,2);
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < 3; i++) {
 		rends[i].ctx = &e->render_ctx;
 		rends[i].WhenChanged = THISBACK1(RefreshRenderer, i);
-		grid.Add(rends[i]);
 	}
 	rends[0].SetViewMode(VIEWMODE_YZ);
 	rends[1].SetViewMode(VIEWMODE_XZ);
-	rends[2].SetViewMode(VIEWMODE_XY);
-	rends[3].SetViewMode(VIEWMODE_PERSPECTIVE);
+	rends[2].SetViewMode(VIEWMODE_PERSPECTIVE);
 	rends[0].SetCameraSource(CAMSRC_FOCUS);
 	rends[1].SetCameraSource(CAMSRC_FOCUS);
-	rends[2].SetCameraSource(CAMSRC_FOCUS);
-	rends[3].SetCameraSource(CAMSRC_PROGRAM);
+	rends[2].SetCameraSource(CAMSRC_PROGRAM);
+	
+	hmd_view.SetShowSplitView(true);
+	hmd_view.SetDrawLabel(true);
+	hmd_view.SetLabels("Bright", "Dark");
+	
+	grid.Add(rends[0]);
+	grid.Add(rends[1]);
+	grid.Add(hmd_view);
+	grid.Add(rends[2]);
 	
 	
 }
 
 void GeomProjectCtrl::RefreshRenderer(int i) {
-	if (i >= 0 && i < 4)
+	if (i >= 0 && i < 3)
 		rends[i].Refresh();
+}
+
+void GeomProjectCtrl::RefreshAll() {
+	for (int i = 0; i < 3; i++)
+		rends[i].Refresh();
+	hmd_view.Refresh();
+}
+
+void GeomProjectCtrl::RefreshHmdView() {
+	hmd_view.Refresh();
+}
+
+void GeomProjectCtrl::SetHmdImages(const Image& bright, const Image& dark) {
+	hmd_view.SetImages(bright, dark);
 }
 
 void GeomProjectCtrl::Update(double dt) {
@@ -53,7 +73,7 @@ void GeomProjectCtrl::Update(double dt) {
 	time.Refresh();
 	
 	if (anim.is_playing || was_playing) {
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < 3; i++) {
 			rends[i].Refresh();
 		}
 	}
@@ -111,10 +131,7 @@ void GeomProjectCtrl::TreeSelect() {
 			if (&s == node) {
 				e->state->active_scene = idx;
 				e->state->UpdateObjects();
-				RefreshRenderer(0);
-				RefreshRenderer(1);
-				RefreshRenderer(2);
-				RefreshRenderer(3);
+				RefreshAll();
 				break;
 			}
 			idx++;

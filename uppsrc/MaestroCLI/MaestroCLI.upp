@@ -1,4 +1,4 @@
-description "Maestro Command Line Interface\n";
+description "Maestro Command Line Interface\n\377";
 
 uses
 	Core,

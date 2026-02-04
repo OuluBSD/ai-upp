@@ -5,84 +5,25 @@
 		"scenes": [
 			{
 				"GeomDirectory": {
-					"name": "",
+					"name": "HMD Pointcloud",
 					"subdir": [
 
 					],
 					"objs": [
 						{
-							"name": "camera",
+							"name": "hmd_camera",
 							"type_i": 2,
 							"asset_ref": "",
 							"pointcloud_ref": "",
 							"timeline": {
 								"keypoints": [
-									{
-										"key": 0,
-										"value": {
-											"frame_id": 0,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											}
-										}
-									},
-									{
-										"key": 5,
-										"value": {
-											"frame_id": 5,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											}
-										}
-									},
-									{
-										"key": 10,
-										"value": {
-											"frame_id": 10,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											}
-										}
-									},
-									{
-										"key": 15,
-										"value": {
-											"frame_id": 15,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											}
-										}
-									},
-									{
-										"key": 20,
-										"value": {
-											"frame_id": 20,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											}
-										}
-									}
+
 								]
 							}
 						},
 						{
-							"name": "some model",
-							"type_i": 1,
+							"name": "hmd_pointcloud",
+							"type_i": 3,
 							"asset_ref": "",
 							"pointcloud_ref": "",
 							"timeline": {
@@ -93,7 +34,7 @@
 						}
 					]
 				},
-				"length": 21
+				"length": 0
 			}
 		],
 		"kps": 5,
@@ -123,8 +64,8 @@
 		"fov": 120,
 		"scale": 1
 	},
-	"created_utc": "2026-01-30T19:41:22Z",
-	"modified_utc": "2026-01-30T19:41:22Z",
+	"created_utc": "2026-02-04T12:01:43Z",
+	"modified_utc": "2026-02-04T12:01:43Z",
 	"data_dir": "data",
 	"external_files": [
 

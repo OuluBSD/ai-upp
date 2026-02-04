@@ -7,16 +7,16 @@ uses
 file
 	MaestroHub.h,
 	main.cpp,
-	Technology,
+	Technology readonly separator,
 	Technology.h,
 	Technology.cpp,
-	Product,
+	Product readonly separator,
 	Product.h,
 	Product.cpp,
-	Maintenance,
+	Maintenance readonly separator,
 	Maintenance.h,
 	Maintenance.cpp,
-	Management,
+	Management readonly separator,
 	SessionManagement.h,
 	SessionManagement.cpp;
 

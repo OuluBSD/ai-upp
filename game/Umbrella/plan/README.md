@@ -2,6 +2,17 @@
 
 This directory contains the planning documents for converting the RainbowGame/libGDX project to a U++-based game framework.
 
+## Shell Commands to Explore RainbowGame
+
+```bash
+find /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java -name "*.java"
+find /common/active/sblo/Dev/RainbowGame/trash/desktop
+cat /common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/RainbowGame.java
+head -20 /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/editor/MapEditorScreen.java
+cat /common/active/sblo/Dev/RainbowGame/trash/build.sh
+```
+
 ## Structure
 
 The planning follows a track/phase/task hierarchy:
@@ -18,7 +29,7 @@ Initial planning phase complete. The following planning documents have been crea
 - `analysis/discovery/task1/README.md` - Initial project analysis
 - `analysis/discovery/task2/Build_Outputs_Analysis.md` - Build outputs analysis
 
-### Design Track  
+### Design Track
 - `design/planning/task1/MapEditorScreen_Conversion_Plan.md` - MapEditorScreen conversion plan
 - `design/planning/task3/LibGDX_to_Upp_Conversion_Strategy.md` - Conversion strategy
 

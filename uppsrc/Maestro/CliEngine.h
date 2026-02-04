@@ -1,10 +1,6 @@
 #ifndef _Maestro_CliEngine_h_
 #define _Maestro_CliEngine_h_
 
-#include <Core/Core.h>
-#include "Engine.h"
-
-NAMESPACE_UPP
 
 class CliMaestroEngine : public MaestroEngine {
 	One<LocalProcess> p;
@@ -57,6 +53,5 @@ public:
 	typedef CliMaestroEngine CLASSNAME;
 };
 
-END_UPP_NAMESPACE
 
 #endif

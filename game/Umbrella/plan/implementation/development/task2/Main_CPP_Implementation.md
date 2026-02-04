@@ -3,6 +3,11 @@
 ## Overview
 Implement the main application entry point for the Umbrella game, converting from the libGDX DesktopLauncher.java to U++ main.cpp.
 
+## Shell Command to View Original
+```bash
+cat /common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java
+```
+
 ## Original Source
 - File: `/common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java`
 - Contains the main() function that initializes the libGDX application

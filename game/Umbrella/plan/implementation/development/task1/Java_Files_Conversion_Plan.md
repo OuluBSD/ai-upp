@@ -3,6 +3,11 @@
 ## Overview
 Create individual tasks for converting each Java file in the RainbowGame project to U++ equivalents.
 
+## Shell Command to Explore Files
+```bash
+find /common/active/sblo/Dev/RainbowGame/trash/core/src/main/java -name "*.java"
+```
+
 ## Core Package Files
 Located in `/common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rainbowgame/`
 
@@ -10,7 +15,7 @@ Located in `/common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rai
 - Assets.java - Asset management system
 - AudioSystem.java - Audio playback system
 
-### Camera Module  
+### Camera Module
 - CameraSystem.java - Camera control and management
 
 ### Config Module
@@ -93,6 +98,11 @@ Located in `/common/active/sblo/Dev/RainbowGame/trash/core/src/main/java/com/rai
 ## Desktop Launcher
 Located in `/common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/`
 - DesktopLauncher.java - Desktop application entry point
+
+## Shell Command to View Desktop Launcher
+```bash
+cat /common/active/sblo/Dev/RainbowGame/trash/desktop/src/main/java/com/rainbowgame/desktop/DesktopLauncher.java
+```
 
 ## Conversion Approach
 1. Create individual tasks for each Java file conversion

@@ -1,6 +1,8 @@
 #ifndef _GraphLib_GraphLib_h_
 #define _GraphLib_GraphLib_h_
 
+#include <CtrlLib/CtrlLib.h>
+
 #include "Graph.h"
 #include "Layout.h"
 #include "Renderer.h"
@@ -324,5 +326,8 @@ typedef GraphLayout<OrderedTree>		OrderedTreeGraph;
 typedef GraphLayout<TournamentTree>		TournamentTreeGraph;
 
 }
+
+#include "GraphNodeCtrl.h"
+#include "GroupNode.h"
 
 #endif

@@ -62,6 +62,7 @@ file
 	IssueManager.cpp,
 	WorkManager.cpp,
 	LogManager.cpp,
+	SettingsManager.cpp,
 	PlanCommand.cpp,
 	RepoCommand.cpp,
 	MakeCommand.cpp,
@@ -73,7 +74,6 @@ file
 	WorkflowCommand.cpp,
 	LogCommand.cpp,
 	CacheCommand.cpp,
-	TrackCacheCommand.cpp,
 	OpsCommand.cpp,
 	PhaseCommand.cpp,
 	TaskCommand.cpp,
@@ -95,3 +95,4 @@ file
 	SessionSelectWindow.cpp,
 	AIChatCtrl.h,
 	AIChatCtrl.cpp;
+

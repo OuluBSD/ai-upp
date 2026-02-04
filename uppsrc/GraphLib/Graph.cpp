@@ -1,4 +1,4 @@
-#include "Graph.h"
+#include "GraphLib.h"
 
 namespace GraphLib {
 

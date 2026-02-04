@@ -1,8 +1,6 @@
 #ifndef _GraphLib_GraphNodeCtrl_h_
 #define _GraphLib_GraphNodeCtrl_h_
 
-#include "GraphLib.h"
-
 namespace GraphLib {
 
 class GraphNodeCtrl : public Ctrl {

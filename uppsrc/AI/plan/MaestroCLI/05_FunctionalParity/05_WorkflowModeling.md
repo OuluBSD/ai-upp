@@ -1,5 +1,5 @@
 # Task: Implement Workflow Modeling
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement UML-like programming and state machine management.

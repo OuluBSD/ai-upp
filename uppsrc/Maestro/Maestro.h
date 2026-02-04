@@ -8,6 +8,10 @@
 #include <CtrlLib/CtrlLib.h>
 #endif
 
+#ifdef _GraphLib_GraphLib_h_
+ #error Wrong inclusion order
+#endif
+
 namespace Upp {
 
 struct Command {
@@ -98,6 +102,19 @@ public:
 private:
 	Array<LogFinding> ExtractFindings(const String& log_text, const String& kind_filter);
 	String GenerateFingerprint(const String& message, const String& tool, const String& file);
+};
+
+class SettingsManager {
+	String base_path;
+	String config_path;
+
+public:
+	SettingsManager(const String& maestro_root = ".");
+	
+	ValueMap LoadSettings();
+	bool     SaveSettings(const ValueMap& settings);
+	Value    GetSetting(const String& key);
+	bool     SetSetting(const String& key, const Value& value);
 };
 
 class IssueManager {

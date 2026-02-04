@@ -1,4 +1,4 @@
-#include "BinaryHeapMap.h"
+#include "GraphLib.h"
 
 namespace GraphLib {
 

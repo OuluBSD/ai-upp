@@ -1,8 +1,6 @@
 #ifndef _MaestroHub_Maintenance_h_
 #define _MaestroHub_Maintenance_h_
 
-#include "MaestroHub.h"
-
 NAMESPACE_UPP
 
 class MaintenancePane : public ParentCtrl {

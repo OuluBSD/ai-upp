@@ -9,7 +9,8 @@ void MainHelp(const Array<Command>& commands)
 {
 	Cout() << "usage: MaestroCLI [-h] [--version] [-s SESSION] [-v] [--validate-cache] [-q]\n"
 	       << "                  {help";
-	for(const auto& cmd : commands) {
+	for(int i = 0; i < commands.GetCount(); i++) {
+		const auto& cmd = commands[i];
 		Cout() << "," << cmd.GetName();
 		for(const auto& a : cmd.GetAliases()) Cout() << "," << a;
 	}
@@ -21,13 +22,14 @@ void MainHelp(const Array<Command>& commands)
 	       << "  {...}                 Available commands\n"
 	       << "    help (h)            Show help for all commands\n";
 	
-	for(const auto& cmd : commands) {
+	for(int i = 0; i < commands.GetCount(); i++) {
+		const auto& cmd = commands[i];
 		String names = cmd.GetName();
 		const Vector<String>& al = cmd.GetAliases();
 		if(al.GetCount() > 0) {
 			names << " (" << Join(al, ", ") << ")";
 		}
-		Cout() << "    " << Format("%-19s", names) << " " << cmd.GetDescription() << "\n";
+		Cout() << "    " << Format("% -19s", names) << " " << cmd.GetDescription() << "\n";
 	}
 	
 	Cout() << "\noptions:\n"
@@ -84,40 +86,37 @@ CONSOLE_APP_MAIN
 	commands.Create<UxCommand>();
 	commands.Create<TutorialCommand>();
 
-	CommandLineArguments cla;
-	cla.AddArg('v', "verbose", false);
-	cla.AddArg('q', "quiet", false);
-	cla.AddArg('s', "session", true, "SESSION");
-	cla.AddPositional("command", UNKNOWN_V);
-	
 	const Vector<String>& raw_args = CommandLine();
 	bool show_help = false;
 	bool show_version = false;
-	Vector<String> filtered_args;
-	for(const auto& a : raw_args) {
-		if(a == "--help" || a == "-h") show_help = true;
-		else if(a == "--version") show_version = true;
-		else if(a == "--validate-cache") {} // Just ignore for now
-		else filtered_args.Add(a);
+	String session_file;
+	bool verbose = false;
+	bool quiet = false;
+	
+	String cmdName;
+	Vector<String> sub_args;
+	
+	for(int i = 0; i < raw_args.GetCount(); i++) {
+		String a = raw_args[i];
+		if(cmdName.IsEmpty()) {
+			if(a == "--help" || a == "-h") show_help = true;
+			else if(a == "--version") show_version = true;
+			else if(a == "-v" || a == "--verbose") verbose = true;
+			else if(a == "-q" || a == "--quiet") quiet = true;
+			else if((a == "-s" || a == "--session") && i + 1 < raw_args.GetCount()) session_file = raw_args[++i];
+			else if(!a.StartsWith("-")) cmdName = a;
+		} else {
+			sub_args.Add(a);
+		}
 	}
 
 	if (show_version) { ShowVersion(); return; }
-	if (!cla.Parse(filtered_args)) { 
-		if (!show_help) return;
-	}
-	
-	// Only show MainHelp if NO command was specified
-	if (cla.GetPositionalCount() == 0) { 
-		MainHelp(commands); 
-		return; 
-	}
+	if (cmdName.IsEmpty()) { MainHelp(commands); return; }
 
-	String cmdName = AsString(cla.GetPositional(0));
-	
 	// Handle explicit "help" command
 	if(cmdName == "help" || cmdName == "h") { 
-		if(cla.GetPositionalCount() > 1) {
-			String subHelp = AsString(cla.GetPositional(1));
+		if(sub_args.GetCount() > 0) {
+			String subHelp = sub_args[0];
 			for(int i = 0; i < commands.GetCount(); i++) {
 				if(commands[i].GetName() == subHelp) {
 					commands[i].ShowHelp();
@@ -138,8 +137,11 @@ CONSOLE_APP_MAIN
 	}
 
 	if (found) {
-		if (show_help) found->ShowHelp(); // Correctly show subcommand help
-		else found->Execute(cla.GetRest());
+		// Check if any sub_args contain help flags
+		for(const auto& a : sub_args) if(a == "--help" || a == "-h") show_help = true;
+		
+		if (show_help) found->ShowHelp();
+		else found->Execute(sub_args);
 	}
 	else { 
 		Cout() << "Unknown command: " << cmdName << "\n"; 

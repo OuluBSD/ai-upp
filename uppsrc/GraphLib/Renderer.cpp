@@ -1,4 +1,4 @@
-#include "Renderer.h"
+#include "GraphLib.h"
 
 namespace GraphLib {
 

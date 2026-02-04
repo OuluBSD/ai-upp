@@ -1,5 +1,4 @@
-#include "Product.h"
-#include <AI/Engine/PlanSummarizer.h>
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -100,40 +99,44 @@ void ProductPane::OnWorkflowSelect() {
 	g.Clear();
 	
 	int y = 50;
+	// Track Header
+	if(!wg.track.name.IsEmpty()) {
+		Cout() << "Visualizing Track: " << wg.track.name << "\n";
+	}
+
 	for(const auto& p : wg.phases) {
 		// Group per phase
-		String groupId = "Phase_" + p.name;
-		GraphLib::GroupNode& group = workflow_graph.AddGroup(groupId, p.name, Point(50, y), Size(300, p.tasks.GetCount() * 80 + 40));
-		group.header_clr = Color(200, 220, 255);
+		String groupId = "ph_" + p.id;
+		GraphLib::GroupNode& group = workflow_graph.AddGroup(groupId, p.name, Point(50, y), Size(400, p.tasks.GetCount() * 100 + 60));
+		group.header_clr = Color(220, 230, 255);
 		
-		int ty = y + 30;
+		int ty = y + 40;
 		for(const auto& t : p.tasks) {
-			String nodeId = t.title; // Using title as ID for display simplicity
-			// In real usage, task should have an ID. WorkGraphTask currently lacks explicit ID in struct, assumes title/index
+			String nodeId = t.id;
+			if(nodeId.IsEmpty()) nodeId = t.title;
 			
 			GraphLib::Node& n = workflow_graph.AddNode(nodeId, Point(70, ty));
-			n.SetLabel(t.title);
-			if(t.status == "done") n.SetFill(Green());
-			else if(t.status == "blocked") n.SetFill(LtRed());
+			n.SetLabel(t.title + " (" + t.status + ")");
+			
+			if(t.status == "done") n.SetFill(Color(200, 255, 200));
+			else if(t.status == "blocked") n.SetFill(Color(255, 200, 200));
+			else if(t.status == "active") n.SetFill(Color(255, 255, 200));
 			else n.SetFill(White());
 			
 			n.AddPin("in", GraphLib::PinKind::Input);
 			n.AddPin("out", GraphLib::PinKind::Output);
 			
 			workflow_graph.AddNodeToGroup(nodeId, groupId);
-			
-			ty += 80;
+			ty += 100;
 		}
-		
-		y += p.tasks.GetCount() * 80 + 60;
+		y += p.tasks.GetCount() * 100 + 100;
 	}
 	
-	// Add dependencies based on depends_on
+	// Add dependencies
 	for(const auto& p : wg.phases) {
 		for(const auto& t : p.tasks) {
 			for(const String& dep : t.depends_on) {
-				// dep is the title of the prerequisite task
-				workflow_graph.AddEdge(dep, "out", t.title, "in");
+				workflow_graph.AddEdge(dep, "out", t.id, "in");
 			}
 		}
 	}

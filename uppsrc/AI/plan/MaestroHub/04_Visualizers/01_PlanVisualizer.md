@@ -1,5 +1,5 @@
 # Task: WorkGraph Visualizer
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Visualize the project plan (WorkGraph) as a node graph or Gantt chart.

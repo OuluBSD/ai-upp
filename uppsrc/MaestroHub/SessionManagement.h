@@ -1,16 +1,15 @@
 #ifndef _MaestroHub_SessionManagement_h_
 #define _MaestroHub_SessionManagement_h_
 
-#include "MaestroHub.h"
-#include <Maestro/SessionSelectWindow.h>
-
 NAMESPACE_UPP
 
 class SessionManagementPane : public ParentCtrl {
 public:
 	Splitter        split;
 	ArrayCtrl       dirs;
-	SessionListView sessions;
+	TabCtrl         list_tabs;
+	SessionListView sessions;     // AI Engine sessions (legacy)
+	ArrayCtrl       work_sessions; // Maestro Work Sessions
 	
 	CliMaestroEngine engine;
 	String          current_root;

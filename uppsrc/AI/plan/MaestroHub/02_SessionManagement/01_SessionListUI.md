@@ -1,5 +1,5 @@
 # Task: Session List UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement a graphical interface to list, filter, and select work sessions.

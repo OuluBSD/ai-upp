@@ -2,6 +2,14 @@
 #define _MaestroHub_MaestroHub_h_
 
 #include <Maestro/Maestro.h>
+#include <GraphLib/GraphLib.h>
+
+#include "Technology.h"
+#include "Product.h"
+#include "Maintenance.h"
+#include "IssuesView.h"
+#include "WorkDashboard.h"
+#include "SessionManagement.h"
 
 NAMESPACE_UPP
 
@@ -10,6 +18,8 @@ class TechnologyPane;
 class ProductPane;
 class MaintenancePane;
 class SessionManagementPane;
+class IssuesPane;
+class WorkPane;
 
 class MaestroHub : public TopWindow {
 	MenuBar menu;
@@ -19,6 +29,8 @@ class MaestroHub : public TopWindow {
 	One<TechnologyPane>        technology;
 	One<ProductPane>           product;
 	One<MaintenancePane>       maintenance;
+	One<IssuesPane>            issues;
+	One<WorkPane>              work;
 	One<SessionManagementPane> sessions;
 	
 	RecentConfig config;

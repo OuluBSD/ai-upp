@@ -1,4 +1,4 @@
-#include "GraphNodeCtrl.h"
+#include "GraphLib.h"
 
 namespace GraphLib {
 

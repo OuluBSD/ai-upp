@@ -6,6 +6,28 @@
 
 NAMESPACE_UPP
 
+namespace {
+
+void FillOctree(Octree& octree, const Vector<vec3>& points, int scale_level) {
+	octree.Initialize(-3, 8);
+	for (const vec3& p : points) {
+		OctreeNode* node = octree.GetAddNode(p, scale_level);
+		if (!node)
+			continue;
+		Pointcloud::Point& pt = node->Add<Pointcloud::Point>();
+		pt.SetPosition(p);
+	}
+}
+
+Vector<vec3> TransformPointsToWorld(const PointcloudPose& pose, const Vector<vec3>& points) {
+	Vector<vec3> out;
+	out.SetCount(points.GetCount());
+	for (int i = 0; i < points.GetCount(); i++)
+		out[i] = VectorTransform(points[i], pose.orientation) + pose.position;
+	return out;
+}
+
+}
 
 FilePoolCtrl::FilePoolCtrl(Edit3D* e) {
 	owner = e;
@@ -204,6 +226,17 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Record"), THISBACK(TogglePointcloudRecording))
 				.Check(record_pointcloud);
 			bar.Add(t_("Run Synthetic Sim"), THISBACK(RunSyntheticPointcloudSimDialog));
+		});
+		bar.Sub(t_("Debug"), [this](Bar& bar) {
+			bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
+				bar.Add(t_("Generate Source Pointcloud"), THISBACK(DebugGeneratePointcloud));
+				bar.Add(t_("Simulate HMD Observation"), THISBACK(DebugSimulateObservation));
+				bar.Add(t_("Run Localization"), THISBACK(DebugRunLocalization));
+				bar.Add(t_("Simulate Controller Observations"), THISBACK(DebugSimulateControllerObservations));
+				bar.Add(t_("Run Full Synthetic Sim"), THISBACK(RunSyntheticPointcloudSimDialog));
+				bar.Separator();
+				bar.Add(t_("Clear Synthetic Data"), THISBACK(DebugClearSynthetic));
+			});
 		});
 		
 	});
@@ -497,6 +530,18 @@ void Edit3D::EnsureHmdSceneObjects() {
 	v0.tree.OpenDeep(v0.tree_scenes);
 }
 
+void Edit3D::EnsureSimSceneObjects() {
+	GeomScene& scene = state->GetActiveScene();
+	sim_pointcloud_obj = &scene.GetAddOctree("sim_pointcloud");
+	sim_observation_obj = &scene.GetAddOctree("sim_observation");
+	sim_controller_obj[0] = &scene.GetAddOctree("sim_controller_0");
+	sim_controller_obj[1] = &scene.GetAddOctree("sim_controller_1");
+	state->UpdateObjects();
+	Data();
+	v0.TimelineData();
+	v0.tree.OpenDeep(v0.tree_scenes);
+}
+
 void Edit3D::TogglePointcloudRecording() {
 	if (record_pointcloud)
 		StopPointcloudRecording();
@@ -557,7 +602,105 @@ void Edit3D::RunSyntheticPointcloudSimDialog() {
 	String log;
 	bool ok = RunSyntheticPointcloudSim(log);
 	log << "\nResult: " << (ok ? "OK" : "FAIL");
-	PromptOK(log);
+	String safe = log;
+	safe.Replace("[", "(");
+	safe.Replace("]", ")");
+	PromptOK(safe);
+}
+
+void Edit3D::DebugGeneratePointcloud() {
+	sim_state = BuildSyntheticPointcloud(sim_cfg);
+	sim_has_state = true;
+	sim_has_obs = false;
+	sim_has_ctrl_obs = false;
+	EnsureSimSceneObjects();
+	if (sim_pointcloud_obj) {
+		FillOctree(sim_pointcloud_obj->octree.octree, sim_state.reference.points, -3);
+		sim_pointcloud_obj->octree_ptr = 0;
+	}
+	if (sim_observation_obj) {
+		sim_observation_obj->octree.octree.Initialize(-3, 8);
+		sim_observation_obj->octree_ptr = 0;
+	}
+	for (int i = 0; i < 2; i++) {
+		if (sim_controller_obj[i]) {
+			sim_controller_obj[i]->octree.octree.Initialize(-3, 8);
+			sim_controller_obj[i]->octree_ptr = 0;
+		}
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::DebugSimulateObservation() {
+	if (!sim_has_state)
+		DebugGeneratePointcloud();
+	sim_obs = SimulateHmdObservation(sim_state, sim_cfg.max_range);
+	sim_has_obs = true;
+	EnsureSimSceneObjects();
+	if (sim_observation_obj) {
+		Vector<vec3> world_points = TransformPointsToWorld(sim_state.hmd_pose_world, sim_obs.points);
+		FillOctree(sim_observation_obj->octree.octree, world_points, -3);
+		sim_observation_obj->octree_ptr = 0;
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::DebugRunLocalization() {
+	if (!sim_has_state)
+		DebugGeneratePointcloud();
+	if (!sim_has_obs)
+		DebugSimulateObservation();
+	PointcloudLocalizerStub localizer;
+	PointcloudLocalizationResult loc = localizer.Locate(sim_state.reference, sim_obs);
+	if (loc.ok) {
+		GeomCamera& cam = state->GetProgram();
+		cam.position = loc.pose.position;
+		cam.orientation = loc.pose.orientation;
+	}
+	String log;
+	log << "Localization: ok=" << (int)loc.ok;
+	log << " pos=" << Format("(%.3f, %.3f, %.3f)",
+		loc.pose.position[0], loc.pose.position[1], loc.pose.position[2]);
+	log << "\n";
+	String safe = log;
+	safe.Replace("[", "(");
+	safe.Replace("]", ")");
+	PromptOK(safe);
+	RefrehRenderers();
+}
+
+void Edit3D::DebugSimulateControllerObservations() {
+	if (!sim_has_state)
+		DebugGeneratePointcloud();
+	sim_ctrl_obs = SimulateControllerObservations(sim_state);
+	sim_has_ctrl_obs = true;
+	EnsureSimSceneObjects();
+	for (int i = 0; i < sim_ctrl_obs.GetCount() && i < 2; i++) {
+		if (!sim_controller_obj[i])
+			continue;
+		Vector<vec3> world_points = TransformPointsToWorld(sim_state.hmd_pose_world, sim_ctrl_obs[i].points);
+		FillOctree(sim_controller_obj[i]->octree.octree, world_points, -3);
+		sim_controller_obj[i]->octree_ptr = 0;
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::DebugClearSynthetic() {
+	sim_has_state = false;
+	sim_has_obs = false;
+	sim_has_ctrl_obs = false;
+	sim_state.reference.Clear();
+	sim_ctrl_obs.Clear();
+	EnsureSimSceneObjects();
+	if (sim_pointcloud_obj)
+		sim_pointcloud_obj->octree.octree.Initialize(-3, 8);
+	if (sim_observation_obj)
+		sim_observation_obj->octree.octree.Initialize(-3, 8);
+	for (int i = 0; i < 2; i++) {
+		if (sim_controller_obj[i])
+			sim_controller_obj[i]->octree.octree.Initialize(-3, 8);
+	}
+	RefrehRenderers();
 }
 
 bool Edit3D::IsScene3DBinaryPath(const String& path) const {

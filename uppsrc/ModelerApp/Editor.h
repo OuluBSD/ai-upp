@@ -94,6 +94,16 @@ struct Edit3D : TopWindow {
 	TimeCallback tc;
 	TimeStop ts;
 	HmdCapture hmd;
+	SyntheticPointcloudConfig sim_cfg;
+	SyntheticPointcloudState sim_state;
+	PointcloudObservation sim_obs;
+	Vector<ControllerObservation> sim_ctrl_obs;
+	bool sim_has_state = false;
+	bool sim_has_obs = false;
+	bool sim_has_ctrl_obs = false;
+	GeomObject* sim_pointcloud_obj = 0;
+	GeomObject* sim_observation_obj = 0;
+	GeomObject* sim_controller_obj[2] = {0, 0};
 	String scene3d_path;
 	String scene3d_created;
 	String scene3d_modified;
@@ -111,12 +121,18 @@ struct Edit3D : TopWindow {
 	void LoadTestOctree();
 	void LoadTestHmdPointcloud();
 	void EnsureHmdSceneObjects();
+	void EnsureSimSceneObjects();
 	void TogglePointcloudRecording();
 	void StartPointcloudRecording();
 	void StopPointcloudRecording();
 	void UpdateHmdPreview();
 	void UpdateHmdCameraPose();
 	void RunSyntheticPointcloudSimDialog();
+	void DebugGeneratePointcloud();
+	void DebugSimulateObservation();
+	void DebugRunLocalization();
+	void DebugSimulateControllerObservations();
+	void DebugClearSynthetic();
 	
 public:
 	typedef Edit3D CLASSNAME;

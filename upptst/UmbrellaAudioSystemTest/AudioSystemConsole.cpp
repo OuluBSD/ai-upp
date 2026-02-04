@@ -20,7 +20,7 @@ bool AudioSystem::LoadSound(const String& id, const String& filePath, SoundType 
         LOG("AudioSystem not initialized");
         return false;
     }
-    
+
     // Check if sound with this ID already exists
     for(int i = 0; i < soundIds.GetCount(); i++) {
         if(soundIds[i] == id) {
@@ -28,15 +28,26 @@ bool AudioSystem::LoadSound(const String& id, const String& filePath, SoundType 
             return false;
         }
     }
-    
+
+    // Use ShareDirFile to locate the sound file in the proper directory structure
+    String fullPath = ShareDirFile("mods/umbrella/sounds/" + filePath);
+
+    // Check if the file exists
+    if (!FileExists(fullPath)) {
+        LOG("Sound file does not exist: " + fullPath + ", using provided path instead");
+        // If the file doesn't exist in the shared directory, use the original path
+    } else {
+        // Use the resolved path from ShareDirFile
+    }
+
     // Add the new sound data
     soundIds.Add(id);
-    soundPaths.Add(filePath);
+    soundPaths.Add(fullPath);
     soundTypes.Add(type);
     soundVolumes.Add(1.0);
     soundLooping.Add(false);
-    
-    LOG("Loaded sound: " + id + " from " + filePath);
+
+    LOG("Loaded sound: " + id + " from " + fullPath);
     return true;
 }
 

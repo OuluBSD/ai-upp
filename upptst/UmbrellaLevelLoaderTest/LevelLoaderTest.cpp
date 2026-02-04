@@ -9,7 +9,7 @@ CONSOLE_APP_MAIN
 
     // Test loading a level
     LevelData level;
-    bool loaded = loader.LoadLevel("test_level.dat", level);
+    bool loaded = loader.LoadLevel("world1-stage1.json", level);
 
     if(loaded) {
         Cout() << "Level loaded successfully!" << EOL;
@@ -45,7 +45,7 @@ CONSOLE_APP_MAIN
     }
 
     // Test saving a level
-    bool saved = loader.SaveLevel("output_level.dat", level);
+    bool saved = loader.SaveLevel("mods/umbrella/levels/output_level.json", level);
     if(saved) {
         Cout() << "Level saved successfully!" << EOL;
     } else {

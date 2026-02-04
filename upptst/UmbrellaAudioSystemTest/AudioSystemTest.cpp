@@ -16,9 +16,9 @@ CONSOLE_APP_MAIN
     }
 
     // Test loading sounds
-    bool loadSFX = audio.LoadSound("jump_sound", "sounds/jump.wav", SoundType::SFX);
-    bool loadMusic = audio.LoadSound("background_music", "music/theme.ogg", SoundType::MUSIC);
-    bool loadVoice = audio.LoadSound("dialogue", "voice/dialogue.wav", SoundType::VOICE);
+    bool loadSFX = audio.LoadSound("jump_sound", "jump.wav", SoundType::SFX);
+    bool loadMusic = audio.LoadSound("background_music", "theme.ogg", SoundType::MUSIC);
+    bool loadVoice = audio.LoadSound("dialogue", "dialogue.wav", SoundType::VOICE);
 
     Cout() << "SFX loaded: " << (loadSFX ? "YES" : "NO") << EOL;
     Cout() << "Music loaded: " << (loadMusic ? "YES" : "NO") << EOL;

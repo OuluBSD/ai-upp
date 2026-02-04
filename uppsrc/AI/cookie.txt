@@ -1,4 +1,4 @@
 TRACK=MaestroHub
-PHASE=05_InteractiveWork
-TASK=Completed
-STATUS=DONE
+PHASE=02_SessionManagement
+TASK=02_SessionDetails
+STATUS=TODO

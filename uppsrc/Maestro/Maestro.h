@@ -19,17 +19,6 @@ struct Command {
 	virtual void Execute(const Vector<String>& args) = 0;
 };
 
-#define STUB_COMMAND(cls, name, desc, ...) \
-struct cls : Command { \
-	String GetName() const override { return name; } \
-	Vector<String> GetAliases() const override { return {__VA_ARGS__}; } \
-	String GetDescription() const override { return desc; } \
-	void ShowHelp() const override { Cout() << "usage: MaestroCLI " << name << " [-h]\n"; } \
-	void Execute(const Vector<String>& args) override { \
-		Cout() << "Command '" << name << "' is not yet implemented in C++.\n"; \
-	} \
-};
-
 // 1. Core Data Models
 #include "AssemblyInfo.h"
 #include "PlanModels.h"
@@ -51,6 +40,37 @@ struct cls : Command { \
 #include "WorkGraphScorer.h"
 #include "StructureTools.h"
 #include "VarFileParser.h"
+#include "DependencyResolver.h"
+#include "InventoryGenerator.h"
+#include "ConversionMemory.h"
+#include "ConversionPlanner.h"
+#include "Playbook.h"
+#include "EvidencePack.h"
+#include "SemanticIntegrity.h"
+#include "PipelineRuntime.h"
+#include "RegressionReplay.h"
+
+class RunbookManager {
+	String base_path;
+	String items_dir;
+	String index_path;
+
+public:
+	RunbookManager(const String& maestro_root = ".");
+	
+	Array<Runbook> ListRunbooks();
+	Runbook        LoadRunbook(const String& id);
+	bool           SaveRunbook(const Runbook& rb);
+	bool           DeleteRunbook(const String& id);
+	
+	Runbook        Resolve(const String& text, bool use_ai = true);
+	
+private:
+	void           UpdateIndex(const Runbook& rb);
+	void           RebuildIndex();
+};
+
+// Command Definitions
 struct InitCommand : Command {
 	String GetName() const override { return "init"; }
 	String GetDescription() const override { return "Initialize Maestro in a repository"; }
@@ -86,6 +106,7 @@ struct CacheCommand : Command {
 	void ShowHelp() const override;
 	void Execute(const Vector<String>& args) override;
 };
+
 struct TrackCacheCommand : Command {
 	String GetName() const override { return "track-cache"; }
 	String GetDescription() const override { return "Manage the persistent track/phase/task cache"; }
@@ -123,6 +144,7 @@ struct SettingsCommand : Command {
 	void ShowHelp() const override;
 	void Execute(const Vector<String>& args) override;
 };
+
 struct IssuesCommand : Command {
 	String GetName() const override { return "issues"; }
 	String GetDescription() const override { return "Issue tracking commands"; }
@@ -173,16 +195,6 @@ struct TutorialCommand : Command {
 	void ShowHelp() const override;
 	void Execute(const Vector<String>& args) override;
 };
-
-#include "DependencyResolver.h"
-#include "InventoryGenerator.h"
-#include "ConversionMemory.h"
-#include "ConversionPlanner.h"
-#include "Playbook.h"
-#include "EvidencePack.h"
-#include "SemanticIntegrity.h"
-#include "PipelineRuntime.h"
-#include "RegressionReplay.h"
 
 struct PlanCommand : Command {
 	String GetName() const override { return "plan"; }

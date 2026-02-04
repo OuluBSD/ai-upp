@@ -1,4 +1,4 @@
-TRACK=MaestroCLI
-PHASE=05_FunctionalParity
-TASK=06_LogObservability
-STATUS=IN_PROGRESS
+TRACK=MaestroHub
+PHASE=01_Foundation
+TASK=01_ProjectSkeleton
+STATUS=TODO

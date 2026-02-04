@@ -84,6 +84,8 @@ file
 	TreeCtrl readonly separator,
 	TreeCtrl.h,
 	TreeCtrl.cpp,
+	TreeArrayCtrl.h,
+	TreeArrayCtrl.cpp,
 	DropTree.cpp,
 	PageCtrl readonly separator,
 	PageCtrl.h,
@@ -140,4 +142,3 @@ file
 	src.tpp,
 	srcdoc.tpp,
 	Copying;
-

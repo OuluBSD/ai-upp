@@ -38,6 +38,7 @@ class Bar;
 #include <CtrlLib/ArrayCtrl.h>
 #include <CtrlLib/DropChoice.h>
 #include <CtrlLib/TreeCtrl.h>
+#include <CtrlLib/TreeArrayCtrl.h>
 #include <CtrlLib/Splitter.h>
 #include <CtrlLib/RichText.h>
 #include <CtrlLib/ChatCtrl.h>

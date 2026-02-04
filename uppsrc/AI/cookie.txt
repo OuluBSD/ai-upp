@@ -1,4 +1,4 @@
 TRACK=MaestroCLI
 PHASE=05_FunctionalParity
-TASK=04_WorkLoop
+TASK=06_LogObservability
 STATUS=IN_PROGRESS

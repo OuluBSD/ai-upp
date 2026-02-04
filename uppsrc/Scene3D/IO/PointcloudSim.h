@@ -7,7 +7,7 @@ struct SyntheticPointcloudConfig {
 	vec3 bounds_max = vec3(2.0f, 1.0f, 2.0f);
 	int controller_dots_per_ring = 12;
 	float controller_radius = 0.05f;
-	float controller_height = 0.12f;
+	float controller_height = 0.03f;
 	float max_range = 3.0f;
 	int seed = 1337;
 };

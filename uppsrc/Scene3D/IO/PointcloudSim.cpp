@@ -30,7 +30,7 @@ ControllerPattern MakeCylinderPattern(const String& id, int dots_per_ring, float
 	pattern.id = id;
 	pattern.dots_local.SetCount(0);
 	for (int ring = 0; ring < 2; ring++) {
-		float z = ring == 0 ? 0.0f : height;
+		float z = ring == 0 ? -height * 0.5f : height * 0.5f;
 		for (int i = 0; i < dots_per_ring; i++) {
 			float a = phase + (float)i * (2.0f * M_PIf / (float)dots_per_ring);
 			vec3 p(cos(a) * radius, sin(a) * radius, z);
@@ -38,6 +38,13 @@ ControllerPattern MakeCylinderPattern(const String& id, int dots_per_ring, float
 		}
 	}
 	return pattern;
+}
+
+vec3 NormalizeVec(const vec3& v) {
+	float len = v.GetLength();
+	if (len <= 1e-6f)
+		return vec3(0, 0, 0);
+	return v * (1.0f / len);
 }
 
 } // namespace
@@ -120,7 +127,17 @@ Vector<ControllerObservation> SimulateControllerObservations(const SyntheticPoin
 		obs.has_ground_truth = true;
 		obs.ground_truth = ctrl_pose;
 		for (int i = 0; i < pattern.dots_local.GetCount(); i++) {
-			vec3 world = ApplyPose(ctrl_pose, pattern.dots_local[i]);
+			const vec3& local = pattern.dots_local[i];
+			vec3 world = ApplyPose(ctrl_pose, local);
+			vec3 normal_local(local[0], local[1], 0.0f);
+			normal_local = NormalizeVec(normal_local);
+			if (normal_local.GetLength() <= 0)
+				continue;
+			vec3 normal_world = VectorTransform(normal_local, ctrl_pose.orientation);
+			vec3 to_cam = NormalizeVec(state.hmd_pose_world.position - world);
+			float facing = normal_world[0] * to_cam[0] + normal_world[1] * to_cam[1] + normal_world[2] * to_cam[2];
+			if (facing <= 0.0f)
+				continue;
 			vec3 cam = ApplyInversePose(state.hmd_pose_world, world);
 			obs.points.Add(cam);
 			obs.ids.Add(i);

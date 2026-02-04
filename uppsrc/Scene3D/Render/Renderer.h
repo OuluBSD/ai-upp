@@ -25,12 +25,14 @@ public:
 	EditRenderer();
 
 	Event<> WhenChanged;
+	Event<Bar&> WhenMenu;
 	
 	void Paint(Draw& d) override;
 	void LeftDown(Point p, dword keyflags) override;
 	void LeftUp(Point p, dword keyflags) override;
 	void MouseMove(Point p, dword keyflags) override;
 	void MouseWheel(Point p, int zdelta, dword keyflags) override;
+	void RightDown(Point p, dword keyflags) override;
 	bool Key(dword key, int count) override;
 	
 	

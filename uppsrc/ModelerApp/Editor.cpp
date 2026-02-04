@@ -371,7 +371,6 @@ void Edit3D::Update() {
 	
 	if (hmd.IsRunning()) {
 		hmd.Poll();
-		UpdateHmdPreview();
 		if (record_pointcloud)
 			UpdateHmdCameraPose();
 	}
@@ -607,13 +606,6 @@ void Edit3D::StopPointcloudRecording() {
 	if (hmd_pointcloud)
 		hmd_pointcloud->octree_ptr = 0;
 	hmd.Stop();
-}
-
-void Edit3D::UpdateHmdPreview() {
-	if (view != VIEW_GEOMPROJECT)
-		return;
-	v0.SetHmdImages(hmd.bright, hmd.dark);
-	v0.RefreshHmdView();
 }
 
 void Edit3D::UpdateHmdCameraPose() {

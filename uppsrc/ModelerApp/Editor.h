@@ -11,8 +11,7 @@ struct GeomProjectCtrl : Ctrl {
 	ArrayCtrl props;
 	FixedGridCtrl grid;
 	TimelineCtrl time;
-	EditRenderer rends[3];
-	StereoOverlayCtrl hmd_view;
+	EditRenderer rends[4];
 	
 	int tree_scenes = -1;
 	Index<hash_t> warned_tree_types;
@@ -28,8 +27,7 @@ struct GeomProjectCtrl : Ctrl {
 	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
 	void RefreshAll();
-	void RefreshHmdView();
-	void SetHmdImages(const Image& bright, const Image& dark);
+	void BuildViewMenu(Bar& bar, int i);
 	
 };
 
@@ -125,7 +123,6 @@ struct Edit3D : TopWindow {
 	void TogglePointcloudRecording();
 	void StartPointcloudRecording();
 	void StopPointcloudRecording();
-	void UpdateHmdPreview();
 	void UpdateHmdCameraPose();
 	void RunSyntheticPointcloudSimDialog();
 	void DebugGeneratePointcloud();

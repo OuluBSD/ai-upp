@@ -346,6 +346,11 @@ void EditRenderer::MouseWheel(Point p, int zdelta, dword keyflags) {
 	WhenChanged();
 }
 
+void EditRenderer::RightDown(Point p, dword keyflags) {
+	if (WhenMenu)
+		MenuBar::Execute(WhenMenu, GetMousePos());
+}
+
 GeomCamera& EditRenderer::GetGeomCamera() const {
 	switch (cam_src) {
 		

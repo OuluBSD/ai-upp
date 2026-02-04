@@ -14,46 +14,36 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	vsplit.Vert().SetPos(7500) << grid << time;
 	
 	grid.SetGridSize(2,2);
-	for(int i = 0; i < 3; i++) {
+	for(int i = 0; i < 4; i++) {
 		rends[i].ctx = &e->render_ctx;
 		rends[i].WhenChanged = THISBACK1(RefreshRenderer, i);
+		rends[i].WhenMenu = THISBACK1(BuildViewMenu, i);
 	}
 	rends[0].SetViewMode(VIEWMODE_YZ);
 	rends[1].SetViewMode(VIEWMODE_XZ);
-	rends[2].SetViewMode(VIEWMODE_PERSPECTIVE);
+	rends[2].SetViewMode(VIEWMODE_XY);
+	rends[3].SetViewMode(VIEWMODE_PERSPECTIVE);
 	rends[0].SetCameraSource(CAMSRC_FOCUS);
 	rends[1].SetCameraSource(CAMSRC_FOCUS);
-	rends[2].SetCameraSource(CAMSRC_PROGRAM);
-	
-	hmd_view.SetShowSplitView(true);
-	hmd_view.SetDrawLabel(true);
-	hmd_view.SetLabels("Bright", "Dark");
-	
+	rends[2].SetCameraSource(CAMSRC_FOCUS);
+	rends[3].SetCameraSource(CAMSRC_PROGRAM);
+
 	grid.Add(rends[0]);
 	grid.Add(rends[1]);
-	grid.Add(hmd_view);
 	grid.Add(rends[2]);
+	grid.Add(rends[3]);
 	
 	
 }
 
 void GeomProjectCtrl::RefreshRenderer(int i) {
-	if (i >= 0 && i < 3)
+	if (i >= 0 && i < 4)
 		rends[i].Refresh();
 }
 
 void GeomProjectCtrl::RefreshAll() {
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 4; i++)
 		rends[i].Refresh();
-	hmd_view.Refresh();
-}
-
-void GeomProjectCtrl::RefreshHmdView() {
-	hmd_view.Refresh();
-}
-
-void GeomProjectCtrl::SetHmdImages(const Image& bright, const Image& dark) {
-	hmd_view.SetImages(bright, dark);
 }
 
 void GeomProjectCtrl::Update(double dt) {
@@ -73,7 +63,7 @@ void GeomProjectCtrl::Update(double dt) {
 	time.Refresh();
 	
 	if (anim.is_playing || was_playing) {
-		for(int i = 0; i < 3; i++) {
+		for(int i = 0; i < 4; i++) {
 			rends[i].Refresh();
 		}
 	}
@@ -138,6 +128,26 @@ void GeomProjectCtrl::TreeSelect() {
 		}
 	}
 
+}
+
+void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
+	if (i < 0 || i >= 4)
+		return;
+	bar.Add(t_("View: YZ"), [=] { rends[i].SetViewMode(VIEWMODE_YZ); RefreshRenderer(i); });
+	bar.Add(t_("View: XZ"), [=] { rends[i].SetViewMode(VIEWMODE_XZ); RefreshRenderer(i); });
+	bar.Add(t_("View: XY"), [=] { rends[i].SetViewMode(VIEWMODE_XY); RefreshRenderer(i); });
+	bar.Add(t_("View: Perspective"), [=] { rends[i].SetViewMode(VIEWMODE_PERSPECTIVE); RefreshRenderer(i); });
+	bar.Separator();
+	bar.Add(t_("Camera: Focus"), [=] { rends[i].SetCameraSource(CAMSRC_FOCUS); RefreshRenderer(i); });
+	bar.Add(t_("Camera: Program"), [=] { rends[i].SetCameraSource(CAMSRC_PROGRAM); RefreshRenderer(i); });
+	bar.Separator();
+	bar.Add(t_("Reset Camera"), [=] {
+		GeomCamera& cam = rends[i].GetGeomCamera();
+		cam.position = vec3(0, 0, 0);
+		cam.orientation = Identity<quat>();
+		cam.scale = 1.0f;
+		RefreshRenderer(i);
+	});
 }
 
 void GeomProjectCtrl::OnCursor(int i) {

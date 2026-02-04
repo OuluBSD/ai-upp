@@ -6,6 +6,7 @@ void RepoScanner::Scan(const String& root) {
 	packages.Clear();
 	assemblies.Clear();
 	Walk(root);
+	DetectAssemblies();
 }
 
 void RepoScanner::Walk(const String& dir) {
@@ -68,7 +69,9 @@ void RepoScanner::DetectAssemblies() {
 		
 		AssemblyInfo& a = assemblies.Add();
 		a.dir = dir;
-		a.name = GetFileTitle(dir);
+		String n = dir;
+		if(n.EndsWith("/") || n.EndsWith("\\")) n.Remove(n.GetCount() - 1);
+		a.name = GetFileTitle(n);
 		a.assembly_type = "upp";
 		
 		for(int idx : indices) {

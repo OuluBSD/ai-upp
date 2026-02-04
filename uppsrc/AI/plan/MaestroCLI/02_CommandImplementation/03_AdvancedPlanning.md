@@ -1,5 +1,5 @@
 # Task: Advanced Planning
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Port advanced planning features from Python to C++, including WorkGraph decomposition and deterministic execution.

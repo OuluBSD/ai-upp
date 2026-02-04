@@ -1,9 +1,4 @@
 #include "MaestroHub.h"
-#include "Technology.h"
-#include "Product.h"
-#include "Maintenance.h"
-#include "SessionManagement.h"
-#include <AI/Engine/PlanSummarizer.h>
 
 NAMESPACE_UPP
 
@@ -23,12 +18,16 @@ MaestroHub::MaestroHub() {
 	technology.Create();
 	product.Create();
 	maintenance.Create();
+	issues.Create();
+	work.Create();
 	sessions.Create();
 	
 	Add(tabs.SizePos());
 	tabs.Add(technology->SizePos(), "Technology");
 	tabs.Add(product->SizePos(), "Product");
 	tabs.Add(maintenance->SizePos(), "Maintenance");
+	tabs.Add(issues->SizePos(), "Issues");
+	tabs.Add(work->SizePos(), "Work");
 	tabs.Add(sessions->SizePos(), "Sessions");
 	
 	technology->WhenEnact = THISBACK(OnEnact);
@@ -193,6 +192,13 @@ MaestroHub::MaestroHub() {
 
 void MaestroHub::MainMenu(Bar& bar) {
 	bar.Sub("App", THISBACK(AppMenu));
+	bar.Sub("System", [=](Bar& b) {
+		b.Add("Initialize Maestro...", [=] { PromptOK("Init placeholder"); });
+		b.Add("Settings...", [=] { PromptOK("Settings placeholder"); });
+		b.Separator();
+		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
+		b.Add("Collect Evidence...", [=] { PromptOK("Evidence placeholder"); });
+	});
 }
 
 void MaestroHub::AppMenu(Bar& bar) {
@@ -216,6 +222,8 @@ void MaestroHub::LoadData() {
 	if(technology) technology->Load(current_root);
 	if(product) product->Load(current_root);
 	if(maintenance) maintenance->Load(current_root);
+	if(issues) issues->Load(current_root);
+	if(work) work->Load(current_root);
 	if(sessions) sessions->Load(current_root);
 	
 	ScanForUnblockedTasks();
@@ -352,5 +360,14 @@ void MaestroHub::PlanWatcher() {
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
+	using namespace Upp;
+	
+	MaestroToolRegistry tool_reg;
+
+	RegisterMaestroTools(tool_reg);
+
+	
+
 	Upp::MaestroHub().Run();
+
 }

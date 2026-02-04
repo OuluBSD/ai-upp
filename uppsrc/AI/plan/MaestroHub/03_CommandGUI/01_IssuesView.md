@@ -1,5 +1,5 @@
 # Task: Issues Kanban/List View
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Provide a visual interface for the Issue Tracking system.

@@ -108,14 +108,36 @@ void MapCanvas::Paint(Draw& w) {
 		}
 	}
 
-	// Draw cursor highlight (current tile under mouse)
-	if(cursorCol >= 0 && cursorRow >= 0 && cursorCol < 100 && cursorRow < 100) {
-		int screenX = cursorCol * tileSize + offset.x;
-		int screenY = cursorRow * tileSize + offset.y;
+	// Draw brush preview
+	if(cursorCol >= 0 && cursorRow >= 0 && parentEditor) {
+		BrushTool& brush = parentEditor->GetBrushTool();
 
-		// Draw highlight rectangle (light gray outline)
-		w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, Null);
-		w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtGray());
+		Vector<Point> brushTiles;
+		brush.GetBrushTiles(cursorCol, cursorRow, brushTiles);
+
+		// Get preview color (semi-transparent version of paint tile)
+		Color previewColor = TileTypeToColor(brush.GetPaintTile());
+		int alpha = 128;
+		Color bgColor = Color(12, 17, 30);
+		previewColor = Color(
+			(previewColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+			(previewColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+			(previewColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+		);
+
+		// Draw brush tiles preview
+		for(const Point& pt : brushTiles) {
+			if(pt.x < 0 || pt.x >= 100 || pt.y < 0 || pt.y >= 100) continue;
+
+			int screenX = pt.x * tileSize + offset.x;
+			int screenY = pt.y * tileSize + offset.y;
+
+			// Draw semi-transparent preview
+			w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
+
+			// Draw outline
+			w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+		}
 	}
 }
 
@@ -133,18 +155,48 @@ void MapCanvas::MouseMove(Point pos, dword flags) {
 	if(tileSize > 0) {
 		cursorCol = (pos.x - offset.x) / tileSize;
 		cursorRow = (pos.y - offset.y) / tileSize;
+
+		// If painting, continue painting
+		if((flags & K_MOUSELEFT) && parentEditor) {
+			if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
+				BrushTool& brush = parentEditor->GetBrushTool();
+				LayerManager& layerMgr = parentEditor->GetLayerManager();
+
+				brush.ContinuePainting(cursorCol, cursorRow, layerMgr);
+			}
+		}
 	}
 
 	Refresh();
 }
 
 void MapCanvas::LeftDown(Point pos, dword flags) {
-	// Handle left click for placing tiles
-	Refresh();
+	if(!parentEditor) return;
+
+	// Get tile coordinates
+	int tileSize = int(14 * zoom);
+	if(tileSize <= 0) return;
+
+	int col = (pos.x - offset.x) / tileSize;
+	int row = (pos.y - offset.y) / tileSize;
+
+	// Check current tool
+	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
+		BrushTool& brush = parentEditor->GetBrushTool();
+		LayerManager& layerMgr = parentEditor->GetLayerManager();
+
+		brush.StartPainting(col, row, layerMgr);
+		Refresh();
+	}
 }
 
 void MapCanvas::LeftUp(Point pos, dword flags) {
-	// Handle mouse up
+	if(!parentEditor) return;
+
+	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
+		BrushTool& brush = parentEditor->GetBrushTool();
+		brush.StopPainting();
+	}
 }
 
 void MapCanvas::MiddleDown(Point pos, dword flags) {
@@ -210,6 +262,9 @@ MapEditorApp::MapEditorApp() {
 	Title("Umbrella Map Editor");
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1400, 900);
+
+	// Initialize tool
+	currentTool = TOOL_BRUSH;
 
 	AddFrame(mainMenuBar);
 	AddFrame(mainToolBar);
@@ -392,6 +447,50 @@ bool MapEditorApp::Key(dword key, int) {
 		case K_CTRL_Y:
 			RedoAction();
 			return true;
+
+		// Tool selection
+		case K_B:  // B for Brush
+			currentTool = TOOL_BRUSH;
+			mainStatusBar.Set("Tool: Brush");
+			return true;
+
+		// Brush size shortcuts
+		case K_1:
+			brushTool.SetBrushSize(BRUSH_1X1);
+			mainStatusBar.Set("Brush size: 1x1");
+			return true;
+		case K_2:
+			brushTool.SetBrushSize(BRUSH_2X2);
+			mainStatusBar.Set("Brush size: 2x2");
+			return true;
+		case K_3:
+			brushTool.SetBrushSize(BRUSH_3X3);
+			mainStatusBar.Set("Brush size: 3x3");
+			return true;
+		case K_5:
+			brushTool.SetBrushSize(BRUSH_5X5);
+			mainStatusBar.Set("Brush size: 5x5");
+			return true;
+
+		// Tile type shortcuts
+		case K_W:  // W for Wall
+			brushTool.SetPaintTile(TILE_WALL);
+			mainStatusBar.Set("Paint tile: Wall");
+			return true;
+		case K_G:  // G for backGround (note: conflicts with grid toggle)
+			if(GetShift()) {  // Shift+G for background
+				brushTool.SetPaintTile(TILE_BACKGROUND);
+				mainStatusBar.Set("Paint tile: Background");
+			} else {
+				// Toggle grid (existing shortcut)
+				mapCanvas.SetShowGrid(!mapCanvas.GetShowGrid());
+			}
+			return true;
+		case K_F:  // F for Fullblock
+			brushTool.SetPaintTile(TILE_FULLBLOCK);
+			mainStatusBar.Set("Paint tile: FullBlock");
+			return true;
+
 		default:
 			break;
 	}

@@ -139,8 +139,12 @@ void MapCanvas::Paint(Draw& w) {
 			int screenX = cursorCol * tileSize + offset.x;
 			int screenY = cursorRow * tileSize + offset.y;
 
-			// Yellow outline
-			w.DrawRect(screenX, screenY, tileSize, tileSize, 2, Yellow());
+			// Yellow outline (2px thick)
+			w.DrawRect(screenX, screenY, tileSize, tileSize, Null);
+			w.DrawLine(screenX, screenY, screenX + tileSize, screenY, 2, Yellow());
+			w.DrawLine(screenX + tileSize, screenY, screenX + tileSize, screenY + tileSize, 2, Yellow());
+			w.DrawLine(screenX + tileSize, screenY + tileSize, screenX, screenY + tileSize, 2, Yellow());
+			w.DrawLine(screenX, screenY + tileSize, screenX, screenY, 2, Yellow());
 
 			// Show fill color preview
 			FillTool& fill = parentEditor->GetFillTool();
@@ -170,8 +174,11 @@ void MapCanvas::Paint(Draw& w) {
 					w.DrawLine(screenX + 2, screenY + 2, screenX + tileSize - 2, screenY + tileSize - 2, 2, LtRed());
 					w.DrawLine(screenX + tileSize - 2, screenY + 2, screenX + 2, screenY + tileSize - 2, 2, LtRed());
 
-					// Red outline
-					w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtRed());
+					// Red outline (2px thick)
+					w.DrawLine(screenX, screenY, screenX + tileSize, screenY, 2, LtRed());
+					w.DrawLine(screenX + tileSize, screenY, screenX + tileSize, screenY + tileSize, 2, LtRed());
+					w.DrawLine(screenX + tileSize, screenY + tileSize, screenX, screenY + tileSize, 2, LtRed());
+					w.DrawLine(screenX, screenY + tileSize, screenX, screenY, 2, LtRed());
 				}
 				else {
 					// Brush preview: semi-transparent tile color
@@ -187,8 +194,12 @@ void MapCanvas::Paint(Draw& w) {
 					// Draw semi-transparent preview
 					w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
 
-					// Draw outline
-					w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+					// Draw outline (1px white)
+					w.DrawRect(screenX, screenY, tileSize, tileSize, Null);
+					w.DrawLine(screenX, screenY, screenX + tileSize, screenY, 1, White());
+					w.DrawLine(screenX + tileSize - 1, screenY, screenX + tileSize - 1, screenY + tileSize, 1, White());
+					w.DrawLine(screenX + tileSize - 1, screenY + tileSize - 1, screenX, screenY + tileSize - 1, 1, White());
+					w.DrawLine(screenX, screenY + tileSize - 1, screenX, screenY, 1, White());
 				}
 			}
 		}

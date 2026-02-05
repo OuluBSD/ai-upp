@@ -19,7 +19,7 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	}
 
 	// Check required fields
-	if(!json.Exists("columns") || !json.Exists("rows")) {
+	if(json["columns"].IsVoid() || json["rows"].IsVoid()) {
 		Exclamation("Missing required fields (columns, rows) in: " + filePath);
 		return false;
 	}
@@ -27,9 +27,9 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	// Extract grid dimensions
 	int columns = json["columns"];
 	int rows = json["rows"];
-	int gridSize = json.Get("gridSize", 14);  // Default 14 if missing
-	int mapCols = json.Get("mapCols", 32);    // Default 32 if missing
-	int mapRows = json.Get("mapRows", 24);    // Default 24 if missing
+	int gridSize = json["gridSize"].IsVoid() ? 14 : (int)json["gridSize"];
+	int mapCols = json["mapCols"].IsVoid() ? 32 : (int)json["mapCols"];
+	int mapRows = json["mapRows"].IsVoid() ? 24 : (int)json["mapRows"];
 
 	// Clear and reinitialize layer manager
 	layerMgr.ClearAllLayers();
@@ -49,7 +49,7 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	backgroundLayer->GetGrid().SetMapArea(mapCols, mapRows);
 
 	// Load walls
-	if(json.Exists("walls")) {
+	if(!json["walls"].IsVoid()) {
 		const ValueArray& wallArray = json["walls"];
 		Vector<int> wallIndices = LoadTileIndices(wallArray);
 		for(int index : wallIndices) {
@@ -59,7 +59,7 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	}
 
 	// Load fullBlocks
-	if(json.Exists("fullBlocks")) {
+	if(!json["fullBlocks"].IsVoid()) {
 		const ValueArray& blockArray = json["fullBlocks"];
 		Vector<int> blockIndices = LoadTileIndices(blockArray);
 		for(int index : blockIndices) {
@@ -69,7 +69,7 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	}
 
 	// Load background
-	if(json.Exists("background")) {
+	if(!json["background"].IsVoid()) {
 		const ValueArray& bgArray = json["background"];
 		Vector<int> bgIndices = LoadTileIndices(bgArray);
 		for(int index : bgIndices) {

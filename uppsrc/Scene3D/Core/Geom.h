@@ -149,6 +149,23 @@ struct Geom2DLayer : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct Geom2DKeyframe : Moveable<Geom2DKeyframe> {
+	int frame_id = -1;
+	Vector<Geom2DShape> shapes;
+
+	void Visit(Vis& v);
+};
+
+struct Geom2DAnimation : VfsValueExt {
+	ArrayMap<int, Geom2DKeyframe> keyframes;
+
+	DEFAULT_EXT(Geom2DAnimation)
+	Geom2DKeyframe& GetAddKeyframe(int frame);
+	int FindPre(int frame) const;
+	int FindPost(int frame) const;
+	void Visit(Vis& v) override;
+};
+
 struct GeomMeshKeyframe {
 	int frame_id = -1;
 	Vector<vec3> points;
@@ -213,6 +230,8 @@ struct GeomObject : VfsValueExt {
 	GeomEditableMesh* FindEditableMesh() const;
 	Geom2DLayer& Get2DLayer();
 	Geom2DLayer* Find2DLayer() const;
+	Geom2DAnimation& Get2DAnimation();
+	Geom2DAnimation* Find2DAnimation() const;
 	GeomMeshAnimation& GetMeshAnimation();
 	GeomMeshAnimation* FindMeshAnimation() const;
 	GeomSkeleton& GetSkeleton();
@@ -430,6 +449,7 @@ INITIALIZE(GeomSkeleton)
 INITIALIZE(GeomSkinWeights)
 INITIALIZE(GeomEditableMesh)
 INITIALIZE(Geom2DLayer)
+INITIALIZE(Geom2DAnimation)
 INITIALIZE(GeomMeshAnimation)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)

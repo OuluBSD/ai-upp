@@ -1,5 +1,5 @@
 # Task: Active Session HUD
-# Status: TODO
+# Status: DONE
 
 ## Objective
 A comprehensive Heads-Up Display for the active work session.

@@ -113,40 +113,62 @@ void MapCanvas::Paint(Draw& w) {
 		BrushTool& brush = parentEditor->GetBrushTool();
 		MapEditorApp::EditTool currentTool = parentEditor->GetCurrentTool();
 
-		Vector<Point> brushTiles;
-		brush.GetBrushTiles(cursorCol, cursorRow, brushTiles);
+		if(currentTool == MapEditorApp::TOOL_FILL) {
+			// Fill tool preview: show bucket icon
+			int screenX = cursorCol * tileSize + offset.x;
+			int screenY = cursorRow * tileSize + offset.y;
 
-		// Draw preview for each tile
-		for(const Point& pt : brushTiles) {
-			if(pt.x < 0 || pt.x >= 100 || pt.y < 0 || pt.y >= 100) continue;
+			// Yellow outline
+			w.DrawRect(screenX, screenY, tileSize, tileSize, 2, Yellow());
 
-			int screenX = pt.x * tileSize + offset.x;
-			int screenY = pt.y * tileSize + offset.y;
+			// Show fill color preview
+			FillTool& fill = parentEditor->GetFillTool();
+			Color fillColor = TileTypeToColor(brush.GetPaintTile());
+			int alpha = 180;
+			Color bgColor = Color(12, 17, 30);
+			fillColor = Color(
+				(fillColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+				(fillColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+				(fillColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+			);
+			w.DrawRect(screenX + 2, screenY + 2, tileSize - 4, tileSize - 4, fillColor);
+		}
+		else {
+			Vector<Point> brushTiles;
+			brush.GetBrushTiles(cursorCol, cursorRow, brushTiles);
 
-			if(currentTool == MapEditorApp::TOOL_ERASER) {
-				// Draw red X for eraser
-				w.DrawLine(screenX + 2, screenY + 2, screenX + tileSize - 2, screenY + tileSize - 2, 2, LtRed());
-				w.DrawLine(screenX + tileSize - 2, screenY + 2, screenX + 2, screenY + tileSize - 2, 2, LtRed());
+			// Draw preview for each tile
+			for(const Point& pt : brushTiles) {
+				if(pt.x < 0 || pt.x >= 100 || pt.y < 0 || pt.y >= 100) continue;
 
-				// Red outline
-				w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtRed());
-			}
-			else {
-				// Brush preview: semi-transparent tile color
-				Color previewColor = TileTypeToColor(brush.GetPaintTile());
-				int alpha = 128;
-				Color bgColor = Color(12, 17, 30);
-				previewColor = Color(
-					(previewColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-					(previewColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-					(previewColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-				);
+				int screenX = pt.x * tileSize + offset.x;
+				int screenY = pt.y * tileSize + offset.y;
 
-				// Draw semi-transparent preview
-				w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
+				if(currentTool == MapEditorApp::TOOL_ERASER) {
+					// Draw red X for eraser
+					w.DrawLine(screenX + 2, screenY + 2, screenX + tileSize - 2, screenY + tileSize - 2, 2, LtRed());
+					w.DrawLine(screenX + tileSize - 2, screenY + 2, screenX + 2, screenY + tileSize - 2, 2, LtRed());
 
-				// Draw outline
-				w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+					// Red outline
+					w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtRed());
+				}
+				else {
+					// Brush preview: semi-transparent tile color
+					Color previewColor = TileTypeToColor(brush.GetPaintTile());
+					int alpha = 128;
+					Color bgColor = Color(12, 17, 30);
+					previewColor = Color(
+						(previewColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+						(previewColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+						(previewColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+					);
+
+					// Draw semi-transparent preview
+					w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
+
+					// Draw outline
+					w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+				}
 			}
 		}
 	}
@@ -219,6 +241,15 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ERASER) {
 		brush.SetMode(BRUSH_MODE_ERASE);
 		brush.StartPainting(col, row, layerMgr);
+		Refresh();
+	}
+	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_FILL) {
+		FillTool& fill = parentEditor->GetFillTool();
+
+		// Synchronize fill tile with brush tile
+		fill.SetFillTile(brush.GetPaintTile());
+
+		fill.Fill(col, row, layerMgr);
 		Refresh();
 	}
 }
@@ -552,9 +583,14 @@ bool MapEditorApp::Key(dword key, int) {
 				mapCanvas.SetShowGrid(!mapCanvas.GetShowGrid());
 			}
 			return true;
-		case K_F:  // F for Fullblock
-			brushTool.SetPaintTile(TILE_FULLBLOCK);
-			mainStatusBar.Set("Paint tile: FullBlock");
+		case K_F:  // F for Fullblock or Fill
+			if(GetShift()) {  // Shift+F for Fill tool
+				currentTool = TOOL_FILL;
+				mainStatusBar.Set("Tool: Fill");
+			} else {
+				brushTool.SetPaintTile(TILE_FULLBLOCK);
+				mainStatusBar.Set("Paint tile: FullBlock");
+			}
 			return true;
 
 		default:

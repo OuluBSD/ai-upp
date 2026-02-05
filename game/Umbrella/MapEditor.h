@@ -5,6 +5,7 @@
 #include "LayerManager.h"
 #include "MapSerializer.h"
 #include "BrushTool.h"
+#include "FillTool.h"
 
 using namespace Upp;
 
@@ -65,6 +66,7 @@ private:
 
 	// Editing tools
 	BrushTool brushTool;
+	FillTool fillTool;
 	EditTool currentTool;
 
 	// UI Components
@@ -118,6 +120,7 @@ public:
 	LayerManager& GetLayerManager() { return layerManager; }
 	const String& GetCurrentFilePath() const { return currentFilePath; }
 	BrushTool& GetBrushTool() { return brushTool; }
+	FillTool& GetFillTool() { return fillTool; }
 	EditTool GetCurrentTool() const { return currentTool; }
 	void SetCurrentTool(EditTool tool) { currentTool = tool; }
 

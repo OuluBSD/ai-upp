@@ -74,3 +74,7 @@
   task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0202-controller-visibility-constraints.md
   status: done
   note: Controller localization now fails when controllers are outside the fake HMD frustum.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-03-selection-view/task-0300-active-selection-render-sync.md
+  status: done
+  note: Tree selection now forces state update before renderer refresh.

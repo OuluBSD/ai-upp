@@ -489,6 +489,10 @@ void MapEditorApp::SetupViewMenu(Bar& bar) {
 
 void MapEditorApp::SetupToolBar() {
 	// Set up the toolbar with common actions
+	// Set icon size to 24x24 for better visibility
+	mainToolBar.MaxIconSize(Size(24, 24));
+	mainToolBar.ButtonMinSize(Size(24, 24));
+
 	newMapBtn.SetImage(CtrlImg::new_doc()).Tip("New Map");
 	newMapBtn <<= callback(this, &MapEditorApp::NewMapAction);
 	mainToolBar.Add(newMapBtn);

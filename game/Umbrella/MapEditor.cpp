@@ -405,8 +405,17 @@ void MapEditorApp::NewMapAction() {
 
 void MapEditorApp::OpenFileAction() {
 	FileSel fs;
-	fs.Type("Map files", "*.map");
+
+	// Set initial directory to levels folder
+	String levelsDir = GetFileFolder(GetExeFilePath()) + "/../share/mods/umbrella/levels";
+	if(DirectoryExists(levelsDir)) {
+		fs.BaseDir(levelsDir);
+	}
+
+	// File types
+	fs.Type("JSON Level files", "*.json");
 	fs.AllFilesType();
+
 	if(fs.ExecuteOpen("Open Map File")) {
 		OpenFile(fs.Get());
 	}
@@ -452,8 +461,23 @@ void MapEditorApp::NewMap() {
 }
 
 void MapEditorApp::OpenFile(const String& fileName) {
-	PromptOK("Opening file: " + fileName);
-	// TODO: Implementation for opening a file
+	if(MapSerializer::LoadFromFile(fileName, layerManager)) {
+		currentFilePath = fileName;
+
+		// Update window title
+		Title("Umbrella Map Editor - " + GetFileName(fileName));
+
+		// Refresh canvas
+		mapCanvas.Refresh();
+
+		// Zoom to fit new map
+		mapCanvas.ZoomToFit();
+
+		mainStatusBar.Set("Level loaded: " + GetFileName(fileName));
+	}
+	else {
+		mainStatusBar.Set("Failed to load level: " + fileName);
+	}
 }
 
 void MapEditorApp::SaveFile(const String& fileName) {

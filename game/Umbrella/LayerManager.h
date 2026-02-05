@@ -26,6 +26,7 @@ public:
 	Layer* GetActiveLayer() { return activeLayerIndex >= 0 && activeLayerIndex < layers.GetCount() ? &layers[activeLayerIndex] : nullptr; }
 	const Layer* GetActiveLayer() const { return activeLayerIndex >= 0 && activeLayerIndex < layers.GetCount() ? &layers[activeLayerIndex] : nullptr; }
 	int GetActiveLayerIndex() const { return activeLayerIndex; }
+	Layer* FindLayerByType(LayerType type);
 
 	// Setters
 	void SetActiveLayer(int index);

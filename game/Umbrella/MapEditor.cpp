@@ -16,6 +16,8 @@ MapCanvas::MapCanvas() {
 	cursorCol = -1;
 	cursorRow = -1;
 	showGrid = true;
+	showReferenceImage = false;
+	referenceImageOpacity = 50;
 	parentEditor = nullptr;
 }
 
@@ -33,6 +35,25 @@ void MapCanvas::Paint(Draw& w) {
 
 	// Draw canvas background (empty color)
 	w.DrawRect(sz, Color(12, 17, 30));
+
+	// Draw reference image if enabled
+	if(showReferenceImage && !referenceImage.IsEmpty()) {
+		// Scale reference image to fit canvas with current zoom
+		Size imgSize = referenceImage.GetSize();
+		int scaledWidth = int(imgSize.cx * zoom);
+		int scaledHeight = int(imgSize.cy * zoom);
+
+		// Apply opacity
+		if(referenceImageOpacity < 100) {
+			ImageDraw iw(imgSize);
+			iw.DrawImage(0, 0, referenceImage);
+			iw.Alpha().DrawRect(0, 0, imgSize.cx, imgSize.cy, GrayColor(referenceImageOpacity * 255 / 100));
+			Image alphaImg = iw;
+			w.DrawImage(offset.x, offset.y, scaledWidth, scaledHeight, alphaImg);
+		} else {
+			w.DrawImage(offset.x, offset.y, scaledWidth, scaledHeight, referenceImage);
+		}
+	}
 
 	// Calculate tile size based on zoom
 	int tileSize = int(14 * zoom);
@@ -326,6 +347,11 @@ void MapCanvas::PanTo(Point newOffset) {
 	Refresh();
 }
 
+void MapCanvas::SetReferenceImage(const Image& img) {
+	referenceImage = img;
+	Refresh();
+}
+
 void MapCanvas::ZoomToFit() {
 	if(!parentEditor) return;
 
@@ -426,6 +452,14 @@ void MapEditorApp::SetupViewMenu(Bar& bar) {
 		.Check(mapCanvas.GetShowGrid())
 		.Key(K_G)
 		.Help("Toggle grid visibility");
+	bar.Add("Show Reference Image", [=] { mapCanvas.SetShowReferenceImage(!mapCanvas.GetShowReferenceImage()); })
+		.Check(mapCanvas.GetShowReferenceImage())
+		.Key(K_R)
+		.Help("Toggle reference image visibility");
+	bar.Separator();
+	bar.Add("Load Reference Image...", callback(this, &MapEditorApp::BrowseReferenceImage))
+		.Key(K_CTRL_R)
+		.Help("Load reference image for tracing");
 }
 
 void MapEditorApp::SetupToolBar() {
@@ -549,6 +583,13 @@ bool MapEditorApp::Key(dword key, int) {
 			currentTool = TOOL_ERASER;
 			brushTool.SetMode(BRUSH_MODE_ERASE);
 			mainStatusBar.Set("Tool: Eraser");
+			return true;
+		case K_R:  // R for Reference image toggle
+			mapCanvas.SetShowReferenceImage(!mapCanvas.GetShowReferenceImage());
+			mainStatusBar.Set(mapCanvas.GetShowReferenceImage() ? "Reference image: ON" : "Reference image: OFF");
+			return true;
+		case K_CTRL_R:  // Ctrl+R to load reference image
+			BrowseReferenceImage();
 			return true;
 
 		// Brush size shortcuts
@@ -684,6 +725,37 @@ void MapEditorApp::OpenFile(const String& fileName) {
 void MapEditorApp::SaveFile(const String& fileName) {
 	PromptOK("Saving file: " + fileName);
 	// TODO: Implementation for saving a file
+}
+
+void MapEditorApp::LoadReferenceImage(const String& imagePath) {
+	Image img = StreamRaster::LoadFileAny(imagePath);
+	if(img.IsEmpty()) {
+		Exclamation("Failed to load image: " + imagePath);
+		return;
+	}
+
+	referenceImagePath = imagePath;
+	mapCanvas.SetReferenceImage(img);
+	mapCanvas.SetShowReferenceImage(true);
+	mainStatusBar.Set("Reference image loaded: " + GetFileName(imagePath));
+}
+
+void MapEditorApp::BrowseReferenceImage() {
+	FileSel fs;
+
+	// Set initial directory to proprietary maps
+	String mapsDir = GetFileFolder(GetExeFilePath()) + "/../share/mods/umbrella/proprietary/maps";
+	if(DirectoryExists(mapsDir)) {
+		fs.BaseDir(mapsDir);
+	}
+
+	// File types
+	fs.Type("Image files", "*.jpg *.jpeg *.png");
+	fs.AllFilesType();
+
+	if(fs.ExecuteOpen("Open Reference Image")) {
+		LoadReferenceImage(fs.Get());
+	}
 }
 
 // MapEditorApp is now available for use from main.cpp

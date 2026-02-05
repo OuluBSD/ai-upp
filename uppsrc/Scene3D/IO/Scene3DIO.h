@@ -1,7 +1,7 @@
 #ifndef _Scene3D_IO_Scene3DIO_h_
 #define _Scene3D_IO_Scene3DIO_h_
 
-struct Scene3DExternalFile {
+struct Scene3DExternalFile : Moveable<Scene3DExternalFile> {
 	String id;
 	String type;
 	String path;

@@ -1249,91 +1249,107 @@ void GeomProjectCtrl::PropsData() {
 	}
 
 	for (const EffectItem& item : effect_items) {
-		if (!item.fx)
+		GeomPointcloudEffectTransform* fx_ptr = item.fx;
+		if (!fx_ptr)
 			continue;
-		GeomPointcloudEffectTransform& fx = *item.fx;
 		One<ToggleRowCtrl> tfx = MakeOne<ToggleRowCtrl>();
-		tfx->SetVisible(fx.enabled);
-		tfx->SetLocked(fx.locked);
+		tfx->SetVisible(fx_ptr->enabled);
+		tfx->SetLocked(fx_ptr->locked);
 		tfx->WhenVisible << [=](bool v) {
-			fx.enabled = v;
+			if (!fx_ptr)
+				return;
+			fx_ptr->enabled = v;
 			RefreshAll();
 		};
 		tfx->WhenLocked << [=](bool v) {
-			fx.locked = v;
+			if (!fx_ptr)
+				return;
+			fx_ptr->locked = v;
 		};
 		if (item.effect_id >= 0)
 			set_ctrl(item.effect_id, pick(tfx));
 		
 		One<Vec3EditCtrl> fpos = MakeOne<Vec3EditCtrl>();
-		fpos->SetValue(fx.position);
-		fpos->SetEditable(!fx.locked);
+		fpos->SetValue(fx_ptr->position);
+		fpos->SetEditable(!fx_ptr->locked);
+		Vec3EditCtrl* fpos_ptr = fpos.Get();
 		fpos->WhenAction << [=] {
-			fx.position = fpos->GetValue();
+			if (!fx_ptr || !fpos_ptr)
+				return;
+			fx_ptr->position = fpos_ptr->GetValue();
 			RefreshAll();
 		};
 		set_ctrl(item.pos_id, pick(fpos));
 		
 		One<QuatEditCtrl> fori = MakeOne<QuatEditCtrl>();
-		fori->SetValue(fx.orientation);
-		fori->SetEditable(!fx.locked);
+		fori->SetValue(fx_ptr->orientation);
+		fori->SetEditable(!fx_ptr->locked);
+		QuatEditCtrl* fori_ptr = fori.Get();
 		fori->WhenAction << [=] {
-			fx.orientation = fori->GetValue();
+			if (!fx_ptr || !fori_ptr)
+				return;
+			fx_ptr->orientation = fori_ptr->GetValue();
 			RefreshAll();
 		};
 		set_ctrl(item.ori_id, pick(fori));
 	}
 
 	for (const ScriptItemIds& ids : script_items) {
-		if (!ids.script)
+		GeomScript* script_ptr = ids.script;
+		if (!script_ptr)
 			continue;
-		GeomScript& script = *ids.script;
 		One<EditString> file_ctrl = MakeOne<EditString>();
-		file_ctrl->SetData(script.file);
+		file_ctrl->SetData(script_ptr->file);
 		EditString* file_ctrl_ptr = file_ctrl.Get();
 		file_ctrl->WhenAction << [=] {
-			if (file_ctrl_ptr)
-				script.file = ~*file_ctrl_ptr;
+			if (file_ctrl_ptr && script_ptr)
+				script_ptr->file = ~*file_ctrl_ptr;
 			e->EnsureScriptInstances();
 		};
 		set_ctrl(ids.file_id, pick(file_ctrl));
 
 		One<Option> enabled = MakeOne<Option>();
-		enabled->SetData(script.enabled);
+		enabled->SetData(script_ptr->enabled);
 		Option* enabled_ptr = enabled.Get();
 		enabled->WhenAction << [=] {
-			if (enabled_ptr)
-				script.enabled = (bool)enabled_ptr->GetData();
+			if (enabled_ptr && script_ptr)
+				script_ptr->enabled = (bool)enabled_ptr->GetData();
 			e->EnsureScriptInstances();
 		};
 		set_ctrl(ids.enabled_id, pick(enabled));
 
 		One<Option> run_on_load = MakeOne<Option>();
-		run_on_load->SetData(script.run_on_load);
+		run_on_load->SetData(script_ptr->run_on_load);
 		Option* run_on_load_ptr = run_on_load.Get();
 		run_on_load->WhenAction << [=] {
-			if (run_on_load_ptr)
-				script.run_on_load = (bool)run_on_load_ptr->GetData();
+			if (run_on_load_ptr && script_ptr)
+				script_ptr->run_on_load = (bool)run_on_load_ptr->GetData();
 		};
 		set_ctrl(ids.run_on_load_id, pick(run_on_load));
 
 		One<Option> run_frame = MakeOne<Option>();
-		run_frame->SetData(script.run_every_frame);
+		run_frame->SetData(script_ptr->run_every_frame);
 		Option* run_frame_ptr = run_frame.Get();
 		run_frame->WhenAction << [=] {
-			if (run_frame_ptr)
-				script.run_every_frame = (bool)run_frame_ptr->GetData();
+			if (run_frame_ptr && script_ptr)
+				script_ptr->run_every_frame = (bool)run_frame_ptr->GetData();
 		};
 		set_ctrl(ids.run_frame_id, pick(run_frame));
 
 		One<Button> edit = MakeOne<Button>();
 		edit->SetLabel(t_("Edit..."));
-		edit->WhenAction << [=] { e->OpenScriptEditor(script); };
+		edit->WhenAction << [=] {
+			if (script_ptr)
+				e->OpenScriptEditor(*script_ptr);
+		};
 		set_ctrl(ids.edit_id, pick(edit));
 
 		One<Button> run = MakeOne<Button>();
 		run->SetLabel(t_("Run"));
-		run->WhenAction << [=] { e->RunScriptOnce(script); };
+		run->WhenAction << [=] {
+			if (script_ptr)
+				e->RunScriptOnce(*script_ptr);
+		};
 		set_ctrl(ids.run_id, pick(run));
 	}
 	

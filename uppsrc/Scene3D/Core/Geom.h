@@ -166,6 +166,15 @@ struct Geom2DAnimation : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomTextureEdit : VfsValueExt {
+	String path;
+	int width = 512;
+	int height = 512;
+
+	DEFAULT_EXT(GeomTextureEdit)
+	void Visit(Vis& v) override;
+};
+
 struct GeomMeshKeyframe {
 	int frame_id = -1;
 	Vector<vec3> points;
@@ -232,6 +241,8 @@ struct GeomObject : VfsValueExt {
 	Geom2DLayer* Find2DLayer() const;
 	Geom2DAnimation& Get2DAnimation();
 	Geom2DAnimation* Find2DAnimation() const;
+	GeomTextureEdit& GetTextureEdit();
+	GeomTextureEdit* FindTextureEdit() const;
 	GeomMeshAnimation& GetMeshAnimation();
 	GeomMeshAnimation* FindMeshAnimation() const;
 	GeomSkeleton& GetSkeleton();
@@ -450,6 +461,7 @@ INITIALIZE(GeomSkinWeights)
 INITIALIZE(GeomEditableMesh)
 INITIALIZE(Geom2DLayer)
 INITIALIZE(Geom2DAnimation)
+INITIALIZE(GeomTextureEdit)
 INITIALIZE(GeomMeshAnimation)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)

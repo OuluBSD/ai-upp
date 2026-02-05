@@ -1101,6 +1101,111 @@ ScriptEditorDlg::ScriptEditorDlg() {
 	});
 }
 
+TextureEditCtrl::TextureEditCtrl() {
+	WantFocus();
+}
+
+void TextureEditCtrl::SetImage(const Image& image) {
+	Image im = image;
+	img = im;
+	has_img = !img.IsEmpty();
+	UpdateCached();
+	Refresh();
+}
+
+void TextureEditCtrl::Clear() {
+	img.Clear();
+	cached = Image();
+	has_img = false;
+	Refresh();
+}
+
+Image TextureEditCtrl::GetImage() const {
+	return cached;
+}
+
+void TextureEditCtrl::UpdateCached() {
+	if (img.IsEmpty()) {
+		cached = Image();
+		return;
+	}
+	cached = Image(img);
+}
+
+void TextureEditCtrl::Paint(Draw& d) {
+	Size sz = GetSize();
+	d.DrawRect(sz, SColorPaper());
+	if (!has_img || img.IsEmpty())
+		return;
+	Size isz = img.GetSize();
+	if (isz.cx <= 0 || isz.cy <= 0)
+		return;
+	double sx = (double)sz.cx / (double)isz.cx;
+	double sy = (double)sz.cy / (double)isz.cy;
+	double s = min(sx, sy);
+	int w = (int)floor(isz.cx * s);
+	int h = (int)floor(isz.cy * s);
+	int x = (sz.cx - w) / 2;
+	int y = (sz.cy - h) / 2;
+	img_rect = RectC(x, y, w, h);
+	d.DrawRect(img_rect, Color(30, 30, 30));
+	d.DrawImage(x, y, w, h, cached);
+}
+
+void TextureEditCtrl::PaintAt(Point p) {
+	if (!has_img || img.IsEmpty())
+		return;
+	if (!img_rect.Contains(p))
+		return;
+	Size isz = img.GetSize();
+	int ix = (int)((double)(p.x - img_rect.left) / (double)img_rect.Width() * isz.cx);
+	int iy = (int)((double)(p.y - img_rect.top) / (double)img_rect.Height() * isz.cy);
+	ix = Clamp(ix, 0, isz.cx - 1);
+	iy = Clamp(iy, 0, isz.cy - 1);
+	int r = max(1, brush);
+	int r2 = r * r;
+	for (int y = -r; y <= r; y++) {
+		for (int x = -r; x <= r; x++) {
+			if (x * x + y * y > r2)
+				continue;
+			int px = ix + x;
+			int py = iy + y;
+			if (px < 0 || py < 0 || px >= isz.cx || py >= isz.cy)
+				continue;
+			img[py][px] = color;
+		}
+	}
+	UpdateCached();
+	Refresh();
+	if (WhenPaint)
+		WhenPaint();
+}
+
+void TextureEditCtrl::LeftDown(Point p, dword keyflags) {
+	painting = true;
+	SetFocus();
+	PaintAt(p);
+}
+
+void TextureEditCtrl::LeftDrag(Point p, dword keyflags) {
+	if (!painting)
+		return;
+	PaintAt(p);
+}
+
+void TextureEditCtrl::LeftUp(Point p, dword keyflags) {
+	painting = false;
+}
+
+void TextureEditCtrl::MouseWheel(Point p, int zdelta, dword keyflags) {
+	if (keyflags & K_CTRL) {
+		if (zdelta > 0)
+			brush = min(128, brush + 2);
+		else
+			brush = max(1, brush - 2);
+	}
+}
+
 void ScriptEditorDlg::OpenFile(const String& p) {
 	path = p;
 	String data;
@@ -1269,6 +1374,7 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
+			bar.Add(t_("Texture Editor"), THISBACK(OpenTextureEditor));
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
 		});
@@ -1426,21 +1532,25 @@ void Edit3D::DockInit() {
 	dock_time = &Dockable(v0.time, "Timeline");
 	dock_video = &Dockable(v1, "Video Import");
 	dock_pool = &Dockable(file_pool, "File Pool");
+	dock_texture = &Dockable(texture_edit, "Texture");
 
 	dock_tree->SizeHint(Size(260, 600));
 	dock_props->SizeHint(Size(360, 600));
 	dock_time->SizeHint(Size(900, 200));
 	dock_video->SizeHint(Size(900, 300));
 	dock_pool->SizeHint(Size(320, 600));
+	dock_texture->SizeHint(Size(320, 420));
 
 	DockLeft(*dock_tree, 0);
 	DockLeft(*dock_props, 1);
 	DockBottom(*dock_time);
 	DockBottom(*dock_video);
 	DockRight(*dock_pool);
+	DockRight(*dock_texture);
 
 	Close(*dock_video);
 	Close(*dock_pool);
+	Close(*dock_texture);
 	v0.grid.SetFocus();
 }
 
@@ -3626,6 +3736,13 @@ void Edit3D::OpenFilePool() {
 	}
 }
 
+void Edit3D::OpenTextureEditor() {
+	if (dock_texture) {
+		ActivateDockableChild(texture_edit);
+		texture_edit.SetFocus();
+	}
+}
+
 void Edit3D::SaveScene3DInteractive() {
 	if (scene3d_path.IsEmpty())
 		SaveScene3DAs();
@@ -3705,6 +3822,105 @@ void Edit3D::SyncPointcloudDatasetsExternalFiles() {
 		scene3d_external_files.Add(f);
 }
 
+void Edit3D::SyncTextureExternalFiles() {
+	GeomScene& scene = GetActiveScene();
+	Vector<Scene3DExternalFile> kept;
+	for (const Scene3DExternalFile& file : scene3d_external_files) {
+		if (file.type != "texture")
+			kept.Add(file);
+	}
+	GeomObjectCollection objs(scene);
+	for (GeomObject& obj : objs) {
+		GeomTextureEdit* tex = obj.FindTextureEdit();
+		if (!tex || tex->path.IsEmpty())
+			continue;
+		Scene3DExternalFile f;
+		f.id = obj.name.IsEmpty() ? IntStr((int)obj.key) : obj.name;
+		f.type = "texture";
+		f.path = tex->path;
+		String abs = IsFullPath(tex->path)
+			? tex->path
+			: AppendFileName(AppendFileName(project_dir, scene3d_data_dir), tex->path);
+		if (FileExists(abs)) {
+			f.size = GetFileLength(abs);
+			f.modified_utc = Scene3DIsoTime(FileGetTime(abs));
+		}
+		kept.Add(f);
+	}
+	scene3d_external_files.Clear();
+	for (const Scene3DExternalFile& f : kept)
+		scene3d_external_files.Add(f);
+}
+
+String Edit3D::EnsureTexturePath(GeomObject& obj, GeomTextureEdit& tex) {
+	if (project_dir.IsEmpty())
+		SetProjectDir(GetCurrentDirectory());
+	if (scene3d_data_dir.IsEmpty())
+		scene3d_data_dir = "data";
+	String rel = tex.path;
+	if (!rel.IsEmpty())
+		return rel;
+	String base = obj.name.IsEmpty() ? "texture" : obj.name;
+	String safe = ToVarName(base, '_');
+	if (safe.IsEmpty())
+		safe = "texture";
+	String dir = AppendFileName(project_dir, scene3d_data_dir);
+	RealizeDirectory(dir);
+	String name = safe + "_tex.png";
+	String rel_try = AppendFileName(scene3d_data_dir, name);
+	String abs_try = AppendFileName(project_dir, rel_try);
+	int idx = 1;
+	while (FileExists(abs_try)) {
+		name = safe + "_tex_" + IntStr(idx++) + ".png";
+		rel_try = AppendFileName(scene3d_data_dir, name);
+		abs_try = AppendFileName(project_dir, rel_try);
+	}
+	tex.path = rel_try;
+	return rel_try;
+}
+
+void Edit3D::SaveTextureEdit(GeomObject& obj, GeomTextureEdit& tex, ImageBuffer& ib) {
+	String rel = EnsureTexturePath(obj, tex);
+	String abs = IsFullPath(rel) ? rel : AppendFileName(project_dir, rel);
+	PNGEncoder().SaveFile(abs, Image(ib));
+	SyncTextureExternalFiles();
+}
+
+void Edit3D::UpdateTextureEditor(GeomObject* obj) {
+	texture_obj = obj;
+	if (!obj) {
+		texture_edit.Clear();
+		texture_edit.WhenPaint.Clear();
+		return;
+	}
+	GeomTextureEdit* tex = obj->FindTextureEdit();
+	if (!tex) {
+		texture_edit.Clear();
+		texture_edit.WhenPaint.Clear();
+		return;
+	}
+	Image img;
+	if (!tex->path.IsEmpty()) {
+		String abs = IsFullPath(tex->path) ? tex->path : AppendFileName(project_dir, tex->path);
+		if (FileExists(abs))
+			img = StreamRaster::LoadFileAny(abs);
+	}
+	if (img.IsEmpty()) {
+		ImageBuffer ib(tex->width, tex->height);
+		for (int y = 0; y < ib.GetHeight(); y++) {
+			RGBA* line = ib[y];
+			for (int x = 0; x < ib.GetWidth(); x++)
+				line[x] = White();
+		}
+		img = Image(ib);
+	}
+	texture_edit.SetImage(img);
+	texture_edit.WhenPaint = [=] {
+		if (texture_obj && tex)
+			SaveTextureEdit(*texture_obj, *tex, texture_edit.img);
+	};
+}
+
 bool Edit3D::LoadScene3D(const String& path) {
 	Scene3DDocument doc;
 	bool use_json = !IsScene3DBinaryPath(path);
@@ -3754,6 +3970,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 
 bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
 	SyncPointcloudDatasetsExternalFiles();
+	SyncTextureExternalFiles();
 	Scene3DDocument doc;
 	doc.version = SCENE3D_VERSION;
 	doc.name = "ModelerApp";

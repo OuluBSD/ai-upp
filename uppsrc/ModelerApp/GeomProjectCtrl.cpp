@@ -675,10 +675,27 @@ void GeomProjectCtrl::TreeSelect() {
 	if (cursor < 0)
 		return;
 	Value v = tree.Get(cursor);
+	e->selected_bone = nullptr;
 	TreeNodeRef* ref = GetNodeRef(v);
 	GeomObject* obj = GetNodeObject(v);
 	GeomPointcloudDataset* ds = GetNodeDataset(v);
 	selected_dataset = ds;
+	if (!obj && v.Is<VfsValue*>()) {
+		VfsValue* node = ValueTo<VfsValue*>(v);
+		if (node && IsVfsType(*node, AsTypeHash<GeomBone>())) {
+			e->selected_bone = node;
+			for (VfsValue* p = node->owner; p; p = p->owner) {
+				if (IsVfsType(*p, AsTypeHash<GeomObject>())) {
+					obj = &p->GetExt<GeomObject>();
+					break;
+				}
+			}
+			if (obj) {
+				e->state->focus_mode = 1;
+				e->state->focus_object_key = obj->key;
+			}
+		}
+	}
 	if (ref) {
 		if (ref->kind == TreeNodeRef::K_PROGRAM) {
 			e->state->focus_mode = 2;
@@ -739,6 +756,7 @@ void GeomProjectCtrl::TreeSelect() {
 	}
 	UpdateTreeFocus(cursor);
 	PropsData();
+	e->render_ctx.selected_bone = e->selected_bone;
 }
 
 GeomProjectCtrl::TreeNodeRef* GeomProjectCtrl::GetNodeRef(const Value& v) {
@@ -984,6 +1002,17 @@ void GeomProjectCtrl::PropsData() {
 	int cursor = tree.GetCursor();
 	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
 	selected_obj = GetNodeObject(v);
+	if (!selected_obj && v.Is<VfsValue*>()) {
+		VfsValue* node = ValueTo<VfsValue*>(v);
+		if (node && IsVfsType(*node, AsTypeHash<GeomBone>())) {
+			for (VfsValue* p = node->owner; p; p = p->owner) {
+				if (IsVfsType(*p, AsTypeHash<GeomObject>())) {
+					selected_obj = &p->GetExt<GeomObject>();
+					break;
+				}
+			}
+		}
+	}
 	selected_ref = GetNodeRef(v);
 	selected_dataset = GetNodeDataset(v);
 	props.SetRoot(ImagesImg::Root(), "Properties");
@@ -1586,6 +1615,19 @@ void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {
 		warned_tree_types.Add(type_hash);
 		LOG("GeomProjectCtrl: unexpected VfsValue type in tree: " + n.GetTypeString());
 	};
+	auto add_bone = [&](auto&& add_bone, int parent_id, VfsValue& bone_node) -> void {
+		GeomBone& bone = bone_node.GetExt<GeomBone>();
+		String name = bone.name.IsEmpty() ? bone_node.id : bone.name;
+		int j = tree.Add(parent_id, ImagesImg::Object(), RawToValue(&bone_node), name);
+		tree.SetRowValue(j, tree_col_visible, Null);
+		tree.SetRowValue(j, tree_col_locked, Null);
+		tree.SetRowValue(j, tree_col_read, Null);
+		tree.SetRowValue(j, tree_col_write, Null);
+		for (auto& sub : bone_node.sub) {
+			if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+				add_bone(add_bone, j, sub);
+		}
+	};
 	Vector<VfsValue*> dirs;
 	Vector<VfsValue*> objs;
 	Vector<VfsValue*> datasets;
@@ -1624,6 +1666,21 @@ void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {
 		tree.SetRowValue(j, tree_col_locked, o.is_locked);
 		tree.SetRowValue(j, tree_col_read, o.read_enabled);
 		tree.SetRowValue(j, tree_col_write, o.write_enabled);
+		for (auto& sub : s->sub) {
+			if (!IsVfsType(sub, AsTypeHash<GeomSkeleton>()))
+				continue;
+			GeomSkeleton& sk = sub.GetExt<GeomSkeleton>();
+			String sk_name = sk.name.IsEmpty() ? sub.id : sk.name;
+			int sk_id = tree.Add(j, ImagesImg::Directory(), RawToValue(&sub), sk_name);
+			tree.SetRowValue(sk_id, tree_col_visible, Null);
+			tree.SetRowValue(sk_id, tree_col_locked, Null);
+			tree.SetRowValue(sk_id, tree_col_read, Null);
+			tree.SetRowValue(sk_id, tree_col_write, Null);
+			for (auto& b : sub.sub) {
+				if (IsVfsType(b, AsTypeHash<GeomBone>()))
+					add_bone(add_bone, sk_id, b);
+			}
+		}
 	}
 	for (VfsValue* s : datasets) {
 		GeomPointcloudDataset& ds = s->GetExt<GeomPointcloudDataset>();

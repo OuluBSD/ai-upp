@@ -235,6 +235,125 @@ void GeomEditableMesh::Visit(Vis& v) {
 	}
 }
 
+void GeomBone::Visit(Vis& v) {
+	v VIS_(name)
+	  VISN(position)
+	  VISN(orientation)
+	  VIS_(length);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			const Value& kids = v.json->Get()["children"];
+			val.sub.Clear();
+			for (int i = 0; i < kids.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomBone>());
+				GeomBone& b = n.GetExt<GeomBone>();
+				JsonIO jio(kids[i]);
+				Vis vis(jio);
+				b.Visit(vis);
+				if (!b.name.IsEmpty())
+					n.id = b.name;
+			}
+		}
+		else {
+			Vector<Value> children;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomBone>()))
+					continue;
+				GeomBone& b = s.GetExt<GeomBone>();
+				children.Add(v.VisitAsJsonValue(b));
+			}
+			v.json->Set("children", ValueArray(pick(children)));
+		}
+	}
+	else {
+		int child_count = 0;
+		if (!v.IsLoading()) {
+			for (auto& s : val.sub)
+				if (IsVfsType(s, AsTypeHash<GeomBone>()))
+					child_count++;
+		}
+		v VIS_(child_count);
+		if (v.IsLoading()) {
+			val.sub.Clear();
+			for (int i = 0; i < child_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomBone>());
+				GeomBone& b = n.GetExt<GeomBone>();
+				b.Visit(v);
+				if (!b.name.IsEmpty())
+					n.id = b.name;
+			}
+		}
+		else {
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomBone>()))
+					continue;
+				GeomBone& b = s.GetExt<GeomBone>();
+				b.Visit(v);
+			}
+		}
+	}
+	if (v.IsLoading() && !name.IsEmpty())
+		val.id = name;
+}
+
+void GeomSkeleton::Visit(Vis& v) {
+	v VIS_(name);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			const Value& bones = v.json->Get()["bones"];
+			val.sub.Clear();
+			for (int i = 0; i < bones.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomBone>());
+				GeomBone& b = n.GetExt<GeomBone>();
+				JsonIO jio(bones[i]);
+				Vis vis(jio);
+				b.Visit(vis);
+				if (!b.name.IsEmpty())
+					n.id = b.name;
+			}
+		}
+		else {
+			Vector<Value> bones;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomBone>()))
+					continue;
+				GeomBone& b = s.GetExt<GeomBone>();
+				bones.Add(v.VisitAsJsonValue(b));
+			}
+			v.json->Set("bones", ValueArray(pick(bones)));
+		}
+	}
+	else {
+		int bone_count = 0;
+		if (!v.IsLoading()) {
+			for (auto& s : val.sub)
+				if (IsVfsType(s, AsTypeHash<GeomBone>()))
+					bone_count++;
+		}
+		v VIS_(bone_count);
+		if (v.IsLoading()) {
+			val.sub.Clear();
+			for (int i = 0; i < bone_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomBone>());
+				GeomBone& b = n.GetExt<GeomBone>();
+				b.Visit(v);
+				if (!b.name.IsEmpty())
+					n.id = b.name;
+			}
+		}
+		else {
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomBone>()))
+					continue;
+				GeomBone& b = s.GetExt<GeomBone>();
+				b.Visit(v);
+			}
+		}
+	}
+	if (v.IsLoading() && !name.IsEmpty())
+		val.id = name;
+}
+
 void GeomPointcloudEffectTransform::Visit(Vis& v) {
 	v VIS_(name)
 	  VIS_(enabled)
@@ -400,6 +519,20 @@ GeomEditableMesh* GeomObject::FindEditableMesh() const {
 	return 0;
 }
 
+GeomSkeleton& GeomObject::GetSkeleton() {
+	static bool init = (TypedStringHasher<GeomSkeleton>("GeomSkeleton"), true);
+	return val.GetAdd<GeomSkeleton>("skeleton");
+}
+
+GeomSkeleton* GeomObject::FindSkeleton() const {
+	static bool init = (TypedStringHasher<GeomSkeleton>("GeomSkeleton"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomSkeleton>()) && sub.id == "skeleton")
+			return &sub.GetExt<GeomSkeleton>();
+	}
+	return 0;
+}
+
 GeomPointcloudEffectTransform& GeomObject::GetAddPointcloudEffect(String name) {
 	for (auto& sub : val.sub) {
 		if (!IsVfsType(sub, AsTypeHash<GeomPointcloudEffectTransform>()))
@@ -456,6 +589,7 @@ void GeomObject::Visit(Vis& v) {
 	v("props", props, VISIT_NODE);
 	GeomEditableMesh& mesh = GetEditableMesh();
 	v("editable", mesh, VISIT_NODE);
+	GeomSkeleton* skel_ptr = FindSkeleton();
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			const Value& effects_va = v.json->Get()["effects"];
@@ -468,6 +602,14 @@ void GeomObject::Visit(Vis& v) {
 				if (!fx.name.IsEmpty())
 					n.id = fx.name;
 			}
+			const Value& skv = v.json->Get()["skeleton"];
+			if (!IsNull(skv)) {
+				VfsValue& n = val.GetAdd("skeleton", AsTypeHash<GeomSkeleton>());
+				GeomSkeleton& sk = n.GetExt<GeomSkeleton>();
+				JsonIO jio(skv);
+				Vis vis(jio);
+				sk.Visit(vis);
+			}
 		}
 		else {
 			Vector<Value> effects_values;
@@ -478,16 +620,20 @@ void GeomObject::Visit(Vis& v) {
 				effects_values.Add(v.VisitAsJsonValue(fx));
 			}
 			v.json->Set("effects", ValueArray(pick(effects_values)));
+			if (skel_ptr)
+				v.json->Set("skeleton", v.VisitAsJsonValue(*skel_ptr));
 		}
 	}
 	else {
 		int effect_count = 0;
+		int has_skeleton = skel_ptr != nullptr;
 		if (!v.IsLoading()) {
 			for (auto& s : val.sub)
 				if (IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
 					effect_count++;
 		}
-		v VIS_(effect_count);
+		v VIS_(effect_count)
+		  VIS_(has_skeleton);
 		if (v.IsLoading()) {
 			for (int i = 0; i < effect_count; i++) {
 				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
@@ -495,6 +641,11 @@ void GeomObject::Visit(Vis& v) {
 				fx.Visit(v);
 				if (!fx.name.IsEmpty())
 					n.id = fx.name;
+			}
+			if (has_skeleton) {
+				VfsValue& n = val.GetAdd("skeleton", AsTypeHash<GeomSkeleton>());
+				GeomSkeleton& sk = n.GetExt<GeomSkeleton>();
+				sk.Visit(v);
 			}
 		}
 		else {
@@ -504,6 +655,8 @@ void GeomObject::Visit(Vis& v) {
 				GeomPointcloudEffectTransform& fx = s.GetExt<GeomPointcloudEffectTransform>();
 				fx.Visit(v);
 			}
+			if (skel_ptr)
+				skel_ptr->Visit(v);
 		}
 	}
 	if (v.IsLoading()) {
@@ -1184,6 +1337,8 @@ INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomTransform, "scene3d.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomDynamicProperties, "scene3d.props", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomBone, "scene3d.bone", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomSkeleton, "scene3d.skeleton", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")

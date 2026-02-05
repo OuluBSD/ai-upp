@@ -1338,6 +1338,11 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Strength 0.5"), [this] { sculpt_strength = 0.5; })
 					.Check(fabs(sculpt_strength - 0.5) < 1e-6);
 			});
+			bar.Sub(t_("Skeleton"), [this](Bar& bar) {
+				bar.Add(t_("Create Skeleton"), THISBACK(CreateSkeletonForSelected));
+				bar.Add(t_("Add Bone"), THISBACK(AddBoneToSelectedSkeleton));
+				bar.Add(t_("Remove Bone"), THISBACK(RemoveSelectedBone));
+			});
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -2013,6 +2018,110 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && !sculpt_mode) {
+		GeomObject* obj = v0.selected_obj;
+		if (obj) {
+			GeomSkeleton* sk = obj->FindSkeleton();
+			if (sk) {
+				EditRendererBase* rend = v0.rends[view_i];
+				if (rend) {
+					Size sz = rend->GetSize();
+					if (sz.cx > 0 && sz.cy > 0) {
+						GeomCamera& gcam = rend->GetGeomCamera();
+						Camera cam;
+						gcam.LoadCamera(rend->view_mode, cam, sz);
+						mat4 view = cam.GetWorldMatrix();
+						mat4 proj = cam.GetProjectionMatrix();
+						auto project_point = [&](const vec3& world, Point& out) -> bool {
+							vec4 clip = proj * (view * world.Embed());
+							if (clip[3] == 0)
+								return false;
+							vec3 ndc = clip.Splice() / clip[3];
+							if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+								return false;
+							out = Point(
+								(int)floor((ndc[0] + 1) * 0.5 * (float)sz.cx + 0.5f),
+								(int)floor((-ndc[1] + 1) * 0.5 * (float)sz.cy + 0.5f));
+							return true;
+						};
+						auto dist2_segment = [](const Point& a, const Point& b, const Point& p) -> double {
+							double ax = a.x;
+							double ay = a.y;
+							double bx = b.x;
+							double by = b.y;
+							double px = p.x;
+							double py = p.y;
+							double dx = bx - ax;
+							double dy = by - ay;
+							double len2 = dx * dx + dy * dy;
+							if (len2 <= 1e-6) {
+								double sx = px - ax;
+								double sy = py - ay;
+								return sx * sx + sy * sy;
+							}
+							double t = ((px - ax) * dx + (py - ay) * dy) / len2;
+							if (t < 0.0) t = 0.0;
+							if (t > 1.0) t = 1.0;
+							double cx = ax + t * dx;
+							double cy = ay + t * dy;
+							double sx = px - cx;
+							double sy = py - cy;
+							return sx * sx + sy * sy;
+						};
+						vec3 obj_pos = vec3(0);
+						quat obj_ori = Identity<quat>();
+						vec3 obj_scale = vec3(1);
+						if (state) {
+							if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+								obj_pos = os->position;
+								obj_ori = os->orientation;
+								obj_scale = os->scale;
+							}
+						}
+						else if (GeomTransform* tr = obj->FindTransform()) {
+							obj_pos = tr->position;
+							obj_ori = tr->orientation;
+							obj_scale = tr->scale;
+						}
+						double best = edit_line_pick_radius_px * edit_line_pick_radius_px;
+						VfsValue* best_bone = nullptr;
+						auto pick_bone = [&](auto&& pick_bone, VfsValue& bone_node,
+						                     const vec3& parent_pos, const quat& parent_ori) -> void {
+							if (!IsVfsType(bone_node, AsTypeHash<GeomBone>()))
+								return;
+							GeomBone& bone = bone_node.GetExt<GeomBone>();
+							vec3 scaled(bone.position[0] * obj_scale[0],
+							            bone.position[1] * obj_scale[1],
+							            bone.position[2] * obj_scale[2]);
+							vec3 pos = parent_pos + VectorTransform(scaled, parent_ori);
+							Point a2, b2;
+							if (project_point(parent_pos, a2) && project_point(pos, b2)) {
+								double d2 = dist2_segment(a2, b2, p);
+								if (d2 < best) {
+									best = d2;
+									best_bone = &bone_node;
+								}
+							}
+							quat ori = parent_ori * bone.orientation;
+							for (auto& sub : bone_node.sub) {
+								if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+									pick_bone(pick_bone, sub, pos, ori);
+							}
+						};
+						for (auto& sub : sk->val.sub) {
+							if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+								pick_bone(pick_bone, sub, obj_pos, obj_ori);
+						}
+						if (best_bone) {
+							selected_bone = best_bone;
+							render_ctx.selected_bone = selected_bone;
+							RefrehRenderers();
+						}
+					}
+				}
+			}
+		}
+	}
 	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && sculpt_mode) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
@@ -2200,6 +2309,74 @@ bool Edit3D::ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out
 	out_dir = dir;
 	out_dir.Normalize();
 	return true;
+}
+
+void Edit3D::CreateSkeletonForSelected() {
+	if (!v0.selected_obj)
+		return;
+	GeomObject& obj = *v0.selected_obj;
+	GeomSkeleton* sk = obj.FindSkeleton();
+	if (!sk) {
+		sk = &obj.GetSkeleton();
+		sk->name = "Skeleton";
+		sk->val.id = "skeleton";
+	}
+	if (sk->val.sub.IsEmpty()) {
+		VfsValue& n = sk->val.Add("root", AsTypeHash<GeomBone>());
+		GeomBone& b = n.GetExt<GeomBone>();
+		b.name = "root";
+		b.position = vec3(0, 0, 0.3f);
+	}
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::AddBoneToSelectedSkeleton() {
+	if (!v0.selected_obj)
+		return;
+	GeomObject& obj = *v0.selected_obj;
+	GeomSkeleton* sk = obj.FindSkeleton();
+	if (!sk) {
+		CreateSkeletonForSelected();
+		sk = obj.FindSkeleton();
+		if (!sk)
+			return;
+	}
+	VfsValue* parent = &sk->val;
+	if (selected_bone && selected_bone->owner)
+		parent = selected_bone;
+	auto exists = [&](const String& name) {
+		for (auto& s : parent->sub) {
+			if (IsVfsType(s, AsTypeHash<GeomBone>())) {
+				GeomBone& b = s.GetExt<GeomBone>();
+				String n = b.name.IsEmpty() ? s.id : b.name;
+				if (n == name)
+					return true;
+			}
+		}
+		return false;
+	};
+	String base = "bone";
+	String name = base;
+	int idx = 1;
+	while (exists(name))
+		name = base + "_" + IntStr(idx++);
+	VfsValue& n = parent->Add(name, AsTypeHash<GeomBone>());
+	GeomBone& b = n.GetExt<GeomBone>();
+	b.name = name;
+	b.position = vec3(0, 0, 0.3f);
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::RemoveSelectedBone() {
+	if (!selected_bone || !selected_bone->owner)
+		return;
+	selected_bone->owner->Remove(selected_bone);
+	selected_bone = nullptr;
+	render_ctx.selected_bone = nullptr;
+	state->UpdateObjects();
+	RefreshData();
 }
 
 int Edit3D::PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const {

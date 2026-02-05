@@ -17,4 +17,8 @@ Add skeleton creation and rigging tools for meshes.
 - Bones are visible and selectable in the viewport.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added skeleton/bone components and serialization.
+- Tree shows skeleton hierarchy; bones selectable and visible in viewports.

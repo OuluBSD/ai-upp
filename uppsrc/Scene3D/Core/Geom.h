@@ -59,6 +59,23 @@ struct GeomDynamicProperties : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomBone : VfsValueExt {
+	String name;
+	vec3 position = vec3(0);
+	quat orientation = Identity<quat>();
+	float length = 0.3f;
+
+	DEFAULT_EXT(GeomBone)
+	void Visit(Vis& v) override;
+};
+
+struct GeomSkeleton : VfsValueExt {
+	String name;
+
+	DEFAULT_EXT(GeomSkeleton)
+	void Visit(Vis& v) override;
+};
+
 struct GeomEdge {
 	int a = -1;
 	int b = -1;
@@ -128,6 +145,8 @@ struct GeomObject : VfsValueExt {
 	GeomDynamicProperties* FindDynamicProperties() const;
 	GeomEditableMesh& GetEditableMesh();
 	GeomEditableMesh* FindEditableMesh() const;
+	GeomSkeleton& GetSkeleton();
+	GeomSkeleton* FindSkeleton() const;
 	GeomPointcloudEffectTransform& GetAddPointcloudEffect(String name);
 	void GetPointcloudEffects(Vector<GeomPointcloudEffectTransform*>& out) const;
 	
@@ -330,6 +349,8 @@ struct GeomAnim : VfsValueExt {
 
 INITIALIZE(GeomTimeline)
 INITIALIZE(GeomDynamicProperties)
+INITIALIZE(GeomBone)
+INITIALIZE(GeomSkeleton)
 INITIALIZE(GeomEditableMesh)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)

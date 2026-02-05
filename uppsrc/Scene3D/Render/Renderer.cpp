@@ -99,6 +99,28 @@ void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjec
 		DrawRect(sz, d, o_view, p, Size(3, 3), pt_clr, z_cull);
 }
 
+void DrawSkeletonRecursive(Size sz, Draw& d, const mat4& view, const vec3& parent_pos,
+                           const quat& parent_ori, const vec3& parent_scale, VfsValue& bone_node,
+                           VfsValue* selected, bool z_cull) {
+	if (!IsVfsType(bone_node, AsTypeHash<GeomBone>()))
+		return;
+	GeomBone& bone = bone_node.GetExt<GeomBone>();
+	vec3 local = bone.position;
+	vec3 scaled(local[0] * parent_scale[0], local[1] * parent_scale[1], local[2] * parent_scale[2]);
+	vec3 pos = parent_pos + VectorTransform(scaled, parent_ori);
+	quat ori = parent_ori * bone.orientation;
+	float avg_scale = (parent_scale[0] + parent_scale[1] + parent_scale[2]) / 3.0f;
+	Color clr = (&bone_node == selected) ? Color(255, 220, 120) : Color(200, 200, 255);
+	DrawLine(sz, d, view, parent_pos, pos, 1, clr, z_cull);
+	DrawRect(sz, d, view, pos, Size(3, 3), clr, z_cull);
+	vec3 tip = pos + VectorTransform(VEC_FWD, ori) * (bone.length * avg_scale);
+	DrawLine(sz, d, view, pos, tip, 1, clr, z_cull);
+	for (auto& sub : bone_node.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+			DrawSkeletonRecursive(sz, d, view, pos, ori, parent_scale, sub, selected, z_cull);
+	}
+}
+
 Color CameraColor(const GeomObject& go) {
 	String name = ToLower(go.name);
 	if (name.Find("fake") >= 0)
@@ -356,6 +378,13 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 	if (GeomEditableMesh* mesh = go.FindEditableMesh()) {
 		if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty())
 			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull);
+	}
+	if (GeomSkeleton* sk = go.FindSkeleton()) {
+		for (auto& sub : sk->val.sub) {
+			if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+				DrawSkeletonRecursive(sz, d, view, os.position, os.orientation, os.scale, sub,
+					ctx ? ctx->selected_bone : nullptr, z_cull);
+		}
 	}
 }
 
@@ -936,6 +965,47 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	draw_camera_gizmos();
+	// Skeleton overlay
+	if (ctx && ctx->state) {
+		if (ctx->anim && ctx->anim->is_playing) {
+			for (GeomObjectState& os : state.objs) {
+				if (!os.obj || !os.obj->is_visible)
+					continue;
+				if (GeomSkeleton* sk = os.obj->FindSkeleton()) {
+					for (auto& sub : sk->val.sub) {
+						if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+							DrawSkeletonRecursive(sz, d, view, os.position, os.orientation, os.scale, sub,
+								ctx ? ctx->selected_bone : nullptr, z_cull);
+					}
+				}
+			}
+		}
+		else {
+			GeomObjectCollection iter(scene);
+			GeomObjectState os;
+			for (GeomObject& go : iter) {
+				if (!go.is_visible)
+					continue;
+				if (!go.FindSkeleton())
+					continue;
+				os.obj = &go;
+				os.position = vec3(0);
+				os.orientation = Identity<quat>();
+				os.scale = vec3(1);
+				if (GeomTransform* tr = go.FindTransform()) {
+					os.position = tr->position;
+					os.orientation = tr->orientation;
+					os.scale = tr->scale;
+				}
+				GeomSkeleton* sk = go.FindSkeleton();
+				for (auto& sub : sk->val.sub) {
+					if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+						DrawSkeletonRecursive(sz, d, view, os.position, os.orientation, os.scale, sub,
+							ctx ? ctx->selected_bone : nullptr, z_cull);
+				}
+			}
+		}
+	}
 
 	auto draw_frustum = [&](const vec3& pos, const quat& orient, float fov_deg, float scale, Color clr) {
 		Vector<vec3> corners;

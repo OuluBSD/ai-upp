@@ -141,3 +141,13 @@ LAYOUT(IssueCreateLayout, 520, 360)
 	ITEM(Button, ok, SetLabel(t_("Create")).RightPos(116, 100).BottomPos(8, 32))
 	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
 END_LAYOUT
+
+LAYOUT(InitLayout, 500, 200)
+	ITEM(Label, dv___0, SetLabel(t_("Target Directory:")).LeftPos(8, 120).TopPos(8, 19))
+	ITEM(EditString, dir, LeftPos(8, 400).TopPos(32, 19))
+	ITEM(Button, btn_browse, SetLabel(t_("...")).LeftPos(412, 32).TopPos(32, 19))
+	ITEM(Label, dv___3, SetLabel(t_("Project Name:")).LeftPos(8, 120).TopPos(60, 19))
+	ITEM(EditString, name, LeftPos(8, 484).TopPos(84, 19))
+	ITEM(Button, ok, SetLabel(t_("Initialize")).RightPos(116, 120).BottomPos(8, 32))
+	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT

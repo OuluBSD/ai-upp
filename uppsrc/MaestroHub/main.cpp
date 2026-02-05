@@ -7,6 +7,7 @@
 #include "TUBrowser.h"
 #include "LogAnalyzer.h"
 #include "NewSessionDialog.h"
+#include "InitDialog.h"
 #include "ConfigurationDialog.h"
 #include "OpsRunner.h"
 
@@ -241,7 +242,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 	});
 
 	bar.Sub("System", [=](Bar& b) {
-		b.Add("Initialize Maestro...", [=] { PromptOK("Init placeholder"); });
+		b.Add("Initialize Maestro...", THISBACK(OnInitMaestro));
 		b.Add("Settings...", THISBACK(OnSettings));
 		b.Separator();
 		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
@@ -374,6 +375,25 @@ void MaestroHub::OnCreateIssue() {
 		if(ism.SaveIssue(dlg.GetIssue())) {
 			PromptOK("Issue created.");
 			LoadData();
+		}
+	}
+}
+
+void MaestroHub::OnInitMaestro() {
+	InitDialog dlg;
+	if(dlg.Run() == IDOK) {
+		String target = dlg.dir.GetData();
+		if(!target.IsEmpty()) {
+			RealizeDirectory(AppendFileName(target, ".maestro"));
+			RealizeDirectory(AppendFileName(target, "docs/runbooks"));
+			RealizeDirectory(AppendFileName(target, "docs/workflows"));
+			RealizeDirectory(AppendFileName(target, "docs/issues"));
+			RealizeDirectory(AppendFileName(target, "uppsrc/AI/plan"));
+			
+			current_root = target;
+			config.AddDir(current_root);
+			LoadData();
+			PromptOK("Maestro initialized in " + target);
 		}
 	}
 }

@@ -68,3 +68,9 @@ END_LAYOUT
 LAYOUT(LogAnalyzerLayout, 900, 600)
 	ITEM(Splitter, vsplit, HSizePos(0, 0).VSizePos(0, 0))
 END_LAYOUT
+
+LAYOUT(ConfigurationLayout, 600, 400)
+	ITEM(ArrayCtrl, settings_grid, HSizePos(8, 8).VSizePos(8, 48))
+	ITEM(Button, ok, SetLabel(t_("Save")).RightPos(116, 100).BottomPos(8, 32))
+	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT

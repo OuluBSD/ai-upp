@@ -104,7 +104,7 @@ private:
 	Button brushToolBtn, eraserToolBtn, fillToolBtn;
 
 	// Layers Panel Controls
-	ArrayCtrl layersList;
+	TreeArrayCtrl layersList;
 	Button addLayerBtn, removeLayerBtn;
 	Button moveLayerUpBtn, moveLayerDownBtn;
 	Label layerOpacityLabel;
@@ -149,6 +149,7 @@ public:
 	void SetupMenuBar(Bar& bar);
 	void SetupFileMenu(Bar& bar);
 	void SetupEditMenu(Bar& bar);
+	void SetupBackgroundMenu(Bar& bar);
 	void SetupViewMenu(Bar& bar);
 	void SetupToolBar();
 	void SetupToolsPanel();

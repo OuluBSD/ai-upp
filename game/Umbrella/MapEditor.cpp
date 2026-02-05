@@ -78,7 +78,8 @@ void MapCanvas::Paint(Draw& w) {
 	int endRow = min(100, startRow + viewRows);
 
 	// Render each visible layer (bottom to top)
-	for(int layerIndex = 0; layerIndex < layerMgr.GetLayerCount(); layerIndex++) {
+	// Render in REVERSE order so Annotations (highest index) renders first (behind)
+	for(int layerIndex = layerMgr.GetLayerCount() - 1; layerIndex >= 0; layerIndex--) {
 		const Layer& layer = layerMgr.GetLayer(layerIndex);
 
 		if(!layer.IsVisible()) continue;
@@ -498,6 +499,23 @@ void MapEditorApp::SetupEditMenu(Bar& bar) {
 	bar.Add("Redo", CtrlImg::redo(), callback(this, &MapEditorApp::RedoAction))
 		.Key(K_CTRL_Y)
 		.Help("Redo the last undone action");
+	bar.Separator();
+	bar.Sub("Background", callback(this, &MapEditorApp::SetupBackgroundMenu));
+}
+
+void MapEditorApp::SetupBackgroundMenu(Bar& bar) {
+	bar.Add("Load Reference Image...", callback(this, &MapEditorApp::BrowseReferenceImage))
+		.Key(K_CTRL_R)
+		.Help("Load reference image for tracing");
+	bar.Add("Show Reference Image", [=] { mapCanvas.SetShowReferenceImage(!mapCanvas.GetShowReferenceImage()); })
+		.Check(mapCanvas.GetShowReferenceImage())
+		.Key(K_R)
+		.Help("Toggle reference image visibility");
+	bar.Separator();
+	bar.Add("Pan Reference Image", [=] { PromptOK("Hold Ctrl+Middle-drag to pan reference image"); })
+		.Help("Ctrl+Middle-drag to move reference image");
+	bar.Add("Scale Reference Image", [=] { PromptOK("Hold Ctrl+Mouse-wheel to scale reference image"); })
+		.Help("Ctrl+Mouse-wheel to scale reference image");
 }
 
 void MapEditorApp::SetupViewMenu(Bar& bar) {
@@ -699,10 +717,51 @@ void MapEditorApp::SetupLayersPanel() {
 
 	int yPos = 10;
 
-	// Layers list
+	// Layers tree list
 	layersList.AddColumn("Layer", 150);
-	layersList.AddColumn("Visible", 50);
+	layersList.AddColumn("Visible", 50).Ctrls<Option>();  // Checkbox for visibility
 	layersList.NoHeader();
+	layersList.WhenSel = [=] {
+		// Update active layer when selection changes
+		int id = layersList.GetCursor();
+		if(id >= 0) {
+			Value layerIdxVal = layersList.Get(id);  // Get the key value (layer index)
+			if(!layerIdxVal.IsVoid()) {
+				int layerIdx = (int)layerIdxVal;
+				if(layerIdx >= 0 && layerIdx < layerManager.GetLayerCount()) {
+					layerManager.SetActiveLayer(layerIdx);
+
+					// Update opacity slider to match selected layer
+					const Layer& layer = layerManager.GetLayer(layerIdx);
+					layerOpacitySlider.SetData(layer.GetOpacity());
+					layerOpacityLabel.SetText(Format("Opacity: %d%%", layer.GetOpacity()));
+
+					mapCanvas.Refresh();
+				}
+			}
+		}
+	};
+	layersList.WhenCtrlsAction = [=] {
+		// Handle visibility checkbox changes
+		for(int i = 0; i < layersList.GetCount(); i++) {
+			Value layerIdxVal = layersList.Get(i);  // Get the key value (layer index)
+			if(!layerIdxVal.IsVoid()) {
+				int layerIdx = (int)layerIdxVal;
+
+				// Root layer items
+				if(layerIdx >= 0 && layerIdx < layerManager.GetLayerCount()) {
+					bool visible = layersList.GetRowValue(i, 1);
+					layerManager.GetLayer(layerIdx).SetVisible(visible);
+				}
+				// Reference image child item (layerIdx == -1)
+				else if(layerIdx == -1) {
+					bool visible = layersList.GetRowValue(i, 1);
+					mapCanvas.SetShowReferenceImage(visible);
+				}
+			}
+		}
+		mapCanvas.Refresh();
+	};
 	layersPanel.Add(layersList.HSizePos(10, 10).TopPos(yPos, 200));
 	yPos += 210;
 
@@ -763,15 +822,38 @@ void MapEditorApp::SetupLayersPanel() {
 void MapEditorApp::RefreshLayersList() {
 	layersList.Clear();
 
+	// Add layers with visibility checkboxes
 	for(int i = 0; i < layerManager.GetLayerCount(); i++) {
 		const Layer& layer = layerManager.GetLayer(i);
-		layersList.Add(layer.GetName(), layer.IsVisible() ? "Yes" : "No");
+
+		// Add layer as root item
+		// TreeArrayCtrl.Add(parentid, img, key_value, display_text)
+		// The key_value (3rd param) is stored and retrieved with Get(id)
+		// The display_text (4th param) is what shows in the tree
+		int id = layersList.Add(0, Image(), i, layer.GetName());
+
+		// Set visibility checkbox in column 1
+		layersList.SetRowValue(id, 1, layer.IsVisible());
+
+		// Add reference image as child under Annotations layer
+		if(layer.GetType() == LAYER_ANNOTATION && !referenceImagePath.IsEmpty()) {
+			int childId = layersList.Add(id, Image(), -1, "  " + GetFileName(referenceImagePath));
+			layersList.SetRowValue(childId, 1, mapCanvas.GetShowReferenceImage());
+			layersList.Open(id);  // Expand the Annotations layer
+		}
 	}
 
 	// Select active layer
 	int activeIndex = layerManager.GetActiveLayerIndex();
-	if(activeIndex >= 0 && activeIndex < layersList.GetCount()) {
-		layersList.SetCursor(activeIndex);
+	if(activeIndex >= 0 && activeIndex < layerManager.GetLayerCount()) {
+		// Find the tree item with this layer index
+		for(int i = 0; i < layersList.GetCount(); i++) {
+			Value idxVal = layersList.Get(i);  // Get the key value (layer index)
+			if(!idxVal.IsVoid() && (int)idxVal == activeIndex) {
+				layersList.SetCursor(i);
+				break;
+			}
+		}
 	}
 }
 
@@ -1044,6 +1126,9 @@ void MapEditorApp::LoadReferenceImage(const String& imagePath) {
 	mapCanvas.SetReferenceImage(img);
 	mapCanvas.SetShowReferenceImage(true);
 	mainStatusBar.Set("Reference image loaded: " + GetFileName(imagePath));
+
+	// Refresh layers list to show reference image as child of Annotations layer
+	RefreshLayersList();
 }
 
 void MapEditorApp::BrowseReferenceImage() {

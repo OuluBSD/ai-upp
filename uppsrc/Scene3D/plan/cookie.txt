@@ -174,3 +174,7 @@
   task: track-editor-scripting/phase-10-2d-graphics/task-1001-2d-animation.md
   status: done
   note: Added 2D animation keyframes, playback interpolation, and menu actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-11-texture-editing/task-1100-texture-editing-3d-models.md
+  status: done
+  note: Added texture edit component, texture editor dock, painting, and save to data_dir.

@@ -127,6 +127,33 @@ struct ScriptEditorDlg : TopWindow {
 	void OnChange();
 };
 
+struct TextureEditCtrl : Ctrl {
+	ImageBuffer img;
+	Image cached;
+	bool has_img = false;
+	bool painting = false;
+	int brush = 12;
+	Color color = Color(200, 60, 60);
+	Rect img_rect;
+
+	Event<> WhenPaint;
+
+	typedef TextureEditCtrl CLASSNAME;
+	TextureEditCtrl();
+	void SetImage(const Image& image);
+	void Clear();
+	Image GetImage() const;
+	void Paint(Draw& d) override;
+	void LeftDown(Point p, dword keyflags) override;
+	void LeftDrag(Point p, dword keyflags) override;
+	void LeftUp(Point p, dword keyflags) override;
+	void MouseWheel(Point p, int zdelta, dword keyflags) override;
+
+private:
+	void PaintAt(Point p);
+	void UpdateCached();
+};
+
 struct HmdCapture {
 	HMD::System sys;
 	One<StereoSource> source;
@@ -160,6 +187,7 @@ struct Edit3D : DockWindow {
 	GeomProjectCtrl v0;
 	VideoImportCtrl v1;
 	FilePoolCtrl file_pool;
+	TextureEditCtrl texture_edit;
 	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
 	ToolBar tool;
@@ -168,6 +196,7 @@ struct Edit3D : DockWindow {
 	DockableCtrl* dock_time = 0;
 	DockableCtrl* dock_video = 0;
 	DockableCtrl* dock_pool = 0;
+	DockableCtrl* dock_texture = 0;
 	
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext render_ctx;
@@ -184,6 +213,7 @@ struct Edit3D : DockWindow {
 	TimeCallback tc;
 	TimeStop ts;
 	HmdCapture hmd;
+	GeomObject* texture_obj = 0;
 	SyntheticPointcloudConfig sim_cfg;
 	SyntheticPointcloudState sim_state;
 	PointcloudObservation sim_obs;
@@ -350,6 +380,10 @@ struct Edit3D : DockWindow {
 	void SetProjectDir(String dir);
 	const String& GetProjectDir() const { return project_dir; }
 	void SyncPointcloudDatasetsExternalFiles();
+	void UpdateTextureEditor(GeomObject* obj);
+	void SaveTextureEdit(GeomObject& obj, GeomTextureEdit& tex, ImageBuffer& ib);
+	String EnsureTexturePath(GeomObject& obj, GeomTextureEdit& tex);
+	void SyncTextureExternalFiles();
 	
 public:
 	typedef Edit3D CLASSNAME;
@@ -373,6 +407,7 @@ public:
 	void SetScene3DFormat(bool use_json);
 	void ToggleRepeatPlayback();
 	void OpenScene3D();
+	void OpenTextureEditor();
 	void OpenFilePool();
 	void SaveScene3DInteractive();
 	void SaveScene3DAs();

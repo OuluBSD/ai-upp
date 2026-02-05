@@ -85,11 +85,13 @@ private:
 protected:
 	virtual void  LeftDown(Point p, dword flags);
 	virtual void  LeftDouble(Point p, dword flags);
+	virtual void  RightDown(Point p, dword flags);
 	virtual bool  Key(dword key, int count);
 
 public:
 	Event<int> WhenOpen;
 	Event<int> WhenClose;
+	Event<Bar&> WhenMenu;
 
 	TreeArrayCtrl();
 	~TreeArrayCtrl();

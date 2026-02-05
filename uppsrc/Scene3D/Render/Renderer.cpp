@@ -84,7 +84,70 @@ Color CameraColor(const GeomObject& go) {
 	return Color(220, 220, 120);
 }
 
-void DrawGroundGrid(Size sz, Draw& d, const mat4& view, const mat4& cam_world, const vec3& cam_pos,
+bool ClipLineNdc(vec2& a, vec2& b) {
+	vec2 d2 = b - a;
+	float p[4] = {-d2[0], d2[0], -d2[1], d2[1]};
+	float q[4] = {a[0] + 1.0f, 1.0f - a[0], a[1] + 1.0f, 1.0f - a[1]};
+	float u1 = 0.0f;
+	float u2 = 1.0f;
+	for (int i = 0; i < 4; i++) {
+		if (p[i] == 0.0f) {
+			if (q[i] < 0.0f)
+				return false;
+		}
+		else {
+			float t = q[i] / p[i];
+			if (p[i] < 0.0f)
+				u1 = max(u1, t);
+			else
+				u2 = min(u2, t);
+			if (u1 > u2)
+				return false;
+		}
+	}
+	vec2 a0 = a;
+	a = a0 + d2 * u1;
+	b = a0 + d2 * u2;
+	return true;
+}
+
+bool ClipLineClipSpace(vec4& a, vec4& b, float* out_u1 = nullptr, float* out_u2 = nullptr) {
+	vec4 d = b - a;
+	float u1 = 0.0f;
+	float u2 = 1.0f;
+	auto clip = [&](float fa, float fb) -> bool {
+		float da = fa;
+		float db = fb;
+		float p = db - da;
+		if (p == 0.0f) {
+			return da >= 0.0f;
+		}
+		float t = da / (da - db);
+		if (p < 0.0f)
+			u2 = min(u2, t);
+		else
+			u1 = max(u1, t);
+		return u1 <= u2;
+	};
+	// planes: x + w >= 0, -x + w >= 0, y + w >= 0, -y + w >= 0
+	if (!clip(a[0] + a[3], b[0] + b[3])) return false;
+	if (!clip(-a[0] + a[3], -b[0] + b[3])) return false;
+	if (!clip(a[1] + a[3], b[1] + b[3])) return false;
+	if (!clip(-a[1] + a[3], -b[1] + b[3])) return false;
+	// ZO clip space: 0 <= z <= w
+	if (!clip(a[2], b[2])) return false;
+	if (!clip(-a[2] + a[3], -b[2] + b[3])) return false;
+	if (out_u1)
+		*out_u1 = u1;
+	if (out_u2)
+		*out_u2 = u2;
+	vec4 a0 = a;
+	a = a0 + d * u1;
+	b = a0 + d * u2;
+	return true;
+}
+
+void DrawGroundGrid(Size sz, Draw& d, const mat4& proj, const mat4& cam_world, const vec3& cam_pos,
                     const Scene3DRenderConfig& conf, bool z_cull) {
 	if (!conf.show_grid)
 		return;
@@ -102,42 +165,37 @@ void DrawGroundGrid(Size sz, Draw& d, const mat4& view, const mat4& cam_world, c
 	float end_x = ceil((cam_pos[0] + extent) / minor) * minor;
 	float start_z = floor((cam_pos[2] - extent) / minor) * minor;
 	float end_z = ceil((cam_pos[2] + extent) / minor) * minor;
-	auto clip_line_ndc = [&](vec2& a, vec2& b) -> bool {
-		vec2 d2 = b - a;
-		float p[4] = {-d2[0], d2[0], -d2[1], d2[1]};
-		float q[4] = {a[0] + 1.0f, 1.0f - a[0], a[1] + 1.0f, 1.0f - a[1]};
-		float u1 = 0.0f;
-		float u2 = 1.0f;
-		for (int i = 0; i < 4; i++) {
-			if (p[i] == 0.0f) {
-				if (q[i] < 0.0f)
-					return false;
-			}
-			else {
-				float t = q[i] / p[i];
-				if (p[i] < 0.0f)
-					u1 = max(u1, t);
-				else
-					u2 = min(u2, t);
-				if (u1 > u2)
-					return false;
-			}
-		}
-		vec2 a0 = a;
-		a = a0 + d2 * u1;
-		b = a0 + d2 * u2;
-		return true;
-	};
 	auto draw_grid_line = [&](const vec3& a, const vec3& b, const Color& clr) {
 		vec3 ap_cam = VecMul(cam_world, a);
 		vec3 bp_cam = VecMul(cam_world, b);
-		if (z_cull && (ap_cam[2] * SCALAR_FWD_Z > 0) && (bp_cam[2] * SCALAR_FWD_Z > 0))
+		vec3 a_world = a;
+		vec3 b_world = b;
+		if (z_cull) {
+			float za = ap_cam[2] * SCALAR_FWD_Z;
+			float zb = bp_cam[2] * SCALAR_FWD_Z;
+			if (za < 0 && zb < 0)
+				return;
+			if ((za < 0 && zb >= 0) || (zb < 0 && za >= 0)) {
+				float t = za / (za - zb);
+				t = Clamp(t, 0.0f, 1.0f);
+				vec3 cut = a_world + (b_world - a_world) * t;
+				if (za < 0)
+					a_world = cut;
+				else
+					b_world = cut;
+			}
+		}
+		vec4 ap4 = proj * (cam_world * a_world.Embed());
+		vec4 bp4 = proj * (cam_world * b_world.Embed());
+		if (!ClipLineClipSpace(ap4, bp4))
 			return;
-		vec3 ap = VecMul(view, a);
-		vec3 bp = VecMul(view, b);
+		if (ap4[3] == 0 || bp4[3] == 0)
+			return;
+		vec3 ap = ap4.Splice() / ap4[3];
+		vec3 bp = bp4.Splice() / bp4[3];
 		vec2 a2(ap[0], ap[1]);
 		vec2 b2(bp[0], bp[1]);
-		if (!clip_line_ndc(a2, b2))
+		if (!ClipLineNdc(a2, b2))
 			return;
 		float x0 = (a2[0] + 1) * 0.5 * sz.cx;
 		float x1 = (b2[0] + 1) * 0.5 * sz.cx;
@@ -172,13 +230,15 @@ void DrawGroundGrid(Size sz, Draw& d, const mat4& view, const mat4& cam_world, c
 
 
 
-EditRenderer::EditRenderer() {
+EditRendererBase::EditRendererBase() {
 	SetFrame(BlackFrame());
 	WantFocus();
 	
 }
 
-void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& view, const Frustum& frustum) {
+EditRendererV1::EditRendererV1() {}
+
+void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4& view, const Frustum& frustum) {
 	GeomObject& go = *os.obj;
 	if (!go.is_visible)
 		return;
@@ -269,7 +329,7 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 	}
 }
 
-void EditRenderer::Paint(Draw& d) {
+void EditRendererV1::Paint(Draw& d) {
 	Size sz = GetSize();
 	if (!ctx || !ctx->state || !ctx->conf)
 		return;
@@ -286,7 +346,8 @@ void EditRenderer::Paint(Draw& d) {
 	bool z_cull = view_mode == VIEWMODE_PERSPECTIVE;
 
 	mat4 cam_world = cam.GetWorldMatrix();
-	DrawGroundGrid(sz, d, view, cam_world, camera.position, *ctx->conf, z_cull);
+	mat4 proj = cam.GetProjectionMatrix();
+	DrawGroundGrid(sz, d, proj, cam_world, camera.position, *ctx->conf, z_cull);
 	
 	/*if (view_mode == VIEWMODE_PERSPECTIVE) {
 		mat4 world = cam.GetWorldMatrix();
@@ -409,7 +470,353 @@ void EditRenderer::Paint(Draw& d) {
 	
 }
 
-void EditRenderer::LeftDown(Point p, dword keyflags) {
+EditRendererV2::EditRendererV2() {}
+
+namespace {
+
+struct SoftSurface {
+	Size sz;
+	ImageBuffer ib;
+	Vector<float> zbuf;
+	
+	SoftSurface(Size s, Color bg) : sz(s), ib(s), zbuf(s.cx * s.cy, 1e9f) {
+		for (int y = 0; y < sz.cy; y++) {
+			RGBA* line = ib[y];
+			for (int x = 0; x < sz.cx; x++) {
+				line[x] = bg;
+			}
+		}
+	}
+	
+	void SetPixel(int x, int y, float z, const Color& c) {
+		if (x < 0 || y < 0 || x >= sz.cx || y >= sz.cy)
+			return;
+		int idx = y * sz.cx + x;
+		if (z >= zbuf[idx])
+			return;
+		zbuf[idx] = z;
+		ib[y][x] = c;
+	}
+	
+	void DrawLine2D(int x0, int y0, int x1, int y1, const Color& c) {
+		int dx = abs(x1 - x0);
+		int sx = x0 < x1 ? 1 : -1;
+		int dy = -abs(y1 - y0);
+		int sy = y0 < y1 ? 1 : -1;
+		int err = dx + dy;
+		while (true) {
+			if (x0 >= 0 && y0 >= 0 && x0 < sz.cx && y0 < sz.cy)
+				ib[y0][x0] = c;
+			if (x0 == x1 && y0 == y1)
+				break;
+			int e2 = 2 * err;
+			if (e2 >= dy) {
+				err += dy;
+				x0 += sx;
+			}
+			if (e2 <= dx) {
+				err += dx;
+				y0 += sy;
+			}
+		}
+	}
+};
+
+struct TriProj {
+	vec2 p;
+	float z = 0;
+};
+
+struct GridLineDump : Moveable<GridLineDump> {
+	vec3 a_world;
+	vec3 b_world;
+	vec3 a_world_clipped;
+	vec3 b_world_clipped;
+	vec3 a_cam;
+	vec3 b_cam;
+	vec3 a_ndc;
+	vec3 b_ndc;
+	vec2 a_clip;
+	vec2 b_clip;
+	bool culled = false;
+	bool clipped = false;
+};
+
+float Edge2D(const vec2& a, const vec2& b, const vec2& c) {
+	return (c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0]);
+}
+
+}
+
+void EditRendererV2::Paint(Draw& d) {
+	Size sz = GetSize();
+	if (!ctx || !ctx->state || !ctx->conf)
+		return;
+	
+	GeomWorldState& state = *ctx->state;
+	GeomScene& scene = state.GetActiveScene();
+	GeomCamera& camera = GetGeomCamera();
+	
+	Camera cam;
+	camera.LoadCamera(view_mode, cam, sz);
+	Frustum frustum = cam.GetFrustum();
+	mat4 view = cam.GetViewMatrix();
+	mat4 cam_world = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	bool z_cull = view_mode == VIEWMODE_PERSPECTIVE;
+	
+	SoftSurface surf(sz, ctx->conf->background_clr);
+	Vector<GridLineDump> grid_dumps;
+	bool dump_grid = !ctx->conf->dump_grid_path.IsEmpty();
+	auto draw_grid_line = [&](const vec3& a, const vec3& b, const Color& clr) {
+		GridLineDump dump;
+		dump.a_world = a;
+		dump.b_world = b;
+		vec3 a_world = a;
+		vec3 b_world = b;
+		vec4 ap4 = proj * (cam_world * a_world.Embed());
+		vec4 bp4 = proj * (cam_world * b_world.Embed());
+		float u1 = 0.0f;
+		float u2 = 1.0f;
+		if (!ClipLineClipSpace(ap4, bp4, &u1, &u2)) {
+			dump.culled = true;
+			if (dump_grid) grid_dumps.Add(dump);
+			return;
+		}
+		if (ap4[3] == 0 || bp4[3] == 0) {
+			dump.culled = true;
+			if (dump_grid) grid_dumps.Add(dump);
+			return;
+		}
+		vec3 ap = ap4.Splice() / ap4[3];
+		vec3 bp = bp4.Splice() / bp4[3];
+		dump.a_world_clipped = a_world + (b_world - a_world) * u1;
+		dump.b_world_clipped = a_world + (b_world - a_world) * u2;
+		dump.a_cam = VecMul(cam_world, a_world);
+		dump.b_cam = VecMul(cam_world, b_world);
+		dump.a_ndc = ap;
+		dump.b_ndc = bp;
+		vec2 a2(ap[0], ap[1]);
+		vec2 b2(bp[0], bp[1]);
+		dump.a_clip = a2;
+		dump.b_clip = b2;
+		if (!ClipLineNdc(a2, b2)) {
+			dump.clipped = false;
+			if (dump_grid) grid_dumps.Add(dump);
+			return;
+		}
+		dump.clipped = true;
+		dump.a_clip = a2;
+		dump.b_clip = b2;
+		if (dump_grid) grid_dumps.Add(dump);
+		int x0 = (int)floor((a2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y0 = (int)floor((-a2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		int x1 = (int)floor((b2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		surf.DrawLine2D(x0, y0, x1, y1, clr);
+	};
+	float grid_major = ctx->conf->grid_major_step;
+	int grid_divs = ctx->conf->grid_minor_divs;
+	if (grid_major <= 0.0001f)
+		grid_major = 1.0f;
+	if (grid_divs < 1)
+		grid_divs = 1;
+	float grid_minor = grid_major / (float)grid_divs;
+	float grid_extent = ctx->conf->grid_extent;
+	if (grid_extent < grid_major)
+		grid_extent = grid_major;
+	if (ctx->conf->show_grid) {
+		float major = grid_major;
+		int divs = grid_divs;
+		float minor = grid_minor;
+		float extent = grid_extent;
+		if (extent < major)
+			extent = major;
+		float start_x = floor((camera.position[0] - extent) / minor) * minor;
+		float end_x = ceil((camera.position[0] + extent) / minor) * minor;
+		float start_z = floor((camera.position[2] - extent) / minor) * minor;
+		float end_z = ceil((camera.position[2] + extent) / minor) * minor;
+		for (float x = start_x; x <= end_x + minor * 0.5f; x += minor) {
+			int idx = (int)floor(x / minor + 0.5f);
+			int mod = idx % divs;
+			if (mod < 0)
+				mod += divs;
+			bool is_major = (mod == 0);
+			Color clr = is_major ? ctx->conf->grid_major_clr : ctx->conf->grid_minor_clr;
+			draw_grid_line(vec3(x, 0, start_z), vec3(x, 0, end_z), clr);
+		}
+		for (float z = start_z; z <= end_z + minor * 0.5f; z += minor) {
+			int idx = (int)floor(z / minor + 0.5f);
+			int mod = idx % divs;
+			if (mod < 0)
+				mod += divs;
+			bool is_major = (mod == 0);
+			Color clr = is_major ? ctx->conf->grid_major_clr : ctx->conf->grid_minor_clr;
+			draw_grid_line(vec3(start_x, 0, z), vec3(end_x, 0, z), clr);
+		}
+	}
+	if (dump_grid && !ctx->conf->dump_grid_done) {
+		ctx->conf->dump_grid_done = true;
+		FileOut out(ctx->conf->dump_grid_path);
+		if (out.IsOpen()) {
+			auto wvec3 = [&](const vec3& v) {
+				out << v[0] << " " << v[1] << " " << v[2];
+			};
+			auto wvec2 = [&](const vec2& v) {
+				out << v[0] << " " << v[1];
+			};
+			out << "size " << sz.cx << " " << sz.cy << "\n";
+			out << "cam_pos "; wvec3(camera.position); out << "\n";
+			out << "cam_orient " << camera.orientation[0] << " "
+			    << camera.orientation[1] << " "
+			    << camera.orientation[2] << " "
+			    << camera.orientation[3] << "\n";
+			out << "cam_scale " << camera.scale << " fov " << camera.fov << "\n";
+			out << "grid major " << grid_major << " minor " << grid_minor
+			    << " extent " << grid_extent << " divs " << grid_divs << "\n";
+			out << "world\n";
+			for (int r = 0; r < 4; r++) {
+				for (int c = 0; c < 4; c++)
+					out << cam_world[r][c] << (c == 3 ? '\n' : ' ');
+			}
+			out << "proj\n";
+			for (int r = 0; r < 4; r++) {
+				for (int c = 0; c < 4; c++)
+					out << proj[r][c] << (c == 3 ? '\n' : ' ');
+			}
+			out << "view\n";
+			for (int r = 0; r < 4; r++) {
+				for (int c = 0; c < 4; c++)
+					out << view[r][c] << (c == 3 ? '\n' : ' ');
+			}
+			out << "lines " << grid_dumps.GetCount() << "\n";
+			for (const auto& ln : grid_dumps) {
+				out << "line ";
+				wvec3(ln.a_world); out << " ";
+				wvec3(ln.b_world); out << " ";
+				wvec3(ln.a_world_clipped); out << " ";
+				wvec3(ln.b_world_clipped); out << " ";
+				wvec3(ln.a_cam); out << " ";
+				wvec3(ln.b_cam); out << " ";
+				wvec3(ln.a_ndc); out << " ";
+				wvec3(ln.b_ndc); out << " ";
+				wvec2(ln.a_clip); out << " ";
+				wvec2(ln.b_clip); out << " ";
+				out << (ln.culled ? 1 : 0) << " " << (ln.clipped ? 1 : 0) << "\n";
+			}
+		}
+	}
+	
+	auto draw_triangle = [&](const vec3& n0, const vec3& n1, const vec3& n2, const Color& clr) {
+		if (n0[2] < -1 && n1[2] < -1 && n2[2] < -1)
+			return;
+		if (n0[2] > 1 && n1[2] > 1 && n2[2] > 1)
+			return;
+		
+		TriProj tp[3];
+		vec3 ndc[3] = {n0, n1, n2};
+		for (int i = 0; i < 3; i++) {
+			tp[i].p[0] = (ndc[i][0] + 1.0f) * 0.5f * (float)(sz.cx - 1);
+			tp[i].p[1] = (-ndc[i][1] + 1.0f) * 0.5f * (float)(sz.cy - 1);
+			tp[i].z = ndc[i][2];
+		}
+		
+		float area = Edge2D(tp[0].p, tp[1].p, tp[2].p);
+		if (area == 0)
+			return;
+		int minx = (int)floor(min(tp[0].p[0], min(tp[1].p[0], tp[2].p[0])));
+		int maxx = (int)ceil(max(tp[0].p[0], max(tp[1].p[0], tp[2].p[0])));
+		int miny = (int)floor(min(tp[0].p[1], min(tp[1].p[1], tp[2].p[1])));
+		int maxy = (int)ceil(max(tp[0].p[1], max(tp[1].p[1], tp[2].p[1])));
+		minx = max(minx, 0);
+		miny = max(miny, 0);
+		maxx = min(maxx, sz.cx - 1);
+		maxy = min(maxy, sz.cy - 1);
+		for (int y = miny; y <= maxy; y++) {
+			for (int x = minx; x <= maxx; x++) {
+				vec2 p((float)x + 0.5f, (float)y + 0.5f);
+				float w0 = Edge2D(tp[1].p, tp[2].p, p);
+				float w1 = Edge2D(tp[2].p, tp[0].p, p);
+				float w2 = Edge2D(tp[0].p, tp[1].p, p);
+				if ((area > 0 && (w0 < 0 || w1 < 0 || w2 < 0)) ||
+				    (area < 0 && (w0 > 0 || w1 > 0 || w2 > 0)))
+					continue;
+				w0 /= area;
+				w1 /= area;
+				w2 /= area;
+				float z = w0 * tp[0].z + w1 * tp[1].z + w2 * tp[2].z;
+				surf.SetPixel(x, y, z, clr);
+			}
+		}
+	};
+	
+	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
+		mat4 o_world = (QuatMat(os.orientation) * Translate(os.position)).GetInverse();
+		mat4 o_view = view * o_world;
+		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
+		light_dir.Normalize();
+		for (const Mesh& mesh : mdl.meshes) {
+			const auto* tri_idx = mesh.indices.Begin();
+			int tri_count = mesh.indices.GetCount() / 3;
+			for (int i = 0; i < tri_count; i++) {
+				const Vertex& v0 = mesh.vertices[tri_idx[0]];
+				const Vertex& v1 = mesh.vertices[tri_idx[1]];
+				const Vertex& v2 = mesh.vertices[tri_idx[2]];
+				vec3 n = Cross(v1.position.Splice() - v0.position.Splice(),
+				               v2.position.Splice() - v0.position.Splice());
+				if (n.GetLength() == 0) {
+					tri_idx += 3;
+					continue;
+				}
+				n.Normalize();
+				vec3 n_world = VectorTransform(n, os.orientation);
+				float diff = max(0.0f, Dot(n_world, light_dir));
+				float intensity = 0.2f + diff * 0.8f;
+				int r = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
+				int g = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
+				int b = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
+				Color clr(r, g, b);
+				vec3 p0 = VecMul(o_view, v0.position.Splice());
+				vec3 p1 = VecMul(o_view, v1.position.Splice());
+				vec3 p2 = VecMul(o_view, v2.position.Splice());
+				draw_triangle(p0, p1, p2, clr);
+				tri_idx += 3;
+			}
+		}
+	};
+	
+	if (ctx->anim && ctx->anim->is_playing) {
+		for (GeomObjectState& os : state.objs) {
+			GeomObject& go = *os.obj;
+			if (!go.is_visible)
+				continue;
+			if (go.IsModel() && go.mdl)
+				paint_model(os, *go.mdl);
+		}
+	}
+	else {
+		GeomObjectCollection iter(scene);
+		GeomObjectState os;
+		for (GeomObject& go : iter) {
+			if (!go.is_visible)
+				continue;
+			if (go.IsModel() && go.mdl) {
+				os.obj = &go;
+				os.position = vec3(0);
+				os.orientation = Identity<quat>();
+				if (GeomTransform* tr = go.FindTransform()) {
+					os.position = tr->position;
+					os.orientation = tr->orientation;
+				}
+				paint_model(os, *go.mdl);
+			}
+		}
+	}
+	
+	d.DrawImage(0, 0, surf.ib);
+}
+
+void EditRendererBase::LeftDown(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	cap_mouse_pos = p;
@@ -431,13 +838,13 @@ void EditRenderer::LeftDown(Point p, dword keyflags) {
 	SetFocus();
 }
 
-void EditRenderer::LeftUp(Point p, dword keyflags) {
+void EditRendererBase::LeftUp(Point p, dword keyflags) {
 	is_captured_mouse = false;
 	
 	ReleaseCapture();
 }
 
-void EditRenderer::MouseMove(Point p, dword keyflags) {
+void EditRendererBase::MouseMove(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	if (is_captured_mouse) {
@@ -454,7 +861,7 @@ void EditRenderer::MouseMove(Point p, dword keyflags) {
 	}
 }
 
-void EditRenderer::Move(const vec3& v) {
+void EditRendererBase::Move(const vec3& v) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	switch (view_mode) {
@@ -480,7 +887,7 @@ void EditRenderer::Move(const vec3& v) {
 	WhenChanged();
 }
 
-void EditRenderer::MoveRel(const vec3& v) {
+void EditRendererBase::MoveRel(const vec3& v) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	switch (view_mode) {
@@ -506,7 +913,7 @@ void EditRenderer::MoveRel(const vec3& v) {
 	WhenChanged();
 }
 
-void EditRenderer::Rotate(const axes3& v) {
+void EditRendererBase::Rotate(const axes3& v) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	camera.orientation = MatQuat(QuatMat(camera.orientation) * AxesMat(v));
@@ -514,7 +921,7 @@ void EditRenderer::Rotate(const axes3& v) {
 	WhenChanged();
 }
 
-void EditRenderer::RotateRel(const axes3& v) {
+void EditRendererBase::RotateRel(const axes3& v) {
 	GeomCamera& camera = GetGeomCamera();
 	
 	camera.orientation = MatQuat(QuatMat(cap_begin_orientation) * AxesMat(v));
@@ -522,7 +929,7 @@ void EditRenderer::RotateRel(const axes3& v) {
 	WhenChanged();
 }
 
-void EditRenderer::MouseWheel(Point p, int zdelta, dword keyflags) {
+void EditRendererBase::MouseWheel(Point p, int zdelta, dword keyflags) {
 	const double scale = 0.75;
 	GeomCamera& camera = GetGeomCamera();
 	
@@ -536,12 +943,12 @@ void EditRenderer::MouseWheel(Point p, int zdelta, dword keyflags) {
 	WhenChanged();
 }
 
-void EditRenderer::RightDown(Point p, dword keyflags) {
+void EditRendererBase::RightDown(Point p, dword keyflags) {
 	if (WhenMenu)
 		MenuBar::Execute(WhenMenu, GetMousePos());
 }
 
-GeomCamera& EditRenderer::GetGeomCamera() const {
+GeomCamera& EditRendererBase::GetGeomCamera() const {
 	switch (cam_src) {
 		
 	case CAMSRC_FOCUS:
@@ -557,11 +964,11 @@ GeomCamera& EditRenderer::GetGeomCamera() const {
 		break;
 		
 	}
-	Panic("Invalid view mode in EditRenderer");
+	Panic("Invalid view mode in EditRendererBase");
 	NEVER();
 }
 
-bool EditRenderer::Key(dword key, int count) {
+bool EditRendererBase::Key(dword key, int count) {
 	GeomCamera& camera = GetGeomCamera();
 	float step = camera.scale * 0.1;
 	

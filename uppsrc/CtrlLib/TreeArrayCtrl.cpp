@@ -659,6 +659,19 @@ void TreeArrayCtrl::LeftDouble(Point p, dword flags) {
 	ArrayCtrl::LeftDouble(p, flags);
 }
 
+void TreeArrayCtrl::RightDown(Point p, dword flags) {
+	int linei = GetLineAt(p.y + GetScroll());
+	if (linei >= 0 && linei < line.GetCount()) {
+		int id = line[linei];
+		if (IsValid(id))
+			SetCursor(id);
+	}
+	if (WhenMenu)
+		MenuBar::Execute(WhenMenu);
+	else
+		MenuBar::Execute(WhenBar);
+}
+
 bool TreeArrayCtrl::Key(dword key, int count) {
 	if (key == K_LEFT || key == K_RIGHT) {
 		int linei = ArrayCtrl::GetCursor();

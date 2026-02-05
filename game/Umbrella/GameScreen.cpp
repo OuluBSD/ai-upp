@@ -34,7 +34,7 @@ GameScreen::GameScreen(const String& level) : GameScreen() {
 
 bool GameScreen::LoadLevel(const String& path) {
 	if(!MapSerializer::LoadFromFile(path, layerManager)) {
-		Exclamation("Failed to load level: " + path);
+		Exclamation("Failed to load: " + path);
 		return false;
 	}
 
@@ -47,8 +47,38 @@ bool GameScreen::LoadLevel(const String& path) {
 		gridSize = 14;  // Default grid size
 	}
 
+	// Spawn player at appropriate location
+	RespawnPlayer();
+
 	Title("Umbrella - " + GetFileName(path));
 	return true;
+}
+
+Point GameScreen::FindSpawnPoint() {
+	// Find first solid ground starting from top-left of map
+	// Search column by column, top to bottom
+	for(int col = 1; col < levelColumns - 1; col++) {
+		// Start from near top of map and search downward (remember Y-up: high Y = top)
+		for(int row = levelRows - 3; row >= 1; row--) {
+			// Check if there's solid ground at this position
+			if(IsFloorTile(col, row)) {
+				// Found ground - spawn player one tile above it
+				int spawnX = col * gridSize + gridSize / 2 - 6;  // Center of tile, adjusted for player width
+				int spawnY = (row + 1) * gridSize;  // One tile above ground
+				return Point(spawnX, spawnY);
+			}
+		}
+	}
+
+	// Fallback: spawn near top-center of map
+	int spawnX = (levelColumns / 2) * gridSize;
+	int spawnY = (levelRows - 5) * gridSize;
+	return Point(spawnX, spawnY);
+}
+
+void GameScreen::RespawnPlayer() {
+	Point spawn = FindSpawnPoint();
+	player.SetPosition((float)spawn.x, (float)spawn.y);
 }
 
 void GameScreen::LayoutLoop() {
@@ -85,6 +115,14 @@ void GameScreen::GameTick(float delta) {
 	// Update player
 	player.Update(delta, inputState, *this);
 
+	// Check if player fell off map (below Y=0)
+	Pointf playerPos = player.GetPosition();
+	if(playerPos.y < -gridSize * 2) {
+		// Player fell off - respawn and take damage
+		player.TakeDamage(1);
+		RespawnPlayer();
+	}
+
 	// Update camera to follow player
 	Pointf playerCenter = player.GetCenter();
 	UpdateCamera(Point((int)playerCenter.x, (int)playerCenter.y));
@@ -112,16 +150,28 @@ void GameScreen::UpdateCamera(Point targetPos) {
 }
 
 Point GameScreen::WorldToScreen(Point worldPos) {
+	// World coordinates: Y-up (like OpenGL, standard game coordinates)
+	// Screen coordinates: Y-down (U++ Draw/CtrlCore convention)
+	// Flip Y at the last moment when converting to screen space
+	Size sz = GetSize();
+	int viewHeight = sz.cy / zoom;
+
 	Point screenPos;
 	screenPos.x = (worldPos.x - cameraOffset.x) * zoom;
-	screenPos.y = (worldPos.y - cameraOffset.y) * zoom;
+	// Flip Y: worldY=0 is bottom, screenY=0 is top
+	screenPos.y = sz.cy - ((worldPos.y - cameraOffset.y) * zoom);
 	return screenPos;
 }
 
 Point GameScreen::ScreenToWorld(Point screenPos) {
+	// Inverse of WorldToScreen
+	Size sz = GetSize();
+	int viewHeight = sz.cy / zoom;
+
 	Point worldPos;
 	worldPos.x = screenPos.x / zoom + cameraOffset.x;
-	worldPos.y = screenPos.y / zoom + cameraOffset.y;
+	// Unflip Y
+	worldPos.y = (sz.cy - screenPos.y) / zoom + cameraOffset.y;
 	return worldPos;
 }
 
@@ -134,8 +184,8 @@ void GameScreen::Paint(Draw& w) {
 	// Render tiles
 	RenderTiles(w);
 
-	// Render player
-	player.Render(w, cameraOffset, zoom);
+	// Render player (using WorldToScreen for proper Y-flip)
+	player.Render(w, *this);
 
 	// TODO: Render enemies
 	// TODO: Render HUD
@@ -174,8 +224,19 @@ void GameScreen::RenderTiles(Draw& w) {
 				if(tile == TILE_EMPTY) continue;
 
 				// Calculate screen position (world to screen with camera)
-				Point worldPos(col * gridSize, row * gridSize);
-				Point screenPos = WorldToScreen(worldPos);
+				// World coordinates: (col*gridSize, row*gridSize) is bottom-left of tile
+				Point worldBottomLeft(col * gridSize, row * gridSize);
+				Point worldTopRight((col + 1) * gridSize, (row + 1) * gridSize);
+
+				Point screenBottomLeft = WorldToScreen(worldBottomLeft);
+				Point screenTopRight = WorldToScreen(worldTopRight);
+
+				// After Y-flip, screenTopRight.y < screenBottomLeft.y
+				// Normalize to get proper screen rect
+				int screenX = min(screenBottomLeft.x, screenTopRight.x);
+				int screenY = min(screenBottomLeft.y, screenTopRight.y);
+				int width = abs(screenTopRight.x - screenBottomLeft.x);
+				int height = abs(screenTopRight.y - screenBottomLeft.y);
 
 				// Get tile color
 				Color tileColor = TileTypeToColor(tile);
@@ -192,7 +253,7 @@ void GameScreen::RenderTiles(Draw& w) {
 				}
 
 				// Draw tile as filled rectangle
-				w.DrawRect(screenPos.x, screenPos.y, tileSize, tileSize, tileColor);
+				w.DrawRect(screenX, screenY, width, height, tileColor);
 			}
 		}
 	}

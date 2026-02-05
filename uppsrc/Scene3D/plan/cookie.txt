@@ -58,3 +58,11 @@
   task: track-pointcloud-workbench/phase-01-dataset-effects/task-0100-pointcloud-dataset-sharing.md
   status: done
   note: Added dataset nodes, dataset binding, UI selection, and external file sync for pointcloud datasets.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-01-dataset-effects/task-0101-effect-stack-ui.md
+  status: done
+  note: Added pointcloud effect stack component, UI, and renderer application.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0200-localization-application.md
+  status: done
+  note: Applied localization to hmd_pointcloud via effect stack and kept sim_observation raw.

@@ -124,6 +124,31 @@ struct GeomEditableMesh : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct Geom2DShape : Moveable<Geom2DShape> {
+	typedef enum {
+		S_LINE,
+		S_RECT,
+		S_CIRCLE,
+		S_POLY,
+	} Type;
+	Type type = S_LINE;
+	Vector<vec2> points;
+	float radius = 0;
+	Color stroke = Color(220, 220, 220);
+	float width = 1.0f;
+	bool closed = false;
+
+	void Visit(Vis& v);
+};
+
+struct Geom2DLayer : VfsValueExt {
+	Vector<Geom2DShape> shapes;
+	bool visible = true;
+
+	DEFAULT_EXT(Geom2DLayer)
+	void Visit(Vis& v) override;
+};
+
 struct GeomMeshKeyframe {
 	int frame_id = -1;
 	Vector<vec3> points;
@@ -186,6 +211,8 @@ struct GeomObject : VfsValueExt {
 	GeomDynamicProperties* FindDynamicProperties() const;
 	GeomEditableMesh& GetEditableMesh();
 	GeomEditableMesh* FindEditableMesh() const;
+	Geom2DLayer& Get2DLayer();
+	Geom2DLayer* Find2DLayer() const;
 	GeomMeshAnimation& GetMeshAnimation();
 	GeomMeshAnimation* FindMeshAnimation() const;
 	GeomSkeleton& GetSkeleton();
@@ -402,6 +429,7 @@ INITIALIZE(GeomBone)
 INITIALIZE(GeomSkeleton)
 INITIALIZE(GeomSkinWeights)
 INITIALIZE(GeomEditableMesh)
+INITIALIZE(Geom2DLayer)
 INITIALIZE(GeomMeshAnimation)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)

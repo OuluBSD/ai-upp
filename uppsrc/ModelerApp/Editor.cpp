@@ -1285,6 +1285,10 @@ Edit3D::Edit3D() :
 				.Check(edit_tool == TOOL_FACE);
 			bar.Add(t_("Erase Tool"), THISBACK1(SetEditTool, TOOL_ERASE))
 				.Check(edit_tool == TOOL_ERASE);
+			bar.Add(t_("Join Tool"), THISBACK1(SetEditTool, TOOL_JOIN))
+				.Check(edit_tool == TOOL_JOIN);
+			bar.Add(t_("Split Tool"), THISBACK1(SetEditTool, TOOL_SPLIT))
+				.Check(edit_tool == TOOL_SPLIT);
 			bar.Separator();
 			bar.Sub(t_("Plane"), [this](Bar& bar) {
 				bar.Add(t_("View Plane"), [this] { edit_plane = PLANE_VIEW; })
@@ -1957,6 +1961,32 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 						RefrehRenderers();
 					}
 				}
+				else if (edit_tool == TOOL_JOIN) {
+					if (picked >= 0) {
+						if (edit_join_start < 0) {
+							edit_join_start = picked;
+						}
+						else {
+							if (edit_join_start != picked && !HasLine(mesh, edit_join_start, picked)) {
+								GeomEdge edge;
+								edge.a = edit_join_start;
+								edge.b = picked;
+								mesh.lines.Add(edge);
+							}
+							edit_join_start = picked;
+						}
+						state->UpdateObjects();
+						RefrehRenderers();
+					}
+				}
+				else if (edit_tool == TOOL_SPLIT) {
+					int line_idx = PickNearestLine(mesh, view_i, p, edit_line_pick_radius_px);
+					if (line_idx >= 0) {
+						mesh.lines.Remove(line_idx);
+						state->UpdateObjects();
+						RefrehRenderers();
+					}
+				}
 			}
 		}
 	}
@@ -2000,6 +2030,7 @@ void Edit3D::DispatchFrameEvents(double dt) {
 void Edit3D::SetEditTool(EditTool tool) {
 	edit_tool = tool;
 	edit_line_start = -1;
+	edit_join_start = -1;
 	edit_face_points.Clear();
 }
 
@@ -2099,6 +2130,99 @@ int Edit3D::PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Poi
 		}
 	}
 	return best_idx;
+}
+
+int Edit3D::PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const {
+	if (!state)
+		return -1;
+	GeomObject* obj = v0.selected_obj;
+	if (!obj)
+		return -1;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return -1;
+	Size sz = rend->GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return -1;
+	GeomCamera& gcam = rend->GetGeomCamera();
+	Camera cam;
+	gcam.LoadCamera(rend->view_mode, cam, sz);
+	mat4 view = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	vec3 obj_pos = vec3(0);
+	quat obj_ori = Identity<quat>();
+	vec3 obj_scale = vec3(1);
+	if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+		obj_pos = os->position;
+		obj_ori = os->orientation;
+		obj_scale = os->scale;
+	}
+	auto project_point = [&](const vec3& local, Point& out) -> bool {
+		vec3 scaled(local[0] * obj_scale[0], local[1] * obj_scale[1], local[2] * obj_scale[2]);
+		vec3 world = VectorTransform(scaled, obj_ori) + obj_pos;
+		vec4 clip = proj * (view * world.Embed());
+		if (clip[3] == 0)
+			return false;
+		vec3 ndc = clip.Splice() / clip[3];
+		if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+			return false;
+		out = Point(
+			(int)floor((ndc[0] + 1) * 0.5 * (float)sz.cx + 0.5f),
+			(int)floor((-ndc[1] + 1) * 0.5 * (float)sz.cy + 0.5f));
+		return true;
+	};
+	auto dist2_segment = [](const Point& a, const Point& b, const Point& p) -> double {
+		double ax = a.x;
+		double ay = a.y;
+		double bx = b.x;
+		double by = b.y;
+		double px = p.x;
+		double py = p.y;
+		double dx = bx - ax;
+		double dy = by - ay;
+		double len2 = dx * dx + dy * dy;
+		if (len2 <= 1e-6) {
+			double sx = px - ax;
+			double sy = py - ay;
+			return sx * sx + sy * sy;
+		}
+		double t = ((px - ax) * dx + (py - ay) * dy) / len2;
+		if (t < 0.0) t = 0.0;
+		if (t > 1.0) t = 1.0;
+		double cx = ax + t * dx;
+		double cy = ay + t * dy;
+		double sx = px - cx;
+		double sy = py - cy;
+		return sx * sx + sy * sy;
+	};
+	double best = radius_px * radius_px;
+	int best_idx = -1;
+	for (int i = 0; i < mesh.lines.GetCount(); i++) {
+		const GeomEdge& e = mesh.lines[i];
+		if (e.a < 0 || e.b < 0 || e.a >= mesh.points.GetCount() || e.b >= mesh.points.GetCount())
+			continue;
+		Point a2, b2;
+		if (!project_point(mesh.points[e.a], a2))
+			continue;
+		if (!project_point(mesh.points[e.b], b2))
+			continue;
+		double d2 = dist2_segment(a2, b2, p);
+		if (d2 < best) {
+			best = d2;
+			best_idx = i;
+		}
+	}
+	return best_idx;
+}
+
+bool Edit3D::HasLine(const GeomEditableMesh& mesh, int a, int b) const {
+	if (a < 0 || b < 0)
+		return false;
+	for (const GeomEdge& e : mesh.lines) {
+		if ((e.a == a && e.b == b) || (e.a == b && e.b == a))
+			return true;
+	}
+	return false;
 }
 
 void Edit3D::RemoveEditablePoint(GeomEditableMesh& mesh, int idx) {

@@ -568,6 +568,7 @@ Edit3D::Edit3D() :
 	scene3d_data_dir = "data";
 	SetProjectDir(GetCurrentDirectory());
 	view = VIEW_GEOMPROJECT;
+	Add(v0.grid.SizePos());
 	
 	AddFrame(menu);
 	menu.Set([this](Bar& bar) {
@@ -626,34 +627,41 @@ Edit3D::Edit3D() :
 }
 
 void Edit3D::DockInit() {
-	dock_geom = &Dockable(v0.hsplit, "Geometry");
+	dock_tree = &Dockable(v0.tree, "Scene Tree");
+	dock_props = &Dockable(v0.props, "Properties");
+	dock_time = &Dockable(v0.time, "Timeline");
 	dock_video = &Dockable(v1, "Video Import");
 	dock_pool = &Dockable(file_pool, "File Pool");
 
-	dock_geom->SizeHint(Size(900, 700));
+	dock_tree->SizeHint(Size(260, 600));
+	dock_props->SizeHint(Size(360, 600));
+	dock_time->SizeHint(Size(900, 200));
 	dock_video->SizeHint(Size(900, 300));
 	dock_pool->SizeHint(Size(320, 600));
 
-	DockLeft(*dock_geom);
+	DockLeft(*dock_tree, 0);
+	DockLeft(*dock_props, 1);
+	DockBottom(*dock_time);
 	DockBottom(*dock_video);
 	DockRight(*dock_pool);
 
 	Close(*dock_video);
 	Close(*dock_pool);
-	ActivateDockableChild(v0.hsplit);
+	v0.grid.SetFocus();
 }
 
 void Edit3D::SetView(ViewType view) {
 	this->view = view;
-	if (!dock_geom || !dock_video)
-		return;
 	if (this->view == VIEW_GEOMPROJECT) {
-		Close(*dock_video);
-		ActivateDockableChild(v0.hsplit);
+		if (dock_video)
+			Close(*dock_video);
+		v0.grid.Show();
+		v0.grid.SetFocus();
 	}
 	else if (this->view == VIEW_VIDEOIMPORT) {
-		Close(*dock_geom);
-		ActivateDockableChild(v1);
+		v0.grid.Hide();
+		if (dock_video)
+			ActivateDockableChild(v1);
 	}
 }
 
@@ -721,9 +729,8 @@ void Edit3D::Update() {
 	double dt = ts.Seconds();
 	ts.Reset();
 	
-	if (view == VIEW_GEOMPROJECT)
-		v0.Update(dt);
-	else if (view == VIEW_VIDEOIMPORT)
+	v0.Update(dt);
+	if (dock_video && !dock_video->IsHidden())
 		v1.Update(dt);
 	
 	if (hmd.IsRunning()) {
@@ -740,8 +747,9 @@ void Edit3D::Update() {
 }
 
 void Edit3D::Data() {
-	if (view == VIEW_GEOMPROJECT)
-		v0.Data();
+	v0.Data();
+	if (dock_video && !dock_video->IsHidden())
+		v1.Data();
 }
 
 void Edit3D::SetProjectDir(String dir) {

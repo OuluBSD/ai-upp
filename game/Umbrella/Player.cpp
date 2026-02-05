@@ -125,8 +125,12 @@ void Player::ResolveCollisionX(float deltaX, CollisionHandler& collision) {
 		int gridSize = (int)collision.GetGridSize();
 		int minCol = (int)(bounds.left / gridSize);
 		int maxCol = (int)(bounds.right / gridSize);
-		int minRow = (int)(bounds.top / gridSize);
-		int maxRow = (int)(bounds.bottom / gridSize);
+
+		// Get Y range - remember bounds naming is backwards for Y-up!
+		float minY = min(bounds.top, bounds.bottom);
+		float maxY = max(bounds.top, bounds.bottom);
+		int minRow = (int)(minY / gridSize);
+		int maxRow = (int)(maxY / gridSize);
 
 		bool collided = false;
 		for(int row = minRow; row <= maxRow; row++) {
@@ -167,18 +171,27 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 		bounds.bottom += step;
 
 		// Check collision
+		// NOTE: In Y-up coordinates:
+		//  - bounds.top is the LOWER Y value (player's feet/bottom)
+		//  - bounds.bottom is the HIGHER Y value (player's head/top)
+		//  - deltaY < 0 means falling (gravity), deltaY > 0 means jumping
 		int gridSize = (int)collision.GetGridSize();
 		int minCol = (int)(bounds.left / gridSize);
 		int maxCol = (int)(bounds.right / gridSize);
-		int minRow = (int)(bounds.top / gridSize);
-		int maxRow = (int)(bounds.bottom / gridSize);
+
+		// Get Y range - remember bounds naming is backwards for Y-up!
+		float minY = min(bounds.top, bounds.bottom);
+		float maxY = max(bounds.top, bounds.bottom);
+		int minRow = (int)(minY / gridSize);
+		int maxRow = (int)(maxY / gridSize);
 
 		bool collided = false;
 		for(int row = minRow; row <= maxRow; row++) {
 			for(int col = minCol; col <= maxCol; col++) {
 				if(collision.IsWallTile(col, row) || collision.IsFullBlockTile(col, row)) {
 					collided = true;
-					if(deltaY > 0) {  // Moving down, hit floor
+					// In Y-up: deltaY < 0 means moving down (falling), hitting floor
+					if(deltaY < 0) {
 						onGround = true;
 					}
 					break;
@@ -201,11 +214,13 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 	bounds.top += remaining;
 	bounds.bottom += remaining;
 
-	// Check if standing on ground
+	// Check if standing on ground (one pixel below player's feet)
+	// In Y-up, feet are at the LOWER Y value
 	int gridSize = (int)collision.GetGridSize();
 	int minCol = (int)(bounds.left / gridSize);
 	int maxCol = (int)(bounds.right / gridSize);
-	int floorRow = (int)((bounds.bottom + 1.0f) / gridSize);
+	float feetY = min(bounds.top, bounds.bottom);
+	int floorRow = (int)((feetY - 1.0f) / gridSize);  // Check one pixel below feet
 
 	for(int col = minCol; col <= maxCol; col++) {
 		if(collision.IsWallTile(col, floorRow) || collision.IsFullBlockTile(col, floorRow)) {
@@ -218,8 +233,12 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 bool Player::IsTouchingWallOnLeft(CollisionHandler& collision) {
 	int gridSize = (int)collision.GetGridSize();
 	int checkCol = (int)((bounds.left - 1.0f) / gridSize);
-	int minRow = (int)(bounds.top / gridSize);
-	int maxRow = (int)(bounds.bottom / gridSize);
+
+	// Get Y range - remember bounds naming is backwards for Y-up!
+	float minY = min(bounds.top, bounds.bottom);
+	float maxY = max(bounds.top, bounds.bottom);
+	int minRow = (int)(minY / gridSize);
+	int maxRow = (int)(maxY / gridSize);
 
 	for(int row = minRow; row <= maxRow; row++) {
 		if(collision.IsWallTile(checkCol, row) || collision.IsFullBlockTile(checkCol, row)) {
@@ -232,8 +251,12 @@ bool Player::IsTouchingWallOnLeft(CollisionHandler& collision) {
 bool Player::IsTouchingWallOnRight(CollisionHandler& collision) {
 	int gridSize = (int)collision.GetGridSize();
 	int checkCol = (int)((bounds.right + 1.0f) / gridSize);
-	int minRow = (int)(bounds.top / gridSize);
-	int maxRow = (int)(bounds.bottom / gridSize);
+
+	// Get Y range - remember bounds naming is backwards for Y-up!
+	float minY = min(bounds.top, bounds.bottom);
+	float maxY = max(bounds.top, bounds.bottom);
+	int minRow = (int)(minY / gridSize);
+	int maxRow = (int)(maxY / gridSize);
 
 	for(int row = minRow; row <= maxRow; row++) {
 		if(collision.IsWallTile(checkCol, row) || collision.IsFullBlockTile(checkCol, row)) {

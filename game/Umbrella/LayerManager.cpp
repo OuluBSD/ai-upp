@@ -74,3 +74,12 @@ void LayerManager::InitializeDefaultLayers(int cols, int rows) {
 	AddLayer("Annotations", LAYER_ANNOTATION, cols, rows);
 	SetActiveLayer(0);  // Set terrain as active
 }
+
+Layer* LayerManager::FindLayerByType(LayerType type) {
+	for(int i = 0; i < layers.GetCount(); i++) {
+		if(layers[i].GetType() == type) {
+			return &layers[i];
+		}
+	}
+	return nullptr;
+}

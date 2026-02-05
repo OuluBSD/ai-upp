@@ -1,5 +1,5 @@
 # Task: Full Issue CRUD UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement comprehensive Create, Read, Update, Delete interface for Issues.

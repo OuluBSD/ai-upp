@@ -1,5 +1,5 @@
 # Task: Session Details & Filtering
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Expand the Session List UI to support deep inspection and filtering, matching CLI capabilities.

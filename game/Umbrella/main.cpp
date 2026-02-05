@@ -9,10 +9,16 @@
 
 using namespace Upp;
 
+// Forward declaration
+bool RunGameScreenTests();
+
 GUI_APP_MAIN
 {
+    StdLogSetup(LOG_COUT|LOG_FILE);
+
     // Parse command line arguments
     bool editorMode = false;
+    bool testMode = false;
     String levelPath;
 
     const Vector<String>& args = CommandLine();
@@ -21,10 +27,19 @@ GUI_APP_MAIN
         if(arg == "--editor" || arg == "--editor-parastar") {
             editorMode = true;
         }
+        else if(arg == "--test") {
+            testMode = true;
+        }
         // If argument doesn't start with --, treat it as a file path
         else if(!arg.StartsWith("--") && !arg.StartsWith("-")) {
             levelPath = arg;
         }
+    }
+
+    if(testMode) {
+        bool testsPassed = RunGameScreenTests();
+        SetExitCode(testsPassed ? 0 : 1);
+        return;
     }
 
     if(editorMode) {

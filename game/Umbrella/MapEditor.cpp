@@ -417,9 +417,10 @@ MapEditorApp::MapEditorApp() {
 	SetupToolsPanel();
 	SetupLayersPanel();
 
-	// Set up canvas
+	// Set up canvas - add it to the window so it appears in the center
 	mapCanvas.SetFrame(InsetFrame());
 	mapCanvas.SetParentEditor(this);
+	Add(mapCanvas.SizePos());
 }
 
 MapEditorApp::MapEditorApp(const String& levelPath) : MapEditorApp() {
@@ -542,13 +543,11 @@ void MapEditorApp::SetupToolBar() {
 
 void MapEditorApp::DockInit() {
 	// Set up dockable panels using DockWindow API
+	// Canvas was already added in constructor, panels dock around it
 	DockLeft(Dockable(toolsPanel, "Tools").SizeHint(Size(250, 400)));
 	DockRight(Dockable(layersPanel, "Layers").SizeHint(Size(250, 300)));
 	DockRight(Dockable(entitiesPanel, "Entities").SizeHint(Size(250, 300)));
 	DockBottom(Dockable(propertiesPanel, "Properties").SizeHint(Size(400, 200)));
-
-	// Add canvas to center (fills remaining space)
-	Add(mapCanvas.SizePos());
 
 	// Set initial status
 	mainStatusBar.Set("Ready");

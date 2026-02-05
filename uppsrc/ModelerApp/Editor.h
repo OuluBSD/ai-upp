@@ -212,9 +212,11 @@ struct Edit3D : DockWindow {
 		Time file_time;
 		PyVM vm;
 		bool loaded = false;
+		bool has_load = false;
 		bool has_start = false;
 		bool has_frame = false;
 		Vector<PyIR> main_ir;
+		Vector<PyIR> load_ir;
 		Vector<PyIR> start_ir;
 		Vector<PyIR> frame_ir;
 	};
@@ -245,6 +247,7 @@ struct Edit3D : DockWindow {
 	void GenerateSyntheticPointcloudFor(GeomObject& obj);
 	void EnsureScriptInstances();
 	void UpdateScriptInstance(ScriptInstance& inst, bool force_reload);
+	void RunScriptOnLoad(ScriptInstance& inst, bool force);
 	void RunScriptOnStart(ScriptInstance& inst, bool force);
 	void RunScriptFrame(ScriptInstance& inst, double dt);
 	void RegisterScriptVM(PyVM& vm);

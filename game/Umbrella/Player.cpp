@@ -161,6 +161,10 @@ void Player::ResolveCollisionX(float deltaX, CollisionHandler& collision) {
 void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 	if(deltaY == 0.0f) return;
 
+	// Store starting position BEFORE any movement
+	float startFeetY = min(bounds.top, bounds.bottom);
+	float startHeadY = max(bounds.top, bounds.bottom);
+
 	float step = deltaY > 0 ? COLLISION_STEP : -COLLISION_STEP;
 	float remaining = deltaY;
 
@@ -202,14 +206,19 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 					float tileBottomY = row * gridSize;
 					float tileTopY = (row + 1) * gridSize;
 
+					// In Y-up: when falling (deltaY < 0), we're moving toward lower Y
+					// We should hit TOP of tiles that are BELOW us
+					// When jumping (deltaY > 0), we're moving toward higher Y
+					// We should hit BOTTOM of tiles that are ABOVE us
+
 					if(deltaY < 0) {
-						// Moving down - check if feet hit top of tile
-						// This means tile is below us (tileTopY < feetY before collision)
-						if(tileTopY <= headY && tileTopY >= feetY - abs(step)) {
+						// Falling: check if we started ABOVE the tile top
+						// Only set onGround if we approached the tile from above
+						if(startFeetY >= tileTopY) {
 							onGround = true;
 						}
 					}
-					// If jumping up (deltaY > 0), we hit ceiling, don't set onGround
+					// When jumping up (deltaY > 0), we hit ceiling from below, don't set onGround
 
 					break;
 				}
@@ -218,6 +227,7 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 		}
 
 		if(collided) {
+			// Undo the step that caused penetration
 			bounds.top -= step;
 			bounds.bottom -= step;
 			velocity.y = 0.0f;

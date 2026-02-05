@@ -13,4 +13,4 @@ Add per-scene timelines that can drive objects and components independently from
 - Scene timeline state persists in save/load.
 
 ## Status
-- Pending
+- Done

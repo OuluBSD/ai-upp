@@ -7,6 +7,7 @@ struct GeomProgram;
 struct GeomProject;
 struct GeomScene;
 struct GeomDirectory;
+struct GeomWorldState;
 struct Edit3D;
 
 
@@ -30,6 +31,22 @@ struct GeomTimeline : VfsValueExt {
 	int FindPre(int kp_i) const;
 	int FindPost(int kp_i) const;
 	
+	void Visit(Vis& v) override;
+};
+
+struct GeomSceneTimeline : VfsValueExt {
+	double time = 0;
+	int position = 0;
+	int length = 0;
+	bool is_playing = false;
+	bool repeat = false;
+	double speed = 1.0;
+
+	DEFAULT_EXT(GeomSceneTimeline)
+	void Reset();
+	void Play(int scene_length);
+	void Pause();
+	void Update(GeomWorldState& state, double dt);
 	void Visit(Vis& v) override;
 };
 
@@ -107,6 +124,23 @@ struct GeomEditableMesh : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomMeshKeyframe {
+	int frame_id = -1;
+	Vector<vec3> points;
+
+	void Visit(Vis& v);
+};
+
+struct GeomMeshAnimation : VfsValueExt {
+	ArrayMap<int, GeomMeshKeyframe> keyframes;
+
+	DEFAULT_EXT(GeomMeshAnimation)
+	GeomMeshKeyframe& GetAddKeyframe(int frame);
+	int FindPre(int frame) const;
+	int FindPost(int frame) const;
+	void Visit(Vis& v) override;
+};
+
 struct GeomPointcloudEffectTransform : VfsValueExt {
 	String name;
 	bool enabled = true;
@@ -152,6 +186,8 @@ struct GeomObject : VfsValueExt {
 	GeomDynamicProperties* FindDynamicProperties() const;
 	GeomEditableMesh& GetEditableMesh();
 	GeomEditableMesh* FindEditableMesh() const;
+	GeomMeshAnimation& GetMeshAnimation();
+	GeomMeshAnimation* FindMeshAnimation() const;
 	GeomSkeleton& GetSkeleton();
 	GeomSkeleton* FindSkeleton() const;
 	GeomSkinWeights& GetSkinWeights();
@@ -251,6 +287,9 @@ struct GeomScene : GeomDirectory {
 	CLASSTYPE(GeomScene)
 	GeomScene(VfsValue& n) : GeomDirectory(n) {}
 	int length = 0;
+	
+	GeomSceneTimeline& GetTimeline();
+	GeomSceneTimeline* FindTimeline() const;
 	
 	void Visit(Vis& v) override;
 };
@@ -357,11 +396,13 @@ struct GeomAnim : VfsValueExt {
 };
 
 INITIALIZE(GeomTimeline)
+INITIALIZE(GeomSceneTimeline)
 INITIALIZE(GeomDynamicProperties)
 INITIALIZE(GeomBone)
 INITIALIZE(GeomSkeleton)
 INITIALIZE(GeomSkinWeights)
 INITIALIZE(GeomEditableMesh)
+INITIALIZE(GeomMeshAnimation)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)
 INITIALIZE(GeomScene)

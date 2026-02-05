@@ -8,6 +8,8 @@ static bool IsGeomDirectoryType(const VfsValue& v) {
 	       IsVfsType(v, AsTypeHash<GeomScene>());
 }
 
+static void ApplyMeshAnimation(GeomObject& obj, int position, double time, int kps);
+
 GeomObjectIterator::GeomObjectIterator(GeomDirectory& d) {
 	addr[0] = &d.val;
 	pos[0] = -1;
@@ -66,6 +68,87 @@ void GeomKeypoint::Visit(Vis& v) {
 
 void GeomTimeline::Visit(Vis& v) {
 	v VISM(keypoints);
+}
+
+void GeomSceneTimeline::Reset() {
+	is_playing = false;
+	position = 0;
+	time = 0;
+}
+
+void GeomSceneTimeline::Play(int scene_length) {
+	if (scene_length > 0)
+		length = scene_length;
+	if (length > 0 && (position < 0 || position >= length))
+		Reset();
+	is_playing = true;
+}
+
+void GeomSceneTimeline::Pause() {
+	is_playing = false;
+}
+
+void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
+	if (!is_playing || !state.prj)
+		return;
+	if (length <= 0)
+		length = state.GetActiveScene().length;
+	if (length <= 0)
+		return;
+	time += dt * speed;
+	double frame_time = 1.0 / state.prj->kps;
+	position = time / frame_time;
+	if (position < 0 || position >= length) {
+		if (repeat) {
+			Reset();
+			is_playing = true;
+		}
+		else {
+			is_playing = false;
+		}
+		return;
+	}
+	GeomProject& prj = *state.prj;
+	for (GeomObjectState& os : state.objs) {
+		GeomObject& o = *os.obj;
+		if (!o.read_enabled)
+			continue;
+		GeomTimeline* tl = o.FindTimeline();
+		if (tl && !tl->keypoints.IsEmpty()) {
+			int pre_i = tl->FindPre(position);
+			int post_i = tl->FindPost(position);
+			if (pre_i >= 0 && post_i >= 0) {
+				ASSERT(pre_i < post_i);
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				GeomKeypoint& post = tl->keypoints[post_i];
+				float pre_time = pre.frame_id / (float)prj.kps;
+				float post_time = post.frame_id / (float)prj.kps;
+				float f = (time - pre_time) / (post_time - pre_time);
+				ASSERT(f >= 0.0 && f <= 1.0);
+				os.position = Lerp(pre.position, post.position, f);
+				os.orientation = Slerp(pre.orientation, post.orientation, f);
+			}
+		}
+		ApplyMeshAnimation(o, position, time, prj.kps);
+	}
+	if (state.active_camera_obj_i >= 0) {
+		GeomObjectState& os = state.objs[state.active_camera_obj_i];
+		ASSERT(os.obj->IsCamera());
+		if (os.obj->read_enabled) {
+			GeomCamera& cam = state.GetProgram();
+			cam.position = os.position;
+			cam.orientation = os.orientation;
+		}
+	}
+}
+
+void GeomSceneTimeline::Visit(Vis& v) {
+	v VIS_(time)
+	  VIS_(position)
+	  VIS_(length)
+	  VIS_(is_playing)
+	  VIS_(repeat)
+	  VIS_(speed);
 }
 
 void GeomTransform::Visit(Vis& v) {
@@ -233,6 +316,68 @@ void GeomEditableMesh::Visit(Vis& v) {
 				faces[i].Visit(v);
 		}
 	}
+}
+
+void GeomMeshKeyframe::Visit(Vis& v) {
+	v VIS_(frame_id);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			points.Clear();
+			const Value& pts = v.json->Get()["points"];
+			for (int i = 0; i < pts.GetCount(); i++)
+				points.Add(JsonValueToVec3(pts[i]));
+		}
+		else {
+			Vector<Value> pts;
+			for (const vec3& p : points)
+				pts.Add(Vec3ToJsonValue(p));
+			v.json->Set("points", ValueArray(pick(pts)));
+		}
+	}
+	else {
+		int point_count = points.GetCount();
+		v VIS_(point_count);
+		if (v.IsLoading()) {
+			points.SetCount(point_count);
+			for (int i = 0; i < point_count; i++)
+				v VISN(points[i]);
+		}
+		else {
+			for (int i = 0; i < point_count; i++)
+				v VISN(points[i]);
+		}
+	}
+}
+
+GeomMeshKeyframe& GeomMeshAnimation::GetAddKeyframe(int frame) {
+	int i = keyframes.Find(frame);
+	if (i >= 0)
+		return keyframes[i];
+	GeomMeshKeyframe& kf = keyframes.Add(frame);
+	kf.frame_id = frame;
+	return kf;
+}
+
+int GeomMeshAnimation::FindPre(int frame) const {
+	for (int i = keyframes.GetCount() - 1; i >= 0; i--) {
+		int j = keyframes.GetKey(i);
+		if (j <= frame)
+			return i;
+	}
+	return -1;
+}
+
+int GeomMeshAnimation::FindPost(int frame) const {
+	for (int i = 0; i < keyframes.GetCount(); i++) {
+		int j = keyframes.GetKey(i);
+		if (j >= frame)
+			return i;
+	}
+	return -1;
+}
+
+void GeomMeshAnimation::Visit(Vis& v) {
+	v VISM(keyframes);
 }
 
 void GeomBone::Visit(Vis& v) {
@@ -539,6 +684,23 @@ GeomTimeline* GeomObject::FindTimeline() const {
 	return 0;
 }
 
+GeomSceneTimeline& GeomScene::GetTimeline() {
+	static bool init = (TypedStringHasher<GeomSceneTimeline>("GeomSceneTimeline"), true);
+	GeomSceneTimeline& tl = val.GetAdd<GeomSceneTimeline>("timeline");
+	if (tl.length <= 0)
+		tl.length = length;
+	return tl;
+}
+
+GeomSceneTimeline* GeomScene::FindTimeline() const {
+	static bool init = (TypedStringHasher<GeomSceneTimeline>("GeomSceneTimeline"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomSceneTimeline>()) && sub.id == "timeline")
+			return &sub.GetExt<GeomSceneTimeline>();
+	}
+	return 0;
+}
+
 GeomTransform& GeomObject::GetTransform() {
 	static bool init = (TypedStringHasher<GeomTransform>("GeomTransform"), true);
 	return val.GetAdd<GeomTransform>("transform");
@@ -577,6 +739,20 @@ GeomEditableMesh* GeomObject::FindEditableMesh() const {
 	for (auto& sub : val.sub) {
 		if (IsVfsType(sub, AsTypeHash<GeomEditableMesh>()) && sub.id == "editable")
 			return &sub.GetExt<GeomEditableMesh>();
+	}
+	return 0;
+}
+
+GeomMeshAnimation& GeomObject::GetMeshAnimation() {
+	static bool init = (TypedStringHasher<GeomMeshAnimation>("GeomMeshAnimation"), true);
+	return val.GetAdd<GeomMeshAnimation>("mesh_anim");
+}
+
+GeomMeshAnimation* GeomObject::FindMeshAnimation() const {
+	static bool init = (TypedStringHasher<GeomMeshAnimation>("GeomMeshAnimation"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomMeshAnimation>()) && sub.id == "mesh_anim")
+			return &sub.GetExt<GeomMeshAnimation>();
 	}
 	return 0;
 }
@@ -665,6 +841,8 @@ void GeomObject::Visit(Vis& v) {
 	v("props", props, VISIT_NODE);
 	GeomEditableMesh& mesh = GetEditableMesh();
 	v("editable", mesh, VISIT_NODE);
+	GeomMeshAnimation& mesh_anim = GetMeshAnimation();
+	v("mesh_anim", mesh_anim, VISIT_NODE);
 	GeomSkeleton* skel_ptr = FindSkeleton();
 	GeomSkinWeights* weights_ptr = FindSkinWeights();
 	if (v.mode == Vis::MODE_JSON) {
@@ -1077,6 +1255,10 @@ GeomObject& GeomDirectory::GetAddModel(String name) {
 void GeomScene::Visit(Vis& v) {
 	v.VisitT<GeomDirectory>("GeomDirectory", *this);
 	v VIS_(length);
+	GeomSceneTimeline& tl = GetTimeline();
+	v("timeline", tl, VISIT_NODE);
+	if (v.IsLoading() && tl.length <= 0)
+		tl.length = length;
 }
 
 void GeomProject::Visit(Vis& v) {
@@ -1332,6 +1514,39 @@ Frustum GeomCamera::GetFrustum(ViewMode m, Size sz) const {
 	return cam.GetFrustum();
 }
 
+static void ApplyMeshAnimation(GeomObject& obj, int position, double time, int kps) {
+	GeomEditableMesh* mesh = obj.FindEditableMesh();
+	GeomMeshAnimation* anim = obj.FindMeshAnimation();
+	if (!mesh || !anim || anim->keyframes.IsEmpty())
+		return;
+	int pre_i = anim->FindPre(position);
+	int post_i = anim->FindPost(position);
+	if (pre_i < 0 && post_i < 0)
+		return;
+	if (pre_i < 0)
+		pre_i = post_i;
+	if (post_i < 0)
+		post_i = pre_i;
+	GeomMeshKeyframe& pre = anim->keyframes[pre_i];
+	GeomMeshKeyframe& post = anim->keyframes[post_i];
+	if (pre.points.IsEmpty())
+		return;
+	if (pre_i == post_i || post.points.IsEmpty()) {
+		mesh->points.SetCount(pre.points.GetCount());
+		for (int i = 0; i < pre.points.GetCount(); i++)
+			mesh->points[i] = pre.points[i];
+		return;
+	}
+	float pre_time = pre.frame_id / (float)kps;
+	float post_time = post.frame_id / (float)kps;
+	float f = (time - pre_time) / (post_time - pre_time);
+	f = minmax(f, 0.0f, 1.0f);
+	int count = min(pre.points.GetCount(), post.points.GetCount());
+	mesh->points.SetCount(count);
+	for (int i = 0; i < count; i++)
+		mesh->points[i] = Lerp(pre.points[i], post.points[i], f);
+}
+
 
 
 
@@ -1379,6 +1594,7 @@ void GeomAnim::Update(double dt) {
 				}
 			}
 		}
+		ApplyMeshAnimation(o, position, time, prj.kps);
 	}
 	
 	
@@ -1430,6 +1646,7 @@ INITIALIZER(GeomTransformType) {
 	TYPED_STRING_HASHER(GeomTransform);
 }
 INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomSceneTimeline, "scene3d.scene.timeline", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomTransform, "scene3d.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomDynamicProperties, "scene3d.props", "Scene3D|Core")
@@ -1437,6 +1654,7 @@ INITIALIZER_VFSEXT(GeomBone, "scene3d.bone", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkeleton, "scene3d.skeleton", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkinWeights, "scene3d.skinweights", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomMeshAnimation, "scene3d.mesh.anim", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomObject, "scene3d.object", "Scene3D|Core")

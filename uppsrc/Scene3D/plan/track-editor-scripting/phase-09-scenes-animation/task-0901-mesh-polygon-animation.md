@@ -17,4 +17,4 @@ Enable animation of mesh vertices/polygons via keyframes and tools.
 - Animations persist in save/load.
 
 ## Status
-- Pending
+- Done

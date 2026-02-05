@@ -158,3 +158,11 @@
   task: track-editor-scripting/phase-08-skeleton-rigging/task-0801-weight-painting.md
   status: done
   note: Added skin weights component and paint tool with viewport visualization.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-09-scenes-animation/task-0900-scene-timelines.md
+  status: done
+  note: Added scene timeline component, playback controls, and update loop integration.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-09-scenes-animation/task-0901-mesh-polygon-animation.md
+  status: done
+  note: Added mesh animation keyframes, playback application, and basic menu actions.

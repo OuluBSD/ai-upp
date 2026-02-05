@@ -63,6 +63,12 @@ struct GeomProjectCtrl : Ctrl {
 			P_SCRIPT_RUN,
 			P_POINTCLOUD,
 			P_DATASET,
+			P_SCENE_TIMELINE,
+			P_SCENE_TIMELINE_LENGTH,
+			P_SCENE_TIMELINE_POSITION,
+			P_SCENE_TIMELINE_PLAY,
+			P_SCENE_TIMELINE_REPEAT,
+			P_SCENE_TIMELINE_SPEED,
 		};
 		Kind kind = P_ROOT;
 		GeomScript* script = 0;
@@ -303,6 +309,9 @@ struct Edit3D : DockWindow {
 	void RegisterScriptVM(PyVM& vm);
 	void SetEditTool(EditTool tool);
 	void CreateEditableMeshObject();
+	GeomObject* GetFocusedMeshObject();
+	void AddMeshKeyframeAtCursor();
+	void ClearMeshKeyframes();
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	void CreateSkeletonForSelected();

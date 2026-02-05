@@ -146,3 +146,7 @@
   task: track-editor-scripting/phase-07-3d-editing/task-0701-3d-join-split-tools.md
   status: done
   note: Added join/split line tools with screen-space line picking.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0702-sculpt-sphere.md
+  status: done
+  note: Added sculpt mode with ray-based falloff deformation.

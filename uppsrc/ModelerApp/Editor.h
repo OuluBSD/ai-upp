@@ -232,6 +232,10 @@ struct Edit3D : DockWindow {
 	bool edit_snap_enable = false;
 	double edit_snap_step = 0.1;
 	bool edit_snap_local = true;
+	bool sculpt_mode = false;
+	double sculpt_radius = 0.5;
+	double sculpt_strength = 0.2;
+	bool sculpt_add = true;
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
@@ -295,6 +299,7 @@ struct Edit3D : DockWindow {
 	void SetEditTool(EditTool tool);
 	void CreateEditableMeshObject();
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
+	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	int PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);

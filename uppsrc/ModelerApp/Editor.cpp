@@ -1285,6 +1285,32 @@ Edit3D::Edit3D() :
 				.Check(edit_tool == TOOL_FACE);
 			bar.Add(t_("Erase Tool"), THISBACK1(SetEditTool, TOOL_ERASE))
 				.Check(edit_tool == TOOL_ERASE);
+			bar.Separator();
+			bar.Sub(t_("Plane"), [this](Bar& bar) {
+				bar.Add(t_("View Plane"), [this] { edit_plane = PLANE_VIEW; })
+					.Check(edit_plane == PLANE_VIEW);
+				bar.Add(t_("XY"), [this] { edit_plane = PLANE_XY; })
+					.Check(edit_plane == PLANE_XY);
+				bar.Add(t_("XZ"), [this] { edit_plane = PLANE_XZ; })
+					.Check(edit_plane == PLANE_XZ);
+				bar.Add(t_("YZ"), [this] { edit_plane = PLANE_YZ; })
+					.Check(edit_plane == PLANE_YZ);
+				bar.Add(t_("Local"), [this] { edit_plane = PLANE_LOCAL; })
+					.Check(edit_plane == PLANE_LOCAL);
+			});
+			bar.Sub(t_("Snap"), [this](Bar& bar) {
+				bar.Add(t_("Enable"), [this] { edit_snap_enable = !edit_snap_enable; })
+					.Check(edit_snap_enable);
+				bar.Add(t_("Local Axes"), [this] { edit_snap_local = !edit_snap_local; })
+					.Check(edit_snap_local);
+				bar.Separator();
+				bar.Add(t_("Step 0.1"), [this] { edit_snap_step = 0.1; })
+					.Check(fabs(edit_snap_step - 0.1) < 1e-6);
+				bar.Add(t_("Step 0.5"), [this] { edit_snap_step = 0.5; })
+					.Check(fabs(edit_snap_step - 0.5) < 1e-6);
+				bar.Add(t_("Step 1.0"), [this] { edit_snap_step = 1.0; })
+					.Check(fabs(edit_snap_step - 1.0) < 1e-6);
+			});
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -1809,24 +1835,50 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool != TOOL_SELECT) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
+			vec3 plane_origin = vec3(0);
+			vec3 plane_normal = vec3(0, 0, 1);
+			vec3 obj_pos = vec3(0);
+			quat obj_ori = Identity<quat>();
+			vec3 obj_scale = vec3(1);
+			if (state) {
+				if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+					obj_pos = os->position;
+					obj_ori = os->orientation;
+					obj_scale = os->scale;
+				}
+			}
+			else if (GeomTransform* tr = obj->FindTransform()) {
+				obj_pos = tr->position;
+				obj_ori = tr->orientation;
+				obj_scale = tr->scale;
+			}
+			plane_origin = obj_pos;
+			auto set_plane_from_view = [&] {
+				if (view_i < 0 || view_i >= 4)
+					return;
+				EditRendererBase* rend = v0.rends[view_i];
+				if (!rend)
+					return;
+				switch (rend->view_mode) {
+				case VIEWMODE_XY: plane_normal = vec3(0, 0, 1); break;
+				case VIEWMODE_XZ: plane_normal = vec3(0, 1, 0); break;
+				case VIEWMODE_YZ: plane_normal = vec3(1, 0, 0); break;
+				case VIEWMODE_PERSPECTIVE:
+					plane_normal = VectorTransform(VEC_FWD, obj_ori);
+					break;
+				default: break;
+				}
+			};
+			switch (edit_plane) {
+			case PLANE_XY: plane_normal = vec3(0, 0, 1); break;
+			case PLANE_XZ: plane_normal = vec3(0, 1, 0); break;
+			case PLANE_YZ: plane_normal = vec3(1, 0, 0); break;
+			case PLANE_LOCAL: plane_normal = VectorTransform(VEC_FWD, obj_ori); break;
+			default: set_plane_from_view(); break;
+			}
 			vec3 world;
-			if (ScreenToWorldPoint(view_i, p, world)) {
+			if (ScreenToPlaneWorldPoint(view_i, p, plane_origin, plane_normal, world)) {
 				GeomEditableMesh& mesh = obj->GetEditableMesh();
-				vec3 obj_pos = vec3(0);
-				quat obj_ori = Identity<quat>();
-				vec3 obj_scale = vec3(1);
-				if (state) {
-					if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
-						obj_pos = os->position;
-						obj_ori = os->orientation;
-						obj_scale = os->scale;
-					}
-				}
-				else if (GeomTransform* tr = obj->FindTransform()) {
-					obj_pos = tr->position;
-					obj_ori = tr->orientation;
-					obj_scale = tr->scale;
-				}
 				auto world_to_local = [&](const vec3& w) {
 					quat inv = obj_ori.GetInverse();
 					vec3 v = VectorTransform(w - obj_pos, inv);
@@ -1837,8 +1889,22 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 					return out;
 				};
 				int picked = PickNearestPoint(mesh, view_i, p, edit_pick_radius_px);
+				auto snap_local = [&](vec3 local) {
+					if (!edit_snap_enable)
+						return local;
+					double s = edit_snap_step;
+					if (s <= 0.0)
+						return local;
+					auto snap = [&](double v) { return (float)(floor(v / s + 0.5) * s); };
+					if (edit_snap_local) {
+						local[0] = snap(local[0]);
+						local[1] = snap(local[1]);
+						local[2] = snap(local[2]);
+					}
+					return local;
+				};
 				if (edit_tool == TOOL_POINT) {
-					vec3 local = world_to_local(world);
+					vec3 local = snap_local(world_to_local(world));
 					mesh.points.Add(local);
 					state->UpdateObjects();
 					RefrehRenderers();
@@ -1846,7 +1912,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 				else if (edit_tool == TOOL_LINE) {
 					int idx = picked;
 					if (idx < 0) {
-						vec3 local = world_to_local(world);
+						vec3 local = snap_local(world_to_local(world));
 						idx = mesh.points.GetCount();
 						mesh.points.Add(local);
 					}
@@ -1868,7 +1934,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 				else if (edit_tool == TOOL_FACE) {
 					int idx = picked;
 					if (idx < 0) {
-						vec3 local = world_to_local(world);
+						vec3 local = snap_local(world_to_local(world));
 						idx = mesh.points.GetCount();
 						mesh.points.Add(local);
 					}
@@ -1957,7 +2023,7 @@ void Edit3D::CreateEditableMeshObject() {
 	RefreshData();
 }
 
-bool Edit3D::ScreenToWorldPoint(int view_i, const Point& p, vec3& out) const {
+bool Edit3D::ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const {
 	if (view_i < 0 || view_i >= 4)
 		return false;
 	EditRendererBase* rend = v0.rends[view_i];
@@ -1971,14 +2037,15 @@ bool Edit3D::ScreenToWorldPoint(int view_i, const Point& p, vec3& out) const {
 	gcam.LoadCamera(rend->view_mode, cam, sz);
 	mat4 view = cam.GetWorldMatrix();
 	mat4 proj = cam.GetProjectionMatrix();
-	vec2 origin(0, 0);
-	vec2 size((float)sz.cx, (float)sz.cy);
-	vec3 pnear = Unproject(vec3(p.x, p.y, 0.0f), origin, size, view, proj);
-	vec3 pfar = Unproject(vec3(p.x, p.y, 1.0f), origin, size, view, proj);
+	vec2 viewport_origin(0, 0);
+	vec2 viewport_size((float)sz.cx, (float)sz.cy);
+	vec3 pnear = Unproject(vec3(p.x, p.y, 0.0f), viewport_origin, viewport_size, view, proj);
+	vec3 pfar = Unproject(vec3(p.x, p.y, 1.0f), viewport_origin, viewport_size, view, proj);
 	vec3 dir = pfar - pnear;
-	if (fabs(dir[2]) < 1e-6)
+	float denom = Dot(dir, normal);
+	if (fabs(denom) < 1e-6)
 		return false;
-	float t = -pnear[2] / dir[2];
+	float t = Dot(origin - pnear, normal) / denom;
 	out = pnear + dir * t;
 	return true;
 }

@@ -12,4 +12,4 @@ Elevate ActionScript-style scripting features as a high-priority workstream in t
 - ActionScript plan phases and tasks for stage API, display list, events, timelines, and dynamic properties.
 
 ## Status
-- Pending
+- Done

@@ -1,8 +1,8 @@
 #ifndef _MaestroHub_MaestroHub_h_
 #define _MaestroHub_MaestroHub_h_
 
+#include <CtrlLib/CtrlLib.h>
 #include <Maestro/Maestro.h>
-#include <GraphLib/GraphLib.h>
 
 #include "Technology.h"
 #include "Product.h"
@@ -12,14 +12,6 @@
 #include "SessionManagement.h"
 
 NAMESPACE_UPP
-
-// Forward declarations
-class TechnologyPane;
-class ProductPane;
-class MaintenancePane;
-class SessionManagementPane;
-class IssuesPane;
-class WorkPane;
 
 class MaestroHub : public TopWindow {
 	MenuBar menu;
@@ -44,6 +36,8 @@ class MaestroHub : public TopWindow {
 	void OnEnactStep(String runbook_title, int step_n, String instruction);
 	void OnSessionSelect(String backend, String session_id);
 	void OnSuggestEnact();
+	void OnTriageWizard();
+	void OnRunbookEditor();
 	
 	void LoadData();
 	void PlanWatcher();
@@ -53,6 +47,7 @@ class MaestroHub : public TopWindow {
 public:
 	typedef MaestroHub CLASSNAME;
 	MaestroHub();
+	~MaestroHub();
 };
 
 END_UPP_NAMESPACE

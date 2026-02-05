@@ -1,6 +1,8 @@
 #ifndef _GraphLib_Graph_h_
 #define _GraphLib_Graph_h_
 
+#include "GroupNode.h"
+
 namespace GraphLib {
 
 using namespace Upp;
@@ -132,42 +134,6 @@ struct Node : Moveable<Node> {
 			}
 		}
 	}
-};
-
-struct GroupNode : Moveable<GroupNode> {
-	String id;
-	String label;
-	Pointf position;
-	Size size;
-	
-	Color header_clr;
-	Color body_clr;
-	Color border_clr;
-	int border_width;
-	
-	bool is_collapsed;
-	bool isSelected;
-	
-	Vector<String> node_ids;
-	
-	GroupNode() : position(0,0), size(200, 150), 
-		header_clr(LtBlue()), body_clr(White()), border_clr(Black()), border_width(1),
-		is_collapsed(false), isSelected(false) {}
-		
-	Rect GetBoundingBox() const {
-		return RectC((int)position.x, (int)position.y, size.cx, size.cy);
-	}
-	
-	Rect GetHeaderRect() const {
-		return RectC((int)position.x, (int)position.y, size.cx, 20); // Assuming 20px header
-	}
-	
-	bool ContainsHeader(Point p) const {
-		return GetHeaderRect().Contains(p);
-	}
-	
-	void Select() { isSelected = true; }
-	void Deselect() { isSelected = false; }
 };
 
 struct Edge : Moveable<Edge> {

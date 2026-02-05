@@ -84,9 +84,15 @@ struct RunbookStep : Moveable<RunbookStep> {
 	String action;
 	String command;
 	String expected;
+	ValueMap variants;
 	
 	void Jsonize(JsonIO& jio) {
-		jio("n", n)("actor", actor)("action", action)("command", command)("expected", expected);
+		jio("n", n)("actor", actor)("action", action)("command", command)("expected", expected)("variants", variants);
+	}
+	RunbookStep() {}
+	RunbookStep(const RunbookStep& s) {
+		n = s.n; actor = s.actor; action = s.action; command = s.command;
+		expected = s.expected; variants = clone(s.variants);
 	}
 };
 
@@ -101,6 +107,9 @@ struct Runbook : Moveable<Runbook> {
 	}
 	Runbook() {}
 	Runbook(const Runbook& r) {
+		id = r.id; title = r.title; goal = r.goal; steps = clone(r.steps);
+	}
+	void operator=(const Runbook& r) {
 		id = r.id; title = r.title; goal = r.goal; steps = clone(r.steps);
 	}
 };
@@ -319,6 +328,18 @@ struct MaestroIssue : Moveable<MaestroIssue> {
 		   ("fix_session", fix_session)("linked_tasks", linked_tasks)
 		   ("fingerprint", fingerprint);
 	}
+	MaestroIssue() {}
+	MaestroIssue(const MaestroIssue& o) {
+		issue_id = o.issue_id; issue_type = o.issue_type; state = o.state;
+		priority = o.priority; severity = o.severity; title = o.title;
+		description = o.description; message = o.message; file = o.file;
+		line = o.line; column = o.column; created_at = o.created_at;
+		modified_at = o.modified_at; tool = o.tool; rule = o.rule;
+		solutions = clone(o.solutions); analysis_summary = o.analysis_summary;
+		analysis_confidence = o.analysis_confidence; decision = o.decision;
+		fix_session = o.fix_session; linked_tasks = clone(o.linked_tasks);
+		fingerprint = o.fingerprint;
+	}
 };
 
 struct LogFinding : Moveable<LogFinding> {
@@ -335,6 +356,12 @@ struct LogFinding : Moveable<LogFinding> {
 		jio("kind", kind)("severity", severity)("message", message)
 		   ("fingerprint", fingerprint)("file", file)("line", line)
 		   ("tool", tool)("raw_line", raw_line);
+	}
+	LogFinding() {}
+	LogFinding(const LogFinding& o) {
+		kind = o.kind; severity = o.severity; message = o.message;
+		fingerprint = o.fingerprint; file = o.file; line = o.line;
+		tool = o.tool; raw_line = o.raw_line;
 	}
 };
 
@@ -360,6 +387,11 @@ struct LogScan : Moveable<LogScan> {
 
 	void Jsonize(JsonIO& jio) {
 		jio("meta", meta)("findings", findings);
+	}
+	LogScan() {}
+	LogScan(const LogScan& o) {
+		meta = o.meta;
+		findings = clone(o.findings);
 	}
 };
 

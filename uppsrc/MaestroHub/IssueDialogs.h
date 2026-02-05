@@ -14,10 +14,8 @@ NAMESPACE_UPP
 #endif
 
 class IssueEditDialog : public WithIssueEditLayout<TopWindow> {
-	MaestroIssue issue;
-	
-	void SyncFromIssue();
-	void SyncToIssue();
+	void SyncFromIssue(const MaestroIssue& src);
+	void SyncToIssue(MaestroIssue& dst);
 	
 public:
 	void LoadIssue(const MaestroIssue& src);

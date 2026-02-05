@@ -22,6 +22,9 @@ split.Horz(vsplit_rb, vsplit_wg);
 	workflows.AddColumn("Workflow ID");
 	workflows.AddColumn("Title");
 	workflows.WhenCursor = THISBACK(OnWorkflowSelect);
+	
+	workflow_graph.WhenNodeClick = THISBACK(OnNodeClick);
+	workflow_graph.WhenNodeRightClick = THISBACK(OnNodeRightClick);
 		
 	rb_detail.WhenLink = [=](const String& link) {
 		if(link.StartsWith("step:")) {
@@ -141,7 +144,88 @@ void ProductPane::OnWorkflowSelect() {
 		}
 	}
 	
-	workflow_graph.Refresh();
-}
-
-END_UPP_NAMESPACE
+		workflow_graph.Refresh();
+	
+	}
+	
+	
+	
+	void ProductPane::OnNodeClick(GraphLib::Node& n) {
+	
+		if(!workflows.IsCursor()) return;
+	
+		const WorkGraph& wg = workflow_data[workflows.GetCursor()];
+	
+		
+	
+		for(const auto& ph : wg.phases) {
+	
+			for(const auto& tk : ph.tasks) {
+	
+				if(tk.id == n.id) {
+	
+					String qtf;
+	
+					qtf << "[*@3 Task: " << DeQtf(tk.title) << "]&";
+	
+					qtf << "[* ID:] " << DeQtf(tk.id) << "&";
+	
+					qtf << "[* Status:] [! " << tk.status << "]&";
+	
+					qtf << "[* Intent:] " << DeQtf(tk.intent) << "&";
+	
+					if(tk.depends_on.GetCount() > 0)
+	
+						qtf << "[* Depends on:] " << Join(tk.depends_on, ", ") << "&";
+	
+					wg_detail.SetQTF(qtf);
+	
+					return;
+	
+				}
+	
+			}
+	
+		}
+	
+	}
+	
+	
+	
+	void ProductPane::OnNodeRightClick(GraphLib::Node& n) {
+	
+		// Custom menu for nodes
+	
+		MenuBar::Execute([=, &n](Bar& b) {
+	
+			b.Add("Start Work", [=, &n] {
+	
+				// Find task and enact
+	
+				OnNodeClick(n); // Show details first
+	
+				// Call WhenEnact if we had access to track/phase ID, 
+	
+				// but for now just show intent
+	
+				PromptOK("Starting work on " + n.id);
+	
+			});
+	
+			b.Add("Mark Done", [=, &n] {
+	
+				n.SetFill(Color(200, 255, 200));
+	
+				workflow_graph.Refresh();
+	
+			});
+	
+		});
+	
+	}
+	
+	
+	
+	END_UPP_NAMESPACE
+	
+	

@@ -340,6 +340,17 @@ struct MaestroIssue : Moveable<MaestroIssue> {
 		fix_session = o.fix_session; linked_tasks = clone(o.linked_tasks);
 		fingerprint = o.fingerprint;
 	}
+	void operator=(const MaestroIssue& o) {
+		issue_id = o.issue_id; issue_type = o.issue_type; state = o.state;
+		priority = o.priority; severity = o.severity; title = o.title;
+		description = o.description; message = o.message; file = o.file;
+		line = o.line; column = o.column; created_at = o.created_at;
+		modified_at = o.modified_at; tool = o.tool; rule = o.rule;
+		solutions = clone(o.solutions); analysis_summary = o.analysis_summary;
+		analysis_confidence = o.analysis_confidence; decision = o.decision;
+		fix_session = o.fix_session; linked_tasks = clone(o.linked_tasks);
+		fingerprint = o.fingerprint;
+	}
 };
 
 struct LogFinding : Moveable<LogFinding> {

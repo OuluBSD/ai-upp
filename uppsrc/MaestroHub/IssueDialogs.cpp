@@ -18,38 +18,36 @@ IssueEditDialog::IssueEditDialog() {
 	state.Add("task");
 }
 
-void IssueEditDialog::SyncFromIssue() {
-	title.SetData(issue.title);
-	message.SetData(issue.message);
-	file.SetData(issue.file);
-	line.SetData(issue.line);
-	severity.SetData(issue.severity);
-	state.SetData(issue.state);
-	priority.SetData(issue.priority);
+void IssueEditDialog::SyncFromIssue(const MaestroIssue& src) {
+	title.SetData(src.title);
+	message.SetData(src.message);
+	file.SetData(src.file);
+	line.SetData(src.line);
+	severity.SetData(src.severity);
+	state.SetData(src.state);
+	priority.SetData(src.priority);
 }
 
-void IssueEditDialog::SyncToIssue() {
-	issue.title = title.GetData();
-	issue.message = message.GetData();
-	issue.file = file.GetData();
-	issue.line = line.GetData();
-	issue.severity = severity.GetData();
-	issue.state = state.GetData();
-	issue.priority = priority.GetData();
-	issue.modified_at = GetSysTime();
+void IssueEditDialog::SyncToIssue(MaestroIssue& dst) {
+	dst.title = title.GetData();
+	dst.message = message.GetData();
+	dst.file = file.GetData();
+	dst.line = line.GetData();
+	dst.severity = severity.GetData();
+	dst.state = state.GetData();
+	dst.priority = priority.GetData();
+	dst.modified_at = GetSysTime();
 }
 
 void IssueEditDialog::LoadIssue(const MaestroIssue& src) {
-	issue = clone(src);
-	SyncFromIssue();
+	SyncFromIssue(src);
 }
 
 bool IssueEditDialog::RunEdit(MaestroIssue& dst) {
 	LoadIssue(dst);
 	if(Run() != IDOK)
 		return false;
-	SyncToIssue();
-	dst = clone(issue);
+	SyncToIssue(dst);
 	return true;
 }
 

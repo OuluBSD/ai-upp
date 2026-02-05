@@ -28,6 +28,7 @@ file
 	MainMenuScreen.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
+	TestGameScreen.cpp,
 	main.cpp,
 	LevelLoader.cpp,
 	EntitySystem.cpp,

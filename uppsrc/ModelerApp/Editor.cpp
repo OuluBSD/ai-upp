@@ -1150,8 +1150,8 @@ void Edit3D::EnsureSimSceneObjects() {
 			obj.mdl = builder.Detach();
 		}
 	}
-	UpdateCameraObjectRender(fake_cam, sim_fake_hmd_pose, true);
-	UpdateCameraObjectRender(localized_cam, sim_localized_pose, true);
+	UpdateCameraObjectRender(fake_cam, sim_fake_hmd_pose, false);
+	UpdateCameraObjectRender(localized_cam, sim_localized_pose, false);
 	state->UpdateObjects();
 	Data();
 	v0.TimelineData();
@@ -1254,8 +1254,8 @@ void Edit3D::DebugGeneratePointcloud() {
 	GeomCamera& program = state->GetProgram();
 	program.position = sim_localized_pose.position;
 	program.orientation = sim_localized_pose.orientation;
-	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
-	UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, true);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, false);
+	UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, false);
 	RefrehRenderers();
 }
 
@@ -1287,7 +1287,7 @@ void Edit3D::DebugSimulateObservation() {
 	GeomCamera& cam = state->GetFocus();
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
-	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, false);
 	RefrehRenderers();
 }
 
@@ -1304,7 +1304,7 @@ String Edit3D::RunLocalizationLog(bool show_dialog) {
 		GeomCamera& cam = state->GetProgram();
 		cam.position = sim_localized_pose.position;
 		cam.orientation = sim_localized_pose.orientation;
-		UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, true);
+		UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, false);
 		if (sim_hmd_pointcloud_obj) {
 			GeomPointcloudEffectTransform& fx = sim_hmd_pointcloud_obj->GetAddPointcloudEffect("localization");
 			if (!fx.locked) {
@@ -1350,6 +1350,12 @@ String Edit3D::RunControllerLocalizationLog(bool show_dialog) {
 	ControllerFusionStub fusion;
 	String log;
 	for (int i = 0; i < sim_ctrl_obs.GetCount() && i < sim_state.controllers.GetCount(); i++) {
+		vec3 center_cam = ApplyInversePoseSimple(sim_fake_hmd_pose, sim_state.controller_poses_world[i].position);
+		bool visible = VisibleInFrustumSimple(center_cam, sim_cfg);
+		if (!visible) {
+			log << "controller[" << i << "] ok=0 pos=(0.000, 0.000, 0.000) not_visible=1\n";
+			continue;
+		}
 		if (sim_ctrl_obs[i].points.IsEmpty()) {
 			log << "controller[" << i << "] ok=0 pos=(0.000, 0.000, 0.000)\n";
 			continue;
@@ -1409,7 +1415,7 @@ void Edit3D::DebugSimulateControllerObservations() {
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
 	GeomScene& scene = state->GetActiveScene();
-	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, false);
 	RefrehRenderers();
 }
 

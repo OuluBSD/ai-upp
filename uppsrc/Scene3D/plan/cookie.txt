@@ -66,3 +66,11 @@
   task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0200-localization-application.md
   status: done
   note: Applied localization to hmd_pointcloud via effect stack and kept sim_observation raw.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0201-fake-camera-frustum-consistency.md
+  status: done
+  note: Removed synthetic camera render flip so fake camera orientation matches frustum math.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0202-controller-visibility-constraints.md
+  status: done
+  note: Controller localization now fails when controllers are outside the fake HMD frustum.

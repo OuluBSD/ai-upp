@@ -1,30 +1,36 @@
 #include "MaestroHub.h"
+#include "SubworkManager.h"
 
 NAMESPACE_UPP
 
 WorkPane::WorkPane() {
-	Add(vsplit.SizePos());
-	
-	hsplit.Horz(task_details, plan_steps);
-	vsplit.Vert(hsplit, breadcrumbs);
-	vsplit.SetPos(4000);
-	
-	plan_steps.AddColumn("Step");
-	plan_steps.AddColumn("Action");
-	
-	Add(btn_refresh.LeftPos(10, 100).BottomPos(10, 30));
-	btn_refresh.SetLabel("Refresh");
-	btn_refresh << [=] { Refresh(); };
-	
-	Add(btn_approve.RightPos(120, 100).BottomPos(10, 30));
-	btn_approve.SetLabel("Approve");
-	btn_approve.SetImage(CtrlImg::save());
+	btn_approve.SetLabel("Approve Plan");
 	btn_approve << THISBACK(OnApprove);
-	
-	Add(btn_reject.RightPos(10, 100).BottomPos(10, 30));
-	btn_reject.SetLabel("Reject");
-	btn_reject.SetImage(CtrlImg::remove());
+	btn_reject.SetLabel("Reject / Feedback");
 	btn_reject << THISBACK(OnReject);
+	btn_subwork.SetLabel("Subwork...");
+	btn_subwork << THISBACK(OnSubwork);
+	btn_refresh.SetLabel("Refresh");
+	btn_refresh << THISBACK(Refresh);
+	
+	Add(vsplit.SizePos());
+	vsplit.Vert(hsplit, breadcrumbs);
+	hsplit.Horz(task_details, plan_steps);
+	
+	Add(btn_approve.BottomPos(8, 32).LeftPos(8, 150));
+	Add(btn_reject.BottomPos(8, 32).LeftPos(164, 150));
+	Add(btn_subwork.BottomPos(8, 32).LeftPos(320, 150));
+	Add(btn_refresh.BottomPos(8, 32).RightPos(8, 100));
+}
+
+void WorkPane::OnSubwork() {
+	if(active_session_id.IsEmpty()) {
+		PromptOK("No active session to manage subwork for.");
+		return;
+	}
+	SubworkManagerDialog dlg;
+	dlg.Load(current_root, active_session_id);
+	dlg.Run();
 }
 
 void WorkPane::Load(const String& root) {

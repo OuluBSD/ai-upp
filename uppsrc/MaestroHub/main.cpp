@@ -1,6 +1,7 @@
 #include "MaestroHub.h"
 #include "TriageDialog.h"
 #include "RunbookEditor.h"
+#include "StateEditor.h"
 
 NAMESPACE_UPP
 
@@ -222,7 +223,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 		b.Add("Browse Workflows", [=] { tabs.Set(1); }); // Product tab
 		b.Add("Visual Graph", [=] { tabs.Set(1); });
 		b.Separator();
-		b.Add("State Machine Editor...", [=] { PromptOK("Workflow Editor Placeholder"); });
+		b.Add("State Machine Editor...", THISBACK(OnStateEditor));
 	});
 
 	bar.Sub("Intelligence", [=](Bar& b) {
@@ -371,6 +372,14 @@ void MaestroHub::OnRunbookEditor() {
 	if(dlg.Run() == IDOK) {
 		LoadData();
 	}
+}
+
+void MaestroHub::OnStateEditor() {
+	StateEditor dlg;
+	// Need a way to select which workflow to edit, or just load first one for now
+	dlg.Load(current_root, "main");
+	dlg.Run();
+	LoadData();
 }
 
 void MaestroHub::PlanWatcher() {

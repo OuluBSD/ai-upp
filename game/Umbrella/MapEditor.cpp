@@ -834,8 +834,16 @@ void MapEditorApp::NewMapAction() {
 void MapEditorApp::OpenFileAction() {
 	FileSel fs;
 
-	// Set initial directory to levels folder
-	String levelsDir = GetFileFolder(GetExeFilePath()) + "/../share/mods/umbrella/levels";
+	// Set initial directory to levels folder - use GetHomeDirFile or proper path resolution
+	String exePath = GetExeFilePath();
+	String exeDir = GetFileFolder(exePath);
+	String levelsDir = AppendFileName(AppendFileName(AppendFileName(exeDir, "share"), "mods/umbrella"), "levels");
+
+	// Try parent directory if not found (when running from bin/)
+	if(!DirectoryExists(levelsDir)) {
+		levelsDir = AppendFileName(AppendFileName(AppendFileName(GetFileFolder(exeDir), "share"), "mods/umbrella"), "levels");
+	}
+
 	if(DirectoryExists(levelsDir)) {
 		fs.BaseDir(levelsDir);
 	}
@@ -895,6 +903,34 @@ void MapEditorApp::OpenFile(const String& fileName) {
 		// Update window title
 		Title("Umbrella Map Editor - " + GetFileName(fileName));
 
+		// Auto-load reference image if it exists
+		// world1-stage1.json -> map 1-1/frame_000002.jpg
+		String baseName = GetFileTitle(fileName);  // "world1-stage1"
+
+		// Parse worldX-stageY pattern
+		int worldNum = 0, stageNum = 0;
+		if(baseName.StartsWith("world") && baseName.Find("-stage") >= 0) {
+			int dashPos = baseName.Find("-stage");
+			worldNum = atoi(baseName.Mid(5, dashPos - 5));
+			stageNum = atoi(baseName.Mid(dashPos + 6));
+
+			// Build reference image path: share/mods/umbrella/proprietary/maps/map X-Y/frame_000002.jpg
+			String exeDir = GetFileFolder(GetExeFilePath());
+			String mapsDir = AppendFileName(AppendFileName(AppendFileName(exeDir, "share"), "mods/umbrella/proprietary"), "maps");
+
+			// Try parent directory if not found (when running from bin/)
+			if(!DirectoryExists(mapsDir)) {
+				mapsDir = AppendFileName(AppendFileName(AppendFileName(GetFileFolder(exeDir), "share"), "mods/umbrella/proprietary"), "maps");
+			}
+
+			String mapDir = AppendFileName(mapsDir, Format("map %d-%d", worldNum, stageNum));
+			String refImagePath = AppendFileName(mapDir, "frame_000002.jpg");
+
+			if(FileExists(refImagePath)) {
+				LoadReferenceImage(refImagePath);
+			}
+		}
+
 		// Refresh canvas
 		mapCanvas.Refresh();
 
@@ -930,7 +966,14 @@ void MapEditorApp::BrowseReferenceImage() {
 	FileSel fs;
 
 	// Set initial directory to proprietary maps
-	String mapsDir = GetFileFolder(GetExeFilePath()) + "/../share/mods/umbrella/proprietary/maps";
+	String exeDir = GetFileFolder(GetExeFilePath());
+	String mapsDir = AppendFileName(AppendFileName(AppendFileName(exeDir, "share"), "mods/umbrella/proprietary"), "maps");
+
+	// Try parent directory if not found (when running from bin/)
+	if(!DirectoryExists(mapsDir)) {
+		mapsDir = AppendFileName(AppendFileName(AppendFileName(GetFileFolder(exeDir), "share"), "mods/umbrella/proprietary"), "maps");
+	}
+
 	if(DirectoryExists(mapsDir)) {
 		fs.BaseDir(mapsDir);
 	}

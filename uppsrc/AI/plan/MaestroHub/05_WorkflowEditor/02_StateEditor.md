@@ -1,5 +1,5 @@
 # Task: Visual State Machine Editor
-# Status: TODO
+# Status: IN_PROGRESS
 
 ## Objective
 Visual editor for `workflow` command (creating/editing .puml files).

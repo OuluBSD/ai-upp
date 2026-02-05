@@ -1,6 +1,7 @@
 #include "Umbrella.h"
 #include "MainMenuScreen.h"
 #include "MapEditor.h"
+#include "GameScreen.h"
 
 using namespace Upp;
 
@@ -37,8 +38,15 @@ MainMenuScreen::MainMenuScreen() {
 }
 
 void MainMenuScreen::ShowGameScreen() {
-	// TODO: Create and show GameScreen
-	PromptOK("Game screen not yet implemented!");
+	// Launch first level for testing
+	String levelPath = "share/mods/umbrella/levels/world1-stage1.json";
+
+	if(FileExists(levelPath)) {
+		Close();
+		GameScreen(levelPath).Run();
+	} else {
+		Exclamation("Level not found: " + levelPath);
+	}
 }
 
 void MainMenuScreen::ShowEditorScreen() {

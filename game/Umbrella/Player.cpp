@@ -190,8 +190,12 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 			for(int col = minCol; col <= maxCol; col++) {
 				if(collision.IsWallTile(col, row) || collision.IsFullBlockTile(col, row)) {
 					collided = true;
-					// In Y-up: deltaY < 0 means moving down (falling), hitting floor
-					if(deltaY < 0) {
+					// In Y-up: deltaY < 0 means moving down (falling)
+					// Check if it's actually the feet hitting (lower Y edge)
+					float feetY = min(bounds.top, bounds.bottom);
+					int feetRow = (int)(feetY / gridSize);
+					if(deltaY < 0 && row == feetRow) {
+						// Feet hit floor from above
 						onGround = true;
 					}
 					break;

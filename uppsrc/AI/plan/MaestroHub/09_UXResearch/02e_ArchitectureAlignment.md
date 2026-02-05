@@ -1,5 +1,5 @@
 # Task: Core Architecture Alignment
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Review the current GUI design against the "Core Product Architecture" (Section A of Features.md).

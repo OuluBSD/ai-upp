@@ -3,7 +3,7 @@
 
 
 struct Edit3D;
-struct EditRenderer;
+struct EditRendererV1;
 struct VideoImportCtrl;
 
 struct VideoImportImageCtrl : Ctrl {
@@ -49,18 +49,18 @@ struct VideoImportCtrl : ParentCtrl {
 	struct KpView : ParentCtrl {
 		Splitter hsplit, vsplit;
 		KeypointImageCtrl st;
-		EditRenderer rends[2];
+		EditRendererV1 rends[2];
 		
 	};
 	struct TriView : ParentCtrl {
 		Splitter hsplit, vsplit;
 		TriangleImageCtrl st;
-		EditRenderer rends[2];
+		EditRendererV1 rends[2];
 		
 	};
 	struct WorldView : ParentCtrl {
 		FixedGridCtrl grid;
-		EditRenderer rends[4];
+		EditRendererV1 rends[4];
 		
 	};
 	KpView kp;

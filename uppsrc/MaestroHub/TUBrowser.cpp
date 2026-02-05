@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 TUBrowser::TUBrowser() {
-	CtrlLayout(*this, "TU Browser & Code Intelligence");
+	CtrlLayout(*this);
 	
 	left_pane.Add(pkg_search.TopPos(0, 24).HSizePos());
 	left_pane.Add(pkg_list.VSizePos(24, 0).HSizePos());

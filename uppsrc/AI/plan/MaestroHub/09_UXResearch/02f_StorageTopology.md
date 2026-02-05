@@ -1,5 +1,5 @@
 # Task: Storage Topology & Migration UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Design the UI for managing project storage layouts and mechanical conversions.

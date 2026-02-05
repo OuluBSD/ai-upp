@@ -54,6 +54,7 @@ class AIChatCtrl : public Ctrl {
 	
 	ParentCtrl      chat;
 	MaestroTodoList todo;
+	Label           status;
 	
 public:
 	// Suggestion UI
@@ -76,15 +77,16 @@ public:
 	void Poll();
 	
 	void Load(const String& root);
-	void SetSession(const String& backend, const String& session_id);
-	
+	void   SetSession(const String& backend, const String& session_id);
+	void   SessionStatus(const String& backend, const String& session_id);
+	void   SuggestEnactment(String track, String phase, String task);
+
 	void AddItem(const String& role, const String& text, bool is_error = false);
 	MaestroItem& AddToolItem(const String& role, const String& text);
 	void CopyAllChat();
 	void CopyDebugData();
 	void OnSelectSession();
 	void OnDone(bool result, bool fail);
-	void SuggestEnactment(String track, String phase, String task);
 	
 	String GetResponse() const { return current_response; }
 

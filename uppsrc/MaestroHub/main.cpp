@@ -1,15 +1,30 @@
-#include "MaestroHub.h"
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+
+#include "MaestroAssistant.h"
+#include "FleetDashboard.h"
+#include "IntelligenceHub.h"
+#include "Technology.h"
+#include "Product.h"
+#include "Maintenance.h"
 #include "IssuesView.h"
 #include "IssueDialogs.h"
 #include "TriageDialog.h"
 #include "RunbookEditor.h"
 #include "StateEditor.h"
+#include "SubworkManager.h"
 #include "TUBrowser.h"
 #include "LogAnalyzer.h"
 #include "NewSessionDialog.h"
 #include "InitDialog.h"
 #include "ConfigurationDialog.h"
 #include "OpsRunner.h"
+#include "WorkDashboard.h"
+#include "SessionManagement.h"
+#include "AuditTrail.h"
+#include "DebugWorkspace.h"
+
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -19,13 +34,32 @@ String GetPlanSummaryText(const Array<Track>& tracks, const String& current_trac
 }
 
 MaestroHub::MaestroHub() {
-	Title("Maestro Main Hub");
-	SetRect(0, 0, 1200, 800);
+	Title("Maestro Main Hub [Refined]");
+	SetRect(0, 0, 1280, 800);
 	Sizeable().Zoomable();
 	
 	AddFrame(menu);
 	menu.Set(THISBACK(MainMenu));
 	
+	AddFrame(toolbar);
+	toolbar.Set([=](Bar& bar) {
+		bar.Add(CtrlImg::Dir(), THISBACK(SelectRoot)).Tip("Open Project Directory");
+		bar.Separator();
+		bar.Add(CtrlImg::save(), []{ PromptOK("Save All (Stub)"); }).Tip("Save All Changes");
+		bar.Separator();
+		bar.Add(CtrlImg::reporticon(), THISBACK(OnOpsRunner)).Tip("Run Operations Doctor");
+		bar.Add(CtrlImg::question(), THISBACK(OnLogAnalyzer)).Tip("Scan Logs for Findings");
+	});
+	
+	AddFrame(statusbar);
+	statusbar.Set(0, "Ready.", 0);
+	statusbar.Set(1, "Model: Gemini 1.5 Pro", 200);
+	statusbar.Set(2, "Quota: 85% [====--]", 150);
+	statusbar.Set(3, "Backend: OK", 100);
+
+	fleet.Create();
+	intelligence.Create();
+	debug_workspace.Create();
 	technology.Create();
 	product.Create();
 	maintenance.Create();
@@ -33,18 +67,41 @@ MaestroHub::MaestroHub() {
 	work.Create();
 	sessions.Create();
 	
-	Add(tabs.SizePos());
-	tabs.Add(technology->SizePos(), "Technology");
-	tabs.Add(product->SizePos(), "Product");
-	tabs.Add(maintenance->SizePos(), "Maintenance");
-	tabs.Add(issues->SizePos(), "Issues");
-	tabs.Add(work->SizePos(), "Work");
-	tabs.Add(sessions->SizePos(), "Sessions");
+	// Left Tabs: Workspace and Pipeline
+	left_tabs.Add(technology->SizePos(), "Workspace"); 
+	left_tabs.Add("Pipeline"); 
+	
+	// Center Tabs: Functional Hubs
+	center_tabs.Add(fleet->SizePos(), "Fleet Dashboard");
+	center_tabs.Add(intelligence->SizePos(), "Code Intelligence");
+	center_tabs.Add("Modeling & Logic"); 
+	center_tabs.Add(debug_workspace->SizePos(), "Execution Console"); 
+	center_tabs.Add(issues->SizePos(), "Issue Tracker");
+	
+	// Bottom Tabs: Output and Trace
+	bottom_tabs.Add("Automation Output");
+	bottom_tabs.Add("AI Trace");
+	bottom_tabs.Add(audit_trail.Create().SizePos(), "System Events");
+	
+	// Right Panel: Global AI Assistant
+	assistant.Create();
+	assistant->btn_toggle << THISBACK(OnToggleAssistant);
+	
+	// Compose the layout
+	center_split.Vert(center_tabs, bottom_tabs);
+	center_split.SetPos(6500); 
+	
+	main_split.Horz();
+	main_split << left_tabs << center_split << *assistant;
+	main_split.SetPos(2000, 0);
+	main_split.SetPos(8000, 1);
+	
+	Add(main_split.SizePos());
 	
 	technology->WhenEnact = THISBACK(OnEnact);
 	product->WhenEnactStep = THISBACK(OnEnactStep);
 	sessions->WhenSelect = THISBACK(OnSessionSelect);
-	maintenance->chat.enact_suggested.WhenAction = THISBACK(OnSuggestEnact);
+	assistant->chat.enact_suggested.WhenAction = THISBACK(OnSuggestEnact);
 	
 	config.Load();
 	if(config.recent_dirs.GetCount() > 0)
@@ -71,7 +128,7 @@ MaestroHub::MaestroHub() {
 					
 					Cout() << "=== ENACT TEST DUMP ===\n";
 					Cout() << "Enacted Task: " << k << "\n";
-					Cout() << "Prompt Input: " << maintenance->chat.input.GetData() << "\n";
+					Cout() << "Prompt Input: " << assistant->chat.input.GetData() << "\n";
 					Cout() << "=== END DUMP ===\n";
 					Cout().Flush();
 					Close();
@@ -84,7 +141,7 @@ MaestroHub::MaestroHub() {
 		}
 		else if(arg == "--test-product") {
 			SetTimeCallback(1000, [=] {
-				tabs.Set(1);
+				center_tabs.Set(0); // Fleet Dashboard
 				Cout() << "=== PRODUCT TEST DUMP ===\n";
 				if(product->runbooks.GetCount() > 0) {
 					product->runbooks.SetCursor(0);
@@ -105,20 +162,8 @@ MaestroHub::MaestroHub() {
 		}
 		else if(arg == "--test-sessions") {
 			SetTimeCallback(1000, [=] {
-				tabs.Set(3); // Sessions
 				Cout() << "=== SESSIONS TEST DUMP ===\n";
-				if(sessions->dirs.GetCount() > 0) {
-					sessions->dirs.SetCursor(0);
-					Ctrl::ProcessEvents();
-					Cout() << "Selected Dir: " << (sessions->dirs.IsCursor() ? sessions->dirs.Get(0).ToString() : "NONE") << "\n";
-					Cout() << "Session Count: " << sessions->sessions.GetCount() << "\n";
-					if(sessions->sessions.GetCount() > 0) {
-						sessions->sessions.SetCursor(0);
-						Cout() << "First Session ID: " << (sessions->sessions.IsCursor() ? sessions->sessions.Get(0).ToString() : "NONE") << "\n";
-					}
-				} else {
-					Cout() << "WARNING: No session directories found.\n";
-				}
+				Cout() << "New layout: Sessions managed via global sidebar and dialogs.\n";
 				Cout() << "=== END DUMP ===\n";
 				Cout().Flush();
 				Close();
@@ -126,7 +171,7 @@ MaestroHub::MaestroHub() {
 		}
 		else if(arg == "--test-graph") {
 			SetTimeCallback(1000, [=] {
-				tabs.Set(1); // Product
+				center_tabs.Set(0); // Fleet Dashboard
 				Cout() << "=== GRAPH TEST DUMP ===\n";
 				if(product->workflows.GetCount() > 0) {
 					product->workflows.SetCursor(0);
@@ -153,16 +198,16 @@ MaestroHub::MaestroHub() {
 			
 			// 1. Initial view: Technology
 			SetTimeCallback(2000, [=] {
-				Cout() << "Step 1: Browsing Technology Plan...\n";
-				tabs.Set(0);
+				Cout() << "Step 1: Browsing Technology Workspace...\n";
+				left_tabs.Set(0);
 				if(technology->plan.tree.GetChildCount(0) > 0) 
 					technology->plan.tree.SetCursor(technology->plan.tree.GetChild(0, 0));
 			});
 			
-			// 2. Switch to Product
+			// 2. Switch to Fleet Dashboard
 			SetTimeCallback(4000, [=] {
-				Cout() << "Step 2: Viewing Product Workflows...\n";
-				tabs.Set(1);
+				Cout() << "Step 2: Viewing Fleet Dashboard...\n";
+				center_tabs.Set(0);
 				if(product->workflows.GetCount() > 0) {
 					product->workflows.SetCursor(0);
 					Cout() << "Visualizing Workflow Graph...\n";
@@ -175,21 +220,16 @@ MaestroHub::MaestroHub() {
 				if(product->runbooks.GetCount() > 0) product->runbooks.SetCursor(0);
 			});
 			
-			// 4. Enact Step (simulate click)
+			// 4. Execution Console
 			SetTimeCallback(8000, [=] {
-				Cout() << "Step 4: Simulating 'Execute Step' enactment...\n";
-				if(product->runbook_data.GetCount() > 0) {
-					const auto& rb = product->runbook_data[0];
-					if(rb.steps.GetCount() > 0)
-						OnEnactStep(rb.title, 1, "Demo step execution logic");
-				}
+				Cout() << "Step 4: Switching to Execution Console...\n";
+				center_tabs.Set(3);
 			});
 			
-			// 5. Switch to Sessions
+			// 5. Audit Trail (Bottom)
 			SetTimeCallback(10000, [=] {
-				Cout() << "Step 5: Managing Sessions...\n";
-				tabs.Set(3);
-				if(sessions->dirs.GetCount() > 0) sessions->dirs.SetCursor(0);
+				Cout() << "Step 5: Inspecting Audit Trail...\n";
+				bottom_tabs.Set(2);
 			});
 			
 			// 6. Finish
@@ -207,29 +247,29 @@ void MaestroHub::MainMenu(Bar& bar) {
 	bar.Sub("App", THISBACK(AppMenu));
 	
 	bar.Sub("Sessions", [=](Bar& b) {
-		b.Add("List Sessions", [=] { tabs.Set(5); }); // Sessions tab
+		b.Add("List Sessions", [=] { center_tabs.Set(0); }); 
 		b.Add("New Session...", THISBACK(OnNewSession));
 		b.Separator();
-		b.Add("Active Session HUD", [=] { tabs.Set(4); }); // Work tab
+		b.Add("Active Session HUD", [=] { center_tabs.Set(3); }); 
 	});
 
 	bar.Sub("Issues", [=](Bar& b) {
-		b.Add("Browse Issues", [=] { tabs.Set(3); }); // Issues tab
+		b.Add("Browse Issues", [=] { center_tabs.Set(4); }); 
 		b.Add("Triage Wizard...", THISBACK(OnTriageWizard));
 		b.Separator();
 		b.Add("Create Issue...", THISBACK(OnCreateIssue));
 	});
 
 	bar.Sub("Runbooks", [=](Bar& b) {
-		b.Add("Manage Runbooks", [=] { tabs.Set(1); }); // Product tab
+		b.Add("Manage Runbooks", [=] { center_tabs.Set(2); }); 
 		b.Add("Visual Editor...", THISBACK(OnRunbookEditor));
 		b.Separator();
 		b.Add("Resolve Freeform...", [=] { PromptOK("Runbook Resolve Placeholder"); });
 	});
 
 	bar.Sub("Workflows", [=](Bar& b) {
-		b.Add("Browse Workflows", [=] { tabs.Set(1); }); // Product tab
-		b.Add("Visual Graph", [=] { tabs.Set(1); });
+		b.Add("Browse Workflows", [=] { center_tabs.Set(2); }); 
+		b.Add("Visual Graph", [=] { center_tabs.Set(2); });
 		b.Separator();
 		b.Add("State Machine Editor...", THISBACK(OnStateEditor));
 	});
@@ -238,7 +278,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 		b.Add("TU Browser", THISBACK(OnTUBrowser));
 		b.Add("Log Analyzer", THISBACK(OnLogAnalyzer));
 		b.Separator();
-		b.Add("Dependency Graph", [=] { tabs.Set(0); }); // Technology tab
+		b.Add("Dependency Graph", [=] { center_tabs.Set(1); }); 
 	});
 
 	bar.Sub("System", [=](Bar& b) {
@@ -268,24 +308,29 @@ void MaestroHub::SelectRoot() {
 }
 
 void MaestroHub::LoadData() {
-	Title("Maestro Main Hub - " + current_root);
+	SyncStatus();
+	if(fleet) {
+		fleet->LoadProjects(config.recent_dirs);
+		fleet->UpdateQueue();
+	}
+	if(intelligence) intelligence->Load(current_root);
 	if(technology) technology->Load(current_root);
 	if(product) product->Load(current_root);
 	if(maintenance) maintenance->Load(current_root);
 	if(issues) issues->Load(current_root);
 	if(work) work->Load(current_root);
 	if(sessions) sessions->Load(current_root);
+	if(audit_trail) audit_trail->Load(current_root);
 	
 	ScanForUnblockedTasks();
 }
 
 void MaestroHub::ScanForUnblockedTasks() {
-	if(!maintenance || current_root.IsEmpty()) return;
+	if(!assistant || current_root.IsEmpty()) return;
 	
 	PlanParser pp;
 	pp.LoadMaestroTracks(current_root);
 	
-	// Index all tasks by ID for dependency checking
 	Index<String> done_tasks;
 	for(const auto& t : pp.tracks)
 		for(const auto& p : t.phases)
@@ -293,7 +338,6 @@ void MaestroHub::ScanForUnblockedTasks() {
 				if(tk.status == STATUS_DONE)
 					done_tasks.Add(tk.id);
 					
-	// Find first TODO task whose dependencies are all DONE
 	for(const auto& t : pp.tracks) {
 		for(const auto& p : t.phases) {
 			for(const auto& tk : p.tasks) {
@@ -306,8 +350,8 @@ void MaestroHub::ScanForUnblockedTasks() {
 						}
 					}
 					if(unblocked) {
-						maintenance->chat.SuggestEnactment(t.id, p.id, tk.id);
-						return; // Suggest only the first one found
+						assistant->chat.SuggestEnactment(t.id, p.id, tk.id);
+						return; 
 					}
 				}
 			}
@@ -315,46 +359,58 @@ void MaestroHub::ScanForUnblockedTasks() {
 	}
 }
 
+void MaestroHub::OnToggleAssistant() {
+	if(!assistant) return;
+	assistant->is_expanded = !assistant->is_expanded;
+	assistant->btn_toggle.SetLabel(assistant->is_expanded ? ">" : "<");
+	if(assistant->is_expanded)
+		main_split.SetPos(8000, 1);
+	else
+		main_split.SetPos(10000, 1);
+}
+
 void MaestroHub::OnEnact(String track, String phase, String task) {
-	int maint_idx = 2;
-	tabs.Set(maint_idx);
+	active_track = track;
+	active_phase = phase;
+	active_task = task;
+	SyncStatus();
+	
+	center_tabs.Set(3); 
 	
 	PlanParser pp;
 	pp.LoadMaestroTracks(current_root);
 	
 	String context = PlanSummarizer::GetPlanSummaryText(pp.tracks, track, phase, task);
 	
-	if(maintenance) {
-		maintenance->SessionStatus("ENACT TASK", task);
+	if(assistant) {
+		assistant->chat.SessionStatus("ENACT TASK", task);
 		String prompt;
 		prompt << context << "\n\n";
 		prompt << "I am starting work on **Task: " << task << "**.\n";
 		prompt << "Please analyze the requirements and provide a plan or begin execution.";
 		
-		maintenance->chat.input.SetData(prompt);
+		assistant->chat.input.SetData(prompt);
 	}
 }
 
 void MaestroHub::OnEnactStep(String runbook_title, int step_n, String instruction) {
-	int maint_idx = 2;
-	tabs.Set(maint_idx);
+	center_tabs.Set(3); 
 	
-	if(maintenance) {
-		maintenance->SessionStatus("ENACT STEP", runbook_title + " / " + IntStr(step_n));
+	if(assistant) {
+		assistant->chat.SessionStatus("ENACT STEP", runbook_title + " / " + IntStr(step_n));
 		String prompt;
 		prompt << "Runbook: **" << runbook_title << "**\n";
 		prompt << instruction << "\n";
 		prompt << "Please execute this step or provide guidance.";
 		
-		maintenance->chat.input.SetData(prompt);
+		assistant->chat.input.SetData(prompt);
 	}
 }
 
 void MaestroHub::OnSessionSelect(String backend, String session_id) {
-	tabs.Set(2); // Maintenance
-	if(maintenance) {
-		maintenance->SessionStatus(backend, session_id);
-		maintenance->chat.SetSession(backend, session_id);
+	if(assistant) {
+		assistant->chat.SessionStatus(backend, session_id);
+		assistant->chat.SetSession(backend, session_id);
 	}
 }
 
@@ -362,7 +418,6 @@ void MaestroHub::OnNewSession() {
 	NewSessionDialog dlg;
 	if(dlg.Run() == IDOK) {
 		WorkSession s = WorkSessionManager::CreateSession(current_root, dlg.type.GetData(), dlg.purpose.GetData());
-		// Initialize backend etc
 		OnSessionSelect(dlg.backend.GetData(), s.session_id);
 		LoadData();
 	}
@@ -398,20 +453,11 @@ void MaestroHub::OnInitMaestro() {
 	}
 }
 
-void MaestroHub::OnSuggestEnact() {
-	if(maintenance) {
-		ValueMap vm = maintenance->chat.suggested_task;
-		maintenance->chat.suggestion.Hide();
-		maintenance->chat.Layout();
-		OnEnact(vm["track"], vm["phase"], vm["task"]);
-	}
-}
-
 void MaestroHub::OnTriageWizard() {
 	TriageDialog dlg;
 	dlg.Load(current_root);
 	dlg.Run();
-	LoadData(); // Refresh views
+	LoadData(); 
 }
 
 void MaestroHub::OnRunbookEditor() {
@@ -424,22 +470,19 @@ void MaestroHub::OnRunbookEditor() {
 
 void MaestroHub::OnStateEditor() {
 	StateEditor dlg;
-	// Need a way to select which workflow to edit, or just load first one for now
 	dlg.Load(current_root, "main");
 	dlg.Run();
 	LoadData();
 }
 
 void MaestroHub::OnTUBrowser() {
-	TUBrowser dlg;
-	dlg.Load(current_root);
-	dlg.Run();
+	center_tabs.Set(1); 
+	if(intelligence) intelligence->tabs.Set(1); 
 }
 
 void MaestroHub::OnLogAnalyzer() {
-	LogAnalyzer dlg;
-	dlg.Load(current_root);
-	dlg.Run();
+	center_tabs.Set(1); 
+	if(intelligence) intelligence->tabs.Set(2); 
 }
 
 void MaestroHub::OnSettings() {
@@ -454,26 +497,29 @@ void MaestroHub::OnOpsRunner() {
 	dlg.Run();
 }
 
+void MaestroHub::OnSuggestEnact() {
+	if(assistant) {
+		ValueMap vm = assistant->chat.suggested_task;
+		assistant->chat.suggestion.Hide();
+		assistant->chat.Layout();
+		OnEnact(vm["track"], vm["phase"], vm["task"]);
+	}
+}
+
+void MaestroHub::SyncStatus() {
+	String root_name = current_root.IsEmpty() ? "No Project" : GetFileName(current_root);
+	Title("Maestro Hub - " + root_name + (active_task.IsEmpty() ? "" : " [" + active_task + "]"));
+	
+	statusbar.Set(0, root_name, 0);
+	
+	if(assistant) {
+		assistant->UpdateContext(active_track, active_phase, active_task);
+	}
+}
+
 void MaestroHub::PlanWatcher() {
 	if(current_root.IsEmpty()) return;
 	
-	// Simple check: iterate all .md files in uppsrc/AI/plan
-	// For efficiency in large repos, this should be optimized, but fine for now
-	bool changed = false;
-	
-	FindFile ff(AppendFileName(current_root, "uppsrc/AI/plan/*"));
-	while(ff) {
-		// Only check directories for simplicity of recursion or assume simplified structure
-		// Let's check a known marker file or just reload every few seconds?
-		// Better: check recursivley but just 1 level deep for now or use a "last_modified" marker?
-		// Actually, let's just check the "phases" directory as that's where status updates happen
-		if(ff.IsDirectory()) {
-			// Deep scan omitted for brevity, checking specific known path
-		}
-		ff.Next();
-	}
-	
-	// Check specific legacy location used by PlanParser
 	String phases_dir = AppendFileName(current_root, "docs/phases");
 	FindFile fp(AppendFileName(phases_dir, "*.md"));
 	Time max_time = Time::Low();
@@ -483,11 +529,8 @@ void MaestroHub::PlanWatcher() {
 		fp.Next();
 	}
 	
-	// Also check new location
-	// Note: Ideally PlanParser would expose a "GetLastModified()" method
-	
 	if(max_time > last_plan_check) {
-		if(last_plan_check != Time::Low()) { // Don't reload on first check
+		if(last_plan_check != Time::Low()) { 
 			LoadData();
 		}
 		last_plan_check = max_time;
@@ -506,5 +549,4 @@ GUI_APP_MAIN {
 	
 
 	Upp::MaestroHub().Run();
-
 }

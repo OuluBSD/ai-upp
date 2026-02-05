@@ -1,4 +1,4 @@
 TRACK=MaestroHub
-PHASE=09_UXResearch
-TASK=02d_PersonaPlaybooks
+PHASE=10_RefinedImplementation
+TASK=02_MainLayoutRefactor
 STATUS=TODO

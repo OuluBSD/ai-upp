@@ -1,5 +1,5 @@
 # Task: AI-Assisted UX Evaluation Monitor
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Design the interface for monitoring and reviewing `ux` evaluation runs.

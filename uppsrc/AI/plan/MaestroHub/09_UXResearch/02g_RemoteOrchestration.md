@@ -1,5 +1,5 @@
 # Task: Remote & Device Orchestration Workspace
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Design the `run` and `ai` backend management workspace.

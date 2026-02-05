@@ -7,6 +7,7 @@
 NAMESPACE_UPP
 
 class WorkPane : public ParentCtrl {
+public:
 	Splitter     vsplit;
 	Splitter     hsplit;
 	
@@ -22,7 +23,6 @@ class WorkPane : public ParentCtrl {
 	String       current_root;
 	String       active_session_id;
 
-public:
 	void Load(const String& root);
 	void Refresh();
 	void OnApprove();

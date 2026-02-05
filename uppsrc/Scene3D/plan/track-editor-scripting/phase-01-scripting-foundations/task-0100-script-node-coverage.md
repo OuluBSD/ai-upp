@@ -14,4 +14,4 @@ Make scripting available as reusable components across the scene graph, not just
 - Scripts are persisted and reloaded with the scene.
 
 ## Status
-- Pending
+- Done

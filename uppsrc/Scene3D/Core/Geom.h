@@ -36,6 +36,7 @@ struct GeomTimeline : VfsValueExt {
 struct GeomTransform : VfsValueExt {
 	vec3 position = vec3(0);
 	quat orientation = Identity<quat>();
+	vec3 scale = vec3(1);
 	
 	DEFAULT_EXT(GeomTransform)
 	void Visit(Vis& v) override;
@@ -245,6 +246,7 @@ struct GeomObjectState {
 	GeomObject* obj;
 	vec3 position;
 	quat orientation;
+	vec3 scale;
 };
 
 struct GeomWorldState : VfsValueExt {

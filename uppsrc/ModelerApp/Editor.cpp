@@ -305,6 +305,394 @@ PyValue ModelerGetProjectDir(const Vector<PyValue>& args, void* user_data) {
 	return PyValue(e->GetProjectDir());
 }
 
+static hash_t HashGeomDirectory() { static hash_t h = TypedStringHasher<GeomDirectory>("GeomDirectory"); return h; }
+static hash_t HashGeomScene() { static hash_t h = TypedStringHasher<GeomScene>("GeomScene"); return h; }
+static hash_t HashGeomObject() { static hash_t h = TypedStringHasher<GeomObject>("GeomObject"); return h; }
+static hash_t HashGeomDataset() { static hash_t h = TypedStringHasher<GeomPointcloudDataset>("GeomPointcloudDataset"); return h; }
+
+static String GetNodeName(VfsValue& n) {
+	if (IsVfsType(n, HashGeomDirectory())) {
+		const GeomDirectory& dir = n.GetExt<GeomDirectory>();
+		return dir.name.IsEmpty() ? n.id : dir.name;
+	}
+	if (IsVfsType(n, HashGeomScene())) {
+		const GeomScene& scene = n.GetExt<GeomScene>();
+		return scene.name.IsEmpty() ? n.id : scene.name;
+	}
+	if (IsVfsType(n, HashGeomObject())) {
+		const GeomObject& obj = n.GetExt<GeomObject>();
+		return obj.name.IsEmpty() ? n.id : obj.name;
+	}
+	if (IsVfsType(n, HashGeomDataset())) {
+		const GeomPointcloudDataset& ds = n.GetExt<GeomPointcloudDataset>();
+		return ds.name.IsEmpty() ? n.id : ds.name;
+	}
+	return n.id;
+}
+
+static GeomTransform* GetNodeTransform(VfsValue& n) {
+	if (IsVfsType(n, HashGeomObject()))
+		return &n.GetExt<GeomObject>().GetTransform();
+	if (IsVfsType(n, HashGeomScene()))
+		return &n.GetExt<GeomScene>().GetTransform();
+	if (IsVfsType(n, HashGeomDirectory()))
+		return &n.GetExt<GeomDirectory>().GetTransform();
+	return nullptr;
+}
+
+static GeomObject* GetNodeObject(VfsValue& n) {
+	return IsVfsType(n, HashGeomObject()) ? &n.GetExt<GeomObject>() : nullptr;
+}
+
+static GeomDirectory* GetNodeDirectory(VfsValue& n) {
+	if (IsVfsType(n, HashGeomScene()))
+		return &n.GetExt<GeomScene>();
+	if (IsVfsType(n, HashGeomDirectory()))
+		return &n.GetExt<GeomDirectory>();
+	return nullptr;
+}
+
+static bool PyValueToVec3(const PyValue& v, vec3& out) {
+	if (v.IsNumber()) {
+		double d = v.AsDouble();
+		out = vec3(d, d, d);
+		return true;
+	}
+	int n = v.GetCount();
+	if (n >= 3) {
+		out[0] = v.GetItem(0).AsDouble();
+		out[1] = v.GetItem(1).AsDouble();
+		out[2] = v.GetItem(2).AsDouble();
+		return true;
+	}
+	return false;
+}
+
+static PyValue MakeVec3Value(const vec3& v) {
+	PyValue t = PyValue::Tuple();
+	t.Add(PyValue(v[0]));
+	t.Add(PyValue(v[1]));
+	t.Add(PyValue(v[2]));
+	return t;
+}
+
+struct DisplayObjectProxy : PyUserData {
+	Edit3D* app = nullptr;
+	VfsValue* node = nullptr;
+
+	DisplayObjectProxy(Edit3D* a, VfsValue* n) : app(a), node(n) {}
+	String GetTypeName() const override { return "DisplayObject"; }
+
+	PyValue GetAttr(const String& name) override;
+	bool SetAttr(const String& name, const PyValue& v) override;
+};
+
+static PyValue MakeDisplayObject(Edit3D* app, VfsValue* node) {
+	if (!app || !node)
+		return PyValue::None();
+	return PyValue(new DisplayObjectProxy(app, node));
+}
+
+static VfsValue* FindChildByName(VfsValue& node, const String& name) {
+	for (auto& sub : node.sub) {
+		if (!IsVfsType(sub, HashGeomDirectory()) && !IsVfsType(sub, HashGeomObject()) && !IsVfsType(sub, HashGeomScene()))
+			continue;
+		if (GetNodeName(sub) == name || sub.id == name)
+			return &sub;
+	}
+	return nullptr;
+}
+
+static VfsValue* ResolvePath(VfsValue& root, const String& path) {
+	String p = path;
+	if (p.StartsWith("/"))
+		p = p.Mid(1);
+	if (p.IsEmpty())
+		return &root;
+	Vector<String> parts = Split(p, '/');
+	VfsValue* cur = &root;
+	for (const String& part : parts) {
+		if (part.IsEmpty())
+			continue;
+		VfsValue* next = FindChildByName(*cur, part);
+		if (!next)
+			return nullptr;
+		cur = next;
+	}
+	return cur;
+}
+
+static PyValue DisplayObject_AddChild(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	String type = args[1].ToString();
+	String name = args.GetCount() > 2 ? args[2].ToString() : String();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	GeomDirectory* dir = GetNodeDirectory(*self.node);
+	if (!dir)
+		return PyValue::None();
+	if (name.IsEmpty())
+		name = type.IsEmpty() ? "node" : type;
+	VfsValue* out = nullptr;
+	String t = ToLower(type);
+	if (t == "directory" || t == "dir")
+		out = &dir->GetAddDirectory(name).val;
+	else if (t == "model")
+		out = &dir->GetAddModel(name).val;
+	else if (t == "camera")
+		out = &dir->GetAddCamera(name).val;
+	else if (t == "pointcloud" || t == "octree")
+		out = &dir->GetAddOctree(name).val;
+	else if (t == "dataset" || t == "pointcloud_dataset") {
+		GeomPointcloudDataset& ds = dir->GetAddPointcloudDataset(name);
+		out = &ds.val;
+	}
+	if (!out)
+		return PyValue::None();
+	self.app->state->UpdateObjects();
+	self.app->RefreshData();
+	return MakeDisplayObject(self.app, out);
+}
+
+static PyValue DisplayObject_Remove(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 1 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	if (!self.node->owner)
+		return PyValue::None();
+	self.node->owner->Remove(self.node);
+	self.app->state->UpdateObjects();
+	self.app->RefreshData();
+	return PyValue::True();
+}
+
+static PyValue DisplayObject_Find(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	String path = args[1].ToString();
+	VfsValue* found = ResolvePath(*self.node, path);
+	return MakeDisplayObject(self.app, found);
+}
+
+static PyValue DisplayObject_Children(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 1 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	PyValue list = PyValue::List();
+	for (auto& sub : self.node->sub) {
+		if (!IsVfsType(sub, HashGeomDirectory()) && !IsVfsType(sub, HashGeomObject()) && !IsVfsType(sub, HashGeomScene()))
+			continue;
+		list.Add(MakeDisplayObject(self.app, &sub));
+	}
+	return list;
+}
+
+PyValue DisplayObjectProxy::GetAttr(const String& name) {
+	if (!node)
+		return PyValue::None();
+	GeomTransform* tr = GetNodeTransform(*node);
+	if (name == "name")
+		return PyValue(GetNodeName(*node));
+	if (name == "x" && tr)
+		return PyValue(tr->position[0]);
+	if (name == "y" && tr)
+		return PyValue(tr->position[1]);
+	if (name == "z" && tr)
+		return PyValue(tr->position[2]);
+	if (name == "rotation" && tr)
+		return MakeVec3Value(GetQuatAxes(tr->orientation));
+	if (name == "scale" && tr)
+		return MakeVec3Value(tr->scale);
+	if (name == "visible") {
+		if (GeomObject* obj = GetNodeObject(*node))
+			return PyValue(obj->is_visible);
+	}
+	if (name == "addChild")
+		return PyValue::BoundMethod(PyValue::Function("addChild", DisplayObject_AddChild, nullptr), PyValue(this));
+	if (name == "remove")
+		return PyValue::BoundMethod(PyValue::Function("remove", DisplayObject_Remove, nullptr), PyValue(this));
+	if (name == "find")
+		return PyValue::BoundMethod(PyValue::Function("find", DisplayObject_Find, nullptr), PyValue(this));
+	if (name == "children")
+		return PyValue::BoundMethod(PyValue::Function("children", DisplayObject_Children, nullptr), PyValue(this));
+	return PyValue::None();
+}
+
+bool DisplayObjectProxy::SetAttr(const String& name, const PyValue& v) {
+	if (!node)
+		return false;
+	GeomTransform* tr = GetNodeTransform(*node);
+	if (tr) {
+		if (name == "x") { tr->position[0] = v.AsDouble(); }
+		else if (name == "y") { tr->position[1] = v.AsDouble(); }
+		else if (name == "z") { tr->position[2] = v.AsDouble(); }
+		else if (name == "rotation") {
+			vec3 axes;
+			if (PyValueToVec3(v, axes))
+				tr->orientation = AxesQuat(axes);
+		}
+		else if (name == "scale") {
+			vec3 scale;
+			if (PyValueToVec3(v, scale))
+				tr->scale = scale;
+		}
+	}
+	if (name == "visible") {
+		if (GeomObject* obj = GetNodeObject(*node))
+			obj->is_visible = v.IsTrue();
+		if (GeomDirectory* dir = GetNodeDirectory(*node)) {
+			bool vis = v.IsTrue();
+			for (auto& sub : dir->val.sub) {
+				if (IsVfsType(sub, HashGeomObject()))
+					sub.GetExt<GeomObject>().is_visible = vis;
+			}
+		}
+	}
+	if (app) {
+		app->state->UpdateObjects();
+		app->RefrehRenderers();
+	}
+	return true;
+}
+
+struct StageProxy : PyUserData {
+	Edit3D* app = nullptr;
+	StageProxy(Edit3D* a) : app(a) {}
+	String GetTypeName() const override { return "Stage"; }
+	PyValue GetAttr(const String& name) override;
+	bool SetAttr(const String& name, const PyValue& v) override;
+};
+
+static PyValue Stage_Find(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app)
+		return PyValue::None();
+	GeomScene& scene = self.app->state->GetActiveScene();
+	String path = args[1].ToString();
+	VfsValue* found = ResolvePath(scene.val, path);
+	return MakeDisplayObject(self.app, found);
+}
+
+static PyValue Stage_Children(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 1 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app)
+		return PyValue::None();
+	VfsValue* root = &self.app->state->GetActiveScene().val;
+	if (args.GetCount() > 1 && args[1].IsUserData())
+		root = ((DisplayObjectProxy&)args[1].GetUserData()).node;
+	PyValue list = PyValue::List();
+	if (root) {
+		for (auto& sub : root->sub) {
+			if (!IsVfsType(sub, HashGeomDirectory()) && !IsVfsType(sub, HashGeomObject()) && !IsVfsType(sub, HashGeomScene()))
+				continue;
+			list.Add(MakeDisplayObject(self.app, &sub));
+		}
+	}
+	return list;
+}
+
+static PyValue Stage_Create(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app)
+		return PyValue::None();
+	String type = args[1].ToString();
+	String name = args.GetCount() > 2 ? args[2].ToString() : String();
+	VfsValue* parent = &self.app->state->GetActiveScene().val;
+	if (args.GetCount() > 3 && args[3].IsUserData())
+		parent = ((DisplayObjectProxy&)args[3].GetUserData()).node;
+	if (!parent)
+		return PyValue::None();
+	GeomDirectory* dir = GetNodeDirectory(*parent);
+	if (!dir)
+		return PyValue::None();
+	if (name.IsEmpty())
+		name = type.IsEmpty() ? "node" : type;
+	VfsValue* out = nullptr;
+	String t = ToLower(type);
+	if (t == "directory" || t == "dir")
+		out = &dir->GetAddDirectory(name).val;
+	else if (t == "model")
+		out = &dir->GetAddModel(name).val;
+	else if (t == "camera")
+		out = &dir->GetAddCamera(name).val;
+	else if (t == "pointcloud" || t == "octree")
+		out = &dir->GetAddOctree(name).val;
+	else if (t == "dataset" || t == "pointcloud_dataset") {
+		GeomPointcloudDataset& ds = dir->GetAddPointcloudDataset(name);
+		out = &ds.val;
+	}
+	if (!out)
+		return PyValue::None();
+	self.app->state->UpdateObjects();
+	self.app->RefreshData();
+	return MakeDisplayObject(self.app, out);
+}
+
+static PyValue Stage_Goto(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app || !self.app->anim || !self.app->prj)
+		return PyValue::None();
+	int frame = (int)args[1].AsInt();
+	self.app->anim->position = frame;
+	double frame_time = 1.0 / max(1, self.app->prj->kps);
+	self.app->anim->time = frame * frame_time;
+	self.app->RefrehRenderers();
+	return PyValue::True();
+}
+
+PyValue StageProxy::GetAttr(const String& name) {
+	if (!app)
+		return PyValue::None();
+	if (name == "root")
+		return MakeDisplayObject(app, &app->state->GetActiveScene().val);
+	if (name == "time")
+		return PyValue(app->anim ? app->anim->time : 0.0);
+	if (name == "frame")
+		return PyValue(app->anim ? app->anim->position : 0);
+	if (name == "fps")
+		return PyValue(app->prj ? app->prj->fps : 0);
+	if (name == "find")
+		return PyValue::BoundMethod(PyValue::Function("find", Stage_Find, nullptr), PyValue(this));
+	if (name == "children")
+		return PyValue::BoundMethod(PyValue::Function("children", Stage_Children, nullptr), PyValue(this));
+	if (name == "create")
+		return PyValue::BoundMethod(PyValue::Function("create", Stage_Create, nullptr), PyValue(this));
+	if (name == "goto")
+		return PyValue::BoundMethod(PyValue::Function("goto", Stage_Goto, nullptr), PyValue(this));
+	return PyValue::None();
+}
+
+bool StageProxy::SetAttr(const String& name, const PyValue& v) {
+	if (!app || !app->anim || !app->prj)
+		return false;
+	if (name == "frame") {
+		int frame = (int)v.AsInt();
+		app->anim->position = frame;
+		double frame_time = 1.0 / max(1, app->prj->kps);
+		app->anim->time = frame * frame_time;
+		app->RefrehRenderers();
+		return true;
+	}
+	return false;
+}
+
 vec3 ApplyInversePoseSimple(const PointcloudPose& pose, const vec3& p) {
 	quat inv = pose.orientation.GetInverse();
 	return VectorTransform(p - pose.position, inv);
@@ -900,6 +1288,8 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 	PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
 	PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
 	PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);
+	PyValue stage_obj = PyValue(new StageProxy(this));
+	vm.GetGlobals().GetAdd(PyValue("stage")) = stage_obj;
 }
 
 void Edit3D::EnsureScriptInstances() {

@@ -70,7 +70,8 @@ void GeomTimeline::Visit(Vis& v) {
 
 void GeomTransform::Visit(Vis& v) {
 	v VISN(position)
-	  VISN(orientation);
+	  VISN(orientation)
+	  VISN(scale);
 }
 
 void GeomScript::Visit(Vis& v) {
@@ -742,20 +743,22 @@ void GeomWorldState::UpdateObjects() {
 	this->objs.SetCount(0);
 	int i = 0;
 	active_camera_obj_i = -1;
-	auto apply_local = [](vec3& pos, quat& ori, const vec3& lpos, const quat& lori) {
-		pos = pos + VectorTransform(lpos, ori);
+	auto apply_local = [](vec3& pos, quat& ori, vec3& scale, const vec3& lpos, const quat& lori, const vec3& lscale) {
+		pos = pos + VectorTransform(lpos * scale, ori);
 		ori = ori * lori;
+		scale = scale * lscale;
 	};
 	for (GeomObject& o : collection) {
 		GeomObjectState& s = objs.Add();
 		s.obj = &o;
 		vec3 pos = vec3(0);
 		quat ori = Identity<quat>();
+		vec3 scale = vec3(1);
 		for (VfsValue* n = o.val.owner; n; n = n->owner) {
 			if (IsVfsType(*n, AsTypeHash<GeomDirectory>())) {
 				GeomDirectory& dir = n->GetExt<GeomDirectory>();
 				if (GeomTransform* tr = dir.FindTransform())
-					apply_local(pos, ori, tr->position, tr->orientation);
+					apply_local(pos, ori, scale, tr->position, tr->orientation, tr->scale);
 			}
 		}
 		GeomTimeline* tl = o.FindTimeline();
@@ -765,13 +768,14 @@ void GeomWorldState::UpdateObjects() {
 				tr->position = kp.position;
 				tr->orientation = kp.orientation;
 			}
-			apply_local(pos, ori, kp.position, kp.orientation);
+			apply_local(pos, ori, scale, kp.position, kp.orientation, vec3(1));
 		}
 		else if (GeomTransform* tr = o.FindTransform()) {
-			apply_local(pos, ori, tr->position, tr->orientation);
+			apply_local(pos, ori, scale, tr->position, tr->orientation, tr->scale);
 		}
 		s.position = pos;
 		s.orientation = ori;
+		s.scale = scale;
 		if (o.IsOctree()) {
 			if (!o.pointcloud_ref.IsEmpty()) {
 				GeomPointcloudDataset* ds = scene.FindPointcloudDataset(o.pointcloud_ref);

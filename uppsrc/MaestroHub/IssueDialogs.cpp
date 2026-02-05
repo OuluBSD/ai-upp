@@ -48,7 +48,34 @@ bool IssueEditDialog::RunEdit(MaestroIssue& dst) {
 	if(Run() != IDOK)
 		return false;
 	SyncToIssue(dst);
-	return true;
+	return false;
+}
+
+IssueCreateDialog::IssueCreateDialog() {
+	CtrlLayout(*this, "Create New Issue");
+	
+	severity.Add("blocker");
+	severity.Add("critical");
+	severity.Add("warning");
+	severity.Add("info");
+	severity.SetIndex(2); // warning
+	
+	ok << [=] { Break(IDOK); };
+	cancel << [=] { Break(IDCANCEL); };
+}
+
+MaestroIssue IssueCreateDialog::GetIssue() {
+	MaestroIssue iss;
+	iss.issue_id = "iss-" + FormatIntHex(Random(), 8);
+	iss.title = title.GetData();
+	iss.message = message.GetData();
+	iss.file = file.GetData();
+	iss.line = line.GetData();
+	iss.severity = severity.GetData();
+	iss.priority = priority.GetData();
+	iss.state = "open";
+	iss.created_at = iss.modified_at = GetSysTime();
+	return iss;
 }
 
 ListSelectDialog::ListSelectDialog() {

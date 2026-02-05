@@ -1,5 +1,5 @@
 # Task: TU Browser
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Visual interface for `maestro tu` commands.

@@ -1,9 +1,12 @@
 #include "MaestroHub.h"
+#include "IssuesView.h"
+#include "IssueDialogs.h"
 #include "TriageDialog.h"
 #include "RunbookEditor.h"
 #include "StateEditor.h"
 #include "TUBrowser.h"
 #include "LogAnalyzer.h"
+#include "NewSessionDialog.h"
 #include "ConfigurationDialog.h"
 #include "OpsRunner.h"
 
@@ -204,7 +207,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 	
 	bar.Sub("Sessions", [=](Bar& b) {
 		b.Add("List Sessions", [=] { tabs.Set(5); }); // Sessions tab
-		b.Add("New Session...", [=] { PromptOK("New Session Dialog Placeholder"); });
+		b.Add("New Session...", THISBACK(OnNewSession));
 		b.Separator();
 		b.Add("Active Session HUD", [=] { tabs.Set(4); }); // Work tab
 	});
@@ -213,7 +216,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 		b.Add("Browse Issues", [=] { tabs.Set(3); }); // Issues tab
 		b.Add("Triage Wizard...", THISBACK(OnTriageWizard));
 		b.Separator();
-		b.Add("Create Issue...", [=] { PromptOK("New Issue Dialog Placeholder"); });
+		b.Add("Create Issue...", THISBACK(OnCreateIssue));
 	});
 
 	bar.Sub("Runbooks", [=](Bar& b) {
@@ -351,6 +354,27 @@ void MaestroHub::OnSessionSelect(String backend, String session_id) {
 	if(maintenance) {
 		maintenance->SessionStatus(backend, session_id);
 		maintenance->chat.SetSession(backend, session_id);
+	}
+}
+
+void MaestroHub::OnNewSession() {
+	NewSessionDialog dlg;
+	if(dlg.Run() == IDOK) {
+		WorkSession s = WorkSessionManager::CreateSession(current_root, dlg.type.GetData(), dlg.purpose.GetData());
+		// Initialize backend etc
+		OnSessionSelect(dlg.backend.GetData(), s.session_id);
+		LoadData();
+	}
+}
+
+void MaestroHub::OnCreateIssue() {
+	IssueCreateDialog dlg;
+	if(dlg.Run() == IDOK) {
+		IssueManager ism(current_root);
+		if(ism.SaveIssue(dlg.GetIssue())) {
+			PromptOK("Issue created.");
+			LoadData();
+		}
 	}
 }
 

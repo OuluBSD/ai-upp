@@ -1315,6 +1315,29 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Step 1.0"), [this] { edit_snap_step = 1.0; })
 					.Check(fabs(edit_snap_step - 1.0) < 1e-6);
 			});
+			bar.Sub(t_("Sculpt"), [this](Bar& bar) {
+				bar.Add(t_("Enable"), [this] { sculpt_mode = !sculpt_mode; })
+					.Check(sculpt_mode);
+				bar.Separator();
+				bar.Add(t_("Add"), [this] { sculpt_add = true; })
+					.Check(sculpt_add);
+				bar.Add(t_("Subtract"), [this] { sculpt_add = false; })
+					.Check(!sculpt_add);
+				bar.Separator();
+				bar.Add(t_("Radius 0.25"), [this] { sculpt_radius = 0.25; })
+					.Check(fabs(sculpt_radius - 0.25) < 1e-6);
+				bar.Add(t_("Radius 0.5"), [this] { sculpt_radius = 0.5; })
+					.Check(fabs(sculpt_radius - 0.5) < 1e-6);
+				bar.Add(t_("Radius 1.0"), [this] { sculpt_radius = 1.0; })
+					.Check(fabs(sculpt_radius - 1.0) < 1e-6);
+				bar.Separator();
+				bar.Add(t_("Strength 0.05"), [this] { sculpt_strength = 0.05; })
+					.Check(fabs(sculpt_strength - 0.05) < 1e-6);
+				bar.Add(t_("Strength 0.2"), [this] { sculpt_strength = 0.2; })
+					.Check(fabs(sculpt_strength - 0.2) < 1e-6);
+				bar.Add(t_("Strength 0.5"), [this] { sculpt_strength = 0.5; })
+					.Check(fabs(sculpt_strength - 0.5) < 1e-6);
+			});
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -1990,6 +2013,77 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && sculpt_mode) {
+		GeomObject* obj = v0.selected_obj;
+		if (obj) {
+			GeomEditableMesh* mesh = obj->FindEditableMesh();
+			if (mesh) {
+				vec3 ray_o, ray_d;
+				if (ScreenToRay(view_i, p, ray_o, ray_d)) {
+					vec3 obj_pos = vec3(0);
+					quat obj_ori = Identity<quat>();
+					vec3 obj_scale = vec3(1);
+					if (state) {
+						if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+							obj_pos = os->position;
+							obj_ori = os->orientation;
+							obj_scale = os->scale;
+						}
+					}
+					else if (GeomTransform* tr = obj->FindTransform()) {
+						obj_pos = tr->position;
+						obj_ori = tr->orientation;
+						obj_scale = tr->scale;
+					}
+					quat inv = obj_ori.GetInverse();
+					vec3 local_ray_o = VectorTransform(ray_o - obj_pos, inv);
+					vec3 local_ray_d = VectorTransform(ray_d, inv);
+					if (obj_scale[0] != 0) local_ray_o[0] /= obj_scale[0];
+					if (obj_scale[1] != 0) local_ray_o[1] /= obj_scale[1];
+					if (obj_scale[2] != 0) local_ray_o[2] /= obj_scale[2];
+					if (obj_scale[0] != 0) local_ray_d[0] /= obj_scale[0];
+					if (obj_scale[1] != 0) local_ray_d[1] /= obj_scale[1];
+					if (obj_scale[2] != 0) local_ray_d[2] /= obj_scale[2];
+					local_ray_d.Normalize();
+					vec3 center = local_ray_o + local_ray_d * 2.0f;
+					double r = sculpt_radius;
+					bool hit = false;
+					double best_t = 1e9;
+					if (fabs(Dot(local_ray_d, local_ray_d)) > 1e-6) {
+						double b = 2.0 * Dot(local_ray_o, local_ray_d);
+						double c = Dot(local_ray_o, local_ray_o) - r * r;
+						double disc = b * b - 4.0 * c;
+						if (disc >= 0.0) {
+							double t0 = (-b - sqrt(disc)) * 0.5;
+							double t1 = (-b + sqrt(disc)) * 0.5;
+							double t = t0;
+							if (t < 0) t = t1;
+							if (t > 0) {
+								best_t = t;
+								hit = true;
+							}
+						}
+					}
+					if (hit) {
+						center = local_ray_o + local_ray_d * best_t;
+					}
+					for (vec3& pt : mesh->points) {
+						vec3 diff = pt - center;
+						float dist = diff.GetLength();
+						if (dist > sculpt_radius || dist <= 1e-6f)
+							continue;
+						float falloff = 1.0f - dist / (float)sculpt_radius;
+						float s = (float)sculpt_strength * falloff;
+						if (!sculpt_add)
+							s = -s;
+						pt += diff.GetNormalized() * s;
+					}
+					state->UpdateObjects();
+					RefrehRenderers();
+				}
+			}
+		}
+	}
 	PyValue payload = PyValue::Dict();
 	payload.SetItem(PyValue("type"), PyValue(type));
 	payload.SetItem(PyValue("x"), PyValue(p.x));
@@ -2078,6 +2172,33 @@ bool Edit3D::ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& ori
 		return false;
 	float t = Dot(origin - pnear, normal) / denom;
 	out = pnear + dir * t;
+	return true;
+}
+
+bool Edit3D::ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const {
+	if (view_i < 0 || view_i >= 4)
+		return false;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return false;
+	Size sz = rend->GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return false;
+	GeomCamera& gcam = rend->GetGeomCamera();
+	Camera cam;
+	gcam.LoadCamera(rend->view_mode, cam, sz);
+	mat4 view = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	vec2 viewport_origin(0, 0);
+	vec2 viewport_size((float)sz.cx, (float)sz.cy);
+	vec3 pnear = Unproject(vec3(p.x, p.y, 0.0f), viewport_origin, viewport_size, view, proj);
+	vec3 pfar = Unproject(vec3(p.x, p.y, 1.0f), viewport_origin, viewport_size, view, proj);
+	vec3 dir = pfar - pnear;
+	if (dir.GetLength() <= 1e-6f)
+		return false;
+	out_origin = pnear;
+	out_dir = dir;
+	out_dir.Normalize();
 	return true;
 }
 

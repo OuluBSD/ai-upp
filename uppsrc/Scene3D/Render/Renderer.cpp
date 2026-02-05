@@ -718,16 +718,33 @@ void EditRendererV2::Paint(Draw& d) {
 		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
 		surf.DrawLine2D(x0, y0, x1, y1, clr);
 	};
-	auto draw_triangle = [&](const vec3& n0, const vec3& n1, const vec3& n2, const Color& clr) {
+	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
 		if (wireframe_only) {
-			if ((n0[2] < -1 && n1[2] < -1 && n2[2] < -1) ||
-			    (n0[2] > 1 && n1[2] > 1 && n2[2] > 1))
-				return;
-			draw_line_ndc(n0, n1, clr);
-			draw_line_ndc(n1, n2, clr);
-			draw_line_ndc(n2, n0, clr);
+			vec4 e0 = c0, e1 = c1;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
+			e0 = c1; e1 = c2;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
+			e0 = c2; e1 = c0;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
 			return;
 		}
+		if (c0[3] == 0 || c1[3] == 0 || c2[3] == 0)
+			return;
+		vec3 n0 = c0.Splice() / c0[3];
+		vec3 n1 = c1.Splice() / c1[3];
+		vec3 n2 = c2.Splice() / c2[3];
 		if (n0[2] < -1 && n1[2] < -1 && n2[2] < -1)
 			return;
 		if (n0[2] > 1 && n1[2] > 1 && n2[2] > 1)
@@ -796,10 +813,10 @@ void EditRendererV2::Paint(Draw& d) {
 				int g = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
 				int b = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
 				Color clr(r, g, b);
-				vec3 p0 = VecMul(o_view, v0.position.Splice());
-				vec3 p1 = VecMul(o_view, v1.position.Splice());
-				vec3 p2 = VecMul(o_view, v2.position.Splice());
-				draw_triangle(p0, p1, p2, clr);
+				vec4 c0 = o_view * v0.position;
+				vec4 c1 = o_view * v1.position;
+				vec4 c2 = o_view * v2.position;
+				draw_triangle(c0, c1, c2, clr);
 				tri_idx += 3;
 			}
 		}

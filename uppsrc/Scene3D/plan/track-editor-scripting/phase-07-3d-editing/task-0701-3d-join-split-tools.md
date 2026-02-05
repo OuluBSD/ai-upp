@@ -18,4 +18,8 @@ Enable joining and splitting of primitives (points, edges, faces) for mesh editi
 - Weld threshold behaves predictably.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added join/split tools for editable mesh lines with viewport picking.
+- Added plane selection and snapping options for edit tools.

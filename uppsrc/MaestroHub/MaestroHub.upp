@@ -50,12 +50,23 @@ file
 	UX_Analysis.md,
 	Feature_Inventory.md,
 	GUI_Mockup.yaml,
+	Features.md,
 	User_Flows.md,
 	AI_UX_Guidelines.md,
 	Onboarding_Plan.md,
+	Scenarios.md,
+	Functional_Map.md,
+	Lifecycle_States.md,
+	Persona_Playbooks.md,
+	Architecture_Alignment.md,
+	Storage_UI_Design.md,
+	Execution_Workspace.md,
+	Solutions_UI_Design.md,
+	UX_Eval_Design.md,
 	Management readonly separator,
 	SessionManagement.h,
 	SessionManagement.cpp;
 
 mainconfig
 	"" = "GUI";
+

@@ -13,6 +13,8 @@ file
 	Layer.cpp,
 	LayerManager.h,
 	LayerManager.cpp,
+	MapSerializer.h,
+	MapSerializer.cpp,
 	MapEditor.h,
 	MapEditor.cpp,
 	main.cpp,

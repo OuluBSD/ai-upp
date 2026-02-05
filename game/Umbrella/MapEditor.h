@@ -3,6 +3,7 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include "LayerManager.h"
+#include "MapSerializer.h"
 
 using namespace Upp;
 
@@ -48,6 +49,7 @@ private:
 	bool editorMode = false;
 	String importConfigPath;
 	String modId;
+	String currentFilePath;
 
 	// UI Components
 	MenuBar mainMenuBar;
@@ -98,6 +100,7 @@ public:
 
 	// Accessors
 	LayerManager& GetLayerManager() { return layerManager; }
+	const String& GetCurrentFilePath() const { return currentFilePath; }
 
 	// UI Setup
 	void SetupUI();

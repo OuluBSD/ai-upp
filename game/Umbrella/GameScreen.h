@@ -7,7 +7,7 @@
 using namespace Upp;
 
 class GameScreen : public TopWindow {
-private:
+public:  // Public for testing
 	String levelPath;
 	LayerManager layerManager;
 

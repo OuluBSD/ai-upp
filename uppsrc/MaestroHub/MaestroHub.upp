@@ -34,6 +34,8 @@ file
 	LogAnalyzer.cpp,
 	ConfigurationDialog.h,
 	ConfigurationDialog.cpp,
+	OpsRunner.h,
+	OpsRunner.cpp,
 	WorkDashboard.h,
 	WorkDashboard.cpp,
 	MaestroHub.lay,

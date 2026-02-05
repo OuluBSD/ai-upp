@@ -5,6 +5,7 @@
 #include "TUBrowser.h"
 #include "LogAnalyzer.h"
 #include "ConfigurationDialog.h"
+#include "OpsRunner.h"
 
 NAMESPACE_UPP
 
@@ -242,7 +243,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 		b.Separator();
 		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
 		b.Add("Collect Evidence...", [=] { PromptOK("Evidence placeholder"); });
-		b.Add("Run Ops Doctor", [=] { PromptOK("Ops Doctor Placeholder"); });
+		b.Add("Run Ops Doctor", THISBACK(OnOpsRunner));
 	});
 }
 
@@ -399,6 +400,12 @@ void MaestroHub::OnLogAnalyzer() {
 
 void MaestroHub::OnSettings() {
 	ConfigurationDialog dlg;
+	dlg.Load(current_root);
+	dlg.Run();
+}
+
+void MaestroHub::OnOpsRunner() {
+	OpsRunner dlg;
 	dlg.Load(current_root);
 	dlg.Run();
 }

@@ -884,16 +884,30 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 }
 
 void GeomProjectCtrl::PropsMenu(Bar& bar) {
-	GeomObject* obj = GetNodeObject(tree.Get(tree.GetCursor()));
-	if (!obj)
+	Value v = tree.Get(tree.GetCursor());
+	GeomObject* obj = GetNodeObject(v);
+	GeomPointcloudDataset* ds = GetNodeDataset(v);
+	VfsValue* node = v.Is<VfsValue*>() ? ValueTo<VfsValue*>(v) : 0;
+	GeomDirectory* dir = 0;
+	GeomScene* scene = 0;
+	if (node && IsVfsType(*node, AsTypeHash<GeomDirectory>()))
+		dir = &node->GetExt<GeomDirectory>();
+	if (node && IsVfsType(*node, AsTypeHash<GeomScene>()))
+		scene = &node->GetExt<GeomScene>();
+	if (!obj && !dir && !scene && !ds)
 		return;
 	bar.Sub(t_("Add Component"), [=](Bar& bar) {
 		bar.Add(t_("Script"), [=] {
-			e->AddScriptComponent(*obj);
+			if (obj)
+				e->AddScriptComponent(*obj);
+			else if (dir)
+				e->AddScriptComponent(*dir);
+			else if (scene)
+				e->AddScriptComponent(*scene);
 			e->state->UpdateObjects();
 			e->RefreshData();
 		});
-		if (obj->IsOctree()) {
+		if (obj && obj->IsOctree()) {
 			bar.Add(t_("Pointcloud Effect (Transform)"), [=] {
 				String base = "effect";
 				String name = base;
@@ -1056,6 +1070,53 @@ void GeomProjectCtrl::PropsData() {
 			ids.run_frame_id = run_frame_id;
 			ids.edit_id = edit_id;
 			ids.run_id = run_id;
+		}
+	}
+	if (!selected_obj) {
+		VfsValue* node = tree.Get(tree.GetCursor()).Is<VfsValue*>() ? ValueTo<VfsValue*>(tree.Get(tree.GetCursor())) : 0;
+		if (node && (IsVfsType(*node, AsTypeHash<GeomDirectory>()) || IsVfsType(*node, AsTypeHash<GeomScene>()))) {
+			for (auto& sub : node->sub) {
+				if (!IsVfsType(sub, AsTypeHash<GeomScript>()))
+					continue;
+				GeomScript& script = sub.GetExt<GeomScript>();
+				String label = script.file.IsEmpty() ? "Script" : GetFileName(script.file);
+				PropRef& snode = props_nodes.Add();
+				snode.kind = PropRef::P_SCRIPT;
+				snode.script = &script;
+				int script_id = props.Add(components, ImagesImg::Object(), RawToValue(&snode), label);
+				PropRef& sfile = props_nodes.Add();
+				sfile.kind = PropRef::P_SCRIPT_FILE;
+				sfile.script = &script;
+				int file_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&sfile), t_("File"));
+				PropRef& sen = props_nodes.Add();
+				sen.kind = PropRef::P_SCRIPT_ENABLED;
+				sen.script = &script;
+				int enabled_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&sen), t_("Enabled"));
+				PropRef& sload = props_nodes.Add();
+				sload.kind = PropRef::P_SCRIPT_RUN_ON_LOAD;
+				sload.script = &script;
+				int run_on_load_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&sload), t_("Run on load"));
+				PropRef& sframe = props_nodes.Add();
+				sframe.kind = PropRef::P_SCRIPT_RUN_EACH_FRAME;
+				sframe.script = &script;
+				int run_frame_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&sframe), t_("Run every frame"));
+				PropRef& sedit = props_nodes.Add();
+				sedit.kind = PropRef::P_SCRIPT_EDIT;
+				sedit.script = &script;
+				int edit_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&sedit), t_("Edit"));
+				PropRef& srun = props_nodes.Add();
+				srun.kind = PropRef::P_SCRIPT_RUN;
+				srun.script = &script;
+				int run_id = props.Add(script_id, ImagesImg::Object(), RawToValue(&srun), t_("Run"));
+				ScriptItemIds& ids = script_items.Add();
+				ids.script = &script;
+				ids.file_id = file_id;
+				ids.enabled_id = enabled_id;
+				ids.run_on_load_id = run_on_load_id;
+				ids.run_frame_id = run_frame_id;
+				ids.edit_id = edit_id;
+				ids.run_id = run_id;
+			}
 		}
 	}
 	if (effects >= 0)

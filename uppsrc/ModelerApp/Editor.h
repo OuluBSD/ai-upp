@@ -198,6 +198,7 @@ struct Edit3D : TopWindow {
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
+		VfsValue* owner = 0;
 		String abs_path;
 		Time file_time;
 		PyVM vm;
@@ -241,6 +242,9 @@ struct Edit3D : TopWindow {
 	void OpenScriptEditor(GeomScript& script);
 	void RunScriptOnce(GeomScript& script);
 	GeomScript& AddScriptComponent(GeomObject& obj);
+	GeomScript& AddScriptComponent(GeomDirectory& dir);
+	GeomScript& AddScriptComponent(GeomScene& scene);
+	void GetScriptsFromNode(VfsValue& node, Vector<GeomScript*>& out);
 	String EnsureScriptFile(GeomScript& script, String base_name);
 	String GetScriptAbsPath(const String& rel) const;
 	void SetProjectDir(String dir);

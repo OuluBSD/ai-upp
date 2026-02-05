@@ -675,6 +675,7 @@ void GeomProjectCtrl::TreeSelect() {
 		}
 		UpdateTreeFocus(cursor);
 		PropsData();
+		e->state->UpdateObjects();
 		RefreshAll();
 		return;
 	}
@@ -683,6 +684,7 @@ void GeomProjectCtrl::TreeSelect() {
 		e->state->focus_object_key = obj->key;
 		UpdateTreeFocus(cursor);
 		PropsData();
+		e->state->UpdateObjects();
 		RefreshAll();
 		return;
 	}

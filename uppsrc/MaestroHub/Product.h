@@ -1,6 +1,10 @@
 #ifndef _MaestroHub_Product_h_
 #define _MaestroHub_Product_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+#include <GraphLib/GraphLib.h>
+
 NAMESPACE_UPP
 
 class ProductPane : public ParentCtrl {

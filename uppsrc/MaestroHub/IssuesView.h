@@ -1,6 +1,9 @@
 #ifndef _MaestroHub_IssuesView_h_
 #define _MaestroHub_IssuesView_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+
 NAMESPACE_UPP
 
 class IssuesPane : public ParentCtrl {

@@ -154,3 +154,7 @@
   task: track-editor-scripting/phase-08-skeleton-rigging/task-0800-skeleton-rigging.md
   status: done
   note: Added skeleton components, tree hierarchy, and viewport visualization.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-08-skeleton-rigging/task-0801-weight-painting.md
+  status: done
+  note: Added skin weights component and paint tool with viewport visualization.

@@ -74,7 +74,8 @@ void DrawCameraGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, const 
 }
 
 void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
-                             const GeomEditableMesh& mesh, bool z_cull) {
+                             const GeomEditableMesh& mesh, bool z_cull,
+                             const Vector<float>* weights = nullptr, bool show_weights = false) {
 	Color pt_clr(220, 220, 255);
 	Color line_clr(200, 200, 200);
 	Color face_clr(160, 200, 240);
@@ -95,8 +96,15 @@ void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjec
 			continue;
 		DrawLine(sz, d, o_view, mesh.points[e.a], mesh.points[e.b], 1, line_clr, z_cull);
 	}
-	for (const vec3& p : mesh.points)
-		DrawRect(sz, d, o_view, p, Size(3, 3), pt_clr, z_cull);
+	for (int i = 0; i < mesh.points.GetCount(); i++) {
+		Color clr = pt_clr;
+		if (show_weights && weights && i < weights->GetCount()) {
+			float w = (*weights)[i];
+			w = Clamp(w, 0.0f, 1.0f);
+			clr = Blend(Color(60, 80, 180), Color(220, 80, 80), w);
+		}
+		DrawRect(sz, d, o_view, mesh.points[i], Size(3, 3), clr, z_cull);
+	}
 }
 
 void DrawSkeletonRecursive(Size sz, Draw& d, const mat4& view, const vec3& parent_pos,
@@ -376,8 +384,17 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 		DrawCameraGizmo(sz, d, view, os.position, os.orientation, fov_deg, scale, CameraColor(go), z_cull);
 	}
 	if (GeomEditableMesh* mesh = go.FindEditableMesh()) {
-		if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty())
-			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull);
+		if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty()) {
+			const Vector<float>* weights = nullptr;
+			if (ctx && ctx->show_weights && !ctx->weight_bone.IsEmpty()) {
+				if (GeomSkinWeights* sw = go.FindSkinWeights()) {
+					int wi = sw->weights.Find(ctx->weight_bone);
+					if (wi >= 0)
+						weights = &sw->weights[wi];
+				}
+			}
+			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights);
+		}
 	}
 	if (GeomSkeleton* sk = go.FindSkeleton()) {
 		for (auto& sub : sk->val.sub) {
@@ -1089,8 +1106,17 @@ void EditRendererV2::Paint(Draw& d) {
 			if (!os.obj || !os.obj->is_visible)
 				continue;
 			if (GeomEditableMesh* mesh = os.obj->FindEditableMesh()) {
-				if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty())
-					DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull);
+				if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty()) {
+					const Vector<float>* weights = nullptr;
+					if (ctx && ctx->show_weights && !ctx->weight_bone.IsEmpty()) {
+						if (GeomSkinWeights* sw = os.obj->FindSkinWeights()) {
+							int wi = sw->weights.Find(ctx->weight_bone);
+							if (wi >= 0)
+								weights = &sw->weights[wi];
+						}
+					}
+					DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights);
+				}
 			}
 		}
 	}
@@ -1111,7 +1137,15 @@ void EditRendererV2::Paint(Draw& d) {
 				os.orientation = tr->orientation;
 				os.scale = tr->scale;
 			}
-			DrawEditableMeshOverlay(sz, d, view, os, *go.FindEditableMesh(), z_cull);
+			const Vector<float>* weights = nullptr;
+			if (ctx && ctx->show_weights && !ctx->weight_bone.IsEmpty()) {
+				if (GeomSkinWeights* sw = go.FindSkinWeights()) {
+					int wi = sw->weights.Find(ctx->weight_bone);
+					if (wi >= 0)
+						weights = &sw->weights[wi];
+				}
+			}
+			DrawEditableMeshOverlay(sz, d, view, os, *go.FindEditableMesh(), z_cull, weights, ctx && ctx->show_weights);
 		}
 	}
 }

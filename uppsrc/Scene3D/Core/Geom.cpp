@@ -354,6 +354,68 @@ void GeomSkeleton::Visit(Vis& v) {
 		val.id = name;
 }
 
+void GeomSkinWeights::Visit(Vis& v) {
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			weights.Clear();
+			const Value& arr = v.json->Get()["weights"];
+			for (int i = 0; i < arr.GetCount(); i++) {
+				String bone;
+				LoadFromJsonValue(bone, arr[i]["bone"]);
+				Vector<float> w;
+				const Value& vals = arr[i]["values"];
+				w.SetCount(vals.GetCount());
+				for (int j = 0; j < vals.GetCount(); j++)
+					w[j] = (float)vals[j];
+				weights.Add(bone, pick(w));
+			}
+		}
+		else {
+			Vector<Value> arr;
+			for (int i = 0; i < weights.GetCount(); i++) {
+				ValueMap item;
+				item.Add("bone", StoreAsJsonValue(weights.GetKey(i)));
+				ValueArray vals;
+				const Vector<float>& w = weights[i];
+				for (int j = 0; j < w.GetCount(); j++)
+					vals.Add(w[j]);
+				item.Add("values", vals);
+				arr.Add(item);
+			}
+			v.json->Set("weights", ValueArray(pick(arr)));
+		}
+	}
+	else {
+		int bone_count = weights.GetCount();
+		v VIS_(bone_count);
+		if (v.IsLoading()) {
+			weights.Clear();
+			for (int i = 0; i < bone_count; i++) {
+				String bone;
+				int cnt = 0;
+				v VIS_(bone)
+				  VIS_(cnt);
+				Vector<float> w;
+				w.SetCount(cnt);
+				for (int j = 0; j < cnt; j++)
+					v VIS_(w[j]);
+				weights.Add(bone, pick(w));
+			}
+		}
+		else {
+			for (int i = 0; i < bone_count; i++) {
+				String bone = weights.GetKey(i);
+				const Vector<float>& w = weights[i];
+				int cnt = w.GetCount();
+				v VIS_(bone)
+				  VIS_(cnt);
+				for (int j = 0; j < cnt; j++)
+					v VIS_(const_cast<float&>(w[j]));
+			}
+		}
+	}
+}
+
 void GeomPointcloudEffectTransform::Visit(Vis& v) {
 	v VIS_(name)
 	  VIS_(enabled)
@@ -533,6 +595,20 @@ GeomSkeleton* GeomObject::FindSkeleton() const {
 	return 0;
 }
 
+GeomSkinWeights& GeomObject::GetSkinWeights() {
+	static bool init = (TypedStringHasher<GeomSkinWeights>("GeomSkinWeights"), true);
+	return val.GetAdd<GeomSkinWeights>("skinweights");
+}
+
+GeomSkinWeights* GeomObject::FindSkinWeights() const {
+	static bool init = (TypedStringHasher<GeomSkinWeights>("GeomSkinWeights"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomSkinWeights>()) && sub.id == "skinweights")
+			return &sub.GetExt<GeomSkinWeights>();
+	}
+	return 0;
+}
+
 GeomPointcloudEffectTransform& GeomObject::GetAddPointcloudEffect(String name) {
 	for (auto& sub : val.sub) {
 		if (!IsVfsType(sub, AsTypeHash<GeomPointcloudEffectTransform>()))
@@ -590,6 +666,7 @@ void GeomObject::Visit(Vis& v) {
 	GeomEditableMesh& mesh = GetEditableMesh();
 	v("editable", mesh, VISIT_NODE);
 	GeomSkeleton* skel_ptr = FindSkeleton();
+	GeomSkinWeights* weights_ptr = FindSkinWeights();
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			const Value& effects_va = v.json->Get()["effects"];
@@ -610,6 +687,14 @@ void GeomObject::Visit(Vis& v) {
 				Vis vis(jio);
 				sk.Visit(vis);
 			}
+			const Value& wv = v.json->Get()["skinweights"];
+			if (!IsNull(wv)) {
+				VfsValue& n = val.GetAdd("skinweights", AsTypeHash<GeomSkinWeights>());
+				GeomSkinWeights& sw = n.GetExt<GeomSkinWeights>();
+				JsonIO jio(wv);
+				Vis vis(jio);
+				sw.Visit(vis);
+			}
 		}
 		else {
 			Vector<Value> effects_values;
@@ -622,18 +707,22 @@ void GeomObject::Visit(Vis& v) {
 			v.json->Set("effects", ValueArray(pick(effects_values)));
 			if (skel_ptr)
 				v.json->Set("skeleton", v.VisitAsJsonValue(*skel_ptr));
+			if (weights_ptr)
+				v.json->Set("skinweights", v.VisitAsJsonValue(*weights_ptr));
 		}
 	}
 	else {
 		int effect_count = 0;
 		int has_skeleton = skel_ptr != nullptr;
+		int has_weights = weights_ptr != nullptr;
 		if (!v.IsLoading()) {
 			for (auto& s : val.sub)
 				if (IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
 					effect_count++;
 		}
 		v VIS_(effect_count)
-		  VIS_(has_skeleton);
+		  VIS_(has_skeleton)
+		  VIS_(has_weights);
 		if (v.IsLoading()) {
 			for (int i = 0; i < effect_count; i++) {
 				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
@@ -647,6 +736,11 @@ void GeomObject::Visit(Vis& v) {
 				GeomSkeleton& sk = n.GetExt<GeomSkeleton>();
 				sk.Visit(v);
 			}
+			if (has_weights) {
+				VfsValue& n = val.GetAdd("skinweights", AsTypeHash<GeomSkinWeights>());
+				GeomSkinWeights& sw = n.GetExt<GeomSkinWeights>();
+				sw.Visit(v);
+			}
 		}
 		else {
 			for (auto& s : val.sub) {
@@ -657,6 +751,8 @@ void GeomObject::Visit(Vis& v) {
 			}
 			if (skel_ptr)
 				skel_ptr->Visit(v);
+			if (weights_ptr)
+				weights_ptr->Visit(v);
 		}
 	}
 	if (v.IsLoading()) {
@@ -1339,6 +1435,7 @@ INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomDynamicProperties, "scene3d.props", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomBone, "scene3d.bone", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkeleton, "scene3d.skeleton", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomSkinWeights, "scene3d.skinweights", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")

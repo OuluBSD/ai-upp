@@ -4,6 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include "LayerManager.h"
 #include "MapSerializer.h"
+#include "BrushTool.h"
 
 using namespace Upp;
 
@@ -45,11 +46,24 @@ public:
 
 // Main Map Editor Application Class
 class MapEditorApp : public TopWindow {
+public:
+	// Tool selection
+	enum EditTool {
+		TOOL_BRUSH,
+		TOOL_ERASER,
+		TOOL_FILL,
+		TOOL_SELECT
+	};
+
 private:
 	bool editorMode = false;
 	String importConfigPath;
 	String modId;
 	String currentFilePath;
+
+	// Editing tools
+	BrushTool brushTool;
+	EditTool currentTool;
 
 	// UI Components
 	MenuBar mainMenuBar;
@@ -101,6 +115,9 @@ public:
 	// Accessors
 	LayerManager& GetLayerManager() { return layerManager; }
 	const String& GetCurrentFilePath() const { return currentFilePath; }
+	BrushTool& GetBrushTool() { return brushTool; }
+	EditTool GetCurrentTool() const { return currentTool; }
+	void SetCurrentTool(EditTool tool) { currentTool = tool; }
 
 	// UI Setup
 	void SetupUI();

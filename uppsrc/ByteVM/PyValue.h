@@ -170,6 +170,7 @@ public:
 struct PyUserData : PyValue::RefCount {
 	virtual String GetTypeName() const = 0;
 	virtual PyValue GetAttr(const String& name) { return PyValue::None(); }
+	virtual bool SetAttr(const String& name, const PyValue& v) { return false; }
 	virtual ~PyUserData() {}
 };
 

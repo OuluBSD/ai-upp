@@ -1545,7 +1545,9 @@ try {
 			PyValue obj = Pop();
 			if (obj.GetType() == PY_DICT) {
 				obj.SetItem(instr.arg, val);
-			} // TODO: support UserData store
+			} else if (obj.IsUserDataValid()) {
+				obj.GetUserData().SetAttr(instr.arg.ToString(), val);
+			}
 			break;
 		}
 			

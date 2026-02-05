@@ -110,3 +110,11 @@
   task: track-editor-scripting/phase-01-scripting-foundations/task-0102-script-runtime-hooks.md
   status: done
   note: Added on_load hook support with reload-safe execution.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-02-stage-api/task-0200-stage-api.md
+  status: done
+  note: Stage proxy exposes root/find/children/create/time/frame/fps/goto.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-02-stage-api/task-0201-displayobject-proxy.md
+  status: done
+  note: DisplayObject proxy supports transform, visibility, and child ops.

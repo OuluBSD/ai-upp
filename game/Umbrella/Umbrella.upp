@@ -17,6 +17,8 @@ file
 	MapSerializer.cpp,
 	BrushTool.h,
 	BrushTool.cpp,
+	FillTool.h,
+	FillTool.cpp,
 	MapEditor.h,
 	MapEditor.cpp,
 	main.cpp,

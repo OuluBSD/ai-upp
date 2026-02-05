@@ -757,6 +757,12 @@ void GeomProjectCtrl::TreeSelect() {
 	UpdateTreeFocus(cursor);
 	PropsData();
 	e->render_ctx.selected_bone = e->selected_bone;
+	e->render_ctx.show_weights = e->weight_paint_mode;
+	e->render_ctx.weight_bone.Clear();
+	if (e->selected_bone && IsVfsType(*e->selected_bone, AsTypeHash<GeomBone>())) {
+		GeomBone& bone = e->selected_bone->GetExt<GeomBone>();
+		e->render_ctx.weight_bone = bone.name.IsEmpty() ? e->selected_bone->id : bone.name;
+	}
 }
 
 GeomProjectCtrl::TreeNodeRef* GeomProjectCtrl::GetNodeRef(const Value& v) {

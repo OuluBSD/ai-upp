@@ -237,6 +237,10 @@ struct Edit3D : DockWindow {
 	double sculpt_radius = 0.5;
 	double sculpt_strength = 0.2;
 	bool sculpt_add = true;
+	bool weight_paint_mode = false;
+	double weight_radius = 0.5;
+	double weight_strength = 0.2;
+	bool weight_add = true;
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
@@ -304,6 +308,7 @@ struct Edit3D : DockWindow {
 	void CreateSkeletonForSelected();
 	void AddBoneToSelectedSkeleton();
 	void RemoveSelectedBone();
+	void SetWeightPaintMode(bool enable);
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	int PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);

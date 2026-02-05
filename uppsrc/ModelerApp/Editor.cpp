@@ -1343,6 +1343,29 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Add Bone"), THISBACK(AddBoneToSelectedSkeleton));
 				bar.Add(t_("Remove Bone"), THISBACK(RemoveSelectedBone));
 			});
+			bar.Sub(t_("Weights"), [this](Bar& bar) {
+				bar.Add(t_("Enable Paint"), [this] { SetWeightPaintMode(!weight_paint_mode); })
+					.Check(weight_paint_mode);
+				bar.Separator();
+				bar.Add(t_("Add"), [this] { weight_add = true; })
+					.Check(weight_add);
+				bar.Add(t_("Subtract"), [this] { weight_add = false; })
+					.Check(!weight_add);
+				bar.Separator();
+				bar.Add(t_("Radius 0.25"), [this] { weight_radius = 0.25; })
+					.Check(fabs(weight_radius - 0.25) < 1e-6);
+				bar.Add(t_("Radius 0.5"), [this] { weight_radius = 0.5; })
+					.Check(fabs(weight_radius - 0.5) < 1e-6);
+				bar.Add(t_("Radius 1.0"), [this] { weight_radius = 1.0; })
+					.Check(fabs(weight_radius - 1.0) < 1e-6);
+				bar.Separator();
+				bar.Add(t_("Strength 0.05"), [this] { weight_strength = 0.05; })
+					.Check(fabs(weight_strength - 0.05) < 1e-6);
+				bar.Add(t_("Strength 0.2"), [this] { weight_strength = 0.2; })
+					.Check(fabs(weight_strength - 0.2) < 1e-6);
+				bar.Add(t_("Strength 0.5"), [this] { weight_strength = 0.5; })
+					.Check(fabs(weight_strength - 0.5) < 1e-6);
+			});
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -2193,6 +2216,79 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && weight_paint_mode) {
+		GeomObject* obj = v0.selected_obj;
+		if (obj && selected_bone) {
+			if (!IsVfsType(*selected_bone, AsTypeHash<GeomBone>()))
+				return;
+			GeomBone& bone = selected_bone->GetExt<GeomBone>();
+			String bone_name = bone.name.IsEmpty() ? selected_bone->id : bone.name;
+			GeomEditableMesh* mesh = obj->FindEditableMesh();
+			if (mesh) {
+				vec3 ray_o, ray_d;
+				if (ScreenToRay(view_i, p, ray_o, ray_d)) {
+					vec3 obj_pos = vec3(0);
+					quat obj_ori = Identity<quat>();
+					vec3 obj_scale = vec3(1);
+					if (state) {
+						if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+							obj_pos = os->position;
+							obj_ori = os->orientation;
+							obj_scale = os->scale;
+						}
+					}
+					else if (GeomTransform* tr = obj->FindTransform()) {
+						obj_pos = tr->position;
+						obj_ori = tr->orientation;
+						obj_scale = tr->scale;
+					}
+					quat inv = obj_ori.GetInverse();
+					vec3 local_ray_o = VectorTransform(ray_o - obj_pos, inv);
+					vec3 local_ray_d = VectorTransform(ray_d, inv);
+					if (obj_scale[0] != 0) local_ray_o[0] /= obj_scale[0];
+					if (obj_scale[1] != 0) local_ray_o[1] /= obj_scale[1];
+					if (obj_scale[2] != 0) local_ray_o[2] /= obj_scale[2];
+					if (obj_scale[0] != 0) local_ray_d[0] /= obj_scale[0];
+					if (obj_scale[1] != 0) local_ray_d[1] /= obj_scale[1];
+					if (obj_scale[2] != 0) local_ray_d[2] /= obj_scale[2];
+					local_ray_d.Normalize();
+					int closest = -1;
+					double best = 1e9;
+					for (int i = 0; i < mesh->points.GetCount(); i++) {
+						vec3 p0 = mesh->points[i];
+						vec3 diff = p0 - local_ray_o;
+						double t = Dot(diff, local_ray_d);
+						vec3 proj = local_ray_o + local_ray_d * t;
+						double d2 = (p0 - proj).GetLength();
+						if (d2 < best) {
+							best = d2;
+							closest = i;
+						}
+					}
+					if (closest >= 0) {
+						vec3 center = mesh->points[closest];
+						GeomSkinWeights& sw = obj->GetSkinWeights();
+						Vector<float>& w = sw.weights.GetAdd(bone_name);
+						w.SetCount(mesh->points.GetCount(), 0.0f);
+						for (int i = 0; i < mesh->points.GetCount(); i++) {
+							vec3 diff = mesh->points[i] - center;
+							float dist = diff.GetLength();
+							if (dist > weight_radius)
+								continue;
+							float falloff = 1.0f - dist / (float)weight_radius;
+							float delta = (float)weight_strength * falloff;
+							if (!weight_add)
+								delta = -delta;
+							float nv = w[i] + delta;
+							w[i] = Clamp(nv, 0.0f, 1.0f);
+						}
+						state->UpdateObjects();
+						RefrehRenderers();
+					}
+				}
+			}
+		}
+	}
 	PyValue payload = PyValue::Dict();
 	payload.SetItem(PyValue("type"), PyValue(type));
 	payload.SetItem(PyValue("x"), PyValue(p.x));
@@ -2377,6 +2473,18 @@ void Edit3D::RemoveSelectedBone() {
 	render_ctx.selected_bone = nullptr;
 	state->UpdateObjects();
 	RefreshData();
+}
+
+void Edit3D::SetWeightPaintMode(bool enable) {
+	weight_paint_mode = enable;
+	render_ctx.show_weights = weight_paint_mode;
+	render_ctx.weight_bone.Clear();
+	if (selected_bone && IsVfsType(*selected_bone, AsTypeHash<GeomBone>())) {
+		GeomBone& bone = selected_bone->GetExt<GeomBone>();
+		String name = bone.name.IsEmpty() ? selected_bone->id : bone.name;
+		render_ctx.weight_bone = name;
+	}
+	RefrehRenderers();
 }
 
 int Edit3D::PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const {

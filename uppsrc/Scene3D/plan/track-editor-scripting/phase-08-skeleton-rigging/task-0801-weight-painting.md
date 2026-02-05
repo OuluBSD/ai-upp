@@ -17,4 +17,8 @@ Support weighting polygons/vertices to skeleton bones.
 - Vertex weights persist across save/load.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added skin weight component and weight paint mode using bone selection.
+- Viewport shows weight colors for the active bone.

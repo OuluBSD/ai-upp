@@ -47,6 +47,12 @@ file
 	WorkDashboard.h,
 	WorkDashboard.cpp,
 	MaestroHub.lay,
+	UX_Analysis.md,
+	Feature_Inventory.md,
+	GUI_Mockup.yaml,
+	User_Flows.md,
+	AI_UX_Guidelines.md,
+	Onboarding_Plan.md,
 	Management readonly separator,
 	SessionManagement.h,
 	SessionManagement.cpp;

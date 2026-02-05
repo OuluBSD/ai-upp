@@ -243,7 +243,43 @@ bool Player::IsTouchingWallOnRight(CollisionHandler& collision) {
 	return false;
 }
 
+void Player::Render(Draw& w, CoordinateConverter& coords) {
+	// Get world-space corners
+	Point topLeft((int)bounds.left, (int)bounds.top);
+	Point bottomRight((int)bounds.right, (int)bounds.bottom);
+
+	// Convert to screen space (handles Y-flip)
+	Point screenTopLeft = coords.WorldToScreen(topLeft);
+	Point screenBottomRight = coords.WorldToScreen(bottomRight);
+
+	// Since Y is flipped, screenBottomRight.y will be < screenTopLeft.y
+	// Normalize to get proper screen rect
+	int screenX = min(screenTopLeft.x, screenBottomRight.x);
+	int screenY = min(screenTopLeft.y, screenBottomRight.y);
+	int width = abs(screenBottomRight.x - screenTopLeft.x);
+	int height = abs(screenBottomRight.y - screenTopLeft.y);
+
+	// Draw player as blue rectangle (placeholder)
+	Color playerColor = Color(50, 150, 255);
+	if(invincibleTimer > 0.0f) {
+		// Flash while invincible
+		int flash = ((int)(invincibleTimer * 10) % 2);
+		if(flash) playerColor = Color(255, 255, 255);
+	}
+
+	w.DrawRect(screenX, screenY, width, height, playerColor);
+
+	// Draw facing direction indicator
+	Color dirColor = Color(255, 255, 0);
+	if(facing > 0) {
+		w.DrawRect(screenX + width - 2, screenY + height/2 - 2, 4, 4, dirColor);
+	} else {
+		w.DrawRect(screenX - 2, screenY + height/2 - 2, 4, 4, dirColor);
+	}
+}
+
 void Player::Render(Draw& w, Point cameraOffset, float zoom) {
+	// Deprecated version - does NOT handle Y-flip correctly
 	// Calculate screen position
 	Point screenPos;
 	screenPos.x = (int)((bounds.left - cameraOffset.x) * zoom);

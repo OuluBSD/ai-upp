@@ -17,4 +17,4 @@ Add texture painting/editing tools for 3D models.
 - Edited textures are saved and reloaded.
 
 ## Status
-- Pending
+- Done

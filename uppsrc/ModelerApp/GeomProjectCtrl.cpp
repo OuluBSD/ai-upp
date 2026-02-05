@@ -717,6 +717,7 @@ void GeomProjectCtrl::TreeSelect() {
 		e->state->focus_object_key = obj->key;
 		UpdateTreeFocus(cursor);
 		PropsData();
+		e->UpdateTextureEditor(obj);
 		e->state->UpdateObjects();
 		RefreshAll();
 		return;
@@ -757,6 +758,7 @@ void GeomProjectCtrl::TreeSelect() {
 	}
 	UpdateTreeFocus(cursor);
 	PropsData();
+	e->UpdateTextureEditor(obj);
 	e->render_ctx.selected_bone = e->selected_bone;
 	e->render_ctx.show_weights = e->weight_paint_mode;
 	e->render_ctx.weight_bone.Clear();
@@ -972,6 +974,14 @@ void GeomProjectCtrl::PropsMenu(Bar& bar) {
 			e->state->UpdateObjects();
 			e->RefreshData();
 		});
+		if (obj) {
+			bar.Add(t_("Texture Edit"), [=] {
+				obj->GetTextureEdit();
+				e->UpdateTextureEditor(obj);
+				e->state->UpdateObjects();
+				e->RefreshData();
+			});
+		}
 		if (obj && obj->IsOctree()) {
 			bar.Add(t_("Pointcloud Effect (Transform)"), [=] {
 				String base = "effect";

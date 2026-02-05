@@ -498,6 +498,12 @@ void Geom2DAnimation::Visit(Vis& v) {
 	v VISM(keyframes);
 }
 
+void GeomTextureEdit::Visit(Vis& v) {
+	v VIS_(path)
+	  VIS_(width)
+	  VIS_(height);
+}
+
 void GeomMeshKeyframe::Visit(Vis& v) {
 	v VIS_(frame_id);
 	if (v.mode == Vis::MODE_JSON) {
@@ -951,6 +957,20 @@ Geom2DAnimation* GeomObject::Find2DAnimation() const {
 	return 0;
 }
 
+GeomTextureEdit& GeomObject::GetTextureEdit() {
+	static bool init = (TypedStringHasher<GeomTextureEdit>("GeomTextureEdit"), true);
+	return val.GetAdd<GeomTextureEdit>("texture_edit");
+}
+
+GeomTextureEdit* GeomObject::FindTextureEdit() const {
+	static bool init = (TypedStringHasher<GeomTextureEdit>("GeomTextureEdit"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomTextureEdit>()) && sub.id == "texture_edit")
+			return &sub.GetExt<GeomTextureEdit>();
+	}
+	return 0;
+}
+
 GeomMeshAnimation& GeomObject::GetMeshAnimation() {
 	static bool init = (TypedStringHasher<GeomMeshAnimation>("GeomMeshAnimation"), true);
 	return val.GetAdd<GeomMeshAnimation>("mesh_anim");
@@ -1053,6 +1073,8 @@ void GeomObject::Visit(Vis& v) {
 	v("layer2d", layer2d, VISIT_NODE);
 	Geom2DAnimation& layer2d_anim = Get2DAnimation();
 	v("layer2d_anim", layer2d_anim, VISIT_NODE);
+	GeomTextureEdit& tex = GetTextureEdit();
+	v("texture_edit", tex, VISIT_NODE);
 	GeomMeshAnimation& mesh_anim = GetMeshAnimation();
 	v("mesh_anim", mesh_anim, VISIT_NODE);
 	GeomSkeleton* skel_ptr = FindSkeleton();
@@ -1935,6 +1957,7 @@ INITIALIZER_VFSEXT(GeomSkinWeights, "scene3d.skinweights", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
 INITIALIZER_VFSEXT(Geom2DLayer, "scene3d.layer2d", "Scene3D|Core")
 INITIALIZER_VFSEXT(Geom2DAnimation, "scene3d.layer2d.anim", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomTextureEdit, "scene3d.texture.edit", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomMeshAnimation, "scene3d.mesh.anim", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")

@@ -150,3 +150,7 @@
   task: track-editor-scripting/phase-07-3d-editing/task-0702-sculpt-sphere.md
   status: done
   note: Added sculpt mode with ray-based falloff deformation.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-08-skeleton-rigging/task-0800-skeleton-rigging.md
+  status: done
+  note: Added skeleton components, tree hierarchy, and viewport visualization.

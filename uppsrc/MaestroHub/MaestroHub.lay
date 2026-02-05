@@ -53,10 +53,18 @@ END_LAYOUT
 
 LAYOUT(SubworkLayout, 800, 500)
 	ITEM(Label, dv___0, SetLabel(t_("Subwork Hierarchy:")).LeftPos(8, 200).TopPos(8, 19))
-	ITEM(TreeCtrl, subwork_tree, LeftPos(8, 300).VSizePos(32, 48))
+	ITEM(TreeArrayCtrl, subwork_tree, LeftPos(8, 300).VSizePos(32, 48))
 	ITEM(Label, dv___2, SetLabel(t_("Context Stack:")).LeftPos(316, 200).TopPos(8, 19))
 	ITEM(ArrayCtrl, context_stack, HSizePos(316, 8).VSizePos(32, 48))
 	ITEM(Button, btn_push, SetLabel(t_("Push Subwork...")).LeftPos(8, 140).BottomPos(8, 32))
 	ITEM(Button, btn_pop, SetLabel(t_("Pop / Complete")).LeftPos(152, 140).BottomPos(8, 32))
 	ITEM(Button, btn_close, SetLabel(t_("Close")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT
+
+LAYOUT(TUBrowserLayout, 900, 600)
+	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(0, 0))
+END_LAYOUT
+
+LAYOUT(LogAnalyzerLayout, 900, 600)
+	ITEM(Splitter, vsplit, HSizePos(0, 0).VSizePos(0, 0))
 END_LAYOUT

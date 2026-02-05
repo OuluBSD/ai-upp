@@ -141,6 +141,7 @@ class TuManager {
 public:
 	TuManager(const String& maestro_root = ".");
 	
+	Vector<String> ListPackages();
 	void Build(const String& package);
 	void Info(const String& package);
 	void Query(const String& query);

@@ -9,6 +9,16 @@ TuManager::TuManager(const String& maestro_root)
 	RealizeDirectory(cache_dir);
 }
 
+Vector<String> TuManager::ListPackages()
+{
+	RepoScanner scanner;
+	scanner.Scan(base_path);
+	Vector<String> pkgs;
+	for(const auto& p : scanner.packages)
+		pkgs.Add(p.name);
+	return pkgs;
+}
+
 void TuManager::Build(const String& package)
 {
 	Cout() << "Building TU for package: " << package << "\n";

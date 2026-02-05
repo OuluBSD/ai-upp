@@ -6,6 +6,14 @@
 			{
 				"GeomDirectory": {
 					"name": "HMD Pointcloud",
+					"transform": {
+						"position": {
+							"data": ""
+						},
+						"orientation": {
+							"data": ""
+						}
+					},
 					"subdir": [
 
 					],
@@ -15,10 +23,22 @@
 							"type_i": 2,
 							"asset_ref": "",
 							"pointcloud_ref": "",
+							"is_visible": true,
+							"is_locked": false,
+							"read_enabled": true,
+							"write_enabled": false,
 							"timeline": {
 								"keypoints": [
 
 								]
+							},
+							"transform": {
+								"position": {
+									"data": ""
+								},
+								"orientation": {
+									"data": ""
+								}
 							}
 						},
 						{
@@ -26,10 +46,22 @@
 							"type_i": 3,
 							"asset_ref": "",
 							"pointcloud_ref": "",
+							"is_visible": true,
+							"is_locked": false,
+							"read_enabled": true,
+							"write_enabled": false,
 							"timeline": {
 								"keypoints": [
 
 								]
+							},
+							"transform": {
+								"position": {
+									"data": ""
+								},
+								"orientation": {
+									"data": ""
+								}
 							}
 						}
 					]
@@ -64,8 +96,8 @@
 		"fov": 120,
 		"scale": 1
 	},
-	"created_utc": "2026-02-04T12:01:43Z",
-	"modified_utc": "2026-02-04T12:01:43Z",
+	"created_utc": "2026-02-04T23:30:54Z",
+	"modified_utc": "2026-02-04T23:30:54Z",
 	"data_dir": "data",
 	"external_files": [
 

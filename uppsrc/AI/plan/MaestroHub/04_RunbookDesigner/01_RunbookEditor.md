@@ -1,5 +1,5 @@
 # Task: Visual Runbook Editor
-# Status: TODO
+# Status: DONE
 
 ## Objective
 GUI for creating and editing Runbooks (`maestro runbook add/edit`).

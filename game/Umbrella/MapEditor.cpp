@@ -897,6 +897,8 @@ void MapEditorApp::NewMap() {
 }
 
 void MapEditorApp::OpenFile(const String& fileName) {
+	LOG("OpenFile: fileName = " << fileName);
+
 	if(MapSerializer::LoadFromFile(fileName, layerManager)) {
 		currentFilePath = fileName;
 
@@ -906,29 +908,47 @@ void MapEditorApp::OpenFile(const String& fileName) {
 		// Auto-load reference image if it exists
 		// world1-stage1.json -> map 1-1/frame_000002.jpg
 		String baseName = GetFileTitle(fileName);  // "world1-stage1"
+		LOG("OpenFile: baseName = " << baseName);
 
 		// Parse worldX-stageY pattern
 		int worldNum = 0, stageNum = 0;
 		if(baseName.StartsWith("world") && baseName.Find("-stage") >= 0) {
 			int dashPos = baseName.Find("-stage");
+			LOG("OpenFile: dashPos = " << dashPos);
+
 			worldNum = atoi(baseName.Mid(5, dashPos - 5));
 			stageNum = atoi(baseName.Mid(dashPos + 6));
+			LOG("OpenFile: parsed world = " << worldNum << ", stage = " << stageNum);
 
 			// Build reference image path: share/mods/umbrella/proprietary/maps/map X-Y/frame_000002.jpg
 			String exeDir = GetFileFolder(GetExeFilePath());
+			LOG("OpenFile: exeDir = " << exeDir);
+
 			String mapsDir = AppendFileName(AppendFileName(AppendFileName(exeDir, "share"), "mods/umbrella/proprietary"), "maps");
+			LOG("OpenFile: trying mapsDir = " << mapsDir << ", exists = " << DirectoryExists(mapsDir));
 
 			// Try parent directory if not found (when running from bin/)
 			if(!DirectoryExists(mapsDir)) {
 				mapsDir = AppendFileName(AppendFileName(AppendFileName(GetFileFolder(exeDir), "share"), "mods/umbrella/proprietary"), "maps");
+				LOG("OpenFile: trying parent mapsDir = " << mapsDir << ", exists = " << DirectoryExists(mapsDir));
 			}
 
 			String mapDir = AppendFileName(mapsDir, Format("map %d-%d", worldNum, stageNum));
+			LOG("OpenFile: mapDir = " << mapDir << ", exists = " << DirectoryExists(mapDir));
+
 			String refImagePath = AppendFileName(mapDir, "frame_000002.jpg");
+			LOG("OpenFile: refImagePath = " << refImagePath << ", exists = " << FileExists(refImagePath));
 
 			if(FileExists(refImagePath)) {
+				LOG("OpenFile: Loading reference image from " << refImagePath);
 				LoadReferenceImage(refImagePath);
 			}
+			else {
+				LOG("OpenFile: Reference image not found at " << refImagePath);
+			}
+		}
+		else {
+			LOG("OpenFile: Filename pattern doesn't match worldX-stageY");
 		}
 
 		// Refresh canvas
@@ -940,6 +960,7 @@ void MapEditorApp::OpenFile(const String& fileName) {
 		mainStatusBar.Set("Level loaded: " + GetFileName(fileName));
 	}
 	else {
+		LOG("OpenFile: MapSerializer::LoadFromFile failed for " << fileName);
 		mainStatusBar.Set("Failed to load level: " + fileName);
 	}
 }
@@ -950,12 +971,16 @@ void MapEditorApp::SaveFile(const String& fileName) {
 }
 
 void MapEditorApp::LoadReferenceImage(const String& imagePath) {
+	LOG("LoadReferenceImage: imagePath = " << imagePath);
+
 	Image img = StreamRaster::LoadFileAny(imagePath);
 	if(img.IsEmpty()) {
+		LOG("LoadReferenceImage: Failed to load image from " << imagePath);
 		Exclamation("Failed to load image: " + imagePath);
 		return;
 	}
 
+	LOG("LoadReferenceImage: Successfully loaded image, size = " << img.GetSize());
 	referenceImagePath = imagePath;
 	mapCanvas.SetReferenceImage(img);
 	mapCanvas.SetShowReferenceImage(true);

@@ -82,3 +82,7 @@
   task: track-pointcloud-workbench/phase-03-selection-view/task-0301-frustum-visibility-rules.md
   status: done
   note: Frustum now clears when non-camera nodes are selected.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-04-scripting/task-0400-script-node-coverage.md
+  status: done
+  note: Script components now supported on scenes and directories with props menu access.

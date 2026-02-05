@@ -786,6 +786,39 @@ GeomScript& Edit3D::AddScriptComponent(GeomObject& obj) {
 	return script;
 }
 
+GeomScript& Edit3D::AddScriptComponent(GeomDirectory& dir) {
+	String id = "script";
+	int idx = 1;
+	while (dir.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+		id = "script_" + IntStr(idx++);
+	VfsValue& node = dir.val.Add(id, AsTypeHash<GeomScript>());
+	GeomScript& script = node.GetExt<GeomScript>();
+	String base = dir.name.IsEmpty() ? id : dir.name;
+	EnsureScriptFile(script, base);
+	EnsureScriptInstances();
+	return script;
+}
+
+GeomScript& Edit3D::AddScriptComponent(GeomScene& scene) {
+	String id = "script";
+	int idx = 1;
+	while (scene.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+		id = "script_" + IntStr(idx++);
+	VfsValue& node = scene.val.Add(id, AsTypeHash<GeomScript>());
+	GeomScript& script = node.GetExt<GeomScript>();
+	String base = scene.name.IsEmpty() ? id : scene.name;
+	EnsureScriptFile(script, base);
+	EnsureScriptInstances();
+	return script;
+}
+
+void Edit3D::GetScriptsFromNode(VfsValue& node, Vector<GeomScript*>& out) {
+	for (auto& sub : node.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomScript>()))
+			out.Add(&sub.GetExt<GeomScript>());
+	}
+}
+
 void Edit3D::OpenScriptEditor(GeomScript& script) {
 	EnsureScriptFile(script, "script");
 	String abs = GetScriptAbsPath(script.file);
@@ -828,12 +861,13 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 void Edit3D::EnsureScriptInstances() {
 	GeomScene& scene = GetActiveScene();
 	Vector<GeomScript*> scripts;
-	for (GeomObject& obj : GeomObjectCollection(scene)) {
-		for (auto& sub : obj.val.sub) {
-			if (IsVfsType(sub, AsTypeHash<GeomScript>()))
-				scripts.Add(&sub.GetExt<GeomScript>());
-		}
+	GetScriptsFromNode(scene.val, scripts);
+	for (auto& sub : scene.val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomDirectory>()))
+			GetScriptsFromNode(sub, scripts);
 	}
+	for (GeomObject& obj : GeomObjectCollection(scene))
+		GetScriptsFromNode(obj.val, scripts);
 	for (int i = script_instances.GetCount() - 1; i >= 0; i--) {
 		bool found = false;
 		for (int j = 0; j < scripts.GetCount(); j++) {
@@ -856,6 +890,7 @@ void Edit3D::EnsureScriptInstances() {
 		if (!found) {
 			ScriptInstance& inst = script_instances.Add();
 			inst.script = script;
+			inst.owner = script->val.owner;
 			RegisterScriptVM(inst.vm);
 		}
 	}

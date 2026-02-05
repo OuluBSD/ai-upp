@@ -1338,6 +1338,10 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Strength 0.5"), [this] { sculpt_strength = 0.5; })
 					.Check(fabs(sculpt_strength - 0.5) < 1e-6);
 			});
+			bar.Sub(t_("Mesh Animation"), [this](Bar& bar) {
+				bar.Add(t_("Add Keyframe"), THISBACK(AddMeshKeyframeAtCursor));
+				bar.Add(t_("Clear Keyframes"), THISBACK(ClearMeshKeyframes));
+			});
 			bar.Sub(t_("Skeleton"), [this](Bar& bar) {
 				bar.Add(t_("Create Skeleton"), THISBACK(CreateSkeletonForSelected));
 				bar.Add(t_("Add Bone"), THISBACK(AddBoneToSelectedSkeleton));
@@ -1513,6 +1517,16 @@ void Edit3D::Update() {
 		hmd.Poll();
 		if (record_pointcloud)
 			UpdateHmdCameraPose();
+	}
+
+	if (state && state->HasActiveScene()) {
+		GeomScene& scene = state->GetActiveScene();
+		GeomSceneTimeline& tl = scene.GetTimeline();
+		bool was_playing = tl.is_playing;
+		if (tl.is_playing)
+			tl.Update(*state, dt);
+		if (tl.is_playing || was_playing)
+			RefrehRenderers();
 	}
 
 	EnsureScriptInstances();
@@ -2351,6 +2365,41 @@ void Edit3D::CreateEditableMeshObject() {
 	obj.GetEditableMesh();
 	state->UpdateObjects();
 	RefreshData();
+}
+
+GeomObject* Edit3D::GetFocusedMeshObject() {
+	if (!state || state->focus_mode != 1 || !state->focus_object_key)
+		return nullptr;
+	GeomObject* obj = state->FindObjectByKey(state->focus_object_key);
+	if (!obj || !obj->FindEditableMesh())
+		return nullptr;
+	return obj;
+}
+
+void Edit3D::AddMeshKeyframeAtCursor() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	GeomMeshAnimation& anim = obj->GetMeshAnimation();
+	int frame = this->anim ? this->anim->position : 0;
+	GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
+	kf.frame_id = frame;
+	kf.points.SetCount(mesh->points.GetCount());
+	for (int i = 0; i < mesh->points.GetCount(); i++)
+		kf.points[i] = mesh->points[i];
+	RefrehRenderers();
+}
+
+void Edit3D::ClearMeshKeyframes() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	if (GeomMeshAnimation* anim = obj->FindMeshAnimation())
+		anim->keyframes.Clear();
+	RefrehRenderers();
 }
 
 bool Edit3D::ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const {

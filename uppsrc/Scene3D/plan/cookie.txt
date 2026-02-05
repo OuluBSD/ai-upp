@@ -86,3 +86,7 @@
   task: track-pointcloud-workbench/phase-04-scripting/task-0400-script-node-coverage.md
   status: done
   note: Script components now supported on scenes and directories with props menu access.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-04-scripting/task-0401-debug-actions-python-parity.md
+  status: done
+  note: Added script template example covering debug pointcloud actions.

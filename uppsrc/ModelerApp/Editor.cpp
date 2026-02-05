@@ -768,7 +768,16 @@ String Edit3D::EnsureScriptFile(GeomScript& script, String base_name) {
 	}
 	String abs = GetScriptAbsPath(rel);
 	if (!FileExists(abs)) {
-		String header = "# Script: " + base_name + "\n";
+		String header;
+		header << "# Script: " << base_name << "\n";
+		header << "# Example:\n";
+		header << "# def on_start():\n";
+		header << "#     modeler.debug_generate_pointcloud()\n";
+		header << "#     modeler.debug_simulate_observation()\n";
+		header << "#     modeler.debug_run_localization()\n";
+		header << "#\n";
+		header << "# def on_frame(dt):\n";
+		header << "#     pass\n";
 		SaveFile(abs, header);
 	}
 	return rel;

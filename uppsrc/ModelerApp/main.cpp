@@ -20,6 +20,7 @@ GUI_APP_MAIN {
 	cmd.AddArg('s', "Run synthetic sim (visual)", false);
 	cmd.AddArg('d', "Dump test .scene3d and exit", false);
 	cmd.AddArg('n', "Pointcloud directory", true, "directory");
+	cmd.AddArg('r', "Project directory", true, "directory");
 	cmd.AddArg('c', "Connect to a server", true, "address");
 	cmd.AddArg('p', "Port", true, "integer");
 	cmd.AddArg('g', "Debug-mode", false);
@@ -76,6 +77,8 @@ GUI_APP_MAIN {
 	daemon.RunInThread();
 	
 	Edit3D app;
+	if (cmd.IsArg('r'))
+		app.SetProjectDir(cmd.GetArg('r'));
 
 	if (cmd.IsArg('d')) {
 		app.LoadTestProject(0);

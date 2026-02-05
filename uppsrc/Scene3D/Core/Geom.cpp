@@ -68,6 +68,30 @@ void GeomTimeline::Visit(Vis& v) {
 	v VISM(keypoints);
 }
 
+void GeomTransform::Visit(Vis& v) {
+	v VISN(position)
+	  VISN(orientation);
+}
+
+void GeomScript::Visit(Vis& v) {
+	v VIS_(file)
+	  VIS_(enabled)
+	  VIS_(run_on_load)
+	  VIS_(run_every_frame);
+}
+
+String GeomPointcloudDataset::GetId() const {
+	if (!name.IsEmpty())
+		return name;
+	return val.id;
+}
+
+void GeomPointcloudDataset::Visit(Vis& v) {
+	v VIS_(name)
+	  VIS_(source_ref);
+	if (v.IsLoading() && !name.IsEmpty())
+		val.id = name;
+}
 
 
 
@@ -169,6 +193,20 @@ GeomTimeline* GeomObject::FindTimeline() const {
 	return 0;
 }
 
+GeomTransform& GeomObject::GetTransform() {
+	static bool init = (TypedStringHasher<GeomTransform>("GeomTransform"), true);
+	return val.GetAdd<GeomTransform>("transform");
+}
+
+GeomTransform* GeomObject::FindTransform() const {
+	static bool init = (TypedStringHasher<GeomTransform>("GeomTransform"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomTransform>()) && sub.id == "transform")
+			return &sub.GetExt<GeomTransform>();
+	}
+	return 0;
+}
+
 String GeomObject::GetPath() const {
 	String path = name;
 	const VfsValue* dir = val.owner;
@@ -190,9 +228,13 @@ void GeomObject::Visit(Vis& v) {
 	  VIS_(asset_ref)
 	  VIS_(pointcloud_ref)
 	  VIS_(is_visible)
-	  VIS_(is_locked);
+	  VIS_(is_locked)
+	  VIS_(read_enabled)
+	  VIS_(write_enabled);
 	GeomTimeline& tl = GetTimeline();
 	v("timeline", tl, VISIT_NODE);
+	GeomTransform& tr = GetTransform();
+	v("transform", tr, VISIT_NODE);
 	if (v.IsLoading()) {
 		type = (Type)type_i;
 		if (!name.IsEmpty())
@@ -260,12 +302,33 @@ GeomDirectory& GeomDirectory::GetAddDirectory(String name) {
 	return dir;
 }
 
+GeomTransform& GeomDirectory::GetTransform() {
+	static bool init = (TypedStringHasher<GeomTransform>("GeomTransform"), true);
+	return val.GetAdd<GeomTransform>("transform");
+}
+
+GeomTransform* GeomDirectory::FindTransform() const {
+	static bool init = (TypedStringHasher<GeomTransform>("GeomTransform"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomTransform>()) && sub.id == "transform")
+			return &sub.GetExt<GeomTransform>();
+	}
+	return 0;
+}
+
 void GeomDirectory::Visit(Vis& v) {
 	v VIS_(name);
 	if (v.IsLoading() && !name.IsEmpty())
 		val.id = name;
+	GeomTransform& tr = GetTransform();
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
+			const Value& trv = v.json->Get()["transform"];
+			if (!IsNull(trv)) {
+				JsonIO jio(trv);
+				Vis vis(jio);
+				tr.Visit(vis);
+			}
 			val.sub.Clear();
 			const Value& sub_va = v.json->Get()["subdir"];
 			for (int i = 0; i < sub_va.GetCount(); i++) {
@@ -288,6 +351,16 @@ void GeomDirectory::Visit(Vis& v) {
 				if (!o.name.IsEmpty())
 					n.id = o.name;
 			}
+			const Value& ds_va = v.json->Get()["datasets"];
+			for (int i = 0; i < ds_va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudDataset>());
+				GeomPointcloudDataset& ds = n.GetExt<GeomPointcloudDataset>();
+				JsonIO jio(ds_va[i]);
+				Vis vis(jio);
+				ds.Visit(vis);
+				if (!ds.name.IsEmpty())
+					n.id = ds.name;
+			}
 		}
 		else {
 			Vector<Value> subdir_values;
@@ -303,6 +376,7 @@ void GeomDirectory::Visit(Vis& v) {
 				item.Add("value", v.VisitAsJsonValue(dir));
 				subdir_values.Add(item);
 			}
+			v.json->Set("transform", v.VisitAsJsonValue(tr));
 			v.json->Set("subdir", ValueArray(pick(subdir_values)));
 			Vector<Value> obj_values;
 			for (auto& s : val.sub) {
@@ -312,21 +386,34 @@ void GeomDirectory::Visit(Vis& v) {
 				obj_values.Add(v.VisitAsJsonValue(o));
 			}
 			v.json->Set("objs", ValueArray(pick(obj_values)));
+			Vector<Value> ds_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+					continue;
+				GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+				ds_values.Add(v.VisitAsJsonValue(ds));
+			}
+			v.json->Set("datasets", ValueArray(pick(ds_values)));
 		}
 	}
 	else {
 		int subdir_count = 0;
 		int obj_count = 0;
+		int ds_count = 0;
 		if (!v.IsLoading()) {
 			for (auto& s : val.sub) {
 				if (IsVfsType(s, AsTypeHash<GeomDirectory>()))
 					subdir_count++;
 				else if (IsVfsType(s, AsTypeHash<GeomObject>()))
 					obj_count++;
+				else if (IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+					ds_count++;
 			}
 		}
+		v("transform", tr, VISIT_NODE);
 		v VIS_(subdir_count)
-		  VIS_(obj_count);
+		  VIS_(obj_count)
+		  VIS_(ds_count);
 		if (v.IsLoading()) {
 			val.sub.Clear();
 			for (int i = 0; i < subdir_count; i++) {
@@ -344,6 +431,13 @@ void GeomDirectory::Visit(Vis& v) {
 				if (!o.name.IsEmpty())
 					n.id = o.name;
 			}
+			for (int i = 0; i < ds_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudDataset>());
+				GeomPointcloudDataset& ds = n.GetExt<GeomPointcloudDataset>();
+				ds.Visit(v);
+				if (!ds.name.IsEmpty())
+					n.id = ds.name;
+			}
 		}
 		else {
 			for (auto& s : val.sub) {
@@ -361,6 +455,12 @@ void GeomDirectory::Visit(Vis& v) {
 					continue;
 				GeomObject& o = s.GetExt<GeomObject>();
 				o.Visit(v);
+			}
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+					continue;
+				GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+				ds.Visit(v);
 			}
 		}
 	}
@@ -390,6 +490,34 @@ GeomObject* GeomDirectory::FindObject(String name, GeomObject::Type type) {
 
 GeomObject* GeomDirectory::FindCamera(String name) {
 	return FindObject(name, GeomObject::O_CAMERA);
+}
+
+GeomPointcloudDataset& GeomDirectory::GetAddPointcloudDataset(String id) {
+	for (auto& s : val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+			continue;
+		GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+		String ds_id = ds.GetId();
+		if (ds_id == id)
+			return ds;
+	}
+	VfsValue& n = val.GetAdd<GeomPointcloudDataset>(id);
+	GeomPointcloudDataset& ds = n.GetExt<GeomPointcloudDataset>();
+	ds.name = id;
+	n.id = id;
+	return ds;
+}
+
+GeomPointcloudDataset* GeomDirectory::FindPointcloudDataset(String id) {
+	for (auto& s : val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+			continue;
+		GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+		String ds_id = ds.GetId();
+		if (ds_id == id)
+			return &ds;
+	}
+	return 0;
 }
 
 GeomObject& GeomDirectory::GetAddModel(String name) {
@@ -514,7 +642,11 @@ GeomCamera& GeomWorldState::GetProgram() {
 
 void GeomWorldState::Visit(Vis& v) {
 	v VIS_(active_scene)
-	  VIS_(active_camera_obj_i);
+	  VIS_(active_camera_obj_i)
+	  VIS_(focus_mode)
+	  VIS_(focus_object_key)
+	  VIS_(program_visible)
+	  VIS_(focus_visible);
 	GeomCamera& focus = GetFocus();
 	GeomCamera& program = GetProgram();
 	v("focus", focus, VISIT_NODE);
@@ -527,21 +659,66 @@ void GeomWorldState::UpdateObjects() {
 	this->objs.SetCount(0);
 	int i = 0;
 	active_camera_obj_i = -1;
+	auto apply_local = [](vec3& pos, quat& ori, const vec3& lpos, const quat& lori) {
+		pos = pos + VectorTransform(lpos, ori);
+		ori = ori * lori;
+	};
 	for (GeomObject& o : collection) {
 		GeomObjectState& s = objs.Add();
 		s.obj = &o;
-		s.position = vec3(0);
-		s.orientation = Identity<quat>();
+		vec3 pos = vec3(0);
+		quat ori = Identity<quat>();
+		for (VfsValue* n = o.val.owner; n; n = n->owner) {
+			if (IsVfsType(*n, AsTypeHash<GeomDirectory>())) {
+				GeomDirectory& dir = n->GetExt<GeomDirectory>();
+				if (GeomTransform* tr = dir.FindTransform())
+					apply_local(pos, ori, tr->position, tr->orientation);
+			}
+		}
 		GeomTimeline* tl = o.FindTimeline();
-		if (tl && !tl->keypoints.IsEmpty()) {
+		if (o.read_enabled && tl && !tl->keypoints.IsEmpty()) {
 			GeomKeypoint& kp = tl->keypoints[0];
-			s.position = kp.position;
-			s.orientation = kp.orientation;
+			if (GeomTransform* tr = o.FindTransform()) {
+				tr->position = kp.position;
+				tr->orientation = kp.orientation;
+			}
+			apply_local(pos, ori, kp.position, kp.orientation);
+		}
+		else if (GeomTransform* tr = o.FindTransform()) {
+			apply_local(pos, ori, tr->position, tr->orientation);
+		}
+		s.position = pos;
+		s.orientation = ori;
+		if (o.IsOctree()) {
+			if (!o.pointcloud_ref.IsEmpty()) {
+				GeomPointcloudDataset* ds = scene.FindPointcloudDataset(o.pointcloud_ref);
+				if (ds)
+					o.octree_ptr = ds->octree_ptr ? ds->octree_ptr : &ds->octree.octree;
+			}
 		}
 		if (active_camera_obj_i < 0 && o.IsCamera())
 			active_camera_obj_i = i;
 		i++;
 	}
+}
+
+GeomObject* GeomWorldState::FindObjectByKey(hash_t key) const {
+	if (!prj || key == 0 || active_scene < 0 || active_scene >= prj->GetSceneCount())
+		return 0;
+	GeomScene& scene = prj->GetScene(active_scene);
+	GeomObjectCollection iter(scene);
+	for (GeomObject& go : iter)
+		if (go.key == key)
+			return &go;
+	return 0;
+}
+
+const GeomObjectState* GeomWorldState::FindObjectStateByKey(hash_t key) const {
+	for (const GeomObjectState& os : objs) {
+		if (os.obj && os.obj->key == key)
+			return &os;
+	}
+	return 0;
 }
 
 GeomScene& GeomWorldState::GetActiveScene() {
@@ -636,6 +813,8 @@ void GeomAnim::Update(double dt) {
 	
 	for (GeomObjectState& os : state->objs) {
 		GeomObject& o = *os.obj;
+		if (!o.read_enabled)
+			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {
 			int pre_i = tl->FindPre(position);
@@ -661,9 +840,11 @@ void GeomAnim::Update(double dt) {
 	if (state->active_camera_obj_i >= 0) {
 		GeomObjectState& os = state->objs[state->active_camera_obj_i];
 		ASSERT(os.obj->IsCamera());
-		GeomCamera& cam = state->GetProgram();
-		cam.position = os.position;
-		cam.orientation = os.orientation;
+		if (os.obj->read_enabled) {
+			GeomCamera& cam = state->GetProgram();
+			cam.position = os.position;
+			cam.orientation = os.orientation;
+		}
 	}
 	
 }
@@ -700,7 +881,13 @@ void GeomCamera::Visit(Vis& v) {
 	  VIS_(scale);
 }
 
+INITIALIZER(GeomTransformType) {
+	TYPED_STRING_HASHER(GeomTransform);
+}
 INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomTransform, "scene3d.transform", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomObject, "scene3d.object", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomDirectory, "scene3d.directory", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomScene, "scene3d.scene", "Scene3D|Core")

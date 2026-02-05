@@ -2,8 +2,10 @@
 #define _ModelerApp_ModelerApp_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <CodeEditor/CodeEditor.h>
 #include <Geometry/Geometry.h>
 #include <ComputerVision/ComputerVision.h>
+#include <ByteVM/ByteVM.h>
 #include <Draw/Camera/Camera.h>
 #include <Ctrl/Camera/Camera.h>
 #include <Scene3D/Core/Core.h>

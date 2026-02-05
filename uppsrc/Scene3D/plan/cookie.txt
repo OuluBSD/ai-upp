@@ -50,3 +50,11 @@
   task: track-hmd-visualization/phase-02-pointcloud-live/task-0204-synthetic-pointcloud-hmd-sim.md
   status: done
   note: Added synthetic pointcloud + dummy HMD sim (ideal data) with debug outputs.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-00-planning/task-0000-plan-refresh.md
+  status: done
+  note: Added pointcloud workbench track for remaining simulation, dataset, and scripting gaps.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-01-dataset-effects/task-0100-pointcloud-dataset-sharing.md
+  status: done
+  note: Added dataset nodes, dataset binding, UI selection, and external file sync for pointcloud datasets.

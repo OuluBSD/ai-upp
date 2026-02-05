@@ -1,7 +1,9 @@
 uses
 	CtrlLib,
+	CodeEditor,
 	Geometry,
 	ComputerVision,
+	ByteVM,
 	Draw/Camera,
 	Ctrl/Camera,
 	Scene3D/Core,

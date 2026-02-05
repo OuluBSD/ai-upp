@@ -7,7 +7,7 @@
 
 using namespace Upp;
 
-class GameScreen : public TopWindow, public Player::CollisionHandler {
+class GameScreen : public TopWindow, public Player::CollisionHandler, public Player::CoordinateConverter {
 public:  // Public for testing
 	String levelPath;
 	LayerManager layerManager;
@@ -50,11 +50,15 @@ public:
 
 	// Camera
 	void UpdateCamera(Point targetPos);
-	Point WorldToScreen(Point worldPos);
+	virtual Point WorldToScreen(Point worldPos) override;  // CoordinateConverter interface
 	Point ScreenToWorld(Point screenPos);
 
 	// Level loading
 	bool LoadLevel(const String& path);
+
+	// Player spawning
+	Point FindSpawnPoint();
+	void RespawnPlayer();
 
 	// Input
 	virtual bool Key(dword key, int) override;

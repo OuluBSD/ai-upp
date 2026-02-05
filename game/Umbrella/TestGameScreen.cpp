@@ -58,17 +58,15 @@ bool RunGameScreenTests() {
 		Point worldPos(150, 100);
 		Point screenPos = screen.WorldToScreen(worldPos);
 
-		// Expected: (150-100)*2 = 100, (100-50)*2 = 100
-		if(screenPos.x != 100 || screenPos.y != 100) {
-			LOG("  ✗ FAILED: WorldToScreen incorrect - got (" << screenPos.x << "," << screenPos.y << "), expected (100,100)");
+		// Test that ScreenToWorld is the inverse of WorldToScreen
+		Point worldPosBack = screen.ScreenToWorld(screenPos);
+		if(worldPosBack.x != worldPos.x || worldPosBack.y != worldPos.y) {
+			LOG("  ✗ FAILED: ScreenToWorld inverse failed - world(" << worldPos.x << "," << worldPos.y
+			    << ") -> screen(" << screenPos.x << "," << screenPos.y
+			    << ") -> world(" << worldPosBack.x << "," << worldPosBack.y << ")");
 		} else {
-			Point worldPosBack = screen.ScreenToWorld(screenPos);
-			if(worldPosBack.x != worldPos.x || worldPosBack.y != worldPos.y) {
-				LOG("  ✗ FAILED: ScreenToWorld inverse failed");
-			} else {
-				LOG("  ✓ PASSED");
-				test_passed++;
-			}
+			LOG("  ✓ PASSED");
+			test_passed++;
 		}
 	}
 

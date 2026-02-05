@@ -56,7 +56,18 @@ public:
 	Player(float x, float y, float width, float height);
 
 	void Update(float delta, const InputState& input, CollisionHandler& collision);
+
+	// Render using direct screen coordinates (deprecated - use version with GameScreen)
 	void Render(Draw& w, Point cameraOffset, float zoom);
+
+	// Forward declaration for coordinate converter interface
+	class CoordinateConverter {
+	public:
+		virtual Point WorldToScreen(Point worldPos) = 0;
+	};
+
+	// Render using GameScreen's coordinate conversion
+	void Render(Draw& w, CoordinateConverter& coords);
 
 	// Accessors
 	Rectf GetBounds() const { return bounds; }

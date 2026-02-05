@@ -18,4 +18,8 @@ Add a sculpting tool that deforms geometry using a spherical brush.
 - Radius/strength controls behave consistently.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added sculpt mode with add/subtract, radius, and strength controls.
+- Sculpt uses ray hit + falloff on editable mesh points.

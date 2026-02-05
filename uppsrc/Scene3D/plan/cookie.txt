@@ -78,3 +78,7 @@
   task: track-pointcloud-workbench/phase-03-selection-view/task-0300-active-selection-render-sync.md
   status: done
   note: Tree selection now forces state update before renderer refresh.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-03-selection-view/task-0301-frustum-visibility-rules.md
+  status: done
+  note: Frustum now clears when non-camera nodes are selected.

@@ -689,8 +689,12 @@ void GeomProjectCtrl::TreeSelect() {
 		return;
 	}
 	if (ds) {
+		e->state->focus_mode = 0;
+		e->state->focus_object_key = 0;
 		UpdateTreeFocus(cursor);
 		PropsData();
+		e->state->UpdateObjects();
+		RefreshAll();
 		return;
 	}
 	if (!v.Is<VfsValue*>())
@@ -711,6 +715,12 @@ void GeomProjectCtrl::TreeSelect() {
 			}
 			idx++;
 		}
+	}
+	else if (IsVfsType(*node, AsTypeHash<GeomDirectory>())) {
+		e->state->focus_mode = 0;
+		e->state->focus_object_key = 0;
+		e->state->UpdateObjects();
+		RefreshAll();
 	}
 	UpdateTreeFocus(cursor);
 	PropsData();

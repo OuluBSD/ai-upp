@@ -108,35 +108,46 @@ void MapCanvas::Paint(Draw& w) {
 		}
 	}
 
-	// Draw brush preview
+	// Draw tool preview
 	if(cursorCol >= 0 && cursorRow >= 0 && parentEditor) {
 		BrushTool& brush = parentEditor->GetBrushTool();
+		MapEditorApp::EditTool currentTool = parentEditor->GetCurrentTool();
 
 		Vector<Point> brushTiles;
 		brush.GetBrushTiles(cursorCol, cursorRow, brushTiles);
 
-		// Get preview color (semi-transparent version of paint tile)
-		Color previewColor = TileTypeToColor(brush.GetPaintTile());
-		int alpha = 128;
-		Color bgColor = Color(12, 17, 30);
-		previewColor = Color(
-			(previewColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-			(previewColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-			(previewColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-		);
-
-		// Draw brush tiles preview
+		// Draw preview for each tile
 		for(const Point& pt : brushTiles) {
 			if(pt.x < 0 || pt.x >= 100 || pt.y < 0 || pt.y >= 100) continue;
 
 			int screenX = pt.x * tileSize + offset.x;
 			int screenY = pt.y * tileSize + offset.y;
 
-			// Draw semi-transparent preview
-			w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
+			if(currentTool == MapEditorApp::TOOL_ERASER) {
+				// Draw red X for eraser
+				w.DrawLine(screenX + 2, screenY + 2, screenX + tileSize - 2, screenY + tileSize - 2, 2, LtRed());
+				w.DrawLine(screenX + tileSize - 2, screenY + 2, screenX + 2, screenY + tileSize - 2, 2, LtRed());
 
-			// Draw outline
-			w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+				// Red outline
+				w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtRed());
+			}
+			else {
+				// Brush preview: semi-transparent tile color
+				Color previewColor = TileTypeToColor(brush.GetPaintTile());
+				int alpha = 128;
+				Color bgColor = Color(12, 17, 30);
+				previewColor = Color(
+					(previewColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+					(previewColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+					(previewColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+				);
+
+				// Draw semi-transparent preview
+				w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, previewColor);
+
+				// Draw outline
+				w.DrawRect(screenX, screenY, tileSize, tileSize, 1, White());
+			}
 		}
 	}
 }
@@ -158,12 +169,28 @@ void MapCanvas::MouseMove(Point pos, dword flags) {
 
 		// If painting, continue painting
 		if((flags & K_MOUSELEFT) && parentEditor) {
-			if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
+			MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
+			if(tool == MapEditorApp::TOOL_BRUSH || tool == MapEditorApp::TOOL_ERASER) {
 				BrushTool& brush = parentEditor->GetBrushTool();
 				LayerManager& layerMgr = parentEditor->GetLayerManager();
 
+				if(tool == MapEditorApp::TOOL_BRUSH) {
+					brush.SetMode(BRUSH_MODE_PAINT);
+				} else {
+					brush.SetMode(BRUSH_MODE_ERASE);
+				}
+
 				brush.ContinuePainting(cursorCol, cursorRow, layerMgr);
 			}
+		}
+
+		// If right-click erasing, continue erasing
+		if((flags & K_MOUSERIGHT) && parentEditor) {
+			BrushTool& brush = parentEditor->GetBrushTool();
+			LayerManager& layerMgr = parentEditor->GetLayerManager();
+
+			brush.SetMode(BRUSH_MODE_ERASE);
+			brush.ContinuePainting(cursorCol, cursorRow, layerMgr);
 		}
 	}
 
@@ -180,11 +207,17 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 	int col = (pos.x - offset.x) / tileSize;
 	int row = (pos.y - offset.y) / tileSize;
 
+	BrushTool& brush = parentEditor->GetBrushTool();
+	LayerManager& layerMgr = parentEditor->GetLayerManager();
+
 	// Check current tool
 	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
-		BrushTool& brush = parentEditor->GetBrushTool();
-		LayerManager& layerMgr = parentEditor->GetLayerManager();
-
+		brush.SetMode(BRUSH_MODE_PAINT);
+		brush.StartPainting(col, row, layerMgr);
+		Refresh();
+	}
+	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ERASER) {
+		brush.SetMode(BRUSH_MODE_ERASE);
 		brush.StartPainting(col, row, layerMgr);
 		Refresh();
 	}
@@ -193,10 +226,37 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 void MapCanvas::LeftUp(Point pos, dword flags) {
 	if(!parentEditor) return;
 
-	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
+	MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
+	if(tool == MapEditorApp::TOOL_BRUSH || tool == MapEditorApp::TOOL_ERASER) {
 		BrushTool& brush = parentEditor->GetBrushTool();
 		brush.StopPainting();
 	}
+}
+
+void MapCanvas::RightDown(Point pos, dword flags) {
+	if(!parentEditor) return;
+
+	// Right-click for quick erasing
+	int tileSize = int(14 * zoom);
+	if(tileSize <= 0) return;
+
+	int col = (pos.x - offset.x) / tileSize;
+	int row = (pos.y - offset.y) / tileSize;
+
+	BrushTool& brush = parentEditor->GetBrushTool();
+	LayerManager& layerMgr = parentEditor->GetLayerManager();
+
+	brush.SetMode(BRUSH_MODE_ERASE);
+	brush.StartPainting(col, row, layerMgr);
+	Refresh();
+}
+
+void MapCanvas::RightUp(Point pos, dword flags) {
+	if(!parentEditor) return;
+
+	BrushTool& brush = parentEditor->GetBrushTool();
+	brush.StopPainting();
+	brush.SetMode(BRUSH_MODE_PAINT);  // Restore paint mode
 }
 
 void MapCanvas::MiddleDown(Point pos, dword flags) {
@@ -451,7 +511,13 @@ bool MapEditorApp::Key(dword key, int) {
 		// Tool selection
 		case K_B:  // B for Brush
 			currentTool = TOOL_BRUSH;
+			brushTool.SetMode(BRUSH_MODE_PAINT);
 			mainStatusBar.Set("Tool: Brush");
+			return true;
+		case K_E:  // E for Eraser
+			currentTool = TOOL_ERASER;
+			brushTool.SetMode(BRUSH_MODE_ERASE);
+			mainStatusBar.Set("Tool: Eraser");
 			return true;
 
 		// Brush size shortcuts

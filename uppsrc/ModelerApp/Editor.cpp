@@ -594,6 +594,8 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
+			bar.Separator();
+			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -732,6 +734,10 @@ void Edit3D::Update() {
 	v0.Update(dt);
 	if (dock_video && !dock_video->IsHidden())
 		v1.Update(dt);
+	if (conf.dump_grid_done && !conf.dump_grid_path.IsEmpty()) {
+		conf.dump_grid_path.Clear();
+		PostCallback(THISBACK(Exit));
+	}
 	
 	if (hmd.IsRunning()) {
 		hmd.Poll();
@@ -810,9 +816,10 @@ String Edit3D::EnsureScriptFile(GeomScript& script, String base_name) {
 GeomScript& Edit3D::AddScriptComponent(GeomObject& obj) {
 	String id = "script";
 	int idx = 1;
-	while (obj.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+	hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+	while (obj.val.Find(id, script_hash) >= 0)
 		id = "script_" + IntStr(idx++);
-	VfsValue& node = obj.val.Add(id, AsTypeHash<GeomScript>());
+	VfsValue& node = obj.val.Add(id, script_hash);
 	GeomScript& script = node.GetExt<GeomScript>();
 	EnsureScriptFile(script, obj.name.IsEmpty() ? id : obj.name);
 	EnsureScriptInstances();
@@ -822,9 +829,10 @@ GeomScript& Edit3D::AddScriptComponent(GeomObject& obj) {
 GeomScript& Edit3D::AddScriptComponent(GeomDirectory& dir) {
 	String id = "script";
 	int idx = 1;
-	while (dir.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+	hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+	while (dir.val.Find(id, script_hash) >= 0)
 		id = "script_" + IntStr(idx++);
-	VfsValue& node = dir.val.Add(id, AsTypeHash<GeomScript>());
+	VfsValue& node = dir.val.Add(id, script_hash);
 	GeomScript& script = node.GetExt<GeomScript>();
 	String base = dir.name.IsEmpty() ? id : dir.name;
 	EnsureScriptFile(script, base);
@@ -835,9 +843,10 @@ GeomScript& Edit3D::AddScriptComponent(GeomDirectory& dir) {
 GeomScript& Edit3D::AddScriptComponent(GeomScene& scene) {
 	String id = "script";
 	int idx = 1;
-	while (scene.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+	hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+	while (scene.val.Find(id, script_hash) >= 0)
 		id = "script_" + IntStr(idx++);
-	VfsValue& node = scene.val.Add(id, AsTypeHash<GeomScript>());
+	VfsValue& node = scene.val.Add(id, script_hash);
 	GeomScript& script = node.GetExt<GeomScript>();
 	String base = scene.name.IsEmpty() ? id : scene.name;
 	EnsureScriptFile(script, base);
@@ -846,8 +855,9 @@ GeomScript& Edit3D::AddScriptComponent(GeomScene& scene) {
 }
 
 void Edit3D::GetScriptsFromNode(VfsValue& node, Vector<GeomScript*>& out) {
+	hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
 	for (auto& sub : node.sub) {
-		if (IsVfsType(sub, AsTypeHash<GeomScript>()))
+		if (IsVfsType(sub, script_hash))
 			out.Add(&sub.GetExt<GeomScript>());
 	}
 }

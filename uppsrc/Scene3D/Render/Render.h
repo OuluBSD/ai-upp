@@ -15,6 +15,8 @@ struct Scene3DRenderConfig {
 	int grid_minor_divs = 5;
 	Color grid_major_clr;
 	Color grid_minor_clr;
+	String dump_grid_path;
+	bool dump_grid_done = false;
 	float mouse_move_sensitivity = 0.01f;
 
 	Scene3DRenderConfig() {

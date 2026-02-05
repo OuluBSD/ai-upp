@@ -31,6 +31,7 @@ struct Scene3DRenderContext {
 	GeomWorldState* state = 0;
 	GeomAnim* anim = 0;
 	GeomVideo* video = 0;
+	VfsValue* selected_bone = 0;
 };
 
 #include "Renderer.h"

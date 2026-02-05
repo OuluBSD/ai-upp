@@ -205,6 +205,7 @@ struct Edit3D : DockWindow {
 	GeomObject* hmd_pointcloud = 0;
 	String project_dir;
 	TimeStop script_timer;
+	VfsValue* selected_bone = 0;
 
 	enum EditTool {
 		TOOL_SELECT,
@@ -300,6 +301,9 @@ struct Edit3D : DockWindow {
 	void CreateEditableMeshObject();
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
+	void CreateSkeletonForSelected();
+	void AddBoneToSelectedSkeleton();
+	void RemoveSelectedBone();
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	int PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);

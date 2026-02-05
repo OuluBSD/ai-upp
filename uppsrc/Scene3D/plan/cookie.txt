@@ -94,3 +94,7 @@
   task: track-pointcloud-workbench/phase-04-scripting/task-0402-script-runtime-hooks.md
   status: done
   note: Scripts now reload/run on load even without per-frame hooks; update loop refreshes instances.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-00-planning/task-0000-actionscript-priority.md
+  status: done
+  note: Consolidated ActionScript features into editor+scripting track with prioritized phases.

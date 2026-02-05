@@ -213,10 +213,21 @@ struct Edit3D : DockWindow {
 		TOOL_FACE,
 		TOOL_ERASE,
 	};
+	enum EditPlaneMode {
+		PLANE_VIEW,
+		PLANE_XY,
+		PLANE_XZ,
+		PLANE_YZ,
+		PLANE_LOCAL,
+	};
 	EditTool edit_tool = TOOL_SELECT;
+	EditPlaneMode edit_plane = PLANE_VIEW;
 	int edit_line_start = -1;
 	Vector<int> edit_face_points;
 	double edit_pick_radius_px = 10.0;
+	bool edit_snap_enable = false;
+	double edit_snap_step = 0.1;
+	bool edit_snap_local = true;
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
@@ -279,7 +290,7 @@ struct Edit3D : DockWindow {
 	void RegisterScriptVM(PyVM& vm);
 	void SetEditTool(EditTool tool);
 	void CreateEditableMeshObject();
-	bool ScreenToWorldPoint(int view_i, const Point& p, vec3& out) const;
+	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);
 	void OpenScriptEditor(GeomScript& script);

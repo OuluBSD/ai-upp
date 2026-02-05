@@ -894,6 +894,126 @@ void EditRendererV2::Paint(Draw& d) {
 	}
 	
 	d.DrawImage(0, 0, surf.ib);
+	// Camera gizmos + overlays (match V1 behavior)
+	auto draw_camera_gizmos = [&] {
+		auto draw_one = [&](const vec3& pos, const quat& ori, float fov_deg, float scale, Color clr) {
+			DrawCameraGizmo(sz, d, view, pos, ori, fov_deg, scale, clr, z_cull);
+		};
+		if (ctx->anim && ctx->anim->is_playing) {
+			for (GeomObjectState& os : state.objs) {
+				if (!os.obj || !os.obj->IsCamera() || !os.obj->is_visible)
+					continue;
+				float fov_deg = 90.0f;
+				float scale = 0.8f;
+				if (ctx && ctx->state) {
+					GeomCamera& ref_cam = ctx->state->GetProgram();
+					fov_deg = ref_cam.fov;
+					scale = Max(0.2f, ref_cam.scale * 0.5f);
+				}
+				draw_one(os.position, os.orientation, fov_deg, scale, CameraColor(*os.obj));
+			}
+		}
+		else {
+			GeomObjectCollection iter(scene);
+			for (GeomObject& go : iter) {
+				if (!go.IsCamera() || !go.is_visible)
+					continue;
+				vec3 pos = vec3(0);
+				quat ori = Identity<quat>();
+				if (GeomTransform* tr = go.FindTransform()) {
+					pos = tr->position;
+					ori = tr->orientation;
+				}
+				float fov_deg = 90.0f;
+				float scale = 0.8f;
+				if (ctx && ctx->state) {
+					GeomCamera& ref_cam = ctx->state->GetProgram();
+					fov_deg = ref_cam.fov;
+					scale = Max(0.2f, ref_cam.scale * 0.5f);
+				}
+				draw_one(pos, ori, fov_deg, scale, CameraColor(go));
+			}
+		}
+	};
+	draw_camera_gizmos();
+
+	auto draw_frustum = [&](const vec3& pos, const quat& orient, float fov_deg, float scale, Color clr) {
+		Vector<vec3> corners;
+		{
+			Camera cam;
+			float aspect = (float)sz.cx / (float)sz.cy;
+			cam.SetPerspective(fov_deg, aspect, 0.1, 3.0);
+			cam.SetWorld(pos, orient, scale);
+			Frustum frustum = cam.GetFrustum();
+			corners.SetCount(8);
+			frustum.GetCorners(corners.Begin());
+		}
+		DrawRect(sz, d, view, pos, Size(2,2), clr, z_cull);
+		int lw = 1;
+		DrawLine(sz, d, view, corners[0], corners[1], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[2], corners[3], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[4], corners[5], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[6], corners[7], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[0], corners[2], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[1], corners[3], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[4], corners[6], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[5], corners[7], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[0], corners[4], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[1], corners[5], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[2], corners[6], lw, clr, z_cull);
+		DrawLine(sz, d, view, corners[3], corners[7], lw, clr, z_cull);
+	};
+
+	GeomCamera& program = state.GetProgram();
+	GeomCamera& focus = state.GetFocus();
+	if (state.focus_mode == 1) {
+		GeomObject* foc = state.FindObjectByKey(state.focus_object_key);
+		if (foc && foc->IsCamera() && foc->is_visible) {
+			vec3 pos = vec3(0);
+			quat ori = Identity<quat>();
+			if (GeomTransform* tr = foc->FindTransform()) {
+				pos = tr->position;
+				ori = tr->orientation;
+			}
+			else if (const GeomObjectState* os = state.FindObjectStateByKey(state.focus_object_key)) {
+				pos = os->position;
+				ori = os->orientation;
+			}
+			draw_frustum(pos, ori, program.fov, program.scale, Color(255, 255, 172));
+		}
+	}
+	if (state.focus_mode == 2 && state.program_visible)
+		draw_frustum(program.position, program.orientation, program.fov, program.scale, Color(220, 120, 120));
+	if (state.focus_mode == 3 && state.focus_visible)
+		draw_frustum(focus.position, focus.orientation, focus.fov, focus.scale, Color(120, 220, 120));
+
+	{
+		vec3 fwd = VectorTransform(VEC_FWD, camera.orientation);
+		vec3 right = VectorTransform(VEC_RIGHT, camera.orientation);
+		vec3 up = VectorTransform(VEC_UP, camera.orientation);
+		String info = Format("cam fwd=(%.2f %.2f %.2f) right=(%.2f %.2f %.2f) up=(%.2f %.2f %.2f)",
+			fwd[0], fwd[1], fwd[2], right[0], right[1], right[2], up[0], up[1], up[2]);
+		d.DrawText(4, 4, info, StdFont().Bold(), LtGray());
+	}
+	if (1) {
+		vec3 axes[3] = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};
+		Color clr[3] = {LtRed(), LtGreen(), LtBlue()};
+		int pad = 20;
+		Point pt0(pad, sz.cy - pad);
+		float len = 20;
+		mat4 view_orient = QuatMat(MatQuat(view));
+		for(int i = 0; i < 3; i++) {
+			vec3 orig = VecMul(view_orient, vec3(0));
+			vec3 ax = VecMul(view_orient, axes[i]);
+			vec3 diff = ax - orig;
+			diff[1] *= -1;
+			diff.Normalize();
+			if (view_mode != VIEWMODE_PERSPECTIVE)
+				diff *= -1;
+			Point pt1(pt0.x - diff[0] * len, pt0.y - diff[1] * len);
+			d.DrawLine(pt0, pt1, 1, clr[i]);
+		}
+	}
 	if (ctx->anim && ctx->anim->is_playing) {
 		for (GeomObjectState& os : state.objs) {
 			if (!os.obj || !os.obj->is_visible)

@@ -109,6 +109,8 @@ void GraphNodeCtrl::LeftDown(Point p, dword key) {
             SelectNode(clickedNode);
         }
 
+        if(WhenNodeClick) WhenNodeClick(*clickedNode);
+
         dragNode = clickedNode;
         isDragging = true;
         dragStart = p;
@@ -141,6 +143,8 @@ void GraphNodeCtrl::LeftDown(Point p, dword key) {
         } else {
             SelectGroup(clickedGroup);
         }
+
+        if(WhenGroupClick) WhenGroupClick(*clickedGroup);
 
         dragGroup = clickedGroup;
         isDragging = true;
@@ -568,6 +572,8 @@ void GraphNodeCtrl::RightDown(Point p, dword key) {
     // Check if a node was clicked
     Node* clickedNode = renderer->FindNode(p);
     if (clickedNode) {
+        if(WhenNodeRightClick) WhenNodeRightClick(*clickedNode);
+        
         // Show node context menu
         MenuBar::Execute([=](Bar& b) {
             b.Add("Add Input Pin", [=]() {

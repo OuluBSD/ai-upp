@@ -936,15 +936,25 @@ void MapEditorApp::OpenFile(const String& fileName) {
 			String mapDir = AppendFileName(mapsDir, Format("map %d-%d", worldNum, stageNum));
 			LOG("OpenFile: mapDir = " << mapDir << ", exists = " << DirectoryExists(mapDir));
 
-			String refImagePath = AppendFileName(mapDir, "frame_000002.jpg");
-			LOG("OpenFile: refImagePath = " << refImagePath << ", exists = " << FileExists(refImagePath));
+			// Find the first JPG file in the directory
+			String refImagePath;
+			if(DirectoryExists(mapDir)) {
+				FindFile ff(AppendFileName(mapDir, "*.jpg"));
+				if(ff) {
+					refImagePath = AppendFileName(mapDir, ff.GetName());
+					LOG("OpenFile: Found first frame: " << refImagePath);
+				}
+				else {
+					LOG("OpenFile: No JPG files found in " << mapDir);
+				}
+			}
 
-			if(FileExists(refImagePath)) {
+			if(!refImagePath.IsEmpty() && FileExists(refImagePath)) {
 				LOG("OpenFile: Loading reference image from " << refImagePath);
 				LoadReferenceImage(refImagePath);
 			}
 			else {
-				LOG("OpenFile: Reference image not found at " << refImagePath);
+				LOG("OpenFile: Reference image not found");
 			}
 		}
 		else {

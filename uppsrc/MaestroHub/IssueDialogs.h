@@ -25,6 +25,14 @@ public:
 	IssueEditDialog();
 };
 
+class IssueCreateDialog : public WithIssueCreateLayout<TopWindow> {
+public:
+	MaestroIssue GetIssue();
+	
+	typedef IssueCreateDialog CLASSNAME;
+	IssueCreateDialog();
+};
+
 class ListSelectDialog : public WithListSelectLayout<TopWindow> {
 public:
 	void SetChoices(const Vector<String>& choices);

@@ -35,6 +35,8 @@ class MaestroHub : public TopWindow {
 	void OnEnact(String track, String phase, String task);
 	void OnEnactStep(String runbook_title, int step_n, String instruction);
 	void OnSessionSelect(String backend, String session_id);
+	void OnNewSession();
+	void OnCreateIssue();
 	void OnSuggestEnact();
 	void OnTriageWizard();
 	void OnRunbookEditor();

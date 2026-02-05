@@ -1,5 +1,5 @@
 # Task: Log Analyzer UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Visual interface for `maestro log` commands.

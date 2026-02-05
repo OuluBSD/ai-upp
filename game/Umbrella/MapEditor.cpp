@@ -11,35 +11,131 @@ using namespace Upp;
 MapCanvas::MapCanvas() {
 	zoom = 1.0;
 	offset = Point(0, 0);
+	panning = false;
+	panStart = Point(0, 0);
+	cursorCol = -1;
+	cursorRow = -1;
+	showGrid = true;
+	parentEditor = nullptr;
 }
 
 void MapCanvas::Paint(Draw& w) {
-	// Draw the map grid
-	w.DrawRect(GetSize(), SColorPaper());
-
-	// Draw grid lines
-	int gridSize = 32;
 	Size sz = GetSize();
 
-	for(int x = 0; x < sz.cx; x += gridSize) {
-		w.DrawLine(x, 0, x, sz.cy, 1, SColorShadow());
+	// Get access to layer manager
+	if(!parentEditor) {
+		w.DrawRect(sz, Color(12, 17, 30));
+		w.DrawText(10, 10, "Map Canvas - No parent editor", StdFont(), White());
+		return;
 	}
 
-	for(int y = 0; y < sz.cy; y += gridSize) {
-		w.DrawLine(0, y, sz.cx, y, 1, SColorShadow());
+	LayerManager& layerMgr = parentEditor->GetLayerManager();
+
+	// Draw canvas background (empty color)
+	w.DrawRect(sz, Color(12, 17, 30));
+
+	// Calculate tile size based on zoom
+	int tileSize = int(14 * zoom);
+	if(tileSize < 1) tileSize = 1;
+
+	// Calculate visible grid range
+	int viewCols = sz.cx / tileSize + 2;
+	int viewRows = sz.cy / tileSize + 2;
+
+	int startCol = max(0, -offset.x / tileSize);
+	int startRow = max(0, -offset.y / tileSize);
+	int endCol = min(100, startCol + viewCols);
+	int endRow = min(100, startRow + viewRows);
+
+	// Render each visible layer (bottom to top)
+	for(int layerIndex = 0; layerIndex < layerMgr.GetLayerCount(); layerIndex++) {
+		const Layer& layer = layerMgr.GetLayer(layerIndex);
+
+		if(!layer.IsVisible()) continue;
+
+		const MapGrid& grid = layer.GetGrid();
+		int opacity = layer.GetOpacity();
+
+		// Render tiles in this layer
+		for(int row = startRow; row < endRow; row++) {
+			for(int col = startCol; col < endCol; col++) {
+				TileType tile = grid.GetTile(col, row);
+
+				if(tile == TILE_EMPTY) continue;
+
+				// Calculate screen position
+				int screenX = col * tileSize + offset.x;
+				int screenY = row * tileSize + offset.y;
+
+				// Get tile color
+				Color tileColor = TileTypeToColor(tile);
+
+				// Apply layer opacity
+				if(opacity < 100) {
+					Color bgColor = Color(12, 17, 30);
+					int alpha = opacity * 255 / 100;
+					tileColor = Color(
+						(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+						(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+						(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+					);
+				}
+
+				// Draw tile as filled rectangle
+				w.DrawRect(screenX, screenY, tileSize, tileSize, tileColor);
+			}
+		}
 	}
 
-	// Draw sample tiles to demonstrate the canvas
-	w.DrawRect(100, 100, 64, 64, LtBlue());
-	w.DrawRect(200, 150, 64, 64, LtGreen());
-	w.DrawRect(150, 200, 64, 64, LtRed());
+	// Draw grid lines (on top of tiles)
+	if(showGrid) {
+		Color gridColor = Color(51, 69, 92);
 
-	// Draw text overlay
-	w.DrawText(10, 10, "Map Canvas - Use mouse wheel to zoom", StdFont(), Black());
+		// Vertical lines
+		for(int col = startCol; col <= endCol; col++) {
+			int screenX = col * tileSize + offset.x;
+			if(screenX >= 0 && screenX < sz.cx) {
+				w.DrawLine(screenX, 0, screenX, sz.cy, 1, gridColor);
+			}
+		}
+
+		// Horizontal lines
+		for(int row = startRow; row <= endRow; row++) {
+			int screenY = row * tileSize + offset.y;
+			if(screenY >= 0 && screenY < sz.cy) {
+				w.DrawLine(0, screenY, sz.cx, screenY, 1, gridColor);
+			}
+		}
+	}
+
+	// Draw cursor highlight (current tile under mouse)
+	if(cursorCol >= 0 && cursorRow >= 0 && cursorCol < 100 && cursorRow < 100) {
+		int screenX = cursorCol * tileSize + offset.x;
+		int screenY = cursorRow * tileSize + offset.y;
+
+		// Draw highlight rectangle (light gray outline)
+		w.DrawRect(screenX + 1, screenY + 1, tileSize - 2, tileSize - 2, Null);
+		w.DrawRect(screenX, screenY, tileSize, tileSize, 2, LtGray());
+	}
 }
 
 void MapCanvas::MouseMove(Point pos, dword flags) {
-	// Handle mouse movement for drawing
+	if(panning) {
+		// Update camera offset
+		Point delta = pos - panStart;
+		offset += delta;
+		panStart = pos;
+		Refresh();
+	}
+
+	// Update cursor tile position
+	int tileSize = int(14 * zoom);
+	if(tileSize > 0) {
+		cursorCol = (pos.x - offset.x) / tileSize;
+		cursorRow = (pos.y - offset.y) / tileSize;
+	}
+
+	Refresh();
 }
 
 void MapCanvas::LeftDown(Point pos, dword flags) {
@@ -49,6 +145,17 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 
 void MapCanvas::LeftUp(Point pos, dword flags) {
 	// Handle mouse up
+}
+
+void MapCanvas::MiddleDown(Point pos, dword flags) {
+	panning = true;
+	panStart = pos;
+	SetCapture();
+}
+
+void MapCanvas::MiddleUp(Point pos, dword flags) {
+	panning = false;
+	ReleaseCapture();
 }
 
 void MapCanvas::MouseWheel(Point pos, int zdelta, dword flags) {
@@ -76,6 +183,28 @@ void MapCanvas::PanTo(Point newOffset) {
 	Refresh();
 }
 
+void MapCanvas::ZoomToFit() {
+	if(!parentEditor) return;
+
+	Layer* layer = parentEditor->GetLayerManager().GetActiveLayer();
+	if(!layer) return;
+
+	const MapGrid& grid = layer->GetGrid();
+	int mapCols = grid.GetMapCols();
+	int mapRows = grid.GetMapRows();
+	int tileSize = grid.GetGridSize();
+
+	// Calculate zoom to fit map in canvas
+	Size canvasSize = GetSize();
+	double zoomX = double(canvasSize.cx) / (mapCols * tileSize);
+	double zoomY = double(canvasSize.cy) / (mapRows * tileSize);
+
+	zoom = min(zoomX, zoomY);
+	offset = Point(0, 0);
+
+	Refresh();
+}
+
 // Implementation of MapEditorApp
 MapEditorApp::MapEditorApp() {
 	Title("Umbrella Map Editor");
@@ -88,6 +217,17 @@ MapEditorApp::MapEditorApp() {
 
 	// Initialize layer manager with default 100x100 grid
 	layerManager.InitializeDefaultLayers(100, 100);
+
+	// Add some test tiles for visual verification
+	Layer* terrain = layerManager.GetActiveLayer();
+	if(terrain) {
+		terrain->GetGrid().SetTile(5, 5, TILE_WALL);
+		terrain->GetGrid().SetTile(6, 5, TILE_WALL);
+		terrain->GetGrid().SetTile(7, 5, TILE_FULLBLOCK);
+		terrain->GetGrid().SetTile(5, 6, TILE_BACKGROUND);
+		terrain->GetGrid().SetTile(6, 6, TILE_BACKGROUND);
+		terrain->GetGrid().SetTile(7, 6, TILE_WALL);
+	}
 
 	mainMenuBar.Set(callback(this, &MapEditorApp::SetupMenuBar));
 	SetupToolBar();
@@ -135,6 +275,11 @@ void MapEditorApp::SetupViewMenu(Bar& bar) {
 	bar.Add("Reset Zoom", callback(this, &MapEditorApp::ResetZoomAction))
 		.Key(K_CTRL_0)
 		.Help("Reset zoom to 100%");
+	bar.Separator();
+	bar.Add("Show Grid", [=] { mapCanvas.SetShowGrid(!mapCanvas.GetShowGrid()); })
+		.Check(mapCanvas.GetShowGrid())
+		.Key(K_G)
+		.Help("Toggle grid visibility");
 }
 
 void MapEditorApp::SetupToolBar() {
@@ -208,6 +353,7 @@ void MapEditorApp::SetupUI() {
 
 	// Set up the map canvas
 	mapCanvas.SetFrame(InsetFrame());
+	mapCanvas.SetParentEditor(this);
 
 	// Create the layout using splitters
 	// Vertical splitter for canvas and bottom tabs

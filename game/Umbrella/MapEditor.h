@@ -7,6 +7,7 @@
 using namespace Upp;
 
 // Forward declaration
+class MapEditorApp;
 class MapCanvas;
 
 // Canvas for drawing and editing the map
@@ -15,6 +16,12 @@ private:
 	Image mapImage;
 	Point offset;
 	double zoom;
+	bool panning;
+	Point panStart;
+	int cursorCol;
+	int cursorRow;
+	bool showGrid;
+	MapEditorApp* parentEditor;
 
 public:
 	MapCanvas();
@@ -23,10 +30,16 @@ public:
 	void MouseMove(Point pos, dword flags) override;
 	void LeftDown(Point pos, dword flags) override;
 	void LeftUp(Point pos, dword flags) override;
+	void MiddleDown(Point pos, dword flags) override;
+	void MiddleUp(Point pos, dword flags) override;
 	void MouseWheel(Point pos, int zdelta, dword flags) override;
 
 	void SetZoom(double newZoom);
 	void PanTo(Point newOffset);
+	void SetParentEditor(MapEditorApp* parent) { parentEditor = parent; }
+	void SetShowGrid(bool show) { showGrid = show; Refresh(); }
+	bool GetShowGrid() const { return showGrid; }
+	void ZoomToFit();
 };
 
 // Main Map Editor Application Class
@@ -82,6 +95,9 @@ public:
 	void OpenFile(const String& fileName);
 	void SaveFile(const String& fileName);
 	void NewMap();
+
+	// Accessors
+	LayerManager& GetLayerManager() { return layerManager; }
 
 	// UI Setup
 	void SetupUI();

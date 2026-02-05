@@ -17,6 +17,7 @@ class MapCanvas;
 class MapCanvas : public Ctrl {
 private:
 	Image mapImage;
+	Image referenceImage;
 	Point offset;
 	double zoom;
 	bool panning;
@@ -24,6 +25,8 @@ private:
 	int cursorCol;
 	int cursorRow;
 	bool showGrid;
+	bool showReferenceImage;
+	int referenceImageOpacity;
 	MapEditorApp* parentEditor;
 
 public:
@@ -44,6 +47,11 @@ public:
 	void SetParentEditor(MapEditorApp* parent) { parentEditor = parent; }
 	void SetShowGrid(bool show) { showGrid = show; Refresh(); }
 	bool GetShowGrid() const { return showGrid; }
+	void SetReferenceImage(const Image& img);
+	void SetShowReferenceImage(bool show) { showReferenceImage = show; Refresh(); }
+	bool GetShowReferenceImage() const { return showReferenceImage; }
+	void SetReferenceImageOpacity(int opacity) { referenceImageOpacity = clamp(opacity, 0, 100); Refresh(); }
+	int GetReferenceImageOpacity() const { return referenceImageOpacity; }
 	void ZoomToFit();
 };
 
@@ -63,6 +71,7 @@ private:
 	String importConfigPath;
 	String modId;
 	String currentFilePath;
+	String referenceImagePath;
 
 	// Editing tools
 	BrushTool brushTool;
@@ -115,6 +124,8 @@ public:
 	void OpenFile(const String& fileName);
 	void SaveFile(const String& fileName);
 	void NewMap();
+	void LoadReferenceImage(const String& imagePath);
+	void BrowseReferenceImage();
 
 	// Accessors
 	LayerManager& GetLayerManager() { return layerManager; }

@@ -170,3 +170,7 @@
   task: track-editor-scripting/phase-10-2d-graphics/task-1000-2d-drawing-as-3d.md
   status: done
   note: Added 2D layer component, 2D drawing tools, and renderer overlay for shapes.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-10-2d-graphics/task-1001-2d-animation.md
+  status: done
+  note: Added 2D animation keyframes, playback interpolation, and menu actions.

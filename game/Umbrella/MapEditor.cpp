@@ -388,7 +388,7 @@ void MapCanvas::ZoomToFit() {
 // Implementation of MapEditorApp
 MapEditorApp::MapEditorApp() {
 	Title("Umbrella Map Editor");
-	Sizeable().Zoomable();
+	Sizeable().MaximizeBox();
 	SetRect(0, 0, 1400, 900);
 
 	// Initialize tool
@@ -414,7 +414,12 @@ MapEditorApp::MapEditorApp() {
 
 	mainMenuBar.Set(callback(this, &MapEditorApp::SetupMenuBar));
 	SetupToolBar();
-	SetupUI();
+	SetupToolsPanel();
+	SetupLayersPanel();
+
+	// Set up canvas
+	mapCanvas.SetFrame(InsetFrame());
+	mapCanvas.SetParentEditor(this);
 }
 
 MapEditorApp::MapEditorApp(const String& levelPath) : MapEditorApp() {
@@ -521,61 +526,211 @@ void MapEditorApp::SetupToolBar() {
 	mainToolBar.Add(resetZoomBtn);
 }
 
-void MapEditorApp::SetupUI() {
-	// Set up the tools panel (left side)
-	toolsPanel.SetFrame(InsetFrame());
-	toolsLabel.SetText("Tools");
-	toolsLabel.SetAlign(ALIGN_CENTER);
-	toolsPanel.Add(toolsLabel.HSizePos(2, 2).TopPos(2, 20));
+void MapEditorApp::DockInit() {
+	// Set up dockable panels using DockWindow API
+	DockLeft(Dockable(toolsPanel, "Tools").SizeHint(Size(250, 400)));
+	DockRight(Dockable(layersPanel, "Layers").SizeHint(Size(250, 300)));
+	DockRight(Dockable(entitiesPanel, "Entities").SizeHint(Size(250, 300)));
+	DockBottom(Dockable(propertiesPanel, "Properties").SizeHint(Size(400, 200)));
 
-	// Set up the entity panel (right side)
-	entityPanel.SetFrame(InsetFrame());
-	entityLabel.SetText("Entities");
-	entityLabel.SetAlign(ALIGN_CENTER);
-	entityPanel.Add(entityLabel.HSizePos(2, 2).TopPos(2, 20));
+	// Add canvas to center (fills remaining space)
+	Add(mapCanvas.SizePos());
 
-	// Set up bottom tabs
-	propertiesPanel.SetFrame(InsetFrame());
-	propertiesLabel.SetText("Properties panel - TBD");
-	propertiesPanel.Add(propertiesLabel.HSizePos().VSizePos());
-
-	minimapPanel.SetFrame(InsetFrame());
-	minimapLabel.SetText("Minimap - TBD");
-	minimapPanel.Add(minimapLabel.HSizePos().VSizePos());
-
-	tilesPanel.SetFrame(InsetFrame());
-	tilesLabel.SetText("Tiles palette - TBD");
-	tilesPanel.Add(tilesLabel.HSizePos().VSizePos());
-
-	bottomTabs.Add(propertiesPanel.SizePos(), "Properties");
-	bottomTabs.Add(minimapPanel.SizePos(), "Minimap");
-	bottomTabs.Add(tilesPanel.SizePos(), "Tiles");
-
-	// Set up the map canvas
-	mapCanvas.SetFrame(InsetFrame());
-	mapCanvas.SetParentEditor(this);
-
-	// Create the layout using splitters
-	// Vertical splitter for canvas and bottom tabs
-	canvasSplitter.Vert(mapCanvas, bottomTabs);
-	canvasSplitter.SetPos(7000, 0);  // 70% for canvas, 30% for tabs
-
-	// Horizontal splitter for left panel, center (canvas+tabs), right panel
-	mainSplitter.Horz();
-	mainSplitter << toolsPanel << canvasSplitter << entityPanel;
-	mainSplitter.SetPos(1500, 0);  // Left panel position
-	mainSplitter.SetPos(8500, 1);  // Right panel position
-
-	Add(mainSplitter.SizePos());
-
-	// Set up status bar
+	// Set initial status
 	mainStatusBar.Set("Ready");
+}
+
+void MapEditorApp::SetupToolsPanel() {
+	toolsPanel.SetFrame(InsetFrame());
+
+	int yPos = 10;
+
+	// Tools title
+	toolsLabel.SetText("TOOLS");
+	toolsLabel.SetAlign(ALIGN_CENTER);
+	toolsPanel.Add(toolsLabel.HSizePos(10, 10).TopPos(yPos, 20));
+	yPos += 30;
+
+	// Brush size section
+	brushSizeLabel.SetText("Brush Size:");
+	toolsPanel.Add(brushSizeLabel.LeftPos(10, 100).TopPos(yPos, 20));
+	yPos += 25;
+
+	brush1x1Btn.SetLabel("1x1");
+	brush1x1Btn << [=] {
+		brushTool.SetBrushSize(BRUSH_1X1);
+		mainStatusBar.Set("Brush size: 1x1");
+	};
+	toolsPanel.Add(brush1x1Btn.LeftPos(10, 50).TopPos(yPos, 25));
+
+	brush2x2Btn.SetLabel("2x2");
+	brush2x2Btn << [=] {
+		brushTool.SetBrushSize(BRUSH_2X2);
+		mainStatusBar.Set("Brush size: 2x2");
+	};
+	toolsPanel.Add(brush2x2Btn.LeftPos(70, 50).TopPos(yPos, 25));
+	yPos += 30;
+
+	brush3x3Btn.SetLabel("3x3");
+	brush3x3Btn << [=] {
+		brushTool.SetBrushSize(BRUSH_3X3);
+		mainStatusBar.Set("Brush size: 3x3");
+	};
+	toolsPanel.Add(brush3x3Btn.LeftPos(10, 50).TopPos(yPos, 25));
+
+	brush5x5Btn.SetLabel("5x5");
+	brush5x5Btn << [=] {
+		brushTool.SetBrushSize(BRUSH_5X5);
+		mainStatusBar.Set("Brush size: 5x5");
+	};
+	toolsPanel.Add(brush5x5Btn.LeftPos(70, 50).TopPos(yPos, 25));
+	yPos += 40;
+
+	// Tile type section
+	tileTypeLabel.SetText("Tile Type:");
+	toolsPanel.Add(tileTypeLabel.LeftPos(10, 100).TopPos(yPos, 20));
+	yPos += 25;
+
+	wallBtn.SetLabel("Wall");
+	wallBtn << [=] {
+		brushTool.SetPaintTile(TILE_WALL);
+		mainStatusBar.Set("Paint tile: Wall");
+	};
+	toolsPanel.Add(wallBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	bgBtn.SetLabel("Background");
+	bgBtn << [=] {
+		brushTool.SetPaintTile(TILE_BACKGROUND);
+		mainStatusBar.Set("Paint tile: Background");
+	};
+	toolsPanel.Add(bgBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	blockBtn.SetLabel("Full Block");
+	blockBtn << [=] {
+		brushTool.SetPaintTile(TILE_FULLBLOCK);
+		mainStatusBar.Set("Paint tile: Full Block");
+	};
+	toolsPanel.Add(blockBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 40;
+
+	// Tool selection section
+	toolSelectionLabel.SetText("Tool:");
+	toolsPanel.Add(toolSelectionLabel.LeftPos(10, 100).TopPos(yPos, 20));
+	yPos += 25;
+
+	brushToolBtn.SetLabel("Brush");
+	brushToolBtn << [=] {
+		currentTool = TOOL_BRUSH;
+		brushTool.SetMode(BRUSH_MODE_PAINT);
+		mainStatusBar.Set("Tool: Brush");
+	};
+	toolsPanel.Add(brushToolBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	eraserToolBtn.SetLabel("Eraser");
+	eraserToolBtn << [=] {
+		currentTool = TOOL_ERASER;
+		brushTool.SetMode(BRUSH_MODE_ERASE);
+		mainStatusBar.Set("Tool: Eraser");
+	};
+	toolsPanel.Add(eraserToolBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	fillToolBtn.SetLabel("Fill");
+	fillToolBtn << [=] {
+		currentTool = TOOL_FILL;
+		mainStatusBar.Set("Tool: Fill");
+	};
+	toolsPanel.Add(fillToolBtn.LeftPos(10, 110).TopPos(yPos, 25));
+}
+
+void MapEditorApp::SetupLayersPanel() {
+	layersPanel.SetFrame(InsetFrame());
+
+	int yPos = 10;
+
+	// Layers list
+	layersList.AddColumn("Layer", 150);
+	layersList.AddColumn("Visible", 50);
+	layersList.NoHeader();
+	layersPanel.Add(layersList.HSizePos(10, 10).TopPos(yPos, 200));
+	yPos += 210;
+
+	// Layer management buttons
+	addLayerBtn.SetLabel("Add Layer");
+	addLayerBtn << [=] {
+		// TODO: Implement add layer
+		PromptOK("Add layer functionality not yet implemented");
+	};
+	layersPanel.Add(addLayerBtn.LeftPos(10, 100).TopPos(yPos, 25));
+
+	removeLayerBtn.SetLabel("Remove");
+	removeLayerBtn << [=] {
+		// TODO: Implement remove layer
+		PromptOK("Remove layer functionality not yet implemented");
+	};
+	layersPanel.Add(removeLayerBtn.LeftPos(120, 100).TopPos(yPos, 25));
+	yPos += 30;
+
+	moveLayerUpBtn.SetLabel("Move Up");
+	moveLayerUpBtn << [=] {
+		// TODO: Implement move layer up
+		PromptOK("Move layer up functionality not yet implemented");
+	};
+	layersPanel.Add(moveLayerUpBtn.LeftPos(10, 100).TopPos(yPos, 25));
+
+	moveLayerDownBtn.SetLabel("Move Down");
+	moveLayerDownBtn << [=] {
+		// TODO: Implement move layer down
+		PromptOK("Move layer down functionality not yet implemented");
+	};
+	layersPanel.Add(moveLayerDownBtn.LeftPos(120, 100).TopPos(yPos, 25));
+	yPos += 40;
+
+	// Layer opacity slider
+	layerOpacityLabel.SetText("Opacity: 100%");
+	layersPanel.Add(layerOpacityLabel.LeftPos(10, 100).TopPos(yPos, 20));
+	yPos += 25;
+
+	layerOpacitySlider.Range(100);
+	layerOpacitySlider.MinMax(0, 100);
+	layerOpacitySlider << [=] {
+		int opacity = (int)layerOpacitySlider.GetData();
+		layerOpacityLabel.SetText(Format("Opacity: %d%%", opacity));
+
+		Layer* activeLayer = layerManager.GetActiveLayer();
+		if(activeLayer) {
+			activeLayer->SetOpacity(opacity);
+			mapCanvas.Refresh();
+		}
+	};
+	layersPanel.Add(layerOpacitySlider.HSizePos(10, 10).TopPos(yPos, 20));
+
+	// Populate layers list
+	RefreshLayersList();
+}
+
+void MapEditorApp::RefreshLayersList() {
+	layersList.Clear();
+
+	for(int i = 0; i < layerManager.GetLayerCount(); i++) {
+		const Layer& layer = layerManager.GetLayer(i);
+		layersList.Add(layer.GetName(), layer.IsVisible() ? "Yes" : "No");
+	}
+
+	// Select active layer
+	int activeIndex = layerManager.GetActiveLayerIndex();
+	if(activeIndex >= 0 && activeIndex < layersList.GetCount()) {
+		layersList.SetCursor(activeIndex);
+	}
 }
 
 bool MapEditorApp::Key(dword key, int) {
 	switch(key) {
 		case K_ESCAPE:
-			Close();
+			Break();
 			return true;
 		case K_CTRL_S:
 			SaveFileAction();
@@ -692,7 +847,7 @@ void MapEditorApp::SaveFileAction() {
 }
 
 void MapEditorApp::ExitAction() {
-	Close();
+	Break();
 }
 
 void MapEditorApp::UndoAction() {

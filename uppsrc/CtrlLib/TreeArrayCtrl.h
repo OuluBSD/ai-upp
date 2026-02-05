@@ -70,6 +70,7 @@ private:
 	int           cursor_id = -1;
 	bool          noroot = false;
 	bool          dirty = true;
+	bool          syncing = false;
 	TreeDisplay   treedisplay;
 
 	void   SyncTree();

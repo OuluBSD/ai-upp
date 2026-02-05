@@ -1,7 +1,8 @@
 description "Umbrella Game - U++ Conversion of RainbowGame";
 
 uses
-	CtrlLib;
+	CtrlLib,
+	Docking;
 
 file
 	Umbrella.h,

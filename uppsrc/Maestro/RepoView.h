@@ -3,7 +3,7 @@
 
 class RepoView : public ParentCtrl {
 public:
-	TreeCtrl tree;
+	TreeArrayCtrl tree;
 	
 	void Set(const Array<AssemblyInfo>& assemblies, const Array<PackageInfo>& packages);
 

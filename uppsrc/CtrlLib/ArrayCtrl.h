@@ -69,6 +69,7 @@ public:
 		Event<One<Ctrl>&>     factory1;
 		int                 (*accel)(int);
 		int                   margin;
+		bool                  vertgrid;
 		bool                  cached;
 		bool                  clickedit;
 		mutable Any           cache;
@@ -118,6 +119,11 @@ public:
 		Column& SortDefault(bool desc = false);
 
 		Column& Margin(int m)                      { margin = m; return *this; }
+		Column& NoPadding()                        { margin = 0; HeaderTab().SetMargin(0); return *this; }
+		Column& VertGrid(bool b = true)            { vertgrid = b; return *this; }
+		Column& NoVertGrid()                       { return VertGrid(false); }
+		Column& SetWidth(int w)                    { arrayctrl->header.SetTabWidth(index, w); return *this; }
+		Column& FixedWidth(int w)                  { arrayctrl->header.Fixed(); arrayctrl->header.SetTabWidth(index, w); return *this; }
 
 		HeaderCtrl::Column& HeaderTab();
 		const HeaderCtrl::Column& HeaderTab() const;

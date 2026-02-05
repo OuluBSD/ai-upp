@@ -2,6 +2,7 @@
 #define _Umbrella_MapEditor_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <Docking/Docking.h>
 #include "LayerManager.h"
 #include "MapSerializer.h"
 #include "BrushTool.h"
@@ -56,7 +57,7 @@ public:
 };
 
 // Main Map Editor Application Class
-class MapEditorApp : public TopWindow {
+class MapEditorApp : public DockWindow {
 public:
 	// Tool selection
 	enum EditTool {
@@ -83,24 +84,27 @@ private:
 	ToolBar mainToolBar;
 	StatusBar mainStatusBar;
 
-	// Layout
-	Splitter mainSplitter;
-	Splitter canvasSplitter;
-
-	// Panels
+	// Dockable Panels
 	ParentCtrl toolsPanel;
-	ParentCtrl entityPanel;
+	ParentCtrl layersPanel;
+	ParentCtrl entitiesPanel;
 	ParentCtrl propertiesPanel;
-	ParentCtrl minimapPanel;
-	ParentCtrl tilesPanel;
-	TabCtrl bottomTabs;
 
-	// Labels for panels
+	// Tools Panel Controls
 	Label toolsLabel;
-	Label entityLabel;
-	Label propertiesLabel;
-	Label minimapLabel;
-	Label tilesLabel;
+	Label brushSizeLabel;
+	Button brush1x1Btn, brush2x2Btn, brush3x3Btn, brush5x5Btn;
+	Label tileTypeLabel;
+	Button wallBtn, bgBtn, blockBtn;
+	Label toolSelectionLabel;
+	Button brushToolBtn, eraserToolBtn, fillToolBtn;
+
+	// Layers Panel Controls
+	ArrayCtrl layersList;
+	Button addLayerBtn, removeLayerBtn;
+	Button moveLayerUpBtn, moveLayerDownBtn;
+	Label layerOpacityLabel;
+	SliderCtrl layerOpacitySlider;
 
 	// Canvas
 	MapCanvas mapCanvas;
@@ -137,12 +141,15 @@ public:
 	void SetCurrentTool(EditTool tool) { currentTool = tool; }
 
 	// UI Setup
-	void SetupUI();
+	virtual void DockInit() override;
 	void SetupMenuBar(Bar& bar);
 	void SetupFileMenu(Bar& bar);
 	void SetupEditMenu(Bar& bar);
 	void SetupViewMenu(Bar& bar);
 	void SetupToolBar();
+	void SetupToolsPanel();
+	void SetupLayersPanel();
+	void RefreshLayersList();
 
 	// Event Handlers
 	virtual bool Key(dword key, int) override;

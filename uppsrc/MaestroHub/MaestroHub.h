@@ -39,6 +39,8 @@ class MaestroHub : public TopWindow {
 	void OnTriageWizard();
 	void OnRunbookEditor();
 	void OnStateEditor();
+	void OnTUBrowser();
+	void OnLogAnalyzer();
 	
 	void LoadData();
 	void PlanWatcher();

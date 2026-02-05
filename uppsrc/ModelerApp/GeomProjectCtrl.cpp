@@ -1008,8 +1008,11 @@ void GeomProjectCtrl::PropsData() {
 	int cursor = tree.GetCursor();
 	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
 	selected_obj = GetNodeObject(v);
+	GeomScene* selected_scene = 0;
 	if (!selected_obj && v.Is<VfsValue*>()) {
 		VfsValue* node = ValueTo<VfsValue*>(v);
+		if (node && IsVfsType(*node, AsTypeHash<GeomScene>()))
+			selected_scene = &node->GetExt<GeomScene>();
 		if (node && IsVfsType(*node, AsTypeHash<GeomBone>())) {
 			for (VfsValue* p = node->owner; p; p = p->owner) {
 				if (IsVfsType(*p, AsTypeHash<GeomObject>())) {
@@ -1060,6 +1063,34 @@ void GeomProjectCtrl::PropsData() {
 	PropRef& comps = props_nodes.Add();
 	comps.kind = PropRef::P_COMPONENTS;
 	int components = props.Add(root, ImagesImg::Directory(), RawToValue(&comps), t_("Components"));
+	int scene_timeline = -1;
+	int scene_tl_length_id = -1;
+	int scene_tl_pos_id = -1;
+	int scene_tl_play_id = -1;
+	int scene_tl_repeat_id = -1;
+	int scene_tl_speed_id = -1;
+	GeomSceneTimeline* scene_tl_ptr = 0;
+	if (selected_scene) {
+		scene_tl_ptr = &selected_scene->GetTimeline();
+		PropRef& tl = props_nodes.Add();
+		tl.kind = PropRef::P_SCENE_TIMELINE;
+		scene_timeline = props.Add(root, ImagesImg::Directory(), RawToValue(&tl), t_("Scene Timeline"));
+		PropRef& len = props_nodes.Add();
+		len.kind = PropRef::P_SCENE_TIMELINE_LENGTH;
+		scene_tl_length_id = props.Add(scene_timeline, ImagesImg::Object(), RawToValue(&len), t_("Length"));
+		PropRef& pos = props_nodes.Add();
+		pos.kind = PropRef::P_SCENE_TIMELINE_POSITION;
+		scene_tl_pos_id = props.Add(scene_timeline, ImagesImg::Object(), RawToValue(&pos), t_("Position"));
+		PropRef& play = props_nodes.Add();
+		play.kind = PropRef::P_SCENE_TIMELINE_PLAY;
+		scene_tl_play_id = props.Add(scene_timeline, ImagesImg::Object(), RawToValue(&play), t_("Play"));
+		PropRef& rep = props_nodes.Add();
+		rep.kind = PropRef::P_SCENE_TIMELINE_REPEAT;
+		scene_tl_repeat_id = props.Add(scene_timeline, ImagesImg::Object(), RawToValue(&rep), t_("Repeat"));
+		PropRef& speed = props_nodes.Add();
+		speed.kind = PropRef::P_SCENE_TIMELINE_SPEED;
+		scene_tl_speed_id = props.Add(scene_timeline, ImagesImg::Object(), RawToValue(&speed), t_("Speed"));
+	}
 	int pointcloud = -1;
 	int dataset_id = -1;
 	GeomPointcloudDataset* props_dataset = 0;
@@ -1205,6 +1236,8 @@ void GeomProjectCtrl::PropsData() {
 	props.Open(components);
 	if (pointcloud >= 0)
 		props.Open(pointcloud);
+	if (scene_timeline >= 0)
+		props.Open(scene_timeline);
 
 	vec3 pos(0, 0, 0);
 	quat ori = Identity<quat>();
@@ -1432,6 +1465,83 @@ void GeomProjectCtrl::PropsData() {
 				e->RunScriptOnce(*script_ptr);
 		};
 		set_ctrl(ids.run_id, pick(run));
+	}
+
+	if (scene_tl_ptr) {
+		One<EditIntSpin> len_ctrl = MakeOne<EditIntSpin>();
+		len_ctrl->Min(0);
+		len_ctrl->SetData(scene_tl_ptr->length);
+		EditIntSpin* len_ptr = len_ctrl.Get();
+		len_ctrl->WhenAction << [=] {
+			if (!len_ptr || !scene_tl_ptr || !selected_scene)
+				return;
+			int len = (int)~*len_ptr;
+			if (len < 0)
+				len = 0;
+			scene_tl_ptr->length = len;
+			selected_scene->length = len;
+			if (scene_tl_ptr->position >= len && len > 0)
+				scene_tl_ptr->position = len - 1;
+			scene_tl_ptr->time = scene_tl_ptr->position / (double)e->prj->kps;
+			RefreshAll();
+		};
+		set_ctrl(scene_tl_length_id, pick(len_ctrl));
+
+		One<EditIntSpin> pos_ctrl_tl = MakeOne<EditIntSpin>();
+		pos_ctrl_tl->Min(0);
+		pos_ctrl_tl->SetData(scene_tl_ptr->position);
+		EditIntSpin* pos_ptr = pos_ctrl_tl.Get();
+		pos_ctrl_tl->WhenAction << [=] {
+			if (!pos_ptr || !scene_tl_ptr)
+				return;
+			int pos = (int)~*pos_ptr;
+			if (pos < 0)
+				pos = 0;
+			if (scene_tl_ptr->length > 0 && pos >= scene_tl_ptr->length)
+				pos = scene_tl_ptr->length - 1;
+			scene_tl_ptr->position = pos;
+			scene_tl_ptr->time = pos / (double)e->prj->kps;
+			RefreshAll();
+		};
+		set_ctrl(scene_tl_pos_id, pick(pos_ctrl_tl));
+
+		One<Option> play_ctrl = MakeOne<Option>();
+		play_ctrl->SetData(scene_tl_ptr->is_playing);
+		Option* play_ptr = play_ctrl.Get();
+		play_ctrl->WhenAction << [=] {
+			if (!play_ptr || !scene_tl_ptr || !selected_scene)
+				return;
+			bool on = (bool)play_ptr->GetData();
+			if (on)
+				scene_tl_ptr->Play(selected_scene->length);
+			else
+				scene_tl_ptr->Pause();
+			RefreshAll();
+		};
+		set_ctrl(scene_tl_play_id, pick(play_ctrl));
+
+		One<Option> repeat_ctrl = MakeOne<Option>();
+		repeat_ctrl->SetData(scene_tl_ptr->repeat);
+		Option* repeat_ptr = repeat_ctrl.Get();
+		repeat_ctrl->WhenAction << [=] {
+			if (repeat_ptr && scene_tl_ptr)
+				scene_tl_ptr->repeat = (bool)repeat_ptr->GetData();
+		};
+		set_ctrl(scene_tl_repeat_id, pick(repeat_ctrl));
+
+		One<EditDoubleSpin> speed_ctrl = MakeOne<EditDoubleSpin>();
+		speed_ctrl->Min(0.01);
+		speed_ctrl->SetData(scene_tl_ptr->speed);
+		EditDoubleSpin* speed_ptr = speed_ctrl.Get();
+		speed_ctrl->WhenAction << [=] {
+			if (speed_ptr && scene_tl_ptr) {
+				double v = (double)~*speed_ptr;
+				if (v < 0.01)
+					v = 0.01;
+				scene_tl_ptr->speed = v;
+			}
+		};
+		set_ctrl(scene_tl_speed_id, pick(speed_ctrl));
 	}
 	
 	One<Vec3EditCtrl> pos_ctrl = MakeOne<Vec3EditCtrl>();

@@ -36,6 +36,8 @@ file
 	LogAnalyzer.h,
 	LogAnalyzer.cpp,
 	Tools.cpp,
+	NewSessionDialog.h,
+	NewSessionDialog.cpp,
 	ConfigurationDialog.h,
 	ConfigurationDialog.cpp,
 	OpsRunner.h,

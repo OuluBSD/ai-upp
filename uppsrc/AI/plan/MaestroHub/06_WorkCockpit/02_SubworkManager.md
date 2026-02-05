@@ -1,5 +1,5 @@
 # Task: Subwork Manager UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Visual interface for `maestro work subwork`.

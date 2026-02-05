@@ -1,5 +1,5 @@
 # Task: Runbook Step Wizard
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Wizard for adding complex steps (`maestro runbook step-add`).

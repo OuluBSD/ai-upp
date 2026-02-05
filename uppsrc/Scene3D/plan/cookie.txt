@@ -142,3 +142,7 @@
   task: track-editor-scripting/phase-07-3d-editing/task-0700-3d-edit-primitives.md
   status: done
   note: Added editable mesh data, serialization, render overlay, and edit tools.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0701-3d-join-split-tools.md
+  status: done
+  note: Added join/split line tools with screen-space line picking.

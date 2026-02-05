@@ -212,6 +212,8 @@ struct Edit3D : DockWindow {
 		TOOL_LINE,
 		TOOL_FACE,
 		TOOL_ERASE,
+		TOOL_JOIN,
+		TOOL_SPLIT,
 	};
 	enum EditPlaneMode {
 		PLANE_VIEW,
@@ -223,8 +225,10 @@ struct Edit3D : DockWindow {
 	EditTool edit_tool = TOOL_SELECT;
 	EditPlaneMode edit_plane = PLANE_VIEW;
 	int edit_line_start = -1;
+	int edit_join_start = -1;
 	Vector<int> edit_face_points;
 	double edit_pick_radius_px = 10.0;
+	double edit_line_pick_radius_px = 8.0;
 	bool edit_snap_enable = false;
 	double edit_snap_step = 0.1;
 	bool edit_snap_local = true;
@@ -292,7 +296,9 @@ struct Edit3D : DockWindow {
 	void CreateEditableMeshObject();
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
+	int PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);
+	bool HasLine(const GeomEditableMesh& mesh, int a, int b) const;
 	void OpenScriptEditor(GeomScript& script);
 	void RunScriptOnce(GeomScript& script);
 	GeomScript& AddScriptComponent(GeomObject& obj);

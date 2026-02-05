@@ -1,4 +1,4 @@
 TRACK=MaestroHub
 PHASE=05_WorkflowEditor
-TASK=01_PUMLVisualizer
-STATUS=DONE
+TASK=02_StateEditor
+STATUS=IN_PROGRESS

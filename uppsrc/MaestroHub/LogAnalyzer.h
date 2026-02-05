@@ -1,7 +1,8 @@
 #ifndef _MaestroHub_LogAnalyzer_h_
 #define _MaestroHub_LogAnalyzer_h_
 
-#include "MaestroHub.h"
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
 
 NAMESPACE_UPP
 
@@ -11,7 +12,7 @@ NAMESPACE_UPP
 #include <CtrlCore/lay.h>
 #endif
 
-class LogAnalyzer : public WithLogAnalyzerLayout<TopWindow> {
+class LogAnalyzer : public WithLogAnalyzerLayout<ParentCtrl> {
 	ArrayCtrl    scan_list;
 	
 	Splitter     hsplit;

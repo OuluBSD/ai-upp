@@ -113,16 +113,17 @@ LAYOUT(OpsRunnerLayout, 800, 500)
 END_LAYOUT
 
 LAYOUT(NewSessionLayout, 500, 300)
-	ITEM(Label, dv___0, SetLabel(t_("Purpose / Goal:")).LeftPos(8, 120).TopPos(8, 19))
-	ITEM(EditString, purpose, LeftPos(8, 484).TopPos(32, 19))
-	ITEM(Label, dv___2, SetLabel(t_("Session Type:")).LeftPos(8, 120).TopPos(60, 19))
-	ITEM(DropList, type, LeftPos(8, 200).TopPos(84, 19))
-	ITEM(Label, dv___4, SetLabel(t_("Backend:")).LeftPos(220, 120).TopPos(60, 19))
-	ITEM(DropList, backend, LeftPos(220, 150).TopPos(84, 19))
-	ITEM(Label, dv___6, SetLabel(t_("Initial Context (Optional):")).LeftPos(8, 200).TopPos(112, 19))
-	ITEM(LineEdit, context, LeftPos(8, 484).TopPos(136, 100))
-	ITEM(Button, ok, SetLabel(t_("Start Session")).RightPos(116, 120).BottomPos(8, 32))
-	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
+	ITEM(LabelBox, dv___0, SetLabel(t_("Session Details")).HSizePos(8, 8).VSizePos(8, 48))
+	ITEM(Label, dv___1, SetLabel(t_("&Purpose / Goal:")).LeftPos(16, 120).TopPos(28, 19))
+	ITEM(EditString, purpose, LeftPos(16, 468).TopPos(52, 19))
+	ITEM(Label, dv___3, SetLabel(t_("Session &Type:")).LeftPos(16, 120).TopPos(80, 19))
+	ITEM(DropList, type, LeftPos(16, 200).TopPos(104, 19))
+	ITEM(Label, dv___5, SetLabel(t_("&Backend:")).LeftPos(228, 120).TopPos(80, 19))
+	ITEM(DropList, backend, LeftPos(228, 150).TopPos(104, 19))
+	ITEM(Label, dv___7, SetLabel(t_("Initial &Context (Optional):")).LeftPos(16, 200).TopPos(132, 19))
+	ITEM(LineEdit, context, LeftPos(16, 468).TopPos(156, 80))
+	ITEM(Button, ok, SetLabel(t_("&Start Session")).RightPos(116, 120).BottomPos(8, 32))
+	ITEM(Button, cancel, SetLabel(t_("&Cancel")).RightPos(8, 100).BottomPos(8, 32))
 END_LAYOUT
 
 LAYOUT(IssueCreateLayout, 520, 360)
@@ -143,11 +144,36 @@ LAYOUT(IssueCreateLayout, 520, 360)
 END_LAYOUT
 
 LAYOUT(InitLayout, 500, 200)
-	ITEM(Label, dv___0, SetLabel(t_("Target Directory:")).LeftPos(8, 120).TopPos(8, 19))
-	ITEM(EditString, dir, LeftPos(8, 400).TopPos(32, 19))
-	ITEM(Button, btn_browse, SetLabel(t_("...")).LeftPos(412, 32).TopPos(32, 19))
-	ITEM(Label, dv___3, SetLabel(t_("Project Name:")).LeftPos(8, 120).TopPos(60, 19))
-	ITEM(EditString, name, LeftPos(8, 484).TopPos(84, 19))
-	ITEM(Button, ok, SetLabel(t_("Initialize")).RightPos(116, 120).BottomPos(8, 32))
-	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
+	ITEM(LabelBox, dv___0, SetLabel(t_("Project Settings")).HSizePos(8, 8).VSizePos(8, 48))
+	ITEM(Label, dv___1, SetLabel(t_("&Target Directory:")).LeftPos(16, 120).TopPos(32, 19))
+	ITEM(EditString, dir, LeftPos(16, 392).TopPos(56, 19))
+	ITEM(Button, btn_browse, SetLabel(t_("B&rowse...")).LeftPos(412, 72).TopPos(56, 19))
+	ITEM(Label, dv___4, SetLabel(t_("Project &Name:")).LeftPos(16, 120).TopPos(84, 19))
+	ITEM(EditString, name, LeftPos(16, 468).TopPos(108, 19))
+	ITEM(Button, ok, SetLabel(t_("&Initialize")).RightPos(116, 120).BottomPos(8, 32))
+	ITEM(Button, cancel, SetLabel(t_("&Cancel")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT
+
+LAYOUT(DebugWorkspaceLayout, 800, 600)
+	ITEM(ToolBar, toolbar, HSizePos(0, 0).TopPos(0, 24))
+	ITEM(Splitter, main_split, HSizePos(0, 0).VSizePos(24, 0))
+END_LAYOUT
+
+LAYOUT(AuditTrailLayout, 800, 400)
+	ITEM(Splitter, vsplit, HSizePos(0, 0).VSizePos(0, 0))
+END_LAYOUT
+
+LAYOUT(GlobalAssistantLayout, 250, 600)
+	ITEM(Label, header, SetLabel(t_("Maestro AI Assistant")).HSizePos(8, 32).TopPos(4, 19))
+	ITEM(Button, btn_toggle, SetLabel(t_(">")).RightPos(4, 24).TopPos(4, 19))
+	ITEM(Splitter, vsplit, HSizePos(0, 0).VSizePos(28, 0))
+END_LAYOUT
+
+LAYOUT(FleetDashboardLayout, 800, 600)
+	ITEM(Label, dv___0, SetLabel(t_("Fleet Status - Multi-Project Overview")).HSizePos(8, 8).TopPos(8, 19))
+	ITEM(Splitter, vsplit, HSizePos(8, 8).VSizePos(32, 8))
+END_LAYOUT
+
+LAYOUT(IntelligenceHubLayout, 800, 600)
+	ITEM(TabCtrl, tabs, HSizePos(0, 0).VSizePos(0, 0))
 END_LAYOUT

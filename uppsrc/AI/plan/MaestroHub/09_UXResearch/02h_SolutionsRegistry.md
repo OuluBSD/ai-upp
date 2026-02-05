@@ -1,5 +1,5 @@
 # Task: Known-Fix Pattern Library (Solutions) UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Design the `solutions` registry and automated remediation interface.

@@ -1,7 +1,8 @@
 #ifndef _MaestroHub_InitDialog_h_
 #define _MaestroHub_InitDialog_h_
 
-#include "MaestroHub.h"
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
 
 NAMESPACE_UPP
 

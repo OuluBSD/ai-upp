@@ -6,7 +6,6 @@
 
 NAMESPACE_UPP
 
-
 class MaintenancePane : public ParentCtrl {
 public:
 	AIChatCtrl chat;

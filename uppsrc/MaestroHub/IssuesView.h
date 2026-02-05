@@ -7,21 +7,24 @@
 NAMESPACE_UPP
 
 class IssuesPane : public ParentCtrl {
-	ArrayCtrl list;
-	String    current_root;
-
-	Vector<String> GetSelectedIssueIds() const;
-	void           BulkSetStatus();
-	void           BulkSetSeverity();
-	void           OnEdit();
-	void           OnIgnore();
-	void           OnCreateTask();
-
 public:
+	Splitter  split;
+	ArrayCtrl list;
+	RichTextView detail;
+	
+	String    current_root;
+	
 	void Load(const String& root);
 	void OnMenu(Bar& bar);
 	void OnTriage();
 	void OnResolve();
+	void OnEdit();
+	void OnIgnore();
+	void OnCreateTask();
+	
+	Vector<String> GetSelectedIssueIds() const;
+	void BulkSetStatus();
+	void BulkSetSeverity();
 
 	typedef IssuesPane CLASSNAME;
 	IssuesPane();

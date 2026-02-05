@@ -1,7 +1,8 @@
 #ifndef _MaestroHub_TriageDialog_h_
 #define _MaestroHub_TriageDialog_h_
 
-#include "MaestroHub.h"
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
 
 NAMESPACE_UPP
 
@@ -18,13 +19,13 @@ class TriageDialog : public WithTriageLayout<TopWindow> {
 	int cursor = 0;
 	String root;
 
-	String FormatIssueInfo(const MaestroIssue& iss) const;
-	String FormatAiSuggestion(const MaestroIssue& iss) const;
-	void   Advance();
-
 public:
 	void Load(const String& maestro_root);
 	void UpdateUI();
+	void Advance();
+	
+	String FormatIssueInfo(const MaestroIssue& iss) const;
+	String FormatAiSuggestion(const MaestroIssue& iss) const;
 	
 	void OnAccept();
 	void OnSkip();

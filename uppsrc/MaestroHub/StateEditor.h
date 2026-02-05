@@ -1,8 +1,9 @@
 #ifndef _MaestroHub_StateEditor_h_
 #define _MaestroHub_StateEditor_h_
 
-#include "MaestroHub.h"
-#include <CodeEditor/CodeEditor.h>
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+#include <GraphLib/GraphLib.h>
 
 NAMESPACE_UPP
 
@@ -14,9 +15,7 @@ NAMESPACE_UPP
 #endif
 
 class StateEditor : public WithStateEditorLayout<TopWindow> {
-	ParentCtrl      puml_panel;
-	CodeEditor      puml_editor;
-	Label           error_label;
+	LineEdit        puml_editor;
 	GraphLib::GraphNodeCtrl graph_view;
 	
 	One<WorkflowManager> wfm;

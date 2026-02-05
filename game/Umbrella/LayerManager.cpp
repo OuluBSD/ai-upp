@@ -8,11 +8,12 @@ LayerManager::LayerManager()
 }
 
 Layer& LayerManager::AddLayer(const String& name, LayerType type, int cols, int rows) {
-	Layer& layer = layers.Add(name, type, cols, rows);
+	Layer* layer = new Layer(name, type, cols, rows);
+	layers.Add(layer);
 	if(layers.GetCount() == 1) {
 		activeLayerIndex = 0;
 	}
-	return layer;
+	return *layer;
 }
 
 void LayerManager::RemoveLayer(int index) {

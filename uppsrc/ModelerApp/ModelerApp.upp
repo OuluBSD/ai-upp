@@ -4,6 +4,7 @@ uses
 	Geometry,
 	ComputerVision,
 	ByteVM,
+	Core/TextParsing,
 	Draw/Camera,
 	Ctrl/Camera,
 	Scene3D/Core,

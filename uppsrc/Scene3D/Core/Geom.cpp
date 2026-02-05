@@ -226,10 +226,9 @@ GeomPointcloudEffectTransform& GeomObject::GetAddPointcloudEffect(String name) {
 		if (fx_name == name)
 			return fx;
 	}
-	VfsValue& n = val.GetAdd<GeomPointcloudEffectTransform>(name);
-	GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
+	GeomPointcloudEffectTransform& fx = val.GetAdd<GeomPointcloudEffectTransform>(name);
 	fx.name = name;
-	n.id = name;
+	fx.val.id = name;
 	return fx;
 }
 
@@ -586,10 +585,9 @@ GeomPointcloudDataset& GeomDirectory::GetAddPointcloudDataset(String id) {
 		if (ds_id == id)
 			return ds;
 	}
-	VfsValue& n = val.GetAdd<GeomPointcloudDataset>(id);
-	GeomPointcloudDataset& ds = n.GetExt<GeomPointcloudDataset>();
+	GeomPointcloudDataset& ds = val.GetAdd<GeomPointcloudDataset>(id);
 	ds.name = id;
-	n.id = id;
+	ds.val.id = id;
 	return ds;
 }
 

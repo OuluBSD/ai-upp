@@ -12,4 +12,8 @@ Add an ActionScript-style event system to scripting.
 - Scripts can register and receive events consistently.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added `on()`/`onFrame()` handlers for stage and display objects.
+- Wired renderer input events to script dispatcher and per-frame `enterFrame` events.

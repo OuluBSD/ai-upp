@@ -118,3 +118,27 @@
   task: track-editor-scripting/phase-02-stage-api/task-0201-displayobject-proxy.md
   status: done
   note: DisplayObject proxy supports transform, visibility, and child ops.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-03-display-list/task-0300-display-list-operations.md
+  status: done
+  note: Added display list child queries and reorder.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-04-events/task-0400-event-dispatcher.md
+  status: done
+  note: Added input + enterFrame dispatch with stage/object handlers.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-05-timeline/task-0500-timeline-hooks.md
+  status: done
+  note: Added gotoAndPlay/gotoAndStop and onFrame hooks.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-06-scripting-runtime/task-0600-dynamic-properties.md
+  status: done
+  note: Added dynamic property bag component and DisplayObject backing store.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-06-scripting-runtime/task-0601-script-global-conventions.md
+  status: done
+  note: Added ActionScript-style globals and per-script root/this bindings.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0700-3d-edit-primitives.md
+  status: done
+  note: Added editable mesh data, serialization, render overlay, and edit tools.

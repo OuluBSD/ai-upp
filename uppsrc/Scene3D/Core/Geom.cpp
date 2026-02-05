@@ -81,6 +81,160 @@ void GeomScript::Visit(Vis& v) {
 	  VIS_(run_every_frame);
 }
 
+void GeomDynamicProperties::Visit(Vis& v) {
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			props.Clear();
+			const Value& prop_va = v.json->Get()["entries"];
+			for (int i = 0; i < prop_va.GetCount(); i++) {
+				String key;
+				LoadFromJsonValue(key, prop_va[i]["key"]);
+				Value val = prop_va[i]["value"];
+				props.Add(key, val);
+			}
+		}
+		else {
+			Vector<Value> prop_values;
+			for (int i = 0; i < props.GetCount(); i++) {
+				ValueMap item;
+				item.Add("key", StoreAsJsonValue(props.GetKey(i)));
+				item.Add("value", props[i]);
+				prop_values.Add(item);
+			}
+			v.json->Set("entries", ValueArray(pick(prop_values)));
+		}
+	}
+	else {
+		int prop_count = props.GetCount();
+		v VIS_(prop_count);
+		if (v.IsLoading()) {
+			props.Clear();
+			for (int i = 0; i < prop_count; i++) {
+				String key;
+				Value val;
+				v VIS_(key)
+				  VIS_(val);
+				props.Add(key, val);
+			}
+		}
+		else {
+			for (int i = 0; i < prop_count; i++) {
+				String key = props.GetKey(i);
+				Value val = props[i];
+				v VIS_(key)
+				  VIS_(val);
+			}
+		}
+	}
+}
+
+void GeomEdge::Visit(Vis& v) {
+	v VIS_(a)
+	  VIS_(b);
+}
+
+void GeomFace::Visit(Vis& v) {
+	v VIS_(a)
+	  VIS_(b)
+	  VIS_(c);
+}
+
+static Value Vec3ToJsonValue(const vec3& p) {
+	ValueArray a;
+	a.Add(p[0]);
+	a.Add(p[1]);
+	a.Add(p[2]);
+	return a;
+}
+
+static vec3 JsonValueToVec3(const Value& v) {
+	vec3 out(0);
+	if (v.GetCount() >= 3) {
+		out[0] = v[0];
+		out[1] = v[1];
+		out[2] = v[2];
+	}
+	return out;
+}
+
+void GeomEditableMesh::Visit(Vis& v) {
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			points.Clear();
+			lines.Clear();
+			faces.Clear();
+			const Value& pts = v.json->Get()["points"];
+			for (int i = 0; i < pts.GetCount(); i++)
+				points.Add(JsonValueToVec3(pts[i]));
+			const Value& ln = v.json->Get()["lines"];
+			for (int i = 0; i < ln.GetCount(); i++) {
+				GeomEdge e;
+				e.a = (int)ln[i]["a"];
+				e.b = (int)ln[i]["b"];
+				lines.Add(e);
+			}
+			const Value& fc = v.json->Get()["faces"];
+			for (int i = 0; i < fc.GetCount(); i++) {
+				GeomFace f;
+				f.a = (int)fc[i]["a"];
+				f.b = (int)fc[i]["b"];
+				f.c = (int)fc[i]["c"];
+				faces.Add(f);
+			}
+		}
+		else {
+			Vector<Value> pts;
+			for (const vec3& p : points)
+				pts.Add(Vec3ToJsonValue(p));
+			Vector<Value> ln;
+			for (const GeomEdge& e : lines) {
+				ValueMap item;
+				item.Add("a", e.a);
+				item.Add("b", e.b);
+				ln.Add(item);
+			}
+			Vector<Value> fc;
+			for (const GeomFace& f : faces) {
+				ValueMap item;
+				item.Add("a", f.a);
+				item.Add("b", f.b);
+				item.Add("c", f.c);
+				fc.Add(item);
+			}
+			v.json->Set("points", ValueArray(pick(pts)));
+			v.json->Set("lines", ValueArray(pick(ln)));
+			v.json->Set("faces", ValueArray(pick(fc)));
+		}
+	}
+	else {
+		int point_count = points.GetCount();
+		int line_count = lines.GetCount();
+		int face_count = faces.GetCount();
+		v VIS_(point_count)
+		  VIS_(line_count)
+		  VIS_(face_count);
+		if (v.IsLoading()) {
+			points.SetCount(point_count);
+			lines.SetCount(line_count);
+			faces.SetCount(face_count);
+			for (int i = 0; i < point_count; i++)
+				v VISN(points[i]);
+			for (int i = 0; i < line_count; i++)
+				lines[i].Visit(v);
+			for (int i = 0; i < face_count; i++)
+				faces[i].Visit(v);
+		}
+		else {
+			for (int i = 0; i < point_count; i++)
+				v VISN(points[i]);
+			for (int i = 0; i < line_count; i++)
+				lines[i].Visit(v);
+			for (int i = 0; i < face_count; i++)
+				faces[i].Visit(v);
+		}
+	}
+}
+
 void GeomPointcloudEffectTransform::Visit(Vis& v) {
 	v VIS_(name)
 	  VIS_(enabled)
@@ -218,6 +372,34 @@ GeomTransform* GeomObject::FindTransform() const {
 	return 0;
 }
 
+GeomDynamicProperties& GeomObject::GetDynamicProperties() {
+	static bool init = (TypedStringHasher<GeomDynamicProperties>("GeomDynamicProperties"), true);
+	return val.GetAdd<GeomDynamicProperties>("props");
+}
+
+GeomDynamicProperties* GeomObject::FindDynamicProperties() const {
+	static bool init = (TypedStringHasher<GeomDynamicProperties>("GeomDynamicProperties"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomDynamicProperties>()) && sub.id == "props")
+			return &sub.GetExt<GeomDynamicProperties>();
+	}
+	return 0;
+}
+
+GeomEditableMesh& GeomObject::GetEditableMesh() {
+	static bool init = (TypedStringHasher<GeomEditableMesh>("GeomEditableMesh"), true);
+	return val.GetAdd<GeomEditableMesh>("editable");
+}
+
+GeomEditableMesh* GeomObject::FindEditableMesh() const {
+	static bool init = (TypedStringHasher<GeomEditableMesh>("GeomEditableMesh"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomEditableMesh>()) && sub.id == "editable")
+			return &sub.GetExt<GeomEditableMesh>();
+	}
+	return 0;
+}
+
 GeomPointcloudEffectTransform& GeomObject::GetAddPointcloudEffect(String name) {
 	for (auto& sub : val.sub) {
 		if (!IsVfsType(sub, AsTypeHash<GeomPointcloudEffectTransform>()))
@@ -270,6 +452,10 @@ void GeomObject::Visit(Vis& v) {
 	v("timeline", tl, VISIT_NODE);
 	GeomTransform& tr = GetTransform();
 	v("transform", tr, VISIT_NODE);
+	GeomDynamicProperties& props = GetDynamicProperties();
+	v("props", props, VISIT_NODE);
+	GeomEditableMesh& mesh = GetEditableMesh();
+	v("editable", mesh, VISIT_NODE);
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			const Value& effects_va = v.json->Get()["effects"];
@@ -401,11 +587,26 @@ GeomTransform* GeomDirectory::FindTransform() const {
 	return 0;
 }
 
+GeomDynamicProperties& GeomDirectory::GetDynamicProperties() {
+	static bool init = (TypedStringHasher<GeomDynamicProperties>("GeomDynamicProperties"), true);
+	return val.GetAdd<GeomDynamicProperties>("props");
+}
+
+GeomDynamicProperties* GeomDirectory::FindDynamicProperties() const {
+	static bool init = (TypedStringHasher<GeomDynamicProperties>("GeomDynamicProperties"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomDynamicProperties>()) && sub.id == "props")
+			return &sub.GetExt<GeomDynamicProperties>();
+	}
+	return 0;
+}
+
 void GeomDirectory::Visit(Vis& v) {
 	v VIS_(name);
 	if (v.IsLoading() && !name.IsEmpty())
 		val.id = name;
 	GeomTransform& tr = GetTransform();
+	GeomDynamicProperties& props = GetDynamicProperties();
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			const Value& trv = v.json->Get()["transform"];
@@ -413,6 +614,12 @@ void GeomDirectory::Visit(Vis& v) {
 				JsonIO jio(trv);
 				Vis vis(jio);
 				tr.Visit(vis);
+			}
+			const Value& propv = v.json->Get()["props"];
+			if (!IsNull(propv)) {
+				JsonIO jio(propv);
+				Vis vis(jio);
+				props.Visit(vis);
 			}
 			val.sub.Clear();
 			const Value& sub_va = v.json->Get()["subdir"];
@@ -462,6 +669,7 @@ void GeomDirectory::Visit(Vis& v) {
 				subdir_values.Add(item);
 			}
 			v.json->Set("transform", v.VisitAsJsonValue(tr));
+			v.json->Set("props", v.VisitAsJsonValue(props));
 			v.json->Set("subdir", ValueArray(pick(subdir_values)));
 			Vector<Value> obj_values;
 			for (auto& s : val.sub) {
@@ -496,6 +704,7 @@ void GeomDirectory::Visit(Vis& v) {
 			}
 		}
 		v("transform", tr, VISIT_NODE);
+		v("props", props, VISIT_NODE);
 		v VIS_(subdir_count)
 		  VIS_(obj_count)
 		  VIS_(ds_count);
@@ -974,6 +1183,8 @@ INITIALIZER(GeomTransformType) {
 INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomTransform, "scene3d.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomDynamicProperties, "scene3d.props", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomObject, "scene3d.object", "Scene3D|Core")

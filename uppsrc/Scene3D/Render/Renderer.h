@@ -26,6 +26,7 @@ public:
 
 	Event<> WhenChanged;
 	Event<Bar&> WhenMenu;
+	Event<const String&, const Point&, dword, int> WhenInput;
 	
 	virtual void Paint(Draw& d) override = 0;
 	void LeftDown(Point p, dword keyflags) override;

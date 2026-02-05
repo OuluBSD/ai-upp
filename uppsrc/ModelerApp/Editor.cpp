@@ -720,6 +720,8 @@ void Edit3D::Update() {
 
 	EnsureScriptInstances();
 	for (auto& inst : script_instances)
+		UpdateScriptInstance(inst, false);
+	for (auto& inst : script_instances)
 		RunScriptFrame(inst, dt);
 }
 
@@ -968,7 +970,6 @@ void Edit3D::RunScriptOnStart(ScriptInstance& inst, bool force) {
 void Edit3D::RunScriptFrame(ScriptInstance& inst, double dt) {
 	if (!inst.script || !inst.script->enabled || !inst.script->run_every_frame)
 		return;
-	UpdateScriptInstance(inst, false);
 	if (!inst.loaded || !inst.has_frame)
 		return;
 	inst.vm.GetGlobals().GetAdd(PyValue("__dt__")) = PyValue(dt);

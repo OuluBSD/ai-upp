@@ -1,23 +1,71 @@
 gui_mockup:
-  version: "1.0"
-  layout:
-    main_window:
-      type: "TopWindow"
-      title: "Maestro Hub [Refined]"
-      frames:
-        - "MenuBar"
-        - "StatusBar"
-      central_widget:
-        type: "TabCtrl"
-        tabs:
-          - name: "Dashboard"
-            focus: true
-            components: ["StatusSummary", "ActiveTasks", "RecentFindings"]
-          - name: "Intelligence"
-            components: ["RepoBrowser", "SymbolSearch", "LogAnalyzer"]
-          - name: "Design"
-            components: ["RunbookEditor", "WorkflowGraph"]
-          - name: "Execution"
-            components: ["ActiveSessionHUD", "BreadcrumbTimeline"]
-          - name: "Maintenance"
-            components: ["IssueTracker", "TriageWizard"]
+  version: "2.0"
+  style: "Classical Windows Desktop (XP/2003)"
+  
+  window:
+    title: "Maestro Hub - Professional AI Orchestrator"
+    size: [1280, 800]
+    
+    frames:
+      - type: "MenuBar"
+        menus: ["File", "Edit", "View", "Intelligence", "Designer", "Execution", "Fleet", "Tools", "Help"]
+      
+      - type: "ToolBar"
+        style: "Classic Icons"
+        buttons: ["OpenProject", "SaveAll", "Separator", "RunOps", "ScanLogs", "Separator", "StartWork", "StopAI", "Separator", "Settings"]
+      
+      - type: "StatusBar"
+        panes:
+          - width: 200
+            text: "Model: Gemini 1.5 Pro"
+          - width: 150
+            text: "Quota: 85% [====--]"
+          - width: 100
+            text: "Backend: OK"
+          - width: 0 # Fill
+            text: "Ready."
+
+    layout:
+      type: "Splitter"
+      orientation: "Horizontal"
+      panes:
+        # Left Panel: Project and Pipeline
+        - width: 250
+          type: "TabCtrl"
+          tabs:
+            - name: "Workspace"
+              component: "ProjectExplorer" # TreeArrayCtrl showing multiple project health
+            - name: "Pipeline"
+              component: "MetaPipelineFlow" # Visual breadcrumbs of current project stage
+
+        # Central Area: Task Focused
+        - width: 780
+          type: "TabCtrl"
+          tabs:
+            - name: "Fleet Dashboard"
+              component: "WorkspaceOverview" # Multi-project sparklines + Automation Queue
+            - name: "Code Intelligence"
+              component: "IntelligenceHub" # Merged Log/TU/Repo browser
+            - name: "Modeling & Logic"
+              component: "ArchitectView" # Unified Runbook/Workflow designer
+            - name: "Execution Console"
+              component: "DebugWorkspace" # Binary Run + Trace + Breakpoints
+            - name: "Issue Tracker"
+              component: "TriageWorkspace" # Issues + Solutions matching
+
+        # Right Panel: Global Interoperable AI
+        - width: 250
+          type: "ParentCtrl"
+          title: "AI Assistant"
+          components: ["GlobalChat", "ContextStackViewer"]
+
+    bottom_panel:
+      height: 150
+      type: "TabCtrl"
+      tabs:
+        - name: "Automation Output"
+          component: "RawLogView"
+        - name: "AI Trace"
+          component: "BreadcrumbTimeline"
+        - name: "System Events"
+          component: "AuditTrailCorrelator"

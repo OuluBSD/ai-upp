@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 LogAnalyzer::LogAnalyzer() {
-	CtrlLayout(*this, "Log Analyzer & Finding Triage");
+	CtrlLayout(*this);
 	
 	scan_list.AddColumn("Time");
 	scan_list.AddColumn("Source");

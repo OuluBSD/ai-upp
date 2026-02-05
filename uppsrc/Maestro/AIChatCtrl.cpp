@@ -154,13 +154,15 @@ AIChatCtrl::AIChatCtrl() {
 	vscroll.Vert();
 	
 	int todo_height = 100;
+	int status_height = 20;
 	int edit_height = 100;
 	int offset = 3;
 	int btn_height = 30;
 	int suggest_h = 40;
 	
 	Add(todo.TopPos(0,todo_height).HSizePos());
-	Add(chat.VSizePos(todo_height, edit_height + offset + suggest_h).HSizePos());
+	Add(status.TopPos(todo_height, status_height).HSizePos(5, 5));
+	Add(chat.VSizePos(todo_height + status_height, edit_height + offset + suggest_h).HSizePos());
 	
 	Add(suggestion.BottomPos(edit_height + offset, suggest_h).HSizePos());
 	suggestion.Add(suggest_label.VSizePos().LeftPos(5, 400));
@@ -261,6 +263,11 @@ void AIChatCtrl::SetSession(const String& b, const String& id) {
 	backend = b;
 	engine.binary = b;
 	engine.session_id = id;
+	SessionStatus(b, id);
+}
+
+void AIChatCtrl::SessionStatus(const String& b, const String& id) {
+	status.SetLabel("Backend: " + b + " | Session: " + id);
 }
 
 void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) {

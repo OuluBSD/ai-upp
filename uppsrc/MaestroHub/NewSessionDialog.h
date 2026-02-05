@@ -1,7 +1,8 @@
 #ifndef _MaestroHub_NewSessionDialog_h_
 #define _MaestroHub_NewSessionDialog_h_
 
-#include "MaestroHub.h"
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
 
 NAMESPACE_UPP
 

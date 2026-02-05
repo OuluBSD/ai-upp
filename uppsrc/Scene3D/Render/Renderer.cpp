@@ -707,7 +707,27 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	}
 	
+	auto draw_line_ndc = [&](const vec3& a, const vec3& b, const Color& clr) {
+		vec2 a2(a[0], a[1]);
+		vec2 b2(b[0], b[1]);
+		if (!ClipLineNdc(a2, b2))
+			return;
+		int x0 = (int)floor((a2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y0 = (int)floor((-a2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		int x1 = (int)floor((b2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		surf.DrawLine2D(x0, y0, x1, y1, clr);
+	};
 	auto draw_triangle = [&](const vec3& n0, const vec3& n1, const vec3& n2, const Color& clr) {
+		if (wireframe_only) {
+			if ((n0[2] < -1 && n1[2] < -1 && n2[2] < -1) ||
+			    (n0[2] > 1 && n1[2] > 1 && n2[2] > 1))
+				return;
+			draw_line_ndc(n0, n1, clr);
+			draw_line_ndc(n1, n2, clr);
+			draw_line_ndc(n2, n0, clr);
+			return;
+		}
 		if (n0[2] < -1 && n1[2] < -1 && n2[2] < -1)
 			return;
 		if (n0[2] > 1 && n1[2] > 1 && n2[2] > 1)

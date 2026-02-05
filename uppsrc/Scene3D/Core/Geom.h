@@ -33,6 +33,24 @@ struct GeomTimeline : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomTransform : VfsValueExt {
+	vec3 position = vec3(0);
+	quat orientation = Identity<quat>();
+	
+	DEFAULT_EXT(GeomTransform)
+	void Visit(Vis& v) override;
+};
+
+struct GeomScript : VfsValueExt {
+	String file;
+	bool enabled = true;
+	bool run_on_load = true;
+	bool run_every_frame = false;
+	
+	DEFAULT_EXT(GeomScript)
+	void Visit(Vis& v) override;
+};
+
 struct GeomObject : VfsValueExt {
 	typedef enum {
 		O_NULL,
@@ -50,6 +68,8 @@ struct GeomObject : VfsValueExt {
 	String pointcloud_ref;
 	bool is_visible = true;
 	bool is_locked = false;
+	bool read_enabled = true;
+	bool write_enabled = false;
 	
 	DEFAULT_EXT(GeomObject)
 	One<Model> mdl;
@@ -59,12 +79,26 @@ struct GeomObject : VfsValueExt {
 	
 	GeomTimeline& GetTimeline();
 	GeomTimeline* FindTimeline() const;
+	GeomTransform& GetTransform();
+	GeomTransform* FindTransform() const;
 	
 	bool IsModel() const {return type == O_MODEL;}
 	bool IsOctree() const {return type == O_OCTREE;}
 	bool IsCamera() const {return type == O_CAMERA;}
 	String GetPath() const;
 	
+	void Visit(Vis& v) override;
+};
+
+struct GeomPointcloudDataset : VfsValueExt {
+	String name;
+	String source_ref;
+	
+	DEFAULT_EXT(GeomPointcloudDataset)
+	OctreePointModel octree;
+	Octree* octree_ptr = 0;
+	
+	String GetId() const;
 	void Visit(Vis& v) override;
 };
 
@@ -86,6 +120,10 @@ struct GeomDirectory : VfsValueExt {
 	GeomObject* FindObject(String name);
 	GeomObject* FindObject(String name, GeomObject::Type type);
 	GeomObject* FindCamera(String name);
+	GeomTransform& GetTransform();
+	GeomTransform* FindTransform() const;
+	GeomPointcloudDataset& GetAddPointcloudDataset(String id);
+	GeomPointcloudDataset* FindPointcloudDataset(String id);
 	
 	void Visit(Vis& v) override;
 };
@@ -200,12 +238,18 @@ struct GeomWorldState : VfsValueExt {
 	GeomProject* prj = 0;
 	int active_scene = -1;
 	int active_camera_obj_i = -1;
+	int focus_mode = 0;
+	hash_t focus_object_key = 0;
+	bool program_visible = true;
+	bool focus_visible = true;
 	
 	Array<GeomObjectState> objs;
 	
 	DEFAULT_EXT(GeomWorldState)
 	GeomCamera& GetFocus();
 	GeomCamera& GetProgram();
+	GeomObject* FindObjectByKey(hash_t key) const;
+	const GeomObjectState* FindObjectStateByKey(hash_t key) const;
 	
 	void Visit(Vis& v) override;
 	void UpdateObjects();

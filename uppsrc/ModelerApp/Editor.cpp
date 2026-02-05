@@ -1,8 +1,12 @@
 #include "ModelerApp.h"
+#include <ByteVM/PyBindings.h>
 
 #define IMAGECLASS ImagesImg
 #define IMAGEFILE <ModelerApp/Images.iml>
 #include <Draw/iml_source.h>
+
+namespace Upp { class PyVM; }
+void RegisterGeometry(Upp::PyVM& vm);
 
 NAMESPACE_UPP
 
@@ -33,6 +37,271 @@ void UpdateCameraObject(GeomObject& cam, const PointcloudPose& pose) {
 	GeomKeypoint& kp = tl.keypoints.Add(0);
 	kp.position = pose.position;
 	kp.orientation = pose.orientation;
+	if (GeomTransform* tr = cam.FindTransform()) {
+		tr->position = pose.position;
+		tr->orientation = pose.orientation;
+	}
+}
+
+void UpdateCameraObjectRender(GeomObject& cam, const PointcloudPose& pose, bool flip_z) {
+	PointcloudPose p = pose;
+	if (flip_z) {
+		p.orientation = p.orientation * MatQuat(YRotation(M_PI));
+	}
+	UpdateCameraObject(cam, p);
+}
+
+bool CompilePySource(const String& code, const String& filename, Vector<PyIR>& out_ir, String& err) {
+	Tokenizer tk;
+	tk.SkipPythonComments();
+	if (!tk.Process(code, filename.IsEmpty() ? "<script>" : filename)) {
+		err = "Tokenize failed";
+		return false;
+	}
+	tk.NewlineToEndStatement();
+	tk.CombineTokens();
+	PyCompiler compiler(tk.GetTokens());
+	try {
+		compiler.Compile(out_ir);
+	} catch (Exc& e) {
+		err = e;
+		return false;
+	}
+	return true;
+}
+
+bool RunPyIR(PyVM& vm, const Vector<PyIR>& ir, String& err) {
+	Vector<PyIR> run = ir;
+	vm.SetIR(run);
+	try {
+		vm.Run();
+	} catch (Exc& e) {
+		err = e;
+		return false;
+	}
+	return true;
+}
+
+Vector<String> SplitPathParts(const String& path) {
+	Vector<String> parts;
+	Vector<String> raw = Split(path, '/');
+	for (const String& part : raw) {
+		if (!part.IsEmpty())
+			parts.Add(part);
+	}
+	return parts;
+}
+
+GeomDirectory* FindDirectoryByName(GeomDirectory& dir, const String& name) {
+	for (auto& s : dir.val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomDirectory>()))
+			continue;
+		GeomDirectory& sub = s.GetExt<GeomDirectory>();
+		if (sub.name == name || sub.val.id == name)
+			return &sub;
+	}
+	return 0;
+}
+
+GeomDirectory* ResolveDirectoryPath(Edit3D& e, const String& path, bool create) {
+	GeomScene& scene = e.GetActiveScene();
+	Vector<String> parts = SplitPathParts(path);
+	if (parts.IsEmpty())
+		return &scene;
+	if (parts[0] == scene.name || parts[0] == scene.val.id)
+		parts.Remove(0);
+	GeomDirectory* dir = &scene;
+	for (int i = 0; i < parts.GetCount(); i++) {
+		GeomDirectory* next = FindDirectoryByName(*dir, parts[i]);
+		if (!next && create)
+			next = &dir->GetAddDirectory(parts[i]);
+		if (!next)
+			return 0;
+		dir = next;
+	}
+	return dir;
+}
+
+GeomObject* ResolveObjectPath(Edit3D& e, const String& path) {
+	Vector<String> parts = SplitPathParts(path);
+	if (parts.IsEmpty())
+		return 0;
+	GeomScene& scene = e.GetActiveScene();
+	if (parts[0] == scene.name || parts[0] == scene.val.id)
+		parts.Remove(0);
+	if (parts.IsEmpty())
+		return 0;
+	String obj_name = parts.Pop();
+	GeomDirectory* dir = ResolveDirectoryPath(e, Join(parts, "/"), false);
+	if (!dir)
+		return 0;
+	return dir->FindObject(obj_name);
+}
+
+PyValue ModelerLog(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() > 0)
+		LOG(args[0].ToString());
+	return PyValue::None();
+}
+
+PyValue ModelerDebugGeneratePointcloud(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugGeneratePointcloud();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugSimulateObservation(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugSimulateObservation();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugRunLocalization(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugRunLocalization();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugSimulateControllerObservations(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugSimulateControllerObservations();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugRunControllerLocalization(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugRunControllerLocalization();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugClearSynthetic(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->DebugClearSynthetic();
+	return PyValue::None();
+}
+
+PyValue ModelerDebugRunFullSynthetic(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->RunSyntheticPointcloudSimDialog();
+	return PyValue::None();
+}
+
+PyValue ModelerSetPosition(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 4)
+		return PyValue::False();
+	String path = args[0].ToString();
+	GeomObject* obj = ResolveObjectPath(*e, path);
+	if (!obj)
+		return PyValue::False();
+	GeomTransform& tr = obj->GetTransform();
+	tr.position = vec3((float)args[1].AsDouble(),
+	                   (float)args[2].AsDouble(),
+	                   (float)args[3].AsDouble());
+	e->state->UpdateObjects();
+	e->v0.RefreshAll();
+	return PyValue::True();
+}
+
+PyValue ModelerSetOrientation(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 5)
+		return PyValue::False();
+	String path = args[0].ToString();
+	GeomObject* obj = ResolveObjectPath(*e, path);
+	if (!obj)
+		return PyValue::False();
+	quat q((float)args[1].AsDouble(),
+	       (float)args[2].AsDouble(),
+	       (float)args[3].AsDouble(),
+	       (float)args[4].AsDouble());
+	q.Normalize();
+	GeomTransform& tr = obj->GetTransform();
+	tr.orientation = q;
+	e->state->UpdateObjects();
+	e->v0.RefreshAll();
+	return PyValue::True();
+}
+
+PyValue ModelerGetPosition(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::None();
+	String path = args[0].ToString();
+	GeomObject* obj = ResolveObjectPath(*e, path);
+	if (!obj)
+		return PyValue::None();
+	vec3 pos = vec3(0);
+	if (GeomTransform* tr = obj->FindTransform()) {
+		pos = tr->position;
+	}
+	else if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key)) {
+		pos = os->position;
+	}
+	Vector<PyValue> out;
+	out.Add(pos[0]);
+	out.Add(pos[1]);
+	out.Add(pos[2]);
+	return PyValue::FromVector(out, true);
+}
+
+PyValue ModelerCreateObject(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 2)
+		return PyValue::False();
+	String path = args[0].ToString();
+	String type = ToLower(args[1].ToString());
+	Vector<String> parts = SplitPathParts(path);
+	if (parts.IsEmpty())
+		return PyValue::False();
+	GeomScene& scene = e->GetActiveScene();
+	if (parts[0] == scene.name || parts[0] == scene.val.id)
+		parts.Remove(0);
+	if (parts.IsEmpty())
+		return PyValue::False();
+	String obj_name = parts.Pop();
+	GeomDirectory* dir = ResolveDirectoryPath(*e, Join(parts, "/"), true);
+	if (!dir)
+		return PyValue::False();
+	GeomObject* obj = 0;
+	if (type == "camera")
+		obj = &dir->GetAddCamera(obj_name);
+	else if (type == "model")
+		obj = &dir->GetAddModel(obj_name);
+	else if (type == "pointcloud" || type == "octree")
+		obj = &dir->GetAddOctree(obj_name);
+	if (!obj)
+		return PyValue::False();
+	e->state->UpdateObjects();
+	e->RefreshData();
+	return PyValue::True();
+}
+
+PyValue ModelerCreateDirectory(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::False();
+	String path = args[0].ToString();
+	GeomDirectory* dir = ResolveDirectoryPath(*e, path, true);
+	if (!dir)
+		return PyValue::False();
+	e->state->UpdateObjects();
+	e->RefreshData();
+	return PyValue::True();
+}
+
+PyValue ModelerGetProjectDir(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e)
+		return PyValue::None();
+	return PyValue(e->GetProjectDir());
 }
 
 vec3 ApplyInversePoseSimple(const PointcloudPose& pose, const vec3& p) {
@@ -144,6 +413,46 @@ void FilePoolCtrl::Data() {
 		files.Set(i, 4, size);
 		files.Set(i, 5, f.modified_utc);
 	}
+}
+
+ScriptEditorDlg::ScriptEditorDlg() {
+	Title("Script Editor");
+	Sizeable().Zoomable();
+	AddFrame(tool);
+	Add(editor.SizePos());
+	editor.WhenAction << THISBACK(OnChange);
+	tool.Set([=](Bar& bar) {
+		bar.Add(t_("Save"), THISBACK(Save));
+		bar.Add(t_("Reload"), [=] { if (!path.IsEmpty()) OpenFile(path); });
+		bar.Add(t_("Close"), [=] { Close(); });
+	});
+}
+
+void ScriptEditorDlg::OpenFile(const String& p) {
+	path = p;
+	String data;
+	if (FileExists(path))
+		data = LoadFile(path);
+	editor.Set(data);
+	editor.SetFocus();
+	dirty = false;
+	SetTitle("Script Editor - " + GetFileName(path));
+}
+
+void ScriptEditorDlg::Save() {
+	if (path.IsEmpty())
+		return;
+	SaveFile(path, editor.Get());
+	dirty = false;
+}
+
+void ScriptEditorDlg::SaveAs(const String& p) {
+	path = p;
+	Save();
+}
+
+void ScriptEditorDlg::OnChange() {
+	dirty = true;
 }
 
 
@@ -258,6 +567,7 @@ Edit3D::Edit3D() :
 	Sizeable().MaximizeBox();
 	Title("Edit3D");
 	scene3d_data_dir = "data";
+	SetProjectDir(GetCurrentDirectory());
 	
 	SetView(VIEW_GEOMPROJECT);
 	Add(v0.hsplit.SizePos());
@@ -407,11 +717,220 @@ void Edit3D::Update() {
 		if (record_pointcloud)
 			UpdateHmdCameraPose();
 	}
+
+	EnsureScriptInstances();
+	for (auto& inst : script_instances)
+		RunScriptFrame(inst, dt);
 }
 
 void Edit3D::Data() {
 	if (view == VIEW_GEOMPROJECT)
 		v0.Data();
+}
+
+void Edit3D::SetProjectDir(String dir) {
+	if (dir.IsEmpty())
+		dir = GetCurrentDirectory();
+	project_dir = NormalizePath(dir);
+	EnsureScriptInstances();
+}
+
+String Edit3D::GetScriptAbsPath(const String& rel) const {
+	if (IsFullPath(rel))
+		return NormalizePath(rel);
+	if (project_dir.IsEmpty())
+		return NormalizePath(AppendFileName(GetCurrentDirectory(), rel));
+	return NormalizePath(AppendFileName(project_dir, rel));
+}
+
+String Edit3D::EnsureScriptFile(GeomScript& script, String base_name) {
+	if (base_name.IsEmpty())
+		base_name = "script";
+	String safe = ToVarName(base_name, '_');
+	if (safe.IsEmpty())
+		safe = "script";
+	if (project_dir.IsEmpty())
+		SetProjectDir(GetCurrentDirectory());
+	String rel = script.file;
+	if (rel.IsEmpty()) {
+		String dir = AppendFileName(project_dir, "scripts");
+		RealizeDirectory(dir);
+		String name = safe;
+		String rel_try = AppendFileName("scripts", name + ".py");
+		String abs_try = AppendFileName(project_dir, rel_try);
+		int idx = 1;
+		while (FileExists(abs_try)) {
+			rel_try = AppendFileName("scripts", name + "_" + IntStr(idx++) + ".py");
+			abs_try = AppendFileName(project_dir, rel_try);
+		}
+		rel = rel_try;
+		script.file = rel;
+	}
+	String abs = GetScriptAbsPath(rel);
+	if (!FileExists(abs)) {
+		String header = "# Script: " + base_name + "\n";
+		SaveFile(abs, header);
+	}
+	return rel;
+}
+
+GeomScript& Edit3D::AddScriptComponent(GeomObject& obj) {
+	String id = "script";
+	int idx = 1;
+	while (obj.val.Find(id, AsTypeHash<GeomScript>()) >= 0)
+		id = "script_" + IntStr(idx++);
+	VfsValue& node = obj.val.Add(id, AsTypeHash<GeomScript>());
+	GeomScript& script = node.GetExt<GeomScript>();
+	EnsureScriptFile(script, obj.name.IsEmpty() ? id : obj.name);
+	EnsureScriptInstances();
+	return script;
+}
+
+void Edit3D::OpenScriptEditor(GeomScript& script) {
+	EnsureScriptFile(script, "script");
+	String abs = GetScriptAbsPath(script.file);
+	if (script_editor.IsEmpty())
+		script_editor.Create();
+	script_editor->OpenFile(abs);
+	script_editor->Open();
+}
+
+void Edit3D::RunScriptOnce(GeomScript& script) {
+	EnsureScriptInstances();
+	for (auto& inst : script_instances) {
+		if (inst.script == &script) {
+			UpdateScriptInstance(inst, true);
+			RunScriptOnStart(inst, !script.run_on_load);
+			return;
+		}
+	}
+}
+
+void Edit3D::RegisterScriptVM(PyVM& vm) {
+	::RegisterGeometry(vm);
+	PY_MODULE(modeler, vm)
+	PY_MODULE_FUNC(log, ModelerLog, this);
+	PY_MODULE_FUNC(debug_generate_pointcloud, ModelerDebugGeneratePointcloud, this);
+	PY_MODULE_FUNC(debug_simulate_observation, ModelerDebugSimulateObservation, this);
+	PY_MODULE_FUNC(debug_run_localization, ModelerDebugRunLocalization, this);
+	PY_MODULE_FUNC(debug_simulate_controller_observations, ModelerDebugSimulateControllerObservations, this);
+	PY_MODULE_FUNC(debug_run_controller_localization, ModelerDebugRunControllerLocalization, this);
+	PY_MODULE_FUNC(debug_clear_synthetic, ModelerDebugClearSynthetic, this);
+	PY_MODULE_FUNC(debug_run_full_synthetic, ModelerDebugRunFullSynthetic, this);
+	PY_MODULE_FUNC(set_position, ModelerSetPosition, this);
+	PY_MODULE_FUNC(set_orientation, ModelerSetOrientation, this);
+	PY_MODULE_FUNC(get_position, ModelerGetPosition, this);
+	PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
+	PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
+	PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);
+}
+
+void Edit3D::EnsureScriptInstances() {
+	GeomScene& scene = GetActiveScene();
+	Vector<GeomScript*> scripts;
+	for (GeomObject& obj : GeomObjectCollection(scene)) {
+		for (auto& sub : obj.val.sub) {
+			if (IsVfsType(sub, AsTypeHash<GeomScript>()))
+				scripts.Add(&sub.GetExt<GeomScript>());
+		}
+	}
+	for (int i = script_instances.GetCount() - 1; i >= 0; i--) {
+		bool found = false;
+		for (int j = 0; j < scripts.GetCount(); j++) {
+			if (scripts[j] == script_instances[i].script) {
+				found = true;
+				break;
+			}
+		}
+		if (!found)
+			script_instances.Remove(i);
+	}
+	for (GeomScript* script : scripts) {
+		bool found = false;
+		for (auto& inst : script_instances) {
+			if (inst.script == script) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			ScriptInstance& inst = script_instances.Add();
+			inst.script = script;
+			RegisterScriptVM(inst.vm);
+		}
+	}
+}
+
+void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
+	if (!inst.script)
+		return;
+	GeomScript& script = *inst.script;
+	if (!script.enabled)
+		return;
+	EnsureScriptFile(script, "script");
+	String abs = GetScriptAbsPath(script.file);
+	Time mod = FileGetTime(abs);
+	bool needs_reload = force_reload || !inst.loaded || mod != inst.file_time;
+	if (!needs_reload)
+		return;
+	inst.file_time = mod;
+	inst.loaded = false;
+	inst.has_start = false;
+	inst.has_frame = false;
+	String code = LoadFile(abs);
+	String err;
+	Vector<PyIR> ir;
+	if (!CompilePySource(code, abs, ir, err)) {
+		LOG("Script compile failed: " + err);
+		return;
+	}
+	inst.vm = PyVM();
+	RegisterScriptVM(inst.vm);
+	inst.vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(project_dir);
+	inst.vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(abs);
+	if (!RunPyIR(inst.vm, ir, err)) {
+		LOG("Script run failed: " + err);
+		return;
+	}
+	inst.loaded = true;
+	inst.main_ir = pick(ir);
+	inst.has_start = !inst.vm.GetGlobals().GetItem(PyValue("on_start")).IsNone();
+	inst.has_frame = !inst.vm.GetGlobals().GetItem(PyValue("on_frame")).IsNone();
+	if (inst.has_start) {
+		Vector<PyIR> start_ir;
+		if (CompilePySource("on_start()", abs, start_ir, err))
+			inst.start_ir = pick(start_ir);
+	}
+	if (inst.has_frame) {
+		Vector<PyIR> frame_ir;
+		if (CompilePySource("on_frame(__dt__)", abs, frame_ir, err))
+			inst.frame_ir = pick(frame_ir);
+	}
+	RunScriptOnStart(inst, false);
+}
+
+void Edit3D::RunScriptOnStart(ScriptInstance& inst, bool force) {
+	if (!inst.script || !inst.loaded)
+		return;
+	if (!force && !inst.script->run_on_load)
+		return;
+	if (!inst.has_start)
+		return;
+	String err;
+	if (!RunPyIR(inst.vm, inst.start_ir, err))
+		LOG("Script on_start failed: " + err);
+}
+
+void Edit3D::RunScriptFrame(ScriptInstance& inst, double dt) {
+	if (!inst.script || !inst.script->enabled || !inst.script->run_every_frame)
+		return;
+	UpdateScriptInstance(inst, false);
+	if (!inst.loaded || !inst.has_frame)
+		return;
+	inst.vm.GetGlobals().GetAdd(PyValue("__dt__")) = PyValue(dt);
+	String err;
+	if (!RunPyIR(inst.vm, inst.frame_ir, err))
+		LOG("Script on_frame failed: " + err);
 }
 
 void Edit3D::CreateDefaultInit() {
@@ -460,6 +979,9 @@ void Edit3D::LoadEmptyProject() {
 	scene3d_meta.Clear();
 	scene3d_use_json = true;
 	repeat_playback = false;
+	if (project_dir.IsEmpty())
+		SetProjectDir(GetCurrentDirectory());
+	script_instances.Clear();
 	CreateDefaultInit();
 	CreateDefaultPostInit();
 	UpdateWindowTitle();
@@ -538,6 +1060,7 @@ void Edit3D::LoadTestOctree() {
 }
 
 void Edit3D::LoadTestProject(int test_i) {
+	script_instances.Clear();
 	CreateDefaultInit();
 	
 	switch (test_i) {
@@ -587,8 +1110,9 @@ void Edit3D::ToggleRepeatPlayback() {
 
 void Edit3D::EnsureHmdSceneObjects() {
 	GeomScene& scene = state->GetActiveScene();
-	scene.GetAddCamera("hmd_camera");
-	hmd_pointcloud = &scene.GetAddOctree("hmd_pointcloud");
+	GeomDirectory& fusion_room = scene.GetAddDirectory("fusion_room");
+	fusion_room.GetAddCamera("hmd_camera");
+	hmd_pointcloud = &fusion_room.GetAddOctree("hmd_pointcloud");
 	state->UpdateObjects();
 	Data();
 	v0.TimelineData();
@@ -597,14 +1121,25 @@ void Edit3D::EnsureHmdSceneObjects() {
 
 void Edit3D::EnsureSimSceneObjects() {
 	GeomScene& scene = state->GetActiveScene();
-	GeomObject& fake_cam = scene.GetAddCamera("sim_fake_camera");
-	GeomObject& localized_cam = scene.GetAddCamera("sim_localized_camera");
+	for (int i = scene.val.sub.GetCount() - 1; i >= 0; i--) {
+		VfsValue& n = scene.val.sub[i];
+		if (!IsVfsType(n, AsTypeHash<GeomObject>()))
+			continue;
+		GeomObject& o = n.GetExt<GeomObject>();
+		if (o.name == "sim_fake_camera" || o.name == "sim_localized_camera")
+			scene.val.sub.Remove(i);
+	}
+	GeomDirectory& sim_raw = scene.GetAddDirectory("sim_raw_space");
+	GeomDirectory& fusion_room = scene.GetAddDirectory("fusion_room");
+	GeomObject& fake_cam = sim_raw.GetAddCamera("sim_fake_camera");
+	GeomObject& localized_cam = fusion_room.GetAddCamera("hmd_camera");
 	sim_pointcloud_obj = &scene.GetAddOctree("sim_pointcloud");
-	sim_observation_obj = &scene.GetAddOctree("sim_observation");
-	sim_controller_obj[0] = &scene.GetAddOctree("sim_controller_0");
-	sim_controller_obj[1] = &scene.GetAddOctree("sim_controller_1");
-	sim_controller_model_obj[0] = &scene.GetAddModel("sim_controller_model_0");
-	sim_controller_model_obj[1] = &scene.GetAddModel("sim_controller_model_1");
+	sim_observation_obj = &sim_raw.GetAddOctree("sim_observation");
+	sim_controller_obj[0] = &fusion_room.GetAddOctree("sim_controller_0");
+	sim_controller_obj[1] = &fusion_room.GetAddOctree("sim_controller_1");
+	sim_controller_model_obj[0] = &fusion_room.GetAddModel("sim_controller_model_0");
+	sim_controller_model_obj[1] = &fusion_room.GetAddModel("sim_controller_model_1");
+	sim_hmd_pointcloud_obj = &fusion_room.GetAddOctree("hmd_pointcloud");
 	for (int i = 0; i < 2; i++) {
 		if (!sim_controller_model_obj[i])
 			continue;
@@ -615,8 +1150,8 @@ void Edit3D::EnsureSimSceneObjects() {
 			obj.mdl = builder.Detach();
 		}
 	}
-	UpdateCameraObject(fake_cam, sim_fake_hmd_pose);
-	UpdateCameraObject(localized_cam, sim_localized_pose);
+	UpdateCameraObjectRender(fake_cam, sim_fake_hmd_pose, true);
+	UpdateCameraObjectRender(localized_cam, sim_localized_pose, true);
 	state->UpdateObjects();
 	Data();
 	v0.TimelineData();
@@ -690,6 +1225,15 @@ void Edit3D::DebugGeneratePointcloud() {
 	sim_fake_hmd_pose = PointcloudPose::MakeIdentity();
 	sim_localized_pose = PointcloudPose::MakeIdentity();
 	EnsureSimSceneObjects();
+	GeomScene& scene = state->GetActiveScene();
+	GeomDirectory& sim_raw = scene.GetAddDirectory("sim_raw_space");
+	GeomDirectory& fusion_room = scene.GetAddDirectory("fusion_room");
+	GeomTransform& raw_tr = sim_raw.GetTransform();
+	raw_tr.position = sim_fake_hmd_pose.position;
+	raw_tr.orientation = sim_fake_hmd_pose.orientation;
+	GeomTransform& fusion_tr = fusion_room.GetTransform();
+	fusion_tr.position = sim_localized_pose.position;
+	fusion_tr.orientation = sim_localized_pose.orientation;
 	if (sim_pointcloud_obj) {
 		FillOctree(sim_pointcloud_obj->octree.octree, sim_state.reference.points, -3);
 		sim_pointcloud_obj->octree_ptr = 0;
@@ -710,10 +1254,19 @@ void Edit3D::DebugGeneratePointcloud() {
 	GeomCamera& program = state->GetProgram();
 	program.position = sim_localized_pose.position;
 	program.orientation = sim_localized_pose.orientation;
-	GeomScene& scene = state->GetActiveScene();
-	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
-	UpdateCameraObject(scene.GetAddCamera("sim_localized_camera"), sim_localized_pose);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
+	UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, true);
 	RefrehRenderers();
+}
+
+void Edit3D::GenerateSyntheticPointcloudFor(GeomObject& obj) {
+	if (!obj.IsOctree())
+		return;
+	SyntheticPointcloudState synth_state = BuildSyntheticPointcloud(sim_cfg);
+	FillOctree(obj.octree.octree, synth_state.reference.points, -3);
+	obj.octree_ptr = 0;
+	state->UpdateObjects();
+	v0.RefreshAll();
 }
 
 void Edit3D::DebugSimulateObservation() {
@@ -724,16 +1277,17 @@ void Edit3D::DebugSimulateObservation() {
 	sim_obs = SimulateHmdObservation(sim_state, sim_cfg);
 	sim_has_obs = true;
 	EnsureSimSceneObjects();
-	if (sim_observation_obj) {
-		Vector<vec3> world_points = TransformPointsToWorld(sim_state.hmd_pose_world, sim_obs.points);
-		FillOctree(sim_observation_obj->octree.octree, world_points, -3);
-		sim_observation_obj->octree_ptr = 0;
-	}
+	GeomScene& scene = state->GetActiveScene();
+	GeomDirectory& sim_raw = scene.GetAddDirectory("sim_raw_space");
+	GeomTransform& raw_tr = sim_raw.GetTransform();
+	raw_tr.position = sim_fake_hmd_pose.position;
+	raw_tr.orientation = sim_fake_hmd_pose.orientation;
+	state->UpdateObjects();
+	RefreshSimObservation();
 	GeomCamera& cam = state->GetFocus();
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
-	GeomScene& scene = state->GetActiveScene();
-	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
 	RefrehRenderers();
 }
 
@@ -745,12 +1299,19 @@ String Edit3D::RunLocalizationLog(bool show_dialog) {
 	PointcloudLocalizerStub localizer;
 	PointcloudLocalizationResult loc = localizer.Locate(sim_state.reference, sim_obs);
 	if (loc.ok) {
-		sim_localized_pose = loc.pose;
+		if (!sim_observation_effect_locked)
+			sim_localized_pose = loc.pose;
+		GeomScene& scene = state->GetActiveScene();
+		GeomDirectory& fusion_room = scene.GetAddDirectory("fusion_room");
+		GeomTransform& fusion_tr = fusion_room.GetTransform();
+		fusion_tr.position = sim_localized_pose.position;
+		fusion_tr.orientation = sim_localized_pose.orientation;
 		GeomCamera& cam = state->GetProgram();
 		cam.position = sim_localized_pose.position;
 		cam.orientation = sim_localized_pose.orientation;
-		GeomScene& scene = state->GetActiveScene();
-		UpdateCameraObject(scene.GetAddCamera("sim_localized_camera"), sim_localized_pose);
+		UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, true);
+		state->UpdateObjects();
+		RefreshSimObservation();
 	}
 	String log;
 	log << "Localization: ok=" << (int)loc.ok;
@@ -763,6 +1324,18 @@ String Edit3D::RunLocalizationLog(bool show_dialog) {
 	if (show_dialog)
 		PromptOK(safe);
 	return safe;
+}
+
+void Edit3D::RefreshSimObservation() {
+	if (!sim_observation_obj || !sim_has_obs)
+		return;
+	if (!sim_obs_octree)
+		sim_obs_octree = MakeOne<Octree>();
+	FillOctree(*sim_obs_octree, sim_obs.points, -3);
+	sim_observation_obj->octree_ptr = sim_obs_octree.Get();
+	if (sim_hmd_pointcloud_obj)
+		sim_hmd_pointcloud_obj->octree_ptr = sim_obs_octree.Get();
+	RefrehRenderers();
 }
 
 String Edit3D::RunControllerLocalizationLog(bool show_dialog) {
@@ -833,7 +1406,7 @@ void Edit3D::DebugSimulateControllerObservations() {
 	cam.position = sim_fake_hmd_pose.position;
 	cam.orientation = sim_fake_hmd_pose.orientation;
 	GeomScene& scene = state->GetActiveScene();
-	UpdateCameraObject(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose);
+	UpdateCameraObjectRender(scene.GetAddCamera("sim_fake_camera"), sim_fake_hmd_pose, true);
 	RefrehRenderers();
 }
 
@@ -1033,6 +1606,37 @@ static String Scene3DIsoTime(Time t) {
 	return date + "T" + clock + "Z";
 }
 
+void Edit3D::SyncPointcloudDatasetsExternalFiles() {
+	GeomScene& scene = GetActiveScene();
+	Vector<Scene3DExternalFile> kept;
+	for (const Scene3DExternalFile& file : scene3d_external_files) {
+		if (file.type != "pointcloud.dataset")
+			kept.Add(file);
+	}
+	for (auto& s : scene.val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+			continue;
+		GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+		if (ds.source_ref.IsEmpty())
+			continue;
+		Scene3DExternalFile f;
+		f.id = ds.GetId();
+		f.type = "pointcloud.dataset";
+		f.path = ds.source_ref;
+		String abs = IsFullPath(ds.source_ref)
+			? ds.source_ref
+			: AppendFileName(AppendFileName(project_dir, scene3d_data_dir), ds.source_ref);
+		if (FileExists(abs)) {
+			f.size = FileLength(abs);
+			f.modified_utc = Scene3DIsoTime(FileGetTime(abs));
+		}
+		kept.Add(f);
+	}
+	scene3d_external_files.Clear();
+	for (const Scene3DExternalFile& f : kept)
+		scene3d_external_files.Add(f);
+}
+
 bool Edit3D::LoadScene3D(const String& path) {
 	Scene3DDocument doc;
 	bool use_json = !IsScene3DBinaryPath(path);
@@ -1061,6 +1665,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 	VisitCopy(*doc.focus, state->GetFocus());
 	VisitCopy(*doc.program, state->GetProgram());
 	scene3d_path = path;
+	SetProjectDir(GetFileFolder(path));
 	scene3d_use_json = use_json;
 	scene3d_created = doc.created_utc;
 	scene3d_modified = doc.modified_utc;
@@ -1069,6 +1674,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 	scene3d_meta = pick(doc.meta);
 	if (scene3d_data_dir.IsEmpty())
 		scene3d_data_dir = "data";
+	script_instances.Clear();
 	state->UpdateObjects();
 	anim->Reset();
 	Data();
@@ -1079,6 +1685,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 }
 
 bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
+	SyncPointcloudDatasetsExternalFiles();
 	Scene3DDocument doc;
 	doc.version = SCENE3D_VERSION;
 	doc.name = "ModelerApp";
@@ -1103,6 +1710,7 @@ bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
 	bool ok = use_json ? SaveScene3DJson(path, doc, pretty) : SaveScene3DBin(path, doc);
 	if (ok) {
 		scene3d_path = path;
+		SetProjectDir(GetFileFolder(path));
 		scene3d_use_json = use_json;
 		UpdateWindowTitle();
 	}

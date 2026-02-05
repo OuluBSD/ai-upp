@@ -8,7 +8,7 @@ struct GeomProjectCtrl : Ctrl {
 	
 	Splitter metasplit, hsplit, vsplit;
 	TreeArrayCtrl tree;
-	ArrayCtrl props;
+	TreeArrayCtrl props;
 	FixedGridCtrl grid;
 	TimelineCtrl time;
 	EditRenderer rends[4];
@@ -16,7 +16,58 @@ struct GeomProjectCtrl : Ctrl {
 	int tree_scenes = -1;
 	int tree_col_visible = -1;
 	int tree_col_locked = -1;
+	int tree_col_read = -1;
+	int tree_col_write = -1;
 	Index<hash_t> warned_tree_types;
+	int props_col_value = -1;
+
+	struct TreeNodeRef {
+		enum Kind {
+			K_VFS,
+			K_PROGRAM,
+			K_FOCUS,
+		};
+		Kind kind = K_VFS;
+		VfsValue* vfs = 0;
+	};
+
+	Vector<TreeNodeRef> tree_nodes;
+	bool program_read = true;
+	bool program_write = false;
+	bool focus_read = true;
+	bool focus_write = false;
+	int focus_tree_id = -1;
+	GeomObject* selected_obj = 0;
+	TreeNodeRef* selected_ref = 0;
+	GeomPointcloudDataset* selected_dataset = 0;
+	bool props_refreshing = false;
+
+	struct PropRef {
+		enum Kind {
+			P_ROOT,
+			P_TRANSFORM,
+			P_POSITION,
+			P_ORIENTATION,
+			P_EFFECTS,
+			P_EFFECT_POSITION,
+			P_EFFECT_ORIENTATION,
+			P_COMPONENTS,
+			P_SCRIPT,
+			P_SCRIPT_FILE,
+			P_SCRIPT_ENABLED,
+			P_SCRIPT_RUN_ON_LOAD,
+			P_SCRIPT_RUN_EACH_FRAME,
+			P_SCRIPT_EDIT,
+			P_SCRIPT_RUN,
+			P_POINTCLOUD,
+			P_DATASET,
+		};
+		Kind kind = P_ROOT;
+		GeomScript* script = 0;
+	};
+
+	Vector<PropRef> props_nodes;
+	Vector<One<Ctrl>> props_ctrls;
 	
 	
 	typedef GeomProjectCtrl CLASSNAME;
@@ -25,6 +76,14 @@ struct GeomProjectCtrl : Ctrl {
 	void Data();
 	void TimelineData();
 	void TreeSelect();
+	void TreeMenu(Bar& bar);
+	void PropsMenu(Bar& bar);
+	void UpdateTreeFocus(int new_id);
+	void PropsData();
+	void PropsApply();
+	TreeNodeRef* GetNodeRef(const Value& v);
+	GeomObject* GetNodeObject(const Value& v);
+	GeomPointcloudDataset* GetNodeDataset(const Value& v);
 	void OnCursor(int kp_i);
 	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
@@ -40,6 +99,20 @@ struct FilePoolCtrl : TopWindow {
 	typedef FilePoolCtrl CLASSNAME;
 	FilePoolCtrl(Edit3D* e);
 	void Data();
+};
+
+struct ScriptEditorDlg : TopWindow {
+	CodeEditor editor;
+	ToolBar tool;
+	String path;
+	bool dirty = false;
+	
+	typedef ScriptEditorDlg CLASSNAME;
+	ScriptEditorDlg();
+	void OpenFile(const String& p);
+	void Save();
+	void SaveAs(const String& p);
+	void OnChange();
 };
 
 struct HmdCapture {
@@ -103,10 +176,14 @@ struct Edit3D : TopWindow {
 	bool sim_has_state = false;
 	bool sim_has_obs = false;
 	bool sim_has_ctrl_obs = false;
+	bool sim_observation_effect_visible = true;
+	bool sim_observation_effect_locked = false;
 	GeomObject* sim_pointcloud_obj = 0;
 	GeomObject* sim_observation_obj = 0;
 	GeomObject* sim_controller_obj[2] = {0, 0};
 	GeomObject* sim_controller_model_obj[2] = {0, 0};
+	GeomObject* sim_hmd_pointcloud_obj = 0;
+	One<Octree> sim_obs_octree;
 	String scene3d_path;
 	String scene3d_created;
 	String scene3d_modified;
@@ -117,6 +194,22 @@ struct Edit3D : TopWindow {
 	bool repeat_playback = false;
 	bool record_pointcloud = false;
 	GeomObject* hmd_pointcloud = 0;
+	String project_dir;
+	
+	struct ScriptInstance {
+		GeomScript* script = 0;
+		String abs_path;
+		Time file_time;
+		PyVM vm;
+		bool loaded = false;
+		bool has_start = false;
+		bool has_frame = false;
+		Vector<PyIR> main_ir;
+		Vector<PyIR> start_ir;
+		Vector<PyIR> frame_ir;
+	};
+	Array<ScriptInstance> script_instances;
+	One<ScriptEditorDlg> script_editor;
 	
 	void CreateDefaultInit();
 	void CreateDefaultPostInit();
@@ -132,12 +225,27 @@ struct Edit3D : TopWindow {
 	void RunSyntheticPointcloudSimDialog();
 	String RunLocalizationLog(bool show_dialog);
 	String RunControllerLocalizationLog(bool show_dialog);
+	void RefreshSimObservation();
 	void DebugGeneratePointcloud();
 	void DebugSimulateObservation();
 	void DebugRunLocalization();
 	void DebugRunControllerLocalization();
 	void DebugSimulateControllerObservations();
 	void DebugClearSynthetic();
+	void GenerateSyntheticPointcloudFor(GeomObject& obj);
+	void EnsureScriptInstances();
+	void UpdateScriptInstance(ScriptInstance& inst, bool force_reload);
+	void RunScriptOnStart(ScriptInstance& inst, bool force);
+	void RunScriptFrame(ScriptInstance& inst, double dt);
+	void RegisterScriptVM(PyVM& vm);
+	void OpenScriptEditor(GeomScript& script);
+	void RunScriptOnce(GeomScript& script);
+	GeomScript& AddScriptComponent(GeomObject& obj);
+	String EnsureScriptFile(GeomScript& script, String base_name);
+	String GetScriptAbsPath(const String& rel) const;
+	void SetProjectDir(String dir);
+	const String& GetProjectDir() const { return project_dir; }
+	void SyncPointcloudDatasetsExternalFiles();
 	
 public:
 	typedef Edit3D CLASSNAME;

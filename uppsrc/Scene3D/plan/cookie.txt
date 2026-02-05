@@ -102,3 +102,7 @@
   task: track-editor-scripting/phase-01-scripting-foundations/task-0100-script-node-coverage.md
   status: done
   note: Script components already support scene root, directories, and objects with menu + props access.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-01-scripting-foundations/task-0101-debug-actions-python-parity.md
+  status: done
+  note: Added Python example for Debug->Pointcloud actions.

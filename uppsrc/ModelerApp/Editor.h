@@ -204,6 +204,19 @@ struct Edit3D : DockWindow {
 	bool record_pointcloud = false;
 	GeomObject* hmd_pointcloud = 0;
 	String project_dir;
+	TimeStop script_timer;
+
+	enum EditTool {
+		TOOL_SELECT,
+		TOOL_POINT,
+		TOOL_LINE,
+		TOOL_FACE,
+		TOOL_ERASE,
+	};
+	EditTool edit_tool = TOOL_SELECT;
+	int edit_line_start = -1;
+	Vector<int> edit_face_points;
+	double edit_pick_radius_px = 10.0;
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
@@ -222,6 +235,14 @@ struct Edit3D : DockWindow {
 	};
 	Array<ScriptInstance> script_instances;
 	One<ScriptEditorDlg> script_editor;
+	
+	struct ScriptEventHandler : Moveable<ScriptEventHandler> {
+		String event;
+		PyValue func;
+		PyVM* vm = nullptr;
+		VfsValue* node = nullptr;
+	};
+	Vector<ScriptEventHandler> script_event_handlers;
 	
 	void CreateDefaultInit();
 	void CreateDefaultPostInit();
@@ -250,7 +271,17 @@ struct Edit3D : DockWindow {
 	void RunScriptOnLoad(ScriptInstance& inst, bool force);
 	void RunScriptOnStart(ScriptInstance& inst, bool force);
 	void RunScriptFrame(ScriptInstance& inst, double dt);
+	void AddScriptEventHandler(const String& event, PyVM* vm, VfsValue* node, const PyValue& func);
+	void RemoveScriptEventHandlers(PyVM* vm);
+	void DispatchScriptEvent(const String& event, VfsValue* node, const PyValue& payload);
+	void DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i);
+	void DispatchFrameEvents(double dt);
 	void RegisterScriptVM(PyVM& vm);
+	void SetEditTool(EditTool tool);
+	void CreateEditableMeshObject();
+	bool ScreenToWorldPoint(int view_i, const Point& p, vec3& out) const;
+	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
+	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);
 	void OpenScriptEditor(GeomScript& script);
 	void RunScriptOnce(GeomScript& script);
 	GeomScript& AddScriptComponent(GeomObject& obj);

@@ -12,4 +12,8 @@ Provide ActionScript-like globals and conventions for scripts.
 - Scripts feel ActionScript-like in usage and conventions.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added globals: `root`, `this`, `trace`, `getTimer`, `random`.
+- Bound `root`/`this` per script instance.

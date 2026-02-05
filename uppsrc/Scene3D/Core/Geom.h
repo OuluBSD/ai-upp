@@ -52,6 +52,37 @@ struct GeomScript : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomDynamicProperties : VfsValueExt {
+	VectorMap<String, Value> props;
+
+	DEFAULT_EXT(GeomDynamicProperties)
+	void Visit(Vis& v) override;
+};
+
+struct GeomEdge {
+	int a = -1;
+	int b = -1;
+
+	void Visit(Vis& v);
+};
+
+struct GeomFace {
+	int a = -1;
+	int b = -1;
+	int c = -1;
+
+	void Visit(Vis& v);
+};
+
+struct GeomEditableMesh : VfsValueExt {
+	Vector<vec3> points;
+	Vector<GeomEdge> lines;
+	Vector<GeomFace> faces;
+
+	DEFAULT_EXT(GeomEditableMesh)
+	void Visit(Vis& v) override;
+};
+
 struct GeomPointcloudEffectTransform : VfsValueExt {
 	String name;
 	bool enabled = true;
@@ -93,6 +124,10 @@ struct GeomObject : VfsValueExt {
 	GeomTimeline* FindTimeline() const;
 	GeomTransform& GetTransform();
 	GeomTransform* FindTransform() const;
+	GeomDynamicProperties& GetDynamicProperties();
+	GeomDynamicProperties* FindDynamicProperties() const;
+	GeomEditableMesh& GetEditableMesh();
+	GeomEditableMesh* FindEditableMesh() const;
 	GeomPointcloudEffectTransform& GetAddPointcloudEffect(String name);
 	void GetPointcloudEffects(Vector<GeomPointcloudEffectTransform*>& out) const;
 	
@@ -136,6 +171,8 @@ struct GeomDirectory : VfsValueExt {
 	GeomObject* FindCamera(String name);
 	GeomTransform& GetTransform();
 	GeomTransform* FindTransform() const;
+	GeomDynamicProperties& GetDynamicProperties();
+	GeomDynamicProperties* FindDynamicProperties() const;
 	GeomPointcloudDataset& GetAddPointcloudDataset(String id);
 	GeomPointcloudDataset* FindPointcloudDataset(String id);
 	
@@ -292,6 +329,8 @@ struct GeomAnim : VfsValueExt {
 };
 
 INITIALIZE(GeomTimeline)
+INITIALIZE(GeomDynamicProperties)
+INITIALIZE(GeomEditableMesh)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)
 INITIALIZE(GeomScene)

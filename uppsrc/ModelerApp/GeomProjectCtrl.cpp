@@ -527,6 +527,12 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 		rends_v2[i].WhenChanged = THISBACK1(RefreshRenderer, i);
 		rends_v1[i].WhenMenu = THISBACK1(BuildViewMenu, i);
 		rends_v2[i].WhenMenu = THISBACK1(BuildViewMenu, i);
+		rends_v1[i].WhenInput = [=](const String& type, const Point& p, dword flags, int key) {
+			e->DispatchInputEvent(type, p, flags, key, i);
+		};
+		rends_v2[i].WhenInput = [=](const String& type, const Point& p, dword flags, int key) {
+			e->DispatchInputEvent(type, p, flags, key, i);
+		};
 	}
 	rends_v1[0].SetViewMode(VIEWMODE_YZ);
 	rends_v1[1].SetViewMode(VIEWMODE_XZ);

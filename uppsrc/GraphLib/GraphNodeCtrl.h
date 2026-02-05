@@ -77,6 +77,11 @@ public:
     void CopyNodes();
     void PasteNodes(Point at);
 
+    // Callbacks for interaction
+    Function<void(Node& node)> WhenNodeClick;
+    Function<void(Node& node)> WhenNodeRightClick;
+    Function<void(GroupNode& group)> WhenGroupClick;
+
 private:
     GraphLayout<Spring> graphLayout;
     Renderer* renderer;

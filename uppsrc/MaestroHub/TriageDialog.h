@@ -18,6 +18,10 @@ class TriageDialog : public WithTriageLayout<TopWindow> {
 	int cursor = 0;
 	String root;
 
+	String FormatIssueInfo(const MaestroIssue& iss) const;
+	String FormatAiSuggestion(const MaestroIssue& iss) const;
+	void   Advance();
+
 public:
 	void Load(const String& maestro_root);
 	void UpdateUI();
@@ -25,6 +29,8 @@ public:
 	void OnAccept();
 	void OnSkip();
 	void OnIgnore();
+	void OnEdit();
+	void OnCreateTask();
 	
 	typedef TriageDialog CLASSNAME;
 	TriageDialog();

@@ -1,5 +1,5 @@
 # Task: Triage Interface
-# Status: TODO
+# Status: IN_PROGRESS
 
 ## Objective
 Visual interface for the `issues triage` workflow.

@@ -32,6 +32,8 @@ public:
 	void MouseMove(Point pos, dword flags) override;
 	void LeftDown(Point pos, dword flags) override;
 	void LeftUp(Point pos, dword flags) override;
+	void RightDown(Point pos, dword flags) override;
+	void RightUp(Point pos, dword flags) override;
 	void MiddleDown(Point pos, dword flags) override;
 	void MiddleUp(Point pos, dword flags) override;
 	void MouseWheel(Point pos, int zdelta, dword flags) override;

@@ -4,8 +4,8 @@
 using namespace Upp;
 
 BrushTool::BrushTool()
-	: brushSize(BRUSH_1X1), paintTile(TILE_WALL), isPainting(false),
-	  lastPaintPos(-1, -1) {
+	: brushSize(BRUSH_1X1), paintTile(TILE_WALL), mode(BRUSH_MODE_PAINT),
+	  isPainting(false), lastPaintPos(-1, -1) {
 }
 
 void BrushTool::StartPainting(int col, int row, LayerManager& layerMgr) {
@@ -42,10 +42,13 @@ void BrushTool::PaintAt(int col, int row, LayerManager& layerMgr) {
 	Vector<Point> brushTiles;
 	GetBrushTiles(col, row, brushTiles);
 
+	// Get effective tile (respects erase mode)
+	TileType tileToPaint = GetEffectiveTile();
+
 	// Paint each tile in brush area
 	for(const Point& pt : brushTiles) {
 		if(grid.IsValid(pt.x, pt.y)) {
-			grid.SetTile(pt.x, pt.y, paintTile);
+			grid.SetTile(pt.x, pt.y, tileToPaint);
 		}
 	}
 }

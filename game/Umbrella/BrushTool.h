@@ -13,10 +13,16 @@ enum BrushSize {
 	BRUSH_5X5 = 5
 };
 
+enum BrushMode {
+	BRUSH_MODE_PAINT,
+	BRUSH_MODE_ERASE
+};
+
 class BrushTool {
 private:
 	BrushSize brushSize;
 	TileType paintTile;
+	BrushMode mode;
 	bool isPainting;
 	Point lastPaintPos;
 
@@ -29,6 +35,14 @@ public:
 
 	void SetPaintTile(TileType tile) { paintTile = tile; }
 	TileType GetPaintTile() const { return paintTile; }
+
+	void SetMode(BrushMode m) { mode = m; }
+	BrushMode GetMode() const { return mode; }
+
+	// Effective tile to paint (TILE_EMPTY if erasing)
+	TileType GetEffectiveTile() const {
+		return (mode == BRUSH_MODE_ERASE) ? TILE_EMPTY : paintTile;
+	}
 
 	// Painting
 	void StartPainting(int col, int row, LayerManager& layerMgr);

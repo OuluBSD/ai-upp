@@ -16,6 +16,7 @@ class WorkPane : public ParentCtrl {
 	
 	Button       btn_approve;
 	Button       btn_reject;
+	Button       btn_subwork;
 	Button       btn_refresh;
 	
 	String       current_root;
@@ -26,6 +27,7 @@ public:
 	void Refresh();
 	void OnApprove();
 	void OnReject();
+	void OnSubwork();
 
 	typedef WorkPane CLASSNAME;
 	WorkPane();

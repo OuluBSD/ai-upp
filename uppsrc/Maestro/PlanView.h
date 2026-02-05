@@ -3,7 +3,7 @@
 
 class PlanView : public ParentCtrl {
 public:
-	TreeCtrl tree;
+	TreeArrayCtrl tree;
 	
 	Function<void(String track, String phase, String task)> WhenEnact;
 	

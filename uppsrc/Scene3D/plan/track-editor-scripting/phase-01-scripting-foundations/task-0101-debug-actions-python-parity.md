@@ -13,4 +13,5 @@ Ensure all Debug->Pointcloud actions have Python-callable equivalents and match 
 - Results match UI commands.
 
 ## Status
-- Pending
+- Done (2026-02-05)
+  - Added example script in `share/py/examples/modeler_pointcloud_debug.py`.

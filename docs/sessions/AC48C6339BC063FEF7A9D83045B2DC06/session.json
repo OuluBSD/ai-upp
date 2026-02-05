@@ -1,0 +1,23 @@
+{
+	"session_id": "AC48C6339BC063FEF7A9D83045B2DC06",
+	"session_type": "work_track",
+	"parent_session_id": "",
+	"children_ids": [
+
+	],
+	"status": 0,
+	"state": "running",
+	"purpose": "Working on ContextIntegration",
+	"context": [
+
+	],
+	"created": "2026-02-04T22:26:35",
+	"modified": "2026-02-04T22:26:35",
+	"related_entity": [
+
+	],
+	"breadcrumbs_dir": "/common/active/sblo/Dev/ai-upp/docs/sessions/AC48C6339BC063FEF7A9D83045B2DC06/breadcrumbs",
+	"metadata": [
+
+	]
+}

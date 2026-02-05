@@ -48,7 +48,7 @@ struct Node : Moveable<Node> {
 	int shape; // 0:rect, 1:circle
 	Size sz;
 	
-	Vector<Pin> pins;
+	Array<Pin> pins;
 	Vector<Edge*> edges;
 	
 	// Dijkstra & Sort
@@ -82,8 +82,7 @@ struct Node : Moveable<Node> {
 		shape = o.shape;
 		sz = o.sz;
 		for(const auto& p : o.pins) {
-			Pin& np = pins.Add();
-			new (&np) Pin(p, 1);
+			pins.Add(new Pin(p, 1));
 		}
 		edges <<= o.edges;
 		predecessor = NULL;
@@ -180,9 +179,9 @@ struct Edge : Moveable<Edge> {
 
 class Graph {
 public:
-	Vector<Node> nodes;
-	Vector<Edge> edges;
-	Vector<GroupNode> groups;
+	Array<Node> nodes;
+	Array<Edge> edges;
+	Array<GroupNode> groups;
 	
 	double layout_min_x, layout_max_x, layout_min_y, layout_max_y;
 	

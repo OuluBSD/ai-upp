@@ -2,6 +2,8 @@
 #include "TriageDialog.h"
 #include "RunbookEditor.h"
 #include "StateEditor.h"
+#include "TUBrowser.h"
+#include "LogAnalyzer.h"
 
 NAMESPACE_UPP
 
@@ -227,8 +229,8 @@ void MaestroHub::MainMenu(Bar& bar) {
 	});
 
 	bar.Sub("Intelligence", [=](Bar& b) {
-		b.Add("TU Browser", [=] { PromptOK("TU Browser Placeholder"); });
-		b.Add("Log Analyzer", [=] { PromptOK("Log Analyzer Placeholder"); });
+		b.Add("TU Browser", THISBACK(OnTUBrowser));
+		b.Add("Log Analyzer", THISBACK(OnLogAnalyzer));
 		b.Separator();
 		b.Add("Dependency Graph", [=] { tabs.Set(0); }); // Technology tab
 	});
@@ -380,6 +382,18 @@ void MaestroHub::OnStateEditor() {
 	dlg.Load(current_root, "main");
 	dlg.Run();
 	LoadData();
+}
+
+void MaestroHub::OnTUBrowser() {
+	TUBrowser dlg;
+	dlg.Load(current_root);
+	dlg.Run();
+}
+
+void MaestroHub::OnLogAnalyzer() {
+	LogAnalyzer dlg;
+	dlg.Load(current_root);
+	dlg.Run();
 }
 
 void MaestroHub::PlanWatcher() {

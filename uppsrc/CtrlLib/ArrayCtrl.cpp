@@ -27,6 +27,7 @@ ArrayCtrl::Column::Column() {
 	display = &StdDisplay();
 	accel = NULL;
 	margin = -1;
+	vertgrid = true;
 	cached = false;
 	clickedit = true;
 	index = -1;
@@ -996,7 +997,7 @@ Size  ArrayCtrl::DoPaint(Draw& w, bool sample) {
 							}
 						}
 						x += cw;
-						if(vertgrid)
+						if(vertgrid && column[jj].vertgrid)
 							w.DrawRect(x - 1, r.top, 1, r.Height(), gridcolor);
 						if(heading)
 							break;

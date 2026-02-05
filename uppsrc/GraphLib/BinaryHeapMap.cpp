@@ -2,7 +2,7 @@
 
 namespace GraphLib {
 
-BinaryMinHeap::BinaryMinHeap(Vector<Node>& nodes) {
+BinaryMinHeap::BinaryMinHeap(Array<Node>& nodes) {
 	for(int i = 0; i < nodes.GetCount(); i++)
 		heap.Add(&nodes[i]);
 	Heapify();

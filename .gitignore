@@ -57,3 +57,6 @@ run.log
 # Ignore calibration images
 share/calibration/*/captures
 
+# Ignore proprietary & nonfree mods
+share/mods/*/proprietary/**
+

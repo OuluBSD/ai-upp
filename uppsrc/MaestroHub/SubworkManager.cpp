@@ -5,6 +5,9 @@ NAMESPACE_UPP
 SubworkManagerDialog::SubworkManagerDialog() {
 	CtrlLayout(*this, "Subwork Manager");
 	
+	subwork_tree.AddColumn("Session", 200);
+	subwork_tree.AddColumn("Type", 100);
+	
 	context_stack.AddColumn("Level");
 	context_stack.AddColumn("Session Type");
 	context_stack.AddColumn("Purpose");
@@ -41,16 +44,17 @@ void SubworkManagerDialog::UpdateUI() {
 		} else break;
 	}
 	
-	int root_node = subwork_tree.Add(0, Null, "Sessions");
+	int root_node = subwork_tree.Add(0, CtrlImg::Dir(), "Sessions");
 	int parent = root_node;
 	
 	for(int i = 0; i < stack.GetCount(); i++) {
 		const auto& s = stack[i];
-		parent = subwork_tree.Add(parent, Null, s.session_id + " (" + s.session_type + ")");
+		parent = subwork_tree.Add(parent, CtrlImg::Dir(), s.session_id);
+		subwork_tree.SetRowValue(parent, 1, s.session_type);
 		context_stack.Add(i, s.session_type, s.purpose);
 	}
 	
-	subwork_tree.OpenDeep(root_node);
+	subwork_tree.Open(root_node);
 }
 
 void SubworkManagerDialog::OnPush() {

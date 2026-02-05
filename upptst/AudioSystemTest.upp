@@ -1,0 +1,7 @@
+description "AudioSystem Test";
+
+requires
+	game/Umbrella;
+
+file
+	AudioSystemTest.cpp;

@@ -9,7 +9,7 @@ class BinaryMinHeap {
 	Vector<Node*> heap;
 	
 public:
-	BinaryMinHeap(Vector<Node>& nodes);
+	BinaryMinHeap(Array<Node>& nodes);
 	
 	bool Empty() const { return heap.IsEmpty(); }
 	

@@ -422,17 +422,20 @@ void TreeArrayCtrl::OpenDeep(int id, bool open) {
 }
 
 int TreeArrayCtrl::GetLineCount() {
-	SyncTree();
+	if (!syncing)
+		SyncTree();
 	return line.GetCount();
 }
 
 int TreeArrayCtrl::GetItemAtLine(int i) {
-	SyncTree();
+	if (!syncing)
+		SyncTree();
 	return i >= 0 && i < line.GetCount() ? line[i] : -1;
 }
 
 int TreeArrayCtrl::GetLineAtItem(int id) {
-	SyncTree();
+	if (!syncing)
+		SyncTree();
 	return IsValid(id) ? item[id].line : -1;
 }
 
@@ -542,6 +545,9 @@ void TreeArrayCtrl::BuildLine(int id, int level) {
 void TreeArrayCtrl::SyncTree() {
 	if (!dirty)
 		return;
+	if (syncing)
+		return;
+	syncing = true;
 	EnsureRoot();
 	EnsureColumnCount();
 	line.Clear();
@@ -579,6 +585,7 @@ void TreeArrayCtrl::SyncTree() {
 			ArrayCtrl::SetCursor(linei);
 	}
 	dirty = false;
+	syncing = false;
 }
 
 Rect TreeArrayCtrl::GetToggleRect(int linei, const Rect& cell) const {

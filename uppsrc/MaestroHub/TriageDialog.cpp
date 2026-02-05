@@ -23,18 +23,18 @@ void TriageDialog::Load(const String& maestro_root) {
 
 String TriageDialog::FormatIssueInfo(const MaestroIssue& iss) const {
 	String qtf;
-	qtf << "[*@3 Issue " << AsQTF(iss.issue_id) << "]&";
+	qtf << "[*@3 Issue " << DeQtf(iss.issue_id) << "]&";
 	if(!iss.title.IsEmpty())
-		qtf << "[* Title:] " << AsQTF(iss.title) << "&";
+		qtf << "[* Title:] " << DeQtf(iss.title) << "&";
 	if(!iss.message.IsEmpty())
-		qtf << "[* Message:] " << AsQTF(iss.message) << "&";
+		qtf << "[* Message:] " << DeQtf(iss.message) << "&";
 	if(!iss.file.IsEmpty()) {
-		qtf << "[* File:] " << AsQTF(iss.file);
+		qtf << "[* File:] " << DeQtf(iss.file);
 		if(iss.line > 0)
 			qtf << ":" << iss.line;
 		qtf << "&";
 	}
-	qtf << "[* Severity:] " << AsQTF(iss.severity) << "   [* State:] " << AsQTF(iss.state) << "   [* Priority:] " << iss.priority;
+	qtf << "[* Severity:] " << DeQtf(iss.severity) << "   [* State:] " << DeQtf(iss.state) << "   [* Priority:] " << iss.priority;
 	return qtf;
 }
 
@@ -42,17 +42,17 @@ String TriageDialog::FormatAiSuggestion(const MaestroIssue& iss) const {
 	String qtf;
 	qtf << "[* AI Suggestion]&";
 	if(!iss.analysis_summary.IsEmpty())
-		qtf << AsQTF(iss.analysis_summary) << "&";
+		qtf << DeQtf(iss.analysis_summary) << "&";
 	else
 		qtf << "No AI analysis available.&";
 	if(iss.analysis_confidence > 0)
 		qtf << "[* Confidence:] " << iss.analysis_confidence << "%&";
 	if(!iss.decision.IsEmpty())
-		qtf << "[* Decision:] " << AsQTF(iss.decision) << "&";
+		qtf << "[* Decision:] " << DeQtf(iss.decision) << "&";
 	if(iss.solutions.GetCount()) {
 		qtf << "[* Possible Fixes:]&";
 		for(const auto& s : iss.solutions)
-			qtf << " - " << AsQTF(s) << "&";
+			qtf << " - " << DeQtf(s) << "&";
 	}
 	return qtf;
 }
@@ -105,7 +105,9 @@ void TriageDialog::OnEdit() {
 	MaestroIssue iss = ism->LoadIssue(pending[cursor].issue_id);
 	IssueEditDialog dlg;
 	if(dlg.RunEdit(iss) && ism->SaveIssue(iss)) {
-		pending[cursor] = clone(iss);
+		pending = ism->ListIssues("", "", "open");
+		if(cursor >= pending.GetCount())
+			cursor = max(0, pending.GetCount() - 1);
 		UpdateUI();
 	}
 }

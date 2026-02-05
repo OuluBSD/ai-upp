@@ -1,4 +1,6 @@
 #include "MaestroHub.h"
+#include "TriageDialog.h"
+#include "RunbookEditor.h"
 
 NAMESPACE_UPP
 
@@ -190,14 +192,53 @@ MaestroHub::MaestroHub() {
 	}
 }
 
+MaestroHub::~MaestroHub() {}
+
 void MaestroHub::MainMenu(Bar& bar) {
 	bar.Sub("App", THISBACK(AppMenu));
+	
+	bar.Sub("Sessions", [=](Bar& b) {
+		b.Add("List Sessions", [=] { tabs.Set(5); }); // Sessions tab
+		b.Add("New Session...", [=] { PromptOK("New Session Dialog Placeholder"); });
+		b.Separator();
+		b.Add("Active Session HUD", [=] { tabs.Set(4); }); // Work tab
+	});
+
+	bar.Sub("Issues", [=](Bar& b) {
+		b.Add("Browse Issues", [=] { tabs.Set(3); }); // Issues tab
+		b.Add("Triage Wizard...", THISBACK(OnTriageWizard));
+		b.Separator();
+		b.Add("Create Issue...", [=] { PromptOK("New Issue Dialog Placeholder"); });
+	});
+
+	bar.Sub("Runbooks", [=](Bar& b) {
+		b.Add("Manage Runbooks", [=] { tabs.Set(1); }); // Product tab
+		b.Add("Visual Editor...", THISBACK(OnRunbookEditor));
+		b.Separator();
+		b.Add("Resolve Freeform...", [=] { PromptOK("Runbook Resolve Placeholder"); });
+	});
+
+	bar.Sub("Workflows", [=](Bar& b) {
+		b.Add("Browse Workflows", [=] { tabs.Set(1); }); // Product tab
+		b.Add("Visual Graph", [=] { tabs.Set(1); });
+		b.Separator();
+		b.Add("State Machine Editor...", [=] { PromptOK("Workflow Editor Placeholder"); });
+	});
+
+	bar.Sub("Intelligence", [=](Bar& b) {
+		b.Add("TU Browser", [=] { PromptOK("TU Browser Placeholder"); });
+		b.Add("Log Analyzer", [=] { PromptOK("Log Analyzer Placeholder"); });
+		b.Separator();
+		b.Add("Dependency Graph", [=] { tabs.Set(0); }); // Technology tab
+	});
+
 	bar.Sub("System", [=](Bar& b) {
 		b.Add("Initialize Maestro...", [=] { PromptOK("Init placeholder"); });
 		b.Add("Settings...", [=] { PromptOK("Settings placeholder"); });
 		b.Separator();
 		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
 		b.Add("Collect Evidence...", [=] { PromptOK("Evidence placeholder"); });
+		b.Add("Run Ops Doctor", [=] { PromptOK("Ops Doctor Placeholder"); });
 	});
 }
 
@@ -314,6 +355,21 @@ void MaestroHub::OnSuggestEnact() {
 		maintenance->chat.suggestion.Hide();
 		maintenance->chat.Layout();
 		OnEnact(vm["track"], vm["phase"], vm["task"]);
+	}
+}
+
+void MaestroHub::OnTriageWizard() {
+	TriageDialog dlg;
+	dlg.Load(current_root);
+	dlg.Run();
+	LoadData(); // Refresh views
+}
+
+void MaestroHub::OnRunbookEditor() {
+	RunbookEditor dlg;
+	dlg.New(current_root);
+	if(dlg.Run() == IDOK) {
+		LoadData();
 	}
 }
 

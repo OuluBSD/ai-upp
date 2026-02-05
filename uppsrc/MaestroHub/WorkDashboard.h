@@ -1,6 +1,9 @@
 #ifndef _MaestroHub_WorkDashboard_h_
 #define _MaestroHub_WorkDashboard_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+
 NAMESPACE_UPP
 
 class WorkPane : public ParentCtrl {

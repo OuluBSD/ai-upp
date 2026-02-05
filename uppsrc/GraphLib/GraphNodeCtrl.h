@@ -3,6 +3,8 @@
 
 namespace GraphLib {
 
+using namespace Upp;
+
 class GraphNodeCtrl : public Ctrl {
 public:
     typedef GraphNodeCtrl CLASSNAME;

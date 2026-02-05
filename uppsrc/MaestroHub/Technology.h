@@ -1,6 +1,9 @@
 #ifndef _MaestroHub_Technology_h_
 #define _MaestroHub_Technology_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <Maestro/Maestro.h>
+
 NAMESPACE_UPP
 
 class TechnologyPane : public ParentCtrl {

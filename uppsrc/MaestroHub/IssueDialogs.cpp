@@ -73,33 +73,4 @@ bool ListSelectDialog::RunSelect(const String& title_text, const String& prompt_
 	return !result.IsEmpty();
 }
 
-bool CreateIssueTaskFile(const String& root, const MaestroIssue& issue, const String& title, String& out_path) {
-	String tasks_dir = AppendFileName(root, "docs/tasks");
-	RealizeDirectory(tasks_dir);
-	String safe_id = issue.issue_id.IsEmpty() ? FormatIntHex(Random(), 8) : issue.issue_id;
-	String filename = "issue_" + safe_id + ".md";
-	out_path = AppendFileName(tasks_dir, filename);
-	
-	String content;
-	content << "# Task: " << (title.IsEmpty() ? ("Fix issue " + safe_id) : title) << "\n";
-	content << "# Status: TODO\n\n";
-	content << "## Objective\n";
-	if(!issue.title.IsEmpty())
-		content << "- Title: " << issue.title << "\n";
-	if(!issue.message.IsEmpty())
-		content << "- Message: " << issue.message << "\n";
-	if(!issue.file.IsEmpty()) {
-		content << "- File: " << issue.file;
-		if(issue.line > 0)
-			content << ":" << issue.line;
-		content << "\n";
-	}
-	if(!issue.description.IsEmpty())
-		content << "\n" << issue.description << "\n";
-	content << "\n## References\n";
-	content << "- Issue: " << safe_id << "\n";
-	
-	return SaveFile(out_path, content);
-}
-
 END_UPP_NAMESPACE

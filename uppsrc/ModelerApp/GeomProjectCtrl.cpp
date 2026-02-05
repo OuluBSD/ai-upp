@@ -545,7 +545,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends_v2[2].SetCameraSource(CAMSRC_PROGRAM);
 	rends_v2[3].SetCameraSource(CAMSRC_FOCUS);
 	for(int i = 0; i < 4; i++)
-		rends[i] = &rends_v1[i];
+		rends[i] = &rends_v2[i];
 	RebuildGrid();
 	
 	props.NoHeader();
@@ -1517,6 +1517,12 @@ void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
 	bar.Separator();
 	bar.Add(t_("Renderer: V1"), [=] { SetRendererVersion(i, 1); }).Check(rend_version[i] == 1);
 	bar.Add(t_("Renderer: V2"), [=] { SetRendererVersion(i, 2); }).Check(rend_version[i] == 2);
+	bar.Add(t_("Renderer: Wireframe"), [=] {
+		if (rends[i]) {
+			rends[i]->SetWireframeOnly(!rends[i]->IsWireframeOnly());
+			RefreshRenderer(i);
+		}
+	}).Check(rends[i] && rends[i]->IsWireframeOnly());
 	bar.Separator();
 	bar.Add(t_("Reset Camera"), [=] {
 		if (!rends[i])

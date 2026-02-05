@@ -13,7 +13,7 @@ struct GeomProjectCtrl : Ctrl {
 	EditRendererBase* rends[4] = {0};
 	EditRendererV1 rends_v1[4];
 	EditRendererV2 rends_v2[4];
-	int rend_version[4] = {1, 1, 1, 1};
+	int rend_version[4] = {2, 2, 2, 2};
 	
 	int tree_scenes = -1;
 	int tree_col_visible = -1;

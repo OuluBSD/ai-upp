@@ -5,6 +5,7 @@ struct EditRendererBase : public Ctrl {
 	Scene3DRenderContext* ctx = 0;
 	ViewMode view_mode = VIEWMODE_YZ;
 	CameraSource cam_src = CAMSRC_FOCUS;
+	bool wireframe_only = false;
 	
 	Point cap_mouse_pos;
 	vec3 cap_begin_pos;
@@ -40,6 +41,8 @@ public:
 	void RotateRel(const axes3& v);
 	void SetViewMode(ViewMode i) {view_mode = i;}
 	void SetCameraSource(CameraSource cs) {cam_src = cs;}
+	void SetWireframeOnly(bool b) {wireframe_only = b;}
+	bool IsWireframeOnly() const {return wireframe_only;}
 	
 	GeomCamera& GetGeomCamera() const;
 	

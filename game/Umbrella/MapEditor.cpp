@@ -489,56 +489,54 @@ void MapEditorApp::SetupViewMenu(Bar& bar) {
 }
 
 void MapEditorApp::SetupToolBar() {
-	// Helper lambda to pad icons to 16x16 (standard toolbar icon size)
+	// Helper lambda to explicitly pad icons to 16x16
 	auto PadIcon = [](const Image& img) -> Image {
-		Size sz = img.GetSize();
-		if(sz.cx >= 16 && sz.cy >= 16)
-			return img;
-
+		// Always create 16x16 image regardless of input size
 		ImageDraw iw(16, 16);
 		iw.DrawRect(0, 0, 16, 16, SColorFace());
+		Size sz = img.GetSize();
 		int x = (16 - sz.cx) / 2;
 		int y = (16 - sz.cy) / 2;
 		iw.DrawImage(x, y, img);
 		return iw;
 	};
 
-	// Set up the toolbar with common actions
+	// Set up the toolbar with common actions - use explicit 16x16 icons
 	newMapBtn.SetImage(PadIcon(CtrlImg::new_doc())).Tip("New Map");
 	newMapBtn <<= callback(this, &MapEditorApp::NewMapAction);
-	mainToolBar.Add(newMapBtn);
+	mainToolBar.Add(newMapBtn, Size(20, 20));  // Button slightly larger than icon
 
 	openFileBtn.SetImage(PadIcon(CtrlImg::open())).Tip("Open Map");
 	openFileBtn <<= callback(this, &MapEditorApp::OpenFileAction);
-	mainToolBar.Add(openFileBtn);
+	mainToolBar.Add(openFileBtn, Size(20, 20));
 
 	saveFileBtn.SetImage(PadIcon(CtrlImg::save())).Tip("Save Map");
 	saveFileBtn <<= callback(this, &MapEditorApp::SaveFileAction);
-	mainToolBar.Add(saveFileBtn);
+	mainToolBar.Add(saveFileBtn, Size(20, 20));
 
 	mainToolBar.Separator();
 
 	undoBtn.SetImage(PadIcon(CtrlImg::undo())).Tip("Undo");
 	undoBtn <<= callback(this, &MapEditorApp::UndoAction);
-	mainToolBar.Add(undoBtn);
+	mainToolBar.Add(undoBtn, Size(20, 20));
 
 	redoBtn.SetImage(PadIcon(CtrlImg::redo())).Tip("Redo");
 	redoBtn <<= callback(this, &MapEditorApp::RedoAction);
-	mainToolBar.Add(redoBtn);
+	mainToolBar.Add(redoBtn, Size(20, 20));
 
 	mainToolBar.Separator();
 
 	zoomInBtn.SetImage(PadIcon(CtrlImg::plus())).Tip("Zoom In");
 	zoomInBtn <<= callback(this, &MapEditorApp::ZoomInAction);
-	mainToolBar.Add(zoomInBtn);
+	mainToolBar.Add(zoomInBtn, Size(20, 20));
 
 	zoomOutBtn.SetImage(PadIcon(CtrlImg::minus())).Tip("Zoom Out");
 	zoomOutBtn <<= callback(this, &MapEditorApp::ZoomOutAction);
-	mainToolBar.Add(zoomOutBtn);
+	mainToolBar.Add(zoomOutBtn, Size(20, 20));
 
 	resetZoomBtn.SetLabel("100%").Tip("Reset Zoom");
 	resetZoomBtn <<= callback(this, &MapEditorApp::ResetZoomAction);
-	mainToolBar.Add(resetZoomBtn);
+	mainToolBar.Add(resetZoomBtn, Size(40, 20));  // Text button needs more width
 }
 
 void MapEditorApp::DockInit() {

@@ -24,6 +24,8 @@ file
 	FillTool.cpp,
 	MapEditor.h,
 	MapEditor.cpp,
+	MainMenuScreen.h,
+	MainMenuScreen.cpp,
 	main.cpp,
 	LevelLoader.cpp,
 	EntitySystem.cpp,

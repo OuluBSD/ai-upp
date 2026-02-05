@@ -366,8 +366,6 @@ PointcloudPose RandomControllerPoseInFrustum(const PointcloudPose& hmd_pose,
 
 FilePoolCtrl::FilePoolCtrl(Edit3D* e) {
 	owner = e;
-	Title("Scene3D File Pool");
-	Sizeable().MaximizeBox();
 	Add(files.SizePos());
 	files.AddColumn("Path");
 	files.AddColumn("Type");
@@ -569,9 +567,7 @@ Edit3D::Edit3D() :
 	Title("Edit3D");
 	scene3d_data_dir = "data";
 	SetProjectDir(GetCurrentDirectory());
-	
-	SetView(VIEW_GEOMPROJECT);
-	Add(v0.hsplit.SizePos());
+	view = VIEW_GEOMPROJECT;
 	
 	AddFrame(menu);
 	menu.Set([this](Bar& bar) {
@@ -598,6 +594,7 @@ Edit3D::Edit3D() :
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
 		});
+		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
 			bar.Add(t_("Record"), THISBACK(TogglePointcloudRecording))
 				.Check(record_pointcloud);
@@ -628,20 +625,36 @@ Edit3D::Edit3D() :
 	
 }
 
+void Edit3D::DockInit() {
+	dock_geom = &Dockable(v0.hsplit, "Geometry");
+	dock_video = &Dockable(v1, "Video Import");
+	dock_pool = &Dockable(file_pool, "File Pool");
+
+	dock_geom->SizeHint(Size(900, 700));
+	dock_video->SizeHint(Size(900, 300));
+	dock_pool->SizeHint(Size(320, 600));
+
+	DockLeft(*dock_geom);
+	DockBottom(*dock_video);
+	DockRight(*dock_pool);
+
+	Close(*dock_video);
+	Close(*dock_pool);
+	ActivateDockableChild(v0.hsplit);
+}
+
 void Edit3D::SetView(ViewType view) {
-	
-	if (this->view == VIEW_GEOMPROJECT)
-		RemoveChild(&v0.hsplit);
-	else if (this->view == VIEW_VIDEOIMPORT)
-		RemoveChild(&v1);
-	
 	this->view = view;
-	
-	if (this->view == VIEW_GEOMPROJECT)
-		Add(v0.hsplit.SizePos());
-	else if (this->view == VIEW_VIDEOIMPORT)
-		Add(v1.SizePos());
-	
+	if (!dock_geom || !dock_video)
+		return;
+	if (this->view == VIEW_GEOMPROJECT) {
+		Close(*dock_video);
+		ActivateDockableChild(v0.hsplit);
+	}
+	else if (this->view == VIEW_VIDEOIMPORT) {
+		Close(*dock_geom);
+		ActivateDockableChild(v1);
+	}
 }
 
 void Edit3D::RefrehToolbar() {
@@ -665,7 +678,7 @@ GeomScene& Edit3D::GetActiveScene() {
 }
 
 void Edit3D::Exit() {
-	Close();
+	TopWindow::Close();
 }
 
 void Edit3D::RefreshData() {
@@ -1612,9 +1625,10 @@ void Edit3D::OpenScene3D() {
 
 void Edit3D::OpenFilePool() {
 	file_pool.Data();
-	if (!file_pool.IsOpen())
-		file_pool.Open();
-	file_pool.SetFocus();
+	if (dock_pool) {
+		ActivateDockableChild(file_pool);
+		file_pool.SetFocus();
+	}
 }
 
 void Edit3D::SaveScene3DInteractive() {

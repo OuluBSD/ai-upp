@@ -74,3 +74,12 @@ LAYOUT(ConfigurationLayout, 600, 400)
 	ITEM(Button, ok, SetLabel(t_("Save")).RightPos(116, 100).BottomPos(8, 32))
 	ITEM(Button, cancel, SetLabel(t_("Cancel")).RightPos(8, 100).BottomPos(8, 32))
 END_LAYOUT
+
+LAYOUT(OpsRunnerLayout, 800, 500)
+	ITEM(Label, dv___0, SetLabel(t_("Available Operations:")).LeftPos(8, 200).TopPos(8, 19))
+	ITEM(ArrayCtrl, ops_list, LeftPos(8, 250).VSizePos(32, 48))
+	ITEM(Label, dv___2, SetLabel(t_("Execution Output:")).LeftPos(264, 200).TopPos(8, 19))
+	ITEM(RichTextView, output, HSizePos(264, 8).VSizePos(32, 48))
+	ITEM(Button, btn_run, SetLabel(t_("Run Selected")).LeftPos(8, 120).BottomPos(8, 32))
+	ITEM(Button, btn_close, SetLabel(t_("Close")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT

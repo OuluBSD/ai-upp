@@ -26,6 +26,8 @@ file
 	MapEditor.cpp,
 	MainMenuScreen.h,
 	MainMenuScreen.cpp,
+	Player.h,
+	Player.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
 	TestGameScreen.cpp,

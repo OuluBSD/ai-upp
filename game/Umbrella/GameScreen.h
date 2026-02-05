@@ -3,10 +3,11 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include "LayerManager.h"
+#include "Player.h"
 
 using namespace Upp;
 
-class GameScreen : public TopWindow {
+class GameScreen : public TopWindow, public Player::CollisionHandler {
 public:  // Public for testing
 	String levelPath;
 	LayerManager layerManager;
@@ -26,6 +27,14 @@ public:  // Public for testing
 	int levelColumns;
 	int levelRows;
 	int gridSize;
+
+	// Player
+	Player player;
+	InputState inputState;
+
+	// Input tracking
+	bool keyLeft, keyRight, keyJump, keyAttack;
+	bool prevKeyJump, prevKeyAttack;
 
 public:
 	GameScreen();
@@ -49,6 +58,13 @@ public:
 
 	// Input
 	virtual bool Key(dword key, int) override;
+	void UpdateInput();
+
+	// CollisionHandler interface
+	virtual bool IsFullBlockTile(int col, int row) override;
+	virtual bool IsWallTile(int col, int row) override;
+	virtual bool IsFloorTile(int col, int row) override;
+	virtual float GetGridSize() override { return (float)gridSize; }
 };
 
 #endif

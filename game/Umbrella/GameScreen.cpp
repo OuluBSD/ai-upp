@@ -4,7 +4,7 @@
 
 using namespace Upp;
 
-GameScreen::GameScreen() {
+GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	Title("Umbrella - Game");
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1280, 720);
@@ -16,6 +16,10 @@ GameScreen::GameScreen() {
 	levelColumns = 0;
 	levelRows = 0;
 	gridSize = 14;
+
+	// Input state
+	keyLeft = keyRight = keyJump = keyAttack = false;
+	prevKeyJump = prevKeyAttack = false;
 
 	lastTime = GetTickCount();
 
@@ -75,14 +79,18 @@ void GameScreen::LayoutLoop() {
 }
 
 void GameScreen::GameTick(float delta) {
-	// TODO: Update player
-	// TODO: Update enemies
-	// TODO: Update camera
-	// TODO: Check collisions
+	// Update input state
+	UpdateInput();
 
-	// For now, just center camera on level
-	Point levelCenter(levelColumns * gridSize / 2, levelRows * gridSize / 2);
-	UpdateCamera(levelCenter);
+	// Update player
+	player.Update(delta, inputState, *this);
+
+	// Update camera to follow player
+	Pointf playerCenter = player.GetCenter();
+	UpdateCamera(Point((int)playerCenter.x, (int)playerCenter.y));
+
+	// TODO: Update enemies
+	// TODO: Check collisions
 }
 
 void GameScreen::UpdateCamera(Point targetPos) {
@@ -126,7 +134,10 @@ void GameScreen::Paint(Draw& w) {
 	// Render tiles
 	RenderTiles(w);
 
-	// TODO: Render entities (player, enemies)
+	// Render player
+	player.Render(w, cameraOffset, zoom);
+
+	// TODO: Render enemies
 	// TODO: Render HUD
 }
 
@@ -188,15 +199,88 @@ void GameScreen::RenderTiles(Draw& w) {
 }
 
 bool GameScreen::Key(dword key, int) {
+	// Handle key downs
 	switch(key) {
 		case K_ESCAPE:
 			Close();
 			return true;
-		case K_SPACE:
+		case K_P:
 			paused = !paused;
 			return true;
+
+		// Movement keys
+		case K_LEFT:
+		case K_A:
+			keyLeft = true;
+			return true;
+		case K_RIGHT:
+		case K_D:
+			keyRight = true;
+			return true;
+
+		// Jump keys
+		case K_SPACE:
+		case K_W:
+		case K_UP:
+			keyJump = true;
+			return true;
+
+		// Attack/Glide
+		case K_CTRL_RIGHT:
+			keyAttack = true;
+			return true;
+
+		// Key ups (use bit flag to detect release)
+		case K_LEFT | K_KEYUP:
+		case K_A | K_KEYUP:
+			keyLeft = false;
+			return true;
+		case K_RIGHT | K_KEYUP:
+		case K_D | K_KEYUP:
+			keyRight = false;
+			return true;
+		case K_SPACE | K_KEYUP:
+		case K_W | K_KEYUP:
+		case K_UP | K_KEYUP:
+			keyJump = false;
+			return true;
+		case K_CTRL_RIGHT | K_KEYUP:
+			keyAttack = false;
+			return true;
+
 		default:
 			break;
 	}
 	return false;
+}
+
+void GameScreen::UpdateInput() {
+	// Build input state from tracked keys
+	inputState.moveLeft = keyLeft;
+	inputState.moveRight = keyRight;
+	inputState.jumpHeld = keyJump;
+	inputState.jumpPressed = keyJump && !prevKeyJump;
+	inputState.attackPressed = keyAttack && !prevKeyAttack;
+	inputState.glideHeld = keyAttack;
+
+	prevKeyJump = keyJump;
+	prevKeyAttack = keyAttack;
+}
+
+bool GameScreen::IsFullBlockTile(int col, int row) {
+	Layer* terrainLayer = layerManager.FindLayerByType(LAYER_TERRAIN);
+	if(!terrainLayer) return false;
+
+	return terrainLayer->GetGrid().GetTile(col, row) == TILE_FULLBLOCK;
+}
+
+bool GameScreen::IsWallTile(int col, int row) {
+	Layer* terrainLayer = layerManager.FindLayerByType(LAYER_TERRAIN);
+	if(!terrainLayer) return false;
+
+	return terrainLayer->GetGrid().GetTile(col, row) == TILE_WALL;
+}
+
+bool GameScreen::IsFloorTile(int col, int row) {
+	return IsWallTile(col, row) || IsFullBlockTile(col, row);
 }

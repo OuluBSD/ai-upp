@@ -10,6 +10,13 @@ class IssuesPane : public ParentCtrl {
 	ArrayCtrl list;
 	String    current_root;
 
+	Vector<String> GetSelectedIssueIds() const;
+	void           BulkSetStatus();
+	void           BulkSetSeverity();
+	void           OnEdit();
+	void           OnIgnore();
+	void           OnCreateTask();
+
 public:
 	void Load(const String& root);
 	void OnMenu(Bar& bar);

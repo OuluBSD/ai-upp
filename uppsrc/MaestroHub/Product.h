@@ -33,6 +33,9 @@ public:
 	
 	void OnRunbookSelect();
 	void OnWorkflowSelect();
+	
+	void OnNodeClick(GraphLib::Node& n);
+	void OnNodeRightClick(GraphLib::Node& n);
 
 	typedef ProductPane CLASSNAME;
 	ProductPane();

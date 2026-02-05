@@ -51,6 +51,17 @@ struct GeomScript : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomPointcloudEffectTransform : VfsValueExt {
+	String name;
+	bool enabled = true;
+	bool locked = false;
+	vec3 position = vec3(0);
+	quat orientation = Identity<quat>();
+	
+	DEFAULT_EXT(GeomPointcloudEffectTransform)
+	void Visit(Vis& v) override;
+};
+
 struct GeomObject : VfsValueExt {
 	typedef enum {
 		O_NULL,
@@ -81,6 +92,8 @@ struct GeomObject : VfsValueExt {
 	GeomTimeline* FindTimeline() const;
 	GeomTransform& GetTransform();
 	GeomTransform* FindTransform() const;
+	GeomPointcloudEffectTransform& GetAddPointcloudEffect(String name);
+	void GetPointcloudEffects(Vector<GeomPointcloudEffectTransform*>& out) const;
 	
 	bool IsModel() const {return type == O_MODEL;}
 	bool IsOctree() const {return type == O_OCTREE;}

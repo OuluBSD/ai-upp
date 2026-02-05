@@ -80,6 +80,16 @@ void GeomScript::Visit(Vis& v) {
 	  VIS_(run_every_frame);
 }
 
+void GeomPointcloudEffectTransform::Visit(Vis& v) {
+	v VIS_(name)
+	  VIS_(enabled)
+	  VIS_(locked)
+	  VISN(position)
+	  VISN(orientation);
+	if (v.IsLoading() && !name.IsEmpty())
+		val.id = name;
+}
+
 String GeomPointcloudDataset::GetId() const {
 	if (!name.IsEmpty())
 		return name;
@@ -207,6 +217,31 @@ GeomTransform* GeomObject::FindTransform() const {
 	return 0;
 }
 
+GeomPointcloudEffectTransform& GeomObject::GetAddPointcloudEffect(String name) {
+	for (auto& sub : val.sub) {
+		if (!IsVfsType(sub, AsTypeHash<GeomPointcloudEffectTransform>()))
+			continue;
+		GeomPointcloudEffectTransform& fx = sub.GetExt<GeomPointcloudEffectTransform>();
+		String fx_name = fx.name.IsEmpty() ? sub.id : fx.name;
+		if (fx_name == name)
+			return fx;
+	}
+	VfsValue& n = val.GetAdd<GeomPointcloudEffectTransform>(name);
+	GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
+	fx.name = name;
+	n.id = name;
+	return fx;
+}
+
+void GeomObject::GetPointcloudEffects(Vector<GeomPointcloudEffectTransform*>& out) const {
+	out.Clear();
+	for (auto& sub : val.sub) {
+		if (!IsVfsType(sub, AsTypeHash<GeomPointcloudEffectTransform>()))
+			continue;
+		out.Add(&sub.GetExt<GeomPointcloudEffectTransform>());
+	}
+}
+
 String GeomObject::GetPath() const {
 	String path = name;
 	const VfsValue* dir = val.owner;
@@ -235,6 +270,56 @@ void GeomObject::Visit(Vis& v) {
 	v("timeline", tl, VISIT_NODE);
 	GeomTransform& tr = GetTransform();
 	v("transform", tr, VISIT_NODE);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			const Value& effects_va = v.json->Get()["effects"];
+			for (int i = 0; i < effects_va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
+				GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
+				JsonIO jio(effects_va[i]);
+				Vis vis(jio);
+				fx.Visit(vis);
+				if (!fx.name.IsEmpty())
+					n.id = fx.name;
+			}
+		}
+		else {
+			Vector<Value> effects_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+					continue;
+				GeomPointcloudEffectTransform& fx = s.GetExt<GeomPointcloudEffectTransform>();
+				effects_values.Add(v.VisitAsJsonValue(fx));
+			}
+			v.json->Set("effects", ValueArray(pick(effects_values)));
+		}
+	}
+	else {
+		int effect_count = 0;
+		if (!v.IsLoading()) {
+			for (auto& s : val.sub)
+				if (IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+					effect_count++;
+		}
+		v VIS_(effect_count);
+		if (v.IsLoading()) {
+			for (int i = 0; i < effect_count; i++) {
+				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
+				GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
+				fx.Visit(v);
+				if (!fx.name.IsEmpty())
+					n.id = fx.name;
+			}
+		}
+		else {
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+					continue;
+				GeomPointcloudEffectTransform& fx = s.GetExt<GeomPointcloudEffectTransform>();
+				fx.Visit(v);
+			}
+		}
+	}
 	if (v.IsLoading()) {
 		type = (Type)type_i;
 		if (!name.IsEmpty())
@@ -887,6 +972,7 @@ INITIALIZER(GeomTransformType) {
 INITIALIZER_VFSEXT(GeomTimeline, "scene3d.timeline", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomTransform, "scene3d.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomScript, "scene3d.script", "Scene3D|Core")
+INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomObject, "scene3d.object", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomDirectory, "scene3d.directory", "Scene3D|Core")

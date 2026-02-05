@@ -19,6 +19,10 @@ struct ColoredDisplay : public Display {
 
 PlanView::PlanView() {
 	Add(tree.SizePos());
+	tree.AddColumn("Item", 300);
+	tree.AddColumn("Status", 100);
+	tree.AddColumn("Progress", 80);
+	
 	tree.WhenBar = [=](Bar& bar) {
 		int id = tree.GetCursor();
 		if(id < 0) return;
@@ -38,13 +42,18 @@ PlanView::PlanView() {
 
 void PlanView::Set(const Array<Track>& tracks) {
 	tree.Clear();
-	int root_id = tree.Add(0, CtrlImg::Dir(), "Plans");
+	int root_id = tree.Add(0, CtrlImg::Dir(), "Plans", "active");
+	tree.SetRowValue(root_id, 1, "Active");
+	
 	for(const auto& t : tracks) {
 		ValueMap vmTrack;
 		vmTrack.Add("type", "track");
 		vmTrack.Add("track", t.id);
 		
 		int tid = tree.Add(root_id, CtrlImg::Dir(), vmTrack, t.name);
+		tree.SetRowValue(tid, 1, t.status);
+		tree.SetRowValue(tid, 2, Format("%d%%", t.completion));
+		
 		for(const auto& p : t.phases) {
 			ValueMap vmPhase;
 			vmPhase.Add("type", "phase");
@@ -52,6 +61,9 @@ void PlanView::Set(const Array<Track>& tracks) {
 			vmPhase.Add("phase", p.id);
 			
 			int pid = tree.Add(tid, CtrlImg::Dir(), vmPhase, p.name);
+			tree.SetRowValue(pid, 1, p.status);
+			tree.SetRowValue(pid, 2, Format("%d%%", p.completion));
+			
 			for(const auto& tk : p.tasks) {
 				ValueMap vmTask;
 				vmTask.Add("type", "task");
@@ -59,11 +71,12 @@ void PlanView::Set(const Array<Track>& tracks) {
 				vmTask.Add("phase", p.id);
 				vmTask.Add("task", tk.id);
 				
-				tree.Add(pid, CtrlImg::File(), vmTask, tk.name);
+				int tkid = tree.Add(pid, CtrlImg::File(), vmTask, tk.name);
+				tree.SetRowValue(tkid, 1, StatusToString(tk.status));
 			}
 		}
 	}
-	tree.OpenDeep(root_id);
+	tree.Open(root_id); // Just open the root by default
 }
 
 END_UPP_NAMESPACE

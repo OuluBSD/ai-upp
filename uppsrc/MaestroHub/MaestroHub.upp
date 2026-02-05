@@ -38,6 +38,8 @@ file
 	Tools.cpp,
 	NewSessionDialog.h,
 	NewSessionDialog.cpp,
+	InitDialog.h,
+	InitDialog.cpp,
 	ConfigurationDialog.h,
 	ConfigurationDialog.cpp,
 	OpsRunner.h,

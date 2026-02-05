@@ -37,6 +37,7 @@ class MaestroHub : public TopWindow {
 	void OnSessionSelect(String backend, String session_id);
 	void OnNewSession();
 	void OnCreateIssue();
+	void OnInitMaestro();
 	void OnSuggestEnact();
 	void OnTriageWizard();
 	void OnRunbookEditor();

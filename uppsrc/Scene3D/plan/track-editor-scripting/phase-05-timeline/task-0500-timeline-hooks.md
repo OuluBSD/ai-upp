@@ -12,4 +12,8 @@ Provide timeline hooks similar to ActionScript MovieClip.
 - Scripts can control playback and receive frame callbacks.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added `gotoAndPlay`/`gotoAndStop` for stage + display object proxies.
+- Added `onFrame` binding to `enterFrame` dispatcher.

@@ -73,6 +73,32 @@ void DrawCameraGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, const 
 	DrawLine(sz, d, view, n3, f3, 1, clr, z_cull);
 }
 
+void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
+                             const GeomEditableMesh& mesh, bool z_cull) {
+	Color pt_clr(220, 220, 255);
+	Color line_clr(200, 200, 200);
+	Color face_clr(160, 200, 240);
+	mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
+	mat4 o_view = view * o_world;
+	for (const GeomFace& f : mesh.faces) {
+		if (f.a < 0 || f.b < 0 || f.c < 0 || f.a >= mesh.points.GetCount() || f.b >= mesh.points.GetCount() || f.c >= mesh.points.GetCount())
+			continue;
+		const vec3& p0 = mesh.points[f.a];
+		const vec3& p1 = mesh.points[f.b];
+		const vec3& p2 = mesh.points[f.c];
+		DrawLine(sz, d, o_view, p0, p1, 1, face_clr, z_cull);
+		DrawLine(sz, d, o_view, p1, p2, 1, face_clr, z_cull);
+		DrawLine(sz, d, o_view, p2, p0, 1, face_clr, z_cull);
+	}
+	for (const GeomEdge& e : mesh.lines) {
+		if (e.a < 0 || e.b < 0 || e.a >= mesh.points.GetCount() || e.b >= mesh.points.GetCount())
+			continue;
+		DrawLine(sz, d, o_view, mesh.points[e.a], mesh.points[e.b], 1, line_clr, z_cull);
+	}
+	for (const vec3& p : mesh.points)
+		DrawRect(sz, d, o_view, p, Size(3, 3), pt_clr, z_cull);
+}
+
 Color CameraColor(const GeomObject& go) {
 	String name = ToLower(go.name);
 	if (name.Find("fake") >= 0)
@@ -326,6 +352,10 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 			scale = Max(0.2f, ref_cam.scale * 0.5f);
 		}
 		DrawCameraGizmo(sz, d, view, os.position, os.orientation, fov_deg, scale, CameraColor(go), z_cull);
+	}
+	if (GeomEditableMesh* mesh = go.FindEditableMesh()) {
+		if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty())
+			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull);
 	}
 }
 
@@ -864,10 +894,42 @@ void EditRendererV2::Paint(Draw& d) {
 	}
 	
 	d.DrawImage(0, 0, surf.ib);
+	if (ctx->anim && ctx->anim->is_playing) {
+		for (GeomObjectState& os : state.objs) {
+			if (!os.obj || !os.obj->is_visible)
+				continue;
+			if (GeomEditableMesh* mesh = os.obj->FindEditableMesh()) {
+				if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty())
+					DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull);
+			}
+		}
+	}
+	else {
+		GeomObjectCollection iter(scene);
+		GeomObjectState os;
+		for (GeomObject& go : iter) {
+			if (!go.is_visible)
+				continue;
+			if (!go.FindEditableMesh())
+				continue;
+			os.obj = &go;
+			os.position = vec3(0);
+			os.orientation = Identity<quat>();
+			os.scale = vec3(1);
+			if (GeomTransform* tr = go.FindTransform()) {
+				os.position = tr->position;
+				os.orientation = tr->orientation;
+				os.scale = tr->scale;
+			}
+			DrawEditableMeshOverlay(sz, d, view, os, *go.FindEditableMesh(), z_cull);
+		}
+	}
 }
 
 void EditRendererBase::LeftDown(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
+	if (WhenInput)
+		WhenInput("mouseDown", p, keyflags, 0);
 	
 	cap_mouse_pos = p;
 	is_captured_mouse = true;
@@ -889,6 +951,8 @@ void EditRendererBase::LeftDown(Point p, dword keyflags) {
 }
 
 void EditRendererBase::LeftUp(Point p, dword keyflags) {
+	if (WhenInput)
+		WhenInput("mouseUp", p, keyflags, 0);
 	is_captured_mouse = false;
 	
 	ReleaseCapture();
@@ -896,6 +960,8 @@ void EditRendererBase::LeftUp(Point p, dword keyflags) {
 
 void EditRendererBase::MouseMove(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
+	if (WhenInput)
+		WhenInput("mouseMove", p, keyflags, 0);
 	
 	if (is_captured_mouse) {
 		Point diff = p - cap_mouse_pos;
@@ -980,6 +1046,8 @@ void EditRendererBase::RotateRel(const axes3& v) {
 }
 
 void EditRendererBase::MouseWheel(Point p, int zdelta, dword keyflags) {
+	if (WhenInput)
+		WhenInput("mouseWheel", p, keyflags, zdelta);
 	const double scale = 0.75;
 	GeomCamera& camera = GetGeomCamera();
 	
@@ -994,6 +1062,8 @@ void EditRendererBase::MouseWheel(Point p, int zdelta, dword keyflags) {
 }
 
 void EditRendererBase::RightDown(Point p, dword keyflags) {
+	if (WhenInput)
+		WhenInput("mouseRightDown", p, keyflags, 0);
 	if (WhenMenu)
 		MenuBar::Execute(WhenMenu, GetMousePos());
 }
@@ -1019,6 +1089,8 @@ GeomCamera& EditRendererBase::GetGeomCamera() const {
 }
 
 bool EditRendererBase::Key(dword key, int count) {
+	if (WhenInput)
+		WhenInput("keyDown", Point(0, 0), 0, (int)key);
 	GeomCamera& camera = GetGeomCamera();
 	float step = camera.scale * 0.1;
 	

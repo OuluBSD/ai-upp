@@ -19,4 +19,8 @@ Add interactive edit tools for points, lines, faces, and polygons in the 3D edit
 - Edits are undoable and persist in save/load.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added editable mesh component (points/lines/faces) with serialization.
+- Added Edit menu tools for point/line/face/erase, plus mesh creation.

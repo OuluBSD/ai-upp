@@ -12,4 +12,8 @@ Allow ActionScript-style dynamic properties on scene objects.
 - Properties persist and can be used in scripts.
 
 ## Status
-- Pending
+- Done
+
+## Notes
+- Added `GeomDynamicProperties` component and serialization.
+- `DisplayObject` now stores unknown attributes in a property bag.

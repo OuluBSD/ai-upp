@@ -12,4 +12,5 @@ Add display list operations to mirror ActionScript/MovieClip semantics.
 - Display list mutations are reflected in scene tree and serialization.
 
 ## Status
-- Pending
+- Done (2026-02-05)
+  - Added child queries and reorder support on DisplayObject proxy.

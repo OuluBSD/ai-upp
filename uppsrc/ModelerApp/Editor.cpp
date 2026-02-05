@@ -145,6 +145,29 @@ PyValue ModelerLog(const Vector<PyValue>& args, void* user_data) {
 	return PyValue::None();
 }
 
+PyValue ModelerTrace(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() > 0)
+		LOG(args[0].ToString());
+	return PyValue::None();
+}
+
+PyValue ModelerGetTimer(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e)
+		return PyValue(0);
+	return PyValue((int64)e->script_timer.Elapsed());
+}
+
+PyValue ModelerRandom(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() == 0)
+		return PyValue(Randomf());
+	if (args.GetCount() == 1)
+		return PyValue(Randomf() * args[0].AsDouble());
+	double minv = args[0].AsDouble();
+	double maxv = args[1].AsDouble();
+	return PyValue(minv + (maxv - minv) * Randomf());
+}
+
 PyValue ModelerDebugGeneratePointcloud(const Vector<PyValue>& args, void* user_data) {
 	Edit3D* e = (Edit3D*)user_data;
 	if (e)
@@ -376,21 +399,42 @@ static PyValue MakeVec3Value(const vec3& v) {
 	return t;
 }
 
+static GeomDynamicProperties* FindDynamicProps(VfsValue& node) {
+	for (auto& sub : node.sub) {
+		if (IsVfsType(sub, AsTypeHash<GeomDynamicProperties>()) && sub.id == "props")
+			return &sub.GetExt<GeomDynamicProperties>();
+	}
+	return nullptr;
+}
+
+static GeomDynamicProperties& GetDynamicProps(VfsValue& node) {
+	return node.GetAdd<GeomDynamicProperties>("props");
+}
+
+static PyValue ValueToPyValue(const Value& v) {
+	return PyValue::FromValue(v);
+}
+
+static Value PyValueToValue(const PyValue& v) {
+	return v.ToValue();
+}
+
 struct DisplayObjectProxy : PyUserData {
 	Edit3D* app = nullptr;
 	VfsValue* node = nullptr;
+	PyVM* vm = nullptr;
 
-	DisplayObjectProxy(Edit3D* a, VfsValue* n) : app(a), node(n) {}
+	DisplayObjectProxy(Edit3D* a, VfsValue* n, PyVM* v) : app(a), node(n), vm(v) {}
 	String GetTypeName() const override { return "DisplayObject"; }
 
 	PyValue GetAttr(const String& name) override;
 	bool SetAttr(const String& name, const PyValue& v) override;
 };
 
-static PyValue MakeDisplayObject(Edit3D* app, VfsValue* node) {
-	if (!app || !node)
+static PyValue MakeDisplayObject(Edit3D* app, VfsValue* node, PyVM* vm) {
+	if (!app || !node || !vm)
 		return PyValue::None();
-	return PyValue(new DisplayObjectProxy(app, node));
+	return PyValue(new DisplayObjectProxy(app, node, vm));
 }
 
 static VfsValue* FindChildByName(VfsValue& node, const String& name) {
@@ -420,6 +464,59 @@ static VfsValue* ResolvePath(VfsValue& root, const String& path) {
 		cur = next;
 	}
 	return cur;
+}
+
+static bool NodeTypeMatches(VfsValue& n, const String& type) {
+	String t = ToLower(type);
+	if (t.IsEmpty())
+		return false;
+	if (t == "directory" || t == "dir")
+		return IsVfsType(n, HashGeomDirectory()) || IsVfsType(n, HashGeomScene());
+	if (t == "model") {
+		if (!IsVfsType(n, HashGeomObject()))
+			return false;
+		return n.GetExt<GeomObject>().type == GeomObject::O_MODEL;
+	}
+	if (t == "camera") {
+		if (!IsVfsType(n, HashGeomObject()))
+			return false;
+		return n.GetExt<GeomObject>().type == GeomObject::O_CAMERA;
+	}
+	if (t == "pointcloud" || t == "octree") {
+		if (!IsVfsType(n, HashGeomObject()))
+			return false;
+		return n.GetExt<GeomObject>().type == GeomObject::O_OCTREE;
+	}
+	if (t == "dataset" || t == "pointcloud_dataset")
+		return IsVfsType(n, HashGeomDataset());
+	if (t == "object")
+		return IsVfsType(n, HashGeomObject());
+	return false;
+}
+
+static int FindChildIndex(VfsValue& parent, VfsValue* child) {
+	if (!child)
+		return -1;
+	for (int i = 0; i < parent.sub.GetCount(); i++)
+		if (&parent.sub[i] == child)
+			return i;
+	return -1;
+}
+
+static bool ReorderChild(VfsValue& parent, VfsValue* child, int new_index) {
+	int old_index = FindChildIndex(parent, child);
+	if (old_index < 0)
+		return false;
+	if (new_index < 0)
+		new_index = 0;
+	if (new_index >= parent.sub.GetCount())
+		new_index = parent.sub.GetCount() - 1;
+	if (new_index == old_index)
+		return true;
+	parent.sub.Move(old_index, new_index);
+	for (auto& sub : parent.sub)
+		sub.owner = &parent;
+	return true;
 }
 
 static PyValue DisplayObject_AddChild(const Vector<PyValue>& args, void* user_data) {
@@ -453,7 +550,115 @@ static PyValue DisplayObject_AddChild(const Vector<PyValue>& args, void* user_da
 		return PyValue::None();
 	self.app->state->UpdateObjects();
 	self.app->RefreshData();
-	return MakeDisplayObject(self.app, out);
+	return MakeDisplayObject(self.app, out, self.vm);
+}
+
+static PyValue DisplayObject_GetChildByName(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	String name = args[1].ToString();
+	VfsValue* found = FindChildByName(*self.node, name);
+	return MakeDisplayObject(self.app, found, self.vm);
+}
+
+static PyValue DisplayObject_GetChildrenByType(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	String type = args[1].ToString();
+	PyValue list = PyValue::List();
+	for (auto& sub : self.node->sub) {
+		if (NodeTypeMatches(sub, type))
+			list.Add(MakeDisplayObject(self.app, &sub, self.vm));
+	}
+	return list;
+}
+
+static PyValue DisplayObject_GetChildIndex(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.node)
+		return PyValue::None();
+	if (!args[1].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& child = (DisplayObjectProxy&)args[1].GetUserData();
+	if (!child.node)
+		return PyValue::None();
+	return PyValue(FindChildIndex(*self.node, child.node));
+}
+
+static PyValue DisplayObject_SetChildIndex(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 3 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	if (!args[1].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& child = (DisplayObjectProxy&)args[1].GetUserData();
+	if (!child.node)
+		return PyValue::None();
+	int idx = (int)args[2].AsInt();
+	if (!ReorderChild(*self.node, child.node, idx))
+		return PyValue::False();
+	self.app->RefreshData();
+	return PyValue::True();
+}
+
+static PyValue DisplayObject_On(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 3 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	String ev = args[1].ToString();
+	PyValue fn = args[2];
+	self.app->AddScriptEventHandler(ev, self.vm, self.node, fn);
+	return PyValue::True();
+}
+
+static PyValue DisplayObject_OnFrame(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	if (!self.app || !self.node)
+		return PyValue::None();
+	PyValue fn = args[1];
+	self.app->AddScriptEventHandler("enterFrame", self.vm, self.node, fn);
+	return PyValue::True();
+}
+
+static bool SetTimelinePosition(Edit3D* app, int frame, bool play) {
+	if (!app || !app->anim || !app->prj)
+		return false;
+	app->anim->position = frame;
+	double frame_time = 1.0 / max(1, app->prj->kps);
+	app->anim->time = frame * frame_time;
+	app->anim->is_playing = play;
+	app->RefrehRenderers();
+	return true;
+}
+
+static PyValue DisplayObject_GotoAndPlay(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	int frame = (int)args[1].AsInt();
+	return PyValue(SetTimelinePosition(self.app, frame, true));
+}
+
+static PyValue DisplayObject_GotoAndStop(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	DisplayObjectProxy& self = (DisplayObjectProxy&)args[0].GetUserData();
+	int frame = (int)args[1].AsInt();
+	return PyValue(SetTimelinePosition(self.app, frame, false));
 }
 
 static PyValue DisplayObject_Remove(const Vector<PyValue>& args, void* user_data) {
@@ -478,7 +683,7 @@ static PyValue DisplayObject_Find(const Vector<PyValue>& args, void* user_data) 
 		return PyValue::None();
 	String path = args[1].ToString();
 	VfsValue* found = ResolvePath(*self.node, path);
-	return MakeDisplayObject(self.app, found);
+	return MakeDisplayObject(self.app, found, self.vm);
 }
 
 static PyValue DisplayObject_Children(const Vector<PyValue>& args, void* user_data) {
@@ -491,7 +696,7 @@ static PyValue DisplayObject_Children(const Vector<PyValue>& args, void* user_da
 	for (auto& sub : self.node->sub) {
 		if (!IsVfsType(sub, HashGeomDirectory()) && !IsVfsType(sub, HashGeomObject()) && !IsVfsType(sub, HashGeomScene()))
 			continue;
-		list.Add(MakeDisplayObject(self.app, &sub));
+		list.Add(MakeDisplayObject(self.app, &sub, self.vm));
 	}
 	return list;
 }
@@ -524,6 +729,27 @@ PyValue DisplayObjectProxy::GetAttr(const String& name) {
 		return PyValue::BoundMethod(PyValue::Function("find", DisplayObject_Find, nullptr), PyValue(this));
 	if (name == "children")
 		return PyValue::BoundMethod(PyValue::Function("children", DisplayObject_Children, nullptr), PyValue(this));
+	if (name == "getChildByName")
+		return PyValue::BoundMethod(PyValue::Function("getChildByName", DisplayObject_GetChildByName, nullptr), PyValue(this));
+	if (name == "getChildrenByType")
+		return PyValue::BoundMethod(PyValue::Function("getChildrenByType", DisplayObject_GetChildrenByType, nullptr), PyValue(this));
+	if (name == "getChildIndex")
+		return PyValue::BoundMethod(PyValue::Function("getChildIndex", DisplayObject_GetChildIndex, nullptr), PyValue(this));
+	if (name == "setChildIndex")
+		return PyValue::BoundMethod(PyValue::Function("setChildIndex", DisplayObject_SetChildIndex, nullptr), PyValue(this));
+	if (name == "on")
+		return PyValue::BoundMethod(PyValue::Function("on", DisplayObject_On, nullptr), PyValue(this));
+	if (name == "onFrame" || name == "onEnterFrame")
+		return PyValue::BoundMethod(PyValue::Function("onFrame", DisplayObject_OnFrame, nullptr), PyValue(this));
+	if (name == "gotoAndPlay")
+		return PyValue::BoundMethod(PyValue::Function("gotoAndPlay", DisplayObject_GotoAndPlay, nullptr), PyValue(this));
+	if (name == "gotoAndStop")
+		return PyValue::BoundMethod(PyValue::Function("gotoAndStop", DisplayObject_GotoAndStop, nullptr), PyValue(this));
+	if (GeomDynamicProperties* props = FindDynamicProps(*node)) {
+		int idx = props->props.Find(name);
+		if (idx >= 0)
+			return ValueToPyValue(props->props[idx]);
+	}
 	return PyValue::None();
 }
 
@@ -532,19 +758,30 @@ bool DisplayObjectProxy::SetAttr(const String& name, const PyValue& v) {
 		return false;
 	GeomTransform* tr = GetNodeTransform(*node);
 	if (tr) {
-		if (name == "x") { tr->position[0] = v.AsDouble(); }
-		else if (name == "y") { tr->position[1] = v.AsDouble(); }
-		else if (name == "z") { tr->position[2] = v.AsDouble(); }
+		if (name == "x") { tr->position[0] = v.AsDouble(); if (app) { app->state->UpdateObjects(); app->RefrehRenderers(); } return true; }
+		else if (name == "y") { tr->position[1] = v.AsDouble(); if (app) { app->state->UpdateObjects(); app->RefrehRenderers(); } return true; }
+		else if (name == "z") { tr->position[2] = v.AsDouble(); if (app) { app->state->UpdateObjects(); app->RefrehRenderers(); } return true; }
 		else if (name == "rotation") {
 			vec3 axes;
-			if (PyValueToVec3(v, axes))
+			if (PyValueToVec3(v, axes)) {
 				tr->orientation = AxesQuat(axes);
+				if (app) { app->state->UpdateObjects(); app->RefrehRenderers(); }
+				return true;
+			}
 		}
 		else if (name == "scale") {
 			vec3 scale;
-			if (PyValueToVec3(v, scale))
+			if (PyValueToVec3(v, scale)) {
 				tr->scale = scale;
+				if (app) { app->state->UpdateObjects(); app->RefrehRenderers(); }
+				return true;
+			}
 		}
+	}
+	if (name == "onFrame" || name == "onEnterFrame") {
+		if (app)
+			app->AddScriptEventHandler("enterFrame", vm, node, v);
+		return true;
 	}
 	if (name == "visible") {
 		if (GeomObject* obj = GetNodeObject(*node))
@@ -557,6 +794,9 @@ bool DisplayObjectProxy::SetAttr(const String& name, const PyValue& v) {
 			}
 		}
 	}
+	else if (GeomDynamicProperties* props = node ? &GetDynamicProps(*node) : nullptr) {
+		props->props.GetAdd(name) = PyValueToValue(v);
+	}
 	if (app) {
 		app->state->UpdateObjects();
 		app->RefrehRenderers();
@@ -566,7 +806,8 @@ bool DisplayObjectProxy::SetAttr(const String& name, const PyValue& v) {
 
 struct StageProxy : PyUserData {
 	Edit3D* app = nullptr;
-	StageProxy(Edit3D* a) : app(a) {}
+	PyVM* vm = nullptr;
+	StageProxy(Edit3D* a, PyVM* v) : app(a), vm(v) {}
 	String GetTypeName() const override { return "Stage"; }
 	PyValue GetAttr(const String& name) override;
 	bool SetAttr(const String& name, const PyValue& v) override;
@@ -581,7 +822,7 @@ static PyValue Stage_Find(const Vector<PyValue>& args, void* user_data) {
 	GeomScene& scene = self.app->state->GetActiveScene();
 	String path = args[1].ToString();
 	VfsValue* found = ResolvePath(scene.val, path);
-	return MakeDisplayObject(self.app, found);
+	return MakeDisplayObject(self.app, found, self.vm);
 }
 
 static PyValue Stage_Children(const Vector<PyValue>& args, void* user_data) {
@@ -598,7 +839,7 @@ static PyValue Stage_Children(const Vector<PyValue>& args, void* user_data) {
 		for (auto& sub : root->sub) {
 			if (!IsVfsType(sub, HashGeomDirectory()) && !IsVfsType(sub, HashGeomObject()) && !IsVfsType(sub, HashGeomScene()))
 				continue;
-			list.Add(MakeDisplayObject(self.app, &sub));
+			list.Add(MakeDisplayObject(self.app, &sub, self.vm));
 		}
 	}
 	return list;
@@ -640,20 +881,53 @@ static PyValue Stage_Create(const Vector<PyValue>& args, void* user_data) {
 		return PyValue::None();
 	self.app->state->UpdateObjects();
 	self.app->RefreshData();
-	return MakeDisplayObject(self.app, out);
+	return MakeDisplayObject(self.app, out, self.vm);
 }
 
 static PyValue Stage_Goto(const Vector<PyValue>& args, void* user_data) {
 	if (args.GetCount() < 2 || !args[0].IsUserData())
 		return PyValue::None();
 	StageProxy& self = (StageProxy&)args[0].GetUserData();
-	if (!self.app || !self.app->anim || !self.app->prj)
-		return PyValue::None();
 	int frame = (int)args[1].AsInt();
-	self.app->anim->position = frame;
-	double frame_time = 1.0 / max(1, self.app->prj->kps);
-	self.app->anim->time = frame * frame_time;
-	self.app->RefrehRenderers();
+	return PyValue(SetTimelinePosition(self.app, frame, self.app && self.app->anim ? self.app->anim->is_playing : false));
+}
+
+static PyValue Stage_GotoAndPlay(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	int frame = (int)args[1].AsInt();
+	return PyValue(SetTimelinePosition(self.app, frame, true));
+}
+
+static PyValue Stage_GotoAndStop(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	int frame = (int)args[1].AsInt();
+	return PyValue(SetTimelinePosition(self.app, frame, false));
+}
+
+static PyValue Stage_On(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 3 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app)
+		return PyValue::None();
+	String ev = args[1].ToString();
+	PyValue fn = args[2];
+	self.app->AddScriptEventHandler(ev, self.vm, nullptr, fn);
+	return PyValue::True();
+}
+
+static PyValue Stage_OnFrame(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (!self.app)
+		return PyValue::None();
+	PyValue fn = args[1];
+	self.app->AddScriptEventHandler("enterFrame", self.vm, nullptr, fn);
 	return PyValue::True();
 }
 
@@ -661,7 +935,7 @@ PyValue StageProxy::GetAttr(const String& name) {
 	if (!app)
 		return PyValue::None();
 	if (name == "root")
-		return MakeDisplayObject(app, &app->state->GetActiveScene().val);
+		return MakeDisplayObject(app, &app->state->GetActiveScene().val, vm);
 	if (name == "time")
 		return PyValue(app->anim ? app->anim->time : 0.0);
 	if (name == "frame")
@@ -676,6 +950,14 @@ PyValue StageProxy::GetAttr(const String& name) {
 		return PyValue::BoundMethod(PyValue::Function("create", Stage_Create, nullptr), PyValue(this));
 	if (name == "goto")
 		return PyValue::BoundMethod(PyValue::Function("goto", Stage_Goto, nullptr), PyValue(this));
+	if (name == "gotoAndPlay")
+		return PyValue::BoundMethod(PyValue::Function("gotoAndPlay", Stage_GotoAndPlay, nullptr), PyValue(this));
+	if (name == "gotoAndStop")
+		return PyValue::BoundMethod(PyValue::Function("gotoAndStop", Stage_GotoAndStop, nullptr), PyValue(this));
+	if (name == "on")
+		return PyValue::BoundMethod(PyValue::Function("on", Stage_On, nullptr), PyValue(this));
+	if (name == "onFrame" || name == "onEnterFrame")
+		return PyValue::BoundMethod(PyValue::Function("onFrame", Stage_OnFrame, nullptr), PyValue(this));
 	return PyValue::None();
 }
 
@@ -688,6 +970,10 @@ bool StageProxy::SetAttr(const String& name, const PyValue& v) {
 		double frame_time = 1.0 / max(1, app->prj->kps);
 		app->anim->time = frame * frame_time;
 		app->RefrehRenderers();
+		return true;
+	}
+	if (name == "onFrame" || name == "onEnterFrame") {
+		app->AddScriptEventHandler("enterFrame", vm, nullptr, v);
 		return true;
 	}
 	return false;
@@ -948,6 +1234,7 @@ Edit3D::Edit3D() :
 	render_ctx.state = state;
 	render_ctx.anim = anim;
 	render_ctx.video = &video;
+	script_timer.Reset();
 	
 	anim->WhenSceneEnd << THISBACK(OnSceneEnd);
 	
@@ -984,6 +1271,20 @@ Edit3D::Edit3D() :
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
+		});
+		bar.Sub(t_("Edit"), [this](Bar& bar) {
+			bar.Add(t_("Create Editable Mesh"), THISBACK(CreateEditableMeshObject));
+			bar.Separator();
+			bar.Add(t_("Select Tool"), THISBACK1(SetEditTool, TOOL_SELECT))
+				.Check(edit_tool == TOOL_SELECT);
+			bar.Add(t_("Point Tool"), THISBACK1(SetEditTool, TOOL_POINT))
+				.Check(edit_tool == TOOL_POINT);
+			bar.Add(t_("Line Tool"), THISBACK1(SetEditTool, TOOL_LINE))
+				.Check(edit_tool == TOOL_LINE);
+			bar.Add(t_("Face Tool"), THISBACK1(SetEditTool, TOOL_FACE))
+				.Check(edit_tool == TOOL_FACE);
+			bar.Add(t_("Erase Tool"), THISBACK1(SetEditTool, TOOL_ERASE))
+				.Check(edit_tool == TOOL_ERASE);
 		});
 		bar.Sub(t_("Windows"), [this](Bar& bar) { DockWindowMenu(bar); });
 		bar.Sub(t_("Pointcloud"), [this](Bar& bar) {
@@ -1138,6 +1439,7 @@ void Edit3D::Update() {
 		UpdateScriptInstance(inst, false);
 	for (auto& inst : script_instances)
 		RunScriptFrame(inst, dt);
+	DispatchFrameEvents(dt);
 }
 
 void Edit3D::Data() {
@@ -1288,8 +1590,19 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 	PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
 	PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
 	PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);
-	PyValue stage_obj = PyValue(new StageProxy(this));
+	PY_MODULE_FUNC(trace, ModelerTrace, this);
+	PY_MODULE_FUNC(get_timer, ModelerGetTimer, this);
+	PY_MODULE_FUNC(random, ModelerRandom, this);
+	PyValue stage_obj = PyValue(new StageProxy(this, &vm));
 	vm.GetGlobals().GetAdd(PyValue("stage")) = stage_obj;
+	vm.GetGlobals().GetAdd(PyValue("trace")) = PyValue::Function("trace", ModelerTrace, this);
+	vm.GetGlobals().GetAdd(PyValue("getTimer")) = PyValue::Function("getTimer", ModelerGetTimer, this);
+	vm.GetGlobals().GetAdd(PyValue("random")) = PyValue::Function("random", ModelerRandom, this);
+	PyValue root_obj = PyValue::None();
+	if (state)
+		root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &vm);
+	vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+	vm.GetGlobals().GetAdd(PyValue("this")) = root_obj;
 }
 
 void Edit3D::EnsureScriptInstances() {
@@ -1313,8 +1626,10 @@ void Edit3D::EnsureScriptInstances() {
 				break;
 			}
 		}
-		if (!found)
+		if (!found) {
+			RemoveScriptEventHandlers(&script_instances[i].vm);
 			script_instances.Remove(i);
+		}
 	}
 	for (GeomScript* script : scripts) {
 		bool found = false;
@@ -1345,6 +1660,7 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 	bool needs_reload = force_reload || !inst.loaded || mod != inst.file_time;
 	if (!needs_reload)
 		return;
+	RemoveScriptEventHandlers(&inst.vm);
 	inst.file_time = mod;
 	inst.loaded = false;
 	inst.has_load = false;
@@ -1359,6 +1675,17 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 	}
 	inst.vm = PyVM();
 	RegisterScriptVM(inst.vm);
+	if (state) {
+		PyValue root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &inst.vm);
+		inst.vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		PyValue this_obj = root_obj;
+		if (inst.owner) {
+			PyValue owner_obj = MakeDisplayObject(this, inst.owner, &inst.vm);
+			if (!owner_obj.IsNone())
+				this_obj = owner_obj;
+		}
+		inst.vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+	}
 	inst.vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(project_dir);
 	inst.vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(abs);
 	if (!RunPyIR(inst.vm, ir, err)) {
@@ -1425,6 +1752,311 @@ void Edit3D::RunScriptFrame(ScriptInstance& inst, double dt) {
 	String err;
 	if (!RunPyIR(inst.vm, inst.frame_ir, err))
 		LOG("Script on_frame failed: " + err);
+}
+
+void Edit3D::AddScriptEventHandler(const String& event, PyVM* vm, VfsValue* node, const PyValue& func) {
+	if (!vm || (!func.IsFunction() && !func.IsBoundMethod()))
+		return;
+	ScriptEventHandler& h = script_event_handlers.Add();
+	h.event = ToLower(event);
+	h.func = func;
+	h.vm = vm;
+	h.node = node;
+}
+
+void Edit3D::RemoveScriptEventHandlers(PyVM* vm) {
+	if (!vm)
+		return;
+	for (int i = script_event_handlers.GetCount() - 1; i >= 0; i--) {
+		if (script_event_handlers[i].vm == vm)
+			script_event_handlers.Remove(i);
+	}
+}
+
+static bool RunPyCallback(PyVM& vm, const PyValue& func, const Vector<PyValue>& args, String& err) {
+	if (!func.IsFunction() && !func.IsBoundMethod())
+		return false;
+	Vector<PyIR> ir;
+	ir.Add(PyIR(PY_LOAD_CONST, func));
+	for (const PyValue& a : args)
+		ir.Add(PyIR(PY_LOAD_CONST, a));
+	ir.Add(PyIR(PY_CALL_FUNCTION, (int)args.GetCount(), 0));
+	ir.Add(PyIR(PY_RETURN_VALUE));
+	return RunPyIR(vm, ir, err);
+}
+
+void Edit3D::DispatchScriptEvent(const String& event, VfsValue* node, const PyValue& payload) {
+	String key = ToLower(event);
+	for (const ScriptEventHandler& h : script_event_handlers) {
+		if (h.event != key)
+			continue;
+		if (node && h.node && h.node != node)
+			continue;
+		if (!node && h.node) {
+			// allow global dispatch to reach node handlers (enterFrame).
+		}
+		if (!h.vm)
+			continue;
+		Vector<PyValue> args;
+		args.Add(payload);
+		String err;
+		if (!RunPyCallback(*h.vm, h.func, args, err))
+			LOG("Script event failed: " + err);
+	}
+}
+
+void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i) {
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool != TOOL_SELECT) {
+		GeomObject* obj = v0.selected_obj;
+		if (obj) {
+			vec3 world;
+			if (ScreenToWorldPoint(view_i, p, world)) {
+				GeomEditableMesh& mesh = obj->GetEditableMesh();
+				vec3 obj_pos = vec3(0);
+				quat obj_ori = Identity<quat>();
+				vec3 obj_scale = vec3(1);
+				if (state) {
+					if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+						obj_pos = os->position;
+						obj_ori = os->orientation;
+						obj_scale = os->scale;
+					}
+				}
+				else if (GeomTransform* tr = obj->FindTransform()) {
+					obj_pos = tr->position;
+					obj_ori = tr->orientation;
+					obj_scale = tr->scale;
+				}
+				auto world_to_local = [&](const vec3& w) {
+					quat inv = obj_ori.GetInverse();
+					vec3 v = VectorTransform(w - obj_pos, inv);
+					vec3 out = v;
+					if (obj_scale[0] != 0) out[0] /= obj_scale[0];
+					if (obj_scale[1] != 0) out[1] /= obj_scale[1];
+					if (obj_scale[2] != 0) out[2] /= obj_scale[2];
+					return out;
+				};
+				int picked = PickNearestPoint(mesh, view_i, p, edit_pick_radius_px);
+				if (edit_tool == TOOL_POINT) {
+					vec3 local = world_to_local(world);
+					mesh.points.Add(local);
+					state->UpdateObjects();
+					RefrehRenderers();
+				}
+				else if (edit_tool == TOOL_LINE) {
+					int idx = picked;
+					if (idx < 0) {
+						vec3 local = world_to_local(world);
+						idx = mesh.points.GetCount();
+						mesh.points.Add(local);
+					}
+					if (edit_line_start < 0) {
+						edit_line_start = idx;
+					}
+					else {
+						if (edit_line_start != idx) {
+							GeomEdge edge;
+							edge.a = edit_line_start;
+							edge.b = idx;
+							mesh.lines.Add(edge);
+						}
+						edit_line_start = idx;
+					}
+					state->UpdateObjects();
+					RefrehRenderers();
+				}
+				else if (edit_tool == TOOL_FACE) {
+					int idx = picked;
+					if (idx < 0) {
+						vec3 local = world_to_local(world);
+						idx = mesh.points.GetCount();
+						mesh.points.Add(local);
+					}
+					edit_face_points.Add(idx);
+					if (edit_face_points.GetCount() >= 3) {
+						GeomFace face;
+						face.a = edit_face_points[0];
+						face.b = edit_face_points[1];
+						face.c = edit_face_points[2];
+						mesh.faces.Add(face);
+						edit_face_points.Clear();
+					}
+					state->UpdateObjects();
+					RefrehRenderers();
+				}
+				else if (edit_tool == TOOL_ERASE) {
+					if (picked >= 0) {
+						RemoveEditablePoint(mesh, picked);
+						state->UpdateObjects();
+						RefrehRenderers();
+					}
+				}
+			}
+		}
+	}
+	PyValue payload = PyValue::Dict();
+	payload.SetItem(PyValue("type"), PyValue(type));
+	payload.SetItem(PyValue("x"), PyValue(p.x));
+	payload.SetItem(PyValue("y"), PyValue(p.y));
+	payload.SetItem(PyValue("flags"), PyValue((int64)flags));
+	payload.SetItem(PyValue("key"), PyValue(key));
+	payload.SetItem(PyValue("view"), PyValue(view_i));
+	if (anim) {
+		payload.SetItem(PyValue("time"), PyValue(anim->time));
+		payload.SetItem(PyValue("frame"), PyValue(anim->position));
+	}
+	DispatchScriptEvent(type, nullptr, payload);
+}
+
+void Edit3D::DispatchFrameEvents(double dt) {
+	double time = anim ? anim->time : 0.0;
+	int frame = anim ? anim->position : 0;
+	for (const ScriptEventHandler& h : script_event_handlers) {
+		if (h.event != "enterframe")
+			continue;
+		if (!h.vm)
+			continue;
+		PyValue payload = PyValue::Dict();
+		payload.SetItem(PyValue("type"), PyValue("enterFrame"));
+		payload.SetItem(PyValue("dt"), PyValue(dt));
+		payload.SetItem(PyValue("time"), PyValue(time));
+		payload.SetItem(PyValue("frame"), PyValue(frame));
+		if (h.node)
+			payload.SetItem(PyValue("target"), MakeDisplayObject(this, h.node, h.vm));
+		Vector<PyValue> args;
+		args.Add(payload);
+		String err;
+		if (!RunPyCallback(*h.vm, h.func, args, err))
+			LOG("Script enterFrame failed: " + err);
+	}
+}
+
+void Edit3D::SetEditTool(EditTool tool) {
+	edit_tool = tool;
+	edit_line_start = -1;
+	edit_face_points.Clear();
+}
+
+void Edit3D::CreateEditableMeshObject() {
+	if (!state)
+		return;
+	GeomDirectory* dir = nullptr;
+	if (v0.selected_ref && v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && v0.selected_ref->vfs)
+		dir = GetNodeDirectory(*v0.selected_ref->vfs);
+	if (!dir)
+		dir = &state->GetActiveScene();
+	String base = "editable_mesh";
+	String name = base;
+	int idx = 1;
+	while (dir->FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir->GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	obj.GetEditableMesh();
+	state->UpdateObjects();
+	RefreshData();
+}
+
+bool Edit3D::ScreenToWorldPoint(int view_i, const Point& p, vec3& out) const {
+	if (view_i < 0 || view_i >= 4)
+		return false;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return false;
+	Size sz = rend->GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return false;
+	GeomCamera& gcam = rend->GetGeomCamera();
+	Camera cam;
+	gcam.LoadCamera(rend->view_mode, cam, sz);
+	mat4 view = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	vec2 origin(0, 0);
+	vec2 size((float)sz.cx, (float)sz.cy);
+	vec3 pnear = Unproject(vec3(p.x, p.y, 0.0f), origin, size, view, proj);
+	vec3 pfar = Unproject(vec3(p.x, p.y, 1.0f), origin, size, view, proj);
+	vec3 dir = pfar - pnear;
+	if (fabs(dir[2]) < 1e-6)
+		return false;
+	float t = -pnear[2] / dir[2];
+	out = pnear + dir * t;
+	return true;
+}
+
+int Edit3D::PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const {
+	if (!state)
+		return -1;
+	GeomObject* obj = v0.selected_obj;
+	if (!obj)
+		return -1;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return -1;
+	Size sz = rend->GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return -1;
+	GeomCamera& gcam = rend->GetGeomCamera();
+	Camera cam;
+	gcam.LoadCamera(rend->view_mode, cam, sz);
+	mat4 view = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	vec3 obj_pos = vec3(0);
+	quat obj_ori = Identity<quat>();
+	vec3 obj_scale = vec3(1);
+	if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+		obj_pos = os->position;
+		obj_ori = os->orientation;
+		obj_scale = os->scale;
+	}
+	double best = radius_px * radius_px;
+	int best_idx = -1;
+	for (int i = 0; i < mesh.points.GetCount(); i++) {
+		vec3 local = mesh.points[i];
+		vec3 scaled(local[0] * obj_scale[0], local[1] * obj_scale[1], local[2] * obj_scale[2]);
+		vec3 world = VectorTransform(scaled, obj_ori) + obj_pos;
+		vec4 clip = proj * (view * world.Embed());
+		if (clip[3] == 0)
+			continue;
+		vec3 ndc = clip.Splice() / clip[3];
+		if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+			continue;
+		Point pt(
+			(int)floor((ndc[0] + 1) * 0.5 * (float)sz.cx + 0.5f),
+			(int)floor((-ndc[1] + 1) * 0.5 * (float)sz.cy + 0.5f));
+		double dx = pt.x - p.x;
+		double dy = pt.y - p.y;
+		double d2 = dx * dx + dy * dy;
+		if (d2 < best) {
+			best = d2;
+			best_idx = i;
+		}
+	}
+	return best_idx;
+}
+
+void Edit3D::RemoveEditablePoint(GeomEditableMesh& mesh, int idx) {
+	if (idx < 0 || idx >= mesh.points.GetCount())
+		return;
+	mesh.points.Remove(idx);
+	for (int i = mesh.lines.GetCount() - 1; i >= 0; i--) {
+		GeomEdge& e = mesh.lines[i];
+		if (e.a == idx || e.b == idx)
+			mesh.lines.Remove(i);
+		else {
+			if (e.a > idx) e.a--;
+			if (e.b > idx) e.b--;
+		}
+	}
+	for (int i = mesh.faces.GetCount() - 1; i >= 0; i--) {
+		GeomFace& f = mesh.faces[i];
+		if (f.a == idx || f.b == idx || f.c == idx)
+			mesh.faces.Remove(i);
+		else {
+			if (f.a > idx) f.a--;
+			if (f.b > idx) f.b--;
+			if (f.c > idx) f.c--;
+		}
+	}
 }
 
 void Edit3D::CreateDefaultInit() {

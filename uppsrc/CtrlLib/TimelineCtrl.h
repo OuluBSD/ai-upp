@@ -72,6 +72,8 @@ public:
 	void Layout() override;
 	
 	Callback1<int> WhenCursor;
+	Event<Bar&> WhenMenu;
+	Event<Bar&, int> WhenRowMenu;
 	
 };
 

@@ -90,7 +90,12 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 }
 
 void TimelineRowCtrl::RightDown(Point p, dword keyflags) {
-	
+	if (!owner)
+		return;
+	if (owner->WhenRowMenu) {
+		MenuBar::Execute([&](Bar& bar) { owner->WhenRowMenu(bar, id); }, GetMousePos());
+		return;
+	}
 }
 
 void TimelineRowCtrl::GotFocus() {
@@ -152,7 +157,8 @@ void TimelineCtrl::LeftDown(Point p, dword keyflags) {
 }
 
 void TimelineCtrl::RightDown(Point p, dword keyflags) {
-	
+	if (WhenMenu)
+		MenuBar::Execute(WhenMenu, GetMousePos());
 }
 
 void TimelineCtrl::MouseWheel(Point p, int zdelta, dword keyflags) {

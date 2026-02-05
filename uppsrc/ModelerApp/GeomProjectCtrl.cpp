@@ -356,6 +356,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	this->e = e;
 	
 	time.WhenCursor << THISBACK(OnCursor);
+	time.WhenRowMenu = THISBACK(TimelineRowMenu);
 	tree.WhenCursor << THISBACK(TreeSelect);
 	tree.WhenMenu = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
@@ -1816,6 +1817,9 @@ void GeomProjectCtrl::TimelineData() {
 	GeomObjectCollection collection(scene);
 	for (GeomObject& o : collection)
 		objects.Add(&o);
+
+	timeline_row_keys.Clear();
+	timeline_row_keys.SetCount(objects.GetCount());
 	
 	time.SetCount(objects.GetCount());
 	time.SetKeypointRate(prj.kps);
@@ -1824,6 +1828,7 @@ void GeomProjectCtrl::TimelineData() {
 	
 	for(int i = 0; i < objects.GetCount(); i++) {
 		GeomObject& o = *objects[i];
+		timeline_row_keys[i] = o.key;
 		/*int j = prj.list[i];
 		int id = j / GeomProject::O_COUNT;
 		int type = j % GeomProject::O_COUNT;*/
@@ -1833,16 +1838,130 @@ void GeomProjectCtrl::TimelineData() {
 		TimelineRowCtrl& row = time.GetRowIndex(i);
 		row.SetTitle(name);
 		
-		GeomTimeline* tl = o.FindTimeline();
-		if (tl)
-			row.SetKeypoints(tl->keypoints.GetKeys());
-		else
-			row.SetKeypoints(Vector<int>());
+		Index<int> keys;
+		if (GeomTimeline* tl = o.FindTimeline()) {
+			for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+				int key = tl->keypoints.GetKey(k);
+				if (keys.Find(key) < 0)
+					keys.Add(key);
+			}
+		}
+		if (GeomMeshAnimation* ma = o.FindMeshAnimation()) {
+			for (int k = 0; k < ma->keyframes.GetCount(); k++) {
+				int key = ma->keyframes.GetKey(k);
+				if (keys.Find(key) < 0)
+					keys.Add(key);
+			}
+		}
+		if (Geom2DAnimation* a2d = o.Find2DAnimation()) {
+			for (int k = 0; k < a2d->keyframes.GetCount(); k++) {
+				int key = a2d->keyframes.GetKey(k);
+				if (keys.Find(key) < 0)
+					keys.Add(key);
+			}
+		}
+		Vector<int> row_keys;
+		row_keys.SetCount(keys.GetCount());
+		for (int k = 0; k < keys.GetCount(); k++)
+			row_keys[k] = keys[k];
+		Sort(row_keys);
+		row.SetKeypoints(row_keys);
 		
 		row.Refresh();
 	}
 	
 	time.Refresh();
+}
+
+void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
+	if (!e || !e->state)
+		return;
+	if (row < 0 || row >= timeline_row_keys.GetCount())
+		return;
+	hash_t key = timeline_row_keys[row];
+	GeomObject* obj = e->state->FindObjectByKey(key);
+	if (!obj)
+		return;
+	int frame = e->anim ? e->anim->position : 0;
+	bar.Add(t_("Add Transform Keyframe"), [=] {
+		if (!e || !e->state)
+			return;
+		GeomTimeline& tl = obj->GetTimeline();
+		GeomKeypoint& kp = tl.GetAddKeypoint(frame);
+		kp.frame_id = frame;
+		if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key)) {
+			kp.position = os->position;
+			kp.orientation = os->orientation;
+		}
+		else if (GeomTransform* tr = obj->FindTransform()) {
+			kp.position = tr->position;
+			kp.orientation = tr->orientation;
+		}
+		TimelineData();
+	});
+	if (obj->FindEditableMesh()) {
+		bar.Add(t_("Add Mesh Keyframe"), [=] {
+			if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
+				GeomMeshAnimation& anim = obj->GetMeshAnimation();
+				GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
+				kf.frame_id = frame;
+				kf.points.SetCount(mesh->points.GetCount());
+				for (int i = 0; i < mesh->points.GetCount(); i++)
+					kf.points[i] = mesh->points[i];
+				TimelineData();
+			}
+		});
+	}
+	if (obj->Find2DLayer()) {
+		bar.Add(t_("Add 2D Keyframe"), [=] {
+			if (Geom2DLayer* layer = obj->Find2DLayer()) {
+				Geom2DAnimation& anim = obj->Get2DAnimation();
+				Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
+				kf.frame_id = frame;
+				kf.shapes.SetCount(layer->shapes.GetCount());
+				for (int i = 0; i < layer->shapes.GetCount(); i++) {
+					const Geom2DShape& s = layer->shapes[i];
+					Geom2DShape& d = kf.shapes[i];
+					d.type = s.type;
+					d.radius = s.radius;
+					d.stroke = s.stroke;
+					d.width = s.width;
+					d.closed = s.closed;
+					d.points.SetCount(s.points.GetCount());
+					for (int k = 0; k < s.points.GetCount(); k++)
+						d.points[k] = s.points[k];
+				}
+				TimelineData();
+			}
+		});
+	}
+	bar.Separator();
+	bar.Add(t_("Clear Transform Keyframes"), [=] {
+		if (GeomTimeline* tl = obj->FindTimeline())
+			tl->keypoints.Clear();
+		TimelineData();
+	});
+	if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
+		bar.Add(t_("Clear Mesh Keyframes"), [=] {
+			ma->keyframes.Clear();
+			TimelineData();
+		});
+	}
+	if (Geom2DAnimation* a2d = obj->Find2DAnimation()) {
+		bar.Add(t_("Clear 2D Keyframes"), [=] {
+			a2d->keyframes.Clear();
+			TimelineData();
+		});
+	}
+	bar.Add(t_("Clear All Keyframes"), [=] {
+		if (GeomTimeline* tl = obj->FindTimeline())
+			tl->keypoints.Clear();
+		if (GeomMeshAnimation* ma = obj->FindMeshAnimation())
+			ma->keyframes.Clear();
+		if (Geom2DAnimation* a2d = obj->Find2DAnimation())
+			a2d->keyframes.Clear();
+		TimelineData();
+	});
 }
 
 END_UPP_NAMESPACE

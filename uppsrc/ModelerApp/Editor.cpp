@@ -1356,6 +1356,10 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Add Keyframe"), THISBACK(AddMeshKeyframeAtCursor));
 				bar.Add(t_("Clear Keyframes"), THISBACK(ClearMeshKeyframes));
 			});
+			bar.Sub(t_("2D Animation"), [this](Bar& bar) {
+				bar.Add(t_("Add Keyframe"), THISBACK(Add2DKeyframeAtCursor));
+				bar.Add(t_("Clear Keyframes"), THISBACK(Clear2DKeyframes));
+			});
 			bar.Sub(t_("Skeleton"), [this](Bar& bar) {
 				bar.Add(t_("Create Skeleton"), THISBACK(CreateSkeletonForSelected));
 				bar.Add(t_("Add Bone"), THISBACK(AddBoneToSelectedSkeleton));
@@ -2613,6 +2617,15 @@ GeomObject* Edit3D::GetFocusedMeshObject() {
 	return obj;
 }
 
+GeomObject* Edit3D::GetFocused2DObject() {
+	if (!state || state->focus_mode != 1 || !state->focus_object_key)
+		return nullptr;
+	GeomObject* obj = state->FindObjectByKey(state->focus_object_key);
+	if (!obj || !obj->Find2DLayer())
+		return nullptr;
+	return obj;
+}
+
 void Edit3D::AddMeshKeyframeAtCursor() {
 	GeomObject* obj = GetFocusedMeshObject();
 	if (!obj)
@@ -2635,6 +2648,42 @@ void Edit3D::ClearMeshKeyframes() {
 	if (!obj)
 		return;
 	if (GeomMeshAnimation* anim = obj->FindMeshAnimation())
+		anim->keyframes.Clear();
+	RefrehRenderers();
+}
+
+void Edit3D::Add2DKeyframeAtCursor() {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	Geom2DAnimation& anim = obj->Get2DAnimation();
+	int frame = this->anim ? this->anim->position : 0;
+	Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
+	kf.frame_id = frame;
+	kf.shapes.SetCount(layer->shapes.GetCount());
+	for (int i = 0; i < layer->shapes.GetCount(); i++) {
+		const Geom2DShape& s = layer->shapes[i];
+		Geom2DShape& d = kf.shapes[i];
+		d.type = s.type;
+		d.radius = s.radius;
+		d.stroke = s.stroke;
+		d.width = s.width;
+		d.closed = s.closed;
+		d.points.SetCount(s.points.GetCount());
+		for (int k = 0; k < s.points.GetCount(); k++)
+			d.points[k] = s.points[k];
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::Clear2DKeyframes() {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj)
+		return;
+	if (Geom2DAnimation* anim = obj->Find2DAnimation())
 		anim->keyframes.Clear();
 	RefrehRenderers();
 }

@@ -13,4 +13,4 @@ Enable animation of 2D graphics objects within the 3D scene.
 - 2D shapes animate smoothly and persist on save/load.
 
 ## Status
-- Pending
+- Done

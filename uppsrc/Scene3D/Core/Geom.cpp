@@ -9,6 +9,7 @@ static bool IsGeomDirectoryType(const VfsValue& v) {
 }
 
 static void ApplyMeshAnimation(GeomObject& obj, int position, double time, int kps);
+static void Apply2DAnimation(GeomObject& obj, int position, double time, int kps);
 
 GeomObjectIterator::GeomObjectIterator(GeomDirectory& d) {
 	addr[0] = &d.val;
@@ -129,6 +130,7 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 				os.orientation = Slerp(pre.orientation, post.orientation, f);
 			}
 		}
+		Apply2DAnimation(o, position, time, prj.kps);
 		ApplyMeshAnimation(o, position, time, prj.kps);
 	}
 	if (state.active_camera_obj_i >= 0) {
@@ -427,6 +429,73 @@ void Geom2DLayer::Visit(Vis& v) {
 				shapes[i].Visit(v);
 		}
 	}
+}
+
+void Geom2DKeyframe::Visit(Vis& v) {
+	v VIS_(frame_id);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			shapes.Clear();
+			const Value& arr = v.json->Get()["shapes"];
+			for (int i = 0; i < arr.GetCount(); i++) {
+				Geom2DShape shape;
+				JsonIO jio(arr[i]);
+				Vis vis(jio);
+				shape.Visit(vis);
+				shapes.Add(pick(shape));
+			}
+		}
+		else {
+			Vector<Value> arr;
+			for (Geom2DShape& shape : shapes)
+				arr.Add(v.VisitAsJsonValue(shape));
+			v.json->Set("shapes", ValueArray(pick(arr)));
+		}
+	}
+	else {
+		int count = shapes.GetCount();
+		v VIS_(count);
+		if (v.IsLoading()) {
+			shapes.SetCount(count);
+			for (int i = 0; i < count; i++)
+				shapes[i].Visit(v);
+		}
+		else {
+			for (int i = 0; i < count; i++)
+				shapes[i].Visit(v);
+		}
+	}
+}
+
+Geom2DKeyframe& Geom2DAnimation::GetAddKeyframe(int frame) {
+	int i = keyframes.Find(frame);
+	if (i >= 0)
+		return keyframes[i];
+	Geom2DKeyframe& kf = keyframes.Add(frame);
+	kf.frame_id = frame;
+	return kf;
+}
+
+int Geom2DAnimation::FindPre(int frame) const {
+	for (int i = keyframes.GetCount() - 1; i >= 0; i--) {
+		int j = keyframes.GetKey(i);
+		if (j <= frame)
+			return i;
+	}
+	return -1;
+}
+
+int Geom2DAnimation::FindPost(int frame) const {
+	for (int i = 0; i < keyframes.GetCount(); i++) {
+		int j = keyframes.GetKey(i);
+		if (j >= frame)
+			return i;
+	}
+	return -1;
+}
+
+void Geom2DAnimation::Visit(Vis& v) {
+	v VISM(keyframes);
 }
 
 void GeomMeshKeyframe::Visit(Vis& v) {
@@ -868,6 +937,20 @@ Geom2DLayer* GeomObject::Find2DLayer() const {
 	return 0;
 }
 
+Geom2DAnimation& GeomObject::Get2DAnimation() {
+	static bool init = (TypedStringHasher<Geom2DAnimation>("Geom2DAnimation"), true);
+	return val.GetAdd<Geom2DAnimation>("layer2d_anim");
+}
+
+Geom2DAnimation* GeomObject::Find2DAnimation() const {
+	static bool init = (TypedStringHasher<Geom2DAnimation>("Geom2DAnimation"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<Geom2DAnimation>()) && sub.id == "layer2d_anim")
+			return &sub.GetExt<Geom2DAnimation>();
+	}
+	return 0;
+}
+
 GeomMeshAnimation& GeomObject::GetMeshAnimation() {
 	static bool init = (TypedStringHasher<GeomMeshAnimation>("GeomMeshAnimation"), true);
 	return val.GetAdd<GeomMeshAnimation>("mesh_anim");
@@ -968,6 +1051,8 @@ void GeomObject::Visit(Vis& v) {
 	v("editable", mesh, VISIT_NODE);
 	Geom2DLayer& layer2d = Get2DLayer();
 	v("layer2d", layer2d, VISIT_NODE);
+	Geom2DAnimation& layer2d_anim = Get2DAnimation();
+	v("layer2d_anim", layer2d_anim, VISIT_NODE);
 	GeomMeshAnimation& mesh_anim = GetMeshAnimation();
 	v("mesh_anim", mesh_anim, VISIT_NODE);
 	GeomSkeleton* skel_ptr = FindSkeleton();
@@ -1674,6 +1759,72 @@ static void ApplyMeshAnimation(GeomObject& obj, int position, double time, int k
 		mesh->points[i] = Lerp(pre.points[i], post.points[i], f);
 }
 
+static void Copy2DShapes(Vector<Geom2DShape>& dst, const Vector<Geom2DShape>& src) {
+	dst.SetCount(src.GetCount());
+	for (int i = 0; i < src.GetCount(); i++) {
+		const Geom2DShape& s = src[i];
+		Geom2DShape& d = dst[i];
+		d.type = s.type;
+		d.radius = s.radius;
+		d.stroke = s.stroke;
+		d.width = s.width;
+		d.closed = s.closed;
+		d.points.SetCount(s.points.GetCount());
+		for (int k = 0; k < s.points.GetCount(); k++)
+			d.points[k] = s.points[k];
+	}
+}
+
+static void Apply2DAnimation(GeomObject& obj, int position, double time, int kps) {
+	Geom2DLayer* layer = obj.Find2DLayer();
+	Geom2DAnimation* anim = obj.Find2DAnimation();
+	if (!layer || !anim || anim->keyframes.IsEmpty())
+		return;
+	int pre_i = anim->FindPre(position);
+	int post_i = anim->FindPost(position);
+	if (pre_i < 0 && post_i < 0)
+		return;
+	if (pre_i < 0)
+		pre_i = post_i;
+	if (post_i < 0)
+		post_i = pre_i;
+	Geom2DKeyframe& pre = anim->keyframes[pre_i];
+	Geom2DKeyframe& post = anim->keyframes[post_i];
+	if (pre.shapes.IsEmpty())
+		return;
+	if (pre_i == post_i || post.shapes.IsEmpty() || pre.shapes.GetCount() != post.shapes.GetCount()) {
+		Copy2DShapes(layer->shapes, pre.shapes);
+		return;
+	}
+	float pre_time = pre.frame_id / (float)kps;
+	float post_time = post.frame_id / (float)kps;
+	float f = (time - pre_time) / (post_time - pre_time);
+	f = minmax(f, 0.0f, 1.0f);
+	layer->shapes.SetCount(pre.shapes.GetCount());
+	for (int i = 0; i < pre.shapes.GetCount(); i++) {
+		const Geom2DShape& a = pre.shapes[i];
+		const Geom2DShape& b = post.shapes[i];
+		Geom2DShape& d = layer->shapes[i];
+		d.type = a.type;
+		d.closed = a.closed;
+		d.stroke = a.stroke;
+		d.width = (float)((1.0f - f) * a.width + f * b.width);
+		d.radius = (float)((1.0f - f) * a.radius + f * b.radius);
+		if (a.type != b.type || a.points.GetCount() != b.points.GetCount()) {
+			d.points.Clear();
+			d.points.SetCount(a.points.GetCount());
+			for (int k = 0; k < a.points.GetCount(); k++)
+				d.points[k] = a.points[k];
+			continue;
+		}
+		d.points.SetCount(a.points.GetCount());
+		for (int k = 0; k < a.points.GetCount(); k++) {
+			d.points[k][0] = (float)((1.0f - f) * a.points[k][0] + f * b.points[k][0]);
+			d.points[k][1] = (float)((1.0f - f) * a.points[k][1] + f * b.points[k][1]);
+		}
+	}
+}
+
 
 
 
@@ -1721,6 +1872,7 @@ void GeomAnim::Update(double dt) {
 				}
 			}
 		}
+		Apply2DAnimation(o, position, time, prj.kps);
 		ApplyMeshAnimation(o, position, time, prj.kps);
 	}
 	
@@ -1782,6 +1934,7 @@ INITIALIZER_VFSEXT(GeomSkeleton, "scene3d.skeleton", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkinWeights, "scene3d.skinweights", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
 INITIALIZER_VFSEXT(Geom2DLayer, "scene3d.layer2d", "Scene3D|Core")
+INITIALIZER_VFSEXT(Geom2DAnimation, "scene3d.layer2d.anim", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomMeshAnimation, "scene3d.mesh.anim", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")

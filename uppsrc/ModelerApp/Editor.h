@@ -322,8 +322,11 @@ struct Edit3D : DockWindow {
 	void CreateEditableMeshObject();
 	void Create2DLayerObject();
 	GeomObject* GetFocusedMeshObject();
+	GeomObject* GetFocused2DObject();
 	void AddMeshKeyframeAtCursor();
 	void ClearMeshKeyframes();
+	void Add2DKeyframeAtCursor();
+	void Clear2DKeyframes();
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	void CreateSkeletonForSelected();

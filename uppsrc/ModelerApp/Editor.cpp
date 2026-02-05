@@ -871,6 +871,8 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 }
 
 void Edit3D::EnsureScriptInstances() {
+	if (!state || !state->prj || state->active_scene < 0 || state->active_scene >= state->prj->GetSceneCount())
+		return;
 	GeomScene& scene = GetActiveScene();
 	Vector<GeomScript*> scripts;
 	GetScriptsFromNode(scene.val, scripts);

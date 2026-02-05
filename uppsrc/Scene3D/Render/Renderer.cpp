@@ -107,6 +107,74 @@ void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjec
 	}
 }
 
+void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
+                        const Geom2DLayer& layer, bool z_cull) {
+	if (!layer.visible)
+		return;
+	auto local_to_world = [&](const vec2& p) {
+		vec3 local(p[0] * os.scale[0], p[1] * os.scale[1], 0);
+		return os.position + VectorTransform(local, os.orientation);
+	};
+	auto draw_poly = [&](const Vector<vec2>& pts, const Color& clr, float width, bool closed) {
+		if (pts.GetCount() < 2)
+			return;
+		for (int i = 1; i < pts.GetCount(); i++) {
+			DrawLine(sz, d, view, local_to_world(pts[i - 1]), local_to_world(pts[i]), (int)width, clr, z_cull);
+		}
+		if (closed)
+			DrawLine(sz, d, view, local_to_world(pts.Top()), local_to_world(pts[0]), (int)width, clr, z_cull);
+	};
+	for (const Geom2DShape& shape : layer.shapes) {
+		Color clr = shape.stroke;
+		float w = shape.width <= 0 ? 1.0f : shape.width;
+		switch (shape.type) {
+		case Geom2DShape::S_LINE:
+			if (shape.points.GetCount() >= 2)
+				DrawLine(sz, d, view, local_to_world(shape.points[0]), local_to_world(shape.points[1]), (int)w, clr, z_cull);
+			break;
+		case Geom2DShape::S_RECT:
+			if (shape.points.GetCount() >= 2) {
+				vec2 a = shape.points[0];
+				vec2 b = shape.points[1];
+				vec2 p0(min(a[0], b[0]), min(a[1], b[1]));
+				vec2 p1(max(a[0], b[0]), min(a[1], b[1]));
+				vec2 p2(max(a[0], b[0]), max(a[1], b[1]));
+				vec2 p3(min(a[0], b[0]), max(a[1], b[1]));
+				DrawLine(sz, d, view, local_to_world(p0), local_to_world(p1), (int)w, clr, z_cull);
+				DrawLine(sz, d, view, local_to_world(p1), local_to_world(p2), (int)w, clr, z_cull);
+				DrawLine(sz, d, view, local_to_world(p2), local_to_world(p3), (int)w, clr, z_cull);
+				DrawLine(sz, d, view, local_to_world(p3), local_to_world(p0), (int)w, clr, z_cull);
+			}
+			break;
+		case Geom2DShape::S_CIRCLE:
+			if (shape.points.GetCount() >= 1) {
+				vec2 c = shape.points[0];
+				float r = shape.radius;
+				if (r <= 0 && shape.points.GetCount() >= 2) {
+					vec2 d2 = shape.points[1] - shape.points[0];
+					r = sqrt(Dot(d2, d2));
+				}
+				if (r > 0) {
+					const int steps = 32;
+					Vector<vec2> pts;
+					pts.SetCount(steps);
+					for (int i = 0; i < steps; i++) {
+						float a = (float)i / (float)steps * 2.0f * (float)M_PI;
+						pts[i] = c + vec2(cos(a), sin(a)) * r;
+					}
+					draw_poly(pts, clr, w, true);
+				}
+			}
+			break;
+		case Geom2DShape::S_POLY:
+			draw_poly(shape.points, clr, w, shape.closed);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 void DrawSkeletonRecursive(Size sz, Draw& d, const mat4& view, const vec3& parent_pos,
                            const quat& parent_ori, const vec3& parent_scale, VfsValue& bone_node,
                            VfsValue* selected, bool z_cull) {
@@ -395,6 +463,10 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 			}
 			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights);
 		}
+	}
+	if (Geom2DLayer* layer = go.Find2DLayer()) {
+		if (!layer->shapes.IsEmpty())
+			Draw2DLayerOverlay(sz, d, view, os, *layer, z_cull);
 	}
 	if (GeomSkeleton* sk = go.FindSkeleton()) {
 		for (auto& sub : sk->val.sub) {

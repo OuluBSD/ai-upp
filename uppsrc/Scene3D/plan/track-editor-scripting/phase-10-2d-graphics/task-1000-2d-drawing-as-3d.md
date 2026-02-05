@@ -17,4 +17,4 @@ Add 2D drawing tools that create 3D-rendered objects (e.g., billboarded or plana
 - Shapes are editable and persist on save/load.
 
 ## Status
-- Pending
+- Done

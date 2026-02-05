@@ -166,3 +166,7 @@
   task: track-editor-scripting/phase-09-scenes-animation/task-0901-mesh-polygon-animation.md
   status: done
   note: Added mesh animation keyframes, playback application, and basic menu actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-10-2d-graphics/task-1000-2d-drawing-as-3d.md
+  status: done
+  note: Added 2D layer component, 2D drawing tools, and renderer overlay for shapes.

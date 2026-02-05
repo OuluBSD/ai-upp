@@ -240,6 +240,22 @@ static vec3 JsonValueToVec3(const Value& v) {
 	return out;
 }
 
+static Value Vec2ToJsonValue(const vec2& p) {
+	ValueArray a;
+	a.Add(p[0]);
+	a.Add(p[1]);
+	return a;
+}
+
+static vec2 JsonValueToVec2(const Value& v) {
+	vec2 out(0);
+	if (v.GetCount() >= 2) {
+		out[0] = v[0];
+		out[1] = v[1];
+	}
+	return out;
+}
+
 void GeomEditableMesh::Visit(Vis& v) {
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
@@ -314,6 +330,101 @@ void GeomEditableMesh::Visit(Vis& v) {
 				lines[i].Visit(v);
 			for (int i = 0; i < face_count; i++)
 				faces[i].Visit(v);
+		}
+	}
+}
+
+void Geom2DShape::Visit(Vis& v) {
+	int type_i = (int)type;
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			points.Clear();
+			type_i = (int)v.json->Get()["type"];
+			radius = (float)v.json->Get()["radius"];
+			width = (float)v.json->Get()["width"];
+			closed = (bool)v.json->Get()["closed"];
+			int r = (int)v.json->Get()["stroke_r"];
+			int g = (int)v.json->Get()["stroke_g"];
+			int b = (int)v.json->Get()["stroke_b"];
+			stroke = Color(r, g, b);
+			const Value& pts = v.json->Get()["points"];
+			for (int i = 0; i < pts.GetCount(); i++)
+				points.Add(JsonValueToVec2(pts[i]));
+		}
+		else {
+			Vector<Value> pts;
+			for (const vec2& p : points)
+				pts.Add(Vec2ToJsonValue(p));
+			v.json->Set("type", (int)type);
+			v.json->Set("radius", radius);
+			v.json->Set("width", width);
+			v.json->Set("closed", closed);
+			v.json->Set("stroke_r", (int)stroke.GetR());
+			v.json->Set("stroke_g", (int)stroke.GetG());
+			v.json->Set("stroke_b", (int)stroke.GetB());
+			v.json->Set("points", ValueArray(pick(pts)));
+		}
+	}
+	else {
+		v VIS_(type_i)
+		  VIS_(radius)
+		  VIS_(width)
+		  VIS_(closed);
+		int r = stroke.GetR();
+		int g = stroke.GetG();
+		int b = stroke.GetB();
+		v VIS_(r)
+		  VIS_(g)
+		  VIS_(b);
+		if (v.IsLoading())
+			stroke = Color(r, g, b);
+		int count = points.GetCount();
+		v VIS_(count);
+		if (v.IsLoading()) {
+			points.SetCount(count);
+			for (int i = 0; i < count; i++)
+				v VISN(points[i]);
+		}
+		else {
+			for (int i = 0; i < count; i++)
+				v VISN(points[i]);
+		}
+	}
+	type = (Geom2DShape::Type)type_i;
+}
+
+void Geom2DLayer::Visit(Vis& v) {
+	v VIS_(visible);
+	if (v.mode == Vis::MODE_JSON) {
+		if (v.IsLoading()) {
+			shapes.Clear();
+			const Value& arr = v.json->Get()["shapes"];
+			for (int i = 0; i < arr.GetCount(); i++) {
+				Geom2DShape shape;
+				JsonIO jio(arr[i]);
+				Vis vis(jio);
+				shape.Visit(vis);
+				shapes.Add(pick(shape));
+			}
+		}
+		else {
+			Vector<Value> arr;
+			for (Geom2DShape& shape : shapes)
+				arr.Add(v.VisitAsJsonValue(shape));
+			v.json->Set("shapes", ValueArray(pick(arr)));
+		}
+	}
+	else {
+		int count = shapes.GetCount();
+		v VIS_(count);
+		if (v.IsLoading()) {
+			shapes.SetCount(count);
+			for (int i = 0; i < count; i++)
+				shapes[i].Visit(v);
+		}
+		else {
+			for (int i = 0; i < count; i++)
+				shapes[i].Visit(v);
 		}
 	}
 }
@@ -743,6 +854,20 @@ GeomEditableMesh* GeomObject::FindEditableMesh() const {
 	return 0;
 }
 
+Geom2DLayer& GeomObject::Get2DLayer() {
+	static bool init = (TypedStringHasher<Geom2DLayer>("Geom2DLayer"), true);
+	return val.GetAdd<Geom2DLayer>("layer2d");
+}
+
+Geom2DLayer* GeomObject::Find2DLayer() const {
+	static bool init = (TypedStringHasher<Geom2DLayer>("Geom2DLayer"), true);
+	for (auto& sub : val.sub) {
+		if (IsVfsType(sub, AsTypeHash<Geom2DLayer>()) && sub.id == "layer2d")
+			return &sub.GetExt<Geom2DLayer>();
+	}
+	return 0;
+}
+
 GeomMeshAnimation& GeomObject::GetMeshAnimation() {
 	static bool init = (TypedStringHasher<GeomMeshAnimation>("GeomMeshAnimation"), true);
 	return val.GetAdd<GeomMeshAnimation>("mesh_anim");
@@ -841,6 +966,8 @@ void GeomObject::Visit(Vis& v) {
 	v("props", props, VISIT_NODE);
 	GeomEditableMesh& mesh = GetEditableMesh();
 	v("editable", mesh, VISIT_NODE);
+	Geom2DLayer& layer2d = Get2DLayer();
+	v("layer2d", layer2d, VISIT_NODE);
 	GeomMeshAnimation& mesh_anim = GetMeshAnimation();
 	v("mesh_anim", mesh_anim, VISIT_NODE);
 	GeomSkeleton* skel_ptr = FindSkeleton();
@@ -1654,6 +1781,7 @@ INITIALIZER_VFSEXT(GeomBone, "scene3d.bone", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkeleton, "scene3d.skeleton", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomSkinWeights, "scene3d.skinweights", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomEditableMesh, "scene3d.editable.mesh", "Scene3D|Core")
+INITIALIZER_VFSEXT(Geom2DLayer, "scene3d.layer2d", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomMeshAnimation, "scene3d.mesh.anim", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudEffectTransform, "scene3d.pointcloud.effect.transform", "Scene3D|Core")
 INITIALIZER_VFSEXT(GeomPointcloudDataset, "scene3d.pointcloud.dataset", "Scene3D|Core")

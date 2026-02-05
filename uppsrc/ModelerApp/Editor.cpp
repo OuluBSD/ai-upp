@@ -1274,6 +1274,7 @@ Edit3D::Edit3D() :
 		});
 		bar.Sub(t_("Edit"), [this](Bar& bar) {
 			bar.Add(t_("Create Editable Mesh"), THISBACK(CreateEditableMeshObject));
+			bar.Add(t_("Create 2D Layer"), THISBACK(Create2DLayerObject));
 			bar.Separator();
 			bar.Add(t_("Select Tool"), THISBACK1(SetEditTool, TOOL_SELECT))
 				.Check(edit_tool == TOOL_SELECT);
@@ -1289,6 +1290,19 @@ Edit3D::Edit3D() :
 				.Check(edit_tool == TOOL_JOIN);
 			bar.Add(t_("Split Tool"), THISBACK1(SetEditTool, TOOL_SPLIT))
 				.Check(edit_tool == TOOL_SPLIT);
+			bar.Separator();
+			bar.Sub(t_("2D Tools"), [this](Bar& bar) {
+				bar.Add(t_("2D Line"), THISBACK1(SetEditTool, TOOL_2D_LINE))
+					.Check(edit_tool == TOOL_2D_LINE);
+				bar.Add(t_("2D Rectangle"), THISBACK1(SetEditTool, TOOL_2D_RECT))
+					.Check(edit_tool == TOOL_2D_RECT);
+				bar.Add(t_("2D Circle"), THISBACK1(SetEditTool, TOOL_2D_CIRCLE))
+					.Check(edit_tool == TOOL_2D_CIRCLE);
+				bar.Add(t_("2D Polygon"), THISBACK1(SetEditTool, TOOL_2D_POLY))
+					.Check(edit_tool == TOOL_2D_POLY);
+				bar.Add(t_("2D Erase"), THISBACK1(SetEditTool, TOOL_2D_ERASE))
+					.Check(edit_tool == TOOL_2D_ERASE);
+			});
 			bar.Separator();
 			bar.Sub(t_("Plane"), [this](Bar& bar) {
 				bar.Add(t_("View Plane"), [this] { edit_plane = PLANE_VIEW; })
@@ -1901,6 +1915,206 @@ void Edit3D::DispatchScriptEvent(const String& event, VfsValue* node, const PyVa
 }
 
 void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i) {
+	auto is_2d_tool = [&](EditTool t) {
+		return t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
+		       t == TOOL_2D_POLY || t == TOOL_2D_ERASE;
+	};
+	auto get_2d_local = [&](GeomObject& obj, vec2& out) -> bool {
+		vec3 plane_origin = vec3(0);
+		vec3 plane_normal = vec3(0, 0, 1);
+		vec3 obj_pos = vec3(0);
+		quat obj_ori = Identity<quat>();
+		vec3 obj_scale = vec3(1);
+		if (state) {
+			if (const GeomObjectState* os = state->FindObjectStateByKey(obj.key)) {
+				obj_pos = os->position;
+				obj_ori = os->orientation;
+				obj_scale = os->scale;
+			}
+		}
+		else if (GeomTransform* tr = obj.FindTransform()) {
+			obj_pos = tr->position;
+			obj_ori = tr->orientation;
+			obj_scale = tr->scale;
+		}
+		plane_origin = obj_pos;
+		auto set_plane_from_view = [&] {
+			if (view_i < 0 || view_i >= 4)
+				return;
+			EditRendererBase* rend = v0.rends[view_i];
+			if (!rend)
+				return;
+			switch (rend->view_mode) {
+			case VIEWMODE_XY: plane_normal = vec3(0, 0, 1); break;
+			case VIEWMODE_XZ: plane_normal = vec3(0, 1, 0); break;
+			case VIEWMODE_YZ: plane_normal = vec3(1, 0, 0); break;
+			case VIEWMODE_PERSPECTIVE:
+				plane_normal = VectorTransform(VEC_FWD, obj_ori);
+				break;
+			default: break;
+			}
+		};
+		switch (edit_plane) {
+		case PLANE_XY: plane_normal = vec3(0, 0, 1); break;
+		case PLANE_XZ: plane_normal = vec3(0, 1, 0); break;
+		case PLANE_YZ: plane_normal = vec3(1, 0, 0); break;
+		case PLANE_LOCAL: plane_normal = VectorTransform(VEC_FWD, obj_ori); break;
+		default: set_plane_from_view(); break;
+		}
+		vec3 world;
+		if (!ScreenToPlaneWorldPoint(view_i, p, plane_origin, plane_normal, world))
+			return false;
+		quat inv = obj_ori.GetInverse();
+		vec3 v = VectorTransform(world - obj_pos, inv);
+		if (obj_scale[0] != 0) v[0] /= obj_scale[0];
+		if (obj_scale[1] != 0) v[1] /= obj_scale[1];
+		if (obj_scale[2] != 0) v[2] /= obj_scale[2];
+		out = vec2(v[0], v[1]);
+		return true;
+	};
+
+	if (view == VIEW_GEOMPROJECT && is_2d_tool(edit_tool)) {
+		GeomObject* obj = v0.selected_obj;
+		if (!obj)
+			return;
+		Geom2DLayer* layer = obj->Find2DLayer();
+		if (!layer)
+			return;
+		vec2 local;
+		if (!get_2d_local(*obj, local))
+			return;
+		if (type == "mouseDown") {
+			if (edit_tool == TOOL_2D_ERASE) {
+				double best = edit_pick_radius_px * edit_pick_radius_px;
+				int best_idx = -1;
+				auto dist2_seg = [](const vec2& a, const vec2& b, const vec2& p) {
+					vec2 d = b - a;
+					float len2 = Dot(d, d);
+					if (len2 <= 1e-6f) {
+						vec2 s = p - a;
+						return (double)Dot(s, s);
+					}
+					float t = Dot(p - a, d) / len2;
+					t = Clamp(t, 0.0f, 1.0f);
+					vec2 c = a + d * t;
+					vec2 s = p - c;
+					return (double)Dot(s, s);
+				};
+				for (int i = 0; i < layer->shapes.GetCount(); i++) {
+					const Geom2DShape& s = layer->shapes[i];
+					if (s.type == Geom2DShape::S_LINE && s.points.GetCount() >= 2) {
+						double d2 = dist2_seg(s.points[0], s.points[1], local);
+						if (d2 < best) {
+							best = d2;
+							best_idx = i;
+						}
+					}
+					else if ((s.type == Geom2DShape::S_RECT || s.type == Geom2DShape::S_POLY) && s.points.GetCount() >= 2) {
+						for (int k = 1; k < s.points.GetCount(); k++) {
+							double d2 = dist2_seg(s.points[k - 1], s.points[k], local);
+							if (d2 < best) {
+								best = d2;
+								best_idx = i;
+							}
+						}
+					}
+					else if (s.type == Geom2DShape::S_CIRCLE && s.points.GetCount() >= 1) {
+						float r = s.radius;
+						if (r <= 0 && s.points.GetCount() >= 2) {
+							vec2 d2 = s.points[1] - s.points[0];
+							r = sqrt(Dot(d2, d2));
+						}
+						if (r > 0) {
+							vec2 diff = local - s.points[0];
+							float d = sqrt(Dot(diff, diff));
+							double d2 = (double)fabs(d - r);
+							if (d2 < best) {
+								best = d2;
+								best_idx = i;
+							}
+						}
+					}
+				}
+				if (best_idx >= 0) {
+					layer->shapes.Remove(best_idx);
+					RefrehRenderers();
+				}
+				return;
+			}
+			if (edit_tool == TOOL_2D_POLY) {
+				if (!draw2d_active) {
+					draw2d_poly.Clear();
+					draw2d_poly.Add(local);
+					draw2d_active = true;
+					draw2d_obj = obj;
+				}
+				else {
+					vec2 diff = draw2d_poly[0] - local;
+					float d = sqrt(Dot(diff, diff));
+					if (draw2d_poly.GetCount() >= 3 && d < 0.05f) {
+						Geom2DShape shape;
+						shape.type = Geom2DShape::S_POLY;
+						shape.points.SetCount(draw2d_poly.GetCount());
+						for (int i = 0; i < draw2d_poly.GetCount(); i++)
+							shape.points[i] = draw2d_poly[i];
+						shape.closed = true;
+						layer->shapes.Add(pick(shape));
+						draw2d_poly.Clear();
+						draw2d_active = false;
+						draw2d_obj = nullptr;
+						RefrehRenderers();
+					}
+					else {
+						draw2d_poly.Add(local);
+					}
+				}
+				return;
+			}
+			draw2d_active = true;
+			draw2d_start = local;
+			draw2d_last = local;
+			draw2d_obj = obj;
+			draw2d_view = view_i;
+			return;
+		}
+		if (type == "mouseMove" && draw2d_active && draw2d_obj == obj) {
+			draw2d_last = local;
+			return;
+		}
+		if (type == "mouseUp" && draw2d_active && draw2d_obj == obj) {
+			Geom2DShape shape;
+			switch (edit_tool) {
+			case TOOL_2D_LINE:
+				shape.type = Geom2DShape::S_LINE;
+				shape.points.Add(draw2d_start);
+				shape.points.Add(draw2d_last);
+				break;
+			case TOOL_2D_RECT:
+				shape.type = Geom2DShape::S_RECT;
+				shape.points.Add(draw2d_start);
+				shape.points.Add(draw2d_last);
+				break;
+			case TOOL_2D_CIRCLE:
+				shape.type = Geom2DShape::S_CIRCLE;
+				shape.points.Add(draw2d_start);
+				shape.points.Add(draw2d_last);
+				{
+					vec2 diff = draw2d_last - draw2d_start;
+					shape.radius = sqrt(Dot(diff, diff));
+				}
+				break;
+			default:
+				break;
+			}
+			if (shape.points.GetCount() >= 2)
+				layer->shapes.Add(pick(shape));
+			draw2d_active = false;
+			draw2d_obj = nullptr;
+			RefrehRenderers();
+			return;
+		}
+	}
+
 	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool != TOOL_SELECT) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
@@ -2345,6 +2559,9 @@ void Edit3D::SetEditTool(EditTool tool) {
 	edit_line_start = -1;
 	edit_join_start = -1;
 	edit_face_points.Clear();
+	draw2d_active = false;
+	draw2d_poly.Clear();
+	draw2d_obj = nullptr;
 }
 
 void Edit3D::CreateEditableMeshObject() {
@@ -2363,6 +2580,26 @@ void Edit3D::CreateEditableMeshObject() {
 	GeomObject& obj = dir->GetAddModel(name);
 	obj.type = GeomObject::O_MODEL;
 	obj.GetEditableMesh();
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::Create2DLayerObject() {
+	if (!state)
+		return;
+	GeomDirectory* dir = nullptr;
+	if (v0.selected_ref && v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && v0.selected_ref->vfs)
+		dir = GetNodeDirectory(*v0.selected_ref->vfs);
+	if (!dir)
+		dir = &state->GetActiveScene();
+	String base = "layer2d";
+	String name = base;
+	int idx = 1;
+	while (dir->FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir->GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	obj.Get2DLayer();
 	state->UpdateObjects();
 	RefreshData();
 }

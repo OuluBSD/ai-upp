@@ -221,6 +221,11 @@ struct Edit3D : DockWindow {
 		TOOL_ERASE,
 		TOOL_JOIN,
 		TOOL_SPLIT,
+		TOOL_2D_LINE,
+		TOOL_2D_RECT,
+		TOOL_2D_CIRCLE,
+		TOOL_2D_POLY,
+		TOOL_2D_ERASE,
 	};
 	enum EditPlaneMode {
 		PLANE_VIEW,
@@ -247,6 +252,12 @@ struct Edit3D : DockWindow {
 	double weight_radius = 0.5;
 	double weight_strength = 0.2;
 	bool weight_add = true;
+	bool draw2d_active = false;
+	vec2 draw2d_start = vec2(0);
+	vec2 draw2d_last = vec2(0);
+	Vector<vec2> draw2d_poly;
+	int draw2d_view = -1;
+	GeomObject* draw2d_obj = 0;
 	
 	struct ScriptInstance {
 		GeomScript* script = 0;
@@ -309,6 +320,7 @@ struct Edit3D : DockWindow {
 	void RegisterScriptVM(PyVM& vm);
 	void SetEditTool(EditTool tool);
 	void CreateEditableMeshObject();
+	void Create2DLayerObject();
 	GeomObject* GetFocusedMeshObject();
 	void AddMeshKeyframeAtCursor();
 	void ClearMeshKeyframes();

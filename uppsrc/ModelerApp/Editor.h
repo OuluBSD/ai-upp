@@ -22,6 +22,7 @@ struct GeomProjectCtrl : Ctrl {
 	int tree_col_write = -1;
 	Index<hash_t> warned_tree_types;
 	int props_col_value = -1;
+	Vector<hash_t> timeline_row_keys;
 
 	struct TreeNodeRef {
 		enum Kind {
@@ -83,6 +84,7 @@ struct GeomProjectCtrl : Ctrl {
 	void Update(double dt);
 	void Data();
 	void TimelineData();
+	void TimelineRowMenu(Bar& bar, int row);
 	void TreeSelect();
 	void TreeMenu(Bar& bar);
 	void PropsMenu(Bar& bar);

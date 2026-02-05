@@ -71,7 +71,8 @@ bool CompilePySource(const String& code, const String& filename, Vector<PyIR>& o
 }
 
 bool RunPyIR(PyVM& vm, const Vector<PyIR>& ir, String& err) {
-	Vector<PyIR> run = ir;
+	Vector<PyIR> run;
+	run.Append(ir);
 	vm.SetIR(run);
 	try {
 		vm.Run();
@@ -940,8 +941,10 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 	}
 	inst.loaded = true;
 	inst.main_ir = pick(ir);
-	inst.has_start = !inst.vm.GetGlobals().GetItem(PyValue("on_start")).IsNone();
-	inst.has_frame = !inst.vm.GetGlobals().GetItem(PyValue("on_frame")).IsNone();
+	int on_start_idx = inst.vm.GetGlobals().Find(PyValue("on_start"));
+	int on_frame_idx = inst.vm.GetGlobals().Find(PyValue("on_frame"));
+	inst.has_start = on_start_idx >= 0 && !inst.vm.GetGlobals()[on_start_idx].IsNone();
+	inst.has_frame = on_frame_idx >= 0 && !inst.vm.GetGlobals()[on_frame_idx].IsNone();
 	if (inst.has_start) {
 		Vector<PyIR> start_ir;
 		if (CompilePySource("on_start()", abs, start_ir, err))
@@ -1681,7 +1684,7 @@ void Edit3D::SyncPointcloudDatasetsExternalFiles() {
 			? ds.source_ref
 			: AppendFileName(AppendFileName(project_dir, scene3d_data_dir), ds.source_ref);
 		if (FileExists(abs)) {
-			f.size = FileLength(abs);
+			f.size = GetFileLength(abs);
 			f.modified_utc = Scene3DIsoTime(FileGetTime(abs));
 		}
 		kept.Add(f);

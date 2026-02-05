@@ -1232,8 +1232,8 @@ void Edit3D::DebugGeneratePointcloud() {
 	raw_tr.position = sim_fake_hmd_pose.position;
 	raw_tr.orientation = sim_fake_hmd_pose.orientation;
 	GeomTransform& fusion_tr = fusion_room.GetTransform();
-	fusion_tr.position = sim_localized_pose.position;
-	fusion_tr.orientation = sim_localized_pose.orientation;
+	fusion_tr.position = vec3(0);
+	fusion_tr.orientation = Identity<quat>();
 	if (sim_pointcloud_obj) {
 		FillOctree(sim_pointcloud_obj->octree.octree, sim_state.reference.points, -3);
 		sim_pointcloud_obj->octree_ptr = 0;
@@ -1299,17 +1299,20 @@ String Edit3D::RunLocalizationLog(bool show_dialog) {
 	PointcloudLocalizerStub localizer;
 	PointcloudLocalizationResult loc = localizer.Locate(sim_state.reference, sim_obs);
 	if (loc.ok) {
-		if (!sim_observation_effect_locked)
-			sim_localized_pose = loc.pose;
+		sim_localized_pose = loc.pose;
 		GeomScene& scene = state->GetActiveScene();
-		GeomDirectory& fusion_room = scene.GetAddDirectory("fusion_room");
-		GeomTransform& fusion_tr = fusion_room.GetTransform();
-		fusion_tr.position = sim_localized_pose.position;
-		fusion_tr.orientation = sim_localized_pose.orientation;
 		GeomCamera& cam = state->GetProgram();
 		cam.position = sim_localized_pose.position;
 		cam.orientation = sim_localized_pose.orientation;
 		UpdateCameraObjectRender(scene.GetAddCamera("hmd_camera"), sim_localized_pose, true);
+		if (sim_hmd_pointcloud_obj) {
+			GeomPointcloudEffectTransform& fx = sim_hmd_pointcloud_obj->GetAddPointcloudEffect("localization");
+			if (!fx.locked) {
+				fx.position = sim_localized_pose.position;
+				fx.orientation = sim_localized_pose.orientation;
+			}
+			fx.enabled = true;
+		}
 		state->UpdateObjects();
 		RefreshSimObservation();
 	}

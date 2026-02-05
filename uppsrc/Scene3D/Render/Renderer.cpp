@@ -138,6 +138,19 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 	else if (go.IsOctree()) {
 		Octree& o = go.octree_ptr ? *go.octree_ptr : go.octree.octree;
 		OctreeFrustumIterator iter = o.GetFrustumIterator(frustum);
+		vec3 fx_pos = vec3(0);
+		quat fx_ori = Identity<quat>();
+		Vector<GeomPointcloudEffectTransform*> effects;
+		go.GetPointcloudEffects(effects);
+		auto apply_local = [](vec3& pos, quat& ori, const vec3& lpos, const quat& lori) {
+			pos = pos + VectorTransform(lpos, ori);
+			ori = ori * lori;
+		};
+		for (GeomPointcloudEffectTransform* fx : effects) {
+			if (!fx || !fx->enabled)
+				continue;
+			apply_local(fx_pos, fx_ori, fx->position, fx->orientation);
+		}
 		
 		while (iter) {
 			const OctreeNode& n = *iter;
@@ -146,11 +159,13 @@ void EditRenderer::PaintObject(Draw& d, const GeomObjectState& os, const mat4& v
 				
 				const OctreeObject& obj = *one_obj;
 				vec3 pos = obj.GetPosition();
+				vec3 world = VectorTransform(pos, fx_ori) + fx_pos;
+				world = VectorTransform(world, os.orientation) + os.position;
 				
-				if (!frustum.Intersects(pos))
+				if (!frustum.Intersects(world))
 					continue;
 				
-				vec3 cam_pos = VecMul(o_view, pos);
+				vec3 cam_pos = VecMul(view, world);
 				
 				float x = (cam_pos[0] + 1) * 0.5 * sz.cx;
 				float y = (-cam_pos[1] + 1) * 0.5 * sz.cy;
@@ -226,48 +241,55 @@ void EditRenderer::Paint(Draw& d) {
 			PaintObject(d, os, view, frustum);
 		}
 	}
-	
-	
-	GeomCamera& program = state.GetProgram();
-	if (&camera != &program) {
-		Color clr = Color(255, 255, 172);
-		
+	auto draw_frustum = [&](const vec3& pos, const quat& orient, float fov_deg, float scale, Color clr) {
 		Vector<vec3> corners;
 		{
 			Camera cam;
-			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz, 3.0);
+			float aspect = (float)sz.cx / (float)sz.cy;
+			cam.SetPerspective(fov_deg, aspect, 0.1, 3.0);
+			cam.SetWorld(pos, orient, scale);
 			Frustum frustum = cam.GetFrustum();
 			corners.SetCount(8);
 			frustum.GetCorners(corners.Begin());
 		}
-		
-		DrawRect(sz, d, view, program.position, Size(2,2), clr, z_cull);
-		
+		DrawRect(sz, d, view, pos, Size(2,2), clr, z_cull);
 		int lw = 1;
 		DrawLine(sz, d, view, corners[0], corners[1], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[2], corners[3], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[4], corners[5], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[6], corners[7], lw, clr, z_cull);
-		
 		DrawLine(sz, d, view, corners[0], corners[2], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[1], corners[3], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[4], corners[6], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[5], corners[7], lw, clr, z_cull);
-		
 		DrawLine(sz, d, view, corners[0], corners[4], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[1], corners[5], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[2], corners[6], lw, clr, z_cull);
 		DrawLine(sz, d, view, corners[3], corners[7], lw, clr, z_cull);
+	};
+
+	GeomCamera& program = state.GetProgram();
+	GeomCamera& focus = state.GetFocus();
+	if (state.focus_mode == 1) {
+		GeomObject* foc = state.FindObjectByKey(state.focus_object_key);
+		if (foc && foc->IsCamera() && foc->is_visible) {
+			vec3 pos = vec3(0);
+			quat ori = Identity<quat>();
+			if (GeomTransform* tr = foc->FindTransform()) {
+				pos = tr->position;
+				ori = tr->orientation;
+			}
+			else if (const GeomObjectState* os = state.FindObjectStateByKey(state.focus_object_key)) {
+				pos = os->position;
+				ori = os->orientation;
+			}
+			draw_frustum(pos, ori, program.fov, program.scale, Color(255, 255, 172));
+		}
 	}
-	
-	// Overlay: focus/program frustums for sanity checks
-	{
-		GeomCamera& focus = state.GetFocus();
-		DrawCameraGizmo(sz, d, view, focus.position, focus.orientation, focus.fov,
-			Max(0.2f, focus.scale * 0.5f), Color(120, 220, 120), z_cull);
-		DrawCameraGizmo(sz, d, view, program.position, program.orientation, program.fov,
-			Max(0.2f, program.scale * 0.5f), Color(220, 120, 120), z_cull);
-	}
+	if (state.focus_mode == 2 && state.program_visible)
+		draw_frustum(program.position, program.orientation, program.fov, program.scale, Color(220, 120, 120));
+	if (state.focus_mode == 3 && state.focus_visible)
+		draw_frustum(focus.position, focus.orientation, focus.fov, focus.scale, Color(120, 220, 120));
 	
 	// Overlay: active camera axes and forward vector
 	{

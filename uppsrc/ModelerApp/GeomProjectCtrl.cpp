@@ -881,6 +881,30 @@ void GeomProjectCtrl::PropsMenu(Bar& bar) {
 			e->state->UpdateObjects();
 			e->RefreshData();
 		});
+		if (obj->IsOctree()) {
+			bar.Add(t_("Pointcloud Effect (Transform)"), [=] {
+				String base = "effect";
+				String name = base;
+				int idx = 1;
+				Vector<GeomPointcloudEffectTransform*> effects;
+				obj->GetPointcloudEffects(effects);
+				auto exists = [&](const String& n) {
+					for (GeomPointcloudEffectTransform* fx : effects) {
+						if (!fx)
+							continue;
+						String fx_name = fx->name.IsEmpty() ? fx->val.id : fx->name;
+						if (fx_name == n)
+							return true;
+					}
+					return false;
+				};
+				while (exists(name))
+					name = base + IntStr(idx++);
+				obj->GetAddPointcloudEffect(name);
+				e->state->UpdateObjects();
+				e->RefreshData();
+			});
+		}
 	});
 }
 
@@ -896,9 +920,40 @@ void GeomProjectCtrl::PropsData() {
 	selected_dataset = GetNodeDataset(tree.Get(tree.GetCursor()));
 	props.SetRoot(ImagesImg::Root(), "Properties");
 	int root = 0;
-	PropRef& efx = props_nodes.Add();
-	efx.kind = PropRef::P_EFFECTS;
-	int effects = props.Add(root, ImagesImg::Directory(), RawToValue(&efx), "Effects");
+	int effects = -1;
+	struct EffectItem {
+		GeomPointcloudEffectTransform* fx = 0;
+		int effect_id = -1;
+		int pos_id = -1;
+		int ori_id = -1;
+	};
+	Vector<EffectItem> effect_items;
+	if (selected_obj && selected_obj->IsOctree()) {
+		PropRef& efx = props_nodes.Add();
+		efx.kind = PropRef::P_EFFECTS;
+		effects = props.Add(root, ImagesImg::Directory(), RawToValue(&efx), t_("Effects"));
+		Vector<GeomPointcloudEffectTransform*> fx_list;
+		selected_obj->GetPointcloudEffects(fx_list);
+		for (GeomPointcloudEffectTransform* fx : fx_list) {
+			if (!fx)
+				continue;
+			String name = fx->name.IsEmpty() ? fx->val.id : fx->name;
+			PropRef& fxnode = props_nodes.Add();
+			fxnode.kind = PropRef::P_TRANSFORM;
+			int fx_id = props.Add(effects, ImagesImg::Object(), RawToValue(&fxnode), name);
+			PropRef& epos = props_nodes.Add();
+			epos.kind = PropRef::P_POSITION;
+			int pos_id = props.Add(fx_id, ImagesImg::Object(), RawToValue(&epos), t_("Position"));
+			PropRef& eori = props_nodes.Add();
+			eori.kind = PropRef::P_ORIENTATION;
+			int ori_id = props.Add(fx_id, ImagesImg::Object(), RawToValue(&eori), t_("Orientation"));
+			EffectItem& item = effect_items.Add();
+			item.fx = fx;
+			item.effect_id = fx_id;
+			item.pos_id = pos_id;
+			item.ori_id = ori_id;
+		}
+	}
 	PropRef& comps = props_nodes.Add();
 	comps.kind = PropRef::P_COMPONENTS;
 	int components = props.Add(root, ImagesImg::Directory(), RawToValue(&comps), t_("Components"));
@@ -937,11 +992,6 @@ void GeomProjectCtrl::PropsData() {
 	pori.kind = PropRef::P_ORIENTATION;
 	int ori_id = props.Add(transform, ImagesImg::Object(), RawToValue(&pori), "Orientation");
 
-	int effect_pos_id = -1;
-	int effect_ori_id = -1;
-	int effect_trans_id = -1;
-	PointcloudPose effect_pose = PointcloudPose::MakeIdentity();
-	bool has_effect_pose = false;
 	struct ScriptItemIds {
 		GeomScript* script = 0;
 		int file_id = -1;
@@ -952,20 +1002,6 @@ void GeomProjectCtrl::PropsData() {
 		int run_id = -1;
 	};
 	Vector<ScriptItemIds> script_items;
-	if (selected_obj && selected_obj == e->sim_observation_obj) {
-		has_effect_pose = true;
-		effect_pose = e->sim_localized_pose;
-		PropRef& efxnode = props_nodes.Add();
-		efxnode.kind = PropRef::P_TRANSFORM;
-		int etrans = props.Add(effects, ImagesImg::Object(), RawToValue(&efxnode), "Localization");
-		effect_trans_id = etrans;
-		PropRef& epos = props_nodes.Add();
-		epos.kind = PropRef::P_EFFECT_POSITION;
-		effect_pos_id = props.Add(etrans, ImagesImg::Object(), RawToValue(&epos), "Position");
-		PropRef& eori = props_nodes.Add();
-		eori.kind = PropRef::P_EFFECT_ORIENTATION;
-		effect_ori_id = props.Add(etrans, ImagesImg::Object(), RawToValue(&eori), "Orientation");
-	}
 	if (selected_obj) {
 		for (auto& sub : selected_obj->val.sub) {
 			if (!IsVfsType(sub, AsTypeHash<GeomScript>()))
@@ -1010,7 +1046,8 @@ void GeomProjectCtrl::PropsData() {
 			ids.run_id = run_id;
 		}
 	}
-	props.Open(effects);
+	if (effects >= 0)
+		props.Open(effects);
 	props.Open(components);
 	if (pointcloud >= 0)
 		props.Open(pointcloud);
@@ -1138,6 +1175,42 @@ void GeomProjectCtrl::PropsData() {
 		set_ctrl(dataset_source_id, pick(source_ctrl));
 	}
 
+	for (const EffectItem& item : effect_items) {
+		if (!item.fx)
+			continue;
+		GeomPointcloudEffectTransform& fx = *item.fx;
+		One<ToggleRowCtrl> tfx = MakeOne<ToggleRowCtrl>();
+		tfx->SetVisible(fx.enabled);
+		tfx->SetLocked(fx.locked);
+		tfx->WhenVisible << [=](bool v) {
+			fx.enabled = v;
+			RefreshAll();
+		};
+		tfx->WhenLocked << [=](bool v) {
+			fx.locked = v;
+		};
+		if (item.effect_id >= 0)
+			set_ctrl(item.effect_id, pick(tfx));
+		
+		One<Vec3EditCtrl> fpos = MakeOne<Vec3EditCtrl>();
+		fpos->SetValue(fx.position);
+		fpos->SetEditable(!fx.locked);
+		fpos->WhenAction << [=] {
+			fx.position = fpos->GetValue();
+			RefreshAll();
+		};
+		set_ctrl(item.pos_id, pick(fpos));
+		
+		One<QuatEditCtrl> fori = MakeOne<QuatEditCtrl>();
+		fori->SetValue(fx.orientation);
+		fori->SetEditable(!fx.locked);
+		fori->WhenAction << [=] {
+			fx.orientation = fori->GetValue();
+			RefreshAll();
+		};
+		set_ctrl(item.ori_id, pick(fori));
+	}
+
 	for (const ScriptItemIds& ids : script_items) {
 		if (!ids.script)
 			continue;
@@ -1209,32 +1282,6 @@ void GeomProjectCtrl::PropsData() {
 	};
 	set_ctrl(ori_id, pick(ori_ctrl));
 	
-	if (has_effect_pose) {
-		One<Vec3EditCtrl> epos_ctrl = MakeOne<Vec3EditCtrl>();
-		epos_ctrl->SetValue(effect_pose.position);
-		epos_ctrl->SetEditable(false);
-		set_ctrl(effect_pos_id, pick(epos_ctrl));
-		
-		One<QuatEditCtrl> eori_ctrl = MakeOne<QuatEditCtrl>();
-		eori_ctrl->SetValue(effect_pose.orientation);
-		eori_ctrl->SetEditable(false);
-		set_ctrl(effect_ori_id, pick(eori_ctrl));
-		
-		if (selected_obj == e->sim_observation_obj) {
-			One<ToggleRowCtrl> tfx = MakeOne<ToggleRowCtrl>();
-			tfx->SetVisible(e->sim_observation_effect_visible);
-			tfx->SetLocked(e->sim_observation_effect_locked);
-			tfx->WhenVisible << [=](bool v) {
-				e->sim_observation_effect_visible = v;
-				e->RefreshSimObservation();
-			};
-			tfx->WhenLocked << [=](bool v) {
-				e->sim_observation_effect_locked = v;
-			};
-			if (effect_trans_id >= 0)
-				set_ctrl(effect_trans_id, pick(tfx));
-		}
-	}
 	props_refreshing = false;
 }
 

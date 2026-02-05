@@ -106,3 +106,7 @@
   task: track-editor-scripting/phase-01-scripting-foundations/task-0101-debug-actions-python-parity.md
   status: done
   note: Added Python example for Debug->Pointcloud actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-01-scripting-foundations/task-0102-script-runtime-hooks.md
+  status: done
+  note: Added on_load hook support with reload-safe execution.

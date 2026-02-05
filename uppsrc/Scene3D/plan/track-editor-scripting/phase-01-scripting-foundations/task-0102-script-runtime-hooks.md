@@ -13,4 +13,6 @@ Provide stable runtime hooks (on_load/on_frame) with project-relative script res
 - File changes reload automatically without restart.
 
 ## Status
-- Pending
+- Done (2026-02-05)
+  - Added on_load hook support and reload-safe execution.
+  - `__project_dir__` and `__dt__` globals available (frame uses `__dt__`).

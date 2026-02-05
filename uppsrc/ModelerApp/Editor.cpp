@@ -876,6 +876,7 @@ void Edit3D::RunScriptOnce(GeomScript& script) {
 	for (auto& inst : script_instances) {
 		if (inst.script == &script) {
 			UpdateScriptInstance(inst, true);
+			RunScriptOnLoad(inst, !script.run_on_load);
 			RunScriptOnStart(inst, !script.run_on_load);
 			return;
 		}
@@ -908,7 +909,8 @@ void Edit3D::EnsureScriptInstances() {
 	Vector<GeomScript*> scripts;
 	GetScriptsFromNode(scene.val, scripts);
 	for (auto& sub : scene.val.sub) {
-		if (IsVfsType(sub, AsTypeHash<GeomDirectory>()))
+		hash_t dir_hash = TypedStringHasher<GeomDirectory>("GeomDirectory");
+		if (IsVfsType(sub, dir_hash))
 			GetScriptsFromNode(sub, scripts);
 	}
 	for (GeomObject& obj : GeomObjectCollection(scene))
@@ -955,6 +957,7 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 		return;
 	inst.file_time = mod;
 	inst.loaded = false;
+	inst.has_load = false;
 	inst.has_start = false;
 	inst.has_frame = false;
 	String code = LoadFile(abs);
@@ -974,10 +977,17 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 	}
 	inst.loaded = true;
 	inst.main_ir = pick(ir);
+	int on_load_idx = inst.vm.GetGlobals().Find(PyValue("on_load"));
 	int on_start_idx = inst.vm.GetGlobals().Find(PyValue("on_start"));
 	int on_frame_idx = inst.vm.GetGlobals().Find(PyValue("on_frame"));
+	inst.has_load = on_load_idx >= 0 && !inst.vm.GetGlobals()[on_load_idx].IsNone();
 	inst.has_start = on_start_idx >= 0 && !inst.vm.GetGlobals()[on_start_idx].IsNone();
 	inst.has_frame = on_frame_idx >= 0 && !inst.vm.GetGlobals()[on_frame_idx].IsNone();
+	if (inst.has_load) {
+		Vector<PyIR> load_ir;
+		if (CompilePySource("on_load()", abs, load_ir, err))
+			inst.load_ir = pick(load_ir);
+	}
 	if (inst.has_start) {
 		Vector<PyIR> start_ir;
 		if (CompilePySource("on_start()", abs, start_ir, err))
@@ -988,7 +998,20 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 		if (CompilePySource("on_frame(__dt__)", abs, frame_ir, err))
 			inst.frame_ir = pick(frame_ir);
 	}
+	RunScriptOnLoad(inst, false);
 	RunScriptOnStart(inst, false);
+}
+
+void Edit3D::RunScriptOnLoad(ScriptInstance& inst, bool force) {
+	if (!inst.script || !inst.loaded)
+		return;
+	if (!force && !inst.script->run_on_load)
+		return;
+	if (!inst.has_load)
+		return;
+	String err;
+	if (!RunPyIR(inst.vm, inst.load_ir, err))
+		LOG("Script on_load failed: " + err);
 }
 
 void Edit3D::RunScriptOnStart(ScriptInstance& inst, bool force) {

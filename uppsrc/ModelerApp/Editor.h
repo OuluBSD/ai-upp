@@ -92,7 +92,7 @@ struct GeomProjectCtrl : Ctrl {
 	
 };
 
-struct FilePoolCtrl : TopWindow {
+struct FilePoolCtrl : ParentCtrl {
 	Edit3D* owner = 0;
 	ArrayCtrl files;
 
@@ -136,7 +136,7 @@ struct HmdCapture {
 	const Octree* GetPointcloud(bool bright) const;
 };
 
-struct Edit3D : TopWindow {
+struct Edit3D : DockWindow {
 	typedef enum {
 		VIEW_NONE,
 		VIEW_GEOMPROJECT,
@@ -151,6 +151,9 @@ struct Edit3D : TopWindow {
 	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
 	ToolBar tool;
+	DockableCtrl* dock_geom = 0;
+	DockableCtrl* dock_video = 0;
+	DockableCtrl* dock_pool = 0;
 	
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext render_ctx;
@@ -256,6 +259,7 @@ public:
 	Edit3D();
 	
 	void SetView(ViewType view);
+	virtual void DockInit();
 	void Update();
 	void Data();
 	void Exit();

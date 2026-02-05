@@ -1,5 +1,5 @@
 # Task: Feature Inventory & Mapping
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Catalog every feature in MaestroHub and MaestroCLI to ensure nothing is missed in the new design.

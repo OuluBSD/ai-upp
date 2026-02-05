@@ -1,4 +1,4 @@
 TRACK=MaestroHub
-PHASE=02_SessionManagement
-TASK=02_SessionDetails
+PHASE=03_IssueTrackerUI
+TASK=02_TriageInterface
 STATUS=TODO

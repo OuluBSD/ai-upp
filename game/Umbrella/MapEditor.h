@@ -2,7 +2,7 @@
 #define _Umbrella_MapEditor_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include "MapGrid.h"
+#include "LayerManager.h"
 
 using namespace Upp;
 
@@ -64,7 +64,7 @@ private:
 	MapCanvas mapCanvas;
 
 	// Map data
-	MapGrid mapGrid;
+	LayerManager layerManager;
 
 	// Buttons for toolbar
 	Button newMapBtn;

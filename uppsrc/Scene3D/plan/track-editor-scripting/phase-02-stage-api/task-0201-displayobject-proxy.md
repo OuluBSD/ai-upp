@@ -12,4 +12,5 @@ Expose ActionScript-style DisplayObject semantics for Scene3D nodes.
 - Script can read/write DisplayObject properties and see updates in viewport.
 
 ## Status
-- Pending
+- Done (2026-02-05)
+  - Added DisplayObject proxy with x/y/z, rotation, scale, visible, and child ops.

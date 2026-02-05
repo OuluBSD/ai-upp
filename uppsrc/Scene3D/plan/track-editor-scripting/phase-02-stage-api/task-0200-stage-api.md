@@ -13,4 +13,5 @@ Provide a Stage-style scripting API that mirrors ActionScript conventions.
 - Stage time/frame values are correct.
 
 ## Status
-- Pending
+- Done (2026-02-05)
+  - Added `stage` proxy with `root/find/children/create` and `time/frame/fps/goto`.

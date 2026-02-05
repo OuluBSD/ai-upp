@@ -247,7 +247,7 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 	int lw = 1;
 	bool z_cull = view_mode == VIEWMODE_PERSPECTIVE;
 	
-	mat4 o_world = (QuatMat(os.orientation) * Translate(os.position)).GetInverse();
+	mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
 	mat4 o_view = view * o_world;
 	
 	if (go.IsModel()) {
@@ -301,7 +301,7 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 				const OctreeObject& obj = *one_obj;
 				vec3 pos = obj.GetPosition();
 				vec3 world = VectorTransform(pos, fx_ori) + fx_pos;
-				world = VectorTransform(world, os.orientation) + os.position;
+				world = VectorTransform(world * os.scale, os.orientation) + os.position;
 				
 				if (!frustum.Intersects(world))
 					continue;
@@ -370,6 +370,9 @@ void EditRendererV1::Paint(Draw& d) {
 		GeomObject& go = temp_node.CreateExt<GeomObject>();
 		go.type = GeomObject::O_OCTREE;
 		os.obj = &go;
+		os.position = vec3(0);
+		os.orientation = Identity<quat>();
+		os.scale = vec3(1);
 		go.octree_ptr = &frame.otree;
 		PaintObject(d, os, view, frustum);
 	}
@@ -383,6 +386,14 @@ void EditRendererV1::Paint(Draw& d) {
 		GeomObjectState os;
 		for (GeomObject& go : iter) {
 			os.obj = &go;
+			os.position = vec3(0);
+			os.orientation = Identity<quat>();
+			os.scale = vec3(1);
+			if (GeomTransform* tr = go.FindTransform()) {
+				os.position = tr->position;
+				os.orientation = tr->orientation;
+				os.scale = tr->scale;
+			}
 			PaintObject(d, os, view, frustum);
 		}
 	}
@@ -788,7 +799,7 @@ void EditRendererV2::Paint(Draw& d) {
 	};
 	
 	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
-		mat4 o_world = (QuatMat(os.orientation) * Translate(os.position)).GetInverse();
+		mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
 		mat4 o_view = view * o_world;
 		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
 		light_dir.Normalize();
@@ -841,9 +852,11 @@ void EditRendererV2::Paint(Draw& d) {
 				os.obj = &go;
 				os.position = vec3(0);
 				os.orientation = Identity<quat>();
+				os.scale = vec3(1);
 				if (GeomTransform* tr = go.FindTransform()) {
 					os.position = tr->position;
 					os.orientation = tr->orientation;
+					os.scale = tr->scale;
 				}
 				paint_model(os, *go.mdl);
 			}

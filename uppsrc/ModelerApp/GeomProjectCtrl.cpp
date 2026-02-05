@@ -357,7 +357,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	
 	time.WhenCursor << THISBACK(OnCursor);
 	tree.WhenCursor << THISBACK(TreeSelect);
-	tree.WhenBar = THISBACK(TreeMenu);
+	tree.WhenMenu = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
 	
 	
@@ -521,23 +521,32 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	});
 	grid.SetGridSize(2,2);
 	for(int i = 0; i < 4; i++) {
-		rends[i].ctx = &e->render_ctx;
-		rends[i].WhenChanged = THISBACK1(RefreshRenderer, i);
-		rends[i].WhenMenu = THISBACK1(BuildViewMenu, i);
+		rends_v1[i].ctx = &e->render_ctx;
+		rends_v2[i].ctx = &e->render_ctx;
+		rends_v1[i].WhenChanged = THISBACK1(RefreshRenderer, i);
+		rends_v2[i].WhenChanged = THISBACK1(RefreshRenderer, i);
+		rends_v1[i].WhenMenu = THISBACK1(BuildViewMenu, i);
+		rends_v2[i].WhenMenu = THISBACK1(BuildViewMenu, i);
 	}
-	rends[0].SetViewMode(VIEWMODE_YZ);
-	rends[1].SetViewMode(VIEWMODE_XZ);
-	rends[2].SetViewMode(VIEWMODE_XY);
-	rends[3].SetViewMode(VIEWMODE_PERSPECTIVE);
-	rends[0].SetCameraSource(CAMSRC_FOCUS);
-	rends[1].SetCameraSource(CAMSRC_FOCUS);
-	rends[2].SetCameraSource(CAMSRC_PROGRAM);
-	rends[3].SetCameraSource(CAMSRC_FOCUS);
-
-	grid.Add(rends[0]);
-	grid.Add(rends[1]);
-	grid.Add(rends[2]);
-	grid.Add(rends[3]);
+	rends_v1[0].SetViewMode(VIEWMODE_YZ);
+	rends_v1[1].SetViewMode(VIEWMODE_XZ);
+	rends_v1[2].SetViewMode(VIEWMODE_XY);
+	rends_v1[3].SetViewMode(VIEWMODE_PERSPECTIVE);
+	rends_v2[0].SetViewMode(VIEWMODE_YZ);
+	rends_v2[1].SetViewMode(VIEWMODE_XZ);
+	rends_v2[2].SetViewMode(VIEWMODE_XY);
+	rends_v2[3].SetViewMode(VIEWMODE_PERSPECTIVE);
+	rends_v1[0].SetCameraSource(CAMSRC_FOCUS);
+	rends_v1[1].SetCameraSource(CAMSRC_FOCUS);
+	rends_v1[2].SetCameraSource(CAMSRC_PROGRAM);
+	rends_v1[3].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2[0].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2[1].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2[2].SetCameraSource(CAMSRC_PROGRAM);
+	rends_v2[3].SetCameraSource(CAMSRC_FOCUS);
+	for(int i = 0; i < 4; i++)
+		rends[i] = &rends_v1[i];
+	RebuildGrid();
 	
 	props.NoHeader();
 	props_col_value = props.GetColumnCount();
@@ -563,13 +572,14 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 }
 
 void GeomProjectCtrl::RefreshRenderer(int i) {
-	if (i >= 0 && i < 4)
-		rends[i].Refresh();
+	if (i >= 0 && i < 4 && rends[i])
+		rends[i]->Refresh();
 }
 
 void GeomProjectCtrl::RefreshAll() {
 	for (int i = 0; i < 4; i++)
-		rends[i].Refresh();
+		if (rends[i])
+			rends[i]->Refresh();
 }
 
 void GeomProjectCtrl::Update(double dt) {
@@ -590,7 +600,8 @@ void GeomProjectCtrl::Update(double dt) {
 	
 	if (anim.is_playing || was_playing) {
 		for(int i = 0; i < 4; i++) {
-			rends[i].Refresh();
+			if (rends[i])
+				rends[i]->Refresh();
 		}
 	}
 }
@@ -745,7 +756,8 @@ GeomPointcloudDataset* GeomProjectCtrl::GetNodeDataset(const Value& v) {
 	VfsValue* node = ValueTo<VfsValue*>(v);
 	if (!node)
 		return 0;
-	if (!IsVfsType(*node, AsTypeHash<GeomPointcloudDataset>()))
+	hash_t dataset_hash = TypedStringHasher<GeomPointcloudDataset>("GeomPointcloudDataset");
+	if (!IsVfsType(*node, dataset_hash))
 		return 0;
 	return &node->GetExt<GeomPointcloudDataset>();
 }
@@ -766,6 +778,13 @@ void GeomProjectCtrl::UpdateTreeFocus(int new_id) {
 
 void GeomProjectCtrl::TreeMenu(Bar& bar) {
 	int cursor = tree.GetCursor();
+	if (cursor < 0 && focus_tree_id >= 0)
+		cursor = focus_tree_id;
+	if (cursor < 0) {
+		int line0 = tree.GetLineCount() > 0 ? tree.GetItemAtLine(0) : -1;
+		if (tree.IsValid(line0))
+			cursor = line0;
+	}
 	if (cursor < 0)
 		return;
 	Value v = tree.Get(cursor);
@@ -775,9 +794,13 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 	GeomDirectory* dir = 0;
 	if (node && IsVfsType(*node, AsTypeHash<GeomDirectory>()))
 		dir = &node->GetExt<GeomDirectory>();
+	if (!dir && node && IsVfsType(*node, AsTypeHash<GeomScene>()))
+		dir = &node->GetExt<GeomScene>();
 	if (!dir && node && IsVfsType(*node, AsTypeHash<GeomObject>()) && node->owner) {
 		if (IsVfsType(*node->owner, AsTypeHash<GeomDirectory>()))
 			dir = &node->owner->GetExt<GeomDirectory>();
+		else if (IsVfsType(*node->owner, AsTypeHash<GeomScene>()))
+			dir = &node->owner->GetExt<GeomScene>();
 	}
 	if (!ref && !obj && !dir)
 		return;
@@ -863,6 +886,18 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 				e->state->UpdateObjects();
 				e->RefreshData();
 			});
+			bar.Sub(t_("Preset"), [=](Bar& bar) {
+				bar.Add(t_("Sphere"), [=] {
+					String name = unique_name(*dir, "sphere");
+					GeomObject& obj = dir->GetAddModel(name);
+					ModelBuilder mb;
+					mb.AddSphere(vec3(0, 0, 0), 1.0f, 24, 16);
+					obj.mdl = mb.Detach();
+					obj.asset_ref = "preset:sphere";
+					e->state->UpdateObjects();
+					e->RefreshData();
+				});
+			});
 		});
 	}
 	if (obj && obj->IsOctree()) {
@@ -880,7 +915,8 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 }
 
 void GeomProjectCtrl::PropsMenu(Bar& bar) {
-	Value v = tree.Get(tree.GetCursor());
+	int cursor = tree.GetCursor();
+	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
 	GeomObject* obj = GetNodeObject(v);
 	GeomPointcloudDataset* ds = GetNodeDataset(v);
 	VfsValue* node = v.Is<VfsValue*>() ? ValueTo<VfsValue*>(v) : 0;
@@ -937,9 +973,11 @@ void GeomProjectCtrl::PropsData() {
 	props.Clear();
 	props_nodes.Clear();
 	props_ctrls.Clear();
-	selected_obj = GetNodeObject(tree.Get(tree.GetCursor()));
-	selected_ref = GetNodeRef(tree.Get(tree.GetCursor()));
-	selected_dataset = GetNodeDataset(tree.Get(tree.GetCursor()));
+	int cursor = tree.GetCursor();
+	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
+	selected_obj = GetNodeObject(v);
+	selected_ref = GetNodeRef(v);
+	selected_dataset = GetNodeDataset(v);
 	props.SetRoot(ImagesImg::Root(), "Properties");
 	int root = 0;
 	int effects = -1;
@@ -1026,7 +1064,8 @@ void GeomProjectCtrl::PropsData() {
 	Vector<ScriptItemIds> script_items;
 	if (selected_obj) {
 		for (auto& sub : selected_obj->val.sub) {
-			if (!IsVfsType(sub, AsTypeHash<GeomScript>()))
+			hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+			if (!IsVfsType(sub, script_hash))
 				continue;
 			GeomScript& script = sub.GetExt<GeomScript>();
 			String label = script.file.IsEmpty() ? "Script" : GetFileName(script.file);
@@ -1069,10 +1108,13 @@ void GeomProjectCtrl::PropsData() {
 		}
 	}
 	if (!selected_obj) {
-		VfsValue* node = tree.Get(tree.GetCursor()).Is<VfsValue*>() ? ValueTo<VfsValue*>(tree.Get(tree.GetCursor())) : 0;
+		int cursor = tree.GetCursor();
+		Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
+		VfsValue* node = v.Is<VfsValue*>() ? ValueTo<VfsValue*>(v) : 0;
 		if (node && (IsVfsType(*node, AsTypeHash<GeomDirectory>()) || IsVfsType(*node, AsTypeHash<GeomScene>()))) {
 			for (auto& sub : node->sub) {
-				if (!IsVfsType(sub, AsTypeHash<GeomScript>()))
+				hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+				if (!IsVfsType(sub, script_hash))
 					continue;
 				GeomScript& script = sub.GetExt<GeomScript>();
 				String label = script.file.IsEmpty() ? "Script" : GetFileName(script.file);
@@ -1465,21 +1507,57 @@ void GeomProjectCtrl::PropsApply() {
 void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
 	if (i < 0 || i >= 4)
 		return;
-	bar.Add(t_("View: YZ"), [=] { rends[i].SetViewMode(VIEWMODE_YZ); RefreshRenderer(i); });
-	bar.Add(t_("View: XZ"), [=] { rends[i].SetViewMode(VIEWMODE_XZ); RefreshRenderer(i); });
-	bar.Add(t_("View: XY"), [=] { rends[i].SetViewMode(VIEWMODE_XY); RefreshRenderer(i); });
-	bar.Add(t_("View: Perspective"), [=] { rends[i].SetViewMode(VIEWMODE_PERSPECTIVE); RefreshRenderer(i); });
+	bar.Add(t_("View: YZ"), [=] { if (rends[i]) rends[i]->SetViewMode(VIEWMODE_YZ); RefreshRenderer(i); });
+	bar.Add(t_("View: XZ"), [=] { if (rends[i]) rends[i]->SetViewMode(VIEWMODE_XZ); RefreshRenderer(i); });
+	bar.Add(t_("View: XY"), [=] { if (rends[i]) rends[i]->SetViewMode(VIEWMODE_XY); RefreshRenderer(i); });
+	bar.Add(t_("View: Perspective"), [=] { if (rends[i]) rends[i]->SetViewMode(VIEWMODE_PERSPECTIVE); RefreshRenderer(i); });
 	bar.Separator();
-	bar.Add(t_("Camera: Focus"), [=] { rends[i].SetCameraSource(CAMSRC_FOCUS); RefreshRenderer(i); });
-	bar.Add(t_("Camera: Program"), [=] { rends[i].SetCameraSource(CAMSRC_PROGRAM); RefreshRenderer(i); });
+	bar.Add(t_("Camera: Focus"), [=] { if (rends[i]) rends[i]->SetCameraSource(CAMSRC_FOCUS); RefreshRenderer(i); });
+	bar.Add(t_("Camera: Program"), [=] { if (rends[i]) rends[i]->SetCameraSource(CAMSRC_PROGRAM); RefreshRenderer(i); });
+	bar.Separator();
+	bar.Add(t_("Renderer: V1"), [=] { SetRendererVersion(i, 1); }).Check(rend_version[i] == 1);
+	bar.Add(t_("Renderer: V2"), [=] { SetRendererVersion(i, 2); }).Check(rend_version[i] == 2);
 	bar.Separator();
 	bar.Add(t_("Reset Camera"), [=] {
-		GeomCamera& cam = rends[i].GetGeomCamera();
+		if (!rends[i])
+			return;
+		GeomCamera& cam = rends[i]->GetGeomCamera();
 		cam.position = vec3(0, 0, 0);
 		cam.orientation = Identity<quat>();
 		cam.scale = 1.0f;
 		RefreshRenderer(i);
 	});
+}
+
+void GeomProjectCtrl::SetRendererVersion(int i, int version) {
+	if (i < 0 || i >= 4)
+		return;
+	if (version != 1 && version != 2)
+		return;
+	EditRendererBase* prev = rends[i];
+	rend_version[i] = version;
+	EditRendererBase* next = (version == 1) ? static_cast<EditRendererBase*>(&rends_v1[i])
+	                                        : static_cast<EditRendererBase*>(&rends_v2[i]);
+	if (prev && next) {
+		next->view_mode = prev->view_mode;
+		next->cam_src = prev->cam_src;
+		next->ctx = prev->ctx;
+	}
+	rends[i] = next;
+	RebuildGrid();
+	RefreshRenderer(i);
+}
+
+void GeomProjectCtrl::RebuildGrid() {
+	for (int i = 0; i < 4; i++) {
+		grid.RemoveChild(&rends_v1[i]);
+		grid.RemoveChild(&rends_v2[i]);
+	}
+	for (int i = 0; i < 4; i++) {
+		if (rends[i])
+			grid.Add(*rends[i]);
+	}
+	grid.Layout();
 }
 
 void GeomProjectCtrl::OnCursor(int i) {

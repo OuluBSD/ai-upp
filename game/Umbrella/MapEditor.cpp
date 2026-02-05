@@ -18,6 +18,10 @@ MapCanvas::MapCanvas() {
 	showGrid = true;
 	showReferenceImage = false;
 	referenceImageOpacity = 50;
+	referenceImageOffset = Point(0, 0);
+	referenceImageScale = 1.0;
+	referenceImagePanning = false;
+	referenceImagePanStart = Point(0, 0);
 	parentEditor = nullptr;
 }
 
@@ -38,10 +42,15 @@ void MapCanvas::Paint(Draw& w) {
 
 	// Draw reference image if enabled
 	if(showReferenceImage && !referenceImage.IsEmpty()) {
-		// Scale reference image to fit canvas with current zoom
+		// Scale reference image with both canvas zoom and reference image scale
 		Size imgSize = referenceImage.GetSize();
-		int scaledWidth = int(imgSize.cx * zoom);
-		int scaledHeight = int(imgSize.cy * zoom);
+		double totalScale = zoom * referenceImageScale;
+		int scaledWidth = int(imgSize.cx * totalScale);
+		int scaledHeight = int(imgSize.cy * totalScale);
+
+		// Calculate position with both canvas offset and reference image offset
+		int drawX = offset.x + int(referenceImageOffset.x * zoom);
+		int drawY = offset.y + int(referenceImageOffset.y * zoom);
 
 		// Apply opacity
 		if(referenceImageOpacity < 100) {
@@ -49,9 +58,9 @@ void MapCanvas::Paint(Draw& w) {
 			iw.DrawImage(0, 0, referenceImage);
 			iw.Alpha().DrawRect(0, 0, imgSize.cx, imgSize.cy, GrayColor(referenceImageOpacity * 255 / 100));
 			Image alphaImg = iw;
-			w.DrawImage(offset.x, offset.y, scaledWidth, scaledHeight, alphaImg);
+			w.DrawImage(drawX, drawY, scaledWidth, scaledHeight, alphaImg);
 		} else {
-			w.DrawImage(offset.x, offset.y, scaledWidth, scaledHeight, referenceImage);
+			w.DrawImage(drawX, drawY, scaledWidth, scaledHeight, referenceImage);
 		}
 	}
 
@@ -207,7 +216,15 @@ void MapCanvas::Paint(Draw& w) {
 }
 
 void MapCanvas::MouseMove(Point pos, dword flags) {
-	if(panning) {
+	if(referenceImagePanning) {
+		// Update reference image offset (in unzoomed coordinates)
+		Point delta = pos - referenceImagePanStart;
+		referenceImageOffset.x += delta.x / zoom;
+		referenceImageOffset.y += delta.y / zoom;
+		referenceImagePanStart = pos;
+		Refresh();
+	}
+	else if(panning) {
 		// Update camera offset
 		Point delta = pos - panStart;
 		offset += delta;
@@ -323,25 +340,45 @@ void MapCanvas::RightUp(Point pos, dword flags) {
 }
 
 void MapCanvas::MiddleDown(Point pos, dword flags) {
-	panning = true;
-	panStart = pos;
+	// Ctrl+Middle drag = pan reference image, otherwise pan canvas
+	if(flags & K_CTRL) {
+		referenceImagePanning = true;
+		referenceImagePanStart = pos;
+	}
+	else {
+		panning = true;
+		panStart = pos;
+	}
 	SetCapture();
 }
 
 void MapCanvas::MiddleUp(Point pos, dword flags) {
 	panning = false;
+	referenceImagePanning = false;
 	ReleaseCapture();
 }
 
 void MapCanvas::MouseWheel(Point pos, int zdelta, dword flags) {
-	// Handle zoom with mouse wheel
-	if(zdelta > 0) {
-		zoom *= 1.1;
-	} else {
-		zoom /= 1.1;
+	// Ctrl+Wheel = scale reference image, otherwise zoom canvas
+	if(flags & K_CTRL) {
+		if(zdelta > 0) {
+			referenceImageScale *= 1.1;
+		} else {
+			referenceImageScale /= 1.1;
+		}
+		if(referenceImageScale < 0.1) referenceImageScale = 0.1;
+		if(referenceImageScale > 5.0) referenceImageScale = 5.0;
 	}
-	if(zoom < 0.1) zoom = 0.1;
-	if(zoom > 5.0) zoom = 5.0;
+	else {
+		// Handle zoom with mouse wheel
+		if(zdelta > 0) {
+			zoom *= 1.1;
+		} else {
+			zoom /= 1.1;
+		}
+		if(zoom < 0.1) zoom = 0.1;
+		if(zoom > 5.0) zoom = 5.0;
+	}
 
 	Refresh();
 }
@@ -991,6 +1028,18 @@ void MapEditorApp::LoadReferenceImage(const String& imagePath) {
 	}
 
 	LOG("LoadReferenceImage: Successfully loaded image, size = " << img.GetSize());
+
+	// Fix RGB/BGR swap - swap R and B channels
+	ImageBuffer ib(img);
+	RGBA* pixels = ib.Begin();
+	int count = ib.GetLength();
+	for(int i = 0; i < count; i++) {
+		byte temp = pixels[i].r;
+		pixels[i].r = pixels[i].b;
+		pixels[i].b = temp;
+	}
+	img = ib;
+
 	referenceImagePath = imagePath;
 	mapCanvas.SetReferenceImage(img);
 	mapCanvas.SetShowReferenceImage(true);

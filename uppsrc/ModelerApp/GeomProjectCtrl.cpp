@@ -360,8 +360,6 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	tree.WhenBar = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
 	
-	hsplit.Horz().SetPos(2000) << metasplit << vsplit,
-	metasplit.Vert() << tree << props;
 	
 	tree.NoHeader();
 	tree_col_visible = tree.GetColumnCount();
@@ -521,8 +519,6 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 		};
 		ctrl = t;
 	});
-	vsplit.Vert().SetPos(7500) << grid << time;
-	
 	grid.SetGridSize(2,2);
 	for(int i = 0; i < 4; i++) {
 		rends[i].ctx = &e->render_ctx;

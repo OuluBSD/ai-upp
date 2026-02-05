@@ -1,4 +1,4 @@
 TRACK=MaestroHub
 PHASE=09_UXResearch
-TASK=01_UserPerspectiveAnalysis
+TASK=02d_PersonaPlaybooks
 STATUS=TODO

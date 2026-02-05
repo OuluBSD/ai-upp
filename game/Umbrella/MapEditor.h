@@ -28,6 +28,10 @@ private:
 	bool showGrid;
 	bool showReferenceImage;
 	int referenceImageOpacity;
+	Point referenceImageOffset;
+	double referenceImageScale;
+	bool referenceImagePanning;
+	Point referenceImagePanStart;
 	MapEditorApp* parentEditor;
 
 public:

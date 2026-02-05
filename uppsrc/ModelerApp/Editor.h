@@ -6,7 +6,6 @@ struct Edit3D;
 struct GeomProjectCtrl : Ctrl {
 	Edit3D* e;
 	
-	Splitter metasplit, hsplit, vsplit;
 	TreeArrayCtrl tree;
 	TreeArrayCtrl props;
 	FixedGridCtrl grid;
@@ -151,7 +150,9 @@ struct Edit3D : DockWindow {
 	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
 	ToolBar tool;
-	DockableCtrl* dock_geom = 0;
+	DockableCtrl* dock_tree = 0;
+	DockableCtrl* dock_props = 0;
+	DockableCtrl* dock_time = 0;
 	DockableCtrl* dock_video = 0;
 	DockableCtrl* dock_pool = 0;
 	

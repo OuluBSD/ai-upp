@@ -84,6 +84,87 @@ Color CameraColor(const GeomObject& go) {
 	return Color(220, 220, 120);
 }
 
+void DrawGroundGrid(Size sz, Draw& d, const mat4& view, const mat4& cam_world, const vec3& cam_pos,
+                    const Scene3DRenderConfig& conf, bool z_cull) {
+	if (!conf.show_grid)
+		return;
+	float major = conf.grid_major_step;
+	if (major <= 0.0001f)
+		return;
+	int divs = conf.grid_minor_divs;
+	if (divs < 1)
+		divs = 1;
+	float minor = major / (float)divs;
+	float extent = conf.grid_extent;
+	if (extent < major)
+		extent = major;
+	float start_x = floor((cam_pos[0] - extent) / minor) * minor;
+	float end_x = ceil((cam_pos[0] + extent) / minor) * minor;
+	float start_z = floor((cam_pos[2] - extent) / minor) * minor;
+	float end_z = ceil((cam_pos[2] + extent) / minor) * minor;
+	auto clip_line_ndc = [&](vec2& a, vec2& b) -> bool {
+		vec2 d2 = b - a;
+		float p[4] = {-d2[0], d2[0], -d2[1], d2[1]};
+		float q[4] = {a[0] + 1.0f, 1.0f - a[0], a[1] + 1.0f, 1.0f - a[1]};
+		float u1 = 0.0f;
+		float u2 = 1.0f;
+		for (int i = 0; i < 4; i++) {
+			if (p[i] == 0.0f) {
+				if (q[i] < 0.0f)
+					return false;
+			}
+			else {
+				float t = q[i] / p[i];
+				if (p[i] < 0.0f)
+					u1 = max(u1, t);
+				else
+					u2 = min(u2, t);
+				if (u1 > u2)
+					return false;
+			}
+		}
+		vec2 a0 = a;
+		a = a0 + d2 * u1;
+		b = a0 + d2 * u2;
+		return true;
+	};
+	auto draw_grid_line = [&](const vec3& a, const vec3& b, const Color& clr) {
+		vec3 ap_cam = VecMul(cam_world, a);
+		vec3 bp_cam = VecMul(cam_world, b);
+		if (z_cull && (ap_cam[2] * SCALAR_FWD_Z > 0) && (bp_cam[2] * SCALAR_FWD_Z > 0))
+			return;
+		vec3 ap = VecMul(view, a);
+		vec3 bp = VecMul(view, b);
+		vec2 a2(ap[0], ap[1]);
+		vec2 b2(bp[0], bp[1]);
+		if (!clip_line_ndc(a2, b2))
+			return;
+		float x0 = (a2[0] + 1) * 0.5 * sz.cx;
+		float x1 = (b2[0] + 1) * 0.5 * sz.cx;
+		float y0 = (-a2[1] + 1) * 0.5 * sz.cy;
+		float y1 = (-b2[1] + 1) * 0.5 * sz.cy;
+		d.DrawLine(x0, y0, x1, y1, 1, clr);
+	};
+	for (float x = start_x; x <= end_x + minor * 0.5f; x += minor) {
+		int idx = (int)floor(x / minor + 0.5f);
+		int mod = idx % divs;
+		if (mod < 0)
+			mod += divs;
+		bool is_major = (mod == 0);
+		Color clr = is_major ? conf.grid_major_clr : conf.grid_minor_clr;
+		draw_grid_line(vec3(x, 0, start_z), vec3(x, 0, end_z), clr);
+	}
+	for (float z = start_z; z <= end_z + minor * 0.5f; z += minor) {
+		int idx = (int)floor(z / minor + 0.5f);
+		int mod = idx % divs;
+		if (mod < 0)
+			mod += divs;
+		bool is_major = (mod == 0);
+		Color clr = is_major ? conf.grid_major_clr : conf.grid_minor_clr;
+		draw_grid_line(vec3(start_x, 0, z), vec3(end_x, 0, z), clr);
+	}
+}
+
 
 
 
@@ -203,6 +284,9 @@ void EditRenderer::Paint(Draw& d) {
 	Frustum frustum = cam.GetFrustum();
 	mat4 view = cam.GetViewMatrix();
 	bool z_cull = view_mode == VIEWMODE_PERSPECTIVE;
+
+	mat4 cam_world = cam.GetWorldMatrix();
+	DrawGroundGrid(sz, d, view, cam_world, camera.position, *ctx->conf, z_cull);
 	
 	/*if (view_mode == VIEWMODE_PERSPECTIVE) {
 		mat4 world = cam.GetWorldMatrix();

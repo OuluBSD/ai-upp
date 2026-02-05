@@ -544,6 +544,8 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends_v2[1].SetCameraSource(CAMSRC_FOCUS);
 	rends_v2[2].SetCameraSource(CAMSRC_PROGRAM);
 	rends_v2[3].SetCameraSource(CAMSRC_FOCUS);
+	for (int i = 0; i < 4; i++)
+		rends_v2[i].SetWireframeOnly(true);
 	for(int i = 0; i < 4; i++)
 		rends[i] = &rends_v2[i];
 	RebuildGrid();

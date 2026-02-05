@@ -1,5 +1,5 @@
 # Task: Configuration UI
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Visual interface for `maestro settings`.

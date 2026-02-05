@@ -1,6 +1,7 @@
 #ifndef _ModelerApp_ModelerApp_h_
 #define _ModelerApp_ModelerApp_h_
 
+#include <Docking/Docking.h>
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
 #include <Geometry/Geometry.h>

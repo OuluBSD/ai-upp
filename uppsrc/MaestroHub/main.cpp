@@ -4,6 +4,7 @@
 #include "StateEditor.h"
 #include "TUBrowser.h"
 #include "LogAnalyzer.h"
+#include "ConfigurationDialog.h"
 
 NAMESPACE_UPP
 
@@ -237,7 +238,7 @@ void MaestroHub::MainMenu(Bar& bar) {
 
 	bar.Sub("System", [=](Bar& b) {
 		b.Add("Initialize Maestro...", [=] { PromptOK("Init placeholder"); });
-		b.Add("Settings...", [=] { PromptOK("Settings placeholder"); });
+		b.Add("Settings...", THISBACK(OnSettings));
 		b.Separator();
 		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
 		b.Add("Collect Evidence...", [=] { PromptOK("Evidence placeholder"); });
@@ -392,6 +393,12 @@ void MaestroHub::OnTUBrowser() {
 
 void MaestroHub::OnLogAnalyzer() {
 	LogAnalyzer dlg;
+	dlg.Load(current_root);
+	dlg.Run();
+}
+
+void MaestroHub::OnSettings() {
+	ConfigurationDialog dlg;
 	dlg.Load(current_root);
 	dlg.Run();
 }

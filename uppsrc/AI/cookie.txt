@@ -1,4 +1,4 @@
 TRACK=MaestroHub
-PHASE=05_WorkflowEditor
-TASK=02_StateEditor
-STATUS=DONE
+PHASE=09_UXResearch
+TASK=01_UserPerspectiveAnalysis
+STATUS=TODO

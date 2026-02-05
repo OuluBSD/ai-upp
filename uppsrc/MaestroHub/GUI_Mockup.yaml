@@ -1,0 +1,23 @@
+gui_mockup:
+  version: "1.0"
+  layout:
+    main_window:
+      type: "TopWindow"
+      title: "Maestro Hub [Refined]"
+      frames:
+        - "MenuBar"
+        - "StatusBar"
+      central_widget:
+        type: "TabCtrl"
+        tabs:
+          - name: "Dashboard"
+            focus: true
+            components: ["StatusSummary", "ActiveTasks", "RecentFindings"]
+          - name: "Intelligence"
+            components: ["RepoBrowser", "SymbolSearch", "LogAnalyzer"]
+          - name: "Design"
+            components: ["RunbookEditor", "WorkflowGraph"]
+          - name: "Execution"
+            components: ["ActiveSessionHUD", "BreadcrumbTimeline"]
+          - name: "Maintenance"
+            components: ["IssueTracker", "TriageWizard"]

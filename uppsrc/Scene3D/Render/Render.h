@@ -32,6 +32,8 @@ struct Scene3DRenderContext {
 	GeomAnim* anim = 0;
 	GeomVideo* video = 0;
 	VfsValue* selected_bone = 0;
+	bool show_weights = false;
+	String weight_bone;
 };
 
 #include "Renderer.h"

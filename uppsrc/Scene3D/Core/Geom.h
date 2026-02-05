@@ -76,6 +76,13 @@ struct GeomSkeleton : VfsValueExt {
 	void Visit(Vis& v) override;
 };
 
+struct GeomSkinWeights : VfsValueExt {
+	VectorMap<String, Vector<float>> weights;
+
+	DEFAULT_EXT(GeomSkinWeights)
+	void Visit(Vis& v) override;
+};
+
 struct GeomEdge {
 	int a = -1;
 	int b = -1;
@@ -147,6 +154,8 @@ struct GeomObject : VfsValueExt {
 	GeomEditableMesh* FindEditableMesh() const;
 	GeomSkeleton& GetSkeleton();
 	GeomSkeleton* FindSkeleton() const;
+	GeomSkinWeights& GetSkinWeights();
+	GeomSkinWeights* FindSkinWeights() const;
 	GeomPointcloudEffectTransform& GetAddPointcloudEffect(String name);
 	void GetPointcloudEffects(Vector<GeomPointcloudEffectTransform*>& out) const;
 	
@@ -351,6 +360,7 @@ INITIALIZE(GeomTimeline)
 INITIALIZE(GeomDynamicProperties)
 INITIALIZE(GeomBone)
 INITIALIZE(GeomSkeleton)
+INITIALIZE(GeomSkinWeights)
 INITIALIZE(GeomEditableMesh)
 INITIALIZE(GeomObject)
 INITIALIZE(GeomDirectory)

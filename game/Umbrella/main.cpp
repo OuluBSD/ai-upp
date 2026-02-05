@@ -69,17 +69,28 @@ public:
 
 GUI_APP_MAIN
 {
-    // Check for --editor flag to launch the map editor
+    // Parse command line arguments
     bool editorMode = false;
-    for(const String& arg : CommandLine()) {
+    String levelPath;
+
+    const Vector<String>& args = CommandLine();
+    for(int i = 0; i < args.GetCount(); i++) {
+        const String& arg = args[i];
         if(arg == "--editor" || arg == "--editor-parastar") {
             editorMode = true;
-            break;
+        }
+        // If argument doesn't start with --, treat it as a file path
+        else if(!arg.StartsWith("--") && !arg.StartsWith("-")) {
+            levelPath = arg;
         }
     }
 
     if(editorMode) {
-        MapEditorApp().Run();
+        if(!levelPath.IsEmpty()) {
+            MapEditorApp(levelPath).Run();
+        } else {
+            MapEditorApp().Run();
+        }
     } else {
         UmbrellaApp().Run();
     }

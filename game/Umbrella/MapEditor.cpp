@@ -406,6 +406,15 @@ MapEditorApp::MapEditorApp() {
 	SetupUI();
 }
 
+MapEditorApp::MapEditorApp(const String& levelPath) : MapEditorApp() {
+	// Load the level after initialization
+	if(FileExists(levelPath)) {
+		OpenFile(levelPath);
+	} else {
+		Exclamation("Level file not found: " + levelPath);
+	}
+}
+
 void MapEditorApp::SetupMenuBar(Bar& bar) {
 	bar.Sub("File", callback(this, &MapEditorApp::SetupFileMenu));
 	bar.Sub("Edit", callback(this, &MapEditorApp::SetupEditMenu));

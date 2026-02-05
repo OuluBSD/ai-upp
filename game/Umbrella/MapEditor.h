@@ -120,6 +120,7 @@ private:
 
 public:
 	MapEditorApp();
+	MapEditorApp(const String& levelPath);
 
 	void OpenFile(const String& fileName);
 	void SaveFile(const String& fileName);

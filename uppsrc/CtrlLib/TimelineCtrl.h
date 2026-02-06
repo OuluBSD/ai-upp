@@ -120,7 +120,9 @@ public:
 	Callback2<int, int> WhenKeyframeRemove;
 	Callback3<int, int, int> WhenKeyframeMove;
 	Callback WhenToggleAutoKey;
-	Callback2<int, int> WhenRangeSelect;
+	Event<int, int> WhenRangeSelect;
+	Event<> WhenCopy;
+	Event<int> WhenPaste;
 	
 };
 

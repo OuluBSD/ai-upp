@@ -153,9 +153,35 @@ void Player::ResolveCollisionX(float deltaX, CollisionHandler& collision) {
 		remaining -= step;
 	}
 
+	// Store position before applying remaining
+	float left_before = bounds.left;
+	float right_before = bounds.right;
+
 	// Apply remaining movement
 	bounds.left += remaining;
 	bounds.right += remaining;
+
+	// Final wall check on remaining movement
+	int gridSize = (int)collision.GetGridSize();
+	float minY = min(bounds.top, bounds.bottom);
+	float maxY = max(bounds.top, bounds.bottom);
+	int minRow = (int)(minY / gridSize);
+	int maxRow = (int)(maxY / gridSize);
+
+	int minCol = (int)(bounds.left / gridSize);
+	int maxCol = (int)(bounds.right / gridSize);
+
+	for(int row = minRow; row <= maxRow; row++) {
+		for(int col = minCol; col <= maxCol; col++) {
+			if(collision.IsWallTile(col, row) || collision.IsFullBlockTile(col, row)) {
+				// Hit wall - undo remaining movement
+				bounds.left = left_before;
+				bounds.right = right_before;
+				velocity.x = 0.0f;
+				return;
+			}
+		}
+	}
 }
 
 void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {

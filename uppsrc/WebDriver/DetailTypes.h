@@ -3,12 +3,15 @@
 
 #include <Core/Core.h>
 
+
 NAMESPACE_UPP
 
-class DetailTypes {
-public:
-    // Implementation will be adapted from webdriverxx/detail/types.h
-};
+namespace detail {
+
+// Additional detail types if needed
+// This could include various helper types for the internal implementation
+
+} // namespace detail
 
 END_UPP_NAMESPACE
 

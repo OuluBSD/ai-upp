@@ -3,12 +3,25 @@
 
 #include <Core/Core.h>
 
+
 NAMESPACE_UPP
 
-class Factories {
-public:
-    // Implementation will be adapted from webdriverxx/detail/factories.h
+namespace detail {
+
+struct IFinder_factory {
+	virtual ~IFinder_factory() {}
+	virtual Shared<Resource> operator()(const Shared<Resource>& resource) const = 0;
 };
+
+struct Element_factory : IFinder_factory {
+	virtual Shared<Resource> operator()(const Shared<Resource>& resource) const override;
+};
+
+struct Session_factory : IFinder_factory {
+	virtual Shared<Resource> operator()(const Shared<Resource>& resource) const override;
+};
+
+} // namespace detail
 
 END_UPP_NAMESPACE
 

@@ -2927,21 +2927,32 @@ void GeomProjectCtrl::PropsApply() {
 				tr->orientation = ori;
 		}
 		bool do_key = selected_obj->write_enabled;
-		if (e->auto_key && e->timeline_object_key == selected_obj->key &&
-		    (e->timeline_component == Edit3D::TC_TRANSFORM || e->timeline_component == Edit3D::TC_NONE))
-			do_key = true;
+		bool auto_key_arm = e->auto_key && e->timeline_object_key == selected_obj->key &&
+		    (e->timeline_component == Edit3D::TC_TRANSFORM || e->timeline_component == Edit3D::TC_NONE);
+		if (auto_key_arm) {
+			if (pr->kind == PropRef::P_POSITION && e->auto_key_position)
+				do_key = true;
+			if (pr->kind == PropRef::P_ORIENTATION && e->auto_key_orientation)
+				do_key = true;
+		}
 		if (do_key) {
 			GeomTimeline& tl = selected_obj->GetTimeline();
-			int frame = e->anim->position;
-			GeomKeypoint& kp = tl.GetAddKeypoint(frame);
-			if (pr->kind == PropRef::P_POSITION)
+			int frame = e->anim ? e->anim->position : 0;
+			int idx = tl.keypoints.Find(frame);
+			bool existed = idx >= 0;
+			GeomKeypoint& kp = existed ? tl.keypoints[idx] : tl.GetAddKeypoint(frame);
+			if (!existed) {
+				kp.has_position = false;
+				kp.has_orientation = false;
+			}
+			if (pr->kind == PropRef::P_POSITION) {
 				kp.position = pos;
-			if (pr->kind == PropRef::P_ORIENTATION)
-				kp.orientation = ori;
-			if (pr->kind == PropRef::P_POSITION)
 				kp.has_position = true;
-			if (pr->kind == PropRef::P_ORIENTATION)
+			}
+			if (pr->kind == PropRef::P_ORIENTATION) {
+				kp.orientation = ori;
 				kp.has_orientation = true;
+			}
 			selected_obj->read_enabled = true;
 			tree.SetRowValue(focus_tree_id, tree_col_read, selected_obj->read_enabled);
 		}
@@ -3469,8 +3480,22 @@ void GeomProjectCtrl::TimelineData() {
 		row.SetKeypoints(row_keys);
 		row.Refresh();
 	}
-	
 	time.Refresh();
+	if (e) {
+		String detail;
+		if (e->auto_key) {
+			Vector<String> parts;
+			if (e->auto_key_position) parts.Add("P");
+			if (e->auto_key_orientation) parts.Add("O");
+			if (e->auto_key_mesh) parts.Add("M");
+			if (e->auto_key_2d) parts.Add("2D");
+			if (parts.IsEmpty())
+				detail = t_("None");
+			else
+				detail = Join(parts, " ");
+		}
+		time.SetAutoKeyIndicator(e->auto_key, detail);
+	}
 }
 
 void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
@@ -3487,6 +3512,16 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 			TimelineData();
 		});
 		bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+		bar.Sub(t_("Auto-key Channels"), [=](Bar& bar) {
+			bar.Add(t_("Position"), [=] { e->auto_key_position = !e->auto_key_position; TimelineData(); })
+				.Check(e->auto_key_position);
+			bar.Add(t_("Orientation"), [=] { e->auto_key_orientation = !e->auto_key_orientation; TimelineData(); })
+				.Check(e->auto_key_orientation);
+			bar.Add(t_("Mesh"), [=] { e->auto_key_mesh = !e->auto_key_mesh; TimelineData(); })
+				.Check(e->auto_key_mesh);
+			bar.Add(t_("2D"), [=] { e->auto_key_2d = !e->auto_key_2d; TimelineData(); })
+				.Check(e->auto_key_2d);
+		});
 		bar.Separator();
 		bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
 		bar.Add(t_("Paste Keyframes"), [=] {
@@ -3538,6 +3573,16 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		TimelineData();
 	});
 	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+	bar.Sub(t_("Auto-key Channels"), [=](Bar& bar) {
+		bar.Add(t_("Position"), [=] { e->auto_key_position = !e->auto_key_position; TimelineData(); })
+			.Check(e->auto_key_position);
+		bar.Add(t_("Orientation"), [=] { e->auto_key_orientation = !e->auto_key_orientation; TimelineData(); })
+			.Check(e->auto_key_orientation);
+		bar.Add(t_("Mesh"), [=] { e->auto_key_mesh = !e->auto_key_mesh; TimelineData(); })
+			.Check(e->auto_key_mesh);
+		bar.Add(t_("2D"), [=] { e->auto_key_2d = !e->auto_key_2d; TimelineData(); })
+			.Check(e->auto_key_2d);
+	});
 	bar.Separator();
 	bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
 	bar.Add(t_("Paste Keyframes"), [=] {

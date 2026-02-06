@@ -54,6 +54,9 @@ class TimelineCtrl : public Ctrl {
 	//ArrayMap<int, TimelineRowCtrl> rows;
 	Array<TimelineRowCtrl> rows;
 	ScrollBar vsb, hsb;
+	Label auto_key_label;
+	bool auto_key_armed = false;
+	String auto_key_detail;
 	int line_height = 20;
 	int kps = 25;
 	int length = 0;
@@ -97,6 +100,7 @@ public:
 	void SetSelectedColumn(int i);
 	void SetSelectionRange(int a, int b);
 	void ClearSelectionRange();
+	void SetAutoKeyIndicator(bool on, const String& detail = String());
 	void OnScroll();
 	void MakeColumnVisible(int col);
 	void SelectRow(int row, dword keyflags);

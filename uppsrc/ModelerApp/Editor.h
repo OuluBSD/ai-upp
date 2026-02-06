@@ -391,6 +391,10 @@ struct Edit3D : DockWindow {
 	double weight_strength = 0.2;
 	bool weight_add = true;
 	bool auto_key = false;
+	bool auto_key_position = true;
+	bool auto_key_orientation = true;
+	bool auto_key_mesh = false;
+	bool auto_key_2d = false;
 	enum TimelineScopeKind {
 		TS_SCENE,
 		TS_OBJECT,
@@ -487,6 +491,8 @@ struct Edit3D : DockWindow {
 	void ClearMeshKeyframes();
 	void Add2DKeyframeAtCursor();
 	void Clear2DKeyframes();
+	void AutoKeyMeshEdit(GeomObject* obj);
+	void AutoKey2DEdit(GeomObject* obj);
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	void CreateSkeletonForSelected();

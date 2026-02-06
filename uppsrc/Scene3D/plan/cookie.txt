@@ -230,3 +230,7 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1304-timeline-easing.md
   status: done
   note: Added keyframe easing fields, interpolation support, and row menu controls for easing modes.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1305-autokey-modes.md
+  status: done
+  note: Added auto-key channel toggles, mesh/2D auto-key hooks, and timeline auto-key indicator.

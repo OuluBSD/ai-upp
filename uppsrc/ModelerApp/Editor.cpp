@@ -2220,6 +2220,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 				}
 				if (best_idx >= 0) {
 					layer->shapes.Remove(best_idx);
+					AutoKey2DEdit(obj);
 					RefrehRenderers();
 				}
 				return;
@@ -2242,6 +2243,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 							shape.points[i] = draw2d_poly[i];
 						shape.closed = true;
 						layer->shapes.Add(pick(shape));
+						AutoKey2DEdit(obj);
 						draw2d_poly.Clear();
 						draw2d_active = false;
 						draw2d_obj = nullptr;
@@ -2291,6 +2293,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 			if (shape.points.GetCount() >= 2)
 				layer->shapes.Add(pick(shape));
+			AutoKey2DEdit(obj);
 			draw2d_active = false;
 			draw2d_obj = nullptr;
 			RefrehRenderers();
@@ -2373,6 +2376,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 					vec3 local = snap_local(world_to_local(world));
 					mesh.points.Add(local);
 					state->UpdateObjects();
+					AutoKeyMeshEdit(obj);
 					RefrehRenderers();
 				}
 				else if (edit_tool == TOOL_LINE) {
@@ -2395,6 +2399,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 						edit_line_start = idx;
 					}
 					state->UpdateObjects();
+					AutoKeyMeshEdit(obj);
 					RefrehRenderers();
 				}
 				else if (edit_tool == TOOL_FACE) {
@@ -2414,12 +2419,14 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 						edit_face_points.Clear();
 					}
 					state->UpdateObjects();
+					AutoKeyMeshEdit(obj);
 					RefrehRenderers();
 				}
 				else if (edit_tool == TOOL_ERASE) {
 					if (picked >= 0) {
 						RemoveEditablePoint(mesh, picked);
 						state->UpdateObjects();
+						AutoKeyMeshEdit(obj);
 						RefrehRenderers();
 					}
 				}
@@ -2438,6 +2445,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 							edit_join_start = picked;
 						}
 						state->UpdateObjects();
+						AutoKeyMeshEdit(obj);
 						RefrehRenderers();
 					}
 				}
@@ -2446,6 +2454,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 					if (line_idx >= 0) {
 						mesh.lines.Remove(line_idx);
 						state->UpdateObjects();
+						AutoKeyMeshEdit(obj);
 						RefrehRenderers();
 					}
 				}
@@ -2622,6 +2631,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 						pt += diff.GetNormalized() * s;
 					}
 					state->UpdateObjects();
+					AutoKeyMeshEdit(obj);
 					RefrehRenderers();
 				}
 			}
@@ -2865,6 +2875,56 @@ void Edit3D::Clear2DKeyframes() {
 	if (Geom2DAnimation* anim = obj->Find2DAnimation())
 		anim->keyframes.Clear();
 	RefrehRenderers();
+}
+
+void Edit3D::AutoKeyMeshEdit(GeomObject* obj) {
+	if (!obj || !auto_key || !auto_key_mesh)
+		return;
+	if (timeline_object_key != obj->key)
+		return;
+	if (!(timeline_component == TC_MESH || timeline_component == TC_NONE))
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	GeomMeshAnimation& anim = obj->GetMeshAnimation();
+	int frame = this->anim ? this->anim->position : 0;
+	GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
+	kf.frame_id = frame;
+	kf.points.SetCount(mesh->points.GetCount());
+	for (int i = 0; i < mesh->points.GetCount(); i++)
+		kf.points[i] = mesh->points[i];
+	v0.TimelineData();
+}
+
+void Edit3D::AutoKey2DEdit(GeomObject* obj) {
+	if (!obj || !auto_key || !auto_key_2d)
+		return;
+	if (timeline_object_key != obj->key)
+		return;
+	if (!(timeline_component == TC_2D || timeline_component == TC_NONE))
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	Geom2DAnimation& anim = obj->Get2DAnimation();
+	int frame = this->anim ? this->anim->position : 0;
+	Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
+	kf.frame_id = frame;
+	kf.shapes.SetCount(layer->shapes.GetCount());
+	for (int i = 0; i < layer->shapes.GetCount(); i++) {
+		const Geom2DShape& s = layer->shapes[i];
+		Geom2DShape& d = kf.shapes[i];
+		d.type = s.type;
+		d.radius = s.radius;
+		d.stroke = s.stroke;
+		d.width = s.width;
+		d.closed = s.closed;
+		d.points.SetCount(s.points.GetCount());
+		for (int k = 0; k < s.points.GetCount(); k++)
+			d.points[k] = s.points[k];
+	}
+	v0.TimelineData();
 }
 
 bool Edit3D::ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const {

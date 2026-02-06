@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 Client::Client(const String& url) {
 	// Initialize client with the given URL
-	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, detail::Shared<detail::IHttpClient>(new detail::HttpClient)));
+	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url));
 }
 
 Value Client::GetStatus() const {

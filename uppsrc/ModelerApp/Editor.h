@@ -116,9 +116,8 @@ struct GeomProjectCtrl : Ctrl {
 			int kind = -1;
 			int material_id = -1;
 			int mesh_index = -1;
-			String script_file;
 			String label;
-			void Serialize(Stream& s) { s % kind % material_id % mesh_index % script_file % label; }
+			void Serialize(Stream& s) { s % kind % material_id % mesh_index % label; }
 		};
 		Vector<PropPathToken> tokens;
 		Vector<int> index_path;

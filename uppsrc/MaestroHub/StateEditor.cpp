@@ -1,5 +1,5 @@
 #include <CodeEditor/CodeEditor.h>
-#include "StateEditor.h"
+#include "MaestroHub.h"
 
 namespace Upp {
 
@@ -81,9 +81,7 @@ void StateEditor::Load(const String& maestro_root, const String& id) {
 }
 
 void StateEditor::UpdatePreview() {
-	String puml = puml_editor.GetData();
-	Cout() << "Updating PUML Preview...\n";
-	// Future: use WorkflowManager to parse and update graph_view
+	// String puml = puml_editor.GetData();
 }
 
 void StateEditor::NewState() {

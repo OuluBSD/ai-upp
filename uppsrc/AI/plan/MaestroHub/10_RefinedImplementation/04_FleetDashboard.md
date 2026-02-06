@@ -1,5 +1,5 @@
 # Task: Fleet Dashboard (Multi-Project Overview)
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement the "Fleet Dashboard" for monitoring multiple projects simultaneously.

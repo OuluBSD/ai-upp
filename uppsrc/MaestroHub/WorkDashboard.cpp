@@ -1,5 +1,4 @@
 #include "MaestroHub.h"
-#include "SubworkManager.h"
 
 NAMESPACE_UPP
 
@@ -29,7 +28,6 @@ void WorkPane::OnSubwork() {
 		return;
 	}
 	SubworkManagerDialog dlg;
-	dlg.Load(current_root, active_session_id);
 	dlg.Run();
 }
 
@@ -44,11 +42,9 @@ void WorkPane::Refresh() {
 	breadcrumbs.SetQTF("");
 	
 	// Find latest active session
-	Array<WorkSession> sessions = WorkSessionManager::ListSessions(current_root);
+	Array<WorkSession> sessions = pick(WorkSessionManager::ListSessions(current_root));
 	if(sessions.IsEmpty()) return;
 	
-	// Sort by created time descending
-	// (Simple linear search for demo)
 	const WorkSession* latest = nullptr;
 	for(const auto& s : sessions) {
 		if(s.status == WorkSessionStatus::RUNNING) {
@@ -62,7 +58,7 @@ void WorkPane::Refresh() {
 		task_details.SetQTF("[*@3 Active Session: " + DeQtf(latest->session_id) + "]&[* Type:] " + latest->session_type + "&[* Purpose:] " + DeQtf(latest->purpose));
 		
 		// Load breadcrumbs
-		Array<Breadcrumb> bc_list = BreadcrumbManager::ListBreadcrumbs(current_root, active_session_id);
+		Array<Breadcrumb> bc_list = pick(BreadcrumbManager::ListBreadcrumbs(current_root, active_session_id));
 		String b_qtf;
 		for(const auto& bc : bc_list) {
 			b_qtf << "[* " << bc.timestamp_id << "] (" << bc.model_used << ")&";

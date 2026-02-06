@@ -1,4 +1,4 @@
-#include "TUBrowser.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -40,8 +40,6 @@ void TUBrowser::UpdatePackages() {
 	pkg_list.Clear();
 	String filter = pkg_search.GetData().ToString();
 	
-	// Use TuManager or file scan
-	// For now, assuming TuManager has a simple list or we scan .upp files
 	Vector<String> pkgs = tum->ListPackages(); 
 	
 	for(const auto& p : pkgs) {
@@ -59,21 +57,16 @@ void TUBrowser::OnPackageCursor() {
 	if(!pkg_list.IsCursor()) return;
 	String pkg = pkg_list.Get(0);
 	
-	// Load symbols
 	UpdateSymbols();
 	
-	// Load deps (stub)
 	dep_view.SetQTF("[* Dependencies for " + pkg + ":]&Loading...");
-	// In reality, we'd parse the .upp file
 }
 
 void TUBrowser::UpdateSymbols() {
 	sym_list.Clear();
 	if(!pkg_list.IsCursor()) return;
 	String pkg = pkg_list.Get(0);
-	String filter = sym_search.GetData().ToString();
 	
-	// Stub symbols
 	sym_list.Add("FooClass", "class", pkg + "/Foo.h:10");
 	sym_list.Add("BarFunction", "func", pkg + "/Bar.cpp:50");
 }

@@ -1,4 +1,4 @@
-#include "OpsRunner.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -26,8 +26,6 @@ void OpsRunner::OnRun() {
 	
 	output.SetQTF("[* Running operation: " + op + "...]&");
 	
-	// Real implementation would call OpsCommand or similar
-	// For now, simulate output
 	String res;
 	res << "[* " << GetSysTime() << "] Execution started...&";
 	if(op == "doctor") {

@@ -1,4 +1,4 @@
-#include "IssueDialogs.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -11,68 +11,44 @@ IssueEditDialog::IssueEditDialog() {
 	severity.Add("warning");
 	severity.Add("info");
 	
-	state.Add("open");
-	state.Add("analyzed");
-	state.Add("ignored");
-	state.Add("resolved");
-	state.Add("task");
+	issue_status.Add("open");
+	issue_status.Add("analyzed");
+	issue_status.Add("ignored");
+	issue_status.Add("resolved");
+	issue_status.Add("task");
 }
 
 void IssueEditDialog::SyncFromIssue(const MaestroIssue& src) {
 	title.SetData(src.title);
-	message.SetData(src.message);
-	file.SetData(src.file);
-	line.SetData(src.line);
+	description.SetData(src.message);
 	severity.SetData(src.severity);
-	state.SetData(src.state);
-	priority.SetData(src.priority);
+	issue_status.SetData(src.state);
 }
 
-void IssueEditDialog::SyncToIssue(MaestroIssue& dst) {
+void IssueEditDialog::SyncToIssue(MaestroIssue& dst) const {
 	dst.title = title.GetData();
-	dst.message = message.GetData();
-	dst.file = file.GetData();
-	dst.line = line.GetData();
+	dst.message = description.GetData();
 	dst.severity = severity.GetData();
-	dst.state = state.GetData();
-	dst.priority = priority.GetData();
+	dst.state = issue_status.GetData();
 	dst.modified_at = GetSysTime();
 }
 
-void IssueEditDialog::LoadIssue(const MaestroIssue& src) {
-	SyncFromIssue(src);
-}
-
-bool IssueEditDialog::RunEdit(MaestroIssue& dst) {
-	LoadIssue(dst);
-	if(Run() != IDOK)
-		return false;
-	SyncToIssue(dst);
-	return false;
-}
-
 IssueCreateDialog::IssueCreateDialog() {
-	CtrlLayout(*this, "Create New Issue");
+	CtrlLayoutOKCancel(*this, "Create New Issue");
 	
 	severity.Add("blocker");
 	severity.Add("critical");
 	severity.Add("warning");
 	severity.Add("info");
 	severity.SetIndex(2); // warning
-	
-	ok << [=] { Break(IDOK); };
-	cancel << [=] { Break(IDCANCEL); };
 }
 
-MaestroIssue IssueCreateDialog::GetIssue() {
+MaestroIssue IssueCreateDialog::GetIssue() const {
 	MaestroIssue iss;
 	iss.issue_id = "iss-" + FormatIntHex(Random(), 8);
 	iss.title = title.GetData();
-	iss.message = message.GetData();
-	iss.file = file.GetData();
-	iss.line = line.GetData();
+	iss.message = description.GetData();
 	iss.severity = severity.GetData();
-	iss.priority = priority.GetData();
 	iss.state = "open";
 	iss.created_at = iss.modified_at = GetSysTime();
 	return iss;
@@ -84,19 +60,19 @@ ListSelectDialog::ListSelectDialog() {
 }
 
 void ListSelectDialog::SetChoices(const Vector<String>& choices) {
-	options.Clear();
+	list.Clear();
 	for(const auto& c : choices)
-		options.Add(c);
+		list.Add(c);
 	if(choices.GetCount())
-		options.SetIndex(0);
+		list.SetIndex(0);
 }
 
-bool ListSelectDialog::RunSelect(const String& title_text, const String& prompt_text, String& result) {
+bool ListSelectDialog::RunSelect(const char *title_text, const char *label_text, String& result) {
 	Title(title_text);
-	prompt.SetText(prompt_text);
+	label.SetLabel(label_text);
 	if(Run() != IDOK)
 		return false;
-	result = options.GetData();
+	result = list.GetData();
 	return !result.IsEmpty();
 }
 

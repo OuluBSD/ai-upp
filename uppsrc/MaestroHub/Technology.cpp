@@ -5,16 +5,12 @@ NAMESPACE_UPP
 TechnologyPane::TechnologyPane() {
 	Add(split.SizePos());
 	split.Horz(repo, plan);
-	
-	plan.WhenEnact = [=](String t, String p, String k) {
-		if(WhenEnact) WhenEnact(t, p, k);
-	};
 }
 
-void TechnologyPane::Load(const String& root) {
+void TechnologyPane::Load(const String& root_path) {
+	root = root_path;
 	RepoScanner rs;
 	rs.Scan(root);
-	rs.DetectAssemblies();
 	repo.Set(rs.assemblies, rs.packages);
 	
 	PlanParser pp;

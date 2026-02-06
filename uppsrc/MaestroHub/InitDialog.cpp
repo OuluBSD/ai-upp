@@ -1,13 +1,11 @@
-#include "InitDialog.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
 InitDialog::InitDialog() {
-	CtrlLayout(*this, "Initialize Maestro Project");
+	CtrlLayoutOKCancel(*this, "Initialize Maestro Project");
 	
 	btn_browse << THISBACK(OnBrowse);
-	ok << [=] { Break(IDOK); };
-	cancel << [=] { Break(IDCANCEL); };
 }
 
 void InitDialog::OnBrowse() {

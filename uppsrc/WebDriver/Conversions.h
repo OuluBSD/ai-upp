@@ -13,6 +13,10 @@ picojson::value To_json(const T& value);
 template<typename T>
 T From_json(const picojson::value& value);
 
+// Declaration for ValueArray specialization
+template<>
+ValueArray From_json<ValueArray>(const picojson::value& value);
+
 namespace conversions_detail {
 
 struct Default_tag {};

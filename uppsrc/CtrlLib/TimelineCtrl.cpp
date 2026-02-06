@@ -202,6 +202,11 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 	
 	bool shift = (keyflags & K_SHIFT);
 	if (kp_i >= 0 && kp_i < owner->length) {
+		bool on_kp = owner->IsKeyframeAt(id, kp_i);
+		if (on_kp && !(keyflags & K_CTRL)) {
+			drag_keyframe = true;
+			drag_keyframe_frame = kp_i;
+		}
 		if (shift) {
 			if (owner->range_anchor < 0)
 				owner->range_anchor = owner->selected_col >= 0 ? owner->selected_col : kp_i;
@@ -232,6 +237,21 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 void TimelineRowCtrl::LeftDrag(Point p, dword keyflags) {
 	if (!owner)
 		return;
+	if (drag_keyframe) {
+		int col = owner->GetColumnWidth();
+		int x = p.x - owner->title_tab_w - 1;
+		int kp_i = (col > 0) ? owner->hsb / col + x / col : -1;
+		if (kp_i < 0 || kp_i >= owner->length)
+			return;
+		if (kp_i != owner->selected_col) {
+			owner->selected_col = kp_i;
+			if (owner->WhenCursor)
+				owner->WhenCursor(kp_i);
+			owner->MakeColumnVisible(kp_i);
+			Refresh();
+		}
+		return;
+	}
 	if (drag_title) {
 		Point screen = GetScreenRect().TopLeft() + p;
 		Point local = screen - owner->GetScreenRect().TopLeft();
@@ -269,8 +289,19 @@ void TimelineRowCtrl::LeftDrag(Point p, dword keyflags) {
 void TimelineRowCtrl::LeftUp(Point p, dword keyflags) {
 	if (HasCapture())
 		ReleaseCapture();
+	if (drag_keyframe && owner && drag_keyframe_frame >= 0) {
+		int col = owner->GetColumnWidth();
+		int x = p.x - owner->title_tab_w - 1;
+		int kp_i = (col > 0) ? owner->hsb / col + x / col : -1;
+		if (kp_i >= 0 && kp_i < owner->length && kp_i != drag_keyframe_frame) {
+			if (owner->WhenKeyframeMove)
+				owner->WhenKeyframeMove(id, drag_keyframe_frame, kp_i);
+		}
+	}
 	dragging = false;
 	drag_title = false;
+	drag_keyframe = false;
+	drag_keyframe_frame = -1;
 	Ctrl::LeftUp(p, keyflags);
 }
 
@@ -388,6 +419,16 @@ Vector<int> TimelineCtrl::GetSelectedRows() const {
 	for (int i = 0; i < selected_rows.GetCount(); i++)
 		out[i] = selected_rows[i];
 	return out;
+}
+
+bool TimelineCtrl::IsKeyframeAt(int row, int frame) const {
+	if (row < 0 || row >= rows.GetCount())
+		return false;
+	for (int i = 0; i < rows[row].keypoints.GetCount(); i++) {
+		if (rows[row].keypoints[i] == frame)
+			return true;
+	}
+	return false;
 }
 
 void TimelineCtrl::SelectRow(int row, dword keyflags) {

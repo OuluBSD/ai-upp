@@ -21,6 +21,8 @@ protected:
 	bool dragging = false;
 	bool drag_range = false;
 	bool drag_title = false;
+	bool drag_keyframe = false;
+	int drag_keyframe_frame = -1;
 	
 public:
 	typedef TimelineRowCtrl CLASSNAME;
@@ -100,6 +102,7 @@ public:
 	void ToggleRowSelection(int row);
 	bool IsRowSelected(int row) const {return selected_rows.Find(row) >= 0;}
 	int GetRowAt(Point p) const;
+	bool IsKeyframeAt(int row, int frame) const;
 	
 	void Paint(Draw& d) override;
 	bool Key(dword key, int) override;
@@ -115,6 +118,7 @@ public:
 	Callback1<int> WhenRowToggle;
 	Callback2<int, int> WhenKeyframeToggle;
 	Callback2<int, int> WhenKeyframeRemove;
+	Callback3<int, int, int> WhenKeyframeMove;
 	Callback WhenToggleAutoKey;
 	Callback2<int, int> WhenRangeSelect;
 	

@@ -44,15 +44,38 @@ void DebugWorkspace::Load(const String& maestro_root) {
 }
 
 void DebugWorkspace::OnRun() {
-	PromptOK("Starting execution on " + target_device.GetData().ToString());
+	if(!dbg) {
+		dbg.Create<GdbService>();
+		
+		dbg->WhenOutput = [=](String s) {
+			// Ideally log to a console, here we just show it works
+			if(WhenLog) WhenLog(s);
+		};
+		
+		dbg->WhenStack = [=](const Vector<StackFrame>& s) {
+			call_stack.Clear();
+			for(const auto& f : s) {
+				call_stack.Add(0, CtrlImg::Dir(), f.ToString());
+			}
+		};
+		
+		dbg->WhenLocals = [=](const Vector<Variable>& v) {
+			locals.Clear();
+			for(const auto& var : v) {
+				locals.Add(var.name, var.value, var.type);
+			}
+		};
+	}
+	
+	dbg->Run("target_executable", "");
 }
 
 void DebugWorkspace::OnStop() {
-	PromptOK("Execution stopped.");
+	if(dbg) dbg->Stop();
 }
 
 void DebugWorkspace::OnStep() {
-	// Stub
+	if(dbg) dbg->Step();
 }
 
 END_UPP_NAMESPACE

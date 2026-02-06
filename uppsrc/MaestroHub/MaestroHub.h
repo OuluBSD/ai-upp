@@ -181,6 +181,9 @@ public:
 	ArrayCtrl  locals;
 	Splitter   hsplit, vsplit;
 	ToolBar    toolbar;
+	
+	One<DebuggerService> dbg;
+	Event<String> WhenLog;
 
 	void Load(const String& maestro_root);
 	void OnRun();
@@ -302,6 +305,19 @@ public:
 	void DeleteSession();
 	typedef SessionManagementPane CLASSNAME;
 	SessionManagementPane();
+};
+
+class TutorialPane : public ParentCtrl {
+public:
+	RichTextView view;
+	int step = 0;
+	
+	void UpdateContent();
+	void OnNext();
+	void OnNextStep();
+	void OnPrev();
+	typedef TutorialPane CLASSNAME;
+	TutorialPane();
 };
 
 // 3. Dialogs
@@ -440,26 +456,46 @@ public:
 	OpsRunner();
 };
 
-// 4. Main Window
-bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path);
-
-class TutorialPane : public ParentCtrl {
-public:
-	RichTextView view;
-	int step = 0;
-	
-	void UpdateContent();
-	void OnNext();
-	void OnPrev();
-	typedef TutorialPane CLASSNAME;
-	TutorialPane();
-};
-
 class WelcomeDialog : public WithWelcomeLayout<TopWindow> {
 public:
 	typedef WelcomeDialog CLASSNAME;
 	WelcomeDialog();
 };
+
+struct Toolchain : Moveable<Toolchain> {
+	String name;
+	String path;
+	VectorMap<String, String> vars;
+	
+	String ToString() const { return name; }
+};
+
+class ToolchainManager {
+public:
+	Array<Toolchain> toolchains;
+	
+	void Load(const String& dir);
+	void ScanStandardLocations();
+	Toolchain* Find(const String& name);
+};
+
+class BuildMethodsDialog : public TopWindow {
+public:
+	Splitter split;
+	ArrayCtrl list;
+	ArrayCtrl vars;
+	
+	ToolchainManager tm;
+	
+	void Load();
+	void OnSelect();
+	
+	typedef BuildMethodsDialog CLASSNAME;
+	BuildMethodsDialog();
+};
+
+// 4. Main Window
+bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path);
 
 class MaestroHubCockpit : public TopWindow {
 public:
@@ -487,6 +523,11 @@ public:
 	
 	RichTextView               automation_output;
 	RichTextView               ai_trace;
+	RichTextView               internal_console;
+	ProgressIndicator          quota_indicator;
+	
+	void LogInternal(const String& msg, int level = 0); // 0:Info, 1:Warn, 2:Error
+	void UpdateQuota(double percent);
 	
 	RecentConfig config;
 	String       current_root;
@@ -509,6 +550,7 @@ public:
 	void OnTUBrowser();
 	void OnLogAnalyzer();
 	void OnSettings();
+	void OnBuildMethods();
 	void OnOpsRunner();
 	void OnSuggestEnact();
 	

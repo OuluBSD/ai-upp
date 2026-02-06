@@ -53,6 +53,7 @@ struct Command {
 #include "SemanticIntegrity.h"
 #include "PipelineRuntime.h"
 #include "RegressionReplay.h"
+#include "Debugger.h"
 
 class RunbookManager {
 	String base_path;

@@ -57,6 +57,10 @@ file
 	PipelineRuntime.cpp,
 	RegressionReplay.h,
 	RegressionReplay.cpp,
+	Debugger.h,
+	Debugger.cpp,
+	Playbook readonly separator,
+
 	RunbookManager.cpp,
 	WorkflowManager.cpp,
 	IssueManager.cpp,

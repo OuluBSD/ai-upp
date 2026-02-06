@@ -11,3 +11,4 @@ Add per-scene timelines and polygon-level animation support.
 - task-0904-flash-timeline-visuals.md
 - task-0905-flash-timeline-navigation.md
 - task-0906-transform-subkeyframes.md
+- task-0907-props-playback-sync.md

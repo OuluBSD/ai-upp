@@ -1947,25 +1947,12 @@ static void Apply2DAnimation(GeomObject& obj, int position, double time, int kps
 
 
 
-void GeomAnim::Update(double dt) {
-	if (!is_playing) {
+void GeomAnim::ApplyAtPosition(int pos, double t) {
+	if (!state || !state->prj)
 		return;
-	}
-	
-	time += dt;
-	
 	GeomProject& prj = *state->prj;
-	GeomScene& scene = state->GetActiveScene();
-	
-	double frame_time = 1.0 / state->prj->kps;
-	position = time / frame_time;
-	
-	if (position < 0 || position >= scene.length) {
-		is_playing = false;
-		WhenSceneEnd();
-		return;
-	}
-	
+	position = pos;
+	time = t;
 	for (GeomObjectState& os : state->objs) {
 		GeomObject& o = *os.obj;
 		if (!o.read_enabled)
@@ -2029,6 +2016,28 @@ void GeomAnim::Update(double dt) {
 		}
 	}
 	
+}
+
+void GeomAnim::Update(double dt) {
+	if (!is_playing) {
+		return;
+	}
+	
+	time += dt;
+	
+	GeomProject& prj = *state->prj;
+	GeomScene& scene = state->GetActiveScene();
+	
+	double frame_time = 1.0 / state->prj->kps;
+	position = time / frame_time;
+	
+	if (position < 0 || position >= scene.length) {
+		is_playing = false;
+		WhenSceneEnd();
+		return;
+	}
+	
+	ApplyAtPosition(position, time);
 }
 
 void GeomAnim::Reset() {

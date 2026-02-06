@@ -900,6 +900,10 @@ void GeomProjectCtrl::Update(double dt) {
 			if (rends[i])
 				rends[i]->Refresh();
 		}
+		if (anim.position != last_props_frame) {
+			last_props_frame = anim.position;
+			PropsData();
+		}
 	}
 }
 
@@ -1752,15 +1756,29 @@ void GeomProjectCtrl::PropsData() {
 	vec3 pos(0, 0, 0);
 	quat ori = Identity<quat>();
 	if (selected_obj) {
-		if (GeomTransform* tr = selected_obj->FindTransform()) {
-			pos = tr->position;
-			ori = tr->orientation;
+		bool use_state = false;
+		if (e && e->anim) {
+			if (GeomTimeline* tl = selected_obj->FindTimeline())
+				use_state = !tl->keypoints.IsEmpty();
 		}
-		else {
+		if (use_state) {
 			const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
 			if (os) {
 				pos = os->position;
 				ori = os->orientation;
+			}
+		}
+		if (!use_state) {
+			if (GeomTransform* tr = selected_obj->FindTransform()) {
+				pos = tr->position;
+				ori = tr->orientation;
+			}
+			else {
+				const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
+				if (os) {
+					pos = os->position;
+					ori = os->orientation;
+				}
 			}
 		}
 	}
@@ -2665,7 +2683,17 @@ void GeomProjectCtrl::RebuildGrid() {
 }
 
 void GeomProjectCtrl::OnCursor(int i) {
+	if (!e || !e->anim)
+		return;
 	e->anim->position = i;
+	if (e->prj && e->prj->kps > 0) {
+		double frame_time = 1.0 / (double)e->prj->kps;
+		e->anim->time = frame_time * i;
+		e->anim->ApplyAtPosition(i, e->anim->time);
+	}
+	last_props_frame = i;
+	PropsData();
+	RefreshAll();
 }
 
 void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {

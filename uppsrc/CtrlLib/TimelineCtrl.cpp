@@ -176,6 +176,14 @@ bool TimelineRowCtrl::Key(dword key, int) {
 			owner->WhenToggleAutoKey();
 		return true;
 	}
+	if (key == (K_CTRL|K_C)) {
+		owner->WhenCopy();
+		return true;
+	}
+	if (key == (K_CTRL|K_V)) {
+		owner->WhenPaste(owner->selected_col);
+		return true;
+	}
 	return false;
 }
 

@@ -644,6 +644,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	
 	
 	tree.NoHeader();
+	tree.LevelCxFromLineCy(0.5);
 	tree_col_visible = tree.GetColumnCount();
 	tree.AddColumn("", 18).NoEdit().FixedWidth(18).NoPadding().NoVertGrid().Ctrls([=](int line, One<Ctrl>& ctrl) {
 		EyeToggle* t = new EyeToggle();
@@ -839,6 +840,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	RebuildGrid();
 	
 	props.NoHeader();
+	props.LevelCxFromLineCy(0.5);
 	props_col_value = props.GetColumnCount();
 	props.AddColumn("Value", 300).NoEdit();
 	props_col_keyframe = props.GetColumnCount();

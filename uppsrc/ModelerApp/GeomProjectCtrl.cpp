@@ -1427,8 +1427,8 @@ void GeomProjectCtrl::PropsData() {
 	int layer_blend_id = -1;
 	int layer_tex_offset_x_id = -1;
 	int layer_tex_offset_y_id = -1;
-	int layer_tex_scale_x_id = -1;
-	int layer_tex_scale_y_id = -1;
+	int layer_tex_repeat_x_id = -1;
+	int layer_tex_repeat_y_id = -1;
 	int layer_tex_rotate_id = -1;
 	int layer_tex_wrap_id = -1;
 	int layer_stroke_uv_id = -1;
@@ -1479,10 +1479,10 @@ void GeomProjectCtrl::PropsData() {
 		layer_tex_offset_y_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&toyref), t_("Tex Offset Y"));
 		PropRef& tsxref = props_nodes.Add();
 		tsxref.kind = PropRef::P_MAT_NORMAL_SCALE;
-		layer_tex_scale_x_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsxref), t_("Tex Scale X"));
+		layer_tex_repeat_x_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsxref), t_("Tex Repeat X"));
 		PropRef& tsyref = props_nodes.Add();
 		tsyref.kind = PropRef::P_MAT_NORMAL_SCALE;
-		layer_tex_scale_y_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsyref), t_("Tex Scale Y"));
+		layer_tex_repeat_y_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsyref), t_("Tex Repeat Y"));
 		PropRef& trotref = props_nodes.Add();
 		trotref.kind = PropRef::P_MAT_NORMAL_SCALE;
 		layer_tex_rotate_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&trotref), t_("Tex Rotate"));
@@ -2039,29 +2039,29 @@ void GeomProjectCtrl::PropsData() {
 		};
 		set_value_ctrl(layer_tex_offset_y_id, pick(tex_off_y));
 
-		One<EditDoubleSpin> tex_scale_x = MakeOne<EditDoubleSpin>();
-		tex_scale_x->Min(0.01).Max(10);
-		tex_scale_x->SetData(layer_ptr->tex_scale_x);
-		EditDoubleSpin* tex_scale_x_ptr = tex_scale_x.Get();
-		tex_scale_x->WhenAction << [=] {
-			if (tex_scale_x_ptr && layer_ptr) {
-				layer_ptr->tex_scale_x = max(0.01, (double)~*tex_scale_x_ptr);
+		One<EditDoubleSpin> tex_repeat_x = MakeOne<EditDoubleSpin>();
+		tex_repeat_x->Min(0.01).Max(100);
+		tex_repeat_x->SetData(layer_ptr->tex_repeat_x);
+		EditDoubleSpin* tex_repeat_x_ptr = tex_repeat_x.Get();
+		tex_repeat_x->WhenAction << [=] {
+			if (tex_repeat_x_ptr && layer_ptr) {
+				layer_ptr->tex_repeat_x = max(0.01, (double)~*tex_repeat_x_ptr);
 				RefreshAll();
 			}
 		};
-		set_value_ctrl(layer_tex_scale_x_id, pick(tex_scale_x));
+		set_value_ctrl(layer_tex_repeat_x_id, pick(tex_repeat_x));
 
-		One<EditDoubleSpin> tex_scale_y = MakeOne<EditDoubleSpin>();
-		tex_scale_y->Min(0.01).Max(10);
-		tex_scale_y->SetData(layer_ptr->tex_scale_y);
-		EditDoubleSpin* tex_scale_y_ptr = tex_scale_y.Get();
-		tex_scale_y->WhenAction << [=] {
-			if (tex_scale_y_ptr && layer_ptr) {
-				layer_ptr->tex_scale_y = max(0.01, (double)~*tex_scale_y_ptr);
+		One<EditDoubleSpin> tex_repeat_y = MakeOne<EditDoubleSpin>();
+		tex_repeat_y->Min(0.01).Max(100);
+		tex_repeat_y->SetData(layer_ptr->tex_repeat_y);
+		EditDoubleSpin* tex_repeat_y_ptr = tex_repeat_y.Get();
+		tex_repeat_y->WhenAction << [=] {
+			if (tex_repeat_y_ptr && layer_ptr) {
+				layer_ptr->tex_repeat_y = max(0.01, (double)~*tex_repeat_y_ptr);
 				RefreshAll();
 			}
 		};
-		set_value_ctrl(layer_tex_scale_y_id, pick(tex_scale_y));
+		set_value_ctrl(layer_tex_repeat_y_id, pick(tex_repeat_y));
 
 		One<EditDoubleSpin> tex_rotate = MakeOne<EditDoubleSpin>();
 		tex_rotate->Min(-360).Max(360);

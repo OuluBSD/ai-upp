@@ -143,6 +143,10 @@ struct Geom2DShape : Moveable<Geom2DShape> {
 	Color stroke = Color(220, 220, 220);
 	float width = 1.0f;
 	bool closed = false;
+	int tex_wrap = -1;
+	int stroke_uv_mode = -1;
+	float tex_repeat_x = 0;
+	float tex_repeat_y = 0;
 
 	void Visit(Vis& v);
 };
@@ -159,8 +163,8 @@ struct Geom2DLayer : VfsValueExt {
 	int blend_mode = 0;
 	float tex_offset_x = 0;
 	float tex_offset_y = 0;
-	float tex_scale_x = 1;
-	float tex_scale_y = 1;
+	float tex_repeat_x = 1;
+	float tex_repeat_y = 1;
 	float tex_rotate = 0;
 	int tex_wrap = 0;
 	int stroke_uv_mode = 0;

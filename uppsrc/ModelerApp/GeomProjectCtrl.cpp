@@ -136,12 +136,20 @@ struct Vec3EditCtrl : Ctrl {
 		lx.SetText("X");
 		ly.SetText("Y");
 		lz.SetText("Z");
+		Font f = StdFont();
+		f.Height(max(6, f.GetHeight() - 2));
+		lx.SetFont(f);
+		ly.SetFont(f);
+		lz.SetFont(f);
 		Add(lx);
 		Add(ly);
 		Add(lz);
 		Add(ex);
 		Add(ey);
 		Add(ez);
+		ex.SetFont(f);
+		ey.SetFont(f);
+		ez.SetFont(f);
 		ex.SetDragInc(0.01);
 		ey.SetDragInc(0.01);
 		ez.SetDragInc(0.01);
@@ -233,6 +241,12 @@ struct QuatEditCtrl : Ctrl {
 		ly.SetText("Y");
 		lz.SetText("Z");
 		lw.SetText("W");
+		Font f = StdFont();
+		f.Height(max(6, f.GetHeight() - 2));
+		lx.SetFont(f);
+		ly.SetFont(f);
+		lz.SetFont(f);
+		lw.SetFont(f);
 		Add(lx);
 		Add(ly);
 		Add(lz);
@@ -241,6 +255,10 @@ struct QuatEditCtrl : Ctrl {
 		Add(ey);
 		Add(ez);
 		Add(ew);
+		ex.SetFont(f);
+		ey.SetFont(f);
+		ez.SetFont(f);
+		ew.SetFont(f);
 		ex.SetDragInc(0.001);
 		ey.SetDragInc(0.001);
 		ez.SetDragInc(0.001);
@@ -905,17 +923,7 @@ void GeomProjectCtrl::Update(double dt) {
 			SyncPropsValues();
 		}
 	}
-	if (e && e->state && e->state->HasActiveScene()) {
-		GeomScene& scene = e->state->GetActiveScene();
-		GeomSceneTimeline& tl = scene.GetTimeline();
-		int frame = tl.position;
-		if (tl.is_playing || frame != last_props_scene_frame) {
-			if (frame != last_props_scene_frame) {
-				last_props_scene_frame = frame;
-				SyncPropsValues();
-			}
-		}
-	}
+	// Scene timeline sync handled after GeomSceneTimeline::Update in Edit3D::Update.
 }
 
 void GeomProjectCtrl::Data() {

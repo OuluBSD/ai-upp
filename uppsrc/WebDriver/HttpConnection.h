@@ -5,10 +5,22 @@
 
 NAMESPACE_UPP
 
-class HttpConnection {
+namespace detail {
+
+class Http_connection {
 public:
-    // Implementation will be adapted from webdriverxx/detail/http_connection.h
+	Http_connection(const String& host, int port);
+	
+	Http_response Get(const String& path) const;
+	Http_response Post(const String& path, const String& data) const;
+	Http_response Delete(const String& path) const;
+
+private:
+	String host_;
+	int port_;
 };
+
+} // namespace detail
 
 END_UPP_NAMESPACE
 

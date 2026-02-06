@@ -5,10 +5,13 @@
 
 NAMESPACE_UPP
 
-class WaitMatch {
-public:
-    // Implementation will be adapted from webdriverxx/wait_match.h
-};
+template<typename T>
+bool Wait_until_matches(
+	const T& condition,
+	const Session& session,
+	int timeout_ms = 5000,
+	int interval_ms = 500
+	);
 
 END_UPP_NAMESPACE
 

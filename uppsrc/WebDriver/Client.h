@@ -5,9 +5,33 @@
 
 NAMESPACE_UPP
 
-class Client {
+const char *const k_default_web_driver_url = "http://localhost:4444/wd/hub/";
+
+// Gives low level access to server's resources. You normally should not use it.
+class Client { // copyable
 public:
-    // Implementation will be adapted from webdriverxx/client.h
+	explicit Client(const String& url = String(k_default_web_driver_url));
+	virtual ~Client() {}
+
+	picojson::object Get_status() const;
+
+	// Returns existing sessions.
+	Vector<Session> Get_sessions() const;
+
+	// Creates new session.
+	Session Create_session(
+		const Capabilities& desired,
+		const Capabilities& required
+		) const;
+
+private:
+	Session Make_session(
+		const String& id,
+		detail::Resource::Ownership mode
+		) const;
+
+private:
+	detail::Shared<detail::Resource> resource_;
 };
 
 END_UPP_NAMESPACE

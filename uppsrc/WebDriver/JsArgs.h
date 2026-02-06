@@ -3,12 +3,37 @@
 
 #include <Core/Core.h>
 
+
 NAMESPACE_UPP
 
-class JsArgs {
+class Js_args { // copyable
 public:
-    // Implementation will be adapted from webdriverxx/js_args.h
+	Js_args();
+
+	template<typename T>
+	Js_args(const T& value);
+
+	template<typename T>
+	Js_args& Add(const T& value);
+
+	picojson::value operator[](int index) const;
+
+	int Size() const;
+
+private:
+	Vector<picojson::value> args_;
 };
+
+template<typename T>
+Js_args::Js_args(const T& value) {
+	Add(value);
+}
+
+template<typename T>
+Js_args& Js_args::Add(const T& value) {
+	args_.Add(To_json(value));
+	return *this;
+}
 
 END_UPP_NAMESPACE
 

@@ -589,6 +589,8 @@ void TreeArrayCtrl::SyncTree() {
 }
 
 int TreeArrayCtrl::GetLevelCx() const {
+	if (levelcx_from_linecy)
+		return max(1, (int)floor(GetLineCy() * levelcx_linecy_scale));
 	return max(1, (int)floor(levelcx * levelcx_scale));
 }
 

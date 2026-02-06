@@ -8,7 +8,7 @@ NAMESPACE_UPP
 
 namespace detail {
 
-struct IFinder_factory : public Shared_object_base {
+struct IFinder_factory : public SharedObjectBase {
 	virtual ~IFinder_factory() {}
 	virtual Shared<Resource> operator()(const Shared<Resource>& resource) const = 0;
 };

@@ -13,4 +13,4 @@ Convert the browser-specific classes (Chrome, Firefox, IE, Phantom) to follow U+
 - Browser classes implementation completed
 
 ## Status
-Pending
+Completed

@@ -6,32 +6,36 @@
 
 NAMESPACE_UPP
 
-class Js_args { // copyable
+class JsArgs : public Moveable<JsArgs> { // copyable
 public:
-	Js_args();
+	JsArgs();
 
 	template<typename T>
-	Js_args(const T& value);
+	JsArgs(const T& value);
 
 	template<typename T>
-	Js_args& Add(const T& value);
+	JsArgs& Add(const T& value);
 
 	Value operator[](int index) const;
 
 	int Size() const;
+
+	void Jsonize(JsonIO& json) {
+		json.Set(ToJson(args_));
+	}
 
 private:
 	ValueArray args_;
 };
 
 template<typename T>
-Js_args::Js_args(const T& value) {
+JsArgs::JsArgs(const T& value) {
 	Add(value);
 }
 
 template<typename T>
-Js_args& Js_args::Add(const T& value) {
-	args_.Add(To_json(value));
+JsArgs& JsArgs::Add(const T& value) {
+	args_.Add(ToJson(value));
 	return *this;
 }
 

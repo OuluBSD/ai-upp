@@ -24,20 +24,20 @@ Finder::Finder(
 {
 }
 
-Element Finder::Find_element(const By& by) const {
-	Value response = resource_->Post("element", To_json(by));
+Element Finder::FindElement(const By& by) const {
+	Value response = resource_->Post("element", ToJson(by));
 	String id = GetElementId(response);
-	return Element(id, Make_sub_resource(resource_, "element/" + id), Shared<IFinder_factory>(new Element_factory()));
+	return Element(id, MakeSubResource(resource_, "element/" + id), Shared<IFinder_factory>(new Element_factory()));
 }
 
-Vector<Element> Finder::Find_elements(const By& by) const {
-	Value response = resource_->Post("elements", To_json(by));
+Vector<Element> Finder::FindElements(const By& by) const {
+	Value response = resource_->Post("elements", ToJson(by));
 	Vector<Element> elements;
 	if (IsValueArray(response)) {
 		const ValueArray& arr = response.Get<ValueArray>();
 		for (const auto& v : arr) {
 			String id = GetElementId(v);
-			elements.Add(Element(id, Make_sub_resource(resource_, "element/" + id), Shared<IFinder_factory>(new Element_factory())));
+			elements.Add(Element(id, MakeSubResource(resource_, "element/" + id), Shared<IFinder_factory>(new Element_factory())));
 		}
 	}
 	return elements;

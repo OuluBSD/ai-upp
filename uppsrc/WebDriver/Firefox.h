@@ -5,7 +5,7 @@
 
 NAMESPACE_UPP
 
-struct Firefox_profile { // copyable
+struct FirefoxProfile { // copyable
 	bool accept_untrusted_certs = false;
 	bool assume_untrusted_issuer = false;
 	String binary;
@@ -22,13 +22,13 @@ struct Firefox_profile { // copyable
 };
 
 struct Firefox : Capabilities { // copyable
-	Firefox_profile profile;
+	FirefoxProfile profile;
 	
 	Firefox(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
-		browser_name = browser::Firefox;
+		browser_name = browser::K_FIREFOX;
 		version = String();
-		platform = platform::Any;
+		platform = platform::K_ANY;
 	}
 
 	// See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for details

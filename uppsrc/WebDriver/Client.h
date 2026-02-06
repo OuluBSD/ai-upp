@@ -5,27 +5,27 @@
 
 NAMESPACE_UPP
 
-const char *const k_default_web_driver_url = "http://localhost:4444/wd/hub/";
+const char *const K_DEFAULT_WEB_DRIVER_URL = "http://localhost:4444/wd/hub/";
 
 // Gives low level access to server's resources. You normally should not use it.
 class Client { // copyable
 public:
-	explicit Client(const String& url = String(k_default_web_driver_url));
+	explicit Client(const String& url = String(K_DEFAULT_WEB_DRIVER_URL));
 	virtual ~Client() {}
 
-	Value Get_status() const;
+	Value GetStatus() const;
 
 	// Returns existing sessions.
-	Vector<Session> Get_sessions() const;
+	Vector<Session> GetSessions() const;
 
 	// Creates new session.
-	Session Create_session(
+	Session CreateSession(
 		const Capabilities& desired,
 		const Capabilities& required
 		) const;
 
 private:
-	Session Make_session(
+	Session MakeSession(
 		const String& id,
 		detail::Resource::Ownership mode
 		) const;

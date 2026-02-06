@@ -9,48 +9,48 @@ NAMESPACE_UPP
 namespace browser {
 typedef String Value;
 typedef const char* const ConstValue;
-ConstValue Android = "android";
-ConstValue Chrome = "chrome";
-ConstValue Firefox = "firefox";
-ConstValue HtmlUnit = "htmlunit";
-ConstValue InternetExplorer = "internet explorer";
-ConstValue IPhone = "iPhone";
-ConstValue IPad = "iPad";
-ConstValue Mock = "mock";
-ConstValue Opera = "opera";
-ConstValue Safari = "safari";
-ConstValue Phantom = "phantomjs";
+ConstValue K_ANDROID = "android";
+ConstValue K_CHROME = "chrome";
+ConstValue K_FIREFOX = "firefox";
+ConstValue K_HTML_UNIT = "htmlunit";
+ConstValue K_INTERNET_EXPLORER = "internet explorer";
+ConstValue K_IPHONE = "iPhone";
+ConstValue K_IPAD = "iPad";
+ConstValue K_MOCK = "mock";
+ConstValue K_OPERA = "opera";
+ConstValue K_SAFARI = "safari";
+ConstValue K_PHANTOM = "phantomjs";
 } // namespace browser
 
 namespace platform {
 typedef String Value;
 typedef const char* const ConstValue;
-ConstValue Any = "ANY";
-ConstValue Windows = "WINDOWS";
-ConstValue Xp = "XP";
-ConstValue Vista = "VISTA";
-ConstValue Mac = "MAC";
-ConstValue Linux = "LINUX";
-ConstValue Unix = "UNIX";
-ConstValue Android = "ANDROID";
+ConstValue K_ANY = "ANY";
+ConstValue K_WINDOWS = "WINDOWS";
+ConstValue K_XP = "XP";
+ConstValue K_VISTA = "VISTA";
+ConstValue K_MAC = "MAC";
+ConstValue K_LINUX = "LINUX";
+ConstValue K_UNIX = "UNIX";
+ConstValue K_ANDROID = "ANDROID";
 } // namespace platform
 
 namespace unexpected_alert_behaviour {
 typedef String Value;
 typedef const char* const ConstValue;
-ConstValue Accept = "accept";
-ConstValue Dismiss = "dismiss";
-ConstValue Ignore = "ignore";
+ConstValue K_ACCEPT = "accept";
+ConstValue K_DISMISS = "dismiss";
+ConstValue K_IGNORE = "ignore";
 } // namespace unexpected_alert_behaviour
 
 namespace proxy_type {
 typedef String Value;
 typedef const char* const ConstValue;
-ConstValue Direct = "direct";
-ConstValue Manual = "manual"; // Manual proxy settings configured, e.g. setting a proxy for HTTP, a proxy for FTP
-ConstValue Pac = "pac"; // Proxy autoconfiguration from a URL
-ConstValue Autodetect = "autodetect"; // Proxy autodetection, probably with WPAD
-ConstValue System = "system"; // Use system settings
+ConstValue K_DIRECT = "direct";
+ConstValue K_MANUAL = "manual"; // Manual proxy settings configured, e.g. setting a proxy for HTTP, a proxy for FTP
+ConstValue K_PAC = "pac"; // Proxy autoconfiguration from a URL
+ConstValue K_AUTODETECT = "autodetect"; // Proxy autodetection, probably with WPAD
+ConstValue K_SYSTEM = "system"; // Use system settings
 } // namespace proxy_type
 
 struct Proxy { // copyable
@@ -61,35 +61,35 @@ struct Proxy { // copyable
 	}
 };
 
-struct Direct_connection : Proxy { // copyable
-	Direct_connection() { proxy_type = proxy_type::Direct; }
+struct DirectConnection : Proxy { // copyable
+	DirectConnection() { proxy_type = proxy_type::K_DIRECT; }
 	
 	void Jsonize(JsonIO& json) {
 		json("proxyType", proxy_type);
 	}
 };
 
-struct Autodetect_proxy : Proxy { // copyable
-	Autodetect_proxy() { proxy_type = proxy_type::Autodetect; }
+struct AutodetectProxy : Proxy { // copyable
+	AutodetectProxy() { proxy_type = proxy_type::K_AUTODETECT; }
 	
 	void Jsonize(JsonIO& json) {
 		json("proxyType", proxy_type);
 	}
 };
 
-struct System_proxy : Proxy { // copyable
-	System_proxy() { proxy_type = proxy_type::System; }
+struct SystemProxy : Proxy { // copyable
+	SystemProxy() { proxy_type = proxy_type::K_SYSTEM; }
 	
 	void Jsonize(JsonIO& json) {
 		json("proxyType", proxy_type);
 	}
 };
 
-struct Automatic_proxy_from_url : Proxy { // copyable
+struct AutomaticProxyFromUrl : Proxy { // copyable
 	String autoconfig_url;
 	
-	explicit Automatic_proxy_from_url(const String& url) {
-		proxy_type = proxy_type::Pac;
+	explicit AutomaticProxyFromUrl(const String& url) {
+		proxy_type = proxy_type::K_PAC;
 		autoconfig_url = url;
 	}
 	
@@ -98,20 +98,20 @@ struct Automatic_proxy_from_url : Proxy { // copyable
 	}
 };
 
-struct Manual_proxy : Proxy { // copyable
+struct ManualProxy : Proxy { // copyable
 	String no_proxy_for;
 	
-	Manual_proxy() { proxy_type = proxy_type::Manual; }
+	ManualProxy() { proxy_type = proxy_type::K_MANUAL; }
 	
 	void Jsonize(JsonIO& json) {
 		json("proxyType", proxy_type)("noProxy", no_proxy_for);
 	}
 };
 
-struct Ftp_proxy : Manual_proxy { // copyable
+struct FtpProxy : ManualProxy { // copyable
 	String proxy_address;
 	
-	explicit Ftp_proxy(const String& address) { 
+	explicit FtpProxy(const String& address) { 
 		proxy_address = address; 
 	}
 	
@@ -120,10 +120,10 @@ struct Ftp_proxy : Manual_proxy { // copyable
 	}
 };
 
-struct Http_proxy : Manual_proxy { // copyable
+struct HttpProxy : ManualProxy { // copyable
 	String proxy_address;
 	
-	explicit Http_proxy(const String& address) { 
+	explicit HttpProxy(const String& address) { 
 		proxy_address = address; 
 	}
 	
@@ -132,12 +132,12 @@ struct Http_proxy : Manual_proxy { // copyable
 	}
 };
 
-struct Ssl_proxy : Manual_proxy { // copyable
+struct SslProxy : ManualProxy { // copyable
 	String proxy_address;
 	String username;
 	String password;
 	
-	explicit Ssl_proxy(const String& address) { 
+	explicit SslProxy(const String& address) { 
 		proxy_address = address; 
 	}
 	
@@ -147,12 +147,12 @@ struct Ssl_proxy : Manual_proxy { // copyable
 	}
 };
 
-struct Socks_proxy : Manual_proxy { // copyable
+struct SocksProxy : ManualProxy { // copyable
 	String proxy_address;
 	String username;
 	String password;
 	
-	explicit Socks_proxy(const String& address) { 
+	explicit SocksProxy(const String& address) { 
 		proxy_address = address; 
 	}
 	
@@ -165,18 +165,18 @@ struct Socks_proxy : Manual_proxy { // copyable
 namespace log_level {
 typedef String Value;
 typedef const char* const ConstValue;
-ConstValue Off = "OFF";
-ConstValue Severe = "SEVERE";
-ConstValue Warning = "WARNING";
-ConstValue Info = "INFO";
-ConstValue Config = "CONFIG";
-ConstValue Fine = "FINE";
-ConstValue Finer = "FINER";
-ConstValue Finest = "FINEST";
-ConstValue All = "ALL";
+ConstValue K_OFF = "OFF";
+ConstValue K_SEVERE = "SEVERE";
+ConstValue K_WARNING = "WARNING";
+ConstValue K_INFO = "INFO";
+ConstValue K_CONFIG = "CONFIG";
+ConstValue K_FINE = "FINE";
+ConstValue K_FINER = "FINER";
+ConstValue K_FINEST = "FINEST";
+ConstValue K_ALL = "ALL";
 } // namespace log_level
 
-struct Logging_prefs {
+struct LoggingPrefs {
 	String level;
 	
 	void Jsonize(JsonIO& json) {
@@ -206,7 +206,7 @@ struct Capabilities { // copyable
 	int element_scroll_behavior = 0;
 	String session_id;
 	bool quiet_exceptions = false;
-	Logging_prefs logging_prefs;
+	LoggingPrefs logging_prefs;
 	
 	Capabilities() {}
 	

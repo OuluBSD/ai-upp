@@ -667,6 +667,19 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	time.WhenKeyframeRemove = THISBACK(TimelineRemoveKeyframe);
 	time.WhenKeyframeMove = THISBACK(TimelineMoveKeyframe);
 	time.WhenToggleAutoKey = THISBACK(TimelineToggleAutoKey);
+	time.WhenCopy << THISBACK(TimelineCopySelection);
+	time.WhenPaste << [=](int frame) { TimelinePasteSelection(frame); };
+	time.WhenRangeSelect << [=](int a, int b) {
+		if (!e)
+			return;
+		if (e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()) {
+			GeomSceneTimeline& tl = e->state->GetActiveScene().GetTimeline();
+			tl.position = min(max(b, 0), max(tl.length - 1, 0));
+		}
+		else if (e->anim) {
+			e->anim->position = b;
+		}
+	};
 	tree.WhenCursor << THISBACK(TreeSelect);
 	tree.WhenMenu = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
@@ -3448,9 +3461,17 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 			e->timeline_object_key = 0;
 			TimelineData();
 		});
-		bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
-		return;
-	}
+	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+	bar.Separator();
+	bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
+	bar.Add(t_("Paste Keyframes"), [=] {
+		int frame = e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()
+			? e->state->GetActiveScene().GetTimeline().position
+			: (e->anim ? e->anim->position : 0);
+		TimelinePasteSelection(frame);
+	}).Key(K_CTRL|K_V);
+	return;
+}
 	hash_t key = info.object_key;
 	GeomObject* obj = e->state->FindObjectByKey(key);
 	if (!obj)
@@ -3486,6 +3507,14 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		TimelineData();
 	});
 	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+	bar.Separator();
+	bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
+	bar.Add(t_("Paste Keyframes"), [=] {
+		int frame = e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()
+			? e->state->GetActiveScene().GetTimeline().position
+			: (e->anim ? e->anim->position : 0);
+		TimelinePasteSelection(frame);
+	}).Key(K_CTRL|K_V);
 	bar.Separator();
 	auto add_transform_kp = [&](bool pos, bool ori) {
 		if (!e || !e->state)
@@ -3780,6 +3809,165 @@ void GeomProjectCtrl::TimelineToggleAutoKey() {
 	if (!e)
 		return;
 	e->auto_key = !e->auto_key;
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineCopySelection() {
+	timeline_clipboard.Clear();
+	if (!e || !e->state)
+		return;
+	Vector<int> rows = time.GetSelectedRows();
+	if (rows.IsEmpty())
+		return;
+	int base_frame = e->timeline_scope == Edit3D::TS_SCENE && e->state->HasActiveScene()
+		? e->state->GetActiveScene().GetTimeline().position
+		: (e->anim ? e->anim->position : 0);
+	bool has_range = time.HasSelectionRange();
+	int range_start = has_range ? time.GetRangeStart() : base_frame;
+	int range_end = has_range ? time.GetRangeEnd() : base_frame;
+	timeline_clipboard.base_frame = range_start;
+	timeline_clipboard.has_range = has_range;
+	auto copy_shape = [&](Geom2DShape& dst, const Geom2DShape& src) {
+		dst.type = src.type;
+		dst.radius = src.radius;
+		dst.stroke = src.stroke;
+		dst.width = src.width;
+		dst.closed = src.closed;
+		dst.tex_wrap = src.tex_wrap;
+		dst.stroke_uv_mode = src.stroke_uv_mode;
+		dst.tex_repeat_x = src.tex_repeat_x;
+		dst.tex_repeat_y = src.tex_repeat_y;
+		dst.points.SetCount(src.points.GetCount());
+		for (int i = 0; i < src.points.GetCount(); i++)
+			dst.points[i] = src.points[i];
+	};
+	for (int r = 0; r < rows.GetCount(); r++) {
+		int row_id = rows[r];
+		if (row_id < 0 || row_id >= timeline_rows.GetCount())
+			continue;
+		const TimelineRowInfo& info = timeline_rows[row_id];
+		if (info.kind == TimelineRowInfo::R_SCENE)
+			continue;
+		GeomObject* obj = e->state->FindObjectByKey(info.object_key);
+		if (!obj)
+			continue;
+		auto add_transform = [&](GeomTimeline* tl, int idx) {
+			if (!tl)
+				return;
+			int frame = tl->keypoints.GetKey(idx);
+			if (frame < range_start || frame > range_end)
+				return;
+			const GeomKeypoint& kp = tl->keypoints[idx];
+			if (info.kind == TimelineRowInfo::R_POSITION && !kp.has_position)
+				return;
+			if (info.kind == TimelineRowInfo::R_ORIENTATION && !kp.has_orientation)
+				return;
+			TimelineClipboard::Item it;
+			it.kind = info.kind;
+			it.object_key = info.object_key;
+			it.frame_offset = frame - range_start;
+			it.keypoint = kp;
+			timeline_clipboard.items.Add(pick(it));
+		};
+		if (GeomTimeline* tl = obj->FindTimeline()) {
+			for (int i = 0; i < tl->keypoints.GetCount(); i++)
+				add_transform(tl, i);
+		}
+		if (info.kind == TimelineRowInfo::R_MESH || info.kind == TimelineRowInfo::R_OBJECT) {
+			if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
+				for (int i = 0; i < ma->keyframes.GetCount(); i++) {
+					int frame = ma->keyframes.GetKey(i);
+					if (frame < range_start || frame > range_end)
+						continue;
+					TimelineClipboard::Item it;
+					it.kind = TimelineRowInfo::R_MESH;
+					it.object_key = info.object_key;
+					it.frame_offset = frame - range_start;
+					it.mesh_kf.frame_id = frame;
+					it.mesh_kf.points.SetCount(ma->keyframes[i].points.GetCount());
+					for (int k = 0; k < ma->keyframes[i].points.GetCount(); k++)
+						it.mesh_kf.points[k] = ma->keyframes[i].points[k];
+					timeline_clipboard.items.Add(pick(it));
+				}
+			}
+		}
+		if (info.kind == TimelineRowInfo::R_2D || info.kind == TimelineRowInfo::R_OBJECT) {
+			if (Geom2DAnimation* a2d = obj->Find2DAnimation()) {
+				for (int i = 0; i < a2d->keyframes.GetCount(); i++) {
+					int frame = a2d->keyframes.GetKey(i);
+					if (frame < range_start || frame > range_end)
+						continue;
+					TimelineClipboard::Item it;
+					it.kind = TimelineRowInfo::R_2D;
+					it.object_key = info.object_key;
+					it.frame_offset = frame - range_start;
+					it.a2d_kf.frame_id = frame;
+					it.a2d_kf.shapes.SetCount(a2d->keyframes[i].shapes.GetCount());
+					for (int k = 0; k < a2d->keyframes[i].shapes.GetCount(); k++)
+						copy_shape(it.a2d_kf.shapes[k], a2d->keyframes[i].shapes[k]);
+					timeline_clipboard.items.Add(pick(it));
+				}
+			}
+		}
+	}
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelinePasteSelection(int frame) {
+	if (!e || !e->state)
+		return;
+	if (timeline_clipboard.items.IsEmpty())
+		return;
+	auto copy_shape = [&](Geom2DShape& dst, const Geom2DShape& src) {
+		dst.type = src.type;
+		dst.radius = src.radius;
+		dst.stroke = src.stroke;
+		dst.width = src.width;
+		dst.closed = src.closed;
+		dst.tex_wrap = src.tex_wrap;
+		dst.stroke_uv_mode = src.stroke_uv_mode;
+		dst.tex_repeat_x = src.tex_repeat_x;
+		dst.tex_repeat_y = src.tex_repeat_y;
+		dst.points.SetCount(src.points.GetCount());
+		for (int i = 0; i < src.points.GetCount(); i++)
+			dst.points[i] = src.points[i];
+	};
+	for (const TimelineClipboard::Item& it : timeline_clipboard.items) {
+		GeomObject* obj = e->state->FindObjectByKey(it.object_key);
+		if (!obj)
+			continue;
+		int dst_frame = frame + it.frame_offset;
+		if (dst_frame < 0)
+			continue;
+		if (it.kind == TimelineRowInfo::R_POSITION || it.kind == TimelineRowInfo::R_ORIENTATION || it.kind == TimelineRowInfo::R_TRANSFORM || it.kind == TimelineRowInfo::R_OBJECT) {
+			GeomTimeline& tl = obj->GetTimeline();
+			GeomKeypoint& kp = tl.GetAddKeypoint(dst_frame);
+			if (it.kind == TimelineRowInfo::R_POSITION || it.kind == TimelineRowInfo::R_TRANSFORM || it.kind == TimelineRowInfo::R_OBJECT) {
+				kp.position = it.keypoint.position;
+				kp.has_position = (it.kind == TimelineRowInfo::R_POSITION || it.kind == TimelineRowInfo::R_TRANSFORM || it.kind == TimelineRowInfo::R_OBJECT) && it.keypoint.has_position;
+			}
+			if (it.kind == TimelineRowInfo::R_ORIENTATION || it.kind == TimelineRowInfo::R_TRANSFORM || it.kind == TimelineRowInfo::R_OBJECT) {
+				kp.orientation = it.keypoint.orientation;
+				kp.has_orientation = (it.kind == TimelineRowInfo::R_ORIENTATION || it.kind == TimelineRowInfo::R_TRANSFORM || it.kind == TimelineRowInfo::R_OBJECT) && it.keypoint.has_orientation;
+			}
+		}
+		if (it.kind == TimelineRowInfo::R_MESH) {
+			GeomMeshAnimation& ma = obj->GetMeshAnimation();
+			GeomMeshKeyframe& kf = ma.GetAddKeyframe(dst_frame);
+			kf.frame_id = dst_frame;
+			kf.points.SetCount(it.mesh_kf.points.GetCount());
+			for (int k = 0; k < it.mesh_kf.points.GetCount(); k++)
+				kf.points[k] = it.mesh_kf.points[k];
+		}
+		if (it.kind == TimelineRowInfo::R_2D) {
+			Geom2DAnimation& a2d = obj->Get2DAnimation();
+			Geom2DKeyframe& kf = a2d.GetAddKeyframe(dst_frame);
+			kf.frame_id = dst_frame;
+			kf.shapes.SetCount(it.a2d_kf.shapes.GetCount());
+			for (int k = 0; k < it.a2d_kf.shapes.GetCount(); k++)
+				copy_shape(kf.shapes[k], it.a2d_kf.shapes[k]);
+		}
+	}
 	TimelineData();
 }
 

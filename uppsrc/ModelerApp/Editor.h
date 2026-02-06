@@ -66,6 +66,21 @@ struct GeomProjectCtrl : Ctrl {
 	};
 	Vector<TimelineRowInfo> timeline_rows;
 	Index<hash_t> timeline_expanded;
+	struct TimelineClipboard : Moveable<TimelineClipboard> {
+		struct Item : Moveable<Item> {
+			TimelineRowInfo::Kind kind = TimelineRowInfo::R_OBJECT;
+			hash_t object_key = 0;
+			int frame_offset = 0;
+			GeomKeypoint keypoint;
+			GeomMeshKeyframe mesh_kf;
+			Geom2DKeyframe a2d_kf;
+		};
+		Vector<Item> items;
+		int base_frame = 0;
+		bool has_range = false;
+		void Clear() { items.Clear(); base_frame = 0; has_range = false; }
+	};
+	TimelineClipboard timeline_clipboard;
 
 	struct PropRef {
 		enum Kind {
@@ -146,6 +161,8 @@ struct GeomProjectCtrl : Ctrl {
 	void TimelineRemoveKeyframe(int row, int frame);
 	void TimelineMoveKeyframe(int row, int from_frame, int to_frame);
 	void TimelineToggleAutoKey();
+	void TimelineCopySelection();
+	void TimelinePasteSelection(int frame);
 	void TreeSelect();
 	void TreeMenu(Bar& bar);
 	void PropsMenu(Bar& bar);

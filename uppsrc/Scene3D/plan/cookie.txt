@@ -218,3 +218,7 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1301-timeline-keyframe-drag.md
   status: done
   note: Added keyframe drag-to-move with row-aware keyframe moves.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1302-timeline-copy-paste.md
+  status: done
+  note: Added timeline copy/paste for selected rows and ranges with menu/shortcut hooks.

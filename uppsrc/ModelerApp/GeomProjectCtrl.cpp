@@ -144,13 +144,16 @@ struct Vec3EditCtrl : Ctrl {
 		Add(lx);
 		Add(ly);
 		Add(lz);
-		Add(ex);
-		Add(ey);
-		Add(ez);
-		ex.SetFont(f);
-		ey.SetFont(f);
-		ez.SetFont(f);
-		ex.SetDragInc(0.01);
+	Add(ex);
+	Add(ey);
+	Add(ez);
+	ex.SetFont(f);
+	ey.SetFont(f);
+	ez.SetFont(f);
+	ex.SetFrame(NullFrame());
+	ey.SetFrame(NullFrame());
+	ez.SetFrame(NullFrame());
+	ex.SetDragInc(0.01);
 		ey.SetDragInc(0.01);
 		ez.SetDragInc(0.01);
 		ex.WhenAction = ey.WhenAction = ez.WhenAction = [=] { WhenAction(); };
@@ -251,15 +254,19 @@ struct QuatEditCtrl : Ctrl {
 		Add(ly);
 		Add(lz);
 		Add(lw);
-		Add(ex);
-		Add(ey);
-		Add(ez);
-		Add(ew);
-		ex.SetFont(f);
-		ey.SetFont(f);
-		ez.SetFont(f);
-		ew.SetFont(f);
-		ex.SetDragInc(0.001);
+	Add(ex);
+	Add(ey);
+	Add(ez);
+	Add(ew);
+	ex.SetFont(f);
+	ey.SetFont(f);
+	ez.SetFont(f);
+	ew.SetFont(f);
+	ex.SetFrame(NullFrame());
+	ey.SetFrame(NullFrame());
+	ez.SetFrame(NullFrame());
+	ew.SetFrame(NullFrame());
+	ex.SetDragInc(0.001);
 		ey.SetDragInc(0.001);
 		ez.SetDragInc(0.001);
 		ew.SetDragInc(0.001);
@@ -2724,8 +2731,16 @@ void GeomProjectCtrl::SyncPropsValues() {
 	quat ori = Identity<quat>();
 	if (selected_obj) {
 		bool use_state = false;
-		if (GeomTimeline* tl = selected_obj->FindTimeline())
-			use_state = !tl->keypoints.IsEmpty();
+		if (e && e->state && e->state->HasActiveScene()) {
+			GeomScene& scene = e->state->GetActiveScene();
+			GeomSceneTimeline& tl_scene = scene.GetTimeline();
+			if (tl_scene.is_playing)
+				use_state = true;
+		}
+		if (!use_state) {
+			if (GeomTimeline* tl = selected_obj->FindTimeline())
+				use_state = !tl->keypoints.IsEmpty();
+		}
 		if (use_state) {
 			const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
 			if (os) {

@@ -111,6 +111,12 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 		}
 		return;
 	}
+	ApplyAtPosition(state, position, time);
+}
+
+void GeomSceneTimeline::ApplyAtPosition(GeomWorldState& state, int pos, double t) {
+	if (!state.prj)
+		return;
 	GeomProject& prj = *state.prj;
 	for (GeomObjectState& os : state.objs) {
 		GeomObject& o = *os.obj;
@@ -118,15 +124,15 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {
-			int pre_i = tl->FindPrePosition(position);
-			int post_i = tl->FindPostPosition(position);
+			int pre_i = tl->FindPrePosition(pos);
+			int post_i = tl->FindPostPosition(pos);
 			if (pre_i >= 0 && post_i >= 0) {
 				ASSERT(pre_i < post_i);
 				GeomKeypoint& pre = tl->keypoints[pre_i];
 				GeomKeypoint& post = tl->keypoints[post_i];
 				float pre_time = pre.frame_id / (float)prj.kps;
 				float post_time = post.frame_id / (float)prj.kps;
-				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				float f = (post_time > pre_time) ? (t - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
 				os.position = Lerp(pre.position, post.position, f);
 			}
@@ -139,15 +145,15 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 				os.position = post.position;
 			}
 
-			pre_i = tl->FindPreOrientation(position);
-			post_i = tl->FindPostOrientation(position);
+			pre_i = tl->FindPreOrientation(pos);
+			post_i = tl->FindPostOrientation(pos);
 			if (pre_i >= 0 && post_i >= 0) {
 				ASSERT(pre_i < post_i);
 				GeomKeypoint& pre = tl->keypoints[pre_i];
 				GeomKeypoint& post = tl->keypoints[post_i];
 				float pre_time = pre.frame_id / (float)prj.kps;
 				float post_time = post.frame_id / (float)prj.kps;
-				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				float f = (post_time > pre_time) ? (t - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
 				os.orientation = Slerp(pre.orientation, post.orientation, f);
 			}
@@ -160,8 +166,8 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 				os.orientation = post.orientation;
 			}
 		}
-		Apply2DAnimation(o, position, time, prj.kps);
-		ApplyMeshAnimation(o, position, time, prj.kps);
+		Apply2DAnimation(o, pos, t, prj.kps);
+		ApplyMeshAnimation(o, pos, t, prj.kps);
 	}
 	if (state.active_camera_obj_i >= 0) {
 		GeomObjectState& os = state.objs[state.active_camera_obj_i];

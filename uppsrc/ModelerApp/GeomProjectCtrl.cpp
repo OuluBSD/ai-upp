@@ -916,8 +916,13 @@ void GeomProjectCtrl::Update(double dt) {
 	else {
 		anim.Update(dt);
 	}
-	
-	time.SetSelectedColumn(anim.position);
+
+	int selected_col = anim.position;
+	if (e && e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()) {
+		GeomSceneTimeline& tl = e->state->GetActiveScene().GetTimeline();
+		selected_col = tl.position;
+	}
+	time.SetSelectedColumn(selected_col);
 	time.Refresh();
 	
 	if (anim.is_playing || was_playing) {
@@ -1034,10 +1039,13 @@ void GeomProjectCtrl::TreeSelect() {
 	if (cursor < 0)
 		return;
 	Value v = tree.Get(cursor);
+	if (!current_tree_path.IsEmpty())
+		StorePropsCursor(current_tree_path);
 	e->selected_bone = nullptr;
 	TreeNodeRef* ref = GetNodeRef(v);
 	GeomObject* obj = GetNodeObject(v);
 	GeomPointcloudDataset* ds = GetNodeDataset(v);
+	current_tree_path = GetTreePathForValue(v, cursor);
 	selected_dataset = ds;
 	if (!obj && v.Is<VfsValue*>()) {
 		VfsValue* node = ValueTo<VfsValue*>(v);
@@ -1066,6 +1074,7 @@ void GeomProjectCtrl::TreeSelect() {
 		}
 		UpdateTreeFocus(cursor);
 		PropsData();
+		RestorePropsCursor(current_tree_path);
 		e->state->UpdateObjects();
 		RefreshAll();
 		TimelineData();
@@ -1080,6 +1089,7 @@ void GeomProjectCtrl::TreeSelect() {
 		e->state->focus_object_key = obj->key;
 		UpdateTreeFocus(cursor);
 		PropsData();
+		RestorePropsCursor(current_tree_path);
 		e->UpdateTextureEditor(obj);
 		e->state->UpdateObjects();
 		RefreshAll();
@@ -1091,6 +1101,7 @@ void GeomProjectCtrl::TreeSelect() {
 		e->state->focus_object_key = 0;
 		UpdateTreeFocus(cursor);
 		PropsData();
+		RestorePropsCursor(current_tree_path);
 		e->state->UpdateObjects();
 		RefreshAll();
 		TimelineData();
@@ -1127,6 +1138,7 @@ void GeomProjectCtrl::TreeSelect() {
 	}
 	UpdateTreeFocus(cursor);
 	PropsData();
+	RestorePropsCursor(current_tree_path);
 	e->UpdateTextureEditor(obj);
 	e->render_ctx.selected_bone = e->selected_bone;
 	e->render_ctx.show_weights = e->weight_paint_mode;
@@ -1165,6 +1177,115 @@ GeomPointcloudDataset* GeomProjectCtrl::GetNodeDataset(const Value& v) {
 	if (!IsVfsType(*node, dataset_hash))
 		return 0;
 	return &node->GetExt<GeomPointcloudDataset>();
+}
+
+String GeomProjectCtrl::GetTreePathFromId(int id) const {
+	Vector<String> parts;
+	for (int cur = id; cur >= 0; cur = tree.GetParent(cur)) {
+		String label = AsString(tree.GetValue(cur));
+		if (label.IsEmpty())
+			label = AsString(tree.Get(cur));
+		if (!label.IsEmpty())
+			parts.Add(label);
+	}
+	Reverse(parts);
+	return Join(parts, "/");
+}
+
+String GeomProjectCtrl::GetTreePathForValue(const Value& v, int id) const {
+	if (TreeNodeRef* ref = GetNodeRef(v)) {
+		if (ref->kind == TreeNodeRef::K_PROGRAM)
+			return "builtin/program";
+		if (ref->kind == TreeNodeRef::K_FOCUS)
+			return "builtin/focus";
+	}
+	if (v.Is<VfsValue*>()) {
+		VfsValue* node = ValueTo<VfsValue*>(v);
+		if (node) {
+			VfsPath path = node->GetPath();
+			String path_str = path.ToString();
+			if (!path_str.IsEmpty())
+				return path_str;
+		}
+	}
+	if (id >= 0)
+		return GetTreePathFromId(id);
+	return String();
+}
+
+String GeomProjectCtrl::GetPropsPathForId(int id) const {
+	Vector<String> parts;
+	for (int cur = id; cur >= 0; cur = props.GetParent(cur)) {
+		String label = AsString(props.GetValue(cur));
+		if (label.IsEmpty())
+			label = AsString(props.Get(cur));
+		if (!label.IsEmpty())
+			parts.Add(label);
+	}
+	Reverse(parts);
+	return Join(parts, "/");
+}
+
+int GeomProjectCtrl::FindPropsIdByPath(const String& path, bool open) {
+	if (path.IsEmpty())
+		return -1;
+	Vector<String> parts = Split(path, '/');
+	int cur = 0;
+	for (int i = 0; i < parts.GetCount(); i++) {
+		const String& part = parts[i];
+		int found = -1;
+		int child_count = props.GetChildCount(cur);
+		for (int j = 0; j < child_count; j++) {
+			int child = props.GetChild(cur, j);
+			String label = AsString(props.GetValue(child));
+			if (label.IsEmpty())
+				label = AsString(props.Get(child));
+			if (label == part) {
+				found = child;
+				break;
+			}
+		}
+		if (found < 0)
+			return -1;
+		if (open)
+			props.Open(found, true);
+		cur = found;
+	}
+	return cur;
+}
+
+void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
+	if (tree_path.IsEmpty())
+		return;
+	int line = props.GetCursor();
+	if (line < 0) {
+		props_cursor_by_tree.RemoveKey(tree_path);
+		return;
+	}
+	int id = props.GetItemAtLine(line);
+	if (id < 0) {
+		props_cursor_by_tree.RemoveKey(tree_path);
+		return;
+	}
+	String props_path = GetPropsPathForId(id);
+	if (props_path.IsEmpty())
+		props_cursor_by_tree.RemoveKey(tree_path);
+	else
+		props_cursor_by_tree.GetAdd(tree_path) = props_path;
+}
+
+void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
+	if (tree_path.IsEmpty())
+		return;
+	int idx = props_cursor_by_tree.Find(tree_path);
+	if (idx < 0)
+		return;
+	String props_path = props_cursor_by_tree[idx];
+	if (props_path.IsEmpty())
+		return;
+	int id = FindPropsIdByPath(props_path, true);
+	if (id >= 0)
+		props.SetCursor(id);
 }
 
 void GeomProjectCtrl::UpdateTreeFocus(int new_id) {
@@ -1386,6 +1507,10 @@ void GeomProjectCtrl::PropsData() {
 	props.Clear();
 	props_nodes.Clear();
 	props_ctrls.Clear();
+	props_transform_pos_ctrl = 0;
+	props_transform_ori_ctrl = 0;
+	props_transform_pos_id = -1;
+	props_transform_ori_id = -1;
 	int cursor = tree.GetCursor();
 	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
 	selected_obj = GetNodeObject(v);
@@ -2421,6 +2546,8 @@ void GeomProjectCtrl::PropsData() {
 	One<Vec3EditCtrl> pos_ctrl = MakeOne<Vec3EditCtrl>();
 	pos_ctrl->SetValue(pos);
 	pos_ctrl->SetEditable(true);
+	props_transform_pos_ctrl = pos_ctrl.Get();
+	props_transform_pos_id = pos_id;
 	pos_ctrl->WhenAction << [=] {
 		props.SetCursor(pos_id);
 		PropsApply();
@@ -2430,6 +2557,8 @@ void GeomProjectCtrl::PropsData() {
 	One<QuatEditCtrl> ori_ctrl = MakeOne<QuatEditCtrl>();
 	ori_ctrl->SetValue(ori);
 	ori_ctrl->SetEditable(true);
+	props_transform_ori_ctrl = ori_ctrl.Get();
+	props_transform_ori_id = ori_id;
 	ori_ctrl->WhenAction << [=] {
 		props.SetCursor(ori_id);
 		PropsApply();
@@ -2709,13 +2838,25 @@ void GeomProjectCtrl::RebuildGrid() {
 }
 
 void GeomProjectCtrl::OnCursor(int i) {
-	if (!e || !e->anim)
+	if (!e)
 		return;
-	e->anim->position = i;
-	if (e->prj && e->prj->kps > 0) {
-		double frame_time = 1.0 / (double)e->prj->kps;
-		e->anim->time = frame_time * i;
-		e->anim->ApplyAtPosition(i, e->anim->time);
+	if (e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()) {
+		GeomScene& scene = e->state->GetActiveScene();
+		GeomSceneTimeline& tl = scene.GetTimeline();
+		tl.position = i;
+		if (e->prj && e->prj->kps > 0) {
+			double frame_time = 1.0 / (double)e->prj->kps;
+			tl.time = frame_time * i;
+		}
+		tl.ApplyAtPosition(*e->state, tl.position, tl.time);
+	}
+	else if (e->anim) {
+		e->anim->position = i;
+		if (e->prj && e->prj->kps > 0) {
+			double frame_time = 1.0 / (double)e->prj->kps;
+			e->anim->time = frame_time * i;
+			e->anim->ApplyAtPosition(i, e->anim->time);
+		}
 	}
 	last_props_frame = i;
 	SyncPropsValues();
@@ -2737,10 +2878,12 @@ void GeomProjectCtrl::SyncPropsValues() {
 		if (e && e->state && e->state->HasActiveScene()) {
 			GeomScene& scene = e->state->GetActiveScene();
 			GeomSceneTimeline& tl_scene = scene.GetTimeline();
-			frame = tl_scene.position;
-			if (kps > 0)
-				time = frame / (double)kps;
-			use_timeline = true;
+			if (e->timeline_scope == Edit3D::TS_SCENE || tl_scene.is_playing) {
+				frame = tl_scene.position;
+				if (kps > 0)
+					time = frame / (double)kps;
+				use_timeline = true;
+			}
 		}
 		if (GeomTimeline* tl = selected_obj->FindTimeline()) {
 			if (use_timeline && !tl->keypoints.IsEmpty() && kps > 0) {
@@ -2827,27 +2970,20 @@ void GeomProjectCtrl::SyncPropsValues() {
 			ori = cam.orientation;
 		}
 	}
-	int line_count = props.GetLineCount();
-	for (int line = 0; line < line_count; line++) {
-		int id = props.GetItemAtLine(line);
-		Value v = props.Get(id);
-		if (!v.Is<PropRef*>())
-			continue;
-		PropRef* pr = ValueTo<PropRef*>(v);
-		if (!pr)
-			continue;
-		if (pr->kind == PropRef::P_POSITION) {
-			if (Ctrl* c = props.GetCtrl(line, props_col_value)) {
-				if (Vec3EditCtrl* vc = dynamic_cast<Vec3EditCtrl*>(c))
-					vc->SetValue(pos);
-			}
-		}
-		else if (pr->kind == PropRef::P_ORIENTATION) {
-			if (Ctrl* c = props.GetCtrl(line, props_col_value)) {
-				if (QuatEditCtrl* qc = dynamic_cast<QuatEditCtrl*>(c))
-					qc->SetValue(ori);
-			}
-		}
+	if (props_transform_pos_ctrl) {
+		if (Vec3EditCtrl* vc = dynamic_cast<Vec3EditCtrl*>(props_transform_pos_ctrl))
+			vc->SetValue(pos);
+	}
+	if (props_transform_ori_ctrl) {
+		if (QuatEditCtrl* qc = dynamic_cast<QuatEditCtrl*>(props_transform_ori_ctrl))
+			qc->SetValue(ori);
+	}
+	if (e && e->verbose_debug) {
+		LOG(Format("SyncPropsValues obj=%d frame=%d time=%.3f pos=(%.3f, %.3f, %.3f) ori=(%.3f, %.3f, %.3f, %.3f)",
+			(int)(selected_obj ? selected_obj->key : 0), e->timeline_scope == Edit3D::TS_SCENE ? (e->state && e->state->HasActiveScene() ? e->state->GetActiveScene().GetTimeline().position : 0) : (e->anim ? e->anim->position : 0),
+			e->timeline_scope == Edit3D::TS_SCENE ? (e->state && e->state->HasActiveScene() ? e->state->GetActiveScene().GetTimeline().time : 0.0) : (e->anim ? e->anim->time : 0.0),
+			(double)pos[0], (double)pos[1], (double)pos[2],
+			(double)ori[0], (double)ori[1], (double)ori[2], (double)ori[3]));
 	}
 }
 

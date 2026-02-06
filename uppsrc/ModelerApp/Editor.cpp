@@ -12,6 +12,10 @@ NAMESPACE_UPP
 
 namespace {
 
+static String ModelerAppConfigPath() {
+	return ConfigFile("ModelerApp.view");
+}
+
 void FillOctree(Octree& octree, const Vector<vec3>& points, int scale_level) {
 	octree.Initialize(-3, 8);
 	for (const vec3& p : points) {
@@ -1554,6 +1558,10 @@ void Edit3D::DockInit() {
 	Close(*dock_pool);
 	Close(*dock_texture);
 	v0.grid.SetFocus();
+
+	String cfg = ModelerAppConfigPath();
+	if (FileExists(cfg))
+		LoadFromFile(*this, cfg);
 }
 
 void Edit3D::SetView(ViewType view) {
@@ -1591,7 +1599,14 @@ GeomScene& Edit3D::GetActiveScene() {
 	return state->GetActiveScene();
 }
 
+void Edit3D::Serialize(Stream& s) {
+	SerializeLayout(s);
+	s % v0.props_cursor_by_tree;
+}
+
 void Edit3D::Exit() {
+	v0.StorePropsCursor(v0.current_tree_path);
+	StoreToFile(*this, ModelerAppConfigPath());
 	TopWindow::Close();
 }
 
@@ -1620,6 +1635,30 @@ void Edit3D::OnSceneEnd() {
 		anim->Play();
 	}
 	RefrehToolbar();
+}
+
+void Edit3D::ScheduleBuiltinDump(int builtin_index, int delay_ms) {
+	debug_tc.Set(delay_ms, THISBACK1(DumpBuiltinState, builtin_index));
+}
+
+void Edit3D::DumpBuiltinState(int builtin_index) {
+	Cout() << "Builtin dump index=" << builtin_index << "\n";
+	Cout() << "timeline_scope=" << (int)timeline_scope
+	       << " object_key=" << (int)timeline_object_key
+	       << " component=" << (int)timeline_component
+	       << " field=" << (int)timeline_transform_field << "\n";
+	if (anim)
+		Cout() << "anim pos=" << anim->position << " time=" << anim->time
+		       << " playing=" << (int)anim->is_playing << "\n";
+	if (state && state->HasActiveScene()) {
+		GeomScene& scene = state->GetActiveScene();
+		GeomSceneTimeline& tl = scene.GetTimeline();
+		Cout() << "scene length=" << scene.length
+		       << " tl.pos=" << tl.position
+		       << " tl.time=" << tl.time
+		       << " tl.play=" << (int)tl.is_playing << "\n";
+		Cout() << "objects=" << state->objs.GetCount() << "\n";
+	}
 }
 
 void Edit3D::RefrehRenderers() {

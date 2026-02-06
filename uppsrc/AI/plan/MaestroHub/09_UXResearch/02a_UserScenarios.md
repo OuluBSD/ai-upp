@@ -1,5 +1,5 @@
 # Task: User Use Case Scenarios (MegaFileUtil)
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Develop a comprehensive set of **3 detailed use cases for every feature** in MaestroCLI and MaestroHub, using the "MegaFileUtil" project as a baseline.

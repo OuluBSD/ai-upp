@@ -1,5 +1,5 @@
 # Task: Trust & Transparency (AI UX)
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Design how MaestroHub communicates AI "thought" and handles human intervention.

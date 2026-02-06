@@ -1,5 +1,5 @@
 # Task: Onboarding Experience
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Analyze the "Time to Value" for a user who has never used Maestro.

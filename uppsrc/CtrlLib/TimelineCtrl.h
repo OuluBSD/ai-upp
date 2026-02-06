@@ -13,6 +13,10 @@ protected:
 	Vector<int> keypoints;
 	int id = -1;
 	String title;
+	int indent = 0;
+	bool has_children = false;
+	bool expanded = true;
+	bool active = false;
 	
 public:
 	typedef TimelineRowCtrl CLASSNAME;
@@ -26,6 +30,10 @@ public:
 	void LostFocus() override;
 
 	void SetTitle(String s) {title = s;}
+	void SetIndent(int i) {indent = max(0, i);}
+	void SetHasChildren(bool b) {has_children = b;}
+	void SetExpanded(bool b) {expanded = b;}
+	void SetActive(bool b) {active = b;}
 	void SetKeypoints(const Vector<int>& keypoints);
 	
 };
@@ -42,6 +50,7 @@ class TimelineCtrl : public Ctrl {
 protected:
 	friend class TimelineRowCtrl;
 	Color bg, bg_focused, bg_focused_keypoint, accent, text;
+	Color bg_active, bg_active_keypoint;
 	Color kp_second_accent, kp_col_accent;
 	int title_tab_w = 200;
 	int kp_col = 10;
@@ -74,6 +83,8 @@ public:
 	Callback1<int> WhenCursor;
 	Event<Bar&> WhenMenu;
 	Event<Bar&, int> WhenRowMenu;
+	Callback1<int> WhenRowSelect;
+	Callback1<int> WhenRowToggle;
 	
 };
 

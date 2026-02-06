@@ -357,6 +357,8 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	
 	time.WhenCursor << THISBACK(OnCursor);
 	time.WhenRowMenu = THISBACK(TimelineRowMenu);
+	time.WhenRowSelect = THISBACK(TimelineRowSelect);
+	time.WhenRowToggle = THISBACK(TimelineRowToggle);
 	tree.WhenCursor << THISBACK(TreeSelect);
 	tree.WhenMenu = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
@@ -710,9 +712,13 @@ void GeomProjectCtrl::TreeSelect() {
 		PropsData();
 		e->state->UpdateObjects();
 		RefreshAll();
+		TimelineData();
 		return;
 	}
 	if (obj) {
+		e->timeline_scope = Edit3D::TS_OBJECT;
+		e->timeline_component = Edit3D::TC_TRANSFORM;
+		e->timeline_object_key = obj->key;
 		e->state->focus_mode = 1;
 		e->state->focus_object_key = obj->key;
 		UpdateTreeFocus(cursor);
@@ -720,6 +726,7 @@ void GeomProjectCtrl::TreeSelect() {
 		e->UpdateTextureEditor(obj);
 		e->state->UpdateObjects();
 		RefreshAll();
+		TimelineData();
 		return;
 	}
 	if (ds) {
@@ -729,6 +736,7 @@ void GeomProjectCtrl::TreeSelect() {
 		PropsData();
 		e->state->UpdateObjects();
 		RefreshAll();
+		TimelineData();
 		return;
 	}
 	if (!v.Is<VfsValue*>())
@@ -742,6 +750,9 @@ void GeomProjectCtrl::TreeSelect() {
 			if (!IsVfsType(s, AsTypeHash<GeomScene>()))
 				continue;
 			if (&s == node) {
+				e->timeline_scope = Edit3D::TS_SCENE;
+				e->timeline_component = Edit3D::TC_NONE;
+				e->timeline_object_key = 0;
 				e->state->active_scene = idx;
 				e->state->UpdateObjects();
 				RefreshAll();
@@ -766,6 +777,7 @@ void GeomProjectCtrl::TreeSelect() {
 		GeomBone& bone = e->selected_bone->GetExt<GeomBone>();
 		e->render_ctx.weight_bone = bone.name.IsEmpty() ? e->selected_bone->id : bone.name;
 	}
+	TimelineData();
 }
 
 GeomProjectCtrl::TreeNodeRef* GeomProjectCtrl::GetNodeRef(const Value& v) {
@@ -1632,7 +1644,11 @@ void GeomProjectCtrl::PropsApply() {
 			if (pr->kind == PropRef::P_ORIENTATION)
 				tr->orientation = ori;
 		}
-		if (selected_obj->write_enabled) {
+		bool do_key = selected_obj->write_enabled;
+		if (e->auto_key && e->timeline_object_key == selected_obj->key &&
+		    (e->timeline_component == Edit3D::TC_TRANSFORM || e->timeline_component == Edit3D::TC_NONE))
+			do_key = true;
+		if (do_key) {
 			GeomTimeline& tl = selected_obj->GetTimeline();
 			int frame = e->anim->position;
 			GeomKeypoint& kp = tl.GetAddKeypoint(frame);
@@ -1828,55 +1844,134 @@ void GeomProjectCtrl::TimelineData() {
 	for (GeomObject& o : collection)
 		objects.Add(&o);
 
-	timeline_row_keys.Clear();
-	timeline_row_keys.SetCount(objects.GetCount());
+	timeline_rows.Clear();
 	
-	time.SetCount(objects.GetCount());
+	Vector<TimelineRowInfo> rows;
+	TimelineRowInfo scene_row;
+	scene_row.kind = TimelineRowInfo::R_SCENE;
+	scene_row.indent = 0;
+	scene_row.has_children = true;
+	scene_row.expanded = true;
+	scene_row.active = (e->timeline_scope == Edit3D::TS_SCENE);
+	rows.Add(scene_row);
+
+	for (GeomObject* obj : objects) {
+		TimelineRowInfo obj_row;
+		obj_row.kind = TimelineRowInfo::R_OBJECT;
+		obj_row.object_key = obj->key;
+		obj_row.indent = 1;
+		obj_row.has_children = obj->FindEditableMesh() || obj->Find2DLayer();
+		int idx = timeline_expanded.Find(obj->key);
+		obj_row.expanded = (idx >= 0);
+		obj_row.active = (e->timeline_scope != Edit3D::TS_SCENE && e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_NONE);
+		rows.Add(obj_row);
+
+		if (obj_row.has_children && obj_row.expanded) {
+			TimelineRowInfo tr;
+			tr.kind = TimelineRowInfo::R_TRANSFORM;
+			tr.object_key = obj->key;
+			tr.indent = 2;
+			tr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM);
+			rows.Add(tr);
+			if (obj->FindEditableMesh()) {
+				TimelineRowInfo mr;
+				mr.kind = TimelineRowInfo::R_MESH;
+				mr.object_key = obj->key;
+				mr.indent = 2;
+				mr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_MESH);
+				rows.Add(mr);
+			}
+			if (obj->Find2DLayer()) {
+				TimelineRowInfo r2d;
+				r2d.kind = TimelineRowInfo::R_2D;
+				r2d.object_key = obj->key;
+				r2d.indent = 2;
+				r2d.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_2D);
+				rows.Add(r2d);
+			}
+		}
+	}
+	timeline_rows = pick(rows);
+	time.SetCount(timeline_rows.GetCount());
 	time.SetKeypointRate(prj.kps);
 	time.SetLength(scene.length);
 	time.SetKeypointColumnWidth(13);
 	
-	for(int i = 0; i < objects.GetCount(); i++) {
-		GeomObject& o = *objects[i];
-		timeline_row_keys[i] = o.key;
-		/*int j = prj.list[i];
-		int id = j / GeomProject::O_COUNT;
-		int type = j % GeomProject::O_COUNT;*/
-		
-		String name = o.name.IsEmpty() ? IntStr(i) : o.name;
-		
+	for (int i = 0; i < timeline_rows.GetCount(); i++) {
+		TimelineRowInfo& info = timeline_rows[i];
 		TimelineRowCtrl& row = time.GetRowIndex(i);
-		row.SetTitle(name);
-		
+		row.SetIndent(info.indent);
+		row.SetHasChildren(info.has_children);
+		row.SetExpanded(info.expanded);
+		row.SetActive(info.active);
 		Index<int> keys;
-		if (GeomTimeline* tl = o.FindTimeline()) {
-			for (int k = 0; k < tl->keypoints.GetCount(); k++) {
-				int key = tl->keypoints.GetKey(k);
-				if (keys.Find(key) < 0)
-					keys.Add(key);
+		String name;
+		if (info.kind == TimelineRowInfo::R_SCENE) {
+			name = scene.name.IsEmpty() ? "Scene" : scene.name;
+		}
+		else if (GeomObject* obj = e->state->FindObjectByKey(info.object_key)) {
+			name = obj->name.IsEmpty() ? "Object" : obj->name;
+			if (info.kind == TimelineRowInfo::R_TRANSFORM) name << " / Transform";
+			if (info.kind == TimelineRowInfo::R_MESH) name << " / Mesh";
+			if (info.kind == TimelineRowInfo::R_2D) name << " / 2D";
+			if (info.kind == TimelineRowInfo::R_OBJECT) {
+				if (GeomTimeline* tl = obj->FindTimeline()) {
+					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+						int key = tl->keypoints.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+				if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
+					for (int k = 0; k < ma->keyframes.GetCount(); k++) {
+						int key = ma->keyframes.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+				if (Geom2DAnimation* a2d = obj->Find2DAnimation()) {
+					for (int k = 0; k < a2d->keyframes.GetCount(); k++) {
+						int key = a2d->keyframes.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_TRANSFORM) {
+				if (GeomTimeline* tl = obj->FindTimeline()) {
+					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+						int key = tl->keypoints.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_MESH) {
+				if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
+					for (int k = 0; k < ma->keyframes.GetCount(); k++) {
+						int key = ma->keyframes.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_2D) {
+				if (Geom2DAnimation* a2d = obj->Find2DAnimation()) {
+					for (int k = 0; k < a2d->keyframes.GetCount(); k++) {
+						int key = a2d->keyframes.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
 			}
 		}
-		if (GeomMeshAnimation* ma = o.FindMeshAnimation()) {
-			for (int k = 0; k < ma->keyframes.GetCount(); k++) {
-				int key = ma->keyframes.GetKey(k);
-				if (keys.Find(key) < 0)
-					keys.Add(key);
-			}
-		}
-		if (Geom2DAnimation* a2d = o.Find2DAnimation()) {
-			for (int k = 0; k < a2d->keyframes.GetCount(); k++) {
-				int key = a2d->keyframes.GetKey(k);
-				if (keys.Find(key) < 0)
-					keys.Add(key);
-			}
-		}
+		row.SetTitle(name);
 		Vector<int> row_keys;
 		row_keys.SetCount(keys.GetCount());
 		for (int k = 0; k < keys.GetCount(); k++)
 			row_keys[k] = keys[k];
 		Sort(row_keys);
 		row.SetKeypoints(row_keys);
-		
 		row.Refresh();
 	}
 	
@@ -1886,13 +1981,44 @@ void GeomProjectCtrl::TimelineData() {
 void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 	if (!e || !e->state)
 		return;
-	if (row < 0 || row >= timeline_row_keys.GetCount())
+	if (row < 0 || row >= timeline_rows.GetCount())
 		return;
-	hash_t key = timeline_row_keys[row];
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE) {
+		bar.Add(t_("Make Active Timeline"), [=] {
+			e->timeline_scope = Edit3D::TS_SCENE;
+			e->timeline_component = Edit3D::TC_NONE;
+			e->timeline_object_key = 0;
+			TimelineData();
+		});
+		bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+		return;
+	}
+	hash_t key = info.object_key;
 	GeomObject* obj = e->state->FindObjectByKey(key);
 	if (!obj)
 		return;
 	int frame = e->anim ? e->anim->position : 0;
+	bar.Add(t_("Make Active Timeline"), [=] {
+		e->timeline_scope = Edit3D::TS_OBJECT;
+		e->timeline_object_key = obj->key;
+		e->timeline_component = Edit3D::TC_NONE;
+		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+		}
+		else if (info.kind == TimelineRowInfo::R_MESH) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_MESH;
+		}
+		else if (info.kind == TimelineRowInfo::R_2D) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_2D;
+		}
+		TimelineData();
+	});
+	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+	bar.Separator();
 	bar.Add(t_("Add Transform Keyframe"), [=] {
 		if (!e || !e->state)
 			return;
@@ -1972,6 +2098,49 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 			a2d->keyframes.Clear();
 		TimelineData();
 	});
+}
+
+void GeomProjectCtrl::TimelineRowSelect(int row) {
+	if (!e || row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE) {
+		e->timeline_scope = Edit3D::TS_SCENE;
+		e->timeline_component = Edit3D::TC_NONE;
+		e->timeline_object_key = 0;
+	}
+	else {
+		e->timeline_scope = Edit3D::TS_OBJECT;
+		e->timeline_object_key = info.object_key;
+		e->timeline_component = Edit3D::TC_NONE;
+		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+		}
+		else if (info.kind == TimelineRowInfo::R_MESH) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_MESH;
+		}
+		else if (info.kind == TimelineRowInfo::R_2D) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_2D;
+		}
+	}
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineRowToggle(int row) {
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind != TimelineRowInfo::R_OBJECT)
+		return;
+	int idx = timeline_expanded.Find(info.object_key);
+	if (idx >= 0)
+		timeline_expanded.Remove(idx);
+	else
+		timeline_expanded.Add(info.object_key);
+	TimelineData();
 }
 
 END_UPP_NAMESPACE

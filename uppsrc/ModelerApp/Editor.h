@@ -110,6 +110,9 @@ struct GeomProjectCtrl : Ctrl {
 			P_MAT_OCCLUSION,
 			P_MAT_STROKE_CAP,
 			P_MAT_STROKE_JOIN,
+			P_SELECTION,
+			P_SELECTION_CENTER,
+			P_SELECTION_OFFSET,
 			P_MESH_MATERIAL,
 			P_COMPONENTS,
 			P_SCRIPT,
@@ -152,8 +155,12 @@ struct GeomProjectCtrl : Ctrl {
 	};
 	Ctrl* props_transform_pos_ctrl = 0;
 	Ctrl* props_transform_ori_ctrl = 0;
+	Ctrl* props_selection_center_ctrl = 0;
+	Ctrl* props_selection_offset_ctrl = 0;
 	int props_transform_pos_id = -1;
 	int props_transform_ori_id = -1;
+	int props_selection_center_id = -1;
+	int props_selection_offset_id = -1;
 	VectorMap<String, PropsCursorState> props_cursor_by_tree;
 	String current_tree_path;
 	Vector<String> tree_open_paths;
@@ -469,6 +476,8 @@ struct Edit3D : DockWindow {
 	Vector<int> select_2d_shapes;
 	int select_2d_primary = -1;
 	int select_2d_hover = -1;
+	vec3 mesh_sel_offset = vec3(0);
+	vec2 sel2d_offset = vec2(0);
 	enum TimelineScopeKind {
 		TS_SCENE,
 		TS_OBJECT,
@@ -572,6 +581,10 @@ struct Edit3D : DockWindow {
 	void Union2DSelection();
 	void Intersect2DSelection();
 	void Subtract2DSelection();
+	bool GetMeshSelectionCenter(vec3& out);
+	bool Get2DSelectionCenter(vec3& out);
+	void ApplyMeshSelectionDelta(const vec3& delta);
+	void Apply2DSelectionDelta(const vec2& delta);
 	void ClearMeshSelection();
 	void ToggleMeshPoint(int idx);
 	void ToggleMeshLine(int idx);

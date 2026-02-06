@@ -952,6 +952,13 @@ void EditRendererV2::Paint(Draw& d) {
 		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
 		light_dir.Normalize();
 		for (const Mesh& mesh : mdl.meshes) {
+			vec3 base_clr(1, 1, 1);
+			vec3 emissive(0, 0, 0);
+			if (mesh.material >= 0 && mdl.materials.Find(mesh.material) >= 0) {
+				const Material& mat = mdl.materials.Get(mesh.material);
+				base_clr = mat.params->base_clr_factor.Splice();
+				emissive = mat.params->emissive_factor;
+			}
 			const auto* tri_idx = mesh.indices.Begin();
 			int tri_count = mesh.indices.GetCount() / 3;
 			for (int i = 0; i < tri_count; i++) {
@@ -968,9 +975,13 @@ void EditRendererV2::Paint(Draw& d) {
 				vec3 n_world = VectorTransform(n, os.orientation);
 				float diff = max(0.0f, Dot(n_world, light_dir));
 				float intensity = 0.2f + diff * 0.8f;
-				int r = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
-				int g = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
-				int b = (int)Clamp(200.0f * intensity, 0.0f, 255.0f);
+				vec3 shaded = base_clr * intensity + emissive;
+				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
+				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
+				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);
+				int r = (int)Clamp(shaded[0] * 255.0f, 0.0f, 255.0f);
+				int g = (int)Clamp(shaded[1] * 255.0f, 0.0f, 255.0f);
+				int b = (int)Clamp(shaded[2] * 255.0f, 0.0f, 255.0f);
 				Color clr(r, g, b);
 				vec4 c0 = o_view * v0.position;
 				vec4 c1 = o_view * v1.position;

@@ -74,6 +74,16 @@ struct GeomProjectCtrl : Ctrl {
 			P_EFFECTS,
 			P_EFFECT_POSITION,
 			P_EFFECT_ORIENTATION,
+			P_MATERIALS,
+			P_MATERIAL,
+			P_MAT_BASE_COLOR,
+			P_MAT_BASE_ALPHA,
+			P_MAT_METALLIC,
+			P_MAT_ROUGHNESS,
+			P_MAT_EMISSIVE,
+			P_MAT_NORMAL_SCALE,
+			P_MAT_OCCLUSION,
+			P_MESH_MATERIAL,
 			P_COMPONENTS,
 			P_SCRIPT,
 			P_SCRIPT_FILE,
@@ -93,6 +103,8 @@ struct GeomProjectCtrl : Ctrl {
 		};
 		Kind kind = P_ROOT;
 		GeomScript* script = 0;
+		int material_id = -1;
+		int mesh_index = -1;
 	};
 
 	Vector<PropRef> props_nodes;

@@ -1168,6 +1168,18 @@ void GeomProjectCtrl::PropsData() {
 	PropRef& comps = props_nodes.Add();
 	comps.kind = PropRef::P_COMPONENTS;
 	int components = props.Add(root, ImagesImg::Directory(), RawToValue(&comps), t_("Components"));
+	int materials = -1;
+	int meshes = -1;
+	Model* model_ptr = 0;
+	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
+		model_ptr = selected_obj->mdl.Get();
+		PropRef& mats = props_nodes.Add();
+		mats.kind = PropRef::P_MATERIALS;
+		materials = props.Add(root, ImagesImg::Directory(), RawToValue(&mats), t_("Materials"));
+		PropRef& meshref = props_nodes.Add();
+		meshref.kind = PropRef::P_MESH_MATERIAL;
+		meshes = props.Add(root, ImagesImg::Directory(), RawToValue(&meshref), t_("Meshes"));
+	}
 	int scene_timeline = -1;
 	int scene_tl_length_id = -1;
 	int scene_tl_pos_id = -1;
@@ -1230,6 +1242,76 @@ void GeomProjectCtrl::PropsData() {
 	PropRef& pori = props_nodes.Add();
 	pori.kind = PropRef::P_ORIENTATION;
 	int ori_id = props.Add(transform, ImagesImg::Object(), RawToValue(&pori), "Orientation");
+	struct MaterialItemIds {
+		Material* mat = 0;
+		int base_id = -1;
+		int alpha_id = -1;
+		int metallic_id = -1;
+		int roughness_id = -1;
+		int emissive_id = -1;
+		int normal_id = -1;
+		int occlusion_id = -1;
+	};
+	Vector<MaterialItemIds> material_items;
+	Vector<int> mesh_rows;
+	if (model_ptr && materials >= 0) {
+		for (int i = 0; i < model_ptr->materials.GetCount(); i++) {
+			int mat_id = model_ptr->materials.GetKey(i);
+			Material& mat = model_ptr->materials[i];
+			String name = "Material #" + IntStr(mat_id);
+			PropRef& mnode = props_nodes.Add();
+			mnode.kind = PropRef::P_MATERIAL;
+			mnode.material_id = mat_id;
+			int mat_node = props.Add(materials, ImagesImg::Object(), RawToValue(&mnode), name);
+			PropRef& bnode = props_nodes.Add();
+			bnode.kind = PropRef::P_MAT_BASE_COLOR;
+			bnode.material_id = mat_id;
+			int base_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&bnode), t_("Base Color"));
+			PropRef& anode = props_nodes.Add();
+			anode.kind = PropRef::P_MAT_BASE_ALPHA;
+			anode.material_id = mat_id;
+			int alpha_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&anode), t_("Alpha"));
+			PropRef& mtnode = props_nodes.Add();
+			mtnode.kind = PropRef::P_MAT_METALLIC;
+			mtnode.material_id = mat_id;
+			int metallic_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&mtnode), t_("Metallic"));
+			PropRef& rnode = props_nodes.Add();
+			rnode.kind = PropRef::P_MAT_ROUGHNESS;
+			rnode.material_id = mat_id;
+			int roughness_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&rnode), t_("Roughness"));
+			PropRef& enode = props_nodes.Add();
+			enode.kind = PropRef::P_MAT_EMISSIVE;
+			enode.material_id = mat_id;
+			int emissive_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&enode), t_("Emissive"));
+			PropRef& nnode = props_nodes.Add();
+			nnode.kind = PropRef::P_MAT_NORMAL_SCALE;
+			nnode.material_id = mat_id;
+			int normal_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&nnode), t_("Normal Scale"));
+			PropRef& ocnode = props_nodes.Add();
+			ocnode.kind = PropRef::P_MAT_OCCLUSION;
+			ocnode.material_id = mat_id;
+			int occlusion_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&ocnode), t_("Occlusion"));
+			MaterialItemIds& ids = material_items.Add();
+			ids.mat = &mat;
+			ids.base_id = base_id;
+			ids.alpha_id = alpha_id;
+			ids.metallic_id = metallic_id;
+			ids.roughness_id = roughness_id;
+			ids.emissive_id = emissive_id;
+			ids.normal_id = normal_id;
+			ids.occlusion_id = occlusion_id;
+		}
+	}
+	if (model_ptr && meshes >= 0) {
+		for (int i = 0; i < model_ptr->meshes.GetCount(); i++) {
+			PropRef& mrow = props_nodes.Add();
+			mrow.kind = PropRef::P_MESH_MATERIAL;
+			mrow.mesh_index = i;
+			String name = "Mesh #" + IntStr(i);
+			int row_id = props.Add(meshes, ImagesImg::Object(), RawToValue(&mrow), name);
+			mesh_rows.Add(row_id);
+		}
+	}
 
 	struct ScriptItemIds {
 		GeomScript* script = 0;
@@ -1339,6 +1421,10 @@ void GeomProjectCtrl::PropsData() {
 	if (effects >= 0)
 		props.Open(effects);
 	props.Open(components);
+	if (materials >= 0)
+		props.Open(materials);
+	if (meshes >= 0)
+		props.Open(meshes);
 	if (pointcloud >= 0)
 		props.Open(pointcloud);
 	if (scene_timeline >= 0)
@@ -1386,6 +1472,139 @@ void GeomProjectCtrl::PropsData() {
 		if (props_col_keyframe >= 0)
 			set_ctrl_col(id, props_col_keyframe, pick(c));
 	};
+
+	auto clamp01 = [](double v) {
+		if (v < 0.0) return 0.0;
+		if (v > 1.0) return 1.0;
+		return v;
+	};
+	auto to_color = [&](const vec3& v) -> Color {
+		int r = (int)Clamp(v[0] * 255.0f, 0.0f, 255.0f);
+		int g = (int)Clamp(v[1] * 255.0f, 0.0f, 255.0f);
+		int b = (int)Clamp(v[2] * 255.0f, 0.0f, 255.0f);
+		return Color(r, g, b);
+	};
+	auto update_material = [&](Material* mat, const Function<void(MaterialParameters&)>& fn) {
+		if (!mat)
+			return;
+		mat->params.Set([&](MaterialParameters& p) { fn(p); });
+		RefreshAll();
+	};
+	for (const MaterialItemIds& ids : material_items) {
+		Material* mat = ids.mat;
+		if (!mat)
+			continue;
+		vec4 base = mat->params->base_clr_factor;
+		vec3 emissive = mat->params->emissive_factor;
+		One<ColorPusher> base_ctrl = MakeOne<ColorPusher>();
+		base_ctrl->SetData(to_color(base.Splice()));
+		ColorPusher* base_ptr = base_ctrl.Get();
+		base_ctrl->WhenAction << [=] {
+			if (!base_ptr || !mat)
+				return;
+			RGBA c = (Color)base_ptr->GetData();
+			update_material(mat, [&](MaterialParameters& p) {
+				p.base_clr_factor = vec4(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f, p.base_clr_factor[3]);
+			});
+		};
+		set_value_ctrl(ids.base_id, pick(base_ctrl));
+
+		One<EditDoubleSpin> alpha_ctrl = MakeOne<EditDoubleSpin>();
+		alpha_ctrl->Min(0).Max(1);
+		alpha_ctrl->SetData(base[3]);
+		EditDoubleSpin* alpha_ptr = alpha_ctrl.Get();
+		alpha_ctrl->WhenAction << [=] {
+			if (!alpha_ptr || !mat)
+				return;
+			double a = clamp01((double)~*alpha_ptr);
+			update_material(mat, [&](MaterialParameters& p) {
+				p.base_clr_factor[3] = a;
+			});
+		};
+		set_value_ctrl(ids.alpha_id, pick(alpha_ctrl));
+
+		One<EditDoubleSpin> metallic_ctrl = MakeOne<EditDoubleSpin>();
+		metallic_ctrl->Min(0).Max(1);
+		metallic_ctrl->SetData(mat->params->metallic_factor);
+		EditDoubleSpin* metallic_ptr = metallic_ctrl.Get();
+		metallic_ctrl->WhenAction << [=] {
+			if (!metallic_ptr || !mat)
+				return;
+			double v = clamp01((double)~*metallic_ptr);
+			update_material(mat, [&](MaterialParameters& p) { p.metallic_factor = v; });
+		};
+		set_value_ctrl(ids.metallic_id, pick(metallic_ctrl));
+
+		One<EditDoubleSpin> rough_ctrl = MakeOne<EditDoubleSpin>();
+		rough_ctrl->Min(0).Max(1);
+		rough_ctrl->SetData(mat->params->roughness_factor);
+		EditDoubleSpin* rough_ptr = rough_ctrl.Get();
+		rough_ctrl->WhenAction << [=] {
+			if (!rough_ptr || !mat)
+				return;
+			double v = clamp01((double)~*rough_ptr);
+			update_material(mat, [&](MaterialParameters& p) { p.roughness_factor = v; });
+		};
+		set_value_ctrl(ids.roughness_id, pick(rough_ctrl));
+
+		One<ColorPusher> emissive_ctrl = MakeOne<ColorPusher>();
+		emissive_ctrl->SetData(to_color(emissive));
+		ColorPusher* emissive_ptr = emissive_ctrl.Get();
+		emissive_ctrl->WhenAction << [=] {
+			if (!emissive_ptr || !mat)
+				return;
+			RGBA c = (Color)emissive_ptr->GetData();
+			update_material(mat, [&](MaterialParameters& p) {
+				p.emissive_factor = vec3(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f);
+			});
+		};
+		set_value_ctrl(ids.emissive_id, pick(emissive_ctrl));
+
+		One<EditDoubleSpin> normal_ctrl = MakeOne<EditDoubleSpin>();
+		normal_ctrl->Min(0).Max(4);
+		normal_ctrl->SetData(mat->params->normal_scale);
+		EditDoubleSpin* normal_ptr = normal_ctrl.Get();
+		normal_ctrl->WhenAction << [=] {
+			if (!normal_ptr || !mat)
+				return;
+			double v = max(0.0, (double)~*normal_ptr);
+			update_material(mat, [&](MaterialParameters& p) { p.normal_scale = v; });
+		};
+		set_value_ctrl(ids.normal_id, pick(normal_ctrl));
+
+		One<EditDoubleSpin> occ_ctrl = MakeOne<EditDoubleSpin>();
+		occ_ctrl->Min(0).Max(1);
+		occ_ctrl->SetData(mat->params->occlusion_strength);
+		EditDoubleSpin* occ_ptr = occ_ctrl.Get();
+		occ_ctrl->WhenAction << [=] {
+			if (!occ_ptr || !mat)
+				return;
+			double v = clamp01((double)~*occ_ptr);
+			update_material(mat, [&](MaterialParameters& p) { p.occlusion_strength = v; });
+		};
+		set_value_ctrl(ids.occlusion_id, pick(occ_ctrl));
+	}
+	if (model_ptr && meshes >= 0) {
+		for (int i = 0; i < mesh_rows.GetCount() && i < model_ptr->meshes.GetCount(); i++) {
+			int row_id = mesh_rows[i];
+			Mesh* mesh_ptr = &model_ptr->meshes[i];
+			One<DropList> dl = MakeOne<DropList>();
+			dl->Add(-1, t_("None"));
+			for (int k = 0; k < model_ptr->materials.GetCount(); k++) {
+				int mat_id = model_ptr->materials.GetKey(k);
+				dl->Add(mat_id, "Material #" + IntStr(mat_id));
+			}
+			dl->SetData(mesh_ptr ? mesh_ptr->material : -1);
+			DropList* dl_ptr = dl.Get();
+			dl->WhenAction << [=] {
+				if (dl_ptr && mesh_ptr) {
+					mesh_ptr->material = (int)dl_ptr->GetData();
+					RefreshAll();
+				}
+			};
+			set_value_ctrl(row_id, pick(dl));
+		}
+	}
 	
 	if (selected_obj) {
 		One<ToggleRowCtrl> t = MakeOne<ToggleRowCtrl>();

@@ -225,12 +225,29 @@ void DrawCameraGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, const 
 	DrawLine(sz, d, view, n3, f3, 1, clr, z_cull);
 }
 
+void DrawSelectionGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, bool z_cull, float scale) {
+	float axis_len = max(0.15f, scale);
+	DrawLine(sz, d, view, pos, pos + vec3(axis_len, 0, 0), 2, LtRed(), z_cull);
+	DrawLine(sz, d, view, pos, pos + vec3(0, axis_len, 0), 2, LtGreen(), z_cull);
+	DrawLine(sz, d, view, pos, pos + vec3(0, 0, axis_len), 2, LtBlue(), z_cull);
+	DrawRect(sz, d, view, pos, Size(4, 4), Color(255, 220, 120), z_cull);
+}
+
 void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
                              const GeomEditableMesh& mesh, bool z_cull,
-                             const Vector<float>* weights = nullptr, bool show_weights = false) {
+                             const Vector<float>* weights = nullptr, bool show_weights = false,
+                             const Vector<int>* sel_points = nullptr,
+                             const Vector<int>* sel_lines = nullptr,
+                             const Vector<int>* sel_faces = nullptr) {
 	Color pt_clr(220, 220, 255);
 	Color line_clr(200, 200, 200);
 	Color face_clr(160, 200, 240);
+	Color sel_pt_clr(255, 220, 120);
+	Color sel_line_clr(255, 180, 120);
+	Color sel_face_clr(255, 200, 160);
+	auto is_sel = [&](const Vector<int>* list, int id) -> bool {
+		return list && FindIndex(*list, id) >= 0;
+	};
 	mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
 	mat4 o_view = view * o_world;
 	for (const GeomFace& f : mesh.faces) {
@@ -239,28 +256,38 @@ void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjec
 		const vec3& p0 = mesh.points[f.a];
 		const vec3& p1 = mesh.points[f.b];
 		const vec3& p2 = mesh.points[f.c];
-		DrawLine(sz, d, o_view, p0, p1, 1, face_clr, z_cull);
-		DrawLine(sz, d, o_view, p1, p2, 1, face_clr, z_cull);
-		DrawLine(sz, d, o_view, p2, p0, 1, face_clr, z_cull);
+		Color clr = is_sel(sel_faces, &f - mesh.faces.Begin()) ? sel_face_clr : face_clr;
+		int lw = is_sel(sel_faces, &f - mesh.faces.Begin()) ? 2 : 1;
+		DrawLine(sz, d, o_view, p0, p1, lw, clr, z_cull);
+		DrawLine(sz, d, o_view, p1, p2, lw, clr, z_cull);
+		DrawLine(sz, d, o_view, p2, p0, lw, clr, z_cull);
 	}
 	for (const GeomEdge& e : mesh.lines) {
 		if (e.a < 0 || e.b < 0 || e.a >= mesh.points.GetCount() || e.b >= mesh.points.GetCount())
 			continue;
-		DrawLine(sz, d, o_view, mesh.points[e.a], mesh.points[e.b], 1, line_clr, z_cull);
+		Color clr = is_sel(sel_lines, &e - mesh.lines.Begin()) ? sel_line_clr : line_clr;
+		int lw = is_sel(sel_lines, &e - mesh.lines.Begin()) ? 2 : 1;
+		DrawLine(sz, d, o_view, mesh.points[e.a], mesh.points[e.b], lw, clr, z_cull);
 	}
 	for (int i = 0; i < mesh.points.GetCount(); i++) {
 		Color clr = pt_clr;
+		int szp = 3;
 		if (show_weights && weights && i < weights->GetCount()) {
 			float w = (*weights)[i];
 			w = Clamp(w, 0.0f, 1.0f);
 			clr = Blend(Color(60, 80, 180), Color(220, 80, 80), w);
 		}
-		DrawRect(sz, d, o_view, mesh.points[i], Size(3, 3), clr, z_cull);
+		if (is_sel(sel_points, i)) {
+			clr = sel_pt_clr;
+			szp = 5;
+		}
+		DrawRect(sz, d, o_view, mesh.points[i], Size(szp, szp), clr, z_cull);
 	}
 }
 
 void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
-                        const Geom2DLayer& layer, bool z_cull) {
+                        const Geom2DLayer& layer, bool z_cull,
+                        const Vector<int>* sel_shapes = nullptr) {
 	if (!layer.visible)
 		return;
 	Image tex_img;
@@ -365,7 +392,8 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		Color tex = SampleTextureColor(tex_img, uv[0], uv[1], wrap);
 		return Blend2DLayerColor(base, tex, layer.blend_mode);
 	};
-	for (const Geom2DShape& shape : layer.shapes) {
+	for (int si = 0; si < layer.shapes.GetCount(); si++) {
+		const Geom2DShape& shape = layer.shapes[si];
 		bool style = layer.use_layer_style;
 		Color stroke_base = style ? layer.stroke : shape.stroke;
 		float w = layer.use_layer_style ? layer.width : shape.width;
@@ -586,6 +614,47 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 			break;
 		default:
 			break;
+		}
+		if (sel_shapes && FindIndex(*sel_shapes, si) >= 0) {
+			Color hilite(255, 220, 120);
+			float hw = w + 2;
+			if (shape.type == Geom2DShape::S_LINE && shape.points.GetCount() >= 2) {
+				Vector<vec2> line_pts;
+				line_pts << shape.points[0] << shape.points[1];
+				draw_poly(line_pts, hilite, hw, false, cap, join);
+			}
+			else if (shape.type == Geom2DShape::S_RECT && shape.points.GetCount() >= 2) {
+				vec2 a = shape.points[0];
+				vec2 b = shape.points[1];
+				vec2 p0(min(a[0], b[0]), min(a[1], b[1]));
+				vec2 p1(max(a[0], b[0]), min(a[1], b[1]));
+				vec2 p2(max(a[0], b[0]), max(a[1], b[1]));
+				vec2 p3(min(a[0], b[0]), max(a[1], b[1]));
+				Vector<vec2> rect_pts;
+				rect_pts << p0 << p1 << p2 << p3;
+				draw_poly(rect_pts, hilite, hw, true, cap, join);
+			}
+			else if (shape.type == Geom2DShape::S_CIRCLE && shape.points.GetCount() >= 1) {
+				vec2 c = shape.points[0];
+				float r = shape.radius;
+				if (r <= 0 && shape.points.GetCount() >= 2) {
+					vec2 d2 = shape.points[1] - shape.points[0];
+					r = sqrt(Dot(d2, d2));
+				}
+				if (r > 0) {
+					const int steps = 32;
+					Vector<vec2> pts;
+					pts.SetCount(steps);
+					for (int i = 0; i < steps; i++) {
+						float a = (float)i / (float)steps * 2.0f * (float)M_PI;
+						pts[i] = c + vec2(cos(a), sin(a)) * r;
+					}
+					draw_poly(pts, hilite, hw, true, cap, join);
+				}
+			}
+			else if (shape.type == Geom2DShape::S_POLY && shape.points.GetCount() >= 2) {
+				draw_poly(shape.points, hilite, hw, shape.closed, cap, join);
+			}
 		}
 	}
 }
@@ -876,12 +945,16 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 						weights = &sw->weights[wi];
 				}
 			}
-			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights);
+			DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights,
+				ctx ? &ctx->selected_mesh_points : nullptr,
+				ctx ? &ctx->selected_mesh_lines : nullptr,
+				ctx ? &ctx->selected_mesh_faces : nullptr);
 		}
 	}
 	if (Geom2DLayer* layer = go.Find2DLayer()) {
 		if (!layer->shapes.IsEmpty())
-			Draw2DLayerOverlay(sz, d, view, os, *layer, z_cull);
+			Draw2DLayerOverlay(sz, d, view, os, *layer, z_cull,
+				ctx ? &ctx->selected_2d_shapes : nullptr);
 	}
 	if (GeomSkeleton* sk = go.FindSkeleton()) {
 		for (auto& sub : sk->val.sub) {
@@ -1009,6 +1082,9 @@ void EditRendererV1::Paint(Draw& d) {
 		draw_frustum(program.position, program.orientation, program.fov, program.scale, Color(220, 120, 120));
 	if (state.focus_mode == 3 && state.focus_visible)
 		draw_frustum(focus.position, focus.orientation, focus.fov, focus.scale, Color(120, 220, 120));
+
+	if (ctx && ctx->selection_center_valid)
+		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
 	
 	// Overlay: active camera axes and forward vector
 	{
@@ -1495,6 +1571,8 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	draw_camera_gizmos();
+	if (ctx && ctx->selection_center_valid)
+		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
 	// Skeleton overlay
 	if (ctx && ctx->state) {
 		if (ctx->anim && ctx->anim->is_playing) {
@@ -1643,7 +1721,10 @@ void EditRendererV2::Paint(Draw& d) {
 								weights = &sw->weights[wi];
 						}
 					}
-					DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights);
+					DrawEditableMeshOverlay(sz, d, view, os, *mesh, z_cull, weights, ctx && ctx->show_weights,
+						ctx ? &ctx->selected_mesh_points : nullptr,
+						ctx ? &ctx->selected_mesh_lines : nullptr,
+						ctx ? &ctx->selected_mesh_faces : nullptr);
 				}
 			}
 		}
@@ -1673,7 +1754,10 @@ void EditRendererV2::Paint(Draw& d) {
 						weights = &sw->weights[wi];
 				}
 			}
-			DrawEditableMeshOverlay(sz, d, view, os, *go.FindEditableMesh(), z_cull, weights, ctx && ctx->show_weights);
+			DrawEditableMeshOverlay(sz, d, view, os, *go.FindEditableMesh(), z_cull, weights, ctx && ctx->show_weights,
+				ctx ? &ctx->selected_mesh_points : nullptr,
+				ctx ? &ctx->selected_mesh_lines : nullptr,
+				ctx ? &ctx->selected_mesh_faces : nullptr);
 		}
 	}
 }

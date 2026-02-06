@@ -119,6 +119,35 @@ public:
 	AuditTrailCorrelator();
 };
 
+class PlaybookVisualLogic : public ParentCtrl {
+public:
+	CodeEditor puml_editor;
+	GraphLib::GraphNodeCtrl graph_view;
+	Splitter   split;
+	
+	void Load(const String& puml);
+	void UpdatePreview();
+	String Get() const;
+	typedef PlaybookVisualLogic CLASSNAME;
+	PlaybookVisualLogic();
+};
+
+class PlaybookPane : public WithPlaybookLayout<ParentCtrl> {
+public:
+	String root;
+	Array<Playbook> playbooks;
+	PlaybookVisualLogic visual_logic;
+	
+	void Load(const String& maestro_root);
+	void OnPlaybookCursor();
+	void OnNew();
+	void OnSave();
+	void OnValidate();
+	void OnToolbar(Bar& bar);
+	typedef PlaybookPane CLASSNAME;
+	PlaybookPane();
+};
+
 class DebugWorkspace : public WithDebugWorkspaceLayout<ParentCtrl> {
 public:
 	ParentCtrl left_pane, center_pane, bottom_pane;
@@ -250,6 +279,15 @@ public:
 	ListSelectDialog();
 };
 
+class PlaybookSelectDialog : public WithListSelectLayout<TopWindow> {
+public:
+	ArrayCtrl list;
+	String selected_id;
+	void Load(const String& maestro_root);
+	typedef PlaybookSelectDialog CLASSNAME;
+	PlaybookSelectDialog();
+};
+
 class TriageDialog : public WithTriageLayout<TopWindow> {
 public:
 	One<IssueManager> ism;
@@ -368,6 +406,7 @@ public:
 	One<FleetDashboard>        fleet;
 	One<IntelligenceHub>       intelligence;
 	One<EvidencePane>          evidence;
+	One<PlaybookPane>          playbook;
 	One<AuditTrailCorrelator>  audit_trail;
 	One<DebugWorkspace>        debug_workspace;
 	One<TechnologyPane>        technology;

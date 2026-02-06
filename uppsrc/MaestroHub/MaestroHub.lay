@@ -178,6 +178,23 @@ LAYOUT(AuditTrailLayout, 800, 400)
 	ITEM(RichTextView, detail_view, HSizePos(0, 0).VSizePos(200, 0))
 END_LAYOUT
 
+LAYOUT(PlaybookLayout, 900, 600)
+	ITEM(ToolBar, toolbar, HSizePos(0, 0).TopPos(0, 24))
+	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(24, 0))
+	ITEM(ParentCtrl, left_pane, LeftPos(0, 250).VSizePos(0, 0))
+	ITEM(TabCtrl, detail_tabs, HSizePos(250, 0).VSizePos(0, 0))
+	ITEM(ArrayCtrl, playbook_list, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(ParentCtrl, general_pane, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(Label, dv___5, SetLabel(t_("Playbook ID:")).LeftPos(8, 80).TopPos(8, 19))
+	ITEM(EditString, playbook_id, LeftPos(96, 200).TopPos(8, 19))
+	ITEM(Label, dv___7, SetLabel(t_("Title:")).LeftPos(8, 80).TopPos(32, 19))
+	ITEM(EditString, title, LeftPos(96, 400).TopPos(32, 19))
+	ITEM(Label, dv___9, SetLabel(t_("Intent / Purpose:")).LeftPos(8, 120).TopPos(60, 19))
+	ITEM(LineEdit, intent, HSizePos(8, 8).TopPos(80, 60))
+	ITEM(Label, dv___11, SetLabel(t_("Principles & Strategies:")).LeftPos(8, 200).TopPos(148, 19))
+	ITEM(ArrayCtrl, principles, HSizePos(8, 8).VSizePos(168, 8))
+END_LAYOUT
+
 LAYOUT(SessionManagementLayout, 1000, 600)
 	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(0, 0))
 	ITEM(ParentCtrl, left_pane, LeftPos(0, 400).VSizePos(0, 0))

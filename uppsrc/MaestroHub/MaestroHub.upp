@@ -10,6 +10,7 @@ file
 	main.cpp,
 	Technology readonly separator,
 	Technology.cpp,
+	Toolchain.cpp,
 	Product readonly separator,
 	Product.cpp,
 	Maintenance readonly separator,
@@ -29,7 +30,6 @@ file
 	EvidencePane.cpp,
 	Playbook.cpp,
 	Conversion.cpp,
-
 	NewSessionDialog.cpp,
 	InitDialog.cpp,
 	ConfigurationDialog.cpp,
@@ -60,3 +60,4 @@ file
 
 mainconfig
 	"" = "GUI";
+

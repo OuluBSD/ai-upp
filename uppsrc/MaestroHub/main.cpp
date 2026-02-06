@@ -20,6 +20,9 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	AddFrame(toolbar);
 
 	toolbar.Set([=](Bar& bar) {
+		bar.Add(CtrlImg::left(), THISBACK(OnBack)).Enable(history_pos > 0).Tip("Back");
+		bar.Add(CtrlImg::right(), THISBACK(OnNext)).Enable(history_pos < tab_history.GetCount() - 1).Tip("Forward");
+		bar.Separator();
 		bar.Add(CtrlImg::Dir(), THISBACK(SelectRoot)).Tip("Open Project Directory");
 		bar.Separator();
 		bar.Add(CtrlImg::save(), []{ PromptOK("Save All (Stub)"); }).Tip("Save All Changes");
@@ -114,6 +117,24 @@ MaestroHubCockpit::MaestroHubCockpit() {
 		current_root = config.recent_dirs[0];
 	else
 		current_root = GetCurrentDirectory();
+	
+	center_tabs.WhenAction = [=] {
+		if(!navigating) {
+			if(history_pos < tab_history.GetCount() - 1)
+				tab_history.Trim(history_pos + 1);
+			
+			int tab = center_tabs.Get();
+			if(tab_history.IsEmpty() || tab_history.Top() != tab) {
+				tab_history.Add(tab);
+				history_pos++;
+				toolbar.Refresh(); // Update button enablement
+			}
+		}
+	};
+	
+	// Initial history
+	tab_history.Add(0);
+	history_pos = 0;
 	
 	PostCallback(THISBACK(LoadData));
 }
@@ -446,6 +467,28 @@ void MaestroHubCockpit::PlanWatcher() {
 			LoadData();
 		}
 		last_plan_check = max_time;
+	}
+}
+
+void MaestroHubCockpit::NavigateTo(int tab) {
+	if(tab < 0 || tab >= center_tabs.GetCount()) return;
+	navigating = true;
+	center_tabs.Set(tab);
+	navigating = false;
+	toolbar.Refresh();
+}
+
+void MaestroHubCockpit::OnBack() {
+	if(history_pos > 0) {
+		history_pos--;
+		NavigateTo(tab_history[history_pos]);
+	}
+}
+
+void MaestroHubCockpit::OnNext() {
+	if(history_pos < tab_history.GetCount() - 1) {
+		history_pos++;
+		NavigateTo(tab_history[history_pos]);
 	}
 }
 

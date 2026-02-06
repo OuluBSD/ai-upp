@@ -117,6 +117,7 @@ struct GeomProjectCtrl : Ctrl {
 	int props_transform_ori_id = -1;
 	VectorMap<String, String> props_cursor_by_tree;
 	String current_tree_path;
+	Vector<String> tree_open_paths;
 	
 	
 	typedef GeomProjectCtrl CLASSNAME;
@@ -143,6 +144,8 @@ struct GeomProjectCtrl : Ctrl {
 	int FindPropsIdByPath(const String& path, bool open);
 	void StorePropsCursor(const String& tree_path);
 	void RestorePropsCursor(const String& tree_path);
+	void StoreTreeOpenState();
+	void RestoreTreeOpenState();
 	void OnCursor(int kp_i);
 	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
@@ -483,6 +486,8 @@ public:
 	void SetScene3DFormat(bool use_json);
 	void ToggleRepeatPlayback();
 	void Serialize(Stream& s);
+	void ResetLayout();
+	void ResetPropsCursor();
 	void OpenScene3D();
 	void OpenTextureEditor();
 	void OpenFilePool();

@@ -1383,6 +1383,9 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Texture Editor"), THISBACK(OpenTextureEditor));
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
+			bar.Separator();
+			bar.Add(t_("Reset Layout"), THISBACK(ResetLayout));
+			bar.Add(t_("Reset Props Cursor"), THISBACK(ResetPropsCursor));
 		});
 		bar.Sub(t_("Edit"), [this](Bar& bar) {
 			bar.Add(t_("Create Editable Mesh"), THISBACK(CreateEditableMeshObject));
@@ -1559,9 +1562,13 @@ void Edit3D::DockInit() {
 	Close(*dock_texture);
 	v0.grid.SetFocus();
 
+	if (GetLayouts().Find("Default") < 0)
+		SaveLayout("Default");
+
 	String cfg = ModelerAppConfigPath();
 	if (FileExists(cfg))
 		LoadFromFile(*this, cfg);
+	v0.RestoreTreeOpenState();
 }
 
 void Edit3D::SetView(ViewType view) {
@@ -1602,10 +1609,12 @@ GeomScene& Edit3D::GetActiveScene() {
 void Edit3D::Serialize(Stream& s) {
 	SerializeLayout(s);
 	s % v0.props_cursor_by_tree;
+	s % v0.tree_open_paths;
 }
 
 void Edit3D::Exit() {
 	v0.StorePropsCursor(v0.current_tree_path);
+	v0.StoreTreeOpenState();
 	StoreToFile(*this, ModelerAppConfigPath());
 	TopWindow::Close();
 }
@@ -1627,6 +1636,23 @@ void Edit3D::Pause() {
 void Edit3D::Play() {
 	anim->Play();
 	RefrehToolbar();
+}
+
+void Edit3D::ResetLayout() {
+	String cfg = ModelerAppConfigPath();
+	if (FileExists(cfg))
+		DeleteFile(cfg);
+	int ix = GetLayouts().Find("Default");
+	if (ix >= 0)
+		LoadLayout("Default");
+	v0.props_cursor_by_tree.Clear();
+	v0.tree_open_paths.Clear();
+	v0.current_tree_path.Clear();
+}
+
+void Edit3D::ResetPropsCursor() {
+	v0.props_cursor_by_tree.Clear();
+	v0.current_tree_path.Clear();
 }
 
 void Edit3D::OnSceneEnd() {

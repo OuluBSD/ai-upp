@@ -206,6 +206,7 @@ struct Capabilities { // copyable
 	int element_scroll_behavior = 0;
 	String session_id;
 	bool quiet_exceptions = false;
+	Logging_prefs logging_prefs;
 	
 	Capabilities() {}
 	
@@ -229,7 +230,8 @@ struct Capabilities { // copyable
 			("unexpectedAlertBehaviour", unexpected_alert_behaviour)
 			("elementScrollBehavior", element_scroll_behavior)
 			("webdriver.remote.sessionid", session_id)
-			("webdriver.remote.quietExceptions", quiet_exceptions);
+			("webdriver.remote.quietExceptions", quiet_exceptions)
+			("loggingPrefs", logging_prefs);
 	}
 };
 

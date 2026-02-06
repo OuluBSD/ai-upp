@@ -22,6 +22,10 @@ public:
 	const String& Get_method() const;
 	const String& Get_selector() const;
 
+	void Jsonize(JsonIO& json) {
+		json("using", method_)("value", selector_);
+	}
+
 private:
 	String method_;
 	String selector_;

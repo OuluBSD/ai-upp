@@ -2,12 +2,13 @@
 #define _WebDriver_Session_h_
 
 #include <Core/Core.h>
+#include "detail.h"
 
 NAMESPACE_UPP
 
 class Client;
 
-class Session { // copyable
+class Session : public Moveable<Session> { // copyable
 public:
 	Capabilities Get_capabilities() const;
 	String Get_source() const;
@@ -95,7 +96,7 @@ private:
 
 private:
 	detail::Shared<detail::Resource> resource_;
-	detail::Shared<detail::Session_factory> factory_;
+	detail::Shared<detail::IFinder_factory> factory_;
 };
 
 END_UPP_NAMESPACE

@@ -67,8 +67,10 @@ private:
 	Vector<int>   line;
 	int           freelist = -1;
 	int           levelcx = 16;
+	double        levelcx_scale = 1.0;
 	int           cursor_id = -1;
 	bool          noroot = false;
+	bool          show_empty_open = false;
 	bool          dirty = true;
 	bool          syncing = false;
 	TreeDisplay   treedisplay;
@@ -79,6 +81,8 @@ private:
 	void   EnsureColumnCount();
 	int    NewItem();
 	bool   IsVisible(int id) const;
+	int    GetLevelCx() const;
+	bool   HasOpenIndicator(const Item& m) const;
 	Rect   GetToggleRect(int line, const Rect& cell) const;
 	Rect   GetIconRect(int line, const Rect& cell) const;
 
@@ -158,6 +162,9 @@ public:
 
 	TreeArrayCtrl& NoRoot(bool b = true)          { noroot = b; SyncTree(); return *this; }
 	TreeArrayCtrl& LevelCx(int cx)                { levelcx = cx; Refresh(); return *this; }
+	TreeArrayCtrl& LevelCxScale(double s)         { levelcx_scale = s; Refresh(); return *this; }
+	TreeArrayCtrl& LevelCxFromLineCy(double s)    { levelcx = max(1, (int)floor(GetLineCy() * s)); Refresh(); return *this; }
+	TreeArrayCtrl& ShowEmptyOpen(bool b = true)   { show_empty_open = b; Refresh(); return *this; }
 	TreeArrayCtrl& MultiSelect(bool b = true)     { ArrayCtrl::MultiSelect(b); return *this; }
 	TreeArrayCtrl& NoCursor(bool b = true);
 

@@ -14,9 +14,25 @@ LogAnalyzer::LogAnalyzer() {
 	finding_list.AddColumn("File");
 	finding_list.AddColumn("Message");
 	finding_list.WhenCursor = THISBACK(OnFindingCursor);
+	
 	finding_list.WhenBar = [=](Bar& bar) {
-		if(finding_list.IsCursor())
+		if(finding_list.IsCursor()) {
 			bar.Add("Create Issue", THISBACK(OnCreateIssue));
+			
+			ValueMap f;
+			if(LoadFromJson(f, (String)finding_list.Get(3))) {
+				if(sm.Match(f["message"]) >= 0)
+					bar.Add("AI Remediate...", THISBACK(OnRemediate));
+			}
+			
+			bar.Separator();
+			bar.Add("Manage Solutions...", [=] {
+				SolutionsHub dlg;
+				dlg.Load(root);
+				dlg.Run();
+				sm.Load(root);
+			});
+		}
 	};
 	
 	hsplit.Horz(finding_list, detail_view);
@@ -26,6 +42,7 @@ LogAnalyzer::LogAnalyzer() {
 void LogAnalyzer::Load(const String& maestro_root) {
 	root = maestro_root;
 	lm.Create(root);
+	sm.Load(root);
 	UpdateScans();
 }
 
@@ -62,6 +79,12 @@ void LogAnalyzer::OnFindingCursor() {
 		qtf << "[*@3 " << f["kind"] << ": " << DeQtf((String)f["message"]) << "]&";
 		qtf << "[* File:] " << DeQtf((String)f["file"]) << " (line " << f["line"] << ")&";
 		qtf << "[* Tool:] " << DeQtf((String)f["tool"]) << "&";
+		
+		int idx = sm.Match(f["message"]);
+		if(idx >= 0) {
+			qtf << "&[= [* Found Solution Pattern: " << DeQtf(sm.patterns[idx].name) << "]]&";
+		}
+		
 		qtf << "------------------------------------------&";
 		qtf << DeQtf((String)f["raw_line"]);
 		detail_view.SetQTF(qtf);
@@ -78,6 +101,23 @@ void LogAnalyzer::OnCreateIssue() {
 		String issue_id = ism.CreateFromLogFinding(f, scan_id);
 		if(!issue_id.IsEmpty())
 			PromptOK("Issue " + issue_id + " created successfully.");
+	}
+}
+
+void LogAnalyzer::OnRemediate() {
+	if(!finding_list.IsCursor()) return;
+	ValueMap f;
+	if(LoadFromJson(f, (String)finding_list.Get(3))) {
+		int idx = sm.Match(f["message"]);
+		if(idx >= 0) {
+			const auto& p = sm.patterns[idx];
+			String prompt = p.prompt_template;
+			prompt.Replace("%FILEPATH%", f["file"]);
+			prompt.Replace("%FILELINE%", AsString(f["line"]));
+			prompt.Replace("%ERRORMESSAGE%", f["message"]);
+			
+			if(WhenRemediate) WhenRemediate(prompt);
+		}
 	}
 }
 

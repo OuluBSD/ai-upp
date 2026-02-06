@@ -56,7 +56,8 @@ file
 	Solutions_UI_Design.md,
 	UX_Eval_Design.md,
 	Management readonly separator,
-	SessionManagement.cpp;
+	SessionManagement.cpp,
+	Solutions.cpp;
 
 mainconfig
 	"" = "GUI";

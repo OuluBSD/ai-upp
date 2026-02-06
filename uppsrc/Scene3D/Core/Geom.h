@@ -15,6 +15,8 @@ struct GeomKeypoint {
 	int frame_id = -1;
 	vec3 position;
 	quat orientation;
+	bool has_position = true;
+	bool has_orientation = true;
 	
 	void Visit(Vis& v);
 };
@@ -30,6 +32,10 @@ struct GeomTimeline : VfsValueExt {
 	GeomKeypoint& GetAddKeypoint(int i);
 	int FindPre(int kp_i) const;
 	int FindPost(int kp_i) const;
+	int FindPrePosition(int kp_i) const;
+	int FindPostPosition(int kp_i) const;
+	int FindPreOrientation(int kp_i) const;
+	int FindPostOrientation(int kp_i) const;
 	
 	void Visit(Vis& v) override;
 };

@@ -37,6 +37,8 @@ void UpdateCameraObject(GeomObject& cam, const PointcloudPose& pose) {
 	GeomKeypoint& kp = tl.keypoints.Add(0);
 	kp.position = pose.position;
 	kp.orientation = pose.orientation;
+	kp.has_position = true;
+	kp.has_orientation = true;
 	if (GeomTransform* tr = cam.FindTransform()) {
 		tr->position = pose.position;
 		tr->orientation = pose.orientation;
@@ -3577,6 +3579,8 @@ void Edit3D::DebugSimulateControllerObservations() {
 			GeomKeypoint& kp = tl.keypoints.Add(0);
 			kp.position = sim_state.controller_poses_world[i].position;
 			kp.orientation = sim_state.controller_poses_world[i].orientation;
+			kp.has_position = true;
+			kp.has_orientation = true;
 		}
 	}
 	GeomCamera& cam = state->GetFocus();

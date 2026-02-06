@@ -1,17 +1,22 @@
-# Onboarding Experience Plan
+# MaestroHub Onboarding & "Time to Value" Plan
 
-## Goal: First AI Action in < 60 seconds
+## 1. Zero-State Experience
+- **Initial State**: When no project is loaded, the `Fleet Dashboard` should show a "Get Started" card.
+- **Guidance**: Buttons for "Open Existing Project" and "Initialize New Project" are prominently displayed in the center of the dashboard.
+- **Empty State**: Functional hubs (Intelligence, Evidence) show helpful "No data to display. Please initialize your project first." placeholders.
 
-## 1. Zero State
-- If `current_root` is empty: Show a "Welcome" splash with "Open Directory" and "New Project" buttons.
-- If not initialized: Show a persistent high-priority notification bar.
+## 2. The "First 5 Minutes" Journey
+1. **Welcome**: `WelcomeDialog` appears on launch, explaining the Cockpit's mission.
+2. **Setup**: User is guided to the `InitDialog`.
+3. **Observation**: User is directed to the `Interactive Guide` (bottom tab) which explains the 3-pane layout.
+4. **Action**: User is encouraged to run an "Inventory Scan" to see the `TU Browser` and `Repo View` populate.
 
-## 2. The "Hello Maestro" Tutorial
-- A one-page interactive walkthrough showing:
-  - Where the AI chat lives.
-  - How to run a scan.
-  - How to interpret the Plan tree.
+## 3. Contextual Help Strategy
+- **Hover Support**: Tooltips for all toolbar icons.
+- **"What is this?"**: A small `?` button next to major LabelBox headers that opens a help popup.
+- **Assistant Prompting**: If the user is idle in a "Zero State" for more than 30 seconds, the AI Assistant should offer a suggestion: "Would you like me to help you initialize this repository?"
 
-## 3. Tooltips & Help
-- Add tooltips to all icon-only buttons.
-- Link "F1" to a searchable "Maestro Playbook" reference.
+## 4. UI Recommendations
+- **Pulse Animation**: Use a subtle highlight on the `Select Project` button during the first run.
+- **Progress Tracking**: The `Interactive Guide` tracks completion of onboarding steps (e.g., "Step 1: Project Init - [DONE]").
+- **WinXP Aesthetic**: Maintain standard system dialogs for a familiar, "expert" feel that reduces anxiety for new users.

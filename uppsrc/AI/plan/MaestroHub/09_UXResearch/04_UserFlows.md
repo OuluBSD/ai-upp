@@ -1,5 +1,5 @@
 # Task: User Flows & Scenarios
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Map out the step-by-step journeys for common high-value tasks.

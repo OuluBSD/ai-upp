@@ -125,6 +125,7 @@ struct GeomProjectCtrl : Ctrl {
 	void PropsMenu(Bar& bar);
 	void UpdateTreeFocus(int new_id);
 	void PropsData();
+	void SyncPropsValues();
 	void PropsApply();
 	TreeNodeRef* GetNodeRef(const Value& v);
 	GeomObject* GetNodeObject(const Value& v);

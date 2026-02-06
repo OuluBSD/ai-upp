@@ -109,6 +109,12 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 	// Apply movement with collision detection
 	ResolveCollisionX(velocity.x * delta, collision);
 	ResolveCollisionY(velocity.y * delta, collision);
+
+	// Stop horizontal movement if touching a wall after collision resolution
+	// This handles cases where player drifts into wall while falling
+	if(IsTouchingWallOnLeft(collision) || IsTouchingWallOnRight(collision)) {
+		velocity.x = 0.0f;
+	}
 }
 
 void Player::ResolveCollisionX(float deltaX, CollisionHandler& collision) {

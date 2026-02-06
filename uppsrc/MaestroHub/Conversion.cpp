@@ -12,6 +12,9 @@ ConversionPane::ConversionPane() {
 	transformation_tree.AddColumn("Status", 100);
 	transformation_tree.WhenCursor = THISBACK(OnTreeCursor);
 	
+	diff_pane.SetQTF("[* Select a transformation unit to view changes]");
+	ai_rationale.SetQTF("[* AI planning details will appear here]");
+	
 	workspace_tabs.Add(diff_pane.SizePos(), "Source/Target Diff");
 	workspace_tabs.Add(ai_rationale.SizePos(), "AI Rationale & Plan");
 	

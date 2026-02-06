@@ -178,3 +178,7 @@
   task: track-editor-scripting/phase-11-texture-editing/task-1100-texture-editing-3d-models.md
   status: done
   note: Added texture edit component, texture editor dock, painting, and save to data_dir.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-12-material-editing/task-1200-material-editing-3d.md
+  status: done
+  note: Added materials/mesh assignment props with base color/emissive/roughness/metallic editing and V2 tinting.

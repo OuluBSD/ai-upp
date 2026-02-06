@@ -4,10 +4,9 @@ uses
 	Core,
 	Draw,
 	CtrlCore,
-	Http,
 	Socket;
 
-library(WIN32) "ws2_32";
+library(WIN32) ws2_32;
 
 file
 	Copying,
@@ -82,3 +81,8 @@ file
 	DetailTypes.cpp,
 	WebDriver.t,
 	WebDriver.defs;
+
+mainconfig
+	"Release" = ".AI .SCREEN .AUDIO .HTTP .SOCKET",
+	"Debug" = ".AI .SCREEN .AUDIO .HTTP .SOCKET .DEBUG_RT";
+

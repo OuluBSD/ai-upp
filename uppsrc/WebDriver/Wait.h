@@ -5,10 +5,21 @@
 
 NAMESPACE_UPP
 
-class Wait {
-public:
-    // Implementation will be adapted from webdriverxx/wait.h
-};
+template<typename T>
+bool Wait_until(
+	const T& condition,
+	const Session& session,
+	int timeout_ms = 5000,
+	int interval_ms = 500
+	);
+
+template<typename T>
+bool Wait_for(
+	const T& condition,
+	const Session& session,
+	int timeout_ms = 5000,
+	int interval_ms = 500
+	);
 
 END_UPP_NAMESPACE
 

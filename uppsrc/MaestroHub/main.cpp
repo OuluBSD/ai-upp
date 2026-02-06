@@ -37,6 +37,19 @@ MaestroHubCockpit::MaestroHubCockpit() {
 
 	fleet.Create();
 	intelligence.Create();
+	if(intelligence) {
+		intelligence->log_analyzer->WhenRemediate = [=](String prompt) {
+			if(assistant) {
+				center_tabs.Set(4); // Switch to Playbooks/Execution or just stay? 
+				// Maybe open Assistant if closed
+				if(!assistant->is_expanded) OnToggleAssistant();
+				
+				assistant->chat.input.SetData(prompt);
+				// assistant->chat.OnSend(); // Let user confirm? Or auto send?
+				// Prompt is populated, user can review.
+			}
+		};
+	}
 	evidence.Create();
 	playbook.Create();
 	debug_workspace.Create();

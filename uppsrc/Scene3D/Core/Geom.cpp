@@ -426,7 +426,14 @@ void Geom2DShape::Visit(Vis& v) {
 }
 
 void Geom2DLayer::Visit(Vis& v) {
-	v VIS_(visible);
+	v VIS_(visible)
+	  VIS_(stroke)
+	  VIS_(fill)
+	  VIS_(width)
+	  VIS_(opacity)
+	  VIS_(use_layer_style)
+	  VIS_(texture_ref)
+	  VIS_(blend_mode);
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			shapes.Clear();

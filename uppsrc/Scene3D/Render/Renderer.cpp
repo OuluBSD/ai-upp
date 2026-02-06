@@ -111,6 +111,14 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
                         const Geom2DLayer& layer, bool z_cull) {
 	if (!layer.visible)
 		return;
+	auto apply_opacity = [&](Color c) {
+		RGBA r = c;
+		float a = Clamp(layer.opacity, 0.0f, 1.0f);
+		r.r = (byte)Clamp(r.r * a, 0.0f, 255.0f);
+		r.g = (byte)Clamp(r.g * a, 0.0f, 255.0f);
+		r.b = (byte)Clamp(r.b * a, 0.0f, 255.0f);
+		return Color(r);
+	};
 	auto local_to_world = [&](const vec2& p) {
 		vec3 local(p[0] * os.scale[0], p[1] * os.scale[1], 0);
 		return os.position + VectorTransform(local, os.orientation);
@@ -125,8 +133,12 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 			DrawLine(sz, d, view, local_to_world(pts.Top()), local_to_world(pts[0]), (int)width, clr, z_cull);
 	};
 	for (const Geom2DShape& shape : layer.shapes) {
-		Color clr = shape.stroke;
-		float w = shape.width <= 0 ? 1.0f : shape.width;
+		Color clr = layer.use_layer_style ? layer.stroke : shape.stroke;
+		float w = layer.use_layer_style ? layer.width : shape.width;
+		if (w <= 0)
+			w = 1.0f;
+		Color fill = apply_opacity(layer.fill);
+		clr = apply_opacity(clr);
 		switch (shape.type) {
 		case Geom2DShape::S_LINE:
 			if (shape.points.GetCount() >= 2)
@@ -140,6 +152,15 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 				vec2 p1(max(a[0], b[0]), min(a[1], b[1]));
 				vec2 p2(max(a[0], b[0]), max(a[1], b[1]));
 				vec2 p3(min(a[0], b[0]), max(a[1], b[1]));
+				if (layer.use_layer_style) {
+					const int steps = 16;
+					for (int i = 0; i <= steps; i++) {
+						float t = (float)i / (float)steps;
+						vec2 s0 = Lerp(p0, p3, t);
+						vec2 s1 = Lerp(p1, p2, t);
+						DrawLine(sz, d, view, local_to_world(s0), local_to_world(s1), 1, fill, z_cull);
+					}
+				}
 				DrawLine(sz, d, view, local_to_world(p0), local_to_world(p1), (int)w, clr, z_cull);
 				DrawLine(sz, d, view, local_to_world(p1), local_to_world(p2), (int)w, clr, z_cull);
 				DrawLine(sz, d, view, local_to_world(p2), local_to_world(p3), (int)w, clr, z_cull);
@@ -155,6 +176,14 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 					r = sqrt(Dot(d2, d2));
 				}
 				if (r > 0) {
+					if (layer.use_layer_style) {
+						const int steps = 20;
+						for (int i = 0; i <= steps; i++) {
+							float y = -r + 2.0f * r * ((float)i / (float)steps);
+							float x = sqrt(max(0.0f, r * r - y * y));
+							DrawLine(sz, d, view, local_to_world(c + vec2(-x, y)), local_to_world(c + vec2(x, y)), 1, fill, z_cull);
+						}
+					}
 					const int steps = 32;
 					Vector<vec2> pts;
 					pts.SetCount(steps);

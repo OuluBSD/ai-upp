@@ -370,6 +370,13 @@ TimelineCtrl::TimelineCtrl() {
 	AddFrame(vsb);
 	AddFrame(hsb.Horz());
 	
+	auto_key_label.SetFont(SansSerif(9).Bold());
+	auto_key_label.SetInk(Color(200, 40, 40));
+	auto_key_label.SetAlign(ALIGN_CENTER);
+	auto_key_label.NoWantFocus();
+	auto_key_label.Hide();
+	Add(auto_key_label);
+	
 	vsb.WhenScroll = THISBACK(OnScroll);
 	vsb.SetLine(GetLineHeight());
 	hsb.WhenScroll = THISBACK(OnScroll);
@@ -408,6 +415,23 @@ void TimelineCtrl::SetSelectionRange(int a, int b) {
 void TimelineCtrl::ClearSelectionRange() {
 	range_start = -1;
 	range_end = -1;
+	Refresh();
+}
+
+void TimelineCtrl::SetAutoKeyIndicator(bool on, const String& detail) {
+	auto_key_armed = on;
+	auto_key_detail = detail;
+	if (!auto_key_armed) {
+		auto_key_label.Hide();
+		auto_key_label.SetText(String());
+	}
+	else {
+		String text = "AUTO";
+		if (!auto_key_detail.IsEmpty())
+			text << " " << auto_key_detail;
+		auto_key_label.SetText(text);
+		auto_key_label.Show();
+	}
 	Refresh();
 }
 
@@ -587,6 +611,9 @@ TimelineRowCtrl& TimelineCtrl::GetRowIndex(int i) {
 void TimelineCtrl::Layout() {
 	Size sz = GetSize();
 	vsb.SetPage(sz.cy);
+	int pad = 4;
+	int label_w = min(140, max(0, sz.cx - pad * 2));
+	auto_key_label.SetRect(RectC(max(0, sz.cx - label_w - pad), pad, label_w, 14));
 
 	int fcy = GetLineHeight();
 	int i = vsb / fcy;

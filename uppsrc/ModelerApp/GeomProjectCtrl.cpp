@@ -672,6 +672,12 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 		if (!current_tree_path.IsEmpty())
 			StorePropsCursor(current_tree_path);
 	};
+	props.WhenScroll << [=] {
+		if (props_refreshing)
+			return;
+		if (!current_tree_path.IsEmpty())
+			StorePropsCursor(current_tree_path);
+	};
 	
 	
 	tree.NoHeader();
@@ -1225,6 +1231,8 @@ String GeomProjectCtrl::GetTreePathForValue(const Value& v, int id) const {
 String GeomProjectCtrl::GetPropsPathForId(int id) const {
 	Vector<String> parts;
 	for (int cur = id; cur >= 0; cur = props.GetParent(cur)) {
+		if (cur == 0)
+			break;
 		String label = AsString(props.GetValue(cur));
 		if (label.IsEmpty())
 			label = AsString(props.Get(cur));
@@ -1239,6 +1247,8 @@ int GeomProjectCtrl::FindPropsIdByPath(const String& path, bool open) {
 	if (path.IsEmpty())
 		return -1;
 	Vector<String> parts = Split(path, '/');
+	if (!parts.IsEmpty() && parts[0] == "Properties")
+		parts.Remove(0);
 	int cur = 0;
 	for (int i = 0; i < parts.GetCount(); i++) {
 		const String& part = parts[i];
@@ -1310,6 +1320,7 @@ void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
 		}
 	}
 	props.ScrollTo(max(st.scroll, 0));
+	props.Refresh();
 }
 
 void GeomProjectCtrl::StoreTreeOpenState() {

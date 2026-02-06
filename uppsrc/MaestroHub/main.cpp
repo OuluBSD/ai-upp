@@ -71,6 +71,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	// Bottom Tabs: Output and Trace
 	bottom_tabs.Add(automation_output.SizePos(), "Automation Output");
 	bottom_tabs.Add(ai_trace.SizePos(), "AI Trace");
+	internal_console.SetQTF("[* System Console initialized.]&");
 	bottom_tabs.Add(internal_console.SizePos(), "System Console");
 	bottom_tabs.Add(audit_trail->SizePos(), "System Events");
 	bottom_tabs.Add(tutorial->SizePos(), "Interactive Guide");

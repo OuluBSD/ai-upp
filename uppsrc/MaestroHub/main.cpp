@@ -47,6 +47,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	work.Create();
 	sessions.Create();
 	audit_trail.Create();
+	tutorial.Create();
 	
 	automation_output.SetQTF("[&@6 [* Automation System Active]]&[C1 This view displays logs and output from orchestrated transformation tasks.]");
 	ai_trace.SetQTF("[&@2 [* AI Reasoning Trace]]&[C1 This view displays real-time insights into the AI's decision-making process.]");
@@ -63,11 +64,13 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	center_tabs.Add(playbook->SizePos(), "Strategy Playbooks");
 	center_tabs.Add(debug_workspace->SizePos(), "Execution Console"); 
 	center_tabs.Add(issues->SizePos(), "Issue Tracker");
+	center_tabs.Add(maintenance->SizePos(), "Maintenance Hub");
 	
 	// Bottom Tabs: Output and Trace
 	bottom_tabs.Add(automation_output.SizePos(), "Automation Output");
 	bottom_tabs.Add(ai_trace.SizePos(), "AI Trace");
 	bottom_tabs.Add(audit_trail->SizePos(), "System Events");
+	bottom_tabs.Add(tutorial->SizePos(), "Interactive Guide");
 	
 	// Right Panel: Global AI Assistant
 	assistant.Create();
@@ -149,8 +152,16 @@ void MaestroHubCockpit::MainMenu(Bar& bar) {
 }
 
 void MaestroHubCockpit::AppMenu(Bar& bar) {
-	bar.Add("Select Root...", THISBACK(SelectRoot));
-	bar.Add("Reload", THISBACK(LoadData));
+	bar.Add("New Session...", THISBACK(OnNewSession));
+	bar.Add("Project Init...", THISBACK(OnInitMaestro));
+	bar.Separator();
+	bar.Add("Configuration", THISBACK(OnSettings));
+	bar.Separator();
+	bar.Sub("Help", [=](Bar& bar) {
+		bar.Add("Welcome Tutorial", [=] { WelcomeDialog dlg; dlg.Run(); });
+		bar.Separator();
+		bar.Add("About", [=] { PromptOK("MaestroHub Cockpit v1.0&[C1 (c) 2026 AI-UPP Team]"); });
+	});
 	bar.Separator();
 	bar.Add("Exit", THISBACK(Close));
 }

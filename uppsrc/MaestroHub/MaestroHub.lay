@@ -200,11 +200,25 @@ LAYOUT(ConversionLayout, 560, 440)
 	ITEM(Splitter, main_split, HSizePos(0, 0).VSizePos(24, 0))
 END_LAYOUT
 
+LAYOUT(MaintenanceLayout, 800, 500)
+	ITEM(ToolBar, toolbar, HSizePos(0, 0).TopPos(0, 24))
+	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(24, 0))
+	ITEM(ArrayCtrl, cache_list, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(RichTextView, cache_detail, HSizePos(0, 0).VSizePos(0, 0))
+END_LAYOUT
+
 LAYOUT(PipelineLayout, 400, 300)
 	ITEM(LabelBox, dv, SetLabel(t_("Pipeline Status")).LeftPos(8, 384).TopPos(8, 284))
 	ITEM(ArrayCtrl, list, LeftPos(16, 368).TopPos(24, 260))
 END_LAYOUT
 
+
+LAYOUT(WelcomeLayout, 500, 350)
+	ITEM(Label, dv___0, SetLabel(t_("Welcome to MaestroHub Cockpit")).SetFont(SansSerif(20).Bold()).HSizePos(8, 8).TopPos(8, 30))
+	ITEM(RichTextView, content, HSizePos(8, 8).VSizePos(44, 48))
+	ITEM(Button, ok, SetLabel(t_("Start Exploring")).RightPos(116, 120).BottomPos(8, 32))
+	ITEM(Button, cancel, SetLabel(t_("Skip")).RightPos(8, 100).BottomPos(8, 32))
+END_LAYOUT
 
 LAYOUT(SessionManagementLayout, 1000, 600)
 	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(0, 0))

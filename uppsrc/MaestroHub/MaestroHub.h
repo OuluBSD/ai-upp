@@ -232,13 +232,19 @@ public:
 	ProductPane();
 };
 
-class MaintenancePane : public ParentCtrl {
+class MaintenancePane : public WithMaintenanceLayout<ParentCtrl> {
 public:
-	AIChatCtrl chat;
-	Label      active_info;
+	Splitter split;
+	ArrayCtrl cache_list;
+	RichTextView cache_detail;
+
 	String root;
 	void Load(const String& root);
-	void SessionStatus(const String& backend, const String& session_id);
+	void OnPurgeCache();
+	void OnPurgeTracks();
+	void OnSyncCore();
+	void OnCacheCursor();
+	
 	typedef MaintenancePane CLASSNAME;
 	MaintenancePane();
 };
@@ -437,6 +443,24 @@ public:
 // 4. Main Window
 bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path);
 
+class TutorialPane : public ParentCtrl {
+public:
+	RichTextView view;
+	int step = 0;
+	
+	void UpdateContent();
+	void OnNext();
+	void OnPrev();
+	typedef TutorialPane CLASSNAME;
+	TutorialPane();
+};
+
+class WelcomeDialog : public WithWelcomeLayout<TopWindow> {
+public:
+	typedef WelcomeDialog CLASSNAME;
+	WelcomeDialog();
+};
+
 class MaestroHubCockpit : public TopWindow {
 public:
 	MenuBar   menu;
@@ -459,6 +483,7 @@ public:
 	One<IssuesPane>            issues;
 	One<WorkPane>              work;
 	One<SessionManagementPane> sessions;
+	One<TutorialPane>          tutorial;
 	
 	RichTextView               automation_output;
 	RichTextView               ai_trace;

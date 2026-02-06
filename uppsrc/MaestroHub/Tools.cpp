@@ -2,25 +2,51 @@
 
 NAMESPACE_UPP
 
-bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path) {
-	// Logic to create a new .md task file based on the issue
-	String tasks_dir = AppendFileName(AppendFileName(root, "uppsrc/AI/plan"), "issues");
-	RealizeDirectory(tasks_dir);
+TutorialPane::TutorialPane() {
+	Add(view.SizePos());
+	UpdateContent();
+}
+
+void TutorialPane::UpdateContent() {
+	String qtf;
+	qtf << "[&@6 [* MaestroHub Cockpit Tutorial - Step " << step + 1 << "]]&";
 	
-	String filename = iss.issue_id + ".md";
-	task_path = AppendFileName(tasks_dir, filename);
+	switch(step) {
+	case 0:
+		qtf << "[C1 Welcome! The **Fleet Dashboard** (center) is your mission control. It shows active projects and automation queues.]";
+		break;
+	case 1:
+		qtf << "[C1 The **Workspace** tab (left) shows your physical repository. The **Pipeline** tab shows current scan/transformation stages.]";
+		break;
+	case 2:
+		qtf << "[C1 Use the **AI Assistant** (right) for natural language interaction. It automatically tracks your current task context.]";
+		break;
+	case 3:
+		qtf << "[C1 The **Evidence Locker** and **Playbook Manager** help you manage verification artifacts and expert strategies.]";
+		break;
+	default:
+		qtf << "[C1 Tutorial complete. You can restart it anytime from the Help menu.]";
+		break;
+	}
 	
-	String content;
-	content << "# Task: " << title << "\n";
-	content << "# Status: TODO\n\n";
-	content << "## Objective\n";
-	content << "Resolve issue " << iss.issue_id << ": " << iss.message << "\n\n";
-	content << "## Requirements\n";
-	content << "- Analyze file: " << iss.file << "\n";
-	content << "- Fix root cause.\n";
-	
-	return SaveFile(task_path, content);
+	view.SetQTF(qtf);
+}
+
+void TutorialPane::OnNext() {
+	step++;
+	UpdateContent();
+}
+
+void TutorialPane::OnPrev() {
+	if(step > 0) step--;
+	UpdateContent();
+}
+
+WelcomeDialog::WelcomeDialog() {
+	CtrlLayoutOKCancel(*this, "Welcome");
+	content.SetQTF("[&@6 [* Welcome to the Future of Orchestrated Engineering.]]&"
+	               "[C1 MaestroHub Cockpit provides a centralized interface for AI-augmented code transformation and repository management.]&"
+	               "[C1 This environment is optimized for high-density information display and expert-level control.]");
 }
 
 END_UPP_NAMESPACE
-

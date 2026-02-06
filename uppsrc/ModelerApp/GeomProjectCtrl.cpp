@@ -1304,14 +1304,19 @@ int GeomProjectCtrl::FindPropsIdByIndexPath(const Vector<int>& path, bool open) 
 }
 
 Vector<GeomProjectCtrl::PropsCursorState::PropPathToken> GeomProjectCtrl::GetPropsTokensForId(int id) const {
+	auto safe_label = [&](const Value& v) -> String {
+		if (v.Is<String>())
+			return v.To<String>();
+		if (v.Is<WString>())
+			return v.To<WString>().ToString();
+		return String();
+	};
 	Vector<PropsCursorState::PropPathToken> out;
 	for (int cur = id; cur >= 0; cur = props.GetParent(cur)) {
 		if (cur == 0)
 			break;
 		PropsCursorState::PropPathToken t;
-		String label = AsString(props.GetValue(cur));
-		if (label.IsEmpty())
-			label = AsString(props.Get(cur));
+		String label = safe_label(props.GetValue(cur));
 		t.label = label;
 		Value v = props.Get(cur);
 		if (v.Is<PropRef*>()) {
@@ -1320,8 +1325,6 @@ Vector<GeomProjectCtrl::PropsCursorState::PropPathToken> GeomProjectCtrl::GetPro
 				t.kind = (int)pr->kind;
 				t.material_id = pr->material_id;
 				t.mesh_index = pr->mesh_index;
-				if (pr->script)
-					t.script_file = pr->script->file;
 			}
 		}
 		out.Add(t);
@@ -1333,6 +1336,13 @@ Vector<GeomProjectCtrl::PropsCursorState::PropPathToken> GeomProjectCtrl::GetPro
 int GeomProjectCtrl::FindPropsIdByTokens(const Vector<PropsCursorState::PropPathToken>& tokens, bool open) {
 	if (tokens.IsEmpty())
 		return -1;
+	auto safe_label = [&](const Value& v) -> String {
+		if (v.Is<String>())
+			return v.To<String>();
+		if (v.Is<WString>())
+			return v.To<WString>().ToString();
+		return String();
+	};
 	int cur = 0;
 	for (int i = 0; i < tokens.GetCount(); i++) {
 		const PropsCursorState::PropPathToken& want = tokens[i];
@@ -1341,25 +1351,19 @@ int GeomProjectCtrl::FindPropsIdByTokens(const Vector<PropsCursorState::PropPath
 		for (int j = 0; j < child_count; j++) {
 			int child = props.GetChild(cur, j);
 			PropsCursorState::PropPathToken have;
-			String label = AsString(props.GetValue(child));
-			if (label.IsEmpty())
-				label = AsString(props.Get(child));
-			have.label = label;
+			have.label = safe_label(props.GetValue(child));
 			Value v = props.Get(child);
 			if (v.Is<PropRef*>()) {
 				PropRef* pr = ValueTo<PropRef*>(v);
-				if (pr) {
-					have.kind = (int)pr->kind;
-					have.material_id = pr->material_id;
-					have.mesh_index = pr->mesh_index;
-					if (pr->script)
-						have.script_file = pr->script->file;
-				}
+			if (pr) {
+				have.kind = (int)pr->kind;
+				have.material_id = pr->material_id;
+				have.mesh_index = pr->mesh_index;
+			}
 			}
 			bool match = have.kind == want.kind &&
 			             have.material_id == want.material_id &&
 			             have.mesh_index == want.mesh_index &&
-			             have.script_file == want.script_file &&
 			             have.label == want.label;
 			if (match) {
 				found = child;
@@ -1370,9 +1374,7 @@ int GeomProjectCtrl::FindPropsIdByTokens(const Vector<PropsCursorState::PropPath
 			// fallback: label-only match
 			for (int j = 0; j < child_count; j++) {
 				int child = props.GetChild(cur, j);
-				String label = AsString(props.GetValue(child));
-				if (label.IsEmpty())
-					label = AsString(props.Get(child));
+				String label = safe_label(props.GetValue(child));
 				if (label == want.label) {
 					found = child;
 					break;

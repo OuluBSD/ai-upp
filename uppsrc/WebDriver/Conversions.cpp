@@ -6,12 +6,12 @@ NAMESPACE_UPP
 
 // Explicit instantiation of the specialization
 template <>
-ValueArray From_json<ValueArray>(const picojson::value& value) {
+ValueArray From_json<ValueArray>(const Value& value) {
 	ValueArray result;
-	if (value.is<picojson::array>()) {
-		const picojson::array& arr = value.get<picojson::array>();
+	if (value.IsArray()) {
+		const ValueArray& arr = value.Get<ValueArray>();
 		for (const auto& item : arr) {
-			result.Add(ToValue(item));
+			result.Add(item);
 		}
 	}
 	return result;

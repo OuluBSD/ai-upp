@@ -8,14 +8,14 @@
 NAMESPACE_UPP
 
 template<typename T>
-picojson::value To_json(const T& value);
+Value To_json(const T& value);
 
 template<typename T>
-T From_json(const picojson::value& value);
+T From_json(const Value& value);
 
 // Declaration for ValueArray specialization
 template<>
-ValueArray From_json<ValueArray>(const picojson::value& value);
+ValueArray From_json<ValueArray>(const Value& value);
 
 namespace conversions_detail {
 
@@ -31,20 +31,20 @@ struct Tag :
 	> {};
 
 template<typename T>
-picojson::value To_json_impl(const T& value, Default_tag) {
+Value To_json_impl(const T& value, Default_tag) {
 	// Compile error here usually indicates
 	// that compiler doesn't know how to convert the type T
-	// to the picojson::value. Define Custom_to_json
+	// to the Value. Define Custom_to_json
 	// function (see examples below) in the T's namespace
 	// to resolve the issue.
-	return picojson::value(value);
+	return Value(value);
 }
 
 template<typename T>
-picojson::value To_json_impl(const T& value, Iterable_tag) {
+Value To_json_impl(const T& value, Iterable_tag) {
 	typedef typename std::iterator_traits<decltype(std::begin(value))>::value_type Item;
-	picojson::value result = picojson::value(picojson::array());
-	picojson::array& dst = result.get<picojson::array>();
+	Value result = Value::Array();
+	ValueArray& dst = result;
 	std::transform(std::begin(value), std::end(value), std::back_inserter(dst), [](const Item& item) {
 		return To_json(item);
 	});
@@ -54,40 +54,40 @@ picojson::value To_json_impl(const T& value, Iterable_tag) {
 } // conversions_detail
 
 inline
-picojson::value Custom_to_json(const char* value) {
-	return picojson::value(value);
+Value Custom_to_json(const char* value) {
+	return Value(value);
 }
 
 inline
-picojson::value Custom_to_json(const String& value) {
+Value Custom_to_json(const String& value) {
 	return To_json(value.CStr());
 }
 
 inline
-picojson::value Custom_to_json(const picojson::value& value) {
+Value Custom_to_json(const Value& value) {
 	return value;
 }
 
 inline
-picojson::value Custom_to_json(const picojson::object& value) {
-	return picojson::value(value);
+Value Custom_to_json(const ValueMap& value) {
+	return Value(value);
 }
 
 
 inline
-picojson::value Custom_to_json(int value) {
-	return picojson::value(static_cast<double>(value));
+Value Custom_to_json(int value) {
+	return Value(static_cast<double>(value));
 }
 
 template<typename T>
-picojson::value Custom_to_json(const T& value) {
+Value Custom_to_json(const T& value) {
 	using conversions_detail::To_json_impl;
 	using conversions_detail::Tag;
 	return To_json_impl(value, typename Tag<T>::type());
 }
 
 template<typename T>
-picojson::value To_json(const T& value) {
+Value To_json(const T& value) {
 	return Custom_to_json(value);
 }
 
@@ -96,202 +96,151 @@ picojson::value To_json(const T& value) {
 namespace conversions_detail {
 
 template<typename T>
-void From_json_impl(const picojson::value& value, T& result, Default_tag) {
+void From_json_impl(const Value& value, T& result, Default_tag) {
 	// Compile error here usually indicates
-	// that compiler doesn't know how to convert the picojson::value
+	// that compiler doesn't know how to convert the Value
 	// to the type T. Define Custom_from_json function (see examples below)
 	// in the T's namespace to resolve the issue.
-	result = value.get<T>();
+	result = value.Get<T>();
 }
 
 template<typename T>
-void From_json_impl(const picojson::value& value, T& result, Iterable_tag) {
-	WEBDRIVERXX_CHECK(value.is<picojson::array>(), "Value is not an array");
-	const picojson::array& array = value.get<picojson::array>();
+void From_json_impl(const Value& value, T& result, Iterable_tag) {
+	WEBDRIVERXX_CHECK(value.IsArray(), "Value is not an array");
+	const ValueArray& array = value.Get<ValueArray>();
 	typedef typename std::iterator_traits<decltype(std::begin(result))>::value_type Item;
-	std::transform(array.begin(), array.end(), std::back_inserter(result), From_json<Item>);
+	std::transform(array.Begin(), array.End(), std::back_inserter(result), From_json<Item>);
 }
 
 } // conversions_detail
 
 inline
-void Custom_from_json(const picojson::value& value, String& result) {
-	result = value.to_str();
+void Custom_from_json(const Value& value, String& result) {
+	result = value.ToString();
 }
 
 inline
-void Custom_from_json(const picojson::value& value, bool& result) {
-	result = value.evaluate_as_boolean();
+void Custom_from_json(const Value& value, bool& result) {
+	result = value.ToBool();
 }
 
 inline
-void Custom_from_json(const picojson::value& value, int& result) {
-	WEBDRIVERXX_CHECK(value.is<double>(), "Value is not a number");
-	result = static_cast<int>(value.get<double>());
+void Custom_from_json(const Value& value, int& result) {
+	WEBDRIVERXX_CHECK(value.IsNumber(), "Value is not a number");
+	result = value.ToInt();
 }
 
 inline
-void Custom_from_json(const picojson::value& value, unsigned& result) {
-	WEBDRIVERXX_CHECK(value.is<double>(), "Value is not a number");
-	result = static_cast<unsigned>(value.get<double>());
+void Custom_from_json(const Value& value, unsigned& result) {
+	WEBDRIVERXX_CHECK(value.IsNumber(), "Value is not a number");
+	result = static_cast<unsigned>(value.ToDouble());
 }
 
 inline
-void Custom_from_json(const picojson::value& value, picojson::value& result) {
+void Custom_from_json(const Value& value, Value& result) {
 	result = value;
 }
 
 inline
-void Custom_from_json(const picojson::value& value, picojson::object& result) {
-	WEBDRIVERXX_CHECK(value.is<picojson::object>(), "Value is not an object");
-	result = value.get<picojson::object>();
+void Custom_from_json(const Value& value, ValueMap& result) {
+	WEBDRIVERXX_CHECK(value.IsObject(), "Value is not an object");
+	result = value.Get<ValueMap>();
 }
 
 
 template<typename T>
-void Custom_from_json(const picojson::value& value, T& result) {
+void Custom_from_json(const Value& value, T& result) {
 	using conversions_detail::From_json_impl;
 	using conversions_detail::Tag;
 	return From_json_impl(value, result, typename Tag<T>::type());
 }
 
 template<typename T>
-T From_json(const picojson::value& value) {
+T From_json(const Value& value) {
 	T result;
 	Custom_from_json(value, result);
 	return result;
 }
 
 template<typename T>
-T Optional_from_json(const picojson::value& value, const T& default_value = T()) {
-	return value.is<picojson::null>() ? default_value : From_json<T>(value);
+T Optional_from_json(const Value& value, const T& default_value = T()) {
+	return IsNull(value) ? default_value : From_json<T>(value);
 }
 
 ///////////////////////////////////////////////////////////////////
 
 inline
-picojson::value Custom_to_json(const Size& size) {
-	picojson::object obj;
-	obj["width"] = picojson::value(static_cast<double>(size.width));
-	obj["height"] = picojson::value(static_cast<double>(size.height));
-	return picojson::value(obj);
+Value Custom_to_json(const Size& size) {
+	ValueMap obj;
+	obj.Add("width", static_cast<double>(size.width));
+	obj.Add("height", static_cast<double>(size.height));
+	return Value(obj);
 }
 
 inline
-void Custom_from_json(const picojson::value& value, Size& result) {
-	WEBDRIVERXX_CHECK(value.is<picojson::object>(), "Size is not an object");
-	const picojson::object& obj = value.get<picojson::object>();
-	auto it = obj.find("width");
-	if (it != obj.end()) result.width = static_cast<int>(it->second.get<double>());
-	it = obj.find("height");
-	if (it != obj.end()) result.height = static_cast<int>(it->second.get<double>());
+void Custom_from_json(const Value& value, Size& result) {
+	WEBDRIVERXX_CHECK(value.IsObject(), "Size is not an object");
+	const ValueMap& obj = value.Get<ValueMap>();
+	Value width_val = obj.Get("width", Value());
+	if (!IsNull(width_val)) result.width = static_cast<int>(width_val.ToDouble());
+	Value height_val = obj.Get("height", Value());
+	if (!IsNull(height_val)) result.height = static_cast<int>(height_val.ToDouble());
 }
 
 inline
-picojson::value Custom_to_json(const Point& position) {
-	picojson::object obj;
-	obj["x"] = picojson::value(static_cast<double>(position.x));
-	obj["y"] = picojson::value(static_cast<double>(position.y));
-	return picojson::value(obj);
+Value Custom_to_json(const Point& position) {
+	ValueMap obj;
+	obj.Add("x", static_cast<double>(position.x));
+	obj.Add("y", static_cast<double>(position.y));
+	return Value(obj);
 }
 
 inline
-void Custom_from_json(const picojson::value& value, Point& result) {
-	WEBDRIVERXX_CHECK(value.is<picojson::object>(), "Point is not an object");
-	const picojson::object& obj = value.get<picojson::object>();
-	auto it = obj.find("x");
-	if (it != obj.end()) result.x = static_cast<int>(it->second.get<double>());
-	it = obj.find("y");
-	if (it != obj.end()) result.y = static_cast<int>(it->second.get<double>());
+void Custom_from_json(const Value& value, Point& result) {
+	WEBDRIVERXX_CHECK(value.IsObject(), "Point is not an object");
+	const ValueMap& obj = value.Get<ValueMap>();
+	Value x_val = obj.Get("x", Value());
+	if (!IsNull(x_val)) result.x = static_cast<int>(x_val.ToDouble());
+	Value y_val = obj.Get("y", Value());
+	if (!IsNull(y_val)) result.y = static_cast<int>(y_val.ToDouble());
 }
 
 inline
-picojson::value Custom_to_json(const Cookie& cookie) {
-	picojson::object obj;
-	obj["name"] = picojson::value(cookie.name);
-	obj["value"] = picojson::value(cookie.value);
-	if (!cookie.path.IsEmpty()) obj["path"] = picojson::value(cookie.path);
-	if (!cookie.domain.IsEmpty()) obj["domain"] = picojson::value(cookie.domain);
-	if (cookie.secure) obj["secure"] = picojson::value(true);
-	if (cookie.http_only) obj["httpOnly"] = picojson::value(true);
-	if (cookie.expiry != Cookie::No_expiry) obj["expiry"] = picojson::value(static_cast<double>(cookie.expiry));
-	return picojson::value(obj);
+Value Custom_to_json(const Cookie& cookie) {
+	ValueMap obj;
+	obj.Add("name", cookie.name);
+	obj.Add("value", cookie.value);
+	if (!cookie.path.IsEmpty()) obj.Add("path", cookie.path);
+	if (!cookie.domain.IsEmpty()) obj.Add("domain", cookie.domain);
+	if (cookie.secure) obj.Add("secure", true);
+	if (cookie.http_only) obj.Add("httpOnly", true);
+	if (cookie.expiry != Cookie::No_expiry) obj.Add("expiry", static_cast<double>(cookie.expiry));
+	return Value(obj);
 }
 
 inline
-void Custom_from_json(const picojson::value& value, Cookie& result) {
-	WEBDRIVERXX_CHECK(value.is<picojson::object>(), "Cookie is not an object");
-	const picojson::object& obj = value.get<picojson::object>();
-	auto it = obj.find("name");
-	if (it != obj.end()) result.name = it->second.to_str();
-	it = obj.find("value");
-	if (it != obj.end()) result.value = it->second.to_str();
-	it = obj.find("path");
-	if (it != obj.end()) result.path = it->second.to_str();
-	it = obj.find("domain");
-	if (it != obj.end()) result.domain = it->second.to_str();
-	it = obj.find("secure");
-	if (it != obj.end()) result.secure = it->second.get<bool>();
-	it = obj.find("httpOnly");
-	if (it != obj.end()) result.http_only = it->second.get<bool>();
-	it = obj.find("expiry");
-	if (it != obj.end()) result.expiry = static_cast<int>(it->second.get<double>());
+void Custom_from_json(const Value& value, Cookie& result) {
+	WEBDRIVERXX_CHECK(value.IsObject(), "Cookie is not an object");
+	const ValueMap& obj = value.Get<ValueMap>();
+	Value name_val = obj.Get("name", Value());
+	if (!IsNull(name_val)) result.name = name_val.ToString();
+	Value value_val = obj.Get("value", Value());
+	if (!IsNull(value_val)) result.value = value_val.ToString();
+	Value path_val = obj.Get("path", Value());
+	if (!IsNull(path_val)) result.path = path_val.ToString();
+	Value domain_val = obj.Get("domain", Value());
+	if (!IsNull(domain_val)) result.domain = domain_val.ToString();
+	Value secure_val = obj.Get("secure", Value());
+	if (!IsNull(secure_val)) result.secure = secure_val.ToBool();
+	Value http_only_val = obj.Get("httpOnly", Value());
+	if (!IsNull(http_only_val)) result.http_only = http_only_val.ToBool();
+	Value expiry_val = obj.Get("expiry", Value());
+	if (!IsNull(expiry_val)) result.expiry = static_cast<int>(expiry_val.ToDouble());
 }
 
-// Helper function to convert picojson::value to Upp::Value
-inline Value ToValue(const picojson::value& pico_val) {
-	if (pico_val.is<bool>()) {
-		return Value(pico_val.get<bool>());
-	} else if (pico_val.is<double>()) {
-		return Value(pico_val.get<double>());
-	} else if (pico_val.is<std::string>()) {
-		return Value(String(pico_val.to_str().c_str()));
-	} else if (pico_val.is<picojson::object>()) {
-		Value result = Value::Object();
-		const picojson::object& obj = pico_val.get<picojson::object>();
-		for (const auto& pair : obj) {
-			result.Add(String(pair.first.c_str()), ToValue(pair.second));
-		}
-		return result;
-	} else if (pico_val.is<picojson::array>()) {
-		Value result = Value::Array();
-		const picojson::array& arr = pico_val.get<picojson::array>();
-		for (const auto& item : arr) {
-			result.Add(ToValue(item));
-		}
-		return result;
-	} else {
-		return Value(); // null value
-	}
-}
-
-// Helper function to convert Upp::Value to picojson::value
-inline picojson::value ToPicoJson(const Value& upp_val) {
-	if (upp_val.IsVoid()) {
-		return picojson::value();
-	} else if (upp_val.IsBool()) {
-		return picojson::value(upp_val.Get<bool>());
-	} else if (upp_val.IsInt()) {
-		return picojson::value(static_cast<double>(upp_val.Get<int>()));
-	} else if (upp_val.IsDouble()) {
-		return picojson::value(upp_val.Get<double>());
-	} else if (upp_val.IsString()) {
-		return picojson::value(upp_val.Get<String>().ToStd());
-	} else if (upp_val.IsArray()) {
-		picojson::array arr;
-		for (int i = 0; i < upp_val.GetCount(); ++i) {
-			arr.push_back(ToPicoJson(upp_val[i]));
-		}
-		return picojson::value(arr);
-	} else if (upp_val.IsObject()) {
-		picojson::object obj;
-		for (const auto& key : upp_val.GetKeys()) {
-			obj[key.ToStd()] = ToPicoJson(upp_val[key]);
-		}
-		return picojson::value(obj);
-	} else {
-		return picojson::value(); // null value
-	}
+// Helper function to convert Upp::Value to JSON string
+inline String AsJSON(const Value& val) {
+	return AsJSON(val);
 }
 
 END_UPP_NAMESPACE

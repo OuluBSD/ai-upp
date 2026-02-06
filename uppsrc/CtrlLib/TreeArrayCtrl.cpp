@@ -63,9 +63,9 @@ void TreeArrayCtrl::TreeDisplay::Paint(Draw& w, const Rect& r, const Value& v, C
 	const Item& m = owner->item[id];
 
 	int level = m.level;
-	int x = r.left + level * owner->levelcx;
+	int x = r.left + level * owner->GetLevelCx();
 	int cy = r.Height();
-	bool has_children = m.canopen || m.child.GetCount();
+	bool has_children = owner->HasOpenIndicator(m);
 	Image openimg = m.isopen ? CtrlImg::treeminus() : CtrlImg::treeplus();
 	int box = openimg.GetWidth();
 	if (has_children) {
@@ -106,8 +106,8 @@ Size TreeArrayCtrl::TreeDisplay::GetStdSize(const Value& v) const {
 		return StdDisplay().GetStdSize(v);
 	const Item& m = owner->item[id];
 	Size sz = GetTextSize(AsString(m.value), StdFont());
-	sz.cx += m.level * owner->levelcx;
-	if (m.canopen || m.child.GetCount())
+	sz.cx += m.level * owner->GetLevelCx();
+	if (owner->HasOpenIndicator(m))
 		sz.cx += CtrlImg::treeplus().GetWidth() + 2;
 	if (!IsNull(m.image))
 		sz.cx += m.image.GetWidth() + 2;
@@ -588,12 +588,22 @@ void TreeArrayCtrl::SyncTree() {
 	syncing = false;
 }
 
+int TreeArrayCtrl::GetLevelCx() const {
+	return max(1, (int)floor(levelcx * levelcx_scale));
+}
+
+bool TreeArrayCtrl::HasOpenIndicator(const Item& m) const {
+	return (m.child.GetCount() > 0) || (show_empty_open && m.canopen);
+}
+
 Rect TreeArrayCtrl::GetToggleRect(int linei, const Rect& cell) const {
 	int id = (linei >= 0 && linei < line.GetCount()) ? line[linei] : -1;
 	if (!IsValid(id))
 		return Rect();
 	const Item& m = item[id];
-	int x = cell.left + m.level * levelcx;
+	if (!HasOpenIndicator(m))
+		return Rect();
+	int x = cell.left + m.level * GetLevelCx();
 	Image img = m.isopen ? CtrlImg::treeminus() : CtrlImg::treeplus();
 	int w = img.GetWidth();
 	int h = img.GetHeight();
@@ -606,8 +616,8 @@ Rect TreeArrayCtrl::GetIconRect(int linei, const Rect& cell) const {
 	if (!IsValid(id))
 		return Rect();
 	const Item& m = item[id];
-	int x = cell.left + m.level * levelcx;
-	if (m.canopen || m.child.GetCount())
+	int x = cell.left + m.level * GetLevelCx();
+	if (HasOpenIndicator(m))
 		x += CtrlImg::treeplus().GetWidth() + 2;
 	if (IsNull(m.image))
 		return Rect();
@@ -626,7 +636,7 @@ void TreeArrayCtrl::LeftDown(Point p, dword flags) {
 			int id = line[linei];
 			if (toggle.Contains(p) && IsValid(id)) {
 				Item& m = item[id];
-				if (m.canopen || m.child.GetCount()) {
+				if (HasOpenIndicator(m)) {
 					Open(id, !m.isopen);
 					return;
 				}
@@ -634,7 +644,7 @@ void TreeArrayCtrl::LeftDown(Point p, dword flags) {
 			Rect icon = GetIconRect(linei, cell);
 			if (icon.Contains(p) && IsValid(id)) {
 				Item& m = item[id];
-				if (m.canopen || m.child.GetCount()) {
+				if (HasOpenIndicator(m)) {
 					Open(id, !m.isopen);
 					return;
 				}
@@ -650,7 +660,7 @@ void TreeArrayCtrl::LeftDouble(Point p, dword flags) {
 		int id = line[linei];
 		if (IsValid(id)) {
 			Item& m = item[id];
-			if (m.canopen || m.child.GetCount()) {
+			if (HasOpenIndicator(m)) {
 				Open(id, !m.isopen);
 				return;
 			}

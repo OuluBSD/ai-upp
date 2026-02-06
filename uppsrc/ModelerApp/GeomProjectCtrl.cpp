@@ -2730,26 +2730,68 @@ void GeomProjectCtrl::SyncPropsValues() {
 	vec3 pos(0, 0, 0);
 	quat ori = Identity<quat>();
 	if (selected_obj) {
-		bool use_state = false;
+		bool use_timeline = false;
+		int frame = e->anim ? e->anim->position : 0;
+		double time = e->anim ? e->anim->time : 0.0;
+		int kps = (e && e->prj) ? e->prj->kps : 0;
 		if (e && e->state && e->state->HasActiveScene()) {
 			GeomScene& scene = e->state->GetActiveScene();
 			GeomSceneTimeline& tl_scene = scene.GetTimeline();
-			if (tl_scene.is_playing)
-				use_state = true;
+			frame = tl_scene.position;
+			if (kps > 0)
+				time = frame / (double)kps;
+			use_timeline = true;
 		}
-		if (!use_state) {
-			if (GeomTimeline* tl = selected_obj->FindTimeline())
-				use_state = !tl->keypoints.IsEmpty();
-		}
-		if (use_state) {
-			const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
-			if (os) {
-				pos = os->position;
-				ori = os->orientation;
+		if (GeomTimeline* tl = selected_obj->FindTimeline()) {
+			if (use_timeline && !tl->keypoints.IsEmpty() && kps > 0) {
+				int pre_i = tl->FindPrePosition(frame);
+				int post_i = tl->FindPostPosition(frame);
+				if (pre_i >= 0 && post_i >= 0) {
+					GeomKeypoint& pre = tl->keypoints[pre_i];
+					GeomKeypoint& post = tl->keypoints[post_i];
+					float pre_time = pre.frame_id / (float)kps;
+					float post_time = post.frame_id / (float)kps;
+					float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+					f = min(max(f, 0.0f), 1.0f);
+					pos = Lerp(pre.position, post.position, f);
+				}
+				else if (pre_i >= 0) {
+					GeomKeypoint& pre = tl->keypoints[pre_i];
+					pos = pre.position;
+				}
+				else if (post_i >= 0) {
+					GeomKeypoint& post = tl->keypoints[post_i];
+					pos = post.position;
+				}
+				
+				pre_i = tl->FindPreOrientation(frame);
+				post_i = tl->FindPostOrientation(frame);
+				if (pre_i >= 0 && post_i >= 0) {
+					GeomKeypoint& pre = tl->keypoints[pre_i];
+					GeomKeypoint& post = tl->keypoints[post_i];
+					float pre_time = pre.frame_id / (float)kps;
+					float post_time = post.frame_id / (float)kps;
+					float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+					f = min(max(f, 0.0f), 1.0f);
+					ori = Slerp(pre.orientation, post.orientation, f);
+				}
+				else if (pre_i >= 0) {
+					GeomKeypoint& pre = tl->keypoints[pre_i];
+					ori = pre.orientation;
+				}
+				else if (post_i >= 0) {
+					GeomKeypoint& post = tl->keypoints[post_i];
+					ori = post.orientation;
+				}
 			}
-		}
-		if (!use_state) {
-			if (GeomTransform* tr = selected_obj->FindTransform()) {
+			else if (!tl->keypoints.IsEmpty()) {
+				const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
+				if (os) {
+					pos = os->position;
+					ori = os->orientation;
+				}
+			}
+			else if (GeomTransform* tr = selected_obj->FindTransform()) {
 				pos = tr->position;
 				ori = tr->orientation;
 			}
@@ -2759,6 +2801,17 @@ void GeomProjectCtrl::SyncPropsValues() {
 					pos = os->position;
 					ori = os->orientation;
 				}
+			}
+		}
+		else if (GeomTransform* tr = selected_obj->FindTransform()) {
+			pos = tr->position;
+			ori = tr->orientation;
+		}
+		else {
+			const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
+			if (os) {
+				pos = os->position;
+				ori = os->orientation;
 			}
 		}
 	}

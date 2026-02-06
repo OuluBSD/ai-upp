@@ -145,6 +145,8 @@ struct Geom2DShape : Moveable<Geom2DShape> {
 	float radius = 0;
 	Color stroke = Color(220, 220, 220);
 	float width = 1.0f;
+	int stroke_cap = -1;
+	int stroke_join = -1;
 	bool closed = false;
 	int tex_wrap = -1;
 	int stroke_uv_mode = -1;
@@ -162,6 +164,8 @@ struct Geom2DLayer : VfsValueExt {
 	float width = 1.0f;
 	float opacity = 1.0f;
 	bool use_layer_style = true;
+	int stroke_cap = 0;
+	int stroke_join = 0;
 	String texture_ref;
 	int blend_mode = 0;
 	float tex_offset_x = 0;

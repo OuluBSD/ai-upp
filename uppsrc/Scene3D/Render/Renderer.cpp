@@ -277,7 +277,39 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		vec3 local(p[0] * os.scale[0], p[1] * os.scale[1], 0);
 		return os.position + VectorTransform(local, os.orientation);
 	};
-	auto draw_poly = [&](const Vector<vec2>& pts, const Color& clr, float width, bool closed) {
+	auto draw_round = [&](const vec2& center, float radius, const Color& clr) {
+		const int steps = 12;
+		Vector<vec2> pts;
+		pts.SetCount(steps);
+		for (int i = 0; i < steps; i++) {
+			float a = (float)i / (float)steps * 2.0f * (float)M_PI;
+			pts[i] = center + vec2(cos(a), sin(a)) * radius;
+		}
+		for (int i = 1; i < pts.GetCount(); i++) {
+			DrawLine(sz, d, view, local_to_world(pts[i - 1]), local_to_world(pts[i]), 1, clr, z_cull);
+		}
+		if (pts.GetCount() >= 2)
+			DrawLine(sz, d, view, local_to_world(pts.Top()), local_to_world(pts[0]), 1, clr, z_cull);
+	};
+	auto draw_square_cap = [&](const vec2& center, const vec2& dir, float width, const Color& clr) {
+		vec2 n = dir;
+		float len = sqrt(Dot(n, n));
+		if (len <= 1e-6f)
+			return;
+		n /= len;
+		vec2 perp(-n[1], n[0]);
+		float h = width * 0.5f;
+		vec2 p0 = center + perp * h + n * h;
+		vec2 p1 = center - perp * h + n * h;
+		vec2 p2 = center - perp * h - n * h;
+		vec2 p3 = center + perp * h - n * h;
+		Vector<vec2> pts;
+		pts << p0 << p1 << p2 << p3;
+		for (int i = 1; i < pts.GetCount(); i++)
+			DrawLine(sz, d, view, local_to_world(pts[i - 1]), local_to_world(pts[i]), 1, clr, z_cull);
+		DrawLine(sz, d, view, local_to_world(pts.Top()), local_to_world(pts[0]), 1, clr, z_cull);
+	};
+	auto draw_poly = [&](const Vector<vec2>& pts, const Color& clr, float width, bool closed, int cap, int join) {
 		if (pts.GetCount() < 2)
 			return;
 		for (int i = 1; i < pts.GetCount(); i++) {
@@ -285,6 +317,24 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		}
 		if (closed)
 			DrawLine(sz, d, view, local_to_world(pts.Top()), local_to_world(pts[0]), (int)width, clr, z_cull);
+		if (!closed && cap != 0) {
+			vec2 d0 = pts[1] - pts[0];
+			vec2 d1 = pts.Top() - pts[pts.GetCount() - 2];
+			float r = max(1.0f, width * 0.5f);
+			if (cap == 1) {
+				draw_round(pts[0], r, clr);
+				draw_round(pts.Top(), r, clr);
+			}
+			else if (cap == 2) {
+				draw_square_cap(pts[0], d0, width, clr);
+				draw_square_cap(pts.Top(), d1, width, clr);
+			}
+		}
+		if (closed && join == 1) {
+			float r = max(1.0f, width * 0.5f);
+			for (const vec2& p : pts)
+				draw_round(p, r, clr);
+		}
 	};
 	auto get_bbox = [&](const Vector<vec2>& pts, vec2& bmin, vec2& bmax) {
 		if (pts.IsEmpty()) {
@@ -321,6 +371,8 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		float w = layer.use_layer_style ? layer.width : shape.width;
 		if (w <= 0)
 			w = 1.0f;
+		int cap = (shape.stroke_cap >= 0) ? shape.stroke_cap : layer.stroke_cap;
+		int join = (shape.stroke_join >= 0) ? shape.stroke_join : layer.stroke_join;
 		Color fill_base = layer.fill;
 		int wrap = (shape.tex_wrap >= 0) ? shape.tex_wrap : layer.tex_wrap;
 		int stroke_uv_mode = (shape.stroke_uv_mode >= 0) ? shape.stroke_uv_mode : layer.stroke_uv_mode;
@@ -360,7 +412,9 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1], wrap, repeat_x, repeat_y));
 					}
 				}
-				DrawLine(sz, d, view, local_to_world(shape.points[0]), local_to_world(shape.points[1]), (int)w, stroke, z_cull);
+				Vector<vec2> line_pts;
+				line_pts << shape.points[0] << shape.points[1];
+				draw_poly(line_pts, stroke, w, false, cap, join);
 			}
 			break;
 		case Geom2DShape::S_RECT:
@@ -489,7 +543,7 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 						}
 					}
 					else {
-						draw_poly(pts, stroke, w, true);
+						draw_poly(pts, stroke, w, true, cap, join);
 					}
 				}
 			}
@@ -527,7 +581,7 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 				}
 			}
 			else {
-				draw_poly(shape.points, stroke, w, shape.closed);
+				draw_poly(shape.points, stroke, w, shape.closed, cap, join);
 			}
 			break;
 		default:
@@ -963,7 +1017,22 @@ void EditRendererV1::Paint(Draw& d) {
 		vec3 up = VectorTransform(VEC_UP, camera.orientation);
 		String info = Format("cam fwd=(%.2f %.2f %.2f) right=(%.2f %.2f %.2f) up=(%.2f %.2f %.2f)",
 			fwd[0], fwd[1], fwd[2], right[0], right[1], right[2], up[0], up[1], up[2]);
-		d.DrawText(4, 4, info, StdFont().Bold(), LtGray());
+		int y = 4;
+		d.DrawText(4, y, info, StdFont().Bold(), LtGray());
+		y += StdFont().Bold().Info().GetHeight() + 2;
+		if (ctx && ctx->show_hud) {
+			for (const String& line : ctx->hud_lines) {
+				d.DrawText(4, y, line, StdFont(), LtGray());
+				y += StdFont().Info().GetHeight() + 1;
+			}
+			if (ctx->show_hud_help && !ctx->hud_help.IsEmpty()) {
+				y += 6;
+				for (const String& line : ctx->hud_help) {
+					d.DrawText(4, y, line, StdFont(), Gray());
+					y += StdFont().Info().GetHeight() + 1;
+				}
+			}
+		}
 	}
 	
 	// Draw red-green-blue unit-vectors
@@ -1524,7 +1593,22 @@ void EditRendererV2::Paint(Draw& d) {
 		vec3 up = VectorTransform(VEC_UP, camera.orientation);
 		String info = Format("cam fwd=(%.2f %.2f %.2f) right=(%.2f %.2f %.2f) up=(%.2f %.2f %.2f)",
 			fwd[0], fwd[1], fwd[2], right[0], right[1], right[2], up[0], up[1], up[2]);
-		d.DrawText(4, 4, info, StdFont().Bold(), LtGray());
+		int y = 4;
+		d.DrawText(4, y, info, StdFont().Bold(), LtGray());
+		y += StdFont().Bold().Info().GetHeight() + 2;
+		if (ctx && ctx->show_hud) {
+			for (const String& line : ctx->hud_lines) {
+				d.DrawText(4, y, line, StdFont(), LtGray());
+				y += StdFont().Info().GetHeight() + 1;
+			}
+			if (ctx->show_hud_help && !ctx->hud_help.IsEmpty()) {
+				y += 6;
+				for (const String& line : ctx->hud_help) {
+					d.DrawText(4, y, line, StdFont(), Gray());
+					y += StdFont().Info().GetHeight() + 1;
+				}
+			}
+		}
 	}
 	if (1) {
 		vec3 axes[3] = {vec3(1,0,0), vec3(0,1,0), vec3(0,0,1)};

@@ -1303,6 +1303,91 @@ int GeomProjectCtrl::FindPropsIdByIndexPath(const Vector<int>& path, bool open) 
 	return cur;
 }
 
+Vector<GeomProjectCtrl::PropsCursorState::PropPathToken> GeomProjectCtrl::GetPropsTokensForId(int id) const {
+	Vector<PropsCursorState::PropPathToken> out;
+	for (int cur = id; cur >= 0; cur = props.GetParent(cur)) {
+		if (cur == 0)
+			break;
+		PropsCursorState::PropPathToken t;
+		String label = AsString(props.GetValue(cur));
+		if (label.IsEmpty())
+			label = AsString(props.Get(cur));
+		t.label = label;
+		Value v = props.Get(cur);
+		if (v.Is<PropRef*>()) {
+			PropRef* pr = ValueTo<PropRef*>(v);
+			if (pr) {
+				t.kind = (int)pr->kind;
+				t.material_id = pr->material_id;
+				t.mesh_index = pr->mesh_index;
+				if (pr->script)
+					t.script_file = pr->script->file;
+			}
+		}
+		out.Add(t);
+	}
+	Reverse(out);
+	return out;
+}
+
+int GeomProjectCtrl::FindPropsIdByTokens(const Vector<PropsCursorState::PropPathToken>& tokens, bool open) {
+	if (tokens.IsEmpty())
+		return -1;
+	int cur = 0;
+	for (int i = 0; i < tokens.GetCount(); i++) {
+		const PropsCursorState::PropPathToken& want = tokens[i];
+		int found = -1;
+		int child_count = props.GetChildCount(cur);
+		for (int j = 0; j < child_count; j++) {
+			int child = props.GetChild(cur, j);
+			PropsCursorState::PropPathToken have;
+			String label = AsString(props.GetValue(child));
+			if (label.IsEmpty())
+				label = AsString(props.Get(child));
+			have.label = label;
+			Value v = props.Get(child);
+			if (v.Is<PropRef*>()) {
+				PropRef* pr = ValueTo<PropRef*>(v);
+				if (pr) {
+					have.kind = (int)pr->kind;
+					have.material_id = pr->material_id;
+					have.mesh_index = pr->mesh_index;
+					if (pr->script)
+						have.script_file = pr->script->file;
+				}
+			}
+			bool match = have.kind == want.kind &&
+			             have.material_id == want.material_id &&
+			             have.mesh_index == want.mesh_index &&
+			             have.script_file == want.script_file &&
+			             have.label == want.label;
+			if (match) {
+				found = child;
+				break;
+			}
+		}
+		if (found < 0) {
+			// fallback: label-only match
+			for (int j = 0; j < child_count; j++) {
+				int child = props.GetChild(cur, j);
+				String label = AsString(props.GetValue(child));
+				if (label.IsEmpty())
+					label = AsString(props.Get(child));
+				if (label == want.label) {
+					found = child;
+					break;
+				}
+			}
+		}
+		if (found < 0)
+			return -1;
+		if (open)
+			props.Open(found, true);
+		cur = found;
+	}
+	return cur;
+}
+
 void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 	if (tree_path.IsEmpty())
 		return;
@@ -1317,10 +1402,11 @@ void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 		return;
 	}
 	PropsCursorState st;
-	st.path = GetPropsIndexPathForId(id);
+	st.tokens = GetPropsTokensForId(id);
+	st.index_path = GetPropsIndexPathForId(id);
 	st.line = line;
 	st.scroll = props.GetScroll();
-	if (st.path.IsEmpty() && st.line < 0)
+	if (st.tokens.IsEmpty() && st.index_path.IsEmpty() && st.line < 0)
 		props_cursor_by_tree.RemoveKey(tree_path);
 	else
 		props_cursor_by_tree.GetAdd(tree_path) = pick(st);
@@ -1334,8 +1420,15 @@ void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
 		return;
 	const PropsCursorState& st = props_cursor_by_tree[idx];
 	bool set = false;
-	if (!st.path.IsEmpty()) {
-		int id = FindPropsIdByIndexPath(st.path, true);
+	if (!st.tokens.IsEmpty()) {
+		int id = FindPropsIdByTokens(st.tokens, true);
+		if (id >= 0) {
+			props.SetCursor(id);
+			set = true;
+		}
+	}
+	if (!set && !st.index_path.IsEmpty()) {
+		int id = FindPropsIdByIndexPath(st.index_path, true);
 		if (id >= 0) {
 			props.SetCursor(id);
 			set = true;

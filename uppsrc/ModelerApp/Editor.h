@@ -112,10 +112,19 @@ struct GeomProjectCtrl : Ctrl {
 	Vector<PropRef> props_nodes;
 	Vector<One<Ctrl>> props_ctrls;
 	struct PropsCursorState : Moveable<PropsCursorState> {
-		Vector<int> path;
+		struct PropPathToken : Moveable<PropPathToken> {
+			int kind = -1;
+			int material_id = -1;
+			int mesh_index = -1;
+			String script_file;
+			String label;
+			void Serialize(Stream& s) { s % kind % material_id % mesh_index % script_file % label; }
+		};
+		Vector<PropPathToken> tokens;
+		Vector<int> index_path;
 		int line = -1;
 		int scroll = 0;
-		void Serialize(Stream& s) { s % path % line % scroll; }
+		void Serialize(Stream& s) { s % tokens % index_path % line % scroll; }
 	};
 	Ctrl* props_transform_pos_ctrl = 0;
 	Ctrl* props_transform_ori_ctrl = 0;
@@ -150,6 +159,8 @@ struct GeomProjectCtrl : Ctrl {
 	int FindPropsIdByPath(const String& path, bool open);
 	Vector<int> GetPropsIndexPathForId(int id) const;
 	int FindPropsIdByIndexPath(const Vector<int>& path, bool open);
+	Vector<PropsCursorState::PropPathToken> GetPropsTokensForId(int id) const;
+	int FindPropsIdByTokens(const Vector<PropsCursorState::PropPathToken>& tokens, bool open);
 	void StorePropsCursor(const String& tree_path);
 	void RestorePropsCursor(const String& tree_path);
 	void StoreTreeOpenState();

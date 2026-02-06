@@ -1,9 +1,7 @@
 description "WebDriver implementation for browser automation\377B0,128,128";
 
 uses
-	Core,
-	Draw,
-	CtrlCore;
+	Core;
 
 library(WIN32) ws2_32;
 
@@ -56,10 +54,6 @@ file
 	Factories.cpp,
 	Finder.h,
 	Finder.cpp,
-	HttpClient.h,
-	HttpClient.cpp,
-	HttpConnection.h,
-	HttpConnection.cpp,
 	HttpRequest.h,
 	HttpRequest.cpp,
 	Keyboard.h,

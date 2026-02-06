@@ -2,8 +2,6 @@ description "Aria - Browser automation software converted from Python to C++\377
 
 uses
 	Core,
-	Draw,
-	CtrlCore,
 	WebDriver;
 
 file

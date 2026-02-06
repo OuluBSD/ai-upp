@@ -4,14 +4,12 @@
 #include <Core/Core.h>
 
 #include "Shared.h"
-#include "HttpClient.h"
 
 #include "Resource.h"
 #include "Factories.h"
 #include "Keyboard.h"
 #include "Keys.h"
 #include "DetailTypes.h"
-#include "HttpConnection.h"
 #include "ResponseStatusCode.h"
 #include "Window.h"
 #include "Finder.h"

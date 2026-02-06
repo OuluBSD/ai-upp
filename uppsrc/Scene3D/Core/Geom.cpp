@@ -118,9 +118,18 @@ void GeomSceneTimeline::ApplyAtPosition(GeomWorldState& state, int pos, double t
 	if (!state.prj)
 		return;
 	GeomProject& prj = *state.prj;
+	bool has_solo = false;
+	for (int i = 0; i < state.objs.GetCount(); i++) {
+		if (state.objs[i].obj && state.objs[i].obj->timeline_solo)
+			has_solo = true;
+	}
 	for (GeomObjectState& os : state.objs) {
 		GeomObject& o = *os.obj;
 		if (!o.read_enabled)
+			continue;
+		if (o.timeline_muted)
+			continue;
+		if (has_solo && !o.timeline_solo)
 			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {
@@ -1161,7 +1170,9 @@ void GeomObject::Visit(Vis& v) {
 	  VIS_(is_visible)
 	  VIS_(is_locked)
 	  VIS_(read_enabled)
-	  VIS_(write_enabled);
+	  VIS_(write_enabled)
+	  VIS_(timeline_muted)
+	  VIS_(timeline_solo);
 	GeomTimeline& tl = GetTimeline();
 	v("timeline", tl, VISIT_NODE);
 	GeomTransform& tr = GetTransform();
@@ -1959,9 +1970,18 @@ void GeomAnim::ApplyAtPosition(int pos, double t) {
 	GeomProject& prj = *state->prj;
 	position = pos;
 	time = t;
+	bool has_solo = false;
+	for (int i = 0; i < state->objs.GetCount(); i++) {
+		if (state->objs[i].obj && state->objs[i].obj->timeline_solo)
+			has_solo = true;
+	}
 	for (GeomObjectState& os : state->objs) {
 		GeomObject& o = *os.obj;
 		if (!o.read_enabled)
+			continue;
+		if (o.timeline_muted)
+			continue;
+		if (has_solo && !o.timeline_solo)
 			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {

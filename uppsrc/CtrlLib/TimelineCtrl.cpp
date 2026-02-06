@@ -19,6 +19,12 @@ void TimelineRowCtrl::Paint(Draw& d) {
 	else if (selected)
 		row_bg = owner->bg_selected;
 	d.DrawRect(sz, row_bg);
+	if (!IsNull(tag_color)) {
+		Rect tr(0, 0, 6, sz.cy);
+		d.DrawRect(tr, tag_color);
+		d.DrawRect(tr.right, tr.top, 1, tr.Height(), owner->tag_border);
+	}
+
 	
 	Font fnt = SansSerif(sz.cy-6);
 	fnt.Bold();
@@ -359,6 +365,7 @@ TimelineCtrl::TimelineCtrl() {
 	kp_col_accent = accent;
 	range_bg = Blend(accent, bg, 220);
 	bg_selected = Blend(bg, accent, 220);
+	tag_border = Blend(accent, bg, 160);
 	
 	AddFrame(vsb);
 	AddFrame(hsb.Horz());

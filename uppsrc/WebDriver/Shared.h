@@ -7,15 +7,15 @@ NAMESPACE_UPP
 
 namespace detail {
 
-struct Shared_object_base {
+struct SharedObjectBase {
 private:
 	volatile int ref_count_;
 
 public:
-	Shared_object_base() : ref_count_(0) {}
-	virtual ~Shared_object_base() {}
+	SharedObjectBase() : ref_count_(0) {}
+	virtual ~SharedObjectBase() {}
 	
-	void Add_ref() { ref_count_++; }
+	void AddRef() { ref_count_++; }
 	void Release() {
 		if (--ref_count_ == 0) {
 			delete this;
@@ -32,7 +32,7 @@ public:
 	
 	Shared(const Shared& other) : ptr_(other.ptr_) {
 		if (ptr_) {
-			ptr_->Add_ref();
+			ptr_->AddRef();
 		}
 	}
 	
@@ -49,7 +49,7 @@ public:
 			}
 			ptr_ = other.ptr_;
 			if (ptr_) {
-				ptr_->Add_ref();
+				ptr_->AddRef();
 			}
 		}
 		return *this;
@@ -58,7 +58,7 @@ public:
 	T* operator->() const { return ptr_; }
 	T& operator*() const { return *ptr_; }
 	T* Get() const { return ptr_; }
-	bool Is_empty() const { return ptr_ == nullptr; }
+	bool IsEmpty() const { return ptr_ == nullptr; }
 	
 private:
 	T* ptr_;

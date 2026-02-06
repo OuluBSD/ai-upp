@@ -12,9 +12,9 @@ struct Phantom : Capabilities { // copyable
 	
 	Phantom(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
-		browser_name = browser::Phantom;
+		browser_name = browser::K_PHANTOM;
 		version = String();
-		platform = platform::Any;
+		platform = platform::K_ANY;
 	}
 
 	// PhantomJS-specific capabilities

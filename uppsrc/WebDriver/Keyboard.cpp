@@ -6,10 +6,10 @@ namespace detail {
 
 Keyboard::Keyboard() {}
 
-void Keyboard::Send_keys(const String& keys) const {
+void Keyboard::SendKeys(const String& keys) const {
 }
 
-void Keyboard::Send_modifier_keys(const String& modifiers) const {
+void Keyboard::SendModifierKeys(const String& modifiers) const {
 }
 
 } // namespace detail

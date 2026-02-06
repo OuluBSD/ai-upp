@@ -13,4 +13,4 @@ Convert the Element class to follow U++ naming conventions and use U++ types.
 - Element implementation completed
 
 ## Status
-Pending
+Completed

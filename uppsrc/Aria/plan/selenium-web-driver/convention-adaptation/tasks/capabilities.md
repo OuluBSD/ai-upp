@@ -13,4 +13,4 @@ Convert the Capabilities class to follow U++ naming conventions and use U++ type
 - Capabilities implementation completed
 
 ## Status
-Pending
+Completed

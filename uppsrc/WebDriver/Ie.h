@@ -22,9 +22,9 @@ struct Ie : Capabilities { // copyable
 	
 	Ie(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
-		browser_name = browser::InternetExplorer;
+		browser_name = browser::K_INTERNET_EXPLORER;
 		version = String();
-		platform = platform::Windows;
+		platform = platform::K_WINDOWS;
 	}
 
 	// See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for details

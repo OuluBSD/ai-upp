@@ -2,17 +2,17 @@
 
 NAMESPACE_UPP
 
-Js_args::Js_args() {
+JsArgs::JsArgs() {
 }
 
-Value Js_args::operator[](int index) const {
+Value JsArgs::operator[](int index) const {
 	if (index >= 0 && index < args_.GetCount()) {
 		return args_[index];
 	}
 	return Value();
 }
 
-int Js_args::Size() const {
+int JsArgs::Size() const {
 	return static_cast<int>(args_.GetCount());
 }
 

@@ -14,25 +14,25 @@ Window::Window(
 {
 }
 
-String Window::Get_handle() const {
+String Window::GetHandle() const {
 	return handle_;
 }
 
-Size Window::Get_size() const {
-	return From_json<Size>(resource_->Get("size"));
+Size Window::GetSize() const {
+	return FromJson<Size>(resource_->Get("size"));
 }
 
-const Window& Window::Set_size(const Size& size) const {
-	resource_->Post("size", To_json(size));
+const Window& Window::SetSize(const Size& size) const {
+	resource_->Post("size", ToJson(size));
 	return *this;
 }
 
-Point Window::Get_position() const {
-	return From_json<Point>(resource_->Get("position"));
+Point Window::GetPosition() const {
+	return FromJson<Point>(resource_->Get("position"));
 }
 
-const Window& Window::Set_position(const Point& position) const {
-	resource_->Post("position", To_json(position));
+const Window& Window::SetPosition(const Point& position) const {
+	resource_->Post("position", ToJson(position));
 	return *this;
 }
 
@@ -51,12 +51,12 @@ const Window& Window::Close() const {
 	return *this;
 }
 
-String Window::Get_title() const {
-	return resource_->Get_string("title");
+String Window::GetTitle() const {
+	return resource_->GetString("title");
 }
 
-String Window::Get_url() const {
-	return resource_->Get_string("url");
+String Window::GetUrl() const {
+	return resource_->GetString("url");
 }
 
 END_UPP_NAMESPACE

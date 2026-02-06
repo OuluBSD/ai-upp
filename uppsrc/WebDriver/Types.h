@@ -6,29 +6,14 @@
 
 NAMESPACE_UPP
 
-typedef unsigned long long Time_point;
+typedef unsigned long long TimePoint;
 typedef unsigned Duration;
-
-#if 0
-struct Size {
-	int width;
-	int height;
-	Size() : width(0), height(0) {}
-};
-
-struct Point {
-	int x;
-	int y;
-	Point() : x(0), y(0) {}
-	Point(int x, int y) : x(x), y(y) {}
-};
-#endif
 
 typedef Point Offset;
 
-struct Cookie {
+struct Cookie : public Moveable<Cookie> {
 	enum {
-		No_expiry = 0
+		NO_EXPIRY = 0
 	};
 
 	String name;
@@ -39,7 +24,7 @@ struct Cookie {
 	bool http_only;
 	int expiry; // seconds since midnight, January 1, 1970 UTC
 
-	Cookie() : secure(false), http_only(false), expiry(No_expiry) {}
+	Cookie() : secure(false), http_only(false), expiry(NO_EXPIRY) {}
 	Cookie(
 		const String& name,
 		const String& value,
@@ -47,7 +32,7 @@ struct Cookie {
 		const String& domain = String(),
 		bool secure = false,
 		bool http_only = false,
-		int expiry = No_expiry
+		int expiry = NO_EXPIRY
 		)
 		: name(name)
 		, value(value)
@@ -68,6 +53,11 @@ struct Cookie {
 			&& expiry == c.expiry
 			;
 	}
+
+	void Jsonize(JsonIO& json) {
+		json("name", name)("value", value)("path", path)("domain", domain)
+			("secure", secure)("httpOnly", http_only)("expiry", expiry);
+	}
 };
 
 namespace timeout {
@@ -75,18 +65,30 @@ namespace timeout {
 typedef const char* Type;
 
 Type const Implicit = "implicit";
-Type const Page_load = "page load";
+Type const PageLoad = "page load";
 Type const Script = "script";
 
 } // namespace timeout
 
 namespace mouse {
 enum Button {
-	Left_button = 0,
-	Middle_button = 1,
-	Right_button = 2
+	LEFT_BUTTON = 0,
+	MIDDLE_BUTTON = 1,
+	RIGHT_BUTTON = 2
 };
 } // namespace mouse
+
+inline void Jsonize(JsonIO& jio, Size& s) {
+	double width = s.cx, height = s.cy;
+	jio("width", width)("height", height);
+	s.cx = (int)width; s.cy = (int)height;
+}
+
+inline void Jsonize(JsonIO& jio, Point& p) {
+	double x = p.x, y = p.y;
+	jio("x", x)("y", y);
+	p.x = (int)x; p.y = (int)y;
+}
 
 END_UPP_NAMESPACE
 

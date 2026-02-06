@@ -13,4 +13,4 @@ Convert the Session class to follow U++ naming conventions and use U++ types.
 - Session implementation completed
 
 ## Status
-Pending
+Completed

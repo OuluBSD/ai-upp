@@ -10,11 +10,11 @@ class Client;
 
 class Session : public Moveable<Session> { // copyable
 public:
-	Capabilities Get_capabilities() const;
-	String Get_source() const;
-	String Get_title() const;
-	String Get_url() const;
-	String Get_screenshot() const; // Base64 PNG
+	Capabilities GetCapabilities() const;
+	String GetSource() const;
+	String GetTitle() const;
+	String GetUrl() const;
+	String GetScreenshot() const; // Base64 PNG
 
 	const Session& Navigate(const String& url) const;
 	const Session& Get(const String& url) const; // Same as Navigate
@@ -22,56 +22,56 @@ public:
 	const Session& Back() const;
 	const Session& Refresh() const;
 
-	const Session& Execute(const String& script, const Js_args& args = Js_args()) const;
+	const Session& Execute(const String& script, const JsArgs& args = JsArgs()) const;
 	template<typename T>
-	T Eval(const String& script, const Js_args& args = Js_args()) const;
-	const Session& Execute_async(const String& script, const Js_args& args = Js_args()) const;
+	T Eval(const String& script, const JsArgs& args = JsArgs()) const;
+	const Session& ExecuteAsync(const String& script, const JsArgs& args = JsArgs()) const;
 	template<typename T>
-	T Eval_async(const String& script, const Js_args& args = Js_args()) const;
+	T EvalAsync(const String& script, const JsArgs& args = JsArgs()) const;
 
-	const Session& Set_focus_to_frame(const Element& frame) const;
-	const Session& Set_focus_to_frame(const String& id) const;
-	const Session& Set_focus_to_frame(int number) const;
-	const Session& Set_focus_to_default_frame() const;
-	const Session& Set_focus_to_parent_frame() const;
+	const Session& SetFocusToFrame(const Element& frame) const;
+	const Session& SetFocusToFrame(const String& id) const;
+	const Session& SetFocusToFrame(int number) const;
+	const Session& SetFocusToDefaultFrame() const;
+	const Session& SetFocusToParentFrame() const;
 
-	Vector<Window> Get_windows() const;
-	Window Get_current_window() const;
-	const Session& Close_current_window() const;
-	const Session& Set_focus_to_window(const String& window_name) const;
-	const Session& Set_focus_to_window(const Window& window) const;
+	Vector<Window> GetWindows() const;
+	Window GetCurrentWindow() const;
+	const Session& CloseCurrentWindow() const;
+	const Session& SetFocusToWindow(const String& window_name) const;
+	const Session& SetFocusToWindow(const Window& window) const;
 
-	Element Get_active_element() const;
+	Element GetActiveElement() const;
 
-	Element Find_element(const By& by) const;
-	Vector<Element> Find_elements(const By& by) const;
+	Element FindElement(const By& by) const;
+	Vector<Element> FindElements(const By& by) const;
 
-	Vector<Cookie> Get_cookies() const;
-	const Session& Set_cookie(const Cookie& cookie) const;
-	const Session& Delete_cookies() const;
-	const Session& Delete_cookie(const String& name) const;
+	Vector<Cookie> GetCookies() const;
+	const Session& SetCookie(const Cookie& cookie) const;
+	const Session& DeleteCookies() const;
+	const Session& DeleteCookie(const String& name) const;
 
-	String Get_alert_text() const;
-	const Session& Send_keys_to_alert(const String& text) const;
-	const Session& Accept_alert() const;
-	const Session& Dismiss_alert() const;
+	String GetAlertText() const;
+	const Session& SendKeysToAlert(const String& text) const;
+	const Session& AcceptAlert() const;
+	const Session& DismissAlert() const;
 
-	const Session& Send_keys(const String& keys) const;
-	const Session& Send_keys(const Shortcut& shortcut) const;
+	const Session& SendKeys(const String& keys) const;
+	const Session& SendKeys(const Shortcut& shortcut) const;
 
-	const Session& Move_to_top_left_of(const Element&, const Offset& = Offset()) const;
-	const Session& Move_to_center_of(const Element&) const;
-	const Session& Move_to(const Offset&) const;
-	const Session& Click(mouse::Button = mouse::Left_button) const;
-	const Session& Double_click() const;
-	const Session& Button_down(mouse::Button = mouse::Left_button) const;
-	const Session& Button_up(mouse::Button = mouse::Left_button) const;
+	const Session& MoveToTopLeftOf(const Element&, const Offset& = Offset()) const;
+	const Session& MoveToCenterOf(const Element&) const;
+	const Session& MoveTo(const Offset&) const;
+	const Session& Click(mouse::Button = mouse::LEFT_BUTTON) const;
+	const Session& DoubleClick() const;
+	const Session& ButtonDown(mouse::Button = mouse::LEFT_BUTTON) const;
+	const Session& ButtonUp(mouse::Button = mouse::LEFT_BUTTON) const;
 
-	const Session& Set_timeout_ms(timeout::Type type, int milliseconds);
-	const Session& Set_implicit_timeout_ms(int milliseconds);
-	const Session& Set_async_script_timeout_ms(int milliseconds);
+	const Session& SetTimeoutMs(timeout::Type type, int milliseconds);
+	const Session& SetImplicitTimeoutMs(int milliseconds);
+	const Session& SetAsyncScriptTimeoutMs(int milliseconds);
 
-	void Delete_session() const; // No need to delete sessions created by WebDriver or Client
+	void DeleteSession() const; // No need to delete sessions created by WebDriver or Client
 	virtual ~Session() {}
 
 private:
@@ -79,20 +79,20 @@ private:
 
 	explicit Session(const detail::Shared<detail::Resource>& resource);
 
-	Window Make_window(const String& handle) const;
-	detail::Keyboard Get_keyboard() const;
+	Window MakeWindow(const String& handle) const;
+	detail::Keyboard GetKeyboard() const;
 	template<typename T>
-	void Internal_eval(const String& webdriver_command,
-		const String& script, const Js_args& args,
+	void InternalEval(const String& webdriver_command,
+		const String& script, const JsArgs& args,
 		T& result) const;
-	void Internal_eval(const String& webdriver_command,
-		const String& script, const Js_args& args,
+	void InternalEval(const String& webdriver_command,
+		const String& script, const JsArgs& args,
 		Element& result) const;
-	Value Internal_eval_json_value(const String& command,
-		const String& script, const Js_args& args) const;
-	const Session& Internal_set_focus_to_frame(const Value& id) const;
-	const Session& Internal_move_to(const Element*, const Offset*) const;
-	const Session& Internal_mouse_button_command(const char* command, mouse::Button button) const;
+	Value InternalEvalJsonValue(const String& command,
+		const String& script, const JsArgs& args) const;
+	const Session& InternalSetFocusToFrame(const Value& id) const;
+	const Session& InternalMoveTo(const Element*, const Offset*) const;
+	const Session& InternalMouseButtonCommand(const char* command, mouse::Button button) const;
 
 private:
 	detail::Shared<detail::Resource> resource_;

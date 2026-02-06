@@ -17,7 +17,7 @@ Value Client::Get_status() const {
 Vector<Session> Client::Get_sessions() const {
 	// Return existing sessions
 	picojson::value result = resource_->Get("sessions");
-	Vector<picojson::value> session_values = From_json<Vector<picojson::value>>(result);
+	ValueArray session_values = From_json<ValueArray>(result);
 	Vector<Session> sessions;
 	for(const auto& val : session_values) {
 		picojson::value id_val = val.get<picojson::object>().at("id");

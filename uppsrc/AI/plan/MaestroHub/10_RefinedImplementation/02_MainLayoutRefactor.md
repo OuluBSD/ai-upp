@@ -1,5 +1,5 @@
 # Task: Main Layout Refactor (WinXP Frame)
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Rebuild the MaestroHub main window structure to support the three-pane horizontal layout and bottom panel.

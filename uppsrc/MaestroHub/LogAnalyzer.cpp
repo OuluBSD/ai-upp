@@ -1,4 +1,4 @@
-#include "LogAnalyzer.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -31,7 +31,7 @@ void LogAnalyzer::Load(const String& maestro_root) {
 
 void LogAnalyzer::UpdateScans() {
 	scan_list.Clear();
-	Array<LogScanMeta> scans = lm->ListScans();
+	Array<LogScanMeta> scans = pick(lm->ListScans());
 	for(const auto& s : scans)
 		scan_list.Add(s.timestamp, s.source_path, s.finding_count, s.scan_id);
 	

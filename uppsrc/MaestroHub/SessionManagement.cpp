@@ -1,4 +1,4 @@
-#include "SessionManagement.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -106,7 +106,7 @@ void SessionManagementPane::UpdateWorkSessionList() {
 	if(!dirs.IsCursor()) return;
 	String dir = dirs.Get(0);
 	
-	Array<WorkSession> ws_list = WorkSessionManager::ListSessions(dir);
+	Array<WorkSession> ws_list = pick(WorkSessionManager::ListSessions(dir));
 	
 	String type_filter = filter_type.GetData().ToString();
 	String status_filter = filter_status.GetData().ToString();
@@ -140,7 +140,7 @@ void SessionManagementPane::OnWorkSessionCursor() {
 		qtf << "[* Context:] " << StoreAsJson(s.context) << "&";
 		context_view.SetQTF(qtf);
 		
-		Array<Breadcrumb> bc_list = BreadcrumbManager::ListBreadcrumbs(dir, sid);
+		Array<Breadcrumb> bc_list = pick(BreadcrumbManager::ListBreadcrumbs(dir, sid));
 		for(const auto& bc : bc_list) {
 			String summary = bc.prompt.Left(50) + " -> " + bc.response.Left(50);
 			breadcrumbs.Add(bc.timestamp_id, bc.model_used, summary);

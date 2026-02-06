@@ -1,4 +1,4 @@
-#include "MaestroAssistant.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
@@ -9,11 +9,11 @@ MaestroAssistant::MaestroAssistant() {
 	context_stack.AddColumn("Context");
 	
 	vsplit.Vert(chat, context_stack);
-	vsplit.SetPos(7500); // 75% chat, 25% stack
+	vsplit.SetPos(7500); 
 }
 
 void MaestroAssistant::Toggle() {
-	// Logic moved to parent MaestroHub for now to control main_split
+	// Handled by MaestroHub via button action
 }
 
 void MaestroAssistant::UpdateContext(const String& track, const String& phase, const String& task) {

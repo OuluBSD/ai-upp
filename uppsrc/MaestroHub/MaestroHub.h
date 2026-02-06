@@ -3,51 +3,368 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <Maestro/Maestro.h>
-
-#include "MaestroAssistant.h"
-#include "FleetDashboard.h"
-#include "IntelligenceHub.h"
-#include "Technology.h"
-#include "Product.h"
-#include "Maintenance.h"
-#include "IssuesView.h"
-#include "IssueDialogs.h"
-#include "TriageDialog.h"
-#include "RunbookEditor.h"
-#include "StateEditor.h"
-#include "SubworkManager.h"
-#include "TUBrowser.h"
-#include "LogAnalyzer.h"
-#include "NewSessionDialog.h"
-#include "InitDialog.h"
-#include "ConfigurationDialog.h"
-#include "OpsRunner.h"
-#include "WorkDashboard.h"
-#include "SessionManagement.h"
-#include "AuditTrail.h"
-#include "DebugWorkspace.h"
-#include "Tools.h"
+#include <GraphLib/GraphLib.h>
+#include <CodeEditor/CodeEditor.h>
 
 NAMESPACE_UPP
 
+// Define the layout once for the entire package
+#define LAYOUTFILE <MaestroHub/MaestroHub.lay>
+#include <CtrlCore/lay.h>
+
+// 1. Tool Components
+class MaestroAssistant : public WithGlobalAssistantLayout<ParentCtrl> {
+public:
+	AIChatCtrl chat;
+	ArrayCtrl  context_stack;
+	Splitter   vsplit;
+	bool       is_expanded = true;
+
+	void Toggle();
+	void UpdateContext(const String& track, const String& phase, const String& task);
+	typedef MaestroAssistant CLASSNAME;
+	MaestroAssistant();
+};
+
+class TUBrowser : public WithTUBrowserLayout<ParentCtrl> {
+public:
+	ParentCtrl left_pane;
+	TabCtrl    details;
+	EditString pkg_search, sym_search;
+	ArrayCtrl  pkg_list, sym_list;
+	ParentCtrl symbol_pane;
+	RichTextView dep_view;
+	Splitter   split;
+
+	One<TuManager> tum;
+	String root;
+	void Load(const String& maestro_root);
+	void UpdatePackages();
+	void OnPackageCursor();
+	void UpdateSymbols();
+	typedef TUBrowser CLASSNAME;
+	TUBrowser();
+};
+
+class LogAnalyzer : public WithLogAnalyzerLayout<ParentCtrl> {
+public:
+	ArrayCtrl    scan_list, finding_list;
+	Splitter     hsplit, vsplit;
+	RichTextView detail_view;
+
+	One<LogManager> lm;
+	String       root;
+	void Load(const String& maestro_root);
+	void UpdateScans();
+	void OnScanCursor();
+	void OnFindingCursor();
+	void OnCreateIssue();
+	typedef LogAnalyzer CLASSNAME;
+	LogAnalyzer();
+};
+
+// 2. Hub Panes
+class FleetDashboard : public WithFleetDashboardLayout<ParentCtrl> {
+public:
+	TreeArrayCtrl project_grid;
+	ArrayCtrl     automation_queue;
+	Splitter      vsplit;
+
+	void LoadProjects(const Vector<String>& paths);
+	void UpdateQueue();
+	typedef FleetDashboard CLASSNAME;
+	FleetDashboard();
+};
+
+class IntelligenceHub : public WithIntelligenceHubLayout<ParentCtrl> {
+public:
+	One<TUBrowser>   tu_browser;
+	One<LogAnalyzer> log_analyzer;
+	RepoView         repo;
+	TabCtrl          tabs;
+
+	void Load(const String& maestro_root);
+	typedef IntelligenceHub CLASSNAME;
+	IntelligenceHub();
+};
+
+class EvidencePane : public WithEvidenceLayout<ParentCtrl> {
+public:
+	ArrayCtrl    evidence_list;
+	RichTextView detail_view;
+	Splitter     main_split;
+	ToolBar      toolbar;
+
+	String       root;
+	void Load(const String& maestro_root);
+	void OnEvidenceCursor();
+	void OnCollect();
+	void OnToolbar(Bar& bar);
+	typedef EvidencePane CLASSNAME;
+	EvidencePane();
+};
+
+class AuditTrailCorrelator : public WithAuditTrailLayout<ParentCtrl> {
+public:
+	ArrayCtrl    event_list;
+	RichTextView detail_view;
+	Splitter     vsplit;
+
+	void Load(const String& maestro_root);
+	void OnEventCursor();
+	typedef AuditTrailCorrelator CLASSNAME;
+	AuditTrailCorrelator();
+};
+
+class DebugWorkspace : public WithDebugWorkspaceLayout<ParentCtrl> {
+public:
+	ParentCtrl left_pane, center_pane, bottom_pane;
+	DropList   target_device;
+	TreeCtrl   call_stack;
+	RichTextCtrl source_code;
+	ArrayCtrl  locals;
+	Splitter   hsplit, vsplit;
+	ToolBar    toolbar;
+
+	void Load(const String& maestro_root);
+	void OnRun();
+	void OnStop();
+	void OnStep();
+	void OnToolbar(Bar& bar);
+	typedef DebugWorkspace CLASSNAME;
+	DebugWorkspace();
+};
+
+class TechnologyPane : public ParentCtrl {
+public:
+	Splitter split;
+	RepoView repo;
+	PlanView plan;
+	String   root;
+	Callback3<String, String, String> WhenEnact;
+	void Load(const String& root);
+	typedef TechnologyPane CLASSNAME;
+	TechnologyPane();
+};
+
+class ProductPane : public ParentCtrl {
+public:
+	Splitter split, vsplit_rb, vsplit_wg, wg_split;
+	ArrayCtrl runbooks, workflows;
+	RichTextView rb_detail, wg_detail;
+	GraphLib::GraphNodeCtrl workflow_graph;
+	ParentCtrl workflow_view;
+	Array<Runbook>  runbook_data;
+	Array<WorkGraph> workflow_data;
+	String         root;
+	Callback3<String, int, String> WhenEnactStep;
+	void Load(const String& root);
+	void OnRunbookSelect();
+	void OnWorkflowSelect();
+	void OnNodeClick(GraphLib::Node& n);
+	void OnNodeRightClick(GraphLib::Node& n);
+	typedef ProductPane CLASSNAME;
+	ProductPane();
+};
+
+class MaintenancePane : public ParentCtrl {
+public:
+	AIChatCtrl chat;
+	Label      active_info;
+	String root;
+	void Load(const String& root);
+	void SessionStatus(const String& backend, const String& session_id);
+	typedef MaintenancePane CLASSNAME;
+	MaintenancePane();
+};
+
+class IssuesPane : public ParentCtrl {
+public:
+	ArrayCtrl    issues;
+	RichTextView detail;
+	Splitter     main_split;
+	String       current_root;
+	void Load(const String& root);
+	void OnMenu(Bar& bar);
+	void OnTriage();
+	void OnResolve();
+	void OnEdit();
+	void OnBulkStatus();
+	void OnBulkSeverity();
+	typedef IssuesPane CLASSNAME;
+	IssuesPane();
+};
+
+class WorkPane : public WithWorkDashboardLayout<ParentCtrl> {
+public:
+	String active_session_id;
+	String current_root;
+	void OnSubwork();
+	void Load(const String& root);
+	void Refresh();
+	void OnApprove();
+	void OnReject();
+	typedef WorkPane CLASSNAME;
+	WorkPane();
+};
+
+class SessionManagementPane : public WithSessionManagementLayout<ParentCtrl> {
+public:
+	String current_root;
+	CliMaestroEngine engine;
+	Callback2<String, String> WhenSelect;
+	void Load(const String& root);
+	void OnDirCursor();
+	void UpdateWorkSessionList();
+	void OnWorkSessionCursor();
+	void OnSessionMenu(Bar& bar);
+	void DeleteSession();
+	typedef SessionManagementPane CLASSNAME;
+	SessionManagementPane();
+};
+
+// 3. Dialogs
+class IssueEditDialog : public WithIssueEditLayout<TopWindow> {
+public:
+	void SyncFromIssue(const MaestroIssue& src);
+	void SyncToIssue(MaestroIssue& dest) const;
+	typedef IssueEditDialog CLASSNAME;
+	IssueEditDialog();
+};
+
+class IssueCreateDialog : public WithIssueCreateLayout<TopWindow> {
+public:
+	MaestroIssue GetIssue() const;
+	typedef IssueCreateDialog CLASSNAME;
+	IssueCreateDialog();
+};
+
+class ListSelectDialog : public WithListSelectLayout<TopWindow> {
+public:
+	void SetChoices(const Vector<String>& choices);
+	bool RunSelect(const char *title, const char *label, String& result);
+	typedef ListSelectDialog CLASSNAME;
+	ListSelectDialog();
+};
+
+class TriageDialog : public WithTriageLayout<TopWindow> {
+public:
+	One<IssueManager> ism;
+	Array<MaestroIssue> pending;
+	int cursor = 0;
+	String root;
+
+	void Load(const String& maestro_root);
+	void UpdateUI();
+	void Advance();
+	String FormatIssueInfo(const MaestroIssue& iss) const;
+	String FormatAiSuggestion(const MaestroIssue& iss) const;
+	void OnAccept();
+	void OnSkip();
+	void OnIgnore();
+	void OnEdit();
+	void OnCreateTask();
+	typedef TriageDialog CLASSNAME;
+	TriageDialog();
+};
+
+class RunbookEditor : public WithRunbookEditorLayout<TopWindow> {
+public:
+	Button ok, cancel;
+	void New(const String& root);
+	typedef RunbookEditor CLASSNAME;
+	RunbookEditor();
+};
+
+class StateEditor : public WithStateEditorLayout<TopWindow> {
+public:
+	One<WorkflowManager> wfm;
+	String root, current_id;
+	void OnToolbar(Bar& bar);
+	void Load(const String& maestro_root, const String& id);
+	void UpdatePreview();
+	void NewState();
+	void NewTransition();
+	void Save();
+	typedef StateEditor CLASSNAME;
+	StateEditor();
+};
+
+class StepWizard : public WithStepWizardLayout<TopWindow> {
+public:
+	RunbookStep step;
+	void SetStep(const RunbookStep& s);
+	RunbookStep GetStep();
+	void AddVariant();
+	void RemoveVariant();
+	typedef StepWizard CLASSNAME;
+	StepWizard();
+};
+
+class SubworkManagerDialog : public WithSubworkLayout<TopWindow> {
+public:
+	TreeArrayCtrl subwork_tree;
+	ArrayCtrl     context_stack;
+	Button        btn_push, btn_pop, btn_close;
+
+	String root, active_session_id;
+	void Load(const String& root, const String& session_id);
+	void UpdateUI();
+	void OnPush();
+	void OnPop();
+	typedef SubworkManagerDialog CLASSNAME;
+	SubworkManagerDialog();
+};
+
+class NewSessionDialog : public WithNewSessionLayout<TopWindow> {
+public:
+	String session_id;
+	void OnOK();
+	typedef NewSessionDialog CLASSNAME;
+	NewSessionDialog();
+};
+
+class InitDialog : public WithInitLayout<TopWindow> {
+public:
+	void OnBrowse();
+	typedef InitDialog CLASSNAME;
+	InitDialog();
+};
+
+class ConfigurationDialog : public WithConfigurationLayout<TopWindow> {
+public:
+	One<SettingsManager> sm;
+	String root;
+	void Load(const String& root);
+	void Save();
+	typedef ConfigurationDialog CLASSNAME;
+	ConfigurationDialog();
+};
+
+class OpsRunner : public WithOpsRunnerLayout<TopWindow> {
+public:
+	String root;
+	void Load(const String& root);
+	void OnRun();
+	typedef OpsRunner CLASSNAME;
+	OpsRunner();
+};
+
+// 4. Main Window
 bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path);
 
-class MaestroHub : public TopWindow {
+class MaestroHubCockpit : public TopWindow {
+public:
 	MenuBar   menu;
 	ToolBar   toolbar;
 	StatusBar statusbar;
-
-	Splitter  main_split;
-	Splitter  center_split;
-
-	TabCtrl   left_tabs;
-	TabCtrl   center_tabs;
-	TabCtrl   bottom_tabs;
+	Splitter  main_split, center_split;
+	TabCtrl   left_tabs, center_tabs, bottom_tabs;
 	
 	One<MaestroAssistant>      assistant;
-	
 	One<FleetDashboard>        fleet;
 	One<IntelligenceHub>       intelligence;
+	One<EvidencePane>          evidence;
 	One<AuditTrailCorrelator>  audit_trail;
 	One<DebugWorkspace>        debug_workspace;
 	One<TechnologyPane>        technology;
@@ -59,14 +376,11 @@ class MaestroHub : public TopWindow {
 	
 	RecentConfig config;
 	String       current_root;
-	String       active_track;
-	String       active_phase;
-	String       active_task;
+	String       active_track, active_phase, active_task;
 	
 	void MainMenu(Bar& bar);
 	void AppMenu(Bar& bar);
 	void SelectRoot();
-	
 	void OnToggleAssistant();
 	void OnEnact(String track, String phase, String task);
 	void OnEnactStep(String runbook_title, int step_n, String instruction);
@@ -90,9 +404,9 @@ class MaestroHub : public TopWindow {
 	Time last_plan_check;
 
 public:
-	typedef MaestroHub CLASSNAME;
-	MaestroHub();
-	~MaestroHub();
+	typedef MaestroHubCockpit CLASSNAME;
+	MaestroHubCockpit();
+	~MaestroHubCockpit();
 };
 
 END_UPP_NAMESPACE

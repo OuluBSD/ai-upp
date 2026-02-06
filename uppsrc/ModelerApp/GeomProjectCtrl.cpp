@@ -1273,6 +1273,36 @@ int GeomProjectCtrl::FindPropsIdByPath(const String& path, bool open) {
 	return cur;
 }
 
+Vector<int> GeomProjectCtrl::GetPropsIndexPathForId(int id) const {
+	Vector<int> parts;
+	for (int cur = id; cur >= 0; cur = props.GetParent(cur)) {
+		int parent = props.GetParent(cur);
+		if (parent < 0)
+			break;
+		int idx = props.GetChildIndex(parent, cur);
+		parts.Add(idx);
+	}
+	Reverse(parts);
+	return parts;
+}
+
+int GeomProjectCtrl::FindPropsIdByIndexPath(const Vector<int>& path, bool open) {
+	if (path.IsEmpty())
+		return -1;
+	int cur = 0;
+	for (int i = 0; i < path.GetCount(); i++) {
+		int idx = path[i];
+		int child_count = props.GetChildCount(cur);
+		if (idx < 0 || idx >= child_count)
+			return -1;
+		int child = props.GetChild(cur, idx);
+		if (open)
+			props.Open(child, true);
+		cur = child;
+	}
+	return cur;
+}
+
 void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 	if (tree_path.IsEmpty())
 		return;
@@ -1286,15 +1316,14 @@ void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 		props_cursor_by_tree.RemoveKey(tree_path);
 		return;
 	}
-	String props_path = GetPropsPathForId(id);
 	PropsCursorState st;
-	st.path = props_path;
+	st.path = GetPropsIndexPathForId(id);
 	st.line = line;
 	st.scroll = props.GetScroll();
 	if (st.path.IsEmpty() && st.line < 0)
 		props_cursor_by_tree.RemoveKey(tree_path);
 	else
-		props_cursor_by_tree.GetAdd(tree_path) = st;
+		props_cursor_by_tree.GetAdd(tree_path) = pick(st);
 }
 
 void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
@@ -1306,7 +1335,7 @@ void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
 	const PropsCursorState& st = props_cursor_by_tree[idx];
 	bool set = false;
 	if (!st.path.IsEmpty()) {
-		int id = FindPropsIdByPath(st.path, true);
+		int id = FindPropsIdByIndexPath(st.path, true);
 		if (id >= 0) {
 			props.SetCursor(id);
 			set = true;

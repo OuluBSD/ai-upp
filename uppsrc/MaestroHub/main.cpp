@@ -31,7 +31,8 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	AddFrame(statusbar);
 	statusbar.Set(0, "Ready.", 0);
 	statusbar.Set(1, "Model: Gemini 1.5 Pro", 200);
-	statusbar.Set(2, "Quota: 85% [====--]", 150);
+	statusbar.Add(quota_indicator.RightPos(0, 150).VSizePos(2, 2));
+	quota_indicator.Set(85, 100);
 	statusbar.Set(3, "Backend: OK", 100);
 
 	fleet.Create();
@@ -39,6 +40,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	evidence.Create();
 	playbook.Create();
 	debug_workspace.Create();
+	debug_workspace->WhenLog = [=](String s) { LogInternal(s); };
 	technology.Create();
 	pipeline.Create();
 	product.Create();
@@ -69,6 +71,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	// Bottom Tabs: Output and Trace
 	bottom_tabs.Add(automation_output.SizePos(), "Automation Output");
 	bottom_tabs.Add(ai_trace.SizePos(), "AI Trace");
+	bottom_tabs.Add(internal_console.SizePos(), "System Console");
 	bottom_tabs.Add(audit_trail->SizePos(), "System Events");
 	bottom_tabs.Add(tutorial->SizePos(), "Interactive Guide");
 	
@@ -144,6 +147,7 @@ void MaestroHubCockpit::MainMenu(Bar& bar) {
 	bar.Sub("System", [=](Bar& b) {
 		b.Add("Initialize Maestro...", THISBACK(OnInitMaestro));
 		b.Add("Settings...", THISBACK(OnSettings));
+		b.Add("Build Methods...", THISBACK(OnBuildMethods));
 		b.Separator();
 		b.Add("Manage Playbooks...", [=] { PromptOK("Playbooks placeholder"); });
 		b.Add("Collect Evidence...", [=] { PromptOK("Evidence placeholder"); });
@@ -240,6 +244,15 @@ void MaestroHubCockpit::OnToggleAssistant() {
 }
 
 void MaestroHubCockpit::OnAssistantEvent(const MaestroEvent& e) {
+	if(e.type == "error" || e.type == "turn.failed") {
+		LogInternal("AI Error: " + e.text, 2);
+		String err = ToLower(e.text);
+		if(err.Find("quota") >= 0 || err.Find("limit") >= 0) {
+			UpdateQuota(0);
+			LogInternal("QUOTA DEPLETED DETECTED!", 2);
+		}
+	}
+
 	if(e.type == "tool_use" && e.tool_name == "update_task_status") {
 		Value v = ParseJSON(e.tool_input);
 		if(v.Is<ValueMap>()) {
@@ -420,6 +433,32 @@ void MaestroHubCockpit::PlanWatcher() {
 		}
 		last_plan_check = max_time;
 	}
+}
+
+void MaestroHubCockpit::LogInternal(const String& msg, int level) {
+	String qtf;
+	Color c = Black();
+	if(level == 1) c = Color(255, 128, 0); // Orange
+	if(level == 2) c = Red();
+	
+	qtf << "[ " << Format(GetSysTime()) << " ] " << "[C" << FormatInt(c.GetRaw()) << " " << DeQtf(msg) << "]&\n";
+	
+	internal_console.SetQTF(internal_console.GetQTF() + qtf);
+	if(level == 2) {
+		statusbar.Set(0, "!! SYSTEM ERROR !!", 0);
+	}
+}
+
+void MaestroHubCockpit::UpdateQuota(double percent) {
+	quota_indicator.Set((int)percent, 100);
+	if(percent <= 0) {
+		LogInternal("AI Quota exhausted or limit reached.", 2);
+	}
+}
+
+void MaestroHubCockpit::OnBuildMethods() {
+	BuildMethodsDialog dlg;
+	dlg.Run();
 }
 
 END_UPP_NAMESPACE

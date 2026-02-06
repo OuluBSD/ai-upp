@@ -64,6 +64,24 @@ public:
 	LogAnalyzer();
 };
 
+class ConversionPane : public WithConversionLayout<ParentCtrl> {
+public:
+	String root;
+	WorkGraph plan;
+	
+	void Load(const String& maestro_root);
+	void OnInventory();
+	void OnPlan();
+	void OnRun();
+	void OnValidate();
+	void OnToolbar(Bar& bar);
+	void OnTreeCursor();
+	void Log(const String& txt, Color clr = Black());
+	
+	typedef ConversionPane CLASSNAME;
+	ConversionPane();
+};
+
 // 2. Hub Panes
 class FleetDashboard : public WithFleetDashboardLayout<ParentCtrl> {
 public:
@@ -81,12 +99,42 @@ class IntelligenceHub : public WithIntelligenceHubLayout<ParentCtrl> {
 public:
 	One<TUBrowser>   tu_browser;
 	One<LogAnalyzer> log_analyzer;
+	One<ConversionPane> conversion;
 	RepoView         repo;
 	TabCtrl          tabs;
 
 	void Load(const String& maestro_root);
 	typedef IntelligenceHub CLASSNAME;
 	IntelligenceHub();
+};
+
+class PlaybookVisualLogic : public ParentCtrl {
+public:
+	CodeEditor puml_editor;
+	GraphLib::GraphNodeCtrl graph_view;
+	Splitter   split;
+	
+	void Load(const String& puml);
+	void UpdatePreview();
+	String Get() const;
+	typedef PlaybookVisualLogic CLASSNAME;
+	PlaybookVisualLogic();
+};
+
+class PlaybookPane : public WithPlaybookLayout<ParentCtrl> {
+public:
+	String root;
+	Array<Playbook> playbooks;
+	PlaybookVisualLogic visual_logic;
+	
+	void Load(const String& maestro_root);
+	void OnPlaybookCursor();
+	void OnNew();
+	void OnSave();
+	void OnValidate();
+	void OnToolbar(Bar& bar);
+	typedef PlaybookPane CLASSNAME;
+	PlaybookPane();
 };
 
 class EvidencePane : public WithEvidenceLayout<ParentCtrl> {
@@ -117,35 +165,6 @@ public:
 	void OnEventCursor();
 	typedef AuditTrailCorrelator CLASSNAME;
 	AuditTrailCorrelator();
-};
-
-class PlaybookVisualLogic : public ParentCtrl {
-public:
-	CodeEditor puml_editor;
-	GraphLib::GraphNodeCtrl graph_view;
-	Splitter   split;
-	
-	void Load(const String& puml);
-	void UpdatePreview();
-	String Get() const;
-	typedef PlaybookVisualLogic CLASSNAME;
-	PlaybookVisualLogic();
-};
-
-class PlaybookPane : public WithPlaybookLayout<ParentCtrl> {
-public:
-	String root;
-	Array<Playbook> playbooks;
-	PlaybookVisualLogic visual_logic;
-	
-	void Load(const String& maestro_root);
-	void OnPlaybookCursor();
-	void OnNew();
-	void OnSave();
-	void OnValidate();
-	void OnToolbar(Bar& bar);
-	typedef PlaybookPane CLASSNAME;
-	PlaybookPane();
 };
 
 class DebugWorkspace : public WithDebugWorkspaceLayout<ParentCtrl> {
@@ -242,6 +261,16 @@ public:
 
 class SessionManagementPane : public WithSessionManagementLayout<ParentCtrl> {
 public:
+	Splitter split, detail_split;
+	ParentCtrl left_pane, work_pane;
+	ArrayCtrl dirs, work_sessions, breadcrumbs;
+	SessionListView sessions;
+	TabCtrl list_tabs, detail_tabs;
+	ParentCtrl filter_bar;
+	DropList filter_type, filter_status;
+	EditString filter_search;
+	RichTextView context_view;
+
 	String current_root;
 	CliMaestroEngine engine;
 	Callback2<String, String> WhenSelect;

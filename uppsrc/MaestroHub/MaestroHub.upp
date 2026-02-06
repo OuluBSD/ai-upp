@@ -28,6 +28,7 @@ file
 	AuditTrail.cpp,
 	EvidencePane.cpp,
 	Playbook.cpp,
+	Conversion.cpp,
 
 	NewSessionDialog.cpp,
 	InitDialog.cpp,

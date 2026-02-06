@@ -216,18 +216,31 @@ struct FilePoolCtrl : ParentCtrl {
 	void Data();
 };
 
-struct ScriptEditorDlg : TopWindow {
+struct ScriptEditorCtrl : ParentCtrl {
+	Edit3D* owner = 0;
 	CodeEditor editor;
 	ToolBar tool;
+	ArrayCtrl errors;
+	Splitter split;
 	String path;
 	bool dirty = false;
+	GeomScript* script = 0;
+	VectorMap<String, Vector<int>> breakpoints;
 	
-	typedef ScriptEditorDlg CLASSNAME;
-	ScriptEditorDlg();
+	typedef ScriptEditorCtrl CLASSNAME;
+	ScriptEditorCtrl(Edit3D* e);
 	void OpenFile(const String& p);
+	void OpenScript(GeomScript& s);
 	void Save();
 	void SaveAs(const String& p);
 	void OnChange();
+	void RunFile();
+	void RunSelection();
+	void StopScript();
+	void ClearErrors();
+	void AddError(int line, const String& msg);
+	void ApplyBreakpoints();
+	void ToggleBreakpoint(int line);
 };
 
 struct TextureEditCtrl : Ctrl {
@@ -455,7 +468,8 @@ struct Edit3D : DockWindow {
 		Vector<PyIR> frame_ir;
 	};
 	Array<ScriptInstance> script_instances;
-	One<ScriptEditorDlg> script_editor;
+	ScriptEditorCtrl script_editor;
+	DockableCtrl* dock_script = 0;
 	
 	struct ScriptEventHandler : Moveable<ScriptEventHandler> {
 		String event;

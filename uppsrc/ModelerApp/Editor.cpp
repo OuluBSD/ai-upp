@@ -1125,16 +1125,36 @@ void FilePoolCtrl::Data() {
 	}
 }
 
-ScriptEditorDlg::ScriptEditorDlg() {
-	Title("Script Editor");
-	Sizeable().Zoomable();
+ScriptEditorCtrl::ScriptEditorCtrl(Edit3D* e) : owner(e) {
 	AddFrame(tool);
-	Add(editor.SizePos());
+	Add(split.SizePos());
+	editor.Highlight("python");
+	editor.EnableBreakpointing();
 	editor.WhenAction << THISBACK(OnChange);
+	editor.WhenBreakpoint = [=](int line) { ToggleBreakpoint(line); };
+	errors.AddColumn(t_("Line"), 50);
+	errors.AddColumn(t_("Message"), 400);
+	errors.WhenLeftDouble = [=] {
+		int row = errors.GetCursor();
+		if (row < 0)
+			return;
+		int line = errors.Get(row, 0);
+		if (line > 0) {
+			editor.GotoBarLine(line - 1);
+			editor.SetFocus();
+		}
+	};
+	split.Vert(editor, errors);
+	split.SetPos(8000);
 	tool.Set([=](Bar& bar) {
 		bar.Add(t_("Save"), THISBACK(Save));
 		bar.Add(t_("Reload"), [=] { if (!path.IsEmpty()) OpenFile(path); });
-		bar.Add(t_("Close"), [=] { Close(); });
+		bar.Separator();
+		bar.Add(t_("Run File"), THISBACK(RunFile));
+		bar.Add(t_("Run Selection"), THISBACK(RunSelection));
+		bar.Add(t_("Stop"), THISBACK(StopScript));
+		bar.Separator();
+		bar.Add(t_("Clear Errors"), THISBACK(ClearErrors));
 	});
 }
 
@@ -1243,7 +1263,7 @@ void TextureEditCtrl::MouseWheel(Point p, int zdelta, dword keyflags) {
 	}
 }
 
-void ScriptEditorDlg::OpenFile(const String& p) {
+void ScriptEditorCtrl::OpenFile(const String& p) {
 	path = p;
 	String data;
 	if (FileExists(path))
@@ -1251,23 +1271,185 @@ void ScriptEditorDlg::OpenFile(const String& p) {
 	editor.Set(data);
 	editor.SetFocus();
 	dirty = false;
-	SetTitle("Script Editor - " + GetFileName(path));
+	ApplyBreakpoints();
 }
 
-void ScriptEditorDlg::Save() {
+void ScriptEditorCtrl::Save() {
 	if (path.IsEmpty())
 		return;
 	SaveFile(path, editor.Get());
 	dirty = false;
 }
 
-void ScriptEditorDlg::SaveAs(const String& p) {
+void ScriptEditorCtrl::SaveAs(const String& p) {
 	path = p;
 	Save();
 }
 
-void ScriptEditorDlg::OnChange() {
+void ScriptEditorCtrl::OnChange() {
 	dirty = true;
+}
+
+void ScriptEditorCtrl::OpenScript(GeomScript& s) {
+	script = &s;
+	if (owner)
+		owner->EnsureScriptFile(s, "script");
+	if (owner)
+		OpenFile(owner->GetScriptAbsPath(s.file));
+}
+
+void ScriptEditorCtrl::ClearErrors() {
+	errors.Clear();
+}
+
+void ScriptEditorCtrl::AddError(int line, const String& msg) {
+	errors.Add(line > 0 ? line : Null, msg);
+	errors.SetCursor(errors.GetCount() - 1);
+}
+
+void ScriptEditorCtrl::ApplyBreakpoints() {
+	editor.ClearBreakpoints();
+	int idx = breakpoints.Find(path);
+	if (idx < 0)
+		return;
+	const Vector<int>& lines = breakpoints[idx];
+	for (int ln : lines) {
+		if (ln >= 0)
+			editor.SetBreakpoint(ln, "1");
+	}
+}
+
+void ScriptEditorCtrl::ToggleBreakpoint(int line) {
+	if (line < 0)
+		return;
+	String cur = editor.GetBreakpoint(line);
+	bool on = cur.IsEmpty();
+	editor.SetBreakpoint(line, on ? "1" : "");
+	Vector<int>& lines = breakpoints.GetAdd(path);
+	int idx = FindIndex(lines, line);
+	if (on) {
+		if (idx < 0)
+			lines.Add(line);
+	}
+	else {
+		if (idx >= 0)
+			lines.Remove(idx);
+	}
+}
+
+static int ExtractErrorLine(const String& msg) {
+	int pos = msg.Find("line");
+	if (pos < 0)
+		pos = msg.Find("Line");
+	if (pos >= 0) {
+		pos += 4;
+		while (pos < msg.GetCount() && !IsDigit(msg[pos]))
+			pos++;
+		if (pos < msg.GetCount()) {
+			int end = pos;
+			while (end < msg.GetCount() && IsDigit(msg[end]))
+				end++;
+			return ScanInt(msg.Mid(pos, end - pos));
+		}
+	}
+	return 0;
+}
+
+void ScriptEditorCtrl::RunFile() {
+	if (!owner)
+		return;
+	if (dirty)
+		Save();
+	ClearErrors();
+	PyVM vm;
+	owner->RegisterScriptVM(vm);
+	if (owner->state) {
+		PyValue root_obj = MakeDisplayObject(owner, &owner->state->GetActiveScene().val, &vm);
+		vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		PyValue this_obj = root_obj;
+		if (script && script->val.owner) {
+			PyValue owner_obj = MakeDisplayObject(owner, script->val.owner, &vm);
+			if (!owner_obj.IsNone())
+				this_obj = owner_obj;
+		}
+		vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+	}
+	vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
+	vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(path);
+	String code = editor.Get();
+	String err;
+	Vector<PyIR> ir;
+	if (!CompilePySource(code, path, ir, err)) {
+		int line = ExtractErrorLine(err);
+		AddError(line, err);
+		return;
+	}
+	if (!RunPyIR(vm, ir, err)) {
+		int line = ExtractErrorLine(err);
+		AddError(line, err);
+	}
+	owner->RemoveScriptEventHandlers(&vm);
+}
+
+void ScriptEditorCtrl::RunSelection() {
+	if (!owner)
+		return;
+	int64 l = 0, h = 0;
+	if (!editor.GetSelection(l, h)) {
+		RunFile();
+		return;
+	}
+	String code = editor.Get(l, h);
+	if (code.IsEmpty()) {
+		RunFile();
+		return;
+	}
+	ClearErrors();
+	int base_line = editor.GetLine(l) + 1;
+	PyVM vm;
+	owner->RegisterScriptVM(vm);
+	if (owner->state) {
+		PyValue root_obj = MakeDisplayObject(owner, &owner->state->GetActiveScene().val, &vm);
+		vm.GetGlobals().GetAdd(PyValue("root")) = root_obj;
+		PyValue this_obj = root_obj;
+		if (script && script->val.owner) {
+			PyValue owner_obj = MakeDisplayObject(owner, script->val.owner, &vm);
+			if (!owner_obj.IsNone())
+				this_obj = owner_obj;
+		}
+		vm.GetGlobals().GetAdd(PyValue("this")) = this_obj;
+	}
+	vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(owner->project_dir);
+	vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(path);
+	String err;
+	Vector<PyIR> ir;
+	if (!CompilePySource(code, path, ir, err)) {
+		int line = ExtractErrorLine(err);
+		if (line > 0)
+			line += base_line - 1;
+		AddError(line, err);
+		return;
+	}
+	if (!RunPyIR(vm, ir, err)) {
+		int line = ExtractErrorLine(err);
+		if (line > 0)
+			line += base_line - 1;
+		AddError(line, err);
+	}
+	owner->RemoveScriptEventHandlers(&vm);
+}
+
+void ScriptEditorCtrl::StopScript() {
+	if (!owner || !script)
+		return;
+	for (int i = 0; i < owner->script_instances.GetCount(); i++) {
+		Edit3D::ScriptInstance& inst = owner->script_instances[i];
+		if (inst.script == script) {
+			owner->RemoveScriptEventHandlers(&inst.vm);
+			script->run_every_frame = false;
+			break;
+		}
+	}
 }
 
 
@@ -1364,7 +1546,8 @@ void HmdCapture::Poll() {
 Edit3D::Edit3D() :
 	v0(this),
 	v1(this),
-	file_pool(this)
+	file_pool(this),
+	script_editor(this)
 {
 	prj = &prj_val.CreateExt<GeomProject>();
 	state = &state_val.CreateExt<GeomWorldState>();
@@ -1412,6 +1595,7 @@ Edit3D::Edit3D() :
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
 			bar.Add(t_("Texture Editor"), THISBACK(OpenTextureEditor));
+			bar.Add(t_("Script Editor"), [this] { if (dock_script) ActivateDockableChild(*dock_script); });
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
 			bar.Separator();
@@ -1637,6 +1821,7 @@ void Edit3D::DockInit() {
 	dock_video = &Dockable(v1, "Video Import");
 	dock_pool = &Dockable(file_pool, "File Pool");
 	dock_texture = &Dockable(texture_edit, "Texture");
+	dock_script = &Dockable(script_editor, "Script Editor");
 
 	dock_tree->SizeHint(Size(260, 600));
 	dock_props->SizeHint(Size(360, 600));
@@ -1644,6 +1829,7 @@ void Edit3D::DockInit() {
 	dock_video->SizeHint(Size(900, 300));
 	dock_pool->SizeHint(Size(320, 600));
 	dock_texture->SizeHint(Size(320, 420));
+	dock_script->SizeHint(Size(480, 600));
 
 	DockLeft(*dock_tree, 0);
 	DockLeft(*dock_props, 1);
@@ -1651,10 +1837,12 @@ void Edit3D::DockInit() {
 	DockBottom(*dock_video);
 	DockRight(*dock_pool);
 	DockRight(*dock_texture);
+	DockRight(*dock_script);
 
 	Close(*dock_video);
 	Close(*dock_pool);
 	Close(*dock_texture);
+	Close(*dock_script);
 	v0.grid.SetFocus();
 
 	if (GetLayouts().Find("Default") < 0)
@@ -2089,12 +2277,9 @@ void Edit3D::GetScriptsFromNode(VfsValue& node, Vector<GeomScript*>& out) {
 }
 
 void Edit3D::OpenScriptEditor(GeomScript& script) {
-	EnsureScriptFile(script, "script");
-	String abs = GetScriptAbsPath(script.file);
-	if (script_editor.IsEmpty())
-		script_editor.Create();
-	script_editor->OpenFile(abs);
-	script_editor->Open();
+	script_editor.OpenScript(script);
+	if (dock_script)
+		ActivateDockableChild(*dock_script);
 }
 
 void Edit3D::RunScriptOnce(GeomScript& script) {

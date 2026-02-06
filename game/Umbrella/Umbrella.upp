@@ -32,6 +32,8 @@ file
 	Enemy.cpp,
 	EnemyPatroller.h,
 	EnemyPatroller.cpp,
+	EnemyJumper.h,
+	EnemyJumper.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
 	TestGameScreen.cpp,

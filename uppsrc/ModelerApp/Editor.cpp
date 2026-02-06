@@ -16,6 +16,37 @@ static String ModelerAppConfigPath() {
 	return ConfigFile("ModelerApp.view");
 }
 
+static void PruneEmptyObjects(GeomDirectory& dir) {
+	for (int i = 0; i < dir.val.sub.GetCount(); ) {
+		VfsValue& sub = dir.val.sub[i];
+		if (IsVfsType(sub, AsTypeHash<GeomDirectory>())) {
+			PruneEmptyObjects(sub.GetExt<GeomDirectory>());
+			i++;
+			continue;
+		}
+		if (IsVfsType(sub, AsTypeHash<GeomObject>())) {
+			GeomObject& obj = sub.GetExt<GeomObject>();
+			bool empty = obj.type == GeomObject::O_NULL &&
+			             obj.name.IsEmpty() &&
+			             obj.asset_ref.IsEmpty() &&
+			             obj.pointcloud_ref.IsEmpty();
+			GeomTimeline* tl = obj.FindTimeline();
+			if (tl && !tl->keypoints.IsEmpty())
+				empty = false;
+			if (empty) {
+				dir.val.sub.Remove(i);
+				continue;
+			}
+		}
+		i++;
+	}
+}
+
+static void PruneEmptyObjects(GeomProject& prj) {
+	for (GeomScene& scene : prj.val.Sub<GeomScene>())
+		PruneEmptyObjects(scene);
+}
+
 void FillOctree(Octree& octree, const Vector<vec3>& points, int scale_level) {
 	octree.Initialize(-3, 8);
 	for (const vec3& p : points) {
@@ -1388,6 +1419,9 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Reset Props Cursor"), THISBACK(ResetPropsCursor));
 		});
 		bar.Sub(t_("Edit"), [this](Bar& bar) {
+			bar.Add(t_("Undo"), THISBACK(Undo)).Key(K_CTRL|K_Z);
+			bar.Add(t_("Redo"), THISBACK(Redo)).Key(K_CTRL|K_Y);
+			bar.Separator();
 			bar.Add(t_("Create Editable Mesh"), THISBACK(CreateEditableMeshObject));
 			bar.Add(t_("Create 2D Layer"), THISBACK(Create2DLayerObject));
 			bar.Separator();
@@ -1723,6 +1757,103 @@ void Edit3D::Serialize(Stream& s) {
 	SerializeLayout(s);
 	s % v0.props_cursor_by_tree;
 	s % v0.tree_open_paths;
+}
+
+String Edit3D::SerializeScene3DState() const {
+	Scene3DDocument doc;
+	doc.version = SCENE3D_VERSION;
+	doc.name = "ModelerApp";
+	doc.project = prj;
+	doc.active_scene = state ? state->active_scene : 0;
+	doc.focus = state ? &state->GetFocus() : nullptr;
+	doc.program = state ? &state->GetProgram() : nullptr;
+	doc.created_utc = scene3d_created;
+	doc.modified_utc = scene3d_modified;
+	doc.data_dir = scene3d_data_dir.IsEmpty() ? String("data") : scene3d_data_dir;
+	doc.external_files.Clear();
+	for (const Scene3DExternalFile& file : scene3d_external_files)
+		doc.external_files.Add(file);
+	doc.meta.Clear();
+	for (const Scene3DMetaEntry& entry : scene3d_meta)
+		doc.meta.Add(entry);
+	String json;
+	DoVisitToJson(doc, json, false);
+	return json;
+}
+
+bool Edit3D::RestoreScene3DState(const String& json) {
+	Scene3DDocument doc;
+	if (json.IsEmpty())
+		return false;
+	if (!VisitFromJson(doc, json.Begin()))
+		return false;
+	doc.project_val.FixParent();
+	FixupScene3DOwners(*doc.project);
+	PruneEmptyObjects(*doc.project);
+	VisitCopy(*doc.project, *prj);
+	state->prj = prj;
+	state->active_scene = doc.active_scene;
+	if (doc.focus)
+		VisitCopy(*doc.focus, state->GetFocus());
+	if (doc.program)
+		VisitCopy(*doc.program, state->GetProgram());
+	scene3d_created = doc.created_utc;
+	scene3d_modified = doc.modified_utc;
+	scene3d_data_dir = doc.data_dir;
+	scene3d_external_files = pick(doc.external_files);
+	scene3d_meta = pick(doc.meta);
+	if (scene3d_data_dir.IsEmpty())
+		scene3d_data_dir = "data";
+	state->UpdateObjects();
+	anim->Reset();
+	Data();
+	v0.TimelineData();
+	v0.tree.OpenDeep(v0.tree_scenes);
+	UpdateWindowTitle();
+	return true;
+}
+
+void Edit3D::PushUndo(const String& note) {
+	if (undo_guard)
+		return;
+	String json = SerializeScene3DState();
+	if (json.IsEmpty())
+		return;
+	if (undo_stack.GetCount() > 0 && undo_stack[undo_stack.GetCount() - 1].json == json)
+		return;
+	UndoEntry& ent = undo_stack.Add();
+	ent.json = json;
+	ent.note = note;
+	redo_stack.Clear();
+	if (undo_stack.GetCount() > undo_limit) {
+		undo_stack.Remove(0);
+	}
+}
+
+void Edit3D::Undo() {
+	if (undo_stack.GetCount() == 0)
+		return;
+	undo_guard = true;
+	UndoEntry cur;
+	cur.json = SerializeScene3DState();
+	redo_stack.Add(pick(cur));
+	UndoEntry ent = pick(undo_stack[undo_stack.GetCount() - 1]);
+	undo_stack.Remove(undo_stack.GetCount() - 1);
+	RestoreScene3DState(ent.json);
+	undo_guard = false;
+}
+
+void Edit3D::Redo() {
+	if (redo_stack.GetCount() == 0)
+		return;
+	undo_guard = true;
+	UndoEntry cur;
+	cur.json = SerializeScene3DState();
+	undo_stack.Add(pick(cur));
+	UndoEntry ent = pick(redo_stack[redo_stack.GetCount() - 1]);
+	redo_stack.Remove(redo_stack.GetCount() - 1);
+	RestoreScene3DState(ent.json);
+	undo_guard = false;
 }
 
 void Edit3D::Exit() {
@@ -2873,6 +3004,7 @@ void Edit3D::SetEditTool(EditTool tool) {
 void Edit3D::CreateEditableMeshObject() {
 	if (!state)
 		return;
+	PushUndo("Create Editable Mesh");
 	GeomDirectory* dir = nullptr;
 	if (v0.selected_ref && v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && v0.selected_ref->vfs)
 		dir = GetNodeDirectory(*v0.selected_ref->vfs);
@@ -2893,6 +3025,7 @@ void Edit3D::CreateEditableMeshObject() {
 void Edit3D::Create2DLayerObject() {
 	if (!state)
 		return;
+	PushUndo("Create 2D Layer");
 	GeomDirectory* dir = nullptr;
 	if (v0.selected_ref && v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && v0.selected_ref->vfs)
 		dir = GetNodeDirectory(*v0.selected_ref->vfs);
@@ -2993,6 +3126,7 @@ void Edit3D::Clear2DKeyframes() {
 bool Edit3D::ApplyTransformDelta(GeomObject* obj, const vec3& delta, bool local_axes) {
 	if (!obj || obj->is_locked)
 		return false;
+	PushUndo("Transform move");
 	GeomTransform* tr = obj->FindTransform();
 	if (!tr)
 		return false;
@@ -3019,6 +3153,7 @@ bool Edit3D::ApplyTransformDelta(GeomObject* obj, const vec3& delta, bool local_
 bool Edit3D::ApplyTransformRotation(GeomObject* obj, int axis, double angle_rad, bool local_axes) {
 	if (!obj || obj->is_locked)
 		return false;
+	PushUndo("Transform rotate");
 	GeomTransform* tr = obj->FindTransform();
 	if (!tr)
 		return false;

@@ -342,6 +342,14 @@ struct Edit3D : DockWindow {
 	Array<Scene3DExternalFile> scene3d_external_files;
 	Array<Scene3DMetaEntry> scene3d_meta;
 	bool scene3d_use_json = true;
+	struct UndoEntry {
+		String json;
+		String note;
+	};
+	Array<UndoEntry> undo_stack;
+	Array<UndoEntry> redo_stack;
+	int undo_limit = 50;
+	bool undo_guard = false;
 	bool repeat_playback = false;
 	bool record_pointcloud = false;
 	GeomObject* hmd_pointcloud = 0;
@@ -505,6 +513,11 @@ struct Edit3D : DockWindow {
 	bool ApplyTransformDelta(GeomObject* obj, const vec3& delta, bool local_axes);
 	bool ApplyTransformRotation(GeomObject* obj, int axis, double angle_rad, bool local_axes);
 	void MaybeAutoKeyTransform(GeomObject* obj, bool pos, bool ori);
+	void PushUndo(const String& note);
+	void Undo();
+	void Redo();
+	String SerializeScene3DState() const;
+	bool RestoreScene3DState(const String& json);
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	void CreateSkeletonForSelected();

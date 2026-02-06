@@ -17,6 +17,8 @@ protected:
 	bool has_children = false;
 	bool expanded = true;
 	bool active = false;
+	bool dragging = false;
+	bool drag_range = false;
 	
 public:
 	typedef TimelineRowCtrl CLASSNAME;
@@ -25,6 +27,8 @@ public:
 	void Paint(Draw& d) override;
 	bool Key(dword key, int) override;
 	void LeftDown(Point p, dword keyflags) override;
+	void LeftDrag(Point p, dword keyflags) override;
+	void LeftUp(Point p, dword keyflags) override;
 	void RightDown(Point p, dword keyflags) override;
 	void GotFocus() override;
 	void LostFocus() override;
@@ -52,9 +56,13 @@ protected:
 	Color bg, bg_focused, bg_focused_keypoint, accent, text;
 	Color bg_active, bg_active_keypoint;
 	Color kp_second_accent, kp_col_accent;
+	Color range_bg;
 	int title_tab_w = 200;
 	int kp_col = 10;
 	int selected_col = 0;
+	int range_start = -1;
+	int range_end = -1;
+	int range_anchor = -1;
 	
 public:
 	typedef TimelineCtrl CLASSNAME;
@@ -64,14 +72,21 @@ public:
 	TimelineRowCtrl& GetRowIndex(int i);
 	int GetLineHeight() const {return line_height;}
 	int GetColumnWidth() const {return kp_col;}
+	int GetSelectedColumn() const {return selected_col;}
+	bool HasSelectionRange() const {return range_start >= 0 && range_end >= 0;}
+	int GetRangeStart() const {return range_start;}
+	int GetRangeEnd() const {return range_end;}
 	
 	void SetCount(int i);
 	void SetLineHeight(int h) {line_height = h;}
 	void SetKeypointRate(int kps) {this->kps = kps;}
 	void SetLength(int i);
 	void SetKeypointColumnWidth(int i);
-	void SetSelectedColumn(int i) {selected_col = i;}
+	void SetSelectedColumn(int i);
+	void SetSelectionRange(int a, int b);
+	void ClearSelectionRange();
 	void OnScroll();
+	void MakeColumnVisible(int col);
 	
 	void Paint(Draw& d) override;
 	bool Key(dword key, int) override;
@@ -85,6 +100,10 @@ public:
 	Event<Bar&, int> WhenRowMenu;
 	Callback1<int> WhenRowSelect;
 	Callback1<int> WhenRowToggle;
+	Callback2<int, int> WhenKeyframeToggle;
+	Callback2<int, int> WhenKeyframeRemove;
+	Callback WhenToggleAutoKey;
+	Callback2<int, int> WhenRangeSelect;
 	
 };
 

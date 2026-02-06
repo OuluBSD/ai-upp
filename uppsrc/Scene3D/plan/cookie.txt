@@ -202,3 +202,11 @@
   task: track-editor-scripting/phase-09-scenes-animation/task-0904-flash-timeline-visuals.md
   status: done
   note: Timeline now draws tween spans and uses major/minor tick marks without full-column separators.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0905-flash-timeline-navigation.md
+  status: done
+  note: Added drag scrubbing, range selection, prev/next keyframe jumps, and keyframe hotkeys.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0906-transform-subkeyframes.md
+  status: done
+  note: Transform sub-rows and props keyframe controls already in place; verified behavior.

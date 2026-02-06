@@ -3565,6 +3565,56 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		if (ori) kp.has_orientation = true;
 		TimelineData();
 	};
+	auto set_transform_ease = [&](int mode, bool pos, bool ori) {
+		if (!e || !e->state)
+			return;
+		GeomTimeline& tl = obj->GetTimeline();
+		int idx = tl.keypoints.Find(frame);
+		bool existed = idx >= 0;
+		GeomKeypoint& kp = existed ? tl.keypoints[idx] : tl.GetAddKeypoint(frame);
+		kp.frame_id = frame;
+		if ((!existed || !kp.has_position) && pos) {
+			if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key))
+				kp.position = os->position;
+			else if (GeomTransform* tr = obj->FindTransform())
+				kp.position = tr->position;
+			kp.has_position = true;
+		}
+		if ((!existed || !kp.has_orientation) && ori) {
+			if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key))
+				kp.orientation = os->orientation;
+			else if (GeomTransform* tr = obj->FindTransform())
+				kp.orientation = tr->orientation;
+			kp.has_orientation = true;
+		}
+		if (pos)
+			kp.position_ease = mode;
+		if (ori)
+			kp.orientation_ease = mode;
+		TimelineData();
+	};
+	auto get_transform_ease = [&](bool pos) -> int {
+		if (GeomTimeline* tl = obj->FindTimeline()) {
+			int idx = tl->keypoints.Find(frame);
+			if (idx >= 0) {
+				const GeomKeypoint& kp = tl->keypoints[idx];
+				return pos ? kp.position_ease : kp.orientation_ease;
+			}
+		}
+		return 0;
+	};
+	auto ease_check = [&](int mode, bool pos, bool ori) -> bool {
+		if (pos && ori)
+			return get_transform_ease(true) == mode && get_transform_ease(false) == mode;
+		if (pos)
+			return get_transform_ease(true) == mode;
+		return get_transform_ease(false) == mode;
+	};
+	auto ease_menu = [&](Bar& bar, bool pos, bool ori) {
+		bar.Add(t_("Linear"), [=] { set_transform_ease(0, pos, ori); }).Check(ease_check(0, pos, ori));
+		bar.Add(t_("Step"), [=] { set_transform_ease(1, pos, ori); }).Check(ease_check(1, pos, ori));
+		bar.Add(t_("Smooth"), [=] { set_transform_ease(2, pos, ori); }).Check(ease_check(2, pos, ori));
+	};
 	auto clear_transform_kp = [&](bool pos, bool ori) {
 		if (GeomTimeline* tl = obj->FindTimeline()) {
 			for (int i = tl->keypoints.GetCount() - 1; i >= 0; i--) {
@@ -3579,10 +3629,12 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 	};
 	if (info.kind == TimelineRowInfo::R_POSITION) {
 		bar.Add(t_("Add Position Keyframe"), [=] { add_transform_kp(true, false); });
+		bar.Sub(t_("Easing"), [=](Bar& bar) { ease_menu(bar, true, false); });
 		bar.Add(t_("Clear Position Keyframes"), [=] { clear_transform_kp(true, false); });
 	}
 	else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
 		bar.Add(t_("Add Orientation Keyframe"), [=] { add_transform_kp(false, true); });
+		bar.Sub(t_("Easing"), [=](Bar& bar) { ease_menu(bar, false, true); });
 		bar.Add(t_("Clear Orientation Keyframes"), [=] { clear_transform_kp(false, true); });
 	}
 	else {
@@ -3590,6 +3642,13 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
 			bar.Add(t_("Add Position Keyframe"), [=] { add_transform_kp(true, false); });
 			bar.Add(t_("Add Orientation Keyframe"), [=] { add_transform_kp(false, true); });
+		}
+		if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT) {
+			bar.Sub(t_("Easing"), [=](Bar& bar) {
+				bar.Sub(t_("Position"), [=](Bar& bar) { ease_menu(bar, true, false); });
+				bar.Sub(t_("Orientation"), [=](Bar& bar) { ease_menu(bar, false, true); });
+				bar.Sub(t_("Transform"), [=](Bar& bar) { ease_menu(bar, true, true); });
+			});
 		}
 		if (obj->FindEditableMesh()) {
 			bar.Add(t_("Add Mesh Keyframe"), [=] {

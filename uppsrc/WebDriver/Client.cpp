@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 Client::Client(const String& url) {
 	// Initialize client with the given URL
-	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, /* http client */));
+	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, detail::Shared<detail::IHttp_client>(new detail::Http_client)));
 }
 
 Value Client::Get_status() const {
@@ -23,7 +23,7 @@ Vector<Session> Client::Get_sessions() const {
 		Value id_val = val["id"];
 		String session_id = From_json<String>(id_val);
 		sessions.Add(Session(detail::Shared<detail::Resource>(
-			new detail::Resource(resource_, session_id, detail::Resource::IsObserver))));
+			new detail::Resource(resource_, session_id, detail::Resource::Is_observer))));
 	}
 	return sessions;
 }
@@ -32,14 +32,14 @@ Session Client::Create_session(
 	const Capabilities& desired,
 	const Capabilities& required
 	) const {
-	Value caps = Value::Object()
-		.Add("desiredCapabilities", To_json(desired))
-		.Add("requiredCapabilities", To_json(required));
+	ValueMap caps;
+	caps.Add("desiredCapabilities", To_json(desired));
+	caps.Add("requiredCapabilities", To_json(required));
 
 	Value response = resource_->Post("session", caps);
 	String session_id = From_json<String>(response["sessionId"]);
 
-	return Make_session(session_id, detail::Resource::IsOwner);
+	return Make_session(session_id, detail::Resource::Is_owner);
 }
 
 Session Client::Make_session(

@@ -6,7 +6,8 @@ Shortcut::Shortcut(const String& key) {
 	keys.Add(key);
 }
 
-Shortcut::Shortcut(const Vector<String>& keys) :  keys(keys) {
+Shortcut::Shortcut(const Vector<String>& keys) {
+	this->keys <<= keys;
 }
 
 END_UPP_NAMESPACE

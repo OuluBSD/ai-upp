@@ -13,14 +13,14 @@ struct Http_response {
 	String body;
 };
 
-struct IHttp_client {
+struct IHttp_client : public Shared_object_base {
 	virtual ~IHttp_client() {}
 	virtual Http_response Get(const String& url) const = 0;
 	virtual Http_response Post(const String& url, const String& data) const = 0;
 	virtual Http_response Delete(const String& url) const = 0;
 };
 
-class Http_client : IHttp_client {
+class Http_client : public IHttp_client {
 public:
 	virtual Http_response Get(const String& url) const override;
 	virtual Http_response Post(const String& url, const String& data) const override;

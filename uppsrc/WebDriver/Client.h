@@ -13,7 +13,7 @@ public:
 	explicit Client(const String& url = String(k_default_web_driver_url));
 	virtual ~Client() {}
 
-	picojson::object Get_status() const;
+	Value Get_status() const;
 
 	// Returns existing sessions.
 	Vector<Session> Get_sessions() const;

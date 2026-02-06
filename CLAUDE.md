@@ -82,7 +82,7 @@ Use these strengths when working with this codebase.
    - Match existing code style (see CODESTYLE.md)
 
 3. **Test thoroughly**:
-   - Build affected packages
+   - Build affected packages: `script/build.py -mc 0 -j 12 <PackageName>`
    - Run relevant tests
    - Check for build warnings
 

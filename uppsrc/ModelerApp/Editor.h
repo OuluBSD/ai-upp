@@ -44,6 +44,23 @@ struct GeomProjectCtrl : Ctrl {
 	TreeNodeRef* selected_ref = 0;
 	GeomPointcloudDataset* selected_dataset = 0;
 	bool props_refreshing = false;
+	struct TimelineRowInfo {
+		enum Kind {
+			R_SCENE,
+			R_OBJECT,
+			R_TRANSFORM,
+			R_MESH,
+			R_2D,
+		};
+		Kind kind = R_OBJECT;
+		hash_t object_key = 0;
+		int indent = 0;
+		bool has_children = false;
+		bool expanded = true;
+		bool active = false;
+	};
+	Vector<TimelineRowInfo> timeline_rows;
+	Index<hash_t> timeline_expanded;
 
 	struct PropRef {
 		enum Kind {
@@ -85,6 +102,8 @@ struct GeomProjectCtrl : Ctrl {
 	void Data();
 	void TimelineData();
 	void TimelineRowMenu(Bar& bar, int row);
+	void TimelineRowSelect(int row);
+	void TimelineRowToggle(int row);
 	void TreeSelect();
 	void TreeMenu(Bar& bar);
 	void PropsMenu(Bar& bar);
@@ -284,6 +303,21 @@ struct Edit3D : DockWindow {
 	double weight_radius = 0.5;
 	double weight_strength = 0.2;
 	bool weight_add = true;
+	bool auto_key = false;
+	enum TimelineScopeKind {
+		TS_SCENE,
+		TS_OBJECT,
+		TS_COMPONENT
+	};
+	enum TimelineComponent {
+		TC_NONE,
+		TC_TRANSFORM,
+		TC_MESH,
+		TC_2D
+	};
+	TimelineScopeKind timeline_scope = TS_SCENE;
+	TimelineComponent timeline_component = TC_NONE;
+	hash_t timeline_object_key = 0;
 	bool draw2d_active = false;
 	vec2 draw2d_start = vec2(0);
 	vec2 draw2d_last = vec2(0);

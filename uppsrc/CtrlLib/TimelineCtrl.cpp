@@ -11,11 +11,23 @@ void TimelineRowCtrl::Paint(Draw& d) {
 	Size sz = GetSize();
 	
 	bool has_focus = HasFocus();
-	d.DrawRect(sz, has_focus ? owner->bg_focused : owner->bg);
+	Color row_bg = owner->bg;
+	if (active)
+		row_bg = owner->bg_active;
+	else if (has_focus)
+		row_bg = owner->bg_focused;
+	d.DrawRect(sz, row_bg);
 	
 	Font fnt = SansSerif(sz.cy-6);
 	fnt.Bold();
-	d.DrawText(2, 2, title, fnt, owner->text);
+	int xpad = 2 + indent * 12;
+	if (has_children) {
+		String mark = expanded ? "-" : "+";
+		d.DrawRect(xpad, 2, 10, sz.cy - 4, Blend(owner->accent, owner->bg, 220));
+		d.DrawText(xpad + 2, 2, mark, fnt, owner->text);
+		xpad += 12;
+	}
+	d.DrawText(xpad, 2, title, fnt, owner->text);
 	
 	int col = owner->GetColumnWidth();
 	int x = owner->title_tab_w + 1;
@@ -24,6 +36,7 @@ void TimelineRowCtrl::Paint(Draw& d) {
 	int* kp_iter = keypoints.Begin();
 	int* kp_end = keypoints.End();
 	int selected_i = owner->selected_col;
+	bool has_kp = keypoints.GetCount() > 0;
 	
 	for(; kp_i < owner->length; kp_i++) {
 		bool first_in_second = (kp_i % owner->kps) == 0;
@@ -36,24 +49,27 @@ void TimelineRowCtrl::Paint(Draw& d) {
 				is_keypoint = true;
 		}
 		
-		if (/*has_focus &&*/ selected_i == kp_i)
-			d.DrawRect(x, 0, col, sz.cy, owner->bg_focused_keypoint);
+		if (selected_i == kp_i) {
+			Color sel = owner->bg_focused_keypoint;
+			if (active)
+				sel = owner->bg_active_keypoint;
+			d.DrawRect(x, 0, col, sz.cy, sel);
+		}
 		
-		Color line_clr = first_in_second ?
-			owner->kp_second_accent :
-			owner->kp_col_accent;
-			
-		int line_width = first_in_second ? 2 : 1;
-		d.DrawLine(x, 0, x, sz.cy-1, line_width, line_clr);
+		if (first_in_second) {
+			d.DrawLine(x, 0, x, sz.cy - 1, 1, owner->kp_second_accent);
+		}
 		
-		int pad = 2;
-		int rad = col - pad * 2;
-		d.DrawEllipse(x + pad, pad, rad, rad, Black());
-		
-		if (!is_keypoint) {
-			pad = 3;
-			rad = col - pad * 2;
-			d.DrawEllipse(x + pad, pad, rad, rad, White());
+		if (is_keypoint) {
+			int pad = 3;
+			int rad = col - pad * 2;
+			d.DrawRect(x + pad, pad, rad, rad, Black());
+		}
+		else if (!has_kp && kp_i == 0) {
+			int pad = 3;
+			int rad = col - pad * 2;
+			d.DrawEllipse(x + pad, pad, rad, rad, Black());
+			d.DrawEllipse(x + pad + 1, pad + 1, rad - 2, rad - 2, White());
 		}
 		
 		x += col;
@@ -69,6 +85,20 @@ bool TimelineRowCtrl::Key(dword key, int) {
 }
 
 void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
+	if (owner) {
+		if (p.x < owner->title_tab_w) {
+			int xpad = 2 + indent * 12;
+			if (has_children && p.x >= xpad && p.x <= xpad + 10) {
+				expanded = !expanded;
+				if (owner->WhenRowToggle)
+					owner->WhenRowToggle(id);
+				Refresh();
+				return;
+			}
+			if (owner->WhenRowSelect)
+				owner->WhenRowSelect(id);
+		}
+	}
 	int col = owner->GetColumnWidth();
 	int x = p.x - owner->title_tab_w - 1;
 	int kp_i = x / col;
@@ -127,6 +157,8 @@ TimelineCtrl::TimelineCtrl() {
 	bg = Color(218, 222, 228);
 	bg_focused = Color(218-64, 222-64, 228-64);
 	bg_focused_keypoint = Color(218-128, 222-128, 255);
+	bg_active = Color(210, 216, 228);
+	bg_active_keypoint = Color(200, 210, 255);
 	accent = Color(82, 87, 91);
 	text = Color(33, 34, 36);
 	kp_second_accent = text;

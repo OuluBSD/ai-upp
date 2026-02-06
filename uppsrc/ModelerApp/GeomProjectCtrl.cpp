@@ -940,6 +940,7 @@ void GeomProjectCtrl::Update(double dt) {
 
 void GeomProjectCtrl::Data() {
 	GeomProject& prj = *e->prj;
+	StoreTreeOpenState();
 
 	Index<const VfsValue*> open_nodes;
 	Value cursor_value;
@@ -1009,6 +1010,7 @@ void GeomProjectCtrl::Data() {
 		}
 	}
 	tree.Open(0);
+	RestoreTreeOpenState();
 	
 	if (cursor_value.Is<VfsValue*>()) {
 		VfsValue* target = ValueTo<VfsValue*>(cursor_value);
@@ -1287,6 +1289,33 @@ void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
 	int id = FindPropsIdByPath(props_path, true);
 	if (id >= 0)
 		props.SetCursor(id);
+}
+
+void GeomProjectCtrl::StoreTreeOpenState() {
+	tree_open_paths.Clear();
+	int count = tree.GetCount();
+	for (int i = 0; i < count; i++) {
+		if (!tree.IsOpen(i))
+			continue;
+		String path = GetTreePathForValue(tree.Get(i), i);
+		if (!path.IsEmpty())
+			tree_open_paths.Add(path);
+	}
+}
+
+void GeomProjectCtrl::RestoreTreeOpenState() {
+	if (tree_open_paths.IsEmpty())
+		return;
+	int count = tree.GetCount();
+	for (const String& path : tree_open_paths) {
+		for (int i = 0; i < count; i++) {
+			String cur = GetTreePathForValue(tree.Get(i), i);
+			if (cur == path) {
+				tree.Open(i, true);
+				break;
+			}
+		}
+	}
 }
 
 void GeomProjectCtrl::UpdateTreeFocus(int new_id) {

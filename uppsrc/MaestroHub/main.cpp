@@ -77,9 +77,11 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	
 	Add(main_split.SizePos());
 	
-	// Use Callback constructor with dummy int for lambda support
-	technology->WhenEnact = Callback3<String, String, String>([=](String t, String p, String k) { OnEnact(t, p, k); }, 0);
-	product->WhenEnactStep = Callback3<String, int, String>([=](String t, int s, String i) { OnEnactStep(t, s, i); }, 0);
+	// Use operator<< for CallbackN support with lambdas
+	technology->WhenEnact << [=](String t, String p, String k) { OnEnact(t, p, k); };
+	product->WhenEnactStep << [=](String t, int s, String i) { OnEnactStep(t, s, i); };
+	
+	assistant->chat.WhenEvent = [=](const MaestroEvent& e) { OnAssistantEvent(e); };
 	
 	config.Load();
 	if(config.recent_dirs.GetCount() > 0)
@@ -216,6 +218,22 @@ void MaestroHubCockpit::OnToggleAssistant() {
 		main_split.SetPos(8000, 1);
 	else
 		main_split.SetPos(10000, 1);
+}
+
+void MaestroHubCockpit::OnAssistantEvent(const MaestroEvent& e) {
+	if(e.type == "tool_use" && e.tool_name == "update_task_status") {
+		Value v = ParseJSON(e.tool_input);
+		if(v.Is<ValueMap>()) {
+			ValueMap params = v;
+			if(ToLower(params["status"].ToString()) == "done") {
+				// Trigger evidence collection automatically when a task is finished
+				if(evidence) {
+					evidence->OnCollect();
+					statusbar.Set(0, "Evidence collected for finished task: " + params["task"].ToString(), 0);
+				}
+			}
+		}
+	}
 }
 
 void MaestroHubCockpit::OnEnact(String track, String phase, String task) {

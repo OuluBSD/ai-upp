@@ -241,7 +241,8 @@ void GameScreen::Paint(Draw& w) {
 	// Render player (using WorldToScreen for proper Y-flip)
 	player.Render(w, *this);
 
-	// TODO: Render HUD (lives, score, etc.)
+	// Render HUD (lives, score)
+	RenderHUD(w);
 }
 
 void GameScreen::RenderTiles(Draw& w) {
@@ -397,6 +398,35 @@ bool GameScreen::IsWallTile(int col, int row) {
 
 bool GameScreen::IsFloorTile(int col, int row) {
 	return IsWallTile(col, row) || IsFullBlockTile(col, row);
+}
+
+void GameScreen::RenderHUD(Draw& w) {
+	Size sz = GetSize();
+
+	// Draw dark background bar at top
+	Color bgColor = Color(0, 0, 0);
+	w.DrawRect(0, 0, sz.cx, 40, bgColor);
+
+	// Draw lives (hearts)
+	String livesText = Format("Lives: %d", player.GetLives());
+	Font fnt = Arial(20).Bold();
+	w.DrawText(20, 10, livesText, fnt, White());
+
+	// Draw heart symbols
+	Color heartColor = Color(255, 50, 50);
+	for(int i = 0; i < player.GetLives(); i++) {
+		int x = 120 + i * 25;
+		int y = 10;
+		// Draw simple heart shape as two rects (placeholder)
+		w.DrawRect(x, y + 5, 8, 8, heartColor);
+		w.DrawRect(x + 8, y + 5, 8, 8, heartColor);
+		w.DrawRect(x + 2, y + 13, 12, 8, heartColor);
+	}
+
+	// Draw score
+	String scoreText = Format("Score: %d", player.GetScore());
+	Size textSz = GetTextSize(scoreText, fnt);
+	w.DrawText(sz.cx - textSz.cx - 20, 10, scoreText, fnt, White());
 }
 
 void GameScreen::ClearEnemies() {

@@ -14,11 +14,9 @@ public:
 
 	Resource(
 		const String& url,
-		const Shared<IHttpClient>& http_client,
 		Ownership mode = IS_OBSERVER
 		)
-		: http_client_(http_client)
-		, url_(url)
+		: url_(url)
 		, ownership_(mode)
 	{}
 
@@ -27,8 +25,7 @@ public:
 		const String& name,
 		Ownership mode = IS_OBSERVER
 		)
-		: http_client_(parent->http_client_)
-		, parent_(parent)
+		: parent_(parent)
 		, url_(ConcatUrl(parent->url_, name))
 		, ownership_(mode)
 	{}
@@ -45,7 +42,7 @@ public:
 	}
 
 	Value Get(const String& command = String()) const {
-		return Download(command, &IHttpClient::Get, "GET");
+		return Download(command, HttpRequest::METHOD_GET, "GET");
 	}
 
 	template<typename T>
@@ -66,14 +63,14 @@ public:
 	}
 
 	Value Delete(const String& command = String()) const {
-		return Download(command, &IHttpClient::Delete, "DELETE");
+		return Download(command, HttpRequest::METHOD_DELETE, "DELETE");
 	}
 
 	Value Post(
 		const String& command = String(),
 		const Value& upload_data = Value()
 		) const {
-		return Upload(command, upload_data, &IHttpClient::Post, "POST");
+		return Upload(command, upload_data, HttpRequest::METHOD_POST, "POST");
 	}
 
 	template<typename T>
@@ -108,13 +105,14 @@ protected:
 private:
 	Value Download(
 		const String& command,
-		HttpResponse (IHttpClient::* member)(const String& url) const,
+		int method,
 		const char* request_type
 		) const {
 		try {
-			return ProcessResponse((http_client_.Get()->*member)(
-				ConcatUrl(url_, command)
-				));
+			HttpRequest req(ConcatUrl(url_, command));
+			req.Method(method);
+			String body = req.Execute();
+			return ProcessResponse(req.GetStatusCode(), body);
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
 				+ "request: " + request_type
@@ -132,14 +130,18 @@ private:
 	Value Upload(
 		const String& command,
 		const Value& upload_data,
-		HttpResponse (IHttpClient::* member)(const String& url, const String& upload_data) const,
+		int method,
 		const char* request_type
 		) const {
 		try {
-			return ProcessResponse((http_client_.Get()->*member)(
-				ConcatUrl(url_, command),
-				ToUploadData(upload_data)
-				));
+			HttpRequest req(ConcatUrl(url_, command));
+			req.Method(method);
+			if (!IsNull(upload_data)) {
+				req.PostData(ToUploadData(upload_data));
+				req.ContentType("application/json; charset=UTF-8");
+			}
+			String body = req.Execute();
+			return ProcessResponse(req.GetStatusCode(), body);
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
 				+ "request: " + request_type
@@ -151,14 +153,15 @@ private:
 	}
 
 	Value ProcessResponse(
-		const HttpResponse& http_response
+		int http_code,
+		const String& body
 		) const {
 		try {
-			if (!(http_response.http_code / 100 != 4 && http_response.http_code != 501)) {
+			if (!(http_code / 100 != 4 && http_code != 501)) {
 				throw std::runtime_error("HTTP code indicates that request is invalid");
 			}
 
-			Value response = ParseJSON(http_response.body);
+			Value response = ParseJSON(body);
 			if (response.IsError()) {
 				throw std::runtime_error("JSON parser error");
 			}
@@ -171,7 +174,7 @@ private:
 			if (response["value"].IsVoid()) throw std::runtime_error("Server response has no member \"value\"");
 			const Value& value = response["value"];
 
-			if (http_response.http_code == 500) { // Internal server error
+			if (http_code == 500) { // Internal server error
 				if (!value.Is<ValueMap>()) throw std::runtime_error("Server response has no member \"value\" or \"value\" is not an object");
 				if (value["message"].IsVoid()) throw std::runtime_error("Server response has no member \"value.message\"");
 				if (!value["message"].Is<String>()) throw std::runtime_error("\"value.message\" is not a string");
@@ -183,13 +186,13 @@ private:
 				);
 			}
 			if (!(status == response_status_code::kSuccess)) throw std::runtime_error("Non-zero response status code");
-			if (!(http_response.http_code == 200)) throw std::runtime_error("Unsupported HTTP code");
+			if (!(http_code == 200)) throw std::runtime_error("Unsupported HTTP code");
 
 			return TransformResponse(response);
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
-				+ "HTTP code: " + AsString(http_response.http_code)
-				+ ", body: " + http_response.body
+				+ "HTTP code: " + AsString(http_code)
+				+ ", body: " + body
 				);
 		}
 	}
@@ -206,7 +209,6 @@ private:
 	}
 
 private:
-	const Shared<IHttpClient> http_client_;
 	const Shared<Resource> parent_;
 	const String url_;
 	const Ownership ownership_;
@@ -215,10 +217,9 @@ private:
 class Root_resource : public Resource { // noncopyable
 public:
 	Root_resource(
-		const String& url,
-		const Shared<IHttpClient>& http_client
+		const String& url
 		)
-		: Resource(url, http_client, IS_OBSERVER)
+		: Resource(url, IS_OBSERVER)
 	{}
 
 private:

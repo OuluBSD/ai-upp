@@ -5,10 +5,18 @@
 
 NAMESPACE_UPP
 
-class HttpRequest {
-public:
-    // Implementation will be adapted from webdriverxx/detail/http_request.h
+namespace detail {
+
+struct Http_request {
+	String method;
+	String url;
+	Vector<String> headers;
+	String body;
+	
+	Http_request(const String& method, const String& url);
 };
+
+} // namespace detail
 
 END_UPP_NAMESPACE
 

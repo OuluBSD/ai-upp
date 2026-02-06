@@ -111,11 +111,17 @@ struct GeomProjectCtrl : Ctrl {
 
 	Vector<PropRef> props_nodes;
 	Vector<One<Ctrl>> props_ctrls;
+	struct PropsCursorState : Moveable<PropsCursorState> {
+		String path;
+		int line = -1;
+		int scroll = 0;
+		void Serialize(Stream& s) { s % path % line % scroll; }
+	};
 	Ctrl* props_transform_pos_ctrl = 0;
 	Ctrl* props_transform_ori_ctrl = 0;
 	int props_transform_pos_id = -1;
 	int props_transform_ori_id = -1;
-	VectorMap<String, String> props_cursor_by_tree;
+	VectorMap<String, PropsCursorState> props_cursor_by_tree;
 	String current_tree_path;
 	Vector<String> tree_open_paths;
 	

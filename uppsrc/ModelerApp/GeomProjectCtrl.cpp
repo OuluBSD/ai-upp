@@ -666,6 +666,12 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	tree.WhenCursor << THISBACK(TreeSelect);
 	tree.WhenMenu = THISBACK(TreeMenu);
 	props.WhenBar = THISBACK(PropsMenu);
+	props.WhenCursor << [=] {
+		if (props_refreshing)
+			return;
+		if (!current_tree_path.IsEmpty())
+			StorePropsCursor(current_tree_path);
+	};
 	
 	
 	tree.NoHeader();
@@ -1271,10 +1277,14 @@ void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 		return;
 	}
 	String props_path = GetPropsPathForId(id);
-	if (props_path.IsEmpty())
+	PropsCursorState st;
+	st.path = props_path;
+	st.line = line;
+	st.scroll = props.GetScroll();
+	if (st.path.IsEmpty() && st.line < 0)
 		props_cursor_by_tree.RemoveKey(tree_path);
 	else
-		props_cursor_by_tree.GetAdd(tree_path) = props_path;
+		props_cursor_by_tree.GetAdd(tree_path) = st;
 }
 
 void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
@@ -1283,12 +1293,23 @@ void GeomProjectCtrl::RestorePropsCursor(const String& tree_path) {
 	int idx = props_cursor_by_tree.Find(tree_path);
 	if (idx < 0)
 		return;
-	String props_path = props_cursor_by_tree[idx];
-	if (props_path.IsEmpty())
-		return;
-	int id = FindPropsIdByPath(props_path, true);
-	if (id >= 0)
-		props.SetCursor(id);
+	const PropsCursorState& st = props_cursor_by_tree[idx];
+	bool set = false;
+	if (!st.path.IsEmpty()) {
+		int id = FindPropsIdByPath(st.path, true);
+		if (id >= 0) {
+			props.SetCursor(id);
+			set = true;
+		}
+	}
+	if (!set && st.line >= 0 && st.line < props.GetLineCount()) {
+		int id = props.GetItemAtLine(st.line);
+		if (id >= 0) {
+			props.SetCursor(id);
+			set = true;
+		}
+	}
+	props.ScrollTo(max(st.scroll, 0));
 }
 
 void GeomProjectCtrl::StoreTreeOpenState() {

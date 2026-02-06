@@ -1425,6 +1425,11 @@ void GeomProjectCtrl::PropsData() {
 	int layer_texture_id = -1;
 	int layer_texture_preview_id = -1;
 	int layer_blend_id = -1;
+	int layer_tex_offset_x_id = -1;
+	int layer_tex_offset_y_id = -1;
+	int layer_tex_scale_x_id = -1;
+	int layer_tex_scale_y_id = -1;
+	int layer_tex_rotate_id = -1;
 	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
 		model_ptr = selected_obj->mdl.Get();
 		PropRef& mats = props_nodes.Add();
@@ -1464,6 +1469,21 @@ void GeomProjectCtrl::PropsData() {
 		PropRef& bref = props_nodes.Add();
 		bref.kind = PropRef::P_MAT_BASE_ALPHA;
 		layer_blend_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&bref), t_("Blend Mode"));
+		PropRef& toxref = props_nodes.Add();
+		toxref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_offset_x_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&toxref), t_("Tex Offset X"));
+		PropRef& toyref = props_nodes.Add();
+		toyref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_offset_y_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&toyref), t_("Tex Offset Y"));
+		PropRef& tsxref = props_nodes.Add();
+		tsxref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_scale_x_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsxref), t_("Tex Scale X"));
+		PropRef& tsyref = props_nodes.Add();
+		tsyref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_scale_y_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tsyref), t_("Tex Scale Y"));
+		PropRef& trotref = props_nodes.Add();
+		trotref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_rotate_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&trotref), t_("Tex Rotate"));
 	}
 	int scene_timeline = -1;
 	int scene_tl_length_id = -1;
@@ -1986,6 +2006,66 @@ void GeomProjectCtrl::PropsData() {
 			}
 		};
 		set_value_ctrl(layer_blend_id, pick(blend_ctrl));
+
+		One<EditDoubleSpin> tex_off_x = MakeOne<EditDoubleSpin>();
+		tex_off_x->Min(-10).Max(10);
+		tex_off_x->SetData(layer_ptr->tex_offset_x);
+		EditDoubleSpin* tex_off_x_ptr = tex_off_x.Get();
+		tex_off_x->WhenAction << [=] {
+			if (tex_off_x_ptr && layer_ptr) {
+				layer_ptr->tex_offset_x = (double)~*tex_off_x_ptr;
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_offset_x_id, pick(tex_off_x));
+
+		One<EditDoubleSpin> tex_off_y = MakeOne<EditDoubleSpin>();
+		tex_off_y->Min(-10).Max(10);
+		tex_off_y->SetData(layer_ptr->tex_offset_y);
+		EditDoubleSpin* tex_off_y_ptr = tex_off_y.Get();
+		tex_off_y->WhenAction << [=] {
+			if (tex_off_y_ptr && layer_ptr) {
+				layer_ptr->tex_offset_y = (double)~*tex_off_y_ptr;
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_offset_y_id, pick(tex_off_y));
+
+		One<EditDoubleSpin> tex_scale_x = MakeOne<EditDoubleSpin>();
+		tex_scale_x->Min(0.01).Max(10);
+		tex_scale_x->SetData(layer_ptr->tex_scale_x);
+		EditDoubleSpin* tex_scale_x_ptr = tex_scale_x.Get();
+		tex_scale_x->WhenAction << [=] {
+			if (tex_scale_x_ptr && layer_ptr) {
+				layer_ptr->tex_scale_x = max(0.01, (double)~*tex_scale_x_ptr);
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_scale_x_id, pick(tex_scale_x));
+
+		One<EditDoubleSpin> tex_scale_y = MakeOne<EditDoubleSpin>();
+		tex_scale_y->Min(0.01).Max(10);
+		tex_scale_y->SetData(layer_ptr->tex_scale_y);
+		EditDoubleSpin* tex_scale_y_ptr = tex_scale_y.Get();
+		tex_scale_y->WhenAction << [=] {
+			if (tex_scale_y_ptr && layer_ptr) {
+				layer_ptr->tex_scale_y = max(0.01, (double)~*tex_scale_y_ptr);
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_scale_y_id, pick(tex_scale_y));
+
+		One<EditDoubleSpin> tex_rotate = MakeOne<EditDoubleSpin>();
+		tex_rotate->Min(-360).Max(360);
+		tex_rotate->SetData(layer_ptr->tex_rotate);
+		EditDoubleSpin* tex_rotate_ptr = tex_rotate.Get();
+		tex_rotate->WhenAction << [=] {
+			if (tex_rotate_ptr && layer_ptr) {
+				layer_ptr->tex_rotate = (double)~*tex_rotate_ptr;
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_rotate_id, pick(tex_rotate));
 	}
 	
 	if (selected_obj) {

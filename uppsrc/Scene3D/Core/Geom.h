@@ -157,6 +157,11 @@ struct Geom2DLayer : VfsValueExt {
 	bool use_layer_style = true;
 	String texture_ref;
 	int blend_mode = 0;
+	float tex_offset_x = 0;
+	float tex_offset_y = 0;
+	float tex_scale_x = 1;
+	float tex_scale_y = 1;
+	float tex_rotate = 0;
 
 	DEFAULT_EXT(Geom2DLayer)
 	void Visit(Vis& v) override;

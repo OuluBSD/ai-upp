@@ -17,8 +17,10 @@ protected:
 	bool has_children = false;
 	bool expanded = true;
 	bool active = false;
+	bool selected = false;
 	bool dragging = false;
 	bool drag_range = false;
+	bool drag_title = false;
 	
 public:
 	typedef TimelineRowCtrl CLASSNAME;
@@ -38,6 +40,7 @@ public:
 	void SetHasChildren(bool b) {has_children = b;}
 	void SetExpanded(bool b) {expanded = b;}
 	void SetActive(bool b) {active = b;}
+	void SetSelected(bool b) {selected = b;}
 	void SetKeypoints(const Vector<int>& keypoints);
 	
 };
@@ -57,12 +60,15 @@ protected:
 	Color bg_active, bg_active_keypoint;
 	Color kp_second_accent, kp_col_accent;
 	Color range_bg;
+	Color bg_selected;
 	int title_tab_w = 200;
 	int kp_col = 10;
 	int selected_col = 0;
 	int range_start = -1;
 	int range_end = -1;
 	int range_anchor = -1;
+	int row_anchor = -1;
+	Index<int> selected_rows;
 	
 public:
 	typedef TimelineCtrl CLASSNAME;
@@ -73,6 +79,7 @@ public:
 	int GetLineHeight() const {return line_height;}
 	int GetColumnWidth() const {return kp_col;}
 	int GetSelectedColumn() const {return selected_col;}
+	Vector<int> GetSelectedRows() const;
 	bool HasSelectionRange() const {return range_start >= 0 && range_end >= 0;}
 	int GetRangeStart() const {return range_start;}
 	int GetRangeEnd() const {return range_end;}
@@ -87,6 +94,12 @@ public:
 	void ClearSelectionRange();
 	void OnScroll();
 	void MakeColumnVisible(int col);
+	void SelectRow(int row, dword keyflags);
+	void SelectRowRange(int a, int b);
+	void ClearRowSelection();
+	void ToggleRowSelection(int row);
+	bool IsRowSelected(int row) const {return selected_rows.Find(row) >= 0;}
+	int GetRowAt(Point p) const;
 	
 	void Paint(Draw& d) override;
 	bool Key(dword key, int) override;

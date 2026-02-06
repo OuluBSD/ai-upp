@@ -193,27 +193,21 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 		for(int row = minRow; row <= maxRow; row++) {
 			for(int col = minCol; col <= maxCol; col++) {
 				if(collision.IsWallTile(col, row) || collision.IsFullBlockTile(col, row)) {
-					collided = true;
-
-					// In Y-up coordinates:
-					// - Tile at row N spans Y from (N * gridSize) to ((N+1) * gridSize)
-					// - Player feet at feetY, head at headY (headY > feetY in Y-up)
-					// - When falling (deltaY < 0): feet moving toward lower Y, hits TOP of tile below
-					// - When jumping (deltaY > 0): head moving toward higher Y, hits BOTTOM of tile above
-
 					float feetY = min(bounds.top, bounds.bottom);
 					float headY = max(bounds.top, bounds.bottom);
 					float tileBottomY = row * gridSize;
 					float tileTopY = (row + 1) * gridSize;
 
-					if(deltaY > 0) {
-						// Moving UP: check if we started BELOW the tile bottom
-						if(startHeadY <= tileBottomY) {
+					if(deltaY < 0) {
+						// Falling DOWN: only collide if we started ABOVE the tile
+						if(startFeetY >= tileTopY) {
+							collided = true;
 							onGround = true;
 						}
 					}
+					// When jumping UP (deltaY > 0): allow pass-through, don't collide
 
-					break;
+					if(collided) break;
 				}
 			}
 			if(collided) break;

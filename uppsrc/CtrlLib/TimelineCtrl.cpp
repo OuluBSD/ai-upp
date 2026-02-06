@@ -36,6 +36,18 @@ void TimelineRowCtrl::Paint(Draw& d) {
 	int kp_last = min(owner->length, kp_i + max(0, visible_cols));
 	int line_mid = sz.cy / 2;
 	Color tween_clr = Blend(owner->kp_col_accent, row_bg, 200);
+	if (owner->HasSelectionRange()) {
+		int a = owner->GetRangeStart();
+		int b = owner->GetRangeEnd();
+		if (b >= kp_i && a <= kp_last) {
+			int ra = max(a, kp_i);
+			int rb = min(b, kp_last);
+			int x0 = owner->title_tab_w + 1 + (ra - kp_i) * col;
+			int x1 = owner->title_tab_w + 1 + (rb - kp_i + 1) * col;
+			if (x1 > x0)
+				d.DrawRect(x0, 0, x1 - x0, sz.cy, owner->range_bg);
+		}
+	}
 	if (keypoints.GetCount() > 1) {
 		for (int i = 1; i < keypoints.GetCount(); i++) {
 			int a = keypoints[i - 1];
@@ -99,8 +111,70 @@ void TimelineRowCtrl::Paint(Draw& d) {
 }
 
 bool TimelineRowCtrl::Key(dword key, int) {
-	
-	return true;
+	if (!owner)
+		return false;
+	dword base = key & ~(K_SHIFT|K_CTRL|K_ALT);
+	int col = owner->selected_col;
+	if ((key == K_LEFT || key == K_RIGHT) && col >= 0) {
+		int delta = (key == K_LEFT) ? -1 : 1;
+		int next_col = col + delta;
+		next_col = min(max(next_col, 0), max(0, owner->length - 1));
+		if (key & K_SHIFT) {
+			if (owner->range_anchor < 0)
+				owner->range_anchor = col;
+			owner->SetSelectionRange(owner->range_anchor, next_col);
+		}
+		else {
+			owner->range_anchor = next_col;
+			owner->ClearSelectionRange();
+		}
+		if (next_col != owner->selected_col) {
+			owner->selected_col = next_col;
+			if (owner->WhenCursor)
+				owner->WhenCursor(next_col);
+		}
+		owner->MakeColumnVisible(next_col);
+		Refresh();
+		return true;
+	}
+	if ((key == (K_CTRL|K_LEFT) || key == (K_CTRL|K_RIGHT)) && col >= 0) {
+		int best = -1;
+		for (int k = 0; k < keypoints.GetCount(); k++) {
+			int kp = keypoints[k];
+			if (key == (K_CTRL|K_LEFT)) {
+				if (kp < col && (best < 0 || kp > best))
+					best = kp;
+			}
+			else {
+				if (kp > col && (best < 0 || kp < best))
+					best = kp;
+			}
+		}
+		if (best >= 0) {
+			owner->selected_col = best;
+			if (owner->WhenCursor)
+				owner->WhenCursor(best);
+			owner->MakeColumnVisible(best);
+			Refresh();
+		}
+		return true;
+	}
+	if (base == K_K || base == K_INSERT) {
+		if (owner->WhenKeyframeToggle)
+			owner->WhenKeyframeToggle(id, owner->selected_col);
+		return true;
+	}
+	if (base == K_DELETE || base == K_BACKSPACE) {
+		if (owner->WhenKeyframeRemove)
+			owner->WhenKeyframeRemove(id, owner->selected_col);
+		return true;
+	}
+	if (base == K_A) {
+		if (owner->WhenToggleAutoKey)
+			owner->WhenToggleAutoKey();
+		return true;
+	}
+	return false;
 }
 
 void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
@@ -120,12 +194,28 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 	}
 	int col = owner->GetColumnWidth();
 	int x = p.x - owner->title_tab_w - 1;
-	int kp_i = x / col;
+	int kp_i = (col > 0) ? owner->hsb / col + x / col : -1;
 	
-	bool kp_changes = false;
-	if (kp_i >= 0 && kp_i < owner->length && kp_i != owner->selected_col) {
-		kp_changes = true;
-		owner->selected_col = kp_i;
+	bool shift = (keyflags & K_SHIFT);
+	if (kp_i >= 0 && kp_i < owner->length) {
+		if (shift) {
+			if (owner->range_anchor < 0)
+				owner->range_anchor = owner->selected_col >= 0 ? owner->selected_col : kp_i;
+			owner->SetSelectionRange(owner->range_anchor, kp_i);
+		}
+		else {
+			owner->range_anchor = kp_i;
+			owner->ClearSelectionRange();
+		}
+		if (kp_i != owner->selected_col) {
+			owner->selected_col = kp_i;
+			if (owner->WhenCursor)
+				owner->WhenCursor(kp_i);
+		}
+		owner->MakeColumnVisible(kp_i);
+		dragging = true;
+		drag_range = shift;
+		SetCapture();
 	}
 	
 	if (!HasFocus())
@@ -133,9 +223,39 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 	else
 		Refresh();
 	
-	if (kp_changes)
-		owner->WhenCursor(kp_i);
-	
+}
+
+void TimelineRowCtrl::LeftDrag(Point p, dword keyflags) {
+	if (!owner || !dragging)
+		return;
+	int col = owner->GetColumnWidth();
+	int x = p.x - owner->title_tab_w - 1;
+	int kp_i = (col > 0) ? owner->hsb / col + x / col : -1;
+	if (kp_i < 0 || kp_i >= owner->length)
+		return;
+	if (drag_range) {
+		if (owner->range_anchor < 0)
+			owner->range_anchor = owner->selected_col >= 0 ? owner->selected_col : kp_i;
+		owner->SetSelectionRange(owner->range_anchor, kp_i);
+	}
+	else {
+		owner->range_anchor = kp_i;
+		owner->ClearSelectionRange();
+	}
+	if (kp_i != owner->selected_col) {
+		owner->selected_col = kp_i;
+		if (owner->WhenCursor)
+			owner->WhenCursor(kp_i);
+		owner->MakeColumnVisible(kp_i);
+		Refresh();
+	}
+}
+
+void TimelineRowCtrl::LeftUp(Point p, dword keyflags) {
+	if (HasCapture())
+		ReleaseCapture();
+	dragging = false;
+	Ctrl::LeftUp(p, keyflags);
 }
 
 void TimelineRowCtrl::RightDown(Point p, dword keyflags) {
@@ -182,6 +302,7 @@ TimelineCtrl::TimelineCtrl() {
 	text = Color(33, 34, 36);
 	kp_second_accent = text;
 	kp_col_accent = accent;
+	range_bg = Blend(accent, bg, 220);
 	
 	AddFrame(vsb);
 	AddFrame(hsb.Horz());
@@ -194,6 +315,54 @@ TimelineCtrl::TimelineCtrl() {
 
 void TimelineCtrl::OnScroll() {
 	Refresh();
+}
+
+void TimelineCtrl::SetSelectedColumn(int i) {
+	if (length <= 0) {
+		selected_col = 0;
+		return;
+	}
+	int clamped = min(max(i, 0), max(0, length - 1));
+	selected_col = clamped;
+	MakeColumnVisible(clamped);
+	Refresh();
+}
+
+void TimelineCtrl::SetSelectionRange(int a, int b) {
+	if (length <= 0) {
+		ClearSelectionRange();
+		return;
+	}
+	range_start = min(a, b);
+	range_end = max(a, b);
+	range_start = min(max(range_start, 0), max(0, length - 1));
+	range_end = min(max(range_end, 0), max(0, length - 1));
+	if (WhenRangeSelect)
+		WhenRangeSelect(range_start, range_end);
+	Refresh();
+}
+
+void TimelineCtrl::ClearSelectionRange() {
+	range_start = -1;
+	range_end = -1;
+	Refresh();
+}
+
+void TimelineCtrl::MakeColumnVisible(int col) {
+	int colw = GetColumnWidth();
+	if (colw <= 0)
+		return;
+	Size sz = GetSize();
+	int vieww = max(0, sz.cx - title_tab_w);
+	int visible = vieww > 0 ? vieww / colw : 0;
+	if (visible <= 0)
+		return;
+	int first = hsb.Get() / colw;
+	int last = first + visible - 1;
+	if (col < first)
+		hsb.Set(col * colw);
+	else if (col > last)
+		hsb.Set(max(0, (col - visible + 1) * colw));
 }
 
 void TimelineCtrl::Paint(Draw& d) {

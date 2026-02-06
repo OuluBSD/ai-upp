@@ -150,6 +150,13 @@ struct Geom2DShape : Moveable<Geom2DShape> {
 struct Geom2DLayer : VfsValueExt {
 	Vector<Geom2DShape> shapes;
 	bool visible = true;
+	Color stroke = Color(220, 220, 220);
+	Color fill = Color(60, 60, 60);
+	float width = 1.0f;
+	float opacity = 1.0f;
+	bool use_layer_style = true;
+	String texture_ref;
+	int blend_mode = 0;
 
 	DEFAULT_EXT(Geom2DLayer)
 	void Visit(Vis& v) override;

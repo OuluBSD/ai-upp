@@ -1171,6 +1171,15 @@ void GeomProjectCtrl::PropsData() {
 	int materials = -1;
 	int meshes = -1;
 	Model* model_ptr = 0;
+	Geom2DLayer* layer_ptr = 0;
+	int layer_material = -1;
+	int layer_stroke_id = -1;
+	int layer_fill_id = -1;
+	int layer_width_id = -1;
+	int layer_opacity_id = -1;
+	int layer_style_id = -1;
+	int layer_texture_id = -1;
+	int layer_blend_id = -1;
 	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
 		model_ptr = selected_obj->mdl.Get();
 		PropRef& mats = props_nodes.Add();
@@ -1179,6 +1188,34 @@ void GeomProjectCtrl::PropsData() {
 		PropRef& meshref = props_nodes.Add();
 		meshref.kind = PropRef::P_MESH_MATERIAL;
 		meshes = props.Add(root, ImagesImg::Directory(), RawToValue(&meshref), t_("Meshes"));
+	}
+	if (selected_obj)
+		layer_ptr = selected_obj->Find2DLayer();
+	if (layer_ptr) {
+		PropRef& lnode = props_nodes.Add();
+		lnode.kind = PropRef::P_MATERIALS;
+		layer_material = props.Add(root, ImagesImg::Directory(), RawToValue(&lnode), t_("2D Material"));
+		PropRef& sref = props_nodes.Add();
+		sref.kind = PropRef::P_MAT_BASE_COLOR;
+		layer_stroke_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&sref), t_("Stroke"));
+		PropRef& fref = props_nodes.Add();
+		fref.kind = PropRef::P_MAT_EMISSIVE;
+		layer_fill_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&fref), t_("Fill"));
+		PropRef& wref = props_nodes.Add();
+		wref.kind = PropRef::P_MAT_ROUGHNESS;
+		layer_width_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&wref), t_("Width"));
+		PropRef& oref = props_nodes.Add();
+		oref.kind = PropRef::P_MAT_METALLIC;
+		layer_opacity_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&oref), t_("Opacity"));
+		PropRef& uref = props_nodes.Add();
+		uref.kind = PropRef::P_MAT_OCCLUSION;
+		layer_style_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&uref), t_("Use Layer Style"));
+		PropRef& tref = props_nodes.Add();
+		tref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_texture_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tref), t_("Texture"));
+		PropRef& bref = props_nodes.Add();
+		bref.kind = PropRef::P_MAT_BASE_ALPHA;
+		layer_blend_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&bref), t_("Blend Mode"));
 	}
 	int scene_timeline = -1;
 	int scene_tl_length_id = -1;
@@ -1425,6 +1462,8 @@ void GeomProjectCtrl::PropsData() {
 		props.Open(materials);
 	if (meshes >= 0)
 		props.Open(meshes);
+	if (layer_material >= 0)
+		props.Open(layer_material);
 	if (pointcloud >= 0)
 		props.Open(pointcloud);
 	if (scene_timeline >= 0)
@@ -1604,6 +1643,87 @@ void GeomProjectCtrl::PropsData() {
 			};
 			set_value_ctrl(row_id, pick(dl));
 		}
+	}
+	if (layer_ptr && layer_material >= 0) {
+		One<ColorPusher> stroke_ctrl = MakeOne<ColorPusher>();
+		stroke_ctrl->SetData(layer_ptr->stroke);
+		ColorPusher* stroke_ptr = stroke_ctrl.Get();
+		stroke_ctrl->WhenAction << [=] {
+			if (stroke_ptr && layer_ptr) {
+				layer_ptr->stroke = (Color)stroke_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_stroke_id, pick(stroke_ctrl));
+
+		One<ColorPusher> fill_ctrl = MakeOne<ColorPusher>();
+		fill_ctrl->SetData(layer_ptr->fill);
+		ColorPusher* fill_ptr = fill_ctrl.Get();
+		fill_ctrl->WhenAction << [=] {
+			if (fill_ptr && layer_ptr) {
+				layer_ptr->fill = (Color)fill_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_fill_id, pick(fill_ctrl));
+
+		One<EditDoubleSpin> width_ctrl = MakeOne<EditDoubleSpin>();
+		width_ctrl->Min(0).Max(20);
+		width_ctrl->SetData(layer_ptr->width);
+		EditDoubleSpin* width_ptr = width_ctrl.Get();
+		width_ctrl->WhenAction << [=] {
+			if (width_ptr && layer_ptr) {
+				layer_ptr->width = max(0.0, (double)~*width_ptr);
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_width_id, pick(width_ctrl));
+
+		One<EditDoubleSpin> opacity_ctrl = MakeOne<EditDoubleSpin>();
+		opacity_ctrl->Min(0).Max(1);
+		opacity_ctrl->SetData(layer_ptr->opacity);
+		EditDoubleSpin* opacity_ptr = opacity_ctrl.Get();
+		opacity_ctrl->WhenAction << [=] {
+			if (opacity_ptr && layer_ptr) {
+				layer_ptr->opacity = clamp01((double)~*opacity_ptr);
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_opacity_id, pick(opacity_ctrl));
+
+		One<Option> style_ctrl = MakeOne<Option>();
+		style_ctrl->SetData(layer_ptr->use_layer_style);
+		Option* style_ptr = style_ctrl.Get();
+		style_ctrl->WhenAction << [=] {
+			if (style_ptr && layer_ptr) {
+				layer_ptr->use_layer_style = (bool)style_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_style_id, pick(style_ctrl));
+
+		One<EditString> tex_ctrl = MakeOne<EditString>();
+		tex_ctrl->SetData(layer_ptr->texture_ref);
+		EditString* tex_ptr = tex_ctrl.Get();
+		tex_ctrl->WhenAction << [=] {
+			if (tex_ptr && layer_ptr)
+				layer_ptr->texture_ref = ~*tex_ptr;
+		};
+		set_value_ctrl(layer_texture_id, pick(tex_ctrl));
+
+		One<DropList> blend_ctrl = MakeOne<DropList>();
+		blend_ctrl->Add(0, t_("Normal"));
+		blend_ctrl->Add(1, t_("Add"));
+		blend_ctrl->Add(2, t_("Multiply"));
+		blend_ctrl->SetData(layer_ptr->blend_mode);
+		DropList* blend_ptr = blend_ctrl.Get();
+		blend_ctrl->WhenAction << [=] {
+			if (blend_ptr && layer_ptr) {
+				layer_ptr->blend_mode = (int)blend_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_blend_id, pick(blend_ctrl));
 	}
 	
 	if (selected_obj) {

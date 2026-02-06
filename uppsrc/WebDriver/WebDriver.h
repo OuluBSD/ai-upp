@@ -2,15 +2,16 @@
 #define _WebDriver_WebDriver_h_
 
 #include <Core/Core.h>
+#include "Conversions.h"
 #include "Types.h"
 #include "By.h"
 #include "Capabilities.h"
 #include "JsArgs.h"
-#include "Session.h"
-#include "Client.h"
 #include "Element.h"
 #include "Errors.h"
+#include "Keys.h"
 #include "Session.h"
+#include "Client.h"
 #include "Window.h"
 #include "Chrome.h"
 #include "Firefox.h"
@@ -18,7 +19,6 @@
 #include "Phantom.h"
 #include "Wait.h"
 #include "WaitMatch.h"
-#include <Core/Xmlize.h>
 
 NAMESPACE_UPP
 

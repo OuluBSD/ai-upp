@@ -234,6 +234,62 @@ void Custom_from_json(const picojson::value& value, Cookie& result) {
 	if (it != obj.end()) result.expiry = static_cast<int>(it->second.get<double>());
 }
 
+// Helper function to convert picojson::value to Upp::Value
+inline Value ToValue(const picojson::value& pico_val) {
+	if (pico_val.is<bool>()) {
+		return Value(pico_val.get<bool>());
+	} else if (pico_val.is<double>()) {
+		return Value(pico_val.get<double>());
+	} else if (pico_val.is<std::string>()) {
+		return Value(String(pico_val.to_str().c_str()));
+	} else if (pico_val.is<picojson::object>()) {
+		Value result = Value::Object();
+		const picojson::object& obj = pico_val.get<picojson::object>();
+		for (const auto& pair : obj) {
+			result.Add(String(pair.first.c_str()), ToValue(pair.second));
+		}
+		return result;
+	} else if (pico_val.is<picojson::array>()) {
+		Value result = Value::Array();
+		const picojson::array& arr = pico_val.get<picojson::array>();
+		for (const auto& item : arr) {
+			result.Add(ToValue(item));
+		}
+		return result;
+	} else {
+		return Value(); // null value
+	}
+}
+
+// Helper function to convert Upp::Value to picojson::value
+inline picojson::value ToPicoJson(const Value& upp_val) {
+	if (upp_val.IsVoid()) {
+		return picojson::value();
+	} else if (upp_val.IsBool()) {
+		return picojson::value(upp_val.Get<bool>());
+	} else if (upp_val.IsInt()) {
+		return picojson::value(static_cast<double>(upp_val.Get<int>()));
+	} else if (upp_val.IsDouble()) {
+		return picojson::value(upp_val.Get<double>());
+	} else if (upp_val.IsString()) {
+		return picojson::value(upp_val.Get<String>().ToStd());
+	} else if (upp_val.IsArray()) {
+		picojson::array arr;
+		for (int i = 0; i < upp_val.GetCount(); ++i) {
+			arr.push_back(ToPicoJson(upp_val[i]));
+		}
+		return picojson::value(arr);
+	} else if (upp_val.IsObject()) {
+		picojson::object obj;
+		for (const auto& key : upp_val.GetKeys()) {
+			obj[key.ToStd()] = ToPicoJson(upp_val[key]);
+		}
+		return picojson::value(obj);
+	} else {
+		return picojson::value(); // null value
+	}
+}
+
 END_UPP_NAMESPACE
 
 #endif

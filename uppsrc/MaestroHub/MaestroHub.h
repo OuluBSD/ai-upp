@@ -5,6 +5,7 @@
 #include <Maestro/Maestro.h>
 #include <GraphLib/GraphLib.h>
 #include <CodeEditor/CodeEditor.h>
+#include <PdfDraw/PdfDraw.h>
 
 NAMESPACE_UPP
 
@@ -99,6 +100,8 @@ public:
 	void Load(const String& maestro_root);
 	void OnEvidenceCursor();
 	void OnCollect();
+	void OnVerify();
+	void OnExportPdf();
 	void OnToolbar(Bar& bar);
 	typedef EvidencePane CLASSNAME;
 	EvidencePane();
@@ -382,6 +385,7 @@ public:
 	void AppMenu(Bar& bar);
 	void SelectRoot();
 	void OnToggleAssistant();
+	void OnAssistantEvent(const MaestroEvent& e);
 	void OnEnact(String track, String phase, String task);
 	void OnEnactStep(String runbook_title, int step_n, String instruction);
 	void OnSessionSelect(String backend, String session_id);

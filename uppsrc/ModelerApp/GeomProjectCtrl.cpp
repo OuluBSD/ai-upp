@@ -1582,30 +1582,40 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		};
 		bar.Sub(t_("Add"), [=](Bar& bar) {
 			bar.Add(t_("Directory"), [=] {
+				if (e)
+					e->PushUndo("Add directory");
 				String name = unique_name(*dir, "dir");
 				dir->GetAddDirectory(name);
 				e->state->UpdateObjects();
 				e->RefreshData();
 			});
 			bar.Add(t_("Camera"), [=] {
+				if (e)
+					e->PushUndo("Add camera");
 				String name = unique_name(*dir, "camera");
 				dir->GetAddCamera(name);
 				e->state->UpdateObjects();
 				e->RefreshData();
 			});
 			bar.Add(t_("Model"), [=] {
+				if (e)
+					e->PushUndo("Add model");
 				String name = unique_name(*dir, "model");
 				dir->GetAddModel(name);
 				e->state->UpdateObjects();
 				e->RefreshData();
 			});
 			bar.Add(t_("Pointcloud"), [=] {
+				if (e)
+					e->PushUndo("Add pointcloud");
 				String name = unique_name(*dir, "pointcloud");
 				dir->GetAddOctree(name);
 				e->state->UpdateObjects();
 				e->RefreshData();
 			});
 			bar.Add(t_("Pointcloud Dataset"), [=] {
+				if (e)
+					e->PushUndo("Add dataset");
 				String name = unique_name(*dir, "dataset");
 				dir->GetAddPointcloudDataset(name);
 				e->state->UpdateObjects();
@@ -1613,6 +1623,8 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 			});
 			bar.Sub(t_("Preset"), [=](Bar& bar) {
 				bar.Add(t_("Sphere"), [=] {
+					if (e)
+						e->PushUndo("Add sphere");
 					String name = unique_name(*dir, "sphere");
 					GeomObject& obj = dir->GetAddModel(name);
 					ModelBuilder mb;
@@ -1628,9 +1640,13 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 	if (obj && obj->IsOctree()) {
 		bar.Separator();
 		bar.Add(t_("Generate Synthetic Pointcloud"), [=] {
+			if (e)
+				e->PushUndo("Generate pointcloud");
 			e->GenerateSyntheticPointcloudFor(*obj);
 		});
 		bar.Add(t_("Clear Pointcloud"), [=] {
+			if (e)
+				e->PushUndo("Clear pointcloud");
 			obj->octree.octree.Initialize(-3, 8);
 			obj->octree_ptr = 0;
 			e->state->UpdateObjects();
@@ -1655,6 +1671,8 @@ void GeomProjectCtrl::PropsMenu(Bar& bar) {
 		return;
 	bar.Sub(t_("Add Component"), [=](Bar& bar) {
 		bar.Add(t_("Script"), [=] {
+			if (e)
+				e->PushUndo("Add script");
 			if (obj)
 				e->AddScriptComponent(*obj);
 			else if (dir)
@@ -1666,6 +1684,8 @@ void GeomProjectCtrl::PropsMenu(Bar& bar) {
 		});
 		if (obj) {
 			bar.Add(t_("Texture Edit"), [=] {
+				if (e)
+					e->PushUndo("Add texture edit");
 				obj->GetTextureEdit();
 				e->UpdateTextureEditor(obj);
 				e->state->UpdateObjects();
@@ -1674,6 +1694,8 @@ void GeomProjectCtrl::PropsMenu(Bar& bar) {
 		}
 		if (obj && obj->IsOctree()) {
 			bar.Add(t_("Pointcloud Effect (Transform)"), [=] {
+				if (e)
+					e->PushUndo("Add pointcloud effect");
 				String base = "effect";
 				String name = base;
 				int idx = 1;
@@ -2918,6 +2940,8 @@ void GeomProjectCtrl::PropsApply() {
 		return;
 	}
 	if (selected_obj) {
+		if (e)
+			e->PushUndo("Props edit");
 		vec3 pos = pr->kind == PropRef::P_POSITION ? get_vec(linei) : vec3(0);
 		quat ori = pr->kind == PropRef::P_ORIENTATION ? get_quat(linei) : Identity<quat>();
 		if (GeomTransform* tr = selected_obj->FindTransform()) {
@@ -2965,6 +2989,8 @@ void GeomProjectCtrl::PropsApply() {
 		return;
 	}
 	if (selected_ref) {
+		if (e)
+			e->PushUndo("Props edit");
 		if (selected_ref->kind == TreeNodeRef::K_PROGRAM) {
 			GeomCamera& cam = e->state->GetProgram();
 			if (pr->kind == PropRef::P_POSITION)
@@ -3595,6 +3621,7 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 	auto add_transform_kp = [&](bool pos, bool ori) {
 		if (!e || !e->state)
 			return;
+		e->PushUndo("Add keyframe");
 		GeomTimeline& tl = obj->GetTimeline();
 		GeomKeypoint& kp = tl.GetAddKeypoint(frame);
 		kp.frame_id = frame;
@@ -3661,6 +3688,8 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		bar.Add(t_("Smooth"), [=] { set_transform_ease(2, pos, ori); }).Check(ease_check(2, pos, ori));
 	};
 	auto clear_transform_kp = [&](bool pos, bool ori) {
+		if (e)
+			e->PushUndo("Clear keyframes");
 		if (GeomTimeline* tl = obj->FindTimeline()) {
 			for (int i = tl->keypoints.GetCount() - 1; i >= 0; i--) {
 				GeomKeypoint& kp = tl->keypoints[i];
@@ -3698,6 +3727,8 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		if (obj->FindEditableMesh()) {
 			bar.Add(t_("Add Mesh Keyframe"), [=] {
 				if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
+					if (e)
+						e->PushUndo("Add mesh keyframe");
 					GeomMeshAnimation& anim = obj->GetMeshAnimation();
 					GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
 					kf.frame_id = frame;
@@ -3711,6 +3742,8 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		if (obj->Find2DLayer()) {
 			bar.Add(t_("Add 2D Keyframe"), [=] {
 				if (Geom2DLayer* layer = obj->Find2DLayer()) {
+					if (e)
+						e->PushUndo("Add 2D keyframe");
 					Geom2DAnimation& anim = obj->Get2DAnimation();
 					Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
 					kf.frame_id = frame;
@@ -3744,17 +3777,23 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 	}
 	if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
 		bar.Add(t_("Clear Mesh Keyframes"), [=] {
+			if (e)
+				e->PushUndo("Clear mesh keyframes");
 			ma->keyframes.Clear();
 			TimelineData();
 		});
 	}
 	if (Geom2DAnimation* a2d = obj->Find2DAnimation()) {
 		bar.Add(t_("Clear 2D Keyframes"), [=] {
+			if (e)
+				e->PushUndo("Clear 2D keyframes");
 			a2d->keyframes.Clear();
 			TimelineData();
 		});
 	}
 	bar.Add(t_("Clear All Keyframes"), [=] {
+		if (e)
+			e->PushUndo("Clear all keyframes");
 		if (GeomTimeline* tl = obj->FindTimeline()) {
 			for (int i = tl->keypoints.GetCount() - 1; i >= 0; i--)
 				tl->keypoints.Remove(i);
@@ -3772,6 +3811,7 @@ void GeomProjectCtrl::TimelineToggleKeyframe(int row, int frame) {
 		return;
 	if (row < 0 || row >= timeline_rows.GetCount())
 		return;
+	e->PushUndo("Toggle keyframe");
 	Vector<int> rows = time.GetSelectedRows();
 	if (rows.IsEmpty())
 		rows.Add(row);
@@ -3886,6 +3926,7 @@ void GeomProjectCtrl::TimelineRemoveKeyframe(int row, int frame) {
 		return;
 	if (row < 0 || row >= timeline_rows.GetCount())
 		return;
+	e->PushUndo("Remove keyframe");
 	Vector<int> rows = time.GetSelectedRows();
 	if (rows.IsEmpty())
 		rows.Add(row);
@@ -4053,6 +4094,7 @@ void GeomProjectCtrl::TimelinePasteSelection(int frame) {
 		return;
 	if (timeline_clipboard.items.IsEmpty())
 		return;
+	e->PushUndo("Paste keyframes");
 	auto copy_shape = [&](Geom2DShape& dst, const Geom2DShape& src) {
 		dst.type = src.type;
 		dst.radius = src.radius;
@@ -4119,6 +4161,7 @@ void GeomProjectCtrl::TimelineMoveKeyframe(int row, int from_frame, int to_frame
 		return;
 	if (from_frame == to_frame)
 		return;
+	e->PushUndo("Move keyframe");
 	auto move_transform = [&](bool pos, bool ori) {
 		if (GeomTimeline* tl = obj->FindTimeline()) {
 			int idx = tl->keypoints.Find(from_frame);
@@ -4185,6 +4228,7 @@ void GeomProjectCtrl::TimelineToggleMuteRow(int row) {
 	const TimelineRowInfo& info = timeline_rows[row];
 	if (info.kind == TimelineRowInfo::R_SCENE)
 		return;
+	e->PushUndo("Toggle row mute");
 	bool v = !info.muted;
 	timeline_muted.GetAdd(info.object_key) = v;
 	if (GeomObject* obj = e->state ? e->state->FindObjectByKey(info.object_key) : 0)
@@ -4200,6 +4244,7 @@ void GeomProjectCtrl::TimelineToggleSoloRow(int row) {
 	const TimelineRowInfo& info = timeline_rows[row];
 	if (info.kind == TimelineRowInfo::R_SCENE)
 		return;
+	e->PushUndo("Toggle row solo");
 	bool v = !info.solo;
 	timeline_solo.GetAdd(info.object_key) = v;
 	timeline_has_solo = false;
@@ -4219,6 +4264,7 @@ void GeomProjectCtrl::TimelineSetRowColor(int row, Color c) {
 	const TimelineRowInfo& info = timeline_rows[row];
 	if (info.kind == TimelineRowInfo::R_SCENE)
 		return;
+	e->PushUndo("Set row color");
 	if (IsNull(c))
 		timeline_row_color.RemoveKey(info.object_key);
 	else

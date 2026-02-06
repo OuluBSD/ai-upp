@@ -238,3 +238,7 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1306-transform-gizmo-polish.md
   status: done
   note: Added transform snapping, local/world toggle, and keyboard nudges with auto-key support.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1307-undo-redo.md
+  status: done
+  note: Added snapshot-based undo/redo with menu shortcuts and hooks for key edits/actions.

@@ -401,7 +401,11 @@ void Geom2DShape::Visit(Vis& v) {
 		v VIS_(type_i)
 		  VIS_(radius)
 		  VIS_(width)
-		  VIS_(closed);
+		  VIS_(closed)
+		  VIS_(tex_wrap)
+		  VIS_(stroke_uv_mode)
+		  VIS_(tex_repeat_x)
+		  VIS_(tex_repeat_y);
 		int r = stroke.GetR();
 		int g = stroke.GetG();
 		int b = stroke.GetB();
@@ -436,8 +440,8 @@ void Geom2DLayer::Visit(Vis& v) {
 	  VIS_(blend_mode)
 	  VIS_(tex_offset_x)
 	  VIS_(tex_offset_y)
-	  VIS_(tex_scale_x)
-	  VIS_(tex_scale_y)
+	  VIS_(tex_repeat_x)
+	  VIS_(tex_repeat_y)
 	  VIS_(tex_rotate)
 	  VIS_(tex_wrap)
 	  VIS_(stroke_uv_mode);

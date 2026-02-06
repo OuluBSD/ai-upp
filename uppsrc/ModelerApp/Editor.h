@@ -63,11 +63,19 @@ struct GeomProjectCtrl : Ctrl {
 		bool has_children = false;
 		bool expanded = true;
 		bool active = false;
+		bool muted = false;
+		bool solo = false;
+		Color tag_color = Null;
 	};
 	Vector<TimelineRowInfo> timeline_rows;
 	Index<hash_t> timeline_expanded;
-	struct TimelineClipboard : Moveable<TimelineClipboard> {
-		struct Item : Moveable<Item> {
+	VectorMap<hash_t, bool> timeline_muted;
+	VectorMap<hash_t, bool> timeline_solo;
+	VectorMap<hash_t, Color> timeline_row_color;
+	bool timeline_has_solo = false;
+	int timeline_menu_row = -1;
+	struct TimelineClipboard {
+		struct Item {
 			TimelineRowInfo::Kind kind = TimelineRowInfo::R_OBJECT;
 			hash_t object_key = 0;
 			int frame_offset = 0;
@@ -75,7 +83,7 @@ struct GeomProjectCtrl : Ctrl {
 			GeomMeshKeyframe mesh_kf;
 			Geom2DKeyframe a2d_kf;
 		};
-		Vector<Item> items;
+		Array<Item> items;
 		int base_frame = 0;
 		bool has_range = false;
 		void Clear() { items.Clear(); base_frame = 0; has_range = false; }
@@ -163,6 +171,10 @@ struct GeomProjectCtrl : Ctrl {
 	void TimelineToggleAutoKey();
 	void TimelineCopySelection();
 	void TimelinePasteSelection(int frame);
+	void TimelineToggleMuteRow(int row);
+	void TimelineToggleSoloRow(int row);
+	void TimelineSetRowColor(int row, Color c);
+	void TimelineRowColorMenu(Bar& bar);
 	void TreeSelect();
 	void TreeMenu(Bar& bar);
 	void PropsMenu(Bar& bar);

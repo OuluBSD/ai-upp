@@ -1393,16 +1393,12 @@ int GeomProjectCtrl::FindPropsIdByTokens(const Vector<PropsCursorState::PropPath
 void GeomProjectCtrl::StorePropsCursor(const String& tree_path) {
 	if (tree_path.IsEmpty())
 		return;
-	int line = props.GetCursor();
-	if (line < 0) {
-		props_cursor_by_tree.RemoveKey(tree_path);
-		return;
-	}
-	int id = props.GetItemAtLine(line);
+	int id = props.GetCursor();
 	if (id < 0) {
 		props_cursor_by_tree.RemoveKey(tree_path);
 		return;
 	}
+	int line = props.GetLineAtItem(id);
 	PropsCursorState st;
 	st.tokens = GetPropsTokensForId(id);
 	st.index_path = GetPropsIndexPathForId(id);
@@ -2860,12 +2856,10 @@ void GeomProjectCtrl::PropsData() {
 }
 
 void GeomProjectCtrl::PropsApply() {
-	int linei = props.GetCursor();
-	if (linei < 0)
-		return;
-	int id = props.GetItemAtLine(linei);
+	int id = props.GetCursor();
 	if (id < 0)
 		return;
+	int linei = props.GetLineAtItem(id);
 	Value v = props.Get(id);
 	if (!v.Is<PropRef*>())
 		return;

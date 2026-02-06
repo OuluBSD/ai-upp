@@ -162,6 +162,8 @@ struct Geom2DLayer : VfsValueExt {
 	float tex_scale_x = 1;
 	float tex_scale_y = 1;
 	float tex_rotate = 0;
+	int tex_wrap = 0;
+	int stroke_uv_mode = 0;
 
 	DEFAULT_EXT(Geom2DLayer)
 	void Visit(Vis& v) override;

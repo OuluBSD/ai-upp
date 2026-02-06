@@ -190,3 +190,15 @@
   task: track-editor-scripting/phase-09-scenes-animation/task-0907-props-playback-sync.md
   status: done
   note: Props now reflect evaluated timeline values on scrub/playback.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0902-flash-timeline-scope.md
+  status: done
+  note: Active timeline scope already switches on scene/object/component selection and highlights active rows.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0903-flash-timeline-hierarchy.md
+  status: done
+  note: Timeline rows are hierarchical with indentation and expand/collapse per object.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0904-flash-timeline-visuals.md
+  status: done
+  note: Timeline now draws tween spans and uses major/minor tick marks without full-column separators.

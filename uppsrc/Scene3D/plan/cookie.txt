@@ -210,3 +210,7 @@
   task: track-editor-scripting/phase-09-scenes-animation/task-0906-transform-subkeyframes.md
   status: done
   note: Transform sub-rows and props keyframe controls already in place; verified behavior.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1300-timeline-multiselect-range.md
+  status: done
+  note: Added multi-row selection, range select, and batch keyframe add/remove.

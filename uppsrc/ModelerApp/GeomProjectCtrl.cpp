@@ -3607,13 +3607,13 @@ void GeomProjectCtrl::TimelineToggleKeyframe(int row, int frame) {
 		return;
 	if (row < 0 || row >= timeline_rows.GetCount())
 		return;
-	const TimelineRowInfo& info = timeline_rows[row];
-	if (info.kind == TimelineRowInfo::R_SCENE)
-		return;
-	GeomObject* obj = e->state->FindObjectByKey(info.object_key);
-	if (!obj)
-		return;
-	auto set_kp_values = [&](GeomKeypoint& kp, bool pos, bool ori) {
+	Vector<int> rows = time.GetSelectedRows();
+	if (rows.IsEmpty())
+		rows.Add(row);
+	bool has_range = time.HasSelectionRange();
+	int range_start = has_range ? time.GetRangeStart() : frame;
+	int range_end = has_range ? time.GetRangeEnd() : frame;
+	auto set_kp_values = [&](GeomObject* obj, GeomKeypoint& kp, bool pos, bool ori) {
 		if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key)) {
 			if (pos) kp.position = os->position;
 			if (ori) kp.orientation = os->orientation;
@@ -3623,14 +3623,22 @@ void GeomProjectCtrl::TimelineToggleKeyframe(int row, int frame) {
 			if (ori) kp.orientation = tr->orientation;
 		}
 	};
-	auto toggle_transform = [&](bool pos, bool ori) {
+	auto add_transform = [&](GeomObject* obj, int f, bool pos, bool ori) {
 		GeomTimeline& tl = obj->GetTimeline();
-		int idx = tl.keypoints.Find(frame);
+		GeomKeypoint& kp = tl.GetAddKeypoint(f);
+		kp.has_position = kp.has_position || pos;
+		kp.has_orientation = kp.has_orientation || ori;
+		set_kp_values(obj, kp, pos, ori);
+	};
+	auto toggle_transform = [&](GeomObject* obj, int f, bool pos, bool ori, bool bulk) {
+		if (bulk) {
+			add_transform(obj, f, pos, ori);
+			return;
+		}
+		GeomTimeline& tl = obj->GetTimeline();
+		int idx = tl.keypoints.Find(f);
 		if (idx < 0) {
-			GeomKeypoint& kp = tl.GetAddKeypoint(frame);
-			kp.has_position = pos;
-			kp.has_orientation = ori;
-			set_kp_values(kp, pos, ori);
+			add_transform(obj, f, pos, ori);
 			return;
 		}
 		GeomKeypoint& kp = tl.keypoints[idx];
@@ -3642,60 +3650,67 @@ void GeomProjectCtrl::TimelineToggleKeyframe(int row, int frame) {
 		else {
 			if (pos && !kp.has_position) {
 				kp.has_position = true;
-				set_kp_values(kp, true, false);
+				set_kp_values(obj, kp, true, false);
 			}
 			if (ori && !kp.has_orientation) {
 				kp.has_orientation = true;
-				set_kp_values(kp, false, true);
+				set_kp_values(obj, kp, false, true);
 			}
 		}
 		if (!kp.has_position && !kp.has_orientation)
 			tl.keypoints.Remove(idx);
 	};
-	if (info.kind == TimelineRowInfo::R_POSITION)
-		toggle_transform(true, false);
-	else if (info.kind == TimelineRowInfo::R_ORIENTATION)
-		toggle_transform(false, true);
-	else if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT)
-		toggle_transform(true, true);
-	else if (info.kind == TimelineRowInfo::R_MESH) {
+	auto add_mesh_kf = [&](GeomObject* obj, int f) {
 		if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
 			GeomMeshAnimation& anim = obj->GetMeshAnimation();
-			int idx = anim.keyframes.Find(frame);
-			if (idx >= 0)
-				anim.keyframes.Remove(idx);
-			else {
-				GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
-				kf.frame_id = frame;
-				kf.points.SetCount(mesh->points.GetCount());
-				for (int i = 0; i < mesh->points.GetCount(); i++)
-					kf.points[i] = mesh->points[i];
-			}
+			GeomMeshKeyframe& kf = anim.GetAddKeyframe(f);
+			kf.frame_id = f;
+			kf.points.SetCount(mesh->points.GetCount());
+			for (int i = 0; i < mesh->points.GetCount(); i++)
+				kf.points[i] = mesh->points[i];
 		}
-	}
-	else if (info.kind == TimelineRowInfo::R_2D) {
+	};
+	auto add_2d_kf = [&](GeomObject* obj, int f) {
 		if (Geom2DLayer* layer = obj->Find2DLayer()) {
 			Geom2DAnimation& anim = obj->Get2DAnimation();
-			int idx = anim.keyframes.Find(frame);
-			if (idx >= 0)
-				anim.keyframes.Remove(idx);
-			else {
-				Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
-				kf.frame_id = frame;
-				kf.shapes.SetCount(layer->shapes.GetCount());
-				for (int i = 0; i < layer->shapes.GetCount(); i++) {
-					const Geom2DShape& s = layer->shapes[i];
-					Geom2DShape& d = kf.shapes[i];
-					d.type = s.type;
-					d.radius = s.radius;
-					d.stroke = s.stroke;
-					d.width = s.width;
-					d.closed = s.closed;
-					d.points.SetCount(s.points.GetCount());
-					for (int k = 0; k < s.points.GetCount(); k++)
-						d.points[k] = s.points[k];
-				}
+			Geom2DKeyframe& kf = anim.GetAddKeyframe(f);
+			kf.frame_id = f;
+			kf.shapes.SetCount(layer->shapes.GetCount());
+			for (int i = 0; i < layer->shapes.GetCount(); i++) {
+				const Geom2DShape& s = layer->shapes[i];
+				Geom2DShape& d = kf.shapes[i];
+				d.type = s.type;
+				d.radius = s.radius;
+				d.stroke = s.stroke;
+				d.width = s.width;
+				d.closed = s.closed;
+				d.points.SetCount(s.points.GetCount());
+				for (int k = 0; k < s.points.GetCount(); k++)
+					d.points[k] = s.points[k];
 			}
+		}
+	};
+	for (int r = 0; r < rows.GetCount(); r++) {
+		int row_id = rows[r];
+		if (row_id < 0 || row_id >= timeline_rows.GetCount())
+			continue;
+		const TimelineRowInfo& info = timeline_rows[row_id];
+		if (info.kind == TimelineRowInfo::R_SCENE)
+			continue;
+		GeomObject* obj = e->state->FindObjectByKey(info.object_key);
+		if (!obj)
+			continue;
+		for (int f = range_start; f <= range_end; f++) {
+			if (info.kind == TimelineRowInfo::R_POSITION)
+				toggle_transform(obj, f, true, false, has_range);
+			else if (info.kind == TimelineRowInfo::R_ORIENTATION)
+				toggle_transform(obj, f, false, true, has_range);
+			else if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT)
+				toggle_transform(obj, f, true, true, has_range);
+			else if (info.kind == TimelineRowInfo::R_MESH)
+				add_mesh_kf(obj, f);
+			else if (info.kind == TimelineRowInfo::R_2D)
+				add_2d_kf(obj, f);
 		}
 	}
 	TimelineData();
@@ -3706,42 +3721,55 @@ void GeomProjectCtrl::TimelineRemoveKeyframe(int row, int frame) {
 		return;
 	if (row < 0 || row >= timeline_rows.GetCount())
 		return;
-	const TimelineRowInfo& info = timeline_rows[row];
-	if (info.kind == TimelineRowInfo::R_SCENE)
-		return;
-	GeomObject* obj = e->state->FindObjectByKey(info.object_key);
-	if (!obj)
-		return;
-	auto remove_transform = [&](bool pos, bool ori) {
-		if (GeomTimeline* tl = obj->FindTimeline()) {
-			int idx = tl->keypoints.Find(frame);
-			if (idx < 0)
-				return;
-			GeomKeypoint& kp = tl->keypoints[idx];
-			if (pos) kp.has_position = false;
-			if (ori) kp.has_orientation = false;
-			if (!kp.has_position && !kp.has_orientation)
-				tl->keypoints.Remove(idx);
-		}
-	};
-	if (info.kind == TimelineRowInfo::R_POSITION)
-		remove_transform(true, false);
-	else if (info.kind == TimelineRowInfo::R_ORIENTATION)
-		remove_transform(false, true);
-	else if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT)
-		remove_transform(true, true);
-	else if (info.kind == TimelineRowInfo::R_MESH) {
-		if (GeomMeshAnimation* anim = obj->FindMeshAnimation()) {
-			int idx = anim->keyframes.Find(frame);
-			if (idx >= 0)
-				anim->keyframes.Remove(idx);
-		}
-	}
-	else if (info.kind == TimelineRowInfo::R_2D) {
-		if (Geom2DAnimation* anim = obj->Find2DAnimation()) {
-			int idx = anim->keyframes.Find(frame);
-			if (idx >= 0)
-				anim->keyframes.Remove(idx);
+	Vector<int> rows = time.GetSelectedRows();
+	if (rows.IsEmpty())
+		rows.Add(row);
+	bool has_range = time.HasSelectionRange();
+	int range_start = has_range ? time.GetRangeStart() : frame;
+	int range_end = has_range ? time.GetRangeEnd() : frame;
+	for (int r = 0; r < rows.GetCount(); r++) {
+		int row_id = rows[r];
+		if (row_id < 0 || row_id >= timeline_rows.GetCount())
+			continue;
+		const TimelineRowInfo& info = timeline_rows[row_id];
+		if (info.kind == TimelineRowInfo::R_SCENE)
+			continue;
+		GeomObject* obj = e->state->FindObjectByKey(info.object_key);
+		if (!obj)
+			continue;
+		for (int f = range_start; f <= range_end; f++) {
+			auto remove_transform = [&](bool pos, bool ori) {
+				if (GeomTimeline* tl = obj->FindTimeline()) {
+					int idx = tl->keypoints.Find(f);
+					if (idx < 0)
+						return;
+					GeomKeypoint& kp = tl->keypoints[idx];
+					if (pos) kp.has_position = false;
+					if (ori) kp.has_orientation = false;
+					if (!kp.has_position && !kp.has_orientation)
+						tl->keypoints.Remove(idx);
+				}
+			};
+			if (info.kind == TimelineRowInfo::R_POSITION)
+				remove_transform(true, false);
+			else if (info.kind == TimelineRowInfo::R_ORIENTATION)
+				remove_transform(false, true);
+			else if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT)
+				remove_transform(true, true);
+			else if (info.kind == TimelineRowInfo::R_MESH) {
+				if (GeomMeshAnimation* anim = obj->FindMeshAnimation()) {
+					int idx = anim->keyframes.Find(f);
+					if (idx >= 0)
+						anim->keyframes.Remove(idx);
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_2D) {
+				if (Geom2DAnimation* anim = obj->Find2DAnimation()) {
+					int idx = anim->keyframes.Find(f);
+					if (idx >= 0)
+						anim->keyframes.Remove(idx);
+				}
+			}
 		}
 	}
 	TimelineData();

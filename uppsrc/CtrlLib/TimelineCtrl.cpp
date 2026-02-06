@@ -16,6 +16,8 @@ void TimelineRowCtrl::Paint(Draw& d) {
 		row_bg = owner->bg_active;
 	else if (has_focus)
 		row_bg = owner->bg_focused;
+	else if (selected)
+		row_bg = owner->bg_selected;
 	d.DrawRect(sz, row_bg);
 	
 	Font fnt = SansSerif(sz.cy-6);
@@ -188,6 +190,8 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 				Refresh();
 				return;
 			}
+			owner->SelectRow(id, keyflags);
+			drag_title = true;
 			if (owner->WhenRowSelect)
 				owner->WhenRowSelect(id);
 		}
@@ -226,7 +230,18 @@ void TimelineRowCtrl::LeftDown(Point p, dword keyflags) {
 }
 
 void TimelineRowCtrl::LeftDrag(Point p, dword keyflags) {
-	if (!owner || !dragging)
+	if (!owner)
+		return;
+	if (drag_title) {
+		Point screen = GetScreenRect().TopLeft() + p;
+		Point local = screen - owner->GetScreenRect().TopLeft();
+		int row = owner->GetRowAt(local);
+		if (row >= 0) {
+			owner->SelectRowRange(id, row);
+		}
+		return;
+	}
+	if (!dragging)
 		return;
 	int col = owner->GetColumnWidth();
 	int x = p.x - owner->title_tab_w - 1;
@@ -255,6 +270,7 @@ void TimelineRowCtrl::LeftUp(Point p, dword keyflags) {
 	if (HasCapture())
 		ReleaseCapture();
 	dragging = false;
+	drag_title = false;
 	Ctrl::LeftUp(p, keyflags);
 }
 
@@ -303,6 +319,7 @@ TimelineCtrl::TimelineCtrl() {
 	kp_second_accent = text;
 	kp_col_accent = accent;
 	range_bg = Blend(accent, bg, 220);
+	bg_selected = Blend(bg, accent, 220);
 	
 	AddFrame(vsb);
 	AddFrame(hsb.Horz());
@@ -363,6 +380,78 @@ void TimelineCtrl::MakeColumnVisible(int col) {
 		hsb.Set(col * colw);
 	else if (col > last)
 		hsb.Set(max(0, (col - visible + 1) * colw));
+}
+
+Vector<int> TimelineCtrl::GetSelectedRows() const {
+	Vector<int> out;
+	out.SetCount(selected_rows.GetCount());
+	for (int i = 0; i < selected_rows.GetCount(); i++)
+		out[i] = selected_rows[i];
+	return out;
+}
+
+void TimelineCtrl::SelectRow(int row, dword keyflags) {
+	if (row < 0 || row >= rows.GetCount())
+		return;
+	bool shift = (keyflags & K_SHIFT);
+	bool ctrl = (keyflags & K_CTRL);
+	if (shift) {
+		if (row_anchor < 0)
+			row_anchor = row;
+		SelectRowRange(row_anchor, row);
+		return;
+	}
+	if (ctrl) {
+		ToggleRowSelection(row);
+		row_anchor = row;
+		return;
+	}
+	selected_rows.Clear();
+	selected_rows.Add(row);
+	row_anchor = row;
+	for (int i = 0; i < rows.GetCount(); i++)
+		rows[i].SetSelected(selected_rows.Find(i) >= 0);
+	Refresh();
+}
+
+void TimelineCtrl::SelectRowRange(int a, int b) {
+	if (a < 0 || b < 0)
+		return;
+	int lo = min(a, b);
+	int hi = max(a, b);
+	selected_rows.Clear();
+	for (int i = lo; i <= hi; i++) {
+		selected_rows.Add(i);
+	}
+	for (int i = 0; i < rows.GetCount(); i++)
+		rows[i].SetSelected(selected_rows.Find(i) >= 0);
+	Refresh();
+}
+
+void TimelineCtrl::ClearRowSelection() {
+	selected_rows.Clear();
+	for (int i = 0; i < rows.GetCount(); i++)
+		rows[i].SetSelected(false);
+	Refresh();
+}
+
+void TimelineCtrl::ToggleRowSelection(int row) {
+	int idx = selected_rows.Find(row);
+	if (idx >= 0)
+		selected_rows.Remove(idx);
+	else
+		selected_rows.Add(row);
+	for (int i = 0; i < rows.GetCount(); i++)
+		rows[i].SetSelected(selected_rows.Find(i) >= 0);
+	Refresh();
+}
+
+int TimelineCtrl::GetRowAt(Point p) const {
+	int y = p.y + vsb.Get();
+	int row = y / max(1, line_height);
+	if (row < 0 || row >= rows.GetCount())
+		return -1;
+	return row;
 }
 
 void TimelineCtrl::Paint(Draw& d) {

@@ -37,6 +37,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	fleet.Create();
 	intelligence.Create();
 	evidence.Create();
+	playbook.Create();
 	debug_workspace.Create();
 	technology.Create();
 	product.Create();
@@ -55,6 +56,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	center_tabs.Add(intelligence->SizePos(), "Code Intelligence");
 	center_tabs.Add(evidence->SizePos(), "Evidence Locker");
 	center_tabs.Add(product->SizePos(), "Modeling & Logic"); 
+	center_tabs.Add(playbook->SizePos(), "Strategy Playbooks");
 	center_tabs.Add(debug_workspace->SizePos(), "Execution Console"); 
 	center_tabs.Add(issues->SizePos(), "Issue Tracker");
 	
@@ -166,6 +168,7 @@ void MaestroHubCockpit::LoadData() {
 	}
 	if(intelligence) intelligence->Load(current_root);
 	if(evidence) evidence->Load(current_root);
+	if(playbook) playbook->Load(current_root);
 	if(technology) technology->Load(current_root);
 	if(product) product->Load(current_root);
 	if(maintenance) maintenance->Load(current_root);

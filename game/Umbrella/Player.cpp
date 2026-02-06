@@ -212,13 +212,13 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 					// We should hit BOTTOM of tiles that are ABOVE us
 
 					if(deltaY < 0) {
-						// Falling: check if we started ABOVE the tile top
-						// Only set onGround if we approached the tile from above
+						// Moving DOWN (falling): check if we started ABOVE the tile top
+						// Only set onGround if we approached from above (landing on floor)
 						if(startFeetY >= tileTopY) {
 							onGround = true;
 						}
 					}
-					// When jumping up (deltaY > 0), we hit ceiling from below, don't set onGround
+					// When jumping up (deltaY > 0), we hit ceiling, don't set onGround
 
 					break;
 				}
@@ -250,7 +250,7 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 	int floorRow = (int)((feetY - 1.0f) / gridSize);  // Check one pixel below feet
 
 	for(int col = minCol; col <= maxCol; col++) {
-		if(collision.IsWallTile(col, floorRow) || collision.IsFullBlockTile(col, floorRow)) {
+		if(collision.IsFloorTile(col, floorRow)) {
 			onGround = true;
 			break;
 		}

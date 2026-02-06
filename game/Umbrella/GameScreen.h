@@ -4,6 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include "LayerManager.h"
 #include "Player.h"
+#include "Enemy.h"
 
 using namespace Upp;
 
@@ -32,6 +33,9 @@ public:  // Public for testing
 	Player player;
 	InputState inputState;
 
+	// Enemies
+	Array<Enemy*> enemies;
+
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;
 	bool prevKeyJump, prevKeyAttack;
@@ -59,6 +63,10 @@ public:
 	// Player spawning
 	Point FindSpawnPoint();
 	void RespawnPlayer();
+
+	// Enemy management
+	void SpawnEnemies();
+	void ClearEnemies();
 
 	// Input
 	virtual bool Key(dword key, int) override;

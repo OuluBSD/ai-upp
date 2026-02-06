@@ -3,6 +3,7 @@
 #include "MapSerializer.h"
 #include "EnemyPatroller.h"
 #include "EnemyJumper.h"
+#include "EnemyShooter.h"
 
 using namespace Upp;
 
@@ -152,6 +153,29 @@ void GameScreen::GameTick(float delta) {
 			// Collision detected - player takes damage
 			player.TakeDamage(1);
 			// Knockback could be added here
+		}
+
+		// Check projectile collisions (for shooters)
+		if(enemies[i]->GetType() == ENEMY_SHOOTER) {
+			EnemyShooter* shooter = dynamic_cast<EnemyShooter*>(enemies[i]);
+			if(shooter) {
+				const Array<Projectile*>& projectiles = shooter->GetProjectiles();
+				for(int j = 0; j < projectiles.GetCount(); j++) {
+					if(!projectiles[j]->IsActive()) continue;
+
+					Rectf projBounds = projectiles[j]->GetBounds();
+
+					// Check if projectile hits player
+					if(playerBounds.left < projBounds.right &&
+					   playerBounds.right > projBounds.left &&
+					   min(playerBounds.top, playerBounds.bottom) < max(projBounds.top, projBounds.bottom) &&
+					   max(playerBounds.top, playerBounds.bottom) > min(projBounds.top, projBounds.bottom)) {
+						// Projectile hit player
+						player.TakeDamage(1);
+						projectiles[j]->Deactivate();
+					}
+				}
+			}
 		}
 	}
 }
@@ -427,6 +451,28 @@ void GameScreen::SpawnEnemies() {
 					int spawnX = 30 * gridSize;
 					int spawnY = (row + 1) * gridSize;
 					enemies.Add(new EnemyJumper((float)spawnX, (float)spawnY));
+					break;
+				}
+			}
+		}
+
+		// Spawn shooter at column 12
+		for(int row = levelRows - 3; row >= 1; row--) {
+			if(IsFloorTile(12, row)) {
+				int spawnX = 12 * gridSize;
+				int spawnY = (row + 1) * gridSize;
+				enemies.Add(new EnemyShooter((float)spawnX, (float)spawnY));
+				break;
+			}
+		}
+
+		// Spawn shooter at column 25
+		if(levelColumns > 25) {
+			for(int row = levelRows - 3; row >= 1; row--) {
+				if(IsFloorTile(25, row)) {
+					int spawnX = 25 * gridSize;
+					int spawnY = (row + 1) * gridSize;
+					enemies.Add(new EnemyShooter((float)spawnX, (float)spawnY));
 					break;
 				}
 			}

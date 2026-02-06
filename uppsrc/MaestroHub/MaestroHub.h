@@ -609,6 +609,15 @@ public:
 	void PlanWatcher();
 	void ScanForUnblockedTasks();
 	Time last_plan_check;
+	
+	// Navigation History
+	Vector<int> tab_history;
+	int         history_pos = -1;
+	bool        navigating = false;
+	
+	void NavigateTo(int tab);
+	void OnBack();
+	void OnNext();
 
 public:
 	typedef MaestroHubCockpit CLASSNAME;

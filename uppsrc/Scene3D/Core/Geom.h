@@ -247,6 +247,8 @@ struct GeomObject : VfsValueExt {
 	bool is_locked = false;
 	bool read_enabled = true;
 	bool write_enabled = false;
+	bool timeline_muted = false;
+	bool timeline_solo = false;
 	
 	DEFAULT_EXT(GeomObject)
 	One<Model> mdl;

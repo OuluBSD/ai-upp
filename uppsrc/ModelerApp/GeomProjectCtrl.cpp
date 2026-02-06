@@ -3298,6 +3298,15 @@ void GeomProjectCtrl::TimelineData() {
 		int idx = timeline_expanded.Find(obj->key);
 		obj_row.expanded = (idx >= 0);
 		obj_row.active = (e->timeline_scope != Edit3D::TS_SCENE && e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_NONE);
+		int midx = timeline_muted.Find(obj->key);
+		if (midx >= 0)
+			obj_row.muted = timeline_muted[midx];
+		int sidx = timeline_solo.Find(obj->key);
+		if (sidx >= 0)
+			obj_row.solo = timeline_solo[sidx];
+		int cidx = timeline_row_color.Find(obj->key);
+		if (cidx >= 0)
+			obj_row.tag_color = timeline_row_color[cidx];
 		rows.Add(obj_row);
 
 		if (obj_row.has_children && obj_row.expanded) {
@@ -3306,18 +3315,27 @@ void GeomProjectCtrl::TimelineData() {
 			tr.object_key = obj->key;
 			tr.indent = 2;
 			tr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_NONE);
+			tr.muted = obj_row.muted;
+			tr.solo = obj_row.solo;
+			tr.tag_color = obj_row.tag_color;
 			rows.Add(tr);
 			TimelineRowInfo pr;
 			pr.kind = TimelineRowInfo::R_POSITION;
 			pr.object_key = obj->key;
 			pr.indent = 3;
 			pr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_POSITION);
+			pr.muted = obj_row.muted;
+			pr.solo = obj_row.solo;
+			pr.tag_color = obj_row.tag_color;
 			rows.Add(pr);
 			TimelineRowInfo orow;
 			orow.kind = TimelineRowInfo::R_ORIENTATION;
 			orow.object_key = obj->key;
 			orow.indent = 3;
 			orow.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_ORIENTATION);
+			orow.muted = obj_row.muted;
+			orow.solo = obj_row.solo;
+			orow.tag_color = obj_row.tag_color;
 			rows.Add(orow);
 			if (obj->FindEditableMesh()) {
 				TimelineRowInfo mr;
@@ -3325,6 +3343,9 @@ void GeomProjectCtrl::TimelineData() {
 				mr.object_key = obj->key;
 				mr.indent = 2;
 				mr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_MESH);
+				mr.muted = obj_row.muted;
+				mr.solo = obj_row.solo;
+				mr.tag_color = obj_row.tag_color;
 				rows.Add(mr);
 			}
 			if (obj->Find2DLayer()) {
@@ -3333,6 +3354,9 @@ void GeomProjectCtrl::TimelineData() {
 				r2d.object_key = obj->key;
 				r2d.indent = 2;
 				r2d.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_2D);
+				r2d.muted = obj_row.muted;
+				r2d.solo = obj_row.solo;
+				r2d.tag_color = obj_row.tag_color;
 				rows.Add(r2d);
 			}
 		}
@@ -3350,6 +3374,7 @@ void GeomProjectCtrl::TimelineData() {
 		row.SetHasChildren(info.has_children);
 		row.SetExpanded(info.expanded);
 		row.SetActive(info.active);
+		row.SetTagColor(info.tag_color);
 		Index<int> keys;
 		String name;
 		if (info.kind == TimelineRowInfo::R_SCENE) {
@@ -3461,21 +3486,27 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 			e->timeline_object_key = 0;
 			TimelineData();
 		});
-	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
-	bar.Separator();
-	bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
-	bar.Add(t_("Paste Keyframes"), [=] {
+		bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
+		bar.Separator();
+		bar.Add(t_("Copy Keyframes"), [=] { TimelineCopySelection(); }).Key(K_CTRL|K_C);
+		bar.Add(t_("Paste Keyframes"), [=] {
 		int frame = e->timeline_scope == Edit3D::TS_SCENE && e->state && e->state->HasActiveScene()
 			? e->state->GetActiveScene().GetTimeline().position
 			: (e->anim ? e->anim->position : 0);
 		TimelinePasteSelection(frame);
 	}).Key(K_CTRL|K_V);
-	return;
-}
+		return;
+	}
 	hash_t key = info.object_key;
 	GeomObject* obj = e->state->FindObjectByKey(key);
 	if (!obj)
 		return;
+	bar.Add(t_("Mute Row"), [=] { TimelineToggleMuteRow(row); }).Check(info.muted);
+	bar.Add(t_("Solo Row"), [=] { TimelineToggleSoloRow(row); }).Check(info.solo);
+	bar.Separator();
+	timeline_menu_row = row;
+	bar.Add(t_("Row Color"), THISBACK(TimelineRowColorMenu));
+	bar.Separator();
 	int frame = e->anim ? e->anim->position : 0;
 	bar.Add(t_("Make Active Timeline"), [=] {
 		e->timeline_scope = Edit3D::TS_OBJECT;
@@ -4040,6 +4071,87 @@ void GeomProjectCtrl::TimelineMoveKeyframe(int row, int from_frame, int to_frame
 		}
 	}
 	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineToggleMuteRow(int row) {
+	if (!e)
+		return;
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE)
+		return;
+	bool v = !info.muted;
+	timeline_muted.GetAdd(info.object_key) = v;
+	if (GeomObject* obj = e->state ? e->state->FindObjectByKey(info.object_key) : 0)
+		obj->timeline_muted = v;
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineToggleSoloRow(int row) {
+	if (!e)
+		return;
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE)
+		return;
+	bool v = !info.solo;
+	timeline_solo.GetAdd(info.object_key) = v;
+	timeline_has_solo = false;
+	for (int i = 0; i < timeline_solo.GetCount(); i++)
+		if (timeline_solo[i])
+			timeline_has_solo = true;
+	if (GeomObject* obj = e->state ? e->state->FindObjectByKey(info.object_key) : 0)
+		obj->timeline_solo = v;
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineSetRowColor(int row, Color c) {
+	if (!e)
+		return;
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE)
+		return;
+	if (IsNull(c))
+		timeline_row_color.RemoveKey(info.object_key);
+	else
+		timeline_row_color.GetAdd(info.object_key) = c;
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineRowColorMenu(Bar& bar) {
+	int row = timeline_menu_row;
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE)
+		return;
+	struct { const char* label; Color color; } colors[] = {
+		{ "Red", Color(220, 80, 80) },
+		{ "Orange", Color(220, 140, 80) },
+		{ "Yellow", Color(220, 200, 80) },
+		{ "Green", Color(120, 200, 120) },
+		{ "Cyan", Color(80, 180, 200) },
+		{ "Blue", Color(100, 140, 220) },
+		{ "Purple", Color(160, 120, 220) },
+		{ "Gray", Color(160, 160, 160) },
+	};
+	for (int i = 0; i < 8; i++)
+		bar.Add(colors[i].label, [=] { TimelineSetRowColor(row, colors[i].color); }).Check(info.tag_color == colors[i].color);
+	bar.Separator();
+	bar.Add(t_("Custom..."), [=] {
+		String text;
+		if (!IsNull(info.tag_color))
+			text = ColorToHtml(info.tag_color);
+		EditText(text, t_("Set Row Color"), t_("Color value"));
+		Color nc = ColorFromText(text);
+		if (!IsNull(nc))
+			TimelineSetRowColor(row, nc);
+	});
+	bar.Add(t_("Clear"), [=] { TimelineSetRowColor(row, Null); }).Enable(!IsNull(info.tag_color));
 }
 
 void GeomProjectCtrl::TimelineRowSelect(int row) {

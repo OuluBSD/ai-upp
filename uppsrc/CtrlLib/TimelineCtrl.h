@@ -18,6 +18,7 @@ protected:
 	bool expanded = true;
 	bool active = false;
 	bool selected = false;
+	Color tag_color = Null;
 	bool dragging = false;
 	bool drag_range = false;
 	bool drag_title = false;
@@ -43,6 +44,7 @@ public:
 	void SetExpanded(bool b) {expanded = b;}
 	void SetActive(bool b) {active = b;}
 	void SetSelected(bool b) {selected = b;}
+	void SetTagColor(Color c) {tag_color = c;}
 	void SetKeypoints(const Vector<int>& keypoints);
 	
 };
@@ -63,6 +65,7 @@ protected:
 	Color kp_second_accent, kp_col_accent;
 	Color range_bg;
 	Color bg_selected;
+	Color tag_border;
 	int title_tab_w = 200;
 	int kp_col = 10;
 	int selected_col = 0;

@@ -87,9 +87,9 @@ private:
 	void Internal_eval(const String& webdriver_command,
 		const String& script, const Js_args& args,
 		Element& result) const;
-	picojson::value Internal_eval_json_value(const String& command,
+	Value Internal_eval_json_value(const String& command,
 		const String& script, const Js_args& args) const;
-	const Session& Internal_set_focus_to_frame(const picojson::value& id) const;
+	const Session& Internal_set_focus_to_frame(const Value& id) const;
 	const Session& Internal_move_to(const Element*, const Offset*) const;
 	const Session& Internal_mouse_button_command(const char* command, mouse::Button button) const;
 

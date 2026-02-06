@@ -12,8 +12,8 @@ class Keyboard {
 public:
 	Keyboard();
 	
-	void Send_keys(const String& keys) const;
-	void Send_modifier_keys(const String& modifiers) const;
+	void SendKeys(const String& keys) const;
+	void SendModifierKeys(const String& modifiers) const;
 	
 private:
 	String current_keys_;

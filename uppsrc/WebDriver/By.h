@@ -11,16 +11,16 @@ public:
 
 	static By Id(const String& id);
 	static By Name(const String& name);
-	static By Class_name(const String& class_name);
-	static By Tag_name(const String& tag_name);
-	static By Css_selector(const String& css_selector);
+	static By ClassName(const String& class_name);
+	static By TagName(const String& tag_name);
+	static By CssSelector(const String& css_selector);
 	static By Xpath(const String& xpath);
-	static By Link_text(const String& link_text);
-	static By Partial_link_text(const String& partial_link_text);
+	static By LinkText(const String& link_text);
+	static By PartialLinkText(const String& partial_link_text);
 	static By Text(const String& text);
 
-	const String& Get_method() const;
-	const String& Get_selector() const;
+	const String& GetMethod() const;
+	const String& GetSelector() const;
 
 	void Jsonize(JsonIO& json) {
 		json("using", method_)("value", selector_);

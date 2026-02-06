@@ -7,13 +7,13 @@ NAMESPACE_UPP
 
 namespace detail {
 
-class Http_connection {
+class HttpConnection {
 public:
-	Http_connection(const String& host, int port);
+	HttpConnection(const String& host, int port);
 	
-	Http_response Get(const String& path) const;
-	Http_response Post(const String& path, const String& data) const;
-	Http_response Delete(const String& path) const;
+	HttpResponse Get(const String& path) const;
+	HttpResponse Post(const String& path, const String& data) const;
+	HttpResponse Delete(const String& path) const;
 
 private:
 	String host_;

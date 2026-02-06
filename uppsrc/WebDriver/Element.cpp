@@ -18,58 +18,58 @@ Element::Element(
 {
 }
 
-String Element::Get_ref() const {
+String Element::GetRef() const {
 	return ref_;
 }
 
-bool Element::Is_displayed() const {
-	return resource_->Get_bool("displayed");
+bool Element::IsDisplayed() const {
+	return resource_->GetBool("displayed");
 }
 
-bool Element::Is_enabled() const {
-	return resource_->Get_bool("enabled");
+bool Element::IsEnabled() const {
+	return resource_->GetBool("enabled");
 }
 
-bool Element::Is_selected() const {
-	return resource_->Get_bool("selected");
+bool Element::IsSelected() const {
+	return resource_->GetBool("selected");
 }
 
-Point Element::Get_location() const {
-	return From_json<Point>(resource_->Get("location"));
+Point Element::GetLocation() const {
+	return FromJson<Point>(resource_->Get("location"));
 }
 
-Point Element::Get_location_in_view() const {
-	return From_json<Point>(resource_->Get("location_in_view"));
+Point Element::GetLocationInView() const {
+	return FromJson<Point>(resource_->Get("location_in_view"));
 }
 
-Size Element::Get_size() const {
-	return From_json<Size>(resource_->Get("size"));
+Size Element::GetSize() const {
+	return FromJson<Size>(resource_->Get("size"));
 }
 
-String Element::Get_attribute(const String& name) const {
-	return resource_->Get_value<String>("attribute/" + name);
+String Element::GetAttribute(const String& name) const {
+	return resource_->GetValue<String>("attribute/" + name);
 }
 
-String Element::Get_css_property(const String& name) const {
-	return resource_->Get_value<String>("css/" + name);
+String Element::GetCssProperty(const String& name) const {
+	return resource_->GetValue<String>("css/" + name);
 }
 
-String Element::Get_tag_name() const {
-	return resource_->Get_string("name");
+String Element::GetTagName() const {
+	return resource_->GetString("name");
 }
 
-String Element::Get_text() const {
-	return resource_->Get_string("text");
+String Element::GetText() const {
+	return resource_->GetString("text");
 }
 
-Element Element::Find_element(const By& by) const {
+Element Element::FindElement(const By& by) const {
 	detail::Finder finder(resource_, factory_);
-	return finder.Find_element(by);
+	return finder.FindElement(by);
 }
 
-Vector<Element> Element::Find_elements(const By& by) const {
+Vector<Element> Element::FindElements(const By& by) const {
 	detail::Finder finder(resource_, factory_);
-	return finder.Find_elements(by);
+	return finder.FindElements(by);
 }
 
 const Element& Element::Clear() const {
@@ -87,18 +87,18 @@ const Element& Element::Submit() const {
 	return *this;
 }
 
-const Element& Element::Send_keys(const String& keys) const {
+const Element& Element::SendKeys(const String& keys) const {
 	resource_->Post("value", "value", keys);
 	return *this;
 }
 
-const Element& Element::Send_keys(const Shortcut& shortcut) const {
+const Element& Element::SendKeys(const Shortcut& shortcut) const {
 	// Convert shortcut to string representation and send
 	String keys;
 	for (const auto& key : shortcut.keys) {
 		keys += key;
 	}
-	Send_keys(keys);
+	SendKeys(keys);
 	return *this;
 }
 
@@ -118,11 +118,11 @@ bool Element::operator<(const Element& other) const {
 	return ref_ < other.ref_;
 }
 
-detail::Resource& Element::Get_resource() const {
+detail::Resource& Element::GetResource() const {
 	return *resource_;
 }
 
-detail::Keyboard Element::Get_keyboard() const {
+detail::Keyboard Element::GetKeyboard() const {
 	return detail::Keyboard();
 }
 

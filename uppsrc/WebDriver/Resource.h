@@ -8,14 +8,14 @@ NAMESPACE_UPP
 
 namespace detail {
 
-class Resource : public Shared_object_base { // noncopyable
+class Resource : public SharedObjectBase { // noncopyable
 public:
-	enum Ownership { Is_owner, Is_observer };
+	enum Ownership { IS_OWNER, IS_OBSERVER };
 
 	Resource(
 		const String& url,
-		const Shared<IHttp_client>& http_client,
-		Ownership mode = Is_observer
+		const Shared<IHttpClient>& http_client,
+		Ownership mode = IS_OBSERVER
 		)
 		: http_client_(http_client)
 		, url_(url)
@@ -25,55 +25,55 @@ public:
 	Resource(
 		const Shared<Resource>& parent,
 		const String& name,
-		Ownership mode = Is_observer
+		Ownership mode = IS_OBSERVER
 		)
 		: http_client_(parent->http_client_)
 		, parent_(parent)
-		, url_(Concat_url(parent->url_, name))
+		, url_(ConcatUrl(parent->url_, name))
 		, ownership_(mode)
 	{}
 
 	virtual ~Resource() {
 		try {
-			if (ownership_ == Is_owner)
-				Delete_resource();
+			if (ownership_ == IS_OWNER)
+				DeleteResource();
 		} catch (const std::exception&) {}
 	}
 
-	const String& Get_url() const {
+	const String& GetUrl() const {
 		return url_;
 	}
 
 	Value Get(const String& command = String()) const {
-		return Download(command, &IHttp_client::Get, "GET");
+		return Download(command, &IHttpClient::Get, "GET");
 	}
 
 	template<typename T>
-	T Get_value(const String& command) const {
+	T GetValue(const String& command) const {
 		try {
-			return From_json<T>(Get(command));
+			return FromJson<T>(Get(command));
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: command: " + command);
 		}
 	}
 
-	String Get_string(const String& command) const {
-		return Get_value<String>(command);
+	String GetString(const String& command) const {
+		return GetValue<String>(command);
 	}
 
-	bool Get_bool(const String& command) const {
-		return Get_value<bool>(command);
+	bool GetBool(const String& command) const {
+		return GetValue<bool>(command);
 	}
 
 	Value Delete(const String& command = String()) const {
-		return Download(command, &IHttp_client::Delete, "DELETE");
+		return Download(command, &IHttpClient::Delete, "DELETE");
 	}
 
 	Value Post(
 		const String& command = String(),
 		const Value& upload_data = Value()
 		) const {
-		return Upload(command, upload_data, &IHttp_client::Post, "POST");
+		return Upload(command, upload_data, &IHttpClient::Post, "POST");
 	}
 
 	template<typename T>
@@ -83,37 +83,37 @@ public:
 		const T& arg_value
 		) const {
 		ValueMap obj;
-		obj.Add(arg_name, To_json(arg_value));
+		obj.Add(arg_name, ToJson(arg_value));
 		Post(command, Value(obj));
 	}
 
 	template<typename T>
-	void Post_value(const String& command, const T& value) const {
+	void PostValue(const String& command, const T& value) const {
 		try {
-			Post(command, To_json(value));
+			Post(command, ToJson(value));
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: command: " + command);
 		}
 	}
 
 protected:
-	virtual Value Transform_response(Value& response) const {
+	virtual Value TransformResponse(Value& response) const {
 		return response["value"];
 	}
 
-	virtual void Delete_resource() {
+	virtual void DeleteResource() {
 		Delete();
 	}
 
 private:
 	Value Download(
 		const String& command,
-		Http_response (IHttp_client::* member)(const String& url) const,
+		HttpResponse (IHttpClient::* member)(const String& url) const,
 		const char* request_type
 		) const {
 		try {
-			return Process_response((http_client_.Get()->*member)(
-				Concat_url(url_, command)
+			return ProcessResponse((http_client_.Get()->*member)(
+				ConcatUrl(url_, command)
 				));
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
@@ -124,7 +124,7 @@ private:
 		}
 	}
 
-	static String To_upload_data(const Value& upload_data)
+	static String ToUploadData(const Value& upload_data)
 	{
 		return IsNull(upload_data) ? String() : AsJSON(upload_data);
 	}
@@ -132,26 +132,26 @@ private:
 	Value Upload(
 		const String& command,
 		const Value& upload_data,
-		Http_response (IHttp_client::* member)(const String& url, const String& upload_data) const,
+		HttpResponse (IHttpClient::* member)(const String& url, const String& upload_data) const,
 		const char* request_type
 		) const {
 		try {
-			return Process_response((http_client_.Get()->*member)(
-				Concat_url(url_, command),
-				To_upload_data(upload_data)
+			return ProcessResponse((http_client_.Get()->*member)(
+				ConcatUrl(url_, command),
+				ToUploadData(upload_data)
 				));
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
 				+ "request: " + request_type
 				+ ", command: " + command
 				+ ", resource: " + url_
-				+ ", data: " + To_upload_data(upload_data)
+				+ ", data: " + ToUploadData(upload_data)
 				);
 		}
 	}
 
-	Value Process_response(
-		const Http_response& http_response
+	Value ProcessResponse(
+		const HttpResponse& http_response
 		) const {
 		try {
 			if (!(http_response.http_code / 100 != 4 && http_response.http_code != 501)) {
@@ -185,7 +185,7 @@ private:
 			if (!(status == response_status_code::kSuccess)) throw std::runtime_error("Non-zero response status code");
 			if (!(http_response.http_code == 200)) throw std::runtime_error("Unsupported HTTP code");
 
-			return Transform_response(response);
+			return TransformResponse(response);
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
 				+ "HTTP code: " + AsString(http_response.http_code)
@@ -195,7 +195,7 @@ private:
 	}
 
 	static
-	String Concat_url(const String& a, const String& b, const char delim = '/') {
+	String ConcatUrl(const String& a, const String& b, const char delim = '/') {
 		auto result = a.IsEmpty() ? b : a;
 		if (!a.IsEmpty() && !b.IsEmpty()) {
 			if (result[result.GetLength()-1] != delim)
@@ -206,7 +206,7 @@ private:
 	}
 
 private:
-	const Shared<IHttp_client> http_client_;
+	const Shared<IHttpClient> http_client_;
 	const Shared<Resource> parent_;
 	const String url_;
 	const Ownership ownership_;
@@ -216,13 +216,13 @@ class Root_resource : public Resource { // noncopyable
 public:
 	Root_resource(
 		const String& url,
-		const Shared<IHttp_client>& http_client
+		const Shared<IHttpClient>& http_client
 		)
-		: Resource(url, http_client, Is_observer)
+		: Resource(url, http_client, IS_OBSERVER)
 	{}
 
 private:
-	virtual Value Transform_response(Value& response) const {
+	virtual Value TransformResponse(Value& response) const {
 		Value result;
 		Swap(response, result);
 		return result;
@@ -230,20 +230,20 @@ private:
 };
 
 inline
-Shared<Resource> Make_sub_resource(
+Shared<Resource> MakeSubResource(
 	const Shared<Resource>& parent,
 	const String& subpath,
-	Resource::Ownership mode = Resource::Is_observer
+	Resource::Ownership mode = Resource::IS_OBSERVER
 	) {
 	return Shared<Resource>(new Resource(parent, subpath, mode));
 }
 
 inline
-Shared<Resource> Make_sub_resource(
+Shared<Resource> MakeSubResource(
 	const Shared<Resource>& parent,
 	const String& subpath1,
 	const String& subpath2,
-	Resource::Ownership mode = Resource::Is_observer
+	Resource::Ownership mode = Resource::IS_OBSERVER
 	) {
 	return Shared<Resource>(new Resource(parent, subpath1 + "/" + subpath2, mode));
 }

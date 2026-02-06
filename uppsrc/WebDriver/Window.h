@@ -6,7 +6,7 @@
 
 NAMESPACE_UPP
 
-class Window { // copyable
+class Window : public Moveable<Window> { // copyable
 public:
 	Window();
 
@@ -15,20 +15,20 @@ public:
 		const detail::Shared<detail::Resource>& resource
 		);
 
-	String Get_handle() const;
+	String GetHandle() const;
 
-	Size Get_size() const;
-	const Window& Set_size(const Size& size) const;
+	Size GetSize() const;
+	const Window& SetSize(const Size& size) const;
 
-	Point Get_position() const;
-	const Window& Set_position(const Point& position) const;
+	Point GetPosition() const;
+	const Window& SetPosition(const Point& position) const;
 
 	const Window& Maximize() const;
 	const Window& Fullscreen() const;
 
 	const Window& Close() const;
-	String Get_title() const;
-	String Get_url() const;
+	String GetTitle() const;
+	String GetUrl() const;
 
 private:
 	String handle_;

@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 namespace chrome {
 
-struct Perf_logging_prefs {
+struct PerfLoggingPrefs {
 	bool enable_network = false;
 	bool enable_page = false;
 	bool enable_timeline = false;
@@ -36,13 +36,13 @@ struct Chrome : Capabilities { // copyable
 	Vector<String> exclude_switches;
 	String minidump_path;
 	Value mobile_emulation;
-	chrome::Perf_logging_prefs perf_logging_prefs;
+	chrome::PerfLoggingPrefs perf_logging_prefs;
 	
 	Chrome(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
-		browser_name = browser::Chrome;
+		browser_name = browser::K_CHROME;
 		version = String();
-		platform = platform::Any;
+		platform = platform::K_ANY;
 	}
 
 	// See https://sites.google.com/a/chromium.org/chromedriver/capabilities for details

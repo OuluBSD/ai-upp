@@ -51,6 +51,7 @@ public:
 	// Rendering
 	virtual void Paint(Draw& w) override;
 	void RenderTiles(Draw& w);
+	void RenderHUD(Draw& w);
 
 	// Camera
 	void UpdateCamera(Point targetPos);

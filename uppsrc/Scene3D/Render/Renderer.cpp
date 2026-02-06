@@ -24,9 +24,9 @@ static Color Blend2DLayerColor(Color base, Color tex, int mode) {
 	}
 }
 
-static bool GetTextureAverageColor(const String& ref, Color& out) {
+static String ResolveTexturePath(const String& ref) {
 	if (ref.IsEmpty())
-		return false;
+		return String();
 	String path = ref;
 	if (!FileExists(path)) {
 		String base = GetCurrentDirectory();
@@ -41,6 +41,15 @@ static bool GetTextureAverageColor(const String& ref, Color& out) {
 				path = share;
 		}
 	}
+	if (!FileExists(path))
+		return String();
+	return path;
+}
+
+static bool GetTextureAverageColor(const String& ref, Color& out) {
+	String path = ResolveTexturePath(ref);
+	if (path.IsEmpty())
+		return false;
 	if (!FileExists(path))
 		return false;
 	static VectorMap<String, Color> cache;
@@ -73,6 +82,36 @@ static bool GetTextureAverageColor(const String& ref, Color& out) {
 	            (byte)Clamp(b / count, 0LL, 255LL));
 	cache.Add(path, out);
 	return true;
+}
+
+static bool GetTextureImage(const String& ref, Image& out) {
+	String path = ResolveTexturePath(ref);
+	if (path.IsEmpty())
+		return false;
+	static VectorMap<String, Image> cache;
+	int ci = cache.Find(path);
+	if (ci >= 0) {
+		out = cache[ci];
+		return !out.IsEmpty();
+	}
+	Image img = StreamRaster::LoadFileAny(path);
+	if (img.IsEmpty())
+		return false;
+	cache.Add(path, img);
+	out = img;
+	return true;
+}
+
+static Color SampleTextureColor(const Image& img, float u, float v) {
+	if (img.IsEmpty())
+		return Color(255, 255, 255);
+	u = Clamp(u, 0.0f, 1.0f);
+	v = Clamp(v, 0.0f, 1.0f);
+	Size sz = img.GetSize();
+	int x = Clamp((int)floor(u * (sz.cx - 1)), 0, sz.cx - 1);
+	int y = Clamp((int)floor(v * (sz.cy - 1)), 0, sz.cy - 1);
+	RGBA px = img[y][x];
+	return Color(px);
 }
 
 void DrawRect(Size sz, Draw& d, const mat4& view, const vec3& p, Size rect_sz, const Color& c, bool z_cull) {
@@ -183,6 +222,10 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
                         const Geom2DLayer& layer, bool z_cull) {
 	if (!layer.visible)
 		return;
+	Image tex_img;
+	bool has_tex = layer.use_layer_style && GetTextureImage(layer.texture_ref, tex_img);
+	Color tex_avg;
+	bool has_avg = layer.use_layer_style && GetTextureAverageColor(layer.texture_ref, tex_avg);
 	auto apply_opacity = [&](Color c) {
 		RGBA r = c;
 		float a = Clamp(layer.opacity, 0.0f, 1.0f);
@@ -210,13 +253,8 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		if (w <= 0)
 			w = 1.0f;
 		Color fill = layer.fill;
-		if (layer.use_layer_style) {
-			Color tex;
-			if (GetTextureAverageColor(layer.texture_ref, tex)) {
-				clr = Blend2DLayerColor(clr, tex, layer.blend_mode);
-				fill = Blend2DLayerColor(fill, tex, layer.blend_mode);
-			}
-		}
+		if (layer.use_layer_style && has_avg)
+			clr = Blend2DLayerColor(clr, tex_avg, layer.blend_mode);
 		fill = apply_opacity(fill);
 		clr = apply_opacity(clr);
 		switch (shape.type) {
@@ -233,12 +271,27 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 				vec2 p2(max(a[0], b[0]), max(a[1], b[1]));
 				vec2 p3(min(a[0], b[0]), max(a[1], b[1]));
 				if (layer.use_layer_style) {
-					const int steps = 16;
+					const int steps = 20;
 					for (int i = 0; i <= steps; i++) {
 						float t = (float)i / (float)steps;
 						vec2 s0 = Lerp(p0, p3, t);
 						vec2 s1 = Lerp(p1, p2, t);
-						DrawLine(sz, d, view, local_to_world(s0), local_to_world(s1), 1, fill, z_cull);
+						if (has_tex) {
+							const int segs = 48;
+							for (int j = 0; j < segs; j++) {
+								float u0 = (float)j / (float)segs;
+								float u1 = (float)(j + 1) / (float)segs;
+								float um = (u0 + u1) * 0.5f;
+								Color tex = SampleTextureColor(tex_img, um, t);
+								Color col = apply_opacity(Blend2DLayerColor(layer.fill, tex, layer.blend_mode));
+								vec2 l0 = Lerp(s0, s1, u0);
+								vec2 l1 = Lerp(s0, s1, u1);
+								DrawLine(sz, d, view, local_to_world(l0), local_to_world(l1), 1, col, z_cull);
+							}
+						}
+						else {
+							DrawLine(sz, d, view, local_to_world(s0), local_to_world(s1), 1, fill, z_cull);
+						}
 					}
 				}
 				DrawLine(sz, d, view, local_to_world(p0), local_to_world(p1), (int)w, clr, z_cull);
@@ -261,7 +314,25 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 						for (int i = 0; i <= steps; i++) {
 							float y = -r + 2.0f * r * ((float)i / (float)steps);
 							float x = sqrt(max(0.0f, r * r - y * y));
-							DrawLine(sz, d, view, local_to_world(c + vec2(-x, y)), local_to_world(c + vec2(x, y)), 1, fill, z_cull);
+							if (has_tex) {
+								const int segs = 48;
+								for (int j = 0; j < segs; j++) {
+									float u0 = (float)j / (float)segs;
+									float u1 = (float)(j + 1) / (float)segs;
+								float xm0 = -x + (2.0f * x) * u0;
+								float xm1 = -x + (2.0f * x) * u1;
+								float xm = (xm0 + xm1) * 0.5f;
+								float u = (xm + r) / (2.0f * r);
+								float v = (y + r) / (2.0f * r);
+								Color tex = SampleTextureColor(tex_img, u, v);
+									Color col = apply_opacity(Blend2DLayerColor(layer.fill, tex, layer.blend_mode));
+									DrawLine(sz, d, view, local_to_world(c + vec2(xm0, y)),
+									         local_to_world(c + vec2(xm1, y)), 1, col, z_cull);
+								}
+							}
+							else {
+								DrawLine(sz, d, view, local_to_world(c + vec2(-x, y)), local_to_world(c + vec2(x, y)), 1, fill, z_cull);
+							}
 						}
 					}
 					const int steps = 32;

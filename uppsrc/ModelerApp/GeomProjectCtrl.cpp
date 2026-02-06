@@ -522,6 +522,112 @@ struct MaterialPreviewCtrl : Ctrl {
 	}
 };
 
+struct TexturePreviewCtrl : Ctrl {
+	Image preview_img;
+
+	struct PreviewPopup : TopWindow {
+		ImageCtrl img;
+
+		PreviewPopup() {
+			NoWantFocus();
+			ToolWindow();
+			FrameLess();
+			Add(img.SizePos());
+		}
+
+		void SetImage(const Image& m) {
+			img.SetImage(m);
+			Refresh();
+		}
+
+		virtual void LeftDown(Point, dword) {
+			Close();
+		}
+
+		virtual void Deactivate() {
+			Close();
+		}
+	};
+
+	One<PreviewPopup> popup;
+
+	void SetImage(const Image& img) {
+		preview_img = img;
+		Refresh();
+	}
+
+	void SetPath(const String& path) {
+		preview_img.Clear();
+		if (!path.IsEmpty()) {
+			String p = path;
+			if (!FileExists(p)) {
+				String base = GetCurrentDirectory();
+				if (!base.IsEmpty()) {
+					String alt = AppendFileName(base, path);
+					if (FileExists(alt))
+						p = alt;
+				}
+				if (!FileExists(p)) {
+					String share = RealizeShareFile(path);
+					if (FileExists(share))
+						p = share;
+				}
+			}
+			if (FileExists(p))
+				preview_img = StreamRaster::LoadFileAny(p);
+		}
+		Refresh();
+	}
+
+	virtual void LeftDown(Point, dword) {
+		if (preview_img.IsEmpty())
+			return;
+		if (popup && popup->IsOpen()) {
+			popup->Close();
+			return;
+		}
+		if (!popup)
+			popup.Create();
+		Size sz = preview_img.GetSize();
+		const int max_dim = 256;
+		if (sz.cx > max_dim || sz.cy > max_dim) {
+			float scale = min((float)max_dim / (float)sz.cx, (float)max_dim / (float)sz.cy);
+			sz = Size(max(1, (int)ceil(sz.cx * scale)), max(1, (int)ceil(sz.cy * scale)));
+		}
+		Image shown = (sz == preview_img.GetSize()) ? preview_img : CachedRescale(preview_img, sz, FILTER_BILINEAR);
+		popup->SetImage(shown);
+		Rect r = GetScreenRect();
+		Rect wr = GetWorkArea();
+		int x = r.left;
+		int y = r.bottom + 2;
+		if (y + sz.cy > wr.bottom)
+			y = max(wr.top, r.top - sz.cy - 2);
+		if (x + sz.cx > wr.right)
+			x = max(wr.left, wr.right - sz.cx);
+		popup->SetRect(x, y, sz.cx, sz.cy);
+		popup->PopUp(this, true, false, GUI_DropShadows());
+	}
+
+	virtual void Paint(Draw& w) {
+		Size sz = GetSize();
+		w.DrawRect(sz, SColorPaper());
+		if (preview_img.IsEmpty()) {
+			w.DrawRect(0, 0, sz.cx, sz.cy, SColorFace());
+			return;
+		}
+		Size isz = preview_img.GetSize();
+		if (isz.cx <= 0 || isz.cy <= 0)
+			return;
+		float sx = (float)sz.cx / (float)isz.cx;
+		float sy = (float)sz.cy / (float)isz.cy;
+		float sc = min(sx, sy);
+		Size tsz(max(1, (int)floor(isz.cx * sc)), max(1, (int)floor(isz.cy * sc)));
+		Image res = (tsz == isz) ? preview_img : CachedRescale(preview_img, tsz, FILTER_BILINEAR);
+		Point p((sz.cx - tsz.cx) / 2, (sz.cy - tsz.cy) / 2);
+		w.DrawImage(p.x, p.y, res);
+	}
+};
+
 }
 
 
@@ -1317,6 +1423,7 @@ void GeomProjectCtrl::PropsData() {
 	int layer_opacity_id = -1;
 	int layer_style_id = -1;
 	int layer_texture_id = -1;
+	int layer_texture_preview_id = -1;
 	int layer_blend_id = -1;
 	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
 		model_ptr = selected_obj->mdl.Get();
@@ -1351,6 +1458,9 @@ void GeomProjectCtrl::PropsData() {
 		PropRef& tref = props_nodes.Add();
 		tref.kind = PropRef::P_MAT_NORMAL_SCALE;
 		layer_texture_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tref), t_("Texture"));
+		PropRef& tpref = props_nodes.Add();
+		tpref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_texture_preview_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&tpref), t_("Texture Preview"));
 		PropRef& bref = props_nodes.Add();
 		bref.kind = PropRef::P_MAT_BASE_ALPHA;
 		layer_blend_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&bref), t_("Blend Mode"));
@@ -1850,11 +1960,18 @@ void GeomProjectCtrl::PropsData() {
 		One<EditString> tex_ctrl = MakeOne<EditString>();
 		tex_ctrl->SetData(layer_ptr->texture_ref);
 		EditString* tex_ptr = tex_ctrl.Get();
+		One<TexturePreviewCtrl> tex_preview = MakeOne<TexturePreviewCtrl>();
+		tex_preview->SetPath(layer_ptr->texture_ref);
+		TexturePreviewCtrl* tex_preview_ptr = tex_preview.Get();
 		tex_ctrl->WhenAction << [=] {
-			if (tex_ptr && layer_ptr)
+			if (tex_ptr && layer_ptr) {
 				layer_ptr->texture_ref = ~*tex_ptr;
+				if (tex_preview_ptr)
+					tex_preview_ptr->SetPath(layer_ptr->texture_ref);
+			}
 		};
 		set_value_ctrl(layer_texture_id, pick(tex_ctrl));
+		set_value_ctrl(layer_texture_preview_id, pick(tex_preview));
 
 		One<DropList> blend_ctrl = MakeOne<DropList>();
 		blend_ctrl->Add(0, t_("Normal"));

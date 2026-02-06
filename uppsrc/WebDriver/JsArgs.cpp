@@ -5,15 +5,15 @@ NAMESPACE_UPP
 Js_args::Js_args() {
 }
 
-picojson::value Js_args::operator[](int index) const {
-	if (index >= 0 && index < args_.size()) {
+Value Js_args::operator[](int index) const {
+	if (index >= 0 && index < args_.GetCount()) {
 		return args_[index];
 	}
-	return picojson::value();
+	return Value();
 }
 
 int Js_args::Size() const {
-	return static_cast<int>(args_.size());
+	return static_cast<int>(args_.GetCount());
 }
 
 END_UPP_NAMESPACE

@@ -43,7 +43,7 @@ public:
 		return url_;
 	}
 
-	picojson::value Get(const String& command = String()) const {
+	Value Get(const String& command = String()) const {
 		return Download(command, &IHttp_client::Get, "GET");
 	}
 
@@ -64,13 +64,13 @@ public:
 		return Get_value<bool>(command);
 	}
 
-	picojson::value Delete(const String& command = String()) const {
+	Value Delete(const String& command = String()) const {
 		return Download(command, &IHttp_client::Delete, "DELETE");
 	}
 
-	picojson::value Post(
+	Value Post(
 		const String& command = String(),
-		const picojson::value& upload_data = picojson::value()
+		const Value& upload_data = Value()
 		) const {
 		return Upload(command, upload_data, &IHttp_client::Post, "POST");
 	}
@@ -81,9 +81,9 @@ public:
 		const String& arg_name,
 		const T& arg_value
 		) const {
-		picojson::object obj;
-		obj[arg_name] = To_json(arg_value);
-		Post(command, picojson::value(obj));
+		ValueMap obj;
+		obj.Add(arg_name, To_json(arg_value));
+		Post(command, Value(obj));
 	}
 
 	template<typename T>
@@ -96,10 +96,8 @@ public:
 	}
 
 protected:
-	virtual picojson::value Transform_response(picojson::value& response) const {
-		picojson::value result;
-		response.get("value").swap(result);
-		return result;
+	virtual Value Transform_response(Value& response) const {
+		return response["value"];
 	}
 
 	virtual void Delete_resource() {
@@ -107,7 +105,7 @@ protected:
 	}
 
 private:
-	picojson::value Download(
+	Value Download(
 		const String& command,
 		Http_response (IHttp_client::* member)(const String& url) const,
 		const char* request_type
@@ -123,15 +121,14 @@ private:
 			)
 	}
 
-	static String To_upload_data(const picojson::value& upload_data)
+	static String To_upload_data(const Value& upload_data)
 	{
-		return upload_data.is<picojson::null>() ?
-			String() : upload_data.serialize();
+		return IsNull(upload_data) ? String() : AsJSON(upload_data);
 	}
 
-	picojson::value Upload(
+	Value Upload(
 		const String& command,
-		const picojson::value& upload_data,
+		const Value& upload_data,
 		Http_response (IHttp_client::* member)(const String& url, const String& upload_data) const,
 		const char* request_type
 		) const {
@@ -148,7 +145,7 @@ private:
 			)
 	}
 
-	picojson::value Process_response(
+	Value Process_response(
 		const Http_response& http_response
 		) const {
 		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
@@ -157,28 +154,26 @@ private:
 			http_response.http_code != 501,
 			"HTTP code indicates that request is invalid");
 
-		picojson::value response;
-		std::string error_message;
-		picojson::parse(response, http_response.body.begin(), http_response.body.end(), &error_message);
+		Value response;
+		String error_message;
+		if (!ParseJSON(response, http_response.body)) {
+			WEBDRIVERXX_THROW(Fmt() << "JSON parser error");
+		}
 
-		WEBDRIVERXX_CHECK(error_message.empty(),
-			Fmt() << "JSON parser error (" << error_message.c_str() << ")"
-			);
-
-		WEBDRIVERXX_CHECK(response.is<picojson::object>(), "Server response is not an object");
-		WEBDRIVERXX_CHECK(response.contains("status"), "Server response has no member \"status\"");
-		WEBDRIVERXX_CHECK(response.get("status").is<double>(), "Response status code is not a number");
+		WEBDRIVERXX_CHECK(response.IsObject(), "Server response is not an object");
+		WEBDRIVERXX_CHECK(response.Has("status"), "Server response has no member \"status\"");
+		WEBDRIVERXX_CHECK(response["status"].IsNumber(), "Response status code is not a number");
 		const auto status =
-			static_cast<response_status_code::Value>(static_cast<int>(response.get("status").get<double>()));
-		WEBDRIVERXX_CHECK(response.contains("value"), "Server response has no member \"value\"");
-		const auto& value = response.get("value");
+			static_cast<response_status_code::Value>(ToInt(response["status"]));
+		WEBDRIVERXX_CHECK(response.Has("value"), "Server response has no member \"value\"");
+		const Value& value = response["value"];
 
 		if (http_response.http_code == 500) { // Internal server error
-			WEBDRIVERXX_CHECK(value.is<picojson::object>(), "Server response has no member \"value\" or \"value\" is not an object");
-			WEBDRIVERXX_CHECK(value.contains("message"), "Server response has no member \"value.message\"");
-			WEBDRIVERXX_CHECK(value.get("message").is<std::string>(), "\"value.message\" is not a string");
+			WEBDRIVERXX_CHECK(value.IsObject(), "Server response has no member \"value\" or \"value\" is not an object");
+			WEBDRIVERXX_CHECK(value.Has("message"), "Server response has no member \"value.message\"");
+			WEBDRIVERXX_CHECK(value["message"].IsString(), "\"value.message\" is not a string");
 			WEBDRIVERXX_THROW(Fmt() << "Server failed to execute command ("
-				<< "message: " << value.get("message").to_str().c_str()
+				<< "message: " << AsString(value["message"])
 				<< ", status: " << response_status_code::ToString(status)
 				<< ", status_code: " << status
 				<< ")"
@@ -222,8 +217,8 @@ public:
 	{}
 
 private:
-	virtual picojson::value Transform_response(picojson::value& response) const {
-		picojson::value result;
+	virtual Value Transform_response(Value& response) const {
+		Value result;
 		response.Swap(result);
 		return result;
 	}

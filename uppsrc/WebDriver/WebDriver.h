@@ -5,6 +5,8 @@
 #include "Types.h"
 #include "By.h"
 #include "Capabilities.h"
+#include "JsArgs.h"
+#include "Session.h"
 #include "Client.h"
 #include "Element.h"
 #include "Errors.h"

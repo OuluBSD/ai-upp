@@ -16,12 +16,12 @@ public:
 	template<typename T>
 	Js_args& Add(const T& value);
 
-	picojson::value operator[](int index) const;
+	Value operator[](int index) const;
 
 	int Size() const;
 
 private:
-	Vector<picojson::value> args_;
+	ValueArray args_;
 };
 
 template<typename T>

@@ -9,18 +9,18 @@ Client::Client(const String& url) {
 
 Value Client::Get_status() const {
 	// Return server status
-	picojson::value status = resource_->Get("status");
-	// Convert picojson::value to Upp::Value
-	return ToValue(status);
+	Value status = resource_->Get("status");
+	// Already in Upp::Value format
+	return status;
 }
 
 Vector<Session> Client::Get_sessions() const {
 	// Return existing sessions
-	picojson::value result = resource_->Get("sessions");
+	Value result = resource_->Get("sessions");
 	ValueArray session_values = From_json<ValueArray>(result);
 	Vector<Session> sessions;
 	for(const auto& val : session_values) {
-		picojson::value id_val = val.get<picojson::object>().at("id");
+		Value id_val = val["id"];
 		String session_id = From_json<String>(id_val);
 		sessions.Add(Session(detail::Shared<detail::Resource>(
 			new detail::Resource(resource_, session_id, detail::Resource::IsObserver))));
@@ -32,13 +32,12 @@ Session Client::Create_session(
 	const Capabilities& desired,
 	const Capabilities& required
 	) const {
-	picojson::object caps_obj;
-	caps_obj["desiredCapabilities"] = To_json(desired);
-	caps_obj["requiredCapabilities"] = To_json(required);
-	picojson::value caps = picojson::value(caps_obj);
+	Value caps = Value::Object()
+		.Add("desiredCapabilities", To_json(desired))
+		.Add("requiredCapabilities", To_json(required));
 
-	picojson::value response = resource_->Post("session", caps);
-	String session_id = From_json<String>(response.get("sessionId"));
+	Value response = resource_->Post("session", caps);
+	String session_id = From_json<String>(response["sessionId"]);
 
 	return Make_session(session_id, detail::Resource::IsOwner);
 }

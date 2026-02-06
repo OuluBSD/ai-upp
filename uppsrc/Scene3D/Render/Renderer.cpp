@@ -3,6 +3,78 @@
 NAMESPACE_UPP
 
 
+static Color Blend2DLayerColor(Color base, Color tex, int mode) {
+	auto clamp = [](int v) { return (byte)Clamp(v, 0, 255); };
+	switch (mode) {
+	case 1: { // Add
+		return Color(clamp((int)base.GetR() + (int)tex.GetR()),
+		             clamp((int)base.GetG() + (int)tex.GetG()),
+		             clamp((int)base.GetB() + (int)tex.GetB()));
+	}
+	case 2: { // Multiply
+		return Color(clamp((int)base.GetR() * (int)tex.GetR() / 255),
+		             clamp((int)base.GetG() * (int)tex.GetG() / 255),
+		             clamp((int)base.GetB() * (int)tex.GetB() / 255));
+	}
+	default: { // Normal (average)
+		return Color(clamp(((int)base.GetR() + (int)tex.GetR()) / 2),
+		             clamp(((int)base.GetG() + (int)tex.GetG()) / 2),
+		             clamp(((int)base.GetB() + (int)tex.GetB()) / 2));
+	}
+	}
+}
+
+static bool GetTextureAverageColor(const String& ref, Color& out) {
+	if (ref.IsEmpty())
+		return false;
+	String path = ref;
+	if (!FileExists(path)) {
+		String base = GetCurrentDirectory();
+		if (!base.IsEmpty()) {
+			String alt = AppendFileName(base, ref);
+			if (FileExists(alt))
+				path = alt;
+		}
+		if (!FileExists(path)) {
+			String share = RealizeShareFile(ref);
+			if (FileExists(share))
+				path = share;
+		}
+	}
+	if (!FileExists(path))
+		return false;
+	static VectorMap<String, Color> cache;
+	int ci = cache.Find(path);
+	if (ci >= 0) {
+		out = cache[ci];
+		return true;
+	}
+	Image img = StreamRaster::LoadFileAny(path);
+	if (img.IsEmpty())
+		return false;
+	Size sz = img.GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return false;
+	int step = max(1, min(sz.cx, sz.cy) / 64);
+	long long r = 0, g = 0, b = 0, count = 0;
+	for (int y = 0; y < sz.cy; y += step) {
+		const RGBA* s = img[y];
+		for (int x = 0; x < sz.cx; x += step) {
+			r += s[x].r;
+			g += s[x].g;
+			b += s[x].b;
+			count++;
+		}
+	}
+	if (count <= 0)
+		return false;
+	out = Color((byte)Clamp(r / count, 0LL, 255LL),
+	            (byte)Clamp(g / count, 0LL, 255LL),
+	            (byte)Clamp(b / count, 0LL, 255LL));
+	cache.Add(path, out);
+	return true;
+}
+
 void DrawRect(Size sz, Draw& d, const mat4& view, const vec3& p, Size rect_sz, const Color& c, bool z_cull) {
 	vec3 pp = VecMul(view, p);
 	/*if (z_cull && pp[2] * SCALAR_FWD_Z > 0)
@@ -137,7 +209,15 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		float w = layer.use_layer_style ? layer.width : shape.width;
 		if (w <= 0)
 			w = 1.0f;
-		Color fill = apply_opacity(layer.fill);
+		Color fill = layer.fill;
+		if (layer.use_layer_style) {
+			Color tex;
+			if (GetTextureAverageColor(layer.texture_ref, tex)) {
+				clr = Blend2DLayerColor(clr, tex, layer.blend_mode);
+				fill = Blend2DLayerColor(fill, tex, layer.blend_mode);
+			}
+		}
+		fill = apply_opacity(fill);
 		clr = apply_opacity(clr);
 		switch (shape.type) {
 		case Geom2DShape::S_LINE:

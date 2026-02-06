@@ -384,6 +384,144 @@ struct KeyframeCtrl : Ctrl {
 	}
 };
 
+struct MaterialPreviewCtrl : Ctrl {
+	vec3 base = vec3(1, 1, 1);
+	vec3 emissive = vec3(0, 0, 0);
+	Image preview_img;
+
+	static Image ByteImageToImage(const ByteImage& src) {
+		if (!src.data || src.sz.cx <= 0 || src.sz.cy <= 0)
+			return Image();
+		int ch = src.channels;
+		if (ch <= 0)
+			ch = 4;
+		ImageBuffer ib(src.sz);
+		int pitch = src.pitch ? src.pitch : src.sz.cx * ch;
+		for (int y = 0; y < src.sz.cy; y++) {
+			const byte* s = src.data + y * pitch;
+			RGBA* d = ib[y];
+			for (int x = 0; x < src.sz.cx; x++) {
+				if (ch >= 4) {
+					d[x].r = s[x * ch + 0];
+					d[x].g = s[x * ch + 1];
+					d[x].b = s[x * ch + 2];
+					d[x].a = s[x * ch + 3];
+				}
+				else if (ch == 3) {
+					d[x].r = s[x * ch + 0];
+					d[x].g = s[x * ch + 1];
+					d[x].b = s[x * ch + 2];
+					d[x].a = 255;
+				}
+				else {
+					byte v = s[x * ch + 0];
+					d[x].r = v;
+					d[x].g = v;
+					d[x].b = v;
+					d[x].a = 255;
+				}
+			}
+		}
+		return ib;
+	}
+
+	struct PreviewPopup : TopWindow {
+		ImageCtrl img;
+
+		PreviewPopup() {
+			NoWantFocus();
+			ToolWindow();
+			FrameLess();
+			Add(img.SizePos());
+		}
+
+		void SetImage(const Image& m) {
+			img.SetImage(m);
+			Refresh();
+		}
+
+		virtual void LeftDown(Point, dword) {
+			Close();
+		}
+
+		virtual void Deactivate() {
+			Close();
+		}
+	};
+
+	One<PreviewPopup> popup;
+
+	void SetMaterial(const Material& m) {
+		base = m.params->base_clr_factor.Splice();
+		emissive = m.params->emissive_factor;
+		preview_img.Clear();
+		if (m.owner) {
+			int tex_id = m.tex_id[TEXTYPE_DIFFUSE];
+			if (tex_id >= 0) {
+				int idx = m.owner->textures.Find(tex_id);
+				if (idx >= 0)
+					preview_img = ByteImageToImage(m.owner->textures[idx].img);
+			}
+		}
+		Refresh();
+	}
+
+	virtual void LeftDown(Point, dword) {
+		if (preview_img.IsEmpty())
+			return;
+		if (popup && popup->IsOpen()) {
+			popup->Close();
+			return;
+		}
+		if (!popup)
+			popup.Create();
+		Size sz = preview_img.GetSize();
+		const int max_dim = 256;
+		if (sz.cx > max_dim || sz.cy > max_dim) {
+			float scale = min((float)max_dim / (float)sz.cx, (float)max_dim / (float)sz.cy);
+			sz = Size(max(1, (int)ceil(sz.cx * scale)), max(1, (int)ceil(sz.cy * scale)));
+		}
+		Image shown = (sz == preview_img.GetSize()) ? preview_img : CachedRescale(preview_img, sz, FILTER_BILINEAR);
+		popup->SetImage(shown);
+		Rect r = GetScreenRect();
+		Rect wr = GetWorkArea();
+		int x = r.left;
+		int y = r.bottom + 2;
+		if (y + sz.cy > wr.bottom)
+			y = max(wr.top, r.top - sz.cy - 2);
+		if (x + sz.cx > wr.right)
+			x = max(wr.left, wr.right - sz.cx);
+		popup->SetRect(x, y, sz.cx, sz.cy);
+		popup->PopUp(this, true, false, GUI_DropShadows());
+	}
+
+	virtual void Paint(Draw& w) {
+		Size sz = GetSize();
+		w.DrawRect(sz, SColorPaper());
+		int r = min(sz.cx, sz.cy) / 2 - 2;
+		Point c(sz.cx / 2, sz.cy / 2);
+		if (r <= 0)
+			return;
+		for (int y = -r; y <= r; y++) {
+			for (int x = -r; x <= r; x++) {
+				if (x * x + y * y > r * r)
+					continue;
+				float nx = (float)x / (float)r;
+				float ny = (float)y / (float)r;
+				float nz2 = max(0.0f, 1.0f - nx * nx - ny * ny);
+				float nz = sqrt(nz2);
+				float diff = max(0.0f, 0.4f * nx + 0.7f * ny + 0.5f * nz);
+				float intensity = 0.2f + diff * 0.8f;
+				vec3 col = base * intensity + emissive;
+				col[0] = Clamp(col[0], 0.0f, 1.0f);
+				col[1] = Clamp(col[1], 0.0f, 1.0f);
+				col[2] = Clamp(col[2], 0.0f, 1.0f);
+				w.DrawRect(c.x + x, c.y + y, 1, 1, Color((byte)(col[0] * 255), (byte)(col[1] * 255), (byte)(col[2] * 255)));
+			}
+		}
+	}
+};
+
 }
 
 
@@ -1281,6 +1419,7 @@ void GeomProjectCtrl::PropsData() {
 	int ori_id = props.Add(transform, ImagesImg::Object(), RawToValue(&pori), "Orientation");
 	struct MaterialItemIds {
 		Material* mat = 0;
+		int mat_node_id = -1;
 		int base_id = -1;
 		int alpha_id = -1;
 		int metallic_id = -1;
@@ -1330,6 +1469,7 @@ void GeomProjectCtrl::PropsData() {
 			int occlusion_id = props.Add(mat_node, ImagesImg::Object(), RawToValue(&ocnode), t_("Occlusion"));
 			MaterialItemIds& ids = material_items.Add();
 			ids.mat = &mat;
+			ids.mat_node_id = mat_node;
 			ids.base_id = base_id;
 			ids.alpha_id = alpha_id;
 			ids.metallic_id = metallic_id;
@@ -1533,6 +1673,11 @@ void GeomProjectCtrl::PropsData() {
 		Material* mat = ids.mat;
 		if (!mat)
 			continue;
+		if (ids.mat_node_id >= 0) {
+			One<MaterialPreviewCtrl> prev = MakeOne<MaterialPreviewCtrl>();
+			prev->SetMaterial(*mat);
+			set_value_ctrl(ids.mat_node_id, pick(prev));
+		}
 		vec4 base = mat->params->base_clr_factor;
 		vec3 emissive = mat->params->emissive_factor;
 		One<ColorPusher> base_ctrl = MakeOne<ColorPusher>();

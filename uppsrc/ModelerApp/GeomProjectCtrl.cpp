@@ -1193,7 +1193,8 @@ String GeomProjectCtrl::GetTreePathFromId(int id) const {
 }
 
 String GeomProjectCtrl::GetTreePathForValue(const Value& v, int id) const {
-	if (TreeNodeRef* ref = GetNodeRef(v)) {
+	TreeNodeRef* ref = v.Is<TreeNodeRef*>() ? ValueTo<TreeNodeRef*>(v) : 0;
+	if (ref) {
 		if (ref->kind == TreeNodeRef::K_PROGRAM)
 			return "builtin/program";
 		if (ref->kind == TreeNodeRef::K_FOCUS)

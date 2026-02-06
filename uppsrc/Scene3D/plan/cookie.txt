@@ -186,3 +186,7 @@
   task: track-editor-scripting/phase-12-material-editing/task-1201-material-editing-2d.md
   status: done
   note: Added 2D layer material properties, editor controls, and filled render overlay.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0907-props-playback-sync.md
+  status: done
+  note: Props now reflect evaluated timeline values on scrub/playback.

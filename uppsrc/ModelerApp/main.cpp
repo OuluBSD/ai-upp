@@ -27,10 +27,34 @@ GUI_APP_MAIN {
 	cmd.AddArg('g', "Debug-mode", false);
 	cmd.AddArg('m', "Render math test (headless)", false);
 	cmd.AddArg('G', "Dump grid math to file", true, "path");
-	if (!cmd.Parse()) {
+	const Vector<String>& raw_args = CommandLine();
+	Vector<String> filtered_args;
+	filtered_args.Reserve(raw_args.GetCount());
+	bool verbose = false;
+	bool verbose_debug = false;
+	for (int i = 0; i < raw_args.GetCount(); i++) {
+		const String& arg = raw_args[i];
+		if (i == 0) {
+			filtered_args.Add(arg);
+			continue;
+		}
+		if (arg == "-vd" || arg == "--verbosity-debug") {
+			verbose = true;
+			verbose_debug = true;
+			continue;
+		}
+		if (arg == "--verbose") {
+			verbose = true;
+			continue;
+		}
+		filtered_args.Add(arg);
+	}
+	if (!cmd.Parse(filtered_args)) {
 		cmd.PrintHelp();
 		return;
 	}
+	if (cmd.IsArg('v'))
+		verbose = true;
 	
 	enum {
 		EMPTY,
@@ -87,6 +111,8 @@ GUI_APP_MAIN {
 	daemon.RunInThread();
 	
 	Edit3D app;
+	app.verbose = verbose || verbose_debug;
+	app.verbose_debug = verbose_debug;
 	if (cmd.IsArg('r'))
 		app.SetProjectDir(cmd.GetArg('r'));
 	if (cmd.IsArg('G'))
@@ -96,7 +122,7 @@ GUI_APP_MAIN {
 			app.v0.SetRendererVersion(i, 2);
 	}
 
-	if (cmd.IsArg('d')) {
+	if (cmd.IsArg('d') && !verbose_debug) {
 		app.LoadTestProject(builtin_index);
 		RealizeDirectory(GetFileFolder(test_scene_path));
 		if (!app.SaveScene3D(test_scene_path, true))
@@ -238,6 +264,8 @@ GUI_APP_MAIN {
 		app.SetScene3DFormat(true);
 		app.ToggleRepeatPlayback();
 		app.Play();
+		if (builtin_index == 2)
+			app.ScheduleBuiltinDump(builtin_index);
 	}
 	else if (mode == SYNTHETIC) {
 		app.LoadEmptyProject();

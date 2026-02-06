@@ -111,6 +111,12 @@ struct GeomProjectCtrl : Ctrl {
 
 	Vector<PropRef> props_nodes;
 	Vector<One<Ctrl>> props_ctrls;
+	Ctrl* props_transform_pos_ctrl = 0;
+	Ctrl* props_transform_ori_ctrl = 0;
+	int props_transform_pos_id = -1;
+	int props_transform_ori_id = -1;
+	VectorMap<String, String> props_cursor_by_tree;
+	String current_tree_path;
 	
 	
 	typedef GeomProjectCtrl CLASSNAME;
@@ -131,6 +137,12 @@ struct GeomProjectCtrl : Ctrl {
 	TreeNodeRef* GetNodeRef(const Value& v);
 	GeomObject* GetNodeObject(const Value& v);
 	GeomPointcloudDataset* GetNodeDataset(const Value& v);
+	String GetTreePathForValue(const Value& v, int id) const;
+	String GetTreePathFromId(int id) const;
+	String GetPropsPathForId(int id) const;
+	int FindPropsIdByPath(const String& path, bool open);
+	void StorePropsCursor(const String& tree_path);
+	void RestorePropsCursor(const String& tree_path);
 	void OnCursor(int kp_i);
 	void TreeValue(int id, VfsValue& node);
 	void RefreshRenderer(int i);
@@ -248,6 +260,7 @@ struct Edit3D : DockWindow {
 	//GeomVideo video;
 	GeomStagedVideo video;
 	TimeCallback tc;
+	TimeCallback debug_tc;
 	TimeStop ts;
 	HmdCapture hmd;
 	GeomObject* texture_obj = 0;
@@ -279,6 +292,8 @@ struct Edit3D : DockWindow {
 	bool record_pointcloud = false;
 	GeomObject* hmd_pointcloud = 0;
 	String project_dir;
+	bool verbose = false;
+	bool verbose_debug = false;
 	TimeStop script_timer;
 	VfsValue* selected_bone = 0;
 
@@ -460,11 +475,14 @@ public:
 	void RefrehRenderers();
 	void RefrehToolbar();
 	void OnSceneEnd();
+	void ScheduleBuiltinDump(int builtin_index, int delay_ms = 2000);
+	void DumpBuiltinState(int builtin_index);
 	void OnDebugMetadata();
 	void Toolbar(Bar& bar);
 	void UpdateWindowTitle();
 	void SetScene3DFormat(bool use_json);
 	void ToggleRepeatPlayback();
+	void Serialize(Stream& s);
 	void OpenScene3D();
 	void OpenTextureEditor();
 	void OpenFilePool();

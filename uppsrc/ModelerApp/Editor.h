@@ -382,6 +382,15 @@ struct Edit3D : DockWindow {
 	bool edit_snap_enable = false;
 	double edit_snap_step = 0.1;
 	bool edit_snap_local = true;
+	bool transform_snap_enable = false;
+	double transform_snap_step = 0.1;
+	bool transform_use_local = true;
+	bool transform_angle_snap = false;
+	double transform_angle_step = M_PIf / 12.0;
+	double transform_nudge_small = 0.01;
+	double transform_nudge_large = 0.1;
+	double transform_rot_small = M_PIf / 180.0;
+	double transform_rot_large = M_PIf / 12.0;
 	bool sculpt_mode = false;
 	double sculpt_radius = 0.5;
 	double sculpt_strength = 0.2;
@@ -493,6 +502,9 @@ struct Edit3D : DockWindow {
 	void Clear2DKeyframes();
 	void AutoKeyMeshEdit(GeomObject* obj);
 	void AutoKey2DEdit(GeomObject* obj);
+	bool ApplyTransformDelta(GeomObject* obj, const vec3& delta, bool local_axes);
+	bool ApplyTransformRotation(GeomObject* obj, int axis, double angle_rad, bool local_axes);
+	void MaybeAutoKeyTransform(GeomObject* obj, bool pos, bool ori);
 	bool ScreenToPlaneWorldPoint(int view_i, const Point& p, const vec3& origin, const vec3& normal, vec3& out) const;
 	bool ScreenToRay(int view_i, const Point& p, vec3& out_origin, vec3& out_dir) const;
 	void CreateSkeletonForSelected();
@@ -522,7 +534,8 @@ struct Edit3D : DockWindow {
 public:
 	typedef Edit3D CLASSNAME;
 	Edit3D();
-	
+
+	bool Key(dword key, int count) override;
 	void SetView(ViewType view);
 	virtual void DockInit();
 	void Update();

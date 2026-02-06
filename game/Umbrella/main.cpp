@@ -1,6 +1,7 @@
 #include "Umbrella.h"
 #include "MapEditor.h"
 #include "MainMenuScreen.h"
+#include "GameScreen.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
@@ -19,6 +20,7 @@ GUI_APP_MAIN
     // Parse command line arguments
     bool editorMode = false;
     bool testMode = false;
+    bool newGameMode = false;
     String levelPath;
 
     const Vector<String>& args = CommandLine();
@@ -29,6 +31,9 @@ GUI_APP_MAIN
         }
         else if(arg == "--test") {
             testMode = true;
+        }
+        else if(arg == "--newgame" || arg == "-n") {
+            newGameMode = true;
         }
         // If argument doesn't start with --, treat it as a file path
         else if(!arg.StartsWith("--") && !arg.StartsWith("-")) {
@@ -47,6 +52,14 @@ GUI_APP_MAIN
             MapEditorApp(levelPath).Run();
         } else {
             MapEditorApp().Run();
+        }
+    } else if(newGameMode) {
+        // Start first level directly
+        String firstLevel = "share/mods/umbrella/levels/world1-stage1.json";
+        if(FileExists(firstLevel)) {
+            GameScreen(firstLevel).Run();
+        } else {
+            Exclamation("First level not found: " + firstLevel);
         }
     } else {
         MainMenuScreen().Run();

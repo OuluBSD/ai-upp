@@ -47,6 +47,27 @@ public:
 	TUBrowser();
 };
 
+struct SolutionPattern : Moveable<SolutionPattern> {
+	String name;
+	String regex;
+	String description;
+	String prompt_template;
+	
+	void Jsonize(JsonIO& jio) {
+		jio("name", name)("regex", regex)("description", description)("prompt_template", prompt_template);
+	}
+};
+
+class SolutionsManager {
+public:
+	Array<SolutionPattern> patterns;
+	String root;
+	
+	void Load(const String& maestro_root);
+	void Save();
+	int Match(const String& message); // Returns index or -1
+};
+
 class LogAnalyzer : public WithLogAnalyzerLayout<ParentCtrl> {
 public:
 	ArrayCtrl    scan_list, finding_list;
@@ -54,12 +75,17 @@ public:
 	RichTextView detail_view;
 
 	One<LogManager> lm;
+	SolutionsManager sm;
 	String       root;
 	void Load(const String& maestro_root);
 	void UpdateScans();
 	void OnScanCursor();
 	void OnFindingCursor();
 	void OnCreateIssue();
+	void OnRemediate();
+	
+	Callback1<String> WhenRemediate;
+	
 	typedef LogAnalyzer CLASSNAME;
 	LogAnalyzer();
 };
@@ -492,6 +518,30 @@ public:
 	
 	typedef BuildMethodsDialog CLASSNAME;
 	BuildMethodsDialog();
+};
+
+class SolutionsHub : public TopWindow {
+public:
+	Splitter split;
+	ArrayCtrl list;
+	ParentCtrl editor;
+	EditString name, regex;
+	EditString description;
+	RichTextCtrl prompt_template;
+	Button add, remove, save;
+	
+	SolutionsManager sm;
+	String root;
+	
+	void Load(const String& maestro_root);
+	void OnSelect();
+	void OnAdd();
+	void OnRemove();
+	void OnSave();
+	void OnTest();
+	
+	typedef SolutionsHub CLASSNAME;
+	SolutionsHub();
 };
 
 // 4. Main Window

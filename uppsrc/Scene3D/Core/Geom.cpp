@@ -433,7 +433,12 @@ void Geom2DLayer::Visit(Vis& v) {
 	  VIS_(opacity)
 	  VIS_(use_layer_style)
 	  VIS_(texture_ref)
-	  VIS_(blend_mode);
+	  VIS_(blend_mode)
+	  VIS_(tex_offset_x)
+	  VIS_(tex_offset_y)
+	  VIS_(tex_scale_x)
+	  VIS_(tex_scale_y)
+	  VIS_(tex_rotate);
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			shapes.Clear();

@@ -2,6 +2,7 @@
 #include "GameScreen.h"
 #include "MapSerializer.h"
 #include "EnemyPatroller.h"
+#include "EnemyJumper.h"
 
 using namespace Upp;
 
@@ -384,12 +385,12 @@ void GameScreen::ClearEnemies() {
 void GameScreen::SpawnEnemies() {
 	ClearEnemies();
 
-	// Spawn some patroller enemies at various positions
-	// For now, spawn a few enemies manually at reasonable positions
+	// Spawn mixed enemy types at various positions
+	// For now, spawn enemies manually at reasonable positions
 	// Later this could be data-driven from map files
 
 	if(levelColumns > 10 && levelRows > 5) {
-		// Spawn enemy at column 8, looking for ground
+		// Spawn patroller at column 8, looking for ground
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(8, row)) {
 				int spawnX = 8 * gridSize;
@@ -399,23 +400,35 @@ void GameScreen::SpawnEnemies() {
 			}
 		}
 
-		// Spawn enemy at column 15
+		// Spawn jumper at column 15
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(15, row)) {
 				int spawnX = 15 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				enemies.Add(new EnemyJumper((float)spawnX, (float)spawnY));
 				break;
 			}
 		}
 
-		// Spawn enemy at column 22
+		// Spawn patroller at column 22
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(22, row)) {
 				int spawnX = 22 * gridSize;
 				int spawnY = (row + 1) * gridSize;
 				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
 				break;
+			}
+		}
+
+		// Spawn jumper at column 30
+		if(levelColumns > 30) {
+			for(int row = levelRows - 3; row >= 1; row--) {
+				if(IsFloorTile(30, row)) {
+					int spawnX = 30 * gridSize;
+					int spawnY = (row + 1) * gridSize;
+					enemies.Add(new EnemyJumper((float)spawnX, (float)spawnY));
+					break;
+				}
 			}
 		}
 	}

@@ -7,19 +7,23 @@ Client::Client(const String& url) {
 	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, /* http client */));
 }
 
-picojson::object Client::Get_status() const {
+Value Client::Get_status() const {
 	// Return server status
-	return resource_->Get("status").get<picojson::object>();
+	picojson::value status = resource_->Get("status");
+	// Convert picojson::value to Upp::Value
+	return ToValue(status);
 }
 
 Vector<Session> Client::Get_sessions() const {
 	// Return existing sessions
 	picojson::value result = resource_->Get("sessions");
-	Vector<picojson::object> session_objects = From_json<Vector<picojson::object>>(result);
+	Vector<picojson::value> session_values = From_json<Vector<picojson::value>>(result);
 	Vector<Session> sessions;
-	for(const auto& obj : session_objects) {
+	for(const auto& val : session_values) {
+		picojson::value id_val = val.get<picojson::object>().at("id");
+		String session_id = From_json<String>(id_val);
 		sessions.Add(Session(detail::Shared<detail::Resource>(
-			new detail::Resource(resource_, obj.at("id").serialize(), detail::Resource::IsObserver))));
+			new detail::Resource(resource_, session_id, detail::Resource::IsObserver))));
 	}
 	return sessions;
 }
@@ -28,9 +32,10 @@ Session Client::Create_session(
 	const Capabilities& desired,
 	const Capabilities& required
 	) const {
-	JsonObject caps;
-	caps.Set("desiredCapabilities", static_cast<const picojson::value&>(desired))
-	   .Set("requiredCapabilities", static_cast<const picojson::value&>(required));
+	picojson::object caps_obj;
+	caps_obj["desiredCapabilities"] = To_json(desired);
+	caps_obj["requiredCapabilities"] = To_json(required);
+	picojson::value caps = picojson::value(caps_obj);
 
 	picojson::value response = resource_->Post("session", caps);
 	String session_id = From_json<String>(response.get("sessionId"));

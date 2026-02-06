@@ -1444,6 +1444,67 @@ Edit3D::Edit3D() :
 				bar.Add(t_("Step 1.0"), [this] { edit_snap_step = 1.0; })
 					.Check(fabs(edit_snap_step - 1.0) < 1e-6);
 			});
+			bar.Sub(t_("Transform"), [this](Bar& bar) {
+				bar.Add(t_("Use Local Axes"), [this] { transform_use_local = !transform_use_local; })
+					.Check(transform_use_local);
+				bar.Separator();
+				bar.Add(t_("Position Snap"), [this] { transform_snap_enable = !transform_snap_enable; })
+					.Check(transform_snap_enable);
+				bar.Sub(t_("Position Snap Step"), [this](Bar& bar) {
+					bar.Add(t_("0.01"), [this] { transform_snap_step = 0.01; })
+						.Check(fabs(transform_snap_step - 0.01) < 1e-6);
+					bar.Add(t_("0.1"), [this] { transform_snap_step = 0.1; })
+						.Check(fabs(transform_snap_step - 0.1) < 1e-6);
+					bar.Add(t_("0.5"), [this] { transform_snap_step = 0.5; })
+						.Check(fabs(transform_snap_step - 0.5) < 1e-6);
+					bar.Add(t_("1.0"), [this] { transform_snap_step = 1.0; })
+						.Check(fabs(transform_snap_step - 1.0) < 1e-6);
+				});
+				bar.Separator();
+				bar.Add(t_("Angle Snap"), [this] { transform_angle_snap = !transform_angle_snap; })
+					.Check(transform_angle_snap);
+				bar.Sub(t_("Angle Snap Step"), [this](Bar& bar) {
+					bar.Add(t_("1 deg"), [this] { transform_angle_step = M_PIf / 180.0; })
+						.Check(fabs(transform_angle_step - (M_PIf / 180.0)) < 1e-6);
+					bar.Add(t_("5 deg"), [this] { transform_angle_step = M_PIf / 36.0; })
+						.Check(fabs(transform_angle_step - (M_PIf / 36.0)) < 1e-6);
+					bar.Add(t_("15 deg"), [this] { transform_angle_step = M_PIf / 12.0; })
+						.Check(fabs(transform_angle_step - (M_PIf / 12.0)) < 1e-6);
+					bar.Add(t_("45 deg"), [this] { transform_angle_step = M_PIf / 4.0; })
+						.Check(fabs(transform_angle_step - (M_PIf / 4.0)) < 1e-6);
+				});
+				bar.Separator();
+				bar.Sub(t_("Nudge Step"), [this](Bar& bar) {
+					bar.Add(t_("Small 0.01"), [this] { transform_nudge_small = 0.01; })
+						.Check(fabs(transform_nudge_small - 0.01) < 1e-6);
+					bar.Add(t_("Small 0.1"), [this] { transform_nudge_small = 0.1; })
+						.Check(fabs(transform_nudge_small - 0.1) < 1e-6);
+					bar.Add(t_("Small 0.5"), [this] { transform_nudge_small = 0.5; })
+						.Check(fabs(transform_nudge_small - 0.5) < 1e-6);
+					bar.Separator();
+					bar.Add(t_("Large 0.1"), [this] { transform_nudge_large = 0.1; })
+						.Check(fabs(transform_nudge_large - 0.1) < 1e-6);
+					bar.Add(t_("Large 1.0"), [this] { transform_nudge_large = 1.0; })
+						.Check(fabs(transform_nudge_large - 1.0) < 1e-6);
+					bar.Add(t_("Large 5.0"), [this] { transform_nudge_large = 5.0; })
+						.Check(fabs(transform_nudge_large - 5.0) < 1e-6);
+				});
+				bar.Sub(t_("Rotate Step"), [this](Bar& bar) {
+					bar.Add(t_("Small 1 deg"), [this] { transform_rot_small = M_PIf / 180.0; })
+						.Check(fabs(transform_rot_small - (M_PIf / 180.0)) < 1e-6);
+					bar.Add(t_("Small 5 deg"), [this] { transform_rot_small = M_PIf / 36.0; })
+						.Check(fabs(transform_rot_small - (M_PIf / 36.0)) < 1e-6);
+					bar.Add(t_("Small 15 deg"), [this] { transform_rot_small = M_PIf / 12.0; })
+						.Check(fabs(transform_rot_small - (M_PIf / 12.0)) < 1e-6);
+					bar.Separator();
+					bar.Add(t_("Large 15 deg"), [this] { transform_rot_large = M_PIf / 12.0; })
+						.Check(fabs(transform_rot_large - (M_PIf / 12.0)) < 1e-6);
+					bar.Add(t_("Large 45 deg"), [this] { transform_rot_large = M_PIf / 4.0; })
+						.Check(fabs(transform_rot_large - (M_PIf / 4.0)) < 1e-6);
+					bar.Add(t_("Large 90 deg"), [this] { transform_rot_large = M_PIf / 2.0; })
+						.Check(fabs(transform_rot_large - (M_PIf / 2.0)) < 1e-6);
+				});
+			});
 			bar.Sub(t_("Sculpt"), [this](Bar& bar) {
 				bar.Add(t_("Enable"), [this] { sculpt_mode = !sculpt_mode; })
 					.Check(sculpt_mode);
@@ -1569,6 +1630,58 @@ void Edit3D::DockInit() {
 	if (FileExists(cfg))
 		LoadFromFile(*this, cfg);
 	v0.RestoreTreeOpenState();
+}
+
+bool Edit3D::Key(dword key, int count) {
+	if (key & K_UP)
+		return DockWindow::Key(key, count);
+	Ctrl* focus = GetFocusCtrl();
+	if (focus && dynamic_cast<EditField*>(focus))
+		return DockWindow::Key(key, count);
+	bool alt = key & K_ALT;
+	bool ctrl = key & K_CTRL;
+	bool shift = key & K_SHIFT;
+	dword base = key & ~(K_ALT|K_CTRL|K_SHIFT);
+	if (alt) {
+		GeomObject* obj = v0.selected_obj;
+		if (!obj || obj->is_locked)
+			return DockWindow::Key(key, count);
+		if (!ctrl) {
+			double step = shift ? transform_nudge_large : transform_nudge_small;
+			vec3 delta(0, 0, 0);
+			if (base == K_LEFT) delta = VEC_LEFT * (float)step;
+			else if (base == K_RIGHT) delta = VEC_RIGHT * (float)step;
+			else if (base == K_UP) delta = VEC_UP * (float)step;
+			else if (base == K_DOWN) delta = VEC_DOWN * (float)step;
+			else if (base == K_PAGEUP) delta = VEC_FWD * (float)step;
+			else if (base == K_PAGEDOWN) delta = VEC_BWD * (float)step;
+			if (delta != vec3(0, 0, 0) && ApplyTransformDelta(obj, delta, transform_use_local))
+				return true;
+		}
+		else {
+			double step = shift ? transform_rot_large : transform_rot_small;
+			if (transform_angle_snap && transform_angle_step > 1e-12) {
+				if (shift) {
+					double mult = max(1.0, floor(transform_rot_large / transform_angle_step + 0.5));
+					step = transform_angle_step * mult;
+				}
+				else {
+					step = transform_angle_step;
+				}
+			}
+			int axis = -1;
+			double angle = step;
+			if (base == K_LEFT) { axis = 1; angle = -step; }
+			else if (base == K_RIGHT) { axis = 1; angle = step; }
+			else if (base == K_UP) { axis = 0; angle = -step; }
+			else if (base == K_DOWN) { axis = 0; angle = step; }
+			else if (base == K_PAGEUP) { axis = 2; angle = step; }
+			else if (base == K_PAGEDOWN) { axis = 2; angle = -step; }
+			if (axis >= 0 && ApplyTransformRotation(obj, axis, angle, transform_use_local))
+				return true;
+		}
+	}
+	return DockWindow::Key(key, count);
 }
 
 void Edit3D::SetView(ViewType view) {
@@ -2875,6 +2988,105 @@ void Edit3D::Clear2DKeyframes() {
 	if (Geom2DAnimation* anim = obj->Find2DAnimation())
 		anim->keyframes.Clear();
 	RefrehRenderers();
+}
+
+bool Edit3D::ApplyTransformDelta(GeomObject* obj, const vec3& delta, bool local_axes) {
+	if (!obj || obj->is_locked)
+		return false;
+	GeomTransform* tr = obj->FindTransform();
+	if (!tr)
+		return false;
+	vec3 delta_world = delta;
+	if (local_axes)
+		delta_world = VectorTransform(delta, tr->orientation);
+	vec3 pos = tr->position + delta_world;
+	if (transform_snap_enable && transform_snap_step > 1e-12) {
+		double s = transform_snap_step;
+		auto snap = [&](double v) { return (float)(floor(v / s + 0.5) * s); };
+		pos[0] = snap(pos[0]);
+		pos[1] = snap(pos[1]);
+		pos[2] = snap(pos[2]);
+	}
+	tr->position = pos;
+	if (state)
+		state->UpdateObjects();
+	MaybeAutoKeyTransform(obj, true, false);
+	v0.SyncPropsValues();
+	RefrehRenderers();
+	return true;
+}
+
+bool Edit3D::ApplyTransformRotation(GeomObject* obj, int axis, double angle_rad, bool local_axes) {
+	if (!obj || obj->is_locked)
+		return false;
+	GeomTransform* tr = obj->FindTransform();
+	if (!tr)
+		return false;
+	quat rot = Identity<quat>();
+	if (axis == 0)
+		rot = MatQuat(XRotation((float)angle_rad));
+	else if (axis == 1)
+		rot = MatQuat(YRotation((float)angle_rad));
+	else if (axis == 2)
+		rot = MatQuat(ZRotation((float)angle_rad));
+	else
+		return false;
+	if (local_axes)
+		tr->orientation = tr->orientation * rot;
+	else
+		tr->orientation = rot * tr->orientation;
+	if (transform_angle_snap && transform_angle_step > 1e-12) {
+		vec3 axes = GetQuatAxes(tr->orientation);
+		double s = transform_angle_step;
+		auto snap = [&](double v) { return (float)(floor(v / s + 0.5) * s); };
+		axes[0] = snap(axes[0]);
+		axes[1] = snap(axes[1]);
+		axes[2] = snap(axes[2]);
+		tr->orientation = AxesQuat(axes);
+	}
+	if (state)
+		state->UpdateObjects();
+	MaybeAutoKeyTransform(obj, false, true);
+	v0.SyncPropsValues();
+	RefrehRenderers();
+	return true;
+}
+
+void Edit3D::MaybeAutoKeyTransform(GeomObject* obj, bool pos, bool ori) {
+	if (!obj || !auto_key || !anim)
+		return;
+	if (timeline_object_key != obj->key)
+		return;
+	if (!(timeline_component == TC_TRANSFORM || timeline_component == TC_NONE))
+		return;
+	if (pos && !auto_key_position)
+		pos = false;
+	if (ori && !auto_key_orientation)
+		ori = false;
+	if (!pos && !ori)
+		return;
+	GeomTransform* tr = obj->FindTransform();
+	if (!tr)
+		return;
+	GeomTimeline& tl = obj->GetTimeline();
+	int frame = anim->position;
+	int idx = tl.keypoints.Find(frame);
+	bool existed = idx >= 0;
+	GeomKeypoint& kp = existed ? tl.keypoints[idx] : tl.GetAddKeypoint(frame);
+	if (!existed) {
+		kp.has_position = false;
+		kp.has_orientation = false;
+	}
+	if (pos) {
+		kp.position = tr->position;
+		kp.has_position = true;
+	}
+	if (ori) {
+		kp.orientation = tr->orientation;
+		kp.has_orientation = true;
+	}
+	obj->read_enabled = true;
+	v0.TimelineData();
 }
 
 void Edit3D::AutoKeyMeshEdit(GeomObject* obj) {

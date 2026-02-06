@@ -1,15 +1,12 @@
-#include "ConfigurationDialog.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
 
 ConfigurationDialog::ConfigurationDialog() {
-	CtrlLayout(*this, "Maestro Settings");
+	CtrlLayoutOKCancel(*this, "Maestro Settings");
 	
 	settings_grid.AddColumn("Key").FixedWidth(200);
 	settings_grid.AddColumn("Value").Edit(value_editor);
-	
-	ok << [=] { Save(); Break(IDOK); };
-	cancel << [=] { Break(IDCANCEL); };
 }
 
 void ConfigurationDialog::Load(const String& maestro_root) {

@@ -1,7 +1,29 @@
-#include "TriageDialog.h"
-#include "IssueDialogs.h"
+#include "MaestroHub.h"
 
 NAMESPACE_UPP
+
+bool CreateIssueTaskFile(const String& root, const MaestroIssue& iss, const String& title, String& task_path) {
+	// Simple task creation logic
+	String track_id = "maintenance";
+	String phase_id = "issue_fixing";
+	String task_id = iss.issue_id;
+	
+	String dir = AppendFileName(root, "docs/phases");
+	RealizeDirectory(dir);
+	
+	task_path = AppendFileName(dir, task_id + ".md");
+	
+	String content;
+	content << "# Task: " << title << "\n\n";
+	content << "## Description\n" << iss.description << "\n\n";
+	content << "## Message\n" << iss.message << "\n\n";
+	content << "## Context\n";
+	content << "- Issue ID: " << iss.issue_id << "\n";
+	content << "- File: " << iss.file << "\n";
+	content << "- Line: " << iss.line << "\n";
+	
+	return SaveFile(task_path, content);
+}
 
 TriageDialog::TriageDialog() {
 	CtrlLayout(*this, "Issue Triage Wizard");
@@ -16,51 +38,15 @@ TriageDialog::TriageDialog() {
 void TriageDialog::Load(const String& maestro_root) {
 	root = maestro_root;
 	ism.Create(root);
-	pending = ism->ListIssues("", "", "open");
+	pending = pick(ism->ListIssues("", "", "open"));
 	cursor = 0;
 	UpdateUI();
-}
-
-String TriageDialog::FormatIssueInfo(const MaestroIssue& iss) const {
-	String qtf;
-	qtf << "[*@3 Issue " << DeQtf(iss.issue_id) << "]&";
-	if(!iss.title.IsEmpty())
-		qtf << "[* Title:] " << DeQtf(iss.title) << "&";
-	if(!iss.message.IsEmpty())
-		qtf << "[* Message:] " << DeQtf(iss.message) << "&";
-	if(!iss.file.IsEmpty()) {
-		qtf << "[* File:] " << DeQtf(iss.file);
-		if(iss.line > 0)
-			qtf << ":" << iss.line;
-		qtf << "&";
-	}
-	qtf << "[* Severity:] " << DeQtf(iss.severity) << "   [* State:] " << DeQtf(iss.state) << "   [* Priority:] " << iss.priority;
-	return qtf;
-}
-
-String TriageDialog::FormatAiSuggestion(const MaestroIssue& iss) const {
-	String qtf;
-	qtf << "[* AI Suggestion]&";
-	if(!iss.analysis_summary.IsEmpty())
-		qtf << DeQtf(iss.analysis_summary) << "&";
-	else
-		qtf << "No AI analysis available.&";
-	if(iss.analysis_confidence > 0)
-		qtf << "[* Confidence:] " << iss.analysis_confidence << "%&";
-	if(!iss.decision.IsEmpty())
-		qtf << "[* Decision:] " << DeQtf(iss.decision) << "&";
-	if(iss.solutions.GetCount()) {
-		qtf << "[* Possible Fixes:]&";
-		for(const auto& s : iss.solutions)
-			qtf << " - " << DeQtf(s) << "&";
-	}
-	return qtf;
 }
 
 void TriageDialog::UpdateUI() {
 	if(cursor < 0 || cursor >= pending.GetCount()) {
 		PromptOK("Triage complete!");
-		Close();
+		Break(IDOK);
 		return;
 	}
 	
@@ -72,18 +58,31 @@ void TriageDialog::UpdateUI() {
 	progress_text = Format("Issue %d of %d", cursor + 1, pending.GetCount());
 }
 
-void TriageDialog::Advance() {
-	cursor++;
-	UpdateUI();
+String TriageDialog::FormatIssueInfo(const MaestroIssue& iss) const {
+	String qtf;
+	qtf << "[*@3 Issue " << DeQtf(iss.issue_id) << "]&";
+	qtf << "[* Title:] " << DeQtf(iss.title) << "&";
+	qtf << "[* Message:] " << DeQtf(iss.message) << "&";
+	qtf << "[* Severity:] " << DeQtf(iss.severity) << "   [* State:] " << DeQtf(iss.state);
+	return qtf;
+}
+
+String TriageDialog::FormatAiSuggestion(const MaestroIssue& iss) const {
+	String qtf;
+	if(!iss.analysis_summary.IsEmpty()) {
+		qtf << "[* AI Analysis (Confidence " << iss.analysis_confidence << "%):]&";
+		qtf << DeQtf(iss.analysis_summary);
+	} else {
+		qtf << "[* AI Analysis:]&No automatic analysis available.";
+	}
+	return qtf;
 }
 
 void TriageDialog::OnAccept() {
 	if(cursor >= 0 && cursor < pending.GetCount()) {
-		MaestroIssue iss = ism->LoadIssue(pending[cursor].issue_id);
-		iss.decision = "accept_ai";
-		ism->SaveIssue(iss);
-		ism->Triage(pending[cursor].issue_id);
-		Advance();
+		if(ism->Triage(pending[cursor].issue_id)) {
+			Advance();
+		}
 	}
 }
 
@@ -93,38 +92,40 @@ void TriageDialog::OnSkip() {
 
 void TriageDialog::OnIgnore() {
 	if(cursor >= 0 && cursor < pending.GetCount()) {
-		MaestroIssue iss = clone(pending[cursor]);
+		MaestroIssue iss = pending[cursor];
 		iss.state = "ignored";
-		ism->SaveIssue(iss);
-		Advance();
+		if(ism->SaveIssue(iss)) Advance();
 	}
 }
 
 void TriageDialog::OnEdit() {
 	if(cursor < 0 || cursor >= pending.GetCount()) return;
-	MaestroIssue iss = ism->LoadIssue(pending[cursor].issue_id);
 	IssueEditDialog dlg;
-	if(dlg.RunEdit(iss) && ism->SaveIssue(iss)) {
-		pending = ism->ListIssues("", "", "open");
-		if(cursor >= pending.GetCount())
-			cursor = max(0, pending.GetCount() - 1);
-		UpdateUI();
+	MaestroIssue iss = pending[cursor];
+	dlg.SyncFromIssue(iss);
+	if(dlg.Run() == IDOK) {
+		dlg.SyncToIssue(iss);
+		if(ism->SaveIssue(iss)) {
+			pending[cursor] = iss;
+			UpdateUI();
+		}
 	}
 }
 
 void TriageDialog::OnCreateTask() {
 	if(cursor < 0 || cursor >= pending.GetCount()) return;
-	MaestroIssue iss = ism->LoadIssue(pending[cursor].issue_id);
-	String task_title = "Fix issue " + iss.issue_id;
+	MaestroIssue iss = pending[cursor];
 	String task_path;
-	if(CreateIssueTaskFile(root, iss, task_title, task_path)) {
-		iss.decision = "create_task";
-		iss.linked_tasks.Add(task_path);
+	if(CreateIssueTaskFile(root, iss, "Fix " + iss.issue_id, task_path)) {
+		iss.state = "task";
 		ism->SaveIssue(iss);
-		PromptOK("Task created: " + task_path);
-	} else {
-		PromptOK("Failed to create task file.");
+		Advance();
 	}
+}
+
+void TriageDialog::Advance() {
+	cursor++;
+	UpdateUI();
 }
 
 END_UPP_NAMESPACE

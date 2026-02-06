@@ -195,6 +195,17 @@ LAYOUT(PlaybookLayout, 900, 600)
 	ITEM(ArrayCtrl, principles, HSizePos(8, 8).VSizePos(168, 8))
 END_LAYOUT
 
+LAYOUT(ConversionLayout, 1000, 700)
+	ITEM(ToolBar, toolbar, HSizePos(0, 0).TopPos(0, 24))
+	ITEM(Splitter, main_split, HSizePos(0, 0).VSizePos(24, 0))
+	ITEM(Splitter, center_split, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(TreeArrayCtrl, transformation_tree, LeftPos(0, 300).VSizePos(0, 0))
+	ITEM(TabCtrl, workspace_tabs, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(RichTextView, progress_log, HSizePos(0, 0).BottomPos(0, 150))
+	ITEM(ParentCtrl, diff_pane, HSizePos(0, 0).VSizePos(0, 0))
+	ITEM(RichTextView, ai_rationale, HSizePos(0, 0).VSizePos(0, 0))
+END_LAYOUT
+
 LAYOUT(SessionManagementLayout, 1000, 600)
 	ITEM(Splitter, split, HSizePos(0, 0).VSizePos(0, 0))
 	ITEM(ParentCtrl, left_pane, LeftPos(0, 400).VSizePos(0, 0))

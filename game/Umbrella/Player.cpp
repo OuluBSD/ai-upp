@@ -232,21 +232,37 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 	bounds.top += remaining;
 	bounds.bottom += remaining;
 
-	// Check if standing on ground (one pixel below player's feet)
-	int gridSize = (int)collision.GetGridSize();
-	int minCol = (int)(bounds.left / gridSize);
-	int maxCol = (int)(bounds.right / gridSize);
-	float feetY = min(bounds.top, bounds.bottom);
-	int floorRow = (int)((feetY - 1.0f) / gridSize);
+	// Final ground check - only when falling down
+	if(deltaY < 0) {
+		int gridSize = (int)collision.GetGridSize();
+		int minCol = (int)(bounds.left / gridSize);
+		int maxCol = (int)(bounds.right / gridSize);
+		float feetY = min(bounds.top, bounds.bottom);
+		int floorRow = (int)((feetY - 1.0f) / gridSize);
 
-	for(int col = minCol; col <= maxCol; col++) {
-		if(collision.IsFloorTile(col, floorRow)) {
-			// Hit floor - undo remaining movement and stop
-			onGround = true;
-			bounds.top = top_before;
-			bounds.bottom = bottom_before;
-			velocity.y = 0.0f;
-			break;
+		for(int col = minCol; col <= maxCol; col++) {
+			if(collision.IsFloorTile(col, floorRow)) {
+				// Hit floor while falling - undo remaining movement and stop
+				onGround = true;
+				bounds.top = top_before;
+				bounds.bottom = bottom_before;
+				velocity.y = 0.0f;
+				break;
+			}
+		}
+	} else {
+		// Jumping up - just check if on ground for next frame
+		int gridSize = (int)collision.GetGridSize();
+		int minCol = (int)(bounds.left / gridSize);
+		int maxCol = (int)(bounds.right / gridSize);
+		float feetY = min(bounds.top, bounds.bottom);
+		int floorRow = (int)((feetY - 1.0f) / gridSize);
+
+		for(int col = minCol; col <= maxCol; col++) {
+			if(collision.IsFloorTile(col, floorRow)) {
+				onGround = true;
+				break;
+			}
 		}
 	}
 }

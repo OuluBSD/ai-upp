@@ -27,6 +27,7 @@ file
 	LogAnalyzer.cpp,
 	AuditTrail.cpp,
 	EvidencePane.cpp,
+	Playbook.cpp,
 
 	NewSessionDialog.cpp,
 	InitDialog.cpp,

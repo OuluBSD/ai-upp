@@ -947,7 +947,7 @@ void EditRendererV2::Paint(Draw& d) {
 	};
 	
 	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
-		mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
+		mat4 o_world = Translate(os.position) * QuatMat(os.orientation) * Scale(os.scale);
 		mat4 o_view = view * o_world;
 		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
 		light_dir.Normalize();

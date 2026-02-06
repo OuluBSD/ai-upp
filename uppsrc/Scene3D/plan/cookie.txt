@@ -214,3 +214,7 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1300-timeline-multiselect-range.md
   status: done
   note: Added multi-row selection, range select, and batch keyframe add/remove.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1301-timeline-keyframe-drag.md
+  status: done
+  note: Added keyframe drag-to-move with row-aware keyframe moves.

@@ -665,6 +665,7 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	time.WhenRowToggle = THISBACK(TimelineRowToggle);
 	time.WhenKeyframeToggle = THISBACK(TimelineToggleKeyframe);
 	time.WhenKeyframeRemove = THISBACK(TimelineRemoveKeyframe);
+	time.WhenKeyframeMove = THISBACK(TimelineMoveKeyframe);
 	time.WhenToggleAutoKey = THISBACK(TimelineToggleAutoKey);
 	tree.WhenCursor << THISBACK(TreeSelect);
 	tree.WhenMenu = THISBACK(TreeMenu);
@@ -3779,6 +3780,77 @@ void GeomProjectCtrl::TimelineToggleAutoKey() {
 	if (!e)
 		return;
 	e->auto_key = !e->auto_key;
+	TimelineData();
+}
+
+void GeomProjectCtrl::TimelineMoveKeyframe(int row, int from_frame, int to_frame) {
+	if (!e || !e->state)
+		return;
+	if (row < 0 || row >= timeline_rows.GetCount())
+		return;
+	const TimelineRowInfo& info = timeline_rows[row];
+	if (info.kind == TimelineRowInfo::R_SCENE)
+		return;
+	GeomObject* obj = e->state->FindObjectByKey(info.object_key);
+	if (!obj)
+		return;
+	if (from_frame == to_frame)
+		return;
+	auto move_transform = [&](bool pos, bool ori) {
+		if (GeomTimeline* tl = obj->FindTimeline()) {
+			int idx = tl->keypoints.Find(from_frame);
+			if (idx < 0)
+				return;
+			GeomKeypoint src = tl->keypoints[idx];
+			if (pos && !src.has_position)
+				return;
+			if (ori && !src.has_orientation)
+				return;
+			GeomKeypoint& dst = tl->GetAddKeypoint(to_frame);
+			if (pos) {
+				dst.position = src.position;
+				dst.has_position = true;
+			}
+			if (ori) {
+				dst.orientation = src.orientation;
+				dst.has_orientation = true;
+			}
+			if (pos) tl->keypoints[idx].has_position = false;
+			if (ori) tl->keypoints[idx].has_orientation = false;
+			if (!tl->keypoints[idx].has_position && !tl->keypoints[idx].has_orientation)
+				tl->keypoints.Remove(idx);
+		}
+	};
+	if (info.kind == TimelineRowInfo::R_POSITION)
+		move_transform(true, false);
+	else if (info.kind == TimelineRowInfo::R_ORIENTATION)
+		move_transform(false, true);
+	else if (info.kind == TimelineRowInfo::R_TRANSFORM || info.kind == TimelineRowInfo::R_OBJECT)
+		move_transform(true, true);
+	else if (info.kind == TimelineRowInfo::R_MESH) {
+		if (GeomMeshAnimation* anim = obj->FindMeshAnimation()) {
+			int idx = anim->keyframes.Find(from_frame);
+			if (idx < 0)
+				return;
+			GeomMeshKeyframe src = pick(anim->keyframes[idx]);
+			anim->keyframes.Remove(idx);
+			GeomMeshKeyframe& dst = anim->GetAddKeyframe(to_frame);
+			dst.frame_id = to_frame;
+			dst.points = pick(src.points);
+		}
+	}
+	else if (info.kind == TimelineRowInfo::R_2D) {
+		if (Geom2DAnimation* anim = obj->Find2DAnimation()) {
+			int idx = anim->keyframes.Find(from_frame);
+			if (idx < 0)
+				return;
+			Geom2DKeyframe src = pick(anim->keyframes[idx]);
+			anim->keyframes.Remove(idx);
+			Geom2DKeyframe& dst = anim->GetAddKeyframe(to_frame);
+			dst.frame_id = to_frame;
+			dst.shapes = pick(src.shapes);
+		}
+	}
 	TimelineData();
 }
 

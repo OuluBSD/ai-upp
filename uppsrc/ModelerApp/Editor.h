@@ -144,6 +144,7 @@ struct GeomProjectCtrl : Ctrl {
 	void TimelineRowToggle(int row);
 	void TimelineToggleKeyframe(int row, int frame);
 	void TimelineRemoveKeyframe(int row, int frame);
+	void TimelineMoveKeyframe(int row, int from_frame, int to_frame);
 	void TimelineToggleAutoKey();
 	void TreeSelect();
 	void TreeMenu(Bar& bar);

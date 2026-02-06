@@ -37,6 +37,7 @@ file
 	MaestroAssistant.cpp,
 	FleetDashboard.cpp,
 	WorkDashboard.cpp,
+	Tools.cpp,
 	MaestroHub.lay,
 	UX_Analysis.md,
 	Feature_Inventory.md,

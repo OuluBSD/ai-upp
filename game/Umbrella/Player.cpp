@@ -206,19 +206,12 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 					float tileBottomY = row * gridSize;
 					float tileTopY = (row + 1) * gridSize;
 
-					// In Y-up: when falling (deltaY < 0), we're moving toward lower Y
-					// We should hit TOP of tiles that are BELOW us
-					// When jumping (deltaY > 0), we're moving toward higher Y
-					// We should hit BOTTOM of tiles that are ABOVE us
-
-					if(deltaY < 0) {
-						// Moving DOWN (falling): check if we started ABOVE the tile top
-						// Only set onGround if we approached from above (landing on floor)
-						if(startFeetY >= tileTopY) {
+					if(deltaY > 0) {
+						// Moving UP: check if we started BELOW the tile bottom
+						if(startHeadY <= tileBottomY) {
 							onGround = true;
 						}
 					}
-					// When jumping up (deltaY > 0), we hit ceiling, don't set onGround
 
 					break;
 				}
@@ -237,21 +230,28 @@ void Player::ResolveCollisionY(float deltaY, CollisionHandler& collision) {
 		remaining -= step;
 	}
 
+	// Store position before applying remaining movement
+	float top_before = bounds.top;
+	float bottom_before = bounds.bottom;
+
 	// Apply remaining movement and final ground check
 	bounds.top += remaining;
 	bounds.bottom += remaining;
 
 	// Check if standing on ground (one pixel below player's feet)
-	// In Y-up, feet are at the LOWER Y value
 	int gridSize = (int)collision.GetGridSize();
 	int minCol = (int)(bounds.left / gridSize);
 	int maxCol = (int)(bounds.right / gridSize);
 	float feetY = min(bounds.top, bounds.bottom);
-	int floorRow = (int)((feetY - 1.0f) / gridSize);  // Check one pixel below feet
+	int floorRow = (int)((feetY - 1.0f) / gridSize);
 
 	for(int col = minCol; col <= maxCol; col++) {
 		if(collision.IsFloorTile(col, floorRow)) {
+			// Hit floor - undo remaining movement and stop
 			onGround = true;
+			bounds.top = top_before;
+			bounds.bottom = bottom_before;
+			velocity.y = 0.0f;
 			break;
 		}
 	}

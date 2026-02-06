@@ -2363,6 +2363,52 @@ void Edit3D::UpdateHud() {
 	render_ctx.show_hud_help = show_hud_help;
 	render_ctx.hud_lines.Clear();
 	render_ctx.hud_help.Clear();
+	render_ctx.selected_mesh_points.Clear();
+	render_ctx.selected_mesh_lines.Clear();
+	render_ctx.selected_mesh_faces.Clear();
+	render_ctx.selected_2d_shapes.Clear();
+	render_ctx.selection_center_valid = false;
+	render_ctx.selection_kind = 0;
+	if (!mesh_sel_points.IsEmpty())
+		render_ctx.selected_mesh_points.Append(mesh_sel_points);
+	if (!mesh_sel_lines.IsEmpty())
+		render_ctx.selected_mesh_lines.Append(mesh_sel_lines);
+	if (!mesh_sel_faces.IsEmpty())
+		render_ctx.selected_mesh_faces.Append(mesh_sel_faces);
+	if (!select_2d_shapes.IsEmpty())
+		render_ctx.selected_2d_shapes.Append(select_2d_shapes);
+	auto apply_world = [&](GeomObject* obj, const vec3& local) -> bool {
+		if (!obj)
+			return false;
+		vec3 pos = vec3(0);
+		quat ori = Identity<quat>();
+		vec3 scale = vec3(1);
+		if (state) {
+			if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+				pos = os->position;
+				ori = os->orientation;
+				scale = os->scale;
+			}
+		}
+		else if (GeomTransform* tr = obj->FindTransform()) {
+			pos = tr->position;
+			ori = tr->orientation;
+			scale = tr->scale;
+		}
+		vec3 scaled(local[0] * scale[0], local[1] * scale[1], local[2] * scale[2]);
+		render_ctx.selection_center_world = pos + VectorTransform(scaled, ori);
+		render_ctx.selection_center_valid = true;
+		return true;
+	};
+	vec3 local_center(0);
+	if ((!mesh_sel_points.IsEmpty() || !mesh_sel_lines.IsEmpty() || !mesh_sel_faces.IsEmpty()) && GetMeshSelectionCenter(local_center)) {
+		render_ctx.selection_kind = 1;
+		apply_world(GetFocusedMeshObject(), local_center);
+	}
+	else if (!select_2d_shapes.IsEmpty() && Get2DSelectionCenter(local_center)) {
+		render_ctx.selection_kind = 2;
+		apply_world(GetFocused2DObject(), local_center);
+	}
 	if (!show_hud)
 		return;
 	auto tool_name = [&](EditTool t) -> String {
@@ -3600,6 +3646,7 @@ GeomObject* Edit3D::GetFocused2DObject() {
 void Edit3D::Clear2DSelection() {
 	select_2d_shapes.Clear();
 	select_2d_primary = -1;
+	sel2d_offset = vec2(0);
 }
 
 void Edit3D::Select2DShape(int idx, bool add, bool toggle) {
@@ -3617,6 +3664,7 @@ void Edit3D::Select2DShape(int idx, bool add, bool toggle) {
 	if (FindIndex(select_2d_shapes, idx) < 0)
 		select_2d_shapes.Add(idx);
 	select_2d_primary = idx;
+	sel2d_offset = vec2(0);
 }
 
 void Edit3D::Toggle2DShape(int idx) {
@@ -3626,6 +3674,7 @@ void Edit3D::Toggle2DShape(int idx) {
 	else
 		select_2d_shapes.Add(idx);
 	select_2d_primary = idx;
+	sel2d_offset = vec2(0);
 }
 
 Rectf Edit3D::Get2DShapeBounds(const Geom2DShape& shape) const {
@@ -3782,6 +3831,203 @@ void Edit3D::Distribute2DSelection(bool horizontal) {
 	RefrehRenderers();
 }
 
+namespace {
+
+static float PolyArea(const Vector<vec2>& pts) {
+	if (pts.GetCount() < 3)
+		return 0.0f;
+	double area = 0.0;
+	for (int i = 0; i < pts.GetCount(); i++) {
+		const vec2& a = pts[i];
+		const vec2& b = pts[(i + 1) % pts.GetCount()];
+		area += (double)a[0] * (double)b[1] - (double)a[1] * (double)b[0];
+	}
+	return (float)(area * 0.5);
+}
+
+static void EnsureCCW(Vector<vec2>& pts) {
+	if (PolyArea(pts) < 0.0f)
+		Reverse(pts);
+}
+
+static Vector<vec2> ConvexHullPoints(const Vector<vec2>& pts) {
+	if (pts.GetCount() < 3) {
+		Vector<vec2> out;
+		out.Append(pts);
+		return out;
+	}
+	Vector<vec2> sorted;
+	sorted.Append(pts);
+	Sort(sorted, [](const vec2& a, const vec2& b) {
+		if (a[0] < b[0]) return true;
+		if (a[0] > b[0]) return false;
+		return a[1] < b[1];
+	});
+	auto cross = [](const vec2& a, const vec2& b, const vec2& c) {
+		return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+	};
+	Vector<vec2> lower;
+	for (const vec2& p : sorted) {
+		while (lower.GetCount() >= 2 && cross(lower[lower.GetCount() - 2], lower.Top(), p) <= 0)
+			lower.Drop();
+		lower.Add(p);
+	}
+	Vector<vec2> upper;
+	for (int i = sorted.GetCount() - 1; i >= 0; i--) {
+		const vec2& p = sorted[i];
+		while (upper.GetCount() >= 2 && cross(upper[upper.GetCount() - 2], upper.Top(), p) <= 0)
+			upper.Drop();
+		upper.Add(p);
+	}
+	lower.Drop();
+	upper.Drop();
+	Vector<vec2> out;
+	out.Append(lower);
+	out.Append(upper);
+	return out;
+}
+
+static Vector<vec2> ShapeToPolygon(const Geom2DShape& shape) {
+	Vector<vec2> pts;
+	switch (shape.type) {
+	case Geom2DShape::S_LINE: {
+		if (shape.points.GetCount() < 2)
+			return pts;
+		vec2 a = shape.points[0];
+		vec2 b = shape.points[1];
+		vec2 d = b - a;
+		float len = sqrt(Dot(d, d));
+		if (len < 1e-6f)
+			return pts;
+		vec2 n(-d[1] / len, d[0] / len);
+		float w = shape.width > 0 ? shape.width : 1.0f;
+		float h = w * 0.5f;
+		pts << (a + n * h) << (b + n * h) << (b - n * h) << (a - n * h);
+		break;
+	}
+	case Geom2DShape::S_RECT: {
+		if (shape.points.GetCount() < 2)
+			return pts;
+		vec2 a = shape.points[0];
+		vec2 b = shape.points[1];
+		vec2 p0(min(a[0], b[0]), min(a[1], b[1]));
+		vec2 p1(max(a[0], b[0]), min(a[1], b[1]));
+		vec2 p2(max(a[0], b[0]), max(a[1], b[1]));
+		vec2 p3(min(a[0], b[0]), max(a[1], b[1]));
+		pts << p0 << p1 << p2 << p3;
+		break;
+	}
+	case Geom2DShape::S_CIRCLE: {
+		if (shape.points.IsEmpty())
+			return pts;
+		vec2 c = shape.points[0];
+		float r = shape.radius;
+		if (r <= 0 && shape.points.GetCount() >= 2) {
+			vec2 d2 = shape.points[1] - shape.points[0];
+			r = sqrt(Dot(d2, d2));
+		}
+		if (r <= 0)
+			return pts;
+		const int steps = 24;
+		pts.SetCount(steps);
+		for (int i = 0; i < steps; i++) {
+			float a = (float)i / (float)steps * 2.0f * (float)M_PI;
+			pts[i] = c + vec2(cos(a), sin(a)) * r;
+		}
+		break;
+	}
+	case Geom2DShape::S_POLY: {
+		if (shape.points.GetCount() < 3)
+			return pts;
+		pts.Append(shape.points);
+		break;
+	}
+	default: break;
+	}
+	if (pts.GetCount() >= 3)
+		EnsureCCW(pts);
+	return pts;
+}
+
+static bool InsideEdge(const vec2& a, const vec2& b, const vec2& p) {
+	vec2 ab = b - a;
+	vec2 ap = p - a;
+	float cross = ab[0] * ap[1] - ab[1] * ap[0];
+	return cross >= -1e-5f;
+}
+
+static vec2 IntersectLines(const vec2& p1, const vec2& p2, const vec2& a, const vec2& b) {
+	vec2 r = p2 - p1;
+	vec2 s = b - a;
+	float denom = r[0] * s[1] - r[1] * s[0];
+	if (fabs(denom) < 1e-6f)
+		return p1;
+	float t = ((a[0] - p1[0]) * s[1] - (a[1] - p1[1]) * s[0]) / denom;
+	return p1 + r * t;
+}
+
+static Vector<vec2> IntersectConvexPolygons(const Vector<vec2>& subject, const Vector<vec2>& clip) {
+	Vector<vec2> out;
+	out.Append(subject);
+	if (out.IsEmpty() || clip.IsEmpty())
+		return Vector<vec2>();
+	for (int i = 0; i < clip.GetCount(); i++) {
+		vec2 a = clip[i];
+		vec2 b = clip[(i + 1) % clip.GetCount()];
+		Vector<vec2> input;
+		input.Append(out);
+		out.Clear();
+		if (input.IsEmpty())
+			break;
+		vec2 prev = input.Top();
+		bool prev_in = InsideEdge(a, b, prev);
+		for (const vec2& cur : input) {
+			bool cur_in = InsideEdge(a, b, cur);
+			if (cur_in) {
+				if (!prev_in)
+					out.Add(IntersectLines(prev, cur, a, b));
+				out.Add(cur);
+			}
+			else if (prev_in) {
+				out.Add(IntersectLines(prev, cur, a, b));
+			}
+			prev = cur;
+			prev_in = cur_in;
+		}
+	}
+	return out;
+}
+
+static Vector<vec2> UnionConvexPolygons(const Vector<vec2>& a, const Vector<vec2>& b) {
+	Vector<vec2> pts;
+	pts.Append(a);
+	pts.Append(b);
+	if (pts.GetCount() < 3)
+		return pts;
+	Vector<vec2> hull = ConvexHullPoints(pts);
+	if (hull.GetCount() >= 3)
+		EnsureCCW(hull);
+	return hull;
+}
+
+static Vector<vec2> SubtractConvexPolygons(const Vector<vec2>& subject, const Vector<vec2>& clip) {
+	if (subject.IsEmpty())
+		return Vector<vec2>();
+	Vector<vec2> inter = IntersectConvexPolygons(subject, clip);
+	if (inter.IsEmpty())
+		{ Vector<vec2> out; out.Append(subject); return out; }
+	float area_subject = fabs(PolyArea(subject));
+	float area_inter = fabs(PolyArea(inter));
+	if (area_subject < 1e-6f)
+		return Vector<vec2>();
+	if (area_inter / area_subject > 0.95f)
+		return Vector<vec2>();
+	// Best-effort: keep subject if subtraction would create multiple parts.
+	{ Vector<vec2> out; out.Append(subject); return out; }
+}
+
+}
+
 void Edit3D::Union2DSelection() {
 	GeomObject* obj = GetFocused2DObject();
 	if (!obj || select_2d_shapes.GetCount() < 2)
@@ -3790,13 +4036,24 @@ void Edit3D::Union2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Union 2D shapes");
-	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
-	for (int i = 1; i < select_2d_shapes.GetCount(); i++)
-		bounds.Union(Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]));
+	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
+		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
+		if (other.IsEmpty())
+			continue;
+		poly = UnionConvexPolygons(poly, other);
+	}
+	if (poly.GetCount() < 3)
+		return;
+	const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
 	Geom2DShape shape;
-	shape.type = Geom2DShape::S_RECT;
-	shape.points.Add(vec2(bounds.left, bounds.top));
-	shape.points.Add(vec2(bounds.right, bounds.bottom));
+	shape.type = Geom2DShape::S_POLY;
+	shape.points = pick(poly);
+	shape.closed = true;
+	shape.stroke = base.stroke;
+	shape.width = base.width;
+	shape.stroke_cap = base.stroke_cap;
+	shape.stroke_join = base.stroke_join;
 	layer->shapes.Add(pick(shape));
 	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
 		layer->shapes.Remove(select_2d_shapes[i]);
@@ -3813,17 +4070,24 @@ void Edit3D::Intersect2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Intersect 2D shapes");
-	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
+	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
 	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
-		Rectf b = Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]);
-		bounds.Intersect(b);
+		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
+		if (other.IsEmpty())
+			continue;
+		poly = IntersectConvexPolygons(poly, other);
 	}
-	if (bounds.IsNullInstance())
+	if (poly.GetCount() < 3)
 		return;
+	const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
 	Geom2DShape shape;
-	shape.type = Geom2DShape::S_RECT;
-	shape.points.Add(vec2(bounds.left, bounds.top));
-	shape.points.Add(vec2(bounds.right, bounds.bottom));
+	shape.type = Geom2DShape::S_POLY;
+	shape.points = pick(poly);
+	shape.closed = true;
+	shape.stroke = base.stroke;
+	shape.width = base.width;
+	shape.stroke_cap = base.stroke_cap;
+	shape.stroke_join = base.stroke_join;
 	layer->shapes.Add(pick(shape));
 	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
 		layer->shapes.Remove(select_2d_shapes[i]);
@@ -3840,18 +4104,147 @@ void Edit3D::Subtract2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Subtract 2D shapes");
-	int base = select_2d_shapes[0];
-	Rectf bounds = Get2DShapeBounds(layer->shapes[base]);
+	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
 	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
-		Rectf b = Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]);
-		bounds.Intersect(b);
+		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
+		if (other.IsEmpty())
+			continue;
+		poly = SubtractConvexPolygons(poly, other);
+		if (poly.IsEmpty())
+			break;
 	}
-	if (!bounds.IsNullInstance()) {
-		// simple subtract: remove other shapes and keep base
-		for (int i = select_2d_shapes.GetCount() - 1; i >= 1; i--)
-			layer->shapes.Remove(select_2d_shapes[i]);
+	if (poly.GetCount() >= 3) {
+		const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
+		Geom2DShape shape;
+		shape.type = Geom2DShape::S_POLY;
+		shape.points = pick(poly);
+		shape.closed = true;
+		shape.stroke = base.stroke;
+		shape.width = base.width;
+		shape.stroke_cap = base.stroke_cap;
+		shape.stroke_join = base.stroke_join;
+		layer->shapes.Add(pick(shape));
 	}
+	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
+		layer->shapes.Remove(select_2d_shapes[i]);
 	Clear2DSelection();
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+bool Edit3D::GetMeshSelectionCenter(vec3& out) {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return false;
+	const GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return false;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		const GeomFace& f = mesh->faces[id];
+		verts.FindAdd(f.a);
+		verts.FindAdd(f.b);
+		verts.FindAdd(f.c);
+	}
+	if (verts.IsEmpty())
+		return false;
+	vec3 center(0, 0, 0);
+	int cnt = 0;
+	for (int id : verts) {
+		if (id < 0 || id >= mesh->points.GetCount())
+			continue;
+		center += mesh->points[id];
+		cnt++;
+	}
+	if (cnt == 0)
+		return false;
+	center /= (float)cnt;
+	out = center;
+	return true;
+}
+
+bool Edit3D::Get2DSelectionCenter(vec3& out) {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj)
+		return false;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer || select_2d_shapes.IsEmpty())
+		return false;
+	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++)
+		bounds.Union(Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]));
+	Pointf c = bounds.CenterPoint();
+	out = vec3((float)c.x, (float)c.y, 0.0f);
+	return true;
+}
+
+void Edit3D::ApplyMeshSelectionDelta(const vec3& delta) {
+	if (fabs(delta[0]) < 1e-6f && fabs(delta[1]) < 1e-6f && fabs(delta[2]) < 1e-6f)
+		return;
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		const GeomFace& f = mesh->faces[id];
+		verts.FindAdd(f.a);
+		verts.FindAdd(f.b);
+		verts.FindAdd(f.c);
+	}
+	if (verts.IsEmpty())
+		return;
+	PushUndo("Move mesh selection");
+	for (int id : verts) {
+		if (id < 0 || id >= mesh->points.GetCount())
+			continue;
+		mesh->points[id] += delta;
+	}
+	mesh_sel_offset += delta;
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::Apply2DSelectionDelta(const vec2& delta) {
+	if (fabs(delta[0]) < 1e-6f && fabs(delta[1]) < 1e-6f)
+		return;
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer || select_2d_shapes.IsEmpty())
+		return;
+	PushUndo("Move 2D selection");
+	for (int id : select_2d_shapes) {
+		if (id < 0 || id >= layer->shapes.GetCount())
+			continue;
+		Translate2DShape(layer->shapes[id], delta);
+	}
+	sel2d_offset += delta;
 	AutoKey2DEdit(obj);
 	RefrehRenderers();
 }
@@ -3860,6 +4253,7 @@ void Edit3D::ClearMeshSelection() {
 	mesh_sel_points.Clear();
 	mesh_sel_lines.Clear();
 	mesh_sel_faces.Clear();
+	mesh_sel_offset = vec3(0);
 }
 
 void Edit3D::ToggleMeshPoint(int idx) {

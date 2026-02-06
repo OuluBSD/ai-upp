@@ -1732,6 +1732,10 @@ void GeomProjectCtrl::PropsData() {
 	props_transform_ori_ctrl = 0;
 	props_transform_pos_id = -1;
 	props_transform_ori_id = -1;
+	props_selection_center_ctrl = 0;
+	props_selection_offset_ctrl = 0;
+	props_selection_center_id = -1;
+	props_selection_offset_id = -1;
 	int cursor = tree.GetCursor();
 	Value v = (cursor >= 0) ? tree.Get(cursor) : Value();
 	selected_obj = GetNodeObject(v);
@@ -1941,6 +1945,22 @@ void GeomProjectCtrl::PropsData() {
 	PropRef& pori = props_nodes.Add();
 	pori.kind = PropRef::P_ORIENTATION;
 	int ori_id = props.Add(transform, ImagesImg::Object(), RawToValue(&pori), "Orientation");
+	int selection = -1;
+	int selection_center_id = -1;
+	int selection_offset_id = -1;
+	bool has_mesh_selection = e && (!e->mesh_sel_points.IsEmpty() || !e->mesh_sel_lines.IsEmpty() || !e->mesh_sel_faces.IsEmpty());
+	bool has_2d_selection = e && !e->select_2d_shapes.IsEmpty();
+	if (has_mesh_selection || has_2d_selection) {
+		PropRef& sel = props_nodes.Add();
+		sel.kind = PropRef::P_SELECTION;
+		selection = props.Add(root, ImagesImg::Object(), RawToValue(&sel), "Selection");
+		PropRef& sc = props_nodes.Add();
+		sc.kind = PropRef::P_SELECTION_CENTER;
+		selection_center_id = props.Add(selection, ImagesImg::Object(), RawToValue(&sc), "Center");
+		PropRef& so = props_nodes.Add();
+		so.kind = PropRef::P_SELECTION_OFFSET;
+		selection_offset_id = props.Add(selection, ImagesImg::Object(), RawToValue(&so), "Offset");
+	}
 	struct MaterialItemIds {
 		Material* mat = 0;
 		int mat_node_id = -1;
@@ -2132,6 +2152,8 @@ void GeomProjectCtrl::PropsData() {
 		props.Open(pointcloud);
 	if (scene_timeline >= 0)
 		props.Open(scene_timeline);
+	if (selection >= 0)
+		props.Open(selection);
 
 	vec3 pos(0, 0, 0);
 	quat ori = Identity<quat>();
@@ -2821,6 +2843,42 @@ void GeomProjectCtrl::PropsData() {
 		PropsApply();
 	};
 	set_value_ctrl(ori_id, pick(ori_ctrl));
+	
+	if (selection_center_id >= 0 || selection_offset_id >= 0) {
+		vec3 sel_center(0, 0, 0);
+		bool have_center = false;
+		if (e && has_mesh_selection)
+			have_center = e->GetMeshSelectionCenter(sel_center);
+		else if (e && has_2d_selection)
+			have_center = e->Get2DSelectionCenter(sel_center);
+		if (!have_center)
+			sel_center = vec3(0, 0, 0);
+		vec3 sel_offset(0, 0, 0);
+		if (e && has_mesh_selection)
+			sel_offset = e->mesh_sel_offset;
+		else if (e && has_2d_selection)
+			sel_offset = vec3(e->sel2d_offset[0], e->sel2d_offset[1], 0.0f);
+		if (selection_center_id >= 0) {
+			One<Vec3EditCtrl> sel_center_ctrl = MakeOne<Vec3EditCtrl>();
+			sel_center_ctrl->SetValue(sel_center);
+			sel_center_ctrl->SetEditable(false);
+			props_selection_center_ctrl = sel_center_ctrl.Get();
+			props_selection_center_id = selection_center_id;
+			set_value_ctrl(selection_center_id, pick(sel_center_ctrl));
+		}
+		if (selection_offset_id >= 0) {
+			One<Vec3EditCtrl> sel_offset_ctrl = MakeOne<Vec3EditCtrl>();
+			sel_offset_ctrl->SetValue(sel_offset);
+			sel_offset_ctrl->SetEditable(true);
+			props_selection_offset_ctrl = sel_offset_ctrl.Get();
+			props_selection_offset_id = selection_offset_id;
+			sel_offset_ctrl->WhenAction << [=] {
+				props.SetCursor(selection_offset_id);
+				PropsApply();
+			};
+			set_value_ctrl(selection_offset_id, pick(sel_offset_ctrl));
+		}
+	}
 
 	auto set_frame = [&](int frame) {
 		if (!e || !e->anim)
@@ -2968,6 +3026,28 @@ void GeomProjectCtrl::PropsApply() {
 	}
 	if (!allow_write) {
 		PropsData();
+		return;
+	}
+
+	if (pr->kind == PropRef::P_SELECTION_CENTER) {
+		PropsData();
+		return;
+	}
+	if (pr->kind == PropRef::P_SELECTION_OFFSET) {
+		vec3 new_offset = get_vec(linei);
+		if (e) {
+			bool has_mesh_sel = !e->mesh_sel_points.IsEmpty() || !e->mesh_sel_lines.IsEmpty() || !e->mesh_sel_faces.IsEmpty();
+			bool has_2d_sel = !e->select_2d_shapes.IsEmpty();
+			if (has_mesh_sel) {
+				vec3 delta = new_offset - e->mesh_sel_offset;
+				e->ApplyMeshSelectionDelta(delta);
+			}
+			else if (has_2d_sel) {
+				vec2 delta((float)(new_offset[0] - e->sel2d_offset[0]),
+				           (float)(new_offset[1] - e->sel2d_offset[1]));
+				e->Apply2DSelectionDelta(delta);
+			}
+		}
 		return;
 	}
 
@@ -3247,6 +3327,35 @@ void GeomProjectCtrl::SyncPropsValues() {
 	if (props_transform_ori_ctrl) {
 		if (QuatEditCtrl* qc = dynamic_cast<QuatEditCtrl*>(props_transform_ori_ctrl))
 			qc->SetValue(ori);
+	}
+	if (props_selection_center_ctrl) {
+		vec3 sel_center(0, 0, 0);
+		bool have = false;
+		if (e) {
+			bool has_mesh_sel = !e->mesh_sel_points.IsEmpty() || !e->mesh_sel_lines.IsEmpty() || !e->mesh_sel_faces.IsEmpty();
+			bool has_2d_sel = !e->select_2d_shapes.IsEmpty();
+			if (has_mesh_sel)
+				have = e->GetMeshSelectionCenter(sel_center);
+			else if (has_2d_sel)
+				have = e->Get2DSelectionCenter(sel_center);
+		}
+		if (!have)
+			sel_center = vec3(0, 0, 0);
+		if (Vec3EditCtrl* vc = dynamic_cast<Vec3EditCtrl*>(props_selection_center_ctrl))
+			vc->SetValue(sel_center);
+	}
+	if (props_selection_offset_ctrl) {
+		vec3 sel_offset(0, 0, 0);
+		if (e) {
+			bool has_mesh_sel = !e->mesh_sel_points.IsEmpty() || !e->mesh_sel_lines.IsEmpty() || !e->mesh_sel_faces.IsEmpty();
+			bool has_2d_sel = !e->select_2d_shapes.IsEmpty();
+			if (has_mesh_sel)
+				sel_offset = e->mesh_sel_offset;
+			else if (has_2d_sel)
+				sel_offset = vec3(e->sel2d_offset[0], e->sel2d_offset[1], 0.0f);
+		}
+		if (Vec3EditCtrl* vc = dynamic_cast<Vec3EditCtrl*>(props_selection_offset_ctrl))
+			vc->SetValue(sel_offset);
 	}
 	if (e && e->verbose_debug) {
 		LOG(Format("SyncPropsValues obj=%d frame=%d time=%.3f pos=(%.3f, %.3f, %.3f) ori=(%.3f, %.3f, %.3f, %.3f)",

@@ -38,6 +38,13 @@ struct Scene3DRenderContext {
 	Vector<String> hud_help;
 	bool show_hud = true;
 	bool show_hud_help = false;
+	Vector<int> selected_mesh_points;
+	Vector<int> selected_mesh_lines;
+	Vector<int> selected_mesh_faces;
+	Vector<int> selected_2d_shapes;
+	vec3 selection_center_world = vec3(0);
+	bool selection_center_valid = false;
+	int selection_kind = 0;
 };
 
 #include "Renderer.h"

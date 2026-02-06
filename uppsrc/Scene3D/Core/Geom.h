@@ -468,6 +468,7 @@ struct GeomAnim : VfsValueExt {
 	void Reset();
 	void Play();
 	void Pause();
+	void ApplyAtPosition(int pos, double t);
 	void Update(double dt) override;
 	void Visit(Vis& v) override;
 	

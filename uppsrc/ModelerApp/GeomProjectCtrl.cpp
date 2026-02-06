@@ -905,6 +905,17 @@ void GeomProjectCtrl::Update(double dt) {
 			SyncPropsValues();
 		}
 	}
+	if (e && e->state && e->state->HasActiveScene()) {
+		GeomScene& scene = e->state->GetActiveScene();
+		GeomSceneTimeline& tl = scene.GetTimeline();
+		int frame = tl.position;
+		if (tl.is_playing || frame != last_props_scene_frame) {
+			if (frame != last_props_scene_frame) {
+				last_props_scene_frame = frame;
+				SyncPropsValues();
+			}
+		}
+	}
 }
 
 void GeomProjectCtrl::Data() {

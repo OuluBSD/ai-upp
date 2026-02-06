@@ -46,6 +46,7 @@ struct GeomProjectCtrl : Ctrl {
 	GeomPointcloudDataset* selected_dataset = 0;
 	bool props_refreshing = false;
 	int last_props_frame = -1;
+	int last_props_scene_frame = -1;
 	struct TimelineRowInfo {
 		enum Kind {
 			R_SCENE,

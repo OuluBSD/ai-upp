@@ -1430,6 +1430,8 @@ void GeomProjectCtrl::PropsData() {
 	int layer_tex_scale_x_id = -1;
 	int layer_tex_scale_y_id = -1;
 	int layer_tex_rotate_id = -1;
+	int layer_tex_wrap_id = -1;
+	int layer_stroke_uv_id = -1;
 	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
 		model_ptr = selected_obj->mdl.Get();
 		PropRef& mats = props_nodes.Add();
@@ -1484,6 +1486,12 @@ void GeomProjectCtrl::PropsData() {
 		PropRef& trotref = props_nodes.Add();
 		trotref.kind = PropRef::P_MAT_NORMAL_SCALE;
 		layer_tex_rotate_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&trotref), t_("Tex Rotate"));
+		PropRef& twref = props_nodes.Add();
+		twref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_tex_wrap_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&twref), t_("Tex Wrap"));
+		PropRef& suvref = props_nodes.Add();
+		suvref.kind = PropRef::P_MAT_NORMAL_SCALE;
+		layer_stroke_uv_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&suvref), t_("Stroke UV"));
 	}
 	int scene_timeline = -1;
 	int scene_tl_length_id = -1;
@@ -2066,6 +2074,33 @@ void GeomProjectCtrl::PropsData() {
 			}
 		};
 		set_value_ctrl(layer_tex_rotate_id, pick(tex_rotate));
+
+		One<DropList> tex_wrap = MakeOne<DropList>();
+		tex_wrap->Add(0, t_("Clamp"));
+		tex_wrap->Add(1, t_("Repeat"));
+		tex_wrap->Add(2, t_("Mirror"));
+		tex_wrap->SetData(layer_ptr->tex_wrap);
+		DropList* tex_wrap_ptr = tex_wrap.Get();
+		tex_wrap->WhenAction << [=] {
+			if (tex_wrap_ptr && layer_ptr) {
+				layer_ptr->tex_wrap = (int)tex_wrap_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_tex_wrap_id, pick(tex_wrap));
+
+		One<DropList> stroke_uv = MakeOne<DropList>();
+		stroke_uv->Add(0, t_("BBox"));
+		stroke_uv->Add(1, t_("Along Length"));
+		stroke_uv->SetData(layer_ptr->stroke_uv_mode);
+		DropList* stroke_uv_ptr = stroke_uv.Get();
+		stroke_uv->WhenAction << [=] {
+			if (stroke_uv_ptr && layer_ptr) {
+				layer_ptr->stroke_uv_mode = (int)stroke_uv_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_stroke_uv_id, pick(stroke_uv));
 	}
 	
 	if (selected_obj) {

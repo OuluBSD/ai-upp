@@ -438,7 +438,9 @@ void Geom2DLayer::Visit(Vis& v) {
 	  VIS_(tex_offset_y)
 	  VIS_(tex_scale_x)
 	  VIS_(tex_scale_y)
-	  VIS_(tex_rotate);
+	  VIS_(tex_rotate)
+	  VIS_(tex_wrap)
+	  VIS_(stroke_uv_mode);
 	if (v.mode == Vis::MODE_JSON) {
 		if (v.IsLoading()) {
 			shapes.Clear();

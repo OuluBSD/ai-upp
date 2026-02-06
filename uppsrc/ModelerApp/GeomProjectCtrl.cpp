@@ -349,6 +349,41 @@ struct ToggleRowCtrl : Ctrl {
 	}
 };
 
+struct KeyframeCtrl : Ctrl {
+	Button left;
+	Button key;
+	Button right;
+	Event<> WhenPrev;
+	Event<> WhenToggle;
+	Event<> WhenNext;
+	bool keyed = false;
+	
+	KeyframeCtrl() {
+		left.SetLabel("<");
+		key.SetLabel("o");
+		right.SetLabel(">");
+		Add(left);
+		Add(key);
+		Add(right);
+		left.WhenAction = [=] { WhenPrev(); };
+		key.WhenAction = [=] { WhenToggle(); };
+		right.WhenAction = [=] { WhenNext(); };
+	}
+	
+	void SetKeyed(bool v) {
+		keyed = v;
+		key.SetLabel(keyed ? "*" : "o");
+	}
+	
+	virtual void Layout() {
+		Rect r = GetSize();
+		int w = max(1, r.Width() / 3);
+		left.SetRect(r.left, r.top, w, r.Height());
+		key.SetRect(r.left + w, r.top, w, r.Height());
+		right.SetRect(r.left + w * 2, r.top, r.Width() - w * 2, r.Height());
+	}
+};
+
 }
 
 
@@ -562,9 +597,14 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	props.NoHeader();
 	props_col_value = props.GetColumnCount();
 	props.AddColumn("Value", 300).NoEdit();
+	props_col_keyframe = props.GetColumnCount();
+	props.AddColumn("", 72).NoEdit();
 	props.ColumnAt(0).FixedWidth(180);
 	props.ColumnAt(1).FixedWidth(300);
-	for (int i = 2; i < props.GetColumnCount(); i++) {
+	props.ColumnAt(2).FixedWidth(72);
+	props.HeaderTab(1).Hide();
+	props.HeaderTab(2).Hide();
+	for (int i = 3; i < props.GetColumnCount(); i++) {
 		props.HeaderTab(i).Hide();
 		props.ColumnAt(i).SetWidth(0);
 	}
@@ -718,6 +758,7 @@ void GeomProjectCtrl::TreeSelect() {
 	if (obj) {
 		e->timeline_scope = Edit3D::TS_OBJECT;
 		e->timeline_component = Edit3D::TC_TRANSFORM;
+		e->timeline_transform_field = Edit3D::TT_NONE;
 		e->timeline_object_key = obj->key;
 		e->state->focus_mode = 1;
 		e->state->focus_object_key = obj->key;
@@ -752,6 +793,7 @@ void GeomProjectCtrl::TreeSelect() {
 			if (&s == node) {
 				e->timeline_scope = Edit3D::TS_SCENE;
 				e->timeline_component = Edit3D::TC_NONE;
+				e->timeline_transform_field = Edit3D::TT_NONE;
 				e->timeline_object_key = 0;
 				e->state->active_scene = idx;
 				e->state->UpdateObjects();
@@ -1292,10 +1334,17 @@ void GeomProjectCtrl::PropsData() {
 
 	props.OpenDeep(root);
 	
-	auto set_ctrl = [&](int id, One<Ctrl>&& c) {
+	auto set_ctrl_col = [&](int id, int col, One<Ctrl>&& c) {
 		int line = props.GetLineAtItem(id);
 		if (line >= 0)
-			props.SetCtrl(line, props_col_value, *props_ctrls.Add(pick(c)), false);
+			props.SetCtrl(line, col, *props_ctrls.Add(pick(c)), false);
+	};
+	auto set_value_ctrl = [&](int id, One<Ctrl>&& c) {
+		set_ctrl_col(id, props_col_value, pick(c));
+	};
+	auto set_key_ctrl = [&](int id, One<Ctrl>&& c) {
+		if (props_col_keyframe >= 0)
+			set_ctrl_col(id, props_col_keyframe, pick(c));
 	};
 	
 	if (selected_obj) {
@@ -1311,7 +1360,7 @@ void GeomProjectCtrl::PropsData() {
 			selected_obj->is_locked = v;
 			tree.SetRowValue(focus_tree_id, tree_col_locked, selected_obj->is_locked);
 		};
-		set_ctrl(root, pick(t));
+		set_value_ctrl(root, pick(t));
 		if (selected_obj == e->sim_observation_obj) {
 			One<ToggleRowCtrl> tfx = MakeOne<ToggleRowCtrl>();
 			tfx->SetVisible(e->sim_observation_effect_visible);
@@ -1323,7 +1372,7 @@ void GeomProjectCtrl::PropsData() {
 			tfx->WhenLocked << [=](bool v) {
 				e->sim_observation_effect_locked = v;
 			};
-			set_ctrl(effects, pick(tfx));
+			set_value_ctrl(effects, pick(tfx));
 		}
 	}
 
@@ -1346,7 +1395,7 @@ void GeomProjectCtrl::PropsData() {
 			e->state->UpdateObjects();
 			RefreshAll();
 		};
-		set_ctrl(dataset_id, pick(ds_ctrl));
+		set_value_ctrl(dataset_id, pick(ds_ctrl));
 	}
 
 	if (props_dataset) {
@@ -1371,7 +1420,7 @@ void GeomProjectCtrl::PropsData() {
 			e->state->UpdateObjects();
 			e->RefreshData();
 		};
-		set_ctrl(dataset_name_id, pick(name_ctrl));
+		set_value_ctrl(dataset_name_id, pick(name_ctrl));
 
 		One<EditString> source_ctrl = MakeOne<EditString>();
 		source_ctrl->SetData(props_dataset->source_ref);
@@ -1382,7 +1431,7 @@ void GeomProjectCtrl::PropsData() {
 			e->state->UpdateObjects();
 			e->RefreshData();
 		};
-		set_ctrl(dataset_source_id, pick(source_ctrl));
+		set_value_ctrl(dataset_source_id, pick(source_ctrl));
 	}
 
 	for (const EffectItem& item : effect_items) {
@@ -1404,7 +1453,7 @@ void GeomProjectCtrl::PropsData() {
 			fx_ptr->locked = v;
 		};
 		if (item.effect_id >= 0)
-			set_ctrl(item.effect_id, pick(tfx));
+			set_value_ctrl(item.effect_id, pick(tfx));
 		
 		One<Vec3EditCtrl> fpos = MakeOne<Vec3EditCtrl>();
 		fpos->SetValue(fx_ptr->position);
@@ -1416,7 +1465,7 @@ void GeomProjectCtrl::PropsData() {
 			fx_ptr->position = fpos_ptr->GetValue();
 			RefreshAll();
 		};
-		set_ctrl(item.pos_id, pick(fpos));
+		set_value_ctrl(item.pos_id, pick(fpos));
 		
 		One<QuatEditCtrl> fori = MakeOne<QuatEditCtrl>();
 		fori->SetValue(fx_ptr->orientation);
@@ -1428,7 +1477,7 @@ void GeomProjectCtrl::PropsData() {
 			fx_ptr->orientation = fori_ptr->GetValue();
 			RefreshAll();
 		};
-		set_ctrl(item.ori_id, pick(fori));
+		set_value_ctrl(item.ori_id, pick(fori));
 	}
 
 	for (const ScriptItemIds& ids : script_items) {
@@ -1443,7 +1492,7 @@ void GeomProjectCtrl::PropsData() {
 				script_ptr->file = ~*file_ctrl_ptr;
 			e->EnsureScriptInstances();
 		};
-		set_ctrl(ids.file_id, pick(file_ctrl));
+		set_value_ctrl(ids.file_id, pick(file_ctrl));
 
 		One<Option> enabled = MakeOne<Option>();
 		enabled->SetData(script_ptr->enabled);
@@ -1453,7 +1502,7 @@ void GeomProjectCtrl::PropsData() {
 				script_ptr->enabled = (bool)enabled_ptr->GetData();
 			e->EnsureScriptInstances();
 		};
-		set_ctrl(ids.enabled_id, pick(enabled));
+		set_value_ctrl(ids.enabled_id, pick(enabled));
 
 		One<Option> run_on_load = MakeOne<Option>();
 		run_on_load->SetData(script_ptr->run_on_load);
@@ -1462,7 +1511,7 @@ void GeomProjectCtrl::PropsData() {
 			if (run_on_load_ptr && script_ptr)
 				script_ptr->run_on_load = (bool)run_on_load_ptr->GetData();
 		};
-		set_ctrl(ids.run_on_load_id, pick(run_on_load));
+		set_value_ctrl(ids.run_on_load_id, pick(run_on_load));
 
 		One<Option> run_frame = MakeOne<Option>();
 		run_frame->SetData(script_ptr->run_every_frame);
@@ -1471,7 +1520,7 @@ void GeomProjectCtrl::PropsData() {
 			if (run_frame_ptr && script_ptr)
 				script_ptr->run_every_frame = (bool)run_frame_ptr->GetData();
 		};
-		set_ctrl(ids.run_frame_id, pick(run_frame));
+		set_value_ctrl(ids.run_frame_id, pick(run_frame));
 
 		One<Button> edit = MakeOne<Button>();
 		edit->SetLabel(t_("Edit..."));
@@ -1479,7 +1528,7 @@ void GeomProjectCtrl::PropsData() {
 			if (script_ptr)
 				e->OpenScriptEditor(*script_ptr);
 		};
-		set_ctrl(ids.edit_id, pick(edit));
+		set_value_ctrl(ids.edit_id, pick(edit));
 
 		One<Button> run = MakeOne<Button>();
 		run->SetLabel(t_("Run"));
@@ -1487,7 +1536,7 @@ void GeomProjectCtrl::PropsData() {
 			if (script_ptr)
 				e->RunScriptOnce(*script_ptr);
 		};
-		set_ctrl(ids.run_id, pick(run));
+		set_value_ctrl(ids.run_id, pick(run));
 	}
 
 	if (scene_tl_ptr) {
@@ -1508,7 +1557,7 @@ void GeomProjectCtrl::PropsData() {
 			scene_tl_ptr->time = scene_tl_ptr->position / (double)e->prj->kps;
 			RefreshAll();
 		};
-		set_ctrl(scene_tl_length_id, pick(len_ctrl));
+		set_value_ctrl(scene_tl_length_id, pick(len_ctrl));
 
 		One<EditIntSpin> pos_ctrl_tl = MakeOne<EditIntSpin>();
 		pos_ctrl_tl->Min(0);
@@ -1526,7 +1575,7 @@ void GeomProjectCtrl::PropsData() {
 			scene_tl_ptr->time = pos / (double)e->prj->kps;
 			RefreshAll();
 		};
-		set_ctrl(scene_tl_pos_id, pick(pos_ctrl_tl));
+		set_value_ctrl(scene_tl_pos_id, pick(pos_ctrl_tl));
 
 		One<Option> play_ctrl = MakeOne<Option>();
 		play_ctrl->SetData(scene_tl_ptr->is_playing);
@@ -1541,7 +1590,7 @@ void GeomProjectCtrl::PropsData() {
 				scene_tl_ptr->Pause();
 			RefreshAll();
 		};
-		set_ctrl(scene_tl_play_id, pick(play_ctrl));
+		set_value_ctrl(scene_tl_play_id, pick(play_ctrl));
 
 		One<Option> repeat_ctrl = MakeOne<Option>();
 		repeat_ctrl->SetData(scene_tl_ptr->repeat);
@@ -1550,7 +1599,7 @@ void GeomProjectCtrl::PropsData() {
 			if (repeat_ptr && scene_tl_ptr)
 				scene_tl_ptr->repeat = (bool)repeat_ptr->GetData();
 		};
-		set_ctrl(scene_tl_repeat_id, pick(repeat_ctrl));
+		set_value_ctrl(scene_tl_repeat_id, pick(repeat_ctrl));
 
 		One<EditDoubleSpin> speed_ctrl = MakeOne<EditDoubleSpin>();
 		speed_ctrl->Min(0.01);
@@ -1564,7 +1613,7 @@ void GeomProjectCtrl::PropsData() {
 				scene_tl_ptr->speed = v;
 			}
 		};
-		set_ctrl(scene_tl_speed_id, pick(speed_ctrl));
+		set_value_ctrl(scene_tl_speed_id, pick(speed_ctrl));
 	}
 	
 	One<Vec3EditCtrl> pos_ctrl = MakeOne<Vec3EditCtrl>();
@@ -1574,7 +1623,7 @@ void GeomProjectCtrl::PropsData() {
 		props.SetCursor(pos_id);
 		PropsApply();
 	};
-	set_ctrl(pos_id, pick(pos_ctrl));
+	set_value_ctrl(pos_id, pick(pos_ctrl));
 	
 	One<QuatEditCtrl> ori_ctrl = MakeOne<QuatEditCtrl>();
 	ori_ctrl->SetValue(ori);
@@ -1583,7 +1632,112 @@ void GeomProjectCtrl::PropsData() {
 		props.SetCursor(ori_id);
 		PropsApply();
 	};
-	set_ctrl(ori_id, pick(ori_ctrl));
+	set_value_ctrl(ori_id, pick(ori_ctrl));
+
+	auto set_frame = [&](int frame) {
+		if (!e || !e->anim)
+			return;
+		int max_frame = max(e->state->GetActiveScene().length - 1, 0);
+		frame = min(max(frame, 0), max_frame);
+		e->anim->position = frame;
+		time.SetSelectedColumn(frame);
+		time.Refresh();
+		RefreshAll();
+		PostCallback([=] { PropsData(); });
+	};
+	auto find_prev_frame = [&](GeomObject* obj, bool pos, bool ori, int frame) -> int {
+		if (!obj)
+			return 0;
+		GeomTimeline* tl = obj->FindTimeline();
+		if (!tl || tl->keypoints.IsEmpty())
+			return 0;
+		int idx = pos ? tl->FindPrePosition(frame) : tl->FindPreOrientation(frame);
+		if (!pos && !ori)
+			idx = tl->FindPre(frame);
+		if (idx < 0)
+			return 0;
+		return tl->keypoints.GetKey(idx);
+	};
+	auto find_next_frame = [&](GeomObject* obj, bool pos, bool ori, int frame) -> int {
+		int last = max(e->state->GetActiveScene().length - 1, 0);
+		if (!obj)
+			return last;
+		GeomTimeline* tl = obj->FindTimeline();
+		if (!tl || tl->keypoints.IsEmpty())
+			return last;
+		int idx = pos ? tl->FindPostPosition(frame) : tl->FindPostOrientation(frame);
+		if (!pos && !ori)
+			idx = tl->FindPost(frame);
+		if (idx < 0)
+			return last;
+		return tl->keypoints.GetKey(idx);
+	};
+	auto has_kp_at = [&](GeomObject* obj, bool pos, bool ori, int frame) -> bool {
+		if (!obj)
+			return false;
+		GeomTimeline* tl = obj->FindTimeline();
+		if (!tl)
+			return false;
+		int idx = tl->keypoints.Find(frame);
+		if (idx < 0)
+			return false;
+		GeomKeypoint& kp = tl->keypoints[idx];
+		if (pos && !kp.has_position)
+			return false;
+		if (ori && !kp.has_orientation)
+			return false;
+		return true;
+	};
+	auto toggle_kp = [&](GeomObject* obj, bool pos, bool ori, int frame) {
+		if (!obj)
+			return;
+		GeomTimeline& tl = obj->GetTimeline();
+		int idx = tl.keypoints.Find(frame);
+		if (idx >= 0) {
+			GeomKeypoint& kp = tl.keypoints[idx];
+			if (pos) kp.has_position = !kp.has_position;
+			if (ori) kp.has_orientation = !kp.has_orientation;
+			if (pos && kp.has_position && obj->FindTransform())
+				kp.position = obj->FindTransform()->position;
+			if (ori && kp.has_orientation && obj->FindTransform())
+				kp.orientation = obj->FindTransform()->orientation;
+			if (!kp.has_position && !kp.has_orientation)
+				tl.keypoints.Remove(idx);
+		}
+		else {
+			GeomKeypoint& kp = tl.GetAddKeypoint(frame);
+			kp.frame_id = frame;
+			if (GeomTransform* tr = obj->FindTransform()) {
+				if (pos) kp.position = tr->position;
+				if (ori) kp.orientation = tr->orientation;
+			}
+			kp.has_position = pos;
+			kp.has_orientation = ori;
+		}
+		obj->read_enabled = true;
+		tree.SetRowValue(focus_tree_id, tree_col_read, obj->read_enabled);
+		TimelineData();
+		time.Refresh();
+		RefreshAll();
+		PostCallback([=] { PropsData(); });
+	};
+
+	if (selected_obj) {
+		int frame = e->anim ? e->anim->position : 0;
+		One<KeyframeCtrl> kp_pos = MakeOne<KeyframeCtrl>();
+		kp_pos->SetKeyed(has_kp_at(selected_obj, true, false, frame));
+		kp_pos->WhenPrev = [=] { set_frame(find_prev_frame(selected_obj, true, false, frame)); };
+		kp_pos->WhenNext = [=] { set_frame(find_next_frame(selected_obj, true, false, frame)); };
+		kp_pos->WhenToggle = [=] { toggle_kp(selected_obj, true, false, frame); };
+		set_key_ctrl(pos_id, pick(kp_pos));
+
+		One<KeyframeCtrl> kp_ori = MakeOne<KeyframeCtrl>();
+		kp_ori->SetKeyed(has_kp_at(selected_obj, false, true, frame));
+		kp_ori->WhenPrev = [=] { set_frame(find_prev_frame(selected_obj, false, true, frame)); };
+		kp_ori->WhenNext = [=] { set_frame(find_next_frame(selected_obj, false, true, frame)); };
+		kp_ori->WhenToggle = [=] { toggle_kp(selected_obj, false, true, frame); };
+		set_key_ctrl(ori_id, pick(kp_ori));
+	}
 	
 	props_refreshing = false;
 }
@@ -1656,6 +1810,12 @@ void GeomProjectCtrl::PropsApply() {
 				kp.position = pos;
 			if (pr->kind == PropRef::P_ORIENTATION)
 				kp.orientation = ori;
+			if (pr->kind == PropRef::P_POSITION)
+				kp.has_position = true;
+			if (pr->kind == PropRef::P_ORIENTATION)
+				kp.has_orientation = true;
+			selected_obj->read_enabled = true;
+			tree.SetRowValue(focus_tree_id, tree_col_read, selected_obj->read_enabled);
 		}
 		else {
 			selected_obj->read_enabled = false;
@@ -1860,7 +2020,7 @@ void GeomProjectCtrl::TimelineData() {
 		obj_row.kind = TimelineRowInfo::R_OBJECT;
 		obj_row.object_key = obj->key;
 		obj_row.indent = 1;
-		obj_row.has_children = obj->FindEditableMesh() || obj->Find2DLayer();
+		obj_row.has_children = true;
 		int idx = timeline_expanded.Find(obj->key);
 		obj_row.expanded = (idx >= 0);
 		obj_row.active = (e->timeline_scope != Edit3D::TS_SCENE && e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_NONE);
@@ -1871,8 +2031,20 @@ void GeomProjectCtrl::TimelineData() {
 			tr.kind = TimelineRowInfo::R_TRANSFORM;
 			tr.object_key = obj->key;
 			tr.indent = 2;
-			tr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM);
+			tr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_NONE);
 			rows.Add(tr);
+			TimelineRowInfo pr;
+			pr.kind = TimelineRowInfo::R_POSITION;
+			pr.object_key = obj->key;
+			pr.indent = 3;
+			pr.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_POSITION);
+			rows.Add(pr);
+			TimelineRowInfo orow;
+			orow.kind = TimelineRowInfo::R_ORIENTATION;
+			orow.object_key = obj->key;
+			orow.indent = 3;
+			orow.active = (e->timeline_object_key == obj->key && e->timeline_component == Edit3D::TC_TRANSFORM && e->timeline_transform_field == Edit3D::TT_ORIENTATION);
+			rows.Add(orow);
 			if (obj->FindEditableMesh()) {
 				TimelineRowInfo mr;
 				mr.kind = TimelineRowInfo::R_MESH;
@@ -1912,13 +2084,15 @@ void GeomProjectCtrl::TimelineData() {
 		else if (GeomObject* obj = e->state->FindObjectByKey(info.object_key)) {
 			name = obj->name.IsEmpty() ? "Object" : obj->name;
 			if (info.kind == TimelineRowInfo::R_TRANSFORM) name << " / Transform";
+			if (info.kind == TimelineRowInfo::R_POSITION) name << " / Position";
+			if (info.kind == TimelineRowInfo::R_ORIENTATION) name << " / Orientation";
 			if (info.kind == TimelineRowInfo::R_MESH) name << " / Mesh";
 			if (info.kind == TimelineRowInfo::R_2D) name << " / 2D";
 			if (info.kind == TimelineRowInfo::R_OBJECT) {
 				if (GeomTimeline* tl = obj->FindTimeline()) {
 					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
 						int key = tl->keypoints.GetKey(k);
-						if (keys.Find(key) < 0)
+						if ((tl->keypoints[k].has_position || tl->keypoints[k].has_orientation) && keys.Find(key) < 0)
 							keys.Add(key);
 					}
 				}
@@ -1940,6 +2114,28 @@ void GeomProjectCtrl::TimelineData() {
 			else if (info.kind == TimelineRowInfo::R_TRANSFORM) {
 				if (GeomTimeline* tl = obj->FindTimeline()) {
 					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+						int key = tl->keypoints.GetKey(k);
+						if ((tl->keypoints[k].has_position || tl->keypoints[k].has_orientation) && keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_POSITION) {
+				if (GeomTimeline* tl = obj->FindTimeline()) {
+					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+						if (!tl->keypoints[k].has_position)
+							continue;
+						int key = tl->keypoints.GetKey(k);
+						if (keys.Find(key) < 0)
+							keys.Add(key);
+					}
+				}
+			}
+			else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
+				if (GeomTimeline* tl = obj->FindTimeline()) {
+					for (int k = 0; k < tl->keypoints.GetCount(); k++) {
+						if (!tl->keypoints[k].has_orientation)
+							continue;
 						int key = tl->keypoints.GetKey(k);
 						if (keys.Find(key) < 0)
 							keys.Add(key);
@@ -2003,9 +2199,20 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		e->timeline_scope = Edit3D::TS_OBJECT;
 		e->timeline_object_key = obj->key;
 		e->timeline_component = Edit3D::TC_NONE;
+		e->timeline_transform_field = Edit3D::TT_NONE;
 		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
 			e->timeline_scope = Edit3D::TS_COMPONENT;
 			e->timeline_component = Edit3D::TC_TRANSFORM;
+		}
+		else if (info.kind == TimelineRowInfo::R_POSITION) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+			e->timeline_transform_field = Edit3D::TT_POSITION;
+		}
+		else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+			e->timeline_transform_field = Edit3D::TT_ORIENTATION;
 		}
 		else if (info.kind == TimelineRowInfo::R_MESH) {
 			e->timeline_scope = Edit3D::TS_COMPONENT;
@@ -2019,64 +2226,97 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 	});
 	bar.Add(t_("Auto-key"), [=] { e->auto_key = !e->auto_key; }).Check(e->auto_key);
 	bar.Separator();
-	bar.Add(t_("Add Transform Keyframe"), [=] {
+	auto add_transform_kp = [&](bool pos, bool ori) {
 		if (!e || !e->state)
 			return;
 		GeomTimeline& tl = obj->GetTimeline();
 		GeomKeypoint& kp = tl.GetAddKeypoint(frame);
 		kp.frame_id = frame;
 		if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key)) {
-			kp.position = os->position;
-			kp.orientation = os->orientation;
+			if (pos) kp.position = os->position;
+			if (ori) kp.orientation = os->orientation;
 		}
 		else if (GeomTransform* tr = obj->FindTransform()) {
-			kp.position = tr->position;
-			kp.orientation = tr->orientation;
+			if (pos) kp.position = tr->position;
+			if (ori) kp.orientation = tr->orientation;
+		}
+		if (pos) kp.has_position = true;
+		if (ori) kp.has_orientation = true;
+		TimelineData();
+	};
+	auto clear_transform_kp = [&](bool pos, bool ori) {
+		if (GeomTimeline* tl = obj->FindTimeline()) {
+			for (int i = tl->keypoints.GetCount() - 1; i >= 0; i--) {
+				GeomKeypoint& kp = tl->keypoints[i];
+				if (pos) kp.has_position = false;
+				if (ori) kp.has_orientation = false;
+				if (!kp.has_position && !kp.has_orientation)
+					tl->keypoints.Remove(i);
+			}
 		}
 		TimelineData();
-	});
-	if (obj->FindEditableMesh()) {
-		bar.Add(t_("Add Mesh Keyframe"), [=] {
-			if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
-				GeomMeshAnimation& anim = obj->GetMeshAnimation();
-				GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
-				kf.frame_id = frame;
-				kf.points.SetCount(mesh->points.GetCount());
-				for (int i = 0; i < mesh->points.GetCount(); i++)
-					kf.points[i] = mesh->points[i];
-				TimelineData();
-			}
-		});
+	};
+	if (info.kind == TimelineRowInfo::R_POSITION) {
+		bar.Add(t_("Add Position Keyframe"), [=] { add_transform_kp(true, false); });
+		bar.Add(t_("Clear Position Keyframes"), [=] { clear_transform_kp(true, false); });
 	}
-	if (obj->Find2DLayer()) {
-		bar.Add(t_("Add 2D Keyframe"), [=] {
-			if (Geom2DLayer* layer = obj->Find2DLayer()) {
-				Geom2DAnimation& anim = obj->Get2DAnimation();
-				Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
-				kf.frame_id = frame;
-				kf.shapes.SetCount(layer->shapes.GetCount());
-				for (int i = 0; i < layer->shapes.GetCount(); i++) {
-					const Geom2DShape& s = layer->shapes[i];
-					Geom2DShape& d = kf.shapes[i];
-					d.type = s.type;
-					d.radius = s.radius;
-					d.stroke = s.stroke;
-					d.width = s.width;
-					d.closed = s.closed;
-					d.points.SetCount(s.points.GetCount());
-					for (int k = 0; k < s.points.GetCount(); k++)
-						d.points[k] = s.points[k];
+	else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
+		bar.Add(t_("Add Orientation Keyframe"), [=] { add_transform_kp(false, true); });
+		bar.Add(t_("Clear Orientation Keyframes"), [=] { clear_transform_kp(false, true); });
+	}
+	else {
+		bar.Add(t_("Add Transform Keyframe"), [=] { add_transform_kp(true, true); });
+		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
+			bar.Add(t_("Add Position Keyframe"), [=] { add_transform_kp(true, false); });
+			bar.Add(t_("Add Orientation Keyframe"), [=] { add_transform_kp(false, true); });
+		}
+		if (obj->FindEditableMesh()) {
+			bar.Add(t_("Add Mesh Keyframe"), [=] {
+				if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
+					GeomMeshAnimation& anim = obj->GetMeshAnimation();
+					GeomMeshKeyframe& kf = anim.GetAddKeyframe(frame);
+					kf.frame_id = frame;
+					kf.points.SetCount(mesh->points.GetCount());
+					for (int i = 0; i < mesh->points.GetCount(); i++)
+						kf.points[i] = mesh->points[i];
+					TimelineData();
 				}
-				TimelineData();
-			}
-		});
+			});
+		}
+		if (obj->Find2DLayer()) {
+			bar.Add(t_("Add 2D Keyframe"), [=] {
+				if (Geom2DLayer* layer = obj->Find2DLayer()) {
+					Geom2DAnimation& anim = obj->Get2DAnimation();
+					Geom2DKeyframe& kf = anim.GetAddKeyframe(frame);
+					kf.frame_id = frame;
+					kf.shapes.SetCount(layer->shapes.GetCount());
+					for (int i = 0; i < layer->shapes.GetCount(); i++) {
+						const Geom2DShape& s = layer->shapes[i];
+						Geom2DShape& d = kf.shapes[i];
+						d.type = s.type;
+						d.radius = s.radius;
+						d.stroke = s.stroke;
+						d.width = s.width;
+						d.closed = s.closed;
+						d.points.SetCount(s.points.GetCount());
+						for (int k = 0; k < s.points.GetCount(); k++)
+							d.points[k] = s.points[k];
+					}
+					TimelineData();
+				}
+			});
+		}
 	}
 	bar.Separator();
-	bar.Add(t_("Clear Transform Keyframes"), [=] {
-		if (GeomTimeline* tl = obj->FindTimeline())
-			tl->keypoints.Clear();
-		TimelineData();
-	});
+	if (info.kind == TimelineRowInfo::R_POSITION) {
+		bar.Add(t_("Clear Position Keyframes"), [=] { clear_transform_kp(true, false); });
+	}
+	else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
+		bar.Add(t_("Clear Orientation Keyframes"), [=] { clear_transform_kp(false, true); });
+	}
+	else {
+		bar.Add(t_("Clear Transform Keyframes"), [=] { clear_transform_kp(true, true); });
+	}
 	if (GeomMeshAnimation* ma = obj->FindMeshAnimation()) {
 		bar.Add(t_("Clear Mesh Keyframes"), [=] {
 			ma->keyframes.Clear();
@@ -2090,8 +2330,10 @@ void GeomProjectCtrl::TimelineRowMenu(Bar& bar, int row) {
 		});
 	}
 	bar.Add(t_("Clear All Keyframes"), [=] {
-		if (GeomTimeline* tl = obj->FindTimeline())
-			tl->keypoints.Clear();
+		if (GeomTimeline* tl = obj->FindTimeline()) {
+			for (int i = tl->keypoints.GetCount() - 1; i >= 0; i--)
+				tl->keypoints.Remove(i);
+		}
 		if (GeomMeshAnimation* ma = obj->FindMeshAnimation())
 			ma->keyframes.Clear();
 		if (Geom2DAnimation* a2d = obj->Find2DAnimation())
@@ -2107,15 +2349,27 @@ void GeomProjectCtrl::TimelineRowSelect(int row) {
 	if (info.kind == TimelineRowInfo::R_SCENE) {
 		e->timeline_scope = Edit3D::TS_SCENE;
 		e->timeline_component = Edit3D::TC_NONE;
+		e->timeline_transform_field = Edit3D::TT_NONE;
 		e->timeline_object_key = 0;
 	}
 	else {
 		e->timeline_scope = Edit3D::TS_OBJECT;
 		e->timeline_object_key = info.object_key;
 		e->timeline_component = Edit3D::TC_NONE;
+		e->timeline_transform_field = Edit3D::TT_NONE;
 		if (info.kind == TimelineRowInfo::R_TRANSFORM) {
 			e->timeline_scope = Edit3D::TS_COMPONENT;
 			e->timeline_component = Edit3D::TC_TRANSFORM;
+		}
+		else if (info.kind == TimelineRowInfo::R_POSITION) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+			e->timeline_transform_field = Edit3D::TT_POSITION;
+		}
+		else if (info.kind == TimelineRowInfo::R_ORIENTATION) {
+			e->timeline_scope = Edit3D::TS_COMPONENT;
+			e->timeline_component = Edit3D::TC_TRANSFORM;
+			e->timeline_transform_field = Edit3D::TT_ORIENTATION;
 		}
 		else if (info.kind == TimelineRowInfo::R_MESH) {
 			e->timeline_scope = Edit3D::TS_COMPONENT;

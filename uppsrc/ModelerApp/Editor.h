@@ -22,6 +22,7 @@ struct GeomProjectCtrl : Ctrl {
 	int tree_col_write = -1;
 	Index<hash_t> warned_tree_types;
 	int props_col_value = -1;
+	int props_col_keyframe = -1;
 	Vector<hash_t> timeline_row_keys;
 
 	struct TreeNodeRef {
@@ -49,6 +50,8 @@ struct GeomProjectCtrl : Ctrl {
 			R_SCENE,
 			R_OBJECT,
 			R_TRANSFORM,
+			R_POSITION,
+			R_ORIENTATION,
 			R_MESH,
 			R_2D,
 		};
@@ -315,8 +318,14 @@ struct Edit3D : DockWindow {
 		TC_MESH,
 		TC_2D
 	};
+	enum TimelineTransformField {
+		TT_NONE,
+		TT_POSITION,
+		TT_ORIENTATION
+	};
 	TimelineScopeKind timeline_scope = TS_SCENE;
 	TimelineComponent timeline_component = TC_NONE;
+	TimelineTransformField timeline_transform_field = TT_NONE;
 	hash_t timeline_object_key = 0;
 	bool draw2d_active = false;
 	vec2 draw2d_start = vec2(0);

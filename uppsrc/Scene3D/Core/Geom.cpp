@@ -64,7 +64,9 @@ GeomObject* GeomObjectIterator::operator->() {
 void GeomKeypoint::Visit(Vis& v) {
 	v VIS_(frame_id)
 	  VISN(position)
-	  VISN(orientation);
+	  VISN(orientation)
+	  VIS_(has_position)
+	  VIS_(has_orientation);
 }
 
 void GeomTimeline::Visit(Vis& v) {
@@ -116,18 +118,46 @@ void GeomSceneTimeline::Update(GeomWorldState& state, double dt) {
 			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {
-			int pre_i = tl->FindPre(position);
-			int post_i = tl->FindPost(position);
+			int pre_i = tl->FindPrePosition(position);
+			int post_i = tl->FindPostPosition(position);
 			if (pre_i >= 0 && post_i >= 0) {
 				ASSERT(pre_i < post_i);
 				GeomKeypoint& pre = tl->keypoints[pre_i];
 				GeomKeypoint& post = tl->keypoints[post_i];
 				float pre_time = pre.frame_id / (float)prj.kps;
 				float post_time = post.frame_id / (float)prj.kps;
-				float f = (time - pre_time) / (post_time - pre_time);
-				ASSERT(f >= 0.0 && f <= 1.0);
+				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				f = min(max(f, 0.0f), 1.0f);
 				os.position = Lerp(pre.position, post.position, f);
+			}
+			else if (pre_i >= 0) {
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				os.position = pre.position;
+			}
+			else if (post_i >= 0) {
+				GeomKeypoint& post = tl->keypoints[post_i];
+				os.position = post.position;
+			}
+
+			pre_i = tl->FindPreOrientation(position);
+			post_i = tl->FindPostOrientation(position);
+			if (pre_i >= 0 && post_i >= 0) {
+				ASSERT(pre_i < post_i);
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				GeomKeypoint& post = tl->keypoints[post_i];
+				float pre_time = pre.frame_id / (float)prj.kps;
+				float post_time = post.frame_id / (float)prj.kps;
+				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				f = min(max(f, 0.0f), 1.0f);
 				os.orientation = Slerp(pre.orientation, post.orientation, f);
+			}
+			else if (pre_i >= 0) {
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				os.orientation = pre.orientation;
+			}
+			else if (post_i >= 0) {
+				GeomKeypoint& post = tl->keypoints[post_i];
+				os.orientation = post.orientation;
 			}
 		}
 		Apply2DAnimation(o, position, time, prj.kps);
@@ -793,6 +823,8 @@ GeomKeypoint& GeomTimeline::GetAddKeypoint(int kp_i) {
 	kp.frame_id = kp_i;
 	kp.position = Identity<vec3>();
 	kp.orientation = Identity<quat>();
+	kp.has_position = true;
+	kp.has_orientation = true;
 	return kp;
 }
 
@@ -812,6 +844,48 @@ int GeomTimeline::FindPost(int kp_i) const {
 		int j = keypoints.GetKey(i);
 		if (j <= kp_i)
 			return i+1 < keypoints.GetCount() ? i+1 : -1;
+	}
+	return -1;
+}
+
+int GeomTimeline::FindPrePosition(int kp_i) const {
+	int best = -1;
+	for (int i = 0; i < keypoints.GetCount(); i++) {
+		int j = keypoints.GetKey(i);
+		if (j > kp_i)
+			break;
+		if (keypoints[i].has_position)
+			best = i;
+	}
+	return best;
+}
+
+int GeomTimeline::FindPostPosition(int kp_i) const {
+	for (int i = 0; i < keypoints.GetCount(); i++) {
+		int j = keypoints.GetKey(i);
+		if (j > kp_i && keypoints[i].has_position)
+			return i;
+	}
+	return -1;
+}
+
+int GeomTimeline::FindPreOrientation(int kp_i) const {
+	int best = -1;
+	for (int i = 0; i < keypoints.GetCount(); i++) {
+		int j = keypoints.GetKey(i);
+		if (j > kp_i)
+			break;
+		if (keypoints[i].has_orientation)
+			best = i;
+	}
+	return best;
+}
+
+int GeomTimeline::FindPostOrientation(int kp_i) const {
+	for (int i = 0; i < keypoints.GetCount(); i++) {
+		int j = keypoints.GetKey(i);
+		if (j > kp_i && keypoints[i].has_orientation)
+			return i;
 	}
 	return -1;
 }
@@ -1877,21 +1951,46 @@ void GeomAnim::Update(double dt) {
 			continue;
 		GeomTimeline* tl = o.FindTimeline();
 		if (tl && !tl->keypoints.IsEmpty()) {
-			int pre_i = tl->FindPre(position);
-			int post_i = tl->FindPost(position);
+			int pre_i = tl->FindPrePosition(position);
+			int post_i = tl->FindPostPosition(position);
 			if (pre_i >= 0 && post_i >= 0) {
 				ASSERT(pre_i < post_i);
 				GeomKeypoint& pre = tl->keypoints[pre_i];
 				GeomKeypoint& post = tl->keypoints[post_i];
 				float pre_time = pre.frame_id / (float)prj.kps;
 				float post_time = post.frame_id / (float)prj.kps;
-				float f = (time - pre_time) / (post_time - pre_time);
-				ASSERT(f >= 0.0 && f <= 1.0);
-				
-				if (1) {
-					os.position = Lerp(pre.position, post.position, f);
-					os.orientation = Slerp(pre.orientation, post.orientation, f);
-				}
+				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				f = min(max(f, 0.0f), 1.0f);
+				os.position = Lerp(pre.position, post.position, f);
+			}
+			else if (pre_i >= 0) {
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				os.position = pre.position;
+			}
+			else if (post_i >= 0) {
+				GeomKeypoint& post = tl->keypoints[post_i];
+				os.position = post.position;
+			}
+
+			pre_i = tl->FindPreOrientation(position);
+			post_i = tl->FindPostOrientation(position);
+			if (pre_i >= 0 && post_i >= 0) {
+				ASSERT(pre_i < post_i);
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				GeomKeypoint& post = tl->keypoints[post_i];
+				float pre_time = pre.frame_id / (float)prj.kps;
+				float post_time = post.frame_id / (float)prj.kps;
+				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
+				f = min(max(f, 0.0f), 1.0f);
+				os.orientation = Slerp(pre.orientation, post.orientation, f);
+			}
+			else if (pre_i >= 0) {
+				GeomKeypoint& pre = tl->keypoints[pre_i];
+				os.orientation = pre.orientation;
+			}
+			else if (post_i >= 0) {
+				GeomKeypoint& post = tl->keypoints[post_i];
+				os.orientation = post.orientation;
 			}
 		}
 		Apply2DAnimation(o, position, time, prj.kps);

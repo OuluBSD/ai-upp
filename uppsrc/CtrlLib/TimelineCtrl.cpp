@@ -32,6 +32,21 @@ void TimelineRowCtrl::Paint(Draw& d) {
 	int col = owner->GetColumnWidth();
 	int x = owner->title_tab_w + 1;
 	int kp_i = owner->hsb / col;
+	int visible_cols = (col > 0) ? (sz.cx - owner->title_tab_w) / col + 2 : 0;
+	int kp_last = min(owner->length, kp_i + max(0, visible_cols));
+	int line_mid = sz.cy / 2;
+	Color tween_clr = Blend(owner->kp_col_accent, row_bg, 200);
+	if (keypoints.GetCount() > 1) {
+		for (int i = 1; i < keypoints.GetCount(); i++) {
+			int a = keypoints[i - 1];
+			int b = keypoints[i];
+		if (b < kp_i || a > kp_last)
+				continue;
+			int x0 = owner->title_tab_w + 1 + (a - kp_i) * col;
+			int x1 = owner->title_tab_w + 1 + (b - kp_i) * col;
+			d.DrawLine(x0, line_mid, x1, line_mid, 1, tween_clr);
+		}
+	}
 	
 	int* kp_iter = keypoints.Begin();
 	int* kp_end = keypoints.End();
@@ -58,6 +73,10 @@ void TimelineRowCtrl::Paint(Draw& d) {
 		
 		if (first_in_second) {
 			d.DrawLine(x, 0, x, sz.cy - 1, 1, owner->kp_second_accent);
+		}
+		else {
+			int y0 = sz.cy - 4;
+			d.DrawLine(x, y0, x, sz.cy - 1, 1, Blend(owner->kp_col_accent, row_bg, 220));
 		}
 		
 		if (is_keypoint) {

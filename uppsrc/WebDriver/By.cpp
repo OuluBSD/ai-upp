@@ -16,15 +16,15 @@ By By::Name(const String& name) {
 	return By("name", name);
 }
 
-By By::Class_name(const String& class_name) {
+By By::ClassName(const String& class_name) {
 	return By("class name", class_name);
 }
 
-By By::Tag_name(const String& tag_name) {
+By By::TagName(const String& tag_name) {
 	return By("tag name", tag_name);
 }
 
-By By::Css_selector(const String& css_selector) {
+By By::CssSelector(const String& css_selector) {
 	return By("css selector", css_selector);
 }
 
@@ -32,11 +32,11 @@ By By::Xpath(const String& xpath) {
 	return By("xpath", xpath);
 }
 
-By By::Link_text(const String& link_text) {
+By By::LinkText(const String& link_text) {
 	return By("link text", link_text);
 }
 
-By By::Partial_link_text(const String& partial_link_text) {
+By By::PartialLinkText(const String& partial_link_text) {
 	return By("partial link text", partial_link_text);
 }
 
@@ -44,11 +44,11 @@ By By::Text(const String& text) {
 	return By("text", text);
 }
 
-const String& By::Get_method() const {
+const String& By::GetMethod() const {
 	return method_;
 }
 
-const String& By::Get_selector() const {
+const String& By::GetSelector() const {
 	return selector_;
 }
 

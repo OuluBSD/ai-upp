@@ -8,23 +8,23 @@ NAMESPACE_UPP
 
 namespace detail {
 
-struct Http_response {
+struct HttpResponse {
 	int http_code;
 	String body;
 };
 
-struct IHttp_client : public Shared_object_base {
-	virtual ~IHttp_client() {}
-	virtual Http_response Get(const String& url) const = 0;
-	virtual Http_response Post(const String& url, const String& data) const = 0;
-	virtual Http_response Delete(const String& url) const = 0;
+struct IHttpClient : public SharedObjectBase {
+	virtual ~IHttpClient() {}
+	virtual HttpResponse Get(const String& url) const = 0;
+	virtual HttpResponse Post(const String& url, const String& data) const = 0;
+	virtual HttpResponse Delete(const String& url) const = 0;
 };
 
-class Http_client : public IHttp_client {
+class HttpClient : public IHttpClient {
 public:
-	virtual Http_response Get(const String& url) const override;
-	virtual Http_response Post(const String& url, const String& data) const override;
-	virtual Http_response Delete(const String& url) const override;
+	virtual HttpResponse Get(const String& url) const override;
+	virtual HttpResponse Post(const String& url, const String& data) const override;
+	virtual HttpResponse Delete(const String& url) const override;
 };
 
 } // namespace detail

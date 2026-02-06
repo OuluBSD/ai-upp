@@ -4,45 +4,45 @@ NAMESPACE_UPP
 
 Client::Client(const String& url) {
 	// Initialize client with the given URL
-	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, detail::Shared<detail::IHttp_client>(new detail::Http_client)));
+	resource_ = detail::Shared<detail::Resource>(new detail::Resource(url, detail::Shared<detail::IHttpClient>(new detail::HttpClient)));
 }
 
-Value Client::Get_status() const {
+Value Client::GetStatus() const {
 	// Return server status
 	Value status = resource_->Get("status");
 	// Already in Upp::Value format
 	return status;
 }
 
-Vector<Session> Client::Get_sessions() const {
+Vector<Session> Client::GetSessions() const {
 	// Return existing sessions
 	Value result = resource_->Get("sessions");
-	ValueArray session_values = From_json<ValueArray>(result);
+	ValueArray session_values = FromJson<ValueArray>(result);
 	Vector<Session> sessions;
 	for(const auto& val : session_values) {
 		Value id_val = val["id"];
-		String session_id = From_json<String>(id_val);
+		String session_id = FromJson<String>(id_val);
 		sessions.Add(Session(detail::Shared<detail::Resource>(
-			new detail::Resource(resource_, session_id, detail::Resource::Is_observer))));
+			new detail::Resource(resource_, session_id, detail::Resource::IS_OBSERVER))));
 	}
 	return sessions;
 }
 
-Session Client::Create_session(
+Session Client::CreateSession(
 	const Capabilities& desired,
 	const Capabilities& required
 	) const {
 	ValueMap caps;
-	caps.Add("desiredCapabilities", To_json(desired));
-	caps.Add("requiredCapabilities", To_json(required));
+	caps.Add("desiredCapabilities", ToJson(desired));
+	caps.Add("requiredCapabilities", ToJson(required));
 
 	Value response = resource_->Post("session", caps);
-	String session_id = From_json<String>(response["sessionId"]);
+	String session_id = FromJson<String>(response["sessionId"]);
 
-	return Make_session(session_id, detail::Resource::Is_owner);
+	return MakeSession(session_id, detail::Resource::IS_OWNER);
 }
 
-Session Client::Make_session(
+Session Client::MakeSession(
 	const String& id,
 	detail::Resource::Ownership mode
 	) const {

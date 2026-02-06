@@ -32,17 +32,17 @@ public:
 	explicit Web_driver(
 		const Capabilities& desired = Capabilities(),
 		const Capabilities& required = Capabilities(),
-		const String& url = k_default_web_driver_url
+		const String& url = K_DEFAULT_WEB_DRIVER_URL
 		)
 		: Client(url)
-		, Session(Create_session(desired, required))
+		, Session(CreateSession(desired, required))
 	{}
 };
 
 Web_driver Start(
 	const Capabilities& desired,
 	const Capabilities& required = Capabilities(),
-	const String& url = k_default_web_driver_url
+	const String& url = K_DEFAULT_WEB_DRIVER_URL
 	);
 
 Web_driver Start(const Capabilities& desired, const String& url);

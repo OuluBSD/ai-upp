@@ -17,8 +17,8 @@ public:
 		const Shared<IFinder_factory>& factory
 		);
 
-	Element Find_element(const By& by) const;
-	Vector<Element> Find_elements(const By& by) const;
+	Element FindElement(const By& by) const;
+	Vector<Element> FindElements(const By& by) const;
 
 private:
 	Shared<Resource> resource_;

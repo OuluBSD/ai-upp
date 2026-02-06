@@ -13,4 +13,4 @@ Convert the Client class to follow U++ naming conventions and use U++ types.
 - Client implementation completed
 
 ## Status
-Pending
+Completed

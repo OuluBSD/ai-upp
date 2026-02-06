@@ -19,37 +19,41 @@ public:
 		const detail::Shared<detail::IFinder_factory>& factory
 		);
 
-	String Get_ref() const; // Returns ID that is used by Webdriver to identify elements
+	String GetRef() const; // Returns ID that is used by Webdriver to identify elements
 
-	bool Is_displayed() const;
-	bool Is_enabled() const;
-	bool Is_selected() const;
-	Point Get_location() const;
-	Point Get_location_in_view() const;
-	Size Get_size() const;
-	String Get_attribute(const String& name) const;
-	String Get_css_property(const String& name) const;
-	String Get_tag_name() const;
-	String Get_text() const;
+	bool IsDisplayed() const;
+	bool IsEnabled() const;
+	bool IsSelected() const;
+	Point GetLocation() const;
+	Point GetLocationInView() const;
+	Size GetSize() const;
+	String GetAttribute(const String& name) const;
+	String GetCssProperty(const String& name) const;
+	String GetTagName() const;
+	String GetText() const;
 
-	Element Find_element(const By& by) const;
-	Vector<Element> Find_elements(const By& by) const;
+	Element FindElement(const By& by) const;
+	Vector<Element> FindElements(const By& by) const;
 
 	const Element& Clear() const;
 	const Element& Click() const;
 	const Element& Submit() const;
 
-	const Element& Send_keys(const String& keys) const;
-	const Element& Send_keys(const Shortcut& shortcut) const;
+	const Element& SendKeys(const String& keys) const;
+	const Element& SendKeys(const Shortcut& shortcut) const;
 
 	bool Equals(const Element& other) const;
 	bool operator != (const Element& other) const;
 	bool operator == (const Element& other) const;
 	bool operator < (const Element& other) const;
 
+	void Jsonize(JsonIO& json) {
+		json("ELEMENT", ref_)("element-6066-11e4-a52e-4f735466cecf", ref_);
+	}
+
 private:
-	detail::Resource& Get_resource() const;
-	detail::Keyboard Get_keyboard() const;
+	detail::Resource& GetResource() const;
+	detail::Keyboard GetKeyboard() const;
 
 private:
 	String ref_;

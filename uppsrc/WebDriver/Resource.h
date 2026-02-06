@@ -2,6 +2,7 @@
 #define _WebDriver_Resource_h_
 
 #include <Core/Core.h>
+#include "ResponseStatusCode.h"
 
 NAMESPACE_UPP
 
@@ -49,11 +50,11 @@ public:
 
 	template<typename T>
 	T Get_value(const String& command) const {
-		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
-		return From_json<T>(Get(command));
-		WEBDRIVERXX_FUNCTION_CONTEXT_END_EX(detail::Fmt() <<
-			"command: " << command
-			)
+		try {
+			return From_json<T>(Get(command));
+		} catch (const std::exception& ex) {
+			throw std::runtime_error(String(ex.what()) + " - Context: command: " + command);
+		}
 	}
 
 	String Get_string(const String& command) const {
@@ -88,11 +89,11 @@ public:
 
 	template<typename T>
 	void Post_value(const String& command, const T& value) const {
-		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
-		Post(command, To_json(value));
-		WEBDRIVERXX_FUNCTION_CONTEXT_END_EX(detail::Fmt() <<
-			"command: " << command
-			)
+		try {
+			Post(command, To_json(value));
+		} catch (const std::exception& ex) {
+			throw std::runtime_error(String(ex.what()) + " - Context: command: " + command);
+		}
 	}
 
 protected:
@@ -110,15 +111,17 @@ private:
 		Http_response (IHttp_client::* member)(const String& url) const,
 		const char* request_type
 		) const {
-		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
-		return Process_response((http_client_->*member)(
-			Concat_url(url_, command)
-			));
-		WEBDRIVERXX_FUNCTION_CONTEXT_END_EX(Fmt()
-			<< "request: " << request_type
-			<< ", command: " << command
-			<< ", resource: " << url_
-			)
+		try {
+			return Process_response((http_client_.Get()->*member)(
+				Concat_url(url_, command)
+				));
+		} catch (const std::exception& ex) {
+			throw std::runtime_error(String(ex.what()) + " - Context: "
+				+ "request: " + request_type
+				+ ", command: " + command
+				+ ", resource: " + url_
+				);
+		}
 	}
 
 	static String To_upload_data(const Value& upload_data)
@@ -132,70 +135,72 @@ private:
 		Http_response (IHttp_client::* member)(const String& url, const String& upload_data) const,
 		const char* request_type
 		) const {
-		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
-		return Process_response((http_client_->*member)(
-			Concat_url(url_, command),
-			To_upload_data(upload_data)
-			));
-		WEBDRIVERXX_FUNCTION_CONTEXT_END_EX(Fmt()
-			<< "request: " << request_type
-			<< ", command: " << command
-			<< ", resource: " << url_
-			<< ", data: " << To_upload_data(upload_data)
-			)
+		try {
+			return Process_response((http_client_.Get()->*member)(
+				Concat_url(url_, command),
+				To_upload_data(upload_data)
+				));
+		} catch (const std::exception& ex) {
+			throw std::runtime_error(String(ex.what()) + " - Context: "
+				+ "request: " + request_type
+				+ ", command: " + command
+				+ ", resource: " + url_
+				+ ", data: " + To_upload_data(upload_data)
+				);
+		}
 	}
 
 	Value Process_response(
 		const Http_response& http_response
 		) const {
-		WEBDRIVERXX_FUNCTION_CONTEXT_BEGIN()
-		WEBDRIVERXX_CHECK(
-			http_response.http_code / 100 != 4 &&
-			http_response.http_code != 501,
-			"HTTP code indicates that request is invalid");
+		try {
+			if (!(http_response.http_code / 100 != 4 && http_response.http_code != 501)) {
+				throw std::runtime_error("HTTP code indicates that request is invalid");
+			}
 
-		Value response;
-		String error_message;
-		if (!ParseJSON(response, http_response.body)) {
-			WEBDRIVERXX_THROW(Fmt() << "JSON parser error");
-		}
+			Value response = ParseJSON(http_response.body);
+			if (response.IsError()) {
+				throw std::runtime_error("JSON parser error");
+			}
 
-		WEBDRIVERXX_CHECK(response.IsObject(), "Server response is not an object");
-		WEBDRIVERXX_CHECK(response.Has("status"), "Server response has no member \"status\"");
-		WEBDRIVERXX_CHECK(response["status"].IsNumber(), "Response status code is not a number");
-		const auto status =
-			static_cast<response_status_code::Value>(ToInt(response["status"]));
-		WEBDRIVERXX_CHECK(response.Has("value"), "Server response has no member \"value\"");
-		const Value& value = response["value"];
+			if (!response.Is<ValueMap>()) throw std::runtime_error("Server response is not an object");
+			if (response["status"].IsVoid()) throw std::runtime_error("Server response has no member \"status\"");
+			if (!IsNumber(response["status"])) throw std::runtime_error("Response status code is not a number");
+			const auto status =
+				static_cast<response_status_code::Value>((int)response["status"]);
+			if (response["value"].IsVoid()) throw std::runtime_error("Server response has no member \"value\"");
+			const Value& value = response["value"];
 
-		if (http_response.http_code == 500) { // Internal server error
-			WEBDRIVERXX_CHECK(value.IsObject(), "Server response has no member \"value\" or \"value\" is not an object");
-			WEBDRIVERXX_CHECK(value.Has("message"), "Server response has no member \"value.message\"");
-			WEBDRIVERXX_CHECK(value["message"].IsString(), "\"value.message\" is not a string");
-			WEBDRIVERXX_THROW(Fmt() << "Server failed to execute command ("
-				<< "message: " << AsString(value["message"])
-				<< ", status: " << response_status_code::ToString(status)
-				<< ", status_code: " << status
-				<< ")"
+			if (http_response.http_code == 500) { // Internal server error
+				if (!value.Is<ValueMap>()) throw std::runtime_error("Server response has no member \"value\" or \"value\" is not an object");
+				if (value["message"].IsVoid()) throw std::runtime_error("Server response has no member \"value.message\"");
+				if (!value["message"].Is<String>()) throw std::runtime_error("\"value.message\" is not a string");
+				throw std::runtime_error(String("Server failed to execute command (")
+					+ "message: " + AsString(value["message"])
+					+ ", status: " + response_status_code::ToString(status)
+					+ ", status_code: " + AsString((int)status)
+					+ ")"
+				);
+			}
+			if (!(status == response_status_code::kSuccess)) throw std::runtime_error("Non-zero response status code");
+			if (!(http_response.http_code == 200)) throw std::runtime_error("Unsupported HTTP code");
+
+			return Transform_response(response);
+		} catch (const std::exception& ex) {
+			throw std::runtime_error(String(ex.what()) + " - Context: "
+				+ "HTTP code: " + AsString(http_response.http_code)
+				+ ", body: " + http_response.body
 				);
 		}
-		WEBDRIVERXX_CHECK(status == response_status_code::kSuccess, "Non-zero response status code");
-		WEBDRIVERXX_CHECK(http_response.http_code == 200, "Unsupported HTTP code");
-
-		return Transform_response(response);
-		WEBDRIVERXX_FUNCTION_CONTEXT_END_EX(Fmt()
-			<< "HTTP code: " << http_response.http_code
-			<< ", body: " << http_response.body.c_str()
-			)
 	}
 
 	static
 	String Concat_url(const String& a, const String& b, const char delim = '/') {
-		auto result = a.empty() ? b : a;
-		if (!a.empty() && !b.empty()) {
-			if (result[result.length()-1] != delim)
-				result += delim;
-			result.append(b[0] == delim ? b.substr(1) : b);
+		auto result = a.IsEmpty() ? b : a;
+		if (!a.IsEmpty() && !b.IsEmpty()) {
+			if (result[result.GetLength()-1] != delim)
+				result.Cat(delim);
+			result.Cat(b[0] == delim ? b.Mid(1) : b);
 		}
 		return result;
 	}
@@ -219,7 +224,7 @@ public:
 private:
 	virtual Value Transform_response(Value& response) const {
 		Value result;
-		response.Swap(result);
+		Swap(response, result);
 		return result;
 	}
 };

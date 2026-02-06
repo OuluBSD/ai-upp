@@ -3,8 +3,7 @@ description "WebDriver implementation for browser automation\377B0,128,128";
 uses
 	Core,
 	Draw,
-	CtrlCore,
-	Socket;
+	CtrlCore;
 
 library(WIN32) ws2_32;
 
@@ -29,8 +28,6 @@ file
 	JsArgs.cpp,
 	Keys.h,
 	Keys.cpp,
-	PicoJson.h,
-	PicoJson.cpp,
 	ResponseStatusCode.h,
 	ResponseStatusCode.cpp,
 	Session.h,

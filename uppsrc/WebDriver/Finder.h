@@ -6,6 +6,8 @@
 
 NAMESPACE_UPP
 
+class Element;
+
 namespace detail {
 
 class Finder {

@@ -2,13 +2,14 @@
 #define _WebDriver_Element_h_
 
 #include <Core/Core.h>
+#include "detail.h"
 
 
 
 NAMESPACE_UPP
 
 // An element from DOM
-class Element { // copyable
+class Element : public Moveable<Element> { // copyable
 public:
 	Element();
 

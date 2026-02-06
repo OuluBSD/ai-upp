@@ -1,6 +1,7 @@
 #include "Umbrella.h"
 #include "GameScreen.h"
 #include "MapSerializer.h"
+#include "EnemyPatroller.h"
 
 using namespace Upp;
 
@@ -49,6 +50,9 @@ bool GameScreen::LoadLevel(const String& path) {
 
 	// Spawn player at appropriate location
 	RespawnPlayer();
+
+	// Spawn enemies
+	SpawnEnemies();
 
 	Title("Umbrella - " + GetFileName(path));
 	return true;
@@ -127,8 +131,28 @@ void GameScreen::GameTick(float delta) {
 	Pointf playerCenter = player.GetCenter();
 	UpdateCamera(Point((int)playerCenter.x, (int)playerCenter.y));
 
-	// TODO: Update enemies
-	// TODO: Check collisions
+	// Update enemies
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		enemies[i]->Update(delta, player, *this);
+	}
+
+	// Check player-enemy collisions
+	Rectf playerBounds = player.GetBounds();
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		if(!enemies[i]->IsAlive()) continue;
+
+		Rectf enemyBounds = enemies[i]->GetBounds();
+
+		// Check if bounds intersect
+		if(playerBounds.left < enemyBounds.right &&
+		   playerBounds.right > enemyBounds.left &&
+		   min(playerBounds.top, playerBounds.bottom) < max(enemyBounds.top, enemyBounds.bottom) &&
+		   max(playerBounds.top, playerBounds.bottom) > min(enemyBounds.top, enemyBounds.bottom)) {
+			// Collision detected - player takes damage
+			player.TakeDamage(1);
+			// Knockback could be added here
+		}
+	}
 }
 
 void GameScreen::UpdateCamera(Point targetPos) {
@@ -184,11 +208,15 @@ void GameScreen::Paint(Draw& w) {
 	// Render tiles
 	RenderTiles(w);
 
+	// Render enemies
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		enemies[i]->Render(w, *this);
+	}
+
 	// Render player (using WorldToScreen for proper Y-flip)
 	player.Render(w, *this);
 
-	// TODO: Render enemies
-	// TODO: Render HUD
+	// TODO: Render HUD (lives, score, etc.)
 }
 
 void GameScreen::RenderTiles(Draw& w) {
@@ -344,4 +372,51 @@ bool GameScreen::IsWallTile(int col, int row) {
 
 bool GameScreen::IsFloorTile(int col, int row) {
 	return IsWallTile(col, row) || IsFullBlockTile(col, row);
+}
+
+void GameScreen::ClearEnemies() {
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		delete enemies[i];
+	}
+	enemies.Clear();
+}
+
+void GameScreen::SpawnEnemies() {
+	ClearEnemies();
+
+	// Spawn some patroller enemies at various positions
+	// For now, spawn a few enemies manually at reasonable positions
+	// Later this could be data-driven from map files
+
+	if(levelColumns > 10 && levelRows > 5) {
+		// Spawn enemy at column 8, looking for ground
+		for(int row = levelRows - 3; row >= 1; row--) {
+			if(IsFloorTile(8, row)) {
+				int spawnX = 8 * gridSize;
+				int spawnY = (row + 1) * gridSize;
+				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				break;
+			}
+		}
+
+		// Spawn enemy at column 15
+		for(int row = levelRows - 3; row >= 1; row--) {
+			if(IsFloorTile(15, row)) {
+				int spawnX = 15 * gridSize;
+				int spawnY = (row + 1) * gridSize;
+				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				break;
+			}
+		}
+
+		// Spawn enemy at column 22
+		for(int row = levelRows - 3; row >= 1; row--) {
+			if(IsFloorTile(22, row)) {
+				int spawnX = 22 * gridSize;
+				int spawnY = (row + 1) * gridSize;
+				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				break;
+			}
+		}
+	}
 }

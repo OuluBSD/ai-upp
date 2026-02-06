@@ -3229,6 +3229,45 @@ void Edit3D::LoadTestOctree() {
 
 }
 
+void Edit3D::LoadTestTimelineSphere() {
+	GeomScene& scene = prj->GetScene(0);
+	GeomObject& cam = scene.GetAddCamera("camera");
+	GeomObject& mdl = scene.GetAddModel("sphere");
+
+	ModelBuilder mb;
+	mb.AddSphere(vec3(0, 0, 0), 1.0f, 24, 16);
+	mdl.mdl = mb.Detach();
+	mdl.asset_ref = "preset:sphere";
+
+	scene.length = prj->kps * 3 + 1;
+	GeomTimeline& tl = mdl.GetTimeline();
+	tl.keypoints.Clear();
+
+	GeomKeypoint& kp0 = tl.GetAddKeypoint(0);
+	kp0.position = vec3(-1, 0, 0);
+	kp0.orientation = Identity<quat>();
+	kp0.has_position = true;
+	kp0.has_orientation = false;
+
+	GeomKeypoint& kp1 = tl.GetAddKeypoint(prj->kps);
+	kp1.position = vec3(0, 0, 0);
+	kp1.orientation = AxesQuat(0, 0, M_PIf * 0.5f);
+	kp1.has_position = false;
+	kp1.has_orientation = true;
+
+	GeomKeypoint& kp2 = tl.GetAddKeypoint(prj->kps * 2);
+	kp2.position = vec3(1, 0, 0);
+	kp2.orientation = AxesQuat(0, 0, M_PIf);
+	kp2.has_position = true;
+	kp2.has_orientation = true;
+
+	GeomKeypoint& kp3 = cam.GetTimeline().GetAddKeypoint(0);
+	kp3.position = vec3(0, 0, 4);
+	kp3.orientation = Identity<quat>();
+	kp3.has_position = true;
+	kp3.has_orientation = true;
+}
+
 void Edit3D::LoadTestProject(int test_i) {
 	script_instances.Clear();
 	CreateDefaultInit();
@@ -3236,7 +3275,8 @@ void Edit3D::LoadTestProject(int test_i) {
 	switch (test_i) {
 		case 0: LoadTestCirclingCube(); break;
 		case 1: LoadTestOctree(); break;
-		case 2: LoadTestHmdPointcloud(); break;
+		case 2: LoadTestTimelineSphere(); break;
+		case 3: LoadTestHmdPointcloud(); break;
 		default: break;
 	}
 	

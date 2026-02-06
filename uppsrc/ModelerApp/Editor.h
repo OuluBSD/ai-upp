@@ -364,6 +364,7 @@ struct Edit3D : DockWindow {
 	void CreateDefaultPostInit();
 	void LoadTestCirclingCube();
 	void LoadTestOctree();
+	void LoadTestTimelineSphere();
 	void LoadTestHmdPointcloud();
 	void EnsureHmdSceneObjects();
 	void EnsureSimSceneObjects();

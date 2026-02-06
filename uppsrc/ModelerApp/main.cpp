@@ -17,6 +17,7 @@ GUI_APP_MAIN {
 	
 	cmd.AddArg('v', "Verbose", false);
 	cmd.AddArg('t', "Load test project", false);
+	cmd.AddArg('b', "Builtin test index", true, "index");
 	cmd.AddArg('s', "Run synthetic sim (visual)", false);
 	cmd.AddArg('d', "Dump test .scene3d and exit", false);
 	cmd.AddArg('n', "Pointcloud directory", true, "directory");
@@ -40,6 +41,7 @@ GUI_APP_MAIN {
 		REMOTE_DEBUG,
 	};
 	int mode = EMPTY;
+	int builtin_index = 0;
 	
 	String pointcloud_dir;
 	String test_scene_path = "share/animation/tests/01.scene3d";
@@ -74,6 +76,12 @@ GUI_APP_MAIN {
 	else if (cmd.IsArg('s')) {
 		mode = SYNTHETIC;
 	}
+	if (cmd.IsArg('b')) {
+		builtin_index = StrInt(cmd.GetArg('b'));
+		if (builtin_index < 0)
+			builtin_index = 0;
+		mode = PROJECT0;
+	}
 	
 	
 	daemon.RunInThread();
@@ -89,7 +97,7 @@ GUI_APP_MAIN {
 	}
 
 	if (cmd.IsArg('d')) {
-		app.LoadTestProject(0);
+		app.LoadTestProject(builtin_index);
 		RealizeDirectory(GetFileFolder(test_scene_path));
 		if (!app.SaveScene3D(test_scene_path, true))
 			Cout() << "Failed to write " << test_scene_path << "\n";
@@ -223,7 +231,7 @@ GUI_APP_MAIN {
 		app.LoadWmrStereoPointcloud(pointcloud_dir);
 	else if (mode == PROJECT0) {
 		//if (!app.LoadScene3D(test_scene_path)) {
-			app.LoadTestProject(2);
+			app.LoadTestProject(builtin_index);
 			RealizeDirectory(GetFileFolder(test_scene_path));
 			app.SaveScene3D(test_scene_path, true);
 		//}

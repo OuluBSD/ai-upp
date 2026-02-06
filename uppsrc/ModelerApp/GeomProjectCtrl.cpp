@@ -601,9 +601,9 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	props.AddColumn("", 72).NoEdit();
 	props.ColumnAt(0).FixedWidth(180);
 	props.ColumnAt(1).FixedWidth(300);
+	props.ColumnAt(1).SetWidth(300);
 	props.ColumnAt(2).FixedWidth(72);
-	props.HeaderTab(1).Hide();
-	props.HeaderTab(2).Hide();
+	props.ColumnAt(2).SetWidth(72);
 	for (int i = 3; i < props.GetColumnCount(); i++) {
 		props.HeaderTab(i).Hide();
 		props.ColumnAt(i).SetWidth(0);
@@ -659,6 +659,19 @@ void GeomProjectCtrl::Update(double dt) {
 
 void GeomProjectCtrl::Data() {
 	GeomProject& prj = *e->prj;
+
+	Index<const VfsValue*> open_nodes;
+	Value cursor_value;
+	int old_cursor = tree.GetCursor();
+	if (old_cursor >= 0)
+		cursor_value = tree.Get(old_cursor);
+	for (int i = 0; i < tree.GetCount(); i++) {
+		if (!tree.IsOpen(i))
+			continue;
+		Value v = tree.Get(i);
+		if (v.Is<VfsValue*>())
+			open_nodes.FindAdd(ValueTo<VfsValue*>(v));
+	}
 	
 	tree.Clear();
 	tree.SetRoot(ImagesImg::Root(), "Project");
@@ -707,8 +720,35 @@ void GeomProjectCtrl::Data() {
 		String name = prj.dictionary[o.id];
 		tree.Add(tree_octrees, ImagesImg::Octree(), o.id, name);
 	}*/
-	
+	for (int i = 0; i < tree.GetCount(); i++) {
+		Value v = tree.Get(i);
+		if (v.Is<VfsValue*>()) {
+			if (open_nodes.Find(ValueTo<VfsValue*>(v)) >= 0)
+				tree.Open(i);
+		}
+	}
 	tree.Open(0);
+	
+	if (cursor_value.Is<VfsValue*>()) {
+		VfsValue* target = ValueTo<VfsValue*>(cursor_value);
+		for (int i = 0; i < tree.GetCount(); i++) {
+			Value v = tree.Get(i);
+			if (v.Is<VfsValue*>() && ValueTo<VfsValue*>(v) == target) {
+				tree.SetCursor(i);
+				break;
+			}
+		}
+	}
+	else if (cursor_value.Is<TreeNodeRef*>()) {
+		TreeNodeRef* ref = ValueTo<TreeNodeRef*>(cursor_value);
+		for (int i = 0; i < tree.GetCount(); i++) {
+			TreeNodeRef* cur = GetNodeRef(tree.Get(i));
+			if (cur && ref && cur->kind == ref->kind) {
+				tree.SetCursor(i);
+				break;
+			}
+		}
+	}
 	
 	TreeSelect();
 }

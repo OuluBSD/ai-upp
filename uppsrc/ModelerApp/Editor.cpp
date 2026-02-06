@@ -1657,6 +1657,8 @@ void Edit3D::Update() {
 			tl.Update(*state, dt);
 		if (tl.is_playing || was_playing)
 			RefrehRenderers();
+		if (view == VIEW_GEOMPROJECT && (tl.is_playing || was_playing))
+			v0.SyncPropsValues();
 	}
 
 	EnsureScriptInstances();

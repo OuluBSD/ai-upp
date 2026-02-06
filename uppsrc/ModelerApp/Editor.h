@@ -108,6 +108,8 @@ struct GeomProjectCtrl : Ctrl {
 			P_MAT_EMISSIVE,
 			P_MAT_NORMAL_SCALE,
 			P_MAT_OCCLUSION,
+			P_MAT_STROKE_CAP,
+			P_MAT_STROKE_JOIN,
 			P_MESH_MATERIAL,
 			P_COMPONENTS,
 			P_SCRIPT,
@@ -216,6 +218,29 @@ struct FilePoolCtrl : ParentCtrl {
 	void Data();
 };
 
+struct AssetBrowserCtrl : ParentCtrl {
+	Edit3D* owner = 0;
+	Splitter split;
+	TreeCtrl tree;
+	ArrayCtrl files;
+	String root_dir;
+	String current_dir;
+	Vector<String> recent_assets;
+
+	typedef AssetBrowserCtrl CLASSNAME;
+	AssetBrowserCtrl(Edit3D* e);
+	void SetRoot(const String& dir);
+	void SetRecent(const Vector<String>& list);
+	void Data();
+	void BuildTree();
+	void UpdateFiles();
+	void OnTreeCursor();
+	void OnFileDouble();
+	void StartDrag();
+	String GetCursorPath() const;
+	Image MakePreview(const String& path, int size) const;
+};
+
 struct ScriptEditorCtrl : ParentCtrl {
 	Edit3D* owner = 0;
 	CodeEditor editor;
@@ -303,6 +328,7 @@ struct Edit3D : DockWindow {
 	GeomProjectCtrl v0;
 	VideoImportCtrl v1;
 	FilePoolCtrl file_pool;
+	AssetBrowserCtrl asset_browser;
 	TextureEditCtrl texture_edit;
 	//RemoteDebugCtrl v_rdbg;
 	MenuBar menu;
@@ -312,7 +338,9 @@ struct Edit3D : DockWindow {
 	DockableCtrl* dock_time = 0;
 	DockableCtrl* dock_video = 0;
 	DockableCtrl* dock_pool = 0;
+	DockableCtrl* dock_assets = 0;
 	DockableCtrl* dock_texture = 0;
+	DockableCtrl* dock_script = 0;
 	
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext render_ctx;
@@ -355,6 +383,7 @@ struct Edit3D : DockWindow {
 	Array<Scene3DExternalFile> scene3d_external_files;
 	Array<Scene3DMetaEntry> scene3d_meta;
 	bool scene3d_use_json = true;
+	Vector<String> recent_assets;
 	struct UndoEntry {
 		String json;
 		String note;
@@ -380,6 +409,7 @@ struct Edit3D : DockWindow {
 		TOOL_ERASE,
 		TOOL_JOIN,
 		TOOL_SPLIT,
+		TOOL_2D_SELECT,
 		TOOL_2D_LINE,
 		TOOL_2D_RECT,
 		TOOL_2D_CIRCLE,
@@ -425,6 +455,20 @@ struct Edit3D : DockWindow {
 	bool auto_key_orientation = true;
 	bool auto_key_mesh = false;
 	bool auto_key_2d = false;
+	bool show_hud = true;
+	bool show_hud_help = false;
+	enum MeshSelectMode {
+		MESHSEL_VERTEX,
+		MESHSEL_EDGE,
+		MESHSEL_FACE
+	};
+	MeshSelectMode mesh_select_mode = MESHSEL_VERTEX;
+	Vector<int> mesh_sel_points;
+	Vector<int> mesh_sel_lines;
+	Vector<int> mesh_sel_faces;
+	Vector<int> select_2d_shapes;
+	int select_2d_primary = -1;
+	int select_2d_hover = -1;
 	enum TimelineScopeKind {
 		TS_SCENE,
 		TS_OBJECT,
@@ -469,7 +513,6 @@ struct Edit3D : DockWindow {
 	};
 	Array<ScriptInstance> script_instances;
 	ScriptEditorCtrl script_editor;
-	DockableCtrl* dock_script = 0;
 	
 	struct ScriptEventHandler : Moveable<ScriptEventHandler> {
 		String event;
@@ -518,6 +561,27 @@ struct Edit3D : DockWindow {
 	void Create2DLayerObject();
 	GeomObject* GetFocusedMeshObject();
 	GeomObject* GetFocused2DObject();
+	void Clear2DSelection();
+	void Select2DShape(int idx, bool add, bool toggle);
+	void Toggle2DShape(int idx);
+	int Pick2DShape(const Geom2DLayer& layer, const vec2& local, double radius) const;
+	Rectf Get2DShapeBounds(const Geom2DShape& shape) const;
+	void Translate2DShape(Geom2DShape& shape, const vec2& delta);
+	void Align2DSelection(int mode);
+	void Distribute2DSelection(bool horizontal);
+	void Union2DSelection();
+	void Intersect2DSelection();
+	void Subtract2DSelection();
+	void ClearMeshSelection();
+	void ToggleMeshPoint(int idx);
+	void ToggleMeshLine(int idx);
+	void ToggleMeshFace(int idx);
+	void SelectMeshLoop();
+	void SelectMeshRing();
+	void ExpandMeshSelection();
+	void ContractMeshSelection();
+	void ExtrudeMeshSelection(double amount);
+	void InsetMeshSelection(double amount);
 	void AddMeshKeyframeAtCursor();
 	void ClearMeshKeyframes();
 	void Add2DKeyframeAtCursor();
@@ -540,6 +604,7 @@ struct Edit3D : DockWindow {
 	void SetWeightPaintMode(bool enable);
 	int PickNearestPoint(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
 	int PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Point& p, double radius_px) const;
+	int PickNearestFace(const GeomEditableMesh& mesh, int view_i, const Point& p) const;
 	void RemoveEditablePoint(GeomEditableMesh& mesh, int idx);
 	bool HasLine(const GeomEditableMesh& mesh, int a, int b) const;
 	void OpenScriptEditor(GeomScript& script);
@@ -553,16 +618,23 @@ struct Edit3D : DockWindow {
 	void SetProjectDir(String dir);
 	const String& GetProjectDir() const { return project_dir; }
 	void SyncPointcloudDatasetsExternalFiles();
+	String GetAssetRootDir() const;
+	void AddRecentAsset(const String& rel);
+	void UpdateAssetBrowser();
+	void AddAssetFromPath(const String& path);
+	void SyncAssetExternalFiles();
 	void UpdateTextureEditor(GeomObject* obj);
 	void SaveTextureEdit(GeomObject& obj, GeomTextureEdit& tex, ImageBuffer& ib);
 	String EnsureTexturePath(GeomObject& obj, GeomTextureEdit& tex);
 	void SyncTextureExternalFiles();
+	void UpdateHud();
 	
 public:
 	typedef Edit3D CLASSNAME;
 	Edit3D();
 
 	bool Key(dword key, int count) override;
+	void DragAndDrop(Point p, PasteClip& d) override;
 	void SetView(ViewType view);
 	virtual void DockInit();
 	void Update();
@@ -588,6 +660,7 @@ public:
 	void OpenScene3D();
 	void OpenTextureEditor();
 	void OpenFilePool();
+	void OpenAssetBrowser();
 	void SaveScene3DInteractive();
 	void SaveScene3DAs();
 	void SaveScene3DAsJson();

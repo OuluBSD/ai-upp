@@ -401,6 +401,8 @@ void Geom2DShape::Visit(Vis& v) {
 			type_i = (int)v.json->Get()["type"];
 			radius = (float)v.json->Get()["radius"];
 			width = (float)v.json->Get()["width"];
+			stroke_cap = (int)v.json->Get()["stroke_cap"];
+			stroke_join = (int)v.json->Get()["stroke_join"];
 			closed = (bool)v.json->Get()["closed"];
 			int r = (int)v.json->Get()["stroke_r"];
 			int g = (int)v.json->Get()["stroke_g"];
@@ -417,6 +419,8 @@ void Geom2DShape::Visit(Vis& v) {
 			v.json->Set("type", (int)type);
 			v.json->Set("radius", radius);
 			v.json->Set("width", width);
+			v.json->Set("stroke_cap", stroke_cap);
+			v.json->Set("stroke_join", stroke_join);
 			v.json->Set("closed", closed);
 			v.json->Set("stroke_r", (int)stroke.GetR());
 			v.json->Set("stroke_g", (int)stroke.GetG());
@@ -428,6 +432,8 @@ void Geom2DShape::Visit(Vis& v) {
 		v VIS_(type_i)
 		  VIS_(radius)
 		  VIS_(width)
+		  VIS_(stroke_cap)
+		  VIS_(stroke_join)
 		  VIS_(closed)
 		  VIS_(tex_wrap)
 		  VIS_(stroke_uv_mode)
@@ -463,6 +469,8 @@ void Geom2DLayer::Visit(Vis& v) {
 	  VIS_(width)
 	  VIS_(opacity)
 	  VIS_(use_layer_style)
+	  VIS_(stroke_cap)
+	  VIS_(stroke_join)
 	  VIS_(texture_ref)
 	  VIS_(blend_mode)
 	  VIS_(tex_offset_x)
@@ -1914,7 +1922,13 @@ static void Copy2DShapes(Vector<Geom2DShape>& dst, const Vector<Geom2DShape>& sr
 		d.radius = s.radius;
 		d.stroke = s.stroke;
 		d.width = s.width;
+		d.stroke_cap = s.stroke_cap;
+		d.stroke_join = s.stroke_join;
 		d.closed = s.closed;
+		d.tex_wrap = s.tex_wrap;
+		d.stroke_uv_mode = s.stroke_uv_mode;
+		d.tex_repeat_x = s.tex_repeat_x;
+		d.tex_repeat_y = s.tex_repeat_y;
 		d.points.SetCount(s.points.GetCount());
 		for (int k = 0; k < s.points.GetCount(); k++)
 			d.points[k] = s.points[k];

@@ -246,3 +246,23 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1308-script-editor-dock.md
   status: done
   note: Added docked script editor with Python syntax, run controls, error list, and breakpoint toggles.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1309-asset-browser.md
+  status: done
+  note: Added asset browser dock with tree, previews, drag/drop, and recent assets.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1310-2d-editing-ops.md
+  status: done
+  note: Added 2D selection, boolean ops (bbox-based), stroke cap/join controls, align/distribute.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1311-mesh-selection-modes.md
+  status: done
+  note: Added mesh selection modes with loop/ring and expand/contract.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1312-mesh-extrude.md
+  status: done
+  note: Added extrude/inset for selected mesh faces with side triangles.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1313-editor-shortcuts.md
+  status: done
+  note: Added HUD with tool hints, snap state, and help overlay toggles.

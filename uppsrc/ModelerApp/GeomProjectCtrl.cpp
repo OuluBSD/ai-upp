@@ -1810,6 +1810,8 @@ void GeomProjectCtrl::PropsData() {
 	int layer_tex_rotate_id = -1;
 	int layer_tex_wrap_id = -1;
 	int layer_stroke_uv_id = -1;
+	int layer_stroke_cap_id = -1;
+	int layer_stroke_join_id = -1;
 	if (selected_obj && selected_obj->IsModel() && selected_obj->mdl) {
 		model_ptr = selected_obj->mdl.Get();
 		PropRef& mats = props_nodes.Add();
@@ -1870,6 +1872,12 @@ void GeomProjectCtrl::PropsData() {
 		PropRef& suvref = props_nodes.Add();
 		suvref.kind = PropRef::P_MAT_NORMAL_SCALE;
 		layer_stroke_uv_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&suvref), t_("Stroke UV"));
+		PropRef& capref = props_nodes.Add();
+		capref.kind = PropRef::P_MAT_STROKE_CAP;
+		layer_stroke_cap_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&capref), t_("Stroke Cap"));
+		PropRef& joinref = props_nodes.Add();
+		joinref.kind = PropRef::P_MAT_STROKE_JOIN;
+		layer_stroke_join_id = props.Add(layer_material, ImagesImg::Object(), RawToValue(&joinref), t_("Stroke Join"));
 	}
 	int scene_timeline = -1;
 	int scene_tl_length_id = -1;
@@ -2493,6 +2501,34 @@ void GeomProjectCtrl::PropsData() {
 			}
 		};
 		set_value_ctrl(layer_stroke_uv_id, pick(stroke_uv));
+
+		One<DropList> stroke_cap = MakeOne<DropList>();
+		stroke_cap->Add(0, t_("Butt"));
+		stroke_cap->Add(1, t_("Round"));
+		stroke_cap->Add(2, t_("Square"));
+		stroke_cap->SetData(layer_ptr->stroke_cap);
+		DropList* stroke_cap_ptr = stroke_cap.Get();
+		stroke_cap->WhenAction << [=] {
+			if (stroke_cap_ptr && layer_ptr) {
+				layer_ptr->stroke_cap = (int)stroke_cap_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_stroke_cap_id, pick(stroke_cap));
+
+		One<DropList> stroke_join = MakeOne<DropList>();
+		stroke_join->Add(0, t_("Miter"));
+		stroke_join->Add(1, t_("Round"));
+		stroke_join->Add(2, t_("Bevel"));
+		stroke_join->SetData(layer_ptr->stroke_join);
+		DropList* stroke_join_ptr = stroke_join.Get();
+		stroke_join->WhenAction << [=] {
+			if (stroke_join_ptr && layer_ptr) {
+				layer_ptr->stroke_join = (int)stroke_join_ptr->GetData();
+				RefreshAll();
+			}
+		};
+		set_value_ctrl(layer_stroke_join_id, pick(stroke_join));
 	}
 	
 	if (selected_obj) {

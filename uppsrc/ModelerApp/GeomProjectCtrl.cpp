@@ -902,7 +902,7 @@ void GeomProjectCtrl::Update(double dt) {
 		}
 		if (anim.position != last_props_frame) {
 			last_props_frame = anim.position;
-			PropsData();
+			SyncPropsValues();
 		}
 	}
 }
@@ -2692,8 +2692,76 @@ void GeomProjectCtrl::OnCursor(int i) {
 		e->anim->ApplyAtPosition(i, e->anim->time);
 	}
 	last_props_frame = i;
-	PropsData();
+	SyncPropsValues();
 	RefreshAll();
+}
+
+void GeomProjectCtrl::SyncPropsValues() {
+	if (props_refreshing)
+		return;
+	if (!e || !e->state)
+		return;
+	vec3 pos(0, 0, 0);
+	quat ori = Identity<quat>();
+	if (selected_obj) {
+		bool use_state = false;
+		if (GeomTimeline* tl = selected_obj->FindTimeline())
+			use_state = !tl->keypoints.IsEmpty();
+		if (use_state) {
+			const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
+			if (os) {
+				pos = os->position;
+				ori = os->orientation;
+			}
+		}
+		if (!use_state) {
+			if (GeomTransform* tr = selected_obj->FindTransform()) {
+				pos = tr->position;
+				ori = tr->orientation;
+			}
+			else {
+				const GeomObjectState* os = e->state->FindObjectStateByKey(selected_obj->key);
+				if (os) {
+					pos = os->position;
+					ori = os->orientation;
+				}
+			}
+		}
+	}
+	else if (selected_ref) {
+		if (selected_ref->kind == TreeNodeRef::K_PROGRAM) {
+			GeomCamera& cam = e->state->GetProgram();
+			pos = cam.position;
+			ori = cam.orientation;
+		}
+		if (selected_ref->kind == TreeNodeRef::K_FOCUS) {
+			GeomCamera& cam = e->state->GetFocus();
+			pos = cam.position;
+			ori = cam.orientation;
+		}
+	}
+	int line_count = props.GetLineCount();
+	for (int line = 0; line < line_count; line++) {
+		int id = props.GetItemAtLine(line);
+		Value v = props.Get(id);
+		if (!v.Is<PropRef*>())
+			continue;
+		PropRef* pr = ValueTo<PropRef*>(v);
+		if (!pr)
+			continue;
+		if (pr->kind == PropRef::P_POSITION) {
+			if (Ctrl* c = props.GetCtrl(line, props_col_value)) {
+				if (Vec3EditCtrl* vc = dynamic_cast<Vec3EditCtrl*>(c))
+					vc->SetValue(pos);
+			}
+		}
+		else if (pr->kind == PropRef::P_ORIENTATION) {
+			if (Ctrl* c = props.GetCtrl(line, props_col_value)) {
+				if (QuatEditCtrl* qc = dynamic_cast<QuatEditCtrl*>(c))
+					qc->SetValue(ori);
+			}
+		}
+	}
 }
 
 void GeomProjectCtrl::TreeValue(int id, VfsValue& node) {

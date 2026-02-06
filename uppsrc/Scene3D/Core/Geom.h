@@ -53,6 +53,7 @@ struct GeomSceneTimeline : VfsValueExt {
 	void Play(int scene_length);
 	void Pause();
 	void Update(GeomWorldState& state, double dt);
+	void ApplyAtPosition(GeomWorldState& state, int pos, double t);
 	void Visit(Vis& v) override;
 };
 

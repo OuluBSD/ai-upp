@@ -1126,6 +1126,9 @@ String GeomObject::GetPath() const {
 }
 
 void GeomObject::Visit(Vis& v) {
+	const hash_t fx_hash = TypedStringHasher<GeomPointcloudEffectTransform>("GeomPointcloudEffectTransform");
+	const hash_t sk_hash = TypedStringHasher<GeomSkeleton>("GeomSkeleton");
+	const hash_t sw_hash = TypedStringHasher<GeomSkinWeights>("GeomSkinWeights");
 	int type_i = (int)type;
 	v VIS_(name)
 	  VIS_(type_i)
@@ -1157,7 +1160,7 @@ void GeomObject::Visit(Vis& v) {
 		if (v.IsLoading()) {
 			const Value& effects_va = v.json->Get()["effects"];
 			for (int i = 0; i < effects_va.GetCount(); i++) {
-				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
+				VfsValue& n = val.Add(String(), fx_hash);
 				GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
 				JsonIO jio(effects_va[i]);
 				Vis vis(jio);
@@ -1167,7 +1170,7 @@ void GeomObject::Visit(Vis& v) {
 			}
 			const Value& skv = v.json->Get()["skeleton"];
 			if (!IsNull(skv)) {
-				VfsValue& n = val.GetAdd("skeleton", AsTypeHash<GeomSkeleton>());
+				VfsValue& n = val.GetAdd("skeleton", sk_hash);
 				GeomSkeleton& sk = n.GetExt<GeomSkeleton>();
 				JsonIO jio(skv);
 				Vis vis(jio);
@@ -1175,7 +1178,7 @@ void GeomObject::Visit(Vis& v) {
 			}
 			const Value& wv = v.json->Get()["skinweights"];
 			if (!IsNull(wv)) {
-				VfsValue& n = val.GetAdd("skinweights", AsTypeHash<GeomSkinWeights>());
+				VfsValue& n = val.GetAdd("skinweights", sw_hash);
 				GeomSkinWeights& sw = n.GetExt<GeomSkinWeights>();
 				JsonIO jio(wv);
 				Vis vis(jio);
@@ -1185,7 +1188,7 @@ void GeomObject::Visit(Vis& v) {
 		else {
 			Vector<Value> effects_values;
 			for (auto& s : val.sub) {
-				if (!IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+				if (!IsVfsType(s, fx_hash))
 					continue;
 				GeomPointcloudEffectTransform& fx = s.GetExt<GeomPointcloudEffectTransform>();
 				effects_values.Add(v.VisitAsJsonValue(fx));
@@ -1203,7 +1206,7 @@ void GeomObject::Visit(Vis& v) {
 		int has_weights = weights_ptr != nullptr;
 		if (!v.IsLoading()) {
 			for (auto& s : val.sub)
-				if (IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+				if (IsVfsType(s, fx_hash))
 					effect_count++;
 		}
 		v VIS_(effect_count)
@@ -1211,26 +1214,26 @@ void GeomObject::Visit(Vis& v) {
 		  VIS_(has_weights);
 		if (v.IsLoading()) {
 			for (int i = 0; i < effect_count; i++) {
-				VfsValue& n = val.Add(String(), AsTypeHash<GeomPointcloudEffectTransform>());
+				VfsValue& n = val.Add(String(), fx_hash);
 				GeomPointcloudEffectTransform& fx = n.GetExt<GeomPointcloudEffectTransform>();
 				fx.Visit(v);
 				if (!fx.name.IsEmpty())
 					n.id = fx.name;
 			}
 			if (has_skeleton) {
-				VfsValue& n = val.GetAdd("skeleton", AsTypeHash<GeomSkeleton>());
+				VfsValue& n = val.GetAdd("skeleton", sk_hash);
 				GeomSkeleton& sk = n.GetExt<GeomSkeleton>();
 				sk.Visit(v);
 			}
 			if (has_weights) {
-				VfsValue& n = val.GetAdd("skinweights", AsTypeHash<GeomSkinWeights>());
+				VfsValue& n = val.GetAdd("skinweights", sw_hash);
 				GeomSkinWeights& sw = n.GetExt<GeomSkinWeights>();
 				sw.Visit(v);
 			}
 		}
 		else {
 			for (auto& s : val.sub) {
-				if (!IsVfsType(s, AsTypeHash<GeomPointcloudEffectTransform>()))
+				if (!IsVfsType(s, fx_hash))
 					continue;
 				GeomPointcloudEffectTransform& fx = s.GetExt<GeomPointcloudEffectTransform>();
 				fx.Visit(v);

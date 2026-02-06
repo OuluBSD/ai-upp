@@ -3837,13 +3837,14 @@ static String Scene3DIsoTime(Time t) {
 
 void Edit3D::SyncPointcloudDatasetsExternalFiles() {
 	GeomScene& scene = GetActiveScene();
+	const hash_t ds_hash = TypedStringHasher<GeomPointcloudDataset>("GeomPointcloudDataset");
 	Vector<Scene3DExternalFile> kept;
 	for (const Scene3DExternalFile& file : scene3d_external_files) {
 		if (file.type != "pointcloud.dataset")
 			kept.Add(file);
 	}
 	for (auto& s : scene.val.sub) {
-		if (!IsVfsType(s, AsTypeHash<GeomPointcloudDataset>()))
+		if (!IsVfsType(s, ds_hash))
 			continue;
 		GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
 		if (ds.source_ref.IsEmpty())

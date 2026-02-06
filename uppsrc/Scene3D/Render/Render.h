@@ -34,6 +34,10 @@ struct Scene3DRenderContext {
 	VfsValue* selected_bone = 0;
 	bool show_weights = false;
 	String weight_bone;
+	Vector<String> hud_lines;
+	Vector<String> hud_help;
+	bool show_hud = true;
+	bool show_hud_help = false;
 };
 
 #include "Renderer.h"

@@ -1125,6 +1125,167 @@ void FilePoolCtrl::Data() {
 	}
 }
 
+AssetBrowserCtrl::AssetBrowserCtrl(Edit3D* e) {
+	owner = e;
+	Add(split.SizePos());
+	split.Horz(tree, files);
+	split.SetPos(2600);
+	tree.WhenCursor << THISBACK(OnTreeCursor);
+	files.AddIndex("path");
+	files.AddColumn(t_("Preview")).FixedWidth(56);
+	files.AddColumn(t_("Name"));
+	files.AddColumn(t_("Type"), 70);
+	files.AddColumn(t_("Size"), 80);
+	files.EvenRowColor();
+	files.SetLineCy(52);
+	files.SetColumnDisplay(0, CenteredImageDisplay());
+	files.WhenLeftDouble << THISBACK(OnFileDouble);
+	files.WhenDrag << THISBACK(StartDrag);
+}
+
+void AssetBrowserCtrl::SetRoot(const String& dir) {
+	root_dir = dir;
+	BuildTree();
+}
+
+void AssetBrowserCtrl::SetRecent(const Vector<String>& list) {
+	recent_assets.Clear();
+	recent_assets.Append(list);
+	UpdateFiles();
+}
+
+void AssetBrowserCtrl::Data() {
+	BuildTree();
+	UpdateFiles();
+}
+
+void AssetBrowserCtrl::BuildTree() {
+	tree.Clear();
+	tree.SetRoot(CtrlImg::Dir(), Value(), t_("Assets"));
+	int recent = tree.Add(0, CtrlImg::Dir(), String("recent:"), t_("Recent"));
+	if (!root_dir.IsEmpty()) {
+		int root = tree.Add(0, CtrlImg::Dir(), root_dir, t_("Project Assets"));
+		Vector<String> stack;
+		stack.Add(root_dir);
+		Vector<int> stack_id;
+		stack_id.Add(root);
+		while (!stack.IsEmpty()) {
+			String dir = stack.Top();
+			int parent = stack_id.Top();
+			stack.Drop();
+			stack_id.Drop();
+			FindFile ff(AppendFileName(dir, "*"));
+			Vector<String> dirs;
+			while (ff) {
+				if (ff.IsFolder()) {
+					String name = ff.GetName();
+					if (name != "." && name != "..")
+						dirs.Add(AppendFileName(dir, name));
+				}
+				ff.Next();
+			}
+			Sort(dirs, StdLess<String>());
+			for (const String& sub : dirs) {
+				int id = tree.Add(parent, CtrlImg::Dir(), sub, GetFileName(sub));
+				stack.Add(sub);
+				stack_id.Add(id);
+			}
+		}
+		tree.Open(root);
+	}
+	tree.Open(recent);
+	if (!tree.IsCursor())
+		tree.SetCursor(recent);
+}
+
+String AssetBrowserCtrl::GetCursorPath() const {
+	if (!tree.IsCursor())
+		return String();
+	Value v = tree.Get(tree.GetCursor());
+	if (v.Is<String>())
+		return v.To<String>();
+	return String();
+}
+
+Image AssetBrowserCtrl::MakePreview(const String& path, int size) const {
+	String ext = ToLower(GetFileExt(path));
+	if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
+	    ext == ".tga" || ext == ".gif") {
+		Image img = StreamRaster::LoadFileAny(path);
+		if (!img.IsEmpty()) {
+			Size sz = img.GetSize();
+			if (sz.cx > size || sz.cy > size)
+				return Rescale(img, size, size);
+			return img;
+		}
+	}
+	return CtrlImg::File();
+}
+
+void AssetBrowserCtrl::UpdateFiles() {
+	files.Clear();
+	String sel = GetCursorPath();
+	Vector<String> entries;
+	if (sel.StartsWith("recent:")) {
+		for (const String& rel : recent_assets) {
+			String abs = rel;
+			if (owner && !owner->GetProjectDir().IsEmpty() && !IsFullPath(rel))
+				abs = AppendFileName(owner->GetProjectDir(), rel);
+			if (FileExists(abs))
+				entries.Add(abs);
+		}
+	}
+	else if (!sel.IsEmpty() && DirectoryExists(sel)) {
+		FindFile ff(AppendFileName(sel, "*"));
+		while (ff) {
+			if (!ff.IsFolder()) {
+				String abs = AppendFileName(sel, ff.GetName());
+				entries.Add(abs);
+			}
+			ff.Next();
+		}
+	}
+	Sort(entries, StdLess<String>());
+	files.SetCount(entries.GetCount());
+	for (int i = 0; i < entries.GetCount(); i++) {
+		String abs = entries[i];
+		String name = GetFileName(abs);
+		String ext = ToLower(GetFileExt(abs));
+		int64 size = (int64)GetFileLength(abs);
+		String size_str = size >= 0 ? FormatInt64(size) : String();
+		Image preview = MakePreview(abs, 48);
+		files.Set(i, "path", abs);
+		files.Set(i, 0, preview);
+		files.Set(i, 1, name);
+		files.Set(i, 2, ext);
+		files.Set(i, 3, size_str);
+	}
+}
+
+void AssetBrowserCtrl::OnTreeCursor() {
+	UpdateFiles();
+}
+
+void AssetBrowserCtrl::OnFileDouble() {
+	if (!owner)
+		return;
+	String file = files.IsCursor() ? String(files.Get("path")) : String();
+	if (!file.IsEmpty())
+		owner->AddAssetFromPath(file);
+}
+
+void AssetBrowserCtrl::StartDrag() {
+	if (!files.IsCursor())
+		return;
+	String path = files.Get("path");
+	if (path.IsEmpty())
+		return;
+	VectorMap<String, ClipData> data;
+	Append(data, path);
+	Image sample = MakePreview(path, 48);
+	DoDragAndDrop(data, sample);
+}
+
 ScriptEditorCtrl::ScriptEditorCtrl(Edit3D* e) : owner(e) {
 	AddFrame(tool);
 	Add(split.SizePos());
@@ -1547,6 +1708,7 @@ Edit3D::Edit3D() :
 	v0(this),
 	v1(this),
 	file_pool(this),
+	asset_browser(this),
 	script_editor(this)
 {
 	prj = &prj_val.CreateExt<GeomProject>();
@@ -1594,10 +1756,14 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Video import"), THISBACK1(SetView, VIEW_VIDEOIMPORT)).Key(K_ALT|K_2);
 			bar.Separator();
 			bar.Add(t_("File Pool"), THISBACK(OpenFilePool));
+			bar.Add(t_("Asset Browser"), THISBACK(OpenAssetBrowser));
 			bar.Add(t_("Texture Editor"), THISBACK(OpenTextureEditor));
 			bar.Add(t_("Script Editor"), [this] { if (dock_script) ActivateDockableChild(*dock_script); });
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
+			bar.Separator();
+			bar.Add(t_("HUD"), [this] { show_hud = !show_hud; }).Check(show_hud);
+			bar.Add(t_("HUD Help"), [this] { show_hud_help = !show_hud_help; }).Check(show_hud_help);
 			bar.Separator();
 			bar.Add(t_("Reset Layout"), THISBACK(ResetLayout));
 			bar.Add(t_("Reset Props Cursor"), THISBACK(ResetPropsCursor));
@@ -1625,6 +1791,8 @@ Edit3D::Edit3D() :
 				.Check(edit_tool == TOOL_SPLIT);
 			bar.Separator();
 			bar.Sub(t_("2D Tools"), [this](Bar& bar) {
+				bar.Add(t_("2D Select"), THISBACK1(SetEditTool, TOOL_2D_SELECT))
+					.Check(edit_tool == TOOL_2D_SELECT);
 				bar.Add(t_("2D Line"), THISBACK1(SetEditTool, TOOL_2D_LINE))
 					.Check(edit_tool == TOOL_2D_LINE);
 				bar.Add(t_("2D Rectangle"), THISBACK1(SetEditTool, TOOL_2D_RECT))
@@ -1635,6 +1803,38 @@ Edit3D::Edit3D() :
 					.Check(edit_tool == TOOL_2D_POLY);
 				bar.Add(t_("2D Erase"), THISBACK1(SetEditTool, TOOL_2D_ERASE))
 					.Check(edit_tool == TOOL_2D_ERASE);
+				bar.Separator();
+				bar.Sub(t_("2D Ops"), [this](Bar& bar) {
+					bar.Add(t_("Union"), THISBACK(Union2DSelection));
+					bar.Add(t_("Intersect"), THISBACK(Intersect2DSelection));
+					bar.Add(t_("Subtract"), THISBACK(Subtract2DSelection));
+					bar.Separator();
+					bar.Add(t_("Align Left"), [this] { Align2DSelection(0); });
+					bar.Add(t_("Align H Center"), [this] { Align2DSelection(1); });
+					bar.Add(t_("Align Right"), [this] { Align2DSelection(2); });
+					bar.Add(t_("Align Top"), [this] { Align2DSelection(3); });
+					bar.Add(t_("Align V Center"), [this] { Align2DSelection(4); });
+					bar.Add(t_("Align Bottom"), [this] { Align2DSelection(5); });
+					bar.Separator();
+					bar.Add(t_("Distribute Horiz"), [this] { Distribute2DSelection(true); });
+					bar.Add(t_("Distribute Vert"), [this] { Distribute2DSelection(false); });
+				});
+			});
+			bar.Sub(t_("Mesh Selection"), [this](Bar& bar) {
+				bar.Add(t_("Vertex"), [this] { mesh_select_mode = MESHSEL_VERTEX; })
+					.Check(mesh_select_mode == MESHSEL_VERTEX);
+				bar.Add(t_("Edge"), [this] { mesh_select_mode = MESHSEL_EDGE; })
+					.Check(mesh_select_mode == MESHSEL_EDGE);
+				bar.Add(t_("Face"), [this] { mesh_select_mode = MESHSEL_FACE; })
+					.Check(mesh_select_mode == MESHSEL_FACE);
+				bar.Separator();
+				bar.Add(t_("Loop Select"), THISBACK(SelectMeshLoop));
+				bar.Add(t_("Ring Select"), THISBACK(SelectMeshRing));
+				bar.Add(t_("Expand Selection"), THISBACK(ExpandMeshSelection));
+				bar.Add(t_("Contract Selection"), THISBACK(ContractMeshSelection));
+				bar.Separator();
+				bar.Add(t_("Extrude"), [this] { ExtrudeMeshSelection(0.1); });
+				bar.Add(t_("Inset"), [this] { InsetMeshSelection(0.1); });
 			});
 			bar.Separator();
 			bar.Sub(t_("Plane"), [this](Bar& bar) {
@@ -1820,6 +2020,7 @@ void Edit3D::DockInit() {
 	dock_time = &Dockable(v0.time, "Timeline");
 	dock_video = &Dockable(v1, "Video Import");
 	dock_pool = &Dockable(file_pool, "File Pool");
+	dock_assets = &Dockable(asset_browser, "Assets");
 	dock_texture = &Dockable(texture_edit, "Texture");
 	dock_script = &Dockable(script_editor, "Script Editor");
 
@@ -1828,6 +2029,7 @@ void Edit3D::DockInit() {
 	dock_time->SizeHint(Size(900, 200));
 	dock_video->SizeHint(Size(900, 300));
 	dock_pool->SizeHint(Size(320, 600));
+	dock_assets->SizeHint(Size(360, 600));
 	dock_texture->SizeHint(Size(320, 420));
 	dock_script->SizeHint(Size(480, 600));
 
@@ -1836,11 +2038,13 @@ void Edit3D::DockInit() {
 	DockBottom(*dock_time);
 	DockBottom(*dock_video);
 	DockRight(*dock_pool);
+	DockRight(*dock_assets);
 	DockRight(*dock_texture);
 	DockRight(*dock_script);
 
 	Close(*dock_video);
 	Close(*dock_pool);
+	Close(*dock_assets);
 	Close(*dock_texture);
 	Close(*dock_script);
 	v0.grid.SetFocus();
@@ -1860,6 +2064,16 @@ bool Edit3D::Key(dword key, int count) {
 	Ctrl* focus = GetFocusCtrl();
 	if (focus && dynamic_cast<EditField*>(focus))
 		return DockWindow::Key(key, count);
+	if (key == K_F1) {
+		show_hud_help = !show_hud_help;
+		RefrehRenderers();
+		return true;
+	}
+	if (key == (K_CTRL | K_H)) {
+		show_hud = !show_hud;
+		RefrehRenderers();
+		return true;
+	}
 	bool alt = key & K_ALT;
 	bool ctrl = key & K_CTRL;
 	bool shift = key & K_SHIFT;
@@ -1906,6 +2120,19 @@ bool Edit3D::Key(dword key, int count) {
 	return DockWindow::Key(key, count);
 }
 
+void Edit3D::DragAndDrop(Point p, PasteClip& d) {
+	if (AcceptText(d)) {
+		if (d.IsPaste()) {
+			String path = GetString(d);
+			if (!path.IsEmpty())
+				AddAssetFromPath(path);
+		}
+		d.SetAction(DND_COPY);
+		return;
+	}
+	DockWindow::DragAndDrop(p, d);
+}
+
 void Edit3D::SetView(ViewType view) {
 	this->view = view;
 	if (this->view == VIEW_GEOMPROJECT) {
@@ -1945,6 +2172,9 @@ void Edit3D::Serialize(Stream& s) {
 	SerializeLayout(s);
 	s % v0.props_cursor_by_tree;
 	s % v0.tree_open_paths;
+	s % recent_assets;
+	s % show_hud;
+	s % show_hud_help;
 }
 
 String Edit3D::SerializeScene3DState() const {
@@ -2128,9 +2358,79 @@ void Edit3D::RefrehRenderers() {
 	}
 }
 
+void Edit3D::UpdateHud() {
+	render_ctx.show_hud = show_hud;
+	render_ctx.show_hud_help = show_hud_help;
+	render_ctx.hud_lines.Clear();
+	render_ctx.hud_help.Clear();
+	if (!show_hud)
+		return;
+	auto tool_name = [&](EditTool t) -> String {
+		switch (t) {
+		case TOOL_SELECT: return "Select";
+		case TOOL_POINT: return "Point";
+		case TOOL_LINE: return "Line";
+		case TOOL_FACE: return "Face";
+		case TOOL_ERASE: return "Erase";
+		case TOOL_JOIN: return "Join";
+		case TOOL_SPLIT: return "Split";
+		case TOOL_2D_SELECT: return "2D Select";
+		case TOOL_2D_LINE: return "2D Line";
+		case TOOL_2D_RECT: return "2D Rect";
+		case TOOL_2D_CIRCLE: return "2D Circle";
+		case TOOL_2D_POLY: return "2D Poly";
+		case TOOL_2D_ERASE: return "2D Erase";
+		default: return "Unknown";
+		}
+	};
+	auto mesh_mode = [&]() -> String {
+		switch (mesh_select_mode) {
+		case MESHSEL_VERTEX: return "Vertex";
+		case MESHSEL_EDGE: return "Edge";
+		case MESHSEL_FACE: return "Face";
+		default: return "Vertex";
+		}
+	};
+	String snap = edit_snap_enable ? Format("Snap %.2f%s", edit_snap_step, edit_snap_local ? " local" : "") : "Snap off";
+	render_ctx.hud_lines.Add("Tool: " + tool_name(edit_tool));
+	render_ctx.hud_lines.Add("Mesh Select: " + mesh_mode());
+	render_ctx.hud_lines.Add(String("Plane: ") + (edit_plane == PLANE_VIEW ? "View" :
+		edit_plane == PLANE_XY ? "XY" : edit_plane == PLANE_XZ ? "XZ" : edit_plane == PLANE_YZ ? "YZ" : "Local"));
+	render_ctx.hud_lines.Add(snap);
+	render_ctx.hud_lines.Add(String() + "Auto-key: " + (auto_key ? "On" : "Off"));
+	String hint;
+	switch (edit_tool) {
+	case TOOL_SELECT: hint = "Click to select mesh/skeleton"; break;
+	case TOOL_POINT: hint = "Click to add vertex"; break;
+	case TOOL_LINE: hint = "Click to add edge"; break;
+	case TOOL_FACE: hint = "Click 3 points to add face"; break;
+	case TOOL_ERASE: hint = "Click point to remove"; break;
+	case TOOL_JOIN: hint = "Pick two points to connect"; break;
+	case TOOL_SPLIT: hint = "Click edge to split"; break;
+	case TOOL_2D_SELECT: hint = "Click shape to select"; break;
+	case TOOL_2D_LINE: hint = "Drag to draw line"; break;
+	case TOOL_2D_RECT: hint = "Drag to draw rect"; break;
+	case TOOL_2D_CIRCLE: hint = "Drag to draw circle"; break;
+	case TOOL_2D_POLY: hint = "Click to add vertices"; break;
+	case TOOL_2D_ERASE: hint = "Click to delete shape"; break;
+	default: break;
+	}
+	if (!hint.IsEmpty())
+		render_ctx.hud_lines.Add("Hint: " + hint);
+	if (show_hud_help) {
+		render_ctx.hud_help.Add("F1: Toggle help");
+		render_ctx.hud_help.Add("Ctrl+H: Toggle HUD");
+		render_ctx.hud_help.Add("Alt+Arrow: Nudge move");
+		render_ctx.hud_help.Add("Alt+Ctrl+Arrow: Nudge rotate");
+		render_ctx.hud_help.Add("Shift+Click: Add to selection");
+		render_ctx.hud_help.Add("Ctrl+Click: Toggle selection");
+	}
+}
+
 void Edit3D::Update() {
 	double dt = ts.Seconds();
 	ts.Reset();
+	UpdateHud();
 	
 	v0.Update(dt);
 	if (dock_video && !dock_video->IsHidden())
@@ -2170,6 +2470,8 @@ void Edit3D::Data() {
 	v0.Data();
 	if (dock_video && !dock_video->IsHidden())
 		v1.Data();
+	if (dock_assets && !dock_assets->IsHidden())
+		asset_browser.Data();
 }
 
 void Edit3D::SetProjectDir(String dir) {
@@ -2177,6 +2479,7 @@ void Edit3D::SetProjectDir(String dir) {
 		dir = GetCurrentDirectory();
 	project_dir = NormalizePath(dir);
 	EnsureScriptInstances();
+	UpdateAssetBrowser();
 }
 
 String Edit3D::GetScriptAbsPath(const String& rel) const {
@@ -2528,7 +2831,7 @@ void Edit3D::DispatchScriptEvent(const String& event, VfsValue* node, const PyVa
 
 void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i) {
 	auto is_2d_tool = [&](EditTool t) {
-		return t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
+		return t == TOOL_2D_SELECT || t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
 		       t == TOOL_2D_POLY || t == TOOL_2D_ERASE;
 	};
 	auto get_2d_local = [&](GeomObject& obj, vec2& out) -> bool {
@@ -2596,6 +2899,15 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 		if (!get_2d_local(*obj, local))
 			return;
 		if (type == "mouseDown") {
+			if (edit_tool == TOOL_2D_SELECT) {
+				double radius = 0.05;
+				int picked = Pick2DShape(*layer, local, radius);
+				bool add = (flags & K_SHIFT) != 0;
+				bool toggle = (flags & K_CTRL) != 0;
+				Select2DShape(picked, add, toggle);
+				RefrehRenderers();
+				return;
+			}
 			if (edit_tool == TOOL_2D_ERASE) {
 				double best = edit_pick_radius_px * edit_pick_radius_px;
 				int best_idx = -1;
@@ -2893,6 +3205,45 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && !sculpt_mode) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
+			if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
+				bool add = (flags & K_SHIFT) != 0;
+				bool toggle = (flags & K_CTRL) != 0;
+				if (!add && !toggle)
+					ClearMeshSelection();
+				if (mesh_select_mode == MESHSEL_VERTEX) {
+					int picked = PickNearestPoint(*mesh, view_i, p, edit_pick_radius_px);
+					if (picked >= 0) {
+						if (toggle)
+							ToggleMeshPoint(picked);
+						else if (FindIndex(mesh_sel_points, picked) < 0)
+							mesh_sel_points.Add(picked);
+					}
+					RefrehRenderers();
+					return;
+				}
+				if (mesh_select_mode == MESHSEL_EDGE) {
+					int picked = PickNearestLine(*mesh, view_i, p, edit_line_pick_radius_px);
+					if (picked >= 0) {
+						if (toggle)
+							ToggleMeshLine(picked);
+						else if (FindIndex(mesh_sel_lines, picked) < 0)
+							mesh_sel_lines.Add(picked);
+					}
+					RefrehRenderers();
+					return;
+				}
+				if (mesh_select_mode == MESHSEL_FACE) {
+					int picked = PickNearestFace(*mesh, view_i, p);
+					if (picked >= 0) {
+						if (toggle)
+							ToggleMeshFace(picked);
+						else if (FindIndex(mesh_sel_faces, picked) < 0)
+							mesh_sel_faces.Add(picked);
+					}
+					RefrehRenderers();
+					return;
+				}
+			}
 			GeomSkeleton* sk = obj->FindSkeleton();
 			if (sk) {
 				EditRendererBase* rend = v0.rends[view_i];
@@ -3244,6 +3595,578 @@ GeomObject* Edit3D::GetFocused2DObject() {
 	if (!obj || !obj->Find2DLayer())
 		return nullptr;
 	return obj;
+}
+
+void Edit3D::Clear2DSelection() {
+	select_2d_shapes.Clear();
+	select_2d_primary = -1;
+}
+
+void Edit3D::Select2DShape(int idx, bool add, bool toggle) {
+	if (idx < 0) {
+		if (!add && !toggle)
+			Clear2DSelection();
+		return;
+	}
+	if (toggle) {
+		Toggle2DShape(idx);
+		return;
+	}
+	if (!add)
+		Clear2DSelection();
+	if (FindIndex(select_2d_shapes, idx) < 0)
+		select_2d_shapes.Add(idx);
+	select_2d_primary = idx;
+}
+
+void Edit3D::Toggle2DShape(int idx) {
+	int pos = FindIndex(select_2d_shapes, idx);
+	if (pos >= 0)
+		select_2d_shapes.Remove(pos);
+	else
+		select_2d_shapes.Add(idx);
+	select_2d_primary = idx;
+}
+
+Rectf Edit3D::Get2DShapeBounds(const Geom2DShape& shape) const {
+	if (shape.points.IsEmpty())
+		return Rectf(0, 0, 0, 0);
+	float minx = shape.points[0][0];
+	float maxx = shape.points[0][0];
+	float miny = shape.points[0][1];
+	float maxy = shape.points[0][1];
+	for (int i = 1; i < shape.points.GetCount(); i++) {
+		minx = min(minx, shape.points[i][0]);
+		maxx = max(maxx, shape.points[i][0]);
+		miny = min(miny, shape.points[i][1]);
+		maxy = max(maxy, shape.points[i][1]);
+	}
+	if (shape.type == Geom2DShape::S_CIRCLE && shape.radius > 0) {
+		minx = shape.points[0][0] - shape.radius;
+		maxx = shape.points[0][0] + shape.radius;
+		miny = shape.points[0][1] - shape.radius;
+		maxy = shape.points[0][1] + shape.radius;
+	}
+	return Rectf(minx, miny, maxx, maxy);
+}
+
+void Edit3D::Translate2DShape(Geom2DShape& shape, const vec2& delta) {
+	for (vec2& p : shape.points)
+		p += delta;
+}
+
+int Edit3D::Pick2DShape(const Geom2DLayer& layer, const vec2& local, double radius) const {
+	double best = radius * radius;
+	int best_idx = -1;
+	auto dist2_seg = [](const vec2& a, const vec2& b, const vec2& p) {
+		vec2 d = b - a;
+		float len2 = Dot(d, d);
+		if (len2 <= 1e-6f) {
+			vec2 s = p - a;
+			return (double)Dot(s, s);
+		}
+		float t = Dot(p - a, d) / len2;
+		t = Clamp(t, 0.0f, 1.0f);
+		vec2 c = a + d * t;
+		vec2 s = p - c;
+		return (double)Dot(s, s);
+	};
+	for (int i = 0; i < layer.shapes.GetCount(); i++) {
+		const Geom2DShape& s = layer.shapes[i];
+		if (s.type == Geom2DShape::S_LINE && s.points.GetCount() >= 2) {
+			double d2 = dist2_seg(s.points[0], s.points[1], local);
+			if (d2 < best) {
+				best = d2;
+				best_idx = i;
+			}
+		}
+		else if ((s.type == Geom2DShape::S_RECT || s.type == Geom2DShape::S_POLY) && s.points.GetCount() >= 2) {
+			for (int k = 1; k < s.points.GetCount(); k++) {
+				double d2 = dist2_seg(s.points[k - 1], s.points[k], local);
+				if (d2 < best) {
+					best = d2;
+					best_idx = i;
+				}
+			}
+			if (s.closed) {
+				double d2 = dist2_seg(s.points.Top(), s.points[0], local);
+				if (d2 < best) {
+					best = d2;
+					best_idx = i;
+				}
+			}
+		}
+		else if (s.type == Geom2DShape::S_CIRCLE && s.points.GetCount() >= 1) {
+			float r = s.radius;
+			if (r <= 0 && s.points.GetCount() >= 2) {
+				vec2 d2 = s.points[1] - s.points[0];
+				r = sqrt(Dot(d2, d2));
+			}
+			if (r > 0) {
+				vec2 diff = local - s.points[0];
+				float d = sqrt(Dot(diff, diff));
+				double d2 = (double)fabs(d - r);
+				if (d2 < best) {
+					best = d2;
+					best_idx = i;
+				}
+			}
+		}
+	}
+	return best_idx;
+}
+
+void Edit3D::Align2DSelection(int mode) {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj || select_2d_shapes.IsEmpty())
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	PushUndo("Align 2D shapes");
+	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++)
+		bounds.Union(Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]));
+	for (int idx : select_2d_shapes) {
+		Geom2DShape& s = layer->shapes[idx];
+		Rectf b = Get2DShapeBounds(s);
+		vec2 delta(0, 0);
+		Pointf c0 = bounds.CenterPoint();
+		Pointf c1 = b.CenterPoint();
+		switch (mode) {
+		case 0: delta[0] = (float)(bounds.left - b.left); break;
+		case 1: delta[0] = (float)(c0.x - c1.x); break;
+		case 2: delta[0] = (float)(bounds.right - b.right); break;
+		case 3: delta[1] = (float)(bounds.top - b.top); break;
+		case 4: delta[1] = (float)(c0.y - c1.y); break;
+		case 5: delta[1] = (float)(bounds.bottom - b.bottom); break;
+		default: break;
+		}
+		Translate2DShape(s, delta);
+	}
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::Distribute2DSelection(bool horizontal) {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj || select_2d_shapes.GetCount() < 3)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	PushUndo("Distribute 2D shapes");
+	Vector<int> ids;
+	ids.Append(select_2d_shapes);
+	Sort(ids, [&](int a, int b) {
+		Rectf ra = Get2DShapeBounds(layer->shapes[a]);
+		Rectf rb = Get2DShapeBounds(layer->shapes[b]);
+		return horizontal ? ra.CenterPoint().x < rb.CenterPoint().x : ra.CenterPoint().y < rb.CenterPoint().y;
+	});
+	Rectf first = Get2DShapeBounds(layer->shapes[ids[0]]);
+	Rectf last = Get2DShapeBounds(layer->shapes[ids.Top()]);
+	double span = horizontal ? (last.CenterPoint().x - first.CenterPoint().x) : (last.CenterPoint().y - first.CenterPoint().y);
+	if (fabs(span) < 1e-6)
+		return;
+	for (int i = 1; i < ids.GetCount() - 1; i++) {
+		double t = (double)i / (double)(ids.GetCount() - 1);
+		Rectf b = Get2DShapeBounds(layer->shapes[ids[i]]);
+		vec2 delta(0, 0);
+		if (horizontal)
+			delta[0] = (float)(first.CenterPoint().x + span * t - b.CenterPoint().x);
+		else
+			delta[1] = (float)(first.CenterPoint().y + span * t - b.CenterPoint().y);
+		Translate2DShape(layer->shapes[ids[i]], delta);
+	}
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::Union2DSelection() {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj || select_2d_shapes.GetCount() < 2)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	PushUndo("Union 2D shapes");
+	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++)
+		bounds.Union(Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]));
+	Geom2DShape shape;
+	shape.type = Geom2DShape::S_RECT;
+	shape.points.Add(vec2(bounds.left, bounds.top));
+	shape.points.Add(vec2(bounds.right, bounds.bottom));
+	layer->shapes.Add(pick(shape));
+	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
+		layer->shapes.Remove(select_2d_shapes[i]);
+	Clear2DSelection();
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::Intersect2DSelection() {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj || select_2d_shapes.GetCount() < 2)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	PushUndo("Intersect 2D shapes");
+	Rectf bounds = Get2DShapeBounds(layer->shapes[select_2d_shapes[0]]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
+		Rectf b = Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]);
+		bounds.Intersect(b);
+	}
+	if (bounds.IsNullInstance())
+		return;
+	Geom2DShape shape;
+	shape.type = Geom2DShape::S_RECT;
+	shape.points.Add(vec2(bounds.left, bounds.top));
+	shape.points.Add(vec2(bounds.right, bounds.bottom));
+	layer->shapes.Add(pick(shape));
+	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
+		layer->shapes.Remove(select_2d_shapes[i]);
+	Clear2DSelection();
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::Subtract2DSelection() {
+	GeomObject* obj = GetFocused2DObject();
+	if (!obj || select_2d_shapes.GetCount() < 2)
+		return;
+	Geom2DLayer* layer = obj->Find2DLayer();
+	if (!layer)
+		return;
+	PushUndo("Subtract 2D shapes");
+	int base = select_2d_shapes[0];
+	Rectf bounds = Get2DShapeBounds(layer->shapes[base]);
+	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
+		Rectf b = Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]);
+		bounds.Intersect(b);
+	}
+	if (!bounds.IsNullInstance()) {
+		// simple subtract: remove other shapes and keep base
+		for (int i = select_2d_shapes.GetCount() - 1; i >= 1; i--)
+			layer->shapes.Remove(select_2d_shapes[i]);
+	}
+	Clear2DSelection();
+	AutoKey2DEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::ClearMeshSelection() {
+	mesh_sel_points.Clear();
+	mesh_sel_lines.Clear();
+	mesh_sel_faces.Clear();
+}
+
+void Edit3D::ToggleMeshPoint(int idx) {
+	int pos = FindIndex(mesh_sel_points, idx);
+	if (pos >= 0)
+		mesh_sel_points.Remove(pos);
+	else
+		mesh_sel_points.Add(idx);
+}
+
+void Edit3D::ToggleMeshLine(int idx) {
+	int pos = FindIndex(mesh_sel_lines, idx);
+	if (pos >= 0)
+		mesh_sel_lines.Remove(pos);
+	else
+		mesh_sel_lines.Add(idx);
+}
+
+void Edit3D::ToggleMeshFace(int idx) {
+	int pos = FindIndex(mesh_sel_faces, idx);
+	if (pos >= 0)
+		mesh_sel_faces.Remove(pos);
+	else
+		mesh_sel_faces.Add(idx);
+}
+
+void Edit3D::SelectMeshLoop() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh || mesh_sel_lines.IsEmpty())
+		return;
+	Index<int> out;
+	Vector<int> stack;
+	stack.Append(mesh_sel_lines);
+	while (!stack.IsEmpty()) {
+		int id = stack.Top();
+		stack.Drop();
+		if (out.Find(id) >= 0)
+			continue;
+		out.Add(id);
+		const GeomEdge& e = mesh->lines[id];
+		for (int i = 0; i < mesh->lines.GetCount(); i++) {
+			if (out.Find(i) >= 0)
+				continue;
+			const GeomEdge& o = mesh->lines[i];
+			if (o.a == e.a || o.b == e.a || o.a == e.b || o.b == e.b)
+				stack.Add(i);
+		}
+	}
+	mesh_sel_lines = out.PickKeys();
+	RefrehRenderers();
+}
+
+void Edit3D::SelectMeshRing() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh || mesh_sel_lines.IsEmpty())
+		return;
+	Index<int> out;
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		for (int fi = 0; fi < mesh->faces.GetCount(); fi++) {
+			const GeomFace& f = mesh->faces[fi];
+			int verts[3] = {f.a, f.b, f.c};
+			int match = 0;
+			for (int v : verts) {
+				if (v == e.a || v == e.b)
+					match++;
+			}
+			if (match == 2) {
+				int other = -1;
+				for (int v : verts)
+					if (v != e.a && v != e.b)
+						other = v;
+				if (other >= 0) {
+					for (int li = 0; li < mesh->lines.GetCount(); li++) {
+						const GeomEdge& le = mesh->lines[li];
+						if ((le.a == e.a && le.b == other) || (le.b == e.a && le.a == other) ||
+						    (le.a == e.b && le.b == other) || (le.b == e.b && le.a == other))
+							out.FindAdd(li);
+					}
+				}
+			}
+		}
+	}
+	mesh_sel_lines = out.PickKeys();
+	RefrehRenderers();
+}
+
+void Edit3D::ExpandMeshSelection() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	if (mesh_select_mode == MESHSEL_VERTEX) {
+		Index<int> out;
+		for (int id : mesh_sel_points)
+			out.FindAdd(id);
+		for (int id : mesh_sel_points) {
+			for (const GeomEdge& e : mesh->lines) {
+				if (e.a == id)
+					out.FindAdd(e.b);
+				else if (e.b == id)
+					out.FindAdd(e.a);
+			}
+		}
+		mesh_sel_points = out.PickKeys();
+	}
+	else if (mesh_select_mode == MESHSEL_EDGE) {
+		Index<int> out;
+		for (int id : mesh_sel_lines)
+			out.FindAdd(id);
+		for (int id : mesh_sel_lines) {
+			if (id < 0 || id >= mesh->lines.GetCount())
+				continue;
+			const GeomEdge& e = mesh->lines[id];
+			for (int i = 0; i < mesh->lines.GetCount(); i++) {
+				const GeomEdge& o = mesh->lines[i];
+				if (o.a == e.a || o.b == e.a || o.a == e.b || o.b == e.b)
+					out.FindAdd(i);
+			}
+		}
+		mesh_sel_lines = out.PickKeys();
+	}
+	else if (mesh_select_mode == MESHSEL_FACE) {
+		Index<int> out;
+		for (int id : mesh_sel_faces)
+			out.FindAdd(id);
+		for (int id : mesh_sel_faces) {
+			if (id < 0 || id >= mesh->faces.GetCount())
+				continue;
+			const GeomFace& f = mesh->faces[id];
+			for (int i = 0; i < mesh->faces.GetCount(); i++) {
+				const GeomFace& o = mesh->faces[i];
+				int shared = 0;
+				if (o.a == f.a || o.a == f.b || o.a == f.c) shared++;
+				if (o.b == f.a || o.b == f.b || o.b == f.c) shared++;
+				if (o.c == f.a || o.c == f.b || o.c == f.c) shared++;
+				if (shared >= 2)
+					out.FindAdd(i);
+			}
+		}
+		mesh_sel_faces = out.PickKeys();
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::ContractMeshSelection() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	if (mesh_select_mode == MESHSEL_VERTEX) {
+		Index<int> keep;
+		for (int id : mesh_sel_points) {
+			bool all = true;
+			for (const GeomEdge& e : mesh->lines) {
+				if (e.a == id && FindIndex(mesh_sel_points, e.b) < 0) all = false;
+				if (e.b == id && FindIndex(mesh_sel_points, e.a) < 0) all = false;
+			}
+			if (all)
+				keep.Add(id);
+		}
+		mesh_sel_points = keep.PickKeys();
+	}
+	else if (mesh_select_mode == MESHSEL_EDGE) {
+		Index<int> keep;
+		for (int id : mesh_sel_lines) {
+			const GeomEdge& e = mesh->lines[id];
+			bool all = true;
+			for (int i = 0; i < mesh->lines.GetCount(); i++) {
+				const GeomEdge& o = mesh->lines[i];
+				if (o.a == e.a || o.b == e.a || o.a == e.b || o.b == e.b) {
+					if (FindIndex(mesh_sel_lines, i) < 0)
+						all = false;
+				}
+			}
+			if (all)
+				keep.Add(id);
+		}
+		mesh_sel_lines = keep.PickKeys();
+	}
+	else if (mesh_select_mode == MESHSEL_FACE) {
+		Index<int> keep;
+		for (int id : mesh_sel_faces) {
+			const GeomFace& f = mesh->faces[id];
+			bool all = true;
+			for (int i = 0; i < mesh->faces.GetCount(); i++) {
+				const GeomFace& o = mesh->faces[i];
+				int shared = 0;
+				if (o.a == f.a || o.a == f.b || o.a == f.c) shared++;
+				if (o.b == f.a || o.b == f.b || o.b == f.c) shared++;
+				if (o.c == f.a || o.c == f.b || o.c == f.c) shared++;
+				if (shared >= 2 && FindIndex(mesh_sel_faces, i) < 0)
+					all = false;
+			}
+			if (all)
+				keep.Add(id);
+		}
+		mesh_sel_faces = keep.PickKeys();
+	}
+	RefrehRenderers();
+}
+
+void Edit3D::ExtrudeMeshSelection(double amount) {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> faces;
+	for (int id : mesh_sel_faces)
+		faces.FindAdd(id);
+	if (faces.IsEmpty()) {
+		for (int id : mesh_sel_lines) {
+			for (int i = 0; i < mesh->faces.GetCount(); i++) {
+				const GeomFace& f = mesh->faces[i];
+				if ((f.a == mesh->lines[id].a || f.a == mesh->lines[id].b ||
+				     f.b == mesh->lines[id].a || f.b == mesh->lines[id].b ||
+				     f.c == mesh->lines[id].a || f.c == mesh->lines[id].b))
+					faces.FindAdd(i);
+			}
+		}
+	}
+	if (faces.IsEmpty()) {
+		for (int id : mesh_sel_points) {
+			for (int i = 0; i < mesh->faces.GetCount(); i++) {
+				const GeomFace& f = mesh->faces[i];
+				if (f.a == id || f.b == id || f.c == id)
+					faces.FindAdd(i);
+			}
+		}
+	}
+	if (faces.IsEmpty())
+		return;
+	PushUndo("Extrude mesh");
+	for (int fi = 0; fi < faces.GetCount(); fi++) {
+		int id = faces[fi];
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		GeomFace f = mesh->faces[id];
+		vec3 a = mesh->points[f.a];
+		vec3 b = mesh->points[f.b];
+		vec3 c = mesh->points[f.c];
+		vec3 n = Cross(b - a, c - a);
+		float len = n.GetLength();
+		if (len > 1e-6f)
+			n /= len;
+		int a2 = mesh->points.GetCount(); mesh->points.Add(a + n * (float)amount);
+		int b2 = mesh->points.GetCount(); mesh->points.Add(b + n * (float)amount);
+		int c2 = mesh->points.GetCount(); mesh->points.Add(c + n * (float)amount);
+		GeomFace top; top.a = a2; top.b = b2; top.c = c2;
+		mesh->faces.Add(top);
+		GeomFace s1; s1.a = f.a; s1.b = f.b; s1.c = b2; mesh->faces.Add(s1);
+		GeomFace s2; s2.a = f.a; s2.b = b2; s2.c = a2; mesh->faces.Add(s2);
+		GeomFace s3; s3.a = f.b; s3.b = f.c; s3.c = c2; mesh->faces.Add(s3);
+		GeomFace s4; s4.a = f.b; s4.b = c2; s4.c = b2; mesh->faces.Add(s4);
+		GeomFace s5; s5.a = f.c; s5.b = f.a; s5.c = a2; mesh->faces.Add(s5);
+		GeomFace s6; s6.a = f.c; s6.b = a2; s6.c = c2; mesh->faces.Add(s6);
+	}
+	state->UpdateObjects();
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::InsetMeshSelection(double amount) {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh || mesh_sel_faces.IsEmpty())
+		return;
+	PushUndo("Inset mesh");
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		GeomFace f = mesh->faces[id];
+		vec3 a = mesh->points[f.a];
+		vec3 b = mesh->points[f.b];
+		vec3 c = mesh->points[f.c];
+		vec3 center = (a + b + c) / 3.0f;
+		int a2 = mesh->points.GetCount(); mesh->points.Add(a + (center - a) * (float)amount);
+		int b2 = mesh->points.GetCount(); mesh->points.Add(b + (center - b) * (float)amount);
+		int c2 = mesh->points.GetCount(); mesh->points.Add(c + (center - c) * (float)amount);
+		GeomFace inner; inner.a = a2; inner.b = b2; inner.c = c2;
+		mesh->faces.Add(inner);
+		GeomFace s1; s1.a = f.a; s1.b = f.b; s1.c = b2; mesh->faces.Add(s1);
+		GeomFace s2; s2.a = f.a; s2.b = b2; s2.c = a2; mesh->faces.Add(s2);
+		GeomFace s3; s3.a = f.b; s3.b = f.c; s3.c = c2; mesh->faces.Add(s3);
+		GeomFace s4; s4.a = f.b; s4.b = c2; s4.c = b2; mesh->faces.Add(s4);
+		GeomFace s5; s5.a = f.c; s5.b = f.a; s5.c = a2; mesh->faces.Add(s5);
+		GeomFace s6; s6.a = f.c; s6.b = a2; s6.c = c2; mesh->faces.Add(s6);
+	}
+	state->UpdateObjects();
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
 }
 
 void Edit3D::AddMeshKeyframeAtCursor() {
@@ -3727,6 +4650,77 @@ int Edit3D::PickNearestLine(const GeomEditableMesh& mesh, int view_i, const Poin
 	return best_idx;
 }
 
+int Edit3D::PickNearestFace(const GeomEditableMesh& mesh, int view_i, const Point& p) const {
+	if (!state)
+		return -1;
+	GeomObject* obj = v0.selected_obj;
+	if (!obj)
+		return -1;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return -1;
+	Size sz = rend->GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return -1;
+	GeomCamera& gcam = rend->GetGeomCamera();
+	Camera cam;
+	gcam.LoadCamera(rend->view_mode, cam, sz);
+	mat4 view = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	vec3 obj_pos = vec3(0);
+	quat obj_ori = Identity<quat>();
+	vec3 obj_scale = vec3(1);
+	if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+		obj_pos = os->position;
+		obj_ori = os->orientation;
+		obj_scale = os->scale;
+	}
+	auto project = [&](const vec3& local, Pointf& out, float& z) -> bool {
+		vec3 scaled(local[0] * obj_scale[0], local[1] * obj_scale[1], local[2] * obj_scale[2]);
+		vec3 world = VectorTransform(scaled, obj_ori) + obj_pos;
+		vec4 clip = proj * (view * world.Embed());
+		if (clip[3] == 0)
+			return false;
+		vec3 ndc = clip.Splice() / clip[3];
+		if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+			return false;
+		out = Pointf(
+			(ndc[0] + 1) * 0.5 * (float)sz.cx,
+			(-ndc[1] + 1) * 0.5 * (float)sz.cy);
+		z = ndc[2];
+		return true;
+	};
+	int best = -1;
+	float best_z = 1e9f;
+	for (int i = 0; i < mesh.faces.GetCount(); i++) {
+		const GeomFace& f = mesh.faces[i];
+		if (f.a < 0 || f.b < 0 || f.c < 0 || f.a >= mesh.points.GetCount() ||
+		    f.b >= mesh.points.GetCount() || f.c >= mesh.points.GetCount())
+			continue;
+		Pointf pa, pb, pc;
+		float za, zb, zc;
+		if (!project(mesh.points[f.a], pa, za) ||
+		    !project(mesh.points[f.b], pb, zb) ||
+		    !project(mesh.points[f.c], pc, zc))
+			continue;
+		Pointf pt(p.x, p.y);
+		float area = (float)((pb.x - pa.x) * (pc.y - pa.y) - (pb.y - pa.y) * (pc.x - pa.x));
+		if (fabs(area) < 1e-6f)
+			continue;
+		float w0 = (float)((pb.x - pt.x) * (pc.y - pt.y) - (pb.y - pt.y) * (pc.x - pt.x));
+		float w1 = (float)((pc.x - pt.x) * (pa.y - pt.y) - (pc.y - pt.y) * (pa.x - pt.x));
+		float w2 = (float)((pa.x - pt.x) * (pb.y - pt.y) - (pa.y - pt.y) * (pb.x - pt.x));
+		if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
+			float z = (za + zb + zc) / 3.0f;
+			if (z < best_z) {
+				best_z = z;
+				best = i;
+			}
+		}
+	}
+	return best;
+}
+
 bool Edit3D::HasLine(const GeomEditableMesh& mesh, int a, int b) const {
 	if (a < 0 || b < 0)
 		return false;
@@ -3810,6 +4804,7 @@ void Edit3D::LoadEmptyProject() {
 	repeat_playback = false;
 	if (project_dir.IsEmpty())
 		SetProjectDir(GetCurrentDirectory());
+	UpdateAssetBrowser();
 	script_instances.Clear();
 	CreateDefaultInit();
 	CreateDefaultPostInit();
@@ -4439,6 +5434,14 @@ void Edit3D::OpenFilePool() {
 	}
 }
 
+void Edit3D::OpenAssetBrowser() {
+	asset_browser.Data();
+	if (dock_assets) {
+		ActivateDockableChild(asset_browser);
+		asset_browser.SetFocus();
+	}
+}
+
 void Edit3D::OpenTextureEditor() {
 	if (dock_texture) {
 		ActivateDockableChild(texture_edit);
@@ -4556,6 +5559,103 @@ void Edit3D::SyncTextureExternalFiles() {
 		scene3d_external_files.Add(f);
 }
 
+String Edit3D::GetAssetRootDir() const {
+	String root = scene3d_data_dir.IsEmpty() ? String("data") : scene3d_data_dir;
+	if (project_dir.IsEmpty())
+		return NormalizePath(AppendFileName(GetCurrentDirectory(), root));
+	return NormalizePath(AppendFileName(project_dir, root));
+}
+
+void Edit3D::AddRecentAsset(const String& rel) {
+	if (rel.IsEmpty())
+		return;
+	int idx = FindIndex(recent_assets, rel);
+	if (idx >= 0)
+		recent_assets.Remove(idx);
+	recent_assets.Insert(0, rel);
+	while (recent_assets.GetCount() > 24)
+		recent_assets.Remove(recent_assets.GetCount() - 1);
+	UpdateAssetBrowser();
+}
+
+void Edit3D::UpdateAssetBrowser() {
+	String root = GetAssetRootDir();
+	RealizeDirectory(root);
+	asset_browser.SetRoot(root);
+	asset_browser.SetRecent(recent_assets);
+}
+
+void Edit3D::AddAssetFromPath(const String& path) {
+	if (!state)
+		return;
+	String abs = path;
+	if (!IsFullPath(abs))
+		abs = AppendFileName(project_dir, abs);
+	abs = NormalizePath(abs);
+	if (!FileExists(abs))
+		return;
+	String rel = abs;
+	if (!project_dir.IsEmpty()) {
+		String base = NormalizePath(project_dir);
+		if (abs.StartsWith(base)) {
+			rel = abs.Mid(base.GetCount());
+			if (rel.StartsWith("/") || rel.StartsWith("\\"))
+				rel = rel.Mid(1);
+		}
+	}
+	PushUndo("Add asset");
+	GeomDirectory* dir = nullptr;
+	if (v0.selected_ref && v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && v0.selected_ref->vfs)
+		dir = GetNodeDirectory(*v0.selected_ref->vfs);
+	if (!dir)
+		dir = &state->GetActiveScene();
+	String base_name = ToVarName(GetFileTitle(rel), '_');
+	if (base_name.IsEmpty())
+		base_name = "asset";
+	String name = base_name;
+	int idx = 1;
+	while (dir->FindObject(name))
+		name = base_name + "_" + IntStr(idx++);
+	GeomObject& obj = dir->GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	obj.asset_ref = rel;
+	state->UpdateObjects();
+	AddRecentAsset(rel);
+	SyncAssetExternalFiles();
+	RefreshData();
+}
+
+void Edit3D::SyncAssetExternalFiles() {
+	Vector<Scene3DExternalFile> kept;
+	for (const Scene3DExternalFile& file : scene3d_external_files) {
+		if (file.type != "asset")
+			kept.Add(file);
+	}
+	Index<String> assets;
+	for (GeomScene& scene : prj->val.Sub<GeomScene>()) {
+		GeomObjectCollection objs(scene);
+		for (GeomObject& o : objs) {
+			if (!o.asset_ref.IsEmpty())
+				assets.FindAdd(o.asset_ref);
+		}
+	}
+	for (const String& rel : assets) {
+		Scene3DExternalFile f;
+		f.type = "asset";
+		f.path = rel;
+		f.id = GetFileTitle(rel);
+		String abs = IsFullPath(rel) ? rel : AppendFileName(project_dir, rel);
+		if (FileExists(abs)) {
+			f.size = GetFileLength(abs);
+			f.modified_utc = Scene3DIsoTime(FileGetTime(abs));
+		}
+		kept.Add(f);
+	}
+	scene3d_external_files.Clear();
+	for (const Scene3DExternalFile& f : kept)
+		scene3d_external_files.Add(f);
+}
+
 String Edit3D::EnsureTexturePath(GeomObject& obj, GeomTextureEdit& tex) {
 	if (project_dir.IsEmpty())
 		SetProjectDir(GetCurrentDirectory());
@@ -4662,6 +5762,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 	scene3d_meta = pick(doc.meta);
 	if (scene3d_data_dir.IsEmpty())
 		scene3d_data_dir = "data";
+	UpdateAssetBrowser();
 	script_instances.Clear();
 	state->UpdateObjects();
 	anim->Reset();
@@ -4674,6 +5775,7 @@ bool Edit3D::LoadScene3D(const String& path) {
 
 bool Edit3D::SaveScene3D(const String& path, bool use_json, bool pretty) {
 	SyncPointcloudDatasetsExternalFiles();
+	SyncAssetExternalFiles();
 	SyncTextureExternalFiles();
 	Scene3DDocument doc;
 	doc.version = SCENE3D_VERSION;

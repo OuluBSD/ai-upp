@@ -134,9 +134,9 @@ static Color SampleTextureColor(const Image& img, float u, float v, int wrap) {
 	return Color(px);
 }
 
-static vec2 ApplyTexUV(const Geom2DLayer& layer, float u, float v) {
-	float sx = layer.tex_scale_x;
-	float sy = layer.tex_scale_y;
+static vec2 ApplyTexUV(const Geom2DLayer& layer, float u, float v, float repeat_x, float repeat_y) {
+	float sx = repeat_x;
+	float sy = repeat_y;
 	if (sx == 0)
 		sx = 1.0f;
 	if (sy == 0)
@@ -308,11 +308,11 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		float v = (h != 0) ? (p[1] - bmin[1]) / h : 0.5f;
 		return vec2(u, v);
 	};
-	auto blend_tex = [&](Color base, float u, float v) {
+	auto blend_tex = [&](Color base, float u, float v, int wrap, float repeat_x, float repeat_y) {
 		if (!has_tex)
 			return base;
-		vec2 uv = ApplyTexUV(layer, u, v);
-		Color tex = SampleTextureColor(tex_img, uv[0], uv[1], layer.tex_wrap);
+		vec2 uv = ApplyTexUV(layer, u, v, repeat_x, repeat_y);
+		Color tex = SampleTextureColor(tex_img, uv[0], uv[1], wrap);
 		return Blend2DLayerColor(base, tex, layer.blend_mode);
 	};
 	for (const Geom2DShape& shape : layer.shapes) {
@@ -322,6 +322,10 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		if (w <= 0)
 			w = 1.0f;
 		Color fill_base = layer.fill;
+		int wrap = (shape.tex_wrap >= 0) ? shape.tex_wrap : layer.tex_wrap;
+		int stroke_uv_mode = (shape.stroke_uv_mode >= 0) ? shape.stroke_uv_mode : layer.stroke_uv_mode;
+		float repeat_x = (shape.tex_repeat_x > 0) ? shape.tex_repeat_x : layer.tex_repeat_x;
+		float repeat_y = (shape.tex_repeat_y > 0) ? shape.tex_repeat_y : layer.tex_repeat_y;
 		Color fill = apply_opacity(fill_base);
 		Color stroke = apply_opacity(stroke_base);
 		vec2 bmin, bmax;
@@ -347,13 +351,13 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 		case Geom2DShape::S_LINE:
 			if (shape.points.GetCount() >= 2) {
 				if (style && has_tex) {
-					if (layer.stroke_uv_mode == 1) {
-						stroke = apply_opacity(blend_tex(stroke_base, 0.5f, 0.5f));
+					if (stroke_uv_mode == 1) {
+						stroke = apply_opacity(blend_tex(stroke_base, 0.5f, 0.5f, wrap, repeat_x, repeat_y));
 					}
 					else {
 						vec2 mid = (shape.points[0] + shape.points[1]) * 0.5f;
 						vec2 uv = uv_from_point(mid, bmin, bmax);
-						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1]));
+						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1], wrap, repeat_x, repeat_y));
 					}
 				}
 				DrawLine(sz, d, view, local_to_world(shape.points[0]), local_to_world(shape.points[1]), (int)w, stroke, z_cull);
@@ -379,7 +383,7 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 								float u0 = (float)j / (float)segs;
 								float u1 = (float)(j + 1) / (float)segs;
 								float um = (u0 + u1) * 0.5f;
-								Color col = apply_opacity(blend_tex(fill_base, um, t));
+								Color col = apply_opacity(blend_tex(fill_base, um, t, wrap, repeat_x, repeat_y));
 								vec2 l0 = Lerp(s0, s1, u0);
 								vec2 l1 = Lerp(s0, s1, u1);
 								DrawLine(sz, d, view, local_to_world(l0), local_to_world(l1), 1, col, z_cull);
@@ -395,14 +399,14 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 				get_bbox(rect_pts, bmin, bmax);
 				auto draw_seg = [&](const vec2& a0, const vec2& a1, float t0, float t1) {
 					if (style && has_tex) {
-						if (layer.stroke_uv_mode == 1) {
+						if (stroke_uv_mode == 1) {
 							float um = (t0 + t1) * 0.5f;
-							stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f));
+							stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f, wrap, repeat_x, repeat_y));
 						}
 						else {
 							vec2 mid = (a0 + a1) * 0.5f;
 							vec2 uv = uv_from_point(mid, bmin, bmax);
-							stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1]));
+							stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1], wrap, repeat_x, repeat_y));
 						}
 					}
 					DrawLine(sz, d, view, local_to_world(a0), local_to_world(a1), (int)w, stroke, z_cull);
@@ -443,7 +447,7 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 									float xm = (xm0 + xm1) * 0.5f;
 									float u = (xm + r) / (2.0f * r);
 									float v = (y + r) / (2.0f * r);
-									Color col = apply_opacity(blend_tex(fill_base, u, v));
+									Color col = apply_opacity(blend_tex(fill_base, u, v, wrap, repeat_x, repeat_y));
 									DrawLine(sz, d, view, local_to_world(c + vec2(xm0, y)),
 									         local_to_world(c + vec2(xm1, y)), 1, col, z_cull);
 								}
@@ -461,14 +465,14 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 						pts[i] = c + vec2(cos(a), sin(a)) * r;
 					}
 					if (style && has_tex) {
-						if (layer.stroke_uv_mode == 1) {
+						if (stroke_uv_mode == 1) {
 							int cnt = pts.GetCount();
 							for (int i = 0; i < cnt; i++) {
 								int j = (i + 1) % cnt;
 								float u0 = (float)i / (float)cnt;
 								float u1 = (float)j / (float)cnt;
 								float um = (u0 + u1) * 0.5f;
-								stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f));
+								stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f, wrap, repeat_x, repeat_y));
 								DrawLine(sz, d, view, local_to_world(pts[i]), local_to_world(pts[j]), (int)w, stroke, z_cull);
 							}
 						}
@@ -479,7 +483,7 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 								float ang = atan2(mid[1] - c[1], mid[0] - c[0]);
 								float u = (ang + (float)M_PI) / (2.0f * (float)M_PI);
 								float v = 0.5f;
-								stroke = apply_opacity(blend_tex(stroke_base, u, v));
+								stroke = apply_opacity(blend_tex(stroke_base, u, v, wrap, repeat_x, repeat_y));
 								DrawLine(sz, d, view, local_to_world(pts[i]), local_to_world(pts[j]), (int)w, stroke, z_cull);
 							}
 						}
@@ -494,30 +498,30 @@ void Draw2DLayerOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectStat
 			if (style && has_tex && shape.points.GetCount() >= 2) {
 				float t = 0;
 				for (int i = 1; i < shape.points.GetCount(); i++) {
-					if (layer.stroke_uv_mode == 1 && total_len > 0) {
+					if (stroke_uv_mode == 1 && total_len > 0) {
 						float len = seg_len[i - 1];
 						float um = (t + (t + len)) * 0.5f / total_len;
-						stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f));
+						stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f, wrap, repeat_x, repeat_y));
 						t += len;
 					}
 					else {
 						vec2 mid = (shape.points[i - 1] + shape.points[i]) * 0.5f;
 						vec2 uv = uv_from_point(mid, bmin, bmax);
-						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1]));
+						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1], wrap, repeat_x, repeat_y));
 					}
 					DrawLine(sz, d, view, local_to_world(shape.points[i - 1]), local_to_world(shape.points[i]), (int)w, stroke, z_cull);
 				}
 				if (shape.closed) {
-					if (layer.stroke_uv_mode == 1 && total_len > 0) {
+					if (stroke_uv_mode == 1 && total_len > 0) {
 						vec2 d2 = shape.points[0] - shape.points.Top();
 						float len = sqrt(Dot(d2, d2));
 						float um = (t + (t + len)) * 0.5f / total_len;
-						stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f));
+						stroke = apply_opacity(blend_tex(stroke_base, um, 0.5f, wrap, repeat_x, repeat_y));
 					}
 					else {
 						vec2 mid = (shape.points.Top() + shape.points[0]) * 0.5f;
 						vec2 uv = uv_from_point(mid, bmin, bmax);
-						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1]));
+						stroke = apply_opacity(blend_tex(stroke_base, uv[0], uv[1], wrap, repeat_x, repeat_y));
 					}
 					DrawLine(sz, d, view, local_to_world(shape.points.Top()), local_to_world(shape.points[0]), (int)w, stroke, z_cull);
 				}

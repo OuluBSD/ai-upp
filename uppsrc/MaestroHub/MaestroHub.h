@@ -69,6 +69,11 @@ public:
 	String root;
 	WorkGraph plan;
 	
+	TreeArrayCtrl  transformation_tree;
+	TabCtrl        workspace_tabs;
+	RichTextView   diff_pane, ai_rationale, progress_log;
+	Splitter       center_split;
+
 	void Load(const String& maestro_root);
 	void OnInventory();
 	void OnPlan();
@@ -196,6 +201,15 @@ public:
 	void Load(const String& root);
 	typedef TechnologyPane CLASSNAME;
 	TechnologyPane();
+};
+
+class PipelinePane : public ParentCtrl {
+public:
+	typedef PipelinePane CLASSNAME;
+	PipelinePane();
+	void Load(const String& root);
+
+	WithPipelineLayout<ParentCtrl> layout;
 };
 
 class ProductPane : public ParentCtrl {
@@ -439,11 +453,15 @@ public:
 	One<AuditTrailCorrelator>  audit_trail;
 	One<DebugWorkspace>        debug_workspace;
 	One<TechnologyPane>        technology;
+	One<PipelinePane>          pipeline;
 	One<ProductPane>           product;
 	One<MaintenancePane>       maintenance;
 	One<IssuesPane>            issues;
 	One<WorkPane>              work;
 	One<SessionManagementPane> sessions;
+	
+	RichTextView               automation_output;
+	RichTextView               ai_trace;
 	
 	RecentConfig config;
 	String       current_root;

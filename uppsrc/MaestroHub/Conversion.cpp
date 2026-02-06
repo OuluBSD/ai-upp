@@ -5,9 +5,10 @@ NAMESPACE_UPP
 ConversionPane::ConversionPane() {
 	CtrlLayout(*this);
 	
-toolbar.Set(THISBACK(OnToolbar));
+	toolbar.MaxIconSize(Size(20, 20));
+	toolbar.Set(THISBACK(OnToolbar));
 	
-transformation_tree.AddColumn("Unit", 200);
+	transformation_tree.AddColumn("Unit", 200);
 	transformation_tree.AddColumn("Status", 100);
 	transformation_tree.WhenCursor = THISBACK(OnTreeCursor);
 	

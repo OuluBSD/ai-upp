@@ -25,22 +25,10 @@ String PlaybookVisualLogic::Get() const {
 
 PlaybookPane::PlaybookPane() {
 	CtrlLayout(*this);
-	
+	toolbar.MaxIconSize(Size(20, 20));
 	toolbar.Set(THISBACK(OnToolbar));
 	
-	left_pane.Add(playbook_list.SizePos());
-	playbook_list.AddColumn("ID", 80);
-	playbook_list.AddColumn("Title", 200);
-	playbook_list.WhenCursor = THISBACK(OnPlaybookCursor);
-	
-	general_pane.Add(playbook_id.TopPos(8, 19).LeftPos(96, 200));
-	general_pane.Add(title.TopPos(32, 19).LeftPos(96, 400));
-	general_pane.Add(intent.TopPos(80, 60).HSizePos(8, 8));
-	general_pane.Add(principles.VSizePos(168, 8).HSizePos(8, 8));
-	
-	principles.AddColumn("Principle / Rule");
-	
-	detail_tabs.Add(general_pane.SizePos(), "General Info");
+	detail_tabs.Add(general_pane.SizePos(), "General Information");
 	detail_tabs.Add(visual_logic.SizePos(), "Visual Logic");
 	detail_tabs.Add("Glossary & Constraints (Stub)");
 	

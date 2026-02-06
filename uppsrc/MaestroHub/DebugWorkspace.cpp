@@ -5,6 +5,7 @@ NAMESPACE_UPP
 DebugWorkspace::DebugWorkspace() {
 	CtrlLayout(*this);
 	
+	toolbar.MaxIconSize(Size(20, 20));
 	toolbar.Set(THISBACK(OnToolbar));
 	
 	target_device.Add("Local Machine");

@@ -3,9 +3,14 @@
 NAMESPACE_UPP
 
 EvidencePane::EvidencePane() {
+
 	CtrlLayout(*this);
-	
+
+	toolbar.MaxIconSize(Size(20, 20));
+
 	toolbar.Set(THISBACK(OnToolbar));
+
+
 	
 	evidence_list.AddColumn("ID", 100);
 	evidence_list.AddColumn("Time", 120);

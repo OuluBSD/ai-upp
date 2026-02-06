@@ -11,14 +11,14 @@ String GetPlanSummaryText(const Array<Track>& tracks, const String& current_trac
 }
 
 MaestroHubCockpit::MaestroHubCockpit() {
-	Title("Maestro Main Hub [Refined]");
-	SetRect(0, 0, 1280, 800);
-	Sizeable().Zoomable();
+	Title("MaestroHub Cockpit - Professional Software Engineering Orchestrator");
+	Icon(CtrlImg::Network());
 	
-	AddFrame(menu);
-	menu.Set(THISBACK(MainMenu));
+	// Try to limit icon size
+	toolbar.MaxIconSize(Size(20, 20));
 	
 	AddFrame(toolbar);
+
 	toolbar.Set([=](Bar& bar) {
 		bar.Add(CtrlImg::Dir(), THISBACK(SelectRoot)).Tip("Open Project Directory");
 		bar.Separator();
@@ -40,6 +40,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	playbook.Create();
 	debug_workspace.Create();
 	technology.Create();
+	pipeline.Create();
 	product.Create();
 	maintenance.Create();
 	issues.Create();
@@ -47,9 +48,12 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	sessions.Create();
 	audit_trail.Create();
 	
+	automation_output.SetQTF("[&@6 [* Automation System Active]]&[C1 This view displays logs and output from orchestrated transformation tasks.]");
+	ai_trace.SetQTF("[&@2 [* AI Reasoning Trace]]&[C1 This view displays real-time insights into the AI's decision-making process.]");
+
 	// Left Tabs: Workspace and Pipeline
 	left_tabs.Add(technology->SizePos(), "Workspace"); 
-	left_tabs.Add("Pipeline"); 
+	left_tabs.Add(pipeline->SizePos(), "Pipeline"); 
 	
 	// Center Tabs: Functional Hubs
 	center_tabs.Add(fleet->SizePos(), "Fleet Dashboard");
@@ -61,8 +65,8 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	center_tabs.Add(issues->SizePos(), "Issue Tracker");
 	
 	// Bottom Tabs: Output and Trace
-	bottom_tabs.Add("Automation Output");
-	bottom_tabs.Add("AI Trace");
+	bottom_tabs.Add(automation_output.SizePos(), "Automation Output");
+	bottom_tabs.Add(ai_trace.SizePos(), "AI Trace");
 	bottom_tabs.Add(audit_trail->SizePos(), "System Events");
 	
 	// Right Panel: Global AI Assistant
@@ -170,6 +174,7 @@ void MaestroHubCockpit::LoadData() {
 	if(evidence) evidence->Load(current_root);
 	if(playbook) playbook->Load(current_root);
 	if(technology) technology->Load(current_root);
+	if(pipeline) pipeline->Load(current_root);
 	if(product) product->Load(current_root);
 	if(maintenance) maintenance->Load(current_root);
 	if(issues) issues->Load(current_root);

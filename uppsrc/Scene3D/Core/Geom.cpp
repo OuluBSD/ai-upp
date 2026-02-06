@@ -66,7 +66,9 @@ void GeomKeypoint::Visit(Vis& v) {
 	  VISN(position)
 	  VISN(orientation)
 	  VIS_(has_position)
-	  VIS_(has_orientation);
+	  VIS_(has_orientation)
+	  VIS_(position_ease)
+	  VIS_(orientation_ease);
 }
 
 void GeomTimeline::Visit(Vis& v) {
@@ -123,6 +125,14 @@ void GeomSceneTimeline::ApplyAtPosition(GeomWorldState& state, int pos, double t
 		if (state.objs[i].obj && state.objs[i].obj->timeline_solo)
 			has_solo = true;
 	}
+	auto apply_ease = [](int mode, float f) {
+		if (mode == 1) // step
+			return 0.0f;
+		if (mode == 2) { // smooth
+			return f * f * (3.0f - 2.0f * f);
+		}
+		return f;
+	};
 	for (GeomObjectState& os : state.objs) {
 		GeomObject& o = *os.obj;
 		if (!o.read_enabled)
@@ -143,6 +153,7 @@ void GeomSceneTimeline::ApplyAtPosition(GeomWorldState& state, int pos, double t
 				float post_time = post.frame_id / (float)prj.kps;
 				float f = (post_time > pre_time) ? (t - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
+				f = apply_ease(pre.position_ease, f);
 				os.position = Lerp(pre.position, post.position, f);
 			}
 			else if (pre_i >= 0) {
@@ -164,6 +175,7 @@ void GeomSceneTimeline::ApplyAtPosition(GeomWorldState& state, int pos, double t
 				float post_time = post.frame_id / (float)prj.kps;
 				float f = (post_time > pre_time) ? (t - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
+				f = apply_ease(pre.orientation_ease, f);
 				os.orientation = Slerp(pre.orientation, post.orientation, f);
 			}
 			else if (pre_i >= 0) {
@@ -1975,6 +1987,14 @@ void GeomAnim::ApplyAtPosition(int pos, double t) {
 		if (state->objs[i].obj && state->objs[i].obj->timeline_solo)
 			has_solo = true;
 	}
+	auto apply_ease = [](int mode, float f) {
+		if (mode == 1) // step
+			return 0.0f;
+		if (mode == 2) { // smooth
+			return f * f * (3.0f - 2.0f * f);
+		}
+		return f;
+	};
 	for (GeomObjectState& os : state->objs) {
 		GeomObject& o = *os.obj;
 		if (!o.read_enabled)
@@ -1995,6 +2015,7 @@ void GeomAnim::ApplyAtPosition(int pos, double t) {
 				float post_time = post.frame_id / (float)prj.kps;
 				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
+				f = apply_ease(pre.position_ease, f);
 				os.position = Lerp(pre.position, post.position, f);
 			}
 			else if (pre_i >= 0) {
@@ -2016,6 +2037,7 @@ void GeomAnim::ApplyAtPosition(int pos, double t) {
 				float post_time = post.frame_id / (float)prj.kps;
 				float f = (post_time > pre_time) ? (time - pre_time) / (post_time - pre_time) : 0.0f;
 				f = min(max(f, 0.0f), 1.0f);
+				f = apply_ease(pre.orientation_ease, f);
 				os.orientation = Slerp(pre.orientation, post.orientation, f);
 			}
 			else if (pre_i >= 0) {

@@ -226,3 +226,7 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1303-timeline-row-controls.md
   status: done
   note: Added timeline row mute/solo toggles and color tags with palette/custom input.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1304-timeline-easing.md
+  status: done
+  note: Added keyframe easing fields, interpolation support, and row menu controls for easing modes.

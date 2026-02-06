@@ -17,6 +17,8 @@ struct GeomKeypoint {
 	quat orientation;
 	bool has_position = true;
 	bool has_orientation = true;
+	int position_ease = 0;
+	int orientation_ease = 0;
 	
 	void Visit(Vis& v);
 };

@@ -182,3 +182,7 @@
   task: track-editor-scripting/phase-12-material-editing/task-1200-material-editing-3d.md
   status: done
   note: Added materials/mesh assignment props with base color/emissive/roughness/metallic editing and V2 tinting.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-12-material-editing/task-1201-material-editing-2d.md
+  status: done
+  note: Added 2D layer material properties, editor controls, and filled render overlay.

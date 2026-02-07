@@ -40,17 +40,16 @@ public:
 	One<TuManager> tum;
 	String root;
 	void Load(const String& maestro_root);
-		void UpdatePackages();
-		void OnPackageCursor();
-		void UpdateSymbols();
-		void OnSynthesize();
-		
-		Callback1<String> WhenSynthesize;
-		
-		typedef TUBrowser CLASSNAME;
-		TUBrowser();
-	};
+	void UpdatePackages();
+	void OnPackageCursor();
+	void UpdateSymbols();
+	void OnSynthesize();
 	
+	Callback1<String> WhenSynthesize;
+	
+	typedef TUBrowser CLASSNAME;
+	TUBrowser();
+};
 
 struct SolutionPattern : Moveable<SolutionPattern> {
 	String name;

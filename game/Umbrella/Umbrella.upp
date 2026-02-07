@@ -38,6 +38,8 @@ file
 	EnemyShooter.cpp,
 	Projectile.h,
 	Projectile.cpp,
+	Treat.h,
+	Treat.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
 	TestGameScreen.cpp,

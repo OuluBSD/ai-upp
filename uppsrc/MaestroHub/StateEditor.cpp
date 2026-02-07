@@ -4,7 +4,7 @@
 namespace Upp {
 
 struct PumlSyntax : EditorSyntax {
-	virtual void Highlight(const wchar *s, const wchar *end, HighlightOutput& hls, CodeEditor *, int, int64) override {
+	virtual void Highlight(const wchar *s, const wchar *end, HighlightOutput& hls, CodeEditor *editor, int line, int64 pos) override {
 		const HlStyle& normal = hl_style[INK_NORMAL];
 		const HlStyle& comment = hl_style[INK_COMMENT];
 		const HlStyle& keyword = hl_style[INK_KEYWORD];
@@ -12,26 +12,27 @@ struct PumlSyntax : EditorSyntax {
 		const HlStyle& str = hl_style[INK_CONST_STRING];
 
 		while(s < end) {
-			if(*s == '\'') {
-				hls.Put(end - s, comment);
+			if(*s == '
+') {
+				hls.Put((int)(end - s), comment);
 				return;
 			}
 			if(*s == '"') {
 				const wchar *q = s + 1;
 				while(q < end && *q != '"') q++;
 				if(q < end) q++;
-				hls.Put(int(q - s), str);
+				hls.Put((int)(q - s), str);
 				s = q;
 				continue;
 			}
 			if(IsAlpha(*s)) {
 				const wchar *q = s;
 				while(q < end && IsAlNum(*q)) q++;
-				String id = WString(s, int(q - s)).ToString();
+				String id = WString(s, (int)(q - s)).ToString();
 				if(id == "state" || id == "note" || id == "as" || id == "if" || id == "else" || id == "endif")
-					hls.Put(int(q - s), keyword);
+					hls.Put((int)(q - s), keyword);
 				else
-					hls.Put(int(q - s), normal);
+					hls.Put((int)(q - s), normal);
 				s = q;
 				continue;
 			}
@@ -46,26 +47,37 @@ struct PumlSyntax : EditorSyntax {
 	}
 };
 
+static void sCreatePumlSyntax(One<EditorSyntax>& e)
+{
+	e.Create<PumlSyntax>();
+}
+
 StateEditor::StateEditor() {
 	CtrlLayout(*this);
 	
-split.Horz(puml_editor, graph_view);
+	static bool reg = false;
+	if(!reg) {
+		EditorSyntax::Register("puml", sCreatePumlSyntax, "*.puml", "PlantUML");
+		reg = true;
+	}
 	
-toolbar.Set(THISBACK(OnToolbar));
+	split.Horz(puml_editor, graph_view);
 	
-puml_editor.WhenAction = [=] {
+	toolbar.Set(THISBACK(OnToolbar));
+	
+	puml_editor.WhenAction = [=] {
 		KillTimeCallback(1);
 		SetTimeCallback(500, THISBACK(UpdatePreview), 1);
 	};
 	
-puml_editor.SetSyntax<PumlSyntax>();
+	puml_editor.Highlight("puml");
 }
 
 void StateEditor::OnToolbar(Bar& bar) {
-	bar.Add("Save", THISBACK(Save));
+	bar.Add("Save", CtrlImg::save(), THISBACK(Save));
 	bar.Separator();
-	bar.Add("New State", THISBACK(NewState));
-	bar.Add("New Transition", THISBACK(NewTransition));
+	bar.Add("New State", CtrlImg::plus(), THISBACK(NewState));
+	bar.Add("New Transition", CtrlImg::right_arrow(), THISBACK(NewTransition));
 }
 
 void StateEditor::Load(const String& maestro_root, const String& id) {
@@ -84,22 +96,18 @@ void StateEditor::UpdatePreview() {
 	g.Clear();
 	
 	Index<String> state_ids;
-	
-	// Basic parsing
 	Vector<String> lines = Split(puml, '\n');
 	
-	// 1. First pass: Collect states
+	RegExp re_state("state\\s+([a-zA-Z0-9_]+)");
+	RegExp re_trans("([a-zA-Z0-9_\\*\\\\\\[\\\\\\]]+)\\s+-->\\s+([a-zA-Z0-9_\\*\\\\\\[\\\\\\]]+)");
+
 	for(const String& line : lines) {
 		String l = TrimBoth(line);
-		if(l.StartsWith("state ")) {
-			String name = TrimBoth(l.Mid(6));
-			if(name.EndsWith("{")) name = TrimBoth(name.Mid(0, name.GetCount()-1));
-			if(!name.IsEmpty()) state_ids.FindAdd(name);
+		if(re_state.Match(l)) {
+			state_ids.FindAdd(re_state[0]);
 		}
 	}
 	
-	// 2. Second pass: Transitions and implied states
-	RegExp re_trans("([\\w\[\]\\*]+)\\s+-->\\s+([\\w\[\]\\*]+)(?:\\s*:\s*(.*))?");
 	for(const String& line : lines) {
 		if(re_trans.Match(line)) {
 			String from = re_trans[0];
@@ -109,7 +117,6 @@ void StateEditor::UpdatePreview() {
 		}
 	}
 	
-	// 3. Create nodes
 	int x = 50, y = 50;
 	for(const String& id : state_ids) {
 		GraphLib::Node& n = graph_view.AddNode(id, Point(x, y));
@@ -120,22 +127,18 @@ void StateEditor::UpdatePreview() {
 		if(x > 600) { x = 50; y += 120; }
 	}
 	
-	// 4. Create edges
 	for(const String& line : lines) {
 		if(re_trans.Match(line)) {
 			String from = re_trans[0];
 			String to = re_trans[1];
-			String label = re_trans[2];
 			
 			if(from == "[*]") {
-				// Initial state marker? Just highlight the target
-				int idx = state_ids.Find(to);
-				if(idx >= 0) graph_view.GetNode(to).SetFill(Color(220, 255, 220));
+				int idx = g.FindNode(to);
+				if(idx >= 0) g.GetNode(idx).SetFill(Color(220, 255, 220));
 			}
 			else if(to == "[*]") {
-				// Final state marker
-				int idx = state_ids.Find(from);
-				if(idx >= 0) graph_view.GetNode(from).SetFill(Color(255, 220, 220));
+				int idx = g.FindNode(from);
+				if(idx >= 0) g.GetNode(idx).SetFill(Color(255, 220, 220));
 			}
 			else {
 				graph_view.AddEdge(from, "out", to, "in");

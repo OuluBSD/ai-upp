@@ -14,4 +14,4 @@ Convert the exceptions.py Python file to C++.
 - Aria base classes
 
 ## Status
-Pending
+Completed

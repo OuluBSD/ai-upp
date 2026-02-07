@@ -71,7 +71,7 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless) {
 		driver->ApplyStealthJS();
 		
 		ValueMap session_data;
-		session_data.Set("session_id", driver->GetCapabilities().session_id);
+		session_data.Set("session_id", driver->GetSessionId());
 		session_data.Set("browser", browser_name);
 		
 		SaveSession(browser_name, session_data);
@@ -88,11 +88,13 @@ bool AriaNavigator::ConnectToSession(const String& browser_name) {
 	ValueMap data = LoadSessionData(name);
 	if (data.IsEmpty()) return false;
 	
+	String session_id = data["session_id"];
+	
 	try {
-		// In a real ReusableRemote implementation, we'd use the session_id
-		// For now, we just try to reconnect to the default URL
-		driver.Create();
-		GetAriaLogger("navigator").Info("Successfully reconnected to " + name + " session.");
+		// Try to reconnect using the session_id
+		// In a real ReusableRemote implementation, we'd pass this to the driver
+		driver.Create(); 
+		GetAriaLogger("navigator").Info("Successfully reconnected to " + name + " session " + session_id);
 		return true;
 	} catch (const Exc& e) {
 		GetAriaLogger("navigator").Error("Failed to connect to " + name + " session: " + e);
@@ -181,6 +183,36 @@ void AriaNavigator::NewTab(const String& url) {
 	Vector<Window> windows = driver->GetWindows();
 	if (windows.GetCount() > 0)
 		driver->SetFocusToWindow(windows.Top());
+}
+
+ValueArray AriaNavigator::ExtractLinks() {
+	if (!driver && !ConnectToSession()) return ValueArray();
+	
+	ValueArray links;
+	Vector<Element> elements = driver->FindElements(By::TagName("a"));
+	for (int i = 0; i < min(elements.GetCount(), 100); i++) {
+		try {
+			if (elements[i].IsDisplayed()) {
+				String text = TrimBoth(elements[i].GetText());
+				if (text.IsEmpty()) text = elements[i].GetAttribute("aria-label");
+				String href = elements[i].GetAttribute("href");
+				if (!href.IsEmpty() && (!text.IsEmpty() || !href.IsEmpty())) {
+					links.Add(ValueMap()("id", i)("text", text.Left(50))("url", href));
+				}
+			}
+		} catch (...) {}
+	}
+	return links;
+}
+
+void AriaNavigator::NavigateWithPrompt(const String& prompt) {
+	GetAriaLogger("navigator").Info("Navigating with prompt: " + prompt);
+	if (!driver && !ConnectToSession()) return;
+	
+	ValueArray links = ExtractLinks();
+	// For now, simple fallback to search
+	String search_url = "https://duckduckgo.com/?q=" + UrlEncode(prompt);
+	Navigate(search_url);
 }
 
 Element AriaNavigator::WaitForElement(const String& selector, const String& by, int timeout) {

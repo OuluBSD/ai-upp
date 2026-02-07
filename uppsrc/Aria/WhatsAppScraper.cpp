@@ -25,7 +25,9 @@ bool WhatsAppScraper::Navigate() {
 
 bool WhatsAppScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
-	// Scrape logic
+	
+	GetAriaLogger("whatsapp").Info("Refreshing WhatsApp data...");
+	// Scrape logic would go here
 	return true;
 }
 

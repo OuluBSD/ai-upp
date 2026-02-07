@@ -2,8 +2,9 @@
 
 NAMESPACE_UPP
 
-Session::Session(const detail::Shared<detail::Resource>& resource)
-	: resource_(resource)
+Session::Session(const String& id, const detail::Shared<detail::Resource>& resource)
+	: session_id_(id)
+	, resource_(resource)
 	, factory_(new detail::Element_factory())
 {
 }
@@ -73,13 +74,13 @@ void Session::DeleteSession() const {
 
 const Session& Session::Execute(const String& script, const JsArgs& args) const {
 	Value result;
-	InternalEval("execute", script, args, result);
+	InternalEval("execute/sync", script, args, result);
 	return *this;
 }
 
 const Session& Session::ExecuteAsync(const String& script, const JsArgs& args) const {
 	Value result;
-	InternalEval("execute_async", script, args, result);
+	InternalEval("execute/async", script, args, result);
 	return *this;
 }
 

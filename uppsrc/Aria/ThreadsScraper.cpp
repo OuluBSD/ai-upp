@@ -25,7 +25,8 @@ bool ThreadsScraper::Navigate() {
 
 bool ThreadsScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
-	// Scrape logic
+	GetAriaLogger("threads").Info("Refreshing Threads data...");
+	// Scrape feed and personal content logic
 	return true;
 }
 

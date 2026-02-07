@@ -22,7 +22,7 @@ Vector<Session> Client::GetSessions() const {
 	for(const auto& val : session_values) {
 		Value id_val = val["id"];
 		String session_id = FromJson<String>(id_val);
-		sessions.Add(Session(detail::Shared<detail::Resource>(
+		sessions.Add(Session(session_id, detail::Shared<detail::Resource>(
 			new detail::Resource(resource_, session_id, detail::Resource::IS_OBSERVER))));
 	}
 	return sessions;
@@ -33,6 +33,13 @@ Session Client::CreateSession(
 	const Capabilities& required
 	) const {
 	ValueMap caps;
+	// Modern W3C format
+	ValueMap always_match = ToJson(desired);
+	ValueMap capabilities;
+	capabilities.Add("alwaysMatch", always_match);
+	caps.Add("capabilities", capabilities);
+	
+	// Legacy format for compatibility
 	caps.Add("desiredCapabilities", ToJson(desired));
 	caps.Add("requiredCapabilities", ToJson(required));
 
@@ -46,7 +53,7 @@ Session Client::MakeSession(
 	const String& id,
 	detail::Resource::Ownership mode
 	) const {
-	return Session(detail::Shared<detail::Resource>(
+	return Session(id, detail::Shared<detail::Resource>(
 		new detail::Resource(resource_, "session/" + id, mode)));
 }
 

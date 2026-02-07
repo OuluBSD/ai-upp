@@ -14,11 +14,10 @@ struct Phantom : Capabilities { // copyable
 		: Capabilities(defaults) {
 		browser_name = browser::K_PHANTOM;
 		version = String();
-		platform = platform::K_ANY;
 	}
 
-	// PhantomJS-specific capabilities
 	void Jsonize(JsonIO& json) {
+		Capabilities::Jsonize(json);
 		json("phantomjs.binary.path", executable)
 			("phantomjs.cli.args", args)
 			("phantomjs.page.settings.args", ghost_args);

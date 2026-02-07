@@ -76,10 +76,12 @@ public:
 	void DeleteSession() const; // No need to delete sessions created by WebDriver or Client
 	virtual ~Session() {}
 
+	String GetSessionId() const { return session_id_; }
+
 private:
 	friend class Client; // Only Client can create Sessions
 
-	explicit Session(const detail::Shared<detail::Resource>& resource);
+	explicit Session(const String& id, const detail::Shared<detail::Resource>& resource);
 
 	Window MakeWindow(const String& handle) const;
 	detail::Keyboard GetKeyboard() const;
@@ -97,6 +99,7 @@ private:
 	const Session& InternalMouseButtonCommand(const char* command, mouse::Button button) const;
 
 private:
+	String session_id_;
 	detail::Shared<detail::Resource> resource_;
 	detail::Shared<detail::IFinder_factory> factory_;
 };

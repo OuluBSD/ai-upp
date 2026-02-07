@@ -12,6 +12,7 @@ public:
 	virtual bool GotoTab(const Value& identifier) = 0;
 	virtual String GetPageContent() = 0;
 	virtual void NewTab(const String& url = "about:blank") = 0;
+	virtual void NavigateWithPrompt(const String& prompt) = 0;
 };
 
 class AriaNavigator : public BaseNavigator {
@@ -36,10 +37,12 @@ public:
 	virtual bool GotoTab(const Value& identifier) override;
 	virtual String GetPageContent() override;
 	virtual void NewTab(const String& url = "about:blank") override;
+	virtual void NavigateWithPrompt(const String& prompt) override;
 	
 	Element WaitForElement(const String& selector, const String& by = "css selector", int timeout = 10);
 	Vector<String> GetTabsByTag(const String& tag);
 	void TagTab(const Value& identifier, const String& tag);
+	ValueArray ExtractLinks();
 };
 
 #endif

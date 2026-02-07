@@ -14,12 +14,25 @@ String GetFirefoxInstallationPath() {
 		"/usr/lib/firefox-nightly",
 	};
 	for (const char* p : paths) {
-		if (DirectoryExists(p)) return p;
+		if (DirectoryExists(p) && FileExists(AppendFileName(p, "libxul.so"))) return p;
 	}
-	// Fallback to searching via 'which'
-	String out = Sys("which firefox");
+	
+	// Try to find via binary path
+	String out = TrimBoth(Sys("which firefox"));
 	if (!out.IsEmpty()) {
-		return GetFileFolder(TrimBoth(out));
+		String real_path = out;
+		// Follow symlinks to find real installation
+		for (int i = 0; i < 10; i++) {
+			String link = GetSymLinkPath(real_path);
+			if (link.IsEmpty()) break;
+			real_path = NormalizePath(link, GetFileFolder(real_path));
+		}
+		String dir = GetFileFolder(real_path);
+		if (FileExists(AppendFileName(dir, "libxul.so"))) return dir;
+		
+		// Some distros have 'firefox' as a script in /usr/bin, but libs in /usr/lib/firefox
+		dir = "/usr/lib/firefox";
+		if (FileExists(AppendFileName(dir, "libxul.so"))) return dir;
 	}
 #endif
 	return "";
@@ -33,25 +46,49 @@ String PatchFirefoxBinary() {
 	String src = GetFirefoxInstallationPath();
 	String dst = GetUndetectedFirefoxPath();
 	
-	if (src.IsEmpty()) return "";
+	if (src.IsEmpty()) {
+		RLOG("WebDriver: Warning: Could not find Firefox installation path. Binary patching skipped.");
+		return "";
+	}
 	
 	String xul_name = "libxul.so";
 #ifdef PLATFORM_WIN32
 	xul_name = "xul.dll";
 #endif
 
+	String src_xul = AppendFileName(src, xul_name);
 	String dst_xul = AppendFileName(dst, xul_name);
 	
-	if (!DirectoryExists(dst)) {
+	if (!FileExists(src_xul)) {
+		RLOG("WebDriver: Warning: Could not find " + xul_name + " in " + src);
+		return "";
+	}
+
+	String exe_name = "firefox";
+#ifdef PLATFORM_WIN32
+	exe_name = "firefox.exe";
+#endif
+	String dst_exe = AppendFileName(dst, exe_name);
+
+	if (!FileExists(dst_exe)) {
+		RLOG("WebDriver: Creating undetected Firefox copy in " + dst);
 		RealizeDirectory(dst);
-		FindFile ff(AppendFileName(src, "*"));
-		while (ff) {
-			if (ff.IsFile()) {
-				String s = LoadFile(ff.GetPath());
-				SaveFile(AppendFileName(dst, ff.GetName()), s);
+		
+		// Copy essential files only to avoid massive copies
+		static const char* essentials[] = { "firefox", "firefox-bin", "libxul.so", "omni.ja", "platform.ini", "dependentlibs.list" };
+		for (const char* e : essentials) {
+			String s_path = AppendFileName(src, e);
+			if (FileExists(s_path)) {
+				SaveFile(AppendFileName(dst, e), LoadFile(s_path));
 			}
-			ff.Next();
 		}
+		
+		// Mark executable
+#ifdef PLATFORM_POSIX
+		chmod(AppendFileName(dst, "firefox"), 0755);
+		if (FileExists(AppendFileName(dst, "firefox-bin")))
+			chmod(AppendFileName(dst, "firefox-bin"), 0755);
+#endif
 	}
 	
 	if (FileExists(dst_xul)) {
@@ -59,29 +96,25 @@ String PatchFirefoxBinary() {
 		const char* target = "webdriver";
 		int len = 9;
 		
-		String replacement;
-		for (int i = 0; i < len; i++)
-			replacement.Cat('a' + Random(26));
-			
-		int count = 0;
 		int pos = data.Find(target);
-		while (pos >= 0) {
-			data.Remove(pos, len);
-			data.Insert(pos, replacement);
-			count++;
-			pos = data.Find(target, pos + len);
-		}
-		
-		if (count > 0) {
+		if (pos >= 0) {
+			RLOG("WebDriver: Patching " + xul_name);
+			
+			String replacement;
+			for (int i = 0; i < len; i++)
+				replacement.Cat('a' + Random(26));
+				
+			while (pos >= 0) {
+				for (int i = 0; i < len; i++)
+					data.Set(pos + i, replacement[i]);
+				
+				pos = data.Find(target, pos + len);
+			}
 			SaveFile(dst_xul, data);
 		}
 	}
 	
-	String exe_name = "firefox";
-#ifdef PLATFORM_WIN32
-	exe_name = "firefox.exe";
-#endif
-	return AppendFileName(dst, exe_name);
+	return dst_exe;
 }
 
 } // namespace detail

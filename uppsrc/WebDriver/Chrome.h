@@ -7,7 +7,7 @@ NAMESPACE_UPP
 
 namespace chrome {
 
-struct PerfLoggingPrefs {
+struct PerfLoggingPrefs : public Moveable<PerfLoggingPrefs> {
 	bool enable_network = false;
 	bool enable_page = false;
 	bool enable_timeline = false;
@@ -25,7 +25,7 @@ struct PerfLoggingPrefs {
 
 } // namespace chrome
 
-struct Chrome : Capabilities { // copyable
+struct ChromeOptions : public Moveable<ChromeOptions> { // copyable
 	Vector<String> args;
 	String binary;
 	Vector<String> extensions;
@@ -38,27 +38,28 @@ struct Chrome : Capabilities { // copyable
 	Value mobile_emulation;
 	chrome::PerfLoggingPrefs perf_logging_prefs;
 	
+	void Jsonize(JsonIO& json) {
+		json("args", args)("binary", binary)("extensions", extensions)
+			 ("localState", local_state)("prefs", prefs)("detach", detach)
+			 ("debuggerAddress", debugger_address)("excludeSwitches", exclude_switches)
+			 ("minidumpPath", minidump_path)("mobileEmulation", mobile_emulation)
+			 ("perfLoggingPrefs", perf_logging_prefs);
+	}
+};
+
+struct Chrome : Capabilities { // copyable
+	ChromeOptions options;
+	
 	Chrome(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
 		browser_name = browser::K_CHROME;
 		version = String();
-		platform = platform::K_ANY;
 	}
 
 	// See https://sites.google.com/a/chromium.org/chromedriver/capabilities for details
 	void Jsonize(JsonIO& json) {
-		json("loggingPrefs", logging_prefs)
-			("args", args)
-			("binary", binary)
-			("extensions", extensions)
-			("localState", local_state)
-			("prefs", prefs)
-			("detach", detach)
-			("debuggerAddress", debugger_address)
-			("excludeSwitches", exclude_switches)
-			("minidumpPath", minidump_path)
-			("mobileEmulation", mobile_emulation)
-			("perfLoggingPrefs", perf_logging_prefs);
+		Capabilities::Jsonize(json);
+		json("goog:chromeOptions", options);
 	}
 };
 

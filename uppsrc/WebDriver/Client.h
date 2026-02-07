@@ -5,7 +5,7 @@
 
 NAMESPACE_UPP
 
-const char *const K_DEFAULT_WEB_DRIVER_URL = "http://localhost:4444/wd/hub/";
+const char *const K_DEFAULT_WEB_DRIVER_URL = "http://localhost:4444/";
 
 // Gives low level access to server's resources. You normally should not use it.
 class Client { // copyable

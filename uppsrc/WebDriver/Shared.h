@@ -28,7 +28,11 @@ class Shared {
 public:
 	Shared() : ptr_(nullptr) {}
 	
-	explicit Shared(T* ptr) : ptr_(ptr) {}
+	explicit Shared(T* ptr) : ptr_(ptr) {
+		if (ptr_) {
+			ptr_->AddRef();
+		}
+	}
 	
 	Shared(const Shared& other) : ptr_(other.ptr_) {
 		if (ptr_) {

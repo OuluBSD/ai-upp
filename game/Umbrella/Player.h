@@ -34,6 +34,11 @@ private:
 	float invincibleTimer;
 	float knockbackTimer;
 
+	// Parasol attack
+	Rectf parasolHitbox;
+	bool attackHeld;
+	bool wasAttackHeld;
+
 	// Physics constants (from RainbowGame Player.java)
 	static constexpr float GRID_SIZE = 14.0f;
 	static constexpr float MOVE_SPEED = GRID_SIZE * 10.0f;  // 140.0f
@@ -77,6 +82,8 @@ public:
 	int GetScore() const { return score; }
 	bool IsOnGround() const { return onGround; }
 	int GetFacing() const { return facing; }
+	Rectf GetParasolHitbox() const { return parasolHitbox; }
+	bool IsAttacking() const { return attackHeld; }
 
 	// Mutators
 	void TakeDamage(int amount);

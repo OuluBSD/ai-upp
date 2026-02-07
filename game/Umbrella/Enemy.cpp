@@ -26,6 +26,15 @@ void Enemy::Kill() {
 	active = false;
 }
 
+void Enemy::Defeat() {
+	// Killed by player parasol attack
+	// Mark as dead (will trigger reward spawning in GameScreen)
+	alive = false;
+	active = false;
+	// TODO: Play defeat sound
+	// TODO: Spawn particle effect
+}
+
 bool Enemy::IsTouchingWallOnLeft(Player::CollisionHandler& collision) {
 	int gridSize = (int)collision.GetGridSize();
 	int checkCol = (int)((bounds.left - 1.0f) / gridSize);

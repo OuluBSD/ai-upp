@@ -5,7 +5,7 @@
 
 NAMESPACE_UPP
 
-struct Ie : Capabilities { // copyable
+struct IeOptions : public Moveable<IeOptions> { // copyable
 	String initial_browser_url;
 	bool introduce_installs_done = false;
 	bool add_document_to_collection = false;
@@ -20,14 +20,6 @@ struct Ie : Capabilities { // copyable
 	bool force_shell_windows_api = false;
 	bool clean_session = false;
 	
-	Ie(const Capabilities& defaults = Capabilities())
-		: Capabilities(defaults) {
-		browser_name = browser::K_INTERNET_EXPLORER;
-		version = String();
-		platform = platform::K_WINDOWS;
-	}
-
-	// See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for details
 	void Jsonize(JsonIO& json) {
 		json("initialBrowserUrl", initial_browser_url)
 			("introduceInstallsDone", introduce_installs_done)
@@ -42,6 +34,21 @@ struct Ie : Capabilities { // copyable
 			("forceCreateProcessApi", force_create_process_api)
 			("forceShellWindowsApi", force_shell_windows_api)
 			("cleanSession", clean_session);
+	}
+};
+
+struct Ie : Capabilities { // copyable
+	IeOptions options;
+	
+	Ie(const Capabilities& defaults = Capabilities())
+		: Capabilities(defaults) {
+		browser_name = browser::K_INTERNET_EXPLORER;
+		version = String();
+	}
+
+	void Jsonize(JsonIO& json) {
+		Capabilities::Jsonize(json);
+		json("se:ieOptions", options);
 	}
 };
 

@@ -25,6 +25,7 @@ bool YouTubeStudioScraper::Navigate() {
 
 bool YouTubeStudioScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
+	GetAriaLogger("youtube_studio").Info("Refreshing YouTube Studio data...");
 	ScrapeDashboard();
 	ScrapeVideos();
 	return true;

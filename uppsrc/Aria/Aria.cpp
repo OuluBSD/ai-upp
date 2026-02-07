@@ -19,7 +19,6 @@ String GeminiProvider::Generate(const String& prompt, const String& context, con
 		return "Error: Gemini CLI not found at " + gemini_cli;
 	}
 	
-	// Execute: echo prompt | gemini -y --model gemini-3-flash-preview -o stream-json -
 	String cmd = gemini_cli + " -y --model gemini-3-flash-preview -o stream-json -";
 	
 	LocalProcess p;
@@ -42,7 +41,6 @@ String GeminiProvider::Generate(const String& prompt, const String& context, con
 		return "Gemini CLI error: " + stderr_str;
 	}
 	
-	// Simple NDJSON parsing
 	String response_text;
 	Vector<String> lines = Split(stdout_str, '\n');
 	for (const String& line : lines) {
@@ -87,18 +85,47 @@ void Aria::Run(const Vector<String>& args) {
 	if (cmd == "version") {
 		Cout() << "Aria CLI version 0.1.0\n";
 	} else if (cmd == "open") {
+		safety_manager.EnsureDisclaimerAccepted();
 		String url = args.GetCount() > 1 ? args[1] : "";
 		navigator->StartSession();
-		if (!url.IsEmpty()) navigator->Navigate(url);
+		if (!url.IsEmpty()) {
+			if (safety_manager.CheckUrlSafety(url))
+				navigator->Navigate(url);
+		}
 	} else if (cmd == "close") {
 		navigator->CloseSession();
 	} else if (cmd == "page" && args.GetCount() > 1) {
-		if (args[1] == "list") {
+		String p_cmd = args[1];
+		if (p_cmd == "list") {
 			ValueArray tabs = navigator->ListTabs();
-			for (int i = 0; i < tabs.GetCount(); i++) {
-				Cout() << AsJSON(tabs[i], true) << "\n";
+			if (tabs.IsEmpty()) Cout() << "No active tabs.\n";
+			else {
+				for (int i = 0; i < tabs.GetCount(); i++)
+					Cout() << i << ": " << AsJSON(tabs[i]) << "\n";
 			}
+		} else if (p_cmd == "new") {
+			String url = args.GetCount() > 2 ? args[2] : "about:blank";
+			navigator->NewTab(url);
 		}
+	} else if (cmd == "script" && args.GetCount() > 1) {
+		String s_cmd = args[1];
+		if (s_cmd == "list") {
+			for (const auto& s : script_manager.ListScripts())
+				Cout() << s.id << ": " << s.name << " - " << s.prompt.Left(50) << "...\n";
+		}
+	} else if (cmd == "site" && args.GetCount() > 1) {
+		String site_cmd = args[1];
+		if (site_cmd == "list") {
+			for (const String& s : site_manager.ListSites()) Cout() << "- " << s << "\n";
+		}
+	} else if (cmd == "man") {
+		Cout() << "Aria User Manual\n\nCommands:\n"
+		       << "  open [url]      Open browser session\n"
+		       << "  close           Close browser session\n"
+		       << "  page list       List open tabs\n"
+		       << "  page new [url]  Open new tab\n"
+		       << "  script list     List saved scripts\n"
+		       << "  site list       List sites with local data\n";
 	} else {
 		Cout() << "Unknown command: " << cmd << "\n";
 	}

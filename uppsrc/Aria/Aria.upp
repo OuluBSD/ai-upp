@@ -5,6 +5,7 @@ uses
 	WebDriver;
 
 file
+	README.md,
 	AGENTS.md,
 	Aria.h options(BUILDER_OPTION) PCH,
 	Aria.cpp,

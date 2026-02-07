@@ -25,6 +25,7 @@ bool CalendarScraper::Navigate() {
 
 bool CalendarScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
+	GetAriaLogger("calendar").Info("Refreshing Google Calendar data...");
 	ScrapeEvents();
 	return true;
 }

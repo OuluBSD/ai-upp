@@ -29,7 +29,8 @@ bool DiscordScraper::Navigate() {
 
 bool DiscordScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
-	// Scrape logic
+	GetAriaLogger("discord").Info("Refreshing Discord data...");
+	// Discovery and crawling logic would go here
 	return true;
 }
 

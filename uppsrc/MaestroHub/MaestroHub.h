@@ -40,12 +40,17 @@ public:
 	One<TuManager> tum;
 	String root;
 	void Load(const String& maestro_root);
-	void UpdatePackages();
-	void OnPackageCursor();
-	void UpdateSymbols();
-	typedef TUBrowser CLASSNAME;
-	TUBrowser();
-};
+		void UpdatePackages();
+		void OnPackageCursor();
+		void UpdateSymbols();
+		void OnSynthesize();
+		
+		Callback1<String> WhenSynthesize;
+		
+		typedef TUBrowser CLASSNAME;
+		TUBrowser();
+	};
+	
 
 struct SolutionPattern : Moveable<SolutionPattern> {
 	String name;
@@ -241,24 +246,43 @@ public:
 	WithPipelineLayout<ParentCtrl> layout;
 };
 
-class ProductPane : public ParentCtrl {
+class ProductPane : public WithProductLayout<ParentCtrl> {
 public:
-	Splitter split, vsplit_rb, vsplit_wg, wg_split;
-	ArrayCtrl runbooks, workflows;
-	RichTextView rb_detail, wg_detail;
-	GraphLib::GraphNodeCtrl workflow_graph;
-	ParentCtrl workflow_view;
-	Array<Runbook>  runbook_data;
-	Array<WorkGraph> workflow_data;
-	String         root;
-	Callback3<String, int, String> WhenEnactStep;
+	CodeEditor  puml_editor;
+	RichTextView logic_view;
+	Splitter    split;
+	
+	String      root;
 	void Load(const String& root);
-	void OnRunbookSelect();
-	void OnWorkflowSelect();
-	void OnNodeClick(GraphLib::Node& n);
-	void OnNodeRightClick(GraphLib::Node& n);
+	void OnEnactStep(int step, const String& instruction);
+	
+	Callback3<String, int, String> WhenEnactStep;
+
 	typedef ProductPane CLASSNAME;
 	ProductPane();
+};
+
+class UXEvaluationFactory : public TopWindow {
+public:
+	Splitter   split;
+	ArrayCtrl  test_list;
+	
+	ImageCtrl  baseline_view;
+	ImageCtrl  current_view;
+	ImageCtrl  diff_view;
+	ParentCtrl images;
+	
+	Button     run_test, approve;
+	
+	String     root;
+
+	void Load(const String& maestro_root);
+	void OnRunTest();
+	void OnApprove();
+	void OnTestCursor();
+	
+	typedef UXEvaluationFactory CLASSNAME;
+	UXEvaluationFactory();
 };
 
 class MaintenancePane : public WithMaintenanceLayout<ParentCtrl> {
@@ -403,7 +427,11 @@ public:
 class RunbookEditor : public WithRunbookEditorLayout<TopWindow> {
 public:
 	Button ok, cancel;
+	Callback1<String> WhenAssist;
+	
 	void New(const String& root);
+	void OnEditStep();
+	
 	typedef RunbookEditor CLASSNAME;
 	RunbookEditor();
 };
@@ -424,6 +452,9 @@ public:
 
 class StepWizard : public WithStepWizardLayout<TopWindow> {
 public:
+	Button ai_assist;
+	Callback1<String> WhenAssist;
+
 	RunbookStep step;
 	void SetStep(const RunbookStep& s);
 	RunbookStep GetStep();

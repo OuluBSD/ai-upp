@@ -226,6 +226,11 @@ const Session& Session::SetAsyncScriptTimeoutMs(int milliseconds) {
 	return SetTimeoutMs(timeout::Script, milliseconds);
 }
 
+const Session& Session::ApplyStealthJS() const {
+	Execute(GetStealthJS(), JsArgs());
+	return *this;
+}
+
 Window Session::MakeWindow(const String& handle) const {
 	return Window(handle, detail::MakeSubResource(resource_, "window"));
 }

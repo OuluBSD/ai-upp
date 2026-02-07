@@ -478,6 +478,11 @@ struct Edit3D : DockWindow {
 	int select_2d_hover = -1;
 	vec3 mesh_sel_offset = vec3(0);
 	vec2 sel2d_offset = vec2(0);
+	bool selection_dragging = false;
+	vec3 selection_drag_start_world = vec3(0);
+	vec3 selection_drag_applied_local = vec3(0);
+	vec3 selection_drag_plane_normal = vec3(0, 0, 1);
+	int selection_drag_view = -1;
 	enum TimelineScopeKind {
 		TS_SCENE,
 		TS_OBJECT,
@@ -583,6 +588,7 @@ struct Edit3D : DockWindow {
 	void Subtract2DSelection();
 	bool GetMeshSelectionCenter(vec3& out);
 	bool Get2DSelectionCenter(vec3& out);
+	bool GetSelectionCenterWorld(vec3& out, GeomObject*& obj, bool& is2d);
 	void ApplyMeshSelectionDelta(const vec3& delta);
 	void Apply2DSelectionDelta(const vec2& delta);
 	void ClearMeshSelection();

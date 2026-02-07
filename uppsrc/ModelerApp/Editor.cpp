@@ -2880,6 +2880,66 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 		return t == TOOL_2D_SELECT || t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
 		       t == TOOL_2D_POLY || t == TOOL_2D_ERASE;
 	};
+	auto project_world = [&](const vec3& world, Point& out) -> bool {
+		if (view_i < 0 || view_i >= 4)
+			return false;
+		EditRendererBase* rend = v0.rends[view_i];
+		if (!rend)
+			return false;
+		Size sz = rend->GetSize();
+		if (sz.cx <= 0 || sz.cy <= 0)
+			return false;
+		GeomCamera& gcam = rend->GetGeomCamera();
+		Camera cam;
+		gcam.LoadCamera(rend->view_mode, cam, sz);
+		mat4 view = cam.GetWorldMatrix();
+		mat4 proj = cam.GetProjectionMatrix();
+		vec4 clip = proj * (view * world.Embed());
+		if (clip[3] == 0)
+			return false;
+		vec3 ndc = clip.Splice() / clip[3];
+		if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+			return false;
+		out = Point(
+			(int)floor((ndc[0] + 1) * 0.5 * (float)sz.cx + 0.5f),
+			(int)floor((-ndc[1] + 1) * 0.5 * (float)sz.cy + 0.5f));
+		return true;
+	};
+	auto selection_plane_normal = [&](GeomObject* obj) {
+		vec3 normal = vec3(0, 0, 1);
+		quat obj_ori = Identity<quat>();
+		if (state) {
+			if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key))
+				obj_ori = os->orientation;
+		}
+		else if (GeomTransform* tr = obj->FindTransform()) {
+			obj_ori = tr->orientation;
+		}
+		auto set_plane_from_view = [&] {
+			if (view_i < 0 || view_i >= 4)
+				return;
+			EditRendererBase* rend = v0.rends[view_i];
+			if (!rend)
+				return;
+			switch (rend->view_mode) {
+			case VIEWMODE_XY: normal = vec3(0, 0, 1); break;
+			case VIEWMODE_XZ: normal = vec3(0, 1, 0); break;
+			case VIEWMODE_YZ: normal = vec3(1, 0, 0); break;
+			case VIEWMODE_PERSPECTIVE:
+				normal = VectorTransform(VEC_FWD, obj_ori);
+				break;
+			default: break;
+			}
+		};
+		switch (edit_plane) {
+		case PLANE_XY: normal = vec3(0, 0, 1); break;
+		case PLANE_XZ: normal = vec3(0, 1, 0); break;
+		case PLANE_YZ: normal = vec3(1, 0, 0); break;
+		case PLANE_LOCAL: normal = VectorTransform(VEC_FWD, obj_ori); break;
+		default: set_plane_from_view(); break;
+		}
+		return normal;
+	};
 	auto get_2d_local = [&](GeomObject& obj, vec2& out) -> bool {
 		vec3 plane_origin = vec3(0);
 		vec3 plane_normal = vec3(0, 0, 1);
@@ -2933,6 +2993,76 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 		out = vec2(v[0], v[1]);
 		return true;
 	};
+
+	if (view == VIEW_GEOMPROJECT && edit_tool == TOOL_SELECT && selection_dragging) {
+		if (type == "mouseMove" && view_i == selection_drag_view) {
+			vec3 world;
+			if (ScreenToPlaneWorldPoint(view_i, p, selection_drag_start_world, selection_drag_plane_normal, world)) {
+				vec3 delta_world = world - selection_drag_start_world;
+				GeomObject* obj = nullptr;
+				bool is2d = false;
+				vec3 center;
+				if (GetSelectionCenterWorld(center, obj, is2d) && obj) {
+					vec3 scale = vec3(1);
+					quat ori = Identity<quat>();
+					if (state) {
+						if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+							scale = os->scale;
+							ori = os->orientation;
+						}
+					}
+					else if (GeomTransform* tr = obj->FindTransform()) {
+						scale = tr->scale;
+						ori = tr->orientation;
+					}
+					quat inv = ori.GetInverse();
+					vec3 local = VectorTransform(delta_world, inv);
+					if (scale[0] != 0) local[0] /= scale[0];
+					if (scale[1] != 0) local[1] /= scale[1];
+					if (scale[2] != 0) local[2] /= scale[2];
+					if (is2d)
+						local[2] = 0;
+					vec3 inc = local - selection_drag_applied_local;
+					if (is2d)
+						Apply2DSelectionDelta(vec2(inc[0], inc[1]));
+					else
+						ApplyMeshSelectionDelta(inc);
+					selection_drag_applied_local = local;
+				}
+			}
+			return;
+		}
+		if (type == "mouseUp") {
+			selection_dragging = false;
+			selection_drag_view = -1;
+			selection_drag_applied_local = vec3(0);
+			return;
+		}
+	}
+
+	if (view == VIEW_GEOMPROJECT && edit_tool == TOOL_SELECT && type == "mouseDown" && !sculpt_mode && !weight_paint_mode) {
+		vec3 center_world;
+		GeomObject* obj = nullptr;
+		bool is2d = false;
+		if (GetSelectionCenterWorld(center_world, obj, is2d) && obj) {
+			Point screen;
+			if (project_world(center_world, screen)) {
+				int dx = screen.x - p.x;
+				int dy = screen.y - p.y;
+				if (dx * dx + dy * dy <= 100) {
+					selection_drag_plane_normal = selection_plane_normal(obj);
+					vec3 world;
+					if (ScreenToPlaneWorldPoint(view_i, p, center_world, selection_drag_plane_normal, world)) {
+						selection_dragging = true;
+						selection_drag_view = view_i;
+						selection_drag_start_world = world;
+						selection_drag_applied_local = vec3(0);
+						return;
+					}
+				}
+			}
+		}
+	}
 
 	if (view == VIEW_GEOMPROJECT && is_2d_tool(edit_tool)) {
 		GeomObject* obj = v0.selected_obj;
@@ -3850,43 +3980,6 @@ static void EnsureCCW(Vector<vec2>& pts) {
 		Reverse(pts);
 }
 
-static Vector<vec2> ConvexHullPoints(const Vector<vec2>& pts) {
-	if (pts.GetCount() < 3) {
-		Vector<vec2> out;
-		out.Append(pts);
-		return out;
-	}
-	Vector<vec2> sorted;
-	sorted.Append(pts);
-	Sort(sorted, [](const vec2& a, const vec2& b) {
-		if (a[0] < b[0]) return true;
-		if (a[0] > b[0]) return false;
-		return a[1] < b[1];
-	});
-	auto cross = [](const vec2& a, const vec2& b, const vec2& c) {
-		return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-	};
-	Vector<vec2> lower;
-	for (const vec2& p : sorted) {
-		while (lower.GetCount() >= 2 && cross(lower[lower.GetCount() - 2], lower.Top(), p) <= 0)
-			lower.Drop();
-		lower.Add(p);
-	}
-	Vector<vec2> upper;
-	for (int i = sorted.GetCount() - 1; i >= 0; i--) {
-		const vec2& p = sorted[i];
-		while (upper.GetCount() >= 2 && cross(upper[upper.GetCount() - 2], upper.Top(), p) <= 0)
-			upper.Drop();
-		upper.Add(p);
-	}
-	lower.Drop();
-	upper.Drop();
-	Vector<vec2> out;
-	out.Append(lower);
-	out.Append(upper);
-	return out;
-}
-
 static Vector<vec2> ShapeToPolygon(const Geom2DShape& shape) {
 	Vector<vec2> pts;
 	switch (shape.type) {
@@ -3949,81 +4042,254 @@ static Vector<vec2> ShapeToPolygon(const Geom2DShape& shape) {
 	return pts;
 }
 
-static bool InsideEdge(const vec2& a, const vec2& b, const vec2& p) {
-	vec2 ab = b - a;
-	vec2 ap = p - a;
-	float cross = ab[0] * ap[1] - ab[1] * ap[0];
-	return cross >= -1e-5f;
-}
-
-static vec2 IntersectLines(const vec2& p1, const vec2& p2, const vec2& a, const vec2& b) {
-	vec2 r = p2 - p1;
-	vec2 s = b - a;
-	float denom = r[0] * s[1] - r[1] * s[0];
-	if (fabs(denom) < 1e-6f)
-		return p1;
-	float t = ((a[0] - p1[0]) * s[1] - (a[1] - p1[1]) * s[0]) / denom;
-	return p1 + r * t;
-}
-
-static Vector<vec2> IntersectConvexPolygons(const Vector<vec2>& subject, const Vector<vec2>& clip) {
-	Vector<vec2> out;
-	out.Append(subject);
-	if (out.IsEmpty() || clip.IsEmpty())
-		return Vector<vec2>();
-	for (int i = 0; i < clip.GetCount(); i++) {
-		vec2 a = clip[i];
-		vec2 b = clip[(i + 1) % clip.GetCount()];
-		Vector<vec2> input;
-		input.Append(out);
-		out.Clear();
-		if (input.IsEmpty())
+static void CleanupPolygon(Vector<vec2>& pts) {
+	const float eps = 1e-4f;
+	for (int i = 0; i < pts.GetCount(); ) {
+		int j = (i + 1) % pts.GetCount();
+		vec2 d = pts[j] - pts[i];
+		if (sqrt(Dot(d, d)) < eps)
+			pts.Remove(j);
+		else
+			i++;
+		if (pts.GetCount() < 3)
 			break;
-		vec2 prev = input.Top();
-		bool prev_in = InsideEdge(a, b, prev);
-		for (const vec2& cur : input) {
-			bool cur_in = InsideEdge(a, b, cur);
-			if (cur_in) {
-				if (!prev_in)
-					out.Add(IntersectLines(prev, cur, a, b));
-				out.Add(cur);
+	}
+	if (pts.GetCount() >= 3) {
+		vec2 d = pts.Top() - pts[0];
+		if (sqrt(Dot(d, d)) < eps)
+			pts.Drop();
+	}
+}
+
+static bool PointInPolygon(const Vector<vec2>& poly, const vec2& p) {
+	if (poly.GetCount() < 3)
+		return false;
+	bool inside = false;
+	for (int i = 0, j = poly.GetCount() - 1; i < poly.GetCount(); j = i++) {
+		const vec2& a = poly[i];
+		const vec2& b = poly[j];
+		bool intersect = ((a[1] > p[1]) != (b[1] > p[1])) &&
+		                 (p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1] + 1e-9f) + a[0]);
+		if (intersect)
+			inside = !inside;
+	}
+	return inside;
+}
+
+struct GHNode : Moveable<GHNode> {
+	vec2 pt = vec2(0);
+	double alpha = 0.0;
+	bool intersect = false;
+	bool entry = false;
+	bool visited = false;
+	GHNode* next = nullptr;
+	GHNode* prev = nullptr;
+	GHNode* neighbor = nullptr;
+};
+
+static GHNode* BuildPolygonList(const Vector<vec2>& poly, Array<GHNode>& pool, Vector<GHNode*>& nodes) {
+	if (poly.GetCount() < 3)
+		return nullptr;
+	nodes.SetCount(poly.GetCount());
+	for (int i = 0; i < poly.GetCount(); i++) {
+		GHNode& n = pool.Add();
+		n.pt = poly[i];
+		n.intersect = false;
+		nodes[i] = &n;
+	}
+	for (int i = 0; i < nodes.GetCount(); i++) {
+		GHNode* n = nodes[i];
+		n->next = nodes[(i + 1) % nodes.GetCount()];
+		n->prev = nodes[(i - 1 + nodes.GetCount()) % nodes.GetCount()];
+	}
+	return nodes[0];
+}
+
+static bool SegmentIntersect(const vec2& p1, const vec2& p2, const vec2& q1, const vec2& q2,
+                             vec2& out, double& t, double& u) {
+	vec2 r = p2 - p1;
+	vec2 s = q2 - q1;
+	float denom = r[0] * s[1] - r[1] * s[0];
+	if (fabs(denom) < 1e-8f)
+		return false;
+	vec2 qp = q1 - p1;
+	t = (qp[0] * s[1] - qp[1] * s[0]) / denom;
+	u = (qp[0] * r[1] - qp[1] * r[0]) / denom;
+	if (t < -1e-6 || t > 1.0 + 1e-6 || u < -1e-6 || u > 1.0 + 1e-6)
+		return false;
+	if (t < 0) t = 0;
+	if (t > 1) t = 1;
+	if (u < 0) u = 0;
+	if (u > 1) u = 1;
+	out = p1 + r * (float)t;
+	return true;
+}
+
+static void InsertIntersections(GHNode* edge_start, const Vector<GHNode*>& inserts) {
+	if (!edge_start || inserts.IsEmpty())
+		return;
+	Vector<GHNode*> sorted;
+	sorted.Append(inserts);
+	Sort(sorted, [](const GHNode* a, const GHNode* b) { return a->alpha < b->alpha; });
+	GHNode* cur = edge_start;
+	for (GHNode* n : sorted) {
+		n->prev = cur;
+		n->next = cur->next;
+		cur->next->prev = n;
+		cur->next = n;
+		cur = n;
+	}
+}
+
+enum BoolOp {
+	OP_UNION,
+	OP_INTERSECT,
+	OP_DIFF
+};
+
+static Vector<Vector<vec2>> PolygonBoolean(const Vector<vec2>& subject, const Vector<vec2>& clip, BoolOp op) {
+	Vector<Vector<vec2>> result;
+	if (subject.GetCount() < 3 || clip.GetCount() < 3)
+		return result;
+	Vector<vec2> subj;
+	Vector<vec2> clp;
+	subj.Append(subject);
+	clp.Append(clip);
+	EnsureCCW(subj);
+	EnsureCCW(clp);
+	Array<GHNode> pool;
+	Vector<GHNode*> subj_nodes;
+	Vector<GHNode*> clip_nodes;
+	GHNode* subj_start = BuildPolygonList(subj, pool, subj_nodes);
+	GHNode* clip_start = BuildPolygonList(clp, pool, clip_nodes);
+	if (!subj_start || !clip_start)
+		return result;
+	VectorMap<GHNode*, Vector<GHNode*>> subj_inserts;
+	VectorMap<GHNode*, Vector<GHNode*>> clip_inserts;
+	Vector<GHNode*> subj_inters;
+	Vector<GHNode*> clip_inters;
+	for (int i = 0; i < subj_nodes.GetCount(); i++) {
+		GHNode* s = subj_nodes[i];
+		vec2 s1 = s->pt;
+		vec2 s2 = s->next->pt;
+		for (int j = 0; j < clip_nodes.GetCount(); j++) {
+			GHNode* c = clip_nodes[j];
+			vec2 c1 = c->pt;
+			vec2 c2 = c->next->pt;
+			vec2 ip;
+			double ts = 0;
+			double tc = 0;
+			if (!SegmentIntersect(s1, s2, c1, c2, ip, ts, tc))
+				continue;
+			GHNode& ns = pool.Add();
+			ns.pt = ip;
+			ns.intersect = true;
+			ns.alpha = ts;
+			GHNode& nc = pool.Add();
+			nc.pt = ip;
+			nc.intersect = true;
+			nc.alpha = tc;
+			ns.neighbor = &nc;
+			nc.neighbor = &ns;
+			subj_inters.Add(&ns);
+			clip_inters.Add(&nc);
+			int si = subj_inserts.Find(s);
+			if (si < 0) {
+				subj_inserts.Add(s, Vector<GHNode*>());
+				si = subj_inserts.GetCount() - 1;
 			}
-			else if (prev_in) {
-				out.Add(IntersectLines(prev, cur, a, b));
+			subj_inserts[si].Add(&ns);
+			int ci = clip_inserts.Find(c);
+			if (ci < 0) {
+				clip_inserts.Add(c, Vector<GHNode*>());
+				ci = clip_inserts.GetCount() - 1;
 			}
-			prev = cur;
-			prev_in = cur_in;
+			clip_inserts[ci].Add(&nc);
 		}
 	}
-	return out;
-}
-
-static Vector<vec2> UnionConvexPolygons(const Vector<vec2>& a, const Vector<vec2>& b) {
-	Vector<vec2> pts;
-	pts.Append(a);
-	pts.Append(b);
-	if (pts.GetCount() < 3)
-		return pts;
-	Vector<vec2> hull = ConvexHullPoints(pts);
-	if (hull.GetCount() >= 3)
-		EnsureCCW(hull);
-	return hull;
-}
-
-static Vector<vec2> SubtractConvexPolygons(const Vector<vec2>& subject, const Vector<vec2>& clip) {
-	if (subject.IsEmpty())
-		return Vector<vec2>();
-	Vector<vec2> inter = IntersectConvexPolygons(subject, clip);
-	if (inter.IsEmpty())
-		{ Vector<vec2> out; out.Append(subject); return out; }
-	float area_subject = fabs(PolyArea(subject));
-	float area_inter = fabs(PolyArea(inter));
-	if (area_subject < 1e-6f)
-		return Vector<vec2>();
-	if (area_inter / area_subject > 0.95f)
-		return Vector<vec2>();
-	// Best-effort: keep subject if subtraction would create multiple parts.
-	{ Vector<vec2> out; out.Append(subject); return out; }
+	for (int i = 0; i < subj_inserts.GetCount(); i++)
+		InsertIntersections(subj_inserts.GetKey(i), subj_inserts[i]);
+	for (int i = 0; i < clip_inserts.GetCount(); i++)
+		InsertIntersections(clip_inserts.GetKey(i), clip_inserts[i]);
+	bool subj_in = PointInPolygon(clp, subj_start->pt);
+	bool clip_in = PointInPolygon(subj, clip_start->pt);
+	for (GHNode* n = subj_start; ; n = n->next) {
+		if (n->intersect) {
+			if (op == OP_INTERSECT)
+				n->entry = !subj_in;
+			else if (op == OP_UNION)
+				n->entry = subj_in;
+			else
+				n->entry = !subj_in;
+			subj_in = !subj_in;
+		}
+		if (n->next == subj_start)
+			break;
+	}
+	for (GHNode* n = clip_start; ; n = n->next) {
+		if (n->intersect) {
+			if (op == OP_INTERSECT)
+				n->entry = !clip_in;
+			else if (op == OP_UNION)
+				n->entry = clip_in;
+			else
+				n->entry = clip_in;
+			clip_in = !clip_in;
+		}
+		if (n->next == clip_start)
+			break;
+	}
+	if (subj_inters.IsEmpty()) {
+		bool subj_inside = PointInPolygon(clp, subj[0]);
+		bool clip_inside = PointInPolygon(subj, clp[0]);
+		if (op == OP_INTERSECT) {
+			if (subj_inside)
+				result.Add(pick(subj));
+			else if (clip_inside)
+				result.Add(pick(clp));
+		}
+		else if (op == OP_UNION) {
+			if (subj_inside)
+				result.Add(pick(clp));
+			else if (clip_inside)
+				result.Add(pick(subj));
+			else {
+				result.Add(pick(subj));
+				result.Add(pick(clp));
+			}
+		}
+		else if (op == OP_DIFF) {
+			if (!subj_inside)
+				result.Add(pick(subj));
+		}
+		return result;
+	}
+	for (GHNode* n : subj_inters) {
+		if (!n->entry || n->visited)
+			continue;
+		Vector<vec2> poly;
+		GHNode* cur = n;
+		bool in_subject = true;
+		do {
+			if (cur->visited && cur->intersect)
+				break;
+			poly.Add(cur->pt);
+			if (cur->intersect) {
+				cur->visited = true;
+				cur = cur->neighbor;
+				if (cur->visited)
+					break;
+				in_subject = !in_subject;
+			}
+			cur = (op == OP_DIFF && !in_subject) ? cur->prev : cur->next;
+		} while (cur && cur != n);
+		CleanupPolygon(poly);
+		if (poly.GetCount() >= 3) {
+			EnsureCCW(poly);
+			result.Add(pick(poly));
+		}
+	}
+	return result;
 }
 
 }
@@ -4036,25 +4302,36 @@ void Edit3D::Union2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Union 2D shapes");
-	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
+	Vector<Vector<vec2>> polys;
+	polys.Add(ShapeToPolygon(layer->shapes[select_2d_shapes[0]]));
 	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
 		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
-		if (other.IsEmpty())
+		if (other.GetCount() < 3)
 			continue;
-		poly = UnionConvexPolygons(poly, other);
+		Vector<Vector<vec2>> next;
+		for (int k = 0; k < polys.GetCount(); k++) {
+			Vector<Vector<vec2>> out = PolygonBoolean(polys[k], other, OP_UNION);
+			next.Append(out);
+		}
+		polys = pick(next);
 	}
-	if (poly.GetCount() < 3)
+	if (polys.IsEmpty())
 		return;
 	const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
-	Geom2DShape shape;
-	shape.type = Geom2DShape::S_POLY;
-	shape.points = pick(poly);
-	shape.closed = true;
-	shape.stroke = base.stroke;
-	shape.width = base.width;
-	shape.stroke_cap = base.stroke_cap;
-	shape.stroke_join = base.stroke_join;
-	layer->shapes.Add(pick(shape));
+	for (int i = 0; i < polys.GetCount(); i++) {
+		Vector<vec2> poly = pick(polys[i]);
+		if (poly.GetCount() < 3)
+			continue;
+		Geom2DShape shape;
+		shape.type = Geom2DShape::S_POLY;
+		shape.points = pick(poly);
+		shape.closed = true;
+		shape.stroke = base.stroke;
+		shape.width = base.width;
+		shape.stroke_cap = base.stroke_cap;
+		shape.stroke_join = base.stroke_join;
+		layer->shapes.Add(pick(shape));
+	}
 	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
 		layer->shapes.Remove(select_2d_shapes[i]);
 	Clear2DSelection();
@@ -4070,25 +4347,36 @@ void Edit3D::Intersect2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Intersect 2D shapes");
-	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
+	Vector<Vector<vec2>> polys;
+	polys.Add(ShapeToPolygon(layer->shapes[select_2d_shapes[0]]));
 	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
 		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
-		if (other.IsEmpty())
+		if (other.GetCount() < 3)
 			continue;
-		poly = IntersectConvexPolygons(poly, other);
+		Vector<Vector<vec2>> next;
+		for (int k = 0; k < polys.GetCount(); k++) {
+			Vector<Vector<vec2>> out = PolygonBoolean(polys[k], other, OP_INTERSECT);
+			next.Append(out);
+		}
+		polys = pick(next);
 	}
-	if (poly.GetCount() < 3)
+	if (polys.IsEmpty())
 		return;
 	const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
-	Geom2DShape shape;
-	shape.type = Geom2DShape::S_POLY;
-	shape.points = pick(poly);
-	shape.closed = true;
-	shape.stroke = base.stroke;
-	shape.width = base.width;
-	shape.stroke_cap = base.stroke_cap;
-	shape.stroke_join = base.stroke_join;
-	layer->shapes.Add(pick(shape));
+	for (int i = 0; i < polys.GetCount(); i++) {
+		Vector<vec2> poly = pick(polys[i]);
+		if (poly.GetCount() < 3)
+			continue;
+		Geom2DShape shape;
+		shape.type = Geom2DShape::S_POLY;
+		shape.points = pick(poly);
+		shape.closed = true;
+		shape.stroke = base.stroke;
+		shape.width = base.width;
+		shape.stroke_cap = base.stroke_cap;
+		shape.stroke_join = base.stroke_join;
+		layer->shapes.Add(pick(shape));
+	}
 	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
 		layer->shapes.Remove(select_2d_shapes[i]);
 	Clear2DSelection();
@@ -4104,26 +4392,35 @@ void Edit3D::Subtract2DSelection() {
 	if (!layer)
 		return;
 	PushUndo("Subtract 2D shapes");
-	Vector<vec2> poly = ShapeToPolygon(layer->shapes[select_2d_shapes[0]]);
+	Vector<Vector<vec2>> polys;
+	polys.Add(ShapeToPolygon(layer->shapes[select_2d_shapes[0]]));
 	for (int i = 1; i < select_2d_shapes.GetCount(); i++) {
 		Vector<vec2> other = ShapeToPolygon(layer->shapes[select_2d_shapes[i]]);
-		if (other.IsEmpty())
+		if (other.GetCount() < 3)
 			continue;
-		poly = SubtractConvexPolygons(poly, other);
-		if (poly.IsEmpty())
-			break;
+		Vector<Vector<vec2>> next;
+		for (int k = 0; k < polys.GetCount(); k++) {
+			Vector<Vector<vec2>> out = PolygonBoolean(polys[k], other, OP_DIFF);
+			next.Append(out);
+		}
+		polys = pick(next);
 	}
-	if (poly.GetCount() >= 3) {
+	if (!polys.IsEmpty()) {
 		const Geom2DShape& base = layer->shapes[select_2d_shapes[0]];
-		Geom2DShape shape;
-		shape.type = Geom2DShape::S_POLY;
-		shape.points = pick(poly);
-		shape.closed = true;
-		shape.stroke = base.stroke;
-		shape.width = base.width;
-		shape.stroke_cap = base.stroke_cap;
-		shape.stroke_join = base.stroke_join;
-		layer->shapes.Add(pick(shape));
+		for (int i = 0; i < polys.GetCount(); i++) {
+			Vector<vec2> poly = pick(polys[i]);
+			if (poly.GetCount() < 3)
+				continue;
+			Geom2DShape shape;
+			shape.type = Geom2DShape::S_POLY;
+			shape.points = pick(poly);
+			shape.closed = true;
+			shape.stroke = base.stroke;
+			shape.width = base.width;
+			shape.stroke_cap = base.stroke_cap;
+			shape.stroke_join = base.stroke_join;
+			layer->shapes.Add(pick(shape));
+		}
 	}
 	for (int i = select_2d_shapes.GetCount() - 1; i >= 0; i--)
 		layer->shapes.Remove(select_2d_shapes[i]);
@@ -4186,6 +4483,49 @@ bool Edit3D::Get2DSelectionCenter(vec3& out) {
 		bounds.Union(Get2DShapeBounds(layer->shapes[select_2d_shapes[i]]));
 	Pointf c = bounds.CenterPoint();
 	out = vec3((float)c.x, (float)c.y, 0.0f);
+	return true;
+}
+
+bool Edit3D::GetSelectionCenterWorld(vec3& out, GeomObject*& obj, bool& is2d) {
+	obj = nullptr;
+	is2d = false;
+	vec3 local(0);
+	if (!mesh_sel_points.IsEmpty() || !mesh_sel_lines.IsEmpty() || !mesh_sel_faces.IsEmpty()) {
+		obj = GetFocusedMeshObject();
+		if (!obj)
+			return false;
+		if (!GetMeshSelectionCenter(local))
+			return false;
+		is2d = false;
+	}
+	else if (!select_2d_shapes.IsEmpty()) {
+		obj = GetFocused2DObject();
+		if (!obj)
+			return false;
+		if (!Get2DSelectionCenter(local))
+			return false;
+		is2d = true;
+	}
+	else {
+		return false;
+	}
+	vec3 pos = vec3(0);
+	quat ori = Identity<quat>();
+	vec3 scale = vec3(1);
+	if (state) {
+		if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+			pos = os->position;
+			ori = os->orientation;
+			scale = os->scale;
+		}
+	}
+	else if (GeomTransform* tr = obj->FindTransform()) {
+		pos = tr->position;
+		ori = tr->orientation;
+		scale = tr->scale;
+	}
+	vec3 scaled(local[0] * scale[0], local[1] * scale[1], local[2] * scale[2]);
+	out = pos + VectorTransform(scaled, ori);
 	return true;
 }
 

@@ -17,6 +17,9 @@ Player::Player(float x, float y, float width, float height) {
 	score = 0;
 	invincibleTimer = 0.0f;
 	knockbackTimer = 0.0f;
+	attackHeld = false;
+	wasAttackHeld = false;
+	parasolHitbox = Rectf(0, 0, 0, 0);  // Will be updated in Update()
 }
 
 void Player::Update(float delta, const InputState& input, CollisionHandler& collision) {
@@ -114,6 +117,41 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 	// This handles cases where player drifts into wall while falling
 	if(IsTouchingWallOnLeft(collision) || IsTouchingWallOnRight(collision)) {
 		velocity.x = 0.0f;
+	}
+
+	// Update parasol attack
+	wasAttackHeld = attackHeld;
+	attackHeld = input.glideHeld;  // Use glide key for attack
+
+	// Update parasol hitbox position
+	if(attackHeld) {
+		// Parasol extends from player in facing direction
+		// Hitbox is 16x16 pixels, offset from player center
+		float parasolWidth = 16.0f;
+		float parasolHeight = 16.0f;
+		float centerX = bounds.left + bounds.Width() / 2.0f;
+		float centerY = bounds.top + bounds.Height() / 2.0f;
+
+		if(facing > 0) {
+			// Facing right - parasol extends to the right
+			parasolHitbox = Rectf(
+				centerX + 4.0f,
+				centerY - parasolHeight / 2.0f,
+				centerX + 4.0f + parasolWidth,
+				centerY + parasolHeight / 2.0f
+			);
+		} else {
+			// Facing left - parasol extends to the left
+			parasolHitbox = Rectf(
+				centerX - 4.0f - parasolWidth,
+				centerY - parasolHeight / 2.0f,
+				centerX - 4.0f,
+				centerY + parasolHeight / 2.0f
+			);
+		}
+	} else {
+		// No attack - collapse hitbox
+		parasolHitbox = Rectf(0, 0, 0, 0);
 	}
 }
 
@@ -367,6 +405,24 @@ void Player::Render(Draw& w, CoordinateConverter& coords) {
 		w.DrawRect(screenX + width - 2, screenY + height/2 - 2, 4, 4, dirColor);
 	} else {
 		w.DrawRect(screenX - 2, screenY + height/2 - 2, 4, 4, dirColor);
+	}
+
+	// Draw parasol hitbox when attacking
+	if(attackHeld && parasolHitbox.Width() > 0 && parasolHitbox.Height() > 0) {
+		Point parasolTopLeft((int)parasolHitbox.left, (int)parasolHitbox.top);
+		Point parasolBottomRight((int)parasolHitbox.right, (int)parasolHitbox.bottom);
+
+		Point screenParasolTL = coords.WorldToScreen(parasolTopLeft);
+		Point screenParasolBR = coords.WorldToScreen(parasolBottomRight);
+
+		int pX = min(screenParasolTL.x, screenParasolBR.x);
+		int pY = min(screenParasolTL.y, screenParasolBR.y);
+		int pWidth = abs(screenParasolBR.x - screenParasolTL.x);
+		int pHeight = abs(screenParasolBR.y - screenParasolTL.y);
+
+		// Draw parasol as semi-transparent cyan rectangle
+		Color parasolColor = Color(100, 255, 255);
+		w.DrawRect(pX, pY, pWidth, pHeight, parasolColor);
 	}
 }
 

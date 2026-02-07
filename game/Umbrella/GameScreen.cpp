@@ -141,7 +141,28 @@ void GameScreen::GameTick(float delta) {
 		enemies[i]->Update(delta, player, *this);
 	}
 
-	// Check player-enemy collisions
+	// Check parasol-enemy collisions (player attacking)
+	if(player.IsAttacking()) {
+		Rectf parasolBox = player.GetParasolHitbox();
+		for(int i = 0; i < enemies.GetCount(); i++) {
+			if(!enemies[i]->IsAlive()) continue;
+
+			Rectf enemyBounds = enemies[i]->GetBounds();
+
+			// Check if parasol hits enemy
+			if(parasolBox.left < enemyBounds.right &&
+			   parasolBox.right > enemyBounds.left &&
+			   min(parasolBox.top, parasolBox.bottom) < max(enemyBounds.top, enemyBounds.bottom) &&
+			   max(parasolBox.top, parasolBox.bottom) > min(enemyBounds.top, enemyBounds.bottom)) {
+				// Enemy defeated by parasol!
+				enemies[i]->Defeat();
+				player.AddScore(100);  // Base score for defeat
+				// TODO: Spawn treat/reward at enemy position
+			}
+		}
+	}
+
+	// Check player-enemy collisions (taking damage)
 	Rectf playerBounds = player.GetBounds();
 	for(int i = 0; i < enemies.GetCount(); i++) {
 		if(!enemies[i]->IsAlive()) continue;

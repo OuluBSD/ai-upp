@@ -54,6 +54,7 @@ public:
 	// Mutators
 	void TakeDamage(int amount);
 	void Kill();
+	void Defeat();  // Killed by player (triggers rewards)
 	void SetActive(bool act) { active = act; }
 	float GetGridSize(Player::CollisionHandler& collision) { return collision.GetGridSize(); }
 };

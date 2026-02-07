@@ -15,7 +15,7 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	zoom = 2.0f;
 	cameraOffset = Point(0, 0);
 	accumulator = 0.0;
-	paused = false;
+	gameState = PLAYING;
 	levelColumns = 0;
 	levelRows = 0;
 	gridSize = 14;
@@ -88,29 +88,27 @@ void GameScreen::RespawnPlayer() {
 }
 
 void GameScreen::LayoutLoop() {
-	if(paused) {
-		SetTimeCallback(16, [=] { LayoutLoop(); });
-		return;
+	// Only update game logic if playing
+	if(gameState == PLAYING) {
+		int64 now = GetTickCount();
+		double delta = (now - lastTime) / 1000.0;
+		lastTime = now;
+
+		// Cap delta to prevent spiral of death
+		if(delta > 0.25) {
+			delta = 0.25;
+		}
+
+		accumulator += delta;
+
+		// Fixed timestep update (60 FPS physics)
+		while(accumulator >= FIXED_TIMESTEP) {
+			GameTick((float)FIXED_TIMESTEP);
+			accumulator -= FIXED_TIMESTEP;
+		}
 	}
 
-	int64 now = GetTickCount();
-	double delta = (now - lastTime) / 1000.0;
-	lastTime = now;
-
-	// Cap delta to prevent spiral of death
-	if(delta > 0.25) {
-		delta = 0.25;
-	}
-
-	accumulator += delta;
-
-	// Fixed timestep update (60 FPS physics)
-	while(accumulator >= FIXED_TIMESTEP) {
-		GameTick((float)FIXED_TIMESTEP);
-		accumulator -= FIXED_TIMESTEP;
-	}
-
-	Refresh();  // Trigger Paint()
+	Refresh();  // Always render (shows pause/game over screens)
 	SetTimeCallback(16, [=] { LayoutLoop(); });  // ~60 FPS render
 }
 
@@ -127,6 +125,11 @@ void GameScreen::GameTick(float delta) {
 		// Player fell off - respawn and take damage
 		player.TakeDamage(1);
 		RespawnPlayer();
+
+		// Check for game over
+		if(player.GetLives() <= 0) {
+			HandleGameOver();
+		}
 	}
 
 	// Update camera to follow player
@@ -243,6 +246,21 @@ void GameScreen::Paint(Draw& w) {
 
 	// Render HUD (lives, score)
 	RenderHUD(w);
+
+	// Render overlays based on game state
+	switch(gameState) {
+		case PAUSED:
+			RenderPauseScreen(w);
+			break;
+		case GAME_OVER:
+			RenderGameOverScreen(w);
+			break;
+		case LEVEL_COMPLETE:
+			RenderLevelCompleteScreen(w);
+			break;
+		default:
+			break;
+	}
 }
 
 void GameScreen::RenderTiles(Draw& w) {
@@ -314,35 +332,55 @@ void GameScreen::RenderTiles(Draw& w) {
 }
 
 bool GameScreen::Key(dword key, int) {
-	// Handle key downs
+	// Handle key downs based on game state
 	switch(key) {
 		case K_ESCAPE:
+			if(gameState == PLAYING) {
+				SetGameState(PAUSED);
+				return true;
+			} else if(gameState == PAUSED) {
+				SetGameState(PLAYING);
+				return true;
+			}
 			Close();
 			return true;
+
 		case K_P:
-			paused = !paused;
+			if(gameState == PLAYING) {
+				SetGameState(PAUSED);
+			} else if(gameState == PAUSED) {
+				SetGameState(PLAYING);
+			}
 			return true;
 
-		// Movement keys
+		case K_R:
+			// Restart on game over or level complete
+			if(gameState == GAME_OVER || gameState == LEVEL_COMPLETE) {
+				RestartLevel();
+				return true;
+			}
+			break;
+
+		// Movement keys (only work when playing)
 		case K_LEFT:
 		case K_A:
-			keyLeft = true;
+			if(gameState == PLAYING) keyLeft = true;
 			return true;
 		case K_RIGHT:
 		case K_D:
-			keyRight = true;
+			if(gameState == PLAYING) keyRight = true;
 			return true;
 
-		// Jump keys
+		// Jump keys (only work when playing)
 		case K_SPACE:
 		case K_W:
 		case K_UP:
-			keyJump = true;
+			if(gameState == PLAYING) keyJump = true;
 			return true;
 
-		// Attack/Glide
+		// Attack/Glide (only work when playing)
 		case K_CTRL_RIGHT:
-			keyAttack = true;
+			if(gameState == PLAYING) keyAttack = true;
 			return true;
 
 		// Key ups (use bit flag to detect release)
@@ -427,6 +465,104 @@ void GameScreen::RenderHUD(Draw& w) {
 	String scoreText = Format("Score: %d", player.GetScore());
 	Size textSz = GetTextSize(scoreText, fnt);
 	w.DrawText(sz.cx - textSz.cx - 20, 10, scoreText, fnt, White());
+}
+
+void GameScreen::RenderPauseScreen(Draw& w) {
+	Size sz = GetSize();
+
+	// Semi-transparent overlay
+	Color overlayColor = Color(0, 0, 0);
+	w.DrawRect(0, 0, sz.cx, sz.cy, overlayColor);
+
+	// Title
+	Font titleFont = Arial(48).Bold();
+	String pauseText = "PAUSED";
+	Size titleSz = GetTextSize(pauseText, titleFont);
+	w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 60, pauseText, titleFont, White());
+
+	// Instructions
+	Font instructFont = Arial(24);
+	String resumeText = "Press ESC or P to Resume";
+	Size resumeSz = GetTextSize(resumeText, instructFont);
+	w.DrawText((sz.cx - resumeSz.cx) / 2, sz.cy / 2 + 20, resumeText, instructFont, White());
+}
+
+void GameScreen::RenderGameOverScreen(Draw& w) {
+	Size sz = GetSize();
+
+	// Dark overlay
+	Color overlayColor = Color(20, 0, 0);
+	w.DrawRect(0, 0, sz.cx, sz.cy, overlayColor);
+
+	// Title
+	Font titleFont = Arial(56).Bold();
+	String gameOverText = "GAME OVER";
+	Size titleSz = GetTextSize(gameOverText, titleFont);
+	w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 80, gameOverText, titleFont, Color(255, 50, 50));
+
+	// Score
+	Font scoreFont = Arial(32);
+	String finalScore = Format("Final Score: %d", player.GetScore());
+	Size scoreSz = GetTextSize(finalScore, scoreFont);
+	w.DrawText((sz.cx - scoreSz.cx) / 2, sz.cy / 2, finalScore, scoreFont, White());
+
+	// Instructions
+	Font instructFont = Arial(24);
+	String restartText = "Press R to Restart";
+	Size restartSz = GetTextSize(restartText, instructFont);
+	w.DrawText((sz.cx - restartSz.cx) / 2, sz.cy / 2 + 60, restartText, instructFont, Color(200, 200, 200));
+
+	String quitText = "Press ESC to Quit";
+	Size quitSz = GetTextSize(quitText, instructFont);
+	w.DrawText((sz.cx - quitSz.cx) / 2, sz.cy / 2 + 100, quitText, instructFont, Color(200, 200, 200));
+}
+
+void GameScreen::RenderLevelCompleteScreen(Draw& w) {
+	Size sz = GetSize();
+
+	// Light overlay
+	Color overlayColor = Color(0, 20, 0);
+	w.DrawRect(0, 0, sz.cx, sz.cy, overlayColor);
+
+	// Title
+	Font titleFont = Arial(56).Bold();
+	String completeText = "LEVEL COMPLETE!";
+	Size titleSz = GetTextSize(completeText, titleFont);
+	w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 80, completeText, titleFont, Color(50, 255, 50));
+
+	// Score
+	Font scoreFont = Arial(32);
+	String finalScore = Format("Score: %d", player.GetScore());
+	Size scoreSz = GetTextSize(finalScore, scoreFont);
+	w.DrawText((sz.cx - scoreSz.cx) / 2, sz.cy / 2, finalScore, scoreFont, White());
+
+	// Instructions
+	Font instructFont = Arial(24);
+	String continueText = "Press R to Continue";
+	Size continueSz = GetTextSize(continueText, instructFont);
+	w.DrawText((sz.cx - continueSz.cx) / 2, sz.cy / 2 + 60, continueText, instructFont, Color(200, 200, 200));
+}
+
+void GameScreen::SetGameState(GameState newState) {
+	gameState = newState;
+
+	// Reset input state when changing states
+	keyLeft = keyRight = keyJump = keyAttack = false;
+	prevKeyJump = prevKeyAttack = false;
+}
+
+void GameScreen::HandleGameOver() {
+	SetGameState(GAME_OVER);
+}
+
+void GameScreen::RestartLevel() {
+	// Reload the level
+	if(!levelPath.IsEmpty()) {
+		LoadLevel(levelPath);
+		SetGameState(PLAYING);
+		lastTime = GetTickCount();
+		accumulator = 0.0;
+	}
 }
 
 void GameScreen::ClearEnemies() {

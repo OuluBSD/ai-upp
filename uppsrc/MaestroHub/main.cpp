@@ -20,8 +20,8 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	AddFrame(toolbar);
 
 	toolbar.Set([=](Bar& bar) {
-		bar.Add(CtrlImg::left(), THISBACK(OnBack)).Enable(history_pos > 0).Tip("Back");
-		bar.Add(CtrlImg::right(), THISBACK(OnNext)).Enable(history_pos < tab_history.GetCount() - 1).Tip("Forward");
+		bar.Add(CtrlImg::go_back(), THISBACK(OnBack)).Enable(history_pos > 0).Tip("Back");
+		bar.Add(CtrlImg::go_forward(), THISBACK(OnNext)).Enable(history_pos < tab_history.GetCount() - 1).Tip("Forward");
 		bar.Separator();
 		bar.Add(CtrlImg::Dir(), THISBACK(SelectRoot)).Tip("Open Project Directory");
 		bar.Separator();
@@ -50,6 +50,12 @@ MaestroHubCockpit::MaestroHubCockpit() {
 				assistant->chat.input.SetData(prompt);
 				// assistant->chat.OnSend(); // Let user confirm? Or auto send?
 				// Prompt is populated, user can review.
+			}
+		};
+		intelligence->tu_browser->WhenSynthesize << [=](String prompt) {
+			if(assistant) {
+				if(!assistant->is_expanded) OnToggleAssistant();
+				assistant->chat.input.SetData(prompt);
 			}
 		};
 	}
@@ -396,6 +402,12 @@ void MaestroHubCockpit::OnTriageWizard() {
 
 void MaestroHubCockpit::OnRunbookEditor() {
 	RunbookEditor dlg;
+	dlg.WhenAssist << [=](String prompt) {
+		if(assistant) {
+			if(!assistant->is_expanded) OnToggleAssistant();
+			assistant->chat.input.SetData(prompt);
+		}
+	};
 	if(dlg.Run() == IDOK) {
 		LoadData();
 	}

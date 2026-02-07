@@ -8,6 +8,13 @@
 
 using namespace Upp;
 
+enum GameState {
+	PLAYING,
+	PAUSED,
+	GAME_OVER,
+	LEVEL_COMPLETE
+};
+
 class GameScreen : public TopWindow, public Player::CollisionHandler, public Player::CoordinateConverter {
 public:  // Public for testing
 	String levelPath;
@@ -22,7 +29,9 @@ public:  // Public for testing
 	int64 lastTime;
 	static constexpr double FIXED_TIMESTEP = 1.0 / 60.0;
 	double accumulator;
-	bool paused;
+
+	// Game state
+	GameState gameState;
 
 	// Level dimensions
 	int levelColumns;
@@ -52,6 +61,9 @@ public:
 	virtual void Paint(Draw& w) override;
 	void RenderTiles(Draw& w);
 	void RenderHUD(Draw& w);
+	void RenderPauseScreen(Draw& w);
+	void RenderGameOverScreen(Draw& w);
+	void RenderLevelCompleteScreen(Draw& w);
 
 	// Camera
 	void UpdateCamera(Point targetPos);
@@ -72,6 +84,12 @@ public:
 	// Input
 	virtual bool Key(dword key, int) override;
 	void UpdateInput();
+
+	// Game state
+	void SetGameState(GameState newState);
+	GameState GetGameState() const { return gameState; }
+	void HandleGameOver();
+	void RestartLevel();
 
 	// CollisionHandler interface
 	virtual bool IsFullBlockTile(int col, int row) override;

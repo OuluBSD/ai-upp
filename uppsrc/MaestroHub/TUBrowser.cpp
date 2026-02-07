@@ -8,26 +8,28 @@ TUBrowser::TUBrowser() {
 	left_pane.Add(pkg_search.TopPos(0, 24).HSizePos());
 	left_pane.Add(pkg_list.VSizePos(24, 0).HSizePos());
 	
-	pkg_list.AddColumn("Package");
-	pkg_list.WhenCursor = THISBACK(OnPackageCursor);
+pkg_list.AddColumn("Package");
+pkg_list.WhenCursor = THISBACK(OnPackageCursor);
+pkg_list.WhenBar = [=](Bar& bar) {
+		if(pkg_list.IsCursor()) {
+			bar.Add("Synthesize Workflow...", THISBACK(OnSynthesize));
+		}
+	};
 	
-	symbol_pane.Add(sym_search.TopPos(0, 24).HSizePos());
-	symbol_pane.Add(sym_list.VSizePos(24, 0).HSizePos());
-	sym_list.AddColumn("Symbol");
-	sym_list.AddColumn("Type");
-	sym_list.AddColumn("Location");
-	
+symbol_pane.Add(sym_search.TopPos(0, 24).HSizePos());
+symbol_pane.Add(sym_list.VSizePos(24, 0).HSizePos());
+sym_list.AddColumn("Symbol");
+sym_list.AddColumn("Type");
+sym_list.AddColumn("Location");
 	details.Add(symbol_pane.SizePos(), "Symbols");
-	details.Add(dep_view.SizePos(), "Dependencies");
-	
+details.Add(dep_view.SizePos(), "Dependencies");
 	split.Horz(left_pane, details);
-	split.SetPos(2500);
+split.SetPos(2500);
 	
-	pkg_search.NullText("Filter packages...");
-	pkg_search.WhenAction = THISBACK(UpdatePackages);
-	
+pkg_search.NullText("Filter packages...");
+pkg_search.WhenAction = THISBACK(UpdatePackages);
 	sym_search.NullText("Filter symbols...");
-	sym_search.WhenAction = THISBACK(UpdateSymbols);
+sym_search.WhenAction = THISBACK(UpdateSymbols);
 }
 
 void TUBrowser::Load(const String& maestro_root) {
@@ -67,8 +69,20 @@ void TUBrowser::UpdateSymbols() {
 	if(!pkg_list.IsCursor()) return;
 	String pkg = pkg_list.Get(0);
 	
-	sym_list.Add("FooClass", "class", pkg + "/Foo.h:10");
-	sym_list.Add("BarFunction", "func", pkg + "/Bar.cpp:50");
+sym_list.Add("FooClass", "class", pkg + "/Foo.h:10");
+sym_list.Add("BarFunction", "func", pkg + "/Bar.cpp:50");
+}
+
+void TUBrowser::OnSynthesize() {
+	if(!pkg_list.IsCursor()) return;
+	String pkg = pkg_list.Get(0);
+	
+	String prompt;
+	prompt << "Please analyze the package **" << pkg << "** in the project root.\n";
+	prompt << "Identify the main logic flow and synthesis a high-level workflow graph (states and transitions) representing its operation.\n";
+	prompt << "Output the result as a JSON compatible with Maestro Workflow format.";
+	
+	if(WhenSynthesize) WhenSynthesize(prompt);
 }
 
 END_UPP_NAMESPACE

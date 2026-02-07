@@ -5,6 +5,18 @@ NAMESPACE_UPP
 StepWizard::StepWizard() {
 	CtrlLayout(*this, "Step Wizard");
 	
+	Add(ai_assist.SetLabel("AI Assist").RightPos(10, 80).TopPos(5, 24));
+	ai_assist << [=] {
+		String prompt;
+		prompt << "I am authoring a Runbook step.\n";
+		prompt << "Action: " << (String)action.GetData() << "\n";
+		prompt << "Command: " << (String)command.GetData() << "\n";
+		prompt << "Expected Result: " << (String)result.GetData() << "\n";
+		prompt << "Please suggest improvements, error handling, or specific command variants for Linux/Windows.";
+		
+		if(WhenAssist) WhenAssist(prompt);
+	};
+	
 	variants.AddColumn("OS / Key");
 	variants.AddColumn("Command");
 	

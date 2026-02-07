@@ -178,6 +178,16 @@ void MaestroHubCockpit::MainMenu(Bar& bar) {
 		b.Add("State Machine Editor...", THISBACK(OnStateEditor));
 	});
 
+	bar.Sub("Product", [=](Bar& b) {
+		b.Add("Modeling & Logic", [=] { center_tabs.Set(3); }); 
+		b.Separator();
+		b.Add("UX Evaluation Factory...", [=] { 
+			UXEvaluationFactory dlg;
+			dlg.Load(current_root);
+			dlg.Run();
+		});
+	});
+
 	bar.Sub("Intelligence", [=](Bar& b) {
 		b.Add("TU Browser", THISBACK(OnTUBrowser));
 		b.Add("Log Analyzer", THISBACK(OnLogAnalyzer));

@@ -246,15 +246,24 @@ public:
 	WithPipelineLayout<ParentCtrl> layout;
 };
 
-class ProductPane : public WithProductLayout<ParentCtrl> {
+class ProductPane : public ParentCtrl {
 public:
-	CodeEditor  puml_editor;
-	RichTextView logic_view;
-	Splitter    split;
+	Splitter split, vsplit_rb, vsplit_wg, wg_split;
+	ArrayCtrl runbooks, workflows;
+	RichTextView rb_detail, wg_detail;
+	GraphLib::GraphNodeCtrl workflow_graph;
+	ParentCtrl workflow_view;
+	
+	Array<Runbook> runbook_data;
+	Vector<WorkGraph> workflow_data;
 	
 	String      root;
 	void Load(const String& root);
 	void OnEnactStep(int step, const String& instruction);
+	void OnRunbookSelect();
+	void OnWorkflowSelect();
+	void OnNodeClick(GraphLib::Node& n);
+	void OnNodeRightClick(GraphLib::Node& n);
 	
 	Callback3<String, int, String> WhenEnactStep;
 

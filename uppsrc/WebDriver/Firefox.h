@@ -21,8 +21,28 @@ struct FirefoxProfile { // copyable
 	}
 };
 
+struct FirefoxOptions { // copyable
+	Vector<String> args;
+	ValueMap prefs;
+	String binary;
+	Value log;
+	
+	void Jsonize(JsonIO& json) {
+		json("args", args)("prefs", prefs)("binary", binary)("log", log);
+	}
+	
+	void SetPreference(const String& name, const Value& value) {
+		prefs.Set(name, value);
+	}
+	
+	void AddArgument(const String& arg) {
+		args.Add(arg);
+	}
+};
+
 struct Firefox : Capabilities { // copyable
 	FirefoxProfile profile;
+	FirefoxOptions options;
 	
 	Firefox(const Capabilities& defaults = Capabilities())
 		: Capabilities(defaults) {
@@ -31,10 +51,12 @@ struct Firefox : Capabilities { // copyable
 		platform = platform::K_ANY;
 	}
 
-	// See https://github.com/SeleniumHQ/selenium/wiki/DesiredCapabilities for details
+	void ApplyStealthSettings(bool silence_audio = false);
+
 	void Jsonize(JsonIO& json) {
+		Capabilities::Jsonize(json);
 		json("firefox_profile", profile)
-			("loggingPrefs", logging_prefs);
+			("moz:firefoxOptions", options);
 	}
 };
 

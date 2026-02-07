@@ -71,6 +71,8 @@ public:
 	const Session& SetImplicitTimeoutMs(int milliseconds);
 	const Session& SetAsyncScriptTimeoutMs(int milliseconds);
 
+	const Session& ApplyStealthJS() const;
+
 	void DeleteSession() const; // No need to delete sessions created by WebDriver or Client
 	virtual ~Session() {}
 

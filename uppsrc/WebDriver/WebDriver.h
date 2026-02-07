@@ -19,6 +19,8 @@
 #include "Phantom.h"
 #include "Wait.h"
 #include "WaitMatch.h"
+#include "StealthJS.h"
+#include "Undetected.h"
 
 NAMESPACE_UPP
 

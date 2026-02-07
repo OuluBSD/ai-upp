@@ -8,6 +8,9 @@
 
 using namespace Upp;
 
+// Forward declarations
+class Treat;
+
 enum GameState {
 	PLAYING,
 	PAUSED,
@@ -44,6 +47,9 @@ public:  // Public for testing
 
 	// Enemies
 	Array<Enemy*> enemies;
+
+	// Treats (rewards from defeated enemies)
+	Array<Treat*> treats;
 
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;

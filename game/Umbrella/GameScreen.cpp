@@ -4,6 +4,7 @@
 #include "EnemyPatroller.h"
 #include "EnemyJumper.h"
 #include "EnemyShooter.h"
+#include "Treat.h"
 
 using namespace Upp;
 
@@ -141,6 +142,37 @@ void GameScreen::GameTick(float delta) {
 		enemies[i]->Update(delta, player, *this);
 	}
 
+	// Update treats
+	for(int i = 0; i < treats.GetCount(); i++) {
+		treats[i]->Update(delta, *this);
+	}
+
+	// Remove inactive treats
+	for(int i = treats.GetCount() - 1; i >= 0; i--) {
+		if(!treats[i]->IsActive()) {
+			delete treats[i];
+			treats.Remove(i);
+		}
+	}
+
+	// Check treat-player collision (get player bounds again)
+	Rectf playerBoundsForTreats = player.GetBounds();
+	for(int i = 0; i < treats.GetCount(); i++) {
+		if(!treats[i]->IsActive()) continue;
+
+		Rectf treatBounds = treats[i]->GetBounds();
+
+		// Check if player collects treat
+		if(playerBoundsForTreats.left < treatBounds.right &&
+		   playerBoundsForTreats.right > treatBounds.left &&
+		   min(playerBoundsForTreats.top, playerBoundsForTreats.bottom) < max(treatBounds.top, treatBounds.bottom) &&
+		   max(playerBoundsForTreats.top, playerBoundsForTreats.bottom) > min(treatBounds.top, treatBounds.bottom)) {
+			// Treat collected!
+			player.AddScore(treats[i]->GetScoreValue());
+			treats[i]->Collect();
+		}
+	}
+
 	// Check parasol-enemy collisions (player attacking)
 	if(player.IsAttacking()) {
 		Rectf parasolBox = player.GetParasolHitbox();
@@ -157,7 +189,27 @@ void GameScreen::GameTick(float delta) {
 				// Enemy defeated by parasol!
 				enemies[i]->Defeat();
 				player.AddScore(100);  // Base score for defeat
-				// TODO: Spawn treat/reward at enemy position
+
+				// Spawn treat at enemy position
+				Pointf enemyCenter;
+				enemyCenter.x = (enemyBounds.left + enemyBounds.right) / 2.0f;
+				enemyCenter.y = (enemyBounds.top + enemyBounds.bottom) / 2.0f;
+
+				// Determine treat type based on enemy type
+				TreatType treatType = TREAT_PEAR;  // Default
+				switch(enemies[i]->GetType()) {
+					case ENEMY_PATROLLER:
+						treatType = TREAT_PEAR;
+						break;
+					case ENEMY_JUMPER:
+						treatType = TREAT_BANANA;
+						break;
+					case ENEMY_SHOOTER:
+						treatType = TREAT_BLUEBERRY;
+						break;
+				}
+
+				treats.Add(new Treat(enemyCenter.x, enemyCenter.y, treatType));
 			}
 		}
 	}
@@ -260,6 +312,11 @@ void GameScreen::Paint(Draw& w) {
 	// Render enemies
 	for(int i = 0; i < enemies.GetCount(); i++) {
 		enemies[i]->Render(w, *this);
+	}
+
+	// Render treats
+	for(int i = 0; i < treats.GetCount(); i++) {
+		treats[i]->Render(w, *this);
 	}
 
 	// Render player (using WorldToScreen for proper Y-flip)
@@ -591,6 +648,12 @@ void GameScreen::ClearEnemies() {
 		delete enemies[i];
 	}
 	enemies.Clear();
+
+	// Also clear treats
+	for(int i = 0; i < treats.GetCount(); i++) {
+		delete treats[i];
+	}
+	treats.Clear();
 }
 
 void GameScreen::SpawnEnemies() {

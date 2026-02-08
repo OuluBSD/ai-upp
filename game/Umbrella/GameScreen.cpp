@@ -281,9 +281,10 @@ void GameScreen::GameTick(float delta) {
 		levelCompleteTimer -= delta;
 
 		if(levelCompleteTimer <= 0.0f) {
-			// Time's up! Transition to level complete state
+			// Time's up! Start transition sequence
+			// TODO: Implement hover, scroll, and level transition
 			SetGameState(LEVEL_COMPLETE);
-			LOG("Level completion timeout reached. Transitioning...");
+			LOG("Level completion timeout reached. Starting transition...");
 		}
 	}
 
@@ -525,6 +526,11 @@ void GameScreen::Paint(Draw& w) {
 	// Render HUD (lives, score)
 	RenderHUD(w);
 
+	// Render level complete overlay if all enemies killed (even in PLAYING state)
+	if(allEnemiesKilled) {
+		RenderLevelCompleteScreen(w);
+	}
+
 	// Render overlays based on game state
 	switch(gameState) {
 		case PAUSED:
@@ -534,7 +540,7 @@ void GameScreen::Paint(Draw& w) {
 			RenderGameOverScreen(w);
 			break;
 		case LEVEL_COMPLETE:
-			RenderLevelCompleteScreen(w);
+			// Transition screen (no longer needed here, handled above)
 			break;
 		default:
 			break;
@@ -817,27 +823,27 @@ void GameScreen::RenderGameOverScreen(Draw& w) {
 void GameScreen::RenderLevelCompleteScreen(Draw& w) {
 	Size sz = GetSize();
 
-	// Light overlay
-	Color overlayColor = Color(0, 20, 0);
-	w.DrawRect(0, 0, sz.cx, sz.cy, overlayColor);
+	// Just show overlay text at top of screen - game continues underneath
+	if(allEnemiesKilled && levelCompleteTimer > 0) {
+		// Show countdown timer
+		Font timerFont = Arial(32).Bold();
+		String timerText = Format("All Enemies Defeated! Collect treats: %.1fs", levelCompleteTimer);
+		Size timerSz = GetTextSize(timerText, timerFont);
 
-	// Title
-	Font titleFont = Arial(56).Bold();
-	String completeText = "LEVEL COMPLETE!";
-	Size titleSz = GetTextSize(completeText, titleFont);
-	w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 80, completeText, titleFont, Color(50, 255, 50));
+		// Dark background for text readability
+		w.DrawRect((sz.cx - timerSz.cx) / 2 - 10, 20, timerSz.cx + 20, timerSz.cy + 10, Black());
+		w.DrawText((sz.cx - timerSz.cx) / 2, 25, timerText, timerFont, Color(100, 255, 100));
+	}
+	else {
+		// Transition happening - show simple message
+		Font titleFont = Arial(48).Bold();
+		String completeText = "LEVEL COMPLETE!";
+		Size titleSz = GetTextSize(completeText, titleFont);
 
-	// Score
-	Font scoreFont = Arial(32);
-	String finalScore = Format("Score: %d", player.GetScore());
-	Size scoreSz = GetTextSize(finalScore, scoreFont);
-	w.DrawText((sz.cx - scoreSz.cx) / 2, sz.cy / 2, finalScore, scoreFont, White());
-
-	// Instructions
-	Font instructFont = Arial(24);
-	String continueText = "Press R to Continue";
-	Size continueSz = GetTextSize(continueText, instructFont);
-	w.DrawText((sz.cx - continueSz.cx) / 2, sz.cy / 2 + 60, continueText, instructFont, Color(200, 200, 200));
+		// Dark background for text readability
+		w.DrawRect((sz.cx - titleSz.cx) / 2 - 10, sz.cy / 2 - 50, titleSz.cx + 20, titleSz.cy + 10, Black());
+		w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 45, completeText, titleFont, Color(50, 255, 50));
+	}
 }
 
 void GameScreen::SetGameState(GameState newState) {

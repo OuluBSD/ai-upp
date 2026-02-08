@@ -80,8 +80,11 @@ String PatchFirefoxBinary() {
 	String dst_xul = AppendFileName(dst, xul_name);
 	
 	if (!FileExists(src_xul)) {
-		RLOG("WebDriver: Warning: Could not find " + xul_name + " in " + src);
-		return "";
+		src_xul = AppendFileName(AppendFileName(src, "browser"), xul_name);
+		if (!FileExists(src_xul)) {
+			RLOG("WebDriver: Warning: Could not find " + xul_name + " in " + src);
+			return "";
+		}
 	}
 
 	String exe_name = "firefox";
@@ -115,6 +118,11 @@ String PatchFirefoxBinary() {
 		RLOG("WebDriver: Undetected Firefox already exists at " << dst_exe);
 	}
 	
+	// Re-verify dst_xul location in copy
+	if (!FileExists(dst_xul)) {
+		dst_xul = AppendFileName(AppendFileName(dst, "browser"), xul_name);
+	}
+	
 	if (FileExists(dst_xul)) {
 		String data = LoadFile(dst_xul);
 		const char* target = "webdriver";
@@ -122,13 +130,13 @@ String PatchFirefoxBinary() {
 		
 		int pos = data.Find(target);
 		if (pos >= 0) {
-			RLOG("WebDriver: Patching " + xul_name);
+			RLOG("WebDriver: Patching " + dst_xul);
 			
 			String replacement;
 			for (int i = 0; i < len; i++)
 				replacement.Cat('a' + Random(26));
 			
-			RLOG("WebDriver: Patching " << target << " with " << replacement << " in " << xul_name);
+			RLOG("WebDriver: Patching " << target << " with " << replacement << " in " << dst_xul);
 				
 			while (pos >= 0) {
 				for (int i = 0; i < len; i++)
@@ -137,6 +145,8 @@ String PatchFirefoxBinary() {
 				pos = data.Find(target, pos + len);
 			}
 			SaveFile(dst_xul, data);
+		} else {
+			RLOG("WebDriver: " << dst_xul << " already patched or does not contain '" << target << "'");
 		}
 	}
 	
@@ -155,32 +165,56 @@ String GetFirefoxDefaultProfilePath() {
 	if (!FileExists(path)) return "";
 
 	String data = LoadFile(path);
-	Vector<String> lines = Split(data, '\n');
+	Vector<String> sections = Split(data, '[');
 	
-	String default_path;
-	String first_path;
-	bool is_default = false;
+	String default_profile_name;
+	String first_profile_path;
 	
-	for (int i = 0; i < lines.GetCount(); i++) {
-		String line = TrimBoth(lines[i]);
-		if (line.StartsWith("[")) {
-			is_default = false;
+	// First pass: look for Default in [Install...] or [General]
+	for (const String& section_content : sections) {
+		Vector<String> lines = Split(section_content, '\n');
+		bool is_install = false;
+		if (lines.GetCount() > 0) {
+			String header = lines[0];
+			if (header.StartsWith("Install")) is_install = true;
 		}
-		if (line.StartsWith("Default=1")) {
-			is_default = true;
+		
+		for (int i = 1; i < lines.GetCount(); i++) {
+			String line = TrimBoth(lines[i]);
+			if (line.StartsWith("Default=")) {
+				String val = line.Mid(8);
+				if (is_install) return AppendFileName(GetFileFolder(path), val);
+				if (default_profile_name.IsEmpty()) default_profile_name = val;
+			}
 		}
-		if (line.StartsWith("Path=")) {
-			String p = line.Mid(5);
-			if (first_path.IsEmpty()) first_path = p;
-			if (is_default) default_path = p;
+	}
+
+	// Second pass: find the path for the default profile or first profile
+	for (const String& section_content : sections) {
+		Vector<String> lines = Split(section_content, '\n');
+		bool is_profile = false;
+		if (lines.GetCount() > 0 && lines[0].StartsWith("Profile")) is_profile = true;
+		if (!is_profile) continue;
+
+		String p_path;
+		String p_name;
+		bool is_p_default = false;
+
+		for (int i = 1; i < lines.GetCount(); i++) {
+			String line = TrimBoth(lines[i]);
+			if (line.StartsWith("Path=")) p_path = line.Mid(5);
+			if (line.StartsWith("Name=")) p_name = line.Mid(5);
+			if (line.StartsWith("Default=1")) is_p_default = true;
+		}
+
+		if (first_profile_path.IsEmpty()) first_profile_path = p_path;
+		if (is_p_default || (!default_profile_name.IsEmpty() && (p_name == default_profile_name || p_path == default_profile_name))) {
+			return AppendFileName(GetFileFolder(path), p_path);
 		}
 	}
 	
-	if (default_path.IsEmpty()) default_path = first_path;
-	if (default_path.IsEmpty()) return "";
-	
-	String base_dir = GetFileFolder(path);
-	return AppendFileName(base_dir, default_path);
+	if (first_profile_path.IsEmpty()) return "";
+	return AppendFileName(GetFileFolder(path), first_profile_path);
 }
 
 } // namespace detail

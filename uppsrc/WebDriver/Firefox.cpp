@@ -33,8 +33,15 @@ void Firefox::ApplyStealthSettings(bool silence_audio) {
 	options.SetPreference("webgl.enable-webgl", true);
 	options.SetPreference("webgl.enable-debug-renderer-info", true);
 	
+	options.SetPreference("browser.webdriver.privileged", false);
+	options.SetPreference("devtools.debugger.prompt-connection", false);
+	
 	options.SetPreference("media.autoplay.default", 0);
 	options.SetPreference("media.autoplay.blocking_policy", 0);
+	
+	options.AddArgument("--disable-infobars");
+	options.AddArgument("--disable-extensions");
+	options.AddArgument("--no-sandbox");
 	
 	if (silence_audio)
 		options.SetPreference("media.volume_scale", "0.0");

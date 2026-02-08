@@ -98,7 +98,7 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 	GetAriaLogger("navigator").Error("Failed to start " + exe + ".");
 }
 
-void AriaNavigator::StartSession(const String& browser_name, bool headless) {
+void AriaNavigator::StartSession(const String& browser_name, bool headless, bool use_profile) {
 	EnsureDriverRunning(browser_name);
 	GetAriaLogger("navigator").Info("Starting browser session: " + browser_name);
 	
@@ -106,6 +106,17 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless) {
 	if (browser_name == "firefox") {
 		caps.ApplyStealthSettings();
 		if (headless) caps.options.AddArgument("--headless");
+		
+		if (use_profile) {
+			String profile_path = detail::GetFirefoxDefaultProfilePath();
+			if (!profile_path.IsEmpty()) {
+				GetAriaLogger("navigator").Info("Using Firefox profile: " + profile_path);
+				caps.options.AddArgument("-profile");
+				caps.options.AddArgument(profile_path);
+			} else {
+				GetAriaLogger("navigator").Warning("Could not find default Firefox profile.");
+			}
+		}
 		
 		// Use patched binary
 		String patched_exe = detail::PatchFirefoxBinary();

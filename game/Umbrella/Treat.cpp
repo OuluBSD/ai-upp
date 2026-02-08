@@ -61,14 +61,24 @@ void Treat::Update(float delta, Player::CollisionHandler& collision) {
 	int minCol = (int)(bounds.left / gridSize);
 	int maxCol = (int)(bounds.right / gridSize);
 	float feetY = min(bounds.top, bounds.bottom);
-	int floorRow = (int)((feetY - 1.0f) / gridSize);
+	int floorRow = (int)(feetY / gridSize);
 
-	for(int col = minCol; col <= maxCol; col++) {
-		if(collision.IsFloorTile(col, floorRow)) {
-			// Hit floor - stop falling
-			velocity.y = 0.0f;
-			velocity.x *= 0.8f;  // Friction
-			break;
+	// Only check floor if falling down
+	if(velocity.y < 0) {
+		for(int col = minCol; col <= maxCol; col++) {
+			if(collision.IsFloorTile(col, floorRow)) {
+				// Check if we're crossing the floor boundary
+				float tileTopY = (floorRow + 1) * gridSize;
+				if(feetY < tileTopY + 0.5f) {  // Small epsilon for landing
+					// Snap to floor top
+					float correction = tileTopY - feetY;
+					bounds.top += correction;
+					bounds.bottom += correction;
+					velocity.y = 0.0f;
+					velocity.x *= 0.8f;  // Friction
+					break;
+				}
+			}
 		}
 	}
 

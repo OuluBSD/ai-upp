@@ -7,7 +7,13 @@
 
 ## Completed Today
 
-1. ✓ **Track 6.2**: Parasol Attack System (6 hours)
+1. ✓ **Track 6.2**: Parasol Attack System - REFACTORED (8 hours)
+   - Implemented proper capture-and-throw mechanics
+   - Added parasol state machine (IDLE, ATTACKING, GLIDING)
+   - Glide/slow fall when holding umbrella while airborne
+   - Enemies captured on umbrella, thrown horizontally on button release
+   - Thrown enemies defeated when hitting walls
+
 2. ✓ **Track 6.3**: Rewards/Treats System (3 hours)
 
 ---

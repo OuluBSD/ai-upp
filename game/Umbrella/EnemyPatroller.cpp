@@ -13,22 +13,32 @@ EnemyPatroller::EnemyPatroller(float x, float y)
 void EnemyPatroller::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
 	if(!alive || !active) return;
 
-	// Apply gravity
-	velocity.y += GRAVITY * delta;
-	if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
-
-	// Set horizontal velocity based on facing
-	velocity.x = facing * WALK_SPEED;
-
-	// Check for walls or edges - turn around
-	bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
-	               (facing > 0 && IsTouchingWallOnRight(collision));
-
-	bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
-
-	if(hitWall || noFloorAhead) {
-		facing = -facing;
+	// If thrown, skip both gravity and AI - purely horizontal movement
+	if(!thrown) {
+		// Apply gravity
+		velocity.y += GRAVITY * delta;
+		if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
+		// Set horizontal velocity based on facing
 		velocity.x = facing * WALK_SPEED;
+
+		// Check for walls or edges - turn around
+		bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
+		               (facing > 0 && IsTouchingWallOnRight(collision));
+
+		bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
+
+		if(hitWall || noFloorAhead) {
+			facing = -facing;
+			velocity.x = facing * WALK_SPEED;
+		}
+	}
+	else {
+		// Check for wall collision when thrown
+		if(CheckThrownWallCollision(velocity.x * delta, collision)) {
+			// Mark for destruction - GameScreen will spawn treat
+			Defeat();
+			return;
+		}
 	}
 
 	// Apply movement with collision

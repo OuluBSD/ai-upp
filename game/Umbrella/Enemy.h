@@ -18,10 +18,13 @@ protected:
 	Pointf velocity;
 	int health;
 	bool alive;
-	bool active;
+	bool active;      // Active in world (not captured)
+	bool captured;    // Captured by player on umbrella
+	bool thrown;      // Thrown by player
 	float stateTimer;
 	int facing;  // -1 left, 1 right
 	EnemyType type;
+	float carryWeight;  // Weight for carrying on umbrella
 
 	// Physics constants
 	static constexpr float GRAVITY = -490.0f;
@@ -46,17 +49,26 @@ public:
 	// Accessors
 	bool IsAlive() const { return alive; }
 	bool IsActive() const { return active; }
+	bool IsCaptured() const { return captured; }
+	bool IsThrown() const { return thrown; }
 	Rectf GetBounds() const { return bounds; }
 	Pointf GetVelocity() const { return velocity; }
 	EnemyType GetType() const { return type; }
 	int GetFacing() const { return facing; }
+	float GetCarryWeight() const { return carryWeight; }
 
 	// Mutators
 	void TakeDamage(int amount);
 	void Kill();
 	void Defeat();  // Killed by player (triggers rewards)
+	void Capture();  // Captured by player umbrella
+	void ThrowFrom(float x, float y, float vx, float vy);  // Thrown by player
 	void SetActive(bool act) { active = act; }
+	void SetBounds(const Rectf& b) { bounds = b; }
 	float GetGridSize(Player::CollisionHandler& collision) { return collision.GetGridSize(); }
+
+	// Check if thrown enemy hit wall and should be destroyed
+	bool CheckThrownWallCollision(float deltaX, Player::CollisionHandler& collision);
 };
 
 #endif

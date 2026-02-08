@@ -8,6 +8,8 @@ uses
 
 file
 	Umbrella.h,
+	CommandLineArguments.h,
+	CommandLineArguments.cpp,
 	Tile.h,
 	Tile.cpp,
 	MapGrid.h,

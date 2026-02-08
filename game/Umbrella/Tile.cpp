@@ -16,6 +16,9 @@ Color TileTypeToColor(TileType type) {
 		case TILE_FULLBLOCK:
 			// FullBlock: RGB(0.98, 0.85, 0.22) - yellow
 			return Color(250, 217, 56);
+		case TILE_GOAL:
+			// Goal: Bright green/gold - very visible
+			return Color(100, 255, 100);
 		default:
 			return Gray();
 	}
@@ -27,6 +30,7 @@ String TileTypeToString(TileType type) {
 		case TILE_WALL: return "Wall";
 		case TILE_BACKGROUND: return "Background";
 		case TILE_FULLBLOCK: return "FullBlock";
+		case TILE_GOAL: return "Goal";
 		default: return "Unknown";
 	}
 }

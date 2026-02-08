@@ -35,10 +35,19 @@ void Enemy::Kill() {
 
 void Enemy::Defeat() {
 	// Killed by player parasol attack
-	// Mark as dead (will trigger reward spawning in GameScreen)
 	alive = false;
-	active = false;
+	active = false;  // Disable AI
 	captured = false;
+	thrown = false;
+	carriedByThrown = false;
+
+	// Apply random arc velocity for death animation
+	velocity.x = GameSettings::DEAD_ENEMY_MIN_VX +
+	             Randomf() * (GameSettings::DEAD_ENEMY_MAX_VX - GameSettings::DEAD_ENEMY_MIN_VX);
+	velocity.y = GameSettings::DEAD_ENEMY_MIN_VY +
+	             Randomf() * (GameSettings::DEAD_ENEMY_MAX_VY - GameSettings::DEAD_ENEMY_MIN_VY);
+
+	// Dead enemies will continue moving with physics until ground impact
 	// TODO: Play defeat sound
 	// TODO: Spawn particle effect
 }

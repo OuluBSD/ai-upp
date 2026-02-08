@@ -24,6 +24,12 @@ struct GameSettings {
 	static constexpr int NORMAL_TINT_G = 255;
 	static constexpr int NORMAL_TINT_B = 255;
 
+	// Dead Enemy Physics
+	static constexpr float DEAD_ENEMY_MIN_VX = -100.0f;  // Minimum horizontal velocity
+	static constexpr float DEAD_ENEMY_MAX_VX = 100.0f;   // Maximum horizontal velocity
+	static constexpr float DEAD_ENEMY_MIN_VY = 100.0f;   // Minimum upward velocity
+	static constexpr float DEAD_ENEMY_MAX_VY = 200.0f;   // Maximum upward velocity
+
 	// TODO: Add other game settings here as they're identified:
 	// - Enemy AI parameters (speeds, jump heights, etc.)
 	// - Player physics constants

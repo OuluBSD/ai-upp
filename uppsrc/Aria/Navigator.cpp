@@ -222,14 +222,11 @@ void AriaNavigator::NavigateWithPrompt(const String& prompt) {
 Element AriaNavigator::WaitForElement(const String& selector, const String& by, int timeout) {
 	if (!driver && !ConnectToSession()) throw SessionError("No active session.");
 	
-	// Simplified wait using a loop
-	int start = GetTickCount();
-	while (int(GetTickCount()) - start < timeout * 1000) {
-		try {
-			return driver->FindElement(By(by, selector));
-		} catch (...) {}
-		Sleep(500);
+	By b(by, selector);
+	if (WaitUntilMatches(wait::ElementPresent(b), *driver, timeout * 1000)) {
+		return driver->FindElement(b);
 	}
+	
 	throw BrowserError("Timed out waiting for element: " + selector);
 }
 
@@ -245,6 +242,16 @@ void AriaNavigator::TagTab(const Value& identifier, const String& tag) {
 Value AriaNavigator::Eval(const String& script) {
 	if (!driver && !ConnectToSession()) throw SessionError("No active session.");
 	return driver->Eval<Value>(script);
+}
+
+Element AriaNavigator::FindElement(const By& by) {
+	if (!driver && !ConnectToSession()) throw SessionError("No active session.");
+	return driver->FindElement(by);
+}
+
+Vector<Element> AriaNavigator::FindElements(const By& by) {
+	if (!driver && !ConnectToSession()) throw SessionError("No active session.");
+	return driver->FindElements(by);
 }
 
 END_UPP_NAMESPACE

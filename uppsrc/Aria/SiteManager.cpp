@@ -91,4 +91,8 @@ void SiteManager::UpdateRegistry(const String& site_name, const Vector<String>& 
 	}
 }
 
+void SiteManager::SetSiteData(const String& site_name, const String& key, const Value& data) {
+	SaveData(site_name, key + ".json", data);
+}
+
 END_UPP_NAMESPACE

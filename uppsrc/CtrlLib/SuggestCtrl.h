@@ -1,8 +1,11 @@
+#ifndef _CtrlLib_SuggestCtrl_h_
+#define _CtrlLib_SuggestCtrl_h_
+
 class SuggestCtrl : public EditString {
-	virtual bool  Key(dword key, int count);
-	virtual void  CancelMode();
-	virtual void  LostFocus();
-	virtual void  GotFocus();
+	bool  Key(dword key, int count) override;
+	void  CancelMode() override;
+	void  LostFocus() override;
+	void  GotFocus() override;
 
 private:
 	Vector<WString> data;
@@ -41,3 +44,4 @@ public:
 		
 	SuggestCtrl();
 };
+#endif

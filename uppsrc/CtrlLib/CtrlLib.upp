@@ -68,6 +68,8 @@ file
 	Bar readonly separator,
 	Bar.h,
 	Bar.cpp,
+	GuiAutomation.h,
+	GuiAutomation.cpp,
 	MenuImp.h,
 	MenuItem.cpp,
 	MenuBar.cpp,

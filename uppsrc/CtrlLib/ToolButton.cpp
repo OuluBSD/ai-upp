@@ -99,6 +99,12 @@ Bar::Item& ToolButton::Text(const char *txt)
 	return *this;
 }
 
+Bar::Item& ToolButton::AccessValue(const ::Upp::Value& v)
+{
+	SetData(v);
+	return *this;
+}
+
 ToolButton& ToolButton::SetStyle(const Style& s)
 {
 	if(style != &s) {

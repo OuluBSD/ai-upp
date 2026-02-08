@@ -50,6 +50,13 @@ Bar::Item& MenuItemBase::Text(const char *s)
 	return *this;
 }
 
+Bar::Item& MenuItemBase::AccessValue(const ::Upp::Value& v)
+{
+	SetData(v);
+	return *this;
+}
+
+
 Bar::Item& MenuItemBase::Key(dword key)
 {
 	if(key) {

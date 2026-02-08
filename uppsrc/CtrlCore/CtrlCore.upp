@@ -4,7 +4,8 @@ uses
 	Draw,
 	plugin\bmp,
 	RichText,
-	Painter;
+	Painter,
+	Core/VfsBase;
 
 library(WIN32) "advapi32 comdlg32 comctl32 imm32";
 

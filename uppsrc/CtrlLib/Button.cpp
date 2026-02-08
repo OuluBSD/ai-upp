@@ -169,6 +169,11 @@ int Pusher::GetVisualState() const
 	       CTRL_NORMAL;
 }
 
+bool Pusher::Access(Visitor& v) {
+	v.AccessAction(GetLabel(), [this]{ PerformAction(); });
+	return true;
+}
+
 Pusher::Pusher() {
 	keypush = push = clickfocus = false;
 	accesskey = 0;
@@ -455,6 +460,13 @@ Button::Button() {
 
 Button::~Button() {}
 
+bool Button::Access(Visitor& v) {
+	String l = GetLabel();
+	if(l.IsEmpty()) l = GetLayoutId();
+	v.AccessAction(l, [this]{ PerformAction(); });
+	return true;
+}
+
 CH_STYLE(SpinButtons, Style, StyleDefault)
 {
 	inc = dec = Button::StyleEdge();
@@ -714,6 +726,11 @@ Option::Option() {
 }
 
 Option::~Option() {}
+
+bool Option::Access(Visitor& v) {
+	v.AccessOption(option, GetLabel(), [this]{ PerformAction(); });
+	return true;
+}
 
 // --------
 

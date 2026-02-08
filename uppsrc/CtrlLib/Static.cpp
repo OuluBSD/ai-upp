@@ -107,9 +107,11 @@ StaticText::StaticText()
 	Transparent();
 }
 
-StaticText::~StaticText()
-{
-	DeleteAttr<Image>(ATTR_IMAGE);
+StaticText::~StaticText() {}
+
+bool StaticText::Access(Visitor& v) {
+	v.AccessLabel(text);
+	return true;
 }
 
 Label& Label::SetText(const char *text)

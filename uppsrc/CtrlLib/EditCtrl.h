@@ -11,9 +11,9 @@ struct TextArrayOps {
 
 class LookFrame : public CtrlFrame {
 public:
-	virtual void FrameLayout(Rect& r);
-	virtual void FramePaint(Draw& w, const Rect& r);
-	virtual void FrameAddSize(Size& sz);
+	void FrameLayout(Rect& r) override;
+	void FramePaint(Draw& w, const Rect& r) override;
+	void FrameAddSize(Size& sz) override;
 
 private:
 	Value (*look)();
@@ -38,32 +38,33 @@ CtrlFrame& ViewFrame();
 
 class EditField : public Ctrl, private TextArrayOps {
 public:
-	virtual void  Layout();
-	virtual void  Paint(Draw& draw);
-	virtual void  LeftDown(Point p, dword keyflags);
-	virtual void  MiddleDown(Point p, dword keyflags);
-	virtual void  MouseMove(Point p, dword keyflags);
-	virtual void  LeftDouble(Point p, dword keyflags);
-	virtual void  LeftTriple(Point p, dword keyflags);
-	virtual void  LeftDrag(Point p, dword flags);
-	virtual void  LeftUp(Point p, dword flags);
-	virtual void  RightDown(Point p, dword keyflags);
-	virtual void  MouseEnter(Point p, dword keyflags);
-	virtual void  MouseLeave();
-	virtual Image CursorImage(Point p, dword keyflags);
-	virtual void  DragAndDrop(Point p, PasteClip& d);
-	virtual void  DragRepeat(Point p);
-	virtual void  DragLeave();
-	virtual bool  Key(dword key, int rep);
-	virtual void  GotFocus();
-	virtual void  LostFocus();
-	virtual Size  GetMinSize() const;
-	virtual void  SetData(const Value& data);
-	virtual Value GetData() const;
-	virtual void  CancelMode();
-	virtual String GetSelectionData(const String& fmt) const;
-	virtual void   State(int);
-	virtual Rect   GetCaret() const;
+	bool  Access(Visitor& v) override;
+	void  Layout() override;
+	void  Paint(Draw& draw) override;
+	void  LeftDown(Point p, dword keyflags) override;
+	void  MiddleDown(Point p, dword keyflags) override;
+	void  MouseMove(Point p, dword keyflags) override;
+	void  LeftDouble(Point p, dword keyflags) override;
+	void  LeftTriple(Point p, dword keyflags) override;
+	void  LeftDrag(Point p, dword flags) override;
+	void  LeftUp(Point p, dword flags) override;
+	void  RightDown(Point p, dword keyflags) override;
+	void  MouseEnter(Point p, dword keyflags) override;
+	void  MouseLeave() override;
+	Image CursorImage(Point p, dword keyflags) override;
+	void  DragAndDrop(Point p, PasteClip& d) override;
+	void  DragRepeat(Point p) override;
+	void  DragLeave() override;
+	bool  Key(dword key, int rep) override;
+	void  GotFocus() override;
+	void  LostFocus() override;
+	Size  GetMinSize() const override;
+	void  SetData(const Value& data) override;
+	Value GetData() const override;
+	void  CancelMode() override;
+	String GetSelectionData(const String& fmt) const override;
+	void   State(int) override;
+	Rect   GetCaret() const override;
 
 public:
 	struct Style : ChStyle<Style> {
@@ -161,8 +162,8 @@ protected:
 
 protected:
 	virtual void  HighlightText(Vector<Highlight>& hl);
-	virtual int64 GetTotal() const             { return text.GetLength(); }
-	virtual int   GetCharAt(int64 pos) const   { return text[(int)pos]; }
+	int64 GetTotal() const override             { return text.GetLength(); }
+	int   GetCharAt(int64 pos) const override   { return text[(int)pos]; }
 	
 	// Spin support
 	virtual void  PaintSpace(Draw& w);
@@ -388,22 +389,22 @@ void WithSpin_Add(double& value, double inc, double min, bool roundfrommin) {
 template <class DataType, class Base, class IncType = DataType>
 class WithSpin : public Base, private VirtualButtons {
 public:
-	virtual void  CancelMode();
-	virtual void  MouseWheel(Point p, int zdelta, dword keyflags);
-	virtual bool  Key(dword key, int repcnt);
-	virtual Image MouseEvent(int event, Point p, int zdelta, dword keyflags);
+	void  CancelMode() override;
+	void  MouseWheel(Point p, int zdelta, dword keyflags) override;
+	bool  Key(dword key, int repcnt) override;
+	Image MouseEvent(int event, Point p, int zdelta, dword keyflags) override;
 
-	virtual int   GetSpaceLeft() const;
-	virtual int   GetSpaceRight() const;
-	virtual void  PaintSpace(Draw& w);
-	virtual void  EditCapture();
-	virtual bool  HasEditCapture();
+	int   GetSpaceLeft() const override;
+	int   GetSpaceRight() const override;
+	void  PaintSpace(Draw& w) override;
+	void  EditCapture() override;
+	bool  HasEditCapture() override;
 
-	virtual int   ButtonCount() const;
-	virtual Rect  ButtonRect(int i) const;
-	virtual const Button::Style& ButtonStyle(int i) const;
-	virtual void  ButtonPush(int i);
-	virtual void  ButtonRepeat(int i);
+	int   ButtonCount() const override;
+	Rect  ButtonRect(int i) const override;
+	const Button::Style& ButtonStyle(int i) const override;
+	void  ButtonPush(int i) override;
+	void  ButtonRepeat(int i) override;
 
 protected:
 	void            Inc();

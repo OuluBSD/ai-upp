@@ -1,7 +1,7 @@
 class BarPane : public ParentCtrl {
 public:
-	virtual void LeftDown(Point pt, dword keyflags);
-	virtual void MouseMove(Point p, dword);
+	void LeftDown(Point pt, dword keyflags) override;
+	void MouseMove(Point p, dword) override;
 
 private:
 	struct Item {
@@ -21,7 +21,7 @@ public:
 	Event<>  WhenLeftClick;
 
 	void  PaintBar(Draw& w, const SeparatorCtrl::Style& ss,
-	               const Value& pane, const Value& iconbar = Null, int iconsz = 0);
+	               const ::Upp::Value& pane, const ::Upp::Value& iconbar = Null, int iconsz = 0);
 
 	void  IClear();
 	void  Clear();
@@ -44,13 +44,13 @@ public:
 	virtual ~BarPane();
 };
 
-class Bar : public Ctrl {
+class Bar : public Ctrl, public Visitor {
 public:
 	struct Item {
 		virtual Item& Text(const char *text);
 		virtual Item& Key(dword key);
 		virtual Item& Repeat(bool repeat = true);
-		virtual Item& Image(const class Image& img);
+		virtual Item& Image(const ::Upp::Image& img);
 		virtual Item& Check(bool check);
 		virtual Item& Radio(bool check);
 		virtual Item& Enable(bool _enable = true);
@@ -59,9 +59,9 @@ public:
 		virtual Item& Help(const char *help);
 		virtual Item& Topic(const char *topic);
 		virtual Item& Description(const char *desc);
+		virtual Item& AccessValue(const ::Upp::Value& v);
 		virtual void  FinalSync();
 
-		Item&   Label(const char *text);
 		Item&   RightLabel(const char *text);
 
 		Item& Key(KeyInfo& (*key)());
@@ -100,34 +100,34 @@ public:
 	void   Add(bool en, Ctrl& ctrl, Size sz)            { Add(ctrl, sz); ctrl.Enable(en); }
 	void   Add(bool en, Ctrl& ctrl, int cx, int cy = 0) { Add(ctrl, cx, cy); ctrl.Enable(en); }
 
-	Item&  Add(bool enable, const char *text, const UPP::Image& image, const Callback& callback);
-	Item&  Add(bool enable, const String& text, const UPP::Image& image, const Callback& callback) { return Add(enable, ~text, image, callback); }
-	Item&  Add(bool enable, KeyInfo& (*key)(), const UPP::Image& image, const Callback& callback);
-	Item&  Add(const char *text, const UPP::Image& image, const Callback& callback);
-	Item&  Add(const String& text, const UPP::Image& image, const Callback& callback) { return Add(~text, image, callback); }
-	Item&  Add(KeyInfo& (*key)(), const UPP::Image& image, const Callback& callback);
+	virtual Item&  Add(bool enable, const char *text, const ::Upp::Image& image, const Callback& callback);
+	virtual Item&  Add(bool enable, const String& text, const ::Upp::Image& image, const Callback& callback) { return Add(enable, ~text, image, callback); }
+	virtual Item&  Add(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, const Callback& callback);
+	virtual Item&  Add(const char *text, const ::Upp::Image& image, const Callback& callback);
+	virtual Item&  Add(const String& text, const ::Upp::Image& image, const Callback& callback) { return Add(~text, image, callback); }
+	virtual Item&  Add(KeyInfo& (*key)(), const ::Upp::Image& image, const Callback& callback);
 
-	Item&  Add(bool enable, const char *text, const Callback& callback);
-	Item&  Add(bool enable, const String& text, const Callback& callback) { return Add(enable, ~text, callback); }
-	Item&  Add(bool enable, KeyInfo& (*key)(), const Callback& callback);
-	Item&  Add(const char *text, const Callback& callback);
-	Item&  Add(const String& text, const Callback& callback) { return Add(~text, callback); }
-	Item&  Add(KeyInfo& (*key)(), const Callback& callback);
+	virtual Item&  Add(bool enable, const char *text, const Callback& callback);
+	virtual Item&  Add(bool enable, const String& text, const Callback& callback) { return Add(enable, ~text, callback); }
+	virtual Item&  Add(bool enable, KeyInfo& (*key)(), const Callback& callback);
+	virtual Item&  Add(const char *text, const Callback& callback);
+	virtual Item&  Add(const String& text, const Callback& callback) { return Add(~text, callback); }
+	virtual Item&  Add(KeyInfo& (*key)(), const Callback& callback);
 
-	Item&  Add(bool enable, const char *text, const UPP::Image& image, const Function<void ()>& fn);
-	Item&  Add(bool enable, const String& text, const UPP::Image& image, const Function<void ()>& fn) { return Add(enable, ~text, image, fn); }
-	Item&  Add(bool enable, KeyInfo& (*key)(), const UPP::Image& image, const Function<void ()>& fn);
-	Item&  Add(const char *text, const UPP::Image& image, const Function<void ()>& fn);
-	Item&  Add(const String& text, const UPP::Image& image, const Function<void ()>& fn) { return Add(~text, image, fn); }
-//	Item&  Add(const String& text, const UPP::Image& image, const Function<void ()>& fn);
-	Item&  Add(KeyInfo& (*key)(), const UPP::Image& image, const Function<void ()>& fn);
+	virtual Item&  Add(bool enable, const char *text, const ::Upp::Image& image, const Function<void ()>& fn);
+	virtual Item&  Add(bool enable, const String& text, const ::Upp::Image& image, const Function<void ()>& fn) { return Add(enable, ~text, image, fn); }
+	virtual Item&  Add(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, const Function<void ()>& fn);
+	virtual Item&  Add(const char *text, const ::Upp::Image& image, const Function<void ()>& fn);
+	virtual Item&  Add(const String& text, const ::Upp::Image& image, const Function<void ()>& fn) { return Add(~text, image, fn); }
+//	virtual Item&  Add(const String& text, const ::Upp::Image& image, const Function<void ()>& fn);
+	virtual Item&  Add(KeyInfo& (*key)(), const ::Upp::Image& image, const Function<void ()>& fn);
 
-	Item&  Add(bool enable, const char *text, const Function<void ()>& fn);
-	Item&  Add(bool enable, const String& text, const Function<void ()>& fn) { return Add(enable, ~text, fn); }
-	Item&  Add(bool enable, KeyInfo& (*key)(), const Function<void ()>& fn);
-	Item&  Add(const char *text, const Function<void ()>& fn);
-	Item&  Add(const String& text, const Function<void ()>& fn) { return Add(~text, fn); }
-	Item&  Add(KeyInfo& (*key)(), const Function<void ()>& fn);
+	virtual Item&  Add(bool enable, const char *text, const Function<void ()>& fn);
+	virtual Item&  Add(bool enable, const String& text, const Function<void ()>& fn) { return Add(enable, ~text, fn); }
+	virtual Item&  Add(bool enable, KeyInfo& (*key)(), const Function<void ()>& fn);
+	virtual Item&  Add(const char *text, const Function<void ()>& fn);
+	virtual Item&  Add(const String& text, const Function<void ()>& fn) { return Add(~text, fn); }
+	virtual Item&  Add(KeyInfo& (*key)(), const Function<void ()>& fn);
 
 	void   MenuSeparator();
 	void   MenuBreak();
@@ -138,36 +138,36 @@ public:
 	void   AddMenu(Ctrl& ctrl, Size sz);
 	void   AddMenu(Ctrl& ctrl, int cx, int cy = 0)  { AddMenu(ctrl, Size(cx, cy)); }
 
-	Item&  AddMenu(bool enable, const char *text, const UPP::Image& image, const Callback& callback);
-	Item&  AddMenu(bool enable, const String& text, const UPP::Image& image, const Callback& callback) { return AddMenu(enable, ~text, image, callback); }
-	Item&  AddMenu(bool enable, KeyInfo& (*key)(), const UPP::Image& image, const Callback& callback);
-	Item&  AddMenu(const char *text, const UPP::Image& image, const Callback& callback);
-	Item&  AddMenu(const String& text, const UPP::Image& m, const Callback& c) { return AddMenu(~text, m, c); }
-	Item&  AddMenu(KeyInfo& (*key)(), const UPP::Image& m, const Callback& c);
+	Item&  AddMenu(bool enable, const char *text, const ::Upp::Image& image, const Callback& callback);
+	Item&  AddMenu(bool enable, const String& text, const ::Upp::Image& image, const Callback& callback) { return AddMenu(enable, ~text, image, callback); }
+	Item&  AddMenu(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, const Callback& callback);
+	Item&  AddMenu(const char *text, const ::Upp::Image& image, const Callback& callback);
+	Item&  AddMenu(const String& text, const ::Upp::Image& m, const Callback& c) { return AddMenu(~text, m, c); }
+	Item&  AddMenu(KeyInfo& (*key)(), const ::Upp::Image& m, const Callback& c);
 
-	Item&  AddMenu(bool enable, const char *text, const UPP::Image& image, const Function<void ()>& fn);
-	Item&  AddMenu(bool enable, const String& text, const UPP::Image& image, const Function<void ()>& fn) { return AddMenu(enable, ~text, image, fn); }
-	Item&  AddMenu(bool enable, KeyInfo& (*key)(), const UPP::Image& image, const Function<void ()>& fn);
-	Item&  AddMenu(const char *text, const UPP::Image& image, const Function<void ()>& fn);
-	Item&  AddMenu(const String& text, const UPP::Image& m, const Function<void ()>& fn) { return AddMenu(~text, m, fn); }
-	Item&  AddMenu(KeyInfo& (*key)(), const UPP::Image& m, const Function<void ()>& fn);
+	Item&  AddMenu(bool enable, const char *text, const ::Upp::Image& image, const Function<void ()>& fn);
+	Item&  AddMenu(bool enable, const String& text, const ::Upp::Image& image, const Function<void ()>& fn) { return AddMenu(enable, ~text, image, fn); }
+	Item&  AddMenu(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, const Function<void ()>& fn);
+	Item&  AddMenu(const char *text, const ::Upp::Image& image, const Function<void ()>& fn);
+	Item&  AddMenu(const String& text, const ::Upp::Image& m, const Function<void ()>& fn) { return AddMenu(~text, m, fn); }
+	Item&  AddMenu(KeyInfo& (*key)(), const ::Upp::Image& m, const Function<void ()>& fn);
 
 	Item&  Add(bool enable, const char *text, const Callback1<Bar&>& proc);
 	Item&  Add(bool enable, const String& text, const Callback1<Bar&>& proc) { return Add(enable, ~text, proc); }
 	Item&  Add(const char *text, const Callback1<Bar&>& proc);
 	Item&  Add(const String& text, const Callback1<Bar&>& proc) { return Add(~text, proc); }
-	Item&  Add(bool enable, const char *text, const UPP::Image& image, const Callback1<Bar&>& proc);
-	Item&  Add(bool enable, const String& text, const UPP::Image& image, const Callback1<Bar&>& proc) { return Add(enable, ~text, proc); }
-	Item&  Add(const char *text, const UPP::Image& image, const Callback1<Bar&>& proc);
-	Item&  Add(const String& text, const UPP::Image& image, const Callback1<Bar&>& proc) { return Add(~text, image, proc); }
+	Item&  Add(bool enable, const char *text, const ::Upp::Image& image, const Callback1<Bar&>& proc);
+	Item&  Add(bool enable, const String& text, const ::Upp::Image& image, const Callback1<Bar&>& proc) { return Add(enable, ~text, proc); }
+	Item&  Add(const char *text, const ::Upp::Image& image, const Callback1<Bar&>& proc);
+	Item&  Add(const String& text, const ::Upp::Image& image, const Callback1<Bar&>& proc) { return Add(~text, image, proc); }
 	Item&  Sub(bool enable, const char *text, const Function<void (Bar&)>& submenu);
 	Item&  Sub(bool enable, const String& text, const Function<void (Bar&)>& submenu) { return Sub(enable, ~text, submenu); }
 	Item&  Sub(const char *text, const Function<void (Bar&)>& submenu);
 	Item&  Sub(const String& text, const Function<void (Bar&)>& submenu) { return Sub(~text, submenu); }
-	Item&  Sub(bool enable, const char *text, const UPP::Image& image, const Function<void (Bar&)>& submenu);
-	Item&  Sub(bool enable, const String& text, const UPP::Image& image, const Function<void (Bar&)>& submenu) { return Sub(enable, ~text, image, submenu); }
-	Item&  Sub(const char *text, const UPP::Image& image, const Function<void (Bar&)>& submenu);
-	Item&  Sub(const String& text, const UPP::Image& image, const Function<void (Bar&)>& submenu) { return Sub(~text, image, submenu); }
+	Item&  Sub(bool enable, const char *text, const ::Upp::Image& image, const Function<void (Bar&)>& submenu);
+	Item&  Sub(bool enable, const String& text, const ::Upp::Image& image, const Function<void (Bar&)>& submenu) { return Sub(enable, ~text, image, submenu); }
+	Item&  Sub(const char *text, const ::Upp::Image& image, const Function<void (Bar&)>& submenu);
+	Item&  Sub(const String& text, const ::Upp::Image& image, const Function<void (Bar&)>& submenu) { return Sub(~text, image, submenu); }
 
 	void   ToolSeparator();
 	void   ToolBreak();
@@ -178,8 +178,8 @@ public:
 	void   AddTool(Ctrl& ctrl, Size sz);
 	void   AddTool(Ctrl& ctrl, int cx, int cy = 0)  { AddTool(ctrl, Size(cx, cy)); }
 
-	Item&  Add(const UPP::Image& image, Event<>  callback);
-	Item&  Add(bool enable, const UPP::Image& image, Event<>  callback);
+	Item&  Add(const ::Upp::Image& image, Event<>  callback);
+	Item&  Add(bool enable, const ::Upp::Image& image, Event<>  callback);
 
 	virtual void AddKey(dword key, Event<>  cb);
 	        void AddKey(KeyInfo& (*key)(), Event<>  cb);
@@ -189,6 +189,12 @@ public:
 	virtual bool IsScanKeys() const                 { return false; }
 	virtual bool IsScanHelp() const                 { return false; }
 
+	Visitor& AccessAction(const char *text, Event<> cb) override { Add(text, cb); return *this; }
+	Visitor& AccessOption(bool check, const char *text, Event<> cb) override { Add(text, cb).Check(check); return *this; }
+	Visitor& AccessMenu(const char *text, Event<Visitor&> proc) override { Sub(text, [&proc](Bar& b){ proc(b); }); return *this; }
+	Visitor& AccessLabel(const char *text) override { Add(text, []{}); return *this; }
+	Visitor& AccessValue(const UPP::Value& v) override { Add("", []{}).AccessValue(v); return *this; }
+
 	typedef Bar CLASSNAME;
 	Bar();
 	virtual ~Bar();
@@ -196,24 +202,24 @@ public:
 
 class BarCtrl : public Bar, public CtrlFrame {
 public:
-	virtual void   Layout();
+	void   Layout() override;
 
-	virtual void   FrameLayout(Rect& r);
-	virtual void   FrameAddSize(Size& sz);
-	virtual void   FrameAdd(Ctrl& ctrl);
-	virtual void   FrameRemove();
+	void   FrameLayout(Rect& r) override;
+	void   FrameAddSize(Size& sz) override;
+	void   FrameAdd(Ctrl& ctrl) override;
+	void   FrameRemove() override;
 
-	virtual bool   IsEmpty() const;
-	virtual void   Separator();
+	bool   IsEmpty() const override;
+	void   Separator() override;
 
 protected:
-	virtual void   AddCtrl(Ctrl *ctrl, int gapsize);
-	virtual void   AddCtrl(Ctrl *ctrl, Size sz);
+	void   AddCtrl(Ctrl *ctrl, int gapsize) override;
+	void   AddCtrl(Ctrl *ctrl, Size sz) override;
 
 private:
 	class SizeCtrl : public ParentCtrl {
 	public:
-		virtual Size GetMinSize() const;
+		Size GetMinSize() const override;
 
 	private:
 		Size size;
@@ -244,7 +250,7 @@ protected:
 
 	void     Clear();
 
-	virtual Value GetBackground() const;
+	virtual ::Upp::Value GetBackground() const;
 
 	friend class BarPane;
 
@@ -261,7 +267,7 @@ public:
 	};
 
 	void  PaintBar(Draw& w, const SeparatorCtrl::Style& ss,
-	               const Value& pane, const Value& iconbar = Null, int iconsz = 0);
+	               const ::Upp::Value& pane, const ::Upp::Value& iconbar = Null, int iconsz = 0);
 
 	int      GetHeight() const           { return pane.GetPaneSize(true, INT_MAX).cy; }
 	int      GetWidth() const            { return pane.GetPaneSize(true, INT_MAX).cx; }
@@ -288,37 +294,38 @@ CtrlFrame& MenuFrame();
 
 class MenuBar : public BarCtrl {
 public:
-	virtual void  LeftDown(Point, dword);
-	virtual bool  Key(dword key, int count);
-	virtual bool  HotKey(dword key);
-	virtual void  ChildGotFocus();
-	virtual void  ChildLostFocus();
-	virtual void  Deactivate();
-	virtual void  CancelMode();
-	virtual void  Paint(Draw& w);
-	virtual bool  IsMenuBar() const                  { return true; }
-	virtual bool  IsEmpty() const;
-	virtual void  Separator();
+	void  LeftDown(Point, dword) override;
+	bool  Key(dword key, int count) override;
+	bool  HotKey(dword key) override;
+	void  ChildGotFocus() override;
+	void  ChildLostFocus() override;
+	void  Deactivate() override;
+	void  CancelMode() override;
+	void  Paint(Draw& w) override;
+	bool  IsMenuBar() const override                  { return true; }
+	bool  IsEmpty() const override;
+	void  Separator() override;
+	bool  Access(Visitor& v) override;
 
 protected:
-	virtual Item& AddItem(Event<> cb);
-	virtual Item& AddSubMenu(Event<Bar&> proc);
-	virtual Value GetBackground() const;
+	Item& AddItem(Event<> cb) override;
+	Item& AddSubMenu(Event<Bar&> proc) override;
+	::Upp::Value GetBackground() const override;
 
 public:
 	struct Style : ChStyle<Style> {
-		Value item; // hot menu item background in popup menu
-		Value topitem[3]; // top menu item background normal/hot/pressed
-		Value topbar; // deprecated
+		::Upp::Value item; // hot menu item background in popup menu
+		::Upp::Value topitem[3]; // top menu item background normal/hot/pressed
+		::Upp::Value topbar; // deprecated
 		Color menutext; // normal state popup menu item text
 		Color itemtext; // hot state popup menu item text
 		Color topitemtext[3]; // top menu item text normal/hot/pressed
 		SeparatorCtrl::Style breaksep; // separator between menu bars
-		Value look; // top menu background
-		Value arealook; // top menu backgroung if arealook and in frame (can be null, then 'look')
-		Value popupframe; // static frame of whole popup menu
-		Value popupbody; // background of whole popup menu
-		Value popupiconbar; // if there is special icon background in popup menu
+		::Upp::Value look; // top menu background
+		::Upp::Value arealook; // top menu backgroung if arealook and in frame (can be null, then 'look')
+		::Upp::Value popupframe; // static frame of whole popup menu
+		::Upp::Value popupbody; // background of whole popup menu
+		::Upp::Value popupiconbar; // if there is special icon background in popup menu
 		SeparatorCtrl::Style separator;
 		Size  maxiconsize; // limit of icon size
 		int   leftgap; // between left border and icon
@@ -327,7 +334,7 @@ public:
 		int   rsepm;
 		Point pullshift; // offset of submenu popup
 		bool  opaquetest; // If true, topmenu item can change hot text color
-		Value icheck; // background of Check (or Radio) item with image
+		::Upp::Value icheck; // background of Check (or Radio) item with image
 	};
 
 private:
@@ -347,6 +354,7 @@ private:
 	LookFrame    frame;
 	bool         nodarkadjust;
 	bool         action_taken = false; // local menu resulted in action invoked (not cancel)
+	Event<Bar&> proc;
 
 #ifdef GUI_COCOA
 	One<Bar>     host_bar;
@@ -431,33 +439,34 @@ class ToolButton : public Ctrl, public Bar::Item {
 	using Ctrl::Key;
 
 public:
-	virtual void   Paint(Draw& w);
-	virtual void   MouseEnter(Point, dword);
-	virtual void   MouseLeave();
-	virtual Size   GetMinSize() const;
-	virtual void   LeftDown(Point, dword);
-	virtual void   LeftRepeat(Point, dword);
-	virtual void   LeftUp(Point, dword);
-	virtual bool   HotKey(dword key);
-	virtual String GetDesc() const;
-	virtual int    OverPaint() const;
+	void   Paint(Draw& w) override;
+	void   MouseEnter(Point, dword) override;
+	void   MouseLeave() override;
+	Size   GetMinSize() const override;
+	void   LeftDown(Point, dword) override;
+	void   LeftRepeat(Point, dword) override;
+	void   LeftUp(Point, dword) override;
+	bool   HotKey(dword key) override;
+	String GetDesc() const override;
+	int    OverPaint() const override;
 
-	virtual Bar::Item& Text(const char *text);
-	virtual Bar::Item& Key(dword key);
-	virtual Bar::Item& Repeat(bool repeat = true);
-	virtual Bar::Item& Image(const UPP::Image& img);
-	virtual Bar::Item& Enable(bool _enable = true);
-	virtual Bar::Item& Tip(const char *tip);
-	virtual Bar::Item& Help(const char *help);
-	virtual Bar::Item& Topic(const char *help);
-	virtual Bar::Item& Description(const char *desc);
-	virtual Bar::Item& Radio(bool check);
-	virtual Bar::Item& Check(bool check);
-	virtual void       FinalSync();
+	Bar::Item& Text(const char *text) override;
+	Bar::Item& Key(dword key) override;
+	Bar::Item& Repeat(bool repeat = true) override;
+	Bar::Item& Image(const ::Upp::Image& img) override;
+	Bar::Item& Enable(bool _enable = true) override;
+	Bar::Item& Tip(const char *tip) override;
+	Bar::Item& Help(const char *help) override;
+	Bar::Item& Topic(const char *help) override;
+	Bar::Item& Description(const char *desc) override;
+	Bar::Item& Radio(bool check) override;
+	Bar::Item& Check(bool check) override;
+	Bar::Item& AccessValue(const ::Upp::Value& v) override;
+	void       FinalSync() override;
 
 public:
 	struct Style : ChStyle<Style> {
-		Value  look[6];
+		::Upp::Value  look[6];
 		Font   font;
 		Color  textcolor[6];
 		bool   light[6];
@@ -482,7 +491,7 @@ protected:
 	const Style      *style;
 
 private:
-	UPP::Image img;
+	::Upp::Image img;
 
 	void       SendHelpLine();
 	void       ClearHelpLine();
@@ -498,7 +507,7 @@ public:
 	static const Style& StyleSolid();
 
 	bool		IsChecked()				 { return checked; }
-	UPP::Image  GetImage() const;
+	::Upp::Image  GetImage() const;
 
 	ToolButton& SetStyle(const Style& s);
 	ToolButton& MinSize(Size sz)         { minsize = sz; return *this; }
@@ -512,16 +521,16 @@ public:
 	virtual ~ToolButton();
 };
 
-void PaintBarArea(Draw& w, Ctrl *x, const Value& look, int bottom = Null);
+void PaintBarArea(Draw& w, Ctrl *x, const ::Upp::Value& look, int bottom = Null);
 
 class ToolBar : public BarCtrl {
 public:
-	virtual bool HotKey(dword key);
-	virtual void Paint(Draw& w);
+	bool HotKey(dword key) override;
+	void Paint(Draw& w) override;
 
 protected:
-	virtual Item& AddItem(Event<>  cb);
-	virtual Item& AddSubMenu(Event<Bar&> proc);
+	Item& AddItem(Event<>  cb) override;
+	Item& AddSubMenu(Event<Bar&> proc) override;
 
 public:
 	struct Style : ChStyle<Style> {
@@ -529,18 +538,18 @@ public:
 		Size                 buttonminsize;
 		Size                 maxiconsize;
 		int                  buttonkind;
-		Value                look, arealook;
+		::Upp::Value           look, arealook;
 		SeparatorCtrl::Style breaksep;
 		SeparatorCtrl::Style separator;
 	};
 
-private:
-	int               ii;
-	Array<ToolButton> item;
-	int               lock;
+protected:
 	Event<Bar&>   proc;
 	const Style      *style;
 	int               arealook;
+	int               lock;
+	int               ii;
+	Array<ToolButton> item;
 
 	Size              buttonminsize;
 	Size              maxiconsize;
@@ -554,13 +563,14 @@ protected:
 	};
 
 public:
-	virtual bool IsToolBar() const                  { return true; }
+	bool IsToolBar() const override                  { return true; }
 
 	static int GetStdHeight();
 
 	void Clear();
 	void Set(Event<Bar&> bar);
 	void Post(Event<Bar&> bar);
+	bool Access(Visitor& v) override;
 
 	static const Style& StyleDefault();
 
@@ -580,7 +590,7 @@ public:
 
 class StaticBarArea : public Ctrl {
 public:
-	virtual void Paint(Draw& w);
+	void Paint(Draw& w) override;
 
 private:
 	bool upperframe;
@@ -619,8 +629,8 @@ public:
 
 class ToolTip : public Ctrl {
 public:
-	virtual void Paint(Draw& w);
-	virtual Size GetMinSize() const;
+	void Paint(Draw& w) override;
+	Size GetMinSize() const override;
 
 private:
 	String  text;

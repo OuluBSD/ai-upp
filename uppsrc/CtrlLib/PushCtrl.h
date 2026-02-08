@@ -1,19 +1,20 @@
 class Pusher : public Ctrl {
 public:
-	virtual void   CancelMode();
-	virtual void   LeftDown(Point, dword);
-	virtual void   MouseMove(Point, dword);
-	virtual void   MouseLeave();
-	virtual void   LeftRepeat(Point, dword);
-	virtual void   LeftUp(Point, dword);
-	virtual void   GotFocus();
-	virtual void   LostFocus();
-	virtual void   State(int);
-	virtual String GetDesc() const;
-	virtual bool   Key(dword key, int);
-	virtual bool   HotKey(dword key);
-	virtual dword  GetAccessKeys() const;
-	virtual void   AssignAccessKeys(dword used);
+	virtual void   CancelMode() override;
+	virtual void   LeftDown(Point, dword) override;
+	virtual void   MouseMove(Point, dword) override;
+	virtual void   MouseLeave() override;
+	virtual void   LeftRepeat(Point, dword) override;
+	virtual void   LeftUp(Point, dword) override;
+	virtual void   GotFocus() override;
+	virtual void   LostFocus() override;
+	virtual void   State(int) override;
+	virtual String GetDesc() const override;
+	virtual bool   Key(dword key, int) override;
+	virtual bool   HotKey(dword key) override;
+	virtual bool   Access(Visitor& v) override;
+	virtual dword  GetAccessKeys() const override;
+	virtual void   AssignAccessKeys(dword used) override;
 
 private:
 	bool    push:1;
@@ -60,17 +61,18 @@ public:
 
 class Button : public Pusher {
 public:
-	virtual void   Paint(Draw& draw);
-	virtual bool   Key(dword key, int);
-	virtual bool   HotKey(dword key);
-	virtual void   MouseEnter(Point, dword);
-	virtual void   MouseLeave();
-	virtual dword  GetAccessKeys() const;
-	virtual void   AssignAccessKeys(dword used);
-	virtual void   Layout();
-	virtual void   GotFocus();
-	virtual void   LostFocus();
-	virtual int    OverPaint() const;
+	virtual bool   Access(Visitor& v) override;
+	virtual void   Paint(Draw& draw) override;
+	virtual bool   Key(dword key, int) override;
+	virtual bool   HotKey(dword key) override;
+	virtual void   MouseEnter(Point, dword) override;
+	virtual void   MouseLeave() override;
+	virtual dword  GetAccessKeys() const override;
+	virtual void   AssignAccessKeys(dword used) override;
+	virtual void   Layout() override;
+	virtual void   GotFocus() override;
+	virtual void   LostFocus() override;
+	virtual int    OverPaint() const override;
 
 public:
 	struct Style : ChStyle<Style> {
@@ -132,18 +134,19 @@ Color ButtonMonoColor(int i);
 
 class Option : public Pusher {
 public:
-	virtual void   Paint(Draw& draw);
-	virtual Size   GetMinSize() const;
-	virtual void   SetData(const Value& data);
-	virtual Value  GetData() const;
-	virtual void   MouseEnter(Point, dword);
-	virtual void   MouseLeave();
-	virtual void   State(int);
+	virtual bool   Access(Visitor& v) override;
+	virtual void   Paint(Draw& draw) override;
+	virtual Size   GetMinSize() const override;
+	virtual void   SetData(const Value& data) override;
+	virtual Value  GetData() const override;
+	virtual void   MouseEnter(Point, dword) override;
+	virtual void   MouseLeave() override;
+	virtual void   State(int) override;
 
 protected:
-	virtual void  RefreshPush();
-	virtual void  RefreshFocus();
-	virtual void  PerformAction();
+	virtual void  RefreshPush() override;
+	virtual void  RefreshFocus() override;
+	virtual void  PerformAction() override;
 
 protected:
 	Image  edge, edged;
@@ -248,20 +251,21 @@ public:
 
 class Switch : public Ctrl {
 public:
-	virtual void   Paint(Draw& draw);
-	virtual void   CancelMode();
-	virtual void   MouseMove(Point p, dword keyflags);
-	virtual void   LeftDown(Point p, dword keyflags);
-	virtual void   LeftUp(Point p, dword keyflags);
-	virtual void   MouseLeave();
-	virtual bool   Key(dword key, int count);
-	virtual bool   HotKey(dword key);
-	virtual dword  GetAccessKeys() const;
-	virtual void   AssignAccessKeys(dword used);
-	virtual void   SetData(const Value& data);
-	virtual Value  GetData() const;
-	virtual void   GotFocus();
-	virtual void   LostFocus();
+	virtual void   Paint(Draw& draw) override;
+	virtual void   CancelMode() override;
+	virtual void   MouseMove(Point p, dword keyflags) override;
+	virtual void   LeftDown(Point p, dword keyflags) override;
+	virtual void   LeftUp(Point p, dword keyflags) override;
+	virtual void   MouseLeave() override;
+	virtual bool   Key(dword key, int count) override;
+	virtual bool   HotKey(dword key) override;
+	virtual bool   Access(Visitor& v) override;
+	virtual dword  GetAccessKeys() const override;
+	virtual void   AssignAccessKeys(dword used) override;
+	virtual void   SetData(const Value& data) override;
+	virtual Value  GetData() const override;
+	virtual void   GotFocus() override;
+	virtual void   LostFocus() override;
 
 public:
 	struct Case  {

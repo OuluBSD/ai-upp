@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_AIChatCtrl_h_
 #define _Maestro_AIChatCtrl_h_
 
@@ -27,6 +28,7 @@ public:
 class MaestroItem : public Ctrl {
 public:
 	String role;
+	String persona;
 	String text;
 	bool   is_error = false;
 	bool   is_tool = false;
@@ -81,7 +83,7 @@ public:
 	void   SessionStatus(const String& backend, const String& session_id);
 	void   SuggestEnactment(String track, String phase, String task);
 
-	void AddItem(const String& role, const String& text, bool is_error = false);
+	void AddItem(const String& role, const String& text, bool is_error = false, const String& persona = "");
 	MaestroItem& AddToolItem(const String& role, const String& text);
 	void CopyAllChat();
 	void CopyDebugData();
@@ -101,3 +103,4 @@ public:
 };
 
 #endif
+

@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_AssemblyInfo_h_
 #define _Maestro_AssemblyInfo_h_
 
@@ -22,3 +23,4 @@ struct AssemblyInfo : Moveable<AssemblyInfo> {
 };
 
 #endif
+

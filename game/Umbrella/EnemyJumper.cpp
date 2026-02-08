@@ -37,6 +37,9 @@ bool EnemyJumper::IsOnGround(Player::CollisionHandler& collision) {
 void EnemyJumper::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
 	if(!alive) return;
 
+	// Update rotation for visual effects
+	UpdateRotation(delta);
+
 	// If carried by thrown enemy, just apply movement (no AI, no gravity)
 	if(carriedByThrown) {
 		ResolveCollisionX(velocity.x * delta, collision);
@@ -114,8 +117,16 @@ void EnemyJumper::Render(Draw& w, Player::CoordinateConverter& coords) {
 	int width = abs(screenBottomRight.x - screenTopLeft.x);
 	int height = abs(screenBottomRight.y - screenTopLeft.y);
 
-	// Draw enemy as green rectangle (different from patroller's red)
-	Color enemyColor = Color(50, 255, 50);
+	// Draw enemy with state-based tint
+	Color baseColor = Color(50, 255, 50);  // Green base color
+	Color tint = GetTintColor();
+
+	// Apply tint (simple color modulation)
+	int r = (baseColor.GetR() * tint.GetR()) / 255;
+	int g = (baseColor.GetG() * tint.GetG()) / 255;
+	int b = (baseColor.GetB() * tint.GetB()) / 255;
+	Color enemyColor = Color(r, g, b);
+
 	w.DrawRect(screenX, screenY, width, height, enemyColor);
 
 	// Draw facing direction indicator

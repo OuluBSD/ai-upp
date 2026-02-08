@@ -13,8 +13,15 @@ DebugWorkspace::DebugWorkspace() {
 	target_device.Add("SSH: remote-builder");
 	target_device.SetIndex(0);
 	
+	target_binary.NullText("Enter binary path...");
+	target_binary.SetData("./crash");
+	target_binary.LayoutId("TargetBinary");
+	
+	call_stack.LayoutId("CallStack");
+	
 	left_pane.Add(target_device.TopPos(0, 24).HSizePos());
-	left_pane.Add(call_stack.VSizePos(24, 0).HSizePos());
+	left_pane.Add(target_binary.TopPos(24, 24).HSizePos());
+	left_pane.Add(call_stack.VSizePos(48, 0).HSizePos());
 	
 	call_stack.Add(0, CtrlImg::Dir(), "Call Stack");
 	
@@ -34,6 +41,7 @@ DebugWorkspace::DebugWorkspace() {
 
 void DebugWorkspace::OnToolbar(Bar& bar) {
 	bar.Add("Run", CtrlImg::go_forward(), THISBACK(OnRun)).Tip("Execute Target");
+	bar.Add("Continue", CtrlImg::go_forward(), [=]{ if(dbg) dbg->Cont(); }).Tip("Continue Execution (F5)");
 	bar.Add("Stop", CtrlImg::cross(), THISBACK(OnStop)).Tip("Terminate Execution");
 	bar.Separator();
 	bar.Add("Step Into", THISBACK(OnStep)).Tip("Step Into (F11)");
@@ -67,7 +75,7 @@ void DebugWorkspace::OnRun() {
 		};
 	}
 	
-	dbg->Run("target_executable", "");
+	dbg->Run(target_binary.GetData().ToString(), "");
 }
 
 void DebugWorkspace::OnStop() {

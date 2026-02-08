@@ -243,6 +243,23 @@ void PyValue::SetItem(const PyValue& key, const PyValue& v)
 	if(type == PY_DICT) dict->d.GetAdd(key) = v;
 }
 
+bool PyValue::Contains(const PyValue& v) const
+{
+	if(type == PY_LIST) {
+		for(const auto& x : list->l) if(x == v) return true;
+	}
+	else if(type == PY_TUPLE) {
+		for(const auto& x : tuple->l) if(x == v) return true;
+	}
+	else if(type == PY_DICT) {
+		return dict->d.Find(v) >= 0;
+	}
+	else if(type == PY_STR) {
+		return wstr->s.Find(v.GetStr()) >= 0;
+	}
+	return false;
+}
+
 Value PyValue::ToValue() const
 {
 	switch(type) {

@@ -110,6 +110,27 @@ void   TreeCtrl::Layout()
 	SyncCtrls(false, NULL);
 }
 
+bool TreeCtrl::Access(Visitor& v)
+{
+	String l = GetLayoutId();
+	if(l.IsEmpty()) l = "Tree";
+	v.AccessLabel(l);
+	v.AccessValue(GetLineCount());
+	v.AccessMenu("Items", [this, l](Visitor& b) {
+		for(int i = 0; i < item.GetCount(); i++) {
+			if(!item[i].free) {
+				String label = AsString(item[i].value);
+				if(label.IsEmpty()) label = Format("Item %d", i);
+				b.AccessMenu(label, [this, i](Visitor& n) {
+					n.AccessOption(IsOpen(i), "Open", [this, i] { Open(i, !IsOpen(i)); });
+					n.AccessAction("Select", [this, i] { SetCursor(i); });
+				});
+			}
+		}
+	});
+	return true;
+}
+
 // 2008-04-08 mrjt
 Size   TreeCtrl::Item::GetValueSize(const Display *treedisplay) const
 {

@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_InventoryGenerator_h_
 #define _Maestro_InventoryGenerator_h_
 
@@ -47,3 +48,4 @@ public:
 };
 
 #endif
+

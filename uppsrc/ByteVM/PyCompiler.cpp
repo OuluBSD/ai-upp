@@ -158,12 +158,39 @@ void PyCompiler::Statement()
 		}
 		this->Expect(TK_DEDENT);
 		
+		Vector<int> jump_ends;
 		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		
+		while(IsId("elif")) {
+			Next();
+			int jump_next = Label();
+			Emit(PY_JUMP_ABSOLUTE, 0);
+			jump_ends.Add(jump_next);
+			
+			Patch(jump_false, Label());
+			
+			Expression();
+			this->Expect(TK_COLON);
+			jump_false = Label();
+			Emit(PY_POP_JUMP_IF_FALSE, 0);
+			
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			this->Expect(TK_INDENT);
+			while(!IsToken(TK_DEDENT) && !IsEof()) {
+				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+				if(IsToken(TK_DEDENT) || IsEof()) break;
+				Statement();
+			}
+			this->Expect(TK_DEDENT);
+			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		}
 		
 		if(IsId("else")) {
 			Next();
 			int jump_end = Label();
 			Emit(PY_JUMP_ABSOLUTE, 0);
+			jump_ends.Add(jump_end);
+			
 			Patch(jump_false, Label());
 			this->Expect(TK_COLON);
 			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
@@ -174,11 +201,13 @@ void PyCompiler::Statement()
 				Statement();
 			}
 			this->Expect(TK_DEDENT);
-			Patch(jump_end, Label());
 		}
 		else {
 			Patch(jump_false, Label());
 		}
+		
+		for(int pc : jump_ends)
+			Patch(pc, Label());
 	}
 	else if(IsId("while")) {
 		Next();
@@ -462,6 +491,18 @@ void PyCompiler::Comparison()
 	else if(IsToken(TK_LSEQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_LE); }
 	else if(IsToken(TK_GREATER)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
 	else if(IsToken(TK_GREQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
+	else if(IsId("in")) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
+	else if(IsId("not")) {
+		Next();
+		if (IsId("in")) {
+			Next();
+			AddExpr();
+			Emit(PY_COMPARE_OP, PY_CMP_NOT_IN);
+		} else {
+			// Backtrack
+			pos--;
+		}
+	}
 }
 
 void PyCompiler::AddExpr()

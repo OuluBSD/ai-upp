@@ -10,6 +10,134 @@ void RegisterGeometry(Upp::PyVM& vm);
 
 NAMESPACE_UPP
 
+void ToolPanel::Init(Edit3D* e) {
+	owner = e;
+	layout_items.Clear();
+	auto setup_opt = [&](Option& o, const char* label) {
+		o.SetLabel(label);
+		o.NoWantFocus();
+		Add(o);
+		layout_items.Add(&o);
+	};
+	auto setup_btn = [&](Button& b, const char* label) {
+		b.SetLabel(label);
+		b.NoWantFocus();
+		Add(b);
+		layout_items.Add(&b);
+	};
+	setup_opt(view, "View");
+	setup_opt(obj_select, "Select");
+	setup_opt(obj_move, "Move");
+	setup_opt(obj_rotate, "Rotate");
+	setup_opt(mesh_select, "Mesh");
+	setup_opt(mesh_vertex, "Vtx");
+	setup_opt(mesh_edge, "Edge");
+	setup_opt(mesh_face, "Face");
+	setup_opt(draw_point, "Point");
+	setup_opt(draw_line, "Line");
+	setup_opt(draw_face, "Poly");
+	setup_btn(extrude, "Extrude");
+	setup_btn(inset, "Inset");
+	setup_btn(spin, "Spin");
+	setup_btn(screw, "Screw");
+	cam_view.NoWantFocus();
+	cam_view.Add(0, "Active View");
+	cam_view.Add(1, "View 1");
+	cam_view.Add(2, "View 2");
+	cam_view.Add(3, "View 3");
+	cam_view.Add(4, "View 4");
+	cam_view.SetData(0);
+	Add(cam_view);
+	layout_items.Add(&cam_view);
+	setup_opt(cam_focus, "Cam Focus");
+	setup_opt(cam_program, "Cam Program");
+	setup_opt(cam_selected, "Cam Selected");
+
+	view.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_VIEW); };
+	obj_select.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_OBJ_SELECT); };
+	obj_move.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_OBJ_MOVE); };
+	obj_rotate.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_OBJ_ROTATE); };
+	mesh_select.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_MESH_SELECT); };
+	mesh_vertex.WhenAction = [=] {
+		if (owner) {
+			owner->mesh_select_mode = Edit3D::MESHSEL_VERTEX;
+			owner->SetEditTool(Edit3D::TOOL_MESH_SELECT);
+		}
+	};
+	mesh_edge.WhenAction = [=] {
+		if (owner) {
+			owner->mesh_select_mode = Edit3D::MESHSEL_EDGE;
+			owner->SetEditTool(Edit3D::TOOL_MESH_SELECT);
+		}
+	};
+	mesh_face.WhenAction = [=] {
+		if (owner) {
+			owner->mesh_select_mode = Edit3D::MESHSEL_FACE;
+			owner->SetEditTool(Edit3D::TOOL_MESH_SELECT);
+		}
+	};
+	draw_point.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_POINT); };
+	draw_line.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_LINE); };
+	draw_face.WhenAction = [=] { if (owner) owner->SetEditTool(Edit3D::TOOL_FACE); };
+	extrude.WhenAction = [=] { if (owner) owner->ExtrudeMeshSelection(0.1); };
+	inset.WhenAction = [=] { if (owner) owner->InsetMeshSelection(0.1); };
+	spin.WhenAction = [=] { if (owner) owner->SpinMeshSelection(); };
+	screw.WhenAction = [=] { if (owner) owner->ScrewMeshSelection(); };
+	cam_focus.WhenAction = [=] { if (owner) owner->ApplyToolPanelCameraSource(CAMSRC_FOCUS); };
+	cam_program.WhenAction = [=] { if (owner) owner->ApplyToolPanelCameraSource(CAMSRC_PROGRAM); };
+	cam_selected.WhenAction = [=] { if (owner) owner->ApplyToolPanelCameraSource(CAMSRC_OBJECT); };
+	Sync();
+}
+
+void ToolPanel::Sync() {
+	if (!owner)
+		return;
+	view.Set((int)owner->edit_tool == (int)Edit3D::TOOL_VIEW);
+	obj_select.Set((int)owner->edit_tool == (int)Edit3D::TOOL_OBJ_SELECT);
+	obj_move.Set((int)owner->edit_tool == (int)Edit3D::TOOL_OBJ_MOVE);
+	obj_rotate.Set((int)owner->edit_tool == (int)Edit3D::TOOL_OBJ_ROTATE);
+	mesh_select.Set((int)owner->edit_tool == (int)Edit3D::TOOL_MESH_SELECT);
+	mesh_vertex.Set(owner->mesh_select_mode == Edit3D::MESHSEL_VERTEX);
+	mesh_edge.Set(owner->mesh_select_mode == Edit3D::MESHSEL_EDGE);
+	mesh_face.Set(owner->mesh_select_mode == Edit3D::MESHSEL_FACE);
+	draw_point.Set((int)owner->edit_tool == (int)Edit3D::TOOL_POINT);
+	draw_line.Set((int)owner->edit_tool == (int)Edit3D::TOOL_LINE);
+	draw_face.Set((int)owner->edit_tool == (int)Edit3D::TOOL_FACE);
+	int view_idx = 0;
+	Value v = cam_view.GetData();
+	if (!IsNull(v))
+		view_idx = (int)v;
+	int rend_i = view_idx <= 0 ? owner->active_view : view_idx - 1;
+	if (rend_i < 0 || rend_i >= 4)
+		rend_i = owner->active_view;
+	EditRendererBase* rend = owner->v0.rends[rend_i];
+	if (rend) {
+		cam_focus.Set(rend->cam_src == CAMSRC_FOCUS);
+		cam_program.Set(rend->cam_src == CAMSRC_PROGRAM);
+		cam_selected.Set(rend->cam_src == CAMSRC_OBJECT);
+	}
+}
+
+void ToolPanel::Layout() {
+	int pad = 4;
+	int row_h = 22;
+	int col_w = max(80, (GetSize().cx - pad * 2) / 4);
+	int x = pad;
+	int y = pad;
+	auto place = [&](Ctrl& c) {
+		c.SetRect(x, y, col_w - 4, row_h);
+		x += col_w;
+		if (x + col_w > GetSize().cx + 1) {
+			x = pad;
+			y += row_h + 2;
+		}
+	};
+	for (Ctrl* c : layout_items) {
+		if (c)
+			place(*c);
+	}
+}
+
 namespace {
 
 static String ModelerAppConfigPath() {
@@ -1733,6 +1861,7 @@ Edit3D::Edit3D() :
 	Add(v0.grid.SizePos());
 	
 	AddFrame(menu);
+	tool_panel.Init(this);
 	menu.Set([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
 			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);
@@ -1759,11 +1888,16 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Asset Browser"), THISBACK(OpenAssetBrowser));
 			bar.Add(t_("Texture Editor"), THISBACK(OpenTextureEditor));
 			bar.Add(t_("Script Editor"), [this] { if (dock_script) ActivateDockableChild(*dock_script); });
+			bar.Add(t_("Tools Panel"), [this] { if (dock_tools) ActivateDockableChild(*dock_tools); });
 			bar.Separator();
 			bar.Sub(t_("Tree"), [this](Bar& bar) { v0.TreeMenu(bar); });
 			bar.Separator();
-			bar.Add(t_("HUD"), [this] { show_hud = !show_hud; }).Check(show_hud);
-			bar.Add(t_("HUD Help"), [this] { show_hud_help = !show_hud_help; }).Check(show_hud_help);
+			bar.Sub(t_("HUD"), [this](Bar& bar) {
+				bar.Add(t_("Show HUD"), [this] { show_hud = !show_hud; }).Check(show_hud);
+				bar.Add(t_("Show Help"), [this] { show_hud_help = !show_hud_help; }).Check(show_hud_help);
+				bar.Add(t_("Show Status"), [this] { show_hud_status = !show_hud_status; }).Check(show_hud_status);
+				bar.Add(t_("Show Debug"), [this] { show_hud_debug = !show_hud_debug; }).Check(show_hud_debug);
+			});
 			bar.Separator();
 			bar.Add(t_("Reset Layout"), THISBACK(ResetLayout));
 			bar.Add(t_("Reset Props Cursor"), THISBACK(ResetPropsCursor));
@@ -1772,23 +1906,36 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Undo"), THISBACK(Undo)).Key(K_CTRL|K_Z);
 			bar.Add(t_("Redo"), THISBACK(Redo)).Key(K_CTRL|K_Y);
 			bar.Separator();
+			bar.Add(t_("View (Camera)"), THISBACK1(SetEditTool, TOOL_VIEW)).Key(K_SPACE)
+				.Check(edit_tool == TOOL_VIEW);
+			bar.Separator();
 			bar.Add(t_("Create Editable Mesh"), THISBACK(CreateEditableMeshObject));
 			bar.Add(t_("Create 2D Layer"), THISBACK(Create2DLayerObject));
 			bar.Separator();
-			bar.Add(t_("Select Tool"), THISBACK1(SetEditTool, TOOL_SELECT))
-				.Check(edit_tool == TOOL_SELECT);
-			bar.Add(t_("Point Tool"), THISBACK1(SetEditTool, TOOL_POINT))
-				.Check(edit_tool == TOOL_POINT);
-			bar.Add(t_("Line Tool"), THISBACK1(SetEditTool, TOOL_LINE))
-				.Check(edit_tool == TOOL_LINE);
-			bar.Add(t_("Face Tool"), THISBACK1(SetEditTool, TOOL_FACE))
-				.Check(edit_tool == TOOL_FACE);
-			bar.Add(t_("Erase Tool"), THISBACK1(SetEditTool, TOOL_ERASE))
-				.Check(edit_tool == TOOL_ERASE);
-			bar.Add(t_("Join Tool"), THISBACK1(SetEditTool, TOOL_JOIN))
-				.Check(edit_tool == TOOL_JOIN);
-			bar.Add(t_("Split Tool"), THISBACK1(SetEditTool, TOOL_SPLIT))
-				.Check(edit_tool == TOOL_SPLIT);
+			bar.Sub(t_("Object Tools"), [this](Bar& bar) {
+				bar.Add(t_("Select"), THISBACK1(SetEditTool, TOOL_OBJ_SELECT)).Key(K_Q)
+					.Check(edit_tool == TOOL_OBJ_SELECT);
+				bar.Add(t_("Move"), THISBACK1(SetEditTool, TOOL_OBJ_MOVE)).Key(K_W)
+					.Check(edit_tool == TOOL_OBJ_MOVE);
+				bar.Add(t_("Rotate"), THISBACK1(SetEditTool, TOOL_OBJ_ROTATE)).Key(K_E)
+					.Check(edit_tool == TOOL_OBJ_ROTATE);
+			});
+			bar.Sub(t_("Mesh Tools"), [this](Bar& bar) {
+				bar.Add(t_("Mesh Select"), THISBACK1(SetEditTool, TOOL_MESH_SELECT))
+					.Check(edit_tool == TOOL_MESH_SELECT).Key(K_A);
+				bar.Add(t_("Point Tool"), THISBACK1(SetEditTool, TOOL_POINT))
+					.Check(edit_tool == TOOL_POINT).Key(K_S);
+				bar.Add(t_("Line Tool"), THISBACK1(SetEditTool, TOOL_LINE))
+					.Check(edit_tool == TOOL_LINE).Key(K_D);
+				bar.Add(t_("Face Tool"), THISBACK1(SetEditTool, TOOL_FACE))
+					.Check(edit_tool == TOOL_FACE).Key(K_F);
+				bar.Add(t_("Erase Tool"), THISBACK1(SetEditTool, TOOL_ERASE))
+					.Check(edit_tool == TOOL_ERASE).Key(K_X);
+				bar.Add(t_("Join Tool"), THISBACK1(SetEditTool, TOOL_JOIN))
+					.Check(edit_tool == TOOL_JOIN).Key(K_C);
+				bar.Add(t_("Split Tool"), THISBACK1(SetEditTool, TOOL_SPLIT))
+					.Check(edit_tool == TOOL_SPLIT).Key(K_V);
+			});
 			bar.Separator();
 			bar.Sub(t_("2D Tools"), [this](Bar& bar) {
 				bar.Add(t_("2D Select"), THISBACK1(SetEditTool, TOOL_2D_SELECT))
@@ -1821,11 +1968,11 @@ Edit3D::Edit3D() :
 				});
 			});
 			bar.Sub(t_("Mesh Selection"), [this](Bar& bar) {
-				bar.Add(t_("Vertex"), [this] { mesh_select_mode = MESHSEL_VERTEX; })
+				bar.Add(t_("Vertex"), [this] { mesh_select_mode = MESHSEL_VERTEX; tool_panel.Sync(); })
 					.Check(mesh_select_mode == MESHSEL_VERTEX);
-				bar.Add(t_("Edge"), [this] { mesh_select_mode = MESHSEL_EDGE; })
+				bar.Add(t_("Edge"), [this] { mesh_select_mode = MESHSEL_EDGE; tool_panel.Sync(); })
 					.Check(mesh_select_mode == MESHSEL_EDGE);
-				bar.Add(t_("Face"), [this] { mesh_select_mode = MESHSEL_FACE; })
+				bar.Add(t_("Face"), [this] { mesh_select_mode = MESHSEL_FACE; tool_panel.Sync(); })
 					.Check(mesh_select_mode == MESHSEL_FACE);
 				bar.Separator();
 				bar.Add(t_("Loop Select"), THISBACK(SelectMeshLoop));
@@ -1835,6 +1982,8 @@ Edit3D::Edit3D() :
 				bar.Separator();
 				bar.Add(t_("Extrude"), [this] { ExtrudeMeshSelection(0.1); });
 				bar.Add(t_("Inset"), [this] { InsetMeshSelection(0.1); });
+				bar.Add(t_("Spin"), THISBACK(SpinMeshSelection));
+				bar.Add(t_("Screw"), THISBACK(ScrewMeshSelection));
 			});
 			bar.Separator();
 			bar.Sub(t_("Plane"), [this](Bar& bar) {
@@ -2023,6 +2172,7 @@ void Edit3D::DockInit() {
 	dock_assets = &Dockable(asset_browser, "Assets");
 	dock_texture = &Dockable(texture_edit, "Texture");
 	dock_script = &Dockable(script_editor, "Script Editor");
+	dock_tools = &Dockable(tool_panel, "Tools");
 
 	dock_tree->SizeHint(Size(260, 600));
 	dock_props->SizeHint(Size(360, 600));
@@ -2032,7 +2182,9 @@ void Edit3D::DockInit() {
 	dock_assets->SizeHint(Size(360, 600));
 	dock_texture->SizeHint(Size(320, 420));
 	dock_script->SizeHint(Size(480, 600));
+	dock_tools->SizeHint(Size(260, 120));
 
+	DockLeft(*dock_tools, 0);
 	DockLeft(*dock_tree, 0);
 	DockLeft(*dock_props, 1);
 	DockBottom(*dock_time);
@@ -2056,6 +2208,7 @@ void Edit3D::DockInit() {
 	if (FileExists(cfg))
 		LoadFromFile(*this, cfg);
 	v0.RestoreTreeOpenState();
+	SetEditTool(edit_tool);
 }
 
 bool Edit3D::Key(dword key, int count) {
@@ -2175,6 +2328,8 @@ void Edit3D::Serialize(Stream& s) {
 	s % recent_assets;
 	s % show_hud;
 	s % show_hud_help;
+	s % show_hud_status;
+	s % show_hud_debug;
 }
 
 String Edit3D::SerializeScene3DState() const {
@@ -2368,6 +2523,8 @@ void Edit3D::UpdateHud() {
 	render_ctx.selected_mesh_faces.Clear();
 	render_ctx.selected_2d_shapes.Clear();
 	render_ctx.selection_center_valid = false;
+	render_ctx.selection_gizmo_enabled = (edit_tool == TOOL_OBJ_SELECT || edit_tool == TOOL_OBJ_MOVE ||
+	                                      edit_tool == TOOL_OBJ_ROTATE || edit_tool == TOOL_MESH_SELECT);
 	render_ctx.selection_kind = 0;
 	if (!mesh_sel_points.IsEmpty())
 		render_ctx.selected_mesh_points.Append(mesh_sel_points);
@@ -2409,11 +2566,75 @@ void Edit3D::UpdateHud() {
 		render_ctx.selection_kind = 2;
 		apply_world(GetFocused2DObject(), local_center);
 	}
+	if (!render_ctx.selection_center_valid && (edit_tool == TOOL_OBJ_MOVE || edit_tool == TOOL_OBJ_ROTATE || edit_tool == TOOL_OBJ_SELECT)) {
+		vec3 pos = vec3(0);
+		quat ori = Identity<quat>();
+		if (GeomObject* obj = v0.selected_obj) {
+			if (GeomTransform* tr = obj->FindTransform()) {
+				pos = tr->position;
+				ori = tr->orientation;
+			}
+			else if (state) {
+				if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+					pos = os->position;
+					ori = os->orientation;
+				}
+			}
+			render_ctx.selection_center_world = pos;
+			render_ctx.selection_center_valid = true;
+			render_ctx.selection_kind = 3;
+		}
+		else if (v0.selected_ref && state) {
+			if (v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_PROGRAM) {
+				GeomCamera& cam = state->GetProgram();
+				render_ctx.selection_center_world = cam.position;
+				render_ctx.selection_center_valid = true;
+				render_ctx.selection_kind = 3;
+			}
+			if (v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_FOCUS) {
+				GeomCamera& cam = state->GetFocus();
+				render_ctx.selection_center_world = cam.position;
+				render_ctx.selection_center_valid = true;
+				render_ctx.selection_kind = 3;
+			}
+		}
+	}
 	if (!show_hud)
 		return;
+	if (show_hud_status) {
+		EditRendererBase* rend = nullptr;
+		if (active_view >= 0 && active_view < 4)
+			rend = v0.rends[active_view];
+		String view_mode = "N/A";
+		String cam_src = "N/A";
+		if (rend) {
+			switch (rend->view_mode) {
+			case VIEWMODE_YZ: view_mode = "YZ"; break;
+			case VIEWMODE_XZ: view_mode = "XZ"; break;
+			case VIEWMODE_XY: view_mode = "XY"; break;
+			case VIEWMODE_PERSPECTIVE: view_mode = "Perspective"; break;
+			default: break;
+			}
+			switch (rend->cam_src) {
+			case CAMSRC_FOCUS: cam_src = "Focus"; break;
+			case CAMSRC_PROGRAM: cam_src = "Program"; break;
+			case CAMSRC_OBJECT: cam_src = "Selected"; break;
+			default: break;
+			}
+		}
+		render_ctx.hud_lines.Add(Format("View %d: %s | Cam: %s", active_view + 1, view_mode, cam_src));
+	}
+	if (show_hud_debug) {
+		render_ctx.hud_lines.Add(Format("Gizmo: %s | Selection kind: %d",
+			render_ctx.selection_gizmo_enabled ? "On" : "Off", render_ctx.selection_kind));
+	}
 	auto tool_name = [&](EditTool t) -> String {
 		switch (t) {
-		case TOOL_SELECT: return "Select";
+		case TOOL_VIEW: return "View";
+		case TOOL_OBJ_SELECT: return "Object Select";
+		case TOOL_OBJ_MOVE: return "Object Move";
+		case TOOL_OBJ_ROTATE: return "Object Rotate";
+		case TOOL_MESH_SELECT: return "Mesh Select";
 		case TOOL_POINT: return "Point";
 		case TOOL_LINE: return "Line";
 		case TOOL_FACE: return "Face";
@@ -2446,7 +2667,11 @@ void Edit3D::UpdateHud() {
 	render_ctx.hud_lines.Add(String() + "Auto-key: " + (auto_key ? "On" : "Off"));
 	String hint;
 	switch (edit_tool) {
-	case TOOL_SELECT: hint = "Click to select mesh/skeleton"; break;
+	case TOOL_VIEW: hint = "Drag to move camera (view tool)"; break;
+	case TOOL_OBJ_SELECT: hint = "Select object in tree, use gizmo to move/rotate"; break;
+	case TOOL_OBJ_MOVE: hint = "Drag gizmo to move object"; break;
+	case TOOL_OBJ_ROTATE: hint = "Drag gizmo to rotate object"; break;
+	case TOOL_MESH_SELECT: hint = "Click to select mesh/skeleton"; break;
 	case TOOL_POINT: hint = "Click to add vertex"; break;
 	case TOOL_LINE: hint = "Click to add edge"; break;
 	case TOOL_FACE: hint = "Click 3 points to add face"; break;
@@ -2876,6 +3101,8 @@ void Edit3D::DispatchScriptEvent(const String& event, VfsValue* node, const PyVa
 }
 
 void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i) {
+	if (view_i >= 0 && view_i < 4)
+		active_view = view_i;
 	auto is_2d_tool = [&](EditTool t) {
 		return t == TOOL_2D_SELECT || t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
 		       t == TOOL_2D_POLY || t == TOOL_2D_ERASE;
@@ -2994,69 +3221,136 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 		return true;
 	};
 
-	if (view == VIEW_GEOMPROJECT && edit_tool == TOOL_SELECT && selection_dragging) {
+	if (view == VIEW_GEOMPROJECT && (edit_tool == TOOL_MESH_SELECT || edit_tool == TOOL_OBJ_MOVE || edit_tool == TOOL_OBJ_ROTATE) && selection_dragging) {
 		if (type == "mouseMove" && view_i == selection_drag_view) {
-			vec3 world;
-			if (ScreenToPlaneWorldPoint(view_i, p, selection_drag_start_world, selection_drag_plane_normal, world)) {
-				vec3 delta_world = world - selection_drag_start_world;
-				GeomObject* obj = nullptr;
-				bool is2d = false;
-				vec3 center;
-				if (GetSelectionCenterWorld(center, obj, is2d) && obj) {
-					vec3 scale = vec3(1);
-					quat ori = Identity<quat>();
-					if (state) {
-						if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
-							scale = os->scale;
-							ori = os->orientation;
+			if (selection_drag_mode == 1) {
+				vec3 world;
+				if (ScreenToPlaneWorldPoint(view_i, p, selection_drag_start_world, selection_drag_plane_normal, world)) {
+					vec3 delta_world = world - selection_drag_start_world;
+					GeomObject* obj = nullptr;
+					bool is2d = false;
+					vec3 center;
+					if (GetSelectionCenterWorld(center, obj, is2d) && obj) {
+						vec3 scale = vec3(1);
+						quat ori = Identity<quat>();
+						if (state) {
+							if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key)) {
+								scale = os->scale;
+								ori = os->orientation;
+							}
 						}
+						else if (GeomTransform* tr = obj->FindTransform()) {
+							scale = tr->scale;
+							ori = tr->orientation;
+						}
+						quat inv = ori.GetInverse();
+						vec3 local = VectorTransform(delta_world, inv);
+						if (scale[0] != 0) local[0] /= scale[0];
+						if (scale[1] != 0) local[1] /= scale[1];
+						if (scale[2] != 0) local[2] /= scale[2];
+						if (is2d)
+							local[2] = 0;
+						vec3 inc = local - selection_drag_applied_local;
+						if (is2d)
+							Apply2DSelectionDelta(vec2(inc[0], inc[1]));
+						else
+							ApplyMeshSelectionDelta(inc);
+						selection_drag_applied_local = local;
 					}
-					else if (GeomTransform* tr = obj->FindTransform()) {
-						scale = tr->scale;
-						ori = tr->orientation;
-					}
-					quat inv = ori.GetInverse();
-					vec3 local = VectorTransform(delta_world, inv);
-					if (scale[0] != 0) local[0] /= scale[0];
-					if (scale[1] != 0) local[1] /= scale[1];
-					if (scale[2] != 0) local[2] /= scale[2];
-					if (is2d)
-						local[2] = 0;
-					vec3 inc = local - selection_drag_applied_local;
-					if (is2d)
-						Apply2DSelectionDelta(vec2(inc[0], inc[1]));
-					else
-						ApplyMeshSelectionDelta(inc);
-					selection_drag_applied_local = local;
 				}
+				return;
 			}
-			return;
+			if (selection_drag_mode == 2) {
+				vec3 world;
+				if (ScreenToPlaneWorldPoint(view_i, p, selection_drag_start_world, selection_drag_plane_normal, world)) {
+					vec3 delta = world - selection_drag_start_world;
+					if (GeomObject* obj = v0.selected_obj) {
+						ApplyTransformDelta(obj, delta, false);
+					}
+				}
+				return;
+			}
+			if (selection_drag_mode == 3) {
+				if (GeomObject* obj = v0.selected_obj) {
+					Point delta = p - selection_drag_start_mouse;
+					double angle = (double)(delta.x + delta.y) * 0.005;
+					int axis = 2;
+					vec3 n = selection_drag_plane_normal;
+					if (fabs(n[0]) > fabs(n[1]) && fabs(n[0]) > fabs(n[2]))
+						axis = 0;
+					else if (fabs(n[1]) > fabs(n[2]))
+						axis = 1;
+					ApplyTransformRotation(obj, axis, angle, transform_use_local);
+				}
+				return;
+			}
 		}
 		if (type == "mouseUp") {
 			selection_dragging = false;
 			selection_drag_view = -1;
 			selection_drag_applied_local = vec3(0);
+			selection_drag_mode = 0;
 			return;
 		}
 	}
 
-	if (view == VIEW_GEOMPROJECT && edit_tool == TOOL_SELECT && type == "mouseDown" && !sculpt_mode && !weight_paint_mode) {
+	if (view == VIEW_GEOMPROJECT && (edit_tool == TOOL_MESH_SELECT || edit_tool == TOOL_OBJ_MOVE || edit_tool == TOOL_OBJ_ROTATE) && type == "mouseDown" && !sculpt_mode && !weight_paint_mode) {
 		vec3 center_world;
 		GeomObject* obj = nullptr;
 		bool is2d = false;
-		if (GetSelectionCenterWorld(center_world, obj, is2d) && obj) {
+		bool has_center = false;
+		if (edit_tool == TOOL_MESH_SELECT) {
+			has_center = GetSelectionCenterWorld(center_world, obj, is2d) && obj;
+		}
+		else if (v0.selected_obj) {
+			GeomTransform* tr = v0.selected_obj->FindTransform();
+			if (tr) {
+				center_world = tr->position;
+				has_center = true;
+			}
+			else if (state) {
+				if (const GeomObjectState* os = state->FindObjectStateByKey(v0.selected_obj->key)) {
+					center_world = os->position;
+					has_center = true;
+				}
+			}
+		}
+		if (has_center && edit_tool == TOOL_MESH_SELECT) {
 			Point screen;
 			if (project_world(center_world, screen)) {
 				int dx = screen.x - p.x;
 				int dy = screen.y - p.y;
 				if (dx * dx + dy * dy <= 100) {
-					selection_drag_plane_normal = selection_plane_normal(obj);
+					selection_drag_plane_normal = selection_plane_normal(obj ? obj : v0.selected_obj);
 					vec3 world;
 					if (ScreenToPlaneWorldPoint(view_i, p, center_world, selection_drag_plane_normal, world)) {
 						selection_dragging = true;
 						selection_drag_view = view_i;
 						selection_drag_start_world = world;
 						selection_drag_applied_local = vec3(0);
+						selection_drag_mode = 1;
+						return;
+					}
+				}
+			}
+		}
+		if ((edit_tool == TOOL_OBJ_MOVE || edit_tool == TOOL_OBJ_ROTATE) && v0.selected_obj && has_center) {
+			Point screen;
+			if (project_world(center_world, screen)) {
+				int dx = screen.x - p.x;
+				int dy = screen.y - p.y;
+				if (dx * dx + dy * dy <= 100) {
+					selection_drag_plane_normal = selection_plane_normal(v0.selected_obj);
+					vec3 world;
+					if (ScreenToPlaneWorldPoint(view_i, p, center_world, selection_drag_plane_normal, world)) {
+						selection_dragging = true;
+						selection_drag_view = view_i;
+						selection_drag_start_world = world;
+						selection_drag_applied_local = vec3(0);
+						selection_drag_mode = (edit_tool == TOOL_OBJ_MOVE) ? 2 : 3;
+						selection_drag_start_pos = v0.selected_obj->FindTransform() ? v0.selected_obj->FindTransform()->position : vec3(0);
+						selection_drag_start_ori = v0.selected_obj->FindTransform() ? v0.selected_obj->FindTransform()->orientation : Identity<quat>();
+						selection_drag_start_mouse = p;
 						return;
 					}
 				}
@@ -3218,7 +3512,9 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 		}
 	}
 
-	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool != TOOL_SELECT) {
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" &&
+	    (edit_tool == TOOL_POINT || edit_tool == TOOL_LINE || edit_tool == TOOL_FACE ||
+	     edit_tool == TOOL_ERASE || edit_tool == TOOL_JOIN || edit_tool == TOOL_SPLIT)) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
 			vec3 plane_origin = vec3(0);
@@ -3378,7 +3674,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
-	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && !sculpt_mode) {
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_MESH_SELECT && !sculpt_mode) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
 			if (GeomEditableMesh* mesh = obj->FindEditableMesh()) {
@@ -3521,7 +3817,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
-	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && sculpt_mode) {
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_MESH_SELECT && sculpt_mode) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj) {
 			GeomEditableMesh* mesh = obj->FindEditableMesh();
@@ -3593,7 +3889,7 @@ void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags,
 			}
 		}
 	}
-	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_SELECT && weight_paint_mode) {
+	if (view == VIEW_GEOMPROJECT && type == "mouseDown" && edit_tool == TOOL_MESH_SELECT && weight_paint_mode) {
 		GeomObject* obj = v0.selected_obj;
 		if (obj && selected_bone) {
 			if (!IsVfsType(*selected_bone, AsTypeHash<GeomBone>()))
@@ -3711,6 +4007,44 @@ void Edit3D::SetEditTool(EditTool tool) {
 	draw2d_active = false;
 	draw2d_poly.Clear();
 	draw2d_obj = nullptr;
+	bool cam_input = (edit_tool == TOOL_VIEW);
+	for (int i = 0; i < 4; i++) {
+		if (v0.rends[i])
+			v0.rends[i]->SetCameraInputEnabled(cam_input);
+	}
+	tool_panel.Sync();
+}
+
+void Edit3D::ApplyRendererCameraSource(int view_i, CameraSource src, hash_t object_key) {
+	if (view_i < 0 || view_i >= 4)
+		return;
+	EditRendererBase* rend = v0.rends[view_i];
+	if (!rend)
+		return;
+	rend->cam_src = src;
+	if (src == CAMSRC_OBJECT)
+		rend->SetCameraObjectKey(object_key);
+	RefrehRenderers();
+}
+
+void Edit3D::ApplyToolPanelCameraSource(CameraSource src) {
+	int view_idx = 0;
+	Value v = tool_panel.cam_view.GetData();
+	if (!IsNull(v))
+		view_idx = (int)v;
+	int rend_i = view_idx <= 0 ? active_view : view_idx - 1;
+	if (rend_i < 0 || rend_i >= 4)
+		rend_i = active_view;
+	hash_t obj_key = 0;
+	if (src == CAMSRC_OBJECT) {
+		if (v0.selected_obj && v0.selected_obj->IsCamera())
+			obj_key = v0.selected_obj->key;
+	}
+	if (src == CAMSRC_OBJECT && obj_key == 0) {
+		src = CAMSRC_FOCUS;
+	}
+	ApplyRendererCameraSource(rend_i, src, obj_key);
+	tool_panel.Sync();
 }
 
 void Edit3D::CreateEditableMeshObject() {
@@ -4897,6 +5231,167 @@ void Edit3D::InsetMeshSelection(double amount) {
 		GeomFace s4; s4.a = f.b; s4.b = c2; s4.c = b2; mesh->faces.Add(s4);
 		GeomFace s5; s5.a = f.c; s5.b = f.a; s5.c = a2; mesh->faces.Add(s5);
 		GeomFace s6; s6.a = f.c; s6.b = a2; s6.c = c2; mesh->faces.Add(s6);
+	}
+	state->UpdateObjects();
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+static vec3 GetSpinAxis(Edit3D& e, GeomObject& obj) {
+	vec3 axis = vec3(0, 0, 1);
+	switch (e.edit_plane) {
+	case Edit3D::PLANE_XY: axis = vec3(0, 0, 1); break;
+	case Edit3D::PLANE_XZ: axis = vec3(0, 1, 0); break;
+	case Edit3D::PLANE_YZ: axis = vec3(1, 0, 0); break;
+	case Edit3D::PLANE_LOCAL: {
+		GeomTransform* tr = obj.FindTransform();
+		if (tr)
+			axis = VectorTransform(VEC_FWD, tr->orientation);
+		break;
+	}
+	default: break;
+	}
+	float len = axis.GetLength();
+	if (len > 1e-6f)
+		axis /= len;
+	return axis;
+}
+
+void Edit3D::SpinMeshSelection() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		const GeomFace& f = mesh->faces[id];
+		verts.FindAdd(f.a);
+		verts.FindAdd(f.b);
+		verts.FindAdd(f.c);
+	}
+	if (verts.IsEmpty())
+		return;
+	PushUndo("Spin mesh");
+	vec3 center(0, 0, 0);
+	for (int id : verts)
+		center += mesh->points[id];
+	center /= (float)verts.GetCount();
+	vec3 axis = GetSpinAxis(*this, *obj);
+	int steps = 8;
+	float angle = (float)(2.0 * M_PI / steps);
+	Vector<int> prev_map;
+	prev_map.SetCount(mesh->points.GetCount(), -1);
+	for (int id : verts)
+		prev_map[id] = id;
+	for (int step = 1; step <= steps; step++) {
+		quat rot = AxesQuat(axis * angle * step);
+		Vector<int> cur_map;
+		cur_map.SetCount(mesh->points.GetCount() + verts.GetCount(), -1);
+		for (int id : verts) {
+			vec3 p = mesh->points[id];
+			vec3 r = VectorTransform(p - center, rot) + center;
+			int idx = mesh->points.GetCount();
+			mesh->points.Add(r);
+			cur_map[id] = idx;
+			if (prev_map[id] >= 0) {
+				GeomEdge e;
+				e.a = prev_map[id];
+				e.b = idx;
+				mesh->lines.Add(e);
+			}
+		}
+		for (int id : mesh_sel_lines) {
+			if (id < 0 || id >= mesh->lines.GetCount())
+				continue;
+			const GeomEdge& e = mesh->lines[id];
+			if (cur_map[e.a] >= 0 && cur_map[e.b] >= 0) {
+				GeomEdge ne;
+				ne.a = cur_map[e.a];
+				ne.b = cur_map[e.b];
+				mesh->lines.Add(ne);
+			}
+		}
+		prev_map = pick(cur_map);
+	}
+	state->UpdateObjects();
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::ScrewMeshSelection() {
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	if (verts.IsEmpty())
+		return;
+	PushUndo("Screw mesh");
+	vec3 center(0, 0, 0);
+	for (int id : verts)
+		center += mesh->points[id];
+	center /= (float)verts.GetCount();
+	vec3 axis = GetSpinAxis(*this, *obj);
+	int steps = 12;
+	float angle = (float)(2.0 * M_PI / steps);
+	float step_offset = 0.1f;
+	Vector<int> prev_map;
+	prev_map.SetCount(mesh->points.GetCount(), -1);
+	for (int id : verts)
+		prev_map[id] = id;
+	for (int step = 1; step <= steps; step++) {
+		quat rot = AxesQuat(axis * angle * step);
+		Vector<int> cur_map;
+		cur_map.SetCount(mesh->points.GetCount() + verts.GetCount(), -1);
+		for (int id : verts) {
+			vec3 p = mesh->points[id];
+			vec3 r = VectorTransform(p - center, rot) + center + axis * (step_offset * step);
+			int idx = mesh->points.GetCount();
+			mesh->points.Add(r);
+			cur_map[id] = idx;
+			if (prev_map[id] >= 0) {
+				GeomEdge e;
+				e.a = prev_map[id];
+				e.b = idx;
+				mesh->lines.Add(e);
+			}
+		}
+		for (int id : mesh_sel_lines) {
+			if (id < 0 || id >= mesh->lines.GetCount())
+				continue;
+			const GeomEdge& e = mesh->lines[id];
+			if (cur_map[e.a] >= 0 && cur_map[e.b] >= 0) {
+				GeomEdge ne;
+				ne.a = cur_map[e.a];
+				ne.b = cur_map[e.b];
+				mesh->lines.Add(ne);
+			}
+		}
+		prev_map = pick(cur_map);
 	}
 	state->UpdateObjects();
 	AutoKeyMeshEdit(obj);

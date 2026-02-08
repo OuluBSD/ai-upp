@@ -44,6 +44,7 @@ struct Scene3DRenderContext {
 	Vector<int> selected_2d_shapes;
 	vec3 selection_center_world = vec3(0);
 	bool selection_center_valid = false;
+	bool selection_gizmo_enabled = false;
 	int selection_kind = 0;
 };
 

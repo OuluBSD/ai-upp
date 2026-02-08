@@ -6,6 +6,10 @@ struct EditRendererBase : public Ctrl {
 	ViewMode view_mode = VIEWMODE_YZ;
 	CameraSource cam_src = CAMSRC_FOCUS;
 	bool wireframe_only = false;
+	bool camera_input_enabled = true;
+	hash_t cam_object_key = 0;
+	mutable VfsValue cam_override_node;
+	mutable GeomCamera cam_override;
 	
 	Point cap_mouse_pos;
 	vec3 cap_begin_pos;
@@ -44,6 +48,10 @@ public:
 	void SetCameraSource(CameraSource cs) {cam_src = cs;}
 	void SetWireframeOnly(bool b) {wireframe_only = b;}
 	bool IsWireframeOnly() const {return wireframe_only;}
+	void SetCameraInputEnabled(bool b) {camera_input_enabled = b;}
+	bool IsCameraInputEnabled() const {return camera_input_enabled;}
+	void SetCameraObjectKey(hash_t key) {cam_object_key = key;}
+	hash_t GetCameraObjectKey() const {return cam_object_key;}
 	
 	GeomCamera& GetGeomCamera() const;
 	

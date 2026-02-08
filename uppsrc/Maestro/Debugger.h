@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_Debugger_h_
 #define _Maestro_Debugger_h_
 
@@ -34,8 +35,14 @@ public:
 };
 
 class GdbService : public DebuggerService {
+	LocalProcess proc;
+	bool         is_running = false;
+	
+	void ReadOutput();
+	void ParseLine(const String& line);
+	void SendCommand(const String& cmd);
+
 public:
-	// Stub implementation for now
 	void Run(const String& cmd, const String& args) override;
 	void Stop() override;
 	void Step() override;
@@ -47,3 +54,4 @@ public:
 };
 
 #endif
+

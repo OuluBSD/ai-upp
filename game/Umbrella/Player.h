@@ -20,6 +20,10 @@ public:
 		virtual float GetGridSize() = 0;
 	};
 
+	// Public constants for GameScreen to access
+	static constexpr float THROW_VELOCITY_X = 350.0f;  // Horizontal throw speed
+	static constexpr float THROW_VELOCITY_Y = 100.0f;  // Upward component
+
 private:
 	Rectf bounds;
 	Pointf velocity;
@@ -34,10 +38,23 @@ private:
 	float invincibleTimer;
 	float knockbackTimer;
 
-	// Parasol attack
+	// Parasol state
+	enum ParasolState {
+		PARASOL_IDLE,
+		PARASOL_ATTACKING,
+		PARASOL_GLIDING
+	};
+	ParasolState parasolState;
 	Rectf parasolHitbox;
 	bool attackHeld;
 	bool wasAttackHeld;
+	float attackTimer;
+	float attackCooldown;
+
+	// Carried enemies on umbrella
+	Array<class Enemy*> carriedEnemies;
+	float carryWeight;
+	float maxCarryWeight;
 
 	// Physics constants (from RainbowGame Player.java)
 	static constexpr float GRID_SIZE = 14.0f;
@@ -50,6 +67,11 @@ private:
 	static constexpr float JUMP_BUFFER_TIME = 0.12f;
 	static constexpr float COLLISION_STEP = 3.5f;  // Max pixels per collision check
 	static constexpr float KNOCKBACK_DURATION = 0.35f;
+
+	// Parasol constants
+	static constexpr float PARASOL_ATTACK_DURATION = 0.25f;
+	static constexpr float PARASOL_ATTACK_COOLDOWN = 0.3f;
+	static constexpr float PARASOL_GLIDE_GRAVITY_SCALE = 0.35f;
 
 	// Collision helpers
 	bool IsTouchingWallOnLeft(CollisionHandler& collision);
@@ -83,7 +105,17 @@ public:
 	bool IsOnGround() const { return onGround; }
 	int GetFacing() const { return facing; }
 	Rectf GetParasolHitbox() const { return parasolHitbox; }
-	bool IsAttacking() const { return attackHeld; }
+	bool IsAttacking() const { return parasolState == PARASOL_ATTACKING; }
+	bool IsGliding() const { return parasolState == PARASOL_GLIDING; }
+	ParasolState GetParasolState() const { return parasolState; }
+	const Array<class Enemy*>& GetCapturedEnemies() const { return carriedEnemies; }
+
+	// Enemy capture
+	bool CanCapture(class Enemy* enemy) const;
+	void CaptureEnemy(class Enemy* enemy);
+	bool HasCapturedEnemies() const { return carriedEnemies.GetCount() > 0; }
+	void AlignCapturedEnemies();
+	class Enemy* ReleaseCapturedEnemy();  // Returns the enemy to throw
 
 	// Mutators
 	void TakeDamage(int amount);

@@ -9,9 +9,12 @@ Enemy::Enemy(float x, float y, float width, float height, EnemyType t) {
 	health = 1;
 	alive = true;
 	active = true;
+	captured = false;
+	thrown = false;
 	stateTimer = 0.0f;
 	facing = -1;  // Start facing left
 	type = t;
+	carryWeight = 1.0f;  // Default weight
 }
 
 void Enemy::TakeDamage(int amount) {
@@ -31,8 +34,29 @@ void Enemy::Defeat() {
 	// Mark as dead (will trigger reward spawning in GameScreen)
 	alive = false;
 	active = false;
+	captured = false;
 	// TODO: Play defeat sound
 	// TODO: Spawn particle effect
+}
+
+void Enemy::Capture() {
+	// Enemy captured by player umbrella
+	captured = true;
+	active = false;
+	velocity = Pointf(0, 0);  // Stop movement
+}
+
+void Enemy::ThrowFrom(float x, float y, float vx, float vy) {
+	// Thrown by player - reactivate with new position and velocity
+	bounds.left = x;
+	bounds.right = x + bounds.Width();
+	bounds.top = y;
+	bounds.bottom = y + bounds.Height();
+	velocity.x = vx;
+	velocity.y = 0.0f;  // Thrown enemies move purely horizontal (gravity will pull down)
+	captured = false;
+	thrown = true;
+	active = true;
 }
 
 bool Enemy::IsTouchingWallOnLeft(Player::CollisionHandler& collision) {
@@ -195,4 +219,32 @@ void Enemy::ResolveCollisionY(float deltaY, Player::CollisionHandler& collision)
 	// Apply remaining movement
 	bounds.top += remaining;
 	bounds.bottom += remaining;
+}
+
+bool Enemy::CheckThrownWallCollision(float deltaX, Player::CollisionHandler& collision) {
+	// Only check if thrown enemy is moving horizontally
+	if(!thrown || deltaX == 0.0f) return false;
+
+	// Check if enemy will hit wall in movement direction
+	int gridSize = (int)collision.GetGridSize();
+
+	// Get Y range
+	float minY = min(bounds.top, bounds.bottom);
+	float maxY = max(bounds.top, bounds.bottom);
+	int minRow = (int)(minY / gridSize);
+	int maxRow = (int)(maxY / gridSize);
+
+	// Check column ahead of movement
+	int checkCol = deltaX > 0 ? (int)((bounds.right + abs(deltaX)) / gridSize)
+	                           : (int)((bounds.left + deltaX) / gridSize);
+
+	// Check if wall exists in path
+	for(int row = minRow; row <= maxRow; row++) {
+		if(collision.IsWallTile(checkCol, row) || collision.IsFullBlockTile(checkCol, row)) {
+			// Wall collision detected - mark enemy for destruction
+			return true;
+		}
+	}
+
+	return false;
 }

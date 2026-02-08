@@ -1,5 +1,6 @@
 #include "Umbrella.h"
 #include "GameScreen.h"
+#include "GameSettings.h"
 #include "MapSerializer.h"
 #include "EnemyPatroller.h"
 #include "EnemyJumper.h"
@@ -172,7 +173,7 @@ void GameScreen::GameTick(float delta) {
 
 		enemies[i]->Update(delta, player, *this);
 
-		// Check if thrown enemy just died (hit wall) - spawn treat
+		// Check if thrown enemy just died (hit wall) - spawn treats for it and all carried enemies
 		if(wasThrown && wasAlive && !enemies[i]->IsAlive()) {
 			Rectf enemyBounds = enemies[i]->GetBounds();
 			Pointf enemyCenter;
@@ -186,8 +187,90 @@ void GameScreen::GameTick(float delta) {
 				case ENEMY_SHOOTER: treatType = TREAT_BLUEBERRY; break;
 			}
 
+			RLOG("Spawning treat at (" << enemyCenter.x << "," << enemyCenter.y << ") type=" << (int)treatType);
 			treats.Add(new Treat(enemyCenter.x, enemyCenter.y, treatType));
 			player.AddScore(200);  // Bonus for defeating via throw
+
+			// Kill and spawn treats for all enemies that were carried by this thrown enemy
+			for(int j = 0; j < enemies.GetCount(); j++) {
+				if(i == j) continue;  // Skip self
+				if(enemies[j]->IsCarriedByThrown()) {
+					Rectf carriedBounds = enemies[j]->GetBounds();
+					Pointf carriedCenter;
+					carriedCenter.x = (carriedBounds.left + carriedBounds.right) / 2.0f;
+					carriedCenter.y = (carriedBounds.top + carriedBounds.bottom) / 2.0f;
+
+					TreatType carriedTreatType = TREAT_PEAR;
+					switch(enemies[j]->GetType()) {
+						case ENEMY_PATROLLER: carriedTreatType = TREAT_PEAR; break;
+						case ENEMY_JUMPER: carriedTreatType = TREAT_BANANA; break;
+						case ENEMY_SHOOTER: carriedTreatType = TREAT_BLUEBERRY; break;
+					}
+
+					treats.Add(new Treat(carriedCenter.x, carriedCenter.y, carriedTreatType));
+					enemies[j]->Defeat();
+					player.AddScore(150);  // Bonus for each carried enemy
+				}
+			}
+		}
+	}
+
+	// Check thrown enemy collisions with other enemies (capturing them)
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		if(!enemies[i]->IsThrown()) continue;  // Only check thrown enemies
+		if(!enemies[i]->IsAlive()) continue;   // Skip dead enemies
+
+		Rectf throwerBounds = enemies[i]->GetBounds();
+		Pointf throwerVelocity = enemies[i]->GetVelocity();
+		float throwerSize = enemies[i]->GetSize();
+
+		// Check collision with other enemies
+		for(int j = 0; j < enemies.GetCount(); j++) {
+			if(i == j) continue;  // Skip self
+
+			// Skip checks for enemies that can't be captured
+			if(enemies[j]->IsCarriedByThrown()) continue;  // Already carried
+			if(enemies[j]->IsCaptured()) continue;  // Captured by player
+			if(!enemies[j]->IsActive()) continue;  // Skip inactive enemies
+
+			Rectf targetBounds = enemies[j]->GetBounds();
+			float targetSize = enemies[j]->GetSize();
+			bool targetAlive = enemies[j]->IsAlive();
+
+			// Check bounds collision
+			bool collisionX = throwerBounds.left < targetBounds.right && throwerBounds.right > targetBounds.left;
+			bool collisionY = min(throwerBounds.top, throwerBounds.bottom) < max(targetBounds.top, targetBounds.bottom) &&
+			                  max(throwerBounds.top, throwerBounds.bottom) > min(targetBounds.top, targetBounds.bottom);
+
+			if(collisionX && collisionY) {
+				// Collision detected!
+				RLOG("THROWN ENEMY COLLISION: thrower[" << i << "] size=" << throwerSize << " hit target[" << j << "] size=" << targetSize << " alive=" << targetAlive);
+
+				bool canCapture = false;
+
+				if(!targetAlive) {
+					// Always capture deactivated/dead enemies
+					canCapture = true;
+					RLOG("  Can capture: target not alive");
+				}
+				else {
+					// Capture living enemies unless target is significantly larger
+					// Example: thrower=12, target must be <= 21 (12 * tolerance)
+					float maxTargetSize = throwerSize * GameSettings::THROWN_ENEMY_SIZE_TOLERANCE;
+					if(targetSize <= maxTargetSize) {
+						canCapture = true;
+						RLOG("  Can capture: target size " << targetSize << " <= max " << maxTargetSize);
+					}
+					else {
+						RLOG("  Cannot capture: target size " << targetSize << " > max " << maxTargetSize << " (too large)");
+					}
+				}
+
+				if(canCapture) {
+					RLOG("  >>> CAPTURING TARGET ENEMY <<<");
+					enemies[j]->CaptureByThrown(throwerVelocity);
+				}
+			}
 		}
 	}
 

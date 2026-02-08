@@ -30,6 +30,11 @@ struct GameSettings {
 	static constexpr float DEAD_ENEMY_MIN_VY = 100.0f;   // Minimum upward velocity
 	static constexpr float DEAD_ENEMY_MAX_VY = 200.0f;   // Maximum upward velocity
 
+	// Level Completion Settings
+	static constexpr float LEVEL_COMPLETE_TREAT_TIMEOUT = 7.0f;  // Seconds to collect treats after all enemies killed
+	static constexpr float LEVEL_TRANSITION_SCROLL_SPEED = 200.0f;  // Pixels per second for level scroll
+	static constexpr float PLAYER_HOVER_HEIGHT = 50.0f;  // How high player hovers during transition
+
 	// TODO: Add other game settings here as they're identified:
 	// - Enemy AI parameters (speeds, jump heights, etc.)
 	// - Player physics constants

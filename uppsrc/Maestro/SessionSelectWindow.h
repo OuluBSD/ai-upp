@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_SessionSelectWindow_h_
 #define _Maestro_SessionSelectWindow_h_
 
@@ -82,3 +83,4 @@ public:
 };
 
 #endif
+

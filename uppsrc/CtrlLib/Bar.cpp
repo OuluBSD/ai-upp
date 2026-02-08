@@ -207,6 +207,7 @@ Bar::Item& Bar::Item::Tip(const char *tip)          { return *this; }
 Bar::Item& Bar::Item::Help(const char *help)        { return *this; }
 Bar::Item& Bar::Item::Topic(const char *topic)      { return *this; }
 Bar::Item& Bar::Item::Description(const char *desc) { return *this; }
+Bar::Item& Bar::Item::LayoutId(const char *id)      { return *this; }
 Bar::Item& Bar::Item::Check(bool check)             { return *this; }
 Bar::Item& Bar::Item::Radio(bool check)             { return *this; }
 void       Bar::Item::FinalSync() {}
@@ -265,7 +266,7 @@ void Bar::AddNC(Ctrl& ctrl)
 
 Bar::Item&  Bar::Add(bool enable, const char *text, const ::Upp::Image& image, const Callback& callback)
 {
-	return AddItem(callback).Text(text).Image(image).Enable(enable);
+	return AddItem(callback).Text(text).Image(image).Enable(enable).LayoutId(text);
 }
 
 Bar::Item&  Bar::Add(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, const Callback& callback)
@@ -278,7 +279,7 @@ Bar::Item&  Bar::Add(bool enable, KeyInfo& (*key)(), const ::Upp::Image& image, 
 
 Bar::Item&  Bar::Add(const char *text, const ::Upp::Image& image, const Callback& callback)
 {
-	return AddItem(callback).Text(text).Image(image);
+	return AddItem(callback).Text(text).Image(image).LayoutId(text);
 }
 /*
 Bar::Item& Bar::Add(const String& text, const ::Upp::Image& image, const Event<> & callback)

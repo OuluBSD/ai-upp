@@ -1,8 +1,10 @@
 #include "VfsBase.h"
 
+NAMESPACE_UPP
+
+
 #define DBG_PRINT 1
 
-NAMESPACE_UPP
 
 
 WorldState::WorldState() {

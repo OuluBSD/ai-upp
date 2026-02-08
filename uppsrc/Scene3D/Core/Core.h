@@ -2,7 +2,7 @@
 #define _Scene3D_Core_Core_h_
 
 #include <Geometry/Geometry.h>
-#include <Core/VfsBase/Visitor.h>
+#include <Core/VfsBase/VfsBase.h>
 #include <Vfs/Core/Core.h>
 
 NAMESPACE_UPP

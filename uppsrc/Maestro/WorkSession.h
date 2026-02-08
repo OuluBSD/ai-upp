@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_WorkSession_h_
 #define _Maestro_WorkSession_h_
 
@@ -70,3 +71,4 @@ public:
 };
 
 #endif
+

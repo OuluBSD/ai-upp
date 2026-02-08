@@ -179,6 +179,16 @@ void DropList::Trim(int n) {
 	EnableDrop(n);
 }
 
+bool DropList::Access(Visitor& v) {
+	v.AccessLabel("DropList");
+	v.AccessValue(GetData());
+	v.AccessMenu("Items", [this](Visitor& b){
+		for(int i = 0; i < GetCount(); i++)
+			b.AccessAction(AsString(GetValue(i)), [this, i]{ SetIndex(i); Action(); });
+	});
+	return true;
+}
+
 void DropList::SetData(const Value& data) {
 	if(value != data) {
 		value = data;

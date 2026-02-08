@@ -838,7 +838,8 @@ void DrawGroundGrid(Size sz, Draw& d, const mat4& proj, const mat4& cam_world, c
 
 
 
-EditRendererBase::EditRendererBase() {
+EditRendererBase::EditRendererBase()
+	: cam_override(cam_override_node) {
 	SetFrame(BlackFrame());
 	WantFocus();
 	
@@ -1083,7 +1084,7 @@ void EditRendererV1::Paint(Draw& d) {
 	if (state.focus_mode == 3 && state.focus_visible)
 		draw_frustum(focus.position, focus.orientation, focus.fov, focus.scale, Color(120, 220, 120));
 
-	if (ctx && ctx->selection_center_valid)
+	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid)
 		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
 	
 	// Overlay: active camera axes and forward vector
@@ -1571,7 +1572,7 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	draw_camera_gizmos();
-	if (ctx && ctx->selection_center_valid)
+	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid)
 		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
 	// Skeleton overlay
 	if (ctx && ctx->state) {
@@ -1766,6 +1767,10 @@ void EditRendererBase::LeftDown(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
 	if (WhenInput)
 		WhenInput("mouseDown", p, keyflags, 0);
+	if (!camera_input_enabled) {
+		SetFocus();
+		return;
+	}
 	
 	cap_mouse_pos = p;
 	is_captured_mouse = true;
@@ -1789,6 +1794,11 @@ void EditRendererBase::LeftDown(Point p, dword keyflags) {
 void EditRendererBase::LeftUp(Point p, dword keyflags) {
 	if (WhenInput)
 		WhenInput("mouseUp", p, keyflags, 0);
+	if (!camera_input_enabled) {
+		is_captured_mouse = false;
+		ReleaseCapture();
+		return;
+	}
 	is_captured_mouse = false;
 	
 	ReleaseCapture();
@@ -1798,6 +1808,8 @@ void EditRendererBase::MouseMove(Point p, dword keyflags) {
 	GeomCamera& camera = GetGeomCamera();
 	if (WhenInput)
 		WhenInput("mouseMove", p, keyflags, 0);
+	if (!camera_input_enabled)
+		return;
 	
 	if (is_captured_mouse) {
 		Point diff = p - cap_mouse_pos;
@@ -1884,6 +1896,8 @@ void EditRendererBase::RotateRel(const axes3& v) {
 void EditRendererBase::MouseWheel(Point p, int zdelta, dword keyflags) {
 	if (WhenInput)
 		WhenInput("mouseWheel", p, keyflags, zdelta);
+	if (!camera_input_enabled)
+		return;
 	const double scale = 0.75;
 	GeomCamera& camera = GetGeomCamera();
 	
@@ -1906,6 +1920,28 @@ void EditRendererBase::RightDown(Point p, dword keyflags) {
 
 GeomCamera& EditRendererBase::GetGeomCamera() const {
 	switch (cam_src) {
+	case CAMSRC_OBJECT:
+		if (ctx && ctx->state) {
+			GeomCamera& base = ctx->state->GetProgram();
+			cam_override.position = base.position;
+			cam_override.orientation = base.orientation;
+			cam_override.distance = base.distance;
+			cam_override.fov = base.fov;
+			cam_override.scale = base.scale;
+			GeomObject* obj = ctx->state->FindObjectByKey(cam_object_key);
+			if (obj) {
+				if (GeomTransform* tr = obj->FindTransform()) {
+					cam_override.position = tr->position;
+					cam_override.orientation = tr->orientation;
+				}
+				else if (const GeomObjectState* os = ctx->state->FindObjectStateByKey(obj->key)) {
+					cam_override.position = os->position;
+					cam_override.orientation = os->orientation;
+				}
+			}
+			return cam_override;
+		}
+		break;
 		
 	case CAMSRC_FOCUS:
 	case CAMSRC_VIDEOIMPORT_FOCUS:
@@ -1920,13 +1956,18 @@ GeomCamera& EditRendererBase::GetGeomCamera() const {
 		break;
 		
 	}
+	if (ctx && ctx->state)
+		return ctx->state->GetProgram();
 	Panic("Invalid view mode in EditRendererBase");
 	NEVER();
+	return cam_override;
 }
 
 bool EditRendererBase::Key(dword key, int count) {
 	if (WhenInput)
 		WhenInput("keyDown", Point(0, 0), 0, (int)key);
+	if (!camera_input_enabled)
+		return false;
 	GeomCamera& camera = GetGeomCamera();
 	float step = camera.scale * 0.1;
 	

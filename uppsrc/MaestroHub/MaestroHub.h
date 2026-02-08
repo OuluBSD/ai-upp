@@ -177,7 +177,6 @@ public:
 	ArrayCtrl    evidence_list;
 	RichTextView detail_view;
 	Splitter     main_split;
-	ToolBar      toolbar;
 
 	String       root;
 	void Load(const String& maestro_root);
@@ -206,11 +205,11 @@ class DebugWorkspace : public WithDebugWorkspaceLayout<ParentCtrl> {
 public:
 	ParentCtrl left_pane, center_pane, bottom_pane;
 	DropList   target_device;
+	EditString target_binary;
 	TreeCtrl   call_stack;
 	RichTextCtrl source_code;
 	ArrayCtrl  locals;
 	Splitter   hsplit, vsplit;
-	ToolBar    toolbar;
 	
 	One<DebuggerService> dbg;
 	Event<String> WhenLog;
@@ -646,8 +645,11 @@ public:
 	void SyncStatus();
 	void LoadData();
 	void PlanWatcher();
+	void UxWatcher();
 	void ScanForUnblockedTasks();
 	Time last_plan_check;
+	
+	MaestroToolRegistry tool_reg;
 	
 	// Navigation History
 	Vector<int> tab_history;
@@ -657,6 +659,8 @@ public:
 	void NavigateTo(int tab);
 	void OnBack();
 	void OnNext();
+
+	virtual bool Access(Visitor& v) override;
 
 public:
 	typedef MaestroHubCockpit CLASSNAME;

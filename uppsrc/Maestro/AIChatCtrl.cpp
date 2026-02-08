@@ -55,7 +55,9 @@ void MaestroItem::Paint(Draw& d) {
 	else if(is_tool) clr = LtGreen();
 	
 	Font fnt = StdFont().Bold();
-	d.DrawText(2, 2, role, fnt, clr);
+	String header = role;
+	if(!persona.IsEmpty()) header << " [" << persona << "]";
+	d.DrawText(2, 2, header, fnt, clr);
 	
 	int ty = 22;
 	Font tfnt = is_tool ? Courier(StdFont().GetHeight()) : StdFont();
@@ -170,24 +172,14 @@ AIChatCtrl::AIChatCtrl() {
 	suggestion.Hide();
 	
 	Add(input.HSizePos(offset,100+offset).BottomPos(0,edit_height));
+	Add(send_continue.RightPos(0,100+offset).BottomPos(2*btn_height,btn_height));
+	Add(yolo_mode.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
+	Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
 	
-		Add(send_continue.RightPos(0,100+offset).BottomPos(2*btn_height,btn_height));
-	
-		Add(yolo_mode.RightPos(0,100+offset).BottomPos(1*btn_height,btn_height));
-	
-		Add(send.RightPos(0,100+offset).BottomPos(0*btn_height,btn_height));
-	
-		
-	
-send_continue.SetLabel("Auto-Continue");
-	
-		yolo_mode.SetLabel("YOLO Mode");
-	
-send.SetLabel("Send");
-	
-		
-	
-yolo_mode.Set(1);
+	send_continue.SetLabel("Auto-Continue");
+	yolo_mode.SetLabel("YOLO Mode");
+	send.SetLabel("Send");
+	yolo_mode.Set(1);
 	
 	RegisterMaestroTools(tools);
 	
@@ -201,7 +193,9 @@ yolo_mode.Set(1);
 void AIChatCtrl::CopyAllChat() {
 	String full_chat;
 	for(const auto& item : items) {
-		full_chat << item.role << ":\n" << item.text << "\n\n";
+		full_chat << item.role;
+		if(!item.persona.IsEmpty()) full_chat << " [" << item.persona << "]";
+		full_chat << ":\n" << item.text << "\n\n";
 	}
 	WriteClipboardText(full_chat);
 }
@@ -214,6 +208,7 @@ void AIChatCtrl::CopyDebugData() {
 	debug << "Items: " << items.GetCount() << "\n";
 	for(int i = 0; i < items.GetCount(); i++) {
 		debug << "[" << i << "] Role: " << items[i].role 
+		      << " Persona: " << items[i].persona
 		      << " Len: " << items[i].text.GetCount() 
 		      << " Error: " << items[i].is_error << " Tool: " << items[i].is_tool << "\n";
 	}
@@ -270,9 +265,10 @@ void AIChatCtrl::SessionStatus(const String& b, const String& id) {
 	status.SetLabel("Backend: " + b + " | Session: " + id);
 }
 
-void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error) {
+void AIChatCtrl::AddItem(const String& role, const String& text, bool is_error, const String& persona) {
 	MaestroItem& item = items.Add();
 	item.role = role;
+	item.persona = persona;
 	item.text = text;
 	item.is_error = is_error;
 	item.is_tool = false;
@@ -384,10 +380,11 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		current_response << e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
+			items.Top().persona = e.persona;
 			items.Top().Refresh();
 			Layout();
 		} else {
-			AddItem("AI (" + backend + ")", current_response);
+			AddItem("AI (" + backend + ")", current_response, false, e.persona);
 		}
 	}
 	else if(e.type == "message" || e.type == "assistant") {
@@ -395,10 +392,11 @@ void AIChatCtrl::OnEvent(const MaestroEvent& e) {
 		if(!e.text.IsEmpty()) current_response = e.text;
 		if(items.GetCount() > 0 && items.Top().role.StartsWith("AI") && !items.Top().is_tool) {
 			items.Top().text = current_response;
+			items.Top().persona = e.persona;
 			items.Top().Refresh();
 			Layout();
 		} else {
-			AddItem("AI (" + backend + ")", current_response);
+			AddItem("AI (" + backend + ")", current_response, false, e.persona);
 		}
 		if(e.role == "assistant" || e.type == "assistant") OnDone(false, false);
 	}

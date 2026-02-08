@@ -1,4 +1,4 @@
-#include "VfsBase.h"
+#include "Core.h"
 
 NAMESPACE_UPP
 

@@ -1,28 +1,29 @@
 class TreeCtrl : public Ctrl {
 public:
-	virtual void  CancelMode();
-	virtual void  Paint(Draw& w);
-	virtual void  Layout();
-	virtual void  LeftDown(Point p, dword flags);
-	virtual void  LeftUp(Point p, dword flags);
-	virtual void  LeftDouble(Point p, dword flags);
-	virtual void  LeftDrag(Point p, dword keyflags);
-	virtual void  RightDown(Point p, dword flags);
-	virtual void  MouseWheel(Point p, int zdelta, dword keyflags);
-	virtual void  HorzMouseWheel(Point, int zdelta, dword keyflags);
-	virtual void  MouseMove(Point, dword);
-	virtual bool  Key(dword key, int);
-	virtual void  GotFocus();
-	virtual void  LostFocus();
-	virtual void  ChildGotFocus();
-	virtual void  ChildLostFocus();
-	virtual void  ChildRemoved(Ctrl *);
-	virtual void  SetData(const Value& data);
-	virtual Value GetData() const;
-	virtual void  DragEnter();
-	virtual void  DragAndDrop(Point p, PasteClip& d);
-	virtual void  DragRepeat(Point p);
-	virtual void  DragLeave();
+	virtual void  CancelMode() override;
+	virtual void  Paint(Draw& w) override;
+	virtual bool  Access(Visitor& v) override;
+	virtual void  Layout() override;
+	virtual void  LeftDown(Point p, dword flags) override;
+	virtual void  LeftUp(Point p, dword flags) override;
+	virtual void  LeftDouble(Point p, dword flags) override;
+	virtual void  LeftDrag(Point p, dword keyflags) override;
+	virtual void  RightDown(Point p, dword flags) override;
+	virtual void  MouseWheel(Point p, int zdelta, dword keyflags) override;
+	virtual void  HorzMouseWheel(Point, int zdelta, dword keyflags) override;
+	virtual void  MouseMove(Point, dword) override;
+	virtual bool  Key(dword key, int) override;
+	virtual void  GotFocus() override;
+	virtual void  LostFocus() override;
+	virtual void  ChildGotFocus() override;
+	virtual void  ChildLostFocus() override;
+	virtual void  ChildRemoved(Ctrl *) override;
+	virtual void  SetData(const Value& data) override;
+	virtual Value GetData() const override;
+	virtual void  DragEnter() override;
+	virtual void  DragAndDrop(Point p, PasteClip& d) override;
+	virtual void  DragRepeat(Point p) override;
+	virtual void  DragLeave() override;
 
 public:
 	class Node

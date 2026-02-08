@@ -2,6 +2,7 @@
 
 NAMESPACE_UPP
 
+
 VfsPath ValVfs(Value v) {
 	VfsPath vfs;
 	vfs.Add(v);

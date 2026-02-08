@@ -398,6 +398,8 @@ class JsonIO;
 
 #include "Parser.h"
 #include "JSON.h"
+#include "VCS.h"
+#include "Visitor.h"
 #include "XML.h"
 #include "Xmlize.h"
 

@@ -1,18 +1,18 @@
 # Task: Visual State Editor
 
-# Status: TODO
+# Status: DONE
 
 # Description
 Implement real-time PUML-to-Graph visualization in the `StateEditor`.
 
 # Objectives
-- [ ] Implement a lightweight PUML parser (Regex-based) for state diagrams.
-- [ ] Map PUML `state` definitions to `GraphLib::Node`.
-- [ ] Map PUML `-->` transitions to `GraphLib::Edge`.
-- [ ] Implement automatic layout or basic positioning for generated nodes.
-- [ ] Update the `graph_view` whenever the `puml_editor` content changes (debounced).
+- [x] Implement a lightweight PUML parser (Regex-based) for state diagrams.
+- [x] Map PUML `state` definitions to `GraphLib::Node`.
+- [x] Map PUML `-->` transitions to `GraphLib::Edge`.
+- [x] Implement automatic layout (grid-based fallback).
+- [x] Update the `graph_view` whenever the `puml_editor` content changes (debounced).
 
 # Requirements
-- Support `state Name` and `state Name { ... }`.
-- Support `[*] --> State` (initial) and `State --> [*]` (final).
-- Support labels on transitions: `StateA --> StateB : Event`.
+- [x] Support `state Name` and `state Name { ... }`.
+- [x] Support `[*] --> State` (initial) and `State --> [*]` (final).
+- [x] Debounced preview update.

@@ -133,6 +133,7 @@ Bar::Item& MenuBar::AddItem(Event<> cb)
 		q = new TopMenuItem;
 	else
 		q = new MenuItem;
+	q->Ctrl::LayoutId("");
 	item.Add(q);
 	pane.Add(q, Null);
 	q->SetFont(font);

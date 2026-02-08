@@ -1,6 +1,8 @@
 #ifndef _Core_VfsBase_VirtualNode_h_
 #define _Core_VfsBase_VirtualNode_h_
 
+NAMESPACE_UPP
+
 
 struct VfsValue;
 struct EntityData;
@@ -65,5 +67,7 @@ struct VirtualNode : Moveable<VirtualNode> {
 	static void  SetKey(Value& root_value, const VfsPath& path, int path_i, const Value& value);
 };
 
+
+END_UPP_NAMESPACE
 
 #endif

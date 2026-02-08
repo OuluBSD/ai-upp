@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_DiscussCommand_h_
 #define _Maestro_DiscussCommand_h_
 
@@ -13,3 +14,4 @@ struct DiscussCommand : Command {
 };
 
 #endif
+

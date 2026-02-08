@@ -13,6 +13,16 @@ You're working with Ultimate++ (U++) codebase. Read these in order:
 3. **[THREAD_DEPENDENCIES.md](THREAD_DEPENDENCIES.md)** - Current work priorities
 4. **[task/](task/)** - Active development threads
 
+### Building Projects
+
+**IMPORTANT**: Always use `script/build.py` to build projects, NOT `theide` directly:
+
+```bash
+python script/build.py -mc 0 -j 12 PackageName
+```
+
+**Never use**: `theide PackageName GCC -br` or similar direct theide commands.
+
 ---
 
 ## Claude-Specific Strengths

@@ -1,6 +1,8 @@
 #ifndef _Core_VfsBase_WorldState_h_
 #define _Core_VfsBase_WorldState_h_
 
+NAMESPACE_UPP
+
 
 
 namespace Eon {
@@ -185,5 +187,7 @@ using WorldState = ::Upp::WorldState;
 }
 
 
+
+END_UPP_NAMESPACE
 
 #endif

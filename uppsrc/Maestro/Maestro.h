@@ -8,11 +8,13 @@
 #include <CtrlLib/CtrlLib.h>
 #endif
 
+#include <Core/VfsBase/Automation.h>
+
 #ifdef _GraphLib_GraphLib_h_
  #error Wrong inclusion order
 #endif
 
-namespace Upp {
+NAMESPACE_UPP
 
 struct Command {
 	virtual ~Command() {}
@@ -54,6 +56,17 @@ struct Command {
 #include "PipelineRuntime.h"
 #include "RegressionReplay.h"
 #include "Debugger.h"
+
+#include "DiscussCommand.h"
+#include "ConversionOrchestrator.h"
+
+#ifdef flagGUI
+// 4. UI
+#include "RepoView.h"
+#include "PlanView.h"
+#include "SessionSelectWindow.h"
+#include "AIChatCtrl.h"
+#endif
 
 class RunbookManager {
 	String base_path;
@@ -306,6 +319,16 @@ struct TutorialCommand : Command {
 	void Execute(const Vector<String>& args) override;
 };
 
+#ifdef flagGUI
+struct TestCommand : Command {
+	String GetName() const override { return "test"; }
+	Vector<String> GetAliases() const override { return {"tst"}; }
+	String GetDescription() const override { return "Execute UI automation tests (Python)"; }
+	void ShowHelp() const override;
+	void Execute(const Vector<String>& args) override;
+};
+#endif
+
 struct PlanCommand : Command {
 	String GetName() const override { return "plan"; }
 	Vector<String> GetAliases() const override { return {"pl"}; }
@@ -346,24 +369,14 @@ struct WSessionCommand : Command {
 	void Execute(const Vector<String>& args) override;
 };
 
-#include "DiscussCommand.h"
-#include "ConversionOrchestrator.h"
-
-#ifdef flagGUI
-// 4. UI
-#include "RepoView.h"
-#include "PlanView.h"
-#include "SessionSelectWindow.h"
-#include "AIChatCtrl.h"
-#endif
-
 // 5. Global Tool Registration
 void RegisterMaestroTools(MaestroToolRegistry& reg);
+void RegisterUxTools(MaestroToolRegistry& reg);
 Value MaestroUpdateTaskStatus(const ValueMap& params);
 
 String FindPlanRoot();
 String GetDocsRoot(const String& plan_root);
 
-}
+END_UPP_NAMESPACE
 
 #endif

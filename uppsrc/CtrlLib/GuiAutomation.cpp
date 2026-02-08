@@ -65,7 +65,41 @@ void GuiAutomationVisitor::Read(Ctrl& c)
 	elements.Clear();
 	current_path = "";
 	write_mode = false;
+	Walk(c);
+}
+
+void GuiAutomationVisitor::Walk(Ctrl& c)
+{
+	if(!c.IsVisible()) return;
+	
+	int n0 = elements.GetCount();
 	c.Access(*this);
+	int n1 = elements.GetCount();
+	
+	::Upp::Vector<CtrlGeometry> children;
+	for(Ctrl& child : c) {
+		if(child.IsVisible()) {
+			CtrlGeometry& g = children.Add();
+			g.ctrl = &child;
+			g.rect = child.GetRect();
+		}
+	}
+	
+	::Upp::Sort(children);
+	
+	::Upp::String old_path = current_path;
+	
+	// If exactly one element was added (e.g. a Label or a named container),
+	// use it as a path prefix for its children.
+	if(n1 == n0 + 1) {
+		current_path = elements.Top().path;
+	}
+
+	for(const auto& g : children) {
+		Walk(*g.ctrl);
+	}
+	
+	current_path = old_path;
 }
 
 ::Upp::Value GuiAutomationVisitor::Read(Ctrl& c, const String& path)
@@ -85,7 +119,7 @@ bool GuiAutomationVisitor::Write(Ctrl& c, const String& path, const ::Upp::Value
 	target_action = do_action;
 	found = false;
 	current_path = "";
-	c.Access(*this);
+	Walk(c);
 	return found;
 }
 

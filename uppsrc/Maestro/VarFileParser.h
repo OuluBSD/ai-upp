@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_VarFileParser_h_
 #define _Maestro_VarFileParser_h_
 
@@ -25,3 +26,4 @@ public:
 };
 
 #endif
+

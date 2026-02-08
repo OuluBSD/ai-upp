@@ -89,6 +89,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	center_tabs.Add(debug_workspace->SizePos(), "Execution Console"); 
 	center_tabs.Add(issues->SizePos(), "Issue Tracker");
 	center_tabs.Add(maintenance->SizePos(), "Maintenance Hub");
+	center_tabs.LayoutId("MainTabs");
 	
 	// Bottom Tabs: Output and Trace
 	bottom_tabs.Add(automation_output.SizePos(), "Automation Output");
@@ -141,6 +142,9 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	// Initial history
 	tab_history.Add(0);
 	history_pos = 0;
+	
+	RegisterMaestroTools(tool_reg);
+	SetTimeCallback(-500, THISBACK(UxWatcher));
 	
 	PostCallback(THISBACK(LoadData));
 }
@@ -540,15 +544,103 @@ void MaestroHubCockpit::OnBuildMethods() {
 	dlg.Run();
 }
 
+void MaestroHubCockpit::UxWatcher() {
+	String root = current_root;
+	if(root.IsEmpty()) root = GetCurrentDirectory();
+	String req_path = AppendFileName(root, ".maestro/ux_request.json");
+	if(FileExists(req_path)) {
+		String json = LoadFile(req_path);
+		Cout() << "UX Request found: " << req_path << "\n";
+		Cout() << "Raw JSON: " << json << "\n";
+		Value req = ParseJSON(json);
+		Cout() << "Parsed Value type: " << req.GetTypeName() << "\n";
+		ValueMap mreq;
+		if(req.Is<ValueMap>()) mreq = req;
+		else if(req.Is<ValueArray>()) {
+			ValueArray va = req;
+			for(int i = 0; i < va.GetCount(); i++) {
+				ValueMap m = va[i];
+				mreq.Set(m["key"]["value"], m["value"]["value"]);
+			}
+		}
+		
+		if(mreq.GetCount()) {
+			const MaestroTool* t = tool_reg.Find("ux_access");
+			if(t) {
+				Cout() << "Executing ux_access...\n";
+				Value res = t->Execute(mreq);
+				Cout() << "Execution result: " << res << "\n";
+				SaveFile(AppendFileName(root, ".maestro/ux_response.json"), StoreAsJson(res));
+			}
+			else {
+				Cout() << "Tool 'ux_access' not found in registry!\n";
+			}
+		}
+		DeleteFile(req_path);
+	}
+	SetTimeCallback(-500, THISBACK(UxWatcher));
+}
+
+bool MaestroHubCockpit::Access(Visitor& v) {
+	if(Bar *b = dynamic_cast<Bar*>(&v)) {
+		b->Sub("App", THISBACK(AppMenu));
+		b->Sub("Main", THISBACK(MainMenu));
+	}
+	else if(AutomationVisitor *av = dynamic_cast<AutomationVisitor*>(&v)) {
+		auto DoMenu = [&](const char *name, Event<Bar&> proc) {
+			av->AccessMenu(name, [proc, av](Visitor& v) {
+				AutomationBar ab(*av);
+				proc(ab);
+			});
+		};
+		DoMenu("App", THISBACK(AppMenu));
+		DoMenu("Main", THISBACK(MainMenu));
+	}
+
+	toolbar.Access(v);
+	left_tabs.Access(v);
+	center_tabs.Access(v);
+	bottom_tabs.Access(v);
+	return true;
+}
+
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN {
-	using namespace Upp;
+	Upp::CommandLineArguments cla;
+	cla.AddArg('h', "Show help", false);
+	cla.AddPositional("script.py", Upp::UNKNOWN_V);
 	
-	MaestroToolRegistry tool_reg;
+	// Support --help manually since CommandLineArguments is limited to single chars
+	for(const auto& a : Upp::CommandLine()) {
+		if(a == "--help") {
+			cla.PrintHelp();
+			return;
+		}
+	}
 
-	RegisterMaestroTools(tool_reg);
+	if(!cla.Parse()) {
+		cla.PrintHelp();
+		return;
+	}
 
-	
-	Upp::MaestroHubCockpit().Run();
+	if(cla.IsArg('h')) {
+		cla.PrintHelp();
+		return;
+	}
+
+	Upp::MaestroHubCockpit hub;
+	const Upp::Vector<Upp::Value>& pos = cla.GetPositionals();
+	if(pos.GetCount() > 0) {
+		Upp::String script = pos[0].ToString();
+		if(script.EndsWith(".py")) {
+			Upp::PostCallback([&, script] {
+				Upp::Vector<Upp::String> args;
+				args.Add(script);
+				Upp::TestCommand().Execute(args);
+				hub.Close();
+			});
+		}
+	}
+	hub.Run();
 }

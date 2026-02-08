@@ -79,8 +79,20 @@ public:
 	typedef GuiAutomationVisitor CLASSNAME;
 
 	void Read(Ctrl& c);
+	void Walk(Ctrl& c);
 	::Upp::Value Read(Ctrl& c, const String& path);
 	bool Write(Ctrl& c, const String& path, const ::Upp::Value& val, bool do_action = true);
+
+private:
+	struct CtrlGeometry : Moveable<CtrlGeometry> {
+		Ctrl *ctrl;
+		::Upp::Rect  rect;
+
+		bool operator<(const CtrlGeometry& b) const {
+			if(rect.top != b.rect.top) return rect.top < b.rect.top;
+			return rect.left < b.rect.left;
+		}
+	};
 };
 
 #endif

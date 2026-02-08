@@ -2,7 +2,11 @@ description "Maestro AI Engine Interface\377B";
 
 uses
 	Core,
-	plugin/pcre;
+	Core/VfsBase,
+	plugin/pcre,
+	ByteVM;
+
+uses(GUI) Ctrl/Automation;
 
 uses(GUI) CtrlLib;
 
@@ -60,7 +64,6 @@ file
 	Debugger.h,
 	Debugger.cpp,
 	Playbook readonly separator,
-
 	RunbookManager.cpp,
 	WorkflowManager.cpp,
 	IssueManager.cpp,
@@ -89,6 +92,7 @@ file
 	WorkCommand.cpp,
 	TuCommand.cpp,
 	UxCommand.cpp,
+	TestCommand.cpp,
 	TutorialCommand.cpp,
 	RepoView.h,
 	RepoView.cpp,

@@ -12,8 +12,7 @@ struct PumlSyntax : EditorSyntax {
 		const HlStyle& str = hl_style[INK_CONST_STRING];
 
 		while(s < end) {
-			if(*s == '
-') {
+			if(*s == (wchar)39) { // Single quote for comment
 				hls.Put((int)(end - s), comment);
 				return;
 			}
@@ -61,16 +60,16 @@ StateEditor::StateEditor() {
 		reg = true;
 	}
 	
-	split.Horz(puml_editor, graph_view);
+split.Horz(puml_editor, graph_view);
 	
-	toolbar.Set(THISBACK(OnToolbar));
+toolbar.Set(THISBACK(OnToolbar));
 	
-	puml_editor.WhenAction = [=] {
+puml_editor.WhenAction = [=] {
 		KillTimeCallback(1);
 		SetTimeCallback(500, THISBACK(UpdatePreview), 1);
 	};
 	
-	puml_editor.Highlight("puml");
+puml_editor.Highlight("puml");
 }
 
 void StateEditor::OnToolbar(Bar& bar) {
@@ -98,8 +97,8 @@ void StateEditor::UpdatePreview() {
 	Index<String> state_ids;
 	Vector<String> lines = Split(puml, '\n');
 	
-	RegExp re_state("state\\s+([a-zA-Z0-9_]+)");
-	RegExp re_trans("([a-zA-Z0-9_\\*\\\\\\[\\\\\\]]+)\\s+-->\\s+([a-zA-Z0-9_\\*\\\\\\[\\\\\\]]+)");
+	RegExp re_state("state\\\\s+([a-zA-Z0-9_]+)");
+	RegExp re_trans("([a-zA-Z0-9_\\\\*\\\\[\\\\]]+)\\\\s+-->\\\\s+([a-zA-Z0-9_\\\\*\\\\[\\\\]]+)");
 
 	for(const String& line : lines) {
 		String l = TrimBoth(line);

@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_PipelineRuntime_h_
 #define _Maestro_PipelineRuntime_h_
 
@@ -19,3 +20,4 @@ private:
 };
 
 #endif
+

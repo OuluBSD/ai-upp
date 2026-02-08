@@ -72,12 +72,51 @@ bool CliMaestroEngine::Do() {
 	
 	String out;
 	if(p->Read(out)) {
-		if(event_callback) {
-			MaestroEvent e;
-			e.type = "message";
-			e.text = out;
-			e.role = "assistant";
-			event_callback(e);
+		buffer << out;
+		
+		int lf;
+		while((lf = buffer.Find('\n')) >= 0) {
+			String line = buffer.Left(lf);
+			buffer.Remove(0, lf + 1);
+			
+			if(line.IsEmpty()) continue;
+			
+			Value v = ParseJSON(line);
+			if(v.IsError() || !v.Is<ValueMap>()) {
+				// Fallback for non-JSON output (e.g. debug logs)
+				if(event_callback && !line.StartsWith("{")) {
+					MaestroEvent e;
+					e.type = "message";
+					e.text = line;
+					e.role = "assistant";
+					e.delta = true;
+					event_callback(e);
+				}
+				continue;
+			}
+			
+			ValueMap m = v;
+			if(event_callback) {
+				MaestroEvent e;
+				e.type = m["type"];
+				e.text = m["content"];
+				e.role = m["role"];
+				e.delta = m["delta"];
+				e.session_id = m["session_id"];
+				e.tool_id = m["tool_id"];
+				e.tool_name = m["tool_name"];
+				
+				if(m.Find("parameters") >= 0) {
+					e.tool_input = StoreAsJson(m["parameters"]);
+				}
+				
+				if(e.type == "init") {
+					session_id = e.session_id;
+					model = m["model"];
+				}
+				
+				event_callback(e);
+			}
 		}
 		return true;
 	}

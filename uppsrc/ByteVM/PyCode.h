@@ -75,7 +75,9 @@ enum PyCompare {
 	PY_CMP_EQ = 2,
 	PY_CMP_NE = 3,
 	PY_CMP_GT = 4,
-	PY_CMP_GE = 5
+	PY_CMP_GE = 5,
+	PY_CMP_IN = 6,
+	PY_CMP_NOT_IN = 7
 };
 
 END_UPP_NAMESPACE

@@ -5,21 +5,29 @@
 		"scenes": [
 			{
 				"GeomDirectory": {
-					"name": "HMD Pointcloud",
+					"name": "",
 					"transform": {
 						"position": {
 							"data": ""
 						},
 						"orientation": {
 							"data": ""
+						},
+						"scale": {
+							"data": ""
 						}
+					},
+					"props": {
+						"entries": [
+
+						]
 					},
 					"subdir": [
 
 					],
 					"objs": [
 						{
-							"name": "hmd_camera",
+							"name": "camera",
 							"type_i": 2,
 							"asset_ref": "",
 							"pointcloud_ref": "",
@@ -27,9 +35,26 @@
 							"is_locked": false,
 							"read_enabled": true,
 							"write_enabled": false,
+							"timeline_muted": false,
+							"timeline_solo": false,
 							"timeline": {
 								"keypoints": [
-
+									{
+										"key": 0,
+										"value": {
+											"frame_id": 0,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									}
 								]
 							},
 							"transform": {
@@ -38,21 +63,137 @@
 								},
 								"orientation": {
 									"data": ""
+								},
+								"scale": {
+									"data": ""
 								}
-							}
+							},
+							"props": {
+								"entries": [
+
+								]
+							},
+							"editable": {
+								"points": [
+
+								],
+								"lines": [
+
+								],
+								"faces": [
+
+								]
+							},
+							"layer2d": {
+								"visible": true,
+								"stroke": {
+									"red": 220,
+									"green": 220,
+									"blue": 220
+								},
+								"fill": {
+									"red": 60,
+									"green": 60,
+									"blue": 60
+								},
+								"width": 1,
+								"opacity": 1,
+								"use_layer_style": true,
+								"stroke_cap": 0,
+								"stroke_join": 0,
+								"texture_ref": "",
+								"blend_mode": 0,
+								"tex_offset_x": 0,
+								"tex_offset_y": 0,
+								"tex_repeat_x": 1,
+								"tex_repeat_y": 1,
+								"tex_rotate": 0,
+								"tex_wrap": 0,
+								"stroke_uv_mode": 0,
+								"shapes": [
+
+								]
+							},
+							"layer2d_anim": {
+								"keyframes": [
+
+								]
+							},
+							"texture_edit": {
+								"path": "",
+								"width": 512,
+								"height": 512
+							},
+							"mesh_anim": {
+								"keyframes": [
+
+								]
+							},
+							"effects": [
+
+							]
 						},
 						{
-							"name": "hmd_pointcloud",
-							"type_i": 3,
-							"asset_ref": "",
+							"name": "sphere",
+							"type_i": 1,
+							"asset_ref": "preset:sphere",
 							"pointcloud_ref": "",
 							"is_visible": true,
 							"is_locked": false,
 							"read_enabled": true,
 							"write_enabled": false,
+							"timeline_muted": false,
+							"timeline_solo": false,
 							"timeline": {
 								"keypoints": [
-
+									{
+										"key": 0,
+										"value": {
+											"frame_id": 0,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": false,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 5,
+										"value": {
+											"frame_id": 5,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": false,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 10,
+										"value": {
+											"frame_id": 10,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									}
 								]
 							},
 							"transform": {
@@ -61,12 +202,90 @@
 								},
 								"orientation": {
 									"data": ""
+								},
+								"scale": {
+									"data": ""
 								}
-							}
+							},
+							"props": {
+								"entries": [
+
+								]
+							},
+							"editable": {
+								"points": [
+
+								],
+								"lines": [
+
+								],
+								"faces": [
+
+								]
+							},
+							"layer2d": {
+								"visible": true,
+								"stroke": {
+									"red": 220,
+									"green": 220,
+									"blue": 220
+								},
+								"fill": {
+									"red": 60,
+									"green": 60,
+									"blue": 60
+								},
+								"width": 1,
+								"opacity": 1,
+								"use_layer_style": true,
+								"stroke_cap": 0,
+								"stroke_join": 0,
+								"texture_ref": "",
+								"blend_mode": 0,
+								"tex_offset_x": 0,
+								"tex_offset_y": 0,
+								"tex_repeat_x": 1,
+								"tex_repeat_y": 1,
+								"tex_rotate": 0,
+								"tex_wrap": 0,
+								"stroke_uv_mode": 0,
+								"shapes": [
+
+								]
+							},
+							"layer2d_anim": {
+								"keyframes": [
+
+								]
+							},
+							"texture_edit": {
+								"path": "",
+								"width": 512,
+								"height": 512
+							},
+							"mesh_anim": {
+								"keyframes": [
+
+								]
+							},
+							"effects": [
+
+							]
 						}
+					],
+					"datasets": [
+
 					]
 				},
-				"length": 0
+				"length": 16,
+				"timeline": {
+					"time": 0,
+					"position": 0,
+					"length": 16,
+					"is_playing": false,
+					"repeat": false,
+					"speed": 1
+				}
 			}
 		],
 		"kps": 5,
@@ -96,11 +315,19 @@
 		"fov": 120,
 		"scale": 1
 	},
-	"created_utc": "2026-02-04T23:30:54Z",
-	"modified_utc": "2026-02-04T23:30:54Z",
+	"created_utc": "2026-02-08T13:09:56Z",
+	"modified_utc": "2026-02-08T13:09:56Z",
 	"data_dir": "data",
 	"external_files": [
-
+		{
+			"id": "preset:sphere",
+			"type": "asset",
+			"path": "preset:sphere",
+			"note": "",
+			"created_utc": "",
+			"modified_utc": "",
+			"size": -1
+		}
 	],
 	"meta": [
 

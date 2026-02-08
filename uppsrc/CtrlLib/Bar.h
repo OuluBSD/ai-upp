@@ -54,13 +54,15 @@ public:
 		virtual Item& Check(bool check);
 		virtual Item& Radio(bool check);
 		virtual Item& Enable(bool _enable = true);
-		virtual Item& Bold(bool bold = true);
-		virtual Item& Tip(const char *tip);
-		virtual Item& Help(const char *help);
-		virtual Item& Topic(const char *topic);
-		virtual Item& Description(const char *desc);
-		virtual Item& AccessValue(const ::Upp::Value& v);
-		virtual void  FinalSync();
+				virtual Item&  Bold(bool bold = true);
+				virtual Item&  Tip(const char *tip);
+				virtual Item&  Help(const char *help);
+				virtual Item&  Topic(const char *topic);
+				virtual Item&  Description(const char *desc);
+				virtual Item&  LayoutId(const char *id);
+				virtual Item&  AccessValue(const ::Upp::Value& v);
+				virtual void  FinalSync();
+		
 
 		Item&   RightLabel(const char *text);
 
@@ -462,6 +464,7 @@ public:
 	Bar::Item& Radio(bool check) override;
 	Bar::Item& Check(bool check) override;
 	Bar::Item& AccessValue(const ::Upp::Value& v) override;
+	virtual bool Access(Visitor& v) override;
 	void       FinalSync() override;
 
 public:

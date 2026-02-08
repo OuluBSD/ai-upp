@@ -46,6 +46,7 @@ bool MenuItemBase::InOpaqueBar() const
 Bar::Item& MenuItemBase::Text(const char *s)
 {
 	accesskey = ExtractAccessKey(s, text);
+	Ctrl::LayoutId(text);
 	Refresh();
 	return *this;
 }

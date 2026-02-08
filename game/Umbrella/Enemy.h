@@ -27,6 +27,7 @@ protected:
 	EnemyType type;
 	float carryWeight;  // Weight for carrying on umbrella
 	float originalSize;  // Original width (for size comparison when thrown)
+	float rotation;  // Rotation angle in degrees (for visual effects)
 
 	// Physics constants
 	static constexpr float GRAVITY = -490.0f;
@@ -40,6 +41,10 @@ protected:
 	bool IsFloorAhead(Player::CollisionHandler& collision);
 	void ResolveCollisionX(float deltaX, Player::CollisionHandler& collision);
 	void ResolveCollisionY(float deltaY, Player::CollisionHandler& collision);
+
+	// Visual effects
+	void UpdateRotation(float delta);  // Update rotation for spinning effect
+	Color GetTintColor() const;  // Get tint color based on state
 
 public:
 	Enemy(float x, float y, float width, float height, EnemyType t);

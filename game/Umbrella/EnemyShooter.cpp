@@ -67,16 +67,31 @@ void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& coll
 void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
 	if(!alive || !active) return;
 
-	// Shooters don't fall - they're stationary on platforms
-	// No gravity, no movement
+	// If thrown, purely horizontal movement (no gravity)
+	if(thrown) {
+		// Check for wall collision when thrown
+		if(CheckThrownWallCollision(velocity.x * delta, collision)) {
+			// Mark for destruction - GameScreen will spawn treat
+			Defeat();
+			return;
+		}
 
-	// Update shoot timer
-	shootTimer += delta;
+		// No gravity - purely horizontal flight
+		ResolveCollisionX(velocity.x * delta, collision);
+		// No Y collision needed since no vertical movement
+	}
+	else {
+		// Normal shooter behavior: stationary on platforms
+		// No gravity, no movement
 
-	// Check if can see player and ready to shoot
-	if(CanSeePlayer(player) && shootTimer >= SHOOT_COOLDOWN) {
-		ShootAtPlayer(player);
-		shootTimer = 0.0f;
+		// Update shoot timer
+		shootTimer += delta;
+
+		// Check if can see player and ready to shoot
+		if(CanSeePlayer(player) && shootTimer >= SHOOT_COOLDOWN) {
+			ShootAtPlayer(player);
+			shootTimer = 0.0f;
+		}
 	}
 
 	// Update projectiles

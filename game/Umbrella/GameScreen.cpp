@@ -12,6 +12,7 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	Title("Umbrella - Game");
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1280, 720);
+	NoWantFocus();  // Disable focus navigation so arrow keys reach Key()
 
 	zoom = 2.0f;
 	cameraOffset = Point(0, 0);
@@ -120,6 +121,31 @@ void GameScreen::GameTick(float delta) {
 	// Update player
 	player.Update(delta, inputState, *this);
 
+	// Handle throwing captured enemies (when attack button released)
+	bool buttonReleased = !inputState.glideHeld && prevKeyAttack;
+	bool hasCaptured = player.HasCapturedEnemies();
+
+	static int throwLogCount = 0;
+	throwLogCount++;
+	if(throwLogCount % 60 == 0 || buttonReleased || hasCaptured) {
+		RLOG("THROW CHECK: glideHeld=" << inputState.glideHeld << " prevKeyAttack=" << prevKeyAttack
+		     << " buttonReleased=" << buttonReleased << " hasCaptured=" << hasCaptured);
+	}
+
+	if(buttonReleased && hasCaptured) {
+		RLOG("THROWING ENEMY!");
+		Enemy* enemy = player.ReleaseCapturedEnemy();
+		if(enemy) {
+			// Throw enemy horizontally in facing direction (no upward velocity - purely horizontal)
+			Pointf playerCenter = player.GetCenter();
+			float throwVX = player.GetFacing() * Player::THROW_VELOCITY_X;
+
+			enemy->ThrowFrom(playerCenter.x, playerCenter.y, throwVX, 0.0f);
+			player.AddScore(50);  // Bonus for throwing
+			// TODO: Play throw sound
+		}
+	}
+
 	// Check if player fell off map (below Y=0)
 	Pointf playerPos = player.GetPosition();
 	if(playerPos.y < -gridSize * 2) {
@@ -137,9 +163,32 @@ void GameScreen::GameTick(float delta) {
 	Pointf playerCenter = player.GetCenter();
 	UpdateCamera(Point((int)playerCenter.x, (int)playerCenter.y));
 
-	// Update enemies
+	// Update enemies (skip captured ones)
 	for(int i = 0; i < enemies.GetCount(); i++) {
+		if(enemies[i]->IsCaptured()) continue;  // Don't update captured enemies
+
+		bool wasThrown = enemies[i]->IsThrown();
+		bool wasAlive = enemies[i]->IsAlive();
+
 		enemies[i]->Update(delta, player, *this);
+
+		// Check if thrown enemy just died (hit wall) - spawn treat
+		if(wasThrown && wasAlive && !enemies[i]->IsAlive()) {
+			Rectf enemyBounds = enemies[i]->GetBounds();
+			Pointf enemyCenter;
+			enemyCenter.x = (enemyBounds.left + enemyBounds.right) / 2.0f;
+			enemyCenter.y = (enemyBounds.top + enemyBounds.bottom) / 2.0f;
+
+			TreatType treatType = TREAT_PEAR;
+			switch(enemies[i]->GetType()) {
+				case ENEMY_PATROLLER: treatType = TREAT_PEAR; break;
+				case ENEMY_JUMPER: treatType = TREAT_BANANA; break;
+				case ENEMY_SHOOTER: treatType = TREAT_BLUEBERRY; break;
+			}
+
+			treats.Add(new Treat(enemyCenter.x, enemyCenter.y, treatType));
+			player.AddScore(200);  // Bonus for defeating via throw
+		}
 	}
 
 	// Update treats
@@ -173,11 +222,13 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
-	// Check parasol-enemy collisions (player attacking)
+	// Check parasol-enemy collisions (capturing enemies)
 	if(player.IsAttacking()) {
 		Rectf parasolBox = player.GetParasolHitbox();
 		for(int i = 0; i < enemies.GetCount(); i++) {
 			if(!enemies[i]->IsAlive()) continue;
+			if(enemies[i]->IsCaptured()) continue;  // Skip already captured
+			if(!enemies[i]->IsActive()) continue;    // Skip inactive
 
 			Rectf enemyBounds = enemies[i]->GetBounds();
 
@@ -186,30 +237,19 @@ void GameScreen::GameTick(float delta) {
 			   parasolBox.right > enemyBounds.left &&
 			   min(parasolBox.top, parasolBox.bottom) < max(enemyBounds.top, enemyBounds.bottom) &&
 			   max(parasolBox.top, parasolBox.bottom) > min(enemyBounds.top, enemyBounds.bottom)) {
-				// Enemy defeated by parasol!
-				enemies[i]->Defeat();
-				player.AddScore(100);  // Base score for defeat
 
-				// Spawn treat at enemy position
-				Pointf enemyCenter;
-				enemyCenter.x = (enemyBounds.left + enemyBounds.right) / 2.0f;
-				enemyCenter.y = (enemyBounds.top + enemyBounds.bottom) / 2.0f;
-
-				// Determine treat type based on enemy type
-				TreatType treatType = TREAT_PEAR;  // Default
-				switch(enemies[i]->GetType()) {
-					case ENEMY_PATROLLER:
-						treatType = TREAT_PEAR;
-						break;
-					case ENEMY_JUMPER:
-						treatType = TREAT_BANANA;
-						break;
-					case ENEMY_SHOOTER:
-						treatType = TREAT_BLUEBERRY;
-						break;
+				// Try to capture enemy on umbrella
+				if(player.CanCapture(enemies[i])) {
+					player.CaptureEnemy(enemies[i]);
+					player.AddScore(150);  // Score for capture
+					// TODO: Play capture sound
 				}
-
-				treats.Add(new Treat(enemyCenter.x, enemyCenter.y, treatType));
+				else {
+					// Can't capture (too heavy or full) - damage enemy instead
+					enemies[i]->TakeDamage(1);
+					player.AddScore(100);
+					// TODO: Play hit sound
+				}
 			}
 		}
 	}
@@ -218,6 +258,7 @@ void GameScreen::GameTick(float delta) {
 	Rectf playerBounds = player.GetBounds();
 	for(int i = 0; i < enemies.GetCount(); i++) {
 		if(!enemies[i]->IsAlive()) continue;
+		if(enemies[i]->IsCaptured()) continue;  // Skip captured enemies
 
 		Rectf enemyBounds = enemies[i]->GetBounds();
 
@@ -254,6 +295,10 @@ void GameScreen::GameTick(float delta) {
 			}
 		}
 	}
+
+	// Update previous key states at END of frame after all logic has run
+	prevKeyJump = keyJump;
+	prevKeyAttack = keyAttack;
 }
 
 void GameScreen::UpdateCamera(Point targetPos) {
@@ -410,6 +455,11 @@ void GameScreen::RenderTiles(Draw& w) {
 }
 
 bool GameScreen::Key(dword key, int) {
+	// DEBUG - log every key
+	RLOG("Key: 0x" << FormatIntHex(key) << " (" << (key & K_KEYUP ? "UP" : "DOWN")
+	     << ") base=0x" << FormatIntHex(key & 0xFFFF)
+	     << " keyLeft=" << keyLeft << " keyRight=" << keyRight);
+
 	// Handle key downs based on game state
 	switch(key) {
 		case K_ESCAPE:
@@ -450,38 +500,44 @@ bool GameScreen::Key(dword key, int) {
 			return true;
 
 		// Jump keys (only work when playing)
-		case K_SPACE:
 		case K_W:
 		case K_UP:
 			if(gameState == PLAYING) keyJump = true;
 			return true;
 
-		// Attack/Glide (only work when playing)
-		case K_CTRL_RIGHT:
+		// Attack/Glide/Umbrella - Space bar (only work when playing)
+		case K_SPACE:
 			if(gameState == PLAYING) keyAttack = true;
 			return true;
 
-		// Key ups (use bit flag to detect release)
-		case K_LEFT | K_KEYUP:
-		case K_A | K_KEYUP:
-			keyLeft = false;
-			return true;
-		case K_RIGHT | K_KEYUP:
-		case K_D | K_KEYUP:
-			keyRight = false;
-			return true;
-		case K_SPACE | K_KEYUP:
-		case K_W | K_KEYUP:
-		case K_UP | K_KEYUP:
-			keyJump = false;
-			return true;
-		case K_CTRL_RIGHT | K_KEYUP:
-			keyAttack = false;
-			return true;
-
+		// Key ups - handled separately to avoid modifier issues
 		default:
 			break;
 	}
+
+	// Handle key releases by checking K_KEYUP bit and masking modifiers
+	if(key & K_KEYUP) {
+		// Strip only the modifier bits, keep K_DELTA and actual key code
+		dword baseKey = key & ~(K_KEYUP | K_SHIFT | K_CTRL | K_ALT);
+		switch(baseKey) {
+			case K_LEFT:
+			case K_A:
+				keyLeft = false;
+				return true;
+			case K_RIGHT:
+			case K_D:
+				keyRight = false;
+				return true;
+			case K_W:
+			case K_UP:
+				keyJump = false;
+				return true;
+			case K_SPACE:
+				keyAttack = false;
+				return true;
+		}
+	}
+
 	return false;
 }
 
@@ -494,8 +550,16 @@ void GameScreen::UpdateInput() {
 	inputState.attackPressed = keyAttack && !prevKeyAttack;
 	inputState.glideHeld = keyAttack;
 
-	prevKeyJump = keyJump;
-	prevKeyAttack = keyAttack;
+	// DEBUG: Log input state
+	static int inputLogCount = 0;
+	inputLogCount++;
+	if(inputLogCount % 60 == 0 || keyAttack) {
+		RLOG("Input: keyLeft=" << keyLeft << " keyRight=" << keyRight
+		     << " keyJump=" << keyJump << " keyAttack=" << keyAttack
+		     << " glideHeld=" << inputState.glideHeld);
+	}
+
+	// NOTE: Don't update prevKey* here - do it at END of GameTick after all logic runs
 }
 
 bool GameScreen::IsFullBlockTile(int col, int row) {

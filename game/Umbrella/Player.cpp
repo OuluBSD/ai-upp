@@ -176,7 +176,13 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 	}
 
 	// Update parasol hitbox position
-	if(parasolState == PARASOL_ATTACKING) {
+	// Show horizontal parasol when:
+	// 1. PARASOL_ATTACKING (on ground), OR
+	// 2. PARASOL_GLIDING while going up (not falling yet)
+	bool showHorizontalParasol = (parasolState == PARASOL_ATTACKING) ||
+	                              (parasolState == PARASOL_GLIDING && velocity.y >= 0.0f);
+
+	if(showHorizontalParasol) {
 		// Parasol extends from player in facing direction
 		float parasolWidth = bounds.Width() * 0.8f;
 		float parasolHeight = bounds.Height() * 0.7f;
@@ -502,8 +508,51 @@ void Player::Render(Draw& w, CoordinateConverter& coords) {
 		w.DrawRect(screenX - 2, screenY + height/2 - 2, 4, 4, dirColor);
 	}
 
-	// Draw parasol hitbox when attacking
-	if(attackHeld && parasolHitbox.Width() > 0 && parasolHitbox.Height() > 0) {
+	// Draw umbrella when:
+	// 1. Falling down (velocity.y < 0) AND gliding, OR
+	// 2. Holding captured enemies (umbrella needed to carry them)
+	bool isFallingDown = velocity.y < 0.0f;
+	bool showUmbrellaAbove = (parasolState == PARASOL_GLIDING && isFallingDown) || (carriedEnemies.GetCount() > 0);
+
+	if(showUmbrellaAbove) {
+		// Draw umbrella above player (when falling or carrying enemies)
+		float centerX = bounds.left + bounds.Width() / 2.0f;
+		float topY = max(bounds.top, bounds.bottom);  // Top of player in Y-up coords
+
+		// Umbrella dimensions
+		float umbrellaWidth = 20.0f;
+		float umbrellaHeight = 8.0f;
+		float umbrellaY = topY + 4.0f;  // Slightly above player
+
+		// Umbrella canopy (arc/dome shape simulated with rectangle)
+		Point umbrellaTopLeft((int)(centerX - umbrellaWidth/2), (int)umbrellaY);
+		Point umbrellaBottomRight((int)(centerX + umbrellaWidth/2), (int)(umbrellaY + umbrellaHeight));
+
+		Point screenUmbrellaTL = coords.WorldToScreen(umbrellaTopLeft);
+		Point screenUmbrellaBR = coords.WorldToScreen(umbrellaBottomRight);
+
+		int uX = min(screenUmbrellaTL.x, screenUmbrellaBR.x);
+		int uY = min(screenUmbrellaTL.y, screenUmbrellaBR.y);
+		int uWidth = abs(screenUmbrellaBR.x - screenUmbrellaTL.x);
+		int uHeight = abs(screenUmbrellaBR.y - screenUmbrellaTL.y);
+
+		// Draw umbrella canopy (cyan/aqua color)
+		Color umbrellaColor = Color(100, 255, 255);
+		w.DrawRect(uX, uY, uWidth, uHeight, umbrellaColor);
+
+		// Draw umbrella handle (small vertical line from player to umbrella)
+		Point handleTop((int)centerX, (int)umbrellaY);
+		Point handleBottom((int)centerX, (int)topY);
+
+		Point screenHandleTop = coords.WorldToScreen(handleTop);
+		Point screenHandleBottom = coords.WorldToScreen(handleBottom);
+
+		Color handleColor = Color(150, 150, 150);
+		w.DrawLine(screenHandleTop, screenHandleBottom, 2, handleColor);
+	}
+	else if(attackHeld && parasolHitbox.Width() > 0 && parasolHitbox.Height() > 0) {
+		// Draw parasol hitbox when attacking or jumping with action held (horizontal)
+		// This includes: PARASOL_ATTACKING (on ground) and PARASOL_GLIDING while going up
 		Point parasolTopLeft((int)parasolHitbox.left, (int)parasolHitbox.top);
 		Point parasolBottomRight((int)parasolHitbox.right, (int)parasolHitbox.bottom);
 

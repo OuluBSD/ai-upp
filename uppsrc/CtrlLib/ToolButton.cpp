@@ -41,6 +41,14 @@ CH_STYLE(ToolButton, Style, StyleSolid)
 	light[CTRL_PRESSED] = light[CTRL_HOT] = light[CTRL_HOTCHECKED] = true;
 }
 
+bool ToolButton::Access(Visitor& v) {
+	String l = text;
+	if(l.IsEmpty()) l = tiptext;
+	if(l.IsEmpty()) l = GetLayoutId();
+	v.AccessAction(l, [this]{ WhenAction(); });
+	return true;
+}
+
 ToolButton::ToolButton()
 {
 	Reset();
@@ -93,6 +101,7 @@ Bar::Item& ToolButton::Text(const char *txt)
 	ExtractAccessKey(txt, newtext);
 	if(newtext != text) {
 		text = newtext;
+		Ctrl::LayoutId(text);
 		UpdateTip();
 		Refresh();
 	}

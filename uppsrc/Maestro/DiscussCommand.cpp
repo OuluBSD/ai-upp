@@ -17,18 +17,22 @@ void DiscussCommand::Execute(const Vector<String>& args) {
 	PlanParser parser;
 	parser.Load(FindPlanRoot());
 	
-	String context = PlanSummarizer::GetPlanSummaryText(parser.tracks, "", "", "");
-	String full_prompt = "You are the Maestro AI Assistant. Your goal is to help manage the project plan.\n"
-	                     "Project Context:\n" + context + "\n\nUser Question: " + prompt;
-
-	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.Arg("-m").Arg("gemini-1.5-flash");
-	engine.Arg("-y"); 
-	engine.Arg("-o").Arg("stream-json");
-	
 	MaestroToolRegistry tool_reg;
 	RegisterMaestroTools(tool_reg);
+
+	String context = PlanSummarizer::GetPlanSummaryText(parser.tracks, "", "", "");
+	String full_prompt = "You are the Maestro AI Assistant. Your goal is to help manage the project plan.\n"
+	                     "Project Context:\n" + context + "\n\n";
+	
+	String tools_summary = tool_reg.GetToolSummary();
+	if(tools_summary.GetCount()) {
+		full_prompt << tools_summary << "\n"
+		            << "You can use these tools by outputting a JSON object with type 'tool_use'.\n\n";
+	}
+	
+	full_prompt << "User Question: " << prompt;
+
+	CliMaestroEngine engine;
 
 	Cout() << "Thinking...\n";
 	Breadcrumb bc;

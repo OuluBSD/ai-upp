@@ -11,12 +11,20 @@ struct Visitor {
 	int mode = -1;
 	int file_ver = -1;
 	bool skip = false;
-	enum {MODE_JSON, MODE_STREAM, MODE_HASH, MODE_VCS, MODE_RUNTIMEVISIT};
+	enum {
+		MODE_JSON,
+		MODE_STREAM,
+		MODE_HASH,
+		MODE_VCS,
+		MODE_RUNTIMEVISIT,
+		MODE_ACCESS,
+	};
 	bool storing = false;
 	String error;
 	void* scope = 0;
 	
 	typedef Visitor CLASSNAME;
+	Visitor() { mode = MODE_ACCESS; storing = true; }
 	Visitor(JsonIO& j) {json = &j; mode = MODE_JSON; storing = j.IsStoring();}
 	Visitor(Stream& s) {stream = &s; mode = MODE_STREAM; storing = s.IsStoring();}
 	Visitor(VersionControlSystem& v) {vcs = &v; mode = MODE_VCS; storing = vcs->IsStoring();}
@@ -29,6 +37,12 @@ struct Visitor {
 	bool IsError() const {return !error.IsEmpty();}
 	void SetError(String s) {error = s;}
 	void SetScope(void* s) {scope = s;}
+	
+	virtual Visitor& AccessAction(const char *text, Event<> cb) { return *this; }
+	virtual Visitor& AccessOption(bool check, const char *text, Event<> cb) { return *this; }
+	virtual Visitor& AccessMenu(const char *text, Event<Visitor&> proc) { return *this; }
+	virtual Visitor& AccessLabel(const char *text) { return *this; }
+	virtual Visitor& AccessValue(const UPP::Value& v) { return *this; }
 	
 	template<class T>
 	Visitor& Visit(const char* key, T& o) {
@@ -197,14 +211,14 @@ struct Visitor {
 		}
 	}
 	template <class T>
-	void VisitFromJsonValue(T& var, const Value& x)
+	void VisitFromJsonValue(T& var, const class Value& x)
 	{
 		JsonIO io(x);
 		Visitor vis(io);
 		var.Visit(vis);
 	}
 	template <class T>
-	Value VisitAsJsonValue(const T& var)
+	class Value VisitAsJsonValue(const T& var)
 	{
 		JsonIO io;
 		Visitor vis(io);
@@ -218,7 +232,7 @@ struct Visitor {
 		using V = typename T::value_type;
 		if (!storing) {
 			map.Clear();
-			const Value& va = this->json->Get()[key];
+			const class Value& va = this->json->Get()[key];
 			map.Reserve(va.GetCount());
 			for(int i = 0; i < va.GetCount(); i++) {
 				K key;
@@ -229,14 +243,14 @@ struct Visitor {
 			}
 		}
 		else  {
-			Vector<Value> va;
+			ValueArray va;
 			va.SetCount(map.GetCount());
 			for(int i = 0; i < map.GetCount(); i++) {
 				ValueMap item;
 				JsonIO json;
 				item.Add("key", StoreAsJsonValue(map.GetKey(i)));
 				item.Add("value", VisitAsJsonValue(map[i]));
-				va[i] = item;
+				va.Set(i, item);
 			}
 			this->json->Set(key, ValueArray(pick(va)));
 		}
@@ -301,7 +315,7 @@ struct Visitor {
 		using V = typename T::value_type;
 		if (!storing) {
 			map.Clear();
-			const Value& va = this->json->Get()[key];
+			const class Value& va = this->json->Get()[key];
 			map.Reserve(va.GetCount());
 			for(int i = 0; i < va.GetCount(); i++) {
 				K key;
@@ -313,7 +327,7 @@ struct Visitor {
 			}
 		}
 		else  {
-			Vector<Value> va;
+			ValueArray va;
 			va.SetCount(map.GetCount());
 			for(int i = 0; i < map.GetCount(); i++) {
 				JsonIO json;
@@ -322,7 +336,7 @@ struct Visitor {
 				ValueMap item = json.GetResult();
 				ASSERT(item.GetCount());
 				item.Add("key", StoreAsJsonValue(map.GetKey(i)));
-				va[i] = item;
+				va.Set(i, item);
 			}
 			this->json->Set(key, ValueArray(pick(va)));
 		}
@@ -400,7 +414,7 @@ struct Visitor {
 		using V = typename T::value_type;
 		if (!storing) {
 			map.Clear();
-			const Value& va = this->json->Get()[key];
+			const class Value& va = this->json->Get()[key];
 			map.Reserve(va.GetCount());
 			for(int i = 0; i < va.GetCount(); i++) {
 				K key;
@@ -411,14 +425,14 @@ struct Visitor {
 			}
 		}
 		else  {
-			Vector<Value> va;
+			ValueArray va;
 			va.SetCount(map.GetCount());
 			for(int i = 0; i < map.GetCount(); i++) {
 				ValueMap item;
 				JsonIO json;
 				item.Add("key", VisitAsJsonValue(map.GetKey(i)));
 				item.Add("value", VisitAsJsonValue(map[i]));
-				va[i] = item;
+				va.Set(i, item);
 			}
 			this->json->Set(key, ValueArray(pick(va)));
 		}

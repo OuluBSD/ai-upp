@@ -1,6 +1,8 @@
 #ifndef _Core_VfsBase_VFS_h_
 #define _Core_VfsBase_VFS_h_
 
+NAMESPACE_UPP
+
 /*
 	Internal path notation (default is INTERNAL_COMB):
 		INTERNAL_POSIX:		e.g. /usr/local/bin/bash
@@ -175,5 +177,7 @@ protected:
 	bool Get(const Value& dir, int i, const VfsPath& p, Value& val);
 	void RealizeMap(Value& dir, int i, const VfsPath& p);
 };
+
+END_UPP_NAMESPACE
 
 #endif

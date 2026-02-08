@@ -1712,6 +1712,8 @@ try {
 			case PY_CMP_LE: res = (a < b || a == b); break;
 			case PY_CMP_GT: res = (b < a); break;
 			case PY_CMP_GE: res = (b < a || a == b); break;
+			case PY_CMP_IN: res = b.Contains(a); break;
+			case PY_CMP_NOT_IN: res = !b.Contains(a); break;
 			}
 			Push(PyValue(res));
 			break;

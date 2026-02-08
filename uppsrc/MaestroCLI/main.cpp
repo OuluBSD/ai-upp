@@ -85,6 +85,9 @@ CONSOLE_APP_MAIN
 	commands.Create<EvidenceCommandImpl>();
 	commands.Create<UxCommand>();
 	commands.Create<TutorialCommand>();
+#ifdef flagGUI
+	commands.Create<TestCommand>();
+#endif
 
 	const Vector<String>& raw_args = CommandLine();
 	bool show_help = false;

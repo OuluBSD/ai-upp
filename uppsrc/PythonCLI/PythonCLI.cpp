@@ -191,6 +191,7 @@ String PythonCLI::ReadLine()
 		try {
 			// Process the input as Python code
 			Tokenizer tk;
+			tk.SkipComments();
 			tk.SkipPythonComments();
 			if(!tk.Process(input, "<stdin>")) {
 				return true; 
@@ -281,6 +282,7 @@ String PythonCLI::ReadLine()
 
 		try {
 			Tokenizer tk;
+			tk.SkipComments();
 			tk.SkipPythonComments();
 			if(!tk.Process(content, filename)) {
 				return 1;

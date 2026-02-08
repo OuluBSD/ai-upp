@@ -25,6 +25,7 @@ struct SessionInfo : Moveable<SessionInfo> {
 struct MaestroEvent {
 	String type;
 	String role;
+	String persona;
 	String text;
 	Value  json;
 	bool   delta = false;
@@ -67,8 +68,67 @@ public:
 		return q >= 0 ? &tools[q] : nullptr; 
 	}
 	const ArrayMap<String, MaestroTool>& GetTools() const { return tools; }
+	
+	String GetToolSummary() const {
+		String s;
+		if(tools.GetCount() > 0) {
+			s << "Available Tools:\n";
+			for(int i = 0; i < tools.GetCount(); i++) {
+				const MaestroTool& t = tools[i];
+				s << "- " << t.GetName() << ": " << t.GetDescription() << "\n";
+				s << "  Schema: " << StoreAsJson(t.GetSchema()) << "\n";
+			}
+		}
+		return s;
+	}
 };
 
+class MockMaestroEngine : public MaestroEngine {
+public:
+	struct MockResponse {
+		String regex;
+		String response;
+	};
+	
+	Array<MockResponse> mocks;
+
+	virtual void Send(const String& prompt, Function<void(const MaestroEvent&)> cb) override {
+		String res = "Mock Response";
+		for(const auto& m : mocks) {
+			if(RegExp(m.regex).Match(prompt)) {
+				res = m.response;
+				break;
+			}
+		}
+		
+		if(cb) {
+			MaestroEvent e;
+			e.type = "message";
+			e.text = res;
+			e.role = "assistant";
+			e.delta = false;
+			cb(e);
+			
+			e.type = "done";
+			cb(e);
+		}
+	}
+	
+	virtual void Cancel() override {}
+	virtual bool Do() override { return false; }
+	virtual void ListSessions(const String& cwd, Function<void(const Array<SessionInfo>&)> cb) override {}
+	
+	void AddMock(String regex, String response) {
+		MockResponse& m = mocks.Add();
+		m.regex = regex;
+		m.response = response;
+	}
+	
+	static MockMaestroEngine& Get() {
+		static MockMaestroEngine e;
+		return e;
+	}
+};
 
 
 #endif

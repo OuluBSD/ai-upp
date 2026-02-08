@@ -323,6 +323,34 @@ struct HmdCapture {
 	const Octree* GetPointcloud(bool bright) const;
 };
 
+struct ToolPanel : Ctrl {
+	Edit3D* owner = nullptr;
+	Option view;
+	Option obj_select;
+	Option obj_move;
+	Option obj_rotate;
+	Option mesh_select;
+	Option mesh_vertex;
+	Option mesh_edge;
+	Option mesh_face;
+	Option draw_point;
+	Option draw_line;
+	Option draw_face;
+	Button extrude;
+	Button inset;
+	Button spin;
+	Button screw;
+	DropList cam_view;
+	Option cam_focus;
+	Option cam_program;
+	Option cam_selected;
+	Vector<Ctrl*> layout_items;
+
+	void Init(Edit3D* e);
+	void Sync();
+	virtual void Layout() override;
+};
+
 struct Edit3D : DockWindow {
 	typedef enum {
 		VIEW_NONE,
@@ -338,6 +366,7 @@ struct Edit3D : DockWindow {
 	AssetBrowserCtrl asset_browser;
 	TextureEditCtrl texture_edit;
 	//RemoteDebugCtrl v_rdbg;
+	ToolPanel tool_panel;
 	MenuBar menu;
 	ToolBar tool;
 	DockableCtrl* dock_tree = 0;
@@ -348,6 +377,7 @@ struct Edit3D : DockWindow {
 	DockableCtrl* dock_assets = 0;
 	DockableCtrl* dock_texture = 0;
 	DockableCtrl* dock_script = 0;
+	DockableCtrl* dock_tools = 0;
 	
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext render_ctx;
@@ -409,7 +439,11 @@ struct Edit3D : DockWindow {
 	VfsValue* selected_bone = 0;
 
 	enum EditTool {
-		TOOL_SELECT,
+		TOOL_VIEW,
+		TOOL_OBJ_SELECT,
+		TOOL_OBJ_MOVE,
+		TOOL_OBJ_ROTATE,
+		TOOL_MESH_SELECT,
 		TOOL_POINT,
 		TOOL_LINE,
 		TOOL_FACE,
@@ -430,7 +464,7 @@ struct Edit3D : DockWindow {
 		PLANE_YZ,
 		PLANE_LOCAL,
 	};
-	EditTool edit_tool = TOOL_SELECT;
+	EditTool edit_tool = TOOL_OBJ_SELECT;
 	EditPlaneMode edit_plane = PLANE_VIEW;
 	int edit_line_start = -1;
 	int edit_join_start = -1;
@@ -464,6 +498,8 @@ struct Edit3D : DockWindow {
 	bool auto_key_2d = false;
 	bool show_hud = true;
 	bool show_hud_help = false;
+	bool show_hud_status = true;
+	bool show_hud_debug = false;
 	enum MeshSelectMode {
 		MESHSEL_VERTEX,
 		MESHSEL_EDGE,
@@ -478,11 +514,16 @@ struct Edit3D : DockWindow {
 	int select_2d_hover = -1;
 	vec3 mesh_sel_offset = vec3(0);
 	vec2 sel2d_offset = vec2(0);
+	int active_view = 3;
 	bool selection_dragging = false;
 	vec3 selection_drag_start_world = vec3(0);
 	vec3 selection_drag_applied_local = vec3(0);
 	vec3 selection_drag_plane_normal = vec3(0, 0, 1);
 	int selection_drag_view = -1;
+	int selection_drag_mode = 0;
+	vec3 selection_drag_start_pos = vec3(0);
+	quat selection_drag_start_ori = Identity<quat>();
+	Point selection_drag_start_mouse = Point(0, 0);
 	enum TimelineScopeKind {
 		TS_SCENE,
 		TS_OBJECT,
@@ -601,6 +642,8 @@ struct Edit3D : DockWindow {
 	void ContractMeshSelection();
 	void ExtrudeMeshSelection(double amount);
 	void InsetMeshSelection(double amount);
+	void SpinMeshSelection();
+	void ScrewMeshSelection();
 	void AddMeshKeyframeAtCursor();
 	void ClearMeshKeyframes();
 	void Add2DKeyframeAtCursor();
@@ -647,6 +690,8 @@ struct Edit3D : DockWindow {
 	String EnsureTexturePath(GeomObject& obj, GeomTextureEdit& tex);
 	void SyncTextureExternalFiles();
 	void UpdateHud();
+	void ApplyToolPanelCameraSource(CameraSource src);
+	void ApplyRendererCameraSource(int view_i, CameraSource src, hash_t object_key = 0);
 	
 public:
 	typedef Edit3D CLASSNAME;

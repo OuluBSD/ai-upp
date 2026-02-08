@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_StructureTools_h_
 #define _Maestro_StructureTools_h_
 
@@ -13,3 +14,4 @@ private:
 };
 
 #endif
+

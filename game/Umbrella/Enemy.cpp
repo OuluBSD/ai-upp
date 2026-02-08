@@ -1,5 +1,6 @@
 #include "Umbrella.h"
 #include "Enemy.h"
+#include "GameSettings.h"
 
 using namespace Upp;
 
@@ -17,6 +18,7 @@ Enemy::Enemy(float x, float y, float width, float height, EnemyType t) {
 	type = t;
 	carryWeight = 1.0f;  // Default weight
 	originalSize = width;  // Store original size for thrown capture logic
+	rotation = 0.0f;  // No rotation initially
 }
 
 void Enemy::TakeDamage(int amount) {
@@ -259,4 +261,37 @@ bool Enemy::CheckThrownWallCollision(float deltaX, Player::CollisionHandler& col
 	}
 
 	return false;
+}
+
+void Enemy::UpdateRotation(float delta) {
+	// Spin when captured or thrown (deactivated state)
+	if(captured || thrown || carriedByThrown) {
+		rotation += GameSettings::ENEMY_ROTATION_SPEED * delta;
+		// Keep rotation in 0-360 range
+		while(rotation >= 360.0f) rotation -= 360.0f;
+	}
+	else {
+		rotation = 0.0f;  // Reset rotation when active
+	}
+}
+
+Color Enemy::GetTintColor() const {
+	if(!alive) {
+		// Dead enemy - red tint
+		return Color(GameSettings::DEAD_TINT_R,
+		             GameSettings::DEAD_TINT_G,
+		             GameSettings::DEAD_TINT_B);
+	}
+	else if(captured || thrown || carriedByThrown) {
+		// Deactivated enemy - green tint
+		return Color(GameSettings::DEACTIVATED_TINT_R,
+		             GameSettings::DEACTIVATED_TINT_G,
+		             GameSettings::DEACTIVATED_TINT_B);
+	}
+	else {
+		// Normal enemy - no tint (white = no color change)
+		return Color(GameSettings::NORMAL_TINT_R,
+		             GameSettings::NORMAL_TINT_G,
+		             GameSettings::NORMAL_TINT_B);
+	}
 }

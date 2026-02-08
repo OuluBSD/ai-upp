@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_SemanticIntegrity_h_
 #define _Maestro_SemanticIntegrity_h_
 
@@ -53,3 +54,4 @@ private:
 };
 
 #endif
+

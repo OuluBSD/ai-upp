@@ -3135,6 +3135,16 @@ void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
 	bar.Separator();
 	bar.Add(t_("Camera: Focus"), [=] { if (rends[i]) rends[i]->SetCameraSource(CAMSRC_FOCUS); RefreshRenderer(i); });
 	bar.Add(t_("Camera: Program"), [=] { if (rends[i]) rends[i]->SetCameraSource(CAMSRC_PROGRAM); RefreshRenderer(i); });
+	bar.Add(t_("Camera: Selected"), [=] {
+		if (!e || !rends[i])
+			return;
+		GeomObject* obj = e->v0.selected_obj;
+		if (!obj || !obj->IsCamera())
+			return;
+		rends[i]->SetCameraSource(CAMSRC_OBJECT);
+		rends[i]->SetCameraObjectKey(obj->key);
+		RefreshRenderer(i);
+	});
 	bar.Separator();
 	bar.Add(t_("Renderer: V1"), [=] { SetRendererVersion(i, 1); }).Check(rend_version[i] == 1);
 	bar.Add(t_("Renderer: V2"), [=] { SetRendererVersion(i, 2); }).Check(rend_version[i] == 2);
@@ -3168,6 +3178,7 @@ void GeomProjectCtrl::SetRendererVersion(int i, int version) {
 	if (prev && next) {
 		next->view_mode = prev->view_mode;
 		next->cam_src = prev->cam_src;
+		next->cam_object_key = prev->cam_object_key;
 		next->ctx = prev->ctx;
 	}
 	rends[i] = next;

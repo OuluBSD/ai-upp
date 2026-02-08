@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_WorkGraphGenerator_h_
 #define _Maestro_WorkGraphGenerator_h_
 

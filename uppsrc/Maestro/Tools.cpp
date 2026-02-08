@@ -6,9 +6,9 @@ String FindPlanRoot()
 {
 	String d = GetCurrentDirectory();
 	while(d.GetCount() > 1) {
-		String p = AppendFileName(AppendFileName(AppendFileName(d, "uppsrc"), "AI"), "plan");
+		String p = AppendFileName(d, ".maestro");
 		if(DirectoryExists(p))
-			return NormalizePath(p);
+			return NormalizePath(d);
 		d = GetFileDirectory(d);
 	}
 	return "";
@@ -56,11 +56,19 @@ Value MaestroUpdateTaskStatus(const ValueMap& params) {
 }
 
 void RegisterMaestroTools(MaestroToolRegistry& reg) {
-	reg.Add(new LambdaMaestroTool("update_task_status", "Update the status of a project plan task. Params: track, phase, task, status.", 
+	Cout() << "Registering Maestro Tools...\n";
+	RegisterUxTools(reg);
+	for(int i = 0; i < reg.GetTools().GetCount(); i++)
+		Cout() << "Registered: " << reg.GetTools().GetKey(i) << "\n";
+	
+	LambdaMaestroTool *update_tool = new LambdaMaestroTool("update_task_status", "Update the status of a project plan task. Params: track, phase, task, status.", 
 		[](const ValueMap& params) -> Value {
 			return MaestroUpdateTaskStatus(params);
 		}
-	));
+	);
+	reg.Add(update_tool);
+	Cout() << "Registered: update_task_status\n";
+	Cout() << "Total tools: " << reg.GetTools().GetCount() << "\n";
 }
 
 END_UPP_NAMESPACE

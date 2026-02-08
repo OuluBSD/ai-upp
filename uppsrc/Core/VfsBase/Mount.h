@@ -1,6 +1,8 @@
 #ifndef _Core_VfsBase_Mount_h_
 #define _Core_VfsBase_Mount_h_
 
+NAMESPACE_UPP
+
 struct MountManager {
 	struct MountPoint {
 		VfsPath path;
@@ -26,5 +28,7 @@ struct MountManager {
 	static MountManager& System() {static MountManager m; return m;}
 };
 
+
+END_UPP_NAMESPACE
 
 #endif

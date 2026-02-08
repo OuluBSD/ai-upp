@@ -1,3 +1,4 @@
+
 #ifndef _Maestro_WorkGraphScorer_h_
 #define _Maestro_WorkGraphScorer_h_
 
@@ -63,3 +64,4 @@ private:
 };
 
 #endif
+

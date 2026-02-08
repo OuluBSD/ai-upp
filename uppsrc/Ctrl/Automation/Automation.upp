@@ -1,0 +1,10 @@
+description "UI Automation Python Bindings\377B128,0,0";
+
+uses
+	CtrlLib,
+	ByteVM;
+
+file
+	Automation.h,
+	Automation.cpp;
+

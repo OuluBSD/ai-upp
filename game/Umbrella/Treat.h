@@ -21,6 +21,7 @@ private:
 	TreatType type;
 	int scoreValue;
 	bool active;
+	bool onGround;   // Resting on ground (don't apply gravity)
 	float lifetime;  // Time alive (for animation/effects)
 
 	static constexpr float TREAT_SIZE = 10.0f;

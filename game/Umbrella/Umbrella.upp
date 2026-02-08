@@ -1,4 +1,4 @@
-description "Umbrella Game - U++ Conversion of RainbowGame";
+description "Umbrella Game - U++ Conversion of RainbowGame\377";
 
 uses
 	CtrlLib,
@@ -45,8 +45,9 @@ file
 	TestGameScreen.cpp,
 	main.cpp,
 	LevelLoader.cpp,
-	EntitySystem.cpp,
 	AudioSystem.cpp;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"" = "GUI USEMALLOC";
+

@@ -35,7 +35,15 @@ bool EnemyJumper::IsOnGround(Player::CollisionHandler& collision) {
 }
 
 void EnemyJumper::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
-	if(!alive || !active) return;
+	if(!alive) return;
+
+	// If carried by thrown enemy, just apply movement (no AI, no gravity)
+	if(carriedByThrown) {
+		ResolveCollisionX(velocity.x * delta, collision);
+		return;
+	}
+
+	if(!active) return;
 
 	// If thrown, skip both gravity and AI - purely horizontal movement
 	if(!thrown) {

@@ -19,6 +19,8 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	cameraOffset = Point(0, 0);
 	accumulator = 0.0;
 	gameState = PLAYING;
+	levelCompleteTimer = 0.0f;
+	allEnemiesKilled = false;
 	levelColumns = 0;
 	levelRows = 0;
 	gridSize = 14;
@@ -254,6 +256,34 @@ void GameScreen::GameTick(float delta) {
 			// Remove enemy from world
 			delete enemies[i];
 			enemies.Remove(i);
+		}
+	}
+
+	// Check if all enemies are killed (level completion)
+	if(gameState == PLAYING && !allEnemiesKilled) {
+		int aliveCount = 0;
+		for(int i = 0; i < enemies.GetCount(); i++) {
+			if(enemies[i]->IsAlive() && !enemies[i]->IsCaptured()) {
+				aliveCount++;
+			}
+		}
+
+		if(aliveCount == 0 && enemies.GetCount() > 0) {
+			// All enemies defeated! Start level completion sequence
+			allEnemiesKilled = true;
+			levelCompleteTimer = GameSettings::LEVEL_COMPLETE_TREAT_TIMEOUT;
+			LOG("Level complete! All enemies defeated. Treat collection time: " << levelCompleteTimer << "s");
+		}
+	}
+
+	// Handle level completion timer countdown
+	if(allEnemiesKilled && gameState == PLAYING) {
+		levelCompleteTimer -= delta;
+
+		if(levelCompleteTimer <= 0.0f) {
+			// Time's up! Transition to level complete state
+			SetGameState(LEVEL_COMPLETE);
+			LOG("Level completion timeout reached. Transitioning...");
 		}
 	}
 

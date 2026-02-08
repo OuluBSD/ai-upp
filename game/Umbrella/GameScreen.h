@@ -35,6 +35,8 @@ public:  // Public for testing
 
 	// Game state
 	GameState gameState;
+	float levelCompleteTimer;  // Countdown for treat collection before transition
+	bool allEnemiesKilled;  // Track if all enemies have been defeated
 
 	// Level dimensions
 	int levelColumns;

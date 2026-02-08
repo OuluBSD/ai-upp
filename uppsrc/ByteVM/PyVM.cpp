@@ -599,6 +599,12 @@ static PyValue builtin_str_endswith(const Vector<PyValue>& args, void* user_data
 	return PyValue(self.EndsWith(args[1].ToString()));
 }
 
+static PyValue builtin_str_lower(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue("");
+	String self = args[0].ToString();
+	return PyValue(ToLower(self));
+}
+
 static PyValue builtin_str_startswith(const Vector<PyValue>& args, void* user_data) {
 	if(args.GetCount() < 2) return PyValue(false);
 	String self = args[0].ToString();
@@ -1511,10 +1517,10 @@ try {
 
 		case PY_LOAD_ATTR: {
 			PyValue obj = Pop();
+			String attr = instr.arg.ToString();
 			if (obj.GetType() == PY_DICT) {
 				Push(obj.GetItem(instr.arg));
 			} else if (obj.GetType() == PY_STR) {
-				String attr = instr.arg.ToString();
 				if(attr == "endswith") {
 					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
 				} else if(attr == "startswith") {
@@ -1527,13 +1533,13 @@ try {
 					Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
 				} else if(attr == "join") {
 					Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
+				} else if(attr == "lower") {
+					Push(PyValue::BoundMethod(PyValue::Function("lower", builtin_str_lower), obj));
 				} else {
 					Push(PyValue::None());
 				}
 			} else if (obj.IsUserDataValid()) {
-				String attr_name = instr.arg.ToString();
-				RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
-				Push(obj.GetUserData().GetAttr(attr_name));
+				Push(obj.GetUserData().GetAttr(attr));
 			} else {
 				Push(PyValue::None());
 			}

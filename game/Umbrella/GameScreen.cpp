@@ -6,6 +6,7 @@
 #include "EnemyJumper.h"
 #include "EnemyShooter.h"
 #include "Treat.h"
+#include "Droplet.h"
 
 using namespace Upp;
 
@@ -23,9 +24,14 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	allEnemiesKilled = false;
 	transitionOffset = 0.0f;
 	nextLevelPath = "";
+	hoverTimer = 0.0f;
+	dropTimer = 0.0f;
 	levelColumns = 0;
 	levelRows = 0;
 	gridSize = 14;
+
+	// Droplet system
+	dropletsCollected = 0;
 
 	// Input state
 	keyLeft = keyRight = keyJump = keyAttack = false;
@@ -62,6 +68,10 @@ bool GameScreen::LoadLevel(const String& path) {
 
 	// Spawn enemies
 	SpawnEnemies();
+
+	// Load droplet spawn points
+	dropletSpawns.Clear();
+	MapSerializer::LoadDropletSpawns(path, dropletSpawns);
 
 	Title("Umbrella - " + GetFileName(path));
 	return true;
@@ -139,8 +149,9 @@ void GameScreen::RespawnPlayer() {
 }
 
 void GameScreen::LayoutLoop() {
-	// Only update game logic if playing
-	if(gameState == PLAYING) {
+	// Update game logic if playing or in transition
+	if(gameState == PLAYING || gameState == TRANSITION_HOVER ||
+	   gameState == TRANSITION_SCROLL || gameState == TRANSITION_DROP) {
 		int64 now = GetTickCount();
 		double delta = (now - lastTime) / 1000.0;
 		lastTime = now;
@@ -195,17 +206,15 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
-	// Check if player fell off map (below Y=0)
+	// Check if player fell off bottom of map - teleport to top with same velocity
 	Pointf playerPos = player.GetPosition();
 	if(playerPos.y < -gridSize * 2) {
-		// Player fell off - respawn and take damage
-		player.TakeDamage(1);
-		RespawnPlayer();
-
-		// Check for game over
-		if(player.GetLives() <= 0) {
-			HandleGameOver();
-		}
+		// Teleport player to top of level with same velocity
+		int levelHeight = levelRows * gridSize;
+		Pointf playerVel = player.GetVelocity();
+		player.SetPosition(playerPos.x, levelHeight - gridSize);  // Near top of level
+		player.SetVelocity(playerVel);  // Keep velocity for continuous falling
+		LOG("Player fell off bottom, teleported to top at y=" << (levelHeight - gridSize));
 	}
 
 	// Update camera to follow player
@@ -306,10 +315,11 @@ void GameScreen::GameTick(float delta) {
 	}
 
 	// Check if all enemies are killed (level completion)
+	// Note: Captured enemies still count as alive - only dead enemies count toward completion
 	if(gameState == PLAYING && !allEnemiesKilled) {
 		int aliveCount = 0;
 		for(int i = 0; i < enemies.GetCount(); i++) {
-			if(enemies[i]->IsAlive() && !enemies[i]->IsCaptured()) {
+			if(enemies[i]->IsAlive()) {
 				aliveCount++;
 			}
 		}
@@ -339,6 +349,7 @@ void GameScreen::GameTick(float delta) {
 				// Start transition sequence: hover -> scroll -> drop
 				SetGameState(TRANSITION_HOVER);
 				transitionOffset = 0.0f;
+				hoverTimer = 0.0f;  // Reset hover timer
 				player.ForceGlideState();  // Open umbrella for hover
 				LOG("Starting transition to: " << nextLevelPath);
 			}
@@ -347,6 +358,8 @@ void GameScreen::GameTick(float delta) {
 
 	// Handle transition states
 	if(gameState == TRANSITION_HOVER) {
+		LOG("TRANSITION_HOVER: hoverTimer=" << hoverTimer << " target=" << GameSettings::TRANSITION_HOVER_TIME);
+
 		// Player hovers with umbrella
 		player.ForceGlideState();  // Keep umbrella open
 
@@ -356,15 +369,28 @@ void GameScreen::GameTick(float delta) {
 			player.SetVelocity(Pointf(0, -50.0f));  // Slow fall to gentle hover
 		}
 
-		static float hoverTimer = 0.0f;
 		hoverTimer += delta;
 		if(hoverTimer >= GameSettings::TRANSITION_HOVER_TIME) {
 			hoverTimer = 0.0f;
+
+			// Load next level into nextLayerManager for dual rendering
+			if(MapSerializer::LoadFromFile(nextLevelPath, nextLayerManager)) {
+				Layer* terrainLayer = nextLayerManager.FindLayerByType(LAYER_TERRAIN);
+				if(terrainLayer) {
+					const MapGrid& grid = terrainLayer->GetGrid();
+					nextLevelColumns = grid.GetColumns();
+					nextLevelRows = grid.GetRows();
+				}
+				LOG("Preloaded next level for transition: " << nextLevelPath);
+			}
+
 			SetGameState(TRANSITION_SCROLL);
 			LOG("Starting level scroll...");
 		}
 	}
 	else if(gameState == TRANSITION_SCROLL) {
+		LOG("TRANSITION_SCROLL: offset=" << transitionOffset << " levelWidth=" << (levelColumns * gridSize));
+
 		// Scroll level horizontally to the left
 		transitionOffset += GameSettings::LEVEL_TRANSITION_SCROLL_SPEED * delta;
 
@@ -373,13 +399,20 @@ void GameScreen::GameTick(float delta) {
 		Pointf playerVel = player.GetVelocity();
 		player.SetVelocity(Pointf(0, -50.0f));  // Gentle hover
 
-		// When scrolled off screen, load new level
+		// When scrolled off screen, swap to new level
 		int levelWidth = levelColumns * gridSize;
 		if(transitionOffset >= levelWidth) {
-			// Load next level
-			LOG("Loading next level: " << nextLevelPath);
-			LoadLevel(nextLevelPath);
+			// Swap current level with next level (already loaded)
+			LOG("Swapping to next level: " << nextLevelPath);
+			layerManager = pick(nextLayerManager);  // Move ownership
 			levelPath = nextLevelPath;
+			levelColumns = nextLevelColumns;
+			levelRows = nextLevelRows;
+
+			// Respawn player and enemies for new level
+			RespawnPlayer();
+			ClearEnemies();
+			SpawnEnemies();
 
 			// Reset completion state
 			allEnemiesKilled = false;
@@ -388,15 +421,17 @@ void GameScreen::GameTick(float delta) {
 
 			// Start drop transition
 			SetGameState(TRANSITION_DROP);
+			dropTimer = 0.0f;  // Reset drop timer
 			player.ForceIdleState();  // Close umbrella
 			LOG("Player dropping into new level...");
 		}
 	}
 	else if(gameState == TRANSITION_DROP) {
+		LOG("TRANSITION_DROP: dropTimer=" << dropTimer << " target=" << GameSettings::TRANSITION_DROP_TIME);
+
 		// Player drops into new level
 		player.ForceIdleState();  // Keep umbrella closed
 
-		static float dropTimer = 0.0f;
 		dropTimer += delta;
 		if(dropTimer >= GameSettings::TRANSITION_DROP_TIME) {
 			dropTimer = 0.0f;
@@ -495,6 +530,90 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
+	// Droplet spawning from spawn points
+	for(int i = 0; i < dropletSpawns.GetCount(); i++) {
+		DropletSpawnPoint& spawn = dropletSpawns[i];
+
+		if(!spawn.enabled) continue;
+
+		// Update spawn timer
+		spawn.timer += delta;
+		float intervalSec = spawn.intervalMs / 1000.0f;
+
+		if(spawn.timer >= intervalSec) {
+			spawn.timer = 0.0f;
+
+			// Calculate spawn position (center of tile)
+			float spawnX = spawn.col * gridSize + gridSize / 2.0f;
+			float spawnY = spawn.row * gridSize + gridSize / 2.0f;
+
+			// Create droplet with initial horizontal velocity based on direction
+			Droplet* droplet = new Droplet(spawnX, spawnY, spawn.mode);
+
+			// Set horizontal velocity if direction is specified
+			if(spawn.direction != 0) {
+				Pointf vel = droplet->GetVelocity();
+				vel.x = spawn.direction * 50.0f;  // 50 pixels/sec horizontal speed
+				droplet->SetVelocity(vel);
+			}
+
+			droplets.Add(droplet);
+			RLOG("Spawned droplet at (" << spawnX << "," << spawnY << ") type=" << (int)spawn.mode << " dir=" << spawn.direction);
+		}
+	}
+
+	// Update droplets (physics for uncollected, orbit for collected)
+	Pointf dropletPlayerPos = Pointf(player.GetBounds().left, player.GetBounds().top);
+	int collectedCount = 0;
+	for(int i = 0; i < droplets.GetCount(); i++) {
+		if(droplets[i]->IsCollected()) {
+			collectedCount++;
+		}
+	}
+
+	// Force umbrella on top when player has collected droplets
+	player.ForceUmbrellaOnTop(collectedCount > 0);
+
+	int orbitIndex = 0;
+	for(int i = 0; i < droplets.GetCount(); i++) {
+		if(droplets[i]->IsCollected()) {
+			droplets[i]->UpdateOrbit(delta, dropletPlayerPos, orbitIndex, collectedCount);
+			orbitIndex++;
+		} else {
+			droplets[i]->Update(delta, *this);
+		}
+	}
+
+	// Remove inactive droplets (but keep collected ones)
+	for(int i = droplets.GetCount() - 1; i >= 0; i--) {
+		if(!droplets[i]->IsActive() && !droplets[i]->IsCollected()) {
+			delete droplets[i];
+			droplets.Remove(i);
+		}
+	}
+
+	// Check droplet-player collision (only for uncollected droplets)
+	Rectf playerBoundsForDroplets = player.GetBounds();
+	for(int i = 0; i < droplets.GetCount(); i++) {
+		if(!droplets[i]->IsActive()) continue;
+		if(droplets[i]->IsCollected()) continue;  // Already collected
+
+		Rectf dropletBounds = droplets[i]->GetBounds();
+
+		// Check collision
+		if(playerBoundsForDroplets.left < dropletBounds.right &&
+		   playerBoundsForDroplets.right > dropletBounds.left &&
+		   min(playerBoundsForDroplets.top, playerBoundsForDroplets.bottom) < max(dropletBounds.top, dropletBounds.bottom) &&
+		   max(playerBoundsForDroplets.top, playerBoundsForDroplets.bottom) > min(dropletBounds.top, dropletBounds.bottom)) {
+			// Droplet collected!
+			float startAngle = (M_2PI / max(1, collectedCount + 1)) * collectedCount;
+			droplets[i]->Collect(startAngle);
+			dropletsCollected++;
+			player.AddScore(15);  // 15 points per droplet
+			RLOG("Droplet collected! Total: " << dropletsCollected);
+		}
+	}
+
 	// Check parasol-enemy collisions (capturing enemies)
 	if(player.IsAttacking()) {
 		Rectf parasolBox = player.GetParasolHitbox();
@@ -584,9 +703,9 @@ void GameScreen::UpdateCamera(Point targetPos) {
 	cameraOffset.x = targetPos.x - viewWidth / 2;
 	cameraOffset.y = targetPos.y - viewHeight / 2;
 
-	// Apply transition offset during level scroll
+	// Apply transition offset during level scroll (scroll right to move level left)
 	if(gameState == TRANSITION_SCROLL) {
-		cameraOffset.x -= (int)transitionOffset;
+		cameraOffset.x += (int)transitionOffset;
 	}
 
 	// Clamp to level bounds (skip during transition)
@@ -644,14 +763,19 @@ void GameScreen::Paint(Draw& w) {
 		treats[i]->Render(w, *this);
 	}
 
+	// Render droplets
+	for(int i = 0; i < droplets.GetCount(); i++) {
+		droplets[i]->Render(w, *this);
+	}
+
 	// Render player (using WorldToScreen for proper Y-flip)
 	player.Render(w, *this);
 
 	// Render HUD (lives, score)
 	RenderHUD(w);
 
-	// Render level complete overlay if all enemies killed (even in PLAYING state)
-	if(allEnemiesKilled) {
+	// Render level complete overlay if all enemies killed (only during PLAYING state)
+	if(allEnemiesKilled && gameState == PLAYING) {
 		RenderLevelCompleteScreen(w);
 	}
 
@@ -674,66 +798,149 @@ void GameScreen::Paint(Draw& w) {
 void GameScreen::RenderTiles(Draw& w) {
 	Size sz = GetSize();
 
-	// Calculate visible tile range
-	int tileSize = int(gridSize * zoom);
-	if(tileSize < 1) tileSize = 1;
+	// During transition, render both old and new levels
+	if(gameState == TRANSITION_SCROLL) {
+		// Render current level (scrolling left/off-screen)
+		int tileSize = int(gridSize * zoom);
+		if(tileSize < 1) tileSize = 1;
 
-	int viewCols = sz.cx / tileSize + 2;
-	int viewRows = sz.cy / tileSize + 2;
+		int viewCols = sz.cx / tileSize + 2;
+		int viewRows = sz.cy / tileSize + 2;
 
-	int startCol = max(0, int(cameraOffset.x / gridSize));
-	int startRow = max(0, int(cameraOffset.y / gridSize));
-	int endCol = min(levelColumns, startCol + viewCols);
-	int endRow = min(levelRows, startRow + viewRows);
+		int startCol = max(0, int(cameraOffset.x / gridSize));
+		int startRow = max(0, int(cameraOffset.y / gridSize));
+		int endCol = min(levelColumns, startCol + viewCols);
+		int endRow = min(levelRows, startRow + viewRows);
 
-	// Render each visible layer (bottom to top)
-	// Render in REVERSE order so Annotations renders first (behind)
-	for(int layerIndex = layerManager.GetLayerCount() - 1; layerIndex >= 0; layerIndex--) {
-		const Layer& layer = layerManager.GetLayer(layerIndex);
+		// Render current level
+		for(int layerIndex = layerManager.GetLayerCount() - 1; layerIndex >= 0; layerIndex--) {
+			const Layer& layer = layerManager.GetLayer(layerIndex);
+			if(!layer.IsVisible()) continue;
 
-		if(!layer.IsVisible()) continue;
+			const MapGrid& grid = layer.GetGrid();
+			int opacity = layer.GetOpacity();
 
-		const MapGrid& grid = layer.GetGrid();
-		int opacity = layer.GetOpacity();
+			for(int row = startRow; row < endRow; row++) {
+				for(int col = startCol; col < endCol; col++) {
+					TileType tile = grid.GetTile(col, row);
+					if(tile == TILE_EMPTY) continue;
 
-		// Render tiles in this layer
-		for(int row = startRow; row < endRow; row++) {
-			for(int col = startCol; col < endCol; col++) {
-				TileType tile = grid.GetTile(col, row);
+					Point worldBottomLeft(col * gridSize, row * gridSize);
+					Point worldTopRight((col + 1) * gridSize, (row + 1) * gridSize);
+					Point screenBottomLeft = WorldToScreen(worldBottomLeft);
+					Point screenTopRight = WorldToScreen(worldTopRight);
 
-				if(tile == TILE_EMPTY) continue;
+					int screenX = min(screenBottomLeft.x, screenTopRight.x);
+					int screenY = min(screenBottomLeft.y, screenTopRight.y);
+					int width = abs(screenTopRight.x - screenBottomLeft.x);
+					int height = abs(screenTopRight.y - screenBottomLeft.y);
 
-				// Calculate screen position (world to screen with camera)
-				// World coordinates: (col*gridSize, row*gridSize) is bottom-left of tile
-				Point worldBottomLeft(col * gridSize, row * gridSize);
-				Point worldTopRight((col + 1) * gridSize, (row + 1) * gridSize);
+					Color tileColor = TileTypeToColor(tile);
+					if(opacity < 100) {
+						Color bgColor = Color(12, 17, 30);
+						int alpha = opacity * 255 / 100;
+						tileColor = Color(
+							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+						);
+					}
 
-				Point screenBottomLeft = WorldToScreen(worldBottomLeft);
-				Point screenTopRight = WorldToScreen(worldTopRight);
-
-				// After Y-flip, screenTopRight.y < screenBottomLeft.y
-				// Normalize to get proper screen rect
-				int screenX = min(screenBottomLeft.x, screenTopRight.x);
-				int screenY = min(screenBottomLeft.y, screenTopRight.y);
-				int width = abs(screenTopRight.x - screenBottomLeft.x);
-				int height = abs(screenTopRight.y - screenBottomLeft.y);
-
-				// Get tile color
-				Color tileColor = TileTypeToColor(tile);
-
-				// Apply layer opacity
-				if(opacity < 100) {
-					Color bgColor = Color(12, 17, 30);
-					int alpha = opacity * 255 / 100;
-					tileColor = Color(
-						(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-						(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-						(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-					);
+					w.DrawRect(screenX, screenY, width, height, tileColor);
 				}
+			}
+		}
 
-				// Draw tile as filled rectangle
-				w.DrawRect(screenX, screenY, width, height, tileColor);
+		// Render next level (scrolling in from right)
+		// Offset by current level width
+		int levelWidth = levelColumns * gridSize;
+		for(int layerIndex = nextLayerManager.GetLayerCount() - 1; layerIndex >= 0; layerIndex--) {
+			const Layer& layer = nextLayerManager.GetLayer(layerIndex);
+			if(!layer.IsVisible()) continue;
+
+			const MapGrid& grid = layer.GetGrid();
+			int opacity = layer.GetOpacity();
+
+			for(int row = 0; row < nextLevelRows; row++) {
+				for(int col = 0; col < nextLevelColumns; col++) {
+					TileType tile = grid.GetTile(col, row);
+					if(tile == TILE_EMPTY) continue;
+
+					// World position offset by current level width
+					Point worldBottomLeft(levelWidth + col * gridSize, row * gridSize);
+					Point worldTopRight(levelWidth + (col + 1) * gridSize, (row + 1) * gridSize);
+					Point screenBottomLeft = WorldToScreen(worldBottomLeft);
+					Point screenTopRight = WorldToScreen(worldTopRight);
+
+					int screenX = min(screenBottomLeft.x, screenTopRight.x);
+					int screenY = min(screenBottomLeft.y, screenTopRight.y);
+					int width = abs(screenTopRight.x - screenBottomLeft.x);
+					int height = abs(screenTopRight.y - screenBottomLeft.y);
+
+					Color tileColor = TileTypeToColor(tile);
+					if(opacity < 100) {
+						Color bgColor = Color(12, 17, 30);
+						int alpha = opacity * 255 / 100;
+						tileColor = Color(
+							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+						);
+					}
+
+					w.DrawRect(screenX, screenY, width, height, tileColor);
+				}
+			}
+		}
+	}
+	else {
+		// Normal rendering (single level)
+		int tileSize = int(gridSize * zoom);
+		if(tileSize < 1) tileSize = 1;
+
+		int viewCols = sz.cx / tileSize + 2;
+		int viewRows = sz.cy / tileSize + 2;
+
+		int startCol = max(0, int(cameraOffset.x / gridSize));
+		int startRow = max(0, int(cameraOffset.y / gridSize));
+		int endCol = min(levelColumns, startCol + viewCols);
+		int endRow = min(levelRows, startRow + viewRows);
+
+		for(int layerIndex = layerManager.GetLayerCount() - 1; layerIndex >= 0; layerIndex--) {
+			const Layer& layer = layerManager.GetLayer(layerIndex);
+			if(!layer.IsVisible()) continue;
+
+			const MapGrid& grid = layer.GetGrid();
+			int opacity = layer.GetOpacity();
+
+			for(int row = startRow; row < endRow; row++) {
+				for(int col = startCol; col < endCol; col++) {
+					TileType tile = grid.GetTile(col, row);
+					if(tile == TILE_EMPTY) continue;
+
+					Point worldBottomLeft(col * gridSize, row * gridSize);
+					Point worldTopRight((col + 1) * gridSize, (row + 1) * gridSize);
+					Point screenBottomLeft = WorldToScreen(worldBottomLeft);
+					Point screenTopRight = WorldToScreen(worldTopRight);
+
+					int screenX = min(screenBottomLeft.x, screenTopRight.x);
+					int screenY = min(screenBottomLeft.y, screenTopRight.y);
+					int width = abs(screenTopRight.x - screenBottomLeft.x);
+					int height = abs(screenTopRight.y - screenBottomLeft.y);
+
+					Color tileColor = TileTypeToColor(tile);
+					if(opacity < 100) {
+						Color bgColor = Color(12, 17, 30);
+						int alpha = opacity * 255 / 100;
+						tileColor = Color(
+							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+						);
+					}
+
+					w.DrawRect(screenX, screenY, width, height, tileColor);
+				}
 			}
 		}
 	}
@@ -892,6 +1099,11 @@ void GameScreen::RenderHUD(Draw& w) {
 	String scoreText = Format("Score: %d", player.GetScore());
 	Size textSz = GetTextSize(scoreText, fnt);
 	w.DrawText(sz.cx - textSz.cx - 20, 10, scoreText, fnt, White());
+
+	// Draw droplet counter (center)
+	String dropletText = Format("Droplets: %d", dropletsCollected);
+	Size dropletSz = GetTextSize(dropletText, fnt);
+	w.DrawText(sz.cx / 2 - dropletSz.cx / 2, 10, dropletText, fnt, Color(100, 200, 255));
 }
 
 void GameScreen::RenderPauseScreen(Draw& w) {
@@ -953,7 +1165,7 @@ void GameScreen::RenderLevelCompleteScreen(Draw& w) {
 	if(allEnemiesKilled && levelCompleteTimer > 0) {
 		// Show countdown timer
 		Font timerFont = Arial(32).Bold();
-		String timerText = Format("All Enemies Defeated! Collect treats: %.1fs", levelCompleteTimer);
+		String timerText = Format("All Enemies Defeated! Collect treats: %.1f", (double)levelCompleteTimer);
 		Size timerSz = GetTextSize(timerText, timerFont);
 
 		// Dark background for text readability
@@ -973,6 +1185,8 @@ void GameScreen::RenderLevelCompleteScreen(Draw& w) {
 }
 
 void GameScreen::SetGameState(GameState newState) {
+	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE", "TRANSITION_HOVER", "TRANSITION_SCROLL", "TRANSITION_DROP"};
+	LOG("SetGameState: " << stateNames[gameState] << " -> " << stateNames[newState]);
 	gameState = newState;
 
 	// Reset input state when changing states

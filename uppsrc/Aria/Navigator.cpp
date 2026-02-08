@@ -83,7 +83,8 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 	// Start driver in background. We use system() with & to make it persistent/non-blocking
 	// but a better way would be LocalProcess if we wanted to manage it.
 	// For CLI usage, letting it run in background is often preferred.
-	system(cmd + " > /dev/null 2>&1 &");
+	String log_file = GetHomeDirFile(".aria/" + exe + ".log");
+	system(cmd + " > " + log_file + " 2>&1 &");
 	
 	// Wait a bit for it to start
 	for (int i = 0; i < 20; i++) {
@@ -110,6 +111,12 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless) {
 		String patched_exe = detail::PatchFirefoxBinary();
 		if (!patched_exe.IsEmpty()) {
 			caps.options.binary = patched_exe;
+			String dir = GetFileFolder(patched_exe);
+			caps.options.env.Set("LD_LIBRARY_PATH", dir);
+		}
+		
+		if (!GetEnv("WAYLAND_DISPLAY").IsEmpty()) {
+			caps.options.env.Set("MOZ_ENABLE_WAYLAND", "1");
 		}
 	} else {
 		caps.browser_name = browser_name;

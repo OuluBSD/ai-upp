@@ -36,10 +36,6 @@ void Firefox::ApplyStealthSettings(bool silence_audio) {
 	options.SetPreference("media.autoplay.default", 0);
 	options.SetPreference("media.autoplay.blocking_policy", 0);
 	
-	options.AddArgument("--disable-infobars");
-	options.AddArgument("--disable-extensions");
-	options.AddArgument("--no-sandbox");
-	
 	if (silence_audio)
 		options.SetPreference("media.volume_scale", "0.0");
 	else

@@ -49,6 +49,7 @@ public:
 
 	void SetZoom(double newZoom);
 	void PanTo(Point newOffset);
+	Point GetOffset() const { return offset; }
 	void SetParentEditor(MapEditorApp* parent) { parentEditor = parent; }
 	void SetShowGrid(bool show) { showGrid = show; Refresh(); }
 	bool GetShowGrid() const { return showGrid; }

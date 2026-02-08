@@ -878,7 +878,34 @@ bool MapEditorApp::Key(dword key, int) {
 			RedoAction();
 			return true;
 
-		// Tool selection
+		// Tool selection (UX spec: 1-6 for tools)
+		case K_1:  // Draw Wall
+			currentTool = TOOL_BRUSH;
+			brushTool.SetMode(BRUSH_MODE_PAINT);
+			brushTool.SetPaintTile(TILE_WALL);
+			mainStatusBar.Set("Tool: Draw Wall");
+			return true;
+		case K_2:  // Erase Wall
+			currentTool = TOOL_ERASER;
+			brushTool.SetMode(BRUSH_MODE_ERASE);
+			brushTool.SetPaintTile(TILE_WALL);
+			mainStatusBar.Set("Tool: Erase Wall");
+			return true;
+		case K_3:  // Draw Background
+			currentTool = TOOL_BRUSH;
+			brushTool.SetMode(BRUSH_MODE_PAINT);
+			brushTool.SetPaintTile(TILE_BACKGROUND);
+			mainStatusBar.Set("Tool: Draw Background");
+			return true;
+		case K_4:  // Erase Background
+			currentTool = TOOL_ERASER;
+			brushTool.SetMode(BRUSH_MODE_ERASE);
+			brushTool.SetPaintTile(TILE_BACKGROUND);
+			mainStatusBar.Set("Tool: Erase Background");
+			return true;
+		// TODO: Keys 5-6 for Enemy Add/Remove (not yet implemented)
+
+		// Legacy shortcuts (kept for backwards compatibility)
 		case K_B:  // B for Brush
 			currentTool = TOOL_BRUSH;
 			brushTool.SetMode(BRUSH_MODE_PAINT);
@@ -897,22 +924,44 @@ bool MapEditorApp::Key(dword key, int) {
 			BrowseReferenceImage();
 			return true;
 
-		// Brush size shortcuts
-		case K_1:
-			brushTool.SetBrushSize(BRUSH_1X1);
-			mainStatusBar.Set("Brush size: 1x1");
+		// Brush size shortcuts (UX spec: [ and ] for brush size)
+		case K_LBRACKET:  // [ to decrease brush size
+			{
+				BrushSize currentSize = brushTool.GetBrushSize();
+				if(currentSize == BRUSH_2X2) brushTool.SetBrushSize(BRUSH_1X1);
+				else if(currentSize == BRUSH_3X3) brushTool.SetBrushSize(BRUSH_2X2);
+				else if(currentSize == BRUSH_5X5) brushTool.SetBrushSize(BRUSH_3X3);
+				int size = (brushTool.GetBrushSize() == BRUSH_1X1) ? 1 :
+				           (brushTool.GetBrushSize() == BRUSH_2X2) ? 2 :
+				           (brushTool.GetBrushSize() == BRUSH_3X3) ? 3 : 5;
+				mainStatusBar.Set(Format("Brush size: %dx%d", size, size));
+			}
 			return true;
-		case K_2:
-			brushTool.SetBrushSize(BRUSH_2X2);
-			mainStatusBar.Set("Brush size: 2x2");
+		case K_RBRACKET:  // ] to increase brush size
+			{
+				BrushSize currentSize = brushTool.GetBrushSize();
+				if(currentSize == BRUSH_1X1) brushTool.SetBrushSize(BRUSH_2X2);
+				else if(currentSize == BRUSH_2X2) brushTool.SetBrushSize(BRUSH_3X3);
+				else if(currentSize == BRUSH_3X3) brushTool.SetBrushSize(BRUSH_5X5);
+				int size = (brushTool.GetBrushSize() == BRUSH_1X1) ? 1 :
+				           (brushTool.GetBrushSize() == BRUSH_2X2) ? 2 :
+				           (brushTool.GetBrushSize() == BRUSH_3X3) ? 3 : 5;
+				mainStatusBar.Set(Format("Brush size: %dx%d", size, size));
+			}
 			return true;
-		case K_3:
-			brushTool.SetBrushSize(BRUSH_3X3);
-			mainStatusBar.Set("Brush size: 3x3");
+
+		// Arrow key panning (UX spec)
+		case K_LEFT:
+			mapCanvas.PanTo(mapCanvas.GetOffset() + Point(-20, 0));
 			return true;
-		case K_5:
-			brushTool.SetBrushSize(BRUSH_5X5);
-			mainStatusBar.Set("Brush size: 5x5");
+		case K_RIGHT:
+			mapCanvas.PanTo(mapCanvas.GetOffset() + Point(20, 0));
+			return true;
+		case K_UP:
+			mapCanvas.PanTo(mapCanvas.GetOffset() + Point(0, -20));
+			return true;
+		case K_DOWN:
+			mapCanvas.PanTo(mapCanvas.GetOffset() + Point(0, 20));
 			return true;
 
 		// Tile type shortcuts
@@ -920,14 +969,9 @@ bool MapEditorApp::Key(dword key, int) {
 			brushTool.SetPaintTile(TILE_WALL);
 			mainStatusBar.Set("Paint tile: Wall");
 			return true;
-		case K_G:  // G for backGround (note: conflicts with grid toggle)
-			if(GetShift()) {  // Shift+G for background
-				brushTool.SetPaintTile(TILE_BACKGROUND);
-				mainStatusBar.Set("Paint tile: Background");
-			} else {
-				// Toggle grid (existing shortcut)
-				mapCanvas.SetShowGrid(!mapCanvas.GetShowGrid());
-			}
+		case K_G:  // G toggles grid (UX spec)
+			mapCanvas.SetShowGrid(!mapCanvas.GetShowGrid());
+			mainStatusBar.Set(mapCanvas.GetShowGrid() ? "Grid: ON" : "Grid: OFF");
 			return true;
 		case K_F:  // F for Fullblock or Fill
 			if(GetShift()) {  // Shift+F for Fill tool

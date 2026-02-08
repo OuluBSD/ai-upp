@@ -84,18 +84,24 @@ void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHa
 	// If carried by thrown enemy, just apply movement (no AI, no gravity)
 	if(carriedByThrown) {
 		ResolveCollisionX(velocity.x * delta, collision);
-		// Don't update projectiles when carried
+		// Update projectiles even when carried
+		UpdateProjectiles(delta, collision);
 		return;
 	}
 
-	if(!active) return;
+	if(!active) {
+		// Update projectiles even when captured/inactive
+		UpdateProjectiles(delta, collision);
+		return;
+	}
 
 	// If thrown, purely horizontal movement (no gravity)
 	if(thrown) {
 		// Check for wall collision when thrown
 		if(CheckThrownWallCollision(velocity.x * delta, collision)) {
 			// Mark for destruction - GameScreen will spawn treat
-			Defeat();
+			// Use DefeatPreservingVelocity to keep horizontal momentum
+			DefeatPreservingVelocity();
 			return;
 		}
 

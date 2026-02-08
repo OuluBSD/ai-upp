@@ -213,10 +213,38 @@ void AriaNavigator::NavigateWithPrompt(const String& prompt) {
 	GetAriaLogger("navigator").Info("Navigating with prompt: " + prompt);
 	if (!driver && !ConnectToSession()) return;
 	
+	if (!ai_provider) {
+		// Fallback if no AI
+		String search_url = "https://duckduckgo.com/?q=" + UrlEncode(prompt);
+		Navigate(search_url);
+		return;
+	}
+	
 	ValueArray links = ExtractLinks();
-	// For now, simple fallback to search
-	String search_url = "https://duckduckgo.com/?q=" + UrlEncode(prompt);
-	Navigate(search_url);
+	String context = "Current URL: " + driver->GetUrl() + "\n";
+	context << "Page Title: " << driver->GetTitle() << "\n";
+	context << "Available Links:\n" << AsJSON(links, true);
+	
+	String ai_instruction = "You are an autonomous web navigator. The user wants to: " + prompt + "\n";
+	ai_instruction << "Based on the available links, choose the best URL to visit. If none are relevant, suggest a search query.\n";
+	ai_instruction << "Return JSON: {\"action\": \"navigate\", \"url\": \"...\"} OR {\"action\": \"search\", \"query\": \"...\"}";
+	
+	String response = ai_provider->Generate(ai_instruction, context, "json");
+	Value v = ParseJSON(response);
+	
+	if (v.Is<ValueMap>()) {
+		ValueMap m = v;
+		if (m["action"] == "navigate") {
+			Navigate(m["url"]);
+		} else if (m["action"] == "search") {
+			String search_url = "https://duckduckgo.com/?q=" + UrlEncode(m["query"]);
+			Navigate(search_url);
+		}
+	} else {
+		// Fallback
+		String search_url = "https://duckduckgo.com/?q=" + UrlEncode(prompt);
+		Navigate(search_url);
+	}
 }
 
 Element AriaNavigator::WaitForElement(const String& selector, const String& by, int timeout) {

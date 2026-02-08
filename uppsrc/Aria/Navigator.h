@@ -28,6 +28,7 @@ class AriaNavigator : public BaseNavigator {
 	void SaveSession(const String& browser_name, const ValueMap& session_data);
 	ValueMap LoadSessionData(const String& browser_name) const;
 	String GetCurrentBrowser() const;
+	void EnsureDriverRunning(const String& browser_name);
 
 public:
 	AriaNavigator();

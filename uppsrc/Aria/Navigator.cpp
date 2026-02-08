@@ -52,7 +52,53 @@ String AriaNavigator::GetCurrentBrowser() const {
 	return "";
 }
 
+void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
+	int port = 4444; // Default port
+	String exe = browser_name == "firefox" ? "geckodriver" : "chromedriver";
+	
+	// Use ps to check if running
+	String ps_out = Sys("ps aux");
+	if (ps_out.Find(exe) >= 0) {
+		return; // Already running
+	}
+	
+	GetAriaLogger("navigator").Info("WebDriver (" + exe + ") not detected. Attempting to start...");
+	
+	String cmd;
+	if (browser_name == "firefox") {
+		cmd = "geckodriver --host 127.0.0.1 --port " + AsString(port);
+	} else if (browser_name == "chrome") {
+		cmd = "chromedriver --port " + AsString(port);
+	} else {
+		return;
+	}
+	
+	// Check if executable exists in path
+	String path = GetFileOnPath(exe, GetEnv("PATH"));
+	if (path.IsEmpty()) {
+		GetAriaLogger("navigator").Error("Could not find " + exe + " in PATH.");
+		return;
+	}
+	
+	// Start driver in background. We use system() with & to make it persistent/non-blocking
+	// but a better way would be LocalProcess if we wanted to manage it.
+	// For CLI usage, letting it run in background is often preferred.
+	system(cmd + " > /dev/null 2>&1 &");
+	
+	// Wait a bit for it to start
+	for (int i = 0; i < 20; i++) {
+		Sleep(500);
+		if (Sys("ps aux").Find(exe) >= 0) {
+			GetAriaLogger("navigator").Info(exe + " started successfully.");
+			return;
+		}
+	}
+	
+	GetAriaLogger("navigator").Error("Failed to start " + exe + ".");
+}
+
 void AriaNavigator::StartSession(const String& browser_name, bool headless) {
+	EnsureDriverRunning(browser_name);
 	GetAriaLogger("navigator").Info("Starting browser session: " + browser_name);
 	
 	Firefox caps; // Use Firefox specifically for now if browser_name is firefox
@@ -87,6 +133,8 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless) {
 bool AriaNavigator::ConnectToSession(const String& browser_name) {
 	String name = browser_name.IsEmpty() ? GetCurrentBrowser() : browser_name;
 	if (name.IsEmpty()) return false;
+	
+	EnsureDriverRunning(name);
 	
 	ValueMap data = LoadSessionData(name);
 	if (data.IsEmpty()) return false;

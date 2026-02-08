@@ -641,12 +641,14 @@ class CommandLineArguments {
 	Array<CmdArg>				args;
 	Array<CmdInput>				inputs;
 	Vector<Value>				positionals, default_positionals;
-	Vector<String>				positional_desc;
+	Vector<String>				positional_desc, positional_help;
 	Vector<dword>				positional_type;
 	Value						vars;
 	int                         last_index = -1;
 	Vector<String>              full_args;
 	String                      description;
+	String                      help_text;
+	bool                        stop_on_positional = false;
 	
 public:
 	CommandLineArguments() {vars = ValueMap();}
@@ -654,7 +656,10 @@ public:
 	void AddArg(char key, const char* desc, bool has_value, String value_desc="value");
 	void AddArg(const char* name, char key, const char* desc, bool has_value, String value_desc="value");
 	void AddPositional(const char* desc, dword type = UNKNOWN_V, Value def=Value());
+	void AddPositional(const char* label, const char* help, dword type = UNKNOWN_V, Value def=Value());
 	void SetDescription(const char* desc) { description = desc; }
+	void AddHelpText(const char* text) { help_text << text << "\n"; }
+	void SetStopOnPositional(bool b = true) { stop_on_positional = b; }
 
 	bool Parse();
 	bool Parse(const Vector<String>& args);

@@ -170,44 +170,45 @@ String GetFirefoxDefaultProfilePath() {
 	if (!FileExists(ini_path)) return "";
 
 	String data = LoadFile(ini_path);
-	String base_dir = GetFileFolder(ini_path);
+	Vector<String> sections = Split(data, '[');
 	
-	String newest_profile_path;
-	Time newest_time = Time::Low();
+	String default_profile_path;
+	String release_profile_path;
 	
-	// Better INI parsing
-	Vector<String> lines = Split(data, '\n');
-	String current_path;
-	
-	for (int i = 0; i < lines.GetCount(); i++) {
-		String line = TrimBoth(lines[i]);
-		if (line.StartsWith("Path=")) {
-			String rel_path = line.Mid(5);
-			String full_path = AppendFileName(base_dir, rel_path);
-			
-			if (DirectoryExists(full_path)) {
-				// Check times of multiple files to find the most recently used profile
-				static const char* activity_files[] = { "prefs.js", "places.sqlite", "sessionstore.jsonlz4", "lock" };
-				Time max_t = Time::Low();
-				
-				for (const char* f : activity_files) {
-					Time t = FileGetTime(AppendFileName(full_path, f));
-					if (!IsNull(t) && t > max_t) max_t = t;
-				}
-				
-				if (IsNull(max_t)) max_t = FileGetTime(full_path);
-				
-				if (!IsNull(max_t) && max_t > newest_time) {
-					newest_time = max_t;
-					newest_profile_path = full_path;
-				}
-			}
+	for (const String& section_content : sections) {
+		Vector<String> lines = Split(section_content, '\n');
+		bool is_profile = false;
+		if (lines.GetCount() > 0 && lines[0].StartsWith("Profile")) is_profile = true;
+		if (!is_profile) continue;
+
+		String p_path;
+		String p_name;
+		bool is_p_default = false;
+
+		for (int i = 1; i < lines.GetCount(); i++) {
+			String line = TrimBoth(lines[i]);
+			if (line.StartsWith("Path=")) p_path = line.Mid(5);
+			if (line.StartsWith("Name=")) p_name = line.Mid(5);
+			if (line.StartsWith("Default=1")) is_p_default = true;
 		}
+		
+		String full_path = AppendFileName(GetFileFolder(ini_path), p_path);
+		
+		// Prioritize "default-release" explicitly
+		if (p_name == "default-release") release_profile_path = full_path;
+		
+		// Fallback to Default=1
+		if (is_p_default) default_profile_path = full_path;
 	}
 	
-	if (!newest_profile_path.IsEmpty()) {
-		RLOG("WebDriver: Selected most recent profile: " << newest_profile_path << " (" << newest_time << ")");
-		return newest_profile_path;
+	if (!release_profile_path.IsEmpty()) {
+		RLOG("WebDriver: Selected default-release profile: " << release_profile_path);
+		return release_profile_path;
+	}
+	
+	if (!default_profile_path.IsEmpty()) {
+		RLOG("WebDriver: Selected default profile: " << default_profile_path);
+		return default_profile_path;
 	}
 	
 	return "";

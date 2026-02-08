@@ -47,7 +47,7 @@ String GeminiProvider::Generate(const String& prompt, const String& context, con
 		if (TrimBoth(line).IsEmpty()) continue;
 		Value v = ParseJSON(line);
 		if (v.Is<ValueMap>()) {
-			const ValueMap& vm = v.Get<ValueMap>();
+			ValueMap vm = v;
 			if (vm["type"] == "message" && vm["role"] == "assistant") {
 				response_text << (String)vm["content"];
 			}
@@ -86,8 +86,23 @@ void Aria::Run(const Vector<String>& args) {
 		Cout() << "Aria CLI version 0.1.0\n";
 	} else if (cmd == "open") {
 		safety_manager.EnsureDisclaimerAccepted();
-		String url = args.GetCount() > 1 ? args[1] : "";
-		navigator->StartSession();
+		
+		String browser = "firefox";
+		String url = "";
+		bool headless = false;
+		
+		for (int i = 1; i < args.GetCount(); i++) {
+			String arg = args[i];
+			if (arg == "--headless") {
+				headless = true;
+			} else if (arg == "chrome" || arg == "firefox" || arg == "edge") {
+				browser = arg;
+			} else {
+				url = arg;
+			}
+		}
+		
+		navigator->StartSession(browser, headless);
 		if (!url.IsEmpty()) {
 			if (safety_manager.CheckUrlSafety(url))
 				navigator->Navigate(url);
@@ -106,6 +121,10 @@ void Aria::Run(const Vector<String>& args) {
 		} else if (p_cmd == "new") {
 			String url = args.GetCount() > 2 ? args[2] : "about:blank";
 			navigator->NewTab(url);
+		} else if (p_cmd == "source") {
+			Cout() << navigator->GetPageContent() << "\n";
+		} else if (p_cmd == "eval" && args.GetCount() > 2) {
+			Cout() << AsJSON(navigator->Eval(args[2])) << "\n";
 		}
 	} else if (cmd == "script" && args.GetCount() > 1) {
 		String s_cmd = args[1];
@@ -147,6 +166,15 @@ END_UPP_NAMESPACE
 
 CONSOLE_APP_MAIN
 {
-	Upp::Aria aria;
-	aria.Run(Upp::CommandLine());
+	Upp::StdLogSetup(Upp::LOG_COUT | Upp::LOG_FILE);
+	try {
+		Upp::Aria aria;
+		aria.Run(Upp::CommandLine());
+	} catch (const Upp::Exc& e) {
+		Upp::Cout() << "Error: " << e << "\n";
+	} catch (const std::exception& e) {
+		Upp::Cout() << "System Error: " << e.what() << "\n";
+	} catch (...) {
+		Upp::Cout() << "Unknown error occurred.\n";
+	}
 }

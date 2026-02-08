@@ -43,6 +43,7 @@ public:
 	Vector<String> GetTabsByTag(const String& tag);
 	void TagTab(const Value& identifier, const String& tag);
 	ValueArray ExtractLinks();
+	Value Eval(const String& script);
 };
 
 #endif

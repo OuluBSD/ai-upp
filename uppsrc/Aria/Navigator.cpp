@@ -56,13 +56,11 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 	int port = 4444; // Default port
 	String exe = browser_name == "firefox" ? "geckodriver" : "chromedriver";
 	
-	// Use ps to check if running
-	String ps_out = Sys("ps aux");
-	if (ps_out.Find(exe) >= 0) {
-		return; // Already running
-	}
+	GetAriaLogger("navigator").Info("Ensuring WebDriver (" + exe + ") is running...");
 	
-	GetAriaLogger("navigator").Info("WebDriver (" + exe + ") not detected. Attempting to start...");
+	// Kill existing ones to be safe
+	system("killall -9 " + exe + " firefox 2>/dev/null");
+	Sleep(500);
 	
 	String cmd;
 	if (browser_name == "firefox") {
@@ -99,6 +97,7 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 }
 
 void AriaNavigator::StartSession(const String& browser_name, bool headless, bool use_profile) {
+	CloseSession(browser_name);
 	EnsureDriverRunning(browser_name);
 	GetAriaLogger("navigator").Info("Starting browser session: " + browser_name);
 	
@@ -145,6 +144,8 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless, bool
 		GetAriaLogger("navigator").Info("Aria session started for " + browser_name);
 	} catch (const Exc& e) {
 		GetAriaLogger("navigator").Error("Error starting session: " + e);
+		// Cleanup on failure
+		system("killall -9 geckodriver firefox 2>/dev/null");
 	}
 }
 
@@ -172,9 +173,15 @@ bool AriaNavigator::ConnectToSession(const String& browser_name) {
 
 void AriaNavigator::CloseSession(const String& browser_name) {
 	if (driver) {
-		driver->DeleteSession();
+		try {
+			driver->DeleteSession();
+		} catch (...) {}
 		driver.Clear();
 	}
+	
+	// Kill processes to release profile lock
+	system("killall -9 geckodriver firefox 2>/dev/null");
+	
 	String name = browser_name.IsEmpty() ? GetCurrentBrowser() : browser_name;
 	if (!name.IsEmpty()) {
 		DeleteFile(GetSessionFilePath(name));

@@ -9,7 +9,7 @@ inline const char* GetStealthJS() {
 	return R"(
 		// Remove webdriver property
 		Object.defineProperty(navigator, 'webdriver', {
-			get: () => undefined,
+			get: () => false,
 			set: () => {}
 		});
 

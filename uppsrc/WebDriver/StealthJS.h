@@ -7,11 +7,24 @@ NAMESPACE_UPP
 
 inline const char* GetStealthJS() {
 	return R"(
-		// Remove webdriver property
-		Object.defineProperty(navigator, 'webdriver', {
-			get: () => false,
-			set: () => {}
-		});
+		// Ensure navigator.webdriver is undefined (standard Firefox behavior)
+		try {
+			Object.defineProperty(navigator, 'webdriver', {
+				get: () => undefined,
+				set: () => {},
+				configurable: true
+			});
+		} catch (e) {}
+
+		// Firefox should NOT have window.chrome
+		if (window.chrome) {
+			delete window.chrome;
+		}
+		
+		// Some detectors check for this
+		if (window.cdc_adoQtmx083120120533123) {
+			delete window.cdc_adoQtmx083120120533123;
+		}
 
 		// Mock plugins
 		const mockPlugins = [
@@ -20,13 +33,19 @@ inline const char* GetStealthJS() {
 			{ name: 'Native Client', filename: 'internal-nacl-plugin', description: '' }
 		];
 		mockPlugins.length = 3;
-		Object.defineProperty(navigator, 'plugins', { get: () => mockPlugins });
+		try {
+			Object.defineProperty(navigator, 'plugins', { get: () => mockPlugins });
+		} catch (e) {}
 
 		// Mock languages
-		Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+		try {
+			Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+		} catch (e) {}
 
 		// Mock hardwareConcurrency
-		Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 4 });
+		try {
+			Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 4 });
+		} catch (e) {}
 
 		// Fix WebGL detection
 		const getParameter = WebGLRenderingContext.prototype.getParameter;
@@ -35,6 +54,17 @@ inline const char* GetStealthJS() {
 			if (parameter === 37446) return 'Intel Iris OpenGL Engine';
 			return getParameter(parameter);
 		};
+		
+		// Hide automation clues in functions
+		const toString = Function.prototype.toString;
+		Function.prototype.toString = function() {
+			if (this === Function.prototype.toString) return 'function toString() { [native code] }';
+			if (this === navigator.webdriver) return 'function get webdriver() { [native code] }';
+			return toString.call(this);
+		};
+		
+		// Mask specific geckodriver/marionette markers if they leak
+		window.navigator.webdriver = false;
 	)";
 }
 

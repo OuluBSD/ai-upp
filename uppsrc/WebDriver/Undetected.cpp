@@ -113,6 +113,11 @@ String PatchFirefoxBinary() {
 		chmod(AppendFileName(dst, "firefox"), 0755);
 		if (FileExists(AppendFileName(dst, "firefox-bin")))
 			chmod(AppendFileName(dst, "firefox-bin"), 0755);
+		
+		// Fix RPATH to ensure patched libxul.so is loaded from dst, not src
+		String patchelf_cmd = "patchelf --set-rpath '$ORIGIN' " + dst_exe;
+		RLOG("WebDriver: Executing " << patchelf_cmd);
+		system(~patchelf_cmd);
 #endif
 	} else {
 		RLOG("WebDriver: Undetected Firefox already exists at " << dst_exe);
@@ -155,66 +160,57 @@ String PatchFirefoxBinary() {
 }
 
 String GetFirefoxDefaultProfilePath() {
-	String path;
+	String ini_path;
 #ifdef PLATFORM_POSIX
-	path = GetHomeDirFile(".mozilla/firefox/profiles.ini");
+	ini_path = GetHomeDirFile(".mozilla/firefox/profiles.ini");
 #elif defined(PLATFORM_WIN32)
-	path = GetAppDataDir() + "/Mozilla/Firefox/profiles.ini";
+	ini_path = GetAppDataDir() + "/Mozilla/Firefox/profiles.ini";
 #endif
 
-	if (!FileExists(path)) return "";
+	if (!FileExists(ini_path)) return "";
 
-	String data = LoadFile(path);
-	Vector<String> sections = Split(data, '[');
+	String data = LoadFile(ini_path);
+	String base_dir = GetFileFolder(ini_path);
 	
-	String default_profile_name;
-	String first_profile_path;
+	String newest_profile_path;
+	Time newest_time = Time::Low();
 	
-	// First pass: look for Default in [Install...] or [General]
-	for (const String& section_content : sections) {
-		Vector<String> lines = Split(section_content, '\n');
-		bool is_install = false;
-		if (lines.GetCount() > 0) {
-			String header = lines[0];
-			if (header.StartsWith("Install")) is_install = true;
-		}
-		
-		for (int i = 1; i < lines.GetCount(); i++) {
-			String line = TrimBoth(lines[i]);
-			if (line.StartsWith("Default=")) {
-				String val = line.Mid(8);
-				if (is_install) return AppendFileName(GetFileFolder(path), val);
-				if (default_profile_name.IsEmpty()) default_profile_name = val;
+	// Better INI parsing
+	Vector<String> lines = Split(data, '\n');
+	String current_path;
+	
+	for (int i = 0; i < lines.GetCount(); i++) {
+		String line = TrimBoth(lines[i]);
+		if (line.StartsWith("Path=")) {
+			String rel_path = line.Mid(5);
+			String full_path = AppendFileName(base_dir, rel_path);
+			
+			if (DirectoryExists(full_path)) {
+				// Check times of multiple files to find the most recently used profile
+				static const char* activity_files[] = { "prefs.js", "places.sqlite", "sessionstore.jsonlz4", "lock" };
+				Time max_t = Time::Low();
+				
+				for (const char* f : activity_files) {
+					Time t = FileGetTime(AppendFileName(full_path, f));
+					if (!IsNull(t) && t > max_t) max_t = t;
+				}
+				
+				if (IsNull(max_t)) max_t = FileGetTime(full_path);
+				
+				if (!IsNull(max_t) && max_t > newest_time) {
+					newest_time = max_t;
+					newest_profile_path = full_path;
+				}
 			}
 		}
 	}
-
-	// Second pass: find the path for the default profile or first profile
-	for (const String& section_content : sections) {
-		Vector<String> lines = Split(section_content, '\n');
-		bool is_profile = false;
-		if (lines.GetCount() > 0 && lines[0].StartsWith("Profile")) is_profile = true;
-		if (!is_profile) continue;
-
-		String p_path;
-		String p_name;
-		bool is_p_default = false;
-
-		for (int i = 1; i < lines.GetCount(); i++) {
-			String line = TrimBoth(lines[i]);
-			if (line.StartsWith("Path=")) p_path = line.Mid(5);
-			if (line.StartsWith("Name=")) p_name = line.Mid(5);
-			if (line.StartsWith("Default=1")) is_p_default = true;
-		}
-
-		if (first_profile_path.IsEmpty()) first_profile_path = p_path;
-		if (is_p_default || (!default_profile_name.IsEmpty() && (p_name == default_profile_name || p_path == default_profile_name))) {
-			return AppendFileName(GetFileFolder(path), p_path);
-		}
+	
+	if (!newest_profile_path.IsEmpty()) {
+		RLOG("WebDriver: Selected most recent profile: " << newest_profile_path << " (" << newest_time << ")");
+		return newest_profile_path;
 	}
 	
-	if (first_profile_path.IsEmpty()) return "";
-	return AppendFileName(GetFileFolder(path), first_profile_path);
+	return "";
 }
 
 } // namespace detail

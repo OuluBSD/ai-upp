@@ -9,6 +9,7 @@ file
 	AGENTS.md,
 	Aria.h options(BUILDER_OPTION) PCH,
 	Aria.cpp,
+	BaseAIProvider.h,
 	CredentialManager.h,
 	CredentialManager.cpp,
 	Exceptions.h,

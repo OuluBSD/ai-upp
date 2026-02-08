@@ -71,7 +71,11 @@ String GeminiProvider::Generate(const String& prompt, const String& context, con
 }
 
 Aria::Aria() {
+	plugin_manager.LoadPlugins();
 	navigator.Create();
+	// Use default gemini provider
+	static GeminiProvider default_gemini;
+	navigator->SetAIProvider(&default_gemini);
 }
 
 void Aria::Run(const Vector<String>& args) {
@@ -131,6 +135,25 @@ void Aria::Run(const Vector<String>& args) {
 		if (s_cmd == "list") {
 			for (const auto& s : script_manager.ListScripts())
 				Cout() << s.id << ": " << s.name << " - " << s.prompt.Left(50) << "...\n";
+		} else if (s_cmd == "create" && args.GetCount() > 2) {
+			String prompt = args[2];
+			String name = args.GetCount() > 3 ? args[3] : "";
+			int id = script_manager.CreateScript(prompt, name);
+			Cout() << "Created script " << id << "\n";
+		} else if (s_cmd == "run" && args.GetCount() > 2) {
+			String identifier = args[2];
+			ValueMap params;
+			// Simple param parsing: key=value
+			for (int i = 3; i < args.GetCount(); i++) {
+				Vector<String> kv = Split(args[i], '=');
+				if (kv.GetCount() == 2) params.Set(kv[0], kv[1]);
+			}
+			Cout() << "Running script: " << identifier << "\n";
+			try {
+				script_manager.RunScript(identifier, ~navigator, params);
+			} catch (const Exc& e) {
+				Cout() << "Script Error: " << e << "\n";
+			}
 		}
 	} else if (cmd == "site" && args.GetCount() > 1) {
 		String site_cmd = args[1];
@@ -165,6 +188,28 @@ void Aria::Run(const Vector<String>& args) {
 			ThreadsScraper scraper(*navigator, site_manager);
 			Cout() << "Refreshing Threads data...\n";
 			scraper.Refresh();
+		}
+	} else if (cmd == "plugin" && args.GetCount() > 1) {
+		String p_cmd = args[1];
+		if (p_cmd == "list") {
+			Cout() << "AI Providers:\n";
+			for (const String& p : plugin_manager.ListAIProviders())
+				Cout() << "- " << p << "\n";
+			Cout() << "- gemini (built-in)\n";
+		}
+	} else if (cmd == "vault" && args.GetCount() > 1) {
+		CredentialManager cm;
+		String v_cmd = args[1];
+		if (v_cmd == "set" && args.GetCount() > 3) {
+			cm.SetCredential(args[2], args[3]);
+			Cout() << "Credential set: " << args[2] << "\n";
+		} else if (v_cmd == "get" && args.GetCount() > 2) {
+			Cout() << cm.GetCredential(args[2]) << "\n";
+		} else if (v_cmd == "list") {
+			for (const auto& k : cm.ListKeys()) Cout() << "- " << k << "\n";
+		} else if (v_cmd == "remove" && args.GetCount() > 2) {
+			if (cm.RemoveCredential(args[2])) Cout() << "Credential removed.\n";
+			else Cout() << "Credential not found.\n";
 		}
 	} else if (cmd == "test" && args.GetCount() > 1) {
 		String test_cmd = args[1];
@@ -219,6 +264,12 @@ void Aria::Run(const Vector<String>& args) {
 		       << "  page source     Print current page source\n"
 		       << "  page eval [js]  Evaluate JavaScript in current page\n"
 		       << "  script list     List saved scripts\n"
+		       << "  script create [p] [n] Create new script\n"
+		       << "  script run [i] [k=v] Run script by ID or name\n"
+		       << "  plugin list     List available AI providers and plugins\n"
+		       << "  vault set [k] [v] Set credential\n"
+		       << "  vault get [k]   Get credential\n"
+		       << "  vault list      List all credential keys\n"
 		       << "  site list       List sites with local data\n"
 		       << "  site discord [c] Scrape Discord channel\n"
 		       << "  site whatsapp   Scrape WhatsApp messages\n"

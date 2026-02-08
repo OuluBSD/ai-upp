@@ -14,4 +14,4 @@ Convert the plugin_manager.py Python file to C++.
 - Aria base classes
 
 ## Status
-Pending
+Done

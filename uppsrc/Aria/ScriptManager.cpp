@@ -152,7 +152,7 @@ String ScriptManager::ApplyParameters(const String& prompt, const ValueMap& para
 	return res;
 }
 
-bool ScriptManager::RunScript(const Value& identifier, BaseNavigator* navigator, ValueMap parameters) {
+bool ScriptManager::RunScript(const Value& identifier, AriaNavigator* navigator, ValueMap parameters) {
 	ScriptEntry s = GetScript(identifier);
 	if (s.id < 0) throw ScriptError("Script not found");
 	
@@ -192,7 +192,7 @@ bool ScriptManager::RunScript(const Value& identifier, BaseNavigator* navigator,
 	
 	if (s.type == "prompt") {
 		if (navigator) {
-			// navigator->NavigateWithPrompt(prompt); // Need to implement this in AriaNavigator
+			navigator->NavigateWithPrompt(prompt);
 			return true;
 		} else throw ScriptError("Navigator not provided");
 	}

@@ -12,12 +12,12 @@ void Firefox::ApplyStealthSettings(bool silence_audio) {
 	options.SetPreference("media.peerconnection.identity.enabled", true);
 	options.SetPreference("media.peerconnection.simulcast", true);
 	options.SetPreference("media.peerconnection.bundle", true);
-	options.SetPreference("media.peerconnection.default_iceservers", "[{\"urls\":[\"stun:stun.services.mozilla.com\"]}];");
+	options.SetPreference("media.peerconnection.default_iceservers", "[{\"urls\":[\"stun:stun.services.mozilla.com\"]}]");
 	options.SetPreference("media.peerconnection.use_document_iceservers", true);
 	options.SetPreference("media.peerconnection.turn.disable", false);
 	options.SetPreference("media.peerconnection.ice.tcp", true);
 	options.SetPreference("media.peerconnection.ice.obfuscate_host_addresses", true);
-	options.SetPreference("media.peerconnection.ice.obfuscate_host_addresses_blacklist", "[];");
+	options.SetPreference("media.peerconnection.ice.obfuscate_host_addresses_blacklist", "[]");
 	options.SetPreference("media.peerconnection.ice.penalize_link_local", false);
 	options.SetPreference("media.peerconnection.ice.proxy_only_if_tcp", false);
 	options.SetPreference("media.peerconnection.ice.proxy_only", false);

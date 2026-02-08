@@ -41,7 +41,7 @@ String ReportManager::GenerateMarkdownReport(const String& title, const String& 
 		report << "| :--- | :--- |\n";
 		for (const auto& m : metrics) {
 			if (m.Is<ValueMap>()) {
-				const ValueMap& vm = m.Get<ValueMap>();
+				ValueMap vm = m;
 				report << "| " << (String)vm["operation"] << " | " << (String)vm["duration_ms"] << " |\n";
 			}
 		}
@@ -73,7 +73,7 @@ String ReportManager::GenerateHtmlReport(const String& title, const String& cont
 		metrics_html << "<h3>Performance Metrics</h3><table><thead><tr><th>Operation</th><th>Duration (ms)</th></tr></thead><tbody>";
 		for (const auto& m : metrics) {
 			if (m.Is<ValueMap>()) {
-				const ValueMap& vm = m.Get<ValueMap>();
+				ValueMap vm = m;
 				metrics_html << "<tr><td>" << (String)vm["operation"] << "</td><td>" << (String)vm["duration_ms"] << "</td></tr>";
 			}
 		}

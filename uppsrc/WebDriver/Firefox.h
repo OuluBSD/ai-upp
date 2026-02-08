@@ -29,12 +29,15 @@ struct FirefoxOptions : public Moveable<FirefoxOptions> { // copyable
 	
 	void Jsonize(JsonIO& json) {
 		json("args", args);
-		if (prefs.GetCount() > 0 || !json.IsStoring())
-			json("prefs", prefs);
-		if (!binary.IsEmpty() || !json.IsStoring())
-			json("binary", binary);
-		if (!log.IsVoid() || !json.IsStoring())
-			json("log", log);
+		if (json.IsStoring()) {
+			if (prefs.GetCount() > 0) json.Set("prefs", prefs);
+			if (!binary.IsEmpty()) json.Set("binary", binary);
+			if (!log.IsVoid()) json.Set("log", log);
+		} else {
+			prefs = json.Get("prefs");
+			binary = (String)json.Get("binary");
+			log = json.Get("log");
+		}
 	}
 	
 	void SetPreference(const String& name, const Value& value) {

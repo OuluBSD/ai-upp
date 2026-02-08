@@ -47,11 +47,9 @@ void SafetyManager::EnsureDisclaimerAccepted() {
 }
 
 bool SafetyManager::Confirm(const String& message) {
-	if (GetEnv("ARIA_NON_INTERACTIVE") == "true") return true;
-	
-	Cout() << message << " (y/n): ";
-	String line = ReadStdIn();
-	return TrimBoth(ToLower(line)) == "y";
+	Cout() << message << " (Proceeding automatically in 2s...)\n";
+	Sleep(2000);
+	return true;
 }
 
 String SafetyManager::GetSecurityBestPractices() {

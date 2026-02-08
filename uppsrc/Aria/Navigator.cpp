@@ -44,7 +44,10 @@ String AriaNavigator::GetCurrentBrowser() const {
 	String path = GetSessionFilePath();
 	if (FileExists(path)) {
 		Value v = ParseJSON(LoadFile(path));
-		if (v.Is<ValueMap>()) return v.Get<ValueMap>()["browser"];
+		if (v.Is<ValueMap>()) {
+			ValueMap m = v;
+			return m["browser"];
+		}
 	}
 	return "";
 }
@@ -67,7 +70,7 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless) {
 	}
 	
 	try {
-		driver.Create(caps);
+		driver.Create(caps, K_DEFAULT_WEB_DRIVER_URL, detail::Resource::IS_OBSERVER);
 		driver->ApplyStealthJS();
 		
 		ValueMap session_data;
@@ -92,8 +95,7 @@ bool AriaNavigator::ConnectToSession(const String& browser_name) {
 	
 	try {
 		// Try to reconnect using the session_id
-		// In a real ReusableRemote implementation, we'd pass this to the driver
-		driver.Create(); 
+		driver.Create(session_id); 
 		GetAriaLogger("navigator").Info("Successfully reconnected to " + name + " session " + session_id);
 		return true;
 	} catch (const Exc& e) {
@@ -120,7 +122,9 @@ void AriaNavigator::Navigate(const String& url) {
 	if (!driver && !ConnectToSession()) {
 		throw SessionError("No active session.");
 	}
+	GetAriaLogger("navigator").Info("Navigating to: " + url);
 	driver->Navigate(url);
+	GetAriaLogger("navigator").Info("Injecting stealth JS");
 	driver->ApplyStealthJS();
 }
 
@@ -236,6 +240,11 @@ Vector<String> AriaNavigator::GetTabsByTag(const String& tag) {
 
 void AriaNavigator::TagTab(const Value& identifier, const String& tag) {
 	// Implementation for tab tagging
+}
+
+Value AriaNavigator::Eval(const String& script) {
+	if (!driver && !ConnectToSession()) throw SessionError("No active session.");
+	return driver->Eval<Value>(script);
 }
 
 END_UPP_NAMESPACE

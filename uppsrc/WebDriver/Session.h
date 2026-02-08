@@ -24,10 +24,18 @@ public:
 
 	const Session& Execute(const String& script, const JsArgs& args = JsArgs()) const;
 	template<typename T>
-	T Eval(const String& script, const JsArgs& args = JsArgs()) const;
+	T Eval(const String& script, const JsArgs& args = JsArgs()) const {
+		T result;
+		InternalEval("execute/sync", script, args, result);
+		return result;
+	}
 	const Session& ExecuteAsync(const String& script, const JsArgs& args = JsArgs()) const;
 	template<typename T>
-	T EvalAsync(const String& script, const JsArgs& args = JsArgs()) const;
+	T EvalAsync(const String& script, const JsArgs& args = JsArgs()) const {
+		T result;
+		InternalEval("execute/async", script, args, result);
+		return result;
+	}
 
 	const Session& SetFocusToFrame(const Element& frame) const;
 	const Session& SetFocusToFrame(const String& id) const;
@@ -88,7 +96,9 @@ private:
 	template<typename T>
 	void InternalEval(const String& webdriver_command,
 		const String& script, const JsArgs& args,
-		T& result) const;
+		T& result) const {
+		result = FromJson<T>(InternalEvalJsonValue(webdriver_command, script, args));
+	}
 	void InternalEval(const String& webdriver_command,
 		const String& script, const JsArgs& args,
 		Element& result) const;

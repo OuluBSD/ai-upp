@@ -1122,6 +1122,14 @@ void CommandLineArguments::AddPositional(const char* desc, dword type, Value def
 	else
 		label = Format("arg%d", positional_desc.GetCount() + 1);
 	positional_desc.Add(label);
+	positional_help.Add("");
+	positional_type.Add(type);
+	default_positionals.Add(def);
+}
+
+void CommandLineArguments::AddPositional(const char* label, const char* help, dword type, Value def) {
+	positional_desc.Add(label);
+	positional_help.Add(help);
 	positional_type.Add(type);
 	default_positionals.Add(def);
 }
@@ -1270,16 +1278,19 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 						positional = Value(value);
 						return true;
 					};
-					auto ensure_float = [&](double value, bool as_float) -> bool {
+					auto ensure_double = [&](double value, bool is_float) -> bool {
 						if (IsNaN(value))
 							return fail_type("not-a-number not allowed");
-						if (as_float) {
-							if (value < -FLT_MAX || value > FLT_MAX)
-								return fail_type("float out of range");
+						if (is_float)
 							positional = Value((float)value);
-						}
 						else
 							positional = Value(value);
+						return true;
+					};
+					auto ensure_float = [&](double value, bool is_float) -> bool {
+						if (IsNaN(value))
+							return fail_type("not-a-number not allowed");
+						positional = Value((float)value);
 						return true;
 					};
 					
@@ -1332,11 +1343,11 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 							break;
 						if (positional.Is<float>() || positional.Is<int>() || positional.Is<int64>() || positional.Is<bool>()) {
 							double d = positional.Is<bool>() ? ((bool)positional ? 1.0 : 0.0) : (double)positional;
-							if (!ensure_float(d, false))
+							if (!ensure_double(d, false))
 								return false;
 							break;
 						}
-						return fail_type("expected floating point number");
+						return fail_type("expected double-precision number");
 					
 					case FLOAT_V:
 						if (positional.Is<float>())
@@ -1374,6 +1385,7 @@ bool CommandLineArguments::Parse(const Vector<String>& args) {
 			}
 			positionals.Add(positional);
 			found = true;
+			if (stop_on_positional) return true;
 		}
 		
 		if (!found) {Cerr() << "Invalid argument: " << arg << EOL; return false;}
@@ -1423,10 +1435,13 @@ void CommandLineArguments::PrintHelp() {
 	if (positional_desc.GetCount() > 0) {
 		cout << "positional arguments:" << EOL;
 		for (int i = 0; i < positional_desc.GetCount(); i++) {
-			cout << "  " << positional_desc[i] << EOL;
+			cout << "  " << Format("%-60s", positional_desc[i]) << positional_help[i] << EOL;
 		}
 		cout << EOL;
 	}
+	
+	if (!help_text.IsEmpty())
+		cout << help_text << EOL;
 
 	if (args.GetCount() > 0) {
 		cout << "options:" << EOL;
@@ -1438,7 +1453,7 @@ void CommandLineArguments::PrintHelp() {
 			if (!a.name.IsEmpty()) s << "--" << a.name;
 			if (a.has_value) s << " " << a.value_desc;
 			
-			cout << Format("%-30s", s) << a.desc << EOL;
+			cout << Format("%-60s", s) << a.desc << EOL;
 		}
 		cout << EOL;
 	}

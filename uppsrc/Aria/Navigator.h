@@ -44,6 +44,9 @@ public:
 	void TagTab(const Value& identifier, const String& tag);
 	ValueArray ExtractLinks();
 	Value Eval(const String& script);
+	
+	Element FindElement(const By& by);
+	Vector<Element> FindElements(const By& by);
 };
 
 #endif

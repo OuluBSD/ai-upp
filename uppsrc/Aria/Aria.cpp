@@ -136,6 +136,79 @@ void Aria::Run(const Vector<String>& args) {
 		String site_cmd = args[1];
 		if (site_cmd == "list") {
 			for (const String& s : site_manager.ListSites()) Cout() << "- " << s << "\n";
+		} else if (site_cmd == "discord" && args.GetCount() > 2) {
+			String channel = args[2];
+			DiscordScraper scraper(*navigator, site_manager);
+			Cout() << "Scraping Discord channel: " << channel << "\n";
+			try {
+				scraper.Refresh();
+			} catch (const Exc& e) {
+				Cout() << "Scrape Error: " << e << "\n";
+			}
+		} else if (site_cmd == "whatsapp") {
+			WhatsAppScraper scraper(*navigator, site_manager);
+			Cout() << "Refreshing WhatsApp data...\n";
+			scraper.Refresh();
+		} else if (site_cmd == "messages") {
+			GoogleMessagesScraper scraper(*navigator, site_manager);
+			Cout() << "Refreshing Google Messages data...\n";
+			scraper.Refresh();
+		} else if (site_cmd == "calendar") {
+			CalendarScraper scraper(*navigator, site_manager);
+			Cout() << "Refreshing Google Calendar data...\n";
+			scraper.Refresh();
+		} else if (site_cmd == "youtube") {
+			YouTubeStudioScraper scraper(*navigator, site_manager);
+			Cout() << "Refreshing YouTube Studio data...\n";
+			scraper.Refresh();
+		} else if (site_cmd == "threads") {
+			ThreadsScraper scraper(*navigator, site_manager);
+			Cout() << "Refreshing Threads data...\n";
+			scraper.Refresh();
+		}
+	} else if (cmd == "test" && args.GetCount() > 1) {
+		String test_cmd = args[1];
+		if (test_cmd == "bot") {
+			Cout() << "Running Bot Detection Test (browserscan.net)...\n";
+			
+			bool headless = true;
+			for (int i = 2; i < args.GetCount(); i++)
+				if (args[i] == "--no-headless") headless = false;
+				
+			navigator->StartSession("firefox", headless);
+			navigator->Navigate("https://www.browserscan.net/bot-detection");
+			Cout() << "Waiting for scan to complete (10s)...\n";
+			Sleep(10000);
+			
+			String body_text = navigator->GetPageContent();
+			Cout() << "Page Title: " << (String)navigator->Eval("return document.title") << "\n";
+			
+			static const char* detection_keywords[] = { "Robot", "Webdriver", "Automated", "Bot" };
+			Vector<String> detected;
+			for (const char* kw : detection_keywords) {
+				if (body_text.Find(kw) >= 0) detected.Add(kw);
+			}
+			
+			if (detected.GetCount() > 0) {
+				Cout() << "⚠️  STILL DETECTED: Keywords found - " << Join(detected, ", ") << "\n";
+			} else {
+				Cout() << "✅ IMPROVED: No obvious detection keywords found\n";
+			}
+			
+			Value webdriver = navigator->Eval("return navigator.webdriver");
+			Cout() << "navigator.webdriver: " << AsJSON(webdriver) << "\n";
+			
+			Value comp = navigator->Eval(R"(
+				return {
+					webdriver: navigator.webdriver,
+					pluginsLength: navigator.plugins.length,
+					languages: navigator.languages,
+					chrome: !!window.chrome,
+					permissions: !!navigator.permissions,
+					hardwareConcurrency: navigator.hardwareConcurrency
+				};
+			)");
+			Cout() << "Comprehensive Result: " << AsJSON(comp, true) << "\n";
 		}
 	} else if (cmd == "man") {
 		Cout() << "Aria User Manual\n\nCommands:\n"
@@ -143,8 +216,17 @@ void Aria::Run(const Vector<String>& args) {
 		       << "  close           Close browser session\n"
 		       << "  page list       List open tabs\n"
 		       << "  page new [url]  Open new tab\n"
+		       << "  page source     Print current page source\n"
+		       << "  page eval [js]  Evaluate JavaScript in current page\n"
 		       << "  script list     List saved scripts\n"
-		       << "  site list       List sites with local data\n";
+		       << "  site list       List sites with local data\n"
+		       << "  site discord [c] Scrape Discord channel\n"
+		       << "  site whatsapp   Scrape WhatsApp messages\n"
+		       << "  site messages   Scrape Google Messages\n"
+		       << "  site calendar   Scrape Google Calendar\n"
+		       << "  site youtube    Scrape YouTube Studio\n"
+		       << "  site threads    Scrape Threads feed\n"
+		       << "  test bot        Run bot detection test\n";
 	} else {
 		Cout() << "Unknown command: " << cmd << "\n";
 	}

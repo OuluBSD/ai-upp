@@ -26,18 +26,65 @@ bool YouTubeStudioScraper::Navigate() {
 bool YouTubeStudioScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
 	GetAriaLogger("youtube_studio").Info("Refreshing YouTube Studio data...");
-	ScrapeDashboard();
-	ScrapeVideos();
+	
+	ValueMap analytics = ScrapeDashboard();
+	ValueArray videos = ScrapeVideos();
+	
+	sm.SetSiteData(site_name, "analytics", analytics);
+	sm.SetSiteData(site_name, "videos", videos);
+	sm.SetSiteData(site_name, "metadata", ValueMap()
+		("last_refresh", GetUtcTime())
+		("video_count", videos.GetCount())
+	);
+	
 	return true;
 }
 
 ValueMap YouTubeStudioScraper::ScrapeDashboard() {
-	// Implementation for scraping dashboard analytics
+	try {
+		GetAriaLogger("youtube_studio").Info("Scraping dashboard...");
+		// Use JS to extract summary text from snapshot cards
+		Value res = navigator.Eval(R"(
+			const cards = document.querySelectorAll('ytcp-video-snapshot, ytcp-channel-snapshot');
+			let summary = "";
+			cards.forEach(c => { summary += c.innerText + "\n"; });
+			return { channel_summary: summary.trim() };
+		)");
+		
+		if (res.Is<ValueMap>()) return res;
+	} catch (const Exc& e) {
+		GetAriaLogger("youtube_studio").Error("Error scraping dashboard: " + e);
+	}
 	return ValueMap();
 }
 
 ValueArray YouTubeStudioScraper::ScrapeVideos() {
-	// Implementation for scraping video details
+	try {
+		GetAriaLogger("youtube_studio").Info("Scraping videos...");
+		// Comprehensive JS extraction for videos and views
+		Value res = navigator.Eval(R"(
+			const titleEls = document.querySelectorAll('[id*="video-title"], [class*="video-title"]');
+			const videos = [];
+			titleEls.forEach(el => {
+				const title = el.innerText.trim();
+				if (!title || title.length < 3) return;
+				
+				let views = "0";
+				let container = el.closest('div') || el.parentElement;
+				if (container) {
+					const text = container.innerText;
+					const match = text.match(/(\d+)/);
+					if (match) views = match[1];
+				}
+				videos.push({ title: title, views: views });
+			});
+			return videos;
+		)");
+		
+		if (res.Is<ValueArray>()) return res;
+	} catch (const Exc& e) {
+		GetAriaLogger("youtube_studio").Error("Error scraping videos: " + e);
+	}
 	return ValueArray();
 }
 

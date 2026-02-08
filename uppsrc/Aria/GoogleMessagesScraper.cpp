@@ -38,9 +38,23 @@ bool GoogleMessagesScraper::Refresh(bool deep) {
 ValueArray GoogleMessagesScraper::ScrapeAllConversations() {
 	ValueArray all_data;
 	try {
-		// This requires more complex interaction logic
-		// For now, just a placeholder that matches the Python structure
 		GetAriaLogger("google_messages").Info("Scraping conversations...");
+		Vector<Element> convs = navigator.FindElements(By::TagName("mws-conversation-list-item"));
+		GetAriaLogger("google_messages").Info(Format("Found %d conversations", convs.GetCount()));
+		
+		for (int i = 0; i < min(convs.GetCount(), 10); i++) {
+			try {
+				ValueMap conv;
+				String name = convs[i].FindElement(By::CssSelector(".name-container")).GetText();
+				conv.Set("name", name);
+				
+				// Optional: Click to load messages
+				// convs[i].Click();
+				// conv.Set("messages", ExtractVisibleMessages());
+				
+				all_data.Add(conv);
+			} catch (...) {}
+		}
 	} catch (const Exc& e) {
 		GetAriaLogger("google_messages").Error("Error scraping: " + e);
 	}
@@ -49,7 +63,16 @@ ValueArray GoogleMessagesScraper::ScrapeAllConversations() {
 
 ValueArray GoogleMessagesScraper::ExtractVisibleMessages() {
 	ValueArray messages;
-	// Implementation would use driver->GetSource() and maybe some basic parsing
+	try {
+		Vector<Element> msg_els = navigator.FindElements(By::TagName("mws-message-wrapper"));
+		for (const auto& e : msg_els) {
+			try {
+				ValueMap msg;
+				msg.Set("text", e.FindElement(By::CssSelector(".text-msg")).GetText());
+				messages.Add(msg);
+			} catch (...) {}
+		}
+	} catch (...) {}
 	return messages;
 }
 

@@ -13,6 +13,7 @@ public:
 	Vector<String> ListSites() const;
 	ValueMap GetRegistry(const String& site_name) const;
 	void UpdateRegistry(const String& site_name, const Vector<String>& item_names);
+	void SetSiteData(const String& site_name, const String& key, const Value& data);
 };
 
 #endif

@@ -12,6 +12,16 @@ enum EnemyType {
 	ENEMY_SHOOTER
 };
 
+// Spawn point for enemies (from editor)
+struct EnemySpawnPoint {
+	int col;
+	int row;
+	EnemyType type;
+	int facing;  // -1 left, 1 right
+
+	EnemySpawnPoint() : col(0), row(0), type(ENEMY_PATROLLER), facing(1) {}
+};
+
 class Enemy {
 protected:
 	Rectf bounds;
@@ -70,6 +80,7 @@ public:
 	void TakeDamage(int amount);
 	void Kill();
 	void Defeat();  // Killed by player (triggers rewards)
+	void DefeatPreservingVelocity();  // Defeat while keeping current velocity (for thrown enemy wall hits)
 	void Capture();  // Captured by player umbrella
 	void ThrowFrom(float x, float y, float vx, float vy);  // Thrown by player
 	void CaptureByThrown(const Pointf& throwerVelocity);  // Captured by thrown enemy

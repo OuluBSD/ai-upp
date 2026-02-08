@@ -94,7 +94,8 @@ void EnemyJumper::Update(float delta, const Player& player, Player::CollisionHan
 		// Check for wall collision when thrown
 		if(CheckThrownWallCollision(velocity.x * delta, collision)) {
 			// Mark for destruction - GameScreen will spawn treat
-			Defeat();
+			// Use DefeatPreservingVelocity to keep horizontal momentum
+			DefeatPreservingVelocity();
 			return;
 		}
 	}

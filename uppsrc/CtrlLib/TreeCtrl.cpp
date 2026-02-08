@@ -116,14 +116,33 @@ bool TreeCtrl::Access(Visitor& v)
 	if(l.IsEmpty()) l = "Tree";
 	v.AccessLabel(l);
 	v.AccessValue(GetLineCount());
-	v.AccessMenu("Items", [this, l](Visitor& b) {
+	
+	v.AccessMenu(l + "_Items", [this, l](Visitor& b) {
 		for(int i = 0; i < item.GetCount(); i++) {
 			if(!item[i].free) {
 				String label = AsString(item[i].value);
-				if(label.IsEmpty()) label = Format("Item %d", i);
-				b.AccessMenu(label, [this, i](Visitor& n) {
-					n.AccessOption(IsOpen(i), "Open", [this, i] { Open(i, !IsOpen(i)); });
-					n.AccessAction("Select", [this, i] { SetCursor(i); });
+				String unique_id = Format("Item_%d", i);
+				if(!label.IsEmpty()) unique_id << "_" << label;
+				
+				// Flatten tree for automation to avoid deep nesting issues
+				String path = label;
+				int p = item[i].parent;
+				while(p >= 0) {
+					String pl = AsString(item[p].value);
+					if(pl.IsEmpty()) pl = Format("Item_%d", p);
+					path = pl + "/" + path;
+					p = item[p].parent;
+				}
+				if(!path.IsEmpty()) unique_id << " (" << path << ")";
+
+				int id = i;
+				b.AccessMenu(unique_id, [this, id](Visitor& n) {
+					n.AccessOption(item[id].isopen, "Open", [this, id] {
+						this->item[id].isopen = !this->item[id].isopen;
+						this->Dirty();
+						this->Sync();
+					});
+					n.AccessAction("Select", [this, id] { SetCursor(id); });
 				});
 			}
 		}

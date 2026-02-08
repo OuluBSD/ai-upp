@@ -72,10 +72,37 @@ void GuiAutomationVisitor::Walk(Ctrl& c)
 {
 	if(!c.IsVisible()) return;
 	
+	::Upp::String old_path = current_path;
+
 	int n0 = elements.GetCount();
 	c.Access(*this);
 	int n1 = elements.GetCount();
 	
+	// Ensure elements added during Access have the correct path prefix if not already set
+	for(int i = n0; i < n1; i++) {
+		if(!old_path.IsEmpty() && !elements[i].path.StartsWith(old_path)) {
+			String p = old_path;
+			if(!elements[i].text.IsEmpty()) {
+				p << "/" << elements[i].text;
+			}
+			elements[i].path = p;
+		}
+	}
+
+	// Scoping logic:
+	if(n1 > n0) {
+		// If elements were added, use the first one's path as a scoping prefix for children.
+		// (Assuming it's a container label like 'Tree' or 'CallStack')
+		current_path = elements[n0].path;
+	} else if(n1 == n0) {
+		// If no element was added, use Ctrl's LayoutId as prefix if present
+		String l = c.GetLayoutId();
+		if(!l.IsEmpty()) {
+			if(!current_path.IsEmpty()) current_path << "/";
+			current_path << l;
+		}
+	}
+
 	::Upp::Vector<CtrlGeometry> children;
 	for(Ctrl& child : c) {
 		if(child.IsVisible()) {
@@ -87,14 +114,6 @@ void GuiAutomationVisitor::Walk(Ctrl& c)
 	
 	::Upp::Sort(children);
 	
-	::Upp::String old_path = current_path;
-	
-	// If exactly one element was added (e.g. a Label or a named container),
-	// use it as a path prefix for its children.
-	if(n1 == n0 + 1) {
-		current_path = elements.Top().path;
-	}
-
 	for(const auto& g : children) {
 		Walk(*g.ctrl);
 	}

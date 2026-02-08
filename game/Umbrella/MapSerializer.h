@@ -2,6 +2,7 @@
 #define _Umbrella_MapSerializer_h_
 
 #include "LayerManager.h"
+#include "Droplet.h"
 
 using namespace Upp;
 
@@ -9,6 +10,9 @@ class MapSerializer {
 public:
 	// Load map from JSON file
 	static bool LoadFromFile(const String& filePath, LayerManager& layerMgr);
+
+	// Load droplet spawn points from JSON file
+	static bool LoadDropletSpawns(const String& filePath, Array<DropletSpawnPoint>& spawns);
 
 	// Save map to JSON file (future)
 	static bool SaveToFile(const String& filePath, const LayerManager& layerMgr);

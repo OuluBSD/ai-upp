@@ -23,6 +23,7 @@ Player::Player(float x, float y, float width, float height) {
 	wasAttackHeld = false;
 	attackTimer = 0.0f;
 	attackCooldown = 0.0f;
+	forceUmbrellaOnTop = false;
 	parasolHitbox = Rectf(0, 0, 0, 0);  // Will be updated in Update()
 	carryWeight = 0.0f;
 	maxCarryWeight = 3.0f;  // Can carry 3 weight units of enemies
@@ -184,26 +185,30 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 
 	if(showHorizontalParasol) {
 		// Parasol extends from player in facing direction
-		float parasolWidth = bounds.Width() * 0.8f;
-		float parasolHeight = bounds.Height() * 0.7f;
+		// Made larger (1.2x width, 1.0x height) and extends upward to capture from top
+		float parasolWidth = bounds.Width() * 1.2f;
+		float parasolHeight = bounds.Height() * 1.0f;
 		float centerX = bounds.left + bounds.Width() / 2.0f;
 		float centerY = bounds.top + bounds.Height() / 2.0f;
 
+		// Offset upward slightly so it can capture enemies from above
+		float upwardOffset = bounds.Height() * 0.3f;
+
 		if(facing > 0) {
-			// Facing right - parasol extends to the right
+			// Facing right - parasol extends to the right and upward
 			parasolHitbox = Rectf(
 				bounds.right,
-				centerY - parasolHeight / 2.0f,
+				centerY - parasolHeight / 2.0f - upwardOffset,
 				bounds.right + parasolWidth,
-				centerY + parasolHeight / 2.0f
+				centerY + parasolHeight / 2.0f - upwardOffset
 			);
 		} else {
-			// Facing left - parasol extends to the left
+			// Facing left - parasol extends to the left and upward
 			parasolHitbox = Rectf(
 				bounds.left - parasolWidth,
-				centerY - parasolHeight / 2.0f,
+				centerY - parasolHeight / 2.0f - upwardOffset,
 				bounds.left,
-				centerY + parasolHeight / 2.0f
+				centerY + parasolHeight / 2.0f - upwardOffset
 			);
 		}
 	} else {
@@ -510,9 +515,10 @@ void Player::Render(Draw& w, CoordinateConverter& coords) {
 
 	// Draw umbrella when:
 	// 1. Falling down (velocity.y < 0) AND gliding, OR
-	// 2. Holding captured enemies (umbrella needed to carry them)
+	// 2. Holding captured enemies (umbrella needed to carry them), OR
+	// 3. Force umbrella on top (for droplets)
 	bool isFallingDown = velocity.y < 0.0f;
-	bool showUmbrellaAbove = (parasolState == PARASOL_GLIDING && isFallingDown) || (carriedEnemies.GetCount() > 0);
+	bool showUmbrellaAbove = (parasolState == PARASOL_GLIDING && isFallingDown) || (carriedEnemies.GetCount() > 0) || forceUmbrellaOnTop;
 
 	if(showUmbrellaAbove) {
 		// Draw umbrella above player (when falling or carrying enemies)
@@ -664,5 +670,13 @@ void Player::AlignCapturedEnemies() {
 		float enemyY = baseY + (i * enemyHeight);
 
 		enemy->SetBounds(Rectf(enemyX, enemyY, enemyX + enemyWidth, enemyY + enemyHeight));
+	}
+}
+
+void Player::ForceUmbrellaOnTop(bool force) {
+	forceUmbrellaOnTop = force;
+	if(force) {
+		// Force glide state to ensure umbrella is visible
+		parasolState = PARASOL_GLIDING;
 	}
 }

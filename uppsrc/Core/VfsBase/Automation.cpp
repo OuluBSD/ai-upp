@@ -6,12 +6,11 @@ AutomationElement& AutomationVisitor::AddElement(const char *text)
 {
 	AutomationElement& el = elements.Add();
 	el.text = text;
-	String p = current_path;
-	if(el.text.GetCount()) {
-		if(!p.IsEmpty()) p << "/";
-		p << el.text;
+	el.path = current_path;
+	if(!el.text.IsEmpty()) {
+		if(!el.path.IsEmpty()) el.path << "/";
+		el.path << el.text;
 	}
-	el.path = p;
 	return el;
 }
 

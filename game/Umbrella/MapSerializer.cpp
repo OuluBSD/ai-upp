@@ -83,6 +83,64 @@ bool MapSerializer::LoadFromFile(const String& filePath, LayerManager& layerMgr)
 	return true;
 }
 
+bool MapSerializer::LoadDropletSpawns(const String& filePath, Array<DropletSpawnPoint>& spawns) {
+	// Load JSON file
+	String jsonText = LoadFile(filePath);
+	if(jsonText.IsEmpty()) {
+		return false;  // File doesn't exist or empty
+	}
+
+	// Parse JSON
+	Value json = ParseJSON(jsonText);
+	if(json.IsError()) {
+		return false;
+	}
+
+	// Check if droplets array exists
+	if(json["droplets"].IsVoid()) {
+		return true;  // No droplets defined, but not an error
+	}
+
+	// Parse droplet spawn points
+	const ValueArray& dropletArray = json["droplets"];
+	for(int i = 0; i < dropletArray.GetCount(); i++) {
+		const ValueMap& dropletData = dropletArray[i];
+
+		DropletSpawnPoint spawn;
+
+		// Required fields
+		if(dropletData["col"].IsVoid() || dropletData["row"].IsVoid()) {
+			LOG("Warning: Droplet spawn missing col/row, skipping");
+			continue;
+		}
+
+		spawn.col = dropletData["col"];
+		spawn.row = dropletData["row"];
+
+		// Mode (default: RAINBOW)
+		if(!dropletData["mode"].IsVoid()) {
+			String modeStr = dropletData["mode"];
+			if(modeStr == "ICE") spawn.mode = DROPLET_ICE;
+			else if(modeStr == "FIRE") spawn.mode = DROPLET_FIRE;
+			else spawn.mode = DROPLET_RAINBOW;
+		}
+
+		// Direction (default: 1)
+		spawn.direction = dropletData["direction"].IsVoid() ? 1 : (int)dropletData["direction"];
+
+		// Interval (default: 2000ms)
+		spawn.intervalMs = dropletData["intervalMs"].IsVoid() ? 2000 : (int)dropletData["intervalMs"];
+
+		// Enabled (default: true)
+		spawn.enabled = dropletData["enabled"].IsVoid() ? true : (bool)dropletData["enabled"];
+
+		spawns.Add(pick(spawn));
+	}
+
+	LOG("Loaded " << spawns.GetCount() << " droplet spawn points from " << filePath);
+	return true;
+}
+
 Vector<int> MapSerializer::LoadTileIndices(const ValueArray& jsonArray) {
 	Vector<int> indices;
 

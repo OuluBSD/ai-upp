@@ -42,6 +42,8 @@ file
 	Projectile.cpp,
 	Treat.h,
 	Treat.cpp,
+	Droplet.h,
+	Droplet.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
 	TestGameScreen.cpp,

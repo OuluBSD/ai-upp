@@ -1,4 +1,5 @@
 #include "Umbrella.h"
+#include "CommandLineArguments.h"
 #include "MapEditor.h"
 #include "MainMenuScreen.h"
 #include "GameScreen.h"
@@ -18,48 +19,29 @@ GUI_APP_MAIN
     StdLogSetup(LOG_COUT|LOG_FILE);
 
     // Parse command line arguments
-    bool editorMode = false;
-    bool testMode = false;
-    bool newGameMode = false;
-    String levelPath;
+    UmbrellaArgs cmdArgs;
+    cmdArgs.Parse(CommandLine());
 
-    const Vector<String>& args = CommandLine();
-    for(int i = 0; i < args.GetCount(); i++) {
-        const String& arg = args[i];
-        if(arg == "--editor" || arg == "--editor-parastar") {
-            editorMode = true;
-        }
-        else if(arg == "--test") {
-            testMode = true;
-        }
-        else if(arg == "--newgame" || arg == "-n") {
-            newGameMode = true;
-        }
-        // If argument doesn't start with --, treat it as a file path
-        else if(!arg.StartsWith("--") && !arg.StartsWith("-")) {
-            levelPath = arg;
-        }
-    }
-
-    if(testMode) {
+    if(cmdArgs.testMode) {
         bool testsPassed = RunGameScreenTests();
         SetExitCode(testsPassed ? 0 : 1);
         return;
     }
 
-    if(editorMode) {
-        if(!levelPath.IsEmpty()) {
-            MapEditorApp(levelPath).Run();
+    if(cmdArgs.editorMode) {
+        if(!cmdArgs.levelPath.IsEmpty()) {
+            MapEditorApp(cmdArgs.levelPath).Run();
         } else {
             MapEditorApp().Run();
         }
-    } else if(newGameMode) {
-        // Start first level directly
-        String firstLevel = "share/mods/umbrella/levels/world1-stage1.json";
-        if(FileExists(firstLevel)) {
-            GameScreen(firstLevel).Run();
+    } else if(cmdArgs.newGameMode) {
+        // Start specified or first level directly
+        String levelToLoad = cmdArgs.GetLevelPath();
+        if(FileExists(levelToLoad)) {
+            LOG("Starting level: " << levelToLoad);
+            GameScreen(levelToLoad).Run();
         } else {
-            Exclamation("First level not found: " + firstLevel);
+            Exclamation("Level not found: " + levelToLoad);
         }
     } else {
         MainMenuScreen().Run();

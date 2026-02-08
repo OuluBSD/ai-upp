@@ -7,6 +7,7 @@ Treat::Treat(float x, float y, TreatType treatType) {
 	type = treatType;
 	bounds = Rectf(x, y, x + TREAT_SIZE, y + TREAT_SIZE);
 	active = true;
+	onGround = false;
 	lifetime = 0.0f;
 
 	// Set score value based on type
@@ -47,8 +48,17 @@ void Treat::Update(float delta, Player::CollisionHandler& collision) {
 		return;
 	}
 
-	// Apply gravity
-	velocity.y += GRAVITY * delta;
+	// Apply gravity only if not resting on ground
+	if(!onGround) {
+		velocity.y += GRAVITY * delta;
+	}
+	else {
+		// Stop horizontal movement when resting on ground
+		velocity.x *= 0.95f;  // Strong friction
+		if(abs(velocity.x) < 1.0f) {
+			velocity.x = 0.0f;  // Stop completely when very slow
+		}
+	}
 
 	// Apply movement
 	bounds.left += velocity.x * delta;
@@ -56,26 +66,39 @@ void Treat::Update(float delta, Player::CollisionHandler& collision) {
 	bounds.top += velocity.y * delta;
 	bounds.bottom += velocity.y * delta;
 
-	// Simple ground collision (stop at floor)
+	// Check floor collision AFTER movement
 	int gridSize = (int)collision.GetGridSize();
 	int minCol = (int)(bounds.left / gridSize);
 	int maxCol = (int)(bounds.right / gridSize);
 	float feetY = min(bounds.top, bounds.bottom);
 	int floorRow = (int)(feetY / gridSize);
 
+	static int debugCounter = 0;
+	bool shouldLog = (debugCounter++ % 30 == 0);  // Log every 30 frames
+
 	// Only check floor if falling down
 	if(velocity.y < 0) {
 		for(int col = minCol; col <= maxCol; col++) {
 			if(collision.IsFloorTile(col, floorRow)) {
-				// Check if we're crossing the floor boundary
+				// Found floor - check if we passed through it
 				float tileTopY = (floorRow + 1) * gridSize;
-				if(feetY < tileTopY + 0.5f) {  // Small epsilon for landing
-					// Snap to floor top
+
+				if(shouldLog) {
+					RLOG("TREAT floor check: feetY=" << feetY << " tileTopY=" << tileTopY << " diff=" << (feetY - tileTopY));
+				}
+
+				// If feet are at or below floor top, snap to it
+				if(feetY <= tileTopY) {
 					float correction = tileTopY - feetY;
 					bounds.top += correction;
 					bounds.bottom += correction;
 					velocity.y = 0.0f;
-					velocity.x *= 0.8f;  // Friction
+					velocity.x *= 0.5f;  // Strong initial friction on landing
+					onGround = true;  // Mark as resting on ground
+
+					if(shouldLog) {
+						RLOG("  Snapped to floor, correction=" << correction << " NOW ON GROUND");
+					}
 					break;
 				}
 			}

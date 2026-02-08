@@ -21,10 +21,12 @@ protected:
 	bool active;      // Active in world (not captured)
 	bool captured;    // Captured by player on umbrella
 	bool thrown;      // Thrown by player
+	bool carriedByThrown;  // Carried by a thrown enemy
 	float stateTimer;
 	int facing;  // -1 left, 1 right
 	EnemyType type;
 	float carryWeight;  // Weight for carrying on umbrella
+	float originalSize;  // Original width (for size comparison when thrown)
 
 	// Physics constants
 	static constexpr float GRAVITY = -490.0f;
@@ -51,11 +53,13 @@ public:
 	bool IsActive() const { return active; }
 	bool IsCaptured() const { return captured; }
 	bool IsThrown() const { return thrown; }
+	bool IsCarriedByThrown() const { return carriedByThrown; }
 	Rectf GetBounds() const { return bounds; }
 	Pointf GetVelocity() const { return velocity; }
 	EnemyType GetType() const { return type; }
 	int GetFacing() const { return facing; }
 	float GetCarryWeight() const { return carryWeight; }
+	float GetSize() const { return originalSize; }  // For size comparison (use original, not current bounds)
 
 	// Mutators
 	void TakeDamage(int amount);
@@ -63,8 +67,10 @@ public:
 	void Defeat();  // Killed by player (triggers rewards)
 	void Capture();  // Captured by player umbrella
 	void ThrowFrom(float x, float y, float vx, float vy);  // Thrown by player
+	void CaptureByThrown(const Pointf& throwerVelocity);  // Captured by thrown enemy
 	void SetActive(bool act) { active = act; }
 	void SetBounds(const Rectf& b) { bounds = b; }
+	void SetVelocity(const Pointf& v) { velocity = v; }
 	float GetGridSize(Player::CollisionHandler& collision) { return collision.GetGridSize(); }
 
 	// Check if thrown enemy hit wall and should be destroyed

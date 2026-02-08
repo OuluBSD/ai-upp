@@ -11,10 +11,12 @@ Enemy::Enemy(float x, float y, float width, float height, EnemyType t) {
 	active = true;
 	captured = false;
 	thrown = false;
+	carriedByThrown = false;
 	stateTimer = 0.0f;
 	facing = -1;  // Start facing left
 	type = t;
 	carryWeight = 1.0f;  // Default weight
+	originalSize = width;  // Store original size for thrown capture logic
 }
 
 void Enemy::TakeDamage(int amount) {
@@ -56,7 +58,17 @@ void Enemy::ThrowFrom(float x, float y, float vx, float vy) {
 	velocity.y = 0.0f;  // Thrown enemies move purely horizontal (gravity will pull down)
 	captured = false;
 	thrown = true;
+	carriedByThrown = false;
 	active = true;
+}
+
+void Enemy::CaptureByThrown(const Pointf& throwerVelocity) {
+	// Captured by a thrown enemy - match velocity and disable AI
+	velocity = throwerVelocity;
+	carriedByThrown = true;
+	active = false;  // Disable normal AI/updates
+	captured = false;  // Not captured by player
+	thrown = false;  // Not the thrower
 }
 
 bool Enemy::IsTouchingWallOnLeft(Player::CollisionHandler& collision) {

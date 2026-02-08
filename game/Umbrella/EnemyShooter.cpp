@@ -65,7 +65,16 @@ void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& coll
 }
 
 void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
-	if(!alive || !active) return;
+	if(!alive) return;
+
+	// If carried by thrown enemy, just apply movement (no AI, no gravity)
+	if(carriedByThrown) {
+		ResolveCollisionX(velocity.x * delta, collision);
+		// Don't update projectiles when carried
+		return;
+	}
+
+	if(!active) return;
 
 	// If thrown, purely horizontal movement (no gravity)
 	if(thrown) {

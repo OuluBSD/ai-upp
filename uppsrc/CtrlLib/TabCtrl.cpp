@@ -570,6 +570,12 @@ void TabCtrl::Reset()
 	WhenSet();
 }
 
+bool TabCtrl::Access(Visitor& v) {
+	for(int i = 0; i < GetCount(); i++)
+		v.AccessOption(i == Get(), GetItem(i).GetText(), [this, i]{ Set(i); Action(); });
+	return true;
+}
+
 TabCtrl::TabCtrl()
 {
 	hot = -1;

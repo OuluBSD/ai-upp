@@ -3162,6 +3162,16 @@ String ArrayCtrl::AsCsv(bool sel, int sep, bool hdr)
 	return AsText(sCsvFormat, sel, h, "\r\n", hdr ? h : NULL, "\r\n");
 }
 
+bool ArrayCtrl::Access(Visitor& v) {
+	v.AccessLabel(row_name);
+	v.AccessValue(GetCount());
+	v.AccessMenu("Rows", [this](Visitor& b){
+		for(int i = 0; i < GetCount(); i++)
+			b.AccessAction(Format("Row %d", i), [this, i]{ SetCursor(i); });
+	});
+	return true;
+}
+
 ArrayCtrl::ArrayCtrl() {
 	cursor = -1;
 	Reset();

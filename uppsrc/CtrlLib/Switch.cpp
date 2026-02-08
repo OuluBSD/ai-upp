@@ -317,4 +317,10 @@ Switch::Switch() {
 
 Switch::~Switch() {}
 
+bool Switch::Access(Visitor& v) {
+	for(int i = 0; i < cs.GetCount(); i++)
+		v.AccessOption(i == GetIndex(), cs[i].label, [this, i]{ SetData(cs[i].value); Action(); });
+	return true;
+}
+
 }

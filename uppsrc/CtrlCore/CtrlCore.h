@@ -5,6 +5,7 @@
 	#error CtrlCore should not be included without GUI flag
 #endif
 
+#include <Core/VfsBase/VfsBase.h>
 #include <RichText/RichText.h>
 #include <Painter/Painter.h>
 
@@ -49,6 +50,8 @@
 #include GUIPLATFORM_INCLUDE
 
 namespace Upp {
+
+struct Visitor;
 
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
@@ -187,20 +190,20 @@ private:
 };
 
 struct NullFrameClass : public CtrlFrame {
-	virtual void FrameLayout(Rect& r);
-	virtual void FramePaint(Draw& w, const Rect& r);
-	virtual void FrameAddSize(Size& sz);
+	void FrameLayout(Rect& r) override;
+	void FramePaint(Draw& w, const Rect& r) override;
+	void FrameAddSize(Size& sz) override;
 };
 
 CtrlFrame& NullFrame();
 
 class MarginFrame : public CtrlFrame {
 public:
-	virtual void FrameLayout(Rect& r);
-	virtual void FramePaint(Draw& w, const Rect& r);
-	virtual void FrameAddSize(Size& sz);
-	virtual void FrameAdd(Ctrl& parent);
-	virtual void FrameRemove();
+	void FrameLayout(Rect& r) override;
+	void FramePaint(Draw& w, const Rect& r) override;
+	void FrameAddSize(Size& sz) override;
+	void FrameAdd(Ctrl& parent) override;
+	void FrameRemove() override;
 
 private:
 	Ctrl  *owner;
@@ -216,9 +219,9 @@ public:
 
 class BorderFrame : public CtrlFrame {
 public:
-	virtual void FrameLayout(Rect& r);
-	virtual void FramePaint(Draw& w, const Rect& r);
-	virtual void FrameAddSize(Size& sz);
+	void FrameLayout(Rect& r) override;
+	void FramePaint(Draw& w, const Rect& r) override;
+	void FrameAddSize(Size& sz) override;
 
 protected:
 	const ColorF *border;
@@ -973,6 +976,7 @@ public:
 	virtual bool   IsModified() const;
 
 	virtual void   Paint(Draw& w);
+	virtual bool   Access(Visitor& v);
 	virtual int    OverPaint() const;
 
 	virtual void   CancelMode();
@@ -1073,6 +1077,7 @@ public:
 	virtual void   Skin() {}
 
 	Event<>          WhenAction;
+	Event<Visitor&>  WhenAccess;
 
 	void             AddChild(Ctrl *child);
 	void             AddChild(Ctrl *child, Ctrl *insafter);
@@ -1615,8 +1620,8 @@ void EnableCtrls(const Vector< Ptr<Ctrl> >& ctrl);
 template <class T>
 class FrameCtrl : public T, public CtrlFrame {
 public:
-	virtual void FrameAdd(Ctrl& parent) { parent.Add(*this); }
-	virtual void FrameRemove()          { this->Ctrl::Remove(); }
+	void FrameAdd(Ctrl& parent) override { parent.Add(*this); }
+	void FrameRemove() override          { this->Ctrl::Remove(); }
 
 	FrameCtrl()                         { this->NoWantFocus(); }
 };
@@ -1624,7 +1629,7 @@ public:
 template <class T>
 class FrameLR : public FrameCtrl<T> {
 public:
-	virtual void FrameAddSize(Size& sz) { sz.cx += Nvl(cx, FrameButtonWidth()) * this->IsShown(); }
+	void FrameAddSize(Size& sz) override { sz.cx += Nvl(cx, FrameButtonWidth()) * this->IsShown(); }
 
 protected:
 	int cx = Null;
@@ -1637,7 +1642,7 @@ public:
 template <class T>
 class FrameLeft : public FrameLR<T> {
 public:
-	virtual void FrameLayout(Rect& r) {
+	void FrameLayout(Rect& r) override {
 		LayoutFrameLeft(r, this, Nvl(this->cx, FrameButtonWidth()));
 	}
 };
@@ -1645,7 +1650,7 @@ public:
 template <class T>
 class FrameRight : public FrameLR<T> {
 public:
-	virtual void FrameLayout(Rect& r) {
+	void FrameLayout(Rect& r) override {
 		LayoutFrameRight(r, this, Nvl(this->cx, FrameButtonWidth()));
 	}
 };
@@ -1653,7 +1658,7 @@ public:
 template <class T>
 class FrameTB : public FrameCtrl<T> {
 public:
-	virtual void FrameAddSize(Size& sz) { sz.cy += Nvl(cy, sz.cx) * this->IsShown(); }
+	void FrameAddSize(Size& sz) override { sz.cy += Nvl(cy, sz.cx) * this->IsShown(); }
 
 protected:
 	int cy = Null;
@@ -1666,7 +1671,7 @@ public:
 template <class T>
 class FrameTop : public FrameTB<T> {
 public:
-	virtual void FrameLayout(Rect& r) {
+	void FrameLayout(Rect& r) override {
 		LayoutFrameTop(r, this, Nvl(this->cy, r.Width()));
 	}
 };
@@ -1674,7 +1679,7 @@ public:
 template <class T>
 class FrameBottom : public FrameTB<T> {
 public:
-	virtual void FrameLayout(Rect& r) {
+	void FrameLayout(Rect& r) override {
 		LayoutFrameBottom(r, this, Nvl(this->cy, r.Width()));
 	}
 };
@@ -1693,7 +1698,7 @@ public:
 
 class LocalLoop : public Ctrl {
 public:
-	virtual void CancelMode();
+	void CancelMode() override;
 
 private:
 	Ctrl *master;
@@ -1715,12 +1720,12 @@ bool PointLoop(Ctrl& ctrl, const Image& img);
 
 class RectTracker : public LocalLoop {
 public:
-	virtual void  LeftUp(Point, dword);
-	virtual void  RightUp(Point, dword);
-	virtual void  MouseMove(Point p, dword);
-	virtual void  Pen(Point p, const PenInfo &pn, dword);
-	virtual Image CursorImage(Point, dword);
-	virtual void  Paint(Draw& w);
+	void  LeftUp(Point, dword) override;
+	void  RightUp(Point, dword) override;
+	void  MouseMove(Point p, dword) override;
+	void  Pen(Point p, const PenInfo &pn, dword) override;
+	Image CursorImage(Point, dword) override;
+	void  Paint(Draw& w) override;
 
 public:
 	struct Rounder {

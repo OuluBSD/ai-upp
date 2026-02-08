@@ -26,14 +26,22 @@ public:
 	template<typename T>
 	T Eval(const String& script, const JsArgs& args = JsArgs()) const {
 		T result;
-		InternalEval("execute/sync", script, args, result);
+		try {
+			InternalEval("execute/sync", script, args, result);
+		} catch (const std::exception& e) {
+			InternalEval("execute", script, args, result);
+		}
 		return result;
 	}
 	const Session& ExecuteAsync(const String& script, const JsArgs& args = JsArgs()) const;
 	template<typename T>
 	T EvalAsync(const String& script, const JsArgs& args = JsArgs()) const {
 		T result;
-		InternalEval("execute/async", script, args, result);
+		try {
+			InternalEval("execute/async", script, args, result);
+		} catch (const std::exception& e) {
+			InternalEval("execute_async", script, args, result);
+		}
 		return result;
 	}
 

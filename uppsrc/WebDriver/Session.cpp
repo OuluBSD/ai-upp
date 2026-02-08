@@ -74,13 +74,23 @@ void Session::DeleteSession() const {
 
 const Session& Session::Execute(const String& script, const JsArgs& args) const {
 	Value result;
-	InternalEval("execute/sync", script, args, result);
+	try {
+		InternalEval("execute/sync", script, args, result);
+	} catch (const std::exception& e) {
+		// Fallback for legacy drivers
+		InternalEval("execute", script, args, result);
+	}
 	return *this;
 }
 
 const Session& Session::ExecuteAsync(const String& script, const JsArgs& args) const {
 	Value result;
-	InternalEval("execute/async", script, args, result);
+	try {
+		InternalEval("execute/async", script, args, result);
+	} catch (const std::exception& e) {
+		// Fallback for legacy drivers
+		InternalEval("execute_async", script, args, result);
+	}
 	return *this;
 }
 

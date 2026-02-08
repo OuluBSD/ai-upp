@@ -141,6 +141,8 @@ void Aria::Run(const Vector<String>& args) {
 		String browser = sub.GetArg("browser");
 		if (browser.IsEmpty()) browser = "firefox";
 		String url = sub.GetPositional(0);
+		if (!url.IsEmpty() && !url.StartsWith("http://") && !url.StartsWith("https://") && !url.StartsWith("about:"))
+			url = "https://" + url;
 		bool headless = sub.IsArg("headless");
 		
 		navigator->StartSession(browser, headless);

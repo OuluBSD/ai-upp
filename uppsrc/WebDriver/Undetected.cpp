@@ -14,6 +14,9 @@ String GetFirefoxInstallationPath() {
 		"/usr/lib/firefox-developer-edition",
 		"/usr/lib/firefox-nightly",
 		"/opt/firefox",
+		"/usr/local/lib/firefox",
+		"/usr/local/lib64/firefox",
+		"/opt/firefox-bin",
 	};
 	for (const char* p : paths) {
 		RLOG("WebDriver: Checking path: " << p);

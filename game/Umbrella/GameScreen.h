@@ -5,6 +5,7 @@
 #include "LayerManager.h"
 #include "Player.h"
 #include "Enemy.h"
+#include "Droplet.h"
 
 using namespace Upp;
 
@@ -25,6 +26,7 @@ class GameScreen : public TopWindow, public Player::CollisionHandler, public Pla
 public:  // Public for testing
 	String levelPath;
 	LayerManager layerManager;
+	LayerManager nextLayerManager;  // For rendering next level during transition
 
 	// Viewport/Camera
 	Rect viewBounds;
@@ -44,6 +46,10 @@ public:  // Public for testing
 	// Transition state
 	float transitionOffset;  // Horizontal scroll offset during transition
 	String nextLevelPath;  // Path to next level to load
+	float hoverTimer;  // Timer for hover phase
+	float dropTimer;  // Timer for drop phase
+	int nextLevelColumns;  // Next level dimensions
+	int nextLevelRows;
 
 	// Level dimensions
 	int levelColumns;
@@ -59,6 +65,11 @@ public:  // Public for testing
 
 	// Treats (rewards from defeated enemies)
 	Array<Treat*> treats;
+
+	// Droplets (collectible water drops)
+	Array<class Droplet*> droplets;
+	Array<DropletSpawnPoint> dropletSpawns;  // Spawn points from level data
+	int dropletsCollected;
 
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;

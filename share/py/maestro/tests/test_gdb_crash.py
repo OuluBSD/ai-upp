@@ -35,9 +35,27 @@ if not cont_btn:
     print("Error: Continue button not found")
     sys.exit(1)
 cont_btn.click()
-wait_time(3) # Give GDB more time to report the crash and update the UI
+wait_time(5) # Give GDB more time to report the crash and update the UI
 
 print("Step 5: Verifying Call Stack...")
+
+# Expand everything in trees under DebugWorkspaceLayout
+while True:
+    expanded = False
+    all_elements = find_all()
+    for item in all_elements:
+        p = str(item.path)
+        # Use simpler matching for tree expansion
+        if "/Open" in p and not item.checked:
+            if "DebugWorkspaceLayout" in p or "CallStack" in p:
+                print("Expanding node: " + p)
+                item.click()
+                wait_time(1)
+                expanded = True
+                break
+    if not expanded:
+        break
+
 all_elements = find_all()
 print("Found " + str(len(all_elements)) + " total UI elements.")
 
@@ -45,20 +63,36 @@ found_main = False
 found_crash_func = False
 
 for item in all_elements:
-    if "main" in item.label or "crash_me" in item.label:
-        print("  Found Frame Candidate: " + item.label + " at " + item.path)
-        if "main" in item.label:
-            found_main = True
-        if "crash_me" in item.label:
-            found_crash_func = True
+    l = str(item.label)
+    l_low = l.lower()
+    p = str(item.path)
+    
+    # Check both label and path for the desired strings
+    # We are looking for something like "Item_X_main" or "Item_X_crash_me"
+    if "CallStack" in p:
+        if "main" in l_low or "crash_me" in l_low:
+            print("  Found Frame Candidate: [" + l + "] at " + p)
+            if "main" in l_low:
+                found_main = True
+            if "crash_me" in l_low:
+                found_crash_func = True
 
 if found_main and found_crash_func:
     print("✓ Success: Crash detected and stack trace captured.")
-elif found_main:
-    print("? Partial Success: main found, but crash_me missing.")
 else:
-    print("✗ Failure: No relevant frames found in call stack.")
-    print("DEBUG UI DUMP (END):")
-    dump = dump_ui()
-    print(dump)
+    if found_main:
+        print("? Partial Success: main found, but crash_me missing.")
+    else:
+        print("✗ Failure: No relevant frames found in call stack.")
+    
+    print("DEBUG: Elements containing 'CallStack' in path:")
+    for item in all_elements:
+        p = str(item.path)
+        if "CallStack" in p:
+            label = str(item.label)
+            checked = str(item.checked)
+            print("  " + p + " (label: " + label + ", checked: " + checked + ")")
+    
+    # print("DUMP:")
+    # print(dump_ui())
     sys.exit(1)

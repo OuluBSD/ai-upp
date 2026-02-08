@@ -52,6 +52,31 @@ void Enemy::Defeat() {
 	// TODO: Spawn particle effect
 }
 
+void Enemy::DefeatPreservingVelocity() {
+	// Killed while thrown (hit wall) - keep horizontal momentum but add upward bounce
+	alive = false;
+	active = false;
+	captured = false;
+	bool wasThrown = thrown;  // Remember if thrown
+	thrown = false;
+	carriedByThrown = false;
+
+	// If was thrown, keep horizontal velocity direction but slightly reduce magnitude
+	// Add upward bounce for visual effect
+	if(wasThrown) {
+		velocity.x *= 0.6f;  // Reduce to 60% of throw speed
+		velocity.y = GameSettings::DEAD_ENEMY_MIN_VY +
+		             Randomf() * (GameSettings::DEAD_ENEMY_MAX_VY - GameSettings::DEAD_ENEMY_MIN_VY);
+	}
+	else {
+		// Fallback to normal defeat
+		velocity.x = GameSettings::DEAD_ENEMY_MIN_VX +
+		             Randomf() * (GameSettings::DEAD_ENEMY_MAX_VX - GameSettings::DEAD_ENEMY_MIN_VX);
+		velocity.y = GameSettings::DEAD_ENEMY_MIN_VY +
+		             Randomf() * (GameSettings::DEAD_ENEMY_MAX_VY - GameSettings::DEAD_ENEMY_MIN_VY);
+	}
+}
+
 void Enemy::Capture() {
 	// Enemy captured by player umbrella
 	captured = true;
@@ -185,7 +210,7 @@ void Enemy::ResolveCollisionX(float deltaX, Player::CollisionHandler& collision)
 		if(collided) {
 			bounds.left -= step;
 			bounds.right -= step;
-			velocity.x = 0.0f;
+			velocity.x = 0.0f;  // Stop horizontal movement for all enemies
 			return;
 		}
 

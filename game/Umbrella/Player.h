@@ -50,6 +50,7 @@ private:
 	bool wasAttackHeld;
 	float attackTimer;
 	float attackCooldown;
+	bool forceUmbrellaOnTop;  // Keep umbrella on top (for droplets)
 
 	// Carried enemies on umbrella
 	Array<class Enemy*> carriedEnemies;
@@ -122,9 +123,10 @@ public:
 	void AddScore(int points) { score += points; }
 	void SetPosition(float x, float y);
 
-	// Forced state (for level transitions)
+	// Forced state (for level transitions and droplets)
 	void ForceGlideState() { parasolState = PARASOL_GLIDING; }
 	void ForceIdleState() { parasolState = PARASOL_IDLE; }
+	void ForceUmbrellaOnTop(bool force);  // Force umbrella to stay on top (for droplets)
 	Pointf GetVelocity() const { return velocity; }
 	void SetVelocity(const Pointf& vel) { velocity = vel; }
 };

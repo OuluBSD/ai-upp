@@ -79,32 +79,51 @@ Aria::Aria() {
 }
 
 void Aria::Run(const Vector<String>& args) {
-	if (args.GetCount() == 0) {
-		Cout() << "Aria CLI version 0.1.0\n";
-		Cout() << "Usage: Aria <command> [args]\n";
-		return;
+	CommandLineArguments cla;
+	cla.SetDescription("Aria CLI - Your web automation assistant.");
+	cla.AddArg("log-level", 0, "Set the logging level.", true, "{DEBUG,INFO,WARNING,ERROR,CRITICAL}");
+	cla.AddArg("json-logs", 0, "Use JSON format for file logging.", false);
+	cla.AddArg("trace-id", 0, "Optional trace ID for this execution.", true, "TRACE_ID");
+	cla.AddArg("force", 0, "Force actions and bypass safety warnings.", false);
+	cla.AddArg("slow-mo", 0, "Add a delay in seconds between browser actions.", true, "SLOW_MO");
+	cla.AddArg("provider", 0, "The AI provider to use for generation.", true, "PROVIDER");
+	cla.AddArg("navigator", 0, "The navigator engine to use.", true, "NAVIGATOR");
+	cla.AddArg("version", 'v', "Show version information.", false);
+	cla.AddArg("help", 'h', "show this help message and exit", false);
+	
+	cla.AddPositional("{help,open,close,page,script,report,site,diag,settings,man,tutorial,version,security,vault,test,plugin}");
+	
+	if (!cla.Parse(args) || cla.IsArg("help") || cla.GetPositionalCount() == 0) {
+		cla.PrintHelp();
+		if (cla.GetPositionalCount() == 0 && !cla.IsArg("help")) return;
+		if (cla.IsArg("help")) return;
 	}
 	
-	String cmd = args[0];
+	if (cla.IsArg("version")) {
+		Cout() << "Aria CLI version 0.1.0\n";
+		return;
+	}
+
+	String cmd = cla.GetPositional(0);
+	Vector<String> rest = cla.GetRest();
+	
 	if (cmd == "version") {
 		Cout() << "Aria CLI version 0.1.0\n";
 	} else if (cmd == "open") {
+		CommandLineArguments sub;
+		sub.SetDescription("Open a browser instance.");
+		sub.AddArg("headless", 0, "Run in headless mode", false);
+		sub.AddArg("browser", 0, "Browser to use (firefox, chrome, edge)", true, "BROWSER");
+		sub.AddPositional("url", STRING_V, "");
+		
+		if (!sub.Parse(rest)) { sub.PrintHelp(); return; }
+		
 		safety_manager.EnsureDisclaimerAccepted();
 		
-		String browser = "firefox";
-		String url = "";
-		bool headless = false;
-		
-		for (int i = 1; i < args.GetCount(); i++) {
-			String arg = args[i];
-			if (arg == "--headless") {
-				headless = true;
-			} else if (arg == "chrome" || arg == "firefox" || arg == "edge") {
-				browser = arg;
-			} else {
-				url = arg;
-			}
-		}
+		String browser = sub.GetArg("browser");
+		if (browser.IsEmpty()) browser = "firefox";
+		String url = sub.GetPositional(0);
+		bool headless = sub.IsArg("headless");
 		
 		navigator->StartSession(browser, headless);
 		if (!url.IsEmpty()) {
@@ -113,8 +132,15 @@ void Aria::Run(const Vector<String>& args) {
 		}
 	} else if (cmd == "close") {
 		navigator->CloseSession();
-	} else if (cmd == "page" && args.GetCount() > 1) {
-		String p_cmd = args[1];
+	} else if (cmd == "page") {
+		CommandLineArguments sub;
+		sub.SetDescription("Manage browser pages.");
+		sub.AddPositional("{list,new,source,eval}");
+		sub.AddPositional("arg", STRING_V, "");
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
+		String p_cmd = sub.GetPositional(0);
 		if (p_cmd == "list") {
 			ValueArray tabs = navigator->ListTabs();
 			if (tabs.IsEmpty()) Cout() << "No active tabs.\n";
@@ -123,29 +149,39 @@ void Aria::Run(const Vector<String>& args) {
 					Cout() << i << ": " << AsJSON(tabs[i]) << "\n";
 			}
 		} else if (p_cmd == "new") {
-			String url = args.GetCount() > 2 ? args[2] : "about:blank";
+			String url = sub.GetPositionalCount() > 1 ? (String)sub.GetPositional(1) : "about:blank";
 			navigator->NewTab(url);
 		} else if (p_cmd == "source") {
 			Cout() << navigator->GetPageContent() << "\n";
-		} else if (p_cmd == "eval" && args.GetCount() > 2) {
-			Cout() << AsJSON(navigator->Eval(args[2])) << "\n";
+		} else if (p_cmd == "eval") {
+			if (sub.GetPositionalCount() < 2) { Cout() << "Error: eval requires JS code.\n"; return; }
+			Cout() << AsJSON(navigator->Eval(sub.GetPositional(1))) << "\n";
 		}
-	} else if (cmd == "script" && args.GetCount() > 1) {
-		String s_cmd = args[1];
+	} else if (cmd == "script") {
+		CommandLineArguments sub;
+		sub.SetDescription("Manage automation scripts.");
+		sub.AddPositional("{list,create,run}");
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
+		String s_cmd = sub.GetPositional(0);
+		Vector<String> s_rest = sub.GetRest();
+		
 		if (s_cmd == "list") {
 			for (const auto& s : script_manager.ListScripts())
 				Cout() << s.id << ": " << s.name << " - " << s.prompt.Left(50) << "...\n";
-		} else if (s_cmd == "create" && args.GetCount() > 2) {
-			String prompt = args[2];
-			String name = args.GetCount() > 3 ? args[3] : "";
+		} else if (s_cmd == "create") {
+			if (s_rest.GetCount() < 1) { Cout() << "Usage: script create <prompt> [name]\n"; return; }
+			String prompt = s_rest[0];
+			String name = s_rest.GetCount() > 1 ? s_rest[1] : "";
 			int id = script_manager.CreateScript(prompt, name);
 			Cout() << "Created script " << id << "\n";
-		} else if (s_cmd == "run" && args.GetCount() > 2) {
-			String identifier = args[2];
+		} else if (s_cmd == "run") {
+			if (s_rest.GetCount() < 1) { Cout() << "Usage: script run <id_or_name> [k=v...]\n"; return; }
+			String identifier = s_rest[0];
 			ValueMap params;
-			// Simple param parsing: key=value
-			for (int i = 3; i < args.GetCount(); i++) {
-				Vector<String> kv = Split(args[i], '=');
+			for (int i = 1; i < s_rest.GetCount(); i++) {
+				Vector<String> kv = Split(s_rest[i], '=');
 				if (kv.GetCount() == 2) params.Set(kv[0], kv[1]);
 			}
 			Cout() << "Running script: " << identifier << "\n";
@@ -155,12 +191,21 @@ void Aria::Run(const Vector<String>& args) {
 				Cout() << "Script Error: " << e << "\n";
 			}
 		}
-	} else if (cmd == "site" && args.GetCount() > 1) {
-		String site_cmd = args[1];
+	} else if (cmd == "site") {
+		CommandLineArguments sub;
+		sub.SetDescription("Manage site-specific data and scraping.");
+		sub.AddPositional("{list,discord,whatsapp,messages,calendar,youtube,threads}");
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
+		String site_cmd = sub.GetPositional(0);
+		Vector<String> s_rest = sub.GetRest();
+		
 		if (site_cmd == "list") {
 			for (const String& s : site_manager.ListSites()) Cout() << "- " << s << "\n";
-		} else if (site_cmd == "discord" && args.GetCount() > 2) {
-			String channel = args[2];
+		} else if (site_cmd == "discord") {
+			if (s_rest.GetCount() < 1) { Cout() << "Usage: site discord <channel>\n"; return; }
+			String channel = s_rest[0];
 			DiscordScraper scraper(*navigator, site_manager);
 			Cout() << "Scraping Discord channel: " << channel << "\n";
 			try {
@@ -189,36 +234,58 @@ void Aria::Run(const Vector<String>& args) {
 			Cout() << "Refreshing Threads data...\n";
 			scraper.Refresh();
 		}
-	} else if (cmd == "plugin" && args.GetCount() > 1) {
-		String p_cmd = args[1];
+	} else if (cmd == "plugin") {
+		CommandLineArguments sub;
+		sub.SetDescription("Manage plugins.");
+		sub.AddPositional("{list}");
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
+		String p_cmd = sub.GetPositional(0);
 		if (p_cmd == "list") {
 			Cout() << "AI Providers:\n";
 			for (const String& p : plugin_manager.ListAIProviders())
 				Cout() << "- " << p << "\n";
 			Cout() << "- gemini (built-in)\n";
 		}
-	} else if (cmd == "vault" && args.GetCount() > 1) {
+	} else if (cmd == "vault") {
+		CommandLineArguments sub;
+		sub.SetDescription("Manage credentials.");
+		sub.AddPositional("{set,get,list,remove}");
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
 		CredentialManager cm;
-		String v_cmd = args[1];
-		if (v_cmd == "set" && args.GetCount() > 3) {
-			cm.SetCredential(args[2], args[3]);
-			Cout() << "Credential set: " << args[2] << "\n";
-		} else if (v_cmd == "get" && args.GetCount() > 2) {
-			Cout() << cm.GetCredential(args[2]) << "\n";
+		String v_cmd = sub.GetPositional(0);
+		Vector<String> v_rest = sub.GetRest();
+		
+		if (v_cmd == "set") {
+			if (v_rest.GetCount() < 2) { Cout() << "Usage: vault set <key> <value>\n"; return; }
+			cm.SetCredential(v_rest[0], v_rest[1]);
+			Cout() << "Credential set: " << v_rest[0] << "\n";
+		} else if (v_cmd == "get") {
+			if (v_rest.GetCount() < 1) { Cout() << "Usage: vault get <key>\n"; return; }
+			Cout() << cm.GetCredential(v_rest[0]) << "\n";
 		} else if (v_cmd == "list") {
 			for (const auto& k : cm.ListKeys()) Cout() << "- " << k << "\n";
-		} else if (v_cmd == "remove" && args.GetCount() > 2) {
-			if (cm.RemoveCredential(args[2])) Cout() << "Credential removed.\n";
+		} else if (v_cmd == "remove") {
+			if (v_rest.GetCount() < 1) { Cout() << "Usage: vault remove <key>\n"; return; }
+			if (cm.RemoveCredential(v_rest[0])) Cout() << "Credential removed.\n";
 			else Cout() << "Credential not found.\n";
 		}
-	} else if (cmd == "test" && args.GetCount() > 1) {
-		String test_cmd = args[1];
+	} else if (cmd == "test") {
+		CommandLineArguments sub;
+		sub.SetDescription("Run diagnostic tests.");
+		sub.AddPositional("{bot}");
+		sub.AddArg("no-headless", 0, "Disable headless mode for test", false);
+		
+		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		
+		String test_cmd = sub.GetPositional(0);
 		if (test_cmd == "bot") {
 			Cout() << "Running Bot Detection Test (browserscan.net)...\n";
 			
-			bool headless = true;
-			for (int i = 2; i < args.GetCount(); i++)
-				if (args[i] == "--no-headless") headless = false;
+			bool headless = !sub.IsArg("no-headless");
 				
 			navigator->StartSession("firefox", headless);
 			navigator->Navigate("https://www.browserscan.net/bot-detection");
@@ -256,30 +323,12 @@ void Aria::Run(const Vector<String>& args) {
 			Cout() << "Comprehensive Result: " << AsJSON(comp, true) << "\n";
 		}
 	} else if (cmd == "man") {
-		Cout() << "Aria User Manual\n\nCommands:\n"
-		       << "  open [url]      Open browser session\n"
-		       << "  close           Close browser session\n"
-		       << "  page list       List open tabs\n"
-		       << "  page new [url]  Open new tab\n"
-		       << "  page source     Print current page source\n"
-		       << "  page eval [js]  Evaluate JavaScript in current page\n"
-		       << "  script list     List saved scripts\n"
-		       << "  script create [p] [n] Create new script\n"
-		       << "  script run [i] [k=v] Run script by ID or name\n"
-		       << "  plugin list     List available AI providers and plugins\n"
-		       << "  vault set [k] [v] Set credential\n"
-		       << "  vault get [k]   Get credential\n"
-		       << "  vault list      List all credential keys\n"
-		       << "  site list       List sites with local data\n"
-		       << "  site discord [c] Scrape Discord channel\n"
-		       << "  site whatsapp   Scrape WhatsApp messages\n"
-		       << "  site messages   Scrape Google Messages\n"
-		       << "  site calendar   Scrape Google Calendar\n"
-		       << "  site youtube    Scrape YouTube Studio\n"
-		       << "  site threads    Scrape Threads feed\n"
-		       << "  test bot        Run bot detection test\n";
+		cla.PrintHelp();
+	} else if (cmd == "help") {
+		cla.PrintHelp();
 	} else {
 		Cout() << "Unknown command: " << cmd << "\n";
+		cla.PrintHelp();
 	}
 }
 

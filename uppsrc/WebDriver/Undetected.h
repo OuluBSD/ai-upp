@@ -10,6 +10,7 @@ namespace detail {
 String GetFirefoxInstallationPath();
 String GetUndetectedFirefoxPath();
 String PatchFirefoxBinary();
+String GetFirefoxDefaultProfilePath();
 
 } // namespace detail
 

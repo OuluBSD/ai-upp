@@ -131,6 +131,7 @@ void Aria::Run(const Vector<String>& args) {
 		sub.SetDescription("Open a browser instance.");
 		sub.AddArg("help", 'h', "show this help message and exit", false);
 		sub.AddArg("headless", 0, "Run in headless mode", false);
+		sub.AddArg("profile", 0, "Use default browser profile", false);
 		sub.AddArg("browser", 0, "Browser to use (firefox, chrome, edge)", true, "BROWSER");
 		sub.AddPositional("url", "URL to open", STRING_V, "");
 		
@@ -144,8 +145,9 @@ void Aria::Run(const Vector<String>& args) {
 		if (!url.IsEmpty() && !url.StartsWith("http://") && !url.StartsWith("https://") && !url.StartsWith("about:"))
 			url = "https://" + url;
 		bool headless = sub.IsArg("headless");
+		bool use_profile = sub.IsArg("profile");
 		
-		navigator->StartSession(browser, headless);
+		navigator->StartSession(browser, headless, use_profile);
 		if (!url.IsEmpty()) {
 			if (safety_manager.CheckUrlSafety(url))
 				navigator->Navigate(url);

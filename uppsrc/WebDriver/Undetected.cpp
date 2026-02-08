@@ -144,6 +144,45 @@ String PatchFirefoxBinary() {
 	return dst_exe;
 }
 
+String GetFirefoxDefaultProfilePath() {
+	String path;
+#ifdef PLATFORM_POSIX
+	path = GetHomeDirFile(".mozilla/firefox/profiles.ini");
+#elif defined(PLATFORM_WIN32)
+	path = GetAppDataDir() + "/Mozilla/Firefox/profiles.ini";
+#endif
+
+	if (!FileExists(path)) return "";
+
+	String data = LoadFile(path);
+	Vector<String> lines = Split(data, '\n');
+	
+	String default_path;
+	String first_path;
+	bool is_default = false;
+	
+	for (int i = 0; i < lines.GetCount(); i++) {
+		String line = TrimBoth(lines[i]);
+		if (line.StartsWith("[")) {
+			is_default = false;
+		}
+		if (line.StartsWith("Default=1")) {
+			is_default = true;
+		}
+		if (line.StartsWith("Path=")) {
+			String p = line.Mid(5);
+			if (first_path.IsEmpty()) first_path = p;
+			if (is_default) default_path = p;
+		}
+	}
+	
+	if (default_path.IsEmpty()) default_path = first_path;
+	if (default_path.IsEmpty()) return "";
+	
+	String base_dir = GetFileFolder(path);
+	return AppendFileName(base_dir, default_path);
+}
+
 } // namespace detail
 
 END_UPP_NAMESPACE

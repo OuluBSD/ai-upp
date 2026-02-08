@@ -623,12 +623,14 @@ struct RunningFlag {
 
 struct CmdArg {
 	char key;
+	String name;
 	String desc, value_desc;
 	bool has_value;
 };
 
 struct CmdInput {
 	char key;
+	String name;
 	String value;
 };
 
@@ -644,12 +646,16 @@ class CommandLineArguments {
 	Value						vars;
 	int                         last_index = -1;
 	Vector<String>              full_args;
+	String                      description;
 	
 public:
 	CommandLineArguments() {vars = ValueMap();}
 	
 	void AddArg(char key, const char* desc, bool has_value, String value_desc="value");
+	void AddArg(const char* name, char key, const char* desc, bool has_value, String value_desc="value");
 	void AddPositional(const char* desc, dword type = UNKNOWN_V, Value def=Value());
+	void SetDescription(const char* desc) { description = desc; }
+
 	bool Parse();
 	bool Parse(const Vector<String>& args);
 	void PrintHelp();
@@ -657,7 +663,9 @@ public:
 	int GetInputCount() const {return inputs.GetCount();}
 	int GetPositionalCount() const {return positionals.GetCount();}
 	bool IsArg(char c) const;
+	bool IsArg(const char* name) const;
 	String GetArg(char c) const;
+	String GetArg(const char* name) const;
 	
 	const Array<CmdInput>& GetInputs() const {return inputs;}
 	const Vector<Value>& GetPositionals() const {return positionals;}

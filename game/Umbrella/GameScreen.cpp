@@ -21,6 +21,8 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	gameState = PLAYING;
 	levelCompleteTimer = 0.0f;
 	allEnemiesKilled = false;
+	transitionOffset = 0.0f;
+	nextLevelPath = "";
 	levelColumns = 0;
 	levelRows = 0;
 	gridSize = 14;
@@ -63,6 +65,50 @@ bool GameScreen::LoadLevel(const String& path) {
 
 	Title("Umbrella - " + GetFileName(path));
 	return true;
+}
+
+String GameScreen::GetNextLevelPath(const String& currentPath) {
+	// Parse current level: "share/mods/umbrella/levels/world1-stage2.json"
+	// Extract world and stage numbers, increment stage
+	int worldIdx = currentPath.Find("world");
+	int stageIdx = currentPath.Find("-stage");
+
+	if(worldIdx < 0 || stageIdx < 0) {
+		LOG("Could not parse level path: " << currentPath);
+		return "";  // No next level
+	}
+
+	// Extract numbers
+	int worldStart = worldIdx + 5;  // After "world"
+	int worldEnd = stageIdx;
+	int stageStart = stageIdx + 6;  // After "-stage"
+	int stageEnd = currentPath.Find(".json");
+
+	String worldStr = currentPath.Mid(worldStart, worldEnd - worldStart);
+	String stageStr = currentPath.Mid(stageStart, stageEnd - stageStart);
+
+	int world = StrInt(worldStr);
+	int stage = StrInt(stageStr);
+
+	// Increment stage
+	stage++;
+
+	// Try next stage in same world
+	String nextPath = Format("share/mods/umbrella/levels/world%d-stage%d.json", world, stage);
+	if(FileExists(nextPath)) {
+		return nextPath;
+	}
+
+	// Try first stage of next world
+	world++;
+	stage = 1;
+	nextPath = Format("share/mods/umbrella/levels/world%d-stage%d.json", world, stage);
+	if(FileExists(nextPath)) {
+		return nextPath;
+	}
+
+	LOG("No more levels found after: " << currentPath);
+	return "";  // No next level
 }
 
 Point GameScreen::FindSpawnPoint() {
@@ -281,10 +327,67 @@ void GameScreen::GameTick(float delta) {
 		levelCompleteTimer -= delta;
 
 		if(levelCompleteTimer <= 0.0f) {
-			// Time's up! Start transition sequence
-			// TODO: Implement hover, scroll, and level transition
-			SetGameState(LEVEL_COMPLETE);
-			LOG("Level completion timeout reached. Starting transition...");
+			// Time's up! Determine next level and start transition
+			nextLevelPath = GetNextLevelPath(levelPath);
+
+			if(nextLevelPath.IsEmpty()) {
+				// No more levels - show victory screen
+				SetGameState(LEVEL_COMPLETE);
+				LOG("All levels complete! Victory!");
+			}
+			else {
+				// Start transition sequence: hover -> scroll -> drop
+				SetGameState(TRANSITION_HOVER);
+				transitionOffset = 0.0f;
+				LOG("Starting transition to: " << nextLevelPath);
+			}
+		}
+	}
+
+	// Handle transition states
+	if(gameState == TRANSITION_HOVER) {
+		// Player hovers with umbrella for a moment
+		// TODO: Add umbrella animation and slight hover height
+		// For now, just transition to scroll after short delay
+		static float hoverTimer = 0.0f;
+		hoverTimer += delta;
+		if(hoverTimer >= 1.0f) {  // 1 second hover
+			hoverTimer = 0.0f;
+			SetGameState(TRANSITION_SCROLL);
+			LOG("Starting level scroll...");
+		}
+	}
+	else if(gameState == TRANSITION_SCROLL) {
+		// Scroll level horizontally to the left
+		transitionOffset += GameSettings::LEVEL_TRANSITION_SCROLL_SPEED * delta;
+
+		// When scrolled off screen, load new level
+		int levelWidth = levelColumns * gridSize;
+		if(transitionOffset >= levelWidth) {
+			// Load next level
+			LOG("Loading next level: " << nextLevelPath);
+			LoadLevel(nextLevelPath);
+			levelPath = nextLevelPath;
+
+			// Reset completion state
+			allEnemiesKilled = false;
+			levelCompleteTimer = 0.0f;
+
+			// Start drop transition
+			SetGameState(TRANSITION_DROP);
+			LOG("Player dropping into new level...");
+		}
+	}
+	else if(gameState == TRANSITION_DROP) {
+		// Player drops into new level
+		// TODO: Add umbrella close animation
+		// For now, just return to playing
+		static float dropTimer = 0.0f;
+		dropTimer += delta;
+		if(dropTimer >= 0.5f) {  // 0.5 second drop
+			dropTimer = 0.0f;
+			SetGameState(PLAYING);
+			LOG("Transition complete! Playing new level.");
 		}
 	}
 

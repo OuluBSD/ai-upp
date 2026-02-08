@@ -64,7 +64,7 @@ inline const char* GetStealthJS() {
 		};
 		
 		// Mask specific geckodriver/marionette markers if they leak
-		window.navigator.webdriver = false;
+		// window.navigator.webdriver = false; // Removed: direct assignment makes it enumerable
 	)";
 }
 

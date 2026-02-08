@@ -121,8 +121,6 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless, bool
 		String patched_exe = detail::PatchFirefoxBinary();
 		if (!patched_exe.IsEmpty()) {
 			caps.options.binary = patched_exe;
-			String dir = GetFileFolder(patched_exe);
-			caps.options.env.Set("LD_LIBRARY_PATH", dir);
 		}
 		
 		if (!GetEnv("WAYLAND_DISPLAY").IsEmpty()) {
@@ -196,8 +194,9 @@ void AriaNavigator::Navigate(const String& url) {
 		throw SessionError("No active session.");
 	}
 	GetAriaLogger("navigator").Info("Navigating to: " + url);
-	driver->Navigate(url);
-	GetAriaLogger("navigator").Info("Injecting stealth JS");
+	// Use location.href trick to allow injection during load
+	driver->ApplyStealthJS();
+	driver->Execute("window.location.href = '" + url + "';", JsArgs());
 	driver->ApplyStealthJS();
 }
 
@@ -256,10 +255,17 @@ String AriaNavigator::GetPageContent() {
 void AriaNavigator::NewTab(const String& url) {
 	Throttle();
 	if (!driver && !ConnectToSession()) return;
-	driver->Execute("window.open('" + url + "', '_blank');", JsArgs());
+	// Small fix: open about:blank first to inject stealth before target URL starts loading
+	driver->Execute("window.open('about:blank', '_blank');", JsArgs());
 	Vector<Window> windows = driver->GetWindows();
-	if (windows.GetCount() > 0)
+	if (windows.GetCount() > 0) {
 		driver->SetFocusToWindow(windows.Top());
+		driver->ApplyStealthJS();
+		if (!url.IsEmpty() && url != "about:blank") {
+			driver->Execute("window.location.href = '" + url + "';", JsArgs());
+			driver->ApplyStealthJS();
+		}
+	}
 }
 
 ValueArray AriaNavigator::ExtractLinks() {

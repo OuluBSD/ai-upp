@@ -6,7 +6,7 @@
 class BaseNavigator {
 public:
 	virtual ~BaseNavigator() {}
-	virtual void StartSession(const String& browser_name = "chrome", bool headless = false) = 0;
+	virtual void StartSession(const String& browser_name = "chrome", bool headless = false, bool use_profile = false) = 0;
 	virtual bool ConnectToSession(const String& browser_name = "") = 0;
 	virtual void CloseSession(const String& browser_name = "") = 0;
 	virtual void Navigate(const String& url) = 0;
@@ -35,7 +35,7 @@ public:
 	
 	void SetAIProvider(BaseAIProvider* ai) { ai_provider = ai; }
 	
-	virtual void StartSession(const String& browser_name = "chrome", bool headless = false) override;
+	virtual void StartSession(const String& browser_name = "chrome", bool headless = false, bool use_profile = false) override;
 	virtual bool ConnectToSession(const String& browser_name = "") override;
 	virtual void CloseSession(const String& browser_name = "") override;
 	virtual void Navigate(const String& url) override;

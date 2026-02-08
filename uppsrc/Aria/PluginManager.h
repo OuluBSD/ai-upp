@@ -1,11 +1,7 @@
 #ifndef _Aria_PluginManager_h_
 #define _Aria_PluginManager_h_
 
-class BaseAIProvider {
-public:
-	virtual ~BaseAIProvider() {}
-	virtual String Generate(const String& prompt, const String& context = "", const String& output_format = "text") = 0;
-};
+#include "BaseAIProvider.h"
 
 class BasePlugin {
 public:

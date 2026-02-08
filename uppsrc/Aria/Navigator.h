@@ -1,6 +1,8 @@
 #ifndef _Aria_Navigator_h_
 #define _Aria_Navigator_h_
 
+#include "BaseAIProvider.h"
+
 class BaseNavigator {
 public:
 	virtual ~BaseNavigator() {}
@@ -19,6 +21,7 @@ class AriaNavigator : public BaseNavigator {
 	One<WebDriver::Web_driver> driver;
 	double throttle_delay;
 	bool randomize_delay;
+	BaseAIProvider* ai_provider = nullptr;
 	
 	void Throttle();
 	String GetSessionFilePath(const String& browser_name = "") const;
@@ -28,6 +31,8 @@ class AriaNavigator : public BaseNavigator {
 
 public:
 	AriaNavigator();
+	
+	void SetAIProvider(BaseAIProvider* ai) { ai_provider = ai; }
 	
 	virtual void StartSession(const String& browser_name = "chrome", bool headless = false) override;
 	virtual bool ConnectToSession(const String& browser_name = "") override;

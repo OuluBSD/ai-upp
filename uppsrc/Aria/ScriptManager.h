@@ -29,7 +29,7 @@ public:
 	bool EditScript(const Value& identifier, const String& prompt);
 	bool RemoveScript(const Value& identifier);
 	
-	bool RunScript(const Value& identifier, BaseNavigator* navigator = nullptr, ValueMap parameters = ValueMap());
+	bool RunScript(const Value& identifier, AriaNavigator* navigator = nullptr, ValueMap parameters = ValueMap());
 	
 	Vector<String> GetScriptPlaceholders(const String& prompt) const;
 	String ApplyParameters(const String& prompt, const ValueMap& parameters) const;

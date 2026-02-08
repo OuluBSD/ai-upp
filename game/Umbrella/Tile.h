@@ -11,6 +11,7 @@ enum TileType {
 	TILE_WALL,           // Solid collision wall
 	TILE_BACKGROUND,     // Visual only, no collision
 	TILE_FULLBLOCK,      // Solid block
+	TILE_GOAL,           // Level exit/goal (triggers level completion)
 };
 
 // Convert TileType to color for rendering (colored rectangles)

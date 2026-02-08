@@ -215,6 +215,48 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
+	// Check dead enemies for ground collision and spawn treats
+	for(int i = enemies.GetCount() - 1; i >= 0; i--) {
+		if(enemies[i]->IsAlive()) continue;  // Only check dead enemies
+		if(enemies[i]->IsCarriedByThrown()) continue;  // Skip carried dead enemies (handled elsewhere)
+
+		// Check if dead enemy is on ground
+		Rectf bounds = enemies[i]->GetBounds();
+		int minCol = (int)(bounds.left / gridSize);
+		int maxCol = (int)(bounds.right / gridSize);
+		float feetY = min(bounds.top, bounds.bottom);
+		int floorRow = (int)(feetY / gridSize);
+
+		bool onGround = false;
+		for(int col = minCol; col <= maxCol; col++) {
+			if(IsFloorTile(col, floorRow)) {
+				onGround = true;
+				break;
+			}
+		}
+
+		// If on ground, spawn treat and remove enemy
+		if(onGround) {
+			Pointf center;
+			center.x = (bounds.left + bounds.right) / 2.0f;
+			center.y = (bounds.top + bounds.bottom) / 2.0f;
+
+			TreatType treatType = TREAT_PEAR;
+			switch(enemies[i]->GetType()) {
+				case ENEMY_PATROLLER: treatType = TREAT_PEAR; break;
+				case ENEMY_JUMPER: treatType = TREAT_BANANA; break;
+				case ENEMY_SHOOTER: treatType = TREAT_BLUEBERRY; break;
+			}
+
+			treats.Add(new Treat(center.x, center.y, treatType));
+			player.AddScore(100);  // Reward for defeating enemy
+
+			// Remove enemy from world
+			delete enemies[i];
+			enemies.Remove(i);
+		}
+	}
+
 	// Check thrown enemy collisions with other enemies (capturing them)
 	for(int i = 0; i < enemies.GetCount(); i++) {
 		if(!enemies[i]->IsThrown()) continue;  // Only check thrown enemies

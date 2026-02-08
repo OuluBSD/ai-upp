@@ -65,10 +65,21 @@ void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& coll
 }
 
 void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
-	if(!alive) return;
-
-	// Update rotation for visual effects
+	// Update rotation for visual effects (works for dead enemies too)
 	UpdateRotation(delta);
+
+	// Dead enemies: apply physics until ground collision
+	if(!alive) {
+		velocity.y += GRAVITY * delta;
+		if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
+
+		ResolveCollisionX(velocity.x * delta, collision);
+		ResolveCollisionY(velocity.y * delta, collision);
+
+		// Check if hit ground - will be handled in GameScreen for treat spawning
+		// Don't update projectiles when dead
+		return;
+	}
 
 	// If carried by thrown enemy, just apply movement (no AI, no gravity)
 	if(carriedByThrown) {
@@ -111,11 +122,11 @@ void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHa
 }
 
 void EnemyShooter::Render(Draw& w, Player::CoordinateConverter& coords) {
-	if(!alive) return;
-
-	// Render projectiles first (behind enemy)
-	for(int i = 0; i < projectiles.GetCount(); i++) {
-		projectiles[i]->Render(w, coords);
+	// Render projectiles first (behind enemy) - but not if dead
+	if(alive) {
+		for(int i = 0; i < projectiles.GetCount(); i++) {
+			projectiles[i]->Render(w, coords);
+		}
 	}
 
 	// Get world-space corners

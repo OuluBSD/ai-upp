@@ -15,7 +15,10 @@ enum GameState {
 	PLAYING,
 	PAUSED,
 	GAME_OVER,
-	LEVEL_COMPLETE
+	LEVEL_COMPLETE,
+	TRANSITION_HOVER,      // Player hovering with umbrella
+	TRANSITION_SCROLL,     // Levels scrolling horizontally
+	TRANSITION_DROP        // Player dropping into new level
 };
 
 class GameScreen : public TopWindow, public Player::CollisionHandler, public Player::CoordinateConverter {
@@ -37,6 +40,10 @@ public:  // Public for testing
 	GameState gameState;
 	float levelCompleteTimer;  // Countdown for treat collection before transition
 	bool allEnemiesKilled;  // Track if all enemies have been defeated
+
+	// Transition state
+	float transitionOffset;  // Horizontal scroll offset during transition
+	String nextLevelPath;  // Path to next level to load
 
 	// Level dimensions
 	int levelColumns;
@@ -80,6 +87,7 @@ public:
 
 	// Level loading
 	bool LoadLevel(const String& path);
+	String GetNextLevelPath(const String& currentPath);
 
 	// Player spawning
 	Point FindSpawnPoint();

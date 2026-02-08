@@ -26,6 +26,7 @@ struct FirefoxOptions : public Moveable<FirefoxOptions> { // copyable
 	ValueMap prefs;
 	ValueMap env;
 	String binary;
+	String profile;
 	Value log;
 	
 	void Jsonize(JsonIO& json) {
@@ -34,11 +35,13 @@ struct FirefoxOptions : public Moveable<FirefoxOptions> { // copyable
 			if (prefs.GetCount() > 0) json.Set("prefs", prefs);
 			if (env.GetCount() > 0) json.Set("env", env);
 			if (!binary.IsEmpty()) json.Set("binary", binary);
+			if (!profile.IsEmpty()) json.Set("profile", profile);
 			if (!log.IsVoid()) json.Set("log", log);
 		} else {
 			prefs = json.Get("prefs");
 			env = json.Get("env");
 			binary = (String)json.Get("binary");
+			profile = (String)json.Get("profile");
 			log = json.Get("log");
 		}
 	}

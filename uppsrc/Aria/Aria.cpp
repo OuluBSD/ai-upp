@@ -91,12 +91,29 @@ void Aria::Run(const Vector<String>& args) {
 	cla.AddArg("version", 'v', "Show version information.", false);
 	cla.AddArg("help", 'h', "show this help message and exit", false);
 	
+	cla.SetStopOnPositional();
 	cla.AddPositional("{help,open,close,page,script,report,site,diag,settings,man,tutorial,version,security,vault,test,plugin}");
+	cla.AddHelpText("    help                Show this help message and exit.");
+	cla.AddHelpText("    open                Open a browser instance.");
+	cla.AddHelpText("    close               Close browser instances.");
+	cla.AddHelpText("    page                Manage browser pages.");
+	cla.AddHelpText("    script              Manage automation scripts.");
+	cla.AddHelpText("    report              Manage local reports.");
+	cla.AddHelpText("    site                Manage site-specific data and scraping.");
+	cla.AddHelpText("    diag                Show diagnostic information.");
+	cla.AddHelpText("    settings            Show current configuration.");
+	cla.AddHelpText("    man                 Show manual pages.");
+	cla.AddHelpText("    tutorial            Start the interactive tutorial.");
+	cla.AddHelpText("    version             Show version information.");
+	cla.AddHelpText("    security            Show security best practices.");
+	cla.AddHelpText("    vault               Manage credentials.");
+	cla.AddHelpText("    test                Run diagnostic tests.");
+	cla.AddHelpText("    plugin              Manage plugins.");
 	
-	if (!cla.Parse(args) || cla.IsArg("help") || cla.GetPositionalCount() == 0) {
+	bool parsed = cla.Parse(args);
+	if (!parsed || cla.IsArg("help") || (cla.GetPositionalCount() == 0 && !cla.IsArg("version"))) {
 		cla.PrintHelp();
-		if (cla.GetPositionalCount() == 0 && !cla.IsArg("help")) return;
-		if (cla.IsArg("help")) return;
+		return;
 	}
 	
 	if (cla.IsArg("version")) {
@@ -112,11 +129,12 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "open") {
 		CommandLineArguments sub;
 		sub.SetDescription("Open a browser instance.");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
 		sub.AddArg("headless", 0, "Run in headless mode", false);
 		sub.AddArg("browser", 0, "Browser to use (firefox, chrome, edge)", true, "BROWSER");
-		sub.AddPositional("url", STRING_V, "");
+		sub.AddPositional("url", "URL to open", STRING_V, "");
 		
-		if (!sub.Parse(rest)) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help")) { sub.PrintHelp(); return; }
 		
 		safety_manager.EnsureDisclaimerAccepted();
 		
@@ -135,10 +153,11 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "page") {
 		CommandLineArguments sub;
 		sub.SetDescription("Manage browser pages.");
-		sub.AddPositional("{list,new,source,eval}");
-		sub.AddPositional("arg", STRING_V, "");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{list,new,source,eval}", "Command to perform");
+		sub.AddPositional("arg", "Command argument", STRING_V, "");
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		String p_cmd = sub.GetPositional(0);
 		if (p_cmd == "list") {
@@ -160,9 +179,10 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "script") {
 		CommandLineArguments sub;
 		sub.SetDescription("Manage automation scripts.");
-		sub.AddPositional("{list,create,run}");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{list,create,run}", "Command to perform");
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		String s_cmd = sub.GetPositional(0);
 		Vector<String> s_rest = sub.GetRest();
@@ -194,9 +214,10 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "site") {
 		CommandLineArguments sub;
 		sub.SetDescription("Manage site-specific data and scraping.");
-		sub.AddPositional("{list,discord,whatsapp,messages,calendar,youtube,threads}");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{list,discord,whatsapp,messages,calendar,youtube,threads}", "Command to perform");
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		String site_cmd = sub.GetPositional(0);
 		Vector<String> s_rest = sub.GetRest();
@@ -237,9 +258,10 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "plugin") {
 		CommandLineArguments sub;
 		sub.SetDescription("Manage plugins.");
-		sub.AddPositional("{list}");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{list}", "Command to perform");
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		String p_cmd = sub.GetPositional(0);
 		if (p_cmd == "list") {
@@ -251,9 +273,10 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "vault") {
 		CommandLineArguments sub;
 		sub.SetDescription("Manage credentials.");
-		sub.AddPositional("{set,get,list,remove}");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{set,get,list,remove}", "Command to perform");
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		CredentialManager cm;
 		String v_cmd = sub.GetPositional(0);
@@ -276,10 +299,11 @@ void Aria::Run(const Vector<String>& args) {
 	} else if (cmd == "test") {
 		CommandLineArguments sub;
 		sub.SetDescription("Run diagnostic tests.");
-		sub.AddPositional("{bot}");
+		sub.AddArg("help", 'h', "show this help message and exit", false);
+		sub.AddPositional("{bot}", "Command to perform");
 		sub.AddArg("no-headless", 0, "Disable headless mode for test", false);
 		
-		if (!sub.Parse(rest) || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
+		if (!sub.Parse(rest) || sub.IsArg("help") || sub.GetPositionalCount() == 0) { sub.PrintHelp(); return; }
 		
 		String test_cmd = sub.GetPositional(0);
 		if (test_cmd == "bot") {
@@ -322,6 +346,16 @@ void Aria::Run(const Vector<String>& args) {
 			)");
 			Cout() << "Comprehensive Result: " << AsJSON(comp, true) << "\n";
 		}
+	} else if (cmd == "report") {
+		Cout() << "Manage local reports (not yet implemented).\n";
+	} else if (cmd == "diag") {
+		Cout() << "Show diagnostic information (not yet implemented).\n";
+	} else if (cmd == "settings") {
+		Cout() << "Show current configuration (not yet implemented).\n";
+	} else if (cmd == "tutorial") {
+		Cout() << "Start the interactive tutorial (not yet implemented).\n";
+	} else if (cmd == "security") {
+		Cout() << "Show security best practices (not yet implemented).\n";
 	} else if (cmd == "man") {
 		cla.PrintHelp();
 	} else if (cmd == "help") {

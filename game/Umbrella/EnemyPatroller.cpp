@@ -11,10 +11,20 @@ EnemyPatroller::EnemyPatroller(float x, float y)
 }
 
 void EnemyPatroller::Update(float delta, const Player& player, Player::CollisionHandler& collision) {
-	if(!alive) return;
-
-	// Update rotation for visual effects
+	// Update rotation for visual effects (works for dead enemies too)
 	UpdateRotation(delta);
+
+	// Dead enemies: apply physics until ground collision
+	if(!alive) {
+		velocity.y += GRAVITY * delta;
+		if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
+
+		ResolveCollisionX(velocity.x * delta, collision);
+		ResolveCollisionY(velocity.y * delta, collision);
+
+		// Check if hit ground - will be handled in GameScreen for treat spawning
+		return;
+	}
 
 	// If carried by thrown enemy, just apply movement (no AI, no gravity)
 	if(carriedByThrown) {
@@ -64,7 +74,7 @@ void EnemyPatroller::Update(float delta, const Player& player, Player::Collision
 }
 
 void EnemyPatroller::Render(Draw& w, Player::CoordinateConverter& coords) {
-	if(!alive) return;
+	// Render dead enemies too (they fly through air with red tint)
 
 	// Get world-space corners
 	Point topLeft((int)bounds.left, (int)bounds.top);

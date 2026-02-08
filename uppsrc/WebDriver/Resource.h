@@ -157,38 +157,54 @@ private:
 		const String& body
 		) const {
 		try {
-			if (!(http_code / 100 != 4 && http_code != 501)) {
-				throw std::runtime_error("HTTP code indicates that request is invalid");
+			if (http_code / 100 != 2 && http_code / 100 != 4 && http_code != 500 && http_code != 501) {
+				throw std::runtime_error("Unsupported HTTP code: " + AsString(http_code));
 			}
 
 			Value response = ParseJSON(body);
 			if (response.IsError()) {
-				throw std::runtime_error("JSON parser error");
+				throw std::runtime_error("JSON parser error: " + body);
 			}
 
 			if (!response.Is<ValueMap>()) throw std::runtime_error("Server response is not an object");
-			if (response["status"].IsVoid()) throw std::runtime_error("Server response has no member \"status\"");
-			if (!IsNumber(response["status"])) throw std::runtime_error("Response status code is not a number");
-			const auto status =
-				static_cast<response_status_code::Value>((int)response["status"]);
-			if (response["value"].IsVoid()) throw std::runtime_error("Server response has no member \"value\"");
-			const Value& value = response["value"];
+			ValueMap res_map = response;
+			
+			// W3C status code is optional, legacy is required.
+			int status_code = 0;
+			if (res_map.Find("status") >= 0) {
+				Value s = res_map["status"];
+				if (s.Is<double>() || s.Is<int>())
+					status_code = (int)s;
+			}
+			
+			const auto status = static_cast<response_status_code::Value>(status_code);
+			
+			Value value;
+			if (res_map.Find("value") >= 0) {
+				value = res_map["value"];
+			}
 
-			if (http_code == 500) { // Internal server error
-				if (!value.Is<ValueMap>()) throw std::runtime_error("Server response has no member \"value\" or \"value\" is not an object");
-				if (value["message"].IsVoid()) throw std::runtime_error("Server response has no member \"value.message\"");
-				if (!value["message"].Is<String>()) throw std::runtime_error("\"value.message\" is not a string");
+			if (http_code >= 400 || status != response_status_code::kSuccess) {
+				String message = "Unknown error";
+				if (value.Is<ValueMap>()) {
+					ValueMap v_map = value;
+					if (v_map.Find("message") >= 0) message = AsString(v_map["message"]);
+					else if (v_map.Find("error") >= 0) message = AsString(v_map["error"]);
+				} else if (!value.IsVoid()) {
+					message = AsString(value);
+				}
+				
 				throw std::runtime_error(String("Server failed to execute command (")
-					+ "message: " + AsString(value["message"])
+					+ "message: " + message
 					+ ", status: " + response_status_code::ToString(status)
 					+ ", status_code: " + AsString((int)status)
 					+ ")"
 				);
 			}
-			if (!(status == response_status_code::kSuccess)) throw std::runtime_error("Non-zero response status code");
-			if (!(http_code == 200)) throw std::runtime_error("Unsupported HTTP code");
 
-			return TransformResponse(response);
+			Value res;
+			res = response;
+			return TransformResponse(res);
 		} catch (const std::exception& ex) {
 			throw std::runtime_error(String(ex.what()) + " - Context: "
 				+ "HTTP code: " + AsString(http_code)
@@ -224,9 +240,9 @@ public:
 
 private:
 	virtual Value TransformResponse(Value& response) const {
-		Value result;
-		Swap(response, result);
-		return result;
+		Value res;
+		res = response;
+		return res;
 	}
 };
 

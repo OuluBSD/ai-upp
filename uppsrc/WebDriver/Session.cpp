@@ -106,7 +106,7 @@ const Session& Session::SetFocusToParentFrame() const {
 }
 
 Vector<Window> Session::GetWindows() const {
-	ValueArray handles = resource_->GetValue<ValueArray>("window_handles");
+	ValueArray handles = resource_->GetValue<ValueArray>("window/handles");
 	Vector<Window> windows;
 	for (const auto& handle : handles) {
 		windows.Add(MakeWindow(handle));
@@ -115,7 +115,7 @@ Vector<Window> Session::GetWindows() const {
 }
 
 Window Session::GetCurrentWindow() const {
-	return MakeWindow(resource_->GetString("window_handle"));
+	return MakeWindow(resource_->GetString("window"));
 }
 
 const Session& Session::CloseCurrentWindow() const {
@@ -124,7 +124,7 @@ const Session& Session::CloseCurrentWindow() const {
 }
 
 const Session& Session::SetFocusToWindow(const String& window_name) const {
-	resource_->Post("window", "name", window_name);
+	resource_->Post("window", "handle", window_name);
 	return *this;
 }
 
@@ -152,21 +152,21 @@ const Session& Session::DeleteCookie(const String& name) const {
 }
 
 String Session::GetAlertText() const {
-	return resource_->GetString("alert_text");
+	return resource_->GetString("alert/text");
 }
 
 const Session& Session::SendKeysToAlert(const String& text) const {
-	resource_->Post("alert_text", "text", text);
+	resource_->Post("alert/text", "text", text);
 	return *this;
 }
 
 const Session& Session::AcceptAlert() const {
-	resource_->Post("accept_alert");
+	resource_->Post("alert/accept");
 	return *this;
 }
 
 const Session& Session::DismissAlert() const {
-	resource_->Post("dismiss_alert");
+	resource_->Post("alert/dismiss");
 	return *this;
 }
 
@@ -238,13 +238,6 @@ Window Session::MakeWindow(const String& handle) const {
 
 detail::Keyboard Session::GetKeyboard() const {
 	return detail::Keyboard();
-}
-
-template<typename T>
-void Session::InternalEval(const String& webdriver_command,
-	const String& script, const JsArgs& args,
-	T& result) const {
-	result = FromJson<T>(InternalEvalJsonValue(webdriver_command, script, args));
 }
 
 void Session::InternalEval(const String& webdriver_command,

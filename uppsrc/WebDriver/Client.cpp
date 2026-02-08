@@ -28,27 +28,6 @@ Vector<Session> Client::GetSessions() const {
 	return sessions;
 }
 
-Session Client::CreateSession(
-	const Capabilities& desired,
-	const Capabilities& required
-	) const {
-	ValueMap caps;
-	// Modern W3C format
-	ValueMap always_match = ToJson(desired);
-	ValueMap capabilities;
-	capabilities.Add("alwaysMatch", always_match);
-	caps.Add("capabilities", capabilities);
-	
-	// Legacy format for compatibility
-	caps.Add("desiredCapabilities", ToJson(desired));
-	caps.Add("requiredCapabilities", ToJson(required));
-
-	Value response = resource_->Post("session", caps);
-	String session_id = FromJson<String>(response["sessionId"]);
-
-	return MakeSession(session_id, detail::Resource::IS_OWNER);
-}
-
 Session Client::MakeSession(
 	const String& id,
 	detail::Resource::Ownership mode

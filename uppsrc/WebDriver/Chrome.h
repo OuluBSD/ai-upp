@@ -39,11 +39,22 @@ struct ChromeOptions : public Moveable<ChromeOptions> { // copyable
 	chrome::PerfLoggingPrefs perf_logging_prefs;
 	
 	void Jsonize(JsonIO& json) {
-		json("args", args)("binary", binary)("extensions", extensions)
-			 ("localState", local_state)("prefs", prefs)("detach", detach)
+		json("args", args)("extensions", extensions)
+			 ("detach", detach)
 			 ("debuggerAddress", debugger_address)("excludeSwitches", exclude_switches)
-			 ("minidumpPath", minidump_path)("mobileEmulation", mobile_emulation)
-			 ("perfLoggingPrefs", perf_logging_prefs);
+			 ("minidumpPath", minidump_path)("perfLoggingPrefs", perf_logging_prefs);
+		
+		if (json.IsStoring()) {
+			if (!binary.IsEmpty()) json.Set("binary", binary);
+			if (!local_state.IsVoid()) json.Set("localState", local_state);
+			if (!prefs.IsVoid()) json.Set("prefs", prefs);
+			if (!mobile_emulation.IsVoid()) json.Set("mobileEmulation", mobile_emulation);
+		} else {
+			binary = (String)json.Get("binary");
+			local_state = json.Get("localState");
+			prefs = json.Get("prefs");
+			mobile_emulation = json.Get("mobileEmulation");
+		}
 	}
 };
 

@@ -76,7 +76,7 @@ inline Value ToJson<double>(const double& value) {
 // Specialization for ValueArray
 template<>
 inline ValueArray FromJson<ValueArray>(const Value& value) {
-	return value.Is<ValueArray>() ? value.Get<ValueArray>() : ValueArray();
+	return value.Is<ValueArray>() ? ValueArray(value) : ValueArray();
 }
 
 template<>
@@ -87,7 +87,7 @@ inline Value ToJson<ValueArray>(const ValueArray& value) {
 // Specialization for ValueMap
 template<>
 inline ValueMap FromJson<ValueMap>(const Value& value) {
-	return value.Is<ValueMap>() ? value.Get<ValueMap>() : ValueMap();
+	return value.Is<ValueMap>() ? ValueMap(value) : ValueMap();
 }
 
 template<>

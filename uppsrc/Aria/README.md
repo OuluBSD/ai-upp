@@ -63,7 +63,15 @@ choco install selenium-all-drivers
 emerge --ask net-misc/geckodriver www-apps/chromedriver-bin
 ```
 
-### 3. Build from Source (U++)
+### 3. Starting Webdrivers
+Before running Aria, you need to start the appropriate webdriver server.
+
+**Firefox (geckodriver):**
+```bash
+geckodriver --port=4444
+```
+
+### 4. Build from Source (U++)
 This project is built using the `umk` utility or TheIDE.
 ```bash
 script/build.py -j 2 -mc 0 Aria

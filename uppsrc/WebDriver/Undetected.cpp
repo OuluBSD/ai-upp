@@ -9,25 +9,34 @@ String GetFirefoxInstallationPath() {
 #ifdef PLATFORM_POSIX
 	static const char* paths[] = {
 		"/usr/lib/firefox",
+		"/usr/lib64/firefox",
 		"/usr/lib/firefox-esr",
 		"/usr/lib/firefox-developer-edition",
 		"/usr/lib/firefox-nightly",
+		"/opt/firefox",
 	};
 	for (const char* p : paths) {
-		if (DirectoryExists(p) && FileExists(AppendFileName(p, "libxul.so"))) return p;
+		RLOG("WebDriver: Checking path: " << p);
+		if (DirectoryExists(p) && FileExists(AppendFileName(p, "libxul.so"))) {
+			RLOG("WebDriver: Found Firefox at: " << p);
+			return p;
+		}
 	}
 	
 	// Try to find via binary path
 	String out = TrimBoth(Sys("which firefox"));
+	RLOG("WebDriver: 'which firefox' returned: " << out);
 	if (!out.IsEmpty()) {
 		String real_path = out;
 		// Follow symlinks to find real installation
 		for (int i = 0; i < 10; i++) {
 			String link = GetSymLinkPath(real_path);
 			if (link.IsEmpty()) break;
+			RLOG("WebDriver: Following symlink: " << real_path << " -> " << link);
 			real_path = NormalizePath(link, GetFileFolder(real_path));
 		}
 		String dir = GetFileFolder(real_path);
+		RLOG("WebDriver: Checking dir of binary: " << dir);
 		if (FileExists(AppendFileName(dir, "libxul.so"))) return dir;
 		
 		// Some distros have 'firefox' as a script in /usr/bin, but libs in /usr/lib/firefox
@@ -35,16 +44,24 @@ String GetFirefoxInstallationPath() {
 		if (FileExists(AppendFileName(dir, "libxul.so"))) return dir;
 	}
 #endif
+	RLOG("WebDriver: Firefox installation path NOT FOUND");
 	return "";
 }
 
 String GetUndetectedFirefoxPath() {
+	String home_bin = GetHomeDirFile("bin");
+	String path_env = GetEnv("PATH");
+	if (DirectoryExists(home_bin) && path_env.Find(home_bin) >= 0) {
+		return AppendFileName(home_bin, "undetected_firefox");
+	}
 	return GetHomeDirFile(AppendFileName(".cache", "undetected_firefox"));
 }
 
 String PatchFirefoxBinary() {
 	String src = GetFirefoxInstallationPath();
 	String dst = GetUndetectedFirefoxPath();
+	
+	RLOG("WebDriver: PatchFirefoxBinary src=" << src << " dst=" << dst);
 	
 	if (src.IsEmpty()) {
 		RLOG("WebDriver: Warning: Could not find Firefox installation path. Binary patching skipped.");
@@ -74,13 +91,15 @@ String PatchFirefoxBinary() {
 		RLOG("WebDriver: Creating undetected Firefox copy in " + dst);
 		RealizeDirectory(dst);
 		
-		// Copy essential files only to avoid massive copies
-		static const char* essentials[] = { "firefox", "firefox-bin", "libxul.so", "omni.ja", "platform.ini", "dependentlibs.list" };
-		for (const char* e : essentials) {
-			String s_path = AppendFileName(src, e);
-			if (FileExists(s_path)) {
-				SaveFile(AppendFileName(dst, e), LoadFile(s_path));
-			}
+		// Use shell to copy everything recursively
+		String cmd = "cp -r " + src + "/* " + dst + "/";
+		RLOG("WebDriver: Executing " << cmd);
+		system(~cmd);
+		
+		// If only firefox-bin exists, copy it as firefox
+		if (!FileExists(AppendFileName(dst, "firefox")) && FileExists(AppendFileName(dst, "firefox-bin"))) {
+			RLOG("WebDriver: Copying firefox-bin to firefox");
+			SaveFile(AppendFileName(dst, "firefox"), LoadFile(AppendFileName(dst, "firefox-bin")));
 		}
 		
 		// Mark executable
@@ -89,6 +108,8 @@ String PatchFirefoxBinary() {
 		if (FileExists(AppendFileName(dst, "firefox-bin")))
 			chmod(AppendFileName(dst, "firefox-bin"), 0755);
 #endif
+	} else {
+		RLOG("WebDriver: Undetected Firefox already exists at " << dst_exe);
 	}
 	
 	if (FileExists(dst_xul)) {
@@ -103,6 +124,8 @@ String PatchFirefoxBinary() {
 			String replacement;
 			for (int i = 0; i < len; i++)
 				replacement.Cat('a' + Random(26));
+			
+			RLOG("WebDriver: Patching " << target << " with " << replacement << " in " << xul_name);
 				
 			while (pos >= 0) {
 				for (int i = 0; i < len; i++)
@@ -114,6 +137,7 @@ String PatchFirefoxBinary() {
 		}
 	}
 	
+	RLOG("WebDriver: Returning patched binary path: " << dst_exe);
 	return dst_exe;
 }
 

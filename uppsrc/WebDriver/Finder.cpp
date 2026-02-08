@@ -6,7 +6,7 @@ namespace detail {
 
 static String GetElementId(const Value& v) {
 	if (v.Is<ValueMap>()) {
-		const ValueMap& m = v.Get<ValueMap>();
+		ValueMap m = v;
 		int q = m.Find("element-6066-11e4-a52e-4f735466cecf");
 		if (q >= 0) return m.GetValue(q);
 		q = m.Find("ELEMENT");
@@ -34,7 +34,7 @@ Vector<Element> Finder::FindElements(const By& by) const {
 	Value response = resource_->Post("elements", ToJson(by));
 	Vector<Element> elements;
 	if (IsValueArray(response)) {
-		const ValueArray& arr = response.Get<ValueArray>();
+		ValueArray arr = response;
 		for (const auto& v : arr) {
 			String id = GetElementId(v);
 			elements.Add(Element(id, MakeSubResource(resource_, "element/" + id), Shared<IFinder_factory>(new Element_factory())));

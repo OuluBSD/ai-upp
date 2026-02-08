@@ -121,6 +121,12 @@ public:
 	void TakeDamage(int amount);
 	void AddScore(int points) { score += points; }
 	void SetPosition(float x, float y);
+
+	// Forced state (for level transitions)
+	void ForceGlideState() { parasolState = PARASOL_GLIDING; }
+	void ForceIdleState() { parasolState = PARASOL_IDLE; }
+	Pointf GetVelocity() const { return velocity; }
+	void SetVelocity(const Pointf& vel) { velocity = vel; }
 };
 
 // Input state structure

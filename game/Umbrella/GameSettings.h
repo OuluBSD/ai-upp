@@ -34,6 +34,11 @@ struct GameSettings {
 	static constexpr float LEVEL_COMPLETE_TREAT_TIMEOUT = 7.0f;  // Seconds to collect treats after all enemies killed
 	static constexpr float LEVEL_TRANSITION_SCROLL_SPEED = 200.0f;  // Pixels per second for level scroll
 	static constexpr float PLAYER_HOVER_HEIGHT = 50.0f;  // How high player hovers during transition
+	static constexpr float TRANSITION_HOVER_TIME = 1.0f;  // Seconds to hover before scrolling
+	static constexpr float TRANSITION_DROP_TIME = 0.5f;  // Seconds to drop into new level
+
+	// Debug/Development Settings
+	static constexpr bool SHOW_COMPLETION_MESSAGES = true;  // Show level completion countdown and messages
 
 	// TODO: Add other game settings here as they're identified:
 	// - Enemy AI parameters (speeds, jump heights, etc.)

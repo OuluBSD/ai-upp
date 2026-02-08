@@ -339,6 +339,7 @@ void GameScreen::GameTick(float delta) {
 				// Start transition sequence: hover -> scroll -> drop
 				SetGameState(TRANSITION_HOVER);
 				transitionOffset = 0.0f;
+				player.ForceGlideState();  // Open umbrella for hover
 				LOG("Starting transition to: " << nextLevelPath);
 			}
 		}
@@ -346,12 +347,18 @@ void GameScreen::GameTick(float delta) {
 
 	// Handle transition states
 	if(gameState == TRANSITION_HOVER) {
-		// Player hovers with umbrella for a moment
-		// TODO: Add umbrella animation and slight hover height
-		// For now, just transition to scroll after short delay
+		// Player hovers with umbrella
+		player.ForceGlideState();  // Keep umbrella open
+
+		// Apply slight upward hover (reduce gravity effect)
+		Pointf playerVel = player.GetVelocity();
+		if(playerVel.y < -50.0f) {  // If falling too fast
+			player.SetVelocity(Pointf(0, -50.0f));  // Slow fall to gentle hover
+		}
+
 		static float hoverTimer = 0.0f;
 		hoverTimer += delta;
-		if(hoverTimer >= 1.0f) {  // 1 second hover
+		if(hoverTimer >= GameSettings::TRANSITION_HOVER_TIME) {
 			hoverTimer = 0.0f;
 			SetGameState(TRANSITION_SCROLL);
 			LOG("Starting level scroll...");
@@ -360,6 +367,11 @@ void GameScreen::GameTick(float delta) {
 	else if(gameState == TRANSITION_SCROLL) {
 		// Scroll level horizontally to the left
 		transitionOffset += GameSettings::LEVEL_TRANSITION_SCROLL_SPEED * delta;
+
+		// Keep player hovering during scroll
+		player.ForceGlideState();
+		Pointf playerVel = player.GetVelocity();
+		player.SetVelocity(Pointf(0, -50.0f));  // Gentle hover
 
 		// When scrolled off screen, load new level
 		int levelWidth = levelColumns * gridSize;
@@ -372,19 +384,21 @@ void GameScreen::GameTick(float delta) {
 			// Reset completion state
 			allEnemiesKilled = false;
 			levelCompleteTimer = 0.0f;
+			transitionOffset = 0.0f;  // Reset scroll offset
 
 			// Start drop transition
 			SetGameState(TRANSITION_DROP);
+			player.ForceIdleState();  // Close umbrella
 			LOG("Player dropping into new level...");
 		}
 	}
 	else if(gameState == TRANSITION_DROP) {
 		// Player drops into new level
-		// TODO: Add umbrella close animation
-		// For now, just return to playing
+		player.ForceIdleState();  // Keep umbrella closed
+
 		static float dropTimer = 0.0f;
 		dropTimer += delta;
-		if(dropTimer >= 0.5f) {  // 0.5 second drop
+		if(dropTimer >= GameSettings::TRANSITION_DROP_TIME) {
 			dropTimer = 0.0f;
 			SetGameState(PLAYING);
 			LOG("Transition complete! Playing new level.");
@@ -570,12 +584,19 @@ void GameScreen::UpdateCamera(Point targetPos) {
 	cameraOffset.x = targetPos.x - viewWidth / 2;
 	cameraOffset.y = targetPos.y - viewHeight / 2;
 
-	// Clamp to level bounds
-	int levelWidth = levelColumns * gridSize;
-	int levelHeight = levelRows * gridSize;
+	// Apply transition offset during level scroll
+	if(gameState == TRANSITION_SCROLL) {
+		cameraOffset.x -= (int)transitionOffset;
+	}
 
-	cameraOffset.x = max(0, min(cameraOffset.x, levelWidth - viewWidth));
-	cameraOffset.y = max(0, min(cameraOffset.y, levelHeight - viewHeight));
+	// Clamp to level bounds (skip during transition)
+	if(gameState != TRANSITION_SCROLL) {
+		int levelWidth = levelColumns * gridSize;
+		int levelHeight = levelRows * gridSize;
+
+		cameraOffset.x = max(0, min(cameraOffset.x, levelWidth - viewWidth));
+		cameraOffset.y = max(0, min(cameraOffset.y, levelHeight - viewHeight));
+	}
 }
 
 Point GameScreen::WorldToScreen(Point worldPos) {
@@ -924,6 +945,8 @@ void GameScreen::RenderGameOverScreen(Draw& w) {
 }
 
 void GameScreen::RenderLevelCompleteScreen(Draw& w) {
+	if(!GameSettings::SHOW_COMPLETION_MESSAGES) return;  // Skip if disabled
+
 	Size sz = GetSize();
 
 	// Just show overlay text at top of screen - game continues underneath

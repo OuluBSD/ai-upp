@@ -5,6 +5,52 @@
 
 NAMESPACE_UPP
 
+namespace wait {
+
+struct ElementPresent {
+	By by;
+	ElementPresent(const By& by) : by(by) {}
+	bool operator()(const Session& s) const {
+		try {
+			s.FindElement(by);
+			return true;
+		} catch (...) {
+			return false;
+		}
+	}
+};
+
+struct ElementVisible {
+	By by;
+	ElementVisible(const By& by) : by(by) {}
+	bool operator()(const Session& s) const {
+		try {
+			Element e = s.FindElement(by);
+			return e.IsDisplayed();
+		} catch (...) {
+			return false;
+		}
+	}
+};
+
+struct UrlContains {
+	String text;
+	UrlContains(const String& text) : text(text) {}
+	bool operator()(const Session& s) const {
+		return s.GetUrl().Find(text) >= 0;
+	}
+};
+
+struct TitleIs {
+	String title;
+	TitleIs(const String& title) : title(title) {}
+	bool operator()(const Session& s) const {
+		return s.GetTitle() == title;
+	}
+};
+
+} // namespace wait
+
 template<typename T>
 bool WaitUntilMatches(
 	const T& condition,

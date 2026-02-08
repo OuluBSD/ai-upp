@@ -12,6 +12,7 @@ public:
 	
 	bool Navigate();
 	bool Refresh(bool deep = false);
+	ValueArray ScrapeFeed();
 };
 
 #endif

@@ -124,17 +124,6 @@ bool TreeCtrl::Access(Visitor& v)
 				String unique_id = Format("Item_%d", i);
 				if(!label.IsEmpty()) unique_id << "_" << label;
 				
-				// Flatten tree for automation to avoid deep nesting issues
-				String path = label;
-				int p = item[i].parent;
-				while(p >= 0) {
-					String pl = AsString(item[p].value);
-					if(pl.IsEmpty()) pl = Format("Item_%d", p);
-					path = pl + "/" + path;
-					p = item[p].parent;
-				}
-				if(!path.IsEmpty()) unique_id << " (" << path << ")";
-
 				int id = i;
 				b.AccessMenu(unique_id, [this, id](Visitor& n) {
 					n.AccessOption(item[id].isopen, "Open", [this, id] {

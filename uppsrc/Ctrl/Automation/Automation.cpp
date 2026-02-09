@@ -10,6 +10,7 @@ PY_DATA_BEGIN(AutomationElement)
     if(name == "value") return PyValue::FromValue(val.value);
     if(name == "checked") return PyValue(val.checked);
     if(name == "enabled") return PyValue(val.enabled);
+    if(name == "visible") return PyValue(val.visible);
 PY_DATA_END
 
 static PyValue AutomationElement_Ctor(const Vector<PyValue>& args, void* user_data) {
@@ -19,9 +20,10 @@ static PyValue AutomationElement_Ctor(const Vector<PyValue>& args, void* user_da
 static PyValue AutomationElement_click(const Vector<PyValue>& args, void*) {
     PY_SELF(AutomationElement);
     GuiAutomationVisitor vis;
+    vis.include_hidden = self.visible == false; // If we specifically want to click a hidden element, allow walking to it
     Vector<Ctrl *> top = Ctrl::GetTopCtrls();
     for(Ctrl *c : top) {
-        if(c->IsVisible()) {
+        if(c->IsVisible() || vis.include_hidden) {
             if(vis.Write(*c, self.path, ::Upp::Value(), true))
                 return PyValue(true);
         }
@@ -34,9 +36,10 @@ static PyValue AutomationElement_set(const Vector<PyValue>& args, void*) {
     if(args.GetCount() < 2) return PyValue(false);
     ::Upp::Value val = args[1].ToValue();
     GuiAutomationVisitor vis;
+    vis.include_hidden = self.visible == false;
     Vector<Ctrl *> top = Ctrl::GetTopCtrls();
     for(Ctrl *c : top) {
-        if(c->IsVisible()) {
+        if(c->IsVisible() || vis.include_hidden) {
             if(vis.Write(*c, self.path, val, false))
                 return PyValue(true);
         }
@@ -47,11 +50,13 @@ static PyValue AutomationElement_set(const Vector<PyValue>& args, void*) {
 static PyValue builtin_find(const Vector<PyValue>& args, void*) {
     if(args.GetCount() < 1) return PyValue::None();
     String path = args[0].ToString();
+    bool include_hidden = args.GetCount() >= 2 ? args[1].IsTrue() : false;
     
     GuiAutomationVisitor vis;
+    vis.include_hidden = include_hidden;
     Vector<Ctrl*> top = Ctrl::GetTopCtrls();
     for(Ctrl *c : top) {
-        if(c->IsVisible()) {
+        if(c->IsVisible() || include_hidden) {
             vis.Read(*c);
             for(const auto& el : vis.elements) {
                 if(el.path == path || el.text == path) {
@@ -64,14 +69,16 @@ static PyValue builtin_find(const Vector<PyValue>& args, void*) {
 }
 
 static PyValue builtin_dump_ui(const Vector<PyValue>& args, void*) {
+    bool include_hidden = args.GetCount() >= 1 ? args[0].IsTrue() : false;
     GuiAutomationVisitor vis;
+    vis.include_hidden = include_hidden;
     Vector<Ctrl*> top = Ctrl::GetTopCtrls();
     String res;
     for(Ctrl *c : top) {
-        if(c->IsVisible()) {
+        if(c->IsVisible() || include_hidden) {
             vis.Read(*c);
             for(const auto& el : vis.elements) {
-                res << el.path << " = " << el.value << (el.is_menu ? " (menu)" : "") << "\n";
+                res << el.path << " = " << el.value << (el.is_menu ? " (menu)" : "") << (el.visible ? "" : " (hidden)") << "\n";
             }
         }
     }
@@ -107,13 +114,16 @@ static PyValue builtin_mock_ai(const Vector<PyValue>& args, void*) {
 
 static PyValue builtin_find_all(const Vector<PyValue>& args, void*) {
     String parent_path = "";
+    bool include_hidden = false;
     if(args.GetCount() >= 1) parent_path = args[0].ToString();
+    if(args.GetCount() >= 2) include_hidden = args[1].IsTrue();
     
     GuiAutomationVisitor vis;
+    vis.include_hidden = include_hidden;
     Vector<Ctrl*> top = Ctrl::GetTopCtrls();
     PyValue list = PyValue::List();
     for(Ctrl *c : top) {
-        if(c->IsVisible()) {
+        if(c->IsVisible() || include_hidden) {
             vis.Read(*c);
             for(const auto& el : vis.elements) {
                 if(parent_path.IsEmpty() || el.path.StartsWith(parent_path + "/")) {

@@ -28,6 +28,26 @@ void ThreadsCtrl::InitList(ArrayCtrl& list) {
 	list.AddColumn("Content", 4);
 }
 
+void ThreadsCtrl::RefreshSubTab(int tab_index) {
+	if (!navigator || !site_manager) return;
+	
+	ThreadsScraper scraper(*navigator, *site_manager);
+	try {
+		bool success = false;
+		if (tab_index == 0) { // Feed
+			success = scraper.RefreshFeed();
+		} else {
+			// Other tabs not fully implemented for partial refresh yet
+			success = scraper.Refresh(false); 
+		}
+		
+		if (success) LoadData();
+		else AriaAlert("Threads refresh failed. Check logs.");
+	} catch (const std::exception& e) {
+		AriaAlert("Error refreshing Threads tab: " + String(e.what()));
+	}
+}
+
 void ThreadsCtrl::Scrape() {
 	if (!navigator || !site_manager) return;
 	

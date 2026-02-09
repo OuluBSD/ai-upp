@@ -106,6 +106,15 @@ private:
 	ParentCtrl entitiesPanel;
 	ParentCtrl propertiesPanel;
 
+	// Properties Panel Controls
+	Label mapSizeLabel;
+	Label mapColsLabel, mapRowsLabel;
+	EditIntSpin mapColsSpin, mapRowsSpin;
+	Button applyMapSizeBtn;
+
+	// Recent files
+	Vector<String> recentFiles;
+
 	// Tools Panel Controls
 	Label toolsLabel;
 	Label brushSizeLabel;
@@ -170,7 +179,12 @@ public:
 	void SetupToolBar();
 	void SetupToolsPanel();
 	void SetupLayersPanel();
+	void SetupPropertiesPanel();
 	void RefreshLayersList();
+	void LoadRecentFiles();
+	void SaveRecentFiles();
+	void AddRecentFile(const String& filePath);
+	void OpenRecentFile(int index);
 
 	// Event Handlers
 	virtual bool Key(dword key, int) override;
@@ -186,6 +200,7 @@ public:
 	void ZoomOutAction();
 	void ResetZoomAction();
 	void PlaytestAction();
+	void ApplyMapSizeAction();
 };
 
 #endif

@@ -153,6 +153,138 @@ static PyValue py_add_player_score(const Vector<PyValue>& args, void* user_data)
 }
 
 // ============================================================================
+// Python API Functions - Enemy Management
+// ============================================================================
+
+// Python API: get_enemy_count() -> int
+static PyValue py_get_enemy_count(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) {
+		return PyValue::None();
+	}
+
+	int count = bridge->GetGameScreen()->enemies.GetCount();
+	return PyValue((int64)count);
+}
+
+// Python API: get_enemy(index) -> dict {position, type, alive, active, captured, facing}
+static PyValue py_get_enemy(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) {
+		return PyValue::None();
+	}
+
+	if(args.GetCount() < 1) {
+		LOG("ERROR: get_enemy requires 1 argument (index)");
+		return PyValue::None();
+	}
+
+	int index = (int)args[0].AsInt();
+	const Array<Enemy*>& enemies = bridge->GetGameScreen()->enemies;
+
+	if(index < 0 || index >= enemies.GetCount()) {
+		LOG("ERROR: get_enemy index out of range: " << index);
+		return PyValue::None();
+	}
+
+	const Enemy* enemy = enemies[index];
+	if(!enemy) {
+		return PyValue::None();
+	}
+
+	// Create dict with enemy data
+	PyValue result = PyValue::Dict();
+	Rectf bounds = enemy->GetBounds();
+	float centerX = bounds.left + bounds.Width() / 2.0f;
+	float centerY = bounds.top + bounds.Height() / 2.0f;
+
+	// Position as list [x, y]
+	Vector<PyValue> pos;
+	pos.Add(PyValue((double)centerX));
+	pos.Add(PyValue((double)centerY));
+	result.SetItem(PyValue("position"), PyValue::FromVector(pos));
+
+	// Type as string
+	String typeStr;
+	switch(enemy->GetType()) {
+		case ENEMY_PATROLLER: typeStr = "PATROLLER"; break;
+		case ENEMY_JUMPER: typeStr = "JUMPER"; break;
+		case ENEMY_SHOOTER: typeStr = "SHOOTER"; break;
+	}
+	result.SetItem(PyValue("type"), PyValue(typeStr.ToStd()));
+
+	// States
+	result.SetItem(PyValue("alive"), PyValue(enemy->IsAlive()));
+	result.SetItem(PyValue("active"), PyValue(enemy->IsActive()));
+	result.SetItem(PyValue("captured"), PyValue(enemy->IsCaptured()));
+	result.SetItem(PyValue("thrown"), PyValue(enemy->IsThrown()));
+	result.SetItem(PyValue("facing"), PyValue((int64)enemy->GetFacing()));
+
+	return result;
+}
+
+// Python API: get_all_enemies() -> list of dicts
+static PyValue py_get_all_enemies(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) {
+		return PyValue::None();
+	}
+
+	const Array<Enemy*>& enemies = bridge->GetGameScreen()->enemies;
+	Vector<PyValue> result;
+
+	for(int i = 0; i < enemies.GetCount(); i++) {
+		Vector<PyValue> indexArg;
+		indexArg.Add(PyValue((int64)i));
+		PyValue enemyData = py_get_enemy(indexArg, user_data);
+		if(!enemyData.IsNone()) {
+			result.Add(enemyData);
+		}
+	}
+
+	return PyValue::FromVector(result);
+}
+
+// Python API: kill_enemy(index)
+static PyValue py_kill_enemy(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) {
+		return PyValue::None();
+	}
+
+	if(args.GetCount() < 1) {
+		LOG("ERROR: kill_enemy requires 1 argument (index)");
+		return PyValue::None();
+	}
+
+	int index = (int)args[0].AsInt();
+	Array<Enemy*>& enemies = bridge->GetGameScreen()->enemies;
+
+	if(index < 0 || index >= enemies.GetCount()) {
+		LOG("ERROR: kill_enemy index out of range: " << index);
+		return PyValue::None();
+	}
+
+	Enemy* enemy = enemies[index];
+	if(enemy) {
+		enemy->Kill();
+	}
+
+	return PyValue::None();
+}
+
+// Python API: clear_enemies()
+static PyValue py_clear_enemies(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) {
+		return PyValue::None();
+	}
+
+	bridge->GetGameScreen()->ClearEnemies();
+	return PyValue::None();
+}
+
+// ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
 
@@ -184,6 +316,20 @@ void GameScriptBridge::RegisterGameAPI() {
 		PyValue::Function("set_player_velocity", py_set_player_velocity, this);
 	globals.GetAdd("add_player_score") =
 		PyValue::Function("add_player_score", py_add_player_score, this);
+
+	// Enemy query functions
+	globals.GetAdd("get_enemy_count") =
+		PyValue::Function("get_enemy_count", py_get_enemy_count, this);
+	globals.GetAdd("get_enemy") =
+		PyValue::Function("get_enemy", py_get_enemy, this);
+	globals.GetAdd("get_all_enemies") =
+		PyValue::Function("get_all_enemies", py_get_all_enemies, this);
+
+	// Enemy manipulation functions
+	globals.GetAdd("kill_enemy") =
+		PyValue::Function("kill_enemy", py_kill_enemy, this);
+	globals.GetAdd("clear_enemies") =
+		PyValue::Function("clear_enemies", py_clear_enemies, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

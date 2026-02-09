@@ -61,11 +61,9 @@ void DebugWorkspace::OnRun() {
 		};
 		
 		dbg->WhenStack = [=](const Vector<StackFrame>& s) {
-			if(WhenLog) WhenLog("Debugger: Received stack trace, count=" + AsString(s.GetCount()));
 			call_stack.Clear();
 			int root = call_stack.Add(0, CtrlImg::Dir(), "Call Stack");
 			for(const auto& f : s) {
-				if(WhenLog) WhenLog("  Frame: " + f.ToString());
 				call_stack.Add(root, CtrlImg::Dir(), f.ToString());
 			}
 			call_stack.OpenDeep(0);

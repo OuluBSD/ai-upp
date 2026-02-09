@@ -70,6 +70,7 @@ void GuiAutomationVisitor::Read(Ctrl& c)
 
 void GuiAutomationVisitor::Walk(Ctrl& c)
 {
+	if(found && write_mode) return;
 	if(!c.IsVisible()) return;
 	
 	::Upp::String old_path = current_path;

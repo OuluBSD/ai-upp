@@ -1,4 +1,5 @@
 #include "Maestro.h"
+#include <Ctrl/Automation/Automation.h>
 
 namespace Upp {
 
@@ -74,6 +75,11 @@ void GdbService::ParseLine(const String& line) {
 	
 	if(line.StartsWith("*stopped")) {
 		if(WhenPaused) WhenPaused();
+		if(line.Find("signal-name=\"SIGSEGV\"") >= 0) {
+			crash_detected = true;
+		} else {
+			crash_detected = false;
+		}
 		SendCommand("-stack-list-frames");
 	}
 
@@ -108,6 +114,12 @@ void GdbService::ParseLine(const String& line) {
 		}
 		
 		if(WhenStack) WhenStack(stack);
+		
+		// Trigger event AFTER the stack has been updated (WhenStack is synchronous)
+		if(crash_detected) {
+			TriggerEvent("crash");
+			crash_detected = false;
+		}
 	}
 }
 

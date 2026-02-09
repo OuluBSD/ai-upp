@@ -26,6 +26,7 @@ void TestCommand::Execute(const Vector<String>& args) {
 		
 		PyVM vm;
 		RegisterAutomationBindings(vm);
+		SetCurrentVM(&vm);
 		
 		Tokenizer tk;
 		tk.SkipComments();
@@ -40,6 +41,8 @@ void TestCommand::Execute(const Vector<String>& args) {
 
 		vm.SetIR(ir);
 		vm.Run();
+		
+		SetCurrentVM(nullptr);
 		
 		Cout() << "✓ Test completed successfully.\n";
 	} catch (Exc& e) {

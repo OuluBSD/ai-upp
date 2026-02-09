@@ -104,11 +104,68 @@ static PyValue builtin_wait_time(const Vector<PyValue>& args, void*) {
 static AddMockFn sAddMock = nullptr;
 void SetAddMockFn(AddMockFn fn) { sAddMock = fn; }
 
+// Event System
+static PyVM* sCurrentVM = nullptr;
+static VectorMap<String, Vector<PyValue>> sEventHandlers;
+
+void SetCurrentVM(PyVM* vm) {
+	sCurrentVM = vm;
+	sEventHandlers.Clear();
+}
+
+static PyValue builtin_bind_event(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue::None();
+	String event = args[0].ToString();
+	PyValue callback = args[1];
+	if(!callback.IsFunction() && !callback.IsBoundMethod()) return PyValue::None(); // Basic check
+	
+	sEventHandlers.GetAdd(event).Add(callback);
+	return PyValue::None();
+}
+
+void TriggerEvent(const String& event) {
+	int q = sEventHandlers.Find(event);
+	if(q >= 0 && sCurrentVM) {
+		const Vector<PyValue>& handlers = sEventHandlers[q];
+		for(const PyValue& h : handlers) {
+			PyVM temp_vm;
+			// Copy globals to share environment state (variables, modules)
+			// Note: This is a shallow copy of the map, but PyValue objects are refcounted.
+			// Updates to existing mutable objects (lists/dicts) will be shared.
+			// New global variables defined in callback won't persist to main VM.
+			const auto& src_globals = sCurrentVM->GetGlobals();
+			auto& dst_globals = temp_vm.GetGlobals();
+			for(int i = 0; i < src_globals.GetCount(); i++)
+				dst_globals.Add(src_globals.GetKey(i), src_globals[i]);
+			
+			Vector<PyIR> ir;
+			ir.Add(PyIR(PY_LOAD_CONST, h));
+			ir.Add(PyIR(PY_CALL_FUNCTION, 0, 0));
+			ir.Add(PyIR(PY_POP_TOP));
+			ir.Add(PyIR(PY_LOAD_CONST, PyValue::None()));
+			ir.Add(PyIR(PY_RETURN_VALUE));
+			
+			try {
+				temp_vm.SetIR(ir);
+				temp_vm.Run();
+			} catch(const Exc& e) {
+				Cout() << "Error in event handler '" << event << "': " << e << "\n";
+			}
+		}
+	}
+}
+
 static PyValue builtin_mock_ai(const Vector<PyValue>& args, void*) {
     if(args.GetCount() < 2) return PyValue::None();
     String regex = args[0].ToString();
     String response = args[1].ToString();
     if(sAddMock) sAddMock(regex, response);
+    return PyValue::None();
+}
+
+static PyValue builtin_exit(const Vector<PyValue>& args, void*) {
+    int code = args.GetCount() >= 1 ? (int)args[0].AsInt64() : 0;
+    _exit(code);
     return PyValue::None();
 }
 
@@ -144,6 +201,8 @@ void RegisterAutomationBindings(PyVM& vm) {
     globals.GetAdd(PyValue("wait_ready")) = PyValue::Function("wait_ready", builtin_wait_ready);
     globals.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
     globals.GetAdd(PyValue("mock_ai")) = PyValue::Function("mock_ai", builtin_mock_ai);
+    globals.GetAdd(PyValue("bind_event")) = PyValue::Function("bind_event", builtin_bind_event);
+    globals.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
     
     globals.GetAdd(PyValue("AutomationElement")) = PyValue::Function("AutomationElement", AutomationElement_Ctor);
     PyValue& current_class_dict = PyAutomationElement::GetClassDict();

@@ -3,6 +3,7 @@
 
 #include "LayerManager.h"
 #include "Droplet.h"
+#include "Enemy.h"
 
 using namespace Upp;
 
@@ -13,6 +14,9 @@ public:
 
 	// Load droplet spawn points from JSON file
 	static bool LoadDropletSpawns(const String& filePath, Array<DropletSpawnPoint>& spawns);
+
+	// Load enemy spawn points from JSON file
+	static bool LoadEnemySpawns(const String& filePath, Array<EnemySpawnPoint>& spawns);
 
 	// Save map to JSON file (future)
 	static bool SaveToFile(const String& filePath, const LayerManager& layerMgr);

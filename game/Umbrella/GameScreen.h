@@ -69,6 +69,7 @@ public:  // Public for testing
 	// Droplets (collectible water drops)
 	Array<class Droplet*> droplets;
 	Array<DropletSpawnPoint> dropletSpawns;  // Spawn points from level data
+	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
 
 	// Input tracking

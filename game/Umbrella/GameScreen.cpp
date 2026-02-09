@@ -73,6 +73,10 @@ bool GameScreen::LoadLevel(const String& path) {
 	dropletSpawns.Clear();
 	MapSerializer::LoadDropletSpawns(path, dropletSpawns);
 
+	// Load enemy spawn points
+	enemySpawns.Clear();
+	MapSerializer::LoadEnemySpawns(path, enemySpawns);
+
 	Title("Umbrella - " + GetFileName(path));
 	return true;
 }
@@ -1224,11 +1228,43 @@ void GameScreen::ClearEnemies() {
 void GameScreen::SpawnEnemies() {
 	ClearEnemies();
 
-	// Spawn mixed enemy types at various positions
-	// For now, spawn enemies manually at reasonable positions
-	// Later this could be data-driven from map files
+	// Use enemy spawn points from level data if available
+	if(enemySpawns.GetCount() > 0) {
+		LOG("Spawning " << enemySpawns.GetCount() << " enemies from spawn points");
 
-	if(levelColumns > 10 && levelRows > 5) {
+		for(int i = 0; i < enemySpawns.GetCount(); i++) {
+			const EnemySpawnPoint& spawn = enemySpawns[i];
+
+			// Calculate spawn position (use gridSize from level)
+			float spawnX = spawn.col * gridSize;
+			float spawnY = spawn.row * gridSize;
+
+			// Create enemy based on type
+			Enemy* enemy = nullptr;
+			switch(spawn.type) {
+				case ENEMY_PATROLLER:
+					enemy = new EnemyPatroller(spawnX, spawnY);
+					break;
+				case ENEMY_JUMPER:
+					enemy = new EnemyJumper(spawnX, spawnY);
+					break;
+				case ENEMY_SHOOTER:
+					enemy = new EnemyShooter(spawnX, spawnY);
+					break;
+			}
+
+			if(enemy) {
+				enemies.Add(enemy);
+				LOG("Spawned " << (spawn.type == ENEMY_PATROLLER ? "Patroller" :
+				                    spawn.type == ENEMY_JUMPER ? "Jumper" : "Shooter")
+				    << " at (" << spawn.col << ", " << spawn.row << ")");
+			}
+		}
+	}
+	// Fallback: Use hardcoded spawning if no spawn points defined
+	else if(levelColumns > 10 && levelRows > 5) {
+		LOG("No enemy spawn points found, using fallback spawning");
+
 		// Spawn patroller at column 8, looking for ground
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(8, row)) {
@@ -1259,18 +1295,6 @@ void GameScreen::SpawnEnemies() {
 			}
 		}
 
-		// Spawn jumper at column 30
-		if(levelColumns > 30) {
-			for(int row = levelRows - 3; row >= 1; row--) {
-				if(IsFloorTile(30, row)) {
-					int spawnX = 30 * gridSize;
-					int spawnY = (row + 1) * gridSize;
-					enemies.Add(new EnemyJumper((float)spawnX, (float)spawnY));
-					break;
-				}
-			}
-		}
-
 		// Spawn shooter at column 12
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(12, row)) {
@@ -1278,18 +1302,6 @@ void GameScreen::SpawnEnemies() {
 				int spawnY = (row + 1) * gridSize;
 				enemies.Add(new EnemyShooter((float)spawnX, (float)spawnY));
 				break;
-			}
-		}
-
-		// Spawn shooter at column 25
-		if(levelColumns > 25) {
-			for(int row = levelRows - 3; row >= 1; row--) {
-				if(IsFloorTile(25, row)) {
-					int spawnX = 25 * gridSize;
-					int spawnY = (row + 1) * gridSize;
-					enemies.Add(new EnemyShooter((float)spawnX, (float)spawnY));
-					break;
-				}
 			}
 		}
 	}

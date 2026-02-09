@@ -7,6 +7,9 @@
 #include "MapSerializer.h"
 #include "BrushTool.h"
 #include "FillTool.h"
+#include "EntityPlacementTool.h"
+#include "Enemy.h"
+#include "Droplet.h"
 
 using namespace Upp;
 
@@ -69,7 +72,9 @@ public:
 		TOOL_BRUSH,
 		TOOL_ERASER,
 		TOOL_FILL,
-		TOOL_SELECT
+		TOOL_SELECT,
+		TOOL_ENEMY_PLACEMENT,
+		TOOL_DROPLET_PLACEMENT
 	};
 
 private:
@@ -82,7 +87,13 @@ private:
 	// Editing tools
 	BrushTool brushTool;
 	FillTool fillTool;
+	EnemyPlacementTool enemyTool;
+	DropletPlacementTool dropletTool;
 	EditTool currentTool;
+
+	// Spawn point data
+	Array<EnemySpawnPoint> enemySpawns;
+	Array<DropletSpawnPoint> dropletSpawns;
 
 	// UI Components
 	MenuBar mainMenuBar;
@@ -142,8 +153,12 @@ public:
 	const String& GetCurrentFilePath() const { return currentFilePath; }
 	BrushTool& GetBrushTool() { return brushTool; }
 	FillTool& GetFillTool() { return fillTool; }
+	EnemyPlacementTool& GetEnemyTool() { return enemyTool; }
+	DropletPlacementTool& GetDropletTool() { return dropletTool; }
 	EditTool GetCurrentTool() const { return currentTool; }
 	void SetCurrentTool(EditTool tool) { currentTool = tool; }
+	Array<EnemySpawnPoint>& GetEnemySpawns() { return enemySpawns; }
+	Array<DropletSpawnPoint>& GetDropletSpawns() { return dropletSpawns; }
 
 	// UI Setup
 	virtual void DockInit() override;

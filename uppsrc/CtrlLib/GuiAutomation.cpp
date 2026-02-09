@@ -84,21 +84,24 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 	// Ensure elements added during Access have the correct path prefix if not already set
 	for(int i = n0; i < n1; i++) {
 		elements[i].visible = is_visible;
+		// If the element's path is just its text, prefix it with current_path
 		if(!old_path.IsEmpty() && !elements[i].path.StartsWith(old_path)) {
 			String p = old_path;
-			if(!elements[i].text.IsEmpty()) {
-				p << "/" << elements[i].text;
-			}
+			if(elements[i].path.GetCount() && elements[i].path[0] != '/')
+				p << "/";
+			p << elements[i].path;
 			elements[i].path = p;
 		}
 	}
 
-	// Scoping logic:
+	// Scoping for children
 	if(n1 > n0) {
-		// If elements were added, use the first one's path as a scoping prefix for children.
-		// (Assuming it's a container label like 'Tree' or 'CallStack')
-		current_path = elements[n0].path;
-	} else if(n1 == n0) {
+		// If elements were added, use the last one's path as prefix for children if it's a menu
+		// or just use old_path if it's a leaf container.
+		// For MenuBars/ToolBars, we usually want the items to be children of the Bar.
+		if (elements[n0].is_menu)
+			current_path = elements[n0].path;
+	} else {
 		// If no element was added, use Ctrl's LayoutId as prefix if present
 		String l = c.GetLayoutId();
 		if(!l.IsEmpty()) {

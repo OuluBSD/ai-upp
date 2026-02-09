@@ -12,12 +12,9 @@ Bar::Item& AutomationBar::Item::Text(const char *text) {
 	}
 
 	if(v.write_mode) {
-		RLOG("MATCH CHECK: " << el.path << " vs " << v.target_path);
 		if(el.path == v.target_path) {
-			RLOG("MATCH FOUND!");
 			v.found = true;
 			if(v.target_action && callback) {
-				RLOG("CALLING CALLBACK");
 				callback();
 			}
 		}
@@ -77,8 +74,6 @@ void GuiAutomationVisitor::Read(Ctrl& c)
 void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 {
 	if(found && write_mode) return;
-	
-	RLOG("VISITING: " << typeid(c).name() << " " << c.GetLayoutId() << " " << (void*)&c);
 	
 	bool is_visible = parent_visible && c.IsVisible();
 	if(!is_visible && !include_hidden) return;

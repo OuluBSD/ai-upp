@@ -1,5 +1,8 @@
 #include "Maestro.h"
+
+#ifdef flagGUI
 #include <Ctrl/Automation/Automation.h>
+#endif
 
 namespace Upp {
 
@@ -117,7 +120,9 @@ void GdbService::ParseLine(const String& line) {
 		
 		// Trigger event AFTER the stack has been updated (WhenStack is synchronous)
 		if(crash_detected) {
+#ifdef flagGUI
 			TriggerEvent("crash");
+#endif
 			crash_detected = false;
 		}
 	}

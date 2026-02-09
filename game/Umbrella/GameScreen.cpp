@@ -18,6 +18,7 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 
 	zoom = 2.0f;
 	cameraOffset = Point(0, 0);
+	cameraMode = CAMERA_FIXED;  // Default: fixed camera with level centered
 	accumulator = 0.0;
 	gameState = PLAYING;
 	levelCompleteTimer = 0.0f;
@@ -699,26 +700,42 @@ void GameScreen::GameTick(float delta) {
 
 void GameScreen::UpdateCamera(Point targetPos) {
 	Size screenSize = GetSize();
-
-	// Calculate camera bounds (center on target)
 	int viewWidth = screenSize.cx / zoom;
 	int viewHeight = screenSize.cy / zoom;
+	int levelWidth = levelColumns * gridSize;
+	int levelHeight = levelRows * gridSize;
 
-	cameraOffset.x = targetPos.x - viewWidth / 2;
-	cameraOffset.y = targetPos.y - viewHeight / 2;
+	if(cameraMode == CAMERA_FIXED) {
+		// Fixed camera: center level horizontally and vertically
+		// If level is smaller than view, center it (negative offset pushes level right/down)
+		// If level is larger than view, show from top-left (offset 0,0)
+		if(levelWidth < viewWidth) {
+			cameraOffset.x = -(viewWidth - levelWidth) / 2;  // Negative to center smaller level
+		} else {
+			cameraOffset.x = 0;  // Show from left edge
+		}
+
+		if(levelHeight < viewHeight) {
+			cameraOffset.y = -(viewHeight - levelHeight) / 2;  // Negative to center smaller level
+		} else {
+			cameraOffset.y = 0;  // Show from top edge
+		}
+	}
+	else {
+		// Follow player (classic platformer)
+		cameraOffset.x = targetPos.x - viewWidth / 2;
+		cameraOffset.y = targetPos.y - viewHeight / 2;
+
+		// Clamp to level bounds (skip during transition)
+		if(gameState != TRANSITION_SCROLL) {
+			cameraOffset.x = max(0, min(cameraOffset.x, levelWidth - viewWidth));
+			cameraOffset.y = max(0, min(cameraOffset.y, levelHeight - viewHeight));
+		}
+	}
 
 	// Apply transition offset during level scroll (scroll right to move level left)
 	if(gameState == TRANSITION_SCROLL) {
 		cameraOffset.x += (int)transitionOffset;
-	}
-
-	// Clamp to level bounds (skip during transition)
-	if(gameState != TRANSITION_SCROLL) {
-		int levelWidth = levelColumns * gridSize;
-		int levelHeight = levelRows * gridSize;
-
-		cameraOffset.x = max(0, min(cameraOffset.x, levelWidth - viewWidth));
-		cameraOffset.y = max(0, min(cameraOffset.y, levelHeight - viewHeight));
 	}
 }
 
@@ -984,6 +1001,14 @@ bool GameScreen::Key(dword key, int) {
 				return true;
 			}
 			break;
+
+		case K_C:
+			// Toggle camera mode (only when not K_KEYUP)
+			if(!(key & K_KEYUP)) {
+				cameraMode = (cameraMode == CAMERA_FIXED) ? CAMERA_FOLLOW : CAMERA_FIXED;
+				LOG("Camera mode: " << (cameraMode == CAMERA_FIXED ? "FIXED" : "FOLLOW"));
+			}
+			return true;
 
 		// Movement keys (only work when playing)
 		case K_LEFT:

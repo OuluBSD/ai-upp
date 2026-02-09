@@ -44,7 +44,7 @@ public:
 	virtual ~BarPane();
 };
 
-class Bar : public Ctrl, public Visitor {
+class Bar : public Ctrl, virtual public Visitor {
 public:
 	struct Item {
 		virtual Item& Text(const char *text);

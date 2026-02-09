@@ -12,8 +12,11 @@ public:
 	
 	virtual void   LoadData() override;
 	virtual void   Scrape() override;
+	virtual void   RefreshSubTab(int tab_index) override;
+	virtual void   RefreshService() override { Scrape(); }
 	virtual String GetTitle() override { return "Threads"; }
 	virtual Image  GetIcon() override  { return Image(); } // Placeholder
+	virtual int    GetActiveTab() override { return tabs.Get(); }
 
 private:
 	TabCtrl tabs;

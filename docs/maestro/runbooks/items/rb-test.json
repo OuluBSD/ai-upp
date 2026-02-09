@@ -1,0 +1,21 @@
+{
+	"id": "rb-test",
+	"title": "Test Command Execution",
+	"goal": "Verify that ops run can execute shell commands",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "Maestro",
+			"action": "Check directory",
+			"command": "ls -la .maestro",
+			"expected": "Directory listing"
+		},
+		{
+			"n": 2,
+			"actor": "Maestro",
+			"action": "Print message",
+			"command": "echo 'Ops run works!'",
+			"expected": "Message printed"
+		}
+	]
+}

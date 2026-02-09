@@ -17,7 +17,7 @@ struct AutomationElement : Moveable<AutomationElement> {
 	String ToString() const { return String().Cat() << path << " = " << value << (visible ? "" : " (hidden)"); }
 };
 
-class AutomationVisitor : public Visitor {
+class AutomationVisitor : virtual public Visitor {
 protected:
 	AutomationElement& AddElement(const char *text);
 

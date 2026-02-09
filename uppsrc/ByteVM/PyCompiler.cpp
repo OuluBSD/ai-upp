@@ -276,7 +276,7 @@ void PyCompiler::Statement()
 		break_targets.Top().Add(Label());
 		Emit(PY_JUMP_ABSOLUTE, 0);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'break', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId("continue")) {
@@ -284,7 +284,7 @@ void PyCompiler::Statement()
 		if (continue_targets.IsEmpty()) throw Exc(Format("Line %d: 'continue' outside loop", GetLine()));
 		Emit(PY_JUMP_ABSOLUTE, continue_targets.Top());
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'continue', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId("def")) {
@@ -321,7 +321,7 @@ void PyCompiler::Statement()
 	else if(IsId("pass")) {
 		Next();
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId("return")) {
@@ -334,7 +334,7 @@ void PyCompiler::Statement()
 		}
 		Emit(PY_RETURN_VALUE);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'return', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId("import")) {
@@ -356,7 +356,7 @@ void PyCompiler::Statement()
 			else break;
 		}
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId("from")) {
@@ -394,7 +394,7 @@ void PyCompiler::Statement()
 		}
 		
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_ASS) {
@@ -404,7 +404,7 @@ void PyCompiler::Statement()
 		Expression();
 		EmitName(PY_STORE_NAME, id);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_SQUARE_BEGIN) {
@@ -439,7 +439,7 @@ void PyCompiler::Statement()
 		Expression();
 		Emit(PY_POP_TOP);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
-		if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
 }

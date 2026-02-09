@@ -1,1 +1,551 @@
-error: test failure
+Starting level: share/mods/umbrella/levels/world1-stage1.json
+Loaded 3 droplet spawn points from share/mods/umbrella/levels/world1-stage1.json
+Name com.canonical.AppMenu.Registrar does not exist on the session bus
+
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=336 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=336 bounds.top=336 bounds.bottom=348
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=1 feetRow=23 tileTopY=336 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=336 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=336 bounds.top=336 bounds.bottom=348
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=1 feetRow=23 tileTopY=336 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (147,217) type=0 dir=0
+Spawned droplet at (357,175) type=2 dir=1
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=336 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=336 bounds.top=336 bounds.bottom=348
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=1 feetRow=23 tileTopY=336 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (287,259) type=1 dir=-1
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=336 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=336 bounds.top=336 bounds.bottom=348
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=1 feetRow=23 tileTopY=336 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (147,217) type=0 dir=0
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=false velocity.y=-73.5000028610229 pos.y=329.874999389052 recovering=false
+  Gravity: prevVel=-73.5 + (-490 * 0.01666667) = -81.6666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-1.361111 velocity.y=-81.6666698455811 onGround=false
+  startFeetY=329.875 bounds.top=329.874999389052 bounds.bottom=341.874999389052
+  After loop: onGround=false velocity.y=-81.6666698455811
+  Final position: onGround=false feetY=328.51388810575
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (357,175) type=2 dir=1
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Droplet collected! Total: 1
+Droplet collected! Total: 2
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=209.999993547797 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999993547797 bounds.bottom=221.999993547797
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=9 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Spawned droplet at (287,259) type=1 dir=-1
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Spawned droplet at (147,217) type=0 dir=0
+Droplet collected! Total: 3
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=false keyRight=false
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Player State: onGround=true velocity.y=0 pos.y=209.999993547797 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999993547797 bounds.bottom=221.999993547797
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=7 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=true prevKeyAttack=true buttonReleased=false hasCaptured=false
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x0420ff51 (UP) base=0x0000ff51 keyLeft=true keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Spawned droplet at (357,175) type=2 dir=1
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Player State: onGround=true velocity.y=0 pos.y=209.999993547797 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999993547797 bounds.bottom=221.999993547797
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=7 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=true prevKeyAttack=true buttonReleased=false hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Spawned droplet at (147,217) type=0 dir=0
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x0020ff52 (DOWN) base=0x0000ff52 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+  JUMP! velocity.y set to 280
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=true glideHeld=true
+Key: 0x0420ff52 (UP) base=0x0000ff52 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Player State: onGround=false velocity.y=32.2583274841309 pos.y=327.71374951303 recovering=false
+  Gravity: prevVel=32.25833 + (-171.5 * 0.01666667) = 29.3999938964844 (clamped to -280)
+=== Y Collision ===
+  deltaY=0.4899999 velocity.y=29.3999938964844 onGround=false
+  startFeetY=327.7137 bounds.top=327.71374951303 bounds.bottom=339.71374951303
+  After loop: onGround=false velocity.y=29.3999938964844
+  Final position: onGround=false feetY=328.20374943316
+THROW CHECK: glideHeld=true prevKeyAttack=true buttonReleased=false hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Spawned droplet at (287,259) type=1 dir=-1
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=false keyRight=false
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=false velocity.y=-16.3333339691162 pos.y=279.591652740724 recovering=false
+  Gravity: prevVel=-16.33333 + (-490 * 0.01666667) = -24.5000009536743 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.4083334 velocity.y=-24.5000009536743 onGround=false
+  startFeetY=279.5916 bounds.top=279.591652740724 bounds.bottom=291.591652740724
+  After loop: onGround=false velocity.y=-24.5000009536743
+  Final position: onGround=false feetY=279.183319379576
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x0420ff51 (UP) base=0x0000ff51 keyLeft=true keyRight=false
+Spawned droplet at (357,175) type=2 dir=1
+Spawned droplet at (147,217) type=0 dir=0
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=209.999995638616 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999995638616 bounds.bottom=221.999995638616
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=7 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Droplet collected! Total: 4
+Droplet collected! Total: 5
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=209.999995638616 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999995638616 bounds.bottom=221.999995638616
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=10 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=false keyRight=false
+Spawned droplet at (287,259) type=1 dir=-1
+Spawned droplet at (147,217) type=0 dir=0
+Droplet collected! Total: 6
+Key: 0x0420ff51 (UP) base=0x0000ff51 keyLeft=true keyRight=false
+Spawned droplet at (357,175) type=2 dir=1
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=209.999995638616 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999995638616 bounds.bottom=221.999995638616
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=7 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=209.999995638616 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=209.999995638616 bounds.bottom=221.999995638616
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=10 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (147,217) type=0 dir=0
+Droplet collected! Total: 7
+Key: 0x0020ff52 (DOWN) base=0x0000ff52 keyLeft=false keyRight=false
+  JUMP! velocity.y set to 280
+Input: keyLeft=false keyRight=false keyJump=true keyAttack=false glideHeld=false
+Player State: onGround=false velocity.y=214.666664123535 pos.y=247.099997450598 recovering=false
+  Gravity: prevVel=214.6667 + (-490 * 0.01666667) = 206.499997138977 (clamped to -280)
+=== Y Collision ===
+  deltaY=3.441667 velocity.y=206.499997138977 onGround=false
+  startFeetY=247.1 bounds.top=247.099997450598 bounds.bottom=259.099997450598
+  After loop: onGround=false velocity.y=206.499997138977
+  Final position: onGround=false feetY=250.541664292105
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (287,259) type=1 dir=-1
+Spawned droplet at (357,175) type=2 dir=1
+Key: 0x0420ff52 (UP) base=0x0000ff52 keyLeft=false keyRight=false
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Player State: onGround=true velocity.y=0 pos.y=279.999993429271 recovering=true
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=280 bounds.top=279.999993429271 bounds.bottom=291.999993429271
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=11 feetRow=19 tileTopY=280 snapDelta=0
+THROW CHECK: glideHeld=true prevKeyAttack=true buttonReleased=false hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Spawned droplet at (147,217) type=0 dir=0
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=false keyRight=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=true keyRight=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=true keyRight=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=true keyRight=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=true keyRight=false
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=false velocity.y=-73.5000028610229 pos.y=273.874992818323 recovering=false
+  Gravity: prevVel=-73.5 + (-490 * 0.01666667) = -81.6666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-1.361111 velocity.y=-81.6666698455811 onGround=false
+  startFeetY=273.875 bounds.top=273.874992818323 bounds.bottom=285.874992818323
+  After loop: onGround=false velocity.y=-81.6666698455811
+  Final position: onGround=false feetY=272.513881535021
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=true keyRight=false
+Key: 0x0420ff51 (UP) base=0x0000ff51 keyLeft=true keyRight=false
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Spawned droplet at (357,175) type=2 dir=1
+Droplet collected! Total: 8
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=true keyJump=false keyAttack=true glideHeld=true
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Player State: onGround=true velocity.y=0 pos.y=210.000000328509 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=210.000000328509 bounds.bottom=222.000000328509
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=11 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=true prevKeyAttack=true buttonReleased=false hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Spawned droplet at (287,259) type=1 dir=-1
+Spawned droplet at (147,217) type=0 dir=0
+Key: 0x0020ff53 (DOWN) base=0x0000ff53 keyLeft=false keyRight=false
+Key: 0x0420ff53 (UP) base=0x0000ff53 keyLeft=false keyRight=true
+Key: 0x0020ff51 (DOWN) base=0x0000ff51 keyLeft=false keyRight=false
+Input: keyLeft=true keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=153.999992684213 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=154 bounds.top=153.999992684213 bounds.bottom=165.999992684213
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=10 feetRow=10 tileTopY=154 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Key: 0x0020ff52 (DOWN) base=0x0000ff52 keyLeft=true keyRight=false
+Key: 0x0420ff51 (UP) base=0x0000ff51 keyLeft=true keyRight=false
+  JUMP! velocity.y set to 280
+Droplet collected! Total: 9
+Key: 0x0420ff52 (UP) base=0x0000ff52 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=210.000004899191 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=210.000004899191 bounds.bottom=222.000004899191
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=9 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (357,175) type=2 dir=1
+Spawned droplet at (147,217) type=0 dir=0
+Droplet collected! Total: 10
+Key: 0x00000020 (DOWN) base=0x00000020 keyLeft=false keyRight=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=true glideHeld=true
+Key: 0x04000020 (UP) base=0x00000020 keyLeft=false keyRight=false
+THROW CHECK: glideHeld=false prevKeyAttack=true buttonReleased=true hasCaptured=false
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=210.000004899191 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=210.000004899191 bounds.bottom=222.000004899191
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=9 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (287,259) type=1 dir=-1
+Input: keyLeft=false keyRight=false keyJump=false keyAttack=false glideHeld=false
+Player State: onGround=true velocity.y=0 pos.y=210.000004899191 recovering=false
+  Gravity: prevVel=0 + (-490 * 0.01666667) = -8.16666698455811 (clamped to -280)
+=== Y Collision ===
+  deltaY=-0.1361111 velocity.y=-8.16666698455811 onGround=true
+  startFeetY=210 bounds.top=210.000004899191 bounds.bottom=222.000004899191
+  After loop: onGround=false velocity.y=-8.16666698455811
+  FINAL FLOOR SNAP: col=9 feetRow=14 tileTopY=210 snapDelta=0
+THROW CHECK: glideHeld=false prevKeyAttack=false buttonReleased=false hasCaptured=false
+Spawned droplet at (147,217) type=0 dir=0
+Droplet collected! Total: 11
+Spawned droplet at (357,175) type=2 dir=1

@@ -15,11 +15,21 @@ public:
 	typedef AriaMainWindow CLASSNAME;
 	AriaMainWindow();
 
+	void MainMenu(Bar& bar);
+	void ServiceMenu(Bar& bar);
+
+	void RefreshActiveSubTab();
+	void RefreshActiveService();
+	void RefreshAllServices();
+
 	void RefreshAll();
 	void OpenSettings();
 	void StopScrapers();
 
+	virtual bool Access(Visitor& v) override;
+
 private:
+	MenuBar   menu;
 	TabCtrl   tabs;
 	ToolBar   toolbar;
 	StatusBar statusbar;

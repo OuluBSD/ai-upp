@@ -4,6 +4,7 @@
 struct VfsValue;
 
 struct Visitor {
+	virtual ~Visitor() {}
 	JsonIO* json = 0;
 	Stream* stream = 0;
 	VersionControlSystem* vcs = 0;

@@ -46,7 +46,12 @@ This document serves as an internal guide for the Gemini AI agent.
 
 ### RecyclerPool and BiVectorRecycler
 
-For high-performance scenarios involving frequent allocation/deallocation of fixed-size objects (like network buffers or image frames), prefer `RecyclerPool` and `BiVectorRecycler` over standard containers (`Vector`, `Array`).
+## Logging and GUI Automation
+
+- **Alerts and Popups:** In GUI applications, avoid using modal dialogs (like `Exclamation`, `PromptOK`) during automated tests as they block the execution. Instead, use a wrapper that redirects messages to `LOG` when running in automation mode.
+- **Log Inspection:** Prefer using `LOG()` macros for debugging and monitoring. Users should be encouraged to use `tail -f ~/.local/state/u++/log/<PackageName>.log` (or the equivalent path) to monitor output in real-time, rather than relying on `stdout`.
+- **Automation Mode Detection:** Check for command-line flags like `--test` to determine if the application is running in an automated environment.
+
 
 #### RecyclerPool<T, keep_as_constructed>
 - **Purpose**: Manages a pool of allocated objects of type `T`.

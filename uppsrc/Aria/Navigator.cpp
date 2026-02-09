@@ -56,11 +56,21 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 	int port = 4444; // Default port
 	String exe = browser_name == "firefox" ? "geckodriver" : "chromedriver";
 	
-	GetAriaLogger("navigator").Info("Ensuring WebDriver (" + exe + ") is running...");
+	// Check if already running and responding
+	try {
+		HttpRequest req("http://127.0.0.1:4444/status");
+		req.Timeout(500);
+		String res = req.Execute();
+		if (!res.IsEmpty()) return; // Already running and healthy
+	} catch(...) {}
+
+	GetAriaLogger("navigator").Info("WebDriver (" + exe + ") not responding or not detected. Starting...");
 	
-	// Kill existing ones to be safe
-	system("killall -9 " + exe + " firefox 2>/dev/null");
-	Sleep(500);
+	// Only kill if it was supposedly running but not responding
+	if (Sys("ps aux").Find(exe) >= 0) {
+		system("killall -9 " + exe + " 2>/dev/null");
+		Sleep(500);
+	}
 	
 	String cmd;
 	if (browser_name == "firefox") {
@@ -78,28 +88,47 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 		return;
 	}
 	
-	// Start driver in background. We use system() with & to make it persistent/non-blocking
-	// but a better way would be LocalProcess if we wanted to manage it.
-	// For CLI usage, letting it run in background is often preferred.
 	String log_file = GetHomeDirFile(".aria/" + exe + ".log");
-	system(cmd + " > " + log_file + " 2>&1 &");
+	// Use nohup and setsid-like behavior to ensure it survives the parent
+	system("nohup " + cmd + " > " + log_file + " 2>&1 &");
 	
 	// Wait a bit for it to start
 	for (int i = 0; i < 20; i++) {
 		Sleep(500);
-		if (Sys("ps aux").Find(exe) >= 0) {
-			GetAriaLogger("navigator").Info(exe + " started successfully.");
-			return;
-		}
+		try {
+			HttpRequest req("http://127.0.0.1:4444/status");
+			req.Timeout(500);
+			if (!req.Execute().IsEmpty()) {
+				GetAriaLogger("navigator").Info(exe + " started successfully.");
+				return;
+			}
+		} catch(...) {}
 	}
 	
 	GetAriaLogger("navigator").Error("Failed to start " + exe + ".");
 }
 
 void AriaNavigator::StartSession(const String& browser_name, bool headless, bool use_profile) {
-	CloseSession(browser_name);
+	// If we are already connected to the right session, just return
+	if (driver && GetCurrentBrowser() == browser_name) {
+		try {
+			driver->GetUrl();
+			return; 
+		} catch(...) {}
+	}
+
+	// Try to reconnect first if we use a profile
+	if (use_profile && ConnectToSession(browser_name)) {
+		return;
+	}
+
+	GetAriaLogger("navigator").Info("Starting fresh browser session: " + browser_name);
+	
+	// Do NOT call DeleteSession() here if we want persistence.
+	// Just clear our local pointer.
+	driver.Clear();
+	
 	EnsureDriverRunning(browser_name);
-	GetAriaLogger("navigator").Info("Starting browser session: " + browser_name);
 	
 	Firefox caps; // Use Firefox specifically for now if browser_name is firefox
 	if (browser_name == "firefox") {
@@ -135,69 +164,85 @@ void AriaNavigator::StartSession(const String& browser_name, bool headless, bool
 		driver->ApplyStealthJS();
 		
 		ValueMap session_data;
-		session_data.Set("session_id", driver->GetSessionId());
+		session_id = driver->GetSessionId();
+		session_data.Set("session_id", session_id);
 		session_data.Set("browser", browser_name);
 		
 		SaveSession(browser_name, session_data);
 		GetAriaLogger("navigator").Info("Aria session started for " + browser_name);
-	} catch (const Exc& e) {
-		GetAriaLogger("navigator").Error("Error starting session: " + e);
-		// Cleanup on failure
-		system("killall -9 geckodriver firefox 2>/dev/null");
+	} catch (const std::exception& e) {
+		String err = e.what();
+		GetAriaLogger("navigator").Error("Error starting session: " + err);
+		// If it failed due to profile lock, we might need to kill firefox once to take control,
+		// but only as a last resort.
+		if (err.Find("profile") >= 0 || err.Find("lock") >= 0) {
+			GetAriaLogger("navigator").Warning("Profile lock detected. You might need to close other Firefox instances or we will have to kill it.");
+		}
 	}
 }
 
 bool AriaNavigator::ConnectToSession(const String& browser_name) {
 	String name = browser_name.IsEmpty() ? GetCurrentBrowser() : browser_name;
-	if (name.IsEmpty()) return false;
+	if (name.IsEmpty()) {
+		return false;
+	}
 	
 	EnsureDriverRunning(name);
 	
 	ValueMap data = LoadSessionData(name);
-	if (data.IsEmpty()) return false;
+	if (data.IsEmpty()) {
+		return false;
+	}
 	
-	String session_id = data["session_id"];
+	String sid = data["session_id"];
 	
 	try {
 		// Try to reconnect using the session_id
-		driver.Create(session_id); 
-		GetAriaLogger("navigator").Info("Successfully reconnected to " + name + " session " + session_id);
+		driver.Create(sid); 
+		// Verify if session is still alive by getting URL
+		driver->GetUrl();
+		session_id = sid;
+		GetAriaLogger("navigator").Info("Successfully reconnected to " + name + " session " + sid);
 		return true;
-	} catch (const Exc& e) {
-		GetAriaLogger("navigator").Error("Failed to connect to " + name + " session: " + e);
+	} catch (const std::exception& e) {
+		GetAriaLogger("navigator").Info("Failed to reconnect to " + name + " session " + sid + ": " + String(e.what()));
+		driver.Clear();
 		return false;
 	}
 }
 
 void AriaNavigator::CloseSession(const String& browser_name) {
-	if (driver) {
-		try {
-			driver->DeleteSession();
-		} catch (...) {}
-		driver.Clear();
-	}
-	
-	// Kill processes to release profile lock
-	system("killall -9 geckodriver firefox 2>/dev/null");
+	// We do NOT call driver->DeleteSession() because we want the browser to stay open.
+	// We just clear our local reference.
+	driver.Clear();
 	
 	String name = browser_name.IsEmpty() ? GetCurrentBrowser() : browser_name;
-	if (!name.IsEmpty()) {
-		DeleteFile(GetSessionFilePath(name));
-		if (GetCurrentBrowser() == name)
-			DeleteFile(GetSessionFilePath());
-	}
+	// We also do NOT kill geckodriver or firefox here.
 }
 
 void AriaNavigator::Navigate(const String& url) {
 	Throttle();
-	if (!driver && !ConnectToSession()) {
-		throw SessionError("No active session.");
+	if (!driver && !ConnectToSession("firefox")) { // Default to firefox if nothing else
+		StartSession("firefox");
+		if (!driver) throw SessionError("Could not connect to or start a session.");
 	}
 	GetAriaLogger("navigator").Info("Navigating to: " + url);
 	// Use location.href trick to allow injection during load
-	driver->ApplyStealthJS();
-	driver->Execute("window.location.href = '" + url + "';", JsArgs());
-	driver->ApplyStealthJS();
+	try {
+		driver->ApplyStealthJS();
+		driver->Execute("window.location.href = '" + url + "';", JsArgs());
+		driver->ApplyStealthJS();
+	} catch (const std::exception& e) {
+		GetAriaLogger("navigator").Error("Navigation failed: " + String(e.what()));
+		// If it failed because session died, try one more time after reconnecting
+		if (ConnectToSession("firefox")) {
+			driver->ApplyStealthJS();
+			driver->Execute("window.location.href = '" + url + "';", JsArgs());
+			driver->ApplyStealthJS();
+		} else {
+			throw;
+		}
+	}
 }
 
 ValueArray AriaNavigator::ListTabs() {

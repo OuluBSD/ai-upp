@@ -13,6 +13,7 @@ public:
 	int worldIndex;
 	int levelIndex;
 	String levelPath;
+	String testScript;  // Path to Python test script for --test mode
 
 	UmbrellaArgs();
 	void Parse(const Vector<String>& args);

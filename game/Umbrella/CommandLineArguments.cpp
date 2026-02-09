@@ -10,6 +10,7 @@ UmbrellaArgs::UmbrellaArgs() {
 	worldIndex = -1;
 	levelIndex = -1;
 	levelPath = "";
+	testScript = "";
 }
 
 void UmbrellaArgs::Parse(const Vector<String>& args) {
@@ -21,6 +22,10 @@ void UmbrellaArgs::Parse(const Vector<String>& args) {
 		}
 		else if(arg == "--test") {
 			testMode = true;
+			if(i + 1 < args.GetCount() && !args[i + 1].StartsWith("--")) {
+				testScript = args[i + 1];
+				i++;  // Skip next arg
+			}
 		}
 		else if(arg == "--newgame" || arg == "-n") {
 			newGameMode = true;

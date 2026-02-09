@@ -230,6 +230,8 @@ void Aria::Run(const Vector<String>& args) {
 		if (site_cmd == "list") {
 			for (const String& s : site_manager.ListSites()) Cout() << "- " << s << "\n";
 		} else if (site_cmd == "discord") {
+			Cout() << "Discord scraping is currently disabled.\n";
+			/*
 			if (s_rest.GetCount() < 1) { Cout() << "Usage: site discord <channel>\n"; return; }
 			String channel = s_rest[0];
 			DiscordScraper scraper(*navigator, site_manager);
@@ -239,6 +241,7 @@ void Aria::Run(const Vector<String>& args) {
 			} catch (const Exc& e) {
 				Cout() << "Scrape Error: " << e << "\n";
 			}
+			*/
 		} else if (site_cmd == "whatsapp") {
 			WhatsAppScraper scraper(*navigator, site_manager);
 			Cout() << "Refreshing WhatsApp data...\n";

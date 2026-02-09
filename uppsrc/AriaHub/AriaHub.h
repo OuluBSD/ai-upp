@@ -26,7 +26,7 @@ public:
 	void OpenSettings();
 	void StopScrapers();
 
-	virtual bool Access(Visitor& v) override;
+	virtual bool Key(dword key, int count) override;
 
 private:
 	MenuBar   menu;

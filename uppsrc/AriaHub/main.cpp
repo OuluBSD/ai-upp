@@ -12,13 +12,17 @@ AriaMainWindow::AriaMainWindow()
 	AddFrame(statusbar);
 	Add(tabs.SizePos());
 
+	menu.LayoutId("MenuBar");
+	toolbar.LayoutId("ToolBar");
+	tabs.LayoutId("Tabs");
+
 	menu.Set(THISBACK(MainMenu));
 
 	toolbar.Set([=](Bar& bar) {
-		bar.Add("Refresh All", CtrlImg::plus(), [=] { RefreshAll(); });
+		bar.Add("Refresh All", CtrlImg::plus(), THISBACK(RefreshAll));
 		bar.Separator();
-		bar.Add("Settings", CtrlImg::exclamation(), [=] { OpenSettings(); });
-		bar.Add("Stop Scrapers", CtrlImg::remove(), [=] { StopScrapers(); });
+		bar.Add("Settings", CtrlImg::exclamation(), THISBACK(OpenSettings));
+		bar.Add("Stop Scrapers", CtrlImg::remove(), THISBACK(StopScrapers));
 	});
 
 	statusbar.Set("Ready");
@@ -39,18 +43,10 @@ AriaMainWindow::AriaMainWindow()
 	tabs.Add("Calendar");
 }
 
-bool AriaMainWindow::Access(Visitor& v)
+bool AriaMainWindow::Key(dword key, int count)
 {
-	RLOG("AriaMainWindow::Access called");
-	if (Bar* b = dynamic_cast<Bar*>(&v)) {
-		MainMenu(*b);
-		// Toolbar doesn't have a direct procedure but we can trigger its Set callback
-		// or just visit its children if it was a child.
-		// For now, toolbar.Access(v) is still needed if it's a frame.
-		toolbar.Access(v);
-	}
-	tabs.Access(v);
-	return true;
+	if (menu.Key(key, count)) return true;
+	return TopWindow::Key(key, count);
 }
 
 void AriaMainWindow::MainMenu(Bar& bar)
@@ -67,17 +63,17 @@ void AriaMainWindow::ServiceMenu(Bar& bar)
 
 void AriaMainWindow::RefreshActiveSubTab()
 {
-	RLOG("Entering RefreshActiveSubTab");
 	int active = tabs.Get();
-	RLOG("Active tab index: " << active);
 	Ctrl* c = tabs.GetItem(active).GetSlave();
-	RLOG("Ctrl pointer: " << (void*)c);
 	ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
-	RLOG("ServiceCtrl pointer: " << (void*)sc);
 	if (sc) {
+		String title = sc->GetTitle();
+		if (title == "Discord") {
+			AriaAlert("Discord refresh is currently disabled.");
+			return;
+		}
 		int sub = sc->GetActiveTab();
-		String msg = Format("Refreshing %s: Sub-tab %d...", sc->GetTitle(), sub);
-		AriaAlert(msg);
+		String msg = Format("Refreshing %s: Sub-tab %d...", title, sub);
 		statusbar.Set(msg);
 		sc->RefreshSubTab(sub);
 		statusbar.Set("Ready");
@@ -89,8 +85,12 @@ void AriaMainWindow::RefreshActiveService()
 	Ctrl* c = tabs.GetItem(tabs.Get()).GetSlave();
 	ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
 	if (sc) {
-		String msg = Format("Refreshing entire %s service...", sc->GetTitle());
-		AriaAlert(msg);
+		String title = sc->GetTitle();
+		if (title == "Discord") {
+			AriaAlert("Discord refresh is currently disabled.");
+			return;
+		}
+		String msg = Format("Refreshing entire %s service...", title);
 		statusbar.Set(msg);
 		sc->RefreshService();
 		statusbar.Set("Ready");
@@ -99,13 +99,12 @@ void AriaMainWindow::RefreshActiveService()
 
 void AriaMainWindow::RefreshAllServices()
 {
-	String msg = "Refreshing all services...";
-	AriaAlert(msg);
-	statusbar.Set(msg);
+	statusbar.Set("Refreshing all services...");
 	for (int i = 0; i < tabs.GetCount(); i++) {
 		Ctrl* c = tabs.GetItem(i).GetSlave();
 		ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
 		if (sc) {
+			if (sc->GetTitle() == "Discord") continue;
 			sc->RefreshService();
 		}
 	}

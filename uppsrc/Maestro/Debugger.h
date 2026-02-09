@@ -37,6 +37,7 @@ public:
 class GdbService : public DebuggerService {
 	LocalProcess proc;
 	bool         is_running = false;
+	bool         crash_detected = false;
 	
 	void ReadOutput();
 	void ParseLine(const String& line);

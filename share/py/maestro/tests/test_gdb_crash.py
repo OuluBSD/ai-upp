@@ -27,32 +27,37 @@ if not run_btn:
     print("Error: Run button not found")
     sys.exit(1)
 run_btn.click()
-wait_time(2) 
+wait_time(3) 
 
 print("Step 4: Continuing to hit the crash...")
 cont_btn = find("Continue")
 if not cont_btn:
+    # Maybe it's still starting?
+    wait_time(2)
+    cont_btn = find("Continue")
+
+if not cont_btn:
     print("Error: Continue button not found")
     sys.exit(1)
+
 cont_btn.click()
-wait_time(5) # Give GDB more time to report the crash and update the UI
+print("Waiting for crash (10s)...")
+wait_time(10) # Give GDB plenty of time to report the crash and update the UI
 
 print("Step 5: Verifying Call Stack...")
 
 # Expand everything in trees under DebugWorkspaceLayout
-while True:
+for i in range(3): # Try multiple passes of expansion
     expanded = False
     all_elements = find_all()
     for item in all_elements:
         p = str(item.path)
-        # Use simpler matching for tree expansion
         if "/Open" in p and not item.checked:
             if "DebugWorkspaceLayout" in p or "CallStack" in p:
                 print("Expanding node: " + p)
                 item.click()
                 wait_time(1)
                 expanded = True
-                break
     if not expanded:
         break
 
@@ -67,14 +72,12 @@ for item in all_elements:
     l_low = l.lower()
     p = str(item.path)
     
-    # Check both label and path for the desired strings
-    # We are looking for something like "Item_X_main" or "Item_X_crash_me"
     if "CallStack" in p:
-        if "main" in l_low or "crash_me" in l_low:
+        if "main" in l_low or "crash_me" in l_low or "main" in p.lower() or "crash_me" in p.lower():
             print("  Found Frame Candidate: [" + l + "] at " + p)
-            if "main" in l_low:
+            if "main" in l_low or "main" in p.lower():
                 found_main = True
-            if "crash_me" in l_low:
+            if "crash_me" in l_low or "crash_me" in p.lower():
                 found_crash_func = True
 
 if found_main and found_crash_func:
@@ -93,6 +96,14 @@ else:
             checked = str(item.checked)
             print("  " + p + " (label: " + label + ", checked: " + checked + ")")
     
-    # print("DUMP:")
-    # print(dump_ui())
+    print("\nDEBUG: System Console output:")
+    sc_tab = find("System Console")
+    if sc_tab:
+        sc_tab.click()
+        wait_ready()
+        # Find the RichTextCtrl under System Console. 
+        # Since we don't have a direct 'get_text' yet for RichText in all versions of the walker,
+        # we might just hope the logs are in find_all if it's exposed.
+        # Actually, RichText doesn't expose its content to Access yet.
+    
     sys.exit(1)

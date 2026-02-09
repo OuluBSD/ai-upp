@@ -6,7 +6,7 @@ GdbService::GdbService() {
 }
 
 void GdbService::Run(const String& cmd, const String& args) {
-	String gdb_cmd = "gdb --interpreter=mi " + cmd;
+	String gdb_cmd = "gdb --interpreter=mi";
 	if(!proc.Start(gdb_cmd)) {
 		if(WhenOutput) WhenOutput("Failed to start GDB: " + gdb_cmd + "\n");
 		return;
@@ -14,7 +14,8 @@ void GdbService::Run(const String& cmd, const String& args) {
 	is_running = true;
 	if(WhenRunning) WhenRunning();
 	
-	SendCommand("-gdb-set target-async on");
+	SendCommand("-gdb-set mi-async on");
+	SendCommand("-file-exec-and-symbols " + cmd);
 	SendCommand("-break-insert main");
 	SendCommand("-exec-run");
 	
@@ -43,6 +44,8 @@ void GdbService::Cont() {
 
 void GdbService::SendCommand(const String& cmd) {
 	if(proc.IsRunning()) {
+		Upp::Cout() << "GDB_SEND: " << cmd << "\n";
+		Upp::Cout().Flush();
 		proc.Write(cmd + "\n");
 	}
 }
@@ -69,14 +72,12 @@ void GdbService::ReadOutput() {
 void GdbService::ParseLine(const String& line) {
 	if(line.IsEmpty()) return;
 	
-	RLOG("GDB_MI: " + line);
-	
 	if(line.StartsWith("*stopped")) {
 		if(WhenPaused) WhenPaused();
 		SendCommand("-stack-list-frames");
 	}
 
-	if(line.StartsWith("^done,stack=")) {
+	if(line.StartsWith("^done,stack")) {
 		Vector<StackFrame> stack;
 		
 		auto GetMIValue = [&](const String& src, const char *key) -> String {
@@ -90,15 +91,20 @@ void GdbService::ParseLine(const String& line) {
 			return "";
 		};
 
+		// Split by frame={ or just { if we are inside the list
 		Vector<String> frames = Split(line, "frame={");
+		if(frames.GetCount() <= 1) frames = Split(line, "{"); // fallback
+		
 		for(int i = 1; i < frames.GetCount(); i++) {
 			String fsrc = frames[i];
-			StackFrame& f = stack.Add();
-			f.function = GetMIValue(fsrc, "func");
-			if(f.function.IsEmpty()) f.function = "unknown";
-			f.file = GetMIValue(fsrc, "fullname");
-			if(f.file.IsEmpty()) f.file = GetMIValue(fsrc, "file");
-			f.line = atoi(GetMIValue(fsrc, "line"));
+			if(fsrc.Find("level=") >= 0) {
+				StackFrame& f = stack.Add();
+				f.function = GetMIValue(fsrc, "func");
+				if(f.function.IsEmpty()) f.function = "unknown";
+				f.file = GetMIValue(fsrc, "fullname");
+				if(f.file.IsEmpty()) f.file = GetMIValue(fsrc, "file");
+				f.line = atoi(GetMIValue(fsrc, "line"));
+			}
 		}
 		
 		if(WhenStack) WhenStack(stack);

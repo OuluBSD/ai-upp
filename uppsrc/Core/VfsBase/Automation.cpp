@@ -16,6 +16,7 @@ AutomationElement& AutomationVisitor::AddElement(const char *text)
 
 Visitor& AutomationVisitor::AccessAction(const char *text, Event<> cb)
 {
+	if(found && write_mode) return *this;
 	String t = text;
 	if(t.IsEmpty()) {
 		// This is tricky as we don't have access to Ctrl here.
@@ -31,6 +32,7 @@ Visitor& AutomationVisitor::AccessAction(const char *text, Event<> cb)
 
 Visitor& AutomationVisitor::AccessOption(bool check, const char *text, Event<> cb)
 {
+	if(found && write_mode) return *this;
 	AutomationElement& el = AddElement(text);
 	el.checked = check;
 	if(write_mode && (el.path == target_path || el.text == target_path)) {
@@ -42,6 +44,7 @@ Visitor& AutomationVisitor::AccessOption(bool check, const char *text, Event<> c
 
 Visitor& AutomationVisitor::AccessMenu(const char *text, Event<Visitor&> proc)
 {
+	if(found && write_mode) return *this;
 	AutomationElement& el = AddElement(text);
 	el.is_menu = true;
 	
@@ -55,7 +58,11 @@ Visitor& AutomationVisitor::AccessMenu(const char *text, Event<Visitor&> proc)
 
 Visitor& AutomationVisitor::AccessLabel(const char *text)
 {
-	AddElement(text);
+	if(found && write_mode) return *this;
+	AutomationElement& el = AddElement(text);
+	if(write_mode && (el.path == target_path || el.text == target_path)) {
+		found = true;
+	}
 	return *this;
 }
 

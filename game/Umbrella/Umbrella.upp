@@ -4,7 +4,9 @@ uses
 	CtrlLib,
 	Docking,
 	plugin/jpg,
-	plugin/png;
+	plugin/png,
+	ByteVM,
+	Ctrl/Automation;
 
 file
 	Umbrella.h,

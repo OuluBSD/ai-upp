@@ -299,8 +299,6 @@ public:
 	void   SortByValue(int id, int (*compare)(const Value& v1, const Value& v2) = StdValueCompare);
 	void   SortDeepByValue(int id, int (*compare)(const Value& v1, const Value& v2) = StdValueCompare);
 
-	void   Access(Visitor& v, int id);
-
 	void   Sort(int id, const ValuePairOrder& order);
 	void   SortDeep(int id, const ValuePairOrder& order);
 	void   Sort(int id, int (*compare)(const Value& k1, const Value& v1, const Value& k2, const Value& v2));

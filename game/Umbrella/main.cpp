@@ -3,6 +3,7 @@
 #include "MapEditor.h"
 #include "MainMenuScreen.h"
 #include "GameScreen.h"
+#include "GameScriptBridge.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
@@ -16,55 +17,24 @@ using namespace Upp;
 // Forward declaration
 bool RunGameScreenTests();
 
-// Automation test runner using ByteVM
+// Automation test runner using GameScriptBridge
 int RunAutomationTest(const String& scriptPath) {
-	// Verify script exists
-	if(!FileExists(scriptPath)) {
-		LOG("ERROR: Test script not found: " << scriptPath);
-		return 1;
-	}
-
-	// Load script source
-	String source = LoadFile(scriptPath);
-	if(source.IsEmpty()) {
-		LOG("ERROR: Failed to load test script: " << scriptPath);
-		return 1;
-	}
-
 	LOG("Running automation test: " << scriptPath);
 
-	// Initialize PyVM
-	PyVM vm;
+	// Create game screen for headless testing
+	// Note: GameScreen is a TopWindow, but we won't call Run()
+	GameScreen* screen = new GameScreen("share/mods/umbrella/levels/world1-stage1.json");
 
-	// Register automation bindings (from Ctrl/Automation package)
-	RegisterAutomationBindings(vm);
+	// Create script bridge
+	GameScriptBridge bridge;
+	bridge.SetGameScreen(screen);
+	bridge.RegisterGameAPI();
 
-	try {
-		// Tokenize Python source
-		Tokenizer tokenizer;
-		tokenizer.SkipPythonComments(true);
-		if(!tokenizer.Process(source, scriptPath)) {
-			LOG("ERROR: Failed to tokenize Python script");
-			return 1;
-		}
-		tokenizer.CombineTokens();
+	// Execute script
+	bool success = bridge.ExecuteScript(scriptPath);
 
-		// Compile to IR
-		PyCompiler compiler(tokenizer.GetTokens());
-		Vector<PyIR> ir;
-		compiler.Compile(ir);
-
-		// Execute
-		vm.SetIR(ir);
-		vm.Run();
-
-		LOG("Test script completed successfully");
-		return 0;
-	}
-	catch(const Exc& e) {
-		LOG("ERROR: Exception during test execution: " << e);
-		return 1;
-	}
+	delete screen;
+	return success ? 0 : 1;
 }
 
 GUI_APP_MAIN

@@ -25,10 +25,10 @@ class PyCompiler {
 	bool IsString() const;
 	bool IsStmtEnd() const {
 		if (IsEof()) return true;
-		if (tokens[pos].type == TK_END_STMT) return true;
-		if (tokens[pos].type == TK_NEWLINE) return true;
-		if (tokens[pos].type == TK_SEMICOLON) return true;
-		if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
+		int type = tokens[pos].type;
+		if (type == TK_END_STMT || type == TK_NEWLINE || type == TK_SEMICOLON) return true;
+		if (type == TK_COMMENT || type == TK_BLOCK_COMMENT) return true;
+		if (type == TK_PUNCT && tokens[pos].str_value == ";") return true;
 		return false;
 	}
 	int  GetLine() const;

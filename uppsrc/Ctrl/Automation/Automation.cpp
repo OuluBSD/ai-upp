@@ -169,6 +169,18 @@ static PyValue builtin_exit(const Vector<PyValue>& args, void*) {
     return PyValue::None();
 }
 
+static PyValue builtin_send_key(const Vector<PyValue>& args, void*) {
+    if(args.GetCount() < 1) return PyValue::None();
+    dword key = (dword)args[0].AsInt64();
+    Vector<Ctrl*> top = Ctrl::GetTopCtrls();
+    for(Ctrl *c : top) {
+        if(c->IsVisible() && c->IsOpen()) {
+            c->Key(key, 1);
+        }
+    }
+    return PyValue::None();
+}
+
 static PyValue builtin_find_all(const Vector<PyValue>& args, void*) {
     String parent_path = "";
     bool include_hidden = false;
@@ -194,6 +206,7 @@ static PyValue builtin_find_all(const Vector<PyValue>& args, void*) {
 
 void RegisterAutomationBindings(PyVM& vm) {
     auto& globals = vm.GetGlobals();
+    Cout() << "Registering Automation Bindings...\n";
     
     globals.GetAdd(PyValue("find")) = PyValue::Function("find", builtin_find);
     globals.GetAdd(PyValue("find_all")) = PyValue::Function("find_all", builtin_find_all);
@@ -202,7 +215,14 @@ void RegisterAutomationBindings(PyVM& vm) {
     globals.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
     globals.GetAdd(PyValue("mock_ai")) = PyValue::Function("mock_ai", builtin_mock_ai);
     globals.GetAdd(PyValue("bind_event")) = PyValue::Function("bind_event", builtin_bind_event);
+    globals.GetAdd(PyValue("send_key")) = PyValue::Function("send_key", builtin_send_key);
     globals.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
+    globals.GetAdd(PyValue("exit")) = PyValue::Function("exit", builtin_exit);
+    
+    // Key constants
+    globals.GetAdd(PyValue("K_F5")) = PyValue((int64)K_F5);
+    globals.GetAdd(PyValue("K_SHIFT_F5")) = PyValue((int64)K_SHIFT_F5);
+    globals.GetAdd(PyValue("K_CTRL_SHIFT_F5")) = PyValue((int64)(K_CTRL | K_SHIFT | K_F5));
     
     globals.GetAdd(PyValue("AutomationElement")) = PyValue::Function("AutomationElement", AutomationElement_Ctor);
     PyValue& current_class_dict = PyAutomationElement::GetClassDict();

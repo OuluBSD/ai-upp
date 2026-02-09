@@ -12,6 +12,10 @@ void SetAddMockFn(AddMockFn fn);
 
 void RegisterAutomationBindings(PyVM& vm);
 
+// Event System
+void SetCurrentVM(PyVM* vm);
+void TriggerEvent(const String& event);
+
 END_UPP_NAMESPACE
 
 #endif

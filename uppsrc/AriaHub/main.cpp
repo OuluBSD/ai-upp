@@ -7,9 +7,12 @@ AriaMainWindow::AriaMainWindow()
 	Title("AriaHub - Unified Web Services").Sizeable().Zoomable();
 	Icon(CtrlImg::Network());
 
+	AddFrame(menu);
 	AddFrame(toolbar);
 	AddFrame(statusbar);
 	Add(tabs.SizePos());
+
+	menu.Set(THISBACK(MainMenu));
 
 	toolbar.Set([=](Bar& bar) {
 		bar.Add("Refresh All", CtrlImg::plus(), [=] { RefreshAll(); });
@@ -36,10 +39,82 @@ AriaMainWindow::AriaMainWindow()
 	tabs.Add("Calendar");
 }
 
+bool AriaMainWindow::Access(Visitor& v)
+{
+	RLOG("AriaMainWindow::Access called");
+	if (Bar* b = dynamic_cast<Bar*>(&v)) {
+		MainMenu(*b);
+		// Toolbar doesn't have a direct procedure but we can trigger its Set callback
+		// or just visit its children if it was a child.
+		// For now, toolbar.Access(v) is still needed if it's a frame.
+		toolbar.Access(v);
+	}
+	tabs.Access(v);
+	return true;
+}
+
+void AriaMainWindow::MainMenu(Bar& bar)
+{
+	bar.Sub("Service", THISBACK(ServiceMenu));
+}
+
+void AriaMainWindow::ServiceMenu(Bar& bar)
+{
+	bar.Add("Refresh Active Sub-tab", THISBACK(RefreshActiveSubTab)).Key(K_F5);
+	bar.Add("Refresh Active Service", THISBACK(RefreshActiveService)).Key(K_SHIFT_F5);
+	bar.Add("Refresh All Services", THISBACK(RefreshAllServices)).Key(K_CTRL | K_SHIFT | K_F5);
+}
+
+void AriaMainWindow::RefreshActiveSubTab()
+{
+	RLOG("Entering RefreshActiveSubTab");
+	int active = tabs.Get();
+	RLOG("Active tab index: " << active);
+	Ctrl* c = tabs.GetItem(active).GetSlave();
+	RLOG("Ctrl pointer: " << (void*)c);
+	ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
+	RLOG("ServiceCtrl pointer: " << (void*)sc);
+	if (sc) {
+		int sub = sc->GetActiveTab();
+		String msg = Format("Refreshing %s: Sub-tab %d...", sc->GetTitle(), sub);
+		AriaAlert(msg);
+		statusbar.Set(msg);
+		sc->RefreshSubTab(sub);
+		statusbar.Set("Ready");
+	}
+}
+
+void AriaMainWindow::RefreshActiveService()
+{
+	Ctrl* c = tabs.GetItem(tabs.Get()).GetSlave();
+	ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
+	if (sc) {
+		String msg = Format("Refreshing entire %s service...", sc->GetTitle());
+		AriaAlert(msg);
+		statusbar.Set(msg);
+		sc->RefreshService();
+		statusbar.Set("Ready");
+	}
+}
+
+void AriaMainWindow::RefreshAllServices()
+{
+	String msg = "Refreshing all services...";
+	AriaAlert(msg);
+	statusbar.Set(msg);
+	for (int i = 0; i < tabs.GetCount(); i++) {
+		Ctrl* c = tabs.GetItem(i).GetSlave();
+		ServiceCtrl* sc = dynamic_cast<ServiceCtrl*>(c);
+		if (sc) {
+			sc->RefreshService();
+		}
+	}
+	statusbar.Set("Ready");
+}
+
 void AriaMainWindow::RefreshAll()
 {
-	statusbar.Set("Refreshing all services...");
-	// Logic to trigger background scrapers
+	RefreshAllServices();
 }
 
 void AriaMainWindow::OpenSettings()

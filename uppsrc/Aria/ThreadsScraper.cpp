@@ -55,6 +55,13 @@ bool ThreadsScraper::Refresh(bool deep) {
 	return true;
 }
 
+bool ThreadsScraper::RefreshFeed() {
+	if (!Navigate()) return false;
+	ValueArray feed = ScrapeFeed();
+	sm.SetSiteData(site_name, "feed", feed);
+	return true;
+}
+
 ValueArray ThreadsScraper::ScrapeFeed() {
 	try {
 		GetAriaLogger("threads").Info("Scraping feed...");

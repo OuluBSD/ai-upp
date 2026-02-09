@@ -74,9 +74,17 @@ public:
 	AutomationBar(AutomationVisitor& v) : v(v) {}
 };
 
-class GuiAutomationVisitor : public AutomationVisitor {
+class GuiAutomationVisitor : public AutomationVisitor, public AutomationBar {
 public:
 	typedef GuiAutomationVisitor CLASSNAME;
+
+	GuiAutomationVisitor() : AutomationBar(*(AutomationVisitor*)this) {}
+
+	virtual Visitor& AccessAction(const char *text, Event<> cb) override { return AutomationVisitor::AccessAction(text, cb); }
+	virtual Visitor& AccessOption(bool check, const char *text, Event<> cb) override { return AutomationVisitor::AccessOption(check, text, cb); }
+	virtual Visitor& AccessMenu(const char *text, Event<Visitor&> proc) override { return AutomationVisitor::AccessMenu(text, proc); }
+	virtual Visitor& AccessLabel(const char *text) override { return AutomationVisitor::AccessLabel(text); }
+	virtual Visitor& AccessValue(const ::Upp::Value& v) override { return AutomationVisitor::AccessValue(v); }
 
 	void Read(Ctrl& c);
 	void Walk(Ctrl& c, bool parent_visible = true);

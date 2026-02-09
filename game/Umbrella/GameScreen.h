@@ -22,6 +22,11 @@ enum GameState {
 	TRANSITION_DROP        // Player dropping into new level
 };
 
+enum CameraMode {
+	CAMERA_FIXED,          // Fixed camera: level centered, vertically fitted
+	CAMERA_FOLLOW          // Follow player (classic platformer style)
+};
+
 class GameScreen : public TopWindow, public Player::CollisionHandler, public Player::CoordinateConverter {
 public:  // Public for testing
 	String levelPath;
@@ -32,6 +37,7 @@ public:  // Public for testing
 	Rect viewBounds;
 	Point cameraOffset;
 	float zoom;
+	CameraMode cameraMode;
 
 	// Game loop timing
 	int64 lastTime;

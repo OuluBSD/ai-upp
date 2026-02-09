@@ -14,8 +14,12 @@ public:
 	virtual void   SetNavigator(AriaNavigator* nav, SiteManager* sm) { navigator = nav; site_manager = sm; }
 	virtual void   LoadData() = 0;
 	virtual void   Scrape() = 0;
+	virtual void   RefreshSubTab(int tab_index) { Scrape(); } // Default to full scrape if not specialized
+	virtual void   RefreshService() { Scrape(); }
+	
 	virtual String GetTitle() = 0;
 	virtual Image  GetIcon() { return Image(); }
+	virtual int    GetActiveTab() { return -1; }
 
 protected:
 	AriaNavigator* navigator;

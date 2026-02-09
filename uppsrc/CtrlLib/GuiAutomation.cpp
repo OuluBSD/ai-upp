@@ -11,10 +11,16 @@ Bar::Item& AutomationBar::Item::Text(const char *text) {
 		el.path << el.text;
 	}
 
-	if(v.write_mode && el.path == v.target_path) {
-		v.found = true;
-		if(v.target_action && callback)
-			callback();
+	if(v.write_mode) {
+		RLOG("MATCH CHECK: " << el.path << " vs " << v.target_path);
+		if(el.path == v.target_path) {
+			RLOG("MATCH FOUND!");
+			v.found = true;
+			if(v.target_action && callback) {
+				RLOG("CALLING CALLBACK");
+				callback();
+			}
+		}
 	}
 
 	if(submenu_proc) {
@@ -72,13 +78,15 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 {
 	if(found && write_mode) return;
 	
+	RLOG("VISITING: " << typeid(c).name() << " " << c.GetLayoutId() << " " << (void*)&c);
+	
 	bool is_visible = parent_visible && c.IsVisible();
 	if(!is_visible && !include_hidden) return;
 	
 	::Upp::String old_path = current_path;
 
 	int n0 = elements.GetCount();
-	c.Access(*this);
+	bool handled = c.Access(*(AutomationVisitor*)this);
 	int n1 = elements.GetCount();
 	
 	// Ensure elements added during Access have the correct path prefix if not already set
@@ -92,6 +100,11 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 			p << elements[i].path;
 			elements[i].path = p;
 		}
+	}
+
+	if(handled) {
+		current_path = old_path;
+		return;
 	}
 
 	// Scoping for children

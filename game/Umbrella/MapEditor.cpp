@@ -69,14 +69,23 @@ void MapCanvas::Paint(Draw& w) {
 	int tileSize = int(14 * zoom);
 	if(tileSize < 1) tileSize = 1;
 
+	// Get map size from first layer (they should all be the same)
+	int mapCols = 32;  // Default
+	int mapRows = 24;
+	if(layerMgr.GetLayerCount() > 0) {
+		const MapGrid& grid = layerMgr.GetLayer(0).GetGrid();
+		mapCols = grid.GetMapCols();
+		mapRows = grid.GetMapRows();
+	}
+
 	// Calculate visible grid range
 	int viewCols = sz.cx / tileSize + 2;
 	int viewRows = sz.cy / tileSize + 2;
 
 	int startCol = max(0, -offset.x / tileSize);
 	int startRow = max(0, -offset.y / tileSize);
-	int endCol = min(100, startCol + viewCols);
-	int endRow = min(100, startRow + viewRows);
+	int endCol = min(mapCols, startCol + viewCols);
+	int endRow = min(mapRows, startRow + viewRows);
 
 	// Render each visible layer (bottom to top)
 	// Render in REVERSE order so Annotations (highest index) renders first (behind)
@@ -120,23 +129,37 @@ void MapCanvas::Paint(Draw& w) {
 		}
 	}
 
-	// Draw grid lines (on top of tiles)
+	// Draw grid lines (on top of tiles) - only within map bounds
 	if(showGrid) {
 		Color gridColor = Color(51, 69, 92);
 
-		// Vertical lines
+		// Calculate map boundaries in screen space
+		int mapLeft = offset.x;
+		int mapTop = offset.y;
+		int mapRight = mapCols * tileSize + offset.x;
+		int mapBottom = mapRows * tileSize + offset.y;
+
+		// Vertical lines - clipped to map height
 		for(int col = startCol; col <= endCol; col++) {
 			int screenX = col * tileSize + offset.x;
 			if(screenX >= 0 && screenX < sz.cx) {
-				w.DrawLine(screenX, 0, screenX, sz.cy, 1, gridColor);
+				int y1 = max(0, mapTop);
+				int y2 = min(sz.cy, mapBottom);
+				if(y1 < y2) {
+					w.DrawLine(screenX, y1, screenX, y2, 1, gridColor);
+				}
 			}
 		}
 
-		// Horizontal lines
+		// Horizontal lines - clipped to map width
 		for(int row = startRow; row <= endRow; row++) {
 			int screenY = row * tileSize + offset.y;
 			if(screenY >= 0 && screenY < sz.cy) {
-				w.DrawLine(0, screenY, sz.cx, screenY, 1, gridColor);
+				int x1 = max(0, mapLeft);
+				int x2 = min(sz.cx, mapRight);
+				if(x1 < x2) {
+					w.DrawLine(x1, screenY, x2, screenY, 1, gridColor);
+				}
 			}
 		}
 	}
@@ -492,6 +515,10 @@ MapEditorApp::MapEditorApp() {
 	SetupToolBar();
 	SetupToolsPanel();
 	SetupLayersPanel();
+	SetupPropertiesPanel();
+
+	// Load recent files
+	LoadRecentFiles();
 
 	// Set up canvas - add it to the window so it appears in the center
 	mapCanvas.SetFrame(InsetFrame());
@@ -524,6 +551,17 @@ void MapEditorApp::SetupFileMenu(Bar& bar) {
 	bar.Add("Save", CtrlImg::save(), callback(this, &MapEditorApp::SaveFileAction))
 		.Key(K_CTRL_S)
 		.Help("Save the current map");
+
+	// Recent files
+	if(recentFiles.GetCount() > 0) {
+		bar.Separator();
+		for(int i = 0; i < recentFiles.GetCount(); i++) {
+			String fileName = GetFileName(recentFiles[i]);
+			bar.Add(fileName, [=] { OpenRecentFile(i); })
+				.Help("Open " + recentFiles[i]);
+		}
+	}
+
 	bar.Separator();
 	bar.Add("Exit", callback(this, &MapEditorApp::ExitAction))
 		.Key(K_ALT_F4)
@@ -1220,6 +1258,7 @@ void MapEditorApp::OpenFile(const String& fileName) {
 		mapCanvas.ZoomToFit();
 
 		mainStatusBar.Set("Level loaded: " + GetFileName(fileName));
+		AddRecentFile(fileName);
 	}
 	else {
 		LOG("OpenFile: MapSerializer::LoadFromFile failed for " << fileName);
@@ -1231,6 +1270,7 @@ void MapEditorApp::SaveFile(const String& fileName) {
 	if(MapSerializer::SaveToFile(fileName, layerManager, &enemySpawns, &dropletSpawns)) {
 		currentFilePath = fileName;
 		mainStatusBar.Set("Saved: " + GetFileName(fileName));
+		AddRecentFile(fileName);
 	}
 	else {
 		mainStatusBar.Set("Failed to save: " + fileName);
@@ -1291,6 +1331,127 @@ void MapEditorApp::BrowseReferenceImage() {
 
 	if(fs.ExecuteOpen("Open Reference Image")) {
 		LoadReferenceImage(fs.Get());
+	}
+}
+
+void MapEditorApp::SetupPropertiesPanel() {
+	propertiesPanel.SetFrame(InsetFrame());
+
+	int yPos = 10;
+
+	// Map Size section
+	mapSizeLabel.SetText("MAP SIZE");
+	mapSizeLabel.SetAlign(ALIGN_CENTER);
+	propertiesPanel.Add(mapSizeLabel.HSizePos(10, 10).TopPos(yPos, 20));
+	yPos += 30;
+
+	// Map columns
+	mapColsLabel.SetText("Columns:");
+	propertiesPanel.Add(mapColsLabel.LeftPos(10, 80).TopPos(yPos, 20));
+	mapColsSpin.MinMax(1, 200);
+	mapColsSpin.SetData(32);  // Default
+	propertiesPanel.Add(mapColsSpin.LeftPos(100, 80).TopPos(yPos, 20));
+	yPos += 30;
+
+	// Map rows
+	mapRowsLabel.SetText("Rows:");
+	propertiesPanel.Add(mapRowsLabel.LeftPos(10, 80).TopPos(yPos, 20));
+	mapRowsSpin.MinMax(1, 200);
+	mapRowsSpin.SetData(24);  // Default
+	propertiesPanel.Add(mapRowsSpin.LeftPos(100, 80).TopPos(yPos, 20));
+	yPos += 30;
+
+	// Apply button
+	applyMapSizeBtn.SetLabel("Apply");
+	applyMapSizeBtn <<= callback(this, &MapEditorApp::ApplyMapSizeAction);
+	propertiesPanel.Add(applyMapSizeBtn.LeftPos(10, 80).TopPos(yPos, 25));
+	yPos += 35;
+
+	// Initialize with current map size if layers exist
+	if(layerManager.GetLayerCount() > 0) {
+		const MapGrid& grid = layerManager.GetLayer(0).GetGrid();
+		mapColsSpin.SetData(grid.GetMapCols());
+		mapRowsSpin.SetData(grid.GetMapRows());
+	}
+}
+
+void MapEditorApp::ApplyMapSizeAction() {
+	int newCols = mapColsSpin.GetData();
+	int newRows = mapRowsSpin.GetData();
+
+	// Update all layers
+	for(int i = 0; i < layerManager.GetLayerCount(); i++) {
+		layerManager.GetLayer(i).GetGrid().SetMapArea(newCols, newRows);
+	}
+
+	mapCanvas.Refresh();
+	mainStatusBar.Set(Format("Map size updated to %d x %d", newCols, newRows));
+}
+
+void MapEditorApp::LoadRecentFiles() {
+	// Load from config file in ~/.config/Umbrella/MapEditor.recent
+	String configDir = GetHomeDirFile(".config/Umbrella");
+	String recentPath = AppendFileName(configDir, "MapEditor.recent");
+
+	if(FileExists(recentPath)) {
+		String content = LoadFile(recentPath);
+		Vector<String> lines = Split(content, '\n');
+		for(const String& line : lines) {
+			String trimmed = TrimBoth(line);
+			if(!trimmed.IsEmpty() && FileExists(trimmed)) {
+				recentFiles.Add(trimmed);
+			}
+		}
+		// Limit to 10 most recent
+		while(recentFiles.GetCount() > 10) {
+			recentFiles.Remove(recentFiles.GetCount() - 1);
+		}
+	}
+}
+
+void MapEditorApp::SaveRecentFiles() {
+	// Save to config file in ~/.config/Umbrella/MapEditor.recent
+	String configDir = GetHomeDirFile(".config/Umbrella");
+	RealizeDirectory(configDir);
+
+	String recentPath = AppendFileName(configDir, "MapEditor.recent");
+	String content;
+	for(const String& file : recentFiles) {
+		content << file << "\n";
+	}
+	::SaveFile(recentPath, content);
+}
+
+void MapEditorApp::AddRecentFile(const String& filePath) {
+	// Remove if already exists
+	int idx = FindIndex(recentFiles, filePath);
+	if(idx >= 0) {
+		recentFiles.Remove(idx);
+	}
+
+	// Add to front
+	recentFiles.Insert(0, filePath);
+
+	// Limit to 10 most recent
+	while(recentFiles.GetCount() > 10) {
+		recentFiles.Remove(recentFiles.GetCount() - 1);
+	}
+
+	SaveRecentFiles();
+}
+
+void MapEditorApp::OpenRecentFile(int index) {
+	if(index >= 0 && index < recentFiles.GetCount()) {
+		String filePath = recentFiles[index];
+		if(FileExists(filePath)) {
+			OpenFile(filePath);
+		}
+		else {
+			Exclamation("File not found: " + filePath);
+			// Remove from recent files
+			recentFiles.Remove(index);
+			SaveRecentFiles();
+		}
 	}
 }
 

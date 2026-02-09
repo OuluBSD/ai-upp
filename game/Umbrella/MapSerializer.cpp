@@ -141,6 +141,58 @@ bool MapSerializer::LoadDropletSpawns(const String& filePath, Array<DropletSpawn
 	return true;
 }
 
+bool MapSerializer::LoadEnemySpawns(const String& filePath, Array<EnemySpawnPoint>& spawns) {
+	// Load JSON file
+	String jsonText = LoadFile(filePath);
+	if(jsonText.IsEmpty()) {
+		return false;  // File doesn't exist or empty
+	}
+
+	// Parse JSON
+	Value json = ParseJSON(jsonText);
+	if(json.IsError()) {
+		return false;
+	}
+
+	// Check if enemies array exists
+	if(json["enemies"].IsVoid()) {
+		return true;  // No enemies defined, but not an error
+	}
+
+	// Parse enemy spawn points
+	const ValueArray& enemyArray = json["enemies"];
+	for(int i = 0; i < enemyArray.GetCount(); i++) {
+		const ValueMap& enemyData = enemyArray[i];
+
+		EnemySpawnPoint spawn;
+
+		// Required fields
+		if(enemyData["col"].IsVoid() || enemyData["row"].IsVoid()) {
+			LOG("Warning: Enemy spawn missing col/row, skipping");
+			continue;
+		}
+
+		spawn.col = enemyData["col"];
+		spawn.row = enemyData["row"];
+
+		// Type (default: PATROLLER)
+		if(!enemyData["type"].IsVoid()) {
+			String typeStr = enemyData["type"];
+			if(typeStr == "JUMPER") spawn.type = ENEMY_JUMPER;
+			else if(typeStr == "SHOOTER") spawn.type = ENEMY_SHOOTER;
+			else spawn.type = ENEMY_PATROLLER;
+		}
+
+		// Facing (default: 1 = right)
+		spawn.facing = enemyData["facing"].IsVoid() ? 1 : (int)enemyData["facing"];
+
+		spawns.Add(pick(spawn));
+	}
+
+	LOG("Loaded " << spawns.GetCount() << " enemy spawn points from " << filePath);
+	return true;
+}
+
 Vector<int> MapSerializer::LoadTileIndices(const ValueArray& jsonArray) {
 	Vector<int> indices;
 

@@ -24,6 +24,8 @@ file
 	BrushTool.cpp,
 	FillTool.h,
 	FillTool.cpp,
+	EntityPlacementTool.h,
+	EntityPlacementTool.cpp,
 	MapEditor.h,
 	MapEditor.cpp,
 	MainMenuScreen.h,

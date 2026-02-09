@@ -214,6 +214,28 @@ void MapCanvas::Paint(Draw& w) {
 			}
 		}
 	}
+
+	// Render spawn points (always on top)
+	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT ||
+	   parentEditor->GetCurrentTool() == MapEditorApp::TOOL_DROPLET_PLACEMENT) {
+		// Render active tool's spawn points and preview
+		if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
+			parentEditor->GetEnemyTool().Render(w, cursorCol, cursorRow, offset, zoom, 14);
+		}
+		else {
+			parentEditor->GetDropletTool().Render(w, cursorCol, cursorRow, offset, zoom, 14);
+		}
+	}
+	else {
+		// When not in entity placement mode, still show spawn points but without preview
+		// (Render both enemy and droplet spawns for reference)
+		EnemyPlacementTool& enemyTool = parentEditor->GetEnemyTool();
+		DropletPlacementTool& dropletTool = parentEditor->GetDropletTool();
+
+		// Render with invalid cursor position to skip preview
+		enemyTool.Render(w, -1, -1, offset, zoom, 14);
+		dropletTool.Render(w, -1, -1, offset, zoom, 14);
+	}
 }
 
 void MapCanvas::MouseMove(Point pos, dword flags) {
@@ -300,6 +322,16 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 		fill.SetFillTile(brush.GetPaintTile());
 
 		fill.Fill(col, row, layerMgr);
+		Refresh();
+	}
+	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
+		EnemyPlacementTool& enemyTool = parentEditor->GetEnemyTool();
+		enemyTool.Click(col, row);
+		Refresh();
+	}
+	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_DROPLET_PLACEMENT) {
+		DropletPlacementTool& dropletTool = parentEditor->GetDropletTool();
+		dropletTool.Click(col, row);
 		Refresh();
 	}
 }
@@ -431,6 +463,10 @@ MapEditorApp::MapEditorApp() {
 
 	// Initialize tool
 	currentTool = TOOL_BRUSH;
+
+	// Connect entity tools to spawn arrays
+	enemyTool.SetEnemySpawns(&enemySpawns);
+	dropletTool.SetDropletSpawns(&dropletSpawns);
 
 	AddFrame(mainMenuBar);
 	AddFrame(mainToolBar);
@@ -903,7 +939,18 @@ bool MapEditorApp::Key(dword key, int) {
 			brushTool.SetPaintTile(TILE_BACKGROUND);
 			mainStatusBar.Set("Tool: Erase Background");
 			return true;
-		// TODO: Keys 5-6 for Enemy Add/Remove (not yet implemented)
+
+		case K_5:  // Enemy Placement
+			currentTool = TOOL_ENEMY_PLACEMENT;
+			enemyTool.SetMode(PLACEMENT_ADD);
+			mainStatusBar.Set("Tool: Add Enemy (P=Patrol, J=Jump, S=Shoot)");
+			return true;
+
+		case K_6:  // Droplet Placement
+			currentTool = TOOL_DROPLET_PLACEMENT;
+			dropletTool.SetMode(PLACEMENT_ADD);
+			mainStatusBar.Set("Tool: Add Droplet");
+			return true;
 
 		// Legacy shortcuts (kept for backwards compatibility)
 		case K_B:  // B for Brush
@@ -1067,6 +1114,12 @@ void MapEditorApp::OpenFile(const String& fileName) {
 
 		// Update window title
 		Title("Umbrella Map Editor - " + GetFileName(fileName));
+
+		// Load spawn points
+		enemySpawns.Clear();
+		dropletSpawns.Clear();
+		MapSerializer::LoadEnemySpawns(fileName, enemySpawns);
+		MapSerializer::LoadDropletSpawns(fileName, dropletSpawns);
 
 		// Auto-load reference image if it exists
 		// world1-stage1.json -> map 1-1/frame_000002.jpg

@@ -84,3 +84,12 @@ Layer* LayerManager::FindLayerByType(LayerType type) {
 	}
 	return nullptr;
 }
+
+const Layer* LayerManager::FindLayerByType(LayerType type) const {
+	for(int i = 0; i < layers.GetCount(); i++) {
+		if(layers[i].GetType() == type) {
+			return &layers[i];
+		}
+	}
+	return nullptr;
+}

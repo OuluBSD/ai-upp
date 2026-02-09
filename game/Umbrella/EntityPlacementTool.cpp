@@ -52,8 +52,8 @@ void EnemyPlacementTool::Render(Draw& w, int col, int row, Point offset, double 
 		const EnemySpawnPoint& spawn = (*enemySpawns)[i];
 
 		// Calculate screen position
-		int screenX = (int)((spawn.col * gridSize - offset.x) * zoom);
-		int screenY = (int)((spawn.row * gridSize - offset.y) * zoom);
+		int screenX = (int)((spawn.col * gridSize + offset.x) * zoom);
+		int screenY = (int)((spawn.row * gridSize + offset.y) * zoom);
 		int size = (int)(gridSize * zoom);
 
 		// Choose color based on enemy type
@@ -101,9 +101,9 @@ void EnemyPlacementTool::Render(Draw& w, int col, int row, Point offset, double 
 	}
 
 	// Draw preview at cursor position (only in ADD mode)
-	if(mode == PLACEMENT_ADD) {
-		int screenX = (int)((col * gridSize - offset.x) * zoom);
-		int screenY = (int)((row * gridSize - offset.y) * zoom);
+	if(mode == PLACEMENT_ADD && col >= 0 && row >= 0) {
+		int screenX = (int)((col * gridSize + offset.x) * zoom);
+		int screenY = (int)((row * gridSize + offset.y) * zoom);
 		int size = (int)(gridSize * zoom);
 
 		// Semi-transparent preview (lighter colors for preview)
@@ -199,8 +199,8 @@ void DropletPlacementTool::Render(Draw& w, int col, int row, Point offset, doubl
 		const DropletSpawnPoint& spawn = (*dropletSpawns)[i];
 
 		// Calculate screen position
-		int screenX = (int)((spawn.col * gridSize - offset.x) * zoom);
-		int screenY = (int)((spawn.row * gridSize - offset.y) * zoom);
+		int screenX = (int)((spawn.col * gridSize + offset.x) * zoom);
+		int screenY = (int)((spawn.row * gridSize + offset.y) * zoom);
 		int size = (int)(gridSize * zoom * 0.6);  // Smaller than enemies
 
 		// Choose color based on droplet type
@@ -232,9 +232,9 @@ void DropletPlacementTool::Render(Draw& w, int col, int row, Point offset, doubl
 	}
 
 	// Draw preview at cursor position (only in ADD mode)
-	if(mode == PLACEMENT_ADD) {
-		int screenX = (int)((col * gridSize - offset.x) * zoom);
-		int screenY = (int)((row * gridSize - offset.y) * zoom);
+	if(mode == PLACEMENT_ADD && col >= 0 && row >= 0) {
+		int screenX = (int)((col * gridSize + offset.x) * zoom);
+		int screenY = (int)((row * gridSize + offset.y) * zoom);
 		int size = (int)(gridSize * zoom * 0.6);
 
 		// Preview (lighter colors)

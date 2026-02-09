@@ -69,27 +69,39 @@ void GdbService::ReadOutput() {
 void GdbService::ParseLine(const String& line) {
 	if(line.IsEmpty()) return;
 	
-	// Filter out some MI noise for the console
-	if(!line.StartsWith("(gdb)") && !line.StartsWith("^") && !line.StartsWith("~")) {
-		if(WhenOutput) WhenOutput(line + "\n");
-	}
+	RLOG("GDB_MI: " + line);
 	
 	if(line.StartsWith("*stopped")) {
 		if(WhenPaused) WhenPaused();
+		SendCommand("-stack-list-frames");
+	}
+
+	if(line.StartsWith("^done,stack=")) {
+		Vector<StackFrame> stack;
 		
-		RegExp re("fullname=\"([^\"]+)\",line=\"(\\d+)\"");
-		if(re.Match(line)) {
-			Vector<StackFrame> stack;
+		auto GetMIValue = [&](const String& src, const char *key) -> String {
+			String skey = String(key) + "=\"";
+			int p = src.Find(skey);
+			if(p >= 0) {
+				p += skey.GetLength();
+				int e = src.Find('\"', p);
+				if(e >= 0) return src.Mid(p, e - p);
+			}
+			return "";
+		};
+
+		Vector<String> frames = Split(line, "frame={");
+		for(int i = 1; i < frames.GetCount(); i++) {
+			String fsrc = frames[i];
 			StackFrame& f = stack.Add();
-			f.file = re[0];
-			f.line = atoi(re[1]);
-			f.function = "unknown";
-			
-			RegExp re_func("func=\"([^\"]+)\"");
-			if(re_func.Match(line)) f.function = re_func[0];
-			
-			if(WhenStack) WhenStack(stack);
+			f.function = GetMIValue(fsrc, "func");
+			if(f.function.IsEmpty()) f.function = "unknown";
+			f.file = GetMIValue(fsrc, "fullname");
+			if(f.file.IsEmpty()) f.file = GetMIValue(fsrc, "file");
+			f.line = atoi(GetMIValue(fsrc, "line"));
 		}
+		
+		if(WhenStack) WhenStack(stack);
 	}
 }
 

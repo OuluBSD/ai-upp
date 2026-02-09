@@ -1,0 +1,20 @@
+description "Aria Unified Web Services Hub";
+
+uses
+	CtrlLib,
+	Aria,
+	Ctrl/Automation,
+	ByteVM;
+
+file
+	AriaHub.h,
+	main.cpp,
+	ServiceCtrl.h,
+	ThreadsCtrl.h,
+	ThreadsCtrl.cpp,
+	WhatsAppCtrl.h,
+	WhatsAppCtrl.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI USEMALLOC";

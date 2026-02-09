@@ -95,4 +95,8 @@ void SiteManager::SetSiteData(const String& site_name, const String& key, const 
 	SaveData(site_name, key + ".json", data);
 }
 
+Value SiteManager::GetSiteData(const String& site_name, const String& key) const {
+	return LoadData(site_name, key + ".json");
+}
+
 END_UPP_NAMESPACE

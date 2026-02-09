@@ -109,7 +109,9 @@ private:
 		const char* request_type
 		) const {
 		try {
-			HttpRequest req(ConcatUrl(url_, command));
+			String url = ConcatUrl(url_, command);
+			RLOG("WebDriver: " << request_type << " " << url);
+			HttpRequest req(url);
 			req.Method(method);
 			String body = req.Execute();
 			return ProcessResponse(req.GetStatusCode(), body);
@@ -134,7 +136,9 @@ private:
 		const char* request_type
 		) const {
 		try {
-			HttpRequest req(ConcatUrl(url_, command));
+			String url = ConcatUrl(url_, command);
+			RLOG("WebDriver: " << request_type << " " << url);
+			HttpRequest req(url);
 			req.Method(method);
 			if (!IsNull(upload_data)) {
 				req.PostData(ToUploadData(upload_data));
@@ -159,6 +163,13 @@ private:
 		try {
 			if (http_code / 100 != 2 && http_code / 100 != 4 && http_code != 500 && http_code != 501) {
 				throw std::runtime_error("Unsupported HTTP code: " + AsString(http_code));
+			}
+
+			if (body.IsEmpty()) {
+				if (http_code >= 400) {
+					throw std::runtime_error("Server error: HTTP code " + AsString(http_code) + " (Empty body)");
+				}
+				return Value();
 			}
 
 			Value response = ParseJSON(body);

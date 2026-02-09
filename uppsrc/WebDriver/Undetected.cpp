@@ -174,15 +174,21 @@ String GetFirefoxDefaultProfilePath() {
 	
 	String default_profile_path;
 	String release_profile_path;
+	String install_default_path;
 	
 	for (const String& section_content : sections) {
 		Vector<String> lines = Split(section_content, '\n');
-		bool is_profile = false;
-		if (lines.GetCount() > 0 && lines[0].StartsWith("Profile")) is_profile = true;
-		if (!is_profile) continue;
+		if (lines.IsEmpty()) continue;
+		
+		String header = lines[0];
+		bool is_profile = header.StartsWith("Profile");
+		bool is_install = header.StartsWith("Install");
+		
+		if (!is_profile && !is_install) continue;
 
 		String p_path;
 		String p_name;
+		bool is_relative = true;
 		bool is_p_default = false;
 
 		for (int i = 1; i < lines.GetCount(); i++) {
@@ -190,20 +196,32 @@ String GetFirefoxDefaultProfilePath() {
 			if (line.StartsWith("Path=")) p_path = line.Mid(5);
 			if (line.StartsWith("Name=")) p_name = line.Mid(5);
 			if (line.StartsWith("Default=1")) is_p_default = true;
+			if (line.StartsWith("IsRelative=0")) is_relative = false;
+			if (is_install && line.StartsWith("Default=")) p_path = line.Mid(8);
 		}
 		
-		String full_path = AppendFileName(GetFileFolder(ini_path), p_path);
+		if (p_path.IsEmpty()) continue;
 		
-		// Prioritize "default-release" explicitly
-		if (p_name == "default-release") release_profile_path = full_path;
+		String full_path = is_relative ? AppendFileName(GetFileFolder(ini_path), p_path) : p_path;
 		
-		// Fallback to Default=1
-		if (is_p_default) default_profile_path = full_path;
+		if (is_install) {
+			install_default_path = full_path;
+		} else if (is_profile) {
+			// Prioritize "default-release" explicitly
+			if (p_name == "default-release") release_profile_path = full_path;
+			// Fallback to Default=1
+			if (is_p_default) default_profile_path = full_path;
+		}
 	}
 	
 	if (!release_profile_path.IsEmpty()) {
 		RLOG("WebDriver: Selected default-release profile: " << release_profile_path);
 		return release_profile_path;
+	}
+	
+	if (!install_default_path.IsEmpty()) {
+		RLOG("WebDriver: Selected install-specific default profile: " << install_default_path);
+		return install_default_path;
 	}
 	
 	if (!default_profile_path.IsEmpty()) {

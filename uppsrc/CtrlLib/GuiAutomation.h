@@ -79,7 +79,7 @@ public:
 	typedef GuiAutomationVisitor CLASSNAME;
 
 	void Read(Ctrl& c);
-	void Walk(Ctrl& c);
+	void Walk(Ctrl& c, bool parent_visible = true);
 	::Upp::Value Read(Ctrl& c, const String& path);
 	bool Write(Ctrl& c, const String& path, const ::Upp::Value& val, bool do_action = true);
 

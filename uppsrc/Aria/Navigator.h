@@ -6,8 +6,8 @@
 class BaseNavigator {
 public:
 	virtual ~BaseNavigator() {}
-	virtual void StartSession(const String& browser_name = "chrome", bool headless = false, bool use_profile = false) = 0;
-	virtual bool ConnectToSession(const String& browser_name = "") = 0;
+	virtual void StartSession(const String& browser_name = "firefox", bool headless = false, bool use_profile = true) = 0;
+	virtual bool ConnectToSession(const String& browser_name = "firefox") = 0;
 	virtual void CloseSession(const String& browser_name = "") = 0;
 	virtual void Navigate(const String& url) = 0;
 	virtual ValueArray ListTabs() = 0;
@@ -19,6 +19,7 @@ public:
 
 class AriaNavigator : public BaseNavigator {
 	One<WebDriver::Web_driver> driver;
+	String session_id;
 	double throttle_delay;
 	bool randomize_delay;
 	BaseAIProvider* ai_provider = nullptr;
@@ -35,8 +36,8 @@ public:
 	
 	void SetAIProvider(BaseAIProvider* ai) { ai_provider = ai; }
 	
-	virtual void StartSession(const String& browser_name = "chrome", bool headless = false, bool use_profile = false) override;
-	virtual bool ConnectToSession(const String& browser_name = "") override;
+	virtual void StartSession(const String& browser_name = "firefox", bool headless = false, bool use_profile = true) override;
+	virtual bool ConnectToSession(const String& browser_name = "firefox") override;
 	virtual void CloseSession(const String& browser_name = "") override;
 	virtual void Navigate(const String& url) override;
 	virtual ValueArray ListTabs() override;

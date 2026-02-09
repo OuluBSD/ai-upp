@@ -131,8 +131,9 @@ void Aria::Run(const Vector<String>& args) {
 		sub.SetDescription("Open a browser instance.");
 		sub.AddArg("help", 'h', "show this help message and exit", false);
 		sub.AddArg("headless", 0, "Run in headless mode", false);
-		sub.AddArg("profile", 0, "Use default browser profile", false);
-		sub.AddArg("browser", 0, "Browser to use (firefox, chrome, edge)", true, "BROWSER");
+		sub.AddArg("profile", 0, "Use default browser profile (default)", false);
+		sub.AddArg("no-profile", 0, "Do not use browser profile", false);
+		sub.AddArg("browser", 0, "Browser to use (default: firefox)", true, "BROWSER");
 		sub.AddPositional("url", "URL to open", STRING_V, "");
 		
 		if (!sub.Parse(rest) || sub.IsArg("help")) { sub.PrintHelp(); return; }
@@ -145,7 +146,7 @@ void Aria::Run(const Vector<String>& args) {
 		if (!url.IsEmpty() && !url.StartsWith("http://") && !url.StartsWith("https://") && !url.StartsWith("about:"))
 			url = "https://" + url;
 		bool headless = sub.IsArg("headless");
-		bool use_profile = sub.IsArg("profile");
+		bool use_profile = !sub.IsArg("no-profile");
 		
 		navigator->StartSession(browser, headless, use_profile);
 		if (!url.IsEmpty()) {
@@ -388,6 +389,7 @@ String Aria::GenerateAIResponse(const String& prompt, const String& context, con
 
 END_UPP_NAMESPACE
 
+#ifdef flagMAIN
 CONSOLE_APP_MAIN
 {
 	Upp::StdLogSetup(Upp::LOG_COUT | Upp::LOG_FILE);
@@ -402,3 +404,4 @@ CONSOLE_APP_MAIN
 		Upp::Cout() << "Unknown error occurred.\n";
 	}
 }
+#endif

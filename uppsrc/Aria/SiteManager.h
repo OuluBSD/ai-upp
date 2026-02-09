@@ -14,6 +14,7 @@ public:
 	ValueMap GetRegistry(const String& site_name) const;
 	void UpdateRegistry(const String& site_name, const Vector<String>& item_names);
 	void SetSiteData(const String& site_name, const String& key, const Value& data);
+	Value GetSiteData(const String& site_name, const String& key) const;
 };
 
 #endif

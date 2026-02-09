@@ -65,13 +65,15 @@ void GuiAutomationVisitor::Read(Ctrl& c)
 	elements.Clear();
 	current_path = "";
 	write_mode = false;
-	Walk(c);
+	Walk(c, true);
 }
 
-void GuiAutomationVisitor::Walk(Ctrl& c)
+void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 {
 	if(found && write_mode) return;
-	if(!c.IsVisible()) return;
+	
+	bool is_visible = parent_visible && c.IsVisible();
+	if(!is_visible && !include_hidden) return;
 	
 	::Upp::String old_path = current_path;
 
@@ -81,6 +83,7 @@ void GuiAutomationVisitor::Walk(Ctrl& c)
 	
 	// Ensure elements added during Access have the correct path prefix if not already set
 	for(int i = n0; i < n1; i++) {
+		elements[i].visible = is_visible;
 		if(!old_path.IsEmpty() && !elements[i].path.StartsWith(old_path)) {
 			String p = old_path;
 			if(!elements[i].text.IsEmpty()) {
@@ -106,17 +109,15 @@ void GuiAutomationVisitor::Walk(Ctrl& c)
 
 	::Upp::Vector<CtrlGeometry> children;
 	for(Ctrl& child : c) {
-		if(child.IsVisible()) {
-			CtrlGeometry& g = children.Add();
-			g.ctrl = &child;
-			g.rect = child.GetRect();
-		}
+		CtrlGeometry& g = children.Add();
+		g.ctrl = &child;
+		g.rect = child.GetRect();
 	}
 	
 	::Upp::Sort(children);
 	
 	for(const auto& g : children) {
-		Walk(*g.ctrl);
+		Walk(*g.ctrl, is_visible);
 	}
 	
 	current_path = old_path;
@@ -139,7 +140,7 @@ bool GuiAutomationVisitor::Write(Ctrl& c, const String& path, const ::Upp::Value
 	target_action = do_action;
 	found = false;
 	current_path = "";
-	Walk(c);
+	Walk(c, true);
 	return found;
 }
 

@@ -44,6 +44,9 @@ public:
 	void Run(const Vector<String>& args);
 	
 	String GenerateAIResponse(const String& prompt, const String& context = "", const String& output_format = "text", const String& provider_name = "gemini");
+	
+	AriaNavigator& GetNavigator() { return *navigator; }
+	SiteManager& GetSiteManager() { return site_manager; }
 };
 
 END_UPP_NAMESPACE

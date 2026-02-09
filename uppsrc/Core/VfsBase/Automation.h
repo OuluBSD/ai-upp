@@ -11,9 +11,10 @@ struct AutomationElement : Moveable<AutomationElement> {
 	::Upp::Value   value;
 	bool    checked = false;
 	bool    enabled = true;
+	bool    visible = true;
 	bool    is_menu = false;
 	
-	String ToString() const { return String().Cat() << path << " = " << value; }
+	String ToString() const { return String().Cat() << path << " = " << value << (visible ? "" : " (hidden)"); }
 };
 
 class AutomationVisitor : public Visitor {
@@ -31,6 +32,9 @@ public:
 
 	Array<AutomationElement> elements;
 	String                   current_path;
+	
+	// Config
+	bool                     include_hidden = false;
 	
 	// Write mode
 	bool                     write_mode = false;

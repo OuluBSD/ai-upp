@@ -18,8 +18,10 @@ public:
 	// Load enemy spawn points from JSON file
 	static bool LoadEnemySpawns(const String& filePath, Array<EnemySpawnPoint>& spawns);
 
-	// Save map to JSON file (future)
-	static bool SaveToFile(const String& filePath, const LayerManager& layerMgr);
+	// Save map to JSON file
+	static bool SaveToFile(const String& filePath, const LayerManager& layerMgr,
+	                       const Array<EnemySpawnPoint>* enemySpawns = nullptr,
+	                       const Array<DropletSpawnPoint>* dropletSpawns = nullptr);
 
 private:
 	// Helper: Load tile indices from JSON array

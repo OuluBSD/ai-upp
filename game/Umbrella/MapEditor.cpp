@@ -1,5 +1,6 @@
 #include "Umbrella.h"
 #include "MapEditor.h"
+#include "GameScreen.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
@@ -86,6 +87,7 @@ void MapCanvas::Paint(Draw& w) {
 
 		const MapGrid& grid = layer.GetGrid();
 		int opacity = layer.GetOpacity();
+		int gridRows = grid.GetRows();
 
 		// Render tiles in this layer
 		for(int row = startRow; row < endRow; row++) {
@@ -913,6 +915,9 @@ bool MapEditorApp::Key(dword key, int) {
 		case K_CTRL_Y:
 			RedoAction();
 			return true;
+		case K_F5:
+			PlaytestAction();
+			return true;
 
 		// Tool selection (UX spec: 1-6 for tools)
 		case K_1:  // Draw Wall
@@ -1063,7 +1068,14 @@ void MapEditorApp::OpenFileAction() {
 	fs.AllFilesType();
 
 	if(fs.ExecuteOpen("Open Map File")) {
-		OpenFile(fs.Get());
+		String selectedFile = fs.Get();
+
+		// If BaseDir was set and the returned path is relative, make it absolute
+		if(!IsFullPath(selectedFile) && DirectoryExists(levelsDir)) {
+			selectedFile = AppendFileName(levelsDir, selectedFile);
+		}
+
+		OpenFile(selectedFile);
 	}
 }
 
@@ -1099,6 +1111,30 @@ void MapEditorApp::ZoomOutAction() {
 
 void MapEditorApp::ResetZoomAction() {
 	mapCanvas.SetZoom(1.0);
+}
+
+void MapEditorApp::PlaytestAction() {
+	// Generate temporary file path
+	String tempPath = GetTempFileName("playtest_level") + ".json";
+
+	// Save current map to temp file
+	if(!MapSerializer::SaveToFile(tempPath, layerManager, &enemySpawns, &dropletSpawns)) {
+		Exclamation("Failed to save temporary file for playtesting!");
+		return;
+	}
+
+	LOG("Launching playtest with temp file: " << tempPath);
+	mainStatusBar.Set("Launching playtest... Press ESC in game to return.");
+
+	// Create and run GameScreen modally
+	GameScreen playtest(tempPath);
+	playtest.Run();
+
+	// Clean up temp file
+	DeleteFile(tempPath);
+
+	mainStatusBar.Set("Playtest ended. Back to editor.");
+	LOG("Playtest ended, temp file removed.");
 }
 
 void MapEditorApp::NewMap() {
@@ -1192,8 +1228,13 @@ void MapEditorApp::OpenFile(const String& fileName) {
 }
 
 void MapEditorApp::SaveFile(const String& fileName) {
-	PromptOK("Saving file: " + fileName);
-	// TODO: Implementation for saving a file
+	if(MapSerializer::SaveToFile(fileName, layerManager, &enemySpawns, &dropletSpawns)) {
+		currentFilePath = fileName;
+		mainStatusBar.Set("Saved: " + GetFileName(fileName));
+	}
+	else {
+		mainStatusBar.Set("Failed to save: " + fileName);
+	}
 }
 
 void MapEditorApp::LoadReferenceImage(const String& imagePath) {

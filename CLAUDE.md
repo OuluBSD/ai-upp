@@ -18,7 +18,12 @@ You're working with Ultimate++ (U++) codebase. Read these in order:
 **IMPORTANT**: Always use `script/build.py` to build projects, NOT `theide` directly:
 
 ```bash
-python script/build.py -mc 0 -j 12 PackageName
+script/build.py -mc 1 -j 12 PackageName
+```
+
+**For the Umbrella game project specifically**:
+```bash
+script/build.py -mc 1 -j 12 Umbrella
 ```
 
 **Never use**: `theide PackageName GCC -br` or similar direct theide commands.

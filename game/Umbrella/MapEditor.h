@@ -185,6 +185,7 @@ public:
 	void ZoomInAction();
 	void ZoomOutAction();
 	void ResetZoomAction();
+	void PlaytestAction();
 };
 
 #endif

@@ -207,8 +207,131 @@ Point MapSerializer::IndexToColRow(int index, int columns) {
 	return Point(index % columns, index / columns);
 }
 
-bool MapSerializer::SaveToFile(const String& filePath, const LayerManager& layerMgr) {
-	// TODO: Implement in future task
-	Exclamation("Save functionality not yet implemented");
-	return false;
+bool MapSerializer::SaveToFile(const String& filePath, const LayerManager& layerMgr,
+                                const Array<EnemySpawnPoint>* enemySpawns,
+                                const Array<DropletSpawnPoint>* dropletSpawns) {
+	// Get layers
+	const Layer* terrainLayer = layerMgr.FindLayerByType(LAYER_TERRAIN);
+	const Layer* backgroundLayer = layerMgr.FindLayerByType(LAYER_BACKGROUND);
+
+	if(!terrainLayer || !backgroundLayer) {
+		Exclamation("Failed to find layers for saving");
+		return false;
+	}
+
+	const MapGrid& terrainGrid = terrainLayer->GetGrid();
+	const MapGrid& backgroundGrid = backgroundLayer->GetGrid();
+
+	int columns = terrainGrid.GetColumns();
+	int rows = terrainGrid.GetRows();
+	int mapCols = terrainGrid.GetMapCols();
+	int mapRows = terrainGrid.GetMapRows();
+
+	// Collect tile indices
+	Vector<int> wallIndices, fullBlockIndices, backgroundIndices;
+
+	for(int row = 0; row < rows; row++) {
+		for(int col = 0; col < columns; col++) {
+			// Check terrain layer
+			TileType terrainTile = terrainGrid.GetTile(col, row);
+			if(terrainTile == TILE_WALL) {
+				wallIndices.Add(row * columns + col);
+			}
+			else if(terrainTile == TILE_FULLBLOCK) {
+				fullBlockIndices.Add(row * columns + col);
+			}
+
+			// Check background layer
+			TileType bgTile = backgroundGrid.GetTile(col, row);
+			if(bgTile == TILE_BACKGROUND) {
+				backgroundIndices.Add(row * columns + col);
+			}
+		}
+	}
+
+	// Build JSON object using ValueMap
+	ValueMap jsonObj;
+	jsonObj.Add("columns", columns);
+	jsonObj.Add("rows", rows);
+	jsonObj.Add("gridSize", 14);
+	jsonObj.Add("mapCols", mapCols);
+	jsonObj.Add("mapRows", mapRows);
+
+	// Add wall indices
+	ValueArray wallArray;
+	for(int idx : wallIndices)
+		wallArray.Add(idx);
+	jsonObj.Add("walls", wallArray);
+
+	// Add background indices
+	ValueArray bgArray;
+	for(int idx : backgroundIndices)
+		bgArray.Add(idx);
+	jsonObj.Add("background", bgArray);
+
+	// Add fullBlock indices
+	ValueArray blockArray;
+	for(int idx : fullBlockIndices)
+		blockArray.Add(idx);
+	jsonObj.Add("fullBlocks", blockArray);
+
+	// Add enemy spawns if provided
+	if(enemySpawns && enemySpawns->GetCount() > 0) {
+		ValueArray enemiesArray;
+		for(const EnemySpawnPoint& spawn : *enemySpawns) {
+			ValueMap spawnObj;
+			spawnObj.Add("col", spawn.col);
+			spawnObj.Add("row", spawn.row);
+			spawnObj.Add("facing", spawn.facing);
+
+			// Convert type enum to string
+			String typeStr;
+			switch(spawn.type) {
+				case ENEMY_PATROLLER: typeStr = "PATROLLER"; break;
+				case ENEMY_JUMPER: typeStr = "JUMPER"; break;
+				case ENEMY_SHOOTER: typeStr = "SHOOTER"; break;
+			}
+			spawnObj.Add("type", typeStr);
+
+			enemiesArray.Add(spawnObj);
+		}
+		jsonObj.Add("enemies", enemiesArray);
+	}
+
+	// Add droplet spawns if provided
+	if(dropletSpawns && dropletSpawns->GetCount() > 0) {
+		ValueArray dropletsArray;
+		for(const DropletSpawnPoint& spawn : *dropletSpawns) {
+			ValueMap spawnObj;
+			spawnObj.Add("col", spawn.col);
+			spawnObj.Add("row", spawn.row);
+			spawnObj.Add("direction", spawn.direction);
+			spawnObj.Add("intervalMs", spawn.intervalMs);
+			spawnObj.Add("enabled", spawn.enabled);
+
+			// Convert mode enum to string
+			String modeStr;
+			switch(spawn.mode) {
+				case DROPLET_RAINBOW: modeStr = "RAINBOW"; break;
+				case DROPLET_ICE: modeStr = "ICE"; break;
+				case DROPLET_FIRE: modeStr = "FIRE"; break;
+			}
+			spawnObj.Add("mode", modeStr);
+
+			dropletsArray.Add(spawnObj);
+		}
+		jsonObj.Add("droplets", dropletsArray);
+	}
+
+	// Convert to JSON string with nice formatting
+	String jsonText = AsJSON(jsonObj, true);
+
+	// Save to file
+	if(!SaveFile(filePath, jsonText)) {
+		Exclamation("Failed to write file: " + filePath);
+		return false;
+	}
+
+	LOG("Saved map to: " << filePath);
+	return true;
 }

@@ -6,6 +6,7 @@ AriaMainWindow::AriaMainWindow()
 {
 	Title("AriaHub - Unified Web Services").Sizeable().Zoomable();
 	Icon(CtrlImg::Network());
+	LayoutId("Main");
 
 	AddFrame(menu);
 	AddFrame(toolbar);
@@ -30,17 +31,25 @@ AriaMainWindow::AriaMainWindow()
 	// Initialize backend links
 	threads.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
 	whatsapp.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+	google_messages.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+	universal_inbox.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+	youtube.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+	calendar.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+
+	universal_inbox.WhenJump = [=](int s, int t) {
+		tabs.Set(s);
+	};
 
 	// Services
+	tabs.Add(universal_inbox.SizePos(), "Inbox");
 	tabs.Add(threads.SizePos(), "Threads");
 	tabs.Add(whatsapp.SizePos(), "WhatsApp");
+	tabs.Add(google_messages.SizePos(), "Messages");
+	tabs.Add(youtube.SizePos(), "YouTube");
+	tabs.Add(calendar.SizePos(), "Calendar");
 	
 	// Placeholder tabs for other services
 	tabs.Add("Dashboard");
-	tabs.Add("Google Messages");
-	tabs.Add("Universal Inbox");
-	tabs.Add("YouTube");
-	tabs.Add("Calendar");
 }
 
 bool AriaMainWindow::Key(dword key, int count)
@@ -151,6 +160,10 @@ void AriaAlert(const String& msg)
 	}
 }
 
+static AriaNavigator* sAutoNav = nullptr;
+Value AutoEval(const String& s) { return sAutoNav ? sAutoNav->Eval(s) : Value(); }
+void AutoNav(const String& u) { if(sAutoNav) sAutoNav->Navigate(u); }
+
 END_UPP_NAMESPACE
 
 GUI_APP_MAIN
@@ -169,6 +182,9 @@ GUI_APP_MAIN
 	if(!test_script.IsEmpty()) {
 		Upp::AriaMainWindow* main = new Upp::AriaMainWindow();
 		main->Open();
+		
+		Upp::sAutoNav = &main->GetNavigator();
+		Upp::SetAutomationHooks(Upp::AutoEval, Upp::AutoNav);
 		
 		Upp::PyVM vm;
 		Upp::RegisterAutomationBindings(vm);

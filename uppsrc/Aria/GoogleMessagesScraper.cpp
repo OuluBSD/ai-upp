@@ -8,7 +8,7 @@ GoogleMessagesScraper::GoogleMessagesScraper(AriaNavigator& navigator, SiteManag
 	: navigator(navigator)
 	, sm(sm)
 {
-	site_name = "google-messages";
+	site_name = "google_messages";
 }
 
 bool GoogleMessagesScraper::Navigate() {
@@ -26,12 +26,7 @@ bool GoogleMessagesScraper::Navigate() {
 bool GoogleMessagesScraper::Refresh(bool deep) {
 	if (!Navigate()) return false;
 	ValueArray conversations = ScrapeAllConversations();
-	
-	Vector<String> names;
-	for (int i = 0; i < conversations.GetCount(); i++)
-		names.Add(conversations[i]["name"]);
-	
-	sm.UpdateRegistry(site_name, names);
+	sm.SetSiteData(site_name, "conversations", conversations);
 	return true;
 }
 
@@ -42,15 +37,27 @@ ValueArray GoogleMessagesScraper::ScrapeAllConversations() {
 		Vector<Element> convs = navigator.FindElements(By::TagName("mws-conversation-list-item"));
 		GetAriaLogger("google_messages").Info(Format("Found %d conversations", convs.GetCount()));
 		
-		for (int i = 0; i < min(convs.GetCount(), 10); i++) {
+		for (int i = 0; i < convs.GetCount(); i++) {
 			try {
 				ValueMap conv;
-				String name = convs[i].FindElement(By::CssSelector(".name-container")).GetText();
-				conv.Set("name", name);
+				Element& e = convs[i];
 				
-				// Optional: Click to load messages
-				// convs[i].Click();
-				// conv.Set("messages", ExtractVisibleMessages());
+				String sender = e.FindElement(By::CssSelector(".name-container")).GetText();
+				conv.Set("sender", sender);
+				
+				try {
+					conv.Set("snippet", e.FindElement(By::CssSelector(".snippet-text")).GetText());
+				} catch(...) {}
+				
+				try {
+					conv.Set("timestamp", e.FindElement(By::CssSelector(".timestamp")).GetText());
+				} catch(...) {}
+				
+				// Unread check (often a bold class or a specific dot)
+				try {
+					String cls = e.GetAttribute("class");
+					conv.Set("unread", cls.Find("unread") >= 0);
+				} catch(...) {}
 				
 				all_data.Add(conv);
 			} catch (...) {}

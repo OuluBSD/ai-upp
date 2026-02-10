@@ -114,6 +114,15 @@ void BufferStageT<Gfx>::SetAudio(bool b) {
 }
 
 template <class Gfx>
+void BufferStageT<Gfx>::Uninitialize() {
+	ClearTex();
+	if (quad) {
+		quad->Clear();
+		quad = 0;
+	}
+}
+
+template <class Gfx>
 GfxCompilerArgs BufferStageT<Gfx>::GetCompilerArgs() const {
 	auto& fb = this->fb[0];
 	GfxCompilerArgs args;

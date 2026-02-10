@@ -2,9 +2,6 @@
 #define _IMedia_Types_h_
 
 
-NAMESPACE_UPP
-
-
 #define MEDIA_CLS_LIST(m) \
 	MEDIA_CLS(MediaAtomBase, m) \
 	\
@@ -159,7 +156,5 @@ struct V4L2OpenCVMedia : V4L2Media {
 
 
 
-
-END_UPP_NAMESPACE
 
 #endif

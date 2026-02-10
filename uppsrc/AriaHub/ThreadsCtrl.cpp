@@ -18,9 +18,20 @@ ThreadsCtrl::ThreadsCtrl() {
 	tabs.Add(settings_tab.SizePos(), "Config");
 	
 	// Settings Tab Layout
-	settings_tab.Add(btnRefresh.LeftPos(10, 150).TopPos(10, 30));
+	int y = 10;
+	settings_tab.Add(btnRefresh.LeftPos(10, 150).TopPos(y, 30));
 	btnRefresh.SetLabel("Refresh All Data");
 	btnRefresh << [=] { Scrape(); };
+	y += 40;
+	
+	settings_tab.Add(lblDepth.LeftPos(10, 100).TopPos(y, 20));
+	lblDepth.SetLabel("Scrape Depth:");
+	settings_tab.Add(scrape_depth.LeftPos(110, 50).TopPos(y, 20));
+	scrape_depth <<= 50;
+	y += 30;
+	
+	settings_tab.Add(auto_refresh.LeftPos(10, 150).TopPos(y, 20));
+	auto_refresh.SetLabel("Auto Refresh");
 }
 
 void ThreadsCtrl::InitList(ArrayCtrl& list) {
@@ -36,8 +47,11 @@ void ThreadsCtrl::RefreshSubTab(int tab_index) {
 		bool success = false;
 		if (tab_index == 0) { // Feed
 			success = scraper.RefreshFeed();
+		} else if (tab_index == 1) { // Public
+			success = scraper.RefreshPublic();
+		} else if (tab_index == 2) { // Private
+			success = scraper.RefreshPrivate();
 		} else {
-			// Other tabs not fully implemented for partial refresh yet
 			success = scraper.Refresh(false); 
 		}
 		
@@ -68,17 +82,19 @@ void ThreadsCtrl::Scrape() {
 void ThreadsCtrl::LoadData() {
 	if (!site_manager) return;
 	
-	// Feed
-	feed_list.Clear();
-	Value feed = site_manager->GetSiteData("threads", "feed");
-	if (feed.Is<ValueArray>()) {
-		for (const Value& post : (ValueArray)feed) {
-			feed_list.Add(post["author"], post["content"]);
+	auto LoadTab = [&](ArrayCtrl& list, const String& key) {
+		list.Clear();
+		Value data = site_manager->GetSiteData("threads", key);
+		if (data.Is<ValueArray>()) {
+			for (const Value& post : (ValueArray)data) {
+				list.Add(post["author"], post["content"]);
+			}
 		}
-	}
-	
-	public_list.Clear();
-	private_list.Clear();
+	};
+
+	LoadTab(feed_list, "feed");
+	LoadTab(public_list, "public");
+	LoadTab(private_list, "private");
 }
 
 END_UPP_NAMESPACE

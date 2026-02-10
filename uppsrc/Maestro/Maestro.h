@@ -59,6 +59,7 @@ struct Command {
 
 #include "DiscussCommand.h"
 #include "ConversionOrchestrator.h"
+#include "Plugin.h"
 
 #ifdef flagGUI
 // 4. UI
@@ -100,6 +101,22 @@ public:
 	bool           SaveWorkflow(const String& name, const String& content);
 	bool           DeleteWorkflow(const String& name);
 	String         Visualize(const String& name, const String& format = "plantuml");
+};
+
+class LogTail {
+	String path;
+	int64  last_pos = 0;
+	bool   active = false;
+
+public:
+	Event<String> WhenLine;
+	
+	void Open(const String& p);
+	void Close() { active = false; }
+	void Poll();
+	bool IsActive() const { return active; }
+	
+	LogTail() {}
 };
 
 class LogManager {

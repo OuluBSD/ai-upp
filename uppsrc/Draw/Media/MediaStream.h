@@ -1,7 +1,5 @@
- #ifndef _IMedia_Media_h_
+#ifndef _IMedia_Media_h_
 #define _IMedia_Media_h_
-
-NAMESPACE_UPP
 
 
 template <class Backend>
@@ -48,7 +46,5 @@ public:
 	
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

@@ -108,7 +108,7 @@ ColorSampleFD::Type FfmpegMedia::GetVideoSampleType(const AVCodecParameters& c) 
 	#if FFMPEG_VIDEOFRAME_RGBA_CONVERSION
 	return ColorSampleFD::RGBA_U8_LE;
 	#else
-	switch (vcodec->format) {
+	switch (c.format) {
 	case AV_PIX_FMT_RGB24:
 		return ColorSampleFD::RGB_U8_LE;
 		break;

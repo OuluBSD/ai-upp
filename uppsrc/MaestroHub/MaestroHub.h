@@ -81,14 +81,18 @@ public:
 	One<LogManager> lm;
 	SolutionsManager sm;
 	String       root;
+	LogTail      tail;
+
 	void Load(const String& maestro_root);
 	void UpdateScans();
 	void OnScanCursor();
 	void OnFindingCursor();
 	void OnCreateIssue();
 	void OnRemediate();
+	void OnTailLine(String line);
 	
 	Callback1<String> WhenRemediate;
+	Callback1<String> WhenLog;
 	
 	typedef LogAnalyzer CLASSNAME;
 	LogAnalyzer();

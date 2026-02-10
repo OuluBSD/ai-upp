@@ -1,5 +1,5 @@
 # Task: Calendar Agenda
-# Status: PENDING
+# Status: DONE
 
 ## Objective
 Hierarchical view of upcoming events.

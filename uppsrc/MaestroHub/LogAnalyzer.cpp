@@ -37,6 +37,8 @@ LogAnalyzer::LogAnalyzer() {
 	
 	hsplit.Horz(finding_list, detail_view);
 	vsplit.Vert(scan_list, hsplit);
+	
+	tail.WhenLine = THISBACK(OnTailLine);
 }
 
 void LogAnalyzer::Load(const String& maestro_root) {
@@ -44,6 +46,22 @@ void LogAnalyzer::Load(const String& maestro_root) {
 	lm.Create(root);
 	sm.Load(root);
 	UpdateScans();
+	
+	String test_log = AppendFileName(root, "test.log");
+	if(FileExists(test_log)) {
+		tail.Open(test_log);
+		SetTimeCallback(-500, [=] { tail.Poll(); }, &tail);
+	}
+}
+
+void LogAnalyzer::OnTailLine(String line) {
+	if(WhenLog) WhenLog("LOG: " + line);
+	
+	Array<LogFinding> findings = pick(lm->ExtractFindings(line, "any"));
+	for(const auto& f : findings) {
+		finding_list.AddAt(0, f.kind, f.file, f.message, StoreAsJson(f));
+		if(WhenLog) WhenLog("LIVE ISSUE DETECTED: " + f.message);
+	}
 }
 
 void LogAnalyzer::UpdateScans() {

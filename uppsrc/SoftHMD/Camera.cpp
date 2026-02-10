@@ -329,8 +329,19 @@ void HMD_APIENTRYDLL Camera::Close()
 void Camera::Process()
 {
 	struct timeval tv = { 0, 10000 };
+	int64 last_keepalive = usecs();
 	while(usb_flag.IsRunning()) {
 		libusb_handle_events_timeout_completed(usb_ctx, &tv, NULL);
+		
+		int64 now = usecs();
+		if(now - last_keepalive > 1000000) { // 1 second
+			if(usb_handle) {
+				// Refresh gain as a keep-alive
+				wmr_camera_set_gain(usb_handle, 0, 0x80);
+				wmr_camera_set_gain(usb_handle, 1, 0x80);
+			}
+			last_keepalive = now;
+		}
 	}
 	usb_flag.SetStopped();
 }

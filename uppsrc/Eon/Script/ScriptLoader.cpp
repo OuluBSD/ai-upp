@@ -530,6 +530,10 @@ void ScriptLoader::Uninitialize() {
 	//es.Clear();
 	//ss.Clear();
 	loader.Clear();
+	
+	built_chains.Clear();
+	built_nets.Clear();
+	
 	GetEngine().RemoveUpdated(this);
 }
 

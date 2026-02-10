@@ -30,6 +30,11 @@ public:
 	virtual String Generate(const String& prompt, const String& context = "", const String& output_format = "text") override;
 };
 
+class OtpManager {
+public:
+	static String ExtractOtp(const String& text);
+};
+
 class Aria {
 	ScriptManager script_manager;
 	SafetyManager safety_manager;

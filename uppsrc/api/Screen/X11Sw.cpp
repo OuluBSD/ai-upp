@@ -75,8 +75,8 @@ bool ScrX11Sw::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const W
 	
 	a.AddDependency(*ctx_);
 	
-	dev.log_avg = ws.GetBool(".avg_color_log", false);
-	int interval = ws.GetInt(".avg_color_interval", 16);
+	dev.log_avg = ws.GetBool("avg_color_log", ws.GetBool(".avg_color_log", false));
+	int interval = ws.GetInt("avg_color_interval", ws.GetInt(".avg_color_interval", 16));
 	if (interval <= 0)
 		interval = 1;
 	dev.avg_log_interval = interval;
@@ -248,6 +248,7 @@ void ScrX11Sw::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 	// Clear the accelerator buffers to free memory
 	dev.accel_buf.Clear();
 	dev.accel_buf_tmp.Clear();
+	dev.accel_zbuf.Clear();
 
 	// Free X11 resources using stored handles (not ctx pointer which may be dangling)
 	if (dev.fb && dev.display) {
@@ -279,6 +280,12 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 	
 	dev.accel.Render(cfg);
 	
+	// DEBUG: Force a red test pattern on the first frame to verify window path
+	if (dev.frame_counter == 0) {
+		dev.accel_buf.Zero(Color(255, 0, 0));
+		LOG("X11Sw: Forced RED test pattern on first frame");
+	}
+	
 	{
 		XWindowAttributes attr;
 		XGetWindowAttributes(ctx.display, ctx.win, &attr);
@@ -303,7 +310,7 @@ void ScrX11Sw::SinkDevice_Finalize(NativeSinkDevice& dev, AtomBase& a, RealtimeS
 
 		if (dev.log_avg) {
 			dev.frame_counter++;
-			if ((dev.frame_counter % dev.avg_log_interval) == 0) {
+			if (true) { // Always log for investigation
 				const byte* frame = dev.accel_buf_tmp.Begin();
 				int ch = dev.accel_buf_tmp.channels;
 				if (frame && ch >= 3 && width > 0 && height > 0) {

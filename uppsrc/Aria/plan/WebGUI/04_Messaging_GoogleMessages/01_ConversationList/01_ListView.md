@@ -1,5 +1,5 @@
 # Task: Google Messages Conversation List
-# Status: PENDING
+# Status: DONE
 
 ## Objective
 Display SMS and RCS conversations from Google Messages.

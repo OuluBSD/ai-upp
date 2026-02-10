@@ -2,7 +2,8 @@ description "Aria - Browser automation software converted from Python to C++\377
 
 uses
 	Core,
-	WebDriver;
+	WebDriver,
+	plugin/pcre;
 
 file
 	README.md,

@@ -63,6 +63,8 @@ file
 	RegressionReplay.cpp,
 	Debugger.h,
 	Debugger.cpp,
+	Plugin.h,
+	Plugin.cpp,
 	Playbook readonly separator,
 	RunbookManager.cpp,
 	WorkflowManager.cpp,

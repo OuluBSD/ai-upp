@@ -25,6 +25,27 @@ inline const char* GetStealthJS() {
 		try { Object.defineProperty(navigator, 'plugins', { get: () => mockPlugins }); } catch (e) {}
 		try { Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] }); } catch (e) {}
 		try { Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 4 }); } catch (e) {}
+		
+		// Mock Page Visibility API and Focus
+		try {
+			Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+			Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+			Object.defineProperty(document, 'webkitHidden', { get: () => false, configurable: true });
+			document.hasFocus = () => true;
+		} catch (e) {}
+
+		// Block blur events and visibility changes that might throttle the page
+		const blockEvent = (e) => {
+			e.stopImmediatePropagation();
+			if (e.type === 'visibilitychange' || e.type === 'webkitvisibilitychange') {
+				// Re-dispatch as visible if needed? Usually overriding properties is enough.
+			}
+		};
+		window.addEventListener('visibilitychange', blockEvent, true);
+		window.addEventListener('webkitvisibilitychange', blockEvent, true);
+		window.addEventListener('blur', blockEvent, true);
+		window.addEventListener('focusout', blockEvent, true);
+
 		const getParameter = WebGLRenderingContext.prototype.getParameter;
 		WebGLRenderingContext.prototype.getParameter = function(parameter) {
 			if (parameter === 37445) return 'Intel Inc.';

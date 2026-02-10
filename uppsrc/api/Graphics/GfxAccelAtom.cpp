@@ -162,9 +162,6 @@ void GfxAccelAtom<Gfx>::SetNative(NativeDisplay& display, NativeWindow& window, 
 }
 
 template <class Gfx>
-GfxAccelAtom<Gfx>* GfxAccelAtom<Gfx>::latest = 0;
-
-template <class Gfx>
 bool GfxAccelAtom<Gfx>::Initialize(AtomBase& a, const WorldState& ws) {
 	latest = this;
 	this->ab = &a;
@@ -218,6 +215,7 @@ bool GfxAccelAtom<Gfx>::PostInitialize() {
 template <class Gfx>
 void GfxAccelAtom<Gfx>::Uninitialize() {
 	ab->RemoveAtomFromUpdateList();
+	bf.buf.Uninitialize();
 	bf.ClearPtr();
 	Gfx::ClearFramebufferPtr(fb);
 	fb_packet.Clear();

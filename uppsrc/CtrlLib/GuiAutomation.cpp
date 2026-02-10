@@ -97,7 +97,7 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 		}
 	}
 
-	if(handled) {
+	if(handled && dynamic_cast<Bar*>(&c)) {
 		current_path = old_path;
 		return;
 	}

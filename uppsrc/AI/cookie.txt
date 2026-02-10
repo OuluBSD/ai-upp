@@ -1,4 +1,4 @@
-TRACK=MaestroCLI
-PHASE=03_RepoAndOps
-TASK=03_OpsAutomation.md
-STATUS=IN_PROGRESS
+TRACK=MaestroHub
+PHASE=15_QualityAssurance
+TASK=01_MemoryLeakHunting.md
+STATUS=DONE

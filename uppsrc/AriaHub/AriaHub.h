@@ -7,6 +7,10 @@
 #include <ByteVM/ByteVM.h>
 #include "ThreadsCtrl.h"
 #include "WhatsAppCtrl.h"
+#include "GoogleMessagesCtrl.h"
+#include "UniversalInboxCtrl.h"
+#include "YouTubeCtrl.h"
+#include "CalendarCtrl.h"
 
 NAMESPACE_UPP
 
@@ -15,8 +19,8 @@ public:
 	typedef AriaMainWindow CLASSNAME;
 	AriaMainWindow();
 
-	void MainMenu(Bar& bar);
-	void ServiceMenu(Bar& bar);
+	virtual void MainMenu(Bar& bar);
+	virtual void ServiceMenu(Bar& bar);
 
 	void RefreshActiveSubTab();
 	void RefreshActiveService();
@@ -28,6 +32,8 @@ public:
 
 	virtual bool Key(dword key, int count) override;
 
+	AriaNavigator& GetNavigator() { return aria.GetNavigator(); }
+
 private:
 	MenuBar   menu;
 	TabCtrl   tabs;
@@ -36,8 +42,12 @@ private:
 	
 	Aria      aria; // Backend integration
 	
-	ThreadsCtrl  threads;
-	WhatsAppCtrl whatsapp;
+	ThreadsCtrl        threads;
+	WhatsAppCtrl       whatsapp;
+	GoogleMessagesCtrl google_messages;
+	UniversalInboxCtrl universal_inbox;
+	YouTubeCtrl        youtube;
+	CalendarCtrl       calendar;
 };
 
 void AriaAlert(const String& msg);

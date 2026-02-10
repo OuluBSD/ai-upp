@@ -1,8 +1,6 @@
 #ifndef _IMedia_Audio_h_
 #define _IMedia_Audio_h_
 
-NAMESPACE_UPP
-
 
 template <class Backend>
 struct AudioFrameT : PacketBufferBase {
@@ -26,25 +24,15 @@ struct AudioInputFrameT : AudioFrameT<Backend> {
 	
 	
 };
+	
+	
 
+	
+	
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-END_UPP_NAMESPACE
-
+	
+	
 #endif
+	
+	
+

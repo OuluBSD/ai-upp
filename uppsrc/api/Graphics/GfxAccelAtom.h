@@ -134,6 +134,9 @@ public:
 	
 };
 
+template <class Gfx>
+GfxAccelAtom<Gfx>* GfxAccelAtom<Gfx>::latest = 0;
+
 
 END_UPP_NAMESPACE
 

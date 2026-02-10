@@ -1,9 +1,6 @@
 #ifndef _IMedia_FileIn_h_
 #define _IMedia_FileIn_h_
 
-NAMESPACE_UPP
-
-
 
 template <class Backend> struct FileInputT;
 
@@ -205,8 +202,5 @@ public:
 	
 };
 
-
-
-END_UPP_NAMESPACE
 
 #endif

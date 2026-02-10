@@ -1,5 +1,5 @@
 # Task: WhatsApp Contact/Chat List
-# Status: PENDING
+# Status: DONE
 
 ## Objective
 List active chats and contacts.

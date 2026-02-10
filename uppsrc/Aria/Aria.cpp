@@ -1,4 +1,5 @@
 #include "Aria.h"
+#include <plugin/pcre/Pcre.h>
 
 NAMESPACE_UPP
 
@@ -68,6 +69,15 @@ String GeminiProvider::Generate(const String& prompt, const String& context, con
 	}
 	
 	return TrimBoth(text);
+}
+
+String OtpManager::ExtractOtp(const String& text) {
+	// Look for 4-8 digit codes, often surrounded by boundaries
+	RegExp re("(\\b\\d{4,8}\\b)");
+	if (re.GlobalMatch(text)) {
+		return re[0];
+	}
+	return "";
 }
 
 Aria::Aria() {

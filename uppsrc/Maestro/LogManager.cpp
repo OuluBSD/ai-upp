@@ -2,6 +2,37 @@
 
 namespace Upp {
 
+void LogTail::Open(const String& p)
+{
+	path = p;
+	last_pos = GetFileLength(path); // Start from end
+	active = true;
+}
+
+void LogTail::Poll()
+{
+	if(!active) return;
+	
+	int64 len = GetFileLength(path);
+	if(len < last_pos) {
+		// File truncated or rotated
+		last_pos = 0;
+	}
+	
+	if(len > last_pos) {
+		FileStream fs;
+		if(fs.Open(path, FileStream::READ)) {
+			fs.Seek(last_pos);
+			while(!fs.IsEof()) {
+				String line = fs.GetLine();
+				if(!line.IsEmpty() || fs.Peek() != -1)
+					WhenLine(line);
+			}
+			last_pos = fs.GetPos();
+		}
+	}
+}
+
 LogManager::LogManager(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);

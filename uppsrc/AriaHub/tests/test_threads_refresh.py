@@ -12,9 +12,15 @@ threads_main_tab.click()
 wait_time(0.5)
 
 print("Switching to Config tab...")
-settings_tab = find("Config")
+settings_tab = find("Threads/Config")
+if not settings_tab:
+    # Try just "Config" if path finding differs
+    settings_tab = find("Config")
+
 if not settings_tab:
     print("Error: Config tab not found")
+    print("UI Dump:")
+    print(dump_ui())
     sys.exit(1)
 settings_tab.click()
 wait_time(0.2)
@@ -37,13 +43,13 @@ if feed_tab:
 wait_time(1.0)
 
 print("Checking for data in Feed list...")
-# We can't easily inspect the rows of ArrayCtrl yet with current find() 
-# but we can dump_ui to see if rows appeared if they are indexed.
 ui = dump_ui()
-if "Threads/Feed/row" in ui:
+if "row = " in ui:
     print("✓ Success: Feed rows detected in UI.")
 else:
     print("? No feed rows detected. Scrape might have failed or returned empty.")
+    # For debugging if it fails again
+    # print(ui)
 
 print("Test finished.")
-sys.exit(0)
+_exit(0)

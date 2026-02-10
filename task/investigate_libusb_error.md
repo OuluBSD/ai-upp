@@ -66,6 +66,6 @@ valgrind --tool=helgrind ./bin/WmrTest -v --test-dump 5
 
 - [x] Experiment with reducing `ASYNC_BUFFERS` to 2 or increasing to 8 to see if queue depth affects stability. (Selected 8 with 8MB buffer).
 
-- [ ] Verify if the "Command" endpoint needs a "keep-alive" or specific initialization sequence that is timing out, causing the video endpoint to stall.
+- [x] Verify if the "Command" endpoint needs a "keep-alive" or specific initialization sequence that is timing out, causing the video endpoint to stall. (Implemented 1s periodic gain refresh).
 
 - [ ] Use `wireshark` or `tcpdump` with `usbmon` to capture the exact failure moment.

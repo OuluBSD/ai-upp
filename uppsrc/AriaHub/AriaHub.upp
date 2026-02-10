@@ -13,7 +13,15 @@ file
 	ThreadsCtrl.h,
 	ThreadsCtrl.cpp,
 	WhatsAppCtrl.h,
-	WhatsAppCtrl.cpp;
+	WhatsAppCtrl.cpp,
+	GoogleMessagesCtrl.h,
+	GoogleMessagesCtrl.cpp,
+	UniversalInboxCtrl.h,
+	UniversalInboxCtrl.cpp,
+	YouTubeCtrl.h,
+	YouTubeCtrl.cpp,
+	CalendarCtrl.h,
+	CalendarCtrl.cpp;
 
 mainconfig
 	"" = "GUI",

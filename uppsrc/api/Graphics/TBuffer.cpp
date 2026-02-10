@@ -227,6 +227,15 @@ bool BufferT<Gfx>::InitializeRenderer() {
 }
 
 template <class Gfx>
+void BufferT<Gfx>::Uninitialize() {
+	for (BufferStage& s : stages)
+		s.Uninitialize();
+	stages.Clear();
+	data.Clear();
+	is_initialized = false;
+}
+
+template <class Gfx>
 void BufferT<Gfx>::Reset() {
 	ctx.time_total = 0;
 }

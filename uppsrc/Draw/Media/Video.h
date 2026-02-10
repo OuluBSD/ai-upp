@@ -1,8 +1,6 @@
 #ifndef _IMedia_Video_h_
 #define _IMedia_Video_h_
 
-NAMESPACE_UPP
-
 
 template <class Backend>
 struct VideoCodecFormatT {
@@ -113,7 +111,5 @@ public:
 	
 };
 
-
-END_UPP_NAMESPACE
 
 #endif

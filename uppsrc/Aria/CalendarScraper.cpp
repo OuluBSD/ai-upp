@@ -8,7 +8,7 @@ CalendarScraper::CalendarScraper(AriaNavigator& navigator, SiteManager& sm)
 	: navigator(navigator)
 	, sm(sm)
 {
-	site_name = "calendar";
+	site_name = "google_calendar";
 }
 
 bool CalendarScraper::Navigate() {
@@ -42,7 +42,7 @@ bool CalendarScraper::Refresh(bool deep) {
 ValueArray CalendarScraper::ScrapeEvents() {
 	try {
 		GetAriaLogger("calendar").Info("Scraping events...");
-		// JS logic to extract events from aria-labels
+		// JS logic to extract events from aria-labels and convert to structured data
 		Value res = navigator.Eval(R"(
 			const main = document.querySelector('div[role="main"]') || 
 			             document.querySelector('div[role="grid"]') ||
@@ -51,10 +51,16 @@ ValueArray CalendarScraper::ScrapeEvents() {
 			const events = [];
 			els.forEach(el => {
 				const label = el.getAttribute('aria-label');
-				// Heuristic for events: contains comma and time-like patterns
 				if (label && label.length > 10 && label.includes(',')) {
-					if (/\d+[:.]\d+/.test(label)) {
-						events.append({ label: label });
+					// Format is often: "Title, Time, Status, Location"
+					const parts = label.split(',');
+					if (parts.length >= 2) {
+						events.push({
+							title: parts[0].trim(),
+							start_time: parts[1].trim(),
+							duration: "1h", // Heuristic
+							location: parts.length > 3 ? parts[parts.length-1].trim() : "Google Meet"
+						});
 					}
 				}
 			});

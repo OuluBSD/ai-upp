@@ -2077,12 +2077,7 @@ bool SemanticParser::ParseNetStatement(int& cookie) {
 			}
 
 			// Check for connection statement (->)
-			if (iter && TryToken(TK_MINUS)) {
-				if (!TryToken('>')) {
-					AddError(iter->loc, "expected '>' after '-' in connection statement");
-					return false;
-				}
-
+			if (iter && (TryToken(TK_RETURN_HINT) || (TryToken(TK_MINUS) && TryToken('>')))) {
 				// Parse destination path
 				PathIdentifier dest_id;
 				if (!ParsePathIdentifier(dest_id, false, false)) {

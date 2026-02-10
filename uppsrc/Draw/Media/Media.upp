@@ -1,3 +1,6 @@
+acceptflags
+	FFMPEG;
+
 file
 	AGENTS.md,
 	Media.h,

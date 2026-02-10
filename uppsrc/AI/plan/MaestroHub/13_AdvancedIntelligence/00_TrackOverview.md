@@ -7,5 +7,5 @@ Elevate MaestroHub from a "plumbing" prototype to a capable engineering assistan
 1. [x] **Visual State Editor**: Implement PUML-to-GraphLib rendering in `StateEditor`.
 2. [x] **Real GDB Integration**: Replace the `GdbService` stub with a functioning GDB/MI client.
 3. [x] **Multi-Agent Simulation**: Visualize agent-to-agent conversations in `MaestroAssistant`.
-4. [ ] **Live Observability**: Implement real-time file tailing for `LogAnalyzer`.
-5. [ ] **Plugin System**: Define an interface for external tools to plug into MaestroHub.
+4. [x] **Live Observability**: Implement real-time file tailing for `LogAnalyzer`.
+5. [x] **Plugin System**: Define an interface for external tools to plug into MaestroHub.

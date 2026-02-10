@@ -27,6 +27,9 @@ private:
 	ParentCtrl settings_tab;
 	
 	Button btnRefresh;
+	Label lblDepth;
+	EditInt scrape_depth;
+	Option auto_refresh;
 	
 	void InitList(ArrayCtrl& list);
 };

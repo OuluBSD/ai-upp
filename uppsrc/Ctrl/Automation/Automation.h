@@ -10,6 +10,10 @@ NAMESPACE_UPP
 typedef void (*AddMockFn)(const String& regex, const String& response);
 void SetAddMockFn(AddMockFn fn);
 
+typedef Upp::Value (*EvalHook)(const Upp::String& script);
+typedef void (*NavigateHook)(const Upp::String& url);
+void SetAutomationHooks(EvalHook eval, NavigateHook navigate);
+
 void RegisterAutomationBindings(PyVM& vm);
 
 // Event System

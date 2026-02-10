@@ -35,7 +35,7 @@ static bool CheckCircular(const String& pkg, const VectorMap<String, Vector<Stri
 	return false;
 }
 
-static static void Doctor(const Vector<String>& args) {
+static void Doctor(const Vector<String>& args) {
 	Cout() << "[*] Running Maestro Project Doctor...\n";
 	
 	String root = FindPlanRoot();
@@ -165,19 +165,17 @@ static void OpsList(const Vector<String>& args) {
 	Cout() << "ID         | Timestamp           | Runbook    | Status\n";
 	Cout() << "-----------|---------------------|------------|---------\n";
 	
-	FindFile ff;
-	if(ff.Search(AppendFileName(ops_dir, "*.json"))) {
-		do {
-			Value v = ParseJSON(LoadFile(ff.GetPath()));
-			if(!v.IsError() && v.Is<ValueMap>()) {
-				ValueMap m = v;
-				Cout() << Format("%-10s | %-19s | %-10s | %s\n", 
-				                 AsString(m["id"]), 
-				                 AsString(m["timestamp"]), 
-				                 AsString(m["runbook_id"]), 
-				                 AsString(m["status"]));
-			}
-		} while(ff.Next());
+	FindFile ff(AppendFileName(ops_dir, "*.json"));
+	while(ff) {
+		ValueMap m;
+		if(LoadFromJsonFile(m, ff.GetPath())) {
+			Cout() << Format("%-10s | %-19s | %-10s | %s\n", 
+			                 AsString(m["id"]), 
+			                 AsString(m["timestamp"]), 
+			                 AsString(m["runbook_id"]), 
+			                 AsString(m["status"]));
+		}
+		ff.Next();
 	}
 }
 
@@ -195,19 +193,27 @@ static void OpsShow(const Vector<String>& args) {
 		return;
 	}
 	
-	ValueMap m = ParseJSON(LoadFile(run_path));
+	ValueMap m;
+	if(!LoadFromJsonFile(m, run_path)) {
+		Cerr() << "Error: Failed to parse run record.\n";
+		return;
+	}
+	
 	Cout() << "Operations Run Detail: " << m["id"] << "\n";
 	Cout() << "Runbook:   " << m["title"] << " (" << m["runbook_id"] << ")\n";
 	Cout() << "Timestamp: " << m["timestamp"] << "\n";
 	Cout() << "Status:    " << m["status"] << "\n\n";
 	
 	Cout() << "Steps:\n";
-	ValueArray steps = m["steps"];
-	for(int i = 0; i < steps.GetCount(); i++) {
-		ValueMap s = steps[i];
-		Cout() << " " << s["n"] << ". " << s["action"] << " -> " << s["status"];
-		if(!s["exit_code"].IsVoid()) Cout() << " (exit: " << s["exit_code"] << ")";
-		Cout() << "\n";
+	Value v_steps = m["steps"];
+	if(v_steps.Is<ValueArray>()) {
+		ValueArray steps = v_steps;
+		for(int i = 0; i < steps.GetCount(); i++) {
+			ValueMap s = steps[i];
+			Cout() << " " << s["n"] << ". " << s["action"] << " -> " << s["status"];
+			if(!s["exit_code"].IsVoid()) Cout() << " (exit: " << s["exit_code"] << ")";
+			Cout() << "\n";
+		}
 	}
 }
 

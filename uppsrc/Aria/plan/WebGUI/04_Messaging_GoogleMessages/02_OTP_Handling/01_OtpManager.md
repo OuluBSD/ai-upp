@@ -1,5 +1,5 @@
 # Task: OTP Extraction & Display
-# Status: PENDING
+# Status: DONE
 
 ## Objective
 Detect and provide easy access to One-Time Passwords (OTPs) from incoming SMS.

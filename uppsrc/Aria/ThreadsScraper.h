@@ -13,7 +13,12 @@ public:
 	bool Navigate();
 	bool Refresh(bool deep = false);
 	bool RefreshFeed();
+	bool RefreshPublic();
+	bool RefreshPrivate();
+	
 	ValueArray ScrapeFeed();
+	ValueArray ScrapePublic();
+	ValueArray ScrapePrivate();
 };
 
 #endif

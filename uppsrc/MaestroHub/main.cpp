@@ -52,6 +52,7 @@ MaestroHubCockpit::MaestroHubCockpit() {
 				// Prompt is populated, user can review.
 			}
 		};
+		intelligence->log_analyzer->WhenLog = [=](String s) { LogInternal(s); };
 		intelligence->tu_browser->WhenSynthesize << [=](String prompt) {
 			if(assistant) {
 				if(!assistant->is_expanded) OnToggleAssistant();
@@ -144,6 +145,8 @@ MaestroHubCockpit::MaestroHubCockpit() {
 	history_pos = 0;
 	
 	RegisterMaestroTools(tool_reg);
+	PluginManager::Get().RegisterAll(tool_reg, center_tabs);
+	
 	SetTimeCallback(-500, THISBACK(UxWatcher));
 	
 	PostCallback(THISBACK(LoadData));
@@ -153,6 +156,8 @@ MaestroHubCockpit::~MaestroHubCockpit() {}
 
 void MaestroHubCockpit::MainMenu(Bar& bar) {
 	bar.Sub("App", THISBACK(AppMenu));
+	
+	PluginManager::Get().RegisterMenu(bar);
 	
 	bar.Sub("Sessions", [=](Bar& b) {
 		b.Add("List Sessions", [=] { center_tabs.Set(0); }); 
@@ -240,6 +245,7 @@ void MaestroHubCockpit::LoadData() {
 		fleet->LoadProjects(config.recent_dirs);
 		fleet->UpdateQueue();
 	}
+	PluginManager::Get().LoadPlugins(current_root);
 	if(intelligence) intelligence->Load(current_root);
 	if(evidence) evidence->Load(current_root);
 	if(playbook) playbook->Load(current_root);

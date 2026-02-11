@@ -481,6 +481,10 @@ public:
 	typedef void (*PaintHook)(Ctrl *ctrl, Draw& draw, const Rect& clip);
 
 	static dword KEYtoK(dword);
+	static void  InitUGUI();
+	static void  CheckConstraints() { WhenCheckConstraints(); }
+	static Vector<String> constraints;
+	static Event<> WhenCheckConstraints;
 
 private:
 	Ctrl(Ctrl&);

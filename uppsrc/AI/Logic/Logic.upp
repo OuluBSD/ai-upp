@@ -1,0 +1,15 @@
+description "Core Logic Engine for Theorem Proving";
+
+uses
+	Core,
+	AI/RefCore;
+
+file
+	TheoremProver.h,
+	Context.cpp,
+	Language.h,
+	Language.cpp,
+	Parser.cpp,
+	Typecheck.cpp,
+	Evaluation.cpp,
+	Prover.cpp;

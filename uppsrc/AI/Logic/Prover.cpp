@@ -1,4 +1,5 @@
 #include "TheoremProver.h"
+#include <AI/Algo/FastSearch.h>
 
 namespace TheoremProver {
 
@@ -137,7 +138,7 @@ ArrayMap<NodeVar, NodeVar> UnifyList(const ArrayMap<NodeVar, NodeVar>& pairs) {
 // Sequents
 class Sequent : public Node {
 	
-protected:
+public:
 	friend bool ProveSequent(Node& sequent);
 	
 	ArrayMap<NodeVar, int> left, right;
@@ -259,7 +260,290 @@ public:
 
 		return left_part + "⊢" + right_part;
 	}
+	
+	bool IsAxiom() {
+		// Intersection of left and right
+		if (GetIndexCommonCount(left, right) > 0)
+			return true;
+		
+		// Reflexivity: t = t on the right
+		for(int i = 0; i < right.GetCount(); i++) {
+			Equal* eq = dynamic_cast<Equal*>(&*right.GetKey(i));
+			if (eq && *eq->left == *eq->right)
+				return true;
+		}
+		
+		return false;
+	}
+	
+	int GetComplexity() const {
+		int c = 0;
+		for(int i = 0; i < left.GetCount(); i++) c += left.GetKey(i)->ToString().GetCount();
+		for(int i = 0; i < right.GetCount(); i++) c += right.GetKey(i)->ToString().GetCount();
+		return c;
+	}
+	
+	void Expand(Vector<NodeVar>& out) {
+		// determine which formula to expand
+		NodeVar left_formula;
+		int left_depth = -1;
 
+		for (int i = 0; i < left.GetCount(); i++) {
+			const NodeVar& formula = left.GetKey(i);
+			int d = left[i];
+			
+			if (left_depth == -1 || left_depth > d) {
+				if (!dynamic_cast<Predicate*>(&*formula) && !dynamic_cast<Equal*>(&*formula)) {
+					left_formula = formula;
+					left_depth = d;
+				}
+			}
+		}
+
+		NodeVar right_formula;
+		int right_depth = -1;
+
+		for (int i = 0; i < right.GetCount(); i++) {
+			const NodeVar& formula = right.GetKey(i);
+			int d = right[i];
+			
+			if (right_depth == -1 || right_depth > d) {
+				if (!dynamic_cast<Predicate*>(&*formula) && !dynamic_cast<Equal*>(&*formula)) {
+					right_formula = formula;
+					right_depth = d;
+				}
+			}
+		}
+	
+		bool apply_left = false;
+		bool apply_right = false;
+
+		if (left_formula.Is() && !right_formula.Is())
+			apply_left = true;
+
+		if (!left_formula.Is() && right_formula.Is())
+			apply_right = true;
+
+		if (left_formula.Is() && right_formula.Is()) {
+			if (left_depth < right_depth)
+				apply_left = true;
+			else
+				apply_right = true;
+		}
+
+		if (!left_formula.Is() && !right_formula.Is())
+			return;
+
+		// apply a left rule
+		if (apply_left) {
+			Not* not_ = dynamic_cast<Not*>(&*left_formula);
+			if (not_) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->left, left_formula);
+				GetInsert(new__sequent->right, not_->formula) = (left.Get(left_formula) + 1);
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			And* and_ = dynamic_cast<And*>(&*left_formula);
+			if (and_) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->left, left_formula);
+				GetInsert(new__sequent->left, and_->formula_a) = (left.Get(left_formula) + 1);
+				GetInsert(new__sequent->left, and_->formula_b) = (left.Get(left_formula) + 1);
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			Or* or_ = dynamic_cast<Or*>(&*left_formula);
+			if (or_) {
+				Sequent* new__sequent_a = new Sequent(left, right, siblings, depth + 1);
+				Sequent* new__sequent_b = new Sequent(left, right, siblings, depth + 1);
+				new__sequent_a->Inc();
+				new__sequent_b->Inc();
+				RemoveRef(new__sequent_a->left, left_formula);
+				RemoveRef(new__sequent_b->left, left_formula);
+				GetInsert(new__sequent_a->left, or_->formula_a) = (left.Get(left_formula) + 1);
+				GetInsert(new__sequent_b->left, or_->formula_b) = (left.Get(left_formula) + 1);
+
+				if (new__sequent_a->siblings.GetCount()) new__sequent_a->siblings.Insert(0, new__sequent_a);
+				if (new__sequent_b->siblings.GetCount()) new__sequent_b->siblings.Insert(0, new__sequent_b);
+
+				out.Add(new__sequent_a);
+				out.Add(new__sequent_b);
+				new__sequent_a->Dec();
+				new__sequent_b->Dec();
+				return;
+			}
+			
+			Implies* implies = dynamic_cast<Implies*>(&*left_formula);
+			if (implies) {
+				Sequent* new__sequent_a = new Sequent(left, right, siblings, depth + 1);
+				Sequent* new__sequent_b = new Sequent(left, right, siblings, depth + 1);
+				new__sequent_a->Inc();
+				new__sequent_b->Inc();
+				RemoveRef(new__sequent_a->left, left_formula);
+				RemoveRef(new__sequent_b->left, left_formula);
+				GetInsert(new__sequent_a->right, implies->formula_a) = (left.Get(left_formula) + 1);
+				GetInsert(new__sequent_b->left,  implies->formula_b) = (left.Get(left_formula) + 1);
+
+				if (new__sequent_a->siblings.GetCount()) new__sequent_a->siblings.Insert(0, new__sequent_a);
+				if (new__sequent_b->siblings.GetCount()) new__sequent_b->siblings.Insert(0, new__sequent_b);
+
+				out.Add(new__sequent_a);
+				out.Add(new__sequent_b);
+				new__sequent_a->Dec();
+				new__sequent_b->Dec();
+				return;
+			}
+			
+			ForAll* forall = dynamic_cast<ForAll*>(&*left_formula);
+			if (forall) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				new__sequent->left.Get(left_formula) += 1;
+				NodeVar unterm = new UnificationTerm(GetVariableName("t"));
+				NodeVar formula = forall->formula->Replace(*forall->variable, *unterm);
+				formula->SetInstantiationTime(depth + 1);
+				SortByKey(new__sequent->left, NodeVar());
+				if (new__sequent->left.Find(formula) == -1)
+					new__sequent->left.Add(formula, new__sequent->left.Get(left_formula));
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			ThereExists* there_exists = dynamic_cast<ThereExists*>(&*left_formula);
+			if (there_exists) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->left, left_formula);
+				NodeVar variable = new Variable(GetVariableName("v"));
+				NodeVar formula = there_exists->formula->Replace(*there_exists->variable, *variable);
+				formula->SetInstantiationTime(depth + 1);
+				GetInsert(new__sequent->left, formula) = (left.Get(left_formula) + 1);
+				SortByKey(new__sequent->left, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+		}
+
+		// apply a right rule
+		if (apply_right) {
+			Not* not_ = dynamic_cast<Not*>(&*right_formula);
+			if (not_) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->right, right_formula);
+				GetInsert(new__sequent->left, not_->formula) = (right.Get(right_formula) + 1);
+				SortByKey(new__sequent->left, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			And* and_ = dynamic_cast<And*>(&*right_formula);
+			if (and_) {
+				Sequent* new__sequent_a = new Sequent(left, right, siblings, depth + 1);
+				Sequent* new__sequent_b = new Sequent(left, right, siblings, depth + 1);
+				RemoveRef(new__sequent_a->right, right_formula);
+				RemoveRef(new__sequent_b->right, right_formula);
+				GetInsert(new__sequent_a->right, and_->formula_a) = right.Get(right_formula) + 1;
+				GetInsert(new__sequent_b->right, and_->formula_b) = right.Get(right_formula) + 1;
+				SortByKey(new__sequent_a->right, NodeVar());
+				SortByKey(new__sequent_b->right, NodeVar());
+				if (new__sequent_a->siblings.GetCount()) new__sequent_a->siblings.Insert(0, new__sequent_a);
+				if (new__sequent_b->siblings.GetCount()) new__sequent_b->siblings.Insert(0, new__sequent_b);
+				out.Add(new__sequent_a);
+				out.Add(new__sequent_b);
+				return;
+			}
+			
+			Or* or_ = dynamic_cast<Or*>(&*right_formula);
+			if (or_) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->right, right_formula);
+				GetInsert(new__sequent->right, or_->formula_a) = right.Get(right_formula) + 1;
+				GetInsert(new__sequent->right, or_->formula_b) = right.Get(right_formula) + 1;
+				SortByKey(new__sequent->right, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			Implies* implies = dynamic_cast<Implies*>(&*right_formula);
+			if (implies) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->right, right_formula);
+				GetInsert(new__sequent->left,  implies->formula_a) = right.Get(right_formula) + 1;
+				GetInsert(new__sequent->right, implies->formula_b) = right.Get(right_formula) + 1;
+				SortByKey(new__sequent->right, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			ForAll* forall = dynamic_cast<ForAll*>(&*right_formula);
+			if (forall) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				RemoveRef(new__sequent->right, right_formula);
+				NodeVar variable(new Variable(GetVariableName("v")));
+				NodeVar formula = forall->formula->Replace(*forall->variable, *variable);
+				formula->SetInstantiationTime(depth + 1);
+				GetInsert(new__sequent->right, formula) = right.Get(right_formula) + 1;
+				SortByKey(new__sequent->right, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+			
+			ThereExists* there_exists = dynamic_cast<ThereExists*>(&*right_formula);
+			if (there_exists) {
+				Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+				new__sequent->Inc();
+				new__sequent->right.Get(right_formula) += 1;
+				NodeVar uniterm = new UnificationTerm(GetVariableName("t"));
+				NodeVar formula = there_exists->formula->Replace(*there_exists->variable, *uniterm);
+				formula->SetInstantiationTime(depth + 1);
+				if (new__sequent->right.Find(formula) == -1)
+					new__sequent->right.Insert(0, formula, new__sequent->right.Get(right_formula));
+				SortByKey(new__sequent->right, NodeVar());
+				new__sequent->siblings.Insert(0, new__sequent);
+				out.Add(new__sequent);
+				new__sequent->Dec();
+				return;
+			}
+		}
+	}
+
+};
+
+class SequentGenerator : public FastSearchGenerator<NodeVar> {
+public:
+	void Generate(const NodeVar& node, Vector<NodeVar>& out) override {
+		Sequent* seq = dynamic_cast<Sequent*>(&*node);
+		if (seq) seq->Expand(out);
+	}
+	bool IsGoal(const NodeVar& node) override {
+		Sequent* seq = dynamic_cast<Sequent*>(&*node);
+		return seq && seq->IsAxiom();
+	}
 };
 
 
@@ -288,6 +572,15 @@ bool ProveSequent(Node& sequent_) {
 	String prev_str;
 	
 	while (true) {
+		// Sort frontier by complexity (Best-First Search)
+		if (frontier.GetCount() > 1) {
+			Sort(frontier, [](const NodeVar& a, const NodeVar& b) {
+				Sequent* sa = dynamic_cast<Sequent*>(&*a);
+				Sequent* sb = dynamic_cast<Sequent*>(&*b);
+				return sa->GetComplexity() < sb->GetComplexity();
+			});
+		}
+		
 		// get the next sequent
 		NodeVar old_sequent_;
 
@@ -302,15 +595,15 @@ bool ProveSequent(Node& sequent_) {
 		Sequent* old_sequent = old_sequent_.Get<Sequent>();
 		ASSERT(old_sequent);
 		String seq_str = old_sequent->ToString();
-		if (seq_str == prev_str || old_sequent->depth > 10) {
+		if (seq_str == prev_str || old_sequent->depth > 20) {
 			Print("Unable to continue");
 			return false;
 		}
 		prev_str = seq_str;
 		Print(Format("%d. %s", old_sequent->depth, seq_str));
 
-		// check if this sequent == axiomatically true without unification
-		if (GetIndexCommonCount(old_sequent->left, old_sequent->right) > 0) {
+		// check if this sequent == axiomatically true
+		if (old_sequent->IsAxiom()) {
 			proven.Insert(0, old_sequent);
 			continue;
 		}
@@ -398,367 +691,14 @@ bool ProveSequent(Node& sequent_) {
 			}
 		}
 
-		while (true) {
-			// determine which formula to expand
-			NodeVar left_formula;
-			int left_depth = -1;
-
-			//for (formula, depth in old_sequent->left.items()) {
-			for (int i = 0; i < old_sequent->left.GetCount(); i++) {
-				const NodeVar& formula = old_sequent->left.GetKey(i);
-				int depth = old_sequent->left[i];
-				
-				if (left_depth == -1 || left_depth > depth) {
-					if (!dynamic_cast<Predicate*>(&*formula)) {
-						left_formula = formula;
-						left_depth = depth;
-					}
-				}
-			}
-
-			NodeVar right_formula;
-			int right_depth = -1;
-
-			//for (formula, depth in old_sequent->right.items()) {
-			for (int i = 0; i < old_sequent->right.GetCount(); i++) {
-				const NodeVar& formula = old_sequent->right.GetKey(i);
-				int depth = old_sequent->right[i];
-				
-				if (right_depth == -1 || right_depth > depth) {
-					if (!dynamic_cast<Predicate*>(&*formula)) {
-						right_formula = formula;
-						right_depth = depth;
-						LOG(formula->AsString());
-					}
-				}
-			}
+		Vector<NodeVar> next;
+		old_sequent->Expand(next);
 		
-			bool apply_left = false;
-			bool apply_right = false;
-
-			if (left_formula.Is() && !right_formula.Is())
-				apply_left = true;
-
-			if (!left_formula.Is() && right_formula.Is())
-				apply_right = true;
-
-			if (left_formula.Is() && right_formula.Is()) {
-				if (left_depth < right_depth)
-					apply_left = true;
-				else
-					apply_right = true;
-			}
-
-			if (!left_formula.Is() && !right_formula.Is())
-				return false;
-
-			// apply a left rule
-			if (apply_left) {
-				Not* not_ = dynamic_cast<Not*>(&*left_formula);
-				if (not_) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->left, left_formula);
-					GetInsert(new__sequent->right, not_->formula) = (old_sequent->left.Get(left_formula) + 1);
-
-					//if (new__sequent->siblings.GetCount())
-						new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				And* and_ = dynamic_cast<And*>(&*left_formula);
-				if (and_) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->left, left_formula);
-					GetInsert(new__sequent->left, and_->formula_a) = (old_sequent->left.Get(left_formula) + 1);
-					GetInsert(new__sequent->left, and_->formula_b) = (old_sequent->left.Get(left_formula) + 1);
-
-					//if (new__sequent->siblings.GetCount())
-						new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				Or* or_ = dynamic_cast<Or*>(&*left_formula);
-				if (or_) {
-					Sequent* new__sequent_a = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					Sequent* new__sequent_b = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					new__sequent_a->Inc();
-					new__sequent_b->Inc();
-					RemoveRef(new__sequent_a->left, left_formula);
-					RemoveRef(new__sequent_b->left, left_formula);
-					GetInsert(new__sequent_a->left, or_->formula_a) = (old_sequent->left.Get(left_formula) + 1);
-					GetInsert(new__sequent_b->left, or_->formula_b) = (old_sequent->left.Get(left_formula) + 1);
-
-					if (new__sequent_a->siblings.GetCount())
-						new__sequent_a->siblings.Insert(0, new__sequent_a);
-
-					frontier.Add(new__sequent_a);
-
-					if (new__sequent_b->siblings.GetCount())
-						new__sequent_b->siblings.Insert(0, new__sequent_b);
-
-					frontier.Add(new__sequent_b);
-					new__sequent_a->Dec();
-					new__sequent_b->Dec();
-					break;
-				}
-				
-				Implies* implies = dynamic_cast<Implies*>(&*left_formula);
-				if (implies) {
-					Sequent* new__sequent_a = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					Sequent* new__sequent_b = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					new__sequent_a->Inc();
-					new__sequent_b->Inc();
-					RemoveRef(new__sequent_a->left, left_formula);
-					RemoveRef(new__sequent_b->left, left_formula);
-					GetInsert(new__sequent_a->right, implies->formula_a) = (old_sequent->left.Get(left_formula) + 1);
-					GetInsert(new__sequent_b->left,  implies->formula_b) = ( old_sequent->left.Get(left_formula) + 1);
-
-					if (new__sequent_a->siblings.GetCount())
-						new__sequent_a->siblings.Insert(0, new__sequent_a);
-
-					frontier.Add(new__sequent_a);
-
-					if (new__sequent_b->siblings.GetCount())
-						new__sequent_b->siblings.Insert(0, new__sequent_b);
-
-					frontier.Add(new__sequent_b);
-					new__sequent_a->Dec();
-					new__sequent_b->Dec();
-					break;
-				}
-				
-				ForAll* forall = dynamic_cast<ForAll*>(&*left_formula);
-				if (forall) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					new__sequent->left.Get(left_formula) += 1;
-					NodeVar unterm = new UnificationTerm(old_sequent->GetVariableName("t"));
-					NodeVar formula = forall->formula->Replace(*forall->variable, *unterm);
-					formula->SetInstantiationTime(old_sequent->depth + 1);
-					SortByKey(new__sequent->left, NodeVar());
-					
-					if (new__sequent->left.Find(formula) == -1)
-						new__sequent->left.Add(formula, new__sequent->left.Get(left_formula));
-
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				ThereExists* there_exists = dynamic_cast<ThereExists*>(&*left_formula);
-				if (there_exists) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->left, left_formula);
-					NodeVar variable = new Variable(old_sequent->GetVariableName("v"));
-					NodeVar formula = there_exists->formula->Replace(*there_exists->variable, *variable);
-					formula->SetInstantiationTime(old_sequent->depth + 1);
-					GetInsert(new__sequent->left, formula) = (old_sequent->left.Get(left_formula) + 1);
-					SortByKey(new__sequent->left, NodeVar());
-					
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-			}
-
-			// apply a right rule
-			if (apply_right) {
-				Not* not_ = dynamic_cast<Not*>(&*right_formula);
-				if (not_) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->right, right_formula);
-					GetInsert(new__sequent->left, not_->formula) = (old_sequent->right.Get(right_formula) + 1);
-					SortByKey(new__sequent->left, NodeVar());
-					
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				And* and_ = dynamic_cast<And*>(&*right_formula);
-				if (and_) {
-					Sequent* new__sequent_a = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					Sequent* new__sequent_b = new Sequent(
-										old_sequent->left,
-										old_sequent->right,
-										old_sequent->siblings,
-										old_sequent->depth + 1
-									);
-					RemoveRef(new__sequent_a->right, right_formula);
-					RemoveRef(new__sequent_b->right, right_formula);
-					GetInsert(new__sequent_a->right, and_->formula_a) = old_sequent->right.Get(right_formula) + 1;
-					GetInsert(new__sequent_b->right, and_->formula_b) = old_sequent->right.Get(right_formula) + 1;
-					SortByKey(new__sequent_a->right, NodeVar());
-					SortByKey(new__sequent_b->right, NodeVar());
-					
-					if (new__sequent_a->siblings.GetCount())
-						new__sequent_a->siblings.Insert(0, new__sequent_a);
-
-					frontier.Add(new__sequent_a);
-
-					if (new__sequent_b->siblings.GetCount())
-						new__sequent_b->siblings.Insert(0, new__sequent_b);
-
-					frontier.Add(new__sequent_b);
-					break;
-				}
-				
-				Or* or_ = dynamic_cast<Or*>(&*right_formula);
-				if (or_) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->right, right_formula);
-					GetInsert(new__sequent->right, or_->formula_a) = old_sequent->right.Get(right_formula) + 1;
-					GetInsert(new__sequent->right, or_->formula_b) = old_sequent->right.Get(right_formula) + 1;
-					SortByKey(new__sequent->right, NodeVar());
-					
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				Implies* implies = dynamic_cast<Implies*>(&*right_formula);
-				if (implies) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->right, right_formula);
-					GetInsert(new__sequent->left,  implies->formula_a) = old_sequent->right.Get(right_formula) + 1;
-					GetInsert(new__sequent->right, implies->formula_b) = old_sequent->right.Get(right_formula) + 1;
-					SortByKey(new__sequent->right, NodeVar());
-					
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				ForAll* forall = dynamic_cast<ForAll*>(&*right_formula);
-				if (forall) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					RemoveRef(new__sequent->right, right_formula);
-					NodeVar variable(new Variable(old_sequent->GetVariableName("v")));
-					NodeVar formula = forall->formula->Replace(*forall->variable, *variable);
-					formula->SetInstantiationTime(old_sequent->depth + 1);
-					GetInsert(new__sequent->right, formula) = old_sequent->right.Get(right_formula) + 1;
-					SortByKey(new__sequent->right, NodeVar());
-					
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-				
-				ThereExists* there_exists = dynamic_cast<ThereExists*>(&*right_formula);
-				if (there_exists) {
-					Sequent* new__sequent = new Sequent(
-									  old_sequent->left,
-									  old_sequent->right,
-									  old_sequent->siblings,
-									  old_sequent->depth + 1
-								  );
-					new__sequent->Inc();
-					new__sequent->right.Get(right_formula) += 1;
-					NodeVar uniterm = new UnificationTerm(old_sequent->GetVariableName("t"));
-					NodeVar formula = there_exists->formula->Replace(*there_exists->variable, *uniterm);
-					formula->SetInstantiationTime(old_sequent->depth + 1);
-					
-					if (new__sequent->right.Find(formula) == -1)
-						new__sequent->right.Insert(0, formula, new__sequent->right.Get(right_formula));
-					SortByKey(new__sequent->right, NodeVar());
-					new__sequent->siblings.Insert(0, new__sequent);
-
-					frontier.Add(new__sequent);
-					new__sequent->Dec();
-					break;
-				}
-			}
-		}
+		if (next.IsEmpty())
+			return false;
+		
+		for(int i = 0; i < next.GetCount(); i++)
+			frontier.Add(next[i]);
 	}
 
 	// no more sequents to prove
@@ -815,5 +755,3 @@ String ProveLogic(String str) {
 }
 
 }
-
-

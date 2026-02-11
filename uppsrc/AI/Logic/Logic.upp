@@ -2,7 +2,8 @@ description "Core Logic Engine for Theorem Proving";
 
 uses
 	Core,
-	AI/RefCore;
+	AI/RefCore,
+	AI/Algo;
 
 file
 	TheoremProver.h,

@@ -17,7 +17,7 @@ class Node : public Ref<Node> {
 	Node& operator=(const Node& n) {return *this;}
 	Node(const Node& n) : Ref<Node>(TheoremProver::GetContext()) {}
 	
-protected:
+public:
 	friend class NodeVar;
 	
 	String name;
@@ -160,7 +160,7 @@ public:
 
 class Function : public Node {
 	
-protected:
+public:
 	friend ArrayMap<NodeVar, NodeVar> Unify(Node& term_a, Node& term_b);
 	friend void TypecheckTerm ( Node& term );
 	
@@ -281,7 +281,7 @@ public:
 // Formulae
 class Predicate : public Node {
 	
-protected:
+public:
 	friend ArrayMap<NodeVar, NodeVar> Unify(Node& term_a, Node& term_b);
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
@@ -407,7 +407,7 @@ public:
 
 class Not : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -480,7 +480,7 @@ public:
 
 class And : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -563,7 +563,7 @@ public:
 
 class Or : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -646,7 +646,7 @@ public:
 
 class Implies : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -730,7 +730,7 @@ public:
 
 class ForAll : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -805,7 +805,7 @@ public:
 
 class ThereExists : public Node {
 	
-protected:
+public:
 	friend void TypecheckFormula ( Node& formula );
 	friend bool ProveSequent(Node& sequent);
 	
@@ -875,6 +875,88 @@ public:
 	
 	virtual NodeVar GetDNF() {
 		return new ThereExists(*variable->GetDNF(), *formula->GetDNF());
+	}
+	
+};
+
+class Equal : public Node {
+	
+public:
+	friend void TypecheckFormula ( Node& formula );
+	friend bool ProveSequent(Node& sequent);
+	
+	NodeVar left, right;
+	
+public:
+
+	Equal(Node& a, Node& b) : left(&a), right(&b) {
+		
+	}
+	
+	virtual int GetCount() const {return 2;}
+	virtual Node& operator[] (int i) {if (i == 0) return *left; if (i == 1) return *right; throw Exc("Index error");}
+	
+	virtual Index<NodeVar> FreeVariables() {
+		Index<NodeVar> out;
+		Append(out, left->FreeVariables());
+		Append(out, right->FreeVariables());
+		return out;
+	}
+
+	virtual Index<NodeVar> FreeUnificationTerms() {
+		Index<NodeVar> out;
+		Append(out, left->FreeUnificationTerms());
+		Append(out, right->FreeUnificationTerms());
+		return out;
+	}
+
+	virtual NodeVar Replace(Node& old, Node& new_) {
+		if (*this == old)
+			return &new_;
+
+		return NodeVar(new Equal(
+			*left->Replace(old, new_),
+			*right->Replace(old, new_)
+		));
+	}
+
+	virtual bool Occurs(UnificationTerm& unification_term) {
+		return left->Occurs(unification_term) || right->Occurs(unification_term);
+	}
+
+	virtual void SetInstantiationTime(int time) {
+		Node::SetInstantiationTime(time);
+		left->SetInstantiationTime(time);
+		right->SetInstantiationTime(time);
+	}
+
+	virtual bool operator==(Node& other) {
+		Equal* eq = dynamic_cast<Equal*>(&other);
+		if (!eq)
+			return false;
+
+		return *left == *eq->left && *right == *eq->right;
+	}
+
+	virtual String ToString() const {
+		return Format("%s = %s", left->ToString(), right->ToString());
+	}
+	
+	virtual String AsString(int ident=0) const {
+		String out;
+		for(int i = 0; i < ident; i++) out.Cat('\t');
+		out << Format("Equal (%d:%d) %s", GetTime(), GetRefs(), GetName());
+		out << "\n" << left->AsString(ident+1);
+		out << "\n" << right->AsString(ident+1);
+		return out;
+	}
+	
+	virtual bool Evaluate(const Index<String>& truth_assignment) const {
+		return *left == *right;
+	}
+	
+	virtual NodeVar GetDNF() {
+		return new Equal(*left->GetDNF(), *right->GetDNF());
 	}
 	
 };

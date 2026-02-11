@@ -282,6 +282,40 @@ NodeVar Parse( Vector<String>& tokens ) {
 		}
 	}
 	
+	// Term Equality (=)
+	int term_eq_pos = -1;
+	depth = 0;
+
+	for (int i = 0; i < tokens.GetCount(); i++) {
+		if ( tokens[i] == "(" ) {
+			depth += 1;
+			continue;
+		}
+
+		if ( tokens[i] == ")" ) {
+			depth -= 1;
+			if (depth < 0) break;
+			continue;
+		}
+
+		if ( depth == 0 && tokens[i] == "=" ) {
+			term_eq_pos = i;
+			break;
+		}
+	}
+
+	if ( term_eq_pos != -1 ) {
+		if ( term_eq_pos == 0 || term_eq_pos == tokens.GetCount() - 1 )
+			throw InvalidInputError ( "Missing term in EQUAL connective." );
+		
+		Vector<String> tmp1, tmp2;
+		for(int i = 0; i < term_eq_pos; i++)
+			tmp1.Add(tokens[i]);
+		for(int i = term_eq_pos+1; i < tokens.GetCount(); i++)
+			tmp2.Add(tokens[i]);
+		return new Equal ( *Parse(tmp1), *Parse(tmp2) );
+	}
+	
 	// Equals
 	int eq_pos = -1;
 	depth = 0;

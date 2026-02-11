@@ -1,13 +1,16 @@
 #include <CtrlLib/CtrlLib.h>
 #include <AI/Logic/TheoremProver.h>
+#include <Ctrl/Automation/Automation.h>
+#include <AI/Core/Core.h>
 
 using namespace Upp;
 using namespace TheoremProver;
 
 struct TheoremProverCtrl : TopWindow {
-	Splitter vsplit;
+	Splitter vsplit, hsplit;
 	DocEdit  input;
 	RichTextView output;
+	TreeCtrl proof_tree;
 	ToolBar  toolbar;
 	StatusBar status;
 	
@@ -22,9 +25,16 @@ struct TheoremProverCtrl : TopWindow {
 		output.SetQTF("[C " + DeQtf(result) + "]");
 		
 		if (result.Find("Formula proven") != -1)
-			status.Set("Success: Formula proven", Yellow());
+			status.Set("Success: Formula proven");
 		else
-			status.Set("Failure: Formula unprovable", Red());
+			status.Set("Failure: Formula unprovable");
+		
+		UpdateProofTree();
+	}
+	
+	void UpdateProofTree() {
+		proof_tree.Clear();
+		proof_tree.SetRoot(0, "Proof Tree (Sequential)");
 	}
 	
 	void AddAxiomGui() {
@@ -35,7 +45,7 @@ struct TheoremProverCtrl : TopWindow {
 		if (err.IsEmpty()) {
 			status.Set("Axiom added successfully");
 		} else {
-			status.Set("Error adding axiom: " + err, Red());
+			status.Set("Error adding axiom: " + err);
 		}
 	}
 	
@@ -47,12 +57,41 @@ struct TheoremProverCtrl : TopWindow {
 	void ClearAll() {
 		ClearLogic();
 		output.Clear();
+		proof_tree.Clear();
 		status.Set("Logic cleared");
 	}
 	
 	void InsertText(String s) {
-		input.Insert(s);
+		input.Insert(input.GetCursor(), s);
 		input.SetFocus();
+	}
+	
+	void RunAutomation(String script_path) {
+		String content = LoadFile(script_path);
+		if(content.IsVoid()) return;
+
+		Thread().Run([=] {
+			try {
+				PyVM vm;
+				RegisterAutomationBindings(vm);
+				
+				Tokenizer tk;
+				tk.SkipComments();
+				tk.SkipPythonComments();
+				if(!tk.Process(content, script_path)) return;
+				tk.NewlineToEndStatement();
+				tk.CombineTokens();
+
+				PyCompiler compiler(tk.GetTokens());
+				Vector<PyIR> ir;
+				compiler.Compile(ir);
+
+				vm.SetIR(ir);
+				vm.Run();
+			} catch (Exc& e) {
+				LOG("Automation Error: " + e);
+			}
+		});
 	}
 	
 	void MainMenu(Bar& bar) {
@@ -80,13 +119,17 @@ struct TheoremProverCtrl : TopWindow {
 		LayoutId("Main");
 		input.LayoutId("Input");
 		output.LayoutId("Output");
+		proof_tree.LayoutId("ProofTree");
 		toolbar.LayoutId("Toolbar");
 		
 		AddFrame(toolbar);
 		AddFrame(status);
 		toolbar.Set(THISBACK(MainMenu));
 		
-		vsplit.Vert(input, output);
+		hsplit.Horz(proof_tree, output);
+		hsplit.SetPos(2000);
+		
+		vsplit.Vert(input, hsplit);
 		vsplit.SetPos(3000);
 		
 		Add(vsplit.SizePos());
@@ -100,5 +143,9 @@ struct TheoremProverCtrl : TopWindow {
 };
 
 GUI_APP_MAIN {
-	TheoremProverCtrl().Run();
+	TheoremProverCtrl hub;
+	if (CommandLine().GetCount() > 0) {
+		hub.RunAutomation(CommandLine()[0]);
+	}
+	hub.Run();
 }

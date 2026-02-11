@@ -2,7 +2,9 @@ description "Theorem Prover GUI Controller";
 
 uses
 	CtrlLib,
-	AI/Logic;
+	AI/Logic,
+	Ctrl/Automation,
+	AI/Core;
 
 file
 	main.cpp;

@@ -69,6 +69,13 @@ void TypecheckFormula ( Node& formula ) {
 		TypecheckFormula ( *there_exists->formula );
 		return;
 	}
+	
+	Equal* eq = dynamic_cast<Equal*>(&formula);
+	if (eq) {
+		TypecheckTerm ( *eq->left );
+		TypecheckTerm ( *eq->right );
+		return;
+	}
 
 	throw InvalidInputError ( Format( "Invalid formula: %s.", formula.ToString() ) );
 }

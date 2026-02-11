@@ -99,6 +99,7 @@ void Ctrl::UseWayland()
 
 bool InitGtkApp(int argc, char **argv, const char **envptr)
 {
+	Ctrl::InitUGUI();
 	LLOG(rmsecs() << " InitGtkApp");
 
 	XInitThreads(); // otherwise there are errors despite GuiLock

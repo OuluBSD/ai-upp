@@ -32,6 +32,7 @@ file
 	CtrlKbd.cpp,
 	CtrlTimer.cpp,
 	CtrlClip.cpp,
+	UGUI.cpp,
 	LocalLoop.cpp,
 	Preedit.cpp,
 	CtrlCoreInit.cpp,

@@ -19,6 +19,7 @@ struct Visitor {
 		MODE_VCS,
 		MODE_RUNTIMEVISIT,
 		MODE_ACCESS,
+		MODE_CONSTRAINT,
 	};
 	bool storing = false;
 	String error;

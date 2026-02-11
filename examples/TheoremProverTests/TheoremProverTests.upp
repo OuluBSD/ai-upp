@@ -1,0 +1,11 @@
+description "Theorem Prover Automated Tests";
+
+uses
+	Core,
+	AI/Logic;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

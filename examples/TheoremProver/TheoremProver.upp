@@ -1,0 +1,11 @@
+description "Theorem Prover CLI Example";
+
+uses
+	Core,
+	AI/Logic;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

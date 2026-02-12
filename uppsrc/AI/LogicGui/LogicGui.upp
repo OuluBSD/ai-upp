@@ -1,7 +1,7 @@
 description "Logic Engine GUI Integration";
 
 uses
-	CtrlCore,
+	CtrlLib,
 	AI/Logic;
 
 file

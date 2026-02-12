@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 GoogleMessagesCtrl::GoogleMessagesCtrl() {
+	LayoutId("GoogleMessagesCtrl");
 	Add(otp_banner.HSizePos().TopPos(0, 40));
 	otp_banner.Add(lblOtp.LeftPos(10, 200).VSizePos());
 	otp_banner.Add(btnCopyOtp.RightPos(10, 100).VSizePos(5, 5));

@@ -2,6 +2,12 @@
 
 NAMESPACE_UPP
 
+void GeomScript__initializer();
+
+static void EnsureGeomScriptRegistered() {
+	GeomScript__initializer();
+}
+
 
 static bool IsGeomDirectoryType(const VfsValue& v) {
 	return IsVfsType(v, AsTypeHash<GeomDirectory>()) ||
@@ -1179,9 +1185,11 @@ String GeomObject::GetPath() const {
 }
 
 void GeomObject::Visit(Vis& v) {
+	EnsureGeomScriptRegistered();
 	const hash_t fx_hash = TypedStringHasher<GeomPointcloudEffectTransform>("GeomPointcloudEffectTransform");
 	const hash_t sk_hash = TypedStringHasher<GeomSkeleton>("GeomSkeleton");
 	const hash_t sw_hash = TypedStringHasher<GeomSkinWeights>("GeomSkinWeights");
+	const hash_t sc_hash = TypedStringHasher<GeomScript>("GeomScript");
 	int type_i = (int)type;
 	v VIS_(name)
 	  VIS_(type_i)
@@ -1239,6 +1247,16 @@ void GeomObject::Visit(Vis& v) {
 				Vis vis(jio);
 				sw.Visit(vis);
 			}
+			const Value& scripts_va = v.json->Get()["scripts"];
+			for (int i = 0; i < scripts_va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), sc_hash);
+				GeomScript& sc = n.GetExt<GeomScript>();
+				JsonIO jio(scripts_va[i]);
+				Vis vis(jio);
+				sc.Visit(vis);
+				if (!sc.file.IsEmpty())
+					n.id = GetFileTitle(sc.file);
+			}
 		}
 		else {
 			Vector<Value> effects_values;
@@ -1253,6 +1271,14 @@ void GeomObject::Visit(Vis& v) {
 				v.json->Set("skeleton", v.VisitAsJsonValue(*skel_ptr));
 			if (weights_ptr)
 				v.json->Set("skinweights", v.VisitAsJsonValue(*weights_ptr));
+			Vector<Value> script_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, sc_hash))
+					continue;
+				GeomScript& sc = s.GetExt<GeomScript>();
+				script_values.Add(v.VisitAsJsonValue(sc));
+			}
+			v.json->Set("scripts", ValueArray(pick(script_values)));
 		}
 	}
 	else {
@@ -1398,6 +1424,8 @@ void GeomDirectory::Visit(Vis& v) {
 	v VIS_(name);
 	if (v.IsLoading() && !name.IsEmpty())
 		val.id = name;
+	EnsureGeomScriptRegistered();
+	const hash_t sc_hash = TypedStringHasher<GeomScript>("GeomScript");
 	GeomTransform& tr = GetTransform();
 	GeomDynamicProperties& props = GetDynamicProperties();
 	if (v.mode == Vis::MODE_JSON) {
@@ -1446,6 +1474,16 @@ void GeomDirectory::Visit(Vis& v) {
 				if (!ds.name.IsEmpty())
 					n.id = ds.name;
 			}
+			const Value& scripts_va = v.json->Get()["scripts"];
+			for (int i = 0; i < scripts_va.GetCount(); i++) {
+				VfsValue& n = val.Add(String(), sc_hash);
+				GeomScript& sc = n.GetExt<GeomScript>();
+				JsonIO jio(scripts_va[i]);
+				Vis vis(jio);
+				sc.Visit(vis);
+				if (!sc.file.IsEmpty())
+					n.id = GetFileTitle(sc.file);
+			}
 		}
 		else {
 			Vector<Value> subdir_values;
@@ -1480,6 +1518,14 @@ void GeomDirectory::Visit(Vis& v) {
 				ds_values.Add(v.VisitAsJsonValue(ds));
 			}
 			v.json->Set("datasets", ValueArray(pick(ds_values)));
+			Vector<Value> script_values;
+			for (auto& s : val.sub) {
+				if (!IsVfsType(s, sc_hash))
+					continue;
+				GeomScript& sc = s.GetExt<GeomScript>();
+				script_values.Add(v.VisitAsJsonValue(sc));
+			}
+			v.json->Set("scripts", ValueArray(pick(script_values)));
 		}
 	}
 	else {

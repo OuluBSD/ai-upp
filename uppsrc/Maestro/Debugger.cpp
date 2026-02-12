@@ -48,8 +48,8 @@ void GdbService::Cont() {
 
 void GdbService::SendCommand(const String& cmd) {
 	if(proc.IsRunning()) {
-		Upp::Cout() << "GDB_SEND: " << cmd << "\n";
-		Upp::Cout().Flush();
+		Cout() << "GDB_SEND: " << cmd << "\n";
+		Cout().Flush();
 		proc.Write(cmd + "\n");
 	}
 }

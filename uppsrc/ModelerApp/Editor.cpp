@@ -1,5 +1,6 @@
 #include "ModelerApp.h"
 #include <ByteVM/PyBindings.h>
+#include <Scene3D/Exec/Exec.h>
 
 #define IMAGECLASS ImagesImg
 #define IMAGEFILE <ModelerApp/Images.iml>
@@ -321,6 +322,13 @@ PyValue ModelerGetTimer(const Vector<PyValue>& args, void* user_data) {
 	if (!e)
 		return PyValue(0);
 	return PyValue((int64)e->script_timer.Elapsed());
+}
+
+PyValue ModelerExecExit(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (e)
+		e->RequestExecutionExit();
+	return PyValue::None();
 }
 
 PyValue ModelerRandom(const Vector<PyValue>& args, void* user_data) {
@@ -1096,6 +1104,15 @@ static PyValue Stage_OnFrame(const Vector<PyValue>& args, void* user_data) {
 	return PyValue::True();
 }
 
+static PyValue Stage_Exit(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 1 || !args[0].IsUserData())
+		return PyValue::None();
+	StageProxy& self = (StageProxy&)args[0].GetUserData();
+	if (self.app)
+		self.app->RequestExecutionExit();
+	return PyValue::None();
+}
+
 PyValue StageProxy::GetAttr(const String& name) {
 	if (!app)
 		return PyValue::None();
@@ -1123,6 +1140,8 @@ PyValue StageProxy::GetAttr(const String& name) {
 		return PyValue::BoundMethod(PyValue::Function("on", Stage_On, nullptr), PyValue(this));
 	if (name == "onFrame" || name == "onEnterFrame")
 		return PyValue::BoundMethod(PyValue::Function("onFrame", Stage_OnFrame, nullptr), PyValue(this));
+	if (name == "exit")
+		return PyValue::BoundMethod(PyValue::Function("exit", Stage_Exit, nullptr), PyValue(this));
 	return PyValue::None();
 }
 
@@ -1142,6 +1161,68 @@ bool StageProxy::SetAttr(const String& name, const PyValue& v) {
 		return true;
 	}
 	return false;
+}
+
+struct InputProxy : PyUserData {
+	ExecInputState* input = nullptr;
+	InputProxy(ExecInputState* st) : input(st) {}
+	String GetTypeName() const override { return "Input"; }
+	PyValue GetAttr(const String& name) override;
+	bool SetAttr(const String& name, const PyValue& v) override { return false; }
+};
+
+static PyValue Input_IsKeyDown(const Vector<PyValue>& args, void* user_data) {
+	InputProxy* self = (InputProxy*)user_data;
+	if (!self || !self->input || args.GetCount() < 1)
+		return PyValue::False();
+	return PyValue(self->input->IsKeyDown(args[0].AsInt()));
+}
+
+static PyValue Input_WasKeyPressed(const Vector<PyValue>& args, void* user_data) {
+	InputProxy* self = (InputProxy*)user_data;
+	if (!self || !self->input || args.GetCount() < 1)
+		return PyValue::False();
+	return PyValue(self->input->WasKeyPressed(args[0].AsInt()));
+}
+
+static PyValue Input_WasKeyReleased(const Vector<PyValue>& args, void* user_data) {
+	InputProxy* self = (InputProxy*)user_data;
+	if (!self || !self->input || args.GetCount() < 1)
+		return PyValue::False();
+	return PyValue(self->input->WasKeyReleased(args[0].AsInt()));
+}
+
+static PyValue Input_IsMouseDown(const Vector<PyValue>& args, void* user_data) {
+	InputProxy* self = (InputProxy*)user_data;
+	if (!self || !self->input)
+		return PyValue::False();
+	return PyValue(self->input->mouse_down);
+}
+
+PyValue InputProxy::GetAttr(const String& name) {
+	if (!input)
+		return PyValue::None();
+	if (name == "mouseX")
+		return PyValue(input->mouse_pos.x);
+	if (name == "mouseY")
+		return PyValue(input->mouse_pos.y);
+	if (name == "mouseDX")
+		return PyValue(input->mouse_delta.x);
+	if (name == "mouseDY")
+		return PyValue(input->mouse_delta.y);
+	if (name == "mouseDown")
+		return PyValue(input->mouse_down);
+	if (name == "wheel")
+		return PyValue(input->wheel_delta);
+	if (name == "isKeyDown")
+		return PyValue::Function("isKeyDown", Input_IsKeyDown, this);
+	if (name == "wasKeyPressed")
+		return PyValue::Function("wasKeyPressed", Input_WasKeyPressed, this);
+	if (name == "wasKeyReleased")
+		return PyValue::Function("wasKeyReleased", Input_WasKeyReleased, this);
+	if (name == "isMouseDown")
+		return PyValue::Function("isMouseDown", Input_IsMouseDown, this);
+	return PyValue::None();
 }
 
 vec3 ApplyInversePoseSimple(const PointcloudPose& pose, const vec3& p) {
@@ -1871,6 +1952,13 @@ Edit3D::Edit3D() :
 			bar.Add(t_("Save as JSON..."), THISBACK(SaveScene3DAsJson));
 			bar.Add(t_("Save as Binary..."), THISBACK(SaveScene3DAsBinary));
 			bar.Separator();
+			bar.Sub(t_("Export"), [this](Bar& bar) {
+				bar.Add(t_("Export (Full Assets)"), [this] { ExportExecutionProject(true); });
+				bar.Add(t_("Export (Lightweight)"), [this] { ExportExecutionProject(false); });
+			});
+			bar.Separator();
+			bar.Add(t_("Execute"), THISBACK(OpenExecutionWindow)).Key(K_F9);
+			bar.Separator();
 			bar.Sub(t_("Format"), [this](Bar& bar) {
 				bar.Add(t_("JSON (default)"), THISBACK1(SetScene3DFormat, true))
 					.Check(scene3d_use_json);
@@ -2161,6 +2249,190 @@ Edit3D::Edit3D() :
 	
 	tc.Set(-1000/60, THISBACK(Update));
 	
+}
+
+static String Scene3DExportTimeStamp() {
+	Time now = GetUtcTime();
+	return Format("%04d%02d%02d_%02d%02d%02d", now.year, now.month, now.day, now.hour, now.minute, now.second);
+}
+
+static String Scene3DExportRootDir() {
+	return ShareDirFile(AppendFileName("scene3d", "exports"));
+}
+
+static String Scene3DExportRelPath(const String& rel) {
+	if (IsFullPath(rel))
+		return AppendFileName(AppendFileName("data", "external"), GetFileName(rel));
+	return rel;
+}
+
+bool Edit3D::ExportExecutionProject(bool full_assets) {
+	if (!state || !prj) {
+		PromptOK("No project loaded.");
+		return false;
+	}
+	SyncPointcloudDatasetsExternalFiles();
+	SyncAssetExternalFiles();
+	SyncTextureExternalFiles();
+	
+	String root = Scene3DExportRootDir();
+	RealizeDirectory(root);
+	String base = scene3d_path.IsEmpty() ? String("untitled") : GetFileTitle(scene3d_path);
+	if (base.IsEmpty())
+		base = "project";
+	String export_dir = AppendFileName(root, base + "_" + Scene3DExportTimeStamp());
+	RealizeDirectory(export_dir);
+	
+	auto ExecIsoTime = [] {
+		Time now = GetUtcTime();
+		String date = Format("%04d-%02d-%02d", now.year, now.month, now.day);
+		String clock = Format("%02d:%02d:%02d", now.hour, now.minute, now.second);
+		return date + "T" + clock + "Z";
+	};
+	Scene3DDocument doc;
+	doc.version = SCENE3D_VERSION;
+	doc.name = "ModelerApp";
+	doc.project = prj;
+	doc.active_scene = state->active_scene;
+	doc.focus = &state->GetFocus();
+	doc.program = &state->GetProgram();
+	if (scene3d_created.IsEmpty())
+		scene3d_created = ExecIsoTime();
+	scene3d_modified = ExecIsoTime();
+	if (scene3d_data_dir.IsEmpty())
+		scene3d_data_dir = "data";
+	doc.created_utc = scene3d_created;
+	doc.modified_utc = scene3d_modified;
+	doc.data_dir = scene3d_data_dir;
+	doc.external_files.Clear();
+	for (const Scene3DExternalFile& file : scene3d_external_files)
+		doc.external_files.Add(file);
+	doc.meta.Clear();
+	for (const Scene3DMetaEntry& entry : scene3d_meta)
+		doc.meta.Add(entry);
+	
+	String scene_name = base + ".scene3d";
+	String scene_path = AppendFileName(export_dir, scene_name);
+	if (!SaveScene3DJson(scene_path, doc, true)) {
+		PromptOK("Export failed: could not write scene3d.");
+		return false;
+	}
+	
+	ExecutionManifest manifest;
+	manifest.version = "1";
+	manifest.mode = full_assets ? "full" : "lightweight";
+	manifest.exported_utc = ExecIsoTime();
+	manifest.project_name = base;
+	manifest.scene3d = scene_name;
+	manifest.project_dir = project_dir;
+	manifest.data_dir = scene3d_data_dir;
+	
+	Vector<GeomScript*> scripts;
+	if (state && state->HasActiveScene()) {
+		GeomScene& scene = GetActiveScene();
+		GetScriptsFromNode(scene.val, scripts);
+		for (auto& sub : scene.val.sub) {
+			hash_t dir_hash = TypedStringHasher<GeomDirectory>("GeomDirectory");
+			if (IsVfsType(sub, dir_hash))
+				GetScriptsFromNode(sub, scripts);
+		}
+		for (GeomObject& obj : GeomObjectCollection(scene))
+			GetScriptsFromNode(obj.val, scripts);
+	}
+	auto add_mapping = [&](const String& type, const String& src, const String& rel) {
+		ExecutionFileMapping map;
+		map.type = type;
+		map.source = src;
+		map.exported = rel;
+		manifest.files.Add(map);
+	};
+	for (const Scene3DExternalFile& file : scene3d_external_files) {
+		if (file.path.IsEmpty())
+			continue;
+		String src = IsFullPath(file.path) ? file.path : AppendFileName(project_dir, file.path);
+		String rel = Scene3DExportRelPath(file.path);
+		String dst = AppendFileName(export_dir, rel);
+		if (full_assets) {
+			RealizeDirectory(GetFileFolder(dst));
+			if (FileExists(src))
+				FileCopy(src, dst);
+		}
+		add_mapping(file.type, src, rel);
+	}
+	for (GeomScript* script : scripts) {
+		if (!script || script->file.IsEmpty())
+			continue;
+		String src = IsFullPath(script->file) ? script->file : AppendFileName(project_dir, script->file);
+		String rel = Scene3DExportRelPath(script->file);
+		String dst = AppendFileName(export_dir, rel);
+		if (full_assets) {
+			RealizeDirectory(GetFileFolder(dst));
+			if (FileExists(src))
+				FileCopy(src, dst);
+		}
+		add_mapping("script", src, rel);
+	}
+	
+	String manifest_path = AppendFileName(export_dir, "project.exec.json");
+	SaveExecutionManifest(manifest_path, manifest, true);
+	
+	PromptOK(full_assets
+		? "Exported full execution project."
+		: "Exported lightweight execution project.");
+	return true;
+}
+
+Edit3D::ExecutionWindow::ExecutionWindow() {
+	Title("Execution");
+	Sizeable();
+	Add(renderer.SizePos());
+}
+
+void Edit3D::ExecutionWindow::Init(Edit3D* o) {
+	owner = o;
+	if (owner && owner->render_ctx.conf)
+		conf = *owner->render_ctx.conf;
+	conf.dump_grid_path.Clear();
+	conf.dump_grid_done = false;
+	ctx.conf = &conf;
+	ctx.state = owner ? owner->state : nullptr;
+	ctx.anim = owner ? owner->anim : nullptr;
+	ctx.video = owner ? &owner->video : nullptr;
+	ctx.show_hud = false;
+	ctx.show_hud_help = false;
+	ctx.selection_gizmo_enabled = false;
+	ctx.selection_kind = 0;
+	renderer.ctx = &ctx;
+	renderer.SetViewMode(VIEWMODE_PERSPECTIVE);
+	renderer.SetCameraSource(CAMSRC_PROGRAM);
+	renderer.SetCameraInputEnabled(false);
+	renderer.WhenInput = [this](const String& type, const Point& p, dword flags, int key) {
+		if (owner)
+			owner->DispatchInputEvent(type, p, flags, key, 0);
+	};
+	if (owner)
+		owner->RegisterExternalRenderer(&renderer);
+	WhenClose = THISBACK(CloseWindow);
+	tc.Set(-1000/60, THISBACK(RefreshFrame));
+}
+
+void Edit3D::ExecutionWindow::RefreshFrame() {
+	if (owner && owner->exec_exit_requested) {
+		CloseWindow();
+		return;
+	}
+	renderer.Refresh();
+}
+
+void Edit3D::ExecutionWindow::CloseWindow() {
+	tc.Kill();
+	if (owner)
+		owner->UnregisterExternalRenderer(&renderer);
+	if (owner) {
+		Edit3D* o = owner;
+		owner = nullptr;
+		o->PostCallback([o] { o->exec_win.Clear(); });
+	}
 }
 
 void Edit3D::DockInit() {
@@ -2504,12 +2776,53 @@ void Edit3D::DumpBuiltinState(int builtin_index) {
 	}
 }
 
+void Edit3D::OpenExecutionWindow() {
+	if (exec_win) {
+		exec_win->SetFocus();
+		return;
+	}
+	exec_exit_requested = false;
+	exec_win = MakeOne<ExecutionWindow>();
+	exec_win->Init(this);
+	exec_win->Open();
+	Play();
+}
+
+void Edit3D::RequestExecutionExit() {
+	exec_exit_requested = true;
+	Pause();
+}
+
+void Edit3D::RegisterExternalRenderer(EditRendererBase* renderer) {
+	if (!renderer)
+		return;
+	for (int i = 0; i < external_renderers.GetCount(); i++) {
+		if (external_renderers[i] == renderer)
+			return;
+	}
+	external_renderers.Add(renderer);
+}
+
+void Edit3D::UnregisterExternalRenderer(EditRendererBase* renderer) {
+	for (int i = 0; i < external_renderers.GetCount(); i++) {
+		if (external_renderers[i] == renderer) {
+			external_renderers.Remove(i);
+			return;
+		}
+	}
+}
+
 void Edit3D::RefrehRenderers() {
 	if (view == VIEW_GEOMPROJECT) {
 		v0.RefreshAll();
 	}
 	else if (view == VIEW_VIDEOIMPORT) {
 		v1.RefreshRenderers();
+	}
+	for (int i = 0; i < external_renderers.GetCount(); i++) {
+		EditRendererBase* rend = external_renderers[i];
+		if (rend)
+			rend->Refresh();
 	}
 }
 
@@ -2735,6 +3048,7 @@ void Edit3D::Update() {
 	for (auto& inst : script_instances)
 		RunScriptFrame(inst, dt);
 	DispatchFrameEvents(dt);
+	input_state.BeginFrame();
 }
 
 void Edit3D::Data() {
@@ -2870,29 +3184,36 @@ void Edit3D::RunScriptOnce(GeomScript& script) {
 
 void Edit3D::RegisterScriptVM(PyVM& vm) {
 	::RegisterGeometry(vm);
-	PY_MODULE(modeler, vm)
-	PY_MODULE_FUNC(log, ModelerLog, this);
-	PY_MODULE_FUNC(debug_generate_pointcloud, ModelerDebugGeneratePointcloud, this);
-	PY_MODULE_FUNC(debug_simulate_observation, ModelerDebugSimulateObservation, this);
-	PY_MODULE_FUNC(debug_run_localization, ModelerDebugRunLocalization, this);
-	PY_MODULE_FUNC(debug_simulate_controller_observations, ModelerDebugSimulateControllerObservations, this);
-	PY_MODULE_FUNC(debug_run_controller_localization, ModelerDebugRunControllerLocalization, this);
-	PY_MODULE_FUNC(debug_clear_synthetic, ModelerDebugClearSynthetic, this);
-	PY_MODULE_FUNC(debug_run_full_synthetic, ModelerDebugRunFullSynthetic, this);
-	PY_MODULE_FUNC(set_position, ModelerSetPosition, this);
-	PY_MODULE_FUNC(set_orientation, ModelerSetOrientation, this);
-	PY_MODULE_FUNC(get_position, ModelerGetPosition, this);
-	PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
-	PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
-	PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);
-	PY_MODULE_FUNC(trace, ModelerTrace, this);
-	PY_MODULE_FUNC(get_timer, ModelerGetTimer, this);
-	PY_MODULE_FUNC(random, ModelerRandom, this);
+	{
+		PY_MODULE(modeler, vm)
+		PY_MODULE_FUNC(log, ModelerLog, this);
+		PY_MODULE_FUNC(debug_generate_pointcloud, ModelerDebugGeneratePointcloud, this);
+		PY_MODULE_FUNC(debug_simulate_observation, ModelerDebugSimulateObservation, this);
+		PY_MODULE_FUNC(debug_run_localization, ModelerDebugRunLocalization, this);
+		PY_MODULE_FUNC(debug_simulate_controller_observations, ModelerDebugSimulateControllerObservations, this);
+		PY_MODULE_FUNC(debug_run_controller_localization, ModelerDebugRunControllerLocalization, this);
+		PY_MODULE_FUNC(debug_clear_synthetic, ModelerDebugClearSynthetic, this);
+		PY_MODULE_FUNC(debug_run_full_synthetic, ModelerDebugRunFullSynthetic, this);
+		PY_MODULE_FUNC(set_position, ModelerSetPosition, this);
+		PY_MODULE_FUNC(set_orientation, ModelerSetOrientation, this);
+		PY_MODULE_FUNC(get_position, ModelerGetPosition, this);
+		PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
+		PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
+		PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);
+		PY_MODULE_FUNC(trace, ModelerTrace, this);
+		PY_MODULE_FUNC(get_timer, ModelerGetTimer, this);
+		PY_MODULE_FUNC(random, ModelerRandom, this);
+	}
+	{
+		PY_MODULE(exec, vm)
+		PY_MODULE_FUNC(exit, ModelerExecExit, this);
+	}
 	PyValue stage_obj = PyValue(new StageProxy(this, &vm));
 	vm.GetGlobals().GetAdd(PyValue("stage")) = stage_obj;
 	vm.GetGlobals().GetAdd(PyValue("trace")) = PyValue::Function("trace", ModelerTrace, this);
 	vm.GetGlobals().GetAdd(PyValue("getTimer")) = PyValue::Function("getTimer", ModelerGetTimer, this);
 	vm.GetGlobals().GetAdd(PyValue("random")) = PyValue::Function("random", ModelerRandom, this);
+	vm.GetGlobals().GetAdd(PyValue("input")) = PyValue(new InputProxy(&input_state));
 	PyValue root_obj = PyValue::None();
 	if (state)
 		root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &vm);
@@ -3103,6 +3424,19 @@ void Edit3D::DispatchScriptEvent(const String& event, VfsValue* node, const PyVa
 void Edit3D::DispatchInputEvent(const String& type, const Point& p, dword flags, int key, int view_i) {
 	if (view_i >= 0 && view_i < 4)
 		active_view = view_i;
+	if (type.StartsWith("mouse")) {
+		input_state.SetMouse(p, flags);
+		if (type == "mouseDown")
+			input_state.SetMouseDown(p, flags);
+		else if (type == "mouseUp")
+			input_state.SetMouseUp(p, flags);
+		else if (type == "mouseWheel")
+			input_state.AddWheel(key, flags);
+	}
+	else if (type == "keyDown") {
+		int k = key & 0xFFFF;
+		input_state.SetKey(k, true);
+	}
 	auto is_2d_tool = [&](EditTool t) {
 		return t == TOOL_2D_SELECT || t == TOOL_2D_LINE || t == TOOL_2D_RECT || t == TOOL_2D_CIRCLE ||
 		       t == TOOL_2D_POLY || t == TOOL_2D_ERASE;

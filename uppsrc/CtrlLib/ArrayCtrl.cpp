@@ -3166,8 +3166,14 @@ bool ArrayCtrl::Access(Visitor& v) {
 	v.AccessLabel(row_name);
 	v.AccessValue(GetCount());
 	v.AccessMenu("Rows", [this](Visitor& b){
-		for(int i = 0; i < GetCount(); i++)
-			b.AccessAction(Format("Row %d", i), [this, i]{ SetCursor(i); });
+		for(int i = 0; i < GetCount(); i++) {
+			String val;
+			for(int j = 0; j < GetColumnCount(); j++) {
+				if(j > 0) val << " | ";
+				val << StdConvert().Format(Get(i, j));
+			}
+			b.AccessAction(Format("Row %d", i), [this, i]{ SetCursor(i); }).AccessValue(val);
+		}
 	});
 	return true;
 }

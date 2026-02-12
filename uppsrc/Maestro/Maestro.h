@@ -129,9 +129,9 @@ public:
 	String CreateScan(const String& source_path, const String& log_text, const String& kind = "any");
 	LogScan LoadScan(const String& scan_id);
 	Array<LogScanMeta> ListScans();
+	Array<LogFinding> ExtractFindings(const String& log_text, const String& kind_filter);
 	
 private:
-	Array<LogFinding> ExtractFindings(const String& log_text, const String& kind_filter);
 	String GenerateFingerprint(const String& message, const String& tool, const String& file);
 };
 

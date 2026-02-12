@@ -36,6 +36,7 @@ Visitor& AutomationVisitor::AccessOption(bool check, const char *text, Event<> c
 	AutomationElement& el = AddElement(text);
 	el.checked = check;
 	if(write_mode && (el.path == target_path || el.text == target_path)) {
+		Cout() << "Automation Triggering Option: " << el.path << "\n";
 		found = true;
 		if(target_action && cb) cb();
 	}

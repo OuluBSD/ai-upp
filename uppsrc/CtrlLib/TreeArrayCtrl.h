@@ -89,14 +89,17 @@ private:
 	Rect   GetIconRect(int line, const Rect& cell) const;
 
 protected:
-	virtual void  LeftDown(Point p, dword flags);
-	virtual void  LeftDouble(Point p, dword flags);
-	virtual void  RightDown(Point p, dword flags);
-	virtual bool  Key(dword key, int count);
+	virtual void  LeftDown(Point p, dword flags) override;
+	virtual void  LeftDouble(Point p, dword flags) override;
+	virtual void  RightDown(Point p, dword flags) override;
+	virtual bool  Key(dword key, int count) override;
 
 public:
+	bool   Access(Visitor& v) override;
+
 	Event<int> WhenOpen;
 	Event<int> WhenClose;
+	Event<int> WhenExpandEmpty;
 	Event<Bar&> WhenMenu;
 
 	TreeArrayCtrl();

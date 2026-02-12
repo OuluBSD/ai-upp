@@ -23,6 +23,8 @@ public:
 
 	void Toggle();
 	void UpdateContext(const String& track, const String& phase, const String& task);
+	void PrelaunchProject(const String& target);
+	
 	typedef MaestroAssistant CLASSNAME;
 	MaestroAssistant();
 };

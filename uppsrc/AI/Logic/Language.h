@@ -46,6 +46,7 @@ public:
 	}
 
 	virtual NodeVar Replace(Node& old, Node& new_);
+	virtual bool OccursIn(Node& term);
 	
 	virtual void SetInstantiationTime(int time) {
 		this->time = time;

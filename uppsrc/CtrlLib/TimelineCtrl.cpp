@@ -383,6 +383,37 @@ TimelineCtrl::TimelineCtrl() {
 	hsb.SetLine(GetColumnWidth());
 }
 
+bool TimelineCtrl::Access(Visitor& v)
+{
+	v.AccessLabel("Timeline");
+	v.AccessValue(length);
+	v.AccessValue(selected_col);
+	v.AccessMenu("Rows", [this](Visitor& b) {
+		for(int i = 0; i < rows.GetCount(); i++) {
+			String name = rows[i].title;
+			if(name.IsEmpty())
+				name = Format("Row %d", i);
+			b.AccessAction(name, [this, i] { SelectRow(i, 0); });
+		}
+	});
+	v.AccessMenu("Keyframes", [this](Visitor& b) {
+		for(int i = 0; i < rows.GetCount(); i++) {
+			String name = rows[i].title;
+			if(name.IsEmpty())
+				name = Format("Row %d", i);
+			for(int k = 0; k < rows[i].keypoints.GetCount(); k++) {
+				int frame = rows[i].keypoints[k];
+				b.AccessAction(name + "/" + Format("Frame %d", frame), [this, i, frame] {
+					SelectRow(i, 0);
+					SetSelectedColumn(frame);
+					MakeColumnVisible(frame);
+				});
+			}
+		}
+	});
+	return true;
+}
+
 void TimelineCtrl::OnScroll() {
 	Refresh();
 }

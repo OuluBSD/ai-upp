@@ -22,6 +22,8 @@ file
 	DiscordScraper.cpp,
 	ThreadsScraper.h,
 	ThreadsScraper.cpp,
+	NewsScraper.h,
+	NewsScraper.cpp,
 	CalendarScraper.h,
 	CalendarScraper.cpp,
 	YouTubeStudioScraper.h,

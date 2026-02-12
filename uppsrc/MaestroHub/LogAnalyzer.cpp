@@ -41,25 +41,29 @@ LogAnalyzer::LogAnalyzer() {
 	tail.WhenLine = THISBACK(OnTailLine);
 }
 
-void LogAnalyzer::Load(const String& maestro_root) {
+void LogAnalyzer::Load(const Upp::String& maestro_root) {
 	root = maestro_root;
 	lm.Create(root);
 	sm.Load(root);
 	UpdateScans();
 	
-	String test_log = AppendFileName(root, "test.log");
-	if(FileExists(test_log)) {
+	Upp::String test_log = AppendFileName(root, "test.log");
+	if(Upp::FileExists(test_log)) {
 		tail.Open(test_log);
-		SetTimeCallback(-500, [=] { tail.Poll(); }, &tail);
+		SetTimeCallback(-500, [=] { tail.Poll(); }, 0);
 	}
 }
 
-void LogAnalyzer::OnTailLine(String line) {
+void LogAnalyzer::OnTailLine(Upp::String line) {
 	if(WhenLog) WhenLog("LOG: " + line);
 	
-	Array<LogFinding> findings = pick(lm->ExtractFindings(line, "any"));
+	Upp::Array<LogFinding> findings = pick(lm->ExtractFindings(line, "any"));
 	for(const auto& f : findings) {
-		finding_list.AddAt(0, f.kind, f.file, f.message, StoreAsJson(f));
+		finding_list.Insert(0);
+		finding_list.Set(0, 0, f.kind);
+		finding_list.Set(0, 1, f.file);
+		finding_list.Set(0, 2, f.message);
+		finding_list.Set(0, 3, StoreAsJson(f));
 		if(WhenLog) WhenLog("LIVE ISSUE DETECTED: " + f.message);
 	}
 }

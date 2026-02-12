@@ -75,6 +75,8 @@ void Ctrl::InitUGUI()
 		
 		Cout() << "UGUI system initialized with " << constraints.GetCount() << " constraints.\n";
 		Cout() << "Log: tail -f " << log_path << "\n";
+		
+		SetTimeCallback(-1000, [] { CheckConstraints(); });
 	}
 }
 

@@ -985,6 +985,37 @@ void EditRendererV1::Paint(Draw& d) {
 	mat4 cam_world = cam.GetWorldMatrix();
 	mat4 proj = cam.GetProjectionMatrix();
 	DrawGroundGrid(sz, d, proj, cam_world, camera.position, *ctx->conf, z_cull);
+
+	int visible_models = 0;
+	int visible_triangles = 0;
+	auto count_model = [&](GeomObject& go) {
+		if (!go.is_visible || !go.IsModel() || !go.mdl)
+			return;
+		visible_models++;
+		const Model& mdl = *go.mdl;
+		for (const Mesh& mesh : mdl.meshes)
+			visible_triangles += mesh.indices.GetCount() / 3;
+	};
+	if (ctx->anim && ctx->anim->is_playing) {
+		for (GeomObjectState& os : state.objs)
+			if (os.obj) count_model(*os.obj);
+	}
+	else {
+		GeomObjectCollection iter(scene);
+		for (GeomObject& go : iter)
+			count_model(go);
+	}
+	{
+		static bool printed = false;
+		if (!printed) {
+			Cout() << "RenderStatsV1: models=" << visible_models
+			       << " triangles=" << visible_triangles << "\n";
+			if (visible_models == 0 || visible_triangles == 0)
+				Cout() << "RenderStatsV1: no visible model triangles rendered\n";
+			Cout().Flush();
+			printed = true;
+		}
+	}
 	
 	/*if (view_mode == VIEWMODE_PERSPECTIVE) {
 		mat4 world = cam.GetWorldMatrix();
@@ -1144,6 +1175,7 @@ struct SoftSurface {
 	Size sz;
 	ImageBuffer ib;
 	Vector<float> zbuf;
+	int pixels_written = 0;
 	
 	SoftSurface(Size s, Color bg) : sz(s), ib(s), zbuf(s.cx * s.cy, 1e9f) {
 		for (int y = 0; y < sz.cy; y++) {
@@ -1162,6 +1194,7 @@ struct SoftSurface {
 			return;
 		zbuf[idx] = z;
 		ib[y][x] = c;
+		pixels_written++;
 	}
 	
 	void DrawLine2D(int x0, int y0, int x1, int y1, const Color& c) {
@@ -1171,8 +1204,10 @@ struct SoftSurface {
 		int sy = y0 < y1 ? 1 : -1;
 		int err = dx + dy;
 		while (true) {
-			if (x0 >= 0 && y0 >= 0 && x0 < sz.cx && y0 < sz.cy)
+			if (x0 >= 0 && y0 >= 0 && x0 < sz.cx && y0 < sz.cy) {
 				ib[y0][x0] = c;
+				pixels_written++;
+			}
 			if (x0 == x1 && y0 == y1)
 				break;
 			int e2 = 2 * err;
@@ -1453,7 +1488,10 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	
+	int models_painted = 0;
+	int triangles_submitted = 0;
 	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
+		models_painted++;
 		mat4 o_world = Translate(os.position) * QuatMat(os.orientation) * Scale(os.scale);
 		mat4 o_view = view * o_world;
 		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
@@ -1494,6 +1532,7 @@ void EditRendererV2::Paint(Draw& d) {
 				vec4 c1 = o_view * v1.position;
 				vec4 c2 = o_view * v2.position;
 				draw_triangle(c0, c1, c2, clr);
+				triangles_submitted++;
 				tri_idx += 3;
 			}
 		}
@@ -1761,6 +1800,286 @@ void EditRendererV2::Paint(Draw& d) {
 				ctx ? &ctx->selected_mesh_faces : nullptr);
 		}
 	}
+
+	{
+		static bool printed = false;
+		if (!printed) {
+			Cout() << "RenderStatsV2: models=" << models_painted
+			       << " triangles=" << triangles_submitted
+			       << " pixels=" << surf.pixels_written << "\n";
+			Cout() << "RenderStatsV2: rendered=" << (surf.pixels_written > 0 ? 1 : 0) << "\n";
+			if (models_painted == 0 || triangles_submitted == 0 || surf.pixels_written == 0)
+				Cout() << "RenderStatsV2: no visible model triangles rendered\n";
+			Cout().Flush();
+			printed = true;
+		}
+	}
+}
+
+bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStats* out_stats,
+                           Image* out_image, String* out_debug, bool dump_first_tri) {
+	if (!ctx.conf || !ctx.state)
+		return false;
+	Scene3DRenderConfig& conf = *ctx.conf;
+	GeomWorldState& state = *ctx.state;
+	GeomScene& scene = state.GetActiveScene();
+	GeomCamera& camera = state.GetProgram();
+	Camera cam;
+	camera.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
+	mat4 view = cam.GetViewMatrix();
+	mat4 cam_world = cam.GetWorldMatrix();
+	mat4 proj = cam.GetProjectionMatrix();
+	bool z_cull = true;
+	
+	SoftSurface surf(sz, conf.background_clr);
+	auto draw_grid_line = [&](const vec3& a, const vec3& b, const Color& clr) {
+		vec4 ap4 = proj * (cam_world * a.Embed());
+		vec4 bp4 = proj * (cam_world * b.Embed());
+		if (!ClipLineClipSpace(ap4, bp4))
+			return;
+		if (ap4[3] == 0 || bp4[3] == 0)
+			return;
+		vec3 ap = ap4.Splice() / ap4[3];
+		vec3 bp = bp4.Splice() / bp4[3];
+		vec2 a2(ap[0], ap[1]);
+		vec2 b2(bp[0], bp[1]);
+		if (!ClipLineNdc(a2, b2))
+			return;
+		int x0 = (int)floor((a2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y0 = (int)floor((-a2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		int x1 = (int)floor((b2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		surf.DrawLine2D(x0, y0, x1, y1, clr);
+	};
+	if (conf.show_grid) {
+		float grid_major = conf.grid_major_step <= 0.0001f ? 1.0f : conf.grid_major_step;
+		int grid_divs = conf.grid_minor_divs < 1 ? 1 : conf.grid_minor_divs;
+		float grid_minor = grid_major / (float)grid_divs;
+		float grid_extent = conf.grid_extent < grid_major ? grid_major : conf.grid_extent;
+		float start_x = floor((camera.position[0] - grid_extent) / grid_minor) * grid_minor;
+		float end_x = ceil((camera.position[0] + grid_extent) / grid_minor) * grid_minor;
+		float start_z = floor((camera.position[2] - grid_extent) / grid_minor) * grid_minor;
+		float end_z = ceil((camera.position[2] + grid_extent) / grid_minor) * grid_minor;
+		for (float x = start_x; x <= end_x + grid_minor * 0.5f; x += grid_minor) {
+			int idx = (int)floor(x / grid_minor + 0.5f);
+			int mod = idx % grid_divs;
+			if (mod < 0)
+				mod += grid_divs;
+			Color clr = (mod == 0) ? conf.grid_major_clr : conf.grid_minor_clr;
+			draw_grid_line(vec3(x, 0, start_z), vec3(x, 0, end_z), clr);
+		}
+		for (float z = start_z; z <= end_z + grid_minor * 0.5f; z += grid_minor) {
+			int idx = (int)floor(z / grid_minor + 0.5f);
+			int mod = idx % grid_divs;
+			if (mod < 0)
+				mod += grid_divs;
+			Color clr = (mod == 0) ? conf.grid_major_clr : conf.grid_minor_clr;
+			draw_grid_line(vec3(start_x, 0, z), vec3(end_x, 0, z), clr);
+		}
+	}
+	
+	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
+		if (c0[3] == 0 || c1[3] == 0 || c2[3] == 0)
+			return;
+		vec3 n0 = c0.Splice() / c0[3];
+		vec3 n1 = c1.Splice() / c1[3];
+		vec3 n2 = c2.Splice() / c2[3];
+		if (n0[2] < -1 && n1[2] < -1 && n2[2] < -1)
+			return;
+		if (n0[2] > 1 && n1[2] > 1 && n2[2] > 1)
+			return;
+		TriProj tp[3];
+		vec3 ndc[3] = {n0, n1, n2};
+		for (int i = 0; i < 3; i++) {
+			tp[i].p[0] = (ndc[i][0] + 1.0f) * 0.5f * (float)(sz.cx - 1);
+			tp[i].p[1] = (-ndc[i][1] + 1.0f) * 0.5f * (float)(sz.cy - 1);
+			tp[i].z = ndc[i][2];
+		}
+		float area = Edge2D(tp[0].p, tp[1].p, tp[2].p);
+		if (area == 0)
+			return;
+		int minx = (int)floor(min(tp[0].p[0], min(tp[1].p[0], tp[2].p[0])));
+		int maxx = (int)ceil(max(tp[0].p[0], max(tp[1].p[0], tp[2].p[0])));
+		int miny = (int)floor(min(tp[0].p[1], min(tp[1].p[1], tp[2].p[1])));
+		int maxy = (int)ceil(max(tp[0].p[1], max(tp[1].p[1], tp[2].p[1])));
+		minx = max(minx, 0);
+		miny = max(miny, 0);
+		maxx = min(maxx, sz.cx - 1);
+		maxy = min(maxy, sz.cy - 1);
+		for (int y = miny; y <= maxy; y++) {
+			for (int x = minx; x <= maxx; x++) {
+				vec2 p((float)x + 0.5f, (float)y + 0.5f);
+				float w0 = Edge2D(tp[1].p, tp[2].p, p);
+				float w1 = Edge2D(tp[2].p, tp[0].p, p);
+				float w2 = Edge2D(tp[0].p, tp[1].p, p);
+				if ((area > 0 && (w0 < 0 || w1 < 0 || w2 < 0)) ||
+				    (area < 0 && (w0 > 0 || w1 > 0 || w2 > 0)))
+					continue;
+				w0 /= area;
+				w1 /= area;
+				w2 /= area;
+				float z = w0 * tp[0].z + w1 * tp[1].z + w2 * tp[2].z;
+				surf.SetPixel(x, y, z, clr);
+			}
+		}
+	};
+	
+	int models_painted = 0;
+	int triangles_submitted = 0;
+	bool debug_captured = false;
+	String debug_dump;
+	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
+		models_painted++;
+		mat4 o_world = Translate(os.position) * QuatMat(os.orientation) * Scale(os.scale);
+		mat4 o_view = view * o_world;
+		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
+		light_dir.Normalize();
+		for (const Mesh& mesh : mdl.meshes) {
+			vec3 base_clr(1, 1, 1);
+			vec3 emissive(0, 0, 0);
+			if (mesh.material >= 0 && mdl.materials.Find(mesh.material) >= 0) {
+				const Material& mat = mdl.materials.Get(mesh.material);
+				base_clr = mat.params->base_clr_factor.Splice();
+				emissive = mat.params->emissive_factor;
+			}
+			const auto* tri_idx = mesh.indices.Begin();
+			int tri_count = mesh.indices.GetCount() / 3;
+			for (int i = 0; i < tri_count; i++) {
+				const Vertex& v0 = mesh.vertices[tri_idx[0]];
+				const Vertex& v1 = mesh.vertices[tri_idx[1]];
+				const Vertex& v2 = mesh.vertices[tri_idx[2]];
+				vec3 n = Cross(v1.position.Splice() - v0.position.Splice(),
+				               v2.position.Splice() - v0.position.Splice());
+				if (n.GetLength() == 0) {
+					tri_idx += 3;
+					continue;
+				}
+				n.Normalize();
+				vec3 n_world = VectorTransform(n, os.orientation);
+				float diff = max(0.0f, Dot(n_world, light_dir));
+				float intensity = 0.2f + diff * 0.8f;
+				vec3 shaded = base_clr * intensity + emissive;
+				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
+				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
+				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);
+				Color clr((int)Clamp(shaded[0] * 255.0f, 0.0f, 255.0f),
+				          (int)Clamp(shaded[1] * 255.0f, 0.0f, 255.0f),
+				          (int)Clamp(shaded[2] * 255.0f, 0.0f, 255.0f));
+				vec4 c0 = o_view * v0.position;
+				vec4 c1 = o_view * v1.position;
+				vec4 c2 = o_view * v2.position;
+				if (dump_first_tri && !debug_captured) {
+					debug_captured = true;
+					auto dump_vec4 = [&](const char* name, const vec4& v) {
+						auto dump_val = [&](double val) {
+							if (IsNull(val))
+								debug_dump << "null";
+							else
+								debug_dump << val;
+						};
+						debug_dump << name << "=(";
+						dump_val(v[0]); debug_dump << ",";
+						dump_val(v[1]); debug_dump << ",";
+						dump_val(v[2]); debug_dump << ",";
+						dump_val(v[3]); debug_dump << ")\n";
+					};
+					auto dump_vec3 = [&](const char* name, const vec3& v) {
+						auto dump_val = [&](double val) {
+							if (IsNull(val))
+								debug_dump << "null";
+							else
+								debug_dump << val;
+						};
+						debug_dump << name << "=(";
+						dump_val(v[0]); debug_dump << ",";
+						dump_val(v[1]); debug_dump << ",";
+						dump_val(v[2]); debug_dump << ")\n";
+					};
+					debug_dump << "first_tri\n";
+					dump_vec3("cam_pos", camera.position);
+					auto dump_quat = [&](const char* name, const quat& q) {
+						vec4 v(q[0], q[1], q[2], q[3]);
+						dump_vec4(name, v);
+					};
+					dump_quat("cam_ori", camera.orientation);
+					auto dump_mat4 = [&](const char* name, const mat4& m) {
+						debug_dump << name << "=[";
+						for (int r = 0; r < 4; r++) {
+							for (int c = 0; c < 4; c++) {
+								double val = m[r][c];
+								if (IsNull(val))
+									debug_dump << "null";
+								else
+									debug_dump << val;
+								if (!(r == 3 && c == 3))
+									debug_dump << ",";
+							}
+						}
+						debug_dump << "]\n";
+					};
+					dump_mat4("view", view);
+					dump_mat4("o_world", o_world);
+					dump_mat4("o_view", o_view);
+					dump_vec4("v0", v0.position);
+					dump_vec4("v1", v1.position);
+					dump_vec4("v2", v2.position);
+					dump_vec4("c0", c0);
+					dump_vec4("c1", c1);
+					dump_vec4("c2", c2);
+					if (c0[3] != 0 && c1[3] != 0 && c2[3] != 0) {
+						dump_vec3("n0", c0.Splice() / c0[3]);
+						dump_vec3("n1", c1.Splice() / c1[3]);
+						dump_vec3("n2", c2.Splice() / c2[3]);
+					}
+				}
+				draw_triangle(c0, c1, c2, clr);
+				triangles_submitted++;
+				tri_idx += 3;
+			}
+		}
+	};
+	
+	if (ctx.anim && ctx.anim->is_playing) {
+		for (GeomObjectState& os : state.objs) {
+			GeomObject& go = *os.obj;
+			if (!go.is_visible)
+				continue;
+			if (go.IsModel() && go.mdl)
+				paint_model(os, *go.mdl);
+		}
+	}
+	else {
+		GeomObjectCollection iter(scene);
+		GeomObjectState os;
+		for (GeomObject& go : iter) {
+			if (!go.is_visible)
+				continue;
+			if (go.IsModel() && go.mdl) {
+				os.obj = &go;
+				os.position = vec3(0);
+				os.orientation = Identity<quat>();
+				os.scale = vec3(1);
+				if (GeomTransform* tr = go.FindTransform()) {
+					os.position = tr->position;
+					os.orientation = tr->orientation;
+					os.scale = tr->scale;
+				}
+				paint_model(os, *go.mdl);
+			}
+		}
+	}
+	
+	if (out_stats) {
+		out_stats->models = models_painted;
+		out_stats->triangles = triangles_submitted;
+		out_stats->pixels = surf.pixels_written;
+		out_stats->rendered = surf.pixels_written > 0;
+	}
+	if (out_debug && dump_first_tri && debug_captured)
+		*out_debug = debug_dump;
+	if (out_image)
+		*out_image = Image(surf.ib);
+	return true;
 }
 
 void EditRendererBase::LeftDown(Point p, dword keyflags) {
@@ -1964,8 +2283,9 @@ GeomCamera& EditRendererBase::GetGeomCamera() const {
 }
 
 bool EditRendererBase::Key(dword key, int count) {
+	bool is_release = key & K_UP;
 	if (WhenInput)
-		WhenInput("keyDown", Point(0, 0), 0, (int)key);
+		WhenInput(is_release ? "keyUp" : "keyDown", Point(0, 0), 0, (int)key);
 	if (!camera_input_enabled)
 		return false;
 	GeomCamera& camera = GetGeomCamera();
@@ -1973,7 +2293,6 @@ bool EditRendererBase::Key(dword key, int count) {
 	
 	bool is_shift = key & K_SHIFT;
 	bool is_ctrl = key & K_CTRL;
-	bool is_release = key & K_UP;
 	key &= 0xFFFF | K_DELTA;
 	
 	if (is_shift) {

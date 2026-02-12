@@ -48,6 +48,16 @@ struct Scene3DRenderContext {
 	int selection_kind = 0;
 };
 
+struct Scene3DRenderStats {
+	int models = 0;
+	int triangles = 0;
+	int pixels = 0;
+	bool rendered = false;
+};
+
+bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStats* out_stats = nullptr,
+                           Image* out_image = nullptr, String* out_debug = nullptr, bool dump_first_tri = false);
+
 #include "Renderer.h"
 #include "SoftRendCtrl.h"
 

@@ -16,8 +16,8 @@ class PyVM {
 	VectorMap<PyValue, PyValue> globals;
 
 	Frame& TopFrame() { return frames.Top(); }
-	void Push(PyValue v) { stack.Add(v); }
-	PyValue Pop() { return stack.Pop(); }
+	void Push(PyValue v);
+	PyValue Pop();
 
 public:
 	PyVM();

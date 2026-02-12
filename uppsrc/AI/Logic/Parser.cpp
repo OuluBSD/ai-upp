@@ -653,10 +653,12 @@ NodeVar Parse(String str) {
 extern String* catch_print;
 extern Index<NodeVar> axioms;
 extern ArrayMap<NodeVar, Index<NodeVar> > lemmas;
+extern Index<NodeVar> lemma_cache;
 
 void ClearLogic() {
 	axioms.Clear();
 	lemmas.Clear();
+	lemma_cache.Clear();
 }
 
 String AddAxiom(String str) {

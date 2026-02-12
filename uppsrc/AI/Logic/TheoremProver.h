@@ -34,6 +34,7 @@ public:
 
 extern Index<NodeVar> axioms;
 extern ArrayMap<NodeVar, Index<NodeVar> > lemmas;
+extern Index<NodeVar> lemma_cache;
 extern Vector<String> current_proof_steps;
 extern bool flag_silent_prover;
 extern String* catch_print;

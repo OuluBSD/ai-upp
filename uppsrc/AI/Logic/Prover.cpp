@@ -544,16 +544,73 @@ public:
 		Sequent* seq = dynamic_cast<Sequent*>(&*node);
 		return seq && seq->IsAxiom();
 	}
+	double GetEstimate(const NodeVar& node) override {
+		Sequent* seq = dynamic_cast<Sequent*>(&*node);
+		if (!seq) return 1000.0;
+		return (double)seq->GetComplexity();
+	}
 };
 
 
 // Proof search
+
+struct AStarSequent : Moveable<AStarSequent> {
+	NodeVar sequent;
+	double g = 0;
+	double f = 0;
+	
+	bool operator<(const AStarSequent& other) const { return f > other.f; }
+};
 
 // returns true if the sequent == provable
 // returns false || loops forever if the sequent != provable
 bool ProveSequent(Node& sequent_) {
 	Sequent& sequent = dynamic_cast<Sequent&>(sequent_);
 	
+	// Use AStar for simple proofs without siblings
+	if (sequent.siblings.IsEmpty()) {
+		Vector<AStarSequent> open_set;
+		AStarSequent s;
+		s.sequent = &sequent;
+		s.g = 0;
+		s.f = (double)sequent.GetComplexity();
+		open_set.Add(s);
+		
+		Index<NodeVar> visited;
+		int count = 0;
+		while(open_set.GetCount() > 0 && count++ < 5000) {
+			int best_idx = 0;
+			for(int i = 1; i < open_set.GetCount(); i++)
+				if (open_set[i].f < open_set[best_idx].f)
+					best_idx = i;
+			
+			AStarSequent current = open_set[best_idx];
+			open_set.Remove(best_idx);
+			
+			Sequent* cur_seq = current.sequent.Get<Sequent>();
+			if (cur_seq->IsAxiom())
+				return true;
+			
+			if (visited.Find(current.sequent) != -1) continue;
+			visited.Add(current.sequent);
+			
+			Vector<NodeVar> next;
+			cur_seq->Expand(next);
+			
+			for(int i = 0; i < next.GetCount(); i++) {
+				const NodeVar& n = next[i];
+				if (visited.Find(n) != -1) continue;
+				
+				AStarSequent next_node;
+				next_node.sequent = n;
+				next_node.g = current.g + 1.0;
+				next_node.f = next_node.g + (double)n.Get<Sequent>()->GetComplexity();
+				open_set.Add(next_node);
+			}
+		}
+	}
+
+	// Fallback to manual Best-First Search for complex unification
 	// reset the time for each formula in the sequent
 	for (int i = 0; i < sequent.left.GetCount(); i++)
 		sequent.left.GetKey(i)->SetInstantiationTime(0);
@@ -724,6 +781,7 @@ String ProveLogicNode(NodeVar formula) {
 	String out;
 	if (!formula.Is()) return out;
 	
+	ClearProofSteps();
 	catch_print = &out;
 	
 	CheckFormula ( *formula );

@@ -1,5 +1,5 @@
 # Task: Implement TheoremProverCtrl Features
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Implement the functional features of the `TheoremProverCtrl` GUI to serve as a visual debugger for the logic engine.

@@ -34,10 +34,13 @@ public:
 
 extern Index<NodeVar> axioms;
 extern ArrayMap<NodeVar, Index<NodeVar> > lemmas;
+extern Vector<String> current_proof_steps;
+extern bool flag_silent_prover;
 extern String* catch_print;
 extern Event<String> WhenPrint;
 
 void Print(String s);
+void ClearProofSteps();
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula);
 void RemoveRef(ArrayMap<NodeVar, int>& ind, const NodeVar& ref);
 

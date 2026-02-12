@@ -1,0 +1,11 @@
+description "Logic Engine GUI Integration";
+
+uses
+	CtrlCore,
+	AI/Logic;
+
+file
+	LogicGui.h,
+	ConstraintVisitor.h,
+	ConstraintVisitor.cpp,
+	Integration.cpp;

@@ -1,5 +1,6 @@
 #include "ConstraintVisitor.h"
 #include <AI/Logic/TheoremProver.h>
+#include <CtrlLib/CtrlLib.h>
 
 namespace Upp {
 
@@ -8,29 +9,30 @@ using namespace TheoremProver;
 Event<String, bool> WhenCheckConstraintsResult;
 
 struct ViolationDisplay : TopWindow {
+	StaticRect back;
 	Label msg;
 	TimeCallback timer;
 	
 	ViolationDisplay() {
-		SetRect(0, 0, 400, 40);
-		Add(msg.SizePos());
+		this->SetRect(0, 0, 400, 40);
+		back.Color(Red());
+		this->Add(back.SizePos());
+		back.Add(msg.SizePos());
 		msg.SetAlign(ALIGN_CENTER);
 		msg.SetFont(StdFont().Bold());
 		msg.SetInk(White());
-		Background(Red());
-		TopMost();
-		Title("UGUI Constraint Violation");
-		Ignorable();
+		this->TopMost();
+		this->Title("UGUI Constraint Violation");
 	}
 	
 	void ShowError(const String& s) {
 		msg.SetText(s);
-		if(!IsOpen()) {
+		if(!this->IsOpen()) {
 			Rect r = GetWorkArea();
-			SetRect(r.left + 10, r.top + 10, 400, 40);
-			Open();
+			this->SetRect(r.left + 10, r.top + 10, 400, 40);
+			this->Open();
 		}
-		timer.KillSet(3000, [this] { Close(); });
+		timer.KillSet(3000, [this] { this->Close(); });
 	}
 };
 

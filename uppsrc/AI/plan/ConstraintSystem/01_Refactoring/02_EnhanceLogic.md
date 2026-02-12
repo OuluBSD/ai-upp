@@ -1,5 +1,5 @@
 # Task: Enhance AI/Logic & TheoremProver
-# Status: TODO
+# Status: IN_PROGRESS
 
 ## Objective
 Expand the `AI/Logic` package to support comprehensive theorem proving capabilities required for complex constraints. Create a GUI frontend (`examples/TheoremProverCtrl`) to visualize proofs.

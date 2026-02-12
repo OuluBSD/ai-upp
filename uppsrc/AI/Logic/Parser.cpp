@@ -3,7 +3,7 @@
 namespace TheoremProver {
 
 
-bool IsAlphaNumber(int chr) {return IsAlpha ( chr ) || IsDigit ( chr );}
+bool IsAlphaNumber(int chr) {return IsAlpha ( chr ) || IsDigit ( chr ) || chr == '_';}
 bool IsAlphaNumber(const String& s) {
 	for(int i = 0; i < s.GetCount(); i++) {
 		if (!IsAlphaNumber(s[i]))
@@ -12,18 +12,16 @@ bool IsAlphaNumber(const String& s) {
 	return s.GetCount();
 }
 bool IsLower(const String& s) {
-	for(int i = 0; i < s.GetCount(); i++) {
-		if (!Upp::IsLower(s[i]))
+	if (s.IsEmpty() || !Upp::IsLower(s[0]))
+		return false;
+	for(int i = 1; i < s.GetCount(); i++) {
+		if (!IsAlphaNumber(s[i]))
 			return false;
 	}
-	return s.GetCount();
+	return true;
 }
 bool HasUpper(const String& s) {
-	for(int i = 0; i < s.GetCount(); i++) {
-		if (Upp::IsUpper(s[i]))
-			return true;
-	}
-	return false;
+	return s.GetCount() && Upp::IsUpper(s[0]);
 }
 
 Vector<String> Lex( const String& inp ) {
@@ -35,7 +33,7 @@ Vector<String> Lex( const String& inp ) {
 		int chr = inp[pos];
 		
 		// skip whitespace
-		if ( chr == ' ' || chr == '\t' ) {
+		if ( chr == ' ' || chr == '\t' || chr == '\r' || chr == '\n' ) {
 			pos += 1;
 			continue;
 		}
@@ -85,6 +83,11 @@ NodeVar Parse( Vector<String>& tokens ) {
 
 		if ( keywords.Find ( s ) != -1 )
 			tokens[i] = s;
+		
+		if ( tokens[i] == "-" && i + 1 < tokens.GetCount() && tokens[i+1] == ">" ) {
+			tokens.Remove(i, 2);
+			tokens.Insert(i, "implies");
+		}
 	}
 
 	// empty formula

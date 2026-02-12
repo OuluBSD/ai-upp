@@ -1,0 +1,11 @@
+description "Aria - Browser automation command line interface\377";
+
+uses
+	Core,
+	Aria;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

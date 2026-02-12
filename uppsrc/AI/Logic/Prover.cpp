@@ -283,7 +283,32 @@ public:
 		return c;
 	}
 	
+Index<NodeVar> lemma_cache;
+
 	void Expand(Vector<NodeVar>& out) {
+		// Equality Reasoning: Substitution rule (Left)
+		// if we have t1 = t2 on the left, we can replace occurrences of t1 with t2 in other formulas
+		for(int i = 0; i < left.GetCount(); i++) {
+			Equal* eq = dynamic_cast<Equal*>(&*left.GetKey(i));
+			if (eq) {
+				for(int j = 0; j < left.GetCount(); j++) {
+					if (i == j) continue;
+					const NodeVar& target = left.GetKey(j);
+					if (target->OccursIn(*eq->left)) {
+						Sequent* new__sequent = new Sequent(left, right, siblings, depth + 1);
+						new__sequent->Inc();
+						NodeVar updated = target->Replace(*eq->left, *eq->right);
+						if (new__sequent->left.Find(updated) == -1) {
+							RemoveRef(new__sequent->left, target);
+							GetInsert(new__sequent->left, updated) = left[j] + 1;
+							out.Add(new__sequent);
+						}
+						new__sequent->Dec();
+					}
+				}
+			}
+		}
+
 		// determine which formula to expand
 		NodeVar left_formula;
 		int left_depth = -1;
@@ -564,7 +589,7 @@ struct AStarSequent : Moveable<AStarSequent> {
 
 // returns true if the sequent == provable
 // returns false || loops forever if the sequent != provable
-bool ProveSequent(Node& sequent_) {
+bool ProveSequent(Node& sequent_, int max_depth = 20) {
 	Sequent& sequent = dynamic_cast<Sequent&>(sequent_);
 	
 	// Use AStar for simple proofs without siblings
@@ -590,6 +615,8 @@ bool ProveSequent(Node& sequent_) {
 			Sequent* cur_seq = current.sequent.Get<Sequent>();
 			if (cur_seq->IsAxiom())
 				return true;
+			
+			if (current.g >= max_depth) continue;
 			
 			if (visited.Find(current.sequent) != -1) continue;
 			visited.Add(current.sequent);
@@ -652,7 +679,7 @@ bool ProveSequent(Node& sequent_) {
 		Sequent* old_sequent = old_sequent_.Get<Sequent>();
 		ASSERT(old_sequent);
 		String seq_str = old_sequent->ToString();
-		if (seq_str == prev_str || old_sequent->depth > 20) {
+		if (seq_str == prev_str || old_sequent->depth > max_depth) {
 			Print("Unable to continue");
 			return false;
 		}
@@ -765,12 +792,22 @@ bool ProveSequent(Node& sequent_) {
 // returns true if the formula == provable
 // returns false || loops forever if the formula != provable
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula) {
+	if (lemma_cache.Find(formula) != -1) return true;
+	
 	ArrayMap<NodeVar, int> left, right;
 	for(int i = 0; i < axioms.GetCount(); i++)
 		left.Add(axioms[i], 0);
 	right.Add(formula, 0);
-	NodeVar seq(new Sequent(left, right, Index<NodeVar>(), 0));
-	return ProveSequent(*seq);
+	
+	// Iterative Deepening loop
+	for(int max_depth = 5; max_depth <= 30; max_depth += 5) {
+		NodeVar seq(new Sequent(left, right, Index<NodeVar>(), 0));
+		if (ProveSequent(*seq, max_depth)) {
+			lemma_cache.Add(formula);
+			return true;
+		}
+	}
+	return false;
 }
 
 extern String* catch_print;

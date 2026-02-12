@@ -18,6 +18,14 @@ NodeVar Node::Replace(Node& old, Node& new_) {
 	return this;
 }
 
+bool Node::OccursIn(Node& term) {
+	if (*this == term) return true;
+	for(int i = 0; i < GetCount(); i++)
+		if ((*this)[i].OccursIn(term))
+			return true;
+	return false;
+}
+
 bool NodeVar::operator() (const NodeVar& a, const NodeVar& b) const {
 	// NOTE: this sort allows the same result than in python, even when it is a little bit silly
 	// TODO: right answer without silly sort. 

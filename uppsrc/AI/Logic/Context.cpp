@@ -4,6 +4,7 @@ namespace TheoremProver {
 
 Index<NodeVar> axioms;
 ArrayMap<NodeVar, Index<NodeVar> > lemmas;
+Index<NodeVar> lemma_cache;
 Vector<String> current_proof_steps;
 bool flag_silent_prover = false;
 String* catch_print = NULL;

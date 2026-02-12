@@ -6,6 +6,7 @@
 #include <Ctrl/Automation/Automation.h>
 #include <ByteVM/ByteVM.h>
 #include "ThreadsCtrl.h"
+#include "NewsCtrl.h"
 #include "WhatsAppCtrl.h"
 #include "GoogleMessagesCtrl.h"
 #include "UniversalInboxCtrl.h"
@@ -43,6 +44,7 @@ private:
 	Aria      aria; // Backend integration
 	
 	ThreadsCtrl        threads;
+	NewsCtrl           news;
 	WhatsAppCtrl       whatsapp;
 	GoogleMessagesCtrl google_messages;
 	UniversalInboxCtrl universal_inbox;

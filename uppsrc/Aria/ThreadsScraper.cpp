@@ -12,6 +12,14 @@ ThreadsScraper::ThreadsScraper(AriaNavigator& navigator, SiteManager& sm)
 }
 
 bool ThreadsScraper::Navigate() {
+	try {
+		String current_url = navigator.Eval("return window.location.href");
+		if (current_url.Find("threads.net") >= 0) {
+			GetAriaLogger("threads").Info("Already on Threads page.");
+			return true;
+		}
+	} catch(...) {}
+
 	GetAriaLogger("threads").Info("Navigating to Threads...");
 	try {
 		navigator.Navigate(URL);
@@ -25,9 +33,13 @@ bool ThreadsScraper::Navigate() {
 		// Wait for either the feed or the login screen
 		navigator.WaitForElement("svg[aria-label='Threads'], div[aria-label='Log in'], a[href='/login/']", "css selector", 45);
 		
+		// Wait an extra 5 seconds for background JS to fetch more items as requested
+		GetAriaLogger("threads").Info("Waiting 5s for dynamic content fetch...");
+		Sleep(5000);
+
 		// Check for login indicators
 		Value login_check = navigator.Eval(R"(
-			(function() {
+			return (function() {
 				if (document.querySelector('div[aria-label="Log in"]') || document.querySelector('a[href="/login/"]')) return "login_screen";
 				if (document.querySelector('svg[aria-label="Threads"]')) return "logged_in";
 				return "unknown";
@@ -47,6 +59,12 @@ bool ThreadsScraper::Navigate() {
 }
 
 bool ThreadsScraper::Refresh(bool deep) {
+	Time now = GetUtcTime();
+	if (now - last_refresh < 60) {
+		GetAriaLogger("threads").Info("Skipping refresh (cooldown active, last refresh < 1m ago).");
+		return true;
+	}
+
 	if (!Navigate()) return false;
 	GetAriaLogger("threads").Info(Format("Starting %s data refresh for Threads...", deep ? "deep" : "shallow"));
 	
@@ -55,17 +73,25 @@ bool ThreadsScraper::Refresh(bool deep) {
 	
 	sm.SetSiteData(site_name, "feed", feed);
 	sm.SetSiteData(site_name, "metadata", ValueMap()
-		("last_refresh", GetUtcTime())
+		("last_refresh", now)
 		("mode", deep ? "deep" : "shallow")
 	);
 	
+	last_refresh = now;
 	return true;
 }
 
 bool ThreadsScraper::RefreshFeed() {
+	Time now = GetUtcTime();
+	if (now - last_refresh < 60) {
+		GetAriaLogger("threads").Info("Skipping feed refresh (cooldown active).");
+		return true;
+	}
+
 	if (!Navigate()) return false;
 	ValueArray feed = ScrapeFeed();
 	sm.SetSiteData(site_name, "feed", feed);
+	last_refresh = now;
 	return true;
 }
 
@@ -101,26 +127,8 @@ bool ThreadsScraper::RefreshPrivate() {
 	}
 }
 
-ValueArray ThreadsScraper::ScrapeFeed() {
+ValueArray ThreadsScraper::ScrapePage() {
 	try {
-		GetAriaLogger("threads").Info("Scraping feed...");
-		
-		// Wait for at least one post to appear
-		bool found = false;
-		for (int i = 0; i < 10; i++) {
-			Value count = navigator.Eval("return document.querySelectorAll('article, [role=\"article\"], [data-pressable-container=\"true\"]').length;");
-			if (count.Is<double>() && (double)count > 0) {
-				found = true;
-				break;
-			}
-			GetAriaLogger("threads").Info("Waiting for posts to load...");
-			Sleep(1000);
-		}
-		
-		if (!found) {
-			GetAriaLogger("threads").Warning("No posts appeared after waiting.");
-		}
-
 		// Use JS to extract posts
 		Value res = navigator.Eval(R"(
 			return (function() {
@@ -155,9 +163,27 @@ ValueArray ThreadsScraper::ScrapeFeed() {
 							if (txt.length > content.length) content = txt;
 						}
 
+						// 3. Find ID
+						let id = "";
+						for (let l = 0; l < links.length; l++) {
+							const h = links[l].getAttribute('href') || "";
+							if (h.includes('/post/')) {
+								id = h;
+								break;
+							}
+						}
+
 						if (author && content && content.length > 2) {
 							if (!posts.some(p => p.author === author && p.content === content)) {
-								posts.push({author: author, content: content});
+								posts.push({
+									id: id || (author + "_" + content.substring(0, 20)),
+									author: author,
+									content: content,
+									likes: 0,
+									replies: 0,
+									reposts: 0,
+									timestamp: Date.now()
+								});
 							}
 						}
 					} catch(e) {}
@@ -172,7 +198,85 @@ ValueArray ThreadsScraper::ScrapeFeed() {
 			return posts;
 		}
 	} catch (const Exc& e) {
+		GetAriaLogger("threads").Error("Error in ScrapePage: " + e);
+	}
+	return ValueArray();
+}
+
+ValueArray ThreadsScraper::ScrapeFeed() {
+	try {
+		GetAriaLogger("threads").Info("Scraping feed...");
+		
+		// Wait for at least one post to appear
+		bool found = false;
+		for (int i = 0; i < 10; i++) {
+			Value count = navigator.Eval("return document.querySelectorAll('article, [role=\"article\"], [data-pressable-container=\"true\"]').length;");
+			if (count.Is<double>() && (double)count > 0) {
+				found = true;
+				break;
+			}
+			GetAriaLogger("threads").Info("Waiting for posts to load...");
+			Sleep(1000);
+		}
+		
+		if (!found) {
+			GetAriaLogger("threads").Warning("No posts appeared after waiting.");
+		}
+
+		ValueArray new_posts = ScrapePage();
+		
+		// Load existing data to merge
+		Value existing = sm.GetSiteData(site_name, "feed");
+		if (existing.Is<ValueArray>()) {
+			VectorMap<String, Value> merged;
+			// Load old
+			for(const Value& p : (ValueArray)existing) {
+				String id = p["id"];
+				if(id.IsEmpty()) id = String(p["author"]) + "_" + String(p["content"]).Left(20);
+				merged.GetAdd(id) = p;
+			}
+			// Merge new
+			for(const Value& p : new_posts) {
+				String id = p["id"];
+				if(id.IsEmpty()) id = String(p["author"]) + "_" + String(p["content"]).Left(20);
+				merged.GetAdd(id) = p;
+			}
+			
+			ValueArray result;
+			for(const Value& v : merged.GetValues()) result.Add(v);
+			return result;
+		}
+		
+		return new_posts;
+	} catch (const Exc& e) {
 		GetAriaLogger("threads").Error("Error scraping feed: " + e);
+	}
+	return ValueArray();
+}
+
+ValueArray ThreadsScraper::ScrapeThread(const String& postUrl) {
+	try {
+		String fullUrl = postUrl;
+		if (!fullUrl.StartsWith("http")) {
+			fullUrl = String("https://www.threads.net") + (postUrl.StartsWith("/") ? "" : "/") + postUrl;
+		}
+		
+		GetAriaLogger("threads").Info("Navigating to thread: " + fullUrl);
+		navigator.Navigate(fullUrl);
+		
+		// Force visibility
+		navigator.Eval(R"(
+			document.dispatchEvent(new Event('visibilitychange'));
+			window.dispatchEvent(new Event('focus'));
+		)");
+
+		// Wait for articles/posts to load
+		navigator.WaitForElement("article, [role='article']", "css selector", 30);
+		Sleep(3000); // Wait for replies to populate
+
+		return ScrapePage(); // Returns only what's on this specific thread page
+	} catch (const Exc& e) {
+		GetAriaLogger("threads").Error("Error scraping thread: " + e);
 	}
 	return ValueArray();
 }

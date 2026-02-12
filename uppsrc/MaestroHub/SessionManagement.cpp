@@ -3,11 +3,7 @@
 NAMESPACE_UPP
 
 SessionManagementPane::SessionManagementPane() {
-	Add(split.SizePos());
-	
-	// Left Pane: Directories and Session Lists
-	left_pane.Add(dirs.TopPos(0, 150).HSizePos());
-	left_pane.Add(list_tabs.VSizePos(150, 0).HSizePos());
+	CtrlLayout(*this);
 	
 	dirs.AddColumn("Project Directory");
 	dirs.WhenCursor = THISBACK(OnDirCursor);
@@ -59,9 +55,6 @@ SessionManagementPane::SessionManagementPane() {
 	breadcrumbs.AddColumn("Time");
 	breadcrumbs.AddColumn("Model");
 	breadcrumbs.AddColumn("Prompt / Response");
-	
-	split.Horz(left_pane, detail_tabs);
-	split.SetPos(4000); // Give list more space initially
 	
 	sessions.WhenBar = THISBACK(OnSessionMenu);
 	sessions.WhenLeftDouble = [=] {

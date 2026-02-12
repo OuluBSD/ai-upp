@@ -6,5 +6,6 @@
 #include <Scene3D/Render/Render.h>
 #include <Scene3D/Anim/Anim.h>
 #include <Scene3D/Remote/Remote.h>
+#include <Scene3D/Exec/Exec.h>
 
 #endif

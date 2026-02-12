@@ -679,7 +679,9 @@ static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
 static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	int code = 0;
 	if(args.GetCount() >= 1) code = args[0].AsInt();
-	throw Exc("EXIT:" + AsString(code));
+	String msg = "EXIT:" + AsString(code);
+	LOG("builtin_sys_exit: throwing " << msg);
+	throw Exc(msg);
 	return PyValue::None();
 }
 
@@ -1070,6 +1072,18 @@ static PyValue builtin_threading_current_thread(const Vector<PyValue>& args, voi
 	return PyValue("MainThread"); // Simplified
 }
 
+void PyVM::Push(PyValue v)
+{
+	stack.Add(v);
+}
+
+PyValue PyVM::Pop()
+{
+	if(stack.IsEmpty())
+		throw Exc("RuntimeError: stack underflow");
+	return stack.Pop();
+}
+
 PyVM::PyVM()
 {
 	globals.GetAdd(PyValue("__name__")) = PyValue("__main__");
@@ -1371,8 +1385,13 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 PyValue PyVM::Run()
 {
-	while(IsRunning()) {
-		Step();
+	try {
+		while(IsRunning()) {
+			Step();
+		}
+	} catch (Exc& e) {
+		LOG("PyVM Exception: " << e);
+		throw;
 	}
 	return last_result;
 }
@@ -1388,6 +1407,7 @@ bool PyVM::Step()
 	}
 	
 	const PyIR& instr = (*frame.ir)[frame.pc++];
+	LOG("PC=" << frame.pc - 1 << " OP=" << (int)instr.code << " STACK=" << stack.GetCount());
 	
 try {
 		switch(instr.code) {
@@ -1518,6 +1538,7 @@ try {
 		case PY_LOAD_ATTR: {
 			PyValue obj = Pop();
 			String attr = instr.arg.ToString();
+			LOG("PY_LOAD_ATTR obj=" << obj.ToString() << " attr=" << attr);
 			if (obj.GetType() == PY_DICT) {
 				Push(obj.GetItem(instr.arg));
 			} else if (obj.GetType() == PY_STR) {
@@ -1598,7 +1619,8 @@ try {
 				Push(PyValue(a.GetComplex() + b.GetComplex()));
 			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
 			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
-			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
+			else if(a.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.ToString().ToWString()));
+			else if(b.GetType() == PY_STR) Push(PyValue(a.ToString().ToWString() + b.GetStr()));
 			else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
 				PyValue res = PyValue::List();
 				const Vector<PyValue>& va = a.GetArray();
@@ -1606,6 +1628,9 @@ try {
 				for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
 				for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
 				Push(res);
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for +: '" + PyTypeName(a.GetType()) + "' and '" + PyTypeName(b.GetType()) + "'");
 			}
 			break;
 		}
@@ -1736,12 +1761,14 @@ try {
 		}
 
 		case PY_JUMP_IF_FALSE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_FALSE_OR_POP");
 			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
 			else Pop();
 			break;
 		}
 
 		case PY_JUMP_IF_TRUE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_TRUE_OR_POP");
 			if(stack.Top().IsTrue()) frame.pc = instr.iarg;
 			else Pop();
 			break;
@@ -1755,6 +1782,7 @@ try {
 			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
 			
 			PyValue callable = Pop();
+			LOG("PY_CALL_FUNCTION callable=" << callable.ToString() << " nargs=" << nargs);
 			if (callable.IsBoundMethod()) {
 				PyValue func = callable.GetBound().func;
 				PyValue self = callable.GetBound().self;

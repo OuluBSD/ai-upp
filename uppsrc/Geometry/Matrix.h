@@ -546,6 +546,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 	}
 	Matrix& SetRotation(const vec3& axis, float angle_rad) {*this = GetRotation(axis, angle_rad); return *this;}
 	Matrix& SetPerspectiveRH_ZO(T fov_rad, T aspect, T near, T far) {
+		Clear();
 		ASSERT(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
 		T const tan_half_fovy = tan(fov_rad / static_cast<T>(2));
 		data[0][0] = static_cast<T>(1) / (aspect * tan_half_fovy);
@@ -556,6 +557,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		return *this;
 	}
 	Matrix& SetPerspectiveRH_PZO(T fov_rad, T aspect, T near, T far) {
+		Clear();
 		ASSERT(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
 		T const tan_half_fovy = tan(fov_rad / static_cast<T>(2));
 		data[0][0] = -static_cast<T>(1) / (aspect * tan_half_fovy);
@@ -566,6 +568,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		return *this;
 	}
 	Matrix& SetPerspectiveRH_NO(T fov_rad, T aspect, T near, T far) {
+		Clear();
 		ASSERT(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
 		T const tan_half_fovy = tan(fov_rad / static_cast<T>(2));
 		data[0][0] = static_cast<T>(1) / (aspect * tan_half_fovy);
@@ -576,6 +579,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		return *this;
 	}
 	Matrix& SetPerspectiveLH_ZO(T fov_rad, T aspect, T near, T far) {
+		Clear();
 		ASSERT(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
 		T const tan_half_fovy = tan(fov_rad / static_cast<T>(2));
 		data[0][0] = static_cast<T>(1) / (aspect * tan_half_fovy);
@@ -586,6 +590,7 @@ struct Matrix : Moveable<Matrix<T,R,C,Precise> > {
 		return *this;
 	}
 	Matrix& SetPerspectiveLH_NO(T fov_rad, T aspect, T near, T far) {
+		Clear();
 		ASSERT(abs(aspect - std::numeric_limits<T>::epsilon()) > static_cast<T>(0));
 		T const tan_half_fovy = tan(fov_rad / static_cast<T>(2));
 		data[0][0] = static_cast<T>(1) / (aspect * tan_half_fovy);

@@ -65,6 +65,7 @@ void AutomationBar::Separator() {}
 
 void GuiAutomationVisitor::Read(Ctrl& c)
 {
+	Cout() << "GuiAutomation READ: " << c.GetLayoutId() << "\n";
 	elements.Clear();
 	current_path = "";
 	write_mode = false;
@@ -80,6 +81,13 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 	
 	::Upp::String old_path = current_path;
 
+	// Update path with LayoutId if present
+	String l = c.GetLayoutId();
+	if(!l.IsEmpty()) {
+		if(!current_path.IsEmpty()) current_path << "/";
+		current_path << l;
+	}
+
 	int n0 = elements.GetCount();
 	bool handled = c.Access(*(AutomationVisitor*)this);
 	int n1 = elements.GetCount();
@@ -88,8 +96,8 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 	for(int i = n0; i < n1; i++) {
 		elements[i].visible = is_visible;
 		// If the element's path is just its text, prefix it with current_path
-		if(!old_path.IsEmpty() && !elements[i].path.StartsWith(old_path)) {
-			String p = old_path;
+		if(!current_path.IsEmpty() && !elements[i].path.StartsWith(current_path)) {
+			String p = current_path;
 			if(elements[i].path.GetCount() && elements[i].path[0] != '/')
 				p << "/";
 			p << elements[i].path;
@@ -100,22 +108,6 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 	if(handled && dynamic_cast<Bar*>(&c)) {
 		current_path = old_path;
 		return;
-	}
-
-	// Scoping for children
-	if(n1 > n0) {
-		// If elements were added, use the last one's path as prefix for children if it's a menu
-		// or just use old_path if it's a leaf container.
-		// For MenuBars/ToolBars, we usually want the items to be children of the Bar.
-		if (elements[n0].is_menu)
-			current_path = elements[n0].path;
-	} else {
-		// If no element was added, use Ctrl's LayoutId as prefix if present
-		String l = c.GetLayoutId();
-		if(!l.IsEmpty()) {
-			if(!current_path.IsEmpty()) current_path << "/";
-			current_path << l;
-		}
 	}
 
 	::Upp::Vector<CtrlGeometry> children;
@@ -145,6 +137,7 @@ void GuiAutomationVisitor::Walk(Ctrl& c, bool parent_visible)
 
 bool GuiAutomationVisitor::Write(Ctrl& c, const String& path, const ::Upp::Value& val, bool do_action)
 {
+	Cout() << "GuiAutomation WRITE: " << path << " action=" << do_action << "\n";
 	write_mode = true;
 	target_path = path;
 	target_value = val;

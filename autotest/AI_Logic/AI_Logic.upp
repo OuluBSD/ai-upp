@@ -1,5 +1,3 @@
-description "Theorem Prover Automated Tests";
-
 uses
 	Core,
 	AI/Logic;

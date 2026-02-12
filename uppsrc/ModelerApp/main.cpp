@@ -1,19 +1,21 @@
 #ifdef flagGUI
 #include "ModelerApp.h"
+#include <Ctrl/Automation/Automation.h>
 
 #ifdef flagMAIN
 
 
-GUI_APP_MAIN {
-	using namespace UPP;
-	ChGraySkin();
+	GUI_APP_MAIN {
+		using namespace UPP;
+		ChGraySkin();
 	
 	SetCoutLog();
 	
 	//DaemonBase::Register<EditClientService>("EditClient");
 	
-	CommandLineArguments cmd;
-	DaemonBase daemon;
+		CommandLineArguments cmd;
+		DaemonBase daemon;
+		String test_script;
 	
 	cmd.AddArg('v', "Verbose", false);
 	cmd.AddArg('t', "Load test project", false);
@@ -23,38 +25,41 @@ GUI_APP_MAIN {
 	cmd.AddArg('n', "Pointcloud directory", true, "directory");
 	cmd.AddArg('r', "Project directory", true, "directory");
 	cmd.AddArg('c', "Connect to a server", true, "address");
-	cmd.AddArg('p', "Port", true, "integer");
-	cmd.AddArg('g', "Debug-mode", false);
-	cmd.AddArg('m', "Render math test (headless)", false);
-	cmd.AddArg('G', "Dump grid math to file", true, "path");
-	const Vector<String>& raw_args = CommandLine();
-	Vector<String> filtered_args;
-	filtered_args.Reserve(raw_args.GetCount());
-	bool verbose = false;
-	bool verbose_debug = false;
-	for (int i = 0; i < raw_args.GetCount(); i++) {
-		const String& arg = raw_args[i];
-		if (i == 0) {
-			filtered_args.Add(arg);
-			continue;
-		}
-		if (arg == "-vd" || arg == "--verbosity-debug") {
-			verbose = true;
-			verbose_debug = true;
-			continue;
-		}
+		cmd.AddArg('p', "Port", true, "integer");
+		cmd.AddArg('g', "Debug-mode", false);
+		cmd.AddArg('m', "Render math test (headless)", false);
+		cmd.AddArg('G', "Dump grid math to file", true, "path");
+		cmd.AddArg("test", 0, "Run UI automation script", true, "script.py");
+		const Vector<String>& raw_args = CommandLine();
+		Vector<String> filtered_args;
+		filtered_args.Reserve(raw_args.GetCount());
+		bool verbose = false;
+		bool verbose_debug = false;
+		for (int i = 0; i < raw_args.GetCount(); i++) {
+			const String& arg = raw_args[i];
+			if (i == 0) {
+				filtered_args.Add(arg);
+				continue;
+			}
+			if (arg == "-vd" || arg == "--verbosity-debug") {
+				verbose = true;
+				verbose_debug = true;
+				continue;
+			}
 		if (arg == "--verbose") {
 			verbose = true;
 			continue;
 		}
 		filtered_args.Add(arg);
 	}
-	if (!cmd.Parse(filtered_args)) {
-		cmd.PrintHelp();
-		return;
-	}
-	if (cmd.IsArg('v'))
-		verbose = true;
+		if (!cmd.Parse(filtered_args)) {
+			cmd.PrintHelp();
+			return;
+		}
+		if (cmd.IsArg('v'))
+			verbose = true;
+		if (cmd.IsArg("test"))
+			test_script = cmd.GetArg("test");
 	
 	enum {
 		EMPTY,
@@ -110,11 +115,11 @@ GUI_APP_MAIN {
 	
 	daemon.RunInThread();
 	
-	Edit3D app;
-	app.verbose = verbose || verbose_debug;
-	app.verbose_debug = verbose_debug;
-	if (cmd.IsArg('r'))
-		app.SetProjectDir(cmd.GetArg('r'));
+		Edit3D app;
+		app.verbose = verbose || verbose_debug;
+		app.verbose_debug = verbose_debug;
+		if (cmd.IsArg('r'))
+			app.SetProjectDir(cmd.GetArg('r'));
 	if (cmd.IsArg('G'))
 		app.conf.dump_grid_path = cmd.GetArg('G');
 	if (cmd.IsArg('G')) {
@@ -122,13 +127,57 @@ GUI_APP_MAIN {
 			app.v0.SetRendererVersion(i, 2);
 	}
 
-	if (cmd.IsArg('d') && !verbose_debug) {
-		app.LoadTestProject(builtin_index);
-		RealizeDirectory(GetFileFolder(test_scene_path));
-		if (!app.SaveScene3D(test_scene_path, true))
-			Cout() << "Failed to write " << test_scene_path << "\n";
-		return;
-	}
+		if (cmd.IsArg('d') && !verbose_debug) {
+			app.LoadTestProject(builtin_index);
+			RealizeDirectory(GetFileFolder(test_scene_path));
+			if (!app.SaveScene3D(test_scene_path, true))
+				Cout() << "Failed to write " << test_scene_path << "\n";
+			return;
+		}
+		
+		if (!test_script.IsEmpty()) {
+			app.Open();
+			SetAutomationHooks(nullptr, nullptr);
+			
+			PyVM vm;
+			RegisterAutomationBindings(vm);
+			
+			try {
+				String source = LoadFile(test_script);
+				if (source.IsEmpty())
+					throw Exc("Could not load script file");
+				
+				Vector<ProcMsg> errors;
+				Tokenizer tokenizer;
+				tokenizer.WhenMessage << [&](const ProcMsg& m) {
+					if (m.severity == PROCMSG_ERROR)
+						errors.Add(m);
+				};
+				tokenizer.SkipPythonComments(true);
+				if (!tokenizer.Process(source, test_script)) {
+					Cout() << "Tokenization failed:\n";
+					for (const auto& e : errors)
+						Cout() << e.line << ":" << e.col << ": " << e.msg << "\n";
+					_exit(1);
+				}
+				tokenizer.CombineTokens();
+				
+				PyCompiler compiler(tokenizer.GetTokens());
+				Vector<PyIR> ir;
+				compiler.Compile(ir);
+				
+				vm.SetIR(ir);
+				vm.Run();
+			}
+			catch (const Exc& e) {
+				if (e.Find("EXIT:0") >= 0)
+					_exit(0);
+				Cout() << "Test Error: " << e << "\n";
+				_exit(1);
+			}
+			_exit(0);
+			return;
+		}
 	if (cmd.IsArg('m')) {
 		auto print_vec3 = [&](const String& label, const vec3& v) {
 			Cout() << label << ": (" << v[0] << ", " << v[1] << ", " << v[2] << ")\n";

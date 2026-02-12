@@ -40,6 +40,23 @@ extern bool flag_silent_prover;
 extern String* catch_print;
 extern Event<String> WhenPrint;
 
+enum LogCategory {
+	LOG_GENERAL,
+	LOG_SEARCH,
+	LOG_UNIFICATION,
+	LOG_CONSTRAINT,
+	LOG_FACT,
+};
+
+enum LogLevel {
+	LL_ERROR,
+	LL_WARN,
+	LL_INFO,
+	LL_DEBUG,
+	LL_TRACE,
+};
+
+void Log(LogCategory cat, LogLevel level, String s);
 void Print(String s);
 void ClearProofSteps();
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula);

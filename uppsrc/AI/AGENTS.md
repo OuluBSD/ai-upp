@@ -65,3 +65,12 @@ Testing
   - If `STATUS=DONE`, find the next task in the directory structure (alphabetical order) and start it.
   - Update `cookie.txt` and the task `.md` file status as you progress.
 
+## AI Prelaunch Logic (Orchestration)
+- **Concept**: Any generative action (creating a project, synthesizing a class, writing a test) MUST go through the AI Prelaunch Logic.
+- **Workflow**:
+  1.  **Intent Capture**: User triggers action (e.g., "Init Project").
+  2.  **Prelaunch**: The system gathers context (directory, constraints, existing files) and formulates a specific *Request Object* or *Prompt*.
+  3.  **AI Execution**: The request is dispatched to the AI backend (mocked in tests).
+  4.  **Artifact Generation**: The AI response is parsed into physical artifacts (files, directories).
+- **No Hardcoding**: Code generators (`.cpp`, `.upp`) MUST NOT be hardcoded in C++ strings. They must be output by the AI or loaded from flexible templates that the AI can modify.
+

@@ -1,4 +1,5 @@
 #include "Maestro.h"
+#include "Plugin.h"
 
 namespace Upp {
 

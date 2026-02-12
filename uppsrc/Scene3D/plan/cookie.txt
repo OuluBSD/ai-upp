@@ -118,6 +118,18 @@
   task: track-editor-scripting/phase-02-stage-api/task-0201-displayobject-proxy.md
   status: done
   note: DisplayObject proxy supports transform, visibility, and child ops.
+- date: 2026-02-11
+  task: track-execution/phase-00-planning/task-0000-execution-track-overview.md
+  status: done
+  note: Added execution track plan with runtime window, export pipeline, input bindings, demos, and rendering tasks.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0100-execution-window.md
+  status: done
+  note: Added ModelerApp Execute window with separate renderer and refresh loop.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0103-modelerapp-export-menu.md
+  status: done
+  note: Added File -> Export actions with full/lightweight execution export manifests.
 - date: 2026-02-05
   task: track-editor-scripting/phase-03-display-list/task-0300-display-list-operations.md
   status: done
@@ -266,3 +278,67 @@
   task: track-editor-scripting/phase-13-editor-ux/task-1313-editor-shortcuts.md
   status: done
   note: Added HUD with tool hints, snap state, and help overlay toggles.
+- date: 2026-02-10
+  task: track-gui-automation/phase-00-planning/task-0000-plan-refresh.md
+  status: done
+  note: Added GUI automation track for ModelerApp with phases and tasks.
+- date: 2026-02-10
+  task: track-gui-automation/phase-01-foundations/task-0100-modelerapp-test-harness.md
+  status: done
+  note: Added --test automation harness to ModelerApp for ByteVM UI scripts.
+- date: 2026-02-10
+  task: track-gui-automation/phase-01-foundations/task-0101-smoke-test.md
+  status: done
+  note: Added ModelerApp automation smoke test script.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0210-tree-props-tests.md
+  status: done
+  note: Added initial tree/props automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0220-timeline-tests.md
+  status: done
+  note: Added initial timeline automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0230-viewport-tool-tests.md
+  status: done
+  note: Added initial viewport/tool automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0240-material-texture-tests.md
+  status: done
+  note: Added initial material/texture automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0250-test-runner.md
+  status: done
+  note: Added ModelerApp GUI test runner script.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0101-compile-export-pipeline.md
+  status: done
+  note: Export manifest now includes scripts and asset mappings for full/lightweight modes.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0102-executor-app-bootstrap.md
+  status: done
+  note: Added ModelMediaShell executor with manifest loading and runtime loop.
+- date: 2026-02-11
+  task: track-execution/phase-02-input-bindings/task-0200-input-binding-system.md
+  status: done
+  note: Execution runtime now exposes input state + events; exec window dispatches input.
+- date: 2026-02-11
+  task: track-execution/phase-04-render-assets/task-0400-assimp-integration.md
+  status: done
+  note: Executor builds with ASSIMP config and loads models via ModelLoader.
+- date: 2026-02-11
+  task: track-execution/phase-04-render-assets/task-0401-model-loading-in-executor.md
+  status: done
+  note: ModelMediaShell resolves asset paths for full/lightweight exports.
+- date: 2026-02-11
+  task: track-execution/phase-03-demo-projects/task-0300-demo-driving-nophysics.md
+  status: done
+  note: Added driving_nophysics demo project + assets and script in share/scene3d/projects.
+- date: 2026-02-12
+  task: track-execution/phase-03-demo-projects/task-0301-demo-fps-boxes.md
+  status: done
+  note: Added fps_boxes demo project (scene, assets, script) with discrete movement + projectile pool.
+- date: 2026-02-12
+  task: track-execution/phase-03-demo-projects/task-0303-demo-cave-flier.md
+  status: done
+  note: Cave flier demo script finalized with ByteVM-safe syntax; runtime runs without compile errors.

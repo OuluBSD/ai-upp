@@ -3,7 +3,7 @@
 NAMESPACE_UPP
 
 IntelligenceHub::IntelligenceHub() {
-	Add(tabs.SizePos());
+	CtrlLayout(*this);
 	
 	tu_browser.Create();
 	log_analyzer.Create();

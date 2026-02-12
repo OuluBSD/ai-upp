@@ -1,8 +1,6 @@
 #ifndef _Maestro_Plugin_h_
 #define _Maestro_Plugin_h_
 
-namespace Upp {
-
 class MaestroPlugin {
 public:
 	virtual ~MaestroPlugin() {}
@@ -22,7 +20,5 @@ public:
 	
 	static PluginManager& Get();
 };
-
-}
 
 #endif

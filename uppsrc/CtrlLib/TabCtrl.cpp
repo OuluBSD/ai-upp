@@ -305,6 +305,7 @@ void TabCtrl::Right()
 
 void TabCtrl::Set(int i)
 {
+	Upp::Cout() << "TABCTRL SET: " << i << " (current=" << sel << ")\n";
 	if(i != sel) {
 		bool refocus = HasFocusDeep();
 		sel = i;

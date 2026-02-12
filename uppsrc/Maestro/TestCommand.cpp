@@ -21,33 +21,35 @@ void TestCommand::Execute(const Vector<String>& args) {
 
 	Cout() << "Starting UI Automation Test: " << script_path << "\n";
 
-	try {
-		SetAddMockFn([](const String& r, const String& s) { MockMaestroEngine::Get().AddMock(r, s); });
-		
-		PyVM vm;
-		RegisterAutomationBindings(vm);
-		SetCurrentVM(&vm);
-		
-		Tokenizer tk;
-		tk.SkipComments();
-		tk.SkipPythonComments();
-		if(!tk.Process(content, script_path)) return;
-		tk.NewlineToEndStatement();
-		tk.CombineTokens();
+	Thread().Run([=] {
+		try {
+			SetAddMockFn([](const String& r, const String& s) { MockMaestroEngine::Get().AddMock(r, s); });
+			
+			PyVM vm;
+			RegisterAutomationBindings(vm);
+			SetCurrentVM(&vm);
+			
+			Tokenizer tk;
+			tk.SkipComments();
+			tk.SkipPythonComments();
+			if(!tk.Process(content, script_path)) return;
+			tk.NewlineToEndStatement();
+			tk.CombineTokens();
 
-		PyCompiler compiler(tk.GetTokens());
-		Vector<PyIR> ir;
-		compiler.Compile(ir);
+			PyCompiler compiler(tk.GetTokens());
+			Vector<PyIR> ir;
+			compiler.Compile(ir);
 
-		vm.SetIR(ir);
-		vm.Run();
-		
-		SetCurrentVM(nullptr);
-		
-		Cout() << "✓ Test completed successfully.\n";
-	} catch (Exc& e) {
-		Cerr() << "✗ Test failed:\n" << e << "\n";
-	}
+			vm.SetIR(ir);
+			vm.Run();
+			
+			SetCurrentVM(nullptr);
+			
+			Cout() << "✓ Test completed successfully.\n";
+		} catch (Exc& e) {
+			Cerr() << "✗ Test failed:\n" << e << "\n";
+		}
+	});
 }
 
 }

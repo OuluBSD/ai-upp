@@ -15,9 +15,9 @@ Implement a robust, scientifically complete Logic Engine (`AI/Logic`) and verify
 - **Refactor -> Expand -> Integrate**: Strict sequence of operations.
 
 # Phases
-1.  **Refactoring**: Split `TheoremProver` into `AI/Logic` (library) and `examples/TheoremProver` (CLI).
-2.  **Expansion**: Implement missing scientific features and improve the quality of `AI/Logic`.
-3.  **GUI Tooling**: Create `examples/TheoremProverCtrl` to interface with the logic engine.
-4.  **Logic Verification**: Comprehensive testing of the engine.
-5.  **Formats & System**: Implement `.ugui` parser and logging.
-6.  **Gui Integration**: Hook the robust engine into `Ctrl::Access`.
+1.  **Refactoring**: Split `TheoremProver` into `AI/Logic` (library) and `examples/TheoremProver` (CLI). (DONE)
+2.  **Expansion**: Implement missing scientific features and improve the quality of `AI/Logic`. (DONE)
+3.  **GUI Tooling**: Create `examples/TheoremProverCtrl` to interface with the logic engine. (DONE)
+4.  **Logic Verification**: Comprehensive testing of the engine. (DONE via autotest/AI_Logic)
+5.  **Formats & System**: Implement `.ugui` parser and logging. (DONE)
+6.  **Gui Integration**: Hook the robust engine into `Ctrl::Access`. (DONE via Automatic Triggering and ViolationDisplay)

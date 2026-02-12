@@ -1,0 +1,124 @@
+rocket = None
+ob_a = None
+ob_b = None
+ob_c = None
+
+rocket_x = 0.0
+rocket_z = 0.0
+ob_a_x = -4.0
+ob_a_z = 8.0
+ob_b_x = 4.0
+ob_b_z = 14.0
+ob_c_x = -2.0
+ob_c_z = 20.0
+
+move_speed = 6.0
+obs_speed = 6.0
+spawn_z = 18.0
+min_x = -6.0
+max_x = 6.0
+
+
+def _find_objects():
+    global rocket
+    global ob_a
+    global ob_b
+    global ob_c
+    rocket = stage.find("rocket")
+    ob_a = stage.find("obstacle0")
+    ob_b = stage.find("obstacle1")
+    ob_c = stage.find("obstacle2")
+
+
+def _set_scale(obj, sx, sy, sz):
+    if obj == None:
+        return
+    obj.scale = (sx, sy, sz)
+
+
+def _set_pos(obj, x, y, z):
+    if obj == None:
+        return
+    obj.x = x
+    obj.y = y
+    obj.z = z
+
+
+def on_load():
+    _find_objects()
+
+
+def on_start():
+    global rocket_x, rocket_z
+    global ob_a_x, ob_a_z, ob_b_x, ob_b_z, ob_c_x, ob_c_z
+    _find_objects()
+    rocket_x = 0.0
+    rocket_z = 0.0
+    ob_a_x = -4.0
+    ob_a_z = 8.0
+    ob_b_x = 4.0
+    ob_b_z = 14.0
+    ob_c_x = -2.0
+    ob_c_z = 20.0
+
+    if rocket != None:
+        _set_scale(rocket, 0.5, 0.5, 1.5)
+        _set_pos(rocket, rocket_x, 0.5, rocket_z)
+    if ob_a != None:
+        _set_scale(ob_a, 2.0, 2.0, 2.0)
+    if ob_b != None:
+        _set_scale(ob_b, 2.0, 2.0, 2.0)
+    if ob_c != None:
+        _set_scale(ob_c, 2.0, 2.0, 2.0)
+
+
+def _hit(x, z):
+    if abs(x - rocket_x) < 1.2 and abs(z - rocket_z) < 1.2:
+        trace("Crashed")
+        exec.exit()
+
+
+def on_frame(dt):
+    global rocket_x, rocket_z
+    global ob_a_x, ob_a_z, ob_b_x, ob_b_z, ob_c_x, ob_c_z
+
+    if rocket == None:
+        _find_objects()
+    if rocket == None:
+        return
+
+    if input.isKeyDown(ord('A')):
+        rocket_x -= move_speed * dt
+    if input.isKeyDown(ord('D')):
+        rocket_x += move_speed * dt
+    if input.isKeyDown(ord('W')):
+        rocket_z += move_speed * dt
+    if input.isKeyDown(ord('S')):
+        rocket_z -= move_speed * dt
+    if rocket_x < min_x:
+        rocket_x = min_x
+    if rocket_x > max_x:
+        rocket_x = max_x
+
+    _set_pos(rocket, rocket_x, 0.5, rocket_z)
+
+    ob_a_z -= obs_speed * dt
+    if ob_a_z < -10.0:
+        ob_a_z = spawn_z
+        ob_a_x = -ob_a_x
+    _set_pos(ob_a, ob_a_x, 0.5, ob_a_z)
+    _hit(ob_a_x, ob_a_z)
+
+    ob_b_z -= obs_speed * dt
+    if ob_b_z < -10.0:
+        ob_b_z = spawn_z + 6.0
+        ob_b_x = -ob_b_x
+    _set_pos(ob_b, ob_b_x, 0.5, ob_b_z)
+    _hit(ob_b_x, ob_b_z)
+
+    ob_c_z -= obs_speed * dt
+    if ob_c_z < -10.0:
+        ob_c_z = spawn_z + 12.0
+        ob_c_x = -ob_c_x
+    _set_pos(ob_c, ob_c_x, 0.5, ob_c_z)
+    _hit(ob_c_x, ob_c_z)

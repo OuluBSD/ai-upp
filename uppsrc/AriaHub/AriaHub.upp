@@ -12,6 +12,8 @@ file
 	ServiceCtrl.h,
 	ThreadsCtrl.h,
 	ThreadsCtrl.cpp,
+	NewsCtrl.h,
+	NewsCtrl.cpp,
 	WhatsAppCtrl.h,
 	WhatsAppCtrl.cpp,
 	GoogleMessagesCtrl.h,

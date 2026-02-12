@@ -6,6 +6,8 @@ OpsRunner::OpsRunner() {
 	CtrlLayout(*this, "Maestro Operations Runner");
 	
 	ops_list.AddColumn("Operation");
+	ops_list.Add("build");
+	ops_list.Add("run");
 	ops_list.Add("doctor");
 	ops_list.Add("health");
 	ops_list.Add("cleanup-cache");

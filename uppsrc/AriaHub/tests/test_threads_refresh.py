@@ -12,16 +12,16 @@ threads_main_tab.click()
 wait_time(0.5)
 
 print("Switching to Config tab...")
-settings_tab = find("Threads/Config")
+settings_tab = find("Main/Tabs/Config")
 if not settings_tab:
-    # Try just "Config" if path finding differs
+    # Try alternate path
     settings_tab = find("Config")
 
 if not settings_tab:
     print("Error: Config tab not found")
     print("UI Dump:")
     print(dump_ui())
-    sys.exit(1)
+    _exit(1)
 settings_tab.click()
 wait_time(0.2)
 

@@ -128,6 +128,49 @@ TreeArrayCtrl::TreeArrayCtrl() {
 
 TreeArrayCtrl::~TreeArrayCtrl() {}
 
+bool TreeArrayCtrl::Access(Visitor& v)
+{
+	ArrayCtrl::Access(v);
+	v.AccessMenu("Tree Nodes", [this](Visitor& b) {
+		auto AddNode = [&](auto&& self, int id, const String& path) -> void {
+			if(id < 0 || id >= item.GetCount())
+				return;
+			Item& it = item[id];
+			if(it.free)
+				return;
+			String name = AsString(it.value);
+			if(name.IsEmpty())
+				name = Format("Node %d", id);
+			String full = path;
+			if(!full.IsEmpty())
+				full << "/";
+			full << name;
+			
+			String val;
+			for(int j = 0; j < GetColumnCount(); j++) {
+				if(j > 0) val << " | ";
+				val << StdConvert().Format(GetRowValue(id, j));
+			}
+
+			b.AccessAction(full, [this, id] {
+				SetCursor(id);
+				MakeVisible(id);
+			}).AccessValue(val);
+
+			for(int i = 0; i < it.child.GetCount(); i++)
+				self(self, it.child[i], full);
+		};
+		for(int i = 0; i < item.GetCount(); i++) {
+			Item& it = item[i];
+			if(it.free)
+				continue;
+			if(it.parent < 0)
+				AddNode(AddNode, i, String());
+		}
+	});
+	return true;
+}
+
 TreeArrayCtrl::Column& TreeArrayCtrl::AddColumn(const char *text, int w) {
 	Column& c = ArrayCtrl::AddColumn(text, w);
 	EnsureColumnCount();
@@ -405,8 +448,11 @@ void TreeArrayCtrl::Open(int id, bool open) {
 	if (m.isopen == open)
 		return;
 	m.isopen = open;
-	if (open)
+	if (open) {
 		WhenOpen(id);
+		if(item[id].child.IsEmpty())
+			WhenExpandEmpty(id);
+	}
 	else
 		WhenClose(id);
 	dirty = true;

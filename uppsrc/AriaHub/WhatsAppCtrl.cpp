@@ -4,6 +4,7 @@
 NAMESPACE_UPP
 
 WhatsAppCtrl::WhatsAppCtrl() {
+	LayoutId("WhatsAppCtrl");
 	Add(list.VSizePos(0, 40).HSizePos());
 	Add(btnRefresh.BottomPos(5, 30).RightPos(5, 150));
 	

@@ -73,6 +73,7 @@ NodeVar Parse( Vector<String>& tokens ) {
 	Index<String> keywords;
 	keywords.Add ( "not" );
 	keywords.Add ( "implies" );
+	keywords.Add ( "iff" );
 	keywords.Add ( "and" );
 	keywords.Add ( "or" );
 	keywords.Add ( "forall" );
@@ -87,6 +88,14 @@ NodeVar Parse( Vector<String>& tokens ) {
 		if ( tokens[i] == "-" && i + 1 < tokens.GetCount() && tokens[i+1] == ">" ) {
 			tokens.Remove(i, 2);
 			tokens.Insert(i, "implies");
+		}
+		if ( tokens[i] == "<" && i + 2 < tokens.GetCount() && tokens[i+1] == "-" && tokens[i+2] == ">" ) {
+			tokens.Remove(i, 3);
+			tokens.Insert(i, "iff");
+		}
+		if ( tokens[i] == "<" && i + 2 < tokens.GetCount() && tokens[i+1] == "=" && tokens[i+2] == ">" ) {
+			tokens.Remove(i, 3);
+			tokens.Insert(i, "iff");
 		}
 	}
 
@@ -319,8 +328,8 @@ NodeVar Parse( Vector<String>& tokens ) {
 		return new Equal ( *Parse(tmp1), *Parse(tmp2) );
 	}
 	
-	// Equals
-	int eq_pos = -1;
+	// Iff (Logical equivalence)
+	int iff_pos = -1;
 	depth = 0;
 
 	for (int i = 0; i < tokens.GetCount(); i++) {
@@ -335,17 +344,17 @@ NodeVar Parse( Vector<String>& tokens ) {
 			continue;
 		}
 
-		if ( depth == 0 && tokens[i] == "equals" ) {
-			eq_pos = i;
+		if ( depth == 0 && (tokens[i] == "iff" || tokens[i] == "equals") ) {
+			iff_pos = i;
 			break;
 		}
 	}
 
-	if ( eq_pos != -1 ) {
+	if ( iff_pos != -1 ) {
 		bool quantifier_in_left = false;
 		int depth = 0;
 		
-		for (int i = 0; i < eq_pos; i++) {
+		for (int i = 0; i < iff_pos; i++) {
 			if ( tokens[i] == "(" ) {
 				depth += 1;
 				continue;
@@ -364,13 +373,13 @@ NodeVar Parse( Vector<String>& tokens ) {
 		}
 
 		if ( !quantifier_in_left ) {
-			if ( eq_pos == 0 || eq_pos == tokens.GetCount() - 1 )
-				throw InvalidInputError ( "Missing formula in OR connective." );
+			if ( iff_pos == 0 || iff_pos == tokens.GetCount() - 1 )
+				throw InvalidInputError ( "Missing formula in IFF/EQUALS connective." );
 			
 			Vector<String> tmp1, tmp2;
-			for(int i = 0; i < eq_pos; i++)
+			for(int i = 0; i < iff_pos; i++)
 				tmp1.Add(tokens[i]);
-			for(int i = eq_pos+1; i < tokens.GetCount(); i++)
+			for(int i = iff_pos+1; i < tokens.GetCount(); i++)
 				tmp2.Add(tokens[i]);
 			
 			NodeVar a = Parse(tmp1);
@@ -654,11 +663,13 @@ extern String* catch_print;
 extern Index<NodeVar> axioms;
 extern ArrayMap<NodeVar, Index<NodeVar> > lemmas;
 extern Index<NodeVar> lemma_cache;
+extern Index<NodeVar> conflict_cache;
 
 void ClearLogic() {
 	axioms.Clear();
 	lemmas.Clear();
 	lemma_cache.Clear();
+	conflict_cache.Clear();
 }
 
 String AddAxiom(String str) {

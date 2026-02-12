@@ -81,6 +81,7 @@ protected:
 public:
 	typedef TimelineCtrl CLASSNAME;
 	TimelineCtrl();
+	bool Access(Visitor& v) override;
 	
 	//TimelineRowCtrl& GetAddRow(int id);
 	TimelineRowCtrl& GetRowIndex(int i);

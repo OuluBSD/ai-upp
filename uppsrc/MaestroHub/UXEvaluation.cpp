@@ -3,9 +3,11 @@
 NAMESPACE_UPP
 
 UXEvaluationFactory::UXEvaluationFactory() {
+	LayoutId("UXEvaluationFactory");
 	Title("UX Evaluation Factory");
 	Sizeable().Zoomable();
 	
+	test_list.LayoutId("test_list");
 	test_list.AddColumn("Test Name");
 	test_list.AddColumn("Status");
 	test_list.WhenCursor = THISBACK(OnTestCursor);

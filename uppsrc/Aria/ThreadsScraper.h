@@ -5,6 +5,7 @@ class ThreadsScraper {
 	AriaNavigator& navigator;
 	SiteManager& sm;
 	String site_name;
+	Time   last_refresh;
 	static const char* URL;
 
 public:
@@ -16,9 +17,11 @@ public:
 	bool RefreshPublic();
 	bool RefreshPrivate();
 	
+	ValueArray ScrapePage();
 	ValueArray ScrapeFeed();
 	ValueArray ScrapePublic();
 	ValueArray ScrapePrivate();
+	ValueArray ScrapeThread(const String& postUrl);
 };
 
 #endif

@@ -498,6 +498,7 @@ void ModelLoader::ProcessMesh(Model& model, Mesh& out, aiMesh *mesh, const aiSce
         vertex.position[0] = mesh->mVertices[i][0];
 		vertex.position[1] = mesh->mVertices[i][1];
 		vertex.position[2] = mesh->mVertices[i][2];
+		vertex.position[3] = 1.0f;
 		
 		vertex.normal[0] = mesh->mNormals[i][0];
 		vertex.normal[1] = mesh->mNormals[i][1];

@@ -21,6 +21,8 @@ public:
 	virtual Image  GetIcon() { return Image(); }
 	virtual int    GetActiveTab() { return -1; }
 
+	Event<String> WhenStatus;
+
 protected:
 	AriaNavigator* navigator;
 	SiteManager*   site_manager;

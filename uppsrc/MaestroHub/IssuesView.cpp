@@ -3,6 +3,7 @@
 NAMESPACE_UPP
 
 IssuesPane::IssuesPane() {
+	LayoutId("IssuesPane");
 	Add(main_split.SizePos());
 	
 	issues.AddColumn("ID", 80);

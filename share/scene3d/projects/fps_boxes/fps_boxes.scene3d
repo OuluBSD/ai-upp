@@ -1,0 +1,1139 @@
+{
+  "version": 2,
+  "name": "ModelerApp",
+  "project": {
+    "scenes": [
+      {
+        "GeomDirectory": {
+          "name": "",
+          "transform": {
+            "position": {
+              "data": ""
+            },
+            "orientation": {
+              "data": ""
+            },
+            "scale": {
+              "data": ""
+            }
+          },
+          "props": {
+            "entries": []
+          },
+          "subdir": [],
+          "objs": [
+            {
+              "name": "ground",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "gun",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "target",
+              "type_i": 1,
+              "asset_ref": "assets/box_red.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "house1",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "house2",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "house3",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "house4",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "house5",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": true,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet0",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet1",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet2",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet3",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet4",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet5",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet6",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet7",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet8",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet9",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet10",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            },
+            {
+              "name": "bullet11",
+              "type_i": 1,
+              "asset_ref": "assets/box.obj",
+              "pointcloud_ref": "",
+              "is_visible": false,
+              "is_locked": false,
+              "read_enabled": true,
+              "write_enabled": false,
+              "timeline_muted": false,
+              "timeline_solo": false,
+              "timeline": {
+                "keypoints": []
+              },
+              "transform": {
+                "position": {
+                  "data": ""
+                },
+                "orientation": {
+                  "data": ""
+                },
+                "scale": {
+                  "data": ""
+                }
+              },
+              "props": {
+                "entries": []
+              },
+              "editable": {
+                "points": [],
+                "lines": [],
+                "faces": [],
+                "selected": []
+              },
+              "layer2d": {
+                "shapes": []
+              },
+              "layer2d_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "texture_edit": {
+                "path": "",
+                "dirty": false
+              },
+              "mesh_anim": {
+                "keyframes": [],
+                "use_tween": false,
+                "easing": 0
+              },
+              "effects": []
+            }
+          ],
+          "datasets": [],
+          "scripts": [
+            {
+              "file": "scripts/fps.py",
+              "enabled": true,
+              "run_on_load": true,
+              "run_every_frame": true
+            }
+          ]
+        },
+        "length": 600,
+        "timeline": {
+          "time": 0,
+          "position": 0,
+          "length": 600,
+          "is_playing": true,
+          "repeat": false,
+          "speed": 1.0
+        }
+      }
+    ],
+    "kps": 5,
+    "fps": 60,
+    "key_counter": 1
+  },
+  "active_scene": 0,
+  "focus": {
+    "position": {
+      "data": ""
+    },
+    "orientation": {
+      "data": ""
+    },
+    "distance": 10,
+    "fov": 120,
+    "scale": 1
+  },
+  "program": {
+    "position": {
+      "data": ""
+    },
+    "orientation": {
+      "data": ""
+    },
+    "distance": 10,
+    "fov": 120,
+    "scale": 1
+  },
+  "created_utc": "2026-02-11T22:41:52Z",
+  "modified_utc": "2026-02-11T22:41:52Z",
+  "data_dir": "data",
+  "external_files": [],
+  "meta": []
+}

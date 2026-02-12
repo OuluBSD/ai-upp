@@ -29,12 +29,18 @@ AriaMainWindow::AriaMainWindow()
 	statusbar.Set("Ready");
 
 	// Initialize backend links
-	threads.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
-	whatsapp.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
-	google_messages.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
-	universal_inbox.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
-	youtube.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
-	calendar.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+	auto SetupService = [&](ServiceCtrl& sc) {
+		sc.SetNavigator(&aria.GetNavigator(), &aria.GetSiteManager());
+		sc.WhenStatus = [=](String s) { statusbar.Set(s); };
+	};
+
+	SetupService(threads);
+	SetupService(news);
+	SetupService(whatsapp);
+	SetupService(google_messages);
+	SetupService(universal_inbox);
+	SetupService(youtube);
+	SetupService(calendar);
 
 	universal_inbox.WhenJump = [=](int s, int t) {
 		tabs.Set(s);
@@ -42,6 +48,7 @@ AriaMainWindow::AriaMainWindow()
 
 	// Services
 	tabs.Add(universal_inbox.SizePos(), "Inbox");
+	tabs.Add(news.SizePos(), "News");
 	tabs.Add(threads.SizePos(), "Threads");
 	tabs.Add(whatsapp.SizePos(), "WhatsApp");
 	tabs.Add(google_messages.SizePos(), "Messages");
@@ -210,7 +217,30 @@ GUI_APP_MAIN
 			compiler.Compile(ir);
 			
 			vm.SetIR(ir);
-			vm.Run();
+			
+			Upp::Atomic exit_code;
+			exit_code = -1;
+			
+			Upp::Thread test_thread;
+			test_thread.Run([&] {
+				try {
+					vm.Run();
+					exit_code = 0;
+				} catch (const Upp::Exc& e) {
+					if(e.Find("EXIT:0") >= 0) exit_code = 0;
+					else {
+						Upp::Cout() << "Test Error: " << e << "\n";
+						exit_code = 1;
+					}
+				}
+			});
+			
+			while(exit_code == -1) {
+				Upp::Ctrl::ProcessEvents();
+				Upp::Sleep(10);
+			}
+			
+			_exit(exit_code);
 		} catch (const Upp::Exc& e) {
 			if(e.Find("EXIT:0") >= 0) {
 				_exit(0);

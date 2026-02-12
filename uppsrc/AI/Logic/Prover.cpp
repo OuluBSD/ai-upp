@@ -589,6 +589,8 @@ struct AStarSequent : Moveable<AStarSequent> {
 
 // returns true if the sequent == provable
 // returns false || loops forever if the sequent != provable
+Index<NodeVar> conflict_cache;
+
 bool ProveSequent(Node& sequent_, int max_depth = 20) {
 	Sequent& sequent = dynamic_cast<Sequent&>(sequent_);
 	
@@ -612,6 +614,8 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 			AStarSequent current = open_set[best_idx];
 			open_set.Remove(best_idx);
 			
+			if (conflict_cache.Find(current.sequent) != -1) continue;
+			
 			Sequent* cur_seq = current.sequent.Get<Sequent>();
 			if (cur_seq->IsAxiom())
 				return true;
@@ -624,9 +628,14 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 			Vector<NodeVar> next;
 			cur_seq->Expand(next);
 			
+			if (next.IsEmpty()) {
+				conflict_cache.Add(current.sequent);
+				continue;
+			}
+			
 			for(int i = 0; i < next.GetCount(); i++) {
 				const NodeVar& n = next[i];
-				if (visited.Find(n) != -1) continue;
+				if (visited.Find(n) != -1 || conflict_cache.Find(n) != -1) continue;
 				
 				AStarSequent next_node;
 				next_node.sequent = n;
@@ -676,15 +685,18 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 		if (old_sequent_.Is() == false)
 			break;
 		
+		if (conflict_cache.Find(old_sequent_) != -1) continue;
+		
 		Sequent* old_sequent = old_sequent_.Get<Sequent>();
 		ASSERT(old_sequent);
 		String seq_str = old_sequent->ToString();
 		if (seq_str == prev_str || old_sequent->depth > max_depth) {
-			Print("Unable to continue");
+			conflict_cache.Add(old_sequent_);
+			Log(LOG_SEARCH, LL_WARN, "Unable to continue: depth limit or cycle detected");
 			return false;
 		}
 		prev_str = seq_str;
-		Print(Format("%d. %s", old_sequent->depth, seq_str));
+		Log(LOG_SEARCH, LL_INFO, Format("%d. %s", old_sequent->depth, seq_str));
 
 		// check if this sequent == axiomatically true
 		if (old_sequent->IsAxiom()) {
@@ -747,7 +759,7 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 					for(int i = 0; i < substitution.GetCount(); i++) {
 						const NodeVar& k = substitution.GetKey(i);
 						const NodeVar& v = substitution[i];
-						Print(Format( "  %s = %s", k->ToString(), v->ToString()));
+						Log(LOG_UNIFICATION, LL_DEBUG, Format("  %s = %s", k->ToString(), v->ToString()));
 					}
 					
 					Append(proven, old_sequent->siblings);
@@ -793,6 +805,7 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 // returns false || loops forever if the formula != provable
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula) {
 	if (lemma_cache.Find(formula) != -1) return true;
+	conflict_cache.Clear();
 	
 	ArrayMap<NodeVar, int> left, right;
 	for(int i = 0; i < axioms.GetCount(); i++)

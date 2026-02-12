@@ -379,8 +379,24 @@ struct Edit3D : DockWindow {
 	DockableCtrl* dock_script = 0;
 	DockableCtrl* dock_tools = 0;
 	
+	struct ExecutionWindow : TopWindow {
+		typedef ExecutionWindow CLASSNAME;
+		Edit3D* owner = nullptr;
+		EditRendererV2 renderer;
+		Scene3DRenderConfig conf;
+		Scene3DRenderContext ctx;
+		TimeCallback tc;
+		
+		ExecutionWindow();
+		void Init(Edit3D* o);
+		void RefreshFrame();
+		void CloseWindow();
+	};
+	
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext render_ctx;
+	Vector<EditRendererBase*> external_renderers;
+	One<ExecutionWindow> exec_win;
 	
 	
 	VfsValue prj_val;
@@ -671,6 +687,10 @@ struct Edit3D : DockWindow {
 	bool HasLine(const GeomEditableMesh& mesh, int a, int b) const;
 	void OpenScriptEditor(GeomScript& script);
 	void RunScriptOnce(GeomScript& script);
+	void OpenExecutionWindow();
+	bool ExportExecutionProject(bool full_assets);
+	void RegisterExternalRenderer(EditRendererBase* renderer);
+	void UnregisterExternalRenderer(EditRendererBase* renderer);
 	GeomScript& AddScriptComponent(GeomObject& obj);
 	GeomScript& AddScriptComponent(GeomDirectory& dir);
 	GeomScript& AddScriptComponent(GeomScene& scene);
@@ -692,6 +712,7 @@ struct Edit3D : DockWindow {
 	void UpdateHud();
 	void ApplyToolPanelCameraSource(CameraSource src);
 	void ApplyRendererCameraSource(int view_i, CameraSource src, hash_t object_key = 0);
+	void RequestExecutionExit();
 	
 public:
 	typedef Edit3D CLASSNAME;
@@ -743,6 +764,9 @@ public:
 	bool SaveScene3D(const String& path, bool use_json, bool pretty = true);
 	
 	GeomScene& GetActiveScene();
+
+	ExecInputState input_state;
+	bool exec_exit_requested = false;
 	
 };
 

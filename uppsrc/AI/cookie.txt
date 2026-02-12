@@ -1,4 +1,4 @@
 TRACK=MaestroHub
-PHASE=15_QualityAssurance
-TASK=01_MemoryLeakHunting.md
-STATUS=DONE
+PHASE=16_EndToEndDemo
+TASK=01_FixStartupBug.md
+STATUS=IN_PROGRESS

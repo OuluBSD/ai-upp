@@ -12,6 +12,7 @@
 #include <Scene3D/Core/Core.h>
 #include <Scene3D/IO/IO.h>
 #include <Scene3D/Render/Render.h>
+#include <Scene3D/Exec/Exec.h>
 #include <SoftHMD/SoftHMD.h>
 #include <plugin/enet/enet.h>
 

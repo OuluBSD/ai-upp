@@ -354,3 +354,7 @@
   task: track-gui-automation/phase-02-coverage/task-0200-window-layout.md
   status: done
   note: Added automation test for dock toggles and config persistence probe.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0201-tree-ops.md
+  status: done
+  note: Added tree ops automation test covering Tree menu entries and node creation/selection.

@@ -1,0 +1,196 @@
+{
+	"schema_version": "v1",
+	"id": "WG-LEDGER-IMPL",
+	"title": "General Ledger Implementation",
+	"goal": "Implement a general ledger with transaction history and balance calculation, including UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER-001",
+		"name": "Ledger Development",
+		"goal": "Deliver a functional ledger component with balance tracking.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_DataModel",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define Ledger Structures",
+					"status": "",
+					"intent": "Define the Transaction and Account classes in Ledger.h to store history and manage states.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Core Logic",
+					"status": "",
+					"intent": "Implement transaction processing and balance calculation logic in Ledger.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Integrate Ledger with Main UI",
+					"status": "",
+					"intent": "Update main.cpp to display transaction history and the current balance in the GUI.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Verification",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Verify Build and Functionality",
+					"status": "",
+					"intent": "Ensure the application compiles and the ledger logic works as expected.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

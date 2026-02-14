@@ -19,4 +19,4 @@ Verify project initialization, directory switching, and session persistence.
 ## Verification Method
 - Semantic check on `TreeCtrl` labels.
 - Verify file existence in `./tmp/` after 'Init'.
-- Inspect `.maestro/sessions.json` for persistence validation.
+- Inspect `docs/maestro/sessions.json` for persistence validation.

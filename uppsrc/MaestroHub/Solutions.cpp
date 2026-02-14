@@ -4,7 +4,7 @@ NAMESPACE_UPP
 
 void SolutionsManager::Load(const String& maestro_root) {
 	root = maestro_root;
-	String path = AppendFileName(root, ".maestro/solutions.json");
+	String path = AppendFileName(root, "docs/maestro/solutions.json");
 	if(FileExists(path)) {
 		String json = LoadFile(path);
 		Value v = ParseJSON(json);
@@ -23,7 +23,7 @@ void SolutionsManager::Load(const String& maestro_root) {
 
 void SolutionsManager::Save() {
 	if(root.IsEmpty()) return;
-	String dir = AppendFileName(root, ".maestro");
+	String dir = AppendFileName(root, "docs/maestro");
 	RealizeDirectory(dir);
 	String path = AppendFileName(dir, "solutions.json");
 	

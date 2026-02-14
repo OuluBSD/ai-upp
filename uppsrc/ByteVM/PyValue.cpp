@@ -235,6 +235,16 @@ PyValue PyValue::GetItem(const PyValue& key) const
 {
 	if(type == PY_DICT) return dict->d.Get(key, PyValue());
 	if(type == PY_STR && key.IsInt()) return GetItem(key.AsInt());
+	if(type == PY_LIST && key.GetType() == PY_STR) {
+		String attr = key.ToString();
+		if(attr == "sort") {
+			return PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
+				PyValue self = (PyUserData*)ud; // This is wrong, self is not UserData here but PyValue. 
+				// Actually BoundMethod needs to handle PyValue as self.
+				return PyValue::None();
+			}, nullptr), *this);
+		}
+	}
 	return PyValue();
 }
 

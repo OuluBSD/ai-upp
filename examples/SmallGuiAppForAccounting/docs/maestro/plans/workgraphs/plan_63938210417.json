@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "plan_general_ledger_implementation",
+	"title": "Implement General Ledger",
+	"goal": "Develop a complete General Ledger module with transaction management, balance calculations, and UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-GL",
+		"name": "General Ledger",
+		"goal": "Implement core accounting functionality for transaction recording and financial reporting.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-GL-01",
+			"name": "01_Data_Model",
+			"tasks": [
+				{
+					"id": "TSK-GL-01-01",
+					"title": "Define Transaction Structure",
+					"status": "",
+					"intent": "Specify the data fields for a financial transaction including date, amount, description, and accounts.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-GL-01-02",
+					"title": "Define Ledger Class",
+					"status": "",
+					"intent": "Define the Ledger class interface to manage the collection of transactions and provide balance summaries.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-GL-02",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TSK-GL-02-01",
+					"title": "Implement Transaction Storage",
+					"status": "",
+					"intent": "Implement the methods for adding, removing, and persisting transactions in the Ledger.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-GL-02-02",
+					"title": "Implement Balance Calculation",
+					"status": "",
+					"intent": "Develop logic to calculate current balances for accounts based on the transaction history.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-GL-02-03",
+					"title": "Implement History Retrieval",
+					"status": "",
+					"intent": "Provide functionality to query and list transaction history with optional filtering.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-GL-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-GL-03-01",
+					"title": "Integrate Ledger with Main GUI",
+					"status": "",
+					"intent": "Connect the Ledger implementation to the main window GUI to allow users to view and add transactions.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-GL-03-02",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the application and verify that the General Ledger functionality operates correctly within the GUI.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

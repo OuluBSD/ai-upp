@@ -6,6 +6,12 @@ move_speed = 6.0
 shoot_cooldown = 0.2
 turn_cooldown = 0.15
 
+KEY_W = 87
+KEY_A = 65
+KEY_S = 83
+KEY_D = 68
+KEY_SPACE = 32
+
 
 def _find_objects():
     state["gun"] = stage.find("gun")
@@ -25,7 +31,7 @@ def _find_objects():
 def _set_scale(obj, sx, sy, sz):
     if obj == None:
         return
-    obj.scale = vec3(sx, sy, sz)
+    obj.scale = (sx, sy, sz)
 
 
 def _set_pos(obj, x, y, z):
@@ -39,7 +45,16 @@ def _set_pos(obj, x, y, z):
 def _set_rot(obj, yaw):
     if obj == None:
         return
-    obj.rotation = vec3(0.0, yaw, 0.0)
+    obj.rotation = (yaw, 0.0, 0.0)
+
+
+def _set_cam(x, y, z, yaw):
+    if camera == None:
+        return
+    camera.x = x
+    camera.y = y
+    camera.z = z
+    camera.rotation = (yaw, 0.0, 0.0)
 
 
 def _dir_x(idx):
@@ -270,28 +285,30 @@ def on_frame(dt):
     if state["turn_timer"] > 0.0:
         state["turn_timer"] = state["turn_timer"] - dt
     if state["turn_timer"] <= 0.0:
-        if input.isKeyDown(ord('A')):
+        if input.isKeyDown(KEY_A):
             state["dir_idx"] = (state["dir_idx"] - 1) % 4
             state["turn_timer"] = turn_cooldown
-        elif input.isKeyDown(ord('D')):
+        elif input.isKeyDown(KEY_D):
             state["dir_idx"] = (state["dir_idx"] + 1) % 4
             state["turn_timer"] = turn_cooldown
 
     dx = _dir_x(state["dir_idx"])
     dz = _dir_z(state["dir_idx"])
-    if input.isKeyDown(ord('W')):
+    if input.isKeyDown(KEY_W):
         state["player_x"] = state["player_x"] + dx * move_speed * dt
         state["player_z"] = state["player_z"] + dz * move_speed * dt
-    if input.isKeyDown(ord('S')):
+    if input.isKeyDown(KEY_S):
         state["player_x"] = state["player_x"] - dx * move_speed * dt
         state["player_z"] = state["player_z"] - dz * move_speed * dt
 
     _set_pos(state["gun"], state["player_x"] + dx * 0.8, 0.5, state["player_z"] + dz * 0.8)
-    _set_rot(state["gun"], _dir_rot(state["dir_idx"]))
+    yaw = _dir_rot(state["dir_idx"])
+    _set_rot(state["gun"], yaw)
+    _set_cam(state["player_x"], 1.6, state["player_z"], yaw)
 
     if state["shoot_timer"] > 0.0:
         state["shoot_timer"] = state["shoot_timer"] - dt
-    if state["shoot_timer"] <= 0.0 and input.wasKeyPressed(ord(' ')):
+    if state["shoot_timer"] <= 0.0 and input.wasKeyPressed(KEY_SPACE):
         state["shoot_timer"] = shoot_cooldown
         _spawn_bullet()
 

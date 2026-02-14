@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "report-generation-plan",
+	"title": "Report Generation Implementation",
+	"goal": "Implement comprehensive report generation including CSV and PDF exports and UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-REPORT",
+		"name": "Report Generation",
+		"goal": "Deliver a functional reporting system for the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_and_Logic",
+			"tasks": [
+				{
+					"id": "TSK-01-01",
+					"title": "Define Report Structures",
+					"status": "",
+					"intent": "Create the data models and structures for financial reports as specified in the data layer documentation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/01_Data_and_Logic/Define Report Structures.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-01-02",
+					"title": "Implement Financial Calculations",
+					"status": "",
+					"intent": "Develop the logic required to calculate financial data for reports, including totals and summaries.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/01_Data_and_Logic/Implement Financial Calculations.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-EXPORT",
+			"name": "02_Export_Engines",
+			"tasks": [
+				{
+					"id": "TSK-02-01",
+					"title": "Implement CSV Export",
+					"status": "",
+					"intent": "Implement the engine to export report data into CSV format for external processing.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/02_Export_Engines/Implement CSV Export.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-02-02",
+					"title": "Implement PDF Report Export",
+					"status": "",
+					"intent": "Implement the engine to generate and export report data as PDF documents.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/02_Export_Engines/Implement PDF Report Export.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-03-01",
+					"title": "Create Report Selection UI",
+					"status": "",
+					"intent": "Design and implement the GUI components for selecting and viewing different reports.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/03_UI_Integration/Create Report Selection UI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-03-02",
+					"title": "Integrate Reports in Main Menu",
+					"status": "",
+					"intent": "Add reporting functionality to the application's main menu and navigation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Report Generation/03_UI_Integration/Integrate Reports in Main Menu.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-03-03",
+					"title": "Build and Verify Reports",
+					"status": "",
+					"intent": "Compile the application and perform verification of the reporting features.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk examples SmallGuiAppForAccounting CLANG -ab",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

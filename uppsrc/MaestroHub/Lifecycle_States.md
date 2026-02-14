@@ -3,7 +3,7 @@
 ## 1. Project Lifecycle
 | State | Trigger | Description |
 | :--- | :--- | :--- |
-| **Discovered** | `repo scan` | Codebase detected but no `.maestro` found. |
+| **Discovered** | `repo scan` | Codebase detected but no `docs/maestro` found. |
 | **Initialized** | `init` | Metadata structure established. |
 | **Monitored** | `log scan` / `ops` | Active observation of logs and health. |
 | **Optimized** | `convert` / `tu build` | Deep intelligence cached and structural refactors applied. |

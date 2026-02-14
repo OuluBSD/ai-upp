@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "WG-ROLE-MGMT-63938209450",
+	"title": "Implement Role Management System",
+	"goal": "Establish a robust role-based access control (RBAC) system including data models, persistence, and UI for role management.",
+	"domain": "accounting",
+	"profile": "default",
+	"track": {
+		"id": "TRK-SEC-ID",
+		"name": "Security and Identity",
+		"goal": "Provide secure access and identity management for the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define Role and User Entities",
+					"status": "",
+					"intent": "Create C++ structures to represent Roles and Users in the system.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/01_Data_Model_and_Storage/Define User and Role Entities.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Role Persistence",
+					"status": "",
+					"intent": "Develop the logic to save and load role definitions from persistent storage.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/01_Data_Model_and_Storage/Implement Role Persistence.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-CORE",
+			"name": "02_Core_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Implement Role-Based Authorization Logic",
+					"status": "",
+					"intent": "Develop the service that checks user permissions against assigned roles.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/02_Authentication_and_Authorization_Core/Implement Role-Based Authorization Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Create Role Selection UI",
+					"status": "",
+					"intent": "Build the GUI component for selecting and assigning roles to users.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/03_UI_Integration/Create Login and Role Selection UI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-005",
+					"title": "Integrate Role Access into Main GUI",
+					"status": "",
+					"intent": "Enable/disable menu items and UI features based on the active user's role.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/03_UI_Integration/Integrate Role Access into Main GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-006",
+					"title": "Verify Security Implementation",
+					"status": "",
+					"intent": "Run a comprehensive check to ensure all role-based restrictions are working as intended.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro validate Security",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

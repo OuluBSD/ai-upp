@@ -130,8 +130,8 @@ struct RemoteUxAccessTool : MaestroTool {
 		String root = FindPlanRoot();
 		if(root.IsEmpty()) return ErrorValue("Not in a Maestro project");
 
-		String req_path = AppendFileName(root, ".maestro/ux_request.json");
-		String res_path = AppendFileName(root, ".maestro/ux_response.json");
+		String req_path = AppendFileName(root, "docs/maestro/ux_request.json");
+		String res_path = AppendFileName(root, "docs/maestro/ux_response.json");
 		
 		DeleteFile(res_path);
 		SaveFile(req_path, StoreAsJson(params));

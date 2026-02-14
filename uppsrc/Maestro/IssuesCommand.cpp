@@ -57,6 +57,18 @@ void IssuesCommand::Execute(const Vector<String>& args) {
 		if(ism.SaveIssue(iss)) Cout() << "✓ Issue resolved.\n";
 		else Cerr() << "Error: Failed to resolve issue.\n";
 	}
+	else if (sub == "add") {
+		if(cla.GetPositionalCount() < 2) { Cerr() << "Error: 'issues add' requires a title.\n"; return; }
+		String title = AsString(cla.GetPositional(1));
+		MaestroIssue iss;
+		iss.issue_id = "iss-" + FormatIntHex(Random(), 8);
+		iss.title = title;
+		iss.message = cla.GetPositionalCount() > 2 ? AsString(cla.GetPositional(2)) : title;
+		iss.state = "open";
+		iss.created_at = GetSysTime();
+		if(ism.SaveIssue(iss)) Cout() << "✓ Created issue " << iss.issue_id << ".\n";
+		else Cerr() << "Error: Failed to create issue.\n";
+	}
 	else if (sub == "triage") {
 		if(cla.GetPositionalCount() >= 2) {
 			if(ism.Triage(AsString(cla.GetPositional(1)))) Cout() << "✓ Issue triaged.\n";

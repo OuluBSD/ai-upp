@@ -64,7 +64,9 @@ public:
 class ActionPlannerWrapper {
 	ActionPlanner& ap;
 	Vector<String> acts;
+	Vector<String> atoms;
 	BinaryWorldStateSession ws_session;
+	One<BinaryWorldStateMask> mask;
 	
 protected:
 	friend class ActionPlanner;
@@ -80,6 +82,7 @@ public:
 	String GetActionName(int i) {return acts[i];}
 	String GetWorldstateDescription( const BinaryWorldState& ws );
 	String GetDescription();
+	Ptr<BinaryWorldStateMask> GetMask() { return ~mask; }
 	
 	void SetAction(int act_i, String s) {acts[act_i] = s;}
 	void SetAtom(int atom_i, String s);

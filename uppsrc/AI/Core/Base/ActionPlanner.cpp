@@ -186,41 +186,42 @@ bool ActionPlanner::SetCost(int act_idx, int cost )
 
 ActionPlannerWrapper::ActionPlannerWrapper(ActionPlanner& planner) : ap(planner) {
 	ap.wrapper = this;
+	mask.Create();
+	mask->session = &ws_session;
 	OnResize();
 }
 
 void ActionPlannerWrapper::OnResize() {
 	acts.SetCount(ap.GetEventCount());
-	TODO //atoms.SetCount(ap.GetAtomCount());
+	atoms.SetCount(ap.GetAtomCount());
 }
 
 String ActionPlannerWrapper::GetWorldstateDescription( const BinaryWorldState& ws )
 {
 	String str;
-	TODO /*
 	for(int i = 0; i < atoms.GetCount(); i++) {
-		if (ws.using_atom.GetCount() <= i) break;
-		if (ws.using_atom[i]) {
-			bool set = ws.atom_values[i];
+		if (ws.atoms.GetCount() <= i) break;
+		if (ws.atoms[i].in_use) {
+			bool set = ws.atoms[i].value;
 			if (set)
 				str += ToUpper(atoms[i]) + ",";
 			else
 				str += atoms[i] + ",";
 		}
-	}*/
+	}
 	return str;
 }
 
 
 String ActionPlannerWrapper::GetAtomName(int i) {
-	TODO
-	//return atoms[i];
+	if(i >= 0 && i < atoms.GetCount())
+		return atoms[i];
 	return "";
 }
 
 void ActionPlannerWrapper::SetAtom(int atom_i, String s) {
-	TODO
-	//atoms[atom_i] = s;
+	if(atom_i >= 0 && atom_i < atoms.GetCount())
+		atoms[atom_i] = s;
 }
 
 String ActionPlannerWrapper::GetDescription()
@@ -233,32 +234,36 @@ String ActionPlannerWrapper::GetDescription()
 		BinaryWorldState& pre  = e.precond;
 		BinaryWorldState& post = e.postcond;
 		
-		TODO /*
-		int count = UPP::min(atoms.GetCount(), pre.atom_values.GetCount());
+		int count = UPP::min(atoms.GetCount(), pre.atoms.GetCount());
 		for(int i = 0; i < count; i++) {
-			bool v = pre.atom_values[i];
-			str += " " + atoms[i] + "==" + IntStr(v) + "\n";
+			if (pre.atoms[i].in_use) {
+				bool v = pre.atoms[i].value;
+				str += " PRE: " + atoms[i] + "==" + IntStr(v) + "\n";
+			}
 		}
 		
-		count = UPP::min(atoms.GetCount(), post.atom_values.GetCount());
+		count = UPP::min(atoms.GetCount(), post.atoms.GetCount());
 		for(int i = 0; i < count; i++) {
-			bool v = post.atom_values[i];
-			str += " " + atoms[i] + "==" + IntStr(v) + "\n";
-		}*/
+			if (post.atoms[i].in_use) {
+				bool v = post.atoms[i].value;
+				str += " POST: " + atoms[i] + "==" + IntStr(v) + "\n";
+			}
+		}
 	}
 	return str;
 }
 
 
 int ActionPlannerWrapper::GetAtomIndex(String atom_name) {
-	TODO /*
-	int i = VectorFind(atoms, atom_name);
-	if (i != -1)
-		return i;
-	atoms.Add(atom_name);
-	return atoms.GetCount()-1;
-	*/
-	return -1;
+	WorldStateKey key;
+	if (!ws_session.ParseRaw(atom_name, key)) return -1;
+	int idx = ws_session.FindAddAtom(key);
+	if (idx >= atoms.GetCount()) {
+		atoms.SetCount(idx + 1);
+		atoms[idx] = atom_name;
+		ap.atom_count = atoms.GetCount();
+	}
+	return idx;
 }
 
 
@@ -267,6 +272,9 @@ int ActionPlannerWrapper::GetEventIndex(String event_name) {
 	if (i != -1)
 		return i;
 	acts.Add(event_name);
+	auto& e = ap.actions.Add();
+	e.precond.mask = ~mask;
+	e.postcond.mask = ~mask;
 	return acts.GetCount()-1;
 }
 
@@ -275,9 +283,8 @@ bool ActionPlannerWrapper::SetPreCondition(String event_name, String atom_name, 
 {
 	int ev_idx = GetEventIndex( event_name );
 	int atm_idx = GetAtomIndex( atom_name );
-	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	TODO //ap.actions[ev_idx].precond.Set(atm_idx, value);
-	return true;
+	if ( ev_idx < 0 || atm_idx < 0 ) return false;
+	return ap.SetPreCondition(ev_idx, atm_idx, value);
 }
 
 
@@ -285,9 +292,8 @@ bool ActionPlannerWrapper::SetPostCondition(String event_name, String atom_name,
 {
 	int ev_idx = GetEventIndex( event_name );
 	int atm_idx = GetAtomIndex( atom_name );
-	if ( ev_idx == -1 || atm_idx == -1 ) return false;
-	TODO //ap.actions[ev_idx].postcond.Set(atm_idx, value);
-	return true;
+	if ( ev_idx < 0 || atm_idx < 0 ) return false;
+	return ap.SetPostCondition(ev_idx, atm_idx, value);
 }
 
 

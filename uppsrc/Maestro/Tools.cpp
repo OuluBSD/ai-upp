@@ -6,7 +6,7 @@ String FindPlanRoot()
 {
 	String d = GetCurrentDirectory();
 	while(d.GetCount() > 1) {
-		String p = AppendFileName(d, ".maestro");
+		String p = AppendFileName(d, "docs/maestro");
 		if(DirectoryExists(p))
 			return NormalizePath(d);
 		d = GetFileDirectory(d);
@@ -17,7 +17,9 @@ String FindPlanRoot()
 String GetDocsRoot(const String& plan_root)
 {
 	if(plan_root.IsEmpty()) return "";
-	return NormalizePath(AppendFileName(plan_root, "../../.."));
+	String docs = NormalizePath(AppendFileName(plan_root, "docs"));
+	if(DirectoryExists(docs)) return plan_root;
+	return plan_root; // Fallback to plan_root itself as repo root
 }
 
 class LambdaMaestroTool : public MaestroTool {

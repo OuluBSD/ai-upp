@@ -6,14 +6,14 @@ void ConversionOrchestrator::Inventory(const String& source, const String& targe
 {
 	Cout() << "Generating inventory for source: " << source << "\n";
 	MaestroInventory src_inv = InventoryGenerator::Generate(source);
-	String src_path = ".maestro/convert/inventory/source_files.json";
+	String src_path = "docs/maestro/convert/inventory/source_files.json";
 	RealizeDirectory(GetFileDirectory(src_path));
 	StoreAsJsonFile(src_inv, src_path, true);
 	Cout() << "✓ Source inventory saved to " << src_path << "\n";
 
 	Cout() << "Generating inventory for target: " << target << "\n";
 	MaestroInventory tgt_inv = InventoryGenerator::Generate(target);
-	String tgt_path = ".maestro/convert/inventory/target_files.json";
+	String tgt_path = "docs/maestro/convert/inventory/target_files.json";
 	RealizeDirectory(GetFileDirectory(tgt_path));
 	StoreAsJsonFile(tgt_inv, tgt_path, true);
 	Cout() << "✓ Target inventory saved to " << tgt_path << "\n";
@@ -24,11 +24,11 @@ void ConversionOrchestrator::Plan(const String& source, const String& target)
 	Cout() << "Generating conversion plan from " << source << " to " << target << "\n";
 	
 	MaestroInventory src_inv, tgt_inv;
-	if(!LoadFromJsonFile(src_inv, ".maestro/convert/inventory/source_files.json")) {
+	if(!LoadFromJsonFile(src_inv, "docs/maestro/convert/inventory/source_files.json")) {
 		Cerr() << "Error: Source inventory not found. Run inventory first.\n";
 		return;
 	}
-	if(!LoadFromJsonFile(tgt_inv, ".maestro/convert/inventory/target_files.json")) {
+	if(!LoadFromJsonFile(tgt_inv, "docs/maestro/convert/inventory/target_files.json")) {
 		Cerr() << "Error: Target inventory not found. Run inventory first.\n";
 		return;
 	}
@@ -37,7 +37,7 @@ void ConversionOrchestrator::Plan(const String& source, const String& target)
 	memory.Load("."); // Assume current dir is project root
 	
 	WorkGraph wg = ConversionPlanner::GeneratePlan(src_inv, tgt_inv, memory);
-	String plan_path = ".maestro/convert/plan/plan.json";
+	String plan_path = "docs/maestro/convert/plan/plan.json";
 	RealizeDirectory(GetFileDirectory(plan_path));
 	StoreAsJsonFile(wg, plan_path, true);
 	
@@ -49,7 +49,7 @@ void ConversionOrchestrator::Run(const String& source, const String& target, int
 	Cout() << "Executing conversion plan from " << source << " to " << target << "\n";
 	
 	WorkGraph wg;
-	if(!LoadFromJsonFile(wg, ".maestro/convert/plan/plan.json")) {
+	if(!LoadFromJsonFile(wg, "docs/maestro/convert/plan/plan.json")) {
 		Cerr() << "Error: Conversion plan not found. Run plan first.\n";
 		return;
 	}
@@ -118,7 +118,7 @@ void ConversionOrchestrator::Run(const String& source, const String& target, int
 				Cout() << "  ✓ AI response received (" << response.GetCount() << " bytes)\n";
 				// In a real implementation, we would parse the response and save files.
 				// For now, we'll just log it.
-				String log_dir = ".maestro/convert/logs/" + task.id;
+				String log_dir = "docs/maestro/convert/logs/" + task.id;
 				RealizeDirectory(log_dir);
 				SaveFile(AppendFileName(log_dir, "response.md"), response);
 				
@@ -142,7 +142,7 @@ void ConversionOrchestrator::Run(const String& source, const String& target, int
 	}
 	
 	// Save updated plan
-	StoreAsJsonFile(wg, ".maestro/convert/plan/plan.json", true);
+	StoreAsJsonFile(wg, "docs/maestro/convert/plan/plan.json", true);
 	
 	Cout() << "\nRun Summary:\n"
 	       << "  Tasks Completed: " << completed << "\n"
@@ -153,7 +153,7 @@ void ConversionOrchestrator::Validate(const String& source, const String& target
 {
 	Cout() << "Validating conversion plan...\n";
 	WorkGraph wg;
-	if(!LoadFromJsonFile(wg, ".maestro/convert/plan/plan.json")) {
+	if(!LoadFromJsonFile(wg, "docs/maestro/convert/plan/plan.json")) {
 		Cerr() << "Error: Conversion plan not found.\n";
 		return;
 	}

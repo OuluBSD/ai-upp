@@ -155,7 +155,6 @@ void PyCompiler::Statement()
 			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
-			Emit(PY_POP_TOP);
 		}
 		this->Expect(TK_DEDENT);
 		
@@ -181,7 +180,6 @@ void PyCompiler::Statement()
 				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 				if(IsToken(TK_DEDENT) || IsEof()) break;
 				Statement();
-				Emit(PY_POP_TOP);
 			}
 			this->Expect(TK_DEDENT);
 			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
@@ -202,7 +200,6 @@ void PyCompiler::Statement()
 				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 				if(IsToken(TK_DEDENT) || IsEof()) break;
 				Statement();
-				Emit(PY_POP_TOP);
 			}
 			this->Expect(TK_DEDENT);
 		}
@@ -212,7 +209,6 @@ void PyCompiler::Statement()
 		
 		for(int pc : jump_ends)
 			Patch(pc, Label());
-		EmitConst(PyValue());
 	}
 	else if(IsId("while")) {
 		Next();
@@ -231,7 +227,6 @@ void PyCompiler::Statement()
 			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
-			Emit(PY_POP_TOP);
 		}
 		this->Expect(TK_DEDENT);
 		
@@ -241,7 +236,6 @@ void PyCompiler::Statement()
 		for (int pc : break_targets.Top()) Patch(pc, Label());
 		break_targets.Pop();
 		continue_targets.Pop();
-		EmitConst(PyValue());
 	}
 	else if(IsId("for")) {
 		Next();
@@ -267,7 +261,6 @@ void PyCompiler::Statement()
 			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
-			Emit(PY_POP_TOP);
 		}
 		this->Expect(TK_DEDENT);
 		
@@ -277,11 +270,9 @@ void PyCompiler::Statement()
 		for (int pc : break_targets.Top()) Patch(pc, Label());
 		break_targets.Pop();
 		continue_targets.Pop();
-		EmitConst(PyValue());
 	}
 	else if(IsId("break")) {
 		Next();
-		EmitConst(PyValue());
 		if (break_targets.IsEmpty()) throw Exc(Format("Line %d: 'break' outside loop", GetLine()));
 		break_targets.Top().Add(Label());
 		Emit(PY_JUMP_ABSOLUTE, 0);
@@ -291,7 +282,6 @@ void PyCompiler::Statement()
 	}
 	else if(IsId("continue")) {
 		Next();
-		EmitConst(PyValue());
 		if (continue_targets.IsEmpty()) throw Exc(Format("Line %d: 'continue' outside loop", GetLine()));
 		Emit(PY_JUMP_ABSOLUTE, continue_targets.Top());
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'continue', found %s", GetLine(), Peek().GetTypeString()));
@@ -328,11 +318,9 @@ void PyCompiler::Statement()
 		
 		EmitConst(func);
 		EmitName(PY_STORE_NAME, name);
-		EmitConst(PyValue());
 	}
 	else if(IsId("pass")) {
 		Next();
-		EmitConst(PyValue());
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
@@ -365,7 +353,6 @@ void PyCompiler::Statement()
 			}
 			EmitName(PY_IMPORT_NAME, module_name);
 			EmitName(PY_STORE_NAME, module_name);
-			EmitConst(PyValue());
 			if(IsToken(TK_COMMA)) Next();
 			else break;
 		}
@@ -394,7 +381,6 @@ void PyCompiler::Statement()
 		if (IsToken(TK_MUL)) { // from module import *
 			Next();
 			Emit(PY_IMPORT_STAR);
-			EmitConst(PyValue());
 		}
 		else {
 			while (IsId()) {
@@ -406,7 +392,6 @@ void PyCompiler::Statement()
 				else break;
 			}
 			Emit(PY_POP_TOP); // pop the module
-			EmitConst(PyValue());
 		}
 		
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'import', found %s", GetLine(), Peek().GetTypeString()));
@@ -435,7 +420,6 @@ void PyCompiler::Statement()
 		Next(); // =
 		Expression();
 		EmitName(PY_STORE_NAME, id);
-		EmitConst(PyValue()); // Assignments in Uppy will "return" None
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
@@ -453,7 +437,6 @@ void PyCompiler::Statement()
 			Next(); // =
 			Expression();
 			Emit(PY_STORE_SUBSCR);
-			EmitConst(PyValue());
 			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after subscription assignment, found %s", GetLine(), Peek().GetTypeString()));
 			if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 				Next();

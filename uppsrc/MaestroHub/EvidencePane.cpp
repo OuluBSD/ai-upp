@@ -92,7 +92,7 @@ void EvidencePane::Load(const String& maestro_root) {
 	root = maestro_root;
 	evidence_list.Clear();
 	
-	String evidence_dir = AppendFileName(root, ".maestro/evidence");
+	String evidence_dir = AppendFileName(root, "docs/maestro/evidence");
 	FindFile ff(AppendFileName(evidence_dir, "*.json"));
 	while(ff) {
 		if(ff.IsFile()) {
@@ -122,7 +122,7 @@ void EvidencePane::OnCollect() {
 	EvidenceCollector ec(root);
 	EvidencePack ep = ec.CollectAll();
 	
-	String evidence_dir = AppendFileName(root, ".maestro/evidence");
+	String evidence_dir = AppendFileName(root, "docs/maestro/evidence");
 	RealizeDirectory(evidence_dir);
 	
 	String filename = "evidence_" + ep.meta.pack_id + ".json";

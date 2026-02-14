@@ -31,4 +31,4 @@ Verify the deep code intelligence features and the end-to-end issue lifecycle.
 ## Verification Method
 - `ArrayCtrl` content inspection.
 - Mock AI responses via `SafetyManager`.
-- Check `.maestro/issues/` directory.
+- Check `docs/maestro/issues/` directory.

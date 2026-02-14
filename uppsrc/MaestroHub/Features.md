@@ -30,7 +30,7 @@ This is a **feature/property inventory** (not user scenarios), compiled from eve
 ### Properties
 - Storage layout strategies:
   - `docs/maestro/`
-  - `.maestro/`
+  - `docs/maestro/`
   - distributed project-adjacent layout
 - Mechanical layout migration/conversion between storage modes.
 - Deterministic metadata handling during migration.

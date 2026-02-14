@@ -244,7 +244,7 @@ struct GeomObject : VfsValueExt {
 		O_COUNT
 	} Type;
 	
-	hash_t key;
+	hash_t key = 0;
 	String name;
 	Type type = O_NULL;
 	String asset_ref;

@@ -1,10 +1,6 @@
 #ifndef _Aria_NewsScraper_h_
 #define _Aria_NewsScraper_h_
 
-#include "Aria.h"
-
-NAMESPACE_UPP
-
 struct NewsItem : Moveable<NewsItem> {
 	String title;
 	String url;
@@ -49,7 +45,5 @@ public:
 	ValueArray ParseZeroHedge();
 	// ... add others
 };
-
-END_UPP_NAMESPACE
 
 #endif

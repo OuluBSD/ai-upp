@@ -4,7 +4,7 @@ namespace Upp {
 
 void ConversionMemory::Load(const String& maestro_root)
 {
-	path = AppendFileName(maestro_root, ".maestro/convert/memory.json");
+	path = AppendFileName(maestro_root, "docs/maestro/convert/memory.json");
 	if(FileExists(path)) {
 		LoadFromJsonFile(*this, path);
 	}

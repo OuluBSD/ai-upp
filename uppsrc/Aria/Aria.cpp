@@ -4,6 +4,9 @@
 NAMESPACE_UPP
 
 String GeminiProvider::Generate(const String& prompt, const String& context, const String& output_format) {
+	static Mutex gemini_mutex;
+	Mutex::Lock __(gemini_mutex);
+	
 	String full_prompt = prompt;
 	if (!context.IsEmpty()) {
 		full_prompt = "Context:\n" + context + "\n\nUser Request: " + prompt;

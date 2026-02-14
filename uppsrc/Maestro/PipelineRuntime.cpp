@@ -5,12 +5,12 @@ namespace Upp {
 PipelineRuntime::PipelineRuntime(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
-	RealizeDirectory(AppendFileName(base_path, ".maestro/convert/pipelines"));
+	RealizeDirectory(AppendFileName(base_path, "docs/maestro/convert/pipelines"));
 }
 
 String PipelineRuntime::GetPipelinePath(const String& id)
 {
-	return AppendFileName(base_path, ".maestro/convert/pipelines/" + id + ".json");
+	return AppendFileName(base_path, "docs/maestro/convert/pipelines/" + id + ".json");
 }
 
 ConversionPipeline PipelineRuntime::CreatePipeline(const String& name, const String& source, const String& target)
@@ -47,7 +47,7 @@ ConversionPipeline PipelineRuntime::LoadPipeline(const String& id)
 Array<ConversionPipeline> PipelineRuntime::ListPipelines()
 {
 	Array<ConversionPipeline> list;
-	FindFile ff(AppendFileName(base_path, ".maestro/convert/pipelines/*.json"));
+	FindFile ff(AppendFileName(base_path, "docs/maestro/convert/pipelines/*.json"));
 	while(ff) {
 		ConversionPipeline& p = list.Add();
 		if(!LoadFromJsonFile(p, ff.GetPath()))

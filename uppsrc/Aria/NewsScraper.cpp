@@ -20,25 +20,9 @@ ValueArray NewsScraper::ScrapeSite(const String& name, const String& url) {
 		Sleep(5000); // 5s wait as requested
 		
 		Value res = navigator.Eval(R"(
-			return (async function() {
+			return (function() {
 				const items = [];
 				
-				// Wait for content
-				await new Promise(r => setTimeout(r, 5000));
-				
-				// Try to bypass consent dialogs if present
-				const consentButtons = [
-					'button[class*="consent"]',
-					'button[id*="consent"]',
-					'#onetrust-accept-btn-handler',
-					'.accept-all',
-					'.fc-cta-consent'
-				];
-				for (const s of consentButtons) {
-					const b = document.querySelector(s);
-					if (b) { try { b.click(); await new Promise(r => setTimeout(r, 2000)); } catch(e){} break; }
-				}
-
 				function add(t, u, s) {
 					if(t && u && t.length > 5) {
 						items.push({ title: t.trim(), url: u, summary: s || "" });

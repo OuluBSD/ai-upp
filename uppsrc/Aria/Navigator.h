@@ -33,6 +33,7 @@ class AriaNavigator : public BaseNavigator {
 
 public:
 	AriaNavigator();
+	~AriaNavigator();
 	
 	void SetAIProvider(BaseAIProvider* ai) { ai_provider = ai; }
 	

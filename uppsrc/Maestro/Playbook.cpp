@@ -10,9 +10,9 @@ String Playbook::GetVersionHash() const
 PlaybookManager::PlaybookManager(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
-	playbooks_dir = AppendFileName(base_path, ".maestro/playbooks");
-	binding_file = AppendFileName(base_path, ".maestro/convert/playbook_binding.json");
-	overrides_file = AppendFileName(base_path, ".maestro/convert/playbook_overrides.json");
+	playbooks_dir = AppendFileName(base_path, "docs/maestro/playbooks");
+	binding_file = AppendFileName(base_path, "docs/maestro/convert/playbook_binding.json");
+	overrides_file = AppendFileName(base_path, "docs/maestro/convert/playbook_overrides.json");
 	
 	RealizeDirectory(playbooks_dir);
 }

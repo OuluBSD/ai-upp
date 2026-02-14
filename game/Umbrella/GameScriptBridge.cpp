@@ -5,6 +5,7 @@
 #include "Layer.h"
 #include "Tile.h"
 #include "Pathfinder.h"
+#include "NavGraph.h"
 
 using namespace Upp;
 
@@ -642,6 +643,42 @@ static PyValue py_find_path(const Vector<PyValue>& args, void* user_data) {
 	return PyValue::FromVector(result);
 }
 
+
+// ============================================================================
+// Track 2 - AI Planning: Navigation Graph (Phase 1, Task 2)
+// build_nav_graph() -> {walkable, components, edges, cols, rows}
+// is_reachable(c1, r1, c2, r2) -> bool
+// get_component_id(col, row) -> int
+// ============================================================================
+
+static NavGraph s_navGraph;
+
+static PyValue py_build_nav_graph(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+	s_navGraph.Build(bridge->GetGameScreen());
+	PyValue result = PyValue::Dict();
+	result.SetItem(PyValue(String("walkable")),   PyValue((int64)s_navGraph.GetWalkableCount()));
+	result.SetItem(PyValue(String("components")), PyValue((int64)s_navGraph.GetComponentCount()));
+	result.SetItem(PyValue(String("edges")),      PyValue((int64)s_navGraph.GetEdgeCount()));
+	result.SetItem(PyValue(String("cols")),       PyValue((int64)s_navGraph.GetCols()));
+	result.SetItem(PyValue(String("rows")),       PyValue((int64)s_navGraph.GetRows()));
+	return result;
+}
+
+static PyValue py_is_reachable(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 4) return PyValue((int64)0);
+	int c1 = (int)args[0].AsInt(), r1 = (int)args[1].AsInt();
+	int c2 = (int)args[2].AsInt(), r2 = (int)args[3].AsInt();
+	return PyValue((int64)(s_navGraph.IsReachable(c1, r1, c2, r2) ? 1 : 0));
+}
+
+static PyValue py_get_component_id(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 2) return PyValue((int64)-1);
+	int col = (int)args[0].AsInt(), row = (int)args[1].AsInt();
+	return PyValue((int64)s_navGraph.GetComponentId(col, row));
+}
+
 // ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
@@ -734,6 +771,13 @@ void GameScriptBridge::RegisterGameAPI() {
 	// AI pathfinding (Track 2)
 	globals.GetAdd("find_path") =
 		PyValue::Function("find_path", py_find_path, this);
+	// Navigation graph (Track 2, Task 2)
+	globals.GetAdd("build_nav_graph") =
+		PyValue::Function("build_nav_graph", py_build_nav_graph, this);
+	globals.GetAdd("is_reachable") =
+		PyValue::Function("is_reachable", py_is_reachable, this);
+	globals.GetAdd("get_component_id") =
+		PyValue::Function("get_component_id", py_get_component_id, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

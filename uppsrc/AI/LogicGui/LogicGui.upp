@@ -2,7 +2,9 @@ description "Logic Engine GUI Integration";
 
 uses
 	CtrlLib,
-	AI/Logic;
+	AI/Logic,
+	ByteVM,
+	Ctrl/Automation;
 
 file
 	LogicGui.h,

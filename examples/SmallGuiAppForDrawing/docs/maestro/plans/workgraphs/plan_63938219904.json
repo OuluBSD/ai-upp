@@ -1,0 +1,319 @@
+{
+	"schema_version": "v1",
+	"id": "plan_drawing_app_development",
+	"title": "Implement full drawing application with verified constraints",
+	"goal": "Develop a functional C++/U++ drawing application with mouse-based canvas, UI toolbar for tool selection, persistence, and automated UGUI constraint verification.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DRAWING",
+		"name": "Drawing Application Development",
+		"goal": "Deliver a robust drawing tool with verified UI behavior and state persistence.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01",
+			"name": "01_Canvas_Foundation",
+			"tasks": [
+				{
+					"id": "TASK-01-01",
+					"title": "Define DrawingCanvas class",
+					"status": "",
+					"intent": "Create the core canvas component for rendering and state management.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-01-02",
+					"title": "Implement Mouse Event Handling",
+					"status": "",
+					"intent": "Enable drawing functionality by tracking mouse movements and button states.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02",
+			"name": "02_UI_Controls",
+			"tasks": [
+				{
+					"id": "TASK-02-01",
+					"title": "Add Toolbar and Layout",
+					"status": "",
+					"intent": "Integrate a toolbar for selecting drawing tools (pencil, eraser).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-02-02",
+					"title": "Integrate Color Selection",
+					"status": "",
+					"intent": "Allow users to change the pencil color from the UI.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03",
+			"name": "03_Persistence",
+			"tasks": [
+				{
+					"id": "TASK-03-01",
+					"title": "Implement Save Logic",
+					"status": "",
+					"intent": "Allow saving the canvas state or current pencil configuration.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-04",
+			"name": "04_Verification",
+			"tasks": [
+				{
+					"id": "TASK-04-01",
+					"title": "Build and Validate",
+					"status": "",
+					"intent": "Compile the application and ensure it runs without errors.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-04-02",
+					"title": "Verify UGUI Constraints",
+					"status": "",
+					"intent": "Run the automated constraint checker against the implemented UI.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "python3 test_constraints.py",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

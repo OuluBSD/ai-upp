@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "ledger_implementation_plan",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger with transaction history and balance calculation, integrated into the U++ GUI application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "Ledger Core",
+		"goal": "Develop the data model, business logic, and UI for transaction management.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_CoreLogic",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define Ledger Data Structures",
+					"status": "",
+					"intent": "Define Transaction struct (date, description, amount) and Ledger class in Ledger.h.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Ledger Logic",
+					"status": "",
+					"intent": "Implement AddTransaction, GetBalance, and GetHistory methods in Ledger.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-003",
+					"title": "Register Ledger Files",
+					"status": "",
+					"intent": "Update SmallGuiAppForAccounting.upp to include Ledger.h and Ledger.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"Ledger.cpp\" SmallGuiAppForAccounting.upp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Design GUI Layout",
+					"status": "",
+					"intent": "Implement a main window with an ArrayCtrl for transaction history and input fields (EditDouble, EditString) in main.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-005",
+					"title": "Wire UI to Ledger",
+					"status": "",
+					"intent": "Connect UI input buttons to Ledger methods and refresh the history view and balance label.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Verification",
+			"tasks": [
+				{
+					"id": "TASK-006",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the application using the project build system and verify functionality.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

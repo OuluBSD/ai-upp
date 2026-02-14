@@ -54,113 +54,6 @@
 											"position_ease": 0,
 											"orientation_ease": 0
 										}
-									}
-								]
-							},
-							"transform": {
-								"position": {
-									"data": ""
-								},
-								"orientation": {
-									"data": ""
-								},
-								"scale": {
-									"data": ""
-								}
-							},
-							"props": {
-								"entries": [
-
-								]
-							},
-							"editable": {
-								"points": [
-
-								],
-								"lines": [
-
-								],
-								"faces": [
-
-								]
-							},
-							"layer2d": {
-								"visible": true,
-								"stroke": {
-									"red": 220,
-									"green": 220,
-									"blue": 220
-								},
-								"fill": {
-									"red": 60,
-									"green": 60,
-									"blue": 60
-								},
-								"width": 1,
-								"opacity": 1,
-								"use_layer_style": true,
-								"stroke_cap": 0,
-								"stroke_join": 0,
-								"texture_ref": "",
-								"blend_mode": 0,
-								"tex_offset_x": 0,
-								"tex_offset_y": 0,
-								"tex_repeat_x": 1,
-								"tex_repeat_y": 1,
-								"tex_rotate": 0,
-								"tex_wrap": 0,
-								"stroke_uv_mode": 0,
-								"shapes": [
-
-								]
-							},
-							"layer2d_anim": {
-								"keyframes": [
-
-								]
-							},
-							"texture_edit": {
-								"path": "",
-								"width": 512,
-								"height": 512
-							},
-							"mesh_anim": {
-								"keyframes": [
-
-								]
-							},
-							"effects": [
-
-							]
-						},
-						{
-							"name": "sphere",
-							"type_i": 1,
-							"asset_ref": "preset:sphere",
-							"pointcloud_ref": "",
-							"is_visible": true,
-							"is_locked": false,
-							"read_enabled": true,
-							"write_enabled": false,
-							"timeline_muted": false,
-							"timeline_solo": false,
-							"timeline": {
-								"keypoints": [
-									{
-										"key": 0,
-										"value": {
-											"frame_id": 0,
-											"position": {
-												"data": ""
-											},
-											"orientation": {
-												"data": ""
-											},
-											"has_position": true,
-											"has_orientation": false,
-											"position_ease": 0,
-											"orientation_ease": 0
-										}
 									},
 									{
 										"key": 5,
@@ -172,7 +65,7 @@
 											"orientation": {
 												"data": ""
 											},
-											"has_position": false,
+											"has_position": true,
 											"has_orientation": true,
 											"position_ease": 0,
 											"orientation_ease": 0
@@ -193,6 +86,38 @@
 											"position_ease": 0,
 											"orientation_ease": 0
 										}
+									},
+									{
+										"key": 15,
+										"value": {
+											"frame_id": 15,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 20,
+										"value": {
+											"frame_id": 20,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
 									}
 								]
 							},
@@ -270,18 +195,119 @@
 							},
 							"effects": [
 
+							],
+							"scripts": [
+
+							]
+						},
+						{
+							"name": "some model",
+							"type_i": 1,
+							"asset_ref": "",
+							"pointcloud_ref": "",
+							"is_visible": true,
+							"is_locked": false,
+							"read_enabled": true,
+							"write_enabled": false,
+							"timeline_muted": false,
+							"timeline_solo": false,
+							"timeline": {
+								"keypoints": [
+
+								]
+							},
+							"transform": {
+								"position": {
+									"data": ""
+								},
+								"orientation": {
+									"data": ""
+								},
+								"scale": {
+									"data": ""
+								}
+							},
+							"props": {
+								"entries": [
+
+								]
+							},
+							"editable": {
+								"points": [
+
+								],
+								"lines": [
+
+								],
+								"faces": [
+
+								]
+							},
+							"layer2d": {
+								"visible": true,
+								"stroke": {
+									"red": 220,
+									"green": 220,
+									"blue": 220
+								},
+								"fill": {
+									"red": 60,
+									"green": 60,
+									"blue": 60
+								},
+								"width": 1,
+								"opacity": 1,
+								"use_layer_style": true,
+								"stroke_cap": 0,
+								"stroke_join": 0,
+								"texture_ref": "",
+								"blend_mode": 0,
+								"tex_offset_x": 0,
+								"tex_offset_y": 0,
+								"tex_repeat_x": 1,
+								"tex_repeat_y": 1,
+								"tex_rotate": 0,
+								"tex_wrap": 0,
+								"stroke_uv_mode": 0,
+								"shapes": [
+
+								]
+							},
+							"layer2d_anim": {
+								"keyframes": [
+
+								]
+							},
+							"texture_edit": {
+								"path": "",
+								"width": 512,
+								"height": 512
+							},
+							"mesh_anim": {
+								"keyframes": [
+
+								]
+							},
+							"effects": [
+
+							],
+							"scripts": [
+
 							]
 						}
 					],
 					"datasets": [
 
+					],
+					"scripts": [
+
 					]
 				},
-				"length": 16,
+				"length": 21,
 				"timeline": {
 					"time": 0,
 					"position": 0,
-					"length": 16,
+					"length": 21,
 					"is_playing": false,
 					"repeat": false,
 					"speed": 1
@@ -315,19 +341,11 @@
 		"fov": 120,
 		"scale": 1
 	},
-	"created_utc": "2026-02-08T13:09:56Z",
-	"modified_utc": "2026-02-08T13:09:56Z",
+	"created_utc": "2026-02-13T19:14:20Z",
+	"modified_utc": "2026-02-13T19:14:20Z",
 	"data_dir": "data",
 	"external_files": [
-		{
-			"id": "preset:sphere",
-			"type": "asset",
-			"path": "preset:sphere",
-			"note": "",
-			"created_utc": "",
-			"modified_utc": "",
-			"size": -1
-		}
+
 	],
 	"meta": [
 

@@ -1,0 +1,280 @@
+{
+	"schema_version": "v1",
+	"id": "plan-drawing-app-verified",
+	"title": "Implement full drawing application with verified constraints",
+	"goal": "Develop a complete drawing application in U++ with canvas, UI, and persistence, and verify it against constraints.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DRAWING-APP",
+		"name": "Drawing Application Development",
+		"goal": "Successfully implement and verify all core features of the drawing application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Canvas_Foundation",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define DrawingCanvas class",
+					"status": "",
+					"intent": "Implement the core DrawingCanvas class for rendering drawing strokes in main.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Mouse Event Handling",
+					"status": "",
+					"intent": "Add LeftDown, LeftUp, and MouseMove handlers to DrawingCanvas to enable freehand drawing.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_UI_Controls",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Add Toolbar and Layout",
+					"status": "",
+					"intent": "Set up the main application window layout with a toolbar for tool selection.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-004",
+					"title": "Integrate Color Selection",
+					"status": "",
+					"intent": "Implement color selection logic and integrate it into the UI toolbar.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Persistence",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "Implement Save Logic",
+					"status": "",
+					"intent": "Implement the functionality to save the drawing canvas content to an image file.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-004",
+			"name": "04_Verification",
+			"tasks": [
+				{
+					"id": "TASK-006",
+					"title": "Build and Validate",
+					"status": "",
+					"intent": "Compile the application and run the constraint verification script to ensure all requirements are met.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing -v && python3 test_constraints.py",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

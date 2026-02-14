@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "plan_report_generation",
+	"title": "Implement Report Generation Module",
+	"goal": "Develop a comprehensive report generation system for the accounting application, including financial summaries and PDF export capabilities.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-REPORTS",
+		"name": "Report Generation",
+		"goal": "Provide users with the ability to generate, view, and export financial reports such as Income Statements and Expense Summaries.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_and_Logic",
+			"tasks": [
+				{
+					"id": "TSK-REP-001",
+					"title": "Define Report Structures",
+					"status": "",
+					"intent": "Define data structures for different types of financial reports (Income Statement, Balance Sheet, Expense Report).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/01_Data_Layer/Define_Report_Structures.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-REP-002",
+					"title": "Implement Financial Calculations",
+					"status": "",
+					"intent": "Implement the logic to aggregate ledger data into the defined report structures.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/01_Data_Layer/Implement_Financial_Calculations.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-EXPORT",
+			"name": "02_Export_Engines",
+			"tasks": [
+				{
+					"id": "TSK-REP-003",
+					"title": "Implement PDF Report Export",
+					"status": "",
+					"intent": "Develop an engine to format financial reports and export them as PDF documents, potentially leveraging the Invoicing PDF logic.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/02_Export_Engines/Implement_PDF_Export.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-REP-004",
+					"title": "Implement CSV Export",
+					"status": "",
+					"intent": "Add functionality to export report data in CSV format for external analysis.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/02_Export_Engines/Implement_CSV_Export.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-REP-005",
+					"title": "Create Report Selection UI",
+					"status": "",
+					"intent": "Design and implement a dialog or view that allows users to select report types and date ranges.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/03_UI_Integration/Create_Report_Selection_UI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-REP-006",
+					"title": "Integrate Reports in Main Menu",
+					"status": "",
+					"intent": "Add a 'Reports' menu to the main application window to provide access to the report generation module.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports/03_UI_Integration/Integrate_Reports_in_Main.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-REP-007",
+					"title": "Build and Verify Reports",
+					"status": "",
+					"intent": "Compile the application and verify that reports are generated correctly with accurate data.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

@@ -82,12 +82,15 @@ bool CliMaestroEngine::Do() {
 			if(line.IsEmpty()) continue;
 			
 			Value v = ParseJSON(line);
-			if(v.IsError() || !v.Is<ValueMap>()) {
-				// Fallback for non-JSON output (e.g. debug logs)
-				if(event_callback && !line.StartsWith("{")) {
+			ValueMap m;
+			bool is_protocol = !v.IsError() && v.Is<ValueMap>() && (m = v).Find("type") >= 0;
+			
+			if(!is_protocol) {
+				// Fallback for non-protocol output (raw text or non-protocol JSON)
+				if(event_callback) {
 					MaestroEvent e;
 					e.type = "message";
-					e.text = line;
+					e.text = line + "\n"; // Preserve newline for raw streaming
 					e.role = "assistant";
 					e.delta = true;
 					event_callback(e);
@@ -95,7 +98,7 @@ bool CliMaestroEngine::Do() {
 				continue;
 			}
 			
-			ValueMap m = v;
+			// Protocol JSON
 			if(event_callback) {
 				MaestroEvent e;
 				e.type = m["type"];

@@ -1,0 +1,11 @@
+description "Action Planner controlling GUI widgets directly";
+
+uses
+	CtrlLib,
+	AI/Core/Base;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

@@ -7,6 +7,7 @@
 #include <ByteVM/ByteVM.h>
 #include "ThreadsCtrl.h"
 #include "NewsCtrl.h"
+#include "ForexCtrl.h"
 #include "WhatsAppCtrl.h"
 #include "GoogleMessagesCtrl.h"
 #include "UniversalInboxCtrl.h"
@@ -44,8 +45,10 @@ private:
 	Aria      aria; // Backend integration
 	
 	ThreadsCtrl        threads;
-	NewsCtrl           news;
-	WhatsAppCtrl       whatsapp;
+		NewsCtrl news;
+		ForexCtrl forex;
+		WhatsAppCtrl whatsapp;
+	
 	GoogleMessagesCtrl google_messages;
 	UniversalInboxCtrl universal_inbox;
 	YouTubeCtrl        youtube;

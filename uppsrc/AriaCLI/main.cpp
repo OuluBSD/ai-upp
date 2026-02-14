@@ -1,6 +1,8 @@
 #include <Core/Core.h>
 #include <Aria/Aria.h>
 #include <Aria/NewsScraper.h>
+#include <Aria/ForexScraper.h>
+#include <ByteVM/ByteVM.h>
 
 using namespace Upp;
 
@@ -11,6 +13,120 @@ struct Command {
 	virtual String GetDescription() const = 0;
 	virtual void ShowHelp() const = 0;
 	virtual void Execute(const Vector<String>& args) = 0;
+};
+
+static PyValue builtin_wait_time(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	Sleep((int)(args[0].AsDouble() * 1000));
+	return PyValue::None();
+}
+
+static PyValue builtin_exit(const Vector<PyValue>& args, void*) {
+	int code = args.GetCount() >= 1 ? (int)args[0].AsInt64() : 0;
+	_exit(code);
+	return PyValue::None();
+}
+
+static Array<Command> sCommands;
+
+void ExecuteCommand(const String& cmdLine) {
+	Vector<String> raw_args = Split(cmdLine, ' ');
+	if (raw_args.GetCount() == 0) return;
+	
+	String cmdName = raw_args[0];
+	Vector<String> sub_args;
+	for(int i = 1; i < raw_args.GetCount(); i++) sub_args.Add(raw_args[i]);
+	
+	Command* found = nullptr;
+	for(int i = 0; i < sCommands.GetCount(); i++) {
+		if (sCommands[i].GetName() == cmdName) { found = &sCommands[i]; break; }
+		for(const auto& a : sCommands[i].GetAliases()) if (a == cmdName) { found = &sCommands[i]; break; }
+	}
+	
+	if (found) {
+		found->Execute(sub_args);
+	} else {
+		Cout() << "Unknown command: " << cmdName << "\n";
+	}
+}
+
+struct ScriptCommand : Command {
+	String GetName() const override { return "script"; }
+	Vector<String> GetAliases() const override { return {"run", "test"}; }
+	String GetDescription() const override { return "Run a ByteVM (Python) script"; }
+	void ShowHelp() const override {
+		Cout() << "usage: AriaCLI script <path_to_script.py>\n";
+	}
+	void Execute(const Vector<String>& args) override {
+		if (args.GetCount() < 1) { ShowHelp(); return; }
+		
+		String path = args[0];
+		String source = LoadFile(path);
+		if (source.IsEmpty()) {
+			Cerr() << "Error: Could not load script " << path << "\n";
+			return;
+		}
+
+		try {
+			PyVM vm;
+			auto& globals = vm.GetGlobals();
+			
+			// Register basic builtins
+			globals.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
+			globals.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
+			globals.GetAdd(PyValue("exit")) = PyValue::Function("exit", builtin_exit);
+			
+			globals.GetAdd(PyValue("log")) = PyValue::Function("log", [](const Vector<PyValue>& args, void*) {
+				for(int i = 0; i < args.GetCount(); i++) {
+					if(i) Cout() << " ";
+					Cout() << args[i].ToString();
+				}
+				Cout() << "\n";
+				Cout().Flush();
+				return PyValue::None();
+			});
+
+			// CLI integration
+			globals.GetAdd(PyValue("cli")) = PyValue::Function("cli", [](const Vector<PyValue>& args, void*) {
+				if(args.GetCount() >= 1) ExecuteCommand(args[0].ToString());
+				return PyValue::None();
+			});
+
+			// Navigator integration
+			static AriaNavigator sNav; 
+			globals.GetAdd(PyValue("navigate")) = PyValue::Function("navigate", [](const Vector<PyValue>& args, void*) {
+				if(args.GetCount() >= 1) sNav.Navigate(args[0].ToString());
+				return PyValue::None();
+			});
+			globals.GetAdd(PyValue("eval")) = PyValue::Function("eval", [](const Vector<PyValue>& args, void*) {
+				if(args.GetCount() >= 1) return PyValue::FromValue(sNav.Eval(args[0].ToString()));
+				return PyValue::None();
+			});
+			
+			// Dummy UI stubs for CLI compatibility
+			globals.GetAdd(PyValue("find")) = PyValue::Function("find", [](const Vector<PyValue>&, void*) { return PyValue::None(); });
+			globals.GetAdd(PyValue("dump_ui")) = PyValue::Function("dump_ui", [](const Vector<PyValue>&, void*) { return PyValue(""); });
+
+			// Compiler & Run
+			Tokenizer tokenizer;
+			tokenizer.SkipPythonComments(true);
+			if (!tokenizer.Process(source, path)) {
+				Cerr() << "Compilation Error: Tokenization failed\n";
+				return;
+			}
+			tokenizer.CombineTokens();
+			
+			PyCompiler compiler(tokenizer.GetTokens());
+			Vector<PyIR> ir;
+			compiler.Compile(ir);
+			
+			vm.SetIR(ir);
+			vm.Run();
+		} catch (const Exc& e) {
+			if(e.Find("EXIT:0") >= 0) return;
+			Cerr() << "Runtime Error: " << e << "\n";
+		}
+	}
 };
 
 struct NewsCommand : Command {
@@ -185,38 +301,150 @@ struct GoogleMessagesCommand : Command {
 	}
 };
 
+struct ForexCommand : Command {
+	String GetName() const override { return "forex"; }
+	Vector<String> GetAliases() const override { return {"fx"}; }
+	String GetDescription() const override { return "Forex data and interactions"; }
+	void ShowHelp() const override {
+		Cout() << "usage: AriaCLI forex <subcommand> [--force]\n\n"
+		       << "subcommands:\n"
+		       << "  scrape        Run all forex scrapers (FF, Investing, Oanda)\n"
+		       << "  calendar      List economic calendar events\n"
+		       << "  trades        List recent trades\n"
+		       << "  rates         Show live exchange rates\n\n"
+		       << "options:\n"
+		       << "  --force, -f   Force download even if data exists\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		if (args.GetCount() == 0) { ShowHelp(); return; }
+		
+		bool force = false;
+		Vector<String> sub_args;
+		for(const String& a : args) {
+			if (a == "--force" || a == "-f") force = true;
+			else sub_args.Add(a);
+		}
+		
+		if (sub_args.GetCount() == 0) { ShowHelp(); return; }
+		String sub = sub_args[0];
+		
+		AriaNavigator navigator;
+		SiteManager sm;
+		ForexScraper scraper(navigator, sm);
+		if (force) scraper.SetForce(true);
+		
+		if (sub == "scrape") {
+			Cout() << "Starting Forex Scrape...\n";
+			scraper.ScrapeAll();
+			Cout() << "✓ Forex scrape complete.\n";
+		}
+		else if (sub == "calendar") {
+			scraper.Load();
+			const auto& events = scraper.GetManager().events;
+			Cout() << "Forex Calendar Events (" << events.GetCount() << "):\n";
+			for(int i = 0; i < events.GetCount(); i++) {
+				const auto& e = events[i];
+				Cout() << "--------------------------------------------------\n";
+				Cout() << "Time:     " << e.time << " [" << e.currency << "]\n";
+				Cout() << "Event:    " << e.name << " (" << e.impact << ")\n";
+				Cout() << "Actual:   " << e.actual << " / Forecast: " << e.forecast << " / Prev: " << e.previous << "\n";
+			}
+		}
+		else if (sub == "rates") {
+			scraper.Load();
+			const auto& rates = scraper.GetManager().rates;
+			Cout() << "Live Exchange Rates (Oanda):\n";
+			Cout() << "Pair         Bid        Ask        Updated\n";
+			Cout() << "--------------------------------------------------\n";
+			for(int i = 0; i < rates.GetCount(); i++) {
+				const auto& r = rates[i];
+				Cout() << Format("%-12s %-10.5f %-10.5f %s\n", r.symbol, r.bid, r.ask, r.updated);
+			}
+		}
+		else if (sub == "trades") {
+			scraper.Load();
+			const auto& trades = scraper.GetManager().trades;
+			Cout() << "Recent Trades (ForexFactory):\n";
+			for(int i = 0; i < trades.GetCount(); i++) {
+				const auto& t = trades[i];
+				Cout() << "[" << t.time << "] " << t.user << ": " << t.type << " " << t.symbol << " @ " << t.price << "\n";
+			}
+		}
+		else {
+			ShowHelp();
+		}
+	}
+};
+
 void MainHelp(const Array<Command>& commands) {
-// ... (rest of MainHelp)
+
+	Cout() << "AriaCLI - Browser Automation Command Line Interface\n\n";
+
+	Cout() << "usage: AriaCLI <command> [args]\n\n";
+
+	Cout() << "commands:\n";
+
+		for(int i = 0; i < commands.GetCount(); i++) {
+
+			String n = commands[i].GetName();
+
+			while(n.GetCount() < 12) n << " ";
+
+			Cout() << "  " << n << " " << commands[i].GetDescription() << "\n";
+
+		}
+
+	Cout() << "\nUse 'AriaCLI <command>' for help on a specific command.\n";
+
 }
 
+
+
 CONSOLE_APP_MAIN {
+
 	SetConfigName("AriaHub");
-	Array<Command> commands;
-	commands.Create<NewsCommand>();
-	commands.Create<NavigatorCommand>();
-	commands.Create<DiscordCommand>();
-	commands.Create<GoogleMessagesCommand>();
+
+	sCommands.Create<NewsCommand>();
+
+	sCommands.Create<NavigatorCommand>();
+
+	sCommands.Create<DiscordCommand>();
+
+		sCommands.Create<GoogleMessagesCommand>();
+
+		sCommands.Create<ForexCommand>();
+
+		sCommands.Create<ScriptCommand>();
+
 	
+
+	
+
 	const Vector<String>& raw_args = CommandLine();
+
 	if (raw_args.GetCount() == 0) {
-		MainHelp(commands);
+
+		MainHelp(sCommands);
+
 		return;
+
 	}
+
 	
-	String cmdName = raw_args[0];
-	Vector<String> sub_args;
-	for(int i = 1; i < raw_args.GetCount(); i++) sub_args.Add(raw_args[i]);
-	
-	Command* found = nullptr;
-	for(int i = 0; i < commands.GetCount(); i++) {
-		if (commands[i].GetName() == cmdName) { found = &commands[i]; break; }
-		for(const auto& a : commands[i].GetAliases()) if (a == cmdName) { found = &commands[i]; break; }
+
+	String cmdLine;
+
+	for(int i = 0; i < raw_args.GetCount(); i++) {
+
+		if (i) cmdLine << " ";
+
+		cmdLine << raw_args[i];
+
 	}
+
 	
-	if (found) {
-		found->Execute(sub_args);
-	} else {
-		Cout() << "Unknown command: " << cmdName << "\n";
-		MainHelp(commands);
-	}
+
+	ExecuteCommand(cmdLine);
+
 }

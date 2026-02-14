@@ -128,7 +128,7 @@ void PlanParser::LoadWorkGraphs(const String& docs_root) {
 
 void PlanParser::LoadMaestroTracks(const String& docs_root) {
 	String track_dir = AppendFileName(docs_root, "docs/maestro/tracks");
-	String phase_root = AppendFileName(docs_root, "docs/phases");
+	String phase_root = AppendFileName(docs_root, "docs/maestro/phases");
 	
 	FindFile ff(AppendFileName(track_dir, "*.json"));
 	while(ff) {
@@ -160,10 +160,10 @@ void PlanParser::LoadMaestroTracks(const String& docs_root) {
 	}
 }
 
-bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_id, const String& phase_id, const String& task_id, TaskStatus status) {
+bool PlanParser::UpdateTaskStatus(const String& maestro_root, const String& track_id, const String& phase_id, const String& task_id, TaskStatus status) {
 	// 1. Try finding the task as a separate file in the phase directory
-	String task_file = AppendFileName(AppendFileName(AppendFileName(docs_root, "uppsrc/AI/plan"), track_id), phase_id);
-	task_file = AppendFileName(task_file, task_id + ".md"); // Assume task_id matches filename
+	String task_file = AppendFileName(AppendFileName(AppendFileName(maestro_root, "docs/maestro/tasks"), track_id), phase_id);
+	task_file = AppendFileName(task_file, task_id + ".md"); 
 	
 	if(FileExists(task_file)) {
 		String content = LoadFile(task_file);
@@ -183,7 +183,7 @@ bool PlanParser::UpdateTaskStatus(const String& docs_root, const String& track_i
 	}
 
 	// 2. Fallback: Try finding the phase file (Maestro legacy format)
-	String phase_file = AppendFileName(AppendFileName(docs_root, "docs/phases"), ToLower(phase_id) + ".md");
+	String phase_file = AppendFileName(AppendFileName(maestro_root, "docs/maestro/phases"), ToLower(phase_id) + ".md");
 	if(!FileExists(phase_file)) return false;
 	
 	String content = LoadFile(phase_file);

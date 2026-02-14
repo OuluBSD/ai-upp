@@ -3,8 +3,18 @@
 NAMESPACE_UPP
 
 AriaNavigator::AriaNavigator() {
-	throttle_delay = ScanDouble(GetEnv("ARIA_THROTTLE_DELAY"));
-	randomize_delay = ToLower(GetEnv("ARIA_RANDOMIZE_DELAY")) == "true";
+	String td = GetEnv("ARIA_THROTTLE_DELAY");
+	throttle_delay = td.IsEmpty() ? 1.0 : ScanDouble(td);
+	randomize_delay = ToLower(GetEnv("ARIA_RANDOMIZE_DELAY")) != "false";
+}
+
+AriaNavigator::~AriaNavigator() {
+	try {
+		if (driver) {
+			GetAriaLogger("navigator").Info("AriaNavigator: Auto-closing session...");
+			driver->DeleteSession();
+		}
+	} catch(...) {}
 }
 
 void AriaNavigator::Throttle() {
@@ -56,18 +66,22 @@ void AriaNavigator::EnsureDriverRunning(const String& browser_name) {
 	int port = 4444; // Default port
 	String exe = browser_name == "firefox" ? "geckodriver" : "chromedriver";
 	
-	// Check if already running and responding
+	// Check if already running and responding correctly
 	try {
 		HttpRequest req("http://127.0.0.1:4444/status");
-		req.Timeout(500);
+		req.Timeout(1000);
 		String res = req.Execute();
-		if (!res.IsEmpty()) return; // Already running and healthy
+		if (!res.IsEmpty()) {
+			GetAriaLogger("navigator").Info("WebDriver (" + exe + ") already running and responding.");
+			return; // Already running and healthy
+		}
 	} catch(...) {}
 
 	GetAriaLogger("navigator").Info("WebDriver (" + exe + ") not responding or not detected. Starting...");
 	
-	// Only kill if it was supposedly running but not responding
-	if (Sys("ps aux").Find(exe) >= 0) {
+	// Check if process exists but is unresponsive
+	if (Sys("pgrep " + exe).GetCount() > 0) {
+		GetAriaLogger("navigator").Warning("Cleaning up unresponsive " + exe);
 		system("killall -9 " + exe + " 2>/dev/null");
 		Sleep(500);
 	}
@@ -227,17 +241,15 @@ void AriaNavigator::Navigate(const String& url) {
 		if (!driver) throw SessionError("Could not connect to or start a session.");
 	}
 	GetAriaLogger("navigator").Info("Navigating to: " + url);
-	// Use location.href trick to allow injection during load
 	try {
 		driver->ApplyStealthJS();
-		driver->Execute("window.location.href = '" + url + "';", JsArgs());
+		driver->Get(url);
 		driver->ApplyStealthJS();
 	} catch (const std::exception& e) {
 		GetAriaLogger("navigator").Error("Navigation failed: " + String(e.what()));
-		// If it failed because session died, try one more time after reconnecting
 		if (ConnectToSession("firefox")) {
 			driver->ApplyStealthJS();
-			driver->Execute("window.location.href = '" + url + "';", JsArgs());
+			driver->Get(url);
 			driver->ApplyStealthJS();
 		} else {
 			throw;

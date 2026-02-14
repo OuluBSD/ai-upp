@@ -55,6 +55,8 @@ file
 	PathNode.h,
 	Pathfinder.h,
 	Pathfinder.cpp,
+	NavGraph.h,
+	NavGraph.cpp,
 	TestGameScreen.cpp,
 	main.cpp,
 	LevelLoader.cpp,

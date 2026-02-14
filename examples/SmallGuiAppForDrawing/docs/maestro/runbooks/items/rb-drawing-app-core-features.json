@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-core-features",
+	"title": "Drawing App with Pencil and Color Tools",
+	"goal": "Implement a basic drawing application with a canvas, toolbar containing pencil and save buttons, and a color selector.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the application",
+			"command": "umk SmallGuiAppForDrawing --run",
+			"expected": "Application window opens displaying a central Canvas, a Toolbar with 'Pencil' and 'Save' buttons, and a Color Selector.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Click the 'Pencil' button in the toolbar",
+			"command": "",
+			"expected": "The pencil tool becomes active for drawing on the canvas.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Select a color from the Color Selector",
+			"command": "",
+			"expected": "The drawing color is updated to the selected color.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Click and drag the mouse across the Canvas",
+			"command": "",
+			"expected": "A line is drawn on the canvas using the selected color and pencil tool.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the 'Save' button in the toolbar",
+			"command": "",
+			"expected": "The current canvas content is saved to a file.",
+			"variants": [
+
+			]
+		}
+	]
+}

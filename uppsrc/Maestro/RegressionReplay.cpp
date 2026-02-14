@@ -5,12 +5,12 @@ namespace Upp {
 RegressionReplay::RegressionReplay(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
-	RealizeDirectory(AppendFileName(base_path, ".maestro/convert/runs"));
+	RealizeDirectory(AppendFileName(base_path, "docs/maestro/convert/runs"));
 }
 
 String RegressionReplay::GetRunPath(const String& id)
 {
-	return AppendFileName(base_path, ".maestro/convert/runs/" + id);
+	return AppendFileName(base_path, "docs/maestro/convert/runs/" + id);
 }
 
 RunManifest RegressionReplay::CaptureManifest(const String& pipeline_id, const String& source, const String& target, const ConversionMemory& memory)
@@ -48,7 +48,7 @@ RunManifest RegressionReplay::LoadManifest(const String& run_id)
 Array<RunManifest> RegressionReplay::ListRuns()
 {
 	Array<RunManifest> list;
-	FindFile ff(AppendFileName(base_path, ".maestro/convert/runs/*"));
+	FindFile ff(AppendFileName(base_path, "docs/maestro/convert/runs/*"));
 	while(ff) {
 		if(ff.IsDirectory()) {
 			String m_file = AppendFileName(ff.GetPath(), "manifest.json");

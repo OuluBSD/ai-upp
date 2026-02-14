@@ -5,7 +5,7 @@ namespace Upp {
 TuManager::TuManager(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
-	cache_dir = AppendFileName(base_path, ".maestro/tu/cache");
+	cache_dir = AppendFileName(base_path, "docs/maestro/tu/cache");
 	RealizeDirectory(cache_dir);
 }
 

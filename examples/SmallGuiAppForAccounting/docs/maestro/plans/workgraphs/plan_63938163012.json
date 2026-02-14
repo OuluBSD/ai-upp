@@ -1,0 +1,241 @@
+{
+	"schema_version": "v1",
+	"id": "plan_ledger_implementation",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger with transaction history and balance calculation using U++ framework",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "General Ledger Implementation",
+		"goal": "Create a functional ledger component with GUI integration",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_DataModel",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "01_DefineLedgerStructures",
+					"status": "",
+					"intent": "Define Transaction and Ledger classes in Ledger.h with support for date, description, amount, and account types",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "02_UpdateUppFile",
+					"status": "",
+					"intent": "Add Ledger.h and Ledger.cpp to SmallGuiAppForAccounting.upp",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -q \"Ledger.cpp\" SmallGuiAppForAccounting.upp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_LogicImplementation",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "03_ImplementLedgerMethods",
+					"status": "",
+					"intent": "Implement AddTransaction, GetHistory, and CalculateBalance methods in Ledger.cpp",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_GUIIntegration",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "04_IntegrateWithMainWindow",
+					"status": "",
+					"intent": "Modify main.cpp to include a table for transaction history and a display for the current balance",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-004",
+			"name": "04_Verification",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "05_VerifyBuild",
+					"status": "",
+					"intent": "Ensure the project builds successfully using the U++ build system",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

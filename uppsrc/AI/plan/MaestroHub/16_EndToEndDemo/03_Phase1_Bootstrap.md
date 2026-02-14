@@ -25,7 +25,7 @@
 12. **Breadcrumb Check**: Verify breadcrumbs show `SmallGuiAppForAccounting`.
 13. **Tab Focus Persistence**: Verify that clicking 'Intelligence' tab stays focused.
 14. **Status Bar Health**: Check that 'Quota Indicator' is initialized.
-15. **Initial Save**: Trigger a global save and verify `.maestro/maestro.json`.
+15. **Initial Save**: Trigger a global save and verify `docs/maestro/maestro.json`.
 
 ## Summary
 - **Input**: None (Bootstrap).

@@ -38,7 +38,7 @@ void ConversionPane::Load(const String& maestro_root) {
 	root = maestro_root;
 	Log("Ready.", Blue());
 	
-	String plan_path = AppendFileName(root, ".maestro/convert/plan/plan.json");
+	String plan_path = AppendFileName(root, "docs/maestro/convert/plan/plan.json");
 	if(FileExists(plan_path)) {
 		if(LoadFromJsonFile(plan, plan_path)) {
 			Log("Loaded existing plan: " + plan.id, LtGreen());

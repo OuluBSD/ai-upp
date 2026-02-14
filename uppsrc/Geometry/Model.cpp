@@ -526,8 +526,10 @@ void ModelLoader::ProcessMesh(Model& model, Mesh& out, aiMesh *mesh, const aiSce
 	        out.indices.Add(face.mIndices[j]);
 	}
 	
-    // process material
+	// process material
     out.material = mesh->mMaterialIndex;
+
+	out.UpdateBoundingBox();
 	
 }
 

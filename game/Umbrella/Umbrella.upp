@@ -57,6 +57,8 @@ file
 	Pathfinder.cpp,
 	NavGraph.h,
 	NavGraph.cpp,
+	ActionExecutor.h,
+	ActionExecutor.cpp,
 	TestGameScreen.cpp,
 	main.cpp,
 	LevelLoader.cpp,

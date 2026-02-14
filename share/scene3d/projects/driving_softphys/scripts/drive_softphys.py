@@ -187,9 +187,24 @@ def on_frame(dt):
                 diff = diff - 6.28318
             while diff < -3.14159:
                 diff = diff + 6.28318
-            heading = desired
-            ai_turn_hard = True
-            steer = 0.0
+            if diff > 0.6 or diff < -0.6:
+                heading = desired
+                ai_turn_hard = True
+                steer = 0.0
+            else:
+                if ai_action == -1:
+                    steer = -1.0
+                elif ai_action == 1:
+                    steer = 1.0
+                else:
+                    steer = 0.0
+        else:
+            if ai_action == -1:
+                steer = -1.0
+            elif ai_action == 1:
+                steer = 1.0
+            else:
+                steer = 0.0
     else:
         if input.isKeyDown(KEY_A):
             steer = -1.0

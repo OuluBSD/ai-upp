@@ -55,6 +55,42 @@ void Run09bScene3DSdlOgl(int method) {
 
 	int frames = method > 0 ? method : 120;
 	for (int i = 0; i < frames; i++) {
+		SDL_Event ev;
+		while (SDL_PollEvent(&ev)) {
+			if (ev.type == SDL_QUIT) {
+				i = frames;
+				break;
+			}
+			if (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP) {
+				bool down = ev.type == SDL_KEYDOWN;
+				int key = (int)ev.key.keysym.sym;
+				ctx.runtime.DispatchInputEvent(down ? "keyDown" : "keyUp", Point(0, 0), 0, key, 0);
+			}
+			else if (ev.type == SDL_MOUSEMOTION) {
+				Point p(ev.motion.x, ev.motion.y);
+				ctx.runtime.DispatchInputEvent("mouseMove", p, 0, 0, 0);
+			}
+			else if (ev.type == SDL_MOUSEBUTTONDOWN || ev.type == SDL_MOUSEBUTTONUP) {
+				Point p(ev.button.x, ev.button.y);
+				int btn = 0;
+				if (ev.button.button == SDL_BUTTON_LEFT) {
+					btn = 0;
+				}
+				else if (ev.button.button == SDL_BUTTON_RIGHT) {
+					btn = 1;
+				}
+				else if (ev.button.button == SDL_BUTTON_MIDDLE) {
+					btn = 2;
+				}
+				ctx.runtime.DispatchInputEvent(ev.type == SDL_MOUSEBUTTONDOWN ? "mouseDown" : "mouseUp",
+				                              p, 0, btn, 0);
+			}
+			else if (ev.type == SDL_MOUSEWHEEL) {
+				Point p(0, 0);
+				int zdelta = ev.wheel.y;
+				ctx.runtime.DispatchInputEvent("mouseWheel", p, 0, zdelta, 0);
+			}
+		}
 		ctx.anim->Update(1.0 / 60.0);
 		ctx.runtime.Update(1.0 / 60.0);
 		Scene3DRenderStats stats;
@@ -78,13 +114,6 @@ void Run09bScene3DSdlOgl(int method) {
 		glPixelZoom(1, 1);
 		glFlush();
 		SDL_GL_SwapWindow(win);
-		SDL_Event ev;
-		while (SDL_PollEvent(&ev)) {
-			if (ev.type == SDL_QUIT) {
-				i = frames;
-				break;
-			}
-		}
 		if (method == 0)
 			SDL_Delay(16);
 	}

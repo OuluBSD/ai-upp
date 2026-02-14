@@ -1,12 +1,12 @@
 from geometry import vec3
-from math import sin, cos
+from math import sin, cos, atan2
 
 state = {}
 
 MAX_SPEED = 8.0
 ACCEL = 10.0
 DECEL = 12.0
-TURN_RATE = 2.2  # radians/sec
+TURN_RATE = 3.0  # radians/sec
 
 KEY_W = 87
 KEY_A = 65
@@ -134,7 +134,7 @@ def on_start():
 
 
 def _near_checkpoint(cx, cz, ix, iz):
-    return abs(cx - ix) < 1.5 and abs(cz - iz) < 1.5
+    return abs(cx - ix) < 3.5 and abs(cz - iz) < 3.5
 
 
 def on_frame(dt):
@@ -158,6 +158,7 @@ def on_frame(dt):
 
     steer = 0.0
     ai_action = 0
+    ai_turn_hard = False
     if ai_enabled and not manual:
         route = _get("route", ())
         route_pos = _get("route_pos", 0)
@@ -177,11 +178,17 @@ def on_frame(dt):
             pos = car_body_rb.position
             car_pos = (pos[0], 0.0, pos[2])
         ai_action = driver_ai.plan_action(car_pos, heading, target, 1.5, 0.35)
-        if ai_action == -1:
-            steer = -1.0
-        elif ai_action == 1:
-            steer = 1.0
-        else:
+        dx_t = target[0] - car_pos[0]
+        dz_t = target[2] - car_pos[2]
+        if abs(dx_t) + abs(dz_t) > 0.001:
+            desired = atan2(-dx_t, dz_t)
+            diff = desired - heading
+            while diff > 3.14159:
+                diff = diff - 6.28318
+            while diff < -3.14159:
+                diff = diff + 6.28318
+            heading = desired
+            ai_turn_hard = True
             steer = 0.0
     else:
         if input.isKeyDown(KEY_A):
@@ -197,6 +204,8 @@ def on_frame(dt):
                 speed = max(0.0, speed - DECEL * dt)
         else:
             speed = min(MAX_SPEED, speed + ACCEL * dt)
+        if ai_turn_hard and speed > MAX_SPEED * 0.4:
+            speed = max(MAX_SPEED * 0.4, speed - DECEL * dt)
     else:
         if input.isKeyDown(KEY_W):
             speed = min(MAX_SPEED, speed + ACCEL * dt)
@@ -278,7 +287,6 @@ def on_frame(dt):
                 if route_pos >= len(route):
                     route_pos = 0
                 state["route_pos"] = route_pos
-
     state["car_heading"] = heading
     state["car_speed"] = speed
     state["lap"] = lap

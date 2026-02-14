@@ -751,8 +751,15 @@ int ExecScriptRuntime::DriverAI::PlanAction(const vec3& car_pos, float heading, 
 	Vector<int> act_ids;
 	Vector<double> costs;
 	ap.GetPossibleStateTransition(ws, dest, act_ids, costs);
-	if (act_ids.IsEmpty())
+	if (act_ids.IsEmpty()) {
+		if (at_target)
+			return 2;
+		if (target_left)
+			return -1;
+		if (target_right)
+			return 1;
 		return 0;
+	}
 	int best_i = 0;
 	double best_cost = costs[0];
 	for (int i = 1; i < costs.GetCount(); i++) {

@@ -1,0 +1,352 @@
+{
+	"schema_version": "v1",
+	"id": "plan_auth_integration",
+	"title": "User Authentication System",
+	"goal": "Implement a secure user authentication and role-based access control system including data persistence, core logic, and UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-SEC",
+		"name": "Security and Identity",
+		"goal": "Secure the application with user login and role-based permissions.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-01",
+					"title": "Define User and Role Entities",
+					"status": "",
+					"intent": "Create the data structures for users and their associated roles.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/01_Data_Model_and_Storage/Define User and Role Entities.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-02",
+					"title": "Implement User and Role Persistence",
+					"status": "",
+					"intent": "Develop the logic to save and load user and role data from persistent storage.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/01_Data_Model_and_Storage/Implement User Persistence.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02",
+			"name": "02_Authentication_Core",
+			"tasks": [
+				{
+					"id": "TASK-03",
+					"title": "Implement Password Hashing",
+					"status": "",
+					"intent": "Add secure password hashing (e.g., bcrypt or SHA-256 with salt) to protect user credentials.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/02_Authentication_and_Authorization_Core/Implement Password Hashing.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-04",
+					"title": "Develop Authentication Service",
+					"status": "",
+					"intent": "Create a service to handle login requests, credential verification, and session management.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/02_Authentication_and_Authorization_Core/Develop Authentication Service.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-05",
+					"title": "Implement Role-Based Authorization Logic",
+					"status": "",
+					"intent": "Develop the logic that checks user roles against required permissions for various application features.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/02_Authentication_and_Authorization_Core/Implement Role-Based Authorization Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-06",
+					"title": "Create Login Dialog",
+					"status": "",
+					"intent": "Design and implement the GUI dialog for user login and role selection.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/03_UI_Integration/Create Login Dialog.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-07",
+					"title": "Integrate Security into Main GUI",
+					"status": "",
+					"intent": "Connect the authentication system to the application startup and protect main menu items based on roles.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security and Identity/03_UI_Integration/Integrate Security into Main GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-08",
+					"title": "Build and Verify Security Implementation",
+					"status": "",
+					"intent": "Execute builds and run automated/manual tests to ensure the security system works as expected.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG -ab",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

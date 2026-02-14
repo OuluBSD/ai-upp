@@ -40,13 +40,13 @@ static void Doctor(const Vector<String>& args) {
 	
 	String root = FindPlanRoot();
 	if(root.IsEmpty()) {
-		Cerr() << "[!] ERROR: Not in a Maestro repository (could not find .maestro or docs/phases).\n";
+		Cerr() << "[!] ERROR: Not in a Maestro repository (could not find docs/maestro or docs/phases).\n";
 		return;
 	}
 	Cout() << "[-] Project Root: " << root << "\n";
 	
 	// 1. Check required directories
-	Vector<String> required = { ".maestro", "docs/maestro/runbooks", "docs/maestro/workflows", "docs/maestro/issues" };
+	Vector<String> required = { "docs/maestro", "docs/maestro/runbooks", "docs/maestro/workflows", "docs/maestro/issues" };
 	int missing_docs = 0;
 	for(const String& d : required) {
 		if(!DirectoryExists(AppendFileName(root, d))) {
@@ -106,7 +106,7 @@ static void RunOps(const Vector<String>& args) {
 	Cout() << "[*] Executing Runbook: " << rb.title << " (" << rb.id << ")\n";
 	
 	String run_id = "run-" + FormatIntHex(Random(), 8);
-	String ops_dir = AppendFileName(root, ".maestro/ops/runs");
+	String ops_dir = AppendFileName(root, "docs/maestro/ops/runs");
 	RealizeDirectory(ops_dir);
 	
 	ValueMap run_meta;
@@ -154,7 +154,7 @@ static void RunOps(const Vector<String>& args) {
 
 static void OpsList(const Vector<String>& args) {
 	String root = FindPlanRoot();
-	String ops_dir = AppendFileName(root, ".maestro/ops/runs");
+	String ops_dir = AppendFileName(root, "docs/maestro/ops/runs");
 	
 	if(!DirectoryExists(ops_dir)) {
 		Cout() << "No operations run history found.\n";
@@ -186,7 +186,7 @@ static void OpsShow(const Vector<String>& args) {
 	}
 	
 	String root = FindPlanRoot();
-	String run_path = AppendFileName(root, ".maestro/ops/runs/" + args[0] + ".json");
+	String run_path = AppendFileName(root, "docs/maestro/ops/runs/" + args[0] + ".json");
 	
 	if(!FileExists(run_path)) {
 		Cerr() << "Error: Run record '" << args[0] << "' not found.\n";

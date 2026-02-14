@@ -2,18 +2,27 @@
 
 namespace Upp {
 
-static String Sanitize(const char *s)
+static String Sanitize(const char *text)
 {
 	String r;
-	if(!s) return r;
-	while(*s) {
-		if(IsAlNum(*s))
-			r.Cat(ToLower(*s));
-		else if(IsSpace(*s) || *s == '_')
-			r.Cat('_');
-		s++;
+	if(!text) return "null";
+	bool first = true;
+	while(*text) {
+		if(IsAlNum(*text)) {
+			r.Cat(first ? ToLower(*text) : *text);
+			first = false;
+		}
+		else if(IsSpace(*text) || *text == '_') {
+			// Skip space, but keep next letter as Uppercase for camelCase
+			text++;
+			if(*text && IsAlNum(*text))
+				r.Cat(ToUpper(*text));
+			else
+				continue;
+		}
+		text++;
 	}
-	return r;
+	return r.IsEmpty() ? "item" : r;
 }
 
 ConstraintVisitor::ConstraintVisitor()
@@ -26,28 +35,28 @@ Visitor& ConstraintVisitor::AccessLabel(const char *text)
 {
 	String name = Sanitize(text);
 	current_ctrl = name;
-	facts.FindAdd(Format("Label(%s)", name));
-	if(ctrl->IsVisible()) facts.FindAdd(Format("Visible(%s)", name));
-	if(ctrl->IsEnabled()) facts.FindAdd(Format("Enabled(%s)", name));
+	facts.FindAdd(Format("LABEL(%s)", name));
+	if(ctrl->IsVisible()) facts.FindAdd(Format("VISIBLE(%s)", name));
+	if(ctrl->IsEnabled()) facts.FindAdd(Format("ENABLED(%s)", name));
 	return *this;
 }
 
 Visitor& ConstraintVisitor::AccessAction(const char *text, Event<> cb)
 {
 	String name = Sanitize(text);
-	facts.FindAdd(Format("Button(%s)", name));
-	if(ctrl->IsVisible()) facts.FindAdd(Format("Visible(%s)", name));
-	if(ctrl->IsEnabled()) facts.FindAdd(Format("Enabled(%s)", name));
+	facts.FindAdd(Format("BUTTON(%s)", name));
+	if(ctrl->IsVisible()) facts.FindAdd(Format("VISIBLE(%s)", name));
+	if(ctrl->IsEnabled()) facts.FindAdd(Format("ENABLED(%s)", name));
 	return *this;
 }
 
 Visitor& ConstraintVisitor::AccessOption(bool check, const char *text, Event<> cb)
 {
 	String name = Sanitize(text);
-	facts.FindAdd(Format("Option(%s)", name));
-	if(check) facts.FindAdd(Format("Checked(%s)", name));
-	if(ctrl->IsVisible()) facts.FindAdd(Format("Visible(%s)", name));
-	if(ctrl->IsEnabled()) facts.FindAdd(Format("Enabled(%s)", name));
+	facts.FindAdd(Format("OPTION(%s)", name));
+	if(check) facts.FindAdd(Format("CHECKED(%s)", name));
+	if(ctrl->IsVisible()) facts.FindAdd(Format("VISIBLE(%s)", name));
+	if(ctrl->IsEnabled()) facts.FindAdd(Format("ENABLED(%s)", name));
 	return *this;
 }
 

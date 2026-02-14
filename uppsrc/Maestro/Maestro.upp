@@ -4,9 +4,11 @@ uses
 	Core,
 	Core/VfsBase,
 	plugin/pcre,
-	ByteVM;
+	ByteVM,
+	AI/Core/Base;
 
-uses(GUI) Ctrl/Automation;
+uses(GUI) Ctrl/Automation,
+	AI/LogicGui;
 
 uses(GUI) CtrlLib;
 
@@ -63,6 +65,11 @@ file
 	RegressionReplay.cpp,
 	Debugger.h,
 	Debugger.cpp,
+	ProjectScaffolder.h,
+	ProjectScaffolder.cpp,
+	CommandDispatcher.h,
+	CommandDispatcher.cpp,
+	MaestroModule.cpp,
 	Plugin.h,
 	Plugin.cpp,
 	Playbook readonly separator,
@@ -96,6 +103,7 @@ file
 	UxCommand.cpp,
 	TestCommand.cpp,
 	TutorialCommand.cpp,
+	AutomationCommand.cpp,
 	RepoView.h,
 	RepoView.cpp,
 	PlanView.h,

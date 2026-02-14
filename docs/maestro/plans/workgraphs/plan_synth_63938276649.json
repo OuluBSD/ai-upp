@@ -1,0 +1,106 @@
+{
+	"schema_version": "v1",
+	"id": "",
+	"title": "Synthesized Plan for Maestro",
+	"goal": "",
+	"domain": "software-construction",
+	"profile": "",
+	"track": {
+		"id": "",
+		"name": "",
+		"goal": "",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "",
+			"name": "Implementation",
+			"tasks": [
+				{
+					"id": "",
+					"title": "Implement mainWindow",
+					"status": "",
+					"intent": "Satisfy constraint via Implement mainWindow",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show mainWindow",
+					"status": "",
+					"intent": "Satisfy constraint via Show mainWindow",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

@@ -6,7 +6,7 @@ IssueManager::IssueManager(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
 	docs_issues_dir = AppendFileName(base_path, "docs/issues");
-	json_issues_dir = AppendFileName(base_path, ".maestro/issues");
+	json_issues_dir = AppendFileName(base_path, "docs/maestro/issues");
 	
 	RealizeDirectory(docs_issues_dir);
 	RealizeDirectory(json_issues_dir);

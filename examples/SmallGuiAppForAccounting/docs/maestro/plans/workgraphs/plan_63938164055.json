@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "dash-001",
+	"title": "Dashboard with Financial Summaries",
+	"goal": "Implement a dashboard in the SmallGuiAppForAccounting application that provides real-time financial summaries including total income, total expenses, and net profit.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DASH",
+		"name": "Dashboard",
+		"goal": "Develop and integrate a financial dashboard UI component.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define_Summary_Structures",
+					"status": "",
+					"intent": "Define data structures to hold aggregated financial data (Total Income, Total Expense, Balance).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement_Summary_Calculation",
+					"status": "",
+					"intent": "Implement logic in the Ledger class to calculate summaries from the transaction history.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_UI_Components",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Create_Dashboard_Class",
+					"status": "",
+					"intent": "Create a new Dashboard class inheriting from U++ Ctrl or ParentCtrl to house summary widgets.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-004",
+					"title": "Design_Dashboard_Layout",
+					"status": "",
+					"intent": "Implement the UI layout for the dashboard using labels, static rects, or basic chart components.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Integration",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "Integrate_Dashboard_in_Main",
+					"status": "",
+					"intent": "Add the Dashboard component to the main application window (e.g., as a tab or the default view).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-006",
+					"title": "Build_and_Verify",
+					"status": "",
+					"intent": "Compile the application using umk and verify the dashboard displays correct summaries.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting.upp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

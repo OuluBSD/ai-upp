@@ -13,6 +13,6 @@ Port the operations automation and health check logic to C++.
 - Implement `ops run`:
     - Execute a deterministic runbook (no AI required).
     - Support parameter passing.
-    - Record execution history in `.maestro/ops/runs/`.
+    - Record execution history in `docs/maestro/ops/runs/`.
 - Implement `ops list` and `ops show`:
     - Browse and inspect operation run records.

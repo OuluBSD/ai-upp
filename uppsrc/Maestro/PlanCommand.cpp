@@ -29,12 +29,13 @@ void PlanCommand::Execute(const Vector<String>& args) {
 		return;
 	}
 	
-	String plan_root = FindPlanRoot();
-	if(plan_root.IsEmpty()) {
+	String root = FindPlanRoot();
+	if(root.IsEmpty()) {
 		Cerr() << "Error: Could not find project plan directory.\n";
 		return;
 	}
-	String docs_root = GetDocsRoot(plan_root);
+	String plan_root = AppendFileName(root, "docs/maestro/tasks");
+	String docs_root = GetDocsRoot(root);
 
 	PlanParser parser;
 	parser.Load(plan_root);

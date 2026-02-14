@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "plan_backup_system_001",
+	"title": "Implement Backup System",
+	"goal": "Develop and integrate a complete backup and restore system into the accounting application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-BACKUP",
+		"name": "Backup System",
+		"goal": "Ensure data durability and recovery through a structured backup/restore mechanism.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-BL-001",
+					"title": "Define Backup Structure",
+					"status": "",
+					"intent": "Define the internal structures and file formats for data backups.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/01_Data_Layer/Define Backup Structure.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BL-002",
+					"title": "Implement Persistence Logic",
+					"status": "",
+					"intent": "Develop the core logic for reading and writing data to backup archives.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/01_Data_Layer/Implement Persistence Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-IMP-001",
+					"title": "Develop Backup Manager",
+					"status": "",
+					"intent": "Create a service responsible for orchestrating backup creation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/02_Implementation/Develop Backup Manager.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-IMP-002",
+					"title": "Implement Restore Logic",
+					"status": "",
+					"intent": "Implement the logic to restore data from backup archives and handle versioning.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/02_Implementation/Implement Restore Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-UI-001",
+					"title": "Create Backup GUI",
+					"status": "",
+					"intent": "Design and implement the user interface for backup and restore operations.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/03_UI_Integration/Create Backup GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-UI-002",
+					"title": "Integrate into Main Menu",
+					"status": "",
+					"intent": "Expose the backup and restore functionalities in the application's main menu.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "docs/maestro/tasks/Backup System/03_UI_Integration/Integrate into Main Menu.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-VER-001",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the application and verify the backup system through functional testing.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

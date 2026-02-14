@@ -109,9 +109,18 @@ Runbook RunbookManager::Resolve(const String& text, bool use_ai)
 	engine.Arg("-y");
 	
 	String prompt;
-	prompt << "Create a structured runbook JSON based on the following request.\n"
-	       << "REQUEST: " << text << "\n"
-	       << "Return ONLY the JSON object following the Runbook schema (id, title, goal, steps: [{n, actor, action, command, expected}]).";
+	prompt << "You are a Maestro AI Assistant. Create a structured runbook JSON based on the following user request.\n"
+	       << "USER REQUEST: " << text << "\n\n"
+	       << "SCHEMA:\n"
+	       << "{\n"
+	       << "  \"id\": \"rb-unique-id\",\n"
+	       << "  \"title\": \"Descriptive Title\",\n"
+	       << "  \"goal\": \"The ultimate objective\",\n"
+	       << "  \"steps\": [\n"
+	       << "    { \"n\": 1, \"actor\": \"user\", \"action\": \"Description of action\", \"command\": \"Optional CLI command\", \"expected\": \"Expected UI state or outcome\" }\n"
+	       << "  ]\n"
+	       << "}\n\n"
+	       << "Return ONLY the raw JSON object. Do not use markdown blocks.";
 	
 	String response;
 	bool done = false;
@@ -122,15 +131,22 @@ Runbook RunbookManager::Resolve(const String& text, bool use_ai)
 	
 	while(!done && engine.Do()) Sleep(10);
 	
-	// Extract JSON
+	// Extract JSON robustly
 	int first = response.Find("{");
 	int last = response.ReverseFind("}");
 	if(first >= 0 && last > first) {
 		String json = response.Mid(first, last - first + 1);
-		LoadFromJson(rb, json);
+		try {
+			LoadFromJson(rb, json);
+		} catch (Exc& e) {
+			Cerr() << "Error parsing runbook JSON: " << e << "\n";
+			Cerr() << "RAW RESPONSE: " << response << "\n";
+		}
 	}
 	
 	if(rb.id.IsEmpty()) rb.id = "rb-" + FormatIntHex(Random(), 8);
+	if(rb.title.IsEmpty()) rb.title = "Untitled Runbook";
+	
 	return rb;
 }
 

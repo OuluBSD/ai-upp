@@ -9,6 +9,7 @@
 #endif
 
 #include <Core/VfsBase/Automation.h>
+#include <AI/Core/Base/Base.h>
 
 #ifdef _GraphLib_GraphLib_h_
  #error Wrong inclusion order
@@ -336,6 +337,14 @@ struct TutorialCommand : Command {
 	void Execute(const Vector<String>& args) override;
 };
 
+struct AutomationCommand : Command {
+	String GetName() const override { return "automation"; }
+	Vector<String> GetAliases() const override { return {"auto"}; }
+	String GetDescription() const override { return "Headless UI automation and formal verification"; }
+	void ShowHelp() const override;
+	void Execute(const Vector<String>& args) override;
+};
+
 #ifdef flagGUI
 struct TestCommand : Command {
 	String GetName() const override { return "test"; }
@@ -389,6 +398,7 @@ struct WSessionCommand : Command {
 // 5. Global Tool Registration
 void RegisterMaestroTools(MaestroToolRegistry& reg);
 void RegisterUxTools(MaestroToolRegistry& reg);
+void RegisterConstraintBindings(class PyVM& vm);
 Value MaestroUpdateTaskStatus(const ValueMap& params);
 
 String FindPlanRoot();

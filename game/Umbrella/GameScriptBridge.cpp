@@ -466,6 +466,99 @@ static PyValue py_get_droplet_remaining(const Vector<PyValue>& args, void* user_
 }
 
 // ============================================================================
+// Python API Functions - Input Injection (Phase 3, Task 1)
+// ============================================================================
+
+// Python API: set_key(name, pressed) - inject a key state
+// Key names: "left", "right", "jump", "attack"
+static PyValue py_set_key(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: set_key requires 2 arguments (key_name, pressed)");
+		return PyValue::None();
+	}
+
+	String keyName = args[0].GetStr().ToString();
+	bool pressed = args[1].IsTrue();
+	GameScreen* screen = bridge->GetGameScreen();
+
+	if(keyName == "left") {
+		screen->keyLeft = pressed;
+	} else if(keyName == "right") {
+		screen->keyRight = pressed;
+	} else if(keyName == "jump") {
+		screen->keyJump = pressed;
+	} else if(keyName == "attack") {
+		screen->keyAttack = pressed;
+	} else {
+		LOG("ERROR: Unknown key name: " << keyName << " (valid: left, right, jump, attack)");
+	}
+	return PyValue::None();
+}
+
+// Python API: clear_keys() - release all keys
+static PyValue py_clear_keys(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	GameScreen* screen = bridge->GetGameScreen();
+	screen->keyLeft = false;
+	screen->keyRight = false;
+	screen->keyJump = false;
+	screen->keyAttack = false;
+	return PyValue::None();
+}
+
+// Python API: get_keys() -> dict {left, right, jump, attack}
+static PyValue py_get_keys(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	const GameScreen* screen = bridge->GetGameScreen();
+	PyValue result = PyValue::Dict();
+	result.SetItem(PyValue("left"),   PyValue(screen->keyLeft));
+	result.SetItem(PyValue("right"),  PyValue(screen->keyRight));
+	result.SetItem(PyValue("jump"),   PyValue(screen->keyJump));
+	result.SetItem(PyValue("attack"), PyValue(screen->keyAttack));
+	return result;
+}
+
+// Python API: tick_game(delta) - advance one simulation step
+// delta defaults to 1/60 (fixed timestep) if not provided
+static PyValue py_tick_game(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	float delta = (float)GameScreen::FIXED_TIMESTEP;
+	if(args.GetCount() >= 1) {
+		delta = (float)args[0].AsDouble();
+	}
+
+	bridge->GetGameScreen()->GameTick(delta);
+	return PyValue::None();
+}
+
+// Python API: tick_game_frames(count) - advance N frames at fixed timestep
+static PyValue py_tick_game_frames(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	int count = 1;
+	if(args.GetCount() >= 1) {
+		count = (int)args[0].AsInt();
+	}
+
+	GameScreen* screen = bridge->GetGameScreen();
+	float delta = (float)GameScreen::FIXED_TIMESTEP;
+	for(int i = 0; i < count; i++) {
+		screen->GameTick(delta);
+	}
+	return PyValue::None();
+}
+
+// ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
 
@@ -535,6 +628,18 @@ void GameScriptBridge::RegisterGameAPI() {
 		PyValue::Function("get_droplet_count", py_get_droplet_count, this);
 	globals.GetAdd("get_droplet_remaining") =
 		PyValue::Function("get_droplet_remaining", py_get_droplet_remaining, this);
+
+	// Input injection functions (Phase 3)
+	globals.GetAdd("set_key") =
+		PyValue::Function("set_key", py_set_key, this);
+	globals.GetAdd("clear_keys") =
+		PyValue::Function("clear_keys", py_clear_keys, this);
+	globals.GetAdd("get_keys") =
+		PyValue::Function("get_keys", py_get_keys, this);
+	globals.GetAdd("tick_game") =
+		PyValue::Function("tick_game", py_tick_game, this);
+	globals.GetAdd("tick_game_frames") =
+		PyValue::Function("tick_game_frames", py_tick_game_frames, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

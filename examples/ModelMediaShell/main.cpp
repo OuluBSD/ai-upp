@@ -194,9 +194,16 @@ int HeadlessPrompt(Event<const String&>, const char* title, const Image&, const 
 
 }
 
+enum RendererKind {
+	RENDER_V1,
+	RENDER_V2,
+	RENDER_V2_OGL
+};
+
 class ModelMediaShell : public TopWindow {
 	typedef ModelMediaShell CLASSNAME;
-	EditRendererV2_Ogl renderer;
+	One<EditRendererBase> renderer;
+	EditRendererBase* renderer_ctrl = nullptr;
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext ctx;
 	VfsValue state_val;
@@ -233,17 +240,29 @@ class ModelMediaShell : public TopWindow {
 	void MiddleUp(Point p, dword keyflags) override;
 
 public:
-	ModelMediaShell();
+	ModelMediaShell(RendererKind kind);
 	bool LoadExecutionProject(const String& manifest_path);
 	void SetCaptureMouseEnabled(bool b) { capture_mouse_enabled = b; }
 	void SetRelativeMouse(bool b) { relative_mouse = b; mouse_pos_valid = false; rel_mouse_pos = Point(0, 0); }
 	void SetRelativeMouseCenter(bool b) { relative_mouse_center = b; mouse_pos_valid = false; rel_mouse_pos = Point(0, 0); }
 };
 
-ModelMediaShell::ModelMediaShell() {
+ModelMediaShell::ModelMediaShell(RendererKind kind) {
 	Title("ModelMediaShell");
 	Sizeable();
-	Add(renderer.SizePos());
+	switch (kind) {
+	case RENDER_V1:
+		renderer.Create<EditRendererV1>();
+		break;
+	case RENDER_V2:
+		renderer.Create<EditRendererV2>();
+		break;
+	default:
+		renderer.Create<EditRendererV2_Ogl>();
+		break;
+	}
+	renderer_ctrl = renderer.Get();
+	Add(renderer_ctrl->SizePos());
 	state = &state_val.CreateExt<GeomWorldState>();
 	anim = &anim_val.CreateExt<GeomAnim>();
 	ctx.conf = &conf;
@@ -253,11 +272,11 @@ ModelMediaShell::ModelMediaShell() {
 	ctx.show_hud = false;
 	ctx.show_hud_help = false;
 	ctx.selection_gizmo_enabled = false;
-	renderer.ctx = &ctx;
-	renderer.SetViewMode(VIEWMODE_PERSPECTIVE);
-	renderer.SetCameraSource(CAMSRC_PROGRAM);
-	renderer.SetCameraInputEnabled(false);
-	renderer.WhenInput = [this](const String& type, const Point& p, dword flags, int key) {
+	renderer_ctrl->ctx = &ctx;
+	renderer_ctrl->SetViewMode(VIEWMODE_PERSPECTIVE);
+	renderer_ctrl->SetCameraSource(CAMSRC_PROGRAM);
+	renderer_ctrl->SetCameraInputEnabled(false);
+	renderer_ctrl->WhenInput = [this](const String& type, const Point& p, dword flags, int key) {
 		runtime.DispatchInputEvent(type, p, flags, key, 0);
 	};
 	anim->state = state;
@@ -265,7 +284,8 @@ ModelMediaShell::ModelMediaShell() {
 }
 
 void ModelMediaShell::OnChanged() {
-	renderer.Refresh();
+	if (renderer_ctrl)
+		renderer_ctrl->Refresh();
 }
 
 bool ModelMediaShell::LoadExecutionProject(const String& manifest_path) {
@@ -281,7 +301,8 @@ bool ModelMediaShell::LoadExecutionProject(const String& manifest_path) {
 		anim->Play();
 	SetTimeCallback(-1000/60, THISBACK(RefreshFrame));
 	PostCallback(THISBACK(RefreshFrame));
-	renderer.SetFocus();
+	if (renderer_ctrl)
+		renderer_ctrl->SetFocus();
 	loaded = true;
 	return true;
 }
@@ -419,7 +440,8 @@ void ModelMediaShell::RefreshFrame() {
 		Close();
 		return;
 	}
-	renderer.Refresh();
+	if (renderer_ctrl)
+		renderer_ctrl->Refresh();
 }
 
 GUI_APP_MAIN {
@@ -447,6 +469,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("no-capture-mouse", 0, "Disable mouse capture during GUI run", false);
 	cmd.AddArg("relative-mouse", 0, "Enable relative mouse deltas during GUI run", false);
 	cmd.AddArg("relative-mouse-center", 0, "Center relative mouse deltas around window", false);
+	cmd.AddArg("renderer", 0, "Renderer backend (v1|v2|v2_ogl)", true, "name");
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -674,7 +697,17 @@ GUI_APP_MAIN {
 		SetExitCode(all_ok ? 0 : 1);
 		return;
 	}
-	ModelMediaShell app;
+	RendererKind kind = RENDER_V2_OGL;
+	if (cmd.IsArg("renderer")) {
+		String name = ToLower(cmd.GetArg("renderer"));
+		if (name == "v1")
+			kind = RENDER_V1;
+		else if (name == "v2")
+			kind = RENDER_V2;
+		else if (name == "v2_ogl" || name == "ogl" || name == "opengl")
+			kind = RENDER_V2_OGL;
+	}
+	ModelMediaShell app(kind);
 	if (cmd.IsArg("no-capture-mouse"))
 		app.SetCaptureMouseEnabled(false);
 	if (cmd.IsArg("capture-mouse"))

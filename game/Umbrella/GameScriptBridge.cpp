@@ -1,6 +1,9 @@
 #include "Umbrella.h"
 #include "GameScriptBridge.h"
 #include "Player.h"
+#include "LayerManager.h"
+#include "Layer.h"
+#include "Tile.h"
 
 using namespace Upp;
 
@@ -285,6 +288,184 @@ static PyValue py_clear_enemies(const Vector<PyValue>& args, void* user_data) {
 }
 
 // ============================================================================
+// Python API Functions - Collision/Physics Queries (Task 3)
+// ============================================================================
+
+// Helper: get terrain layer from GameScreen
+static const MapGrid* GetTerrainGrid(GameScriptBridge* bridge) {
+	if(!bridge || !bridge->GetGameScreen()) return nullptr;
+	const Layer* terrainLayer = bridge->GetGameScreen()->layerManager.FindLayerByType(LAYER_TERRAIN);
+	if(!terrainLayer) return nullptr;
+	return &terrainLayer->GetGrid();
+}
+
+// Python API: get_tile_type(col, row) -> str ("EMPTY", "WALL", "BACKGROUND", "FULLBLOCK", "GOAL")
+static PyValue py_get_tile_type(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	const MapGrid* grid = GetTerrainGrid(bridge);
+	if(!grid) return PyValue::None();
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: get_tile_type requires 2 arguments (col, row)");
+		return PyValue::None();
+	}
+
+	int col = (int)args[0].AsInt();
+	int row = (int)args[1].AsInt();
+
+	if(!grid->IsValid(col, row)) {
+		return PyValue(String("EMPTY").ToStd());
+	}
+
+	TileType type = grid->GetTile(col, row);
+	return PyValue(TileTypeToString(type).ToStd());
+}
+
+// Python API: is_tile_solid(col, row) -> bool
+static PyValue py_is_tile_solid(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue(false);
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: is_tile_solid requires 2 arguments (col, row)");
+		return PyValue(false);
+	}
+
+	int col = (int)args[0].AsInt();
+	int row = (int)args[1].AsInt();
+
+	bool solid = bridge->GetGameScreen()->IsFloorTile(col, row);
+	return PyValue(solid);
+}
+
+// Python API: is_tile_wall(col, row) -> bool
+static PyValue py_is_tile_wall(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue(false);
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: is_tile_wall requires 2 arguments (col, row)");
+		return PyValue(false);
+	}
+
+	int col = (int)args[0].AsInt();
+	int row = (int)args[1].AsInt();
+
+	bool wall = bridge->GetGameScreen()->IsWallTile(col, row);
+	return PyValue(wall);
+}
+
+// Python API: world_to_tile(x, y) -> [col, row]
+static PyValue py_world_to_tile(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: world_to_tile requires 2 arguments (x, y)");
+		return PyValue::None();
+	}
+
+	float wx = (float)args[0].AsDouble();
+	float wy = (float)args[1].AsDouble();
+	int gridSz = bridge->GetGameScreen()->gridSize;
+
+	if(gridSz <= 0) return PyValue::None();
+
+	int col = (int)(wx / gridSz);
+	int row = (int)(wy / gridSz);
+
+	Vector<PyValue> result;
+	result.Add(PyValue((int64)col));
+	result.Add(PyValue((int64)row));
+	return PyValue::FromVector(result);
+}
+
+// Python API: tile_to_world(col, row) -> [x, y]
+static PyValue py_tile_to_world(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	if(args.GetCount() < 2) {
+		LOG("ERROR: tile_to_world requires 2 arguments (col, row)");
+		return PyValue::None();
+	}
+
+	int col = (int)args[0].AsInt();
+	int row = (int)args[1].AsInt();
+	int gridSz = bridge->GetGameScreen()->gridSize;
+
+	float wx = (float)(col * gridSz);
+	float wy = (float)(row * gridSz);
+
+	Vector<PyValue> result;
+	result.Add(PyValue((double)wx));
+	result.Add(PyValue((double)wy));
+	return PyValue::FromVector(result);
+}
+
+// ============================================================================
+// Python API Functions - Level/Map State (Task 4)
+// ============================================================================
+
+// Python API: get_level_dimensions() -> {columns, rows, grid_size}
+static PyValue py_get_level_dimensions(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	const GameScreen* screen = bridge->GetGameScreen();
+	PyValue result = PyValue::Dict();
+	result.SetItem(PyValue("columns"), PyValue((int64)screen->levelColumns));
+	result.SetItem(PyValue("rows"), PyValue((int64)screen->levelRows));
+	result.SetItem(PyValue("grid_size"), PyValue((int64)screen->gridSize));
+	return result;
+}
+
+// Python API: get_level_path() -> str
+static PyValue py_get_level_path(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	return PyValue(bridge->GetGameScreen()->levelPath.ToStd());
+}
+
+// Python API: get_game_state() -> str ("PLAYING", "PAUSED", "GAME_OVER", etc.)
+static PyValue py_get_game_state(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	String stateStr;
+	switch(bridge->GetGameScreen()->GetGameState()) {
+		case PLAYING:            stateStr = "PLAYING"; break;
+		case PAUSED:             stateStr = "PAUSED"; break;
+		case GAME_OVER:          stateStr = "GAME_OVER"; break;
+		case LEVEL_COMPLETE:     stateStr = "LEVEL_COMPLETE"; break;
+		case TRANSITION_HOVER:   stateStr = "TRANSITION_HOVER"; break;
+		case TRANSITION_SCROLL:  stateStr = "TRANSITION_SCROLL"; break;
+		case TRANSITION_DROP:    stateStr = "TRANSITION_DROP"; break;
+	}
+	return PyValue(stateStr.ToStd());
+}
+
+// Python API: get_droplet_count() -> int
+static PyValue py_get_droplet_count(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	int count = bridge->GetGameScreen()->dropletsCollected;
+	return PyValue((int64)count);
+}
+
+// Python API: get_droplet_remaining() -> int (total spawns minus collected)
+static PyValue py_get_droplet_remaining(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+
+	const GameScreen* screen = bridge->GetGameScreen();
+	int remaining = screen->droplets.GetCount();
+	return PyValue((int64)remaining);
+}
+
+// ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
 
@@ -330,6 +511,30 @@ void GameScriptBridge::RegisterGameAPI() {
 		PyValue::Function("kill_enemy", py_kill_enemy, this);
 	globals.GetAdd("clear_enemies") =
 		PyValue::Function("clear_enemies", py_clear_enemies, this);
+
+	// Collision/physics query functions (Task 3)
+	globals.GetAdd("get_tile_type") =
+		PyValue::Function("get_tile_type", py_get_tile_type, this);
+	globals.GetAdd("is_tile_solid") =
+		PyValue::Function("is_tile_solid", py_is_tile_solid, this);
+	globals.GetAdd("is_tile_wall") =
+		PyValue::Function("is_tile_wall", py_is_tile_wall, this);
+	globals.GetAdd("world_to_tile") =
+		PyValue::Function("world_to_tile", py_world_to_tile, this);
+	globals.GetAdd("tile_to_world") =
+		PyValue::Function("tile_to_world", py_tile_to_world, this);
+
+	// Level/map state functions (Task 4)
+	globals.GetAdd("get_level_dimensions") =
+		PyValue::Function("get_level_dimensions", py_get_level_dimensions, this);
+	globals.GetAdd("get_level_path") =
+		PyValue::Function("get_level_path", py_get_level_path, this);
+	globals.GetAdd("get_game_state") =
+		PyValue::Function("get_game_state", py_get_game_state, this);
+	globals.GetAdd("get_droplet_count") =
+		PyValue::Function("get_droplet_count", py_get_droplet_count, this);
+	globals.GetAdd("get_droplet_remaining") =
+		PyValue::Function("get_droplet_remaining", py_get_droplet_remaining, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

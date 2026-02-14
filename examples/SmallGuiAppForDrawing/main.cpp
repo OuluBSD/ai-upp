@@ -95,7 +95,7 @@ public:
 			bar.Add("saveButton", CtrlImg::save(), [this] { SaveImage(); })
 			   .Key(K_CTRL_S).Help("Save image");
 			bar.Separator();
-			bar.Add(color_pusher.SizePos());
+			bar.Add(color_pusher.SizePos(), 40);
 		});
 		
 		color_pusher << [this] { canvas.SetColor(color_pusher.GetData()); };
@@ -131,6 +131,7 @@ public:
 	
 	virtual bool Access(Visitor& v) override {
 		v.AccessLabel("mainWindow");
+		v.AccessAction("colorBtn", [this]{ color_pusher.WhenAction(); });
 		return true;
 	}
 };

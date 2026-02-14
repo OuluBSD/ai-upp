@@ -11,6 +11,17 @@ void AutomationCommand::ShowHelp() const {
 	       << "    enact <package>   Execute the synthesized plan on the running application\n";
 }
 
+static String FindRepoRoot()
+{
+	String d = GetCurrentDirectory();
+	while(d.GetCount() > 1) {
+		if(DirectoryExists(AppendFileName(d, "uppsrc")))
+			return NormalizePath(d);
+		d = GetFileDirectory(d);
+	}
+	return "";
+}
+
 void AutomationCommand::Execute(const Vector<String>& args) {
 	if (args.GetCount() < 2) {
 		ShowHelp();
@@ -65,11 +76,6 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 				String title = task.title;
 				script << "log('Executing: " << title << "')\n";
 				
-				// Map high-level actions to low-level UI interactions
-				// Example: "Implement mainWindow" -> we skip if it's internal
-				// Example: "Show mainWindow" -> verify it's visible
-				// Example: "Enable loginButton" -> find('loginButton').click()
-				
 				if (title.StartsWith("Show ")) {
 					String entity = title.Mid(5);
 					script << "el = find('" << entity << "')\n";
@@ -93,8 +99,7 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 		script << "log('Enactment complete.')\n";
 		script << "exit(0)\n";
 		
-		String script_path = AppendFileName(GetHomeDirectory(), ".gemini/tmp/enact_script.py");
-		RealizeDirectory(GetFileDirectory(script_path));
+		String script_path = AppendFileName(plan_root, "enact_script.py");
 		SaveFile(script_path, script);
 		
 		Cout() << "Generated enactment script saved to " << script_path << "\n";
@@ -104,12 +109,16 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 		String flags = "+GUI";
 		
 		Cout() << "Building " << pkg << "...\n";
-		String uppsrc = AppendFileName(plan_root, "uppsrc");
-		String upptst = AppendFileName(plan_root, "upptst");
-		String examples = AppendFileName(plan_root, "examples");
-		String assembly = uppsrc + "," + upptst + "," + examples;
-		String umk_cmd = "umk " + assembly + " " + pkg + " " + method + " -abvs " + flags;
+		String repo_root = FindRepoRoot();
+		if (repo_root.IsEmpty()) repo_root = plan_root;
+
+		String uppsrc = AppendFileName(repo_root, "uppsrc");
+		String upptst = AppendFileName(repo_root, "upptst");
+		String examples = AppendFileName(repo_root, "examples");
+		String assembly = uppsrc + ";" + upptst + ";" + examples;
+		String umk_cmd = "umk \"" + assembly + "\" " + pkg + " " + method + " -abvs " + flags;
 		
+		Cout() << "Running: " << umk_cmd << "\n";
 		if (system(umk_cmd) != 0) {
 			Cerr() << "Error: Build failed.\n";
 			return;
@@ -133,6 +142,35 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 			return;
 		}
 		
+		// 4.5 Find package source directory to chdir there
+		String pkg_src_dir;
+		auto LookForSrc = [&](const String& dir, auto& self) -> void {
+			if (!pkg_src_dir.IsEmpty()) return;
+			String upp = AppendFileName(AppendFileName(dir, pkg), pkg + ".upp");
+			if (FileExists(upp)) {
+				pkg_src_dir = AppendFileName(dir, pkg);
+				return;
+			}
+			upp = AppendFileName(dir, pkg + ".upp");
+			if (FileExists(upp)) {
+				pkg_src_dir = dir;
+				return;
+			}
+			
+			FindFile ff(AppendFileName(dir, "*"));
+			while (ff) {
+				if (ff.IsFolder() && ff.GetName() != "docs" && ff.GetName() != ".git") 
+					self(ff.GetPath(), self);
+				ff.Next();
+			}
+		};
+		LookForSrc(repo_root, LookForSrc);
+		
+		if (!pkg_src_dir.IsEmpty()) {
+			Cout() << "Changing directory to: " << pkg_src_dir << "\n";
+			SetCurrentDirectory(pkg_src_dir);
+		}
+
 		Cout() << "Executing enactment: " << exe_path << " --script " << script_path << "\n";
 		system(exe_path + " --script " + script_path);
 		Cout() << "Enactment finished.\n";
@@ -394,12 +432,15 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 	Cout() << "Building " << pkg << "...\n";
 	
 	String plan_root = FindPlanRoot();
-	String uppsrc = AppendFileName(plan_root, "uppsrc");
-	String upptst = AppendFileName(plan_root, "upptst");
-	String examples = AppendFileName(plan_root, "examples");
+	String repo_root = FindRepoRoot();
+	if (repo_root.IsEmpty()) repo_root = plan_root;
+
+	String uppsrc = AppendFileName(repo_root, "uppsrc");
+	String upptst = AppendFileName(repo_root, "upptst");
+	String examples = AppendFileName(repo_root, "examples");
 	
-	String assembly = uppsrc + "," + upptst + "," + examples;
-	String umk_cmd = "umk " + assembly + " " + pkg + " " + method + " -abvs " + flags;
+	String assembly = uppsrc + ";" + upptst + ";" + examples;
+	String umk_cmd = "umk \"" + assembly + "\" " + pkg + " " + method + " -abvs " + flags;
 	
 	Cout() << "Using assembly: " << assembly << "\n";
 	int build_res = system(umk_cmd);
@@ -439,10 +480,40 @@ void AutomationCommand::Execute(const Vector<String>& args) {
 		return;
 	}
 
-	Cout() << "Executing: " << exe_path << " --test\n";
+	// 2.5 Find package source directory to chdir there
+	String pkg_src_dir;
+	auto LookForSrc = [&](const String& dir, auto& self) -> void {
+		if (!pkg_src_dir.IsEmpty()) return;
+		String upp = AppendFileName(AppendFileName(dir, pkg), pkg + ".upp");
+		if (FileExists(upp)) {
+			pkg_src_dir = AppendFileName(dir, pkg);
+			return;
+		}
+		// Also check if pkg is directly in dir
+		upp = AppendFileName(dir, pkg + ".upp");
+		if (FileExists(upp)) {
+			pkg_src_dir = dir;
+			return;
+		}
+		
+		FindFile ff(AppendFileName(dir, "*"));
+		while (ff) {
+			if (ff.IsFolder() && ff.GetName() != "docs" && ff.GetName() != ".git") 
+				self(ff.GetPath(), self);
+			ff.Next();
+		}
+	};
+	LookForSrc(repo_root, LookForSrc);
+	
+	if (!pkg_src_dir.IsEmpty()) {
+		Cout() << "Changing directory to: " << pkg_src_dir << "\n";
+		SetCurrentDirectory(pkg_src_dir);
+	}
 
-	// 3. Run the executable with --test
-	String run_cmd = exe_path + " --test";
+	Cout() << "Executing: " << exe_path << " --test --plan-root \"" << plan_root << "\"\n";
+
+	// 3. Run the executable with --test and --plan-root
+	String run_cmd = exe_path + " --test --plan-root \"" + plan_root + "\"";
 	int run_res = system(run_cmd);
 	
 	// 4. Parse the log file

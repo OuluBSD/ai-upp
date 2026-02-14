@@ -69,6 +69,10 @@ void CheckUGUIConstraints()
 	
 	const Index<String>& facts = v.GetFacts();
 	
+	RLOG("Collected facts:");
+	for(int i = 0; i < facts.GetCount(); i++)
+		RLOG("  FACT: " << facts[i]);
+
 	String title = GetExeTitle();
 	String home = GetHomeDirectory();
 	String log_dir = AppendFileName(home, ".local/state/u++/guilog");
@@ -112,11 +116,11 @@ void CheckUGUIConstraints()
 			if(WhenCheckConstraintsResult) WhenCheckConstraintsResult(c, proven);
 			if(proven) {
 				log << "    SUCCESS: Constraint satisfied.\n";
-				Log(LOG_CONSTRAINT, LL_INFO, "SUCCESS: Constraint satisfied: " + c);
+				RLOG("[CTRL] SUCCESS: Constraint satisfied: " + c);
 			}
 			else {
 				log << "    FAILURE: Constraint NOT satisfied!\n";
-				Log(LOG_CONSTRAINT, LL_WARN, "FAILURE: Constraint NOT satisfied: " + c);
+				RLOG("[CTRL] FAILURE: Constraint NOT satisfied: " + c);
 				GetViolationDisplay().ShowError("Constraint violated: " + c);
 			}
 		}

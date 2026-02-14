@@ -8,6 +8,7 @@
 #include "ThreadsCtrl.h"
 #include "NewsCtrl.h"
 #include "ForexCtrl.h"
+#include "FacebookCtrl.h"
 #include "WhatsAppCtrl.h"
 #include "GoogleMessagesCtrl.h"
 #include "UniversalInboxCtrl.h"
@@ -46,8 +47,10 @@ private:
 	
 	ThreadsCtrl        threads;
 		NewsCtrl news;
-		ForexCtrl forex;
-		WhatsAppCtrl whatsapp;
+			ForexCtrl    forex;
+			FacebookCtrl facebook;
+			WhatsAppCtrl whatsapp;
+		
 	
 	GoogleMessagesCtrl google_messages;
 	UniversalInboxCtrl universal_inbox;

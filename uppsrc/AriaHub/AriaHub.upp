@@ -16,6 +16,8 @@ file
 	NewsCtrl.cpp,
 	ForexCtrl.h,
 	ForexCtrl.cpp,
+	FacebookCtrl.h,
+	FacebookCtrl.cpp,
 	WhatsAppCtrl.h,
 	WhatsAppCtrl.cpp,
 	GoogleMessagesCtrl.h,

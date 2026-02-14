@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-pencil-color-save-v3",
+	"title": "Drawing Application Core Functionality Test",
+	"goal": "Verify that the drawing app correctly handles pencil tool activation, color selection, canvas drawing, and saving.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the application",
+			"command": "umk examples/SmallGuiAppForDrawing CLANG -r && ./SmallGuiAppForDrawing",
+			"expected": "The main window opens, displaying a canvas and a toolbar with 'Pencil', 'Save', and a color selector.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Click the 'Pencil' tool button",
+			"command": "",
+			"expected": "The pencil tool is selected and ready for use.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Select the color 'Red' from the color selector",
+			"command": "",
+			"expected": "The current drawing color is updated to red.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Draw a circle on the canvas using the mouse",
+			"command": "",
+			"expected": "A red circle appears on the canvas following the mouse path.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the 'Save' button",
+			"command": "",
+			"expected": "The application prompts for a file location or saves the current canvas state to a default file.",
+			"variants": [
+
+			]
+		}
+	]
+}

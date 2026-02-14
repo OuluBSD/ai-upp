@@ -4,30 +4,39 @@
 NAMESPACE_UPP
 
 YouTubeCtrl::YouTubeCtrl() {
-	LayoutId("YouTubeCtrl");
-	Add(list.VSizePos(0, 40).HSizePos());
+	Add(tabs.VSizePos(0, 40).HSizePos());
 	Add(btnRefresh.BottomPos(5, 30).RightPos(5, 150));
 	
-	list.AddColumn("Thumb").FixedWidth(60);
-	list.AddColumn("Title", 5);
-	list.AddColumn("Views", 2).Sorting();
-	list.AddColumn("Likes", 2);
-	list.AddColumn("Comments", 2);
-	list.AddColumn("CTR", 2);
+	tabs.Add(feedList.SizePos(), "Feed");
+	tabs.Add(studioList.SizePos(), "Studio");
+	tabs.Add(commentList.SizePos(), "Comments");
 	
-	btnRefresh.SetLabel("Sync Analytics");
+	feedList.AddColumn("Title", 5);
+	feedList.AddColumn("Author", 2);
+	feedList.AddColumn("Views", 2);
+	
+	studioList.AddColumn("Title", 5);
+	studioList.AddColumn("Views", 2);
+	studioList.AddColumn("Likes", 2);
+	studioList.AddColumn("Comments", 2);
+	
+	commentList.AddColumn("Author", 2);
+	commentList.AddColumn("Content", 5);
+	commentList.AddColumn("Time", 2);
+	
+	btnRefresh.SetLabel("Refresh YouTube");
 	btnRefresh << [=] { Scrape(); };
 }
 
 void YouTubeCtrl::Scrape() {
 	if (!navigator || !site_manager) return;
 	
-	YouTubeStudioScraper scraper(*navigator, *site_manager);
+	YouTubeScraper scraper(*navigator, *site_manager);
 	try {
-		if (scraper.Refresh()) {
+		if (scraper.ScrapeAll()) {
 			LoadData();
 		} else {
-			AriaAlert("YouTube Studio sync failed. Check login.");
+			AriaAlert("YouTube sync failed. Check connection.");
 		}
 	} catch (const Exc& e) {
 		AriaAlert("Error syncing YouTube: " + e);
@@ -35,14 +44,39 @@ void YouTubeCtrl::Scrape() {
 }
 
 void YouTubeCtrl::LoadData() {
+	LoadFeed();
+	LoadStudio();
+	LoadComments();
+}
+
+void YouTubeCtrl::LoadFeed() {
+	YouTubeManager ym;
+	ym.Load();
+	feedList.Clear();
+	for(int i = 0; i < ym.videos.GetCount(); i++) {
+		const auto& v = ym.videos[i];
+		feedList.Add(v.title, v.author, v.views);
+	}
+}
+
+void YouTubeCtrl::LoadStudio() {
 	if (!site_manager) return;
-	list.Clear();
-	
+	studioList.Clear();
 	Value data = site_manager->GetSiteData("youtube_studio", "videos");
 	if (data.Is<ValueArray>()) {
 		for (const Value& v : (ValueArray)data) {
-			list.Add(Image(), v["title"], v["views"], v["likes"], v["comments"], v["ctr"]);
+			studioList.Add(v["title"], v["views"], v["likes"], v["comments"]);
 		}
+	}
+}
+
+void YouTubeCtrl::LoadComments() {
+	YouTubeManager ym;
+	ym.Load();
+	commentList.Clear();
+	for(int i = 0; i < ym.comments.GetCount(); i++) {
+		const auto& c = ym.comments[i];
+		commentList.Add(c.author, c.content, c.time);
 	}
 }
 

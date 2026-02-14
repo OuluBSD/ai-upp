@@ -96,9 +96,9 @@
 				},
 				{
 					"id": "",
-					"title": "Implement loginButton",
+					"title": "Implement drawingCanvas",
 					"status": "",
-					"intent": "Satisfy constraint via Implement loginButton",
+					"intent": "Satisfy constraint via Implement drawingCanvas",
 					"definition_of_done": [
 						{
 							"kind": "code",
@@ -135,9 +135,9 @@
 				},
 				{
 					"id": "",
-					"title": "Show loginButton",
+					"title": "Show drawingCanvas",
 					"status": "",
-					"intent": "Satisfy constraint via Show loginButton",
+					"intent": "Satisfy constraint via Show drawingCanvas",
 					"definition_of_done": [
 						{
 							"kind": "code",
@@ -174,9 +174,126 @@
 				},
 				{
 					"id": "",
-					"title": "Enable loginButton",
+					"title": "Implement pencilBtn",
 					"status": "",
-					"intent": "Satisfy constraint via Enable loginButton",
+					"intent": "Satisfy constraint via Implement pencilBtn",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show pencilBtn",
+					"status": "",
+					"intent": "Satisfy constraint via Show pencilBtn",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Implement saveButton",
+					"status": "",
+					"intent": "Satisfy constraint via Implement saveButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show saveButton",
+					"status": "",
+					"intent": "Satisfy constraint via Show saveButton",
 					"definition_of_done": [
 						{
 							"kind": "code",

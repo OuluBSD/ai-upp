@@ -16,11 +16,17 @@ public:
 	virtual void   RefreshService() override { Scrape(); }
 	virtual String GetTitle() override { return "YouTube"; }
 	virtual Image  GetIcon() override  { return Image(); }
-	virtual int    GetActiveTab() override { return 0; }
 
 private:
-	ArrayCtrl list;
+	TabCtrl   tabs;
+	ArrayCtrl feedList;
+	ArrayCtrl studioList;
+	ArrayCtrl commentList;
 	Button    btnRefresh;
+	
+	void LoadFeed();
+	void LoadStudio();
+	void LoadComments();
 };
 
 END_UPP_NAMESPACE

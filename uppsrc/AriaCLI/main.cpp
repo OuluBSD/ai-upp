@@ -2,6 +2,7 @@
 #include <Aria/Aria.h>
 #include <Aria/NewsScraper.h>
 #include <Aria/ForexScraper.h>
+#include <Aria/FacebookScraper.h>
 #include <ByteVM/ByteVM.h>
 
 using namespace Upp;
@@ -14,6 +15,13 @@ struct Command {
 	virtual void ShowHelp() const = 0;
 	virtual void Execute(const Vector<String>& args) = 0;
 };
+
+void EnsureSession(AriaNavigator& nav) {
+	if (!nav.ConnectToSession()) {
+		Cout() << "Starting new browser session...\n";
+		nav.StartSession("firefox", true);
+	}
+}
 
 static PyValue builtin_wait_time(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue::None();
@@ -71,7 +79,6 @@ struct ScriptCommand : Command {
 			PyVM vm;
 			auto& globals = vm.GetGlobals();
 			
-			// Register basic builtins
 			globals.GetAdd(PyValue("wait_time")) = PyValue::Function("wait_time", builtin_wait_time);
 			globals.GetAdd(PyValue("_exit")) = PyValue::Function("_exit", builtin_exit);
 			globals.GetAdd(PyValue("exit")) = PyValue::Function("exit", builtin_exit);
@@ -86,28 +93,30 @@ struct ScriptCommand : Command {
 				return PyValue::None();
 			});
 
-			// CLI integration
 			globals.GetAdd(PyValue("cli")) = PyValue::Function("cli", [](const Vector<PyValue>& args, void*) {
 				if(args.GetCount() >= 1) ExecuteCommand(args[0].ToString());
 				return PyValue::None();
 			});
 
-			// Navigator integration
 			static AriaNavigator sNav; 
 			globals.GetAdd(PyValue("navigate")) = PyValue::Function("navigate", [](const Vector<PyValue>& args, void*) {
-				if(args.GetCount() >= 1) sNav.Navigate(args[0].ToString());
+				if(args.GetCount() >= 1) {
+					EnsureSession(sNav);
+					sNav.Navigate(args[0].ToString());
+				}
 				return PyValue::None();
 			});
 			globals.GetAdd(PyValue("eval")) = PyValue::Function("eval", [](const Vector<PyValue>& args, void*) {
-				if(args.GetCount() >= 1) return PyValue::FromValue(sNav.Eval(args[0].ToString()));
+				if(args.GetCount() >= 1) {
+					EnsureSession(sNav);
+					return PyValue::FromValue(sNav.Eval(args[0].ToString()));
+				}
 				return PyValue::None();
 			});
 			
-			// Dummy UI stubs for CLI compatibility
 			globals.GetAdd(PyValue("find")) = PyValue::Function("find", [](const Vector<PyValue>&, void*) { return PyValue::None(); });
 			globals.GetAdd(PyValue("dump_ui")) = PyValue::Function("dump_ui", [](const Vector<PyValue>&, void*) { return PyValue(""); });
 
-			// Compiler & Run
 			Tokenizer tokenizer;
 			tokenizer.SkipPythonComments(true);
 			if (!tokenizer.Process(source, path)) {
@@ -149,6 +158,7 @@ struct NewsCommand : Command {
 		
 		if (sub == "scrape") {
 			AriaNavigator navigator;
+			EnsureSession(navigator);
 			SiteManager sm;
 			NewsScraper scraper(navigator, sm);
 			
@@ -238,9 +248,9 @@ struct NavigatorCommand : Command {
 		
 		try {
 			AriaNavigator nav;
-			Cout() << "Connecting to browser...\n";
-			nav.Navigate(args[0]);
+			EnsureSession(nav);
 			Cout() << "Navigated to " << args[0] << ". Waiting for load...\n";
+			nav.Navigate(args[0]);
 			Sleep(5000);
 			
 			if (args.GetCount() >= 3 && args[1] == "eval") {
@@ -264,6 +274,7 @@ struct DiscordCommand : Command {
 	void Execute(const Vector<String>& args) override {
 		if (args.GetCount() > 0 && args[0] == "scrape") {
 			AriaNavigator navigator;
+			EnsureSession(navigator);
 			SiteManager sm;
 			DiscordScraper scraper(navigator, sm);
 			Cout() << "Refreshing Discord...\n";
@@ -330,6 +341,7 @@ struct ForexCommand : Command {
 		String sub = sub_args[0];
 		
 		AriaNavigator navigator;
+		EnsureSession(navigator);
 		SiteManager sm;
 		ForexScraper scraper(navigator, sm);
 		if (force) scraper.SetForce(true);
@@ -377,74 +389,177 @@ struct ForexCommand : Command {
 	}
 };
 
-void MainHelp(const Array<Command>& commands) {
-
-	Cout() << "AriaCLI - Browser Automation Command Line Interface\n\n";
-
-	Cout() << "usage: AriaCLI <command> [args]\n\n";
-
-	Cout() << "commands:\n";
-
-		for(int i = 0; i < commands.GetCount(); i++) {
-
-			String n = commands[i].GetName();
-
-			while(n.GetCount() < 12) n << " ";
-
-			Cout() << "  " << n << " " << commands[i].GetDescription() << "\n";
-
+struct FacebookCommand : Command {
+	String GetName() const override { return "facebook"; }
+	Vector<String> GetAliases() const override { return {"fb"}; }
+	String GetDescription() const override { return "Facebook data and interactions"; }
+	void ShowHelp() const override {
+		Cout() << "usage: AriaCLI facebook <subcommand> [args]\n\n"
+		       << "subcommands:\n"
+		       << "  scrape             Run all FB scrapers (feed, profile, friends)\n"
+		       << "  friends            List current friends from DB\n"
+		       << "  friend-feed <idx>  Dump latest feed for friend at index <idx>\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		if (args.GetCount() == 0) { ShowHelp(); return; }
+		String sub = args[0];
+		
+		AriaNavigator navigator;
+		SiteManager sm;
+		FacebookScraper scraper(navigator, sm);
+		
+		if (sub == "scrape") {
+			EnsureSession(navigator);
+			Cout() << "Starting Facebook Scrape...\n";
+			scraper.ScrapeAll();
+			Cout() << "✓ Facebook scrape complete.\n";
 		}
+		else if (sub == "friends") {
+			scraper.Load();
+			const auto& friends = scraper.GetManager().friends;
+			Cout() << "Facebook Friends (" << friends.GetCount() << "):\n";
+			for(int i = 0; i < friends.GetCount(); i++) {
+				Cout() << "[" << i << "] " << friends[i].name << "\n";
+			}
+		}
+		else if (sub == "friend-feed") {
+			if (args.GetCount() < 2) { Cout() << "Error: Friend index required.\n"; return; }
+			int idx = ScanInt(args[1]);
+			scraper.Load();
+			const auto& friends = scraper.GetManager().friends;
+			if (idx >= 0 && idx < friends.GetCount()) {
+				EnsureSession(navigator);
+				Cout() << "Scraping feed for " << friends[idx].name << " (" << friends[idx].profile_url << ")...\n";
+				scraper.ScrapeFriendFeed(friends[idx].profile_url);
+				Cout() << "✓ Feed scraped.\n";
+			} else {
+				Cout() << "Error: Invalid friend index.\n";
+			}
+		}
+		else {
+			ShowHelp();
+		}
+	}
+};
 
+struct YouTubeCommand : Command {
+	String GetName() const override { return "youtube"; }
+	String GetDescription() const override { return "YouTube data and interactions"; }
+	void ShowHelp() const override {
+		Cout() << "usage: AriaCLI youtube <subcommand> [args]\n\n"
+		       << "subcommands:\n"
+		       << "  scrape             Scrape feed and studio analytics\n"
+		       << "  videos             List extracted videos\n"
+		       << "  comments <url>     Scrape comments for a video URL\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		if (args.GetCount() == 0) { ShowHelp(); return; }
+		String sub = args[0];
+		
+		AriaNavigator navigator;
+		SiteManager sm;
+		YouTubeScraper scraper(navigator, sm);
+		
+		if (sub == "scrape") {
+			EnsureSession(navigator);
+			Cout() << "Starting YouTube Scrape...\n";
+			scraper.ScrapeAll();
+			Cout() << "✓ YouTube scrape complete.\n";
+		}
+		else if (sub == "videos") {
+			scraper.Load();
+			const auto& videos = scraper.GetManager().videos;
+			Cout() << "YouTube Videos (" << videos.GetCount() << "):\n";
+			for(int i = 0; i < videos.GetCount(); i++) {
+				Cout() << "[" << i << "] " << videos[i].title << " by " << videos[i].author << " (" << videos[i].views << ")\n";
+			}
+		}
+		else if (sub == "comments") {
+			if (args.GetCount() < 2) { Cout() << "Error: Video URL required.\n"; return; }
+			EnsureSession(navigator);
+			scraper.ScrapeComments(args[1]);
+			Cout() << "✓ Comments scraped.\n";
+		}
+		else {
+			ShowHelp();
+		}
+	}
+};
+
+struct VaultCommand : Command {
+	String GetName() const override { return "vault"; }
+	String GetDescription() const override { return "Manage credentials in the secure vault"; }
+	void ShowHelp() const override {
+		Cout() << "usage: AriaCLI vault <subcommand> [args]\n\n"
+		       << "subcommands:\n"
+		       << "  set <key> <val>    Set a credential (e.g., facebook:email)\n"
+		       << "  get <key>          Get a credential value\n"
+		       << "  list               List all keys\n"
+		       << "  remove <key>       Remove a key\n";
+	}
+	
+	void Execute(const Vector<String>& args) override {
+		if (args.GetCount() == 0) { ShowHelp(); return; }
+		String sub = args[0];
+		CredentialManager cm;
+		
+		if (sub == "set" && args.GetCount() >= 3) {
+			cm.SetCredential(args[1], args[2]);
+			Cout() << "✓ Credential set.\n";
+		}
+		else if (sub == "get" && args.GetCount() >= 2) {
+			Cout() << cm.GetCredential(args[1]) << "\n";
+		}
+		else if (sub == "list") {
+			for (const auto& k : cm.ListKeys()) Cout() << "- " << k << "\n";
+		}
+		else if (sub == "remove" && args.GetCount() >= 2) {
+			if (cm.RemoveCredential(args[1])) Cout() << "✓ Removed.\n";
+			else Cout() << "Error: Key not found.\n";
+		}
+		else {
+			ShowHelp();
+		}
+	}
+};
+
+void MainHelp(const Array<Command>& commands) {
+	Cout() << "AriaCLI - Browser Automation Command Line Interface\n\n";
+	Cout() << "usage: AriaCLI <command> [args]\n\n";
+	Cout() << "commands:\n";
+	for(int i = 0; i < commands.GetCount(); i++) {
+		String n = commands[i].GetName();
+		while(n.GetCount() < 12) n << " ";
+		Cout() << "  " << n << " " << commands[i].GetDescription() << "\n";
+	}
 	Cout() << "\nUse 'AriaCLI <command>' for help on a specific command.\n";
-
 }
 
-
-
 CONSOLE_APP_MAIN {
-
 	SetConfigName("AriaHub");
-
 	sCommands.Create<NewsCommand>();
-
 	sCommands.Create<NavigatorCommand>();
-
 	sCommands.Create<DiscordCommand>();
-
-		sCommands.Create<GoogleMessagesCommand>();
-
-		sCommands.Create<ForexCommand>();
-
-		sCommands.Create<ScriptCommand>();
-
+	sCommands.Create<GoogleMessagesCommand>();
+	sCommands.Create<ForexCommand>();
+	sCommands.Create<FacebookCommand>();
+	sCommands.Create<YouTubeCommand>();
+	sCommands.Create<VaultCommand>();
+	sCommands.Create<ScriptCommand>();
 	
-
-	
-
 	const Vector<String>& raw_args = CommandLine();
-
 	if (raw_args.GetCount() == 0) {
-
 		MainHelp(sCommands);
-
 		return;
-
 	}
-
 	
-
 	String cmdLine;
-
 	for(int i = 0; i < raw_args.GetCount(); i++) {
-
 		if (i) cmdLine << " ";
-
 		cmdLine << raw_args[i];
-
 	}
-
 	
-
 	ExecuteCommand(cmdLine);
-
 }

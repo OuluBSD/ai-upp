@@ -1168,6 +1168,7 @@ void EditRendererV1::Paint(Draw& d) {
 }
 
 EditRendererV2::EditRendererV2() {}
+EditRendererV2_Ogl::EditRendererV2_Ogl() {}
 
 namespace {
 
@@ -1419,7 +1420,35 @@ void EditRendererV2::Paint(Draw& d) {
 		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
 		surf.DrawLine2D(x0, y0, x1, y1, clr);
 	};
-	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
+	auto clip_poly = [&](const Vector<vec4>& input, bool near_plane) {
+		Vector<vec4> output;
+		if (input.IsEmpty())
+			return output;
+		auto eval = [&](const vec4& v) -> float {
+			return near_plane ? (v[2] + v[3]) : (v[3] - v[2]);
+		};
+		vec4 s = input.Top();
+		float ds = eval(s);
+		for (const vec4& e : input) {
+			float de = eval(e);
+			bool ins = ds >= 0;
+			bool ine = de >= 0;
+			if (ins && ine) {
+				output.Add(e);
+			} else if (ins && !ine) {
+				float t = ds / (ds - de);
+				output.Add(s + (e - s) * t);
+			} else if (!ins && ine) {
+				float t = ds / (ds - de);
+				output.Add(s + (e - s) * t);
+				output.Add(e);
+			}
+			s = e;
+			ds = de;
+		}
+		return output;
+	};
+	auto draw_triangle_raw = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
 		if (wireframe_only) {
 			vec4 e0 = c0, e1 = c1;
 			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
@@ -1487,6 +1516,20 @@ void EditRendererV2::Paint(Draw& d) {
 			}
 		}
 	};
+	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
+		Vector<vec4> poly;
+		poly.Add(c0);
+		poly.Add(c1);
+		poly.Add(c2);
+		poly = clip_poly(poly, true);
+		if (poly.GetCount() < 3)
+			return;
+		poly = clip_poly(poly, false);
+		if (poly.GetCount() < 3)
+			return;
+		for (int i = 1; i + 1 < poly.GetCount(); i++)
+			draw_triangle_raw(poly[0], poly[i], poly[i + 1], clr);
+	};
 	
 	int models_painted = 0;
 	int triangles_submitted = 0;
@@ -1499,11 +1542,28 @@ void EditRendererV2::Paint(Draw& d) {
 		for (const Mesh& mesh : mdl.meshes) {
 			vec3 base_clr(1, 1, 1);
 			vec3 emissive(0, 0, 0);
+			vec3 diffuse(1, 1, 1);
+			vec3 specular(0.2f, 0.2f, 0.2f);
+			vec3 ambient(0.1f, 0.1f, 0.1f);
+			float shininess = 16.0f;
 			if (mesh.material >= 0 && mdl.materials.Find(mesh.material) >= 0) {
 				const Material& mat = mdl.materials.Get(mesh.material);
 				base_clr = mat.params->base_clr_factor.Splice();
 				emissive = mat.params->emissive_factor;
+				diffuse = mat.params->diffuse;
+				specular = mat.params->specular;
+				ambient = mat.params->ambient;
+				shininess = mat.params->shininess;
+				if (diffuse.GetLength() == 0)
+					diffuse = vec3(1, 1, 1);
+				if (specular.GetLength() == 0)
+					specular = vec3(0.2f, 0.2f, 0.2f);
+				if (ambient.GetLength() == 0)
+					ambient = vec3(0.1f, 0.1f, 0.1f);
+				if (shininess <= 0)
+					shininess = 16.0f;
 			}
+			vec3 base = base_clr * diffuse;
 			const auto* tri_idx = mesh.indices.Begin();
 			int tri_count = mesh.indices.GetCount() / 3;
 			for (int i = 0; i < tri_count; i++) {
@@ -1518,9 +1578,24 @@ void EditRendererV2::Paint(Draw& d) {
 				}
 				n.Normalize();
 				vec3 n_world = VectorTransform(n, os.orientation);
+				vec3 p0 = (o_world * v0.position).Splice();
+				vec3 p1 = (o_world * v1.position).Splice();
+				vec3 p2 = (o_world * v2.position).Splice();
+				vec3 center = (p0 + p1 + p2) / 3.0f;
+				vec3 view_dir = camera.position - center;
+				if (view_dir.GetLength() > 0)
+					view_dir.Normalize();
 				float diff = max(0.0f, Dot(n_world, light_dir));
-				float intensity = 0.2f + diff * 0.8f;
-				vec3 shaded = base_clr * intensity + emissive;
+				vec3 reflect_dir = (n_world * (2.0f * Dot(n_world, light_dir)) - light_dir);
+				if (reflect_dir.GetLength() > 0)
+					reflect_dir.Normalize();
+				float spec = 0.0f;
+				if (diff > 0 && view_dir.GetLength() > 0)
+					spec = pow(max(0.0f, Dot(reflect_dir, view_dir)), shininess);
+				const float ambient_strength = 0.25f;
+				const float diffuse_strength = 0.75f;
+				vec3 shaded = base * (ambient_strength + diff * diffuse_strength)
+				            + base_clr * ambient + specular * spec + emissive;
 				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
 				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
 				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);
@@ -1817,15 +1892,16 @@ void EditRendererV2::Paint(Draw& d) {
 }
 
 bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStats* out_stats,
-                           Image* out_image, String* out_debug, bool dump_first_tri) {
+                           Image* out_image, String* out_debug, bool dump_first_tri,
+                           ViewMode view_mode, const GeomCamera* cam_override, bool wireframe_only) {
 	if (!ctx.conf || !ctx.state)
 		return false;
 	Scene3DRenderConfig& conf = *ctx.conf;
 	GeomWorldState& state = *ctx.state;
 	GeomScene& scene = state.GetActiveScene();
-	GeomCamera& camera = state.GetProgram();
+	GeomCamera& camera = cam_override ? const_cast<GeomCamera&>(*cam_override) : state.GetProgram();
 	Camera cam;
-	camera.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
+	camera.LoadCamera(view_mode, cam, sz);
 	mat4 view = cam.GetViewMatrix();
 	mat4 cam_world = cam.GetWorldMatrix();
 	mat4 proj = cam.GetProjectionMatrix();
@@ -1878,9 +1954,69 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 		}
 	}
 	
-	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
+	auto draw_line_ndc = [&](const vec3& a, const vec3& b, const Color& clr) {
+		vec2 a2(a[0], a[1]);
+		vec2 b2(b[0], b[1]);
+		if (!ClipLineNdc(a2, b2))
+			return;
+		int x0 = (int)floor((a2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y0 = (int)floor((-a2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		int x1 = (int)floor((b2[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+		int y1 = (int)floor((-b2[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+		surf.DrawLine2D(x0, y0, x1, y1, clr);
+	};
+	auto clip_poly = [&](const Vector<vec4>& input, bool near_plane) {
+		Vector<vec4> output;
+		if (input.IsEmpty())
+			return output;
+		auto eval = [&](const vec4& v) -> float {
+			return near_plane ? (v[2] + v[3]) : (v[3] - v[2]);
+		};
+		vec4 s = input.Top();
+		float ds = eval(s);
+		for (const vec4& e : input) {
+			float de = eval(e);
+			bool ins = ds >= 0;
+			bool ine = de >= 0;
+			if (ins && ine) {
+				output.Add(e);
+			} else if (ins && !ine) {
+				float t = ds / (ds - de);
+				output.Add(s + (e - s) * t);
+			} else if (!ins && ine) {
+				float t = ds / (ds - de);
+				output.Add(s + (e - s) * t);
+				output.Add(e);
+			}
+			s = e;
+			ds = de;
+		}
+		return output;
+	};
+	auto draw_triangle_raw = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
 		if (c0[3] == 0 || c1[3] == 0 || c2[3] == 0)
 			return;
+		if (wireframe_only) {
+			vec4 e0 = c0, e1 = c1;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
+			e0 = c1; e1 = c2;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
+			e0 = c2; e1 = c0;
+			if (ClipLineClipSpace(e0, e1) && e0[3] != 0 && e1[3] != 0) {
+				vec3 n0 = e0.Splice() / e0[3];
+				vec3 n1 = e1.Splice() / e1[3];
+				draw_line_ndc(n0, n1, clr);
+			}
+			return;
+		}
 		vec3 n0 = c0.Splice() / c0[3];
 		vec3 n1 = c1.Splice() / c1[3];
 		vec3 n2 = c2.Splice() / c2[3];
@@ -1923,6 +2059,20 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 			}
 		}
 	};
+	auto draw_triangle = [&](const vec4& c0, const vec4& c1, const vec4& c2, const Color& clr) {
+		Vector<vec4> poly;
+		poly.Add(c0);
+		poly.Add(c1);
+		poly.Add(c2);
+		poly = clip_poly(poly, true);
+		if (poly.GetCount() < 3)
+			return;
+		poly = clip_poly(poly, false);
+		if (poly.GetCount() < 3)
+			return;
+		for (int i = 1; i + 1 < poly.GetCount(); i++)
+			draw_triangle_raw(poly[0], poly[i], poly[i + 1], clr);
+	};
 	
 	int models_painted = 0;
 	int triangles_submitted = 0;
@@ -1937,11 +2087,28 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 		for (const Mesh& mesh : mdl.meshes) {
 			vec3 base_clr(1, 1, 1);
 			vec3 emissive(0, 0, 0);
+			vec3 diffuse(1, 1, 1);
+			vec3 specular(0.2f, 0.2f, 0.2f);
+			vec3 ambient(0.1f, 0.1f, 0.1f);
+			float shininess = 16.0f;
 			if (mesh.material >= 0 && mdl.materials.Find(mesh.material) >= 0) {
 				const Material& mat = mdl.materials.Get(mesh.material);
 				base_clr = mat.params->base_clr_factor.Splice();
 				emissive = mat.params->emissive_factor;
+				diffuse = mat.params->diffuse;
+				specular = mat.params->specular;
+				ambient = mat.params->ambient;
+				shininess = mat.params->shininess;
+				if (diffuse.GetLength() == 0)
+					diffuse = vec3(1, 1, 1);
+				if (specular.GetLength() == 0)
+					specular = vec3(0.2f, 0.2f, 0.2f);
+				if (ambient.GetLength() == 0)
+					ambient = vec3(0.1f, 0.1f, 0.1f);
+				if (shininess <= 0)
+					shininess = 16.0f;
 			}
+			vec3 base = base_clr * diffuse;
 			const auto* tri_idx = mesh.indices.Begin();
 			int tri_count = mesh.indices.GetCount() / 3;
 			for (int i = 0; i < tri_count; i++) {
@@ -1956,9 +2123,24 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 				}
 				n.Normalize();
 				vec3 n_world = VectorTransform(n, os.orientation);
+				vec3 p0 = (o_world * v0.position).Splice();
+				vec3 p1 = (o_world * v1.position).Splice();
+				vec3 p2 = (o_world * v2.position).Splice();
+				vec3 center = (p0 + p1 + p2) / 3.0f;
+				vec3 view_dir = camera.position - center;
+				if (view_dir.GetLength() > 0)
+					view_dir.Normalize();
 				float diff = max(0.0f, Dot(n_world, light_dir));
-				float intensity = 0.2f + diff * 0.8f;
-				vec3 shaded = base_clr * intensity + emissive;
+				vec3 reflect_dir = (n_world * (2.0f * Dot(n_world, light_dir)) - light_dir);
+				if (reflect_dir.GetLength() > 0)
+					reflect_dir.Normalize();
+				float spec = 0.0f;
+				if (diff > 0 && view_dir.GetLength() > 0)
+					spec = pow(max(0.0f, Dot(reflect_dir, view_dir)), shininess);
+				const float ambient_strength = 0.25f;
+				const float diffuse_strength = 0.75f;
+				vec3 shaded = base * (ambient_strength + diff * diffuse_strength)
+				            + base_clr * ambient + specular * spec + emissive;
 				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
 				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
 				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);
@@ -2080,6 +2262,36 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 	if (out_image)
 		*out_image = Image(surf.ib);
 	return true;
+}
+
+void EditRendererV2_Ogl::Paint(Draw& d) {
+	if (!ctx || !ctx->conf || !ctx->state)
+		return;
+	Size sz = GetSize();
+	if (sz.cx <= 0 || sz.cy <= 0)
+		return;
+	Image img;
+	Scene3DRenderStats stats;
+	GeomCamera& camera = GetGeomCamera();
+	RenderSceneV2Headless(*ctx, sz, &stats, &img, nullptr, false, view_mode, &camera, wireframe_only);
+	if (img.IsEmpty())
+		return;
+	ExecuteGL([&] {
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
+		glViewport(0, 0, (GLsizei)sz.cx, (GLsizei)sz.cy);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, sz.cx, 0, sz.cy, -1, 1);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glRasterPos2i(0, sz.cy);
+		glPixelZoom(1, -1);
+		ImageBuffer ib(img);
+		glDrawPixels(sz.cx, sz.cy, GL_RGBA, GL_UNSIGNED_BYTE, ib.Begin());
+		glPixelZoom(1, 1);
+		glFlush();
+	}, true);
 }
 
 void EditRendererBase::LeftDown(Point p, dword keyflags) {
@@ -2283,7 +2495,7 @@ GeomCamera& EditRendererBase::GetGeomCamera() const {
 }
 
 bool EditRendererBase::Key(dword key, int count) {
-	bool is_release = key & K_UP;
+	bool is_release = key & K_KEYUP;
 	if (WhenInput)
 		WhenInput(is_release ? "keyUp" : "keyDown", Point(0, 0), 0, (int)key);
 	if (!camera_input_enabled)

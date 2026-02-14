@@ -1,5 +1,6 @@
 uses
 	CtrlLib,
+	GLCtrl,
 	Geometry,
 	Scene3D/Core,
 	Scene3D/IO;
@@ -14,4 +15,3 @@ file
 
 mainconfig
 	"" = "";
-

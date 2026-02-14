@@ -860,14 +860,20 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	for(int i = 0; i < 4; i++) {
 		rends_v1[i].ctx = &e->render_ctx;
 		rends_v2[i].ctx = &e->render_ctx;
+		rends_v2_ogl[i].ctx = &e->render_ctx;
 		rends_v1[i].WhenChanged = THISBACK1(RefreshRenderer, i);
 		rends_v2[i].WhenChanged = THISBACK1(RefreshRenderer, i);
+		rends_v2_ogl[i].WhenChanged = THISBACK1(RefreshRenderer, i);
 		rends_v1[i].WhenMenu = THISBACK1(BuildViewMenu, i);
 		rends_v2[i].WhenMenu = THISBACK1(BuildViewMenu, i);
+		rends_v2_ogl[i].WhenMenu = THISBACK1(BuildViewMenu, i);
 		rends_v1[i].WhenInput = [=](const String& type, const Point& p, dword flags, int key) {
 			e->DispatchInputEvent(type, p, flags, key, i);
 		};
 		rends_v2[i].WhenInput = [=](const String& type, const Point& p, dword flags, int key) {
+			e->DispatchInputEvent(type, p, flags, key, i);
+		};
+		rends_v2_ogl[i].WhenInput = [=](const String& type, const Point& p, dword flags, int key) {
 			e->DispatchInputEvent(type, p, flags, key, i);
 		};
 	}
@@ -879,6 +885,10 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends_v2[1].SetViewMode(VIEWMODE_XZ);
 	rends_v2[2].SetViewMode(VIEWMODE_XY);
 	rends_v2[3].SetViewMode(VIEWMODE_PERSPECTIVE);
+	rends_v2_ogl[0].SetViewMode(VIEWMODE_YZ);
+	rends_v2_ogl[1].SetViewMode(VIEWMODE_XZ);
+	rends_v2_ogl[2].SetViewMode(VIEWMODE_XY);
+	rends_v2_ogl[3].SetViewMode(VIEWMODE_PERSPECTIVE);
 	rends_v1[0].SetCameraSource(CAMSRC_FOCUS);
 	rends_v1[1].SetCameraSource(CAMSRC_FOCUS);
 	rends_v1[2].SetCameraSource(CAMSRC_PROGRAM);
@@ -887,10 +897,16 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	rends_v2[1].SetCameraSource(CAMSRC_FOCUS);
 	rends_v2[2].SetCameraSource(CAMSRC_PROGRAM);
 	rends_v2[3].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2_ogl[0].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2_ogl[1].SetCameraSource(CAMSRC_FOCUS);
+	rends_v2_ogl[2].SetCameraSource(CAMSRC_PROGRAM);
+	rends_v2_ogl[3].SetCameraSource(CAMSRC_FOCUS);
 	for (int i = 0; i < 4; i++)
 		rends_v2[i].SetWireframeOnly(true);
+	for (int i = 0; i < 4; i++)
+		rends_v2_ogl[i].SetWireframeOnly(true);
 	for(int i = 0; i < 4; i++)
-		rends[i] = &rends_v2[i];
+		rends[i] = &rends_v2_ogl[i];
 	RebuildGrid();
 	
 	props.NoHeader();
@@ -3148,6 +3164,7 @@ void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
 	bar.Separator();
 	bar.Add(t_("Renderer: V1"), [=] { SetRendererVersion(i, 1); }).Check(rend_version[i] == 1);
 	bar.Add(t_("Renderer: V2"), [=] { SetRendererVersion(i, 2); }).Check(rend_version[i] == 2);
+	bar.Add(t_("Renderer: V2 Ogl"), [=] { SetRendererVersion(i, 3); }).Check(rend_version[i] == 3);
 	bar.Add(t_("Renderer: Wireframe"), [=] {
 		if (rends[i]) {
 			rends[i]->SetWireframeOnly(!rends[i]->IsWireframeOnly());
@@ -3169,12 +3186,13 @@ void GeomProjectCtrl::BuildViewMenu(Bar& bar, int i) {
 void GeomProjectCtrl::SetRendererVersion(int i, int version) {
 	if (i < 0 || i >= 4)
 		return;
-	if (version != 1 && version != 2)
+	if (version != 1 && version != 2 && version != 3)
 		return;
 	EditRendererBase* prev = rends[i];
 	rend_version[i] = version;
 	EditRendererBase* next = (version == 1) ? static_cast<EditRendererBase*>(&rends_v1[i])
-	                                        : static_cast<EditRendererBase*>(&rends_v2[i]);
+	                                        : (version == 2) ? static_cast<EditRendererBase*>(&rends_v2[i])
+	                                                         : static_cast<EditRendererBase*>(&rends_v2_ogl[i]);
 	if (prev && next) {
 		next->view_mode = prev->view_mode;
 		next->cam_src = prev->cam_src;
@@ -3190,6 +3208,7 @@ void GeomProjectCtrl::RebuildGrid() {
 	for (int i = 0; i < 4; i++) {
 		grid.RemoveChild(&rends_v1[i]);
 		grid.RemoveChild(&rends_v2[i]);
+		grid.RemoveChild(&rends_v2_ogl[i]);
 	}
 	for (int i = 0; i < 4; i++) {
 		if (rends[i])

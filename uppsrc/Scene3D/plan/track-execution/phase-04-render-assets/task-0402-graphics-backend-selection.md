@@ -13,5 +13,9 @@ Render execution projects using uppsrc/api/Graphics backends.
 - Backend selection documented and working.
 - Graphics improvements scoped to execution needs.
 
+## Implementation Notes
+- ModelMediaShell accepts backend aliases `gfx_sw` and `gfx_ogl` via `--renderer`.
+- Keep `v1`, `v2`, and `v2_ogl` options available for comparison and fallback.
+
 ## Status
 - Planned

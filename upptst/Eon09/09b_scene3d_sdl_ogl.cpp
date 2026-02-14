@@ -34,8 +34,11 @@ void Run09bScene3DSdlOgl(int method) {
 
 	int w = 640;
 	int h = 480;
+	Uint32 win_flags = SDL_WINDOW_OPENGL;
+	if (method > 0)
+		win_flags |= SDL_WINDOW_HIDDEN;
 	SDL_Window* win = SDL_CreateWindow("Eon09 SDL2 OGL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	                                  w, h, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
+	                                  w, h, win_flags);
 	if (!win) {
 		String err = SDL_GetError();
 		SDL_Quit();
@@ -50,7 +53,7 @@ void Run09bScene3DSdlOgl(int method) {
 	}
 	SDL_GL_MakeCurrent(win, gl);
 
-	int frames = method > 0 ? method : 3;
+	int frames = method > 0 ? method : 120;
 	for (int i = 0; i < frames; i++) {
 		ctx.anim->Update(1.0 / 60.0);
 		ctx.runtime.Update(1.0 / 60.0);
@@ -75,6 +78,15 @@ void Run09bScene3DSdlOgl(int method) {
 		glPixelZoom(1, 1);
 		glFlush();
 		SDL_GL_SwapWindow(win);
+		SDL_Event ev;
+		while (SDL_PollEvent(&ev)) {
+			if (ev.type == SDL_QUIT) {
+				i = frames;
+				break;
+			}
+		}
+		if (method == 0)
+			SDL_Delay(16);
 	}
 
 	SDL_GL_DeleteContext(gl);

@@ -263,8 +263,16 @@ public:
 	
 	bool IsAxiom() {
 		// Intersection of left and right
-		if (GetIndexCommonCount(left, right) > 0)
-			return true;
+		for(int i = 0; i < left.GetCount(); i++) {
+			for(int j = 0; j < right.GetCount(); j++) {
+				if (left.GetKey(i) == right.GetKey(j)) {
+					RLOG("  IsAxiom: Found match!");
+					RLOG("    Left[" << i << "]: " << left.GetKey(i)->ToString());
+					RLOG("    Right[" << j << "]: " << right.GetKey(j)->ToString());
+					return true;
+				}
+			}
+		}
 		
 		// Reflexivity: t = t on the right
 		for(int i = 0; i < right.GetCount(); i++) {
@@ -286,6 +294,7 @@ public:
 Index<NodeVar> lemma_cache;
 
 	void Expand(Vector<NodeVar>& out) {
+		RLOG("  Expand sequent: " << ToString());
 		// Equality Reasoning: Substitution rule (Left)
 		// if we have t1 = t2 on the left, we can replace occurrences of t1 with t2 in other formulas
 		for(int i = 0; i < left.GetCount(); i++) {
@@ -660,7 +669,6 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 	
 	//# sequents which have been proven
 	Index<NodeVar> proven;
-	proven.Add(&sequent);
 	
 	String prev_str;
 	
@@ -677,9 +685,12 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 		// get the next sequent
 		NodeVar old_sequent_;
 
-		while (frontier.GetCount() > 0 && (old_sequent_.Is() == false || proven.Find(old_sequent_) != -1)) {
+		while (frontier.GetCount() > 0) {
 			old_sequent_ = frontier[0];
 			frontier.Remove(0);
+			if (proven.Find(old_sequent_) == -1)
+				break;
+			old_sequent_ = NodeVar();
 		}
 
 		if (old_sequent_.Is() == false)
@@ -700,7 +711,7 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 
 		// check if this sequent == axiomatically true
 		if (old_sequent->IsAxiom()) {
-			proven.Insert(0, old_sequent);
+			proven.Add(old_sequent);
 			continue;
 		}
 
@@ -797,14 +808,23 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 			frontier.Add(next[i]);
 	}
 
-	// no more sequents to prove
-	return true;
+	// if the frontier is empty, check if the goal sequent is in proven
+	return proven.Find(&sequent) != -1;
 }
 
 // returns true if the formula == provable
 // returns false || loops forever if the formula != provable
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula) {
-	if (lemma_cache.Find(formula) != -1) return true;
+	RLOG("ProveFormula started:");
+	RLOG("  Formula: " << (formula.Is() ? formula->ToString() : "NULL"));
+	RLOG("  Axioms count: " << axioms.GetCount());
+	for(int i = 0; i < axioms.GetCount(); i++)
+		RLOG("    Axiom[" << i << "]: " << axioms[i]->ToString());
+
+	if (lemma_cache.Find(formula) != -1) {
+		RLOG("  FOUND IN LEMMA CACHE!");
+		return true;
+	}
 	conflict_cache.Clear();
 	
 	ArrayMap<NodeVar, int> left, right;

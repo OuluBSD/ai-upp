@@ -37,6 +37,7 @@ AriaMainWindow::AriaMainWindow()
 	SetupService(threads);
 	SetupService(news);
 	SetupService(forex);
+	SetupService(facebook);
 	SetupService(whatsapp);
 	SetupService(google_messages);
 	SetupService(universal_inbox);
@@ -51,6 +52,7 @@ AriaMainWindow::AriaMainWindow()
 	tabs.Add(universal_inbox.SizePos(), "Inbox");
 	tabs.Add(news.SizePos(), "News");
 	tabs.Add(forex.SizePos(), "Forex");
+	tabs.Add(facebook.SizePos(), "Facebook");
 	tabs.Add(threads.SizePos(), "Threads");
 	tabs.Add(whatsapp.SizePos(), "WhatsApp");
 	tabs.Add(google_messages.SizePos(), "Messages");
@@ -142,19 +144,6 @@ void AriaMainWindow::OpenSettings()
 void AriaMainWindow::StopScrapers()
 {
 	statusbar.Set("Stopping all scrapers...");
-}
-
-bool IsAutomation()
-{
-	static bool b = false;
-	static bool checked = false;
-	if(!checked) {
-		const Vector<String>& args = CommandLine();
-		for(int i = 0; i < args.GetCount(); i++)
-			if(args[i] == "--test") b = true;
-		checked = true;
-	}
-	return b;
 }
 
 void AriaAlert(const String& msg)

@@ -92,6 +92,14 @@ public:
 	
 	NodeVar& operator=(const NodeVar& n) {Var<Node>::operator=(n); return *this;}
 	
+	bool operator==(const NodeVar& other) const {
+		if (Is() != other.Is()) return false;
+		if (!Is()) return true;
+		return **this == *other;
+	}
+	bool operator!=(const NodeVar& other) const {
+		return !(*this == other);
+	}
 };
 
 class UnificationTerm;
@@ -237,13 +245,11 @@ public:
 		if (terms.GetCount() != fn->terms.GetCount())
 			return false;
 		
-		if (!terms.GetCount()) return false;
 		for(int i = 0; i < terms.GetCount(); i++) {
 			if (!(*terms[i] == *fn->terms[i]))
 				return false;
 		}
 		return true;
-		//return all([terms[i] == other.terms[i] for i in range(terms.GetCount())]);
 	}
 
 	virtual String ToString() const {
@@ -353,13 +359,11 @@ public:
 		if (terms.GetCount() != pr->terms.GetCount())
 			return false;
 		
-		if (!terms.GetCount()) return false;
 		for(int i = 0; i < terms.GetCount(); i++) {
 			if (!(*terms[i] == *pr->terms[i]))
 				return false;
 		}
 		return true;
-		//return all([terms[i] == other.terms[i] for i in range(terms.GetCount())]);
 	}
 
 	virtual void SetInstantiationTime(int time) {

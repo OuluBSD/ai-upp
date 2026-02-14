@@ -581,6 +581,8 @@ GUI_APP_MAIN {
 					frames = max(1, StrInt(cmd.GetArg("drive-test-frames")));
 				if (drive_ai_test && cmd.IsArg("drive-ai-frames"))
 					frames = max(1, StrInt(cmd.GetArg("drive-ai-frames")));
+				if (drive_ai_test && !cmd.IsArg("drive-ai-frames"))
+					frames = 900;
 				if (!state.HasActiveScene()) {
 					Cout() << "DriveTest: missing active scene\n";
 					SetExitCode(2);
@@ -602,14 +604,39 @@ GUI_APP_MAIN {
 				double start_x = tr->position[0];
 				double start_z = tr->position[2];
 				if (drive_ai_test) {
+					vec3 checkpoints[3] = {
+						vec3(0.0f, 0.0f, 18.0f),
+						vec3(10.0f, 0.0f, 0.0f),
+						vec3(0.0f, 0.0f, -18.0f),
+					};
+					bool visited[3] = {false, false, false};
+					const float visit_radius = 2.5f;
 					for (int i = 0; i < frames; i++) {
 						runtime.input.BeginFrame();
 						anim.Update(dt);
 						runtime.Update(dt);
+						vec3 pos = tr->position;
+						for (int c = 0; c < 3; c++) {
+							if (visited[c])
+								continue;
+							vec3 d = pos - checkpoints[c];
+							float dist = sqrt(Dot(d, d));
+							if (dist < visit_radius)
+								visited[c] = true;
+						}
 					}
 					double end_z = tr->position[2];
 					Cout() << "DriveAITest: start_z=" << start_z << " end_z=" << end_z << "\n";
 					if (end_z <= start_z + 0.5) {
+						SetExitCode(2);
+						return;
+					}
+					int visited_count = 0;
+					for (int c = 0; c < 3; c++)
+						if (visited[c])
+							visited_count++;
+					Cout() << "DriveAITest: visited=" << visited_count << "\n";
+					if (visited_count < 1) {
 						SetExitCode(2);
 						return;
 					}
@@ -651,6 +678,7 @@ GUI_APP_MAIN {
 					}
 				}
 			}
+			SetExitCode(0);
 			Image out_img;
 			if (!RenderSceneV2Headless(ctx, sz, &stats, nullptr, &debug_dump, dump_first_tri)) {
 				Cout() << "RenderStatsV2: failed\n";

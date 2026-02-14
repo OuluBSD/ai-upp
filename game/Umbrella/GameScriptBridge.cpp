@@ -6,6 +6,7 @@
 #include "Tile.h"
 #include "Pathfinder.h"
 #include "NavGraph.h"
+#include "ActionExecutor.h"
 
 using namespace Upp;
 
@@ -644,6 +645,84 @@ static PyValue py_find_path(const Vector<PyValue>& args, void* user_data) {
 }
 
 
+
+// ============================================================================
+// Track 2 - AI Planning: Action Executor (Phase 2)
+// execute_path(path_list, max_frames=3000) -> {success, frames, nodes, reason}
+// navigate_to(col, row, max_frames=3000)  -> {success, frames, nodes, reason}
+// ============================================================================
+
+static PyValue MakeExecResult(const ActionExecutor::Result& r) {
+	PyValue result = PyValue::Dict();
+	result.SetItem(PyValue(String("success")), PyValue((int64)(r.success ? 1 : 0)));
+	result.SetItem(PyValue(String("frames")),  PyValue((int64)r.framesUsed));
+	result.SetItem(PyValue(String("nodes")),   PyValue((int64)r.nodesCompleted));
+	result.SetItem(PyValue(String("reason")),  PyValue(r.reason));
+	return result;
+}
+
+static PyValue py_execute_path(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+	if(args.GetCount() < 1) return PyValue::None();
+
+	int maxFrames = 3000;
+	if(args.GetCount() >= 2) maxFrames = (int)args[1].AsInt();
+
+	// Parse path list: [{col, row, move_type}, ...]
+	Vector<PathNode> path;
+	const PyValue& plist = args[0];
+	for(int i = 0; i < plist.GetCount(); i++) {
+		const PyValue& nd = plist.GetItem(i);
+		PathNode pn;
+		pn.col = (int)nd.GetItem(PyValue(String("col"))).AsInt();
+		pn.row = (int)nd.GetItem(PyValue(String("row"))).AsInt();
+		String mt = nd.GetItem(PyValue(String("move_type"))).GetStr().ToString();
+		if(mt == "jump") pn.moveType = MOVE_JUMP;
+		else if(mt == "fall") pn.moveType = MOVE_FALL;
+		else pn.moveType = MOVE_WALK;
+		path.Add(pn);
+	}
+
+	ActionExecutor exec;
+	return MakeExecResult(exec.ExecutePath(bridge->GetGameScreen(), path, maxFrames));
+}
+
+static PyValue py_navigate_to(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+	if(args.GetCount() < 2) {
+		LOG("ERROR: navigate_to requires (col, row [, max_frames])");
+		return PyValue::None();
+	}
+
+	int goalCol   = (int)args[0].AsInt();
+	int goalRow   = (int)args[1].AsInt();
+	int maxFrames = 3000;
+	if(args.GetCount() >= 3) maxFrames = (int)args[2].AsInt();
+
+	// Compute start tile from player center
+	const Player& p = bridge->GetGameScreen()->player;
+	int startCol = (int)(p.GetCenter().x / 14);
+	int startRow = (int)(p.GetCenter().y / 14);
+
+	Pathfinder pf;
+	pf.SetGameScreen(bridge->GetGameScreen());
+	Vector<PathNode> path = pf.FindPath(startCol, startRow, goalCol, goalRow);
+
+	if(path.IsEmpty()) {
+		PyValue result = PyValue::Dict();
+		result.SetItem(PyValue(String("success")), PyValue((int64)0));
+		result.SetItem(PyValue(String("frames")),  PyValue((int64)0));
+		result.SetItem(PyValue(String("nodes")),   PyValue((int64)0));
+		result.SetItem(PyValue(String("reason")),  PyValue(String("no_path")));
+		return result;
+	}
+
+	ActionExecutor exec;
+	return MakeExecResult(exec.ExecutePath(bridge->GetGameScreen(), path, maxFrames));
+}
+
 // ============================================================================
 // Track 2 - AI Planning: Navigation Graph (Phase 1, Task 2)
 // build_nav_graph() -> {walkable, components, edges, cols, rows}
@@ -771,6 +850,11 @@ void GameScriptBridge::RegisterGameAPI() {
 	// AI pathfinding (Track 2)
 	globals.GetAdd("find_path") =
 		PyValue::Function("find_path", py_find_path, this);
+	// Action executor (Track 2, Phase 2)
+	globals.GetAdd("execute_path") =
+		PyValue::Function("execute_path", py_execute_path, this);
+	globals.GetAdd("navigate_to") =
+		PyValue::Function("navigate_to", py_navigate_to, this);
 	// Navigation graph (Track 2, Task 2)
 	globals.GetAdd("build_nav_graph") =
 		PyValue::Function("build_nav_graph", py_build_nav_graph, this);

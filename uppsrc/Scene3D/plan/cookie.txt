@@ -346,3 +346,7 @@
   task: track-execution/phase-03-demo-projects/task-0302-demo-driving-softphys.md
   status: done
   note: Added driving_softphys demo project and SoftPhys-backed runtime bindings.
+- date: 2026-02-14
+  task: track-execution/phase-04-render-assets/task-0402-graphics-backend-selection.md
+  status: done
+  note: Added renderer aliases (gfx_sw/gfx_ogl) and documented backend selection for executor.

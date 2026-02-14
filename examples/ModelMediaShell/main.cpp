@@ -481,7 +481,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("no-capture-mouse", 0, "Disable mouse capture during GUI run", false);
 	cmd.AddArg("relative-mouse", 0, "Enable relative mouse deltas during GUI run", false);
 	cmd.AddArg("relative-mouse-center", 0, "Center relative mouse deltas around window", false);
-	cmd.AddArg("renderer", 0, "Renderer backend (v1|v2|v2_ogl)", true, "name");
+	cmd.AddArg("renderer", 0, "Renderer backend (v1|v2|v2_ogl|gfx_sw|gfx_ogl)", true, "name");
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -818,8 +818,10 @@ GUI_APP_MAIN {
 			kind = RENDER_V1;
 		else if (name == "v2")
 			kind = RENDER_V2;
-		else if (name == "v2_ogl" || name == "ogl" || name == "opengl")
+		else if (name == "v2_ogl" || name == "ogl" || name == "opengl" || name == "gfx_ogl")
 			kind = RENDER_V2_OGL;
+		else if (name == "gfx_sw" || name == "gfx")
+			kind = RENDER_V2;
 	}
 	ModelMediaShell app(kind);
 	if (cmd.IsArg("no-capture-mouse"))

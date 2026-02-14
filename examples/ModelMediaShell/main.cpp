@@ -192,6 +192,14 @@ int HeadlessPrompt(Event<const String&>, const char* title, const Image&, const 
 	return 1;
 }
 
+static GeomObject* FindObjectRecursive(GeomScene& scene, const String& name) {
+	for (GeomObject& obj : GeomObjectCollection(scene)) {
+		if (obj.name == name)
+			return &obj;
+	}
+	return nullptr;
+}
+
 }
 
 enum RendererKind {
@@ -457,6 +465,8 @@ GUI_APP_MAIN {
 	cmd.AddArg("frustum-dump-frame", 0, "Dump frustum only for specific sweep frame", true, "index");
 	cmd.AddArg("frustum-dump-out", 0, "Dump frustum output to file", true, "path");
 	cmd.AddArg("headless-mouse-test", 0, "Run headless mouse delta test", false);
+	cmd.AddArg("headless-drive-test", 0, "Run headless drive test (W key)", false);
+	cmd.AddArg("drive-test-frames", 0, "Drive test frame count", true, "count");
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
@@ -529,6 +539,7 @@ GUI_APP_MAIN {
 		bool sweep = cmd.IsArg("headless-sweep");
 		bool frustum_dump = cmd.IsArg("headless-frustum-dump");
 		bool mouse_test = cmd.IsArg("headless-mouse-test");
+		bool drive_test = cmd.IsArg("headless-drive-test");
 		bool snapshot = cmd.IsArg("headless-snapshot");
 		String snapshot_path;
 		if (snapshot)
@@ -557,6 +568,43 @@ GUI_APP_MAIN {
 				int dy = runtime.input.mouse_delta.y;
 				Cout() << "MouseTest: dx=" << dx << " dy=" << dy << "\n";
 				if (dx == 0 && dy == 0) {
+					SetExitCode(2);
+					return;
+				}
+			}
+			if (drive_test) {
+				int frames = 120;
+				if (cmd.IsArg("drive-test-frames"))
+					frames = max(1, StrInt(cmd.GetArg("drive-test-frames")));
+				if (!state.HasActiveScene()) {
+					Cout() << "DriveTest: missing active scene\n";
+					SetExitCode(2);
+					return;
+				}
+				GeomScene& scene = state.GetActiveScene();
+				GeomObject* car = FindObjectRecursive(scene, "car_body");
+				if (!car) {
+					Cout() << "DriveTest: missing car_body\n";
+					SetExitCode(2);
+					return;
+				}
+				GeomTransform* tr = car->FindTransform();
+				if (!tr) {
+					Cout() << "DriveTest: missing car_body transform\n";
+					SetExitCode(2);
+					return;
+				}
+				double start_z = tr->position[2];
+				runtime.input.SetKey(87, true);
+				for (int i = 0; i < frames; i++) {
+					runtime.input.BeginFrame();
+					anim.Update(dt);
+					runtime.Update(dt);
+				}
+				runtime.input.SetKey(87, false);
+				double end_z = tr->position[2];
+				Cout() << "DriveTest: start_z=" << start_z << " end_z=" << end_z << "\n";
+				if (end_z <= start_z + 0.5) {
 					SetExitCode(2);
 					return;
 				}

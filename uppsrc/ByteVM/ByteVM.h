@@ -4,10 +4,12 @@
 #include <Core/Core.h>
 #include <Core/TextParsing/TextParsing.h>
 
+#ifndef RTLOG
 #ifdef flagDEBUG_RT
 #define RTLOG(x) DLOG(x)
 #else
 #define RTLOG(x)
+#endif
 #endif
 
 #include "PyCode.h"

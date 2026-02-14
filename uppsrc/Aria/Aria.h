@@ -25,8 +25,12 @@ NAMESPACE_UPP
 #include "NewsScraper.h"
 #include "CalendarScraper.h"
 #include "YouTubeStudioScraper.h"
+#include "YouTube.h"
+#include "YouTubeScraper.h"
 #include "Forex.h"
 #include "ForexScraper.h"
+#include "Facebook.h"
+#include "FacebookScraper.h"
 
 class GeminiProvider : public BaseAIProvider {
 public:
@@ -56,6 +60,8 @@ public:
 	AriaNavigator& GetNavigator() { return *navigator; }
 	SiteManager& GetSiteManager() { return site_manager; }
 };
+
+bool IsAutomation();
 
 END_UPP_NAMESPACE
 

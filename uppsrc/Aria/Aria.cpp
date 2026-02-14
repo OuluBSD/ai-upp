@@ -403,6 +403,14 @@ String Aria::GenerateAIResponse(const String& prompt, const String& context, con
 	return provider->Generate(prompt, context, output_format);
 }
 
+bool IsAutomation() {
+	if (!GetEnv("UPP_AUTOMATION").IsEmpty()) return true;
+	for (const auto& arg : CommandLine()) {
+		if (arg == "--test") return true;
+	}
+	return false;
+}
+
 END_UPP_NAMESPACE
 
 #ifdef flagMAIN

@@ -14,6 +14,7 @@ void PrintModelBounds(const String& name, const String& path, const Model& mdl);
 static AABB ComputeModelAABB(const Model& mdl);
 static AABB TransformAABB(const AABB& aabb, const mat4& world);
 static bool ParseVec3Arg(const String& s, vec3& out);
+static void DumpFrustum(const Frustum& frustum, const GeomCamera& cam, const Camera& cppcam);
 
 bool LoadExecutionProjectCommon(const String& manifest_path,
                                 Scene3DDocument& doc,
@@ -160,6 +161,36 @@ static bool ParseVec3Arg(const String& s, vec3& out) {
 	for (int i = 0; i < 3; i++)
 		out[i] = (float)StrDbl(parts[i]);
 	return true;
+}
+
+static void DumpFrustum(const Frustum& frustum, const GeomCamera& cam, Camera& cppcam) {
+	Cout() << "FrustumDump: cam_pos " << cam.position[0] << " " << cam.position[1] << " " << cam.position[2] << "\n";
+	Cout() << "FrustumDump: cam_orient " << cam.orientation[0] << " " << cam.orientation[1] << " "
+	       << cam.orientation[2] << " " << cam.orientation[3] << "\n";
+	Cout() << "FrustumDump: fov " << cam.fov << " scale " << cam.scale << "\n";
+	mat4 world = cppcam.GetWorldMatrix();
+	mat4 proj = cppcam.GetProjectionMatrix();
+	mat4 view = cppcam.GetViewMatrix();
+	Cout() << "FrustumDump: world\n";
+	for (int r = 0; r < 4; r++) {
+		for (int c = 0; c < 4; c++)
+			Cout() << world[r][c] << (c == 3 ? '\n' : ' ');
+	}
+	Cout() << "FrustumDump: proj\n";
+	for (int r = 0; r < 4; r++) {
+		for (int c = 0; c < 4; c++)
+			Cout() << proj[r][c] << (c == 3 ? '\n' : ' ');
+	}
+	Cout() << "FrustumDump: view\n";
+	for (int r = 0; r < 4; r++) {
+		for (int c = 0; c < 4; c++)
+			Cout() << view[r][c] << (c == 3 ? '\n' : ' ');
+	}
+	for (int i = 0; i < Frustum::PLANE_COUNT; i++) {
+		const Plane& p = frustum[i];
+		Cout() << "FrustumPlane " << i << " n=" << p.normal[0] << "," << p.normal[1] << "," << p.normal[2]
+		       << " d=" << p.distance << "\n";
+	}
 }
 
 void PrintModelBounds(const String& name, const String& path, const Model& mdl) {
@@ -375,6 +406,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("headless-debug", 0, "Dump first triangle clip-space details when headless render fails", false);
 	cmd.AddArg("dump-first-tri", 0, "Dump first triangle clip-space details when headless render fails", false);
 	cmd.AddArg("headless-sweep", 0, "Sweep camera around target and validate frustum + render stats", false);
+	cmd.AddArg("headless-frustum-dump", 0, "Dump frustum planes and per-object AABB hit status", false);
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
@@ -438,6 +470,7 @@ GUI_APP_MAIN {
 		String debug_dump;
 		bool dump_first_tri = cmd.IsArg("headless-debug") || cmd.IsArg("dump-first-tri");
 		bool sweep = cmd.IsArg("headless-sweep");
+		bool frustum_dump = cmd.IsArg("headless-frustum-dump");
 		int sweep_frames = 24;
 		double sweep_radius = 12.0;
 		double sweep_height = 3.0;
@@ -459,6 +492,36 @@ GUI_APP_MAIN {
 			Cout() << "RenderStatsV2: rendered=" << (stats.rendered ? 1 : 0) << "\n";
 			if (!stats.rendered && dump_first_tri && !debug_dump.IsEmpty())
 				Cout() << debug_dump;
+			if (frustum_dump) {
+				GeomCamera& program = state.GetProgram();
+				Camera cam;
+				program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
+				Frustum frustum = cam.GetFrustum();
+				DumpFrustum(frustum, program, cam);
+				int total = 0;
+				int hits = 0;
+				GeomObjectCollection iter(state.GetActiveScene());
+				for (GeomObject& go : iter) {
+					if (!go.is_visible || !go.IsModel() || !go.mdl)
+						continue;
+					total++;
+					const Model& mdl = *go.mdl;
+					AABB aabb = ComputeModelAABB(mdl);
+					GeomTransform* tr = go.FindTransform();
+					mat4 world_m = Identity<mat4>();
+					if (tr)
+						world_m = Translate(tr->position) * QuatMat(tr->orientation) * Scale(tr->scale);
+					AABB world_aabb = TransformAABB(aabb, world_m);
+					bool hit = frustum.Intersects(world_aabb);
+					if (hit)
+						hits++;
+					Cout() << "FrustumHit: name=" << go.name
+					       << " hit=" << (hit ? 1 : 0)
+					       << " center=" << world_aabb.position[0] << "," << world_aabb.position[1] << "," << world_aabb.position[2]
+					       << " size=" << world_aabb.size[0] << "," << world_aabb.size[1] << "," << world_aabb.size[2] << "\n";
+				}
+				Cout() << "FrustumHitSummary: " << hits << "/" << total << "\n";
+			}
 			SetExitCode(stats.rendered ? 0 : 1);
 			return;
 		}
@@ -484,6 +547,8 @@ GUI_APP_MAIN {
 			Camera cam;
 			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
 			Frustum frustum = cam.GetFrustum();
+			if (frustum_dump)
+				DumpFrustum(frustum, program, cam);
 			int total = 0;
 			int hits = 0;
 			GeomObjectCollection iter(state.GetActiveScene());

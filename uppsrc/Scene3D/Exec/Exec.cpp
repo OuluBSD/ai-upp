@@ -176,6 +176,16 @@ static VfsValue* FindChildByName(VfsValue& node, const String& name) {
 	return nullptr;
 }
 
+static VfsValue* FindChildByNameRecursive(VfsValue& node, const String& name) {
+	if (VfsValue* found = FindChildByName(node, name))
+		return found;
+	for (auto& sub : node.sub) {
+		if (VfsValue* child = FindChildByNameRecursive(sub, name))
+			return child;
+	}
+	return nullptr;
+}
+
 static int FindChildIndex(VfsValue& parent, VfsValue* child) {
 	if (!child)
 		return -1;
@@ -479,7 +489,7 @@ static PyValue Stage_Find(const Vector<PyValue>& args, void* user_data) {
 	if (!self.runtime || !self.runtime->state || !self.runtime->state->HasActiveScene())
 		return PyValue::None();
 	String name = args[1].ToString();
-	VfsValue* found = FindChildByName(self.runtime->state->GetActiveScene().val, name);
+	VfsValue* found = FindChildByNameRecursive(self.runtime->state->GetActiveScene().val, name);
 	return MakeDisplayObject(self.runtime, found, self.vm);
 }
 
@@ -619,13 +629,23 @@ struct InputProxy : PyUserData {
 	bool SetAttr(const String& name, const PyValue& v) override;
 };
 
+struct CameraProxy : PyUserData {
+	ExecScriptRuntime* runtime = nullptr;
+	CameraProxy(ExecScriptRuntime* r) : runtime(r) {}
+	String GetTypeName() const override { return "Camera"; }
+	PyValue GetAttr(const String& name) override;
+	bool SetAttr(const String& name, const PyValue& v) override;
+};
+
 static PyValue Input_IsKeyDown(const Vector<PyValue>& args, void* user_data) {
 	if (args.GetCount() < 1)
 		return PyValue::False();
 	InputProxy* self = (InputProxy*)user_data;
 	if (!self || !self->runtime)
 		return PyValue::False();
-	return PyValue(self->runtime->input.IsKeyDown(args[0].AsInt()));
+	int key = args[0].AsInt();
+	bool down = self->runtime->input.IsKeyDown(key);
+	return PyValue(down);
 }
 
 static PyValue Input_WasKeyPressed(const Vector<PyValue>& args, void* user_data) {
@@ -680,6 +700,44 @@ PyValue InputProxy::GetAttr(const String& name) {
 }
 
 bool InputProxy::SetAttr(const String& name, const PyValue& v) {
+	return false;
+}
+
+PyValue CameraProxy::GetAttr(const String& name) {
+	if (!runtime || !runtime->state)
+		return PyValue::None();
+	GeomCamera& cam = runtime->state->GetProgram();
+	if (name == "x")
+		return PyValue(cam.position[0]);
+	if (name == "y")
+		return PyValue(cam.position[1]);
+	if (name == "z")
+		return PyValue(cam.position[2]);
+	if (name == "rotation")
+		return MakeVec3Value(GetQuatAxes(cam.orientation));
+	if (name == "fov")
+		return PyValue(cam.fov);
+	if (name == "scale")
+		return PyValue(cam.scale);
+	return PyValue::None();
+}
+
+bool CameraProxy::SetAttr(const String& name, const PyValue& v) {
+	if (!runtime || !runtime->state)
+		return false;
+	GeomCamera& cam = runtime->state->GetProgram();
+	if (name == "x") { cam.position[0] = v.AsDouble(); return true; }
+	if (name == "y") { cam.position[1] = v.AsDouble(); return true; }
+	if (name == "z") { cam.position[2] = v.AsDouble(); return true; }
+	if (name == "rotation") {
+		vec3 axes;
+		if (PyValueToVec3(v, axes)) {
+			cam.orientation = AxesQuat(axes);
+			return true;
+		}
+	}
+	if (name == "fov") { cam.fov = v.AsDouble(); return true; }
+	if (name == "scale") { cam.scale = v.AsDouble(); return true; }
 	return false;
 }
 
@@ -837,6 +895,7 @@ void ExecScriptRuntime::RegisterScriptVM(PyVM& vm) {
 	vm.GetGlobals().GetAdd(PyValue("getTimer")) = PyValue::Function("getTimer", ExecGetTimer, this);
 	vm.GetGlobals().GetAdd(PyValue("random")) = PyValue::Function("random", ExecRandom, this);
 	vm.GetGlobals().GetAdd(PyValue("input")) = PyValue(new InputProxy(this));
+	vm.GetGlobals().GetAdd(PyValue("camera")) = PyValue(new CameraProxy(this));
 	PyValue root_obj = PyValue::None();
 	if (state && state->HasActiveScene())
 		root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &vm);
@@ -896,12 +955,15 @@ void ExecScriptRuntime::UpdateScriptInstance(ScriptInstance& inst, bool force_re
 	if (abs.IsEmpty() || !FileExists(abs))
 		return;
 	Time mod = FileGetTime(abs);
+	if (inst.compile_failed && !force_reload && mod == inst.file_time)
+		return;
 	bool needs_reload = force_reload || !inst.loaded || mod != inst.file_time;
 	if (!needs_reload)
 		return;
 	RemoveScriptEventHandlers(&inst.vm);
 	inst.file_time = mod;
 	inst.loaded = false;
+	inst.compile_failed = false;
 	inst.has_load = false;
 	inst.has_start = false;
 	inst.has_frame = false;
@@ -909,7 +971,10 @@ void ExecScriptRuntime::UpdateScriptInstance(ScriptInstance& inst, bool force_re
 	String err;
 	Vector<PyIR> ir;
 	if (!CompilePySource(code, abs, ir, err)) {
-		LOG("Exec script compile failed: " + err);
+		String msg = "Exec script compile failed: " + abs + " | " + err;
+		LOG(msg);
+		Cout() << msg << "\n";
+		inst.compile_failed = true;
 		return;
 	}
 	inst.vm = PyVM();
@@ -928,10 +993,14 @@ void ExecScriptRuntime::UpdateScriptInstance(ScriptInstance& inst, bool force_re
 	inst.vm.GetGlobals().GetAdd(PyValue("__project_dir__")) = PyValue(project_dir);
 	inst.vm.GetGlobals().GetAdd(PyValue("__script_path__")) = PyValue(abs);
 	if (!RunPyIR(inst.vm, ir, err)) {
-		LOG("Exec script run failed: " + err);
+		String msg = "Exec script run failed: " + abs + " | " + err;
+		LOG(msg);
+		Cout() << msg << "\n";
+		inst.compile_failed = true;
 		return;
 	}
 	inst.loaded = true;
+	Cout() << "Exec script loaded: " << abs << "\n";
 	inst.main_ir = pick(ir);
 	int on_load_idx = inst.vm.GetGlobals().Find(PyValue("on_load"));
 	int on_start_idx = inst.vm.GetGlobals().Find(PyValue("on_start"));
@@ -1076,6 +1145,8 @@ void ExecScriptRuntime::DispatchInputEvent(const String& type, const Point& p, d
 	payload.SetItem(PyValue("flags"), PyValue((int64)flags));
 	payload.SetItem(PyValue("key"), PyValue(key));
 	payload.SetItem(PyValue("view"), PyValue(view_i));
+	payload.SetItem(PyValue("dx"), PyValue((int64)input.mouse_delta.x));
+	payload.SetItem(PyValue("dy"), PyValue((int64)input.mouse_delta.y));
 	if (anim) {
 		payload.SetItem(PyValue("time"), PyValue(anim->time));
 		payload.SetItem(PyValue("frame"), PyValue(anim->position));

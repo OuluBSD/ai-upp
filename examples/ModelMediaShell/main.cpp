@@ -213,6 +213,7 @@ class ModelMediaShell : public TopWindow {
 	int fps_frames = 0;
 	bool loaded = false;
 	bool mouse_captured = false;
+	bool capture_mouse_enabled = true;
 
 	void RefreshFrame();
 	void OnChanged();
@@ -223,10 +224,13 @@ class ModelMediaShell : public TopWindow {
 	void RightDown(Point p, dword keyflags) override;
 	void RightUp(Point p, dword keyflags) override;
 	void MouseWheel(Point p, int zdelta, dword keyflags) override;
+	void MiddleDown(Point p, dword keyflags) override;
+	void MiddleUp(Point p, dword keyflags) override;
 
 public:
 	ModelMediaShell();
 	bool LoadExecutionProject(const String& manifest_path);
+	void SetCaptureMouseEnabled(bool b) { capture_mouse_enabled = b; }
 };
 
 ModelMediaShell::ModelMediaShell() {
@@ -299,7 +303,7 @@ void ModelMediaShell::MouseMove(Point p, dword keyflags) {
 void ModelMediaShell::LeftDown(Point p, dword keyflags) {
 	if (loaded)
 		runtime.DispatchInputEvent("mouseDown", p, keyflags, 0, 0);
-	if (!mouse_captured) {
+	if (capture_mouse_enabled && !mouse_captured) {
 		SetCapture();
 		mouse_captured = true;
 	}
@@ -319,7 +323,7 @@ void ModelMediaShell::LeftUp(Point p, dword keyflags) {
 void ModelMediaShell::RightDown(Point p, dword keyflags) {
 	if (loaded)
 		runtime.DispatchInputEvent("mouseDown", p, keyflags, 1, 0);
-	if (!mouse_captured) {
+	if (capture_mouse_enabled && !mouse_captured) {
 		SetCapture();
 		mouse_captured = true;
 	}
@@ -340,6 +344,26 @@ void ModelMediaShell::MouseWheel(Point p, int zdelta, dword keyflags) {
 	if (loaded)
 		runtime.DispatchInputEvent("mouseWheel", p, keyflags, zdelta, 0);
 	TopWindow::MouseWheel(p, zdelta, keyflags);
+}
+
+void ModelMediaShell::MiddleDown(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseDown", p, keyflags, 2, 0);
+	if (capture_mouse_enabled && !mouse_captured) {
+		SetCapture();
+		mouse_captured = true;
+	}
+	TopWindow::MiddleDown(p, keyflags);
+}
+
+void ModelMediaShell::MiddleUp(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseUp", p, keyflags, 2, 0);
+	if (mouse_captured) {
+		ReleaseCapture();
+		mouse_captured = false;
+	}
+	TopWindow::MiddleUp(p, keyflags);
 }
 
 void ModelMediaShell::RefreshFrame() {
@@ -391,6 +415,8 @@ GUI_APP_MAIN {
 	cmd.AddArg("sweep-target", 0, "Headless sweep target x,y,z", true, "vec3");
 	cmd.AddArg("sweep-angles", 0, "Headless sweep angles start,end (degrees)", true, "range");
 	cmd.AddArg("headless-snapshot", 0, "Save a headless RGBA snapshot to path", true, "path");
+	cmd.AddArg("capture-mouse", 0, "Enable mouse capture during GUI run", false);
+	cmd.AddArg("no-capture-mouse", 0, "Disable mouse capture during GUI run", false);
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -606,6 +632,10 @@ GUI_APP_MAIN {
 		return;
 	}
 	ModelMediaShell app;
+	if (cmd.IsArg("no-capture-mouse"))
+		app.SetCaptureMouseEnabled(false);
+	if (cmd.IsArg("capture-mouse"))
+		app.SetCaptureMouseEnabled(true);
 	if (!app.LoadExecutionProject(exec_path))
 		return;
 	app.Run();

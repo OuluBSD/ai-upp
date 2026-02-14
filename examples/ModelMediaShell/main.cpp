@@ -377,12 +377,16 @@ GUI_APP_MAIN {
 	cmd.AddArg("dump-first-tri", 0, "Dump first triangle clip-space details when headless render fails", false);
 	cmd.AddArg("headless-sweep", 0, "Sweep camera around target and validate frustum + render stats", false);
 	cmd.AddArg("headless-frustum-dump", 0, "Dump frustum planes and per-object AABB hit status", false);
+	cmd.AddArg("frustum-dump-frame", 0, "Dump frustum only for specific sweep frame", true, "index");
+	cmd.AddArg("frustum-dump-out", 0, "Dump frustum output to file", true, "path");
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
 	cmd.AddArg("sweep-radius", 0, "Headless sweep radius", true, "radius");
 	cmd.AddArg("sweep-height", 0, "Headless sweep height", true, "height");
 	cmd.AddArg("sweep-target", 0, "Headless sweep target x,y,z", true, "vec3");
+	cmd.AddArg("sweep-angles", 0, "Headless sweep angles start,end (degrees)", true, "range");
+	cmd.AddArg("headless-snapshot", 0, "Save a headless RGBA snapshot to path", true, "path");
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -441,6 +445,16 @@ GUI_APP_MAIN {
 		bool dump_first_tri = cmd.IsArg("headless-debug") || cmd.IsArg("dump-first-tri");
 		bool sweep = cmd.IsArg("headless-sweep");
 		bool frustum_dump = cmd.IsArg("headless-frustum-dump");
+		bool snapshot = cmd.IsArg("headless-snapshot");
+		String snapshot_path;
+		if (snapshot)
+			snapshot_path = cmd.GetArg("headless-snapshot");
+		int frustum_dump_frame = -1;
+		if (cmd.IsArg("frustum-dump-frame"))
+			frustum_dump_frame = StrInt(cmd.GetArg("frustum-dump-frame"));
+		String frustum_dump_out;
+		if (cmd.IsArg("frustum-dump-out"))
+			frustum_dump_out = cmd.GetArg("frustum-dump-out");
 		int sweep_frames = 24;
 		double sweep_radius = 12.0;
 		double sweep_height = 3.0;
@@ -451,6 +465,7 @@ GUI_APP_MAIN {
 		if (cmd.IsArg("sweep-height"))
 			sweep_height = StrDbl(cmd.GetArg("sweep-height"));
 		if (!sweep) {
+			Image out_img;
 			if (!RenderSceneV2Headless(ctx, sz, &stats, nullptr, &debug_dump, dump_first_tri)) {
 				Cout() << "RenderStatsV2: failed\n";
 				SetExitCode(2);
@@ -462,12 +477,27 @@ GUI_APP_MAIN {
 			Cout() << "RenderStatsV2: rendered=" << (stats.rendered ? 1 : 0) << "\n";
 			if (!stats.rendered && dump_first_tri && !debug_dump.IsEmpty())
 				Cout() << debug_dump;
+			if (snapshot) {
+				if (RenderSceneV2Headless(ctx, sz, &stats, &out_img, nullptr, false)) {
+					PNGEncoder enc;
+					String png = enc.SaveString(out_img);
+					if (!snapshot_path.IsEmpty())
+						SaveFile(snapshot_path, png);
+				}
+			}
 			if (frustum_dump) {
+				One<FileOut> out;
+				Stream* stream = &Cout();
+				if (!frustum_dump_out.IsEmpty()) {
+					out.Create(frustum_dump_out);
+					if (out->IsOpen())
+						stream = out.operator->();
+				}
 				GeomCamera& program = state.GetProgram();
 				Camera cam;
 				program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
 				Frustum frustum = cam.GetFrustum();
-				DumpFrustum(frustum, program, cam, Cout());
+				DumpFrustum(frustum, program, cam, *stream);
 				int total = 0;
 				int hits = 0;
 				GeomObjectCollection iter(state.GetActiveScene());
@@ -485,12 +515,12 @@ GUI_APP_MAIN {
 					bool hit = frustum.Intersects(world_aabb);
 					if (hit)
 						hits++;
-					Cout() << "FrustumHit: name=" << go.name
-					       << " hit=" << (hit ? 1 : 0)
-					       << " center=" << world_aabb.position[0] << "," << world_aabb.position[1] << "," << world_aabb.position[2]
-					       << " size=" << world_aabb.size[0] << "," << world_aabb.size[1] << "," << world_aabb.size[2] << "\n";
+					*stream << "FrustumHit: name=" << go.name
+					        << " hit=" << (hit ? 1 : 0)
+					        << " center=" << world_aabb.position[0] << "," << world_aabb.position[1] << "," << world_aabb.position[2]
+					        << " size=" << world_aabb.size[0] << "," << world_aabb.size[1] << "," << world_aabb.size[2] << "\n";
 				}
-				Cout() << "FrustumHitSummary: " << hits << "/" << total << "\n";
+				*stream << "FrustumHitSummary: " << hits << "/" << total << "\n";
 			}
 			SetExitCode(stats.rendered ? 0 : 1);
 			return;
@@ -502,9 +532,18 @@ GUI_APP_MAIN {
 			if (ParseVec3Arg(cmd.GetArg("sweep-target"), parsed))
 				target = parsed;
 		}
+		double ang_start = 0.0;
+		double ang_end = 2.0 * M_PI;
+		if (cmd.IsArg("sweep-angles")) {
+			Vector<String> parts = Split(cmd.GetArg("sweep-angles"), ',');
+			if (parts.GetCount() == 2) {
+				ang_start = DEG2RADf((float)StrDbl(parts[0]));
+				ang_end = DEG2RADf((float)StrDbl(parts[1]));
+			}
+		}
 		for (int i = 0; i < sweep_frames; i++) {
 			double t = (double)i / (double)sweep_frames;
-			double ang = t * 2.0 * M_PI;
+			double ang = ang_start + (ang_end - ang_start) * t;
 			vec3 pos((float)(cos(ang) * sweep_radius), (float)sweep_height, (float)(sin(ang) * sweep_radius));
 			GeomCamera& program = state.GetProgram();
 			program.position = pos;
@@ -513,12 +552,27 @@ GUI_APP_MAIN {
 			program.orientation = MatQuat(world);
 			Scene3DRenderStats sweep_stats;
 			String sweep_debug;
-			bool ok = RenderSceneV2Headless(ctx, sz, &sweep_stats, nullptr, &sweep_debug, dump_first_tri);
+			Image sweep_img;
+			bool ok = RenderSceneV2Headless(ctx, sz, &sweep_stats, snapshot ? &sweep_img : nullptr, &sweep_debug, dump_first_tri);
 			Camera cam;
 			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
 			Frustum frustum = cam.GetFrustum();
-			if (frustum_dump)
-				DumpFrustum(frustum, program, cam, Cout());
+			if (snapshot && !snapshot_path.IsEmpty() && !sweep_img.IsEmpty()) {
+				String base = snapshot_path;
+				String out_path = Format("%s_%d.png", base, i);
+				PNGEncoder enc;
+				SaveFile(out_path, enc.SaveString(sweep_img));
+			}
+			if (frustum_dump && (frustum_dump_frame < 0 || frustum_dump_frame == i)) {
+				One<FileOut> out;
+				Stream* stream = &Cout();
+				if (!frustum_dump_out.IsEmpty()) {
+					out.Create(frustum_dump_out);
+					if (out->IsOpen())
+						stream = out.operator->();
+				}
+				DumpFrustum(frustum, program, cam, *stream);
+			}
 			int total = 0;
 			int hits = 0;
 			GeomObjectCollection iter(state.GetActiveScene());

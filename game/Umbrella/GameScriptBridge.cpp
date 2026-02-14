@@ -4,6 +4,7 @@
 #include "LayerManager.h"
 #include "Layer.h"
 #include "Tile.h"
+#include "Pathfinder.h"
 
 using namespace Upp;
 
@@ -606,6 +607,42 @@ static PyValue py_clear_events(const Vector<PyValue>& args, void* user_data) {
 }
 
 // ============================================================================
+// Track 2 - AI Planning: Pathfinding
+// find_path(startCol, startRow, goalCol, goalRow) -> list of {col, row, move_type}
+// ============================================================================
+
+static PyValue py_find_path(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::FromVector(Vector<PyValue>());
+	if(args.GetCount() < 4) {
+		LOG("ERROR: find_path requires 4 args: startCol, startRow, goalCol, goalRow");
+		return PyValue::FromVector(Vector<PyValue>());
+	}
+
+	int sc = (int)args[0].AsInt();
+	int sr = (int)args[1].AsInt();
+	int gc = (int)args[2].AsInt();
+	int gr = (int)args[3].AsInt();
+
+	Pathfinder pf;
+	pf.SetGameScreen(bridge->GetGameScreen());
+	Vector<PathNode> path = pf.FindPath(sc, sr, gc, gr);
+
+	static const char* moveTypeNames[] = { "walk", "jump", "fall" };
+
+	Vector<PyValue> result;
+	for(int i = 0; i < path.GetCount(); i++) {
+		const PathNode& n = path[i];
+		PyValue node = PyValue::Dict();
+		node.SetItem(PyValue(String("col")),       PyValue((int64)n.col));
+		node.SetItem(PyValue(String("row")),       PyValue((int64)n.row));
+		node.SetItem(PyValue(String("move_type")), PyValue(String(moveTypeNames[n.moveType])));
+		result.Add(node);
+	}
+	return PyValue::FromVector(result);
+}
+
+// ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
 
@@ -694,6 +731,9 @@ void GameScriptBridge::RegisterGameAPI() {
 		PyValue::Function("drain_events", py_drain_events, this);
 	globals.GetAdd("clear_events") =
 		PyValue::Function("clear_events", py_clear_events, this);
+	// AI pathfinding (Track 2)
+	globals.GetAdd("find_path") =
+		PyValue::Function("find_path", py_find_path, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

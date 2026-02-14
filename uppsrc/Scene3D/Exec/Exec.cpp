@@ -691,6 +691,145 @@ static SoftPhys::RigidbodyVolume* GetBodyFromPy(const PyValue& v) {
 	return ((PhysicsBodyProxy&)ud).body;
 }
 
+void ExecScriptRuntime::DriverAI::Init() {
+	ap.Clear();
+	ap.SetSize(0, 0);
+	wrapper.Create(ap);
+	atom_target_left = wrapper->GetAtomIndex("target_left");
+	atom_target_right = wrapper->GetAtomIndex("target_right");
+	atom_target_ahead = wrapper->GetAtomIndex("target_ahead");
+	atom_at_target = wrapper->GetAtomIndex("at_target");
+
+	act_turn_left = wrapper->GetEventIndex("turn_left");
+	act_turn_right = wrapper->GetEventIndex("turn_right");
+	act_go_straight = wrapper->GetEventIndex("go_straight");
+	act_stop = wrapper->GetEventIndex("stop");
+
+	wrapper->SetPreCondition("turn_left", "target_left", true);
+	wrapper->SetPreCondition("turn_right", "target_right", true);
+	wrapper->SetPreCondition("go_straight", "target_ahead", true);
+	wrapper->SetPreCondition("stop", "at_target", true);
+
+	wrapper->SetCost("turn_left", 2);
+	wrapper->SetCost("turn_right", 2);
+	wrapper->SetCost("go_straight", 1);
+	wrapper->SetCost("stop", 0);
+
+	inited = true;
+}
+
+int ExecScriptRuntime::DriverAI::PlanAction(const vec3& car_pos, float heading, const vec3& target_pos, float arrive_radius, float angle_thresh) {
+	if (!inited)
+		Init();
+	vec3 to = target_pos - car_pos;
+	float dist = sqrt(Dot(to, to));
+	bool at_target = dist <= arrive_radius;
+	bool target_left = false;
+	bool target_right = false;
+	bool target_ahead = false;
+	if (!at_target && dist > 0.0001f) {
+		vec3 dir = to / dist;
+		vec3 fwd = vec3(-sin(heading), 0.0f, cos(heading));
+		float dotv = Clamp(Dot(fwd, dir), -1.0f, 1.0f);
+		float ang = acos(dotv);
+		float cross = fwd[0] * dir[2] - fwd[2] * dir[0];
+		if (ang <= angle_thresh)
+			target_ahead = true;
+		else if (cross > 0.0f)
+			target_left = true;
+		else
+			target_right = true;
+	}
+	BinaryWorldState ws;
+	ws.mask = wrapper->GetMask();
+	ws.SetAtomIndex(atom_target_left, target_left);
+	ws.SetAtomIndex(atom_target_right, target_right);
+	ws.SetAtomIndex(atom_target_ahead, target_ahead);
+	ws.SetAtomIndex(atom_at_target, at_target);
+
+	Array<BinaryWorldState*> dest;
+	Vector<int> act_ids;
+	Vector<double> costs;
+	ap.GetPossibleStateTransition(ws, dest, act_ids, costs);
+	if (act_ids.IsEmpty())
+		return 0;
+	int best_i = 0;
+	double best_cost = costs[0];
+	for (int i = 1; i < costs.GetCount(); i++) {
+		if (costs[i] < best_cost) {
+			best_cost = costs[i];
+			best_i = i;
+		}
+	}
+	int act = act_ids[best_i];
+	if (act == act_turn_left)
+		return -1;
+	if (act == act_turn_right)
+		return 1;
+	if (act == act_stop)
+		return 2;
+	return 0;
+}
+
+Vector<int> ExecScriptRuntime::DriverAI::ComputeRoute(const Vector<vec3>& points, int start_idx, int goal_idx, double max_edge) {
+	Vector<int> out;
+	int n = points.GetCount();
+	if (n == 0 || start_idx < 0 || start_idx >= n || goal_idx < 0 || goal_idx >= n)
+		return out;
+	Vector<double> dist;
+	Vector<int> prev;
+	Vector<bool> used;
+	dist.SetCount(n, DBL_MAX);
+	prev.SetCount(n, -1);
+	used.SetCount(n, false);
+	dist[start_idx] = 0.0;
+	for (int i = 0; i < n; i++) {
+		int v = -1;
+		double best = DBL_MAX;
+		for (int j = 0; j < n; j++) {
+			if (!used[j] && dist[j] < best) {
+				best = dist[j];
+				v = j;
+			}
+		}
+		if (v < 0)
+			break;
+		used[v] = true;
+		if (v == goal_idx)
+			break;
+		for (int u = 0; u < n; u++) {
+			if (u == v)
+				continue;
+			vec3 diff = points[u] - points[v];
+			double d = sqrt(Dot(diff, diff));
+			if (max_edge > 0 && d > max_edge)
+				continue;
+			double nd = dist[v] + d;
+			if (nd < dist[u]) {
+				dist[u] = nd;
+				prev[u] = v;
+			}
+		}
+	}
+	int cur = goal_idx;
+	if (cur == start_idx) {
+		out.Add(cur);
+		return out;
+	}
+	if (prev[cur] == -1)
+		return out;
+	Vector<int> rev;
+	while (cur >= 0) {
+		rev.Add(cur);
+		if (cur == start_idx)
+			break;
+		cur = prev[cur];
+	}
+	for (int i = rev.GetCount() - 1; i >= 0; i--)
+		out.Add(rev[i]);
+	return out;
+}
+
 static PyValue Input_IsKeyDown(const Vector<PyValue>& args, void* user_data) {
 	if (args.GetCount() < 1)
 		return PyValue::False();
@@ -978,6 +1117,58 @@ static PyValue Physics_Step(const Vector<PyValue>& args, void* user_data) {
 	return PyValue::None();
 }
 
+static bool PyValueToVec3List(const PyValue& v, Vector<vec3>& out) {
+	out.Clear();
+	if (v.GetType() != PY_LIST && v.GetType() != PY_TUPLE)
+		return false;
+	int count = v.GetCount();
+	for (int i = 0; i < count; i++) {
+		vec3 pt(0, 0, 0);
+		if (!PyValueToVec3(v.GetItem(i), pt))
+			return false;
+		out.Add(pt);
+	}
+	return true;
+}
+
+static PyValue DriverAI_ComputeRoute(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 3)
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	Vector<vec3> pts;
+	if (!PyValueToVec3List(args[0], pts))
+		return PyValue::None();
+	int start_idx = args[1].AsInt();
+	int goal_idx = args[2].AsInt();
+	double max_edge = args.GetCount() > 3 ? args[3].AsDouble() : 0.0;
+	Vector<int> route = rt->driver_ai.ComputeRoute(pts, start_idx, goal_idx, max_edge);
+	PyValue list = PyValue::List();
+	for (int idx : route)
+		list.Add(PyValue(idx));
+	return list;
+}
+
+static PyValue DriverAI_PlanAction(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 3)
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	vec3 car_pos(0, 0, 0);
+	vec3 target_pos(0, 0, 0);
+	if (!PyValueToVec3(args[0], car_pos))
+		return PyValue::None();
+	float heading = (float)args[1].AsDouble();
+	if (!PyValueToVec3(args[2], target_pos))
+		return PyValue::None();
+	float arrive = args.GetCount() > 3 ? (float)args[3].AsDouble() : 1.5f;
+	float ang_thresh = args.GetCount() > 4 ? (float)args[4].AsDouble() : 0.3f;
+	int action = rt->driver_ai.PlanAction(car_pos, heading, target_pos, arrive, ang_thresh);
+	return PyValue(action);
+}
+
 static PyValue ExecTrace(const Vector<PyValue>& args, void* user_data) {
 	String out;
 	for (int i = 0; i < args.GetCount(); i++) {
@@ -1143,6 +1334,11 @@ void ExecScriptRuntime::RegisterScriptVM(PyVM& vm) {
 		PY_MODULE_FUNC(create_sphere, Physics_CreateSphere, this);
 		PY_MODULE_FUNC(bind, Physics_Bind, this);
 		PY_MODULE_FUNC(step, Physics_Step, this);
+	}
+	{
+		PY_MODULE(driver_ai, vm)
+		PY_MODULE_FUNC(compute_route, DriverAI_ComputeRoute, this);
+		PY_MODULE_FUNC(plan_action, DriverAI_PlanAction, this);
 	}
 	PyValue root_obj = PyValue::None();
 	if (state && state->HasActiveScene())

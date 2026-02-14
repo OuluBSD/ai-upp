@@ -466,7 +466,9 @@ GUI_APP_MAIN {
 	cmd.AddArg("frustum-dump-out", 0, "Dump frustum output to file", true, "path");
 	cmd.AddArg("headless-mouse-test", 0, "Run headless mouse delta test", false);
 	cmd.AddArg("headless-drive-test", 0, "Run headless drive test (W key)", false);
+	cmd.AddArg("headless-drive-ai-test", 0, "Run headless drive test (AI driving)", false);
 	cmd.AddArg("drive-test-frames", 0, "Drive test frame count", true, "count");
+	cmd.AddArg("drive-ai-frames", 0, "Drive AI test frame count", true, "count");
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
@@ -540,6 +542,7 @@ GUI_APP_MAIN {
 		bool frustum_dump = cmd.IsArg("headless-frustum-dump");
 		bool mouse_test = cmd.IsArg("headless-mouse-test");
 		bool drive_test = cmd.IsArg("headless-drive-test");
+		bool drive_ai_test = cmd.IsArg("headless-drive-ai-test");
 		bool snapshot = cmd.IsArg("headless-snapshot");
 		String snapshot_path;
 		if (snapshot)
@@ -572,10 +575,12 @@ GUI_APP_MAIN {
 					return;
 				}
 			}
-			if (drive_test) {
+			if (drive_ai_test || drive_test) {
 				int frames = 120;
 				if (cmd.IsArg("drive-test-frames"))
 					frames = max(1, StrInt(cmd.GetArg("drive-test-frames")));
+				if (drive_ai_test && cmd.IsArg("drive-ai-frames"))
+					frames = max(1, StrInt(cmd.GetArg("drive-ai-frames")));
 				if (!state.HasActiveScene()) {
 					Cout() << "DriveTest: missing active scene\n";
 					SetExitCode(2);
@@ -596,39 +601,54 @@ GUI_APP_MAIN {
 				}
 				double start_x = tr->position[0];
 				double start_z = tr->position[2];
-				runtime.input.SetKey(87, true);
-				for (int i = 0; i < frames; i++) {
-					runtime.input.BeginFrame();
-					anim.Update(dt);
-					runtime.Update(dt);
+				if (drive_ai_test) {
+					for (int i = 0; i < frames; i++) {
+						runtime.input.BeginFrame();
+						anim.Update(dt);
+						runtime.Update(dt);
+					}
+					double end_z = tr->position[2];
+					Cout() << "DriveAITest: start_z=" << start_z << " end_z=" << end_z << "\n";
+					if (end_z <= start_z + 0.5) {
+						SetExitCode(2);
+						return;
+					}
 				}
-				runtime.input.SetKey(87, false);
-				double mid_x = tr->position[0];
-				double mid_z = tr->position[2];
-				Cout() << "DriveTest: start_z=" << start_z << " mid_z=" << mid_z << "\n";
-				if (mid_z <= start_z + 0.5) {
-					SetExitCode(2);
-					return;
-				}
-				runtime.input.SetKey(87, true);
-				runtime.input.SetKey(65, true);
-				for (int i = 0; i < frames; i++) {
-					runtime.input.BeginFrame();
-					anim.Update(dt);
-					runtime.Update(dt);
-				}
-				runtime.input.SetKey(87, false);
-				runtime.input.SetKey(65, false);
-				double end_x = tr->position[0];
-				double end_z = tr->position[2];
-				Cout() << "DriveTest: mid_x=" << mid_x << " end_x=" << end_x
-				       << " mid_z=" << mid_z << " end_z=" << end_z << "\n";
-				double dx = end_x - mid_x;
-				double dz = end_z - mid_z;
-				double dist = sqrt(dx * dx + dz * dz);
-				if (fabs(dx) < 0.2 || dist < 0.5) {
-					SetExitCode(2);
-					return;
+				if (drive_test) {
+					runtime.input.SetKey(87, true);
+					for (int i = 0; i < frames; i++) {
+						runtime.input.BeginFrame();
+						anim.Update(dt);
+						runtime.Update(dt);
+					}
+					runtime.input.SetKey(87, false);
+					double mid_x = tr->position[0];
+					double mid_z = tr->position[2];
+					Cout() << "DriveTest: start_z=" << start_z << " mid_z=" << mid_z << "\n";
+					if (mid_z <= start_z + 0.5) {
+						SetExitCode(2);
+						return;
+					}
+					runtime.input.SetKey(87, true);
+					runtime.input.SetKey(65, true);
+					for (int i = 0; i < frames; i++) {
+						runtime.input.BeginFrame();
+						anim.Update(dt);
+						runtime.Update(dt);
+					}
+					runtime.input.SetKey(87, false);
+					runtime.input.SetKey(65, false);
+					double end_x = tr->position[0];
+					double end_z = tr->position[2];
+					Cout() << "DriveTest: mid_x=" << mid_x << " end_x=" << end_x
+					       << " mid_z=" << mid_z << " end_z=" << end_z << "\n";
+					double dx = end_x - mid_x;
+					double dz = end_z - mid_z;
+					double dist = sqrt(dx * dx + dz * dz);
+					if (fabs(dx) < 0.2 || dist < 0.5) {
+						SetExitCode(2);
+						return;
+					}
 				}
 			}
 			Image out_img;

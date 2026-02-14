@@ -92,6 +92,10 @@ def on_start():
     state["lap"] = 0
     state["next_checkpoint"] = 0
     state["frame_count"] = 0
+    state["ai_enabled"] = True
+    state["route"] = ()
+    state["route_pos"] = 0
+    state["checkpoint_pts"] = ()
 
     _set_scale(state["ground"], 25.0, 0.2, 25.0)
     _set_pos(state["ground"], 0.0, -0.6, 0.0)
@@ -111,6 +115,17 @@ def on_start():
     _set_pos(state["checkpoint1"], _checkpoint_x(0), 0.6, _checkpoint_z(0))
     _set_pos(state["checkpoint2"], _checkpoint_x(1), 0.6, _checkpoint_z(1))
     _set_pos(state["goal"], _checkpoint_x(2), 0.6, _checkpoint_z(2))
+
+    state["checkpoint_pts"] = (
+        (_checkpoint_x(0), 0.0, _checkpoint_z(0)),
+        (_checkpoint_x(1), 0.0, _checkpoint_z(1)),
+        (_checkpoint_x(2), 0.0, _checkpoint_z(2)),
+    )
+    route = driver_ai.compute_route(state["checkpoint_pts"], 0, 2, 20.0)
+    if route == None or len(route) == 0:
+        route = (0, 1, 2)
+    state["route"] = route
+    state["route_pos"] = 0
 
     state["world"] = physics.create_world()
     state["space"] = physics.create_space(state["world"])
@@ -138,22 +153,60 @@ def on_frame(dt):
     lap = _get("lap", 0)
     next_checkpoint = _get("next_checkpoint", 0)
 
+    manual = input.isKeyDown(KEY_W) or input.isKeyDown(KEY_S) or input.isKeyDown(KEY_A) or input.isKeyDown(KEY_D)
+    ai_enabled = _get("ai_enabled", True)
+
     steer = 0.0
-    if input.isKeyDown(KEY_A):
-        steer = -1.0
-    elif input.isKeyDown(KEY_D):
-        steer = 1.0
+    ai_action = 0
+    if ai_enabled and not manual:
+        route = _get("route", ())
+        route_pos = _get("route_pos", 0)
+        if route_pos >= len(route):
+            route_pos = 0
+        if len(route) > 0:
+            target_idx = route[route_pos]
+        else:
+            target_idx = next_checkpoint
+        pts = _get("checkpoint_pts", ())
+        target = (_checkpoint_x(target_idx), 0.0, _checkpoint_z(target_idx))
+        if len(pts) > target_idx:
+            target = pts[target_idx]
+        car_body_rb = state["car_body_rb"]
+        car_pos = (0.0, 0.0, 0.0)
+        if car_body_rb != None:
+            pos = car_body_rb.position
+            car_pos = (pos[0], 0.0, pos[2])
+        ai_action = driver_ai.plan_action(car_pos, heading, target, 1.5, 0.35)
+        if ai_action == -1:
+            steer = -1.0
+        elif ai_action == 1:
+            steer = 1.0
+        else:
+            steer = 0.0
+    else:
+        if input.isKeyDown(KEY_A):
+            steer = -1.0
+        elif input.isKeyDown(KEY_D):
+            steer = 1.0
+
     heading = heading + steer * TURN_RATE * dt
 
-    if input.isKeyDown(KEY_W):
-        speed = min(MAX_SPEED, speed + ACCEL * dt)
-    if input.isKeyDown(KEY_S):
-        speed = max(-MAX_SPEED * 0.5, speed - DECEL * dt)
-    if not input.isKeyDown(KEY_W) and not input.isKeyDown(KEY_S):
-        if speed > 0.0:
-            speed = max(0.0, speed - DECEL * dt)
-        elif speed < 0.0:
-            speed = min(0.0, speed + DECEL * dt)
+    if ai_enabled and not manual:
+        if ai_action == 2:
+            if speed > 0.0:
+                speed = max(0.0, speed - DECEL * dt)
+        else:
+            speed = min(MAX_SPEED, speed + ACCEL * dt)
+    else:
+        if input.isKeyDown(KEY_W):
+            speed = min(MAX_SPEED, speed + ACCEL * dt)
+        if input.isKeyDown(KEY_S):
+            speed = max(-MAX_SPEED * 0.5, speed - DECEL * dt)
+        if not input.isKeyDown(KEY_W) and not input.isKeyDown(KEY_S):
+            if speed > 0.0:
+                speed = max(0.0, speed - DECEL * dt)
+            elif speed < 0.0:
+                speed = min(0.0, speed + DECEL * dt)
 
     dx = -sin(heading)
     dz = cos(heading)
@@ -212,6 +265,19 @@ def on_frame(dt):
             print("Lap", lap)
             if lap >= 3:
                 exec.exit()
+
+    if ai_enabled and not manual:
+        route = _get("route", ())
+        route_pos = _get("route_pos", 0)
+        if route_pos < len(route):
+            target_idx = route[route_pos]
+            tx = _checkpoint_x(target_idx)
+            tz = _checkpoint_z(target_idx)
+            if _near_checkpoint(car_x, car_z, tx, tz):
+                route_pos = route_pos + 1
+                if route_pos >= len(route):
+                    route_pos = 0
+                state["route_pos"] = route_pos
 
     state["car_heading"] = heading
     state["car_speed"] = speed

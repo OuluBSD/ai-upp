@@ -695,6 +695,9 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 		if (!current_tree_path.IsEmpty())
 			StorePropsCursor(current_tree_path);
 	};
+	tree.SetLayoutId("Scene Tree");
+	props.SetLayoutId("Properties");
+	time.SetLayoutId("Timeline");
 	
 	
 	tree.NoHeader();

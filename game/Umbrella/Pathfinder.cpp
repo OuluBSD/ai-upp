@@ -30,34 +30,36 @@ bool Pathfinder::IsPassable(int col, int row) const {
 	return t != TILE_WALL && t != TILE_FULLBLOCK;
 }
 
-// A tile is walkable if it's passable and there's solid ground beneath it.
+// A tile is walkable if it's passable, has head clearance above, and solid ground below.
+// NOTE: Y-UP coordinate system - row+1 is above (ceiling), row-1 is below (floor).
 bool Pathfinder::IsWalkable(int col, int row) const {
 	if(!IsPassable(col, row)) return false;
-	// Also verify head clearance (1 tile above must be passable too)
-	if(!IsPassable(col, row - 1)) return false;
-	// Must have solid ground directly below
-	return IsSolid(col, row + 1);
+	// Head clearance: tile above (row+1) must be passable
+	if(!IsPassable(col, row + 1)) return false;
+	// Must have solid ground directly below (row-1)
+	return IsSolid(col, row - 1);
 }
 
 bool Pathfinder::CanJumpTo(int fc, int fr, int tc, int tr) const {
-	int dh = fr - tr;  // Height gain (positive = jumping up)
+	// Y-UP: jumping up means tr > fr (larger row = higher in world)
+	int dh = tr - fr;  // Height gain (positive = jumping up in Y-UP)
 	int dw = tc - fc;  // Horizontal offset (signed)
 	if(dh <= 0 || dh > MAX_JUMP_HEIGHT) return false;
 	if(abs(dw) > MAX_JUMP_WIDTH) return false;
 	if(!IsWalkable(tc, tr)) return false;
-	// Check that column is not blocked by solid between fr and tr
-	// (simplified: just check head clearance at destination)
-	return IsPassable(tc, tr - 1);
+	// Head clearance at destination: tile above (tr+1) must be passable
+	return IsPassable(tc, tr + 1);
 }
 
 bool Pathfinder::CanFallTo(int fc, int fr, int tc, int tr) const {
-	int dd = tr - fr;  // Depth (positive = falling down)
+	// Y-UP: falling down means tr < fr (smaller row = lower in world)
+	int dd = fr - tr;  // Drop depth (positive = falling down in Y-UP)
 	int dw = tc - fc;
 	if(dd <= 0 || dd > MAX_FALL_DEPTH) return false;
 	if(abs(dw) > 1) return false;  // Can only fall 1 tile sideways
 	if(!IsWalkable(tc, tr)) return false;
-	// Make sure the fall path is clear (no solid between fr+1 and tr)
-	for(int r = fr + 1; r < tr; r++) {
+	// Make sure the fall path is clear (no solid between fr-1 down to tr+1)
+	for(int r = fr - 1; r > tr; r--) {
 		if(!IsPassable(fc, r)) return false;
 	}
 	return true;
@@ -106,18 +108,18 @@ void Pathfinder::AddNeighbors(int nodeIdx, int goalCol, int goalRow,
 	if(IsWalkable(c - 1, r)) TryAdd(c - 1, r, MOVE_WALK, 1.0f);
 	if(IsWalkable(c + 1, r)) TryAdd(c + 1, r, MOVE_WALK, 1.0f);
 
-	// Jump up (up to MAX_JUMP_HEIGHT tiles high, up to MAX_JUMP_WIDTH sideways)
+	// Jump up (Y-UP: up = increasing row, nr = r + dh)
 	for(int dh = 1; dh <= MAX_JUMP_HEIGHT; dh++) {
 		for(int dw = -MAX_JUMP_WIDTH; dw <= MAX_JUMP_WIDTH; dw++) {
-			int nc = c + dw, nr = r - dh;
+			int nc = c + dw, nr = r + dh;
 			if(CanJumpTo(c, r, nc, nr)) TryAdd(nc, nr, MOVE_JUMP, 1.5f);
 		}
 	}
 
-	// Fall down (at most 1 tile sideways)
+	// Fall down (Y-UP: down = decreasing row, nr = r - dd)
 	for(int dd = 1; dd <= MAX_FALL_DEPTH; dd++) {
 		for(int dw = -1; dw <= 1; dw++) {
-			int nc = c + dw, nr = r + dd;
+			int nc = c + dw, nr = r - dd;
 			if(CanFallTo(c, r, nc, nr)) TryAdd(nc, nr, MOVE_FALL, 1.2f);
 		}
 	}

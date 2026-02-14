@@ -34,10 +34,13 @@ bool NavGraph::IsPassable(int col, int row) const {
 	return t != TILE_WALL && t != TILE_FULLBLOCK;
 }
 
+// NOTE: Y-UP coordinate system - row+1 is above (ceiling), row-1 is below (floor).
 bool NavGraph::IsWalkable(int col, int row) const {
 	if(!IsPassable(col, row)) return false;
-	if(!IsPassable(col, row - 1)) return false;
-	return IsSolid(col, row + 1);
+	// Head clearance: tile above (row+1) must be passable
+	if(!IsPassable(col, row + 1)) return false;
+	// Must have solid ground directly below (row-1)
+	return IsSolid(col, row - 1);
 }
 
 // ============================================================================
@@ -47,26 +50,27 @@ bool NavGraph::IsWalkable(int col, int row) const {
 
 bool NavGraph::HasEdge(int fc, int fr, int tc, int tr) const {
 	if(!IsWalkable(fc, fr) || !IsWalkable(tc, tr)) return false;
-	int dh = fr - tr;  // positive = going up
+	// Y-UP: dh > 0 means going up (tr > fr), dh < 0 means going down (tr < fr)
+	int dh = tr - fr;
 	int dw = tc - fc;  // signed horizontal
 
 	// Walk: same row, one tile
 	if(dh == 0 && (dw == 1 || dw == -1)) return true;
 
-	// Jump: going up
+	// Jump: going up (dh > 0 in Y-UP)
 	if(dh >= 1 && dh <= Pathfinder::MAX_JUMP_HEIGHT) {
 		if(abs(dw) <= Pathfinder::MAX_JUMP_WIDTH) {
-			// Check head clearance at destination
-			if(IsPassable(tc, tr - 1)) return true;
+			// Head clearance at destination: tile above (tr+1) must be passable
+			if(IsPassable(tc, tr + 1)) return true;
 		}
 	}
 
-	// Fall: going down, at most 1 tile sideways
+	// Fall: going down (dh < 0 in Y-UP), at most 1 tile sideways
 	if(dh <= -1 && dh >= -Pathfinder::MAX_FALL_DEPTH) {
 		if(abs(dw) <= 1) {
-			// Verify fall column is clear between fr+1 and tr
+			// Verify fall column is clear between fr-1 down to tr+1
 			bool clear = true;
-			for(int r = fr + 1; r < tr; r++) {
+			for(int r = fr - 1; r > tr; r--) {
 				if(!IsPassable(fc, r)) { clear = false; break; }
 			}
 			if(clear) return true;
@@ -107,17 +111,17 @@ void NavGraph::FloodFill(int startCol, int startRow, int compId) {
 		TryNeighbor(c - 1, r);
 		TryNeighbor(c + 1, r);
 
-		// Jump
+		// Jump (Y-UP: up = increasing row, nr = r + dh)
 		for(int dh = 1; dh <= Pathfinder::MAX_JUMP_HEIGHT; dh++) {
 			for(int dw = -Pathfinder::MAX_JUMP_WIDTH; dw <= Pathfinder::MAX_JUMP_WIDTH; dw++) {
-				TryNeighbor(c + dw, r - dh);
+				TryNeighbor(c + dw, r + dh);
 			}
 		}
 
-		// Fall
+		// Fall (Y-UP: down = decreasing row, nr = r - dd)
 		for(int dd = 1; dd <= Pathfinder::MAX_FALL_DEPTH; dd++) {
 			for(int dw = -1; dw <= 1; dw++) {
-				TryNeighbor(c + dw, r + dd);
+				TryNeighbor(c + dw, r - dd);
 			}
 		}
 	}

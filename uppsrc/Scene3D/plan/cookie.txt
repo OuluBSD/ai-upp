@@ -358,3 +358,7 @@
   task: track-gui-automation/phase-02-coverage/task-0201-tree-ops.md
   status: done
   note: Added tree ops automation test covering Tree menu entries and node creation/selection.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0202-props-editing.md
+  status: done
+  note: Added props editing automation test and exposed dock labels for automation.

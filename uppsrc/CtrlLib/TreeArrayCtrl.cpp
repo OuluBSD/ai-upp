@@ -131,6 +131,7 @@ TreeArrayCtrl::~TreeArrayCtrl() {}
 bool TreeArrayCtrl::Access(Visitor& v)
 {
 	ArrayCtrl::Access(v);
+	v.AccessLabel("TreeArrayCtrl");
 	v.AccessMenu("Tree Nodes", [this](Visitor& b) {
 		auto AddNode = [&](auto&& self, int id, const String& path) -> void {
 			if(id < 0 || id >= item.GetCount())

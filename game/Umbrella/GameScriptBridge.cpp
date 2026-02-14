@@ -559,6 +559,53 @@ static PyValue py_tick_game_frames(const Vector<PyValue>& args, void* user_data)
 }
 
 // ============================================================================
+// Phase 5: Game Event Queue API
+// Events are produced by GameScreen during GameTick and consumed here.
+// The queue is decoupled (plain struct) so Shell integration can reuse it.
+// ============================================================================
+
+// get_events() -> list of {type, data} dicts (non-destructive peek)
+static PyValue py_get_events(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::FromVector(Vector<PyValue>());
+
+	const Vector<GameEvent>& queue = bridge->GetGameScreen()->eventQueue;
+	Vector<PyValue> result;
+	for(int i = 0; i < queue.GetCount(); i++) {
+		PyValue ev = PyValue::Dict();
+		ev.SetItem(PyValue(String("type")), PyValue(queue[i].type));
+		ev.SetItem(PyValue(String("data")), PyValue((int64)queue[i].data));
+		result.Add(ev);
+	}
+	return PyValue::FromVector(result);
+}
+
+// drain_events() -> list of {type, data} dicts, clears the queue
+static PyValue py_drain_events(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::FromVector(Vector<PyValue>());
+
+	Vector<GameEvent>& queue = bridge->GetGameScreen()->eventQueue;
+	Vector<PyValue> result;
+	for(int i = 0; i < queue.GetCount(); i++) {
+		PyValue ev = PyValue::Dict();
+		ev.SetItem(PyValue(String("type")), PyValue(queue[i].type));
+		ev.SetItem(PyValue(String("data")), PyValue((int64)queue[i].data));
+		result.Add(ev);
+	}
+	queue.Clear();
+	return PyValue::FromVector(result);
+}
+
+// clear_events() - discard all pending events
+static PyValue py_clear_events(const Vector<PyValue>& args, void* user_data) {
+	GameScriptBridge* bridge = (GameScriptBridge*)user_data;
+	if(!bridge || !bridge->GetGameScreen()) return PyValue::None();
+	bridge->GetGameScreen()->eventQueue.Clear();
+	return PyValue::None();
+}
+
+// ============================================================================
 // GameScriptBridge Implementation
 // ============================================================================
 
@@ -640,6 +687,13 @@ void GameScriptBridge::RegisterGameAPI() {
 		PyValue::Function("tick_game", py_tick_game, this);
 	globals.GetAdd("tick_game_frames") =
 		PyValue::Function("tick_game_frames", py_tick_game_frames, this);
+	// Event queue (Phase 5)
+	globals.GetAdd("get_events") =
+		PyValue::Function("get_events", py_get_events, this);
+	globals.GetAdd("drain_events") =
+		PyValue::Function("drain_events", py_drain_events, this);
+	globals.GetAdd("clear_events") =
+		PyValue::Function("clear_events", py_clear_events, this);
 }
 
 bool GameScriptBridge::ExecuteScript(const String& scriptPath) {

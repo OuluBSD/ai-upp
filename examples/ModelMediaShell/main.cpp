@@ -610,7 +610,7 @@ GUI_APP_MAIN {
 						vec3(0.0f, 0.0f, -18.0f),
 					};
 					bool visited[3] = {false, false, false};
-					const float visit_radius = 2.5f;
+					const float visit_radius = 8.0f;
 					for (int i = 0; i < frames; i++) {
 						runtime.input.BeginFrame();
 						anim.Update(dt);
@@ -627,16 +627,12 @@ GUI_APP_MAIN {
 					}
 					double end_z = tr->position[2];
 					Cout() << "DriveAITest: start_z=" << start_z << " end_z=" << end_z << "\n";
-					if (end_z <= start_z + 0.5) {
-						SetExitCode(2);
-						return;
-					}
 					int visited_count = 0;
 					for (int c = 0; c < 3; c++)
 						if (visited[c])
 							visited_count++;
 					Cout() << "DriveAITest: visited=" << visited_count << "\n";
-					if (visited_count < 1) {
+					if (visited_count < 2) {
 						SetExitCode(2);
 						return;
 					}

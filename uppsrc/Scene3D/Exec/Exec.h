@@ -6,6 +6,9 @@
 #include <ByteVM/ByteVM.h>
 #include <ByteVM/PyBindings.h>
 #include <SoftPhys/SoftPhys.h>
+#include <Core/VfsBase/WorldState.h>
+#include <Vfs/Core/VfsValueExt.h>
+#include <AI/Core/Base/Base.h>
 
 NAMESPACE_UPP
 
@@ -77,6 +80,26 @@ struct ExecScriptRuntime {
 	};
 
 	PhysicsState physics;
+
+	struct DriverAI {
+		ActionPlanner ap;
+		One<ActionPlannerWrapper> wrapper;
+		int atom_target_left = -1;
+		int atom_target_right = -1;
+		int atom_target_ahead = -1;
+		int atom_at_target = -1;
+		int act_turn_left = -1;
+		int act_turn_right = -1;
+		int act_go_straight = -1;
+		int act_stop = -1;
+		bool inited = false;
+
+		void Init();
+		int PlanAction(const vec3& car_pos, float heading, const vec3& target_pos, float arrive_radius, float angle_thresh);
+		Vector<int> ComputeRoute(const Vector<vec3>& points, int start_idx, int goal_idx, double max_edge);
+	};
+
+	DriverAI driver_ai;
 
 	struct ScriptInstance {
 		GeomScript* script = nullptr;

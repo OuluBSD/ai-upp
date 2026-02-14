@@ -16,7 +16,7 @@ struct MaterialParameters {
 	vec4 base_clr_factor{ 1, 1, 1, 1 };
 	float metallic_factor{ 1 };
 	float roughness_factor{ 1 };
-	vec3 emissive_factor{ 1, 1, 1 };
+	vec3 emissive_factor{ 0, 0, 0 };
 	float normal_scale{ 1 };
 	float occlusion_strength{ 1 };
 	

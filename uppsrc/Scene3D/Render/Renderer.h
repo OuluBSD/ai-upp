@@ -1,7 +1,7 @@
 #ifndef _Scene3D_Render_Renderer_h_
 #define _Scene3D_Render_Renderer_h_
 
-struct EditRendererBase : public Ctrl {
+struct EditRendererBase : public GLCtrl {
 	Scene3DRenderContext* ctx = 0;
 	ViewMode view_mode = VIEWMODE_YZ;
 	CameraSource cam_src = CAMSRC_FOCUS;
@@ -67,6 +67,12 @@ struct EditRendererV1 : public EditRendererBase {
 struct EditRendererV2 : public EditRendererBase {
 	typedef EditRendererV2 CLASSNAME;
 	EditRendererV2();
+	void Paint(Draw& d) override;
+};
+
+struct EditRendererV2_Ogl : public EditRendererBase {
+	typedef EditRendererV2_Ogl CLASSNAME;
+	EditRendererV2_Ogl();
 	void Paint(Draw& d) override;
 };
 

@@ -10,6 +10,7 @@ using namespace Upp;
 namespace {
 
 void FixCamera(GeomCamera& cam);
+void PrintModelBounds(const String& name, const String& path, const Model& mdl);
 
 bool LoadExecutionProjectCommon(const String& manifest_path,
                                 Scene3DDocument& doc,
@@ -50,8 +51,10 @@ bool LoadExecutionProjectCommon(const String& manifest_path,
 	{
 		GeomCamera& program = state.GetProgram();
 		if (program.position.GetLength() < 0.001f) {
-			program.position = vec3(0, 0, 10);
-			program.orientation = Identity<quat>();
+			program.position = vec3(0, 5, 14);
+			mat4 view = LookAt(program.position, vec3(0, 0, 5), vec3(0, 1, 0));
+			mat4 world = view.GetInverse();
+			program.orientation = MatQuat(world);
 		}
 	}
 	state.UpdateObjects();
@@ -101,6 +104,38 @@ void FixCamera(GeomCamera& cam) {
 	}
 }
 
+void PrintModelBounds(const String& name, const String& path, const Model& mdl) {
+	bool has = false;
+	vec3 mn, mx;
+	for (const Mesh& mesh : mdl.meshes) {
+		vec3 tmin, tmax;
+		mesh.GetMinMax(tmin, tmax);
+		if (!has) {
+			mn = tmin;
+			mx = tmax;
+			has = true;
+		}
+		else {
+			mn[0] = min(mn[0], tmin[0]);
+			mn[1] = min(mn[1], tmin[1]);
+			mn[2] = min(mn[2], tmin[2]);
+			mx[0] = max(mx[0], tmax[0]);
+			mx[1] = max(mx[1], tmax[1]);
+			mx[2] = max(mx[2], tmax[2]);
+		}
+	}
+	if (!has) {
+		Cout() << "ModelBounds: " << name << " path=" << path << " meshes=0\n";
+		return;
+	}
+	vec3 dims = mx - mn;
+	Cout() << "ModelBounds: " << name << " path=" << path
+	       << " min=(" << mn[0] << "," << mn[1] << "," << mn[2] << ")"
+	       << " max=(" << mx[0] << "," << mx[1] << "," << mx[2] << ")"
+	       << " size=(" << dims[0] << "," << dims[1] << "," << dims[2] << ")"
+	       << " meshes=" << mdl.meshes.GetCount() << "\n";
+}
+
 void LoadModels(GeomWorldState& state, Scene3DDocument& doc, ExecScriptRuntime& runtime) {
 	for (GeomScene& scene : doc.project->val.Sub<GeomScene>()) {
 		GeomObjectCollection objects(scene);
@@ -113,17 +148,20 @@ void LoadModels(GeomWorldState& state, Scene3DDocument& doc, ExecScriptRuntime& 
 				ModelBuilder mb;
 				mb.AddBox(0, 1, 1);
 				obj.mdl = mb.Detach();
+				PrintModelBounds(obj.name, "<box>", *obj.mdl);
 				continue;
 			}
 			String resolved = runtime.ResolvePath(obj.asset_ref);
 			ModelLoader loader;
 			if (!resolved.IsEmpty() && loader.LoadModel(resolved)) {
 				obj.mdl = pick(loader.model);
+				PrintModelBounds(obj.name, resolved, *obj.mdl);
 			}
 			else {
 				ModelBuilder mb;
 				mb.AddBox(0, 1, 1);
 				obj.mdl = mb.Detach();
+				PrintModelBounds(obj.name, "<box>", *obj.mdl);
 			}
 		}
 	}
@@ -158,7 +196,7 @@ int HeadlessPrompt(Event<const String&>, const char* title, const Image&, const 
 
 class ModelMediaShell : public TopWindow {
 	typedef ModelMediaShell CLASSNAME;
-	EditRendererV2 renderer;
+	EditRendererV2_Ogl renderer;
 	Scene3DRenderConfig conf;
 	Scene3DRenderContext ctx;
 	VfsValue state_val;
@@ -231,8 +269,13 @@ bool ModelMediaShell::LoadExecutionProject(const String& manifest_path) {
 }
 
 bool ModelMediaShell::Key(dword key, int count) {
-	if (loaded)
-		runtime.DispatchInputEvent((key & K_UP) ? "keyUp" : "keyDown", Point(0, 0), 0, (int)key, 0);
+	if (loaded) {
+		String desc = GetKeyDesc(key);
+		Cout() << "ModelMediaShell Key: key=" << key << " desc=" << desc
+		       << " up=" << ((key & K_KEYUP) ? 1 : 0) << "\n";
+		Cout().Flush();
+		runtime.DispatchInputEvent((key & K_KEYUP) ? "keyUp" : "keyDown", Point(0, 0), 0, (int)key, 0);
+	}
 	return TopWindow::Key(key, count);
 }
 

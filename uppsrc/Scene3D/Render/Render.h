@@ -2,6 +2,19 @@
 #define _Scene3D_Render_Render_h_
 
 #include <CtrlLib/CtrlLib.h>
+#include <GLCtrl/GLCtrl.h>
+#ifdef Complex
+#undef Complex
+#endif
+#ifdef None
+#undef None
+#endif
+#ifdef True
+#undef True
+#endif
+#ifdef False
+#undef False
+#endif
 #include <Scene3D/Core/Core.h>
 #include <Scene3D/IO/IO.h>
 
@@ -56,7 +69,9 @@ struct Scene3DRenderStats {
 };
 
 bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStats* out_stats = nullptr,
-                           Image* out_image = nullptr, String* out_debug = nullptr, bool dump_first_tri = false);
+                           Image* out_image = nullptr, String* out_debug = nullptr, bool dump_first_tri = false,
+                           ViewMode view_mode = VIEWMODE_PERSPECTIVE, const GeomCamera* cam_override = nullptr,
+                           bool wireframe_only = false);
 
 #include "Renderer.h"
 #include "SoftRendCtrl.h"

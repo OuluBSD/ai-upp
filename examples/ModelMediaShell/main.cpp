@@ -11,6 +11,8 @@ namespace {
 
 void FixCamera(GeomCamera& cam);
 void PrintModelBounds(const String& name, const String& path, const Model& mdl);
+static AABB ComputeModelAABB(const Model& mdl);
+static AABB TransformAABB(const AABB& aabb, const mat4& world);
 
 bool LoadExecutionProjectCommon(const String& manifest_path,
                                 Scene3DDocument& doc,
@@ -102,6 +104,52 @@ void FixCamera(GeomCamera& cam) {
 		mat4 world = view.GetInverse();
 		cam.orientation = MatQuat(world);
 	}
+}
+
+static AABB ComputeModelAABB(const Model& mdl) {
+	vec3 minv(FLT_MAX);
+	vec3 maxv(-FLT_MAX);
+	for (const Mesh& mesh : mdl.meshes) {
+		for (const Vertex& v : mesh.vertices) {
+			vec3 p = v.position.Splice();
+			minv[0] = min(minv[0], p[0]);
+			minv[1] = min(minv[1], p[1]);
+			minv[2] = min(minv[2], p[2]);
+			maxv[0] = max(maxv[0], p[0]);
+			maxv[1] = max(maxv[1], p[1]);
+			maxv[2] = max(maxv[2], p[2]);
+		}
+	}
+	if (minv[0] == FLT_MAX)
+		return AABB(vec3(0), vec3(0));
+	return FromMinMax(minv, maxv);
+}
+
+static AABB TransformAABB(const AABB& aabb, const mat4& world) {
+	vec3 mn = GetMin(aabb);
+	vec3 mx = GetMax(aabb);
+	vec3 corners[8] = {
+		vec3(mn[0], mn[1], mn[2]),
+		vec3(mx[0], mn[1], mn[2]),
+		vec3(mn[0], mx[1], mn[2]),
+		vec3(mx[0], mx[1], mn[2]),
+		vec3(mn[0], mn[1], mx[2]),
+		vec3(mx[0], mn[1], mx[2]),
+		vec3(mn[0], mx[1], mx[2]),
+		vec3(mx[0], mx[1], mx[2])
+	};
+	vec3 minv(FLT_MAX);
+	vec3 maxv(-FLT_MAX);
+	for (int i = 0; i < 8; i++) {
+		vec3 p = (world * corners[i].Embed()).Splice();
+		minv[0] = min(minv[0], p[0]);
+		minv[1] = min(minv[1], p[1]);
+		minv[2] = min(minv[2], p[2]);
+		maxv[0] = max(maxv[0], p[0]);
+		maxv[1] = max(maxv[1], p[1]);
+		maxv[2] = max(maxv[2], p[2]);
+	}
+	return FromMinMax(minv, maxv);
 }
 
 void PrintModelBounds(const String& name, const String& path, const Model& mdl) {
@@ -316,8 +364,12 @@ GUI_APP_MAIN {
 	cmd.AddArg("headless", 0, "Render one frame headless and print stats", false);
 	cmd.AddArg("headless-debug", 0, "Dump first triangle clip-space details when headless render fails", false);
 	cmd.AddArg("dump-first-tri", 0, "Dump first triangle clip-space details when headless render fails", false);
+	cmd.AddArg("headless-sweep", 0, "Sweep camera around target and validate frustum + render stats", false);
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
+	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
+	cmd.AddArg("sweep-radius", 0, "Headless sweep radius", true, "radius");
+	cmd.AddArg("sweep-height", 0, "Headless sweep height", true, "height");
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -374,18 +426,74 @@ GUI_APP_MAIN {
 		Scene3DRenderStats stats;
 		String debug_dump;
 		bool dump_first_tri = cmd.IsArg("headless-debug") || cmd.IsArg("dump-first-tri");
-		if (!RenderSceneV2Headless(ctx, sz, &stats, nullptr, &debug_dump, dump_first_tri)) {
-			Cout() << "RenderStatsV2: failed\n";
-			SetExitCode(2);
+		bool sweep = cmd.IsArg("headless-sweep");
+		int sweep_frames = 24;
+		double sweep_radius = 12.0;
+		double sweep_height = 3.0;
+		if (cmd.IsArg("sweep-frames"))
+			sweep_frames = max(4, StrInt(cmd.GetArg("sweep-frames")));
+		if (cmd.IsArg("sweep-radius"))
+			sweep_radius = StrDbl(cmd.GetArg("sweep-radius"));
+		if (cmd.IsArg("sweep-height"))
+			sweep_height = StrDbl(cmd.GetArg("sweep-height"));
+		if (!sweep) {
+			if (!RenderSceneV2Headless(ctx, sz, &stats, nullptr, &debug_dump, dump_first_tri)) {
+				Cout() << "RenderStatsV2: failed\n";
+				SetExitCode(2);
+				return;
+			}
+			Cout() << "RenderStatsV2: models=" << stats.models
+			       << " triangles=" << stats.triangles
+			       << " pixels=" << stats.pixels << "\n";
+			Cout() << "RenderStatsV2: rendered=" << (stats.rendered ? 1 : 0) << "\n";
+			if (!stats.rendered && dump_first_tri && !debug_dump.IsEmpty())
+				Cout() << debug_dump;
+			SetExitCode(stats.rendered ? 0 : 1);
 			return;
 		}
-		Cout() << "RenderStatsV2: models=" << stats.models
-		       << " triangles=" << stats.triangles
-		       << " pixels=" << stats.pixels << "\n";
-		Cout() << "RenderStatsV2: rendered=" << (stats.rendered ? 1 : 0) << "\n";
-		if (!stats.rendered && dump_first_tri && !debug_dump.IsEmpty())
-			Cout() << debug_dump;
-		SetExitCode(stats.rendered ? 0 : 1);
+		bool all_ok = true;
+		vec3 target(0, 0, 0);
+		for (int i = 0; i < sweep_frames; i++) {
+			double t = (double)i / (double)sweep_frames;
+			double ang = t * 2.0 * M_PI;
+			vec3 pos((float)(cos(ang) * sweep_radius), (float)sweep_height, (float)(sin(ang) * sweep_radius));
+			GeomCamera& program = state.GetProgram();
+			program.position = pos;
+			mat4 view = LookAt(program.position, target, vec3(0, 1, 0));
+			mat4 world = view.GetInverse();
+			program.orientation = MatQuat(world);
+			Scene3DRenderStats sweep_stats;
+			String sweep_debug;
+			bool ok = RenderSceneV2Headless(ctx, sz, &sweep_stats, nullptr, &sweep_debug, dump_first_tri);
+			Camera cam;
+			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
+			Frustum frustum = cam.GetFrustum();
+			int total = 0;
+			int hits = 0;
+			GeomObjectCollection iter(state.GetActiveScene());
+			for (GeomObject& go : iter) {
+				if (!go.is_visible || !go.IsModel() || !go.mdl)
+					continue;
+				total++;
+				const Model& mdl = *go.mdl;
+				AABB aabb = ComputeModelAABB(mdl);
+				GeomTransform* tr = go.FindTransform();
+				mat4 world_m = Identity<mat4>();
+				if (tr)
+					world_m = Translate(tr->position) * QuatMat(tr->orientation) * Scale(tr->scale);
+				AABB world_aabb = TransformAABB(aabb, world_m);
+				if (frustum.Intersects(world_aabb))
+					hits++;
+			}
+			Cout() << "HeadlessSweep: frame=" << i
+			       << " rendered=" << (ok && sweep_stats.rendered ? 1 : 0)
+			       << " pixels=" << sweep_stats.pixels
+			       << " frustum_hits=" << hits
+			       << " total=" << total << "\n";
+			if (!ok || !sweep_stats.rendered || hits == 0)
+				all_ok = false;
+		}
+		SetExitCode(all_ok ? 0 : 1);
 		return;
 	}
 	ModelMediaShell app;

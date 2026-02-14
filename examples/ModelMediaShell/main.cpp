@@ -13,6 +13,7 @@ void FixCamera(GeomCamera& cam);
 void PrintModelBounds(const String& name, const String& path, const Model& mdl);
 static AABB ComputeModelAABB(const Model& mdl);
 static AABB TransformAABB(const AABB& aabb, const mat4& world);
+static bool ParseVec3Arg(const String& s, vec3& out);
 
 bool LoadExecutionProjectCommon(const String& manifest_path,
                                 Scene3DDocument& doc,
@@ -150,6 +151,15 @@ static AABB TransformAABB(const AABB& aabb, const mat4& world) {
 		maxv[2] = max(maxv[2], p[2]);
 	}
 	return FromMinMax(minv, maxv);
+}
+
+static bool ParseVec3Arg(const String& s, vec3& out) {
+	Vector<String> parts = Split(s, ',');
+	if (parts.GetCount() != 3)
+		return false;
+	for (int i = 0; i < 3; i++)
+		out[i] = (float)StrDbl(parts[i]);
+	return true;
 }
 
 void PrintModelBounds(const String& name, const String& path, const Model& mdl) {
@@ -370,6 +380,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
 	cmd.AddArg("sweep-radius", 0, "Headless sweep radius", true, "radius");
 	cmd.AddArg("sweep-height", 0, "Headless sweep height", true, "height");
+	cmd.AddArg("sweep-target", 0, "Headless sweep target x,y,z", true, "vec3");
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -453,6 +464,11 @@ GUI_APP_MAIN {
 		}
 		bool all_ok = true;
 		vec3 target(0, 0, 0);
+		if (cmd.IsArg("sweep-target")) {
+			vec3 parsed;
+			if (ParseVec3Arg(cmd.GetArg("sweep-target"), parsed))
+				target = parsed;
+		}
 		for (int i = 0; i < sweep_frames; i++) {
 			double t = (double)i / (double)sweep_frames;
 			double ang = t * 2.0 * M_PI;

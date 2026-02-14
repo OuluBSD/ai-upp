@@ -215,6 +215,7 @@ class ModelMediaShell : public TopWindow {
 	bool mouse_captured = false;
 	bool capture_mouse_enabled = true;
 	bool relative_mouse = false;
+	bool relative_mouse_center = false;
 	bool mouse_pos_valid = false;
 	Point last_mouse_pos;
 	Point rel_mouse_pos = Point(0, 0);
@@ -236,6 +237,7 @@ public:
 	bool LoadExecutionProject(const String& manifest_path);
 	void SetCaptureMouseEnabled(bool b) { capture_mouse_enabled = b; }
 	void SetRelativeMouse(bool b) { relative_mouse = b; mouse_pos_valid = false; rel_mouse_pos = Point(0, 0); }
+	void SetRelativeMouseCenter(bool b) { relative_mouse_center = b; mouse_pos_valid = false; rel_mouse_pos = Point(0, 0); }
 };
 
 ModelMediaShell::ModelMediaShell() {
@@ -302,13 +304,22 @@ bool ModelMediaShell::Key(dword key, int count) {
 void ModelMediaShell::MouseMove(Point p, dword keyflags) {
 	if (loaded) {
 		if (relative_mouse && capture_mouse_enabled) {
-			if (mouse_pos_valid) {
-				Point delta = p - last_mouse_pos;
+			Point center = GetSize() / 2;
+			if (relative_mouse_center) {
+				Point delta = p - center;
 				rel_mouse_pos += delta;
+				last_mouse_pos = center;
+				mouse_pos_valid = true;
 				runtime.DispatchInputEvent("mouseMove", rel_mouse_pos, keyflags, 0, 0);
+			} else {
+				if (mouse_pos_valid) {
+					Point delta = p - last_mouse_pos;
+					rel_mouse_pos += delta;
+					runtime.DispatchInputEvent("mouseMove", rel_mouse_pos, keyflags, 0, 0);
+				}
+				last_mouse_pos = p;
+				mouse_pos_valid = true;
 			}
-			last_mouse_pos = p;
-			mouse_pos_valid = true;
 		} else {
 			runtime.DispatchInputEvent("mouseMove", p, keyflags, 0, 0);
 		}
@@ -423,6 +434,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("headless-frustum-dump", 0, "Dump frustum planes and per-object AABB hit status", false);
 	cmd.AddArg("frustum-dump-frame", 0, "Dump frustum only for specific sweep frame", true, "index");
 	cmd.AddArg("frustum-dump-out", 0, "Dump frustum output to file", true, "path");
+	cmd.AddArg("headless-mouse-test", 0, "Run headless mouse delta test", false);
 	cmd.AddArg('s', "Headless render size WxH", true, "size");
 	cmd.AddArg("size", 0, "Headless render size WxH", true, "size");
 	cmd.AddArg("sweep-frames", 0, "Headless sweep frame count", true, "count");
@@ -434,6 +446,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("capture-mouse", 0, "Enable mouse capture during GUI run", false);
 	cmd.AddArg("no-capture-mouse", 0, "Disable mouse capture during GUI run", false);
 	cmd.AddArg("relative-mouse", 0, "Enable relative mouse deltas during GUI run", false);
+	cmd.AddArg("relative-mouse-center", 0, "Center relative mouse deltas around window", false);
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -492,6 +505,7 @@ GUI_APP_MAIN {
 		bool dump_first_tri = cmd.IsArg("headless-debug") || cmd.IsArg("dump-first-tri");
 		bool sweep = cmd.IsArg("headless-sweep");
 		bool frustum_dump = cmd.IsArg("headless-frustum-dump");
+		bool mouse_test = cmd.IsArg("headless-mouse-test");
 		bool snapshot = cmd.IsArg("headless-snapshot");
 		String snapshot_path;
 		if (snapshot)
@@ -512,6 +526,18 @@ GUI_APP_MAIN {
 		if (cmd.IsArg("sweep-height"))
 			sweep_height = StrDbl(cmd.GetArg("sweep-height"));
 		if (!sweep) {
+			if (mouse_test) {
+				runtime.input.BeginFrame();
+				runtime.DispatchInputEvent("mouseMove", Point(10, 10), 0, 0, 0);
+				runtime.DispatchInputEvent("mouseMove", Point(25, 14), 0, 0, 0);
+				int dx = runtime.input.mouse_delta.x;
+				int dy = runtime.input.mouse_delta.y;
+				Cout() << "MouseTest: dx=" << dx << " dy=" << dy << "\n";
+				if (dx == 0 && dy == 0) {
+					SetExitCode(2);
+					return;
+				}
+			}
 			Image out_img;
 			if (!RenderSceneV2Headless(ctx, sz, &stats, nullptr, &debug_dump, dump_first_tri)) {
 				Cout() << "RenderStatsV2: failed\n";
@@ -655,6 +681,10 @@ GUI_APP_MAIN {
 		app.SetCaptureMouseEnabled(true);
 	if (cmd.IsArg("relative-mouse"))
 		app.SetRelativeMouse(true);
+	if (cmd.IsArg("relative-mouse-center")) {
+		app.SetRelativeMouse(true);
+		app.SetRelativeMouseCenter(true);
+	}
 	if (!app.LoadExecutionProject(exec_path))
 		return;
 	app.Run();

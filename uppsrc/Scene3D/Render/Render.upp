@@ -10,6 +10,8 @@ file
 	Render.h,
 	Renderer.h,
 	Renderer.cpp,
+	HeadlessTools.h,
+	HeadlessTools.cpp,
 	SoftRendCtrl.h,
 	SoftRendCtrl.cpp;
 

@@ -11,10 +11,6 @@ namespace {
 
 void FixCamera(GeomCamera& cam);
 void PrintModelBounds(const String& name, const String& path, const Model& mdl);
-static AABB ComputeModelAABB(const Model& mdl);
-static AABB TransformAABB(const AABB& aabb, const mat4& world);
-static bool ParseVec3Arg(const String& s, vec3& out);
-static void DumpFrustum(const Frustum& frustum, const GeomCamera& cam, const Camera& cppcam);
 
 bool LoadExecutionProjectCommon(const String& manifest_path,
                                 Scene3DDocument& doc,
@@ -105,91 +101,6 @@ void FixCamera(GeomCamera& cam) {
 		mat4 view = LookAt(cam.position, vec3(0, 0, 0), vec3(0, 1, 0));
 		mat4 world = view.GetInverse();
 		cam.orientation = MatQuat(world);
-	}
-}
-
-static AABB ComputeModelAABB(const Model& mdl) {
-	vec3 minv(FLT_MAX);
-	vec3 maxv(-FLT_MAX);
-	for (const Mesh& mesh : mdl.meshes) {
-		for (const Vertex& v : mesh.vertices) {
-			vec3 p = v.position.Splice();
-			minv[0] = min(minv[0], p[0]);
-			minv[1] = min(minv[1], p[1]);
-			minv[2] = min(minv[2], p[2]);
-			maxv[0] = max(maxv[0], p[0]);
-			maxv[1] = max(maxv[1], p[1]);
-			maxv[2] = max(maxv[2], p[2]);
-		}
-	}
-	if (minv[0] == FLT_MAX)
-		return AABB(vec3(0), vec3(0));
-	return FromMinMax(minv, maxv);
-}
-
-static AABB TransformAABB(const AABB& aabb, const mat4& world) {
-	vec3 mn = GetMin(aabb);
-	vec3 mx = GetMax(aabb);
-	vec3 corners[8] = {
-		vec3(mn[0], mn[1], mn[2]),
-		vec3(mx[0], mn[1], mn[2]),
-		vec3(mn[0], mx[1], mn[2]),
-		vec3(mx[0], mx[1], mn[2]),
-		vec3(mn[0], mn[1], mx[2]),
-		vec3(mx[0], mn[1], mx[2]),
-		vec3(mn[0], mx[1], mx[2]),
-		vec3(mx[0], mx[1], mx[2])
-	};
-	vec3 minv(FLT_MAX);
-	vec3 maxv(-FLT_MAX);
-	for (int i = 0; i < 8; i++) {
-		vec3 p = (world * corners[i].Embed()).Splice();
-		minv[0] = min(minv[0], p[0]);
-		minv[1] = min(minv[1], p[1]);
-		minv[2] = min(minv[2], p[2]);
-		maxv[0] = max(maxv[0], p[0]);
-		maxv[1] = max(maxv[1], p[1]);
-		maxv[2] = max(maxv[2], p[2]);
-	}
-	return FromMinMax(minv, maxv);
-}
-
-static bool ParseVec3Arg(const String& s, vec3& out) {
-	Vector<String> parts = Split(s, ',');
-	if (parts.GetCount() != 3)
-		return false;
-	for (int i = 0; i < 3; i++)
-		out[i] = (float)StrDbl(parts[i]);
-	return true;
-}
-
-static void DumpFrustum(const Frustum& frustum, const GeomCamera& cam, Camera& cppcam) {
-	Cout() << "FrustumDump: cam_pos " << cam.position[0] << " " << cam.position[1] << " " << cam.position[2] << "\n";
-	Cout() << "FrustumDump: cam_orient " << cam.orientation[0] << " " << cam.orientation[1] << " "
-	       << cam.orientation[2] << " " << cam.orientation[3] << "\n";
-	Cout() << "FrustumDump: fov " << cam.fov << " scale " << cam.scale << "\n";
-	mat4 world = cppcam.GetWorldMatrix();
-	mat4 proj = cppcam.GetProjectionMatrix();
-	mat4 view = cppcam.GetViewMatrix();
-	Cout() << "FrustumDump: world\n";
-	for (int r = 0; r < 4; r++) {
-		for (int c = 0; c < 4; c++)
-			Cout() << world[r][c] << (c == 3 ? '\n' : ' ');
-	}
-	Cout() << "FrustumDump: proj\n";
-	for (int r = 0; r < 4; r++) {
-		for (int c = 0; c < 4; c++)
-			Cout() << proj[r][c] << (c == 3 ? '\n' : ' ');
-	}
-	Cout() << "FrustumDump: view\n";
-	for (int r = 0; r < 4; r++) {
-		for (int c = 0; c < 4; c++)
-			Cout() << view[r][c] << (c == 3 ? '\n' : ' ');
-	}
-	for (int i = 0; i < Frustum::PLANE_COUNT; i++) {
-		const Plane& p = frustum[i];
-		Cout() << "FrustumPlane " << i << " n=" << p.normal[0] << "," << p.normal[1] << "," << p.normal[2]
-		       << " d=" << p.distance << "\n";
 	}
 }
 
@@ -301,10 +212,17 @@ class ModelMediaShell : public TopWindow {
 	double fps_accum = 0.0;
 	int fps_frames = 0;
 	bool loaded = false;
+	bool mouse_captured = false;
 
 	void RefreshFrame();
 	void OnChanged();
 	bool Key(dword key, int count) override;
+	void MouseMove(Point p, dword keyflags) override;
+	void LeftDown(Point p, dword keyflags) override;
+	void LeftUp(Point p, dword keyflags) override;
+	void RightDown(Point p, dword keyflags) override;
+	void RightUp(Point p, dword keyflags) override;
+	void MouseWheel(Point p, int zdelta, dword keyflags) override;
 
 public:
 	ModelMediaShell();
@@ -366,6 +284,58 @@ bool ModelMediaShell::Key(dword key, int count) {
 		runtime.DispatchInputEvent((key & K_KEYUP) ? "keyUp" : "keyDown", Point(0, 0), 0, (int)key, 0);
 	}
 	return TopWindow::Key(key, count);
+}
+
+void ModelMediaShell::MouseMove(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseMove", p, keyflags, 0, 0);
+	TopWindow::MouseMove(p, keyflags);
+}
+
+void ModelMediaShell::LeftDown(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseDown", p, keyflags, 0, 0);
+	if (!mouse_captured) {
+		SetCapture();
+		mouse_captured = true;
+	}
+	TopWindow::LeftDown(p, keyflags);
+}
+
+void ModelMediaShell::LeftUp(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseUp", p, keyflags, 0, 0);
+	if (mouse_captured) {
+		ReleaseCapture();
+		mouse_captured = false;
+	}
+	TopWindow::LeftUp(p, keyflags);
+}
+
+void ModelMediaShell::RightDown(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseDown", p, keyflags, 1, 0);
+	if (!mouse_captured) {
+		SetCapture();
+		mouse_captured = true;
+	}
+	TopWindow::RightDown(p, keyflags);
+}
+
+void ModelMediaShell::RightUp(Point p, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseUp", p, keyflags, 1, 0);
+	if (mouse_captured) {
+		ReleaseCapture();
+		mouse_captured = false;
+	}
+	TopWindow::RightUp(p, keyflags);
+}
+
+void ModelMediaShell::MouseWheel(Point p, int zdelta, dword keyflags) {
+	if (loaded)
+		runtime.DispatchInputEvent("mouseWheel", p, keyflags, zdelta, 0);
+	TopWindow::MouseWheel(p, zdelta, keyflags);
 }
 
 void ModelMediaShell::RefreshFrame() {
@@ -497,7 +467,7 @@ GUI_APP_MAIN {
 				Camera cam;
 				program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
 				Frustum frustum = cam.GetFrustum();
-				DumpFrustum(frustum, program, cam);
+				DumpFrustum(frustum, program, cam, Cout());
 				int total = 0;
 				int hits = 0;
 				GeomObjectCollection iter(state.GetActiveScene());
@@ -548,7 +518,7 @@ GUI_APP_MAIN {
 			program.LoadCamera(VIEWMODE_PERSPECTIVE, cam, sz);
 			Frustum frustum = cam.GetFrustum();
 			if (frustum_dump)
-				DumpFrustum(frustum, program, cam);
+				DumpFrustum(frustum, program, cam, Cout());
 			int total = 0;
 			int hits = 0;
 			GeomObjectCollection iter(state.GetActiveScene());

@@ -74,6 +74,7 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
                            bool wireframe_only = false);
 
 #include "Renderer.h"
+#include "HeadlessTools.h"
 #include "SoftRendCtrl.h"
 
 END_UPP_NAMESPACE

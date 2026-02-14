@@ -214,6 +214,10 @@ class ModelMediaShell : public TopWindow {
 	bool loaded = false;
 	bool mouse_captured = false;
 	bool capture_mouse_enabled = true;
+	bool relative_mouse = false;
+	bool mouse_pos_valid = false;
+	Point last_mouse_pos;
+	Point rel_mouse_pos = Point(0, 0);
 
 	void RefreshFrame();
 	void OnChanged();
@@ -231,6 +235,7 @@ public:
 	ModelMediaShell();
 	bool LoadExecutionProject(const String& manifest_path);
 	void SetCaptureMouseEnabled(bool b) { capture_mouse_enabled = b; }
+	void SetRelativeMouse(bool b) { relative_mouse = b; mouse_pos_valid = false; rel_mouse_pos = Point(0, 0); }
 };
 
 ModelMediaShell::ModelMediaShell() {
@@ -295,8 +300,19 @@ bool ModelMediaShell::Key(dword key, int count) {
 }
 
 void ModelMediaShell::MouseMove(Point p, dword keyflags) {
-	if (loaded)
-		runtime.DispatchInputEvent("mouseMove", p, keyflags, 0, 0);
+	if (loaded) {
+		if (relative_mouse && capture_mouse_enabled) {
+			if (mouse_pos_valid) {
+				Point delta = p - last_mouse_pos;
+				rel_mouse_pos += delta;
+				runtime.DispatchInputEvent("mouseMove", rel_mouse_pos, keyflags, 0, 0);
+			}
+			last_mouse_pos = p;
+			mouse_pos_valid = true;
+		} else {
+			runtime.DispatchInputEvent("mouseMove", p, keyflags, 0, 0);
+		}
+	}
 	TopWindow::MouseMove(p, keyflags);
 }
 
@@ -417,6 +433,7 @@ GUI_APP_MAIN {
 	cmd.AddArg("headless-snapshot", 0, "Save a headless RGBA snapshot to path", true, "path");
 	cmd.AddArg("capture-mouse", 0, "Enable mouse capture during GUI run", false);
 	cmd.AddArg("no-capture-mouse", 0, "Disable mouse capture during GUI run", false);
+	cmd.AddArg("relative-mouse", 0, "Enable relative mouse deltas during GUI run", false);
 	if (!cmd.Parse(CommandLine())) {
 		cmd.PrintHelp();
 		return;
@@ -636,6 +653,8 @@ GUI_APP_MAIN {
 		app.SetCaptureMouseEnabled(false);
 	if (cmd.IsArg("capture-mouse"))
 		app.SetCaptureMouseEnabled(true);
+	if (cmd.IsArg("relative-mouse"))
+		app.SetRelativeMouse(true);
 	if (!app.LoadExecutionProject(exec_path))
 		return;
 	app.Run();

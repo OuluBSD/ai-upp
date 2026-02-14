@@ -2,8 +2,6 @@ log("test_window_layout_persistence start")
 wait_ready()
 wait_time(0.3)
 
-import os
-
 def fail(msg):
     log("Error:", msg)
     log(dump_ui())
@@ -39,9 +37,9 @@ if not layout_default:
 
 # Check that a layout file exists (persistence probe)
 cfg_root = os.getenv("XDG_CONFIG_HOME", "")
-if cfg_root == "" or cfg_root is None:
+if cfg_root == "":
     home = os.getenv("HOME", "")
-    if home == "" or home is None:
+    if home == "":
         fail("HOME/XDG_CONFIG_HOME not available")
     cfg_root = home + "/.config"
 cfg = cfg_root + "/ModelerApp/ModelerApp.view"

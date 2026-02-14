@@ -350,3 +350,7 @@
   task: track-execution/phase-04-render-assets/task-0402-graphics-backend-selection.md
   status: done
   note: Added renderer aliases (gfx_sw/gfx_ogl) and documented backend selection for executor.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0200-window-layout.md
+  status: done
+  note: Added automation test for dock toggles and config persistence probe.

@@ -12,6 +12,17 @@ using namespace Upp;
 // Forward declarations
 class Treat;
 
+// ============================================================================
+// Game event queue - decoupled producer/consumer for scripting and Shell integration
+// ============================================================================
+struct GameEvent : Moveable<GameEvent> {
+	String type;   // "enemy_killed", "all_enemies_killed", "droplet_collected",
+	               // "player_hit", "game_over", "level_complete", "treat_collected"
+	int    data;   // Optional: enemy index for enemy_killed, damage for player_hit, etc.
+	GameEvent() : data(0) {}
+	GameEvent(const String& t, int d = 0) : type(t), data(d) {}
+};
+
 enum GameState {
 	PLAYING,
 	PAUSED,
@@ -81,6 +92,10 @@ public:  // Public for testing
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;
 	bool prevKeyJump, prevKeyAttack;
+
+	// Script event queue - populated during GameTick, drained by consumer (ScriptBridge/Shell)
+	Vector<GameEvent> eventQueue;
+	void EmitEvent(const String& type, int data = 0) { eventQueue.Add(GameEvent(type, data)); }
 
 public:
 	GameScreen();

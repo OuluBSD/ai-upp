@@ -312,6 +312,7 @@ void GameScreen::GameTick(float delta) {
 
 			treats.Add(new Treat(center.x, center.y, treatType));
 			player.AddScore(100);  // Reward for defeating enemy
+			EmitEvent("enemy_killed", i);
 
 			// Remove enemy from world
 			delete enemies[i];
@@ -332,6 +333,7 @@ void GameScreen::GameTick(float delta) {
 		if(aliveCount == 0 && enemies.GetCount() > 0) {
 			// All enemies defeated! Start level completion sequence
 			allEnemiesKilled = true;
+			EmitEvent("all_enemies_killed");
 			levelCompleteTimer = GameSettings::LEVEL_COMPLETE_TREAT_TIMEOUT;
 			LOG("Level complete! All enemies defeated. Treat collection time: " << levelCompleteTimer << "s");
 		}
@@ -347,6 +349,7 @@ void GameScreen::GameTick(float delta) {
 
 			if(nextLevelPath.IsEmpty()) {
 				// No more levels - show victory screen
+				EmitEvent("level_complete");
 				SetGameState(LEVEL_COMPLETE);
 				LOG("All levels complete! Victory!");
 			}
@@ -614,6 +617,7 @@ void GameScreen::GameTick(float delta) {
 			float startAngle = (M_2PI / max(1, collectedCount + 1)) * collectedCount;
 			droplets[i]->Collect(startAngle);
 			dropletsCollected++;
+			EmitEvent("droplet_collected", dropletsCollected);
 			player.AddScore(15);  // 15 points per droplet
 			RLOG("Droplet collected! Total: " << dropletsCollected);
 		}
@@ -666,6 +670,7 @@ void GameScreen::GameTick(float delta) {
 		   max(playerBounds.top, playerBounds.bottom) > min(enemyBounds.top, enemyBounds.bottom)) {
 			// Collision detected - player takes damage
 			player.TakeDamage(1);
+			EmitEvent("player_hit", 1);
 			// Knockback could be added here
 		}
 
@@ -686,6 +691,7 @@ void GameScreen::GameTick(float delta) {
 					   max(playerBounds.top, playerBounds.bottom) > min(projBounds.top, projBounds.bottom)) {
 						// Projectile hit player
 						player.TakeDamage(1);
+						EmitEvent("player_hit", 1);
 						projectiles[j]->Deactivate();
 					}
 				}
@@ -1224,6 +1230,7 @@ void GameScreen::SetGameState(GameState newState) {
 }
 
 void GameScreen::HandleGameOver() {
+	EmitEvent("game_over");
 	SetGameState(GAME_OVER);
 }
 

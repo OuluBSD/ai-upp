@@ -277,6 +277,10 @@ bool ModelMediaShell::LoadExecutionProject(const String& manifest_path) {
 
 bool ModelMediaShell::Key(dword key, int count) {
 	if (loaded) {
+		if ((key & K_KEYUP) == 0 && (key & 0xFFFF) == K_ESCAPE && mouse_captured) {
+			ReleaseCapture();
+			mouse_captured = false;
+		}
 		String desc = GetKeyDesc(key);
 		Cout() << "ModelMediaShell Key: key=" << key << " desc=" << desc
 		       << " up=" << ((key & K_KEYUP) ? 1 : 0) << "\n";

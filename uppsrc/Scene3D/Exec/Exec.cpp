@@ -637,6 +637,60 @@ struct CameraProxy : PyUserData {
 	bool SetAttr(const String& name, const PyValue& v) override;
 };
 
+struct PhysicsWorldProxy : PyUserData {
+	ExecScriptRuntime* runtime = nullptr;
+	SoftPhys::World* world = nullptr;
+	PhysicsWorldProxy(ExecScriptRuntime* r, SoftPhys::World* w) : runtime(r), world(w) {}
+	String GetTypeName() const override { return "SoftPhysWorld"; }
+	PyValue GetAttr(const String&) override { return PyValue::None(); }
+	bool SetAttr(const String&, const PyValue&) override { return false; }
+};
+
+struct PhysicsSpaceProxy : PyUserData {
+	ExecScriptRuntime* runtime = nullptr;
+	SoftPhys::Space* space = nullptr;
+	PhysicsSpaceProxy(ExecScriptRuntime* r, SoftPhys::Space* s) : runtime(r), space(s) {}
+	String GetTypeName() const override { return "SoftPhysSpace"; }
+	PyValue GetAttr(const String&) override { return PyValue::None(); }
+	bool SetAttr(const String&, const PyValue&) override { return false; }
+};
+
+struct PhysicsBodyProxy : PyUserData {
+	ExecScriptRuntime* runtime = nullptr;
+	SoftPhys::RigidbodyVolume* body = nullptr;
+	PhysicsBodyProxy(ExecScriptRuntime* r, SoftPhys::RigidbodyVolume* b) : runtime(r), body(b) {}
+	String GetTypeName() const override { return "SoftPhysBody"; }
+	PyValue GetAttr(const String& name) override;
+	bool SetAttr(const String& name, const PyValue& v) override;
+};
+
+static SoftPhys::World* GetWorldFromPy(const PyValue& v) {
+	if (!v.IsUserData())
+		return nullptr;
+	PyUserData& ud = v.GetUserData();
+	if (ud.GetTypeName() != "SoftPhysWorld")
+		return nullptr;
+	return ((PhysicsWorldProxy&)ud).world;
+}
+
+static SoftPhys::Space* GetSpaceFromPy(const PyValue& v) {
+	if (!v.IsUserData())
+		return nullptr;
+	PyUserData& ud = v.GetUserData();
+	if (ud.GetTypeName() != "SoftPhysSpace")
+		return nullptr;
+	return ((PhysicsSpaceProxy&)ud).space;
+}
+
+static SoftPhys::RigidbodyVolume* GetBodyFromPy(const PyValue& v) {
+	if (!v.IsUserData())
+		return nullptr;
+	PyUserData& ud = v.GetUserData();
+	if (ud.GetTypeName() != "SoftPhysBody")
+		return nullptr;
+	return ((PhysicsBodyProxy&)ud).body;
+}
+
 static PyValue Input_IsKeyDown(const Vector<PyValue>& args, void* user_data) {
 	if (args.GetCount() < 1)
 		return PyValue::False();
@@ -739,6 +793,189 @@ bool CameraProxy::SetAttr(const String& name, const PyValue& v) {
 	if (name == "fov") { cam.fov = v.AsDouble(); return true; }
 	if (name == "scale") { cam.scale = v.AsDouble(); return true; }
 	return false;
+}
+
+PyValue PhysicsBodyProxy::GetAttr(const String& name) {
+	if (!body)
+		return PyValue::None();
+	if (name == "position")
+		return MakeVec3Value(body->position);
+	if (name == "velocity")
+		return MakeVec3Value(body->velocity);
+	if (name == "rotation")
+		return MakeVec3Value(body->orientation);
+	if (name == "mass")
+		return PyValue(body->mass);
+	return PyValue::None();
+}
+
+bool PhysicsBodyProxy::SetAttr(const String& name, const PyValue& v) {
+	if (!body)
+		return false;
+	if (name == "position") {
+		vec3 pos;
+		if (PyValueToVec3(v, pos)) {
+			body->position = pos;
+			body->SynchCollisionVolumes();
+			return true;
+		}
+	}
+	if (name == "velocity") {
+		vec3 vel;
+		if (PyValueToVec3(v, vel)) {
+			body->velocity = vel;
+			return true;
+		}
+	}
+	if (name == "rotation") {
+		vec3 rot;
+		if (PyValueToVec3(v, rot)) {
+			body->orientation = rot;
+			body->SynchCollisionVolumes();
+			return true;
+		}
+	}
+	if (name == "mass") {
+		body->mass = (float)v.AsDouble();
+		return true;
+	}
+	return false;
+}
+
+static void SyncBindingsToScene(ExecScriptRuntime* rt) {
+	if (!rt || !rt->state)
+		return;
+	for (const ExecScriptRuntime::PhysicsBinding& bind : rt->physics.bindings) {
+		if (!bind.node || !bind.body)
+			continue;
+		GeomTransform* tr = GetNodeTransform(*bind.node);
+		if (!tr)
+			continue;
+		tr->position = bind.body->position;
+		if (bind.sync_rotation)
+			tr->orientation = AxesQuat(bind.body->orientation);
+	}
+	rt->state->UpdateObjects();
+	if (rt->WhenChanged)
+		rt->WhenChanged();
+}
+
+static PyValue Physics_CreateWorld(const Vector<PyValue>& args, void* user_data) {
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	SoftPhys::World& world = rt->physics.worlds.Add();
+	world.SetGravity(GRAVITY_CONST);
+	return PyValue(new PhysicsWorldProxy(rt, &world));
+}
+
+static PyValue Physics_CreateSpace(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 1 || !args[0].IsUserData())
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	SoftPhys::World* world = GetWorldFromPy(args[0]);
+	if (!world)
+		return PyValue::None();
+	SoftPhys::Space& space = rt->physics.spaces.Add();
+	space.SetWorld(*world);
+	return PyValue(new PhysicsSpaceProxy(rt, &space));
+}
+
+static SoftPhys::RigidbodyVolume* CreateRigidBody(ExecScriptRuntime* rt, SoftPhys::Space& space, int type, double mass, const vec3& size, const vec3& pos) {
+	SoftPhys::RigidbodyVolume& body = rt->physics.bodies.Add();
+	body.type = type;
+	body.mass = (float)mass;
+	body.position = pos;
+	body.velocity = vec3(0, 0, 0);
+	body.orientation = vec3(0, 0, 0);
+	if (type == RIGIDBODY_TYPE_BOX) {
+		body.box.size = size * 0.5f;
+	}
+	if (type == RIGIDBODY_TYPE_SPHERE) {
+		body.sphere.radius = size[0];
+	}
+	body.SynchCollisionVolumes();
+	space.Add(body);
+	return &body;
+}
+
+static PyValue Physics_CreateBox(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	SoftPhys::Space* space = GetSpaceFromPy(args[0]);
+	if (!space)
+		return PyValue::None();
+	vec3 size(1, 1, 1);
+	PyValueToVec3(args[1], size);
+	double mass = args.GetCount() > 2 ? args[2].AsDouble() : 1.0;
+	vec3 pos(0, 0, 0);
+	if (args.GetCount() > 3)
+		PyValueToVec3(args[3], pos);
+	SoftPhys::RigidbodyVolume* body = CreateRigidBody(rt, *space, RIGIDBODY_TYPE_BOX, mass, size, pos);
+	return PyValue(new PhysicsBodyProxy(rt, body));
+}
+
+static PyValue Physics_CreateSphere(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	SoftPhys::Space* space = GetSpaceFromPy(args[0]);
+	if (!space)
+		return PyValue::None();
+	double radius = args[1].AsDouble();
+	double mass = args.GetCount() > 2 ? args[2].AsDouble() : 1.0;
+	vec3 pos(0, 0, 0);
+	if (args.GetCount() > 3)
+		PyValueToVec3(args[3], pos);
+	vec3 size((float)radius, 0, 0);
+	SoftPhys::RigidbodyVolume* body = CreateRigidBody(rt, *space, RIGIDBODY_TYPE_SPHERE, mass, size, pos);
+	return PyValue(new PhysicsBodyProxy(rt, body));
+}
+
+static PyValue Physics_Bind(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::False();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::False();
+	DisplayObjectProxy& obj = (DisplayObjectProxy&)args[0].GetUserData();
+	SoftPhys::RigidbodyVolume* body = GetBodyFromPy(args[1]);
+	if (!obj.node || !body)
+		return PyValue::False();
+	bool sync_rotation = args.GetCount() > 2 ? args[2].IsTrue() : true;
+	ExecScriptRuntime::PhysicsBinding& bind = rt->physics.bindings.Add();
+	bind.node = obj.node;
+	bind.body = body;
+	bind.sync_rotation = sync_rotation;
+	GeomTransform* tr = GetNodeTransform(*obj.node);
+	if (tr) {
+		body->position = tr->position;
+		body->orientation = GetQuatAxes(tr->orientation);
+		body->SynchCollisionVolumes();
+	}
+	return PyValue::True();
+}
+
+static PyValue Physics_Step(const Vector<PyValue>& args, void* user_data) {
+	if (args.GetCount() < 2 || !args[0].IsUserData())
+		return PyValue::None();
+	ExecScriptRuntime* rt = (ExecScriptRuntime*)user_data;
+	if (!rt)
+		return PyValue::None();
+	SoftPhys::World* world = GetWorldFromPy(args[0]);
+	if (!world)
+		return PyValue::None();
+	double dt = args[1].AsDouble();
+	world->Step((float)dt);
+	SyncBindingsToScene(rt);
+	return PyValue::None();
 }
 
 static PyValue ExecTrace(const Vector<PyValue>& args, void* user_data) {
@@ -884,11 +1121,13 @@ static void CollectScriptsFromNode(VfsValue& node, Vector<GeomScript*>& out) {
 
 void ExecScriptRuntime::RegisterScriptVM(PyVM& vm) {
 	::RegisterGeometry(vm);
-	PY_MODULE(exec, vm)
-	PY_MODULE_FUNC(trace, ExecTrace, this);
-	PY_MODULE_FUNC(get_timer, ExecGetTimer, this);
-	PY_MODULE_FUNC(random, ExecRandom, this);
-	PY_MODULE_FUNC(exit, ExecExit, this);
+	{
+		PY_MODULE(exec, vm)
+		PY_MODULE_FUNC(trace, ExecTrace, this);
+		PY_MODULE_FUNC(get_timer, ExecGetTimer, this);
+		PY_MODULE_FUNC(random, ExecRandom, this);
+		PY_MODULE_FUNC(exit, ExecExit, this);
+	}
 	PyValue stage_obj = PyValue(new StageProxy(this, &vm));
 	vm.GetGlobals().GetAdd(PyValue("stage")) = stage_obj;
 	vm.GetGlobals().GetAdd(PyValue("trace")) = PyValue::Function("trace", ExecTrace, this);
@@ -896,6 +1135,15 @@ void ExecScriptRuntime::RegisterScriptVM(PyVM& vm) {
 	vm.GetGlobals().GetAdd(PyValue("random")) = PyValue::Function("random", ExecRandom, this);
 	vm.GetGlobals().GetAdd(PyValue("input")) = PyValue(new InputProxy(this));
 	vm.GetGlobals().GetAdd(PyValue("camera")) = PyValue(new CameraProxy(this));
+	{
+		PY_MODULE(physics, vm)
+		PY_MODULE_FUNC(create_world, Physics_CreateWorld, this);
+		PY_MODULE_FUNC(create_space, Physics_CreateSpace, this);
+		PY_MODULE_FUNC(create_box, Physics_CreateBox, this);
+		PY_MODULE_FUNC(create_sphere, Physics_CreateSphere, this);
+		PY_MODULE_FUNC(bind, Physics_Bind, this);
+		PY_MODULE_FUNC(step, Physics_Step, this);
+	}
 	PyValue root_obj = PyValue::None();
 	if (state && state->HasActiveScene())
 		root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &vm);

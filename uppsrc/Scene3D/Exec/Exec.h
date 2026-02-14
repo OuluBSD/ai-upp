@@ -5,6 +5,7 @@
 #include <Scene3D/IO/IO.h>
 #include <ByteVM/ByteVM.h>
 #include <ByteVM/PyBindings.h>
+#include <SoftPhys/SoftPhys.h>
 
 NAMESPACE_UPP
 
@@ -62,6 +63,21 @@ struct ExecScriptRuntime {
 	ExecInputState input;
 	bool exit_requested = false;
 
+	struct PhysicsBinding : Moveable<PhysicsBinding> {
+		VfsValue* node = nullptr;
+		SoftPhys::RigidbodyVolume* body = nullptr;
+		bool sync_rotation = true;
+	};
+
+	struct PhysicsState {
+		Array<SoftPhys::World> worlds;
+		Array<SoftPhys::Space> spaces;
+		Array<SoftPhys::RigidbodyVolume> bodies;
+		Vector<PhysicsBinding> bindings;
+	};
+
+	PhysicsState physics;
+
 	struct ScriptInstance {
 		GeomScript* script = nullptr;
 		VfsValue* owner = nullptr;
@@ -69,6 +85,7 @@ struct ExecScriptRuntime {
 		Time file_time;
 		PyVM vm;
 		bool loaded = false;
+		bool compile_failed = false;
 		bool has_load = false;
 		bool has_start = false;
 		bool has_frame = false;

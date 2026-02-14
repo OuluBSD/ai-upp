@@ -22,8 +22,11 @@ NAMESPACE_UPP
 #include "WhatsAppScraper.h"
 #include "DiscordScraper.h"
 #include "ThreadsScraper.h"
+#include "NewsScraper.h"
 #include "CalendarScraper.h"
 #include "YouTubeStudioScraper.h"
+#include "Forex.h"
+#include "ForexScraper.h"
 
 class GeminiProvider : public BaseAIProvider {
 public:

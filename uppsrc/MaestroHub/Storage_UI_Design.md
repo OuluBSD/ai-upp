@@ -5,7 +5,7 @@
 - **UI Element**: `DropList` or `Switch` control.
 - **Options**:
   - **Standard**: `docs/maestro/` (Git-visible, human-readable).
-  - **Unix-style**: `.maestro/` (Hidden metadata).
+  - **Unix-style**: `docs/maestro/` (Standard metadata).
   - **Distributed**: Adjacent to source files (e.g., `MegaFileUtil/Task1.md`).
 - **Isolation control**: Checkbox for "Monorepo Isolation" + Path input field to define the boundary.
 

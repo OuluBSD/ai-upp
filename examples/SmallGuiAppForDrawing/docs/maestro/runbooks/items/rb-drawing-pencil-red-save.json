@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-pencil-red-save",
+	"title": "Draw and Save with Pencil Tool",
+	"goal": "Verify the full drawing cycle: tool selection, color modification, canvas interaction, and export.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Open the drawing application",
+			"command": "",
+			"expected": "Application window is visible, displaying a canvas area and a toolbar",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Select the Pencil tool in the toolbar",
+			"command": "",
+			"expected": "The Pencil tool is selected and highlighted",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Click the ColorButton and select Red",
+			"command": "",
+			"expected": "The active drawing color is updated to Red",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Draw a stroke on the canvas",
+			"command": "",
+			"expected": "A Red stroke appears on the canvas",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the Save button",
+			"command": "",
+			"expected": "A file export dialog appears or the drawing is exported successfully",
+			"variants": [
+
+			]
+		}
+	]
+}

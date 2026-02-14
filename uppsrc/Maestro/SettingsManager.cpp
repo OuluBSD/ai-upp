@@ -5,7 +5,7 @@ namespace Upp {
 SettingsManager::SettingsManager(const String& maestro_root)
 {
 	base_path = NormalizePath(maestro_root);
-	config_path = AppendFileName(base_path, ".maestro/config.json");
+	config_path = AppendFileName(base_path, "docs/maestro/config.json");
 }
 
 ValueMap SettingsManager::LoadSettings()

@@ -36,6 +36,7 @@ AriaMainWindow::AriaMainWindow()
 
 	SetupService(threads);
 	SetupService(news);
+	SetupService(forex);
 	SetupService(whatsapp);
 	SetupService(google_messages);
 	SetupService(universal_inbox);
@@ -49,6 +50,7 @@ AriaMainWindow::AriaMainWindow()
 	// Services
 	tabs.Add(universal_inbox.SizePos(), "Inbox");
 	tabs.Add(news.SizePos(), "News");
+	tabs.Add(forex.SizePos(), "Forex");
 	tabs.Add(threads.SizePos(), "Threads");
 	tabs.Add(whatsapp.SizePos(), "WhatsApp");
 	tabs.Add(google_messages.SizePos(), "Messages");

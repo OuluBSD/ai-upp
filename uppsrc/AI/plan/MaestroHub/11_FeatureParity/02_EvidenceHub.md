@@ -6,7 +6,7 @@
 Implement a dedicated workspace for Evidence Packs, allowing users to collect, browse, and export audit-ready evidence for AI-driven changes. This provides transparency and accountability for autonomous actions.
 
 # Objectives
-- **Evidence Explorer**: Browse historical `EvidencePack` files stored in `.maestro/evidence`.
+- **Evidence Explorer**: Browse historical `EvidencePack` files stored in `docs/maestro/evidence`.
 - **Active Collection**: UI trigger to snapshot current workspace state (git diffs, plan status, AI logs).
 - **Verification**: UI for running `SemanticIntegrity` and `AuditTrail` correlation over existing packs.
 - **Exporting**: Generate printable or portable reports (PDF/HTML).

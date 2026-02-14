@@ -1,0 +1,235 @@
+{
+	"schema_version": "v1",
+	"id": "63938208310",
+	"title": "Implement Invoicing Module",
+	"goal": "Develop and integrate a complete invoicing system including data persistence, PDF generation, and UI components.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-INV",
+		"name": "Invoicing Module",
+		"goal": "Add functional invoicing capabilities to the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define Invoice and Customer Structures",
+					"status": "",
+					"intent": "Define the core data structures for Invoices and Customers in a new header file.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Invoice Logic and Persistence",
+					"status": "",
+					"intent": "Implement the business logic for creating invoices and persisting them to storage.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_PDF_Generation",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Implement PDF Export Engine",
+					"status": "",
+					"intent": "Develop the logic to export generated invoices into PDF format using U++ Report or Draw capabilities.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "InvoicingPdf.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Create Invoicing GUI",
+					"status": "",
+					"intent": "Design and implement the GUI components for managing and viewing invoices.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "InvoicingUI.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-005",
+					"title": "Build and Verify Integration",
+					"status": "",
+					"intent": "Integrate the invoicing module into the main application and verify the build.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk examples SmallGuiAppForAccounting CLANG -f",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

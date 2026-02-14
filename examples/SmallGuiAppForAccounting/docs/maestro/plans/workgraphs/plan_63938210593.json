@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "plan_role_management_implementation",
+	"title": "Role Management Implementation",
+	"goal": "Implement a complete role-based access control system including data models, logic, and UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-ROLE-MGMT",
+		"name": "Role Management",
+		"goal": "Enable role-based authorization and management within the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-ROLE-ENTITIES",
+					"title": "Define Role and User Entities",
+					"status": "",
+					"intent": "Implement the data structures for roles and users in the security module.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert run \"Security and Identity/01_Data_Layer/Define Role and User Entities.md\"",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-ROLE-PERSIST",
+					"title": "Implement Role Persistence",
+					"status": "",
+					"intent": "Implement logic for saving and loading role data to persistent storage.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert run \"Security and Identity/01_Data_Layer/Implement Role Persistence.md\"",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-CORE",
+			"name": "02_Core_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-ROLE-AUTH",
+					"title": "Implement Role-Based Authorization Logic",
+					"status": "",
+					"intent": "Implement core authorization checks based on defined roles and permissions.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert run \"Security and Identity/02_Authentication_Core/Implement Role-Based Authorization Logic.md\"",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-ROLE-UI",
+					"title": "Create Role Selection UI",
+					"status": "",
+					"intent": "Develop the user interface for selecting and managing roles.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert run \"Security and Identity/03_UI_Integration/Create Role Selection UI.md\"",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-ROLE-INTEGRATE",
+					"title": "Integrate Role Access into Main GUI",
+					"status": "",
+					"intent": "Connect role management tools to the main application interface.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert run \"Security and Identity/03_UI_Integration/Integrate Role Access into Main GUI.md\"",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BUILD-VERIFY",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Verify the entire role management system by compiling the application.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

@@ -1,0 +1,235 @@
+{
+	"schema_version": "v1",
+	"id": "plan_ledger_20260213",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger with transaction history, balance calculation, and GUI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "General Ledger Development",
+		"goal": "Deliver a functional ledger system within the SmallGuiAppForAccounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Core_Logic",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define_Ledger_Structures",
+					"status": "",
+					"intent": "Define the Transaction structure and the Ledger class interface with support for history and balance calculation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement_Ledger_Operations",
+					"status": "",
+					"intent": "Implement transaction recording and balance calculation logic in the Ledger class.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_GUI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Main_Window_Integration",
+					"status": "",
+					"intent": "Instantiate the Ledger in the main application window and provide basic UI controls.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-004",
+					"title": "Transaction_History_View",
+					"status": "",
+					"intent": "Implement a tabular view or list to display the transaction history in the GUI.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Verification",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "Build_and_Verify",
+					"status": "",
+					"intent": "Ensure the application builds correctly and the ledger logic works as expected.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

@@ -5,6 +5,8 @@
 
 namespace Upp {
 
+void RegisterMaestroModule(PyVM& vm);
+
 void TestCommand::ShowHelp() const {
 	Cout() << "usage: MaestroCLI test <script.py>\n";
 }
@@ -27,6 +29,10 @@ void TestCommand::Execute(const Vector<String>& args) {
 			
 			PyVM vm;
 			RegisterAutomationBindings(vm);
+			RegisterMaestroModule(vm);
+#ifdef flagGUI
+			RegisterConstraintBindings(vm);
+#endif
 			SetCurrentVM(&vm);
 			
 			Tokenizer tk;

@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-pencil-color-save",
+	"title": "Drawing Application Workflow",
+	"goal": "Verify core drawing functionality including pencil tool, color selection, and file persistence.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the drawing application",
+			"command": "./SmallGuiAppForDrawing",
+			"expected": "Application window opens with a canvas area, a toolbar, and a color selector visible.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Click the Pencil tool button on the toolbar",
+			"command": "",
+			"expected": "The pencil tool becomes active for drawing.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Select a color using the color selector",
+			"command": "",
+			"expected": "The active drawing color is updated to the chosen selection.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Click and drag on the canvas",
+			"command": "",
+			"expected": "A stroke is rendered on the canvas in the selected color.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the Save button on the toolbar",
+			"command": "",
+			"expected": "The current canvas content is saved to a file.",
+			"variants": [
+
+			]
+		}
+	]
+}

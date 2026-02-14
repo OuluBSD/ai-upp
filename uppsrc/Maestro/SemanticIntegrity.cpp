@@ -4,7 +4,7 @@ namespace Upp {
 
 SemanticIntegrityChecker::SemanticIntegrityChecker(const String& maestro_root)
 {
-	base_path = AppendFileName(maestro_root, ".maestro/convert/semantics");
+	base_path = AppendFileName(maestro_root, "docs/maestro/convert/semantics");
 	summary_path = AppendFileName(base_path, "summary.json");
 	issues_path = AppendFileName(base_path, "open_issues.json");
 	

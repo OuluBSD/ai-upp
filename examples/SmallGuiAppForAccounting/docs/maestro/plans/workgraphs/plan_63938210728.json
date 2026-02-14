@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "plan_customer_mgmt_20260213",
+	"title": "Customer Management Module",
+	"goal": "Implement a complete customer and contact management system within the accounting application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-CUST",
+		"name": "Customer Management",
+		"goal": "Enable users to track, store, and manage customer and contact information.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-01-01",
+					"title": "Define Customer and Contact Structures",
+					"status": "",
+					"intent": "Create header files defining the data models for Customers and Contacts.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Customer.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-01-02",
+					"title": "Implement Customer Persistence Logic",
+					"status": "",
+					"intent": "Implement the logic for serializing and deserializing customer data.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Customer.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-LOGIC",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-02-01",
+					"title": "Develop Customer Management Service",
+					"status": "",
+					"intent": "Create a service class to manage customer collections and business rules.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "CustomerService.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-03-01",
+					"title": "Create Customer Management GUI",
+					"status": "",
+					"intent": "Develop the U++ GUI components for listing and editing customers.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "CustomerGui.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-03-02",
+					"title": "Integrate Customer Module into Main Menu",
+					"status": "",
+					"intent": "Add access points for the customer module in the main application interface.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"Customer\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-03-03",
+					"title": "Build and Verify Customer System",
+					"status": "",
+					"intent": "Perform a full build and basic verification of the customer module.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

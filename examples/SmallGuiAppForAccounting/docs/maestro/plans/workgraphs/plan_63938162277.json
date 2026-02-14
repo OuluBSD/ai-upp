@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "WG-LEDGER-001",
+	"title": "General Ledger Implementation",
+	"goal": "Implement a general ledger with transaction history and balance calculation in a U++ GUI application",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "Ledger Core",
+		"goal": "Provide a functional backend and frontend for transaction management",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-CORE-001",
+			"name": "01_CoreLogic",
+			"tasks": [
+				{
+					"id": "TASK-LEDGER-001",
+					"title": "Define Ledger Data Structures",
+					"status": "",
+					"intent": "Create Ledger.h with Transaction struct (amount, description, date) and Ledger class definition",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-LEDGER-002",
+					"title": "Implement Ledger Logic",
+					"status": "",
+					"intent": "Implement transaction adding, retrieval of history, and balance calculation logic in Ledger.cpp",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-LEDGER-003",
+					"title": "Update Project Configuration",
+					"status": "",
+					"intent": "Add Ledger.h and Ledger.cpp to the SmallGuiAppForAccounting.upp file to ensure they are compiled",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -q \"Ledger.cpp\" SmallGuiAppForAccounting.upp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-GUI-002",
+			"name": "02_GUI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-LEDGER-004",
+					"title": "Implement Transaction History View",
+					"status": "",
+					"intent": "Integrate an ArrayCtrl into the main application window to display the list of transactions",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -q \"ArrayCtrl\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-LEDGER-005",
+					"title": "Implement Balance Display",
+					"status": "",
+					"intent": "Add UI elements to show the current balance, updated automatically when transactions are added",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -q \"Ledger\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-VAL-003",
+			"name": "03_Validation",
+			"tasks": [
+				{
+					"id": "TASK-LEDGER-006",
+					"title": "Verify Build",
+					"status": "",
+					"intent": "Ensure the application compiles correctly with the new ledger implementation and GUI integration",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

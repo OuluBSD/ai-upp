@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-pencil-color-v2",
+	"title": "Drawing Application UI Verification",
+	"goal": "Verify the presence and functionality of the drawing canvas, pencil tool, color selector, and save feature.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the SmallGuiAppForDrawing application",
+			"command": "umk SmallGuiAppForDrawing --run",
+			"expected": "The application window appears with a central drawing area, a toolbar at the top or side, and a color selection widget.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Click the 'Pencil' button in the toolbar",
+			"command": "",
+			"expected": "The Pencil button visually indicates it is selected (e.g., pressed state).",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Select a bright red color from the color selector",
+			"command": "",
+			"expected": "The active drawing color is updated to red.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Perform a click-and-drag motion on the canvas",
+			"command": "",
+			"expected": "A red line is rendered on the canvas following the mouse path.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the 'Save' button in the toolbar",
+			"command": "",
+			"expected": "A file dialog or a confirmation message appears indicating the drawing has been saved.",
+			"variants": [
+
+			]
+		}
+	]
+}

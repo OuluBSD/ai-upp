@@ -1,0 +1,319 @@
+{
+	"schema_version": "v1",
+	"id": "WG-DRAWING-APP-2026",
+	"title": "Implement Drawing Application with Verified Constraints",
+	"goal": "Build a complete C++ drawing application using the U++ framework, featuring a functional canvas, UI controls for drawing, image persistence, and automated constraint verification.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DRAW-DEV",
+		"name": "Drawing Application Development",
+		"goal": "Develop and verify a robust drawing application prototype.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-FOUNDATION",
+			"name": "Canvas Foundation",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define DrawingCanvas Class",
+					"status": "",
+					"intent": "Implement the core DrawingCanvas class in main.cpp to handle rendering and buffer management.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Mouse Event Handling",
+					"status": "",
+					"intent": "Add mouse event handlers to DrawingCanvas to enable freehand drawing functionality.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing CLANG -BM",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-UI-FEATURES",
+			"name": "UI Controls and Tools",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Add Toolbar and Tool Selection",
+					"status": "",
+					"intent": "Integrate a toolbar with buttons for selecting different drawing tools (pencil, eraser).",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing CLANG -BM",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-004",
+					"title": "Integrate Color Selection",
+					"status": "",
+					"intent": "Implement color picking functionality to allow users to change the active drawing color.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing CLANG -BM",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-PERSISTENCE",
+			"name": "Data Persistence",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "Implement Image Save Logic",
+					"status": "",
+					"intent": "Add functionality to export the current canvas content to a PNG file.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing CLANG -BM",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-04-VERIFICATION",
+			"name": "Verification and Constraints",
+			"tasks": [
+				{
+					"id": "TASK-006",
+					"title": "Final Application Build",
+					"status": "",
+					"intent": "Perform a clean build of the entire application to ensure no regression or compilation errors.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForDrawing CLANG -BM",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-007",
+					"title": "Execute Automated Constraint Tests",
+					"status": "",
+					"intent": "Run the python-based constraint verification suite to ensure all application requirements are met.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "python3 test_constraints.py",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

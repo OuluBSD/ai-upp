@@ -38,7 +38,7 @@ static PyValue builtin_print(const Vector<PyValue>& args, void*) {
 
 static PyValue builtin_len(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue(0);
-	return PyValue(args[0].GetCount());
+	return PyValue((int64)args[0].GetCount());
 }
 
 static PyValue builtin_range(const Vector<PyValue>& args, void*) {
@@ -91,6 +91,68 @@ static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
 	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
 	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
 	return v;
+}
+
+static PyValue builtin_chr(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	return PyValue(::Upp::String(args[0].AsInt(), 1));
+}
+
+static PyValue builtin_ord(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	::Upp::String s = args[0].ToString();
+	if(s.GetCount() > 0) return PyValue((int)(byte)s[0]);
+	return PyValue(0);
+}
+
+class PyFile : public PyUserData {
+	One<Stream> stream;
+	bool is_out;
+public:
+	PyFile(const String& path, const String& mode) {
+		is_out = mode.Find('w') >= 0 || mode.Find('a') >= 0;
+		if(mode.Find('a') >= 0) {
+			FileAppend *fa = new FileAppend();
+			fa->Open(path);
+			stream = fa;
+		} else if(mode.Find('w') >= 0) {
+			FileOut *fo = new FileOut();
+			fo->Open(path);
+			stream = fo;
+		} else {
+			FileIn *fi = new FileIn();
+			fi->Open(path);
+			stream = fi;
+		}
+	}
+	
+	virtual String GetTypeName() const override { return "file"; }
+	
+	virtual PyValue GetAttr(const String& name) override {
+		if(name == "write") return PyValue::BoundMethod(PyValue::Function("write", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(args.GetCount() > 0 && pf->is_out && pf->stream) pf->stream->Put(args[0].ToString());
+			return PyValue::None();
+		}, this), this);
+		if(name == "read") return PyValue::BoundMethod(PyValue::Function("read", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(!pf->is_out && pf->stream) return PyValue(LoadStream(*pf->stream));
+			return PyValue("");
+		}, this), this);
+		if(name == "close") return PyValue::BoundMethod(PyValue::Function("close", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(pf->stream) pf->stream->Close();
+			return PyValue::None();
+		}, this), this);
+		return PyValue::None();
+	}
+};
+
+static PyValue builtin_open(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	String path = args[0].ToString();
+	String mode = args.GetCount() >= 2 ? args[1].ToString() : "r";
+	return PyValue(new PyFile(path, mode));
 }
 
 static PyValue builtin_str(const Vector<PyValue>& args, void*) {
@@ -1141,6 +1203,18 @@ PyVM::PyVM()
 	p_abs.GetLambdaRW().builtin = builtin_abs;
 	globals.GetAdd(PyValue("abs")) = p_abs;
 
+	PyValue p_chr = PyValue::Function("chr");
+	p_chr.GetLambdaRW().builtin = builtin_chr;
+	globals.GetAdd(PyValue("chr")) = p_chr;
+
+	PyValue p_ord = PyValue::Function("ord");
+	p_ord.GetLambdaRW().builtin = builtin_ord;
+	globals.GetAdd(PyValue("ord")) = p_ord;
+
+	PyValue p_open = PyValue::Function("open");
+	p_open.GetLambdaRW().builtin = builtin_open;
+	globals.GetAdd(PyValue("open")) = p_open;
+
 	// shutil module
 	PyValue shutil = PyValue::Dict();
 	shutil.SetItem(PyValue("copy"), PyValue::Function("copy", builtin_shutil_copy));
@@ -1556,6 +1630,19 @@ try {
 					Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
 				} else if(attr == "lower") {
 					Push(PyValue::BoundMethod(PyValue::Function("lower", builtin_str_lower), obj));
+				} else {
+					Push(PyValue::None());
+				}
+			} else if (obj.GetType() == PY_LIST) {
+				if(attr == "sort") {
+					Push(PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
+						// BoundMethod passes self as first arg
+						if(args.GetCount() > 0 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							Sort(l);
+						}
+						return PyValue::None();
+					}), obj));
 				} else {
 					Push(PyValue::None());
 				}

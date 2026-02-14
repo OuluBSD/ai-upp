@@ -342,3 +342,7 @@
   task: track-execution/phase-03-demo-projects/task-0303-demo-cave-flier.md
   status: done
   note: Cave flier demo script finalized with ByteVM-safe syntax; runtime runs without compile errors.
+- date: 2026-02-14
+  task: track-execution/phase-03-demo-projects/task-0302-demo-driving-softphys.md
+  status: done
+  note: Added driving_softphys demo project and SoftPhys-backed runtime bindings.

@@ -3,7 +3,8 @@ uses
 	Scene3D/IO,
 	ByteVM,
 	Geometry,
-	Core/TextParsing;
+	Core/TextParsing,
+	SoftPhys;
 
 file
 	AGENTS.md,

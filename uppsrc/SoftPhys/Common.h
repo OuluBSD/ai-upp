@@ -23,6 +23,7 @@ struct ThreadPool;
 struct Contact;
 struct Geometry;
 
+using Parallel::GfxDataState;
 
 
 template <class T>

@@ -594,6 +594,7 @@ GUI_APP_MAIN {
 					SetExitCode(2);
 					return;
 				}
+				double start_x = tr->position[0];
 				double start_z = tr->position[2];
 				runtime.input.SetKey(87, true);
 				for (int i = 0; i < frames; i++) {
@@ -602,9 +603,30 @@ GUI_APP_MAIN {
 					runtime.Update(dt);
 				}
 				runtime.input.SetKey(87, false);
+				double mid_x = tr->position[0];
+				double mid_z = tr->position[2];
+				Cout() << "DriveTest: start_z=" << start_z << " mid_z=" << mid_z << "\n";
+				if (mid_z <= start_z + 0.5) {
+					SetExitCode(2);
+					return;
+				}
+				runtime.input.SetKey(87, true);
+				runtime.input.SetKey(65, true);
+				for (int i = 0; i < frames; i++) {
+					runtime.input.BeginFrame();
+					anim.Update(dt);
+					runtime.Update(dt);
+				}
+				runtime.input.SetKey(87, false);
+				runtime.input.SetKey(65, false);
+				double end_x = tr->position[0];
 				double end_z = tr->position[2];
-				Cout() << "DriveTest: start_z=" << start_z << " end_z=" << end_z << "\n";
-				if (end_z <= start_z + 0.5) {
+				Cout() << "DriveTest: mid_x=" << mid_x << " end_x=" << end_x
+				       << " mid_z=" << mid_z << " end_z=" << end_z << "\n";
+				double dx = end_x - mid_x;
+				double dz = end_z - mid_z;
+				double dist = sqrt(dx * dx + dz * dz);
+				if (fabs(dx) < 0.2 || dist < 0.5) {
 					SetExitCode(2);
 					return;
 				}

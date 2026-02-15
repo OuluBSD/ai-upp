@@ -14,6 +14,7 @@ using namespace Upp;
 // Forward declarations
 class Treat;
 class Pickup;
+class GrimReaper;
 
 // ============================================================================
 // Game event queue - decoupled producer/consumer for scripting and Shell integration
@@ -94,6 +95,9 @@ public:  // Public for testing
 
 	// Pickups
 	Array<Pickup*> pickups;
+
+	// GrimReaper (indestructible time-pressure entity)
+	GrimReaper* reaper;
 
 	// Pathfinding (shared by all enemies, built on level load)
 	Pathfinder pathfinder;

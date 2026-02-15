@@ -474,17 +474,21 @@ Currently AudioSystem.cpp exists but is not integrated into gameplay. Need:
 | Basic Enemies (3 types) | ✓ | ✓ | COMPLETE |
 | HUD (lives, score) | ✓ | ✓ | COMPLETE |
 | Game States (pause, game over) | ✓ | ✓ | COMPLETE |
-| Water/Droplet System | ✓ | ✗ | MISSING |
-| Parasol Attack | ✓ | ✗ | MISSING |
-| Rewards/Treats | ✓ | ✗ | MISSING |
-| Advanced Enemies (9+ types) | ✓ | ✗ | MISSING |
+| Parasol Attack + Glide | ✓ | ✓ | COMPLETE |
+| Rewards/Treats System | ✓ | ✓ | COMPLETE |
+| A* Pathfinder + NavGraph | ✓ | ✓ | COMPLETE (added) |
+| AI Behaviors (Wanderer/Stalker/Shooter/Patrol) | ✓ | ✓ | COMPLETE (added) |
+| Enemy AI Wiring (all 3 types) | ✓ | ✓ | COMPLETE (added) |
+| Water/Droplet System | ✓ | Partial | INCOMPLETE (class exists, no spawn) |
+| Level Goal System | ✓ | Partial | INCOMPLETE (enemy-clear triggers it, no goal tile/next-level load) |
+| Lives + proper game over | ✓ | Partial | INCOMPLETE (state/counter exists, no 3-lives flow) |
+| Level Manifest/Progression | ✓ | ✗ | MISSING |
+| Advanced Enemies (flying, boss) | ✓ | ✗ | MISSING |
 | Pickups (health, powerups) | ✓ | ✗ | MISSING |
 | Sprite/Animation System | ✓ | ✗ | MISSING |
 | Entity Definition System | ✓ | ✗ | MISSING |
 | Annotation System | ✓ | ✗ | MISSING |
 | Entity Editor | ✓ | ✗ | MISSING |
-| Level Manifest/Progression | ✓ | ✗ | MISSING |
-| Level Goal System | ✓ | Partial | INCOMPLETE |
 | Debug Overlay | ✓ | ✗ | MISSING |
 | Particle Effects | ✓ | ✗ | MISSING |
 | Audio Integration | ✓ | ✗ | MISSING |

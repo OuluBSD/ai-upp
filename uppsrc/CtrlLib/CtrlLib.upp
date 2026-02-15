@@ -89,6 +89,8 @@ file
 	TreeCtrl.cpp,
 	TreeArrayCtrl.h,
 	TreeArrayCtrl.cpp,
+	RibbonBar.h,
+	RibbonBar.cpp,
 	DropTree.cpp,
 	PageCtrl readonly separator,
 	PageCtrl.h,

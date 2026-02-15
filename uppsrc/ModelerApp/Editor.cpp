@@ -3067,13 +3067,16 @@ static bool DialogCreateWater(int& tiles, double& width, double& length)
 	return false;
 }
 
-static bool DialogCreateTerrain(double& side_length, double& tile_size, double& max_height, String& topology)
+static bool DialogCreateTerrain(double& side_length, double& tile_size, double& max_height,
+                                String& topology, bool& create_trees, bool& create_grass)
 {
 	struct Dlg : PrimitiveDialogBase {
 		EditDoubleSpin side_len;
 		EditDoubleSpin tile;
 		EditDoubleSpin max_h;
 		DropList topo;
+		Option create_trees;
+		Option create_grass;
 		Dlg()
 		{
 			Title("Create a terrain");
@@ -3084,10 +3087,16 @@ static bool DialogCreateTerrain(double& side_length, double& tile_size, double& 
 			topo.Add("Desert");
 			topo.Add("Flat");
 			topo.SetIndex(0);
+			create_trees.SetLabel("Create Trees");
+			create_grass.SetLabel("Create Grass");
+			create_trees = true;
+			create_grass = true;
 			AddRow("Side length:", side_len);
 			AddRow("Tile size:", tile);
 			AddRow("Max height:", max_h);
 			AddRow("Topology:", topo);
+			AddRowLeft(create_trees);
+			AddRowLeft(create_grass);
 			AddButtons();
 		}
 	} dlg;
@@ -3096,24 +3105,43 @@ static bool DialogCreateTerrain(double& side_length, double& tile_size, double& 
 		tile_size = (double)dlg.tile.GetData();
 		max_height = (double)dlg.max_h.GetData();
 		topology = AsString(dlg.topo.GetData());
+		create_trees = dlg.create_trees;
+		create_grass = dlg.create_grass;
 		return true;
 	}
 	return false;
 }
 
-static bool DialogCreateRoomMesh()
+static bool DialogCreateRoomMesh(String& ceiling_type, double& wall_height, String& ceiling_tex)
 {
 	struct Dlg : PrimitiveDialogBase {
 		Label info;
+		DropList ceiling;
+		EditDoubleSpin wall_h;
+		EditString ceiling_tex;
 		Dlg()
 		{
 			Title("Create a Room");
 			info.SetLabel("Room map editor is not implemented yet.");
 			AddRowLeft(info);
+			ceiling.Add("Arcade");
+			ceiling.Add("Flat");
+			ceiling.Add("No ceiling");
+			ceiling.SetIndex(0);
+			wall_h.SetData(1.5);
+			AddRow("Ceiling type:", ceiling);
+			AddRow("Wall height:", wall_h);
+			AddRow("Ceiling texture:", ceiling_tex);
 			AddButtons();
 		}
 	} dlg;
-	return dlg.Run() == IDOK;
+	if (dlg.Run() == IDOK) {
+		ceiling_type = AsString(dlg.ceiling.GetData());
+		wall_height = (double)dlg.wall_h.GetData();
+		ceiling_tex = AsString(dlg.ceiling_tex.GetData());
+		return true;
+	}
+	return false;
 }
 
 static bool GetRibbonDropValue(RibbonCtrl& ribbon, const char* id, String& out)
@@ -3417,22 +3445,33 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		double tile = 20.0;
 		double max_h = 100.0;
 		String topo;
-		if (!DialogCreateTerrain(side, tile, max_h, topo))
+		bool create_trees = true;
+		bool create_grass = true;
+		if (!DialogCreateTerrain(side, tile, max_h, topo, create_trees, create_grass))
 			return false;
 		int tiles = (tile > 1e-6) ? max(1, (int)floor(side / tile + 0.5)) : 1;
 		GeomObject* obj = CreatePrimitivePlane(tiles, side, side, 1);
 		if (obj) {
 			SetDynamicProp(*obj, "terrain_max_height", max_h);
 			SetDynamicProp(*obj, "terrain_topology", topo);
+			SetDynamicProp(*obj, "terrain_create_trees", create_trees);
+			SetDynamicProp(*obj, "terrain_create_grass", create_grass);
 			SetDynamicProp(*obj, "type", "terrain");
 		}
 		return true;
 	}
 	if (sid == "create_room_mesh_from_2d_map") {
-		if (!DialogCreateRoomMesh())
+		String ceiling_type;
+		double wall_height = 1.5;
+		String ceiling_tex;
+		if (!DialogCreateRoomMesh(ceiling_type, wall_height, ceiling_tex))
 			return false;
 		GeomObject& obj = CreateTaggedModel(*this, "room", "room_mesh");
 		SetDynamicProp(obj, "room_mesh_pending", true);
+		SetDynamicProp(obj, "room_ceiling_type", ceiling_type);
+		SetDynamicProp(obj, "room_wall_height", wall_height);
+		if (!ceiling_tex.IsEmpty())
+			SetDynamicProp(obj, "room_ceiling_texture", ceiling_tex);
 		state->UpdateObjects();
 		RefreshData();
 		return true;

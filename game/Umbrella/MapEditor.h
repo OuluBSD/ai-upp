@@ -123,6 +123,11 @@ private:
 	Button wallBtn, bgBtn, blockBtn;
 	Label toolSelectionLabel;
 	Button brushToolBtn, eraserToolBtn, fillToolBtn;
+	Button enemyPlacementBtn, dropletPlacementBtn;
+	Label enemyTypeLabel, dropletTypeLabel;
+	DropList enemyTypeList, dropletTypeList;
+	Label enemyFacingLabel;
+	DropList enemyFacingList;
 
 	// Layers Panel Controls
 	TreeArrayCtrl layersList;

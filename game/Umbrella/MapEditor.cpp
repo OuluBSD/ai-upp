@@ -374,13 +374,33 @@ void MapCanvas::LeftUp(Point pos, dword flags) {
 void MapCanvas::RightDown(Point pos, dword flags) {
 	if(!parentEditor) return;
 
-	// Right-click for quick erasing
 	int tileSize = int(14 * zoom);
 	if(tileSize <= 0) return;
 
 	int col = (pos.x - offset.x) / tileSize;
 	int row = (pos.y - offset.y) / tileSize;
 
+	MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
+
+	// Right-click in entity modes = remove entity at that cell
+	if(tool == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
+		EnemyPlacementTool& et = parentEditor->GetEnemyTool();
+		et.SetMode(PLACEMENT_REMOVE);
+		et.Click(col, row);
+		et.SetMode(PLACEMENT_ADD);
+		Refresh();
+		return;
+	}
+	if(tool == MapEditorApp::TOOL_DROPLET_PLACEMENT) {
+		DropletPlacementTool& dt = parentEditor->GetDropletTool();
+		dt.SetMode(PLACEMENT_REMOVE);
+		dt.Click(col, row);
+		dt.SetMode(PLACEMENT_ADD);
+		Refresh();
+		return;
+	}
+
+	// All other tools: right-click erases tiles
 	BrushTool& brush = parentEditor->GetBrushTool();
 	LayerManager& layerMgr = parentEditor->GetLayerManager();
 
@@ -391,6 +411,11 @@ void MapCanvas::RightDown(Point pos, dword flags) {
 
 void MapCanvas::RightUp(Point pos, dword flags) {
 	if(!parentEditor) return;
+
+	MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
+	if(tool == MapEditorApp::TOOL_ENEMY_PLACEMENT ||
+	   tool == MapEditorApp::TOOL_DROPLET_PLACEMENT)
+		return;
 
 	BrushTool& brush = parentEditor->GetBrushTool();
 	brush.StopPainting();
@@ -786,6 +811,82 @@ void MapEditorApp::SetupToolsPanel() {
 		mainStatusBar.Set("Tool: Fill");
 	};
 	toolsPanel.Add(fillToolBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 40;
+
+	// Entity Placement section
+	Label& entLabel = *new Label();
+	entLabel.SetText("Entities:");
+	toolsPanel.Add(entLabel.LeftPos(10, 100).TopPos(yPos, 20));
+	yPos += 25;
+
+	enemyPlacementBtn.SetLabel("Enemy [5]");
+	enemyPlacementBtn << [=] {
+		currentTool = TOOL_ENEMY_PLACEMENT;
+		enemyTool.SetMode(PLACEMENT_ADD);
+		mainStatusBar.Set("Tool: Enemy Placement (5=add, right-click=remove)");
+		mapCanvas.Refresh();
+	};
+	toolsPanel.Add(enemyPlacementBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	dropletPlacementBtn.SetLabel("Droplet [6]");
+	dropletPlacementBtn << [=] {
+		currentTool = TOOL_DROPLET_PLACEMENT;
+		dropletTool.SetMode(PLACEMENT_ADD);
+		mainStatusBar.Set("Tool: Droplet Placement (6=add, right-click=remove)");
+		mapCanvas.Refresh();
+	};
+	toolsPanel.Add(dropletPlacementBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 40;
+
+	// Enemy type selector
+	enemyTypeLabel.SetText("Enemy Type:");
+	toolsPanel.Add(enemyTypeLabel.LeftPos(10, 110).TopPos(yPos, 20));
+	yPos += 22;
+
+	enemyTypeList.Add("Patroller");
+	enemyTypeList.Add("Jumper");
+	enemyTypeList.Add("Shooter");
+	enemyTypeList.Add("Flyer");
+	enemyTypeList.SetIndex(0);
+	enemyTypeList.WhenAction = [=] {
+		int idx = enemyTypeList.GetIndex();
+		EnemyType types[] = { ENEMY_PATROLLER, ENEMY_JUMPER, ENEMY_SHOOTER, ENEMY_FLYER };
+		if(idx >= 0 && idx < 4)
+			enemyTool.SetSelectedType(types[idx]);
+	};
+	toolsPanel.Add(enemyTypeList.HSizePos(10, 10).TopPos(yPos, 22));
+	yPos += 28;
+
+	enemyFacingLabel.SetText("Facing:");
+	toolsPanel.Add(enemyFacingLabel.LeftPos(10, 110).TopPos(yPos, 20));
+	yPos += 22;
+
+	enemyFacingList.Add("Right");
+	enemyFacingList.Add("Left");
+	enemyFacingList.SetIndex(0);
+	enemyFacingList.WhenAction = [=] {
+		enemyTool.SetSelectedFacing(enemyFacingList.GetIndex() == 0 ? 1 : -1);
+	};
+	toolsPanel.Add(enemyFacingList.HSizePos(10, 10).TopPos(yPos, 22));
+	yPos += 40;
+
+	// Droplet type selector
+	dropletTypeLabel.SetText("Droplet Type:");
+	toolsPanel.Add(dropletTypeLabel.LeftPos(10, 110).TopPos(yPos, 20));
+	yPos += 22;
+
+	dropletTypeList.Add("Rainbow");
+	dropletTypeList.Add("Ice");
+	dropletTypeList.Add("Fire");
+	dropletTypeList.SetIndex(0);
+	dropletTypeList.WhenAction = [=] {
+		int idx = dropletTypeList.GetIndex();
+		DropletType modes[] = { DROPLET_RAINBOW, DROPLET_ICE, DROPLET_FIRE };
+		if(idx >= 0 && idx < 3)
+			dropletTool.SetSelectedType(modes[idx]);
+	};
+	toolsPanel.Add(dropletTypeList.HSizePos(10, 10).TopPos(yPos, 22));
 }
 
 void MapEditorApp::SetupLayersPanel() {

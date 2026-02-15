@@ -368,8 +368,11 @@ struct Edit3D : DockWindow {
 	TextureEditCtrl texture_edit;
 	//RemoteDebugCtrl v_rdbg;
 	ToolPanel tool_panel;
+	RibbonCtrl ribbon;
 	MenuBar menu;
 	ToolBar tool;
+	int ribbon_display_mode = RibbonBar::RIBBON_ALWAYS;
+	int ribbon_qat_pos = RibbonBar::QAT_TOP;
 	DockableCtrl* dock_tree = 0;
 	DockableCtrl* dock_props = 0;
 	DockableCtrl* dock_time = 0;
@@ -714,6 +717,12 @@ struct Edit3D : DockWindow {
 	void ApplyToolPanelCameraSource(CameraSource src);
 	void ApplyRendererCameraSource(int view_i, CameraSource src, hash_t object_key = 0);
 	void RequestExecutionExit();
+	void UpdateRibbonContext();
+	void CreatePrimitiveCube(double size);
+	void CreatePrimitiveSphere(double radius, int slices, int stacks);
+	void CreatePrimitiveCylinder(double radius, double length, int slices);
+	void CreatePrimitiveCone(double radius, double length, int slices);
+	GeomObject* CreatePrimitivePlane(int tiles, double width, double length, int repeat);
 	
 public:
 	typedef Edit3D CLASSNAME;
@@ -733,6 +742,7 @@ public:
 	void RefrehRenderers();
 	void RefrehToolbar();
 	void OnSceneEnd();
+	bool HandleRibbonAction(const String& id);
 	void ScheduleBuiltinDump(int builtin_index, int delay_ms = 2000);
 	void DumpBuiltinState(int builtin_index);
 	void OnDebugMetadata();
@@ -743,6 +753,7 @@ public:
 	void Serialize(Stream& s);
 	void ResetLayout();
 	void ResetPropsCursor();
+	void OpenAllDocksForTest();
 	void OpenScene3D();
 	void OpenTextureEditor();
 	void OpenFilePool();

@@ -14,7 +14,7 @@ private:
 	int direction;  // -1 left, 1 right
 
 	static constexpr float PROJECTILE_SIZE = 6.0f;
-	static constexpr float PROJECTILE_SPEED = 200.0f;
+	static constexpr float PROJECTILE_SPEED = 90.0f;
 
 public:
 	Projectile(float x, float y, int dir);

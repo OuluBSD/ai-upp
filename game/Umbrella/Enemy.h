@@ -4,6 +4,11 @@
 #include <Core/Core.h>
 #include "Player.h"
 
+// Forward declarations for AI system
+class Pathfinder;
+class NavGraph;
+class GameScreen;
+
 using namespace Upp;
 
 enum EnemyType {
@@ -62,6 +67,13 @@ public:
 
 	virtual void Update(float delta, const Player& player, Player::CollisionHandler& collision) = 0;
 	virtual void Render(Draw& w, Player::CoordinateConverter& coords) = 0;
+
+	// Called once after spawning to attach pathfinding resources.
+	// Override in AI-driven subclasses. spawnCol/spawnRow are tile coords.
+	virtual void WireAI(Pathfinder* pf, const NavGraph* ng,
+	                    const GameScreen* gs, int spawnCol, int spawnRow) {
+		(void)pf; (void)ng; (void)gs; (void)spawnCol; (void)spawnRow;
+	}
 
 	// Accessors
 	bool IsAlive() const { return alive; }

@@ -486,14 +486,14 @@ PyValue ModelerSetTimelineExpanded(const Vector<PyValue>& args, void* user_data)
 	GeomObject* obj = ResolveObjectPath(*e, path);
 	if (!obj)
 		return PyValue::False();
-	int idx = e->timeline_expanded.Find(obj->key);
+	int idx = e->v0.timeline_expanded.Find(obj->key);
 	if (expand) {
 		if (idx < 0)
-			e->timeline_expanded.Add(obj->key);
+			e->v0.timeline_expanded.Add(obj->key);
 	}
 	else {
 		if (idx >= 0)
-			e->timeline_expanded.Remove(idx);
+			e->v0.timeline_expanded.Remove(idx);
 	}
 	e->v0.TimelineData();
 	return PyValue::True();
@@ -504,6 +504,91 @@ PyValue ModelerGetGizmoPixels(const Vector<PyValue>& args, void* user_data) {
 	if (!e)
 		return PyValue::None();
 	return PyValue(e->render_ctx.gizmo_pixels);
+}
+
+PyValue ModelerSetRendererVersion(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 2)
+		return PyValue::False();
+	int view_i = (int)args[0].AsInt();
+	int version = (int)args[1].AsInt();
+	if (view_i < 0 || view_i >= 4)
+		return PyValue::False();
+	if (version < 1 || version > 3)
+		return PyValue::False();
+	e->v0.SetRendererVersion(view_i, version);
+	return PyValue::True();
+}
+
+PyValue ModelerGetRendererVersion(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::None();
+	int view_i = (int)args[0].AsInt();
+	if (view_i < 0 || view_i >= 4)
+		return PyValue::None();
+	return PyValue(e->v0.rend_version[view_i]);
+}
+
+PyValue ModelerSetRendererWireframe(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 2)
+		return PyValue::False();
+	int view_i = (int)args[0].AsInt();
+	bool enable = args[1].IsTrue();
+	if (view_i < 0 || view_i >= 4)
+		return PyValue::False();
+	EditRendererBase* rend = e->v0.rends[view_i];
+	if (!rend)
+		return PyValue::False();
+	rend->SetWireframeOnly(enable);
+	e->RefrehRenderers();
+	return PyValue::True();
+}
+
+PyValue ModelerGetRendererWireframe(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::None();
+	int view_i = (int)args[0].AsInt();
+	if (view_i < 0 || view_i >= 4)
+		return PyValue::None();
+	EditRendererBase* rend = e->v0.rends[view_i];
+	if (!rend)
+		return PyValue::None();
+	return PyValue(rend->IsWireframeOnly());
+}
+
+PyValue ModelerSetShowGrid(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::False();
+	e->conf.show_grid = args[0].IsTrue();
+	e->RefrehRenderers();
+	return PyValue::True();
+}
+
+PyValue ModelerGetShowGrid(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e)
+		return PyValue::None();
+	return PyValue(e->conf.show_grid);
+}
+
+PyValue ModelerSetHudVisible(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 1)
+		return PyValue::False();
+	e->show_hud = args[0].IsTrue();
+	e->RefrehRenderers();
+	return PyValue::True();
+}
+
+PyValue ModelerGetHudVisible(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e)
+		return PyValue::None();
+	return PyValue(e->show_hud);
 }
 
 PyValue ModelerCreateObject(const Vector<PyValue>& args, void* user_data) {
@@ -1999,7 +2084,10 @@ Edit3D::Edit3D() :
 	Add(v0.grid.SizePos());
 	
 	AddFrame(menu);
+	AddFrame(ribbon);
 	tool_panel.Init(this);
+	ribbon.Init(this);
+ribbon.LoadSpec(ShareDirFile(AppendFileName("scene3d", "ribbon/coppercube_ribbon.xml")));
 	menu.Set([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
 			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);
@@ -2493,7 +2581,7 @@ void Edit3D::ExecutionWindow::CloseWindow() {
 }
 
 void Edit3D::DockInit() {
-	dock_tree = &Dockable(v0.tree, "Scene Tree");
+	dock_tree = &Dockable(v0.tree, "SceneCraft Explorer");
 	dock_props = &Dockable(v0.props, "Properties");
 	dock_time = &Dockable(v0.time, "Timeline");
 	dock_video = &Dockable(v1, "Video Import");
@@ -2536,6 +2624,8 @@ void Edit3D::DockInit() {
 	String cfg = ModelerAppConfigPath();
 	if (FileExists(cfg))
 		LoadFromFile(*this, cfg);
+	ribbon.SetDisplayMode(ribbon_display_mode);
+	ribbon.SetQuickAccessPos(ribbon_qat_pos);
 	v0.RestoreTreeOpenState();
 	SetEditTool(edit_tool);
 }
@@ -2634,6 +2724,544 @@ void Edit3D::RefrehToolbar() {
 	tool.Set(THISBACK(Toolbar));
 }
 
+static void FillEditableMeshFromMesh(GeomEditableMesh& out, const Mesh& mesh)
+{
+	out.points.Clear();
+	out.lines.Clear();
+	out.faces.Clear();
+	out.points.SetCount(mesh.vertices.GetCount());
+	for (int i = 0; i < mesh.vertices.GetCount(); i++)
+		out.points[i] = mesh.vertices[i].position.Splice();
+	if (mesh.use_quad) {
+		int quad_count = mesh.indices.GetCount() / 4;
+		out.faces.SetCount(quad_count * 2);
+		for (int i = 0; i < quad_count; i++) {
+			int a = mesh.indices[i * 4 + 0];
+			int b = mesh.indices[i * 4 + 1];
+			int c = mesh.indices[i * 4 + 2];
+			int d = mesh.indices[i * 4 + 3];
+			out.faces[i * 2 + 0].a = a;
+			out.faces[i * 2 + 0].b = b;
+			out.faces[i * 2 + 0].c = c;
+			out.faces[i * 2 + 1].a = a;
+			out.faces[i * 2 + 1].b = c;
+			out.faces[i * 2 + 1].c = d;
+		}
+	}
+	else {
+		int tri_count = mesh.indices.GetCount() / 3;
+		out.faces.SetCount(tri_count);
+		for (int i = 0; i < tri_count; i++) {
+			out.faces[i].a = mesh.indices[i * 3 + 0];
+			out.faces[i].b = mesh.indices[i * 3 + 1];
+			out.faces[i].c = mesh.indices[i * 3 + 2];
+		}
+	}
+}
+
+static GeomDirectory& GetCreateTargetDirectory(Edit3D& e)
+{
+	GeomDirectory* dir = nullptr;
+	if (e.v0.selected_ref && e.v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_VFS && e.v0.selected_ref->vfs)
+		dir = GetNodeDirectory(*e.v0.selected_ref->vfs);
+	if (!dir)
+		dir = &e.state->GetActiveScene();
+	return *dir;
+}
+
+static void SetDynamicProp(GeomObject& obj, const String& key, const Value& val)
+{
+	GeomDynamicProperties& props = obj.GetDynamicProperties();
+	props.props.GetAdd(key, val);
+}
+
+static void SetDynamicProp(GeomDirectory& dir, const String& key, const Value& val)
+{
+	GeomDynamicProperties& props = dir.GetDynamicProperties();
+	props.props.GetAdd(key, val);
+}
+
+static GeomObject& CreateModelObject(Edit3D& e, const String& base)
+{
+	GeomDirectory& dir = GetCreateTargetDirectory(e);
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	return obj;
+}
+
+static GeomObject& CreateTaggedModel(Edit3D& e, const String& base, const String& tag)
+{
+	GeomObject& obj = CreateModelObject(e, base);
+	if (!tag.IsEmpty())
+		SetDynamicProp(obj, "type", tag);
+	return obj;
+}
+
+struct PrimitiveDialogBase : TopWindow {
+	Button ok;
+	Button cancel;
+	int row_y = 10;
+	int row_h = 24;
+	int label_w = 120;
+	int field_w = 120;
+	int gap = 8;
+
+	PrimitiveDialogBase()
+	{
+		Sizeable(false);
+		ok.SetLabel("OK");
+		cancel.SetLabel("Cancel");
+		ok.WhenAction = [=] { AcceptBreak(IDOK); };
+		cancel.WhenAction = [=] { RejectBreak(IDCANCEL); };
+	}
+
+	void AddButtons()
+	{
+		int y = row_y + gap;
+		ok.SetRect(10, y, 80, 24);
+		cancel.SetRect(100, y, 80, 24);
+		Add(ok);
+		Add(cancel);
+		SetRect(0, 0, 220, y + 40);
+	}
+
+	void AddRow(const String& label, Ctrl& field)
+	{
+		Label& lbl = *new Label;
+		lbl.SetLabel(label);
+		Add(lbl);
+		lbl.SetRect(10, row_y, label_w, row_h);
+		field.SetRect(10 + label_w + gap, row_y, field_w, row_h);
+		Add(field);
+		row_y += row_h + 4;
+	}
+
+	void AddRowLeft(Ctrl& field)
+	{
+		field.SetRect(10, row_y, label_w + field_w + gap, row_h);
+		Add(field);
+		row_y += row_h + 4;
+	}
+};
+
+static bool DialogCreateCube(double& size)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditDoubleSpin size;
+		Dlg()
+		{
+			Title("Create a cube");
+			size.SetData(10.0);
+			AddRow("Size:", size);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		size = (double)dlg.size.GetData();
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateSphere(double& radius, int& poly)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditDoubleSpin radius;
+		EditIntSpin poly;
+		Dlg()
+		{
+			Title("Create a sphere");
+			radius.SetData(5.0);
+			poly.SetData(128);
+			AddRow("Radius:", radius);
+			AddRow("Polycount:", poly);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		radius = (double)dlg.radius.GetData();
+		poly = (int)dlg.poly.GetData();
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateCylinder(double& radius, int& sides, double& length, bool& cap_top, bool& cap_bottom)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditDoubleSpin radius;
+		EditIntSpin sides;
+		EditDoubleSpin length;
+		Option cap_top;
+		Option cap_bottom;
+		Dlg()
+		{
+			Title("Create a cylinder");
+			radius.SetData(5.0);
+			sides.SetData(8);
+			length.SetData(10.0);
+			cap_top.SetLabel("Cap top");
+			cap_bottom.SetLabel("Cap bottom");
+			AddRow("Radius:", radius);
+			AddRow("Side count:", sides);
+			AddRow("Length:", length);
+			AddRowLeft(cap_top);
+			AddRowLeft(cap_bottom);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		radius = (double)dlg.radius.GetData();
+		sides = (int)dlg.sides.GetData();
+		length = (double)dlg.length.GetData();
+		cap_top = dlg.cap_top;
+		cap_bottom = dlg.cap_bottom;
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateCone(double& radius, int& sides, double& length, bool& cap_bottom)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditDoubleSpin radius;
+		EditIntSpin sides;
+		EditDoubleSpin length;
+		Option cap_bottom;
+		Dlg()
+		{
+			Title("Create a cone");
+			radius.SetData(5.0);
+			sides.SetData(8);
+			length.SetData(10.0);
+			cap_bottom.SetLabel("Cap bottom");
+			AddRow("Radius:", radius);
+			AddRow("Side count:", sides);
+			AddRow("Length:", length);
+			AddRowLeft(cap_bottom);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		radius = (double)dlg.radius.GetData();
+		sides = (int)dlg.sides.GetData();
+		length = (double)dlg.length.GetData();
+		cap_bottom = dlg.cap_bottom;
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreatePlane(int& tiles, double& width, double& length, int& repeat)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditIntSpin tiles;
+		EditDoubleSpin width;
+		EditDoubleSpin length;
+		EditIntSpin repeat;
+		Dlg()
+		{
+			Title("Create a plane");
+			tiles.SetData(4);
+			width.SetData(30.0);
+			length.SetData(30.0);
+			repeat.SetData(1);
+			AddRow("Tile count:", tiles);
+			AddRow("Width:", width);
+			AddRow("Length:", length);
+			AddRow("Repeat count:", repeat);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		tiles = (int)dlg.tiles.GetData();
+		width = (double)dlg.width.GetData();
+		length = (double)dlg.length.GetData();
+		repeat = (int)dlg.repeat.GetData();
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateCamera(String& cam_type, bool& collides, bool& first_active)
+{
+	struct Dlg : PrimitiveDialogBase {
+		Option opt_simple;
+		Option opt_fps;
+		Option opt_third;
+		Option opt_free;
+		Option opt_viewer;
+		Option opt_panorama;
+		Option collides;
+		Option first_active;
+		Dlg()
+		{
+			Title("Create a camera");
+			opt_simple.SetLabel("Simple camera").SetGroup(1);
+			opt_fps.SetLabel("First person shooter camera").SetGroup(1);
+			opt_third.SetLabel("Third person camera").SetGroup(1);
+			opt_free.SetLabel("Free-flying camera").SetGroup(1);
+			opt_viewer.SetLabel("Model viewer camera").SetGroup(1);
+			opt_panorama.SetLabel("Panorama camera").SetGroup(1);
+			opt_simple = true;
+			collides.SetLabel("Collides against geometry when moved");
+			first_active.SetLabel("When starting the scene, this is the first active camera");
+			first_active = true;
+			AddRowLeft(opt_simple);
+			AddRowLeft(opt_fps);
+			AddRowLeft(opt_third);
+			AddRowLeft(opt_free);
+			AddRowLeft(opt_viewer);
+			AddRowLeft(opt_panorama);
+			AddRowLeft(collides);
+			AddRowLeft(first_active);
+			AddButtons();
+		}
+		String GetType() const
+		{
+			if (opt_fps) return "fps";
+			if (opt_third) return "third_person";
+			if (opt_free) return "free_flying";
+			if (opt_viewer) return "model_viewer";
+			if (opt_panorama) return "panorama";
+			return "simple";
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		cam_type = dlg.GetType();
+		collides = dlg.collides;
+		first_active = dlg.first_active;
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateWater(int& tiles, double& width, double& length)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditIntSpin tiles;
+		EditDoubleSpin width;
+		EditDoubleSpin length;
+		Dlg()
+		{
+			Title("Create a Water Surface");
+			tiles.SetData(10);
+			width.SetData(1000.0);
+			length.SetData(1000.0);
+			AddRow("Tile count:", tiles);
+			AddRow("Width:", width);
+			AddRow("Length:", length);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		tiles = (int)dlg.tiles.GetData();
+		width = (double)dlg.width.GetData();
+		length = (double)dlg.length.GetData();
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateTerrain(double& side_length, double& tile_size, double& max_height, String& topology)
+{
+	struct Dlg : PrimitiveDialogBase {
+		EditDoubleSpin side_len;
+		EditDoubleSpin tile;
+		EditDoubleSpin max_h;
+		DropList topo;
+		Dlg()
+		{
+			Title("Create a terrain");
+			side_len.SetData(1500.0);
+			tile.SetData(20.0);
+			max_h.SetData(100.0);
+			topo.Add("Hills");
+			topo.Add("Desert");
+			topo.Add("Flat");
+			topo.SetIndex(0);
+			AddRow("Side length:", side_len);
+			AddRow("Tile size:", tile);
+			AddRow("Max height:", max_h);
+			AddRow("Topology:", topo);
+			AddButtons();
+		}
+	} dlg;
+	if (dlg.Run() == IDOK) {
+		side_length = (double)dlg.side_len.GetData();
+		tile_size = (double)dlg.tile.GetData();
+		max_height = (double)dlg.max_h.GetData();
+		topology = AsString(dlg.topo.GetData());
+		return true;
+	}
+	return false;
+}
+
+static bool DialogCreateRoomMesh()
+{
+	struct Dlg : PrimitiveDialogBase {
+		Label info;
+		Dlg()
+		{
+			Title("Create a Room");
+			info.SetLabel("Room map editor is not implemented yet.");
+			AddRowLeft(info);
+			AddButtons();
+		}
+	} dlg;
+	return dlg.Run() == IDOK;
+}
+
+static bool GetRibbonDropValue(RibbonCtrl& ribbon, const char* id, String& out)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	DropList* dl = dynamic_cast<DropList*>(c);
+	if (!dl || IsNull(dl->GetData()))
+		return false;
+	out = AsString(dl->GetData());
+	return true;
+}
+
+static bool GetRibbonIntValue(RibbonCtrl& ribbon, const char* id, int& out)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	EditIntSpin* ed = dynamic_cast<EditIntSpin*>(c);
+	if (!ed)
+		return false;
+	out = (int)ed->GetData();
+	return true;
+}
+
+static bool GetRibbonDoubleValue(RibbonCtrl& ribbon, const char* id, double& out)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	EditDoubleSpin* ed = dynamic_cast<EditDoubleSpin*>(c);
+	if (!ed)
+		return false;
+	out = (double)ed->GetData();
+	return true;
+}
+
+static bool GetRibbonBoolValue(RibbonCtrl& ribbon, const char* id, bool& out)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	Option* opt = dynamic_cast<Option*>(c);
+	if (!opt)
+		return false;
+	out = (bool)*opt;
+	return true;
+}
+
+void Edit3D::CreatePrimitiveCube(double size)
+{
+	if (!state)
+		return;
+	PushUndo("Create Cube");
+	GeomDirectory& dir = GetCreateTargetDirectory(*this);
+	String base = "cube";
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	GeomEditableMesh& emesh = obj.GetEditableMesh();
+	Mesh mesh;
+	MeshFactory::CreateBox(mesh, (float)size, (float)size, (float)size);
+	FillEditableMeshFromMesh(emesh, mesh);
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::CreatePrimitiveSphere(double radius, int slices, int stacks)
+{
+	if (!state)
+		return;
+	PushUndo("Create Sphere");
+	GeomDirectory& dir = GetCreateTargetDirectory(*this);
+	String base = "sphere";
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	GeomEditableMesh& emesh = obj.GetEditableMesh();
+	Mesh mesh;
+	MeshFactory::CreateSphere(mesh, slices, stacks, (float)radius);
+	FillEditableMeshFromMesh(emesh, mesh);
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::CreatePrimitiveCylinder(double radius, double length, int slices)
+{
+	if (!state)
+		return;
+	PushUndo("Create Cylinder");
+	GeomDirectory& dir = GetCreateTargetDirectory(*this);
+	String base = "cylinder";
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	GeomEditableMesh& emesh = obj.GetEditableMesh();
+	Mesh mesh;
+	MeshFactory::CreateCylinder(mesh, slices, (float)radius, (float)length);
+	FillEditableMeshFromMesh(emesh, mesh);
+	state->UpdateObjects();
+	RefreshData();
+}
+
+void Edit3D::CreatePrimitiveCone(double radius, double length, int slices)
+{
+	if (!state)
+		return;
+	PushUndo("Create Cone");
+	GeomDirectory& dir = GetCreateTargetDirectory(*this);
+	String base = "cone";
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	GeomEditableMesh& emesh = obj.GetEditableMesh();
+	Mesh mesh;
+	MeshFactory::CreateCone(mesh, slices, (float)radius, (float)length);
+	FillEditableMeshFromMesh(emesh, mesh);
+	state->UpdateObjects();
+	RefreshData();
+}
+
+GeomObject* Edit3D::CreatePrimitivePlane(int tiles, double width, double length, int repeat)
+{
+	if (!state)
+		return nullptr;
+	PushUndo("Create Plane");
+	GeomDirectory& dir = GetCreateTargetDirectory(*this);
+	String base = "plane";
+	String name = base;
+	int idx = 1;
+	while (dir.FindObject(name))
+		name = base + "_" + IntStr(idx++);
+	GeomObject& obj = dir.GetAddModel(name);
+	obj.type = GeomObject::O_MODEL;
+	GeomEditableMesh& emesh = obj.GetEditableMesh();
+	Mesh mesh;
+	MeshFactory::CreateGridTriangles(mesh, tiles, tiles, (float)width, (float)length, (float)repeat, (float)repeat);
+	FillEditableMeshFromMesh(emesh, mesh);
+	state->UpdateObjects();
+	RefreshData();
+	return &obj;
+}
+
 void Edit3D::Toolbar(Bar& bar) {
 	bar.Add(true,  t_("Stop"),  ImagesImg::Stop(),  THISBACK(Stop)).Key(K_F6);
 	
@@ -2644,6 +3272,434 @@ void Edit3D::Toolbar(Bar& bar) {
 	bar.Separator();
 	bar.Add(t_("Repeat"), THISBACK(ToggleRepeatPlayback)).Check(repeat_playback);
 	
+}
+
+void Edit3D::UpdateRibbonContext()
+{
+	bool camera_context = v0.selected_obj && v0.selected_obj->IsCamera();
+	ribbon.bar.ShowContext("camera", camera_context);
+}
+
+bool Edit3D::HandleRibbonAction(const String& id) {
+	String sid = ToLower(id);
+	if (sid == "new_file") {
+		LoadEmptyProject();
+		return true;
+	}
+	if (sid == "open_file") {
+		OpenScene3D();
+		return true;
+	}
+	if (sid == "save_file") {
+		SaveScene3DInteractive();
+		return true;
+	}
+	if (sid == "undo") {
+		Undo();
+		return true;
+	}
+	if (sid == "redo") {
+		Redo();
+		return true;
+	}
+	if (sid == "select_objects") {
+		SetEditTool(TOOL_OBJ_SELECT);
+		return true;
+	}
+	if (sid == "move_camera") {
+		SetEditTool(TOOL_VIEW);
+		return true;
+	}
+	if (sid == "move_object") {
+		SetEditTool(TOOL_OBJ_MOVE);
+		return true;
+	}
+	if (sid == "rotate_object") {
+		SetEditTool(TOOL_OBJ_ROTATE);
+		return true;
+	}
+	if (sid == "view_perspective" || sid == "view_top" || sid == "view_front" || sid == "view_left") {
+		int mode = VIEWMODE_PERSPECTIVE;
+		if (sid == "view_top")
+			mode = VIEWMODE_XY;
+		else if (sid == "view_front")
+			mode = VIEWMODE_XZ;
+		else if (sid == "view_left")
+			mode = VIEWMODE_YZ;
+		for (int i = 0; i < 4; i++) {
+			if (v0.rends[i]) {
+				v0.rends[i]->SetViewMode(mode);
+				v0.RefreshRenderer(i);
+			}
+		}
+		return true;
+	}
+	if (sid == "create_camera") {
+		if (!state)
+			return false;
+		String cam_type;
+		bool collides = false;
+		bool first_active = true;
+		if (!DialogCreateCamera(cam_type, collides, first_active))
+			return false;
+		GeomDirectory& dir = state->GetActiveScene();
+		String base = "camera";
+		String name = base;
+		int idx = 1;
+		while (dir.FindObject(name))
+			name = base + "_" + IntStr(idx++);
+		GeomObject& cam = dir.GetAddCamera(name);
+		SetDynamicProp(cam, "camera_type", cam_type);
+		SetDynamicProp(cam, "collides_geometry", collides);
+		SetDynamicProp(cam, "first_active", first_active);
+		state->UpdateObjects();
+		if (first_active) {
+			for (int i = 0; i < state->objs.GetCount(); i++) {
+				if (state->objs[i].obj && state->objs[i].obj->key == cam.key) {
+					state->active_camera_obj_i = i;
+					break;
+				}
+			}
+		}
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_cube") {
+		double size = 10.0;
+		if (!DialogCreateCube(size))
+			return false;
+		CreatePrimitiveCube(size);
+		return true;
+	}
+	if (sid == "create_sphere") {
+		double radius = 5.0;
+		int poly = 128;
+		if (!DialogCreateSphere(radius, poly))
+			return false;
+		int slices = max(3, poly);
+		int stacks = max(2, poly / 2);
+		CreatePrimitiveSphere(radius, slices, stacks);
+		return true;
+	}
+	if (sid == "create_cylinder") {
+		double radius = 5.0;
+		int sides = 8;
+		double length = 10.0;
+		bool cap_top = false;
+		bool cap_bottom = false;
+		if (!DialogCreateCylinder(radius, sides, length, cap_top, cap_bottom))
+			return false;
+		CreatePrimitiveCylinder(radius, length, max(3, sides));
+		return true;
+	}
+	if (sid == "create_cone") {
+		double radius = 5.0;
+		int sides = 8;
+		double length = 10.0;
+		bool cap_bottom = false;
+		if (!DialogCreateCone(radius, sides, length, cap_bottom))
+			return false;
+		CreatePrimitiveCone(radius, length, max(3, sides));
+		return true;
+	}
+	if (sid == "create_plane") {
+		int tiles = 4;
+		double width = 30.0;
+		double length = 30.0;
+		int repeat = 1;
+		if (!DialogCreatePlane(tiles, width, length, repeat))
+			return false;
+		CreatePrimitivePlane(max(1, tiles), width, length, max(1, repeat));
+		return true;
+	}
+	if (sid == "create_terrain") {
+		double side = 1500.0;
+		double tile = 20.0;
+		double max_h = 100.0;
+		String topo;
+		if (!DialogCreateTerrain(side, tile, max_h, topo))
+			return false;
+		int tiles = (tile > 1e-6) ? max(1, (int)floor(side / tile + 0.5)) : 1;
+		GeomObject* obj = CreatePrimitivePlane(tiles, side, side, 1);
+		if (obj) {
+			SetDynamicProp(*obj, "terrain_max_height", max_h);
+			SetDynamicProp(*obj, "terrain_topology", topo);
+			SetDynamicProp(*obj, "type", "terrain");
+		}
+		return true;
+	}
+	if (sid == "create_room_mesh_from_2d_map") {
+		if (!DialogCreateRoomMesh())
+			return false;
+		GeomObject& obj = CreateTaggedModel(*this, "room", "room_mesh");
+		SetDynamicProp(obj, "room_mesh_pending", true);
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_water_surface") {
+		int tiles = 10;
+		double width = 1000.0;
+		double length = 1000.0;
+		if (!DialogCreateWater(tiles, width, length))
+			return false;
+		GeomObject* obj = CreatePrimitivePlane(max(1, tiles), width, length, 1);
+		if (obj) {
+			SetDynamicProp(*obj, "water_surface", true);
+			SetDynamicProp(*obj, "type", "water_surface");
+		}
+		return true;
+	}
+	if (sid == "import_static_mesh" || sid == "import_animated_mesh") {
+		FileSel fs;
+		fs.Type("Meshes", "*.obj *.glb *.gltf *.fbx *.dae");
+		if (!fs.ExecuteOpen("Open mesh file"))
+			return false;
+		AddAssetFromPath(fs.Get());
+		return true;
+	}
+	if (sid == "create_point_light") {
+		GeomObject& obj = CreateTaggedModel(*this, "point_light", "light");
+		SetDynamicProp(obj, "light_type", "point");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_directional_light") {
+		GeomObject& obj = CreateTaggedModel(*this, "directional_light", "light");
+		SetDynamicProp(obj, "light_type", "directional");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_tree") {
+		GeomObject& obj = CreateTaggedModel(*this, "tree", "tree");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_billboard") {
+		GeomObject& obj = CreateTaggedModel(*this, "billboard", "billboard");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_vertical_billboard") {
+		GeomObject& obj = CreateTaggedModel(*this, "billboard_v", "billboard_vertical");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_particle_system") {
+		GeomObject& obj = CreateTaggedModel(*this, "particles", "particle_system");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_skybox") {
+		GeomObject& obj = CreateTaggedModel(*this, "skybox", "skybox");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_3d_sound") {
+		GeomObject& obj = CreateTaggedModel(*this, "sound3d", "sound3d");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_2d_overlay_item") {
+		GeomObject& obj = CreateTaggedModel(*this, "overlay2d", "overlay2d");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_2d_touchscreen_input_item") {
+		GeomObject& obj = CreateTaggedModel(*this, "touch2d", "touch2d");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_path") {
+		GeomObject& obj = CreateTaggedModel(*this, "path", "path");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "create_path_node") {
+		GeomObject& obj = CreateTaggedModel(*this, "path_node", "path_node");
+		state->UpdateObjects();
+		RefreshData();
+		return true;
+	}
+	if (sid == "poly_select") {
+		mesh_select_mode = MESHSEL_FACE;
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		RefrehRenderers();
+		return true;
+	}
+	if (sid == "poly_select_by_rectangle") {
+		mesh_select_mode = MESHSEL_FACE;
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		RefrehRenderers();
+		LOG("Polygon rectangle selection not implemented yet.");
+		return true;
+	}
+	if (sid == "poly_move_selected") {
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		RefrehRenderers();
+		return true;
+	}
+	if (sid == "poly_rotate_selected") {
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		RefrehRenderers();
+		LOG("Polygon rotate tool not implemented yet.");
+		return true;
+	}
+	if (sid == "poly_scale_selected") {
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		RefrehRenderers();
+		LOG("Polygon scale tool not implemented yet.");
+		return true;
+	}
+	if (sid == "poly_modify_uv") {
+		LOG("Polygon UV modify tool not implemented yet.");
+		return true;
+	}
+	if (sid == "poly_edit_mode") {
+		Ctrl* c = ribbon.FindControl("poly_edit_mode");
+		if (c) {
+			DropList* dl = dynamic_cast<DropList*>(c);
+			if (dl && !IsNull(dl->GetData())) {
+				String mode = ToLower(AsString(dl->GetData()));
+				if (mode == "triangle")
+					mesh_select_mode = MESHSEL_FACE;
+				else if (mode == "point")
+					mesh_select_mode = MESHSEL_VERTEX;
+				tool_panel.Sync();
+				RefrehRenderers();
+				return true;
+			}
+		}
+		return true;
+	}
+	if (sid == "poly_tools") {
+		LOG("Polygon tools menu not implemented yet.");
+		return true;
+	}
+	if (sid == "camera_make_active") {
+		if (!state || !v0.selected_obj || !v0.selected_obj->IsCamera())
+			return false;
+		for (int i = 0; i < state->objs.GetCount(); i++) {
+			if (state->objs[i].obj && state->objs[i].obj->key == v0.selected_obj->key) {
+				state->active_camera_obj_i = i;
+				break;
+			}
+		}
+		RefrehRenderers();
+		return true;
+	}
+	if (sid == "focus_selected") {
+		LOG("Focus selected not implemented yet.");
+		return true;
+	}
+	if (sid == "scene_add") {
+		if (!prj || !state)
+			return false;
+		GeomScene& scene = prj->AddScene();
+		int idx = prj->GetSceneCount() - 1;
+		scene.name = Format("Scene #%d", idx);
+		state->active_scene = idx;
+		Data();
+		v0.TimelineData();
+		RefreshData();
+		return true;
+	}
+	if (sid == "scene_delete") {
+		LOG("Scene delete not implemented yet.");
+		return true;
+	}
+	if (sid == "scene_settings") {
+		LOG("Scene settings not implemented yet.");
+		return true;
+	}
+	if (sid == "scene_metrics") {
+		LOG("Scene metrics not implemented yet.");
+		return true;
+	}
+	if (sid == "scene_post_effects") {
+		LOG("Scene post effects not implemented yet.");
+		return true;
+	}
+	if (sid == "scene_selector") {
+		Ctrl* c = ribbon.FindControl("scene_selector");
+		if (c) {
+			DropList* dl = dynamic_cast<DropList*>(c);
+			if (dl && !IsNull(dl->GetData())) {
+				String sel = ToLower(AsString(dl->GetData()));
+				if (sel.Find("new") >= 0) {
+					HandleRibbonAction("scene_add");
+					return true;
+				}
+				LOG("Scene selector not bound to scene list yet.");
+			}
+		}
+		return true;
+	}
+	if (sid == "calculate_lightmap") {
+		GeomScene& scene = GetActiveScene();
+		String mode, tex_size, subsampling;
+		int resolution = 0;
+		double shadow_opacity = 0.0;
+		bool ambient = false;
+		bool smooth = false;
+		bool color_bleed = false;
+		GetRibbonDropValue(ribbon, "lightmap_mode", mode);
+		GetRibbonDropValue(ribbon, "lightmap_texture_size", tex_size);
+		GetRibbonDropValue(ribbon, "lightmap_subsampling", subsampling);
+		GetRibbonIntValue(ribbon, "lightmap_resolution", resolution);
+		GetRibbonDoubleValue(ribbon, "lightmap_shadow_opacity", shadow_opacity);
+		GetRibbonBoolValue(ribbon, "ambient_light_enabled", ambient);
+		GetRibbonBoolValue(ribbon, "smooth_normals_enabled", smooth);
+		GetRibbonBoolValue(ribbon, "color_bleeding_enabled", color_bleed);
+		SetDynamicProp(scene, "lightmap_mode", mode);
+		SetDynamicProp(scene, "lightmap_texture_size", tex_size);
+		SetDynamicProp(scene, "lightmap_subsampling", subsampling);
+		SetDynamicProp(scene, "lightmap_resolution", resolution);
+		SetDynamicProp(scene, "lightmap_shadow_opacity", shadow_opacity);
+		SetDynamicProp(scene, "lightmap_ambient_enabled", ambient);
+		SetDynamicProp(scene, "lightmap_smooth_normals", smooth);
+		SetDynamicProp(scene, "lightmap_color_bleeding", color_bleed);
+		LOG("Lightmap calculate requested (stub).");
+		return true;
+	}
+	if (sid == "ambient_light_more") {
+		LOG("Ambient light settings not implemented yet.");
+		return true;
+	}
+	if (sid == "publish_target") {
+		LOG("Publish target selection not implemented yet.");
+		return true;
+	}
+	if (sid == "publishing_settings") {
+		LOG("Publishing settings not implemented yet.");
+		return true;
+	}
+	if (sid == "publish_and_test") {
+		ExportExecutionProject(true);
+		return true;
+	}
+	if (sid.StartsWith("create_")) {
+		CreateEditableMeshObject();
+		return true;
+	}
+	LOG("Ribbon action not implemented: " << id);
+	return false;
 }
 
 GeomScene& Edit3D::GetActiveScene() {
@@ -2659,6 +3715,12 @@ void Edit3D::Serialize(Stream& s) {
 	s % show_hud_help;
 	s % show_hud_status;
 	s % show_hud_debug;
+	if (s.IsStoring()) {
+		ribbon_display_mode = ribbon.GetDisplayMode();
+		ribbon_qat_pos = ribbon.GetQuickAccessPos();
+	}
+	s % ribbon_display_mode;
+	s % ribbon_qat_pos;
 }
 
 String Edit3D::SerializeScene3DState() const {
@@ -2799,6 +3861,26 @@ void Edit3D::ResetLayout() {
 void Edit3D::ResetPropsCursor() {
 	v0.props_cursor_by_tree.Clear();
 	v0.current_tree_path.Clear();
+}
+
+void Edit3D::OpenAllDocksForTest() {
+	auto ensure_visible = [this](DockableCtrl* dc) {
+		if (!dc)
+			return;
+		RestoreDockerPos(*dc, true);
+		if (dc->IsHidden())
+			HideRestoreDocker(*dc);
+		ActivateDockableChild(*dc);
+	};
+	ensure_visible(dock_tools);
+	ensure_visible(dock_tree);
+	ensure_visible(dock_props);
+	ensure_visible(dock_time);
+	ensure_visible(dock_video);
+	ensure_visible(dock_pool);
+	ensure_visible(dock_assets);
+	ensure_visible(dock_texture);
+	ensure_visible(dock_script);
 }
 
 void Edit3D::OnSceneEnd() {
@@ -3257,6 +4339,14 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 		PY_MODULE_FUNC(add_transform_keyframe, ModelerAddTransformKeyframe, this);
 		PY_MODULE_FUNC(set_timeline_expanded, ModelerSetTimelineExpanded, this);
 		PY_MODULE_FUNC(get_gizmo_pixels, ModelerGetGizmoPixels, this);
+		PY_MODULE_FUNC(set_renderer_version, ModelerSetRendererVersion, this);
+		PY_MODULE_FUNC(get_renderer_version, ModelerGetRendererVersion, this);
+		PY_MODULE_FUNC(set_renderer_wireframe, ModelerSetRendererWireframe, this);
+		PY_MODULE_FUNC(get_renderer_wireframe, ModelerGetRendererWireframe, this);
+		PY_MODULE_FUNC(set_show_grid, ModelerSetShowGrid, this);
+		PY_MODULE_FUNC(get_show_grid, ModelerGetShowGrid, this);
+		PY_MODULE_FUNC(set_hud_visible, ModelerSetHudVisible, this);
+		PY_MODULE_FUNC(get_hud_visible, ModelerGetHudVisible, this);
 		PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
 		PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
 		PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);

@@ -378,3 +378,31 @@
   task: track-ui/phase-01-actions/task-0100-create-operations.md
   status: done
   note: Wired ribbon create actions to primitives, dialog defaults, imports, and tagged stubs.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0101-polygon-tools.md
+  status: done
+  note: Routed ribbon polygon tools to mesh select modes with stubs for rotate/scale/UV.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0102-scene-publish.md
+  status: done
+  note: Scene add/select mapped; publish actions stubbed to export/log.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0200-quick-access-and-display.md
+  status: done
+  note: Added QAT, display mode toggles, and persisted ribbon settings.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0201-context-tabs-keytips.md
+  status: done
+  note: Added camera context tab and wired selection-based context toggle; RibbonBar already supports Alt keytips.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0202-ribbon-layout-polish.md
+  status: done
+  note: Fixed ribbon frame height to keep consistent tab heights across pages.
+- date: 2026-02-15
+  task: track-ui/phase-03-controls/task-0300-lightmapping-controls.md
+  status: done
+  note: Ribbon lightmap controls now push settings into scene dynamic props and log bake request.
+- date: 2026-02-15
+  task: track-ui/phase-03-controls/task-0301-icon-semantics.md
+  status: done
+  note: Added basic icon_semantics mapping using ModelerApp icons with fallbacks.

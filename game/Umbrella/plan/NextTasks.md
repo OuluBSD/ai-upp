@@ -1,20 +1,24 @@
 # Next Implementation Tasks
 
 **Status**: Ready for implementation
-**Date**: 2026-02-07
+**Date**: 2026-02-15 (updated)
 
 ---
 
-## Completed Today
+## Completed
 
-1. ✓ **Track 6.2**: Parasol Attack System - REFACTORED (8 hours)
-   - Implemented proper capture-and-throw mechanics
-   - Added parasol state machine (IDLE, ATTACKING, GLIDING)
-   - Glide/slow fall when holding umbrella while airborne
-   - Enemies captured on umbrella, thrown horizontally on button release
-   - Thrown enemies defeated when hitting walls
+1. ✓ **Track 6.2**: Parasol Attack System
+   - Parasol state machine (IDLE, ATTACKING, GLIDING)
+   - Glide/slow fall, capture-and-throw mechanics
 
-2. ✓ **Track 6.3**: Rewards/Treats System (3 hours)
+2. ✓ **Track 6.3**: Rewards/Treats System
+
+3. ✓ **Track 2 (AI)**: A* Pathfinder + NavGraph + ActionSet + AIController + EnemyBehaviors
+   - All three enemy types wired to AI behaviors
+   - EnemyPatroller → WandererBehavior
+   - EnemyJumper → StalkerBehavior
+   - EnemyShooter → ShooterBehavior
+   - Projectile speed reduced to 90 px/s
 
 ---
 
@@ -137,29 +141,44 @@
 
 ## Implementation Order Recommendation
 
-1. **Level Goal System** (8-10 hours) - Gives immediate sense of progress
-2. **Water/Droplet System** (12-16 hours) - Core collectible mechanic
-3. **Pickup System** (6-8 hours) - Adds variety and player agency
-4. **Audio Integration** (6-8 hours) - Polish and feedback
+### Tier 1 — Core game loop (makes it actually playable)
 
-**Total**: 32-42 hours to complete all 4 tasks
+1. **Level complete + next-level progression** (Track 10.2)
+   - Detect all enemies dead → trigger LEVEL_COMPLETE (partially done)
+   - Load and transition to next level file
+   - "Level clear" overlay with score summary
+   - Files: `GameScreen.cpp`, `LevelLoader.cpp`
+
+2. **Water/Droplet System** (Track 6.1, 12-16 hrs) — Core collectible mechanic
+   - `Droplet` class exists but no spawn system
+   - Parse droplet spawn points, bounce physics, player collection
+   - HUD droplet counter
+
+### Tier 2 — Polish / feel
+
+3. **Lives + proper game over** (Track 6.x)
+   - Player has `lives` counter; `GAME_OVER` state exists
+   - Need: decrement lives on death, show lives in HUD, game-over screen on 0 lives
+   - Files: `Player.cpp`, `GameScreen.cpp`
+
+4. **Pickup System** (Track 6.4, 6-8 hrs) — Health/powerups
+   - HEART (restore life), GEM (score), LIGHTNING (temp invincibility)
+   - Files: new `Pickup.h/.cpp`, `GameScreen.cpp`
+
+5. **Audio Integration** (Track 12.3, 6-8 hrs) — Feedback
+   - Hook AudioSystem into gameplay events (jump, defeat, collect)
+
+### Tier 3 — Content / variety
+
+6. **FlyingEnemy** (Track 7.1) — ignores gravity, flies toward player
+   - Straightforward with existing AIController (StalkerBehavior, `onGround=true` always)
+   - New `EnemyFlyer.h/.cpp`
+
+7. **GrimReaper boss** (Track 7.1) — time-pressure mechanic
+   - Spawns after N seconds, indestructible, chases player relentlessly
+   - Forces level completion or death
+   - New `EnemyReaper.h/.cpp`
 
 ---
-
-## Beyond These 5 Tasks
-
-After completing these, the game will have:
-- Complete gameplay loop (move, attack, collect, reach goal)
-- Score system with treats and droplets
-- Health pickups and powerups
-- Audio feedback
-- Level completion and progression
-
-Next major features would be:
-- **Sprite/Animation System** (replace colored rectangles)
-- **Additional Enemy Types** (flying, pathing, GrimReaper)
-- **Annotation System** (data-driven enemy/droplet spawning)
-- **Level Manifest** (world map, level select)
-- **Entity Editor** (sprite authoring tools)
 
 See `MissingFeatures.md` for full roadmap.

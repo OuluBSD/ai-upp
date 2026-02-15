@@ -370,3 +370,7 @@
   task: track-gui-automation/phase-02-coverage/task-0204-viewport-tools.md
   status: done
   note: Added viewport tool automation test and gizmo visibility instrumentation.
+- date: 2026-02-15
+  task: track-gui-automation/phase-02-coverage/task-0205-renderer-modes.md
+  status: done
+  note: Added renderer mode automation test and modeler API for renderer/grid/HUD state; test verified.

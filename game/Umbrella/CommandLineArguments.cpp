@@ -1,5 +1,6 @@
 #include "Umbrella.h"
 #include "CommandLineArguments.h"
+#include "LevelManifest.h"
 
 using namespace Upp;
 
@@ -56,6 +57,9 @@ String UmbrellaArgs::GetLevelPath() const {
 		return Format("share/mods/umbrella/levels/world%d-stage%d.json", worldIndex, levelIndex);
 	}
 
-	// Default to first level
+	// Default to first level from manifest
+	LevelManifest& m = GetLevelManifest();
+	if(m.IsLoaded())
+		return m.GetFirstLevel();
 	return "share/mods/umbrella/levels/world1-stage1.json";
 }

@@ -1,7 +1,20 @@
 #include "Umbrella.h"
 #include "EnemyJumper.h"
+#include "Pathfinder.h"
+#include "NavGraph.h"
+#include "GameScreen.h"
 
 using namespace Upp;
+
+void EnemyJumper::WireAI(Pathfinder* pf, const NavGraph* ng,
+                          const GameScreen* gs, int spawnCol, int spawnRow) {
+	aiController.SetPathfinder(pf);
+	aiController.SetNavGraph(ng);
+	aiController.SetGameScreen(gs);
+	aiController.SetBehavior(new StalkerBehavior());
+	(void)spawnCol; (void)spawnRow;
+	aiEnabled = true;
+}
 
 EnemyJumper::EnemyJumper(float x, float y)
 	: Enemy(x, y, 12, 12, ENEMY_JUMPER)
@@ -63,31 +76,47 @@ void EnemyJumper::Update(float delta, const Player& player, Player::CollisionHan
 		// Apply gravity
 		velocity.y += GRAVITY * delta;
 		if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
-		// Set horizontal velocity based on facing
-		velocity.x = facing * WALK_SPEED;
 
-		// Check for walls - turn around and jump
-		bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
-		               (facing > 0 && IsTouchingWallOnRight(collision));
+		if(aiEnabled) {
+			// AI-driven via StalkerBehavior: chases player using pathfinding
+			bool onGround = IsOnGround(collision);
+			ActionSet acts = aiController.Update(bounds, onGround, ++frameCounter);
 
-		bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
+			if(acts.Has(ACT_LEFT)) {
+				velocity.x = -WALK_SPEED;
+				facing = -1;
+			} else if(acts.Has(ACT_RIGHT)) {
+				velocity.x = WALK_SPEED;
+				facing = 1;
+			} else {
+				velocity.x = 0;
+			}
 
-		if(hitWall || noFloorAhead) {
-			facing = -facing;
+			if(acts.Has(ACT_JUMP) && onGround) {
+				velocity.y = JUMP_VELOCITY;
+			}
+		} else {
+			// Fallback: timer-based jumper patrol
 			velocity.x = facing * WALK_SPEED;
 
-			// Jump when blocked or at edge
-			if(IsOnGround(collision)) {
+			bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
+			               (facing > 0 && IsTouchingWallOnRight(collision));
+			bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
+
+			if(hitWall || noFloorAhead) {
+				facing = -facing;
+				velocity.x = facing * WALK_SPEED;
+				if(IsOnGround(collision)) {
+					velocity.y = JUMP_VELOCITY;
+					ResetJumpTimer();
+				}
+			}
+
+			jumpTimer += delta;
+			if(jumpTimer >= nextJumpTime && IsOnGround(collision)) {
 				velocity.y = JUMP_VELOCITY;
 				ResetJumpTimer();
 			}
-		}
-
-		// Jump timer - periodic jumps
-		jumpTimer += delta;
-		if(jumpTimer >= nextJumpTime && IsOnGround(collision)) {
-			velocity.y = JUMP_VELOCITY;
-			ResetJumpTimer();
 		}
 	}
 	else {

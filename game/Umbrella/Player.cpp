@@ -18,6 +18,7 @@ Player::Player(float x, float y, float width, float height) {
 	score = 0;
 	invincibleTimer = 0.0f;
 	knockbackTimer = 0.0f;
+	speedBoostTimer = 0.0f;
 	parasolState = PARASOL_IDLE;
 	attackHeld = false;
 	wasAttackHeld = false;
@@ -34,6 +35,10 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 	if(invincibleTimer > 0.0f) {
 		invincibleTimer = invincibleTimer - delta;
 		if(invincibleTimer < 0.0f) invincibleTimer = 0.0f;
+	}
+	if(speedBoostTimer > 0.0f) {
+		speedBoostTimer = speedBoostTimer - delta;
+		if(speedBoostTimer < 0.0f) speedBoostTimer = 0.0f;
 	}
 
 	bool recovering = knockbackTimer > 0.0f;
@@ -72,13 +77,14 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 		bool touchingLeftWall = IsTouchingWallOnLeft(collision);
 		bool touchingRightWall = IsTouchingWallOnRight(collision);
 
+		float speedMul = (speedBoostTimer > 0.0f) ? 1.5f : 1.0f;
 		if(input.moveLeft && !input.moveRight) {
 			if(!touchingLeftWall) {
-				velocity.x = -MOVE_SPEED;
+				velocity.x = -MOVE_SPEED * speedMul;
 			}
 		} else if(input.moveRight && !input.moveLeft) {
 			if(!touchingRightWall) {
-				velocity.x = MOVE_SPEED;
+				velocity.x = MOVE_SPEED * speedMul;
 			}
 		} else {
 			velocity.x = 0.0f;

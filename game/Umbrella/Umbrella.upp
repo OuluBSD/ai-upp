@@ -48,6 +48,8 @@ file
 	EnemyFlyer.cpp,
 	GrimReaper.h,
 	GrimReaper.cpp,
+	LevelManifest.h,
+	LevelManifest.cpp,
 	Projectile.h,
 	Projectile.cpp,
 	Treat.h,

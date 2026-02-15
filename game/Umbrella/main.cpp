@@ -4,6 +4,7 @@
 #include "MainMenuScreen.h"
 #include "GameScreen.h"
 #include "GameScriptBridge.h"
+#include "LevelManifest.h"
 
 #include <CtrlLib/CtrlLib.h>
 #include <Draw/Draw.h>
@@ -40,6 +41,9 @@ int RunAutomationTest(const String& scriptPath) {
 GUI_APP_MAIN
 {
     StdLogSetup(LOG_COUT|LOG_FILE);
+
+    // Load level manifest (singleton — available to all subsystems)
+    GetLevelManifest().Load("share/mods/umbrella");
 
     // Parse command line arguments
     UmbrellaArgs cmdArgs;

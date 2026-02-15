@@ -339,8 +339,8 @@ void GameScreen::GameTick(float delta) {
 			}
 		}
 
-		if(aliveCount == 0 && enemies.GetCount() > 0) {
-			// All enemies defeated! Start level completion sequence
+		if(aliveCount == 0) {
+			// All enemies defeated (or level had none)! Start level completion sequence
 			allEnemiesKilled = true;
 			EmitEvent("all_enemies_killed");
 			levelCompleteTimer = GameSettings::LEVEL_COMPLETE_TREAT_TIMEOUT;
@@ -375,8 +375,6 @@ void GameScreen::GameTick(float delta) {
 
 	// Handle transition states
 	if(gameState == TRANSITION_HOVER) {
-		LOG("TRANSITION_HOVER: hoverTimer=" << hoverTimer << " target=" << GameSettings::TRANSITION_HOVER_TIME);
-
 		// Player hovers with umbrella
 		player.ForceGlideState();  // Keep umbrella open
 
@@ -406,8 +404,6 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 	else if(gameState == TRANSITION_SCROLL) {
-		LOG("TRANSITION_SCROLL: offset=" << transitionOffset << " levelWidth=" << (levelColumns * gridSize));
-
 		// Scroll level horizontally to the left
 		transitionOffset += GameSettings::LEVEL_TRANSITION_SCROLL_SPEED * delta;
 
@@ -426,10 +422,19 @@ void GameScreen::GameTick(float delta) {
 			levelColumns = nextLevelColumns;
 			levelRows = nextLevelRows;
 
+			// Reload spawn data and rebuild pathfinding for the new level
+			dropletSpawns.Clear();
+			MapSerializer::LoadDropletSpawns(levelPath, dropletSpawns);
+			enemySpawns.Clear();
+			MapSerializer::LoadEnemySpawns(levelPath, enemySpawns);
+			pathfinder.SetGameScreen(this);
+			navGraph.Build(this);
+
 			// Respawn player and enemies for new level
 			RespawnPlayer();
 			ClearEnemies();
 			SpawnEnemies();
+			Title("Umbrella - " + GetFileName(levelPath));
 
 			// Reset completion state
 			allEnemiesKilled = false;
@@ -444,8 +449,6 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 	else if(gameState == TRANSITION_DROP) {
-		LOG("TRANSITION_DROP: dropTimer=" << dropTimer << " target=" << GameSettings::TRANSITION_DROP_TIME);
-
 		// Player drops into new level
 		player.ForceIdleState();  // Keep umbrella closed
 

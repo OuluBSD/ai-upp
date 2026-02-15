@@ -499,6 +499,13 @@ PyValue ModelerSetTimelineExpanded(const Vector<PyValue>& args, void* user_data)
 	return PyValue::True();
 }
 
+PyValue ModelerGetGizmoPixels(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e)
+		return PyValue::None();
+	return PyValue(e->render_ctx.gizmo_pixels);
+}
+
 PyValue ModelerCreateObject(const Vector<PyValue>& args, void* user_data) {
 	Edit3D* e = (Edit3D*)user_data;
 	if (!e || args.GetCount() < 2)
@@ -3249,6 +3256,7 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 		PY_MODULE_FUNC(get_position, ModelerGetPosition, this);
 		PY_MODULE_FUNC(add_transform_keyframe, ModelerAddTransformKeyframe, this);
 		PY_MODULE_FUNC(set_timeline_expanded, ModelerSetTimelineExpanded, this);
+		PY_MODULE_FUNC(get_gizmo_pixels, ModelerGetGizmoPixels, this);
 		PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
 		PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
 		PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);

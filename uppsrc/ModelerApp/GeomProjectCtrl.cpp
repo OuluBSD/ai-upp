@@ -1004,7 +1004,15 @@ void GeomProjectCtrl::Data() {
 	}
 	
 	tree.Clear();
-	tree.SetRoot(ImagesImg::Root(), "Project");
+	String root_name = "Project";
+	if (e && e->state && e->prj && e->state->active_scene >= 0 && e->state->active_scene < e->prj->GetSceneCount()) {
+		GeomScene& scene = e->prj->GetScene(e->state->active_scene);
+		if (!scene.name.IsEmpty())
+			root_name = scene.name;
+		else
+			root_name = "Scene #" + IntStr(e->state->active_scene);
+	}
+	tree.SetRoot(ImagesImg::Root(), root_name);
 	
 	tree_nodes.Clear();
 	int builtin = tree.Add(0, ImagesImg::Cameras(), "Builtin");
@@ -1537,6 +1545,7 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 	TreeNodeRef* ref = GetNodeRef(v);
 	GeomObject* obj = GetNodeObject(v);
 	VfsValue* node = v.Is<VfsValue*>() ? ValueTo<VfsValue*>(v) : 0;
+	bool is_root = (cursor == 0);
 	GeomDirectory* dir = 0;
 	if (node && IsVfsType(*node, AsTypeHash<GeomDirectory>()))
 		dir = &node->GetExt<GeomDirectory>();
@@ -1548,8 +1557,82 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		else if (IsVfsType(*node->owner, AsTypeHash<GeomScene>()))
 			dir = &node->owner->GetExt<GeomScene>();
 	}
-	if (!ref && !obj && !dir)
+	if (is_root && !dir && e && e->state)
+		dir = &e->state->GetActiveScene();
+	if (!ref && !obj && !dir && !is_root)
 		return;
+	if (!is_root)
+		bar.Add(t_("Clone"), [=] {
+			if (!node || !node->owner)
+				return;
+			if (IsVfsType(*node, AsTypeHash<GeomScene>())) {
+				LOG("Clone scene not implemented.");
+				return;
+		}
+		if (e)
+			e->PushUndo("Clone node");
+		String base = node->id.IsEmpty() ? String("node") : node->id;
+		String name = base + "_copy";
+		int idx = 1;
+		while (node->owner->Find(name) >= 0)
+			name = base + "_copy" + IntStr(idx++);
+		VfsValue& dst = node->owner->Add(name, node->type_hash);
+		dst.CopyFrom(*node);
+		dst.id = name;
+		dst.owner = node->owner;
+		dst.FixParent();
+		if (IsVfsType(dst, AsTypeHash<GeomObject>()) && e && e->prj) {
+			GeomObject& go = dst.GetExt<GeomObject>();
+			go.key = e->prj->NewKey();
+		}
+		if (e && e->state) {
+			e->state->UpdateObjects();
+			e->RefreshData();
+		}
+		}).Key(K_CTRL|K_C);
+	if (!is_root)
+		bar.Add(t_("Delete"), [=] {
+			if (!node || !node->owner)
+				return;
+			if (IsVfsType(*node, AsTypeHash<GeomScene>())) {
+				LOG("Delete scene not implemented.");
+				return;
+		}
+		if (e)
+			e->PushUndo("Delete node");
+		node->owner->Remove(node);
+		if (e && e->state) {
+			e->state->UpdateObjects();
+			e->RefreshData();
+		}
+		}).Key(K_DELETE);
+	if (!is_root)
+		bar.Sub(t_("Modify Selection"), [=](Bar& bar) {
+			auto stub = [&](const String& text) {
+				bar.Add(text, [=] { LOG("Modify selection: " + text); });
+			};
+		stub(t_("Set planar texture coordinates for mesh"));
+		stub(t_("Flip direction of all faces"));
+		stub(t_("Center pivot point"));
+		stub(t_("Free scale and normalize normals"));
+		stub(t_("Clear vertex colors"));
+		stub(t_("Set vertex colors"));
+		stub(t_("Recalculate normals and tangents"));
+		stub(t_("Clone as static animated mesh"));
+		stub(t_("Distribute over terrain"));
+		stub(t_("Bake all textures of selection into one"));
+		bar.Separator();
+		bar.Add(t_("Edit 2D room map")).Enable(false);
+		bar.Add(t_("Open in animation editor")).Enable(false);
+		bar.Add(t_("Attach node to animated joint")).Enable(false);
+		bar.Separator();
+		bar.Add(t_("Export mesh as")).Enable(false);
+		stub(t_("Reload this mesh from disk"));
+		bar.Add(t_("Load new mesh from disk")).Enable(false);
+		bar.Separator();
+		stub(t_("Copy behaviors of this node")).Key(K_CTRL|K_B);
+			bar.Add(t_("Paste the behaviors to this node")).Enable(false).Key(K_CTRL|K_I);
+		});
 	bar.Sub(t_("Insert"), [=](Bar& bar) {
 		auto add = [&](const char* text, const char* id) {
 			bar.Add(text, [=] { if (e) e->HandleRibbonAction(id); });

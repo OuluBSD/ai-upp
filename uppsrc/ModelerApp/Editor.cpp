@@ -3308,6 +3308,40 @@ void Edit3D::UpdateRibbonContext()
 	ribbon.bar.ShowContext("camera", camera_context);
 }
 
+void Edit3D::FocusSelectedNode()
+{
+	PointcloudPose pose;
+	bool ok = false;
+	if (v0.selected_obj && state) {
+		const GeomObjectState* os = state->FindObjectStateByKey(v0.selected_obj->key);
+		if (os) {
+			pose.position = os->position;
+			pose.orientation = os->orientation;
+			ok = true;
+		}
+	}
+	if (!ok && v0.selected_ref && state) {
+		if (v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_PROGRAM) {
+			GeomCamera& cam = state->GetProgram();
+			pose.position = cam.position;
+			pose.orientation = cam.orientation;
+			ok = true;
+		}
+		if (v0.selected_ref->kind == GeomProjectCtrl::TreeNodeRef::K_FOCUS) {
+			GeomCamera& cam = state->GetFocus();
+			pose.position = cam.position;
+			pose.orientation = cam.orientation;
+			ok = true;
+		}
+	}
+	if (ok && state) {
+		GeomCamera& focus = state->GetFocus();
+		focus.position = pose.position;
+		focus.orientation = pose.orientation;
+		RefrehRenderers();
+	}
+}
+
 bool Edit3D::HandleRibbonAction(const String& id) {
 	String sid = ToLower(id);
 	if (sid == "new_file") {
@@ -3644,7 +3678,7 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "focus_selected") {
-		LOG("Focus selected not implemented yet.");
+		FocusSelectedNode();
 		return true;
 	}
 	if (sid == "scene_add") {

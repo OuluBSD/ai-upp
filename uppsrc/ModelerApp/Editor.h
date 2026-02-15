@@ -718,6 +718,7 @@ struct Edit3D : DockWindow {
 	void ApplyRendererCameraSource(int view_i, CameraSource src, hash_t object_key = 0);
 	void RequestExecutionExit();
 	void UpdateRibbonContext();
+	void FocusSelectedNode();
 	void CreatePrimitiveCube(double size);
 	void CreatePrimitiveSphere(double radius, int slices, int stacks);
 	void CreatePrimitiveCylinder(double radius, double length, int slices);

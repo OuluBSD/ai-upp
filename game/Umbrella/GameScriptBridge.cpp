@@ -216,6 +216,7 @@ static PyValue py_get_enemy(const Vector<PyValue>& args, void* user_data) {
 		case ENEMY_PATROLLER: typeStr = "PATROLLER"; break;
 		case ENEMY_JUMPER: typeStr = "JUMPER"; break;
 		case ENEMY_SHOOTER: typeStr = "SHOOTER"; break;
+		case ENEMY_FLYER: typeStr = "FLYER"; break;
 	}
 	result.SetItem(PyValue("type"), PyValue(typeStr.ToStd()));
 

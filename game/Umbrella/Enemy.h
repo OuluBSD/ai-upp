@@ -14,7 +14,8 @@ using namespace Upp;
 enum EnemyType {
 	ENEMY_PATROLLER,
 	ENEMY_JUMPER,
-	ENEMY_SHOOTER
+	ENEMY_SHOOTER,
+	ENEMY_FLYER
 };
 
 // Spawn point for enemies (from editor)

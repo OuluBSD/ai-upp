@@ -11,6 +11,7 @@
 #include "EnemyFlyer.h"
 #include "AudioSystem.h"
 #include "GrimReaper.h"
+#include "LevelManifest.h"
 
 using namespace Upp;
 
@@ -113,47 +114,7 @@ bool GameScreen::LoadLevel(const String& path) {
 }
 
 String GameScreen::GetNextLevelPath(const String& currentPath) {
-	// Parse current level: "share/mods/umbrella/levels/world1-stage2.json"
-	// Extract world and stage numbers, increment stage
-	int worldIdx = currentPath.Find("world");
-	int stageIdx = currentPath.Find("-stage");
-
-	if(worldIdx < 0 || stageIdx < 0) {
-		LOG("Could not parse level path: " << currentPath);
-		return "";  // No next level
-	}
-
-	// Extract numbers
-	int worldStart = worldIdx + 5;  // After "world"
-	int worldEnd = stageIdx;
-	int stageStart = stageIdx + 6;  // After "-stage"
-	int stageEnd = currentPath.Find(".json");
-
-	String worldStr = currentPath.Mid(worldStart, worldEnd - worldStart);
-	String stageStr = currentPath.Mid(stageStart, stageEnd - stageStart);
-
-	int world = StrInt(worldStr);
-	int stage = StrInt(stageStr);
-
-	// Increment stage
-	stage++;
-
-	// Try next stage in same world
-	String nextPath = Format("share/mods/umbrella/levels/world%d-stage%d.json", world, stage);
-	if(FileExists(nextPath)) {
-		return nextPath;
-	}
-
-	// Try first stage of next world
-	world++;
-	stage = 1;
-	nextPath = Format("share/mods/umbrella/levels/world%d-stage%d.json", world, stage);
-	if(FileExists(nextPath)) {
-		return nextPath;
-	}
-
-	LOG("No more levels found after: " << currentPath);
-	return "";  // No next level
+	return GetLevelManifest().GetNextLevel(currentPath);
 }
 
 Point GameScreen::FindSpawnPoint() {

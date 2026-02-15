@@ -8,6 +8,7 @@
 #include "Treat.h"
 #include "Droplet.h"
 #include "Pickup.h"
+#include "AudioSystem.h"
 
 using namespace Upp;
 
@@ -335,6 +336,7 @@ void GameScreen::GameTick(float delta) {
 
 			treats.Add(new Treat(center.x, center.y, treatType));
 			player.AddScore(100);  // Reward for defeating enemy
+			GetAudioSystem().Play("defeat");
 			EmitEvent("enemy_killed", i);
 
 			// Remove enemy from world
@@ -561,6 +563,7 @@ void GameScreen::GameTick(float delta) {
 			// Treat collected!
 			player.AddScore(treats[i]->GetScoreValue());
 			treats[i]->Collect();
+			GetAudioSystem().Play("collect");
 		}
 	}
 
@@ -645,6 +648,7 @@ void GameScreen::GameTick(float delta) {
 			dropletsCollected++;
 			EmitEvent("droplet_collected", dropletsCollected);
 			player.AddScore(15);  // 15 points per droplet
+			GetAudioSystem().Play("droplet");
 			RLOG("Droplet collected! Total: " << dropletsCollected);
 		}
 	}
@@ -1300,6 +1304,8 @@ void GameScreen::SetGameState(GameState newState) {
 	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE", "TRANSITION_HOVER", "TRANSITION_SCROLL", "TRANSITION_DROP"};
 	LOG("SetGameState: " << stateNames[gameState] << " -> " << stateNames[newState]);
 	gameState = newState;
+	if(newState == GAME_OVER)     GetAudioSystem().Play("gameover");
+	else if(newState == LEVEL_COMPLETE) GetAudioSystem().Play("victory");
 
 	// Reset input state when changing states
 	keyLeft = keyRight = keyJump = keyAttack = false;

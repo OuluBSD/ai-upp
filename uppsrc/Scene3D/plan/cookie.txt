@@ -410,3 +410,19 @@
   task: track-ui/phase-01-actions/task-0103-advanced-create-dialogs.md
   status: done
   note: Added terrain/room dialog fields and persisted props (trees/grass, ceiling type, wall height).
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0400-explorer-docking-window.md
+  status: done
+  note: Explorer dock label updated; root shows active scene name.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0401-context-menus-and-insert.md
+  status: done
+  note: Root/node menus now include insert submenu, clone/delete, focus, and folder creation.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0402-insert-action-dialogs.md
+  status: done
+  note: Insert actions reuse ribbon dialogs and creation handlers.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0403-modify-selection-actions.md
+  status: done
+  note: Modify-selection submenu added with stubs and disabled items.

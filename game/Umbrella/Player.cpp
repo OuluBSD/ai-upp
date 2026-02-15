@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "Tile.h"
+#include "AudioSystem.h"
 
 using namespace Upp;
 
@@ -106,6 +107,8 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 	// Update parasol state machine
 	wasAttackHeld = attackHeld;
 	attackHeld = input.glideHeld;
+	if(attackHeld && !wasAttackHeld)
+		GetAudioSystem().Play("whoosh");
 
 	// DEBUG: Print state every 60 frames
 	static int frameCount = 0;
@@ -162,6 +165,7 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 		coyoteTimer = 0.0f;
 		jumpBufferTimer = 0.0f;
 		jumpHoldQueued = false;
+		GetAudioSystem().Play("jump");
 		RLOG("  JUMP! velocity.y set to " << JUMP_VELOCITY);
 	}
 
@@ -174,7 +178,10 @@ void Player::Update(float delta, const InputState& input, CollisionHandler& coll
 
 	// Apply movement with collision detection
 	ResolveCollisionX(velocity.x * delta, collision);
+	bool wasOnGround = onGround;
 	ResolveCollisionY(velocity.y * delta, collision);
+	if(onGround && !wasOnGround)
+		GetAudioSystem().Play("land");
 
 	// Stop horizontal movement if touching a wall after collision resolution
 	// This handles cases where player drifts into wall while falling
@@ -617,6 +624,7 @@ void Player::TakeDamage(int amount) {
 	lives -= amount;
 	invincibleTimer = 2.0f;  // 2 seconds of invincibility
 	knockbackTimer = KNOCKBACK_DURATION;
+	GetAudioSystem().Play("hit");
 }
 
 void Player::SetPosition(float x, float y) {

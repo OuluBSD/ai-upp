@@ -695,9 +695,9 @@ GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 		if (!current_tree_path.IsEmpty())
 			StorePropsCursor(current_tree_path);
 	};
-	tree.SetLayoutId("Scene Tree");
-	props.SetLayoutId("Properties");
-	time.SetLayoutId("Timeline");
+	tree.LayoutId("Scene Tree");
+	props.LayoutId("Properties");
+	time.LayoutId("Timeline");
 	
 	
 	tree.NoHeader();
@@ -1518,6 +1518,8 @@ void GeomProjectCtrl::UpdateTreeFocus(int new_id) {
 		if (linei >= 0)
 			tree.SetLineColor(linei, Blend(SColorHighlight(), SColorPaper(), 200));
 	}
+	if (e)
+		e->UpdateRibbonContext();
 }
 
 void GeomProjectCtrl::TreeMenu(Bar& bar) {
@@ -1548,6 +1550,34 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 	}
 	if (!ref && !obj && !dir)
 		return;
+	bar.Sub(t_("Insert"), [=](Bar& bar) {
+		auto add = [&](const char* text, const char* id) {
+			bar.Add(text, [=] { if (e) e->HandleRibbonAction(id); });
+		};
+		add(t_("Create a cube"), "create_cube");
+		add(t_("Create a sphere"), "create_sphere");
+		add(t_("Create a cylinder"), "create_cylinder");
+		add(t_("Create a cone"), "create_cone");
+		add(t_("Create a plane"), "create_plane");
+		add(t_("Create a camera"), "create_camera");
+		add(t_("Create a terrain"), "create_terrain");
+		add(t_("Create a room mesh from a 2D map"), "create_room_mesh_from_2d_map");
+		add(t_("Import a static mesh"), "import_static_mesh");
+		add(t_("Import an animated mesh"), "import_animated_mesh");
+		add(t_("Create a point light"), "create_point_light");
+		add(t_("Create a directional light"), "create_directional_light");
+		add(t_("Create a tree (plant)"), "create_tree");
+		add(t_("Create a water surface"), "create_water_surface");
+		add(t_("Create a billboard"), "create_billboard");
+		add(t_("Create a vertical billboard"), "create_vertical_billboard");
+		add(t_("Create a skybox"), "create_skybox");
+		add(t_("Create a 3D sound"), "create_3d_sound");
+		add(t_("Create a particle system"), "create_particle_system");
+		add(t_("Create a 2D overlay item"), "create_2d_overlay_item");
+		add(t_("Create a 2D touchscreen input item"), "create_2d_touchscreen_input_item");
+		add(t_("Create a path"), "create_path");
+		add(t_("Create a path node"), "create_path_node");
+	});
 	bar.Add(t_("Go to"), [=] {
 		PointcloudPose pose;
 		bool ok = false;
@@ -1580,6 +1610,7 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 			RefreshAll();
 		}
 	});
+	bar.Add(t_("Focus selected"), [=] { if (e) e->HandleRibbonAction("focus_selected"); }).Key(K_CTRL|K_F);
 	if (dir) {
 		auto find_dir = [&](GeomDirectory& parent, const String& name) -> GeomDirectory* {
 			for (auto& sub : parent.val.sub) {
@@ -1599,6 +1630,14 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 			}
 			return name;
 		};
+		bar.Add(t_("Create a folder node"), [=] {
+			if (e)
+				e->PushUndo("Add directory");
+			String name = unique_name(*dir, "dir");
+			dir->GetAddDirectory(name);
+			e->state->UpdateObjects();
+			e->RefreshData();
+		});
 		bar.Sub(t_("Add"), [=](Bar& bar) {
 			bar.Add(t_("Directory"), [=] {
 				if (e)

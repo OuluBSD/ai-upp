@@ -72,6 +72,10 @@ void EnemyPlacementTool::Render(Draw& w, int col, int row, Point offset, double 
 				markerColor = Color(100, 100, 255);  // Blue
 				typeLabel = "S";
 				break;
+		case ENEMY_FLYER:
+				markerColor = Color(180, 0, 220);  // Purple
+				typeLabel = "F";
+				break;
 		}
 
 		// Draw filled circle with black border (drawn manually with lines)
@@ -121,6 +125,10 @@ void EnemyPlacementTool::Render(Draw& w, int col, int row, Point offset, double 
 			case ENEMY_SHOOTER:
 				previewColor = Color(150, 150, 255);  // Light blue
 				typeLabel = "S";
+				break;
+		case ENEMY_FLYER:
+				previewColor = Color(200, 100, 255);  // Light purple
+				typeLabel = "F";
 				break;
 		}
 

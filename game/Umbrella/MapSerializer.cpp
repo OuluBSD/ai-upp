@@ -180,6 +180,7 @@ bool MapSerializer::LoadEnemySpawns(const String& filePath, Array<EnemySpawnPoin
 			String typeStr = enemyData["type"];
 			if(typeStr == "JUMPER") spawn.type = ENEMY_JUMPER;
 			else if(typeStr == "SHOOTER") spawn.type = ENEMY_SHOOTER;
+			else if(typeStr == "FLYER") spawn.type = ENEMY_FLYER;
 			else spawn.type = ENEMY_PATROLLER;
 		}
 
@@ -290,6 +291,7 @@ bool MapSerializer::SaveToFile(const String& filePath, const LayerManager& layer
 				case ENEMY_PATROLLER: typeStr = "PATROLLER"; break;
 				case ENEMY_JUMPER: typeStr = "JUMPER"; break;
 				case ENEMY_SHOOTER: typeStr = "SHOOTER"; break;
+				case ENEMY_FLYER: typeStr = "FLYER"; break;
 			}
 			spawnObj.Add("type", typeStr);
 

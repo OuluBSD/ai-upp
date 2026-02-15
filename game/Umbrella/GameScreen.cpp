@@ -220,15 +220,15 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
-	// Check if player fell off bottom of map - teleport to top with same velocity
+	// Check if player fell off bottom of map - counts as a death
 	Pointf playerPos = player.GetPosition();
 	if(playerPos.y < -gridSize * 2) {
-		// Teleport player to top of level with same velocity
-		int levelHeight = levelRows * gridSize;
-		Pointf playerVel = player.GetVelocity();
-		player.SetPosition(playerPos.x, levelHeight - gridSize);  // Near top of level
-		player.SetVelocity(playerVel);  // Keep velocity for continuous falling
-		LOG("Player fell off bottom, teleported to top at y=" << (levelHeight - gridSize));
+		player.TakeDamage(1);
+		if(player.GetLives() <= 0) {
+			SetGameState(GAME_OVER);
+			return;
+		}
+		RespawnPlayer();
 	}
 
 	// Update camera to follow player
@@ -683,7 +683,10 @@ void GameScreen::GameTick(float delta) {
 			// Collision detected - player takes damage
 			player.TakeDamage(1);
 			EmitEvent("player_hit", 1);
-			// Knockback could be added here
+			if(player.GetLives() <= 0) {
+				SetGameState(GAME_OVER);
+				return;
+			}
 		}
 
 		// Check projectile collisions (for shooters)
@@ -705,6 +708,10 @@ void GameScreen::GameTick(float delta) {
 						player.TakeDamage(1);
 						EmitEvent("player_hit", 1);
 						projectiles[j]->Deactivate();
+						if(player.GetLives() <= 0) {
+							SetGameState(GAME_OVER);
+							return;
+						}
 					}
 				}
 			}
@@ -1249,6 +1256,7 @@ void GameScreen::HandleGameOver() {
 void GameScreen::RestartLevel() {
 	// Reload the level
 	if(!levelPath.IsEmpty()) {
+		player.ResetLives();
 		LoadLevel(levelPath);
 		SetGameState(PLAYING);
 		lastTime = GetTickCount();

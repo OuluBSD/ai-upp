@@ -32,6 +32,8 @@ file
 	MapEditor.cpp,
 	MainMenuScreen.h,
 	MainMenuScreen.cpp,
+	AudioSystem.h,
+	AudioSystem.cpp,
 	Player.h,
 	Player.cpp,
 	Enemy.h,
@@ -68,8 +70,7 @@ file
 	EnemyBehaviors.cpp,
 	TestGameScreen.cpp,
 	main.cpp,
-	LevelLoader.cpp,
-	AudioSystem.cpp;
+	LevelLoader.cpp;
 
 mainconfig
 	"" = "GUI",

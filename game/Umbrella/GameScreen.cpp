@@ -8,6 +8,7 @@
 #include "Treat.h"
 #include "Droplet.h"
 #include "Pickup.h"
+#include "EnemyFlyer.h"
 #include "AudioSystem.h"
 
 using namespace Upp;
@@ -271,6 +272,7 @@ void GameScreen::GameTick(float delta) {
 				case ENEMY_PATROLLER: treatType = TREAT_PEAR; break;
 				case ENEMY_JUMPER: treatType = TREAT_BANANA; break;
 				case ENEMY_SHOOTER: treatType = TREAT_BLUEBERRY; break;
+				case ENEMY_FLYER: treatType = TREAT_SODA; break;
 			}
 
 			RLOG("Spawning treat at (" << enemyCenter.x << "," << enemyCenter.y << ") type=" << (int)treatType);
@@ -291,6 +293,7 @@ void GameScreen::GameTick(float delta) {
 						case ENEMY_PATROLLER: carriedTreatType = TREAT_PEAR; break;
 						case ENEMY_JUMPER: carriedTreatType = TREAT_BANANA; break;
 						case ENEMY_SHOOTER: carriedTreatType = TREAT_BLUEBERRY; break;
+						case ENEMY_FLYER: carriedTreatType = TREAT_SODA; break;
 					}
 
 					treats.Add(new Treat(carriedCenter.x, carriedCenter.y, carriedTreatType));
@@ -332,6 +335,7 @@ void GameScreen::GameTick(float delta) {
 				case ENEMY_PATROLLER: treatType = TREAT_PEAR; break;
 				case ENEMY_JUMPER: treatType = TREAT_BANANA; break;
 				case ENEMY_SHOOTER: treatType = TREAT_BLUEBERRY; break;
+				case ENEMY_FLYER: treatType = TREAT_SODA; break;
 			}
 
 			treats.Add(new Treat(center.x, center.y, treatType));
@@ -1373,6 +1377,9 @@ void GameScreen::SpawnEnemies() {
 				case ENEMY_SHOOTER:
 					enemy = new EnemyShooter(spawnX, spawnY);
 					break;
+				case ENEMY_FLYER:
+					enemy = new EnemyFlyer(spawnX, spawnY);
+					break;
 			}
 
 			if(enemy) {
@@ -1431,6 +1438,13 @@ void GameScreen::SpawnEnemies() {
 				SpawnAt(12, row + 1, new EnemyShooter((float)spawnX, (float)spawnY));
 				break;
 			}
+		}
+		// Spawn flyer at center, mid-height (no floor needed)
+		{
+			int flyCol = levelColumns / 2;
+			float flyX = flyCol * gridSize;
+			float flyY = (levelRows / 2) * (float)gridSize;
+			SpawnAt(flyCol, levelRows / 2, new EnemyFlyer(flyX, flyY));
 		}
 	}
 }

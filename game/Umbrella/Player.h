@@ -102,6 +102,7 @@ public:
 	Pointf GetPosition() const { return Pointf(bounds.left, bounds.top); }
 	Pointf GetCenter() const { return Pointf(bounds.left + bounds.Width()/2, bounds.top + bounds.Height()/2); }
 	int GetLives() const { return lives; }
+	void ResetLives() { lives = 3; }
 	int GetScore() const { return score; }
 	bool IsOnGround() const { return onGround; }
 	int GetFacing() const { return facing; }

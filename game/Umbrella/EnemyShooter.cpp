@@ -1,7 +1,19 @@
 #include "Umbrella.h"
 #include "EnemyShooter.h"
+#include "Pathfinder.h"
+#include "NavGraph.h"
+#include "GameScreen.h"
 
 using namespace Upp;
+
+void EnemyShooter::WireAI(Pathfinder* pf, const NavGraph* ng,
+                           const GameScreen* gs, int spawnCol, int spawnRow) {
+	aiController.SetPathfinder(pf);
+	aiController.SetNavGraph(ng);
+	aiController.SetGameScreen(gs);
+	aiController.SetBehavior(new ShooterBehavior(spawnCol, spawnRow));
+	aiEnabled = true;
+}
 
 EnemyShooter::EnemyShooter(float x, float y)
 	: Enemy(x, y, 14, 14, ENEMY_SHOOTER)
@@ -42,11 +54,16 @@ bool EnemyShooter::CanSeePlayer(const Player& player) {
 }
 
 void EnemyShooter::ShootAtPlayer(const Player& player) {
-	// Spawn projectile at center of shooter
 	float spawnX = (bounds.left + bounds.right) / 2.0f - 3.0f;
 	float spawnY = (bounds.top + bounds.bottom) / 2.0f - 3.0f;
-
 	projectiles.Add(new Projectile(spawnX, spawnY, facing));
+}
+
+void EnemyShooter::ShootInDirection(int dir) {
+	facing = dir;
+	float spawnX = (bounds.left + bounds.right) / 2.0f - 3.0f;
+	float spawnY = (bounds.top + bounds.bottom) / 2.0f - 3.0f;
+	projectiles.Add(new Projectile(spawnX, spawnY, dir));
 }
 
 void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& collision) {
@@ -110,16 +127,40 @@ void EnemyShooter::Update(float delta, const Player& player, Player::CollisionHa
 		// No Y collision needed since no vertical movement
 	}
 	else {
-		// Normal shooter behavior: stationary on platforms
-		// No gravity, no movement
+		if(aiEnabled) {
+			// AI-driven: ShooterBehavior wanders + shoots on player sight
+			// Apply gravity so it stays on ground
+			velocity.y += GRAVITY * delta;
+			if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
 
-		// Update shoot timer
-		shootTimer += delta;
+			bool onGround = IsOnGround(collision);
+			ActionSet acts = aiController.Update(bounds, onGround, ++frameCounter);
 
-		// Check if can see player and ready to shoot
-		if(CanSeePlayer(player) && shootTimer >= SHOOT_COOLDOWN) {
-			ShootAtPlayer(player);
-			shootTimer = 0.0f;
+			if(acts.Has(ACT_LEFT)) {
+				velocity.x = -WALK_SPEED;
+				facing = -1;
+			} else if(acts.Has(ACT_RIGHT)) {
+				velocity.x = WALK_SPEED;
+				facing = 1;
+			} else {
+				velocity.x = 0;
+			}
+
+			if(acts.Has(ACT_JUMP) && onGround) {
+				velocity.y = 280.0f;
+			}
+
+			if(acts.Has(ACT_SHOOT)) {
+				int dir = (acts.Get(ACT_AIM_X) >= 0) ? 1 : -1;
+				ShootInDirection(dir);
+			}
+		} else {
+			// Fallback: stationary, shoot when player in range
+			shootTimer += delta;
+			if(CanSeePlayer(player) && shootTimer >= SHOOT_COOLDOWN) {
+				ShootAtPlayer(player);
+				shootTimer = 0.0f;
+			}
 		}
 	}
 

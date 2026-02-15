@@ -406,3 +406,7 @@
   task: track-ui/phase-03-controls/task-0301-icon-semantics.md
   status: done
   note: Added basic icon_semantics mapping using ModelerApp icons with fallbacks.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0103-advanced-create-dialogs.md
+  status: done
+  note: Added terrain/room dialog fields and persisted props (trees/grass, ceiling type, wall height).

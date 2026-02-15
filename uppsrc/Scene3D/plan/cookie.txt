@@ -366,3 +366,7 @@
   task: track-gui-automation/phase-02-coverage/task-0203-timeline-controls.md
   status: done
   note: Added timeline automation test with transform keyframes and scrubbing checks.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0204-viewport-tools.md
+  status: done
+  note: Added viewport tool automation test and gizmo visibility instrumentation.

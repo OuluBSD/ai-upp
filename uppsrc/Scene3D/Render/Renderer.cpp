@@ -233,6 +233,21 @@ void DrawSelectionGizmo(Size sz, Draw& d, const mat4& view, const vec3& pos, boo
 	DrawRect(sz, d, view, pos, Size(4, 4), Color(255, 220, 120), z_cull);
 }
 
+static void CountGizmoPixels(Scene3DRenderContext& ctx, Size sz, const mat4& view, const vec3& pos) {
+	vec4 p4 = view * pos.Embed();
+	if (p4[3] == 0)
+		return;
+	vec3 p = p4.Splice() / p4[3];
+	vec2 ndc(p[0], p[1]);
+	if (ndc[0] < -1 || ndc[0] > 1 || ndc[1] < -1 || ndc[1] > 1)
+		return;
+	int x = (int)floor((ndc[0] + 1) * 0.5 * (float)(sz.cx - 1) + 0.5f);
+	int y = (int)floor((-ndc[1] + 1) * 0.5 * (float)(sz.cy - 1) + 0.5f);
+	if (x < 0 || x >= sz.cx || y < 0 || y >= sz.cy)
+		return;
+	ctx.gizmo_pixels += 1;
+}
+
 void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
                              const GeomEditableMesh& mesh, bool z_cull,
                              const Vector<float>* weights = nullptr, bool show_weights = false,
@@ -1115,8 +1130,10 @@ void EditRendererV1::Paint(Draw& d) {
 	if (state.focus_mode == 3 && state.focus_visible)
 		draw_frustum(focus.position, focus.orientation, focus.fov, focus.scale, Color(120, 220, 120));
 
-	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid)
+	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid) {
 		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
+		CountGizmoPixels(*ctx, sz, view, ctx->selection_center_world);
+	}
 	
 	// Overlay: active camera axes and forward vector
 	{
@@ -1686,8 +1703,10 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	draw_camera_gizmos();
-	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid)
+	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid) {
 		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
+		CountGizmoPixels(*ctx, sz, view, ctx->selection_center_world);
+	}
 	// Skeleton overlay
 	if (ctx && ctx->state) {
 		if (ctx->anim && ctx->anim->is_playing) {
@@ -1896,6 +1915,7 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
                            ViewMode view_mode, const GeomCamera* cam_override, bool wireframe_only) {
 	if (!ctx.conf || !ctx.state)
 		return false;
+	ctx.gizmo_pixels = 0;
 	Scene3DRenderConfig& conf = *ctx.conf;
 	GeomWorldState& state = *ctx.state;
 	GeomScene& scene = state.GetActiveScene();

@@ -67,12 +67,14 @@ public:
 	virtual bool   HotKey(dword key) override;
 	virtual void   MouseEnter(Point, dword) override;
 	virtual void   MouseLeave() override;
+	virtual void   RightDown(Point p, dword keyflags) override;
 	virtual dword  GetAccessKeys() const override;
 	virtual void   AssignAccessKeys(dword used) override;
 	virtual void   Layout() override;
 	virtual void   GotFocus() override;
 	virtual void   LostFocus() override;
 	virtual int    OverPaint() const override;
+	virtual void   PerformAction() override;
 
 public:
 	struct Style : ChStyle<Style> {
@@ -87,12 +89,27 @@ public:
 		bool  focus_use_ok;
 	};
 
+	enum RibbonMode {
+		RIBBON_NONE,
+		RIBBON_LARGE,
+		RIBBON_LIST,
+	};
+
 protected:
 	enum { NORMAL, OK, CANCEL, EXIT };
 	const Style *style;
 	Image   img;
 	bool    monoimg;
 	byte    type;
+	int     ribbon_mode;
+	Size    ribbon_icon_area;
+	Size    ribbon_icon_max;
+	Font    ribbon_font;
+	Value   ribbon_idle;
+	Value   ribbon_hot;
+	Value   ribbon_push;
+	bool    ribbon_show_label;
+	Event<Bar&> ribbon_menu;
 
 	void  RefreshOK(Ctrl *p);
 	const Style *St() const;
@@ -125,6 +142,15 @@ public:
 	Button&  Cancel();
 	Button&  Exit();
 	Button&  Normal()                             { type = NORMAL; Refresh(); return *this; }
+
+	Button&  SetRibbon(bool b = true);
+	Button&  SetRibbonMode(int mode);
+	Button&  SetRibbonIconArea(Size sz);
+	Button&  SetRibbonIconMax(Size sz);
+	Button&  SetRibbonFont(Font fnt);
+	Button&  SetRibbonLook(const Value& idle, const Value& hot, const Value& push);
+	Button&  ShowRibbonLabel(bool show = true);
+	Button&  SetRibbonMenu(Event<Bar&> menu);
 
 	Button();
 	virtual ~Button();

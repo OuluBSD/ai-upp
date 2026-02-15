@@ -59,6 +59,7 @@ struct Scene3DRenderContext {
 	bool selection_center_valid = false;
 	bool selection_gizmo_enabled = false;
 	int selection_kind = 0;
+	int gizmo_pixels = 0;
 };
 
 struct Scene3DRenderStats {

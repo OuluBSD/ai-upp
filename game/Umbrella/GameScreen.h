@@ -13,6 +13,7 @@ using namespace Upp;
 
 // Forward declarations
 class Treat;
+class Pickup;
 
 // ============================================================================
 // Game event queue - decoupled producer/consumer for scripting and Shell integration
@@ -90,6 +91,9 @@ public:  // Public for testing
 	Array<DropletSpawnPoint> dropletSpawns;  // Spawn points from level data
 	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
+
+	// Pickups
+	Array<Pickup*> pickups;
 
 	// Pathfinding (shared by all enemies, built on level load)
 	Pathfinder pathfinder;

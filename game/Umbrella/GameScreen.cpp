@@ -7,6 +7,7 @@
 #include "EnemyShooter.h"
 #include "Treat.h"
 #include "Droplet.h"
+#include "Pickup.h"
 
 using namespace Upp;
 
@@ -76,6 +77,19 @@ bool GameScreen::LoadLevel(const String& path) {
 
 	// Spawn enemies (WireAI called inside SpawnEnemies)
 	SpawnEnemies();
+
+	// Spawn hardcoded pickups for first level (one of each type)
+	for(int i = 0; i < pickups.GetCount(); i++) delete pickups[i];
+	pickups.Clear();
+	if(levelColumns > 4 && levelRows > 4) {
+		int mid = levelColumns / 2;
+		int row = levelRows - 2;
+		float gs = (float)gridSize;
+		pickups.Add(new Pickup(gs * (mid - 2), gs * row, PU_HEART));
+		pickups.Add(new Pickup(gs * (mid - 1), gs * row, PU_GEM));
+		pickups.Add(new Pickup(gs *  mid,       gs * row, PU_LIGHTNING));
+		pickups.Add(new Pickup(gs * (mid + 1), gs * row, PU_SPEED));
+	}
 
 	// Load droplet spawn points
 	dropletSpawns.Clear();
@@ -635,6 +649,45 @@ void GameScreen::GameTick(float delta) {
 		}
 	}
 
+	// Update pickups and check player collection
+	{
+		Rectf pb = player.GetBounds();
+		for(int i = 0; i < pickups.GetCount(); i++) {
+			if(!pickups[i]->IsActive()) continue;
+			pickups[i]->Update(delta);
+
+			Rectf pkb = pickups[i]->GetBounds();
+			if(pb.left < pkb.right && pb.right > pkb.left &&
+			   min(pb.top,  pb.bottom)  < max(pkb.top,  pkb.bottom) &&
+			   max(pb.top,  pb.bottom)  > min(pkb.top,  pkb.bottom)) {
+				PickupType t = pickups[i]->GetType();
+				pickups[i]->Collect();
+				switch(t) {
+					case PU_HEART:
+						if(player.GetLives() < 5)
+							player.ResetLives();  // restore to full (simple impl)
+						break;
+					case PU_GEM:
+						player.AddScore(100);
+						break;
+					case PU_LIGHTNING:
+						player.SetInvincible(5.0f);
+						break;
+					case PU_SPEED:
+						player.SetSpeedBoost(10.0f);
+						break;
+				}
+			}
+		}
+		// Remove collected pickups
+		for(int i = pickups.GetCount() - 1; i >= 0; i--) {
+			if(!pickups[i]->IsActive()) {
+				delete pickups[i];
+				pickups.Remove(i);
+			}
+		}
+	}
+
 	// Check parasol-enemy collisions (capturing enemies)
 	if(player.IsAttacking()) {
 		Rectf parasolBox = player.GetParasolHitbox();
@@ -812,6 +865,11 @@ void GameScreen::Paint(Draw& w) {
 	// Render droplets
 	for(int i = 0; i < droplets.GetCount(); i++) {
 		droplets[i]->Render(w, *this);
+	}
+
+	// Render pickups
+	for(int i = 0; i < pickups.GetCount(); i++) {
+		pickups[i]->Render(w, *this);
 	}
 
 	// Render player (using WorldToScreen for proper Y-flip)
@@ -1275,6 +1333,12 @@ void GameScreen::ClearEnemies() {
 		delete treats[i];
 	}
 	treats.Clear();
+
+	// Clear pickups
+	for(int i = 0; i < pickups.GetCount(); i++) {
+		delete pickups[i];
+	}
+	pickups.Clear();
 }
 
 void GameScreen::SpawnEnemies() {

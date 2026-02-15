@@ -37,6 +37,7 @@ private:
 	int score;
 	float invincibleTimer;
 	float knockbackTimer;
+	float speedBoostTimer;
 
 	// Parasol state
 	enum ParasolState {
@@ -101,8 +102,13 @@ public:
 	Rectf GetBounds() const { return bounds; }
 	Pointf GetPosition() const { return Pointf(bounds.left, bounds.top); }
 	Pointf GetCenter() const { return Pointf(bounds.left + bounds.Width()/2, bounds.top + bounds.Height()/2); }
-	int GetLives() const { return lives; }
-	void ResetLives() { lives = 3; }
+	int  GetLives() const { return lives; }
+	void ResetLives()    { lives = 3; }
+
+	bool IsInvincible()   const { return invincibleTimer > 0.0f; }
+	bool IsSpeedBoosted() const { return speedBoostTimer > 0.0f; }
+	void SetInvincible(float t)   { invincibleTimer  = t; }
+	void SetSpeedBoost(float t)   { speedBoostTimer  = t; }
 	int GetScore() const { return score; }
 	bool IsOnGround() const { return onGround; }
 	int GetFacing() const { return facing; }

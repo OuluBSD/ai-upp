@@ -34,6 +34,9 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	// Droplet system
 	dropletsCollected = 0;
 
+	// AI frame counter
+	gameFrame = 0;
+
 	// Input state
 	keyLeft = keyRight = keyJump = keyAttack = false;
 	prevKeyJump = prevKeyAttack = false;
@@ -64,10 +67,14 @@ bool GameScreen::LoadLevel(const String& path) {
 		gridSize = 14;  // Default grid size
 	}
 
+	// Build shared pathfinding structures for this level
+	pathfinder.SetGameScreen(this);
+	navGraph.Build(this);
+
 	// Spawn player at appropriate location
 	RespawnPlayer();
 
-	// Spawn enemies
+	// Spawn enemies (WireAI called inside SpawnEnemies)
 	SpawnEnemies();
 
 	// Load droplet spawn points
@@ -180,6 +187,8 @@ void GameScreen::LayoutLoop() {
 }
 
 void GameScreen::GameTick(float delta) {
+	gameFrame++;
+
 	// Update input state
 	UpdateInput();
 
@@ -1286,6 +1295,7 @@ void GameScreen::SpawnEnemies() {
 			}
 
 			if(enemy) {
+				enemy->WireAI(&pathfinder, &navGraph, this, spawn.col, spawn.row);
 				enemies.Add(enemy);
 				LOG("Spawned " << (spawn.type == ENEMY_PATROLLER ? "Patroller" :
 				                    spawn.type == ENEMY_JUMPER ? "Jumper" : "Shooter")
@@ -1297,12 +1307,17 @@ void GameScreen::SpawnEnemies() {
 	else if(levelColumns > 10 && levelRows > 5) {
 		LOG("No enemy spawn points found, using fallback spawning");
 
+		auto SpawnAt = [&](int col, int enemyRow, auto* e) {
+			e->WireAI(&pathfinder, &navGraph, this, col, enemyRow);
+			enemies.Add(e);
+		};
+
 		// Spawn patroller at column 8, looking for ground
 		for(int row = levelRows - 3; row >= 1; row--) {
 			if(IsFloorTile(8, row)) {
 				int spawnX = 8 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				SpawnAt(8, row + 1, new EnemyPatroller((float)spawnX, (float)spawnY));
 				break;
 			}
 		}
@@ -1312,7 +1327,7 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(15, row)) {
 				int spawnX = 15 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				enemies.Add(new EnemyJumper((float)spawnX, (float)spawnY));
+				SpawnAt(15, row + 1, new EnemyJumper((float)spawnX, (float)spawnY));
 				break;
 			}
 		}
@@ -1322,7 +1337,7 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(22, row)) {
 				int spawnX = 22 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				enemies.Add(new EnemyPatroller((float)spawnX, (float)spawnY));
+				SpawnAt(22, row + 1, new EnemyPatroller((float)spawnX, (float)spawnY));
 				break;
 			}
 		}
@@ -1332,7 +1347,7 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(12, row)) {
 				int spawnX = 12 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				enemies.Add(new EnemyShooter((float)spawnX, (float)spawnY));
+				SpawnAt(12, row + 1, new EnemyShooter((float)spawnX, (float)spawnY));
 				break;
 			}
 		}

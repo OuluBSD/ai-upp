@@ -1,7 +1,19 @@
 #include "Umbrella.h"
 #include "EnemyPatroller.h"
+#include "Pathfinder.h"
+#include "NavGraph.h"
+#include "GameScreen.h"
 
 using namespace Upp;
+
+void EnemyPatroller::WireAI(Pathfinder* pf, const NavGraph* ng,
+                             const GameScreen* gs, int spawnCol, int spawnRow) {
+	aiController.SetPathfinder(pf);
+	aiController.SetNavGraph(ng);
+	aiController.SetGameScreen(gs);
+	aiController.SetBehavior(new WandererBehavior(spawnCol, spawnRow));
+	aiEnabled = true;
+}
 
 EnemyPatroller::EnemyPatroller(float x, float y)
 	: Enemy(x, y, 12, 12, ENEMY_PATROLLER)
@@ -39,18 +51,38 @@ void EnemyPatroller::Update(float delta, const Player& player, Player::Collision
 		// Apply gravity
 		velocity.y += GRAVITY * delta;
 		if(velocity.y < MAX_FALL_SPEED) velocity.y = MAX_FALL_SPEED;
-		// Set horizontal velocity based on facing
-		velocity.x = facing * WALK_SPEED;
 
-		// Check for walls or edges - turn around
-		bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
-		               (facing > 0 && IsTouchingWallOnRight(collision));
+		if(aiEnabled) {
+			// AI-driven movement via AIController + WandererBehavior
+			bool onGround = IsOnGround(collision);
+			ActionSet acts = aiController.Update(bounds, onGround, ++frameCounter);
 
-		bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
+			if(acts.Has(ACT_LEFT)) {
+				velocity.x = -WALK_SPEED;
+				facing = -1;
+			} else if(acts.Has(ACT_RIGHT)) {
+				velocity.x = WALK_SPEED;
+				facing = 1;
+			} else {
+				velocity.x = 0;
+			}
 
-		if(hitWall || noFloorAhead) {
-			facing = -facing;
+			if(acts.Has(ACT_JUMP) && onGround) {
+				// Jump: use player-like jump velocity constant
+				velocity.y = 280.0f;
+			}
+		} else {
+			// Fallback: simple wall-bounce patrol
 			velocity.x = facing * WALK_SPEED;
+
+			bool hitWall = (facing < 0 && IsTouchingWallOnLeft(collision)) ||
+			               (facing > 0 && IsTouchingWallOnRight(collision));
+			bool noFloorAhead = !IsFloorAhead(collision) && IsOnGround(collision);
+
+			if(hitWall || noFloorAhead) {
+				facing = -facing;
+				velocity.x = facing * WALK_SPEED;
+			}
 		}
 	}
 	else {

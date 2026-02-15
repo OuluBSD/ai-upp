@@ -6,6 +6,8 @@
 #include "Player.h"
 #include "Enemy.h"
 #include "Droplet.h"
+#include "Pathfinder.h"
+#include "NavGraph.h"
 
 using namespace Upp;
 
@@ -88,6 +90,11 @@ public:  // Public for testing
 	Array<DropletSpawnPoint> dropletSpawns;  // Spawn points from level data
 	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
+
+	// Pathfinding (shared by all enemies, built on level load)
+	Pathfinder pathfinder;
+	NavGraph   navGraph;
+	int        gameFrame;
 
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;

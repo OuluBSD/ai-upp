@@ -10,6 +10,7 @@
 #include "Pickup.h"
 #include "EnemyFlyer.h"
 #include "AudioSystem.h"
+#include "GrimReaper.h"
 
 using namespace Upp;
 
@@ -46,6 +47,9 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 
 	lastTime = GetTickCount();
 
+	// GrimReaper
+	reaper = new GrimReaper();
+
 	// Start game loop
 	SetTimeCallback(16, [=] { LayoutLoop(); });
 }
@@ -79,6 +83,9 @@ bool GameScreen::LoadLevel(const String& path) {
 
 	// Spawn enemies (WireAI called inside SpawnEnemies)
 	SpawnEnemies();
+
+	// Reset time-pressure boss for this level
+	reaper->Reset();
 
 	// Spawn hardcoded pickups for first level (one of each type)
 	for(int i = 0; i < pickups.GetCount(); i++) delete pickups[i];
@@ -694,6 +701,18 @@ void GameScreen::GameTick(float delta) {
 				pickups.Remove(i);
 			}
 		}
+
+		// GrimReaper: tick and check death
+		{
+			float reaperSpawnX = -3.0f * gridSize;
+			float reaperSpawnY = player.GetBounds().top;
+			reaper->Update(delta, player, reaperSpawnX, reaperSpawnY);
+			if(reaper->TouchesPlayer(player)) {
+				GetAudioSystem().Play("gameover");
+				SetGameState(GAME_OVER);
+				return;
+			}
+		}
 	}
 
 	// Check parasol-enemy collisions (capturing enemies)
@@ -879,6 +898,9 @@ void GameScreen::Paint(Draw& w) {
 	for(int i = 0; i < pickups.GetCount(); i++) {
 		pickups[i]->Render(w, *this);
 	}
+
+	// Render GrimReaper (above pickups, below player)
+	reaper->Render(w, *this, sz.cx, sz.cy);
 
 	// Render player (using WorldToScreen for proper Y-flip)
 	player.Render(w, *this);
@@ -1325,6 +1347,7 @@ void GameScreen::RestartLevel() {
 	// Reload the level
 	if(!levelPath.IsEmpty()) {
 		player.ResetLives();
+		reaper->Reset();
 		LoadLevel(levelPath);
 		SetGameState(PLAYING);
 		lastTime = GetTickCount();

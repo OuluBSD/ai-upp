@@ -373,6 +373,98 @@ void Button::PaintButton(Ctrl *ctrl, Draw& w, const Rect& r, const Button::Style
 
 void Button::Paint(Draw& w)
 {
+	if(ribbon_mode != RIBBON_NONE) {
+		Rect r = GetSize();
+		int state = GetVisualState();
+		bool focus = HasFocus();
+		bool disabled = !IsShowEnabled();
+		const Button::Style& st = *St();
+		Value look = ribbon_idle;
+		if(state == CTRL_HOT)
+			look = ribbon_hot;
+		else if(state == CTRL_PRESSED)
+			look = ribbon_push;
+		if(!IsNull(look))
+			ChPaint(this, w, r, look);
+
+		int pad = DPI(4);
+		Rect icon_area = r;
+		Rect text_area = r;
+		if(ribbon_mode == RIBBON_LARGE) {
+			icon_area.left += pad;
+			icon_area.right -= pad;
+			icon_area.top += pad;
+			icon_area.bottom = icon_area.top + ribbon_icon_area.cy;
+
+			text_area.left += pad;
+			text_area.right -= pad;
+			text_area.top = icon_area.bottom + pad;
+			text_area.bottom -= pad;
+		}
+		else {
+			int row_cy = r.Height();
+			int iy = (row_cy - ribbon_icon_max.cy) / 2;
+			icon_area = Rect(r.left + pad, r.top + iy, r.left + pad + ribbon_icon_max.cx, r.top + iy + ribbon_icon_max.cy);
+			text_area = Rect(icon_area.right + pad, r.top, r.right - pad, r.bottom);
+		}
+
+		Image draw_img = img;
+		if(!IsNull(draw_img)) {
+			Size isz = draw_img.GetSize();
+			Size target = ribbon_icon_max;
+			double sx = (double)target.cx / max(1, isz.cx);
+			double sy = (double)target.cy / max(1, isz.cy);
+			double s = min(sx, sy);
+			int dcx = max(1, (int)(isz.cx * s));
+			int dcy = max(1, (int)(isz.cy * s));
+			int ix = icon_area.left + (icon_area.Width() - dcx) / 2;
+			int iy = icon_area.top + (icon_area.Height() - dcy) / 2;
+			w.DrawImage(ix, iy, dcx, dcy, draw_img);
+		}
+
+		String t = label;
+		Font fnt = Nvl(ribbon_font, st.font);
+		Color tc = disabled ? SColorDisabled() : st.textcolor[state];
+		if(!ribbon_show_label)
+			t.Clear();
+		Vector<String> lines;
+		Vector<String> words = Split(t, ' ');
+		String line;
+		for(int i = 0; i < words.GetCount(); i++) {
+			String cand = line.IsEmpty() ? words[i] : (line + " " + words[i]);
+			if(GetTextSize(cand, fnt).cx <= text_area.Width() || line.IsEmpty()) {
+				line = cand;
+			}
+			else {
+				lines.Add(line);
+				line = words[i];
+				if(lines.GetCount() >= 2)
+					break;
+			}
+		}
+		if(lines.GetCount() < 2 && !line.IsEmpty())
+			lines.Add(line);
+		if(lines.IsEmpty())
+			lines.Add(t);
+		if(!t.IsEmpty()) {
+			int total_cy = lines.GetCount() * fnt.GetLineHeight();
+			int ty = text_area.top + max(0, (text_area.Height() - total_cy) / 2);
+			for(int i = 0; i < lines.GetCount() && i < 2; i++) {
+				Size tsz = GetTextSize(lines[i], fnt);
+				int tx = (ribbon_mode == RIBBON_LIST)
+				         ? text_area.left
+				         : text_area.left + max(0, (text_area.Width() - tsz.cx) / 2);
+				w.DrawText(tx, ty, lines[i], fnt, tc);
+				ty += fnt.GetLineHeight();
+			}
+		}
+		if(focus)
+			DrawFocus(w, r.Deflated(st.focusmargin));
+		if(ribbon_menu)
+			w.DrawImage(r.right - DPI(12), r.bottom - DPI(12), CtrlImg::smalldown());
+		return;
+	}
+
 	PaintButton(this, w, GetSize(), *St(), GetVisualState(), HasFocus(),
 	            label, font, img,
 	            monoimg, accesskey, VisibleAccessKeys(), !IsShowEnabled());
@@ -387,6 +479,14 @@ void  Button::MouseLeave()
 {
 	Refresh();
 	Pusher::MouseLeave();
+}
+
+void Button::RightDown(Point p, dword keyflags)
+{
+	if(ribbon_menu)
+		MenuBar::Execute(this, ribbon_menu, GetScreenRect().BottomLeft());
+	else
+		Ctrl::RightDown(p, keyflags);
 }
 
 bool Button::Key(dword key, int w) {
@@ -421,6 +521,11 @@ bool Button::HotKey(dword key) {
 	return false;
 }
 
+void Button::PerformAction()
+{
+	Pusher::PerformAction();
+}
+
 dword Button::GetAccessKeys() const
 {
 	if(type == OK || type == EXIT)
@@ -451,11 +556,77 @@ Button& Button::SetMonoImage(const Image& _img)
 	return *this;
 }
 
+Button& Button::SetRibbon(bool b)
+{
+	ribbon_mode = b ? RIBBON_LARGE : RIBBON_NONE;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonMode(int mode)
+{
+	ribbon_mode = mode;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonIconArea(Size sz)
+{
+	ribbon_icon_area = sz;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonIconMax(Size sz)
+{
+	ribbon_icon_max = sz;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonFont(Font fnt)
+{
+	ribbon_font = fnt;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonLook(const Value& idle, const Value& hot, const Value& push)
+{
+	ribbon_idle = idle;
+	ribbon_hot = hot;
+	ribbon_push = push;
+	Refresh();
+	return *this;
+}
+
+Button& Button::ShowRibbonLabel(bool show)
+{
+	ribbon_show_label = show;
+	Refresh();
+	return *this;
+}
+
+Button& Button::SetRibbonMenu(Event<Bar&> menu)
+{
+	ribbon_menu = menu;
+	Refresh();
+	return *this;
+}
+
 Button::Button() {
 	style = NULL;
 	type = NORMAL;
 	monoimg = false;
 	font = Null;
+	ribbon_mode = RIBBON_NONE;
+	ribbon_icon_area = Size(DPI(52), DPI(56));
+	ribbon_icon_max = Size(DPI(45), DPI(40));
+	ribbon_font = StdFont().Height(13);
+	ribbon_idle = Null;
+	ribbon_hot = Null;
+	ribbon_push = Null;
+	ribbon_show_label = true;
 }
 
 Button::~Button() {}

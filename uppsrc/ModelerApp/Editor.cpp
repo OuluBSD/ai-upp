@@ -449,6 +449,56 @@ PyValue ModelerGetPosition(const Vector<PyValue>& args, void* user_data) {
 	return PyValue::FromVector(out, true);
 }
 
+PyValue ModelerAddTransformKeyframe(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || args.GetCount() < 2)
+		return PyValue::False();
+	String path = args[0].ToString();
+	int frame = (int)args[1].AsInt();
+	bool pos = args.GetCount() > 2 ? args[2].IsTrue() : true;
+	bool ori = args.GetCount() > 3 ? args[3].IsTrue() : true;
+	GeomObject* obj = ResolveObjectPath(*e, path);
+	if (!obj)
+		return PyValue::False();
+	GeomTimeline& tl = obj->GetTimeline();
+	GeomKeypoint& kp = tl.GetAddKeypoint(frame);
+	kp.frame_id = frame;
+	if (const GeomObjectState* os = e->state->FindObjectStateByKey(obj->key)) {
+		if (pos) kp.position = os->position;
+		if (ori) kp.orientation = os->orientation;
+	}
+	else if (GeomTransform* tr = obj->FindTransform()) {
+		if (pos) kp.position = tr->position;
+		if (ori) kp.orientation = tr->orientation;
+	}
+	if (pos) kp.has_position = true;
+	if (ori) kp.has_orientation = true;
+	e->RefrehRenderers();
+	return PyValue::True();
+}
+
+PyValue ModelerSetTimelineExpanded(const Vector<PyValue>& args, void* user_data) {
+	Edit3D* e = (Edit3D*)user_data;
+	if (!e || !e->state || args.GetCount() < 2)
+		return PyValue::False();
+	String path = args[0].ToString();
+	bool expand = args[1].IsTrue();
+	GeomObject* obj = ResolveObjectPath(*e, path);
+	if (!obj)
+		return PyValue::False();
+	int idx = e->timeline_expanded.Find(obj->key);
+	if (expand) {
+		if (idx < 0)
+			e->timeline_expanded.Add(obj->key);
+	}
+	else {
+		if (idx >= 0)
+			e->timeline_expanded.Remove(idx);
+	}
+	e->v0.TimelineData();
+	return PyValue::True();
+}
+
 PyValue ModelerCreateObject(const Vector<PyValue>& args, void* user_data) {
 	Edit3D* e = (Edit3D*)user_data;
 	if (!e || args.GetCount() < 2)
@@ -3197,6 +3247,8 @@ void Edit3D::RegisterScriptVM(PyVM& vm) {
 		PY_MODULE_FUNC(set_position, ModelerSetPosition, this);
 		PY_MODULE_FUNC(set_orientation, ModelerSetOrientation, this);
 		PY_MODULE_FUNC(get_position, ModelerGetPosition, this);
+		PY_MODULE_FUNC(add_transform_keyframe, ModelerAddTransformKeyframe, this);
+		PY_MODULE_FUNC(set_timeline_expanded, ModelerSetTimelineExpanded, this);
 		PY_MODULE_FUNC(create_object, ModelerCreateObject, this);
 		PY_MODULE_FUNC(create_directory, ModelerCreateDirectory, this);
 		PY_MODULE_FUNC(get_project_dir, ModelerGetProjectDir, this);

@@ -46,6 +46,8 @@ file
 	EnemyShooter.cpp,
 	EnemyFlyer.h,
 	EnemyFlyer.cpp,
+	GrimReaper.h,
+	GrimReaper.cpp,
 	Projectile.h,
 	Projectile.cpp,
 	Treat.h,

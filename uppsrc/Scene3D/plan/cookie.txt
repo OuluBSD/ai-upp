@@ -374,3 +374,7 @@
   task: track-gui-automation/phase-02-coverage/task-0205-renderer-modes.md
   status: done
   note: Added renderer mode automation test and modeler API for renderer/grid/HUD state; test verified.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0100-create-operations.md
+  status: done
+  note: Wired ribbon create actions to primitives, dialog defaults, imports, and tagged stubs.

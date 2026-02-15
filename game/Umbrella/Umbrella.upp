@@ -48,6 +48,8 @@ file
 	Treat.cpp,
 	Droplet.h,
 	Droplet.cpp,
+	Pickup.h,
+	Pickup.cpp,
 	GameScreen.h,
 	GameScreen.cpp,
 	GameScriptBridge.h,

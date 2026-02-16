@@ -3,33 +3,20 @@
 
 using namespace Upp;
 
-Treat::Treat(float x, float y, TreatType treatType) {
+void Treat::Init(float x, float y, TreatType treatType) {
 	type = treatType;
 	bounds = Rectf(x, y, x + TREAT_SIZE, y + TREAT_SIZE);
 	active = true;
 	onGround = false;
 	lifetime = 0.0f;
 
-	// Set score value based on type
 	switch(type) {
-		case TREAT_PEAR:
-			scoreValue = 50;
-			break;
-		case TREAT_BANANA:
-			scoreValue = 75;
-			break;
-		case TREAT_BLUEBERRY:
-			scoreValue = 100;
-			break;
-		case TREAT_SODA:
-			scoreValue = 200;
-			break;
-		case TREAT_CAKE:
-			scoreValue = 500;
-			break;
-		default:
-			scoreValue = 50;
-			break;
+		case TREAT_PEAR:       scoreValue = 50;  break;
+		case TREAT_BANANA:     scoreValue = 75;  break;
+		case TREAT_BLUEBERRY:  scoreValue = 100; break;
+		case TREAT_SODA:       scoreValue = 200; break;
+		case TREAT_CAKE:       scoreValue = 500; break;
+		default:               scoreValue = 50;  break;
 	}
 
 	// Initial velocity (thrown upward with random horizontal spread)

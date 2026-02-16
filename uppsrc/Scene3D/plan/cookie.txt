@@ -426,3 +426,15 @@
   task: track-ui/phase-04-scene-graph-explorer/task-0403-modify-selection-actions.md
   status: done
   note: Modify-selection submenu added with stubs and disabled items.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0000-ecs-scenegraph-spec.md
+  status: done
+  note: Documented ECS-first scene graph spec, component ordering, and addressing.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0001-geom-to-ecs-mapping.md
+  status: done
+  note: Added Geom-to-ECS mapping table and migration notes.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0002-timeline-strategy.md
+  status: done
+  note: Wrote Flash-like ECS timeline strategy with script keyframes and evaluation order.

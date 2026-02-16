@@ -4,21 +4,33 @@
 
 using namespace Upp;
 
-Enemy::Enemy(float x, float y, float width, float height, EnemyType t) {
-	bounds = Rectf(x, y, x + width, y + height);
-	velocity = Pointf(0, 0);
+Enemy::Enemy(VfsValue& v, EnemyType t) : GameEntity(v) {
 	health = 1;
-	alive = true;
-	active = true;
 	captured = false;
 	thrown = false;
 	carriedByThrown = false;
 	stateTimer = 0.0f;
 	facing = -1;  // Start facing left
 	type = t;
-	carryWeight = 1.0f;  // Default weight
-	originalSize = width;  // Store original size for thrown capture logic
-	rotation = 0.0f;  // No rotation initially
+	carryWeight = 1.0f;
+	originalSize = 0.0f;
+	rotation = 0.0f;
+}
+
+Enemy::Enemy(VfsValue& v, float x, float y, float width, float height, EnemyType t)
+    : GameEntity(v)
+{
+	bounds = Rectf(x, y, x + width, y + height);
+	health = 1;
+	captured = false;
+	thrown = false;
+	carriedByThrown = false;
+	stateTimer = 0.0f;
+	facing = -1;  // Start facing left
+	type = t;
+	carryWeight = 1.0f;
+	originalSize = width;
+	rotation = 0.0f;
 }
 
 void Enemy::TakeDamage(int amount) {

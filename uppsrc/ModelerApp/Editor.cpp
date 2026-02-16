@@ -2087,7 +2087,15 @@ Edit3D::Edit3D() :
 	AddFrame(ribbon);
 	tool_panel.Init(this);
 	ribbon.Init(this);
-ribbon.LoadSpec(ShareDirFile(AppendFileName("scene3d", "ribbon/coppercube_ribbon.xml")));
+	if (!ribbon.LoadSpec(ShareDirFile("scene3d/ribbon/coppercube_ribbon.xml"))) {
+		LOG("ModelerApp: failed to load ribbon spec, using fallback tab.");
+		RibbonPage& page = ribbon.AddTab("Main");
+		RibbonGroup& group = page.AddGroup("Ribbon");
+		group.SetLarge([](Bar& bar) {
+			bar.Add("New", [] {});
+			bar.Add("Open", [] {});
+		});
+	}
 	menu.Set([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
 			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);
@@ -2998,16 +3006,32 @@ static bool DialogCreateCamera(String& cam_type, bool& collides, bool& first_act
 		Option opt_panorama;
 		Option collides;
 		Option first_active;
+		void Select(Option& opt)
+		{
+			opt_simple = false;
+			opt_fps = false;
+			opt_third = false;
+			opt_free = false;
+			opt_viewer = false;
+			opt_panorama = false;
+			opt = true;
+		}
 		Dlg()
 		{
 			Title("Create a camera");
-			opt_simple.SetLabel("Simple camera").SetGroup(1);
-			opt_fps.SetLabel("First person shooter camera").SetGroup(1);
-			opt_third.SetLabel("Third person camera").SetGroup(1);
-			opt_free.SetLabel("Free-flying camera").SetGroup(1);
-			opt_viewer.SetLabel("Model viewer camera").SetGroup(1);
-			opt_panorama.SetLabel("Panorama camera").SetGroup(1);
-			opt_simple = true;
+			opt_simple.SetLabel("Simple camera");
+			opt_fps.SetLabel("First person shooter camera");
+			opt_third.SetLabel("Third person camera");
+			opt_free.SetLabel("Free-flying camera");
+			opt_viewer.SetLabel("Model viewer camera");
+			opt_panorama.SetLabel("Panorama camera");
+			Select(opt_simple);
+			opt_simple.WhenAction = [this] { Select(opt_simple); };
+			opt_fps.WhenAction = [this] { Select(opt_fps); };
+			opt_third.WhenAction = [this] { Select(opt_third); };
+			opt_free.WhenAction = [this] { Select(opt_free); };
+			opt_viewer.WhenAction = [this] { Select(opt_viewer); };
+			opt_panorama.WhenAction = [this] { Select(opt_panorama); };
 			collides.SetLabel("Collides against geometry when moved");
 			first_active.SetLabel("When starting the scene, this is the first active camera");
 			first_active = true;
@@ -3144,7 +3168,7 @@ static bool DialogCreateRoomMesh(String& ceiling_type, double& wall_height, Stri
 	return false;
 }
 
-static bool GetRibbonDropValue(RibbonCtrl& ribbon, const char* id, String& out)
+static bool GetRibbonDropValue(ModelerAppRibbon& ribbon, const char* id, String& out)
 {
 	Ctrl* c = ribbon.FindControl(id);
 	DropList* dl = dynamic_cast<DropList*>(c);
@@ -3154,7 +3178,7 @@ static bool GetRibbonDropValue(RibbonCtrl& ribbon, const char* id, String& out)
 	return true;
 }
 
-static bool GetRibbonIntValue(RibbonCtrl& ribbon, const char* id, int& out)
+static bool GetRibbonIntValue(ModelerAppRibbon& ribbon, const char* id, int& out)
 {
 	Ctrl* c = ribbon.FindControl(id);
 	EditIntSpin* ed = dynamic_cast<EditIntSpin*>(c);
@@ -3164,7 +3188,7 @@ static bool GetRibbonIntValue(RibbonCtrl& ribbon, const char* id, int& out)
 	return true;
 }
 
-static bool GetRibbonDoubleValue(RibbonCtrl& ribbon, const char* id, double& out)
+static bool GetRibbonDoubleValue(ModelerAppRibbon& ribbon, const char* id, double& out)
 {
 	Ctrl* c = ribbon.FindControl(id);
 	EditDoubleSpin* ed = dynamic_cast<EditDoubleSpin*>(c);
@@ -3174,7 +3198,7 @@ static bool GetRibbonDoubleValue(RibbonCtrl& ribbon, const char* id, double& out
 	return true;
 }
 
-static bool GetRibbonBoolValue(RibbonCtrl& ribbon, const char* id, bool& out)
+static bool GetRibbonBoolValue(ModelerAppRibbon& ribbon, const char* id, bool& out)
 {
 	Ctrl* c = ribbon.FindControl(id);
 	Option* opt = dynamic_cast<Option*>(c);
@@ -3305,7 +3329,7 @@ void Edit3D::Toolbar(Bar& bar) {
 void Edit3D::UpdateRibbonContext()
 {
 	bool camera_context = v0.selected_obj && v0.selected_obj->IsCamera();
-	ribbon.bar.ShowContext("camera", camera_context);
+	ribbon.ShowContext("camera", camera_context);
 }
 
 void Edit3D::FocusSelectedNode()
@@ -3390,7 +3414,7 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 			mode = VIEWMODE_YZ;
 		for (int i = 0; i < 4; i++) {
 			if (v0.rends[i]) {
-				v0.rends[i]->SetViewMode(mode);
+							v0.rends[i]->SetViewMode((ViewMode)mode);
 				v0.RefreshRenderer(i);
 			}
 		}

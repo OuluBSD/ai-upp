@@ -15,7 +15,8 @@ class EnemyFlyer : public Enemy {
 	float bobTimer = 0.0f;
 
 public:
-	EnemyFlyer(float x, float y);
+	EnemyFlyer(VfsValue& v) : Enemy(v, ENEMY_FLYER) { carryWeight = 0.8f; }
+	void Init(float x, float y, int spawnFacing = -1);
 
 	virtual void Update(float delta, const Player& player, Player::CollisionHandler& collision) override;
 	virtual void Render(Draw& w, Player::CoordinateConverter& coords) override;

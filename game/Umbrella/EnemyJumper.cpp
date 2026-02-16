@@ -16,12 +16,12 @@ void EnemyJumper::WireAI(Pathfinder* pf, const NavGraph* ng,
 	aiEnabled = true;
 }
 
-EnemyJumper::EnemyJumper(float x, float y)
-	: Enemy(x, y, 12, 12, ENEMY_JUMPER)
+void EnemyJumper::Init(float x, float y, int spawnFacing)
 {
-	velocity.x = -WALK_SPEED;  // Start moving left
-	facing = -1;
-	ResetJumpTimer();
+	bounds = Rectf(x, y, x + 12, y + 12);
+	originalSize = 12;
+	facing = spawnFacing;
+	velocity.x = spawnFacing * -WALK_SPEED;
 }
 
 void EnemyJumper::ResetJumpTimer() {

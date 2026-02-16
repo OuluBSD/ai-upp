@@ -1,17 +1,21 @@
 #ifndef _Umbrella_Player_h_
 #define _Umbrella_Player_h_
 
-#include <Core/Core.h>
+#include "GameEntity.h"
 
 using namespace Upp;
 
 // Forward declarations
 struct InputState;
-class CollisionHandler;
 
-class Player {
+class Player : public GameEntity {
 public:
-	// Collision handler interface
+	// Interface classes declared early so private methods can reference them
+	class CoordinateConverter {
+	public:
+		virtual Point WorldToScreen(Point worldPos) = 0;
+	};
+
 	class CollisionHandler {
 	public:
 		virtual bool IsFullBlockTile(int col, int row) = 0;
@@ -20,14 +24,11 @@ public:
 		virtual float GetGridSize() = 0;
 	};
 
-	// Public constants for GameScreen to access
-	static constexpr float THROW_VELOCITY_X = 350.0f;  // Horizontal throw speed
-	static constexpr float THROW_VELOCITY_Y = 100.0f;  // Upward component
-
 private:
-	Rectf bounds;
-	Pointf velocity;
-	int facing;          // -1 left, 1 right
+	// selfNode MUST be first physical member - provides VfsValue for standalone (non-VFS-tree) creation.
+	// VfsValueExt stores a reference to it; lifetime of selfNode equals Player's.
+	VfsValue selfNode;
+
 	bool onGround;
 	float coyoteTimer;
 	float jumpBufferTimer;
@@ -82,24 +83,30 @@ private:
 	void ResolveCollisionY(float deltaY, CollisionHandler& collision);
 
 public:
-	Player(float x, float y, float width, float height);
+	CLASSTYPE(Player)
+
+	// Public constants for GameScreen to access
+	static constexpr float THROW_VELOCITY_X = 350.0f;  // Horizontal throw speed
+	static constexpr float THROW_VELOCITY_Y = 100.0f;  // Upward component
+
+	// VFS constructor (for VFS-tree-based creation)
+	Player(VfsValue& v);
+	// Standalone constructor (keeps GameScreen usage of Player player(x,y,w,h) intact)
+	Player(float x, float y, float width, float height) : Player(selfNode) {
+		Init(x, y, width, height);
+	}
+	void Init(float x, float y, float width, float height);
 
 	void Update(float delta, const InputState& input, CollisionHandler& collision);
 
 	// Render using direct screen coordinates (deprecated - use version with GameScreen)
 	void Render(Draw& w, Point cameraOffset, float zoom);
 
-	// Forward declaration for coordinate converter interface
-	class CoordinateConverter {
-	public:
-		virtual Point WorldToScreen(Point worldPos) = 0;
-	};
-
 	// Render using GameScreen's coordinate conversion
 	void Render(Draw& w, CoordinateConverter& coords);
 
 	// Accessors
-	Rectf GetBounds() const { return bounds; }
+	Rectf GetBounds() const override { return bounds; }
 	Pointf GetPosition() const { return Pointf(bounds.left, bounds.top); }
 	Pointf GetCenter() const { return Pointf(bounds.left + bounds.Width()/2, bounds.top + bounds.Height()/2); }
 	int  GetLives() const { return lives; }

@@ -52,6 +52,11 @@ This document serves as an internal guide for the Gemini AI agent.
 - **Log Inspection:** Prefer using `LOG()` macros for debugging and monitoring. Users should be encouraged to use `tail -f ~/.local/state/u++/log/<PackageName>.log` (or the equivalent path) to monitor output in real-time, rather than relying on `stdout`.
 - **Automation Mode Detection:** Check for command-line flags like `--test` to determine if the application is running in an automated environment.
 
+## Rich Text Format (QTF)
+
+- **Standard**: In Ultimate++, the standard internal rich text format is **QTF** (Quick Text Format).
+- **No HTML/XML**: ALWAYS use QTF for formatted text. NEVER use HTML or XML for reports or rich UI elements.
+- **API**: Always prefer `SetQTF()` over other methods for displaying formatted text in `RichTextView` or other rich text-capable controls.
 
 #### RecyclerPool<T, keep_as_constructed>
 - **Purpose**: Manages a pool of allocated objects of type `T`.

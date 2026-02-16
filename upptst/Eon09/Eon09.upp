@@ -1,4 +1,5 @@
 uses
+	Shell,
 	Scene3D/Core,
 	Scene3D/IO,
 	Scene3D/Render,
@@ -9,7 +10,8 @@ file
 	Main.cpp,
 	09_common.cpp,
 	09a_scene3d_headless.cpp,
-	09b_scene3d_sdl_ogl.cpp;
+	09b_scene3d_sdl_ogl.cpp,
+	09c_scene3d_gfx_ogl.cpp;
 
 mainconfig
 	"Release" = "GUI .SDL2 .OGL USEMALLOC",

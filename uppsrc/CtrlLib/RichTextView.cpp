@@ -132,6 +132,13 @@ String RichTextView::GetSelectionData(const String& fmt) const
 	return GetTextClip(GetSelText(), fmt);
 }
 
+bool RichTextView::Access(Visitor& v)
+{
+	if(Ctrl::Access(v)) return true;
+	v.AccessValue(GetQTF());
+	return false;
+}
+
 void RichTextView::RightDown(Point p, dword keyflags)
 {
 	MenuBar b;

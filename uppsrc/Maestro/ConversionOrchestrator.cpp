@@ -58,9 +58,7 @@ void ConversionOrchestrator::Run(const String& source, const String& target, int
 	memory.Load(".");
 	
 	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.model = "gemini-1.5-flash";
-	engine.Arg("-y"); // Auto-confirm
+	ConfigureGemini(engine);
 	
 	int completed = 0;
 	int failed = 0;

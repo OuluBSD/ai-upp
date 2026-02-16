@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scene_graph_explorer_spec version="1.0" language="en">
+  <docking_window id="scene_graph_explorer" title="SceneCraft Explorer Docking Window" side="left">
+    <control type="tree-array-ctrl" preferred="tree-arrow-control"/>
+    <root_node type="active_scene" display_name_source="scene_name"/>
+
+    <context_menu id="scene_root_context_menu" target="scene_root_node">
+      <item type="submenu" ref="insert_submenu"/>
+      <item type="command" id="create_folder_node" text="Create a folder node"/>
+      <item type="separator"/>
+      <item type="command" id="focus_selected" text="Focus selected" shortcut="Ctrl+F"/>
+    </context_menu>
+
+    <context_menu id="node_context_menu" target="all_non_root_nodes">
+      <item type="command" id="clone_node" text="Clone" shortcut="Ctrl+C"/>
+      <item type="command" id="delete_node" text="Delete" shortcut="Del"/>
+      <item type="submenu" ref="modify_selection_submenu"/>
+      <item type="separator"/>
+      <item type="submenu" ref="insert_submenu"/>
+      <item type="command" id="create_folder_node" text="Create a folder node"/>
+      <item type="separator"/>
+      <item type="command" id="focus_selected" text="Focus selected" shortcut="Ctrl+F"/>
+    </context_menu>
+
+    <submenu id="insert_submenu" text="Insert">
+      <item id="insert_create_cube" text="Create a cube"/>
+      <item id="insert_create_sphere" text="Create a sphere"/>
+      <item id="insert_create_cylinder" text="Create a cylinder"/>
+      <item id="insert_create_cone" text="Create a cone"/>
+      <item id="insert_create_plane" text="Create a plane"/>
+      <item id="insert_create_camera" text="Create a camera"/>
+      <item id="insert_create_terrain" text="Create a terrain"/>
+      <item id="insert_create_room_mesh_2d_map" text="Create a room mesh from a 2D map"/>
+      <item id="insert_import_static_mesh" text="Import a static mesh"/>
+      <item id="insert_import_animated_mesh" text="Import an animated mesh"/>
+      <item id="insert_create_point_light" text="Create a point light"/>
+      <item id="insert_create_directional_light" text="Create a directional light"/>
+      <item id="insert_create_tree" text="Create a tree (plant)"/>
+      <item id="insert_create_water_surface" text="Create a water surface"/>
+      <item id="insert_create_billboard" text="Create a billboard"/>
+      <item id="insert_create_vertical_billboard" text="Create a vertical billboard"/>
+      <item id="insert_create_skybox" text="Create a skybox"/>
+      <item id="insert_create_3d_sound" text="Create a 3D sound"/>
+      <item id="insert_create_particle_system" text="Create a particle system"/>
+      <item id="insert_create_2d_overlay_item" text="Create a 2D overlay item"/>
+      <item id="insert_create_2d_touchscreen_input_item" text="Create a 2D touchscreen input item"/>
+      <item id="insert_create_path" text="Create a path"/>
+      <item id="insert_create_path_node" text="Create a path node" enabled_state="context_dependent"/>
+    </submenu>
+
+    <submenu id="modify_selection_submenu" text="Modify Selection">
+      <item text="Set planar texture coordinates for mesh"/>
+      <item text="Flip direction of all faces"/>
+      <item text="Center pivot point"/>
+      <item text="Free scale and normalize normals"/>
+      <item text="Clear vertex colors"/>
+      <item text="Set vertex colors"/>
+      <item text="Flip direction of all faces"/>
+      <item text="Recalculate normals and tangents"/>
+      <item text="Clone as static animated mesh"/>
+      <item text="Distribute over terrain"/>
+      <item text="Back all textures of selection into one"/>
+      <item type="separator"/>
+      <item text="Edit 2D room map" enabled="false"/>
+      <item text="Open in animation editor" enabled="false"/>
+      <item text="Attach node to animated joint" enabled="false"/>
+      <item type="separator"/>
+      <item text="Export mesh as" enabled="false"/>
+      <item text="Reload this mesh from disk"/>
+      <item text="Load new mesh from disk" enabled="false"/>
+      <item type="separator"/>
+      <item text="Copy behaviors of this node" shortcut="Ctrl+B"/>
+      <item text="Paste the behaviors to this node" shortcut="Ctrl+I" enabled="false"/>
+    </submenu>
+
+    <insert_actions>
+      <action id="create_cube">
+        <dialog title="Create a cube">
+          <label text="Please enter the size for the cube"/>
+          <field type="edit_double" id="size" default="10.0"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_sphere">
+        <dialog title="Create a sphere">
+          <field type="edit_double" id="radius" label="Radius:" default="5.0"/>
+          <field type="edit_int" id="polycount" label="Polycount:" default="128"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_cylinder">
+        <dialog title="Create a cylinder">
+          <field type="edit_double" id="radius" label="Radius:" default="5.0"/>
+          <field type="edit_int" id="side_count" label="Side count:" default="8"/>
+          <field type="edit_double" id="length" label="Length:" default="10.0"/>
+          <field type="checkbox" id="cap_top" label="Cap top"/>
+          <field type="checkbox" id="cap_bottom" label="Cap bottom"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_cone">
+        <dialog title="Create a cone">
+          <field type="edit_double" id="radius" label="Radius:" default="5.0"/>
+          <field type="edit_int" id="side_count" label="Side count:" default="8"/>
+          <field type="edit_double" id="length" label="Length:" default="10.0"/>
+          <field type="checkbox" id="cap_bottom" label="Cap bottom"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_plane">
+        <dialog title="Create a plane">
+          <field type="edit_int" id="tile_count" label="Tile count:" default="4"/>
+          <field type="edit_double" id="width" label="Width:" default="30"/>
+          <field type="edit_double" id="length" label="Length:" default="30"/>
+          <field type="edit_int" id="repeat_texture_count" label="Repeat texture count:" default="1"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_camera">
+        <dialog title="Create a camera">
+          <radio_list id="camera_type">
+            <option id="simple_camera" text="Simple camera" description="Creates a simple camera without any behavior."/>
+            <option id="fps_camera" text="First person shooter camera" description="Creates a horizontally moving camera controlled by mouse and keyboard."/>
+            <option id="third_person_camera" text="Third person camera" description="Creates a third person camera which follows a user controlled object."/>
+            <option id="free_flying_camera" text="Free-flying camera" description="Creates a camera flying free in space controlled by keyboard and mouse."/>
+            <option id="model_viewer_camera" text="Model viewer camera" description="Creates a camera which orbits around a target controlled by mouse."/>
+            <option id="panorama_camera" text="Panorama camera" description="Creates a non-moving camera where the view is controlled by mouse."/>
+          </radio_list>
+          <field type="checkbox" id="collides_against_geometry" label="Collides against geometry when moved" default="false"/>
+          <field type="checkbox" id="first_active_camera" label="When starting the scene, this is the first active camera" default="true"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_terrain">
+        <dialog title="Create a terrain" layout="quadrants">
+          <label text="Please specify how the terrain should look like in the beginning."/>
+          <group id="size" quadrant="top_left">
+            <field type="edit_double" id="side_length" label="Side length:" default="1500"/>
+            <field type="edit_double" id="tile_size" label="Tile size:" default="20"/>
+          </group>
+          <group id="textures" quadrant="top_right">
+            <texture_slot id="ground" label="Ground" button_text="..."/>
+            <texture_slot id="middle" label="Middle" button_text="..."/>
+            <texture_slot id="high" label="High" button_text="..."/>
+          </group>
+          <group id="decorations" quadrant="bottom_left">
+            <row><field type="checkbox" id="create_trees" label="Create Trees" default="true"/><button text="..."/></row>
+            <row><field type="checkbox" id="create_grass" label="Create Grass" default="true"/><button text="..."/></row>
+          </group>
+          <group id="topology" quadrant="bottom_right">
+            <field type="edit_double" id="maximal_height" label="Maximal height:" default="100"/>
+            <field type="dropdown" id="topology_type" label="Topology:">
+              <item text="Hills"/><item text="Desert"/><item text="Flat"/>
+            </field>
+          </group>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="create_room_mesh_from_2d_map">
+        <dialog title="Create a Room">
+          <drawing_area id="room_map_editor"/>
+          <radio_list id="paint_types">
+            <option text="Clear"/>
+            <option text="Floor 1"/><option text="Floor 2"/><option text="Floor 3"/><option text="Floor 4"/><option text="Floor 5"/>
+            <option text="Wall 1"/><option text="Wall 2"/><option text="Wall 3"/><option text="Wall 4"/><option text="Wall 5"/>
+          </radio_list>
+          <field type="dropdown" id="ceiling_type" label="Ceiling type:">
+            <item text="Arcade"/><item text="Flat"/><item text="No ceiling"/>
+          </field>
+          <texture_slot id="ceiling_texture" label="Ceiling texture" button_text="..."/>
+          <field type="edit_double" id="wall_height" label="Wall height:" default="1.5"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+
+      <action id="import_static_mesh">
+        <file_dialog title="Please select a mesh to load"/>
+      </action>
+      <action id="import_animated_mesh">
+        <file_dialog title="Open mesh file"/>
+      </action>
+
+      <action id="create_point_light"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_directional_light"><behavior type="single_instance_per_scene"/></action>
+      <action id="create_tree"><dialog title="Generate new tree"/></action>
+      <action id="create_water_surface">
+        <dialog title="Create a Water Surface">
+          <field type="edit_int" id="tile_count" label="Tile count:" default="10"/>
+          <field type="edit_double" id="width" label="Width:" default="1000"/>
+          <field type="edit_double" id="length" label="Length:" default="1000"/>
+          <buttons ok="OK" cancel="Cancel"/>
+        </dialog>
+      </action>
+      <action id="create_billboard"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_vertical_billboard"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_skybox"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_3d_sound"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_particle_system"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_2d_overlay_item"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_2d_touchscreen_input_item"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_path"><behavior type="direct_create_without_dialog"/></action>
+      <action id="create_path_node"><behavior type="context_dependent_creation"/></action>
+    </insert_actions>
+  </docking_window>
+</scene_graph_explorer_spec>
+
+<!-- ECS migration: SceneGraph Explorer lists entities and component nodes. -->

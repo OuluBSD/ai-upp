@@ -446,6 +446,7 @@ static PyValue py_get_game_state(const Vector<PyValue>& args, void* user_data) {
 		case TRANSITION_HOVER:   stateStr = "TRANSITION_HOVER"; break;
 		case TRANSITION_SCROLL:  stateStr = "TRANSITION_SCROLL"; break;
 		case TRANSITION_DROP:    stateStr = "TRANSITION_DROP"; break;
+		case SCORE_SUMMARY:      stateStr = "SCORE_SUMMARY"; break;
 	}
 	return PyValue(stateStr.ToStd());
 }

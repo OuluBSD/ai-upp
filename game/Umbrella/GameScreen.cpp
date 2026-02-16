@@ -38,6 +38,14 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 
 	// Droplet system
 	dropletsCollected = 0;
+	totalDroplets = 0;
+
+	// Level stats
+	levelElapsedTime = 0.0f;
+	damageTakenThisLevel = 0;
+	scoreSummaryTimer = 0.0f;
+	levelScoreBonus = 0;
+	levelGrade = "C";
 
 	// AI frame counter
 	gameFrame = 0;
@@ -104,10 +112,18 @@ bool GameScreen::LoadLevel(const String& path) {
 	// Load droplet spawn points
 	dropletSpawns.Clear();
 	MapSerializer::LoadDropletSpawns(path, dropletSpawns);
+	totalDroplets = dropletSpawns.GetCount();
 
 	// Load enemy spawn points
 	enemySpawns.Clear();
 	MapSerializer::LoadEnemySpawns(path, enemySpawns);
+
+	// Reset per-level stats
+	levelElapsedTime = 0.0f;
+	damageTakenThisLevel = 0;
+	dropletsCollected = 0;
+	allEnemiesKilled = false;
+	levelCompleteTimer = 0.0f;
 
 	Title("Umbrella - " + GetFileName(path));
 	return true;
@@ -145,9 +161,10 @@ void GameScreen::RespawnPlayer() {
 }
 
 void GameScreen::LayoutLoop() {
-	// Update game logic if playing or in transition
-	if(gameState == PLAYING || gameState == TRANSITION_HOVER ||
-	   gameState == TRANSITION_SCROLL || gameState == TRANSITION_DROP) {
+	// Update game logic if playing, in score summary, or in transition
+	if(gameState == PLAYING || gameState == SCORE_SUMMARY ||
+	   gameState == TRANSITION_HOVER || gameState == TRANSITION_SCROLL ||
+	   gameState == TRANSITION_DROP) {
 		int64 now = GetTickCount();
 		double delta = (now - lastTime) / 1000.0;
 		lastTime = now;
@@ -172,6 +189,27 @@ void GameScreen::LayoutLoop() {
 
 void GameScreen::GameTick(float delta) {
 	gameFrame++;
+
+	// Score summary: just count down the auto-advance timer
+	if(gameState == SCORE_SUMMARY) {
+		scoreSummaryTimer -= delta;
+		if(scoreSummaryTimer <= 0.0f) {
+			if(nextLevelPath.IsEmpty()) {
+				EmitEvent("level_complete");
+				SetGameState(LEVEL_COMPLETE);
+			} else {
+				SetGameState(TRANSITION_HOVER);
+				transitionOffset = 0.0f;
+				hoverTimer = 0.0f;
+				player.ForceGlideState();
+			}
+		}
+		return;
+	}
+
+	// Accumulate level time while actively playing
+	if(gameState == PLAYING)
+		levelElapsedTime += delta;
 
 	// Update input state
 	UpdateInput();
@@ -207,6 +245,7 @@ void GameScreen::GameTick(float delta) {
 	// Check if player fell off bottom of map - counts as a death
 	Pointf playerPos = player.GetPosition();
 	if(playerPos.y < -gridSize * 2) {
+		if(!player.IsInvincible()) damageTakenThisLevel++;
 		player.TakeDamage(1);
 		if(player.GetLives() <= 0) {
 			SetGameState(GAME_OVER);
@@ -341,23 +380,34 @@ void GameScreen::GameTick(float delta) {
 		levelCompleteTimer -= delta;
 
 		if(levelCompleteTimer <= 0.0f) {
-			// Time's up! Determine next level and start transition
+			// Time's up! Determine next level, calculate stats, show summary
 			nextLevelPath = GetNextLevelPath(levelPath);
 
-			if(nextLevelPath.IsEmpty()) {
-				// No more levels - show victory screen
-				EmitEvent("level_complete");
-				SetGameState(LEVEL_COMPLETE);
-				LOG("All levels complete! Victory!");
-			}
-			else {
-				// Start transition sequence: hover -> scroll -> drop
-				SetGameState(TRANSITION_HOVER);
-				transitionOffset = 0.0f;
-				hoverTimer = 0.0f;  // Reset hover timer
-				player.ForceGlideState();  // Open umbrella for hover
-				LOG("Starting transition to: " << nextLevelPath);
-			}
+			// Time bonus
+			levelScoreBonus = 0;
+			if(levelElapsedTime < 30.0f)      levelScoreBonus += 2000;
+			else if(levelElapsedTime < 60.0f) levelScoreBonus += 1500;
+			else if(levelElapsedTime < 90.0f) levelScoreBonus += 1000;
+			else                              levelScoreBonus +=  500;
+
+			// No-damage bonus
+			if(damageTakenThisLevel == 0) levelScoreBonus += 1000;
+
+			// All-droplets bonus
+			if(totalDroplets > 0 && dropletsCollected >= totalDroplets) levelScoreBonus += 500;
+
+			player.AddScore(levelScoreBonus);
+
+			// Letter grade based on performance
+			if(damageTakenThisLevel == 0 && levelElapsedTime < 30.0f)        levelGrade = "S";
+			else if(damageTakenThisLevel <= 1 && levelElapsedTime < 60.0f)   levelGrade = "A";
+			else if(damageTakenThisLevel <= 2 && levelElapsedTime < 90.0f)   levelGrade = "B";
+			else                                                              levelGrade = "C";
+
+			scoreSummaryTimer = 5.0f;
+			SetGameState(SCORE_SUMMARY);
+			LOG("Score summary: grade=" << levelGrade << " bonus=" << levelScoreBonus
+			    << " time=" << levelElapsedTime << "s damage=" << damageTakenThisLevel);
 		}
 	}
 
@@ -413,8 +463,14 @@ void GameScreen::GameTick(float delta) {
 			// Reload spawn data and rebuild pathfinding for the new level
 			dropletSpawns.Clear();
 			MapSerializer::LoadDropletSpawns(levelPath, dropletSpawns);
+			totalDroplets = dropletSpawns.GetCount();
 			enemySpawns.Clear();
 			MapSerializer::LoadEnemySpawns(levelPath, enemySpawns);
+
+			// Reset per-level stats for the new level
+			levelElapsedTime = 0.0f;
+			damageTakenThisLevel = 0;
+			dropletsCollected = 0;
 			pathfinder.SetGameScreen(this);
 			navGraph.Build(this);
 
@@ -722,6 +778,7 @@ void GameScreen::GameTick(float delta) {
 		   min(playerBounds.top, playerBounds.bottom) < max(enemyBounds.top, enemyBounds.bottom) &&
 		   max(playerBounds.top, playerBounds.bottom) > min(enemyBounds.top, enemyBounds.bottom)) {
 			// Collision detected - player takes damage
+			if(!player.IsInvincible()) damageTakenThisLevel++;
 			player.TakeDamage(1);
 			EmitEvent("player_hit", 1);
 			if(player.GetLives() <= 0) {
@@ -746,6 +803,7 @@ void GameScreen::GameTick(float delta) {
 					   min(playerBounds.top, playerBounds.bottom) < max(projBounds.top, projBounds.bottom) &&
 					   max(playerBounds.top, playerBounds.bottom) > min(projBounds.top, projBounds.bottom)) {
 						// Projectile hit player
+						if(!player.IsInvincible()) damageTakenThisLevel++;
 						player.TakeDamage(1);
 						EmitEvent("player_hit", 1);
 						projectiles[j]->Deactivate();
@@ -869,13 +927,16 @@ void GameScreen::Paint(Draw& w) {
 	// Render HUD (lives, score)
 	RenderHUD(w);
 
-	// Render level complete overlay if all enemies killed (only during PLAYING state)
-	if(allEnemiesKilled && gameState == PLAYING) {
-		RenderLevelCompleteScreen(w);
-	}
-
 	// Render overlays based on game state
 	switch(gameState) {
+		case PLAYING:
+			// Treat-collection countdown banner while waiting for timer
+			if(allEnemiesKilled)
+				RenderLevelCompleteScreen(w);
+			break;
+		case SCORE_SUMMARY:
+			RenderLevelCompleteScreen(w);
+			break;
 		case PAUSED:
 			RenderPauseScreen(w);
 			break;
@@ -883,7 +944,7 @@ void GameScreen::Paint(Draw& w) {
 			RenderGameOverScreen(w);
 			break;
 		case LEVEL_COMPLETE:
-			// Transition screen (no longer needed here, handled above)
+			RenderLevelCompleteScreen(w);
 			break;
 		default:
 			break;
@@ -1076,6 +1137,14 @@ bool GameScreen::Key(dword key, int) {
 			}
 			break;
 
+		case K_RETURN:
+			// Skip score summary immediately on Enter
+			if(gameState == SCORE_SUMMARY) {
+				scoreSummaryTimer = 0.0f;
+				return true;
+			}
+			break;
+
 		case K_C:
 			// Toggle camera mode (only when not K_KEYUP)
 			if(!(key & K_KEYUP)) {
@@ -1260,35 +1329,107 @@ void GameScreen::RenderGameOverScreen(Draw& w) {
 }
 
 void GameScreen::RenderLevelCompleteScreen(Draw& w) {
-	if(!GameSettings::SHOW_COMPLETION_MESSAGES) return;  // Skip if disabled
+	if(!GameSettings::SHOW_COMPLETION_MESSAGES) return;
 
 	Size sz = GetSize();
 
-	// Just show overlay text at top of screen - game continues underneath
-	if(allEnemiesKilled && levelCompleteTimer > 0) {
-		// Show countdown timer
-		Font timerFont = Arial(32).Bold();
-		String timerText = Format("All Enemies Defeated! Collect treats: %.1f", (double)levelCompleteTimer);
+	// Treat-collection countdown banner (shown during PLAYING while timer ticks)
+	if(gameState == PLAYING) {
+		Font timerFont = Arial(28).Bold();
+		String timerText = Format("All Enemies Defeated!  Collect treats: %.1f", (double)levelCompleteTimer);
 		Size timerSz = GetTextSize(timerText, timerFont);
-
-		// Dark background for text readability
-		w.DrawRect((sz.cx - timerSz.cx) / 2 - 10, 20, timerSz.cx + 20, timerSz.cy + 10, Black());
-		w.DrawText((sz.cx - timerSz.cx) / 2, 25, timerText, timerFont, Color(100, 255, 100));
+		w.DrawRect((sz.cx - timerSz.cx) / 2 - 12, 18, timerSz.cx + 24, timerSz.cy + 12, Color(0, 0, 0));
+		w.DrawText((sz.cx - timerSz.cx) / 2, 24, timerText, timerFont, Color(100, 255, 100));
+		return;
 	}
-	else {
-		// Transition happening - show simple message
-		Font titleFont = Arial(48).Bold();
-		String completeText = "LEVEL COMPLETE!";
-		Size titleSz = GetTextSize(completeText, titleFont);
 
-		// Dark background for text readability
-		w.DrawRect((sz.cx - titleSz.cx) / 2 - 10, sz.cy / 2 - 50, titleSz.cx + 20, titleSz.cy + 10, Black());
-		w.DrawText((sz.cx - titleSz.cx) / 2, sz.cy / 2 - 45, completeText, titleFont, Color(50, 255, 50));
-	}
+	// Full stats overlay for SCORE_SUMMARY and LEVEL_COMPLETE
+	// --- dark semi-transparent panel ---
+	int panelW = 520, panelH = 360;
+	int panelX = (sz.cx - panelW) / 2;
+	int panelY = (sz.cy - panelH) / 2;
+	w.DrawRect(panelX, panelY, panelW, panelH, Color(10, 10, 30));
+	// Panel border
+	w.DrawRect(panelX,              panelY,              panelW, 3, Color(80, 180, 255));
+	w.DrawRect(panelX,              panelY + panelH - 3, panelW, 3, Color(80, 180, 255));
+	w.DrawRect(panelX,              panelY,              3, panelH, Color(80, 180, 255));
+	w.DrawRect(panelX + panelW - 3, panelY,              3, panelH, Color(80, 180, 255));
+
+	int cx = panelX + panelW / 2;
+	int y  = panelY + 20;
+
+	// Title
+	Font titleFont = Arial(44).Bold();
+	bool isFinalVictory = (gameState == LEVEL_COMPLETE);
+	String titleText = isFinalVictory ? "VICTORY!" : "LEVEL COMPLETE!";
+	Color titleColor = isFinalVictory ? Color(255, 215, 0) : Color(80, 255, 80);
+	Size titleSz = GetTextSize(titleText, titleFont);
+	w.DrawText(cx - titleSz.cx / 2, y, titleText, titleFont, titleColor);
+	y += titleSz.cy + 16;
+
+	// Separator
+	w.DrawRect(panelX + 20, y, panelW - 40, 2, Color(80, 180, 255));
+	y += 10;
+
+	// Stat rows
+	Font statFont  = Arial(22);
+	Font statBFont = Arial(22).Bold();
+	int labelX = panelX + 40;
+	int valueX = panelX + panelW - 40;
+	int rowH   = 36;
+
+	auto DrawStatRow = [&](const String& label, const String& value, Color valueColor) {
+		w.DrawText(labelX, y, label, statFont, Color(200, 200, 200));
+		Size vSz = GetTextSize(value, statBFont);
+		w.DrawText(valueX - vSz.cx, y, value, statBFont, valueColor);
+		y += rowH;
+	};
+
+	// Time
+	int mins = (int)levelElapsedTime / 60;
+	int secs = (int)levelElapsedTime % 60;
+	String timeStr = Format("%d:%02d", mins, secs);
+	DrawStatRow("Time:", timeStr, Color(220, 220, 100));
+
+	// Droplets
+	String dropStr = Format("%d / %d", dropletsCollected, totalDroplets);
+	Color dropColor = (totalDroplets > 0 && dropletsCollected >= totalDroplets)
+	                  ? Color(100, 200, 255) : Color(180, 180, 180);
+	DrawStatRow("Droplets:", dropStr, dropColor);
+
+	// Damage taken
+	Color dmgColor = (damageTakenThisLevel == 0) ? Color(100, 255, 100) : Color(255, 120, 80);
+	DrawStatRow("Hits taken:", AsString(damageTakenThisLevel), dmgColor);
+
+	// Bonus points
+	DrawStatRow("Bonus:", "+" + AsString(levelScoreBonus), Color(255, 200, 50));
+
+	// Total score
+	w.DrawRect(panelX + 20, y, panelW - 40, 2, Color(80, 180, 255));
+	y += 8;
+	DrawStatRow("Score:", AsString(player.GetScore()), Color(255, 255, 255));
+
+	// Grade (large, right side of panel)
+	Font gradeFont = Arial(72).Bold();
+	Color gradeColor = (levelGrade == "S") ? Color(255, 215, 0)
+	                 : (levelGrade == "A") ? Color(100, 255, 100)
+	                 : (levelGrade == "B") ? Color(100, 200, 255)
+	                                       : Color(200, 200, 200);
+	Size gradeSz = GetTextSize(levelGrade, gradeFont);
+	int gradeX = panelX + panelW - 40 - gradeSz.cx;
+	int gradeY = panelY + panelH - 100;
+	w.DrawText(gradeX, gradeY, levelGrade, gradeFont, gradeColor);
+
+	// Continue prompt
+	Font promptFont = Arial(18);
+	String promptText = isFinalVictory ? "Press R to play again"
+	                                   : Format("Press Enter to continue  (%.0f)", (double)scoreSummaryTimer);
+	Size promptSz = GetTextSize(promptText, promptFont);
+	w.DrawText(cx - promptSz.cx / 2, panelY + panelH - 30, promptText, promptFont, Color(160, 160, 160));
 }
 
 void GameScreen::SetGameState(GameState newState) {
-	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE", "TRANSITION_HOVER", "TRANSITION_SCROLL", "TRANSITION_DROP"};
+	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE", "TRANSITION_HOVER", "TRANSITION_SCROLL", "TRANSITION_DROP", "SCORE_SUMMARY"};
 	LOG("SetGameState: " << stateNames[gameState] << " -> " << stateNames[newState]);
 	gameState = newState;
 	if(newState == GAME_OVER)     GetAudioSystem().Play("gameover");

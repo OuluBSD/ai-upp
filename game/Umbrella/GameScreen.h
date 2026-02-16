@@ -34,7 +34,8 @@ enum GameState {
 	LEVEL_COMPLETE,
 	TRANSITION_HOVER,      // Player hovering with umbrella
 	TRANSITION_SCROLL,     // Levels scrolling horizontally
-	TRANSITION_DROP        // Player dropping into new level
+	TRANSITION_DROP,       // Player dropping into new level
+	SCORE_SUMMARY          // Stats overlay before transitioning to next level
 };
 
 enum CameraMode {
@@ -92,6 +93,16 @@ public:  // Public for testing
 	Array<DropletSpawnPoint> dropletSpawns;  // Spawn points from level data
 	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
+	int totalDroplets;  // Total droplets available in current level
+
+	// Level stats (tracked per level for score summary)
+	float levelElapsedTime;     // Time spent playing the current level
+	int   damageTakenThisLevel; // Number of damage hits taken this level
+
+	// Score summary state
+	float  scoreSummaryTimer;   // Auto-advance countdown (seconds)
+	int    levelScoreBonus;     // Bonus points calculated at completion
+	String levelGrade;          // Letter grade: S / A / B / C
 
 	// Pickups
 	Array<Pickup*> pickups;

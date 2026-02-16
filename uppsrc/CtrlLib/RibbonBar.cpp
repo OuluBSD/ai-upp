@@ -102,7 +102,10 @@ RibbonGroup& RibbonGroup::SetLarge(Event<Bar&> barproc)
 		   .SetRibbonFont(style->full_font);
 		btn.SetRibbonLook(style->group_look, style->list_hot, style->list_push);
 		btn.SetLabel(it.text);
+		if(it.text.IsEmpty())
+			btn.SetLabel(" ");
 		btn.SetImage(it.image);
+		btn.ShowRibbonLabel(true);
 		btn.Enable(it.enabled);
 		if(it.submenu)
 			btn.SetRibbonMenu(it.submenu);
@@ -493,6 +496,10 @@ void RibbonBar::Layout()
 
 void RibbonBar::Paint(Draw& w)
 {
+	if(style)
+		w.DrawRect(GetSize(), style->group_look);
+	else
+		w.DrawRect(GetSize(), SColorFace());
 	ParentCtrl::Paint(w);
 	DrawKeyTips(w);
 }

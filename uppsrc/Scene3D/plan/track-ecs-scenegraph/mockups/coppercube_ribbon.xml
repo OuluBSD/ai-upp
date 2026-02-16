@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coppercube_ribbon_spec version="1.0" language="en">
+
+  <ribbon id="main_ribbon">
+
+    <!-- TAB: Main Tools -->
+    <tab id="main_tools" title="Main tools">
+
+      <group id="file_ops" title="File">
+        <button id="new_file" text="New file" style="icon" icon_semantics="generic_new_file"/>
+        <button id="open_file" text="Open file" style="icon" icon_semantics="generic_open_file"/>
+        <button id="save_file" text="Save file" style="icon" icon_semantics="generic_save_file"/>
+      </group>
+
+      <separator/>
+
+      <group id="history_ops" title="History">
+        <button id="undo" text="Undo" style="icon" icon_semantics="generic_undo"/>
+        <button id="redo" text="Redo" style="icon" icon_semantics="generic_redo"/>
+      </group>
+
+      <separator/>
+
+      <group id="selection_transform" title="Selection &amp; Transform">
+        <button id="select_objects" text="Select objects" style="icon" icon_semantics="mouse_cursor"/>
+        <button id="move_camera" text="Move camera" style="icon" shortcut="Q" icon_semantics="mouse_cursor"/>
+        <button id="move_object" text="Move object" style="icon" shortcut="W" icon_semantics="four_arrows_cross"/>
+        <button id="rotate_object" text="Rotate object" style="icon" shortcut="E" icon_semantics="clockwise_arc_arrow"/>
+        <button id="scale_object" text="Scale object" style="icon" shortcut="R" icon_semantics="3d_scale_arrows"/>
+      </group>
+
+      <separator/>
+
+      <group id="view_presets" title="View">
+        <button id="view_perspective" text="Change current view to perspective" style="icon" shortcut="F1"
+                icon_semantics="frame_plus_3d_perspective_block"/>
+        <button id="view_top" text="Change current view to top" style="icon" shortcut="F2"
+                icon_semantics="frame_plus_top_projection_flat_wide_block"/>
+        <button id="view_front" text="Change current view to front" style="icon" shortcut="F3"
+                icon_semantics="frame_plus_front_square_projection"/>
+        <button id="view_left" text="Change current view to left" style="icon" shortcut="F4"
+                icon_semantics="frame_plus_left_tall_narrow_projection"/>
+      </group>
+
+    </tab>
+
+
+    <!-- TAB: Create -->
+    <tab id="create" title="Create">
+
+      <group id="create_objects" title="Object Creation">
+
+        <button id="create_cube" text="Create a cube" style="icon"
+                icon_semantics="gray_cube_with_black_wireframe"/>
+        <button id="create_sphere" text="Create a sphere" style="icon"
+                icon_semantics="gray_rough_sphere_with_black_wireframe"/>
+        <button id="create_cylinder" text="Create a cylinder" style="icon"
+                icon_semantics="gray_rough_cylinder_with_black_wireframe"/>
+        <button id="create_cone" text="Create a cone" style="icon"
+                icon_semantics="gray_rough_cone_with_black_wireframe"/>
+        <button id="create_plane" text="Create a plane" style="icon"
+                icon_semantics="gray_square_plane_in_perspective_with_black_wireframe"/>
+
+        <button id="create_camera" text="Create a camera" style="icon"
+                icon_semantics="classic_film_camera_icon_gray_black"/>
+
+        <button id="create_terrain" text="Create a terrain" style="icon"
+                icon_semantics="side_profile_terrain_curve_with_filled_ground_polygon"/>
+
+        <button id="create_room_mesh_from_2d_map" text="Create a room mesh from a 2D map" style="icon"
+                icon_semantics="coarse_3d_corridor_shape"/>
+
+        <button id="import_static_mesh" text="Import a static mesh" style="icon"
+                icon_semantics="3d_cube_like_import_symbol"/>
+        <button id="import_animated_mesh" text="Import an animated mesh" style="icon"
+                icon_semantics="3d_cube_like_import_symbol_animated"/>
+
+        <button id="create_point_light" text="Create a point light" style="icon"
+                icon_semantics="yellow_glowing_lightbulb"/>
+        <button id="create_directional_light" text="Create a directional light" style="icon"
+                icon_semantics="sun_icon_with_arrow_left_down"/>
+
+        <button id="create_tree" text="Create a tree (plant)" style="icon"
+                icon_semantics="green_2d_fir_tree"/>
+
+        <button id="create_water_surface" text="Create a water surface" style="icon"
+                icon_semantics="blue_plane_in_perspective"/>
+
+        <button id="create_billboard" text="Create a billboard" style="icon"
+                icon_semantics="gray_background_with_light_B"/>
+        <button id="create_vertical_billboard" text="Create a vertical billboard" style="icon"
+                icon_semantics="narrower_taller_variant_of_billboard_icon"/>
+
+        <button id="create_particle_system" text="Create a particle system" style="icon"
+                icon_semantics="small_gray_particle_with_yellow_arrows_up_left_and_up_right"/>
+
+        <button id="create_skybox" text="Create a skybox" style="icon"
+                icon_semantics="inside_cube_view_blue_sky_walls_gray_ground"/>
+
+        <button id="create_3d_sound" text="Create a 3D sound" style="icon"
+                icon_semantics="speaker_cone"/>
+
+        <button id="create_2d_overlay_item" text="Create a 2D overlay item" style="icon"
+                icon_semantics="gray_background_with_dark_2D_text"/>
+        <button id="create_2d_touchscreen_input_item" text="Create a 2D touchscreen input item" style="icon"
+                icon_semantics="2d_overlay_symbol_with_circular_background"/>
+
+        <button id="create_path" text="Create a path" style="icon"
+                icon_semantics="two_points_connected_by_line"/>
+        <button id="create_path_node" text="Create a path node" style="icon"
+                icon_semantics="path_like_symbol_with_additional_points"/>
+
+      </group>
+    </tab>
+
+
+    <!-- TAB: Polygon Editing -->
+    <tab id="polygon_editing" title="Polygon Editing">
+
+      <group id="poly_select_transform" title="Polygon Tools">
+
+        <button id="poly_select" text="Select" style="icon"
+                modifier_add="Shift" modifier_remove="Alt"
+                icon_semantics="triangle_over_axis_background_with_mouse_cursor"/>
+        <button id="poly_select_by_rectangle" text="Select by Rectangle" style="icon"
+                modifier_add="Shift" modifier_remove="Alt"
+                icon_semantics="small_cursor_with_rectangle_outline"/>
+
+        <button id="poly_move_selected" text="Move Selected Polygons" style="icon"
+                icon_semantics="triangle_over_axis_background_plus_four_direction_arrows"/>
+        <button id="poly_rotate_selected" text="Rotate Selected Polygons" style="icon"
+                icon_semantics="triangle_over_axis_background_plus_arc_rotate_arrow"/>
+        <button id="poly_scale_selected" text="Scale Selected Polygons" style="icon"
+                icon_semantics="triangle_over_axis_background_plus_perspective_scale_arrows"/>
+
+        <button id="poly_modify_uv" text="Modify Texture Coordinates of Selected Points and Triangles" style="icon"
+                icon_semantics="gray_background_with_black_UV_text"/>
+
+        <dropdown id="poly_edit_mode" text="Edit Mode" style="icon">
+          <item id="triangle" text="Triangle" icon_semantics="simple_triangle_with_horizontal_base_and_vertical_right_edge"/>
+          <item id="point" text="Point" icon_semantics="asterisk_symbol"/>
+        </dropdown>
+
+        <separator/>
+
+        <button id="poly_tools" text="Tools" style="text"/>
+      </group>
+
+    </tab>
+
+
+    <!-- TAB: Lightmapping -->
+    <tab id="lightmapping" title="Lightmapping">
+
+      <group id="lightmapping_controls" title="Bake Controls">
+
+        <button id="calculate_lightmap" text="Calculate!" style="text"/>
+
+        <label text="Mode:" for="lightmap_mode"/>
+        <dropdown id="lightmap_mode">
+          <item text="Wide"/>
+          <item text="Diffuse"/>
+          <item text="Shadows"/>
+          <item text="Global Illumination"/>
+        </dropdown>
+
+        <label text="Texture size:" for="lightmap_texture_size"/>
+        <dropdown id="lightmap_texture_size">
+          <item text="64"/>
+          <item text="128"/>
+          <item text="256"/>
+          <item text="512"/>
+          <item text="1024"/>
+        </dropdown>
+
+        <label text="Resolution:" for="lightmap_resolution"/>
+        <edit_int id="lightmap_resolution" default="1000"/>
+
+        <label text="Shadow Opacity:" for="lightmap_shadow_opacity"/>
+        <edit_double id="lightmap_shadow_opacity" default="0.8"/>
+
+        <label text="Subsampling:" for="lightmap_subsampling"/>
+        <dropdown id="lightmap_subsampling">
+          <item text="None"/>
+          <item text="4X"/>
+          <item text="9X"/>
+          <item text="16X"/>
+          <item text="25X"/>
+        </dropdown>
+
+        <label text="Ambient Light:" for="ambient_light_enabled"/>
+        <checkbox id="ambient_light_enabled" default="true"/>
+        <button id="ambient_light_more" text="..." style="text" width="narrow"/>
+
+        <label text="Smooth Normals:" for="smooth_normals_enabled"/>
+        <checkbox id="smooth_normals_enabled" default="true"/>
+
+        <label text="Color Bleeding:" for="color_bleeding_enabled"/>
+        <checkbox id="color_bleeding_enabled" default="true"/>
+
+      </group>
+    </tab>
+
+
+    <!-- TAB: Scenes -->
+    <tab id="scenes" title="Scenes">
+      <group id="scene_management" title="Scene Management">
+
+        <dropdown id="scene_selector">
+          <item text="New 3D Scene"/>
+        </dropdown>
+
+        <button id="scene_add" text="Add a new scene" style="icon" icon="plus"/>
+        <button id="scene_delete" text="Delete a scene" style="icon" icon="minus"/>
+        <button id="scene_settings" text="Scene Settings" style="icon"/>
+        <button id="scene_metrics" text="Scene Metrics" style="icon"/>
+        <button id="scene_post_effects" text="Scene Post Effects" style="icon"/>
+
+      </group>
+    </tab>
+
+
+    <!-- TAB: Publish -->
+    <tab id="publish" title="Publish">
+      <group id="publish_controls" title="Publishing">
+
+        <dropdown id="publish_target">
+          <item text="Publish as Windows (.exe)"/>
+          <item text="Publish as WebGL (.html)"/>
+          <item text="Publish as MacOS (.app)"/>
+          <item text="Publish as Android (.apk)"/>
+        </dropdown>
+
+        <button id="publishing_settings" text="Publishing Settings" style="icon" icon_semantics="gear_cog"/>
+        <button id="publish_and_test" text="Publish and test the application" style="icon" icon_semantics="play_icon"/>
+
+      </group>
+    </tab>
+
+  </ribbon>
+</coppercube_ribbon_spec>
+
+<!-- ECS migration: scene graph is entities + components; remove Geom* wrappers. -->

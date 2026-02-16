@@ -2,6 +2,7 @@
 #ifndef _Maestro_Engines_h_
 #define _Maestro_Engines_h_
 
+#include "QuotaManager.h"
 
 inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 	e.Reset();
@@ -9,7 +10,9 @@ inline CliMaestroEngine& ConfigureGemini(CliMaestroEngine& e) {
 	 .Arg("--approval-mode").Arg("yolo")
 	 .Arg("-o").Arg("stream-json")
 	 .Arg("-e").Arg("none");
-	if(e.model.IsEmpty()) e.model = "gemini-3-flash-preview";
+	if(e.model.IsEmpty() || QuotaManager::IsModelExhausted(e.model))
+		e.model = QuotaManager::GetBestGeminiModel();
+	e.Arg("-m").Arg(e.model);
 	return e;
 }
 

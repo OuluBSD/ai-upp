@@ -31,13 +31,13 @@ void DiscussCommand::Execute(const Vector<String>& args) {
 	}
 	
 	CliMaestroEngine engine;
-	engine.Binary("gemini"); // Default backend
+	ConfigureGemini(engine);
 
 	auto DoTurn = [&](String prompt) {
 		Cout() << "Thinking...\n";
 		Breadcrumb bc;
 		bc.prompt = prompt;
-		bc.model_used = "gemini-1.5-flash";
+		bc.model_used = engine.model;
 		
 		if(!sid.IsEmpty()) {
 			engine.args.Clear();

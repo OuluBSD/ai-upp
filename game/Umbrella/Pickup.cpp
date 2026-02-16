@@ -3,9 +3,11 @@
 
 using namespace Upp;
 
-Pickup::Pickup(float x, float y, PickupType t)
-	: type(t), active(true), bobTimer(0.0f)
+void Pickup::Init(float x, float y, PickupType t)
 {
+	type = t;
+	active = true;
+	bobTimer = 0.0f;
 	bounds = Rectf(x, y, x + SIZE, y + SIZE);
 }
 

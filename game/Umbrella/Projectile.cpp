@@ -3,7 +3,7 @@
 
 using namespace Upp;
 
-Projectile::Projectile(float x, float y, int dir) {
+void Projectile::Init(float x, float y, int dir) {
 	direction = dir;
 	bounds = Rectf(x, y, x + PROJECTILE_SIZE, y + PROJECTILE_SIZE);
 	velocity.x = direction * PROJECTILE_SPEED;

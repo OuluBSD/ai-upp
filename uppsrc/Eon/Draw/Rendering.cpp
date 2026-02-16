@@ -119,8 +119,13 @@ bool RendererBase::Render(Draw& fb) {
 			GfxModelState& mdl = state.AddModel();
 			mdl.env_material_model = env_material_model;
 			
-			String data_dir = ShareDirFile("models");
-			String obj_path = AppendFileName(data_dir, obj);
+			String obj_path = obj;
+			if (!IsFullPath(obj_path)) {
+				if (!FileExists(obj_path))
+					obj_path = AppendFileName(ShareDirFile("models"), obj);
+				if (!FileExists(obj_path))
+					obj_path = ShareDirFile(obj);
+			}
 			
 			if (!loader.LoadModel(obj_path)) {
 				RLOG("ObjViewProg::Render: error: could not load model file: '" << obj_path << "'");

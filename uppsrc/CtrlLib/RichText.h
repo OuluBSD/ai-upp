@@ -14,6 +14,7 @@ public:
 	virtual void  LeftTriple(Point p, dword keyflags);
 	virtual void  RightDown(Point p, dword keyflags);
 	virtual String GetSelectionData(const String& fmt) const;
+	virtual bool   Access(Visitor& v) override;
 
 private:
 	Rect          margin;

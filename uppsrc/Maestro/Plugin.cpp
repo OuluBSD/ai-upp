@@ -9,6 +9,7 @@ void PluginManager::LoadPlugins(const String& maestro_root)
 	// To be expanded with dynamic loading
 }
 
+#ifdef flagGUI
 void PluginManager::RegisterAll(MaestroToolRegistry& reg, TabCtrl& tabs)
 {
 	for(auto& p : plugins) {
@@ -22,6 +23,14 @@ void PluginManager::RegisterMenu(Bar& bar)
 	for(auto& p : plugins)
 		p.RegisterMenu(bar);
 }
+#else
+void PluginManager::RegisterAll(MaestroToolRegistry& reg)
+{
+	for(auto& p : plugins) {
+		p.RegisterTools(reg);
+	}
+}
+#endif
 
 PluginManager& PluginManager::Get()
 {

@@ -37,6 +37,10 @@ struct GeomProjectCtrl : Ctrl {
 	};
 
 	Vector<TreeNodeRef> tree_nodes;
+	bool use_ecs_tree = true;
+	VfsValue ecs_root_val;
+	VectorMap<const VfsValue*, VfsValue*> ecs_to_geom;
+	VectorMap<const VfsValue*, VfsValue*> geom_to_ecs;
 	bool program_read = true;
 	bool program_write = false;
 	bool focus_read = true;
@@ -193,6 +197,9 @@ struct GeomProjectCtrl : Ctrl {
 	void SyncPropsValues();
 	void PropsApply();
 	TreeNodeRef* GetNodeRef(const Value& v);
+	VfsValue* ResolveGeomValue(const Value& v);
+	void BuildEcsMirror();
+	void TreeValueEcs(int id, VfsValue& node);
 	GeomObject* GetNodeObject(const Value& v);
 	GeomPointcloudDataset* GetNodeDataset(const Value& v);
 	String GetTreePathForValue(const Value& v, int id) const;
@@ -368,7 +375,7 @@ struct Edit3D : DockWindow {
 	TextureEditCtrl texture_edit;
 	//RemoteDebugCtrl v_rdbg;
 	ToolPanel tool_panel;
-	RibbonCtrl ribbon;
+	ModelerAppRibbon ribbon;
 	MenuBar menu;
 	ToolBar tool;
 	int ribbon_display_mode = RibbonBar::RIBBON_ALWAYS;
@@ -732,7 +739,7 @@ public:
 	bool Key(dword key, int count) override;
 	void DragAndDrop(Point p, PasteClip& d) override;
 	void SetView(ViewType view);
-	virtual void DockInit();
+	virtual void DockInit() override;
 	void Update();
 	void Data();
 	void Exit();
@@ -751,7 +758,7 @@ public:
 	void UpdateWindowTitle();
 	void SetScene3DFormat(bool use_json);
 	void ToggleRepeatPlayback();
-	void Serialize(Stream& s);
+	void Serialize(Stream& s) override;
 	void ResetLayout();
 	void ResetPropsCursor();
 	void OpenAllDocksForTest();

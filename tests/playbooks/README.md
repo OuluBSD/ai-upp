@@ -1,5 +1,7 @@
 # Playbook Test Harness v1
 
+# Status: done
+
 ## Overview
 
 The Playbook Test Harness v1 provides a deterministic, scriptable testing framework for AI Playbooks. It focuses on:

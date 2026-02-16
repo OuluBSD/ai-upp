@@ -3,9 +3,9 @@
 
 using namespace Upp;
 
-Droplet::Droplet(float x, float y, DropletType t) {
+void Droplet::Init(float x, float y, DropletType t) {
 	position = Pointf(x, y);
-	velocity = Pointf(0, 0);  // Start stationary (or could have initial downward velocity)
+	velocity = Pointf(0, 0);  // Start stationary
 	type = t;
 	active = true;
 	collected = false;

@@ -1,5 +1,4 @@
 #include "ModelerApp.h"
-#include <Core/XML.h>
 
 NAMESPACE_UPP
 
@@ -134,19 +133,18 @@ static String NodeAttr(const XmlNode& n, const char* key)
 
 } // namespace
 
-RibbonCtrl::RibbonCtrl()
+ModelerAppRibbon::ModelerAppRibbon()
 {
-	Add(bar.SizePos());
 	const RibbonStyle& s = RibbonBar::StyleDefault();
 	int h = s.full_button.cy + s.label_gap + s.full_font.GetHeight() + DPI(32);
 	Height(h);
-	bar.WhenTabMenu = [this](Bar& bar) {
-		bar.Add(t_("Show Tabs Only"), [this] { this->bar.SetDisplayMode(RibbonBar::RIBBON_TABS); })
-			.Check(this->bar.GetDisplayMode() == RibbonBar::RIBBON_TABS);
-		bar.Add(t_("Always Show Ribbon"), [this] { this->bar.SetDisplayMode(RibbonBar::RIBBON_ALWAYS); })
-			.Check(this->bar.GetDisplayMode() == RibbonBar::RIBBON_ALWAYS);
-		bar.Add(t_("Auto-hide Ribbon"), [this] { this->bar.SetDisplayMode(RibbonBar::RIBBON_AUTOHIDE); })
-			.Check(this->bar.GetDisplayMode() == RibbonBar::RIBBON_AUTOHIDE);
+	WhenTabMenu = [this](Bar& bar) {
+		bar.Add(t_("Show Tabs Only"), [this] { SetDisplayMode(RibbonBar::RIBBON_TABS); })
+			.Check(GetDisplayMode() == RibbonBar::RIBBON_TABS);
+		bar.Add(t_("Always Show Ribbon"), [this] { SetDisplayMode(RibbonBar::RIBBON_ALWAYS); })
+			.Check(GetDisplayMode() == RibbonBar::RIBBON_ALWAYS);
+		bar.Add(t_("Auto-hide Ribbon"), [this] { SetDisplayMode(RibbonBar::RIBBON_AUTOHIDE); })
+			.Check(GetDisplayMode() == RibbonBar::RIBBON_AUTOHIDE);
 		bar.Separator();
 		bar.Add(t_("QAT Top"), [this] { SetQuickAccessPos(RibbonBar::QAT_TOP); })
 			.Check(GetQuickAccessPos() == RibbonBar::QAT_TOP);
@@ -155,22 +153,22 @@ RibbonCtrl::RibbonCtrl()
 	};
 }
 
-void RibbonCtrl::Init(Edit3D* o)
+void ModelerAppRibbon::Init(Edit3D* o)
 {
 	owner = o;
 	SetupQuickAccess();
 }
 
-void RibbonCtrl::Clear()
+void ModelerAppRibbon::Clear()
 {
-	bar.ClearTabs();
+	ClearTabs();
 	control_by_id.Clear();
 	items.Clear();
 	owned_ctrls.Clear();
 	loaded = false;
 }
 
-bool RibbonCtrl::LoadSpec(const String& path)
+bool ModelerAppRibbon::LoadSpec(const String& path)
 {
 	Clear();
 	spec_path = path;
@@ -180,7 +178,7 @@ bool RibbonCtrl::LoadSpec(const String& path)
 	return LoadSpecXml(xml);
 }
 
-bool RibbonCtrl::LoadSpecXml(const String& xml)
+bool ModelerAppRibbon::LoadSpecXml(const String& xml)
 {
 	Clear();
 	XmlNode root = ParseXML(xml);
@@ -201,13 +199,15 @@ bool RibbonCtrl::LoadSpecXml(const String& xml)
 		return false;
 	BuildFromSpec(*ribbon);
 	AddContextTabs();
+	SetDisplayMode(RibbonBar::RIBBON_ALWAYS);
+	ShowContext("camera", false);
 	loaded = true;
 	return true;
 }
 
-void RibbonCtrl::BuildFromSpec(const XmlNode& root)
+void ModelerAppRibbon::BuildFromSpec(const XmlNode& root)
 {
-	bar.ClearTabs();
+	ClearTabs();
 	control_by_id.Clear();
 	items.Clear();
 	owned_ctrls.Clear();
@@ -219,7 +219,7 @@ void RibbonCtrl::BuildFromSpec(const XmlNode& root)
 		String tab_title = NodeAttr(tab, "title");
 		if (tab_title.IsEmpty())
 			tab_title = tab_id;
-		RibbonPage& page = bar.AddTab(tab_title);
+		RibbonPage& page = AddTab(tab_title);
 
 		for (int j = 0; j < tab.GetCount(); j++) {
 			const XmlNode& gnode = tab.Node(j);
@@ -231,6 +231,13 @@ void RibbonCtrl::BuildFromSpec(const XmlNode& root)
 				group_title = group_id;
 			bool has_form = false;
 			bool use_list = false;
+			struct ButtonSpec : Moveable<ButtonSpec> {
+				String id;
+				String text;
+				String sem;
+				String icon;
+			};
+			Vector<ButtonSpec> buttons;
 			for (int k = 0; k < gnode.GetCount(); k++) {
 				const XmlNode& cn = gnode.Node(k);
 				if (!cn.IsTag())
@@ -238,8 +245,15 @@ void RibbonCtrl::BuildFromSpec(const XmlNode& root)
 				String tag = ToLower(cn.GetTag());
 				if (tag == "label" || tag == "dropdown" || tag == "edit_int" || tag == "edit_double" || tag == "checkbox")
 					has_form = true;
-				if (tag == "button" && ToLower(NodeAttr(cn, "style")) == "text")
-					use_list = true;
+				if (tag == "button") {
+					if (ToLower(NodeAttr(cn, "style")) == "text")
+						use_list = true;
+					ButtonSpec& bs = buttons.Add();
+					bs.id = NodeAttr(cn, "id");
+					bs.text = NodeAttr(cn, "text");
+					bs.sem = NodeAttr(cn, "icon_semantics");
+					bs.icon = NodeAttr(cn, "icon");
+				}
 			}
 			RibbonGroup& group = page.AddGroup(group_title);
 
@@ -346,55 +360,41 @@ void RibbonCtrl::BuildFromSpec(const XmlNode& root)
 			}
 
 			if (use_list) {
-				group.SetList([this, &gnode](Bar& bar) {
-					for (int k = 0; k < gnode.GetCount(); k++) {
-						const XmlNode& cn = gnode.Node(k);
-						if (!cn.IsTag("button"))
-							continue;
-						String id = NodeAttr(cn, "id");
-						String text = NodeAttr(cn, "text");
-						String sem = NodeAttr(cn, "icon_semantics");
-						String icon = NodeAttr(cn, "icon");
-						Image img = RibbonIconForId(id, sem, icon);
-						bar.Add(text, [this, id] { OnAction(id); }).Image(img);
+				group.SetList([this, buttons = pick(buttons)](Bar& bar) mutable {
+					for (const ButtonSpec& bs : buttons) {
+						Image img = RibbonIconForId(bs.id, bs.sem, bs.icon);
+						bar.Add(bs.text, [this, id = bs.id] { OnAction(id); }).Image(img);
 					}
 				});
 				continue;
 			}
 
-			group.SetLarge([this, &gnode](Bar& bar) {
-				for (int k = 0; k < gnode.GetCount(); k++) {
-					const XmlNode& cn = gnode.Node(k);
-					if (!cn.IsTag("button"))
-						continue;
-					String id = NodeAttr(cn, "id");
-					String text = NodeAttr(cn, "text");
-					String sem = NodeAttr(cn, "icon_semantics");
-					String icon = NodeAttr(cn, "icon");
-					Image img = RibbonIconForId(id, sem, icon);
-					bar.Add(text, [this, id] { OnAction(id); }).Image(img);
+			group.SetLarge([this, buttons = pick(buttons)](Bar& bar) mutable {
+				for (const ButtonSpec& bs : buttons) {
+					Image img = RibbonIconForId(bs.id, bs.sem, bs.icon);
+					bar.Add(bs.text, [this, id = bs.id] { OnAction(id); }).Image(img);
 				}
 			});
 		}
 	}
 }
 
-void RibbonCtrl::OnAction(const String& id)
+void ModelerAppRibbon::OnAction(const String& id)
 {
 	WhenAction(id);
 	if (owner)
 		owner->HandleRibbonAction(id);
 }
 
-Ctrl* RibbonCtrl::FindControl(const String& id) const
+Ctrl* ModelerAppRibbon::FindControl(const String& id) const
 {
 	int idx = control_by_id.Find(id);
 	return idx >= 0 ? control_by_id[idx] : nullptr;
 }
 
-void RibbonCtrl::SetupQuickAccess()
+void ModelerAppRibbon::SetupQuickAccess()
 {
-	bar.SetQuickAccess([this](Bar& b) {
+	SetQuickAccess([this](Bar& b) {
 		b.Add(t_("New"), [this] { OnAction("new_file"); }).Image(CtrlImg::new_doc());
 		b.Add(t_("Open"), [this] { OnAction("open_file"); }).Image(CtrlImg::open());
 		b.Add(t_("Save"), [this] { OnAction("save_file"); }).Image(CtrlImg::save());
@@ -404,9 +404,9 @@ void RibbonCtrl::SetupQuickAccess()
 	});
 }
 
-void RibbonCtrl::AddContextTabs()
+void ModelerAppRibbon::AddContextTabs()
 {
-	RibbonPage& cam = bar.AddContextTab("camera", "Camera Tools");
+	RibbonPage& cam = AddContextTab("camera", "Camera Tools");
 	RibbonGroup& g = cam.AddGroup("Camera");
 	g.SetLarge([this](Bar& b) {
 		b.Add(t_("Make Active"), [this] { OnAction("camera_make_active"); }).Image(CtrlImg::smallcheck());

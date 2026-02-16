@@ -15,11 +15,12 @@ void EnemyPatroller::WireAI(Pathfinder* pf, const NavGraph* ng,
 	aiEnabled = true;
 }
 
-EnemyPatroller::EnemyPatroller(float x, float y)
-	: Enemy(x, y, 12, 12, ENEMY_PATROLLER)
+void EnemyPatroller::Init(float x, float y, int spawnFacing)
 {
-	velocity.x = -WALK_SPEED;  // Start moving left
-	facing = -1;
+	bounds = Rectf(x, y, x + 12, y + 12);
+	originalSize = 12;
+	facing = spawnFacing;
+	velocity.x = spawnFacing * -WALK_SPEED;  // Walk in spawn-facing direction
 }
 
 void EnemyPatroller::Update(float delta, const Player& player, Player::CollisionHandler& collision) {

@@ -61,6 +61,7 @@ void RunScenario(const TestCase& test, int method) {
 const TestCase kTests[] = {
 	{ Run09aScene3DHeadless, "Run09aScene3DHeadless", false },
 	{ Run09bScene3DSdlOgl, "Run09bScene3DSdlOgl", true },
+	{ Run09cScene3DGraphicsOgl, "Run09cScene3DGraphicsOgl", true },
 };
 
 constexpr int kTestCount = int(sizeof(kTests) / sizeof(kTests[0]));

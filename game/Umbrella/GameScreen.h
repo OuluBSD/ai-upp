@@ -82,6 +82,12 @@ public:  // Public for testing
 	Player player;
 	InputState inputState;
 
+	// VFS roots: own the entity memory for each category (raw pointers below are observers)
+	VfsValue enemyRoot;
+	VfsValue treatRoot;
+	VfsValue pickupRoot;
+	VfsValue dropletRoot;
+
 	// Enemies
 	Array<Enemy*> enemies;
 

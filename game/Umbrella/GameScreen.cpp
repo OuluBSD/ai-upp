@@ -97,16 +97,16 @@ bool GameScreen::LoadLevel(const String& path) {
 	reaper->Reset();
 
 	// Spawn hardcoded pickups for first level (one of each type)
-	for(int i = 0; i < pickups.GetCount(); i++) delete pickups[i];
 	pickups.Clear();
+	pickupRoot.sub.Clear();
 	if(levelColumns > 4 && levelRows > 4) {
 		int mid = levelColumns / 2;
 		int row = levelRows - 2;
 		float gs = (float)gridSize;
-		pickups.Add(new Pickup(gs * (mid - 2), gs * row, PU_HEART));
-		pickups.Add(new Pickup(gs * (mid - 1), gs * row, PU_GEM));
-		pickups.Add(new Pickup(gs *  mid,       gs * row, PU_LIGHTNING));
-		pickups.Add(new Pickup(gs * (mid + 1), gs * row, PU_SPEED));
+		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid - 2), gs * row, PU_HEART);      pickups.Add(&p); }
+		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid - 1), gs * row, PU_GEM);        pickups.Add(&p); }
+		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs *  mid,       gs * row, PU_LIGHTNING); pickups.Add(&p); }
+		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid + 1), gs * row, PU_SPEED);     pickups.Add(&p); }
 	}
 
 	// Load droplet spawn points
@@ -283,7 +283,7 @@ void GameScreen::GameTick(float delta) {
 			}
 
 			RLOG("Spawning treat at (" << enemyCenter.x << "," << enemyCenter.y << ") type=" << (int)treatType);
-			treats.Add(new Treat(enemyCenter.x, enemyCenter.y, treatType));
+			{ Treat& t = treatRoot.Add<Treat>(); t.Init(enemyCenter.x, enemyCenter.y, treatType); treats.Add(&t); }
 			player.AddScore(200);  // Bonus for defeating via throw
 
 			// Kill and spawn treats for all enemies that were carried by this thrown enemy
@@ -303,7 +303,7 @@ void GameScreen::GameTick(float delta) {
 						case ENEMY_FLYER: carriedTreatType = TREAT_SODA; break;
 					}
 
-					treats.Add(new Treat(carriedCenter.x, carriedCenter.y, carriedTreatType));
+					{ Treat& t = treatRoot.Add<Treat>(); t.Init(carriedCenter.x, carriedCenter.y, carriedTreatType); treats.Add(&t); }
 					enemies[j]->Defeat();
 					player.AddScore(150);  // Bonus for each carried enemy
 				}
@@ -345,7 +345,7 @@ void GameScreen::GameTick(float delta) {
 				case ENEMY_FLYER: treatType = TREAT_SODA; break;
 			}
 
-			treats.Add(new Treat(center.x, center.y, treatType));
+			{ Treat& t = treatRoot.Add<Treat>(); t.Init(center.x, center.y, treatType); treats.Add(&t); }
 			player.AddScore(100);  // Reward for defeating enemy
 			GetAudioSystem().Play("defeat");
 			EmitEvent("enemy_killed", i);
@@ -612,17 +612,18 @@ void GameScreen::GameTick(float delta) {
 			float spawnX = spawn.col * gridSize + gridSize / 2.0f;
 			float spawnY = spawn.row * gridSize + gridSize / 2.0f;
 
-			// Create droplet with initial horizontal velocity based on direction
-			Droplet* droplet = new Droplet(spawnX, spawnY, spawn.mode);
+			// Create droplet via VFS tree with initial horizontal velocity
+			Droplet& d = dropletRoot.Add<Droplet>();
+			d.Init(spawnX, spawnY, spawn.mode);
 
 			// Set horizontal velocity if direction is specified
 			if(spawn.direction != 0) {
-				Pointf vel = droplet->GetVelocity();
+				Pointf vel = d.GetVelocity();
 				vel.x = spawn.direction * 50.0f;  // 50 pixels/sec horizontal speed
-				droplet->SetVelocity(vel);
+				d.SetVelocity(vel);
 			}
 
-			droplets.Add(droplet);
+			droplets.Add(&d);
 			RLOG("Spawned droplet at (" << spawnX << "," << spawnY << ") type=" << (int)spawn.mode << " dir=" << spawn.direction);
 		}
 	}
@@ -652,7 +653,7 @@ void GameScreen::GameTick(float delta) {
 	// Remove inactive droplets (but keep collected ones)
 	for(int i = droplets.GetCount() - 1; i >= 0; i--) {
 		if(!droplets[i]->IsActive() && !droplets[i]->IsCollected()) {
-			delete droplets[i];
+			dropletRoot.Remove(&droplets[i]->val);
 			droplets.Remove(i);
 		}
 	}
@@ -1458,22 +1459,15 @@ void GameScreen::RestartLevel() {
 }
 
 void GameScreen::ClearEnemies() {
-	for(int i = 0; i < enemies.GetCount(); i++) {
-		delete enemies[i];
-	}
+	// Clear observer pointer arrays before freeing VFS trees
 	enemies.Clear();
+	enemyRoot.sub.Clear();
 
-	// Also clear treats
-	for(int i = 0; i < treats.GetCount(); i++) {
-		delete treats[i];
-	}
 	treats.Clear();
+	treatRoot.sub.Clear();
 
-	// Clear pickups
-	for(int i = 0; i < pickups.GetCount(); i++) {
-		delete pickups[i];
-	}
 	pickups.Clear();
+	pickupRoot.sub.Clear();
 }
 
 void GameScreen::SpawnEnemies() {
@@ -1490,21 +1484,34 @@ void GameScreen::SpawnEnemies() {
 			float spawnX = spawn.col * gridSize;
 			float spawnY = spawn.row * gridSize;
 
-			// Create enemy based on type
+			// Create enemy based on type via VFS tree
 			Enemy* enemy = nullptr;
+			String eid = Format("e%d", i);
 			switch(spawn.type) {
-				case ENEMY_PATROLLER:
-					enemy = new EnemyPatroller(spawnX, spawnY);
+				case ENEMY_PATROLLER: {
+					EnemyPatroller& ep = enemyRoot.Add<EnemyPatroller>(eid);
+					ep.Init(spawnX, spawnY);
+					enemy = &ep;
 					break;
-				case ENEMY_JUMPER:
-					enemy = new EnemyJumper(spawnX, spawnY);
+				}
+				case ENEMY_JUMPER: {
+					EnemyJumper& ej = enemyRoot.Add<EnemyJumper>(eid);
+					ej.Init(spawnX, spawnY);
+					enemy = &ej;
 					break;
-				case ENEMY_SHOOTER:
-					enemy = new EnemyShooter(spawnX, spawnY);
+				}
+				case ENEMY_SHOOTER: {
+					EnemyShooter& es = enemyRoot.Add<EnemyShooter>(eid);
+					es.Init(spawnX, spawnY);
+					enemy = &es;
 					break;
-				case ENEMY_FLYER:
-					enemy = new EnemyFlyer(spawnX, spawnY);
+				}
+				case ENEMY_FLYER: {
+					EnemyFlyer& ef = enemyRoot.Add<EnemyFlyer>(eid);
+					ef.Init(spawnX, spawnY);
+					enemy = &ef;
 					break;
+				}
 			}
 
 			if(enemy) {
@@ -1520,9 +1527,10 @@ void GameScreen::SpawnEnemies() {
 	else if(levelColumns > 10 && levelRows > 5) {
 		LOG("No enemy spawn points found, using fallback spawning");
 
-		auto SpawnAt = [&](int col, int enemyRow, auto* e) {
-			e->WireAI(&pathfinder, &navGraph, this, col, enemyRow);
-			enemies.Add(e);
+		int fallbackIdx = 0;
+		auto SpawnAt = [&](int col, int enemyRow, Enemy& e) {
+			e.WireAI(&pathfinder, &navGraph, this, col, enemyRow);
+			enemies.Add(&e);
 		};
 
 		// Spawn patroller at column 8, looking for ground
@@ -1530,7 +1538,9 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(8, row)) {
 				int spawnX = 8 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				SpawnAt(8, row + 1, new EnemyPatroller((float)spawnX, (float)spawnY));
+				EnemyPatroller& ep = enemyRoot.Add<EnemyPatroller>(Format("fb%d", fallbackIdx++));
+				ep.Init((float)spawnX, (float)spawnY);
+				SpawnAt(8, row + 1, ep);
 				break;
 			}
 		}
@@ -1540,7 +1550,9 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(15, row)) {
 				int spawnX = 15 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				SpawnAt(15, row + 1, new EnemyJumper((float)spawnX, (float)spawnY));
+				EnemyJumper& ej = enemyRoot.Add<EnemyJumper>(Format("fb%d", fallbackIdx++));
+				ej.Init((float)spawnX, (float)spawnY);
+				SpawnAt(15, row + 1, ej);
 				break;
 			}
 		}
@@ -1550,7 +1562,9 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(22, row)) {
 				int spawnX = 22 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				SpawnAt(22, row + 1, new EnemyPatroller((float)spawnX, (float)spawnY));
+				EnemyPatroller& ep = enemyRoot.Add<EnemyPatroller>(Format("fb%d", fallbackIdx++));
+				ep.Init((float)spawnX, (float)spawnY);
+				SpawnAt(22, row + 1, ep);
 				break;
 			}
 		}
@@ -1560,7 +1574,9 @@ void GameScreen::SpawnEnemies() {
 			if(IsFloorTile(12, row)) {
 				int spawnX = 12 * gridSize;
 				int spawnY = (row + 1) * gridSize;
-				SpawnAt(12, row + 1, new EnemyShooter((float)spawnX, (float)spawnY));
+				EnemyShooter& es = enemyRoot.Add<EnemyShooter>(Format("fb%d", fallbackIdx++));
+				es.Init((float)spawnX, (float)spawnY);
+				SpawnAt(12, row + 1, es);
 				break;
 			}
 		}
@@ -1569,7 +1585,9 @@ void GameScreen::SpawnEnemies() {
 			int flyCol = levelColumns / 2;
 			float flyX = flyCol * gridSize;
 			float flyY = (levelRows / 2) * (float)gridSize;
-			SpawnAt(flyCol, levelRows / 2, new EnemyFlyer(flyX, flyY));
+			EnemyFlyer& ef = enemyRoot.Add<EnemyFlyer>(Format("fb%d", fallbackIdx++));
+			ef.Init(flyX, flyY);
+			SpawnAt(flyCol, levelRows / 2, ef);
 		}
 	}
 }

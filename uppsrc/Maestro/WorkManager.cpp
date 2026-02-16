@@ -58,9 +58,7 @@ WorkManager::WorkItem WorkManager::SelectBestWorkItem(const Array<WorkItem>& ite
 	
 	// Use AI to select
 	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.model = "gemini-1.5-flash";
-	engine.Arg("-y");
+	ConfigureGemini(engine);
 	
 	String prompt = "Select the best work item from the following list to work on next.\n";
 	prompt << "Consider priority, dependencies, and impact.\n\n";
@@ -121,9 +119,7 @@ bool WorkManager::StartWorkSession(const WorkItem& item)
 	
 	// Refined Execution Logic
 	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.model = "gemini-1.5-flash";
-	engine.Arg("-y");
+	ConfigureGemini(engine);
 	
 	String prompt = "You are an autonomous worker agent. Your task is to: " + item.description + "\n";
 	prompt << "Context: " + item.name + " (" + item.type + ")\n\n";
@@ -171,9 +167,7 @@ bool WorkManager::AnalyzeTarget(const String& target, bool simulate)
 	
 	// AI Analysis Logic Stub
 	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.model = "gemini-1.5-flash";
-	engine.Arg("-y");
+	ConfigureGemini(engine);
 	
 	String prompt = "Analyze the following target: " + target + "\nProvide insights and recommendations.";
 	engine.Send(prompt, [&](const MaestroEvent& ev) {

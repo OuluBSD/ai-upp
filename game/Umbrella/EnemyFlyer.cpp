@@ -3,10 +3,11 @@
 
 using namespace Upp;
 
-EnemyFlyer::EnemyFlyer(float x, float y)
-	: Enemy(x, y, 10, 10, ENEMY_FLYER)
+void EnemyFlyer::Init(float x, float y, int spawnFacing)
 {
-	carryWeight = 0.8f;
+	bounds = Rectf(x, y, x + 10, y + 10);
+	originalSize = 10;
+	facing = spawnFacing;
 }
 
 void EnemyFlyer::Update(float delta, const Player& player, Player::CollisionHandler& collision) {

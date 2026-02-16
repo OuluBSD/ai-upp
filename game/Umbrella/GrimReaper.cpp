@@ -3,10 +3,6 @@
 
 using namespace Upp;
 
-GrimReaper::GrimReaper() {
-	Reset();
-}
-
 void GrimReaper::Reset() {
 	spawned    = false;
 	spawnTimer = 0.0f;

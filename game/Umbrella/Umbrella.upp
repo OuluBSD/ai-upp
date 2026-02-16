@@ -6,10 +6,13 @@ uses
 	plugin/jpg,
 	plugin/png,
 	ByteVM,
-	Ctrl/Automation;
+	Ctrl/Automation,
+	Vfs/Core;
 
 file
 	Umbrella.h,
+	GameEntity.h,
+	GameEntity.cpp,
 	CommandLineArguments.h,
 	CommandLineArguments.cpp,
 	Tile.h,

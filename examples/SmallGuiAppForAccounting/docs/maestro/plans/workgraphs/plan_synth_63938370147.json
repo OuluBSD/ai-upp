@@ -1,0 +1,457 @@
+{
+	"schema_version": "v1",
+	"id": "",
+	"title": "Synthesized Plan for .",
+	"goal": "",
+	"domain": "software-construction",
+	"profile": "",
+	"track": {
+		"id": "",
+		"name": "",
+		"goal": "",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "",
+			"name": "Implementation",
+			"tasks": [
+				{
+					"id": "",
+					"title": "Implement mainWindow",
+					"status": "",
+					"intent": "Satisfy constraint via Implement mainWindow",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show mainWindow",
+					"status": "",
+					"intent": "Satisfy constraint via Show mainWindow",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Implement balanceLabel",
+					"status": "",
+					"intent": "Satisfy constraint via Implement balanceLabel",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show balanceLabel",
+					"status": "",
+					"intent": "Satisfy constraint via Show balanceLabel",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Implement addButton",
+					"status": "",
+					"intent": "Satisfy constraint via Implement addButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show addButton",
+					"status": "",
+					"intent": "Satisfy constraint via Show addButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Enable addButton",
+					"status": "",
+					"intent": "Satisfy constraint via Enable addButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Implement removeButton",
+					"status": "",
+					"intent": "Satisfy constraint via Implement removeButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Show removeButton",
+					"status": "",
+					"intent": "Satisfy constraint via Show removeButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Enable removeButton",
+					"status": "",
+					"intent": "Satisfy constraint via Enable removeButton",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "",
+					"title": "Implement ledgerList",
+					"status": "",
+					"intent": "Satisfy constraint via Implement ledgerList",
+					"definition_of_done": [
+						{
+							"kind": "code",
+							"cmd": "",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

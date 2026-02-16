@@ -70,6 +70,8 @@ file
 	CommandDispatcher.h,
 	CommandDispatcher.cpp,
 	MaestroModule.cpp,
+	QuotaManager.h,
+	QuotaManager.cpp,
 	Plugin.h,
 	Plugin.cpp,
 	Playbook readonly separator,

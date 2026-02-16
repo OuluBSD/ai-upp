@@ -211,6 +211,13 @@ END_UPP_NAMESPACE
 #include "SubHeader.h"      // Should include "PackageName.h" instead
 ```
 
+## Rich Text Format
+
+- **Internal Format**: In Ultimate++, the standard internal rich text format is **QTF** (Quick Text Format).
+- **No HTML/XML**: NEVER use HTML or XML for rich text UI elements or reports unless explicitly requested. 
+- **API usage**: Always prefer `SetQTF()` over other methods for displaying formatted text in `RichTextView` or other rich text-capable controls.
+- **Constraints**: If a constraint requires validating rich text content, it should ideally verify that the string is valid QTF.
+
 Subpackage Independence
 - Subpackages like `AI`, `AI/Core`, `AI/Core/Core` are independent packages; do not gather headers in the parent package.
 - A parent package may include only the subpackage's main header (e.g., `#include "Core.h"` from `AI`). Do not cross-include subpackage internals directly.

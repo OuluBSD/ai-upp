@@ -24,6 +24,7 @@ NAMESPACE_UPP
 
 #include "VideoImportCtrl.h"
 #include "Remote.h"
+#include "RibbonCtrl.h"
 #include "Editor.h"
 #include "EditClientService.h"
 

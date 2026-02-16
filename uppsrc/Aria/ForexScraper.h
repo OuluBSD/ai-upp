@@ -19,6 +19,7 @@ public:
 	// ForexFactory
 	bool ScrapeFFCalendar(int days_offset = 0); // 0 = today, -7 to +7
 	bool ScrapeFFTrades();
+        bool ScrapeFFRates();
 	
 	// Investing.com
 	bool ScrapeInvestingCalendar();

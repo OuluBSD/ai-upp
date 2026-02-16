@@ -111,6 +111,8 @@ RibbonGroup& RibbonGroup::SetLarge(Event<Bar&> barproc)
 			btn.SetRibbonMenu(it.submenu);
 		btn.WhenAction = it.cb;
 		btn.Show();
+		LOG("RibbonBar full-button: text='" << it.text << "' image=" << (IsNull(it.image) ? "null" : "set")
+		    << " size=" << btn.GetSize() << " enabled=" << it.enabled);
 	}
 
 	use_large = true;

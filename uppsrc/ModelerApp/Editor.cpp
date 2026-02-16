@@ -1965,6 +1965,7 @@ void ScriptEditorCtrl::StopScript() {
 }
 
 
+#ifdef flagPOSIX
 bool HmdCapture::Start() {
 	if (running)
 		return true;
@@ -2052,6 +2053,7 @@ void HmdCapture::Poll() {
 	vf.flags = lf.is_bright ? VIS_FRAME_BRIGHT : VIS_FRAME_DARK;
 	fusion.PutVisual(vf);
 }
+#endif
 
 
 
@@ -7858,6 +7860,7 @@ void Edit3D::StopPointcloudRecording() {
 }
 
 void Edit3D::UpdateHmdCameraPose() {
+#ifdef flagPOSIX
 	GeomCamera& cam = state->GetProgram();
 	FusionState fs;
 	if (hmd.fusion.GetState(fs)) {
@@ -7870,6 +7873,7 @@ void Edit3D::UpdateHmdCameraPose() {
 		cam.position = tracker.GetPosition();
 		cam.orientation = tracker.GetOrientation();
 	}
+#endif
 }
 
 void Edit3D::RunSyntheticPointcloudSimDialog() {

@@ -15,9 +15,10 @@ uses
 	Scene3D/Exec,
 	Eon/Ecs,
 	Eon/Draw,
-	SoftHMD,
 	plugin/jpg,
 	plugin/enet;
+
+uses(POSIX) SoftHMD;
 
 file
 	AGENTS.md,
@@ -40,4 +41,3 @@ file
 
 mainconfig
 	"" = "GUI";
-

@@ -4,7 +4,90 @@ NAMESPACE_UPP
 
 namespace {
 
-class RibbonForm : public ParentCtrl {
+class LightmapRowCtrl : public ParentCtrl {
+public:
+	struct Item : Moveable<Item> {
+		int label_idx = -1;
+		int ctrl_idx = -1;
+	};
+
+	Array<Label> labels;
+	Array<Ctrl> ctrls;
+	Vector<Item> items;
+	int gap = DPI(8);
+
+	void SetGap(int g)
+	{
+		gap = g;
+		RefreshParentLayout();
+	}
+
+	template <class T>
+	T& AddCtrl(const String& label)
+	{
+		Item& it = items.Add();
+		if (!label.IsEmpty()) {
+			Label& l = labels.Add();
+			l.SetText(label);
+			Add(l);
+			it.label_idx = labels.GetCount() - 1;
+		}
+		T& c = static_cast<T&>(ctrls.Create<T>());
+		Add(c);
+		it.ctrl_idx = ctrls.GetCount() - 1;
+		return c;
+	}
+
+	Size GetMinSize() const override
+	{
+		int cx = 0;
+		int cy = 0;
+		for (int i = 0; i < items.GetCount(); i++) {
+			const Item& it = items[i];
+			int w = 0;
+			int h = 0;
+			if (it.label_idx >= 0) {
+				Size ls = labels[it.label_idx].GetMinSize();
+				w += ls.cx;
+				h = max(h, ls.cy);
+			}
+			if (it.ctrl_idx >= 0) {
+				Size cs = ctrls[it.ctrl_idx].GetMinSize();
+				if (it.label_idx >= 0)
+					w += gap;
+				w += cs.cx;
+				h = max(h, cs.cy);
+			}
+			cx += w;
+			if (i + 1 < items.GetCount())
+				cx += gap;
+			cy = max(cy, h);
+		}
+		return Size(cx, cy);
+	}
+
+	void Layout() override
+	{
+		int x = 0;
+		int h = GetSize().cy;
+		for (int i = 0; i < items.GetCount(); i++) {
+			const Item& it = items[i];
+			if (it.label_idx >= 0) {
+				Size ls = labels[it.label_idx].GetMinSize();
+				labels[it.label_idx].SetRect(x, 0, ls.cx, h);
+				x += ls.cx + gap;
+			}
+			if (it.ctrl_idx >= 0) {
+				Size cs = ctrls[it.ctrl_idx].GetMinSize();
+				ctrls[it.ctrl_idx].SetRect(x, 0, cs.cx, h);
+				x += cs.cx;
+			}
+			x += gap;
+		}
+	}
+};
+
+class FormPanel : public ParentCtrl {
 public:
 	struct Row : Moveable<Row> {
 		int label_idx = -1;
@@ -15,16 +98,9 @@ public:
 	Array<Label> labels;
 	Array<Ctrl> ctrls;
 	Vector<Row> rows;
-	int row_cy = 24;
+	int row_cy = 22;
 	int gap = 4;
 	int label_cx = 120;
-
-	void Clear()
-	{
-		labels.Clear();
-		ctrls.Clear();
-		rows.Clear();
-	}
 
 	void SetMetrics(int _row_cy, int _gap, int _label_cx)
 	{
@@ -94,41 +170,96 @@ public:
 	}
 };
 
-static Image RibbonIconForId(const String& id, const String& sem, const String& icon)
+static Image GetRibbonIcon(const String& id, const String& sem)
 {
-	String sid = ToLower(id);
-	String ssem = ToLower(sem);
-	String sicon = ToLower(icon);
-	if (sid == "new_file" || ssem.Find("new") >= 0)
-		return CtrlImg::new_doc();
-	if (sid == "open_file" || ssem.Find("open") >= 0)
-		return CtrlImg::open();
-	if (sid == "save_file" || ssem.Find("save") >= 0)
-		return CtrlImg::save();
-	if (sid == "undo" || ssem.Find("undo") >= 0)
-		return CtrlImg::undo();
-	if (sid == "redo" || ssem.Find("redo") >= 0)
-		return CtrlImg::redo();
-	if (ssem.Find("camera") >= 0)
-		return ImagesImg::Camera();
-	if (ssem.Find("cube") >= 0 || ssem.Find("sphere") >= 0 || ssem.Find("cylinder") >= 0 ||
-	    ssem.Find("cone") >= 0 || ssem.Find("plane") >= 0 || ssem.Find("mesh") >= 0)
-		return ImagesImg::Model();
-	if (ssem.Find("light") >= 0 || ssem.Find("sun") >= 0)
-		return ImagesImg::Object();
-	if (ssem.Find("play") >= 0)
-		return ImagesImg::Play();
-	if (sicon == "plus")
-		return CtrlImg::plus();
-	if (sicon == "minus")
-		return CtrlImg::minus();
-	return CtrlImg::File();
-}
+	String key = sem;
+	if (key.IsEmpty())
+		key = id;
+	static const char* kKnown[] = {
+		"generic_new_file",
+		"generic_open_file",
+		"generic_save_file",
+		"generic_undo",
+		"generic_redo",
+		"mouse_cursor",
+		"four_arrows_cross",
+		"clockwise_arc_arrow",
+		"3d_scale_arrows",
+		"frame_plus_3d_perspective_block",
+		"frame_plus_top_projection_flat_wide_block",
+		"frame_plus_front_square_projection",
+		"frame_plus_left_tall_narrow_projection",
+		"gray_cube_with_black_wireframe",
+		"gray_rough_sphere_with_black_wireframe",
+		"gray_rough_cylinder_with_black_wireframe",
+		"gray_rough_cone_with_black_wireframe",
+		"gray_square_plane_in_perspective_with_black_wireframe",
+		"classic_film_camera_icon_gray_black",
+		"side_profile_terrain_curve_with_filled_ground_polygon",
+		"coarse_3d_corridor_shape",
+		"3d_cube_like_import_symbol",
+		"3d_cube_like_import_symbol_animated",
+		"yellow_glowing_lightbulb",
+		"sun_icon_with_arrow_left_down",
+		"green_2d_fir_tree",
+		"blue_plane_in_perspective",
+		"gray_background_with_light_B",
+		"narrower_taller_variant_of_billboard_icon",
+		"small_gray_particle_with_yellow_arrows_up_left_and_up_right",
+		"inside_cube_view_blue_sky_walls_gray_ground",
+		"speaker_cone",
+		"gray_background_with_dark_2D_text",
+		"2d_overlay_symbol_with_circular_background",
+		"two_points_connected_by_line",
+		"path_like_symbol_with_additional_points",
+		"triangle_over_axis_background_with_mouse_cursor",
+		"small_cursor_with_rectangle_outline",
+		"triangle_over_axis_background_plus_four_direction_arrows",
+		"triangle_over_axis_background_plus_arc_rotate_arrow",
+		"triangle_over_axis_background_plus_perspective_scale_arrows",
+		"gray_background_with_black_UV_text",
+		"gear_cog",
+		"play_icon",
+		"plus_icon",
+		"minus_icon",
+		"scene_metrics_glyph",
+		"scene_postfx_glyph",
+	};
+	bool known = false;
+	for (const char* k : kKnown) {
+		if (key == k) {
+			known = true;
+			break;
+		}
+	}
+	if (!known) {
+#ifdef _DEBUG
+		Panic("Ribbon icon key not registered: " + key);
+#else
+		LOG("Ribbon icon key not registered: " << key);
+		return CtrlImg::File();
+#endif
+	}
 
-static String NodeAttr(const XmlNode& n, const char* key)
-{
-	String v = n.Attr(key);
-	return v;
+	Vector<String> candidates;
+	candidates.Add(ShareDirFile(AppendFileName("icons/large", key + ".png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_24.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons", key + ".png")));
+
+	for (const String& path : candidates) {
+		if (!FileExists(path))
+			continue;
+		Image img = StreamRaster::LoadFileAny(path);
+		if (!img.IsEmpty())
+			return Colorize(img, SColorText());
+	}
+#ifdef _DEBUG
+	Panic("Ribbon icon file missing: " + key);
+#else
+	LOG("Ribbon icon file missing: " << key);
+#endif
+	return CtrlImg::File();
 }
 
 } // namespace
@@ -155,241 +286,265 @@ ModelerAppRibbon::ModelerAppRibbon()
 
 void ModelerAppRibbon::Init(Edit3D* o)
 {
+	Clear();
+	control_by_id.Clear();
+	owned_ctrls.Clear();
+	
 	owner = o;
 	SetupQuickAccess();
+	BuildDefaultTabs();
+}
+
+void ModelerAppRibbon::BuildDefaultTabs()
+{
+	RibbonPage& page_main = AddTab("Main tools");
+	{
+		RibbonGroup& g_file = page_main.AddGroup("File");
+		g_file.SetLarge([this](Bar& bar) {
+			bar.Add("New file", [this] { OnAction("new_file"); }).Image(GetRibbonIcon("new_file", "generic_new_file"));
+			bar.Add("Open file", [this] { OnAction("open_file"); }).Image(GetRibbonIcon("open_file", "generic_open_file"));
+			bar.Add("Save file", [this] { OnAction("save_file"); }).Image(GetRibbonIcon("save_file", "generic_save_file"));
+		});
+
+		RibbonGroup& g_hist = page_main.AddGroup("History");
+		g_hist.SetLarge([this](Bar& bar) {
+			bar.Add("Undo", [this] { OnAction("undo"); }).Image(GetRibbonIcon("undo", "generic_undo"));
+			bar.Add("Redo", [this] { OnAction("redo"); }).Image(GetRibbonIcon("redo", "generic_redo"));
+		});
+
+		RibbonGroup& g_sel = page_main.AddGroup("Selection");
+		g_sel.SetLarge([this](Bar& bar) {
+			bar.Add("Select objects", [this] { OnAction("select_objects"); }).Image(GetRibbonIcon("select_objects", "mouse_cursor"));
+			bar.Add("Move camera (Q)", [this] { OnAction("move_camera"); }).Image(GetRibbonIcon("move_camera", "mouse_cursor")).Key(K_Q);
+			bar.Add("Move object (W)", [this] { OnAction("move_object"); }).Image(GetRibbonIcon("move_object", "four_arrows_cross")).Key(K_W);
+			bar.Add("Rotate object (E)", [this] { OnAction("rotate_object"); }).Image(GetRibbonIcon("rotate_object", "clockwise_arc_arrow")).Key(K_E);
+			bar.Add("Scale object (R)", [this] { OnAction("scale_object"); }).Image(GetRibbonIcon("scale_object", "3d_scale_arrows")).Key(K_R);
+		});
+
+		RibbonGroup& g_view = page_main.AddGroup("View");
+		g_view.SetLarge([this](Bar& bar) {
+			bar.Add("Change current view to perspective (F1)", [this] { OnAction("view_perspective"); }).Image(GetRibbonIcon("view_perspective", "frame_plus_3d_perspective_block")).Key(K_F1);
+			bar.Add("Change current view to top (F2)", [this] { OnAction("view_top"); }).Image(GetRibbonIcon("view_top", "frame_plus_top_projection_flat_wide_block")).Key(K_F2);
+			bar.Add("Change current view to front (F3)", [this] { OnAction("view_front"); }).Image(GetRibbonIcon("view_front", "frame_plus_front_square_projection")).Key(K_F3);
+			bar.Add("Change current view to left (F4)", [this] { OnAction("view_left"); }).Image(GetRibbonIcon("view_left", "frame_plus_left_tall_narrow_projection")).Key(K_F4);
+		});
+	}
+
+	RibbonPage& page_create = AddTab("Create");
+	{
+		RibbonGroup& g = page_create.AddGroup("Create");
+		g.SetLarge([this](Bar& bar) {
+			bar.Add("Create a cube", [this] { OnAction("create_cube"); }).Image(GetRibbonIcon("create_cube", "gray_cube_with_black_wireframe"));
+			bar.Add("Create a sphere", [this] { OnAction("create_sphere"); }).Image(GetRibbonIcon("create_sphere", "gray_rough_sphere_with_black_wireframe"));
+			bar.Add("Create a cylinder", [this] { OnAction("create_cylinder"); }).Image(GetRibbonIcon("create_cylinder", "gray_rough_cylinder_with_black_wireframe"));
+			bar.Add("Create a cone", [this] { OnAction("create_cone"); }).Image(GetRibbonIcon("create_cone", "gray_rough_cone_with_black_wireframe"));
+			bar.Add("Create a plane", [this] { OnAction("create_plane"); }).Image(GetRibbonIcon("create_plane", "gray_square_plane_in_perspective_with_black_wireframe"));
+			bar.Add("Create a camera", [this] { OnAction("create_camera"); }).Image(GetRibbonIcon("create_camera", "classic_film_camera_icon_gray_black"));
+			bar.Add("Create a terrain", [this] { OnAction("create_terrain"); }).Image(GetRibbonIcon("create_terrain", "side_profile_terrain_curve_with_filled_ground_polygon"));
+			bar.Add("Create a room mesh from a 2D map", [this] { OnAction("create_room_mesh_from_2d_map"); }).Image(GetRibbonIcon("create_room_mesh_from_2d_map", "coarse_3d_corridor_shape"));
+			bar.Add("Import a static mesh", [this] { OnAction("import_static_mesh"); }).Image(GetRibbonIcon("import_static_mesh", "3d_cube_like_import_symbol"));
+			bar.Add("Import an animated mesh", [this] { OnAction("import_animated_mesh"); }).Image(GetRibbonIcon("import_animated_mesh", "3d_cube_like_import_symbol_animated"));
+			bar.Add("Create a point light", [this] { OnAction("create_point_light"); }).Image(GetRibbonIcon("create_point_light", "yellow_glowing_lightbulb"));
+			bar.Add("Create a directional light", [this] { OnAction("create_directional_light"); }).Image(GetRibbonIcon("create_directional_light", "sun_icon_with_arrow_left_down"));
+			bar.Add("Create a tree (plant)", [this] { OnAction("create_tree"); }).Image(GetRibbonIcon("create_tree", "green_2d_fir_tree"));
+			bar.Add("Create a water surface", [this] { OnAction("create_water_surface"); }).Image(GetRibbonIcon("create_water_surface", "blue_plane_in_perspective"));
+			bar.Add("Create a billboard", [this] { OnAction("create_billboard"); }).Image(GetRibbonIcon("create_billboard", "gray_background_with_light_B"));
+			bar.Add("Create a vertical billboard", [this] { OnAction("create_vertical_billboard"); }).Image(GetRibbonIcon("create_vertical_billboard", "narrower_taller_variant_of_billboard_icon"));
+			bar.Add("Create a particle system", [this] { OnAction("create_particle_system"); }).Image(GetRibbonIcon("create_particle_system", "small_gray_particle_with_yellow_arrows_up_left_and_up_right"));
+			bar.Add("Create a skybox", [this] { OnAction("create_skybox"); }).Image(GetRibbonIcon("create_skybox", "inside_cube_view_blue_sky_walls_gray_ground"));
+			bar.Add("Create a 3D sound", [this] { OnAction("create_3d_sound"); }).Image(GetRibbonIcon("create_3d_sound", "speaker_cone"));
+			bar.Add("Create a 2D overlay item", [this] { OnAction("create_2d_overlay_item"); }).Image(GetRibbonIcon("create_2d_overlay_item", "gray_background_with_dark_2D_text"));
+			bar.Add("Create a 2D touchscreen input item", [this] { OnAction("create_2d_touchscreen_input_item"); }).Image(GetRibbonIcon("create_2d_touchscreen_input_item", "2d_overlay_symbol_with_circular_background"));
+			bar.Add("Create a path", [this] { OnAction("create_path"); }).Image(GetRibbonIcon("create_path", "two_points_connected_by_line"));
+			bar.Add("Create a path node", [this] { OnAction("create_path_node"); }).Image(GetRibbonIcon("create_path_node", "path_like_symbol_with_additional_points"));
+		});
+	}
+
+	RibbonPage& page_polygon_editing = AddTab("Polygon Editing");
+	{
+		RibbonGroup& g = page_polygon_editing.AddGroup("Polygon Tools");
+		g.SetLarge([this](Bar& bar) {
+			bar.Add("Select (Add=Shift, Remove=Alt)", [this] { OnAction("poly_select"); }).Image(GetRibbonIcon("poly_select", "triangle_over_axis_background_with_mouse_cursor"));
+			bar.Add("Select by Rectangle (Add=Shift, Remove=Alt)", [this] { OnAction("poly_select_by_rectangle"); }).Image(GetRibbonIcon("poly_select_by_rectangle", "small_cursor_with_rectangle_outline"));
+			bar.Add("Move Selected Polygons", [this] { OnAction("poly_move_selected"); }).Image(GetRibbonIcon("poly_move_selected", "triangle_over_axis_background_plus_four_direction_arrows"));
+			bar.Add("Rotate Selected Polygons", [this] { OnAction("poly_rotate_selected"); }).Image(GetRibbonIcon("poly_rotate_selected", "triangle_over_axis_background_plus_arc_rotate_arrow"));
+			bar.Add("Scale Selected Polygons", [this] { OnAction("poly_scale_selected"); }).Image(GetRibbonIcon("poly_scale_selected", "triangle_over_axis_background_plus_perspective_scale_arrows"));
+			bar.Add("Modify Texture Coordinates of Selected Points and Triangles", [this] { OnAction("poly_modify_uv"); }).Image(GetRibbonIcon("poly_modify_uv", "gray_background_with_black_UV_text"));
+		});
+	}
+
+	RibbonGroup& group_poly_edit_mode = page_polygon_editing.AddGroup("Edit Mode");
+	One<Ctrl>& poly_slot = owned_ctrls.Add();
+	poly_slot.Create<FormPanel>();
+	FormPanel& poly_form = static_cast<FormPanel&>(*poly_slot);
+	poly_form.SetMetrics(DPI(22), DPI(6), DPI(120));
+	DropList& poly_mode = poly_form.AddRowCtrl<DropList>("Edit Mode");
+	poly_mode.Add("triangle", "Triangle");
+	poly_mode.Add("point", "Point");
+	poly_mode.SetIndex(0);
+	poly_mode.WhenAction = [this] { OnAction("poly_edit_mode"); };
+	Button& poly_tools = poly_form.AddRowCtrl<Button>(String());
+	poly_tools.SetLabel("Tools");
+	poly_tools.WhenAction = [this] { OnAction("poly_tools"); };
+	group_poly_edit_mode.SetListCtrl(poly_form);
+	group_poly_edit_mode.SetContentMinSize(Size(DPI(260), DPI(24)));
+
+	RibbonPage& page_lightmapping = AddTab("Lightmapping");
+	RibbonGroup& group_lightmapping_controls = page_lightmapping.AddGroup("Bake Controls");
+	One<Ctrl>& light_slot = owned_ctrls.Add();
+	light_slot.Create<LightmapRowCtrl>();
+	LightmapRowCtrl& light_row = static_cast<LightmapRowCtrl&>(*light_slot);
+	light_row.SetGap(DPI(10));
+	Button& calc = light_row.AddCtrl<Button>(String());
+	calc.SetLabel("Calculate!");
+	calc.WhenAction = [this] { OnAction("calculate_lightmap"); };
+	DropList& lm_mode = light_row.AddCtrl<DropList>("Mode");
+	lm_mode.Add("wide", "Wide");
+	lm_mode.Add("diffuse", "Diffuse");
+	lm_mode.Add("shadows", "Shadows");
+	lm_mode.Add("gi", "Global Illumination");
+	lm_mode.SetIndex(0);
+	lm_mode.WhenAction = [this] { OnAction("lightmap_mode"); };
+	DropList& lm_tex = light_row.AddCtrl<DropList>("Texture size");
+	lm_tex.Add("64", "64");
+	lm_tex.Add("128", "128");
+	lm_tex.Add("256", "256");
+	lm_tex.Add("512", "512");
+	lm_tex.Add("1024", "1024");
+	lm_tex.SetIndex(0);
+	lm_tex.WhenAction = [this] { OnAction("lightmap_texture_size"); };
+	EditIntSpin& lm_res = light_row.AddCtrl<EditIntSpin>("Resolution");
+	lm_res.SetData(1000);
+	lm_res.WhenAction = [this] { OnAction("lightmap_resolution"); };
+	EditDoubleSpin& lm_shadow = light_row.AddCtrl<EditDoubleSpin>("Shadow Opacity");
+	lm_shadow.SetData(0.8);
+	lm_shadow.WhenAction = [this] { OnAction("lightmap_shadow_opacity"); };
+	DropList& lm_sub = light_row.AddCtrl<DropList>("Subsampling");
+	lm_sub.Add("none", "None");
+	lm_sub.Add("4x", "4X");
+	lm_sub.Add("9x", "9X");
+	lm_sub.Add("16x", "16X");
+	lm_sub.Add("25x", "25X");
+	lm_sub.SetIndex(0);
+	lm_sub.WhenAction = [this] { OnAction("lightmap_subsampling"); };
+	Option& ambient = light_row.AddCtrl<Option>("Ambient Light");
+	ambient = true;
+	ambient.WhenAction = [this] { OnAction("ambient_light_enabled"); };
+	Button& ambient_more = light_row.AddCtrl<Button>(String());
+	ambient_more.SetLabel("...");
+	ambient_more.WhenAction = [this] { OnAction("ambient_light_more"); };
+	Option& smooth = light_row.AddCtrl<Option>("Smooth Normals");
+	smooth = true;
+	smooth.WhenAction = [this] { OnAction("smooth_normals_enabled"); };
+	Option& bleed = light_row.AddCtrl<Option>("Color Bleeding");
+	bleed = true;
+	bleed.WhenAction = [this] { OnAction("color_bleeding_enabled"); };
+	group_lightmapping_controls.SetListCtrl(light_row);
+	group_lightmapping_controls.SetContentMinSize(Size(DPI(900), DPI(24)));
+
+	RibbonPage& page_scenes = AddTab("Scenes");
+	{
+		RibbonGroup& group_scene_dropdown = page_scenes.AddGroup("Scene");
+		One<Ctrl>& scene_slot = owned_ctrls.Add();
+		scene_slot.Create<FormPanel>();
+		FormPanel& scene_form = static_cast<FormPanel&>(*scene_slot);
+		scene_form.SetMetrics(DPI(22), DPI(6), DPI(160));
+		DropList& scene_sel = scene_form.AddRowCtrl<DropList>(String());
+		scene_sel.Add("new_scene", "New 3D Scene");
+		scene_sel.SetIndex(0);
+		scene_sel.WhenAction = [this] { OnAction("scene_selector"); };
+		group_scene_dropdown.SetListCtrl(scene_form);
+		group_scene_dropdown.SetContentMinSize(Size(DPI(220), DPI(24)));
+	}
+	{
+		RibbonGroup& group_scene_actions = page_scenes.AddGroup("Scene Actions");
+		group_scene_actions.SetLarge([this](Bar& bar) {
+			bar.Add("Add a new scene", [this] { OnAction("scene_add"); })
+				.Image(GetRibbonIcon("scene_add", "plus_icon"));
+			bar.Add("Delete a scene", [this] { OnAction("scene_delete"); })
+				.Image(GetRibbonIcon("scene_delete", "minus_icon"));
+			bar.Add("Scene Settings", [this] { OnAction("scene_settings"); })
+				.Image(GetRibbonIcon("scene_settings", "gear_cog"));
+			bar.Add("Scene Metrics", [this] { OnAction("scene_metrics"); })
+				.Image(GetRibbonIcon("scene_metrics", "scene_metrics_glyph"));
+			bar.Add("Scene Post Effects", [this] { OnAction("scene_post_effects"); })
+				.Image(GetRibbonIcon("scene_post_effects", "scene_postfx_glyph"));
+		});
+	}
+
+	RibbonPage& page_publish = AddTab("Publish");
+	{
+		RibbonGroup& group_publish_dropdown = page_publish.AddGroup("Target");
+		One<Ctrl>& pub_slot = owned_ctrls.Add();
+		pub_slot.Create<FormPanel>();
+		FormPanel& pub_form = static_cast<FormPanel&>(*pub_slot);
+		pub_form.SetMetrics(DPI(22), DPI(6), DPI(200));
+		DropList& pub_target = pub_form.AddRowCtrl<DropList>(String());
+		pub_target.Add("win_exe", "Publish as Windows (.exe)");
+		pub_target.Add("webgl", "Publish as WebGL (.html)");
+		pub_target.Add("mac_app", "Publish as MacOS (.app)");
+		pub_target.Add("android_apk", "Publish as Android (.apk)");
+		pub_target.SetIndex(0);
+		pub_target.WhenAction = [this] { OnAction("publish_target"); };
+		group_publish_dropdown.SetListCtrl(pub_form);
+		group_publish_dropdown.SetContentMinSize(Size(DPI(260), DPI(24)));
+	}
+	{
+		RibbonGroup& group_publish_actions = page_publish.AddGroup("Publish");
+		group_publish_actions.SetLarge([this](Bar& bar) {
+			bar.Add("Publishing Settings", [this] { OnAction("publishing_settings"); })
+				.Image(GetRibbonIcon("publishing_settings", "gear_cog"));
+			bar.Add("Publish and test the application", [this] { OnAction("publish_and_test"); })
+				.Image(GetRibbonIcon("publish_and_test", "play_icon"));
+		});
+	}
+
+	AddContextTabs();
+	SetDisplayMode(RibbonBar::RIBBON_ALWAYS);
+	ShowContext("picture", false);
+	ShowContext("camera", false);
+	loaded = true;
 }
 
 void ModelerAppRibbon::Clear()
 {
 	ClearTabs();
 	control_by_id.Clear();
-	items.Clear();
 	owned_ctrls.Clear();
+	action_handlers.Clear();
 	loaded = false;
-}
-
-bool ModelerAppRibbon::LoadSpec(const String& path)
-{
-	Clear();
-	spec_path = path;
-	String xml = LoadFile(path);
-	if (xml.IsEmpty())
-		return false;
-	return LoadSpecXml(xml);
-}
-
-bool ModelerAppRibbon::LoadSpecXml(const String& xml)
-{
-	Clear();
-	XmlNode root = ParseXML(xml);
-	const XmlNode* ribbon = nullptr;
-	if (root.IsTag("coppercube_ribbon_spec")) {
-		for (int i = 0; i < root.GetCount(); i++) {
-			const XmlNode& n = root.Node(i);
-			if (n.IsTag("ribbon")) {
-				ribbon = &n;
-				break;
-			}
-		}
-	}
-	else if (root.IsTag("ribbon")) {
-		ribbon = &root;
-	}
-	if (!ribbon)
-		return false;
-	BuildFromSpec(*ribbon);
-	AddContextTabs();
-	SetDisplayMode(RibbonBar::RIBBON_ALWAYS);
-	ShowContext("camera", false);
-	loaded = true;
-	return true;
-}
-
-void ModelerAppRibbon::BuildFromSpec(const XmlNode& root)
-{
-	ClearTabs();
-	control_by_id.Clear();
-	items.Clear();
-	owned_ctrls.Clear();
-	for (int i = 0; i < root.GetCount(); i++) {
-		const XmlNode& tab = root.Node(i);
-		if (!tab.IsTag("tab"))
-			continue;
-		String tab_id = NodeAttr(tab, "id");
-		String tab_title = NodeAttr(tab, "title");
-		if (tab_title.IsEmpty())
-			tab_title = tab_id;
-		RibbonPage& page = AddTab(tab_title);
-
-		for (int j = 0; j < tab.GetCount(); j++) {
-			const XmlNode& gnode = tab.Node(j);
-			if (!gnode.IsTag("group"))
-				continue;
-			String group_id = NodeAttr(gnode, "id");
-			String group_title = NodeAttr(gnode, "title");
-			if (group_title.IsEmpty())
-				group_title = group_id;
-			bool has_form = false;
-			bool use_list = false;
-			struct ButtonSpec : Moveable<ButtonSpec> {
-				String id;
-				String text;
-				String sem;
-				String icon;
-			};
-			Vector<ButtonSpec> buttons;
-			for (int k = 0; k < gnode.GetCount(); k++) {
-				const XmlNode& cn = gnode.Node(k);
-				if (!cn.IsTag())
-					continue;
-				String tag = ToLower(cn.GetTag());
-				if (tag == "label" || tag == "dropdown" || tag == "edit_int" || tag == "edit_double" || tag == "checkbox")
-					has_form = true;
-				if (tag == "button") {
-					if (ToLower(NodeAttr(cn, "style")) == "text")
-						use_list = true;
-					ButtonSpec& bs = buttons.Add();
-					bs.id = NodeAttr(cn, "id");
-					bs.text = NodeAttr(cn, "text");
-					bs.sem = NodeAttr(cn, "icon_semantics");
-					bs.icon = NodeAttr(cn, "icon");
-				}
-			}
-			RibbonGroup& group = page.AddGroup(group_title);
-
-			if (has_form) {
-				One<Ctrl>& slot = owned_ctrls.Add();
-				slot.Create<RibbonForm>();
-				RibbonForm& form = static_cast<RibbonForm&>(*slot);
-				form.SetMetrics(DPI(24), DPI(6), DPI(120));
-				String pending_label;
-				String pending_for;
-				for (int k = 0; k < gnode.GetCount(); k++) {
-					const XmlNode& cn = gnode.Node(k);
-					if (!cn.IsTag())
-						continue;
-					String tag = ToLower(cn.GetTag());
-					if (tag == "label") {
-						pending_label = NodeAttr(cn, "text");
-						pending_for = NodeAttr(cn, "for");
-						continue;
-					}
-					if (tag == "button") {
-					String id = NodeAttr(cn, "id");
-					String text = NodeAttr(cn, "text");
-					Button& b = form.AddRowCtrl<Button>(String());
-					b.SetLabel(text);
-					b.WhenAction = [this, id] { OnAction(id); };
-					if (!id.IsEmpty())
-						control_by_id.GetAdd(id, &b);
-					continue;
-					}
-					if (tag == "dropdown") {
-						String id = NodeAttr(cn, "id");
-						String label = pending_label;
-						if (!pending_for.IsEmpty() && pending_for != id)
-							label.Clear();
-					DropList& dl = form.AddRowCtrl<DropList>(label);
-					for (int m = 0; m < cn.GetCount(); m++) {
-						const XmlNode& item = cn.Node(m);
-						if (item.IsTag("item")) {
-							String key = item.Attr("id");
-							String text = item.Attr("text");
-							if (key.IsEmpty())
-								key = text;
-							dl.Add(key, text);
-						}
-					}
-					if (dl.GetCount() > 0)
-						dl.SetIndex(0);
-					dl.WhenAction = [this, id] { OnAction(id); };
-					if (!id.IsEmpty())
-						control_by_id.GetAdd(id, &dl);
-					pending_label.Clear();
-					pending_for.Clear();
-					continue;
-					}
-					if (tag == "edit_int") {
-						String id = NodeAttr(cn, "id");
-						String label = pending_label;
-						if (!pending_for.IsEmpty() && pending_for != id)
-							label.Clear();
-						EditIntSpin& ed = form.AddRowCtrl<EditIntSpin>(label);
-					String def = NodeAttr(cn, "default");
-					if (!def.IsEmpty())
-						ed.SetData(StrInt(def));
-					if (!id.IsEmpty())
-						control_by_id.GetAdd(id, &ed);
-					pending_label.Clear();
-					pending_for.Clear();
-					continue;
-					}
-					if (tag == "edit_double") {
-						String id = NodeAttr(cn, "id");
-						String label = pending_label;
-						if (!pending_for.IsEmpty() && pending_for != id)
-							label.Clear();
-						EditDoubleSpin& ed = form.AddRowCtrl<EditDoubleSpin>(label);
-					String def = NodeAttr(cn, "default");
-					if (!def.IsEmpty())
-						ed.SetData(StrDbl(def));
-					if (!id.IsEmpty())
-						control_by_id.GetAdd(id, &ed);
-					pending_label.Clear();
-					pending_for.Clear();
-					continue;
-					}
-					if (tag == "checkbox") {
-						String id = NodeAttr(cn, "id");
-						String label = pending_label;
-						if (label.IsEmpty())
-							label = id;
-						Option& opt = form.AddRowCtrl<Option>(label);
-					String def = ToLower(NodeAttr(cn, "default"));
-					if (def == "true" || def == "1")
-						opt = true;
-					if (!id.IsEmpty())
-						control_by_id.GetAdd(id, &opt);
-					pending_label.Clear();
-					pending_for.Clear();
-					continue;
-					}
-				}
-				group.SetListCtrl(form);
-				continue;
-			}
-
-			if (use_list) {
-				group.SetList([this, buttons = pick(buttons)](Bar& bar) mutable {
-					for (const ButtonSpec& bs : buttons) {
-						Image img = RibbonIconForId(bs.id, bs.sem, bs.icon);
-						bar.Add(bs.text, [this, id = bs.id] { OnAction(id); }).Image(img);
-					}
-				});
-				continue;
-			}
-
-			group.SetLarge([this, buttons = pick(buttons)](Bar& bar) mutable {
-				for (const ButtonSpec& bs : buttons) {
-					Image img = RibbonIconForId(bs.id, bs.sem, bs.icon);
-					bar.Add(bs.text, [this, id = bs.id] { OnAction(id); }).Image(img);
-				}
-			});
-		}
-	}
 }
 
 void ModelerAppRibbon::OnAction(const String& id)
 {
 	WhenAction(id);
-	if (owner)
+	bool handled = false;
+	int idx = action_handlers.Find(id);
+	if (idx >= 0) {
+		action_handlers[idx]();
+		handled = true;
+	}
+	if (!handled && owner) {
 		owner->HandleRibbonAction(id);
+		handled = true;
+	}
+	if (!handled)
+		LOG("Ribbon action unhandled: " << id);
 }
 
 Ctrl* ModelerAppRibbon::FindControl(const String& id) const
 {
 	int idx = control_by_id.Find(id);
 	return idx >= 0 ? control_by_id[idx] : nullptr;
+}
+
+void ModelerAppRibbon::BindAction(const String& id, Event<> cb)
+{
+	int idx = action_handlers.Find(id);
+	if (idx >= 0)
+		action_handlers[idx] = cb;
+	else
+		action_handlers.Add(id, cb);
 }
 
 void ModelerAppRibbon::SetupQuickAccess()

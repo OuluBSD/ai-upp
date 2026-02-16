@@ -13,6 +13,7 @@ public:
 	virtual ValueArray ListTabs() = 0;
 	virtual bool GotoTab(const Value& identifier) = 0;
 	virtual String GetPageContent() = 0;
+        virtual String GetCurrentURL() = 0;
 	virtual void NewTab(const String& url = "about:blank") = 0;
 	virtual void NavigateWithPrompt(const String& prompt) = 0;
 };
@@ -44,6 +45,7 @@ public:
 	virtual ValueArray ListTabs() override;
 	virtual bool GotoTab(const Value& identifier) override;
 	virtual String GetPageContent() override;
+        virtual String GetCurrentURL() override;
 	virtual void NewTab(const String& url = "about:blank") override;
 	virtual void NavigateWithPrompt(const String& prompt) override;
 	

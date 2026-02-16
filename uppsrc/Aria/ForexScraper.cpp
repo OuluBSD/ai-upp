@@ -337,4 +337,83 @@ bool ForexScraper::ScrapeOandaRates() {
 	return true;
 }
 
+
+bool ForexScraper::ScrapeFFRates() {
+        String current_url;
+        try {
+                current_url = navigator.GetCurrentURL();
+        } catch(...) {}
+
+        if (current_url.Find("forexfactory.com") < 0) {
+                Cout() << "ForexScraper: FF Rates Navigating to https://www.forexfactory.com/ ...\n";
+                navigator.Navigate("https://www.forexfactory.com/");
+                Sleep(3000);
+                BypassConsent(navigator);
+                Sleep(2000);
+        } else {
+                Cout() << "ForexScraper: FF Rates already on forexfactory.com, refreshing...\n";
+                navigator.Eval("window.location.reload()");
+                Sleep(3000);
+        }
+
+        Value res = navigator.Eval(R"(
+                return (function() {
+                        const result = [];
+                        
+                        // Try component states first (modern FF)
+                        if(window.marketComponentStates && window.marketComponentStates[1]) {
+                                const data = window.marketComponentStates[1];
+                                if(data.instruments) {
+                                        for(const inst of data.instruments) {
+                                                result.push({
+                                                        symbol: inst.symbol,
+                                                        bid: inst.bid,
+                                                        ask: inst.ask,
+                                                        change: inst.change
+                                                });
+                                        }
+                                        if(result.length > 0) return result;
+                                }
+                        }
+
+                        // Fallback to DOM scraping
+                        const rows = document.querySelectorAll('.market__row, .market-table tr');
+                        for(const row of rows) {
+                                const symbolEl = row.querySelector('.market__symbol, .symbol');
+                                const bidEl = row.querySelector('.market__bid, .bid');
+                                const askEl = row.querySelector('.market__ask, .ask');
+                                
+                                if(symbolEl && bidEl && askEl) {
+                                        result.push({
+                                                symbol: symbolEl.innerText.trim(),
+                                                bid: bidEl.innerText.trim(),
+                                                ask: askEl.innerText.trim()
+                                        });
+                                }
+                        }
+                        return result;
+                })()
+        )");
+
+        if(res.Is<ValueArray>()) {
+                ValueArray va = res;
+                Cout() << "ForexScraper: FF extracted " << va.GetCount() << " rates.\n";
+                for(int i = 0; i < va.GetCount(); i++) {
+                        ValueMap m = va[i];
+                        String sym = m["symbol"];
+                        if(sym.IsEmpty()) continue;
+                        
+                        ForexRate& r = fm.rates.GetAdd(sym);
+                        r.symbol = sym;
+                        r.bid = ScanDouble(m["bid"].ToString());
+                        r.ask = ScanDouble(m["ask"].ToString());
+                        r.change = ScanDouble(m["change"].ToString());
+                        r.updated = GetUtcTime();
+                }
+                return va.GetCount() > 0;
+        }
+
+        return false;
+}
+
 END_UPP_NAMESPACE

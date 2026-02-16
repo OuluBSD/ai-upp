@@ -1,5 +1,7 @@
 # uppts - U++ TypeScript Interface
 
+# Status: in_progress
+
 TypeScript/Node.js interface library with U++-like API.
 
 ## Overview

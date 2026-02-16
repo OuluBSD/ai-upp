@@ -2,6 +2,7 @@
 #define _Eon09_Eon09_h_
 
 #include <Core/Core.h>
+#include <Shell/Shell.h>
 #include <Scene3D/Core/Core.h>
 #include <Scene3D/IO/IO.h>
 #include <Scene3D/Render/Render.h>
@@ -25,6 +26,7 @@ void LoadScene3DTestModels(Scene3DTestContext& ctx);
 
 void Run09aScene3DHeadless(int method);
 void Run09bScene3DSdlOgl(int method);
+void Run09cScene3DGraphicsOgl(int method);
 
 END_UPP_NAMESPACE
 

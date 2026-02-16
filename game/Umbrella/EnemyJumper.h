@@ -22,7 +22,8 @@ private:
 	int          frameCounter = 0;
 
 public:
-	EnemyJumper(float x, float y);
+	EnemyJumper(VfsValue& v) : Enemy(v, ENEMY_JUMPER) { ResetJumpTimer(); }
+	void Init(float x, float y, int spawnFacing = -1);
 
 	virtual void Update(float delta, const Player& player, Player::CollisionHandler& collision) override;
 	virtual void Render(Draw& w, Player::CoordinateConverter& coords) override;

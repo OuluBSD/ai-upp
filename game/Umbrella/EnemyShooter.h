@@ -15,6 +15,7 @@ private:
 	static constexpr float DETECTION_RANGE = 15.0f * 14.0f;
 
 	float              shootTimer;
+	VfsValue           projectileRoot;  // Owns Projectile VfsValue nodes
 	Array<Projectile*> projectiles;
 
 	AIController aiController;
@@ -22,7 +23,8 @@ private:
 	int          frameCounter = 0;
 
 public:
-	EnemyShooter(float x, float y);
+	EnemyShooter(VfsValue& v) : Enemy(v, ENEMY_SHOOTER) { shootTimer = 0.0f; }
+	void Init(float x, float y, int spawnFacing = 1);
 	~EnemyShooter();
 
 	virtual void Update(float delta, const Player& player, Player::CollisionHandler& collision) override;

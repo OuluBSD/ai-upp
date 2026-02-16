@@ -15,20 +15,18 @@ void EnemyShooter::WireAI(Pathfinder* pf, const NavGraph* ng,
 	aiEnabled = true;
 }
 
-EnemyShooter::EnemyShooter(float x, float y)
-	: Enemy(x, y, 14, 14, ENEMY_SHOOTER)
+void EnemyShooter::Init(float x, float y, int spawnFacing)
 {
-	velocity.x = 0.0f;  // Stationary
+	bounds = Rectf(x, y, x + 14, y + 14);
+	originalSize = 14;
+	facing = spawnFacing;
+	velocity.x = 0.0f;
 	velocity.y = 0.0f;
-	facing = 1;  // Face right initially
-	shootTimer = 0.0f;
 }
 
 EnemyShooter::~EnemyShooter() {
-	for(int i = 0; i < projectiles.GetCount(); i++) {
-		delete projectiles[i];
-	}
-	projectiles.Clear();
+	projectiles.Clear();       // Clear pointer array first
+	projectileRoot.sub.Clear();    // VFS tree frees memory
 }
 
 bool EnemyShooter::CanSeePlayer(const Player& player) {
@@ -56,14 +54,18 @@ bool EnemyShooter::CanSeePlayer(const Player& player) {
 void EnemyShooter::ShootAtPlayer(const Player& player) {
 	float spawnX = (bounds.left + bounds.right) / 2.0f - 3.0f;
 	float spawnY = (bounds.top + bounds.bottom) / 2.0f - 3.0f;
-	projectiles.Add(new Projectile(spawnX, spawnY, facing));
+	Projectile& p = projectileRoot.Add<Projectile>();
+	p.Init(spawnX, spawnY, facing);
+	projectiles.Add(&p);
 }
 
 void EnemyShooter::ShootInDirection(int dir) {
 	facing = dir;
 	float spawnX = (bounds.left + bounds.right) / 2.0f - 3.0f;
 	float spawnY = (bounds.top + bounds.bottom) / 2.0f - 3.0f;
-	projectiles.Add(new Projectile(spawnX, spawnY, dir));
+	Projectile& p = projectileRoot.Add<Projectile>();
+	p.Init(spawnX, spawnY, dir);
+	projectiles.Add(&p);
 }
 
 void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& collision) {
@@ -75,7 +77,7 @@ void EnemyShooter::UpdateProjectiles(float delta, Player::CollisionHandler& coll
 	// Remove inactive projectiles
 	for(int i = projectiles.GetCount() - 1; i >= 0; i--) {
 		if(!projectiles[i]->IsActive()) {
-			delete projectiles[i];
+			projectileRoot.Remove(&projectiles[i]->val);
 			projectiles.Remove(i);
 		}
 	}

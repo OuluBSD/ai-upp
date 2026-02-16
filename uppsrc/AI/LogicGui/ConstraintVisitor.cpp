@@ -33,7 +33,8 @@ ConstraintVisitor::ConstraintVisitor()
 
 Visitor& ConstraintVisitor::AccessLabel(const char *text)
 {
-	String name = Sanitize(text);
+	String name = ctrl->GetLayoutId();
+	if(name.IsEmpty() || (text && *text)) name = Sanitize(text);
 	current_ctrl = name;
 	facts.FindAdd(Format("LABEL(%s)", name));
 	if(ctrl->IsVisible()) facts.FindAdd(Format("VISIBLE(%s)", name));
@@ -63,8 +64,14 @@ Visitor& ConstraintVisitor::AccessOption(bool check, const char *text, Event<> c
 Visitor& ConstraintVisitor::AccessValue(const Value& v)
 {
 	if(!current_ctrl.IsEmpty()) {
-		if(!v.IsNull())
+		if(!v.IsNull()) {
 			facts.FindAdd(Format("HasValue(%s)", current_ctrl));
+			String s = v.ToString();
+			if(s.GetCount() > 0 && s[0] == '[') {
+				// Heuristic: starts with [ is often QTF
+				facts.FindAdd(Format("IS_QTF(%s)", current_ctrl));
+			}
+		}
 		else
 			facts.FindAdd(Format("IsNull(%s)", current_ctrl));
 	}

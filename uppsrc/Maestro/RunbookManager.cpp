@@ -104,9 +104,7 @@ Runbook RunbookManager::Resolve(const String& text, bool use_ai)
 	}
 	
 	CliMaestroEngine engine;
-	engine.binary = "gemini";
-	engine.model = "gemini-1.5-flash";
-	engine.Arg("-y");
+	ConfigureGemini(engine);
 	
 	String prompt;
 	prompt << "You are a Maestro AI Assistant. Create a structured runbook JSON based on the following user request.\n"

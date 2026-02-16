@@ -1,4 +1,6 @@
 #include "ModelerApp.h"
+#include <functional>
+#include <Vfs/Ecs/Ecs.h>
 
 NAMESPACE_UPP
 
@@ -986,6 +988,235 @@ void GeomProjectCtrl::Update(double dt) {
 	// Scene timeline sync handled after GeomSceneTimeline::Update in Edit3D::Update.
 }
 
+VfsValue* GeomProjectCtrl::ResolveGeomValue(const Value& v) {
+	if (!v.Is<VfsValue*>())
+		return nullptr;
+	VfsValue* node = ValueTo<VfsValue*>(v);
+	if (!node)
+		return nullptr;
+	int idx = ecs_to_geom.Find(node);
+	if (idx >= 0)
+		return ecs_to_geom[idx];
+	return node;
+}
+
+void GeomProjectCtrl::BuildEcsMirror() {
+	ecs_root_val.sub.Clear();
+	ecs_root_val.ext.Clear();
+	ecs_root_val.type_hash = 0;
+	ecs_root_val.id = "ecs";
+	ecs_root_val.owner = nullptr;
+	ecs_to_geom.Clear();
+	geom_to_ecs.Clear();
+	
+	if (!e || !e->prj)
+		return;
+	
+	GeomProject& prj = *e->prj;
+	auto create_entity = [&](VfsValue& parent, const String& id) -> VfsValue& {
+		VfsValue& node = parent.Add(id);
+		auto* f = VfsValueExtFactory::FindFactoryEon("entity", VFSEXT_DEFAULT);
+		if (!f)
+			f = VfsValueExtFactory::FindFactory("Entity");
+		if (f) {
+			node.ext = f->new_fn(node);
+			node.type_hash = node.ext ? node.ext->GetTypeHash() : 0;
+		}
+		return node;
+	};
+	auto add_mapping = [&](const VfsValue* ecs_node, VfsValue* geom_node, bool map_geom_to_ecs) {
+		if (!ecs_node || !geom_node)
+			return;
+		int idx = ecs_to_geom.Find(ecs_node);
+		if (idx >= 0)
+			ecs_to_geom[idx] = geom_node;
+		else
+			ecs_to_geom.Add(ecs_node, geom_node);
+		if (map_geom_to_ecs) {
+			int gidx = geom_to_ecs.Find(geom_node);
+			if (gidx >= 0)
+				geom_to_ecs[gidx] = const_cast<VfsValue*>(ecs_node);
+			else
+				geom_to_ecs.Add(geom_node, const_cast<VfsValue*>(ecs_node));
+		}
+	};
+	
+	std::function<void(VfsValue&, VfsValue&)> build_node = [&](VfsValue& geom_node, VfsValue& ecs_parent) {
+		auto add_bone = [&](auto&& add_bone, VfsValue& ecs_parent, VfsValue& bone_node) -> void {
+			GeomBone& bone = bone_node.GetExt<GeomBone>();
+			String name = bone.name.IsEmpty() ? bone_node.id : bone.name;
+			VfsValue& ecs_bone = ecs_parent.Add(name);
+			add_mapping(&ecs_bone, &bone_node, false);
+			for (auto& sub : bone_node.sub) {
+				if (IsVfsType(sub, AsTypeHash<GeomBone>()))
+					add_bone(add_bone, ecs_bone, sub);
+			}
+		};
+		
+		for (auto& s : geom_node.sub) {
+			if (IsVfsType(s, AsTypeHash<GeomDirectory>())) {
+				GeomDirectory& dir = s.GetExt<GeomDirectory>();
+				String name = dir.name.IsEmpty() ? s.id : dir.name;
+				VfsValue& ecs_dir = ecs_parent.Add(name);
+				add_mapping(&ecs_dir, &s, false);
+				build_node(s, ecs_dir);
+				continue;
+			}
+			if (IsVfsType(s, AsTypeHash<GeomObject>())) {
+				GeomObject& o = s.GetExt<GeomObject>();
+				String name = o.name.IsEmpty() ? s.id : o.name;
+				VfsValue& ecs_ent = create_entity(ecs_parent, name);
+				add_mapping(&ecs_ent, &s, true);
+				Entity* ent = dynamic_cast<Entity*>(&*ecs_ent.ext);
+				if (ent) {
+					ComponentPtr tr = ent->CreateEon("transform3");
+					if (tr) {
+						tr->val.id = "Transform";
+						add_mapping(&tr->val, &s, false);
+					}
+					if (o.type == GeomObject::O_MODEL) {
+						ComponentPtr mdl = ent->CreateEon("model");
+						if (mdl) {
+							mdl->val.id = "Model";
+							add_mapping(&mdl->val, &s, false);
+						}
+					}
+					if (o.type == GeomObject::O_CAMERA) {
+						ComponentPtr view = ent->CreateEon("viewable");
+						if (view) {
+							view->val.id = "Viewable";
+							add_mapping(&view->val, &s, false);
+						}
+						ComponentPtr vp = ent->CreateEon("viewport");
+						if (vp) {
+							vp->val.id = "Viewport";
+							add_mapping(&vp->val, &s, false);
+						}
+					}
+				}
+				for (auto& sub : s.sub) {
+					if (!IsVfsType(sub, AsTypeHash<GeomSkeleton>()))
+						continue;
+					GeomSkeleton& sk = sub.GetExt<GeomSkeleton>();
+					String sk_name = sk.name.IsEmpty() ? sub.id : sk.name;
+					VfsValue& ecs_sk = ecs_ent.Add(sk_name);
+					add_mapping(&ecs_sk, &sub, false);
+					for (auto& b : sub.sub) {
+						if (IsVfsType(b, AsTypeHash<GeomBone>()))
+							add_bone(add_bone, ecs_sk, b);
+					}
+				}
+				continue;
+			}
+			if (IsVfsType(s, AsTypeHash<GeomPointcloudDataset>())) {
+				GeomPointcloudDataset& ds = s.GetExt<GeomPointcloudDataset>();
+				String name = ds.name.IsEmpty() ? s.id : ds.name;
+				VfsValue& ecs_ent = create_entity(ecs_parent, name);
+				add_mapping(&ecs_ent, &s, true);
+				Entity* ent = dynamic_cast<Entity*>(&*ecs_ent.ext);
+				if (ent) {
+					ComponentPtr tr = ent->CreateEon("transform3");
+					if (tr) {
+						tr->val.id = "Transform";
+						add_mapping(&tr->val, &s, false);
+					}
+					ComponentPtr mdl = ent->CreateEon("model");
+					if (mdl) {
+						mdl->val.id = "Pointcloud";
+						add_mapping(&mdl->val, &s, false);
+					}
+				}
+				continue;
+			}
+		}
+	};
+	
+	int scene_idx = 0;
+	for (auto& s : prj.val.sub) {
+		if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+			continue;
+		GeomScene& scene = s.GetExt<GeomScene>();
+		String name = scene.name.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene.name;
+		VfsValue& ecs_scene = ecs_root_val.Add(name);
+		add_mapping(&ecs_scene, &scene.val, true);
+		build_node(scene.val, ecs_scene);
+		scene_idx++;
+	}
+}
+
+void GeomProjectCtrl::TreeValueEcs(int id, VfsValue& node) {
+	auto warn_unknown = [&](const VfsValue& n) {
+		hash_t type_hash = n.ext ? n.ext->GetTypeHash() : n.type_hash;
+		if (warned_tree_types.Find(type_hash) >= 0)
+			return;
+		warned_tree_types.Add(type_hash);
+		LOG("GeomProjectCtrl: unexpected VfsValue type in ECS tree: " + n.GetTypeString());
+	};
+	auto get_geom_node = [&](const VfsValue& ecs_node) -> VfsValue* {
+		int idx = ecs_to_geom.Find(&ecs_node);
+		if (idx >= 0)
+			return ecs_to_geom[idx];
+		return nullptr;
+	};
+	auto add_entity = [&](int parent_id, VfsValue& ecs_node) -> void {
+		VfsValue* geom_node = get_geom_node(ecs_node);
+		GeomObject* obj = (geom_node && IsVfsType(*geom_node, AsTypeHash<GeomObject>())) ? &geom_node->GetExt<GeomObject>() : nullptr;
+		GeomPointcloudDataset* ds = (geom_node && IsVfsType(*geom_node, AsTypeHash<GeomPointcloudDataset>())) ? &geom_node->GetExt<GeomPointcloudDataset>() : nullptr;
+		Image img = ImagesImg::Object();
+		if (obj) {
+			switch (obj->type) {
+				case GeomObject::O_CAMERA: img = ImagesImg::Camera(); break;
+				case GeomObject::O_MODEL:  img = ImagesImg::Model(); break;
+				case GeomObject::O_OCTREE: img = ImagesImg::Octree(); break;
+				default: img = ImagesImg::Object();
+			}
+		}
+		else if (ds) {
+			img = ImagesImg::Octree();
+		}
+		String name = ecs_node.id.IsEmpty() ? ecs_node.GetTypeString() : ecs_node.id;
+		int j = tree.Add(parent_id, img, RawToValue(&ecs_node), name);
+		if (obj) {
+			tree.SetRowValue(j, tree_col_visible, obj->is_visible);
+			tree.SetRowValue(j, tree_col_locked, obj->is_locked);
+			tree.SetRowValue(j, tree_col_read, obj->read_enabled);
+			tree.SetRowValue(j, tree_col_write, obj->write_enabled);
+		}
+		else {
+			tree.SetRowValue(j, tree_col_visible, Null);
+			tree.SetRowValue(j, tree_col_locked, Null);
+			tree.SetRowValue(j, tree_col_read, Null);
+			tree.SetRowValue(j, tree_col_write, Null);
+		}
+		TreeValueEcs(j, ecs_node);
+	};
+	for (auto& sub : node.sub) {
+		if (sub.ext && dynamic_cast<Entity*>(&*sub.ext)) {
+			add_entity(id, sub);
+			continue;
+		}
+		if (sub.ext && dynamic_cast<Component*>(&*sub.ext)) {
+			String name = sub.id.IsEmpty() ? sub.GetTypeString() : sub.id;
+			int j = tree.Add(id, ImagesImg::Object(), RawToValue(&sub), name);
+			tree.SetRowValue(j, tree_col_visible, Null);
+			tree.SetRowValue(j, tree_col_locked, Null);
+			tree.SetRowValue(j, tree_col_read, Null);
+			tree.SetRowValue(j, tree_col_write, Null);
+			continue;
+		}
+		if (sub.ext) {
+			warn_unknown(sub);
+		}
+		String name = sub.id.IsEmpty() ? sub.GetTypeString() : sub.id;
+		int j = tree.Add(id, ImagesImg::Directory(), RawToValue(&sub), name);
+		tree.SetRowValue(j, tree_col_visible, Null);
+		tree.SetRowValue(j, tree_col_locked, Null);
+		tree.SetRowValue(j, tree_col_read, Null);
+		tree.SetRowValue(j, tree_col_write, Null);
+		TreeValueEcs(j, sub);
+	}
+}
+
 void GeomProjectCtrl::Data() {
 	GeomProject& prj = *e->prj;
 	StoreTreeOpenState();
@@ -1033,24 +1264,44 @@ void GeomProjectCtrl::Data() {
 
 	
 	tree_scenes = tree.Add(0, ImagesImg::Scenes(), "Scenes");
+	if (use_ecs_tree)
+		BuildEcsMirror();
 	
 	int scene_idx = 0;
-	for (auto& s : prj.val.sub) {
-		if (!IsVfsType(s, AsTypeHash<GeomScene>()))
-			continue;
-		GeomScene& scene = s.GetExt<GeomScene>();
-		String name = scene.name.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene.name;
-		int j = tree.Add(tree_scenes, ImagesImg::Scene(), RawToValue(&scene.val), name);
-		tree.SetRowValue(j, tree_col_visible, Null);
-		tree.SetRowValue(j, tree_col_locked, Null);
-		tree.SetRowValue(j, tree_col_read, Null);
-		tree.SetRowValue(j, tree_col_write, Null);
-		
-		TreeValue(j, scene.val);
-		
-		if (scene_idx == 0 && !tree.HasFocus())
-			tree.SetCursor(j);
-		scene_idx++;
+	if (use_ecs_tree) {
+		for (auto& scene_node : ecs_root_val.sub) {
+			String name = scene_node.id.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene_node.id;
+			int j = tree.Add(tree_scenes, ImagesImg::Scene(), RawToValue(&scene_node), name);
+			tree.SetRowValue(j, tree_col_visible, Null);
+			tree.SetRowValue(j, tree_col_locked, Null);
+			tree.SetRowValue(j, tree_col_read, Null);
+			tree.SetRowValue(j, tree_col_write, Null);
+			
+			TreeValueEcs(j, scene_node);
+			
+			if (scene_idx == 0 && !tree.HasFocus())
+				tree.SetCursor(j);
+			scene_idx++;
+		}
+	}
+	else {
+		for (auto& s : prj.val.sub) {
+			if (!IsVfsType(s, AsTypeHash<GeomScene>()))
+				continue;
+			GeomScene& scene = s.GetExt<GeomScene>();
+			String name = scene.name.IsEmpty() ? "Scene #" + IntStr(scene_idx) : scene.name;
+			int j = tree.Add(tree_scenes, ImagesImg::Scene(), RawToValue(&scene.val), name);
+			tree.SetRowValue(j, tree_col_visible, Null);
+			tree.SetRowValue(j, tree_col_locked, Null);
+			tree.SetRowValue(j, tree_col_read, Null);
+			tree.SetRowValue(j, tree_col_write, Null);
+			
+			TreeValue(j, scene.val);
+			
+			if (scene_idx == 0 && !tree.HasFocus())
+				tree.SetCursor(j);
+			scene_idx++;
+		}
 	}
 	
 	/*for(int i = 0; i < prj.octrees.GetCount(); i++) {
@@ -1097,6 +1348,7 @@ void GeomProjectCtrl::TreeSelect() {
 	if (cursor < 0)
 		return;
 	Value v = tree.Get(cursor);
+	VfsValue* geom_node = ResolveGeomValue(v);
 	if (!current_tree_path.IsEmpty())
 		StorePropsCursor(current_tree_path);
 	e->selected_bone = nullptr;
@@ -1105,11 +1357,10 @@ void GeomProjectCtrl::TreeSelect() {
 	GeomPointcloudDataset* ds = GetNodeDataset(v);
 	current_tree_path = GetTreePathForValue(v, cursor);
 	selected_dataset = ds;
-	if (!obj && v.Is<VfsValue*>()) {
-		VfsValue* node = ValueTo<VfsValue*>(v);
-		if (node && IsVfsType(*node, AsTypeHash<GeomBone>())) {
-			e->selected_bone = node;
-			for (VfsValue* p = node->owner; p; p = p->owner) {
+	if (!obj && geom_node) {
+		if (IsVfsType(*geom_node, AsTypeHash<GeomBone>())) {
+			e->selected_bone = geom_node;
+			for (VfsValue* p = geom_node->owner; p; p = p->owner) {
 				if (IsVfsType(*p, AsTypeHash<GeomObject>())) {
 					obj = &p->GetExt<GeomObject>();
 					break;
@@ -1215,9 +1466,7 @@ GeomProjectCtrl::TreeNodeRef* GeomProjectCtrl::GetNodeRef(const Value& v) {
 }
 
 GeomObject* GeomProjectCtrl::GetNodeObject(const Value& v) {
-	if (!v.Is<VfsValue*>())
-		return 0;
-	VfsValue* node = ValueTo<VfsValue*>(v);
+	VfsValue* node = ResolveGeomValue(v);
 	if (!node)
 		return 0;
 	if (!IsVfsType(*node, AsTypeHash<GeomObject>()))
@@ -1226,9 +1475,7 @@ GeomObject* GeomProjectCtrl::GetNodeObject(const Value& v) {
 }
 
 GeomPointcloudDataset* GeomProjectCtrl::GetNodeDataset(const Value& v) {
-	if (!v.Is<VfsValue*>())
-		return 0;
-	VfsValue* node = ValueTo<VfsValue*>(v);
+	VfsValue* node = ResolveGeomValue(v);
 	if (!node)
 		return 0;
 	hash_t dataset_hash = TypedStringHasher<GeomPointcloudDataset>("GeomPointcloudDataset");
@@ -1608,30 +1855,30 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		}).Key(K_DELETE);
 	if (!is_root)
 		bar.Sub(t_("Modify Selection"), [=](Bar& bar) {
-			auto stub = [&](const String& text) {
-				bar.Add(text, [=] { LOG("Modify selection: " + text); });
+			auto stub = [&](const String& text) -> Bar::Item& {
+				return bar.Add(text, [=] { LOG("Modify selection: " + text); });
 			};
-		stub(t_("Set planar texture coordinates for mesh"));
-		stub(t_("Flip direction of all faces"));
-		stub(t_("Center pivot point"));
-		stub(t_("Free scale and normalize normals"));
-		stub(t_("Clear vertex colors"));
-		stub(t_("Set vertex colors"));
-		stub(t_("Recalculate normals and tangents"));
-		stub(t_("Clone as static animated mesh"));
-		stub(t_("Distribute over terrain"));
-		stub(t_("Bake all textures of selection into one"));
-		bar.Separator();
-		bar.Add(t_("Edit 2D room map")).Enable(false);
-		bar.Add(t_("Open in animation editor")).Enable(false);
-		bar.Add(t_("Attach node to animated joint")).Enable(false);
-		bar.Separator();
-		bar.Add(t_("Export mesh as")).Enable(false);
-		stub(t_("Reload this mesh from disk"));
-		bar.Add(t_("Load new mesh from disk")).Enable(false);
-		bar.Separator();
-		stub(t_("Copy behaviors of this node")).Key(K_CTRL|K_B);
-			bar.Add(t_("Paste the behaviors to this node")).Enable(false).Key(K_CTRL|K_I);
+			stub(t_("Set planar texture coordinates for mesh"));
+			stub(t_("Flip direction of all faces"));
+			stub(t_("Center pivot point"));
+			stub(t_("Free scale and normalize normals"));
+			stub(t_("Clear vertex colors"));
+			stub(t_("Set vertex colors"));
+			stub(t_("Recalculate normals and tangents"));
+			stub(t_("Clone as static animated mesh"));
+			stub(t_("Distribute over terrain"));
+			stub(t_("Bake all textures of selection into one"));
+			bar.Separator();
+			bar.Add(t_("Edit 2D room map"), [] {}).Enable(false);
+			bar.Add(t_("Open in animation editor"), [] {}).Enable(false);
+			bar.Add(t_("Attach node to animated joint"), [] {}).Enable(false);
+			bar.Separator();
+			bar.Add(t_("Export mesh as"), [] {}).Enable(false);
+			stub(t_("Reload this mesh from disk"));
+			bar.Add(t_("Load new mesh from disk"), [] {}).Enable(false);
+			bar.Separator();
+			stub(t_("Copy behaviors of this node")).Key(K_CTRL|K_B);
+			bar.Add(t_("Paste the behaviors to this node"), [] {}).Enable(false).Key(K_CTRL|K_I);
 		});
 	bar.Sub(t_("Insert"), [=](Bar& bar) {
 		auto add = [&](const char* text, const char* id) {

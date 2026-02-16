@@ -5,30 +5,24 @@
 #include "AudioSystem.h"
 
 using namespace Upp;
+using CollisionHandler = Player::CollisionHandler;
 
-Player::Player(float x, float y, float width, float height) {
+Player::Player(VfsValue& v) : GameEntity(v), onGround(false), coyoteTimer(0.0f),
+                              jumpBufferTimer(0.0f), jumpHeld(false), jumpHoldQueued(false),
+                              lives(3), score(0), invincibleTimer(0.0f),
+                              knockbackTimer(0.0f), speedBoostTimer(0.0f),
+                              parasolState(PARASOL_IDLE), attackHeld(false),
+                              wasAttackHeld(false), attackTimer(0.0f),
+                              attackCooldown(0.0f), forceUmbrellaOnTop(false),
+                              carryWeight(0.0f), maxCarryWeight(3.0f)
+{
+	parasolHitbox = Rectf(0, 0, 0, 0);
+}
+
+void Player::Init(float x, float y, float width, float height) {
 	bounds = Rectf(x, y, x + width, y + height);
 	velocity = Pointf(0, 0);
 	facing = 1;
-	onGround = false;
-	coyoteTimer = 0.0f;
-	jumpBufferTimer = 0.0f;
-	jumpHeld = false;
-	jumpHoldQueued = false;
-	lives = 3;
-	score = 0;
-	invincibleTimer = 0.0f;
-	knockbackTimer = 0.0f;
-	speedBoostTimer = 0.0f;
-	parasolState = PARASOL_IDLE;
-	attackHeld = false;
-	wasAttackHeld = false;
-	attackTimer = 0.0f;
-	attackCooldown = 0.0f;
-	forceUmbrellaOnTop = false;
-	parasolHitbox = Rectf(0, 0, 0, 0);  // Will be updated in Update()
-	carryWeight = 0.0f;
-	maxCarryWeight = 3.0f;  // Can carry 3 weight units of enemies
 }
 
 void Player::Update(float delta, const InputState& input, CollisionHandler& collision) {

@@ -4,8 +4,7 @@
 class XmlNode;
 struct Edit3D;
 
-struct RibbonCtrl : FrameTop<ParentCtrl> {
-	RibbonBar bar;
+struct ModelerAppRibbon : RibbonBar {
 	Edit3D* owner = nullptr;
 	bool loaded = false;
 	String spec_path;
@@ -24,7 +23,7 @@ struct RibbonCtrl : FrameTop<ParentCtrl> {
 
 	Event<String> WhenAction;
 
-	RibbonCtrl();
+	ModelerAppRibbon();
 	void Init(Edit3D* o);
 	void Clear();
 	bool LoadSpec(const String& path);
@@ -34,10 +33,10 @@ struct RibbonCtrl : FrameTop<ParentCtrl> {
 	Ctrl* FindControl(const String& id) const;
 	void SetupQuickAccess();
 	void AddContextTabs();
-	int GetDisplayMode() const { return bar.GetDisplayMode(); }
-	void SetDisplayMode(int mode) { bar.SetDisplayMode((RibbonBar::DisplayMode)mode); }
+	int GetDisplayMode() const { return RibbonBar::GetDisplayMode(); }
+	void SetDisplayMode(int mode) { RibbonBar::SetDisplayMode((RibbonBar::DisplayMode)mode); }
 	int GetQuickAccessPos() const { return quick_access_pos; }
-	void SetQuickAccessPos(int pos) { quick_access_pos = pos; bar.SetQuickAccessPos((RibbonBar::QuickAccessPos)pos); }
+	void SetQuickAccessPos(int pos) { quick_access_pos = pos; RibbonBar::SetQuickAccessPos((RibbonBar::QuickAccessPos)pos); }
 };
 
 #endif

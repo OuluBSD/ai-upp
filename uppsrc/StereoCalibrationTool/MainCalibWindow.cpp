@@ -21,6 +21,13 @@ MainCalibWindow::MainCalibWindow()
 {
 	Title("Stereo Calibration Tool (Unified)");
 	Sizeable().Zoomable();
+
+	const Vector<String>& cmd = CommandLine();
+	for(int i = 0; i < cmd.GetCount(); i++)
+		if(cmd[i] == "--test") {
+			Ctrl::CheckConstraints();
+			Exit(0);
+		}
 }
 
 void MainCalibWindow::Init(AppModel& m)

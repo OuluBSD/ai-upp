@@ -1,5 +1,7 @@
 # Performance Benchmarks
 
+# Status: done
+
 This directory contains performance benchmarking code for the uppts library to measure the performance of various operations.
 
 ## Running Benchmarks

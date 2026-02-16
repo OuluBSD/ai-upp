@@ -1,4 +1,5 @@
 #include "Maestro.h"
+#include "QuotaManager.h"
 
 namespace Upp {
 
@@ -87,6 +88,11 @@ bool CliMaestroEngine::Do() {
 			
 			if(!is_protocol) {
 				// Fallback for non-protocol output (raw text or non-protocol JSON)
+				if (line.Find("You have exhausted your capacity on this model") >= 0) {
+					Cout() << "!!! Quota Exhausted for model " << model << "\n";
+					QuotaManager::MarkModelExhausted(model);
+				}
+
 				if(event_callback) {
 					MaestroEvent e;
 					e.type = "message";

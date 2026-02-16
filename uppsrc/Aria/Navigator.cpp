@@ -299,4 +299,10 @@ Vector<Element> AriaNavigator::FindElements(const By& by) {
 	return driver->FindElements(by);
 }
 
+
+String AriaNavigator::GetCurrentURL() {
+        if (!driver && !ConnectToSession()) throw SessionError("No active session.");
+        return driver->GetUrl();
+}
+
 END_UPP_NAMESPACE

@@ -332,11 +332,13 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 	// Check current tool
 	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_BRUSH) {
 		brush.SetMode(BRUSH_MODE_PAINT);
+		parentEditor->SnapshotActiveLayer();
 		brush.StartPainting(col, row, layerMgr);
 		Refresh();
 	}
 	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ERASER) {
 		brush.SetMode(BRUSH_MODE_ERASE);
+		parentEditor->SnapshotActiveLayer();
 		brush.StartPainting(col, row, layerMgr);
 		Refresh();
 	}
@@ -346,7 +348,9 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 		// Synchronize fill tile with brush tile
 		fill.SetFillTile(brush.GetPaintTile());
 
+		parentEditor->SnapshotActiveLayer();
 		fill.Fill(col, row, layerMgr);
+		parentEditor->CommitUndo("Fill");
 		Refresh();
 	}
 	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
@@ -365,9 +369,15 @@ void MapCanvas::LeftUp(Point pos, dword flags) {
 	if(!parentEditor) return;
 
 	MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
-	if(tool == MapEditorApp::TOOL_BRUSH || tool == MapEditorApp::TOOL_ERASER) {
+	if(tool == MapEditorApp::TOOL_BRUSH) {
 		BrushTool& brush = parentEditor->GetBrushTool();
 		brush.StopPainting();
+		parentEditor->CommitUndo("Paint");
+	}
+	else if(tool == MapEditorApp::TOOL_ERASER) {
+		BrushTool& brush = parentEditor->GetBrushTool();
+		brush.StopPainting();
+		parentEditor->CommitUndo("Erase");
 	}
 }
 
@@ -405,6 +415,7 @@ void MapCanvas::RightDown(Point pos, dword flags) {
 	LayerManager& layerMgr = parentEditor->GetLayerManager();
 
 	brush.SetMode(BRUSH_MODE_ERASE);
+	parentEditor->SnapshotActiveLayer();
 	brush.StartPainting(col, row, layerMgr);
 	Refresh();
 }
@@ -419,6 +430,7 @@ void MapCanvas::RightUp(Point pos, dword flags) {
 
 	BrushTool& brush = parentEditor->GetBrushTool();
 	brush.StopPainting();
+	parentEditor->CommitUndo("Erase");
 	brush.SetMode(BRUSH_MODE_PAINT);  // Restore paint mode
 }
 
@@ -945,30 +957,71 @@ void MapEditorApp::SetupLayersPanel() {
 	// Layer management buttons
 	addLayerBtn.SetLabel("Add Layer");
 	addLayerBtn << [=] {
-		// TODO: Implement add layer
-		PromptOK("Add layer functionality not yet implemented");
+		int cols = layerManager.GetLayerCount() > 0
+			? layerManager.GetLayer(0).GetGrid().GetColumns()
+			: max(1, (int)mapColsSpin.GetData());
+		int rows = layerManager.GetLayerCount() > 0
+			? layerManager.GetLayer(0).GetGrid().GetRows()
+			: max(1, (int)mapRowsSpin.GetData());
+		String name = "Layer " + AsString(layerManager.GetLayerCount() + 1);
+		layerManager.AddLayer(name, LAYER_TERRAIN, cols, rows);
+		undoStack.Clear();
+		RefreshLayersList();
+		mapCanvas.Refresh();
+		mainStatusBar.Set("Added layer: " + name);
 	};
 	layersPanel.Add(addLayerBtn.LeftPos(10, 100).TopPos(yPos, 25));
 
 	removeLayerBtn.SetLabel("Remove");
 	removeLayerBtn << [=] {
-		// TODO: Implement remove layer
-		PromptOK("Remove layer functionality not yet implemented");
+		int id = layersList.GetCursor();
+		if(id < 0) { mainStatusBar.Set("No layer selected."); return; }
+		Value idxVal = layersList.Get(id);
+		if(idxVal.IsVoid()) return;
+		int layerIdx = (int)idxVal;
+		if(layerIdx < 0 || layerIdx >= layerManager.GetLayerCount()) return;
+		if(layerManager.GetLayerCount() <= 1) {
+			PromptOK("Cannot remove the last layer.");
+			return;
+		}
+		if(!PromptYesNo("Remove layer '" + layerManager.GetLayer(layerIdx).GetName() + "'?"))
+			return;
+		layerManager.RemoveLayer(layerIdx);
+		undoStack.Clear();
+		RefreshLayersList();
+		mapCanvas.Refresh();
+		mainStatusBar.Set("Layer removed.");
 	};
 	layersPanel.Add(removeLayerBtn.LeftPos(120, 100).TopPos(yPos, 25));
 	yPos += 30;
 
 	moveLayerUpBtn.SetLabel("Move Up");
 	moveLayerUpBtn << [=] {
-		// TODO: Implement move layer up
-		PromptOK("Move layer up functionality not yet implemented");
+		int id = layersList.GetCursor();
+		if(id < 0) return;
+		Value idxVal = layersList.Get(id);
+		if(idxVal.IsVoid()) return;
+		int layerIdx = (int)idxVal;
+		if(layerIdx <= 0 || layerIdx >= layerManager.GetLayerCount()) return;
+		layerManager.MoveLayerUp(layerIdx);
+		undoStack.Clear();
+		RefreshLayersList();
+		mapCanvas.Refresh();
 	};
 	layersPanel.Add(moveLayerUpBtn.LeftPos(10, 100).TopPos(yPos, 25));
 
 	moveLayerDownBtn.SetLabel("Move Down");
 	moveLayerDownBtn << [=] {
-		// TODO: Implement move layer down
-		PromptOK("Move layer down functionality not yet implemented");
+		int id = layersList.GetCursor();
+		if(id < 0) return;
+		Value idxVal = layersList.Get(id);
+		if(idxVal.IsVoid()) return;
+		int layerIdx = (int)idxVal;
+		if(layerIdx < 0 || layerIdx >= layerManager.GetLayerCount() - 1) return;
+		layerManager.MoveLayerDown(layerIdx);
+		undoStack.Clear();
+		RefreshLayersList();
+		mapCanvas.Refresh();
 	};
 	layersPanel.Add(moveLayerDownBtn.LeftPos(120, 100).TopPos(yPos, 25));
 	yPos += 40;
@@ -1180,9 +1233,45 @@ bool MapEditorApp::Key(dword key, int) {
 	return false;
 }
 
+void MapEditorApp::SnapshotActiveLayer() {
+	preOpLayerIdx = layerManager.GetActiveLayerIndex();
+	if(preOpLayerIdx < 0 || preOpLayerIdx >= layerManager.GetLayerCount()) {
+		preOpSnapshot.Clear();
+		return;
+	}
+	const MapGrid& grid = layerManager.GetLayer(preOpLayerIdx).GetGrid();
+	int total = grid.GetColumns() * grid.GetRows();
+	preOpSnapshot.SetCount(total);
+	for(int i = 0; i < total; i++)
+		preOpSnapshot[i] = grid.GetTileByIndex(i);
+}
+
+void MapEditorApp::CommitUndo(const String& desc) {
+	if(preOpLayerIdx < 0 || preOpLayerIdx >= layerManager.GetLayerCount()) return;
+	if(preOpSnapshot.IsEmpty()) return;
+	const MapGrid& grid = layerManager.GetLayer(preOpLayerIdx).GetGrid();
+	int total = min(grid.GetColumns() * grid.GetRows(), preOpSnapshot.GetCount());
+	Vector<TileChange> changes;
+	for(int i = 0; i < total; i++) {
+		TileType newTile = grid.GetTileByIndex(i);
+		if(newTile != preOpSnapshot[i]) {
+			Point cr = grid.ToColRow(i);
+			TileChange ch;
+			ch.layerIndex = preOpLayerIdx;
+			ch.col = cr.x; ch.row = cr.y;
+			ch.oldTile = preOpSnapshot[i]; ch.newTile = newTile;
+			changes.Add(ch);
+		}
+	}
+	if(!changes.IsEmpty())
+		undoStack.Push(new TileChangeCommand(pick(changes), desc));
+	preOpSnapshot.Clear();
+}
+
 void MapEditorApp::NewMapAction() {
-	PromptOK("Creating new map...");
-	// TODO: Implementation for creating a new map
+	if(!PromptYesNo("Create a new empty map? Unsaved changes will be lost."))
+		return;
+	NewMap();
 }
 
 void MapEditorApp::OpenFileAction() {
@@ -1231,13 +1320,17 @@ void MapEditorApp::ExitAction() {
 }
 
 void MapEditorApp::UndoAction() {
-	PromptOK("Undo action");
-	// TODO: Implementation for undo
+	if(!undoStack.CanUndo()) return;
+	undoStack.Undo(layerManager);
+	mapCanvas.Refresh();
+	mainStatusBar.Set("Undid: " + undoStack.GetRedoDescription());
 }
 
 void MapEditorApp::RedoAction() {
-	PromptOK("Redo action");
-	// TODO: Implementation for redo
+	if(!undoStack.CanRedo()) return;
+	undoStack.Redo(layerManager);
+	mapCanvas.Refresh();
+	mainStatusBar.Set("Redid: " + undoStack.GetUndoDescription());
 }
 
 void MapEditorApp::ZoomInAction() {
@@ -1277,8 +1370,21 @@ void MapEditorApp::PlaytestAction() {
 }
 
 void MapEditorApp::NewMap() {
-	PromptOK("Creating new map...");
-	// TODO: Implementation for creating a new map
+	int cols = (int)mapColsSpin.GetData();
+	int rows = (int)mapRowsSpin.GetData();
+	if(cols <= 0) cols = 32;
+	if(rows <= 0) rows = 24;
+	layerManager.ClearAllLayers();
+	layerManager.InitializeDefaultLayers(cols, rows);
+	enemySpawns.Clear();
+	dropletSpawns.Clear();
+	currentFilePath = String();
+	undoStack.Clear();
+	preOpSnapshot.Clear();
+	Title("Umbrella Map Editor - New Map");
+	RefreshLayersList();
+	mapCanvas.Refresh();
+	mainStatusBar.Set(Format("New map created (%d\xd7%d)", cols, rows));
 }
 
 void MapEditorApp::OpenFile(const String& fileName) {
@@ -1286,6 +1392,8 @@ void MapEditorApp::OpenFile(const String& fileName) {
 
 	if(MapSerializer::LoadFromFile(fileName, layerManager)) {
 		currentFilePath = fileName;
+		undoStack.Clear();
+		preOpSnapshot.Clear();
 
 		// Update window title
 		Title("Umbrella Map Editor - " + GetFileName(fileName));

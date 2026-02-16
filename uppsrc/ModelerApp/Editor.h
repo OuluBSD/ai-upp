@@ -310,6 +310,7 @@ private:
 	void UpdateCached();
 };
 
+#ifdef flagPOSIX
 struct HmdCapture {
 	HMD::System sys;
 	One<StereoSource> source;
@@ -330,6 +331,18 @@ struct HmdCapture {
 	bool IsRecording() const { return recording; }
 	const Octree* GetPointcloud(bool bright) const;
 };
+#else
+struct HmdCapture {
+	bool recording = false;
+	bool Start() { return false; }
+	void Stop() {}
+	void ResetTracking() {}
+	void Poll() {}
+	bool IsRunning() const { return false; }
+	bool IsRecording() const { return false; }
+	const Octree* GetPointcloud(bool bright) const { return nullptr; }
+};
+#endif
 
 struct ToolPanel : Ctrl {
 	Edit3D* owner = nullptr;

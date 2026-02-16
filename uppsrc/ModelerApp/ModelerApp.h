@@ -13,7 +13,9 @@
 #include <Scene3D/IO/IO.h>
 #include <Scene3D/Render/Render.h>
 #include <Scene3D/Exec/Exec.h>
+#ifdef flagPOSIX
 #include <SoftHMD/SoftHMD.h>
+#endif
 #include <plugin/enet/enet.h>
 
 #define IMAGECLASS ImagesImg

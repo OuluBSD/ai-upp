@@ -10,6 +10,7 @@
 #include "EntityPlacementTool.h"
 #include "Enemy.h"
 #include "Droplet.h"
+#include "UndoStack.h"
 
 using namespace Upp;
 
@@ -142,6 +143,11 @@ private:
 	// Map data
 	LayerManager layerManager;
 
+	// Undo/redo
+	UndoStack undoStack;
+	Vector<TileType> preOpSnapshot;
+	int preOpLayerIdx = -1;
+
 	// Buttons for toolbar
 	Button newMapBtn;
 	Button openFileBtn;
@@ -206,6 +212,10 @@ public:
 	void ResetZoomAction();
 	void PlaytestAction();
 	void ApplyMapSizeAction();
+
+	// Undo helpers (called from MapCanvas event handlers)
+	void SnapshotActiveLayer();
+	void CommitUndo(const String& desc);
 };
 
 #endif

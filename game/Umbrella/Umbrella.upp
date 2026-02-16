@@ -28,6 +28,8 @@ file
 	FillTool.cpp,
 	EntityPlacementTool.h,
 	EntityPlacementTool.cpp,
+	EditorCommand.h,
+	UndoStack.h,
 	MapEditor.h,
 	MapEditor.cpp,
 	MainMenuScreen.h,

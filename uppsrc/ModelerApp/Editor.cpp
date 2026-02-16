@@ -2087,15 +2087,6 @@ Edit3D::Edit3D() :
 	AddFrame(ribbon);
 	tool_panel.Init(this);
 	ribbon.Init(this);
-	if (!ribbon.LoadSpec(ShareDirFile("scene3d/ribbon/coppercube_ribbon.xml"))) {
-		LOG("ModelerApp: failed to load ribbon spec, using fallback tab.");
-		RibbonPage& page = ribbon.AddTab("Main");
-		RibbonGroup& group = page.AddGroup("Ribbon");
-		group.SetLarge([](Bar& bar) {
-			bar.Add("New", [] {});
-			bar.Add("Open", [] {});
-		});
-	}
 	menu.Set([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
 			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);

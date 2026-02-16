@@ -17,20 +17,19 @@ struct ModelerAppRibbon : RibbonBar {
 		String group_id;
 		String tab_id;
 	};
-	Vector<SpecItem> items;
 	VectorMap<String, Ctrl*> control_by_id;
 	Vector<One<Ctrl>> owned_ctrls;
+	VectorMap<String, Event<>> action_handlers;
 
 	Event<String> WhenAction;
 
 	ModelerAppRibbon();
 	void Init(Edit3D* o);
+	void BuildDefaultTabs();
 	void Clear();
-	bool LoadSpec(const String& path);
-	bool LoadSpecXml(const String& xml);
-	void BuildFromSpec(const XmlNode& root);
 	void OnAction(const String& id);
 	Ctrl* FindControl(const String& id) const;
+	void BindAction(const String& id, Event<> cb);
 	void SetupQuickAccess();
 	void AddContextTabs();
 	int GetDisplayMode() const { return RibbonBar::GetDisplayMode(); }

@@ -56,9 +56,6 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 
 	lastTime = GetTickCount();
 
-	// GrimReaper
-	reaper = new GrimReaper();
-
 	// Start game loop
 	SetTimeCallback(16, [=] { LayoutLoop(); });
 }
@@ -83,6 +80,13 @@ bool GameScreen::LoadLevel(const String& path) {
 		gridSize = 14;  // Default grid size
 	}
 
+	// Load tile sprite sheet once (same mod root for all levels)
+	if(tilesheet.IsEmpty()) {
+		String modRoot = GetFileFolder(GetFileFolder(path));
+		String tilesPath = AppendFileName(modRoot, "tiles.png");
+		tilesheet = StreamRaster::LoadFileAny(tilesPath);
+	}
+
 	// Build shared pathfinding structures for this level
 	pathfinder.SetGameScreen(this);
 	navGraph.Build(this);
@@ -94,7 +98,7 @@ bool GameScreen::LoadLevel(const String& path) {
 	SpawnEnemies();
 
 	// Reset time-pressure boss for this level
-	reaper->Reset();
+	reaper.Reset();
 
 	// Spawn hardcoded pickups for first level (one of each type)
 	pickups.Clear();
@@ -221,15 +225,7 @@ void GameScreen::GameTick(float delta) {
 	bool buttonReleased = !inputState.glideHeld && prevKeyAttack;
 	bool hasCaptured = player.HasCapturedEnemies();
 
-	static int throwLogCount = 0;
-	throwLogCount++;
-	if(throwLogCount % 60 == 0 || buttonReleased || hasCaptured) {
-		RLOG("THROW CHECK: glideHeld=" << inputState.glideHeld << " prevKeyAttack=" << prevKeyAttack
-		     << " buttonReleased=" << buttonReleased << " hasCaptured=" << hasCaptured);
-	}
-
 	if(buttonReleased && hasCaptured) {
-		RLOG("THROWING ENEMY!");
 		Enemy* enemy = player.ReleaseCapturedEnemy();
 		if(enemy) {
 			// Throw enemy horizontally in facing direction (no upward velocity - purely horizontal)
@@ -351,7 +347,7 @@ void GameScreen::GameTick(float delta) {
 			EmitEvent("enemy_killed", i);
 
 			// Remove enemy from world
-			delete enemies[i];
+			enemyRoot.Remove(&enemies[i]->val);
 			enemies.Remove(i);
 		}
 	}
@@ -571,7 +567,7 @@ void GameScreen::GameTick(float delta) {
 	// Remove inactive treats
 	for(int i = treats.GetCount() - 1; i >= 0; i--) {
 		if(!treats[i]->IsActive()) {
-			delete treats[i];
+			treatRoot.Remove(&treats[i]->val);
 			treats.Remove(i);
 		}
 	}
@@ -715,7 +711,7 @@ void GameScreen::GameTick(float delta) {
 		// Remove collected pickups
 		for(int i = pickups.GetCount() - 1; i >= 0; i--) {
 			if(!pickups[i]->IsActive()) {
-				delete pickups[i];
+				pickupRoot.Remove(&pickups[i]->val);
 				pickups.Remove(i);
 			}
 		}
@@ -724,8 +720,8 @@ void GameScreen::GameTick(float delta) {
 		{
 			float reaperSpawnX = -3.0f * gridSize;
 			float reaperSpawnY = player.GetBounds().top;
-			reaper->Update(delta, player, reaperSpawnX, reaperSpawnY);
-			if(reaper->TouchesPlayer(player)) {
+			reaper.Update(delta, player, reaperSpawnX, reaperSpawnY);
+			if(reaper.TouchesPlayer(player)) {
 				GetAudioSystem().Play("gameover");
 				SetGameState(GAME_OVER);
 				return;
@@ -920,7 +916,7 @@ void GameScreen::Paint(Draw& w) {
 	}
 
 	// Render GrimReaper (above pickups, below player)
-	reaper->Render(w, *this, sz.cx, sz.cy);
+	reaper.Render(w, *this, sz.cx, sz.cy);
 
 	// Render player (using WorldToScreen for proper Y-flip)
 	player.Render(w, *this);
@@ -950,6 +946,41 @@ void GameScreen::Paint(Draw& w) {
 		default:
 			break;
 	}
+}
+
+// Returns tilesheet source rect for a given tile type and 4-neighbor mask.
+// Tilesheet layout: 9 columns x N rows, each tile 14x14 px.
+//   col 0=TL outer, 1=top edge, 2=TR outer, 3=left edge, 4=center,
+//       5=right edge, 6=BL outer, 7=bottom edge, 8=BR outer
+// Row assignment: TILE_BACKGROUND=0, TILE_WALL=2, TILE_FULLBLOCK=3
+static Rect AutotileRect(TileType tile, bool hasL, bool hasR, bool hasT, bool hasB) {
+	int row;
+	switch(tile) {
+	case TILE_BACKGROUND: row = 0; break;
+	case TILE_WALL:       row = 2; break;
+	case TILE_FULLBLOCK:  row = 3; break;
+	default:              return Rect(0, 0, 0, 0);  // No sprite for this type
+	}
+	int col;
+	if     (!hasT && !hasL) col = 0;
+	else if(!hasT && !hasR) col = 2;
+	else if(!hasB && !hasL) col = 6;
+	else if(!hasB && !hasR) col = 8;
+	else if(!hasT)          col = 1;
+	else if(!hasB)          col = 7;
+	else if(!hasL)          col = 3;
+	else if(!hasR)          col = 5;
+	else                    col = 4;
+	return Rect(col * 14, row * 14, col * 14 + 14, row * 14 + 14);
+}
+
+// Returns true if two tile types should autotile together (same visual group).
+static bool SameAutotileGroup(TileType a, TileType b) {
+	// Walls and fullblocks form one solid group
+	bool aWall = (a == TILE_WALL || a == TILE_FULLBLOCK);
+	bool bWall = (b == TILE_WALL || b == TILE_FULLBLOCK);
+	if(aWall && bWall) return true;
+	return a == b;
 }
 
 void GameScreen::RenderTiles(Draw& w) {
@@ -992,18 +1023,31 @@ void GameScreen::RenderTiles(Draw& w) {
 					int width = abs(screenTopRight.x - screenBottomLeft.x);
 					int height = abs(screenTopRight.y - screenBottomLeft.y);
 
-					Color tileColor = TileTypeToColor(tile);
-					if(opacity < 100) {
-						Color bgColor = Color(12, 17, 30);
-						int alpha = opacity * 255 / 100;
-						tileColor = Color(
-							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-						);
+					// Sprite rendering: use tilesheet when available and opacity is full
+					if(!tilesheet.IsEmpty() && opacity == 100) {
+						bool hasL = grid.IsValid(col-1, row) && SameAutotileGroup(grid.GetTile(col-1, row), tile);
+						bool hasR = grid.IsValid(col+1, row) && SameAutotileGroup(grid.GetTile(col+1, row), tile);
+						bool hasT = grid.IsValid(col, row-1) && SameAutotileGroup(grid.GetTile(col, row-1), tile);
+						bool hasB = grid.IsValid(col, row+1) && SameAutotileGroup(grid.GetTile(col, row+1), tile);
+						Rect src = AutotileRect(tile, hasL, hasR, hasT, hasB);
+						if(src.IsEmpty()) {
+							w.DrawRect(screenX, screenY, width, height, TileTypeToColor(tile));
+						} else {
+							w.DrawImage(screenX, screenY, width, height, tilesheet, src);
+						}
+					} else {
+						Color tileColor = TileTypeToColor(tile);
+						if(opacity < 100) {
+							Color bgColor = Color(12, 17, 30);
+							int alpha = opacity * 255 / 100;
+							tileColor = Color(
+								(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+								(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+								(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+							);
+						}
+						w.DrawRect(screenX, screenY, width, height, tileColor);
 					}
-
-					w.DrawRect(screenX, screenY, width, height, tileColor);
 				}
 			}
 		}
@@ -1034,18 +1078,31 @@ void GameScreen::RenderTiles(Draw& w) {
 					int width = abs(screenTopRight.x - screenBottomLeft.x);
 					int height = abs(screenTopRight.y - screenBottomLeft.y);
 
-					Color tileColor = TileTypeToColor(tile);
-					if(opacity < 100) {
-						Color bgColor = Color(12, 17, 30);
-						int alpha = opacity * 255 / 100;
-						tileColor = Color(
-							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-						);
+					// Sprite rendering: use tilesheet when available and opacity is full
+					if(!tilesheet.IsEmpty() && opacity == 100) {
+						bool hasL = grid.IsValid(col-1, row) && SameAutotileGroup(grid.GetTile(col-1, row), tile);
+						bool hasR = grid.IsValid(col+1, row) && SameAutotileGroup(grid.GetTile(col+1, row), tile);
+						bool hasT = grid.IsValid(col, row-1) && SameAutotileGroup(grid.GetTile(col, row-1), tile);
+						bool hasB = grid.IsValid(col, row+1) && SameAutotileGroup(grid.GetTile(col, row+1), tile);
+						Rect src = AutotileRect(tile, hasL, hasR, hasT, hasB);
+						if(src.IsEmpty()) {
+							w.DrawRect(screenX, screenY, width, height, TileTypeToColor(tile));
+						} else {
+							w.DrawImage(screenX, screenY, width, height, tilesheet, src);
+						}
+					} else {
+						Color tileColor = TileTypeToColor(tile);
+						if(opacity < 100) {
+							Color bgColor = Color(12, 17, 30);
+							int alpha = opacity * 255 / 100;
+							tileColor = Color(
+								(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+								(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+								(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+							);
+						}
+						w.DrawRect(screenX, screenY, width, height, tileColor);
 					}
-
-					w.DrawRect(screenX, screenY, width, height, tileColor);
 				}
 			}
 		}
@@ -1085,18 +1142,31 @@ void GameScreen::RenderTiles(Draw& w) {
 					int width = abs(screenTopRight.x - screenBottomLeft.x);
 					int height = abs(screenTopRight.y - screenBottomLeft.y);
 
-					Color tileColor = TileTypeToColor(tile);
-					if(opacity < 100) {
-						Color bgColor = Color(12, 17, 30);
-						int alpha = opacity * 255 / 100;
-						tileColor = Color(
-							(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
-							(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
-							(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
-						);
+					// Sprite rendering: use tilesheet when available and opacity is full
+					if(!tilesheet.IsEmpty() && opacity == 100) {
+						bool hasL = grid.IsValid(col-1, row) && SameAutotileGroup(grid.GetTile(col-1, row), tile);
+						bool hasR = grid.IsValid(col+1, row) && SameAutotileGroup(grid.GetTile(col+1, row), tile);
+						bool hasT = grid.IsValid(col, row-1) && SameAutotileGroup(grid.GetTile(col, row-1), tile);
+						bool hasB = grid.IsValid(col, row+1) && SameAutotileGroup(grid.GetTile(col, row+1), tile);
+						Rect src = AutotileRect(tile, hasL, hasR, hasT, hasB);
+						if(src.IsEmpty()) {
+							w.DrawRect(screenX, screenY, width, height, TileTypeToColor(tile));
+						} else {
+							w.DrawImage(screenX, screenY, width, height, tilesheet, src);
+						}
+					} else {
+						Color tileColor = TileTypeToColor(tile);
+						if(opacity < 100) {
+							Color bgColor = Color(12, 17, 30);
+							int alpha = opacity * 255 / 100;
+							tileColor = Color(
+								(tileColor.GetR() * alpha + bgColor.GetR() * (255 - alpha)) / 255,
+								(tileColor.GetG() * alpha + bgColor.GetG() * (255 - alpha)) / 255,
+								(tileColor.GetB() * alpha + bgColor.GetB() * (255 - alpha)) / 255
+							);
+						}
+						w.DrawRect(screenX, screenY, width, height, tileColor);
 					}
-
-					w.DrawRect(screenX, screenY, width, height, tileColor);
 				}
 			}
 		}
@@ -1450,7 +1520,7 @@ void GameScreen::RestartLevel() {
 	// Reload the level
 	if(!levelPath.IsEmpty()) {
 		player.ResetLives();
-		reaper->Reset();
+		reaper.Reset();
 		LoadLevel(levelPath);
 		SetGameState(PLAYING);
 		lastTime = GetTickCount();
@@ -1518,7 +1588,8 @@ void GameScreen::SpawnEnemies() {
 				enemy->WireAI(&pathfinder, &navGraph, this, spawn.col, spawn.row);
 				enemies.Add(enemy);
 				LOG("Spawned " << (spawn.type == ENEMY_PATROLLER ? "Patroller" :
-				                    spawn.type == ENEMY_JUMPER ? "Jumper" : "Shooter")
+				                    spawn.type == ENEMY_JUMPER ? "Jumper" :
+				                    spawn.type == ENEMY_FLYER ? "Flyer" : "Shooter")
 				    << " at (" << spawn.col << ", " << spawn.row << ")");
 			}
 		}

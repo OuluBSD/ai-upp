@@ -8,13 +8,13 @@
 #include "Droplet.h"
 #include "Pathfinder.h"
 #include "NavGraph.h"
+#include "GrimReaper.h"
 
 using namespace Upp;
 
 // Forward declarations
 class Treat;
 class Pickup;
-class GrimReaper;
 
 // ============================================================================
 // Game event queue - decoupled producer/consumer for scripting and Shell integration
@@ -114,12 +114,15 @@ public:  // Public for testing
 	Array<Pickup*> pickups;
 
 	// GrimReaper (indestructible time-pressure entity)
-	GrimReaper* reaper;
+	GrimReaper reaper;
 
 	// Pathfinding (shared by all enemies, built on level load)
 	Pathfinder pathfinder;
 	NavGraph   navGraph;
 	int        gameFrame;
+
+	// Tile sprite sheet (loaded once from mod root alongside levels/)
+	Image tilesheet;
 
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;

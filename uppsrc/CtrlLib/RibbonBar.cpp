@@ -83,6 +83,7 @@ RibbonGroup& RibbonGroup::SetLarge(Event<Bar&> barproc)
 		void AddCtrl(Ctrl *ctrl, Size sz) override {}
 		bool IsEmpty() const override { return items.IsEmpty(); }
 		void Separator() override {}
+		bool IsMenuBar() const override { return true; }
 	};
 
 	LargeBar b;
@@ -298,9 +299,13 @@ RibbonBar::RibbonBar()
 	show_keytips = false;
 	style = &StyleDefault();
 
+	Add(app);
 	Add(tabs);
 	Add(page_area);
 	Add(qat);
+	app.SetLabel("File");
+	app.Hide();
+	app.WhenAction = [=] { OpenAppMenu(); };
 
 	tabs.WhenSet = [=] { OnTab(); };
 	tabs.WhenDouble = [=] { ToggleExpanded(); };
@@ -388,6 +393,27 @@ RibbonBar& RibbonBar::ShowContext(const String& context, bool show)
 	return *this;
 }
 
+bool RibbonBar::SelectTab(const String& text)
+{
+	for(int i = 0; i < visible_map.GetCount(); i++) {
+		int info_i = visible_map[i];
+		if(info_i >= 0 && info_i < tab.GetCount() && tab[info_i].text == text) {
+			tabs.Set(i);
+			OnTab();
+			return true;
+		}
+	}
+	return false;
+}
+
+String RibbonBar::GetActiveTabText() const
+{
+	int info = GetCurrentInfoIndex();
+	if(info < 0 || info >= tab.GetCount())
+		return String();
+	return tab[info].text;
+}
+
 RibbonBar& RibbonBar::SetDisplayMode(DisplayMode mode)
 {
 	display_mode = mode;
@@ -396,6 +422,32 @@ RibbonBar& RibbonBar::SetDisplayMode(DisplayMode mode)
 	else if(display_mode == RIBBON_TABS)
 		expanded = false;
 	UpdateVisibility();
+	return *this;
+}
+
+RibbonBar& RibbonBar::SetAppButton(const String& text, const Image& icon)
+{
+	app.SetLabel(text);
+	if(!IsNull(icon))
+		app.SetImage(icon);
+	else
+		app.SetImage(Null);
+	RefreshParentLayout();
+	return *this;
+}
+
+RibbonBar& RibbonBar::SetAppMenu(Event<Bar&> menu)
+{
+	app_menu.Clear();
+	if(menu)
+		app_menu << menu;
+	if(menu) {
+		app.Show();
+	}
+	else {
+		app.Hide();
+	}
+	RefreshParentLayout();
 	return *this;
 }
 
@@ -470,7 +522,13 @@ void RibbonBar::Layout()
 		}
 	}
 
-	tabs.TopPos(y, tab_h).HSizePos();
+	int app_w = 0;
+	if(app.IsShown()) {
+		Size app_min = app.GetMinSize();
+		app_w = max(DPI(80), app_min.cx + DPI(8));
+		app.SetRect(0, y, app_w, tab_h);
+	}
+	tabs.SetRect(app_w, y, max(0, sz.cx - app_w), tab_h);
 	y += tab_h;
 
 	if(qat_pos == QAT_BOTTOM && qat_h) {
@@ -513,6 +571,14 @@ void RibbonBar::MouseLeave()
 		UpdateVisibility();
 	}
 	ParentCtrl::MouseLeave();
+}
+
+void RibbonBar::OpenAppMenu()
+{
+	if(!app.IsShown() || !app_menu)
+		return;
+	Point p = app.GetScreenRect().BottomLeft();
+	MenuBar::Execute(&app, [=](Bar& bar) { app_menu(bar); }, p);
 }
 
 void RibbonBar::RebuildTabs()

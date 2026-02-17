@@ -2080,16 +2080,18 @@ Edit3D::Edit3D() :
 	
 	Sizeable().MaximizeBox();
 	Title("Edit3D");
+	LayoutId("mainWindow");
 	scene3d_data_dir = "data";
 	SetProjectDir(GetCurrentDirectory());
 	view = VIEW_GEOMPROJECT;
 	Add(v0.grid.SizePos());
 	
-	AddFrame(menu);
 	AddFrame(ribbon);
+	ribbon.LayoutId("ribbonBar");
 	tool_panel.Init(this);
 	ribbon.Init(this);
-	menu.Set([this](Bar& bar) {
+	ribbon.SetAppButton(t_("File"), CtrlImg::File())
+	      .SetAppMenu([this](Bar& bar) {
 		bar.Sub(t_("File"), [this](Bar& bar) {
 			bar.Add(t_("New"), THISBACK(LoadEmptyProject)).Key(K_CTRL|K_N);
 			bar.Add(t_("Open..."), THISBACK(OpenScene3D)).Key(K_CTRL|K_O);

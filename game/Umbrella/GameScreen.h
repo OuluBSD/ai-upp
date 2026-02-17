@@ -9,6 +9,7 @@
 #include "Pathfinder.h"
 #include "NavGraph.h"
 #include "GrimReaper.h"
+#include "WaterWeapon.h"
 
 using namespace Upp;
 
@@ -100,6 +101,7 @@ public:  // Public for testing
 	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
 	int totalDroplets;  // Total droplets available in current level
+	bool hasHugeDroplet;  // True when 5 droplets merged into huge
 
 	// Level stats (tracked per level for score summary)
 	float levelElapsedTime;     // Time spent playing the current level
@@ -115,6 +117,9 @@ public:  // Public for testing
 
 	// GrimReaper (indestructible time-pressure entity)
 	GrimReaper reaper;
+
+	// Water weapon (snake-like grid mover, activated by huge droplet)
+	WaterWeapon waterWeapon;
 
 	// Pathfinding (shared by all enemies, built on level load)
 	Pathfinder pathfinder;

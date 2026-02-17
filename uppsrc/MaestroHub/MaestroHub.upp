@@ -3,7 +3,8 @@ description "Maestro Main Hub Application\377B";
 uses
 	Maestro,
 	GraphLib,
-	CodeEditor;
+	CodeEditor,
+	PdfDraw;
 
 file
 	MaestroHub.h,

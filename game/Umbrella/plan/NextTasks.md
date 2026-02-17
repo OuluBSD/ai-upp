@@ -24,29 +24,25 @@
 
 ## Remaining High-Priority Tasks (from session)
 
-### Task 2: Water/Droplet System (Track 6.1)
-**Priority**: HIGH (Primary collectible mechanic)
-**Estimated**: 12-16 hours
+### Task 2: Droplet System Overhaul + Water Weapon (Track 6.1)
+**Priority**: HIGH (Core collectible + combat mechanic)
+**Estimated**: 16-20 hours
 
-**Implementation Plan**:
-1. Create `Droplet` class (position, velocity, mode enum: RAINBOW/ICE/FIRE)
-2. Physics: bounce behavior, gravity, rotation
-3. Create `DropletManager` to spawn and track droplets
-4. Parse droplet spawn points from level (hardcode for now, annotations later)
-5. Implement droplet-player collision (collect)
-6. Track collected droplets in HUD
-7. Render droplets as colored circles (RAINBOW=all colors, ICE=cyan, FIRE=orange)
+**Scope**: Physics overhaul (80s arcade style) + merge-at-5 huge droplet +
+throw on release + water weapon (grid-stepping snake) + enemy attachment.
+
+**See**: `plan/implementation/development/task30/Task_D2_DropletSpawnSystem.md`
+for full implementation plan.
 
 **Files to create**:
-- `game/Umbrella/Droplet.h`
-- `game/Umbrella/Droplet.cpp`
-- `game/Umbrella/DropletManager.h`
-- `game/Umbrella/DropletManager.cpp`
+- `game/Umbrella/WaterWeapon.h`
+- `game/Umbrella/WaterWeapon.cpp`
 
-**Integration**:
-- Add droplet counter to HUD
-- Spawn droplets at regular intervals or from specific tiles
-- Collection gives score bonus (10-25 points per droplet)
+**Files to modify**:
+- `game/Umbrella/Droplet.h` — arcade physics constants, `isHuge`/`thrown` flags
+- `game/Umbrella/Droplet.cpp` — constant-speed fall, no bounce
+- `game/Umbrella/GameScreen.h` — WaterWeapon member, `hasHugeDroplet`
+- `game/Umbrella/GameScreen.cpp` — merge-at-5, throw/water dispatch, water update
 
 ---
 

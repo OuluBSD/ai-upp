@@ -102,6 +102,12 @@ public:
 	void SetActive(bool act) { active = act; }
 	void SetBounds(const Rectf& b) { bounds = b; }
 	void SetVelocity(const Pointf& v) { velocity = v; }
+	void SetPositionXY(float x, float y) {
+		float w = bounds.right - bounds.left;
+		float h = bounds.bottom - bounds.top;
+		bounds.left = x - w / 2; bounds.right = x + w / 2;
+		bounds.top = y + fabs(h) / 2; bounds.bottom = y - fabs(h) / 2;
+	}
 	float GetGridSize(Player::CollisionHandler& collision) { return collision.GetGridSize(); }
 
 	// Check if thrown enemy hit wall and should be destroyed

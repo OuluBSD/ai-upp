@@ -61,6 +61,8 @@ file
 	Treat.cpp,
 	Droplet.h,
 	Droplet.cpp,
+	WaterWeapon.h,
+	WaterWeapon.cpp,
 	Pickup.h,
 	Pickup.cpp,
 	GameScreen.h,

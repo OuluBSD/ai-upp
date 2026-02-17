@@ -31,17 +31,17 @@ private:
 	Pointf position;
 	DropletType type;
 	bool collected;       // True if collected and orbiting player
+	bool thrown;          // True if thrown horizontally (no gravity)
+	bool isHuge;          // True if merged from 5 droplets (3× size)
 	float orbitAngle;     // Angle in orbit around player (radians)
 	float rotation;       // Rotation angle in degrees
 	float rotationSpeed;  // Degrees per second
 	float size;           // Droplet radius
 
-	// Physics constants
-	static constexpr float GRAVITY = -490.0f;  // Match player gravity
-	static constexpr float MAX_FALL_SPEED = -400.0f;
-	static constexpr float BOUNCE_DAMPING = 0.6f;  // Velocity multiplier on bounce
-	static constexpr float MIN_BOUNCE_VY = 50.0f;  // Minimum vertical velocity to bounce
-	static constexpr float DROPLET_SIZE = 6.0f;    // Default droplet radius
+	// Physics constants — 80s arcade style (constant speeds, no acceleration)
+	static constexpr float FALL_SPEED = 60.0f;         // Constant downward speed (px/s)
+	static constexpr float HORIZONTAL_SPEED = 50.0f;   // Horizontal throw speed (px/s)
+	static constexpr float DROPLET_SIZE = 6.0f;        // Default droplet radius
 
 	// Collision helpers
 	bool CheckGroundCollision(Player::CollisionHandler& collision);
@@ -51,6 +51,7 @@ public:
 	CLASSTYPE(Droplet)
 
 	Droplet(VfsValue& v) : GameEntity(v), type(DROPLET_RAINBOW), collected(false),
+	                       thrown(false), isHuge(false),
 	                       orbitAngle(0.0f), rotation(0.0f), rotationSpeed(0.0f),
 	                       size(DROPLET_SIZE) {}
 	void Init(float x, float y, DropletType t);
@@ -61,9 +62,22 @@ public:
 
 	bool IsActive() const { return active; }
 	bool IsCollected() const { return collected; }
+	bool IsThrown() const { return thrown; }
+	bool IsHuge() const { return isHuge; }
 	void Collect(float angle) {
 		collected = true;
+		thrown = false;
 		orbitAngle = angle;
+	}
+	void Throw(int facing) {
+		collected = false;
+		thrown = true;
+		velocity.x = facing * HORIZONTAL_SPEED;
+		velocity.y = 0;
+	}
+	void MakeHuge() {
+		isHuge = true;
+		size = DROPLET_SIZE * 3;
 	}
 	void Deactivate() { active = false; }
 	Pointf GetPosition() const { return position; }

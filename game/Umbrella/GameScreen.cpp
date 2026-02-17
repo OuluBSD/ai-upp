@@ -39,6 +39,7 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	// Droplet system
 	dropletsCollected = 0;
 	totalDroplets = 0;
+	hasHugeDroplet = false;
 
 	// Level stats
 	levelElapsedTime = 0.0f;
@@ -126,6 +127,7 @@ bool GameScreen::LoadLevel(const String& path) {
 	levelElapsedTime = 0.0f;
 	damageTakenThisLevel = 0;
 	dropletsCollected = 0;
+	hasHugeDroplet = false;
 	allEnemiesKilled = false;
 	levelCompleteTimer = 0.0f;
 
@@ -467,6 +469,7 @@ void GameScreen::GameTick(float delta) {
 			levelElapsedTime = 0.0f;
 			damageTakenThisLevel = 0;
 			dropletsCollected = 0;
+			hasHugeDroplet = false;
 			pathfinder.SetGameScreen(this);
 			navGraph.Build(this);
 
@@ -675,6 +678,93 @@ void GameScreen::GameTick(float delta) {
 			player.AddScore(15);  // 15 points per droplet
 			GetAudioSystem().Play("droplet");
 			RLOG("Droplet collected! Total: " << dropletsCollected);
+		}
+	}
+
+	// Merge at 5: when 5 orbiting droplets collected, merge into 1 huge droplet
+	if(dropletsCollected >= 5 && !hasHugeDroplet) {
+		// Remove all orbiting (collected, non-huge) droplets
+		for(int i = droplets.GetCount() - 1; i >= 0; i--) {
+			if(droplets[i]->IsCollected() && !droplets[i]->IsHuge()) {
+				dropletRoot.Remove(&droplets[i]->val);
+				droplets.Remove(i);
+			}
+		}
+		// Spawn 1 huge droplet in collected/orbit state
+		Pointf playerCenter = player.GetCenter();
+		Droplet& huge = dropletRoot.Add<Droplet>();
+		huge.Init(playerCenter.x, playerCenter.y + 20, DROPLET_RAINBOW);
+		huge.MakeHuge();
+		huge.Collect(0.0f);
+		droplets.Add(&huge);
+		hasHugeDroplet = true;
+		dropletsCollected = 0;
+		RLOG("5 droplets merged into HUGE droplet!");
+		GetAudioSystem().Play("droplet");
+	}
+
+	// Action button release: throw droplets or trigger water weapon
+	bool dropletButtonReleased = !inputState.glideHeld && prevKeyAttack;
+	if(dropletButtonReleased && !player.HasCapturedEnemies()) {
+		if(hasHugeDroplet) {
+			// Release huge droplet → trigger water weapon
+			// Remove the huge droplet
+			for(int i = droplets.GetCount() - 1; i >= 0; i--) {
+				if(droplets[i]->IsHuge() && droplets[i]->IsCollected()) {
+					// Get player grid position for water weapon start
+					Pointf pc = player.GetCenter();
+					int startCol = (int)(pc.x / gridSize);
+					int startRow = (int)(pc.y / gridSize);
+
+					dropletRoot.Remove(&droplets[i]->val);
+					droplets.Remove(i);
+
+					// Activate water weapon (will be wired in task 4)
+					waterWeapon.Activate(startCol, startRow, player.GetFacing());
+					RLOG("Water weapon activated at (" << startCol << "," << startRow << ")");
+					break;
+				}
+			}
+			hasHugeDroplet = false;
+		}
+		else {
+			// Throw all orbiting droplets horizontally
+			int throwFacing = player.GetFacing();
+			for(int i = 0; i < droplets.GetCount(); i++) {
+				if(droplets[i]->IsCollected() && !droplets[i]->IsHuge()) {
+					droplets[i]->Throw(throwFacing);
+					RLOG("Droplet thrown horizontally, facing=" << throwFacing);
+				}
+			}
+			dropletsCollected = 0;
+		}
+	}
+
+	// Update water weapon (grid-stepping snake)
+	if(waterWeapon.IsActive()) {
+		bool wasActive = waterWeapon.IsActive();
+		waterWeapon.Update(delta, *this, enemies);
+
+		// If water weapon just became inactive (fell off map), release enemies with death-arc
+		if(wasActive && !waterWeapon.IsActive()) {
+			Vector<Enemy*> released = waterWeapon.Release();
+			for(int i = 0; i < released.GetCount(); i++) {
+				Enemy* e = released[i];
+				if(!e) continue;
+
+				// Kill the enemy
+				e->Defeat();
+
+				// Teleport to top of level with arc velocity
+				float arcX = (levelColumns / 2.0f) * gridSize + (Randomf() - 0.5f) * 160.0f;
+				float arcY = (levelRows + 2) * (float)gridSize;
+				e->SetPositionXY(arcX, arcY);
+				float vx = (Randomf() - 0.5f) * 160.0f;
+				float vy = 200.0f;
+				e->SetVelocity(Pointf(vx, vy));
+
+				RLOG("Water-killed enemy launched in arc from top of level");
+			}
 		}
 	}
 
@@ -914,6 +1004,9 @@ void GameScreen::Paint(Draw& w) {
 	for(int i = 0; i < pickups.GetCount(); i++) {
 		pickups[i]->Render(w, *this);
 	}
+
+	// Render water weapon (above pickups, below player)
+	waterWeapon.Render(w, *this, gridSize);
 
 	// Render GrimReaper (above pickups, below player)
 	reaper.Render(w, *this, sz.cx, sz.cy);

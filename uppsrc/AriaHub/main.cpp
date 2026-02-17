@@ -228,7 +228,7 @@ GUI_APP_MAIN
 			
 			while(exit_code == -1) {
 				Upp::Ctrl::ProcessEvents();
-				Upp::Sleep(10);
+				Sleep(10);
 			}
 			
 			_exit(exit_code);

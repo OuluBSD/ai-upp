@@ -1,5 +1,6 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Maestro/Maestro.h>
+#include <Maestro/ProjectScaffolder.h>
 
 #include "MaestroHub.h"
 

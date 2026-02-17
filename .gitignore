@@ -60,3 +60,7 @@ share/calibration/*/captures
 # Ignore proprietary & nonfree mods
 share/mods/*/proprietary/**
 
+
+# Large icons
+share/icons/large/*.png
+

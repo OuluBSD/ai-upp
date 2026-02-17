@@ -48,6 +48,12 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	levelScoreBonus = 0;
 	levelGrade = "C";
 
+	// Debug overlay
+	showDebugOverlay = false;
+	debugFpsCounter = 0;
+	debugFpsDisplay = 0;
+	debugFpsTimer = 0.0f;
+
 	// AI frame counter
 	gameFrame = 0;
 
@@ -187,6 +193,15 @@ void GameScreen::LayoutLoop() {
 			GameTick((float)FIXED_TIMESTEP);
 			accumulator -= FIXED_TIMESTEP;
 		}
+	}
+
+	// FPS counting
+	debugFpsCounter++;
+	debugFpsTimer += 0.016f;  // approximate frame time
+	if(debugFpsTimer >= 1.0f) {
+		debugFpsDisplay = debugFpsCounter;
+		debugFpsCounter = 0;
+		debugFpsTimer = 0.0f;
 	}
 
 	Refresh();  // Always render (shows pause/game over screens)
@@ -1017,6 +1032,10 @@ void GameScreen::Paint(Draw& w) {
 	// Render HUD (lives, score)
 	RenderHUD(w);
 
+	// Render debug overlay (F3 toggle)
+	if(showDebugOverlay)
+		RenderDebugOverlay(w);
+
 	// Render overlays based on game state
 	switch(gameState) {
 		case PLAYING:
@@ -1317,6 +1336,13 @@ bool GameScreen::Key(dword key, int) {
 			}
 			return true;
 
+		case K_F3:
+			if(!(key & K_KEYUP)) {
+				showDebugOverlay = !showDebugOverlay;
+				LOG("Debug overlay: " << (showDebugOverlay ? "ON" : "OFF"));
+			}
+			return true;
+
 		// Movement keys (only work when playing)
 		case K_LEFT:
 		case K_A:
@@ -1440,6 +1466,73 @@ void GameScreen::RenderHUD(Draw& w) {
 	String dropletText = Format("Droplets: %d", dropletsCollected);
 	Size dropletSz = GetTextSize(dropletText, fnt);
 	w.DrawText(sz.cx / 2 - dropletSz.cx / 2, 10, dropletText, fnt, Color(100, 200, 255));
+}
+
+void GameScreen::RenderDebugOverlay(Draw& w) {
+	Size sz = GetSize();
+	Font fnt = Courier(14);
+	Color bg = Color(0, 0, 0);
+	Color fg = Color(0, 255, 0);
+	int x = 10, y = 50;
+	int lineH = 16;
+
+	// Semi-transparent background panel
+	int panelW = 320, panelH = lineH * 16 + 10;
+	w.DrawRect(x - 4, y - 4, panelW, panelH, bg);
+
+	auto Line = [&](const String& text) {
+		w.DrawText(x, y, text, fnt, fg);
+		y += lineH;
+	};
+
+	// FPS
+	Line(Format("FPS: %d", debugFpsDisplay));
+
+	// Player
+	Pointf pp = player.GetPosition();
+	Pointf pv = player.GetVelocity();
+	Line(Format("Player pos: %.1f, %.1f", pp.x, pp.y));
+	Line(Format("Player vel: %.1f, %.1f", pv.x, pv.y));
+	Line(Format("Player lives: %d  score: %d", player.GetLives(), player.GetScore()));
+	Line(Format("OnGround: %s  Facing: %d", player.IsOnGround() ? "yes" : "no", player.GetFacing()));
+	Line(Format("Invincible: %s  Attacking: %s", player.IsInvincible() ? "yes" : "no", player.IsAttacking() ? "yes" : "no"));
+
+	// Enemies
+	int aliveEnemies = 0;
+	for(int i = 0; i < enemies.GetCount(); i++)
+		if(enemies[i]->IsAlive()) aliveEnemies++;
+	Line(Format("Enemies: %d alive / %d total", aliveEnemies, enemies.GetCount()));
+
+	// Droplets
+	int orbitingCount = 0;
+	for(int i = 0; i < droplets.GetCount(); i++)
+		if(droplets[i]->IsCollected()) orbitingCount++;
+	Line(Format("Droplets: %d collected, %d orbiting, huge=%s",
+	     dropletsCollected, orbitingCount, hasHugeDroplet ? "yes" : "no"));
+	Line(Format("Droplet spawns: %d  active: %d", dropletSpawns.GetCount(), droplets.GetCount()));
+
+	// Water weapon
+	if(waterWeapon.IsActive())
+		Line(Format("WaterWeapon: (%d,%d) active", waterWeapon.GetCol(), waterWeapon.GetRow()));
+	else
+		Line("WaterWeapon: inactive");
+
+	// GrimReaper
+	if(reaper.IsSpawned())
+		Line("GrimReaper: SPAWNED");
+	else
+		Line(Format("GrimReaper: spawns in %.1fs", reaper.TimeUntilSpawn()));
+
+	// Camera
+	Line(Format("Camera: %d,%d  zoom=%.1f  mode=%s",
+	     cameraOffset.x, cameraOffset.y, zoom,
+	     cameraMode == CAMERA_FIXED ? "FIXED" : "FOLLOW"));
+
+	// Game state
+	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE",
+	                             "HOVER", "SCROLL", "DROP", "SUMMARY"};
+	Line(Format("State: %s  frame: %d  time: %.1fs",
+	     stateNames[gameState], gameFrame, levelElapsedTime));
 }
 
 void GameScreen::RenderPauseScreen(Draw& w) {

@@ -129,6 +129,12 @@ public:  // Public for testing
 	// Tile sprite sheet (loaded once from mod root alongside levels/)
 	Image tilesheet;
 
+	// Debug overlay
+	bool showDebugOverlay;
+	int  debugFpsCounter;
+	int  debugFpsDisplay;
+	float debugFpsTimer;
+
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;
 	bool prevKeyJump, prevKeyAttack;
@@ -149,6 +155,7 @@ public:
 	virtual void Paint(Draw& w) override;
 	void RenderTiles(Draw& w);
 	void RenderHUD(Draw& w);
+	void RenderDebugOverlay(Draw& w);
 	void RenderPauseScreen(Draw& w);
 	void RenderGameOverScreen(Draw& w);
 	void RenderLevelCompleteScreen(Draw& w);

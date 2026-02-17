@@ -1,1 +1,60 @@
-{"columns":100,"rows":100,"gridSize":14,"walls":[5411],"mapCols":100,"mapRows":100}
+{
+  "columns": 100,
+  "rows": 100,
+  "gridSize": 14,
+  "walls": [
+    5411
+  ],
+  "mapCols": 100,
+  "mapRows": 100,
+  "enemies": [
+    {
+      "col": 11,
+      "row": 55,
+      "type": "PATROLLER",
+      "facing": 1
+    }
+  ],
+  "droplets": [
+    {
+      "col": 11,
+      "row": 56,
+      "mode": "RAINBOW",
+      "direction": 1,
+      "intervalMs": 2000,
+      "enabled": true
+    },
+    {
+      "col": 11,
+      "row": 56,
+      "mode": "RAINBOW",
+      "direction": -1,
+      "intervalMs": 2500,
+      "enabled": true
+    },
+    {
+      "col": 11,
+      "row": 56,
+      "mode": "ICE",
+      "direction": 1,
+      "intervalMs": 3000,
+      "enabled": true
+    },
+    {
+      "col": 11,
+      "row": 56,
+      "mode": "RAINBOW",
+      "direction": -1,
+      "intervalMs": 2000,
+      "enabled": true
+    },
+    {
+      "col": 11,
+      "row": 56,
+      "mode": "FIRE",
+      "direction": 1,
+      "intervalMs": 2500,
+      "enabled": true
+    }
+  ]
+}

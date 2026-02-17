@@ -389,7 +389,6 @@ struct Edit3D : DockWindow {
 	//RemoteDebugCtrl v_rdbg;
 	ToolPanel tool_panel;
 	ModelerAppRibbon ribbon;
-	MenuBar menu;
 	ToolBar tool;
 	int ribbon_display_mode = RibbonBar::RIBBON_ALWAYS;
 	int ribbon_qat_pos = RibbonBar::QAT_TOP;

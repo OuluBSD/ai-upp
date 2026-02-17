@@ -314,6 +314,11 @@ void ModelerAppRibbon::Init(Edit3D* o)
 
 void ModelerAppRibbon::BuildDefaultTabs()
 {
+	// Keep default setup idempotent even if called multiple times.
+	ClearTabs();
+	control_by_id.Clear();
+	owned_ctrls.Clear();
+
 	RibbonPage& page_main = AddTab("Main tools");
 	{
 		RibbonGroup& g_file = page_main.AddGroup("File");

@@ -132,9 +132,14 @@ public:
 
 	RibbonBar&  RenameTab(int tab, const String& text);
 	RibbonBar&  ShowContext(const String& context, bool show = true);
+	bool        SelectTab(const String& text);
+	String      GetActiveTabText() const;
 
 	RibbonBar&  SetDisplayMode(DisplayMode mode);
 	DisplayMode GetDisplayMode() const               { return (DisplayMode)display_mode; }
+
+	RibbonBar&  SetAppButton(const String& text, const Image& icon = Null);
+	RibbonBar&  SetAppMenu(Event<Bar&> menu);
 
 	RibbonBar&  SetQuickAccess(Event<Bar&> bar);
 	ToolBar&    QuickAccess()                        { return qat; }
@@ -174,11 +179,13 @@ private:
 
 	RibbonTabCtrl      tabs;
 	ParentCtrl         page_area;
+	Button             app;
 	ToolBar            qat;
 	Array<RibbonPage>  page;
 
 	Vector<TabInfo>    tab;
 	Vector<int>        visible_map;
+	Event<Bar&>        app_menu;
 
 	int                display_mode;
 	int                qat_pos;
@@ -186,6 +193,7 @@ private:
 	bool               show_keytips;
 	const Style       *style;
 
+	void OpenAppMenu();
 	void RebuildTabs();
 	void SyncSelection();
 	void UpdateVisibility();

@@ -115,7 +115,7 @@ bool ForexScraper::ScrapeFFCalendar(int days_offset) {
 			e.previous = m["previous"];
 			e.impact = m["impact"];
 			int64 dl = m["dateline"];
-			e.time = Time(1970, 1, 1) + dl;
+			e.time = Time(1970, 1, 1, 0, 0, 0) + dl;
 		}
 	}
 	
@@ -125,7 +125,7 @@ bool ForexScraper::ScrapeFFCalendar(int days_offset) {
 bool ForexScraper::ScrapeFFTrades() {
 	if (!force && fm.trades.GetCount() > 0) {
 		// Check freshness (last 15 mins)
-		Time last_t = Time(0);
+		Time last_t = Null;
 		for(int i = 0; i < fm.trades.GetCount(); i++)
 			if (fm.trades[i].time > last_t) last_t = fm.trades[i].time;
 		
@@ -279,7 +279,7 @@ bool ForexScraper::ScrapeInvestingCalendar() {
 
 bool ForexScraper::ScrapeOandaRates() {
 	if (!force && fm.rates.GetCount() > 0) {
-		Time last_t = Time(0);
+		Time last_t = Null;
 		for(int i = 0; i < fm.rates.GetCount(); i++)
 			if (fm.rates[i].updated > last_t) last_t = fm.rates[i].updated;
 		

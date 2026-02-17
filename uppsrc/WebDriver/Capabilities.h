@@ -53,7 +53,7 @@ ConstValue K_AUTODETECT = "autodetect";
 ConstValue K_SYSTEM = "system";
 } // namespace proxy_type
 
-struct Proxy : public Moveable<Proxy> { // copyable
+struct WdProxy : public Moveable<WdProxy> { // copyable
 	String proxy_type;
 	
 	void Jsonize(JsonIO& json) {
@@ -75,7 +75,7 @@ struct Capabilities : public Moveable<Capabilities> { // copyable
 	String version;
 	String platform;
 	bool accept_insecure_certs = false;
-	Proxy proxy;
+	WdProxy proxy;
 	String unhandled_prompt_behavior;
 	
 	Capabilities() {}

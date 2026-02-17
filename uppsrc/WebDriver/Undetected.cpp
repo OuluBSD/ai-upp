@@ -164,7 +164,7 @@ String GetFirefoxDefaultProfilePath() {
 #ifdef PLATFORM_POSIX
 	ini_path = GetHomeDirFile(".mozilla/firefox/profiles.ini");
 #elif defined(PLATFORM_WIN32)
-	ini_path = GetAppDataDir() + "/Mozilla/Firefox/profiles.ini";
+	ini_path = AppendFileName(GetAppDataFolder(), "Mozilla/Firefox/profiles.ini");
 #endif
 
 	if (!FileExists(ini_path)) return "";

@@ -174,6 +174,11 @@ Size RibbonGroup::GetMinSize() const
 		int cy = style->full_button.cy;
 		b = Size(cx, cy);
 	}
+	if(!list_ctrl && ((list.IsShown() && b.cx <= 0) || (!list.IsShown() && large_btn.IsEmpty()))) {
+		// Keep empty groups visible and non-collapsed.
+		b.cx = max(b.cx, max(DPI(36), style->full_button.cx / 2));
+		b.cy = max(b.cy, style->full_button.cy);
+	}
 	if(content_min.cx)
 		b.cx = max(b.cx, content_min.cx);
 	if(content_min.cy)
@@ -208,6 +213,20 @@ void RibbonGroup::Paint(Draw& w)
 {
 	if(style)
 		w.DrawRect(GetSize(), style->group_look);
+
+	bool empty = !list_ctrl && ((list.IsShown() && list.GetMinSize().cx <= 0) || (!list.IsShown() && large_btn.IsEmpty()));
+	if(empty) {
+		int label_cy = lbl.GetMinSize().cy;
+		Rect r(0, 0, GetSize().cx, max(0, GetSize().cy - label_cy - label_gap));
+		if(r.GetWidth() > DPI(8) && r.GetHeight() > DPI(8)) {
+			Rect p = r.Deflated(DPI(4));
+			Color c = Blend(SColorText(), style->group_look, 210);
+			w.DrawRect(p.left, p.top, p.Width(), 1, c);
+			w.DrawRect(p.left, p.bottom - 1, p.Width(), 1, c);
+			w.DrawRect(p.left, p.top, 1, p.Height(), c);
+			w.DrawRect(p.right - 1, p.top, 1, p.Height(), c);
+		}
+	}
 }
 
 RibbonPage::RibbonPage()
@@ -501,9 +520,13 @@ bool RibbonBar::Key(dword key, int count)
 	}
 	if(key == K_ALT_KEY) {
 		show_keytips = !show_keytips;
+		if(show_keytips)
+			BuildKeyTips();
 		Refresh();
 		return true;
 	}
+	if(show_keytips && HandleKeyTipInput(key))
+		return true;
 	return ParentCtrl::Key(key, count);
 }
 
@@ -634,11 +657,16 @@ void RibbonBar::UpdateVisibility()
 	int tab_h = GetTabHeight();
 	int qat_h = qat.IsShown() ? qat.GetMinSize().cy : 0;
 	int content_h = 0;
-	int info = GetCurrentInfoIndex();
-	if(show_content && info >= 0) {
-		int page_index = tab[info].page_index;
-		if(page_index >= 0 && page_index < page.GetCount())
-			content_h = page[page_index].GetMinSize().cy;
+	if(show_content) {
+		// Use max visible tab content height so ribbon frame is stable when switching tabs.
+		for(int i = 0; i < visible_map.GetCount(); i++) {
+			int info = visible_map[i];
+			if(info < 0 || info >= tab.GetCount())
+				continue;
+			int page_index = tab[info].page_index;
+			if(page_index >= 0 && page_index < page.GetCount())
+				content_h = max(content_h, page[page_index].GetMinSize().cy);
+		}
 	}
 	Height(tab_h + qat_h + content_h);
 	RefreshParentLayout();
@@ -672,19 +700,129 @@ void RibbonBar::DrawKeyTips(Draw& w)
 {
 	if(!show_keytips)
 		return;
+	BuildKeyTips();
+	Font fnt = StdFont().Height(10).Bold();
+	for(const KeyTipItem& it : keytip_items) {
+		if(it.key.IsEmpty())
+			continue;
+		Size tsz = GetTextSize(it.key, fnt);
+		Rect r = RectC(it.rect.left, it.rect.top, tsz.cx + DPI(6), tsz.cy + DPI(4));
+		w.DrawRect(r, Yellow());
+		w.DrawText(r.left + DPI(3), r.top + DPI(2), it.key, fnt, Black());
+	}
+}
+
+String RibbonBar::NextControlKey(int index) const
+{
+	int q = index / 26;
+	int r = index % 26;
+	String out;
+	out.Cat('A' + r);
+	if(q > 0)
+		out << IntStr(q + 1);
+	return out;
+}
+
+String RibbonBar::KeyToToken(dword key) const
+{
+	dword base = key & ~(K_CTRL | K_ALT | K_SHIFT | K_KEYUP);
+	if(base >= 'a' && base <= 'z')
+		base = base - 'a' + 'A';
+	if((base >= 'A' && base <= 'Z') || (base >= '0' && base <= '9'))
+		return String((char)base, 1);
+	return String();
+}
+
+void RibbonBar::TriggerKeyTipCtrl(Ctrl* c)
+{
+	if(!c || !c->IsShown() || !c->IsEnabled())
+		return;
+	if(Pusher* p = dynamic_cast<Pusher*>(c)) {
+		p->PseudoPush();
+		return;
+	}
+	c->SetFocus();
+}
+
+bool RibbonBar::HandleKeyTipInput(dword key)
+{
+	if(key == K_ESCAPE) {
+		show_keytips = false;
+		Refresh();
+		return true;
+	}
+	String token = KeyToToken(key);
+	if(token.IsEmpty())
+		return false;
+	BuildKeyTips();
+	for(const KeyTipItem& it : keytip_items) {
+		if(it.key != token)
+			continue;
+		if(it.tab_info >= 0) {
+			for(int vi = 0; vi < visible_map.GetCount(); vi++) {
+				if(visible_map[vi] == it.tab_info) {
+					tabs.Set(vi);
+					OnTab();
+					show_keytips = false;
+					Refresh();
+					return true;
+				}
+			}
+		}
+		if(it.ctrl) {
+			TriggerKeyTipCtrl(it.ctrl);
+			show_keytips = false;
+			Refresh();
+			return true;
+		}
+	}
+	return false;
+}
+
+void RibbonBar::BuildKeyTips()
+{
+	keytip_items.Clear();
+	Rect tr = tabs.GetRect();
+	int tab_x = tr.left + DPI(8);
+	for(int i = 0; i < visible_map.GetCount(); i++) {
+		int info = visible_map[i];
+		if(info < 0 || info >= tab.GetCount())
+			continue;
+		KeyTipItem& kt = keytip_items.Add();
+		kt.key = (i < 9 ? AsString(i + 1) : AsString(0));
+		kt.tab_info = info;
+		kt.rect = RectC(tab_x, tr.top + DPI(4), DPI(20), DPI(16));
+		tab_x += DPI(24);
+	}
+
 	int info = GetCurrentInfoIndex();
 	if(info < 0 || info >= tab.GetCount())
 		return;
-	String title = tab[info].text;
-	if(IsNull(title))
+	int page_index = tab[info].page_index;
+	if(page_index < 0 || page_index >= page.GetCount())
 		return;
-	String key = ToUpper(title.Left(1));
-	Font fnt = StdFont().Height(10).Bold();
-	Size tsz = GetTextSize(key, fnt);
-	Rect tr = tabs.GetRect();
-	Point p(tr.left + DPI(8), tr.top + DPI(4));
-	w.DrawRect(p.x, p.y, tsz.cx + DPI(6), tsz.cy + DPI(4), Yellow());
-	w.DrawText(p.x + DPI(3), p.y + DPI(2), key, fnt, Black());
+
+	Vector<Ctrl*> stack;
+	for(Ctrl* c = page[page_index].GetFirstChild(); c; c = c->GetNext())
+		stack.Add(c);
+	int action_i = 0;
+	while(!stack.IsEmpty()) {
+		Ctrl* c = stack.Top();
+		stack.Drop();
+		for(Ctrl* ch = c->GetFirstChild(); ch; ch = ch->GetNext())
+			stack.Add(ch);
+		if(!c->IsShown() || !c->IsEnabled())
+			continue;
+		if(!dynamic_cast<Pusher*>(c) && !dynamic_cast<DropList*>(c))
+			continue;
+		Rect sr = c->GetScreenRect();
+		Rect r = RectC(sr.left, sr.top, sr.Width(), sr.Height());
+		r = r.Offseted(-GetScreenView().left, -GetScreenView().top);
+		KeyTipItem& kt = keytip_items.Add();
+		kt.key = NextControlKey(action_i++);
+		kt.ctrl = c;
+		kt.rect = RectC(r.left + DPI(2), r.top + DPI(2), DPI(20), DPI(16));
+	}
 }
 
 void RibbonBar::PopupTabMenu(Point p)

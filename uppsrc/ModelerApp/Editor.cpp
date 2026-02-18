@@ -3375,8 +3375,24 @@ void Edit3D::Toolbar(Bar& bar) {
 
 void Edit3D::UpdateRibbonContext()
 {
-	bool camera_context = v0.selected_obj && v0.selected_obj->IsCamera();
+	bool has_obj = v0.selected_obj;
+	bool camera_context = has_obj && v0.selected_obj->IsCamera();
+	bool mesh_context = false;
+	bool material_context = false;
+	if(has_obj) {
+		mesh_context = v0.selected_obj->IsModel();
+		if(mesh_context) {
+			Model* mdl = v0.selected_obj->mdl.Get();
+			if(mdl && mdl->materials.GetCount() > 0)
+				material_context = true;
+			else if(v0.selected_obj->Find2DLayer())
+				material_context = true;
+		}
+	}
 	ribbon.ShowContext("camera", camera_context);
+	ribbon.ShowContext("object", has_obj);
+	ribbon.ShowContext("mesh", mesh_context);
+	ribbon.ShowContext("material", material_context);
 }
 
 void Edit3D::SyncRibbonLightmapControls()

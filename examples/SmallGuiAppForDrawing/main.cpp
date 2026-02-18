@@ -19,6 +19,7 @@ public:
 	DrawingCanvas() {
 		SetFrame(ViewFrame());
 		BackPaint();
+		LayoutId("drawingCanvas");
 	}
 
 	void SetColor(Color c) { current_color = c; }
@@ -85,19 +86,24 @@ class SmallGuiAppForDrawing : public TopWindow {
 public:
 	SmallGuiAppForDrawing() {
 		Title("DrawingApp").Sizeable().Zoomable();
+		LayoutId("mainWindow");
 		
 		AddFrame(toolbar);
+		toolbar.LayoutId("toolbar");
 		Add(canvas.SizePos());
 		
 		toolbar.Set([this](Bar& bar) {
 			bar.Add("pencilBtn", CtrlImg::save(), [this] { /* pencil tool active */ })
-			   .Key(K_P).Help("Pencil tool");
+			   .Key(K_P).Help("Pencil tool")
+			   .LayoutId("pencilBtn");
 			bar.Add("saveButton", CtrlImg::save(), [this] { SaveImage(); })
-			   .Key(K_CTRL_S).Help("Save image");
+			   .Key(K_CTRL_S).Help("Save image")
+			   .LayoutId("saveButton");
 			bar.Separator();
 			bar.Add(color_pusher.SizePos());
 		});
 		
+		color_pusher.LayoutId("colorBtn");
 		color_pusher << [this] { canvas.SetColor(color_pusher.GetData()); };
 		color_pusher.SetData(Black());
 		
@@ -131,6 +137,11 @@ public:
 	
 	virtual bool Access(Visitor& v) override {
 		v.AccessLabel("mainWindow");
+		v.AccessLabel("drawingCanvas");
+		v.AccessLabel("toolbar");
+		v.AccessAction("pencilBtn", [=]{});
+		v.AccessAction("saveButton", [=]{});
+		v.AccessAction("colorBtn", [=]{});
 		return true;
 	}
 };

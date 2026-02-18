@@ -110,6 +110,10 @@ protected:
 	Value   ribbon_push;
 	bool    ribbon_show_label;
 	Event<Bar&> ribbon_menu;
+	bool    ribbon_text_drawn = false;
+	bool    ribbon_image_drawn = false;
+	Size    ribbon_text_draw_size = Size(0, 0);
+	Size    ribbon_image_draw_size = Size(0, 0);
 
 	void  RefreshOK(Ctrl *p);
 	const Style *St() const;
@@ -151,6 +155,11 @@ public:
 	Button&  SetRibbonLook(const Value& idle, const Value& hot, const Value& push);
 	Button&  ShowRibbonLabel(bool show = true);
 	Button&  SetRibbonMenu(Event<Bar&> menu);
+	int      GetRibbonMode() const                        { return ribbon_mode; }
+	bool     WasRibbonTextDrawn() const                   { return ribbon_text_drawn; }
+	bool     WasRibbonImageDrawn() const                  { return ribbon_image_drawn; }
+	Size     GetRibbonTextDrawSize() const                { return ribbon_text_draw_size; }
+	Size     GetRibbonImageDrawSize() const               { return ribbon_image_draw_size; }
 
 	Button();
 	virtual ~Button();

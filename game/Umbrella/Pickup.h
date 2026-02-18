@@ -9,6 +9,12 @@ using namespace Upp;
 
 enum PickupType { PU_HEART, PU_GEM, PU_LIGHTNING, PU_SPEED };
 
+struct PickupSpawnPoint : Moveable<PickupSpawnPoint> {
+	int col = 0;
+	int row = 0;
+	PickupType type = PU_HEART;
+};
+
 class Pickup : public GameEntity {
 	PickupType type;
 	float  bobTimer;   // drives sinusoidal vertical offset

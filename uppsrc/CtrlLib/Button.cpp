@@ -373,6 +373,11 @@ void Button::PaintButton(Ctrl *ctrl, Draw& w, const Rect& r, const Button::Style
 
 void Button::Paint(Draw& w)
 {
+	ribbon_text_drawn = false;
+	ribbon_image_drawn = false;
+	ribbon_text_draw_size = Size(0, 0);
+	ribbon_image_draw_size = Size(0, 0);
+
 	if(ribbon_mode != RIBBON_NONE) {
 		Rect r = GetSize();
 		int state = GetVisualState();
@@ -420,6 +425,8 @@ void Button::Paint(Draw& w)
 			int ix = icon_area.left + (icon_area.Width() - dcx) / 2;
 			int iy = icon_area.top + (icon_area.Height() - dcy) / 2;
 			w.DrawImage(ix, iy, dcx, dcy, draw_img);
+			ribbon_image_drawn = true;
+			ribbon_image_draw_size = Size(dcx, dcy);
 		}
 
 		String t = label;
@@ -449,14 +456,18 @@ void Button::Paint(Draw& w)
 		if(!t.IsEmpty()) {
 			int total_cy = lines.GetCount() * fnt.GetLineHeight();
 			int ty = text_area.top + max(0, (text_area.Height() - total_cy) / 2);
+			int max_tx = 0;
 			for(int i = 0; i < lines.GetCount() && i < 2; i++) {
 				Size tsz = GetTextSize(lines[i], fnt);
 				int tx = (ribbon_mode == RIBBON_LIST)
 				         ? text_area.left
 				         : text_area.left + max(0, (text_area.Width() - tsz.cx) / 2);
 				w.DrawText(tx, ty, lines[i], fnt, tc);
+				max_tx = max(max_tx, tsz.cx);
 				ty += fnt.GetLineHeight();
 			}
+			ribbon_text_drawn = true;
+			ribbon_text_draw_size = Size(max_tx, total_cy);
 		}
 		if(focus)
 			DrawFocus(w, r.Deflated(st.focusmargin));

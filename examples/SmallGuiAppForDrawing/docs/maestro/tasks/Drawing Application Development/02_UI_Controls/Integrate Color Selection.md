@@ -1,9 +1,9 @@
 # Task: Integrate Color Selection
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Add a ColorPusher control to allow users to change the pencil color.
 
 ## Definition of Done
-- [ ] File: `main.cpp`
+- [x] File: `main.cpp`
 

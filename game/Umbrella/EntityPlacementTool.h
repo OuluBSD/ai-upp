@@ -4,6 +4,7 @@
 #include <Core/Core.h>
 #include "Enemy.h"
 #include "Droplet.h"
+#include "Pickup.h"
 
 using namespace Upp;
 
@@ -14,7 +15,8 @@ enum EntityPlacementMode {
 
 enum EntityToolType {
 	ENTITY_ENEMY,
-	ENTITY_DROPLET
+	ENTITY_DROPLET,
+	ENTITY_PICKUP
 };
 
 class EntityPlacementTool {
@@ -73,6 +75,25 @@ public:
 	int GetSelectedDirection() const { return selectedDirection; }
 	void SetSelectedInterval(int interval) { selectedInterval = interval; }
 	int GetSelectedInterval() const { return selectedInterval; }
+
+	virtual void Click(int col, int row) override;
+	virtual void Render(Draw& w, int col, int row, Point offset, double zoom, int gridSize) override;
+
+private:
+	int FindSpawnAt(int col, int row) const;
+};
+
+class PickupPlacementTool : public EntityPlacementTool {
+private:
+	Array<PickupSpawnPoint>* pickupSpawns;
+	PickupType selectedType;
+
+public:
+	PickupPlacementTool();
+
+	void SetPickupSpawns(Array<PickupSpawnPoint>* spawns) { pickupSpawns = spawns; }
+	void SetSelectedType(PickupType type) { selectedType = type; }
+	PickupType GetSelectedType() const { return selectedType; }
 
 	virtual void Click(int col, int row) override;
 	virtual void Render(Draw& w, int col, int row, Point offset, double zoom, int gridSize) override;

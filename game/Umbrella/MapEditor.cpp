@@ -241,25 +241,26 @@ void MapCanvas::Paint(Draw& w) {
 	}
 
 	// Render spawn points (always on top)
-	if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT ||
-	   parentEditor->GetCurrentTool() == MapEditorApp::TOOL_DROPLET_PLACEMENT) {
+	MapEditorApp::EditTool activeTool = parentEditor->GetCurrentTool();
+	if(activeTool == MapEditorApp::TOOL_ENEMY_PLACEMENT ||
+	   activeTool == MapEditorApp::TOOL_DROPLET_PLACEMENT ||
+	   activeTool == MapEditorApp::TOOL_PICKUP_PLACEMENT) {
 		// Render active tool's spawn points and preview
-		if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
+		if(activeTool == MapEditorApp::TOOL_ENEMY_PLACEMENT) {
 			parentEditor->GetEnemyTool().Render(w, cursorCol, cursorRow, offset, zoom, 14);
 		}
-		else {
+		else if(activeTool == MapEditorApp::TOOL_DROPLET_PLACEMENT) {
 			parentEditor->GetDropletTool().Render(w, cursorCol, cursorRow, offset, zoom, 14);
+		}
+		else {
+			parentEditor->GetPickupTool().Render(w, cursorCol, cursorRow, offset, zoom, 14);
 		}
 	}
 	else {
 		// When not in entity placement mode, still show spawn points but without preview
-		// (Render both enemy and droplet spawns for reference)
-		EnemyPlacementTool& enemyTool = parentEditor->GetEnemyTool();
-		DropletPlacementTool& dropletTool = parentEditor->GetDropletTool();
-
-		// Render with invalid cursor position to skip preview
-		enemyTool.Render(w, -1, -1, offset, zoom, 14);
-		dropletTool.Render(w, -1, -1, offset, zoom, 14);
+		parentEditor->GetEnemyTool().Render(w, -1, -1, offset, zoom, 14);
+		parentEditor->GetDropletTool().Render(w, -1, -1, offset, zoom, 14);
+		parentEditor->GetPickupTool().Render(w, -1, -1, offset, zoom, 14);
 	}
 }
 
@@ -363,6 +364,11 @@ void MapCanvas::LeftDown(Point pos, dword flags) {
 		dropletTool.Click(col, row);
 		Refresh();
 	}
+	else if(parentEditor->GetCurrentTool() == MapEditorApp::TOOL_PICKUP_PLACEMENT) {
+		PickupPlacementTool& pickupTool = parentEditor->GetPickupTool();
+		pickupTool.Click(col, row);
+		Refresh();
+	}
 }
 
 void MapCanvas::LeftUp(Point pos, dword flags) {
@@ -409,6 +415,14 @@ void MapCanvas::RightDown(Point pos, dword flags) {
 		Refresh();
 		return;
 	}
+	if(tool == MapEditorApp::TOOL_PICKUP_PLACEMENT) {
+		PickupPlacementTool& pt = parentEditor->GetPickupTool();
+		pt.SetMode(PLACEMENT_REMOVE);
+		pt.Click(col, row);
+		pt.SetMode(PLACEMENT_ADD);
+		Refresh();
+		return;
+	}
 
 	// All other tools: right-click erases tiles
 	BrushTool& brush = parentEditor->GetBrushTool();
@@ -425,7 +439,8 @@ void MapCanvas::RightUp(Point pos, dword flags) {
 
 	MapEditorApp::EditTool tool = parentEditor->GetCurrentTool();
 	if(tool == MapEditorApp::TOOL_ENEMY_PLACEMENT ||
-	   tool == MapEditorApp::TOOL_DROPLET_PLACEMENT)
+	   tool == MapEditorApp::TOOL_DROPLET_PLACEMENT ||
+	   tool == MapEditorApp::TOOL_PICKUP_PLACEMENT)
 		return;
 
 	BrushTool& brush = parentEditor->GetBrushTool();
@@ -529,6 +544,7 @@ MapEditorApp::MapEditorApp() {
 	// Connect entity tools to spawn arrays
 	enemyTool.SetEnemySpawns(&enemySpawns);
 	dropletTool.SetDropletSpawns(&dropletSpawns);
+	pickupTool.SetPickupSpawns(&pickupSpawns);
 
 	AddFrame(mainMenuBar);
 	AddFrame(mainToolBar);
@@ -849,6 +865,16 @@ void MapEditorApp::SetupToolsPanel() {
 		mapCanvas.Refresh();
 	};
 	toolsPanel.Add(dropletPlacementBtn.LeftPos(10, 110).TopPos(yPos, 25));
+	yPos += 30;
+
+	pickupPlacementBtn.SetLabel("Pickup [7]");
+	pickupPlacementBtn << [=] {
+		currentTool = TOOL_PICKUP_PLACEMENT;
+		pickupTool.SetMode(PLACEMENT_ADD);
+		mainStatusBar.Set("Tool: Pickup Placement (7=add, right-click=remove)");
+		mapCanvas.Refresh();
+	};
+	toolsPanel.Add(pickupPlacementBtn.LeftPos(10, 110).TopPos(yPos, 25));
 	yPos += 40;
 
 	// Enemy type selector
@@ -899,6 +925,25 @@ void MapEditorApp::SetupToolsPanel() {
 			dropletTool.SetSelectedType(modes[idx]);
 	};
 	toolsPanel.Add(dropletTypeList.HSizePos(10, 10).TopPos(yPos, 22));
+	yPos += 40;
+
+	// Pickup type selector
+	pickupTypeLabel.SetText("Pickup Type:");
+	toolsPanel.Add(pickupTypeLabel.LeftPos(10, 110).TopPos(yPos, 20));
+	yPos += 22;
+
+	pickupTypeList.Add("Heart");
+	pickupTypeList.Add("Gem");
+	pickupTypeList.Add("Lightning");
+	pickupTypeList.Add("Speed");
+	pickupTypeList.SetIndex(0);
+	pickupTypeList.WhenAction = [=] {
+		int idx = pickupTypeList.GetIndex();
+		PickupType types[] = { PU_HEART, PU_GEM, PU_LIGHTNING, PU_SPEED };
+		if(idx >= 0 && idx < 4)
+			pickupTool.SetSelectedType(types[idx]);
+	};
+	toolsPanel.Add(pickupTypeList.HSizePos(10, 10).TopPos(yPos, 22));
 }
 
 void MapEditorApp::SetupLayersPanel() {
@@ -1149,6 +1194,12 @@ bool MapEditorApp::Key(dword key, int) {
 			mainStatusBar.Set("Tool: Add Droplet");
 			return true;
 
+		case K_7:  // Pickup Placement
+			currentTool = TOOL_PICKUP_PLACEMENT;
+			pickupTool.SetMode(PLACEMENT_ADD);
+			mainStatusBar.Set("Tool: Add Pickup");
+			return true;
+
 		// Legacy shortcuts (kept for backwards compatibility)
 		case K_B:  // B for Brush
 			currentTool = TOOL_BRUSH;
@@ -1350,7 +1401,7 @@ void MapEditorApp::PlaytestAction() {
 	String tempPath = GetTempFileName("playtest_level") + ".json";
 
 	// Save current map to temp file
-	if(!MapSerializer::SaveToFile(tempPath, layerManager, &enemySpawns, &dropletSpawns)) {
+	if(!MapSerializer::SaveToFile(tempPath, layerManager, &enemySpawns, &dropletSpawns, &pickupSpawns)) {
 		Exclamation("Failed to save temporary file for playtesting!");
 		return;
 	}
@@ -1378,6 +1429,7 @@ void MapEditorApp::NewMap() {
 	layerManager.InitializeDefaultLayers(cols, rows);
 	enemySpawns.Clear();
 	dropletSpawns.Clear();
+	pickupSpawns.Clear();
 	currentFilePath = String();
 	undoStack.Clear();
 	preOpSnapshot.Clear();
@@ -1401,8 +1453,10 @@ void MapEditorApp::OpenFile(const String& fileName) {
 		// Load spawn points
 		enemySpawns.Clear();
 		dropletSpawns.Clear();
+		pickupSpawns.Clear();
 		MapSerializer::LoadEnemySpawns(fileName, enemySpawns);
 		MapSerializer::LoadDropletSpawns(fileName, dropletSpawns);
+		MapSerializer::LoadPickupSpawns(fileName, pickupSpawns);
 
 		// Auto-load reference image if it exists
 		// world1-stage1.json -> map 1-1/frame_000002.jpg
@@ -1476,7 +1530,7 @@ void MapEditorApp::OpenFile(const String& fileName) {
 }
 
 void MapEditorApp::SaveFile(const String& fileName) {
-	if(MapSerializer::SaveToFile(fileName, layerManager, &enemySpawns, &dropletSpawns)) {
+	if(MapSerializer::SaveToFile(fileName, layerManager, &enemySpawns, &dropletSpawns, &pickupSpawns)) {
 		currentFilePath = fileName;
 		mainStatusBar.Set("Saved: " + GetFileName(fileName));
 		AddRecentFile(fileName);

@@ -738,6 +738,8 @@ struct Edit3D : DockWindow {
 	void RequestExecutionExit();
 	void UpdateRibbonContext();
 	void FocusSelectedNode();
+	void SyncRibbonLightmapControls();
+	void StoreRibbonLightmapSettings(bool bake);
 	void CreatePrimitiveCube(double size);
 	void CreatePrimitiveSphere(double radius, int slices, int stacks);
 	void CreatePrimitiveCylinder(double radius, double length, int slices);

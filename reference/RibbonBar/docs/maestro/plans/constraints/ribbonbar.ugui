@@ -1,0 +1,7 @@
+constraints:
+  - "VISIBLE(mainWindow)"
+  - "VISIBLE(ribbonBar)"
+  - "ENABLED(ribbonBar)"
+  - "CHECKED(home) implies (VISIBLE(paste) and RIBBON_SIZE_NONZERO(paste) and RIBBON_TEXT_DRAWN(paste) and RIBBON_TEXT_SIZE_NONZERO(paste) and RIBBON_IMAGE_DRAWN(paste) and RIBBON_IMAGE_SIZE_NONZERO(paste))"
+  - "CHECKED(insert) implies (VISIBLE(addShape) and RIBBON_SIZE_NONZERO(addShape) and RIBBON_TEXT_DRAWN(addShape) and RIBBON_TEXT_SIZE_NONZERO(addShape) and RIBBON_IMAGE_DRAWN(addShape) and RIBBON_IMAGE_SIZE_NONZERO(addShape))"
+  - "CHECKED(view) implies (VISIBLE(tile) and RIBBON_SIZE_NONZERO(tile) and RIBBON_TEXT_DRAWN(tile) and RIBBON_TEXT_SIZE_NONZERO(tile) and RIBBON_IMAGE_DRAWN(tile) and RIBBON_IMAGE_SIZE_NONZERO(tile))"

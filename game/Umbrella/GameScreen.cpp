@@ -107,17 +107,18 @@ bool GameScreen::LoadLevel(const String& path) {
 	// Reset time-pressure boss for this level
 	reaper.Reset();
 
-	// Spawn hardcoded pickups for first level (one of each type)
+	// Load pickup spawn points from level data
 	pickups.Clear();
 	pickupRoot.sub.Clear();
-	if(levelColumns > 4 && levelRows > 4) {
-		int mid = levelColumns / 2;
-		int row = levelRows - 2;
+	{
+		Array<PickupSpawnPoint> pickupSpawns;
+		MapSerializer::LoadPickupSpawns(path, pickupSpawns);
 		float gs = (float)gridSize;
-		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid - 2), gs * row, PU_HEART);      pickups.Add(&p); }
-		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid - 1), gs * row, PU_GEM);        pickups.Add(&p); }
-		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs *  mid,       gs * row, PU_LIGHTNING); pickups.Add(&p); }
-		{ Pickup& p = pickupRoot.Add<Pickup>(); p.Init(gs * (mid + 1), gs * row, PU_SPEED);     pickups.Add(&p); }
+		for(int i = 0; i < pickupSpawns.GetCount(); i++) {
+			Pickup& p = pickupRoot.Add<Pickup>();
+			p.Init(gs * pickupSpawns[i].col, gs * pickupSpawns[i].row, pickupSpawns[i].type);
+			pickups.Add(&p);
+		}
 	}
 
 	// Load droplet spawn points

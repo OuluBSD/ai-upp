@@ -1,9 +1,9 @@
 # Task: Implement Save Logic
-# Status: TODO
+# Status: DONE
 
 ## Objective
 Add functionality to export the current DrawingCanvas to a file using Image and Draw class.
 
 ## Definition of Done
-- [ ] File: `main.cpp`
+- [x] File: `main.cpp`
 

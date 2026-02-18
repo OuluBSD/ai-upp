@@ -2,13 +2,20 @@
 // http://doc.trolltech.com/3.0/hello-example.html
 
 #include <CtrlLib/CtrlLib.h>
+#include <AI/LogicGui/LogicGui.h>
 
 using namespace Upp;
 
 class HelloWorld : public TopWindow {
 public:
-	virtual void LeftDown(Point, dword);
-	virtual void Paint(Draw& w);
+	virtual void LeftDown(Point, dword) override;
+	virtual void Paint(Draw& w) override;
+	
+	virtual bool Access(Visitor& v) override {
+		v.AccessLabel("mainWindow");
+		v.AccessLabel("helloText");
+		return true;
+	}
 
 private:
 	String text;
@@ -21,6 +28,7 @@ public:
 
 HelloWorld::HelloWorld()
 {
+	LayoutId("mainWindow");
 	SetTimeCallback(-40, [=] { Refresh(); });
 	BackPaint();
 	Zoomable().Sizeable();
@@ -49,8 +57,47 @@ void HelloWorld::Paint(Draw& w)
 
 GUI_APP_MAIN
 {
+	LinkLogicGui();
+	
+	String root = GetCurrentDirectory();
+	bool found = false;
+	while(!root.IsEmpty()) {
+		if(DirectoryExists(AppendFileName(root, "docs/maestro"))) {
+			found = true;
+			break;
+		}
+		String next = GetFileFolder(root);
+		if(next == root) break;
+		root = next;
+	}
+	
+	if(found) {
+		String constr_dir = AppendFileName(root, "docs/maestro/plans/constraints");
+		FindFile ff(AppendFileName(constr_dir, "*.ugui"));
+		while(ff) {
+			String c = LoadFile(ff.GetPath());
+			Vector<String> lines = Split(c, '\n');
+			for(const String& l : lines) {
+				String s = TrimLeft(TrimRight(l));
+				if(s.GetCount() && !s.StartsWith("YOLO") && !s.StartsWith("Loaded") && !s.StartsWith("Hook")) {
+					Ctrl::constraints.Add(s);
+				}
+			}
+			ff.Next();
+		}
+	}
+
 	HelloWorld hw;
 	hw.Title("Hello world example");
 	hw.Text(Nvl(Join(CommandLine(), " "), "Hello world !"));
+	
+	const Vector<String>& cmd = CommandLine();
+	for(int i = 0; i < cmd.GetCount(); i++) {
+		if(cmd[i] == "--test") {
+			Ctrl::CheckConstraints();
+			return;
+		}
+	}
+
 	hw.Run();
 }

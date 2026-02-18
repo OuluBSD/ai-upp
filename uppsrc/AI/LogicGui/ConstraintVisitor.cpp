@@ -1,4 +1,5 @@
 #include "ConstraintVisitor.h"
+#include <CtrlLib/CtrlLib.h>
 
 namespace Upp {
 
@@ -23,6 +24,11 @@ static String Sanitize(const char *text)
 		text++;
 	}
 	return r.IsEmpty() ? "item" : r;
+}
+
+static String Sanitize(const String& s)
+{
+	return Sanitize(~s);
 }
 
 ConstraintVisitor::ConstraintVisitor()
@@ -82,6 +88,30 @@ void ConstraintVisitor::CollectFacts(Ctrl& c)
 {
 	ctrl = &c;
 	c.Access(*this);
+
+	Button* btn = dynamic_cast<Button*>(&c);
+	if(btn && btn->GetRibbonMode() != Button::RIBBON_NONE) {
+		String n = Sanitize(btn->GetLayoutId());
+		if(n.IsEmpty())
+			n = Sanitize(btn->GetLabel());
+		if(n.IsEmpty())
+			n = "item";
+
+		facts.FindAdd(Format("RIBBON_BUTTON(%s)", n));
+		if(btn->GetSize().cx > 0 && btn->GetSize().cy > 0)
+			facts.FindAdd(Format("RIBBON_SIZE_NONZERO(%s)", n));
+		if(btn->WasRibbonTextDrawn())
+			facts.FindAdd(Format("RIBBON_TEXT_DRAWN(%s)", n));
+		Size tsz = btn->GetRibbonTextDrawSize();
+		if(tsz.cx > 0 && tsz.cy > 0)
+			facts.FindAdd(Format("RIBBON_TEXT_SIZE_NONZERO(%s)", n));
+		if(btn->WasRibbonImageDrawn())
+			facts.FindAdd(Format("RIBBON_IMAGE_DRAWN(%s)", n));
+		Size isz = btn->GetRibbonImageDrawSize();
+		if(isz.cx > 0 && isz.cy > 0)
+			facts.FindAdd(Format("RIBBON_IMAGE_SIZE_NONZERO(%s)", n));
+	}
+
 	for(Ctrl *child = c.GetFirstChild(); child; child = child->GetNext()) {
 		CollectFacts(*child);
 	}

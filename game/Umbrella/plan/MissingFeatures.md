@@ -23,8 +23,8 @@ The U++ Umbrella implementation has successfully ported core platformer gameplay
 
 ## Phase 6: Missing Gameplay Systems
 
-### Track 6.1: Water/Droplet System
-**Priority**: HIGH (Core collectible mechanic)
+### Track 6.1: Water/Droplet System — COMPLETE (D2)
+**Priority**: HIGH (Core collectible mechanic) — **DONE**
 **Java Files**:
 - `gameplay/water/Droplet.java`
 - `gameplay/water/DropletManager.java`
@@ -103,8 +103,8 @@ THEMED_TREAT_IDS.put(EnemyShooter.class, "blueberry");
 
 ---
 
-### Track 6.4: Pickup System
-**Priority**: MEDIUM (Health/powerup items)
+### Track 6.4: Pickup System — COMPLETE (D4 + D17)
+**Priority**: MEDIUM (Health/powerup items) — **DONE**
 **Java Files**:
 - `gameplay/components/Pickup.java`
 - `ui/screens/GameScreen.java` (pickup collision)
@@ -145,7 +145,7 @@ Pickups spawn in levels and give the player benefits:
 - `gameplay/enemies/SidewaysJumpEnemy.java` (jumps sideways)
 - `gameplay/enemies/WaterEnemy.java` (water-based enemy)
 
-**Current Status**: Only 3 enemy types (Patroller, Jumper, Shooter).
+**Current Status**: 4 enemy types (Patroller, Jumper, Shooter, Flyer) + GrimReaper boss.
 
 **Description**:
 RainbowGame has 9+ additional enemy types with unique behaviors. Most are more advanced than current implementations.
@@ -225,8 +225,8 @@ Central registry of all game textures with metadata (dimensions, hitboxes, tags)
 
 ## Phase 9: Advanced Map Editor Features
 
-### Track 9.1: Annotation System
-**Priority**: HIGH (Level design workflow)
+### Track 9.1: Annotation System — COMPLETE
+**Priority**: HIGH (Level design workflow) — **DONE**
 **Java Files**:
 - `editor/annotation/AnnotationStore.java`
 - `editor/annotation/AnnotationPipeline.java`
@@ -247,7 +247,7 @@ The Java editor has a sophisticated annotation system that stores additional met
 
 This data is stored separately from the tile map and used to generate gameplay at runtime.
 
-**Current Status**: MapEditor only edits tiles. No annotation layer exists.
+**Current Status**: COMPLETE — Enemy, Droplet, and Pickup placement tools exist in editor with serialization.
 
 **Implementation Tasks**:
 1. Create annotation layer storage (separate from tile layers)
@@ -311,21 +311,18 @@ The Java editor has a save system with multiple slots, metadata (timestamp, prev
 
 ---
 
-### Track 9.5: Reference Layer System
-**Priority**: LOW (Design aid)
+### Track 9.5: Reference Layer System — COMPLETE
+**Priority**: LOW (Design aid) — **DONE**
 **Java Files**: `editor/MapEditorScreen.java` (ReferenceImageLayer)
 
-**Description**:
-Editor can overlay reference images (concept art, mockups) to guide tile placement.
-
-**Estimated Effort**: 6-8 hours
+**Current Status**: COMPLETE — Auto-load from worldX-stageY pattern, opacity control, Ctrl+Middle-drag pan, Ctrl+Wheel scale, browse dialog.
 
 ---
 
 ## Phase 10: Level Management and Progression
 
-### Track 10.1: Level Manifest System
-**Priority**: HIGH (World structure)
+### Track 10.1: Level Manifest System — COMPLETE (D1 + D16)
+**Priority**: HIGH (World structure) — **DONE**
 **Java Files**:
 - `levels/LevelManifest.java`
 - `levels/LevelLoader.java`
@@ -340,7 +337,7 @@ RainbowGame has a manifest system that defines:
 - Unlock conditions
 - Par times, score thresholds
 
-**Current Status**: Umbrella only loads single level, no world/level progression.
+**Current Status**: COMPLETE — LevelManifest with worlds, level select screen, level transitions with scroll animation.
 
 **Implementation Tasks**:
 1. Create level manifest JSON format
@@ -360,7 +357,7 @@ RainbowGame has a manifest system that defines:
 **Description**:
 Levels have a goal (reach exit, collect all droplets, defeat all enemies, time limit, etc.).
 
-**Current Status**: LEVEL_COMPLETE state exists but no goal detection.
+**Current Status**: COMPLETE — Enemy-clear triggers level complete, score summary screen with grade (S/A/B/C), auto-advance to next level.
 
 **Implementation Tasks**:
 1. Add goal tiles to level format (exit portal, finish line)
@@ -376,20 +373,10 @@ Levels have a goal (reach exit, collect all droplets, defeat all enemies, time l
 
 ## Phase 11: Debug and Development Tools
 
-### Track 11.1: Debug Overlay
-**Priority**: MEDIUM (Development aid)
-**Java Files**: `debug/DebugOverlay.java`
+### Track 11.1: Debug Overlay — COMPLETE (D15)
+**Priority**: MEDIUM (Development aid) — **DONE**
 
-**Description**:
-In-game overlay showing:
-- FPS counter
-- Player position, velocity
-- Collision boxes visualization
-- Enemy count, state
-- Droplet count
-- Memory usage
-
-**Estimated Effort**: 6-8 hours
+**Current Status**: COMPLETE — F3 toggle shows FPS, player pos/vel/state, enemy count, droplet/water weapon status, GrimReaper timer, camera mode, game state.
 
 ---
 
@@ -468,63 +455,72 @@ Currently AudioSystem.cpp exists but is not integrated into gameplay. Need:
 
 ## Comparison Summary
 
+**Last updated**: 2026-02-17
+
 | **Feature Category** | **Java (RainbowGame)** | **U++ (Umbrella)** | **Status** |
 |----------------------|-----------------------|-------------------|-----------|
 | Core Platformer Physics | ✓ | ✓ | COMPLETE |
 | Basic Enemies (3 types) | ✓ | ✓ | COMPLETE |
+| Flying Enemy (4th type) | ✓ | ✓ | COMPLETE (D4) |
+| GrimReaper (time-pressure boss) | ✓ | ✓ | COMPLETE (D5) |
 | HUD (lives, score) | ✓ | ✓ | COMPLETE |
 | Game States (pause, game over) | ✓ | ✓ | COMPLETE |
+| Lives + proper game over | ✓ | ✓ | COMPLETE (D3) |
 | Parasol Attack + Glide | ✓ | ✓ | COMPLETE |
 | Rewards/Treats System | ✓ | ✓ | COMPLETE |
-| A* Pathfinder + NavGraph | ✓ | ✓ | COMPLETE (added) |
-| AI Behaviors (Wanderer/Stalker/Shooter/Patrol) | ✓ | ✓ | COMPLETE (added) |
-| Enemy AI Wiring (all 3 types) | ✓ | ✓ | COMPLETE (added) |
-| Water/Droplet System | ✓ | Partial | INCOMPLETE (class exists, no spawn) |
-| Level Goal System | ✓ | Partial | INCOMPLETE (enemy-clear triggers it, no goal tile/next-level load) |
-| Lives + proper game over | ✓ | Partial | INCOMPLETE (state/counter exists, no 3-lives flow) |
-| Level Manifest/Progression | ✓ | ✗ | MISSING |
-| Advanced Enemies (flying, boss) | ✓ | ✗ | MISSING |
-| Pickups (health, powerups) | ✓ | ✗ | MISSING |
+| A* Pathfinder + NavGraph | ✓ | ✓ | COMPLETE |
+| AI Behaviors (all enemy types) | ✓ | ✓ | COMPLETE |
+| Water/Droplet System | ✓ | ✓ | COMPLETE (D2: arcade physics, merge-at-5, water weapon) |
+| Level Goal System | ✓ | ✓ | COMPLETE (D6: enemy-clear + score summary + transition) |
+| Level Manifest/Progression | ✓ | ✓ | COMPLETE (D1: manifest, transitions, level select D16) |
+| Level Select Screen | ✓ | ✓ | COMPLETE (D16) |
+| Pickups (health, powerups) | ✓ | ✓ | COMPLETE (D4: class + collection; D17: editor spawn tool) |
+| Annotation System (spawn tools) | ✓ | ✓ | COMPLETE (enemy/droplet/pickup placement tools in editor) |
+| Reference Layer System | ✓ | ✓ | COMPLETE (auto-load, opacity, pan, scale, browse) |
+| Debug Overlay | ✓ | ✓ | COMPLETE (D15: F3 toggle, FPS, player/enemy/droplet/water stats) |
 | Sprite/Animation System | ✓ | ✗ | MISSING |
 | Entity Definition System | ✓ | ✗ | MISSING |
-| Annotation System | ✓ | ✗ | MISSING |
 | Entity Editor | ✓ | ✗ | MISSING |
-| Debug Overlay | ✓ | ✗ | MISSING |
 | Particle Effects | ✓ | ✗ | MISSING |
 | Audio Integration | ✓ | ✗ | MISSING |
 | Camera Effects | ✓ | ✗ | MISSING |
+| Enemy Element System | ✓ | ✗ | MISSING |
+| Editor Save Slots | ✓ | ✗ | MISSING |
+| Map Import/Stitching | ✓ | ✗ | MISSING |
+| Cheat System | ✓ | ✗ | MISSING |
 
 ---
 
 ## Recommended Implementation Order
 
-### Immediate Priority (Next 2-3 weeks)
-1. **Track 6.2**: Parasol Attack System (core gameplay loop)
-2. **Track 6.1**: Water/Droplet System (primary collectible)
-3. **Track 6.3**: Rewards/Treats System (scoring enhancement)
-4. **Track 10.2**: Level Goal System (win condition)
+### Completed (as of 2026-02-17)
+- ✓ **Track 6.1**: Water/Droplet System + Water Weapon (D2)
+- ✓ **Track 6.2**: Parasol Attack System
+- ✓ **Track 6.3**: Rewards/Treats System
+- ✓ **Track 6.4**: Pickup System (D4 + D17)
+- ✓ **Track 7.1 partial**: Flying Enemy (D4) + GrimReaper (D5)
+- ✓ **Track 9.1**: Annotation System (enemy/droplet/pickup spawn tools)
+- ✓ **Track 9.5**: Reference Layer System
+- ✓ **Track 10.1**: Level Manifest/Progression (D1 + D16)
+- ✓ **Track 10.2**: Level Goal System (D6)
+- ✓ **Track 11.1**: Debug Overlay (D15)
 
-### High Priority (Next 4-6 weeks)
-5. **Track 8.1**: Entity Definition System (replace placeholders)
-6. **Track 9.1**: Annotation System (level design workflow)
-7. **Track 10.1**: Level Manifest (world progression)
-8. **Track 6.4**: Pickup System (health/powerups)
+### Next Priority — Replace colored rectangles
+1. **Track 8.1**: Entity Definition System (sprites + animations)
+2. **Track 8.2**: Texture Catalog (sprite management)
 
-### Medium Priority (Next 8-12 weeks)
-9. **Track 7.1**: Additional Enemy Variants (gameplay variety)
-10. **Track 8.2**: Texture Catalog (sprite management)
-11. **Track 9.2**: Entity Editor (entity authoring)
-12. **Track 12.3**: Audio Integration (feedback)
+### Medium Priority — Polish and content
+3. **Track 12.3**: Audio Integration (sound effects + music)
+4. **Track 7.1 remaining**: Additional Enemy Variants (AirbornePath, Lightning, Water, etc.)
+5. **Track 9.2**: Entity Editor (entity authoring)
+6. **Track 7.2**: Enemy Element System
 
-### Low Priority (Backlog)
-13. **Track 11.1**: Debug Overlay
-14. **Track 9.4**: Editor Save System
-15. **Track 12.1**: Particle Effects
-16. **Track 12.2**: Camera Effects
-17. **Track 7.2**: Enemy Element System
-18. **Track 9.3**: Map Import/Stitching
-19. **Track 9.5**: Reference Layer System
-20. **Track 11.2**: Cheat System
+### Low Priority — Backlog
+7. **Track 12.1**: Particle Effects
+8. **Track 12.2**: Camera Effects (screen shake)
+9. **Track 9.4**: Editor Save System (multi-slot saves)
+10. **Track 9.3**: Map Import/Stitching
+11. **Track 11.2**: Cheat System
 
 ---
 

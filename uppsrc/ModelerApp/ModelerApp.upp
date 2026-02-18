@@ -9,6 +9,7 @@ uses
 	Draw/Camera,
 	Ctrl/Camera,
 	Ctrl/Automation,
+	AI/LogicGui,
 	Scene3D/Core,
 	Scene3D/IO,
 	Scene3D/Render,

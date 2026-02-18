@@ -1,6 +1,85 @@
 #include <CtrlLib/CtrlLib.h>
+#include <AI/LogicGui/LogicGui.h>
 
 using namespace Upp;
+
+namespace {
+
+static bool LooksLikeFormula(const String& s)
+{
+	int l = s.Find('(');
+	int r = s.ReverseFind(')');
+	if(l <= 0 || r <= l)
+		return false;
+	for(int i = 0; i < l; i++) {
+		byte c = (byte)s[i];
+		if(!IsAlpha(c) && !IsDigit(c) && c != '_')
+			return false;
+	}
+	return true;
+}
+
+static void AddConstraintFormula(const String& raw)
+{
+	String s = TrimBoth(raw);
+	if(s.IsEmpty() || s.StartsWith("#"))
+		return;
+	if(s.StartsWith("-")) {
+		int q0 = s.Find('"');
+		int q1 = s.ReverseFind('"');
+		if(q0 >= 0 && q1 > q0) {
+			String quoted = s.Mid(q0 + 1, q1 - q0 - 1);
+			if(LooksLikeFormula(quoted))
+				Ctrl::constraints.Add(quoted);
+			return;
+		}
+	}
+	if(LooksLikeFormula(s))
+		Ctrl::constraints.Add(s);
+}
+
+static void LoadMaestroConstraints()
+{
+	String root = GetCurrentDirectory();
+	while(!root.IsEmpty()) {
+		if(DirectoryExists(AppendFileName(root, "docs/maestro")))
+			break;
+		String next = GetFileFolder(root);
+		if(next == root) {
+			root.Clear();
+			break;
+		}
+		root = next;
+	}
+	if(root.IsEmpty())
+		return;
+
+	String constr_dir = AppendFileName(root, "docs/maestro/plans/constraints");
+	if(!DirectoryExists(constr_dir))
+		return;
+
+	FindFile ff(AppendFileName(constr_dir, "*.ugui"));
+	while(ff) {
+		String content = LoadFile(ff.GetPath());
+		if(!content.IsEmpty()) {
+			Vector<String> lines = Split(content, '\n');
+			for(const String& l : lines)
+				AddConstraintFormula(l);
+		}
+		ff.Next();
+	}
+}
+
+static bool HasArg(const char* key)
+{
+	const Vector<String>& cmd = CommandLine();
+	for(int i = 0; i < cmd.GetCount(); i++)
+		if(cmd[i] == key)
+			return true;
+	return false;
+}
+
+}
 
 struct FontRow : ParentCtrl {
 	DropList font;
@@ -197,9 +276,12 @@ struct RibbonBarDemo : TopWindow {
 	{
 		Title("RibbonBar demo");
 		Sizeable().Zoomable();
+		LayoutId("mainWindow");
 
 		AddFrame(ribbon);
 		Add(content.SizePos());
+		ribbon.LayoutId("ribbonBar");
+		content.LayoutId("contentArea");
 
 		ribbon.SetQuickAccess([=](Bar& bar) {
 			bar.Add(CtrlImg::new_doc(), [] {});
@@ -236,6 +318,10 @@ struct RibbonBarDemo : TopWindow {
 			bar.Add("Up", CtrlImg::DirUp(), [] {});
 			bar.Add("Home", CtrlImg::Home(), [] {});
 		});
+		RibbonGroup& view_ops = view.AddGroup("Layout");
+		view_ops.SetLarge([=](Bar& bar) {
+			bar.Add("Tile", CtrlImg::File(), [] {});
+		});
 
 		RibbonGroup& styles = view.AddGroup("Styles");
 		styles.SetContentMinSize(Size(340, 0));
@@ -253,9 +339,11 @@ struct RibbonBarDemo : TopWindow {
 		});
 
 		show_picture.SetLabel("Picture selected (context tab)");
+		show_picture.LayoutId("showPicture");
 		show_picture.WhenAction = [=] { ToggleContext(); };
 
 		show_list_labels.SetLabel("Show list labels");
+		show_list_labels.LayoutId("showListLabels");
 		show_list_labels = true;
 		show_list_labels.WhenAction = [=, &edit] { edit.ShowListText(show_list_labels); };
 
@@ -263,9 +351,11 @@ struct RibbonBarDemo : TopWindow {
 		display.Add(RibbonBar::RIBBON_TABS, "Show tabs");
 		display.Add(RibbonBar::RIBBON_AUTOHIDE, "Auto-hide");
 		display.SetIndex(0);
+		display.LayoutId("displayMode");
 		display.WhenAction = [=] { OnDisplay(); };
 
 		info.SetText("Ctrl+F1 toggles ribbon, Alt toggles key tips.");
+		info.LayoutId("infoLabel");
 
 		content.Add(show_picture.LeftPosZ(10, 240).TopPosZ(10, 20));
 		content.Add(show_list_labels.LeftPosZ(10, 240).TopPosZ(40, 20));
@@ -275,9 +365,50 @@ struct RibbonBarDemo : TopWindow {
 		ribbon.SetDisplayMode(RibbonBar::RIBBON_ALWAYS);
 		ribbon.ShowContext("picture", false);
 	}
+
+	bool Access(Visitor& v) override
+	{
+		v.AccessLabel("mainWindow");
+		v.AccessLabel("ribbonBar");
+		v.AccessAction("showPicture", [=] { ToggleContext(); });
+		v.AccessAction("showListLabels", [=] {});
+		v.AccessAction("displayMode", [=] {});
+		v.AccessLabel("infoLabel");
+		return TopWindow::Access(v);
+	}
 };
 
 GUI_APP_MAIN
 {
-	RibbonBarDemo().Run();
+	LinkLogicGui();
+	LoadMaestroConstraints();
+
+	RibbonBarDemo app;
+	if(HasArg("--test")) {
+		app.Open();
+		for(int i = 0; i < 3; i++) {
+			Ctrl::ProcessEvents();
+			Ctrl::GuiSleep(20);
+		}
+
+		Vector<String> tabs;
+		tabs.Add("Home");
+		tabs.Add("Insert");
+		tabs.Add("View");
+		int checks = 0;
+		for(const String& tab : tabs) {
+			if(app.ribbon.SelectTab(tab)) {
+				for(int i = 0; i < 3; i++) {
+					Ctrl::ProcessEvents();
+					Ctrl::GuiSleep(20);
+				}
+				Ctrl::CheckConstraints();
+				checks++;
+			}
+		}
+		if(checks == 0)
+			Ctrl::CheckConstraints();
+		return;
+	}
+	app.Run();
 }

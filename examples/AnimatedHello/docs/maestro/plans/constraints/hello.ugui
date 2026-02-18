@@ -1,0 +1,3 @@
+VISIBLE(mainWindow)
+VISIBLE(helloText)
+VISIBLE(helloText) implies VISIBLE(mainWindow)

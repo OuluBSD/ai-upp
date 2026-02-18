@@ -1,5 +1,8 @@
 # Task 0403 - Modify Selection Actions
 
+## Status
+- Partial / Open (updated 2026-02-17)
+
 ## Goal
 Add modify-selection actions from the Scene Graph Explorer context menu.
 
@@ -13,3 +16,10 @@ Add modify-selection actions from the Scene Graph Explorer context menu.
 ## Acceptance
 - Commands apply to current selection without breaking existing tools.
 - Disabled items remain visible and gated until implemented.
+
+## Current State
+- Modify Selection submenu structure is present in the context menu and mirrors the spec entries.
+- Disabled/gated items remain visible where intended.
+
+## Remaining
+- Implement concrete mesh operation handlers for the currently stubbed commands (UV/normals/vertex colors/bake/reload/behavior copy-paste).

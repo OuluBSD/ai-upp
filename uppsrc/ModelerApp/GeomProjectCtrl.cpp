@@ -1808,6 +1808,17 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		dir = &e->state->GetActiveScene();
 	if (!ref && !obj && !dir && !is_root)
 		return;
+	bool can_create_path_node = false;
+	if (obj) {
+		String kind;
+		if (GeomDynamicProperties* dyn = obj->FindDynamicProperties()) {
+			int idx = dyn->props.Find("type");
+			if (idx >= 0)
+				kind = ToLower(AsString(dyn->props[idx]));
+		}
+		if (kind == "path" || ToLower(obj->name).Find("path") >= 0)
+			can_create_path_node = true;
+	}
 	if (!is_root)
 		bar.Add(t_("Clone"), [=] {
 			if (!node || !node->owner)
@@ -1881,8 +1892,8 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 			bar.Add(t_("Paste the behaviors to this node"), [] {}).Enable(false).Key(K_CTRL|K_I);
 		});
 	bar.Sub(t_("Insert"), [=](Bar& bar) {
-		auto add = [&](const char* text, const char* id) {
-			bar.Add(text, [=] { if (e) e->HandleRibbonAction(id); });
+		auto add = [&](const char* text, const char* id, bool enabled = true) {
+			bar.Add(text, [=] { if (e) e->HandleRibbonAction(id); }).Enable(enabled);
 		};
 		add(t_("Create a cube"), "create_cube");
 		add(t_("Create a sphere"), "create_sphere");
@@ -1906,7 +1917,7 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		add(t_("Create a 2D overlay item"), "create_2d_overlay_item");
 		add(t_("Create a 2D touchscreen input item"), "create_2d_touchscreen_input_item");
 		add(t_("Create a path"), "create_path");
-		add(t_("Create a path node"), "create_path_node");
+		add(t_("Create a path node"), "create_path_node", can_create_path_node);
 	});
 	bar.Add(t_("Go to"), [=] {
 		PointcloudPose pose;

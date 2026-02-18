@@ -2784,6 +2784,18 @@ static void SetDynamicProp(GeomDirectory& dir, const String& key, const Value& v
 	props.props.GetAdd(key, val);
 }
 
+static bool GetDynamicProp(const GeomObject& obj, const String& key, Value& out)
+{
+	const GeomDynamicProperties* props = obj.FindDynamicProperties();
+	if (!props)
+		return false;
+	int idx = props->props.Find(key);
+	if (idx < 0)
+		return false;
+	out = props->props[idx];
+	return true;
+}
+
 static GeomObject& CreateModelObject(Edit3D& e, const String& base)
 {
 	GeomDirectory& dir = GetCreateTargetDirectory(e);
@@ -3203,6 +3215,46 @@ static bool GetRibbonBoolValue(ModelerAppRibbon& ribbon, const char* id, bool& o
 	return true;
 }
 
+static bool SetRibbonDropValue(ModelerAppRibbon& ribbon, const char* id, const Value& v)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	DropList* dl = dynamic_cast<DropList*>(c);
+	if(!dl)
+		return false;
+	dl->SetData(v);
+	return true;
+}
+
+static bool SetRibbonIntValue(ModelerAppRibbon& ribbon, const char* id, int v)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	EditIntSpin* ed = dynamic_cast<EditIntSpin*>(c);
+	if(!ed)
+		return false;
+	ed->SetData(v);
+	return true;
+}
+
+static bool SetRibbonDoubleValue(ModelerAppRibbon& ribbon, const char* id, double v)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	EditDoubleSpin* ed = dynamic_cast<EditDoubleSpin*>(c);
+	if(!ed)
+		return false;
+	ed->SetData(v);
+	return true;
+}
+
+static bool SetRibbonBoolValue(ModelerAppRibbon& ribbon, const char* id, bool v)
+{
+	Ctrl* c = ribbon.FindControl(id);
+	Option* opt = dynamic_cast<Option*>(c);
+	if(!opt)
+		return false;
+	opt->Set(v ? 1 : 0);
+	return true;
+}
+
 void Edit3D::CreatePrimitiveCube(double size)
 {
 	if (!state)
@@ -3325,6 +3377,73 @@ void Edit3D::UpdateRibbonContext()
 {
 	bool camera_context = v0.selected_obj && v0.selected_obj->IsCamera();
 	ribbon.ShowContext("camera", camera_context);
+}
+
+void Edit3D::SyncRibbonLightmapControls()
+{
+	if(!state || !state->HasActiveScene())
+		return;
+	GeomScene& scene = state->GetActiveScene();
+	GeomDynamicProperties* props = scene.FindDynamicProperties();
+	if(!props)
+		return;
+
+	auto find_prop = [&](const char* key) -> const Value* {
+		int i = props->props.Find(key);
+		return i >= 0 ? &props->props[i] : nullptr;
+	};
+
+	if(const Value* v = find_prop("lightmap_mode"))
+		SetRibbonDropValue(ribbon, "lightmap_mode", *v);
+	if(const Value* v = find_prop("lightmap_texture_size"))
+		SetRibbonDropValue(ribbon, "lightmap_texture_size", *v);
+	if(const Value* v = find_prop("lightmap_subsampling"))
+		SetRibbonDropValue(ribbon, "lightmap_subsampling", *v);
+	if(const Value* v = find_prop("lightmap_resolution"))
+		SetRibbonIntValue(ribbon, "lightmap_resolution", (int)*v);
+	if(const Value* v = find_prop("lightmap_shadow_opacity"))
+		SetRibbonDoubleValue(ribbon, "lightmap_shadow_opacity", (double)*v);
+	if(const Value* v = find_prop("lightmap_ambient_enabled"))
+		SetRibbonBoolValue(ribbon, "ambient_light_enabled", (bool)*v);
+	if(const Value* v = find_prop("lightmap_smooth_normals"))
+		SetRibbonBoolValue(ribbon, "smooth_normals_enabled", (bool)*v);
+	if(const Value* v = find_prop("lightmap_color_bleeding"))
+		SetRibbonBoolValue(ribbon, "color_bleeding_enabled", (bool)*v);
+}
+
+void Edit3D::StoreRibbonLightmapSettings(bool bake)
+{
+	if(!state || !state->HasActiveScene())
+		return;
+
+	GeomScene& scene = state->GetActiveScene();
+	String mode, tex_size, subsampling;
+	int resolution = 0;
+	double shadow_opacity = 0.0;
+	bool ambient = false;
+	bool smooth = false;
+	bool color_bleed = false;
+
+	GetRibbonDropValue(ribbon, "lightmap_mode", mode);
+	GetRibbonDropValue(ribbon, "lightmap_texture_size", tex_size);
+	GetRibbonDropValue(ribbon, "lightmap_subsampling", subsampling);
+	GetRibbonIntValue(ribbon, "lightmap_resolution", resolution);
+	GetRibbonDoubleValue(ribbon, "lightmap_shadow_opacity", shadow_opacity);
+	GetRibbonBoolValue(ribbon, "ambient_light_enabled", ambient);
+	GetRibbonBoolValue(ribbon, "smooth_normals_enabled", smooth);
+	GetRibbonBoolValue(ribbon, "color_bleeding_enabled", color_bleed);
+
+	SetDynamicProp(scene, "lightmap_mode", mode);
+	SetDynamicProp(scene, "lightmap_texture_size", tex_size);
+	SetDynamicProp(scene, "lightmap_subsampling", subsampling);
+	SetDynamicProp(scene, "lightmap_resolution", resolution);
+	SetDynamicProp(scene, "lightmap_shadow_opacity", shadow_opacity);
+	SetDynamicProp(scene, "lightmap_ambient_enabled", ambient);
+	SetDynamicProp(scene, "lightmap_smooth_normals", smooth);
+	SetDynamicProp(scene, "lightmap_color_bleeding", color_bleed);
+
+	if(bake)
+		LOG("Lightmap calculate requested (stub).");
 }
 
 void Edit3D::FocusSelectedNode()
@@ -3558,6 +3677,16 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "create_directional_light") {
+		GeomScene& scene = state->GetActiveScene();
+		for (GeomObject& existing : GeomObjectCollection(scene)) {
+			Value v;
+			if (!GetDynamicProp(existing, "light_type", v))
+				continue;
+			if (ToLower(AsString(v)) == "directional") {
+				LOG("Directional light already exists in this scene.");
+				return true;
+			}
+		}
 		GeomObject& obj = CreateTaggedModel(*this, "directional_light", "light");
 		SetDynamicProp(obj, "light_type", "directional");
 		state->UpdateObjects();
@@ -3619,7 +3748,19 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "create_path_node") {
+		if (!v0.selected_obj) {
+			LOG("Create path node requires selecting a path object first.");
+			return false;
+		}
+		Value path_type;
+		bool is_path = GetDynamicProp(*v0.selected_obj, "type", path_type) &&
+		               ToLower(AsString(path_type)) == "path";
+		if (!is_path) {
+			LOG("Create path node is only available when a path object is selected.");
+			return false;
+		}
 		GeomObject& obj = CreateTaggedModel(*this, "path_node", "path_node");
+		SetDynamicProp(obj, "path_owner", v0.selected_obj->name);
 		state->UpdateObjects();
 		RefreshData();
 		return true;
@@ -3743,31 +3884,19 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		}
 		return true;
 	}
+	if (sid == "lightmap_mode" ||
+	    sid == "lightmap_texture_size" ||
+	    sid == "lightmap_subsampling" ||
+	    sid == "lightmap_resolution" ||
+	    sid == "lightmap_shadow_opacity" ||
+	    sid == "ambient_light_enabled" ||
+	    sid == "smooth_normals_enabled" ||
+	    sid == "color_bleeding_enabled") {
+		StoreRibbonLightmapSettings(false);
+		return true;
+	}
 	if (sid == "calculate_lightmap") {
-		GeomScene& scene = GetActiveScene();
-		String mode, tex_size, subsampling;
-		int resolution = 0;
-		double shadow_opacity = 0.0;
-		bool ambient = false;
-		bool smooth = false;
-		bool color_bleed = false;
-		GetRibbonDropValue(ribbon, "lightmap_mode", mode);
-		GetRibbonDropValue(ribbon, "lightmap_texture_size", tex_size);
-		GetRibbonDropValue(ribbon, "lightmap_subsampling", subsampling);
-		GetRibbonIntValue(ribbon, "lightmap_resolution", resolution);
-		GetRibbonDoubleValue(ribbon, "lightmap_shadow_opacity", shadow_opacity);
-		GetRibbonBoolValue(ribbon, "ambient_light_enabled", ambient);
-		GetRibbonBoolValue(ribbon, "smooth_normals_enabled", smooth);
-		GetRibbonBoolValue(ribbon, "color_bleeding_enabled", color_bleed);
-		SetDynamicProp(scene, "lightmap_mode", mode);
-		SetDynamicProp(scene, "lightmap_texture_size", tex_size);
-		SetDynamicProp(scene, "lightmap_subsampling", subsampling);
-		SetDynamicProp(scene, "lightmap_resolution", resolution);
-		SetDynamicProp(scene, "lightmap_shadow_opacity", shadow_opacity);
-		SetDynamicProp(scene, "lightmap_ambient_enabled", ambient);
-		SetDynamicProp(scene, "lightmap_smooth_normals", smooth);
-		SetDynamicProp(scene, "lightmap_color_bleeding", color_bleed);
-		LOG("Lightmap calculate requested (stub).");
+		StoreRibbonLightmapSettings(true);
 		return true;
 	}
 	if (sid == "ambient_light_more") {
@@ -4288,6 +4417,7 @@ void Edit3D::Data() {
 		v1.Data();
 	if (dock_assets && !dock_assets->IsHidden())
 		asset_browser.Data();
+	SyncRibbonLightmapControls();
 }
 
 void Edit3D::SetProjectDir(String dir) {

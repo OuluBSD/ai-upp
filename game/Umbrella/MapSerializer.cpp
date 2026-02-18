@@ -194,6 +194,43 @@ bool MapSerializer::LoadEnemySpawns(const String& filePath, Array<EnemySpawnPoin
 	return true;
 }
 
+bool MapSerializer::LoadPickupSpawns(const String& filePath, Array<PickupSpawnPoint>& spawns) {
+	String jsonText = LoadFile(filePath);
+	if(jsonText.IsEmpty()) return false;
+
+	Value json = ParseJSON(jsonText);
+	if(json.IsError()) return false;
+
+	if(json["pickups"].IsVoid()) return true;
+
+	const ValueArray& pickupArray = json["pickups"];
+	for(int i = 0; i < pickupArray.GetCount(); i++) {
+		const ValueMap& data = pickupArray[i];
+
+		if(data["col"].IsVoid() || data["row"].IsVoid()) {
+			LOG("Warning: Pickup spawn missing col/row, skipping");
+			continue;
+		}
+
+		PickupSpawnPoint spawn;
+		spawn.col = data["col"];
+		spawn.row = data["row"];
+
+		if(!data["type"].IsVoid()) {
+			String typeStr = data["type"];
+			if(typeStr == "GEM") spawn.type = PU_GEM;
+			else if(typeStr == "LIGHTNING") spawn.type = PU_LIGHTNING;
+			else if(typeStr == "SPEED") spawn.type = PU_SPEED;
+			else spawn.type = PU_HEART;
+		}
+
+		spawns.Add(pick(spawn));
+	}
+
+	LOG("Loaded " << spawns.GetCount() << " pickup spawn points from " << filePath);
+	return true;
+}
+
 Vector<int> MapSerializer::LoadTileIndices(const ValueArray& jsonArray) {
 	Vector<int> indices;
 
@@ -210,7 +247,8 @@ Point MapSerializer::IndexToColRow(int index, int columns) {
 
 bool MapSerializer::SaveToFile(const String& filePath, const LayerManager& layerMgr,
                                 const Array<EnemySpawnPoint>* enemySpawns,
-                                const Array<DropletSpawnPoint>* dropletSpawns) {
+                                const Array<DropletSpawnPoint>* dropletSpawns,
+                                const Array<PickupSpawnPoint>* pickupSpawns) {
 	// Get layers
 	const Layer* terrainLayer = layerMgr.FindLayerByType(LAYER_TERRAIN);
 	const Layer* backgroundLayer = layerMgr.FindLayerByType(LAYER_BACKGROUND);
@@ -323,6 +361,28 @@ bool MapSerializer::SaveToFile(const String& filePath, const LayerManager& layer
 			dropletsArray.Add(spawnObj);
 		}
 		jsonObj.Add("droplets", dropletsArray);
+	}
+
+	// Add pickup spawns if provided
+	if(pickupSpawns && pickupSpawns->GetCount() > 0) {
+		ValueArray pickupsArray;
+		for(const PickupSpawnPoint& spawn : *pickupSpawns) {
+			ValueMap spawnObj;
+			spawnObj.Add("col", spawn.col);
+			spawnObj.Add("row", spawn.row);
+
+			String typeStr;
+			switch(spawn.type) {
+				case PU_HEART:     typeStr = "HEART"; break;
+				case PU_GEM:       typeStr = "GEM"; break;
+				case PU_LIGHTNING: typeStr = "LIGHTNING"; break;
+				case PU_SPEED:     typeStr = "SPEED"; break;
+			}
+			spawnObj.Add("type", typeStr);
+
+			pickupsArray.Add(spawnObj);
+		}
+		jsonObj.Add("pickups", pickupsArray);
 	}
 
 	// Convert to JSON string with nice formatting

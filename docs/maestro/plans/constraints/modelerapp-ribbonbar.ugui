@@ -1,0 +1,9 @@
+constraints:
+  - "VISIBLE(mainWindow)"
+  - "VISIBLE(ribbonBar)"
+  - "ENABLED(ribbonBar)"
+  - "CHECKED(mainTools) implies (VISIBLE(newFile) and RIBBON_SIZE_NONZERO(newFile) and RIBBON_TEXT_DRAWN(newFile) and RIBBON_TEXT_SIZE_NONZERO(newFile) and RIBBON_IMAGE_DRAWN(newFile) and RIBBON_IMAGE_SIZE_NONZERO(newFile))"
+  - "CHECKED(create) implies (VISIBLE(createACube) and RIBBON_SIZE_NONZERO(createACube) and RIBBON_TEXT_DRAWN(createACube) and RIBBON_TEXT_SIZE_NONZERO(createACube) and RIBBON_IMAGE_DRAWN(createACube) and RIBBON_IMAGE_SIZE_NONZERO(createACube))"
+  - "CHECKED(polygonEditing) implies (VISIBLE(moveSelectedPolygons) and RIBBON_SIZE_NONZERO(moveSelectedPolygons) and RIBBON_TEXT_DRAWN(moveSelectedPolygons) and RIBBON_TEXT_SIZE_NONZERO(moveSelectedPolygons) and RIBBON_IMAGE_DRAWN(moveSelectedPolygons) and RIBBON_IMAGE_SIZE_NONZERO(moveSelectedPolygons))"
+  - "CHECKED(scenes) implies (VISIBLE(addANewScene) and RIBBON_SIZE_NONZERO(addANewScene) and RIBBON_TEXT_DRAWN(addANewScene) and RIBBON_TEXT_SIZE_NONZERO(addANewScene) and RIBBON_IMAGE_DRAWN(addANewScene) and RIBBON_IMAGE_SIZE_NONZERO(addANewScene))"
+  - "CHECKED(publish) implies (VISIBLE(publishingSettings) and RIBBON_SIZE_NONZERO(publishingSettings) and RIBBON_TEXT_DRAWN(publishingSettings) and RIBBON_TEXT_SIZE_NONZERO(publishingSettings) and RIBBON_IMAGE_DRAWN(publishingSettings) and RIBBON_IMAGE_SIZE_NONZERO(publishingSettings))"

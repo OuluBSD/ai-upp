@@ -1,8 +1,106 @@
 #ifdef flagGUI
 #include "ModelerApp.h"
 #include <Ctrl/Automation/Automation.h>
+#include <AI/LogicGui/LogicGui.h>
 
 #ifdef flagMAIN
+
+namespace {
+
+static bool LooksLikeFormula(const String& s) {
+	int l = s.Find('(');
+	int r = s.ReverseFind(')');
+	if (l <= 0 || r <= l)
+		return false;
+	for (int i = 0; i < l; i++) {
+		byte c = (byte)s[i];
+		if (!IsAlpha(c) && !IsDigit(c) && c != '_')
+			return false;
+	}
+	return true;
+}
+
+static void AddConstraintFormula(const String& raw) {
+	String s = TrimBoth(raw);
+	if (s.IsEmpty() || s.StartsWith("#"))
+		return;
+	if (s.StartsWith("-")) {
+		int q0 = s.Find('"');
+		int q1 = s.ReverseFind('"');
+		if (q0 >= 0 && q1 > q0) {
+			String quoted = s.Mid(q0 + 1, q1 - q0 - 1);
+			if (LooksLikeFormula(quoted))
+				Ctrl::constraints.Add(quoted);
+			return;
+		}
+	}
+	if (LooksLikeFormula(s))
+		Ctrl::constraints.Add(s);
+}
+
+static void LoadMaestroConstraints() {
+	String root = GetCurrentDirectory();
+	while(!root.IsEmpty()) {
+		if(DirectoryExists(AppendFileName(root, "docs/maestro")))
+			break;
+		String next = GetFileFolder(root);
+		if(next == root) {
+			root.Clear();
+			break;
+		}
+		root = next;
+	}
+	if(root.IsEmpty())
+		return;
+
+	String constr_dir = AppendFileName(root, "docs/maestro/plans/constraints");
+	if(!DirectoryExists(constr_dir))
+		return;
+
+	FindFile ff(AppendFileName(constr_dir, "*.ugui"));
+	while(ff) {
+		String path = ff.GetPath();
+		String content = LoadFile(path);
+		if(!content.IsEmpty()) {
+			Vector<String> lines = Split(content, '\n');
+			for(const String& l : lines)
+				AddConstraintFormula(l);
+		}
+		ff.Next();
+	}
+}
+
+static void RunUGuiRibbonChecks(Edit3D& app)
+{
+	app.Open();
+	for(int i = 0; i < 3; i++) {
+		Ctrl::ProcessEvents();
+		Ctrl::GuiSleep(20);
+	}
+
+	Vector<String> tabs;
+	tabs.Add("Main tools");
+	tabs.Add("Create");
+	tabs.Add("Polygon Editing");
+	tabs.Add("Scenes");
+	tabs.Add("Publish");
+
+	int checks = 0;
+	for(const String& tab : tabs) {
+		if(app.ribbon.SelectTab(tab)) {
+			for(int i = 0; i < 3; i++) {
+				Ctrl::ProcessEvents();
+				Ctrl::GuiSleep(20);
+			}
+			Ctrl::CheckConstraints();
+			checks++;
+		}
+	}
+	if(checks == 0)
+		Ctrl::CheckConstraints();
+}
+
+}
 
 
 	GUI_APP_MAIN {
@@ -10,6 +108,8 @@
 		ChGraySkin();
 	
 	SetCoutLog();
+	LinkLogicGui();
+	LoadMaestroConstraints();
 	
 	//DaemonBase::Register<EditClientService>("EditClient");
 	
@@ -35,10 +135,11 @@
 		filtered_args.Reserve(raw_args.GetCount());
 		bool verbose = false;
 		bool verbose_debug = false;
+		bool ugui_test = false;
 		for (int i = 0; i < raw_args.GetCount(); i++) {
 			const String& arg = raw_args[i];
-			if (i == 0) {
-				filtered_args.Add(arg);
+			if (arg == "--ugui-test") {
+				ugui_test = true;
 				continue;
 			}
 			if (arg == "-vd" || arg == "--verbosity-debug") {
@@ -105,16 +206,17 @@
 	else if (cmd.IsArg('s')) {
 		mode = SYNTHETIC;
 	}
-	if (cmd.IsArg('b')) {
-		builtin_index = StrInt(cmd.GetArg('b'));
-		if (builtin_index < 0)
-			builtin_index = 0;
-		mode = PROJECT0;
-	}
-	
-	
-	daemon.RunInThread();
-	
+		if (cmd.IsArg('b')) {
+			builtin_index = StrInt(cmd.GetArg('b'));
+			if (builtin_index < 0)
+				builtin_index = 0;
+			mode = PROJECT0;
+		}
+		
+		
+		if(!ugui_test)
+			daemon.RunInThread();
+		
 		Edit3D app;
 		app.verbose = verbose || verbose_debug;
 		app.verbose_debug = verbose_debug;
@@ -122,10 +224,14 @@
 			app.SetProjectDir(cmd.GetArg('r'));
 	if (cmd.IsArg('G'))
 		app.conf.dump_grid_path = cmd.GetArg('G');
-	if (cmd.IsArg('G')) {
-		for (int i = 0; i < 4; i++)
-			app.v0.SetRendererVersion(i, 2);
-	}
+		if (cmd.IsArg('G')) {
+			for (int i = 0; i < 4; i++)
+				app.v0.SetRendererVersion(i, 2);
+		}
+		if (ugui_test) {
+			RunUGuiRibbonChecks(app);
+			return;
+		}
 
 		if (cmd.IsArg('d') && !verbose_debug) {
 			app.LoadTestProject(builtin_index);

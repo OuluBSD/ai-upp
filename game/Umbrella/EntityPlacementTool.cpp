@@ -273,3 +273,118 @@ int DropletPlacementTool::FindSpawnAt(int col, int row) const {
 	}
 	return -1;
 }
+
+// ============================================================================
+// PickupPlacementTool
+// ============================================================================
+
+PickupPlacementTool::PickupPlacementTool()
+	: EntityPlacementTool(ENTITY_PICKUP)
+{
+	pickupSpawns = nullptr;
+	selectedType = PU_HEART;
+}
+
+void PickupPlacementTool::Click(int col, int row) {
+	if(!pickupSpawns) return;
+
+	if(mode == PLACEMENT_REMOVE) {
+		int idx = FindSpawnAt(col, row);
+		if(idx >= 0) {
+			pickupSpawns->Remove(idx);
+		}
+	}
+	else {
+		int existing = FindSpawnAt(col, row);
+		if(existing >= 0) {
+			(*pickupSpawns)[existing].type = selectedType;
+		}
+		else {
+			PickupSpawnPoint& spawn = pickupSpawns->Add();
+			spawn.col = col;
+			spawn.row = row;
+			spawn.type = selectedType;
+		}
+	}
+}
+
+void PickupPlacementTool::Render(Draw& w, int col, int row, Point offset, double zoom, int gridSize) {
+	if(!pickupSpawns) return;
+
+	// Render all pickup spawn points
+	for(int i = 0; i < pickupSpawns->GetCount(); i++) {
+		const PickupSpawnPoint& spawn = (*pickupSpawns)[i];
+
+		int screenX = (int)((spawn.col * gridSize + offset.x) * zoom);
+		int screenY = (int)((spawn.row * gridSize + offset.y) * zoom);
+		int size = (int)(gridSize * zoom * 0.8);
+
+		Color markerColor;
+		String typeLabel;
+		switch(spawn.type) {
+			case PU_HEART:     markerColor = Color(255, 80, 120);  typeLabel = "H"; break;
+			case PU_GEM:       markerColor = Color(80, 200, 255);  typeLabel = "G"; break;
+			case PU_LIGHTNING: markerColor = Color(255, 255, 80);  typeLabel = "L"; break;
+			case PU_SPEED:     markerColor = Color(80, 255, 120);  typeLabel = "S"; break;
+		}
+
+		// Draw diamond shape (rotated square)
+		int cx = screenX + size / 2;
+		int cy = screenY + size / 2;
+		int r = size / 2;
+		Vector<Point> pts;
+		pts.Add(Point(cx, cy - r));
+		pts.Add(Point(cx + r, cy));
+		pts.Add(Point(cx, cy + r));
+		pts.Add(Point(cx - r, cy));
+		w.DrawPolygon(pts, markerColor, 1, Black());
+
+		// Draw type label
+		Font font = Arial(max(8, (int)(10 * zoom))).Bold();
+		Size textSize = GetTextSize(typeLabel, font);
+		w.DrawText(cx - textSize.cx / 2, cy - textSize.cy / 2,
+		           typeLabel, font, Black());
+	}
+
+	// Draw preview at cursor position (only in ADD mode)
+	if(mode == PLACEMENT_ADD && col >= 0 && row >= 0) {
+		int screenX = (int)((col * gridSize + offset.x) * zoom);
+		int screenY = (int)((row * gridSize + offset.y) * zoom);
+		int size = (int)(gridSize * zoom * 0.8);
+
+		Color previewColor;
+		String typeLabel;
+		switch(selectedType) {
+			case PU_HEART:     previewColor = Color(255, 140, 170); typeLabel = "H"; break;
+			case PU_GEM:       previewColor = Color(140, 220, 255); typeLabel = "G"; break;
+			case PU_LIGHTNING: previewColor = Color(255, 255, 140); typeLabel = "L"; break;
+			case PU_SPEED:     previewColor = Color(140, 255, 170); typeLabel = "S"; break;
+		}
+
+		int cx = screenX + size / 2;
+		int cy = screenY + size / 2;
+		int r = size / 2;
+		Vector<Point> pts;
+		pts.Add(Point(cx, cy - r));
+		pts.Add(Point(cx + r, cy));
+		pts.Add(Point(cx, cy + r));
+		pts.Add(Point(cx - r, cy));
+		w.DrawPolygon(pts, previewColor, 1, Black());
+
+		Font font = Arial(max(8, (int)(10 * zoom))).Bold();
+		Size textSize = GetTextSize(typeLabel, font);
+		w.DrawText(cx - textSize.cx / 2, cy - textSize.cy / 2,
+		           typeLabel, font, Black());
+	}
+}
+
+int PickupPlacementTool::FindSpawnAt(int col, int row) const {
+	if(!pickupSpawns) return -1;
+
+	for(int i = 0; i < pickupSpawns->GetCount(); i++) {
+		if((*pickupSpawns)[i].col == col && (*pickupSpawns)[i].row == row) {
+			return i;
+		}
+	}
+	return -1;
+}

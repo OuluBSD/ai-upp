@@ -122,7 +122,7 @@ AWK:=awk
 ########################################################################
 # HELP END
 
-ifeq ($(filter 3.8%, $(MAKE_VERSION)), )
+ifeq ($(filter 3.8% 4.%, $(MAKE_VERSION)), )
 $(error This Makefile only supports GNU make version 3.80 and newer)
 endif
 

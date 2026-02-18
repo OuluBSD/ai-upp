@@ -75,7 +75,8 @@ public:
 		TOOL_FILL,
 		TOOL_SELECT,
 		TOOL_ENEMY_PLACEMENT,
-		TOOL_DROPLET_PLACEMENT
+		TOOL_DROPLET_PLACEMENT,
+		TOOL_PICKUP_PLACEMENT
 	};
 
 private:
@@ -90,11 +91,13 @@ private:
 	FillTool fillTool;
 	EnemyPlacementTool enemyTool;
 	DropletPlacementTool dropletTool;
+	PickupPlacementTool pickupTool;
 	EditTool currentTool;
 
 	// Spawn point data
 	Array<EnemySpawnPoint> enemySpawns;
 	Array<DropletSpawnPoint> dropletSpawns;
+	Array<PickupSpawnPoint> pickupSpawns;
 
 	// UI Components
 	MenuBar mainMenuBar;
@@ -124,9 +127,9 @@ private:
 	Button wallBtn, bgBtn, blockBtn;
 	Label toolSelectionLabel;
 	Button brushToolBtn, eraserToolBtn, fillToolBtn;
-	Button enemyPlacementBtn, dropletPlacementBtn;
-	Label enemyTypeLabel, dropletTypeLabel;
-	DropList enemyTypeList, dropletTypeList;
+	Button enemyPlacementBtn, dropletPlacementBtn, pickupPlacementBtn;
+	Label enemyTypeLabel, dropletTypeLabel, pickupTypeLabel;
+	DropList enemyTypeList, dropletTypeList, pickupTypeList;
 	Label enemyFacingLabel;
 	DropList enemyFacingList;
 
@@ -175,10 +178,12 @@ public:
 	FillTool& GetFillTool() { return fillTool; }
 	EnemyPlacementTool& GetEnemyTool() { return enemyTool; }
 	DropletPlacementTool& GetDropletTool() { return dropletTool; }
+	PickupPlacementTool& GetPickupTool() { return pickupTool; }
 	EditTool GetCurrentTool() const { return currentTool; }
 	void SetCurrentTool(EditTool tool) { currentTool = tool; }
 	Array<EnemySpawnPoint>& GetEnemySpawns() { return enemySpawns; }
 	Array<DropletSpawnPoint>& GetDropletSpawns() { return dropletSpawns; }
+	Array<PickupSpawnPoint>& GetPickupSpawns() { return pickupSpawns; }
 
 	// UI Setup
 	virtual void DockInit() override;

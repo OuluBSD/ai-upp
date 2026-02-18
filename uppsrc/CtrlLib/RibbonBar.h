@@ -201,7 +201,20 @@ private:
 	int  GetCurrentInfoIndex() const;
 	int  GetTabHeight();
 	void DrawKeyTips(Draw& w);
+	bool HandleKeyTipInput(dword key);
+	void BuildKeyTips();
 	void PopupTabMenu(Point p);
+	void TriggerKeyTipCtrl(Ctrl* c);
+	String KeyToToken(dword key) const;
+	String NextControlKey(int index) const;
+
+	struct KeyTipItem : Moveable<KeyTipItem> {
+		String key;
+		Rect   rect;
+		int    tab_info = -1;
+		Ptr<Ctrl> ctrl;
+	};
+	Vector<KeyTipItem> keytip_items;
 
 public:
 	static const Style& StyleDefault();

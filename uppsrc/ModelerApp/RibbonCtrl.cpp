@@ -170,6 +170,20 @@ public:
 	}
 };
 
+static Image GetRibbonIconFallback(const String& key)
+{
+	if(key.Find("new") >= 0) return CtrlImg::new_doc();
+	if(key.Find("open") >= 0) return CtrlImg::open();
+	if(key.Find("save") >= 0) return CtrlImg::save();
+	if(key.Find("undo") >= 0) return CtrlImg::undo();
+	if(key.Find("redo") >= 0) return CtrlImg::redo();
+	if(key.Find("play") >= 0 || key.Find("publish") >= 0) return CtrlImg::File();
+	if(key.Find("plus") >= 0 || key.Find("add") >= 0) return CtrlImg::plus();
+	if(key.Find("minus") >= 0 || key.Find("delete") >= 0) return CtrlImg::minus();
+	if(key.Find("gear") >= 0 || key.Find("settings") >= 0) return CtrlImg::File();
+	return CtrlImg::File();
+}
+
 static Image GetRibbonIcon(const String& id, const String& sem)
 {
 	String key = sem;
@@ -225,6 +239,19 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 		"scene_metrics_glyph",
 		"scene_postfx_glyph",
 	};
+
+	bool known = false;
+	for (const char* k : kKnown) {
+		if (key == k) {
+			known = true;
+			break;
+		}
+	}
+	if (!known) {
+		LOG("Ribbon icon key not registered: " << key);
+		return GetRibbonIconFallback(key);
+	}
+
 	Vector<String> candidates;
 	bool dark = IsDarkTheme();
 	const char* theme = dark ? "dark" : "light";
@@ -247,6 +274,7 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 
 	// Legacy locations.
 	candidates.Add(ShareDirFile(AppendFileName("icons/large", key + ".png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/small", key + ".png")));
 	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_48.png")));
 	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_24.png")));
 	candidates.Add(ShareDirFile(AppendFileName("icons", key + ".png")));
@@ -259,24 +287,8 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 			return Colorize(img, SColorText());
 	}
 
-	bool known = false;
-	for (const char* k : kKnown) {
-		if (key == k) {
-			known = true;
-			break;
-		}
-	}
-	if (!known) {
-#ifdef _DEBUG
-		LOG("Ribbon icon key not registered: " << key);
-#endif
-	}
-#ifdef _DEBUG
-	Panic("Ribbon icon file missing: " + key);
-#else
 	LOG("Ribbon icon file missing: " << key);
-#endif
-	return CtrlImg::File();
+	return GetRibbonIconFallback(key);
 }
 
 } // namespace
@@ -401,6 +413,7 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	FormPanel& poly_form = static_cast<FormPanel&>(*poly_slot);
 	poly_form.SetMetrics(DPI(22), DPI(6), DPI(120));
 	DropList& poly_mode = poly_form.AddRowCtrl<DropList>("Edit Mode");
+	poly_mode.LayoutId("poly_edit_mode");
 	poly_mode.Add("triangle", "Triangle");
 	poly_mode.Add("point", "Point");
 	poly_mode.SetIndex(0);
@@ -418,9 +431,11 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	LightmapRowCtrl& light_row = static_cast<LightmapRowCtrl&>(*light_slot);
 	light_row.SetGap(DPI(10));
 	Button& calc = light_row.AddCtrl<Button>(String());
+	calc.LayoutId("calculate_lightmap");
 	calc.SetLabel("Calculate!");
 	calc.WhenAction = [this] { OnAction("calculate_lightmap"); };
 	DropList& lm_mode = light_row.AddCtrl<DropList>("Mode");
+	lm_mode.LayoutId("lightmap_mode");
 	lm_mode.Add("wide", "Wide");
 	lm_mode.Add("diffuse", "Diffuse");
 	lm_mode.Add("shadows", "Shadows");
@@ -428,6 +443,7 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	lm_mode.SetIndex(0);
 	lm_mode.WhenAction = [this] { OnAction("lightmap_mode"); };
 	DropList& lm_tex = light_row.AddCtrl<DropList>("Texture size");
+	lm_tex.LayoutId("lightmap_texture_size");
 	lm_tex.Add("64", "64");
 	lm_tex.Add("128", "128");
 	lm_tex.Add("256", "256");
@@ -436,12 +452,15 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	lm_tex.SetIndex(0);
 	lm_tex.WhenAction = [this] { OnAction("lightmap_texture_size"); };
 	EditIntSpin& lm_res = light_row.AddCtrl<EditIntSpin>("Resolution");
+	lm_res.LayoutId("lightmap_resolution");
 	lm_res.SetData(1000);
 	lm_res.WhenAction = [this] { OnAction("lightmap_resolution"); };
 	EditDoubleSpin& lm_shadow = light_row.AddCtrl<EditDoubleSpin>("Shadow Opacity");
+	lm_shadow.LayoutId("lightmap_shadow_opacity");
 	lm_shadow.SetData(0.8);
 	lm_shadow.WhenAction = [this] { OnAction("lightmap_shadow_opacity"); };
 	DropList& lm_sub = light_row.AddCtrl<DropList>("Subsampling");
+	lm_sub.LayoutId("lightmap_subsampling");
 	lm_sub.Add("none", "None");
 	lm_sub.Add("4x", "4X");
 	lm_sub.Add("9x", "9X");
@@ -450,15 +469,18 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	lm_sub.SetIndex(0);
 	lm_sub.WhenAction = [this] { OnAction("lightmap_subsampling"); };
 	Option& ambient = light_row.AddCtrl<Option>("Ambient Light");
+	ambient.LayoutId("ambient_light_enabled");
 	ambient = true;
 	ambient.WhenAction = [this] { OnAction("ambient_light_enabled"); };
 	Button& ambient_more = light_row.AddCtrl<Button>(String());
 	ambient_more.SetLabel("...");
 	ambient_more.WhenAction = [this] { OnAction("ambient_light_more"); };
 	Option& smooth = light_row.AddCtrl<Option>("Smooth Normals");
+	smooth.LayoutId("smooth_normals_enabled");
 	smooth = true;
 	smooth.WhenAction = [this] { OnAction("smooth_normals_enabled"); };
 	Option& bleed = light_row.AddCtrl<Option>("Color Bleeding");
+	bleed.LayoutId("color_bleeding_enabled");
 	bleed = true;
 	bleed.WhenAction = [this] { OnAction("color_bleeding_enabled"); };
 	group_lightmapping_controls.SetListCtrl(light_row);
@@ -472,6 +494,7 @@ void ModelerAppRibbon::BuildDefaultTabs()
 		FormPanel& scene_form = static_cast<FormPanel&>(*scene_slot);
 		scene_form.SetMetrics(DPI(22), DPI(6), DPI(160));
 		DropList& scene_sel = scene_form.AddRowCtrl<DropList>(String());
+		scene_sel.LayoutId("scene_selector");
 		scene_sel.Add("new_scene", "New 3D Scene");
 		scene_sel.SetIndex(0);
 		scene_sel.WhenAction = [this] { OnAction("scene_selector"); };
@@ -502,6 +525,7 @@ void ModelerAppRibbon::BuildDefaultTabs()
 		FormPanel& pub_form = static_cast<FormPanel&>(*pub_slot);
 		pub_form.SetMetrics(DPI(22), DPI(6), DPI(200));
 		DropList& pub_target = pub_form.AddRowCtrl<DropList>(String());
+		pub_target.LayoutId("publish_target");
 		pub_target.Add("win_exe", "Publish as Windows (.exe)");
 		pub_target.Add("webgl", "Publish as WebGL (.html)");
 		pub_target.Add("mac_app", "Publish as MacOS (.app)");
@@ -525,6 +549,9 @@ void ModelerAppRibbon::BuildDefaultTabs()
 	SetDisplayMode(RibbonBar::RIBBON_ALWAYS);
 	ShowContext("picture", false);
 	ShowContext("camera", false);
+	ShowContext("object", false);
+	ShowContext("mesh", false);
+	ShowContext("material", false);
 	loaded = true;
 }
 
@@ -557,7 +584,22 @@ void ModelerAppRibbon::OnAction(const String& id)
 Ctrl* ModelerAppRibbon::FindControl(const String& id) const
 {
 	int idx = control_by_id.Find(id);
-	return idx >= 0 ? control_by_id[idx] : nullptr;
+	if(idx >= 0)
+		return control_by_id[idx];
+
+	const Ctrl* root = this;
+	Vector<const Ctrl*> stack;
+	stack.Add(root);
+	while(!stack.IsEmpty()) {
+		int n = stack.GetCount() - 1;
+		const Ctrl* c = stack[n];
+		stack.SetCount(n);
+		if(c->GetLayoutId() == id)
+			return const_cast<Ctrl*>(c);
+		for(const Ctrl* child = c->GetFirstChild(); child; child = child->GetNext())
+			stack.Add(child);
+	}
+	return nullptr;
 }
 
 void ModelerAppRibbon::BindAction(const String& id, Event<> cb)
@@ -588,6 +630,29 @@ void ModelerAppRibbon::AddContextTabs()
 	g.SetLarge([this](Bar& b) {
 		b.Add(t_("Make Active"), [this] { OnAction("camera_make_active"); }).Image(CtrlImg::smallcheck());
 		b.Add(t_("Focus Selected"), [this] { OnAction("focus_selected"); }).Image(CtrlImg::arrow());
+	});
+
+	RibbonPage& obj = AddContextTab("object", "Object Tools");
+	RibbonGroup& og = obj.AddGroup("Object");
+	og.SetLarge([this](Bar& b) {
+		b.Add(t_("Focus Selected"), [this] { OnAction("focus_selected"); }).Image(CtrlImg::arrow());
+		b.Add(t_("Move object (W)"), [this] { OnAction("move_object"); }).Image(GetRibbonIcon("move_object", "four_arrows_cross")).Key(K_W);
+		b.Add(t_("Rotate object (E)"), [this] { OnAction("rotate_object"); }).Image(GetRibbonIcon("rotate_object", "clockwise_arc_arrow")).Key(K_E);
+	});
+
+	RibbonPage& mesh = AddContextTab("mesh", "Mesh Tools");
+	RibbonGroup& mg = mesh.AddGroup("Mesh");
+	mg.SetLarge([this](Bar& b) {
+		b.Add(t_("Select"), [this] { OnAction("poly_select"); }).Image(GetRibbonIcon("poly_select", "triangle_over_axis_background_with_mouse_cursor"));
+		b.Add(t_("Move Selected"), [this] { OnAction("poly_move_selected"); }).Image(GetRibbonIcon("poly_move_selected", "triangle_over_axis_background_plus_four_direction_arrows"));
+		b.Add(t_("Modify UV"), [this] { OnAction("poly_modify_uv"); }).Image(GetRibbonIcon("poly_modify_uv", "gray_background_with_black_UV_text"));
+	});
+
+	RibbonPage& mat = AddContextTab("material", "Material Tools");
+	RibbonGroup& mag = mat.AddGroup("Material");
+	mag.SetLarge([this](Bar& b) {
+		b.Add(t_("Modify UV"), [this] { OnAction("poly_modify_uv"); }).Image(GetRibbonIcon("poly_modify_uv", "gray_background_with_black_UV_text"));
+		b.Add(t_("Scene Post Effects"), [this] { OnAction("scene_post_effects"); }).Image(GetRibbonIcon("scene_post_effects", "scene_postfx_glyph"));
 	});
 }
 

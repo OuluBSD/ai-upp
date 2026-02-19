@@ -48,6 +48,8 @@ String  GetConfigGroup();
 const Vector<String>& CommandLine();
 void   CommandLineRemove(int i, int count = 1);
 String GetArgv0();
+String GetCommandLineArgValue(const char *name, const String& def = String());
+int    GetCommandLineArgInt(const char *name, int def = 0);
 const VectorMap<String, String>& Environment();
 
 void    SetExitCode(int code);

@@ -266,9 +266,11 @@ public:
 		for(int i = 0; i < left.GetCount(); i++) {
 			for(int j = 0; j < right.GetCount(); j++) {
 				if (left.GetKey(i) == right.GetKey(j)) {
-					RLOG("  IsAxiom: Found match!");
-					RLOG("    Left[" << i << "]: " << left.GetKey(i)->ToString());
-					RLOG("    Right[" << j << "]: " << right.GetKey(j)->ToString());
+					if(!flag_silent_prover) {
+						RLOG("  IsAxiom: Found match!");
+						RLOG("    Left[" << i << "]: " << left.GetKey(i)->ToString());
+						RLOG("    Right[" << j << "]: " << right.GetKey(j)->ToString());
+					}
 					return true;
 				}
 			}
@@ -294,7 +296,8 @@ public:
 Index<NodeVar> lemma_cache;
 
 	void Expand(Vector<NodeVar>& out) {
-		RLOG("  Expand sequent: " << ToString());
+		if(!flag_silent_prover)
+			RLOG("  Expand sequent: " << ToString());
 		// Equality Reasoning: Substitution rule (Left)
 		// if we have t1 = t2 on the left, we can replace occurrences of t1 with t2 in other formulas
 		for(int i = 0; i < left.GetCount(); i++) {
@@ -815,14 +818,17 @@ bool ProveSequent(Node& sequent_, int max_depth = 20) {
 // returns true if the formula == provable
 // returns false || loops forever if the formula != provable
 bool ProveFormula(const Index<NodeVar>& axioms, const NodeVar& formula) {
-	RLOG("ProveFormula started:");
-	RLOG("  Formula: " << (formula.Is() ? formula->ToString() : "NULL"));
-	RLOG("  Axioms count: " << axioms.GetCount());
-	for(int i = 0; i < axioms.GetCount(); i++)
-		RLOG("    Axiom[" << i << "]: " << axioms[i]->ToString());
+	if(!flag_silent_prover) {
+		RLOG("ProveFormula started:");
+		RLOG("  Formula: " << (formula.Is() ? formula->ToString() : "NULL"));
+		RLOG("  Axioms count: " << axioms.GetCount());
+		for(int i = 0; i < axioms.GetCount(); i++)
+			RLOG("    Axiom[" << i << "]: " << axioms[i]->ToString());
+	}
 
 	if (lemma_cache.Find(formula) != -1) {
-		RLOG("  FOUND IN LEMMA CACHE!");
+		if(!flag_silent_prover)
+			RLOG("  FOUND IN LEMMA CACHE!");
 		return true;
 	}
 	conflict_cache.Clear();

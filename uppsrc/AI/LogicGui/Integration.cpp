@@ -69,9 +69,11 @@ void CheckUGUIConstraints()
 	
 	const Index<String>& facts = v.GetFacts();
 	
-	RLOG("Collected facts:");
-	for(int i = 0; i < facts.GetCount(); i++)
-		RLOG("  FACT: " << facts[i]);
+	if(Ctrl::GetUGUIVerbosity() >= 2) {
+		RLOG("Collected facts:");
+		for(int i = 0; i < facts.GetCount(); i++)
+			RLOG("  FACT: " << facts[i]);
+	}
 
 	String title = GetExeTitle();
 	String home = GetHomeDirectory();
@@ -84,7 +86,8 @@ void CheckUGUIConstraints()
 	log << "  Facts collected: " << facts.GetCount() << "\n";
 	for(int i = 0; i < facts.GetCount(); i++) {
 		log << "    " << facts[i] << "\n";
-		Log(LOG_FACT, LL_TRACE, facts[i]);
+		if(Ctrl::GetUGUIVerbosity() >= 2)
+			Log(LOG_FACT, LL_TRACE, facts[i]);
 	}
 	
 	Index<NodeVar> fact_axioms;
@@ -95,7 +98,8 @@ void CheckUGUIConstraints()
 	
 	for(const String& c : Ctrl::constraints) {
 		log << "  Checking constraint: " << c << "\n";
-		Log(LOG_CONSTRAINT, LL_INFO, "Checking constraint: " + c);
+		if(Ctrl::GetUGUIVerbosity() >= 1)
+			Log(LOG_CONSTRAINT, LL_INFO, "Checking constraint: " + c);
 		NodeVar formula = Parse(c);
 		if (formula.Is()) {
 			// Suppress printing during constraint checks
@@ -116,11 +120,13 @@ void CheckUGUIConstraints()
 			if(WhenCheckConstraintsResult) WhenCheckConstraintsResult(c, proven);
 			if(proven) {
 				log << "    SUCCESS: Constraint satisfied.\n";
-				RLOG("[CTRL] SUCCESS: Constraint satisfied: " + c);
+				if(Ctrl::GetUGUIVerbosity() >= 2)
+					RLOG("[CTRL] SUCCESS: Constraint satisfied: " + c);
 			}
 			else {
 				log << "    FAILURE: Constraint NOT satisfied!\n";
-				RLOG("[CTRL] FAILURE: Constraint NOT satisfied: " + c);
+				if(Ctrl::GetUGUIVerbosity() >= 1)
+					RLOG("[CTRL] FAILURE: Constraint NOT satisfied: " + c);
 				GetViolationDisplay().ShowError("Constraint violated: " + c);
 			}
 		}

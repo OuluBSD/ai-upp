@@ -439,6 +439,35 @@ String GetArgv0()
 	return Argv0__;
 }
 
+String GetCommandLineArgValue(const char *name, const String& def)
+{
+	if(!name || !*name)
+		return def;
+	const Vector<String>& cmd = CommandLine();
+	String prefix = String(name) + "=";
+	for(int i = 0; i < cmd.GetCount(); i++) {
+		const String& arg = cmd[i];
+		if(arg == name) {
+			if(i + 1 < cmd.GetCount())
+				return cmd[i + 1];
+			return def;
+		}
+		if(arg.StartsWith(prefix))
+			return arg.Mid(prefix.GetCount());
+	}
+	return def;
+}
+
+int GetCommandLineArgInt(const char *name, int def)
+{
+	String v = GetCommandLineArgValue(name, Null);
+	if(IsNull(v) || v.IsEmpty())
+		return def;
+	const char *end = NULL;
+	int n = ScanInt(v, &end);
+	return (end && *end == 0) ? n : def;
+}
+
 VectorMap<WString, WString>& EnvMap()
 {
 	static VectorMap<WString, WString> x;

@@ -487,8 +487,11 @@ public:
 	static void  CheckConstraints() { WhenCheckConstraints(); }
 	static Vector<String> constraints;
 	static Event<> WhenCheckConstraints;
+	static void SetUGUIVerbosity(int level);
+	static int  GetUGUIVerbosity();
 
 private:
+	static int ugui_verbosity;
 	Ctrl(Ctrl&);
 	void operator=(Ctrl&);
 

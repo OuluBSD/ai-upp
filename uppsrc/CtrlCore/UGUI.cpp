@@ -6,6 +6,17 @@ namespace Upp {
 
 Vector<String> Ctrl::constraints;
 Event<>        Ctrl::WhenCheckConstraints;
+int            Ctrl::ugui_verbosity = 1;
+
+void Ctrl::SetUGUIVerbosity(int level)
+{
+	ugui_verbosity = max(0, level);
+}
+
+int Ctrl::GetUGUIVerbosity()
+{
+	return ugui_verbosity;
+}
 
 void Ctrl::InitUGUI()
 {
@@ -23,6 +34,10 @@ void Ctrl::InitUGUI()
 			break;
 		}
 	}
+	int ugui_verbosity = GetCommandLineArgInt("--ugui-verbosity", INT_MIN);
+	if(ugui_verbosity == INT_MIN)
+		ugui_verbosity = GetCommandLineArgInt("-uv", GetUGUIVerbosity());
+	SetUGUIVerbosity(ugui_verbosity);
 	
 	if(ugui_path.IsEmpty()) {
 		String exe = GetExeFilePath();
@@ -35,7 +50,8 @@ void Ctrl::InitUGUI()
 	
 	if(FileExists(ugui_path)) {
 		FileAppend log(log_path);
-		log << "[" << GetSysTime() << "] Loading UGUI: " << ugui_path << "\n";
+		if(GetUGUIVerbosity() >= 1)
+			log << "[" << GetSysTime() << "] Loading UGUI: " << ugui_path << "\n";
 		
 		String content = LoadFile(ugui_path);
 		if(content.IsVoid()) {
@@ -64,17 +80,21 @@ void Ctrl::InitUGUI()
 						if(q0 >= 0 && q1 > q0) {
 							String c = trimmed.Mid(q0 + 1, q1 - q0 - 1);
 							constraints.Add(c);
-							log << "  Added constraint: " << c << "\n";
+							if(GetUGUIVerbosity() >= 2)
+								log << "  Added constraint: " << c << "\n";
 						}
 					}
 				}
 			}
-			log << "UGUI loading complete. Total constraints: " << constraints.GetCount() << "\n";
+			if(GetUGUIVerbosity() >= 1)
+				log << "UGUI loading complete. Total constraints: " << constraints.GetCount() << "\n";
 		}
 		log.Close();
 		
-		Cout() << "UGUI system initialized with " << constraints.GetCount() << " constraints.\n";
-		Cout() << "Log: tail -f " << log_path << "\n";
+		if(GetUGUIVerbosity() >= 1) {
+			Cout() << "UGUI system initialized with " << constraints.GetCount() << " constraints.\n";
+			Cout() << "Log: tail -f " << log_path << "\n";
+		}
 		
 		Upp::SetTimeCallback(-1000, [] { CheckConstraints(); });
 	}

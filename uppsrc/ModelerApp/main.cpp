@@ -142,6 +142,12 @@ static void RunUGuiRibbonChecks(Edit3D& app)
 				ugui_test = true;
 				continue;
 			}
+			if (arg == "--ugui-verbosity" || arg == "-uv") {
+				i++;
+				continue;
+			}
+			if (arg.StartsWith("--ugui-verbosity=") || arg.StartsWith("-uv="))
+				continue;
 			if (arg == "-vd" || arg == "--verbosity-debug") {
 				verbose = true;
 				verbose_debug = true;

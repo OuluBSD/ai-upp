@@ -178,6 +178,7 @@ static Image GetRibbonIconFallback(const String& key)
 	if(key.Find("undo") >= 0) return CtrlImg::undo();
 	if(key.Find("redo") >= 0) return CtrlImg::redo();
 	if(key.Find("play") >= 0 || key.Find("publish") >= 0) return CtrlImg::File();
+	if(key.Find("pause") >= 0 || key.Find("stop") >= 0) return CtrlImg::File();
 	if(key.Find("plus") >= 0 || key.Find("add") >= 0) return CtrlImg::plus();
 	if(key.Find("minus") >= 0 || key.Find("delete") >= 0) return CtrlImg::minus();
 	if(key.Find("gear") >= 0 || key.Find("settings") >= 0) return CtrlImg::File();
@@ -234,6 +235,8 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 		"gray_background_with_black_UV_text",
 		"gear_cog",
 		"play_icon",
+		"pause_icon",
+		"stop_icon",
 		"plus_icon",
 		"minus_icon",
 		"scene_metrics_glyph",
@@ -344,6 +347,18 @@ void ModelerAppRibbon::BuildDefaultTabs()
 		g_hist.SetLarge([this](Bar& bar) {
 			bar.Add("Undo", [this] { OnAction("undo"); }).Image(GetRibbonIcon("undo", "generic_undo"));
 			bar.Add("Redo", [this] { OnAction("redo"); }).Image(GetRibbonIcon("redo", "generic_redo"));
+		});
+		
+		RibbonGroup& g_playback = page_main.AddGroup("Playback");
+		g_playback.SetLarge([this](Bar& bar) {
+			bar.Add("Play (F5)", [this] { OnAction("play_timeline"); })
+				.Image(GetRibbonIcon("play_timeline", "play_icon")).Key(K_F5);
+			bar.Add("Pause (F5)", [this] { OnAction("pause_timeline"); })
+				.Image(GetRibbonIcon("pause_timeline", "pause_icon")).Key(K_F5);
+			bar.Add("Stop (F6)", [this] { OnAction("stop_timeline"); })
+				.Image(GetRibbonIcon("stop_timeline", "stop_icon")).Key(K_F6);
+			bar.Add("Repeat", [this] { OnAction("repeat_playback"); })
+				.Image(GetRibbonIcon("repeat_playback", "clockwise_arc_arrow"));
 		});
 
 		RibbonGroup& g_sel = page_main.AddGroup("Selection");

@@ -2389,9 +2389,6 @@ Edit3D::Edit3D() :
 		
 	});
 	
-	AddFrame(tool);
-	RefrehToolbar();
-
 	LoadEmptyProject();
 	UpdateWindowTitle();
 	
@@ -2724,7 +2721,7 @@ void Edit3D::SetView(ViewType view) {
 }
 
 void Edit3D::RefrehToolbar() {
-	tool.Set(THISBACK(Toolbar));
+	// Playback controls are hosted in RibbonBar.
 }
 
 static void FillEditableMeshFromMesh(GeomEditableMesh& out, const Mesh& mesh)
@@ -3516,6 +3513,22 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 	}
 	if (sid == "redo") {
 		Redo();
+		return true;
+	}
+	if (sid == "play_timeline") {
+		Play();
+		return true;
+	}
+	if (sid == "pause_timeline") {
+		Pause();
+		return true;
+	}
+	if (sid == "stop_timeline") {
+		Stop();
+		return true;
+	}
+	if (sid == "repeat_playback") {
+		ToggleRepeatPlayback();
 		return true;
 	}
 	if (sid == "select_objects") {

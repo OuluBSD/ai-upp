@@ -158,7 +158,7 @@ void OrbSystem::Process() {
     
     if(num_matches) {
         render_matches(matches);
-        if(good_matches > 8)
+        if(good_matches > 4)
             render_pattern_shape();
 		else
 			last_corners.Clear();

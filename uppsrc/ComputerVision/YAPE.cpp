@@ -698,7 +698,7 @@ int Yape::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 		for (int x = sx, rowx = row; x < ex; ++x, ++rowx) {
 			auto ip = min(255, img[rowx] + tau);
 			auto im = max(0, img[rowx] - tau);
-			
+
 			if (im < img[rowx+R] && img[rowx+R] < ip && im < img[rowx-R] && img[rowx-R] < ip) {
 				scores[rowx] = 0;
 			}
@@ -707,6 +707,8 @@ int Yape::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 			}
 		}
 	}
+
+	points.Clear();
 	
 	// local maxima
 	row = (sy * w + sx);
@@ -719,12 +721,12 @@ int Yape::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 				++x, ++rowx;
 			}
 			else if (ThirdCheck(scores, rowx, w) >= 3 && IsLocalMaxima(scores, rowx, score, hw, R)) {
-				Keypoint& pt = points[number_of_points];
+				Keypoint& pt = points.Add();
 				pt.x = x;
 				pt.y = y;
 				pt.score = abs_score;
 				++number_of_points;
-				
+
 				x += Rm1;
 				rowx += Rm1;
 			}

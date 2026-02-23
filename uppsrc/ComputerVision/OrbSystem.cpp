@@ -104,11 +104,15 @@ void OrbSystem::TrainPattern() {
 }
 
 void OrbSystem::InitDefault() {
-	
-	keypoint_match_threshold = 95;
-	num_train_levels = 10;
-	
+
+    keypoint_match_threshold = 95;
+    num_train_levels = 10;
+
+    y.laplacian_threshold = 2;
+    y.min_eigen_value_threshold = 2;
+
     /*img_u8 = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);
+
     // after blur
     img_u8_smooth = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);*/
     
@@ -261,7 +265,8 @@ int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
 
 int OrbSystem::DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed) {
     // detect features
-    int count = y.Detect(img, corners, 15);
+    int count = y.Detect(img, corners, 5);
+    Cout() << "DetectKeypoints(" << img.cols << "x" << img.rows << "): found " << count << " corners\n";
 
     // sort by score and reduce the count if needed
     if(count > max_allowed) {
@@ -286,23 +291,34 @@ double OrbSystem::IcAngle(const ByteMat& img, int px, int py) {
     int m_01 = 0, m_10 = 0;
     auto& src=img.data;
     int step=img.cols;
-    int u=0, v=0, center_off=(py*step + px);
+    int w=img.cols, h=img.rows;
+    int center_off=(py*step + px);
     int v_sum=0,d=0,val_plus=0,val_minus=0;
 
     // Treat the center line differently, v=0
-    for (u = -half_k; u <= half_k; ++u)
-        m_10 += u * src[center_off+u];
+    for (int u = -half_k; u <= half_k; ++u) {
+        if (px + u >= 0 && px + u < w && py >= 0 && py < h)
+            m_10 += u * src[center_off+u];
+    }
 
     // Go line by line in the circular patch
-    for (v = 1; v <= half_k; ++v) {
+    for (int v = 1; v <= half_k; ++v) {
         // Proceed over the two lines
         v_sum = 0;
         d = u_max[v];
-        for (u = -d; u <= d; ++u) {
-            val_plus = src[center_off+u+v*step];
-            val_minus = src[center_off+u-v*step];
-            v_sum += (val_plus - val_minus);
-            m_10 += u * (val_plus + val_minus);
+        for (int u = -d; u <= d; ++u) {
+            if (px + u >= 0 && px + u < w) {
+                if (py + v < h) {
+                    val_plus = src[center_off+u+v*step];
+                    m_10 += u * val_plus;
+                    v_sum += val_plus;
+                }
+                if (py - v >= 0) {
+                    val_minus = src[center_off+u-v*step];
+                    m_10 += u * val_minus;
+                    v_sum -= val_minus;
+                }
+            }
         }
         m_01 += v * v_sum;
     }

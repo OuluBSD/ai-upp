@@ -112,7 +112,6 @@ void OrbSystem::InitDefault() {
     y.min_eigen_value_threshold = 2;
 
     /*img_u8 = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);
-
     // after blur
     img_u8_smooth = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);*/
     
@@ -266,7 +265,6 @@ int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
 int OrbSystem::DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed) {
     // detect features
     int count = y.Detect(img, corners, 5);
-    Cout() << "DetectKeypoints(" << img.cols << "x" << img.rows << "): found " << count << " corners\n";
 
     // sort by score and reduce the count if needed
     if(count > max_allowed) {

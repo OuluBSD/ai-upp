@@ -5,7 +5,6 @@ acceptflags
 
 uses
 	CtrlCore;
-	Core/VfsBase;
 
 uses(POSIX) PdfDraw;
 
@@ -147,3 +146,4 @@ file
 	src.tpp,
 	srcdoc.tpp,
 	Copying;
+

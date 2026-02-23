@@ -6,6 +6,18 @@ namespace Upp {
 
 #define LLOG(x)   // DLOG(x)
 
+void SwapRB(RGBA *t, const RGBA *s, int n)
+{
+	while(n-- > 0) {
+		*t = *s;
+		byte b = t->b;
+		t->b = t->r;
+		t->r = b;
+		t++;
+		s++;
+	}
+}
+
 static void sInitXImage(XImage& ximg, Size sz)
 {
 	Zero(ximg);
@@ -29,12 +41,19 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size srcsz,
 	ximg.bitmap_pad = 32;
 	ximg.bytes_per_line = sizeof(RGBA) * srcsz.cx;
 	ximg.bits_per_pixel = 32;
-	ximg.blue_mask = 0x00ff0000;
-	ximg.green_mask = 0x0000ff00;
-	ximg.red_mask = 0x000000ff;
+	ximg.blue_mask = Xvisual->blue_mask;
+	ximg.green_mask = Xvisual->green_mask;
+	ximg.red_mask = Xvisual->red_mask;
 	ximg.bitmap_unit = 32;
-	ximg.depth = 24;
-	ximg.data = (char *)pixels;
+	ximg.depth = Xdepth;
+	const RGBA *src = pixels;
+	Buffer<RGBA> h;
+	if(Xvisual->red_mask != 0xff) {
+		h.Alloc(srcsz.cx * srcsz.cy);
+		SwapRB(h, pixels, srcsz.cx * srcsz.cy);
+		src = h;
+	}
+	ximg.data = (char *)src;
 	XInitImage(&ximg);
 	Drawable dw = w.GetDrawable();
 	GC gc = XCreateGC(Xdisplay, dw, 0, 0);
@@ -47,10 +66,10 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size srcsz,
 void SetSurface(SystemDraw& w, int x, int y, int cx, int cy, const RGBA *pixels)
 {
 	GuiLock __;
-	Pixmap pixmap = XCreatePixmap(Xdisplay, Xroot, cx, cy, 24);
+	Pixmap pixmap = XCreatePixmap(Xdisplay, Xroot, cx, cy, Xdepth);
 	XPicture picture = XRenderCreatePicture(
 		Xdisplay, pixmap,
-	    XRenderFindStandardFormat(Xdisplay, PictStandardRGB24),
+	    XRenderFindVisualFormat(Xdisplay, Xvisual),
 	    0, 0
 	);
 	XImage ximg;
@@ -58,12 +77,19 @@ void SetSurface(SystemDraw& w, int x, int y, int cx, int cy, const RGBA *pixels)
 	ximg.bitmap_pad = 32;
 	ximg.bytes_per_line = 4 * cx;
 	ximg.bits_per_pixel = 32;
-	ximg.blue_mask = 0x00ff0000;
-	ximg.green_mask = 0x0000ff00;
-	ximg.red_mask = 0x000000ff;
+	ximg.blue_mask = Xvisual->blue_mask;
+	ximg.green_mask = Xvisual->green_mask;
+	ximg.red_mask = Xvisual->red_mask;
 	ximg.bitmap_unit = 32;
-	ximg.depth = 24;
-	ximg.data = (char *)pixels;
+	ximg.depth = Xdepth;
+	const RGBA *src = pixels;
+	Buffer<RGBA> h;
+	if(Xvisual->red_mask != 0xff) {
+		h.Alloc(cx * cy);
+		SwapRB(h, pixels, cx * cy);
+		src = h;
+	}
+	ximg.data = (char *)src;
 	XInitImage(&ximg);
 	GC gc = XCreateGC(Xdisplay, pixmap, 0, 0);
 	XPutImage(Xdisplay, pixmap, gc, &ximg, 0, 0, 0, 0, cx, cy);
@@ -175,11 +201,10 @@ void ImageSysData::Paint(SystemDraw& w, int x, int y, const Rect& src, Color c)
 	if(IsNull(c)) {
 		if(!picture) {
 			bool opaque = kind == IMAGE_OPAQUE;
-			Pixmap pixmap = XCreatePixmap(Xdisplay, Xroot, sz.cx, sz.cy, opaque ? 24 : 32);
+			Pixmap pixmap = XCreatePixmap(Xdisplay, Xroot, sz.cx, sz.cy, Xdepth);
 			picture = XRenderCreatePicture(
 				Xdisplay, pixmap,
-			    XRenderFindStandardFormat(Xdisplay, opaque ? PictStandardRGB24
-			                                               : PictStandardARGB32),
+			    XRenderFindVisualFormat(Xdisplay, Xvisual),
 			    0, 0
 			);
 			XImage ximg;
@@ -187,12 +212,19 @@ void ImageSysData::Paint(SystemDraw& w, int x, int y, const Rect& src, Color c)
 			ximg.bitmap_pad = 32;
 			ximg.bytes_per_line = 4 * sz.cx;
 			ximg.bits_per_pixel = 32;
-			ximg.blue_mask = 0x00ff0000;
-			ximg.green_mask = 0x0000ff00;
-			ximg.red_mask = 0x000000ff;
+			ximg.blue_mask = Xvisual->blue_mask;
+			ximg.green_mask = Xvisual->green_mask;
+			ximg.red_mask = Xvisual->red_mask;
 			ximg.bitmap_unit = 32;
-			ximg.data = (char *)~img;
-			ximg.depth = opaque ? 24 : 32;
+			const RGBA *src = ~img;
+			Buffer<RGBA> h;
+			if(Xvisual->red_mask != 0xff) {
+				h.Alloc(sz.cx * sz.cy);
+				SwapRB(h, ~img, sz.cx * sz.cy);
+				src = h;
+			}
+			ximg.data = (char *)src;
+			ximg.depth = Xdepth;
 			XInitImage(&ximg);
 			GC gc = XCreateGC(Xdisplay, pixmap, 0, 0);
 			XPutImage(Xdisplay, pixmap, gc, &ximg, 0, 0, 0, 0, sz.cx, sz.cy);

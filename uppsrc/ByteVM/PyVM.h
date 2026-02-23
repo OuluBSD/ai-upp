@@ -24,6 +24,7 @@ public:
 	
 	void SetIR(Vector<PyIR>& ir);
 	PyValue Run();
+	PyValue Call(const PyValue& callable, const Vector<PyValue>& args);
 	
 	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
 	

@@ -3,7 +3,7 @@ description "\377B";
 uses
 	ide/Core;
 
-library(WIN32 MSC) libclang.lib;
+library(WIN32 MSC !DYNAMIC_LIBCLANG) libclang.lib;
 
 library(WIN32 !MSC MSYS) "clang libclang.dll.a";
 

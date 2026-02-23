@@ -35,7 +35,7 @@ uses(GUI) ide/MacroManager;
 
 uses(GUI) Report;
 
-uses(GUI) ide/Edit3D;
+uses(GUI & !V1) ide/Edit3D;
 
 uses(GUI & !V1) MCP;
 

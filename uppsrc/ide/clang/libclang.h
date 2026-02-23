@@ -2076,6 +2076,7 @@ CXString clang_getCompletionChunkText(CXCompletionString completion_string, unsi
 CXCompletionString clang_getCompletionChunkCompletionString(CXCompletionString completion_string, unsigned chunk_number);
 CXString clang_getCompletionParent(CXCompletionString completion_string, enum CXCursorKind *kind);
 unsigned clang_getCompletionPriority(CXCompletionString completion_string);
+CXString clang_getClangVersion(void);
 CXCodeCompleteResults *clang_codeCompleteAt(CXTranslationUnit TU, const char *complete_filename,
                                             unsigned complete_line, unsigned complete_column,
                                             struct CXUnsavedFile *unsaved_files,

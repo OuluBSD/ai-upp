@@ -1470,6 +1470,45 @@ PyValue PyVM::Run()
 	return last_result;
 }
 
+PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
+{
+	if (IsRunning())
+		return PyValue::None();
+	PyValue callable = callable_in;
+	Vector<PyValue> call_args;
+	call_args.Reserve(args.GetCount());
+	for (const PyValue& v : args)
+		call_args.Add(v);
+	if (callable.IsBoundMethod()) {
+		PyValue func = callable.GetBound().func;
+		PyValue self = callable.GetBound().self;
+		call_args.Insert(0, self);
+		callable = func;
+	}
+	if (!callable.IsFunction())
+		return PyValue::None();
+
+	const PyLambda& l = callable.GetLambda();
+	if (l.builtin)
+		return l.builtin(call_args, l.user_data);
+
+	int base = frames.GetCount();
+	Frame& f = frames.Add();
+	f.func = callable;
+	f.ir = &l.ir;
+	f.pc = 0;
+	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++)
+		f.locals.GetAdd(PyValue(l.arg[i])) = call_args[i];
+
+	PyValue prev_last = last_result;
+	last_result = PyValue::None();
+	while (frames.GetCount() > base)
+		Step();
+	PyValue res = last_result;
+	last_result = prev_last;
+	return res;
+}
+
 bool PyVM::Step()
 {
 	if(frames.IsEmpty()) return false;

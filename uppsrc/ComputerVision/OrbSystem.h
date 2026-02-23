@@ -43,6 +43,10 @@ class OrbSystem {
     
 public:
 	static const int u_max[];
+
+	int GetLastGoodMatches() const { return last_good_matches; }
+	int GetLastMatchCount() const { return last_match_count; }
+	const Vector<Pointf>& GetLastCorners() const { return last_corners; }
 	
     void TrainPattern();
 	int DetectKeypoints(DescriptorImage& output, int max_allowed);
@@ -60,6 +64,10 @@ public:
 	ByteMat input, output, tmp0, tmp1, tmp2;
 	Size sz;
 	Vector<ColorLine> lines;
+
+	Vector<Pointf> last_corners;
+	int last_good_matches = 0;
+	int last_match_count = 0;
 
 };
 

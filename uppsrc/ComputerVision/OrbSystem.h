@@ -23,11 +23,11 @@ class OrbSystem {
     Vector<Keypoint> lev_corners, lev_descr;
     Vector<Keypoint> corners, pattern_xy, screen_xy;
     Vector<KeypointMatch> matches;
-	int num_train_levels = 4;
-	Orb o;
-	Yape06 y;
-    Homography2D mm_kernel;
-    RansacParams ransac_param;
+	                int num_train_levels = 4;
+	                Orb o;
+	                Yape06 y;
+	            Homography2D mm_kernel;
+	            RansacParams ransac_param;
     MotionEstimator<Homography2D> mot;
     
     int blur_size = 5;
@@ -45,10 +45,12 @@ public:
 	static const int u_max[];
 
 	int GetLastGoodMatches() const { return last_good_matches; }
-	int GetLastMatchCount() const { return last_match_count; }
-	const Vector<Pointf>& GetLastCorners() const { return last_corners; }
+	        int GetLastMatchCount() const { return last_match_count; }
+	        const Vector<Pointf>& GetLastCorners() const { return last_corners; }
+	        const Vector<float>& GetHomo() const { return homo3x3.data; }
 	
-    void TrainPattern();
+	    void TrainPattern();
+	
 	int DetectKeypoints(DescriptorImage& output, int max_allowed);
 	int DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed);
     double IcAngle(const ByteMat& img, int px, int py);

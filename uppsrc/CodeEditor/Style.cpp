@@ -3,7 +3,7 @@
 namespace Upp {
 
 HlStyle HighlightSetup::hl_style[HL_COUNT];
-byte    HighlightSetup::hilite_scope = 1;
+byte    HighlightSetup::hilite_scope = 2;
 byte    HighlightSetup::hilite_ifdef = 1;
 byte    HighlightSetup::hilite_bracket = 1;
 bool    HighlightSetup::thousands_separator = true;

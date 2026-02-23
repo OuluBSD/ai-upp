@@ -91,16 +91,25 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 {
 	int tabsize = editor ? editor->GetTabSize() : 4;
 	int linelen = int(end - s);
+	int lindent = 0;
 	int wspos = 0;
 	int lindent_chars = 0;
 	const wchar *p0 = s;
 	while(p0 < end && (*p0 == '\t' || *p0 == ' ')) {
 		if(*p0++ == '\t' || ++wspos >= tabsize) {
 			wspos = 0;
+			lindent++;
 		}
 	}
 	lindent_chars = int(p0 - s);
 	int level = max(0, block_indent.GetCount() - 1);
+	bool significant = p0 < end && p0[0] != '#';
+	if(significant && !block_indent.IsEmpty()) {
+		while(level > 0 && lindent < block_indent[level])
+			level--;
+		if(expect_indent && lindent > block_indent[level])
+			level++;
+	}
 	if(hilite_scope) {
 		int i = 0;
 		int bid = 0;
@@ -156,7 +165,7 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 			                             "not", "with", "async", "elif", "if", "or", "yield" };
 			static Index<String> sws = { "self", "NotImplemented", "Ellipsis", "__debug__", "__file__", "__name__" };
 			String w;
-			while(s < end && IsAlNum(*s) || *s == '_')
+			while(s < end && (IsAlNum(*s) || *s == '_'))
 				w.Cat(*s++);
 			hls.Put(w.GetCount(), kws.Find(w) >= 0 ? hl_style[INK_KEYWORD] :
 			                      sws.Find(w) >= 0 ? hl_style[INK_UPP] :

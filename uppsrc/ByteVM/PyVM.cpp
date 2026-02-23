@@ -10,6 +10,24 @@
 
 namespace Upp {
 
+static inline void ReleaseLocals(VectorMap<PyValue, PyValue>& locals) {
+	Vector<PyValue> keys = locals.PickKeys();
+	Vector<PyValue> values = locals.PickValues();
+	for(int i = 0; i < keys.GetCount(); i++)
+		keys[i] = PyValue::None();
+	for(int i = 0; i < values.GetCount(); i++)
+		values[i] = PyValue::None();
+	locals.Clear();
+	locals.Shrink();
+}
+
+static inline void ReleaseStack(Vector<PyValue>& stack) {
+	for(int i = 0; i < stack.GetCount(); i++)
+		stack[i] = PyValue::None();
+	stack.Clear();
+	stack.Shrink();
+}
+
 static String GetRelPath(String path, String base) {
 	path = NormalizePath(path);
 	base = NormalizePath(base);
@@ -1446,6 +1464,26 @@ globals.GetAdd(PyValue("sys")) = sys;
 	globals.GetAdd(PyValue("subprocess")) = subprocess;
 }
 
+PyVM::~PyVM()
+{
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.Clear();
+	frames.Shrink();
+	ReleaseStack(stack);
+	last_result = PyValue::None();
+	Vector<PyValue> global_keys = globals.PickKeys();
+	Vector<PyValue> global_values = globals.PickValues();
+	for(int i = 0; i < global_keys.GetCount(); i++)
+		global_keys[i] = PyValue::None();
+	for(int i = 0; i < global_values.GetCount(); i++)
+		global_values[i] = PyValue::None();
+	globals.Clear();
+	globals.Shrink();
+}
+
 void PyVM::SetIR(Vector<PyIR>& _ir)
 {
 	frames.Clear();
@@ -1497,15 +1535,37 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 	f.func = callable;
 	f.ir = &l.ir;
 	f.pc = 0;
-	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++)
-		f.locals.GetAdd(PyValue(l.arg[i])) = call_args[i];
+	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
+		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+		int q = f.locals.Find(key);
+		if(q >= 0) f.locals[q] = call_args[i];
+		else f.locals.Add(key, call_args[i]);
+	}
 
 	PyValue prev_last = last_result;
 	last_result = PyValue::None();
-	while (frames.GetCount() > base)
-		Step();
+	try {
+		while (frames.GetCount() > base)
+			Step();
+	}
+	catch (...) {
+		for (int i = frames.GetCount() - 1; i >= base; --i) {
+			ReleaseLocals(frames[i].locals);
+			frames[i].func = PyValue::None();
+		}
+		frames.SetCount(base);
+		ReleaseStack(stack);
+		last_result = prev_last;
+		throw;
+	}
 	PyValue res = last_result;
 	last_result = prev_last;
+	for (int i = frames.GetCount() - 1; i >= base; --i) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.SetCount(base);
+	ReleaseStack(stack);
 	return res;
 }
 
@@ -1515,6 +1575,8 @@ bool PyVM::Step()
 	
 	Frame& frame = TopFrame();
 	if(frame.pc >= frame.ir->GetCount()) {
+		ReleaseLocals(frame.locals);
+		frame.func = PyValue::None();
 		frames.Drop();
 		return !frames.IsEmpty();
 	}
@@ -1566,12 +1628,20 @@ try {
 			break;
 		}
 	
-		case PY_STORE_NAME:
-			if(frames.GetCount() <= 1)
-				globals.GetAdd(instr.arg) = Pop();
-			else
-				frame.locals.GetAdd(instr.arg) = Pop();
+		case PY_STORE_NAME: {
+			PyValue value = Pop();
+			if(frames.GetCount() <= 1) {
+				int q = globals.Find(instr.arg);
+				if(q >= 0) globals[q] = value;
+				else globals.Add(instr.arg, value);
+			}
+			else {
+				int q = frame.locals.Find(instr.arg);
+				if(q >= 0) frame.locals[q] = value;
+				else frame.locals.Add(instr.arg, value);
+			}
 			break;
+		}
 
 		case PY_LOAD_GLOBAL: {
 			int q = globals.Find(instr.arg);
@@ -1926,11 +1996,16 @@ try {
 					f.func = callable;
 					f.ir = &l.ir;
 					f.pc = 0;
-					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
-						f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
+						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+						int q = f.locals.Find(key);
+						if(q >= 0) f.locals[q] = sorted_args[i];
+						else f.locals.Add(key, sorted_args[i]);
+					}
 				}
 			}
 			else {
+				args.Clear();
 				throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
 			}
 			break;
@@ -1976,11 +2051,13 @@ try {
 			break;
 		}
 
-		case PY_RETURN_VALUE: {
-			PyValue val = Pop();
-			frames.Drop();
-			if(!frames.IsEmpty()) {
-				Push(val);
+			case PY_RETURN_VALUE: {
+				PyValue val = Pop();
+				ReleaseLocals(frame.locals);
+				frame.func = PyValue::None();
+				frames.Drop();
+				if(!frames.IsEmpty()) {
+					Push(val);
 			}
 			else {
 				if(!val.IsNone() || last_result.IsNone())

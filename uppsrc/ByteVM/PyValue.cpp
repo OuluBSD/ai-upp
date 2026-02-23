@@ -235,9 +235,15 @@ PyValue PyValue::GetItem(const PyValue& key) const
 {
 	if(type == PY_DICT) return dict->d.Get(key, PyValue());
 	if(type == PY_STR && key.IsInt()) return GetItem(key.AsInt());
-	if(type == PY_LIST && key.GetType() == PY_STR) {
+	if((type == PY_LIST || type == PY_TUPLE) && key.GetType() == PY_STR) {
 		String attr = key.ToString();
-		if(attr == "sort") {
+		const Vector<PyValue>& a = GetArray();
+		if(attr == "x" && a.GetCount() >= 1) return a[0];
+		if(attr == "y" && a.GetCount() >= 2) return a[1];
+		if(attr == "w" && a.GetCount() >= 3) return a[2];
+		if(attr == "h" && a.GetCount() >= 4) return a[3];
+		if(attr == "score" && a.GetCount() >= 5) return a[4];
+		if(type == PY_LIST && attr == "sort") {
 			return PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
 				PyValue self = (PyUserData*)ud; // This is wrong, self is not UserData here but PyValue. 
 				// Actually BoundMethod needs to handle PyValue as self.
@@ -250,7 +256,11 @@ PyValue PyValue::GetItem(const PyValue& key) const
 
 void PyValue::SetItem(const PyValue& key, const PyValue& v)
 {
-	if(type == PY_DICT) dict->d.GetAdd(key) = v;
+	if(type == PY_DICT) {
+		int q = dict->d.Find(key);
+		if(q >= 0) dict->d[q] = v;
+		else dict->d.Add(key, v);
+	}
 }
 
 bool PyValue::Contains(const PyValue& v) const

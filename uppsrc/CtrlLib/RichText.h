@@ -1,19 +1,19 @@
 class RichTextView : public Ctrl {
 public:
-	virtual void  Paint(Draw& w);
-	virtual bool  Key(dword key, int count);
-	virtual void  Layout();
-	virtual Value GetData() const;
-	virtual void  SetData(const Value& v);
-	virtual void  MouseWheel(Point p, int zdelta, dword keyflags);
-	virtual Image CursorImage(Point p, dword keyflags);
-	virtual void  LeftDown(Point p, dword keyflags);
-	virtual void  MouseMove(Point p, dword keyflags);
-	virtual void  LeftRepeat(Point p, dword keyflags);
-	virtual void  LeftDouble(Point p, dword keyflags);
-	virtual void  LeftTriple(Point p, dword keyflags);
-	virtual void  RightDown(Point p, dword keyflags);
-	virtual String GetSelectionData(const String& fmt) const;
+	virtual void  Paint(Draw& w) override;
+	virtual bool  Key(dword key, int count) override;
+	virtual void  Layout() override;
+	virtual Value GetData() const override;
+	virtual void  SetData(const Value& v) override;
+	virtual void  MouseWheel(Point p, int zdelta, dword keyflags) override;
+	virtual Image CursorImage(Point p, dword keyflags) override;
+	virtual void  LeftDown(Point p, dword keyflags) override;
+	virtual void  MouseMove(Point p, dword keyflags) override;
+	virtual void  LeftRepeat(Point p, dword keyflags) override;
+	virtual void  LeftDouble(Point p, dword keyflags) override;
+	virtual void  LeftTriple(Point p, dword keyflags) override;
+	virtual void  RightDown(Point p, dword keyflags) override;
+	virtual String GetSelectionData(const String& fmt) const override;
 	virtual bool   Access(Visitor& v) override;
 
 private:
@@ -136,7 +136,7 @@ public:
 
 class RichTextCtrl : public RichTextView {
 public:
-	virtual void  SetData(const Value& v);
+	virtual void  SetData(const Value& v) override;
 
 public:
 	void            SetQTF(const char *qtf, Zoom z = GetRichTextStdScreenZoom()) { RichTextView::SetQTF(qtf, z); }

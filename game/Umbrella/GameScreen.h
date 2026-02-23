@@ -9,6 +9,7 @@
 #include "Pathfinder.h"
 #include "NavGraph.h"
 #include "GrimReaper.h"
+#include "WaterWeapon.h"
 
 using namespace Upp;
 
@@ -100,6 +101,7 @@ public:  // Public for testing
 	Array<EnemySpawnPoint> enemySpawns;      // Enemy spawn points from level data
 	int dropletsCollected;
 	int totalDroplets;  // Total droplets available in current level
+	bool hasHugeDroplet;  // True when 5 droplets merged into huge
 
 	// Level stats (tracked per level for score summary)
 	float levelElapsedTime;     // Time spent playing the current level
@@ -116,6 +118,9 @@ public:  // Public for testing
 	// GrimReaper (indestructible time-pressure entity)
 	GrimReaper reaper;
 
+	// Water weapon (snake-like grid mover, activated by huge droplet)
+	WaterWeapon waterWeapon;
+
 	// Pathfinding (shared by all enemies, built on level load)
 	Pathfinder pathfinder;
 	NavGraph   navGraph;
@@ -123,6 +128,12 @@ public:  // Public for testing
 
 	// Tile sprite sheet (loaded once from mod root alongside levels/)
 	Image tilesheet;
+
+	// Debug overlay
+	bool showDebugOverlay;
+	int  debugFpsCounter;
+	int  debugFpsDisplay;
+	float debugFpsTimer;
 
 	// Input tracking
 	bool keyLeft, keyRight, keyJump, keyAttack;
@@ -144,6 +155,7 @@ public:
 	virtual void Paint(Draw& w) override;
 	void RenderTiles(Draw& w);
 	void RenderHUD(Draw& w);
+	void RenderDebugOverlay(Draw& w);
 	void RenderPauseScreen(Draw& w);
 	void RenderGameOverScreen(Draw& w);
 	void RenderLevelCompleteScreen(Draw& w);

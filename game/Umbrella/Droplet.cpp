@@ -5,10 +5,12 @@ using namespace Upp;
 
 void Droplet::Init(float x, float y, DropletType t) {
 	position = Pointf(x, y);
-	velocity = Pointf(0, 0);  // Start stationary
+	velocity = Pointf(0, 0);  // Start stationary — will fall at constant speed
 	type = t;
 	active = true;
 	collected = false;
+	thrown = false;
+	isHuge = false;
 	orbitAngle = 0.0f;
 	rotation = 0.0f;
 	rotationSpeed = 180.0f + Randomf() * 180.0f;  // 180-360 degrees per second
@@ -59,40 +61,40 @@ bool Droplet::CheckWallCollision(Player::CollisionHandler& collision) {
 void Droplet::Update(float delta, Player::CollisionHandler& collision) {
 	if(!active || collected) return;  // Skip physics if collected (orbiting player)
 
-	// Apply gravity
-	velocity.y += GRAVITY * delta;
-	if(velocity.y < MAX_FALL_SPEED) {
-		velocity.y = MAX_FALL_SPEED;
+	int gridSize = (int)collision.GetGridSize();
+
+	if(thrown) {
+		// Thrown mode: horizontal only, no gravity
+		position.x += velocity.x * delta;
+
+		// Wall collision → deactivate
+		if(CheckWallCollision(collision)) {
+			active = false;
+			return;
+		}
+	}
+	else {
+		// Normal mode: constant-speed falling (80s arcade style)
+		velocity.y = -FALL_SPEED;
+		position.y += velocity.y * delta;
+
+		// Ground collision → stop on ground
+		if(CheckGroundCollision(collision)) {
+			velocity.y = 0;
+			// Snap to ground
+			float bottomY = position.y - size;
+			int floorRow = (int)(bottomY / gridSize);
+			position.y = (floorRow + 1) * gridSize + size;
+		}
 	}
 
-	// Update position
-	position.x += velocity.x * delta;
-	position.y += velocity.y * delta;
-
-	// Update rotation (spin while falling)
+	// Update rotation (spin while moving)
 	rotation += rotationSpeed * delta;
 	while(rotation >= 360.0f) rotation -= 360.0f;
 
-	// Check ground collision - just stop, don't bounce
-	if(CheckGroundCollision(collision)) {
-		velocity.y = 0;
-		velocity.x *= 0.95f;  // Friction
-
-		// Snap to ground to prevent sinking
-		int gridSize = (int)collision.GetGridSize();
-		float bottomY = position.y - size;
-		int floorRow = (int)(bottomY / gridSize);
-		position.y = (floorRow + 1) * gridSize + size;
-	}
-
-	// Check wall collision - reverse direction without bounce
-	if(CheckWallCollision(collision)) {
-		velocity.x = -velocity.x * 0.5f;
-	}
-
-	// Deactivate if off map (too far below or above)
-	int gridSize = (int)collision.GetGridSize();
-	if(position.y < -gridSize * 5 || position.y > gridSize * 100) {
+	// Deactivate if off map
+	if(position.y < -gridSize * 5 || position.y > gridSize * 100 ||
+	   position.x < -gridSize * 5 || position.x > gridSize * 200) {
 		active = false;
 	}
 }
@@ -129,6 +131,19 @@ void Droplet::Render(Draw& w, Player::CoordinateConverter& coords) {
 
 	// Draw droplet as circle (approximate with filled rect for now)
 	int renderSize = (int)(size * 2);
+
+	// Huge droplet: pulsing glow border
+	if(isHuge) {
+		float pulse = 0.5f + 0.5f * sinf(rotation * 0.05f);
+		int glowSize = renderSize + 4 + (int)(pulse * 4);
+		Color glowColor = Color(
+			min(255, dropletColor.GetR() + 60),
+			min(255, dropletColor.GetG() + 60),
+			min(255, dropletColor.GetB() + 60));
+		w.DrawRect(screenPos.x - glowSize/2, screenPos.y - glowSize/2,
+		           glowSize, glowSize, glowColor);
+	}
+
 	w.DrawRect(screenPos.x - renderSize/2, screenPos.y - renderSize/2,
 	           renderSize, renderSize, dropletColor);
 

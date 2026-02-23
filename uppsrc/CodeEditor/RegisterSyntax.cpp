@@ -59,6 +59,7 @@ void RegisterSyntaxModules()
 	EditorSyntax::Register("diff", callback(CreateDiffSyntax), "*.diff *.patch", "Diff");
 	
 	EditorSyntax::Register("python", callback(CreatePythonSyntax), "*.py, *.pyc, *.pyd, *.pyo, *.pyw, *.pyz", "Python");
+	EditorSyntax::Register("py", callback(CreatePythonSyntax), "", "");
 	
 	EditorSyntax::Register("xml", callback2(CreateTagSyntax, false, false), "*.xml *.xsd", "XML");
 	EditorSyntax::Register("html", callback2(CreateTagSyntax, true, false), "*.html *.htm", "HTML");

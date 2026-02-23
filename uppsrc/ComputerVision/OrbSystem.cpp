@@ -26,7 +26,7 @@ void OrbSystem::TrainPattern() {
     double sc = 1.0;
     int max_pattern_size = 512;
     int max_per_level = 300;
-    double sc_inc = sqrt(2.0);
+    double sc_inc = pow(2.0, 1.0/4.0); // 1.189
     lev0_img.SetSize(img_u8.cols, img_u8.rows, 1);
     lev_img.SetSize(img_u8.cols, img_u8.rows, 1);
     int new_width=0, new_height=0;
@@ -51,7 +51,7 @@ void OrbSystem::TrainPattern() {
         Vector<Keypoint>& lev_corners = pattern_corners[lev];
 
         // preallocate corners array
-        int i = (new_width*new_height) >> lev;
+        int i = (new_width*new_height); // better safe than sorry
         lev_corners.SetCount(i);
         while(--i >= 0) {
             lev_corners[i].Set(0,0,0,0,-1);
@@ -70,7 +70,7 @@ void OrbSystem::TrainPattern() {
 	    ASSERT(lev_corners.GetCount() == corners_num);
 	    o.Describe(lev_img, lev_corners, lev_descr);
 	
-	    LOG("train " << lev_img.cols << "x" << lev_img.rows << " points: " << corners_num);
+	    //LOG("train " << lev_img.cols << "x" << lev_img.rows << " points: " << corners_num);
 	
 	    sc /= sc_inc;
     }
@@ -97,7 +97,7 @@ void OrbSystem::TrainPattern() {
             corner.y = (int)(corner.y * 1./sc);
         }
 
-        LOG("train " << lev_img.cols << "x" << lev_img.rows << " points: " << corners_num);
+        //LOG("train " << lev_img.cols << "x" << lev_img.rows << " points: " << corners_num);
 
         sc /= sc_inc;
     }
@@ -105,7 +105,8 @@ void OrbSystem::TrainPattern() {
 
 void OrbSystem::InitDefault() {
 	
-	keypoint_match_threshold = 70;
+	keypoint_match_threshold = 95;
+	num_train_levels = 10;
 	
     /*img_u8 = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);
     // after blur
@@ -429,17 +430,6 @@ int OrbSystem::MatchPattern() {
             m.pattern_idx = best_idx;
             num_matches++;
         }
-        //
-
-        /* filter using the ratio between 2 closest matches
-        if(best_dist < 0.8*best_dist2) {
-            matches[num_matches].screen_idx = qidx;
-            matches[num_matches].pattern_lev = best_lev;
-            matches[num_matches].pattern_idx = best_idx;
-            num_matches++;
-        }
-        */
-
     }
 
     return num_matches;

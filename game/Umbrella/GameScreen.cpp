@@ -39,6 +39,7 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	// Droplet system
 	dropletsCollected = 0;
 	totalDroplets = 0;
+	hasHugeDroplet = false;
 
 	// Level stats
 	levelElapsedTime = 0.0f;
@@ -46,6 +47,12 @@ GameScreen::GameScreen() : player(100, 100, 12, 12) {
 	scoreSummaryTimer = 0.0f;
 	levelScoreBonus = 0;
 	levelGrade = "C";
+
+	// Debug overlay
+	showDebugOverlay = false;
+	debugFpsCounter = 0;
+	debugFpsDisplay = 0;
+	debugFpsTimer = 0.0f;
 
 	// AI frame counter
 	gameFrame = 0;
@@ -126,6 +133,7 @@ bool GameScreen::LoadLevel(const String& path) {
 	levelElapsedTime = 0.0f;
 	damageTakenThisLevel = 0;
 	dropletsCollected = 0;
+	hasHugeDroplet = false;
 	allEnemiesKilled = false;
 	levelCompleteTimer = 0.0f;
 
@@ -185,6 +193,15 @@ void GameScreen::LayoutLoop() {
 			GameTick((float)FIXED_TIMESTEP);
 			accumulator -= FIXED_TIMESTEP;
 		}
+	}
+
+	// FPS counting
+	debugFpsCounter++;
+	debugFpsTimer += 0.016f;  // approximate frame time
+	if(debugFpsTimer >= 1.0f) {
+		debugFpsDisplay = debugFpsCounter;
+		debugFpsCounter = 0;
+		debugFpsTimer = 0.0f;
 	}
 
 	Refresh();  // Always render (shows pause/game over screens)
@@ -467,6 +484,7 @@ void GameScreen::GameTick(float delta) {
 			levelElapsedTime = 0.0f;
 			damageTakenThisLevel = 0;
 			dropletsCollected = 0;
+			hasHugeDroplet = false;
 			pathfinder.SetGameScreen(this);
 			navGraph.Build(this);
 
@@ -675,6 +693,93 @@ void GameScreen::GameTick(float delta) {
 			player.AddScore(15);  // 15 points per droplet
 			GetAudioSystem().Play("droplet");
 			RLOG("Droplet collected! Total: " << dropletsCollected);
+		}
+	}
+
+	// Merge at 5: when 5 orbiting droplets collected, merge into 1 huge droplet
+	if(dropletsCollected >= 5 && !hasHugeDroplet) {
+		// Remove all orbiting (collected, non-huge) droplets
+		for(int i = droplets.GetCount() - 1; i >= 0; i--) {
+			if(droplets[i]->IsCollected() && !droplets[i]->IsHuge()) {
+				dropletRoot.Remove(&droplets[i]->val);
+				droplets.Remove(i);
+			}
+		}
+		// Spawn 1 huge droplet in collected/orbit state
+		Pointf playerCenter = player.GetCenter();
+		Droplet& huge = dropletRoot.Add<Droplet>();
+		huge.Init(playerCenter.x, playerCenter.y + 20, DROPLET_RAINBOW);
+		huge.MakeHuge();
+		huge.Collect(0.0f);
+		droplets.Add(&huge);
+		hasHugeDroplet = true;
+		dropletsCollected = 0;
+		RLOG("5 droplets merged into HUGE droplet!");
+		GetAudioSystem().Play("droplet");
+	}
+
+	// Action button release: throw droplets or trigger water weapon
+	bool dropletButtonReleased = !inputState.glideHeld && prevKeyAttack;
+	if(dropletButtonReleased && !player.HasCapturedEnemies()) {
+		if(hasHugeDroplet) {
+			// Release huge droplet → trigger water weapon
+			// Remove the huge droplet
+			for(int i = droplets.GetCount() - 1; i >= 0; i--) {
+				if(droplets[i]->IsHuge() && droplets[i]->IsCollected()) {
+					// Get player grid position for water weapon start
+					Pointf pc = player.GetCenter();
+					int startCol = (int)(pc.x / gridSize);
+					int startRow = (int)(pc.y / gridSize);
+
+					dropletRoot.Remove(&droplets[i]->val);
+					droplets.Remove(i);
+
+					// Activate water weapon (will be wired in task 4)
+					waterWeapon.Activate(startCol, startRow, player.GetFacing());
+					RLOG("Water weapon activated at (" << startCol << "," << startRow << ")");
+					break;
+				}
+			}
+			hasHugeDroplet = false;
+		}
+		else {
+			// Throw all orbiting droplets horizontally
+			int throwFacing = player.GetFacing();
+			for(int i = 0; i < droplets.GetCount(); i++) {
+				if(droplets[i]->IsCollected() && !droplets[i]->IsHuge()) {
+					droplets[i]->Throw(throwFacing);
+					RLOG("Droplet thrown horizontally, facing=" << throwFacing);
+				}
+			}
+			dropletsCollected = 0;
+		}
+	}
+
+	// Update water weapon (grid-stepping snake)
+	if(waterWeapon.IsActive()) {
+		bool wasActive = waterWeapon.IsActive();
+		waterWeapon.Update(delta, *this, enemies);
+
+		// If water weapon just became inactive (fell off map), release enemies with death-arc
+		if(wasActive && !waterWeapon.IsActive()) {
+			Vector<Enemy*> released = waterWeapon.Release();
+			for(int i = 0; i < released.GetCount(); i++) {
+				Enemy* e = released[i];
+				if(!e) continue;
+
+				// Kill the enemy
+				e->Defeat();
+
+				// Teleport to top of level with arc velocity
+				float arcX = (levelColumns / 2.0f) * gridSize + (Randomf() - 0.5f) * 160.0f;
+				float arcY = (levelRows + 2) * (float)gridSize;
+				e->SetPositionXY(arcX, arcY);
+				float vx = (Randomf() - 0.5f) * 160.0f;
+				float vy = 200.0f;
+				e->SetVelocity(Pointf(vx, vy));
+
+				RLOG("Water-killed enemy launched in arc from top of level");
+			}
 		}
 	}
 
@@ -915,6 +1020,9 @@ void GameScreen::Paint(Draw& w) {
 		pickups[i]->Render(w, *this);
 	}
 
+	// Render water weapon (above pickups, below player)
+	waterWeapon.Render(w, *this, gridSize);
+
 	// Render GrimReaper (above pickups, below player)
 	reaper.Render(w, *this, sz.cx, sz.cy);
 
@@ -923,6 +1031,10 @@ void GameScreen::Paint(Draw& w) {
 
 	// Render HUD (lives, score)
 	RenderHUD(w);
+
+	// Render debug overlay (F3 toggle)
+	if(showDebugOverlay)
+		RenderDebugOverlay(w);
 
 	// Render overlays based on game state
 	switch(gameState) {
@@ -1224,6 +1336,13 @@ bool GameScreen::Key(dword key, int) {
 			}
 			return true;
 
+		case K_F3:
+			if(!(key & K_KEYUP)) {
+				showDebugOverlay = !showDebugOverlay;
+				LOG("Debug overlay: " << (showDebugOverlay ? "ON" : "OFF"));
+			}
+			return true;
+
 		// Movement keys (only work when playing)
 		case K_LEFT:
 		case K_A:
@@ -1347,6 +1466,73 @@ void GameScreen::RenderHUD(Draw& w) {
 	String dropletText = Format("Droplets: %d", dropletsCollected);
 	Size dropletSz = GetTextSize(dropletText, fnt);
 	w.DrawText(sz.cx / 2 - dropletSz.cx / 2, 10, dropletText, fnt, Color(100, 200, 255));
+}
+
+void GameScreen::RenderDebugOverlay(Draw& w) {
+	Size sz = GetSize();
+	Font fnt = Courier(14);
+	Color bg = Color(0, 0, 0);
+	Color fg = Color(0, 255, 0);
+	int x = 10, y = 50;
+	int lineH = 16;
+
+	// Semi-transparent background panel
+	int panelW = 320, panelH = lineH * 16 + 10;
+	w.DrawRect(x - 4, y - 4, panelW, panelH, bg);
+
+	auto Line = [&](const String& text) {
+		w.DrawText(x, y, text, fnt, fg);
+		y += lineH;
+	};
+
+	// FPS
+	Line(Format("FPS: %d", debugFpsDisplay));
+
+	// Player
+	Pointf pp = player.GetPosition();
+	Pointf pv = player.GetVelocity();
+	Line(Format("Player pos: %.1f, %.1f", pp.x, pp.y));
+	Line(Format("Player vel: %.1f, %.1f", pv.x, pv.y));
+	Line(Format("Player lives: %d  score: %d", player.GetLives(), player.GetScore()));
+	Line(Format("OnGround: %s  Facing: %d", player.IsOnGround() ? "yes" : "no", player.GetFacing()));
+	Line(Format("Invincible: %s  Attacking: %s", player.IsInvincible() ? "yes" : "no", player.IsAttacking() ? "yes" : "no"));
+
+	// Enemies
+	int aliveEnemies = 0;
+	for(int i = 0; i < enemies.GetCount(); i++)
+		if(enemies[i]->IsAlive()) aliveEnemies++;
+	Line(Format("Enemies: %d alive / %d total", aliveEnemies, enemies.GetCount()));
+
+	// Droplets
+	int orbitingCount = 0;
+	for(int i = 0; i < droplets.GetCount(); i++)
+		if(droplets[i]->IsCollected()) orbitingCount++;
+	Line(Format("Droplets: %d collected, %d orbiting, huge=%s",
+	     dropletsCollected, orbitingCount, hasHugeDroplet ? "yes" : "no"));
+	Line(Format("Droplet spawns: %d  active: %d", dropletSpawns.GetCount(), droplets.GetCount()));
+
+	// Water weapon
+	if(waterWeapon.IsActive())
+		Line(Format("WaterWeapon: (%d,%d) active", waterWeapon.GetCol(), waterWeapon.GetRow()));
+	else
+		Line("WaterWeapon: inactive");
+
+	// GrimReaper
+	if(reaper.IsSpawned())
+		Line("GrimReaper: SPAWNED");
+	else
+		Line(Format("GrimReaper: spawns in %.1fs", reaper.TimeUntilSpawn()));
+
+	// Camera
+	Line(Format("Camera: %d,%d  zoom=%.1f  mode=%s",
+	     cameraOffset.x, cameraOffset.y, zoom,
+	     cameraMode == CAMERA_FIXED ? "FIXED" : "FOLLOW"));
+
+	// Game state
+	const char* stateNames[] = {"PLAYING", "PAUSED", "GAME_OVER", "LEVEL_COMPLETE",
+	                             "HOVER", "SCROLL", "DROP", "SUMMARY"};
+	Line(Format("State: %s  frame: %d  time: %.1fs",
+	     stateNames[gameState], gameFrame, levelElapsedTime));
 }
 
 void GameScreen::RenderPauseScreen(Draw& w) {

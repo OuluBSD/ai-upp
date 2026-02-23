@@ -153,12 +153,19 @@ void OrbSystem::Process() {
     int num_matches = MatchPattern();
     ASSERT(matches.GetCount() == num_matches);
     int good_matches = FindTransform(matches);
+	last_match_count = num_matches;
+	last_good_matches = good_matches;
     
     if(num_matches) {
         render_matches(matches);
         if(good_matches > 8)
             render_pattern_shape();
+		else
+			last_corners.Clear();
     }
+	else {
+		last_corners.Clear();
+	}
 }
 
 void OrbSystem::OutputFromGray(const ByteMat& gray) {
@@ -460,6 +467,11 @@ void OrbSystem::render_matches(const Vector<KeypointMatch>& matches) {
 void OrbSystem::render_pattern_shape() {
     // get the projected pattern corners
     TCorners(homo3x3.data, pattern_preview.cols*2, pattern_preview.rows*2);
+	
+	last_corners.SetCount(corners.GetCount());
+	for (int i = 0; i < corners.GetCount(); i++) {
+		last_corners[i] = Pointf(corners[i].x, corners[i].y);
+	}
 	
 	for(int i = 0; i < corners.GetCount(); i++) {
 		const Keypoint& a = corners[i];

@@ -10,6 +10,12 @@
 
 namespace Upp {
 
+#ifdef flagPYVM_TRACE
+#define PYVM_TRACE(x) do { String __s; __s << x; VppLog() << __s; } while(0)
+#else
+#define PYVM_TRACE(x) do {} while(0)
+#endif
+
 static inline void ReleaseLocals(VectorMap<PyValue, PyValue>& locals) {
 	Vector<PyValue> keys = locals.PickKeys();
 	Vector<PyValue> values = locals.PickValues();
@@ -1575,6 +1581,7 @@ bool PyVM::Step()
 	
 	Frame& frame = TopFrame();
 	if(frame.pc >= frame.ir->GetCount()) {
+		PYVM_TRACE("PYVM frame-end drop function");
 		ReleaseLocals(frame.locals);
 		frame.func = PyValue::None();
 		frames.Drop();
@@ -1582,7 +1589,7 @@ bool PyVM::Step()
 	}
 	
 	const PyIR& instr = (*frame.ir)[frame.pc++];
-	LOG("PC=" << frame.pc - 1 << " OP=" << (int)instr.code << " STACK=" << stack.GetCount());
+	PYVM_TRACE("PYVM pc=" << frame.pc - 1 << " op=" << (int)instr.code << " stack=" << stack.GetCount());
 	
 try {
 		switch(instr.code) {
@@ -1634,11 +1641,13 @@ try {
 				int q = globals.Find(instr.arg);
 				if(q >= 0) globals[q] = value;
 				else globals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-global name=" << instr.arg.ToString());
 			}
 			else {
 				int q = frame.locals.Find(instr.arg);
 				if(q >= 0) frame.locals[q] = value;
 				else frame.locals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-local name=" << instr.arg.ToString());
 			}
 			break;
 		}
@@ -1978,7 +1987,7 @@ try {
 			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
 			
 			PyValue callable = Pop();
-			LOG("PY_CALL_FUNCTION callable=" << callable.ToString() << " nargs=" << nargs);
+			PYVM_TRACE("PYVM call callable=" << callable.ToString() << " nargs=" << nargs);
 			if (callable.IsBoundMethod()) {
 				PyValue func = callable.GetBound().func;
 				PyValue self = callable.GetBound().self;
@@ -1993,6 +2002,7 @@ try {
 				}
 				else {
 					Frame& f = frames.Add();
+					PYVM_TRACE("PYVM push-frame function=" << l.name << " argc=" << sorted_args.GetCount());
 					f.func = callable;
 					f.ir = &l.ir;
 					f.pc = 0;
@@ -2053,6 +2063,7 @@ try {
 
 			case PY_RETURN_VALUE: {
 				PyValue val = Pop();
+				PYVM_TRACE("PYVM return function");
 				ReleaseLocals(frame.locals);
 				frame.func = PyValue::None();
 				frames.Drop();

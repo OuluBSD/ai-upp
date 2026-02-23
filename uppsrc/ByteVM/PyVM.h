@@ -21,6 +21,7 @@ class PyVM {
 
 public:
 	PyVM();
+	~PyVM();
 	
 	void SetIR(Vector<PyIR>& ir);
 	PyValue Run();

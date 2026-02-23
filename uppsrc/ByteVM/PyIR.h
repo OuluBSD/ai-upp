@@ -26,6 +26,7 @@ struct PyIR : Moveable<PyIR> {
 struct PyLambda : PyValue::RefCount {
 	String         name;
 	Vector<String> arg;
+	Vector<PyValue> arg_values;
 	Vector<PyIR>   ir;
 	PyBuiltin      builtin = nullptr;
 	void          *user_data = nullptr;

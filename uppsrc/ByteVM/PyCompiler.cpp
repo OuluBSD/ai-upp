@@ -312,13 +312,15 @@ void PyCompiler::Statement()
 		pos = sub.pos;
 		this->Expect(TK_DEDENT);
 		
-		PyValue func = PyValue::Function(name);
-		func.GetLambdaRW().ir = pick(body);
-		func.GetLambdaRW().arg = pick(args);
-		
-		EmitConst(func);
-		EmitName(PY_STORE_NAME, name);
-	}
+			PyValue func = PyValue::Function(name);
+			func.GetLambdaRW().ir = pick(body);
+			func.GetLambdaRW().arg = pick(args);
+			for (const String& a : func.GetLambda().arg)
+				func.GetLambdaRW().arg_values.Add(PyValue(a));
+			
+			EmitConst(func);
+			EmitName(PY_STORE_NAME, name);
+		}
 	else if(IsId("pass")) {
 		Next();
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));

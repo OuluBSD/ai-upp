@@ -12,7 +12,12 @@ void OrbSystem::SetInput(Image i) {
 }
 
 void OrbSystem::TrainPattern() {
-	const auto& img_u8 = input;
+	ByteMat img_u8;
+	if (input.channels > 1)
+		Grayscale(input, img_u8);
+	else
+		img_u8 = input;
+
 	if (img_u8.cols <= 0 || img_u8.rows <= 0)
 		return;
 	auto& lev0_img = tmp0;
@@ -27,7 +32,10 @@ void OrbSystem::TrainPattern() {
     int new_width=0, new_height=0;
     int corners_num=0;
 
-    int sc0 = min(max_pattern_size/img_u8.cols, max_pattern_size/img_u8.rows);
+    int sc0 = 1;
+    if (img_u8.cols > max_pattern_size || img_u8.rows > max_pattern_size)
+        sc0 = min(max_pattern_size/img_u8.cols, max_pattern_size/img_u8.rows);
+    
     new_width = (img_u8.cols*sc0);
     new_height = (img_u8.rows*sc0);
 
@@ -97,7 +105,7 @@ void OrbSystem::TrainPattern() {
 
 void OrbSystem::InitDefault() {
 	
-	keypoint_match_threshold = 24;
+	keypoint_match_threshold = 70;
 	
     /*img_u8 = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);
     // after blur
@@ -158,7 +166,7 @@ void OrbSystem::Process() {
     
     if(num_matches) {
         render_matches(matches);
-        if(good_matches > 4)
+        if(good_matches >= 4)
             render_pattern_shape();
 		else
 			last_corners.Clear();
@@ -252,7 +260,7 @@ int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
 
 int OrbSystem::DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed) {
     // detect features
-    int count = y.Detect(img, corners, 17);
+    int count = y.Detect(img, corners, 15);
 
     // sort by score and reduce the count if needed
     if(count > max_allowed) {
@@ -313,6 +321,7 @@ int OrbSystem::FindTransform(Vector<KeypointMatch>& matches) {
 	int count = matches.GetCount();
     pattern_xy.SetCount(count);
     screen_xy.SetCount(count);
+    match_mask.SetSize(count, 1, 1);
 
     // construct correspondences
     auto pattern_it = pattern_xy.Begin();
@@ -330,26 +339,37 @@ int OrbSystem::FindTransform(Vector<KeypointMatch>& matches) {
 
     // estimate motion
     bool ok = false;
-    ok = mot.Ransac(ransac_param, mm_kernel, pattern_xy, screen_xy, homo3x3, &match_mask, 1000);
+    if (count >= num_model_points)
+        ok = mot.Ransac(ransac_param, mm_kernel, pattern_xy, screen_xy, homo3x3, &match_mask, 1000);
 
-    // extract good matches and re-estimate
     int good_cnt = 0;
     if (ok) {
         for(int i = 0; i < count; ++i) {
             if (match_mask.data[i]) {
-                pattern_xy[good_cnt] = pattern_xy[i];
-                screen_xy[good_cnt] = screen_xy[i];
                 good_cnt++;
             }
         }
+    }
+    else {
+        Identity3x3(homo3x3, 1.0f);
+    }
+
+    // extract good matches and re-estimate
+    if (ok) {
+        int inlier_idx = 0;
+        for(int i = 0; i < count; ++i) {
+            if (match_mask.data[i]) {
+                pattern_xy[inlier_idx] = pattern_xy[i];
+                screen_xy[inlier_idx] = screen_xy[i];
+                inlier_idx++;
+            }
+        }
+        ASSERT(inlier_idx == good_cnt);
         pattern_xy.SetCount(good_cnt);
         screen_xy.SetCount(good_cnt);
         
         // run kernel directly with inliers only
         mm_kernel.Run(pattern_xy, screen_xy, homo3x3);
-    }
-    else {
-        Identity3x3(homo3x3, 1.0f);
     }
 
     return good_cnt;
@@ -365,6 +385,8 @@ int OrbSystem::MatchPattern() {
     int num_matches = 0;
     matches.SetCount(0);
     matches.Reserve(256);
+
+    int min_dist = 256;
 
     for(qidx = 0; qidx < q_cnt; ++qidx) {
         const BinDescriptor& scr = screen_descriptors[qidx];
@@ -383,7 +405,7 @@ int OrbSystem::MatchPattern() {
                 
                 // our descriptor is 32 bytes so we have 8 Integers
                 for(k=0; k < 8; ++k) {
-                    curr_d += PopCount32( scr.u8[k] ^ lev_desc.u8[k] );
+                    curr_d += PopCount32( scr.u32[k] ^ lev_desc.u32[k] );
                 }
 
                 if(curr_d < best_dist) {
@@ -396,6 +418,8 @@ int OrbSystem::MatchPattern() {
                 }
             }
         }
+        
+        if (best_dist < min_dist) min_dist = best_dist;
 
         // filter out by some threshold
         if(best_dist < keypoint_match_threshold) {

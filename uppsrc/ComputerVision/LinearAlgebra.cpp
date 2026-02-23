@@ -10,19 +10,26 @@ void EigenVV(const FloatMat& A, FloatMat* vects, FloatMat* vals) {
 	int n = A.cols;
 	int dt = 1;
 	
-	static thread_local FloatMat a_mt;
-	static thread_local FloatMat w_mt;
-	a_mt.SetSize(n, n, dt);
-	w_mt.SetSize(1, n, dt);
+	static thread_local Vector<double> a_db;
+	static thread_local Vector<double> w_db;
+	static thread_local Vector<double> v_db;
 	
-	ASSERT(a_mt.data.GetCount() == A.data.GetCount());
-	memcpy(a_mt.data.Begin(), A.data.Begin(), sizeof(float) * a_mt.data.GetCount());
+	a_db.SetCount(n * n);
+	w_db.SetCount(n);
+	if (vects) v_db.SetCount(n * n);
 	
-	JacobiImpl(a_mt.data, n, w_mt.data, (vects ? &vects->data : NULL), n, n);
+	for (int i = 0; i < n * n; i++) a_db[i] = A.data[i];
+	
+	JacobiImpl(a_db, n, w_db, (vects ? &v_db : NULL), n, n);
+	
+	if (vects) {
+		vects->SetSize(n, n, dt);
+		for (int i = 0; i < n * n; i++) vects->data[i] = (float)v_db[i];
+	}
 	
 	if (vals) {
-		ASSERT(vals->data.GetCount() == w_mt.data.GetCount());
-		memcpy(w_mt.data.Begin(), vals->data.Begin(), sizeof(float) * vals->data.GetCount());
+		vals->SetSize(1, n, dt);
+		for (int i = 0; i < n; i++) vals->data[i] = (float)w_db[i];
 	}
 }
 

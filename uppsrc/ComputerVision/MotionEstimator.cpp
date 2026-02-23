@@ -146,80 +146,6 @@ void Homography2D::Error(const Vector<Keypoint>& from, const Vector<Keypoint>& t
 }
 
 bool Homography2D::CheckSubset(const Vector<Keypoint>& from, Vector<Keypoint>& to, int count) {
-	// seems to reject good subsets actually
-	//if( HaveCollinearPoints(from, count) || HaveCollinearPoints(to, count) ) {
-	//return false;
-	//}
-	if (count == 4) {
-		int negative = 0;
-		
-		Keypoint fp0 = from[0], fp1 = from[1], fp2 = from[2], fp3 = from[3];
-		Keypoint tp0 = to[0], tp1 = to[1], tp2 = to[2], tp3 = to[3];
-		
-		// set1
-		double A11 = fp0.x, A12 = fp0.y, A13 = 1.0;
-		double A21 = fp1.x, A22 = fp1.y, A23 = 1.0;
-		double A31 = fp2.x, A32 = fp2.y, A33 = 1.0;
-		
-		double B11 = tp0.x, B12 = tp0.y, B13 = 1.0;
-		double B21 = tp1.x, B22 = tp1.y, B23 = 1.0;
-		double B31 = tp2.x, B32 = tp2.y, B33 = 1.0;
-		
-		double detA = Determinant3x3(A11, A12, A13, A21, A22, A23, A31, A32, A33);
-		double detB = Determinant3x3(B11, B12, B13, B21, B22, B23, B31, B32, B33);
-		
-		if (detA*detB < 0)
-			negative++;
-		
-		// set2
-		A11 = fp1.x, A12 = fp1.y;
-		A21 = fp2.x, A22 = fp2.y;
-		A31 = fp3.x, A32 = fp3.y;
-		
-		B11 = tp1.x, B12 = tp1.y;
-		B21 = tp2.x, B22 = tp2.y;
-		B31 = tp3.x, B32 = tp3.y;
-		
-		detA = Determinant3x3(A11, A12, A13, A21, A22, A23, A31, A32, A33);
-		detB = Determinant3x3(B11, B12, B13, B21, B22, B23, B31, B32, B33);
-		
-		if (detA*detB < 0)
-			negative++;
-			
-		// set3
-		A11 = fp0.x, A12 = fp0.y;
-		A21 = fp2.x, A22 = fp2.y;
-		A31 = fp3.x, A32 = fp3.y;
-		
-		B11 = tp0.x, B12 = tp0.y;
-		B21 = tp2.x, B22 = tp2.y;
-		B31 = tp3.x, B32 = tp3.y;
-		
-		detA = Determinant3x3(A11, A12, A13, A21, A22, A23, A31, A32, A33);
-		detB = Determinant3x3(B11, B12, B13, B21, B22, B23, B31, B32, B33);
-		
-		if (detA*detB < 0)
-			negative++;
-			
-		// set4
-		A11 = fp0.x, A12 = fp0.y;
-		A21 = fp1.x, A22 = fp1.y;
-		A31 = fp3.x, A32 = fp3.y;
-		
-		B11 = tp0.x, B12 = tp0.y;
-		B21 = tp1.x, B22 = tp1.y;
-		B31 = tp3.x, B32 = tp3.y;
-		
-		detA = Determinant3x3(A11, A12, A13, A21, A22, A23, A31, A32, A33);
-		detB = Determinant3x3(B11, B12, B13, B21, B22, B23, B31, B32, B33);
-		
-		if (detA*detB < 0)
-			negative++;
-			
-		if (negative != 0 && negative != 4) {
-			return false;
-		}
-	}
 	return true; // all good
 }
 
@@ -288,72 +214,36 @@ bool Homography2D::Run(const Vector<Keypoint>& from, Vector<Keypoint>& to, Float
 	//
 	
 	// construct system
-	{
-		int i = 81;
-		while (--i >= 0) {
-			LtL[i] = 0.0;
-		}
-	}
+	double mLtL_db[81];
+	for (int i = 0; i < 81; i++) mLtL_db[i] = 0.0;
+
 	for (int i = 0; i < count; ++i) {
 		x = (to[i].x - cmx) * smx;
 		y = (to[i].y - cmy) * smy;
 		X = (from[i].x - cMx) * sMx;
 		Y = (from[i].y - cMy) * sMy;
 		
-		LtL[0] += X * X;
-		LtL[1] += X * Y;
-		LtL[2] += X;
+		double r[2][9] = {
+			{-X, -Y, -1,  0,  0,  0, x*X, x*Y, x},
+			{ 0,  0,  0, -X, -Y, -1, y*X, y*Y, y}
+		};
 		
-		LtL[6] += X * -x * X;
-		LtL[7] += X * -x * Y;
-		LtL[8] += X * -x;
-		LtL[10] += Y * Y;
-		LtL[11] += Y;
-		
-		LtL[15] += Y * -x * X;
-		LtL[16] += Y * -x * Y;
-		LtL[17] += Y * -x;
-		LtL[20] += 1.0;
-		
-		LtL[24] += -x * X;
-		LtL[25] += -x * Y;
-		LtL[26] += -x;
-		LtL[30] += X * X;
-		LtL[31] += X * Y;
-		LtL[32] += X;
-		LtL[33] += X * -y * X;
-		LtL[34] += X * -y * Y;
-		LtL[35] += X * -y;
-		LtL[40] += Y * Y;
-		LtL[41] += Y;
-		LtL[42] += Y * -y * X;
-		LtL[43] += Y * -y * Y;
-		LtL[44] += Y * -y;
-		LtL[50] += 1.0;
-		LtL[51] += -y * X;
-		LtL[52] += -y * Y;
-		LtL[53] += -y;
-		LtL[60] += -x * X * -x * X + -y * X * -y * X;
-		LtL[61] += -x * X * -x * Y + -y * X * -y * Y;
-		LtL[62] += -x * X * -x + -y * X * -y;
-		LtL[70] += -x * Y * -x * Y + -y * Y * -y * Y;
-		LtL[71] += -x * Y * -x + -y * Y * -y;
-		LtL[80] += -x * -x + -y * -y;
+		for (int k = 0; k < 9; k++) {
+			for (int l = 0; l < 9; l++) {
+				mLtL_db[k * 9 + l] += r[0][k] * r[0][l] + r[1][k] * r[1][l];
+			}
+		}
 	}
+	for (int i = 0; i < 81; i++) LtL[i] = (float)mLtL_db[i];
 	//
-	
-	// symmetry
-	for (int i = 0; i < 9; ++i) {
-		for (int j = 0; j < i; ++j)
-			LtL[i*9+j] = LtL[j*9+i];
-	}
 	
 	EigenVV(mLtL, &Evec);
 	
-	const auto& evd = Evec.data;
-	md[0] = evd[72], md[1] = evd[73], md[2] = evd[74];
-	md[3] = evd[75], md[4] = evd[76], md[5] = evd[77];
-	md[6] = evd[78], md[7] = evd[79], md[8] = evd[80];
+	// The smallest eigenvalue is at the end (index 8) because EigenVV sorts them descending.
+	// The corresponding eigenvector is the 9th column (index 8) of Evec.
+	for (int i = 0; i < 9; ++i) {
+		md[i] = Evec.data[i * 9 + 8];
+	}
 	
 	// denormalize
 	Multiply3x3(model, T1, model);

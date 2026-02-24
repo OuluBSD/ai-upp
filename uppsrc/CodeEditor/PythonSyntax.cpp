@@ -104,9 +104,11 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 	lindent_chars = int(p0 - s);
 	int level = max(0, block_indent.GetCount() - 1);
 	bool significant = p0 < end && p0[0] != '#';
-	if(significant && !block_indent.IsEmpty()) {
+	if(!block_indent.IsEmpty()) {
 		while(level > 0 && lindent < block_indent[level])
 			level--;
+	}
+	if(significant && !block_indent.IsEmpty()) {
 		if(expect_indent && lindent > block_indent[level])
 			level++;
 	}

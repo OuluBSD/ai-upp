@@ -63,7 +63,13 @@ file
     "../Bicubic Rescaling and the 64-bit Debugger.md",
     "../Software Rendering Primitives and HiDPI Awareness.md",
     "../Core Optimizations and Multipart Web Support.md",
-    "../Threaded UI Discipline and the LinuxGL Backend.md";
+    "../Threaded UI Discipline and the LinuxGL Backend.md",
+    "../Skylark Uploads and fork-safe Random.md",
+    "../GLDraw and the SDL2.0 Rainbow.md",
+    "../Header-Footer Support and the RichEdit Floating Mode.md",
+    "../BASE64 QTF and the Ref Refactor.md",
+    "../NanoStrings and the Default GTK Backend.md",
+    "../The TURTLE Protocol and WebSocket Stability.md";
 
 mainconfig
 	"" = "";

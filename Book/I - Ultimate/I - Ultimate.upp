@@ -63,4 +63,10 @@ file
     "060 - Bicubic Rescaling And The 64-bit Debugger.md",
     "061 - Software Rendering Primitives And HiDPI Awareness.md",
     "062 - Core Optimizations And Multipart Web Support.md",
-    "063 - Threaded UI Discipline And The LinuxGL Backend.md";
+    "063 - Threaded UI Discipline And The LinuxGL Backend.md",
+    "064 - Skylark Uploads And fork-safe Random.md",
+    "065 - GLDraw And The SDL2.0 Rainbow.md",
+    "066 - Header-Footer Support And The RichEdit Floating Mode.md",
+    "067 - BASE64 QTF And The Ref Refactor.md",
+    "068 - NanoStrings And The Default GTK Backend.md",
+    "069 - The TURTLE Protocol And WebSocket Stability.md";

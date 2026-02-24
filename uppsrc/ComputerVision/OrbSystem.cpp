@@ -67,7 +67,6 @@ void OrbSystem::TrainPattern() {
 	
 	    GaussianBlur(lev0_img, lev_img, blur_size); // this is more robust
 	    corners_num = DetectKeypoints(lev_img, lev_corners, max_per_level);
-	    ASSERT(lev_corners.GetCount() == corners_num);
 	    o.Describe(lev_img, lev_corners, lev_descr);
 	
 	    //LOG("train " << lev_img.cols << "x" << lev_img.rows << " points: " << corners_num);
@@ -88,7 +87,6 @@ void OrbSystem::TrainPattern() {
         Resample(lev0_img, lev_img, new_width, new_height);
         GaussianBlur(lev_img, lev_img, blur_size);
         corners_num = DetectKeypoints(lev_img, lev_corners, max_per_level);
-        ASSERT(lev_corners.GetCount() == corners_num);
         o.Describe(lev_img, lev_corners, lev_descr);
 
         // fix the coordinates due to scale level
@@ -141,19 +139,20 @@ void OrbSystem::InitDefault() {
 }
 
 void OrbSystem::Process() {
+	ProcessROI(Rect(0, 0, sz.cx, sz.cy));
+}
+
+void OrbSystem::ProcessROI(Rect roi) {
 	auto& img_u8 = tmp0;
 	auto& img_u8_smooth = tmp1;
-	auto& pattern_preview = tmp2;
 	
     Grayscale(input, img_u8);
-    
     GaussianBlur(img_u8, img_u8_smooth, blur_size);
 
     y.laplacian_threshold = lap_thres;
     y.min_eigen_value_threshold = eigen_thres;
 
-    int num_corners = DetectKeypoints(img_u8_smooth, screen_corners, 1000);
-    ASSERT(num_corners == screen_corners.GetCount());
+    int num_corners = DetectKeypoints(img_u8_smooth, roi, screen_corners, 1000);
     o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
 
     RenderCorners(img_u8, &train_img, screen_corners, output);
@@ -229,13 +228,16 @@ void OrbSystem::RenderCorners(const ByteMat& bg, const ByteMat* mini_img, const 
 }
 
 int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
+	return DetectKeypointsROI(Rect(0, 0, sz.cx, sz.cy), output, max_allowed);
+}
+
+int OrbSystem::DetectKeypointsROI(Rect roi, DescriptorImage& output, int max_allowed) {
 	auto& img_u8_smooth = tmp1;
 	
     y.laplacian_threshold = lap_thres;
     y.min_eigen_value_threshold = eigen_thres;
 	
-    int num_corners = DetectKeypoints(img_u8_smooth, screen_corners, max_allowed);
-    ASSERT(num_corners == screen_corners.GetCount());
+    int num_corners = DetectKeypoints(img_u8_smooth, roi, screen_corners, max_allowed);
     o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
 	
 	output.ClearDescriptors();
@@ -254,8 +256,12 @@ int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
 }
 
 int OrbSystem::DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed) {
+	return DetectKeypoints(img, Rect(0, 0, img.cols, img.rows), corners, max_allowed);
+}
+
+int OrbSystem::DetectKeypoints(const ByteMat& img, const Rect& roi, Vector<Keypoint>& corners, int max_allowed) {
     // detect features
-    int count = y.Detect(img, corners, 5);
+    int count = y.Detect(img, roi, corners, 5);
 
     // sort by score and reduce the count if needed
     if(count > max_allowed) {

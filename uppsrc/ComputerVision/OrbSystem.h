@@ -48,10 +48,13 @@ public:
 	void SetInput(Image i);
 	void InitDefault();
 	void Process();
+	void ProcessROI(Rect roi);
 	
 	void TrainPattern();
 	int  DetectKeypoints(DescriptorImage& output, int max_allowed);
+	int  DetectKeypointsROI(Rect roi, DescriptorImage& output, int max_allowed);
 	int  DetectKeypoints(const ByteMat& img, Vector<Keypoint>& corners, int max_allowed);
+	int  DetectKeypoints(const ByteMat& img, const Rect& roi, Vector<Keypoint>& corners, int max_allowed);
 	double IcAngle(const ByteMat& img, int px, int py);
 	int  FindTransform(Vector<KeypointMatch>& matches);
 	int  MatchPattern();

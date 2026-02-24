@@ -19,16 +19,20 @@ void Yape06::ComputeLaplacian(const Vector<byte>& src, Vector<int>& dst, int w, 
 	}
 }
 
-double Yape06::HessianMinEigenValue(const Vector<byte>& src, int off, double tr, int Dxx, int Dyy, int Dxy, int Dyx) {
+int Yape06::HessianMinEigenValue(const Vector<byte>& src, int off, double tr, int Dxx, int Dyy, int Dxy, int Dyx) {
 	double Ixx = -2 * src[off] + src[off + Dxx] + src[off - Dxx];
 	double Iyy = -2 * src[off] + src[off + Dyy] + src[off - Dyy];
 	double Ixy = src[off + Dxy] + src[off - Dxy] - src[off + Dyx] - src[off - Dyx];
 	double sqrt_delta = (FastSqrt(((Ixx - Iyy) * (Ixx - Iyy) + 4 * Ixy * Ixy)));
 	
-	return min(abs(tr - sqrt_delta), abs(-(tr + sqrt_delta)));
+	return (int)min(abs(tr - sqrt_delta), abs(-(tr + sqrt_delta)));
 }
 
 int Yape06::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
+	return Detect(src, Rect(0, 0, src.cols, src.rows), points, border);
+}
+
+int Yape06::Detect(const ByteMat& src, const Rect& roi, Vector<Keypoint>& points, int border) {
 	using T = int;
 	
 	int w = src.cols;
@@ -48,11 +52,16 @@ int Yape06::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 	T lap_thresh = this->laplacian_threshold;
 	T eigen_thresh = this->min_eigen_value_threshold;
 	
-	int sx = max(5, border);
-	int sy = max(3, border);
-	int ex = min(w - 5, w - border);
-	int ey = min(h - 3, h - border);
+	Rect r = roi & Rect(0, 0, w, h);
 	
+	int sx = max(r.left, max(5, border));
+	int sy = max(r.top, max(3, border));
+	int ex = min(r.right, min(w - 5, w - border));
+	int ey = min(r.bottom, min(h - 3, h - border));
+	
+	if(sx >= ex || sy >= ey)
+		return 0;
+
 	laplacian.SetCount(w * h, 0);
 	
 	ComputeLaplacian(srd_d, laplacian, w, h, Dxx, Dyy, sx, sy, ex, ey);
@@ -75,7 +84,7 @@ int Yape06::Detect(const ByteMat& src, Vector<Keypoint>& points, int border) {
 				 lv > laplacian[rowx - w + 1] && lv > laplacian[rowx + w + 1])
 			   ) {
 			   
-				min_eigen_value = (T)HessianMinEigenValue(srd_d, rowx, lv, Dxx, Dyy, Dxy, Dyx);
+				min_eigen_value = HessianMinEigenValue(srd_d, rowx, lv, Dxx, Dyy, Dxy, Dyx);
 				if (min_eigen_value > eigen_thresh) {
 					Keypoint& pt = points.Add();
 					pt.x = x;

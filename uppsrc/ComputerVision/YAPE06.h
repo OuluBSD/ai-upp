@@ -10,8 +10,9 @@ public:
 	
 	
 	void ComputeLaplacian(const Vector<byte>& src, Vector<int>& dst, int w, int h, int Dxx, int Dyy, int sx, int sy, int ex, int ey);
-	double HessianMinEigenValue(const Vector<byte>& src, int off, double tr, int Dxx, int Dyy, int Dxy, int Dyx);
+	int HessianMinEigenValue(const Vector<byte>& src, int off, double tr, int Dxx, int Dyy, int Dxy, int Dyx);
 	int Detect(const ByteMat& src, Vector<Keypoint>& points, int border=5);
+	int Detect(const ByteMat& src, const Rect& roi, Vector<Keypoint>& points, int border=5);
 	
 };
 

@@ -158,6 +158,8 @@ public:
 	static PyValue Tuple();
 	static PyValue Dict();
 	static PyValue Set();
+	static PyValue Iterator(PyIter *it);
+	static PyValue UserData(PyUserData *ud);
 	static PyValue Function(const String& name, PyBuiltin builtin = nullptr, void* user_data = nullptr);
 	static PyValue UserDataNonOwning(PyUserData *ud);
 	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
@@ -188,9 +190,9 @@ struct PyRangeIter : PyIter {
 };
 
 struct PyVectorIter : PyIter {
-	const Vector<PyValue>& v;
+	PyValue v;
 	int i = 0;
-	PyVectorIter(const Vector<PyValue>& v) : v(v) {}
+	PyVectorIter(const PyValue& v) : v(v) {}
 	virtual PyValue Next() override;
 };
 

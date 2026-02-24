@@ -82,10 +82,11 @@ private:
 	bool opened;
 	RunningFlagSingle usb_flag;
 	RunningFlagSingle process_flag;
+	std::atomic<bool> resubmitting;
 	bool verbose;
 	std::atomic<int> active_transfers;
 	std::atomic<bool> stopping;
-	bool gap_occurred;
+	std::atomic<bool> gap_occurred;
 	
 	Upp::Thread usb_thread;
 	Upp::Thread process_thread;

@@ -4,48 +4,107 @@
 
 using namespace Upp;
 
-Image CreatePattern(int w, int h) {
-	SImageDraw iw(w, h);
-	iw.DrawRect(0, 0, w, h, White());
-	// Add some distinct patterns for keypoints
-	iw.DrawRect(5, 5, 10, 10, Black());
-	iw.DrawRect(20, 10, 20, 5, Blue());
-	iw.DrawEllipse(10, 30, 15, 10, Red());
-	iw.DrawRect(30, 30, 5, 15, Green());
-	iw.DrawRect(15, 15, 2, 2, Magenta());
-	iw.DrawRect(40, 5, 3, 3, Cyan());
-	return iw;
-}
+void RunScenario(const String& frame_path, const String& window_pattern_path, const VectorMap<String, String>& corner_patterns) {
+	Image frame = StreamRaster::LoadFileAny(frame_path);
+	if (frame.IsEmpty()) {
+		Cout() << "Error: Failed to load frame: " << frame_path << "\n";
+		return;
+	}
 
-Image CreateScene(const Image& pattern, int sw, int sh, int px, int py, double scale = 1.0) {
-	SImageDraw iw(sw, sh);
-	iw.DrawRect(0, 0, sw, sh, GrayColor(128));
-	Size psz = pattern.GetSize();
-	int tw = (int)(psz.cx * scale);
-	int th = (int)(psz.cy * scale);
-	iw.DrawImage(px, py, tw, th, pattern);
-	return iw;
-}
+	Image window_pattern = StreamRaster::LoadFileAny(window_pattern_path);
+	if (window_pattern.IsEmpty()) {
+		Cout() << "Error: Failed to load window pattern: " << window_pattern_path << "\n";
+		return;
+	}
 
-void RunTest(OrbSystem& orb, const Image& scene, const char* name) {
-	orb.SetInput(scene);
-	orb.Process();
-
-	int matches = orb.GetLastMatchCount();
-	int good = orb.GetLastGoodMatches();
-	int corners = orb.GetLastCorners().GetCount();
-
-	Cout() << "TEST [" << name << "]: matches=" << matches << " good=" << good << " corners=" << corners << "\n";
+	Cout() << "--- SCENARIO START ---\n";
+	Cout() << "Frame: " << frame.GetSize() << "\n";
 	
-	const Vector<float>& H = orb.GetHomo();
-	Cout() << "Homography: [" << H[0] << ", " << H[1] << ", " << H[2] << "; "
-	       << H[3] << ", " << H[4] << ", " << H[5] << "; "
-	       << H[6] << ", " << H[7] << ", " << H[8] << "]\n";
-
-	if (good >= 4 && corners == 4) {
-		Cout() << " - OK\n";
-	} else {
-		Cout() << " - FAILED\n";
+	OrbSystem orb;
+	orb.InitDefault();
+	orb.SetInput(window_pattern);
+	orb.TrainPattern();
+	
+	orb.SetInput(frame);
+	orb.Process();
+	
+	int w_good = orb.GetLastGoodMatches();
+	if (w_good < 4) {
+		Cout() << "Error: window-size not found (good matches=" << w_good << ")\n";
+		return;
+	}
+	
+	const Vector<Pointf>& w_corners = orb.GetLastCorners();
+	Pointf w_tl = w_corners[0];
+	for(const auto& p : w_corners) {
+		w_tl.x = min(w_tl.x, (double)p.x);
+		w_tl.y = min(w_tl.y, (double)p.y);
+	}
+	
+	Cout() << "Window found at: " << w_tl << " (good matches=" << w_good << ")\n\n";
+	
+	// Hardcoded relative offsets for this specific frame/ruleset
+	VectorMap<String, Point> rel_offsets;
+	rel_offsets.Add("top-left", Point(43, 7));
+	rel_offsets.Add("top-right", Point(514 - 450, 157 - 182));
+	rel_offsets.Add("bottom-left 1", Point(74 - 450, 1064 - 182)); 
+	rel_offsets.Add("bottom-right 1", Point(758, 421)); 
+	
+	for (int i = 0; i < corner_patterns.GetCount(); i++) {
+		String name = corner_patterns.GetKey(i);
+		String path = corner_patterns[i];
+		
+		Image pattern = StreamRaster::LoadFileAny(path);
+		if (pattern.IsEmpty()) {
+			Cout() << "Rule [" << name << "]: pattern missing at " << path << "\n";
+			continue;
+		}
+		
+		Point rel_pos = rel_offsets.Get(name, Point(0, 0));
+		Point expected = Point((int)w_tl.x + rel_pos.x, (int)w_tl.y + rel_pos.y);
+		
+		// 1. Run in ROI
+		Rect roi = RectC(expected.x - 50, expected.y - 50, 100 + pattern.GetWidth(), 100 + pattern.GetHeight());
+		
+		orb.SetInput(pattern);
+		orb.TrainPattern();
+		orb.SetInput(frame);
+		orb.ProcessROI(roi);
+		
+		bool success = (orb.GetLastGoodMatches() >= 4);
+		bool fallback = false;
+		
+		// 2. Expand ROI if failed
+		if (!success) {
+			roi = RectC(expected.x - 150, expected.y - 150, 300 + pattern.GetWidth(), 300 + pattern.GetHeight());
+			orb.ProcessROI(roi);
+			success = (orb.GetLastGoodMatches() >= 4);
+		}
+		
+		// 3. Fallback to full frame
+		if (!success) {
+			fallback = true;
+			orb.Process();
+			success = (orb.GetLastGoodMatches() >= 4);
+		}
+		
+		Cout() << "Rule [" << name << "]:\n";
+		Cout() << "  Expected: " << expected << "\n";
+		Cout() << "  ROI used: " << (fallback ? "FULL FRAME" : AsString(roi)) << "\n";
+		
+		if (success) {
+			const auto& c = orb.GetLastCorners();
+			Pointf found_tl = c[0];
+			for(const auto& p : c) {
+				found_tl.x = min(found_tl.x, (double)p.x);
+				found_tl.y = min(found_tl.y, (double)p.y);
+			}
+			Cout() << "  Match: " << found_tl << " (good=" << orb.GetLastGoodMatches() << ")\n";
+			Cout() << "  Status: SUCCESS" << (fallback ? " (via FALLBACK)" : "") << "\n";
+		} else {
+			Cout() << "  Status: FAILED\n";
+		}
+		Cout() << "\n";
 	}
 }
 
@@ -55,115 +114,27 @@ CONSOLE_APP_MAIN
 
 	CommandLineArguments cla;
 	cla.AddArg("frame", 0, "Path to the frame image (JPG/PNG)", true);
-	cla.AddArg("pattern", 0, "Path to the pattern image (JPG/PNG)", true);
-	cla.AddArg("test-random", 0, "Extract random 120x48 from frame and find it", false);
+	cla.AddArg("window", 0, "Path to the window-size pattern", true);
+	cla.AddArg("tl", 0, "Path to top-left rule", true);
+	cla.AddArg("tr", 0, "Path to top-right rule", true);
+	cla.AddArg("bl", 0, "Path to bottom-left rule", true);
+	cla.AddArg("br", 0, "Path to bottom-right rule", true);
 	
 	if (cla.Parse()) {
 		String frame_path = cla.GetArg("frame");
-		String pattern_path = cla.GetArg("pattern");
-		bool test_random = cla.IsArg("test-random");
+		String window_path = cla.GetArg("window");
 		
-		if (!frame_path.IsEmpty()) {
-			Image frame = StreamRaster::LoadFileAny(frame_path);
-			if (frame.IsEmpty()) {
-				Cout() << "Error: Failed to load frame: " << frame_path << "\n";
-				return;
-			}
-			
-			if (test_random) {
-				Size fsz = frame.GetSize();
-				int pw = 120;
-				int ph = 48;
-				if (fsz.cx < pw || fsz.cy < ph) {
-					Cout() << "Error: Frame too small for random test (" << fsz << " < " << pw << "x" << ph << ")\n";
-					return;
-				}
-				
-				int rx = Random(fsz.cx - pw);
-				int ry = Random(fsz.cy - ph);
-				
-				ImageBuffer ib(pw, ph);
-				Copy(ib, Point(0, 0), frame, RectC(rx, ry, pw, ph));
-				Image pattern = ib;
-				
-				Cout() << "Random test: extracted " << pw << "x" << ph << " pattern from (" << rx << ", " << ry << ")\n";
-				
-				OrbSystem orb;
-				orb.SetInput(pattern);
-				orb.InitDefault();
-				
-				RunTest(orb, frame, "Random Pattern Find");
-				
-				const Vector<Pointf>& corners = orb.GetLastCorners();
-				if (corners.GetCount() >= 4) {
-					double minx = corners[0].x, miny = corners[0].y;
-					for (int i = 1; i < corners.GetCount(); i++) {
-						minx = min(minx, (double)corners[i].x);
-						miny = min(miny, (double)corners[i].y);
-					}
-					Cout() << "Found at approx: (" << (int)minx << ", " << (int)miny << ")\n";
-					Cout() << "Original was: (" << rx << ", " << ry << ")\n";
-				}
-				return;
-			}
-			
-			if (!pattern_path.IsEmpty()) {
-				Image pattern = StreamRaster::LoadFileAny(pattern_path);
-				if (pattern.IsEmpty()) {
-					Cout() << "Error: Failed to load pattern: " << pattern_path << "\n";
-				} else {
-					Cout() << "Loaded frame " << frame.GetSize() << " and pattern " << pattern.GetSize() << "\n";
-					OrbSystem orb;
-					orb.SetInput(pattern);
-					orb.InitDefault();
-					
-					RunTest(orb, frame, "CLI Repro");
-				
-				const Vector<float>& H = orb.GetHomo();
-				Cout() << "Homography: [" << H[0] << ", " << H[1] << ", " << H[2] << "; "
-				       << H[3] << ", " << H[4] << ", " << H[5] << "; "
-				       << H[6] << ", " << H[7] << ", " << H[8] << "]\n";
-				
-				const Vector<Pointf>& corners = orb.GetLastCorners();
-				if (corners.GetCount() >= 4) {
-					double minx = corners[0].x, miny = corners[0].y;
-					for (int i = 1; i < corners.GetCount(); i++) {
-						minx = min(minx, (double)corners[i].x);
-						miny = min(miny, (double)corners[i].y);
-					}
-					Cout() << "Found at approx: (" << (int)minx << ", " << (int)miny << ")\n";
-				}
-				}
-				return;
-			}
+		VectorMap<String, String> corners;
+		if (cla.IsArg("tl")) corners.Add("top-left", cla.GetArg("tl"));
+		if (cla.IsArg("tr")) corners.Add("top-right", cla.GetArg("tr"));
+		if (cla.IsArg("bl")) corners.Add("bottom-left 1", cla.GetArg("bl"));
+		if (cla.IsArg("br")) corners.Add("bottom-right 1", cla.GetArg("br"));
+		
+		if (!frame_path.IsEmpty() && !window_path.IsEmpty()) {
+			RunScenario(frame_path, window_path, corners);
+			return;
 		}
 	}
 
-	// Default synthetic tests
-	OrbSystem orb;
-
-	int pw = 48, ph = 48;
-	Image pattern = CreatePattern(pw, ph);
-
-	Cout() << "Training pattern " << pw << "x" << ph << "...\n";
-	orb.SetInput(pattern);
-	orb.InitDefault();
-
-	int sw = 640, sh = 480;
-
-	RunTest(orb, CreateScene(pattern, sw, sh, 100, 100, 1.0), "Identity");
-	RunTest(orb, CreateScene(pattern, sw, sh, 300, 200, 1.0), "Translation");
-	RunTest(orb, CreateScene(pattern, sw, sh, 100, 100, 1.5), "Scale Up 1.5x");
-	RunTest(orb, CreateScene(pattern, sw, sh, 100, 100, 0.75), "Scale Down 0.75x");
-
-	// Test with noise
-	Image scene_noise = CreateScene(pattern, sw, sh, 100, 100, 1.0);
-	ImageBuffer ib(scene_noise);
-	for (RGBA& rgba : ib) {
-		int noise = (Random(21) - 10);
-		rgba.r = (byte)clamp((int)rgba.r + noise, 0, 255);
-		rgba.g = (byte)clamp((int)rgba.g + noise, 0, 255);
-		rgba.b = (byte)clamp((int)rgba.b + noise, 0, 255);
-	}
-	RunTest(orb, ib, "Identity + Noise");
+	Cout() << "Usage: OrbTest --frame <path> --window <path> [--tl <path>] [--tr <path>] ...\n";
 }

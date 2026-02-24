@@ -68,4 +68,6 @@ valgrind --tool=helgrind ./bin/WmrTest -v --test-dump 5
 
 - [x] Verify if the "Command" endpoint needs a "keep-alive" or specific initialization sequence that is timing out, causing the video endpoint to stall. (Implemented 1s periodic gain refresh).
 
-- [ ] Use `wireshark` or `tcpdump` with `usbmon` to capture the exact failure moment.
+- [x] Implement robust frame resynchronization using short packet detection to recover from buffer misalignment.
+
+- [x] Improve shutdown sequence to safely reap asynchronous transfers and avoid race conditions.

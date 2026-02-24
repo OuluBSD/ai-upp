@@ -37,6 +37,8 @@ class OrbSystem {
 	int    keypoint_match_threshold = 95;
 	double ratio_test = 0.8;
 	
+	Size   pattern_sz;
+	
 	void render_matches(const Vector<KeypointMatch>& matches);
 	void render_pattern_shape();
 	void RenderCorners(const ByteMat& bg, const ByteMat* mini_img, const Vector<Keypoint>& corners, ByteMat& out);

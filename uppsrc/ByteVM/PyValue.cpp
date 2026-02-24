@@ -123,7 +123,7 @@ PyValue PyRangeIter::Next()
 PyValue PyVectorIter::Next()
 {
 	if(i < v.GetCount())
-		return v[i++];
+		return v.GetItem(i++);
 	return PyValue::StopIteration();
 }
 
@@ -483,14 +483,31 @@ PyValue PyValue::Dict()
 
 PyValue PyValue::Set()
 {
+        PyValue v;
+        v.type = PY_SET;
+        v.set = new PySet;
+        v.set->s.Clear();
+        return v;
+}
+
+PyValue PyValue::Iterator(PyIter *it)
+{
 	PyValue v;
-	v.type = PY_SET;
-	v.set = new PySet;
-	v.set->s.Clear();
+	v.type = PY_ITERATOR;
+	v.iter = it;
+	return v;
+}
+
+PyValue PyValue::UserData(PyUserData *ud)
+{
+	PyValue v;
+	v.type = PY_USERDATA;
+	v.userdata = ud;
 	return v;
 }
 
 PyValue PyValue::Function(const String& name, PyBuiltin builtin, void* user_data)
+
 {
 	PyValue v;
 	v.type = PY_FUNCTION;

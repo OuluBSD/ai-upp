@@ -1,10 +1,10 @@
 uses
-        ComputerVision,
-        plugin/jpg,
-        plugin/png;
+	ComputerVision,
+	plugin/jpg,
+	plugin/png;
 
 file
-        OrbTest.cpp;
+	OrbTest.cpp;
 
 mainconfig
-        "" = "";
+	"" = "";

@@ -3,6 +3,7 @@
 
 
 class Yape06 {
+	Vector<int> laplacian;
 	
 public:
 	int laplacian_threshold = 30;

@@ -24,8 +24,8 @@ void OrbSystem::TrainPattern() {
 	auto& lev_img = tmp1;
 	auto& pattern_preview = tmp2;
     double sc = 1.0;
-    int max_pattern_size = 512;
-    int max_per_level = 300;
+    int max_pattern_size = 2048;
+    int max_per_level = 500;
     double sc_inc = pow(2.0, 1.0/4.0); // 1.189
     lev0_img.SetSize(img_u8.cols, img_u8.rows, 1);
     lev_img.SetSize(img_u8.cols, img_u8.rows, 1);
@@ -115,8 +115,8 @@ void OrbSystem::InitDefault() {
     // after blur
     img_u8_smooth = new jsfeat.DMatrix(sz.cx, sz.cy, jsfeat.U8_t | jsfeat.C1_t);*/
     
-    // we wll limit to 500 strongest points
-    screen_descriptors.Reserve(500);
+    // we wll limit to 1000 strongest points
+    screen_descriptors.Reserve(1000);
     pattern_descriptors.SetCount(0);
 
     pattern_corners.SetCount(0);
@@ -133,14 +133,11 @@ void OrbSystem::InitDefault() {
 
     // transform matrix
     homo3x3.SetSize(3,3,1);
-    match_mask.SetSize(500,1,1);
+    match_mask.SetSize(1000,1,1);
     
     Grayscale(input, tmp0);
     
-    Resample(tmp0, train_img, sz.cx * 0.25, sz.cy * 0.25);
-    
     TrainPattern();
-    
 }
 
 void OrbSystem::Process() {
@@ -155,7 +152,7 @@ void OrbSystem::Process() {
     y.laplacian_threshold = lap_thres;
     y.min_eigen_value_threshold = eigen_thres;
 
-    int num_corners = DetectKeypoints(img_u8_smooth, screen_corners, 500);
+    int num_corners = DetectKeypoints(img_u8_smooth, screen_corners, 1000);
     ASSERT(num_corners == screen_corners.GetCount());
     o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
 
@@ -494,7 +491,7 @@ void OrbSystem::render_matches(const Vector<KeypointMatch>& matches) {
 
 void OrbSystem::render_pattern_shape() {
     // get the projected pattern corners
-    TCorners(homo3x3.data, pattern_preview.cols*2, pattern_preview.rows*2);
+    TCorners(homo3x3.data, tmp0.cols, tmp0.rows);
 	
 	last_corners.SetCount(corners.GetCount());
 	for (int i = 0; i < corners.GetCount(); i++) {

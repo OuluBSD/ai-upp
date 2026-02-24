@@ -70,7 +70,7 @@ static PyValue builtin_range(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 1) stop = args[0].AsInt64();
 	else if(args.GetCount() == 2) { start = args[0].AsInt64(); stop = args[1].AsInt64(); }
 	else if(args.GetCount() == 3) { start = args[0].AsInt64(); stop = args[1].AsInt64(); step = args[2].AsInt64(); }
-	return PyValue(new PyRangeIter(start, stop, step));
+	return PyValue::Iterator(new PyRangeIter(start, stop, step));
 }
 
 static PyValue builtin_complex(const Vector<PyValue>& args, void*) {
@@ -88,8 +88,8 @@ static PyValue builtin_bool(const Vector<PyValue>& args, void*) {
 static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue::None();
 	PyValue obj = args[0];
-	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE)
-		return PyValue(new PyVectorIter(obj.GetArray()));
+	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR)
+		return PyValue::Iterator(new PyVectorIter(obj));
 	if(obj.IsIterator())
 		return obj;
 	return PyValue::None();
@@ -2021,12 +2021,12 @@ try {
 			break;
 		}
 
-		case PY_GET_ITER: {
-			PyValue obj = Pop();
-			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
-				Push(PyValue(new PyVectorIter(obj.GetArray())));
-			}
-			else if(obj.IsIterator()) {
+		                                case PY_GET_ITER: {
+		                                        PyValue obj = Pop();
+		                                        if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR) {
+		                                                Push(PyValue::Iterator(new PyVectorIter(obj)));
+		                                        }
+		                			else if(obj.IsIterator()) {
 				Push(obj);
 			}
 			else {

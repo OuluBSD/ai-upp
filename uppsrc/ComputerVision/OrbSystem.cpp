@@ -38,6 +38,7 @@ void OrbSystem::TrainPattern() {
     
     new_width = (img_u8.cols*sc0);
     new_height = (img_u8.rows*sc0);
+    pattern_sz = Size(new_width, new_height);
 
     Resample(img_u8, lev0_img, new_width, new_height);
 
@@ -121,10 +122,9 @@ void OrbSystem::InitDefault() {
     matches.SetCount(0);
 
 	
-	auto& video_width = sz.cx;
-	auto& video_height = sz.cy;
-    int i = video_width * video_height;
-    matches.SetCount(i);
+    int i = 1000;
+    matches.SetCount(0);
+    matches.Reserve(i);
     screen_corners.SetCount(i);
     for (Keypoint& k : screen_corners)
         k.Set(0,0,0,0,-1);
@@ -496,7 +496,7 @@ void OrbSystem::render_matches(const Vector<KeypointMatch>& matches) {
 
 void OrbSystem::render_pattern_shape() {
     // get the projected pattern corners
-    TCorners(homo3x3.data, tmp0.cols, tmp0.rows);
+    TCorners(homo3x3.data, pattern_sz.cx, pattern_sz.cy);
 	
 	last_corners.SetCount(corners.GetCount());
 	for (int i = 0; i < corners.GetCount(); i++) {

@@ -96,6 +96,7 @@ Camera::Camera()
 	serial_counter = 0;
 	verbose = false;
 	stopping = false;
+	resubmitting = false;
 }
 
 Camera::~Camera()
@@ -140,14 +141,30 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 	
 	// AppendRaw takes 'raw_mutex' - call it WITHOUT holding 'mutex' to avoid AB-BA deadlock
 	if(xfer->status == LIBUSB_TRANSFER_COMPLETED && xfer->actual_length > 0) {
-		cam->AppendRaw(xfer->buffer, xfer->actual_length);
+		if(cam->gap_occurred) {
+			// A WMR frame end is marked by a short packet (616538 % 1024 = 90)
+			// Any transfer ending with (len % 1024 != 0) is a frame boundary.
+			if((xfer->actual_length % 1024) != 0) {
+				cam->gap_occurred = false;
+				if(cam->verbose) Cout() << "USB: Resynced after gap (len=" << xfer->actual_length << ")\n";
+				// If we happen to get a full frame, keep it.
+				if(xfer->actual_length == 616538)
+					cam->AppendRaw(xfer->buffer, xfer->actual_length);
+			}
+			// Discard data while out of sync
+		}
+		else {
+			cam->AppendRaw(xfer->buffer, xfer->actual_length);
+		}
 	}
 	else if(xfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		Cout() << "USB Error: Transfer status " << status << "\n";
+		if(cam->verbose) Cout() << "USB Error: Transfer status " << status << "\n";
+		cam->gap_occurred = true;
 	}
 	
 	// Final checks using flag only (no mutex needed for IsRunning)
-	if(cam->usb_flag.IsRunning()) {
+	bool re_submitted = false;
+	if(cam->resubmitting) {
 		if(xfer->status == LIBUSB_TRANSFER_ERROR || xfer->status == LIBUSB_TRANSFER_STALL) {
 			// Halt clear needs mutex for throttling
 			if(cam->mutex.TryEnter()) {
@@ -158,9 +175,9 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 					int ch = libusb_clear_halt(cam->usb_handle, WMR_VIDEO_ENDPOINT);
 					if(ch != 0) {
 						cam->stats.halt_clear_failures++;
-						Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
+						if(cam->verbose) Cout() << "USB Error: Failed to clear halt: " << libusb_error_name(ch) << " (" << ch << ")\n";
 					}
-					else Cout() << "USB: Successfully cleared halt on video endpoint\n";
+					else if(cam->verbose) Cout() << "USB: Successfully cleared halt on video endpoint\n";
 				}
 				cam->mutex.Leave();
 			}
@@ -172,9 +189,10 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 		
 		if(allow_resubmit) {
 			int r = libusb_submit_transfer(xfer);
-			if (r != 0) {
-				Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
-				cam->active_transfers--;
+			if (r == 0) {
+				re_submitted = true;
+			} else {
+				if(cam->verbose) Cout() << "USB Error: Failed to resubmit transfer: " << libusb_error_name(r) << " (" << r << ")\n";
 				if(cam->mutex.TryEnter()) {
 					cam->stats.usb_errors++;
 					cam->stats.last_r = r;
@@ -183,12 +201,15 @@ void LIBUSB_CALL Camera::TransferCallback(struct libusb_transfer* xfer)
 				}
 			}
 		} else {
-			cam->active_transfers--;
 			if(cam->mutex.TryEnter()) {
 				cam->stats.resubmit_skips++;
 				cam->mutex.Leave();
 			}
 		}
+	}
+	
+	if(!re_submitted) {
+		cam->active_transfers--;
 	}
 }
 
@@ -229,10 +250,11 @@ bool HMD_APIENTRYDLL Camera::Open()
 		return false;
 	}
 	
-	// libusb_set_auto_detach_kernel_driver(usb_handle, 1);
-
-	for(int i = 3; i <= 4; i++) {
-		libusb_claim_interface(usb_handle, i);
+	for(int i : {0, 3, 4}) {
+		libusb_detach_kernel_driver(usb_handle, i);
+		if(libusb_claim_interface(usb_handle, i) != 0) {
+			if(verbose) Cout() << "Failed to claim interface " << i << "\n";
+		}
 		libusb_set_interface_alt_setting(usb_handle, i, 0);
 	}
 	
@@ -268,6 +290,7 @@ bool HMD_APIENTRYDLL Camera::Open()
 	}
 	active_transfers = async_buffers;
 
+	resubmitting = true;
 	usb_flag.Start();
 	process_flag.Start();
 	
@@ -283,6 +306,7 @@ void HMD_APIENTRYDLL Camera::Close()
 	if(!opened) return;
 	
 	stopping = true;
+	resubmitting = false; // Stop new resubmissions
 	process_flag.Stop();
 	
 	for(int i = 0; i < transfers.size(); i++) {
@@ -290,21 +314,22 @@ void HMD_APIENTRYDLL Camera::Close()
 			libusb_cancel_transfer(transfers[i].libusb_xfer);
 	}
 	
+	// usb_thread will keep calling libusb_handle_events until all transfers are reaped
 	int attempts = 0;
-	while(active_transfers > 0 && attempts < 200) {
+	while(active_transfers > 0 && attempts < 500) {
 		Upp::Sleep(10);
 		attempts++;
 	}
 	
 	usb_flag.Stop();
-	
 	usb_thread.Wait();
 	process_thread.Wait();
 	
 	if(usb_handle) {
 		wmr_camera_set_active(usb_handle, false);
-		for(int i = 3; i <= 4; i++) {
+		for(int i : {0, 3, 4}) {
 			libusb_release_interface(usb_handle, i);
+			libusb_attach_kernel_driver(usb_handle, i);
 		}
 		libusb_close(usb_handle);
 	}
@@ -330,6 +355,7 @@ void Camera::Process()
 {
 	struct timeval tv = { 0, 10000 };
 	int64 last_keepalive = usecs();
+	int last_errors = 0;
 	while(usb_flag.IsRunning()) {
 		libusb_handle_events_timeout_completed(usb_ctx, &tv, NULL);
 		
@@ -339,6 +365,16 @@ void Camera::Process()
 				// Refresh gain as a keep-alive
 				wmr_camera_set_gain(usb_handle, 0, 0x80);
 				wmr_camera_set_gain(usb_handle, 1, 0x80);
+				
+				// Recovery: if too many errors occurred, try to restart camera streaming
+				if(stats.usb_errors > last_errors + 20) {
+					if(verbose) Cout() << "USB: High error rate detected (" << (stats.usb_errors - last_errors) << " eps), restarting camera...\n";
+					wmr_camera_set_active(usb_handle, false);
+					Upp::Sleep(100);
+					wmr_camera_set_active(usb_handle, true);
+					gap_occurred = true;
+				}
+				last_errors = stats.usb_errors;
 			}
 			last_keepalive = now;
 		}
@@ -403,11 +439,9 @@ bool Camera::ProcessRawFrames()
 	int64 start_usecs = usecs();
 	bool processed_any = false;
 	
-	bool local_gap = false;
+	bool local_gap = gap_occurred.exchange(false);
 	{
 		Upp::RWMutex::WriteLock __(raw_mutex);
-		local_gap = gap_occurred;
-		gap_occurred = false;
 		
 		while(raw_queue.GetCount() > 0 && raw_queue.First().processed && raw_queue.First().in_use == 0)
 			raw_queue.RemoveFirst();

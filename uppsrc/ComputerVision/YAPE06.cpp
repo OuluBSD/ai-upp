@@ -43,7 +43,6 @@ int Yape06::Detect(const ByteMat& src, const Rect& roi, Vector<Keypoint>& points
 	int Dxy = (3 + 3 * w);
 	int Dyx = (3 - 3 * w);
 	
-	static thread_local Vector<T> laplacian;
 	T lv = 0;
 	int row = 0;
 	int rowx = 0;
@@ -54,15 +53,22 @@ int Yape06::Detect(const ByteMat& src, const Rect& roi, Vector<Keypoint>& points
 	
 	Rect r = roi & Rect(0, 0, w, h);
 	
-	int sx = max(r.left, max(5, border));
-	int sy = max(r.top, max(3, border));
-	int ex = min(r.right, min(w - 5, w - border));
-	int ey = min(r.bottom, min(h - 3, h - border));
+	// Laplacian needs 5px border for Dxx/Dyy
+	// Hessian needs 3px border for Dxy/Dyx
+	// Corner detection (3x3 maxima) needs 1px border
+	// Total minimum border is 6px to be safe.
+	int sx = max(r.left, max(6, border));
+	int sy = max(r.top, max(6, border));
+	int ex = min(r.right, min(w - 6, w - border));
+	int ey = min(r.bottom, min(h - 6, h - border));
 	
 	if(sx >= ex || sy >= ey)
 		return 0;
 
-	laplacian.SetCount(w * h, 0);
+	if (laplacian.GetCount() != w * h) {
+		laplacian.SetCount(w * h);
+	}
+	Fill(laplacian.Begin(), laplacian.End(), 0); // Important when using ROIs to avoid garbage neighbors
 	
 	ComputeLaplacian(srd_d, laplacian, w, h, Dxx, Dyy, sx, sy, ex, ey);
 	points.SetCount(0);

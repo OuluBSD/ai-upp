@@ -229,14 +229,8 @@ void OrbSystem::RenderCorners(const ByteMat& bg, const ByteMat* mini_img, const 
 }
 
 int OrbSystem::DetectKeypoints(DescriptorImage& output, int max_allowed) {
-	auto& img_u8 = tmp0;
 	auto& img_u8_smooth = tmp1;
-	auto& pattern_preview = tmp2;
 	
-    Grayscale(input, img_u8);
-    
-    GaussianBlur(img_u8, img_u8_smooth, blur_size);
-
     y.laplacian_threshold = lap_thres;
     y.min_eigen_value_threshold = eigen_thres;
 	
@@ -433,8 +427,8 @@ int OrbSystem::MatchPattern() {
         
         if (best_dist < min_dist) min_dist = best_dist;
 
-        // filter out by some threshold
-        if(best_dist < keypoint_match_threshold) {
+        // filter out by some threshold AND ratio test
+        if(best_dist < keypoint_match_threshold && (double)best_dist < ratio_test * (double)best_dist2) {
             auto& m = matches.Add();
             m.screen_idx = qidx;
             m.pattern_lev = best_lev;
@@ -442,6 +436,11 @@ int OrbSystem::MatchPattern() {
             num_matches++;
         }
     }
+
+#ifdef flagORB_DIAG
+	Cout() << "ORB MatchPattern: matches=" << num_matches << " min_dist=" << min_dist 
+		<< " threshold=" << keypoint_match_threshold << " ratio=" << ratio_test << "\\n";
+#endif
 
     return num_matches;
 }

@@ -462,7 +462,45 @@ void PyCompiler::Statement()
 	}
 }
 
-void PyCompiler::Expression() { OrExpr(); }
+void PyCompiler::Expression()
+{
+	int start_of_a = Label();
+	OrExpr();
+	if(IsId("if")) {
+		Next();
+		
+		Vector<PyIR> a_ir;
+		for(int i = start_of_a; i < ir.GetCount(); i++)
+			a_ir.Add(ir[i]);
+		ir.SetCount(start_of_a);
+		
+		OrExpr(); // cond
+		ExpectId("else");
+		
+		int jump_else = Label();
+		Emit(PY_POP_JUMP_IF_FALSE, 0);
+		
+		int new_start_of_a = Label();
+		int offset = new_start_of_a - start_of_a;
+		for(auto& instr : a_ir) {
+			if(instr.code == PY_JUMP_FORWARD || instr.code == PY_JUMP_IF_FALSE_OR_POP ||
+			   instr.code == PY_JUMP_IF_TRUE_OR_POP || instr.code == PY_JUMP_ABSOLUTE ||
+			   instr.code == PY_POP_JUMP_IF_FALSE || instr.code == PY_POP_JUMP_IF_TRUE ||
+			   instr.code == PY_FOR_ITER)
+			{
+				instr.iarg += offset;
+			}
+			ir.Add(instr);
+		}
+		
+		int jump_end = Label();
+		Emit(PY_JUMP_ABSOLUTE, 0);
+		
+		Patch(jump_else, Label());
+		Expression(); // b
+		Patch(jump_end, Label());
+	}
+}
 
 void PyCompiler::OrExpr()
 {

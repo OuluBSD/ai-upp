@@ -1965,6 +1965,12 @@ try {
 			break;
 		}
 
+		case PY_POP_JUMP_IF_TRUE: {
+			PyValue v = Pop();
+			if(v.IsTrue()) frame.pc = instr.iarg;
+			break;
+		}
+
 		case PY_JUMP_IF_FALSE_OR_POP: {
 			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_FALSE_OR_POP");
 			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;

@@ -34,6 +34,7 @@ void ImageBuffer::Create(int cx, int cy)
 	size.cx = cx;
 	size.cy = cy;
 	pixels.Alloc(GetLength(), RGBAZero());
+	capacity = (int)GetLength();
 #ifdef _DEBUG
 	RGBA *s = pixels;
 	RGBA *e = pixels + GetLength();
@@ -46,6 +47,19 @@ void ImageBuffer::Create(int cx, int cy)
 		s++;
 	}
 #endif
+	kind = IMAGE_UNKNOWN;
+	InitAttrs();
+}
+
+void ImageBuffer::RtCreate(int cx, int cy)
+{
+	ASSERT(cx >= 0 && cy >= 0);
+	size.cx = cx;
+	size.cy = cy;
+	if(GetLength() > (size_t)capacity) {
+		pixels.Alloc(GetLength(), RGBAZero());
+		capacity = (int)GetLength();
+	}
 	kind = IMAGE_UNKNOWN;
 	InitAttrs();
 }
@@ -88,6 +102,7 @@ void ImageBuffer::Set(Image& img)
 			kind = IMAGE_UNKNOWN;
 			CopyAttrs(img);
 			pixels = pick(img.data->buffer.pixels);
+			capacity = (int)GetLength();
 			img.Clear();
 		}
 		else {
@@ -123,6 +138,7 @@ ImageBuffer::ImageBuffer(ImageBuffer& b)
 	kind.store(b.kind);
 	size = b.size;
 	pixels = pick(b.pixels);
+	capacity = b.capacity;
 	CopyAttrs(b);
 }
 

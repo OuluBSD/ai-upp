@@ -55,6 +55,13 @@ SImageDraw::operator Image() const
 	return Image(b);
 }
 
+void SImageDraw::Create(RtImage& rt)
+{
+	has_alpha = false;
+	ib = rt.GetBuffer();
+	Init(ib.GetSize());
+}
+
 SImageDraw::SImageDraw(Size sz)
 {
 	has_alpha = false;

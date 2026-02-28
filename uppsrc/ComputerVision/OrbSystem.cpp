@@ -690,4 +690,54 @@ void OrbSystem::render_pattern_shape() {
 }
 
 
+ 
+
+void OrbSystem::ProcessGpu(const ByteMat& gray, const Vector<OrbSystem::GpuKp>& keypoints, int level, Rect roi) {
+    sz = Size(gray.cols, gray.rows);
+    tmp0 = gray;
+    auto& img_u8 = tmp0;
+    last_profile.Clear();
+    TimeStop total_ts;
+
+    int num_corners = 0;
+    {
+        TimeStop ts;
+        screen_corners.Clear();
+        for(const GpuKp& gk : keypoints) {
+            if (gk.level == level && roi.Contains(Point((int)gk.x, (int)gk.y))) {
+                Keypoint& k = screen_corners.Add();
+                k.x = (int)gk.x;
+                k.y = (int)gk.y;
+                k.score = (int)gk.score;
+                k.level = gk.level;
+                k.angle = (use_orientation) ? IcAngle(img_u8, k.x, k.y) : 0.0;
+            }
+        }
+        num_corners = screen_corners.GetCount();
+        last_profile.detect_us += ts.Elapsed();
+    }
+    last_profile.num_corners = num_corners;
+    {
+        TimeStop ts;
+        o.Describe(img_u8, screen_corners, screen_descriptors);
+        last_profile.describe_us += ts.Elapsed();
+    }
+
+    int num_matches = MatchPattern();
+    int good_matches = FindTransform(matches);
+    
+    last_match_count = num_matches;
+    last_good_matches = good_matches;
+    last_profile.num_matches = num_matches;
+    last_profile.good_matches = good_matches;
+
+    if(good_matches >= 4) {
+        TCorners(homo3x3.data, pattern_sz.cx, pattern_sz.cy);
+        last_corners.SetCount(corners.GetCount());
+        for (int i = 0; i < corners.GetCount(); i++)
+            last_corners[i] = Pointf(corners[i].x, corners[i].y);
+    } else last_corners.Clear();
+    last_profile.total_us = total_ts.Elapsed();
+}
+
 END_UPP_NAMESPACE

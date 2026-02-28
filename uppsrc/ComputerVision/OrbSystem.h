@@ -85,7 +85,7 @@ private:
 public:
 	static const int u_max[];
 
-        struct GpuKp { float x, y, score; int level; };
+        struct GpuKp : Moveable<GpuKp> { float x, y, score; int level; GpuKp() {} GpuKp(float x, float y, float score, int level) : x(x), y(y), score(score), level(level) {} };
 
 	void SetInput(Image i);
 	void InitDefault();

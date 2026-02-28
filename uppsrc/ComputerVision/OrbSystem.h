@@ -85,10 +85,13 @@ private:
 public:
 	static const int u_max[];
 
+        struct GpuKp { float x, y, score; int level; };
+
 	void SetInput(Image i);
 	void InitDefault();
 	void Process();
 	void ProcessROI(Rect roi);
+        void ProcessGpu(const ByteMat& gray, const Vector<GpuKp>& keypoints, int level, Rect roi);
 	void ProcessPrepared(const ByteMat& gray, const ByteMat& smooth, Rect roi);
 	
 	void TrainPattern();

@@ -105,7 +105,7 @@ void OrbSystem::TrainPattern() {
 void OrbSystem::InitDefault() {
 
     keypoint_match_threshold = 95;
-    num_train_levels = 10;
+    num_train_levels = exact_scale_only ? 1 : 10;
 
     y.laplacian_threshold = 2;
     y.min_eigen_value_threshold = 2;
@@ -145,35 +145,164 @@ void OrbSystem::Process() {
 void OrbSystem::ProcessROI(Rect roi) {
 	auto& img_u8 = tmp0;
 	auto& img_u8_smooth = tmp1;
+	last_profile.Clear();
+	TimeStop total_ts;
 	
-    Grayscale(input, img_u8);
-    GaussianBlur(img_u8, img_u8_smooth, blur_size);
+	{
+		TimeStop ts;
+		Grayscale(input, img_u8);
+		last_profile.grayscale_us += ts.Elapsed();
+	}
+	{
+		TimeStop ts;
+		GaussianBlur(img_u8, img_u8_smooth, blur_size);
+		last_profile.blur_us += ts.Elapsed();
+	}
 
     y.laplacian_threshold = lap_thres;
     y.min_eigen_value_threshold = eigen_thres;
 
-    int num_corners = DetectKeypoints(img_u8_smooth, roi, screen_corners, 1000);
-    o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
+	int num_corners = 0;
+	{
+		TimeStop ts;
+		num_corners = DetectKeypoints(img_u8_smooth, roi, screen_corners, 1000);
+		last_profile.detect_us += ts.Elapsed();
+	}
+	last_profile.num_corners = num_corners;
+	{
+		TimeStop ts;
+		o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
+		last_profile.describe_us += ts.Elapsed();
+	}
 
-    RenderCorners(img_u8, &train_img, screen_corners, output);
+	if (render_debug) {
+		TimeStop ts;
+		RenderCorners(img_u8, &train_img, screen_corners, output);
+		last_profile.render_corners_us += ts.Elapsed();
+	}
 
     // render pattern and matches
-    int num_matches = MatchPattern();
+	int num_matches = 0;
+	{
+		TimeStop ts;
+		num_matches = MatchPattern();
+		last_profile.match_us += ts.Elapsed();
+	}
     ASSERT(matches.GetCount() == num_matches);
-    int good_matches = FindTransform(matches);
+	int good_matches = 0;
+	{
+		TimeStop ts;
+		good_matches = FindTransform(matches);
+		last_profile.transform_us += ts.Elapsed();
+	}
 	last_match_count = num_matches;
 	last_good_matches = good_matches;
+	last_profile.num_matches = num_matches;
+	last_profile.good_matches = good_matches;
     
     if(num_matches) {
-        render_matches(matches);
-        if(good_matches >= 4)
-            render_pattern_shape();
+		if (render_debug) {
+			TimeStop ts;
+			render_matches(matches);
+			last_profile.render_matches_us += ts.Elapsed();
+		}
+        if(good_matches >= 4) {
+			if (render_debug) {
+				TimeStop ts;
+	            render_pattern_shape();
+				last_profile.render_shape_us += ts.Elapsed();
+			}
+			else {
+				TCorners(homo3x3.data, pattern_sz.cx, pattern_sz.cy);
+				last_corners.SetCount(corners.GetCount());
+				for (int i = 0; i < corners.GetCount(); i++)
+					last_corners[i] = Pointf(corners[i].x, corners[i].y);
+			}
+		}
 		else
 			last_corners.Clear();
     }
 	else {
 		last_corners.Clear();
 	}
+	last_profile.total_us = total_ts.Elapsed();
+}
+
+void OrbSystem::ProcessPrepared(const ByteMat& gray, const ByteMat& smooth, Rect roi) {
+	sz = Size(gray.cols, gray.rows);
+	tmp0 = gray;
+	tmp1 = smooth;
+	auto& img_u8 = tmp0;
+	auto& img_u8_smooth = tmp1;
+	last_profile.Clear();
+	TimeStop total_ts;
+	
+	y.laplacian_threshold = lap_thres;
+	y.min_eigen_value_threshold = eigen_thres;
+
+	int num_corners = 0;
+	{
+		TimeStop ts;
+		num_corners = DetectKeypoints(img_u8_smooth, roi, screen_corners, 1000);
+		last_profile.detect_us += ts.Elapsed();
+	}
+	last_profile.num_corners = num_corners;
+	{
+		TimeStop ts;
+		o.Describe(img_u8_smooth, screen_corners, screen_descriptors);
+		last_profile.describe_us += ts.Elapsed();
+	}
+
+	if (render_debug) {
+		TimeStop ts;
+		RenderCorners(img_u8, &train_img, screen_corners, output);
+		last_profile.render_corners_us += ts.Elapsed();
+	}
+
+	int num_matches = 0;
+	{
+		TimeStop ts;
+		num_matches = MatchPattern();
+		last_profile.match_us += ts.Elapsed();
+	}
+	ASSERT(matches.GetCount() == num_matches);
+	int good_matches = 0;
+	{
+		TimeStop ts;
+		good_matches = FindTransform(matches);
+		last_profile.transform_us += ts.Elapsed();
+	}
+	last_match_count = num_matches;
+	last_good_matches = good_matches;
+	last_profile.num_matches = num_matches;
+	last_profile.good_matches = good_matches;
+
+	if(num_matches) {
+		if (render_debug) {
+			TimeStop ts;
+			render_matches(matches);
+			last_profile.render_matches_us += ts.Elapsed();
+		}
+		if(good_matches >= 4) {
+			if (render_debug) {
+				TimeStop ts;
+				render_pattern_shape();
+				last_profile.render_shape_us += ts.Elapsed();
+			}
+			else {
+				TCorners(homo3x3.data, pattern_sz.cx, pattern_sz.cy);
+				last_corners.SetCount(corners.GetCount());
+				for (int i = 0; i < corners.GetCount(); i++)
+					last_corners[i] = Pointf(corners[i].x, corners[i].y);
+			}
+		}
+		else
+			last_corners.Clear();
+	}
+	else {
+		last_corners.Clear();
+	}
+	last_profile.total_us = total_ts.Elapsed();
 }
 
 void OrbSystem::OutputFromGray(const ByteMat& gray) {
@@ -271,8 +400,13 @@ int OrbSystem::DetectKeypoints(const ByteMat& img, const Rect& roi, Vector<Keypo
     }
 
     // calculate dominant orientation for each keypoint
-    for (Keypoint& c : corners) {
-        c.angle = IcAngle(img, c.x, c.y);
+    if (use_orientation) {
+	    for (Keypoint& c : corners)
+	        c.angle = IcAngle(img, c.x, c.y);
+    }
+    else {
+	    for (Keypoint& c : corners)
+	        c.angle = 0.0;
     }
 
     return count;
@@ -323,6 +457,45 @@ double OrbSystem::IcAngle(const ByteMat& img, int px, int py) {
 
 // estimate homography transform between matched points
 int OrbSystem::FindTransform(Vector<KeypointMatch>& matches) {
+	if (!use_ransac) {
+		int count = matches.GetCount();
+		if (count < 4) {
+			Identity3x3(homo3x3, 1.0f);
+			return 0;
+		}
+		Vector<float> dx, dy;
+		dx.SetCount(count);
+		dy.SetCount(count);
+		for (int i = 0; i < count; i++) {
+			const KeypointMatch& m = matches[i];
+			const Keypoint& s_kp = screen_corners[m.screen_idx];
+			const Keypoint& p_kp = pattern_corners[m.pattern_lev][m.pattern_idx];
+			dx[i] = (float)(s_kp.x - p_kp.x);
+			dy[i] = (float)(s_kp.y - p_kp.y);
+		}
+		Sort(dx);
+		Sort(dy);
+		float tx = dx[count / 2];
+		float ty = dy[count / 2];
+		Identity3x3(homo3x3, 1.0f);
+		homo3x3.data[2] = tx;
+		homo3x3.data[5] = ty;
+		match_mask.SetSize(count, 1, 1);
+		int good_cnt = 0;
+		for (int i = 0; i < count; i++) {
+			const KeypointMatch& m = matches[i];
+			const Keypoint& s_kp = screen_corners[m.screen_idx];
+			const Keypoint& p_kp = pattern_corners[m.pattern_lev][m.pattern_idx];
+			float ex = fabs((float)s_kp.x - ((float)p_kp.x + tx));
+			float ey = fabs((float)s_kp.y - ((float)p_kp.y + ty));
+			byte ok = (ex <= 4.0f && ey <= 4.0f) ? 1 : 0;
+			match_mask.data[i] = ok;
+			good_cnt += ok;
+		}
+		if (good_cnt < 4)
+			Identity3x3(homo3x3, 1.0f);
+		return good_cnt;
+	}
     
     // ransac params
     int num_model_points = 4;

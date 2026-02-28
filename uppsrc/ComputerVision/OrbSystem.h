@@ -8,6 +8,40 @@ struct ColorLine : Moveable<ColorLine> {
 };
 
 class OrbSystem {
+public:
+	struct Profile : Moveable<Profile> {
+		int64 total_us = 0;
+		int64 grayscale_us = 0;
+		int64 blur_us = 0;
+		int64 detect_us = 0;
+		int64 describe_us = 0;
+		int64 render_corners_us = 0;
+		int64 match_us = 0;
+		int64 transform_us = 0;
+		int64 render_matches_us = 0;
+		int64 render_shape_us = 0;
+		int num_corners = 0;
+		int num_matches = 0;
+		int good_matches = 0;
+		
+		void Clear() {
+			total_us = 0;
+			grayscale_us = 0;
+			blur_us = 0;
+			detect_us = 0;
+			describe_us = 0;
+			render_corners_us = 0;
+			match_us = 0;
+			transform_us = 0;
+			render_matches_us = 0;
+			render_shape_us = 0;
+			num_corners = 0;
+			num_matches = 0;
+			good_matches = 0;
+		}
+	};
+
+private:
 	DMatrix<byte> lev0_img;
 	DMatrix<byte> lev_img;
 	DMatrix<byte> pattern_preview;
@@ -36,6 +70,10 @@ class OrbSystem {
 	int    eigen_thres = 2;
 	int    keypoint_match_threshold = 95;
 	double ratio_test = 0.8;
+	bool   exact_scale_only = false;
+	bool   use_orientation = true;
+	bool   render_debug = true;
+	bool   use_ransac = true;
 	
 	Size   pattern_sz;
 	
@@ -51,6 +89,7 @@ public:
 	void InitDefault();
 	void Process();
 	void ProcessROI(Rect roi);
+	void ProcessPrepared(const ByteMat& gray, const ByteMat& smooth, Rect roi);
 	
 	void TrainPattern();
 	int  DetectKeypoints(DescriptorImage& output, int max_allowed);
@@ -64,6 +103,10 @@ public:
 
 	void SetKeypointMatchThreshold(int t) { keypoint_match_threshold = t; }
 	int  GetKeypointMatchThreshold() const { return keypoint_match_threshold; }
+	void SetExactScaleOnly(bool b)        { exact_scale_only = b; }
+	void SetUseOrientation(bool b)        { use_orientation = b; }
+	void SetRenderDebug(bool b)           { render_debug = b; }
+	void SetUseRansac(bool b)             { use_ransac = b; }
 	
 	void SetRatioTest(double r)           { ratio_test = r; }
 	double GetRatioTest() const             { return ratio_test; }
@@ -80,6 +123,10 @@ public:
 	Vector<Pointf> last_corners;
 	int last_good_matches = 0;
 	int last_match_count = 0;
+	Profile last_profile;
+
+public:
+	const Profile& GetLastProfile() const { return last_profile; }
 };
 
 #endif

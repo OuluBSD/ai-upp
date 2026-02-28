@@ -47,7 +47,7 @@ void ProgressIndicator::Paint(Draw& w) {
 			p0 = 0;
 		}
 	}
-	if(style->classic || percent || !IsNull(color)) {
+	if(style->classic || percent || !label.IsEmpty() || !IsNull(color)) {
 		ChPaintEdge(w, sz, ViewEdge());
 		Rect mg = GetMargins();
 		sz -= Size(mg.left + mg.right, mg.top + mg.bottom);

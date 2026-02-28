@@ -30,17 +30,36 @@ void CatchError(const gchar *log_domain,
 
 void Ctrl::PanicMsgBox(const char *title, const char *text)
 {
+	{
+		FILE *f = fopen("/proc/self/cmdline", "rb");
+		if(f) {
+			char buf[4096];
+			size_t n = fread(buf, 1, sizeof(buf) - 1, f);
+			fclose(f);
+			if(n > 0) {
+				buf[n] = 0;
+				const char *p = buf;
+				while(p < buf + n) {
+					if(strcmp(p, "--fastcrash") == 0) {
+						fprintf(stderr, "FASTCRASH: %s: %s\n", title, text);
+						__BREAK__;
+					}
+					p += strlen(p) + 1;
+				}
+			}
+		}
+	}
 	LLOG("PanicMsgBox " << title << ": " << text);
 	UngrabMouse();
 	char m[2000];
 	*m = 0;
-	if(system("which gxmessage") == 0)
+	if(system("which gxmessage > /dev/null 2>&1") == 0)
 		strcpy(m, "gxmessage -center \"");
 	else
-	if(system("which kdialog") == 0)
+	if(system("which kdialog > /dev/null 2>&1") == 0)
 		strcpy(m, "kdialog --error \"");
 	else
-	if(system("which xmessage") == 0)
+	if(system("which xmessage > /dev/null 2>&1") == 0)
 		strcpy(m, "xmessage -center \"");
 
 	if(*m) {
@@ -51,13 +70,11 @@ void Ctrl::PanicMsgBox(const char *title, const char *text)
 		IGNORE_RESULT(system(m));
 	}
 	else {
-		GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
-		                                           GTK_BUTTONS_CLOSE, "%s: %s", title, text);
-		gtk_dialog_run(GTK_DIALOG (dialog));
-		gtk_widget_destroy(dialog);
+		fprintf(stderr, "%s\n%s\n", title, text);
+		_exit(1);
 	}
-	__BREAK__;
 }
+
 
 int Ctrl::scale;
 

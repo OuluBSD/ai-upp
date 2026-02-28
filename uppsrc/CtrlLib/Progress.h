@@ -18,6 +18,7 @@ protected:
 	const Style *style;
 	Color color;
 	Font font;
+	String label;
 
 	Rect GetMargins();
 	Size GetMsz();
@@ -40,10 +41,12 @@ public:
 
 	ProgressIndicator& SetTotal(int _total)     { Set(actual, _total); return *this; }
 	ProgressIndicator& Percent(bool b = true)   { percent = b; Refresh(); return *this; }
+	ProgressIndicator& ShowPercentage(bool b = true) { return Percent(b); }
 	ProgressIndicator& NoPercent()              { return Percent(false); }
 	ProgressIndicator& SetColor(Color c)        { color = c; Refresh(); return *this; }
 	ProgressIndicator& SetStyle(const Style& s) { style = &s; Refresh(); return *this; }
 	ProgressIndicator& SetFont(const Font& f)   { font = f; Refresh(); return *this; }
+	ProgressIndicator& SetLabel(const String& s){ label = s; Refresh(); return *this; }
 	Font GetFont()                              { return font; }
 
 	ProgressIndicator();

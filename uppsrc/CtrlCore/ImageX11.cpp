@@ -200,31 +200,54 @@ void ImageSysData::Paint(SystemDraw& w, int x, int y, const Rect& src, Color c)
 	}
 	if(IsNull(c)) {
 		if(!picture) {
-			bool opaque = kind == IMAGE_OPAQUE;
-			Pixmap pixmap = XCreatePixmap(Xdisplay, Xroot, sz.cx, sz.cy, Xdepth);
-			picture = XRenderCreatePicture(
-				Xdisplay, pixmap,
-			    XRenderFindVisualFormat(Xdisplay, Xvisual),
-			    0, 0
-			);
+			Pixmap pixmap;
+			bool use_argb32 = kind != IMAGE_OPAQUE;
+			if(use_argb32) {
+				pixmap = XCreatePixmap(Xdisplay, Xroot, sz.cx, sz.cy, 32);
+				picture = XRenderCreatePicture(
+					Xdisplay, pixmap,
+					XRenderFindStandardFormat(Xdisplay, PictStandardARGB32),
+					0, 0
+				);
+			}
+			else {
+				pixmap = XCreatePixmap(Xdisplay, Xroot, sz.cx, sz.cy, Xdepth);
+				picture = XRenderCreatePicture(
+					Xdisplay, pixmap,
+				    XRenderFindVisualFormat(Xdisplay, Xvisual),
+				    0, 0
+				);
+			}
 			XImage ximg;
 			sInitXImage(ximg, sz);
 			ximg.bitmap_pad = 32;
 			ximg.bytes_per_line = 4 * sz.cx;
 			ximg.bits_per_pixel = 32;
-			ximg.blue_mask = Xvisual->blue_mask;
-			ximg.green_mask = Xvisual->green_mask;
-			ximg.red_mask = Xvisual->red_mask;
+			if(use_argb32) {
+				ximg.blue_mask = 0x00ff0000;
+				ximg.green_mask = 0x0000ff00;
+				ximg.red_mask = 0x000000ff;
+			}
+			else {
+				ximg.blue_mask = Xvisual->blue_mask;
+				ximg.green_mask = Xvisual->green_mask;
+				ximg.red_mask = Xvisual->red_mask;
+			}
 			ximg.bitmap_unit = 32;
 			const RGBA *src = ~img;
 			Buffer<RGBA> h;
-			if(Xvisual->red_mask != 0xff) {
+			// NOTE:
+			// X11/XRender channel interpretation is backend/visual dependent.
+			// The only stable behavior we have observed across setups is to
+			// explicitly SwapRB on the upload buffer for ARGB32 pictures too.
+			// This has extra CPU cost, but avoids red/blue swaps and keeps alpha.
+			if(use_argb32 || Xvisual->red_mask != 0xff) {
 				h.Alloc(sz.cx * sz.cy);
 				SwapRB(h, ~img, sz.cx * sz.cy);
 				src = h;
 			}
 			ximg.data = (char *)src;
-			ximg.depth = Xdepth;
+			ximg.depth = use_argb32 ? 32 : Xdepth;
 			XInitImage(&ximg);
 			GC gc = XCreateGC(Xdisplay, pixmap, 0, 0);
 			XPutImage(Xdisplay, pixmap, gc, &ximg, 0, 0, 0, 0, sz.cx, sz.cy);

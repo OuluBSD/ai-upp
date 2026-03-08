@@ -199,7 +199,7 @@ String PythonCLI::ReadLine()
 			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
-			PyCompiler compiler(tk.GetTokens());
+			PyCompiler compiler(tk.GetTokens(), "<stdin>");
 			Vector<PyIR> ir;
 			try {
 				compiler.Compile(ir);
@@ -290,7 +290,7 @@ String PythonCLI::ReadLine()
 			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
-			PyCompiler compiler(tk.GetTokens());
+			PyCompiler compiler(tk.GetTokens(), filename);
 			Vector<PyIR> ir;
 			try {
 				compiler.Compile(ir);

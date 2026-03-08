@@ -51,12 +51,20 @@ struct PyKV : Moveable<PyKV> {
 	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
 };
 
-static PyValue builtin_print(const Vector<PyValue>& args, void*) {
+static PyValue builtin_print(const Vector<PyValue>& args, void* ud) {
+	PyVM *vm = (PyVM*)ud;
+	String out;
 	for(int i = 0; i < args.GetCount(); i++) {
-		if(i) Cout() << " ";
-		Cout() << args[i].ToString();
+		if(i) out << " ";
+		out << args[i].ToString();
 	}
-	Cout() << "\n";
+	out << "\n";
+	
+	if(vm && vm->WhenPrint)
+		vm->WhenPrint(out);
+	else
+		Cout() << out;
+		
 	return PyValue::None();
 }
 
@@ -1174,9 +1182,7 @@ PyVM::PyVM()
 {
 	globals.GetAdd(PyValue("__name__")) = PyValue("__main__");
 
-	PyValue p_print = PyValue::Function("print");
-	p_print.GetLambdaRW().builtin = builtin_print;
-	globals.GetAdd(PyValue("print")) = p_print;
+	globals.GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
 
 	PyValue p_len = PyValue::Function("len");
 	p_len.GetLambdaRW().builtin = builtin_len;
@@ -1490,6 +1496,97 @@ PyVM::~PyVM()
 	globals.Shrink();
 }
 
+void PyVM::AddBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line)
+			return; // Already exists
+
+	breakpoints.Add(Breakpoint(file, line));
+}
+
+void PyVM::RemoveBreakpoint(const String& file, int line)
+{
+	for(int i = 0; i < breakpoints.GetCount(); i++)
+		if(breakpoints[i].file == file && breakpoints[i].line == line) {
+			breakpoints.Remove(i);
+			return;
+		}
+}
+
+void PyVM::ClearBreakpoints()
+{
+	breakpoints.Clear();
+}
+
+void PyVM::EnableBreakpoint(const String& file, int line, bool enable)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line) {
+			bp.enabled = enable;
+			return;
+		}
+}
+
+bool PyVM::HasBreakpoint(const String& file, int line) const
+{
+	for(const auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled)
+			return true;
+	return false;
+}
+
+bool PyVM::CheckBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled) {
+			bp.hit_count++;
+			WhenBreakpointHit(file, line);
+			return true;
+		}
+	return false;
+}
+
+Vector<PyVM::StackFrame> PyVM::GetCallStack() const
+{
+	Vector<StackFrame> stack;
+
+	for(int i = frames.GetCount() - 1; i >= 0; i--) {
+		const Frame& f = frames[i];
+		StackFrame sf;
+		sf.frame_index = i;
+		sf.locals = &f.locals;
+
+		// Extract function name from PyValue
+		if(f.func.GetType() == PY_FUNCTION) {
+			sf.function_name = f.func.GetLambda().name;
+		}
+		else {
+			sf.function_name = "<builtin>";
+		}
+
+		// Get current file:line from IR
+		if(f.pc < f.ir->GetCount()) {
+			sf.file = (*f.ir)[f.pc].file;
+			sf.line = (*f.ir)[f.pc].line;
+		}
+		else if(!f.ir->IsEmpty()) {
+			sf.file = f.ir->Top().file;
+			sf.line = f.ir->Top().line;
+		}
+
+		stack.Add(sf);
+	}
+
+	return stack;
+}
+
+const VectorMap<PyValue, PyValue>& PyVM::GetLocals(int frame_index) const
+{
+	ASSERT(frame_index >= 0 && frame_index < frames.GetCount());
+	return frames[frame_index].locals;
+}
+
 void PyVM::SetIR(Vector<PyIR>& _ir)
 {
 	frames.Clear();
@@ -1575,11 +1672,74 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 	return res;
 }
 
+void PyVM::Continue()
+{
+	if(debug_state == DEBUG_PAUSED)
+		debug_state = DEBUG_RUNNING;
+}
+
+void PyVM::Pause()
+{
+	debug_state = DEBUG_PAUSED;
+}
+
+void PyVM::StepOver()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OVER;
+		step_frame_depth = frames.GetCount();
+	}
+}
+
+void PyVM::StepIn()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_IN;
+	}
+}
+
+void PyVM::StepOut()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OUT;
+		step_frame_depth = frames.GetCount() - 1;
+	}
+}
+
 bool PyVM::Step()
 {
 	if(frames.IsEmpty()) return false;
 	
 	Frame& frame = TopFrame();
+
+	// Get current location (file:line) from IR metadata
+	if(frame.pc < frame.ir->GetCount()) {
+		const PyIR& instr = (*frame.ir)[frame.pc];
+		current_file = instr.file;
+		current_line = instr.line;
+
+		// Check for breakpoint
+		if(debug_state == DEBUG_RUNNING && HasBreakpoint(current_file, current_line)) {
+			if(CheckBreakpoint(current_file, current_line)) {
+				debug_state = DEBUG_PAUSED;
+				return true; // Paused at breakpoint
+			}
+		}
+
+		// Handle stepping modes
+		if(debug_state == DEBUG_STEP_IN) {
+			debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OVER) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OUT) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+	}
+
 	if(frame.pc >= frame.ir->GetCount()) {
 		PYVM_TRACE("PYVM frame-end drop function");
 		ReleaseLocals(frame.locals);

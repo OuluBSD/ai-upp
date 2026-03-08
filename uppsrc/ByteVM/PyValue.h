@@ -152,8 +152,14 @@ public:
 	bool operator<(const PyValue& other) const;
 
 	static PyValue None() { return PyValue(); }
-	static PyValue True() { return PyValue(true); }
-	static PyValue False() { return PyValue(false); }
+	#ifdef True
+#undef True
+#endif
+        static PyValue True() { return PyValue(true); }
+	#ifdef False
+#undef False
+#endif
+        static PyValue False() { return PyValue(false); }
 	static PyValue List();
 	static PyValue Tuple();
 	static PyValue Dict();

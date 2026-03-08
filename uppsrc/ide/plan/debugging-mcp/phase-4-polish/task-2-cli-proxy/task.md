@@ -172,4 +172,4 @@ echo '{"jsonrpc":"2.0","id":"1","method":"debug.state","params":{}}' | bin/dbg
 uppsrc/ide/MCP/mcp_client.sh
 ```
 
-## Status: TODO
+## Status: DONE

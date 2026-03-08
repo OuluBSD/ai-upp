@@ -100,4 +100,4 @@ r.Add("resources", true);
 r.Add("resource_methods", "resource.list,resource.get");
 ```
 
-## Status: TODO
+## Status: DONE

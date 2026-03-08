@@ -1,7 +1,10 @@
 #include "ComputerVision.h"
+#include <AMP/AMP.h>
 
 
 NAMESPACE_UPP
+
+using namespace concurrency;
 
 
 void KeypointMatch::Set(int screen_idx, int pattern_lev, int pattern_idx, int distance) {
@@ -308,8 +311,92 @@ void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<B
 }
 
 void Orb::DescribeAmp(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
-	// Extension point: AMP backend implementation can replace this path.
-	DescribeCpu(src, corners, descriptors);
+	const int corner_count = corners.GetCount();
+	descriptors.SetCount(corner_count);
+	if (!corner_count)
+		return;
+	const int width = src.cols;
+	const int height = src.rows;
+	const int src_size = src.data.GetCount();
+	if (!width || !height || !src_size)
+		return;
+
+	Vector<int> x(corner_count), y(corner_count);
+	Vector<float> c(corner_count), s(corner_count);
+	for (int i = 0; i < corner_count; i++) {
+		const Keypoint& kp = corners[i];
+		x[i] = kp.x;
+		y[i] = kp.y;
+		c[i] = (float)FastCos(kp.angle);
+		s[i] = (float)FastSin(kp.angle);
+	}
+
+	Vector<int> pattern;
+	const int pattern_len = (int)(sizeof(bit_pattern_31_) / sizeof(bit_pattern_31_[0]));
+	pattern.SetCount(pattern_len);
+	for (int i = 0; i < pattern_len; i++)
+		pattern[i] = bit_pattern_31_[i];
+
+	Vector<uint32> words;
+	words.SetCount(corner_count * 8, 0);
+
+	Vector<uint32> src_u32;
+	src_u32.SetCount(src_size);
+	for (int i = 0; i < src_size; i++)
+		src_u32[i] = src.data[i];
+
+	array_view<uint32, 1> src_view(src_size, src_u32.Begin());
+	array_view<int, 1> x_view(corner_count, x.Begin());
+	array_view<int, 1> y_view(corner_count, y.Begin());
+	array_view<float, 1> c_view(corner_count, c.Begin());
+	array_view<float, 1> s_view(corner_count, s.Begin());
+	array_view<int, 1> pattern_view(pattern.GetCount(), pattern.Begin());
+	array_view<uint32, 1> out_view(words.GetCount(), words.Begin());
+
+	parallel_for_each(out_view.extent, [=](index<1> idx) PARALLEL {
+		int k = idx[0];
+		int ci = k >> 3;
+		int wi = k & 7;
+		int px = x_view[ci];
+		int py = y_view[ci];
+		float ca = c_view[ci];
+		float sa = s_view[ci];
+		uint32 packed = 0;
+		for (int bi = 0; bi < 4; bi++) {
+			int byte_idx = wi * 4 + bi;
+			int patt = byte_idx * 8 * 4;
+			int val = 0;
+			for (int bit = 0; bit < 8; bit++, patt += 4) {
+				int x0 = pattern_view[patt + 0];
+				int y0 = pattern_view[patt + 1];
+				int x1 = pattern_view[patt + 2];
+				int y1 = pattern_view[patt + 3];
+
+				int sx0 = px + (int)(x0 * ca - y0 * sa);
+				int sy0 = py + (int)(x0 * sa + y0 * ca);
+				int sx1 = px + (int)(x1 * ca - y1 * sa);
+				int sy1 = py + (int)(x1 * sa + y1 * ca);
+
+				if (sx0 < 0) sx0 = 0; else if (sx0 >= width) sx0 = width - 1;
+				if (sy0 < 0) sy0 = 0; else if (sy0 >= height) sy0 = height - 1;
+				if (sx1 < 0) sx1 = 0; else if (sx1 >= width) sx1 = width - 1;
+				if (sy1 < 0) sy1 = 0; else if (sy1 >= height) sy1 = height - 1;
+
+				uint32 t0 = src_view[sy0 * width + sx0];
+				uint32 t1 = src_view[sy1 * width + sx1];
+				val |= (t0 < t1) << bit;
+			}
+			packed |= ((uint32)val) << (bi * 8);
+		}
+		out_view[idx] = packed;
+	});
+	out_view.synchronize();
+
+	for (int i = 0; i < corner_count; i++) {
+		BinDescriptor& d = descriptors[i];
+		for (int j = 0; j < 8; j++)
+			d.u32[j] = words[i * 8 + j];
+	}
 }
 
 void Orb::DescribeOglStub(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {

@@ -40,7 +40,9 @@ void OpticalFlowLKBase::MakeRandomPoints() {
 void OpticalFlowLKBase::Process() {
     // swap flow data
     Swap(prev_xy, curr_xy);
-    Swap(prev_img_pyr, curr_img_pyr);
+    Vector<DMatrix<byte>> tmp = pick(prev_img_pyr.data);
+    prev_img_pyr.data = pick(curr_img_pyr.data);
+    curr_img_pyr.data = pick(tmp);
 
     MakeRandomPoints();
     

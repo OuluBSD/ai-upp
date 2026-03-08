@@ -1,7 +1,7 @@
 #ifndef _ScreenGame_RecognitionData_h_
 #define _ScreenGame_RecognitionData_h_
 
-#include <GameCommon/Rules/EngineDefs.h>
+#include <GameRules/EngineDefs.h>
 
 namespace Upp {
 

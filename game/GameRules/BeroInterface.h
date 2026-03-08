@@ -2,8 +2,8 @@
 #define _CardEngine_BeroInterface_h_
 
 #include <CFR/CFR.h>
-#include <GameCommon/Rules/EngineDefs.h>
-#include <GameCommon/Rules/GameDefs.h>
+#include <GameRules/EngineDefs.h>
+#include <GameRules/GameDefs.h>
 
 NAMESPACE_UPP
 

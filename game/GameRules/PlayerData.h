@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include <map>
-#include <GameCommon/Rules/GameDefs.h>
+#include <GameRules/GameDefs.h>
 #include <EditorCommon/CryptHelper.h>
 
 NAMESPACE_UPP

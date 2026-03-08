@@ -1,13 +1,13 @@
-#include <GameCommon/Rules/Game.h>
+#include <GameRules/Game.h>
 #include <GameCommon/Poker/LocalHand.h>
-#include <GameCommon/Rules/EngineFactory.h>
-#include <GameCommon/Rules/GuiInterface.h>
-#include <GameCommon/Rules/EngineLog.h>
-#include <GameCommon/Rules/HandInterface.h>
-#include <GameCommon/Rules/BoardInterface.h>
-#include <GameCommon/Rules/PlayerInterface.h>
-#include <GameCommon/Rules/BeroInterface.h>
-#include <GameCommon/Rules/Exception.h>
+#include <GameRules/EngineFactory.h>
+#include <GameRules/GuiInterface.h>
+#include <GameRules/EngineLog.h>
+#include <GameRules/HandInterface.h>
+#include <GameRules/BoardInterface.h>
+#include <GameRules/PlayerInterface.h>
+#include <GameRules/BeroInterface.h>
+#include <GameRules/Exception.h>
 
 NAMESPACE_UPP
 

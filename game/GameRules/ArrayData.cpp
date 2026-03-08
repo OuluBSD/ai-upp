@@ -1,5 +1,5 @@
-#include <GameCommon/Rules/ArrayData.h>
-#include <GameCommon/Rules/EngineLog.h>
+#include <GameRules/ArrayData.h>
+#include <GameRules/EngineLog.h>
 
 NAMESPACE_UPP
 

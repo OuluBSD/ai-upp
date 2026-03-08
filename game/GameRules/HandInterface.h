@@ -1,8 +1,8 @@
 #ifndef _CardEngine_HandInterface_h_
 #define _CardEngine_HandInterface_h_
 
-#include <GameCommon/Rules/EngineDefs.h>
-#include <GameCommon/Rules/GameDefs.h>
+#include <GameRules/EngineDefs.h>
+#include <GameRules/GameDefs.h>
 
 NAMESPACE_UPP
 

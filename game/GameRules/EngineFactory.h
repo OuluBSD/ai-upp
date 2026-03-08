@@ -1,9 +1,9 @@
 #ifndef _CardEngine_EngineFactory_h_
 #define _CardEngine_EngineFactory_h_
 
-#include <GameCommon/Rules/EngineDefs.h>
-#include <GameCommon/Rules/GameDefs.h>
-#include <GameCommon/Rules/PlayerData.h>
+#include <GameRules/EngineDefs.h>
+#include <GameRules/GameDefs.h>
+#include <GameRules/PlayerData.h>
 
 NAMESPACE_UPP
 

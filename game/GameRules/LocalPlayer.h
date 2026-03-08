@@ -1,7 +1,7 @@
 #ifndef _GameCommon_Rules_LocalPlayer_h_
 #define _GameCommon_Rules_LocalPlayer_h_
 
-#include <GameCommon/Rules/PlayerInterface.h>
+#include <GameRules/PlayerInterface.h>
 
 NAMESPACE_UPP
 

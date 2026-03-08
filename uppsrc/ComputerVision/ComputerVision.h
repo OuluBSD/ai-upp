@@ -27,6 +27,9 @@ NAMESPACE_UPP
 #include "OnepassStabilizer.h"
 #include "OrbSystem.h"
 
+extern const char* fast_score_map_shader;
+extern const char* fast_nms_shader;
+
 END_UPP_NAMESPACE
 
 #endif

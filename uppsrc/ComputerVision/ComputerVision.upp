@@ -7,6 +7,8 @@ file
 	AGENTS.md,
 	Copying,
 	ComputerVision.h,
+	Backend.h,
+	Backend.cpp,
 	OrbSystem.h,
 	OrbSystem.cpp,
 	Cascade.h,

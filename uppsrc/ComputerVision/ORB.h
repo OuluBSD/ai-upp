@@ -24,6 +24,9 @@ public:
 	Orb();
 	void RectifyPatch(const ByteMat& src, ByteMat& dst, double angle, int px, int py, int psize);
 	void Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors);
+	void DescribeCpu(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors);
+	void DescribeAmp(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors);
+	void DescribeOglStub(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors);
 	
 };
 

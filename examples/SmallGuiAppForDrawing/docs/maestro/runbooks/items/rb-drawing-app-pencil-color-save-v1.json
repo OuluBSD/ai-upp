@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-pencil-color-save-v1",
+	"title": "Drawing App with Pencil and Color Tools",
+	"goal": "Verify core drawing functionality including pencil tool usage, color selection, and saving the canvas.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the application",
+			"command": "./bin/SmallGuiAppForDrawing",
+			"expected": "Application opens with a blank canvas and a toolbar containing Pencil, Color, and Save buttons.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Click the 'Pencil' button in the toolbar",
+			"command": "",
+			"expected": "The pencil tool is activated for drawing.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Click the color selector and choose a color (e.g., Red)",
+			"command": "",
+			"expected": "The active drawing color is updated to the selected color.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Click and drag the mouse across the canvas",
+			"command": "",
+			"expected": "A line is drawn on the canvas following the mouse path in the selected color.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the 'Save' button in the toolbar",
+			"command": "",
+			"expected": "The drawing is saved to a file (e.g., drawing.png or a save dialog appears).",
+			"variants": [
+
+			]
+		}
+	]
+}

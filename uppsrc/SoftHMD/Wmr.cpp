@@ -59,6 +59,7 @@ static void vec3_from_hololens_accel(int32 smp[3][4], int i, vec3* out_vec)
 
 static void HandleTrackerSensorMsg(WmrPrivateData* priv, unsigned char* buffer, int size)
 {
+	LOGI("HandleTrackerSensorMsg: size=%d", size);
 	uint64 last_sample_tick = priv->sensor.gyro_timestamp[3];
 
 	if(!HololensSensorsDecodePacket(&priv->sensor, buffer, size)){
@@ -92,6 +93,7 @@ static void Wmr_UpdateDevice(Device* device)
 
 	unsigned char buffer[FEATURE_BUFFER_SIZE];
 
+	int read_count = 0;
 	while(true){
 		int size = hid_read(priv->hmd_imu, buffer, FEATURE_BUFFER_SIZE);
 		if(size < 0){
@@ -101,11 +103,15 @@ static void Wmr_UpdateDevice(Device* device)
 			return; // No more messages, return.
 		}
 
+		if (read_count == 0) {
+			LOGI("HID read: first byte=%02x, size=%d", buffer[0], size);
+		}
+		read_count++;
 		// currently the only message type the hardware supports (I think)
 		if(buffer[0] == HOLOLENS_IRQ_SENSORS){
 			HandleTrackerSensorMsg(priv, buffer, size);
 		}else if(buffer[0] != HOLOLENS_IRQ_DEBUG){
-			LOGE("unknown message type: %u", buffer[0]);
+			LOGE("unknown message type: %d, size=%d, data=%02x %02x %02x", (int)buffer[0], size, buffer[0], buffer[1], buffer[2]);
 		}
 	}
 }
@@ -121,6 +127,18 @@ static int GetFloat(Device* device, FloatValue type, float* out)
 
 	case HMD_POSITION_VECTOR:
 		out[0] = out[1] = out[2] = 0;
+		break;
+
+	case HMD_ACCELEROMETER_VECTOR:
+		*(vec3*)out = priv->raw_accel;
+		break;
+
+	case HMD_GYROSCOPE_VECTOR:
+		*(vec3*)out = priv->raw_gyro;
+		break;
+
+	case HMD_MAGNETOMETER_VECTOR:
+		out[0] = out[1] = out[2] = 0; // WMR doesn't have magnetometer data yet
 		break;
 
 	case HMD_DISTORTION_K:
@@ -204,8 +222,8 @@ static int config_command_sync(hid_device* hmd_imu, unsigned char type,
 
 	hid_write(hmd_imu, cmd, sizeof(cmd));
 	do {
-		int size = hid_read(hmd_imu, buf, len);
-		if (size == -1)
+		int size = hid_read_timeout(hmd_imu, buf, len, 1000);
+		if (size <= 0)
 			return -1;
 		if (buf[0] == HOLOLENS_IRQ_CONTROL)
 			return size;
@@ -335,13 +353,13 @@ static Device* OpenHmdDevice(Driver* driver, DeviceDescription* desc)
 
 	priv->base.ctx = driver->ctx;
 
-	int idx = atoi(desc->path);
-
 	// Open the HMD device
-	priv->hmd_imu = OpenDevice_idx(MICROSOFT_VID, HOLOLENS_SENSORS_PID, 0, 1, idx);
+	priv->hmd_imu = hid_open_path(desc->path);
 
-	if(!priv->hmd_imu)
+	if(!priv->hmd_imu) {
+		lhmd_set_error(driver->ctx, "Could not open %s", desc->path);
 		goto cleanup;
+	}
 
 	//Bunch of temp variables to set to the display configs
 	int resolution_h, resolution_v;
@@ -407,7 +425,10 @@ static Device* OpenHmdDevice(Driver* driver, DeviceDescription* desc)
 	}
 
 	// turn the IMU on
-	hid_write(priv->hmd_imu, HololensSensorsImuOn, sizeof(HololensSensorsImuOn));
+	{
+		int wr = hid_write(priv->hmd_imu, HololensSensorsImuOn, sizeof(HololensSensorsImuOn));
+		LOGI("IMU on command sent, result=%d", wr);
+	}
 
 	// Set default device properties
 	SetDefaultDeviceProperties(&priv->base.properties);
@@ -509,12 +530,12 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 		LOG(i << ": " << HexStrPtr(cur_dev) << ": " << HexStr(cur_dev->vendor_id) << ":" << HexStr(cur_dev->product_id) << ": " << path << ", " << pss);
 		#endif
 		
-		if (cur_dev->vendor_id != MICROSOFT_VID) {
+		if (cur_dev->vendor_id != MICROSOFT_VID && cur_dev->vendor_id != HP_VID && cur_dev->vendor_id != CYPRESS_VID) {
 			cur_dev = cur_dev->next;
 			continue;
 		}
 		
-		if (cur_dev->product_id == HOLOLENS_SENSORS_PID) {
+		if (cur_dev->product_id == HOLOLENS_SENSORS_PID || cur_dev->product_id == HP_QHMD_PID || cur_dev->product_id == HP_WMR_PID) {
 			DeviceDescription* desc = &list->devices[list->num_devices++];
 
 			#ifdef flagDEBUG
@@ -522,12 +543,19 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 			#endif
 			
 			strcpy(desc->driver, "OpenHMD Windows Mixed Reality Driver");
-			strcpy(desc->vendor, "Microsoft");
+			if (cur_dev->vendor_id == HP_VID)
+				strcpy(desc->vendor, "HP");
+			else if (cur_dev->vendor_id == CYPRESS_VID)
+				strcpy(desc->vendor, "Cypress");
+			else
+				strcpy(desc->vendor, "Microsoft");
 			strcpy(desc->product, "HoloLens Sensors");
 
+			desc->vendor_id = cur_dev->vendor_id;
+			desc->product_id = cur_dev->product_id;
 			desc->revision = 0;
 
-			snprintf(desc->path, HMD_STR_SIZE, "%d", hmd_idx);
+			strcpy(desc->path, cur_dev->path);
 
 			desc->driver_ptr = driver;
 			desc->id = id++;
@@ -549,9 +577,11 @@ static void GetDeviceList(Driver* driver, DeviceList* list)
 			// "Motion controller - Left" or "Motion controller - Right"
 			snprintf(desc->product, HMD_STR_SIZE, "%S", cur_dev->product_string);
 
+			desc->vendor_id = cur_dev->vendor_id;
+			desc->product_id = cur_dev->product_id;
 			desc->revision = 0;
 
-			snprintf(desc->path, HMD_STR_SIZE, "%d", controller_idx);
+			strcpy(desc->path, cur_dev->path);
 
 			desc->driver_ptr = driver;
 			desc->id = id++;

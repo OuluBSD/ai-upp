@@ -1,59 +1,11 @@
 #ifndef _GraphLib_GraphNodeCtrl_h_
 #define _GraphLib_GraphNodeCtrl_h_
 
-#include "GraphLib.h"
-
 namespace GraphLib {
 
-// Forward declarations
-struct Pin;
-struct GroupNode;
+using namespace Upp;
 
 class GraphNodeCtrl : public Ctrl {
-private:
-    GraphLayout<Spring> graphLayout;
-    Renderer* renderer;
-    bool isDragging;
-    Point dragStart;
-    Node* selectedNode;
-    Pin* selectedPin;
-    GroupNode* selectedGroup;  // Added for GroupNode support
-    Vector<Node*> selectedNodes;
-    Vector<Edge*> selectedEdges;
-    Vector<GroupNode*> selectedGroups;  // Added for GroupNode support
-    Node* dragNode; // Node being dragged
-    GroupNode* dragGroup; // Group being dragged (for header dragging)
-
-    // Box selection state
-    bool isBoxSelecting;
-    Point boxSelectStart;
-    Point boxSelectEnd;
-
-    // Hover state
-    Node* hoveredNode;
-    Pin* hoveredPin;
-    Edge* hoveredEdge;
-    GroupNode* hoveredGroup;
-
-    // Link creation state
-    bool isCreatingLink;
-    Pin* linkStartPin;
-
-    // Navigation (zoom/pan) state
-    double zoomFactor;
-    Point panOffset;
-    Point lastPanPoint;
-    bool isPanning;
-    
-    // Animation variables
-    bool isZoomingToTarget;
-    double targetZoomFactor;
-    Point targetPanOffset;
-    Point startPanOffset;
-    double startZoomFactor;
-    int animationStep;
-    int animationSteps;
-
 public:
     typedef GraphNodeCtrl CLASSNAME;
 
@@ -106,7 +58,7 @@ public:
     void SelectNode(Node* node);
     void SelectPin(Pin* pin);
     void SelectEdge(Edge* edge);
-    void SelectGroup(GroupNode* group);  // Added for GroupNode support
+    void SelectGroup(GroupNode* group);
     void ClearSelection();
 
     // Helper methods
@@ -125,7 +77,55 @@ public:
     void CopyNodes();
     void PasteNodes(Point at);
 
+    // Callbacks for interaction
+    Function<void(Node& node)> WhenNodeClick;
+    Function<void(Node& node)> WhenNodeRightClick;
+    Function<void(GroupNode& group)> WhenGroupClick;
+
 private:
+    GraphLayout<Spring> graphLayout;
+    Renderer* renderer;
+    bool isDragging;
+    Point dragStart;
+    Node* selectedNode;
+    Pin* selectedPin;
+    GroupNode* selectedGroup;
+    Vector<Node*> selectedNodes;
+    Vector<Edge*> selectedEdges;
+    Vector<GroupNode*> selectedGroups;
+    Node* dragNode;
+    GroupNode* dragGroup;
+
+    // Box selection state
+    bool isBoxSelecting;
+    Point boxSelectStart;
+    Point boxSelectEnd;
+
+    // Hover state
+    Node* hoveredNode;
+    Pin* hoveredPin;
+    Edge* hoveredEdge;
+    GroupNode* hoveredGroup;
+
+    // Link creation state
+    bool isCreatingLink;
+    Pin* linkStartPin;
+
+    // Navigation (zoom/pan) state
+    double zoomFactor;
+    Point panOffset;
+    Point lastPanPoint;
+    bool isPanning;
+    
+    // Animation variables
+    bool isZoomingToTarget;
+    double targetZoomFactor;
+    Point targetPanOffset;
+    Point startPanOffset;
+    double startZoomFactor;
+    int animationStep;
+    int animationSteps;
+
     void UpdateLayout();
     void UpdateNodePositions();
     void DrawLinkPreview(Draw& w, Point start, Point end);

@@ -32,6 +32,8 @@ typedef struct {
 	char vendor[HMD_STR_SIZE];
 	char product[HMD_STR_SIZE];
 	char path[HMD_STR_SIZE];
+	int vendor_id;
+	int product_id;
 	int revision;
 	int id;
 	uint32 device_flags; // DeviceFlags
@@ -140,6 +142,7 @@ void SetUniversalAberrationK(DeviceProperties* props, float r, float g, float b)
 // drivers
 Driver* CreateDummyDriver(Context* ctx);
 Driver* CreateWmrDriver(Context* ctx);
+Driver* CreateOculusDriver(Context* ctx);
 Driver* CreatePsvrDriver(Context* ctx);
 Driver* CreateAndroidDriver(Context* ctx);
 

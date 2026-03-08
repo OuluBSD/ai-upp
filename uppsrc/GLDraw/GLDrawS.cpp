@@ -21,6 +21,7 @@ void CheckError()
 
 void initializeGL()
 {
+	glewExperimental = GL_TRUE;
 	glewInit();
 
 	gl_image.Create(R"(

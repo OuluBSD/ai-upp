@@ -5,10 +5,10 @@ NAMESPACE_UPP
 quat quat::GetConjugate() const {
 	// https://mathworld.wolfram.com/QuaternionConjugate.html
 	quat q;
-	q.data[0] = q.data[0];
-	q.data[1] = -q.data[1];
-	q.data[2] = -q.data[2];
-	q.data[3] = -q.data[3];
+	q.data[0] = data[0];
+	q.data[1] = -data[1];
+	q.data[2] = -data[2];
+	q.data[3] = data[3];
 	return q;
 }
 

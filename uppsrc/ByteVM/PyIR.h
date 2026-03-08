@@ -8,14 +8,15 @@ struct PyIR : Moveable<PyIR> {
 	PyValue arg;
 	int iarg;
 	int line;
+	String file;
 
 	PyIR() : code(PY_NOP), iarg(0), line(0) {}
-	PyIR(int code, int line = 0) : code(code), iarg(0), line(line) {}
-	PyIR(int code, int iarg, int line = 0) : code(code), iarg(iarg), line(line) {}
-	PyIR(int code, PyValue arg, int line = 0) : code(code), arg(arg), iarg(0), line(line) {}
+	PyIR(int code, int line = 0, String file = String()) : code(code), iarg(0), line(line), file(file) {}
+	PyIR(int code, int iarg, int line = 0, String file = String()) : code(code), iarg(iarg), line(line), file(file) {}
+	PyIR(int code, PyValue arg, int line = 0, String file = String()) : code(code), arg(arg), iarg(0), line(line), file(file) {}
 
-	static PyIR Const(const PyValue& v, int l = 0) {
-		PyIR ir(PY_LOAD_CONST, 0, l);
+	static PyIR Const(const PyValue& v, int l = 0, String f = String()) {
+		PyIR ir(PY_LOAD_CONST, 0, l, f);
 		ir.arg = v;
 		return ir;
 	}
@@ -26,6 +27,7 @@ struct PyIR : Moveable<PyIR> {
 struct PyLambda : PyValue::RefCount {
 	String         name;
 	Vector<String> arg;
+	Vector<PyValue> arg_values;
 	Vector<PyIR>   ir;
 	PyBuiltin      builtin = nullptr;
 	void          *user_data = nullptr;

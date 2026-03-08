@@ -57,6 +57,11 @@ Context* CreateContext(void)
 	ctx->drivers[ctx->num_drivers++] = CreateWmrDriver(ctx);
 #endif
 
+#define DRIVER_OCULUS 1
+#if DRIVER_OCULUS
+	ctx->drivers[ctx->num_drivers++] = CreateOculusDriver(ctx);
+#endif
+
 #if DRIVER_PSVR
 	ctx->drivers[ctx->num_drivers++] = CreatePsvrDriver(ctx);
 #endif
@@ -177,6 +182,14 @@ int GetListInt(Context* ctx, int index, IntValue type, int* out)
 
 	case HMD_DEVICE_FLAGS:
 		*out = ctx->list.devices[index].device_flags;
+		return HMD_S_OK;
+
+	case HMD_VENDOR_ID:
+		*out = ctx->list.devices[index].vendor_id;
+		return HMD_S_OK;
+
+	case HMD_PRODUCT_ID:
+		*out = ctx->list.devices[index].product_id;
 		return HMD_S_OK;
 
 	default:

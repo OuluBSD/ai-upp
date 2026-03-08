@@ -1,7 +1,7 @@
 # Optional eon keywords
 
 ### Copy-paste list
-AUDIO BUILTIN_PORTAUDIO CAMERA DX10 DX11 DX12 DX9 FBO FLUIDLITE FLUIDSYNTH GUBO HACK HAL LOCALHMD LV2 MEDIA MIDI OGL OPENCV OPENHMD PORTAUDIO SDL2 SOFTHMD UWP VIDEO VOLUMETRIC VR X11 
+AUDIO BUILTIN_PORTAUDIO CAMERA DX10 DX11 DX12 DX9 FBO FLUIDLITE FLUIDSYNTH GUBO HACK HAL LV2 MEDIA MIDI OGL OPENCV OPENHMD PORTAUDIO SDL2 SOFTHMD UWP VIDEO VOLUMETRIC VR X11 
 
 ### Explanations
 
@@ -43,9 +43,6 @@ Generic flag for very experimental code.
 
 ##### HAL
 Hardware Abstraction Layer. Needed when using all-in-one libraries like SDL or Allegro or Microsoft equivalents.
-
-##### LOCALHMD
-Compile builtin openhmd with a lot of changes (fork basically).
 
 ##### LV2
 Support for LV2 effects and instruments.

@@ -120,6 +120,7 @@ public:
 	void SetRect(Rect r);
 	void Render(const RealtimeSourceConfig& cfg);
 	bool Recv(int ch_i, const Packet& p);
+	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch);
 	Draw& BeginDraw();
 	void CommitDraw();
 	void FrameCopy(const ValFormat& vfmt, const byte* data, int len) {}
@@ -129,7 +130,12 @@ public:
 	
 	Buffer& GetBuffer() {return bf.GetBuffer();}
 	
+	static GfxAccelAtom* latest;
+	
 };
+
+template <class Gfx>
+GfxAccelAtom<Gfx>* GfxAccelAtom<Gfx>::latest = 0;
 
 
 END_UPP_NAMESPACE

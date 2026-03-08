@@ -137,6 +137,8 @@ public:
 
 	const VectorMap<PyValue, PyValue>& GetDict() const { ASSERT(type == PY_DICT); return dict->d; }
 
+	bool        Contains(const PyValue& v) const;
+
 		Value  ToValue() const;
 
 		String ToString() const;
@@ -150,12 +152,20 @@ public:
 	bool operator<(const PyValue& other) const;
 
 	static PyValue None() { return PyValue(); }
-	static PyValue True() { return PyValue(true); }
-	static PyValue False() { return PyValue(false); }
+	#ifdef True
+#undef True
+#endif
+        static PyValue True() { return PyValue(true); }
+	#ifdef False
+#undef False
+#endif
+        static PyValue False() { return PyValue(false); }
 	static PyValue List();
 	static PyValue Tuple();
 	static PyValue Dict();
 	static PyValue Set();
+	static PyValue Iterator(PyIter *it);
+	static PyValue UserData(PyUserData *ud);
 	static PyValue Function(const String& name, PyBuiltin builtin = nullptr, void* user_data = nullptr);
 	static PyValue UserDataNonOwning(PyUserData *ud);
 	static PyValue BoundMethod(const PyValue& func, const PyValue& self);
@@ -170,6 +180,7 @@ public:
 struct PyUserData : PyValue::RefCount {
 	virtual String GetTypeName() const = 0;
 	virtual PyValue GetAttr(const String& name) { return PyValue::None(); }
+	virtual bool SetAttr(const String& name, const PyValue& v) { return false; }
 	virtual ~PyUserData() {}
 };
 
@@ -185,9 +196,9 @@ struct PyRangeIter : PyIter {
 };
 
 struct PyVectorIter : PyIter {
-	const Vector<PyValue>& v;
+	PyValue v;
 	int i = 0;
-	PyVectorIter(const Vector<PyValue>& v) : v(v) {}
+	PyVectorIter(const PyValue& v) : v(v) {}
 	virtual PyValue Next() override;
 };
 

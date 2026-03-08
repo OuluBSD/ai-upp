@@ -1,8 +1,6 @@
 #ifndef _GraphLib_GroupNode_h_
 #define _GraphLib_GroupNode_h_
 
-#include <Core/Core.h>  // Include Core U++ types
-
 namespace GraphLib {
 
 // A GroupNode represents a container that can hold other nodes
@@ -83,5 +81,7 @@ struct GroupNode : Upp::Moveable<GroupNode> {
 };
 
 }
+
+
 
 #endif

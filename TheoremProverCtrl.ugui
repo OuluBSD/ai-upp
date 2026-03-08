@@ -1,0 +1,3 @@
+constraints:
+  - "Visible(input) and Visible(output)"
+  - "Label(input) and Label(output)"

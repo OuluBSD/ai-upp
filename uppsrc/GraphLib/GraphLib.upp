@@ -13,6 +13,8 @@ file
 	Renderer.cpp,
 	GraphNodeCtrl.h,
 	GraphNodeCtrl.cpp,
+	GroupNode.cpp,
+	GroupNode.h,
 	Layout readonly separator,
 	Layout.h,
 	Layout.cpp,

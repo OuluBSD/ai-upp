@@ -1,0 +1,141 @@
+rocket = None
+obs_a = None
+obs_b = None
+obs_c = None
+
+obs_a_x = 0.0
+obs_a_z = 0.0
+obs_b_x = 0.0
+obs_b_z = 0.0
+obs_c_x = 0.0
+obs_c_z = 0.0
+
+obs_speed = 6.0
+player_x = 0.0
+player_z = 0.0
+move_speed = 6.0
+spawn_z = 18.0
+min_x = -6.0
+max_x = 6.0
+toggle = 1.0
+
+
+def _set_pos(obj, x, y, z):
+    if obj == None:
+        return
+    obj.x = x
+    obj.y = y
+    obj.z = z
+
+
+def _set_scale(obj, sx, sy, sz):
+    if obj == None:
+        return
+    obj.scale = (sx, sy, sz)
+
+
+def _reset_a():
+    global obs_a_x, obs_a_z, toggle
+    obs_a_z = spawn_z + 0.0
+    obs_a_x = toggle * 4.0
+    toggle = -toggle
+
+
+def _reset_b():
+    global obs_b_x, obs_b_z, toggle
+    obs_b_z = spawn_z + 6.0
+    obs_b_x = toggle * 2.0
+    toggle = -toggle
+
+
+def _reset_c():
+    global obs_c_x, obs_c_z, toggle
+    obs_c_z = spawn_z + 12.0
+    obs_c_x = toggle * 5.0
+    toggle = -toggle
+
+
+def on_load():
+    return
+
+
+def on_start():
+    global rocket, obs_a, obs_b, obs_c
+    global player_x, player_z
+    _set_defaults()
+    rocket = stage.find("rocket")
+    obs_a = stage.find("obstacle0")
+    obs_b = stage.find("obstacle1")
+    obs_c = stage.find("obstacle2")
+
+    player_x = 0.0
+    player_z = 0.0
+
+    if rocket != None:
+        _set_scale(rocket, 0.5, 0.5, 1.5)
+        _set_pos(rocket, player_x, 0.5, player_z)
+    if obs_a != None:
+        _set_scale(obs_a, 2.0, 2.0, 2.0)
+    if obs_b != None:
+        _set_scale(obs_b, 2.0, 2.0, 2.0)
+    if obs_c != None:
+        _set_scale(obs_c, 2.0, 2.0, 2.0)
+
+    _reset_a()
+    _reset_b()
+    _reset_c()
+
+
+def _set_defaults():
+    global toggle
+    toggle = 1.0
+
+
+def _check_hit(x, z):
+    if abs(x - player_x) < 1.2 and abs(z - player_z) < 1.2:
+        trace("Crashed")
+        exec.exit()
+
+
+def on_frame(dt):
+    global player_x, player_z
+    global obs_a_x, obs_a_z, obs_b_x, obs_b_z, obs_c_x, obs_c_z
+
+    if rocket == None:
+        return
+
+    if input.isKeyDown(ord('A')):
+        player_x -= move_speed * dt
+    if input.isKeyDown(ord('D')):
+        player_x += move_speed * dt
+    if input.isKeyDown(ord('W')):
+        player_z += move_speed * dt
+    if input.isKeyDown(ord('S')):
+        player_z -= move_speed * dt
+    if player_x < min_x:
+        player_x = min_x
+    if player_x > max_x:
+        player_x = max_x
+
+    _set_pos(rocket, player_x, 0.5, player_z)
+
+    obs_a_z -= obs_speed * dt
+    if obs_a_z < -10.0:
+        _reset_a()
+    if obs_a != None:
+        _set_pos(obs_a, obs_a_x, 0.5, obs_a_z)
+    _check_hit(obs_a_x, obs_a_z)
+
+    obs_b_z -= obs_speed * dt
+    if obs_b_z < -10.0:
+        _reset_b()
+    if obs_b != None:
+        _set_pos(obs_b, obs_b_x, 0.5, obs_b_z)
+    _check_hit(obs_b_x, obs_b_z)
+
+    obs_c_z -= obs_speed * dt
+    if obs_c_z < -10.0:
+        _reset_c()
+    if obs_c != None:
+        _set_pos(obs_c, obs_c_x, 0.5, obs_c_z)
+    _check_hit(obs_c_x, obs_c_z)

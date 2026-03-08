@@ -7,6 +7,9 @@
 #include <Core/ProcessUtil/ProcessUtil.h>
 #include <Draw/Draw.h>
 
+#undef Complex
+#undef None
+
 NAMESPACE_UPP
 
 #include "SimpleImage.h"

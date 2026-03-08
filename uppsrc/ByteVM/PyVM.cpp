@@ -10,6 +10,30 @@
 
 namespace Upp {
 
+#ifdef flagPYVM_TRACE
+#define PYVM_TRACE(x) do { String __s; __s << x; VppLog() << __s; } while(0)
+#else
+#define PYVM_TRACE(x) do {} while(0)
+#endif
+
+static inline void ReleaseLocals(VectorMap<PyValue, PyValue>& locals) {
+	Vector<PyValue> keys = locals.PickKeys();
+	Vector<PyValue> values = locals.PickValues();
+	for(int i = 0; i < keys.GetCount(); i++)
+		keys[i] = PyValue::None();
+	for(int i = 0; i < values.GetCount(); i++)
+		values[i] = PyValue::None();
+	locals.Clear();
+	locals.Shrink();
+}
+
+static inline void ReleaseStack(Vector<PyValue>& stack) {
+	for(int i = 0; i < stack.GetCount(); i++)
+		stack[i] = PyValue::None();
+	stack.Clear();
+	stack.Shrink();
+}
+
 static String GetRelPath(String path, String base) {
 	path = NormalizePath(path);
 	base = NormalizePath(base);
@@ -27,18 +51,26 @@ struct PyKV : Moveable<PyKV> {
 	PyKV(PyValue k, PyValue v) : k(k), v(v) {}
 };
 
-static PyValue builtin_print(const Vector<PyValue>& args, void*) {
+static PyValue builtin_print(const Vector<PyValue>& args, void* ud) {
+	PyVM *vm = (PyVM*)ud;
+	String out;
 	for(int i = 0; i < args.GetCount(); i++) {
-		if(i) Cout() << " ";
-		Cout() << args[i].ToString();
+		if(i) out << " ";
+		out << args[i].ToString();
 	}
-	Cout() << "\n";
+	out << "\n";
+	
+	if(vm && vm->WhenPrint)
+		vm->WhenPrint(out);
+	else
+		Cout() << out;
+		
 	return PyValue::None();
 }
 
 static PyValue builtin_len(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue(0);
-	return PyValue(args[0].GetCount());
+	return PyValue((int64)args[0].GetCount());
 }
 
 static PyValue builtin_range(const Vector<PyValue>& args, void*) {
@@ -46,7 +78,7 @@ static PyValue builtin_range(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 1) stop = args[0].AsInt64();
 	else if(args.GetCount() == 2) { start = args[0].AsInt64(); stop = args[1].AsInt64(); }
 	else if(args.GetCount() == 3) { start = args[0].AsInt64(); stop = args[1].AsInt64(); step = args[2].AsInt64(); }
-	return PyValue(new PyRangeIter(start, stop, step));
+	return PyValue::Iterator(new PyRangeIter(start, stop, step));
 }
 
 static PyValue builtin_complex(const Vector<PyValue>& args, void*) {
@@ -64,8 +96,8 @@ static PyValue builtin_bool(const Vector<PyValue>& args, void*) {
 static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue::None();
 	PyValue obj = args[0];
-	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE)
-		return PyValue(new PyVectorIter(obj.GetArray()));
+	if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR)
+		return PyValue::Iterator(new PyVectorIter(obj));
 	if(obj.IsIterator())
 		return obj;
 	return PyValue::None();
@@ -91,6 +123,68 @@ static PyValue builtin_abs(const Vector<PyValue>& args, void*) {
 	if(v.IsFloat()) return PyValue(std::abs(v.AsDouble()));
 	if(v.GetType() == PY_COMPLEX) return PyValue(std::abs(v.GetComplex()));
 	return v;
+}
+
+static PyValue builtin_chr(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue("");
+	return PyValue(::Upp::String(args[0].AsInt(), 1));
+}
+
+static PyValue builtin_ord(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0);
+	::Upp::String s = args[0].ToString();
+	if(s.GetCount() > 0) return PyValue((int)(byte)s[0]);
+	return PyValue(0);
+}
+
+class PyFile : public PyUserData {
+	One<Stream> stream;
+	bool is_out;
+public:
+	PyFile(const String& path, const String& mode) {
+		is_out = mode.Find('w') >= 0 || mode.Find('a') >= 0;
+		if(mode.Find('a') >= 0) {
+			FileAppend *fa = new FileAppend();
+			fa->Open(path);
+			stream = fa;
+		} else if(mode.Find('w') >= 0) {
+			FileOut *fo = new FileOut();
+			fo->Open(path);
+			stream = fo;
+		} else {
+			FileIn *fi = new FileIn();
+			fi->Open(path);
+			stream = fi;
+		}
+	}
+	
+	virtual String GetTypeName() const override { return "file"; }
+	
+	virtual PyValue GetAttr(const String& name) override {
+		if(name == "write") return PyValue::BoundMethod(PyValue::Function("write", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(args.GetCount() > 0 && pf->is_out && pf->stream) pf->stream->Put(args[0].ToString());
+			return PyValue::None();
+		}, this), this);
+		if(name == "read") return PyValue::BoundMethod(PyValue::Function("read", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(!pf->is_out && pf->stream) return PyValue(LoadStream(*pf->stream));
+			return PyValue("");
+		}, this), this);
+		if(name == "close") return PyValue::BoundMethod(PyValue::Function("close", [](const Vector<PyValue>& args, void* ud){
+			PyFile *pf = (PyFile*)ud;
+			if(pf->stream) pf->stream->Close();
+			return PyValue::None();
+		}, this), this);
+		return PyValue::None();
+	}
+};
+
+static PyValue builtin_open(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 1) return PyValue::None();
+	String path = args[0].ToString();
+	String mode = args.GetCount() >= 2 ? args[1].ToString() : "r";
+	return PyValue(new PyFile(path, mode));
 }
 
 static PyValue builtin_str(const Vector<PyValue>& args, void*) {
@@ -599,6 +693,12 @@ static PyValue builtin_str_endswith(const Vector<PyValue>& args, void* user_data
 	return PyValue(self.EndsWith(args[1].ToString()));
 }
 
+static PyValue builtin_str_lower(const Vector<PyValue>& args, void* user_data) {
+	if(args.GetCount() < 1) return PyValue("");
+	String self = args[0].ToString();
+	return PyValue(ToLower(self));
+}
+
 static PyValue builtin_str_startswith(const Vector<PyValue>& args, void* user_data) {
 	if(args.GetCount() < 2) return PyValue(false);
 	String self = args[0].ToString();
@@ -673,7 +773,9 @@ static PyValue builtin_os_uname(const Vector<PyValue>& args, void*) {
 static PyValue builtin_sys_exit(const Vector<PyValue>& args, void*) {
 	int code = 0;
 	if(args.GetCount() >= 1) code = args[0].AsInt();
-	throw Exc("EXIT:" + AsString(code));
+	String msg = "EXIT:" + AsString(code);
+	LOG("builtin_sys_exit: throwing " << msg);
+	throw Exc(msg);
 	return PyValue::None();
 }
 
@@ -1064,13 +1166,23 @@ static PyValue builtin_threading_current_thread(const Vector<PyValue>& args, voi
 	return PyValue("MainThread"); // Simplified
 }
 
+void PyVM::Push(PyValue v)
+{
+	stack.Add(v);
+}
+
+PyValue PyVM::Pop()
+{
+	if(stack.IsEmpty())
+		throw Exc("RuntimeError: stack underflow");
+	return stack.Pop();
+}
+
 PyVM::PyVM()
 {
 	globals.GetAdd(PyValue("__name__")) = PyValue("__main__");
 
-	PyValue p_print = PyValue::Function("print");
-	p_print.GetLambdaRW().builtin = builtin_print;
-	globals.GetAdd(PyValue("print")) = p_print;
+	globals.GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
 
 	PyValue p_len = PyValue::Function("len");
 	p_len.GetLambdaRW().builtin = builtin_len;
@@ -1120,6 +1232,18 @@ PyVM::PyVM()
 	PyValue p_abs = PyValue::Function("abs");
 	p_abs.GetLambdaRW().builtin = builtin_abs;
 	globals.GetAdd(PyValue("abs")) = p_abs;
+
+	PyValue p_chr = PyValue::Function("chr");
+	p_chr.GetLambdaRW().builtin = builtin_chr;
+	globals.GetAdd(PyValue("chr")) = p_chr;
+
+	PyValue p_ord = PyValue::Function("ord");
+	p_ord.GetLambdaRW().builtin = builtin_ord;
+	globals.GetAdd(PyValue("ord")) = p_ord;
+
+	PyValue p_open = PyValue::Function("open");
+	p_open.GetLambdaRW().builtin = builtin_open;
+	globals.GetAdd(PyValue("open")) = p_open;
 
 	// shutil module
 	PyValue shutil = PyValue::Dict();
@@ -1352,6 +1476,117 @@ globals.GetAdd(PyValue("sys")) = sys;
 	globals.GetAdd(PyValue("subprocess")) = subprocess;
 }
 
+PyVM::~PyVM()
+{
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.Clear();
+	frames.Shrink();
+	ReleaseStack(stack);
+	last_result = PyValue::None();
+	Vector<PyValue> global_keys = globals.PickKeys();
+	Vector<PyValue> global_values = globals.PickValues();
+	for(int i = 0; i < global_keys.GetCount(); i++)
+		global_keys[i] = PyValue::None();
+	for(int i = 0; i < global_values.GetCount(); i++)
+		global_values[i] = PyValue::None();
+	globals.Clear();
+	globals.Shrink();
+}
+
+void PyVM::AddBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line)
+			return; // Already exists
+
+	breakpoints.Add(Breakpoint(file, line));
+}
+
+void PyVM::RemoveBreakpoint(const String& file, int line)
+{
+	for(int i = 0; i < breakpoints.GetCount(); i++)
+		if(breakpoints[i].file == file && breakpoints[i].line == line) {
+			breakpoints.Remove(i);
+			return;
+		}
+}
+
+void PyVM::ClearBreakpoints()
+{
+	breakpoints.Clear();
+}
+
+void PyVM::EnableBreakpoint(const String& file, int line, bool enable)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line) {
+			bp.enabled = enable;
+			return;
+		}
+}
+
+bool PyVM::HasBreakpoint(const String& file, int line) const
+{
+	for(const auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled)
+			return true;
+	return false;
+}
+
+bool PyVM::CheckBreakpoint(const String& file, int line)
+{
+	for(auto& bp : breakpoints)
+		if(bp.file == file && bp.line == line && bp.enabled) {
+			bp.hit_count++;
+			WhenBreakpointHit(file, line);
+			return true;
+		}
+	return false;
+}
+
+Vector<PyVM::StackFrame> PyVM::GetCallStack() const
+{
+	Vector<StackFrame> stack;
+
+	for(int i = frames.GetCount() - 1; i >= 0; i--) {
+		const Frame& f = frames[i];
+		StackFrame sf;
+		sf.frame_index = i;
+		sf.locals = &f.locals;
+
+		// Extract function name from PyValue
+		if(f.func.GetType() == PY_FUNCTION) {
+			sf.function_name = f.func.GetLambda().name;
+		}
+		else {
+			sf.function_name = "<builtin>";
+		}
+
+		// Get current file:line from IR
+		if(f.pc < f.ir->GetCount()) {
+			sf.file = (*f.ir)[f.pc].file;
+			sf.line = (*f.ir)[f.pc].line;
+		}
+		else if(!f.ir->IsEmpty()) {
+			sf.file = f.ir->Top().file;
+			sf.line = f.ir->Top().line;
+		}
+
+		stack.Add(sf);
+	}
+
+	return stack;
+}
+
+const VectorMap<PyValue, PyValue>& PyVM::GetLocals(int frame_index) const
+{
+	ASSERT(frame_index >= 0 && frame_index < frames.GetCount());
+	return frames[frame_index].locals;
+}
+
 void PyVM::SetIR(Vector<PyIR>& _ir)
 {
 	frames.Clear();
@@ -1365,10 +1600,110 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 PyValue PyVM::Run()
 {
-	while(IsRunning()) {
-		Step();
+	try {
+		while(IsRunning()) {
+			Step();
+		}
+	} catch (Exc& e) {
+		LOG("PyVM Exception: " << e);
+		throw;
 	}
 	return last_result;
+}
+
+PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
+{
+	if (IsRunning())
+		return PyValue::None();
+	PyValue callable = callable_in;
+	Vector<PyValue> call_args;
+	call_args.Reserve(args.GetCount());
+	for (const PyValue& v : args)
+		call_args.Add(v);
+	if (callable.IsBoundMethod()) {
+		PyValue func = callable.GetBound().func;
+		PyValue self = callable.GetBound().self;
+		call_args.Insert(0, self);
+		callable = func;
+	}
+	if (!callable.IsFunction())
+		return PyValue::None();
+
+	const PyLambda& l = callable.GetLambda();
+	if (l.builtin)
+		return l.builtin(call_args, l.user_data);
+
+	int base = frames.GetCount();
+	Frame& f = frames.Add();
+	f.func = callable;
+	f.ir = &l.ir;
+	f.pc = 0;
+	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
+		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+		int q = f.locals.Find(key);
+		if(q >= 0) f.locals[q] = call_args[i];
+		else f.locals.Add(key, call_args[i]);
+	}
+
+	PyValue prev_last = last_result;
+	last_result = PyValue::None();
+	try {
+		while (frames.GetCount() > base)
+			Step();
+	}
+	catch (...) {
+		for (int i = frames.GetCount() - 1; i >= base; --i) {
+			ReleaseLocals(frames[i].locals);
+			frames[i].func = PyValue::None();
+		}
+		frames.SetCount(base);
+		ReleaseStack(stack);
+		last_result = prev_last;
+		throw;
+	}
+	PyValue res = last_result;
+	last_result = prev_last;
+	for (int i = frames.GetCount() - 1; i >= base; --i) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.SetCount(base);
+	ReleaseStack(stack);
+	return res;
+}
+
+void PyVM::Continue()
+{
+	if(debug_state == DEBUG_PAUSED)
+		debug_state = DEBUG_RUNNING;
+}
+
+void PyVM::Pause()
+{
+	debug_state = DEBUG_PAUSED;
+}
+
+void PyVM::StepOver()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OVER;
+		step_frame_depth = frames.GetCount();
+	}
+}
+
+void PyVM::StepIn()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_IN;
+	}
+}
+
+void PyVM::StepOut()
+{
+	if(debug_state == DEBUG_PAUSED) {
+		debug_state = DEBUG_STEP_OUT;
+		step_frame_depth = frames.GetCount() - 1;
+	}
 }
 
 bool PyVM::Step()
@@ -1376,12 +1711,45 @@ bool PyVM::Step()
 	if(frames.IsEmpty()) return false;
 	
 	Frame& frame = TopFrame();
+
+	// Get current location (file:line) from IR metadata
+	if(frame.pc < frame.ir->GetCount()) {
+		const PyIR& instr = (*frame.ir)[frame.pc];
+		current_file = instr.file;
+		current_line = instr.line;
+
+		// Check for breakpoint
+		if(debug_state == DEBUG_RUNNING && HasBreakpoint(current_file, current_line)) {
+			if(CheckBreakpoint(current_file, current_line)) {
+				debug_state = DEBUG_PAUSED;
+				return true; // Paused at breakpoint
+			}
+		}
+
+		// Handle stepping modes
+		if(debug_state == DEBUG_STEP_IN) {
+			debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OVER) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+		else if(debug_state == DEBUG_STEP_OUT) {
+			if(frames.GetCount() <= step_frame_depth)
+				debug_state = DEBUG_PAUSED;
+		}
+	}
+
 	if(frame.pc >= frame.ir->GetCount()) {
+		PYVM_TRACE("PYVM frame-end drop function");
+		ReleaseLocals(frame.locals);
+		frame.func = PyValue::None();
 		frames.Drop();
 		return !frames.IsEmpty();
 	}
 	
 	const PyIR& instr = (*frame.ir)[frame.pc++];
+	PYVM_TRACE("PYVM pc=" << frame.pc - 1 << " op=" << (int)instr.code << " stack=" << stack.GetCount());
 	
 try {
 		switch(instr.code) {
@@ -1427,12 +1795,22 @@ try {
 			break;
 		}
 	
-		case PY_STORE_NAME:
-			if(frames.GetCount() <= 1)
-				globals.GetAdd(instr.arg) = Pop();
-			else
-				frame.locals.GetAdd(instr.arg) = Pop();
+		case PY_STORE_NAME: {
+			PyValue value = Pop();
+			if(frames.GetCount() <= 1) {
+				int q = globals.Find(instr.arg);
+				if(q >= 0) globals[q] = value;
+				else globals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-global name=" << instr.arg.ToString());
+			}
+			else {
+				int q = frame.locals.Find(instr.arg);
+				if(q >= 0) frame.locals[q] = value;
+				else frame.locals.Add(instr.arg, value);
+				PYVM_TRACE("PYVM store-local name=" << instr.arg.ToString());
+			}
 			break;
+		}
 
 		case PY_LOAD_GLOBAL: {
 			int q = globals.Find(instr.arg);
@@ -1511,10 +1889,11 @@ try {
 
 		case PY_LOAD_ATTR: {
 			PyValue obj = Pop();
+			String attr = instr.arg.ToString();
+			LOG("PY_LOAD_ATTR obj=" << obj.ToString() << " attr=" << attr);
 			if (obj.GetType() == PY_DICT) {
 				Push(obj.GetItem(instr.arg));
 			} else if (obj.GetType() == PY_STR) {
-				String attr = instr.arg.ToString();
 				if(attr == "endswith") {
 					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
 				} else if(attr == "startswith") {
@@ -1527,13 +1906,26 @@ try {
 					Push(PyValue::BoundMethod(PyValue::Function("split", builtin_str_split), obj));
 				} else if(attr == "join") {
 					Push(PyValue::BoundMethod(PyValue::Function("join", builtin_str_join), obj));
+				} else if(attr == "lower") {
+					Push(PyValue::BoundMethod(PyValue::Function("lower", builtin_str_lower), obj));
+				} else {
+					Push(PyValue::None());
+				}
+			} else if (obj.GetType() == PY_LIST) {
+				if(attr == "sort") {
+					Push(PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
+						// BoundMethod passes self as first arg
+						if(args.GetCount() > 0 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							Sort(l);
+						}
+						return PyValue::None();
+					}), obj));
 				} else {
 					Push(PyValue::None());
 				}
 			} else if (obj.IsUserDataValid()) {
-				String attr_name = instr.arg.ToString();
-				RTLOG("PY_LOAD_ATTR: obj=" << obj.ToString() << " attr=" << attr_name);
-				Push(obj.GetUserData().GetAttr(attr_name));
+				Push(obj.GetUserData().GetAttr(attr));
 			} else {
 				Push(PyValue::None());
 			}
@@ -1545,7 +1937,9 @@ try {
 			PyValue obj = Pop();
 			if (obj.GetType() == PY_DICT) {
 				obj.SetItem(instr.arg, val);
-			} // TODO: support UserData store
+			} else if (obj.IsUserDataValid()) {
+				obj.GetUserData().SetAttr(instr.arg.ToString(), val);
+			}
 			break;
 		}
 			
@@ -1590,7 +1984,8 @@ try {
 				Push(PyValue(a.GetComplex() + b.GetComplex()));
 			else if(a.IsInt() && b.IsInt()) Push(PyValue(a.AsInt64() + b.AsInt64()));
 			else if(a.IsNumber() && b.IsNumber()) Push(PyValue(a.AsDouble() + b.AsDouble()));
-			else if(a.GetType() == PY_STR && b.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.GetStr()));
+			else if(a.GetType() == PY_STR) Push(PyValue(a.GetStr() + b.ToString().ToWString()));
+			else if(b.GetType() == PY_STR) Push(PyValue(a.ToString().ToWString() + b.GetStr()));
 			else if(a.GetType() == PY_LIST && b.GetType() == PY_LIST) {
 				PyValue res = PyValue::List();
 				const Vector<PyValue>& va = a.GetArray();
@@ -1598,6 +1993,9 @@ try {
 				for(int i = 0; i < va.GetCount(); i++) res.Add(va[i]);
 				for(int i = 0; i < vb.GetCount(); i++) res.Add(vb[i]);
 				Push(res);
+			}
+			else {
+				throw Exc("TypeError: unsupported operand type(s) for +: '" + PyTypeName(a.GetType()) + "' and '" + PyTypeName(b.GetType()) + "'");
 			}
 			break;
 		}
@@ -1710,6 +2108,8 @@ try {
 			case PY_CMP_LE: res = (a < b || a == b); break;
 			case PY_CMP_GT: res = (b < a); break;
 			case PY_CMP_GE: res = (b < a || a == b); break;
+			case PY_CMP_IN: res = b.Contains(a); break;
+			case PY_CMP_NOT_IN: res = !b.Contains(a); break;
 			}
 			Push(PyValue(res));
 			break;
@@ -1725,13 +2125,21 @@ try {
 			break;
 		}
 
+		case PY_POP_JUMP_IF_TRUE: {
+			PyValue v = Pop();
+			if(v.IsTrue()) frame.pc = instr.iarg;
+			break;
+		}
+
 		case PY_JUMP_IF_FALSE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_FALSE_OR_POP");
 			if(!stack.Top().IsTrue()) frame.pc = instr.iarg;
 			else Pop();
 			break;
 		}
 
 		case PY_JUMP_IF_TRUE_OR_POP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: stack underflow in PY_JUMP_IF_TRUE_OR_POP");
 			if(stack.Top().IsTrue()) frame.pc = instr.iarg;
 			else Pop();
 			break;
@@ -1745,6 +2153,7 @@ try {
 			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
 			
 			PyValue callable = Pop();
+			PYVM_TRACE("PYVM call callable=" << callable.ToString() << " nargs=" << nargs);
 			if (callable.IsBoundMethod()) {
 				PyValue func = callable.GetBound().func;
 				PyValue self = callable.GetBound().self;
@@ -1759,25 +2168,31 @@ try {
 				}
 				else {
 					Frame& f = frames.Add();
+					PYVM_TRACE("PYVM push-frame function=" << l.name << " argc=" << sorted_args.GetCount());
 					f.func = callable;
 					f.ir = &l.ir;
 					f.pc = 0;
-					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++)
-						f.locals.GetAdd(PyValue(l.arg[i])) = sorted_args[i];
+					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
+						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+						int q = f.locals.Find(key);
+						if(q >= 0) f.locals[q] = sorted_args[i];
+						else f.locals.Add(key, sorted_args[i]);
+					}
 				}
 			}
 			else {
+				args.Clear();
 				throw Exc("TypeError: '" + callable.ToString() + "' object is not callable");
 			}
 			break;
 		}
 
-		case PY_GET_ITER: {
-			PyValue obj = Pop();
-			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
-				Push(PyValue(new PyVectorIter(obj.GetArray())));
-			}
-			else if(obj.IsIterator()) {
+		                                case PY_GET_ITER: {
+		                                        PyValue obj = Pop();
+		                                        if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE || obj.GetType() == PY_STR) {
+		                                                Push(PyValue::Iterator(new PyVectorIter(obj)));
+		                                        }
+		                			else if(obj.IsIterator()) {
 				Push(obj);
 			}
 			else {
@@ -1812,11 +2227,14 @@ try {
 			break;
 		}
 
-		case PY_RETURN_VALUE: {
-			PyValue val = Pop();
-			frames.Drop();
-			if(!frames.IsEmpty()) {
-				Push(val);
+			case PY_RETURN_VALUE: {
+				PyValue val = Pop();
+				PYVM_TRACE("PYVM return function");
+				ReleaseLocals(frame.locals);
+				frame.func = PyValue::None();
+				frames.Drop();
+				if(!frames.IsEmpty()) {
+					Push(val);
 			}
 			else {
 				if(!val.IsNone() || last_result.IsNone())

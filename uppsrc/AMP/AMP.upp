@@ -1,0 +1,6 @@
+description "The C++ AMP compatibility library\3770,128,128";
+
+file
+	AMP.h,
+	AMPCompat.h;
+

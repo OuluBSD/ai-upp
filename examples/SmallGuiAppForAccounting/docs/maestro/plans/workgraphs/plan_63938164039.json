@@ -1,0 +1,352 @@
+{
+	"schema_version": "v1",
+	"id": "AUTH-MGMT-001",
+	"title": "User Authentication and Role Management",
+	"goal": "Implement a secure user authentication system with role-based access control (RBAC) to restrict application features based on user identity.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-AUTH",
+		"name": "Security and Identity",
+		"goal": "Establish a foundation for multi-user access with specific permissions for different accounting roles.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Model_and_Storage",
+			"tasks": [
+				{
+					"id": "TSK-001",
+					"title": "Define User and Role Entities",
+					"status": "",
+					"intent": "Create structures to represent Users, Roles, and Permissions, including password hash storage.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "User.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-002",
+					"title": "Implement User Persistence",
+					"status": "",
+					"intent": "Develop logic to serialize and deserialize user data to a secure file format (e.g., JSON or encrypted binary).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "User.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-LOGIC",
+			"name": "02_Authentication_Core",
+			"tasks": [
+				{
+					"id": "TSK-003",
+					"title": "Implement Password Hashing",
+					"status": "",
+					"intent": "Integrate a secure hashing algorithm to protect user credentials.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuthUtils.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-004",
+					"title": "Develop Authentication Service",
+					"status": "",
+					"intent": "Create a service to manage the current session, login, and logout operations.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuthService.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-005",
+					"title": "Implement Role-Based Authorization",
+					"status": "",
+					"intent": "Create a mechanism to check if the current user has the required permissions for specific actions.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "RoleManager.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-006",
+					"title": "Create Login Dialog",
+					"status": "",
+					"intent": "Design a modal dialog for user authentication with username and password fields.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "LoginDialog.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-007",
+					"title": "Integrate Security into Main GUI",
+					"status": "",
+					"intent": "Update the main application window to require login on startup and disable UI elements based on the user's role.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-008",
+					"title": "Build and Verify Security Implementation",
+					"status": "",
+					"intent": "Compile the application and verify that unauthorized access is blocked and roles are correctly enforced.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

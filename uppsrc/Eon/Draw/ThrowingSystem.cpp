@@ -13,6 +13,7 @@ void ThrowingInteractionSystemBase::Visit(Vis& v) {
 }
 
 bool ThrowingInteractionSystemBase::Initialize(const WorldState& ws) {
+	ws_at_init = ws;
 	ball_holding_distance = 0.5f;
 	
 	if (!InteractionListener::Initialize(GetEngine(), this))

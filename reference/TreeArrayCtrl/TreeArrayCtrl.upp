@@ -1,0 +1,11 @@
+description "TreeArrayCtrl demo based on TreeCtrl example\377";
+
+uses
+	CtrlLib;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

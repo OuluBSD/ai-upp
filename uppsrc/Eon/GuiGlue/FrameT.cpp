@@ -1,6 +1,8 @@
 #include "GuiGlue.h"
 #include <CtrlLib/Eon/Eon.h>
+#ifdef flagVIRTUALGUI
 #include <VirtualGui/VirtualGui.h>
+#endif
 #ifdef flagGUI
 
 NAMESPACE_UPP

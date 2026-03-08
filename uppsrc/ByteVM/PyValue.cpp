@@ -123,7 +123,7 @@ PyValue PyRangeIter::Next()
 PyValue PyVectorIter::Next()
 {
 	if(i < v.GetCount())
-		return v[i++];
+		return v.GetItem(i++);
 	return PyValue::StopIteration();
 }
 
@@ -235,12 +235,49 @@ PyValue PyValue::GetItem(const PyValue& key) const
 {
 	if(type == PY_DICT) return dict->d.Get(key, PyValue());
 	if(type == PY_STR && key.IsInt()) return GetItem(key.AsInt());
+	if((type == PY_LIST || type == PY_TUPLE) && key.GetType() == PY_STR) {
+		String attr = key.ToString();
+		const Vector<PyValue>& a = GetArray();
+		if(attr == "x" && a.GetCount() >= 1) return a[0];
+		if(attr == "y" && a.GetCount() >= 2) return a[1];
+		if(attr == "w" && a.GetCount() >= 3) return a[2];
+		if(attr == "h" && a.GetCount() >= 4) return a[3];
+		if(attr == "score" && a.GetCount() >= 5) return a[4];
+		if(type == PY_LIST && attr == "sort") {
+			return PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
+				PyValue self = (PyUserData*)ud; // This is wrong, self is not UserData here but PyValue. 
+				// Actually BoundMethod needs to handle PyValue as self.
+				return PyValue::None();
+			}, nullptr), *this);
+		}
+	}
 	return PyValue();
 }
 
 void PyValue::SetItem(const PyValue& key, const PyValue& v)
 {
-	if(type == PY_DICT) dict->d.GetAdd(key) = v;
+	if(type == PY_DICT) {
+		int q = dict->d.Find(key);
+		if(q >= 0) dict->d[q] = v;
+		else dict->d.Add(key, v);
+	}
+}
+
+bool PyValue::Contains(const PyValue& v) const
+{
+	if(type == PY_LIST) {
+		for(const auto& x : list->l) if(x == v) return true;
+	}
+	else if(type == PY_TUPLE) {
+		for(const auto& x : tuple->l) if(x == v) return true;
+	}
+	else if(type == PY_DICT) {
+		return dict->d.Find(v) >= 0;
+	}
+	else if(type == PY_STR) {
+		return wstr->s.Find(v.GetStr()) >= 0;
+	}
+	return false;
 }
 
 Value PyValue::ToValue() const
@@ -446,14 +483,31 @@ PyValue PyValue::Dict()
 
 PyValue PyValue::Set()
 {
+        PyValue v;
+        v.type = PY_SET;
+        v.set = new PySet;
+        v.set->s.Clear();
+        return v;
+}
+
+PyValue PyValue::Iterator(PyIter *it)
+{
 	PyValue v;
-	v.type = PY_SET;
-	v.set = new PySet;
-	v.set->s.Clear();
+	v.type = PY_ITERATOR;
+	v.iter = it;
+	return v;
+}
+
+PyValue PyValue::UserData(PyUserData *ud)
+{
+	PyValue v;
+	v.type = PY_USERDATA;
+	v.userdata = ud;
 	return v;
 }
 
 PyValue PyValue::Function(const String& name, PyBuiltin builtin, void* user_data)
+
 {
 	PyValue v;
 	v.type = PY_FUNCTION;

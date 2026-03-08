@@ -19,8 +19,6 @@ INITIALIZE(CtrlLib);
 #define IMAGEFILE <CtrlLib/Ctrls.iml>
 #include <Draw/iml_header.h>
 
-class Bar;
-
 #include <CtrlLib/LabelBase.h>
 #include <CtrlLib/DisplayPopup.h>
 #include <CtrlLib/StaticCtrl.h>
@@ -30,7 +28,7 @@ class Bar;
 #include <CtrlLib/HeaderCtrl.h>
 #include <CtrlLib/EditCtrl.h>
 #include <CtrlLib/AKeys.h>
-#include <CtrlLib/Bar.h>
+#include <CtrlLib/GuiAutomation.h>
 #include <CtrlLib/StatusBar.h>
 #include <CtrlLib/TabCtrl.h>
 #include <CtrlLib/PageCtrl.h>
@@ -38,6 +36,8 @@ class Bar;
 #include <CtrlLib/ArrayCtrl.h>
 #include <CtrlLib/DropChoice.h>
 #include <CtrlLib/TreeCtrl.h>
+#include <CtrlLib/TreeArrayCtrl.h>
+#include <CtrlLib/RibbonBar.h>
 #include <CtrlLib/Splitter.h>
 #include <CtrlLib/RichText.h>
 #include <CtrlLib/ChatCtrl.h>

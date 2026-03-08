@@ -469,7 +469,7 @@ public:
 	}
 	
 	void Stop(double energy) {
-		SetTrialEnergy(-1 * energy);
+		SetTrialEnergy(energy);
 		SolveNext();
 		round++;
 	}

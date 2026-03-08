@@ -1,0 +1,180 @@
+rocket = None
+obs_a = None
+obs_b = None
+obs_c = None
+obs_d = None
+obs_e = None
+obs_f = None
+
+obs_a_x = 0.0
+obs_a_z = 0.0
+obs_b_x = 0.0
+obs_b_z = 0.0
+obs_c_x = 0.0
+obs_c_z = 0.0
+obs_d_x = 0.0
+obs_d_z = 0.0
+obs_e_x = 0.0
+obs_e_z = 0.0
+obs_f_x = 0.0
+obs_f_z = 0.0
+
+obs_speed = 6.0
+player_x = 0.0
+player_z = 0.0
+move_speed = 6.0
+spawn_z = 18.0
+min_x = -6.0
+max_x = 6.0
+
+
+def _set_pos(obj, x, y, z):
+    if obj == None:
+        return
+    obj.x = x
+    obj.y = y
+    obj.z = z
+
+
+def _set_scale(obj, sx, sy, sz):
+    if obj == None:
+        return
+    obj.scale = (sx, sy, sz)
+
+
+def _rand_x():
+    return random(min_x, max_x)
+
+
+def _reset_obstacle(idx):
+    global obs_a_x, obs_a_z, obs_b_x, obs_b_z, obs_c_x, obs_c_z, obs_d_x, obs_d_z, obs_e_x, obs_e_z, obs_f_x, obs_f_z
+    z = spawn_z + random(0.0, 6.0)
+    x = _rand_x()
+    if idx == 0:
+        obs_a_x = x
+        obs_a_z = z
+    elif idx == 1:
+        obs_b_x = x
+        obs_b_z = z
+    elif idx == 2:
+        obs_c_x = x
+        obs_c_z = z
+    elif idx == 3:
+        obs_d_x = x
+        obs_d_z = z
+    elif idx == 4:
+        obs_e_x = x
+        obs_e_z = z
+    elif idx == 5:
+        obs_f_x = x
+        obs_f_z = z
+
+
+def on_load():
+    return
+
+
+def on_start():
+    global rocket, obs_a, obs_b, obs_c, obs_d, obs_e, obs_f
+    global player_x, player_z
+    global obs_a_x, obs_a_z, obs_b_x, obs_b_z, obs_c_x, obs_c_z, obs_d_x, obs_d_z, obs_e_x, obs_e_z, obs_f_x, obs_f_z
+
+    rocket = stage.find("rocket")
+    obs_a = stage.find("obstacle0")
+    obs_b = stage.find("obstacle1")
+    obs_c = stage.find("obstacle2")
+    obs_d = stage.find("obstacle3")
+    obs_e = stage.find("obstacle4")
+    obs_f = stage.find("obstacle5")
+
+    player_x = 0.0
+    player_z = 0.0
+
+    if rocket != None:
+        _set_scale(rocket, 0.5, 0.5, 1.5)
+        _set_pos(rocket, player_x, 0.5, player_z)
+    if obs_a != None:
+        _set_scale(obs_a, 2.0, 2.0, 2.0)
+    if obs_b != None:
+        _set_scale(obs_b, 2.0, 2.0, 2.0)
+    if obs_c != None:
+        _set_scale(obs_c, 2.0, 2.0, 2.0)
+    if obs_d != None:
+        _set_scale(obs_d, 2.0, 2.0, 2.0)
+    if obs_e != None:
+        _set_scale(obs_e, 2.0, 2.0, 2.0)
+    if obs_f != None:
+        _set_scale(obs_f, 2.0, 2.0, 2.0)
+
+    obs_a_x = _rand_x()
+    obs_a_z = spawn_z + 0.0
+    obs_b_x = _rand_x()
+    obs_b_z = spawn_z + 4.0
+    obs_c_x = _rand_x()
+    obs_c_z = spawn_z + 8.0
+    obs_d_x = _rand_x()
+    obs_d_z = spawn_z + 12.0
+    obs_e_x = _rand_x()
+    obs_e_z = spawn_z + 16.0
+    obs_f_x = _rand_x()
+    obs_f_z = spawn_z + 20.0
+
+
+def _update_obstacle(idx, obj, x, z, dt):
+    z -= obs_speed * dt
+    if z < -10.0:
+        _reset_obstacle(idx)
+        if idx == 0:
+            z = obs_a_z
+            x = obs_a_x
+        elif idx == 1:
+            z = obs_b_z
+            x = obs_b_x
+        elif idx == 2:
+            z = obs_c_z
+            x = obs_c_x
+        elif idx == 3:
+            z = obs_d_z
+            x = obs_d_x
+        elif idx == 4:
+            z = obs_e_z
+            x = obs_e_x
+        elif idx == 5:
+            z = obs_f_z
+            x = obs_f_x
+    if obj != None:
+        _set_pos(obj, x, 0.5, z)
+    if abs(x - player_x) < 1.2 and abs(z - player_z) < 1.2:
+        trace("Crashed")
+        exec.exit()
+    return x, z
+
+
+def on_frame(dt):
+    global player_x, player_z
+    global obs_a_x, obs_a_z, obs_b_x, obs_b_z, obs_c_x, obs_c_z, obs_d_x, obs_d_z, obs_e_x, obs_e_z, obs_f_x, obs_f_z
+
+    if rocket == None:
+        return
+
+    if input.isKeyDown(ord('A')):
+        player_x -= move_speed * dt
+    if input.isKeyDown(ord('D')):
+        player_x += move_speed * dt
+    if input.isKeyDown(ord('W')):
+        player_z += move_speed * dt
+    if input.isKeyDown(ord('S')):
+        player_z -= move_speed * dt
+    if player_x < min_x:
+        player_x = min_x
+    if player_x > max_x:
+        player_x = max_x
+
+    _set_pos(rocket, player_x, 0.5, player_z)
+
+    obs_a_x, obs_a_z = _update_obstacle(0, obs_a, obs_a_x, obs_a_z, dt)
+    obs_b_x, obs_b_z = _update_obstacle(1, obs_b, obs_b_x, obs_b_z, dt)
+    obs_c_x, obs_c_z = _update_obstacle(2, obs_c, obs_c_x, obs_c_z, dt)
+    obs_d_x, obs_d_z = _update_obstacle(3, obs_d, obs_d_x, obs_d_z, dt)
+    obs_e_x, obs_e_z = _update_obstacle(4, obs_e, obs_e_x, obs_e_z, dt)
+    obs_f_x, obs_f_z = _update_obstacle(5, obs_f, obs_f_x, obs_f_z, dt)

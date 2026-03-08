@@ -5,11 +5,14 @@ acceptflags
 	HAL,
 	SDL2,
 	OGL,
+	OPENVR,
+	ASSIMP,
 	DEBUG_RT;
 
 uses
 	Eon,
-	Draw/Extensions;
+	Draw/Extensions,
+	api/Graphics;
 
 file
 	Draw.h,

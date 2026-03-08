@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "PLAN-GL-001",
+	"title": "Implement General Ledger Module",
+	"goal": "Implement the core General Ledger functionality including data models for transactions, persistence logic, and UI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-GL",
+		"name": "General Ledger",
+		"goal": "Establish a functional general ledger system within the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-GL-01",
+			"name": "01_Data_Model",
+			"tasks": [
+				{
+					"id": "TASK-GL-001",
+					"title": "Define Transaction Structure",
+					"status": "",
+					"intent": "Create the data structure for individual ledger transactions including date, description, amount, and account reference.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/01_Data_Model/Define Transaction Structure.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-GL-002",
+					"title": "Define Ledger Class",
+					"status": "",
+					"intent": "Define the Ledger class interface for managing collections of transactions and calculating totals.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/01_Data_Model/Define Ledger Class.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-GL-02",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-GL-003",
+					"title": "Implement Transaction Storage",
+					"status": "",
+					"intent": "Develop the logic for persisting transactions to disk (JSON/XML or binary).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/02_Implementation/Implement Transaction Storage.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-GL-004",
+					"title": "Implement Balance Calculation",
+					"status": "",
+					"intent": "Implement methods to calculate current balances and running totals for accounts.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/02_Implementation/Implement Balance Calculation.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-GL-005",
+					"title": "Implement History Retrieval",
+					"status": "",
+					"intent": "Develop logic to query and filter transaction history by date ranges or categories.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/02_Implementation/Implement History Retrieval.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-GL-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-GL-006",
+					"title": "Integrate Ledger with Main GUI",
+					"status": "",
+					"intent": "Connect the Ledger implementation to the main user interface components.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "General Ledger/03_UI_Integration/Integrate Ledger with Main GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-GL-007",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the application and verify the General Ledger functionality via manual or automated tests.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

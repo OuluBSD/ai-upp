@@ -737,6 +737,73 @@ bool IsJPG(StreamRaster *s)
 	return dynamic_cast<JPGRaster *>(s);
 }
 
+void DecodeJPG(RtImage& dest, Stream& s)
+{
+	struct jpeg_decompress_struct cinfo;
+	struct jpeg_longjmp_error_mgr jerr;
+	
+	cinfo.err = jpeg_std_error(&jerr);
+	cinfo.err->output_message = &NoOutput;
+	jerr.error_exit = error_exit;
+	
+	if(setjmp(jerr.jmpbuf)) {
+		jpeg_destroy_decompress(&cinfo);
+		return;
+	}
+
+	jpeg_create_decompress(&cinfo);
+	jpeg_stream_src(&cinfo, s);
+	jpeg_read_header(&cinfo, TRUE);
+	
+	cinfo.out_color_space = JCS_RGB;
+	
+	jpeg_start_decompress(&cinfo);
+	
+	dest.Create(Size(cinfo.output_width, cinfo.output_height));
+	
+	int row_stride = cinfo.output_width * cinfo.output_components;
+	Buffer<byte> rowbuf(row_stride);
+	JSAMPROW rowptr[1];
+	rowptr[0] = rowbuf;
+	
+	RGBA *line = ~dest;
+	for(int y = 0; y < (int)cinfo.output_height; y++) {
+		jpeg_read_scanlines(&cinfo, rowptr, 1);
+		const byte *src = rowbuf;
+		if(cinfo.output_components == 3) {
+			for(int x = 0; x < (int)cinfo.output_width; x++) {
+				line->r = src[0];
+				line->g = src[1];
+				line->b = src[2];
+				line->a = 255;
+				line++;
+				src += 3;
+			}
+		}
+		else if(cinfo.output_components == 1) {
+			for(int x = 0; x < (int)cinfo.output_width; x++) {
+				line->r = line->g = line->b = *src++;
+				line->a = 255;
+				line++;
+			}
+		}
+		else if(cinfo.output_components == 4) {
+			for(int x = 0; x < (int)cinfo.output_width; x++) {
+				int k = src[3];
+				line->r = src[0] * k / 255;
+				line->g = src[1] * k / 255;
+				line->b = src[2] * k / 255;
+				line->a = 255;
+				line++;
+				src += 4;
+			}
+		}
+	}
+	
+	jpeg_finish_decompress(&cinfo);
+	jpeg_destroy_decompress(&cinfo);
+}
+
 INITIALIZER(JPGRaster)
 {
 	StreamRaster::Register<JPGRaster>();

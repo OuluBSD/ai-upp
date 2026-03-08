@@ -1,0 +1,12 @@
+YOLO mode is enabled. All tool calls will be automatically approved.
+Loaded cached credentials.
+YOLO mode is enabled. All tool calls will be automatically approved.
+Hook registry initialized with 0 hook entries
+VISIBLE(mainWindow) and VISIBLE(drawingCanvas) and VISIBLE(toolbar)
+BUTTON(pencilBtn) and ENABLED(pencilBtn)
+BUTTON(colorBtn) and ENABLED(colorBtn)
+BUTTON(saveButton) and ENABLED(saveButton)
+VISIBLE(drawingCanvas) implies ENABLED(pencilBtn)
+VISIBLE(drawingCanvas) implies ENABLED(colorBtn)
+VISIBLE(drawingCanvas) implies ENABLED(saveButton)
+ENABLED(saveButton) implies VISIBLE(mainWindow)

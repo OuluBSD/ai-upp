@@ -13,6 +13,8 @@ void EnterGuboMutex(int n);
 bool ThreadHasGuboLock();
 int  GetGuboLockLevel();
 
+void SetCenterHotSpot(Image& img);
+
 struct GuboLock {
 	GuboLock()  { EnterGuboMutex(); }
 	~GuboLock() { LeaveGuboMutex(); }

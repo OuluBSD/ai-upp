@@ -3,8 +3,9 @@ description "Eon/GuiGlue\377B85,42,0";
 uses
 	Eon/Core,
 	Vfs,
-	CtrlCore,
-	VirtualGui;
+	CtrlCore;
+
+uses(VIRTUALGUI) VirtualGui;
 
 file
 	README.md,

@@ -2,7 +2,7 @@
 #define _VirtualGui3D_VirtualGui3D_h_
 
 #include <Draw/Draw.h>
-#include <Core2/Core.h>
+#include <Vfs/Core/Core.h>
 
 
 

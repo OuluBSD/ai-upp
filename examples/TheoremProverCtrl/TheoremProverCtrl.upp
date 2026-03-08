@@ -1,0 +1,14 @@
+description "Theorem Prover GUI Controller";
+
+uses
+	CtrlLib,
+	AI/Logic,
+	AI/LogicGui,
+	Ctrl/Automation,
+	AI/Core;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

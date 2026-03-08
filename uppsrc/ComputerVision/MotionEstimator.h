@@ -83,9 +83,10 @@ public:
 
 
 class Homography2D : public TransformationKernel {
-	DMatrix<float> mLtL;
-	DMatrix<float> Evec;
-	DMatrix<float> T0;
+        DMatrix<float> mLtL;
+        DMatrix<float> Evec, Eval;
+        DMatrix<float> T0;
+
 	DMatrix<float> T1;
 
 

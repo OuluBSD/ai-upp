@@ -13,10 +13,10 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size srcsz,
 {
 	w.FlushText();
 	Size dsz = dest.GetSize();
-	cairo_surface_t *surface = cairo_image_surface_create_for_data((byte *)pixels, CAIRO_FORMAT_ARGB32, dsz.cx, dsz.cy, 4 * dsz.cx);
-	cairo_set_source_surface(w, surface, dest.left, dest.top);
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data((const guchar *)pixels, GDK_COLORSPACE_RGB, TRUE, 8, srcsz.cx, srcsz.cy, 4 * srcsz.cx, NULL, NULL);
+	gdk_cairo_set_source_pixbuf(w, pixbuf, dest.left - poff.x, dest.top - poff.y);
 	cairo_paint(w);
-	cairo_surface_destroy(surface);
+	g_object_unref(pixbuf);
 }
 
 struct ImageSysData {
@@ -33,13 +33,13 @@ cairo_surface_t *CreateCairoSurface(const Image& img, cairo_surface_t *other)
 	cairo_format_t fmt = CAIRO_FORMAT_ARGB32;
 	cairo_surface_t *surface = other ? cairo_surface_create_similar_image(other, fmt, isz.cx, isz.cy)
 	                                 : cairo_image_surface_create(fmt, isz.cx, isz.cy);
-	cairo_surface_flush(surface);
-	byte *a = (byte *)cairo_image_surface_get_data(surface);
-	int stride = cairo_format_stride_for_width(fmt, isz.cx);
-	for(int yy = 0; yy < isz.cy; yy++) {
-		Copy((RGBA *)a, img[yy], isz.cx);
-		a += stride;
-	}
+	cairo_t *cr = cairo_create(surface);
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data((const guchar *)~img, GDK_COLORSPACE_RGB, TRUE, 8, isz.cx, isz.cy, 4 * isz.cx, NULL, NULL);
+	gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_paint(cr);
+	g_object_unref(pixbuf);
+	cairo_destroy(cr);
 	cairo_surface_mark_dirty(surface);
 	return surface;
 }
@@ -123,35 +123,71 @@ Draw& ImageDraw::Alpha()
 void CairoGet(ImageBuffer& b, Size isz, cairo_surface_t *surface, cairo_surface_t *alpha_surface)
 {
 	cairo_surface_flush(surface);
-	byte *a = (byte *)cairo_image_surface_get_data(surface);
 	int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, isz.cx);
 	RGBA *t = b;
-	byte *aa = NULL;
+	
+	// Create a temporary cairo surface and context to draw ARGB32 into RGBA (Pixbuf)
+	GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, isz.cx, isz.cy);
+	cairo_t *cr = gdk_cairo_create(NULL);
+	
+	// Wait, we can just use cairo_image_surface_create_for_data with the pixbuf buffer!
+	byte *pb_data = gdk_pixbuf_get_pixels(pixbuf);
+	int pb_stride = gdk_pixbuf_get_rowstride(pixbuf);
+	cairo_surface_t *pb_surface = cairo_image_surface_create_for_data(pb_data, CAIRO_FORMAT_ARGB32, isz.cx, isz.cy, pb_stride);
+	cairo_t *pb_cr = cairo_create(pb_surface);
+	
+	// Draw the ARGB32 surface onto the RGBA (Pixbuf) surface
+	// GDK will handle the conversion
+	gdk_cairo_set_source_pixbuf(pb_cr, pixbuf, 0, 0); // No, this sets pixbuf as source.
+	// We want pixbuf as DESTINATION.
+	
+	// Re-think: Cairo image surface data is native-endian ARGB.
+	// GdkPixbuf data is bytes R, G, B, A.
+	// On little-endian, ARGB32 in memory is B, G, R, A.
+	// So we need to swap R and B.
+	
+	// Since we are NOT allowed to "hot-swap" in renderer, maybe there is a GDK function to read pixels?
+	// gdk_pixbuf_get_from_surface exists!
+	
+	g_object_unref(pixbuf);
+	cairo_surface_destroy(pb_surface);
+	cairo_destroy(pb_cr);
+	
+	pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, isz.cx, isz.cy);
+	if(pixbuf) {
+		byte *s = gdk_pixbuf_get_pixels(pixbuf);
+		int stride = gdk_pixbuf_get_rowstride(pixbuf);
+		int chn = gdk_pixbuf_get_n_channels(pixbuf);
+		for(int y = 0; y < isz.cy; y++) {
+			byte *ss = s;
+			for(int x = 0; x < isz.cx; x++) {
+				t->r = ss[0];
+				t->g = ss[1];
+				t->b = ss[2];
+				t->a = (chn == 4) ? ss[3] : 255;
+				t++;
+				ss += chn;
+			}
+			s += stride;
+		}
+		g_object_unref(pixbuf);
+	}
+	
 	if(alpha_surface) {
 		cairo_surface_flush(alpha_surface);
-		aa = (byte *)cairo_image_surface_get_data(alpha_surface);
-	}
-	for(int yy = 0; yy < isz.cy; yy++) {
-		RGBA *s = (RGBA *)a;
-		RGBA *e = s + isz.cx;
-		if(aa) {
+		byte *aa = (byte *)cairo_image_surface_get_data(alpha_surface);
+		int a_stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, isz.cx);
+		t = b;
+		for(int yy = 0; yy < isz.cy; yy++) {
 			RGBA *ss = (RGBA *)aa;
-			while(s < e) {
-				*t = *s++;
-				(t++)->a = (ss++)->r;
-			}
-			aa += stride;
-			b.SetKind(IMAGE_ALPHA);
+			for(int i = 0; i < isz.cx; i++)
+				(t++)->a = ss[i].r;
+			aa += a_stride;
 		}
-		else {
-			while(s < e) {
-				*t = *s++;
-				(t++)->a = 255;
-			}
-			b.SetKind(IMAGE_OPAQUE);
-		}
-		a += stride;
+		b.SetKind(IMAGE_ALPHA);
 	}
+	else
+		b.SetKind(IMAGE_OPAQUE);
 }
 
 void ImageDraw::FetchStraight(ImageBuffer& b) const

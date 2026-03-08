@@ -1,6 +1,10 @@
 #include "Draw.h"
 
+int ForceLinkDraw_Dummy = 0;
+
 NAMESPACE_UPP
+
+void ForceLinkDraw() {}
 
 INITBLOCK {
 	//GfxProgramLibrary::template AddProgramClass<RendererBase>("the_renderer_program");

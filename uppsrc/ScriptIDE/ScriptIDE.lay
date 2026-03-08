@@ -1,0 +1,15 @@
+LAYOUT(FileTreeLayout, 250, 400)
+END_LAYOUT
+
+LAYOUT(SettingsLayout, 400, 200)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Editor Font")).LeftPosZ(8, 72).TopPosZ(8, 19))
+	ITEM(Upp::DropList, editor_font, LeftPosZ(84, 140).TopPosZ(8, 19))
+	ITEM(Upp::EditIntSpin, editor_font_size, LeftPosZ(228, 40).TopPosZ(8, 19))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("Console Font")).LeftPosZ(8, 72).TopPosZ(32, 19))
+	ITEM(Upp::DropList, console_font, LeftPosZ(84, 140).TopPosZ(32, 19))
+	ITEM(Upp::EditIntSpin, console_font_size, LeftPosZ(228, 40).TopPosZ(32, 19))
+	ITEM(Upp::Option, show_line_numbers, SetLabel(t_("Show Line Numbers")).LeftPosZ(8, 140).TopPosZ(60, 16))
+	ITEM(Upp::Option, show_spaces, SetLabel(t_("Show Whitespace")).LeftPosZ(8, 140).TopPosZ(80, 16))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(84, 72).BottomPosZ(8, 24))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(8, 72).BottomPosZ(8, 24))
+END_LAYOUT

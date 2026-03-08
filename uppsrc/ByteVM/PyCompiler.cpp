@@ -57,22 +57,22 @@ int PyCompiler::GetLine() const
 
 void PyCompiler::Emit(int code)
 {
-	ir.Add(PyIR(code, 0, GetLine()));
+	ir.Add(PyIR(code, GetLine(), file));
 }
 
 void PyCompiler::Emit(int code, int iarg)
 {
-	ir.Add(PyIR(code, iarg, GetLine()));
+	ir.Add(PyIR(code, iarg, GetLine(), file));
 }
 
 void PyCompiler::EmitConst(const PyValue& v)
 {
-	ir.Add(PyIR::Const(v, GetLine()));
+	ir.Add(PyIR::Const(v, GetLine(), file));
 }
 
 void PyCompiler::EmitName(int code, const String& name)
 {
-	PyIR r(code, 0, GetLine());
+	PyIR r(code, 0, GetLine(), file);
 	r.arg = PyValue(name);
 	ir.Add(r);
 }
@@ -305,7 +305,7 @@ void PyCompiler::Statement()
 		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
 		this->Expect(TK_INDENT);
 		
-		PyCompiler sub(tokens);
+		PyCompiler sub(tokens, file);
 		sub.pos = pos;
 		Vector<PyIR> body;
 		sub.CompileBlock(body);

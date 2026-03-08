@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 class PyCompiler {
 	const Vector<Token>& tokens;
+	String file;
 	int pos;
 	
 	Vector<PyIR> ir;
@@ -58,7 +59,7 @@ class PyCompiler {
 	void Patch(int label_pc, int target_pc);
 
 public:
-	PyCompiler(const Vector<Token>& tokens) : tokens(tokens), pos(0) {}
+	PyCompiler(const Vector<Token>& tokens, String file = String()) : tokens(tokens), file(file), pos(0) {}
 	
 	void Compile(Vector<PyIR>& out);
 	void CompileBlock(Vector<PyIR>& out);

@@ -144,12 +144,18 @@ void OrbBase::Process() {
     int num_matches = MatchPattern();
     ASSERT(matches.GetCount() == num_matches);
     int good_matches = FindTransform(matches);
+	last_num_matches = num_matches;
+	last_good_matches = good_matches;
     
     if(num_matches) {
         render_matches(matches);
         if(good_matches > 8)
             render_pattern_shape();
     }
+}
+
+String OrbBase::GetDebugInfo() const {
+	return Format("ORB matches=%d inliers=%d", last_num_matches, last_good_matches);
 }
 
 

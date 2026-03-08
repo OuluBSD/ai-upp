@@ -19,6 +19,10 @@ void SetCvBackend(CvBackend b) {
 	backend = b;
 }
 
+CvBackend ResolveCvBackend(CvBackend b) {
+	return IsCvBackendSupported(b) ? b : CvBackend::CPU;
+}
+
 bool IsCvBackendSupported(CvBackend b) {
 	switch (b) {
 	case CvBackend::CPU:

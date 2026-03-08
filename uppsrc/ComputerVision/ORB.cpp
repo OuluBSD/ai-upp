@@ -294,6 +294,30 @@ void Orb::RectifyPatch(const ByteMat& src, ByteMat& dst, double angle, int px, i
 }
 
 void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
+	switch (GetCvBackend()) {
+	case CvBackend::CPU:
+		DescribeCpu(src, corners, descriptors);
+		break;
+	case CvBackend::AMP:
+		DescribeAmp(src, corners, descriptors);
+		break;
+	case CvBackend::OGL:
+		DescribeOglStub(src, corners, descriptors);
+		break;
+	}
+}
+
+void Orb::DescribeAmp(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
+	// Extension point: AMP backend implementation can replace this path.
+	DescribeCpu(src, corners, descriptors);
+}
+
+void Orb::DescribeOglStub(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
+	// OpenGL shader backend is planned; keep behavior deterministic for now.
+	DescribeCpu(src, corners, descriptors);
+}
+
+void Orb::DescribeCpu(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
 	int DESCR_SIZE = 32; // bytes;
 	int t0 = 0, t1 = 0, val = 0;
 	int w = src.cols, h = src.rows;

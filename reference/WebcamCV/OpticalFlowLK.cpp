@@ -39,8 +39,8 @@ void OpticalFlowLKBase::MakeRandomPoints() {
 
 void OpticalFlowLKBase::Process() {
     // swap flow data
-    MemSwap(prev_xy, curr_xy);
-    MemSwap(prev_img_pyr, curr_img_pyr);
+    Swap(prev_xy, curr_xy);
+    Swap(prev_img_pyr, curr_img_pyr);
 
     MakeRandomPoints();
     

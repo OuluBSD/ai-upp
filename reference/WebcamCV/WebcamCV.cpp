@@ -28,6 +28,9 @@ WebcamCV::WebcamCV() {
 	//PostCallback(THISBACK4(OpenVideoCapture, 0, 0, 0, 0));
 	
 	type = DEMO_GRAYSCALE;
+	backend = GetCvBackend();
+	SetCvBackend(backend);
+	Title("WebcamCV - " + GetCvBackendStatus(backend));
 	
 	tc.Set(-20, THISBACK(Data));
 }
@@ -40,6 +43,23 @@ void WebcamCV::MainBar(Bar& bar) {
 	bar.Sub("Input", [=](Bar& bar) {
 		
 	});
+	bar.Sub("Backend", THISBACK(BackendBar));
+}
+
+void WebcamCV::BackendBar(Bar& bar) {
+	bar.Add("CPU", [=] { SetBackend(CvBackend::CPU); }).Check(IsBackend(CvBackend::CPU));
+	bar.Add("AMP", [=] { SetBackend(CvBackend::AMP); }).Check(IsBackend(CvBackend::AMP));
+	bar.Add("OpenGL (Stub)", [=] { SetBackend(CvBackend::OGL); }).Check(IsBackend(CvBackend::OGL));
+}
+
+void WebcamCV::SetBackend(CvBackend b) {
+	if (b == backend)
+		return;
+	backend = b;
+	SetCvBackend(backend);
+	Title("WebcamCV - " + GetCvBackendStatus(backend));
+	if (!IsCvBackendSupported(backend))
+		PromptOK(GetCvBackendStatus(backend));
 }
 
 void WebcamCV::OpenDemo(int i) {

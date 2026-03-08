@@ -55,4 +55,4 @@ Active Debugger  (Gdb / LLDB / Pdb)  in  uppsrc/ide/Debuggers
 | 3 | Tools | All 15 debug tools implemented end-to-end |
 | 4 | Polish | MCP resources, CLI proxy robustness, AGENTS docs |
 
-## Status: PLANNING
+## Status: DONE (phases 1-3 complete, phase 4 resources/docs shipped inline)

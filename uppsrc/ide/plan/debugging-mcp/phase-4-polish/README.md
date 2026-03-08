@@ -62,4 +62,4 @@ send '{"jsonrpc":"2.0","id":"2","method":"debug.breakpoint.set","params":{"file"
 # ... etc
 ```
 
-## Status: PLANNING
+## Status: DONE

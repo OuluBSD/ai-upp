@@ -1,0 +1,12 @@
+description "ActionPlanner GUI example";
+
+uses
+	CtrlLib,
+	AI/Core/Base;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

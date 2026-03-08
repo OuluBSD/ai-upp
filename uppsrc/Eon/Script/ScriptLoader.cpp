@@ -4,6 +4,10 @@
 // For Core contexts (AST-free building)
 #include <Eon/Core/Core.h>
 
+#ifdef None
+#undef None
+#endif
+
 #define VERBOSE_SCRIPT_LOADER 0
 
 NAMESPACE_UPP
@@ -526,6 +530,10 @@ void ScriptLoader::Uninitialize() {
 	//es.Clear();
 	//ss.Clear();
 	loader.Clear();
+	
+	built_chains.Clear();
+	built_nets.Clear();
+	
 	GetEngine().RemoveUpdated(this);
 }
 
@@ -571,6 +579,15 @@ bool ScriptLoader::LoadFile(String path) {
 			return false;
 		}
 	}
+
+	ValueMap args = GetEngine().GetEonParams();
+	for(int i = 0; i < args.GetCount(); i++) {
+		String key = "${" + args.GetKey(i).ToString() + "}";
+		String value = args[i].ToString();
+		//value = EscapeString(value); // Don't escape, we want raw true/false for booleans
+		eon_script.Replace(key, value);
+	}
+
 	return Load(eon_script, path);
 }
 

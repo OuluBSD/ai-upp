@@ -14,9 +14,7 @@ file
 	Images.iml,
 	Common.h,
 	Node.h,
+	Widget.cpp,
 	ProcessCtrl.h,
-	ProcessCtrl.cpp,
-	TextDesigner.h,
-	TextDesigner.cpp,
-	Entity.h,
-	Entity.cpp;
+	ProcessCtrl.cpp;
+

@@ -1,0 +1,17 @@
+file
+	AGENTS.md,
+	Camera.h,
+	CameraView.h,
+	CameraView.cpp,
+	CameraStereoView.h,
+	CameraStereoView.cpp,
+	PreviewCtrl.h,
+	PreviewCtrl.cpp,
+	StereoOverlayCtrl.h,
+	StereoOverlayCtrl.cpp,
+	StereoPreviewCtrl.h,
+	StereoPreviewCtrl.cpp;
+
+uses
+	CtrlLib
+	Draw/Camera

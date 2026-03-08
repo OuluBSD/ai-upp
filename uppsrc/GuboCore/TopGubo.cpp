@@ -1,7 +1,9 @@
 #include "GuboCore.h"
 #include <GuboCore/GuboCore.h>
-#include <GuboLib/ScopeT.h>
+#include <GuboLib/GuboLib.h>
+#ifdef flagEON
 #include <Eon/Eon.h>
+#endif
 
 
 NAMESPACE_UPP
@@ -9,11 +11,14 @@ NAMESPACE_UPP
 
 TopGubo::TopGubo() {
 	SetFrameBox(CubfC(0,0,0,320,240,240));
+#ifdef flagEON
 	CreateGeom3DComponent();
+#endif
 	
 }
 
 void TopGubo::FocusEvent() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
@@ -21,6 +26,7 @@ void TopGubo::FocusEvent() {
 		Gu::GuboManager& mgr = wins->GetActiveScope();
 		mgr.FocusHandle(this);
 	}
+#endif
 }
 
 
@@ -34,6 +40,7 @@ void TopGubo::RunInMachine() {
 
 int TopGubo::Run() {
 	// Bring to front and enter shared main loop
+	LoopGubo = this;
 	FocusEvent();
 	Surface::EventLoop();
 	return 0;
@@ -76,7 +83,9 @@ void TopGubo::UpdateFromTransform3D() {
 }
 
 void TopGubo::OpenMain() {
+#ifdef flagEON
 	CreateGeom3DComponent();
+#endif
 	FocusEvent();
 }
 

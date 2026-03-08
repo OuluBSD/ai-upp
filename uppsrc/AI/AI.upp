@@ -1,7 +1,7 @@
 description "AI Meta-Package\377B128,0,255";
 
 uses
-	AI/Ctrl;
+	AI/Logic;
 
 file
 	AGENTS.md,

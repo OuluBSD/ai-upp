@@ -42,4 +42,42 @@ This document serves as an internal guide for the Gemini AI agent.
 - **String Formatting**: Basic `%` formatting support is implemented in `PY_BINARY_MODULO` by checking if the left operand is `PY_STR`.
 - **Recursive CLI Calls**: Be cautious with `subprocess.run` implementations that call `bin/PythonCLI` recursively; ensure the underlying process management (e.g., `system()`) doesn't lead to deadlocks or output buffering issues.
 
+## Memory Management & Pooling
+
+### RecyclerPool and BiVectorRecycler
+
+## Logging and GUI Automation
+
+- **Alerts and Popups:** In GUI applications, avoid using modal dialogs (like `Exclamation`, `PromptOK`) during automated tests as they block the execution. Instead, use a wrapper that redirects messages to `LOG` when running in automation mode.
+- **Log Inspection:** Prefer using `LOG()` macros for debugging and monitoring. Users should be encouraged to use `tail -f ~/.local/state/u++/log/<PackageName>.log` (or the equivalent path) to monitor output in real-time, rather than relying on `stdout`.
+- **Automation Mode Detection:** Check for command-line flags like `--test` to determine if the application is running in an automated environment.
+
+## Rich Text Format (QTF)
+
+- **Standard**: In Ultimate++, the standard internal rich text format is **QTF** (Quick Text Format).
+- **No HTML/XML**: ALWAYS use QTF for formatted text. NEVER use HTML or XML for reports or rich UI elements.
+- **API**: Always prefer `SetQTF()` over other methods for displaying formatted text in `RichTextView` or other rich text-capable controls.
+
+#### RecyclerPool<T, keep_as_constructed>
+- **Purpose**: Manages a pool of allocated objects of type `T`.
+- **`keep_as_constructed=true`**: If true, the destructor of `T` is NOT called when returning to the pool, and the constructor is NOT called when allocating new items (after the initial allocation). This is ideal for reuse of complex objects like `Vector` buffers where you want to retain capacity.
+- **Thread Safety**: Internally synchronized (can be used from multiple threads).
+
+#### BiVectorRecycler<T, keep_as_constructed>
+- **Purpose**: A double-ended queue (deque) that automatically manages object reuse via an internal `RecyclerPool`.
+- **Usage**:
+  ```cpp
+  BiVectorRecycler<RawDataBlock, true> queue;
+  RawDataBlock* block = queue.AddTail(); // Allocates or reuses
+  // ... use block ...
+  queue.DropHead(); // Returns to pool
+  ```
+- **Ownership**: The container owns the *pointers* and manages their lifecycle relative to the pool. Use `pick()` to transfer ownership of the active queue items to another `BiVectorRecycler` (e.g., passing data between threads).
+- **Move Semantics**: Supports moving (`pick`, `std::move`). When moved, the source container becomes empty, and the destination takes over the active items. The underlying pools remain separate, but items can safely cross between compatible pools.
+
+**Use Case Example (SoftHMD Camera)**:
+- Replaced `std::vector` and manual shifting with `BiVectorRecycler<RawDataBlock, true>`.
+- `RawDataBlock` contains a `Vector<byte>`.
+- `keep_as_constructed=true` ensures the internal capacity of `Vector<byte>` is preserved when blocks are recycled, minimizing heap allocations.
+
 Familiarity with these guides is essential for effective and compliant operation within this codebase.

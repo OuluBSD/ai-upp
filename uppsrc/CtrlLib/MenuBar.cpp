@@ -133,6 +133,7 @@ Bar::Item& MenuBar::AddItem(Event<> cb)
 		q = new TopMenuItem;
 	else
 		q = new MenuItem;
+	q->Ctrl::LayoutId("");
 	item.Add(q);
 	pane.Add(q, Null);
 	q->SetFont(font);
@@ -503,6 +504,7 @@ void MenuBar::KillDelayedClose()
 void MenuBar::Set(const Event<Bar&> menu)
 {
 	if(lock) return;
+	proc = menu;
 	Clear();
 	lock++;
 	menu(*this);
@@ -658,6 +660,30 @@ MenuBar::~MenuBar()
 	if(parentmenu)
 		parentmenu->SetActiveSubmenu(NULL, NULL);
 	LLOG("~MenuBar 1");
+}
+
+bool MenuItemBase::Access(Visitor& v) {
+	if(type == CHECK0 || type == CHECK1 || type == RADIO0 || type == RADIO1)
+		v.AccessOption(type == CHECK1 || type == RADIO1, text, [this]{ LeftUp(Point(0,0), 0); });
+	else
+		v.AccessAction(text, [this]{ LeftUp(Point(0,0), 0); });
+	return true;
+}
+
+bool SubMenuItem::Access(Visitor& v) {
+	v.AccessMenu(text, [this](Visitor& v){
+		if(Bar *b = dynamic_cast<Bar*>(&v))
+			if(proc) proc(*b);
+	});
+	return true;
+}
+
+bool TopSubMenuItem::Access(Visitor& v) {
+	v.AccessMenu(text, [this](Visitor& v){
+		if(Bar *b = dynamic_cast<Bar*>(&v))
+			if(proc) proc(*b);
+	});
+	return true;
 }
 
 }

@@ -687,14 +687,62 @@ void EventStateBase::Event(const GeomEvent& e) {
 		close_window = true;
 	}
 	else if (e.type == EVENT_HOLO_STATE) {
-		ASSERT(e.trans || e.ctrl);
+		const HoloStatePtrPayload& hp = e.payload.holo_state_ptr;
+		ASSERT(e.trans || e.ctrl || hp.trans || hp.ctrl ||
+		       (e.payload.holo_state.flags & (GEOM_EVENT_FLAG_HAS_HMD_POSE | GEOM_EVENT_FLAG_HAS_CONTROLLER)));
 		EnvState& s = GetState();
-		if (e.trans) {
-			s.Set<TransformMatrix>(HMD_CAMERA) = *e.trans;
+		TransformMatrix* trans_ptr = e.trans ? e.trans : hp.trans;
+		ControllerMatrix* ctrl_ptr = e.ctrl ? e.ctrl : hp.ctrl;
+		if (trans_ptr) {
+			s.Set<TransformMatrix>(HMD_CAMERA) = *trans_ptr;
+		}
+		else if (e.payload.holo_state.flags & GEOM_EVENT_FLAG_HAS_HMD_POSE) {
+			const HoloStatePayload& hs = e.payload.holo_state;
+			TransformMatrix tm;
+			tm.Clear();
+			tm.mode = TransformMatrix::MODE_QUATERNION;
+			tm.is_stereo = (hs.flags & GEOM_EVENT_FLAG_STEREO) != 0;
+			for (int i = 0; i < 3; i++)
+				tm.position[i] = hs.hmd_position[i];
+			for (int i = 0; i < 4; i++)
+				tm.orientation[i] = hs.hmd_orientation[i];
+			tm.FillFromOrientation();
+			s.Set<TransformMatrix>(HMD_CAMERA) = tm;
 		}
 		
-		if (e.ctrl) {
-			s.Set<ControllerMatrix>(HMD_CONTROLLER) = *e.ctrl;
+		if (ctrl_ptr) {
+			s.Set<ControllerMatrix>(HMD_CONTROLLER) = *ctrl_ptr;
+		}
+		else if (e.payload.holo_state.flags & GEOM_EVENT_FLAG_HAS_CONTROLLER) {
+			const HoloStatePayload& hs = e.payload.holo_state;
+			ControllerMatrix cm;
+			cm.Clear();
+			int count = min(hs.controller_count, (int)GEOM_EVENT_MAX_CONTROLLERS);
+			for (int i = 0; i < count; i++) {
+				ControllerMatrix::Ctrl& c = cm.ctrl[i];
+				c.is_enabled = true;
+				for (int k = 0; k < 3; k++)
+					c.trans.position[k] = hs.ctrl_position[i][k];
+				for (int k = 0; k < 4; k++)
+					c.trans.orientation[k] = hs.ctrl_orientation[i][k];
+				c.trans.FillFromOrientation();
+				uint32 mask = hs.button_mask[i];
+				for (int j = 0; j < ControllerMatrix::VALUE_COUNT && j < 32; j++) {
+					if (mask & (1u << j)) {
+						c.is_value[j] = true;
+						c.value[j] = 1.0f;
+					}
+				}
+				if (ControllerMatrix::ANALOG_X < ControllerMatrix::VALUE_COUNT) {
+					c.is_value[ControllerMatrix::ANALOG_X] = true;
+					c.value[ControllerMatrix::ANALOG_X] = hs.analog[i][0];
+				}
+				if (ControllerMatrix::ANALOG_Y < ControllerMatrix::VALUE_COUNT) {
+					c.is_value[ControllerMatrix::ANALOG_Y] = true;
+					c.value[ControllerMatrix::ANALOG_Y] = hs.analog[i][1];
+				}
+			}
+			s.Set<ControllerMatrix>(HMD_CONTROLLER) = cm;
 		}
 		
 		
@@ -724,7 +772,12 @@ void EventStateBase::Event(const GeomEvent& e) {
 		}
 		#endif
 	}
-	else if(e.type == EVENT_HOLO_LOOK ||
+	else if(e.type == EVENT_HMD_POSE ||
+			e.type == EVENT_HMD_CONTROLLER ||
+			e.type == EVENT_HMD_IMU ||
+			e.type == EVENT_HMD_CAMERA ||
+			e.type == EVENT_HMD_FUSION ||
+			e.type == EVENT_HOLO_LOOK ||
 			e.type == EVENT_HOLO_CALIB ||
 			e.type == EVENT_HOLO_CONTROLLER_DETECTED ||
 			e.type == EVENT_HOLO_CONTROLLER_LOST ||

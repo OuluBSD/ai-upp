@@ -44,7 +44,7 @@ EntityEditorCtrl::EntityEditorCtrl() {
 	
 }
 
-void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, VfsValueExtCtrl* c) {
+void EntityEditorCtrl::SetExtensionCtrl(hash_t type_hash, ToolAppVfsValueExtCtrl* c) {
 	if (ext_ctrl) {
 		ext_place.RemoveChild(&*ext_ctrl);
 		ext_ctrl.Clear();
@@ -158,7 +158,10 @@ void EntityEditorCtrl::DataEcsTree() {
 		}
 		const auto& fac = VfsValueExtFactory::List()[fac_i];
 		if (fac.new_ctrl_fn) {
-			VfsValueExtCtrl* ctrl = fac.new_ctrl_fn();
+			VfsValueExtCtrl* ctrl0 = fac.new_ctrl_fn();
+			ToolAppVfsValueExtCtrl* ctrl = dynamic_cast<ToolAppVfsValueExtCtrl*>(ctrl0);
+			ASSERT(ctrl);
+			if (!ctrl) return;
 			ctrl->ext = &ext;
 			ASSERT(ctrl->ext);
 			//ctrl->ext.PanicRelease();

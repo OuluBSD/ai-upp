@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "plan_vendor_tracking_20260213",
+	"title": "Vendor Tracking Module",
+	"goal": "Implement comprehensive vendor tracking including vendor information management and purchase history.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-VENDOR",
+		"name": "Vendor Tracking",
+		"goal": "Enable the application to manage vendor data and associate transactions with specific vendors.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-VENDOR-STRUCT",
+					"title": "Define Vendor and Purchase Structures",
+					"status": "",
+					"intent": "Define C++ structures for Vendors (name, contact, tax id) and Purchases (date, amount, vendor_id) in Ledger.h.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -E \"struct Vendor|struct Purchase\" Ledger.h",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-VENDOR-PERSISTENCE",
+					"title": "Implement Vendor Persistence Logic",
+					"status": "",
+					"intent": "Add serialization and deserialization methods to the Ledger class for managing vendor data on disk.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"SerializeVendors\" Ledger.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-CORE",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-VENDOR-SERVICE",
+					"title": "Develop Vendor Management Service",
+					"status": "",
+					"intent": "Implement core logic for adding, updating, and deleting vendors, and linking transactions to them.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"AddVendor\" Ledger.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-VENDOR-GUI",
+					"title": "Create Vendor Management GUI",
+					"status": "",
+					"intent": "Implement a U++ ArrayCtrl-based window for managing vendors and viewing their transaction history.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"class VendorWindow\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-VENDOR-INTEGRATION",
+					"title": "Integrate Vendor Module into Main Menu",
+					"status": "",
+					"intent": "Add a menu item to the main window to allow users to access the Vendor Tracking module.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"Vendor\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BUILD-VERIFY",
+					"title": "Build and Verify Vendor System",
+					"status": "",
+					"intent": "Ensure the application builds successfully with the new vendor tracking features.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting -f",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

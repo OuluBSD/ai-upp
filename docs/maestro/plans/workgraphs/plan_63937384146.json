@@ -1,0 +1,23 @@
+{
+	"schema_version": "v1",
+	"id": "",
+	"title": "",
+	"goal": "",
+	"domain": "",
+	"profile": "",
+	"track": {
+		"id": "",
+		"name": "",
+		"goal": "",
+		"status": ""
+	},
+	"phases": [
+
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

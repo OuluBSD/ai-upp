@@ -191,6 +191,7 @@ String PythonCLI::ReadLine()
 		try {
 			// Process the input as Python code
 			Tokenizer tk;
+			tk.SkipComments();
 			tk.SkipPythonComments();
 			if(!tk.Process(input, "<stdin>")) {
 				return true; 
@@ -198,7 +199,7 @@ String PythonCLI::ReadLine()
 			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
-			PyCompiler compiler(tk.GetTokens());
+			PyCompiler compiler(tk.GetTokens(), "<stdin>");
 			Vector<PyIR> ir;
 			try {
 				compiler.Compile(ir);
@@ -281,6 +282,7 @@ String PythonCLI::ReadLine()
 
 		try {
 			Tokenizer tk;
+			tk.SkipComments();
 			tk.SkipPythonComments();
 			if(!tk.Process(content, filename)) {
 				return 1;
@@ -288,7 +290,7 @@ String PythonCLI::ReadLine()
 			tk.NewlineToEndStatement();
 			tk.CombineTokens();
 
-			PyCompiler compiler(tk.GetTokens());
+			PyCompiler compiler(tk.GetTokens(), filename);
 			Vector<PyIR> ir;
 			try {
 				compiler.Compile(ir);

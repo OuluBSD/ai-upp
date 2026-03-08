@@ -1,0 +1,57 @@
+{
+	"id": "rb-drawing-app-pencil-color-save-v4",
+	"title": "Drawing Application Feature Set Validation",
+	"goal": "Verify that the drawing application correctly implements the canvas, pencil tool, color selection, and save functionality.",
+	"steps": [
+		{
+			"n": 1,
+			"actor": "user",
+			"action": "Launch the application",
+			"command": "./SmallGuiAppForDrawing",
+			"expected": "The application window opens displaying a canvas area and a toolbar.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 2,
+			"actor": "user",
+			"action": "Select the Pencil tool button on the toolbar",
+			"command": "",
+			"expected": "The pencil tool becomes the active drawing instrument.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 3,
+			"actor": "user",
+			"action": "Select a color from the color selector palette",
+			"command": "",
+			"expected": "The active drawing color is updated to the selected value.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 4,
+			"actor": "user",
+			"action": "Perform a drag operation with the mouse on the canvas",
+			"command": "",
+			"expected": "A line is drawn on the canvas in the selected color following the mouse path.",
+			"variants": [
+
+			]
+		},
+		{
+			"n": 5,
+			"actor": "user",
+			"action": "Click the Save button on the toolbar",
+			"command": "",
+			"expected": "The application triggers a save operation, preserving the current state of the canvas.",
+			"variants": [
+
+			]
+		}
+	]
+}

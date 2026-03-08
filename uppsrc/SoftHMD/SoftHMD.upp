@@ -3,11 +3,13 @@ description "\3770,0,128";
 noblitz;
 
 uses
-	Geometry;
+	Geometry,
+	ComputerVision,
+	Draw/Camera;
 
 library(LINUX USBONLY) hidapi-libusb;
 
-library(LINUX) hidapi-hidraw;
+library(LINUX) "hidapi-hidraw usb-1.0";
 
 library(FREEBSD) hidapi;
 
@@ -39,17 +41,24 @@ file
 	Wmr.cpp,
 	WmrPacket.cpp,
 	WmrController.cpp,
+	Oculus.h,
+	Oculus.cpp,
 	Psvr.h,
 	Psvr.cpp,
 	PsvrPacket.cpp,
 	Android.h,
 	Android.cpp,
+	Camera.h,
+	Camera.cpp,
+	SoftHMD.icpp,
+	Tracking.h,
+	Tracking.cpp,
+	TrackingImpl.h,
+	TrackingImpl.cpp,
 	Math.h,
 	Math.cpp,
 	Miniz.h,
 	Miniz.c,
 	NxJson.h,
 	NxJson.c,
-	Trash readonly separator,
 	_ readonly separator;
-

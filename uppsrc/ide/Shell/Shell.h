@@ -5,7 +5,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
 #include <ide/Core/Core.h>
-#include <AI/Ctrl/Ctrl.h>
+#include <ide/AI/Ctrl/Ctrl.h>
 
 #define LAYOUTFILE <ide/Shell/Shell.lay>
 #include <CtrlCore/lay.h>

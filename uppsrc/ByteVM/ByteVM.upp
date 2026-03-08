@@ -4,7 +4,8 @@ acceptflags
 	DEBUG_RT;
 
 uses
-	Core;
+	Core,
+	Core/TextParsing;
 
 file
 	ByteVM.h,

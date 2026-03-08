@@ -479,6 +479,7 @@ void SoftRend::Render(SoftProgram& prog, SoftVertexArray& vao, bool use_quad) {
 		rs.vbo = vao.vbo;
 		rs.ebo = vao.ebo;
 		rs.prog = &prog;
+		rs.obj_id = prog.obj_i;
 		
 		rs.vtx = 0;
 		rs.frag = 0;

@@ -2,8 +2,6 @@
 #define _FormEditor_FormEditor_h_
 
 #include <CtrlLib/CtrlLib.h>
-using namespace Upp;
-
 #include <GridCtrl/GridCtrl.h>
 #include <Docking/Docking.h>
 #include <Form/Form.hpp>
@@ -19,10 +17,14 @@ using namespace Upp;
 #define LAYOUTFILE <FormEditor/FormEdit.lay>
 #include <CtrlCore/lay.h>
 
+#define IMAGECLASS FormViewImg
+#define IMAGEFILE <FormEditor/FormView.iml>
+#include <Draw/iml_header.h>
+
 NAMESPACE_UPP
 
-#include "ScrollContainer.hpp"
 #include "FormView.hpp"
+#include "ScrollContainer.hpp"
 #include "ExGridCtrl.hpp"
 #include "FormProperties.hpp"
 #include "StaticImage.hpp"

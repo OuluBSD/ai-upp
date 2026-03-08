@@ -319,7 +319,7 @@ inline void DumpProbVector(const Vector<double>& probs, int steps, int indent=0)
 			s.Cat('\t');
 		for(double d : probs)
 			s.Cat(d >= offset ? '#' : ' ');
-		LOG(s);
+		VppLog() << s << EOL;
 	}
 }
 

@@ -300,7 +300,25 @@ Ptr<System> Engine::GetAdd(String id, bool startup) {
 
     int i = eon_to_type.Find(id);
     if (i < 0) {
-        LOG("Engine::GetAdd: system '" << id << "' not found in registration");
+        LOG("Engine::GetAdd: system '" << id << "' not found in registration. Total registered: " << eon_to_type.GetCount());
+        for (int j = 0; j < eon_to_type.GetCount(); j++) {
+            String reg_id = eon_to_type.GetKey(j);
+            LOG("  [" << j << "]: '" << reg_id << "' (len=" << reg_id.GetCount() << ")");
+            if (reg_id.GetCount() == id.GetCount()) {
+                LOG("    MATCHING LENGTHS - hex dump reg: " << HexEncode(reg_id));
+                LOG("    MATCHING LENGTHS - hex dump req: " << HexEncode(id));
+                for(int k = 0; k < id.GetCount(); k++) {
+                    if (reg_id[k] != id[k]) {
+                        LOG("    mismatch at char " << k << ": reg=" << (int)(byte)reg_id[k] << " req=" << (int)(byte)id[k]);
+                    }
+                }
+                if (reg_id == id) {
+                    LOG("    STRING OPERATOR== SAYS THEY MATCH!");
+                } else {
+                    LOG("    STRING OPERATOR== SAYS THEY DO NOT MATCH!");
+                }
+            }
+        }
         return Ptr<System>();
     }
     TypeCls type = eon_to_type[i];

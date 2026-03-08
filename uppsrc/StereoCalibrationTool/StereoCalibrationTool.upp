@@ -1,0 +1,33 @@
+uses
+	CtrlLib,
+	Ctrl/Camera,
+	Draw/Camera,
+	Geometry,
+	ComputerVision,
+	SoftHMD,
+	plugin/png,
+	plugin/Eigen;
+
+pkg_config
+	opencv4;
+
+file
+	AGENTS.md,
+	CALIBRATION_DEBUG.md,
+	StereoCalibrationTool.h,
+	MainCalibWindow.h,
+	MainCalibWindow.cpp,
+	Menu.h,
+	Menu.cpp,
+	Camera.h,
+	Camera.cpp,
+	Calibration.h,
+	Calibration.cpp,
+	StereoCalibrationTool.cpp,
+	IdentityTest.cpp,
+	CalibrationRegression.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI USEMALLOC";

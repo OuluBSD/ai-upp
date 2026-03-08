@@ -1,0 +1,235 @@
+{
+	"schema_version": "v1",
+	"id": "plan_invoicing_system_pdf",
+	"title": "Invoicing System with PDF Support",
+	"goal": "Develop a complete invoicing module including data models, PDF generation, and UI integration within the SmallGuiAppForAccounting project.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-INV-001",
+		"name": "Invoicing Module",
+		"goal": "Implement an end-to-end invoicing workflow with PDF export capability using U++ frameworks.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-DATA-01",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TSK-INV-001",
+					"title": "Define Invoice and Customer Structures",
+					"status": "",
+					"intent": "Create the header file defining Invoice, InvoiceItem, and Customer structures with U++ serialization support.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoice.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-INV-002",
+					"title": "Implement Invoice Logic and Persistence",
+					"status": "",
+					"intent": "Implement methods for calculating invoice totals and persisting data to disk, ensuring integration with the ledger system.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoice.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-PDF-02",
+			"name": "02_PDF_Generation",
+			"tasks": [
+				{
+					"id": "TSK-INV-003",
+					"title": "Implement PDF Export Engine",
+					"status": "",
+					"intent": "Develop PDF rendering logic using U++ PdfDraw to generate professionally formatted invoice documents.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "InvoicePdf.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-UI-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-INV-004",
+					"title": "Create Invoicing GUI",
+					"status": "",
+					"intent": "Implement the Invoice list and editor windows using U++ CtrlLib and integrate them into the application flow.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "InvoiceUI.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-INV-005",
+					"title": "Build and Verify Integration",
+					"status": "",
+					"intent": "Connect the invoicing module to the main application's menu and perform a full build using the U++ build system.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

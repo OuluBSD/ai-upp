@@ -920,8 +920,9 @@ void Tokenizer::NewlineToEndStatement() {
 		if (tk.IsType(TK_EOF)) {
 			// Ensure we have an END_STMT before EOF if the previous wasn't one
 			if (i > 0 && !tokens[i-1].IsType(TK_END_STMT) && !tokens[i-1].IsType(TK_DEDENT)) {
+				FileLocation loc = tk.loc;
 				Token& end_stmt = tokens.Insert(i);
-				end_stmt.loc = tk.loc;
+				end_stmt.loc = loc;
 				end_stmt.type = TK_END_STMT;
 				i++;
 			}

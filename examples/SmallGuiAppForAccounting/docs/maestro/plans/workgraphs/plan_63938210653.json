@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "report-generation-plan",
+	"title": "Report Generation Module",
+	"goal": "Implement a complete report generation system including financial calculations, CSV/PDF export engines, and a user interface for selection and integration into the main application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-REPORTS",
+		"name": "Report Generation",
+		"goal": "Provide comprehensive financial reporting capabilities to the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-REPORTS-DATA",
+			"name": "01_Data_and_Logic",
+			"tasks": [
+				{
+					"id": "TASK-REPORTS-STRUCT",
+					"title": "Define Report Structures",
+					"status": "",
+					"intent": "Define the C++ data structures and classes needed to represent financial reports.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-REPORTS-CALC",
+					"title": "Implement Financial Calculations",
+					"status": "",
+					"intent": "Implement the logic for calculating report data from ledger transactions in the Reports class.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Reports.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-REPORTS-EXPORT",
+			"name": "02_Export_Engines",
+			"tasks": [
+				{
+					"id": "TASK-REPORTS-CSV",
+					"title": "Implement CSV Export",
+					"status": "",
+					"intent": "Implement functionality to export report data to CSV files.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "CsvExport.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-REPORTS-PDF",
+					"title": "Implement PDF Report Export",
+					"status": "",
+					"intent": "Implement functionality to generate PDF versions of financial reports.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "PdfExport.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-REPORTS-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-REPORTS-UI-SELECT",
+					"title": "Create Report Selection UI",
+					"status": "",
+					"intent": "Develop a GUI dialog for users to select report types and specify parameters.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "ReportSelection.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-REPORTS-UI-MENU",
+					"title": "Integrate Reports in Main Menu",
+					"status": "",
+					"intent": "Integrate the report generation UI into the application's main menu and toolbar.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"Report\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-REPORTS-VERIFY",
+					"title": "Build and Verify Reports",
+					"status": "",
+					"intent": "Ensure the reporting module is correctly integrated and the project builds successfully.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

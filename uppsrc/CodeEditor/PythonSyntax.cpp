@@ -2,8 +2,133 @@
 
 namespace Upp {
 
+static Color PythonBlockColor(int level)
+{
+	if(HighlightSetup::hilite_scope == 1)
+		return HighlightSetup::GetHlStyle(level & 1 ? HighlightSetup::PAPER_BLOCK1 : HighlightSetup::PAPER_NORMAL).color;
+	if(HighlightSetup::hilite_scope == 2) {
+		int q = level % 5;
+		return HighlightSetup::GetHlStyle(q ? HighlightSetup::PAPER_BLOCK1 + q - 1 : HighlightSetup::PAPER_NORMAL).color;
+	}
+	return HighlightSetup::GetHlStyle(HighlightSetup::PAPER_NORMAL).color;
+}
+
+static bool LineEndsWithBlockColon(const wchar *s, const wchar *end)
+{
+	bool in_string = false;
+	wchar delim = 0;
+	bool escape = false;
+	const wchar *limit = end;
+	for(const wchar *p = s; p < end; p++) {
+		wchar c = *p;
+		if(in_string) {
+			if(escape) {
+				escape = false;
+				continue;
+			}
+			if(c == '\\') {
+				escape = true;
+				continue;
+			}
+			if(c == delim)
+				in_string = false;
+			continue;
+		}
+		if(c == '\'' || c == '"') {
+			in_string = true;
+			delim = c;
+			escape = false;
+			continue;
+		}
+		if(c == '#') {
+			limit = p;
+			break;
+		}
+	}
+	while(limit > s && (limit[-1] == ' ' || limit[-1] == '\t'))
+		limit--;
+	return limit > s && limit[-1] == ':';
+}
+
+void PythonSyntax::Clear()
+{
+	block_indent.Clear();
+	block_indent.Add(0);
+	expect_indent = false;
+}
+
+void PythonSyntax::ScanSyntax(const wchar *ln, const wchar *e, int line, int tab_size)
+{
+	const wchar *p = ln;
+	int pos = 0;
+	int lindent = 0;
+	while(p < e && (*p == '\t' || *p == ' ')) {
+		if(*p++ == '\t' || ++pos >= tab_size) {
+			pos = 0;
+			lindent++;
+		}
+	}
+	bool significant = p < e && p[0] != '#';
+	if(block_indent.IsEmpty())
+		block_indent.Add(0);
+	if(significant) {
+		while(block_indent.GetCount() > 1 && lindent < block_indent.Top())
+			block_indent.Drop();
+		bool need_indent = expect_indent;
+		if(need_indent && lindent > block_indent.Top())
+			block_indent.Add(lindent);
+		expect_indent = LineEndsWithBlockColon(ln, e);
+	}
+	(void)line;
+}
+
+void PythonSyntax::Serialize(Stream& s)
+{
+	s % block_indent % expect_indent;
+}
+
 void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& hls, CodeEditor *editor, int line, int64 pos)
 {
+	int tabsize = editor ? editor->GetTabSize() : 4;
+	int linelen = int(end - s);
+	int lindent = 0;
+	int wspos = 0;
+	int lindent_chars = 0;
+	const wchar *p0 = s;
+	while(p0 < end && (*p0 == '\t' || *p0 == ' ')) {
+		if(*p0++ == '\t' || ++wspos >= tabsize) {
+			wspos = 0;
+			lindent++;
+		}
+	}
+	lindent_chars = int(p0 - s);
+	int level = max(0, block_indent.GetCount() - 1);
+	bool significant = p0 < end && p0[0] != '#';
+	if(!block_indent.IsEmpty()) {
+		while(level > 0 && lindent < block_indent[level])
+			level--;
+	}
+	if(significant && !block_indent.IsEmpty()) {
+		if(expect_indent && lindent > block_indent[level])
+			level++;
+	}
+	if(hilite_scope) {
+		int i = 0;
+		int bid = 0;
+		int tabpos = 0;
+		while(bid < level && i < lindent_chars) {
+			hls.SetPaper(i, 1, PythonBlockColor(bid));
+			if(s[i] == '\t' || ++tabpos >= tabsize) {
+				tabpos = 0;
+				bid++;
+			}
+			i++;
+		}
+		hls.SetPaper(i, 1 + max(0, linelen - i), PythonBlockColor(level));
+	}
+	else
+		hls.SetPaper(0, linelen + 1, hl_style[PAPER_NORMAL].color);
+
 	const HlStyle& ink = hl_style[INK_NORMAL];
 	while(s < end) {
 		int c = *s;
@@ -42,7 +167,7 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 			                             "not", "with", "async", "elif", "if", "or", "yield" };
 			static Index<String> sws = { "self", "NotImplemented", "Ellipsis", "__debug__", "__file__", "__name__" };
 			String w;
-			while(s < end && IsAlNum(*s) || *s == '_')
+			while(s < end && (IsAlNum(*s) || *s == '_'))
 				w.Cat(*s++);
 			hls.Put(w.GetCount(), kws.Find(w) >= 0 ? hl_style[INK_KEYWORD] :
 			                      sws.Find(w) >= 0 ? hl_style[INK_UPP] :

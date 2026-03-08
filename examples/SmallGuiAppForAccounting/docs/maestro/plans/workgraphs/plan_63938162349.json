@@ -1,0 +1,235 @@
+{
+	"schema_version": "v1",
+	"id": "plan_ledger_implementation",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger with transaction history and balance calculation in the SmallGuiAppForAccounting project",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "General Ledger",
+		"goal": "Complete implementation of ledger logic and UI integration",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01",
+			"name": "01_Core_Model_and_Logic",
+			"tasks": [
+				{
+					"id": "TSK-001",
+					"title": "Define_Transaction_and_Ledger_Interfaces",
+					"status": "",
+					"intent": "Define the Transaction structure and the Ledger class interface with methods for adding entries and calculating balances.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-002",
+					"title": "Implement_Ledger_Backend_Logic",
+					"status": "",
+					"intent": "Implement the core logic for transaction management, history storage, and real-time balance calculation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02",
+			"name": "02_GUI_and_UX_Integration",
+			"tasks": [
+				{
+					"id": "TSK-003",
+					"title": "Implement_Transaction_History_View",
+					"status": "",
+					"intent": "Update the main GUI to include a display component for the transaction history list.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-004",
+					"title": "Implement_Balance_Display_and_Input",
+					"status": "",
+					"intent": "Add a balance summary area and transaction entry controls to the main application window.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03",
+			"name": "03_Verification_and_Build",
+			"tasks": [
+				{
+					"id": "TSK-005",
+					"title": "Validate_Ledger_Functionality",
+					"status": "",
+					"intent": "Compile the application and verify that transactions are correctly recorded and balances are accurately calculated.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting CLANG",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

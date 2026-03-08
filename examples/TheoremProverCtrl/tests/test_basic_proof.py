@@ -1,0 +1,7 @@
+print("Starting Proof Test")
+# print_tree()
+wait_for("Input")
+set_text("Input", "P implies P")
+click("Prove")
+wait_for_text("Success: Formula proven")
+print("Basic proof test PASSED")

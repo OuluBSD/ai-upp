@@ -4,7 +4,7 @@
 #include <Draw/Draw.h>
 #include <Draw/Extensions/Extensions.h>
 #include <Eon/Ecs/Ecs.h>
-//#include <api/Graphics/Graphics.h>
+#include <api/Graphics/Graphics.h>
 #ifdef flagHAL
 	#include <api/Hal/Hal.h>
 #endif
@@ -14,6 +14,8 @@
 #endif
 
 NAMESPACE_UPP
+
+void ForceLinkDraw();
 
 #include "GEnums.h"
 #include "ProgPainter.h"

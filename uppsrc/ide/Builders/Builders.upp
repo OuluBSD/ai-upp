@@ -4,7 +4,6 @@ noblitz;
 
 uses
 	ide\Core,
-	ide/Android,
 	ide/Java,
 	ide/Android;
 

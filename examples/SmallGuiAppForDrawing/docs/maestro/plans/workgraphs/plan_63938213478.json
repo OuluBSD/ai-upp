@@ -1,0 +1,280 @@
+{
+	"schema_version": "v1",
+	"id": "WG-DRAW-APP-001",
+	"title": "Implement basic drawing application",
+	"goal": "Develop a U++ GUI application featuring a drawing canvas, pencil tool, color selection, and image save functionality.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DRAW",
+		"name": "Drawing Application Development",
+		"goal": "Deliver a functional drawing prototype with core features implemented in main.cpp",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Canvas_Foundation",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define DrawingCanvas class",
+					"status": "",
+					"intent": "Create a custom Ctrl for drawing that maintains a list of strokes in main.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement Mouse Event Handling",
+					"status": "",
+					"intent": "Capture LeftDown, MouseMove, and LeftUp events to record pencil strokes.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_UI_Controls",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Integrate Color Selection",
+					"status": "",
+					"intent": "Add a ColorPusher control to allow users to change the pencil color.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-004",
+					"title": "Add Toolbar and Layout",
+					"status": "",
+					"intent": "Organize the UI with a toolbar containing tool selection and color pusher.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_Persistence",
+			"tasks": [
+				{
+					"id": "TASK-005",
+					"title": "Implement Save Logic",
+					"status": "",
+					"intent": "Add functionality to export the current DrawingCanvas to a file using Image and Draw class.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-004",
+			"name": "04_Verification",
+			"tasks": [
+				{
+					"id": "TASK-006",
+					"title": "Build and Validate",
+					"status": "",
+					"intent": "Compile the application and verify against the rb-drawing-pencil-red-save runbook.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro make SmallGuiAppForDrawing",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

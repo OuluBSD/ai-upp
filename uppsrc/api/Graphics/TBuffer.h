@@ -83,17 +83,18 @@ struct BufferStageT : GfxBufferStage {
 	int NewWriteBuffer();
 	void TexFlags(GVar::TextureMode type, GVar::Filter filter, GVar::Wrap repeat);
 	void ClearTex();
-	void CreateTex(bool create_depth, bool create_fbo);
-	bool LoadInputLink(int in_id, const PacketValue& v);
-	bool LoadInputLink(int in_id, const InternalPacketData& v);
-	void SetVars(ProgramState& prog, const RealtimeSourceConfig& cfg, const DataObject& o);
-	void SetVar(ProgramState& prog, int var, const RealtimeSourceConfig& cfg, const DataObject& o);
-	GfxCompilerArgs GetCompilerArgs() const;
-	void CompileJIT();
-	void SetAudio(bool b);
-	
-	DataState& LocalState() {ASSERT(data); return *data;}
-	DataState& GetState() {ASSERT(data); return *data;}
+		void CreateTex(bool create_depth, bool create_fbo);
+		bool LoadInputLink(int in_id, const PacketValue& v);
+		bool LoadInputLink(int in_id, const InternalPacketData& v);
+		void SetVars(ProgramState& prog, const RealtimeSourceConfig& cfg, const DataObject& o);
+		void SetVar(ProgramState& prog, int var, const RealtimeSourceConfig& cfg, const DataObject& o);
+		GfxCompilerArgs GetCompilerArgs() const;
+		void CompileJIT();
+		void SetAudio(bool b);
+		void Uninitialize();
+		
+		DataState& LocalState() {ASSERT(data); return *data;}
+		DataState& GetState() {ASSERT(data); return *data;}
 	NativeColorBufferConstPtr GetOutputTexture(bool reading_self) const;
 	bool IsInitialized() const {return initialized;}
 	const Framebuffer& GetFramebuffer() const {return fb[0];}
@@ -186,6 +187,7 @@ public:
 	bool ImageInitialize(bool is_win_fbo, Size screen_sz, bool add_data_states);
 	bool PostInitialize();
 	bool InitializeRenderer();
+	void Uninitialize();
 	void Process(const RealtimeSourceConfig& cfg);
 	void OnError(const char* fn, String s);
 	void StoreOutputLink(InternalPacketData& v);

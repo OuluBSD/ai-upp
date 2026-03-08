@@ -153,6 +153,13 @@ typedef enum {
 	// float[HMD_CONTROL_COUNT] (get): Get the state of the device's controls.
 	HMD_CONTROLS_STATE                = 22,
 	
+	// float[3] (get): A 3-D vector representing the raw accelerometer values.
+	HMD_ACCELEROMETER_VECTOR          = 23,
+	// float[3] (get): A 3-D vector representing the raw gyroscope values.
+	HMD_GYROSCOPE_VECTOR              = 24,
+	// float[3] (get): A 3-D vector representing the raw magnetometer values.
+	HMD_MAGNETOMETER_VECTOR           = 25,
+	
 } FloatValue;
 
 // A collection of int value information types used for getting information with GetDeviceInt().
@@ -175,6 +182,11 @@ typedef enum {
 	
 	// int[HMD_CONTROL_COUNT] (get, lhmd_geti()): Get whether controls are digital or analog.
 	HMD_CONTROLS_TYPES                   =  6,
+	
+	// int[1] (GetListInt()): Gets the USB vendor ID of the device.
+	HMD_VENDOR_ID                        =  7,
+	// int[1] (GetListInt()): Gets the USB product ID of the device.
+	HMD_PRODUCT_ID                       =  8,
 } IntValue;
 
 // A collection of data information types used for setting information with lhmd_SetData().

@@ -1,0 +1,353 @@
+{
+	"version": 2,
+	"name": "ModelerApp",
+	"project": {
+		"scenes": [
+			{
+				"GeomDirectory": {
+					"name": "",
+					"transform": {
+						"position": {
+							"data": ""
+						},
+						"orientation": {
+							"data": ""
+						},
+						"scale": {
+							"data": ""
+						}
+					},
+					"props": {
+						"entries": [
+
+						]
+					},
+					"subdir": [
+
+					],
+					"objs": [
+						{
+							"name": "camera",
+							"type_i": 2,
+							"asset_ref": "",
+							"pointcloud_ref": "",
+							"is_visible": true,
+							"is_locked": false,
+							"read_enabled": true,
+							"write_enabled": false,
+							"timeline_muted": false,
+							"timeline_solo": false,
+							"timeline": {
+								"keypoints": [
+									{
+										"key": 0,
+										"value": {
+											"frame_id": 0,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 5,
+										"value": {
+											"frame_id": 5,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 10,
+										"value": {
+											"frame_id": 10,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 15,
+										"value": {
+											"frame_id": 15,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									},
+									{
+										"key": 20,
+										"value": {
+											"frame_id": 20,
+											"position": {
+												"data": ""
+											},
+											"orientation": {
+												"data": ""
+											},
+											"has_position": true,
+											"has_orientation": true,
+											"position_ease": 0,
+											"orientation_ease": 0
+										}
+									}
+								]
+							},
+							"transform": {
+								"position": {
+									"data": ""
+								},
+								"orientation": {
+									"data": ""
+								},
+								"scale": {
+									"data": ""
+								}
+							},
+							"props": {
+								"entries": [
+
+								]
+							},
+							"editable": {
+								"points": [
+
+								],
+								"lines": [
+
+								],
+								"faces": [
+
+								]
+							},
+							"layer2d": {
+								"visible": true,
+								"stroke": {
+									"red": 220,
+									"green": 220,
+									"blue": 220
+								},
+								"fill": {
+									"red": 60,
+									"green": 60,
+									"blue": 60
+								},
+								"width": 1,
+								"opacity": 1,
+								"use_layer_style": true,
+								"stroke_cap": 0,
+								"stroke_join": 0,
+								"texture_ref": "",
+								"blend_mode": 0,
+								"tex_offset_x": 0,
+								"tex_offset_y": 0,
+								"tex_repeat_x": 1,
+								"tex_repeat_y": 1,
+								"tex_rotate": 0,
+								"tex_wrap": 0,
+								"stroke_uv_mode": 0,
+								"shapes": [
+
+								]
+							},
+							"layer2d_anim": {
+								"keyframes": [
+
+								]
+							},
+							"texture_edit": {
+								"path": "",
+								"width": 512,
+								"height": 512
+							},
+							"mesh_anim": {
+								"keyframes": [
+
+								]
+							},
+							"effects": [
+
+							],
+							"scripts": [
+
+							]
+						},
+						{
+							"name": "some model",
+							"type_i": 1,
+							"asset_ref": "",
+							"pointcloud_ref": "",
+							"is_visible": true,
+							"is_locked": false,
+							"read_enabled": true,
+							"write_enabled": false,
+							"timeline_muted": false,
+							"timeline_solo": false,
+							"timeline": {
+								"keypoints": [
+
+								]
+							},
+							"transform": {
+								"position": {
+									"data": ""
+								},
+								"orientation": {
+									"data": ""
+								},
+								"scale": {
+									"data": ""
+								}
+							},
+							"props": {
+								"entries": [
+
+								]
+							},
+							"editable": {
+								"points": [
+
+								],
+								"lines": [
+
+								],
+								"faces": [
+
+								]
+							},
+							"layer2d": {
+								"visible": true,
+								"stroke": {
+									"red": 220,
+									"green": 220,
+									"blue": 220
+								},
+								"fill": {
+									"red": 60,
+									"green": 60,
+									"blue": 60
+								},
+								"width": 1,
+								"opacity": 1,
+								"use_layer_style": true,
+								"stroke_cap": 0,
+								"stroke_join": 0,
+								"texture_ref": "",
+								"blend_mode": 0,
+								"tex_offset_x": 0,
+								"tex_offset_y": 0,
+								"tex_repeat_x": 1,
+								"tex_repeat_y": 1,
+								"tex_rotate": 0,
+								"tex_wrap": 0,
+								"stroke_uv_mode": 0,
+								"shapes": [
+
+								]
+							},
+							"layer2d_anim": {
+								"keyframes": [
+
+								]
+							},
+							"texture_edit": {
+								"path": "",
+								"width": 512,
+								"height": 512
+							},
+							"mesh_anim": {
+								"keyframes": [
+
+								]
+							},
+							"effects": [
+
+							],
+							"scripts": [
+
+							]
+						}
+					],
+					"datasets": [
+
+					],
+					"scripts": [
+
+					]
+				},
+				"length": 21,
+				"timeline": {
+					"time": 0,
+					"position": 0,
+					"length": 21,
+					"is_playing": false,
+					"repeat": false,
+					"speed": 1
+				}
+			}
+		],
+		"kps": 5,
+		"fps": 60,
+		"key_counter": 3
+	},
+	"active_scene": 0,
+	"focus": {
+		"position": {
+			"data": ""
+		},
+		"orientation": {
+			"data": ""
+		},
+		"distance": 10,
+		"fov": 120,
+		"scale": 1
+	},
+	"program": {
+		"position": {
+			"data": ""
+		},
+		"orientation": {
+			"data": ""
+		},
+		"distance": 10,
+		"fov": 120,
+		"scale": 1
+	},
+	"created_utc": "2026-02-13T19:14:20Z",
+	"modified_utc": "2026-02-13T19:14:20Z",
+	"data_dir": "data",
+	"external_files": [
+
+	],
+	"meta": [
+
+	]
+}

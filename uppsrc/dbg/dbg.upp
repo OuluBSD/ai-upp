@@ -10,3 +10,6 @@ file
 	TcpProxy.cpp,
 	main.cpp;
 
+mainconfig
+	"" = "";
+

@@ -309,6 +309,8 @@ void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<B
 		}
 	}
 
+	TimeStop ts;
+	last_backend = backend;
 	switch (backend) {
 	case CvBackend::CPU:
 		DescribeCpu(src, corners, descriptors);
@@ -319,6 +321,12 @@ void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<B
 	case CvBackend::OGL:
 		DescribeOglStub(src, corners, descriptors);
 		break;
+	}
+	last_describe_ms = ts.Elapsed();
+	switch (backend) {
+	case CvBackend::CPU: last_cpu_ms = last_describe_ms; break;
+	case CvBackend::AMP: last_amp_ms = last_describe_ms; break;
+	case CvBackend::OGL: last_ogl_ms = last_describe_ms; break;
 	}
 }
 

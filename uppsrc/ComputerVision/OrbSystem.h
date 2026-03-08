@@ -9,6 +9,7 @@ struct ColorLine : Moveable<ColorLine> {
 
 class OrbSystem {
 public:
+        const Vector<BinDescriptor>& GetPatternDescriptors(int lev) const { return pattern_descriptors[lev]; }
 	struct Profile : Moveable<Profile> {
 		int64 total_us = 0;
 		int64 grayscale_us = 0;
@@ -92,6 +93,7 @@ public:
 	void Process();
 	void ProcessROI(Rect roi);
         void ProcessGpu(const ByteMat& gray, const Vector<GpuKp>& keypoints, int level, Rect roi);
+        void ProcessGpu(const Vector<GpuKp>& keypoints, const Vector<BinDescriptor>& descriptors, Rect roi);
 	void ProcessPrepared(const ByteMat& gray, const ByteMat& smooth, Rect roi);
 	
 	void TrainPattern();

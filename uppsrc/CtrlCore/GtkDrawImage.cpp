@@ -128,7 +128,7 @@ void CairoGet(ImageBuffer& b, Size isz, cairo_surface_t *surface, cairo_surface_
 	
 	// Create a temporary cairo surface and context to draw ARGB32 into RGBA (Pixbuf)
 	GdkPixbuf *pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, isz.cx, isz.cy);
-	cairo_t *cr = gdk_cairo_create(NULL); // This might not work without a drawable, let's use a surface instead
+	cairo_t *cr = gdk_cairo_create(NULL);
 	
 	// Wait, we can just use cairo_image_surface_create_for_data with the pixbuf buffer!
 	byte *pb_data = gdk_pixbuf_get_pixels(pixbuf);

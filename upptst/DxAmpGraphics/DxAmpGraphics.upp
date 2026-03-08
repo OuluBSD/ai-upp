@@ -1,0 +1,21 @@
+uses
+	Core,
+	AMP;
+
+uses(GUI) CtrlLib;
+
+library(WIN32 & DX11) "D3D11 dxgi";
+
+library(WIN32 & DX12) "D3D12 dxgi";
+
+file
+	AGENTS.md,
+	DxAmpGraphics.h,
+	DxAmpGraphics.cpp;
+
+mainconfig
+	"" = "DX11",
+	"" = "DX12",
+	"" = "GUI AMPCOMPAT",
+	"" = "GUI AMPCOMPAT USEMALLOC";
+

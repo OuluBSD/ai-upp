@@ -209,7 +209,8 @@ Vector<DbgFrame> DebugBridge::GetStackFrames(int limit) const
 			backend = "gdb";
 		}
 		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get())) {
-			raw = l->Cmd("bt");
+			// LLDB: "thread backtrace" gives all frames in GDB-compatible #N format
+			raw = l->Cmd("thread backtrace");
 			backend = "lldb";
 		}
 	});
@@ -229,7 +230,7 @@ VectorMap<String, String> DebugBridge::GetLocals() const
 		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get()))
 			raw = g->Cmd("info locals");
 		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get()))
-			raw = l->Cmd("frame variable");
+			raw = l->Cmd("info locals"); // LLDB also accepts GDB-style "info locals"
 	});
 	VectorMap<String, String> result;
 	ParseLocals(raw, result);

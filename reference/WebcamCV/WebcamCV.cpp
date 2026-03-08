@@ -127,32 +127,46 @@ void WebcamCV::SelectDemo() {
 }
 
 void WebcamCV::Data() {
+	TimeStop ts;
 	
 	if (new_imgs.GetCount())
 		Swap(new_imgs, imgs);
 	
+	ImageProcBase* active = 0;
 	
 	switch (type) {
-		case DEMO_GRAYSCALE:	Tick(grayscale); break;
-		case DEMO_BOXBLUR:		Tick(boxblur); break;
-		case DEMO_GAUSSIANBLUR:	Tick(gaussblur); break;
-		case DEMO_PYRDOWN:		Tick(pyrdown); break;
-		case DEMO_SCHARR:		Tick(scharr); break;
-		case DEMO_SOBEL:		Tick(sobel); break;
-		case DEMO_SOBELEDGE:	Tick(sobeledge); break;
-		case DEMO_EQHIST:		Tick(eqhist); break;
-		case DEMO_CANNY:		Tick(canny); break;
-		case DEMO_WARPAFF:		Tick(warpaff); break;
-		case DEMO_WARPPERS:		Tick(warppers); break;
-		case DEMO_VIDSTAB:		Tick(vidstab); break;
-		case DEMO_FASTCOR:		Tick(fastcor); break;
-		case DEMO_YAPE06:		Tick(Yape06); break;
-		case DEMO_YAPE:			Tick(Yape); break;
-		case DEMO_ORB:			Tick(orb); break;
-		case DEMO_OPTFLOWLK:	Tick(optflowlk); break;
-		case DEMO_BBF:			Tick(bbf); break;
-		case DEMO_HAAR:			Tick(haar); break;
+		case DEMO_GRAYSCALE:	active = &grayscale; break;
+		case DEMO_BOXBLUR:		active = &boxblur; break;
+		case DEMO_GAUSSIANBLUR:	active = &gaussblur; break;
+		case DEMO_PYRDOWN:		active = &pyrdown; break;
+		case DEMO_SCHARR:		active = &scharr; break;
+		case DEMO_SOBEL:		active = &sobel; break;
+		case DEMO_SOBELEDGE:	active = &sobeledge; break;
+		case DEMO_EQHIST:		active = &eqhist; break;
+		case DEMO_CANNY:		active = &canny; break;
+		case DEMO_WARPAFF:		active = &warpaff; break;
+		case DEMO_WARPPERS:		active = &warppers; break;
+		case DEMO_VIDSTAB:		active = &vidstab; break;
+		case DEMO_FASTCOR:		active = &fastcor; break;
+		case DEMO_YAPE06:		active = &Yape06; break;
+		case DEMO_YAPE:			active = &Yape; break;
+		case DEMO_ORB:			active = &orb; break;
+		case DEMO_OPTFLOWLK:	active = &optflowlk; break;
+		case DEMO_BBF:			active = &bbf; break;
+		case DEMO_HAAR:			active = &haar; break;
 	};
+	if (active)
+		Tick(*active);
+	frame_ms = ts.Elapsed();
+	double inst_fps = frame_ms > 0 ? 1000.0 / frame_ms : 0.0;
+	fps = fps <= 0 ? inst_fps : (fps * 0.9 + inst_fps * 0.1);
+	String dbg = active ? active->GetDebugInfo() : String();
+	rend.overlay = Format("%s | %s | %.2f ms (%.1f fps)%s%s",
+		GetDemoName(type),
+		GetCvBackendStatus(backend),
+		frame_ms, fps,
+		dbg.IsEmpty() ? "" : " | ",
+		dbg.IsEmpty() ? "" : dbg.Begin());
 	
 	rend.Refresh();
 }
@@ -210,6 +224,13 @@ void WebcamCV::Renderer::Paint(Draw& d) {
 		}
 	}
 	
+	
+	if (!overlay.IsEmpty()) {
+		Font fnt = SansSerif(13).Bold();
+		Size tsz = GetTextSize(overlay, fnt);
+		id.DrawRect(8, 8, tsz.cx + 12, tsz.cy + 8, Color(0, 0, 0));
+		id.DrawText(14, 12, overlay, fnt, White());
+	}
 	
 	d.DrawImage(0,0,id);
 }

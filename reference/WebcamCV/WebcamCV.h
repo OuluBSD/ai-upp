@@ -31,6 +31,7 @@ public:
 	
 	virtual void InitDefault() {}
 	virtual void Process() = 0;
+	virtual String GetDebugInfo() const { return String(); }
 	
 };
 
@@ -239,6 +240,8 @@ class OrbBase : public ImageProcBase {
     int lap_thres = 30;
     int eigen_thres = 25;
     int KeypointMatchhreshold = 48;
+	int last_num_matches = 0;
+	int last_good_matches = 0;
     
     
     void render_matches(const Vector<KeypointMatch>& matches);
@@ -256,6 +259,7 @@ public:
     
 	void InitDefault() override;
 	void Process() override;
+	String GetDebugInfo() const override;
 	
 };
 
@@ -333,6 +337,7 @@ class WebcamCV : public TopWindow {
 		Vector<ColorLine>* lines = 0;
 		Vector<Point>* points = 0;
 		Vector<BBox>* rects = 0;
+		String overlay;
 		
 		void Paint(Draw& d) override;
 		
@@ -350,6 +355,8 @@ class WebcamCV : public TopWindow {
 	MenuBar menu;
 	int type = -1;
 	CvBackend backend = CvBackend::CPU;
+	double frame_ms = 0;
+	double fps = 0;
 	
 
 	GrayscaleBase grayscale;

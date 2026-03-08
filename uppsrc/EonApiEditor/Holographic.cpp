@@ -16,7 +16,7 @@ void InterfaceBuilder::AddHolographic() {
 	Interface("SinkDevice", "VR");
 	
 	Vendor("OpenHMD", "LINUX&OPENHMD|FREEBSD&OPENHMD");
-	Vendor("LocalHMD", "LOCALHMD");
+	Vendor("SoftHMD", "SOFTHMD");
 	Vendor("RemoteVRServer", "LINUX|FREEBSD");
 	Vendor("DevUsb", "LINUX|FREEBSD");
 	Vendor("DevBluetooth", "LINUX&HACK|FREEBSD&HACK");

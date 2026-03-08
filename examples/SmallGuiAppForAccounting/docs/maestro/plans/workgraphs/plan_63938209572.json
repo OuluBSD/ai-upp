@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "wg-data-export",
+	"title": "Data Export Implementation",
+	"goal": "Add JSON and XML data export functionality to the SmallGuiAppForAccounting application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DATA-EXPORT",
+		"name": "Data Export",
+		"goal": "Implement a modular data export system for financial records.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-EXPORT-01",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TSK-DE-001",
+					"title": "Define Export Data Structures",
+					"status": "",
+					"intent": "Define the C++ structures and headers for formatting exported data.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "DataExport.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-DE-002",
+					"title": "Implement Export Persistence Logic",
+					"status": "",
+					"intent": "Implement the logic to retrieve data from the Ledger and prepare it for serialization.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "DataExport.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-EXPORT-02",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TSK-DE-003",
+					"title": "Develop JSON Export Engine",
+					"status": "",
+					"intent": "Implement JSON serialization using U++ Core Json support.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"AsJson\" DataExport.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-DE-004",
+					"title": "Develop XML Export Engine",
+					"status": "",
+					"intent": "Implement XML serialization logic for financial data.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"AsXml\" DataExport.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-EXPORT-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-DE-005",
+					"title": "Create Data Export GUI",
+					"status": "",
+					"intent": "Develop the U++ Ctrl-based dialog for export settings and format selection.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "DataExportGui.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-DE-006",
+					"title": "Integrate Export Module with Main Window",
+					"status": "",
+					"intent": "Add the Export command to the main application menu.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -i \"DataExportGui\" main.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-DE-007",
+					"title": "Build and Verify Export System",
+					"status": "",
+					"intent": "Compile the application and verify that export files are correctly generated.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro make",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

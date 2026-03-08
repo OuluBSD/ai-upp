@@ -20,7 +20,7 @@ template <class Gfx>
 bool FboAtomT<Gfx>::Initialize(const WorldState& ws) {
 	ws_at_init = ws;
 	
-	#ifdef flagDEBUG
+	#if defined(flagDEBUG) && defined(flagOGL)
 	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Initialize BEGIN ERROR: " << HexStr(err));}
 	#endif
 
@@ -185,7 +185,7 @@ bool FboAtomT<Gfx>::IsReady(PacketIO& io) {
 template <class Gfx>
 bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) {
 	LOG("FboAtomT::Send called, thread ID=" << (uint64)Thread::GetCurrentId());
-	#ifdef flagDEBUG
+	#if defined(flagDEBUG) && defined(flagOGL)
 	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Send BEGIN ERROR: " << HexStr(err));}
 	#endif
 
@@ -195,7 +195,7 @@ bool FboAtomT<Gfx>::Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch
 		if (!binder->Render(accel_sd))
 			return false;
 
-	#ifdef flagDEBUG
+	#if defined(flagDEBUG) && defined(flagOGL)
 	{GLenum err = glGetError(); if(err != GL_NO_ERROR) LOG("FboAtomT::Send AFTER RENDER ERROR: " << HexStr(err));}
 	#endif
 

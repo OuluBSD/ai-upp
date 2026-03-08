@@ -40,10 +40,10 @@ void GuiMainFn_(); \
 \
 extern "C" int main(int argc, const char **argv, const char **envptr) { \
 	UPP::AppInit__(argc, argv, envptr); \
-	FBInit(); \
+	UPP::FBInit(); \
 	GuiMainFn_(); \
 	UPP::Ctrl::CloseTopCtrls(); \
-	FBDeInit(); \
+	UPP::FBDeInit(); \
 	return UPP::GetExitCode(); \
 } \
 \

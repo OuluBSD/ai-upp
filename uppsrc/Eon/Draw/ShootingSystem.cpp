@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 
 bool ShootingInteractionSystemBase::Initialize(const WorldState& ws) {
+	ws_at_init = ws;
 	if (!InteractionListener::Initialize(GetEngine(), this))
 		return false;
 	

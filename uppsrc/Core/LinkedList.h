@@ -2,7 +2,7 @@
 #define _Core_LinkedList_h_
 
 
-template <class T>
+template <class T, bool keep_as_constructed=false>
 class LinkedList {
 	
 	struct Item {
@@ -14,7 +14,7 @@ class LinkedList {
 		Item(const Item& i) : prev(i.prev), next(i.next), value(i.value) {}
 	};
 	
-	typedef RecyclerPool<Item> Rec;
+	typedef RecyclerPool<Item,keep_as_constructed> Rec;
 	static inline Rec& GetRecyclerPool() {MAKE_STATIC(Rec, r); return r;}
 	
 	Item* first = 0;

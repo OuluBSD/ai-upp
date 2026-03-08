@@ -1,4 +1,6 @@
+#warning "SDL2GL/Ctrl.h IS BEING INCLUDED"
 //$ class Ctrl {
+public:
 private:
 	static Ptr<Ctrl>      desktop;
 	static Vector<Ctrl *> topctrl;
@@ -6,7 +8,6 @@ private:
 
 	static Point fbCursorPos;
 	static Image fbCursorImage;
-	static bool  sdlMouseIsIn;
 	
 	static Rect  fbCaretRect;
 	static int   fbCaretTm;
@@ -26,7 +27,7 @@ private:
 
 	void DestroyWnd();
 
-	void NewTop()                       { top = new Top; top->owner_window = NULL; }
+	void NewTop()                       { SetTop(new Top); GetTop()->owner_window = NULL; }
 	void PutForeground();
 	static void MouseEventFB(Ptr<Ctrl> t, int event, Point p, int zdelta);
 
@@ -39,6 +40,7 @@ private:
 	friend class TopWindowFrame;
 	friend class SystemDraw;
 	friend struct DnDLoop;
+	friend class AtomVirtualGui3D;
 
 	void  SetOpen(bool b)               { isopen = b; }
 
@@ -46,6 +48,7 @@ protected:
 	static int PaintLock;
 
 public:
+	static bool           sdlMouseIsIn;
 	static void HandleSDLEvent(SDL_Event* event);
 
 	static void DoMouseFB(int event, Point p, int zdelta = 0);
@@ -65,6 +68,8 @@ public:
 	                  Color color, int type, int animation);
 
 	static Ctrl *FindMouseTopCtrl();
+
+	static int  GetCaretBlinkTime()            { return 500; }
 
 	static void PaintScene(SystemDraw& draw);
 	static void PaintCaretCursor(SystemDraw& draw);

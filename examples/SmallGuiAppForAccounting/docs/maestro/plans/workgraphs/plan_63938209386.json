@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "PLAN-EXPENSE-TRACKING",
+	"title": "Expense Tracking Implementation",
+	"goal": "Implement a full expense tracking module including data models, persistence, and GUI integration.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-EXPENSE",
+		"name": "Expense Tracking",
+		"goal": "Add comprehensive expense management capabilities to the accounting application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-EXP-01",
+					"title": "Define Expense and Category Structures",
+					"status": "",
+					"intent": "Create C++ structures for representing expenses and their categories in Ledger.h",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/01_Data_Model/Define Expense and Category Structures.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-EXP-02",
+					"title": "Update Ledger Header",
+					"status": "",
+					"intent": "Integrate expense-related containers and methods into the main Ledger class definition",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/01_Data_Model/Update Ledger Header.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-LOGIC",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-EXP-03",
+					"title": "Implement Categorization and Persistence Logic",
+					"status": "",
+					"intent": "Write the logic for saving and loading expenses to/from disk and managing categories",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/02_Implementation/Implement Categorization and Persistence Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-EXP-04",
+					"title": "Update Ledger Implementation",
+					"status": "",
+					"intent": "Add the implementation of expense methods in Ledger.cpp",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/02_Implementation/Update Ledger Implementation.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-EXP-05",
+					"title": "Create Expense Tracking GUI",
+					"status": "",
+					"intent": "Develop the U++ GUI components for viewing and entering expenses",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/03_UI_Integration/Create Expense Tracking GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-EXP-06",
+					"title": "Integrate Expense Module with Main Window",
+					"status": "",
+					"intent": "Add the expense tracking view to the main application layout or menu",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Expense Tracking/03_UI_Integration/Integrate Expense Module with Main Window.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-EXP-07",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the application and run verification tests for the expense module",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

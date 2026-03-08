@@ -1,0 +1,10 @@
+uses
+	ComputerVision,
+	plugin/jpg,
+	plugin/png;
+
+file
+	OrbTest.cpp;
+
+mainconfig
+	"" = "";

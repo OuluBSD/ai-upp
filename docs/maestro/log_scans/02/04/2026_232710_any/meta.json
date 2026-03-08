@@ -1,0 +1,9 @@
+{
+	"scan_id": "02/04/2026_232710_any",
+	"timestamp": "2026-02-04T23:27:10",
+	"source_path": "test.log",
+	"kind": "any",
+	"cwd": "/common/active/sblo/Dev/ai-upp",
+	"command_context": "",
+	"finding_count": 1
+}

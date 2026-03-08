@@ -9,7 +9,8 @@ acceptflags
 	DEBUG_RT;
 
 uses
-	Eon;
+	Eon,
+	Draw/Media;
 
 library(FFMPEG) "swscale avcodec avformat avutil swresample avdevice avfilter";
 
@@ -26,30 +27,8 @@ library(OPENCV WIN32 (CLANG | GCC)) "libopencv_core.dll.a libopencv_imgproc.dll.
 pkg_config(FFMPEG WIN32 (CLANG | GCC)) libavcodec;
 
 file
-	pre_win32.h,
 	Media.h,
-	Types.h,
-	Types.cpp,
 	MediaAtomBase.h,
 	MediaAtomBase.cpp,
-	FileIn.h,
-	FileIn.cpp,
-	Audio.h,
-	Audio.cpp,
-	Video.h,
-	Video.cpp,
-	MediaStream.h,
-	MediaStream.cpp,
 	"Support classes" readonly separator,
-	DeviceManager_V4L2.h,
-	DeviceManager_V4L2.cpp,
-	DeviceManager_Win32.h,
-	DeviceManager_Win32.cpp,
-	Capture_DShow.h,
-	Capture_DShow.cpp,
-	Capture_OpenCV.h,
-	Capture_OpenCV.cpp,
-	Capture_V4L2.h,
-	Capture_V4L2.cpp,
 	_ readonly separator;
-

@@ -8,15 +8,19 @@ bool SDLWindow::Create(const Rect& rect, const char *title)
 {
 	win = SDL_CreateWindow(title, rect.left, rect.top, rect.GetWidth(), rect.GetHeight(),
 	                       SDL_WINDOW_SHOWN|SDL_WINDOW_OPENGL|SDL_WINDOW_BORDERLESS);
-	if(!win)
+	if(!win) {
+		Cout() << "SDL_CreateWindow failed: " << SDL_GetError() << "\n";
 		return false;
+	}
 	MemoryIgnoreLeaksBegin();
 	glcontext = SDL_GL_CreateContext(win);
 	MemoryIgnoreLeaksEnd();
 	if(!glcontext) {
+		Cout() << "SDL_GL_CreateContext failed: " << SDL_GetError() << "\n";
 		Destroy();
 		return false;
 	}
+	Cout() << "SDL Window and GL Context created successfully\n";
 	INTERLOCKED {
 		static int64 h;
 		serial = h++;

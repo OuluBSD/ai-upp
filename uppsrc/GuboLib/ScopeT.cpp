@@ -25,7 +25,9 @@ bool ScopeT<Dim>::Attach()
 template <>
 bool ScopeT<Ctx3D>::Attach()
 {
+#ifdef flagEON
 	RendererContent::AddContent(this);
+#endif
 	return true;
 }
 
@@ -126,7 +128,7 @@ void ScopeT<Dim>::AddInterface(TopContainer& ts) {
 
 	WhenActiveHandleChanges();
 
-	String title = h.GetTitle();
+	String title = ts.GetTitle();
 	h.Title(title.GetCount() ? title : String("Unnamed"));
 
 	this->Refresh();
@@ -686,7 +688,7 @@ bool ScopeT<Dim>::Load(GfxDataState& state) {
 
 template <>
 bool ScopeT<Ctx3D>::Load(GfxDataState& state) {
-	
+#ifdef flagEON
 	auto& pp = pd.GetPainter();
 	
 	Render();
@@ -824,6 +826,9 @@ bool ScopeT<Ctx3D>::Load(GfxDataState& state) {
 	
 	
 	return true;
+#else
+	return false;
+#endif
 }
 
 HANDLETYPE_EXCPLICIT_INITIALIZE_CLASS(ScopeT)

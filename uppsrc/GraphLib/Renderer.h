@@ -1,44 +1,32 @@
 #ifndef _GraphLib_Renderer_h_
 #define _GraphLib_Renderer_h_
 
+#include "Graph.h"
+
 namespace GraphLib {
 
+using namespace Upp;
 
-//    Base class for rendering nodes
-//
-//    Can transform coordinates to fit onto the canvas
 class Renderer {
 	Vector<Point> bezier_path, diam, arrow;
-
-protected:
+	
 	Graph* graph;
-	double factor_x, factor_y;
+	
 	Size pt_sz;
-	int border;
-
+	Size sz;
+	
+	void DrawArrow(Draw& w, Point p1, Point p2, double scale);
+	
 public:
-
 	Renderer(Graph& graph);
-	virtual ~Renderer();
-
+	
 	Node* FindNode(Point pt);
 	Pin* FindPin(Point pt);
-	GroupNode* FindGroup(Point pt);  // Added for GroupNode support
-	void SetBorder(int i);
+	GroupNode* FindGroup(Point pt);
+	
 	void SetImageSize(Size sz, int border=-1);
-
-	// Scale the nodes within the canvas dimensions
-	// Keep a distance to the canvas edges of half a node radius
-	void Paint(Draw& id);
-
-	Pointf Translate(Pointf point);
-
-	// coordinates for potential connection coordinates from/to the objects
-	void GetConnectionPoints(const Node& obj1, const Node& obj2, Vector<Point>& pts);
-	virtual void DrawNode(Draw& w, Node& node);
-	virtual void DrawEdge(Draw& w, Edge& edge);
-	virtual void DrawGroup(Draw& w, GroupNode& group);  // Added for GroupNode support
-
+	
+	void Paint(Draw& w);
 };
 
 }

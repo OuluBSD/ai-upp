@@ -24,13 +24,11 @@ struct VfsValueExtCtrl : WidgetCtrl {
 	Event<> WhenEditorChange;
 	Event<> WhenTitle;
 	Event<> WhenSaveEditPos;
-	Ptr<ToolAppCtrl> owner;
 	
 	VfsValueExtCtrl();
 	VfsValue& GetValue();
 	const VfsValue& GetValue() const;
 	VfsValueExt& GetExt();
-	String GetFilePath() const;
 	VfsPath GetCursorPath() const override;
 	void ToolMenu(Bar& bar) override;
 	

@@ -1,8 +1,5 @@
 description "\377B";
 
-uses
-	AI/Ctrl;
-
 file
 	AGENTS.md,
 	Shell.h,
@@ -12,7 +9,6 @@ file
 	Console.h,
 	Console.cpp,
 	Widget.h,
-	Widget.cpp,
 	IdeShell.h,
 	IdeShell.cpp,
 	IdeShellHost.cpp,

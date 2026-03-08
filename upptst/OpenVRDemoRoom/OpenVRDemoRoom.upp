@@ -1,0 +1,13 @@
+uses
+	Shell,
+	SoftHMD,
+	plugin/assimp,
+	plugin/png;
+
+file
+	OpenVRDemoRoom.h,
+	01_openvr_demoroom.cpp,
+	Main.cpp;
+
+mainconfig
+	"" = "OPENVR ASSIMP OGL SDL2 SCREEN HAL VR";

@@ -61,7 +61,6 @@ RTSrcConfig* CustomerLink::GetConfig() {
 }
 
 void CustomerLink::Forward(FwdScope& fwd) {
-	
 	while (atom->IsForwardReady()) {
 		RTLOG("CustomerLink::Forward: create packet");
 		InterfaceSinkPtr sink_iface = GetSink();
@@ -318,6 +317,11 @@ PollerLink::~PollerLink() {
 
 bool PollerLink::Initialize(const WorldState& ws) {
 	SetFPS(60);
+	
+	if (!last_cfg) {
+		poller_cfg.Create(off_gen);
+		last_cfg = &*poller_cfg;
+	}
 	
 	AddLinkToUpdateList();
 	

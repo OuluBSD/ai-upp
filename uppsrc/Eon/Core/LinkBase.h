@@ -81,6 +81,8 @@ public:
 
 class PollerLink : public FramePollerBase {
 	bool finalize_on_side = false;
+	One<RealtimeSourceConfig> poller_cfg;
+	off32_gen off_gen;
 	
 public:
 	LINK_CTOR_(PollerLink, FramePollerBase)

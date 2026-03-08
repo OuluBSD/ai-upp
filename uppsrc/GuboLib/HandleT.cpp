@@ -1,12 +1,24 @@
 #include "GuboLib.h"
 
-
-NAMESPACE_GUBO_BEGIN
+NAMESPACE_UPP
 
 void MainLoop() {
-	TODO
+	bool quit = false;
+	while(!quit) {
+		Ctrl::ProcessEvents(&quit);
+		if(Gubo::LoopGubo) {
+			Gubo::LoopGubo->Redraw(false);
+			Ctrl::Invalidate(); // Trigger backend DoPaint
+		}
+		if(!Ctrl::IsWaitingEvent())
+			Sleep(10); // Don't hog CPU too much, but stay responsive
+	}
 }
 
+END_UPP_NAMESPACE
+
+
+NAMESPACE_GUBO_BEGIN
 
 
 Image& WindowsImg::close() {
@@ -271,14 +283,14 @@ GeomInteraction* HandleT<Dim>::GetDynamicallyLinked() const {
 
 template <class Dim>
 ScopeT<Dim>& HandleT<Dim>::GetScope() const {
-	ScopeT<Dim>* owner = this->GetParent().Get();
+	ScopeT<Dim>* owner = dynamic_cast<ScopeT<Dim>*>(~this->GetParent());
 	ASSERT(owner);
 	return *owner;
 }
 
 template <class Dim>
 HandleSystemT<Dim>& HandleT<Dim>::GetHandleSystem() const {
-	ScopeT<Dim>* owner0 = this->GetParent().Get();
+	ScopeT<Dim>* owner0 = dynamic_cast<ScopeT<Dim>*>(~this->GetParent());
 	ASSERT(owner0);
 	HandleSystemT<Dim>* owner1 = owner0->GetManager();
 	ASSERT(owner1);

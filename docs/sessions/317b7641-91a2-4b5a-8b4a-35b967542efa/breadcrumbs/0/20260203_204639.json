@@ -1,0 +1,26 @@
+{
+	"timestamp": "20260203_204639",
+	"breadcrumb_id": "8063D01EF78FA450D5B958CE1FF28C45",
+	"prompt": "You are the Maestro AI Assistant. Your goal is to help manage the project plan.\nYou have access to the 'update_task_status' tool.\nDo NOT try to use other tools unless explicitly requested.\n\nProject Context:\n# Maestro Project Plan Summary\n\n## Project Overview\n### Track: ContextIntegration (, 0%)\n\n### Track: MaestroCLI (, 0%)\n- Phase: 01_Infrastructure (, 0%)\n  - **[CURRENT]** 01_ProjectSetup [done]\n  - **[CURRENT]** 02_CommandDispatcher [done]\n- Phase: 02_CommandImplementation (, 0%)\n  - **[CURRENT]** 01_PlanManagement [done]\n  - **[CURRENT]** 02_WorkSessions [todo]\n  - **[CURRENT]** 03_AdvancedPlanning [todo]\n  - **[CURRENT]** 04_Discussion [in_progress]\n- Phase: 03_RepoAndOps (, 0%)\n  - **[CURRENT]** 01_RepoAnalysis [todo]\n  - **[CURRENT]** 02_StructureFix [todo]\n  - **[CURRENT]** 03_OpsAutomation [todo]\n- Phase: 04_LegacyLogicPorting (, 0%)\n  - **[CURRENT]** 01_InternalLogic [todo]\n\n### Track: MaestroPort (, 0%)\n- Phase: 01_Foundation (, 0%)\n  - **[CURRENT]** 01_EngineWrapper [done]\n  - **[CURRENT]** 02_BasicChatGUI [done]\n- Phase: 02_RepoScanning (, 0%)\n  - **[CURRENT]** 01_FileGroup_Struct [done]\n  - **[CURRENT]** 02_PackageInfo_Struct [done]\n  - **[CURRENT]** 03_UppParser_Header [done]\n  - **[CURRENT]** 04_UppParser_Impl_Basic [done]\n  - **[CURRENT]** 05_UppParser_Description [done]\n  - **[CURRENT]** 06_UppParser_Uses [done]\n  - **[CURRENT]** 07_UppParser_Files [done]\n  - **[CURRENT]** 08_UppParser_Config [done]\n  - **[CURRENT]** 09_RepoScanner_Header [done]\n  - **[CURRENT]** 10_RepoScanner_Walk [done]\n  - **[CURRENT]** 11_RepoScanner_Integrate [done]\n  - **[CURRENT]** 12_AssemblyInfo [done]\n  - **[CURRENT]** 13_AssemblyDetection [done]\n- Phase: 03_PlanningCore (, 0%)\n  - **[CURRENT]** 01_StatusEnum [done]\n  - **[CURRENT]** 02_PlanEntities [done]\n  - **[CURRENT]** 03_PlanParser_Header [done]\n  - **[CURRENT]** 04_PlanParser_Impl [done]\n- Phase: 04_GUI_Visualization (, 0%)\n  - **[CURRENT]** 01_RepoTree [done]\n  - **[CURRENT]** 02_PlanView [done]\n  - **[CURRENT]** 03_RunbookViz [done]\n\n### Track: PlanExecution (, 0%)\n- Phase: 01_ToolEngine (, 0%)\n  - **[CURRENT]** 01_ExecuteTool [done]\n- Phase: 02_InteractiveApproval (, 0%)\n  - **[CURRENT]** 01_ToolApprovalUI [done]\n- Phase: 03_AutomatedWorkflows (, 0%)\n  - **[CURRENT]** 01_RunbookAutomation [done]\n- Phase: 04_ComplexWorkflows (, 0%)\n  - **[CURRENT]** 01_DependencyManagement [done]\n- Phase: 05_FeedbackLoop (, 0%)\n  - **[CURRENT]** 01_TaskCompletion [done]\n  - **[CURRENT]** 02_AutoEnactment [done]\n  - **[CURRENT]** 03_GeminiCaching [done]\n\n### Track: SessionManagement (, 0%)\n- Phase: 01_Core (, 0%)\n  - **[CURRENT]** 01_SessionInfo_Struct [done]\n- Phase: 02_QwenParser (, 0%)\n  - **[CURRENT]** 01_BackendSessionParsing [done]\n- Phase: 03_GUI (, 0%)\n  - **[CURRENT]** 01_SessionList [done]\n\n### Track: TestTrack (, 0%)\n- Phase: Phase1 (, 0%)\n  - **[CURRENT]** MyNewTask [todo]\n\n\n\nUser Question: Fourth",
+	"response": "",
+	"tools_called": [
+
+	],
+	"files_modified": [
+
+	],
+	"parent_session_id": "",
+	"depth_level": 0,
+	"model_used": "",
+	"input_tokens": 0,
+	"output_tokens": 0,
+	"cost": 0,
+	"error": "[API Error: Requested entity was not found.]",
+	"kind": "note",
+	"tags": [
+
+	],
+	"payload": [
+
+	]
+}

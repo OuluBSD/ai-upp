@@ -1,3 +1,6 @@
+#ifndef _SDL2GL_SDL2GL_h_
+#define _SDL2GL_SDL2GL_h_
+
 #define GUI_SDL20GL
 
 #include <GLDraw/GLDraw.h>
@@ -36,6 +39,7 @@ class SystemDraw : public GLDraw {
 public:
 	bool    CanSetSurface()                         { return false; }
 	static void Flush()                             {}
+	void    SetTarget(Draw *d)                      {}
 };
 
 struct BackDraw__ : public SystemDraw {
@@ -86,31 +90,9 @@ class TopWindowFrame;
 
 #define GUIPLATFORM_TOPWINDOW_DECLS_INCLUDE <SDL20GL/Top.h>
 
-class PrinterJob { // Dummy only...
-	NilDraw             nil;
-	Vector<int>         pages;
-
-public:
-	Draw&               GetDraw()                       { return nil; }
-	operator            Draw&()                         { return GetDraw(); }
-	const Vector<int>&  GetPages() const                { return pages; }
-	int                 operator[](int i) const         { return 0; }
-	int                 GetPageCount() const            { return 0; }
-
-	bool                Execute()                       { return false; }
-
-	PrinterJob& Landscape(bool b = true)                { return *this; }
-	PrinterJob& MinMaxPage(int minpage, int maxpage)    { return *this; }
-	PrinterJob& PageCount(int n)                        { return *this; }
-	PrinterJob& CurrentPage(int currentpage)            { return *this; }
-	PrinterJob& Name(const char *_name)                 { return *this; }
-
-	PrinterJob(const char *name = NULL)                 {}
-	~PrinterJob()                                       {}
-};
-
 void USDLSetup(dword flags);
 
 END_UPP_NAMESPACE
 
 #define GUIPLATFORM_INCLUDE_AFTER <SDL20/After.h>
+#endif

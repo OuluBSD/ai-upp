@@ -77,6 +77,8 @@ public:
 
 	operator Image() const;
 	
+	SImageDraw() { has_alpha = false; }
 	SImageDraw(Size sz);
 	SImageDraw(int cx, int cy);
+	void Create(RtImage& rt);
 };

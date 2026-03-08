@@ -89,4 +89,5 @@ FN(unsigned, clang_getNumOverloadedDecls, (CXCursor cursor))
 FN(CXCursor, clang_getOverloadedDecl, (CXCursor cursor, unsigned index))
 
 FN(unsigned, clang_hashCursor, (CXCursor))
+FN(CXString, clang_getClangVersion, (void))
 

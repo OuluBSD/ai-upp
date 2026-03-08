@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "mode": "full",
+  "exported_utc": "2026-02-12T00:00:00Z",
+  "project_name": "cave_flier",
+  "scene3d": "cave_flier.scene3d",
+  "project_dir": "",
+  "data_dir": "data",
+  "files": [
+    {
+      "type": "asset",
+      "source": "assets/box.obj",
+      "exported": "assets/box.obj"
+    },
+    {
+      "type": "script",
+      "source": "scripts/cave.py",
+      "exported": "scripts/cave.py"
+    }
+  ]
+}

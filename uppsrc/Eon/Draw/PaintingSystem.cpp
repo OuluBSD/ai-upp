@@ -67,56 +67,42 @@ String PaintingInteractionSystemBase::GetDisplayName() const {
 }
 
 EntityPtr PaintingInteractionSystemBase::CreateToolSelector() const {
-	TODO
-	#if 0
-	auto selector = GetEngine().Get<EntityStore>()->GetRoot()->Create<ToolSelectorPrefab>();
-	selector->Get<ModelComponent>()->SetPrefabModel("PaintBrush");
-	selector->Get<Transform>()->data.orientation = AxisAngleQuat({ 1, 0, 0 }, M_PIf / 1.5f);
-	selector->Get<ToolSelectorKey>()->type = GetType();
+	auto selector = CreatePrefab<ToolSelectorPrefab>(*GetPool(), ws_at_init);
+	selector->Get<ModelComponent>().SetPrefabModel(KnownModelNames::PaintBrush);
+	selector->Get<Transform>().data.orientation = AxisAngleQuat({ 1, 0, 0 }, M_PIf / 1.5f);
+	selector->Get<ToolSelectorKey>().type = GetTypeCls();
 	return selector;
-	#endif
-	return 0;
 }
 
 void PaintingInteractionSystemBase::Attach(PaintComponentPtr paint) {
 	VectorFindAdd(comps, paint);
 
-	// TODO: Additional paint brush entity setup (currently disabled)
-	#if 0
-	EntityStorePtr es = GetEngine().Get<EntityStore>();
 	EntityPtr entity = paint->GetEntity();
 	const auto& selected_color = colors[0];
 	
-	#if 0
-	auto paint_brush =
-		!dbg_model
-			? es->GetRoot()->Create<PaintBrush>()
-			: es->GetRoot()->Create<DummyToolModel>();
-	paint_brush->Get<ModelComponent>()->color = selected_color;
-	#else
-	EntityPtr paint_brush = paint->GetEntity();
-	#endif
+	auto paint_brush = CreatePrefab<StaticSphere>(*GetPool(), ws_at_init);
+	paint_brush->Get<ModelComponent>().color = selected_color;
 	
+	auto touchpad_indicator = CreatePrefab<StaticSphere>(*GetPool(), ws_at_init);
+	touchpad_indicator->Get<Transform>().size = { 0.005f, 0.005f, 0.005f };
+	touchpad_indicator->Get<ModelComponent>().color = Colors::Gray;
 	
-	auto touchpad_indicator = es->GetRoot()->Create<StaticSphere>();
-	touchpad_indicator->Get<Transform>()->size = { 0.005f, 0.005f, 0.005f };
-	touchpad_indicator->Get<ModelComponent>()->color = Colors::Gray;
 	paint->selected_color = selected_color;
 	paint->paint_brush = paint_brush;
 	paint->touchpad_indicator = touchpad_indicator;
 	
 	for (auto color : colors) {
-		auto color_picker = es->GetRoot()->Create<StaticSphere>();
-		color_picker->Get<Transform>()->size = { 0.01f, 0.01f, 0.01f };
-		color_picker->Get<ModelComponent>()->color = color;
+		auto color_picker = CreatePrefab<StaticSphere>(*GetPool(), ws_at_init);
+		color_picker->Get<Transform>().size = { 0.01f, 0.01f, 0.01f };
+		color_picker->Get<ModelComponent>().color = color;
 		paint->clr_pick_objects.Add(color_picker);
 	}
 	
-	paint->beam = es->GetRoot()->Create<StaticCube>();
-	paint->beam->Get<Transform>()->size = { 0.005f, 0.005f, 10.0f };
-	paint->beam->Get<ModelComponent>()->color = Colors::Aquamarine;
+	paint->beam = CreatePrefab<StaticCube>(*GetPool(), ws_at_init);
+	paint->beam->Get<Transform>().size = { 0.005f, 0.005f, 10.0f };
+	paint->beam->Get<ModelComponent>().color = Colors::Aquamarine;
 	
-	#endif
+	paint->SetEnabled(false);
 }
 
 void PaintingInteractionSystemBase::Detach(PaintComponentPtr c) {

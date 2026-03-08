@@ -12,7 +12,7 @@ void MaterialParameters::Clear() {
 	base_clr_factor = vec4{ 1, 1, 1, 1 };
 	metallic_factor = 1;
 	roughness_factor = 1;
-	emissive_factor = vec3{ 1, 1, 1 };
+	emissive_factor = vec3{ 0, 0, 0 };
 	normal_scale = 1;
 	occlusion_strength = 1;
 	

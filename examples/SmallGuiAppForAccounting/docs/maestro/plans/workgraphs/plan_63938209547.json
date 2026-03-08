@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "WG-BACKUP-SYSTEM",
+	"title": "Implement Backup and Restore System",
+	"goal": "Develop a comprehensive backup and restore system including data structures, persistence logic, management services, and UI integration within the SmallGuiAppForAccounting project.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-BACKUP",
+		"name": "Backup System",
+		"goal": "Provide reliable data protection and recovery capabilities for accounting records.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-BACKUP-01",
+					"title": "Define Backup Structure",
+					"status": "",
+					"intent": "Define the C++ structures for backup metadata and encapsulated ledger data.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "BackupModel.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BACKUP-02",
+					"title": "Implement Persistence Logic",
+					"status": "",
+					"intent": "Develop the logic to serialize and deserialize backup data to disk using U++ serialization.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "BackupPersistence.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-IMPL",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-BACKUP-03",
+					"title": "Develop Backup Manager",
+					"status": "",
+					"intent": "Create a service class to orchestrate backup creation, including file naming and directory management.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "BackupManager.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BACKUP-04",
+					"title": "Implement Restore Logic",
+					"status": "",
+					"intent": "Develop the functionality to overwrite current ledger state with data from a selected backup.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "RestoreLogic.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-UI",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-BACKUP-05",
+					"title": "Create Backup GUI",
+					"status": "",
+					"intent": "Design and implement a U++ dialog for managing backups (Create, List, Restore).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "BackupWindow.lay",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BACKUP-06",
+					"title": "Integrate into Main Menu",
+					"status": "",
+					"intent": "Add 'Backup' and 'Restore' options to the application's main menu and connect them to the GUI.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-BACKUP-07",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Compile the project and perform a manual verification of the backup/restore cycle.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . CLANG -v",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

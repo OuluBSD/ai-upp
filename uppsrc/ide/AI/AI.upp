@@ -2,9 +2,9 @@ description "\377B";
 
 uses
 	ide/Designers,
-	AI/Ctrl,
 	ide/Vfs,
-	AI;
+	AI,
+	ide/AI/Ctrl;
 
 file
 	AGENTS.md,

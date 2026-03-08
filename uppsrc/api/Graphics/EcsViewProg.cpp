@@ -44,7 +44,7 @@ bool EcsViewProg::Render(Draw& fb) {
 	
 	
 	// Default values
-	state.light_dir = vec3 {sinf(DEG2RAD(75)), 0.0f, cosf(DEG2RAD(20))};
+	state.light_dir = vec3 {sinf(DEG2RAD(75)), 1.0f, cosf(DEG2RAD(20))}.GetNormalized();
 	
 	
 	rend->Render(state);

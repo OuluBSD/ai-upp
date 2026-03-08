@@ -195,7 +195,7 @@ void HandleVideoBase::Stop() {
 	wins->Close();
 	#endif
 	#if defined flagGUBO
-	surfs.Clear();
+	surfs = NULL;
 	#endif
 	if (IsActive())
 		GetPimpl().binders.Clear();

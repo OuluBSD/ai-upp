@@ -1,0 +1,171 @@
+#ifndef _Geometry_StereoCalibrationSolver_h_
+#define _Geometry_StereoCalibrationSolver_h_
+
+// UNIT CONVENTION:
+// All lengths (distances, positions, baseline, etc.) are in METERS inside the solver.
+// Conversion to/from millimeters happens only at UI boundary.
+
+struct StereoCalibrationMatch : Moveable<StereoCalibrationMatch> {
+	vec2 left_px;
+	vec2 right_px;
+	Size image_size;
+	double dist_l = 0;  // meters (measured distance from left camera to 3D point)
+	double dist_r = 0;  // meters (measured distance from right camera to 3D point)
+};
+
+struct StereoCalibrationParams {
+	double a = 0;
+	double b = 0;
+	double c = 0;
+	double d = 0;
+	double cx = 0;
+	double cy = 0;
+	double yaw = 0;
+	double pitch = 0;
+	double roll = 0;
+	// Left eye rotation (optional, used for per-eye refinement)
+	double yaw_l = 0;
+	double pitch_l = 0;
+	double roll_l = 0;
+};
+
+bool IsParamsFinite(const StereoCalibrationParams& p);
+
+struct StereoCalibrationResidual : Moveable<StereoCalibrationResidual> {
+	int match_index = -1;
+	vec2 measured_l;
+	vec2 measured_r;
+	vec2 reproj_l;
+	vec2 reproj_r;
+	double err_l_px = 0;
+	double err_r_px = 0;
+	double dist_l_err = 0;
+	double dist_r_err = 0;
+	double z_l = 0;
+	double z_r = 0;
+	double disparity_px = 0;
+	vec3 point;
+};
+
+struct StereoCalibrationDiagnostics {
+	double reproj_rms_l = 0;
+	double reproj_rms_r = 0;
+	double dist_rms_l = 0;
+	double dist_rms_r = 0;
+	int reproj_count_l = 0;
+	int reproj_count_r = 0;
+	int dist_count_l = 0;
+	int dist_count_r = 0;
+	int behind_left = 0;
+	int behind_right = 0;
+	Vector<StereoCalibrationResidual> residuals;
+};
+
+struct StereoCalibrationGADiagnostics {
+	double best_cost = 0;
+	double initial_cost = 0;
+	double cost_improvement_ratio = 0;
+	int num_matches_used = 0;
+	double mean_reproj_error_px = 0;
+	double median_reproj_error_px = 0;
+	double max_reproj_error_px = 0;
+};
+
+struct StereoCalibrationTrace {
+	bool enabled = false;
+	int verbosity = 2;
+	int max_lines = 20000;
+	int64 max_bytes = 5000000;
+	Vector<String> lines;
+	int64 total_bytes = 0;
+
+	void Add(const String& s);
+	void Addf(const char* fmt, ...);
+	String GetText() const;
+	void Clear();
+};
+
+enum GAPhase {
+	GA_PHASE_EXTRINSICS = 0,
+	GA_PHASE_INTRINSICS = 1,
+	GA_PHASE_BOTH = 2,
+	GA_PHASE_BOTH_JOINT = 3  // Joint optimization: all params simultaneously
+};
+
+struct StereoCalibrationLine : Moveable<StereoCalibrationLine> {
+	Vector<vec2> raw_norm; // [0, 1] normalized coordinates
+	int eye = 0; // 0=left, 1=right
+};
+
+class StereoCalibrationSolver {
+public:
+	Vector<StereoCalibrationMatch> matches;
+	Vector<StereoCalibrationLine> lines;
+	Vector<vec3> last_points;
+	double eye_dist = 0;  // meters
+	double dist_weight = 0.1;  // relative weight for distance residuals vs pixel residuals
+	double huber_px = 2.0;  // Huber threshold for pixel residuals (pixels)
+	double huber_m = 0.030;  // Huber threshold for distance residuals (meters, e.g. 30mm)
+	int max_fevals = 0;
+	String* log = NULL;
+	mutable StereoCalibrationTrace trace;
+	String last_failure_reason;
+
+	struct GABounds {
+		double yaw_deg = 45.0; // +/- degrees
+		double pitch_deg = 25.0;
+		double roll_deg = 45.0;
+	};
+
+	struct GABoundsIntrinsics {
+		double fov_min = 80.0; // degrees
+		double fov_max = 160.0;
+		double cx_delta = 60.0; // pixels
+		double cy_delta = 60.0;
+		double k1_min = -1.5;
+		double k1_max = 0.0;
+		double k2_min = -1.0;
+		double k2_max = 1.0;
+	};
+
+	// GA bootstrap parameters
+	bool use_ga_init = false;
+	int ga_population = 30;
+	int ga_generations = 20;
+	int ga_top_candidates = 3;  // Number of top GA candidates to refine with LM
+	GABounds ga_bounds;
+	GABoundsIntrinsics ga_bounds_intr;
+	
+	// Robust GA settings
+	bool ga_use_trimmed_loss = true;
+	double ga_trim_percent = 15.0; // percent of worst matches to ignore (0..100)
+	
+	// Callback for GA progress: returns false to cancel
+	Function<bool(int gen, double best_cost, const StereoCalibrationParams& best_p)> ga_step_cb;
+
+	bool Solve(StereoCalibrationParams& params, bool lock_distortion);
+	bool SolveIntrinsicsOnly(StereoCalibrationParams& params);
+	void GABootstrapIntrinsics(StereoCalibrationParams& params);
+	void GABootstrapExtrinsics(StereoCalibrationParams& params);
+	void GABootstrapJoint(StereoCalibrationParams& params);  // Joint optimization
+	void GABootstrapPipeline(StereoCalibrationParams& params, GAPhase phase);
+	
+	// SolveExtrinsicsOnlyMicroRefine
+	// Optimizes extrinsics deltas relative to input 'params'.
+	// If per_eye_mode is true, optimizes L and R deltas independently (6 DOF).
+	// If false, optimizes R relative to L (3 DOF).
+	// bounds_deg: {yaw, pitch, roll} limits in DEGREES.
+	// lambda: regularization weight for ||delta||^2
+	bool SolveExtrinsicsOnlyMicroRefine(StereoCalibrationParams& params, 
+	                                    const vec3& bounds_deg, 
+	                                    double lambda, 
+	                                    bool per_eye_mode);
+	double ComputeRobustCost(const StereoCalibrationParams& params) const;
+
+	void ComputeDiagnostics(const StereoCalibrationParams& params, StereoCalibrationDiagnostics& out) const;
+	void ComputeGADiagnostics(const StereoCalibrationParams& params, double initial_cost, double final_cost, StereoCalibrationGADiagnostics& out) const;
+	void EnableTrace(bool on, int verbosity = 2, int max_lines = 20000);
+	String GetTraceText() const { return trace.GetText(); }
+};
+
+#endif

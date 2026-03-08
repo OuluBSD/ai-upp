@@ -63,7 +63,8 @@ void FBInit()
 	videoflags = SDL_HWSURFACE | SDL_HWACCEL | SDL_DOUBLEBUF | SDL_RESIZABLE;// | SDL_NOFRAME | SDL_FULLSCREEN;
 #endif
 	screen_size = Size(1500, 900);
-	screen.Create(Rect(Point(20, 20), screen_size), "First test");
+	if(!screen.Create(Rect(Point(20, 20), screen_size), "First test"))
+		Panic("Failed to create SDL window: " + String(SDL_GetError()));
 
 	Ctrl::SetDesktopSize(screen_size);
 }
@@ -75,6 +76,8 @@ void FBDeInit()
 	screen.Destroy();
 	SDL_Quit();
 }
+
+int GetCaretBlinkTime() { return 500; }
 
 END_UPP_NAMESPACE
 

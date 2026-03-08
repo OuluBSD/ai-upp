@@ -8,6 +8,10 @@ namespace Upp {
 #define IMAGEFILE <CtrlCore/CtrlCore.iml>
 #include <Draw/iml_source.h>
 
+#define IMAGECLASS FBImg
+#define IMAGEFILE <VirtualGui/FB.iml>
+#include <Draw/iml_source.h>
+
 static bool StdDisplayErrorFn(const Value& e)
 {
 	GuiLock __;
@@ -44,6 +48,19 @@ void   Ctrl::SetData(const Value&) {}
 Value  Ctrl::GetData() const       { return Value(); }
 
 void Ctrl::Paint(Draw& w)                           {}
+
+bool Ctrl::Access(Visitor& v) {
+	if(WhenAccess) {
+		WhenAccess(v);
+		return true;
+	}
+	String id = GetLayoutId();
+	if(id.GetCount())
+		v.AccessLabel(id);
+	return false;
+}
+
+
 int  Ctrl::OverPaint() const                        { return 0; }
 
 void Ctrl::Activate()                               {}

@@ -5,6 +5,7 @@ NAMESPACE_UPP
 
 class PyCompiler {
 	const Vector<Token>& tokens;
+	String file;
 	int pos;
 	
 	Vector<PyIR> ir;
@@ -25,10 +26,10 @@ class PyCompiler {
 	bool IsString() const;
 	bool IsStmtEnd() const {
 		if (IsEof()) return true;
-		if (tokens[pos].type == TK_END_STMT) return true;
-		if (tokens[pos].type == TK_NEWLINE) return true;
-		if (tokens[pos].type == TK_SEMICOLON) return true;
-		if (tokens[pos].type == TK_PUNCT && tokens[pos].str_value == ";") return true;
+		int type = tokens[pos].type;
+		if (type == TK_END_STMT || type == TK_NEWLINE || type == TK_SEMICOLON) return true;
+		if (type == TK_COMMENT || type == TK_BLOCK_COMMENT) return true;
+		if (type == TK_PUNCT && tokens[pos].str_value == ";") return true;
 		return false;
 	}
 	int  GetLine() const;
@@ -58,7 +59,7 @@ class PyCompiler {
 	void Patch(int label_pc, int target_pc);
 
 public:
-	PyCompiler(const Vector<Token>& tokens) : tokens(tokens), pos(0) {}
+	PyCompiler(const Vector<Token>& tokens, String file = String()) : tokens(tokens), file(file), pos(0) {}
 	
 	void Compile(Vector<PyIR>& out);
 	void CompileBlock(Vector<PyIR>& out);

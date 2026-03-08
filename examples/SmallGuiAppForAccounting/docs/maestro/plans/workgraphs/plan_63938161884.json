@@ -1,0 +1,196 @@
+{
+	"schema_version": "v1",
+	"id": "ledger-implementation-plan",
+	"title": "Implement General Ledger",
+	"goal": "Implement a functional general ledger with transaction history storage and balance calculation capabilities within the SmallGuiAppForAccounting project.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "General Ledger",
+		"goal": "Implement core ledger logic and integrate it into the GUI application.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-CORE",
+			"name": "01_Core_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define_Ledger_Data_Structures",
+					"status": "",
+					"intent": "Define Transaction and Ledger structures in Ledger.h to represent financial records.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Implement_Transaction_Logic",
+					"status": "",
+					"intent": "Implement methods for adding transactions, retrieving history, and calculating balances in Ledger.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-UI",
+			"name": "02_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Integrate_Ledger_with_Main_GUI",
+					"status": "",
+					"intent": "Modify main.cpp to include the Ledger class and display data using U++ GUI components.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-VERIFY",
+			"name": "03_Verification",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Build_and_Validate",
+					"status": "",
+					"intent": "Execute the build system to ensure the application compiles correctly with the new ledger features.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . CLANG",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

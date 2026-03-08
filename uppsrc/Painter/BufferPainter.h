@@ -319,9 +319,11 @@ public:
 	BufferPainter&     NoImageCache()                          { return ImageCache(false); }
 	
 	void               Create(ImageBuffer& ib, int mode = MODE_ANTIALIASED);
+	void               Create(RtImage& rt, int mode = MODE_ANTIALIASED)        { Create(rt.GetBuffer(), mode); }
 	void               Finish();
 
 	BufferPainter(ImageBuffer& ib, int mode = MODE_ANTIALIASED) { Create(ib, mode); }
+	BufferPainter(RtImage& rt, int mode = MODE_ANTIALIASED)     { Create(rt.GetBuffer(), mode); }
 	BufferPainter(PainterTarget& t, double tolerance = Null);
 	BufferPainter() : BufferPainter(dummy, MODE_ANTIALIASED)    {}
 

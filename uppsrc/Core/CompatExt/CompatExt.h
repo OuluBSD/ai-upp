@@ -3,9 +3,10 @@
 
 #include <Core/Core.h>
 
+#include "Compat.h"
+
 NAMESPACE_UPP
 
-#include "Compat.h"
 #include "Ctrl.h"
 
 END_UPP_NAMESPACE

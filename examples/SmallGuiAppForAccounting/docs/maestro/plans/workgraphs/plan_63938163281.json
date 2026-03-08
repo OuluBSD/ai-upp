@@ -1,0 +1,319 @@
+{
+	"schema_version": "v1",
+	"id": "plan_ledger_implementation",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger system with transaction history and balance calculation features.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-001",
+		"name": "Ledger Implementation",
+		"goal": "Develop the core logic and GUI for a general ledger.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PHASE-01",
+			"name": "Foundation_and_Model",
+			"tasks": [
+				{
+					"id": "TASK-001",
+					"title": "Define Transaction Data Structure",
+					"status": "",
+					"intent": "Create a structure to represent a financial transaction in Ledger.h, including fields for date, description, and amount.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-002",
+					"title": "Define Ledger Class Interface",
+					"status": "",
+					"intent": "Define the Ledger class in Ledger.h with methods for adding transactions, retrieving history, and calculating total balance.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PHASE-02",
+			"name": "Core_Logic_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-003",
+					"title": "Implement Ledger Methods",
+					"status": "",
+					"intent": "Implement transaction storage (using U++ containers like Vector or Array) and balance calculation logic in Ledger.cpp.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PHASE-03",
+			"name": "GUI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-004",
+					"title": "Integrate Transaction List in GUI",
+					"status": "",
+					"intent": "Update main.cpp to display transaction history in a U++ ArrayCtrl or similar table control.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-005",
+					"title": "Add Transaction Entry UI",
+					"status": "",
+					"intent": "Add input fields (EditDouble, EditString, etc.) and an 'Add' button to main.cpp for entering new transactions.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-006",
+					"title": "Implement Dynamic Balance Display",
+					"status": "",
+					"intent": "Update the UI to show the calculated ledger balance, ensuring it refreshes when transactions are added.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PHASE-04",
+			"name": "Verification",
+			"tasks": [
+				{
+					"id": "TASK-007",
+					"title": "Verify Build and Logic",
+					"status": "",
+					"intent": "Compile the project and verify that transactions can be added and the balance is correctly calculated.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting CLANG",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

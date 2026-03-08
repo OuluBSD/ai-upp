@@ -22,6 +22,10 @@ bool LoadLibClang0(const char *path)
 
 bool LoadLibClang(const String& dir)
 {
+#ifdef PLATFORM_WIN32
+	if(LoadLibClang0(AppendFileName(dir, "libclang.dll")))
+		return true;
+#endif
 #ifdef PLATFORM_MACOS
 	if(LoadLibClang0(dir + "/libclang.dylib"))
 		return true;
@@ -41,6 +45,22 @@ bool LoadLibClang(const String& dir)
 			if(LoadLibClang0(p))
 				return true;
 	}
+	return false;
+}
+
+bool LoadLibClangAutomatically()
+{
+#ifdef PLATFORM_WIN32
+	if(LoadLibClang(GetFileFolder(GetExeFilePath())))
+		return true;
+	if(LoadLibClang(GetFileFolder(GetFileFolder(GetExeFilePath()))))
+		return true;
+	if(LoadLibClang(GetFileFolder(ConfigFile("x"))))
+		return true;
+	String bin = GetEnv("UPP_BIN");
+	if(bin.GetCount() && LoadLibClang(bin))
+		return true;
+#endif
 	return false;
 }
 
@@ -333,5 +353,9 @@ CXSourceLocation clang_getRangeEnd(CXSourceRange range)
 	return LibClang().clang_getRangeEnd(range);
 }
 
+CXString clang_getClangVersion(void)
+{
+	return LibClang().clang_getClangVersion();
+}
 
 #endif

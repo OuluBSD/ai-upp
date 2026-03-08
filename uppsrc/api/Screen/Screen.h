@@ -175,7 +175,6 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 		VIS_THIS(ScrSinkDevice);
 	}
 	typename Scr::NativeSinkDevice* dev = 0;
-	RealtimeSourceConfig* last_cfg = 0;
 	bool Initialize(const WorldState& ws) override {
 		if (!Scr::SinkDevice_Create(dev))
 			return false;
@@ -200,12 +199,10 @@ template <class Scr> struct ScreenSinkDeviceT : ScrSinkDevice {
 		Scr::SinkDevice_Destroy(dev);
 	}
 	bool Send(RealtimeSourceConfig& cfg, PacketValue& out, int src_ch) override {
-		last_cfg = &cfg;
 		if (!Scr::SinkDevice_Send(*dev, *this, cfg, out, src_ch))
 			return false;
 		return true;
 	}
-	RealtimeSourceConfig* GetConfig() override {return last_cfg;}
 	bool Recv(int sink_ch, const Packet& in) override {
 		return Scr::SinkDevice_Recv(*dev, *this, sink_ch, in);
 	}

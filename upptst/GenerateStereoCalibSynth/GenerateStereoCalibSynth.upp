@@ -1,0 +1,10 @@
+noblitz;
+
+uses
+	Core,
+	Geometry,
+	Draw,
+	plugin/png;
+
+file
+	main.cpp;

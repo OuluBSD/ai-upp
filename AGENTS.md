@@ -211,6 +211,13 @@ END_UPP_NAMESPACE
 #include "SubHeader.h"      // Should include "PackageName.h" instead
 ```
 
+## Rich Text Format
+
+- **Internal Format**: In Ultimate++, the standard internal rich text format is **QTF** (Quick Text Format).
+- **No HTML/XML**: NEVER use HTML or XML for rich text UI elements or reports unless explicitly requested. 
+- **API usage**: Always prefer `SetQTF()` over other methods for displaying formatted text in `RichTextView` or other rich text-capable controls.
+- **Constraints**: If a constraint requires validating rich text content, it should ideally verify that the string is valid QTF.
+
 Subpackage Independence
 - Subpackages like `AI`, `AI/Core`, `AI/Core/Core` are independent packages; do not gather headers in the parent package.
 - A parent package may include only the subpackage's main header (e.g., `#include "Core.h"` from `AI`). Do not cross-include subpackage internals directly.
@@ -267,6 +274,21 @@ auto& fb = this->fb[stereo_id];  // Instead of this->fb[0]
 Added bounds checking with ASSERT to prevent invalid stereo_id values.
 
 **Remaining Issue**: While stereo tests now run without crashing, the left image doesn't update - it stays frozen while the right image animates correctly. This points to a framebuffer update issue specific to the left eye buffer.
+
+### X11 OpenGL HMD Initialization Bug (ScrX11Ogl::SinkDevice_Initialize)
+**Location**: `uppsrc/api/Screen/X11Ogl.cpp:125`
+
+**Issue**: 
+1. The initialization was skipping the call to `dev.accel.Initialize(a, ws)`, which meant graphics stages were never populated. This led to an assertion failure `stages.GetCount()` in `TBuffer.cpp`.
+2. Calls to `system()` for `start_hmd_x.py` and `xrandr` were wrapped in `IGNORE_RESULT`, causing the application to proceed even if HMD setup failed.
+3. Fallback to "HDMI-A-1" masked detection failures.
+
+**Fix**: 
+1. Added the missing `dev.accel.Initialize(a, ws)` call.
+2. Removed `IGNORE_RESULT` and added exit code checks for all system calls; `SinkDevice_Initialize` now returns `false` on script failure.
+3. Removed the hardcoded "HDMI-A-1" fallback to ensure failure when detection fails.
+4. Added post-setup verification to ensure the HMD output is reported as "connected" by `xrandr`, using a 5-second polling loop to handle hardware startup delays.
+5. Implemented forced window placement: The X-coordinate is now set to the detected width of the "connected primary" screen, and the resolution is fixed to 2880x1440, ensuring correct HMD placement even when Window Managers attempt to override positions.
 
 ### Cube Texture Index Bug (Model::AddCubeTexture)
 **Location**: `uppsrc/Geometry/Model.cpp:271`
@@ -417,6 +439,7 @@ net audio_pipeline:
 - Better diagnostics and topology inspection
 
 ---
+
 
 ## ECS Initialization and Component Lifecycle
 
@@ -647,6 +670,7 @@ Engine::Start: post-initializing all components
 
 ---
 
+
 ## Code Readability & AI-Friendly Refactoring Philosophy
 
 This project actively welcomes improvements to code readability and error detectability. The goal is to make problems **obvious** to both AI agents and human developers.
@@ -711,3 +735,31 @@ When you encounter a bug that was hard to detect, ask:
 - Are there other places with similar ambiguity?
 
 **Remember**: This codebase prioritizes clarity over brevity. Making problems obvious is more valuable than elegant abstraction.
+
+## Memory Management & Pooling
+
+### RecyclerPool and BiVectorRecycler
+
+For high-performance scenarios involving frequent allocation/deallocation of fixed-size objects (like network buffers or image frames), prefer `RecyclerPool` and `BiVectorRecycler` over standard containers (`Vector`, `Array`).
+
+#### RecyclerPool<T, keep_as_constructed>
+- **Purpose**: Manages a pool of allocated objects of type `T`.
+- **`keep_as_constructed=true`**: If true, the destructor of `T` is NOT called when returning to the pool, and the constructor is NOT called when allocating new items (after the initial allocation). This is ideal for reuse of complex objects like `Vector` buffers where you want to retain capacity.
+- **Thread Safety**: Internally synchronized (can be used from multiple threads).
+
+#### BiVectorRecycler<T, keep_as_constructed>
+- **Purpose**: A double-ended queue (deque) that automatically manages object reuse via an internal `RecyclerPool`.
+- **Usage**:
+  ```cpp
+  BiVectorRecycler<RawDataBlock, true> queue;
+  RawDataBlock* block = queue.AddTail(); // Allocates or reuses
+  // ... use block ...
+  queue.DropHead(); // Returns to pool
+  ```
+- **Ownership**: The container owns the *pointers* and manages their lifecycle relative to the pool. Use `pick()` to transfer ownership of the active queue items to another `BiVectorRecycler` (e.g., passing data between threads).
+- **Move Semantics**: Supports moving (`pick`, `std::move`). When moved, the source container becomes empty, and the destination takes over the active items. The underlying pools remain separate, but items can safely cross between compatible pools.
+
+**Use Case Example (SoftHMD Camera)**:
+- Replaced `std::vector` and manual shifting with `BiVectorRecycler<RawDataBlock, true>`.
+- `RawDataBlock` contains a `Vector<byte>`.
+- `keep_as_constructed=true` ensures the internal capacity of `Vector<byte>` is preserved when blocks are recycled, minimizing heap allocations.

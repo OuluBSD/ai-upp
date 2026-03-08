@@ -10,7 +10,7 @@ Ctrl::Frame Ctrl::AllocFrames(int alloc)
 	size_t sz0 = alloc * sizeof(Frame);
 	size_t sz = sz0;
 	m.frames = (Frame *)MemoryAllocSz(sz);
-//	memset(m.frames, 0, sz); _DBG_
+	memset(m.frames, 0, sz);  // Initialize to avoid uninitialized memory errors in Valgrind
 	m.multi.alloc = alloc + (int)((sz - sz0) / sizeof(Frame));
 	return m;
 }
@@ -28,6 +28,7 @@ void Ctrl::InsertFrame(int i, CtrlFrame& fr)
 		if(!multi_frame) {
 			Frame h = AllocFrames(2);
 			h.frames[0].frame = frame.frame;
+			h.frames[0].SetView(Null);  // Initialize view to avoid uninitialized memory
 			h.multi.count = 1;
 			frame = h;
 			multi_frame = true;

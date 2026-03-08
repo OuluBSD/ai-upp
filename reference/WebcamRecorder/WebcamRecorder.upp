@@ -1,0 +1,17 @@
+description "Webcam Recorder and Preview\377";
+
+uses
+	CtrlLib,
+	Ctrl/Camera,
+	Draw/Video,
+	plugin/libv4l2,
+	plugin/jpg;
+
+file
+	AGENTS.md,
+	WebcamRecorder.cpp;
+
+mainconfig
+	"" = "GUI",
+	"Legacy" = "GUI LEGACY";
+

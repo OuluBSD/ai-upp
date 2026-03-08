@@ -93,6 +93,10 @@ struct LensPoly {
 	Vector<float> pixel_to_angle;
 	Size img_sz = Size(0,0);
 	float outward_angle = 0;
+	vec2 principal_point = vec2(0,0);
+	bool use_principal_point = false;
+	float right_pitch = 0;
+	float right_roll = 0;
 	
 	static const int PIX_MUL = 100;
 	
@@ -101,7 +105,14 @@ struct LensPoly {
 	vec2 Project(int lens_i, axes2 local);
 	axes2 Unproject(int lens_i, const vec2& pixel);
 	void SetAnglePixel(float a, float b, float c, float d);
+	float AngleToPixel(float angle) const;
+	float PixelToAngle(float pixel_radius) const;
 	void SetEyeOutwardAngle(float f) {outward_angle = f;}
+	void SetPrincipalPoint(float cx, float cy);
+	void ClearPrincipalPoint();
+	vec2 GetPrincipalPoint() const {return principal_point;}
+	void SetRightTilt(float pitch, float roll);
+	vec2 GetRightTilt() const {return vec2(right_pitch, right_roll);}
 	
 	
 };

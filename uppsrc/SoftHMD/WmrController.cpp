@@ -218,15 +218,12 @@ Device* OpenMotionControllerDevice(Driver* driver, DeviceDescription* desc)
 	priv->base.ctx = driver->ctx;
 	priv->device_flags = desc->device_flags;
 
-	int idx = atoi(desc->path);
-
 	// Open the controller device
-	priv->controller_imu = OpenDeviceIdx(MICROSOFT_VID, MOTION_CONTROLLER_PID, 0, 1, idx);
+	priv->controller_imu = hid_open_path(desc->path);
 
 	if(!priv->controller_imu) {
-		priv->controller_imu = OpenDeviceIdx(MICROSOFT_VID, MOTION_CONTROLLER_PID_SAMSUNG, 0, 1, idx);
-		if(!priv->controller_imu)
-			goto cleanup;
+		lhmd_set_error(driver->ctx, "Could not open %s", desc->path);
+		goto cleanup;
 	}
 	// TODO read_config
 

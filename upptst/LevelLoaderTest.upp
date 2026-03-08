@@ -1,0 +1,10 @@
+description "LevelLoader Test";
+
+uses
+	Core;
+
+file
+	LevelLoaderTest.cpp;
+
+mainconfig
+	"" = "";

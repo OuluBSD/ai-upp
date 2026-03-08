@@ -1,7 +1,8 @@
 class StaticText : public Ctrl {
 public:
-	virtual void   Paint(Draw& w);
-	virtual Size   GetMinSize() const;
+	bool   Access(Visitor& v) override;
+	void   Paint(Draw& w) override;
+	Size   GetMinSize() const override;
 
 	enum {
 		ATTR_INK = Ctrl::ATTR_LAST,
@@ -52,9 +53,9 @@ public:
 
 class Label : public StaticText {
 public:
-	virtual bool   HotKey(dword key);
-	virtual dword  GetAccessKeys() const;
-	virtual void   AssignAccessKeys(dword used);
+	bool   HotKey(dword key) override;
+	dword  GetAccessKeys() const override;
+	void   AssignAccessKeys(dword used) override;
 
 private:
 	bool   noac;
@@ -71,9 +72,9 @@ public:
 
 class LabelBox : public Label {
 public:
-	virtual void   Paint(Draw& w);
-	virtual void   AssignAccessKeys(dword used);
-	virtual Rect   GetVoidRect() const;
+	void   Paint(Draw& w) override;
+	void   AssignAccessKeys(dword used) override;
+	Rect   GetVoidRect() const override;
 
 
 	Color color;
@@ -103,17 +104,17 @@ class ParentCtrl : public Ctrl {
 	Size minsize;
 
 public:
-	virtual Rect   GetVoidRect() const;
-	virtual Size   GetStdSize() const;
-	virtual Size   GetMinSize() const;
-	virtual void   SetMinSize(Size sz)         { minsize = sz; }
+	Rect   GetVoidRect() const override;
+	Size   GetStdSize() const override;
+	Size   GetMinSize() const override;
+	void   SetMinSize(Size sz) override         { minsize = sz; }
 
 	ParentCtrl();
 };
 
 class StaticRect : public Ctrl {
 public:
-	virtual void   Paint(Draw& w);
+	void   Paint(Draw& w) override;
 
 protected:
 	Value bg;
@@ -130,9 +131,9 @@ public:
 
 class ImageCtrl : public Ctrl {
 public:
-	virtual void   Paint(Draw& w);
-	virtual Size   GetStdSize() const;
-	virtual Size   GetMinSize() const;
+	void   Paint(Draw& w) override;
+	Size   GetStdSize() const override;
+	Size   GetMinSize() const override;
 
 protected:
 	Image   img;
@@ -145,10 +146,10 @@ public:
 
 class DisplayCtrl : public Ctrl {
 public:
-	virtual void   Paint(Draw& w);
-	virtual Size   GetMinSize() const;
-	virtual void   SetData(const Value& v);
-	virtual Value  GetData() const;
+	void   Paint(Draw& w) override;
+	Size   GetMinSize() const override;
+	void   SetData(const Value& v) override;
+	Value  GetData() const override;
 
 private:
 	PaintRect pr;
@@ -159,7 +160,7 @@ public:
 
 class DrawingCtrl : public Ctrl {
 public:
-	virtual void   Paint(Draw& w);
+	void   Paint(Draw& w) override;
 
 protected:
 	Drawing picture;
@@ -186,8 +187,8 @@ typedef DrawingCtrl Picture;
 
 class SeparatorCtrl : public Ctrl {
 public:
-	virtual Size GetMinSize() const;
-	virtual void Paint(Draw& w);
+	Size GetMinSize() const override;
+	void Paint(Draw& w) override;
 
 	struct Style : ChStyle<Style> {
 		Value l1, l2;

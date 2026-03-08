@@ -77,7 +77,7 @@ void Ctrl::HandleSDLEvent(SDL_Event* event)
 //			break;
 	case SDL_TEXTINPUT: {
 			//send respective keyup things as char events as well
-		WString text = FromUtf8(event->text.text);
+		WString text = String(event->text.text).ToWString();
 		for(int i = 0; i < text.GetCount(); i++) {
 			int c = text[i];
 			if(c != 127)
@@ -300,30 +300,13 @@ bool Ctrl::DoKeyFB(dword key, int cnt)
 	return b;
 }
 
-void Ctrl::SetCaret(int x, int y, int cx, int cy)
-{
-	GuiLock __;
-	caretx = x;
-	carety = y;
-	caretcx = cx;
-	caretcy = cy;
-	fbCaretTm = GetTickCount();
-	SyncCaret();
-}
-
-void Ctrl::SyncCaret()
-{
-	CursorSync();
-}
-
 void Ctrl::CursorSync()
 {
 	LLOG("@ CursorSync");
 	Point p = GetMousePos() - fbCursorImage.GetHotSpot();
 	Rect cr = Null;
 	if(focusCtrl && (((GetTickCount() - fbCaretTm) / 500) & 1) == 0)
-		cr = (RectC(focusCtrl->caretx, focusCtrl->carety, focusCtrl->caretcx, focusCtrl->caretcy)
-		      + focusCtrl->GetScreenView().TopLeft()) & focusCtrl->GetScreenView();
+		cr = (fbCaretRect + focusCtrl->GetScreenView().TopLeft()) & focusCtrl->GetScreenView();
 	if(fbCursorPos != p && !SystemCursor || cr != fbCaretRect) {
 		fbCaretRect = cr;
 		fbCursorPos = p;

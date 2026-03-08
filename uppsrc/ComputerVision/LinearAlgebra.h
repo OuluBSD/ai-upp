@@ -13,154 +13,99 @@ double hypot(double a, double b);
 
 template <class T>
 void JacobiImpl(Vector<T>& A, int astep, Vector<T>& W, Vector<T>* V, int vstep, int n) {
-	double eps = EPSILON;
-	int i = 0, j = 0, k = 0, m = 0, l = 0, idx = 0, _in = 0, _in2 = 0;
-	int max_iter = n * n * 30;
-	T mv = 0, val = 0, p = 0, y = 0, t = 0, s = 0, c = 0, a0 = 0, b0 = 0;
+	int i, j, k, iq, ip;
+	double tresh, theta, tau, t, sm, s, h, g, c;
 	
-	static thread_local Vector<int> indR;
-	static thread_local Vector<int> indC;
-	indR.SetCount(n << 2);
-	indC.SetCount(n << 2);
+	Vector<double> b(n);
+	Vector<double> z(n);
 	
-	Vector<T>& v = *V;
-		
 	if (V) {
-		for (int i = 0; i < n; i++) {
-			k = i * vstep;
-			for (j = 0; j < n; j++) {
-				(*V)[k + j] = 0.0;
-			}
-			v[k + i] = 1.0;
+		Vector<T>& v = *V;
+		for (ip = 0; ip < n; ip++) {
+			for (iq = 0; iq < n; iq++) v[ip * vstep + iq] = (ip == iq ? 1.0 : 0.0);
 		}
 	}
 	
-	for (int k = 0; k < n; k++) {
-		W[k] = A[(astep + 1)*k];
-		if (k < n - 1) {
-			int m;
-			for (m = k + 1, mv = Abs(A[astep*k + m]), i = k + 2; i < n; i++) {
-				val = Abs(A[astep*k+i]);
-				if (mv < val)
-					mv = val, m = i;
-			}
-			indR[k] = m;
-		}
-		if (k > 0) {
-			int m;
-			for (m = 0, mv = Abs(A[k]), i = 1; i < k; i++) {
-				val = Abs(A[astep*i+k]);
-				if (mv < val)
-					mv = val, m = i;
-			}
-			indC[k] = m;
-		}
+	for (ip = 0; ip < n; ip++) {
+		b[ip] = W[ip] = A[(astep + 1) * ip];
+		z[ip] = 0.0;
 	}
 	
-	if (n > 1) {
-		for (int iters = 0; iters < max_iter; iters++) {
-			// find index (k,l) of pivot p
-			int k = 0;
-			int mv = Abs(A[indR[0]]);
-			for (int i = 1; i < n - 1; i++) {
-				val = Abs(A[astep*i + indR[i]]);
-				if (mv < val)
-					mv = val, k = i;
-			}
-			l = indR[k];
-			for (int i = 1; i < n; i++) {
-				val = Abs(A[astep*indC[i] + i]);
-				if (mv < val)
-					mv = val, k = indC[i], l = i;
-			}
+	for (i = 1; i <= 50; i++) {
+		sm = 0.0;
+		for (ip = 0; ip < n - 1; ip++) {
+			for (iq = ip + 1; iq < n; iq++)
+				sm += Abs(A[astep * ip + iq]);
+		}
+		if (sm == 0.0) break;
+		
+		if (i < 4)
+			tresh = 0.2 * sm / (n * n);
+		else
+			tresh = 0.0;
 			
-			p = A[astep*k + l];
-			
-			if (Abs(p) <= eps)
-				break;
-				
-			y = (W[l] - W[k]) * 0.5;
-			t = Abs(y) + hypot(p, y);
-			s = hypot(p, t);
-			c = t / s;
-			s = p / s;
-			t = (p / t) * p;
-			if (y < 0)
-				s = -s, t = -t;
-			A[astep*k + l] = 0;
-			
-			W[k] -= t;
-			W[l] += t;
-			
-			// rotate rows and columns k and l
-			for (int i = 0; i < k; i++) {
-				_in = (astep * i + k);
-				_in2 = (astep * i + l);
-				a0 = A[_in];
-				b0 = A[_in2];
-				A[_in] = a0 * c - b0 * s;
-				A[_in2] = a0 * s + b0 * c;
-			}
-			for (int i = (k + 1); i < l; i++) {
-				_in = (astep * k + i);
-				_in2 = (astep * i + l);
-				a0 = A[_in];
-				b0 = A[_in2];
-				A[_in] = a0 * c - b0 * s;
-				A[_in2] = a0 * s + b0 * c;
-			}
-			
-			{
-				int i = l + 1;
-				_in = (astep * k + i);
-				_in2 = (astep * l + i);
-				for (; i < n; i++, _in++, _in2++) {
-					a0 = A[_in];
-					b0 = A[_in2];
-					A[_in] = a0 * c - b0 * s;
-					A[_in2] = a0 * s + b0 * c;
-				}
-			}
-			
-			// rotate eigenvectors
-			if (V) {
-				_in = vstep * k;
-				_in2 = vstep * l;
-				for (int i = 0; i < n; i++, _in++, _in2++) {
-					a0 = v[_in];
-					b0 = v[_in2];
-					v[_in] = a0 * c - b0 * s;
-					v[_in2] = a0 * s + b0 * c;
-				}
-			}
-			
-			for (int j = 0; j < 2; j++) {
-				idx = j == 0 ? k : l;
-				if (idx < n - 1) {
-					int m = idx + 1;
-					int mv = Abs(A[astep*idx + m]);
-					for (int i = idx + 2; i < n; i++) {
-						val = Abs(A[astep*idx+i]);
-						if (mv < val)
-							mv = val, m = i;
+		for (ip = 0; ip < n - 1; ip++) {
+			for (iq = ip + 1; iq < n; iq++) {
+				g = 100.0 * Abs(A[astep * ip + iq]);
+				if (i > 4 && (Abs(W[ip]) + g == Abs(W[ip]))
+					&& (Abs(W[iq]) + g == Abs(W[iq])))
+					A[astep * ip + iq] = 0.0;
+				else if (Abs(A[astep * ip + iq]) > tresh) {
+					h = W[iq] - W[ip];
+					if (Abs(h) + g == Abs(h))
+						t = (A[astep * ip + iq]) / h;
+					else {
+						theta = 0.5 * h / (A[astep * ip + iq]);
+						t = 1.0 / (Abs(theta) + sqrt(1.0 + theta * theta));
+						if (theta < 0.0) t = -t;
 					}
-					indR[idx] = m;
-				}
-				if (idx > 0) {
-					int m = 0;
-					int mv = Abs(A[idx]);
-					for (i = 1; i < idx; i++) {
-						val = Abs(A[astep*i+idx]);
-						if (mv < val)
-							mv = val, m = i;
+					c = 1.0 / sqrt(1 + t * t);
+					s = t * c;
+					tau = s / (1.0 + c);
+					h = t * A[astep * ip + iq];
+					z[ip] -= h;
+					z[iq] += h;
+					W[ip] -= h;
+					W[iq] += h;
+					A[astep * ip + iq] = 0.0;
+					for (j = 0; j < ip; j++) {
+						double g = A[astep * j + ip];
+						double h = A[astep * j + iq];
+						A[astep * j + ip] = g - s * (h + g * tau);
+						A[astep * j + iq] = h + s * (g - h * tau);
 					}
-					indC[idx] = m;
+					for (j = ip + 1; j < iq; j++) {
+						double g = A[astep * ip + j];
+						double h = A[astep * j + iq];
+						A[astep * ip + j] = g - s * (h + g * tau);
+						A[astep * j + iq] = h + s * (g - h * tau);
+					}
+					for (j = iq + 1; j < n; j++) {
+						double g = A[astep * ip + j];
+						double h = A[astep * iq + j];
+						A[astep * ip + j] = g - s * (h + g * tau);
+						A[astep * iq + j] = h + s * (g - h * tau);
+					}
+					if (V) {
+						Vector<T>& v = *V;
+						for (j = 0; j < n; j++) {
+							double g = v[j * vstep + ip];
+							double h = v[j * vstep + iq];
+							v[j * vstep + ip] = g - s * (h + g * tau);
+							v[j * vstep + iq] = h + s * (g - h * tau);
+						}
+					}
 				}
 			}
 		}
+		for (ip = 0; ip < n; ip++) {
+			b[ip] += z[ip];
+			W[ip] = b[ip];
+			z[ip] = 0.0;
+		}
 	}
 	
-	// sort eigenvalues & eigenvectors
+	// sort eigenvalues & eigenvectors (descending)
 	for (int k = 0; k < n - 1; k++) {
 		int m = k;
 		for (int i = k + 1; i < n; i++) {
@@ -168,15 +113,16 @@ void JacobiImpl(Vector<T>& A, int astep, Vector<T>& W, Vector<T>* V, int vstep, 
 				m = i;
 		}
 		if (k != m) {
-			Swap(W, m, k, mv);
+			T tmp;
+			Swap(W, m, k, tmp);
 			if (V) {
+				Vector<T>& v = *V;
 				for (int i = 0; i < n; i++) {
-					Swap(v, vstep*m + i, vstep*k + i, mv);
+					Swap(v, i * vstep + m, i * vstep + k, tmp);
 				}
 			}
 		}
 	}
-	
 }
 
 template <class T>
@@ -190,10 +136,11 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 			int i = nodes.Find(sz);
 			if (i >= 0)
 				return nodes[i];
-			PoolNode& n = nodes.Add(i);
+			PoolNode& n = nodes.Add(sz);
 			n.f64.SetSize(sz);
 			return n;
 		}
+		void PutBuffer(PoolNode* n) {}
 		static Cache& Local() {static Cache c; return c;}
 	};
 	
@@ -204,8 +151,8 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 	int seed = 0x1234;
 	double val = 0.0, val0 = 0.0, asum = 0.0;
 	
-	PoolNode* W_buff = cache.get_buffer(n << 3);
-	auto& W = W_buff->f64;
+	PoolNode& W_buff = cache.GetBuffer(n << 3);
+	auto& W = W_buff.f64;
 	
 	for (int i = 0; i < n; i++) {
 		double sd = 0;
@@ -357,11 +304,11 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 	}
 	
 	for (int i = 0; i < n; i++) {
-		_W[i] = W[i];
+		_W[i] = (T)W[i];
 	}
 	
 	if (!Vt) {
-		cache.put_buffer(W_buff);
+		cache.PutBuffer(&W_buff);
 		return;
 	}
 	
@@ -378,7 +325,7 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 				seed = (seed * 214013 + 2531011);
 				val = (((seed >> 16) & 0x7fff) & 256) != 0 ? val0 : -val0;
 				int a = (int)(i*astep + k);
-				At[a] = val;
+				At[a] = (T)val;
 			}
 			for (int iter = 0; iter < 2; iter++) {
 				for (int j = 0; j < i; j++) {
@@ -393,13 +340,13 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 						int a = (int)(i*astep + k);
 						int b = (int)(j*astep + k);
 						double t = (At[a] - sd * At[b]);
-						At[a] = t;
+						At[a] = (T)t;
 						asum += Abs(t);
 					}
 					asum = asum ? 1.0 / asum : 0;
 					for (int k = 0; k < m; k++) {
 						int a = (int)(i*astep + k);
-						At[a] *= asum;
+						At[a] = (T)(At[a] * asum);
 					}
 				}
 			}
@@ -415,11 +362,11 @@ void JacobiSVDImpl(Vector<T>& At, double astep, Vector<T>& _W, Vector<T>* Vt, do
 		double s = (1.0 / sd);
 		for (int k = 0; k < m; k++) {
 			int a = (int)(i*astep + k);
-			At[a] *= s;
+			At[a] = (T)(At[a] * s);
 		}
 	}
 	
-	cache.put_buffer(W_buff);
+	cache.PutBuffer(&W_buff);
 }
 
 

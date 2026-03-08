@@ -78,8 +78,9 @@ bool PlayerHandComponent::Initialize(const WorldState& ws) {
 			return false;
 		}
 
+		LOG("PlayerHandComponent::Initialize: registering hand " << (int)req_hand << " to body " << entity_path);
 		if (!bc->SetHand((PlayerHandedness)req_hand, this)) {
-			LOG("PlayerHandComponent::Initialize: error: SetHand failed");
+			LOG("PlayerHandComponent::Initialize: error: SetHand failed for hand " << (int)req_hand);
 			return false;
 		}
 
@@ -252,13 +253,17 @@ bool PlayerBodyComponent::Arg(String key, Value value) {
 
 bool PlayerBodyComponent::SetHand(PlayerHandedness hand, PlayerHandComponentPtr comp) {
 	if (hand == PlayerHandedness::LeftHand) {
-		if (hands[0])
+		if (hands[0]) {
+			LOG("PlayerBodyComponent::SetHand: error: LeftHand already set to " << (void*)~hands[0]);
 			return false;
+		}
 		hands[0] = comp;
 	}
 	else if (hand == PlayerHandedness::RightHand) {
-		if (hands[1])
+		if (hands[1]) {
+			LOG("PlayerBodyComponent::SetHand: error: RightHand already set to " << (void*)~hands[1]);
 			return false;
+		}
 		hands[1] = comp;
 	}
 	else return false;

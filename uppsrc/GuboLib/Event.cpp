@@ -11,7 +11,6 @@ extern dword isdblclick[8]; // = {0};
 
 extern dword mouseb;
 extern dword modkeys;
-extern bool  sdlMouseIsIn;
 
 VirtualGui3D* VirtualGui3DPtr;
 
@@ -34,7 +33,7 @@ void RunVirtualGui3D(VirtualGui3D& gui, Event<> app_main)
 
 bool AtomVirtualGui3D::IsMouseIn()
 {
-	return sdlMouseIsIn;
+	return Ctrl::sdlMouseIsIn;
 }
 
 dword AtomVirtualGui3D::GetMouseButtons()
@@ -223,8 +222,10 @@ void AtomVirtualGui3D::HandleSDLEvent(SDL_Event* event)
 
 bool AtomVirtualGui3D::ProcessEvent(bool *quit)
 {
+#ifdef flagEON
 	if (quit)
 		*quit = !Serial::GetActiveMachine().IsRunning();
+#endif
 	return false;
 }
 

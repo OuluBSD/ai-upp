@@ -6,17 +6,19 @@ NAMESPACE_UPP
 
 
 class Gubo :
-	public Pte<Gubo>,
 	public GeomInteraction3D
 {
 	
 public:
 	//RTTI_DECL1(Gubo, GeomInteraction3D)
 	
+public:
+	static  Gubo     *LoopGubo;
+	void RenderGL();
+	
 protected:
 	static  bool      do_debug_draw;
 	static  int       LoopLevel;
-	static  Gubo     *LoopGubo;
 	static  int64     EventLoopNo;
 	
 	Gubo* GetCaptured();

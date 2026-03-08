@@ -30,9 +30,14 @@ struct System {
 	bool require_left = true;
 	bool require_right = true;
 	bool verbose = false;
+	bool emulate = false;
 	bool use_calibration_values = true;
+	bool use_payload_only = true;
+	bool emit_stream_events = true;
 	int user_hmd_idx = -1;
 	int user_ctrl_idx[2] = {-1,-1};
+	int vendor_id = 0;
+	int product_id = 0;
 	
 
 	void PrintHMD(String name, int len, HMD::FloatValue val);

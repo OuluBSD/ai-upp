@@ -382,3 +382,17 @@ Before you do ANY work:
 - TextureBase (for textures)
 - FboReaderBase (for framebuffer reading)
 - AudioBase (for audio)
+
+## Umbrella Game Project Build Success
+
+**Date**: 2026-02-04
+
+**Project**: game/Umbrella
+
+**Status**: Successfully built with command `script/build.py -j12 -mc 0 Umbrella`
+
+**Result**: Executable created at bin/Umbrella (21,893,608 bytes)
+
+**Key fixes made**:
+1. Fixed Vector<String> copy constructor error by iterating directly over CommandLine() result
+2. Corrected Key method signature to match U++ convention (virtual bool Key(dword key, int))

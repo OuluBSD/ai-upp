@@ -385,18 +385,18 @@ void ToolboxSystemBase::Uninitialize() {
 - ✅ All 8 systems initialize
 
 ### Phase 2: Event Flow
-- ☐ FakeSpatialInteractionManager::Update() called each frame
-- ☐ Keyboard/mouse input captured
-- ☐ Events reach InteractionSystem::HandleSource*()
-- ☐ Events broadcast to all listeners
-- ☐ ToolboxSystemBase receives OnControllerPressed events
+- ✅ FakeSpatialInteractionManager::Update() called each frame
+- ✅ Keyboard/mouse input captured (Mapped to EnvState)
+- ✅ Events reach InteractionSystem::HandleSource*()
+- ✅ Events broadcast to all listeners
+- ✅ ToolboxSystemBase receives OnControllerPressed events
 
 ### Phase 3: Tool Functionality
-- ☐ Tool component attaches to player hand
-- ☐ Tool switching works (number keys?)
-- ☐ Painting: Click and drag creates strokes
-- ☐ Shooting: Click fires projectile
-- ☐ Throwing: Click throws object
+- ✅ Tool component attaches to player hand (Implemented in ToolboxSystemBase::Update)
+- ✅ Tool switching works (SQUEEZE / key '2' switches tools)
+- ✅ Painting: Click and drag creates strokes (Enabled logic in PaintingSystem.cpp)
+- ✅ Shooting: Click fires projectile (Implemented bullet spawn in ShootingSystem.cpp)
+- ✅ Throwing: Click throws object (Implemented physics release in ThrowingSystem.cpp)
 
 ---
 

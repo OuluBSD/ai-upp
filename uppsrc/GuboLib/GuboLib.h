@@ -3,8 +3,12 @@
 
 #include <GuboCore/GuboCore.h>
 #include <Geometry/Geometry.h>
-#include <Eon/Eon.h>
 #include <Eon/Core/Core.h>
+#include <Eon/Draw/Draw.h>
+
+NAMESPACE_UPP
+class Engine;
+END_UPP_NAMESPACE
 
 NAMESPACE_UPP
 

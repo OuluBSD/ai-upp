@@ -1,0 +1,9 @@
+uses
+	Core,
+	AI/Logic;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "";

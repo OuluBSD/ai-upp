@@ -13,7 +13,6 @@ file
 	Keys.h,
 	After.h,
 	Image.cpp,
-	FB.iml,
 	Ctrl.h,
 	DrawDragRect.cpp,
 	Ctrl.cpp,

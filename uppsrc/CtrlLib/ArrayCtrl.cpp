@@ -27,6 +27,7 @@ ArrayCtrl::Column::Column() {
 	display = &StdDisplay();
 	accel = NULL;
 	margin = -1;
+	vertgrid = true;
 	cached = false;
 	clickedit = true;
 	index = -1;
@@ -996,7 +997,7 @@ Size  ArrayCtrl::DoPaint(Draw& w, bool sample) {
 							}
 						}
 						x += cw;
-						if(vertgrid)
+						if(vertgrid && column[jj].vertgrid)
 							w.DrawRect(x - 1, r.top, 1, r.Height(), gridcolor);
 						if(heading)
 							break;
@@ -3159,6 +3160,22 @@ String ArrayCtrl::AsCsv(bool sel, int sep, bool hdr)
 {
 	char h[2] = { (char)sep, 0 };
 	return AsText(sCsvFormat, sel, h, "\r\n", hdr ? h : NULL, "\r\n");
+}
+
+bool ArrayCtrl::Access(Visitor& v) {
+	v.AccessLabel(row_name);
+	v.AccessValue(GetCount());
+	v.AccessMenu("Rows", [this](Visitor& b){
+		for(int i = 0; i < GetCount(); i++) {
+			String val;
+			for(int j = 0; j < GetColumnCount(); j++) {
+				if(j > 0) val << " | ";
+				val << StdConvert().Format(Get(i, j));
+			}
+			b.AccessAction(Format("Row %d", i), [this, i]{ SetCursor(i); }).AccessValue(val);
+		}
+	});
+	return true;
 }
 
 ArrayCtrl::ArrayCtrl() {

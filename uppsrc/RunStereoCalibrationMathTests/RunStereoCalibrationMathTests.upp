@@ -1,0 +1,19 @@
+uses
+	Draw,
+	Geometry,
+	ComputerVision,
+	SoftHMD,
+	plugin/libv4l2,
+	plugin/jpg,
+	plugin/png,
+	plugin/Eigen,
+	AI/Core/Base;
+
+file
+	../StereoCalibrationTool/StereoCalibrationTool.h,
+	../StereoCalibrationTool/StereoCalibrationTool.cpp,
+	RunStereoCalibrationMathTests.cpp;
+
+mainconfig
+	"" = "CONSOLE",
+	"" = "CONSOLE USEMALLOC";

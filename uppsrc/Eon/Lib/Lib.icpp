@@ -71,8 +71,8 @@ INITBLOCK {
 	#if (defined flagSCREEN && defined flagSDL2 && defined flagOGL)
 	REGISTER_ATOM(SdlOglFboProg);
 	#endif
-	#if (defined flagLOCALHMD && defined flagVR)
-	REGISTER_ATOM(LocalHMDPipe);
+	#if (defined flagSOFTHMD && defined flagVR)
+	REGISTER_ATOM(SoftHMDPipe);
 	#endif
 	#if (defined flagFREEBSD && defined flagVR) || (defined flagLINUX && defined flagVR)
 	REGISTER_ATOM(RemoteVRServerPipe);
@@ -292,6 +292,9 @@ INITBLOCK {
 	
 	#if (defined flagFREEBSD && defined flagOPENHMD && defined flagVR) || (defined flagLINUX && defined flagOPENHMD && defined flagVR)
 	REGISTER_ATOM(OpenHMDPipe);
+	#endif
+	#if (defined flagWIN32 && defined flagOPENVR && defined flagVR)
+	REGISTER_ATOM(OpenVRPipe);
 	#endif
 	
 	// AtomMinimal

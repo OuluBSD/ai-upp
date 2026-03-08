@@ -2,6 +2,8 @@
 
 NAMESPACE_UPP
 
+INITIALIZE(EcsRegistration);
+
 INITBLOCK {
 	using namespace Eon;
 

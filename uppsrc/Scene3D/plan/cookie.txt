@@ -1,0 +1,440 @@
+# Scene3D plan cookie
+# Format:
+# - date: YYYY-MM-DD
+#   task: relative/path/to/task.md
+#   status: done|skipped|blocked
+#   note: short note
+#
+# Completed tasks will be appended here.
+- date: 2026-01-29
+  task: track-hmd-visualization/phase-00-foundations/task-0001-core-geom-migration.md
+  status: done
+  note: Created Scene3D top-level + subpackages and moved core geom types from Edit3D.
+- date: 2026-01-29
+  task: track-hmd-visualization/phase-00-foundations/task-0002-render-io-migration.md
+  status: done
+  note: Migrated renderer and IO imports into Scene3D and rewired Edit3D context.
+- date: 2026-01-30
+  task: track-hmd-visualization/phase-00-foundations/task-0003-scene3d-schema.md
+  status: done
+  note: Added draft .scene3d format outline in Scene3D/IO.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0100-enable-pointcloud-cli.md
+  status: done
+  note: Re-enabled pointcloud CLI path; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0101-hmd-preview-viewport.md
+  status: done
+  note: Implemented HMD preview viewport; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-01-modelerapp/task-0102-record-pointcloud.md
+  status: done
+  note: Added record toggle, HMD scene objects, and pose override; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/phase.md
+  status: done
+  note: Added live pointcloud capture phase.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0201-live-preview-and-record.md
+  status: done
+  note: Live preview + record hooks implemented; runtime verification pending.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0202-find-location-in-pointcloud.md
+  status: done
+  note: Added localization data contracts + stub; ModelerApp caller wired.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0203-bt-controller-cylinder-tracking-stubs.md
+  status: done
+  note: Added controller pattern + tracking/fusion stubs and debug render integration.
+- date: 2026-02-03
+  task: track-hmd-visualization/phase-02-pointcloud-live/task-0204-synthetic-pointcloud-hmd-sim.md
+  status: done
+  note: Added synthetic pointcloud + dummy HMD sim (ideal data) with debug outputs.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-00-planning/task-0000-plan-refresh.md
+  status: done
+  note: Added pointcloud workbench track for remaining simulation, dataset, and scripting gaps.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-01-dataset-effects/task-0100-pointcloud-dataset-sharing.md
+  status: done
+  note: Added dataset nodes, dataset binding, UI selection, and external file sync for pointcloud datasets.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-01-dataset-effects/task-0101-effect-stack-ui.md
+  status: done
+  note: Added pointcloud effect stack component, UI, and renderer application.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0200-localization-application.md
+  status: done
+  note: Applied localization to hmd_pointcloud via effect stack and kept sim_observation raw.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0201-fake-camera-frustum-consistency.md
+  status: done
+  note: Removed synthetic camera render flip so fake camera orientation matches frustum math.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-02-sim-fidelity/task-0202-controller-visibility-constraints.md
+  status: done
+  note: Controller localization now fails when controllers are outside the fake HMD frustum.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-03-selection-view/task-0300-active-selection-render-sync.md
+  status: done
+  note: Tree selection now forces state update before renderer refresh.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-03-selection-view/task-0301-frustum-visibility-rules.md
+  status: done
+  note: Frustum now clears when non-camera nodes are selected.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-04-scripting/task-0400-script-node-coverage.md
+  status: done
+  note: Script components now supported on scenes and directories with props menu access.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-04-scripting/task-0401-debug-actions-python-parity.md
+  status: done
+  note: Added script template example covering debug pointcloud actions.
+- date: 2026-02-05
+  task: track-pointcloud-workbench/phase-04-scripting/task-0402-script-runtime-hooks.md
+  status: done
+  note: Scripts now reload/run on load even without per-frame hooks; update loop refreshes instances.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-00-planning/task-0000-actionscript-priority.md
+  status: done
+  note: Consolidated ActionScript features into editor+scripting track with prioritized phases.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-01-scripting-foundations/task-0100-script-node-coverage.md
+  status: done
+  note: Script components already support scene root, directories, and objects with menu + props access.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-01-scripting-foundations/task-0101-debug-actions-python-parity.md
+  status: done
+  note: Added Python example for Debug->Pointcloud actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-01-scripting-foundations/task-0102-script-runtime-hooks.md
+  status: done
+  note: Added on_load hook support with reload-safe execution.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-02-stage-api/task-0200-stage-api.md
+  status: done
+  note: Stage proxy exposes root/find/children/create/time/frame/fps/goto.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-02-stage-api/task-0201-displayobject-proxy.md
+  status: done
+  note: DisplayObject proxy supports transform, visibility, and child ops.
+- date: 2026-02-11
+  task: track-execution/phase-00-planning/task-0000-execution-track-overview.md
+  status: done
+  note: Added execution track plan with runtime window, export pipeline, input bindings, demos, and rendering tasks.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0100-execution-window.md
+  status: done
+  note: Added ModelerApp Execute window with separate renderer and refresh loop.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0103-modelerapp-export-menu.md
+  status: done
+  note: Added File -> Export actions with full/lightweight execution export manifests.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-03-display-list/task-0300-display-list-operations.md
+  status: done
+  note: Added display list child queries and reorder.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-04-events/task-0400-event-dispatcher.md
+  status: done
+  note: Added input + enterFrame dispatch with stage/object handlers.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-05-timeline/task-0500-timeline-hooks.md
+  status: done
+  note: Added gotoAndPlay/gotoAndStop and onFrame hooks.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-06-scripting-runtime/task-0600-dynamic-properties.md
+  status: done
+  note: Added dynamic property bag component and DisplayObject backing store.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-06-scripting-runtime/task-0601-script-global-conventions.md
+  status: done
+  note: Added ActionScript-style globals and per-script root/this bindings.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0700-3d-edit-primitives.md
+  status: done
+  note: Added editable mesh data, serialization, render overlay, and edit tools.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0701-3d-join-split-tools.md
+  status: done
+  note: Added join/split line tools with screen-space line picking.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-07-3d-editing/task-0702-sculpt-sphere.md
+  status: done
+  note: Added sculpt mode with ray-based falloff deformation.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-08-skeleton-rigging/task-0800-skeleton-rigging.md
+  status: done
+  note: Added skeleton components, tree hierarchy, and viewport visualization.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-08-skeleton-rigging/task-0801-weight-painting.md
+  status: done
+  note: Added skin weights component and paint tool with viewport visualization.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-09-scenes-animation/task-0900-scene-timelines.md
+  status: done
+  note: Added scene timeline component, playback controls, and update loop integration.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-09-scenes-animation/task-0901-mesh-polygon-animation.md
+  status: done
+  note: Added mesh animation keyframes, playback application, and basic menu actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-10-2d-graphics/task-1000-2d-drawing-as-3d.md
+  status: done
+  note: Added 2D layer component, 2D drawing tools, and renderer overlay for shapes.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-10-2d-graphics/task-1001-2d-animation.md
+  status: done
+  note: Added 2D animation keyframes, playback interpolation, and menu actions.
+- date: 2026-02-05
+  task: track-editor-scripting/phase-11-texture-editing/task-1100-texture-editing-3d-models.md
+  status: done
+  note: Added texture edit component, texture editor dock, painting, and save to data_dir.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-12-material-editing/task-1200-material-editing-3d.md
+  status: done
+  note: Added materials/mesh assignment props with base color/emissive/roughness/metallic editing and V2 tinting.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-12-material-editing/task-1201-material-editing-2d.md
+  status: done
+  note: Added 2D layer material properties, editor controls, and filled render overlay.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0907-props-playback-sync.md
+  status: done
+  note: Props now reflect evaluated timeline values on scrub/playback.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0902-flash-timeline-scope.md
+  status: done
+  note: Active timeline scope already switches on scene/object/component selection and highlights active rows.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0903-flash-timeline-hierarchy.md
+  status: done
+  note: Timeline rows are hierarchical with indentation and expand/collapse per object.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0904-flash-timeline-visuals.md
+  status: done
+  note: Timeline now draws tween spans and uses major/minor tick marks without full-column separators.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0905-flash-timeline-navigation.md
+  status: done
+  note: Added drag scrubbing, range selection, prev/next keyframe jumps, and keyframe hotkeys.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-09-scenes-animation/task-0906-transform-subkeyframes.md
+  status: done
+  note: Transform sub-rows and props keyframe controls already in place; verified behavior.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1300-timeline-multiselect-range.md
+  status: done
+  note: Added multi-row selection, range select, and batch keyframe add/remove.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1301-timeline-keyframe-drag.md
+  status: done
+  note: Added keyframe drag-to-move with row-aware keyframe moves.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1302-timeline-copy-paste.md
+  status: done
+  note: Added timeline copy/paste for selected rows and ranges with menu/shortcut hooks.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1303-timeline-row-controls.md
+  status: done
+  note: Added timeline row mute/solo toggles and color tags with palette/custom input.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1304-timeline-easing.md
+  status: done
+  note: Added keyframe easing fields, interpolation support, and row menu controls for easing modes.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1305-autokey-modes.md
+  status: done
+  note: Added auto-key channel toggles, mesh/2D auto-key hooks, and timeline auto-key indicator.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1306-transform-gizmo-polish.md
+  status: done
+  note: Added transform snapping, local/world toggle, and keyboard nudges with auto-key support.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1307-undo-redo.md
+  status: done
+  note: Added snapshot-based undo/redo with menu shortcuts and hooks for key edits/actions.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1308-script-editor-dock.md
+  status: done
+  note: Added docked script editor with Python syntax, run controls, error list, and breakpoint toggles.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1309-asset-browser.md
+  status: done
+  note: Added asset browser dock with tree, previews, drag/drop, and recent assets.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1310-2d-editing-ops.md
+  status: done
+  note: Added 2D selection, boolean ops (bbox-based), stroke cap/join controls, align/distribute.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1311-mesh-selection-modes.md
+  status: done
+  note: Added mesh selection modes with loop/ring and expand/contract.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1312-mesh-extrude.md
+  status: done
+  note: Added extrude/inset for selected mesh faces with side triangles.
+- date: 2026-02-06
+  task: track-editor-scripting/phase-13-editor-ux/task-1313-editor-shortcuts.md
+  status: done
+  note: Added HUD with tool hints, snap state, and help overlay toggles.
+- date: 2026-02-10
+  task: track-gui-automation/phase-00-planning/task-0000-plan-refresh.md
+  status: done
+  note: Added GUI automation track for ModelerApp with phases and tasks.
+- date: 2026-02-10
+  task: track-gui-automation/phase-01-foundations/task-0100-modelerapp-test-harness.md
+  status: done
+  note: Added --test automation harness to ModelerApp for ByteVM UI scripts.
+- date: 2026-02-10
+  task: track-gui-automation/phase-01-foundations/task-0101-smoke-test.md
+  status: done
+  note: Added ModelerApp automation smoke test script.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0210-tree-props-tests.md
+  status: done
+  note: Added initial tree/props automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0220-timeline-tests.md
+  status: done
+  note: Added initial timeline automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0230-viewport-tool-tests.md
+  status: done
+  note: Added initial viewport/tool automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0240-material-texture-tests.md
+  status: done
+  note: Added initial material/texture automation tests.
+- date: 2026-02-10
+  task: track-gui-automation/phase-02-coverage/task-0250-test-runner.md
+  status: done
+  note: Added ModelerApp GUI test runner script.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0101-compile-export-pipeline.md
+  status: done
+  note: Export manifest now includes scripts and asset mappings for full/lightweight modes.
+- date: 2026-02-11
+  task: track-execution/phase-01-runtime-window/task-0102-executor-app-bootstrap.md
+  status: done
+  note: Added ModelMediaShell executor with manifest loading and runtime loop.
+- date: 2026-02-11
+  task: track-execution/phase-02-input-bindings/task-0200-input-binding-system.md
+  status: done
+  note: Execution runtime now exposes input state + events; exec window dispatches input.
+- date: 2026-02-11
+  task: track-execution/phase-04-render-assets/task-0400-assimp-integration.md
+  status: done
+  note: Executor builds with ASSIMP config and loads models via ModelLoader.
+- date: 2026-02-11
+  task: track-execution/phase-04-render-assets/task-0401-model-loading-in-executor.md
+  status: done
+  note: ModelMediaShell resolves asset paths for full/lightweight exports.
+- date: 2026-02-11
+  task: track-execution/phase-03-demo-projects/task-0300-demo-driving-nophysics.md
+  status: done
+  note: Added driving_nophysics demo project + assets and script in share/scene3d/projects.
+- date: 2026-02-12
+  task: track-execution/phase-03-demo-projects/task-0301-demo-fps-boxes.md
+  status: done
+  note: Added fps_boxes demo project (scene, assets, script) with discrete movement + projectile pool.
+- date: 2026-02-12
+  task: track-execution/phase-03-demo-projects/task-0303-demo-cave-flier.md
+  status: done
+  note: Cave flier demo script finalized with ByteVM-safe syntax; runtime runs without compile errors.
+- date: 2026-02-14
+  task: track-execution/phase-03-demo-projects/task-0302-demo-driving-softphys.md
+  status: done
+  note: Added driving_softphys demo project and SoftPhys-backed runtime bindings.
+- date: 2026-02-14
+  task: track-execution/phase-04-render-assets/task-0402-graphics-backend-selection.md
+  status: done
+  note: Added renderer aliases (gfx_sw/gfx_ogl) and documented backend selection for executor.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0200-window-layout.md
+  status: done
+  note: Added automation test for dock toggles and config persistence probe.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0201-tree-ops.md
+  status: done
+  note: Added tree ops automation test covering Tree menu entries and node creation/selection.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0202-props-editing.md
+  status: done
+  note: Added props editing automation test and exposed dock labels for automation.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0203-timeline-controls.md
+  status: done
+  note: Added timeline automation test with transform keyframes and scrubbing checks.
+- date: 2026-02-14
+  task: track-gui-automation/phase-02-coverage/task-0204-viewport-tools.md
+  status: done
+  note: Added viewport tool automation test and gizmo visibility instrumentation.
+- date: 2026-02-15
+  task: track-gui-automation/phase-02-coverage/task-0205-renderer-modes.md
+  status: done
+  note: Added renderer mode automation test and modeler API for renderer/grid/HUD state; test verified.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0100-create-operations.md
+  status: done
+  note: Wired ribbon create actions to primitives, dialog defaults, imports, and tagged stubs.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0101-polygon-tools.md
+  status: done
+  note: Routed ribbon polygon tools to mesh select modes with stubs for rotate/scale/UV.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0102-scene-publish.md
+  status: done
+  note: Scene add/select mapped; publish actions stubbed to export/log.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0200-quick-access-and-display.md
+  status: done
+  note: Added QAT, display mode toggles, and persisted ribbon settings.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0201-context-tabs-keytips.md
+  status: done
+  note: Added camera context tab and wired selection-based context toggle; RibbonBar already supports Alt keytips.
+- date: 2026-02-15
+  task: track-ui/phase-02-ui-features/task-0202-ribbon-layout-polish.md
+  status: done
+  note: Fixed ribbon frame height to keep consistent tab heights across pages.
+- date: 2026-02-15
+  task: track-ui/phase-03-controls/task-0300-lightmapping-controls.md
+  status: done
+  note: Ribbon lightmap controls now push settings into scene dynamic props and log bake request.
+- date: 2026-02-15
+  task: track-ui/phase-03-controls/task-0301-icon-semantics.md
+  status: done
+  note: Added basic icon_semantics mapping using ModelerApp icons with fallbacks.
+- date: 2026-02-15
+  task: track-ui/phase-01-actions/task-0103-advanced-create-dialogs.md
+  status: done
+  note: Added terrain/room dialog fields and persisted props (trees/grass, ceiling type, wall height).
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0400-explorer-docking-window.md
+  status: done
+  note: Explorer dock label updated; root shows active scene name.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0401-context-menus-and-insert.md
+  status: done
+  note: Root/node menus now include insert submenu, clone/delete, focus, and folder creation.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0402-insert-action-dialogs.md
+  status: done
+  note: Insert actions reuse ribbon dialogs and creation handlers.
+- date: 2026-02-15
+  task: track-ui/phase-04-scene-graph-explorer/task-0403-modify-selection-actions.md
+  status: done
+  note: Modify-selection submenu added with stubs and disabled items.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0000-ecs-scenegraph-spec.md
+  status: done
+  note: Documented ECS-first scene graph spec, component ordering, and addressing.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0001-geom-to-ecs-mapping.md
+  status: done
+  note: Added Geom-to-ECS mapping table and migration notes.
+- date: 2026-02-16
+  task: track-ecs-scenegraph/phase-00-blueprint/task-0002-timeline-strategy.md
+  status: done
+  note: Wrote Flash-like ECS timeline strategy with script keyframes and evaluation order.

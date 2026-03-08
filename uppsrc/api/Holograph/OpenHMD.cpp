@@ -4,6 +4,10 @@
 #include <openhmd.h>
 
 
+#ifdef Status
+#undef Status
+#endif
+
 NAMESPACE_UPP
 
 
@@ -69,15 +73,20 @@ void HoloOpenHMD::SinkDevice_Destroy(NativeSinkDevice*& dev) {
 }
 
 bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, const WorldState& ws) {
-	bool require_hmd = !ws.IsTrue(".device.optional.hmd", false);
-	bool require_left = !ws.IsTrue(".device.optional.left", true);
-	bool require_right = !ws.IsTrue(".device.optional.right", true);
-	int user_hmd_idx = ws.GetInt(".device.hmd.idx", require_hmd ? 0 : -1);
+	bool emulate = ws.IsTrue("emulatedevice", false);
+	bool require_hmd = !ws.IsTrue("device.optional.hmd", false);
+	bool require_left = !ws.IsTrue("device.optional.left", true);
+	bool require_right = !ws.IsTrue("device.optional.right", true);
+	int user_hmd_idx = ws.GetInt("device.hmd.idx", require_hmd ? 0 : -1);
 	int user_ctrl_idx[2];
-	user_ctrl_idx[0] = ws.GetInt(".device.left.idx", require_left ? 0 : -1);
-	user_ctrl_idx[1] = ws.GetInt(".device.right.idx", require_right ? 0 : -1);
-	bool verbose = !ws.IsTrue(".quiet", false);
+	user_ctrl_idx[0] = ws.GetInt("device.left.idx", require_left ? 0 : -1);
+	user_ctrl_idx[1] = ws.GetInt("device.right.idx", require_right ? 0 : -1);
+	bool verbose = !ws.IsTrue("quiet", false) || ws.IsTrue("verbose", false);
 	
+	if (emulate) {
+		require_hmd = false;
+		user_hmd_idx = -1;
+	}
 	
 	dev.seq = 0;
 	dev.ev.spatial = &dev.ev3d;
@@ -102,7 +111,7 @@ bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, cons
 		LOG("HoloOpenHMD::SinkDevice_Initialize: error: failed to probe devices: " << ohmd_ctx_get_error(dev.ctx));
 		return false;
 	}
-	if (num_devices == 0){
+	if (num_devices == 0 && !emulate){
 		LOG("HoloOpenHMD::SinkDevice_Initialize: error: no connected devices");
 		return false;
 	}
@@ -165,108 +174,77 @@ bool HoloOpenHMD::SinkDevice_Initialize(NativeSinkDevice& dev, AtomBase& a, cons
 	if (hmd_idx >= 0)
 		dev.hmd = ohmd_list_open_device_s(dev.ctx, hmd_idx, dev.settings);
 	
-	for(int i = 0; i < 2; i++)
-		dev.ctrl[i] = ohmd_list_open_device_s(dev.ctx, ctrl_idx[i], dev.settings);
+	for(int i = 0; i < 2; i++) {
+		if (ctrl_idx[i] >= 0)
+			dev.ctrl[i] = ohmd_list_open_device_s(dev.ctx, ctrl_idx[i], dev.settings);
+	}
 	
 	if(	(hmd_idx >= 0 && !dev.hmd) ||
 		(ctrl_idx[0] >= 0 && !dev.ctrl[0]) ||
 		(ctrl_idx[1] >= 0 && !dev.ctrl[1])){
 		LOG("HoloOpenHMD::SinkDevice_Initialize: error: failed to open device: " << ohmd_ctx_get_error(dev.ctx));
-		return false;
-	}
-	ohmd_device_geti(dev.hmd, OHMD_SCREEN_HORIZONTAL_RESOLUTION, &dev.screen_sz.cx);
-	ohmd_device_geti(dev.hmd, OHMD_SCREEN_VERTICAL_RESOLUTION, &dev.screen_sz.cy);
-	if (verbose) {
-		LOG("HoloOpenHMD: info: resolution:               " << dev.screen_sz.ToString());
-		PrintOHMD(dev, "hsize",            1, OHMD_SCREEN_HORIZONTAL_SIZE);
-		PrintOHMD(dev, "vsize",            1, OHMD_SCREEN_VERTICAL_SIZE);
-		PrintOHMD(dev, "lens separation",  1, OHMD_LENS_HORIZONTAL_SEPARATION);
-		PrintOHMD(dev, "lens vcenter",     1, OHMD_LENS_VERTICAL_POSITION);
-		PrintOHMD(dev, "left eye fov",     1, OHMD_LEFT_EYE_FOV);
-		PrintOHMD(dev, "right eye fov",    1, OHMD_RIGHT_EYE_FOV);
-		PrintOHMD(dev, "left eye aspect",  1, OHMD_LEFT_EYE_ASPECT_RATIO);
-		PrintOHMD(dev, "right eye aspect", 1, OHMD_RIGHT_EYE_ASPECT_RATIO);
-		PrintOHMD(dev, "distortion k",     6, OHMD_DISTORTION_K);
-		PrintOHMD(dev, "control count", 1, OHMD_CONTROL_COUNT);
+		if (!emulate)
+			return false;
 	}
 	
-	float ipd;
-	ohmd_device_getf(dev.hmd, OHMD_EYE_IPD, &ipd);
+	if (hmd_idx < 0) {
+		LOG("HoloOpenHMD::SinkDevice_Initialize: error: could not find any hmd device");
+		if (require_hmd)
+			return false;
+		
+		dev.screen_sz = Size(1280, 720);
+		dev.vertex = "";
+		dev.fragment = "";
+		dev.ev_sendable = true;
+		dev.ts.Reset();
+		return true;
+	}
 	
-	float viewport_scale[2];
-	float distortion_coeffs[4];
-	float aberr_scale[3];
-	float sep;
-	float left_lens_center[2];
-	float right_lens_center[2];
-	
-	// Viewport is half the screen
-	ohmd_device_getf(dev.hmd, OHMD_SCREEN_HORIZONTAL_SIZE, &(viewport_scale[0]));
-	viewport_scale[0] /= 2.0f;
-	ohmd_device_getf(dev.hmd, OHMD_SCREEN_VERTICAL_SIZE, &(viewport_scale[1]));
-	
-	// Distortion coefficients
-	ohmd_device_getf(dev.hmd, OHMD_UNIVERSAL_DISTORTION_K, &(distortion_coeffs[0]));
-	ohmd_device_getf(dev.hmd, OHMD_UNIVERSAL_ABERRATION_K, &(aberr_scale[0]));
-	
-	// Calculate lens centers (assuming the eye separation is the distance between the lens centers)
-	ohmd_device_getf(dev.hmd, OHMD_LENS_HORIZONTAL_SEPARATION, &sep);
-	ohmd_device_getf(dev.hmd, OHMD_LENS_VERTICAL_POSITION, &(left_lens_center[1]));
-	ohmd_device_getf(dev.hmd, OHMD_LENS_VERTICAL_POSITION, &(right_lens_center[1]));
-	left_lens_center[0] = viewport_scale[0] - sep/2.0f;
-	right_lens_center[0] = sep/2.0f;
-	
-	// Assume calibration was for lens view to which ever edge of screen is further away from lens center
-	float warp_scale = (left_lens_center[0] > right_lens_center[0]) ? left_lens_center[0] : right_lens_center[0];
-	float warp_adj = 1.0f;
+	// Dump device info
 	
 	// Get controller info
 	for(int i = 0; i < 2; i++) {
-		ohmd_device_geti(dev.ctrl[i], OHMD_CONTROL_COUNT, &dev.control_count[i]);
-		ohmd_device_geti(dev.hmd, OHMD_CONTROLS_HINTS, dev.controls_fn[i]);
-		ohmd_device_geti(dev.hmd, OHMD_CONTROLS_TYPES, dev.controls_types[i]);
-		
-		
-		const char* controls_fn_str[] = {
-			"generic",
-			"trigger",
-			"trigger_click",
-			"squeeze",
-			"menu",
-			"home",
-			"analog-x",
-			"analog-y",
-			"anlog_press",
-			"button-a",
-			"button-b",
-			"button-x",
-			"button-y",
-			"volume-up",
-			"volume-down",
-			"mic-mute"
-		};
-		
-		const char* controls_type_str[] = {"digital", "analog"};
-		
-		int c = dev.control_count[i];
-		if (c > 0) {
-			LOG("HoloOpenHMD: control " << i << ":");
-			for(int j = 0; j < c; j++){
-				LOG(controls_fn_str[dev.controls_fn[i][j]] << " (" <<
-					controls_type_str[dev.controls_types[i][j]] << ")" <<
-					(j == c - 1 ? "" : ", "));
+		if (dev.ctrl[i]) {
+			ohmd_device_geti(dev.ctrl[i], OHMD_CONTROL_COUNT, &dev.control_count[i]);
+			ohmd_device_geti(dev.hmd, OHMD_CONTROLS_HINTS, dev.controls_fn[i]);
+			ohmd_device_geti(dev.hmd, OHMD_CONTROLS_TYPES, dev.controls_types[i]);
+			
+			
+			const char* controls_fn_str[] = {
+				"generic",
+				"trigger",
+				"trigger_click",
+				"squeeze",
+				"menu",
+				"home",
+				"analog-x",
+				"analog-y",
+				"anlog_press",
+				"button-a",
+				"button-b",
+				"button-x",
+				"button-y",
+				"volume-up",
+				"volume-down",
+				"mic-mute"
+			};
+			
+			const char* controls_type_str[] = {"digital", "analog"};
+			
+			int c = dev.control_count[i];
+			if (c > 0) {
+				LOG("HoloOpenHMD: control " << i << ":");
+				for(int j = 0; j < c; j++){
+					LOG(controls_fn_str[dev.controls_fn[i][j]] << " (" <<
+						controls_type_str[dev.controls_types[i][j]] << ")" <<
+						(j == c - 1 ? "" : ", "));
+				}
 			}
 		}
 	}
 	
 	ohmd_device_settings_destroy(dev.settings);
 
-	ohmd_gets(OHMD_GLSL_DISTORTION_VERT_SRC, &dev.vertex);
-	ohmd_gets(OHMD_GLSL_DISTORTION_FRAG_SRC, &dev.fragment);
-	
-	LOG("OpenHMD vertex shader:\n" << GetLineNumStr(dev.vertex) << "\n");
-	LOG("OpenHMD fragment shader:\n" << GetLineNumStr(dev.fragment) << "\n");
-	
 	dev.ts.Reset();
 	return true;
 }
@@ -290,6 +268,11 @@ void HoloOpenHMD::SinkDevice_Uninitialize(NativeSinkDevice& dev, AtomBase& a) {
 }
 
 bool HoloOpenHMD::SinkDevice_IsReady(NativeSinkDevice& dev, AtomBase&, PacketIO& io) {
+	if (!dev.hmd) {
+		dev.ev_sendable = true;
+		dev.ev.type = EVENT_HOLO_STATE;
+		return true;
+	}
 	memset(dev.ev3d.ctrl, 0, sizeof(dev.ev3d.ctrl));
 	
 	const float wait_time = 1.0 / 30;

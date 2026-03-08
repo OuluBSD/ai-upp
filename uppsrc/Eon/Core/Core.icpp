@@ -7,6 +7,8 @@ INITBLOCK {
 	TYPED_STRING_HASHER(Engine);
 	TYPED_STRING_HASHER(Entity);
 	TYPED_STRING_HASHER(Loop);
+	TYPED_STRING_HASHER(LinkSystem);
+	TYPED_STRING_HASHER(PacketTracker);
 
 	// Link type names for VFS/factory visibility
 	TYPED_STRING_HASHER(CustomerLink);

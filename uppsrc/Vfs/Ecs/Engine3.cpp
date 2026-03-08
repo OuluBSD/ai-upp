@@ -204,7 +204,7 @@ bool Engine::StartMain(String script_content, String script_file, ValueMap args,
 					for(int i = 0; i < args.GetCount(); i++) {
 						String key = "${" + args.GetKey(i).ToString() + "}";
 						String value = args[i].ToString();
-						value = EscapeString(value);
+						//value = EscapeString(value);
 						script_str.Replace(key, value);
 					}
 					LOG(script_str);

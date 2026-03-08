@@ -1,0 +1,13 @@
+uses
+	CtrlLib,
+	Maestro;
+
+file
+	AITextAdventure.h,
+	AdventureEngine.h,
+	AdventureEngine.cpp,
+	AdventureTools.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

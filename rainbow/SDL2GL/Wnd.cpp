@@ -108,8 +108,8 @@ Ctrl *Ctrl::GetOwner()
 {
 	GuiLock __;
 	int q = FindTopCtrl();
-	if(q > 0 && topctrl[q]->top) {
-		Ctrl *x = topctrl[q]->top->owner_window;
+	if(q > 0 && topctrl[q]->GetTop()) {
+		Ctrl *x = topctrl[q]->GetTop()->owner_window;
 		LDUMP(Upp::Name(x));
 		return dynamic_cast<TopWindowFrame *>(x) ? x->GetOwner() : x;
 	}
@@ -231,6 +231,9 @@ void Ctrl::PaintScene(SystemDraw& draw)
 	if(!IsNull(ri))
 		desktop->UpdateArea(draw, ri);
 	draw.End();
+
+	if(Gubo::LoopGubo)
+		Gubo::LoopGubo->RenderGL();
 }
 
 void Ctrl::PaintCaretCursor(SystemDraw& draw)
@@ -342,16 +345,16 @@ int Ctrl::GetKbdSpeed()
 void Ctrl::DestroyWnd()
 {
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i]->top && topctrl[i]->top->owner_window == this)
+		if(topctrl[i]->GetTop() && topctrl[i]->GetTop()->owner_window == this)
 			topctrl[i]->WndDestroy();
 	int q = FindTopCtrl();
 	if(q >= 0) {
 		Invalidate();
 		topctrl.Remove(q);
 	}
-	if(top) {
-		delete top;
-		top = NULL;
+	if(GetTop()) {
+		DeleteTop();
+		
 	}
 	isopen = false;
 	TopWindow *win = dynamic_cast<TopWindow *>(this);
@@ -376,7 +379,7 @@ void Ctrl::PutForeground()
 	}
 	Vector< Ptr<Ctrl> > fw;
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i] && topctrl[i]->top && topctrl[i]->top->owner_window == this && topctrl[i] != this)
+		if(topctrl[i] && topctrl[i]->GetTop() && topctrl[i]->GetTop()->owner_window == this && topctrl[i] != this)
 			fw.Add(topctrl[i]);
 	for(int i = 0; i < fw.GetCount(); i++)
 		if(fw[i])
@@ -390,8 +393,8 @@ void Ctrl::SetWndForeground()
 	if(IsWndForeground())
 		return;
 	Ctrl *to = this;
-	while(to->top && to->top->owner_window)
-		to = to->top->owner_window;
+	while(to->GetTop() && to->GetTop()->owner_window)
+		to = to->GetTop()->owner_window;
 	to->PutForeground();
 	if(this != focusCtrl)
 		ActivateWnd();
@@ -480,7 +483,7 @@ void Ctrl::PopUp(Ctrl *owner, bool savebits, bool activate, bool dropshadow, boo
 		ASSERT(owner_window->IsOpen());
 		if(owner_window != desktop) {
 			owner_window->SetForeground();
-			top->owner_window = owner_window;
+			GetTop()->owner_window = owner_window;
 		}
 	}
 	topctrl.Add(this);
@@ -528,6 +531,13 @@ void Ctrl::InstallPanicBox()
 void Ctrl::SysEndLoop()
 {
 }
+
+PrinterJob::PrinterJob(const char *_name) { name = _name; landscape = false; from = to = current = 0; }
+PrinterJob::~PrinterJob() {}
+bool PrinterJob::Execute() { return false; }
+Draw& PrinterJob::GetDraw() { static NilDraw nil; return nil; }
+PrinterJob& PrinterJob::MinMaxPage(int minpage, int maxpage) { return *this; }
+PrinterJob& PrinterJob::CurrentPage(int currentpage) { return *this; }
 
 END_UPP_NAMESPACE
 

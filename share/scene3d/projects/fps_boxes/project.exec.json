@@ -1,0 +1,31 @@
+{
+  "version": "1",
+  "mode": "full",
+  "exported_utc": "2026-02-12T00:00:00Z",
+  "project_name": "fps_boxes",
+  "scene3d": "fps_boxes.scene3d",
+  "project_dir": "",
+  "data_dir": "data",
+  "files": [
+    {
+      "type": "asset",
+      "source": "assets/box.obj",
+      "exported": "assets/box.obj"
+    },
+    {
+      "type": "asset",
+      "source": "assets/box_red.obj",
+      "exported": "assets/box_red.obj"
+    },
+    {
+      "type": "asset",
+      "source": "assets/box_red.mtl",
+      "exported": "assets/box_red.mtl"
+    },
+    {
+      "type": "script",
+      "source": "scripts/fps.py",
+      "exported": "scripts/fps.py"
+    }
+  ]
+}

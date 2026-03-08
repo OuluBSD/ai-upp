@@ -253,6 +253,7 @@ void RenderingSystem::RenderDebug(GfxDataState& state)
 #endif
 
 void RenderingSystem::Render(GfxDataState& state) {
+	fprintf(stderr, "RenderingSystem::Render: ENTER\n"); fflush(stderr);
 	static int render_count = 0;
 	if ((render_count++ % 60) == 0) {
 		LOG("RenderingSystem::Render: models=" << models.GetCount() << " cameras=" << cams.GetCount());
@@ -262,20 +263,27 @@ void RenderingSystem::Render(GfxDataState& state) {
     RenderDebug(state);
 #endif
 
+	fprintf(stderr, "RenderingSystem::Render: loading %d models\n", models.GetCount()); fflush(stderr);
+	int i = 0;
 	for (ModelComponentPtr& m : models) {
-
+		fprintf(stderr, "RenderingSystem::Render: loading model %d: %p\n", i, (void*)&*m); fflush(stderr);
 		m->Load(state);
-
+		fprintf(stderr, "RenderingSystem::Render: loaded model %d\n", i++); fflush(stderr);
 	}
+	fprintf(stderr, "RenderingSystem::Render: models loaded\n"); fflush(stderr);
 
+	int j = 0;
 	for (CameraBase* cb : cams) {
+		fprintf(stderr, "RenderingSystem::Render: loading camera %d: %p\n", j, (void*)cb); fflush(stderr);
 		if (calib.is_enabled) {
 			cb->calib = calib;
 			cb->UpdateCalibration();
 		}
 
 		cb->Load(state);
+		fprintf(stderr, "RenderingSystem::Render: loaded camera %d\n", j++); fflush(stderr);
 	}
+	fprintf(stderr, "RenderingSystem::Render: LEAVE\n"); fflush(stderr);
 }
 
 bool RenderingSystem::Initialize(const WorldState& ws) {

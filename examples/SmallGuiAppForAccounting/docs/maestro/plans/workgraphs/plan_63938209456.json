@@ -1,0 +1,274 @@
+{
+	"schema_version": "v1",
+	"id": "plan-dashboard-implementation",
+	"title": "Implement Dashboard Module",
+	"goal": "Implement a dashboard module to show financial summaries in the SmallGuiAppForAccounting application, following the structure defined in the Dashboard/ directory.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-DASHBOARD",
+		"name": "Dashboard",
+		"goal": "Develop and integrate a functional dashboard for financial overview.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01-DATA",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TSK-01-01",
+					"title": "Define Summary Structures",
+					"status": "",
+					"intent": "Define data structures for dashboard summaries as described in Dashboard/01_Data_Layer/Define_Summary_Structures.md",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-01-02",
+					"title": "Implement Summary Calculation",
+					"status": "",
+					"intent": "Implement logic to calculate financial summaries from the ledger data as described in Dashboard/01_Data_Layer/Implement_Summary_Calculation.md",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02-UI",
+			"name": "02_UI_Components",
+			"tasks": [
+				{
+					"id": "TSK-02-01",
+					"title": "Design Dashboard Layout",
+					"status": "",
+					"intent": "Design the visual layout for the dashboard component as described in Dashboard/02_UI_Components/Design_Dashboard_Layout.md",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.lay",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-02-02",
+					"title": "Create Dashboard Class",
+					"status": "",
+					"intent": "Implement the GUI class for the dashboard as described in Dashboard/02_UI_Components/Create_Dashboard_Class.md",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Dashboard.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03-INT",
+			"name": "03_Integration",
+			"tasks": [
+				{
+					"id": "TSK-03-01",
+					"title": "Integrate Dashboard in Main Window",
+					"status": "",
+					"intent": "Add the dashboard as a tab or view in the main application window as described in Dashboard/03_Integration/Integrate_Dashboard_in_Main.md",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-03-02",
+					"title": "Build and Verify",
+					"status": "",
+					"intent": "Build the application and verify the dashboard functionality as described in Dashboard/03_Integration/Build_and_Verify.md",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

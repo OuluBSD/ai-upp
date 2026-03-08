@@ -1,0 +1,8 @@
+uses
+	SoftHMD;
+
+file
+	SoftHMDTest.cpp;
+
+mainconfig
+	"" = "";

@@ -68,6 +68,7 @@ class ImageBuffer : NoCopy {
 	std::atomic<int> kind; // atomic because it can be set by 2 threads, in theory
 	Size         size;
 	Buffer<RGBA> pixels;
+	int          capacity = 0;
 	Point        hotspot;
 	Point        spot2;
 	Size         dots;
@@ -126,6 +127,8 @@ public:
 
 	void  Create(int cx, int cy);
 	void  Create(Size sz)               { Create(sz.cx, sz.cy); }
+	void  RtCreate(int cx, int cy);
+	void  RtCreate(Size sz)             { RtCreate(sz.cx, sz.cy); }
 	bool  IsEmpty() const               { return (size.cx | size.cy) == 0; }
 	void  Clear()                       { Create(0, 0); }
 
@@ -260,6 +263,26 @@ public:
 	// required by system image cache managemenent
 	
 	int GetRefCount() const         { return data ? (int)data->refcount : 0; }
+};
+
+class RtImage : NoCopy {
+	ImageBuffer ib;
+
+public:
+	void   Create(Size sz)               { ib.RtCreate(sz); }
+	void   Create(int cx, int cy)        { ib.RtCreate(cx, cy); }
+	Size   GetSize() const               { return ib.GetSize(); }
+	int    GetWidth() const              { return ib.GetWidth(); }
+	int    GetHeight() const             { return ib.GetHeight(); }
+	RGBA  *operator~()                   { return ~ib; }
+	RGBA  *operator[](int i)             { return ib[i]; }
+	void   Clear()                       { ib.Clear(); }
+	bool   IsEmpty() const               { return ib.IsEmpty(); }
+	Image  Get()                         { Image img = ib; return img; }
+	void   Set(Image& img)               { ib = img; }
+	void   Set(ImageBuffer& b)           { ib = b; }
+	ImageBuffer& GetBuffer()             { return ib; }
+	operator Image()                     { return Get(); }
 };
 
 Image Premultiply(const Image& img);

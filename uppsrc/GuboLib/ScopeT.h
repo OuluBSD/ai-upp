@@ -117,7 +117,7 @@ public:
 	bool IsRender() const {return do_render;}
 	
 	hash_t GetHashValue() const { return (hash_t)(size_t)this; }
-	HandleSystem* GetManager() const { return this->GetParentUnsafe().Get(); }
+	HandleSystem* GetManager() const { return dynamic_cast<HandleSystem*>(const_cast<GeomInteraction*>(~this->GetParentUnsafe())); }
 	Handle* GetHandle(TopContainer& ctrl);
 	Handle* GetActiveHandle();
 	

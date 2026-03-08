@@ -1,0 +1,235 @@
+{
+	"schema_version": "v1",
+	"id": "WG-INVOICING-SYSTEM",
+	"title": "Implement Invoicing Module",
+	"goal": "Develop and integrate a complete invoicing system with data persistence, PDF generation, and GUI management.",
+	"domain": "accounting",
+	"profile": "default",
+	"track": {
+		"id": "TRK-INV",
+		"name": "Invoicing Module",
+		"goal": "Provide full invoicing capabilities within the accounting application",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-INV-001",
+					"title": "Define Invoice and Customer Structures",
+					"status": "",
+					"intent": "Define the data models for invoices and customer associations in C++.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing Module/01_Data_Layer/Define Invoice and Customer Structures.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-INV-002",
+					"title": "Implement Invoice Logic and Persistence",
+					"status": "",
+					"intent": "Develop the backend logic for creating, calculating, and saving invoices to disk.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing Module/01_Data_Layer/Implement Invoice Logic and Persistence.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02",
+			"name": "02_PDF_Generation",
+			"tasks": [
+				{
+					"id": "TASK-INV-003",
+					"title": "Implement PDF Export Engine",
+					"status": "",
+					"intent": "Create a service to generate professional PDF documents from invoice data.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing Module/02_PDF_Generation/Implement PDF Export Engine.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-INV-004",
+					"title": "Create Invoicing GUI",
+					"status": "",
+					"intent": "Design and implement the U++ based user interface for managing invoices.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Invoicing Module/03_UI_Integration/Create Invoicing GUI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-INV-005",
+					"title": "Build and Verify Integration",
+					"status": "",
+					"intent": "Ensure the invoicing module is correctly wired into the main application and passes all checks.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

@@ -18,10 +18,6 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size psz, P
 	// Empty as CanSetSurface is false
 }
 
-#define IMAGECLASS FBImg
-#define IMAGEFILE <VirtualGui/FB.iml>
-#include <Draw/iml_source.h>
-
 #define STD_CURSOR(name) \
 Image Image::name() { static Image img; ONCELOCK { img = FBImg::name(); } return img; }
 

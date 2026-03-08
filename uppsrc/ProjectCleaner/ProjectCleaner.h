@@ -1,7 +1,7 @@
 #ifndef _ProjectCleaner_ProjectCleaner_h_
 #define _ProjectCleaner_ProjectCleaner_h_
 
-#include <Core2/Core.h>
+#include <Vfs/Core/Core.h>
 
 
 NAMESPACE_UPP

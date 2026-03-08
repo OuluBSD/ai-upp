@@ -1,0 +1,319 @@
+{
+	"schema_version": "v1",
+	"id": "WG-LEDGER-001",
+	"title": "Implement General Ledger",
+	"goal": "Implement a general ledger with transaction history and balance calculation in the SmallGuiAppForAccounting project.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-LEDGER",
+		"name": "General Ledger Implementation",
+		"goal": "Develop a functional ledger system with data persistence, business logic, and GUI integration.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-FOUNDATION",
+			"name": "01_Foundation",
+			"tasks": [
+				{
+					"id": "TASK-DEFINE-DATA",
+					"title": "Define Transaction and Ledger models",
+					"status": "",
+					"intent": "Create the data structures for transactions (amount, date, description) and the main Ledger class in Ledger.h.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-REGISTER-FILES",
+					"title": "Register files in U++ package",
+					"status": "",
+					"intent": "Update SmallGuiAppForAccounting.upp to include Ledger.h and Ledger.cpp for compilation.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"Ledger.cpp\" SmallGuiAppForAccounting.upp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-LOGIC",
+			"name": "02_CoreLogic",
+			"tasks": [
+				{
+					"id": "TASK-IMPL-STORAGE",
+					"title": "Implement transaction storage",
+					"status": "",
+					"intent": "Implement transaction history management (adding/retrieving) in Ledger.cpp using U++ containers.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Ledger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-IMPL-CALC",
+					"title": "Implement balance calculation",
+					"status": "",
+					"intent": "Add the GetBalance method to calculate the running total of all transactions.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep \"GetBalance\" Ledger.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-UI",
+			"name": "03_GUIIntegration",
+			"tasks": [
+				{
+					"id": "TASK-INTEGRATE-UI",
+					"title": "Integrate Ledger into main window",
+					"status": "",
+					"intent": "Update main.cpp to display the transaction history in an ArrayCtrl and show the balance in a Label.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "main.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-VERIFICATION",
+			"name": "04_Verification",
+			"tasks": [
+				{
+					"id": "TASK-BUILD-TEST",
+					"title": "Build and verify application",
+					"status": "",
+					"intent": "Compile the project using umk to ensure correct implementation and linking.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk . SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-VALIDATE-PLAYBOOK",
+					"title": "Validate against playbook",
+					"status": "",
+					"intent": "Ensure the implementation aligns with the provided ledger playbook using maestro.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "maestro convert playbook .maestro/playbooks/ledger.puml",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

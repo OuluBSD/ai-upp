@@ -31,12 +31,16 @@ typedef GeomInteraction Gi;
 typedef GeomInteraction2D Gi2;
 typedef GeomInteraction3D Gi3;
 
-class GeomInteraction {
+class GeomInteraction : public Pte<GeomInteraction> {
 	
 public:
 	GeomInteraction* owner = NULL;
 	Vector<GeomInteraction*> sub;
 	LogPos pos;
+	
+	Ptr<GeomInteraction> GetParent() const { return owner; }
+	Ptr<GeomInteraction> GetParentUnsafe() const { return owner; }
+	void SetParent(GeomInteraction* c) { owner = c; }
 	
 public:
 	static  bool do_debug_draw;

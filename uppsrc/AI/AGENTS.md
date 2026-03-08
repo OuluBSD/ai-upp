@@ -38,9 +38,39 @@ Conventions
 - Keep domain logic in `AI/Core/*` and UI code in `AI/Ctrl/*`.
 - Each subpackage carries its own `AGENTS.md`; consult those for deeper details and extension points.
 - Prefer adding documentation topics in `.tpp` when exposing public APIs.
+- All classes and structs used in NTL containers (Vector, Array, etc.) MUST inherit from `Moveable<T>` (e.g., `struct MyData : Moveable<MyData> { ... };`) to be compatible with U++ memory management.
+- When adding a `MenuBar` to a `TopWindow`, use `AddFrame(menu);` in the constructor followed by `menu.Set(THISBACK(MainMenu));`.
 
 Extending
 - New domain: create `AI/Core/<Domain>` and register in `AI/Core/Core.upp` aggregate.
 - New UI: create `AI/Ctrl/<Domain>` and wire views/dialogs; expose minimal headers for integration.
 - When adding new packages, include an `AGENTS.md` and list it first in the `.upp` file list.
+
+Testing
+- Always test the compilation with `script/build.py -j <cpu_count-2> <pkgname>` before stopping.
+
+## Planning System & Continuity
+- **Plan Structure**: The project roadmap is stored in `uppsrc/AI/plan/<track>/<phase>/<task>.md`.
+  - **Granularity**: Plans must be fine-grained, focusing on individual source files, functions, and classes.
+  - **Compilability**: The codebase MUST be compilable after *every* single task.
+  - **Commits**: Git commits must be performed after *every* task is completed.
+- **State Persistence**: The current working context is stored in `uppsrc/AI/cookie.txt` (KEY=VALUE format).
+  - `TRACK`: Current active track directory name.
+  - `PHASE`: Current active phase directory name.
+  - `TASK`: Current active task filename.
+  - `STATUS`: Status of the current task (IN_PROGRESS, DONE).
+- **Workflow**:
+  - When asked to "continue", read `uppsrc/AI/cookie.txt`.
+  - If `STATUS=IN_PROGRESS`, resume the specified task.
+  - If `STATUS=DONE`, find the next task in the directory structure (alphabetical order) and start it.
+  - Update `cookie.txt` and the task `.md` file status as you progress.
+
+## AI Prelaunch Logic (Orchestration)
+- **Concept**: Any generative action (creating a project, synthesizing a class, writing a test) MUST go through the AI Prelaunch Logic.
+- **Workflow**:
+  1.  **Intent Capture**: User triggers action (e.g., "Init Project").
+  2.  **Prelaunch**: The system gathers context (directory, constraints, existing files) and formulates a specific *Request Object* or *Prompt*.
+  3.  **AI Execution**: The request is dispatched to the AI backend (mocked in tests).
+  4.  **Artifact Generation**: The AI response is parsed into physical artifacts (files, directories).
+- **No Hardcoding**: Code generators (`.cpp`, `.upp`) MUST NOT be hardcoded in C++ strings. They must be output by the AI or loaded from flexible templates that the AI can modify.
 

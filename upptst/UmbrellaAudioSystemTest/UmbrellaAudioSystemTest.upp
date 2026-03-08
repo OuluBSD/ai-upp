@@ -1,0 +1,15 @@
+description "Umbrella AudioSystem Test";
+
+#include "_all.i"
+
+uses
+	Core;
+
+file
+	AudioSystemTest.h,
+	AudioSystemTest.cpp,
+	AudioSystemConsole.h,
+	AudioSystemConsole.cpp;
+
+mainconfig
+	"" = "";

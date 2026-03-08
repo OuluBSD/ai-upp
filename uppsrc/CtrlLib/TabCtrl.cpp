@@ -305,6 +305,7 @@ void TabCtrl::Right()
 
 void TabCtrl::Set(int i)
 {
+	Upp::Cout() << "TABCTRL SET: " << i << " (current=" << sel << ")\n";
 	if(i != sel) {
 		bool refocus = HasFocusDeep();
 		sel = i;
@@ -568,6 +569,12 @@ void TabCtrl::Reset()
 	Refresh();
 	accept_current = false;
 	WhenSet();
+}
+
+bool TabCtrl::Access(Visitor& v) {
+	for(int i = 0; i < GetCount(); i++)
+		v.AccessOption(i == Get(), GetItem(i).GetText(), [this, i]{ Set(i); Action(); });
+	return true;
 }
 
 TabCtrl::TabCtrl()

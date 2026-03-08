@@ -20,5 +20,6 @@ file
 mainconfig
 	"Release" = ".AI .AUDIO .PORTAUDIO .DEBUG_VFS",
 	"Debug" = ".AI .AUDIO .PORTAUDIO .DEBUG_RT .DEBUG_VFS",
-	"Release (Valgrind)" = ".AI .AUDIO .PORTAUDIO .DEBUG_VFS USEMALLOC";
+	"Release (Valgrind)" = ".AI .AUDIO .PORTAUDIO .DEBUG_VFS USEMALLOC",
+	"Debug (Valgrind)" = ".AI .AUDIO .PORTAUDIO .DEBUG_RT .DEBUG_VFS USEMALLOC";
 

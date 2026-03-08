@@ -48,3 +48,19 @@ out/
 
 _out/
 __pycache__/
+
+build.log
+capture.png
+run.err
+run.log
+
+# Ignore calibration images
+share/calibration/*/captures
+
+# Ignore proprietary & nonfree mods
+share/mods/*/proprietary/**
+
+
+# Large icons
+share/icons/large/*.png
+

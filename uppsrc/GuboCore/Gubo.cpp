@@ -1,7 +1,13 @@
 #include "GuboCore.h"
 #include <GuboLib/GuboLib.h>
 #include <GuboLib/ScopeT.h>
+#ifdef flagEON
 #include <Eon/Eon.h>
+#endif
+
+#ifdef flagOGL
+#include <GL/gl.h>
+#endif
 
 
 NAMESPACE_UPP
@@ -495,37 +501,47 @@ void Gubo::SetCaptured(Gubo* c) {
 }
 
 void Gubo::SetWithMouse(Gubo* c) {
+#ifdef flagEON
 	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
 	if (wm)
 		wm->SetWithMouse(c);
+#endif
 }
 
 GuboFrame* Gubo::GetFrameCaptured() {
 	GuboFrame* f = 0;
+#ifdef flagEON
 	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
 	if (wm)
 		f = CastPtr<GuboFrame>(wm->GetFrameCaptured());
+#endif
 	return f;
 }
 
 GuboFrame* Gubo::GetFrameWithMouse() {
 	GuboFrame* f = 0;
+#ifdef flagEON
 	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
 	if (wm)
 		f = CastPtr<GuboFrame>(wm->GetFrameWithMouse());
+#endif
 	return f;
 }
 
 void Gubo::SetFrameCaptured(GuboFrame* c) {
+#ifdef flagEON
 	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
 	if (wm)
 		wm->SetFrameCaptured(c);
+#endif
 }
 
 void Gubo::SetFrameWithMouse(GuboFrame* c) {
+#ifdef flagEON
 	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
 	if (wm)
 		wm->SetFrameWithMouse(c);
+#endif
 }
 
 
@@ -543,17 +559,20 @@ void Gubo::DeepFrameLayout() {
 
 
 Cubf Gubo::GetWorkArea() const {
-	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(GetGeomDrawBegin());
+#ifdef flagEON
+	Gu::GuboManager* wm = CastPtr<Gu::GuboManager>(const_cast<GeomInteraction*>(GetGeomDrawBegin()));
 	if (wm) {
 		Volf sz = wm->GetFrameSize();
 		return Cubf(sz);
 	}
+#endif
 	// Fallback to own frame size
 	return Cubf(GetFrameSize());
 }
 
 
 bool Gubo::ReleaseGuboCapture() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
@@ -562,9 +581,13 @@ bool Gubo::ReleaseGuboCapture() {
 	Gu::GuboManager& mgr = wins->GetActiveScope();
 	mgr.SetCaptured((GeomInteraction*)NULL);
 	return true;
+#else
+	return false;
+#endif
 }
 
 Gubo* Gubo::GetCaptureGubo() {
+#ifdef flagEON
 	using namespace Ecs;
 	Engine& mach = GetActiveMachine();
 	Gu::GuboSystemRef wins = mach.Get<Gu::GuboSystem>();
@@ -573,10 +596,62 @@ Gubo* Gubo::GetCaptureGubo() {
 	Gu::GuboManager& mgr = wins->GetActiveScope();
 	GeomInteraction* gi = mgr.GetCaptured();
 	return CastPtr<Gubo>(gi);
+#else
+	return 0;
+	#endif
 }
 
-void Gubo::Update() {
-	SetModify();
+void Gubo::RenderGL() {
+#ifdef flagOGL
+    // Basic fixed-function orthographic 3D for command replay
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    Volf sz = GetFrameSize();
+    // Y-down ortho to match UI coordinates, generous depth range
+    glOrtho(0, sz.cx, sz.cy, 0, -10000, 10000);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+
+    const DrawCommand3* begin = &GetCommandBegin();
+    const DrawCommand3* end   = &GetCommandEnd();
+    for (const DrawCommand3* it = begin ? begin->next : nullptr; it && it != end; it = it->next) {
+        switch (it->type) {
+        case DRAW3_BOX_OP: {
+            float x = it->pt.x;
+            float y = it->pt.y;
+            float z = it->pt.z;
+            float w = it->sz.cx;
+            float h = it->sz.cy;
+            Color c = it->color;
+            glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+            glBegin(GL_TRIANGLE_STRIP);
+                glVertex3f(x, y, z);
+                glVertex3f(x + w, y, z);
+                glVertex3f(x, y + h, z);
+                glVertex3f(x + w, y + h, z);
+            glEnd();
+        } break;
+        case DRAW3_LINE_OP: {
+            Color c = it->color;
+            glColor4ub(c.GetR(), c.GetG(), c.GetB(), 255);
+            glLineWidth(it->width);
+            glBegin(GL_LINES);
+                glVertex3f(it->pt.x, it->pt.y, it->pt.z);
+                glVertex3f(it->pt2.x, it->pt2.y, it->pt2.z);
+            glEnd();
+        } break;
+        }
+    }
+#endif
+}
+
+void Gubo::Update() {	SetModify();
 	Updated();
 }
 

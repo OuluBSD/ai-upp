@@ -67,7 +67,7 @@ Immediate Roadmap (sequenced)
    - Add JSON‑RPC 2.0 compliance (validate jsonrpc=="2.0"; standard errors -32700, -32600, -32601, -32602, -32603).
    - Implement mcp.capabilities and standardize error responses; echo request ids.
 2) Index core
-   - Integrate existing MetaEnvironment AST via IdeMetaEnvironment (ide/Vfs/Ide.h) which wraps Core2/VfsValue.h.
+   - Integrate existing MetaEnvironment AST via IdeMetaEnvironment (ide/Vfs/Ide.h) which wraps Vfs/Core/VfsValue.h.
    - Use SCRIPT builder (ide/Builders/ScriptBuilder.cpp) to populate/update AST; require active SCRIPT builder for freshness.
    - Provide EnvIndex adapter to query env: LocateByPos, GetById, GetDefinition, FindReferences; mint stable node ids (USR-like).
 3) Read-only queries
@@ -93,6 +93,6 @@ Next (actionable)
 - Implement EnvIndex adapter backed by IdeMetaEnvironment; return index_not_ready when AST missing/stale.
 - Wire node.locate/node.get/node.definition/node.references to EnvIndex.
 - Update mcp_client.sh to use mcp.capabilities for discovery (done); extend with sample node.locate request.
-- Define required Env APIs in repo root CURRENT_TASK.md for Core2/VfsValue.h and ide/Vfs/Ide.h:
+- Define required Env APIs in repo root CURRENT_TASK.md for Vfs/Core/VfsValue.h and ide/Vfs/Ide.h:
    - EnvLocate(file,line,col), EnvGet(id), EnvDefinition(id), EnvReferences(id,page,limit), EnvCode(id|range), EnvStatus().
    - Add header stubs with TODOs so MCP can link now.

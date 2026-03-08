@@ -1,0 +1,15 @@
+description "Umbrella LevelLoader Test";
+
+#include "_all.i"
+
+uses
+	Core;
+
+file
+	LevelLoaderTest.h,
+	LevelLoaderTest.cpp,
+	LevelLoaderConsole.h,
+	LevelLoaderConsole.cpp;
+
+mainconfig
+	"" = "";

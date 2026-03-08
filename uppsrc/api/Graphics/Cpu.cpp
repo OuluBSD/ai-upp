@@ -360,8 +360,23 @@ template <class Gfx>
 void SwGfxT<Gfx>::RenderScreenRect() {
 	auto& l = Local();
 	ASSERT_(l.fb, "framebuffer is not bound yet");
-	//ASSERT_(l.shdr, "shader is not bound yet");
-	//ASSERT_(l.prog, "program is not bound yet");
+	if (!l.pipe) {
+		LOG("SwGfxT::RenderScreenRect: pipe is NULL, attempting recovery from GfxAccelAtomT::latest");
+		auto* atom = GfxAccelAtom<Gfx>::latest;
+		if (atom) {
+			auto& buf = atom->GetBuffer();
+			if (buf.stages.GetCount() > 0 && buf.Top().pipeline) {
+				l.pipe = &buf.Top().pipeline->native;
+				LOG("SwGfxT::RenderScreenRect: recovery successful, bound pipe " << (void*)l.pipe);
+			}
+			else {
+				LOG("SwGfxT::RenderScreenRect: recovery failed - no stages or no pipeline in Top stage");
+			}
+		}
+		else {
+			LOG("SwGfxT::RenderScreenRect: recovery failed - GfxAccelAtomT::latest is NULL");
+		}
+	}
 	ASSERT_(l.pipe, "pipe is not bound yet");
 	ASSERT_(*l.pipe, "pipeline is not inited");
 	
@@ -549,6 +564,23 @@ template <class Gfx>
 void SwGfxT<Gfx>::BeginRender() {
 	auto& l = Local();
 	ASSERT_(l.fb, "framebuffer is not bound yet");
+	if (!l.pipe) {
+		LOG("SwGfxT::BeginRender: pipe is NULL, attempting recovery from GfxAccelAtomT::latest");
+		auto* atom = GfxAccelAtom<Gfx>::latest;
+		if (atom) {
+			auto& buf = atom->GetBuffer();
+			if (buf.stages.GetCount() > 0 && buf.Top().pipeline) {
+				l.pipe = &buf.Top().pipeline->native;
+				LOG("SwGfxT::BeginRender: recovery successful, bound pipe " << (void*)l.pipe);
+			}
+			else {
+				LOG("SwGfxT::BeginRender: recovery failed - no stages or no pipeline in Top stage");
+			}
+		}
+		else {
+			LOG("SwGfxT::BeginRender: recovery failed - GfxAccelAtomT::latest is NULL");
+		}
+	}
 	ASSERT_(l.pipe, "pipe is not bound yet");
 	ASSERT_(*l.pipe, "pipeline is not inited");
 	

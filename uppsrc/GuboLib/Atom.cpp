@@ -14,6 +14,7 @@ AtomVirtualGui3D::~AtomVirtualGui3D() {
 }
 
 bool AtomVirtualGui3D::Create(const Rect& rect, const char *title) {
+#ifdef flagEON
 	Engine& mach = Upp::Serial::GetActiveMachine();
 	wins = mach.Get<Gu::SurfaceSystem>();
 	if (!wins)
@@ -27,11 +28,14 @@ bool AtomVirtualGui3D::Create(const Rect& rect, const char *title) {
 	mgr->SetFrameBox(mgr_rect);
 	
 	return true;
+#else
+	return false;
+#endif
 }
 
 void AtomVirtualGui3D::Destroy() {
-	mgr.Clear();
-	wins.Clear();
+	mgr = NULL;
+	wins = NULL;
 }
 
 dword AtomVirtualGui3D::GetOptions() {

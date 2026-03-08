@@ -14,29 +14,30 @@ Color SColorEvenRow();
 
 class ArrayCtrl : public Ctrl {
 public:
-	virtual void  CancelMode();
-	virtual bool  Accept();
-	virtual void  Reject();
-	virtual void  Paint(Draw& w);
-	virtual void  Layout();
-	virtual bool  Key(dword key, int);
-	virtual void  LeftDown(Point p, dword);
-	virtual void  LeftDouble(Point p, dword);
-	virtual void  LeftDrag(Point p, dword);
-	virtual void  LeftUp(Point p, dword flags);
-	virtual void  RightDown(Point p, dword);
-	virtual void  MouseMove(Point p, dword);
-	virtual void  MouseLeave();
-	virtual void  MouseWheel(Point p, int zdelta, dword keyflags);
-	virtual Image CursorImage(Point p, dword);
-	virtual void  DragAndDrop(Point p, PasteClip& d);
-	virtual void  DragRepeat(Point p);
-	virtual void  DragLeave();
-	virtual void  GotFocus();
-	virtual void  LostFocus();
-	virtual void  ChildGotFocus();
-	virtual void  ChildLostFocus();
-	virtual void  Serialize(Stream& s);
+	bool  Access(Visitor& v) override;
+	void  CancelMode() override;
+	bool  Accept() override;
+	void  Reject() override;
+	void  Paint(Draw& w) override;
+	void  Layout() override;
+	bool  Key(dword key, int) override;
+	void  LeftDown(Point p, dword) override;
+	void  LeftDouble(Point p, dword) override;
+	void  LeftDrag(Point p, dword) override;
+	void  LeftUp(Point p, dword flags) override;
+	void  RightDown(Point p, dword) override;
+	void  MouseMove(Point p, dword) override;
+	void  MouseLeave() override;
+	void  MouseWheel(Point p, int zdelta, dword keyflags) override;
+	Image CursorImage(Point p, dword) override;
+	void  DragAndDrop(Point p, PasteClip& d) override;
+	void  DragRepeat(Point p) override;
+	void  DragLeave() override;
+	void  GotFocus() override;
+	void  LostFocus() override;
+	void  ChildGotFocus() override;
+	void  ChildLostFocus() override;
+	void  Serialize(Stream& s) override;
 
 public:
 	struct IdInfo {
@@ -69,6 +70,7 @@ public:
 		Event<One<Ctrl>&>     factory1;
 		int                 (*accel)(int);
 		int                   margin;
+		bool                  vertgrid;
 		bool                  cached;
 		bool                  clickedit;
 		mutable Any           cache;
@@ -118,6 +120,11 @@ public:
 		Column& SortDefault(bool desc = false);
 
 		Column& Margin(int m)                      { margin = m; return *this; }
+		Column& NoPadding()                        { margin = 0; HeaderTab().SetMargin(0); return *this; }
+		Column& VertGrid(bool b = true)            { vertgrid = b; return *this; }
+		Column& NoVertGrid()                       { return VertGrid(false); }
+		Column& SetWidth(int w)                    { arrayctrl->header.SetTabWidth(index, w); return *this; }
+		Column& FixedWidth(int w)                  { arrayctrl->header.Fixed(); arrayctrl->header.SetTabWidth(index, w); return *this; }
 
 		HeaderCtrl::Column& HeaderTab();
 		const HeaderCtrl::Column& HeaderTab() const;
@@ -150,7 +157,7 @@ private:
 	};
 
 	struct CellCtrl : ParentCtrl {
-		virtual void LeftDown(Point, dword);
+		void LeftDown(Point, dword) override;
 
 		bool       owned;
 		bool       value;
@@ -358,7 +365,7 @@ protected:
 	virtual bool UpdateRow();
 	virtual void RejectRow();
 
-	void   ClearModify();
+	void   ClearModify() override;
 
 public:
 	Event<>           WhenSel; // the most usual ArrayCtrl event
@@ -743,7 +750,7 @@ public:
 	ArrayOption();
 	virtual ~ArrayOption();
 
-	virtual void       Paint(Draw& w, const Rect& r, const Value& q, Color ink, Color paper, dword style) const;
+	void       Paint(Draw& w, const Rect& r, const Value& q, Color ink, Color paper, dword style) const override;
 
 	void               Connect(ArrayCtrl& ac, int ii = 0);
 	void               Connect(ArrayCtrl& ac, const Id& id)        { Connect(ac, ac.GetPos(id)); }

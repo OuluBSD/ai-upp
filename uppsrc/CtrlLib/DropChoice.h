@@ -129,13 +129,14 @@ public:
 
 class DropList : public MultiButton, public Convert {
 public:
-	virtual void  MouseWheel(Point p, int zdelta, dword keyflags);
-	virtual bool  Key(dword key, int);
-	virtual void  SetData(const Value& data);
-	virtual Value GetData() const;
-	virtual void  DropPush();
+	virtual void  MouseWheel(Point p, int zdelta, dword keyflags) override;
+	virtual bool  Key(dword key, int) override;
+	virtual bool  Access(Visitor& v) override;
+	virtual void  SetData(const Value& data) override;
+	virtual Value GetData() const override;
+	virtual void  DropPush() override;
 
-	virtual Value Format(const Value& q) const;
+	virtual Value Format(const Value& q) const override;
 
 private:
 	PopUpList          list;

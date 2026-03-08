@@ -5,9 +5,24 @@ NAMESPACE_GUBO_BEGIN
 
 
 
+#ifdef flagEON
+using BaseSystem = System;
+#else
+class BaseSystem : public Pte<BaseSystem> {
+public:
+	BaseSystem(Engine&) {}
+	virtual ~BaseSystem() {}
+	virtual bool Initialize(const WorldState&) { return true; }
+    virtual bool Start() { return true; }
+    virtual void Update(double dt) {}
+    virtual void Stop() {}
+    virtual void Uninitialize() {}
+};
+#endif
+
 template <class Dim>
 class HandleSystemT :
-	public System {
+	public BaseSystem {
 	
 public:
 	using Base = HandleSystemT<Dim>;
@@ -46,7 +61,9 @@ public:
     typedef HandleSystemT<Dim> CLASSNAME;
 	HandleSystemT(Engine& m);
 	
+#ifdef flagEON
 	SYS_DEF_VISIT
+#endif
 	
 	
 	Scope& AddScope();
@@ -66,7 +83,8 @@ public:
 	int GetScreenCount() const {return GetScopeCount();}
 	double GetTime() const {return time;}
 	
-	static Image OverrideCursor(const Image& img);
+	Image OverrideCursor(const Image& img);
+	Image DefaultCursor();
 	
 	
 };

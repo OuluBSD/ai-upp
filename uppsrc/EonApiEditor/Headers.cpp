@@ -244,11 +244,19 @@ void InterfaceBuilder::Headers() {
 		//.Arg("reqdef_flagOPENHMD", "1")
 	;
 	
-	AddHeader("LocalHMDPipe", "LocalHMDSinkDevice", "pipe")
+	AddHeader("OpenVRPipe", "OpenVRSinkDevice", "pipe")
+		.In("CenterOrder")
+		.Out("CenterEvent")
+		.Action("openvr.ogl.holo.events")
+		.Arg("HINT_PKG", "AtomVR")
+		.Link("PIPE", "PROCESS")
+	;
+	
+	AddHeader("SoftHMDPipe", "SoftHMDSinkDevice", "pipe")
 		.In("CenterOrder").Out("CenterEvent")
 		.Action("x11.ogl.holo.events")
 		.Link("PIPE", "PROCESS")
-		//.Arg("reqdef_flagLOCALHMD", "1")
+		//.Arg("reqdef_flagSOFTHMD", "1")
 	;
 	
 	AddHeader("RemoteVRServerPipe", "RemoteVRServerSinkDevice", "pipe")

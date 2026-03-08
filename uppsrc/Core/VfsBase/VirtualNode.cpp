@@ -3,7 +3,6 @@
 
 NAMESPACE_UPP
 
-
 VirtualNode::VirtualNode() {}
 
 VirtualNode::VirtualNode(const VirtualNode& vn) : data(vn.data) {
@@ -647,6 +646,5 @@ void VirtualNode::Remove(Value& root_value, const VfsPath& path) {
 	
 	root_value = scopes[0].map;
 }
-
 
 END_UPP_NAMESPACE

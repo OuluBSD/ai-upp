@@ -1,17 +1,19 @@
 class TabCtrl : public Ctrl {
 public:
-	virtual bool  Accept();
-	virtual void  Paint(Draw& draw);
-	virtual void  CancelMode();
-	virtual void  MouseMove(Point p, dword keyflags);
-	virtual void  LeftDown(Point p, dword keyflags);
-	virtual void  MouseLeave();
-	virtual bool  Key(dword key, int count);
-	virtual bool  HotKey(dword key);
-	virtual void  Layout();
-	virtual Rect  GetOpaqueRect() const;
-	virtual Value GetData() const;
-	virtual void  SetData(const Value& data);
+	bool  Access(Visitor& v) override;
+	void  Layout() override;
+	void  Paint(Draw& w) override;
+	void  CancelMode() override;
+	void  MouseMove(Point p, dword keyflags) override;
+	void  LeftDown(Point p, dword keyflags) override;
+	void  MouseLeave() override;
+	bool  Key(dword key, int count) override;
+	bool  HotKey(dword key) override;
+	bool  Accept() override;
+
+	Rect  GetOpaqueRect() const override;
+	Value GetData() const override;
+	void  SetData(const Value& data) override;
 
 public:
 	class Item {
@@ -71,7 +73,7 @@ public:
 
 private:
 	struct Tabs : public Ctrl {
-		virtual void Paint(Draw& w);
+		void Paint(Draw& w) override;
 	};
 
 	Array<Item> tab;

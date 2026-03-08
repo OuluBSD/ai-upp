@@ -1,4 +1,4 @@
-#include "GroupNode.h"
+#include "GraphLib.h"
 
 namespace GraphLib {
 

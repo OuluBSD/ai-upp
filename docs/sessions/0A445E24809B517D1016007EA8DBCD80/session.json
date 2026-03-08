@@ -1,0 +1,32 @@
+{
+	"session_id": "0A445E24809B517D1016007EA8DBCD80",
+	"session_type": "work_track",
+	"parent_session_id": "",
+	"children_ids": [
+
+	],
+	"status": 0,
+	"state": "active",
+	"purpose": "Working on ContextIntegration",
+	"context": [
+
+	],
+	"created": "2026-02-04T22:54:20",
+	"modified": "2026-02-04T22:54:20",
+	"related_entity": [
+		{
+			"key": {
+				"type": "String",
+				"value": "track_id"
+			},
+			"value": {
+				"type": "String",
+				"value": "ContextIntegration"
+			}
+		}
+	],
+	"breadcrumbs_dir": "/common/active/sblo/Dev/ai-upp/docs/sessions/0A445E24809B517D1016007EA8DBCD80/breadcrumbs",
+	"metadata": [
+
+	]
+}

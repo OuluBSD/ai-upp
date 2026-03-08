@@ -7,21 +7,24 @@ namespace Upp {
 
 class MenuItemBase : public Ctrl, public Bar::Item {
 public:
-	virtual Bar::Item& Text(const char *text);
-	virtual Bar::Item& Key(dword key);
-	virtual Bar::Item& Image(const UPP::Image& img);
-	virtual Bar::Item& Enable(bool _enable);
-	virtual Bar::Item& Tip(const char *tip);
-	virtual Bar::Item& Help(const char *help);
-	virtual Bar::Item& Topic(const char *help);
-	virtual Bar::Item& Description(const char *desc);
-	virtual Bar::Item& Check(bool check);
-	virtual Bar::Item& Radio(bool check);
-	virtual Bar::Item& Bold(bool bold);
+	Bar::Item& Text(const char *text) override;
+	Bar::Item& Key(dword key) override;
+	Bar::Item& Image(const UPP::Image& img) override;
+	Bar::Item& Enable(bool _enable) override;
+	Bar::Item& Tip(const char *tip) override;
+	Bar::Item& Help(const char *help) override;
+	Bar::Item& Topic(const char *help) override;
+	Bar::Item& Description(const char *desc) override;
+	Bar::Item& Check(bool check) override;
+	Bar::Item& Radio(bool check) override;
+	Bar::Item& Bold(bool bold) override;
+	Bar::Item& AccessValue(const ::Upp::Value& v) override;
 
-	virtual String GetDesc() const;
-	virtual dword  GetAccessKeys() const;
-	virtual void   AssignAccessKeys(dword used);
+	String GetDesc() const override;
+	dword  GetAccessKeys() const override;
+	void   AssignAccessKeys(dword used) override;
+
+	bool   Access(Visitor& v) override;
 
 	using   Ctrl::Key;
 
@@ -71,19 +74,19 @@ public:
 
 class MenuItem : public MenuItemBase {
 public:
-	virtual void  Paint(Draw& w);
-	virtual void  MouseEnter(Point, dword);
-	virtual void  MouseLeave();
-	virtual Size  GetMinSize() const;
-	virtual void  LeftUp(Point, dword);
-	virtual void  RightUp(Point, dword);
-	virtual void  GotFocus();
-	virtual void  LostFocus();
-	virtual bool  Key(dword key, int count);
-	virtual bool  HotKey(dword key);
-	virtual void  SyncState();
+	void  Paint(Draw& w) override;
+	void  MouseEnter(Point, dword) override;
+	void  MouseLeave() override;
+	Size  GetMinSize() const override;
+	void  LeftUp(Point, dword) override;
+	void  RightUp(Point, dword) override;
+	void  GotFocus() override;
+	void  LostFocus() override;
+	bool  Key(dword key, int count) override;
+	bool  HotKey(dword key) override;
+	void  SyncState() override;
 
-	virtual Bar::Item& Image(const UPP::Image& img);
+	Bar::Item& Image(const UPP::Image& img) override;
 
 private:
 	UPP::Image licon, ricon;
@@ -120,13 +123,14 @@ public:
 
 class SubMenuItem : public MenuItem, public SubMenuBase {
 public:
-	virtual void MouseEnter(Point, dword);
-	virtual void MouseLeave();
-	virtual void GotFocus();
-	virtual bool HotKey(dword key);
-	virtual bool Key(dword key, int count);
-	virtual int  GetVisualState();
-	virtual void Pull();
+	void MouseEnter(Point, dword) override;
+	void MouseLeave() override;
+	void GotFocus() override;
+	bool HotKey(dword key) override;
+	bool Key(dword key, int count) override;
+	int  GetVisualState() override;
+	void Pull() override;
+	bool Access(Visitor& v) override;
 
 protected:
 	enum {
@@ -142,17 +146,18 @@ public:
 
 class TopSubMenuItem : public MenuItemBase, public SubMenuBase {
 public:
-	virtual void Paint(Draw& w);
-	virtual void MouseEnter(Point, dword);
-	virtual void MouseLeave();
-	virtual void GotFocus();
-	virtual void LostFocus();
-	virtual void LeftDown(Point, dword);
-	virtual void SyncState();
-	virtual Size GetMinSize() const;
-	virtual bool Key(dword key, int);
-	virtual bool HotKey(dword key);
-	virtual void Pull();
+	void Paint(Draw& w) override;
+	void MouseEnter(Point, dword) override;
+	void MouseLeave() override;
+	void GotFocus() override;
+	void LostFocus() override;
+	void LeftDown(Point, dword) override;
+	void SyncState() override;
+	Size GetMinSize() const override;
+	bool Key(dword key, int) override;
+	bool HotKey(dword key) override;
+	void Pull() override;
+	bool Access(Visitor& v) override;
 
 private:
 	int  GetState();
@@ -164,16 +169,16 @@ public:
 
 class TopMenuItem : public MenuItemBase {
 public:
-	virtual void  Paint(Draw& w);
-	virtual void  MouseEnter(Point, dword);
-	virtual void  MouseLeave();
-	virtual void  LeftUp(Point, dword);
-	virtual void  LeftDown(Point, dword);
-	virtual void  GotFocus();
-	virtual void  LostFocus();
-	virtual bool  Key(dword key, int count);
-	virtual Size  GetMinSize() const;
-	virtual void  SyncState();
+	void  Paint(Draw& w) override;
+	void  MouseEnter(Point, dword) override;
+	void  MouseLeave() override;
+	void  LeftUp(Point, dword) override;
+	void  LeftDown(Point, dword) override;
+	void  GotFocus() override;
+	void  LostFocus() override;
+	bool  Key(dword key, int count) override;
+	Size  GetMinSize() const override;
+	void  SyncState() override;
 
 	static int GetStdHeight(Font font = StdFont());
 

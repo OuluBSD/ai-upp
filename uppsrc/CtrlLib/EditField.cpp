@@ -1124,9 +1124,20 @@ EditField::EditField()
 	WhenBar = THISBACK(StdBar);
 }
 
-EditField::~EditField()
-{
-	DeleteAttr<Image>(ATTR_NULLICON);
+EditField::~EditField() {}
+
+bool EditField::Access(Visitor& v) {
+	String id = GetLayoutId();
+	if(id.IsEmpty()) id = "EditField";
+	v.AccessLabel(id);
+	v.AccessValue(GetData());
+	if(auto *av = dynamic_cast<AutomationVisitor *>(&v)) {
+		if(av->write_mode && av->found && !IsReadOnly()) {
+			SetData(av->target_value);
+			Action();
+		}
+	}
+	return true;
 }
 
 }

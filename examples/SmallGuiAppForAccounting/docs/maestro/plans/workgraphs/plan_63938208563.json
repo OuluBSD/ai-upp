@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "backupsystem-63938208600",
+	"title": "Implement Backup and Restore System",
+	"goal": "Implement a robust backup and restore mechanism for the accounting application data.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-BACKUP",
+		"name": "Backup System",
+		"goal": "Provide users with the ability to secure their financial data through backups.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-001",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TSK-001",
+					"title": "Define_Backup_Structure",
+					"status": "",
+					"intent": "Define the structure, metadata, and file format for system backups.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/01_Data_Layer/Define Backup Structure.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-002",
+					"title": "Implement_Persistence_Logic",
+					"status": "",
+					"intent": "Develop the core logic for serializing application state to backup files.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/01_Data_Layer/Implement Backup Persistence Logic.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-002",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TSK-003",
+					"title": "Develop_Backup_Manager",
+					"status": "",
+					"intent": "Create a service class to handle backup creation, compression, and rotation.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/02_Implementation/Develop Backup Manager Service.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-004",
+					"title": "Implement_Restore_Logic",
+					"status": "",
+					"intent": "Implement the logic to validate and restore data from existing backup files.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/02_Implementation/Implement Restore Functionality.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-003",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TSK-005",
+					"title": "Create_Backup_GUI",
+					"status": "",
+					"intent": "Design and implement the Backup/Restore management dialog.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/03_UI_Integration/Create Backup Management UI.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-006",
+					"title": "Integrate_into_Main_Menu",
+					"status": "",
+					"intent": "Add backup and restore triggers to the application's main menu and status bar.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Backup System/03_UI_Integration/Integrate Backup in Main Window.md",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TSK-007",
+					"title": "Build_and_Verify",
+					"status": "",
+					"intent": "Build the application and verify that backups are correctly created and restored.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting .",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

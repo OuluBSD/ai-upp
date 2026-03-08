@@ -1,0 +1,313 @@
+{
+	"schema_version": "v1",
+	"id": "plan_audit_logging",
+	"title": "Implement Audit Logging System",
+	"goal": "Implement a robust audit logging system to track financial transactions and security events within the SmallGuiAppForAccounting application.",
+	"domain": "general",
+	"profile": "default",
+	"track": {
+		"id": "TRK-AUDIT",
+		"name": "Audit Logging",
+		"goal": "Establish a persistence layer, core service, and UI for viewing system audit logs.",
+		"status": ""
+	},
+	"phases": [
+		{
+			"id": "PH-01",
+			"name": "01_Data_Layer",
+			"tasks": [
+				{
+					"id": "TASK-01-01",
+					"title": "Define Audit Record Structures",
+					"status": "",
+					"intent": "Define the data structures for audit records including timestamp, user, action, and entity details.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuditLog.h",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-01-02",
+					"title": "Implement Audit Persistence Logic",
+					"status": "",
+					"intent": "Implement the logic to save audit records to a persistent store (e.g., JSON or database).",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuditLog.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-02",
+			"name": "02_Implementation",
+			"tasks": [
+				{
+					"id": "TASK-02-01",
+					"title": "Develop Audit Logger Service",
+					"status": "",
+					"intent": "Create a singleton or global service to handle logging requests from across the application.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuditLogger.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-02-02",
+					"title": "Integrate Logging in Ledger",
+					"status": "",
+					"intent": "Add audit logging calls to the Ledger class for transaction creation, modification, and deletion.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "grep -q \"AuditLogger::Log\" Ledger.cpp",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-02-03",
+					"title": "Integrate Logging in Security Module",
+					"status": "",
+					"intent": "Add audit logging for login, logout, and permission change events.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "Security.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		},
+		{
+			"id": "PH-03",
+			"name": "03_UI_Integration",
+			"tasks": [
+				{
+					"id": "TASK-03-01",
+					"title": "Create Audit Log Viewer GUI",
+					"status": "",
+					"intent": "Develop a U++ based GUI component to browse and filter the audit logs.",
+					"definition_of_done": [
+						{
+							"kind": "file",
+							"cmd": "",
+							"path": "AuditLogViewer.cpp",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				},
+				{
+					"id": "TASK-03-02",
+					"title": "Build and Verify Audit System",
+					"status": "",
+					"intent": "Perform a full build of the application and verify that the audit system correctly captures and displays events.",
+					"definition_of_done": [
+						{
+							"kind": "command",
+							"cmd": "umk SmallGuiAppForAccounting",
+							"path": "",
+							"expect": ""
+						}
+					],
+					"verification": [
+
+					],
+					"inputs": [
+
+					],
+					"outputs": [
+
+					],
+					"risk": [
+
+					],
+					"depends_on": [
+
+					],
+					"tags": [
+
+					],
+					"effort": [
+
+					],
+					"impact": null,
+					"risk_score": null,
+					"purpose": null,
+					"safe_to_execute": false
+				}
+			]
+		}
+	],
+	"stop_conditions": [
+
+	],
+	"repo_discovery": [
+
+	]
+}

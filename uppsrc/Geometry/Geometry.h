@@ -80,6 +80,8 @@ NAMESPACE_UPP
 #include "Pointcloud.h"
 #include "MeshTracker.h"
 #include "Uncamera.h"
+#include "StereoCalibrationSolver.h"
+#include "TrackingInterfaces.h"
 #include "GeomEvent.h"
 #include "Vr.h"
 

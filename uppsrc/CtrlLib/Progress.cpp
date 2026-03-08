@@ -15,7 +15,7 @@ CH_STYLE(ProgressIndicator, Style, StyleDefault)
 
 Rect ProgressIndicator::GetMargins()
 {
-	if(style->classic || percent || !IsNull(color))
+	if(style->classic || percent || !label.IsEmpty() || !IsNull(color))
 		return ChMargins(ViewEdge());
 	Size sz = GetSize();
 	Rect r = ChMargins(sz.cx > sz.cy ? style->hlook : style->vlook);
@@ -47,7 +47,7 @@ void ProgressIndicator::Paint(Draw& w) {
 			p0 = 0;
 		}
 	}
-	if(style->classic || percent || !IsNull(color)) {
+	if(style->classic || percent || !label.IsEmpty() || !IsNull(color)) {
 		ChPaintEdge(w, sz, ViewEdge());
 		Rect mg = GetMargins();
 		sz -= Size(mg.left + mg.right, mg.top + mg.bottom);
@@ -65,17 +65,67 @@ void ProgressIndicator::Paint(Draw& w) {
 		w.DrawRect(r1, Nvl(color, SColorHighlight()));
 		w.DrawRect(r2, SColorPaper);
 		w.DrawRect(r3, SColorPaper);
-		if(percent) {
-			String pt = Format("%d %%", (int)(100L * actual / max(total, 1)));
-			Size psz = GetTextSize(pt, font);
-			int px = (sz.cx - psz.cx) / 2 + 2;
-			int py = (sz.cy - psz.cy) / 2 + 2;
-			w.Clip(r1);
-			w.DrawText(px, py, pt,font, SColorLight);
-			w.End();
-			w.Clip(r2);
-			w.DrawText(px, py, pt, font, SColorText);
-			w.End();
+		if(percent || !label.IsEmpty()) {
+			String pt;
+			if(percent)
+				pt = Format("%d %%", (int)(100L * actual / max(total, 1)));
+
+			// Check if we should render on two lines
+			bool two_lines = false;
+			if(percent && !label.IsEmpty()) {
+				Size pt_sz = GetTextSize(pt, font);
+				Size lbl_sz = GetTextSize(label, font);
+				int needed_height = pt_sz.cy + lbl_sz.cy + 4; // 4px spacing
+				if(sz.cy >= needed_height)
+					two_lines = true;
+			}
+
+			if(two_lines) {
+				// Render percentage and label on separate lines
+				Size pt_sz = GetTextSize(pt, font);
+				Size lbl_sz = GetTextSize(label, font);
+				int total_height = pt_sz.cy + lbl_sz.cy + 2;
+				int py_base = (sz.cy - total_height) / 2 + 2;
+
+				// Render percentage
+				int px_pt = (sz.cx - pt_sz.cx) / 2 + 2;
+				int py_pt = py_base;
+				w.Clip(r1);
+				w.DrawText(px_pt, py_pt, pt, font, SColorLight);
+				w.End();
+				w.Clip(r2);
+				w.DrawText(px_pt, py_pt, pt, font, SColorText);
+				w.End();
+
+				// Render label
+				int px_lbl = (sz.cx - lbl_sz.cx) / 2 + 2;
+				int py_lbl = py_base + pt_sz.cy + 2;
+				w.Clip(r1);
+				w.DrawText(px_lbl, py_lbl, label, font, SColorLight);
+				w.End();
+				w.Clip(r2);
+				w.DrawText(px_lbl, py_lbl, label, font, SColorText);
+				w.End();
+			}
+			else {
+				// Render on single line
+				String text = pt;
+				if(!label.IsEmpty()) {
+					if(!text.IsEmpty())
+						text << " ";
+					text << label;
+				}
+
+				Size tsz = GetTextSize(text, font);
+				int px = (sz.cx - tsz.cx) / 2 + 2;
+				int py = (sz.cy - tsz.cy) / 2 + 2;
+				w.Clip(r1);
+				w.DrawText(px, py, text, font, SColorLight);
+				w.End();
+				w.Clip(r2);
+				w.DrawText(px, py, text, font, SColorText);
+				w.End();
+			}
 		}
 		w.End();
 	}

@@ -4,7 +4,8 @@ uses
 	Draw,
 	plugin\bmp,
 	RichText,
-	Painter;
+	Painter,
+	Core/VfsBase;
 
 library(WIN32) "advapi32 comdlg32 comctl32 imm32";
 
@@ -31,6 +32,7 @@ file
 	CtrlKbd.cpp,
 	CtrlTimer.cpp,
 	CtrlClip.cpp,
+	UGUI.cpp,
 	LocalLoop.cpp,
 	Preedit.cpp,
 	CtrlCoreInit.cpp,
@@ -42,6 +44,7 @@ file
 	CtrlCore.iml,
 	CtrlCore.t,
 	CtrlCore.defs,
+	FB.iml,
 	Win32 readonly separator,
 	Win32Gui.h,
 	Win32GuiA.h,

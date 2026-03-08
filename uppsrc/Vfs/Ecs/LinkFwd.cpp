@@ -7,7 +7,9 @@ NAMESPACE_UPP
 void LinkBase::ForwardAtom(FwdScope& fwd) {
 	RTLOG("LinkBase::ForwardAtom: " << GetDynamicName());
 	
-	atom->fwd_lock.Enter();
+	if (!atom->fwd_lock.TryEnter()) {
+		return;
+	}
 	last_cfg = &fwd.Cfg();
 	
 	ForwardPipe(fwd);
@@ -49,12 +51,10 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 		}
 		
 		if (io.active_sink_mask == 0) {
-			RTLOG("LinkBase::ForwardPipe: skipping, all sinks are empty");
 			break;
 		}
 		
 		if (!(io.active_sink_mask & 1)) {
-			RTLOG("LinkBase::ForwardPipe: skipping, primary sink is empty");
 			break;
 		}
 		
@@ -92,8 +92,10 @@ void LinkBase::ForwardPipe(FwdScope& fwd) {
 		}
 		
 		
-		if (!IsReady(io))
+		if (!IsReady(io)) {
+			RTLOG("LinkBase::ForwardPipe: skipping, IsReady returned false");
 			break;
+		}
 		
 		
 		for (int sink_ch = 0; sink_ch < sink_ch_count; sink_ch++) {
@@ -193,7 +195,7 @@ void LinkBase::PostContinueForward() {
 }
 
 void LinkBase::ForwardExchange(FwdScope& fwd) {
-	ExchangeSourceProvider* src = CastPtr<ExchangeSourceProvider>(&*atom);
+	ExchangeSourceProvider* src = dynamic_cast<ExchangeSourceProvider*>(&*atom->GetSource());
 	ASSERT(src);
 	ExchangePointPtr expt = src->GetExPt();
 	if (expt) {

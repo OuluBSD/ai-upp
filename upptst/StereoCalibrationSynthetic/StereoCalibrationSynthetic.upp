@@ -1,0 +1,14 @@
+noblitz;
+
+uses
+	Geometry;
+
+file
+	AGENTS.md,
+	StereoCalibrationSynthetic.h,
+	GenerateWmrCase.cpp,
+	RunWmrCaseTest.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "";

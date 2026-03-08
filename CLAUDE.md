@@ -13,6 +13,21 @@ You're working with Ultimate++ (U++) codebase. Read these in order:
 3. **[THREAD_DEPENDENCIES.md](THREAD_DEPENDENCIES.md)** - Current work priorities
 4. **[task/](task/)** - Active development threads
 
+### Building Projects
+
+**IMPORTANT**: Always use `script/build.py` to build projects, NOT `theide` directly:
+
+```bash
+script/build.py -mc 1 -j 12 PackageName
+```
+
+**For the Umbrella game project specifically**:
+```bash
+script/build.py -mc 1 -j 12 Umbrella
+```
+
+**Never use**: `theide PackageName GCC -br` or similar direct theide commands.
+
 ---
 
 ## Claude-Specific Strengths
@@ -82,7 +97,7 @@ Use these strengths when working with this codebase.
    - Match existing code style (see CODESTYLE.md)
 
 3. **Test thoroughly**:
-   - Build affected packages
+   - Build affected packages: `script/build.py -mc 0 -j 12 <PackageName>`
    - Run relevant tests
    - Check for build warnings
 

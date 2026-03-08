@@ -20,7 +20,7 @@ NAMESPACE_UPP
 
 #define HOLO_VNDR_LIST \
 	HOLO_VNDR(HoloOpenHMD) \
-	HOLO_VNDR(HoloLocalHMD) \
+	HOLO_VNDR(HoloSoftHMD) \
 	HOLO_VNDR(HoloRemoteVRServer) \
 	HOLO_VNDR(HoloDevUsb) \
 	HOLO_VNDR(HoloDevBluetooth) \
@@ -48,8 +48,8 @@ struct HoloOpenHMD {
 	
 };
 #endif
-#if defined flagLOCALHMD
-struct HoloLocalHMD {
+#if defined flagSOFTHMD
+struct HoloSoftHMD {
 	#if defined flagVR
 	struct NativeSinkDevice;
 	#endif
@@ -193,9 +193,9 @@ template <class Holo> struct HolographSinkDeviceT : HoloSinkDevice {
 using OpenHMDSinkDevice = HolographSinkDeviceT<HoloOpenHMD>;
 #endif
 #endif
-#if defined flagLOCALHMD
+#if defined flagSOFTHMD
 #if defined flagVR
-using LocalHMDSinkDevice = HolographSinkDeviceT<HoloLocalHMD>;
+using SoftHMDSinkDevice = HolographSinkDeviceT<HoloSoftHMD>;
 #endif
 #endif
 #if (defined flagLINUX) || (defined flagFREEBSD)

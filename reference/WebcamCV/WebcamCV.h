@@ -349,6 +349,7 @@ class WebcamCV : public TopWindow {
 	TimeCallback tc;
 	MenuBar menu;
 	int type = -1;
+	CvBackend backend = CvBackend::CPU;
 	
 
 	GrayscaleBase grayscale;
@@ -380,6 +381,9 @@ class WebcamCV : public TopWindow {
 	
 	
 	void MainBar(Bar& bar);
+	void BackendBar(Bar& bar);
+	void SetBackend(CvBackend b);
+	bool IsBackend(CvBackend b) const { return backend == b; }
 	
 public:
 	typedef WebcamCV CLASSNAME;

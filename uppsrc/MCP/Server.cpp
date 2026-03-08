@@ -78,7 +78,13 @@ String McpServerCore::Handle(const McpRequest& req) {
         methods.Add("mcp.ping"); methods.Add("mcp.capabilities");
         methods.Add("mcp.log.get"); methods.Add("mcp.log.clear");
         methods.Add("mcp.index.status"); methods.Add("mcp.index.refresh");
-        ValueMap caps; caps.Add("protocol","jsonrpc-2.0"); caps.Add("supports_batch", false); caps.Add("methods", methods);
+        methods.Add("workspace.info");
+        methods.Add("debug.state"); methods.Add("debug.session.start"); methods.Add("debug.session.stop");
+        methods.Add("debug.continue"); methods.Add("debug.step.over"); methods.Add("debug.step.into"); methods.Add("debug.step.out"); methods.Add("debug.pause");
+        methods.Add("debug.breakpoint.set"); methods.Add("debug.breakpoint.clear"); methods.Add("debug.breakpoint.list");
+        methods.Add("debug.stack"); methods.Add("debug.locals"); methods.Add("debug.evaluate"); methods.Add("debug.threads");
+        methods.Add("resource.list"); methods.Add("resource.get");
+        ValueMap caps; caps.Add("protocol","jsonrpc-2.0"); caps.Add("supports_batch", false); caps.Add("resources", true); caps.Add("methods", methods);
         return MakeResult(req.id, caps);
     }
     if(req.method == "mcp.log.get") {

@@ -1,0 +1,42 @@
+description "EditorCommon - Generic project, theme, and frame processing backend\377";
+
+uses
+	Painter,
+	Core,
+	Core/SSL,
+	Draw,
+	ConvNet,
+	plugin/jpg,
+	plugin/png,
+	ByteVM,
+	ComputerVision,
+	AI/Logic;
+
+library(LINUX | BSD) Xtst;
+
+pkg_config(LINUX | BSD) "egl gl x11 xtst";
+
+file
+	EditorCommon.h,
+	EditorCommon.cpp,
+	GameTheme.h,
+	GameTheme.cpp,
+	GameThemeRender.h,
+	GameThemeRender.cpp,
+	Capture.h,
+	Capture.cpp,
+	V4l2Capture.cpp,
+	GpuPreprocess.h,
+	GpuPreprocess.cpp,
+	D3D11Interop.cpp,
+	RecognitionData.h,
+	Recognition.h,
+	Recognition.cpp,
+	Scripting.h,
+	Scripting.cpp,
+	ConfigFile.h,
+	ConfigFile.cpp,
+	Tools.h,
+	Tools.cpp,
+	CryptHelper.h,
+	CryptHelper.cpp;

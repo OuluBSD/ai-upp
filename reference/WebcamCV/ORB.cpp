@@ -155,7 +155,8 @@ void OrbBase::Process() {
 }
 
 String OrbBase::GetDebugInfo() const {
-	return Format("ORB matches=%d inliers=%d", last_num_matches, last_good_matches);
+	return Format("ORB matches=%d inliers=%d desc=%.2fms",
+		last_num_matches, last_good_matches, o.GetLastDescribeMs());
 }
 
 

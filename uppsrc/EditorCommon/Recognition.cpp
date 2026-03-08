@@ -1,6 +1,6 @@
 #include <EditorCommon/Recognition.h>
 #include <EditorCommon/GpuPreprocess.h>
-#include <GameCommon/Rules/GameDefs.h>
+#include <GameRules/GameDefs.h>
 #include <plugin/png/png.h>
 
 #include "StrategyBridge/StrategyBridge.h"

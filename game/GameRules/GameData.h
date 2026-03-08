@@ -3,8 +3,8 @@
 
 #include <Core/Core.h>
 #include <vector>
-#include <GameCommon/Rules/GameDefs.h>
-#include <GameCommon/Rules/EngineDefs.h>
+#include <GameRules/GameDefs.h>
+#include <GameRules/EngineDefs.h>
 
 NAMESPACE_UPP
 

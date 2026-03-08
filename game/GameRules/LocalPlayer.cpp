@@ -1,6 +1,6 @@
-#include <GameCommon/Rules/LocalPlayer.h>
-#include <GameCommon/Rules/HandInterface.h>
-#include <GameCommon/Rules/GuiInterface.h>
+#include <GameRules/LocalPlayer.h>
+#include <GameRules/HandInterface.h>
+#include <GameRules/GuiInterface.h>
 
 NAMESPACE_UPP
 

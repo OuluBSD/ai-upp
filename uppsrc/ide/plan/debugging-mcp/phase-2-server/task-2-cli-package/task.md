@@ -195,4 +195,4 @@ For Claude Desktop / Cursor, add to `mcp.json`:
 
 TheIDE must be running with MCP server enabled (port 7326 default).
 
-## Status: TODO
+## Status: DONE

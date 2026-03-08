@@ -8,6 +8,7 @@ Validate ORB demo behavior while switching backend modes from WebcamCV UI.
 2. Run ORB demo in CPU mode; record baseline match count/shape overlay.
 3. Switch to AMP mode; verify output parity against CPU.
 4. Switch to OpenGL(stub); verify explicit stub messaging and stable fallback behavior.
+5. Verify runtime overlay is visible and shows: demo name, backend status, frame time/FPS, ORB match+inlier counts.
 
 ## Exit Criteria
 - No crash/regression during backend switching.

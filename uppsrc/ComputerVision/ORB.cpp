@@ -297,7 +297,19 @@ void Orb::RectifyPatch(const ByteMat& src, ByteMat& dst, double angle, int px, i
 }
 
 void Orb::Describe(const ByteMat& src, const Vector<Keypoint>& corners, Vector<BinDescriptor>& descriptors) {
-	switch (GetCvBackend()) {
+	CvBackend requested = GetCvBackend();
+	CvBackend backend = ResolveCvBackend(requested);
+	if (backend != requested) {
+		static bool fallback_logged[3] = { false, false, false };
+		int req_i = (int)requested;
+		if (req_i >= 0 && req_i < 3 && !fallback_logged[req_i]) {
+			fallback_logged[req_i] = true;
+			LOG("Orb::Describe: backend '" << GetCvBackendName(requested)
+			    << "' is unavailable, falling back to '" << GetCvBackendName(backend) << "'");
+		}
+	}
+
+	switch (backend) {
 	case CvBackend::CPU:
 		DescribeCpu(src, corners, descriptors);
 		break;

@@ -9,6 +9,7 @@ enum class CvBackend {
 
 CvBackend GetCvBackend();
 void SetCvBackend(CvBackend backend);
+CvBackend ResolveCvBackend(CvBackend backend);
 
 bool IsCvBackendSupported(CvBackend backend);
 String GetCvBackendName(CvBackend backend);

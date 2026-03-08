@@ -89,6 +89,20 @@ static void ScriptLog(Callback1<String>& cb, const String& msg) {
 		cb(msg);
 }
 
+static String ScriptIdentFromName(const String& name) {
+	String out;
+	out.Reserve(name.GetCount() + 1);
+	for (int i = 0; i < name.GetCount(); i++) {
+		int c = name[i];
+		bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+		          (c >= '0' && c <= '9') || c == '_';
+		out.Cat(ok ? c : '_');
+	}
+	if (out.IsEmpty() || (out[0] >= '0' && out[0] <= '9'))
+		out.Insert(0, '_');
+	return out;
+}
+
 static String ResolveOpenAIKeyFilePath() {
 	String p = TrimBoth(g_openai_key_file);
 	if (p.IsEmpty())
@@ -1643,7 +1657,8 @@ bool GameScript::RunPlatformMain(const String& name, const PyValue& instance, co
 		g_script = this;
 		current_platform = name;
 		PyValue image_val = MakeImageValue(img);
-		int q = vm.GetGlobals().Find(PyValue("platform_main_" + name));
+		String ident = ScriptIdentFromName(name);
+		int q = vm.GetGlobals().Find(PyValue("platform_main_" + ident));
 		if (q < 0) {
 			return CallNamedPlatformHooks(name, img, rects, scores);
 		}
@@ -1681,8 +1696,9 @@ bool GameScript::CallNamedPlatformHooks(const String& name, const Image& img, Ve
 		g_script = this;
 		current_platform = name;
 		PyValue image_val = MakeImageValue(img);
-		int q_find = vm.GetGlobals().Find(PyValue("find_instances_" + name));
-		int q_update = vm.GetGlobals().Find(PyValue("update_instances_" + name));
+		String ident = ScriptIdentFromName(name);
+		int q_find = vm.GetGlobals().Find(PyValue("find_instances_" + ident));
+		int q_update = vm.GetGlobals().Find(PyValue("update_instances_" + ident));
 		if (q_find < 0 || q_update < 0) {
 			ScriptLog(log_cb, "Platform " + name + " missing hooks");
 			g_script = prev_script;

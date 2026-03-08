@@ -25,12 +25,12 @@ String McpServer::HandleExtended(const McpRequest& req) {
     if(req.method == "mcp.index.status") {
         ValueMap r; String builder = "unknown"; bool ready = false;
         if(const MakeBuild* make = TheIde()) { VectorMap<String, String> bm = GetMethodVars(make->method); builder = bm.Get("BUILDER", "GCC"); ready = ToUpper(builder) == "SCRIPT"; }
-        IdeMetaEnvironment& ienv = IdeMetaEnv(); MetaEnvironment& env = ienv.env; (void)env;
         r.Add("ready", ready); r.Add("builder", builder); r.Add("last_update", (int)0); r.Add("stale_files", 0);
         if(!ready) r.Add("note", "SCRIPT builder required to populate AST/index via ScriptBuilder");
         return MakeResult(req.id, r);
     }
     if(req.method == "mcp.index.refresh") { ValueMap r; r.Add("accepted", true); r.Add("mode", "script_build"); return MakeResult(req.id, r); }
+#ifndef flagV1
     if(req.method == "node.locate") {
         if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected params object");
         ValueMap p = req.params; String file = AsString(p.Get("file", Value())); int line = (int)(p.Get("line", 0)); int col = (int)(p.Get("column", 0));
@@ -59,6 +59,7 @@ String McpServer::HandleExtended(const McpRequest& req) {
         if(st.initialized) { EnvRefPage pg = EnvReferences(id, page, limit); next = pg.next_page_token; for(const auto& it : pg.items) { ValueMap v; v.Add("id", it.id); v.Add("file", it.file); v.Add("start_line", it.start_line); v.Add("start_col", it.start_col); v.Add("end_line", it.end_line); v.Add("end_col", it.end_col); items.Add(v); } }
         ValueMap r; r.Add("items", items); r.Add("next_page_token", next); if(!st.initialized) r.Add("note", "index_not_ready"); return MakeResult(req.id, r);
     }
+#endif // !flagV1
     if(req.method == "edits.apply") {
         if(!IsValueArray(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected params as array of edits");
         ValueArray a = req.params; for(const Value& v : a) if(!IsValueMap(v)) return MakeError(req.id, INVALID_PARAMS, "Edit must be object"); ValueMap r; r.Add("applied", a.GetCount()); return MakeResult(req.id, r);

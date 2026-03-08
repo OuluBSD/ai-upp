@@ -92,14 +92,12 @@ void TriggerIdeBackgroundThread(int delay)
 
 void StartIdeMcpThread()
 {
-	#ifndef flagV1
-    // Start MCP server on IDE startup (MVP default on; later make configurable)
-    static bool mcp_started = false;
-    if(!mcp_started) {
-        McpConfig cfg;
-        StartMcpServer(cfg);
-        mcp_started = true;
-    }
-    #endif
+	// Start MCP server on IDE startup (always on; port 7326 by default)
+	static bool mcp_started = false;
+	if(!mcp_started) {
+		McpConfig cfg;
+		StartMcpServer(cfg);
+		mcp_started = true;
+	}
 }
 #endif // flagGUI

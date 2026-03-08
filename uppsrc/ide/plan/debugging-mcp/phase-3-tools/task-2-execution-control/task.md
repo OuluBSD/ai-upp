@@ -138,4 +138,4 @@ After `StepOver/Into/Out` returns, the debugger is paused again.  The client sho
 `debug.state` to get the new file/line.  We do NOT poll or push state updates — the protocol
 is purely request/response for now.
 
-## Status: TODO
+## Status: DONE

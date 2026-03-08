@@ -66,7 +66,7 @@ inline Value ToValue(const DbgFrame& f)
 
 // Parse GDB/LLDB backtrace text into DbgFrame list.
 // GDB format:  #0  main (argc=1 ...) at /path/file.cpp:5
-// LLDB format: frame #0: 0x... main at file.cpp:5
+// LLDB format: frame #0: 0x... `main at file.cpp:5
 inline void ParseBacktrace(const String& raw, Vector<DbgFrame>& out)
 {
 	StringStream ss(raw);
@@ -74,22 +74,29 @@ inline void ParseBacktrace(const String& raw, Vector<DbgFrame>& out)
 		String line = ss.GetLine();
 		DbgFrame f;
 
-		// GDB: starts with "#N"
+		// Locate '#N' — GDB starts with it, LLDB starts with "frame #N:"
 		const char* s = line;
 		while(*s == ' ' || *s == '*') s++;
+		// LLDB: skip "frame " prefix if present
+		if(s[0]=='f' && s[1]=='r' && s[2]=='a' && s[3]=='m' && s[4]=='e' && s[5]==' ') s += 6;
 		if(*s != '#') continue;
 		s++;
 		f.index = 0;
 		while(IsDigit(*s)) { f.index = f.index * 10 + (*s - '0'); s++; }
 		while(*s == ' ') s++;
 
-		// Optional hex address: "0x..." followed by "in"
+		// Skip LLDB ":" after frame index
+		if(*s == ':') s++;
+		while(*s == ' ') s++;
+
+		// Optional hex address: "0x..." followed by "in" (GDB) or "`" (LLDB)
 		if(s[0] == '0' && ToUpper(s[1]) == 'X') {
 			const char* a = s;
 			s += 2; while(IsXDigit(*s)) s++;
 			f.address = String(a, s);
 			while(*s == ' ') s++;
-			if(s[0] == 'i' && s[1] == 'n') s += 2;
+			if(s[0] == 'i' && s[1] == 'n') { s += 2; while(*s == ' ') s++; } // GDB: "in"
+			if(*s == '`') s++;                                                  // LLDB: "`func"
 			while(*s == ' ') s++;
 		}
 

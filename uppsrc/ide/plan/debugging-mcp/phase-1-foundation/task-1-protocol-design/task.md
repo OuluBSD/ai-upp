@@ -91,4 +91,4 @@ under appropriate locking.
 - Add `#include "DebugProtocol.h"` to `MCP.h` after `Protocol.h`.
 - Keep structs POD-like; no U++ `Serializable` needed (we only need JSON-out, not JSON-in).
 
-## Status: TODO
+## Status: DONE

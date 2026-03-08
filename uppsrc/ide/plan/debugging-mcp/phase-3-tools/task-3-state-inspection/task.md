@@ -231,4 +231,4 @@ Vector<String> DebugBridge::GetThreads() const
 | `Evaluate()` | `RunOnGui` + `Cmd("print expr")` — 5s timeout |
 | `GetThreads()` | `RunOnGui` + `ObtainThreadsInfo()` — 5s timeout |
 
-## Status: TODO
+## Status: DONE

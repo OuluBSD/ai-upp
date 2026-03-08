@@ -162,4 +162,4 @@ Apply this guard to: `debug.stack`, `debug.locals`, `debug.evaluate`, `debug.thr
 Add all new `debug.*` methods to the grep pattern so the test script auto-discovers them.
 The script already greps `req.method == "..."` — the new handlers follow the same pattern.
 
-## Status: TODO
+## Status: DONE

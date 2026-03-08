@@ -1,5 +1,5 @@
-#include <GameCommon/Rules/EngineLog.h>
-#include <GameCommon/Rules/PlayerInterface.h>
+#include <GameRules/EngineLog.h>
+#include <GameRules/PlayerInterface.h>
 #include <iostream>
 
 NAMESPACE_UPP

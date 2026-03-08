@@ -19,6 +19,7 @@ file
 	BrightnessBinaryFeature.cpp,
 	FAST.h,
 	FAST.cpp,
+	FastShaders.cpp,
 	HAAR.h,
 	HAAR.cpp,
 	LinearAlgebra.h,

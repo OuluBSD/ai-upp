@@ -1,4 +1,4 @@
-#include <GameCommon/Rules/Exception.h>
+#include <GameRules/Exception.h>
 
 NAMESPACE_UPP
 

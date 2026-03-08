@@ -5,21 +5,21 @@
 #include <Draw/Draw.h>
 #include <EditorCommon/EditorCommon.h>
 
-#include <GameCommon/Rules/EngineDefs.h>
-#include <GameCommon/Rules/GameDefs.h>
-#include <GameCommon/Rules/PlayerData.h>
-#include <GameCommon/Rules/GameData.h>
-#include <GameCommon/Rules/HandInterface.h>
-#include <GameCommon/Rules/BoardInterface.h>
-#include <GameCommon/Rules/BeroInterface.h>
-#include <GameCommon/Rules/PlayerInterface.h>
-#include <GameCommon/Rules/EngineFactory.h>
-#include <GameCommon/Rules/GuiInterface.h>
+#include <GameRules/EngineDefs.h>
+#include <GameRules/GameDefs.h>
+#include <GameRules/PlayerData.h>
+#include <GameRules/GameData.h>
+#include <GameRules/HandInterface.h>
+#include <GameRules/BoardInterface.h>
+#include <GameRules/BeroInterface.h>
+#include <GameRules/PlayerInterface.h>
+#include <GameRules/EngineFactory.h>
+#include <GameRules/GuiInterface.h>
 #include <GameCommon/Poker/CardsValue.h>
-#include <GameCommon/Rules/ArrayData.h>
-#include <GameCommon/Rules/LocalPlayer.h>
-#include <GameCommon/Rules/EngineLog.h>
-#include <GameCommon/Rules/Exception.h>
-#include <GameCommon/Rules/Game.h>
+#include <GameRules/ArrayData.h>
+#include <GameRules/LocalPlayer.h>
+#include <GameRules/EngineLog.h>
+#include <GameRules/Exception.h>
+#include <GameRules/Game.h>
 
 #endif

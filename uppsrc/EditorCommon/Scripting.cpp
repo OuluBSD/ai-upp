@@ -1,6 +1,6 @@
 #include <StrategyBridge/StrategyBridge.h>
 #include <EditorCommon/Scripting.h>
-#include <GameCommon/Rules/EngineDefs.h>
+#include <GameRules/EngineDefs.h>
 #include <GameCommon/Poker/ServerListSim.h>
 #include <ConvNet/ConvNet.h>
 #ifdef PLATFORM_WIN32

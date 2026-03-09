@@ -4,19 +4,6 @@ namespace Upp {
 
 void PythonIDE::InitLayout()
 {
-	// Main horizontal split: editor | right panels
-	main_split.Horz();
-	main_split << editor_area << right_split;
-	main_split.SetPos(7000);  // 70% editor, 30% right
-
-	// Right vertical split: top | bottom
-	right_split.Vert();
-	right_split << right_top << right_bottom;
-	right_split.SetPos(5000);  // 50/50 split
-
-	// Add main splitter to window
-	Add(main_split.SizePos());
-
 	editor_tabs.WhenNewTab = [=] { OnNewTab(); };
 	editor_tabs.WhenTabMenu = [=](Bar& bar) { OnTabMenu(bar); };
 
@@ -24,27 +11,23 @@ void PythonIDE::InitLayout()
 	editor_area.Add(editor_tabs.BottomPos(0, 25).HSizePos());
 	editor_area.Add(code_editor.VSizePos(0, 25).HSizePos());
 
+	// Add editor_area to main window (it will be central control)
+	Add(editor_area.SizePos());
+
 	code_editor.Highlight("python");
 	code_editor.EnableBreakpointing();
 
-	InitRightPanels();
+	InitDocking();
 }
 
-void PythonIDE::InitRightPanels()
+void PythonIDE::InitDocking()
 {
-	// Configure Top Tabs
-	right_top_tabs.Add(var_explorer.SizePos(), "Variable Explorer");
-	right_top_tabs.Add(help_viewer.SizePos(), "Help");
-	right_top_tabs.Add(plots_panel.SizePos(), "Plots");
-	right_top_tabs.Add(files_panel.SizePos(), "Files");
-
-	right_top.Add(right_top_tabs.SizePos());
-
-	// Configure Bottom Tabs
-	right_bottom_tabs.Add(python_console.SizePos(), "IPython Console");
-	right_bottom_tabs.Add(history_panel.SizePos(), "History"); // Placeholder
-
-	right_bottom.Add(right_bottom_tabs.SizePos());
+	var_dock.Title("Variable Explorer").Add(var_explorer.SizePos());
+	help_dock.Title("Help").Add(help_viewer.SizePos());
+	plots_dock.Title("Plots").Add(plots_viewer.SizePos());
+	files_dock.Title("Files Explorer").Add(files_viewer.SizePos());
+	console_dock.Title("IPython Console").Add(python_console.SizePos());
+	history_dock.Title("History").Add(history_viewer.SizePos());
 }
 
 void PythonIDE::UpdateVariableExplorer()
@@ -56,6 +39,9 @@ void PythonIDE::UpdateVariableExplorer()
 			const auto& locals = vm.GetLocals(stack[0].frame_index);
 			var_explorer.SetVariables(locals);
 		}
+	}
+	else {
+		var_explorer.SetVariables(vm.GetGlobals());
 	}
 }
 
@@ -100,6 +86,8 @@ void PythonIDE::OnConsoleInput()
 		PyValue res = vm.Run();
 		if(!res.IsNone())
 			python_console.Write(res.Repr() + "\n");
+		
+		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
 		python_console.WriteError(e + "\n");
@@ -134,6 +122,7 @@ PythonIDE::PythonIDE()
     python_console.WhenInput = [=] { OnConsoleInput(); };
 
     vm.WhenPrint = [=](const String& s) { python_console.Write(s); };
+    vm.WhenPlot = [=](const Image& img) { plots_viewer.AddPlot(img); };
     vm.WhenBreakpointHit = [=](const String& file, int line) { OnBreakpointHit(file, line); };
 
     code_editor.WhenAction = [=] { current_file.dirty = true; };
@@ -323,6 +312,7 @@ void PythonIDE::OnRun()
 		vm.Run();
 
 		python_console.Write("--- Script finished ---\n");
+		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
 		python_console.WriteError("Runtime error: " + e + "\n");
@@ -355,6 +345,8 @@ void PythonIDE::OnRunSelection()
 
 		vm.SetIR(ir);
 		vm.Run();
+		
+		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
 		python_console.WriteError("Runtime error: " + e + "\n");
@@ -431,8 +423,6 @@ void PythonIDE::UpdateStatusBar()
 		status_info.edit_mode = ed->IsReadOnly() ? "RO" : "RW";
 	}
 
-	UpdateVariableExplorer();
-
 	// Calculate memory usage %
 	size_t mem_used = MemoryUsedKb();
 	size_t mem_total = MemoryTotalKb();
@@ -495,29 +485,47 @@ size_t PythonIDE::MemoryTotalKb()
 
 void PythonIDE::DockInit()
 {
-    // Register and dock the file tree to the left
-    Register(file_panel.SizeHint(Size(250, 400)));
-    DockLeft(file_panel);
+	// Register and dock the file tree to the left
+	Register(file_panel.SizeHint(Size(250, 400)));
+	DockLeft(file_panel);
 
-    file_tree.SetRoot(GetCurrentDirectory());
+	file_tree.SetRoot(GetCurrentDirectory());
 
-    // Try to load saved layout
-    FileIn in(ConfigFile("docking-layout.bin"));
-    if(in.IsOpen() && !in.IsError())
-        SerializeWindow(in);
+	// Register other panels
+	Register(var_dock.SizeHint(Size(300, 400)));
+	Register(help_dock.SizeHint(Size(300, 400)));
+	Register(plots_dock.SizeHint(Size(300, 400)));
+	Register(files_dock.SizeHint(Size(300, 400)));
+	Register(console_dock.SizeHint(Size(600, 300)));
+	Register(history_dock.SizeHint(Size(600, 300)));
+
+	// Dock Top-Right Stack (tabbed)
+	DockRight(var_dock);
+	Tabify(var_dock, help_dock);
+	Tabify(var_dock, plots_dock);
+	Tabify(var_dock, files_dock);
+
+	// Dock Bottom Stack (tabbed)
+	DockBottom(console_dock);
+	Tabify(console_dock, history_dock);
+
+	// Try to load saved layout
+	FileIn in(ConfigFile("docking-layout.bin"));
+	if(in.IsOpen() && !in.IsError())
+		SerializeWindow(in);
 }
 
 void PythonIDE::Close()
 {
-    // Save settings
-    StoreToFile(settings, ConfigFile("settings.bin"));
+	// Save settings
+	StoreToFile(settings, ConfigFile("settings.bin"));
 
-    // Save layout before closing
-    FileOut out(ConfigFile("docking-layout.bin"));
-    if(out.IsOpen())
-        SerializeWindow(out);
+	// Save layout before closing
+	FileOut out(ConfigFile("docking-layout.bin"));
+	if(out.IsOpen())
+		SerializeWindow(out);
 
-    TopWindow::Close();
+	TopWindow::Close();
 }
 
 void PythonIDE::ShowHelp(const String& topic)
@@ -525,7 +533,7 @@ void PythonIDE::ShowHelp(const String& topic)
 	String qtf;
 	qtf << "[_^https://docs.python.org/3/search.html?q=" << topic << "^ Search Python Docs for: " << topic << "]";
 	help_viewer.SetQTF(qtf);
-	right_top_tabs.Set(1); // Switch to Help tab
+	help_dock.Show(); // Activates docking window if it exists
 }
 
 void PythonIDE::ApplySettings()

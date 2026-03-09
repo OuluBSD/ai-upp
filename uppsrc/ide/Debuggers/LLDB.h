@@ -161,4 +161,16 @@ protected:
 	
 public:
 	static String BreakRunning(int pid);
+
+	// MCP bridge accessors (used only by DebugBridge via RunOnGui)
+	// These are safe to call only from the GUI thread.
+	String        McpGetRegisters();                       // "info registers" raw text
+	String        McpGetDisassembly();                     // "disas" raw text
+	int           McpGetWatchCount() const                 { return watches.GetCount(); }
+	String        McpGetWatchExpr(int i) const             { return watches.Get(i, 0); }
+	String        McpGetWatchValue(int i) const            { return watches.Get(i, 1); }
+	void          McpAddWatch(const String& expr)          { watches.Add(expr); Watches(); }
+	void          McpRemoveWatch(int i)                    { watches.Remove(i); }
+	void          McpClearWatches()                        { watches.Clear(); }
+	String        McpEvalWatch(const String& expr)         { return Print(expr); }
 };

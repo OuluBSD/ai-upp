@@ -22,5 +22,7 @@ file
 	Index.h,
 	Index.cpp,
 	WorkspaceBridge.h,
-	WorkspaceBridge.cpp;
+	WorkspaceBridge.cpp,
+	LayBridge.h,
+	LayBridge.cpp;
 

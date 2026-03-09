@@ -17,7 +17,7 @@ struct AppearanceSettings {
 };
 
 struct ApplicationSettings {
-    int  hidpi_mode = 0; // 0 normal, 1 auto, 2 custom
+    int  hidpi_mode = 0;
     double custom_scale = 1.0;
 
     bool show_friendly_empty_messages = true;
@@ -53,6 +53,19 @@ struct PythonInterpreterSettings {
     bool umr_verbose = true;
     Vector<String> umr_excluded_modules;
 
+    PythonInterpreterSettings() {}
+    PythonInterpreterSettings(const PythonInterpreterSettings& b) { *this = b; }
+    PythonInterpreterSettings& operator=(const PythonInterpreterSettings& b) {
+        use_internal = b.use_internal;
+        interpreter_path = b.interpreter_path;
+        use_custom_conda = b.use_custom_conda;
+        conda_executable = b.conda_executable;
+        umr_enabled = b.umr_enabled;
+        umr_verbose = b.umr_verbose;
+        umr_excluded_modules <<= b.umr_excluded_modules;
+        return *this;
+    }
+
     void Serialize(Stream& s) {
         s % use_internal % interpreter_path % use_custom_conda % conda_executable
           % umr_enabled % umr_verbose % umr_excluded_modules;
@@ -69,6 +82,11 @@ struct ShortcutItem : Moveable<ShortcutItem> {
 
 struct ShortcutSettings {
     Vector<ShortcutItem> items;
+    
+    ShortcutSettings() {}
+    ShortcutSettings(const ShortcutSettings& b) { *this = b; }
+    ShortcutSettings& operator=(const ShortcutSettings& b) { items <<= b.items; return *this; }
+
     void Serialize(Stream& s) { s % items; }
 };
 
@@ -130,6 +148,40 @@ struct CompletionLintingSettings {
 
     Vector<ExternalLSPServer> external_servers;
     Vector<Snippet> snippets;
+
+    CompletionLintingSettings() {}
+    CompletionLintingSettings(const CompletionLintingSettings& b) { *this = b; }
+    CompletionLintingSettings& operator=(const CompletionLintingSettings& b) {
+        show_completion_details = b.show_completion_details;
+        enable_code_snippets = b.enable_code_snippets;
+        show_completions_on_the_fly = b.show_completions_on_the_fly;
+        chars_before_completion = b.chars_before_completion;
+        completion_detail_delay_ms = b.completion_detail_delay_ms;
+        provider_timeout_ms = b.provider_timeout_ms;
+        enable_fallback_provider = b.enable_fallback_provider;
+        enable_lsp_provider = b.enable_lsp_provider;
+        enable_snippet_provider = b.enable_snippet_provider;
+        lint_provider = b.lint_provider;
+        underline_errors = b.underline_errors;
+        enable_go_to_definition = b.enable_go_to_definition;
+        follow_imports = b.follow_imports;
+        show_calltips = b.show_calltips;
+        enable_hover_hints = b.enable_hover_hints;
+        preload_modules_csv = b.preload_modules_csv;
+        formatter = b.formatter;
+        autoformat_on_save = b.autoformat_on_save;
+        max_line_length = b.max_line_length;
+        show_vertical_ruler = b.show_vertical_ruler;
+        lsp_advanced_enabled = b.lsp_advanced_enabled;
+        lsp_module = b.lsp_module;
+        lsp_address = b.lsp_address;
+        lsp_port = b.lsp_port;
+        lsp_external_server = b.lsp_external_server;
+        lsp_use_stdio = b.lsp_use_stdio;
+        external_servers <<= b.external_servers;
+        snippets <<= b.snippets;
+        return *this;
+    }
 
     void Serialize(Stream& s) {
         s % show_completion_details % enable_code_snippets % show_completions_on_the_fly
@@ -224,6 +276,16 @@ struct FileAssociation : Moveable<FileAssociation> {
     String extension;
     Vector<String> applications;
     int default_index = -1;
+
+    FileAssociation() {}
+    FileAssociation(const FileAssociation& b) { *this = b; }
+    FileAssociation& operator=(const FileAssociation& b) {
+        extension = b.extension;
+        applications <<= b.applications;
+        default_index = b.default_index;
+        return *this;
+    }
+
     void Serialize(Stream& s) { s % extension % applications % default_index; }
 };
 
@@ -232,6 +294,16 @@ struct FilesSettings {
     bool single_click_open = false;
     String filter_patterns_csv;
     Vector<FileAssociation> associations;
+
+    FilesSettings() {}
+    FilesSettings(const FilesSettings& b) { *this = b; }
+    FilesSettings& operator=(const FilesSettings& b) {
+        show_hidden_files = b.show_hidden_files;
+        single_click_open = b.single_click_open;
+        filter_patterns_csv = b.filter_patterns_csv;
+        associations <<= b.associations;
+        return *this;
+    }
 
     void Serialize(Stream& s) {
         s % show_hidden_files % single_click_open % filter_patterns_csv % associations;
@@ -328,6 +400,15 @@ struct RunSettings {
     bool save_all_before_run = true;
     bool copy_full_cell_to_console = false;
 
+    RunSettings() {}
+    RunSettings(const RunSettings& b) { *this = b; }
+    RunSettings& operator=(const RunSettings& b) {
+        presets <<= b.presets;
+        save_all_before_run = b.save_all_before_run;
+        copy_full_cell_to_console = b.copy_full_cell_to_console;
+        return *this;
+    }
+
     void Serialize(Stream& s) { s % presets % save_all_before_run % copy_full_cell_to_console; }
 };
 
@@ -358,10 +439,10 @@ struct VariableExplorerSettings {
 };
 
 struct WorkingDirectorySettings {
-    int startup_mode = 0;      // 0 project/home, 1 custom
+    int startup_mode = 0;
     String startup_directory;
 
-    int new_console_mode = 1;  // 0 project/home, 1 current console dir, 2 custom
+    int new_console_mode = 1;
     String new_console_directory;
 
     void Serialize(Stream& s) {
@@ -377,6 +458,11 @@ struct PluginState : Moveable<PluginState> {
 
 struct PluginSettings {
     Vector<PluginState> states;
+
+    PluginSettings() {}
+    PluginSettings(const PluginSettings& b) { *this = b; }
+    PluginSettings& operator=(const PluginSettings& b) { states <<= b.states; return *this; }
+
     void Serialize(Stream& s) { s % states; }
 };
 

@@ -3,22 +3,41 @@
 
 ## Current Task
 Track: 07-spyder-exact
-Phase: phase5-pane-functions
-Task: 99-final-spyder-audit.md
-Status: COMPLETED
+Phase: phase2-preferences-detailed
+Task: 01-implement-core-layouts.md
+Status: READY_TO_START
 
 ## Implementation Order (CRITICAL: Follow This Order!)
 
-### Track 1: Foundation (DO FIRST!)
-...
+### Track 7: Spyder-Exact Interface (PRIMARY FOCUS)
+43. ✓ 07-spyder-exact/phase1-menubar-stubs/01-implement-menubar-skeleton.md (2026-03-09)
+44. ✓ 07-spyder-exact/phase2-preferences-system/01-implement-settings-model.md (2026-03-09)
+45. ✓ 07-spyder-exact/phase2-preferences-system/02-implement-preferences-window.md (2026-03-09)
+46. 07-spyder-exact/phase2-preferences-system/03-implement-core-layouts.md
+46.1 07-spyder-exact/phase2-preferences-system/04-implement-page-logic-batch1.md
+46.2 07-spyder-exact/phase2-preferences-system/05-implement-page-logic-batch2.md
+46.3 07-spyder-exact/phase2-preferences-system/06-implement-page-logic-batch3.md
+46.4 07-spyder-exact/phase2-preferences-system/07-implement-page-logic-batch4.md
+
 47. ✓ 07-spyder-exact/phase3-menubar-functions/01-implement-file-edit-logic.md (2026-03-09)
 48. ✓ 07-spyder-exact/phase3-menubar-functions/02-implement-run-debug-logic.md (2026-03-09)
 49. ✓ 07-spyder-exact/phase3-menubar-functions/03-implement-window-layout-logic.md (2026-03-09)
 50. ✓ 07-spyder-exact/phase4-pane-surface-stubs/01-refactor-pane-skeletons.md (2026-03-09)
 51. ✓ 07-spyder-exact/phase5-pane-functions/01-complete-pane-integration.md (2026-03-09)
-52. ✓ 07-spyder-exact/99-final-spyder-audit.md (2026-03-09)
+52. 07-spyder-exact/99-final-spyder-audit.md
 
 ## Completed Tasks
-- ... (All marked with ✓ above are completed)
+- ... (Tasks marked with ✓ above)
 
-... rest of file ...
+## Build Command
+```bash
+script/build.py -mc 0 -j 12 ScriptIDE
+```
+
+## Critical Notes
+
+### ⚠️  IMPORTANT: No Placeholder Policy
+Preferences pages must contain ALL controls specified in PREFERENCES_LAYOUT.md. Labels are not enough.
+
+### Logic Connectivity
+UI controls in Preferences must be bound to IDESettings and meaningfully applied to the IDE components.

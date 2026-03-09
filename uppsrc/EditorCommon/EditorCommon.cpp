@@ -3002,6 +3002,7 @@ void AddScreenGameArgs(CommandLineArguments& cla) {
 	cla.AddArg("test-edit-rule", 0, "Rule name for --test-gui-edit-flow", true, "name");
 	cla.AddArg("test-edit-dx", 0, "X offset for --test-gui-edit-flow", true, "pixels");
 	cla.AddArg("test-edit-dy", 0, "Y offset for --test-gui-edit-flow", true, "pixels");
+	cla.AddArg("start-local-game-preview", 0, "Start CardEngine local scripted game for previewing theme/gameplay", false);
 	cla.AddArg("quit-after-test", 0, "Exit after --test-process-screenshot", false);
 	cla.AddArg("test-tesseract-render", 0, "Render synthetic text and OCR it with tesseract", false);
 	cla.AddArg("test-convnet-cards", 0, "Run synthetic ConvNet suit/rank self-test", false);

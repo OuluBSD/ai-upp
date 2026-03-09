@@ -71,6 +71,35 @@ public:
 	String      AssistQueryId();
 	String      AssistContextGoto();
 
+	// --- workspace / package switching ---
+	String      WorkspaceOpen(const String& package);   // SetMain — switch active package
+	String      WorkspaceReload();                       // re-SetMain current package
+	String      WorkspaceClose();                        // close current, show package selector
+
+	// --- assembly management (no GUI lock needed — reads config files) ---
+	struct AssemblyInfo : Moveable<AssemblyInfo> {
+		String name;                    // var name (e.g. "default")
+		String path;                    // VarFilePath
+		Vector<String> upp_dirs;        // UPP assembly paths
+		String output_dir;
+		String include;
+	};
+	Vector<AssemblyInfo>  ListAssemblies() const;
+	String                GetActiveAssembly() const;    // GetVarsName()
+	String                SwitchAssembly(const String& name); // LoadVars + refresh
+	String                GetAssemblyPath(const String& name) const; // VarFilePath(name)
+
+	// --- package listing per assembly path ---
+	// Returns packages in the given assembly (or current if empty).
+	// filter: "main" | "nonmain" | "all" (default "all")
+	// search: substring filter on package name
+	ValueArray  ListPackagesInAssembly(const String& vars_name,
+	                                   const String& filter,
+	                                   const String& search) const;
+
+	// --- UppHub ---
+	String      OpenUppHub();   // opens UppHub dialog on GUI thread
+
 private:
 	bool RunOnGui(Function<void()> fn, int timeout_ms = 8000) const;
 };

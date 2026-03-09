@@ -221,6 +221,7 @@ INITBLOCK {
 
 bool IdeExit;
 bool IdeAgain;
+SelectPackageDlg* sActiveSelectPkgDlg;
 
 bool CopyFolder(const char *dst, const char *src, Progress *pi)
 {

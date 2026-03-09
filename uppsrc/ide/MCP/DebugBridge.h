@@ -33,6 +33,24 @@ public:
 	// Returns raw thread list lines from the debugger.
 	Vector<String> GetThreads() const;
 
+	// Returns raw "info registers" output (one line per register).
+	String GetRegisters() const;
+
+	// Returns raw disassembly text at the current instruction pointer.
+	String GetDisassembly() const;
+
+	// Returns all current watches as {expr, value} pairs.
+	VectorMap<String, String> GetWatches() const;
+
+	// Adds an expression to the watch list. Returns error or empty.
+	String AddWatch(const String& expr);
+
+	// Removes the watch at index i. Returns error or empty.
+	String RemoveWatch(int index);
+
+	// Removes all watches. Returns error or empty.
+	String ClearWatches();
+
 	// --- Build control ---
 
 	// Start a build (asynchronous).

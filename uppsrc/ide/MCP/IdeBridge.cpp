@@ -449,5 +449,148 @@ String IdeBridge::AssistContextGoto()
 	return err;
 }
 
+// ---- workspace management --------------------------------------------------
+
+String IdeBridge::WorkspaceOpen(const String& package)
+{
+	String err;
+	RunOnGui([&] {
+		// If the "Select main package" dialog is open, feed it the package directly
+		if(sActiveSelectPkgDlg) {
+			sActiveSelectPkgDlg->selected      = package;
+			sActiveSelectPkgDlg->selected_nest = String();
+			sActiveSelectPkgDlg->Break(IDYES);
+			return;
+		}
+		Ide* ide = TheIde();
+		if(!ide) { err = "IDE not available"; return; }
+		InvalidatePackageCache();
+		ide->main.Clear();
+		ide->SetMain(package);
+	});
+	return err;
+}
+
+String IdeBridge::WorkspaceReload()
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) { err = "IDE not available"; return; }
+		String pkg = ide->main;
+		if(pkg.IsEmpty()) { err = "No package open"; return; }
+		ide->SetMain(pkg);
+	});
+	return err;
+}
+
+String IdeBridge::WorkspaceClose()
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) { err = "IDE not available"; return; }
+		ide->FlushFile();
+		ide->SaveWorkspace();
+		ide->main.Clear();
+		ide->editfile.Clear();
+		IdeAgain = true;
+		ide->Break(IDOK);
+	});
+	return err;
+}
+
+// ---- assembly management ---------------------------------------------------
+
+Vector<IdeBridge::AssemblyInfo> IdeBridge::ListAssemblies() const
+{
+	Vector<AssemblyInfo> out;
+	// Read config files directly — no GUI lock needed
+	for(FindFile ff(ConfigFile("*.var")); ff; ff.Next()) {
+		AssemblyInfo a;
+		a.name = GetFileTitle(ff.GetName());
+		a.path = ff.GetPath();
+		VectorMap<String, String> vars;
+		LoadVarFile(ff.GetPath(), vars);
+		a.upp_dirs  = SplitDirs(vars.Get("UPP",    String()));
+		a.output_dir = vars.Get("OUTPUT", String());
+		a.include    = vars.Get("INCLUDE", String());
+		out.Add(pick(a));
+	}
+	return out;
+}
+
+String IdeBridge::GetActiveAssembly() const
+{
+	return GetVarsName();
+}
+
+String IdeBridge::SwitchAssembly(const String& name)
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) { err = "IDE not available"; return; }
+		if(!LoadVars(name)) { err = "Assembly not found: " + name; return; }
+		// Reload the current package under the new assembly
+		String pkg = ide->main;
+		if(pkg.GetCount())
+			ide->SetMain(pkg);
+	});
+	return err;
+}
+
+String IdeBridge::GetAssemblyPath(const String& name) const
+{
+	return VarFilePath(name);
+}
+
+ValueArray IdeBridge::ListPackagesInAssembly(const String& vars_name,
+                                              const String& filter,
+                                              const String& search) const
+{
+	ValueArray out;
+	// Determine which var file to read
+	String vname = vars_name.IsEmpty() ? GetVarsName() : vars_name;
+	VectorMap<String, String> vars;
+	if(!LoadVarFile(VarFilePath(vname), vars))
+		return out;
+	Vector<String> upp_dirs = SplitDirs(vars.Get("UPP", String()));
+
+	bool want_main    = (filter == "main"    || filter == "all" || filter.IsEmpty());
+	bool want_nonmain = (filter == "nonmain" || filter == "all" || filter.IsEmpty());
+
+	Index<String> seen;
+	for(const String& dir : upp_dirs) {
+		// Each package is a subdirectory containing a <name>.upp file
+		for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
+			String pkg_name = ff.GetName();
+			if(pkg_name == "." || pkg_name == "..") continue;
+			String pkg_dir = AppendFileName(dir, pkg_name);
+			if(!DirectoryExists(pkg_dir)) continue;
+			String upp_file = AppendFileName(pkg_dir, pkg_name + ".upp");
+			if(!FileExists(upp_file)) continue;
+			if(!search.IsEmpty() && ToLower(pkg_name).Find(ToLower(search)) < 0)
+				continue;
+			if(seen.Find(pkg_name) >= 0) continue;
+			seen.Add(pkg_name);
+			out.Add(pkg_name);
+		}
+	}
+	return out;
+}
+
+// ---- UppHub ----------------------------------------------------------------
+
+String IdeBridge::OpenUppHub()
+{
+	String err;
+	RunOnGui([&] {
+		if(!TheIde()) { err = "IDE not available"; return; }
+		UppHub();
+	});
+	return err;
+}
+
 END_UPP_NAMESPACE
 #endif // flagGUI

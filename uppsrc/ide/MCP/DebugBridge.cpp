@@ -42,10 +42,12 @@ DbgState DebugBridge::GetState() const
 {
 	DbgState s;
 	GuiLock __;
-	s.active  = IdeIsDebug();
+	Ide* ide = TheIde();
+	s.active  = ide && ide->debugger;
 	s.file    = IdeGetFileName();
 	s.line    = IdeGetFileLine();
-	s.paused  = s.active && !s.file.IsEmpty();
+	// paused = debugger exists AND not running (debuglock == 0 means stopped at breakpoint)
+	s.paused  = s.active && ide->debuglock == 0;
 	s.backend = DetectBackend();
 	return s;
 }
@@ -63,15 +65,37 @@ String DebugBridge::SetBreakpoint(const String& file, int line, const String& co
 	String err;
 	RunOnGui([&] {
 		Ide* ide = TheIde();
-		if(!ide || !ide->debugger) { err = "No active debugger"; return; }
-		// Non-empty bp string = set; the condition string is the value.
+		if(!ide) { err = "IDE not available"; return; }
 		String bp = condition.IsEmpty() ? "1" : condition;
-		if(!ide->debugger->SetBreakpoint(file, line, bp))
-			err = "Debugger rejected breakpoint";
+		// lineinfo uses 0-based lineno; MCP line is 1-based. Convert.
+		int lineno = line - 1;
+		// Always write to Filedata.lineinfo — this is what the debugger reads at session start.
+		LineInfo& li = ide->Filedata(file).lineinfo;
+		bool found = false;
+		for(int i = 0; i < li.GetCount(); i++) {
+			if(li[i].lineno == lineno) {
+				li[i].breakpoint = bp;
+				found = true;
+				break;
+			}
+		}
+		if(!found) {
+			LineInfoRecord r;
+			r.lineno = lineno; r.breakpoint = bp; r.count = 1; r.firstedited = 0;
+			li.Add(r);
+		}
+		// If the file is currently open in the editor, also set it there (shows red dot).
+		// editor.SetBreakpoint takes 0-based editor line index.
+		if(PathIsEqual(file, ide->editfile)) {
+			ide->editor.SetBreakpoint(lineno, bp);
+			ide->editor.RefreshFrame();
+		}
+		// If debugger is already active, notify it directly (also 0-based).
+		if(ide->debugger)
+			ide->debugger->SetBreakpoint(file, lineno, bp);
 	});
 	if(!err.IsEmpty())
 		return err;
-	// Update tracked list.
 	Mutex::Lock __(bp_mutex);
 	for(int i = breakpoints.GetCount() - 1; i >= 0; i--)
 		if(breakpoints[i].file == file && breakpoints[i].line == line)
@@ -86,11 +110,21 @@ String DebugBridge::ClearBreakpoint(const String& file, int line)
 	String err;
 	RunOnGui([&] {
 		Ide* ide = TheIde();
-		if(!ide || !ide->debugger) { err = "No active debugger"; return; }
-		// bp="" signals removal per Debugger interface contract.
-		ide->debugger->SetBreakpoint(file, line, String());
+		if(!ide) { err = "IDE not available"; return; }
+		int lineno = line - 1;
+		// Clear from Filedata.lineinfo
+		LineInfo& li = ide->Filedata(file).lineinfo;
+		for(int i = 0; i < li.GetCount(); i++)
+			if(li[i].lineno == lineno) { li[i].breakpoint = String(); break; }
+		// Clear via editor if file is open (hides red dot)
+		if(PathIsEqual(file, ide->editfile)) {
+			ide->editor.SetBreakpoint(lineno, Null);
+			ide->editor.RefreshFrame();
+		}
+		// Notify active debugger
+		if(ide->debugger)
+			ide->debugger->SetBreakpoint(file, lineno, String());
 	});
-	// Remove from tracking regardless (bp may have been set before session started).
 	Mutex::Lock __(bp_mutex);
 	for(int i = breakpoints.GetCount() - 1; i >= 0; i--)
 		if(breakpoints[i].file == file && breakpoints[i].line == line)
@@ -281,6 +315,101 @@ String DebugBridge::Evaluate(const String& expr) const
 			result = "<unsupported backend>";
 	});
 	return result;
+}
+
+String DebugBridge::GetRegisters() const
+{
+	String raw;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) return;
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get()))
+			raw = g->McpGetRegisters();
+		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get()))
+			raw = l->McpGetRegisters();
+	});
+	return raw;
+}
+
+String DebugBridge::GetDisassembly() const
+{
+	String raw;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) return;
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get()))
+			raw = g->McpGetDisassembly();
+		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get()))
+			raw = l->McpGetDisassembly();
+	});
+	return raw;
+}
+
+VectorMap<String, String> DebugBridge::GetWatches() const
+{
+	VectorMap<String, String> result;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide) return;
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get())) {
+			for(int i = 0; i < g->McpGetWatchCount(); i++)
+				result.Add(g->McpGetWatchExpr(i), g->McpGetWatchValue(i));
+		} else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get())) {
+			for(int i = 0; i < l->McpGetWatchCount(); i++)
+				result.Add(l->McpGetWatchExpr(i), l->McpGetWatchValue(i));
+		}
+	});
+	return result;
+}
+
+String DebugBridge::AddWatch(const String& expr)
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide || !ide->debugger) { err = "No active debugger"; return; }
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get()))
+			g->McpAddWatch(expr);
+		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get()))
+			l->McpAddWatch(expr);
+		else
+			err = "Watch not supported for this debugger backend";
+	});
+	return err;
+}
+
+String DebugBridge::RemoveWatch(int index)
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide || !ide->debugger) { err = "No active debugger"; return; }
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get())) {
+			if(index < 0 || index >= g->McpGetWatchCount()) { err = "Watch index out of range"; return; }
+			g->McpRemoveWatch(index);
+		} else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get())) {
+			if(index < 0 || index >= l->McpGetWatchCount()) { err = "Watch index out of range"; return; }
+			l->McpRemoveWatch(index);
+		} else
+			err = "Watch not supported for this debugger backend";
+	});
+	return err;
+}
+
+String DebugBridge::ClearWatches()
+{
+	String err;
+	RunOnGui([&] {
+		Ide* ide = TheIde();
+		if(!ide || !ide->debugger) { err = "No active debugger"; return; }
+		if(Gdb* g = dynamic_cast<Gdb*>(ide->debugger.Get()))
+			g->McpClearWatches();
+		else if(LLDB* l = dynamic_cast<LLDB*>(ide->debugger.Get()))
+			l->McpClearWatches();
+		else
+			err = "Watch not supported for this debugger backend";
+	});
+	return err;
 }
 
 Vector<String> DebugBridge::GetThreads() const

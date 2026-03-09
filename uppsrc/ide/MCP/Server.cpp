@@ -192,6 +192,68 @@ String McpServer::HandleExtended(const McpRequest& req) {
         ValueArray arr; for(const String& t : threads) arr.Add(t);
         ValueMap r; r.Add("threads", arr); return MakeResult(req.id, r);
     }
+    if(req.method == "debug.registers") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused) return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        String raw = sDebugBridge.GetRegisters();
+        // Parse "name   value   value" lines into structured map
+        ValueArray arr;
+        StringStream ss(raw);
+        while(!ss.IsEof()) {
+            String ln = TrimBoth(ss.GetLine());
+            if(ln.IsEmpty()) continue;
+            // Format: "regname  hexval  decval ..." — split on first whitespace
+            const char* s = ~ln;
+            const char* e = s;
+            while(*e && !IsSpace(*e)) e++;
+            String name(s, e);
+            while(*e && IsSpace(*e)) e++;
+            String value(e);
+            if(!name.IsEmpty()) {
+                ValueMap v; v.Add("name", name); v.Add("value", TrimBoth(value)); arr.Add(v);
+            }
+        }
+        ValueMap r; r.Add("registers", arr); r.Add("raw", raw); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.disassembly") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused) return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        String raw = sDebugBridge.GetDisassembly();
+        ValueMap r; r.Add("text", raw); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.list") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        VectorMap<String,String> watches = sDebugBridge.GetWatches();
+        ValueArray arr;
+        for(int i = 0; i < watches.GetCount(); i++) {
+            ValueMap v; v.Add("index", i); v.Add("expression", watches.GetKey(i)); v.Add("value", watches[i]); arr.Add(v);
+        }
+        ValueMap r; r.Add("watches", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String expr = AsString(ValueMap(req.params).Get("expression", Value()));
+        if(expr.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "expression required");
+        String err = sDebugBridge.AddWatch(expr);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", expr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required (>= 0)");
+        String err = sDebugBridge.RemoveWatch(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.clear") {
+        String err = sDebugBridge.ClearWatches();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("cleared", true); return MakeResult(req.id, r);
+    }
 
     // --- resource.* handlers (Phase 4 stub) ---------------------------------
 
@@ -435,6 +497,264 @@ String McpServer::HandleExtended(const McpRequest& req) {
         String err = sIdeBridge.AssistContextGoto();
         if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
         ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- workspace management ------------------------------------------------
+
+    if(req.method == "workspace.open") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String pkg = AsString(ValueMap(req.params).Get("package", Value()));
+        if(pkg.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "package required");
+        String err = sIdeBridge.WorkspaceOpen(pkg);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("opened", pkg); return MakeResult(req.id, r);
+    }
+    if(req.method == "workspace.reload") {
+        String err = sIdeBridge.WorkspaceReload();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "workspace.close") {
+        String err = sIdeBridge.WorkspaceClose();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- assembly management -------------------------------------------------
+
+    if(req.method == "assembly.list") {
+        auto assemblies = sIdeBridge.ListAssemblies();
+        ValueArray arr;
+        for(const auto& a : assemblies) {
+            ValueMap m; m.Add("name", a.name); m.Add("path", a.path);
+            ValueArray dirs; for(const String& d : a.upp_dirs) dirs.Add(d);
+            m.Add("upp_dirs", dirs); m.Add("output_dir", a.output_dir); m.Add("include", a.include);
+            arr.Add(m);
+        }
+        ValueMap r; r.Add("assemblies", arr); r.Add("active", sIdeBridge.GetActiveAssembly());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.get") {
+        ValueMap r; r.Add("name", sIdeBridge.GetActiveAssembly()); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.switch") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sIdeBridge.SwitchAssembly(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("switched", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.path") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        ValueMap r; r.Add("path", sIdeBridge.GetAssemblyPath(name)); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.packages") {
+        String vars_name, filter, search;
+        if(IsValueMap(req.params)) {
+            ValueMap p = req.params;
+            vars_name = AsString(p.Get("assembly", Value()));
+            filter    = AsString(p.Get("filter",   Value()));
+            search    = AsString(p.Get("search",   Value()));
+        }
+        ValueArray pkgs = sIdeBridge.ListPackagesInAssembly(vars_name, filter, search);
+        ValueMap r; r.Add("packages", pkgs); r.Add("assembly", vars_name.IsEmpty() ? sIdeBridge.GetActiveAssembly() : vars_name);
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "upphub.open") {
+        String err = sIdeBridge.OpenUppHub();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- layout.* handlers --------------------------------------------------
+
+    if(req.method == "layout.files") {
+        ValueMap r; r.Add("files", sLayBridge.ListLayFiles()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.open") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String path = AsString(ValueMap(req.params).Get("path", Value()));
+        if(path.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "path required");
+        String err = sLayBridge.OpenLayFile(path);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("opened", path); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.current_file") {
+        ValueMap r; r.Add("path", sLayBridge.GetOpenLayFile()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.list") {
+        int n = sLayBridge.GetLayoutCount();
+        ValueArray arr;
+        for(int i = 0; i < n; i++) {
+            ValueMap v; v.Add("index", i); v.Add("name", sLayBridge.GetLayoutName(i)); v.Add("size", sLayBridge.GetLayoutSize(i)); arr.Add(v);
+        }
+        ValueMap r; r.Add("layouts", arr); r.Add("current", sLayBridge.GetCurrentLayout()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.set_current") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        String err = sLayBridge.SetCurrentLayout(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.AddLayout(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.insert") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String name = AsString(p.Get("name", Value()));
+        int before = (int)(p.Get("before", 0));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.InsertLayout(before, name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("inserted", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.duplicate") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        String newname = AsString(p.Get("name", Value()));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(newname.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.DuplicateLayout(idx, newname);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("duplicated", newname); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.rename") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        String newname = AsString(p.Get("name", Value()));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(newname.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.RenameLayout(idx, newname);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("renamed", newname); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        String err = sLayBridge.RemoveLayout(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.set_size") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        int w = (int)(p.Get("width", 0));
+        int h = (int)(p.Get("height", 0));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(w <= 0 || h <= 0) return MakeError(req.id, INVALID_PARAMS, "width and height (>0) required");
+        String err = sLayBridge.SetLayoutSize(idx, w, h);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.items") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int li = (int)(ValueMap(req.params).Get("layout", -1));
+        if(li < 0) return MakeError(req.id, INVALID_PARAMS, "layout index required");
+        int n = sLayBridge.GetItemCount(li);
+        ValueArray arr;
+        for(int i = 0; i < n; i++) arr.Add(sLayBridge.GetItem(li, i));
+        ValueMap r; r.Add("items", arr); r.Add("layout", li); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.get") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        ValueMap item = sLayBridge.GetItem(li, ii);
+        if(item.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "Item or layout index out of range");
+        return MakeResult(req.id, item);
+    }
+    if(req.method == "layout.item.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li   = (int)(p.Get("layout", -1));
+        String type_name = AsString(p.Get("type", Value()));
+        String var       = AsString(p.Get("variable", Value()));
+        int l = (int)(p.Get("left", 0)), t = (int)(p.Get("top", 0));
+        int r = (int)(p.Get("right", 100)), b = (int)(p.Get("bottom", 24));
+        if(li < 0) return MakeError(req.id, INVALID_PARAMS, "layout required");
+        if(type_name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "type required");
+        String err = sLayBridge.AddItem(li, type_name, var, l, t, r, b);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap rv; rv.Add("added", true); return MakeResult(req.id, rv);
+    }
+    if(req.method == "layout.item.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.RemoveItem(li, ii);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", ii); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.set_rect") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        int l = (int)(p.Get("left", 0)), t = (int)(p.Get("top", 0));
+        int r = (int)(p.Get("right", 0)), b = (int)(p.Get("bottom", 0));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.SetItemRect(li, ii, l, t, r, b);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap rv; rv.Add("set", true); return MakeResult(req.id, rv);
+    }
+    if(req.method == "layout.item.set_var") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        String var = AsString(p.Get("variable", Value()));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.SetItemVar(li, ii, var);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", var); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.properties") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        ValueMap r; r.Add("properties", sLayBridge.GetItemProperties(li, ii)); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.set_property") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        String name  = AsString(p.Get("name",  Value()));
+        String value = AsString(p.Get("value", Value()));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.SetItemProperty(li, ii, name, value);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.classes") {
+        ValueMap r; r.Add("classes", sLayBridge.ListClasses()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.save") {
+        String err = sLayBridge.Save();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("saved", true); return MakeResult(req.id, r);
     }
 
     return String();

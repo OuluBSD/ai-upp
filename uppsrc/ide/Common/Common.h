@@ -119,6 +119,10 @@ void SerializeWorkspaceConfigs(Stream& s);
 extern bool IdeExit;
 extern bool IdeAgain; // Used to restart theide after checking out SVN (SetupSVNTrunk)
 
+// Set while SelectPackageDlg is running its modal loop; used by MCP WorkspaceOpen
+struct SelectPackageDlg;
+extern SelectPackageDlg* sActiveSelectPkgDlg;
+
 #ifdef flagGUI
 bool CopyFolder(const char *dst, const char *src, Progress *pi = NULL);
 

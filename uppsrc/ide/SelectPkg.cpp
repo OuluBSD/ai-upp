@@ -1016,7 +1016,9 @@ String SelectPackage(String& nest, const char *title, const char *startwith, boo
 	dlg.SyncBrief();
 	dlg.SyncFilter();
 	dlg.CenterScreen();
+	sActiveSelectPkgDlg = &dlg;
 	String b = dlg.Run(nest, startwith);
+	sActiveSelectPkgDlg = nullptr;
 	StoreToGlobal(dlg, c);
 	if(main && selectvars && b.GetCount())
 		dlg.StoreLRU(b);

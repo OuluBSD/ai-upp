@@ -23,8 +23,10 @@ void McpServerCore::Loop() {
     TcpSocket listener;
     if(!listener.Listen(listen_port, 128, true)) {
         RLOG("MCP: listen failed on port " << listen_port << ": " << listener.GetErrorDesc());
+        fprintf(stderr, "MCP: listen failed on port %d: %s\n", listen_port, listener.GetErrorDesc().ToStd().c_str());
         return;
     }
+    fprintf(stderr, "MCP: listening on port %d\n", listen_port);
     listener.NoDelay();
     clients_thr.Start(THISBACK(HandleClients));
     while(!stop) {
@@ -78,7 +80,42 @@ String McpServerCore::Handle(const McpRequest& req) {
         methods.Add("mcp.ping"); methods.Add("mcp.capabilities");
         methods.Add("mcp.log.get"); methods.Add("mcp.log.clear");
         methods.Add("mcp.index.status"); methods.Add("mcp.index.refresh");
-        ValueMap caps; caps.Add("protocol","jsonrpc-2.0"); caps.Add("supports_batch", false); caps.Add("methods", methods);
+        methods.Add("workspace.info");
+        methods.Add("build.start"); methods.Add("build.stop"); methods.Add("build.status");
+        methods.Add("run.start");
+        methods.Add("mainconfig.list"); methods.Add("mainconfig.set");
+        methods.Add("buildmethod.list"); methods.Add("buildmethod.set");
+        methods.Add("buildmode.get"); methods.Add("buildmode.set");
+        methods.Add("package.list"); methods.Add("package.set"); methods.Add("package.files");
+        methods.Add("file.get"); methods.Add("file.open");
+        methods.Add("file.write");
+        methods.Add("package.create"); methods.Add("package.add_file");
+        methods.Add("editor.path"); methods.Add("editor.cursor.get"); methods.Add("editor.cursor.set");
+        methods.Add("editor.lines"); methods.Add("editor.line.get"); methods.Add("editor.insert");
+        methods.Add("console.get"); methods.Add("errors.get");
+        methods.Add("find.infiles"); methods.Add("find.next"); methods.Add("find.prev");
+        methods.Add("valgrind.run");
+        methods.Add("assist.suggestions"); methods.Add("assist.goto"); methods.Add("assist.usage");
+        methods.Add("assist.query"); methods.Add("assist.context_goto");
+        methods.Add("workspace.open"); methods.Add("workspace.reload"); methods.Add("workspace.close");
+        methods.Add("assembly.list"); methods.Add("assembly.get"); methods.Add("assembly.switch");
+        methods.Add("assembly.path"); methods.Add("assembly.packages");
+        methods.Add("upphub.open");
+        methods.Add("debug.state"); methods.Add("debug.session.start"); methods.Add("debug.session.stop");
+        methods.Add("debug.continue"); methods.Add("debug.step.over"); methods.Add("debug.step.into"); methods.Add("debug.step.out"); methods.Add("debug.pause");
+        methods.Add("debug.breakpoint.set"); methods.Add("debug.breakpoint.clear"); methods.Add("debug.breakpoint.list");
+        methods.Add("debug.stack"); methods.Add("debug.locals"); methods.Add("debug.evaluate"); methods.Add("debug.threads");
+        methods.Add("debug.registers"); methods.Add("debug.disassembly");
+        methods.Add("debug.watch.list"); methods.Add("debug.watch.add"); methods.Add("debug.watch.remove"); methods.Add("debug.watch.clear");
+        methods.Add("resource.list"); methods.Add("resource.get");
+        methods.Add("layout.files"); methods.Add("layout.open"); methods.Add("layout.current_file");
+        methods.Add("layout.list"); methods.Add("layout.add"); methods.Add("layout.insert"); methods.Add("layout.duplicate"); methods.Add("layout.rename"); methods.Add("layout.remove");
+        methods.Add("layout.set_current"); methods.Add("layout.set_size");
+        methods.Add("layout.items"); methods.Add("layout.item.get"); methods.Add("layout.item.add"); methods.Add("layout.item.remove");
+        methods.Add("layout.item.set_rect"); methods.Add("layout.item.set_var");
+        methods.Add("layout.item.properties"); methods.Add("layout.item.set_property");
+        methods.Add("layout.classes"); methods.Add("layout.save");
+        ValueMap caps; caps.Add("protocol","jsonrpc-2.0"); caps.Add("supports_batch", false); caps.Add("resources", true); caps.Add("methods", methods);
         return MakeResult(req.id, caps);
     }
     if(req.method == "mcp.log.get") {
@@ -97,8 +134,14 @@ String McpServerCore::Handle(const McpRequest& req) {
 bool McpServerCore::ReadFramed(McpClient& c, Vector<String>& out_msgs) {
     c.sock->Timeout(0);
     if(!c.sock->Peek()) return false;
-    String chunk = c.sock->GetLine(); if(c.sock->IsError()) { c.sock->Close(); return false; }
-    if(chunk.IsEmpty()) return false; c.inbuf.Cat(chunk); c.last_activity = GetSysTime();
+    // Drain all available bytes in one shot; GetLine with Timeout(0) would
+    // time out mid-line when bytes arrive in multiple TCP segments.
+    char buf[65536];
+    int n = c.sock->Get(buf, sizeof(buf));
+    if(c.sock->IsError()) { c.sock->Close(); return false; }
+    if(n <= 0) return false;
+    c.inbuf.Cat(buf, n);
+    c.last_activity = GetSysTime();
     if(c.inbuf.GetLength() > max_message_bytes) { c.sock->Close(); return false; }
     for(;;) { int p = c.inbuf.Find('\n'); if(p < 0) break; String line = c.inbuf.Mid(0,p); c.inbuf.Remove(0,p+1); if(line.GetCount()) out_msgs.Add(line); }
     return out_msgs.GetCount();

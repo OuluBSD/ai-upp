@@ -37,9 +37,9 @@ uses(GUI) Report;
 
 uses(GUI & !V1) ide/Edit3D;
 
-uses(GUI & !V1) MCP;
+uses(GUI) MCP;
 
-uses(GUI & !V1) ide/MCP;
+uses(GUI) ide/MCP;
 
 uses(GUI & !V1) DropTerm;
 

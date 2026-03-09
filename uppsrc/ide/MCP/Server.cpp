@@ -25,12 +25,12 @@ String McpServer::HandleExtended(const McpRequest& req) {
     if(req.method == "mcp.index.status") {
         ValueMap r; String builder = "unknown"; bool ready = false;
         if(const MakeBuild* make = TheIde()) { VectorMap<String, String> bm = GetMethodVars(make->method); builder = bm.Get("BUILDER", "GCC"); ready = ToUpper(builder) == "SCRIPT"; }
-        IdeMetaEnvironment& ienv = IdeMetaEnv(); MetaEnvironment& env = ienv.env; (void)env;
         r.Add("ready", ready); r.Add("builder", builder); r.Add("last_update", (int)0); r.Add("stale_files", 0);
         if(!ready) r.Add("note", "SCRIPT builder required to populate AST/index via ScriptBuilder");
         return MakeResult(req.id, r);
     }
     if(req.method == "mcp.index.refresh") { ValueMap r; r.Add("accepted", true); r.Add("mode", "script_build"); return MakeResult(req.id, r); }
+#ifndef flagV1
     if(req.method == "node.locate") {
         if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected params object");
         ValueMap p = req.params; String file = AsString(p.Get("file", Value())); int line = (int)(p.Get("line", 0)); int col = (int)(p.Get("column", 0));
@@ -59,10 +59,735 @@ String McpServer::HandleExtended(const McpRequest& req) {
         if(st.initialized) { EnvRefPage pg = EnvReferences(id, page, limit); next = pg.next_page_token; for(const auto& it : pg.items) { ValueMap v; v.Add("id", it.id); v.Add("file", it.file); v.Add("start_line", it.start_line); v.Add("start_col", it.start_col); v.Add("end_line", it.end_line); v.Add("end_col", it.end_col); items.Add(v); } }
         ValueMap r; r.Add("items", items); r.Add("next_page_token", next); if(!st.initialized) r.Add("note", "index_not_ready"); return MakeResult(req.id, r);
     }
+#endif // !flagV1
     if(req.method == "edits.apply") {
         if(!IsValueArray(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected params as array of edits");
         ValueArray a = req.params; for(const Value& v : a) if(!IsValueMap(v)) return MakeError(req.id, INVALID_PARAMS, "Edit must be object"); ValueMap r; r.Add("applied", a.GetCount()); return MakeResult(req.id, r);
     }
+
+    // --- build / run handlers ------------------------------------------------
+
+    if(req.method == "build.start") {
+        String err = sDebugBridge.BuildStart();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "build.stop") {
+        String err = sDebugBridge.BuildStop();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "build.status") {
+        ValueMap r; r.Add("building", sDebugBridge.IsBuilding()); return MakeResult(req.id, r);
+    }
+    if(req.method == "run.start") {
+        String err = sDebugBridge.RunStart();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- debug.* handlers ---------------------------------------------------
+
+    if(req.method == "debug.state") {
+        return MakeResult(req.id, ToValue(sDebugBridge.GetState()));
+    }
+    if(req.method == "debug.session.start") {
+        String err = sDebugBridge.Start();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.session.stop") {
+        String err = sDebugBridge.Stop();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.continue") {
+        String err = sDebugBridge.Continue();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.step.over") {
+        String err = sDebugBridge.StepOver();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.step.into") {
+        String err = sDebugBridge.StepInto();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.step.out") {
+        String err = sDebugBridge.StepOut();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.pause") {
+        String err = sDebugBridge.Pause();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.breakpoint.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String file = AsString(p.Get("file", Value()));
+        int    line = (int)(p.Get("line", 0));
+        String cond = AsString(p.Get("condition", Value()));
+        if(file.IsEmpty() || line <= 0) return MakeError(req.id, INVALID_PARAMS, "file and line (>0) required");
+        String err = sDebugBridge.SetBreakpoint(file, line, cond);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", true); r.Add("file", file); r.Add("line", line); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.breakpoint.clear") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String file = AsString(p.Get("file", Value()));
+        int    line = (int)(p.Get("line", 0));
+        if(file.IsEmpty() || line <= 0) return MakeError(req.id, INVALID_PARAMS, "file and line (>0) required");
+        String err = sDebugBridge.ClearBreakpoint(file, line);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("cleared", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.breakpoint.list") {
+        Vector<DbgBreakpoint> bps = sDebugBridge.GetBreakpoints();
+        ValueArray arr;
+        for(const DbgBreakpoint& b : bps) arr.Add(ToValue(b));
+        ValueMap r; r.Add("breakpoints", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.stack") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active)  return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused)  return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        int limit = 30;
+        if(IsValueMap(req.params)) limit = max(1, min(200, (int)(ValueMap(req.params).Get("limit", limit))));
+        Vector<DbgFrame> frames = sDebugBridge.GetStackFrames(limit);
+        ValueArray arr;
+        for(const DbgFrame& f : frames) arr.Add(ToValue(f));
+        ValueMap r; r.Add("frames", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.locals") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active)  return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused)  return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        VectorMap<String,String> locals = sDebugBridge.GetLocals();
+        ValueArray arr;
+        for(int i = 0; i < locals.GetCount(); i++) {
+            ValueMap v; v.Add("name", locals.GetKey(i)); v.Add("value", locals[i]); v.Add("type", ""); arr.Add(v);
+        }
+        ValueMap r; r.Add("locals", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.evaluate") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String expr = AsString(ValueMap(req.params).Get("expression", Value()));
+        if(expr.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "expression required");
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active)  return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused)  return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        String result = sDebugBridge.Evaluate(expr);
+        ValueMap r; r.Add("result", result); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.threads") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active)  return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        Vector<String> threads = sDebugBridge.GetThreads();
+        ValueArray arr; for(const String& t : threads) arr.Add(t);
+        ValueMap r; r.Add("threads", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.registers") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused) return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        String raw = sDebugBridge.GetRegisters();
+        // Parse "name   value   value" lines into structured map
+        ValueArray arr;
+        StringStream ss(raw);
+        while(!ss.IsEof()) {
+            String ln = TrimBoth(ss.GetLine());
+            if(ln.IsEmpty()) continue;
+            // Format: "regname  hexval  decval ..." — split on first whitespace
+            const char* s = ~ln;
+            const char* e = s;
+            while(*e && !IsSpace(*e)) e++;
+            String name(s, e);
+            while(*e && IsSpace(*e)) e++;
+            String value(e);
+            if(!name.IsEmpty()) {
+                ValueMap v; v.Add("name", name); v.Add("value", TrimBoth(value)); arr.Add(v);
+            }
+        }
+        ValueMap r; r.Add("registers", arr); r.Add("raw", raw); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.disassembly") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        if(!st.paused) return MakeError(req.id, INTERNAL_ERROR, "Not paused — hit a breakpoint first");
+        String raw = sDebugBridge.GetDisassembly();
+        ValueMap r; r.Add("text", raw); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.list") {
+        DbgState st = sDebugBridge.GetState();
+        if(!st.active) return MakeError(req.id, INTERNAL_ERROR, "No active debug session");
+        VectorMap<String,String> watches = sDebugBridge.GetWatches();
+        ValueArray arr;
+        for(int i = 0; i < watches.GetCount(); i++) {
+            ValueMap v; v.Add("index", i); v.Add("expression", watches.GetKey(i)); v.Add("value", watches[i]); arr.Add(v);
+        }
+        ValueMap r; r.Add("watches", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String expr = AsString(ValueMap(req.params).Get("expression", Value()));
+        if(expr.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "expression required");
+        String err = sDebugBridge.AddWatch(expr);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", expr); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required (>= 0)");
+        String err = sDebugBridge.RemoveWatch(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "debug.watch.clear") {
+        String err = sDebugBridge.ClearWatches();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("cleared", true); return MakeResult(req.id, r);
+    }
+
+    // --- resource.* handlers (Phase 4 stub) ---------------------------------
+
+    if(req.method == "resource.list") {
+        ValueArray arr;
+        auto addRes = [&](const char* uri, const char* title) {
+            ValueMap m; m.Add("uri", uri); m.Add("title", title); m.Add("mimeType", "application/json"); arr.Add(m);
+        };
+        addRes("debug://state",       "Debug session state");
+        addRes("debug://breakpoints", "Active breakpoints");
+        addRes("debug://stack",       "Call stack frames");
+        addRes("debug://locals",      "Local variables");
+        addRes("debug://threads",     "Thread list");
+        ValueMap r; r.Add("resources", arr); return MakeResult(req.id, r);
+    }
+    if(req.method == "resource.get") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String uri = AsString(ValueMap(req.params).Get("uri", Value()));
+        String content;
+        if(uri == "debug://state")
+            content = AsJSON(ToValue(sDebugBridge.GetState()));
+        else if(uri == "debug://breakpoints") {
+            Vector<DbgBreakpoint> bps = sDebugBridge.GetBreakpoints();
+            ValueArray a; for(const DbgBreakpoint& b : bps) a.Add(ToValue(b)); content = AsJSON(a);
+        }
+        else if(uri == "debug://stack") {
+            Vector<DbgFrame> frames = sDebugBridge.GetStackFrames(30);
+            ValueArray a; for(const DbgFrame& f : frames) a.Add(ToValue(f)); content = AsJSON(a);
+        }
+        else if(uri == "debug://locals") {
+            VectorMap<String,String> locs = sDebugBridge.GetLocals();
+            ValueArray a;
+            for(int i = 0; i < locs.GetCount(); i++) { ValueMap v; v.Add("name", locs.GetKey(i)); v.Add("value", locs[i]); a.Add(v); }
+            content = AsJSON(a);
+        }
+        else if(uri == "debug://threads") {
+            Vector<String> threads = sDebugBridge.GetThreads();
+            ValueArray a; for(const String& t : threads) a.Add(t); content = AsJSON(a);
+        }
+        else return MakeError(req.id, METHOD_NOT_FOUND, "Unknown resource URI: " + uri);
+        ValueMap r; r.Add("uri", uri); r.Add("mimeType", "application/json"); r.Add("text", content);
+        return MakeResult(req.id, r);
+    }
+
+    // --- mainconfig handlers -------------------------------------------------
+
+    if(req.method == "mainconfig.list") {
+        ValueMap r; r.Add("configs", sIdeBridge.ListMainConfigs()); r.Add("current", sIdeBridge.GetMainConfig());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "mainconfig.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String param = AsString(ValueMap(req.params).Get("param", Value()));
+        if(param.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "param required");
+        String err = sIdeBridge.SetMainConfig(param);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", param); return MakeResult(req.id, r);
+    }
+
+    // --- build method handlers -----------------------------------------------
+
+    if(req.method == "buildmethod.list") {
+        ValueMap r; r.Add("methods", sIdeBridge.ListBuildMethods()); r.Add("current", sIdeBridge.GetBuildMethod());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "buildmethod.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sIdeBridge.SetBuildMethod(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", name); return MakeResult(req.id, r);
+    }
+
+    // --- build mode (debug/release) ------------------------------------------
+
+    if(req.method == "buildmode.get") {
+        ValueMap r; r.Add("mode", sIdeBridge.GetBuildMode()); return MakeResult(req.id, r);
+    }
+    if(req.method == "buildmode.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String mode = AsString(ValueMap(req.params).Get("mode", Value()));
+        String err = sIdeBridge.SetBuildMode(mode);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", mode); return MakeResult(req.id, r);
+    }
+
+    // --- package handlers ----------------------------------------------------
+
+    if(req.method == "package.list") {
+        ValueMap r; r.Add("packages", sIdeBridge.ListAssemblyPackages()); r.Add("active", sIdeBridge.GetActivePackage());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "package.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sIdeBridge.SetActivePackage(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "package.files") {
+        String pkg;
+        if(IsValueMap(req.params)) pkg = AsString(ValueMap(req.params).Get("package", Value()));
+        if(pkg.IsEmpty()) pkg = sIdeBridge.GetActivePackage();
+        ValueMap r; r.Add("package", pkg); r.Add("files", sIdeBridge.ListPackageFiles(pkg));
+        return MakeResult(req.id, r);
+    }
+
+    // --- file / editor handlers ----------------------------------------------
+
+    if(req.method == "file.get") {
+        ValueMap r; r.Add("path", sIdeBridge.GetActiveFile()); return MakeResult(req.id, r);
+    }
+    if(req.method == "file.open") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String path = AsString(ValueMap(req.params).Get("path", Value()));
+        if(path.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "path required");
+        String err = sIdeBridge.SetActiveFile(path);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("opened", path); return MakeResult(req.id, r);
+    }
+    if(req.method == "file.write") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String path    = AsString(p.Get("path",    Value()));
+        String content = AsString(p.Get("content", Value()));
+        if(path.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "path required");
+        String err = sIdeBridge.WriteFile(path, content);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("written", path); r.Add("bytes", (int)content.GetCount()); return MakeResult(req.id, r);
+    }
+    if(req.method == "package.create") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String name = AsString(p.Get("name", Value()));
+        String desc = AsString(p.Get("description", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String out_path;
+        String err = sIdeBridge.CreatePackage(name, desc, out_path);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("created", name); r.Add("path", out_path); return MakeResult(req.id, r);
+    }
+    if(req.method == "package.add_file") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String pkg  = AsString(p.Get("package", Value()));
+        String file = AsString(p.Get("file",    Value()));
+        if(file.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "file required");
+        String err = sIdeBridge.AddFileToPackage(pkg, file);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", file); return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.path") {
+        int idx = 0;
+        if(IsValueMap(req.params)) idx = (int)(ValueMap(req.params).Get("editor", 0));
+        ValueMap r; r.Add("path", sIdeBridge.GetEditorPath(idx)); return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.cursor.get") {
+        int idx = 0;
+        if(IsValueMap(req.params)) idx = (int)(ValueMap(req.params).Get("editor", 0));
+        auto pos = sIdeBridge.GetEditorCursor(idx);
+        ValueMap r; r.Add("line", pos.line); r.Add("col", pos.col); r.Add("cursor", (int)pos.cursor);
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.cursor.set") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("editor", 0));
+        if(p.Find("cursor") >= 0) {
+            int64 cursor = (int64)(int)(p.Get("cursor", 0));
+            String err = sIdeBridge.SetEditorCursorPos(cursor, idx);
+            if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        } else {
+            int line = (int)(p.Get("line", 0));
+            int col  = (int)(p.Get("col", 0));
+            String err = sIdeBridge.SetEditorCursor(line, col, idx);
+            if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        }
+        ValueMap r; r.Add("set", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.lines") {
+        int idx = 0;
+        if(IsValueMap(req.params)) idx = (int)(ValueMap(req.params).Get("editor", 0));
+        ValueMap r; r.Add("count", sIdeBridge.GetEditorLineCount(idx)); return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.line.get") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int line = (int)(p.Get("line", 0));
+        int idx  = (int)(p.Get("editor", 0));
+        ValueMap r; r.Add("line", line); r.Add("text", sIdeBridge.GetEditorLine(line, idx));
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "editor.insert") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String text = AsString(ValueMap(req.params).Get("text", Value()));
+        String err = sIdeBridge.InsertEditorText(text);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("inserted", true); return MakeResult(req.id, r);
+    }
+
+    // --- console / errors ----------------------------------------------------
+
+    if(req.method == "console.get") {
+        int tail = 0;
+        if(IsValueMap(req.params)) tail = (int)(ValueMap(req.params).Get("tail", 0));
+        String text = tail > 0 ? sIdeBridge.GetConsoleTail(tail) : sIdeBridge.GetConsoleText();
+        ValueMap r; r.Add("text", text); return MakeResult(req.id, r);
+    }
+    if(req.method == "errors.get") {
+        auto errs = sIdeBridge.GetErrors();
+        ValueArray arr;
+        for(const auto& e : errs) {
+            ValueMap v; v.Add("file", e.file); v.Add("line", e.line); v.Add("text", e.text); v.Add("warning", e.is_warning);
+            arr.Add(v);
+        }
+        ValueMap r; r.Add("errors", arr); r.Add("error_count", sIdeBridge.GetErrorCount()); r.Add("warning_count", sIdeBridge.GetWarningCount());
+        return MakeResult(req.id, r);
+    }
+
+    // --- find ----------------------------------------------------------------
+
+    if(req.method == "find.infiles") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String pattern = AsString(ValueMap(req.params).Get("pattern", Value()));
+        if(pattern.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "pattern required");
+        bool replace = (bool)(int)(ValueMap(req.params).Get("replace", 0));
+        sIdeBridge.FindInFiles(pattern, replace);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "find.next") {
+        String err = sIdeBridge.EditorFindNext();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "find.prev") {
+        String err = sIdeBridge.EditorFindPrev();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- valgrind ------------------------------------------------------------
+
+    if(req.method == "valgrind.run") {
+        String err = sIdeBridge.RunValgrind();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- assist --------------------------------------------------------------
+
+    if(req.method == "assist.suggestions") {
+        ValueMap r; r.Add("items", sIdeBridge.GetAssistSuggestions()); return MakeResult(req.id, r);
+    }
+    if(req.method == "assist.goto") {
+        String err = sIdeBridge.AssistGoto();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "assist.usage") {
+        String err = sIdeBridge.AssistUsage();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "assist.query") {
+        String err = sIdeBridge.AssistQueryId();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "assist.context_goto") {
+        String err = sIdeBridge.AssistContextGoto();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- workspace management ------------------------------------------------
+
+    if(req.method == "workspace.open") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String pkg = AsString(ValueMap(req.params).Get("package", Value()));
+        if(pkg.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "package required");
+        String err = sIdeBridge.WorkspaceOpen(pkg);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("opened", pkg); return MakeResult(req.id, r);
+    }
+    if(req.method == "workspace.reload") {
+        String err = sIdeBridge.WorkspaceReload();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "workspace.close") {
+        String err = sIdeBridge.WorkspaceClose();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- assembly management -------------------------------------------------
+
+    if(req.method == "assembly.list") {
+        auto assemblies = sIdeBridge.ListAssemblies();
+        ValueArray arr;
+        for(const auto& a : assemblies) {
+            ValueMap m; m.Add("name", a.name); m.Add("path", a.path);
+            ValueArray dirs; for(const String& d : a.upp_dirs) dirs.Add(d);
+            m.Add("upp_dirs", dirs); m.Add("output_dir", a.output_dir); m.Add("include", a.include);
+            arr.Add(m);
+        }
+        ValueMap r; r.Add("assemblies", arr); r.Add("active", sIdeBridge.GetActiveAssembly());
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.get") {
+        ValueMap r; r.Add("name", sIdeBridge.GetActiveAssembly()); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.switch") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sIdeBridge.SwitchAssembly(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("switched", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.path") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        ValueMap r; r.Add("path", sIdeBridge.GetAssemblyPath(name)); return MakeResult(req.id, r);
+    }
+    if(req.method == "assembly.packages") {
+        String vars_name, filter, search;
+        if(IsValueMap(req.params)) {
+            ValueMap p = req.params;
+            vars_name = AsString(p.Get("assembly", Value()));
+            filter    = AsString(p.Get("filter",   Value()));
+            search    = AsString(p.Get("search",   Value()));
+        }
+        ValueArray pkgs = sIdeBridge.ListPackagesInAssembly(vars_name, filter, search);
+        ValueMap r; r.Add("packages", pkgs); r.Add("assembly", vars_name.IsEmpty() ? sIdeBridge.GetActiveAssembly() : vars_name);
+        return MakeResult(req.id, r);
+    }
+    if(req.method == "upphub.open") {
+        String err = sIdeBridge.OpenUppHub();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- layout.* handlers --------------------------------------------------
+
+    if(req.method == "layout.files") {
+        ValueMap r; r.Add("files", sLayBridge.ListLayFiles()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.open") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String path = AsString(ValueMap(req.params).Get("path", Value()));
+        if(path.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "path required");
+        String err = sLayBridge.OpenLayFile(path);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("opened", path); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.current_file") {
+        ValueMap r; r.Add("path", sLayBridge.GetOpenLayFile()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.list") {
+        int n = sLayBridge.GetLayoutCount();
+        ValueArray arr;
+        for(int i = 0; i < n; i++) {
+            ValueMap v; v.Add("index", i); v.Add("name", sLayBridge.GetLayoutName(i)); v.Add("size", sLayBridge.GetLayoutSize(i)); arr.Add(v);
+        }
+        ValueMap r; r.Add("layouts", arr); r.Add("current", sLayBridge.GetCurrentLayout()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.set_current") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        String err = sLayBridge.SetCurrentLayout(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        String name = AsString(ValueMap(req.params).Get("name", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.AddLayout(name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.insert") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String name = AsString(p.Get("name", Value()));
+        int before = (int)(p.Get("before", 0));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.InsertLayout(before, name);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("inserted", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.duplicate") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        String newname = AsString(p.Get("name", Value()));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(newname.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.DuplicateLayout(idx, newname);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("duplicated", newname); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.rename") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        String newname = AsString(p.Get("name", Value()));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(newname.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.RenameLayout(idx, newname);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("renamed", newname); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int idx = (int)(ValueMap(req.params).Get("index", -1));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        String err = sLayBridge.RemoveLayout(idx);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", idx); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.set_size") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int idx = (int)(p.Get("index", -1));
+        int w = (int)(p.Get("width", 0));
+        int h = (int)(p.Get("height", 0));
+        if(idx < 0) return MakeError(req.id, INVALID_PARAMS, "index required");
+        if(w <= 0 || h <= 0) return MakeError(req.id, INVALID_PARAMS, "width and height (>0) required");
+        String err = sLayBridge.SetLayoutSize(idx, w, h);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.items") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        int li = (int)(ValueMap(req.params).Get("layout", -1));
+        if(li < 0) return MakeError(req.id, INVALID_PARAMS, "layout index required");
+        int n = sLayBridge.GetItemCount(li);
+        ValueArray arr;
+        for(int i = 0; i < n; i++) arr.Add(sLayBridge.GetItem(li, i));
+        ValueMap r; r.Add("items", arr); r.Add("layout", li); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.get") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        ValueMap item = sLayBridge.GetItem(li, ii);
+        if(item.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "Item or layout index out of range");
+        return MakeResult(req.id, item);
+    }
+    if(req.method == "layout.item.add") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li   = (int)(p.Get("layout", -1));
+        String type_name = AsString(p.Get("type", Value()));
+        String var       = AsString(p.Get("variable", Value()));
+        int l = (int)(p.Get("left", 0)), t = (int)(p.Get("top", 0));
+        int r = (int)(p.Get("right", 100)), b = (int)(p.Get("bottom", 24));
+        if(li < 0) return MakeError(req.id, INVALID_PARAMS, "layout required");
+        if(type_name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "type required");
+        String err = sLayBridge.AddItem(li, type_name, var, l, t, r, b);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap rv; rv.Add("added", true); return MakeResult(req.id, rv);
+    }
+    if(req.method == "layout.item.remove") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.RemoveItem(li, ii);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("removed", ii); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.set_rect") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        int l = (int)(p.Get("left", 0)), t = (int)(p.Get("top", 0));
+        int r = (int)(p.Get("right", 0)), b = (int)(p.Get("bottom", 0));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.SetItemRect(li, ii, l, t, r, b);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap rv; rv.Add("set", true); return MakeResult(req.id, rv);
+    }
+    if(req.method == "layout.item.set_var") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        String var = AsString(p.Get("variable", Value()));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        String err = sLayBridge.SetItemVar(li, ii, var);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", var); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.properties") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        ValueMap r; r.Add("properties", sLayBridge.GetItemProperties(li, ii)); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.item.set_property") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        int li = (int)(p.Get("layout", -1));
+        int ii = (int)(p.Get("item", -1));
+        String name  = AsString(p.Get("name",  Value()));
+        String value = AsString(p.Get("value", Value()));
+        if(li < 0 || ii < 0) return MakeError(req.id, INVALID_PARAMS, "layout and item indices required");
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String err = sLayBridge.SetItemProperty(li, ii, name, value);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("set", name); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.classes") {
+        ValueMap r; r.Add("classes", sLayBridge.ListClasses()); return MakeResult(req.id, r);
+    }
+    if(req.method == "layout.save") {
+        String err = sLayBridge.Save();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("saved", true); return MakeResult(req.id, r);
+    }
+
     return String();
 }
 

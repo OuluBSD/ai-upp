@@ -17,9 +17,12 @@ bool StartMcpServer(const McpConfig& cfg);
 void StopMcpServer();
 bool McpIsRunning();
 
+#include "DebugProtocol.h"
+#include "DebugBridge.h"
+#include "IdeBridge.h"
+#include "LayBridge.h"
 #include "Server.h"
 #include "WorkspaceBridge.h"
-#include "Index.h"
 #include "Index.h"
 #include "Log.h"
 

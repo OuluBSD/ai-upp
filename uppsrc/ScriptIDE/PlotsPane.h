@@ -1,7 +1,7 @@
 #ifndef _ScriptIDE_PlotsPane_h_
 #define _ScriptIDE_PlotsPane_h_
 
-class PlotsPane : public ParentCtrl {
+class PlotsPane : public DockableCtrl {
 public:
 	typedef PlotsPane CLASSNAME;
 	PlotsPane();

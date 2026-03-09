@@ -2,20 +2,22 @@
 
 namespace Upp {
 
-FileTree::FileTree()
+FilesPane::FilesPane()
 {
+	Title("Files");
+	Icon(CtrlImg::Dir());
 	Add(tree.SizePos());
 	tree.WhenLeftDouble = [=] { OnOpen(); };
 	tree.WhenOpen = [=](int id) { Populate(id); };
 }
 
-void FileTree::SetRoot(const String& path)
+void FilesPane::SetRoot(const String& path)
 {
 	root_path = path;
 	Refresh();
 }
 
-void FileTree::Refresh()
+void FilesPane::Refresh()
 {
 	tree.Clear();
 	if(root_path.IsEmpty()) return;
@@ -27,7 +29,7 @@ void FileTree::Refresh()
 	Populate(0);
 }
 
-void FileTree::Populate(int id)
+void FilesPane::Populate(int id)
 {
 	if(tree.GetChildCount(id)) return;
 	
@@ -47,7 +49,7 @@ void FileTree::Populate(int id)
 	}
 }
 
-void FileTree::OnOpen()
+void FilesPane::OnOpen()
 {
 	int id = tree.GetCursor();
 	if(id >= 0) {

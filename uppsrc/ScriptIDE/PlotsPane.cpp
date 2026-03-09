@@ -20,6 +20,7 @@ void PlotsPane::ImageDisplay::Paint(Draw& w)
 
 PlotsPane::PlotsPane()
 {
+	Title("Plots");
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(display.VSizePos(24, 0).HSizePos());
 	

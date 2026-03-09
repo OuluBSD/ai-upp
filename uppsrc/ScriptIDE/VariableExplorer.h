@@ -1,7 +1,7 @@
 #ifndef _ScriptIDE_VariableExplorer_h_
 #define _ScriptIDE_VariableExplorer_h_
 
-class VariableExplorer : public ParentCtrl {
+class VariableExplorer : public DockableCtrl {
 public:
 	typedef VariableExplorer CLASSNAME;
 	VariableExplorer();

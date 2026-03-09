@@ -241,7 +241,7 @@ template <class T, int I> struct array {
 	}
 	
 	T& operator[] (index<1> idx) const {
-		int i = idx.i;
+		int i = idx.value[0];
 		ASSERT(i >= 0 && i < count);
 		return data[i];
 	}
@@ -280,12 +280,26 @@ struct WorkerManager {
 	WorkerManager(int w, CB cb) :cb(cb) {ASSERT(I == 1); count[0] = w; cursor[0] = 0;}
 	WorkerManager(int w, int h, CB cb) :cb(cb) {ASSERT(I == 2); count[0] = w; count[1] = h; cursor[0] = 0; cursor[1] = 0;}
 	void Start() {
+		#if 0
 		int count = CPU_Cores() - 1;
 		not_stopped = count;
 		running = true;
 		for(int i = 0; i < count; i++)
 			Thread::Start(THISBACK1(Process, i));
-		Sleep(10);
+		#elif 0
+		int count = CPU_Cores() - 1;
+		not_stopped = count;
+		running = true;
+		CoWork co;
+		for(int i = 0; i < count; i++)
+			co & THISBACK1(Process, i);
+		#else
+		int count = CPU_Cores() - 1;
+		not_stopped = count;
+		running = true;
+		for(int i = 0; i < count; i++)
+			Process(i);
+		#endif
 	}
 	void Process(int i) {
 		if (!i) waiter.Enter();
@@ -364,7 +378,7 @@ inline void TestCompatAMP() {
 	
 	parallel_for_each(ints_view.extent, [=](index<1> idx) PARALLEL
     {
-        COUTLOG("View: " << (int)idx[0] << ",	Value: " << ints_view[idx]);
+        Cout() << String() << "View: " << (int)idx[0] << ", Value: " << ints_view[idx] << "\n";
     });
     
     ints_view.synchronize();

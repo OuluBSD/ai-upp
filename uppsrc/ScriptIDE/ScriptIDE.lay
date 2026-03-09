@@ -13,3 +13,10 @@ LAYOUT(SettingsLayout, 400, 200)
 	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(84, 72).BottomPosZ(8, 24))
 	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(8, 72).BottomPosZ(8, 24))
 END_LAYOUT
+
+LAYOUT(PYTHONPATHLayout, 500, 300)
+	ITEM(Upp::ArrayCtrl, list, HSizePosZ(8, 8).VSizePosZ(8, 40))
+	ITEM(Upp::Button, add, SetLabel(t_("Add...")).LeftPosZ(8, 80).BottomPosZ(8, 24))
+	ITEM(Upp::Button, remove, SetLabel(t_("Remove")).LeftPosZ(92, 80).BottomPosZ(8, 24))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(8, 80).BottomPosZ(8, 24))
+END_LAYOUT

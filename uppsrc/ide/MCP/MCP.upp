@@ -12,10 +12,17 @@ file
 	Log.h,
 	Log.cpp,
 	Protocol.h,
+	DebugProtocol.h,
+	DebugBridge.h,
+	DebugBridge.cpp,
+	IdeBridge.h,
+	IdeBridge.cpp,
 	Server.h,
 	Server.cpp,
 	Index.h,
 	Index.cpp,
 	WorkspaceBridge.h,
-	WorkspaceBridge.cpp;
+	WorkspaceBridge.cpp,
+	LayBridge.h,
+	LayBridge.cpp;
 

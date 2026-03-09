@@ -28,10 +28,10 @@
 #include <ide/Designers/Designers.h>
 #include <ide/Android/Android.h>
 #include <plugin/md/Markdown.h>
+#include <ide/MCP/MCP.h>
 #ifndef flagV1
 #include <ide/AI/AI.h>
 #include <ide/Shell/Shell.h>
-#include <ide/MCP/MCP.h>
 #endif
 
 #include "MethodsCtrls.h"

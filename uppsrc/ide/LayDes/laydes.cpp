@@ -1816,4 +1816,129 @@ bool LayDes::DoKey(dword key, int count)
 	}
 	return MenuBar::Scan(THISBACK(LayoutMenu), key);
 }
+
+// --- MCP bridge implementations ---
+
+void LayDes::McpAddLayout(const String& name)
+{
+	int q = layout.GetCount();
+	layout.Insert(q).name = name;
+	SyncLayoutList();
+	GoTo(q);
+	LayoutCursor();
+}
+
+void LayDes::McpInsertLayout(int before, const String& name)
+{
+	int q = (before >= 0 && before <= layout.GetCount()) ? before : layout.GetCount();
+	layout.Insert(q).name = name;
+	SyncLayoutList();
+	GoTo(q);
+	LayoutCursor();
+}
+
+void LayDes::McpDuplicateLayout(int i, const String& newname)
+{
+	if(i < 0 || i >= layout.GetCount()) return;
+	LayoutData& c = layout[i];
+	String data = c.Save(0, "\r\n");
+	CParser p(data);
+	int next = i + 1;
+	LayoutData& d = layout.Insert(next);
+	d.Read(p);
+	d.name = newname;
+	SyncLayoutList();
+	GoTo(next);
+	LayoutCursor();
+}
+
+bool LayDes::McpRenameLayout(int i, const String& newname)
+{
+	if(i < 0 || i >= layout.GetCount()) return false;
+	layout[i].name = newname;
+	int q = list.GetKey();
+	SyncLayoutList();
+	GoTo(q);
+	LayoutCursor();
+	return true;
+}
+
+bool LayDes::McpRemoveLayout(int i)
+{
+	if(i < 0 || i >= layout.GetCount()) return false;
+	layout.Remove(i);
+	SyncLayoutList();
+	if(layout.GetCount() > 0)
+		GoTo(min(i, layout.GetCount() - 1));
+	LayoutCursor();
+	return true;
+}
+
+void LayDes::McpSetLayoutSize(int i, Size sz)
+{
+	if(i < 0 || i >= layout.GetCount()) return;
+	layout[i].size = sz;
+	if(currentlayout == i) { SetSb(); Refresh(); }
+}
+
+void LayDes::McpAddItem(int li, const String& type_name, const String& var, Rect r)
+{
+	if(li < 0 || li >= layout.GetCount()) return;
+	LayoutData& l = layout[li];
+	LayoutItem& m = l.item.Add();
+	m.Create(type_name);
+	m.variable = var;
+	m.pos = MakeLogPos(Ctrl::LEFT, Ctrl::TOP, r, l.size);
+	if(currentlayout == li) ReloadItems();
+}
+
+bool LayDes::McpRemoveItem(int li, int ii)
+{
+	if(li < 0 || li >= layout.GetCount()) return false;
+	LayoutData& l = layout[li];
+	if(ii < 0 || ii >= l.item.GetCount()) return false;
+	l.item.Remove(ii);
+	if(currentlayout == li) ReloadItems();
+	return true;
+}
+
+bool LayDes::McpSetItemRect(int li, int ii, Rect r)
+{
+	if(li < 0 || li >= layout.GetCount()) return false;
+	LayoutData& l = layout[li];
+	if(ii < 0 || ii >= l.item.GetCount()) return false;
+	l.item[ii].pos = MakeLogPos(l.item[ii].pos, r, l.size);
+	if(currentlayout == li) ReloadItems();
+	return true;
+}
+
+bool LayDes::McpSetItemVar(int li, int ii, const String& var)
+{
+	if(li < 0 || li >= layout.GetCount()) return false;
+	LayoutData& l = layout[li];
+	if(ii < 0 || ii >= l.item.GetCount()) return false;
+	l.item[ii].variable = var;
+	if(currentlayout == li) ReloadItems();
+	return true;
+}
+
+bool LayDes::McpSetItemProp(int li, int ii, const String& name, const String& value)
+{
+	if(li < 0 || li >= layout.GetCount()) return false;
+	LayoutData& l = layout[li];
+	if(ii < 0 || ii >= l.item.GetCount()) return false;
+	LayoutItem& item = l.item[ii];
+	int pi = item.FindProperty(name);
+	if(pi < 0) {
+		// Add a new RawProperty (stores value as-is, like reading from .lay file)
+		pi = item.property.GetCount();
+		ItemProperty& new_prop = item.property.Add(new RawProperty);
+		new_prop.name = name;
+	}
+	CParser p(value);
+	item.property[pi].Read(p);
+	if(currentlayout == li) ReloadItems();
+	return true;
+}
+
 #endif // flagGUI

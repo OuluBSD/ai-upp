@@ -9,40 +9,74 @@ public:
     virtual void DockInit() override;
     virtual void Close() override;
 
-private:
-    // Layout components
-    MenuBar menubar;
-    ToolBar toolbar;
-    StatusBar statusbar;
+    void OnNewFile();
+    void OnOpenFile();
+    void OnSaveFile();
+    void OnSaveFileAs();
+    void OnSaveAll();
+    void OnCloseFile();
+    void OnCloseAll();
+    void OnFileSwitcher();
+    void OnSymbolFinder();
+    void OnRestart();
 
-    // Left dockable panel
-    ToolBar file_toolbar;
-    FileTree file_tree;
-    WithFileTreeLayout<DockableCtrl> file_panel;  // Contains toolbar + tree
+    void OnUndo();
+    void OnRedo();
+    void OnComment();
+    void OnBlockComment();
+    void OnUncomment();
+    void OnToggleCase(bool upper);
+    void OnConvertEOL(const String& mode);
+    void OnRemoveTrailingSpaces();
+    void OnTabsToSpaces();
 
-    // Main center-right area (Splitter)
-    Splitter main_split;          // Horizontal: editor | right_split
+    void LoadFile(const String& path);
+    void SaveFile(int idx);
+    bool ConfirmSave(int idx);
+    bool ConfirmSaveAll();
+    void ShowHelp(const String& topic);
+    void OnPathManager();
 
-    // Center area - Editor
-    ParentCtrl editor_area;
+    void OnRun();
+    void OnRunLast();
+    void OnRunSelection();
+    void OnRunCell();
+    void OnRunCellAndAdvance();
+    void OnRunToLine();
+    void OnRunFromLine();
+    void OnRunConfig();
+    
+    void OnDebug();
+    void OnDebugCell();
+    void OnDebugSelection();
+    void OnDebugToLine();
+    void OnStop();
+    void OnToggleBreakpoint();
+    void OnClearBreakpoints();
+    void OnListBreakpoints();
+    void OnConsoleInput();
 
-    // Right area (top/bottom split)
-    Splitter right_split;         // Vertical: top | bottom
+    void ApplySettings();
+    void OnSettings();
+    void OnBreakpointHit(const String& file, int line);
+    void OnStepOver();
+    void OnStepIn();
+    void OnStepOut();
 
-    ParentCtrl right_top;
-    ParentCtrl right_bottom;
+    void OnTabChanged();
+    void OnTabMenu(Bar& bar);
+    void SyncTabsWithFiles();
 
-    CustomFileTabs editor_tabs;
+    void OnTogglePane(DockableCtrl& pane);
+    void OnLayoutDefault();
+    void OnLayoutRstudio();
+    void OnLayoutMatlab();
+    void OnFullscreen();
+    void OnMaximizePane();
+    void OnClosePane();
 
     void InitLayout();
-    void InitRightTopTabs();
-    void InitRightPanels();
-
-
-    void OnNewTab();
-    void OnTabMenu(Bar& bar);
-
-    void OnConsoleInput();
+    void InitDocking();
 
     void FileMenu(Bar& bar);
     void EditMenu(Bar& bar);
@@ -53,40 +87,44 @@ private:
     void ConsolesMenu(Bar& bar);
     void ProjectsMenu(Bar& bar);
     void ToolsMenu(Bar& bar);
-    void ViewMenu(Bar& bar);
+    void WindowMenu(Bar& bar);
     void HelpMenu(Bar& bar);
 
     void MainMenu(Bar& bar);
+    void MainToolbar(Bar& bar);
+
+    void Todo(const String& msg);
 
     void UpdateStatusBar();
     void UpdateVariableExplorer();
-
-    void LoadFile(const String& path);
-    void SaveFile(const String& path);
-    bool ConfirmSave();
-    void ShowHelp(const String& topic);
+    void OnAnalyze();
 
     static size_t MemoryUsedKb();
     static size_t MemoryTotalKb();
     CodeEditor* GetCurrentEditor() { return &code_editor; }
 
-    void OnNewFile();
-    void OnOpenFile();
-    void OnSaveFile();
-    void OnSaveFileAs();
-    void OnRun();
-    void OnRunSelection();
-    void OnRunConfig();
-    void OnSettings();
-    void ApplySettings();
-    void OnDebug();
-    void OnBreakpointHit(const String& file, int line);
-    void OnStepOver();
-    void OnStepIn();
-    void OnStepOut();
-    void OnToggleBreakpoint();
+    MenuBar menubar;
+    ToolBar toolbar;
+    StatusBar statusbar;
+
+    ParentCtrl editor_area;
+    CustomFileTabs editor_tabs;
+
+    FilesPane files_pane;
+    OutlinePane outline_pane;
+    VariableExplorer var_explorer;
+    DebuggerPane debugger_pane;
+    ProfilerPane profiler_pane;
+    WithDockable<RichTextCtrl> help_pane;
+    PlotsPane plots_pane;
+    PythonConsole console_pane;
+    WithDockable<ParentCtrl> history_pane;
+    FindInFilesPane find_pane;
 
     PyVM vm;
+    RunManager run_manager;
+    PathManager path_manager;
+    Linter linter;
 
     struct StatusInfo {
         int line = 1;
@@ -97,24 +135,17 @@ private:
         int memory_percent = 0;
     } status_info;
 
-    PythonIDESettings settings;
+    IDESettings settings;
 
-    CodeEditor code_editor;
-    VariableExplorer var_explorer;
-    TabCtrl right_top_tabs;
-    TabCtrl right_bottom_tabs;
-
-    RichTextCtrl help_viewer;
-    ParentCtrl help_panel;
-    ParentCtrl plots_panel;
-    ParentCtrl files_panel;
-    ParentCtrl history_panel;
-    PythonConsole python_console;
+    PythonEditor code_editor;
 
     struct FileInfo {
         String path;
+        String content;
         bool dirty = false;
-    } current_file;
+    };
+    Array<FileInfo> open_files;
+    int active_file = -1;
 };
 
 #endif

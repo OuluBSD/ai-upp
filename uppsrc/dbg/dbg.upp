@@ -1,0 +1,15 @@
+description "DbgMcpCli";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	dbg.h,
+	TcpProxy.h,
+	TcpProxy.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "";
+

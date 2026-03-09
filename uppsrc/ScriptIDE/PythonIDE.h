@@ -21,6 +21,7 @@ private:
 
     // Dockable panes
     FilesPane files_pane;
+    OutlinePane outline_pane;
     VariableExplorer var_explorer;
     DebuggerPane debugger_pane;
     ProfilerPane profiler_pane;
@@ -28,7 +29,7 @@ private:
     PlotsPane plots_pane;
     PythonConsole console_pane;
     WithDockable<ParentCtrl> history_pane;
-    WithDockable<ParentCtrl> find_pane;
+    FindInFilesPane find_pane;
 
     void InitLayout();
     void InitDocking();

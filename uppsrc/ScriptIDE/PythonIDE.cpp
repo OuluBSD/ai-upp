@@ -803,11 +803,32 @@ void PythonIDE::MainToolbar(Bar& bar)
 	bar.Add(CtrlImg::new_doc(), [=] { OnNewFile(); }).Help("New File");
 	bar.Add(CtrlImg::open(), [=] { OnOpenFile(); }).Help("Open File");
 	bar.Add(CtrlImg::save(), [=] { OnSaveFile(); }).Help("Save File");
+	bar.Add(CtrlImg::save_as(), [=] { OnSaveAll(); }).Help("Save All Files");
 	bar.Separator();
-	bar.Add(CtrlImg::right_arrow(), [=] { OnRun(); }).Help("Run Script (F5)");
-	bar.Add(CtrlImg::plus(), [=] { OnRunSelection(); }).Help("Run Selection (F9)");
+	bar.Add(CtrlImg::plus(), [=] { Todo("Create new cell"); }).Help("Create new cell at current line");
 	bar.Separator();
-	bar.Add(CtrlImg::remove(), [=] { OnStop(); }).Help("Stop Execution");
+	bar.Add(CtrlImg::right_arrow(), [=] { OnRun(); }).Help("Run file (F5)");
+	bar.Add(CtrlImg::plus(), [=] { OnRunCell(); }).Help("Run cell (Ctrl+Enter)");
+	bar.Add(CtrlImg::plus(), [=] { OnRunCellAndAdvance(); }).Help("Run cell and advance (Shift+Enter)");
+	bar.Add(CtrlImg::plus(), [=] { OnRunSelection(); }).Help("Run current line or selection (F9)");
+	bar.Separator();
+	bar.Add(CtrlImg::exclamation(), [=] { OnDebug(); }).Help("Debug file (Ctrl+F5)");
+	bar.Add(CtrlImg::exclamation(), [=] { OnDebugCell(); }).Help("Debug cell");
+	bar.Add(CtrlImg::exclamation(), [=] { OnDebugSelection(); }).Help("Debug current selection");
+	bar.Separator();
+	bar.Add(CtrlImg::plus(), [=] { Todo("Profile file"); }).Help("Profile file (F10)");
+	bar.Add(CtrlImg::plus(), [=] { Todo("Profile cell"); }).Help("Profile cell");
+	bar.Add(CtrlImg::plus(), [=] { Todo("Profile selection"); }).Help("Profile current line or selection");
+	bar.Separator();
+	bar.Add(CtrlImg::plus(), [=] { OnMaximizePane(); }).Help("Maximize current pane");
+	bar.Add(CtrlImg::plus(), [=] { OnSettings(); }).Help("Preferences");
+	bar.Add(CtrlImg::plus(), [=] { OnPathManager(); }).Help("PYTHONPATH manager");
+	bar.Separator();
+	// Dropdowns for projects/cwd would go here
+	bar.Add("Projects", [=] { Todo("Recent projects"); });
+	bar.Add("CWD", [=] { Todo("Working directory"); });
+	bar.Add(CtrlImg::open(), [=] { Todo("Browse directory"); });
+	bar.Add(CtrlImg::undo(), [=] { Todo("Parent directory"); });
 }
 
 void PythonIDE::Todo(const String& msg)

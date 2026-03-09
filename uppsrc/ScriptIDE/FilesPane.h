@@ -12,11 +12,16 @@ public:
 	Event<const String&> WhenOpen;
 
 private:
+	ToolBar location_bar;
+	ToolBar pane_toolbar;
 	TreeCtrl tree;
 	String root_path;
 
 	void Populate(int id);
 	void OnOpen();
+	void LayoutLocationBar(Bar& bar);
+	void LayoutPaneToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
 };
 
 #endif

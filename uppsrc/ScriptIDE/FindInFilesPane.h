@@ -11,13 +11,19 @@ public:
 	Event<const String&, int> WhenOpenMatch;
 
 private:
+	ToolBar    toolbar;
 	EditString search_pattern;
 	Button     search_btn;
+	Option     regex_toggle;
+	Option     case_toggle;
+	
 	ArrayCtrl  results;
 	String     root_path;
 
 	void OnSearch();
 	void OnResultOpen();
+	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
 };
 
 #endif

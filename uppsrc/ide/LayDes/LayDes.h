@@ -496,6 +496,43 @@ private:
 public:
 	Ctrl&          DesignerCtrl()             { return km; }
 	void           Serialize(Stream& s) override;
+
+	// --- MCP bridge accessors (GUI thread only) ---
+
+	// Layout list
+	int    McpGetLayoutCount() const                { return layout.GetCount(); }
+	String McpGetLayoutName(int i) const            { return layout[i].name; }
+	Size   McpGetLayoutSize(int i) const            { return layout[i].size; }
+	int    McpGetCurrentLayout() const              { return currentlayout; }
+	void   McpSetCurrentLayout(int i)               { if(i >= 0 && i < layout.GetCount()) GoTo(i); }
+
+	// Layout CRUD
+	void   McpAddLayout(const String& name);
+	void   McpInsertLayout(int before, const String& name);
+	void   McpDuplicateLayout(int i, const String& newname);
+	bool   McpRenameLayout(int i, const String& newname);
+	bool   McpRemoveLayout(int i);
+	void   McpSetLayoutSize(int i, Size sz);
+
+	// Items in a layout
+	int    McpGetItemCount(int li) const            { return li >= 0 && li < layout.GetCount() ? layout[li].item.GetCount() : 0; }
+	String McpGetItemType(int li, int ii) const     { return layout[li].item[ii].type; }
+	String McpGetItemVar(int li, int ii) const      { return layout[li].item[ii].variable; }
+	bool   McpGetItemHide(int li, int ii) const     { return layout[li].item[ii].hide; }
+	Rect   McpGetItemRect(int li, int ii)           { return CtrlRect(layout[li].item[ii].pos, layout[li].size); }
+	void   McpAddItem(int li, const String& type, const String& var, Rect r);
+	bool   McpRemoveItem(int li, int ii);
+	bool   McpSetItemRect(int li, int ii, Rect r);
+	bool   McpSetItemVar(int li, int ii, const String& var);
+
+	// Item properties
+	int    McpGetItemPropCount(int li, int ii) const { return layout[li].item[ii].property.GetCount(); }
+	String McpGetItemPropName(int li, int ii, int pi) const { return layout[li].item[ii].property[pi].name; }
+	String McpGetItemPropValue(int li, int ii, int pi) const { return layout[li].item[ii].property[pi].Save(); }
+	bool   McpSetItemProp(int li, int ii, const String& name, const String& value);
+
+	// Trigger save
+	void   McpSave()                                { Save(); }
 };
 
 inline Font LayFont() { return Arial(Zy(11)); }
@@ -521,6 +558,10 @@ public:
 	void FindLayout(const String& name, const String& item) { designer.FindLayout(name, item); }
 	String GetCurrentLayout() const             { return designer.GetLayoutName(); }
 	String GetCurrentItem() const               { return designer.GetItemId(); }
+
+	// MCP accessor — gives direct access to the LayDes (GUI thread only)
+	LayDes& GetLayDes()                         { return designer; }
+	const LayDes& GetLayDes() const             { return designer; }
 
 	LayDesigner()                               { parent.Add(designer.DesignerCtrl().SizePos()); }
 };

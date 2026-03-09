@@ -20,6 +20,7 @@ bool McpIsRunning();
 #include "DebugProtocol.h"
 #include "DebugBridge.h"
 #include "IdeBridge.h"
+#include "LayBridge.h"
 #include "Server.h"
 #include "WorkspaceBridge.h"
 #include "Index.h"

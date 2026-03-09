@@ -33,6 +33,8 @@ public:
 #include "PlotsPane.h"
 #include "DebuggerPane.h"
 #include "ProfilerPane.h"
+#include "FindInFilesPane.h"
+#include "OutlinePane.h"
 #include "PythonConsole.h"
 #include "FilesPane.h"
 #include "CustomFileTabs.h"

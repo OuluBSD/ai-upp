@@ -106,6 +106,19 @@ PythonIDE::PythonIDE()
 
     files_pane.WhenOpen = [=](const String& path) { if(ConfirmSave()) LoadFile(path); };
 
+    outline_pane.WhenSelectLine = [=](int line) {
+        code_editor.SetCursor(code_editor.GetPos(line - 1));
+        code_editor.SetFocus();
+    };
+
+    find_pane.WhenOpenMatch = [=](const String& path, int line) {
+        if(path != current_file.path) {
+            if(ConfirmSave()) LoadFile(path);
+        }
+        code_editor.SetCursor(code_editor.GetPos(line - 1));
+        code_editor.SetFocus();
+    };
+
     console_pane.WhenInput = [=] { OnConsoleInput(); };
 
     debugger_pane.WhenContinue = [=] { vm.Continue(); };
@@ -230,6 +243,8 @@ void PythonIDE::LoadFile(const String& path)
 	code_editor.Set(content);
 	current_file.path = path;
 	current_file.dirty = false;
+	
+	outline_pane.UpdateOutline(content);
 
 	editor_tabs.Clear();
 	editor_tabs.AddFile(path.ToWString(), CtrlImg::File());
@@ -497,9 +512,12 @@ void PythonIDE::DockInit()
 {
 	// Register and dock panes
 	Register(files_pane.SizeHint(Size(250, 400)));
+	Register(outline_pane.SizeHint(Size(250, 400)));
 	DockLeft(files_pane);
+	Tabify(files_pane, outline_pane);
 
 	files_pane.SetRoot(GetCurrentDirectory());
+	find_pane.SetRoot(GetCurrentDirectory());
 
 	Register(var_explorer.SizeHint(Size(300, 400)));
 	Register(debugger_pane.SizeHint(Size(300, 400)));
@@ -508,6 +526,7 @@ void PythonIDE::DockInit()
 	Register(plots_pane.SizeHint(Size(300, 400)));
 	Register(console_pane.SizeHint(Size(600, 300)));
 	Register(history_pane.Title("History").SizeHint(Size(600, 300)));
+	Register(find_pane.SizeHint(Size(600, 300)));
 
 	// Dock Top-Right Stack (tabbed)
 	DockRight(var_explorer);
@@ -519,6 +538,7 @@ void PythonIDE::DockInit()
 	// Dock Bottom Stack (tabbed)
 	DockBottom(console_pane);
 	Tabify(console_pane, history_pane);
+	Tabify(console_pane, find_pane);
 
 	// Try to load saved layout
 	FileIn in(ConfigFile("docking-layout.bin"));

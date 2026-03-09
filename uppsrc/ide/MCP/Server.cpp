@@ -65,7 +65,28 @@ String McpServer::HandleExtended(const McpRequest& req) {
         ValueArray a = req.params; for(const Value& v : a) if(!IsValueMap(v)) return MakeError(req.id, INVALID_PARAMS, "Edit must be object"); ValueMap r; r.Add("applied", a.GetCount()); return MakeResult(req.id, r);
     }
 
-    // --- debug.* handlers (Phase 2) -----------------------------------------
+    // --- build / run handlers ------------------------------------------------
+
+    if(req.method == "build.start") {
+        String err = sDebugBridge.BuildStart();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "build.stop") {
+        String err = sDebugBridge.BuildStop();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+    if(req.method == "build.status") {
+        ValueMap r; r.Add("building", sDebugBridge.IsBuilding()); return MakeResult(req.id, r);
+    }
+    if(req.method == "run.start") {
+        String err = sDebugBridge.RunStart();
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("accepted", true); return MakeResult(req.id, r);
+    }
+
+    // --- debug.* handlers ---------------------------------------------------
 
     if(req.method == "debug.state") {
         return MakeResult(req.id, ToValue(sDebugBridge.GetState()));

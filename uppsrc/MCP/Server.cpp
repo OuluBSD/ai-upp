@@ -79,6 +79,8 @@ String McpServerCore::Handle(const McpRequest& req) {
         methods.Add("mcp.log.get"); methods.Add("mcp.log.clear");
         methods.Add("mcp.index.status"); methods.Add("mcp.index.refresh");
         methods.Add("workspace.info");
+        methods.Add("build.start"); methods.Add("build.stop"); methods.Add("build.status");
+        methods.Add("run.start");
         methods.Add("debug.state"); methods.Add("debug.session.start"); methods.Add("debug.session.stop");
         methods.Add("debug.continue"); methods.Add("debug.step.over"); methods.Add("debug.step.into"); methods.Add("debug.step.out"); methods.Add("debug.pause");
         methods.Add("debug.breakpoint.set"); methods.Add("debug.breakpoint.clear"); methods.Add("debug.breakpoint.list");

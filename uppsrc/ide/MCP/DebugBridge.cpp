@@ -98,6 +98,36 @@ String DebugBridge::ClearBreakpoint(const String& file, int line)
 	return err;
 }
 
+// ---- build control ---------------------------------------------------------
+
+String DebugBridge::BuildStart()
+{
+	if(!TheIde()) return "IDE not available";
+	PostCallback([] { if(Ide* ide = TheIde()) ide->DoBuild(); });
+	return String();
+}
+
+String DebugBridge::BuildStop()
+{
+	if(!TheIde()) return "IDE not available";
+	PostCallback([] { if(Ide* ide = TheIde()) ide->StopBuild(); });
+	return String();
+}
+
+bool DebugBridge::IsBuilding() const
+{
+	GuiLock __;
+	Ide* ide = TheIde();
+	return ide && ide->IdeIsBuilding();
+}
+
+String DebugBridge::RunStart()
+{
+	if(!TheIde()) return "IDE not available";
+	PostCallback([] { if(Ide* ide = TheIde()) ide->BuildAndExecute(); });
+	return String();
+}
+
 // ---- session control -------------------------------------------------------
 
 String DebugBridge::Start()

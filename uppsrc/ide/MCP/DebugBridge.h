@@ -33,7 +33,21 @@ public:
 	// Returns raw thread list lines from the debugger.
 	Vector<String> GetThreads() const;
 
-	// --- Session control (post to GUI thread, block until done) ---
+	// --- Build control ---
+
+	// Start a build (asynchronous).
+	String BuildStart();
+
+	// Abort a running build.
+	String BuildStop();
+
+	// Returns true if a build is currently running.
+	bool   IsBuilding() const;
+
+	// Build and run (no debugger).
+	String RunStart();
+
+	// --- Debug session control (post to GUI thread, block until done) ---
 
 	// Trigger build + debug start (asynchronous, returns immediately).
 	String Start();

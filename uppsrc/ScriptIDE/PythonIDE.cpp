@@ -158,78 +158,275 @@ PythonIDE::PythonIDE() : run_manager(vm)
 
 void PythonIDE::MainMenu(Bar& bar)
 {
-	bar.Add("File", THISBACK(FileMenu));
-	bar.Add("Edit", THISBACK(EditMenu));
-	bar.Add("Search", THISBACK(SearchMenu));
-	bar.Add("Source", THISBACK(SourceMenu));
-	bar.Add("Run", THISBACK(RunMenu));
-	bar.Add("Debug", THISBACK(DebugMenu));
-	bar.Add("Consoles", THISBACK(ConsolesMenu));
-	bar.Add("Projects", THISBACK(ProjectsMenu));
-	bar.Add("Tools", THISBACK(ToolsMenu));
-	bar.Add("View", THISBACK(ViewMenu));
-	bar.Add("Help", THISBACK(HelpMenu));
+	bar.Sub("File",      [=](Bar& b){ FileMenu(b); });
+	bar.Sub("Edit",      [=](Bar& b){ EditMenu(b); });
+	bar.Sub("Search",    [=](Bar& b){ SearchMenu(b); });
+	bar.Sub("Source",    [=](Bar& b){ SourceMenu(b); });
+	bar.Sub("Run",       [=](Bar& b){ RunMenu(b); });
+	bar.Sub("Debug",     [=](Bar& b){ DebugMenu(b); });
+	bar.Sub("Consoles",  [=](Bar& b){ ConsolesMenu(b); });
+	bar.Sub("Projects",  [=](Bar& b){ ProjectsMenu(b); });
+	bar.Sub("Tools",     [=](Bar& b){ ToolsMenu(b); });
+	bar.Sub("Window",    [=](Bar& b){ WindowMenu(b); });
+	bar.Sub("Help",      [=](Bar& b){ HelpMenu(b); });
 }
 
 void PythonIDE::FileMenu(Bar& bar)
 {
-	bar.Add("New File", CtrlImg::new_doc(), [=] { OnNewFile(); })
-	    .Key(K_CTRL_N);
-	bar.Add("Open...", CtrlImg::open(), [=] { OnOpenFile(); })
-	    .Key(K_CTRL_O);
+	bar.Add("New file...", CtrlImg::new_doc(), [=] { Todo("New file"); }).Key(K_CTRL_N);
 	bar.Separator();
-	bar.Add("Save", CtrlImg::save(), [=] { OnSaveFile(); })
-	    .Key(K_CTRL_S);
-	bar.Add("Save As...", CtrlImg::save_as(), [=] { OnSaveFileAs(); })
-	    .Key(K_CTRL | K_SHIFT | K_S);
+	bar.Add("Open...", CtrlImg::open(), [=] { Todo("Open"); }).Key(K_CTRL_O);
+	bar.Add("Open last closed", [=] { Todo("Open last closed"); }).Key(K_CTRL|K_SHIFT|K_T);
+	bar.Sub("Open recent", [=](Bar& b) {
+		b.Add("Maximum number of recent files...", [=] { Todo("Recent files count"); });
+		b.Add("Clear this list", [=] { Todo("Clear recent"); });
+	});
 	bar.Separator();
-	bar.Add("Exit", [=] { Close(); })
-	    .Key(K_ALT_F4);
+	bar.Add("Save", CtrlImg::save(), [=] { Todo("Save"); }).Key(K_CTRL_S);
+	bar.Add("Save all", [=] { Todo("Save all"); }).Key(K_CTRL|K_ALT|K_S);
+	bar.Add("Save as...", CtrlImg::save_as(), [=] { Todo("Save as"); }).Key(K_CTRL|K_SHIFT|K_S);
+	bar.Add("Save copy as...", [=] { Todo("Save copy as"); });
+	bar.Add("Revert", [=] { Todo("Revert"); });
+	bar.Separator();
+	bar.Add("Print preview", [=] { Todo("Print preview"); });
+	bar.Add("Print...", [=] { Todo("Print"); });
+	bar.Separator();
+	bar.Add("Close", [=] { Todo("Close"); });
+	bar.Add("Close all", [=] { Todo("Close all"); }).Key(K_CTRL|K_SHIFT|K_W);
+	bar.Separator();
+	bar.Add("File switcher...", [=] { Todo("File switcher"); }).Key(K_CTRL_P);
+	bar.Add("Symbol finder...", [=] { Todo("Symbol finder"); }).Key(K_CTRL|K_ALT|K_P);
+	bar.Separator();
+	bar.Add("Restart", [=] { Todo("Restart"); }).Key(K_ALT|K_SHIFT|K_R);
+	bar.Add("Restart in debug mode", [=] { Todo("Restart in debug"); });
+	bar.Add("Quit", [=] { Close(); }).Key(K_CTRL_Q);
 }
 
-void PythonIDE::EditMenu(Bar& bar) {}
-void PythonIDE::SearchMenu(Bar& bar) {}
-void PythonIDE::SourceMenu(Bar& bar) {}
+void PythonIDE::EditMenu(Bar& bar)
+{
+	bar.Add("Undo", CtrlImg::undo(), [=] { code_editor.Undo(); }).Key(K_CTRL_Z);
+	bar.Add("Redo", CtrlImg::redo(), [=] { code_editor.Redo(); }).Key(K_CTRL|K_SHIFT|K_Z);
+	bar.Separator();
+	bar.Add("Cut", CtrlImg::cut(), [=] { code_editor.Cut(); }).Key(K_CTRL_X);
+	bar.Add("Copy", CtrlImg::copy(), [=] { code_editor.Copy(); }).Key(K_CTRL_C);
+	bar.Add("Paste", CtrlImg::paste(), [=] { code_editor.Paste(); }).Key(K_CTRL_V);
+	bar.Add("Select All", [=] { code_editor.SelectAll(); }).Key(K_CTRL_A);
+	bar.Separator();
+	bar.Add("Comment/uncomment", [=] { Todo("Comment"); }).Key(K_CTRL_1);
+	bar.Add("Add block comment", [=] { Todo("Add block comment"); }).Key(K_CTRL_4);
+	bar.Add("Remove block comment", [=] { Todo("Remove block comment"); }).Key(K_CTRL_5);
+	bar.Separator();
+	bar.Add("Indent", [=] { code_editor.TabRight(); });
+	bar.Add("Unindent", [=] { code_editor.TabLeft(); });
+	bar.Separator();
+	bar.Add("Toggle UPPERCASE", [=] { Todo("UPPERCASE"); }).Key(K_ALT|K_SHIFT|K_U);
+	bar.Add("Toggle lowercase", [=] { Todo("lowercase"); }).Key(K_ALT|K_U);
+	bar.Separator();
+	bar.Sub("Convert end-of-line characters", [=](Bar& b) {
+		b.Add("LF (Linux/macOS)", [=] { Todo("EOL LF"); });
+		b.Add("CRLF (Windows)", [=] { Todo("EOL CRLF"); });
+		b.Add("CR (legacy Mac)", [=] { Todo("EOL CR"); });
+	});
+	bar.Add("Remove trailing spaces", [=] { Todo("Trailing spaces"); });
+	bar.Add("Convert tabs to spaces", [=] { Todo("Tabs to spaces"); });
+}
+
+void PythonIDE::SearchMenu(Bar& bar)
+{
+	bar.Add("Find text", CtrlImg::plus(), [=] { code_editor.DoFind(); }); // Using plus as search icon
+	bar.Add("Find next", [=] { code_editor.FindNext(); });
+	bar.Add("Find previous", [=] { code_editor.FindPrev(); });
+	bar.Add("Replace text", [=] { code_editor.Replace(); });
+	bar.Separator();
+	bar.Add("Last edit location", [=] { Todo("Last edit location"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_LEFT);
+	bar.Add("Previous cursor position", [=] { Todo("Prev cursor"); }).Key(K_ALT_LEFT);
+	bar.Add("Next cursor position", [=] { Todo("Next cursor"); }).Key(K_ALT_RIGHT);
+	bar.Separator();
+	bar.Add("Search text in files...", [=] { find_pane.Show(); }).Key(K_ALT|K_SHIFT|K_F);
+}
+
+void PythonIDE::SourceMenu(Bar& bar)
+{
+	bar.Add("Show invisible characters", [=] { Todo("Invisibles"); }).Check(false);
+	bar.Add("Wrap lines", [=] { Todo("Wrap lines"); }).Check(false);
+	bar.Add("Show indent guides", [=] { Todo("Indent guides"); }).Check(false);
+	bar.Add("Show code folding", [=] { Todo("Folding"); }).Check(true);
+	bar.Add("Show class/function selector", [=] { Todo("Selector"); }).Check(false);
+	bar.Add("Show docstring style warnings", [=] { Todo("Docstring warnings"); }).Check(false);
+	bar.Add("Underline errors and warnings", [=] { Todo("Underline"); }).Check(true);
+	bar.Separator();
+	bar.Add("Show todo list", [=] { Todo("Todo list"); }).Enable(false);
+	bar.Add("Show warning/error list", [=] { Todo("Warning list"); }).Enable(false);
+	bar.Add("Previous warning/error", [=] { Todo("Prev warn"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_COMMA);
+	bar.Add("Next warning/error", [=] { Todo("Next warn"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_PERIOD);
+	bar.Separator();
+	bar.Add("Run code analysis", [=] { OnAnalyze(); }).Key(K_F8);
+	bar.Add("Format file or selection with Autopep8", [=] { Todo("Autopep8"); });
+}
 
 void PythonIDE::RunMenu(Bar& bar)
 {
-	bar.Add("Run", CtrlImg::right_arrow(), [=] { OnRun(); })
-	    .Key(K_F5);
-	bar.Add("Run Selection", [=] { OnRunSelection(); })
-	    .Key(K_F9);
+	bar.Add("Run", CtrlImg::right_arrow(), [=] { OnRun(); }).Key(K_F5);
+	bar.Add("Re-run last file", [=] { Todo("Re-run"); }).Key(K_F6);
+	bar.Add("Configuration per file", [=] { OnRunConfig(); }).Key(K_CTRL_F6);
+	bar.Add("Global presets", [=] { Todo("Presets"); });
 	bar.Separator();
-	bar.Add("Configuration per file...", [=] { OnRunConfig(); });
+	bar.Add("Run cell", [=] { Todo("Run cell"); }).Key(K_CTRL|K_ENTER);
+	bar.Add("Run cell and advance", [=] { Todo("Run cell and advance"); }).Key(K_SHIFT|K_ENTER);
+	bar.Add("Re-run last cell", [=] { Todo("Re-run last cell"); }).Key(K_ALT|K_ENTER);
+	bar.Add("Run current line/selection", [=] { OnRunSelection(); }).Key(K_F9);
+	bar.Add("Run to line", [=] { Todo("Run to line"); }).Key(K_SHIFT|K_F9);
+	bar.Add("Run from line", [=] { Todo("Run from line"); }).Key(K_ALT|K_F9);
+	bar.Separator();
+	bar.Add("Run in external terminal", [=] { Todo("External terminal"); });
+	bar.Separator();
+	bar.Add("Profile file", [=] { Todo("Profile file"); }).Key(K_F10);
+	bar.Add("Profile cell", [=] { Todo("Profile cell"); }).Key(K_ALT|K_F10);
+	bar.Add("Profile current line or selection", [=] { Todo("Profile selection"); });
 }
 
 void PythonIDE::DebugMenu(Bar& bar)
 {
-	bar.Add("Debug", [=] { OnDebug(); })
-	    .Key(K_CTRL_F5);
+	bar.Add("Debug file", [=] { Todo("Debug file"); }).Key(K_CTRL_F5);
+	bar.Add("Debug cell", [=] { Todo("Debug cell"); });
+	bar.Add("Debug the current line or selection", [=] { Todo("Debug selection"); });
 	bar.Separator();
-	bar.Add("Step Over", [=] { OnStepOver(); })
-	    .Key(K_F10);
-	bar.Add("Step Into", [=] { OnStepIn(); })
-	    .Key(K_F11);
-	bar.Add("Step Out", [=] { OnStepOut(); })
-	    .Key(K_SHIFT_F11);
+	bar.Add("Debug current line", [=] { Todo("Debug current line"); }).Key(K_CTRL_F10);
+	bar.Add("Step into function or method", [=] { OnStepIn(); }).Key(K_CTRL_F11);
+	bar.Add("Execute until function returns", [=] { OnStepOut(); }).Key(K_CTRL|K_SHIFT|K_F11);
+	bar.Add("Execute until next breakpoint", [=] { vm.Continue(); }).Key(K_CTRL_F12);
+	bar.Add("Stop debugging", [=] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12);
 	bar.Separator();
-	bar.Add("Toggle Breakpoint", [=] { OnToggleBreakpoint(); })
-	    .Key(K_F9);
+	bar.Add("Toggle breakpoint", [=] { OnToggleBreakpoint(); }).Key(K_F12);
+	bar.Add("Set/edit conditional breakpoint", [=] { Todo("Conditional BP"); }).Key(K_SHIFT_F12);
+	bar.Add("Clear breakpoints in all files", [=] { Todo("Clear all BP"); });
+	bar.Add("List breakpoints", [=] { Todo("List BP"); });
 }
 
-void PythonIDE::ConsolesMenu(Bar& bar) {}
-void PythonIDE::ProjectsMenu(Bar& bar) {}
+void PythonIDE::ConsolesMenu(Bar& bar)
+{
+	bar.Add("New console (default settings)", [=] { Todo("New console"); }).Key(K_CTRL_T);
+	bar.Sub("New console in environment", [=](Bar& b) {
+		b.Add("Conda: spyder-runtime 0", [=] { Todo("Conda console"); });
+	});
+	bar.Sub("New special console", [=](Bar& b) {
+		b.Add("New Pylab console (data plotting)", [=] { Todo("Pylab console"); });
+		b.Add("New SymPy console (symbolic math)", [=] { Todo("SymPy console"); });
+		b.Add("New Cython console (Python with C extensions)", [=] { Todo("Cython console"); });
+	});
+	bar.Sub("New console in remote server", [=](Bar& b) {
+		b.Add("Manage remote connections", [=] { Todo("Manage remote"); });
+	});
+	bar.Add("Connect to existing kernel...", [=] { Todo("Connect kernel"); });
+	bar.Separator();
+	bar.Add("Interrupt kernel", [=] { Todo("Interrupt kernel"); });
+	bar.Add("Restart kernel", [=] { Todo("Restart kernel"); }).Key(K_CTRL_PERIOD);
+	bar.Add("Remove all variables", [=] { Todo("Remove variables"); }).Key(K_CTRL|K_ALT|K_R);
+}
+
+void PythonIDE::ProjectsMenu(Bar& bar)
+{
+	bar.Add("New Project...", [=] { Todo("New Project"); });
+	bar.Add("Open Project...", [=] { Todo("Open Project"); });
+	bar.Add("Close Project", [=] { Todo("Close Project"); });
+	bar.Add("Delete Project", [=] { Todo("Delete Project"); });
+	bar.Separator();
+	bar.Sub("Recent Projects", [=](Bar& b) {
+		b.Add("Clear this list", [=] { Todo("Clear projects"); });
+		b.Add("Maximum number of recent projects", [=] { Todo("Projects count"); });
+	});
+}
+
 void PythonIDE::ToolsMenu(Bar& bar)
 {
-	bar.Add("PYTHONPATH Manager", [=] { OnPathManager(); });
-	bar.Add("Settings", [=] { OnSettings(); });
+	bar.Add("PYTHONPATH manager", [=] { OnPathManager(); });
+	bar.Add("User environment variables", [=] { Todo("Env vars"); });
+	bar.Add("Manage remote connections", [=] { Todo("Remote conn"); });
+	bar.Separator();
+	bar.Add("Preferences", [=] { OnSettings(); });
+	bar.Add("Reset all preferences to defaults", [=] { Todo("Reset prefs"); });
 }
 
-void PythonIDE::ViewMenu(Bar& bar)
+void PythonIDE::WindowMenu(Bar& bar)
 {
+	bar.Sub("Panes", [=](Bar& b) {
+		b.Add("Editor", [=] { Todo("Toggle Editor"); }).Key(K_CTRL|K_SHIFT|K_E).Check(true);
+		b.Add("IPython Console", [=] { console_pane.Show(!console_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_I).Check(console_pane.IsVisible());
+		b.Add("Variable Explorer", [=] { var_explorer.Show(!var_explorer.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer.IsVisible());
+		b.Add("Debugger", [=] { debugger_pane.Show(!debugger_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane.IsVisible());
+		b.Add("Help", [=] { help_pane.Show(!help_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane.IsVisible());
+		b.Add("Plots", [=] { plots_pane.Show(!plots_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane.IsVisible());
+		b.Separator();
+		b.Add("Files", [=] { files_pane.Show(!files_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane.IsVisible());
+		b.Add("Outline", [=] { outline_pane.Show(!outline_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane.IsVisible());
+		b.Add("Project", [=] { Todo("Project pane"); }).Key(K_CTRL|K_SHIFT|K_P).Check(false);
+		b.Add("Find", [=] { find_pane.Show(!find_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane.IsVisible());
+		b.Separator();
+		b.Add("History", [=] { history_pane.Show(!history_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane.IsVisible());
+		b.Add("Profiler", [=] { profiler_pane.Show(!profiler_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane.IsVisible());
+		b.Add("Code Analysis", [=] { Todo("Analysis pane"); }).Key(K_CTRL|K_SHIFT|K_C).Check(false);
+		b.Separator();
+		b.Add("Online help", [=] { Todo("Online help"); }).Check(false);
+		b.Add("Internal console", [=] { Todo("Internal console"); }).Check(false);
+	});
+	bar.Add("Unlock panes and toolbars", [=] { Todo("Unlock layout"); }).Key(K_CTRL|K_SHIFT|K_F5);
+	bar.Add("Maximize current pane", [=] { Todo("Maximize pane"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
+	bar.Add("Close current pane", [=] { Todo("Close pane"); }).Key(K_CTRL|K_SHIFT|K_F4);
+	bar.Separator();
+	bar.Sub("Toolbars", [=](Bar& b) {
+		b.Add("File toolbar", [=] { Todo("Toggle File TB"); }).Check(true);
+		b.Add("Run toolbar", [=] { Todo("Toggle Run TB"); }).Check(true);
+		b.Add("Debug toolbar", [=] { Todo("Toggle Debug TB"); }).Check(true);
+		b.Add("Profile toolbar", [=] { Todo("Toggle Profile TB"); }).Check(true);
+		b.Add("Main toolbar", [=] { Todo("Toggle Main TB"); }).Check(true);
+		b.Add("Current working directory", [=] { Todo("Toggle CWD TB"); }).Check(true);
+	});
+	bar.Add("Hide toolbars", [=] { Todo("Hide TB"); });
+	bar.Separator();
+	bar.Sub("Window layouts", [=](Bar& b) {
+		b.Add("Default layout", [=] { Todo("Layout Default"); });
+		b.Add("Rstudio layout", [=] { Todo("Layout Rstudio"); });
+		b.Add("Matlab layout", [=] { Todo("Layout Matlab"); });
+		b.Add("Horizontal split", [=] { Todo("Layout Horz"); });
+		b.Add("Vertical split", [=] { Todo("Layout Vert"); });
+		b.Separator();
+		b.Add("Save current layout", [=] { Todo("Save layout"); });
+		b.Add("Layout preferences", [=] { Todo("Layout prefs"); });
+		b.Add("Reset to Spyder default", [=] { Todo("Reset layout"); });
+	});
+	bar.Add("Use next layout", [=] { Todo("Next layout"); }).Key(K_ALT|K_SHIFT|K_PAGEUP);
+	bar.Add("Use previous layout", [=] { Todo("Prev layout"); }).Key(K_ALT|K_SHIFT|K_PAGEDOWN);
+	bar.Separator();
+	bar.Add("Fullscreen mode", [=] { Todo("Fullscreen"); }).Key(K_F11);
 }
 
-void PythonIDE::HelpMenu(Bar& bar) {}
+void PythonIDE::HelpMenu(Bar& bar)
+{
+	bar.Add("Interactive tour", [=] { Todo("Tour"); });
+	bar.Add("Built-in tutorial", [=] { Todo("Tutorial"); });
+	bar.Add("Shortcuts summary", [=] { Todo("Shortcuts"); });
+	bar.Separator();
+	bar.Add("Spyder documentation", [=] { Todo("Doc"); }).Key(K_F1);
+	bar.Add("Tutorial videos", [=] { Todo("Videos"); });
+	bar.Sub("IPython documentation", [=](Bar& b) {
+		b.Add("Intro to IPython", [=] { Todo("IPython Intro"); });
+		b.Add("Console help", [=] { Todo("Console help"); });
+		b.Add("Quick reference", [=] { Todo("Quick ref"); });
+	});
+	bar.Add("Troubleshooting guide", [=] { Todo("Trouble"); });
+	bar.Add("Spyder Google group", [=] { Todo("Google group"); });
+	bar.Add("Dependency status", [=] { Todo("Deps"); });
+	bar.Add("Report issue...", [=] { Todo("Report"); });
+	bar.Separator();
+	bar.Add("Check for updates", [=] { Todo("Updates"); });
+	bar.Add("Help Spyder...", [=] { Todo("Help Spyder"); });
+	bar.Add("About ScriptIDE", [=] { PromptOK("ScriptIDE\n\nA Spyder-like Python IDE using ByteVM and U++."); });
+}
+
+void PythonIDE::Todo(const String& msg)
+{
+	PromptOK("Feature not yet implemented: " + msg);
+}
 
 void PythonIDE::OnNewFile()
 {
@@ -480,40 +677,56 @@ size_t PythonIDE::MemoryTotalKb()
 
 void PythonIDE::DockInit()
 {
-	// Register and dock panes
+	// Register all panes
 	Register(files_pane.SizeHint(Size(250, 400)));
 	Register(outline_pane.SizeHint(Size(250, 400)));
-	DockLeft(files_pane);
-	Tabify(files_pane, outline_pane);
+	Register(var_explorer.SizeHint(Size(350, 400)));
+	Register(debugger_pane.SizeHint(Size(350, 400)));
+	Register(profiler_pane.SizeHint(Size(350, 400)));
+	Register(help_pane.Title("Help").SizeHint(Size(350, 400)));
+	Register(plots_pane.SizeHint(Size(350, 400)));
+	Register(console_pane.SizeHint(Size(600, 350)));
+	Register(history_pane.Title("History").SizeHint(Size(600, 350)));
+	Register(find_pane.SizeHint(Size(600, 350)));
+
+	// Initial Default Docking (only if no saved layout)
+	if(!FileExists(ConfigFile("docking-layout.bin"))) {
+		DockLeft(files_pane);
+		Tabify(files_pane, outline_pane);
+
+		DockRight(var_explorer);
+		Tabify(var_explorer, debugger_pane);
+		Tabify(var_explorer, profiler_pane);
+		Tabify(var_explorer, help_pane);
+		Tabify(var_explorer, plots_pane);
+
+		DockBottom(console_pane); // Simple DockBottom
+		Tabify(console_pane, history_pane);
+		Tabify(console_pane, find_pane);
+	}
 
 	files_pane.SetRoot(GetCurrentDirectory());
 	find_pane.SetRoot(GetCurrentDirectory());
-
-	Register(var_explorer.SizeHint(Size(300, 400)));
-	Register(debugger_pane.SizeHint(Size(300, 400)));
-	Register(profiler_pane.SizeHint(Size(300, 400)));
-	Register(help_pane.Title("Help").SizeHint(Size(300, 400)));
-	Register(plots_pane.SizeHint(Size(300, 400)));
-	Register(console_pane.SizeHint(Size(600, 300)));
-	Register(history_pane.Title("History").SizeHint(Size(600, 300)));
-	Register(find_pane.SizeHint(Size(600, 300)));
-
-	// Dock Top-Right Stack (tabbed)
-	DockRight(var_explorer);
-	Tabify(var_explorer, debugger_pane);
-	Tabify(var_explorer, profiler_pane);
-	Tabify(var_explorer, help_pane);
-	Tabify(var_explorer, plots_pane);
-
-	// Dock Bottom Stack (tabbed)
-	DockBottom(console_pane);
-	Tabify(console_pane, history_pane);
-	Tabify(console_pane, find_pane);
 
 	// Try to load saved layout
 	FileIn in(ConfigFile("docking-layout.bin"));
 	if(in.IsOpen() && !in.IsError())
 		SerializeWindow(in);
+		
+	// Populate Toolbar
+	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
+}
+
+void PythonIDE::MainToolbar(Bar& bar)
+{
+	bar.Add(CtrlImg::new_doc(), [=] { OnNewFile(); }).Help("New File");
+	bar.Add(CtrlImg::open(), [=] { OnOpenFile(); }).Help("Open File");
+	bar.Add(CtrlImg::save(), [=] { OnSaveFile(); }).Help("Save File");
+	bar.Separator();
+	bar.Add(CtrlImg::right_arrow(), [=] { OnRun(); }).Help("Run Script (F5)");
+	bar.Add(CtrlImg::plus(), [=] { OnRunSelection(); }).Help("Run Selection (F9)");
+	bar.Separator();
+	bar.Add(CtrlImg::remove(), [=] { OnStop(); }).Help("Stop Execution");
 }
 
 void PythonIDE::Close()

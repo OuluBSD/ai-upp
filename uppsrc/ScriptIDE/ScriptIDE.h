@@ -36,6 +36,8 @@ public:
 #include "FindInFilesPane.h"
 #include "OutlinePane.h"
 #include "RunManager.h"
+#include "PathManager.h"
+#include "PathManagerDlg.h"
 #include "PythonConsole.h"
 #include "FilesPane.h"
 #include "CustomFileTabs.h"

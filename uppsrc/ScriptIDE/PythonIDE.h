@@ -75,6 +75,7 @@ private:
     void OnRunConfig();
     void OnDebug();
     void OnStop();
+    void OnPathManager();
 
     void ApplySettings();
     void OnSettings();
@@ -86,6 +87,7 @@ private:
 
     PyVM vm;
     RunManager run_manager;
+    PathManager path_manager;
 
     struct StatusInfo {
         int line = 1;

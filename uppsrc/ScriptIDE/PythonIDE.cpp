@@ -75,8 +75,11 @@ PythonIDE::PythonIDE() : run_manager(vm)
 
     // Load settings
     LoadFromFile(settings, ConfigFile("settings.bin"));
+    LoadFromFile(path_manager, ConfigFile("pythonpath.bin"));
 
     InitLayout();
+    
+    path_manager.SyncToVM(vm);
 
     menubar.Set([=](Bar& bar) { MainMenu(bar); });
 
@@ -194,6 +197,7 @@ void PythonIDE::ConsolesMenu(Bar& bar) {}
 void PythonIDE::ProjectsMenu(Bar& bar) {}
 void PythonIDE::ToolsMenu(Bar& bar)
 {
+	bar.Add("PYTHONPATH Manager", [=] { OnPathManager(); });
 	bar.Add("Settings", [=] { OnSettings(); });
 }
 
@@ -506,6 +510,17 @@ void PythonIDE::ShowHelp(const String& topic)
 	qtf << "[_^https://docs.python.org/3/search.html?q=" << topic << "^ Search Python Docs for: " << topic << "]";
 	help_pane->SetQTF(qtf);
 	help_pane.Show(); 
+}
+
+void PythonIDE::OnPathManager()
+{
+	PathManagerDlg dlg;
+	dlg.Set(path_manager);
+	if(dlg.Execute() == IDOK) {
+		dlg.Get(path_manager);
+		path_manager.SyncToVM(vm);
+		StoreToFile(path_manager, ConfigFile("pythonpath.bin"));
+	}
 }
 
 void PythonIDE::ApplySettings()

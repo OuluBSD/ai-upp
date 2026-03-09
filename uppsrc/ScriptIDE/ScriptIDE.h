@@ -10,6 +10,8 @@
 
 namespace Upp {
 
+#include "IDESettings.h"
+
 template <class T>
 class WithDockable : public DockableCtrl {
 public:

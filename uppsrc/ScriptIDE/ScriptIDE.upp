@@ -13,6 +13,7 @@ file
 	ScriptIDE.h,
 	PythonIDE.h,
 	PythonIDE.cpp,
+	IDESettings.h,
 	Settings.h,
 	Settings.cpp,
 	VariableExplorer.h,

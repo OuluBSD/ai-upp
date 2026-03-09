@@ -94,7 +94,7 @@ PythonIDE::PythonIDE() : run_manager(vm)
     AddFrame(statusbar);
 
     // Load settings
-    LoadFromFile(settings, ConfigFile("settings.bin"));
+    LoadFromFile(settings, ConfigFile("ide_settings.bin"));
     LoadFromFile(path_manager, ConfigFile("pythonpath.bin"));
 
     InitLayout();
@@ -732,7 +732,7 @@ void PythonIDE::MainToolbar(Bar& bar)
 void PythonIDE::Close()
 {
 	// Save settings
-	StoreToFile(settings, ConfigFile("settings.bin"));
+	StoreToFile(settings, ConfigFile("ide_settings.bin"));
 
 	// Save layout before closing
 	FileOut out(ConfigFile("docking-layout.bin"));
@@ -763,19 +763,18 @@ void PythonIDE::OnPathManager()
 
 void PythonIDE::ApplySettings()
 {
-	code_editor.SetFont(settings.editor_font);
-	code_editor.LineNumbers(settings.show_line_numbers);
-	code_editor.ShowSpaces(settings.show_spaces);
+	// Map IDESettings to CodeEditor
+	int face = Font::FindFaceNameIndex(settings.appearance.monospace_font_face);
+	if(face < 0) face = Font::COURIER;
+	code_editor.SetFont(Font(face, settings.appearance.monospace_font_size));
+	code_editor.LineNumbers(settings.editor.show_line_numbers);
+	code_editor.ShowSpaces(settings.editor.show_spaces);
+	// ... more mappings as needed
 }
 
 void PythonIDE::OnSettings()
 {
-	SettingsDlg dlg;
-	dlg.Set(settings);
-	if(dlg.Execute() == IDOK) {
-		dlg.Get(settings);
-		ApplySettings();
-	}
+	Todo("Preferences Window");
 }
 
 }

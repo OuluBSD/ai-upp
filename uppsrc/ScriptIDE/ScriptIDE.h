@@ -21,6 +21,7 @@ namespace Upp {
 
 #include "Settings.h"
 #include "VariableExplorer.h"
+#include "PlotsPane.h"
 #include "PythonConsole.h"
 #include "FileTree.h"
 #include "CustomFileTabs.h"

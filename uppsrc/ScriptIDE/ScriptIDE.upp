@@ -1,31 +1,34 @@
 description "Python IDE using ByteVM\377";
 
 uses
-    CtrlLib,
-    CodeEditor,
-    TabBar,
-    ByteVM,
-    RichEdit,
-    Docking;
+	CtrlLib,
+	CodeEditor,
+	TabBar,
+	ByteVM,
+	RichEdit,
+	Docking;
 
 file
-    AGENTS.md,
-    ScriptIDE.h,
-    PythonIDE.h,
-    PythonIDE.cpp,
-    Settings.h,
-    Settings.cpp,
-    VariableExplorer.h,
-    VariableExplorer.cpp,
-    PythonConsole.h,
-    PythonConsole.cpp,
-    FileTree.h,
-    FileTree.cpp,
-    CustomFileTabs.h,
-    CustomFileTabs.cpp,
-    Main.cpp,
-    ScriptIDE.lay,
-    ScriptIDE.iml;
+	AGENTS.md,
+	ScriptIDE.h,
+	PythonIDE.h,
+	PythonIDE.cpp,
+	Settings.h,
+	Settings.cpp,
+	VariableExplorer.h,
+	VariableExplorer.cpp,
+	PlotsPane.h,
+	PlotsPane.cpp,
+	PythonConsole.h,
+	PythonConsole.cpp,
+	FileTree.h,
+	FileTree.cpp,
+	CustomFileTabs.h,
+	CustomFileTabs.cpp,
+	Main.cpp,
+	ScriptIDE.lay,
+	ScriptIDE.iml;
 
 mainconfig
-    "" = "GUI";
+	"" = "GUI";
+

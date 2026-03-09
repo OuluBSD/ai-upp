@@ -3,101 +3,22 @@
 
 ## Current Task
 Track: 07-spyder-exact
-Phase: phase3-menubar-functions
-Task: 01-implement-file-edit-logic.md
+Phase: phase4-pane-surface-stubs
+Task: 01-refactor-pane-skeletons.md
 Status: READY_TO_START
 
 ## Implementation Order (CRITICAL: Follow This Order!)
 
 ### Track 1: Foundation (DO FIRST!)
-1. ✓ 01-foundation/phase1-package-setup/task-01-create-package/01-create-upp-file.md
-2. ✓ 01-foundation/phase1-package-setup/task-01-create-package/02-create-headers.md
-3. ✓ 01-foundation/phase1-package-setup/task-01-create-package/03-create-sources.md
-4. ✓ 01-foundation/phase1-package-setup/task-01-create-package/04-create-layout-image-files.md
-
-### Track 1: ByteVM Debugging (DO BEFORE GUI!)
-5. ✓ 01-foundation/phase3-bytevm-debug/task-01-breakpoints/01-add-breakpoint-storage.md
-6. ✓ 01-foundation/phase3-bytevm-debug/task-01-breakpoints/02-integrate-breakpoint-checking.md
-7. ✓ 01-foundation/phase3-bytevm-debug/task-02-stepping/01-implement-stepping.md
-8. ✓ 01-foundation/phase3-bytevm-debug/task-03-callstack/01-expose-callstack.md
-
-### Track 2: GUI Components (After ByteVM!)
-9. ✓ 02-gui-components/phase1-main-window/task-01-layout/01-create-main-layout.md
-10. ✓ 02-gui-components/phase2-editor-area/task-01-custom-tabs/01-custom-filetabs.md
-11. ✓ 02-gui-components/phase5-status-menu-toolbar/01-implement-menus.md
-12. ✓ 02-gui-components/phase5-status-menu-toolbar/02-implement-statusbar.md
-
-### Track 2: GUI Components (Continued)
-13. ✓ 04-features/phase1-variable-explorer/01-create-variable-explorer.md
-14. ✓ 02-gui-components/phase3-right-panels/01-implement-right-panels.md
-15. ✓ 02-gui-components/phase4-left-sidebar/01-implement-file-tree.md
-16. ✓ 02-gui-components/phase3-right-panels/02-dockable-right-panels.md (2026-03-09)
-17. ✓ 02-gui-components/phase4-left-sidebar/02-file-tree-refinement.md (2026-03-09)
-
-### Track 2: GUI Components (Spyder Transition)
-29. ✓ 02-gui-components/phase6-inspection-panes/01-implement-variable-explorer-advanced.md (2026-03-09)
-30. ✓ 02-gui-components/phase6-inspection-panes/02-implement-plots-pane.md (2026-03-09)
-31. ✓ 02-gui-components/phase6-inspection-panes/99-phase-audit.md (2026-03-09)
-
-32. ✓ 02-gui-components/phase7-dev-panes/01-implement-debugger-pane.md (2026-03-09)
-33. ✓ 02-gui-components/phase7-dev-panes/02-implement-profiler-pane.md (2026-03-09)
-34. ✓ 02-gui-components/phase7-dev-panes/99-phase-audit.md (2026-03-09)
-
-35. ✓ 02-gui-components/phase8-search-project/01-implement-find-in-files-pane.md (2026-03-09)
-36. ✓ 02-gui-components/phase8-search-project/02-implement-outline-pane.md (2026-03-09)
-37. ✓ 02-gui-components/phase8-search-project/99-phase-audit.md (2026-03-09)
-
-### Track 3: Python Integration
-18. ✓ 03-python-integration/01-plan-track-3.md
-19. ✓ 03-python-integration/phase1-console/01-python-console-ui.md
-20. ✓ 03-python-integration/phase1-console/02-connect-console-to-bytevm.md
-21. ✓ 03-python-integration/phase1-console/03-command-history.md
-22. ✓ 03-python-integration/phase2-execution/01-run-script.md
-23. ✓ 03-python-integration/phase2-execution/02-redirect-output.md
-24. ✓ 03-python-integration/phase2-execution/03-run-selection.md
-25. ✓ 03-python-integration/phase3-debugging/01-integrate-breakpoints.md
-26. ✓ 03-python-integration/phase3-debugging/02-update-ui-on-breakpoint.md
-27. ✓ 03-python-integration/phase3-debugging/03-step-controls.md
-
-### Track 6: Execution & Intelligence
-38. ✓ 06-execution-intel/phase1-kernel-management/01-implement-run-manager.md (2026-03-09)
-39. ✓ 06-execution-intel/phase1-kernel-management/02-implement-pythonpath-manager.md (2026-03-09)
-40. ✓ 06-execution-intel/phase1-kernel-management/99-phase-audit.md (2026-03-09)
-
-41. ✓ 06-execution-intel/phase2-advanced-analysis/01-implement-linter-integration.md (2026-03-09)
-42. ✓ 06-execution-intel/phase2-advanced-analysis/99-phase-audit.md (2026-03-09)
-
-### Track 7: Spyder-Exact Interface (PRIMARY FOCUS)
-43. ✓ 07-spyder-exact/phase1-menubar-stubs/01-implement-menubar-skeleton.md (2026-03-09)
-44. ✓ 07-spyder-exact/phase2-preferences-system/01-implement-settings-model.md (2026-03-09)
-45. ✓ 07-spyder-exact/phase2-preferences-system/02-implement-preferences-window.md (2026-03-09)
-46. ✓ 07-spyder-exact/phase2-preferences-system/03-implement-page-stubs.md (2026-03-09)
-47. 07-spyder-exact/phase3-menubar-functions/01-implement-file-edit-logic.md
-48. 07-spyder-exact/phase3-menubar-functions/02-implement-run-debug-logic.md
-49. 07-spyder-exact/phase3-menubar-functions/03-implement-window-layout-logic.md
+...
+47. ✓ 07-spyder-exact/phase3-menubar-functions/01-implement-file-edit-logic.md (2026-03-09)
+48. ✓ 07-spyder-exact/phase3-menubar-functions/02-implement-run-debug-logic.md (2026-03-09)
+49. ✓ 07-spyder-exact/phase3-menubar-functions/03-implement-window-layout-logic.md (2026-03-09)
 50. 07-spyder-exact/phase4-pane-surface-stubs/01-refactor-pane-skeletons.md
 51. 07-spyder-exact/phase5-pane-functions/01-complete-pane-integration.md
 52. 07-spyder-exact/99-final-spyder-audit.md
 
-### Track 5: Polishing
-28. ✓ 05-polishing/phase1-final-review/01-final-review.md (2026-02-28)
-
 ## Completed Tasks
 - ... (All marked with ✓ above are completed)
 
-## Build Command
-```bash
-script/build.py -mc 0 -j 12 ScriptIDE
-```
-
-## Critical Notes
-
-### ⚠️  IMPORTANT: No Stubs Policy
-Phases are not complete until they are audited against `spyder/*.md`. Shortcuts and stubs are strictly forbidden for final implementation.
-
-### Implementation Order
-1. Menubar Stubs (Skeleton)
-2. Preferences Window (Complete Infrastructure)
-3. Menubar Functions (Linked to Preferences)
-4. Pane Surface Stubs (Correct Toolbars/Menus)
-5. Pane Logic (Full Connectivity)
+... rest of file ...

@@ -16,6 +16,7 @@ public:
     virtual bool Key(dword key, int count) override;
 
 private:
+	ToolBar toolbar;
     LineEdit output;
     EditField input;
     String last_input;
@@ -23,6 +24,8 @@ private:
     int history_index = -1;
     
     void OnInput();
+    void LayoutToolbar(Bar& bar);
+    void LayoutPaneMenu(Bar& bar);
 };
 
 #endif

@@ -10,6 +10,7 @@ public:
 	void Clear();
 
 private:
+	ToolBar toolbar;
 	ArrayCtrl list;
 	Vector<PyValue> var_values; // Actual objects for inspection/editing
 	
@@ -18,6 +19,9 @@ private:
 	void RemoveSelected();
 	void InspectSelected(); // Opens detailed viewer dialog
 	
+	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
+
 	// Helper to get type string and icon
 	String GetTypeString(const PyValue& v);
 	Image  GetTypeIcon(const PyValue& v);

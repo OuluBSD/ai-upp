@@ -17,12 +17,26 @@ DebuggerPane::DebuggerPane()
 
 void DebuggerPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add("Continue", CtrlImg::right_arrow(), WhenContinue);
-	bar.Add("Step Over", CtrlImg::plus(), WhenStepOver);
-	bar.Add("Step Into", CtrlImg::plus(), WhenStepInto); // TODO: need better icons
-	bar.Add("Step Out", CtrlImg::remove(), WhenStepOut);
+	bar.Add("Continue", CtrlImg::right_arrow(), WhenContinue).Help("Execute until next breakpoint");
+	bar.Add("Step Over", CtrlImg::plus(), WhenStepOver).Help("Debug current line");
+	bar.Add("Step Into", CtrlImg::plus(), WhenStepInto).Help("Step into function or method");
+	bar.Add("Step Out", CtrlImg::remove(), WhenStepOut).Help("Execute until function returns");
+	bar.Add("Stop", CtrlImg::remove(), WhenStop).Help("Stop debugging");
 	bar.Separator();
-	bar.Add("Stop", CtrlImg::remove(), WhenStop);
+	bar.Add("Post-mortem", [=] {}).Help("Start debugging after last error");
+	bar.Add("Interrupt", [=] {}).Help("Interrupt execution");
+	bar.Add("Inspect", [=] {}).Help("Inspect execution");
+	bar.Separator();
+	bar.Add("Show file", [=] {}).Help("Show file/line in editor");
+	bar.Add("Search frames", [=] {});
+	bar.Gap(2000);
+	bar.Add("Breakpoints", [=] {}).Help("Show breakpoints");
+	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+}
+
+void DebuggerPane::LayoutPaneMenu(Bar& bar)
+{
+	bar.Add("Exclude internal frames", [=] {}).Check(true);
 }
 
 void DebuggerPane::SetStack(const Vector<PyVM::StackFrame>& stack)

@@ -23,10 +23,13 @@ private:
 
 	void UpdateDisplay();
 	void SaveSelected();
+	void SaveAll();
 	void CopySelected();
+	void RemoveSelected();
 	void PrevPlot();
 	void NextPlot();
 	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
 };
 
 #endif

@@ -21,6 +21,7 @@ private:
 	TreeCtrl stack_tree;
 	
 	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
 	void OnTreeCursor();
 };
 

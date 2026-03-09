@@ -190,9 +190,147 @@ public:
     virtual bool IsModified() const override { return true; }
 };
 
-PREF_PAGE(Application)
-PREF_PAGE(PythonInterpreter)
-PREF_PAGE(KeyboardShortcuts)
+class ApplicationPage : public PreferencesPage {
+public:
+    typedef ApplicationPage CLASSNAME;
+    
+    TabCtrl tabs;
+    
+    struct InterfaceTab : public WithApplicationInterfaceTabLayout<ParentCtrl> {
+        InterfaceTab() { CtrlLayout(*this); }
+    } interface_tab;
+    
+    struct AdvancedTab : public WithApplicationAdvancedTabLayout<ParentCtrl> {
+        AdvancedTab() {
+            CtrlLayout(*this);
+            language.Add("English");
+            language.Add("French");
+            language.Add("Spanish");
+            
+            rendering_engine.Add("Default");
+            rendering_engine.Add("Software");
+            rendering_engine.Add("OpenGL");
+        }
+    } advanced_tab;
+
+    ApplicationPage() {
+        Add(tabs.SizePos());
+        tabs.Add(interface_tab, "Interface");
+        tabs.Add(advanced_tab, "Advanced settings");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        interface_tab.hidpi_mode.SetData(cfg.application.hidpi_mode);
+        interface_tab.custom_scale.SetData(cfg.application.custom_scale);
+        interface_tab.show_friendly_empty.SetData(cfg.application.show_friendly_empty_messages);
+        interface_tab.vertical_tabs.SetData(cfg.application.vertical_tabs_in_panes);
+        interface_tab.custom_margin.SetData(cfg.application.pane_margin > 0);
+        interface_tab.pane_margin.SetData(cfg.application.pane_margin);
+        interface_tab.cursor_blinking.SetData(cfg.application.custom_cursor_blink);
+        interface_tab.blink_ms.SetData(cfg.application.cursor_blink_ms);
+        
+        advanced_tab.language.SetData(cfg.application.language);
+        advanced_tab.rendering_engine.SetData(cfg.application.rendering_engine);
+        advanced_tab.single_instance.SetData(cfg.application.single_instance);
+        advanced_tab.prompt_exit.SetData(cfg.application.prompt_on_exit);
+        advanced_tab.show_internal_errors.SetData(cfg.application.show_internal_errors);
+        advanced_tab.check_updates.SetData(cfg.application.check_updates_on_startup);
+        advanced_tab.stable_only.SetData(cfg.application.stable_releases_only);
+        advanced_tab.disable_wheel_zoom.SetData(cfg.application.disable_ctrl_wheel_zoom);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.application.hidpi_mode = ~interface_tab.hidpi_mode;
+        cfg.application.custom_scale = ~interface_tab.custom_scale;
+        cfg.application.show_friendly_empty_messages = ~interface_tab.show_friendly_empty;
+        cfg.application.vertical_tabs_in_panes = ~interface_tab.vertical_tabs;
+        cfg.application.pane_margin = ~interface_tab.custom_margin ? (int)~interface_tab.pane_margin : 0;
+        cfg.application.custom_cursor_blink = ~interface_tab.cursor_blinking;
+        cfg.application.cursor_blink_ms = ~interface_tab.blink_ms;
+        
+        cfg.application.language = ~advanced_tab.language;
+        cfg.application.rendering_engine = ~advanced_tab.rendering_engine;
+        cfg.application.single_instance = ~advanced_tab.single_instance;
+        cfg.application.prompt_on_exit = ~advanced_tab.prompt_exit;
+        cfg.application.show_internal_errors = ~advanced_tab.show_internal_errors;
+        cfg.application.check_updates_on_startup = ~advanced_tab.check_updates;
+        cfg.application.stable_releases_only = ~advanced_tab.stable_only;
+        cfg.application.disable_ctrl_wheel_zoom = ~advanced_tab.disable_wheel_zoom;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+
+    virtual void SetDefaults() override {
+        interface_tab.hidpi_mode.SetData(0);
+        interface_tab.custom_scale.SetData(1.0);
+        advanced_tab.language.SetData("English");
+    }
+
+    virtual bool IsModified() const override { return true; }
+};
+
+class PythonInterpreterPage : public WithPythonInterpreterPageLayout<PreferencesPage> {
+public:
+    typedef PythonInterpreterPage CLASSNAME;
+    PythonInterpreterPage() {
+        CtrlLayout(*this);
+        browse_interpreter.WhenAction = [=] {
+            FileSel fs;
+            if(fs.ExecuteOpen("Select Interpreter")) interpreter_path.SetData(fs.Get());
+        };
+        browse_conda.WhenAction = [=] {
+            FileSel fs;
+            if(fs.ExecuteOpen("Select Conda Executable")) conda_path.SetData(fs.Get());
+        };
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        interpreter_mode.SetData(cfg.python.use_internal ? 0 : 1);
+        interpreter_path.SetData(cfg.python.interpreter_path);
+        use_custom_conda.SetData(cfg.python.use_custom_conda);
+        conda_path.SetData(cfg.python.conda_executable);
+        umr_enabled.SetData(cfg.python.umr_enabled);
+        umr_verbose.SetData(cfg.python.umr_verbose);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.python.use_internal = ((int)~interpreter_mode == 0);
+        cfg.python.interpreter_path = ~interpreter_path;
+        cfg.python.use_custom_conda = ~use_custom_conda;
+        cfg.python.conda_executable = ~conda_path;
+        cfg.python.umr_enabled = ~umr_enabled;
+        cfg.python.umr_verbose = ~umr_verbose;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        interpreter_mode.SetData(0);
+        umr_enabled.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class KeyboardShortcutsPage : public WithShortcutsPageLayout<PreferencesPage> {
+public:
+    typedef KeyboardShortcutsPage CLASSNAME;
+    KeyboardShortcutsPage() {
+        CtrlLayout(*this);
+        list.AddColumn("Context");
+        list.AddColumn("Name");
+        list.AddColumn("Shortcut");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        list.Clear();
+        for(const auto& item : cfg.shortcuts.items)
+            list.Add(item.context, item.action_id, GetKeyDesc(item.key));
+    }
+
+    virtual void Save(IDESettings& cfg) const override {}
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {}
+    virtual bool IsModified() const override { return true; }
+};
 PREF_PAGE(CodeAnalysis)
 PREF_PAGE(CompletionLinting)
 PREF_PAGE(Debugger)

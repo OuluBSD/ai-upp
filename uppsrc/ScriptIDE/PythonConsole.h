@@ -12,6 +12,9 @@ public:
 
     String GetInput() const { return last_input; }
     Event<> WhenInput;
+    Event<> WhenInterrupt;
+    Event<> WhenRestart;
+    Event<> WhenRemoveVariables;
 
     virtual bool Key(dword key, int count) override;
 

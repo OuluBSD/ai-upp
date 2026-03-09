@@ -9,6 +9,9 @@ public:
 	void SetVariables(const VectorMap<PyValue, PyValue>& vars);
 	void Clear();
 
+	Event<> WhenRemoveAll;
+	Event<> WhenRefresh;
+
 private:
 	ToolBar toolbar;
 	ArrayCtrl list;

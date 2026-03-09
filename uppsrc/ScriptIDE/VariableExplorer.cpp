@@ -30,11 +30,11 @@ void VariableExplorer::LayoutToolbar(Bar& bar)
 	bar.Add(CtrlImg::open(), [=] {}).Help("Import data");
 	bar.Add(CtrlImg::save(), [=] {}).Help("Save data");
 	bar.Add(CtrlImg::save_as(), [=] {}).Help("Save data as");
-	bar.Add(CtrlImg::remove(), [=] { Clear(); }).Help("Remove all variables");
+	bar.Add(CtrlImg::remove(), WhenRemoveAll).Help("Remove all variables");
 	bar.Separator();
 	bar.Add("Search", [=] {});
 	bar.Add("Filter", [=] {});
-	bar.Add(CtrlImg::redo(), [=] {}).Help("Refresh variables");
+	bar.Add(CtrlImg::redo(), WhenRefresh).Help("Refresh variables");
 	bar.Separator();
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }

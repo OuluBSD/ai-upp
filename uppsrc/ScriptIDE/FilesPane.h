@@ -10,6 +10,9 @@ public:
 	void Refresh();
 
 	Event<const String&> WhenOpen;
+	Event<> WhenPathManager;
+	Event<> WhenBrowse;
+	Event<> WhenParent;
 
 private:
 	ToolBar location_bar;

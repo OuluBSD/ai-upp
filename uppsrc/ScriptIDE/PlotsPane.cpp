@@ -10,7 +10,7 @@ void PlotsPane::ImageDisplay::Paint(Draw& w)
 	
 	Size isz = img.GetSize();
 	
-	double ratio = min((double)sz.cx / isz.cx, (double)sz.cy / isz.cy);
+	double ratio = min((double)sz.cx / isz.cx, (double)sz.cy / isz.cy) * zoom;
 	Size rsz = Size((int)(isz.cx * ratio), (int)(isz.cy * ratio));
 	
 	Point p = Point((sz.cx - rsz.cx) / 2, (sz.cy - rsz.cy) / 2);
@@ -25,20 +25,25 @@ PlotsPane::PlotsPane()
 	Add(display.VSizePos(24, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
+	
+	WhenZoom = [=](double z) {
+		display.zoom *= z;
+		display.Refresh();
+	};
 }
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
 	bar.Add(current_index >= 0, CtrlImg::save(), [=] { SaveSelected(); }).Help("Save plot as...");
-	bar.Add(plots.GetCount() > 0, CtrlImg::save(), [=] { SaveAll(); }).Help("Save all plots...");
+	bar.Add(plots.GetCount() > 0, CtrlImg::save(), WhenSaveAll).Help("Save all plots...");
 	bar.Add(current_index >= 0, CtrlImg::copy(), [=] { CopySelected(); }).Help("Copy to clipboard");
 	bar.Add(current_index >= 0, CtrlImg::remove(), [=] { RemoveSelected(); }).Help("Remove plot");
 	bar.Add(plots.GetCount() > 0, CtrlImg::remove(), [=] { Clear(); }).Help("Remove all plots");
 	bar.Separator();
 	bar.Add("Zoom", [=] {});
-	bar.Add(CtrlImg::plus(), [=] {}).Help("Zoom in");
-	bar.Add(CtrlImg::remove(), [=] {}).Help("Zoom out");
-	bar.Add("Fit", [=] {}).Help("Fit plot to pane");
+	bar.Add(CtrlImg::plus(), [=] { WhenZoom(1.2); }).Help("Zoom in");
+	bar.Add(CtrlImg::remove(), [=] { WhenZoom(0.8); }).Help("Zoom out");
+	bar.Add("Fit", [=] { display.zoom = 1.0; display.Refresh(); }).Help("Fit plot to pane");
 	bar.Separator();
 	bar.Gap(2000);
 	bar.Add(plots.GetCount() > 1, CtrlImg::left_arrow(), [=] { PrevPlot(); }).Help("Previous plot");

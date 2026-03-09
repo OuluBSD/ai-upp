@@ -24,15 +24,15 @@ void PythonConsole::LayoutToolbar(Bar& bar)
 	bar.Add("Consoles", [=] {}).Help("Console list");
 	bar.Gap(2000);
 	bar.Add(CtrlImg::remove(), [=] { Clear(); }).Help("Clear console");
-	bar.Add(CtrlImg::exclamation(), [=] {}).Help("Interrupt kernel");
+	bar.Add(CtrlImg::exclamation(), WhenInterrupt).Help("Interrupt kernel");
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void PythonConsole::LayoutPaneMenu(Bar& bar)
 {
-	bar.Add("Interrupt kernel", [=] {});
-	bar.Add("Restart kernel", [=] {}).Key(K_CTRL|K_PERIOD);
-	bar.Add("Remove all variables", [=] {}).Key(K_CTRL|K_ALT|K_R);
+	bar.Add("Interrupt kernel", WhenInterrupt);
+	bar.Add("Restart kernel", WhenRestart).Key(K_CTRL|K_PERIOD);
+	bar.Add("Remove all variables", WhenRemoveVariables).Key(K_CTRL|K_ALT|K_R);
 	bar.Add("Rename tab", [=] {});
 	bar.Separator();
 	bar.Add("Show environment variables", [=] {});

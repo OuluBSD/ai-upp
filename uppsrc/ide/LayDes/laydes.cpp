@@ -1929,7 +1929,12 @@ bool LayDes::McpSetItemProp(int li, int ii, const String& name, const String& va
 	if(ii < 0 || ii >= l.item.GetCount()) return false;
 	LayoutItem& item = l.item[ii];
 	int pi = item.FindProperty(name);
-	if(pi < 0) return false;
+	if(pi < 0) {
+		// Add a new RawProperty (stores value as-is, like reading from .lay file)
+		pi = item.property.GetCount();
+		ItemProperty& new_prop = item.property.Add(new RawProperty);
+		new_prop.name = name;
+	}
 	CParser p(value);
 	item.property[pi].Read(p);
 	if(currentlayout == li) ReloadItems();

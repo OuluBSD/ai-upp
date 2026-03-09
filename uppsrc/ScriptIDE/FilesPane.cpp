@@ -42,7 +42,7 @@ void FilesPane::Populate(int id)
 		}
 		else if(ff.IsFolder()) {
 			if(ff.GetName() != "." && ff.GetName() != "..") {
-				tree.Add(id, TreeCtrl::Node(CtrlImg::Dir(), ff.GetName()).Set(ff.GetPath()).CanOpen());
+				tree.Add(id, CtrlImg::Dir(), ff.GetPath(), ff.GetName(), true);
 			}
 		}
 		ff.Next();

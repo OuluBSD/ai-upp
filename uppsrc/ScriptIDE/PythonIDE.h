@@ -49,10 +49,13 @@ private:
     void ConsolesMenu(Bar& bar);
     void ProjectsMenu(Bar& bar);
     void ToolsMenu(Bar& bar);
-    void ViewMenu(Bar& bar);
+    void WindowMenu(Bar& bar);
     void HelpMenu(Bar& bar);
 
     void MainMenu(Bar& bar);
+    void MainToolbar(Bar& bar);
+
+    void Todo(const String& msg);
 
     void UpdateStatusBar();
     void UpdateVariableExplorer();

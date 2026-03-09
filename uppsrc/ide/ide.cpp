@@ -1,10 +1,6 @@
 #ifdef flagGUI
 #include "ide.h"
 
-#ifndef flagV1
-#include "MCP/MCP.h"
-#endif
-
 VectorMap<String, String> git_branch_cache;
 
 String GetGitBranchRaw(const String& dir)
@@ -204,9 +200,7 @@ void Ide::Exit()
 	FlushFile();
 	console.Kill();
 	// Stop MCP server on shutdown
-#ifndef flagV1
 	StopMcpServer();
-#endif
 	Break(IDOK);
 	IdeExit = true;
 }

@@ -1,0 +1,16 @@
+description "DockingTemplate1 - Minimal docking frame\377";
+
+uses
+	Core,
+	CtrlLib,
+	Docking;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI X11",
+	"" = "GUI USEMALLOC",
+	"" = "GUI X11 USEMALLOC";
+

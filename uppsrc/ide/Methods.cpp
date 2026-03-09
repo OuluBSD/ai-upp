@@ -889,6 +889,7 @@ void Ide::IncludeAddPkgConfig(String& include_path, const String& clang_method)
 	else
 		CreateHost(host, false, false);
 	One<Builder> b = CreateBuilder(&host);
+	if(!b) return;
 	Index<String> pkg_config;
 	Index<String> cfg = PackageConfig(wspc, max(GetPackageIndex(), 0), GetMethodVars(method), mainconfigparam, host, *b);
 	String main_conf;

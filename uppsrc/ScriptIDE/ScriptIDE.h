@@ -10,8 +10,23 @@
 
 namespace Upp {
 
+#include "IDESettings.h"
+
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
+
+#include "PreferencesPage.h"
+#include "PreferencesWindow.h"
+#include "PythonEditor.h"
+
+template <class T>
+class WithDockable : public DockableCtrl {
+public:
+	T ctrl;
+	WithDockable() { Add(ctrl.SizePos()); }
+	T* operator->() { return &ctrl; }
+	operator T&() { return ctrl; }
+};
 
 /*
 #define IMAGECLASS ScriptIDEImg
@@ -21,8 +36,17 @@ namespace Upp {
 
 #include "Settings.h"
 #include "VariableExplorer.h"
+#include "PlotsPane.h"
+#include "DebuggerPane.h"
+#include "ProfilerPane.h"
+#include "FindInFilesPane.h"
+#include "OutlinePane.h"
+#include "RunManager.h"
+#include "Linter.h"
+#include "PathManager.h"
+#include "PathManagerDlg.h"
 #include "PythonConsole.h"
-#include "FileTree.h"
+#include "FilesPane.h"
 #include "CustomFileTabs.h"
 #include "PythonIDE.h"
 

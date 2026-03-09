@@ -609,6 +609,7 @@ void AppMain___()
 		if (open_dropdown)
 			dropdown.Init();
 		#endif
+		StartIdeMcpThread(); // start before package selector so MCP is available immediately
 		do {
 			IdeAgain = false;
 			if(clset || ide.OpenMainPackage()) {

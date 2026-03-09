@@ -1706,6 +1706,18 @@ void PyVM::StepOut()
 	}
 }
 
+void PyVM::Reset()
+{
+	for(int i = 0; i < frames.GetCount(); i++) {
+		ReleaseLocals(frames[i].locals);
+		frames[i].func = PyValue::None();
+	}
+	frames.Clear();
+	ReleaseStack(stack);
+	debug_state = DEBUG_RUNNING;
+	last_result = PyValue::None();
+}
+
 bool PyVM::Step()
 {
 	if(frames.IsEmpty()) return false;

@@ -9,36 +9,55 @@ public:
     virtual void DockInit() override;
     virtual void Close() override;
 
-private:
-    // Layout components
-    MenuBar menubar;
-    ToolBar toolbar;
-    StatusBar statusbar;
+    void OnNewFile();
+    void OnOpenFile();
+    void OnSaveFile();
+    void OnSaveFileAs();
+    void OnSaveAll();
+    void OnCloseFile();
+    void OnCloseAll();
+    void OnFileSwitcher();
+    void OnSymbolFinder();
+    void OnRestart();
 
-    // Center area - Editor
-    ParentCtrl editor_area;
-    CustomFileTabs editor_tabs;
+    void OnUndo();
+    void OnRedo();
+    void OnComment();
+    void OnBlockComment();
+    void OnUncomment();
+    void OnToggleCase(bool upper);
+    void OnConvertEOL(const String& mode);
+    void OnRemoveTrailingSpaces();
+    void OnTabsToSpaces();
 
-    // Dockable panes
-    FilesPane files_pane;
-    OutlinePane outline_pane;
-    VariableExplorer var_explorer;
-    DebuggerPane debugger_pane;
-    ProfilerPane profiler_pane;
-    WithDockable<RichTextCtrl> help_pane;
-    PlotsPane plots_pane;
-    PythonConsole console_pane;
-    WithDockable<ParentCtrl> history_pane;
-    FindInFilesPane find_pane;
+    void LoadFile(const String& path);
+    void SaveFile(int idx);
+    bool ConfirmSave(int idx);
+    bool ConfirmSaveAll();
+    void ShowHelp(const String& topic);
+    void OnPathManager();
+
+    void OnRun();
+    void OnRunSelection();
+    void OnRunConfig();
+    void OnDebug();
+    void OnStop();
+    void OnConsoleInput();
+
+    void ApplySettings();
+    void OnSettings();
+    void OnBreakpointHit(const String& file, int line);
+    void OnStepOver();
+    void OnStepIn();
+    void OnStepOut();
+    void OnToggleBreakpoint();
+
+    void OnTabChanged();
+    void OnTabMenu(Bar& bar);
+    void SyncTabsWithFiles();
 
     void InitLayout();
     void InitDocking();
-
-
-    void OnNewTab();
-    void OnTabMenu(Bar& bar);
-
-    void OnConsoleInput();
 
     void FileMenu(Bar& bar);
     void EditMenu(Bar& bar);
@@ -61,33 +80,27 @@ private:
     void UpdateVariableExplorer();
     void OnAnalyze();
 
-    void LoadFile(const String& path);
-    void SaveFile(const String& path);
-    bool ConfirmSave();
-    void ShowHelp(const String& topic);
-
     static size_t MemoryUsedKb();
     static size_t MemoryTotalKb();
     CodeEditor* GetCurrentEditor() { return &code_editor; }
 
-    void OnNewFile();
-    void OnOpenFile();
-    void OnSaveFile();
-    void OnSaveFileAs();
-    void OnRun();
-    void OnRunSelection();
-    void OnRunConfig();
-    void OnDebug();
-    void OnStop();
-    void OnPathManager();
+    MenuBar menubar;
+    ToolBar toolbar;
+    StatusBar statusbar;
 
-    void ApplySettings();
-    void OnSettings();
-    void OnBreakpointHit(const String& file, int line);
-    void OnStepOver();
-    void OnStepIn();
-    void OnStepOut();
-    void OnToggleBreakpoint();
+    ParentCtrl editor_area;
+    CustomFileTabs editor_tabs;
+
+    FilesPane files_pane;
+    OutlinePane outline_pane;
+    VariableExplorer var_explorer;
+    DebuggerPane debugger_pane;
+    ProfilerPane profiler_pane;
+    WithDockable<RichTextCtrl> help_pane;
+    PlotsPane plots_pane;
+    PythonConsole console_pane;
+    WithDockable<ParentCtrl> history_pane;
+    FindInFilesPane find_pane;
 
     PyVM vm;
     RunManager run_manager;
@@ -105,12 +118,15 @@ private:
 
     IDESettings settings;
 
-    CodeEditor code_editor;
+    PythonEditor code_editor;
 
     struct FileInfo {
         String path;
+        String content;
         bool dirty = false;
-    } current_file;
+    };
+    Array<FileInfo> open_files;
+    int active_file = -1;
 };
 
 #endif

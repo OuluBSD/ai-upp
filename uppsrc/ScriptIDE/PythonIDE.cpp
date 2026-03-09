@@ -681,57 +681,98 @@ void PythonIDE::ToolsMenu(Bar& bar)
 	bar.Add("Reset all preferences to defaults", [=] { Todo("Reset prefs"); });
 }
 
+void PythonIDE::OnTogglePane(DockableCtrl& pane)
+{
+	pane.Show(!pane.IsVisible());
+}
+
+void PythonIDE::OnLayoutDefault()
+{
+	// Reset all to visible and dock in default positions
+	files_pane.Show();
+	outline_pane.Show();
+	var_explorer.Show();
+	debugger_pane.Show();
+	profiler_pane.Show();
+	help_pane.Show();
+	plots_pane.Show();
+	console_pane.Show();
+	history_pane.Show();
+	find_pane.Show();
+
+	DockLeft(files_pane);
+	Tabify(files_pane, outline_pane);
+
+	DockRight(var_explorer);
+	Tabify(var_explorer, debugger_pane);
+	Tabify(var_explorer, profiler_pane);
+	Tabify(var_explorer, help_pane);
+	Tabify(var_explorer, plots_pane);
+
+	DockBottom(console_pane); 
+	Tabify(console_pane, history_pane);
+	Tabify(console_pane, find_pane);
+}
+
+void PythonIDE::OnLayoutRstudio()
+{
+	// Example variation: Files on right, console top-left
+	OnLayoutDefault(); // Start from clean
+	DockRight(files_pane);
+	DockLeft(console_pane);
+}
+
+void PythonIDE::OnLayoutMatlab()
+{
+	// Example variation: Files and Outline on right
+	OnLayoutDefault();
+	DockRight(files_pane);
+}
+
+void PythonIDE::OnFullscreen()
+{
+	FullScreen(!IsFullScreen());
+}
+
+void PythonIDE::OnMaximizePane() { Todo("Maximize pane"); }
+void PythonIDE::OnClosePane() { Todo("Close pane"); }
+
 void PythonIDE::WindowMenu(Bar& bar)
 {
 	bar.Sub("Panes", [=](Bar& b) {
 		b.Add("Editor", [=] { Todo("Toggle Editor"); }).Key(K_CTRL|K_SHIFT|K_E).Check(true);
-		b.Add("IPython Console", [=] { console_pane.Show(!console_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_I).Check(console_pane.IsVisible());
-		b.Add("Variable Explorer", [=] { var_explorer.Show(!var_explorer.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer.IsVisible());
-		b.Add("Debugger", [=] { debugger_pane.Show(!debugger_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane.IsVisible());
-		b.Add("Help", [=] { help_pane.Show(!help_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane.IsVisible());
-		b.Add("Plots", [=] { plots_pane.Show(!plots_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane.IsVisible());
+		b.Add("IPython Console", [=] { OnTogglePane(console_pane); }).Key(K_CTRL|K_SHIFT|K_I).Check(console_pane.IsVisible());
+		b.Add("Variable Explorer", [=] { OnTogglePane(var_explorer); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer.IsVisible());
+		b.Add("Debugger", [=] { OnTogglePane(debugger_pane); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane.IsVisible());
+		b.Add("Help", [=] { OnTogglePane(help_pane); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane.IsVisible());
+		b.Add("Plots", [=] { OnTogglePane(plots_pane); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane.IsVisible());
 		b.Separator();
-		b.Add("Files", [=] { files_pane.Show(!files_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane.IsVisible());
-		b.Add("Outline", [=] { outline_pane.Show(!outline_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane.IsVisible());
+		b.Add("Files", [=] { OnTogglePane(files_pane); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane.IsVisible());
+		b.Add("Outline", [=] { OnTogglePane(outline_pane); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane.IsVisible());
 		b.Add("Project", [=] { Todo("Project pane"); }).Key(K_CTRL|K_SHIFT|K_P).Check(false);
-		b.Add("Find", [=] { find_pane.Show(!find_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane.IsVisible());
+		b.Add("Find", [=] { OnTogglePane(find_pane); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane.IsVisible());
 		b.Separator();
-		b.Add("History", [=] { history_pane.Show(!history_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane.IsVisible());
-		b.Add("Profiler", [=] { profiler_pane.Show(!profiler_pane.IsVisible()); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane.IsVisible());
+		b.Add("History", [=] { OnTogglePane(history_pane); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane.IsVisible());
+		b.Add("Profiler", [=] { OnTogglePane(profiler_pane); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane.IsVisible());
 		b.Add("Code Analysis", [=] { Todo("Analysis pane"); }).Key(K_CTRL|K_SHIFT|K_C).Check(false);
-		b.Separator();
-		b.Add("Online help", [=] { Todo("Online help"); }).Check(false);
-		b.Add("Internal console", [=] { Todo("Internal console"); }).Check(false);
 	});
 	bar.Add("Unlock panes and toolbars", [=] { Todo("Unlock layout"); }).Key(K_CTRL|K_SHIFT|K_F5);
-	bar.Add("Maximize current pane", [=] { Todo("Maximize pane"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
-	bar.Add("Close current pane", [=] { Todo("Close pane"); }).Key(K_CTRL|K_SHIFT|K_F4);
+	bar.Add("Maximize current pane", [=] { OnMaximizePane(); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
+	bar.Add("Close current pane", [=] { OnClosePane(); }).Key(K_CTRL|K_SHIFT|K_F4);
 	bar.Separator();
 	bar.Sub("Toolbars", [=](Bar& b) {
-		b.Add("File toolbar", [=] { Todo("Toggle File TB"); }).Check(true);
-		b.Add("Run toolbar", [=] { Todo("Toggle Run TB"); }).Check(true);
-		b.Add("Debug toolbar", [=] { Todo("Toggle Debug TB"); }).Check(true);
-		b.Add("Profile toolbar", [=] { Todo("Toggle Profile TB"); }).Check(true);
-		b.Add("Main toolbar", [=] { Todo("Toggle Main TB"); }).Check(true);
-		b.Add("Current working directory", [=] { Todo("Toggle CWD TB"); }).Check(true);
+		b.Add("Main toolbar", [=] { toolbar.Show(!toolbar.IsVisible()); }).Check(toolbar.IsVisible());
 	});
-	bar.Add("Hide toolbars", [=] { Todo("Hide TB"); });
 	bar.Separator();
 	bar.Sub("Window layouts", [=](Bar& b) {
-		b.Add("Default layout", [=] { Todo("Layout Default"); });
-		b.Add("Rstudio layout", [=] { Todo("Layout Rstudio"); });
-		b.Add("Matlab layout", [=] { Todo("Layout Matlab"); });
-		b.Add("Horizontal split", [=] { Todo("Layout Horz"); });
-		b.Add("Vertical split", [=] { Todo("Layout Vert"); });
+		b.Add("Default layout", [=] { OnLayoutDefault(); });
+		b.Add("Rstudio layout", [=] { OnLayoutRstudio(); });
+		b.Add("Matlab layout", [=] { OnLayoutMatlab(); });
 		b.Separator();
-		b.Add("Save current layout", [=] { Todo("Save layout"); });
-		b.Add("Layout preferences", [=] { Todo("Layout prefs"); });
-		b.Add("Reset to Spyder default", [=] { Todo("Reset layout"); });
+		b.Add("Reset to Spyder default", [=] { OnLayoutDefault(); });
 	});
-	bar.Add("Use next layout", [=] { Todo("Next layout"); }).Key(K_ALT|K_SHIFT|K_PAGEUP);
-	bar.Add("Use previous layout", [=] { Todo("Prev layout"); }).Key(K_ALT|K_SHIFT|K_PAGEDOWN);
 	bar.Separator();
-	bar.Add("Fullscreen mode", [=] { Todo("Fullscreen"); }).Key(K_F11);
+	bar.Add("Fullscreen mode", [=] { OnFullscreen(); }).Key(K_F11);
 }
 
 void PythonIDE::HelpMenu(Bar& bar)

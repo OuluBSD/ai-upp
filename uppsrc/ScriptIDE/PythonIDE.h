@@ -139,6 +139,10 @@ public:
 
     PythonEditor code_editor;
 
+    void OnPrevCursor();
+    void OnNextCursor();
+    void AddCursorHistory();
+
     struct FileInfo {
         String path;
         String content;
@@ -146,6 +150,9 @@ public:
     };
     Array<FileInfo> open_files;
     int active_file = -1;
+
+    Vector<int64> cursor_history;
+    int cursor_history_idx = -1;
 };
 
 #endif

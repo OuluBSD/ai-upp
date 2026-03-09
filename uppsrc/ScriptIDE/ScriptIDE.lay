@@ -151,6 +151,54 @@ LAYOUT(DebuggerPageLayout, 600, 400)
 	ITEM(Upp::Option, exclude_internal, SetLabel(t_("Exclude internal frames when inspecting execution")).LeftPosZ(16, 400).TopPosZ(256, 16))
 END_LAYOUT
 
+LAYOUT(FilesGeneralTabLayout, 600, 400)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("General options")).HSizePosZ(8, 8).TopPosZ(8, 68))
+	ITEM(Upp::Option, show_hidden, SetLabel(t_("Show hidden files")).LeftPosZ(16, 200).TopPosZ(24, 16))
+	ITEM(Upp::Option, single_click, SetLabel(t_("Single click to open files")).LeftPosZ(16, 200).TopPosZ(44, 16))
+	ITEM(Upp::LabelBox, dv___3, SetLabel(t_("Filter settings")).HSizePosZ(8, 8).TopPosZ(84, 120))
+	ITEM(Upp::Label, dv___4, SetLabel(t_("Filter files by name, extension, or more using glob patterns. Please enter the glob patterns of the files you want to show, separated by commas.")).HSizePosZ(16, 16).TopPosZ(100, 38))
+	ITEM(Upp::DocEdit, filter_patterns, HSizePosZ(16, 16).TopPosZ(140, 38))
+	ITEM(Upp::Button, reset_filter, SetLabel(t_("Reset to default values")).LeftPosZ(16, 160).TopPosZ(180, 24))
+END_LAYOUT
+
+LAYOUT(FilesAssociationsTabLayout, 600, 400)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Here you can associate different external applications to open specific file extensions.")).HSizePosZ(8, 8).TopPosZ(8, 19))
+	ITEM(Upp::LabelBox, dv___1, SetLabel(t_("File types")).LeftPosZ(8, 280).VSizePosZ(32, 8))
+	ITEM(Upp::ArrayCtrl, file_types, LeftPosZ(16, 264).VSizePosZ(48, 48))
+	ITEM(Upp::Button, add_type, SetLabel(t_("Add")).LeftPosZ(16, 80).BottomPosZ(16, 24))
+	ITEM(Upp::Button, remove_type, SetLabel(t_("Remove")).LeftPosZ(104, 80).BottomPosZ(16, 24))
+	ITEM(Upp::Button, edit_type, SetLabel(t_("Edit")).LeftPosZ(192, 80).BottomPosZ(16, 24))
+	ITEM(Upp::LabelBox, dv___6, SetLabel(t_("Associated applications")).RightPosZ(8, 280).VSizePosZ(32, 8))
+	ITEM(Upp::ArrayCtrl, apps, RightPosZ(16, 264).VSizePosZ(48, 48))
+	ITEM(Upp::Button, add_app, SetLabel(t_("Add")).RightPosZ(200, 80).BottomPosZ(16, 24))
+	ITEM(Upp::Button, remove_app, SetLabel(t_("Remove")).RightPosZ(112, 80).BottomPosZ(16, 24))
+	ITEM(Upp::Button, set_default_app, SetLabel(t_("Set default")).RightPosZ(24, 80).BottomPosZ(16, 24))
+END_LAYOUT
+
+LAYOUT(HelpPageLayout, 600, 400)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Automatic connections")).HSizePosZ(8, 8).TopPosZ(8, 72))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("This pane can automatically show an object's help information after a left parenthesis is written next to it.")).HSizePosZ(16, 16).TopPosZ(24, 32))
+	ITEM(Upp::Option, connect_editor, SetLabel(t_("Editor")).LeftPosZ(16, 100).TopPosZ(56, 16))
+	ITEM(Upp::Option, connect_console, SetLabel(t_("IPython Console")).LeftPosZ(120, 150).TopPosZ(56, 16))
+	ITEM(Upp::LabelBox, dv___4, SetLabel(t_("Additional features")).HSizePosZ(8, 8).TopPosZ(88, 56))
+	ITEM(Upp::Option, render_math, SetLabel(t_("Render mathematical equations")).LeftPosZ(16, 300).TopPosZ(108, 16))
+	ITEM(Upp::LabelBox, dv___6, SetLabel(t_("Source code")).HSizePosZ(8, 8).TopPosZ(152, 56))
+	ITEM(Upp::Option, wrap_lines, SetLabel(t_("Wrap lines")).LeftPosZ(16, 200).TopPosZ(172, 16))
+END_LAYOUT
+
+LAYOUT(HistoryPageLayout, 600, 400)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Display")).HSizePosZ(8, 8).TopPosZ(8, 88))
+	ITEM(Upp::Option, wrap_lines, SetLabel(t_("Wrap lines")).LeftPosZ(16, 200).TopPosZ(24, 16))
+	ITEM(Upp::Option, show_line_numbers, SetLabel(t_("Show line numbers")).LeftPosZ(16, 200).TopPosZ(44, 16))
+	ITEM(Upp::Option, scroll_to_last, SetLabel(t_("Scroll automatically to last entry")).LeftPosZ(16, 300).TopPosZ(64, 16))
+END_LAYOUT
+
+LAYOUT(ProfilerPageLayout, 600, 400)
+	ITEM(Upp::Option, open_on_finish, SetLabel(t_("Open profiler when profiling finishes")).LeftPosZ(8, 400).TopPosZ(8, 16))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Maximum number of items displayed with large local time")).LeftPosZ(8, 400).TopPosZ(32, 19))
+	ITEM(Upp::EditIntSpin, max_items, LeftPosZ(412, 60).TopPosZ(32, 19))
+END_LAYOUT
+
 LAYOUT(ApplicationInterfaceTabLayout, 600, 400)
 	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Screen resolution")).HSizePosZ(8, 8).TopPosZ(8, 108))
 	ITEM(Upp::Switch, hidpi_mode, SetLabel(t_("Normal\nEnable auto high DPI scaling\nSet a custom high DPI scaling")).LeftPosZ(16, 250).TopPosZ(24, 56))

@@ -260,8 +260,110 @@ void PythonIDE::OnRunSelection()
 	run_manager.RunSelection(code);
 }
 
-void PythonIDE::OnRunConfig() { Todo("Run Config"); }
-void PythonIDE::OnDebug() { Todo("Debug"); }
+void PythonIDE::OnRunLast()
+{
+	OnRun(); // For now, just Run
+}
+
+void PythonIDE::OnRunCell()
+{
+	String code = code_editor.Get();
+	int line = code_editor.GetCursorLine();
+	
+	// Simple cell detection: find nearest # %% above and below
+	Vector<String> lines = Split(code, '\n', false);
+	int start = 0;
+	for(int i = line; i >= 0; i--) {
+		if(TrimBoth(lines[i]).StartsWith("# %%")) {
+			start = i + 1;
+			break;
+		}
+	}
+	int end = lines.GetCount();
+	for(int i = line + 1; i < lines.GetCount(); i++) {
+		if(TrimBoth(lines[i]).StartsWith("# %%")) {
+			end = i;
+			break;
+		}
+	}
+	
+	String cell_code;
+	for(int i = start; i < end; i++)
+		cell_code << lines[i] << "\n";
+	
+	if(!cell_code.IsEmpty()) {
+		console_pane.Write("--- Running cell ---\n");
+		run_manager.RunSelection(cell_code);
+	}
+}
+
+void PythonIDE::OnRunCellAndAdvance()
+{
+	OnRunCell();
+	// Advance cursor to next cell or end
+	String code = code_editor.Get();
+	int line = code_editor.GetCursorLine();
+	Vector<String> lines = Split(code, '\n', false);
+	for(int i = line + 1; i < lines.GetCount(); i++) {
+		if(TrimBoth(lines[i]).StartsWith("# %%")) {
+			code_editor.SetCursor(code_editor.GetPos(i + 1));
+			break;
+		}
+	}
+}
+
+void PythonIDE::OnRunToLine()
+{
+	int line = code_editor.GetCursorLine();
+	String code = code_editor.Get();
+	Vector<String> lines = Split(code, '\n', false);
+	String to_code;
+	for(int i = 0; i <= line && i < lines.GetCount(); i++)
+		to_code << lines[i] << "\n";
+	
+	console_pane.Write("--- Running to line " + AsString(line + 1) + " ---\n");
+	run_manager.RunSelection(to_code);
+}
+
+void PythonIDE::OnRunFromLine()
+{
+	int line = code_editor.GetCursorLine();
+	String code = code_editor.Get();
+	Vector<String> lines = Split(code, '\n', false);
+	String from_code;
+	for(int i = line; i < lines.GetCount(); i++)
+		from_code << lines[i] << "\n";
+	
+	console_pane.Write("--- Running from line " + AsString(line + 1) + " ---\n");
+	run_manager.RunSelection(from_code);
+}
+
+void PythonIDE::OnRunConfig() { Todo("Run Config Dialog"); }
+
+void PythonIDE::OnDebug()
+{
+	OnRun(); // For now, debug is same as run since VM supports breakpoints
+}
+
+void PythonIDE::OnDebugCell() { OnRunCell(); }
+void PythonIDE::OnDebugSelection() { OnRunSelection(); }
+void PythonIDE::OnDebugToLine() { OnRunToLine(); }
+
+void PythonIDE::OnClearBreakpoints()
+{
+	vm.ClearBreakpoints();
+	for(int i = 0; i < code_editor.GetLineCount(); i++)
+		code_editor.SetBreakpoint(i, String());
+}
+
+void PythonIDE::OnListBreakpoints()
+{
+	const auto& bps = vm.GetBreakpoints();
+	String s = "Breakpoints:\n";
+	for(const auto& bp : bps)
+		s << GetFileName(bp.file) << ":" << bp.line << (bp.enabled ? "" : " (disabled)") << "\n";
+	PromptOK(s);
+}
 
 void PythonIDE::OnStop()
 {
@@ -499,16 +601,16 @@ void PythonIDE::SourceMenu(Bar& bar)
 void PythonIDE::RunMenu(Bar& bar)
 {
 	bar.Add("Run", CtrlImg::right_arrow(), [=] { OnRun(); }).Key(K_F5);
-	bar.Add("Re-run last file", [=] { Todo("Re-run"); }).Key(K_F6);
+	bar.Add("Re-run last file", [=] { OnRunLast(); }).Key(K_F6);
 	bar.Add("Configuration per file", [=] { OnRunConfig(); }).Key(K_CTRL_F6);
 	bar.Add("Global presets", [=] { Todo("Presets"); });
 	bar.Separator();
-	bar.Add("Run cell", [=] { Todo("Run cell"); }).Key(K_CTRL|K_ENTER);
-	bar.Add("Run cell and advance", [=] { Todo("Run cell and advance"); }).Key(K_SHIFT|K_ENTER);
+	bar.Add("Run cell", [=] { OnRunCell(); }).Key(K_CTRL|K_ENTER);
+	bar.Add("Run cell and advance", [=] { OnRunCellAndAdvance(); }).Key(K_SHIFT|K_ENTER);
 	bar.Add("Re-run last cell", [=] { Todo("Re-run last cell"); }).Key(K_ALT|K_ENTER);
 	bar.Add("Run current line/selection", [=] { OnRunSelection(); }).Key(K_F9);
-	bar.Add("Run to line", [=] { Todo("Run to line"); }).Key(K_SHIFT|K_F9);
-	bar.Add("Run from line", [=] { Todo("Run from line"); }).Key(K_ALT|K_F9);
+	bar.Add("Run to line", [=] { OnRunToLine(); }).Key(K_SHIFT|K_F9);
+	bar.Add("Run from line", [=] { OnRunFromLine(); }).Key(K_ALT|K_F9);
 	bar.Separator();
 	bar.Add("Run in external terminal", [=] { Todo("External terminal"); });
 	bar.Separator();
@@ -519,11 +621,11 @@ void PythonIDE::RunMenu(Bar& bar)
 
 void PythonIDE::DebugMenu(Bar& bar)
 {
-	bar.Add("Debug file", [=] { Todo("Debug file"); }).Key(K_CTRL_F5);
-	bar.Add("Debug cell", [=] { Todo("Debug cell"); });
-	bar.Add("Debug the current line or selection", [=] { Todo("Debug selection"); });
+	bar.Add("Debug file", [=] { OnDebug(); }).Key(K_CTRL_F5);
+	bar.Add("Debug cell", [=] { OnDebugCell(); });
+	bar.Add("Debug the current line or selection", [=] { OnDebugSelection(); });
 	bar.Separator();
-	bar.Add("Debug current line", [=] { Todo("Debug current line"); }).Key(K_CTRL_F10);
+	bar.Add("Debug current line", [=] { OnDebugToLine(); }).Key(K_CTRL_F10);
 	bar.Add("Step into function or method", [=] { OnStepIn(); }).Key(K_CTRL_F11);
 	bar.Add("Execute until function returns", [=] { OnStepOut(); }).Key(K_CTRL|K_SHIFT|K_F11);
 	bar.Add("Execute until next breakpoint", [=] { vm.Continue(); }).Key(K_CTRL_F12);
@@ -531,8 +633,8 @@ void PythonIDE::DebugMenu(Bar& bar)
 	bar.Separator();
 	bar.Add("Toggle breakpoint", [=] { OnToggleBreakpoint(); }).Key(K_F12);
 	bar.Add("Set/edit conditional breakpoint", [=] { Todo("Conditional BP"); }).Key(K_SHIFT_F12);
-	bar.Add("Clear breakpoints in all files", [=] { Todo("Clear all BP"); });
-	bar.Add("List breakpoints", [=] { Todo("List BP"); });
+	bar.Add("Clear breakpoints in all files", [=] { OnClearBreakpoints(); });
+	bar.Add("List breakpoints", [=] { OnListBreakpoints(); });
 }
 
 void PythonIDE::ConsolesMenu(Bar& bar)

@@ -38,10 +38,22 @@ public:
     void OnPathManager();
 
     void OnRun();
+    void OnRunLast();
     void OnRunSelection();
+    void OnRunCell();
+    void OnRunCellAndAdvance();
+    void OnRunToLine();
+    void OnRunFromLine();
     void OnRunConfig();
+    
     void OnDebug();
+    void OnDebugCell();
+    void OnDebugSelection();
+    void OnDebugToLine();
     void OnStop();
+    void OnToggleBreakpoint();
+    void OnClearBreakpoints();
+    void OnListBreakpoints();
     void OnConsoleInput();
 
     void ApplySettings();
@@ -50,7 +62,6 @@ public:
     void OnStepOver();
     void OnStepIn();
     void OnStepOut();
-    void OnToggleBreakpoint();
 
     void OnTabChanged();
     void OnTabMenu(Bar& bar);

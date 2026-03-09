@@ -2,13 +2,104 @@
 #define _AMP_AMPCompat_h_
 
 #if defined flagMSC && defined flagWIN32 && defined flagAMP && !defined flagAMPCOMPAT
+	#define PARALLEL restrict(cpu,amp)
+	#define PARALLEL_AMP restrict(amp)
+	#define HAVE_SYSTEM_AMP
+	#include <amp.h>
+	#include <amp_math.h>
+	#include <cstdlib>
 
-#include "AMPNative.h"
+
+
+
+
+
+
+
+
+
+
+
+#define AMPASSERT(x)
+#define AMPASSERT_(x, y)
+
+inline float AmpTanh(float d) PARALLEL {return ::concurrency::fast_math::tanh(d);}
+inline float AmpSqrt(float d) PARALLEL {return ::concurrency::fast_math::sqrt(d);}
+
+inline int GetAmpDeviceMemory() {
+	concurrency::accelerator defdev;
+	if (defdev.is_emulated)
+		return 1024*1000*1000;
+	return (int)defdev.get_dedicated_memory() * 1000;
+}
+
+inline String GetAmpDevices() {
+	String out;
+	
+	std::vector<concurrency::accelerator> accls = concurrency::accelerator::get_all();
+	
+	if (accls.empty()) {
+		out << "No accelerators found that are compatible with C++ AMP";
+		return out;
+	}
+	
+	out << "Show all AMP Devices (";
+	#if defined(_DEBUG)
+	out << "DEBUG";
+	#else
+	out << "RELEASE";
+	#endif
+	out <<  " build)
+";
+	
+	out << "Found " << accls.size()
+		<< " accelerator device(s) that are compatible with C++ AMP:
+";
+	
+	/*if (old_format) {
+		std::for_each(accls.cbegin(), accls.cend(), [=, &n] (const concurrency::accelerator& a) {
+			out << "  " << ++n << ": " << a.description
+				<< ", has_display=" << (a.has_display ? "true" : "false")
+				<< ", is_emulated=" << (a.is_emulated ? "true" : "false") << "
+";
+		});
+		out << "
+";
+		return out;
+	}*/
+	
+	for(int i = 0; i < accls.size(); i++) {
+		concurrency::accelerator& a = accls[i];
+		out << "  " << i << ": " << a.description.c_str() << " "
+			<< "
+       device_path                       = " << a.device_path.c_str()
+			<< "
+       dedicated_memory                  = " << DblStr((a.dedicated_memory) / (1024.0f * 1024.0f)) << " Gb"
+			<< "
+       has_display                       = " << (a.has_display ? "true" : "false")
+			<< "
+       is_debug                          = " << (a.is_debug ? "true" : "false")
+			<< "
+       is_emulated                       = " << (a.is_emulated ? "true" : "false")
+			<< "
+       supports_double_precision         = " << (a.supports_double_precision ? "true" : "false")
+			<< "
+       supports_limited_double_precision = " << (a.supports_limited_double_precision ? "true" : "false")
+			<< "
+";
+	}
+	out << "
+";
+	return out;
+}
+
+/*inline int AmpAtomicSet(int& i, int value) PARALLEL {return concurrency::atomic_exchange(&i, value);}
+inline int AmpAtomicInc(int& i) PARALLEL {return concurrency::atomic_fetch_inc(&i);}
+inline int AmpAtomicDec(int& i) PARALLEL {return concurrency::atomic_fetch_dec(&i);}*/
 
 #else
-
-#define PARALLEL
-#define PARALLEL_AMP
+	#define PARALLEL
+	#define PARALLEL_AMP
 
 #define AMPASSERT(x) ASSERT(x)
 #define AMPASSERT_(x, y) ASSERT_(x, y)
@@ -190,12 +281,26 @@ struct WorkerManager {
 	WorkerManager(int w, CB cb) :cb(cb) {ASSERT(I == 1); count[0] = w; cursor[0] = 0;}
 	WorkerManager(int w, int h, CB cb) :cb(cb) {ASSERT(I == 2); count[0] = w; count[1] = h; cursor[0] = 0; cursor[1] = 0;}
 	void Start() {
+		#if 0
 		int count = CPU_Cores() - 1;
 		not_stopped = count;
 		running = true;
 		for(int i = 0; i < count; i++)
 			Thread::Start(THISBACK1(Process, i));
-		Sleep(10);
+		#elif 0
+		int count = CPU_Cores() - 1;
+		not_stopped = count;
+		running = true;
+		CoWork co;
+		for(int i = 0; i < count; i++)
+			co & THISBACK1(Process, i);
+		#else
+		int count = CPU_Cores() - 1;
+		not_stopped = count;
+		running = true;
+		for(int i = 0; i < count; i++)
+			Process(i);
+		#endif
 	}
 	void Process(int i) {
 		if (!i) waiter.Enter();
@@ -266,38 +371,7 @@ template <class T, class CB> void parallel_for_each(T extent, CB cb) {
 	else Panic("Dimensions over 2 have not yet been implemented");
 }
 
-struct runtime_exception {
-	String msg;
-	
-	runtime_exception(String msg) : msg(msg) {}
-	String what() {return msg;}
-};
-
-inline bool atomic_compare_exchange(int* dest, int* exp_value, int value) {
-	#ifdef flagPOSIX
-	return __atomic_compare_exchange_n(dest, exp_value, value, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
-	#else
-	//dword prev = InterlockedCompareExchange((dword*)dest, (dword)*exp_value, (dword)value);
-	//return prev == (dword)*exp_value;
-	INTERLOCKED {
-		if (*dest == *exp_value) {
-			*dest = value;
-			return true;
-		}
-		return false;
-	}
-	#endif
-}
-
-}
-
-
-
-NAMESPACE_UPP
-
 inline void TestCompatAMP() {
-	using namespace concurrency;
-	
 	Vector<int> ints;
 	for(int i = 0; i < 16; i++) ints.Add(1000 + i);
 	
@@ -305,7 +379,7 @@ inline void TestCompatAMP() {
 	
 	parallel_for_each(ints_view.extent, [=](index<1> idx) PARALLEL
     {
-        Cout() << "View: " << (int)idx[0] << ",	Value: " << ints_view[idx] << "\n";
+        Cout() << String() << "View: " << (int)idx[0] << ", Value: " << ints_view[idx] << "\n";
     });
     
     ints_view.synchronize();
@@ -341,11 +415,45 @@ inline int AmpAtomicDec(int& i, int value) {
 	return j;
 }
 
+struct runtime_exception {
+	String msg;
+	
+	runtime_exception(String msg) : msg(msg) {}
+	String what() {return msg;}
+};
+
+inline bool atomic_compare_exchange(int* dest, int* exp_value, int value) {
+	#ifdef flagPOSIX
+	return __atomic_compare_exchange_n(dest, exp_value, value, false, __ATOMIC_RELAXED, __ATOMIC_RELAXED);
+	#else
+	//dword prev = InterlockedCompareExchange((dword*)dest, (dword)*exp_value, (dword)value);
+	//return prev == (dword)*exp_value;
+	INTERLOCKED {
+		if (*dest == *exp_value) {
+			*dest = value;
+			return true;
+		}
+		return false;
+	}
+	#endif
+}
+
+}
+
+#endif
+
 template <class T>
 inline T AmpFabs(T d) PARALLEL {if (d >= 0) return +d; else return -d;}
 
-END_UPP_NAMESPACE
 
-#endif
+
+
+
+
+
+
+
+
+
 
 #endif

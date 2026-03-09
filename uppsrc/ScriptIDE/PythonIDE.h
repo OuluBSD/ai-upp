@@ -67,6 +67,14 @@ public:
     void OnTabMenu(Bar& bar);
     void SyncTabsWithFiles();
 
+    void OnTogglePane(DockableCtrl& pane);
+    void OnLayoutDefault();
+    void OnLayoutRstudio();
+    void OnLayoutMatlab();
+    void OnFullscreen();
+    void OnMaximizePane();
+    void OnClosePane();
+
     void InitLayout();
     void InitDocking();
 

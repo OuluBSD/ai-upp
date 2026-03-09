@@ -1428,7 +1428,7 @@ void ExecScriptRuntime::UpdateScriptInstance(ScriptInstance& inst, bool force_re
 		inst.compile_failed = true;
 		return;
 	}
-	inst.vm = PyVM();
+	inst.vm.Clear();
 	RegisterScriptVM(inst.vm);
 	if (state && state->HasActiveScene()) {
 		PyValue root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &inst.vm);

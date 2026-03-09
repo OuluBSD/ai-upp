@@ -1496,6 +1496,12 @@ PyVM::~PyVM()
 	globals.Shrink();
 }
 
+void PyVM::Clear()
+{
+	this->~PyVM();
+	new(this) PyVM();
+}
+
 void PyVM::AddBreakpoint(const String& file, int line)
 {
 	for(auto& bp : breakpoints)

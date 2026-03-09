@@ -20,23 +20,20 @@ private:
     FileTree file_tree;
     WithFileTreeLayout<DockableCtrl> file_panel;  // Contains toolbar + tree
 
-    // Main center-right area (Splitter)
-    Splitter main_split;          // Horizontal: editor | right_split
-
     // Center area - Editor
     ParentCtrl editor_area;
-
-    // Right area (top/bottom split)
-    Splitter right_split;         // Vertical: top | bottom
-
-    ParentCtrl right_top;
-    ParentCtrl right_bottom;
-
     CustomFileTabs editor_tabs;
 
+    // Dockable panels
+    DockableCtrl var_dock;
+    DockableCtrl help_dock;
+    DockableCtrl plots_dock;
+    DockableCtrl files_dock;
+    DockableCtrl console_dock;
+    DockableCtrl history_dock;
+
     void InitLayout();
-    void InitRightTopTabs();
-    void InitRightPanels();
+    void InitDocking();
 
 
     void OnNewTab();
@@ -101,14 +98,11 @@ private:
 
     CodeEditor code_editor;
     VariableExplorer var_explorer;
-    TabCtrl right_top_tabs;
-    TabCtrl right_bottom_tabs;
 
     RichTextCtrl help_viewer;
-    ParentCtrl help_panel;
-    ParentCtrl plots_panel;
-    ParentCtrl files_panel;
-    ParentCtrl history_panel;
+    PlotsPane plots_viewer;
+    ParentCtrl files_viewer;
+    ParentCtrl history_viewer;
     PythonConsole python_console;
 
     struct FileInfo {

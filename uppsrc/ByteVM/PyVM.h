@@ -1,6 +1,8 @@
 #ifndef _ByteVM_PyVM_h_
 #define _ByteVM_PyVM_h_
 
+#include <Draw/Draw.h>
+
 NAMESPACE_UPP
 
 class PyVM {
@@ -78,6 +80,7 @@ public:
 
 	// Output callback
 	Event<const String&> WhenPrint;
+	Event<const Image&> WhenPlot;
 
 	PyVM();
 	~PyVM();

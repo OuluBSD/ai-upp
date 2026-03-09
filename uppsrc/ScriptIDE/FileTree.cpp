@@ -20,7 +20,10 @@ void FileTree::Refresh()
 	tree.Clear();
 	if(root_path.IsEmpty()) return;
 
-	tree.SetRoot(TreeCtrl::Node(CtrlImg::Dir(), root_path).CanOpen());
+	String root_label = GetFileName(root_path);
+	if(root_label.IsEmpty()) root_label = root_path; // Fallback for root directories
+
+	tree.SetRoot(TreeCtrl::Node(CtrlImg::Dir(), root_label).Set(root_path).CanOpen());
 	Populate(0);
 }
 

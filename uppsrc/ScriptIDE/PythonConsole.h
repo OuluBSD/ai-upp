@@ -1,7 +1,7 @@
 #ifndef _ScriptIDE_PythonConsole_h_
 #define _ScriptIDE_PythonConsole_h_
 
-class PythonConsole : public ParentCtrl {
+class PythonConsole : public DockableCtrl {
 public:
     typedef PythonConsole CLASSNAME;
     PythonConsole();

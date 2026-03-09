@@ -4,6 +4,7 @@ namespace Upp {
 
 PythonConsole::PythonConsole()
 {
+	Title("IPython Console");
 	output.SetReadOnly();
 	output.SetFont(Courier(14));
 	

@@ -37,6 +37,26 @@ void PythonIDE::UpdateVariableExplorer()
 	}
 }
 
+void PythonIDE::OnAnalyze()
+{
+	String code = code_editor.Get();
+	String filename = current_file.path.IsEmpty() ? String("<editor>") : current_file.path;
+	
+	Vector<Linter::Message> msgs = linter.Analyze(code, filename);
+	
+	Vector<Point> err_points;
+	code_editor.ClearAnnotations();
+	
+	for(const auto& m : msgs) {
+		if(m.line > 0) {
+			err_points.Add(Point(m.column, m.line - 1));
+			code_editor.SetAnnotation(m.line - 1, CtrlImg::remove(), m.text);
+		}
+	}
+	
+	code_editor.Errors(pick(err_points));
+}
+
 void PythonIDE::OnNewTab()
 {
 	// Create new empty file
@@ -126,7 +146,11 @@ PythonIDE::PythonIDE() : run_manager(vm)
     vm.WhenPlot = [=](const Image& img) { plots_pane.AddPlot(img); };
     vm.WhenBreakpointHit = [=](const String& file, int line) { OnBreakpointHit(file, line); };
 
-    code_editor.WhenAction = [=] { current_file.dirty = true; };
+    code_editor.WhenAction = [=] {
+        current_file.dirty = true;
+        KillTimeCallback(1);
+        SetTimeCallback(500, [=] { OnAnalyze(); }, 1);
+    };
 
     SetTimeCallback(-500, [=] { UpdateStatusBar(); });
     UpdateStatusBar();
@@ -237,6 +261,7 @@ void PythonIDE::LoadFile(const String& path)
 	current_file.dirty = false;
 	
 	outline_pane.UpdateOutline(content);
+	OnAnalyze();
 
 	editor_tabs.Clear();
 	editor_tabs.AddFile(path.ToWString(), CtrlImg::File());

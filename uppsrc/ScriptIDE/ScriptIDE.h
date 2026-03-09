@@ -36,6 +36,7 @@ public:
 #include "FindInFilesPane.h"
 #include "OutlinePane.h"
 #include "RunManager.h"
+#include "Linter.h"
 #include "PathManager.h"
 #include "PathManagerDlg.h"
 #include "PythonConsole.h"

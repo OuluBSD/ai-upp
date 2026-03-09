@@ -29,6 +29,8 @@ file
 	OutlinePane.cpp,
 	RunManager.h,
 	RunManager.cpp,
+	Linter.h,
+	Linter.cpp,
 	PathManager.h,
 	PathManager.cpp,
 	PathManagerDlg.h,

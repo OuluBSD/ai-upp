@@ -81,6 +81,18 @@ String McpServerCore::Handle(const McpRequest& req) {
         methods.Add("workspace.info");
         methods.Add("build.start"); methods.Add("build.stop"); methods.Add("build.status");
         methods.Add("run.start");
+        methods.Add("mainconfig.list"); methods.Add("mainconfig.set");
+        methods.Add("buildmethod.list"); methods.Add("buildmethod.set");
+        methods.Add("buildmode.get"); methods.Add("buildmode.set");
+        methods.Add("package.list"); methods.Add("package.set"); methods.Add("package.files");
+        methods.Add("file.get"); methods.Add("file.open");
+        methods.Add("editor.path"); methods.Add("editor.cursor.get"); methods.Add("editor.cursor.set");
+        methods.Add("editor.lines"); methods.Add("editor.line.get"); methods.Add("editor.insert");
+        methods.Add("console.get"); methods.Add("errors.get");
+        methods.Add("find.infiles"); methods.Add("find.next"); methods.Add("find.prev");
+        methods.Add("valgrind.run");
+        methods.Add("assist.suggestions"); methods.Add("assist.goto"); methods.Add("assist.usage");
+        methods.Add("assist.query"); methods.Add("assist.context_goto");
         methods.Add("debug.state"); methods.Add("debug.session.start"); methods.Add("debug.session.stop");
         methods.Add("debug.continue"); methods.Add("debug.step.over"); methods.Add("debug.step.into"); methods.Add("debug.step.out"); methods.Add("debug.pause");
         methods.Add("debug.breakpoint.set"); methods.Add("debug.breakpoint.clear"); methods.Add("debug.breakpoint.list");

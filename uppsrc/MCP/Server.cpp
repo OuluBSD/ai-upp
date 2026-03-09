@@ -103,8 +103,14 @@ String McpServerCore::Handle(const McpRequest& req) {
 bool McpServerCore::ReadFramed(McpClient& c, Vector<String>& out_msgs) {
     c.sock->Timeout(0);
     if(!c.sock->Peek()) return false;
-    String chunk = c.sock->GetLine(); if(c.sock->IsError()) { c.sock->Close(); return false; }
-    if(chunk.IsEmpty()) return false; c.inbuf.Cat(chunk); c.last_activity = GetSysTime();
+    // Drain all available bytes in one shot; GetLine with Timeout(0) would
+    // time out mid-line when bytes arrive in multiple TCP segments.
+    char buf[65536];
+    int n = c.sock->Get(buf, sizeof(buf));
+    if(c.sock->IsError()) { c.sock->Close(); return false; }
+    if(n <= 0) return false;
+    c.inbuf.Cat(buf, n);
+    c.last_activity = GetSysTime();
     if(c.inbuf.GetLength() > max_message_bytes) { c.sock->Close(); return false; }
     for(;;) { int p = c.inbuf.Find('\n'); if(p < 0) break; String line = c.inbuf.Mid(0,p); c.inbuf.Remove(0,p+1); if(line.GetCount()) out_msgs.Add(line); }
     return out_msgs.GetCount();

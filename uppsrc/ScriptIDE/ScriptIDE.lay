@@ -199,6 +199,63 @@ LAYOUT(ProfilerPageLayout, 600, 400)
 	ITEM(Upp::EditIntSpin, max_items, LeftPosZ(412, 60).TopPosZ(32, 19))
 END_LAYOUT
 
+LAYOUT(RunPageLayout, 600, 400)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Global presets")).HSizePosZ(8, 8).TopPosZ(8, 19))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("The following are the global configuration presets of the different runners that can execute files in Spyder.")).HSizePosZ(8, 8).TopPosZ(28, 32))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Runner:")).LeftPosZ(8, 80).TopPosZ(64, 19))
+	ITEM(Upp::DropList, runner, LeftPosZ(92, 160).TopPosZ(64, 19))
+	ITEM(Upp::LabelBox, dv___4, SetLabel(t_("Configuration presets")).HSizePosZ(8, 8).VSizePosZ(88, 68))
+	ITEM(Upp::ArrayCtrl, presets, HSizePosZ(16, 16).VSizePosZ(104, 100))
+	ITEM(Upp::Button, add_preset, SetLabel(t_("Add")).LeftPosZ(16, 80).BottomPosZ(72, 24))
+	ITEM(Upp::Button, remove_preset, SetLabel(t_("Remove")).LeftPosZ(104, 80).BottomPosZ(72, 24))
+	ITEM(Upp::LabelBox, dv___8, SetLabel(t_("Editor interactions")).HSizePosZ(8, 8).BottomPosZ(8, 56))
+	ITEM(Upp::Option, save_all_before_run, SetLabel(t_("Save all files before running script")).LeftPosZ(16, 300).BottomPosZ(32, 16))
+	ITEM(Upp::Option, copy_to_console, SetLabel(t_("Copy full cell contents to the console when running code cells")).LeftPosZ(16, 450).BottomPosZ(12, 16))
+END_LAYOUT
+
+LAYOUT(StatusBarPageLayout, 600, 400)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Display")).HSizePosZ(8, 8).TopPosZ(8, 100))
+	ITEM(Upp::Option, show_memory, SetLabel(t_("Show memory usage every")).LeftPosZ(16, 200).TopPosZ(24, 16))
+	ITEM(Upp::EditIntSpin, memory_interval, LeftPosZ(220, 60).TopPosZ(24, 19))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("ms")).LeftPosZ(288, 40).TopPosZ(24, 19))
+	ITEM(Upp::Option, show_cpu, SetLabel(t_("Show CPU usage every")).LeftPosZ(16, 200).TopPosZ(48, 16))
+	ITEM(Upp::EditIntSpin, cpu_interval, LeftPosZ(220, 60).TopPosZ(48, 19))
+	ITEM(Upp::Label, dv___6, SetLabel(t_("ms")).LeftPosZ(288, 40).TopPosZ(48, 19))
+	ITEM(Upp::Option, show_clock, SetLabel(t_("Show clock")).LeftPosZ(16, 200).TopPosZ(72, 16))
+END_LAYOUT
+
+LAYOUT(VariableExplorerPageLayout, 600, 400)
+	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Filter")).HSizePosZ(8, 8).TopPosZ(8, 128))
+	ITEM(Upp::Option, exclude_private, SetLabel(t_("Exclude private references")).LeftPosZ(16, 300).TopPosZ(24, 16))
+	ITEM(Upp::Option, exclude_capitalized, SetLabel(t_("Exclude capitalized references")).LeftPosZ(16, 300).TopPosZ(44, 16))
+	ITEM(Upp::Option, exclude_uppercase, SetLabel(t_("Exclude all-uppercase references")).LeftPosZ(16, 300).TopPosZ(64, 16))
+	ITEM(Upp::Option, exclude_unsupported, SetLabel(t_("Exclude unsupported data types")).LeftPosZ(16, 300).TopPosZ(84, 16))
+	ITEM(Upp::Option, exclude_callables, SetLabel(t_("Exclude callables and modules")).LeftPosZ(16, 300).TopPosZ(104, 16))
+	ITEM(Upp::LabelBox, dv___6, SetLabel(t_("Display")).HSizePosZ(8, 8).TopPosZ(144, 56))
+	ITEM(Upp::Option, show_minmax, SetLabel(t_("Show arrays min/max")).LeftPosZ(16, 300).TopPosZ(160, 16))
+END_LAYOUT
+
+LAYOUT(WorkingDirectoryPageLayout, 600, 400)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("This is the directory that will be set as the default for the IPython console and Files panes.")).HSizePosZ(8, 8).TopPosZ(8, 32))
+	ITEM(Upp::LabelBox, dv___1, SetLabel(t_("Startup")).HSizePosZ(8, 8).TopPosZ(48, 108))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("At startup, the working directory is:")).LeftPosZ(16, 300).TopPosZ(64, 19))
+	ITEM(Upp::Switch, startup_mode, SetLabel(t_("The project (if open) or user home directory\nThe following directory:")).LeftPosZ(16, 400).TopPosZ(88, 40))
+	ITEM(Upp::EditString, startup_path, LeftPosZ(32, 450).TopPosZ(128, 19))
+	ITEM(Upp::Button, browse_startup, SetLabel(t_("...")).LeftPosZ(488, 30).TopPosZ(128, 19))
+	ITEM(Upp::LabelBox, dv___6, SetLabel(t_("New consoles")).HSizePosZ(8, 8).TopPosZ(164, 128))
+	ITEM(Upp::Label, dv___7, SetLabel(t_("The working directory for new IPython consoles is:")).LeftPosZ(16, 400).TopPosZ(180, 19))
+	ITEM(Upp::Switch, console_mode, SetLabel(t_("The project (if open) or user home directory\nThe working directory of the current console\nThe following directory:")).LeftPosZ(16, 400).TopPosZ(204, 56))
+	ITEM(Upp::EditString, console_path, LeftPosZ(32, 450).TopPosZ(264, 19))
+	ITEM(Upp::Button, browse_console, SetLabel(t_("...")).LeftPosZ(488, 30).TopPosZ(264, 19))
+END_LAYOUT
+
+LAYOUT(PluginsPageLayout, 600, 500)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Disable a Spyder plugin (external or built-in) to prevent it from loading until re-enabled here.")).HSizePosZ(8, 8).TopPosZ(8, 32))
+	ITEM(Upp::ArrayCtrl, list, HSizePosZ(8, 8).VSizePosZ(48, 40))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Type to search")).LeftPosZ(8, 100).BottomPosZ(8, 19))
+	ITEM(Upp::EditString, search, LeftPosZ(112, 200).BottomPosZ(8, 19))
+END_LAYOUT
+
 LAYOUT(ApplicationInterfaceTabLayout, 600, 400)
 	ITEM(Upp::LabelBox, dv___0, SetLabel(t_("Screen resolution")).HSizePosZ(8, 8).TopPosZ(8, 108))
 	ITEM(Upp::Switch, hidpi_mode, SetLabel(t_("Normal\nEnable auto high DPI scaling\nSet a custom high DPI scaling")).LeftPosZ(16, 250).TopPosZ(24, 56))

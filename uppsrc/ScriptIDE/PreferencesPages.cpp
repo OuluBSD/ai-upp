@@ -563,11 +563,167 @@ public:
     }
     virtual bool IsModified() const override { return true; }
 };
-PREF_PAGE(Run)
-PREF_PAGE(StatusBar)
-PREF_PAGE(VariableExplorer)
-PREF_PAGE(WorkingDirectory)
-PREF_PAGE(Plugins)
+class RunPage : public WithRunPageLayout<PreferencesPage> {
+public:
+    typedef RunPage CLASSNAME;
+    RunPage() {
+        CtrlLayout(*this);
+        runner.Add("Internal");
+        runner.Add("External");
+        presets.AddColumn("Name");
+        presets.AddColumn("File extension");
+        presets.AddColumn("Context");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        save_all_before_run.SetData(cfg.run.save_all_before_run);
+        copy_to_console.SetData(cfg.run.copy_full_cell_to_console);
+        presets.Clear();
+        for(const auto& p : cfg.run.presets)
+            presets.Add(p.name, p.file_extension, p.context);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.run.save_all_before_run = ~save_all_before_run;
+        cfg.run.copy_full_cell_to_console = ~copy_to_console;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        save_all_before_run.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class StatusBarPage : public WithStatusBarPageLayout<PreferencesPage> {
+public:
+    typedef StatusBarPage CLASSNAME;
+    StatusBarPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        show_memory.SetData(cfg.statusbar.show_memory);
+        memory_interval.SetData(cfg.statusbar.memory_poll_ms);
+        show_cpu.SetData(cfg.statusbar.show_cpu);
+        cpu_interval.SetData(cfg.statusbar.cpu_poll_ms);
+        show_clock.SetData(cfg.statusbar.show_clock);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.statusbar.show_memory = ~show_memory;
+        cfg.statusbar.memory_poll_ms = ~memory_interval;
+        cfg.statusbar.show_cpu = ~show_cpu;
+        cfg.statusbar.cpu_poll_ms = ~cpu_interval;
+        cfg.statusbar.show_clock = ~show_clock;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        show_memory.SetData(true);
+        memory_interval.SetData(2000);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class VariableExplorerPage : public WithVariableExplorerPageLayout<PreferencesPage> {
+public:
+    typedef VariableExplorerPage CLASSNAME;
+    VariableExplorerPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        exclude_private.SetData(cfg.variable_explorer.exclude_private);
+        exclude_capitalized.SetData(cfg.variable_explorer.exclude_capitalized);
+        exclude_uppercase.SetData(cfg.variable_explorer.exclude_uppercase);
+        exclude_unsupported.SetData(cfg.variable_explorer.exclude_unsupported);
+        exclude_callables.SetData(cfg.variable_explorer.exclude_callables);
+        show_minmax.SetData(cfg.variable_explorer.show_array_minmax);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.variable_explorer.exclude_private = ~exclude_private;
+        cfg.variable_explorer.exclude_capitalized = ~exclude_capitalized;
+        cfg.variable_explorer.exclude_uppercase = ~exclude_uppercase;
+        cfg.variable_explorer.exclude_unsupported = ~exclude_unsupported;
+        cfg.variable_explorer.exclude_callables = ~exclude_callables;
+        cfg.variable_explorer.show_array_minmax = ~show_minmax;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {
+        if(ctx.main_window) ctx.main_window->UpdateVariableExplorer();
+    }
+
+    virtual void SetDefaults() override {
+        exclude_private.SetData(true);
+        exclude_callables.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class WorkingDirectoryPage : public WithWorkingDirectoryPageLayout<PreferencesPage> {
+public:
+    typedef WorkingDirectoryPage CLASSNAME;
+    WorkingDirectoryPage() {
+        CtrlLayout(*this);
+        browse_startup.WhenAction = [=] {
+            FileSel fs;
+            if(fs.ExecuteSelectDir("Select Startup Directory")) startup_path.SetData(fs.Get());
+        };
+        browse_console.WhenAction = [=] {
+            FileSel fs;
+            if(fs.ExecuteSelectDir("Select Console Directory")) console_path.SetData(fs.Get());
+        };
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        startup_mode.SetData(cfg.working_directory.startup_mode);
+        startup_path.SetData(cfg.working_directory.startup_directory);
+        console_mode.SetData(cfg.working_directory.new_console_mode);
+        console_path.SetData(cfg.working_directory.new_console_directory);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.working_directory.startup_mode = ~startup_mode;
+        cfg.working_directory.startup_directory = ~startup_path;
+        cfg.working_directory.new_console_mode = ~console_mode;
+        cfg.working_directory.new_console_directory = ~console_path;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        startup_mode.SetData(0);
+        console_mode.SetData(1);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class PluginsPage : public WithPluginsPageLayout<PreferencesPage> {
+public:
+    typedef PluginsPage CLASSNAME;
+    PluginsPage() {
+        CtrlLayout(*this);
+        list.AddColumn("Name");
+        list.AddColumn("Description");
+        list.AddColumn("Enabled").Ctrls<Option>();
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        list.Clear();
+        for(const auto& p : cfg.plugins.states)
+            list.Add(p.id, "Spyder Plugin", p.enabled);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.plugins.states.Clear();
+        for(int i = 0; i < list.GetCount(); i++) {
+            PluginState& p = cfg.plugins.states.Add();
+            p.id = list.Get(i, 0);
+            p.enabled = list.Get(i, 2);
+        }
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {}
+    virtual bool IsModified() const override { return true; }
+};
 
 void PythonIDE::OnSettings()
 {

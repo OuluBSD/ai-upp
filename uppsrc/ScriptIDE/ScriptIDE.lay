@@ -20,3 +20,13 @@ LAYOUT(PYTHONPATHLayout, 500, 300)
 	ITEM(Upp::Button, remove, SetLabel(t_("Remove")).LeftPosZ(92, 80).BottomPosZ(8, 24))
 	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(8, 80).BottomPosZ(8, 24))
 END_LAYOUT
+
+LAYOUT(PreferencesLayout, 800, 600)
+	ITEM(Upp::Splitter, split, HSizePosZ(0, 0).VSizePosZ(0, 40))
+	ITEM(Upp::ArrayCtrl, nav, LeftPosZ(0, 100).TopPosZ(0, 100))
+	ITEM(Upp::ParentCtrl, page_host, LeftPosZ(0, 100).TopPosZ(0, 100))
+	ITEM(Upp::Button, reset_defaults, SetLabel(t_("Reset to defaults")).LeftPosZ(8, 120).BottomPosZ(8, 24))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(172, 76).BottomPosZ(8, 24))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(92, 76).BottomPosZ(8, 24))
+	ITEM(Upp::Button, apply, SetLabel(t_("Apply")).RightPosZ(12, 76).BottomPosZ(8, 24))
+END_LAYOUT

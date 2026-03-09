@@ -769,12 +769,6 @@ void PythonIDE::ApplySettings()
 	code_editor.SetFont(Font(face, settings.appearance.monospace_font_size));
 	code_editor.LineNumbers(settings.editor.show_line_numbers);
 	code_editor.ShowSpaces(settings.editor.show_spaces);
-	// ... more mappings as needed
-}
-
-void PythonIDE::OnSettings()
-{
-	Todo("Preferences Window");
 }
 
 }

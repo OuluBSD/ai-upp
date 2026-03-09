@@ -12,6 +12,12 @@ namespace Upp {
 
 #include "IDESettings.h"
 
+#define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
+#include <CtrlCore/lay.h>
+
+#include "PreferencesPage.h"
+#include "PreferencesWindow.h"
+
 template <class T>
 class WithDockable : public DockableCtrl {
 public:
@@ -20,9 +26,6 @@ public:
 	T* operator->() { return &ctrl; }
 	operator T&() { return ctrl; }
 };
-
-#define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
-#include <CtrlCore/lay.h>
 
 /*
 #define IMAGECLASS ScriptIDEImg

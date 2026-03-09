@@ -27,6 +27,8 @@ file
 	FindInFilesPane.cpp,
 	OutlinePane.h,
 	OutlinePane.cpp,
+	RunManager.h,
+	RunManager.cpp,
 	PythonConsole.h,
 	PythonConsole.cpp,
 	FilesPane.h,

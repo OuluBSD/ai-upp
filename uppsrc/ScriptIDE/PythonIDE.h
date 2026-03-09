@@ -22,6 +22,8 @@ private:
     // Dockable panes
     FilesPane files_pane;
     VariableExplorer var_explorer;
+    DebuggerPane debugger_pane;
+    ProfilerPane profiler_pane;
     WithDockable<RichTextCtrl> help_pane;
     PlotsPane plots_pane;
     PythonConsole console_pane;
@@ -70,9 +72,11 @@ private:
     void OnRun();
     void OnRunSelection();
     void OnRunConfig();
-    void OnSettings();
-    void ApplySettings();
     void OnDebug();
+    void OnStop();
+
+    void ApplySettings();
+    void OnSettings();
     void OnBreakpointHit(const String& file, int line);
     void OnStepOver();
     void OnStepIn();

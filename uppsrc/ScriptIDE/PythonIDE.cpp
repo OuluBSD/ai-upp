@@ -79,6 +79,7 @@ void PythonIDE::OnConsoleInput()
 		if(!res.IsNone())
 			console_pane.Write(res.Repr() + "\n");
 		
+		debugger_pane.Clear();
 		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
@@ -106,6 +107,16 @@ PythonIDE::PythonIDE()
     files_pane.WhenOpen = [=](const String& path) { if(ConfirmSave()) LoadFile(path); };
 
     console_pane.WhenInput = [=] { OnConsoleInput(); };
+
+    debugger_pane.WhenContinue = [=] { vm.Continue(); };
+    debugger_pane.WhenStepOver = [=] { OnStepOver(); };
+    debugger_pane.WhenStepInto = [=] { OnStepIn(); };
+    debugger_pane.WhenStepOut = [=] { OnStepOut(); };
+    debugger_pane.WhenStop = [=] { OnStop(); };
+    debugger_pane.WhenFrameSelected = [=](int i) {
+        const auto& locals = vm.GetLocals(i);
+        var_explorer.SetVariables(locals);
+    };
 
     vm.WhenPrint = [=](const String& s) { console_pane.Write(s); };
     vm.WhenPlot = [=](const Image& img) { plots_pane.AddPlot(img); };
@@ -280,6 +291,7 @@ void PythonIDE::OnRun()
 
 	console_pane.Clear();
 	console_pane.Write("--- Running script ---\n");
+	profiler_pane.Clear();
 
 	try {
 		Tokenizer tk;
@@ -298,6 +310,7 @@ void PythonIDE::OnRun()
 		vm.Run();
 
 		console_pane.Write("--- Script finished ---\n");
+		debugger_pane.Clear();
 		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
@@ -332,6 +345,7 @@ void PythonIDE::OnRunSelection()
 		vm.SetIR(ir);
 		vm.Run();
 		
+		debugger_pane.Clear();
 		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
@@ -341,11 +355,21 @@ void PythonIDE::OnRunSelection()
 void PythonIDE::OnRunConfig() {}
 void PythonIDE::OnDebug() {}
 
+void PythonIDE::OnStop()
+{
+	vm.Reset();
+	debugger_pane.Clear();
+	UpdateVariableExplorer();
+	code_editor.HidePtr();
+	console_pane.Write("--- Execution stopped ---\n");
+}
+
 void PythonIDE::OnBreakpointHit(const String& file, int line)
 {
 	console_pane.Write("Breakpoint hit at " + file + ":" + AsString(line) + "\n");
 	code_editor.SetCursor(code_editor.GetPos(line - 1));
 	code_editor.SetPtr(line - 1, CtrlImg::right_arrow(), 0);
+	debugger_pane.SetStack(vm.GetCallStack());
 	UpdateVariableExplorer();
 	code_editor.SetFocus();
 }
@@ -478,6 +502,8 @@ void PythonIDE::DockInit()
 	files_pane.SetRoot(GetCurrentDirectory());
 
 	Register(var_explorer.SizeHint(Size(300, 400)));
+	Register(debugger_pane.SizeHint(Size(300, 400)));
+	Register(profiler_pane.SizeHint(Size(300, 400)));
 	Register(help_pane.Title("Help").SizeHint(Size(300, 400)));
 	Register(plots_pane.SizeHint(Size(300, 400)));
 	Register(console_pane.SizeHint(Size(600, 300)));
@@ -485,6 +511,8 @@ void PythonIDE::DockInit()
 
 	// Dock Top-Right Stack (tabbed)
 	DockRight(var_explorer);
+	Tabify(var_explorer, debugger_pane);
+	Tabify(var_explorer, profiler_pane);
 	Tabify(var_explorer, help_pane);
 	Tabify(var_explorer, plots_pane);
 

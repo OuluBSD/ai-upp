@@ -46,6 +46,7 @@ public:
 	void StepOver();        // Execute next line, don't enter calls
 	void StepIn();          // Execute next line, enter calls
 	void StepOut();         // Run until current function returns
+	void Reset();           // Stop execution and clear frames
 	DebugState GetDebugState() const { return debug_state; }
 
 	struct StackFrame : Moveable<StackFrame> {

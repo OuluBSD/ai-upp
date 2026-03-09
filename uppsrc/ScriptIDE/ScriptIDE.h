@@ -10,6 +10,15 @@
 
 namespace Upp {
 
+template <class T>
+class WithDockable : public DockableCtrl {
+public:
+	T ctrl;
+	WithDockable() { Add(ctrl.SizePos()); }
+	T* operator->() { return &ctrl; }
+	operator T&() { return ctrl; }
+};
+
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
 
@@ -23,7 +32,7 @@ namespace Upp {
 #include "VariableExplorer.h"
 #include "PlotsPane.h"
 #include "PythonConsole.h"
-#include "FileTree.h"
+#include "FilesPane.h"
 #include "CustomFileTabs.h"
 #include "PythonIDE.h"
 

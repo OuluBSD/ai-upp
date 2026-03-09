@@ -15,22 +15,18 @@ private:
     ToolBar toolbar;
     StatusBar statusbar;
 
-    // Left dockable panel
-    ToolBar file_toolbar;
-    FileTree file_tree;
-    WithFileTreeLayout<DockableCtrl> file_panel;  // Contains toolbar + tree
-
     // Center area - Editor
     ParentCtrl editor_area;
     CustomFileTabs editor_tabs;
 
-    // Dockable panels
-    DockableCtrl var_dock;
-    DockableCtrl help_dock;
-    DockableCtrl plots_dock;
-    DockableCtrl files_dock;
-    DockableCtrl console_dock;
-    DockableCtrl history_dock;
+    // Dockable panes
+    FilesPane files_pane;
+    VariableExplorer var_explorer;
+    WithDockable<RichTextCtrl> help_pane;
+    PlotsPane plots_pane;
+    PythonConsole console_pane;
+    WithDockable<ParentCtrl> history_pane;
+    WithDockable<ParentCtrl> find_pane;
 
     void InitLayout();
     void InitDocking();
@@ -97,13 +93,6 @@ private:
     PythonIDESettings settings;
 
     CodeEditor code_editor;
-    VariableExplorer var_explorer;
-
-    RichTextCtrl help_viewer;
-    PlotsPane plots_viewer;
-    ParentCtrl files_viewer;
-    ParentCtrl history_viewer;
-    PythonConsole python_console;
 
     struct FileInfo {
         String path;

@@ -4,6 +4,7 @@ namespace Upp {
 
 VariableExplorer::VariableExplorer()
 {
+	Title("Variable Explorer");
 	Add(list.SizePos());
 	
 	list.AddIndex("INTERNAL_IDX");

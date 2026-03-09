@@ -17,6 +17,7 @@ namespace Upp {
 
 #include "PreferencesPage.h"
 #include "PreferencesWindow.h"
+#include "PythonEditor.h"
 
 template <class T>
 class WithDockable : public DockableCtrl {

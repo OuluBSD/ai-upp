@@ -223,10 +223,82 @@ void PythonIDE::OnConvertEOL(const String& mode)
 void PythonIDE::OnComment() { code_editor.ToggleComments(); }
 void PythonIDE::OnBlockComment() { Todo("Block comment"); }
 void PythonIDE::OnUncomment() { code_editor.ToggleComments(); }
-void PythonIDE::OnRemoveTrailingSpaces() { Todo("Remove trailing spaces"); }
-void PythonIDE::OnTabsToSpaces() { Todo("Tabs to spaces"); }
-void PythonIDE::OnCloseFile() { Todo("Close file"); }
-void PythonIDE::OnCloseAll() { Todo("Close all"); }
+void PythonIDE::OnRemoveTrailingSpaces()
+{
+	String s = code_editor.Get();
+	Vector<String> lines = Split(s, '\n', false);
+	s = "";
+	for(int i = 0; i < lines.GetCount(); i++)
+		s << TrimRight(lines[i]) << "\n";
+	code_editor.Set(s);
+}
+
+void PythonIDE::OnTabsToSpaces()
+{
+	String s = code_editor.Get();
+	s.Replace("\t", String(' ', settings.editor.tab_width));
+	code_editor.Set(s);
+}
+
+void PythonIDE::OnPrevCursor()
+{
+	if(cursor_history_idx > 0) {
+		cursor_history_idx--;
+		code_editor.SetCursor((int)cursor_history[cursor_history_idx]);
+		code_editor.SetFocus();
+	}
+}
+
+void PythonIDE::OnNextCursor()
+{
+	if(cursor_history_idx < cursor_history.GetCount() - 1) {
+		cursor_history_idx++;
+		code_editor.SetCursor((int)cursor_history[cursor_history_idx]);
+		code_editor.SetFocus();
+	}
+}
+
+void PythonIDE::AddCursorHistory()
+{
+	int64 pos = code_editor.GetCursor();
+	if(cursor_history.IsEmpty() || cursor_history.Top() != pos) {
+		if(cursor_history_idx < cursor_history.GetCount() - 1)
+			cursor_history.Drop(cursor_history.GetCount() - 1 - cursor_history_idx);
+		
+		cursor_history.Add(pos);
+		if(cursor_history.GetCount() > 100) cursor_history.Remove(0);
+		cursor_history_idx = cursor_history.GetCount() - 1;
+	}
+}
+void PythonIDE::OnCloseFile()
+{
+	if(active_file < 0) return;
+	if(!ConfirmSave(active_file)) return;
+	
+	editor_tabs.Close(active_file);
+	open_files.Remove(active_file);
+	
+	if(open_files.IsEmpty()) {
+		active_file = -1;
+		code_editor.Clear();
+		outline_pane.Clear();
+	}
+	else {
+		active_file = editor_tabs.GetCursor();
+		OnTabChanged();
+	}
+}
+
+void PythonIDE::OnCloseAll()
+{
+	if(!ConfirmSaveAll()) return;
+	
+	editor_tabs.Clear();
+	open_files.Clear();
+	active_file = -1;
+	code_editor.Clear();
+	outline_pane.Clear();
+}
 void PythonIDE::OnFileSwitcher() { Todo("File switcher"); }
 void PythonIDE::OnSymbolFinder() { Todo("Symbol finder"); }
 void PythonIDE::OnRestart() { Todo("Restart"); }
@@ -507,6 +579,7 @@ PythonIDE::PythonIDE() : run_manager(vm)
     code_editor.WhenAction = [=] {
         if(active_file >= 0 && active_file < open_files.GetCount())
             open_files[active_file].dirty = true;
+        AddCursorHistory();
         KillTimeCallback(1);
         SetTimeCallback(500, [=] { OnAnalyze(); }, 1);
     };
@@ -597,26 +670,39 @@ void PythonIDE::SearchMenu(Bar& bar)
 	bar.Add("Replace text", [=] { code_editor.Replace(); });
 	bar.Separator();
 	bar.Add("Last edit location", [=] { Todo("Last edit location"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_LEFT);
-	bar.Add("Previous cursor position", [=] { Todo("Prev cursor"); }).Key(K_ALT_LEFT);
-	bar.Add("Next cursor position", [=] { Todo("Next cursor"); }).Key(K_ALT_RIGHT);
+	bar.Add("Previous cursor position", [=] { OnPrevCursor(); }).Key(K_ALT_LEFT);
+	bar.Add("Next cursor position", [=] { OnNextCursor(); }).Key(K_ALT_RIGHT);
 	bar.Separator();
 	bar.Add("Search text in files...", [=] { find_pane.Show(); }).Key(K_ALT|K_SHIFT|K_F);
 }
 
 void PythonIDE::SourceMenu(Bar& bar)
 {
-	bar.Add("Show invisible characters", [=] { Todo("Invisibles"); }).Check(false);
-	bar.Add("Wrap lines", [=] { Todo("Wrap lines"); }).Check(false);
-	bar.Add("Show indent guides", [=] { Todo("Indent guides"); }).Check(false);
-	bar.Add("Show code folding", [=] { Todo("Folding"); }).Check(true);
-	bar.Add("Show class/function selector", [=] { Todo("Selector"); }).Check(false);
-	bar.Add("Show docstring style warnings", [=] { Todo("Docstring warnings"); }).Check(false);
-	bar.Add("Underline errors and warnings", [=] { Todo("Underline"); }).Check(true);
-	bar.Separator();
-	bar.Add("Show todo list", [=] { Todo("Todo list"); }).Enable(false);
-	bar.Add("Show warning/error list", [=] { Todo("Warning list"); }).Enable(false);
-	bar.Add("Previous warning/error", [=] { Todo("Prev warn"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_COMMA);
-	bar.Add("Next warning/error", [=] { Todo("Next warn"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_PERIOD);
+	bar.Add("Show invisible characters", [=] {
+		settings.editor.show_spaces = !settings.editor.show_spaces;
+		ApplySettings();
+	}).Check(settings.editor.show_spaces);
+	
+	bar.Add("Show indent guides", [=] {
+		settings.editor.show_indent_guides = !settings.editor.show_indent_guides;
+		ApplySettings();
+	}).Check(settings.editor.show_indent_guides);
+	
+	bar.Add("Show code folding", [=] {
+		settings.editor.show_code_folding = !settings.editor.show_code_folding;
+		ApplySettings();
+	}).Check(settings.editor.show_code_folding);
+	
+	bar.Add("Show line numbers", [=] {
+		settings.editor.show_line_numbers = !settings.editor.show_line_numbers;
+		ApplySettings();
+	}).Check(settings.editor.show_line_numbers);
+
+	bar.Add("Underline errors and warnings", [=] {
+		settings.editor.show_code_annotations = !settings.editor.show_code_annotations;
+		OnAnalyze();
+	}).Check(settings.editor.show_code_annotations);
+	
 	bar.Separator();
 	bar.Add("Run code analysis", [=] { OnAnalyze(); }).Key(K_F8);
 	bar.Add("Format file or selection with Autopep8", [=] { Todo("Autopep8"); });
@@ -925,15 +1011,22 @@ void PythonIDE::OnPathManager()
 		StoreToFile(path_manager, ConfigFile("pythonpath.bin"));
 	}
 }
-
 void PythonIDE::ApplySettings()
 {
+	// Map IDESettings to CodeEditor
 	int face = Font::FindFaceNameIndex(settings.appearance.monospace_font_face);
 	if(face < 0) face = Font::COURIER;
 	code_editor.SetFont(Font(face, settings.appearance.monospace_font_size));
+	
 	code_editor.LineNumbers(settings.editor.show_line_numbers);
 	code_editor.ShowSpaces(settings.editor.show_spaces);
+	
+	if(!settings.editor.show_code_annotations)
+		code_editor.ClearAnnotations();
+	else
+		OnAnalyze();
 }
+
 
 void PythonIDE::UpdateStatusBar()
 {

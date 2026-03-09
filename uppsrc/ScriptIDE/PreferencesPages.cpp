@@ -331,9 +331,124 @@ public:
     virtual void SetDefaults() override {}
     virtual bool IsModified() const override { return true; }
 };
-PREF_PAGE(CodeAnalysis)
-PREF_PAGE(CompletionLinting)
-PREF_PAGE(Debugger)
+class CodeAnalysisPage : public WithCodeAnalysisPageLayout<PreferencesPage> {
+public:
+    typedef CodeAnalysisPage CLASSNAME;
+    CodeAnalysisPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        save_before.SetData(cfg.code_analysis.save_before_analysis);
+        history_count.SetData(cfg.code_analysis.history_results);
+        results_path.SetLabel(cfg.code_analysis.results_path);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.code_analysis.save_before_analysis = ~save_before;
+        cfg.code_analysis.history_results = ~history_count;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        save_before.SetData(true);
+        history_count.SetData(30);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class CompletionLintingPage : public PreferencesPage {
+public:
+    typedef CompletionLintingPage CLASSNAME;
+    TabCtrl tabs;
+
+    struct GeneralTab : public WithCompletionGeneralTabLayout<ParentCtrl> {
+        GeneralTab() { CtrlLayout(*this); }
+    } general_tab;
+
+    struct LintingTab : public WithCompletionLintingTabLayout<ParentCtrl> {
+        LintingTab() { CtrlLayout(*this); }
+    } linting_tab;
+
+    CompletionLintingPage() {
+        Add(tabs.SizePos());
+        tabs.Add(general_tab, "General");
+        tabs.Add(linting_tab, "Linting");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        general_tab.show_details.SetData(cfg.completion.show_completion_details);
+        general_tab.enable_snippets.SetData(cfg.completion.enable_code_snippets);
+        general_tab.completions_fly.SetData(cfg.completion.show_completions_on_the_fly);
+        general_tab.chars_before.SetData(cfg.completion.chars_before_completion);
+        general_tab.detail_delay.SetData(cfg.completion.completion_detail_delay_ms);
+        general_tab.timeout.SetData(cfg.completion.provider_timeout_ms);
+        general_tab.enable_fallback.SetData(cfg.completion.enable_fallback_provider);
+        general_tab.enable_lsp.SetData(cfg.completion.enable_lsp_provider);
+        general_tab.enable_snippets_provider.SetData(cfg.completion.enable_snippet_provider);
+
+        linting_tab.provider.SetData(
+            cfg.completion.lint_provider == "pyflakes" ? 0 :
+            cfg.completion.lint_provider == "flake8" ? 1 :
+            cfg.completion.lint_provider == "ruff" ? 2 : 3
+        );
+        linting_tab.underline_errors.SetData(cfg.completion.underline_errors);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.completion.show_completion_details = ~general_tab.show_details;
+        cfg.completion.enable_code_snippets = ~general_tab.enable_snippets;
+        cfg.completion.show_completions_on_the_fly = ~general_tab.completions_fly;
+        cfg.completion.chars_before_completion = ~general_tab.chars_before;
+        cfg.completion.completion_detail_delay_ms = ~general_tab.detail_delay;
+        cfg.completion.provider_timeout_ms = ~general_tab.timeout;
+        cfg.completion.enable_fallback_provider = ~general_tab.enable_fallback;
+        cfg.completion.enable_lsp_provider = ~general_tab.enable_lsp;
+        cfg.completion.enable_snippet_provider = ~general_tab.enable_snippets_provider;
+
+        int p = ~linting_tab.provider;
+        cfg.completion.lint_provider = (p == 0 ? "pyflakes" : p == 1 ? "flake8" : p == 2 ? "ruff" : "none");
+        cfg.completion.underline_errors = ~linting_tab.underline_errors;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        general_tab.show_details.SetData(true);
+        linting_tab.provider.SetData(0);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class DebuggerPage : public WithDebuggerPageLayout<PreferencesPage> {
+public:
+    typedef DebuggerPage CLASSNAME;
+    DebuggerPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        prevent_close.SetData(cfg.debugger.prevent_close_while_debugging);
+        stop_first_line.SetData(cfg.debugger.stop_on_first_line_without_breakpoints);
+        ignore_libs.SetData(cfg.debugger.ignore_python_libraries);
+        process_events.SetData(cfg.debugger.process_execute_events);
+        exclamation_prefix.SetData(cfg.debugger.use_exclamation_prefix);
+        debug_lines.SetData(cfg.debugger.preload_debug_lines);
+        exclude_internal.SetData(cfg.debugger.exclude_internal_frames);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.debugger.prevent_close_while_debugging = ~prevent_close;
+        cfg.debugger.stop_on_first_line_without_breakpoints = ~stop_first_line;
+        cfg.debugger.ignore_python_libraries = ~ignore_libs;
+        cfg.debugger.process_execute_events = ~process_events;
+        cfg.debugger.use_exclamation_prefix = ~exclamation_prefix;
+        cfg.debugger.preload_debug_lines = ~debug_lines;
+        cfg.debugger.exclude_internal_frames = ~exclude_internal;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        prevent_close.SetData(true);
+        exclude_internal.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
 PREF_PAGE(Files)
 PREF_PAGE(Help)
 PREF_PAGE(History)

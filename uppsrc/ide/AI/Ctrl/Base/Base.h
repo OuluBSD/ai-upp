@@ -17,6 +17,7 @@
 #define IMAGEFILE <ide/AI/Ctrl/Base/AIImgs.iml>
 #include <Draw/iml_header.h>
 
+#include "ToolAppCtrl.h"
 #include "Entity.h"
 #include "Fn.h"
 #include "VfsProgram.h"

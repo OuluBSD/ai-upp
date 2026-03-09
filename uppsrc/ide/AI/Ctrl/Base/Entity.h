@@ -1,6 +1,7 @@
 #ifndef _ide_AI_Ctrl_Base_Entity_h_
 #define _ide_AI_Ctrl_Base_Entity_h_
 
+NAMESPACE_UPP
 
 struct Script;
 class ToolAppCtrl;
@@ -107,6 +108,6 @@ public:
 
 INITIALIZE(EntityInfoCtrl)
 
-
+END_UPP_NAMESPACE
 
 #endif

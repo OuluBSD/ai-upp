@@ -4529,7 +4529,7 @@ void Edit3D::UpdateScriptInstance(ScriptInstance& inst, bool force_reload) {
 		LOG("Script compile failed: " + err);
 		return;
 	}
-	inst.vm = PyVM();
+	inst.vm.Clear();
 	RegisterScriptVM(inst.vm);
 	if (state) {
 		PyValue root_obj = MakeDisplayObject(this, &state->GetActiveScene().val, &inst.vm);

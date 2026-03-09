@@ -401,4 +401,9 @@ void Ide::FindDesignerItemReferences(const String& id, const String& name)
 		}
 }
 
+void Ide::QueryId()
+{
+	// TODO: MCP assist.query_id — return AST info for identifier at cursor
+}
+
 #endif // flagGUI

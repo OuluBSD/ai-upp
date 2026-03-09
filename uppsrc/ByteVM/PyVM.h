@@ -85,7 +85,8 @@ public:
 
 	PyVM();
 	~PyVM();
-	
+	void Clear();
+
 	void SetIR(Vector<PyIR>& ir);
 	PyValue Run();
 	PyValue Call(const PyValue& callable, const Vector<PyValue>& args);

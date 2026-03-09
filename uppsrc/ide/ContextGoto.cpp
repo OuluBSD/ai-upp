@@ -295,4 +295,11 @@ void Ide::CtrlClick(int64 pos)
 	if(pos < INT_MAX)
 		ContextGoto0((int)pos);
 }
+
+void Ide::Goto()
+{
+	// TODO: MCP assist.goto — navigate to definition of identifier at cursor
+	ContextGoto();
+}
+
 #endif // flagGUI

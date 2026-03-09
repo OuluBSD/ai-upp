@@ -14,18 +14,191 @@ public: \
     virtual bool IsModified() const override { return false; } \
 };
 
-PREF_PAGE(Appearance)
+class AppearancePage : public WithAppearancePageLayout<PreferencesPage> {
+public:
+    typedef AppearancePage CLASSNAME;
+    AppearancePage() {
+        CtrlLayout(*this);
+
+        interface_theme.Add("Default");
+        interface_theme.Add("Dark");
+        interface_theme.Add("Light");
+
+        syntax_theme.Add("Default");
+        syntax_theme.Add("Spyder");
+        syntax_theme.Add("Monokai");
+
+        for(int i = 0; i < Font::GetFaceCount(); i++) {
+            if(Font::GetFaceInfo(i) & Font::FIXEDPITCH)
+                monospace_font.Add(Font::GetFaceName(i));
+            interface_font.Add(Font::GetFaceName(i));
+        }
+    }
+
+
+    virtual void Load(const IDESettings& cfg) override {
+        interface_theme.SetData(cfg.appearance.interface_theme);
+        syntax_theme.SetData(cfg.appearance.syntax_theme);
+        monospace_font.SetData(cfg.appearance.monospace_font_face);
+        monospace_size.SetData(cfg.appearance.monospace_font_size);
+        interface_font.SetData(cfg.appearance.interface_font_face);
+        interface_size.SetData(cfg.appearance.interface_font_size);
+        use_system_font.SetData(cfg.appearance.use_system_interface_font);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.appearance.interface_theme = ~interface_theme;
+        cfg.appearance.syntax_theme = ~syntax_theme;
+        cfg.appearance.monospace_font_face = ~monospace_font;
+        cfg.appearance.monospace_font_size = ~monospace_size;
+        cfg.appearance.interface_font_face = ~interface_font;
+        cfg.appearance.interface_font_size = ~interface_size;
+        cfg.appearance.use_system_interface_font = ~use_system_font;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {
+        if(ctx.main_window) ctx.main_window->ApplySettings();
+    }
+
+    virtual void SetDefaults() override {
+        interface_theme.SetData("Default");
+        syntax_theme.SetData("Default");
+        monospace_font.SetData("Courier New");
+        monospace_size.SetData(10);
+        interface_font.SetData("Arial");
+        interface_size.SetData(10);
+        use_system_font.SetData(true);
+    }
+
+    virtual bool IsModified() const override { return true; }
+};
+
+class EditorPage : public WithEditorDisplayTabLayout<PreferencesPage> {
+public:
+    typedef EditorPage CLASSNAME;
+    EditorPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        show_tab_bar.SetData(cfg.editor.show_tab_bar);
+        show_path.SetData(cfg.editor.show_full_path_above_editor);
+        show_selector.SetData(cfg.editor.show_class_function_selector);
+        allow_scroll_past_eof.SetData(cfg.editor.allow_scroll_past_eof);
+        show_indent_guides.SetData(cfg.editor.show_indent_guides);
+        show_folding.SetData(cfg.editor.show_code_folding);
+        show_line_numbers.SetData(cfg.editor.show_line_numbers);
+        show_breakpoints.SetData(cfg.editor.show_debugger_breakpoints);
+        show_annotations.SetData(cfg.editor.show_code_annotations);
+        highlight_current_line.SetData(cfg.editor.highlight_current_line);
+        highlight_current_cell.SetData(cfg.editor.highlight_current_cell);
+        highlight_occurrences.SetData(cfg.editor.highlight_selected_occurrences);
+        occurrence_delay.SetData(cfg.editor.occurrence_highlight_delay_ms);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.editor.show_tab_bar = ~show_tab_bar;
+        cfg.editor.show_full_path_above_editor = ~show_path;
+        cfg.editor.show_class_function_selector = ~show_selector;
+        cfg.editor.allow_scroll_past_eof = ~allow_scroll_past_eof;
+        cfg.editor.show_indent_guides = ~show_indent_guides;
+        cfg.editor.show_code_folding = ~show_folding;
+        cfg.editor.show_line_numbers = ~show_line_numbers;
+        cfg.editor.show_debugger_breakpoints = ~show_breakpoints;
+        cfg.editor.show_code_annotations = ~show_annotations;
+        cfg.editor.highlight_current_line = ~highlight_current_line;
+        cfg.editor.highlight_current_cell = ~highlight_current_cell;
+        cfg.editor.highlight_selected_occurrences = ~highlight_occurrences;
+        cfg.editor.occurrence_highlight_delay_ms = ~occurrence_delay;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {
+        if(ctx.main_window) ctx.main_window->ApplySettings();
+    }
+
+    virtual void SetDefaults() override {
+        show_tab_bar.SetData(true);
+        show_path.SetData(true);
+        show_selector.SetData(false);
+        allow_scroll_past_eof.SetData(false);
+        show_indent_guides.SetData(false);
+        show_folding.SetData(true);
+        show_line_numbers.SetData(true);
+        show_breakpoints.SetData(true);
+        show_annotations.SetData(true);
+        highlight_current_line.SetData(true);
+        highlight_current_cell.SetData(true);
+        highlight_occurrences.SetData(true);
+        occurrence_delay.SetData(1500);
+    }
+
+    virtual bool IsModified() const override { return true; }
+};
+
+class IPythonConsolePage : public WithConsoleInterfaceTabLayout<PreferencesPage> {
+public:
+    typedef IPythonConsolePage CLASSNAME;
+    IPythonConsolePage() {
+        CtrlLayout(*this);
+        completion_display.Add("Graphical");
+        completion_display.Add("Terminal");
+        completion_display.Add("Plain Text");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        show_welcome.SetData(cfg.console.show_welcome_message);
+        show_calltips.SetData(cfg.console.show_calltips);
+        show_elapsed_time.SetData(cfg.console.show_elapsed_time);
+        confirm_closing.SetData(cfg.console.confirm_before_closing);
+        confirm_restarting.SetData(cfg.console.confirm_before_restarting);
+        confirm_remove_vars.SetData(cfg.console.confirm_before_removing_variables);
+        completion_display.SetData(cfg.console.completion_display);
+        use_jedi.SetData(cfg.console.use_jedi_completion);
+        use_greedy.SetData(cfg.console.use_greedy_completion);
+        buffer_lines.SetData(cfg.console.output_buffer_lines);
+        render_sympy.SetData(cfg.console.render_sympy_math);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.console.show_welcome_message = ~show_welcome;
+        cfg.console.show_calltips = ~show_calltips;
+        cfg.console.show_elapsed_time = ~show_elapsed_time;
+        cfg.console.confirm_before_closing = ~confirm_closing;
+        cfg.console.confirm_before_restarting = ~confirm_restarting;
+        cfg.console.confirm_before_removing_variables = ~confirm_remove_vars;
+        cfg.console.completion_display = ~completion_display;
+        cfg.console.use_jedi_completion = ~use_jedi;
+        cfg.console.use_greedy_completion = ~use_greedy;
+        cfg.console.output_buffer_lines = ~buffer_lines;
+        cfg.console.render_sympy_math = ~render_sympy;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+
+    virtual void SetDefaults() override {
+        show_welcome.SetData(true);
+        show_calltips.SetData(true);
+        show_elapsed_time.SetData(false);
+        confirm_closing.SetData(false);
+        confirm_restarting.SetData(true);
+        confirm_remove_vars.SetData(true);
+        completion_display.SetData("Graphical");
+        use_jedi.SetData(false);
+        use_greedy.SetData(false);
+        buffer_lines.SetData(5000);
+        render_sympy.SetData(false);
+    }
+
+    virtual bool IsModified() const override { return true; }
+};
+
 PREF_PAGE(Application)
 PREF_PAGE(PythonInterpreter)
 PREF_PAGE(KeyboardShortcuts)
 PREF_PAGE(CodeAnalysis)
 PREF_PAGE(CompletionLinting)
 PREF_PAGE(Debugger)
-PREF_PAGE(Editor)
 PREF_PAGE(Files)
 PREF_PAGE(Help)
 PREF_PAGE(History)
-PREF_PAGE(IPythonConsole)
 PREF_PAGE(Profiler)
 PREF_PAGE(Run)
 PREF_PAGE(StatusBar)

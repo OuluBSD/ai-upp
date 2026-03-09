@@ -103,7 +103,7 @@ private:
         int memory_percent = 0;
     } status_info;
 
-    PythonIDESettings settings;
+    IDESettings settings;
 
     CodeEditor code_editor;
 

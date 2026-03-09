@@ -85,6 +85,7 @@ private:
     void OnToggleBreakpoint();
 
     PyVM vm;
+    RunManager run_manager;
 
     struct StatusInfo {
         int line = 1;

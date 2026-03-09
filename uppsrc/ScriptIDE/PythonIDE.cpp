@@ -60,34 +60,10 @@ void PythonIDE::OnConsoleInput()
 	String cmd = console_pane.GetInput();
 	if(cmd.IsEmpty()) return;
 
-	code_editor.HidePtr();
-
-	try {
-		Tokenizer tk;
-		tk.SkipComments();
-		tk.SkipPythonComments();
-		if(!tk.Process(cmd, "<stdin>")) return;
-		tk.NewlineToEndStatement();
-		tk.CombineTokens();
-
-		PyCompiler compiler(tk.GetTokens(), "<stdin>");
-		Vector<PyIR> ir;
-		compiler.Compile(ir);
-
-		vm.SetIR(ir);
-		PyValue res = vm.Run();
-		if(!res.IsNone())
-			console_pane.Write(res.Repr() + "\n");
-		
-		debugger_pane.Clear();
-		UpdateVariableExplorer();
-	}
-	catch (Exc& e) {
-		console_pane.WriteError(e + "\n");
-	}
+	run_manager.RunSelection(cmd);
 }
 
-PythonIDE::PythonIDE()
+PythonIDE::PythonIDE() : run_manager(vm)
 {
     Title("ScriptIDE - Python IDE");
     Sizeable().Zoomable().CenterScreen();
@@ -129,6 +105,18 @@ PythonIDE::PythonIDE()
     debugger_pane.WhenFrameSelected = [=](int i) {
         const auto& locals = vm.GetLocals(i);
         var_explorer.SetVariables(locals);
+    };
+
+    run_manager.WhenStarted = [=] {
+        code_editor.HidePtr();
+        profiler_pane.Clear();
+    };
+    run_manager.WhenFinished = [=] {
+        UpdateVariableExplorer();
+        debugger_pane.Clear();
+    };
+    run_manager.WhenError = [=](const String& e) {
+        console_pane.WriteError("Runtime error: " + e + "\n");
     };
 
     vm.WhenPrint = [=](const String& s) { console_pane.Write(s); };
@@ -302,35 +290,11 @@ void PythonIDE::OnRun()
 	String code = code_editor.Get();
 	if(code.IsEmpty()) return;
 
-	code_editor.HidePtr();
-
 	console_pane.Clear();
 	console_pane.Write("--- Running script ---\n");
-	profiler_pane.Clear();
 
-	try {
-		Tokenizer tk;
-		tk.SkipComments();
-		tk.SkipPythonComments();
-		String filename = current_file.path.IsEmpty() ? String("<editor>") : current_file.path;
-		if(!tk.Process(code, filename)) return;
-		tk.NewlineToEndStatement();
-		tk.CombineTokens();
-
-		PyCompiler compiler(tk.GetTokens(), filename);
-		Vector<PyIR> ir;
-		compiler.Compile(ir);
-
-		vm.SetIR(ir);
-		vm.Run();
-
-		console_pane.Write("--- Script finished ---\n");
-		debugger_pane.Clear();
-		UpdateVariableExplorer();
-	}
-	catch (Exc& e) {
-		console_pane.WriteError("Runtime error: " + e + "\n");
-	}
+	String filename = current_file.path.IsEmpty() ? String("<editor>") : current_file.path;
+	run_manager.Run(code, filename);
 }
 
 void PythonIDE::OnRunSelection()
@@ -344,37 +308,14 @@ void PythonIDE::OnRunSelection()
 	if(code.IsEmpty()) return;
 
 	console_pane.Write("--- Running selection ---\n");
-
-	try {
-		Tokenizer tk;
-		tk.SkipComments();
-		tk.SkipPythonComments();
-		if(!tk.Process(code, "<selection>")) return;
-		tk.NewlineToEndStatement();
-		tk.CombineTokens();
-
-		PyCompiler compiler(tk.GetTokens(), "<selection>");
-		Vector<PyIR> ir;
-		compiler.Compile(ir);
-
-		vm.SetIR(ir);
-		vm.Run();
-		
-		debugger_pane.Clear();
-		UpdateVariableExplorer();
-	}
-	catch (Exc& e) {
-		console_pane.WriteError("Runtime error: " + e + "\n");
-	}
+	run_manager.RunSelection(code);
 }
 void PythonIDE::OnRunConfig() {}
 void PythonIDE::OnDebug() {}
 
 void PythonIDE::OnStop()
 {
-	vm.Reset();
-	debugger_pane.Clear();
-	UpdateVariableExplorer();
+	run_manager.Stop();
 	code_editor.HidePtr();
 	console_pane.Write("--- Execution stopped ---\n");
 }

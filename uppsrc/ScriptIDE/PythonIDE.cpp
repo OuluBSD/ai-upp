@@ -447,6 +447,18 @@ PythonIDE::PythonIDE() : run_manager(vm)
 
     menubar.Set([=](Bar& bar) { MainMenu(bar); });
     files_pane.WhenOpen = [=](const String& path) { LoadFile(path); };
+    files_pane.WhenPathManager = [=] { OnPathManager(); };
+    files_pane.WhenBrowse = [=] {
+        FileSel fs;
+        if(fs.ExecuteSelectDir("Select Directory"))
+            files_pane.SetRoot(fs.Get());
+    };
+    files_pane.WhenParent = [=] {
+        String path = GetFileDirectory(GetCurrentDirectory()); // Dummy, should use pane's current root
+        // For now, let's just use GetCurrentDirectory parent
+        files_pane.SetRoot(GetFileDirectory(GetCurrentDirectory()));
+    };
+
     outline_pane.WhenSelectLine = [=](int line) {
         code_editor.SetCursor(code_editor.GetPos(line - 1));
         code_editor.SetFocus();
@@ -456,7 +468,19 @@ PythonIDE::PythonIDE() : run_manager(vm)
         code_editor.SetCursor(code_editor.GetPos(line - 1));
         code_editor.SetFocus();
     };
+
+    var_explorer.WhenRemoveAll = [=] {
+        vm.GetGlobals().Clear();
+        UpdateVariableExplorer();
+    };
+    var_explorer.WhenRefresh = [=] { UpdateVariableExplorer(); };
+
+    plots_pane.WhenSaveAll = [=] { Todo("Save all plots"); };
+
     console_pane.WhenInput = [=] { OnConsoleInput(); };
+    console_pane.WhenRestart = [=] { OnRestart(); };
+    console_pane.WhenInterrupt = [=] { Todo("Interrupt Kernel"); };
+    console_pane.WhenRemoveVariables = [=] { var_explorer.WhenRemoveAll(); };
     debugger_pane.WhenContinue = [=] { vm.Continue(); };
     debugger_pane.WhenStepOver = [=] { OnStepOver(); };
     debugger_pane.WhenStepInto = [=] { OnStepIn(); };

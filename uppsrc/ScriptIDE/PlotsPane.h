@@ -9,9 +9,13 @@ public:
 	void AddPlot(const Image& img);
 	void Clear();
 
+	Event<> WhenSaveAll;
+	Event<double> WhenZoom;
+
 private:
 	struct ImageDisplay : public Ctrl {
 		Image img;
+		double zoom = 1.0;
 		virtual void Paint(Draw& w) override;
 		void SetImage(const Image& _img) { img = _img; Refresh(); }
 	};

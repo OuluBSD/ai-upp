@@ -20,17 +20,17 @@ FilesPane::FilesPane()
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
-	bar.Add(CtrlImg::plus(), [=] { /* TODO: PYTHONPATH */ }).Help("PYTHONPATH manager");
+	bar.Add(CtrlImg::plus(), WhenPathManager).Help("PYTHONPATH manager");
 	bar.Add("Path", [=] { /* TODO: Path dropdown */ }).Help("Active directory");
-	bar.Add(CtrlImg::open(), [=] { /* TODO: Browse */ }).Help("Browse directory");
-	bar.Add(CtrlImg::undo(), [=] { /* TODO: Parent */ }).Help("Parent directory");
+	bar.Add(CtrlImg::open(), WhenBrowse).Help("Browse directory");
+	bar.Add(CtrlImg::undo(), WhenParent).Help("Parent directory");
 }
 
 void FilesPane::LayoutPaneToolbar(Bar& bar)
 {
 	bar.Add(CtrlImg::left_arrow(), [=] { /* TODO */ }).Help("Previous");
 	bar.Add(CtrlImg::right_arrow(), [=] { /* TODO */ }).Help("Next");
-	bar.Add(CtrlImg::undo(), [=] { /* TODO */ }).Help("Parent");
+	bar.Add(CtrlImg::undo(), WhenParent).Help("Parent");
 	bar.Gap(2000); // Align right
 	bar.Add("Filter", [=] { /* TODO */ });
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });

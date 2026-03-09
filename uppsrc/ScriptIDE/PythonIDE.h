@@ -56,6 +56,7 @@ private:
 
     void UpdateStatusBar();
     void UpdateVariableExplorer();
+    void OnAnalyze();
 
     void LoadFile(const String& path);
     void SaveFile(const String& path);
@@ -88,6 +89,7 @@ private:
     PyVM vm;
     RunManager run_manager;
     PathManager path_manager;
+    Linter linter;
 
     struct StatusInfo {
         int line = 1;

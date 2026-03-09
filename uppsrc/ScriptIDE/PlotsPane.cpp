@@ -29,13 +29,40 @@ PlotsPane::PlotsPane()
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(plots.GetCount() > 1, "Previous", CtrlImg::left_arrow(), [=] { PrevPlot(); });
-	bar.Add(plots.GetCount() > 1, "Next", CtrlImg::right_arrow(), [=] { NextPlot(); });
+	bar.Add(current_index >= 0, CtrlImg::save(), [=] { SaveSelected(); }).Help("Save plot as...");
+	bar.Add(plots.GetCount() > 0, CtrlImg::save(), [=] { SaveAll(); }).Help("Save all plots...");
+	bar.Add(current_index >= 0, CtrlImg::copy(), [=] { CopySelected(); }).Help("Copy to clipboard");
+	bar.Add(current_index >= 0, CtrlImg::remove(), [=] { RemoveSelected(); }).Help("Remove plot");
+	bar.Add(plots.GetCount() > 0, CtrlImg::remove(), [=] { Clear(); }).Help("Remove all plots");
 	bar.Separator();
-	bar.Add(current_index >= 0, "Save As...", CtrlImg::save(), [=] { SaveSelected(); });
-	bar.Add(current_index >= 0, "Copy", CtrlImg::copy(), [=] { CopySelected(); });
+	bar.Add("Zoom", [=] {});
+	bar.Add(CtrlImg::plus(), [=] {}).Help("Zoom in");
+	bar.Add(CtrlImg::remove(), [=] {}).Help("Zoom out");
+	bar.Add("Fit", [=] {}).Help("Fit plot to pane");
 	bar.Separator();
-	bar.Add(plots.GetCount() > 0, "Clear All", CtrlImg::remove(), [=] { Clear(); });
+	bar.Gap(2000);
+	bar.Add(plots.GetCount() > 1, CtrlImg::left_arrow(), [=] { PrevPlot(); }).Help("Previous plot");
+	bar.Add(plots.GetCount() > 1, CtrlImg::right_arrow(), [=] { NextPlot(); }).Help("Next plot");
+	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+}
+
+void PlotsPane::LayoutPaneMenu(Bar& bar)
+{
+	bar.Add("Mute inline plotting", [=] {}).Check(false);
+	bar.Add("Show plot outline", [=] {}).Check(false);
+	bar.Add("Set maximum number of plots...", [=] {});
+}
+
+void PlotsPane::SaveAll() { PromptOK("Todo: Save all plots"); }
+
+void PlotsPane::RemoveSelected()
+{
+	if(current_index >= 0 && current_index < plots.GetCount()) {
+		plots.Remove(current_index);
+		if(current_index >= plots.GetCount())
+			current_index = plots.GetCount() - 1;
+		UpdateDisplay();
+	}
 }
 
 void PlotsPane::AddPlot(const Image& img)

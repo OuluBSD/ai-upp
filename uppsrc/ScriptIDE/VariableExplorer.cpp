@@ -5,7 +5,11 @@ namespace Upp {
 VariableExplorer::VariableExplorer()
 {
 	Title("Variable Explorer");
-	Add(list.SizePos());
+	
+	Add(toolbar.TopPos(0, 24).HSizePos());
+	Add(list.VSizePos(24, 0).HSizePos());
+	
+	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
 	list.AddIndex("INTERNAL_IDX");
 	list.AddColumn("Name", 30).Sorting();
@@ -19,6 +23,33 @@ VariableExplorer::VariableExplorer()
 	
 	list.WhenLeftDouble = [=] { OnLeftDouble(); };
 	list.WhenBar = [=](Bar& bar) { OnContextMenu(bar); };
+}
+
+void VariableExplorer::LayoutToolbar(Bar& bar)
+{
+	bar.Add(CtrlImg::open(), [=] {}).Help("Import data");
+	bar.Add(CtrlImg::save(), [=] {}).Help("Save data");
+	bar.Add(CtrlImg::save_as(), [=] {}).Help("Save data as");
+	bar.Add(CtrlImg::remove(), [=] { Clear(); }).Help("Remove all variables");
+	bar.Separator();
+	bar.Add("Search", [=] {});
+	bar.Add("Filter", [=] {});
+	bar.Add(CtrlImg::redo(), [=] {}).Help("Refresh variables");
+	bar.Separator();
+	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+}
+
+void VariableExplorer::LayoutPaneMenu(Bar& bar)
+{
+	bar.Add("Exclude private variables", [=] {}).Check(true);
+	bar.Add("Exclude all-uppercase variables", [=] {}).Check(false);
+	bar.Add("Exclude capitalized variables", [=] {}).Check(false);
+	bar.Add("Exclude unsupported data types", [=] {}).Check(false);
+	bar.Add("Exclude callables and modules", [=] {}).Check(true);
+	bar.Add("Show arrays min/max", [=] {}).Check(false);
+	bar.Separator();
+	bar.Add("Resize rows to contents", [=] { /* list.AutoSizeRows(); */ });
+	bar.Add("Resize columns to contents", [=] { /* list.AutoSizeColumns(); */ });
 }
 
 void VariableExplorer::SetVariables(const VectorMap<PyValue, PyValue>& vars)
@@ -62,7 +93,6 @@ String VariableExplorer::GetTypeString(const PyValue& v)
 
 Image VariableExplorer::GetTypeIcon(const PyValue& v)
 {
-	// TODO: Add custom icons
 	switch(v.GetType()) {
 		case PY_INT:
 		case PY_FLOAT:
@@ -110,13 +140,11 @@ void VariableExplorer::InspectSelected()
 	int type = val.GetType();
 	if(type == PY_LIST || type == PY_TUPLE || type == PY_DICT) {
 		DataViewerDialog* dlg = new DataViewerDialog(name, val);
-		dlg->Open(); // Open as modeless dockable dialog if possible, or just modal
+		dlg->Open();
 	} else {
 		PromptOK("Variable: " + name + "\nType: " + PyTypeName(type) + "\n\nValue:\n" + val.Repr());
 	}
 }
-
-// --- DataViewerDialog Implementation ---
 
 DataViewerDialog::DataViewerDialog(const String& name, const PyValue& val)
 {

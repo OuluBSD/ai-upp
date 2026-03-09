@@ -5,14 +5,12 @@ namespace Upp {
 FindInFilesPane::FindInFilesPane()
 {
 	Title("Find in Files");
-	Icon(CtrlImg::plus()); // Use plus as placeholder for search
+	Icon(CtrlImg::plus());
 	
-	Add(search_pattern.TopPos(2, 20).LeftPos(2, 200));
-	Add(search_btn.SetLabel("Search").TopPos(2, 20).LeftPos(205, 80));
+	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(results.VSizePos(24, 0).HSizePos());
 	
-	search_btn.WhenAction = [=] { OnSearch(); };
-	search_pattern.WhenEnter = [=] { OnSearch(); };
+	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
 	results.AddIndex("PATH");
 	results.AddColumn("File", 30).Sorting();
@@ -23,6 +21,22 @@ FindInFilesPane::FindInFilesPane()
 	results.SetLineCy(20);
 	
 	results.WhenLeftDouble = [=] { OnResultOpen(); };
+}
+
+void FindInFilesPane::LayoutToolbar(Bar& bar)
+{
+	bar.Add(search_pattern); // Standard Add
+	bar.Add(search_btn.SetLabel("Search"));
+	bar.Separator();
+	bar.Add(regex_toggle.SetLabel("Regex"));
+	bar.Add(case_toggle.SetLabel("Case"));
+	bar.Gap(2000);
+	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+}
+
+void FindInFilesPane::LayoutPaneMenu(Bar& bar)
+{
+	bar.Add("Set maximum number of results...", [=] {});
 }
 
 void FindInFilesPane::OnSearch()
@@ -51,7 +65,7 @@ void FindInFilesPane::OnSearch()
 	Scan(root_path, Scan);
 	
 	for(const String& path : files) {
-		String content = Upp::LoadFile(path);
+		String content = ::Upp::LoadFile(path);
 		Vector<String> lines = Split(content, '\n', false);
 		for(int i = 0; i < lines.GetCount(); i++) {
 			int q = lines[i].Find(pattern);

@@ -35,6 +35,7 @@ public:
 #include "ProfilerPane.h"
 #include "FindInFilesPane.h"
 #include "OutlinePane.h"
+#include "RunManager.h"
 #include "PythonConsole.h"
 #include "FilesPane.h"
 #include "CustomFileTabs.h"

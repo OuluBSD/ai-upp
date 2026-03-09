@@ -449,10 +449,120 @@ public:
     }
     virtual bool IsModified() const override { return true; }
 };
-PREF_PAGE(Files)
-PREF_PAGE(Help)
-PREF_PAGE(History)
-PREF_PAGE(Profiler)
+class FilesPage : public PreferencesPage {
+public:
+    typedef FilesPage CLASSNAME;
+    TabCtrl tabs;
+
+    struct GeneralTab : public WithFilesGeneralTabLayout<ParentCtrl> {
+        GeneralTab() { CtrlLayout(*this); }
+    } general_tab;
+
+    struct AssociationsTab : public WithFilesAssociationsTabLayout<ParentCtrl> {
+        AssociationsTab() {
+            CtrlLayout(*this);
+            file_types.AddColumn("Extension");
+            apps.AddColumn("Application");
+        }
+    } associations_tab;
+
+    FilesPage() {
+        Add(tabs.SizePos());
+        tabs.Add(general_tab, "General");
+        tabs.Add(associations_tab, "File associations");
+    }
+
+    virtual void Load(const IDESettings& cfg) override {
+        general_tab.show_hidden.SetData(cfg.files.show_hidden_files);
+        general_tab.single_click.SetData(cfg.files.single_click_open);
+        general_tab.filter_patterns.SetData(cfg.files.filter_patterns_csv);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.files.show_hidden_files = ~general_tab.show_hidden;
+        cfg.files.single_click_open = ~general_tab.single_click;
+        cfg.files.filter_patterns_csv = ~general_tab.filter_patterns;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        general_tab.show_hidden.SetData(false);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class HelpPage : public WithHelpPageLayout<PreferencesPage> {
+public:
+    typedef HelpPage CLASSNAME;
+    HelpPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        connect_editor.SetData(cfg.help.auto_connect_editor);
+        connect_console.SetData(cfg.help.auto_connect_console);
+        render_math.SetData(cfg.help.render_math);
+        wrap_lines.SetData(cfg.help.wrap_lines);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.help.auto_connect_editor = ~connect_editor;
+        cfg.help.auto_connect_console = ~connect_console;
+        cfg.help.render_math = ~render_math;
+        cfg.help.wrap_lines = ~wrap_lines;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        render_math.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class HistoryPage : public WithHistoryPageLayout<PreferencesPage> {
+public:
+    typedef HistoryPage CLASSNAME;
+    HistoryPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        wrap_lines.SetData(cfg.history.wrap_lines);
+        show_line_numbers.SetData(cfg.history.show_line_numbers);
+        scroll_to_last.SetData(cfg.history.scroll_to_last_entry);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.history.wrap_lines = ~wrap_lines;
+        cfg.history.show_line_numbers = ~show_line_numbers;
+        cfg.history.scroll_to_last_entry = ~scroll_to_last;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        scroll_to_last.SetData(true);
+    }
+    virtual bool IsModified() const override { return true; }
+};
+
+class ProfilerPage : public WithProfilerPageLayout<PreferencesPage> {
+public:
+    typedef ProfilerPage CLASSNAME;
+    ProfilerPage() { CtrlLayout(*this); }
+
+    virtual void Load(const IDESettings& cfg) override {
+        open_on_finish.SetData(cfg.profiler.open_on_finish);
+        max_items.SetData(cfg.profiler.max_hot_items);
+    }
+
+    virtual void Save(IDESettings& cfg) const override {
+        cfg.profiler.open_on_finish = ~open_on_finish;
+        cfg.profiler.max_hot_items = ~max_items;
+    }
+
+    virtual void Apply(IDEContext& ctx, const IDESettings& old_cfg, const IDESettings& new_cfg) override {}
+    virtual void SetDefaults() override {
+        open_on_finish.SetData(true);
+        max_items.SetData(15);
+    }
+    virtual bool IsModified() const override { return true; }
+};
 PREF_PAGE(Run)
 PREF_PAGE(StatusBar)
 PREF_PAGE(VariableExplorer)

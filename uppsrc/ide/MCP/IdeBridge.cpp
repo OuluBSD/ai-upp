@@ -592,5 +592,82 @@ String IdeBridge::OpenUppHub()
 	return err;
 }
 
+// ---- file write ------------------------------------------------------------
+
+String IdeBridge::WriteFile(const String& path, const String& content)
+{
+	String err;
+	RunOnGui([&] {
+		String dir = GetFileFolder(path);
+		if(!DirectoryExists(dir)) {
+			if(!RealizeDirectory(dir)) { err = "Cannot create directory: " + dir; return; }
+		}
+		if(!Upp::SaveFile(path, content)) err = "Cannot write file: " + path;
+		// If the file is currently open in the editor, reload it
+		Ide* ide = TheIde();
+		if(ide && PathIsEqual(ide->editfile, path))
+			ide->EditFile(path);
+	});
+	return err;
+}
+
+// ---- package creation ------------------------------------------------------
+
+String IdeBridge::CreatePackage(const String& pkg_name, const String& description, String& out_path)
+{
+	String err;
+	out_path.Clear();
+	RunOnGui([&] {
+		// Find the first writable UPP dir in the current assembly
+		VectorMap<String, String> vars;
+		String vname = GetVarsName();
+		if(!LoadVarFile(VarFilePath(vname), vars)) { err = "Cannot load assembly vars"; return; }
+		Vector<String> upp_dirs = SplitDirs(vars.Get("UPP", String()));
+		String target_dir;
+		for(const String& d : upp_dirs) {
+			if(DirectoryExists(d)) { target_dir = d; break; }
+		}
+		if(target_dir.IsEmpty()) { err = "No writable UPP directory found in assembly"; return; }
+		String pkg_dir = AppendFileName(target_dir, pkg_name);
+		if(DirectoryExists(pkg_dir)) { err = "Package already exists: " + pkg_dir; return; }
+		if(!RealizeDirectory(pkg_dir)) { err = "Cannot create directory: " + pkg_dir; return; }
+		// Write minimal .upp file
+		String upp_path = AppendFileName(pkg_dir, pkg_name + ".upp");
+		String upp_content = "description \"" + description + "\";\n\nuses\n\tCore;\n\nfile\n;\n";
+		if(!Upp::SaveFile(upp_path, upp_content)) { err = "Cannot write .upp file"; return; }
+		out_path = pkg_dir;
+	});
+	return err;
+}
+
+String IdeBridge::AddFileToPackage(const String& pkg, const String& file)
+{
+	String err;
+	RunOnGui([&] {
+		String pkg_name = pkg.IsEmpty() ? (TheIde() ? TheIde()->main : String()) : pkg;
+		if(pkg_name.IsEmpty()) { err = "No active package"; return; }
+		// Find package path
+		String pkg_path;
+		VectorMap<String, String> vars;
+		if(!LoadVarFile(VarFilePath(GetVarsName()), vars)) { err = "Cannot load assembly"; return; }
+		Vector<String> upp_dirs = SplitDirs(vars.Get("UPP", String()));
+		for(const String& d : upp_dirs) {
+			String candidate = AppendFileName(AppendFileName(d, pkg_name), pkg_name + ".upp");
+			if(FileExists(candidate)) { pkg_path = candidate; break; }
+		}
+		if(pkg_path.IsEmpty()) { err = "Package not found: " + pkg_name; return; }
+		// Read, modify, write the .upp file
+		Package p;
+		if(!p.Load(pkg_path)) { err = "Cannot load package: " + pkg_path; return; }
+		// Check not already present
+		for(int i = 0; i < p.file.GetCount(); i++)
+			if((String)p.file[i] == file) return; // already there
+		Package::File& f = p.file.Add();
+		f = file;
+		if(!p.Save(pkg_path)) err = "Cannot save package: " + pkg_path;
+	});
+	return err;
+}
+
 END_UPP_NAMESPACE
 #endif // flagGUI

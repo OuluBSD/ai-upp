@@ -30,6 +30,22 @@ public:
 	String      GetActiveFile() const;
 	String      SetActiveFile(const String& path);
 
+	// --- file write ---
+	// Write text content to an absolute path (creates file and parent dirs).
+	// Uses LF line endings. Returns "" on success, error on failure.
+	String      WriteFile(const String& path, const String& content);
+
+	// --- package creation ---
+	// Creates pkg_name under the first writable UPP dir of the current assembly.
+	// Also creates a .upp file with the given description.
+	// out_path receives the absolute path of the package directory.
+	// Returns "" on success, error on failure.
+	String      CreatePackage(const String& pkg_name, const String& description, String& out_path);
+
+	// Add a filename to a package's .upp file list and save the .upp.
+	// pkg: package name (empty = active package). file: filename relative to pkg dir.
+	String      AddFileToPackage(const String& pkg, const String& file);
+
 	// --- editor cursor / content ---
 	struct EditorPos { int line = 0; int col = 0; int64 cursor = 0; };
 	EditorPos   GetEditorCursor(int editor_idx = 0) const;  // 0=editor, 1=editor2

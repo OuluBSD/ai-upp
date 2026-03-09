@@ -376,6 +376,37 @@ String McpServer::HandleExtended(const McpRequest& req) {
         if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
         ValueMap r; r.Add("opened", path); return MakeResult(req.id, r);
     }
+    if(req.method == "file.write") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String path    = AsString(p.Get("path",    Value()));
+        String content = AsString(p.Get("content", Value()));
+        if(path.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "path required");
+        String err = sIdeBridge.WriteFile(path, content);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("written", path); r.Add("bytes", (int)content.GetCount()); return MakeResult(req.id, r);
+    }
+    if(req.method == "package.create") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String name = AsString(p.Get("name", Value()));
+        String desc = AsString(p.Get("description", Value()));
+        if(name.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "name required");
+        String out_path;
+        String err = sIdeBridge.CreatePackage(name, desc, out_path);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("created", name); r.Add("path", out_path); return MakeResult(req.id, r);
+    }
+    if(req.method == "package.add_file") {
+        if(!IsValueMap(req.params)) return MakeError(req.id, INVALID_PARAMS, "Expected object");
+        ValueMap p = req.params;
+        String pkg  = AsString(p.Get("package", Value()));
+        String file = AsString(p.Get("file",    Value()));
+        if(file.IsEmpty()) return MakeError(req.id, INVALID_PARAMS, "file required");
+        String err = sIdeBridge.AddFileToPackage(pkg, file);
+        if(!err.IsEmpty()) return MakeError(req.id, INTERNAL_ERROR, err);
+        ValueMap r; r.Add("added", file); return MakeResult(req.id, r);
+    }
     if(req.method == "editor.path") {
         int idx = 0;
         if(IsValueMap(req.params)) idx = (int)(ValueMap(req.params).Get("editor", 0));

@@ -88,6 +88,8 @@ String McpServerCore::Handle(const McpRequest& req) {
         methods.Add("buildmode.get"); methods.Add("buildmode.set");
         methods.Add("package.list"); methods.Add("package.set"); methods.Add("package.files");
         methods.Add("file.get"); methods.Add("file.open");
+        methods.Add("file.write");
+        methods.Add("package.create"); methods.Add("package.add_file");
         methods.Add("editor.path"); methods.Add("editor.cursor.get"); methods.Add("editor.cursor.set");
         methods.Add("editor.lines"); methods.Add("editor.line.get"); methods.Add("editor.insert");
         methods.Add("console.get"); methods.Add("errors.get");

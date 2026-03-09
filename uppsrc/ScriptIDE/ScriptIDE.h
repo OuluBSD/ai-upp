@@ -31,6 +31,8 @@ public:
 #include "Settings.h"
 #include "VariableExplorer.h"
 #include "PlotsPane.h"
+#include "DebuggerPane.h"
+#include "ProfilerPane.h"
 #include "PythonConsole.h"
 #include "FilesPane.h"
 #include "CustomFileTabs.h"

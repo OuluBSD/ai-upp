@@ -30,12 +30,14 @@ public:
 
 	// File Type Handlers
 	struct GameStateHandler : public IFileTypeHandler {
+		CardGamePlugin* plugin;
 		virtual String         GetExtension() const override { return ".gamestate"; }
 		virtual String         GetFileDescription() const override { return "Game State JSON"; }
 		virtual IDocumentHost* CreateDocumentHost() override;
 	} gamestate_handler;
 
 	struct FormHandler : public IFileTypeHandler {
+		CardGamePlugin* plugin;
 		virtual String         GetExtension() const override { return ".form"; }
 		virtual String         GetFileDescription() const override { return "Card Game Layout"; }
 		virtual IDocumentHost* CreateDocumentHost() override;
@@ -99,6 +101,11 @@ private:
 	virtual void LeftDown(Point p, dword flags) override;
 };
 
+class CardGameProperties : public PropertiesWindow {
+public:
+	void Generate(FormObject* pI, int index);
+};
+
 class CardGameLayoutEditor : public FormEdit<ParentCtrl>, public IDocumentHost {
 public:
 	CardGameLayoutEditor();
@@ -118,8 +125,11 @@ public:
 	virtual void   MainMenu(Bar& bar) override;
 	virtual void   Toolbar(Bar& bar) override;
 
+	void OpenCardProperties(const Vector<int>& indexes);
+
 private:
 	String path;
+	CardGameProperties card_properties;
 };
 
 END_UPP_NAMESPACE

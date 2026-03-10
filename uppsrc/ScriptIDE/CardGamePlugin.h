@@ -3,11 +3,11 @@
 
 #include <Core/Core.h>
 #include <CtrlLib/CtrlLib.h>
+#include <FormEditor/FormEditor.h>
 
 NAMESPACE_UPP
 
 class CardGamePlugin : public IPlugin, 
-                       public IFileTypeHandler, 
                        public ICustomExecuteProvider,
                        public IPythonBindingProvider {
 public:
@@ -21,17 +21,25 @@ public:
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
-	// IFileTypeHandler
-	virtual String         GetExtension() const override { return ".gamestate"; }
-	virtual String         GetFileDescription() const override { return "Game State JSON/YAML"; }
-	virtual IDocumentHost* CreateDocumentHost() override;
-
 	// ICustomExecuteProvider
 	virtual bool CanExecute(const String& path) override;
 	virtual void Execute(const String& path) override;
 
 	// IPythonBindingProvider
 	virtual void SyncBindings(PyVM& vm) override;
+
+	// File Type Handlers
+	struct GameStateHandler : public IFileTypeHandler {
+		virtual String         GetExtension() const override { return ".gamestate"; }
+		virtual String         GetFileDescription() const override { return "Game State JSON"; }
+		virtual IDocumentHost* CreateDocumentHost() override;
+	} gamestate_handler;
+
+	struct FormHandler : public IFileTypeHandler {
+		virtual String         GetExtension() const override { return ".form"; }
+		virtual String         GetFileDescription() const override { return "Card Game Layout"; }
+		virtual IDocumentHost* CreateDocumentHost() override;
+	} form_handler;
 
 private:
 	IPluginContext* context = nullptr;
@@ -55,19 +63,11 @@ public:
 	virtual void   MainMenu(Bar& bar) override;
 	virtual void   Toolbar(Bar& bar) override;
 
-	virtual void   Undo() override {}
-	virtual void   Redo() override {}
-	virtual void   Cut() override {}
-	virtual void   Copy() override {}
-	virtual void   Paste() override {}
-	virtual void   SelectAll() override {}
-	virtual void   Find() override {}
-	virtual void   Replace() override {}
-
 	void SetLayout(const String& form_path);
 	void ClearSprites();
 	void SetSprite(const String& id, const String& asset_path, int x, int y);
-	void MoveSprite(const String& id, int x, int y);
+	void MoveSprite(const String& id, int x, int y, bool animated = false);
+	void MoveSpriteToZone(const String& id, const String& zone_id, bool animated = false);
 
 private:
 	String path;
@@ -76,14 +76,50 @@ private:
 	struct Sprite {
 		Image img;
 		Rect  rect;
+		Rect  target_rect;
+		bool  animating = false;
 	};
 	ArrayMap<String, Sprite> sprites;
+	
+	struct Zone {
+		String id;
+		Rect   rect;
+		String anchor;
+		String type;
+	};
+	ArrayMap<String, Zone> zones;
+	
 	Color background_color = Color(40, 160, 40);
 
 	RichTextView game_log;
 
+	void Animate();
+	Rect GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz);
 	virtual void Paint(Draw& w) override;
 	virtual void LeftDown(Point p, dword flags) override;
+};
+
+class CardGameLayoutEditor : public FormEdit<ParentCtrl>, public IDocumentHost {
+public:
+	CardGameLayoutEditor();
+	virtual ~CardGameLayoutEditor();
+
+	// IDocumentHost
+	virtual Ctrl&  GetCtrl() override { return *this; }
+	virtual bool   Load(const String& path) override;
+	virtual bool   Save() override;
+	virtual bool   SaveAs(const String& path) override;
+	virtual String GetPath() const override { return path; }
+	virtual bool   IsModified() const override { return !const_cast<CardGameLayoutEditor*>(this)->IsProjectSaved(); }
+	virtual void   SetFocus() override { FormEdit<ParentCtrl>::SetFocus(); }
+	
+	virtual void   ActivateUI() override;
+	virtual void   DeactivateUI() override;
+	virtual void   MainMenu(Bar& bar) override;
+	virtual void   Toolbar(Bar& bar) override;
+
+private:
+	String path;
 };
 
 END_UPP_NAMESPACE

@@ -1,7 +1,7 @@
-# `.xlay` YAML Schema Design
+# `.form` JSON Schema Design
 
 ## Format Overview
-The `.xlay` format describes a 2D scene for card games. It is used by both the visual editor and the runtime renderer.
+The `.form` format describes a 2D scene for card games. It is used by both the visual editor and the runtime renderer.
 
 ## Schema Hierarchy
 
@@ -27,7 +27,7 @@ Zones are spatial containers for cards or other entities.
 - `rotation`: Double
 - `visible`: Boolean
 
-## Example File (`table.xlay`)
+## Example File (`table.form`)
 ```yaml
 name: "Standard Hearts Table"
 background_color: {r: 40, g: 160, b: 40}

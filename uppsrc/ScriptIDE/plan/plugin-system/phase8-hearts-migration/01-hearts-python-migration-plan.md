@@ -22,7 +22,7 @@ The reference project requires a playable Hearts game driven by Python scripts e
 ## Concrete Investigation Steps
 1. Review the C++ logic in `server/gamemanager.cpp` and `clients/computer/computerplayer3_2.cpp` from the KDE tarball.
 2. Outline a Python class structure representing the Game, Round, Player, Deck, and Trick.
-3. Define how the Python script will locate UI elements defined in the `.xlay` (e.g., `view.get_zone("player_1_hand")`).
+3. Define how the Python script will locate UI elements defined in the `.form` (e.g., `view.get_zone("player_1_hand")`).
 
 ## Affected Subsystems
 - Reference Example Project (Python scripts)

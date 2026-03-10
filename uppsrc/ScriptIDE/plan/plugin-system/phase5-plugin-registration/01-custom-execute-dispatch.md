@@ -4,14 +4,14 @@
 Define how plugins can intercept and override the "Run" / "Execute" command in ScriptIDE for specific file types like `.gamestate`.
 
 ## Background / Rationale
-When a user clicks "Run" on a Python script, it executes in the ByteVM. However, when they click "Run" on a `.gamestate` file, the IDE shouldn't try to compile the YAML. Instead, the associated plugin must intercept the command, parse the YAML, set up the layout, and then invoke the Python VM on the specified entry script.
+When a user clicks "Run" on a Python script, it executes in the ByteVM. However, when they click "Run" on a `.gamestate` file, the IDE shouldn't try to compile the JSON. Instead, the associated plugin must intercept the command, parse the JSON, set up the layout, and then invoke the Python VM on the specified entry script.
 
 ## Scope
 - Defining the `ICustomExecuteProvider` interface.
 - Defining how `PythonIDE::OnRun()` queries the `PluginManager` before defaulting to standard Python execution.
 
 ## Non-goals
-- Implementing the execution logic for `.xlay` files (they are likely not executable directly).
+- Implementing the execution logic for `.form` files (they are likely not executable directly).
 
 ## Dependencies
 - `01-plugin-lifecycle-manifest.md`

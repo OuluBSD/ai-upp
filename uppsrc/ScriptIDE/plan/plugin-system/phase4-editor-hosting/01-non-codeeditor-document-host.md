@@ -4,7 +4,7 @@
 Design the abstraction layer that allows ScriptIDE's central tab area to host arbitrary U++ `Ctrl`s, breaking the hardcoded dependency on `Upp::CodeEditor`.
 
 ## Background / Rationale
-To support `.gamestate` rendering and `.xlay` visual editing, the IDE's main editor area must be capable of displaying custom views provided by plugins, rather than assuming every file is a text document needing a `CodeEditor`.
+To support `.gamestate` rendering and `.form` visual editing, the IDE's main editor area must be capable of displaying custom views provided by plugins, rather than assuming every file is a text document needing a `CodeEditor`.
 
 ## Scope
 - Designing an `IDocumentHost` (or similar) interface that encapsulates the active editor view.

@@ -69,6 +69,12 @@ void PythonIDE::DockInit()
 	DockBottom(find_pane);
 	DockBottom(debugger_pane);
 	DockBottom(profiler_pane);
+	
+	DockLeft(context_pane_left);
+	DockRight(context_pane_right);
+	
+	context_pane_left.Title("Context (L)").Hide();
+	context_pane_right.Title("Context (R)").Hide();
 
 	Tabify(files_pane, outline_pane);
 	Tabify(var_explorer, help_pane);
@@ -96,6 +102,12 @@ void PythonIDE::MainMenu(Bar& bar)
 	bar.Sub("Edit",      [=](Bar& b){ EditMenu(b); });
 	bar.Sub("Search",    [=](Bar& b){ SearchMenu(b); });
 	bar.Sub("Source",    [=](Bar& b){ SourceMenu(b); });
+	
+	if(active_editor) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+			h->MainMenu(bar);
+	}
+
 	bar.Sub("Run",       [=](Bar& b){ RunMenu(b); });
 	bar.Sub("Debug",     [=](Bar& b){ DebugMenu(b); });
 	bar.Sub("Consoles",  [=](Bar& b){ ConsolesMenu(b); });
@@ -367,6 +379,12 @@ void PythonIDE::MainToolbar(Bar& bar)
 	bar.Add(CtrlImg::save(), [=] { OnSaveFile(); }).Help("Save File");
 	bar.Add(CtrlImg::save_as(), [=] { OnSaveAll(); }).Help("Save All Files");
 	bar.Separator();
+	
+	if(active_editor) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+			h->Toolbar(bar);
+	}
+
 	bar.Add(CtrlImg::plus(), [=] { Todo("Create new cell"); }).Help("Create new cell at the current line");
 	bar.Separator();
 	bar.Add(CtrlImg::right_arrow(), [=] { OnRun(); }).Help("Run file");
@@ -787,7 +805,11 @@ void PythonIDE::OnBreakpointHit(const String& file, int line)
 
 void PythonIDE::OnTabChanged()
 {
-	if(active_editor) active_editor->Hide();
+	if(active_editor) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+			h->DeactivateUI();
+		active_editor->Hide();
+	}
 	int idx = editor_tabs.GetCursor();
 	if(idx >= 0 && idx < open_files.GetCount()) {
 		active_file = idx;
@@ -796,12 +818,17 @@ void PythonIDE::OnTabChanged()
 		if(active_editor) {
 			active_editor->Show();
 			active_editor->SetFocus();
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+				h->ActivateUI();
 		}
 	}
 	else {
 		active_file = -1;
 		active_editor = nullptr;
 	}
+	
+	menubar.Set([=](Bar& bar) { MainMenu(bar); });
+	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
 }
 void PythonIDE::OnTabMenu(Bar& bar) { Todo("Tab menu"); }
 void PythonIDE::SyncTabsWithFiles() { Todo("Sync tabs"); }

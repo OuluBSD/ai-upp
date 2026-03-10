@@ -2,20 +2,20 @@
 
 ## Unit Testing (Automated)
 New `autotest` packages will be created for:
-- **YAML Parsers**: Verify `.gamestate` and `.xlay` schemas are parsed into the correct `Value` structures.
+- **JSON Parsers**: Verify `.gamestate` and `.form` schemas are parsed into the correct `Value` structures.
 - **Plugin Registry**: Verify `PluginManager` correctly tracks enabled/disabled states and extension points.
 - **Hearts Logic**: Python unit tests for trick resolution and scoring.
 
 ## Integration Testing (Automated)
 - **VM Bridge**: A test case that initializes `ByteVM`, injects a mock `BindingProvider`, and asserts that a Python script can call a C++ function and receive the correct return value.
-- **Document Routing**: Assert that `PythonIDE::LoadFile` returns the correct `IDocumentHost` type for `.py`, `.gamestate`, and `.xlay`.
+- **Document Routing**: Assert that `PythonIDE::LoadFile` returns the correct `IDocumentHost` type for `.py`, `.gamestate`, and `.form`.
 
 ## UI Acceptance (Manual)
 ### Layout Editor
-1. Open a new `.xlay` file.
+1. Open a new `.form` file.
 2. Drag a `Zone` onto the canvas.
 3. Change its ID in the property grid.
-4. Save the file and verify the YAML output.
+4. Save the file and verify the JSON output.
 
 ### Plugin Lifecycle
 1. Open a `.gamestate` file.

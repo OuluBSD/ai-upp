@@ -1,16 +1,14 @@
 # Document Hosting Abstraction
 
 ## Overview
-ScriptIDE's central area must be decoupled from `Upp::CodeEditor` to allow plugins to provide custom views (e.g., game boards, visual designers).
+ScriptIDE's central area must be decoupled from `Upp::CodeEditor` to allow plugins to provide custom views. Hosting also includes managing context-sensitive UI elements like menus and auxiliary panes.
 
 ## The `IDocumentHost` Interface
-This interface defines the minimum requirements for any control to be hosted in an IDE tab.
-
 ```cpp
 class IDocumentHost {
 public:
     virtual ~IDocumentHost() {}
-    virtual Ctrl&  GetCtrl() = 0;              // Returns the U++ widget
+    virtual Ctrl&  GetCtrl() = 0;
     virtual bool   Load(const String& path) = 0;
     virtual bool   Save() = 0;
     virtual bool   SaveAs(const String& path) = 0;
@@ -18,6 +16,14 @@ public:
     virtual bool   IsModified() const = 0;
     virtual void   SetFocus() = 0;
     
+    // UI Lifecycle
+    virtual void   ActivateUI() {}   // Called when tab becomes active
+    virtual void   DeactivateUI() {} // Called when tab becomes inactive
+    
+    // Menu/Toolbar hooks
+    virtual void   MainMenu(Bar& bar) {}
+    virtual void   Toolbar(Bar& bar) {}
+
     // Command Routing
     virtual void   Undo() {}
     virtual void   Redo() {}
@@ -30,12 +36,14 @@ public:
 };
 ```
 
-## Routing Logic in `PythonIDE`
-1. User requests to open a file (e.g., `table.xlay`).
-2. `PythonIDE` queries `PluginManager::FindFileTypeHandler(".xlay")`.
-3. If a handler is found, it calls `handler->CreateDocumentHost()`.
-4. If no handler exists, it defaults to the standard `SourceDocumentHost` (wrapping `PythonEditor`).
-5. The returned `IDocumentHost` is stored in the `FileInfo` struct and its `Ctrl` is added to the `editor_area`.
+## Contextual Integration
+When a document tab is selected:
+1. `PythonIDE` calls `DeactivateUI()` on the previously active host.
+2. It calls `ActivateUI()` on the new host.
+3. The IDE's main menu and toolbar are rebuilt, calling `active_host->MainMenu()` and `active_host->Toolbar()`.
+4. The host can use `ActivateUI()` to show specific dockable panes or claim placeholder panes provided by the IDE.
 
-## Capability Hiding
-UI elements (like the "Undo" toolbar button) will query the active `IDocumentHost` to see if the action is supported. Custom views may leave these as no-ops if they don't support text-like editing.
+## Placeholder Dockables
+The IDE maintains several generic `DockableCtrl` placeholders (e.g., `ContextPaneLeft`, `ContextPaneRight`).
+- A plugin can put its specific sub-views (like a Property Grid) into these placeholders.
+- When the plugin's tab is deactivated, it must clear the placeholders.

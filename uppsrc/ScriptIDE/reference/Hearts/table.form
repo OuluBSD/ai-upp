@@ -1,0 +1,12 @@
+{
+  "name": "Classic Hearts Table",
+  "background_color": {"r": 40, "g": 160, "b": 40},
+  "zones": [
+    {
+      "id": "trick_area",
+      "type": "TRICK",
+      "rect": {"x": 200, "y": 150, "w": 200, "h": 200},
+      "anchor": "CENTER"
+    }
+  ]
+}

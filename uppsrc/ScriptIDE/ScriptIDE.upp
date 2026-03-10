@@ -37,6 +37,8 @@ file
 	HistoryPane.cpp,
 	GameStatePlugin.h,
 	GameStatePlugin.cpp,
+	CardGamePlugin.h,
+	CardGamePlugin.cpp,
 	RunManager.h,
 	RunManager.cpp,
 	Linter.h,

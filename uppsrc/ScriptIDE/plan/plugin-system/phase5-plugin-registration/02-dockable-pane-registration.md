@@ -4,7 +4,7 @@
 Design the mechanism for plugins to register custom dockable panes that integrate seamlessly into the ScriptIDE layout and Window menu.
 
 ## Background / Rationale
-Plugins may need persistent side-panels (e.g., a "Game State Inspector" or a "Card Library" for the `.xlay` editor). These panes must behave like native IDE panes: they should be dockable, tabbed, floatable, and toggleable via the Window menu.
+Plugins may need persistent side-panels (e.g., a "Game State Inspector" or a "Card Library" for the `.form` editor). These panes must behave like native IDE panes: they should be dockable, tabbed, floatable, and toggleable via the Window menu.
 
 ## Scope
 - Defining the `IDockPaneProvider` interface.

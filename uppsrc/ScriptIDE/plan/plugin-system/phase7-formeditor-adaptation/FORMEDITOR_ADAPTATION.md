@@ -1,31 +1,37 @@
-# FormEditor Adaptation Strategy for `.xlay`
+# FormEditor Adaptation & Integration Strategy
 
 ## Overview
-We will adapt U++'s native `FormEditor` to serve as a WYSIWYG designer for card game tables.
+We will adapt U++'s native `FormEditor` to serve as a WYSIWYG designer for `.form` files (formerly `.xlay`). Integration must go beyond simple `Ctrl` embedding; the editor's menus and toolbars must merge with ScriptIDE's main interface, and its property panes must integrate with the docking system.
 
 ## Reusable Subsystems
-- **Property Grid**: Can be used to edit `id`, `rect`, `anchor`, and custom metadata.
-- **Manipulation Logic**: Selection, dragging, resizing, and snapping.
-- **Undo/Redo**: Core stack can be reused.
+- **Property Grid**: `FormProperties.cpp` logic for attribute editing.
+- **Manipulation Logic**: Selection, dragging, resizing, and snapping in `FormView`.
+- **Undo/Redo**: Core stack in `FormEdit.hpp`.
 
-## Required Forks/Changes
-Standard `FormEditor` is tied to `lay` files and `Ctrl` classes. For `.xlay`, we need:
-1. **Custom Serializer**: Replace the `lay` file generator with a YAML serializer/deserializer matching the `.xlay` schema.
-2. **Game-Specific Toolbox**: Instead of `Button` or `EditField`, provide `Zone`, `CardPlaceholder`, and `Sprite`.
-3. **Z-Order Management**: Visual layering controls (Bring to Front, Send to Back).
-4. **Anchor Visualization**: Show coordinate origins (e.g., `BOTTOM_CENTER`).
+## ScriptIDE Integration Requirements
 
-## Implementation Model: `GameLayoutEditor`
-We will create a new class `GameLayoutEditor` that inherits from `FormEditor` or copies its core logic to avoid breaking standard U++ dialog editing.
+### 1. Main Menu Integration
+When a `.form` editor is active:
+- The ScriptIDE main menu must gain a "Layout" top-level menu (or merge into "Search/Source").
+- Specific actions like "Align", "Distribute", and "Bring to Front" must be added to the IDE's main toolbar or a dedicated context-sensitive toolbar.
 
-### Toolbox Mapping
-| Toolbox Item | Underlying U++ Class | `.xlay` Type |
-| :--- | :--- | :--- |
-| Hand Zone | `StaticRect` (styled) | `HAND` |
-| Trick Area | `StaticRect` (styled) | `TRICK` |
-| Asset/Sprite | `ImageCtrl` | `SPRITE` |
+### 2. Dynamic Dockables
+The `FormEditor`'s "Properties" and "Toolbox" panes must be registered as dockable panes in `ScriptIDE`.
+- **Lifecycle**: These panes should be added to the `DockWindow` only when a `.form` editor tab is active.
+- **Auto-Hide**: When switching to a `.py` or `.gamestate` tab, these editor-specific panes must be hidden or removed from the layout to avoid cluttering the workspace.
 
-## Preview vs. Runtime
-- **Editor**: Uses bounding boxes, handles, and labels for IDs.
-- **Runtime**: Renders clean assets without editor gizmos.
-- The `GameLayoutEditor` will produce the same YAML that the `LayoutLoader` consumes.
+### 3. Placeholder Panes
+ScriptIDE will provide "Contextual Panes" (e.g., `ContextualPane1`, `ContextualPane2`) which are essentially empty containers.
+- The active `IDocumentHost` can "claim" these placeholders to display its specific secondary UI.
+- Example: The `.form` editor uses `ContextualPane1` for the Property Grid and `ContextualPane2` for the Widget Toolbox.
+
+## Adaptations for Card Games
+- **Custom Serializer**: Use JSON/YAML instead of `.lay` format.
+- **Game Toolbox**: Provide `Zone`, `CardSlot`, and `Sprite` primitives.
+- **Asset Integration**: Toolbox items should be able to browse the project's `assets/` folder.
+
+## Integration Workflow
+1. `PythonIDE` detects tab change.
+2. It calls `active_host->ActivateUI()`.
+3. The `.form` editor host registers its panes and merges its menus.
+4. On deactivate, it calls `active_host->DeactivateUI()` to clean up.

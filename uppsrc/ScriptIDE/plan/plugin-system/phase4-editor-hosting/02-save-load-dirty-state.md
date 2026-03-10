@@ -1,7 +1,7 @@
 # Task: Save/Load/Dirty State Behavior for Custom Tabs
 
 ## Goal
-Define how ScriptIDE handles file persistence and modification tracking for custom, non-text document tabs like `.xlay` layout editors or game state viewers.
+Define how ScriptIDE handles file persistence and modification tracking for custom, non-text document tabs like `.form` layout editors or game state viewers.
 
 ## Background / Rationale
 When a plugin provides a custom `Ctrl` for a document (e.g., a visual editor), standard `CodeEditor` methods like `IsModified()` or `SaveFile()` do not apply. The IDE needs a unified way to know if a custom document has unsaved changes, prompt the user upon closing, and trigger the plugin to save its internal representation back to disk.
@@ -12,7 +12,7 @@ When a plugin provides a custom `Ctrl` for a document (e.g., a visual editor), s
 - Defining the reload behavior when the underlying file is modified externally.
 
 ## Non-goals
-- Implementing specific save logic for `.xlay` (that belongs in the FormEditor adaptation task).
+- Implementing specific save logic for `.form` (that belongs in the FormEditor adaptation task).
 
 ## Dependencies
 - `01-non-codeeditor-document-host.md`

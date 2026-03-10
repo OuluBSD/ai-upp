@@ -10,7 +10,7 @@ Custom documents (e.g., visual layout editors) must notify the IDE when they are
 When the user triggers a "Save" action:
 1. `PythonIDE` identifies the active `IDocumentHost`.
 2. It calls `host->Save()`.
-3. The plugin implementation serializes its internal state (e.g., to YAML) and writes it to the path returned by `host->GetPath()`.
+3. The plugin implementation serializes its internal state (e.g., to JSON) and writes it to the path returned by `host->GetPath()`.
 4. Upon success, the plugin implementation clears its internal dirty flag, which triggers an IDE title update.
 
 ## Closure Protection

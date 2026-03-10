@@ -34,7 +34,7 @@
 
 ## Gap Analysis & Reinterpretation
 - **Networking**: KDE uses a client-server model. ScriptIDE will use a local ByteVM loop.
-- **Drawing**: KDE uses Qt canvas. ScriptIDE will use U++ `Draw` and `.xlay` definitions.
+- **Drawing**: KDE uses Qt canvas. ScriptIDE will use U++ `Draw` and `.form` definitions.
 - **Logic**: C++ logic will be rewritten in Python for ByteVM.
 
 ## Licensing

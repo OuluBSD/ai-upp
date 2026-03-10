@@ -17,7 +17,7 @@ The game will be organized into a `hearts` package:
 | `Shooting the moon` | `MatchManager.resolve_round_scores()` |
 
 ## UI-to-Logic Interaction
-Python logic will reference UI elements by the IDs defined in `.xlay`:
+Python logic will reference UI elements by the IDs defined in `.form`:
 ```python
 import hearts_view # C++ bound module
 

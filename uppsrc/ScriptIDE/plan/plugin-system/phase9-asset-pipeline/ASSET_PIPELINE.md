@@ -29,8 +29,8 @@ for suit in C D H S; do
 done
 ```
 
-## Integration with `.xlay`
-The `.xlay` loader will use relative paths:
+## Integration with `.form`
+The `.form` loader will use relative paths:
 `image: "assets/hearts_queen.png"`
 
 ## Licensing & Attribution

@@ -1,0 +1,8 @@
+{
+  "entry_script": "main.py",
+  "entry_function": "start",
+  "layout": "table.form",
+  "metadata": {
+    "players": 4
+  }
+}

@@ -133,7 +133,13 @@ void CardGameDocumentHost::ClearSprites()
 void CardGameDocumentHost::SetSprite(const String& id, const String& asset_path, int x, int y)
 {
 	Sprite& s = sprites.GetAdd(id);
-	s.img = StreamRaster::LoadFileAny(asset_path);
+	
+	String full_path = asset_path;
+	if(!IsFullPath(asset_path)) {
+		full_path = AppendFileName(GetFileDirectory(path), asset_path);
+	}
+	
+	s.img = StreamRaster::LoadFileAny(full_path);
 	s.rect = RectC(x, y, s.img.GetWidth(), s.img.GetHeight());
 	s.target_rect = s.rect;
 	s.animating = false;

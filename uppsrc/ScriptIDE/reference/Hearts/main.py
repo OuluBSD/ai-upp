@@ -2,7 +2,7 @@ import hearts_view
 from hearts.logic import GameState
 
 state = GameState()
-asset_base = "uppsrc/ScriptIDE/reference/Hearts/assets/"
+asset_base = "assets/" # Resolved relative to .gamestate location in C++
 
 def ui_log(msg):
     hearts_view.log(msg)

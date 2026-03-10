@@ -32,6 +32,8 @@ def print_help(prog):
                 "  --clean, -Clean, -c                Clean build",
                 "  --jobs N, -j N, -jN                Parallel jobs",
                 "  --verbose, -Verbose, -v            Verbose output",
+                "  --add-root P, -ar P                Add source root passed to umk (repeatable)",
+                "  --search-root P, -sr P             Add package lookup root for target/mainconf (repeatable)",
                 "  --dump-cmd                         Dump the umk command and exit",
                 "  --help, -Help                      Show this help",
             ]
@@ -82,6 +84,8 @@ def parse_args(argv):
         "android": False,
         "bootstrap": False,
         "smoketest": False,
+        "add_roots": [],
+        "search_roots": [],
         "target": None,
         "dump_cmd": False,
         "help": False,
@@ -167,6 +171,28 @@ def parse_args(argv):
             opts["verbose"] = True
             i += 1
             continue
+        if lower in ("--add-root", "-add-root", "-ar"):
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for add-root")
+            i += 1
+            opts["add_roots"].append(argv[i])
+            i += 1
+            continue
+        if lower.startswith("--add-root="):
+            opts["add_roots"].append(arg.split("=", 1)[1])
+            i += 1
+            continue
+        if lower in ("--search-root", "-search-root", "-sr"):
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for search-root")
+            i += 1
+            opts["search_roots"].append(argv[i])
+            i += 1
+            continue
+        if lower.startswith("--search-root="):
+            opts["search_roots"].append(arg.split("=", 1)[1])
+            i += 1
+            continue
         if lower in ("--dump-cmd", "-dump-cmd"):
             opts["dump_cmd"] = True
             i += 1
@@ -209,7 +235,7 @@ def find_repo_root():
     return Path(__file__).resolve().parent.parent
 
 
-def resolve_upp_path(repo_root, target):
+def resolve_upp_path(repo_root, target, extra_search_roots=None):
     target_path = Path(target)
     if target_path.is_dir():
         candidates = list(target_path.glob("*.upp"))
@@ -228,10 +254,10 @@ def resolve_upp_path(repo_root, target):
         if not path.exists():
             raise ValueError(f"Missing .upp file: {path}")
         return path.resolve()
-    return find_upp_by_name(repo_root, f"{target}.upp")
+    return find_upp_by_name(repo_root, f"{target}.upp", extra_search_roots)
 
 
-def find_upp_by_name(repo_root, filename):
+def find_upp_by_name(repo_root, filename, extra_search_roots=None):
     search_roots = [
         repo_root / "upptst",
         repo_root / "uppsrc",
@@ -242,6 +268,11 @@ def find_upp_by_name(repo_root, filename):
         repo_root / "stdtst",
         repo_root / "game",
     ]
+    if extra_search_roots:
+        for path in extra_search_roots:
+            root = Path(path)
+            if root not in search_roots:
+                search_roots.append(root)
     matches = []
     for root in search_roots:
         if not root.exists():
@@ -1106,11 +1137,27 @@ def main():
         )
         list_methods(methods)
         return 0
+    invocation_cwd = Path.cwd()
+    repo_root = find_repo_root()
+    extra_search_roots = []
+    extra_umk_roots = []
+    for value in opts["search_roots"]:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = invocation_cwd / path
+        extra_search_roots.append(path.resolve())
+    for value in opts["add_roots"]:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = invocation_cwd / path
+        extra_umk_roots.append(path.resolve())
+
     if opts["list_conf"]:
-        repo_root = find_repo_root()
         os.chdir(repo_root)
         try:
-            upp_path = resolve_upp_path(repo_root, opts["list_conf"])
+            upp_path = resolve_upp_path(
+                repo_root, opts["list_conf"], extra_search_roots
+            )
         except ValueError as exc:
             print(exc, file=sys.stderr)
             return 2
@@ -1130,7 +1177,6 @@ def main():
                 file=sys.stderr,
             )
             return 2
-        repo_root = find_repo_root()
         return bootstrap_build_umk(repo_root, opts)
 
     if not opts["target"]:
@@ -1144,11 +1190,10 @@ def main():
         print("Use either --conf-* or --mainconf, not both.", file=sys.stderr)
         return 2
 
-    repo_root = find_repo_root()
     os.chdir(repo_root)
 
     try:
-        upp_path = resolve_upp_path(repo_root, opts["target"])
+        upp_path = resolve_upp_path(repo_root, opts["target"], extra_search_roots)
     except ValueError as exc:
         print(exc, file=sys.stderr)
         return 2
@@ -1235,7 +1280,26 @@ def main():
     if opts["jobs"]:
         build_flags = re.sub(r"H\\d+", "", build_flags)
 
-    roots = "./upptst,./rainbow,./uppsrc,./examples,./tutorial,./reference,./game"
+    roots_list = [
+        "./upptst",
+        "./rainbow",
+        "./uppsrc",
+        "./examples",
+        "./tutorial",
+        "./reference",
+        "./game",
+    ]
+    package_root = upp_path.parent.parent
+    if package_root.exists():
+        package_root_str = str(package_root)
+        if package_root_str not in roots_list:
+            roots_list.append(package_root_str)
+    for path in extra_umk_roots:
+        path_str = str(path)
+        if path_str not in roots_list:
+            roots_list.append(path_str)
+    separator = ";" if is_windows else ","
+    roots = separator.join(roots_list)
     output_name = f"{target}.exe" if is_windows else target
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)

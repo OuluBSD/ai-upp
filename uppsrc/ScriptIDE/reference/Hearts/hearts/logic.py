@@ -36,6 +36,9 @@ class GameState:
         self.turn = 0
         self.leading_suit = None
         self.log_callback = None
+        self.round_number = 0
+        self.phase = 'PASSING'
+        self.passed_cards = [[], [], [], []]
 
     def log(self, msg):
         if self.log_callback:
@@ -44,16 +47,53 @@ class GameState:
             print(msg)
 
     def deal(self):
+        self.round_number += 1
         deck = create_deck()
         random.shuffle(deck)
         self.players = [[], [], [], []]
         self.round_scores = [0, 0, 0, 0]
         self.hearts_broken = False
+        self.passed_cards = [[], [], [], []]
         
         for i in range(52):
             self.players[i % 4].append(deck[i])
+            
+        pass_dir = self.round_number % 4
+        if pass_dir == 0:
+            self.phase = 'PLAYING'
+            self.start_play_phase()
+        else:
+            self.phase = 'PASSING'
+            self.log(f"Round {self.round_number}: Passing phase. Select 3 cards.")
+
+    def select_pass(self, player_index, cards):
+        if self.phase != 'PASSING': return False
+        if len(cards) != 3: return False
         
-        # Find who has 2 of clubs to start
+        self.passed_cards[player_index] = cards
+        
+        if all(len(p) == 3 for p in self.passed_cards):
+            self.execute_pass()
+            
+        return True
+
+    def execute_pass(self):
+        pass_dir = self.round_number % 4
+        # 1 = left (+1), 2 = right (-1), 3 = across (+2)
+        offset = {1: 1, 2: -1, 3: 2}[pass_dir]
+        
+        for i in range(4):
+            for c in self.passed_cards[i]:
+                self.players[i].remove(c)
+                
+        for i in range(4):
+            target = (i + offset) % 4
+            self.players[target].extend(self.passed_cards[i])
+            
+        self.phase = 'PLAYING'
+        self.start_play_phase()
+
+    def start_play_phase(self):
         for i in range(4):
             for card in self.players[i]:
                 if card.suit == 'clubs' and card.rank == '2':
@@ -62,6 +102,8 @@ class GameState:
                     return
 
     def validate_play(self, player_index, card):
+        if self.phase != 'PLAYING':
+            return False, "Not in playing phase"
         if player_index != self.turn:
             return False, "Not your turn"
         

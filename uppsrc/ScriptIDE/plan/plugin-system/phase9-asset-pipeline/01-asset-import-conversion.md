@@ -4,7 +4,7 @@
 Define the pipeline for migrating card images and visual assets from the KDE Hearts tarball into a format usable by the ScriptIDE reference project.
 
 ## Background / Rationale
-The original KDE Hearts game includes PNG images for all 52 cards plus card backs. These assets need to be extracted, potentially resized or converted to an `.iml` (Image Library) or standard directory structure, and made available to the `.xlay` layout editor and runtime.
+The original KDE Hearts game includes PNG images for all 52 cards plus card backs. These assets need to be extracted, potentially resized or converted to an `.iml` (Image Library) or standard directory structure, and made available to the `.form` layout editor and runtime.
 
 ## Scope
 - Locating and extracting all necessary `.png` assets from `./tmp/hearts-1.98.tar.bz2`.
@@ -25,7 +25,7 @@ The original KDE Hearts game includes PNG images for all 52 cards plus card back
 
 ## Affected Subsystems
 - Asset Pipeline
-- Layout Engine (`.xlay` asset references)
+- Layout Engine (`.form` asset references)
 
 ## Implementation Direction
 Create a shell script or a detailed manual process document that copies the assets, renames them consistently (e.g., `H2.png` to `hearts_2.png`), and creates a manifest for the layout editor. Include a copyright notice file in the target directory referencing the original KDE authors.

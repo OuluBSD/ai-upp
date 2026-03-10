@@ -1,7 +1,7 @@
-# `.gamestate` YAML Schema Design
+# `.gamestate` JSON Schema Design
 
 ## Format Overview
-The `.gamestate` file is a YAML-based configuration that serves as the "project file" for a game session or plugin-driven scenario. It links logic (Python) with presentation (Layout).
+The `.gamestate` file is a JSON-based configuration that serves as the "project file" for a game session or plugin-driven scenario. It links logic (Python) with presentation (Layout).
 
 ## Schema Fields
 
@@ -9,7 +9,7 @@ The `.gamestate` file is a YAML-based configuration that serves as the "project 
 | :--- | :--- | :--- |
 | `entry_script` | String | Path to the `.py` file containing the main logic. |
 | `entry_function` | String | Name of the function to call within the script. |
-| `layout` | String | (Optional) Path to the `.xlay` layout file. |
+| `layout` | String | (Optional) Path to the `.form` layout file. |
 | `metadata` | Map | Key-value pairs for initial game state (e.g., player count). |
 | `resources` | List | (Optional) List of folders or files to preload. |
 
@@ -21,7 +21,7 @@ The `.gamestate` file is a YAML-based configuration that serves as the "project 
 ```yaml
 entry_script: "hearts_main.py"
 entry_function: "initialize_hearts"
-layout: "classic_table.xlay"
+layout: "classic_table.form"
 metadata:
   players: 4
   rules: "kde_2004"
@@ -32,4 +32,4 @@ resources:
 ```
 
 ## Serialization
-The file is parsed using `uppsrc/Core`'s YAML support. Deserialization into a `Value` map is the primary method of access for the `PluginManager`.
+The file is parsed using `uppsrc/Core`'s JSON support. Deserialization into a `Value` map is the primary method of access for the `PluginManager`.

@@ -46,12 +46,15 @@ public:
 	HelpPane        help_pane;
 	HistoryPane     history_pane;
 
+	DockableCtrl    context_pane_left;
+	DockableCtrl    context_pane_right;
+
 	One<PluginManager> plugin_manager;
 	ArrayMap<String, One<DockableCtrl>> plugin_panes;
 
 	void InitLayout();
 	void InitDocking();
-	void DockInit();
+	virtual void DockInit() override;
 	
 	void OnNewFile();
 	void OnOpenFile();

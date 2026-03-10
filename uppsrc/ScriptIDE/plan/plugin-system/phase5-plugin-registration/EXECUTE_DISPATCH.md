@@ -25,9 +25,9 @@ The core "Run" method is updated to check plugins before defaulting to ByteVM:
 
 ## Example: `.gamestate` Execution
 The Card Game Plugin will register a provider that:
-1. Parses the YAML `.gamestate`.
-2. Loads the `.xlay` into a new `GameView` tab.
+1. Parses the JSON `.gamestate`.
+2. Loads the `.form` into a new `GameView` tab.
 3. Injects bindings and starts the `entry_script` in the `ByteVM`.
 
 ## Failure Handling
-If `Execute` fails (e.g., malformed YAML), the plugin is responsible for logging an error to the IDE console (`console_pane.WriteError`). The IDE state remains stable.
+If `Execute` fails (e.g., malformed JSON), the plugin is responsible for logging an error to the IDE console (`console_pane.WriteError`). The IDE state remains stable.

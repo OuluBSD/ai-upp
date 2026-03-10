@@ -1,7 +1,7 @@
-# `.xlay` Layout Runtime Integration
+# `.form` Layout Runtime Integration
 
 ## Loading Workflow
-1. **Parser**: `LayoutLoader` class parses the YAML `.xlay` file using `uppsrc/Core`.
+1. **Parser**: `LayoutLoader` class parses the JSON `.form` file using `uppsrc/Core`.
 2. **Coordinate Resolution**:
    - Anchors are applied relative to the parent `Ctrl` (the game view tab).
    - Relative offsets are converted to absolute pixel coordinates.

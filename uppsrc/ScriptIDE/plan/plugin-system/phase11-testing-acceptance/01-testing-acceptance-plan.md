@@ -7,7 +7,7 @@ Define the strategy for testing the new Plugin System, the FormEditor adaptation
 Introducing a plugin architecture, custom document hosts, and a ByteVM bridge significantly increases the complexity of ScriptIDE. A robust testing plan ensures that basic IDE features do not regress, and that the new Python Hearts game functions correctly without crashing the host IDE.
 
 ## Scope
-- Defining unit testing requirements for the `.gamestate` and `.xlay` parsers.
+- Defining unit testing requirements for the `.gamestate` and `.form` parsers.
 - Defining integration testing requirements for the Python VM bridge.
 - Defining manual UI acceptance testing steps for the FormEditor adaptation and plugin lifecycle toggling.
 - Defining gameplay acceptance criteria for the Hearts Python implementation.
@@ -32,7 +32,7 @@ Introducing a plugin architecture, custom document hosts, and a ByteVM bridge si
 Create a comprehensive test plan document with categorized test cases (Unit, Integration, Manual UI). Detail the exact steps required to prove the system works end-to-end.
 
 ## Risks
-- Testing graphical editors (like the `.xlay` editor) via automation is difficult in U++; over-reliance on manual testing could hide regressions.
+- Testing graphical editors (like the `.form` editor) via automation is difficult in U++; over-reliance on manual testing could hide regressions.
 
 ## Acceptance Criteria
 - [ ] Documented unit test strategy for parsers and registries.

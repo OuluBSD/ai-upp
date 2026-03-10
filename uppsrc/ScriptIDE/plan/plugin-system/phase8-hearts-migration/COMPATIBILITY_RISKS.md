@@ -8,7 +8,7 @@
 | **Qt Event Loop** | KDE relies on Qt's signal/slot and timer system. | Use U++ `Callback`/`Event` and `PostCallback` for async UI updates. |
 | **Rendering Perf** | Drawing 52+ high-res PNG cards via `ByteVM` bindings might be slow. | Optimize U++ `Draw` path. Use card caching and only redraw dirty regions. |
 | **AI Blocking** | Complex AI logic might hang the IDE UI thread. | Split AI thinking into small chunks or run AI in a separate thread/coroutine pattern. |
-| **Asset Scale** | 72x96 assets might be too small for modern HiDPI screens. | Implement DPI-aware scaling in the `.xlay` loader. |
+| **Asset Scale** | 72x96 assets might be too small for modern HiDPI screens. | Implement DPI-aware scaling in the `.form` loader. |
 
 ## Features: Preserve vs. Adapt
 
@@ -18,7 +18,7 @@
 - Point distribution logic.
 
 ### Adapt (Rewrite for U++)
-- UI Layout: From Qt `.ui`/code to `.xlay` YAML.
+- UI Layout: From Qt `.ui`/code to `.form` JSON.
 - Animation: From `QTimer` steps to U++ `SetTimeCallback`.
 - Persistence: From KDE `KConfig` to U++ `Serialize` / `.bin`.
 

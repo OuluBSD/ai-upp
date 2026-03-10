@@ -15,14 +15,24 @@ public:
 	virtual String GetPath() const = 0;
 	virtual bool   IsModified() const = 0;
 	virtual void   SetFocus() = 0;
-	virtual void   Undo() = 0;
-	virtual void   Redo() = 0;
-	virtual void   Cut() = 0;
-	virtual void   Copy() = 0;
-	virtual void   Paste() = 0;
-	virtual void   SelectAll() = 0;
-	virtual void   Find() = 0;
-	virtual void   Replace() = 0;
+	
+	// UI Lifecycle
+	virtual void   ActivateUI() {}
+	virtual void   DeactivateUI() {}
+	
+	// Menu/Toolbar hooks
+	virtual void   MainMenu(Bar& bar) {}
+	virtual void   Toolbar(Bar& bar) {}
+
+	// Command Routing
+	virtual void   Undo() {}
+	virtual void   Redo() {}
+	virtual void   Cut() {}
+	virtual void   Copy() {}
+	virtual void   Paste() {}
+	virtual void   SelectAll() {}
+	virtual void   Find() {}
+	virtual void   Replace() {}
 };
 
 class IPluginContext {

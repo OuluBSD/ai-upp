@@ -81,7 +81,6 @@ void CardGameDocumentHost::SetLayout(const String& path)
 					z.anchor = vz["anchor"];
 					z.type = vz["type"];
 					
-					// Handle children (for containers like trick_area)
 					Value vchildren = vz["children"];
 					if(vchildren.Is<ValueArray>()) {
 						for(int j = 0; j < vchildren.GetCount(); j++) {
@@ -91,9 +90,8 @@ void CardGameDocumentHost::SetLayout(const String& path)
 								Zone& cz = zones.Add(cid);
 								cz.id = cid;
 								Value cr = vc["rect"];
-								// Relative to parent zone
 								cz.rect = RectC(z.rect.left + (int)cr["x"], z.rect.top + (int)cr["y"], (int)cr["w"], (int)cr["h"]);
-								cz.anchor = z.anchor; // Inherit anchor
+								cz.anchor = z.anchor; 
 								cz.type = vc["type"];
 							}
 						}
@@ -122,7 +120,6 @@ Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, 
 	else if(anchor == "TOP_CENTER") {
 		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
 	}
-	// ... add other anchors as needed
 	
 	return RectC(x, y, r.GetWidth(), r.GetHeight());
 }
@@ -166,7 +163,6 @@ void CardGameDocumentHost::MoveSpriteToZone(const String& id, const String& zone
 	if(qz >= 0 && qs >= 0) {
 		Zone& z = zones[qz];
 		Rect abs_z = GetAbsoluteRect(z.rect, z.anchor, GetSize());
-		// Center sprite in zone
 		int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2);
 		int ty = abs_z.top + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
 		MoveSprite(id, tx, ty, animated);
@@ -189,7 +185,6 @@ void CardGameDocumentHost::Animate()
 				s.rect = s.target_rect;
 				s.animating = false;
 			} else {
-				// Linear interpolation for simplicity, 20% per frame
 				s.rect = RectC(p.x + dx / 5, p.y + dy / 5, s.rect.GetWidth(), s.rect.GetHeight());
 			}
 			changed = true;
@@ -225,6 +220,36 @@ void CardGameDocumentHost::LeftDown(Point p, dword flags)
 	}
 }
 
+// --- CardGameProperties ---
+
+void CardGameProperties::Generate(FormObject* pI, int index)
+{
+	if (!pI) return;
+
+	_Properties.Clear();
+	_Options.Clear();
+
+	_Item  = pI;
+	_Index = index;
+
+	String type = pI->Get("Type");
+	if (type.IsEmpty()) return;
+
+	Property("Variable", t_("ID:"), "EditField", Array<String>() << pI->Get("Variable"));
+	Property("Type", t_("Zone Type:"), "DropList", Array<String>() << pI->Get("Type") << "HAND" << "TRICK" << "CONTAINER" << "LABEL" << "SPRITE");
+	Property("Anchor", t_("Anchor:"), "DropList", Array<String>() << pI->Get("Anchor") << "TOP_LEFT" << "CENTER" << "BOTTOM_CENTER" << "TOP_CENTER" << "CENTER_LEFT" << "CENTER_RIGHT");
+	
+	if(type == "LABEL") {
+		Property("Label", t_("Text:"), "EditField", Array<String>() << pI->Get("Label"));
+	}
+	
+	if(type == "SPRITE") {
+		Property("Image", t_("Asset:"), "EditField", Array<String>() << pI->Get("Image"));
+	}
+
+	_Options.HideRow(0);
+}
+
 // --- CardGameLayoutEditor ---
 
 CardGameLayoutEditor::CardGameLayoutEditor()
@@ -232,17 +257,51 @@ CardGameLayoutEditor::CardGameLayoutEditor()
 	Construct(true);
 	embedded = true;
 	
-	// Customize Toolbox
 	_TypeList.Clear();
 	_TypeList.Add("ZONE");
 	_TypeList.Add("CARD_SLOT");
 	_TypeList.Add("LABEL");
 	_TypeList.Add("CONTAINER");
 	_TypeList.Add("SPRITE");
+	
+	_View.WhenObjectProperties = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
 }
 
 CardGameLayoutEditor::~CardGameLayoutEditor()
 {
+}
+
+void CardGameLayoutEditor::OpenCardProperties(const Vector<int>& indexes)
+{
+	if (!_View.IsLayout())
+		return;
+
+	String temp = _TempObjectName;
+	_TempObjectName.Clear();
+	_ItemList.EndEdit(false, false, false);
+	int row = _ItemList.GetCurrentRow();
+	if (row >= 0 && !temp.IsEmpty())
+	{
+		_View.GetCurrentLayout()->GetObjects()[row].Set("Variable", temp);
+		_ItemList.Set(row, 1, temp);
+	}
+	_LayoutList.EndEdit();
+
+	if (indexes.GetCount() == 1)
+	{
+		FormObject* pI = _View.GetObject(indexes[0]);
+		if (!pI) return;
+
+		card_properties.Generate(pI, indexes[0]);
+	}
+
+	if (indexes.GetCount() == 0)
+	{
+		card_properties._Headers.Clear();
+		card_properties._Options.Clear();
+	}
+
+	UpdateItemList();
 }
 
 bool CardGameLayoutEditor::Load(const String& path_)
@@ -362,7 +421,7 @@ void CardGameLayoutEditor::ActivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 		ide->context_pane_left.Title("Properties");
-		ide->context_pane_left.Add(_ItemProperties.SizePos());
+		ide->context_pane_left.Add(card_properties.SizePos());
 		ide->context_pane_left.Show();
 		
 		ide->context_pane_right.Title("Items");
@@ -374,7 +433,7 @@ void CardGameLayoutEditor::ActivateUI()
 void CardGameLayoutEditor::DeactivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-		_ItemProperties.Remove();
+		card_properties.Remove();
 		_ItemList.Remove();
 		ide->context_pane_left.Hide();
 		ide->context_pane_right.Hide();

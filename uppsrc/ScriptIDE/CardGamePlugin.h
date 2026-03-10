@@ -70,6 +70,7 @@ public:
 	void SetSprite(const String& id, const String& asset_path, int x, int y);
 	void MoveSprite(const String& id, int x, int y, bool animated = false);
 	void MoveSpriteToZone(const String& id, const String& zone_id, bool animated = false);
+	void Log(const String& msg);
 
 private:
 	String path;

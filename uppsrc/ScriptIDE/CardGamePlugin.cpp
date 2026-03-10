@@ -169,6 +169,11 @@ void CardGameDocumentHost::MoveSpriteToZone(const String& id, const String& zone
 	}
 }
 
+void CardGameDocumentHost::Log(const String& msg)
+{
+	game_log.SetQTF(game_log.GetQTF() + "&" + msg);
+}
+
 void CardGameDocumentHost::Animate()
 {
 	bool changed = false;
@@ -454,6 +459,8 @@ void CardGameLayoutEditor::Toolbar(Bar& bar)
 
 CardGamePlugin::CardGamePlugin()
 {
+	gamestate_handler.plugin = this;
+	form_handler.plugin = this;
 }
 
 CardGamePlugin::~CardGamePlugin()
@@ -560,6 +567,15 @@ static PyValue ClearSprites(const Vector<PyValue>& args, void* user_data)
 	return PyValue();
 }
 
+static PyValue Log(const Vector<PyValue>& args, void* user_data)
+{
+	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
+	if(args.GetCount() >= 1 && view) {
+		view->Log(args[0].ToString());
+	}
+	return PyValue();
+}
+
 void CardGamePlugin::SyncBindings(PyVM& vm)
 {
 	PythonIDE& ide = context->GetIDE();
@@ -573,6 +589,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 	hearts_view.SetItem("set_card", PyValue::Function("set_card", &SetCard, view));
 	hearts_view.SetItem("move_card", PyValue::Function("move_card", &MoveCard, view));
 	hearts_view.SetItem("clear_sprites", PyValue::Function("clear_sprites", &ClearSprites, view));
+	hearts_view.SetItem("log", PyValue::Function("log", &Log, view));
 	
 	vm.GetGlobals().GetAdd("hearts_view") = hearts_view;
 }

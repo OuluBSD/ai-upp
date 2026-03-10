@@ -18,10 +18,24 @@ def refresh_ui():
     hearts_view.clear_sprites() 
     
     # Human hand (Player 0)
-    x = 50
-    for card in state.players[0]:
-        hearts_view.set_card(card.id, asset_base + card.id + ".png", x, 450)
-        x += 30
+    # We use the zone to fan the cards
+    hand_rect = hearts_view.get_zone_rect("hand_self")
+    if hand_rect:
+        card_count = len(state.players[0])
+        if card_count > 0:
+            # Assuming card width ~ 72, distribute them
+            start_x = hand_rect['x']
+            available_width = hand_rect['w'] - 72
+            step_x = available_width / max(1, card_count - 1)
+            if step_x > 30: step_x = 30 # Max spacing
+            
+            # Center the fan if fewer cards
+            total_width = step_x * (card_count - 1) + 72
+            start_x += (hand_rect['w'] - total_width) / 2
+            
+            for i, card in enumerate(state.players[0]):
+                cx = start_x + (i * step_x)
+                hearts_view.set_card(card.id, asset_base + card.id + ".png", int(cx), hand_rect['y'])
     
     # Trick area
     trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]

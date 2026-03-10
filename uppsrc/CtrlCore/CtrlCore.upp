@@ -5,7 +5,7 @@ uses
 	plugin\bmp,
 	RichText,
 	Painter,
-	Core/VfsBase;
+	Vfs/Core;
 
 library(WIN32) "advapi32 comdlg32 comctl32 imm32";
 

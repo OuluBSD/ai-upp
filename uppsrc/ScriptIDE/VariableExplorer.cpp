@@ -27,13 +27,13 @@ VariableExplorer::VariableExplorer()
 
 void VariableExplorer::LayoutToolbar(Bar& bar)
 {
-	bar.Add(CtrlImg::open(), [=] {}).Help("Import data");
-	bar.Add(CtrlImg::save(), [=] {}).Help("Save data");
-	bar.Add(CtrlImg::save_as(), [=] {}).Help("Save data as");
+	bar.Add(CtrlImg::open(), [=] { Todo("Import data"); }).Help("Import data");
+	bar.Add(CtrlImg::save(), [=] { Todo("Save data"); }).Help("Save data");
+	bar.Add(CtrlImg::save_as(), [=] { Todo("Save data as"); }).Help("Save data as");
 	bar.Add(CtrlImg::remove(), WhenRemoveAll).Help("Remove all variables");
 	bar.Separator();
-	bar.Add("Search", [=] {});
-	bar.Add("Filter", [=] {});
+	bar.Add("Search variable names and types", [=] { Todo("Search"); });
+	bar.Add("Filter variables", [=] { Todo("Filter"); });
 	bar.Add(CtrlImg::redo(), WhenRefresh).Help("Refresh variables");
 	bar.Separator();
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
@@ -48,8 +48,12 @@ void VariableExplorer::LayoutPaneMenu(Bar& bar)
 	bar.Add("Exclude callables and modules", [=] {}).Check(true);
 	bar.Add("Show arrays min/max", [=] {}).Check(false);
 	bar.Separator();
-	bar.Add("Resize rows to contents", [=] { /* list.AutoSizeRows(); */ });
-	bar.Add("Resize columns to contents", [=] { /* list.AutoSizeColumns(); */ });
+	bar.Add("Resize rows to contents", [=] { Todo("Resize rows"); });
+	bar.Add("Resize columns to contents", [=] { Todo("Resize columns"); });
+	bar.Separator();
+	bar.Add("Move", [=] { Todo("Move pane"); });
+	bar.Add("Undock", [=] { Todo("Undock pane"); });
+	bar.Add("Close", [=] { Todo("Close pane"); });
 }
 
 void VariableExplorer::SetVariables(const VectorMap<PyValue, PyValue>& vars)

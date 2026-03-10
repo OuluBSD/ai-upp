@@ -6,7 +6,7 @@
 #include <ByteVM/ByteVM.h>
 #include <ByteVM/PyBindings.h>
 #include <SoftPhys/SoftPhys.h>
-#include <Core/VfsBase/WorldState.h>
+#include <Vfs/Core/WorldState.h>
 #include <Vfs/Core/VfsValueExt.h>
 #include <AI/Core/Base/Base.h>
 

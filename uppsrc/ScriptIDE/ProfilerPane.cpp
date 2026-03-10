@@ -5,30 +5,40 @@ namespace Upp {
 ProfilerPane::ProfilerPane()
 {
 	Title("Profiler");
-	Icon(CtrlImg::plus()); // Temporary icon
+	Icon(CtrlImg::plus());
 	
-	Add(list.SizePos());
+	Add(toolbar.TopPos(0, 24).HSizePos());
+	Add(list.VSizePos(24, 0).HSizePos());
 	
-	list.AddColumn("Function", 30).Sorting();
-	list.AddColumn("Total time", 15).Sorting();
-	list.AddColumn("Local time", 15).Sorting();
-	list.AddColumn("Calls", 10).Sorting();
-	list.AddColumn("File:Line", 30).Sorting();
-	
-	list.AllSorting();
-	list.EvenRowColor();
-	list.SetLineCy(20);
+	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 }
 
-void ProfilerPane::SetData(const VectorMap<String, Value>& data)
+void ProfilerPane::LayoutToolbar(Bar& bar)
 {
-	list.Clear();
-	// TODO: Implement actual profiling data mapping
+	bar.Add("Collapse one level up", CtrlImg::undo(), [=] { Todo("Collapse"); }).Help("Collapse level up");
+	bar.Add("Expand one level down", CtrlImg::plus(), [=] { Todo("Expand"); }).Help("Expand level down");
+	bar.Separator();
+	bar.Add("Show items with one large local time", [=] { Todo("Filter local time"); }).Help("Hot items");
+	bar.Add("Hide calls to external libraries", [=] { Todo("Filter external"); }).Help("Hide external");
+	bar.Add("Show callers/callees", [=] { Todo("Show callers"); }).Help("Callers/callees");
+	bar.Add("Search", [=] { Todo("Search"); }).Help("Search");
+	bar.Separator();
+	bar.Add("Stop profiling", CtrlImg::remove(), [=] { Todo("Stop profiling"); }).Help("Stop profiling");
+	bar.Gap(2000);
+	bar.Add("Save profiling data", CtrlImg::save(), [=] { Todo("Save data"); }).Help("Save profiling data");
+	bar.Add("Load profiling data comparison", CtrlImg::open(), [=] { Todo("Load data"); }).Help("Load comparison");
+	bar.Add("Clear comparison", [=] { Todo("Clear comparison"); }).Enable(false);
+	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
-void ProfilerPane::Clear()
+void ProfilerPane::LayoutPaneMenu(Bar& bar)
 {
-	list.Clear();
+	bar.Add("Move", [=] { Todo("Move pane"); });
+	bar.Add("Undock", [=] { Todo("Undock pane"); });
+	bar.Add("Close", [=] { Todo("Close pane"); });
 }
+
+void ProfilerPane::SetData(const VectorMap<String, Value>& data) { Todo("Set profile data"); }
+void ProfilerPane::Clear() { list.Clear(); }
 
 }

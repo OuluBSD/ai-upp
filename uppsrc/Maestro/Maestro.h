@@ -8,7 +8,7 @@
 #include <CtrlLib/CtrlLib.h>
 #endif
 
-#include <Core/VfsBase/Automation.h>
+#include <Vfs/Core/Automation.h>
 #include <AI/Core/Base/Base.h>
 
 #ifdef _GraphLib_GraphLib_h_

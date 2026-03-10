@@ -2,7 +2,7 @@
 #define _CtrlLib_GuiAutomation_h_
 
 #include <CtrlLib/Bar.h>
-#include <Core/VfsBase/Automation.h>
+#include <Vfs/Core/Automation.h>
 
 class Ctrl;
 

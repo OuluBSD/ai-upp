@@ -153,27 +153,21 @@ ScriptIDE now depends on:
 
 No circular dependencies - good to go!
 
-### Testing DockWindow
+### Plugin System (Future)
 
-After implementing:
-```bash
-script/build.py -mc 1 -j 12 ScriptIDE
-./bin/ScriptIDE
+The IDE will support a modular plugin system to allow third-party extensions.
 
-# Test docking:
-1. Drag file tree panel to floating window
-2. Close it
-3. Open via Windows menu → Files
-4. Close app, reopen → layout should restore
-```
+#### Extension Points:
+1. **Custom Editor Hosted Ctrls**: Support for non-code assets (e.g., `.gamestate`) using custom `Ctrl`s instead of `CodeEditor`.
+2. **Dockable Panes**: Auto-opening panes contributed by plugins.
+3. **ByteVM Bindings**: Exposing C++ functions to the Python VM.
+4. **Execution Dispatch**: Custom "Run" behavior for special document types.
 
-### Key Takeaways
+#### Core Components:
+- **PluginManager**: Manages lifecycle (Enable/Disable).
+- **PluginRegistry**: Central store for extension points.
+- **DocumentHost**: Abstraction layer for editor area contents.
 
-✅ Use `DockWindow` as base class
-✅ Left file tree in `DockableCtrl`
-✅ Main area uses `Splitter` (not docking)
-✅ Right panels in fixed `Splitter` (not dockable yet)
-✅ SerializeWindow() to ConfigFile for persistence
-✅ Add `Docking` to package dependencies
+---
 
-This matches the reference examples perfectly!
+### Corrected Build Dependencies

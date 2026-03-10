@@ -28,6 +28,15 @@ file
 	FindInFilesPane.cpp,
 	OutlinePane.h,
 	OutlinePane.cpp,
+	HelpPane.h,
+	HelpPane.cpp,
+	PluginInterfaces.h,
+	PluginManager.h,
+	PluginManager.cpp,
+	HistoryPane.h,
+	HistoryPane.cpp,
+	GameStatePlugin.h,
+	GameStatePlugin.cpp,
 	RunManager.h,
 	RunManager.cpp,
 	Linter.h,
@@ -52,4 +61,3 @@ file
 
 mainconfig
 	"" = "GUI";
-

@@ -4,5 +4,6 @@ uses
 	Core;
 
 file
-	FastSearch.h;
+	FastSearch.h,
+	Algo.cpp;
 

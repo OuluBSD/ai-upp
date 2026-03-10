@@ -2,78 +2,48 @@
 
 namespace Upp {
 
-void PlotsPane::ImageDisplay::Paint(Draw& w)
-{
-	Size sz = GetSize();
-	w.DrawRect(sz, SColorFace());
-	if(img.IsEmpty()) return;
-	
-	Size isz = img.GetSize();
-	
-	double ratio = min((double)sz.cx / isz.cx, (double)sz.cy / isz.cy) * zoom;
-	Size rsz = Size((int)(isz.cx * ratio), (int)(isz.cy * ratio));
-	
-	Point p = Point((sz.cx - rsz.cx) / 2, (sz.cy - rsz.cy) / 2);
-	
-	w.DrawImage(p.x, p.y, rsz.cx, rsz.cy, img);
-}
-
 PlotsPane::PlotsPane()
 {
 	Title("Plots");
+	Icon(CtrlImg::plus());
+	
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(display.VSizePos(24, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
-	
-	WhenZoom = [=](double z) {
-		display.zoom *= z;
-		display.Refresh();
-	};
 }
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(current_index >= 0, CtrlImg::save(), [=] { SaveSelected(); }).Help("Save plot as...");
-	bar.Add(plots.GetCount() > 0, CtrlImg::save(), WhenSaveAll).Help("Save all plots...");
-	bar.Add(current_index >= 0, CtrlImg::copy(), [=] { CopySelected(); }).Help("Copy to clipboard");
-	bar.Add(current_index >= 0, CtrlImg::remove(), [=] { RemoveSelected(); }).Help("Remove plot");
-	bar.Add(plots.GetCount() > 0, CtrlImg::remove(), [=] { Clear(); }).Help("Remove all plots");
+	bar.Add("Save plot as...", CtrlImg::save_as(), [=] { SaveSelected(); }).Help("Save plot as...");
+	bar.Add("Save all plots...", CtrlImg::save_as(), [=] { SaveAll(); }).Help("Save all plots...");
+	bar.Add("Copy plot to clipboard as image", CtrlImg::copy(), [=] { CopySelected(); }).Help("Copy to clipboard");
+	bar.Add("Remove plot", CtrlImg::remove(), [=] { RemoveSelected(); }).Help("Remove current plot");
+	bar.Add("Remove all plots", CtrlImg::remove(), [=] { Clear(); }).Help("Remove all plots");
 	bar.Separator();
-	bar.Add("Zoom", [=] {});
-	bar.Add(CtrlImg::plus(), [=] { WhenZoom(1.2); }).Help("Zoom in");
-	bar.Add(CtrlImg::remove(), [=] { WhenZoom(0.8); }).Help("Zoom out");
-	bar.Add("Fit", [=] { display.zoom = 1.0; display.Refresh(); }).Help("Fit plot to pane");
-	bar.Separator();
+	bar.Add("Zoom percent", [=] { Todo("Zoom dropdown"); });
+	bar.Add("Zoom out", [=] { display.zoom /= 1.1; display.Refresh(); }).Help("Zoom out");
+	bar.Add("Zoom in", [=] { display.zoom *= 1.1; display.Refresh(); }).Help("Zoom in");
+	bar.Add("Fit plot to pane size", [=] { display.zoom = 1.0; display.Refresh(); }).Help("Fit to pane");
 	bar.Gap(2000);
-	bar.Add(plots.GetCount() > 1, CtrlImg::left_arrow(), [=] { PrevPlot(); }).Help("Previous plot");
-	bar.Add(plots.GetCount() > 1, CtrlImg::right_arrow(), [=] { NextPlot(); }).Help("Next plot");
+	bar.Add(CtrlImg::left_arrow(), [=] { PrevPlot(); }).Help("Previous plot");
+	bar.Add(CtrlImg::right_arrow(), [=] { NextPlot(); }).Help("Next plot");
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void PlotsPane::LayoutPaneMenu(Bar& bar)
 {
-	bar.Add("Mute inline plotting", [=] {}).Check(false);
-	bar.Add("Show plot outline", [=] {}).Check(false);
-	bar.Add("Set maximum number of plots...", [=] {});
-}
-
-void PlotsPane::SaveAll() { PromptOK("Todo: Save all plots"); }
-
-void PlotsPane::RemoveSelected()
-{
-	if(current_index >= 0 && current_index < plots.GetCount()) {
-		plots.Remove(current_index);
-		if(current_index >= plots.GetCount())
-			current_index = plots.GetCount() - 1;
-		UpdateDisplay();
-	}
+	bar.Add("Mute inline plotting", [=] { Todo("Mute plots"); }).Check(false);
+	bar.Add("Show plot outline", [=] { Todo("Plot outline"); }).Check(false);
+	bar.Add("Set maximum number of plots...", [=] { Todo("Max plots"); });
+	bar.Separator();
+	bar.Add("Move", [=] { Todo("Move pane"); });
+	bar.Add("Undock", [=] { Todo("Undock pane"); });
+	bar.Add("Close", [=] { Todo("Close pane"); });
 }
 
 void PlotsPane::AddPlot(const Image& img)
 {
-	if(img.IsEmpty()) return;
-	
 	plots.Add(img);
 	current_index = plots.GetCount() - 1;
 	UpdateDisplay();
@@ -88,13 +58,10 @@ void PlotsPane::Clear()
 
 void PlotsPane::UpdateDisplay()
 {
-	if(current_index >= 0 && current_index < plots.GetCount()) {
+	if(current_index >= 0 && current_index < plots.GetCount())
 		display.SetImage(plots[current_index]);
-	}
-	else {
+	else
 		display.SetImage(Image());
-	}
-	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 }
 
 void PlotsPane::PrevPlot()
@@ -113,22 +80,28 @@ void PlotsPane::NextPlot()
 	}
 }
 
-void PlotsPane::SaveSelected()
+void PlotsPane::SaveSelected() { Todo("Save plot"); }
+void PlotsPane::SaveAll() { Todo("Save all plots"); }
+void PlotsPane::CopySelected() { if(current_index >= 0) WriteClipboardImage(plots[current_index]); }
+void PlotsPane::RemoveSelected()
 {
-	if(current_index < 0) return;
-	
-	FileSel fs;
-	fs.Type("PNG Image", "*.png");
-	fs.DefaultExt("png");
-	if(fs.ExecuteSaveAs("Save Plot As")) {
-		PNGEncoder().SaveFile(fs.Get(), plots[current_index]);
+	if(current_index >= 0) {
+		plots.Remove(current_index);
+		if(current_index >= plots.GetCount()) current_index = plots.GetCount() - 1;
+		UpdateDisplay();
 	}
 }
 
-void PlotsPane::CopySelected()
+void PlotsPane::ImageDisplay::Paint(Draw& w)
 {
-	if(current_index < 0) return;
-	WriteClipboardImage(plots[current_index]);
+	Size sz = GetSize();
+	w.DrawRect(sz, SColorPaper());
+	if(!img.IsEmpty()) {
+		Size isz = img.GetSize();
+		isz.cx = (int)(isz.cx * zoom);
+		isz.cy = (int)(isz.cy * zoom);
+		w.DrawImage((sz.cx - isz.cx) / 2, (sz.cy - isz.cy) / 2, isz.cx, isz.cy, img);
+	}
 }
 
 }

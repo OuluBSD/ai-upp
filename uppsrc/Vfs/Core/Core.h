@@ -2,9 +2,10 @@
 #define _Vfs_Core_Core_h_
 
 #include <Core/Core.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 #include <Core/TextParsing/TextParsing.h>
-#include <Vfs/Factory/Factory.h>
+#include <Core/EcsFoundation/EcsFoundation.h>
+#include <Core/ProcessUtil/ProcessUtil.h>
 
 NAMESPACE_UPP
 
@@ -15,6 +16,8 @@ NAMESPACE_UPP
 #include "VfsValueExt.h"
 #include "VfsValue.h"
 #include "VfsEnum.h"
+#include "VfsFactory.h"
+#include "Factory.h"
 
 END_UPP_NAMESPACE
 

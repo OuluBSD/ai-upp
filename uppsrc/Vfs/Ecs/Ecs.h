@@ -2,7 +2,6 @@
 #define _Vfs_Ecs_Ecs_h_
 
 #include <Vfs/Core/Core.h>
-#include <Vfs/Factory/VfsFactory.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
 #include <Core/EcsDataflow/EcsDataflow.h>
 #include <Core/Cuboid/Cuboid.h>

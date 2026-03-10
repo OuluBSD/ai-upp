@@ -68,10 +68,10 @@ def on_click(card_id):
             state.select_pass(0, list(selected_cards))
             selected_cards.clear()
             
-            # Auto-pass for AI (random 3 for now, logic later)
-            import random
+            # Use intelligent passing for AI
+            from hearts.ai import choose_pass_cards
             for i in range(1, 4):
-                state.select_pass(i, random.sample(state.players[i], 3))
+                state.select_pass(i, choose_pass_cards(state.players[i]))
             
             refresh_ui()
             process_ai_turns()

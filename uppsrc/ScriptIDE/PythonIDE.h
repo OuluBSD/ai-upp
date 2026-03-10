@@ -21,6 +21,14 @@ public:
 	Array<FileInfo> open_files;
 	int             active_file = -1;
 	Ptr<Ctrl>       active_editor;
+	String          last_run_path;
+
+	struct CursorPos : Moveable<CursorPos> {
+		String path;
+		int    pos;
+	};
+	Vector<CursorPos> cursor_history;
+	int               cursor_history_idx = -1;
 
 	MenuBar         menubar;
 	ToolBar         toolbar;
@@ -49,6 +57,9 @@ public:
 	DockableCtrl    context_pane_left;
 	DockableCtrl    context_pane_right;
 
+	Ptr<DockableCtrl> active_pane;
+	String default_layout;
+
 	One<PluginManager> plugin_manager;
 	ArrayMap<String, One<DockableCtrl>> plugin_panes;
 
@@ -62,7 +73,7 @@ public:
 	void OnSaveFile();
 	void OnSaveFileAs();
 	void OnSaveAll();
-	void SaveFile(int idx);
+	bool SaveFile(int idx);
 	bool ConfirmSave(int idx);
 	bool ConfirmSaveAll();
 	
@@ -71,6 +82,7 @@ public:
 	void OnTabChanged();
 	void OnTabMenu(Bar& bar);
 	void SyncTabsWithFiles();
+	FileInfo* GetActiveFile();
 	
 	void OnUndo();
 	void OnRedo();

@@ -203,14 +203,6 @@ void CardGameDocumentHost::Paint(Draw& w)
 	Size sz = GetSize();
 	w.DrawRect(sz, background_color);
 	
-	// Optional: Draw zone outlines for debugging
-	/*
-	for(int i = 0; i < zones.GetCount(); i++) {
-		Rect r = GetAbsoluteRect(zones[i].rect, zones[i].anchor, sz);
-		w.DrawRectOutline(r, SRed);
-	}
-	*/
-	
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const Sprite& s = sprites[i];
 		if(!s.img.IsEmpty())
@@ -238,6 +230,15 @@ void CardGameDocumentHost::LeftDown(Point p, dword flags)
 CardGameLayoutEditor::CardGameLayoutEditor()
 {
 	Construct(true);
+	embedded = true;
+	
+	// Customize Toolbox
+	_TypeList.Clear();
+	_TypeList.Add("ZONE");
+	_TypeList.Add("CARD_SLOT");
+	_TypeList.Add("LABEL");
+	_TypeList.Add("CONTAINER");
+	_TypeList.Add("SPRITE");
 }
 
 CardGameLayoutEditor::~CardGameLayoutEditor()
@@ -247,12 +248,108 @@ CardGameLayoutEditor::~CardGameLayoutEditor()
 bool CardGameLayoutEditor::Load(const String& path_)
 {
 	path = path_;
+	_View.New();
+	
+	Value v = ParseJSON(LoadFile(path));
+	if(v.IsVoid()) return false;
+	
+	if(v.Is<ValueMap>()) {
+		_View.AddLayout(v["name"]);
+		_View.SelectLayout(0);
+		
+		Value vzones = v["zones"];
+		if(vzones.Is<ValueArray>()) {
+			for(int i = 0; i < vzones.GetCount(); i++) {
+				Value vz = vzones[i];
+				Rect r = RectC((int)vz["rect"]["x"], (int)vz["rect"]["y"], (int)vz["rect"]["w"], (int)vz["rect"]["h"]);
+				
+				_View.CreateObject(r.TopLeft(), "ZONE"); 
+				int last = _View.GetObjectCount() - 1;
+				FormObject& obj = (*_View.GetObjects())[last];
+				obj.SetRect(r);
+				obj.Set("Variable", vz["id"]);
+				obj.Set("Type", vz["type"]);
+				obj.Set("Anchor", vz["anchor"]);
+				
+				Value vchildren = vz["children"];
+				if(vchildren.Is<ValueArray>()) {
+					for(int j = 0; j < vchildren.GetCount(); j++) {
+						Value vc = vchildren[j];
+						Rect cr = RectC(r.left + (int)vc["rect"]["x"], r.top + (int)vc["rect"]["y"], (int)vc["rect"]["w"], (int)vc["rect"]["h"]);
+						_View.CreateObject(cr.TopLeft(), "ZONE");
+						int clast = _View.GetObjectCount() - 1;
+						FormObject& cobj = (*_View.GetObjects())[clast];
+						cobj.SetRect(cr);
+						cobj.Set("Variable", vc["id"]);
+						cobj.Set("Type", vc["type"]);
+						cobj.Set("Parent", vz["id"]);
+					}
+				}
+			}
+		}
+	}
+	
+	UpdateTools();
+	ProjectSaved(true);
 	return true; 
 }
 
 bool CardGameLayoutEditor::Save()
 {
-	return true;
+	ValueMap m;
+	if(_View.IsLayout()) {
+		m.Add("name", _View.GetCurrentLayout()->Get("Form.Name"));
+		
+		ValueMap bg;
+		bg.Add("r", 40); bg.Add("g", 160); bg.Add("b", 40);
+		m.Add("background_color", bg);
+		
+		ValueArray vzones;
+		Array<FormObject>* objs = _View.GetObjects();
+		if(objs) {
+			for(int i = 0; i < objs->GetCount(); i++) {
+				FormObject& obj = (*objs)[i];
+				if(!obj.Get("Parent").IsEmpty()) continue;
+				
+				ValueMap vz;
+				vz.Add("id", obj.Get("Variable"));
+				vz.Add("type", obj.Get("Type"));
+				vz.Add("anchor", obj.Get("Anchor", "TOP_LEFT"));
+				
+				Rect r = obj.GetRect();
+				ValueMap rect;
+				rect.Add("x", r.left); rect.Add("y", r.top); rect.Add("w", r.GetWidth()); rect.Add("h", r.GetHeight());
+				vz.Add("rect", rect);
+				
+				ValueArray children;
+				for(int j = 0; j < objs->GetCount(); j++) {
+					FormObject& cobj = (*objs)[j];
+					if(cobj.Get("Parent") == obj.Get("Variable")) {
+						ValueMap cvz;
+						cvz.Add("id", cobj.Get("Variable"));
+						cvz.Add("type", cobj.Get("Type", "ZONE"));
+						Rect cr = cobj.GetRect();
+						ValueMap crect;
+						crect.Add("x", cr.left - r.left); crect.Add("y", cr.top - r.top); crect.Add("w", cr.GetWidth()); crect.Add("h", cr.GetHeight());
+						cvz.Add("rect", crect);
+						children.Add(cvz);
+					}
+				}
+				if(children.GetCount() > 0)
+					vz.Add("children", children);
+					
+				vzones.Add(vz);
+			}
+		}
+		m.Add("zones", vzones);
+	}
+	
+	String json = AsJSON(Value(m), true);
+	if(::Upp::SaveFile(path, json)) {
+		ProjectSaved(true);
+		return true;
+	}
+	return false;
 }
 
 bool CardGameLayoutEditor::SaveAs(const String& path_)

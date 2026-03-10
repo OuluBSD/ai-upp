@@ -7,6 +7,8 @@ public:
 	FilesPane();
 
 	void SetRoot(const String& path);
+	String GetRoot() const { return root_path; }
+	void ShowHidden(bool b = true) { show_hidden = b; Refresh(); }
 	void Refresh();
 
 	Event<const String&> WhenOpen;
@@ -19,6 +21,7 @@ private:
 	ToolBar pane_toolbar;
 	TreeCtrl tree;
 	String root_path;
+	bool   show_hidden = false;
 
 	void Populate(int id);
 	void OnOpen();

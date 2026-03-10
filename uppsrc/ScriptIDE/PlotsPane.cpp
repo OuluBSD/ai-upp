@@ -80,8 +80,28 @@ void PlotsPane::NextPlot()
 	}
 }
 
-void PlotsPane::SaveSelected() { Todo("Save plot"); }
-void PlotsPane::SaveAll() { Todo("Save all plots"); }
+void PlotsPane::SaveSelected()
+{
+	if(current_index < 0) return;
+	FileSel fs;
+	fs.Type("PNG image", "*.png");
+	if(fs.ExecuteSaveAs("Save Plot")) {
+		PNGEncoder().SaveFile(fs.Get(), plots[current_index]);
+	}
+}
+
+void PlotsPane::SaveAll()
+{
+	if(plots.IsEmpty()) return;
+	FileSel fs;
+	if(fs.ExecuteSelectDir("Select Directory to Save Plots")) {
+		String dir = fs.Get();
+		for(int i = 0; i < plots.GetCount(); i++) {
+			PNGEncoder().SaveFile(AppendFileName(dir, "plot_" + AsString(i) + ".png"), plots[i]);
+		}
+	}
+}
+
 void PlotsPane::CopySelected() { if(current_index >= 0) WriteClipboardImage(plots[current_index]); }
 void PlotsPane::RemoveSelected()
 {

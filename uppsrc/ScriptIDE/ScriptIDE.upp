@@ -6,7 +6,8 @@ uses
 	TabBar,
 	ByteVM,
 	RichEdit,
-	Docking;
+	Docking,
+	FormEditor;
 
 file
 	AGENTS.md,

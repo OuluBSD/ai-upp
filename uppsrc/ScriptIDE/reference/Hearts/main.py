@@ -10,19 +10,25 @@ def start():
     refresh_ui()
 
 def refresh_ui():
-    # Show human cards (player 0)
-    hearts_view.clear_sprites()
+    # Human hand is handled by the zone 'hand_self'
+    # For now, we manually offset within that zone.
     
+    # We clear and redraw for simplicity in this prototype.
+    hearts_view.clear_sprites() 
+    
+    # Refresh human hand sprites
     x = 50
     for card in state.players[0]:
         hearts_view.set_card(card.id, asset_base + card.id + ".png", x, 450)
         x += 30
     
-    # Show trick area
-    tx = 300
+    # Trick area zones: trick_left, trick_top, trick_right, trick_bottom
+    # Player 0 is bottom, 1 is left, 2 is top, 3 is right
+    trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]
+    
     for p_idx, card in state.trick:
-        hearts_view.set_card(f"trick_{p_idx}", asset_base + card.id + ".png", tx, 200)
-        tx += 80
+        # Move card to the center of its assigned zone
+        hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
 
 def on_click(card_id):
     print(f"Clicked card: {card_id}")
@@ -47,6 +53,7 @@ def process_ai_turns():
         
         print(f"AI Player {p_idx} plays {card.id}")
         state.play_card(p_idx, card)
+        # Refresh UI will trigger the move_card to the correct zone
         refresh_ui()
 
 if __name__ == "__main__":

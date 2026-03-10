@@ -1,12 +1,27 @@
 {
-  "name": "Classic Hearts Table",
+  "name": "KDE-Fidelity Hearts Table",
   "background_color": {"r": 40, "g": 160, "b": 40},
   "zones": [
     {
       "id": "trick_area",
-      "type": "TRICK",
-      "rect": {"x": 200, "y": 150, "w": 200, "h": 200},
-      "anchor": "CENTER"
-    }
+      "type": "CONTAINER",
+      "rect": {"x": 0, "y": 0, "w": 246, "h": 207},
+      "anchor": "CENTER",
+      "children": [
+        {"id": "trick_left",  "rect": {"x": 0, "y": 60, "w": 72, "h": 96}},
+        {"id": "trick_top",   "rect": {"x": 87, "y": 0, "w": 72, "h": 96}},
+        {"id": "trick_right", "rect": {"x": 174, "y": 60, "w": 72, "h": 96}},
+        {"id": "trick_bottom","rect": {"x": 87, "y": 111, "w": 72, "h": 96}}
+      ]
+    },
+    {
+      "id": "hand_self",
+      "type": "HAND",
+      "rect": {"x": 0, "y": 10, "w": 552, "h": 96},
+      "anchor": "BOTTOM_CENTER"
+    },
+    { "id": "label_left",  "type": "LABEL", "rect": {"x": 10, "y": 0, "w": 60, "h": 20}, "anchor": "CENTER_LEFT" },
+    { "id": "label_right", "type": "LABEL", "rect": {"x": 10, "y": 0, "w": 60, "h": 20}, "anchor": "CENTER_RIGHT" },
+    { "id": "label_top",   "type": "LABEL", "rect": {"x": 0, "y": 25, "w": 60, "h": 20}, "anchor": "TOP_CENTER" }
   ]
 }

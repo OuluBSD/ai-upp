@@ -3,7 +3,7 @@
 
 #include <Core/Core.h>
 #include <Core/EcsFoundation/EcsFoundation.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 
 NAMESPACE_UPP
 

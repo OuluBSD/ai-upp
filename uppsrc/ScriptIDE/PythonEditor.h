@@ -4,6 +4,13 @@
 class PythonEditor : public CodeEditor {
 public:
 	void ToggleComments() { ToggleLineComments(false); }
+	void ToggleBlockComments() { ToggleStarComments(); }
+	
+	void DoSelectAll() { SelectAll(); }
+	void DoFind(bool replace, bool word) { Find(replace, word); }
+	void DoFindNext() { FindNext(); }
+	void DoFindPrev() { FindPrev(); }
+	void DoReplace() { Replace(); }
 };
 
 #endif

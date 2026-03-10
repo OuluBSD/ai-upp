@@ -6,6 +6,7 @@ uses
 file
 	AGENTS.md,
 	MetaTraits.h,
+	MetaTraits.cpp,
 	TypeTraits.h,
 	TypeTraits2.h,
 	RTuple.h,

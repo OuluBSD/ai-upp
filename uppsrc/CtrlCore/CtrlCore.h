@@ -5,7 +5,7 @@
 	#error CtrlCore should not be included without GUI flag
 #endif
 
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 #include <RichText/RichText.h>
 #include <Painter/Painter.h>
 

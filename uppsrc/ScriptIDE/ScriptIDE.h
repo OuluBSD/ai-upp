@@ -8,32 +8,27 @@
 #include <RichEdit/RichEdit.h>
 #include <Docking/Docking.h>
 
-namespace Upp {
-
-#include "IDESettings.h"
-
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
 
+NAMESPACE_UPP
+
+	inline void Todo(const String& msg) { PromptOK("Feature not yet implemented: " + msg); }
+	inline void Todo() { Todo(""); }
+
+	template <class T>
+	class WithDockable : public DockableCtrl {
+	public:
+		T ctrl;
+		WithDockable() { Add(ctrl.SizePos()); }
+		T* operator->() { return &ctrl; }
+		operator T&() { return ctrl; }
+	};
+
+#include "IDESettings.h"
 #include "PreferencesPage.h"
 #include "PreferencesWindow.h"
 #include "PythonEditor.h"
-
-template <class T>
-class WithDockable : public DockableCtrl {
-public:
-	T ctrl;
-	WithDockable() { Add(ctrl.SizePos()); }
-	T* operator->() { return &ctrl; }
-	operator T&() { return ctrl; }
-};
-
-/*
-#define IMAGECLASS ScriptIDEImg
-#define IMAGEFILE  <ScriptIDE/ScriptIDE.iml>
-#include <Draw/iml_header.h>
-*/
-
 #include "Settings.h"
 #include "VariableExplorer.h"
 #include "PlotsPane.h"
@@ -41,15 +36,20 @@ public:
 #include "ProfilerPane.h"
 #include "FindInFilesPane.h"
 #include "OutlinePane.h"
+#include "HelpPane.h"
+#include "HistoryPane.h"
+#include "CustomFileTabs.h"
+#include "PythonConsole.h"
+#include "FilesPane.h"
 #include "RunManager.h"
 #include "Linter.h"
 #include "PathManager.h"
 #include "PathManagerDlg.h"
-#include "PythonConsole.h"
-#include "FilesPane.h"
-#include "CustomFileTabs.h"
+#include "PluginInterfaces.h"
 #include "PythonIDE.h"
+#include "PluginManager.h"
+#include "GameStatePlugin.h"
 
-}
+END_UPP_NAMESPACE
 
 #endif

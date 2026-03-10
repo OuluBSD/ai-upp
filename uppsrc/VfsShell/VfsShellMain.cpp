@@ -1,7 +1,7 @@
 #include "VfsShell.h"
 #include <Qwen/CmdQwen.h>
 #include <Core/Core.h>
-#include <Core/VfsBase/VfsBase.h>  // For VFS mounting functionality
+#include <Vfs/Core/VfsBase.h>  // For VFS mounting functionality
 #include <ide/CommandLineHandler.h>
 #include <iostream>
 #include <termios.h> // For terminal manipulation

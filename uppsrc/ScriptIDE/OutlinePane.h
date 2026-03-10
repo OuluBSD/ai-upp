@@ -11,7 +11,11 @@ public:
 	
 	Event<int> WhenSelectLine;
 
+	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
+
 private:
+	ToolBar toolbar;
 	TreeCtrl tree;
 	
 	void OnSelect();

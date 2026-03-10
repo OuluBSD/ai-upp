@@ -22,9 +22,10 @@ struct ApplicationSettings {
 
     bool show_friendly_empty_messages = true;
     bool vertical_tabs_in_panes = false;
-    int pane_margin = 0;
+    bool custom_margin = false;
+    int  pane_margin = 0;
     bool custom_cursor_blink = false;
-    int cursor_blink_ms = 1000;
+    int  cursor_blink_ms = 1000;
 
     String language = "English";
     String rendering_engine = "Default";
@@ -37,7 +38,7 @@ struct ApplicationSettings {
 
     void Serialize(Stream& s) {
         s % hidpi_mode % custom_scale % show_friendly_empty_messages % vertical_tabs_in_panes
-          % pane_margin % custom_cursor_blink % cursor_blink_ms % language % rendering_engine
+          % custom_margin % pane_margin % custom_cursor_blink % cursor_blink_ms % language % rendering_engine
           % single_instance % prompt_on_exit % show_internal_errors % check_updates_on_startup
           % stable_releases_only % disable_ctrl_wheel_zoom;
     }
@@ -224,6 +225,7 @@ struct EditorSettings {
     bool show_code_annotations = true;
     bool show_spaces = false;
 
+    bool wrap_lines = true;
     bool highlight_current_line = true;
     bool highlight_current_cell = true;
     bool highlight_selected_occurrences = true;
@@ -353,8 +355,8 @@ struct IPythonConsoleSettings {
 
     String inline_format = "PNG";
     double inline_resolution_dpi = 144.0;
-    int inline_width_in = 6;
-    int inline_height_in = 4;
+    double inline_width_in = 6.0;
+    double inline_height_in = 4.0;
     double inline_font_points = 10.0;
     double inline_bottom_edge = 0.11;
     bool inline_tight_layout = true;
@@ -397,6 +399,7 @@ struct RunPreset : Moveable<RunPreset> {
 
 struct RunSettings {
     Vector<RunPreset> presets;
+    String selected_runner = "Internal";
     bool save_all_before_run = true;
     bool copy_full_cell_to_console = false;
 
@@ -404,12 +407,13 @@ struct RunSettings {
     RunSettings(const RunSettings& b) { *this = b; }
     RunSettings& operator=(const RunSettings& b) {
         presets <<= b.presets;
+        selected_runner = b.selected_runner;
         save_all_before_run = b.save_all_before_run;
         copy_full_cell_to_console = b.copy_full_cell_to_console;
         return *this;
     }
 
-    void Serialize(Stream& s) { s % presets % save_all_before_run % copy_full_cell_to_console; }
+    void Serialize(Stream& s) { s % presets % selected_runner % save_all_before_run % copy_full_cell_to_console; }
 };
 
 struct StatusBarSettings {

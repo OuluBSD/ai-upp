@@ -6,10 +6,13 @@ public:
 	typedef ProfilerPane CLASSNAME;
 	ProfilerPane();
 
-	void SetData(const VectorMap<String, Value>& data); // Placeholder for actual profile data
+	void LayoutToolbar(Bar& bar);
+	void LayoutPaneMenu(Bar& bar);
+	void SetData(const VectorMap<String, Value>& data);
 	void Clear();
 
 private:
+	ToolBar toolbar;
 	ArrayCtrl list;
 };
 

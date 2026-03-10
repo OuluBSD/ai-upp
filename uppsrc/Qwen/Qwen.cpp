@@ -8,8 +8,8 @@
 #ifdef flagMAIN
 
 #include <Core/Core.h>
-#include <Core/VfsBase/VfsBase.h>
-#include <Core/VfsBase/Mount.h>
+#include <Vfs/Core/VfsBase.h>
+#include <Vfs/Core/Mount.h>
 
 using namespace Upp;
 

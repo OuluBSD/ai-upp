@@ -4,7 +4,7 @@ namespace Upp {
 
 FindInFilesPane::FindInFilesPane()
 {
-	Title("Find in Files");
+	Title("Find");
 	Icon(CtrlImg::plus());
 	
 	Add(toolbar.TopPos(0, 24).HSizePos());
@@ -12,65 +12,57 @@ FindInFilesPane::FindInFilesPane()
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
-	results.AddIndex("PATH");
 	results.AddColumn("File", 30).Sorting();
 	results.AddColumn("Line", 10).Sorting();
 	results.AddColumn("Text", 60).Sorting();
-	results.AllSorting();
-	results.EvenRowColor();
-	results.SetLineCy(20);
 	
 	results.WhenLeftDouble = [=] { OnResultOpen(); };
 }
 
 void FindInFilesPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(search_pattern); // Standard Add
-	bar.Add(search_btn.SetLabel("Search"));
+	search_pattern.SetRect(0, 0, 200, 20);
+	bar.Add(search_pattern);
+	bar.Add("Search", CtrlImg::plus(), [=] { OnSearch(); }).Help("Search");
+	bar.Add(regex_toggle);
+	bar.Add(case_toggle);
+	bar.Add("Advanced search", [=] { Todo("Advanced search"); }).Help("Advanced search toggle");
 	bar.Separator();
-	bar.Add(regex_toggle.SetLabel("Regex"));
-	bar.Add(case_toggle.SetLabel("Case"));
-	bar.Gap(2000);
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void FindInFilesPane::LayoutPaneMenu(Bar& bar)
 {
-	bar.Add("Set maximum number of results...", [=] {});
+	bar.Add("Set maximum number of results...", [=] { Todo("Max results"); });
+	bar.Separator();
+	bar.Add("Move", [=] { Todo("Move pane"); });
+	bar.Add("Undock", [=] { Todo("Undock pane"); });
+	bar.Add("Close", [=] { Todo("Close pane"); });
 }
 
 void FindInFilesPane::OnSearch()
 {
-	String pattern = search_pattern.GetData();
-	if(pattern.IsEmpty() || root_path.IsEmpty()) return;
+	String pattern = ~search_pattern;
+	if(pattern.IsEmpty()) return;
 	
 	results.Clear();
+	if(root_path.IsEmpty()) return;
 	
+	// Very simple recursive search
 	Vector<String> files;
-	auto Scan = [&](const String& dir, auto& self) -> void {
-		FindFile ff(AppendFileName(dir, "*"));
-		while(ff) {
-			if(ff.IsFile()) {
-				if(GetFileExt(ff.GetName()) == ".py")
-					files.Add(ff.GetPath());
-			}
-			else if(ff.IsFolder()) {
-				if(ff.GetName() != "." && ff.GetName() != "..")
-					self(ff.GetPath(), self);
-			}
-			ff.Next();
-		}
-	};
+	FindFile ff(AppendFileName(root_path, "*"));
+	while(ff) {
+		if(ff.IsFile() && GetFileExt(ff.GetName()) == ".py")
+			files.Add(ff.GetPath());
+		ff.Next();
+	}
 	
-	Scan(root_path, Scan);
-	
-	for(const String& path : files) {
-		String content = ::Upp::LoadFile(path);
+	for(const String& f : files) {
+		String content = LoadFile(f);
 		Vector<String> lines = Split(content, '\n', false);
 		for(int i = 0; i < lines.GetCount(); i++) {
-			int q = lines[i].Find(pattern);
-			if(q >= 0) {
-				results.Add(path, GetFileName(path), i + 1, TrimBoth(lines[i]));
+			if(lines[i].Find(pattern) >= 0) {
+				results.Add(GetFileName(f), i + 1, TrimBoth(lines[i]), f);
 			}
 		}
 	}
@@ -78,10 +70,11 @@ void FindInFilesPane::OnSearch()
 
 void FindInFilesPane::OnResultOpen()
 {
-	if(!results.IsCursor()) return;
-	String path = results.Get(results.GetCursor(), "PATH");
-	int line = results.Get(results.GetCursor(), "Line");
-	WhenOpenMatch(path, line);
+	if(results.IsCursor()) {
+		String path = results.Get(results.GetCursor(), 3);
+		int line = results.Get(results.GetCursor(), 1);
+		WhenOpenMatch(path, line);
+	}
 }
 
 }

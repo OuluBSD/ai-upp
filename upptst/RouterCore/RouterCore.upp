@@ -3,7 +3,7 @@ description "PacketRouter unit tests\377B85,42,0";
 uses
 	Core,
 	Core/EcsFoundation,
-	Core/VfsBase,
+	Vfs/Core,
 	Core/MathNumeric;
 
 file

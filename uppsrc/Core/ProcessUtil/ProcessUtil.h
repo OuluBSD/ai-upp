@@ -4,7 +4,7 @@
 #include <chrono>
 #include <Core/Core.h>
 #include <Core/MetaTraits/MetaTraits.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 
 NAMESPACE_UPP
 

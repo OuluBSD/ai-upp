@@ -183,26 +183,34 @@ All settings serialized via `PythonIDESettings`:
 ## Timeline Estimate
 
 - **Track 1 (Foundation)**: 2-3 days
-  - ByteVM debugging: 1-2 days (critical)
-  - Package setup: 0.5 days
-
 - **Track 2 (GUI)**: 2-3 days
-  - Layout: 1 day
-  - Custom tabs: 1 day
-  - Panels: 1 day
-
 - **Track 3 (Python)**: 2-3 days
-  - Console: 1 day
-  - Execution: 1 day
-  - Debug integration: 1 day
-
 - **Track 4 (Features)**: 2-3 days
-  - Variable explorer: 1 day
-  - File tree: 1 day
-  - Settings: 0.5 days
-  - Help: 0.5 days
+- **Track 8 (Plugin System)**: 2 days (COMPLETED)
+  - Modular architecture for custom file types and panes
+  - Reference implementation (GameStatePlugin)
 
-**Total: ~8-12 days** for full implementation
+**Total: ~10-14 days** for full implementation
+
+## Plugin System (Track 08)
+
+### Architecture
+The Plugin System allows extending ScriptIDE without modifying the core. It uses a registry-based approach:
+- **IPlugin**: Base interface for all plugins.
+- **IPluginContext**: Provides plugins with access to the IDE and VM.
+- **IPluginRegistry**: Allows plugins to register handlers for file types, dock panes, and VM bindings.
+
+### Capabilities
+1. **Custom Document Hosts**: Plugins can handle new file extensions (e.g., `.gamestate`) by providing a custom `Ctrl` that implements `IDocumentHost`.
+2. **Dockable Panes**: Plugins can register new panes that integrate with the U++ `Docking` system and appear in the `Window` menu.
+3. **VM Bindings**: Plugins can inject C++ functions into the ByteVM globals (e.g., `get_game_score()`).
+4. **Custom Execution**: Plugins can intercept the "Run" command for specific files.
+
+### Implementation Details
+- **PluginManager**: Manages the lifecycle (`Init`, `Shutdown`) and discovery of plugins.
+- **Discovery**: Uses a static registration macro `REGISTER_PLUGIN(T)`.
+- **UI Integration**: `PythonIDE` was refactored to host arbitrary `Ctrl`s using `FileInfo`.
+- **Preferences**: A dedicated "Plugins" page in the Settings dialog allows enabling/disabling plugins at runtime.
 
 ## Risk Factors
 

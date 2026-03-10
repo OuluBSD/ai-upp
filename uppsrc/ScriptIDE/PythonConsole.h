@@ -20,7 +20,7 @@ public:
 
 private:
 	ToolBar toolbar;
-    LineEdit output;
+    CodeEditor output;
     EditField input;
     String last_input;
     Vector<String> history;

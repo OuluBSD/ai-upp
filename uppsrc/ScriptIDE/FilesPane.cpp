@@ -20,32 +20,36 @@ FilesPane::FilesPane()
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
-	bar.Add(CtrlImg::plus(), WhenPathManager).Help("PYTHONPATH manager");
-	bar.Add("Path", [=] { /* TODO: Path dropdown */ }).Help("Active directory");
-	bar.Add(CtrlImg::open(), WhenBrowse).Help("Browse directory");
-	bar.Add(CtrlImg::undo(), WhenParent).Help("Parent directory");
+	bar.Add(CtrlImg::plus(), [=] { Todo("PYTHONPATH manager"); }).Help("PYTHONPATH manager button");
+	bar.Add("Active directory", [=] { Todo("Active directory dropdown / path field"); }).Help("Active directory dropdown / path field");
+	bar.Add(CtrlImg::open(), [=] { Todo("Browse directory"); }).Help("Browse directory");
+	bar.Add(CtrlImg::undo(), [=] { Todo("Parent directory"); }).Help("Parent directory");
 }
 
 void FilesPane::LayoutPaneToolbar(Bar& bar)
 {
-	bar.Add(CtrlImg::left_arrow(), [=] { /* TODO */ }).Help("Previous");
-	bar.Add(CtrlImg::right_arrow(), [=] { /* TODO */ }).Help("Next");
-	bar.Add(CtrlImg::undo(), WhenParent).Help("Parent");
+	bar.Add(CtrlImg::left_arrow(), [=] { Todo("Previous"); }).Help("Previous");
+	bar.Add(CtrlImg::right_arrow(), [=] { Todo("Next"); }).Help("Next");
+	bar.Add(CtrlImg::undo(), [=] { Todo("Parent"); }).Help("Parent");
 	bar.Gap(2000); // Align right
-	bar.Add("Filter", [=] { /* TODO */ });
-	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add("Filter", [=] { Todo("Filter filenames"); }).Help("Filter filenames");
+	bar.Sub("Pane menu", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void FilesPane::LayoutPaneMenu(Bar& bar)
 {
-	bar.Add("Show hidden files", [=] {}).Check(false);
-	bar.Add("Edit filter settings...", [=] {});
+	bar.Add("Show hidden files", [=] { Todo("Show hidden files"); }).Check(false);
+	bar.Add("Edit filter settings...", [=] { Todo("Edit filter settings..."); });
 	bar.Separator();
-	bar.Add("Size", [=] {});
-	bar.Add("Type", [=] {});
-	bar.Add("Date modified", [=] {}).Check(true);
+	bar.Add("Size", [=] { Todo("Size"); });
+	bar.Add("Type", [=] { Todo("Type"); });
+	bar.Add("Date modified", [=] { Todo("Date modified"); }).Check(true);
 	bar.Separator();
-	bar.Add("Single click to open", [=] {}).Check(false);
+	bar.Add("Single click to open", [=] { Todo("Single click to open"); }).Check(false);
+	bar.Separator();
+	bar.Add("Move", [=] { Todo("Move"); });
+	bar.Add("Undock", [=] { Todo("Undock"); });
+	bar.Add("Close", [=] { Todo("Close"); });
 }
 
 void FilesPane::SetRoot(const String& path)

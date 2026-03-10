@@ -1,7 +1,7 @@
 #ifndef _Qwen_VfsWrapper_h_
 #define _Qwen_VfsWrapper_h_
 
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 #include <string>
 #include <optional>
 #include <vector>

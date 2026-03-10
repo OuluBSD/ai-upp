@@ -1,5 +1,5 @@
 #include "VfsShell.h"
-#include <Core/VfsBase/VfsBase.h>  // For basic VFS operations
+#include <Vfs/Core/VfsBase.h>  // For basic VFS operations
 #include <ide/CommandLineHandler.h>  // For IDE command handling
 #include <Qwen/CmdQwen.h>  // Include for Qwen command
 

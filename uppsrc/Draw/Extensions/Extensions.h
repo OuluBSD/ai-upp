@@ -3,7 +3,7 @@
 
 #include <Core/Core.h>
 #include <Core/MathNumeric/MathNumeric.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 #include <Core/ProcessUtil/ProcessUtil.h>
 #include <Draw/Draw.h>
 

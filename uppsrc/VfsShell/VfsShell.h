@@ -2,7 +2,7 @@
 #define _VfsShell_VfsShell_h_
 
 #include <Core/Core.h>
-#include <Core/VfsBase/VfsBase.h>  // Using Core/VfsBase instead of full Vfs package
+#include <Vfs/Core/VfsBase.h>  // Using Core/VfsBase instead of full Vfs package
 
 #include "ShellSyntax.h"  // Include the new shell syntax parser
 #include "NcursesEditor.h"

@@ -2,7 +2,7 @@ description "Maestro AI Engine Interface\377B";
 
 uses
 	Core,
-	Core/VfsBase,
+	Vfs/Core,
 	plugin/pcre,
 	ByteVM,
 	AI/Core/Base;

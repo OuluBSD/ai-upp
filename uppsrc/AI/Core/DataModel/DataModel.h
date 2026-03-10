@@ -3,7 +3,7 @@
 
 #include <AI/Core/Core/Core.h>
 #include <Vfs/Ecs/Ecs.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 
 #ifndef _Vfs_Ecs_Component_h_
 #error no _Vfs_Ecs_Component_h_

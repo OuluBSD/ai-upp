@@ -2,7 +2,7 @@
 #define _VfsShell_NcursesEditor_h_
 
 #include <Core/Core.h>
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 
 NAMESPACE_UPP
 

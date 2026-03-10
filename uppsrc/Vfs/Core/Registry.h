@@ -1,7 +1,6 @@
 #ifndef _Vfs_Core_Registry_h_
 #define _Vfs_Core_Registry_h_
 
-NAMESPACE_UPP
 
 // VfsValue tree registry - Windows Registry style service locator
 // Provides reliable path-based lookups for services, states, and resources
@@ -81,7 +80,5 @@ VfsRegistry* GetVfsRegistry(VfsValue& val);  // Search up tree to find Engine
 
 #define FIND_STATE(eng, name, type) \
 	GetVfsRegistry(eng)->Find<type>("STATES/" name)
-
-END_UPP_NAMESPACE
 
 #endif

@@ -8,7 +8,7 @@
 #include <map>
 
 // Include VFS definitions
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 // We define Vfs as an alias to VFS to match U++ conventions
 using Vfs = Upp::VFS;
 

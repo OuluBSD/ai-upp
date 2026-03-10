@@ -7,8 +7,8 @@
 #include <chrono>
 
 // Include VFS definitions
-#include <Core/VfsBase/VfsBase.h>
-#include <Core/VfsBase/Mount.h>
+#include <Vfs/Core/VfsBase.h>
+#include <Vfs/Core/Mount.h>
 #include "VfsWrapper.h"
 
 #include "QwenProtocol.h"

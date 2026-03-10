@@ -11,7 +11,7 @@
 #include <atomic>
 
 // Include VFS definitions
-#include <Core/VfsBase/VfsBase.h>
+#include <Vfs/Core/VfsBase.h>
 // Include TCP server definition
 #include "QwenTCPServer.h"
 // Define Vfs as an alias to VFS to match U++ conventions

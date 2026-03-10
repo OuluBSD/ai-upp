@@ -1,15 +1,13 @@
 # ScriptIDE Implementation Progress Tracker
-# Last Updated: 2026-03-09
+# Last Updated: 2026-03-10
 
 ## Current Task
-Track: 08-plugin-system
-Phase: phase6-reference-plugin
-Task: 01-create-reference-plugin.md
-Status: READY_TO_START
+Track: plugin-system
+Phase: phase1-reconnaissance
+Task: 01-audit-planning-conventions.md
+Status: IN_PROGRESS
 
 ## Implementation Order
-43. [DONE] 07-spyder-exact/phase1-menubar-stubs/01-implement-menubar-skeleton.md
-44. [DONE] 07-spyder-exact/phase2-preferences-system/01-implement-settings-model.md
 ...
 63. [DONE] 08-plugin-system/phase3-document-abstraction/01-abstract-document-host.md
 64. [DONE] 08-plugin-system/phase3-document-abstraction/02-implement-file-type-routing.md
@@ -17,8 +15,26 @@ Status: READY_TO_START
 66. [DONE] 08-plugin-system/phase4-vm-integration/02-implement-custom-execute-dispatch.md
 67. [DONE] 08-plugin-system/phase5-ui-integration/01-implement-plugin-docking.md
 68. [DONE] 08-plugin-system/phase5-ui-integration/02-implement-preferences-integration.md
-69. [READY_TO_START] 08-plugin-system/phase6-reference-plugin/01-create-reference-plugin.md
-70. [READY_TO_START] 08-plugin-system/phase7-finalization/99-plugin-system-audit.md
+69. [DONE] 08-plugin-system/phase6-reference-plugin/01-create-reference-plugin.md
+70. [DONE] 08-plugin-system/phase7-finalization/99-plugin-system-audit.md
+71. [READY_TO_START] plugin-system/phase1-reconnaissance/01-audit-planning-conventions.md
+72. [READY_TO_START] plugin-system/phase1-reconnaissance/02-kde-hearts-source-audit.md
+73. [READY_TO_START] plugin-system/phase2-architecture/01-plugin-lifecycle-manifest.md
+74. [READY_TO_START] plugin-system/phase2-architecture/02-plugin-enable-disable-impact.md
+75. [READY_TO_START] plugin-system/phase3-formats/01-gamestate-schema-design.md
+76. [READY_TO_START] plugin-system/phase3-formats/02-xlay-schema-design.md
+77. [READY_TO_START] plugin-system/phase3-formats/03-layout-runtime-integration.md
+78. [READY_TO_START] plugin-system/phase4-editor-hosting/01-non-codeeditor-document-host.md
+79. [READY_TO_START] plugin-system/phase4-editor-hosting/02-save-load-dirty-state.md
+80. [READY_TO_START] plugin-system/phase5-plugin-registration/01-custom-execute-dispatch.md
+81. [READY_TO_START] plugin-system/phase5-plugin-registration/02-dockable-pane-registration.md
+82. [READY_TO_START] plugin-system/phase6-vm-bridge/01-python-vm-binding-bridge.md
+83. [READY_TO_START] plugin-system/phase7-formeditor-adaptation/01-formeditor-adaptation-plan.md
+84. [READY_TO_START] plugin-system/phase8-hearts-migration/01-hearts-python-migration-plan.md
+85. [READY_TO_START] plugin-system/phase8-hearts-migration/02-migration-compatibility-risks.md
+86. [READY_TO_START] plugin-system/phase9-asset-pipeline/01-asset-import-conversion.md
+87. [READY_TO_START] plugin-system/phase10-reference-example/01-reference-example-plugin.md
+88. [READY_TO_START] plugin-system/phase11-testing-acceptance/01-testing-acceptance-plan.md
 
 ## Critical Constraints
 

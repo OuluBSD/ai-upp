@@ -27,6 +27,18 @@ plan/
     ├── phase2-file-management/
     ├── phase3-help-system/
     └── phase4-settings/
+└── plugin-system/                # Track: Plugin System and Hearts game
+    ├── phase1-reconnaissance/
+    ├── phase2-architecture/
+    ├── phase3-formats/
+    ├── phase4-editor-hosting/
+    ├── phase5-plugin-registration/
+    ├── phase6-vm-bridge/
+    ├── phase7-formeditor-adaptation/
+    ├── phase8-hearts-migration/
+    ├── phase9-asset-pipeline/
+    ├── phase10-reference-example/
+    └── phase11-testing-acceptance/
 ```
 
 ## Implementation Order

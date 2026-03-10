@@ -175,6 +175,15 @@ void CardGameDocumentHost::MoveSpriteToZone(const String& id, const String& zone
 	}
 }
 
+Rect CardGameDocumentHost::GetZoneRect(const String& id)
+{
+	int q = zones.Find(id);
+	if(q >= 0) {
+		return GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
+	}
+	return Rect(0,0,0,0);
+}
+
 void CardGameDocumentHost::Log(const String& msg)
 {
 	game_log.SetQTF(game_log.GetQTF() + "&" + msg);
@@ -573,6 +582,21 @@ static PyValue ClearSprites(const Vector<PyValue>& args, void* user_data)
 	return PyValue();
 }
 
+static PyValue GetZoneRect(const Vector<PyValue>& args, void* user_data)
+{
+	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
+	if(args.GetCount() >= 1 && view) {
+		Rect r = view->GetZoneRect(args[0].ToString());
+		PyValue d = PyValue::Dict();
+		d.SetItem("x", PyValue(r.left));
+		d.SetItem("y", PyValue(r.top));
+		d.SetItem("w", PyValue(r.GetWidth()));
+		d.SetItem("h", PyValue(r.GetHeight()));
+		return d;
+	}
+	return PyValue::None();
+}
+
 static PyValue Log(const Vector<PyValue>& args, void* user_data)
 {
 	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
@@ -595,6 +619,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 	hearts_view.SetItem("set_card", PyValue::Function("set_card", &SetCard, view));
 	hearts_view.SetItem("move_card", PyValue::Function("move_card", &MoveCard, view));
 	hearts_view.SetItem("clear_sprites", PyValue::Function("clear_sprites", &ClearSprites, view));
+	hearts_view.SetItem("get_zone_rect", PyValue::Function("get_zone_rect", &GetZoneRect, view));
 	hearts_view.SetItem("log", PyValue::Function("log", &Log, view));
 	
 	vm.GetGlobals().GetAdd("hearts_view") = hearts_view;

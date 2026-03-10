@@ -20,17 +20,17 @@ FilesPane::FilesPane()
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
-	bar.Add(CtrlImg::plus(), [=] { Todo("PYTHONPATH manager"); }).Help("PYTHONPATH manager button");
+	bar.Add(CtrlImg::plus(), [=] { WhenPathManager(); }).Help("PYTHONPATH manager button");
 	bar.Add("Active directory", [=] { Todo("Active directory dropdown / path field"); }).Help("Active directory dropdown / path field");
-	bar.Add(CtrlImg::open(), [=] { Todo("Browse directory"); }).Help("Browse directory");
-	bar.Add(CtrlImg::undo(), [=] { Todo("Parent directory"); }).Help("Parent directory");
+	bar.Add(CtrlImg::open(), [=] { WhenBrowse(); }).Help("Browse directory");
+	bar.Add(CtrlImg::undo(), [=] { WhenParent(); }).Help("Parent directory");
 }
 
 void FilesPane::LayoutPaneToolbar(Bar& bar)
 {
 	bar.Add(CtrlImg::left_arrow(), [=] { Todo("Previous"); }).Help("Previous");
 	bar.Add(CtrlImg::right_arrow(), [=] { Todo("Next"); }).Help("Next");
-	bar.Add(CtrlImg::undo(), [=] { Todo("Parent"); }).Help("Parent");
+	bar.Add(CtrlImg::undo(), [=] { WhenParent(); }).Help("Parent");
 	bar.Gap(2000); // Align right
 	bar.Add("Filter", [=] { Todo("Filter filenames"); }).Help("Filter filenames");
 	bar.Sub("Pane menu", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
@@ -38,7 +38,7 @@ void FilesPane::LayoutPaneToolbar(Bar& bar)
 
 void FilesPane::LayoutPaneMenu(Bar& bar)
 {
-	bar.Add("Show hidden files", [=] { Todo("Show hidden files"); }).Check(false);
+	bar.Add("Show hidden files", [=] { ShowHidden(!show_hidden); }).Check(show_hidden);
 	bar.Add("Edit filter settings...", [=] { Todo("Edit filter settings..."); });
 	bar.Separator();
 	bar.Add("Size", [=] { Todo("Size"); });
@@ -78,8 +78,14 @@ void FilesPane::Populate(int id)
 	String path = tree.Get(id);
 	FindFile ff(AppendFileName(path, "*"));
 	while(ff) {
+		String name = ff.GetName();
+		if(!show_hidden && name.GetCount() > 0 && name[0] == '.') {
+			ff.Next();
+			continue;
+		}
+		
 		if(ff.IsFile()) {
-			if(GetFileExt(ff.GetName()) == ".py")
+			if(GetFileExt(ff.GetName()) == ".py" || GetFileExt(ff.GetName()) == ".gamestate" || GetFileExt(ff.GetName()) == ".form")
 				tree.Add(id, CtrlImg::File(), ff.GetPath(), ff.GetName());
 		}
 		else if(ff.IsFolder()) {

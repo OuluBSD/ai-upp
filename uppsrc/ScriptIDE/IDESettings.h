@@ -35,12 +35,29 @@ struct ApplicationSettings {
     bool check_updates_on_startup = true;
     bool stable_releases_only = true;
     bool disable_ctrl_wheel_zoom = false;
+    Vector<String> recent_files;
+
+    ApplicationSettings() {}
+    ApplicationSettings(const ApplicationSettings& b) { *this = b; }
+    ApplicationSettings& operator=(const ApplicationSettings& b) {
+        hidpi_mode = b.hidpi_mode; custom_scale = b.custom_scale;
+        show_friendly_empty_messages = b.show_friendly_empty_messages;
+        vertical_tabs_in_panes = b.vertical_tabs_in_panes;
+        custom_margin = b.custom_margin; pane_margin = b.pane_margin;
+        custom_cursor_blink = b.custom_cursor_blink; cursor_blink_ms = b.cursor_blink_ms;
+        language = b.language; rendering_engine = b.rendering_engine;
+        single_instance = b.single_instance; prompt_on_exit = b.prompt_on_exit;
+        show_internal_errors = b.show_internal_errors; check_updates_on_startup = b.check_updates_on_startup;
+        stable_releases_only = b.stable_releases_only; disable_ctrl_wheel_zoom = b.disable_ctrl_wheel_zoom;
+        recent_files <<= b.recent_files;
+        return *this;
+    }
 
     void Serialize(Stream& s) {
         s % hidpi_mode % custom_scale % show_friendly_empty_messages % vertical_tabs_in_panes
           % custom_margin % pane_margin % custom_cursor_blink % cursor_blink_ms % language % rendering_engine
           % single_instance % prompt_on_exit % show_internal_errors % check_updates_on_startup
-          % stable_releases_only % disable_ctrl_wheel_zoom;
+          % stable_releases_only % disable_ctrl_wheel_zoom % recent_files;
     }
 };
 
@@ -490,10 +507,42 @@ struct IDESettings {
     WorkingDirectorySettings working_directory;
     PluginSettings plugins;
 
+    IDESettings() {}
+    IDESettings(const IDESettings& b) { *this = b; }
+    IDESettings& operator=(const IDESettings& b) {
+        appearance = b.appearance;
+        application = b.application;
+        python = b.python;
+        shortcuts = b.shortcuts;
+        code_analysis = b.code_analysis;
+        completion = b.completion;
+        debugger = b.debugger;
+        editor = b.editor;
+        files = b.files;
+        help = b.help;
+        history = b.history;
+        console = b.console;
+        profiler = b.profiler;
+        run = b.run;
+        statusbar = b.statusbar;
+        variable_explorer = b.variable_explorer;
+        working_directory = b.working_directory;
+        plugins = b.plugins;
+        return *this;
+    }
+
     void Serialize(Stream& s) {
         s % appearance % application % python % shortcuts % code_analysis % completion
           % debugger % editor % files % help % history % console % profiler % run
           % statusbar % variable_explorer % working_directory % plugins;
+    }
+    
+    IDESettings& CopyFrom(const IDESettings& b) {
+        StringStream ss;
+        const_cast<IDESettings&>(b).Serialize(ss);
+        ss.Seek(0);
+        Serialize(ss);
+        return *this;
     }
 };
 

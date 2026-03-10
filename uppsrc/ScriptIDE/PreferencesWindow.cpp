@@ -8,7 +8,7 @@ PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
 	CtrlLayout(*this, "Preferences");
 	Sizeable().Zoomable().CenterScreen();
 
-	old_settings = settings;
+	old_settings.CopyFrom(settings);
 
 	split << nav << page_host;
 	split.SetPos(2000);
@@ -58,20 +58,22 @@ void PreferencesWindow::OnOK()
 
 void PreferencesWindow::OnCancel()
 {
-	settings = old_settings;
+	settings.CopyFrom(old_settings);
 	Break(IDCANCEL);
 }
 
 void PreferencesWindow::OnApply()
 {
-	IDESettings new_settings = settings;
+	IDESettings new_settings;
+	new_settings.CopyFrom(settings);
+	
 	for(int i = 0; i < pages.GetCount(); i++)
 		pages[i].page->Save(new_settings);
 	
 	for(int i = 0; i < pages.GetCount(); i++)
 		pages[i].page->Apply(ctx, settings, new_settings);
 	
-	settings = new_settings;
+	settings.CopyFrom(new_settings);
 }
 
 void PreferencesWindow::OnResetDefaults()

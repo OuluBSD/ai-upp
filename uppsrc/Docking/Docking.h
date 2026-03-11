@@ -105,6 +105,8 @@ protected:
 
 	void            SaveDockerPos(DockableCtrl& dc, PosInfo& pi);
 	void            SetDockerPosInfo(DockableCtrl& dc, const PosInfo& pi);
+	int             GetLayoutFrameSize(int align) const;
+	void            SyncLayoutFrameSizes(bool animate = false);
 
 	friend class    DockCont;
 private:
@@ -124,12 +126,14 @@ private:
 	bool tabtext;
 	bool tabalign;
 	bool frameorder;
+	bool syncingframes;
 	bool showlockedhandles;
 	bool childtoolwindows;
 	dword nesttoggle;
 	String layoutbackup;
 	int  dockframepos;
 	int  prehighlightframepos;
+	int  framelayoutsize[4];
 	
 	Array<DockCont>             conts;
 	Vector<DockableCtrl *>      dockers;
@@ -226,6 +230,12 @@ public:
 	bool            IsDockVisible(int align) const      { ASSERT(align >= 0 && align <= 4); return dockpane[align].IsVisible(); }
 	// Manually sets the size of a docking frame
 	void            SetFrameSize(int align, int size);
+	// Sets docking frame size relative to current window size (10000 == 100%).
+	// For "half main area", use 5000.
+	DockWindow&     SetFrameLayoutSize(int align, int ratio);
+	DockWindow&     SetFrameLayoutHalf(int align)         { return SetFrameLayoutSize(align, 5000); }
+	int             GetFrameLayoutSize(int align) const   { ASSERT(align >= 0 && align < 4); return framelayoutsize[align]; }
+	bool            HasFrameLayoutSize(int align) const   { ASSERT(align >= 0 && align < 4); return !IsNull(framelayoutsize[align]); }
 				
 	// Animation settings. Disabling various forms of animation can improve performance when
 	//  you have complex displays/GUIs in either DockableCtrls of the DockWindow client area

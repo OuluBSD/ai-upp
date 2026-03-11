@@ -5,8 +5,9 @@ using namespace Upp;
 GUI_APP_MAIN
 {
     const Vector<String>& args = CommandLine();
+    String path;
     if(args.GetCount() > 0) {
-        String path = GetFullPath(args[0]);
+        path = GetFullPath(args[0]);
         if(FileExists(path)) {
             SetCurrentDirectory(GetFileDirectory(path));
         }
@@ -14,14 +15,10 @@ GUI_APP_MAIN
 
     PythonIDE ide;
 
-    if(args.GetCount() > 0) {
-        String path = GetFullPath(args[0]);
-        if(FileExists(path)) {
-            ide.LoadFile(path);
-            if(GetFileExt(path) == ".gamestate") {
-                ide.OnRun();
-            }
-        }
+    if(!path.IsEmpty() && FileExists(path)) {
+        ide.LoadFile(path);
+        if(GetFileExt(path) == ".gamestate")
+            ide.OnRun();
     }
 
     ide.Run();

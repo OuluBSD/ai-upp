@@ -223,10 +223,10 @@ void PythonIDE::DockInit()
 	// Set frame order: Left/Right take precedence (full height)
 	SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
 
-	// Use the new proportional API for frame sizes
-	SetFrameLayoutSize(DOCK_LEFT, 2500);   // 25% of window width
+	// Use the new proportional API for right frame only
+	SetFrameSize(DOCK_LEFT, 250);
 	SetFrameLayoutHalf(DOCK_RIGHT);        // 50% of window width
-	SetFrameLayoutSize(DOCK_BOTTOM, 3000); // 30% of window height
+	SetFrameSize(DOCK_BOTTOM, 250);
 	
 	// Capture the default layout string
 	StringStream s;

@@ -798,24 +798,24 @@ PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
     static WorkingDirectoryPage work_dir;
     static PluginsPage plugins;
 
-    AddPage("appearance", "Appearance", TablerIcons::Settings(), &appearance);
-    AddPage("application", "Application", TablerIcons::Plus(), &application);
-    AddPage("python_interpreter", "Python interpreter", TablerIcons::Python(), &python);
-    AddPage("shortcuts", "Keyboard shortcuts", TablerIcons::Plus(), &shortcuts);
-    AddPage("code_analysis", "Code analysis", TablerIcons::Profiler(), &analysis);
-    AddPage("completion", "Completion and linting", TablerIcons::Plus(), &completion);
-    AddPage("debugger", "Debugger", TablerIcons::Debug(), &debugger);
-    AddPage("editor", "Editor", TablerIcons::File(), &editor);
-    AddPage("files", "Files", TablerIcons::Files(), &files);
-    AddPage("help", "Help", TablerIcons::Help(), &help);
-    AddPage("history", "History", TablerIcons::History(), &history);
-    AddPage("console", "IPython console", TablerIcons::Outline(), &console);
-    AddPage("profiler", "Profiler", TablerIcons::Profiler(), &profiler);
-    AddPage("run", "Run", TablerIcons::Run(), &run);
-    AddPage("statusbar", "Status bar", TablerIcons::Plus(), &statusbar_p);
-    AddPage("variable_explorer", "Variable explorer", TablerIcons::VariableExplorer(), &var_explorer_p);
-    AddPage("working_directory", "Working directory", TablerIcons::Folder(), &work_dir);
-    AddPage("plugins", "Plugins", TablerIcons::Plus(), &plugins);
+    AddPage("appearance", "Appearance", Icons::Settings(), &appearance);
+    AddPage("application", "Application", Icons::Plus(), &application);
+    AddPage("python_interpreter", "Python interpreter", Icons::Python(), &python);
+    AddPage("shortcuts", "Keyboard shortcuts", Icons::Plus(), &shortcuts);
+    AddPage("code_analysis", "Code analysis", Icons::Profiler(), &analysis);
+    AddPage("completion", "Completion and linting", Icons::Plus(), &completion);
+    AddPage("debugger", "Debugger", Icons::Debug(), &debugger);
+    AddPage("editor", "Editor", Icons::File(), &editor);
+    AddPage("files", "Files", Icons::Files(), &files);
+    AddPage("help", "Help", Icons::Help(), &help);
+    AddPage("history", "History", Icons::History(), &history);
+    AddPage("console", "IPython console", Icons::Outline(), &console);
+    AddPage("profiler", "Profiler", Icons::Profiler(), &profiler);
+    AddPage("run", "Run", Icons::Run(), &run);
+    AddPage("statusbar", "Status bar", Icons::Plus(), &statusbar_p);
+    AddPage("variable_explorer", "Variable explorer", Icons::VariableExplorer(), &var_explorer_p);
+    AddPage("working_directory", "Working directory", Icons::Folder(), &work_dir);
+    AddPage("plugins", "Plugins", Icons::Plus(), &plugins);
 }
 
 END_UPP_NAMESPACE

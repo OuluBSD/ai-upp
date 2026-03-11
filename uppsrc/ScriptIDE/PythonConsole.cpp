@@ -5,7 +5,7 @@ namespace Upp {
 PythonConsole::PythonConsole()
 {
     Title("IPython Console");
-    Icon(TablerIcons::Outline());
+    Icon(Icons::Outline());
     
     Add(toolbar.TopPos(0, 24).HSizePos());
     Add(output.VSizePos(24, 24).HSizePos());
@@ -22,9 +22,9 @@ void PythonConsole::LayoutToolbar(Bar& bar)
 {
 	bar.Add("Console 1/A", [=] {}).Enable(false); // Display current console name
 	bar.Gap(2000);
-	bar.Add(TablerIcons::Stop(), [=] { Clear(); }).Help("Clear console");
-	bar.Add(TablerIcons::Stop(), WhenInterrupt).Help("Interrupt kernel");
-	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add(Icons::ClearConsole(), [=] { Clear(); }).Help("Clear console");
+	bar.Add(Icons::Stop(), WhenInterrupt).Help("Interrupt kernel");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void PythonConsole::LayoutPaneMenu(Bar& bar)

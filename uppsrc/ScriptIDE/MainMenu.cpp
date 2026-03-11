@@ -25,15 +25,15 @@ void PythonIDE::MainMenu(Bar& bar)
 
 void PythonIDE::FileMenu(Bar& bar)
 {
-	bar.Add("New file...", TablerIcons::NewFile(), [this] { OnNewFile(); }).Key(K_CTRL_N);
+	bar.Add("New file...", Icons::NewFile(), [this] { OnNewFile(); }).Key(K_CTRL_N);
 	bar.Separator();
-	bar.Add("Open...", TablerIcons::OpenFile(), [this] { OnOpenFile(); }).Key(K_CTRL_O);
+	bar.Add("Open...", Icons::OpenFile(), [this] { OnOpenFile(); }).Key(K_CTRL_O);
 	bar.Add("Open last closed", [this] { OnOpenLastClosed(); }).Key(K_CTRL|K_SHIFT|K_T);
 	bar.Sub("Open recent", [this](Bar& b) { UpdateRecentFilesMenu(b); });
 	bar.Separator();
-	bar.Add("Save", TablerIcons::Save(), [this] { OnSaveFile(); }).Key(K_CTRL_S);
-	bar.Add("Save all", TablerIcons::SaveAll(), [this] { OnSaveAll(); }).Key(K_CTRL|K_ALT|K_S);
-	bar.Add("Save as...", TablerIcons::Save(), [this] { OnSaveFileAs(); }).Key(K_CTRL|K_SHIFT|K_S);
+	bar.Add("Save", Icons::Save(), [this] { OnSaveFile(); }).Key(K_CTRL_S);
+	bar.Add("Save all", Icons::SaveAll(), [this] { OnSaveAll(); }).Key(K_CTRL|K_ALT|K_S);
+	bar.Add("Save as...", Icons::Save(), [this] { OnSaveFileAs(); }).Key(K_CTRL|K_SHIFT|K_S);
 	bar.Add("Save copy as...", [this] { OnSaveCopyAs(); });
 	bar.Add("Revert", [this] { OnRevert(); });
 	bar.Separator();
@@ -53,8 +53,8 @@ void PythonIDE::FileMenu(Bar& bar)
 
 void PythonIDE::EditMenu(Bar& bar)
 {
-	bar.Add("Undo", TablerIcons::Undo(), [this] { OnUndo(); }).Key(K_CTRL_Z);
-	bar.Add("Redo", TablerIcons::Redo(), [this] { OnRedo(); }).Key(K_CTRL|K_SHIFT|K_Z);
+	bar.Add("Undo", Icons::Undo(), [this] { OnUndo(); }).Key(K_CTRL_Z);
+	bar.Add("Redo", Icons::Redo(), [this] { OnRedo(); }).Key(K_CTRL|K_SHIFT|K_Z);
 	bar.Separator();
 	bar.Add("Cut", [this] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Cut(); } }).Key(K_CTRL_X);
 	bar.Add("Copy", [this] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Copy(); } }).Key(K_CTRL_C);
@@ -82,7 +82,7 @@ void PythonIDE::EditMenu(Bar& bar)
 
 void PythonIDE::SearchMenu(Bar& bar)
 {
-	bar.Add("Find text", TablerIcons::Search(), [this] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Find(); } });
+	bar.Add("Find text", Icons::Search(), [this] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Find(); } });
 	bar.Add("Find next", [this] { Todo("Find next"); });
 	bar.Add("Find previous", [this] { Todo("Find previous"); });
 	bar.Add("Replace text", [this] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Replace(); } });
@@ -91,7 +91,7 @@ void PythonIDE::SearchMenu(Bar& bar)
 	bar.Add("Previous cursor position", [this] { OnPrevCursor(); }).Key(K_ALT_LEFT);
 	bar.Add("Next cursor position", [this] { OnNextCursor(); }).Key(K_ALT_RIGHT);
 	bar.Separator();
-	bar.Add("Search text in files...", TablerIcons::Search(), [this] { OnTogglePane(*find_pane); }).Key(K_ALT|K_SHIFT|K_F);
+	bar.Add("Search text in files...", Icons::Search(), [this] { OnTogglePane(*find_pane); }).Key(K_ALT|K_SHIFT|K_F);
 }
 
 void PythonIDE::SourceMenu(Bar& bar)
@@ -109,13 +109,13 @@ void PythonIDE::SourceMenu(Bar& bar)
 	bar.Add("Previous warning/error", [this] { Todo("Prev diagnostic"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_COMMA);
 	bar.Add("Next warning/error", [this] { Todo("Next diagnostic"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_PERIOD);
 	bar.Separator();
-	bar.Add("Run code analysis", TablerIcons::Profiler(), [this] { OnAnalyze(); }).Key(K_F8);
+	bar.Add("Run code analysis", Icons::Profiler(), [this] { OnAnalyze(); }).Key(K_F8);
 	bar.Add("Format file or selection with Autopep8", [this] { Todo("Autopep8"); });
 }
 
 void PythonIDE::RunMenu(Bar& bar)
 {
-	bar.Add("Run", TablerIcons::Run(), [this] { OnRun(); }).Key(K_F5);
+	bar.Add("Run", Icons::Run(), [this] { OnRun(); }).Key(K_F5);
 	bar.Add("Re-run last file", [this] { OnRunLast(); }).Key(K_F6);
 	bar.Add("Configuration per file", [this] { OnRunConfig(); }).Key(K_CTRL_F6);
 	bar.Add("Global presets", [this] { Todo("Global presets"); });
@@ -129,24 +129,24 @@ void PythonIDE::RunMenu(Bar& bar)
 	bar.Separator();
 	bar.Add("Run in external terminal", [this] { Todo("Run in external terminal"); });
 	bar.Separator();
-	bar.Add("Profile file", TablerIcons::Profiler(), [this] { Todo("Profile file"); }).Key(K_F10);
-	bar.Add("Profile cell", TablerIcons::Profiler(), [this] { Todo("Profile cell"); }).Key(K_ALT_F10);
-	bar.Add("Profile current line or selection", TablerIcons::Profiler(), [this] { Todo("Profile selection"); });
+	bar.Add("Profile file", Icons::Profiler(), [this] { Todo("Profile file"); }).Key(K_F10);
+	bar.Add("Profile cell", Icons::Profiler(), [this] { Todo("Profile cell"); }).Key(K_ALT_F10);
+	bar.Add("Profile current line or selection", Icons::Profiler(), [this] { Todo("Profile selection"); });
 }
 
 void PythonIDE::DebugMenu(Bar& bar)
 {
-	bar.Add("Debug file", TablerIcons::Debug(), [this] { OnDebug(); }).Key(K_CTRL|K_F5);
+	bar.Add("Debug file", Icons::Debug(), [this] { OnDebug(); }).Key(K_CTRL|K_F5);
 	bar.Add("Debug cell", [this] { OnDebugCell(); });
 	bar.Add("Debug the current line or selection", [this] { OnDebugSelection(); });
 	bar.Separator();
-	bar.Add("Debug current line", TablerIcons::StepOver(), [this] { vm.StepOver(); }).Key(K_CTRL_F10).Enable(vm.IsRunning());
-	bar.Add("Step into function or method", TablerIcons::StepIn(), [this] { vm.StepIn(); }).Key(K_CTRL_F11).Enable(vm.IsRunning());
-	bar.Add("Execute until function returns", TablerIcons::StepOut(), [this] { vm.StepOut(); }).Key(K_CTRL|K_SHIFT|K_F11).Enable(vm.IsRunning());
-	bar.Add("Execute until next breakpoint", TablerIcons::Run(), [this] { vm.Run(); }).Key(K_CTRL_F12).Enable(vm.IsRunning());
-	bar.Add("Stop debugging", TablerIcons::Stop(), [this] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12).Enable(vm.IsRunning());
+	bar.Add("Debug current line", Icons::StepOver(), [this] { vm.StepOver(); }).Key(K_CTRL_F10).Enable(vm.IsRunning());
+	bar.Add("Step into function or method", Icons::StepIn(), [this] { vm.StepIn(); }).Key(K_CTRL_F11).Enable(vm.IsRunning());
+	bar.Add("Execute until function returns", Icons::StepOut(), [this] { vm.StepOut(); }).Key(K_CTRL|K_SHIFT|K_F11).Enable(vm.IsRunning());
+	bar.Add("Execute until next breakpoint", Icons::Run(), [this] { vm.Run(); }).Key(K_CTRL_F12).Enable(vm.IsRunning());
+	bar.Add("Stop debugging", Icons::Stop(), [this] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12).Enable(vm.IsRunning());
 	bar.Separator();
-	bar.Add("Toggle breakpoint", TablerIcons::Breakpoint(), [this] { OnToggleBreakpoint(); }).Key(K_F12);
+	bar.Add("Toggle breakpoint", Icons::Breakpoint(), [this] { OnToggleBreakpoint(); }).Key(K_F12);
 	bar.Add("Set/edit conditional breakpoint", [this] { Todo("Conditional breakpoint"); }).Key(K_SHIFT|K_F12);
 	bar.Add("Clear breakpoints in all files", [this] { OnClearBreakpoints(); });
 	bar.Add("List breakpoints", [this] { OnListBreakpoints(); });
@@ -168,7 +168,7 @@ void PythonIDE::ConsolesMenu(Bar& bar)
 	});
 	bar.Add("Connect to existing kernel...", [this] { Todo("Connect to kernel"); });
 	bar.Separator();
-	bar.Add("Interrupt kernel", TablerIcons::Stop(), [this] { console_pane->WhenInterrupt(); });
+	bar.Add("Interrupt kernel", Icons::Stop(), [this] { console_pane->WhenInterrupt(); });
 	bar.Add("Restart kernel", [this] { console_pane->WhenRestart(); }).Key(K_CTRL_PERIOD);
 	bar.Add("Remove all variables", [this] { console_pane->WhenRemoveVariables(); }).Key(K_CTRL|K_ALT|K_R);
 }
@@ -188,11 +188,11 @@ void PythonIDE::ProjectsMenu(Bar& bar)
 
 void PythonIDE::ToolsMenu(Bar& bar)
 {
-	bar.Add("PYTHONPATH manager", TablerIcons::Plus(), [this] { OnPathManager(); });
+	bar.Add("PYTHONPATH manager", Icons::Plus(), [this] { OnPathManager(); });
 	bar.Add("User environment variables", [this] { Todo("Env vars"); });
 	bar.Add("Manage remote connections", [this] { Todo("Remote connections"); });
 	bar.Separator();
-	bar.Add("Preferences", TablerIcons::Settings(), [this] { OnSettings(); });
+	bar.Add("Preferences", Icons::Settings(), [this] { OnSettings(); });
 	bar.Add("Reset all preferences to defaults", [this] { Todo("Reset preferences"); });
 }
 
@@ -201,18 +201,18 @@ void PythonIDE::WindowMenu(Bar& bar)
 	bar.Sub("Panes", [this](Bar& b) {
 		b.Add("Editor", [this] { Todo("Show Editor"); }).Key(K_CTRL|K_SHIFT|K_E).Check(true);
 		b.Add("IPython Console", [this] { OnTogglePane(*console_pane); }).Key(K_CTRL|K_SHIFT|K_I).Check(console_pane->IsDocked());
-		b.Add("Variable Explorer", TablerIcons::VariableExplorer(), [this] { OnTogglePane(*var_explorer); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer->IsDocked());
-		b.Add("Debugger", TablerIcons::Debug(), [this] { OnTogglePane(*debugger_pane); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane->IsDocked());
-		b.Add("Help", TablerIcons::Help(), [this] { OnTogglePane(*help_pane); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane->IsDocked());
-		b.Add("Plots", TablerIcons::Plots(), [this] { OnTogglePane(*plots_pane); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane->IsDocked());
+		b.Add("Variable Explorer", Icons::VariableExplorer(), [this] { OnTogglePane(*var_explorer); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer->IsDocked());
+		b.Add("Debugger", Icons::Debug(), [this] { OnTogglePane(*debugger_pane); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane->IsDocked());
+		b.Add("Help", Icons::Help(), [this] { OnTogglePane(*help_pane); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane->IsDocked());
+		b.Add("Plots", Icons::Plots(), [this] { OnTogglePane(*plots_pane); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane->IsDocked());
 		b.Separator();
-		b.Add("Files", TablerIcons::Files(), [this] { OnTogglePane(*files_pane); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane->IsDocked());
-		b.Add("Outline", TablerIcons::Outline(), [this] { OnTogglePane(*outline_pane); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane->IsDocked());
+		b.Add("Files", Icons::Files(), [this] { OnTogglePane(*files_pane); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane->IsDocked());
+		b.Add("Outline", Icons::Outline(), [this] { OnTogglePane(*outline_pane); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane->IsDocked());
 		b.Add("Project", [this] { Todo("Toggle Project Pane"); }).Key(K_CTRL|K_SHIFT|K_P).Check(false);
-		b.Add("Find", TablerIcons::Search(), [this] { OnTogglePane(*find_pane); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane->IsDocked());
+		b.Add("Find", Icons::Search(), [this] { OnTogglePane(*find_pane); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane->IsDocked());
 		b.Separator();
-		b.Add("History", TablerIcons::History(), [this] { OnTogglePane(*history_pane); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane->IsDocked());
-		b.Add("Profiler", TablerIcons::Profiler(), [this] { OnTogglePane(*profiler_pane); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane->IsDocked());
+		b.Add("History", Icons::History(), [this] { OnTogglePane(*history_pane); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane->IsDocked());
+		b.Add("Profiler", Icons::Profiler(), [this] { OnTogglePane(*profiler_pane); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane->IsDocked());
 		b.Add("Code Analysis", [this] { Todo("Toggle Code Analysis Pane"); }).Key(K_CTRL|K_SHIFT|K_C).Check(false);
 		b.Separator();
 		b.Add("Online help", [this] { Todo("Toggle Online Help"); }).Check(false);
@@ -228,7 +228,7 @@ void PythonIDE::WindowMenu(Bar& bar)
 		}
 	});
 	bar.Add("Unlock panes and toolbars", [this] { Todo("Unlock layout"); }).Key(K_CTRL|K_SHIFT|K_F5);
-	bar.Add("Maximize current pane", TablerIcons::Maximize(), [this] { OnMaximizePane(); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
+	bar.Add("Maximize current pane", Icons::Maximize(), [this] { OnMaximizePane(); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
 	bar.Add("Close current pane", [this] { OnClosePane(); }).Key(K_CTRL|K_SHIFT|K_F4);
 	bar.Separator();
 	bar.Sub("Toolbars", [this](Bar& b) {
@@ -264,7 +264,7 @@ void PythonIDE::HelpMenu(Bar& bar)
 	bar.Add("Built-in tutorial", [this] { Todo("Tutorial"); });
 	bar.Add("Shortcuts summary", [this] { Todo("Shortcuts"); });
 	bar.Separator();
-	bar.Add("Spyder documentation", TablerIcons::Help(), [this] { ShowHelp("index"); }).Key(K_F1);
+	bar.Add("Spyder documentation", Icons::Help(), [this] { ShowHelp("index"); }).Key(K_F1);
 	bar.Add("Tutorial videos", [this] { Todo("Videos"); });
 	bar.Sub("IPython documentation", [this](Bar& b) {
 		b.Add("Intro to IPython", [this] { Todo("IPython Intro"); });
@@ -277,8 +277,8 @@ void PythonIDE::HelpMenu(Bar& bar)
 	bar.Add("Report issue...", [this] { Todo("Report issue"); });
 	bar.Separator();
 	bar.Add("Check for updates", [this] { Todo("Updates"); });
-	bar.Add("Help Spyder...", TablerIcons::Help(), [this] { Todo("Help Spyder"); });
-	bar.Add("About Spyder", TablerIcons::Info(), [this] { Todo("About"); });
+	bar.Add("Help Spyder...", Icons::Help(), [this] { Todo("Help Spyder"); });
+	bar.Add("About Spyder", Icons::Info(), [this] { Todo("About"); });
 }
 
 }

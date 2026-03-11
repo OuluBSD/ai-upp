@@ -5,7 +5,7 @@ namespace Upp {
 PlotsPane::PlotsPane()
 {
 	Title("Plots");
-	Icon(TablerIcons::Plots());
+	Icon(Icons::Plots());
 	
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(display.VSizePos(24, 0).HSizePos());
@@ -17,24 +17,24 @@ PlotsPane::PlotsPane()
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(TablerIcons::Undo(), [=] { PrevPlot(); }).Help("Previous plot");
-	bar.Add(TablerIcons::Redo(), [=] { NextPlot(); }).Help("Next plot");
+	bar.Add(Icons::Undo(), [=] { PrevPlot(); }).Help("Previous plot");
+	bar.Add(Icons::Redo(), [=] { NextPlot(); }).Help("Next plot");
 	bar.Separator();
-	bar.Add(TablerIcons::Save(), [=] { SaveSelected(); }).Help("Save plot");
-	bar.Add(TablerIcons::SaveAll(), [=] { SaveAll(); }).Help("Save all plots");
-	bar.Add(TablerIcons::Undo(), [=] { CopySelected(); }).Help("Copy plot to clipboard");
-	bar.Add(TablerIcons::Stop(), [=] { RemoveSelected(); }).Help("Remove plot");
-	bar.Add(TablerIcons::Stop(), [=] { Clear(); }).Help("Remove all plots");
+	bar.Add(Icons::Save(), [=] { SaveSelected(); }).Help("Save plot");
+	bar.Add(Icons::SaveAll(), [=] { SaveAll(); }).Help("Save all plots");
+	bar.Add(Icons::Undo(), [=] { CopySelected(); }).Help("Copy plot to clipboard");
+	bar.Add(Icons::Stop(), [=] { RemoveSelected(); }).Help("Remove plot");
+	bar.Add(Icons::Stop(), [=] { Clear(); }).Help("Remove all plots");
 	bar.Separator();
 	
 	// Zoom controls
 	bar.Add("Zoom:", [=] { Todo("Zoom percent"); });
-	bar.Add(TablerIcons::Plus(), [=] { Todo("Zoom in"); }).Help("Zoom in");
-	bar.Add(TablerIcons::Stop(), [=] { Todo("Zoom out"); }).Help("Zoom out"); // Should be minus
+	bar.Add(Icons::Plus(), [=] { Todo("Zoom in"); }).Help("Zoom in");
+	bar.Add(Icons::Stop(), [=] { Todo("Zoom out"); }).Help("Zoom out"); // Should be minus
 	bar.Add("Fit to pane", [=] { Todo("Fit to pane"); });
 	
 	bar.Gap(2000);
-	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void PlotsPane::LayoutPaneMenu(Bar& bar)

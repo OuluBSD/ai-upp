@@ -5,6 +5,7 @@ uses
 	CtrlLib,
 	plugin/png,
 	CodeEditor,
+	Painter,
 	TabBar,
 	ByteVM,
 	RichEdit,

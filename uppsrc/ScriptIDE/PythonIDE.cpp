@@ -12,7 +12,7 @@ PythonIDE::PythonIDE()
 	main_window = this;
 	plugin_manager.Create(*this);
 	Title("Python IDE");
-	Icon(TablerIcons::Python());
+	Icon(Icons::Python());
 
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1024, 768);
@@ -529,7 +529,7 @@ void PythonIDE::OnNewFile()
 	fi.editor = editor;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs->Add("<untitled>", TablerIcons::File());
+	editor_tabs->Add("<untitled>", Icons::File());
 	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();
@@ -582,7 +582,7 @@ void PythonIDE::LoadFile(const String& path)
 	fi.is_plugin = is_plugin;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs->Add(GetFileName(path), TablerIcons::File());
+	editor_tabs->Add(GetFileName(path), Icons::File());
 	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();

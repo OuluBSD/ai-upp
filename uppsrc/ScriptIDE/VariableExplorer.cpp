@@ -5,7 +5,7 @@ namespace Upp {
 VariableExplorer::VariableExplorer()
 {
 	Title("Variable Explorer");
-	Icon(TablerIcons::VariableExplorer());
+	Icon(Icons::VariableExplorer());
 	
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(list.VSizePos(24, 0).HSizePos());
@@ -28,16 +28,16 @@ VariableExplorer::VariableExplorer()
 
 void VariableExplorer::LayoutToolbar(Bar& bar)
 {
-	bar.Add(TablerIcons::OpenFile(), [=] { Todo("Import data"); }).Help("Import data");
-	bar.Add(TablerIcons::Save(), [=] { Todo("Save data"); }).Help("Save data");
-	bar.Add(TablerIcons::SaveAll(), [=] { Todo("Save data as"); }).Help("Save data as");
-	bar.Add(TablerIcons::Stop(), WhenRemoveAll).Help("Remove all variables");
+	bar.Add(Icons::OpenFile(), [=] { Todo("Import data"); }).Help("Import data");
+	bar.Add(Icons::Save(), [=] { Todo("Save data"); }).Help("Save data");
+	bar.Add(Icons::SaveAll(), [=] { Todo("Save data as"); }).Help("Save data as");
+	bar.Add(Icons::Stop(), WhenRemoveAll).Help("Remove all variables");
 	bar.Separator();
-	bar.Add(TablerIcons::Search(), [=] { Todo("Search variable names and types"); }).Help("Search");
-	bar.Add(TablerIcons::Plus(), [=] { Todo("Filter variables"); }).Help("Filter");
-	bar.Add(TablerIcons::Redo(), WhenRefresh).Help("Refresh variables");
+	bar.Add(Icons::Search(), [=] { Todo("Search variable names and types"); }).Help("Search");
+	bar.Add(Icons::Plus(), [=] { Todo("Filter variables"); }).Help("Filter");
+	bar.Add(Icons::Redo(), WhenRefresh).Help("Refresh variables");
 	bar.Separator();
-	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void VariableExplorer::LayoutPaneMenu(Bar& bar)
@@ -101,12 +101,12 @@ Image VariableExplorer::GetTypeIcon(const PyValue& v)
 	switch(v.GetType()) {
 		case PY_INT:
 		case PY_FLOAT:
-		case PY_COMPLEX: return TablerIcons::Plus();
-		case PY_STR:     return TablerIcons::File();
+		case PY_COMPLEX: return Icons::Plus();
+		case PY_STR:     return Icons::File();
 		case PY_LIST:
-		case PY_TUPLE:   return TablerIcons::Folder();
-		case PY_DICT:    return TablerIcons::Folder();
-		case PY_FUNCTION: return TablerIcons::Run();
+		case PY_TUPLE:   return Icons::Folder();
+		case PY_DICT:    return Icons::Folder();
+		case PY_FUNCTION: return Icons::Run();
 		default:         return Image();
 	}
 }

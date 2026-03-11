@@ -1565,17 +1565,23 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 			int lsz = framelayoutsize[i];
 			int ldelta = framelayoutdelta[i];
 
+			// Save splitter pos vector so we can restore container proportions
+			ValueArray pos_arr;
+			const Vector<int>& raw = pane.GetRawPos();
+			for (int k = 0; k < raw.GetCount(); k++)
+				pos_arr << raw[k];
+
 			ValueArray conts_arr;
 			DockCont *dc = dynamic_cast<DockCont *>(pane.GetFirstChild());
-			for (int j = 0; dc && j < pane.GetCount(); j++) {
+			for (int j = 0; j < pane.GetCount(); j++, dc = dynamic_cast<DockCont *>(dc ? dc->GetNext() : nullptr)) {
+				if (!dc) break;
 				JsonIO cjio;
 				JsonizeCont(cjio, dc);
 				conts_arr << cjio.GetResult();
-				dc = dynamic_cast<DockCont *>(dc->GetNext());
 			}
 
 			JsonIO fjio;
-			fjio("size", fsz)("lsize", lsz)("ldelta", ldelta)("containers", conts_arr);
+			fjio("size", fsz)("lsize", lsz)("ldelta", ldelta)("pos", pos_arr)("containers", conts_arr);
 			frames << fjio.GetResult();
 		}
 		jio("frames", frames);
@@ -1631,20 +1637,29 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 		ValueArray frames;
 		jio("frames", frames);
 		for (int i = 0; i < min(frames.GetCount(), 4); i++) {
-			ValueMap fm = frames[i];
+			JsonIO fjio(frames[i]);
 			DockPane& pane = dockpane[i];
 			dockframe[i].Hide();
-			int fsz = fm["size"];
-			int lsz = IsNull(fm["lsize"]) ? (int)Null : (int)fm["lsize"];
-			int ldelta = fm["ldelta"];
+			int fsz = 0, lsz = Null, ldelta = 0;
+			fjio("size", fsz)("lsize", lsz)("ldelta", ldelta);
 			framelayoutsize[i] = lsz;
 			framelayoutdelta[i] = ldelta;
 
-			ValueArray conts_arr = fm["containers"];
+			// Restore splitter positions before adding children (DockPane::GetCount() uses pos)
+			ValueArray pos_arr;
+			fjio("pos", pos_arr);
+			if (pos_arr.GetCount()) {
+				Vector<int> raw;
+				for (int k = 0; k < pos_arr.GetCount(); k++)
+					raw.Add((int)pos_arr[k]);
+				pane.SetRawPos(raw);
+			}
+
+			ValueArray conts_arr;
+			fjio("containers", conts_arr);
 			for (int j = 0; j < conts_arr.GetCount(); j++) {
 				DockCont *dc = CreateContainer();
-				ValueMap cm = conts_arr[j];
-				JsonIO cjio(cm);
+				JsonIO cjio(conts_arr[j]);
 				JsonizeCont(cjio, dc);
 				dc->StateDocked(*this);
 				pane << *dc;
@@ -1664,12 +1679,12 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 		ValueArray floating;
 		jio("floating", floating);
 		for (int i = 0; i < floating.GetCount(); i++) {
-			ValueMap cm = floating[i];
 			DockCont *dc = CreateContainer();
-			JsonIO cjio(cm);
+			JsonIO cjio(floating[i]);
+			int l = 0, t = 0, r = 0, b = 0;
+			cjio("rect_l", l)("rect_t", t)("rect_r", r)("rect_b", b);
 			JsonizeCont(cjio, dc);
 			FloatContainer(*dc);
-			int l = cm["rect_l"], t = cm["rect_t"], r = cm["rect_r"], b = cm["rect_b"];
 			dc->SetRect(Rect(l, t, r, b));
 		}
 
@@ -1677,9 +1692,10 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 		ValueArray autohidden;
 		jio("autohidden", autohidden);
 		for (int i = 0; i < min(autohidden.GetCount(), 4); i++) {
+			if (!autohidden[i].Is<ValueArray>()) continue;
 			ValueArray side = autohidden[i];
 			for (int j = 0; j < side.GetCount(); j++) {
-				int ix = side[j];
+				int ix = (int)side[j];
 				if (ix >= 0 && ix < dockers.GetCount())
 					AutoHide(i, *dockers[ix]);
 			}

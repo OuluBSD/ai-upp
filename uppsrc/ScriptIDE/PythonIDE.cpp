@@ -26,7 +26,7 @@ PythonIDE::PythonIDE()
 	plugin_manager->LoadPlugins();
 	
 	ApplySettings();
-	SetTimeCallback(-200, THISBACK(UpdateStatusBar)); // DONT CHANGE THIS
+	SetTimeCallback(-200, [this] { UpdateStatusBar(); }); // DONT CHANGE THIS
 }
 
 PythonIDE::~PythonIDE()
@@ -64,8 +64,10 @@ void PythonIDE::InitLayout()
 	AddFrame(toolbar);
 	AddFrame(statusbar);
 	
-	menubar.Set([=](Bar& bar) { MainMenu(bar); });
-	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
+	toolbar.MaxIconSize(Size(24, 24)); // Set icons to 24x24
+	
+	menubar.Set([this](Bar& bar) { MainMenu(bar); });
+	toolbar.Set([this](Bar& bar) { MainToolbar(bar); });
 
 	Add(editor_area.SizePos());
 	
@@ -221,10 +223,10 @@ void PythonIDE::DockInit()
 	// Set frame order: Left/Right take precedence (full height)
 	SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
 
-	// Explicitly set initial frame sizes to ensure they are visible
-	SetFrameSize(DOCK_LEFT, 250);
-	SetFrameSize(DOCK_RIGHT, 300);
-	SetFrameSize(DOCK_BOTTOM, 250);
+	// Use the new proportional API for frame sizes
+	SetFrameLayoutSize(DOCK_LEFT, 2500);   // 25% of window width
+	SetFrameLayoutHalf(DOCK_RIGHT);        // 50% of window width
+	SetFrameLayoutSize(DOCK_BOTTOM, 3000); // 30% of window height
 	
 	// Capture the default layout string
 	StringStream s;
@@ -1026,7 +1028,6 @@ void PythonIDE::UpdateStatusBar()
 		text << "    Memory: " << used << " KB";
 		
 	statusbar.Set(text);
-	// THIS IS INCORRECT HERE: SetTimeCallback(-200, [=] { UpdateStatusBar(); });
 }
 
 void PythonIDE::UpdateVariableExplorer()

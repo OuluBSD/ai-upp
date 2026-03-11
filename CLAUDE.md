@@ -213,6 +213,7 @@ Use your analytical strengths to:
 - flagV1 convention (upstream vs custom code)
 - Header include policy (U++ BLITZ)
 - Build & sandbox policy
+- **Logging rules** (`LOG` vs `RLOG` vs `DLOG` — always use `LOG`, never `DLOG`)
 - Memory leak detection & Valgrind workflow
 - Subpackage independence rules
 - Documentation standards (AGENTS.md, CURRENT_TASK.md, Book)

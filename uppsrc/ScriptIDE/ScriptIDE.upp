@@ -12,6 +12,8 @@ uses
 	Docking,
 	FormEditor;
 
+pkg_config(POSIX !X11 !OSX !VIRTUALGUI) "librsvg-2.0 cairo";
+
 file
 	AGENTS.md,
 	ScriptIDE.h,
@@ -64,5 +66,6 @@ file
 	ScriptIDE.iml;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI",
+	"USEMALLOC" = "GUI USEMALLOC";
 

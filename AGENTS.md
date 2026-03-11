@@ -79,6 +79,24 @@ Current Task Files (`CURRENT_TASK.md`)
 - AI agents must detect sandboxed execution before invoking `script/build_*.sh`. If sandboxing is active (no write access to `~/.cache`), halt and report instead of attempting the build.
 - **Windows Environment**: In Windows environments, `busybox` might be available and should be preferred for shell-like operations where standard Windows commands (cmd/PowerShell) might behave unexpectedly or when Unix-like behavior is needed (e.g., `busybox sh`, `busybox base64`).
 
+## Logging Rules (U++ Debug Macros)
+
+Use the correct macro for the build context:
+
+| Macro | Output location | Debug build | Release build | Use when |
+|-------|----------------|-------------|---------------|----------|
+| `LOG(msg)` | `~/.local/state/u++/log/<AppName>.log` | yes | yes | General-purpose; safe in any build |
+| `RLOG(msg)` | same log file | yes | yes | Same as LOG; prefer LOG |
+| `DLOG(msg)` | same log file | yes | **compile error** | Never use — breaks release builds |
+| `LLOG(msg)` | same log file | yes | yes | Verbose/loop logging (can be filtered) |
+
+**Rules**:
+- **Always use `LOG(msg)`** for debug output in this codebase.
+- **Never use `DLOG`** — it causes a compile error in release builds.
+- `RLOG` is equivalent to `LOG` but is considered noisy; prefer `LOG`.
+- Log files are written to `~/.local/state/u++/log/<AppName>.log` (e.g. `ScriptIDE.log`).
+- Remove temporary debug `LOG` calls before committing, or mark with `// TODO: remove`.
+
 ## UWP Development
 
 TheIDE now fully supports building, deploying, and debugging Universal Windows Platform (UWP) applications.

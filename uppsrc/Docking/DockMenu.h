@@ -34,7 +34,9 @@ protected:
 	virtual void MenuFloat(DockableCtrl *dc);
 	virtual void MenuAutoHide(int align, DockableCtrl *dc);	
 	virtual void MenuClose(DockableCtrl *dc);
-	
+	void         MenuFrameLayoutSize(int align, int ratio);
+	void         MenuFrameLayoutClear(int align);
+		
 	void MenuLoadLayout(int ix);
 	
 	const char *AlignText(int align);

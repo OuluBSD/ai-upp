@@ -1568,17 +1568,15 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 			ValueArray conts_arr;
 			DockCont *dc = dynamic_cast<DockCont *>(pane.GetFirstChild());
 			for (int j = 0; dc && j < pane.GetCount(); j++) {
-				ValueMap cm;
-				JsonIO cjio(cm);
+				JsonIO cjio;
 				JsonizeCont(cjio, dc);
-				conts_arr << cm;
+				conts_arr << cjio.GetResult();
 				dc = dynamic_cast<DockCont *>(dc->GetNext());
 			}
 
-			ValueMap fm;
-			JsonIO fjio(fm);
+			JsonIO fjio;
 			fjio("size", fsz)("lsize", lsz)("ldelta", ldelta)("containers", conts_arr);
-			frames << fm;
+			frames << fjio.GetResult();
 		}
 		jio("frames", frames);
 
@@ -1586,13 +1584,12 @@ void DockWindow::JsonizeLayout(JsonIO& jio)
 		ValueArray floating;
 		for (int i = 0; i < conts.GetCount(); i++) {
 			if (conts[i].IsFloating()) {
-				ValueMap cm;
-				JsonIO cjio(cm);
 				Rect r = conts[i].GetRect();
 				int l = r.left, t = r.top, rr = r.right, b = r.bottom;
+				JsonIO cjio;
 				cjio("rect_l", l)("rect_t", t)("rect_r", rr)("rect_b", b);
 				JsonizeCont(cjio, &conts[i]);
-				floating << cm;
+				floating << cjio.GetResult();
 			}
 		}
 		jio("floating", floating);

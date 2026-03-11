@@ -1,5 +1,8 @@
 # Task: Implement IDESettings Data Model
 
+## Migration Note (ScriptCommon Split)
+`IDESettings` schema ownership is moving to `uppsrc/ScriptCommon/IDESettings.h`. ScriptIDE keeps page widgets and apply/adaptation logic.
+
 ## Goal
 Implement the master configuration object `IDESettings` as specified in `PREFERENCES_SPEC.md`. This object will serve as the single source of truth for the IDE's state.
 

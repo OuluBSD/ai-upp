@@ -1,0 +1,21 @@
+description "Headless script CLI\377";
+
+uses
+	Core,
+	ByteVM,
+	ScriptCommon;
+
+file
+	AGENTS.md,
+	ScriptCLI.h,
+	CommandRegistry.h,
+	CommandRegistry.cpp,
+	RunCommand.h,
+	RunCommand.cpp,
+	LintCommand.h,
+	LintCommand.cpp,
+	PluginCommand.h,
+	PluginCommand.cpp,
+	McpCommand.h,
+	McpCommand.cpp,
+	Main.cpp;

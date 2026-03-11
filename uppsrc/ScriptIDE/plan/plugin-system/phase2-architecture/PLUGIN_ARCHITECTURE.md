@@ -1,5 +1,10 @@
 # ScriptIDE Plugin Architecture Design
 
+## Migration Note (ScriptCommon Split, 2026-03-10)
+
+Core plugin interfaces/registry in this document should be treated as moving to `uppsrc/ScriptCommon`.
+ScriptIDE-specific UI hooks (dock panes, menu wiring, Ctrl-based document hosts) remain in `uppsrc/ScriptIDE` as frontend adapters.
+
 ## Core Interfaces
 
 ### IPlugin

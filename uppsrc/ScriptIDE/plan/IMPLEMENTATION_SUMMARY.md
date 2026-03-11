@@ -1,5 +1,14 @@
 # ScriptIDE Implementation Summary
 
+## Migration Notice (2026-03-10)
+
+This summary describes the implemented ScriptIDE feature set, but active work has moved to package split architecture:
+- Non-GUI runtime/core is being moved to `uppsrc/ScriptCommon`.
+- Headless workflows (CLI + MCP) are being added in `uppsrc/ScriptCLI`.
+- ScriptIDE remains the GUI frontend over shared services.
+
+When this file references non-GUI classes under ScriptIDE (e.g., `RunManager`, `PathManager`, `IDESettings`, plugin core contracts), treat ownership as moving to `ScriptCommon`.
+
 ## Overview
 ScriptIDE is a Spyder-like Python IDE built on Ultimate++ using the internal ByteVM Python interpreter.
 
@@ -145,6 +154,20 @@ ScriptIDE
 ├── RichEdit (help system)
 └── Docking (DockWindow, DockableCtrl)
     └── CtrlLib
+```
+
+### Split Target Dependencies
+
+```
+ScriptCommon
+├── Core
+└── ByteVM
+
+ScriptCLI
+├── Core
+├── ByteVM
+├── MCP (host transport as needed)
+└── ScriptCommon
 ```
 
 ## Build Command

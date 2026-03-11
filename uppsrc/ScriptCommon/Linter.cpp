@@ -1,4 +1,4 @@
-#include "ScriptIDE.h"
+#include "ScriptCommon.h"
 
 namespace Upp {
 

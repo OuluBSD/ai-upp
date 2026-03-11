@@ -7,6 +7,7 @@
 #include <ByteVM/ByteVM.h>
 #include <RichEdit/RichEdit.h>
 #include <Docking/Docking.h>
+#include <ScriptCommon/ScriptCommon.h>
 
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
@@ -25,7 +26,6 @@ NAMESPACE_UPP
 		operator T&() { return ctrl; }
 	};
 
-#include "IDESettings.h"
 #include "PreferencesPage.h"
 #include "PreferencesWindow.h"
 #include "PythonEditor.h"
@@ -41,9 +41,6 @@ NAMESPACE_UPP
 #include "CustomFileTabs.h"
 #include "PythonConsole.h"
 #include "FilesPane.h"
-#include "RunManager.h"
-#include "Linter.h"
-#include "PathManager.h"
 #include "PathManagerDlg.h"
 #include "PluginInterfaces.h"
 #include "PythonIDE.h"

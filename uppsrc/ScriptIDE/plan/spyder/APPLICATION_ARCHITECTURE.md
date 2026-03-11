@@ -1,5 +1,12 @@
 # Application Architecture
 
+## Migration Note (ScriptCommon Split, 2026-03-10)
+
+Interpret this architecture with split ownership:
+- Execution/analysis/runtime service logic belongs in `uppsrc/ScriptCommon`.
+- ScriptIDE keeps GUI composition, controls, docking, and view adapters.
+- ScriptCLI and MCP use the same ScriptCommon services without GUI dependencies.
+
 This IDE follows a modular architecture composed of:
 
 GUI Layer Execution Layer Analysis Layer Runtime Layer

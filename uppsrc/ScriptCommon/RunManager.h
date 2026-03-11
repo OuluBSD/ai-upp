@@ -1,5 +1,5 @@
-#ifndef _ScriptIDE_RunManager_h_
-#define _ScriptIDE_RunManager_h_
+#ifndef _ScriptCommon_RunManager_h_
+#define _ScriptCommon_RunManager_h_
 
 class RunManager {
 public:

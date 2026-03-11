@@ -1,0 +1,16 @@
+description "Headless shared script runtime core\377";
+
+uses
+	Core,
+	ByteVM;
+
+file
+	AGENTS.md,
+	ScriptCommon.h,
+	IDESettings.h,
+	PathManager.h,
+	PathManager.cpp,
+	Linter.h,
+	Linter.cpp,
+	RunManager.h,
+	RunManager.cpp;

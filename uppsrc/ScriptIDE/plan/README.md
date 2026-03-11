@@ -2,6 +2,16 @@
 
 This directory contains the implementation plan for ScriptIDE, a Spyder-like Python IDE built on Ultimate++ using ByteVM.
 
+## Migration Notice (2026-03-10)
+
+ScriptIDE planning is now in architectural split mode:
+- New shared non-GUI core: `uppsrc/ScriptCommon`
+- New headless frontend: `uppsrc/ScriptCLI` (CLI + MCP host)
+- `uppsrc/ScriptIDE` remains GUI frontend and adapter layer
+
+Legacy tasks that reference non-GUI files under `uppsrc/ScriptIDE` should be interpreted via the `plan/script-cli/` migration mapping.
+See also: `MIGRATION_MAP_SCRIPTCOMMON.md`.
+
 ## Plan Structure
 
 ```
@@ -39,6 +49,13 @@ plan/
     ├── phase9-asset-pipeline/
     ├── phase10-reference-example/
     └── phase11-testing-acceptance/
+└── script-cli/                   # Track: ScriptCommon/ScriptCLI split + MCP
+    ├── phase1-discovery/
+    ├── phase2-scriptcommon-architecture/
+    ├── phase3-migration-execution/
+    ├── phase4-scriptcli-bootstrap/
+    ├── phase5-test-headless/
+    └── phase6-mcp-server/
 ```
 
 ## Implementation Order

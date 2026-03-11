@@ -2,10 +2,16 @@
 # Last Updated: 2026-03-10
 
 ## Current Task
-Track: spyder-exact
-Phase: phase2-preferences-system
-Task: 01-implement-settings-model.md
+Track: script-cli
+Phase: phase5-test-headless
+Task: task-01-headless-plugin-tests/01-headless-plugin-testing-strategy.md
 Status: IN_PROGRESS
+
+## Active Initiative
+ScriptIDE split for headless development:
+- New package: `uppsrc/ScriptCommon` (non-GUI shared core)
+- New package: `uppsrc/ScriptCLI` (headless CLI + MCP host)
+- ScriptIDE becomes GUI frontend over ScriptCommon services
 
 ## Implementation Order
 
@@ -40,6 +46,37 @@ Status: IN_PROGRESS
 96. [DONE] spyder-exact/99-final-spyder-audit.md -> Result: AUDIT_PASSED (All UI components and settings are compliant)
 97. [DONE] 05-polishing/phase1-final-review/01-final-review.md -> Result: FINAL_REVIEW_PASSED (Code polished, stubs removed, UI verified)
 
-## Project Status: COMPLETED
-All tracks and phases have been successfully implemented, verified, and polished.
-The ScriptIDE is now a fully functional, Spyder-like IDE with a modular plugin system and a high-fidelity Hearts game.
+98. [DONE] script-cli/phase1-discovery/task-01-inventory-nongui/01-inventory-scriptide-components.md -> Result: INVENTORY.md
+99. [DONE] script-cli/phase1-discovery/task-02-dependency-audit/01-audit-ctrlcore-recursion-risk.md -> Result: BOUNDARY_POLICY.md
+100. [DONE] script-cli/phase2-scriptcommon-architecture/task-01-package-layout/01-scriptcommon-file-tree.md -> Result: PACKAGE_LAYOUT.md
+101. [DONE] script-cli/phase2-scriptcommon-architecture/task-02-api-split/01-plugin-api-common-vs-ui.md -> Result: API_SPLIT.md
+102. [DONE] script-cli/phase2-scriptcommon-architecture/task-03-pane-service-interfaces/01-define-pane-services-for-mcp-cli.md -> Result: PANE_SERVICES.md
+103. [DONE] script-cli/phase3-migration-execution/task-01-core-extraction/01-extract-runtime-config-environment.md -> Result: CORE_EXTRACTION_PLAN.md
+104. [DONE] script-cli/phase3-migration-execution/task-02-gui-adapters/01-scriptide-adapters-for-common.md -> Result: GUI_ADAPTER_PLAN.md
+105. [DONE] script-cli/phase4-scriptcli-bootstrap/task-01-package-create/01-scriptcli-package-layout.md -> Result: ScriptCommon+ScriptCLI packages created, ScriptIDE wired to ScriptCommon, ScriptIDE/ScriptCLI builds passing
+106. [DONE] script-cli/phase4-scriptcli-bootstrap/task-02-cli-commands/01-cli-command-surface.md -> Result: Command surface implemented (`run`, `lint`, `plugin`, `mcp`) in ScriptCLI, ScriptIDE/ScriptCLI builds passing
+107. [IN_PROGRESS] script-cli/phase5-test-headless/task-01-headless-plugin-tests/01-headless-plugin-testing-strategy.md
+108. [TODO] script-cli/phase5-test-headless/task-02-acceptance/01-split-acceptance-gates.md
+109. [TODO] script-cli/phase6-mcp-server/task-01-reference-audit/01-audit-ide-mcp-reference.md
+110. [TODO] script-cli/phase6-mcp-server/task-02-scriptcommon-mcp-core/01-design-scriptcommon-mcp-core.md
+111. [TODO] script-cli/phase6-mcp-server/task-03-scriptcli-mcp-host/01-design-scriptcli-mcp-host.md
+112. [TODO] script-cli/phase6-mcp-server/task-04-method-contract/01-define-script-mcp-methods.md
+113. [TODO] script-cli/phase6-mcp-server/task-05-testing/01-mcp-smoke-and-regression-plan.md
+
+## Status
+ScriptIDE feature work is complete, but architecture refactor is active.
+Legacy plan files may reference pre-split ownership in `uppsrc/ScriptIDE`; treat those references as historical and apply migration mapping from `plan/script-cli/`.
+
+## Critical Constraints
+
+### ScriptCommon Boundary Policy
+- `ScriptCommon` and `ScriptCLI` must not depend on `CtrlCore` or `CtrlLib`.
+- Non-GUI runtime/services move to `ScriptCommon`.
+- GUI wrappers remain in `ScriptIDE`.
+- Pane logic should be extracted to headless services so CLI/MCP/TUI can reuse it.
+
+### Migration Reminder
+When old plan tasks mention these files in `ScriptIDE`, interpret with split intent:
+- `RunManager`, `Linter`, `PathManager`, `IDESettings` -> `ScriptCommon`
+- Plugin core contracts/registry -> `ScriptCommon`
+- UI controls/panes/windows -> `ScriptIDE` adapters/views

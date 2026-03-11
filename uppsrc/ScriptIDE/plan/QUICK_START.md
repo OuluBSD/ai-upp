@@ -1,5 +1,14 @@
 # Quick Start Guide for Implementing ScriptIDE
 
+## Migration Notice (2026-03-10)
+
+This guide documents the original ScriptIDE build-out flow. Active work is now focused on the split track:
+- `uppsrc/ScriptIDE/plan/script-cli/`
+- `uppsrc/ScriptCommon` (new non-GUI core)
+- `uppsrc/ScriptCLI` (new headless CLI + MCP host)
+
+Before following legacy task tracks below, check `cookie.txt` first. If `script-cli` is active, treat non-GUI ownership references under `ScriptIDE` as migration targets for `ScriptCommon` and follow `MIGRATION_MAP_SCRIPTCOMMON.md`.
+
 ## For AI Agents
 
 1. **Read cookie.txt** to find current task

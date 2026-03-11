@@ -181,16 +181,36 @@ void PythonIDE::DockInit()
 	Register(context_pane_left);
 	Register(context_pane_right);
 
+	// Set size hints BEFORE docking
+	files_pane->SizeHint(Size(250, 400));
+	outline_pane->SizeHint(Size(250, 400));
+	
+	var_explorer->SizeHint(Size(300, 300));
+	help_pane->SizeHint(Size(300, 300));
+	plots_pane->SizeHint(Size(300, 300));
+	debugger_pane->SizeHint(Size(300, 300));
+	profiler_pane->SizeHint(Size(300, 300));
+	
+	console_pane->SizeHint(Size(400, 250));
+	history_pane->SizeHint(Size(400, 250));
+	find_pane->SizeHint(Size(400, 250));
+
+	// Layout construction
 	DockLeft(*files_pane);
-	DockRight(*outline_pane);
+	Tabify(*files_pane, *outline_pane);
+
 	DockRight(*var_explorer);
-	DockRight(*help_pane);
-	DockRight(*plots_pane);
+	Tabify(*var_explorer, *help_pane);
+	Tabify(*var_explorer, *plots_pane);
+	
+	// Create a second group on the right for debugger/profiler
+	DockRight(*debugger_pane); 
+	Tabify(*debugger_pane, *profiler_pane);
+
+	// Bottom side - Console and History side-by-side
 	DockBottom(*console_pane);
-	DockBottom(*history_pane);
-	DockBottom(*find_pane);
-	DockBottom(*debugger_pane);
-	DockBottom(*profiler_pane);
+	DockBottom(*history_pane); // Should split horizontally at bottom
+	Tabify(*console_pane, *find_pane);
 	
 	DockLeft(context_pane_left);
 	DockRight(context_pane_right);
@@ -198,13 +218,13 @@ void PythonIDE::DockInit()
 	context_pane_left.Title("Context (L)").Hide();
 	context_pane_right.Title("Context (R)").Hide();
 
-	Tabify(*files_pane, *outline_pane);
-	Tabify(*var_explorer, *help_pane);
-	Tabify(*help_pane, *plots_pane);
-	Tabify(*console_pane, *history_pane);
-	Tabify(*history_pane, *find_pane);
-	Tabify(*debugger_pane, *profiler_pane);
-	Tabify(*var_explorer, *debugger_pane);
+	// Set frame order: Left/Right take precedence (full height)
+	SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
+
+	// Explicitly set initial frame sizes to ensure they are visible
+	SetFrameSize(DOCK_LEFT, 250);
+	SetFrameSize(DOCK_RIGHT, 300);
+	SetFrameSize(DOCK_BOTTOM, 250);
 	
 	// Capture the default layout string
 	StringStream s;

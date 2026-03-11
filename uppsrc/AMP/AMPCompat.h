@@ -1,6 +1,8 @@
 #ifndef _AMP_AMPCompat_h_
 #define _AMP_AMPCompat_h_
 
+#include <type_traits>
+
 #if defined flagMSC && defined flagWIN32 && defined flagAMP && !defined flagAMPCOMPAT
 	#define PARALLEL restrict(cpu,amp)
 	#define PARALLEL_AMP restrict(amp)
@@ -333,21 +335,22 @@ struct WorkerManager {
 				}
 				else Panic("Not implemented");
 			}
-			spin.Leave();
-			
-			if (valid) {
-				if (I == 1) {
-					cb(typename T::TileType(args[0]));
-				}
-				else if (I == 2) {
-					cb(typename T::TileType(args[0], args[1]));
+				spin.Leave();
+				
+				if (valid) {
+					cb(MakeTileType(args, std::integral_constant<int, I>()));
 				}
 			}
-		}
-		spin.Enter();
+			spin.Enter();
 		not_stopped--;
 		spin.Leave();
-		if (!i) waiter.Leave();
+			if (!i) waiter.Leave();
+		}
+	typename T::TileType MakeTileType(const int args[], std::integral_constant<int, 1>) {
+		return typename T::TileType(args[0]);
+	}
+	typename T::TileType MakeTileType(const int args[], std::integral_constant<int, 2>) {
+		return typename T::TileType(args[0], args[1]);
 	}
 	void Wait() {
 		waiter.Enter();
@@ -357,18 +360,18 @@ struct WorkerManager {
 	}
 };
 
-template <class T, class CB> void parallel_for_each(T extent, CB cb) {
-	if (extent.dimensions == 1) {
-		WorkerManager<T, CB, 1> mgr(extent.value[0], cb);
-		mgr.Start();
-		mgr.Wait();
-	}
-	else if (extent.dimensions == 2) {
-		WorkerManager<T, CB, 2> mgr(extent.value[0], extent.value[1], cb);
-		mgr.Start();
-		mgr.Wait();
-	}
-	else Panic("Dimensions over 2 have not yet been implemented");
+template <class T, class CB, typename std::enable_if<T::dimensions == 1, int>::type = 0>
+void parallel_for_each(T extent, CB cb) {
+	WorkerManager<T, CB, 1> mgr(extent.value[0], cb);
+	mgr.Start();
+	mgr.Wait();
+}
+
+template <class T, class CB, typename std::enable_if<T::dimensions == 2, int>::type = 0>
+void parallel_for_each(T extent, CB cb) {
+	WorkerManager<T, CB, 2> mgr(extent.value[0], extent.value[1], cb);
+	mgr.Start();
+	mgr.Wait();
 }
 
 inline void TestCompatAMP() {

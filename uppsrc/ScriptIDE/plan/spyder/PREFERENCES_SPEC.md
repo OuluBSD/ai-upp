@@ -1,5 +1,12 @@
 # PREFERENCES_SPEC.md
 
+## Migration Note (ScriptCommon Split, 2026-03-10)
+
+This spec remains valid for GUI behavior, but ownership is split:
+- `IDESettings` schema/data moves to `uppsrc/ScriptCommon`.
+- Preferences widgets/pages remain in `uppsrc/ScriptIDE`.
+- Runtime services referenced by pages (e.g., run/path/plugin core) should be accessed through ScriptIDE adapters over ScriptCommon.
+
 # Preferences Windows Specification
 
 ## UI structure, data model, runtime bindings and U++ implementation notes

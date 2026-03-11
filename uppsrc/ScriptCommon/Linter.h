@@ -1,5 +1,5 @@
-#ifndef _ScriptIDE_Linter_h_
-#define _ScriptIDE_Linter_h_
+#ifndef _ScriptCommon_Linter_h_
+#define _ScriptCommon_Linter_h_
 
 class Linter {
 public:

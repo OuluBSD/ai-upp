@@ -1,5 +1,10 @@
 # Python VM Binding Bridge
 
+## Migration Note (ScriptCommon Split, 2026-03-10)
+
+Binding-provider core contracts are moving to ScriptCommon.  
+ScriptIDE should invoke binding sync through a frontend adapter/bridge over ScriptCommon registry services.
+
 ## Overview
 Plugins must be able to expose C++ functionality (e.g., game board manipulation) to Python scripts running in the `ByteVM`.
 

@@ -1,6 +1,7 @@
 description "Python IDE using ByteVM\377";
 
 uses
+	ScriptCommon,
 	CtrlLib,
 	CodeEditor,
 	TabBar,
@@ -14,7 +15,6 @@ file
 	ScriptIDE.h,
 	PythonIDE.h,
 	PythonIDE.cpp,
-	IDESettings.h,
 	Settings.h,
 	Settings.cpp,
 	VariableExplorer.h,
@@ -40,12 +40,6 @@ file
 	GameStatePlugin.cpp,
 	CardGamePlugin.h,
 	CardGamePlugin.cpp,
-	RunManager.h,
-	RunManager.cpp,
-	Linter.h,
-	Linter.cpp,
-	PathManager.h,
-	PathManager.cpp,
 	PathManagerDlg.h,
 	PathManagerDlg.cpp,
 	PreferencesPage.h,

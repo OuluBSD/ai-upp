@@ -1,5 +1,5 @@
-#ifndef _ScriptIDE_PathManager_h_
-#define _ScriptIDE_PathManager_h_
+#ifndef _ScriptCommon_PathManager_h_
+#define _ScriptCommon_PathManager_h_
 
 class PathManager {
 public:

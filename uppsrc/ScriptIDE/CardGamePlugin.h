@@ -1,50 +1,31 @@
 #ifndef _ScriptIDE_CardGamePlugin_h_
 #define _ScriptIDE_CardGamePlugin_h_
 
-#include <Core/Core.h>
-#include <CtrlLib/CtrlLib.h>
-#include <FormEditor/FormEditor.h>
+// No includes here - they are in ScriptIDE.h or Main package header
 
-NAMESPACE_UPP
-
-class CardGamePlugin : public IPlugin, 
-                       public ICustomExecuteProvider,
-                       public IPythonBindingProvider {
+class CardGamePluginGUI : public CardGamePlugin {
 public:
-	CardGamePlugin();
-	virtual ~CardGamePlugin();
+	CardGamePluginGUI();
+	virtual ~CardGamePluginGUI();
 
-	// IPlugin
-	virtual String GetID() const override { return "CardGamePlugin"; }
-	virtual String GetName() const override { return "Card Game Engine"; }
-	virtual String GetDescription() const override { return "Provides .gamestate rendering and .form layout support."; }
+	// IPlugin overrides
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
-	// ICustomExecuteProvider
-	virtual bool CanExecute(const String& path) override;
-	virtual void Execute(const String& path) override;
-
-	// IPythonBindingProvider
-	virtual void SyncBindings(PyVM& vm) override;
-
 	// File Type Handlers
 	struct GameStateHandler : public IFileTypeHandler {
-		CardGamePlugin* plugin;
+		CardGamePluginGUI* plugin;
 		virtual String         GetExtension() const override { return ".gamestate"; }
 		virtual String         GetFileDescription() const override { return "Game State JSON"; }
 		virtual IDocumentHost* CreateDocumentHost() override;
 	} gamestate_handler;
 
 	struct FormHandler : public IFileTypeHandler {
-		CardGamePlugin* plugin;
+		CardGamePluginGUI* plugin;
 		virtual String         GetExtension() const override { return ".form"; }
 		virtual String         GetFileDescription() const override { return "Card Game Layout"; }
 		virtual IDocumentHost* CreateDocumentHost() override;
 	} form_handler;
-
-private:
-	IPluginContext* context = nullptr;
 };
 
 class CardGameDocumentHost : public IDocumentHost, public Ctrl {
@@ -133,7 +114,5 @@ private:
 	String path;
 	CardGameProperties card_properties;
 };
-
-END_UPP_NAMESPACE
 
 #endif

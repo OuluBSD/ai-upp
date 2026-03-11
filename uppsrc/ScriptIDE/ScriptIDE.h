@@ -7,6 +7,7 @@
 #include <ByteVM/ByteVM.h>
 #include <RichEdit/RichEdit.h>
 #include <Docking/Docking.h>
+#include <FormEditor/FormEditor.h>
 #include <ScriptCommon/ScriptCommon.h>
 
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
@@ -26,7 +27,30 @@ NAMESPACE_UPP
 		operator T&() { return ctrl; }
 	};
 
+#define IMAGECLASS ScriptIDEImg
+#define IMAGEFILE  <ScriptIDE/ScriptIDE.iml>
+#include <Draw/iml_header.h>
+
+	// Forward declarations for circular dependencies
+	class CustomFileTabs;
+	class PythonConsole;
+	class FilesPane;
+	class VariableExplorer;
+	class PlotsPane;
+	class DebuggerPane;
+	class ProfilerPane;
+	class FindInFilesPane;
+	class OutlinePane;
+	class HelpPane;
+	class HistoryPane;
+	class GameStatePluginGUI;
+	class CardGamePluginGUI;
+
+#include "PluginInterfacesGUI.h"
+#include "PluginManager.h"
 #include "PreferencesPage.h"
+#include "PythonIDE.h"
+
 #include "PreferencesWindow.h"
 #include "PythonEditor.h"
 #include "Settings.h"
@@ -42,10 +66,8 @@ NAMESPACE_UPP
 #include "PythonConsole.h"
 #include "FilesPane.h"
 #include "PathManagerDlg.h"
-#include "PluginInterfaces.h"
-#include "PythonIDE.h"
-#include "PluginManager.h"
 #include "GameStatePlugin.h"
+#include "CardGamePlugin.h"
 
 END_UPP_NAMESPACE
 

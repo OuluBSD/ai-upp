@@ -2,12 +2,17 @@
 
 NAMESPACE_UPP
 
+#define IMAGECLASS ScriptIDEImg
+#define IMAGEFILE <ScriptIDE/ScriptIDE.iml>
+#include <Draw/iml_source.h>
+
 PythonIDE::PythonIDE()
 	: run_manager(vm)
 {
+	main_window = this;
 	plugin_manager.Create(*this);
 	Title("Python IDE");
-	Icon(CtrlImg::help()); // Placeholder icon
+	Icon(ScriptIDEImg::IconPython());
 
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1024, 768);
@@ -15,9 +20,8 @@ PythonIDE::PythonIDE()
 	LoadFromFile(settings, ConfigFile("ide_settings.bin"));
 
 	InitLayout();
-	InitDocking();
 	
-	files_pane.SetRoot(GetCurrentDirectory());
+	files_pane->SetRoot(GetCurrentDirectory());
 	
 	plugin_manager->LoadPlugins();
 	
@@ -33,7 +37,7 @@ void PythonIDE::ApplySettings()
 {
 	// Editor settings
 	for(int i = 0; i < open_files.GetCount(); i++) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[i].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[i].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				ed->LineNumbers(settings.editor.show_line_numbers);
 				ed->ShowTabs(settings.editor.show_spaces);
@@ -48,7 +52,7 @@ void PythonIDE::ApplySettings()
 	}
 	
 	// Files pane settings
-	files_pane.ShowHidden(settings.files.show_hidden_files);
+	files_pane->ShowHidden(settings.files.show_hidden_files);
 	
 	// Status bar settings
 	// (handled in UpdateStatusBar via settings poll)
@@ -64,106 +68,129 @@ void PythonIDE::InitLayout()
 	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
 
 	Add(editor_area.SizePos());
-	editor_area.Add(editor_tabs.TopPos(0, 24).HSizePos());
 	
-	editor_tabs.WhenAction = [=] { OnTabChanged(); };
-	editor_tabs.WhenTabMenu = [=](Bar& bar) { OnTabMenu(bar); };
+	editor_tabs.Create();
+	editor_area.Add(editor_tabs->TopPos(0, 24).HSizePos());
 	
-	files_pane.WhenOpen = [=](const String& path) { LoadFile(path); };
-	files_pane.WhenPathManager = [=] { OnPathManager(); };
-	files_pane.WhenBrowse = [=] {
-		FileSel fs;
-		if(fs.ExecuteSelectDir("Select Working Directory"))
-			files_pane.SetRoot(fs.Get());
-	};
-	files_pane.WhenParent = [=] {
-		String p = GetFileDirectory(files_pane.GetRoot());
-		if(p.GetCount() > 0 && *p.Last() == DIR_SEP) p.TrimLast();
-		p = GetFileDirectory(p);
-		if(!p.IsEmpty()) files_pane.SetRoot(p);
-	};
+	editor_tabs->WhenAction = [=] { OnTabChanged(); };
+	editor_tabs->WhenTabMenu = [=](Bar& bar) { OnTabMenu(bar); };
 	
-	console_pane.WhenInput = [=] { OnConsoleInput(); };
-	console_pane.WhenInterrupt = [=] { run_manager.Stop(); };
-	console_pane.WhenRestart = [=] { 
+	console_pane.Create();
+	console_pane->WhenInput = [=] { OnConsoleInput(); };
+	console_pane->WhenInterrupt = [=] { run_manager.Stop(); };
+	console_pane->WhenRestart = [=] { 
 		if(PromptYesNo("Restart kernel? This will clear all variables.")) {
 			vm.Reset();
-			console_pane.Clear();
-			console_pane.Write("Kernel restarted.\n");
+			console_pane->Clear();
+			console_pane->Write("Kernel restarted.\n");
 			UpdateVariableExplorer();
 		}
 	};
-	console_pane.WhenRemoveVariables = [=] { 
+	console_pane->WhenRemoveVariables = [=] { 
 		if(PromptYesNo("Remove all variables from current session?")) {
 			vm.GetGlobals().Clear();
-			var_explorer.Clear();
+			var_explorer->Clear();
 		}
 	};
 	
-	var_explorer.WhenRemoveAll = [=] {
+	files_pane.Create();
+	files_pane->WhenOpen = [=](const String& path) { LoadFile(path); };
+	files_pane->WhenPathManager = [=] { OnPathManager(); };
+	files_pane->WhenBrowse = [=] {
+		FileSel fs;
+		if(fs.ExecuteSelectDir("Select Working Directory"))
+			files_pane->SetRoot(fs.Get());
+	};
+	files_pane->WhenParent = [=] {
+		String p = GetFileDirectory(files_pane->GetRoot());
+		if(p.EndsWith(String(DIR_SEP, 1))) p.TrimLast();
+		p = GetFileDirectory(p);
+		if(!p.IsEmpty()) files_pane->SetRoot(p);
+	};
+	
+	var_explorer.Create();
+	var_explorer->WhenRemoveAll = [=] {
 		if(PromptYesNo("Remove all variables from current session?")) {
 			vm.GetGlobals().Clear();
-			var_explorer.Clear();
+			var_explorer->Clear();
 		}
 	};
-	var_explorer.WhenRefresh = [=] { UpdateVariableExplorer(); };
+	var_explorer->WhenRefresh = [=] { UpdateVariableExplorer(); };
 	
-	run_manager.WhenStarted = [=] { console_pane.Write("Running script...\n"); };
-	run_manager.WhenFinished = [=] { console_pane.Write("Finished.\n"); UpdateVariableExplorer(); };
-	run_manager.WhenError = [=](const String& e) { console_pane.WriteError("Error: " + e + "\n"); };
-	
-	vm.WhenBreakpointHit = [=](const String& f, int l) { OnBreakpointHit(f, l); };
-	
-	debugger_pane.WhenStepOver = [=] { vm.StepOver(); };
-	debugger_pane.WhenStepInto = [=] { vm.StepIn(); };
-	debugger_pane.WhenStepOut = [=] { vm.StepOut(); };
-	debugger_pane.WhenContinue = [=] { vm.Run(); };
-	debugger_pane.WhenStop = [=] { run_manager.Stop(); };
+	plots_pane.Create();
+	debugger_pane.Create();
+	debugger_pane->WhenStepOver = [=] { vm.StepOver(); };
+	debugger_pane->WhenStepInto = [=] { vm.StepIn(); };
+	debugger_pane->WhenStepOut = [=] { vm.StepOut(); };
+	debugger_pane->WhenContinue = [=] { vm.Run(); };
+	debugger_pane->WhenStop = [=] { run_manager.Stop(); };
+
+	profiler_pane.Create();
+	find_pane.Create();
+	find_pane->WhenOpenMatch = [=](const String& path, int line) {
+		LoadFile(path);
+		if(active_file >= 0 && open_files[active_file].editor) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
+				if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
+					ed->SetCursor(ed->GetPos(line - 1));
+				}
+			}
+		}
+	};
+
+	outline_pane.Create();
+	outline_pane->WhenSelectLine = [=](int line) {
+		if(active_file >= 0 && open_files[active_file].editor) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
+				if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
+					ed->SetCursor(ed->GetPos(line - 1));
+				}
+			}
+		}
+	};
+
+	help_pane.Create();
+	history_pane.Create();
 	
 	// Track active pane
-	files_pane.WhenAction = [this] { active_pane = &files_pane; };
-	outline_pane.WhenAction = [this] { active_pane = &outline_pane; };
-	var_explorer.WhenAction = [this] { active_pane = &var_explorer; };
-	help_pane.WhenAction = [this] { active_pane = &help_pane; };
-	plots_pane.WhenAction = [this] { active_pane = &plots_pane; };
-	console_pane.WhenAction = [this] { active_pane = &console_pane; };
-	history_pane.WhenAction = [this] { active_pane = &history_pane; };
-	find_pane.WhenAction = [this] { active_pane = &find_pane; };
-	debugger_pane.WhenAction = [this] { active_pane = &debugger_pane; };
-	profiler_pane.WhenAction = [this] { active_pane = &profiler_pane; };
-}
-
-void PythonIDE::InitDocking()
-{
-	DockInit();
+	files_pane->WhenAction = [this] { active_pane = &*files_pane; };
+	outline_pane->WhenAction = [this] { active_pane = &*outline_pane; };
+	var_explorer->WhenAction = [this] { active_pane = &*var_explorer; };
+	help_pane->WhenAction = [this] { active_pane = &*help_pane; };
+	plots_pane->WhenAction = [this] { active_pane = &*plots_pane; };
+	console_pane->WhenAction = [this] { active_pane = &*console_pane; };
+	history_pane->WhenAction = [this] { active_pane = &*history_pane; };
+	find_pane->WhenAction = [this] { active_pane = &*find_pane; };
+	debugger_pane->WhenAction = [this] { active_pane = &*debugger_pane; };
+	profiler_pane->WhenAction = [this] { active_pane = &*profiler_pane; };
 }
 
 void PythonIDE::DockInit()
 {
 	// Ensure all panes are registered
-	Register(files_pane);
-	Register(outline_pane);
-	Register(var_explorer);
-	Register(help_pane);
-	Register(plots_pane);
-	Register(console_pane);
-	Register(history_pane);
-	Register(find_pane);
-	Register(debugger_pane);
-	Register(profiler_pane);
+	Register(*files_pane);
+	Register(*outline_pane);
+	Register(*var_explorer);
+	Register(*help_pane);
+	Register(*plots_pane);
+	Register(*console_pane);
+	Register(*history_pane);
+	Register(*find_pane);
+	Register(*debugger_pane);
+	Register(*profiler_pane);
 	Register(context_pane_left);
 	Register(context_pane_right);
 
-	DockLeft(files_pane);
-	DockRight(outline_pane);
-	DockRight(var_explorer);
-	DockRight(help_pane);
-	DockRight(plots_pane);
-	DockBottom(console_pane);
-	DockBottom(history_pane);
-	DockBottom(find_pane);
-	DockBottom(debugger_pane);
-	DockBottom(profiler_pane);
+	DockLeft(*files_pane);
+	DockRight(*outline_pane);
+	DockRight(*var_explorer);
+	DockRight(*help_pane);
+	DockRight(*plots_pane);
+	DockBottom(*console_pane);
+	DockBottom(*history_pane);
+	DockBottom(*find_pane);
+	DockBottom(*debugger_pane);
+	DockBottom(*profiler_pane);
 	
 	DockLeft(context_pane_left);
 	DockRight(context_pane_right);
@@ -171,13 +198,13 @@ void PythonIDE::DockInit()
 	context_pane_left.Title("Context (L)").Hide();
 	context_pane_right.Title("Context (R)").Hide();
 
-	Tabify(files_pane, outline_pane);
-	Tabify(var_explorer, help_pane);
-	Tabify(help_pane, plots_pane);
-	Tabify(console_pane, history_pane);
-	Tabify(history_pane, find_pane);
-	Tabify(debugger_pane, profiler_pane);
-	Tabify(var_explorer, debugger_pane);
+	Tabify(*files_pane, *outline_pane);
+	Tabify(*var_explorer, *help_pane);
+	Tabify(*help_pane, *plots_pane);
+	Tabify(*console_pane, *history_pane);
+	Tabify(*history_pane, *find_pane);
+	Tabify(*debugger_pane, *profiler_pane);
+	Tabify(*var_explorer, *debugger_pane);
 	
 	// Capture the default layout string
 	StringStream s;
@@ -197,327 +224,11 @@ void PythonIDE::Serialize(Stream& s)
 	s % settings;
 }
 
-void PythonIDE::MainMenu(Bar& bar)
-{
-	bar.Sub("File",      [=](Bar& b){ FileMenu(b); });
-	bar.Sub("Edit",      [=](Bar& b){ EditMenu(b); });
-	bar.Sub("Search",    [=](Bar& b){ SearchMenu(b); });
-	bar.Sub("Source",    [=](Bar& b){ SourceMenu(b); });
-	
-	if(active_editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
-			h->MainMenu(bar);
-	}
-
-	bar.Sub("Run",       [=](Bar& b){ RunMenu(b); });
-	bar.Sub("Debug",     [=](Bar& b){ DebugMenu(b); });
-	bar.Sub("Consoles",  [=](Bar& b){ ConsolesMenu(b); });
-	bar.Sub("Projects",  [=](Bar& b){ ProjectsMenu(b); });
-	bar.Sub("Tools",     [=](Bar& b){ ToolsMenu(b); });
-	bar.Sub("Window",    [=](Bar& b){ WindowMenu(b); });
-	bar.Sub("Help",      [=](Bar& b){ HelpMenu(b); });
-}
-
-void PythonIDE::FileMenu(Bar& bar)
-{
-	bar.Add("New file...", Image(), [=] { OnNewFile(); }).Key(K_CTRL_N);
-	bar.Separator();
-	bar.Add("Open...", Image(), [=] { OnOpenFile(); }).Key(K_CTRL_O);
-	bar.Add("Open last closed", Image(), [=] { OnOpenLastClosed(); }).Key(K_CTRL|K_SHIFT|K_T);
-	bar.Sub("Open recent", [=](Bar& b) { UpdateRecentFilesMenu(b); });
-	bar.Separator();
-	bar.Add("Save", Image(), [=] { OnSaveFile(); }).Key(K_CTRL_S);
-	bar.Add("Save all", Image(), [=] { OnSaveAll(); }).Key(K_CTRL|K_ALT|K_S);
-	bar.Add("Save as...", Image(), [=] { OnSaveFileAs(); }).Key(K_CTRL|K_SHIFT|K_S);
-	bar.Add("Save copy as...", Image(), [=] { OnSaveCopyAs(); });
-	bar.Add("Revert", Image(), [=] { OnRevert(); });
-	bar.Separator();
-	bar.Add("Print preview", Image(), [=] { Todo("Print preview"); });
-	bar.Add("Print...", Image(), [=] { Todo("Print"); });
-	bar.Separator();
-	bar.Add("Close", Image(), [=] { OnCloseFile(); });
-	bar.Add("Close all", Image(), [=] { OnCloseAll(); }).Key(K_CTRL|K_SHIFT|K_W);
-	bar.Separator();
-	bar.Add("File switcher...", Image(), [=] { OnFileSwitcher(); }).Key(K_CTRL_P);
-	bar.Add("Symbol finder...", Image(), [=] { OnSymbolFinder(); }).Key(K_CTRL|K_ALT|K_P);
-	bar.Separator();
-	bar.Add("Restart", Image(), [=] { OnRestart(); }).Key(K_ALT|K_SHIFT|K_R);
-	bar.Add("Restart in debug mode", Image(), [=] { Todo("Restart in debug mode"); });
-	bar.Add("Quit", Image(), [=] { Close(); }).Key(K_CTRL_Q);
-}
-
-void PythonIDE::EditMenu(Bar& bar)
-{
-	bar.Add("Undo", Image(), [=] { OnUndo(); }).Key(K_CTRL_Z);
-	bar.Add("Redo", Image(), [=] { OnRedo(); }).Key(K_CTRL|K_SHIFT|K_Z);
-	bar.Separator();
-	bar.Add("Cut", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Cut(); } }).Key(K_CTRL_X);
-	bar.Add("Copy", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Copy(); } }).Key(K_CTRL_C);
-	bar.Add("Paste", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Paste(); } }).Key(K_CTRL_V);
-	bar.Add("Select All", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->SelectAll(); } }).Key(K_CTRL_A);
-	bar.Separator();
-	bar.Add("Comment/uncomment", Image(), [=] { OnComment(); }).Key(K_CTRL_1);
-	bar.Add("Add block comment", Image(), [=] { OnBlockComment(); }).Key(K_CTRL_4);
-	bar.Add("Remove block comment", Image(), [=] { OnUncomment(); }).Key(K_CTRL_5);
-	bar.Separator();
-	bar.Add("Indent", Image(), [=] { Todo("Indent"); });
-	bar.Add("Unindent", Image(), [=] { Todo("Unindent"); });
-	bar.Separator();
-	bar.Add("Toggle UPPERCASE", Image(), [=] { OnToggleCase(true); }).Key(K_ALT|K_SHIFT|K_U);
-	bar.Add("Toggle lowercase", Image(), [=] { OnToggleCase(false); }).Key(K_ALT_U);
-	bar.Separator();
-	bar.Sub("Convert end-of-line characters", [=](Bar& b) {
-		b.Add("LF (Linux/macOS)", Image(), [=] { OnConvertEOL("LF"); });
-		b.Add("CRLF (Windows)", Image(), [=] { OnConvertEOL("CRLF"); });
-		b.Add("CR (legacy Mac)", Image(), [=] { OnConvertEOL("CR"); });
-	});
-	bar.Add("Remove trailing spaces", Image(), [=] { OnRemoveTrailingSpaces(); });
-	bar.Add("Convert tabs to spaces", Image(), [=] { OnTabsToSpaces(); });
-}
-
-void PythonIDE::SearchMenu(Bar& bar)
-{
-	bar.Add("Find text", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Find(); } });
-	bar.Add("Replace text", Image(), [=] { if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Replace(); } });
-	bar.Separator();
-	bar.Add("Last edit location", Image(), [=] { Todo("Last edit location"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_LEFT);
-	bar.Add("Previous cursor position", Image(), [=] { OnPrevCursor(); }).Key(K_ALT_LEFT);
-	bar.Add("Next cursor position", Image(), [=] { OnNextCursor(); }).Key(K_ALT_RIGHT);
-	bar.Separator();
-	bar.Add("Search text in files...", Image(), [=] { OnTogglePane(find_pane); }).Key(K_ALT|K_SHIFT|K_F);
-}
-
-void PythonIDE::SourceMenu(Bar& bar)
-{
-	bar.Add("Show invisible characters", Image(), [=] { Todo("Toggle invisible characters"); }).Check(false);
-	bar.Add("Wrap lines", Image(), [=] { Todo("Toggle wrap lines"); }).Check(false);
-	bar.Add("Show indent guides", Image(), [=] { Todo("Toggle indent guides"); }).Check(true);
-	bar.Add("Show code folding", Image(), [=] { Todo("Toggle code folding"); }).Check(true);
-	bar.Add("Show class/function selector", Image(), [=] { Todo("Toggle symbol selector"); }).Check(true);
-	bar.Add("Show docstring style warnings", Image(), [=] { Todo("Toggle docstring warnings"); }).Check(false);
-	bar.Add("Underline errors and warnings", Image(), [=] { Todo("Toggle lint underlines"); }).Check(true);
-	bar.Separator();
-	bar.Add("Show todo list", Image(), [=] { Todo("Show todo list"); }).Enable(false);
-	bar.Add("Show warning/error list", Image(), [=] { Todo("Show warning/error list"); }).Enable(false);
-	bar.Add("Previous warning/error", Image(), [=] { Todo("Prev diagnostic"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_COMMA);
-	bar.Add("Next warning/error", Image(), [=] { Todo("Next diagnostic"); }).Key(K_CTRL|K_ALT|K_SHIFT|K_PERIOD);
-	bar.Separator();
-	bar.Add("Run code analysis", Image(), [=] { OnAnalyze(); }).Key(K_F8);
-	bar.Add("Format file or selection with Autopep8", Image(), [=] { Todo("Autopep8"); });
-}
-
-void PythonIDE::RunMenu(Bar& bar)
-{
-	bar.Add("Run", Image(), [=] { OnRun(); }).Key(K_F5);
-	bar.Add("Re-run last file", Image(), [=] { OnRunLast(); }).Key(K_F6);
-	bar.Add("Configuration per file", Image(), [=] { OnRunConfig(); }).Key(K_CTRL_F6);
-	bar.Add("Global presets", Image(), [=] { Todo("Global presets"); });
-	bar.Separator();
-	bar.Add("Run cell", Image(), [=] { OnRunCell(); }).Key(K_CTRL_RETURN);
-	bar.Add("Run cell and advance", Image(), [=] { OnRunCellAndAdvance(); }).Key(K_SHIFT_RETURN);
-	bar.Add("Re-run last cell", Image(), [=] { Todo("Re-run last cell"); }).Key(K_ALT_RETURN);
-	bar.Add("Run current line/selection", Image(), [=] { OnRunSelection(); }).Key(K_F9);
-	bar.Add("Run to line", Image(), [=] { OnRunToLine(); }).Key(K_SHIFT_F9);
-	bar.Add("Run from line", Image(), [=] { OnRunFromLine(); }).Key(K_ALT_F9);
-	bar.Separator();
-	bar.Add("Run in external terminal", Image(), [=] { Todo("Run in external terminal"); });
-	bar.Separator();
-	bar.Add("Profile file", Image(), [=] { Todo("Profile file"); }).Key(K_F10);
-	bar.Add("Profile cell", Image(), [=] { Todo("Profile cell"); }).Key(K_ALT_F10);
-	bar.Add("Profile current line or selection", Image(), [=] { Todo("Profile selection"); });
-}
-
-void PythonIDE::DebugMenu(Bar& bar)
-{
-	bar.Add("Debug file", Image(), [=] { OnDebug(); }).Key(K_CTRL|K_F5);
-	bar.Add("Debug cell", Image(), [=] { OnDebugCell(); });
-	bar.Add("Debug the current line or selection", Image(), [=] { OnDebugSelection(); });
-	bar.Separator();
-	bar.Add("Step into function or method", Image(), [=] { OnStepIn(); }).Key(K_CTRL|K_F11);
-	bar.Add("Execute until function returns", Image(), [=] { OnStepOut(); }).Key(K_CTRL|K_SHIFT|K_F11);
-	bar.Add("Execute until next breakpoint", Image(), [=] { OnStepOver(); }).Key(K_CTRL|K_F12);
-	bar.Add("Stop debugging", Image(), [=] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12);
-	bar.Separator();
-	bar.Add("Toggle breakpoint", Image(), [=] { OnToggleBreakpoint(); }).Key(K_F12);
-	bar.Add("Set/edit conditional breakpoint", Image(), [=] { Todo("Conditional breakpoint"); }).Key(K_SHIFT|K_F12);
-	bar.Add("Clear breakpoints in all files", Image(), [=] { OnClearBreakpoints(); });
-	bar.Add("List breakpoints", Image(), [=] { OnListBreakpoints(); });
-}
-
-void PythonIDE::ConsolesMenu(Bar& bar)
-{
-	bar.Add("New console (default settings)", Image(), [=] { OnConsoleInput(); }).Key(K_CTRL_T);
-	bar.Sub("New console in environment", [=](Bar& b) {
-		b.Add("Conda: spyder-runtime 0", Image(), [=] { Todo("New Conda console"); });
-	});
-	bar.Sub("New special console", [=](Bar& b) {
-		b.Add("New Pylab console (data plotting)", Image(), [=] { Todo("New Pylab console"); });
-		b.Add("New SymPy console (symbolic math)", Image(), [=] { Todo("New SymPy console"); });
-		b.Add("New Cython console (Python with C extensions)", Image(), [=] { Todo("New Cython console"); });
-	});
-	bar.Sub("New console in remote server", [=](Bar& b) {
-		b.Add("Manage remote connections", Image(), [=] { Todo("Manage remote connections"); });
-	});
-	bar.Add("Connect to existing kernel...", Image(), [=] { Todo("Connect to kernel"); });
-	bar.Separator();
-	bar.Add("Interrupt kernel", Image(), [=] { Todo("Interrupt kernel"); });
-	bar.Add("Restart kernel", Image(), [=] { Todo("Restart kernel"); }).Key(K_CTRL_PERIOD);
-	bar.Add("Remove all variables", Image(), [=] { Todo("Remove all variables"); }).Key(K_CTRL|K_ALT|K_R);
-}
-
-void PythonIDE::ProjectsMenu(Bar& bar)
-{
-	bar.Add("New Project...", Image(), [=] { Todo("New Project"); });
-	bar.Add("Open Project...", Image(), [=] { Todo("Open Project"); });
-	bar.Add("Close Project", Image(), [=] { Todo("Close Project"); });
-	bar.Add("Delete Project", Image(), [=] { Todo("Delete Project"); });
-	bar.Separator();
-	bar.Sub("Recent Projects", [=](Bar& b) {
-		b.Add("Clear this list", Image(), [=] { Todo("Clear recent projects"); });
-		b.Add("Maximum number of recent projects", Image(), [=] { Todo("Max recent projects"); });
-	});
-}
-
-void PythonIDE::ToolsMenu(Bar& bar)
-{
-	bar.Add("PYTHONPATH manager", Image(), [=] { OnPathManager(); });
-	bar.Add("User environment variables", Image(), [=] { Todo("Env vars"); });
-	bar.Add("Manage remote connections", Image(), [=] { Todo("Remote connections"); });
-	bar.Separator();
-	bar.Add("Preferences", Image(), [=] { OnSettings(); });
-	bar.Add("Reset all preferences to defaults", Image(), [=] { Todo("Reset preferences"); });
-}
-
-void PythonIDE::WindowMenu(Bar& bar)
-{
-	bar.Sub("Panes", [=](Bar& b) {
-		b.Add("Editor", Image(), [=] { Todo("Show Editor"); }).Key(K_CTRL|K_SHIFT|K_E).Check(true);
-		b.Add("IPython Console", Image(), [=] { OnTogglePane(console_pane); }).Key(K_CTRL|K_SHIFT|K_I).Check(console_pane.IsDocked());
-		b.Add("Variable Explorer", Image(), [=] { OnTogglePane(var_explorer); }).Key(K_CTRL|K_SHIFT|K_V).Check(var_explorer.IsDocked());
-		b.Add("Debugger", Image(), [=] { OnTogglePane(debugger_pane); }).Key(K_CTRL|K_SHIFT|K_D).Check(debugger_pane.IsDocked());
-		b.Add("Help", Image(), [=] { OnTogglePane(help_pane); }).Key(K_CTRL|K_SHIFT|K_H).Check(help_pane.IsDocked());
-		b.Add("Plots", Image(), [=] { OnTogglePane(plots_pane); }).Key(K_CTRL|K_SHIFT|K_G).Check(plots_pane.IsDocked());
-		b.Separator();
-		b.Add("Files", Image(), [=] { OnTogglePane(files_pane); }).Key(K_CTRL|K_SHIFT|K_X).Check(files_pane.IsDocked());
-		b.Add("Outline", Image(), [=] { OnTogglePane(outline_pane); }).Key(K_CTRL|K_SHIFT|K_O).Check(outline_pane.IsDocked());
-		b.Add("Project", Image(), [=] { Todo("Toggle Project Pane"); }).Key(K_CTRL|K_SHIFT|K_P).Check(false);
-		b.Add("Find", Image(), [=] { OnTogglePane(find_pane); }).Key(K_CTRL|K_SHIFT|K_F).Check(find_pane.IsDocked());
-		b.Separator();
-		b.Add("History", Image(), [=] { OnTogglePane(history_pane); }).Key(K_CTRL|K_SHIFT|K_L).Check(history_pane.IsDocked());
-		b.Add("Profiler", Image(), [=] { OnTogglePane(profiler_pane); }).Key(K_CTRL|K_SHIFT|K_R).Check(profiler_pane.IsDocked());
-		b.Add("Code Analysis", Image(), [=] { Todo("Toggle Code Analysis Pane"); }).Key(K_CTRL|K_SHIFT|K_C).Check(false);
-		b.Separator();
-		b.Add("Online help", Image(), [=] { Todo("Toggle Online Help"); }).Check(false);
-		b.Add("Internal console", Image(), [=] { Todo("Toggle Internal Console"); }).Check(false);
-		
-		if(plugin_panes.GetCount() > 0) {
-			b.Separator();
-			for(int i = 0; i < plugin_panes.GetCount(); i++) {
-				String title = plugin_panes.GetKey(i);
-				DockableCtrl& pane = *plugin_panes[i];
-				b.Add(title, [=, &pane] { OnTogglePane(pane); }).Check(pane.IsDocked());
-			}
-		}
-	});
-	bar.Add("Unlock panes and toolbars", Image(), [=] { Todo("Unlock layout"); }).Key(K_CTRL|K_SHIFT|K_F5);
-	bar.Add("Maximize current pane", Image(), [=] { OnMaximizePane(); }).Key(K_CTRL|K_ALT|K_SHIFT|K_M);
-	bar.Add("Close current pane", Image(), [=] { OnClosePane(); }).Key(K_CTRL|K_SHIFT|K_F4);
-	bar.Separator();
-	bar.Sub("Toolbars", [=](Bar& b) {
-		b.Add("File toolbar", Image(), [=] { Todo("Toggle File toolbar"); }).Check(true);
-		b.Add("Run toolbar", Image(), [=] { Todo("Toggle Run toolbar"); }).Check(true);
-		b.Add("Debug toolbar", Image(), [=] { Todo("Toggle Debug toolbar"); }).Check(true);
-		b.Add("Profile toolbar", Image(), [=] { Todo("Toggle Profile toolbar"); }).Check(true);
-		b.Add("Main toolbar", Image(), [=] { Todo("Toggle Main toolbar"); }).Check(true);
-		b.Add("Current working directory", Image(), [=] { Todo("Toggle CWD toolbar"); }).Check(true);
-	});
-	bar.Add("Hide toolbars", Image(), [=] { Todo("Hide toolbars"); });
-	bar.Separator();
-	bar.Sub("Window layouts", [=](Bar& b) {
-		b.Add("Default layout", Image(), [=] { OnLayoutDefault(); });
-		b.Add("Rstudio layout", Image(), [=] { OnLayoutRstudio(); });
-		b.Add("Matlab layout", Image(), [=] { OnLayoutMatlab(); });
-		b.Add("Horizontal split", Image(), [=] { Todo("Layout Horizontal"); });
-		b.Add("Vertical split", Image(), [=] { Todo("Layout Vertical"); });
-		b.Separator();
-		b.Add("Save current layout", Image(), [=] { Todo("Save layout"); });
-		b.Add("Layout preferences", Image(), [=] { Todo("Layout preferences"); });
-		b.Add("Reset to Spyder default", Image(), [=] { OnLayoutDefault(); });
-	});
-	bar.Add("Use next layout", Image(), [=] { Todo("Next layout"); }).Key(K_ALT|K_SHIFT|K_PAGEDOWN);
-	bar.Add("Use previous layout", Image(), [=] { Todo("Prev layout"); }).Key(K_ALT|K_SHIFT|K_PAGEUP);
-	bar.Separator();
-	bar.Add("Fullscreen mode", Image(), [=] { OnFullscreen(); }).Key(K_F11);
-}
-
-void PythonIDE::HelpMenu(Bar& bar)
-{
-	bar.Add("Interactive tour", Image(), [=] { Todo("Tour"); });
-	bar.Add("Built-in tutorial", Image(), [=] { Todo("Tutorial"); });
-	bar.Add("Shortcuts summary", Image(), [=] { Todo("Shortcuts"); });
-	bar.Separator();
-	bar.Add("Spyder documentation", Image(), [=] { ShowHelp("index"); }).Key(K_F1);
-	bar.Add("Tutorial videos", Image(), [=] { Todo("Videos"); });
-	bar.Sub("IPython documentation", [=](Bar& b) {
-		b.Add("Intro to IPython", Image(), [=] { Todo("IPython Intro"); });
-		b.Add("Console help", Image(), [=] { Todo("Console Help"); });
-		b.Add("Quick reference", Image(), [=] { Todo("Quick Ref"); });
-	});
-	bar.Add("Troubleshooting guide", Image(), [=] { Todo("Troubleshooting"); });
-	bar.Add("Spyder Google group", Image(), [=] { Todo("Google Group"); });
-	bar.Add("Dependency status", Image(), [=] { Todo("Dependencies"); });
-	bar.Add("Report issue...", Image(), [=] { Todo("Report issue"); });
-	bar.Separator();
-	bar.Add("Check for updates", Image(), [=] { Todo("Updates"); });
-	bar.Add("Help Spyder...", Image(), [=] { Todo("Help Spyder"); });
-	bar.Add("About Spyder", Image(), [=] { Todo("About"); });
-}
-
-void PythonIDE::MainToolbar(Bar& bar)
-{
-	bar.Add(CtrlImg::new_doc(), [=] { OnNewFile(); }).Help("New File");
-	bar.Add(CtrlImg::open(), [=] { OnOpenFile(); }).Help("Open File");
-	bar.Add(CtrlImg::save(), [=] { OnSaveFile(); }).Help("Save File");
-	bar.Add(CtrlImg::save_as(), [=] { OnSaveAll(); }).Help("Save All Files");
-	bar.Separator();
-	
-	if(active_editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
-			h->Toolbar(bar);
-	}
-
-	bar.Add(CtrlImg::plus(), [=] { Todo("Create new cell"); }).Help("Create new cell at the current line");
-	bar.Separator();
-	bar.Add(CtrlImg::right_arrow(), [=] { OnRun(); }).Help("Run file");
-	bar.Add(CtrlImg::right_arrow(), [=] { OnRunCell(); }).Help("Run cell");
-	bar.Add(CtrlImg::right_arrow(), [=] { OnRunCellAndAdvance(); }).Help("Run cell and advance");
-	bar.Add(CtrlImg::right_arrow(), [=] { OnRunSelection(); }).Help("Run current line or selection");
-	bar.Separator();
-	bar.Add(CtrlImg::help(), [=] { OnDebug(); }).Help("Debug file");
-	bar.Add(CtrlImg::help(), [=] { OnDebugCell(); }).Help("Debug cell");
-	bar.Add(CtrlImg::help(), [=] { OnDebugSelection(); }).Help("Debug the current file or selection");
-	bar.Separator();
-	bar.Add(CtrlImg::save(), [=] { Todo("Profile file"); }).Help("Profile file");
-	bar.Add(CtrlImg::save(), [=] { Todo("Profile cell"); }).Help("Profile cell");
-	bar.Add(CtrlImg::save(), [=] { Todo("Profile selection"); }).Help("Profile current line or selection");
-	bar.Separator();
-	bar.Add(CtrlImg::plus(), [=] { OnMaximizePane(); }).Help("Maximize current pane");
-	bar.Add(CtrlImg::plus(), [=] { OnSettings(); }).Help("Preferences");
-	bar.Add(CtrlImg::plus(), [=] { OnPathManager(); }).Help("PYTHONPATH manager");
-	bar.Separator();
-	
-	// Dropdowns and path helpers would go here
-	bar.Add("Recent Projects", [=] { Todo("Recent projects dropdown"); });
-	bar.Add("Working Directory", [=] { Todo("Working directory dropdown"); });
-	bar.Add(CtrlImg::open(), [=] { Todo("Browse working directory"); }).Help("Browse working directory");
-	bar.Add(CtrlImg::undo(), [=] { Todo("Change to parent directory"); }).Help("Change to parent directory");
-}
-
 void PythonIDE::ShowHelp(const String& topic)
 {
 	String qtf;
 	qtf << "[_^https://docs.python.org/3/search.html?q=" << topic << "^ Search Python Docs for: " << topic << "]";
-	help_pane.SetQTF(qtf);
+	help_pane->SetQTF(qtf);
 }
 
 void PythonIDE::OnPathManager()
@@ -552,7 +263,7 @@ void PythonIDE::OnRun()
 	
 	String content;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				content = ed->Get();
 		}
@@ -571,7 +282,7 @@ void PythonIDE::OnRunLast()
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		if(open_files[i].path == last_run_path) {
 			active_file = i;
-			editor_tabs.SetCursor(i);
+			editor_tabs->SetCursor(i);
 			found = true;
 			break;
 		}
@@ -588,7 +299,7 @@ void PythonIDE::OnRunSelection()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				run_manager.RunSelection(ed->GetSelection());
 		}
@@ -599,7 +310,7 @@ void PythonIDE::OnRunCell()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				run_manager.RunSelection(ed->GetCurrentCell());
 		}
@@ -610,7 +321,7 @@ void PythonIDE::OnRunCellAndAdvance()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				run_manager.RunSelection(ed->GetCurrentCell());
 				// Advance cursor to next cell or end
@@ -631,7 +342,7 @@ void PythonIDE::OnRunToLine()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				int line = ed->GetLine(ed->GetCursor());
 				String code;
@@ -647,7 +358,7 @@ void PythonIDE::OnRunFromLine()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				int line = ed->GetLine(ed->GetCursor());
 				String code;
@@ -679,7 +390,7 @@ void PythonIDE::OnToggleBreakpoint()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				int line = ed->GetLine(ed->GetCursor()) + 1;
 				String file = open_files[active_file].path;
@@ -701,7 +412,7 @@ void PythonIDE::OnClearBreakpoints()
 	if(PromptYesNo("Clear all breakpoints?")) {
 		vm.ClearBreakpoints();
 		for(int i = 0; i < open_files.GetCount(); i++) {
-			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[i].editor)) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[i].editor)) {
 				h->GetCtrl().Refresh();
 			}
 		}
@@ -715,7 +426,7 @@ void PythonIDE::OnListBreakpoints()
 
 void PythonIDE::OnConsoleInput()
 {
-	String input = console_pane.GetInput();
+	String input = console_pane->GetInput();
 	if(input.IsEmpty()) return;
 	
 	try {
@@ -735,12 +446,12 @@ void PythonIDE::OnConsoleInput()
 		
 		PyValue res = vm.GetLastResult();
 		if(!res.IsNone())
-			console_pane.Write(res.Repr() + "\n");
+			console_pane->Write(res.Repr() + "\n");
 			
 		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
-		console_pane.WriteError(String("Error: ") + e + "\n");
+		console_pane->WriteError(String("Error: ") + e + "\n");
 	}
 }
 
@@ -798,8 +509,8 @@ void PythonIDE::OnNewFile()
 	fi.editor = editor;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs.Add("<untitled>", CtrlImg::File());
-	editor_tabs.SetCursor(active_file);
+	editor_tabs->Add("<untitled>", CtrlImg::File());
+	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();
 }
@@ -817,7 +528,7 @@ void PythonIDE::LoadFile(const String& path)
 {
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		if(open_files[i].path == path) {
-			editor_tabs.SetCursor(i);
+			editor_tabs->SetCursor(i);
 			return;
 		}
 	}
@@ -847,12 +558,12 @@ void PythonIDE::LoadFile(const String& path)
 	FileInfo& fi = open_files.Add();
 	fi.path = path;
 	fi.dirty = false;
-	fi.editor = editor;
+	fi.editor = host;
 	fi.is_plugin = is_plugin;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs.Add(GetFileName(path), CtrlImg::File());
-	editor_tabs.SetCursor(active_file);
+	editor_tabs->Add(GetFileName(path), CtrlImg::File());
+	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();
 	AddRecentFile(path);
@@ -864,7 +575,7 @@ bool PythonIDE::SaveFile(int idx)
 	FileInfo& fi = open_files[idx];
 	if(fi.path.IsEmpty()) return false;
 	
-	if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~fi.editor)) {
+	if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(fi.editor)) {
 		if(h->SaveAs(fi.path)) {
 			fi.dirty = false;
 			SyncTabsWithFiles();
@@ -918,7 +629,7 @@ void PythonIDE::OnSaveCopyAs()
 	fs.Type("Python files", "*.py");
 	if(fs.ExecuteSaveAs("Save Copy As")) {
 		String content;
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				content = ed->Get();
 		}
@@ -934,7 +645,7 @@ void PythonIDE::OnRevert()
 	if(fi.path.IsEmpty()) return;
 	
 	if(PromptYesNo("Discard unsaved changes and reload " + GetFileName(fi.path) + "?")) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~fi.editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(fi.editor)) {
 			h->Load(fi.path);
 			fi.dirty = false;
 			SyncTabsWithFiles();
@@ -944,7 +655,7 @@ void PythonIDE::OnRevert()
 
 void PythonIDE::OnTabMenu(Bar& bar)
 {
-	int idx = editor_tabs.GetCursor();
+	int idx = editor_tabs->GetCursor();
 	if(idx < 0) return;
 	
 	bar.Add("Close", [=] { OnCloseFile(); });
@@ -969,12 +680,12 @@ void PythonIDE::SyncTabsWithFiles()
 		String title = fi.path.IsEmpty() ? "<untitled>" : GetFileName(fi.path);
 		
 		bool dirty = fi.dirty;
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~fi.editor))
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(fi.editor))
 			dirty = h->IsModified();
 			
 		if(dirty) title = "*" + title;
 		
-		editor_tabs.Set(i, i, title);
+		editor_tabs->Set(i, i, title);
 	}
 }
 
@@ -1003,41 +714,19 @@ void PythonIDE::UpdateRecentFilesMenu(Bar& bar)
 	bar.Add("Clear list", [this] { settings.application.recent_files.Clear(); });
 }
 
-void PythonIDE::OnFileSwitcher() 
-{ 
-	FileSel fs;
-	fs.Type("Python files", "*.py");
-	if(fs.ExecuteOpen("Switch File")) {
-		LoadFile(fs.Get());
-	}
-}
-
-void PythonIDE::OnOpenFileSwitcher() { OnFileSwitcher(); }
+void PythonIDE::OnFileSwitcher() { Todo("File switcher"); }
 void PythonIDE::OnSymbolFinder() { Todo("Symbol finder"); }
-
-void PythonIDE::OnRestart()
-{
-	if(ConfirmSaveAll()) {
-		// Simulating restart by resetting state
-		open_files.Clear();
-		editor_tabs.Clear();
-		vm.Reset();
-		console_pane.Clear();
-		console_pane.Write("IDE Reset.\n");
-		UpdateVariableExplorer();
-		OnTabChanged();
-	}
-}
+void PythonIDE::OnRestart() { Todo("Restart IDE"); }
 
 void PythonIDE::OnUndo() { 
-	if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Undo(); }
+	if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Undo(); }
 }
 void PythonIDE::OnRedo() { 
-	if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor)) h->Redo(); }
+	if(active_editor) { if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) h->Redo(); }
 }
 void PythonIDE::OnComment() { 
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				ed->ToggleComments();
 		}
@@ -1045,7 +734,7 @@ void PythonIDE::OnComment() {
 }
 void PythonIDE::OnBlockComment() { 
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				ed->ToggleBlockComments();
 		}
@@ -1053,7 +742,7 @@ void PythonIDE::OnBlockComment() {
 }
 void PythonIDE::OnUncomment() { 
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
 				ed->ToggleComments(); 
 		}
@@ -1061,7 +750,7 @@ void PythonIDE::OnUncomment() {
 }
 void PythonIDE::OnToggleCase(bool upper) { 
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				String s = ed->GetSelection();
 				if(!s.IsEmpty()) {
@@ -1075,7 +764,7 @@ void PythonIDE::OnConvertEOL(const String& mode)
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				String s = ed->Get();
 				if(mode == "LF") s.Replace("\r\n", "\n");
@@ -1090,7 +779,7 @@ void PythonIDE::OnRemoveTrailingSpaces()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				String s = ed->Get();
 				Vector<String> lines = Split(s, '\n', false);
@@ -1110,7 +799,7 @@ void PythonIDE::OnTabsToSpaces()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				String s = ed->Get();
 				s.Replace("\t", String(' ', settings.editor.tab_width));
@@ -1126,7 +815,7 @@ bool PythonIDE::ConfirmSave(int idx)
 	FileInfo& fi = open_files[idx];
 	
 	bool dirty = fi.dirty;
-	if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~fi.editor))
+	if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(fi.editor))
 		dirty = h->IsModified();
 	
 	if(!dirty) return true;
@@ -1144,7 +833,7 @@ bool PythonIDE::ConfirmSave(int idx)
 			SaveFile(idx);
 		}
 		
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~fi.editor))
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(fi.editor))
 			dirty = h->IsModified();
 		return !dirty;
 	}
@@ -1160,13 +849,6 @@ bool PythonIDE::ConfirmSaveAll()
 	return true;
 }
 
-PythonIDE::FileInfo* PythonIDE::GetActiveFile()
-{
-	if(active_file >= 0 && active_file < open_files.GetCount())
-		return &open_files[active_file];
-	return nullptr;
-}
-
 void PythonIDE::OnCloseFile()
 {
 	if(active_file < 0) return;
@@ -1174,10 +856,10 @@ void PythonIDE::OnCloseFile()
 	
 	int to_close = active_file;
 	open_files.Remove(to_close);
-	editor_tabs.Close(to_close);
+	editor_tabs->Close(to_close);
 	
 	if(open_files.GetCount() > 0) {
-		active_file = editor_tabs.GetCursor();
+		active_file = editor_tabs->GetCursor();
 		OnTabChanged();
 	}
 	else {
@@ -1191,7 +873,7 @@ void PythonIDE::OnCloseAll()
 {
 	if(!ConfirmSaveAll()) return;
 	open_files.Clear();
-	editor_tabs.Clear();
+	editor_tabs->Clear();
 	OnTabChanged();
 }
 
@@ -1201,36 +883,36 @@ void PythonIDE::OnBreakpointHit(const String& file, int line)
 {
 	LoadFile(file);
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				ed->SetCursor(ed->GetPos(line - 1));
 			}
 		}
 	}
 	
-	debugger_pane.SetStack(vm.GetCallStack());
+	debugger_pane->SetStack(vm.GetCallStack());
 	UpdateVariableExplorer();
 	
-	console_pane.Write(Format("Breakpoint hit at %s:%d\n", file, line));
+	console_pane->Write(Format("Breakpoint hit at %s:%d\n", file, line));
 	Show();
 }
 
 void PythonIDE::OnTabChanged()
 {
 	if(active_editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
 			h->DeactivateUI();
 		active_editor->Hide();
 	}
-	int idx = editor_tabs.GetCursor();
+	int idx = editor_tabs->GetCursor();
 	if(idx >= 0 && idx < open_files.GetCount()) {
 		active_file = idx;
-		active_editor = open_files[active_file].editor;
+		active_editor = &open_files[active_file].editor->GetCtrl();
 		
 		if(active_editor) {
 			active_editor->Show();
 			active_editor->SetFocus();
-			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~active_editor))
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
 				h->ActivateUI();
 		}
 	}
@@ -1263,29 +945,29 @@ void PythonIDE::OnLayoutRstudio()
 { 
 	for(DockableCtrl *d : GetDockableCtrls()) d->Hide();
 	
-	DockLeft(files_pane);
-	DockRight(plots_pane);
-	DockBottom(console_pane);
-	DockRight(var_explorer);
-	Tabify(var_explorer, history_pane);
+	DockLeft(*files_pane);
+	DockRight(*plots_pane);
+	DockBottom(*console_pane);
+	DockRight(*var_explorer);
+	Tabify(*var_explorer, *history_pane);
 	
-	files_pane.Show();
-	plots_pane.Show();
-	console_pane.Show();
-	var_explorer.Show();
+	files_pane->Show();
+	plots_pane->Show();
+	console_pane->Show();
+	var_explorer->Show();
 }
 
 void PythonIDE::OnLayoutMatlab() 
 { 
 	for(DockableCtrl *d : GetDockableCtrls()) d->Hide();
 	
-	DockLeft(files_pane);
-	DockBottom(console_pane);
-	DockRight(var_explorer);
+	DockLeft(*files_pane);
+	DockBottom(*console_pane);
+	DockRight(*var_explorer);
 	
-	files_pane.Show();
-	console_pane.Show();
-	var_explorer.Show();
+	files_pane->Show();
+	console_pane->Show();
+	var_explorer->Show();
 }
 
 void PythonIDE::OnFullscreen() 
@@ -1311,7 +993,7 @@ void PythonIDE::UpdateStatusBar()
 {
 	String text;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				Point p = ed->GetColumnLine(ed->GetCursor64());
 				text << "Line: " << p.y + 1 << "  Col: " << p.x + 1;
@@ -1329,13 +1011,10 @@ void PythonIDE::UpdateStatusBar()
 
 void PythonIDE::UpdateVariableExplorer()
 {
-	var_explorer.SetVariables(vm.GetGlobals());
+	var_explorer->SetVariables(vm.GetGlobals());
 }
 
-void PythonIDE::OnAnalyze()
-{
-	Todo("Analyze");
-}
+void PythonIDE::OnAnalyze() { Todo("Analyze"); }
 
 void PythonIDE::SyncPluginPanes()
 {
@@ -1348,7 +1027,7 @@ void PythonIDE::OnPrevCursor()
 		CursorPos& cp = cursor_history[cursor_history_idx];
 		LoadFile(cp.path);
 		if(active_file >= 0 && open_files[active_file].editor) {
-			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 				if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 					ed->SetCursor(cp.pos);
 				}
@@ -1364,7 +1043,7 @@ void PythonIDE::OnNextCursor()
 		CursorPos& cp = cursor_history[cursor_history_idx];
 		LoadFile(cp.path);
 		if(active_file >= 0 && open_files[active_file].editor) {
-			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 				if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 					ed->SetCursor(cp.pos);
 				}
@@ -1377,7 +1056,7 @@ void PythonIDE::AddCursorHistory()
 {
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~open_files[active_file].editor)) {
+		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
 			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				CursorPos cp;
 				cp.path = open_files[active_file].path;
@@ -1385,7 +1064,7 @@ void PythonIDE::AddCursorHistory()
 				
 				if(cursor_history_idx >= 0 && cursor_history_idx < cursor_history.GetCount()) {
 					if(cursor_history[cursor_history_idx].path == cp.path &&
-					   abs(cursor_history[cursor_history_idx].pos - cp.pos) < 50)
+					   Upp::abs(cursor_history[cursor_history_idx].pos - cp.pos) < 50)
 						return;
 				}
 				
@@ -1402,7 +1081,26 @@ void PythonIDE::AddCursorHistory()
 	}
 }
 
-size_t PythonIDE::MemoryUsedKb() { return Upp::MemoryUsedKb(); }
-size_t PythonIDE::MemoryTotalKb() { return Upp::MemoryUsedKbMax(); }
+size_t PythonIDE::MemoryUsedKb() { return 0; }
+size_t PythonIDE::MemoryTotalKb() { return 0; }
+
+void PythonIDE::Log(const String& s)
+{
+	console_pane->Write(s + "\n");
+}
+
+void PythonIDE::Error(const String& s)
+{
+	console_pane->WriteError(s + "\n");
+}
+
+void PythonIDE::OnSettings()
+{
+	PreferencesWindow dlg(*this, settings);
+	if(dlg.Run() == IDOK) {
+		ApplySettings();
+		StoreToFile(settings, ConfigFile("ide_settings.bin"));
+	}
+}
 
 }

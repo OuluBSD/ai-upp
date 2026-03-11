@@ -10,6 +10,9 @@ NAMESPACE_UPP
 #include "PathManager.h"
 #include "Linter.h"
 #include "RunManager.h"
+#include "PluginInterfaces.h"
+#include "GameStatePlugin.h"
+#include "CardGamePlugin.h"
 
 END_UPP_NAMESPACE
 

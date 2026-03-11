@@ -1,19 +1,14 @@
 #ifndef _ScriptIDE_GameStatePlugin_h_
 #define _ScriptIDE_GameStatePlugin_h_
 
-class GameStatePlugin : public IPlugin, 
-                        public IFileTypeHandler, 
-                        public IDockPaneProvider, 
-                        public IPythonBindingProvider, 
-                        public ICustomExecuteProvider {
+class GameStatePluginGUI : public GameStatePlugin, 
+                           public IFileTypeHandler, 
+                           public IDockPaneProvider {
 public:
-	GameStatePlugin();
-	virtual ~GameStatePlugin();
+	GameStatePluginGUI();
+	virtual ~GameStatePluginGUI();
 
-	// IPlugin
-	virtual String GetID() const override { return "GameStatePlugin"; }
-	virtual String GetName() const override { return "Game State Viewer"; }
-	virtual String GetDescription() const override { return "Provides .gamestate visualization and simulation."; }
+	// IPlugin overrides
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
@@ -28,19 +23,11 @@ public:
 	virtual String GetPaneTitle(int index) const override { return "Game Stats"; }
 	virtual Ctrl&  GetPaneCtrl(int index) override { return stats_view; }
 
-	// IPythonBindingProvider
-	virtual void SyncBindings(PyVM& vm) override;
-
-	// ICustomExecuteProvider
-	virtual bool CanExecute(const String& path) override;
-	virtual void Execute(const String& path) override;
+protected:
+	virtual void OnUpdateStats(const String& json) override;
 
 private:
-	IPluginContext* context = nullptr;
 	RichTextView    stats_view;
-	
-	void UpdateStats(const String& json);
-	static PyValue GetScore(const Vector<PyValue>& args, void* user_data);
 };
 
 class GameStateDocumentHost : public IDocumentHost, public Ctrl {

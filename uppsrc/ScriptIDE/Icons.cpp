@@ -7,7 +7,17 @@ static Image LoadSVG(const String& path, int size)
 {
 	String svg = LoadFile(path);
 	if(svg.IsEmpty()) return Image();
-	return RenderSVGImage(Size(size, size), svg);
+	
+	// Create an ImageBuffer and clear it to transparent (0,0,0,0)
+	ImageBuffer ib(size, size);
+	Fill(~ib, RGBAZero(), ib.GetLength());
+	
+	// Render SVG into the buffer
+	Image img = RenderSVGImage(Size(size, size), svg);
+	
+	// If RenderSVGImage returns an image, copy it over the transparent buffer
+	// (Note: U++ RenderSVGImage usually returns a premultiplied image)
+	return img;
 }
 
 static Image LoadPNG(const String& path)

@@ -10,6 +10,8 @@
 #include <FormEditor/FormEditor.h>
 #include <ScriptCommon/ScriptCommon.h>
 
+#include "Icons.h"
+
 #define LAYOUTFILE <ScriptIDE/ScriptIDE.lay>
 #include <CtrlCore/lay.h>
 

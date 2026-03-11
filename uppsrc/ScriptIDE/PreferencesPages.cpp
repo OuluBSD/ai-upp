@@ -760,4 +760,62 @@ public:
 };
 
 
+PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
+	: ctx(ctx), settings(settings)
+{
+	CtrlLayout(*this, "Preferences");
+	Sizeable().Zoomable().CenterScreen();
+
+	old_settings.CopyFrom(settings);
+
+	split << nav << page_host;
+	split.SetPos(2000);
+
+	nav.AddColumn("Category");
+	nav.WhenSel = [this] { OnNavSelection(); };
+
+	reset_defaults.WhenAction = [this] { OnResetDefaults(); };
+	ok.WhenAction = [this] { OnOK(); };
+	cancel.WhenAction = [this] { OnCancel(); };
+	apply.WhenAction = [this] { OnApply(); };
+
+    static AppearancePage appearance;
+    static ApplicationPage application;
+    static PythonInterpreterPage python;
+    static KeyboardShortcutsPage shortcuts;
+    static CodeAnalysisPage analysis;
+    static CompletionPage completion;
+    static DebuggerPage debugger;
+    static EditorPage editor;
+    static FilesPage files;
+    static HelpPage help;
+    static HistoryPage history;
+    static IPythonConsolePage console;
+    static ProfilerPage profiler;
+    static RunPage run;
+    static StatusBarPage statusbar_p;
+    static VariableExplorerPage var_explorer_p;
+    static WorkingDirectoryPage work_dir;
+    static PluginsPage plugins;
+
+    AddPage("appearance", "Appearance", TablerIcons::Settings(), &appearance);
+    AddPage("application", "Application", TablerIcons::Plus(), &application);
+    AddPage("python_interpreter", "Python interpreter", TablerIcons::Python(), &python);
+    AddPage("shortcuts", "Keyboard shortcuts", TablerIcons::Plus(), &shortcuts);
+    AddPage("code_analysis", "Code analysis", TablerIcons::Profiler(), &analysis);
+    AddPage("completion", "Completion and linting", TablerIcons::Plus(), &completion);
+    AddPage("debugger", "Debugger", TablerIcons::Debug(), &debugger);
+    AddPage("editor", "Editor", TablerIcons::File(), &editor);
+    AddPage("files", "Files", TablerIcons::Files(), &files);
+    AddPage("help", "Help", TablerIcons::Help(), &help);
+    AddPage("history", "History", TablerIcons::History(), &history);
+    AddPage("console", "IPython console", TablerIcons::Outline(), &console);
+    AddPage("profiler", "Profiler", TablerIcons::Profiler(), &profiler);
+    AddPage("run", "Run", TablerIcons::Run(), &run);
+    AddPage("statusbar", "Status bar", TablerIcons::Plus(), &statusbar_p);
+    AddPage("variable_explorer", "Variable explorer", TablerIcons::VariableExplorer(), &var_explorer_p);
+    AddPage("working_directory", "Working directory", TablerIcons::Folder(), &work_dir);
+    AddPage("plugins", "Plugins", TablerIcons::Plus(), &plugins);
+}
+
 END_UPP_NAMESPACE

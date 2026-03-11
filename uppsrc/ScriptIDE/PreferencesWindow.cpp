@@ -2,26 +2,6 @@
 
 namespace Upp {
 
-PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
-	: ctx(ctx), settings(settings)
-{
-	CtrlLayout(*this, "Preferences");
-	Sizeable().Zoomable().CenterScreen();
-
-	old_settings.CopyFrom(settings);
-
-	split << nav << page_host;
-	split.SetPos(2000);
-
-	nav.AddColumn("Category");
-	nav.WhenSel = [=] { OnNavSelection(); };
-
-	reset_defaults.WhenAction = [=] { OnResetDefaults(); };
-	ok.WhenAction = [=] { OnOK(); };
-	cancel.WhenAction = [=] { OnCancel(); };
-	apply.WhenAction = [=] { OnApply(); };
-}
-
 void PreferencesWindow::AddPage(const String& id, const String& title, Image icon, PreferencesPage* page)
 {
 	PageEntry& e = pages.Add();

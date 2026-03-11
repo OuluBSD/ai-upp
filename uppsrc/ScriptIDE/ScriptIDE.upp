@@ -3,6 +3,7 @@ description "Python IDE using ByteVM\377";
 uses
 	ScriptCommon,
 	CtrlLib,
+	plugin/png,
 	CodeEditor,
 	TabBar,
 	ByteVM,
@@ -13,6 +14,8 @@ uses
 file
 	AGENTS.md,
 	ScriptIDE.h,
+	Icons.h,
+	Icons.cpp,
 	PythonIDE.h,
 	PythonIDE.cpp,
 	MainMenu.cpp,

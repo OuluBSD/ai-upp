@@ -5,7 +5,7 @@ namespace Upp {
 HistoryPane::HistoryPane()
 {
 	Title("History");
-	Icon(CtrlImg::Dir());
+	Icon(TablerIcons::History());
 	
 	Add(editor.SizePos());
 	editor.SetReadOnly();

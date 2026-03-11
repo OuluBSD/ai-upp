@@ -19,3 +19,6 @@ file
 	McpCommand.h,
 	McpCommand.cpp,
 	Main.cpp;
+
+mainconfig
+	"" = "";

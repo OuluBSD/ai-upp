@@ -15,6 +15,8 @@ file
 	ScriptIDE.h,
 	PythonIDE.h,
 	PythonIDE.cpp,
+	MainMenu.cpp,
+	MainToolbar.cpp,
 	Settings.h,
 	Settings.cpp,
 	VariableExplorer.h,
@@ -42,6 +44,7 @@ file
 	CardGamePlugin.cpp,
 	PathManagerDlg.h,
 	PathManagerDlg.cpp,
+	PluginInterfacesGUI.h,
 	PreferencesPage.h,
 	PreferencesWindow.h,
 	PreferencesWindow.cpp,
@@ -58,3 +61,4 @@ file
 
 mainconfig
 	"" = "GUI";
+

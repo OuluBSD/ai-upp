@@ -1,9 +1,9 @@
-#ifndef _ScriptIDE_PluginInterfaces_h_
-#define _ScriptIDE_PluginInterfaces_h_
+#ifndef _ScriptIDE_PluginInterfacesGUI_h_
+#define _ScriptIDE_PluginInterfacesGUI_h_
 
-class PyVM;
+// No includes here - they are in ScriptIDE.h or Main package header
+
 class PythonIDE;
-class IPlugin;
 
 class IDocumentHost {
 public:
@@ -35,23 +35,12 @@ public:
 	virtual void   Replace() {}
 };
 
-class IPluginContext {
+class IPluginContextGUI : public IPluginContext {
 public:
-	virtual ~IPluginContext() {}
+	virtual ~IPluginContextGUI() {}
 	virtual PythonIDE& GetIDE() = 0;
-	virtual PyVM*      GetVM() = 0;
 	virtual void       RegisterDockPane(const String& id, const String& title, Ctrl& ctrl) = 0;
 	virtual void       UnregisterDockPane(const String& id) = 0;
-};
-
-class IPlugin {
-public:
-	virtual ~IPlugin() {}
-	virtual String GetID() const = 0;
-	virtual String GetName() const = 0;
-	virtual String GetDescription() const = 0;
-	virtual void   Init(IPluginContext& context) = 0;
-	virtual void   Shutdown() = 0;
 };
 
 class IFileTypeHandler {
@@ -71,37 +60,11 @@ public:
 	virtual Ctrl&  GetPaneCtrl(int index) = 0;
 };
 
-class IPythonBindingProvider {
+class IPluginRegistryGUI : public IPluginRegistry {
 public:
-	virtual ~IPythonBindingProvider() {}
-	virtual void SyncBindings(PyVM& vm) = 0;
-};
-
-class ICustomExecuteProvider {
-public:
-	virtual ~ICustomExecuteProvider() {}
-	virtual bool CanExecute(const String& path) = 0;
-	virtual void Execute(const String& path) = 0;
-};
-
-class IPluginRegistry {
-public:
-	virtual ~IPluginRegistry() {}
+	virtual ~IPluginRegistryGUI() {}
 	virtual void RegisterFileTypeHandler(IFileTypeHandler& handler) = 0;
 	virtual void RegisterDockPaneProvider(IDockPaneProvider& provider) = 0;
-	virtual void RegisterPythonBindingProvider(IPythonBindingProvider& provider) = 0;
-	virtual void RegisterCustomExecuteProvider(ICustomExecuteProvider& provider) = 0;
 };
-
-typedef IPlugin* (*PluginFactory)();
-
-Vector<PluginFactory>& GetInternalPluginFactories();
-
-#define REGISTER_PLUGIN(T) \
-static IPlugin* T##_Factory() { return new T(); } \
-static bool T##_Registered = []() { \
-    GetInternalPluginFactories().Add(&T##_Factory); \
-    return true; \
-}();
 
 #endif

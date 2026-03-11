@@ -1,12 +1,6 @@
 #ifndef _ScriptIDE_PreferencesWindow_h_
 #define _ScriptIDE_PreferencesWindow_h_
 
-class PythonIDE;
-
-struct IDEContext {
-    PythonIDE* main_window = nullptr;
-};
-
 class PreferencesWindow : public WithPreferencesLayout<TopWindow> {
 public:
     typedef PreferencesWindow CLASSNAME;

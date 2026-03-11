@@ -17,17 +17,42 @@ FindInFilesPane::FindInFilesPane()
 	results.AddColumn("Text", 60).Sorting();
 	
 	results.WhenLeftDouble = [=] { OnResultOpen(); };
+	
+	pattern_lbl.SetLabel("Pattern:");
+	files_lbl.SetLabel("Files:");
+	regex_toggle.SetLabel("Regex");
+	case_toggle.SetLabel("Case");
+	search_btn.SetLabel("Search");
+	stop_btn.SetLabel("Stop");
+	browse_btn.SetLabel("...");
+	
+	search_btn.WhenAction = [=] { OnSearch(); };
+	stop_btn.WhenAction = [=] { Todo("Stop search"); };
+	browse_btn.WhenAction = [=] { Todo("Browse for directory"); };
 }
 
 void FindInFilesPane::LayoutToolbar(Bar& bar)
 {
-	search_pattern.SetRect(0, 0, 200, 20);
+	bar.Add(pattern_lbl, 60);
+	search_pattern.SetRect(0, 0, 150, 20);
 	bar.Add(search_pattern);
-	bar.Add("Search", CtrlImg::plus(), [=] { OnSearch(); }).Help("Search");
+	
 	bar.Add(regex_toggle);
 	bar.Add(case_toggle);
-	bar.Add("Advanced search", [=] { Todo("Advanced search"); }).Help("Advanced search toggle");
 	bar.Separator();
+	
+	bar.Add(files_lbl, 40);
+	files_pattern.SetRect(0, 0, 100, 20);
+	bar.Add(files_pattern);
+	
+	browse_btn.SetRect(0, 0, 30, 20);
+	bar.Add(browse_btn);
+	
+	bar.Separator();
+	bar.Add(search_btn);
+	bar.Add(stop_btn);
+	
+	bar.Gap(2000);
 	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 

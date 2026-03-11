@@ -1,7 +1,11 @@
 #ifndef _ScriptIDE_PreferencesPage_h_
 #define _ScriptIDE_PreferencesPage_h_
 
-struct IDEContext; // Forward declaration
+class PythonIDE;
+
+struct IDEContext {
+    PythonIDE* main_window = nullptr;
+};
 
 class PreferencesPage : public ParentCtrl {
 public:

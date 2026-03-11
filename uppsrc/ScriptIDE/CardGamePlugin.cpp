@@ -1,8 +1,6 @@
 #include "ScriptIDE.h"
 #include "CardGamePlugin.h"
 
-NAMESPACE_UPP
-
 // --- CardGameDocumentHost ---
 
 CardGameDocumentHost::CardGameDocumentHost()
@@ -201,7 +199,7 @@ void CardGameDocumentHost::Animate()
 			int dx = tp.x - p.x;
 			int dy = tp.y - p.y;
 			
-			if(abs(dx) <= 2 && abs(dy) <= 2) {
+			if(Upp::abs(dx) <= 2 && Upp::abs(dy) <= 2) {
 				s.rect = s.target_rect;
 				s.animating = false;
 			} else {
@@ -470,161 +468,45 @@ void CardGameLayoutEditor::Toolbar(Bar& bar)
 	CreateToolBar(bar);
 }
 
-// --- CardGamePlugin ---
+// --- CardGamePluginGUI ---
 
-CardGamePlugin::CardGamePlugin()
+CardGamePluginGUI::CardGamePluginGUI()
 {
 	gamestate_handler.plugin = this;
 	form_handler.plugin = this;
 }
 
-CardGamePlugin::~CardGamePlugin()
+CardGamePluginGUI::~CardGamePluginGUI()
 {
 }
 
-void CardGamePlugin::Init(IPluginContext& ctx)
+void CardGamePluginGUI::Init(IPluginContext& context_)
 {
-	context = &ctx;
-	context->GetIDE().plugin_manager->RegisterFileTypeHandler(gamestate_handler);
-	context->GetIDE().plugin_manager->RegisterFileTypeHandler(form_handler);
-	context->GetIDE().plugin_manager->RegisterCustomExecuteProvider(*this);
-	context->GetIDE().plugin_manager->RegisterPythonBindingProvider(*this);
+	CardGamePlugin::Init(context_);
 	
-	context->GetIDE().Log("CardGamePlugin initialized.");
+	if(IPluginContextGUI* gui = dynamic_cast<IPluginContextGUI*>(&context_)) {
+		if(IPluginRegistryGUI* reg = dynamic_cast<IPluginRegistryGUI*>(&context_)) {
+			reg->RegisterFileTypeHandler(gamestate_handler);
+			reg->RegisterFileTypeHandler(form_handler);
+		}
+		gui->GetIDE().Log("CardGamePlugin (GUI) initialized.");
+	}
 }
 
-void CardGamePlugin::Shutdown()
+void CardGamePluginGUI::Shutdown()
 {
+	CardGamePlugin::Shutdown();
 }
 
-IDocumentHost* CardGamePlugin::GameStateHandler::CreateDocumentHost()
+IDocumentHost* CardGamePluginGUI::GameStateHandler::CreateDocumentHost()
 {
 	return new CardGameDocumentHost();
 }
 
-IDocumentHost* CardGamePlugin::FormHandler::CreateDocumentHost()
+IDocumentHost* CardGamePluginGUI::FormHandler::CreateDocumentHost()
 {
 	return new CardGameLayoutEditor();
 }
 
-bool CardGamePlugin::CanExecute(const String& path)
-{
-	return ToLower(GetFileExt(path)) == ".gamestate";
-}
-
-void CardGamePlugin::Execute(const String& path)
-{
-	if(!context) return;
-	
-	PythonIDE& ide = context->GetIDE();
-	ide.Log("Launching Game State: " + path);
-	
-	Value g = ParseJSON(LoadFile(path));
-	if(g.IsVoid()) {
-		ide.Error("Failed to parse .gamestate");
-		return;
-	}
-	
-	String script = g["entry_script"];
-	String layout = g["layout"];
-	
-	ide.LoadFile(path);
-	CardGameDocumentHost* view = nullptr;
-	if(ide.active_file >= 0) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~ide.open_files[ide.active_file].editor))
-			view = dynamic_cast<CardGameDocumentHost*>(h);
-	}
-	
-	if(!view) {
-		ide.Error("Active tab is not a CardGameDocumentHost");
-		return;
-	}
-	
-	if(!layout.IsEmpty())
-		view->SetLayout(AppendFileName(GetFileDirectory(path), layout));
-	
-	String script_path = AppendFileName(GetFileDirectory(path), script);
-	String code = LoadFile(script_path);
-	
-	ide.plugin_manager->SyncBindings(ide.vm);
-	ide.run_manager.Run(code, script_path);
-}
-
-static PyValue SetCard(const Vector<PyValue>& args, void* user_data)
-{
-	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
-	if(args.GetCount() >= 4 && view) {
-		view->SetSprite(args[0].ToString(), args[1].ToString(), args[2].AsInt(), args[3].AsInt());
-	}
-	return PyValue();
-}
-
-static PyValue MoveCard(const Vector<PyValue>& args, void* user_data)
-{
-	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
-	if(args.GetCount() >= 2 && view) {
-		bool anim = args.GetCount() >= 4 ? args[3].AsInt() != 0 : false;
-		if(args[1].GetType() == PY_STR) {
-			view->MoveSpriteToZone(args[0].ToString(), args[1].ToString(), anim);
-		} else if(args.GetCount() >= 3) {
-			view->MoveSprite(args[0].ToString(), args[1].AsInt(), args[2].AsInt(), anim);
-		}
-	}
-	return PyValue();
-}
-
-static PyValue ClearSprites(const Vector<PyValue>& args, void* user_data)
-{
-	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
-	if(view) {
-		view->ClearSprites();
-	}
-	return PyValue();
-}
-
-static PyValue GetZoneRect(const Vector<PyValue>& args, void* user_data)
-{
-	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
-	if(args.GetCount() >= 1 && view) {
-		Rect r = view->GetZoneRect(args[0].ToString());
-		PyValue d = PyValue::Dict();
-		d.SetItem("x", PyValue(r.left));
-		d.SetItem("y", PyValue(r.top));
-		d.SetItem("w", PyValue(r.GetWidth()));
-		d.SetItem("h", PyValue(r.GetHeight()));
-		return d;
-	}
-	return PyValue::None();
-}
-
-static PyValue Log(const Vector<PyValue>& args, void* user_data)
-{
-	CardGameDocumentHost* view = (CardGameDocumentHost*)user_data;
-	if(args.GetCount() >= 1 && view) {
-		view->Log(args[0].ToString());
-	}
-	return PyValue();
-}
-
-void CardGamePlugin::SyncBindings(PyVM& vm)
-{
-	PythonIDE& ide = context->GetIDE();
-	CardGameDocumentHost* view = nullptr;
-	if(ide.active_file >= 0 && ide.open_files[ide.active_file].editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(~ide.open_files[ide.active_file].editor))
-			view = dynamic_cast<CardGameDocumentHost*>(h);
-	}
-	
-	PyValue hearts_view = PyValue::Dict();
-	hearts_view.SetItem("set_card", PyValue::Function("set_card", &SetCard, view));
-	hearts_view.SetItem("move_card", PyValue::Function("move_card", &MoveCard, view));
-	hearts_view.SetItem("clear_sprites", PyValue::Function("clear_sprites", &ClearSprites, view));
-	hearts_view.SetItem("get_zone_rect", PyValue::Function("get_zone_rect", &GetZoneRect, view));
-	hearts_view.SetItem("log", PyValue::Function("log", &Log, view));
-	
-	vm.GetGlobals().GetAdd("hearts_view") = hearts_view;
-}
-
-REGISTER_PLUGIN(CardGamePlugin)
-
-END_UPP_NAMESPACE
+// Registration
+REGISTER_PLUGIN(CardGamePluginGUI)

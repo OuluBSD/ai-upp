@@ -16,8 +16,8 @@ CustomFileTabs::CustomFileTabs()
         bar.Execute();
     };
 
-    this->Upp::Ctrl::Add(new_tab_button);
-    this->Upp::Ctrl::Add(menu_button);
+    this->Ctrl::Add(new_tab_button);
+    this->Ctrl::Add(menu_button);
 }
 
 void CustomFileTabs::Layout()

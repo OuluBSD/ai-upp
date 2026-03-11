@@ -16,12 +16,15 @@ FilesPane::FilesPane()
 	
 	tree.WhenLeftDouble = [=] { OnOpen(); };
 	tree.WhenOpen = [=](int id) { Populate(id); };
+	
+	path_field.WhenAction = [=] { SetRoot(~path_field); };
 }
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
 	bar.Add(CtrlImg::plus(), [=] { WhenPathManager(); }).Help("PYTHONPATH manager button");
-	bar.Add("Active directory", [=] { Todo("Active directory dropdown / path field"); }).Help("Active directory dropdown / path field");
+	path_field.SetRect(0, 0, 300, 20);
+	bar.Add(path_field);
 	bar.Add(CtrlImg::open(), [=] { WhenBrowse(); }).Help("Browse directory");
 	bar.Add(CtrlImg::undo(), [=] { WhenParent(); }).Help("Parent directory");
 }
@@ -55,6 +58,7 @@ void FilesPane::LayoutPaneMenu(Bar& bar)
 void FilesPane::SetRoot(const String& path)
 {
 	root_path = path;
+	path_field <<= path;
 	Refresh();
 }
 

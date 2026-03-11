@@ -45,6 +45,6 @@ Test topology:
 - Non-deterministic VM state across test runs.
 
 ## Acceptance Criteria
-- [ ] Headless plugin test types are documented.
-- [ ] Fixture and invocation conventions are documented.
-- [ ] CI-ready deterministic output strategy is defined.
+- [x] Headless plugin test types are documented.
+- [x] Fixture and invocation conventions are documented.
+- [x] CI-ready deterministic output strategy is defined.

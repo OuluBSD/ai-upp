@@ -759,55 +759,5 @@ public:
     virtual bool IsModified() const override { return false; }
 };
 
-void PythonIDE::OnSettings()
-{
-	IDEContext ctx;
-	ctx.main_window = this;
-	
-	PreferencesWindow dlg(ctx, settings);
-    
-    AppearancePage appearance;
-    ApplicationPage application;
-    PythonInterpreterPage python;
-    KeyboardShortcutsPage shortcuts;
-    CodeAnalysisPage code_analysis;
-    CompletionPage completion;
-    DebuggerPage debugger;
-    EditorPage editor;
-    FilesPage files;
-    HelpPage help;
-    HistoryPage history;
-    IPythonConsolePage console;
-    ProfilerPage profiler;
-    RunPage run;
-    StatusBarPage statusbar_p;
-    VariableExplorerPage var_explorer_p;
-    WorkingDirectoryPage work_dir;
-    PluginsPage plugins;
-
-    dlg.AddPage("appearance", "Appearance", Image(), &appearance);
-    dlg.AddPage("application", "Application", Image(), &application);
-    dlg.AddPage("python", "Python interpreter", Image(), &python);
-    dlg.AddPage("shortcuts", "Keyboard shortcuts", Image(), &shortcuts);
-    dlg.AddPage("code_analysis", "Code Analysis", Image(), &code_analysis);
-    dlg.AddPage("completion", "Completion and linting", Image(), &completion);
-    dlg.AddPage("debugger", "Debugger", Image(), &debugger);
-    dlg.AddPage("editor", "Editor", Image(), &editor);
-    dlg.AddPage("files", "Files", Image(), &files);
-    dlg.AddPage("help", "Help", Image(), &help);
-    dlg.AddPage("history", "History", Image(), &history);
-    dlg.AddPage("console", "IPython console", Image(), &console);
-    dlg.AddPage("profiler", "Profiler", Image(), &profiler);
-    dlg.AddPage("run", "Run", Image(), &run);
-    dlg.AddPage("statusbar", "Status bar", Image(), &statusbar_p);
-    dlg.AddPage("variable_explorer", "Variable explorer", Image(), &var_explorer_p);
-    dlg.AddPage("working_directory", "Working directory", Image(), &work_dir);
-	dlg.AddPage("plugins", "Plugins", Image(), &plugins);
-
-	if(dlg.Run() == IDOK) {
-		ApplySettings();
-		StoreToFile(settings, ConfigFile("ide_settings.bin"));
-	}
-}
 
 END_UPP_NAMESPACE

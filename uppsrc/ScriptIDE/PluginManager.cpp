@@ -70,10 +70,9 @@ void PluginManager::RegisterDockPane(const String& id, const String& title, Ctrl
 	if(!ide) return;
 	if(ide->plugin_panes.Find(id) >= 0) return;
 	
-	One<DockableCtrl>& odc = ide->plugin_panes.Add(id);
-	odc.Create();
-	odc->Title(title);
-	odc->Add(ctrl.SizePos());
+	DockableCtrl& odc = ide->plugin_panes.Add(id);
+	odc.Title(title);
+	odc.Add(ctrl.SizePos());
 	
 	ide->SyncPluginPanes();
 }
@@ -88,31 +87,23 @@ void PluginManager::UnregisterDockPane(const String& id)
 IFileTypeHandler* PluginManager::FindFileTypeHandler(const String& ext)
 {
 	for(int i = 0; i < file_handlers.GetCount(); i++) {
-		if(file_handlers[i].GetExtension() == ext)
-			return &file_handlers[i];
+		if(file_handlers[i]->GetExtension() == ext)
+			return file_handlers[i];
 	}
 	return nullptr;
-}
-
-Array<IDockPaneProvider*> PluginManager::GetDockPaneProviders()
-{
-	Array<IDockPaneProvider*> res;
-	for(int i = 0; i < pane_providers.GetCount(); i++)
-		res.Add(&pane_providers[i]);
-	return res;
 }
 
 void PluginManager::SyncBindings(PyVM& vm)
 {
 	for(int i = 0; i < binding_providers.GetCount(); i++)
-		binding_providers[i].SyncBindings(vm);
+		binding_providers[i]->SyncBindings(vm);
 }
 
 ICustomExecuteProvider* PluginManager::FindCustomExecuteProvider(const String& path)
 {
 	for(int i = 0; i < execute_providers.GetCount(); i++) {
-		if(execute_providers[i].CanExecute(path))
-			return &execute_providers[i];
+		if(execute_providers[i]->CanExecute(path))
+			return execute_providers[i];
 	}
 	return nullptr;
 }
@@ -123,12 +114,6 @@ void PluginManager::ClearRegistry()
 	pane_providers.Clear();
 	binding_providers.Clear();
 	execute_providers.Clear();
-}
-
-Vector<PluginFactory>& GetInternalPluginFactories()
-{
-	static Vector<PluginFactory> factories;
-	return factories;
 }
 
 END_UPP_NAMESPACE

@@ -13,4 +13,11 @@ file
 	Linter.h,
 	Linter.cpp,
 	RunManager.h,
-	RunManager.cpp;
+	RunManager.cpp,
+	PluginInterfaces.h,
+	PluginInterfaces.cpp,
+	GameStatePlugin.h,
+	GameStatePlugin.cpp,
+	CardGamePlugin.h,
+	CardGamePlugin.cpp;
+

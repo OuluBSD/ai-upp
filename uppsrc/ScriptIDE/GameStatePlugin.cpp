@@ -1,7 +1,5 @@
 #include "ScriptIDE.h"
 
-NAMESPACE_UPP
-
 // --- GameStateDocumentHost ---
 
 GameStateDocumentHost::GameStateDocumentHost()
@@ -31,68 +29,53 @@ bool GameStateDocumentHost::Save()
 	return true; // Read-only
 }
 
-// --- GameStatePlugin ---
+// --- GameStatePluginGUI ---
 
-GameStatePlugin::GameStatePlugin()
-{
-	stats_view.SetQTF("Game Stats: No data loaded.");
-}
-
-GameStatePlugin::~GameStatePlugin()
+GameStatePluginGUI::GameStatePluginGUI()
 {
 }
 
-void GameStatePlugin::Init(IPluginContext& context_)
+GameStatePluginGUI::~GameStatePluginGUI()
 {
-	context = &context_;
-	context->RegisterDockPane("GameStateStats", "Game Stats", stats_view);
+}
+
+void GameStatePluginGUI::Init(IPluginContext& context_)
+{
+	GameStatePlugin::Init(context_);
 	
-	context->GetIDE().Log("GameStatePlugin initialized.");
-}
-
-void GameStatePlugin::Shutdown()
-{
-	if(context) {
-		context->UnregisterDockPane("GameStateStats");
+	if(IPluginContextGUI* gui = dynamic_cast<IPluginContextGUI*>(context)) {
+		gui->RegisterDockPane("GameStateStats", "Game Stats", stats_view);
+		
+		if(IPluginRegistryGUI* reg = dynamic_cast<IPluginRegistryGUI*>(context)) {
+			reg->RegisterFileTypeHandler(*this);
+			reg->RegisterDockPaneProvider(*this);
+		}
+		
+		gui->GetIDE().Log("GameStatePlugin (GUI) initialized.");
 	}
 }
 
-IDocumentHost* GameStatePlugin::CreateDocumentHost()
+void GameStatePluginGUI::Shutdown()
+{
+	if(context) {
+		if(IPluginContextGUI* gui = dynamic_cast<IPluginContextGUI*>(context)) {
+			gui->UnregisterDockPane("GameStateStats");
+		}
+	}
+	GameStatePlugin::Shutdown();
+}
+
+IDocumentHost* GameStatePluginGUI::CreateDocumentHost()
 {
 	return new GameStateDocumentHost();
 }
 
-void GameStatePlugin::SyncBindings(PyVM& vm)
-{
-	vm.GetGlobals().GetAdd("get_game_score") = PyValue::Function("get_game_score", &GameStatePlugin::GetScore);
-}
-
-bool GameStatePlugin::CanExecute(const String& path)
-{
-	return ToLower(GetFileExt(path)) == ".gamestate";
-}
-
-void GameStatePlugin::Execute(const String& path)
-{
-	if(context) {
-		context->GetIDE().Log("Simulating Game State: " + path);
-		UpdateStats(LoadFile(path));
-	}
-}
-
-void GameStatePlugin::UpdateStats(const String& json)
+void GameStatePluginGUI::OnUpdateStats(const String& json)
 {
 	stats_view.SetQTF(String("[[6 @r Game Statistics]&") +
 	                  "[* JSON Length: ] " + AsString(json.GetLength()) + "&" +
 	                  "[* Status: ] Active simulation.");
 }
 
-PyValue GameStatePlugin::GetScore(const Vector<PyValue>& args, void* user_data)
-{
-	return PyValue(42); // Dummy score
-}
-
 // Registration
-REGISTER_PLUGIN(GameStatePlugin)
-
-END_UPP_NAMESPACE
+REGISTER_PLUGIN(GameStatePluginGUI)

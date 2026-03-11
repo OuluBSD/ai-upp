@@ -12,8 +12,13 @@ public:
 
 private:
 	ToolBar    toolbar;
+	Label      pattern_lbl;
 	EditString search_pattern;
+	Label      files_lbl;
+	EditString files_pattern;
 	Button     search_btn;
+	Button     stop_btn;
+	Button     browse_btn;
 	Option     regex_toggle;
 	Option     case_toggle;
 	

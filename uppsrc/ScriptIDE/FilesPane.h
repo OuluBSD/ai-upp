@@ -19,6 +19,7 @@ public:
 private:
 	ToolBar location_bar;
 	ToolBar pane_toolbar;
+	EditString path_field;
 	TreeCtrl tree;
 	String root_path;
 	bool   show_hidden = false;

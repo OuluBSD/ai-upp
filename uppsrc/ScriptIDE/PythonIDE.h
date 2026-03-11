@@ -67,6 +67,7 @@ public:
 	void Error(const String& s);
 
 	void InitLayout();
+	void RegisterPanes();
 	virtual void DockInit() override;
 
 	void MainMenu(Bar& bar);
@@ -157,9 +158,9 @@ public:
 
 	bool ConfirmSave(int idx);
 	bool ConfirmSaveAll();
+	FileInfo* GetActiveFile();
 
 	virtual void Close() override;
-	virtual void Serialize(Stream& s) override;
 	
 	static size_t MemoryUsedKb();
 	static size_t MemoryTotalKb();

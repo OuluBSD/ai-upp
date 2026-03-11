@@ -1507,6 +1507,198 @@ void DockWindow::SerializeLayout(Stream& s, bool withsavedlayouts)
 	s.Magic();
 }
 
+// JSON helper: serialize a DockCont's tab list as an array of docker indices.
+// Uses only the public DockCont API. Nested containers are flattened.
+void DockWindow::JsonizeCont(JsonIO& jio, DockCont *dc)
+{
+	if (jio.IsStoring()) {
+		ValueArray tabs;
+		for (int i = 0; i < dc->GetCount(); i++) {
+			int ix = FindDocker(&dc->Get(i));
+			if (ix >= 0) tabs << ix;
+		}
+		int cursor = dc->GetCursor();
+		jio("tabs", tabs)("cursor", cursor);
+	} else {
+		ValueArray tabs;
+		int cursor = 0;
+		jio("tabs", tabs)("cursor", cursor);
+		for (int i = 0; i < tabs.GetCount(); i++) {
+			int ix = tabs[i];
+			if (ix >= 0 && ix < dockers.GetCount())
+				dc->Add(*dockers[ix]);
+		}
+		dc->SetCursor(min(dc->GetCount() - 1, cursor));
+	}
+}
+
+void DockWindow::JsonizeLayout(JsonIO& jio)
+{
+	StopHighlight(false);
+
+	if (jio.IsStoring()) {
+		// Frame order
+		ValueArray frameorder_arr;
+		for (int i = 0; i < 4; i++)
+			frameorder_arr << max(FindFrame(dockframe[i]) - dockframepos, 0);
+		jio("frame_order", frameorder_arr);
+
+		// Per-frame docked containers
+		ValueArray frames;
+		for (int i = 0; i < 4; i++) {
+			DockPane& pane = dockpane[i];
+			int fsz = dockframe[i].IsShown() ? dockframe[i].GetSize() : 0;
+			int lsz = framelayoutsize[i];
+			int ldelta = framelayoutdelta[i];
+
+			ValueArray conts_arr;
+			DockCont *dc = dynamic_cast<DockCont *>(pane.GetFirstChild());
+			for (int j = 0; dc && j < pane.GetCount(); j++) {
+				ValueMap cm;
+				JsonIO cjio(cm);
+				JsonizeCont(cjio, dc);
+				conts_arr << cm;
+				dc = dynamic_cast<DockCont *>(dc->GetNext());
+			}
+
+			ValueMap fm;
+			JsonIO fjio(fm);
+			fjio("size", fsz)("lsize", lsz)("ldelta", ldelta)("containers", conts_arr);
+			frames << fm;
+		}
+		jio("frames", frames);
+
+		// Floating containers
+		ValueArray floating;
+		for (int i = 0; i < conts.GetCount(); i++) {
+			if (conts[i].IsFloating()) {
+				ValueMap cm;
+				JsonIO cjio(cm);
+				Rect r = conts[i].GetRect();
+				int l = r.left, t = r.top, rr = r.right, b = r.bottom;
+				cjio("rect_l", l)("rect_t", t)("rect_r", rr)("rect_b", b);
+				JsonizeCont(cjio, &conts[i]);
+				floating << cm;
+			}
+		}
+		jio("floating", floating);
+
+		// Autohidden
+		ValueArray autohidden;
+		for (int i = 0; i < 4; i++) {
+			ValueArray side;
+			for (int j = 0; j < hideframe[i].GetCount(); j++) {
+				int ix = FindDocker(&hideframe[i].GetCtrl(j)->Get(0));
+				if (ix >= 0) side << ix;
+			}
+			autohidden << side;
+		}
+		jio("autohidden", autohidden);
+
+	} else {
+		ClearLayout();
+
+		// Frame order
+		ValueArray frameorder_arr;
+		jio("frame_order", frameorder_arr);
+		if (frameorder_arr.GetCount() == 4) {
+			for (int i = 0; i < 4; i++)
+				SetFrame(dockframepos + i, InsetFrame());
+			for (int i = 0; i < 4; i++) {
+				int ps = (int)frameorder_arr[i];
+				SetFrame(ps + dockframepos, dockframe[i]);
+			}
+		}
+
+		for (int i = 0; i < 4; i++) {
+			framelayoutsize[i] = Null;
+			framelayoutdelta[i] = 0;
+			framelayouttarget[i] = Null;
+		}
+
+		// Per-frame docked containers
+		ValueArray frames;
+		jio("frames", frames);
+		for (int i = 0; i < min(frames.GetCount(), 4); i++) {
+			ValueMap fm = frames[i];
+			DockPane& pane = dockpane[i];
+			dockframe[i].Hide();
+			int fsz = fm["size"];
+			int lsz = IsNull(fm["lsize"]) ? (int)Null : (int)fm["lsize"];
+			int ldelta = fm["ldelta"];
+			framelayoutsize[i] = lsz;
+			framelayoutdelta[i] = ldelta;
+
+			ValueArray conts_arr = fm["containers"];
+			for (int j = 0; j < conts_arr.GetCount(); j++) {
+				DockCont *dc = CreateContainer();
+				ValueMap cm = conts_arr[j];
+				JsonIO cjio(cm);
+				JsonizeCont(cjio, dc);
+				dc->StateDocked(*this);
+				pane << *dc;
+			}
+
+			if (fsz && pane.GetCount()) {
+				int target = IsNull(lsz) ? fsz : max(GetLayoutFrameSize(i) + ldelta, 0);
+				dockframe[i].SetSize(IsNull(target) ? fsz : target);
+				dockframe[i].Show();
+				framelayouttarget[i] = dockframe[i].GetSize();
+			} else {
+				dockframe[i].SetSize(0);
+			}
+		}
+
+		// Floating containers
+		ValueArray floating;
+		jio("floating", floating);
+		for (int i = 0; i < floating.GetCount(); i++) {
+			ValueMap cm = floating[i];
+			DockCont *dc = CreateContainer();
+			JsonIO cjio(cm);
+			JsonizeCont(cjio, dc);
+			FloatContainer(*dc);
+			int l = cm["rect_l"], t = cm["rect_t"], r = cm["rect_r"], b = cm["rect_b"];
+			dc->SetRect(Rect(l, t, r, b));
+		}
+
+		// Autohidden
+		ValueArray autohidden;
+		jio("autohidden", autohidden);
+		for (int i = 0; i < min(autohidden.GetCount(), 4); i++) {
+			ValueArray side = autohidden[i];
+			for (int j = 0; j < side.GetCount(); j++) {
+				int ix = side[j];
+				if (ix >= 0 && ix < dockers.GetCount())
+					AutoHide(i, *dockers[ix]);
+			}
+		}
+
+		RefreshLayout();
+	}
+}
+
+void DockWindow::JsonizeWindow(JsonIO& jio)
+{
+	JsonizeLayout(jio);
+
+	jio("tabbing", tabbing)
+	   ("autohide", autohide)
+	   ("nestedtabs", nestedtabs)
+	   ("grouping", grouping)
+	   ("menubtn", menubtn)
+	   ("closebtn", closebtn)
+	   ("hidebtn", hidebtn)
+	   ("nesttoggle", nesttoggle)
+	   ("locked", locked)
+	   ("frameorder", frameorder);
+
+	if (jio.IsLoading()) {
+		SyncAll();
+		init = true;
+	}
+}
+
 void DockWindow::BackupLayout()
 {
 	StringStream s;
@@ -1578,6 +1770,7 @@ DockWindow::DockWindow()
 	childtoolwindows = false;
 	showlockedhandles = false;
 	framelayoutwinsize = Size(Null, Null);
+	dockframepos = 0;
 
 	for (int i = 0; i < 4; i++) {
 		dockframe[i].Set(dockpane[i], 0, i);

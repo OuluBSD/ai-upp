@@ -110,6 +110,7 @@ protected:
 
 	friend class    DockCont;
 private:
+	void            JsonizeCont(JsonIO& jio, DockCont *dc);
 	bool init;
 	bool tabbing;
 	bool autohide;
@@ -329,6 +330,9 @@ public:
 	void            SerializeWindow(Stream& s);
 	// SerializeLayout only serializes the DockQWindow layout
 	void            SerializeLayout(Stream& s, bool withsavedlayouts = true);
+	// JSON variants: human-readable, forward-compatible
+	void            JsonizeWindow(JsonIO& jio);
+	void            JsonizeLayout(JsonIO& jio);
 	// Saves/Load/Manage dockwindow layouts. Theese are handy for saving different 
 	//  GUI configurations for different application states (like editing/debugging)
 	int             SaveLayout(String name);

@@ -106,6 +106,7 @@ protected:
 	void            SaveDockerPos(DockableCtrl& dc, PosInfo& pi);
 	void            SetDockerPosInfo(DockableCtrl& dc, const PosInfo& pi);
 	int             GetLayoutFrameSize(int align) const;
+	int             ClampFrameSize(int align, int size) const;
 	void            SyncLayoutFrameSizes(bool animate = false);
 
 	friend class    DockCont;

@@ -47,6 +47,10 @@ public:
 	
 	int 	GetCtrlSize(int i) const				{ return NormalPos(i); }
 	void	SetCtrlSize(int i, int sz)				{ pos[i] = (i == 0) ? sz : sz + pos[i-1]; }
+
+	// Raw access to the splitter position vector for JSON serialization
+	const Vector<int>& GetRawPos() const			{ return pos; }
+	void SetRawPos(const Vector<int>& p)			{ pos <<= p; }
 	
 	void 	Clear()									{ pos.Clear(); savedpos.Clear(); }
 	

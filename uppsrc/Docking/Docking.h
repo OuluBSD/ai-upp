@@ -134,6 +134,9 @@ private:
 	int  dockframepos;
 	int  prehighlightframepos;
 	int  framelayoutsize[4];
+	int  framelayoutdelta[4];
+	int  framelayouttarget[4];
+	Size framelayoutwinsize;
 	
 	Array<DockCont>             conts;
 	Vector<DockableCtrl *>      dockers;
@@ -234,6 +237,7 @@ public:
 	// For "half main area", use 5000.
 	DockWindow&     SetFrameLayoutSize(int align, int ratio);
 	DockWindow&     SetFrameLayoutHalf(int align)         { return SetFrameLayoutSize(align, 5000); }
+	DockWindow&     ClearFrameLayoutSize(int align);
 	int             GetFrameLayoutSize(int align) const   { ASSERT(align >= 0 && align < 4); return framelayoutsize[align]; }
 	bool            HasFrameLayoutSize(int align) const   { ASSERT(align >= 0 && align < 4); return !IsNull(framelayoutsize[align]); }
 				

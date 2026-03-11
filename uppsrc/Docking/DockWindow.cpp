@@ -4,7 +4,7 @@ namespace Upp {
 
 #define ALIGN_ASSERT(al)	ASSERT(al >= 0 && al < 4)
 #define FRAME_MOVE_DIV 		5 // Outside fraction of the highlight that the mouse must be in to trigger dockpane reordering
-#define VERSION				6 // Serialisation version
+#define VERSION				7 // Serialisation version
 
 /*
  * Public interface
@@ -61,15 +61,27 @@ void DockWindow::SyncLayoutFrameSizes(bool animate)
 	if (syncingframes)
 		return;
 	syncingframes = true;
+	Size ws = GetRect().GetSize();
+	bool winsize_changed = ws != framelayoutwinsize;
 	for (int i = 0; i < 4; i++) {
-		int target = GetLayoutFrameSize(i);
-		if (IsNull(target))
+		int base = GetLayoutFrameSize(i);
+		if (IsNull(base))
 			continue;
 		if (!dockframe[i].IsShown() || !dockpane[i].GetCount())
 			continue;
+		int cur = dockframe[i].GetSize();
+		if (!IsNull(framelayouttarget[i]) && cur != framelayouttarget[i])
+			framelayoutdelta[i] = cur - base;
+		if (!winsize_changed) {
+			framelayouttarget[i] = cur;
+			continue;
+		}
+		int target = max(base + framelayoutdelta[i], 0);
 		if (target != dockframe[i].GetSize())
 			DoFrameSize(animate, i, target);
+		framelayouttarget[i] = dockframe[i].GetSize();
 	}
+	framelayoutwinsize = ws;
 	syncingframes = false;
 }
 
@@ -612,7 +624,7 @@ void DockWindow::Dock0(int align, Ctrl& c, int pos, Size sz, bool do_animatehl, 
 	int fsz = IsTB(align) ? sz.cy : sz.cx;
 	int lsz = GetLayoutFrameSize(align);
 	if (!IsNull(lsz))
-		fsz = lsz;
+		fsz = max(lsz + framelayoutdelta[align], 0);
 	if (!dockframe[align].IsShown())
 		dockframe[align].Show();
 	if (fsz > dockframe[align].GetSize())
@@ -1151,6 +1163,8 @@ void DockWindow::SetFrameSize(int align, int size)
 {
 	ALIGN_ASSERT(align);
 	framelayoutsize[align] = Null;
+	framelayoutdelta[align] = 0;
+	framelayouttarget[align] = Null;
 	dockframe[align].SetSize(size);
 }
 
@@ -1158,7 +1172,19 @@ DockWindow& DockWindow::SetFrameLayoutSize(int align, int ratio)
 {
 	ALIGN_ASSERT(align);
 	framelayoutsize[align] = minmax(ratio, 0, 10000);
+	framelayoutdelta[align] = 0;
+	framelayouttarget[align] = Null;
+	framelayoutwinsize = Size(Null, Null);
 	SyncLayoutFrameSizes(false);
+	return *this;
+}
+
+DockWindow& DockWindow::ClearFrameLayoutSize(int align)
+{
+	ALIGN_ASSERT(align);
+	framelayoutsize[align] = Null;
+	framelayoutdelta[align] = 0;
+	framelayouttarget[align] = Null;
 	return *this;
 }
 
@@ -1365,10 +1391,13 @@ void DockWindow::SerializeLayout(Stream& s, bool withsavedlayouts)
 				DockPane& pane = dockpane[i];
 				int fsz = dockframe[i].IsShown() ? dockframe[i].GetSize() : 0;
 				int lsz = framelayoutsize[i];
+				int ldelta = framelayoutdelta[i];
 				
 				s / fsz;
 				if (version >= 6)
 					s / lsz;
+				if (version >= 7)
+					s / ldelta;
 				s % pane;
 				DockCont *dc = dynamic_cast<DockCont *>(pane.GetFirstChild());
 				for (int j = 0; dc && j < pane.GetCount(); j++) {
@@ -1412,17 +1441,25 @@ void DockWindow::SerializeLayout(Stream& s, bool withsavedlayouts)
 			}
 			for (int i = 0; i < 4; i++)
 				framelayoutsize[i] = Null;
+			for (int i = 0; i < 4; i++) {
+				framelayoutdelta[i] = 0;
+				framelayouttarget[i] = Null;
+			}
 			// Read docked
 			for (int i = 0; i < 4; i++) {
 				DockPane& pane = dockpane[i];
 				dockframe[i].Hide();
 				int fsz;
 				int lsz = Null;
+				int ldelta = 0;
 				s / fsz;
 				if (version >= 6)
 					s / lsz;
+				if (version >= 7)
+					s / ldelta;
 				s % pane;
 				framelayoutsize[i] = lsz;
+				framelayoutdelta[i] = ldelta;
 	
 				for (int j = 0; j < pane.GetCount(); j++) {
 					DockCont *dc = CreateContainer();
@@ -1431,13 +1468,14 @@ void DockWindow::SerializeLayout(Stream& s, bool withsavedlayouts)
 					pane << *dc;
 				}
 				if (fsz && pane.GetCount()) {
-					int target = IsNull(lsz) ? fsz : GetLayoutFrameSize(i);
+					int target = IsNull(lsz) ? fsz : max(GetLayoutFrameSize(i) + ldelta, 0);
 					dockframe[i].SetSize(IsNull(target) ? fsz : target);
 					dockframe[i].Show();
+					framelayouttarget[i] = dockframe[i].GetSize();
 				} 
-			else
-				dockframe[i].SetSize(0);			
-		}	
+				else
+					dockframe[i].SetSize(0);			
+			}	
 		// Read floating
 		s / cnt;
 		for (int i = 0; i < cnt; i++) {
@@ -1539,6 +1577,7 @@ DockWindow::DockWindow()
 	syncingframes = false;
 	childtoolwindows = false;
 	showlockedhandles = false;
+	framelayoutwinsize = Size(Null, Null);
 
 	for (int i = 0; i < 4; i++) {
 		dockframe[i].Set(dockpane[i], 0, i);
@@ -1546,6 +1585,8 @@ DockWindow::DockWindow()
 		hideframe[i].SetAlign(i);
 		dockframe[i].Hide();
 		framelayoutsize[i] = Null;
+		framelayoutdelta[i] = 0;
+		framelayouttarget[i] = Null;
 	}
 	AllowDockAll().Animate().AnimateDelay(30);
 }

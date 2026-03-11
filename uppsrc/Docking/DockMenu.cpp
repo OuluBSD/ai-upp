@@ -99,6 +99,21 @@ void DockMenu::WindowMenuNoClose(Bar& bar, DockableCtrl *dc)
 	bar.Add(true, t_("Float"), 		THISBACK1(MenuFloat, dc)).Check(dc->IsFloating());
 	if (dock->IsAutoHide()) 
 		bar.Add(true, t_("Auto-Hide"), 	THISBACK1(WindowHideMenu, dc)).Check(dc->IsAutoHide());
+	int align = dc->GetDockAlign();
+	if (align >= 0 && align < 4) {
+		bar.Separator();
+		bar.Sub(t_("Proportional Size"), [=](Bar& b) {
+			const bool has = dock->HasFrameLayoutSize(align);
+			const int  ratio = dock->GetFrameLayoutSize(align);
+			b.Add(t_("Off"), THISBACK1(MenuFrameLayoutClear, align)).Check(!has);
+			b.Separator();
+			b.Add(t_("25%"), THISBACK2(MenuFrameLayoutSize, align, 2500)).Check(has && ratio == 2500);
+			b.Add(t_("33%"), THISBACK2(MenuFrameLayoutSize, align, 3333)).Check(has && ratio == 3333);
+			b.Add(t_("50%"), THISBACK2(MenuFrameLayoutSize, align, 5000)).Check(has && ratio == 5000);
+			b.Add(t_("66%"), THISBACK2(MenuFrameLayoutSize, align, 6666)).Check(has && ratio == 6666);
+			b.Add(t_("75%"), THISBACK2(MenuFrameLayoutSize, align, 7500)).Check(has && ratio == 7500);
+		});
+	}
 }
 
 void DockMenu::GroupAlignMenu(Bar& bar, String group, int mode)
@@ -132,6 +147,16 @@ void DockMenu::MenuAutoHide(int align, DockableCtrl *dc)
 void DockMenu::MenuClose(DockableCtrl *dc)
 {
 	dock->Close(*dc);
+}
+
+void DockMenu::MenuFrameLayoutSize(int align, int ratio)
+{
+	dock->SetFrameLayoutSize(align, ratio);
+}
+
+void DockMenu::MenuFrameLayoutClear(int align)
+{
+	dock->ClearFrameLayoutSize(align);
 }
 
 void DockMenu::MenuLoadLayout(int ix)

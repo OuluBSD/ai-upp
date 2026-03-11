@@ -5,7 +5,7 @@ namespace Upp {
 FindInFilesPane::FindInFilesPane()
 {
 	Title("Find");
-	Icon(TablerIcons::Search());
+	Icon(Icons::Search());
 	
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(results.VSizePos(24, 0).HSizePos());
@@ -53,7 +53,7 @@ void FindInFilesPane::LayoutToolbar(Bar& bar)
 	bar.Add(stop_btn);
 	
 	bar.Gap(2000);
-	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void FindInFilesPane::LayoutPaneMenu(Bar& bar)

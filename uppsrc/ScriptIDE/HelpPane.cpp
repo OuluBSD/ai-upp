@@ -5,7 +5,7 @@ namespace Upp {
 HelpPane::HelpPane()
 {
 	Title("Help");
-	Icon(TablerIcons::Help());
+	Icon(Icons::Help());
 	
 	source_selector.Add("Console");
 	source_selector.Add("Editor");
@@ -20,10 +20,10 @@ void HelpPane::LayoutHeader(Bar& bar)
 {
 	bar.Add(source_selector);
 	bar.Add(object_input);
-	bar.Add(TablerIcons::Undo(), [=] { OnHome(); }).Help("Home");
-	bar.Add(TablerIcons::Plus(), [=] { OnLock(); }).Help("Lock"); // Using plus as lock icon placeholder
+	bar.Add(Icons::Undo(), [=] { OnHome(); }).Help("Home");
+	bar.Add(Icons::Plus(), [=] { OnLock(); }).Help("Lock"); // Using plus as lock icon placeholder
 	bar.Gap(2000);
-	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void HelpPane::LayoutPaneMenu(Bar& bar)

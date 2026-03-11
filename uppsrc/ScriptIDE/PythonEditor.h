@@ -16,14 +16,14 @@ public:
 		int line = GetLine(GetCursor());
 		int start = 0;
 		for(int i = line; i >= 0; i--) {
-			if(Upp::TrimLeft(GetUtf8Line(i)).StartsWith("# %%")) {
+			if(TrimLeft(GetUtf8Line(i)).StartsWith("# %%")) {
 				start = i;
 				break;
 			}
 		}
 		int end = GetLineCount();
 		for(int i = line + 1; i < GetLineCount(); i++) {
-			if(Upp::TrimLeft(GetUtf8Line(i)).StartsWith("# %%")) {
+			if(TrimLeft(GetUtf8Line(i)).StartsWith("# %%")) {
 				end = i;
 				break;
 			}

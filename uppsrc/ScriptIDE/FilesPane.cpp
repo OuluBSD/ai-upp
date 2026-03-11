@@ -5,7 +5,7 @@ namespace Upp {
 FilesPane::FilesPane()
 {
 	Title("Files");
-	Icon(CtrlImg::Dir());
+	Icon(TablerIcons::Files());
 	
 	Add(location_bar.TopPos(0, 24).HSizePos());
 	Add(pane_toolbar.TopPos(24, 24).HSizePos());
@@ -22,21 +22,21 @@ FilesPane::FilesPane()
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
-	bar.Add(CtrlImg::plus(), [=] { WhenPathManager(); }).Help("PYTHONPATH manager button");
+	bar.Add(TablerIcons::Plus(), [=] { WhenPathManager(); }).Help("PYTHONPATH manager button");
 	path_field.SetRect(0, 0, 300, 20);
 	bar.Add(path_field);
-	bar.Add(CtrlImg::open(), [=] { WhenBrowse(); }).Help("Browse directory");
-	bar.Add(CtrlImg::undo(), [=] { WhenParent(); }).Help("Parent directory");
+	bar.Add(TablerIcons::OpenFile(), [=] { WhenBrowse(); }).Help("Browse directory");
+	bar.Add(TablerIcons::Undo(), [=] { WhenParent(); }).Help("Parent directory");
 }
 
 void FilesPane::LayoutPaneToolbar(Bar& bar)
 {
-	bar.Add(CtrlImg::left_arrow(), [=] { Todo("Previous"); }).Help("Previous");
-	bar.Add(CtrlImg::right_arrow(), [=] { Todo("Next"); }).Help("Next");
-	bar.Add(CtrlImg::undo(), [=] { WhenParent(); }).Help("Parent");
+	bar.Add(TablerIcons::Undo(), [=] { Todo("Previous"); }).Help("Previous");
+	bar.Add(TablerIcons::Redo(), [=] { Todo("Next"); }).Help("Next");
+	bar.Add(TablerIcons::Undo(), [=] { WhenParent(); }).Help("Parent");
 	bar.Gap(2000); // Align right
 	bar.Add("Filter", [=] { Todo("Filter filenames"); }).Help("Filter filenames");
-	bar.Sub("Pane menu", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Pane menu", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void FilesPane::LayoutPaneMenu(Bar& bar)
@@ -70,7 +70,7 @@ void FilesPane::Refresh()
 	String root_label = GetFileName(root_path);
 	if(root_label.IsEmpty()) root_label = root_path; // Fallback for root directories
 
-	tree.SetRoot(CtrlImg::Dir(), root_label);
+	tree.SetRoot(TablerIcons::Folder(), root_label);
 	tree.Set(0, root_path);
 	Populate(0);
 }
@@ -90,11 +90,11 @@ void FilesPane::Populate(int id)
 		
 		if(ff.IsFile()) {
 			if(GetFileExt(ff.GetName()) == ".py" || GetFileExt(ff.GetName()) == ".gamestate" || GetFileExt(ff.GetName()) == ".form")
-				tree.Add(id, CtrlImg::File(), ff.GetPath(), ff.GetName());
+				tree.Add(id, TablerIcons::File(), ff.GetPath(), ff.GetName());
 		}
 		else if(ff.IsFolder()) {
 			if(ff.GetName() != "." && ff.GetName() != "..") {
-				tree.Add(id, CtrlImg::Dir(), ff.GetPath(), ff.GetName(), true);
+				tree.Add(id, TablerIcons::Folder(), ff.GetPath(), ff.GetName(), true);
 			}
 		}
 		ff.Next();

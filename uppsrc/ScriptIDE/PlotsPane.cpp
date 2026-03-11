@@ -5,7 +5,7 @@ namespace Upp {
 PlotsPane::PlotsPane()
 {
 	Title("Plots");
-	Icon(CtrlImg::help()); // Placeholder
+	Icon(TablerIcons::Plots());
 	
 	Add(toolbar.TopPos(0, 24).HSizePos());
 	Add(display.VSizePos(24, 0).HSizePos());
@@ -17,24 +17,24 @@ PlotsPane::PlotsPane()
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(CtrlImg::left_arrow(), [=] { PrevPlot(); }).Help("Previous plot");
-	bar.Add(CtrlImg::right_arrow(), [=] { NextPlot(); }).Help("Next plot");
+	bar.Add(TablerIcons::Undo(), [=] { PrevPlot(); }).Help("Previous plot");
+	bar.Add(TablerIcons::Redo(), [=] { NextPlot(); }).Help("Next plot");
 	bar.Separator();
-	bar.Add(CtrlImg::save(), [=] { SaveSelected(); }).Help("Save plot");
-	bar.Add(CtrlImg::save_as(), [=] { SaveAll(); }).Help("Save all plots");
-	bar.Add(CtrlImg::copy(), [=] { CopySelected(); }).Help("Copy plot to clipboard");
-	bar.Add(CtrlImg::remove(), [=] { RemoveSelected(); }).Help("Remove plot");
-	bar.Add(CtrlImg::remove(), [=] { Clear(); }).Help("Remove all plots");
+	bar.Add(TablerIcons::Save(), [=] { SaveSelected(); }).Help("Save plot");
+	bar.Add(TablerIcons::SaveAll(), [=] { SaveAll(); }).Help("Save all plots");
+	bar.Add(TablerIcons::Undo(), [=] { CopySelected(); }).Help("Copy plot to clipboard");
+	bar.Add(TablerIcons::Stop(), [=] { RemoveSelected(); }).Help("Remove plot");
+	bar.Add(TablerIcons::Stop(), [=] { Clear(); }).Help("Remove all plots");
 	bar.Separator();
 	
 	// Zoom controls
 	bar.Add("Zoom:", [=] { Todo("Zoom percent"); });
-	bar.Add(CtrlImg::plus(), [=] { Todo("Zoom in"); }).Help("Zoom in");
-	bar.Add(CtrlImg::minus(), [=] { Todo("Zoom out"); }).Help("Zoom out");
+	bar.Add(TablerIcons::Plus(), [=] { Todo("Zoom in"); }).Help("Zoom in");
+	bar.Add(TablerIcons::Stop(), [=] { Todo("Zoom out"); }).Help("Zoom out"); // Should be minus
 	bar.Add("Fit to pane", [=] { Todo("Fit to pane"); });
 	
 	bar.Gap(2000);
-	bar.Sub("Options", CtrlImg::plus(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Sub("Options", TablerIcons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
 }
 
 void PlotsPane::LayoutPaneMenu(Bar& bar)

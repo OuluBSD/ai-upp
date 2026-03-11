@@ -12,7 +12,7 @@ PythonIDE::PythonIDE()
 	main_window = this;
 	plugin_manager.Create(*this);
 	Title("Python IDE");
-	Icon(ScriptIDEImg::IconPython());
+	Icon(TablerIcons::Python());
 
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1024, 768);
@@ -26,7 +26,7 @@ PythonIDE::PythonIDE()
 	plugin_manager->LoadPlugins();
 	
 	ApplySettings();
-	UpdateStatusBar();
+	SetTimeCallback(-200, THISBACK(UpdateStatusBar)); // DONT CHANGE THIS
 }
 
 PythonIDE::~PythonIDE()
@@ -529,7 +529,7 @@ void PythonIDE::OnNewFile()
 	fi.editor = editor;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs->Add("<untitled>", CtrlImg::File());
+	editor_tabs->Add("<untitled>", TablerIcons::File());
 	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();
@@ -582,7 +582,7 @@ void PythonIDE::LoadFile(const String& path)
 	fi.is_plugin = is_plugin;
 	
 	active_file = open_files.GetCount() - 1;
-	editor_tabs->Add(GetFileName(path), CtrlImg::File());
+	editor_tabs->Add(GetFileName(path), TablerIcons::File());
 	editor_tabs->SetCursor(active_file);
 	
 	OnTabChanged();
@@ -1026,7 +1026,7 @@ void PythonIDE::UpdateStatusBar()
 		text << "    Memory: " << used << " KB";
 		
 	statusbar.Set(text);
-	SetTimeCallback(-200, [=] { UpdateStatusBar(); });
+	// THIS IS INCORRECT HERE: SetTimeCallback(-200, [=] { UpdateStatusBar(); });
 }
 
 void PythonIDE::UpdateVariableExplorer()

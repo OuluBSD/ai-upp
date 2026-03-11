@@ -17,9 +17,9 @@ PythonIDE::PythonIDE()
 	Sizeable().Zoomable();
 	SetRect(0, 0, 1024, 768);
 
-	LoadFromFile(settings, ConfigFile("ide_settings.bin"));
-
 	InitLayout();
+
+	LoadFromFile(settings, ConfigFile("ide_settings.bin"));
 	
 	files_pane->SetRoot(GetCurrentDirectory());
 	
@@ -167,9 +167,8 @@ void PythonIDE::InitLayout()
 	profiler_pane->WhenAction = [this] { active_pane = &*profiler_pane; };
 }
 
-void PythonIDE::DockInit()
+void PythonIDE::RegisterPanes()
 {
-	// Ensure all panes are registered
 	Register(*files_pane);
 	Register(*outline_pane);
 	Register(*var_explorer);
@@ -182,52 +181,72 @@ void PythonIDE::DockInit()
 	Register(*profiler_pane);
 	Register(context_pane_left);
 	Register(context_pane_right);
+}
 
-	// Set size hints BEFORE docking
-	files_pane->SizeHint(Size(250, 400));
-	outline_pane->SizeHint(Size(250, 400));
-	
-	var_explorer->SizeHint(Size(300, 300));
-	help_pane->SizeHint(Size(300, 300));
-	plots_pane->SizeHint(Size(300, 300));
-	debugger_pane->SizeHint(Size(300, 300));
-	profiler_pane->SizeHint(Size(300, 300));
-	
-	console_pane->SizeHint(Size(400, 250));
-	history_pane->SizeHint(Size(400, 250));
-	find_pane->SizeHint(Size(400, 250));
+void PythonIDE::DockInit()
+{
+	// Register all panes so SerializeWindow can find them by index
+	RegisterPanes();
 
-	// Layout construction
-	DockLeft(*files_pane);
-	Tabify(*files_pane, *outline_pane);
+	// Try to restore previous session
+	String session_file = ConfigFile("ide_session.json");
+	bool loaded = false;
+	if(FileExists(session_file)) {
+		String json = ::Upp::LoadFile(session_file);
+		if(!json.IsEmpty()) {
+			Value v = ParseJSON(json);
+			if(!v.IsError()) {
+				JsonIO jio(v);
+				JsonizeWindow(jio);
+				loaded = true;
+			}
+		}
+	}
 
-	DockRight(*var_explorer);
-	Tabify(*var_explorer, *help_pane);
-	Tabify(*var_explorer, *plots_pane);
-	
-	// Create a second group on the right for debugger/profiler
-	DockRight(*debugger_pane); 
-	Tabify(*debugger_pane, *profiler_pane);
+	if(!loaded) {
+		// Set size hints BEFORE docking
+		files_pane->SizeHint(Size(250, 400));
+		outline_pane->SizeHint(Size(250, 400));
 
-	// Bottom side - Console and History side-by-side
-	DockBottom(*console_pane);
-	DockBottom(*history_pane); // Should split horizontally at bottom
-	Tabify(*console_pane, *find_pane);
-	
-	DockLeft(context_pane_left);
-	DockRight(context_pane_right);
-	
-	context_pane_left.Title("Context (L)").Hide();
-	context_pane_right.Title("Context (R)").Hide();
+		var_explorer->SizeHint(Size(300, 300));
+		help_pane->SizeHint(Size(300, 300));
+		plots_pane->SizeHint(Size(300, 300));
+		debugger_pane->SizeHint(Size(300, 300));
+		profiler_pane->SizeHint(Size(300, 300));
 
-	// Set frame order: Left/Right take precedence (full height)
-	SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
+		console_pane->SizeHint(Size(400, 250));
+		history_pane->SizeHint(Size(400, 250));
+		find_pane->SizeHint(Size(400, 250));
 
-	// Use the new proportional API for right frame only
-	SetFrameSize(DOCK_LEFT, 250);
-	SetFrameLayoutHalf(DOCK_RIGHT);        // 50% of window width
-	SetFrameSize(DOCK_BOTTOM, 250);
-	
+		// Perform default docking layout
+		DockLeft(*files_pane);
+		Tabify(*files_pane, *outline_pane);
+
+		DockRight(*var_explorer);
+		Tabify(*var_explorer, *help_pane);
+		Tabify(*var_explorer, *plots_pane);
+
+		DockRight(*debugger_pane);
+		Tabify(*debugger_pane, *profiler_pane);
+
+		DockBottom(*console_pane);
+		DockBottom(*history_pane);
+		Tabify(*console_pane, *find_pane);
+
+		DockLeft(context_pane_left);
+		DockRight(context_pane_right);
+
+		context_pane_left.Title("Context (L)").Hide();
+		context_pane_right.Title("Context (R)").Hide();
+
+		// Set frame order: Left/Right take precedence (full height)
+		SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
+
+		SetFrameSize(DOCK_LEFT, 250);
+		SetFrameLayoutHalf(DOCK_RIGHT);
+		SetFrameSize(DOCK_BOTTOM, 250);
+	}
+
 	// Capture the default layout string
 	StringStream s;
 	SerializeLayout(s);
@@ -236,14 +255,14 @@ void PythonIDE::DockInit()
 
 void PythonIDE::Close()
 {
-	if(ConfirmSaveAll())
+	if(ConfirmSaveAll()) {
+		Value v;
+		JsonIO jio(v);
+		JsonizeWindow(jio);
+		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(v, true));
+		StoreToFile(settings, ConfigFile("ide_settings.bin"));
 		TopWindow::Close();
-}
-
-void PythonIDE::Serialize(Stream& s)
-{
-	SerializeWindow(s);
-	s % settings;
+	}
 }
 
 void PythonIDE::ShowHelp(const String& topic)
@@ -871,6 +890,13 @@ bool PythonIDE::ConfirmSaveAll()
 	return true;
 }
 
+PythonIDE::FileInfo* PythonIDE::GetActiveFile()
+{
+	if(active_file >= 0 && active_file < open_files.GetCount())
+		return &open_files[active_file];
+	return nullptr;
+}
+
 void PythonIDE::OnCloseFile()
 {
 	if(active_file < 0) return;
@@ -1085,7 +1111,7 @@ void PythonIDE::AddCursorHistory()
 				
 				if(cursor_history_idx >= 0 && cursor_history_idx < cursor_history.GetCount()) {
 					if(cursor_history[cursor_history_idx].path == cp.path &&
-					   Upp::abs(cursor_history[cursor_history_idx].pos - cp.pos) < 50)
+					   abs(cursor_history[cursor_history_idx].pos - cp.pos) < 50)
 						return;
 				}
 				

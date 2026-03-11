@@ -1,5 +1,5 @@
-#ifndef _ScriptIDE_IDESettings_h_
-#define _ScriptIDE_IDESettings_h_
+#ifndef _ScriptCommon_IDESettings_h_
+#define _ScriptCommon_IDESettings_h_
 
 struct AppearanceSettings {
     String interface_theme = "Default";

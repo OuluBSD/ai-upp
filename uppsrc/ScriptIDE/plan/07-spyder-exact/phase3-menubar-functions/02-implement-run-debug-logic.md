@@ -1,5 +1,8 @@
 # Task: Implement Run and Debug Menu Logic
 
+## Migration Note (ScriptCommon Split)
+`RunManager` ownership is moving to `uppsrc/ScriptCommon`. ScriptIDE should call it through a GUI adapter layer, not own runtime logic directly.
+
 ## Goal
 Wire the **Run** and **Debug** menus to the `RunManager` and `PyVM` services, replacing all stubs.
 

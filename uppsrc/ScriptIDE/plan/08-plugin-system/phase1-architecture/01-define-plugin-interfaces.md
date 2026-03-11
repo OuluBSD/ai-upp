@@ -1,5 +1,8 @@
 # Task: Define Plugin Interfaces
 
+## Migration Note (ScriptCommon Split)
+Core plugin contracts are moving to `uppsrc/ScriptCommon` (headless-compatible). GUI-specific plugin interfaces remain in `uppsrc/ScriptIDE` as adapter extensions.
+
 ## Goal
 Design and define the base interfaces for the ScriptIDE plugin system to support various extension points.
 
@@ -32,6 +35,7 @@ public:
 - Plugins will return instances or callbacks for these extension points during registration.
 
 ## Success Criteria
-- [ ] Header file `PluginInterfaces.h` defined.
+- [ ] Core plugin interfaces defined in ScriptCommon (or mapped there by migration plan).
+- [ ] GUI adapter plugin interfaces remain in ScriptIDE.
 - [ ] All required extension points covered by abstract interfaces.
 - [ ] Lifecycle methods (`OnEnable`, `OnDisable`) included.

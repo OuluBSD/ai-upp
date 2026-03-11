@@ -14,6 +14,8 @@ GUI_APP_MAIN
 
     PythonIDE ide;
     
+    LoadFromFile(ide, ConfigFile("ide_session.bin"));
+    
     if(args.GetCount() > 0) {
         String path = GetFullPath(args[0]);
         if(FileExists(path)) {
@@ -25,4 +27,5 @@ GUI_APP_MAIN
     }
     
     ide.Run();
+    StoreToFile(ide, ConfigFile("ide_session.bin"));
 }

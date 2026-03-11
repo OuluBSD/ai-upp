@@ -225,23 +225,27 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 		"scene_metrics_glyph",
 		"scene_postfx_glyph",
 	};
-	bool known = false;
-	for (const char* k : kKnown) {
-		if (key == k) {
-			known = true;
-			break;
-		}
-	}
-	if (!known) {
-#ifdef _DEBUG
-		Panic("Ribbon icon key not registered: " + key);
-#else
-		LOG("Ribbon icon key not registered: " << key);
-		return CtrlImg::File();
-#endif
-	}
-
 	Vector<String> candidates;
+	bool dark = IsDarkTheme();
+	const char* theme = dark ? "dark" : "light";
+
+	// New tabler layout.
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler/outline", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler/outline", key + "_24.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler/filled", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler/filled", key + "_24.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/" + String(theme) + "/tabler", key + "_24.png")));
+
+	// Compatibility tabler locations (without theme split).
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler/outline", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler/outline", key + "_24.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler/filled", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler/filled", key + "_24.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler", key + "_48.png")));
+	candidates.Add(ShareDirFile(AppendFileName("icons/tabler", key + "_24.png")));
+
+	// Legacy locations.
 	candidates.Add(ShareDirFile(AppendFileName("icons/large", key + ".png")));
 	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_48.png")));
 	candidates.Add(ShareDirFile(AppendFileName("icons", key + "_24.png")));
@@ -253,6 +257,19 @@ static Image GetRibbonIcon(const String& id, const String& sem)
 		Image img = StreamRaster::LoadFileAny(path);
 		if (!img.IsEmpty())
 			return Colorize(img, SColorText());
+	}
+
+	bool known = false;
+	for (const char* k : kKnown) {
+		if (key == k) {
+			known = true;
+			break;
+		}
+	}
+	if (!known) {
+#ifdef _DEBUG
+		LOG("Ribbon icon key not registered: " << key);
+#endif
 	}
 #ifdef _DEBUG
 	Panic("Ribbon icon file missing: " + key);

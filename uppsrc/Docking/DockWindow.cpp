@@ -1707,7 +1707,23 @@ void DockWindow::JsonizeWindow(JsonIO& jio)
 	   ("locked", locked)
 	   ("frameorder", frameorder);
 
+	// Window placement
+	Rect r = GetRect();
+	bool maximized = IsMaximized();
+	bool minimized = IsMinimized();
+	int rx = r.left, ry = r.top, rw = r.Width(), rh = r.Height();
+	jio("win_x", rx)("win_y", ry)("win_w", rw)("win_h", rh)
+	   ("maximized", maximized)("minimized", minimized);
+
 	if (jio.IsLoading()) {
+		if(rw > 0 && rh > 0) {
+			Rect limit = GetVirtualWorkArea();
+			int x = minmax(rx, limit.left, limit.right  - rw);
+			int y = minmax(ry, limit.top,  limit.bottom - rh);
+			SetRect(x, y, rw, rh);
+		}
+		if(maximized)
+			Maximize(false);
 		SyncAll();
 		init = true;
 	}

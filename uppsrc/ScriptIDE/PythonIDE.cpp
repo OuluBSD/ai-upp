@@ -72,7 +72,7 @@ void PythonIDE::InitLayout()
 	Add(editor_area.SizePos());
 	
 	editor_tabs.Create();
-	editor_area.Add(editor_tabs->TopPos(0, 24).HSizePos());
+	editor_area.Add(editor_tabs->TopPos(0, 30).HSizePos());
 	
 	editor_tabs->WhenAction = [=] { OnTabChanged(); };
 	editor_tabs->WhenTabMenu = [=](Bar& bar) { OnTabMenu(bar); };
@@ -233,8 +233,8 @@ void PythonIDE::DockInit()
 		DockBottom(*history_pane);
 		Tabify(*console_pane, *find_pane);
 
-		DockLeft(context_pane_left);
-		DockRight(context_pane_right);
+		// Context panes are dynamic, not part of default docking layout
+		// but they must be registered (already done in RegisterPanes)
 
 		context_pane_left.Title("Context (L)").Hide();
 		context_pane_right.Title("Context (R)").Hide();
@@ -256,10 +256,9 @@ void PythonIDE::DockInit()
 void PythonIDE::Close()
 {
 	if(ConfirmSaveAll()) {
-		Value v;
-		JsonIO jio(v);
+		JsonIO jio;
 		JsonizeWindow(jio);
-		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(v, true));
+		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(jio.GetResult(), true));
 		StoreToFile(settings, ConfigFile("ide_settings.bin"));
 		TopWindow::Close();
 	}
@@ -541,7 +540,7 @@ public:
 void PythonIDE::OnNewFile()
 {
 	SourceDocumentHost* editor = new SourceDocumentHost();
-	editor_area.Add(editor->VSizePos(24, 0).HSizePos());
+	editor_area.Add(editor->VSizePos(30, 0).HSizePos());
 	
 	FileInfo& fi = open_files.Add();
 	fi.path = "";
@@ -594,7 +593,7 @@ void PythonIDE::LoadFile(const String& path)
 	}
 	
 	Ctrl* editor = &host->GetCtrl();
-	editor_area.Add(editor->VSizePos(24, 0).HSizePos());
+	editor_area.Add(editor->VSizePos(30, 0).HSizePos());
 	
 	FileInfo& fi = open_files.Add();
 	fi.path = path;

@@ -151,6 +151,7 @@ public:
 	bool operator==(const PyValue& other) const;
 	bool operator!=(const PyValue& other) const { return !(*this == other); }
 	bool operator<(const PyValue& other) const;
+	bool IsSameObject(const PyValue& other) const;
 
 	static PyValue None() { return PyValue(); }
 	#ifdef True

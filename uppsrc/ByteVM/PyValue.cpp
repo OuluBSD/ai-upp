@@ -465,6 +465,20 @@ bool PyValue::operator<(const PyValue& other) const
 	return false;
 }
 
+bool PyValue::IsSameObject(const PyValue& other) const
+{
+	if(type != other.type)
+		return false;
+
+	switch(type) {
+	case PY_NONE: return true;
+	case PY_BOOL: return b == other.b;
+	case PY_INT: return i64 == other.i64;
+	case PY_FLOAT: return f64 == other.f64;
+	default: return ptr == other.ptr;
+	}
+}
+
 const Vector<PyValue>& PyValue::GetArray() const
 {
 	if(type == PY_LIST) return list->l;

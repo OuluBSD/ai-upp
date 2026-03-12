@@ -28,7 +28,7 @@ public:
 	} form_handler;
 };
 
-class CardGameDocumentHost : public IDocumentHost, public Ctrl {
+class CardGameDocumentHost : public IDocumentHost, public IHeartsView, public Ctrl {
 public:
 	CardGameDocumentHost();
 	virtual ~CardGameDocumentHost();
@@ -40,29 +40,33 @@ public:
 	virtual String GetPath() const override { return path; }
 	virtual bool   IsModified() const override { return false; }
 	virtual void   SetFocus() override { Ctrl::SetFocus(); }
-	
+
 	virtual void   ActivateUI() override;
 	virtual void   DeactivateUI() override;
 	virtual void   MainMenu(Bar& bar) override;
 	virtual void   Toolbar(Bar& bar) override;
 
+	// IHeartsView
+	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y) override;
+	virtual void  MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) override;
+	virtual Value GetZoneRect(const String& zone_id) override;
+	virtual void  ClearSprites() override;
+	virtual void  Log(const String& msg) override;
+
 	void SetLayout(const String& form_path);
-	void ClearSprites();
-	void SetSprite(const String& id, const String& asset_path, int x, int y);
-	void MoveSprite(const String& id, int x, int y, bool animated = false);
-	void MoveSpriteToZone(const String& id, const String& zone_id, bool animated = false);
-	Rect GetZoneRect(const String& id);
-	void Log(const String& msg);
+	void SetPlugin(CardGamePlugin* p) { plugin = p; }
 
 private:
 	String path;
 	String form_path;
+	CardGamePlugin* plugin = nullptr;
 	
 	struct Sprite {
-		Image img;
-		Rect  rect;
-		Rect  target_rect;
-		bool  animating = false;
+		Image  img;
+		String asset_path;
+		Rect   rect;
+		Rect   target_rect;
+		bool   animating = false;
 	};
 	ArrayMap<String, Sprite> sprites;
 	

@@ -5,7 +5,6 @@ namespace {
 
 struct CardGameZoneDef : Moveable<CardGameZoneDef> {
 	String id;
-	Rect   rect;
 	String anchor;
 	String user_class;
 	String parent;
@@ -65,7 +64,6 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 		const FormObject& obj = objects[i];
 		CardGameZoneDef& def = defs.Add();
 		def.id = obj.Get("Variable");
-		def.rect = obj.GetRect();
 		def.anchor = obj.Get("Anchor");
 		if(def.anchor.IsEmpty())
 			def.anchor = "TOP_LEFT";
@@ -78,80 +76,40 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 
 Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
 {
-	if(Ctrl* ctrl = const_cast<Form&>(form).GetCtrl(zone_id))
-		return ctrl->GetRect();
+	if(Ctrl* ctrl = const_cast<Form&>(form).GetCtrl(zone_id)) {
+		Rect r = ctrl->GetRect();
+		for(Ctrl* parent = ctrl->GetParent(); parent && parent != &form; parent = parent->GetParent())
+			r.Offset(parent->GetRect().TopLeft());
+		return r;
+	}
 	return Rect();
 }
 
-Rect ResolveAnchoredRect(const Rect& r, const String& anchor, const Size& base_sz, const Size& target_sz)
+Image RotateCardImage(const Image& img, int rotation_deg)
 {
-	int x = r.left;
-	int y = r.top;
-	int cx = r.Width();
-	int cy = r.Height();
+	int rot = rotation_deg % 360;
+	if(rot < 0)
+		rot += 360;
+	if(rot == 90)
+		return RotateClockwise(img);
+	if(rot == 180)
+		return Rotate180(img);
+	if(rot == 270)
+		return RotateAntiClockwise(img);
+	return img;
+}
 
-	if(anchor == "CENTER") {
-		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
-		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
-	}
-	else if(anchor == "BOTTOM_CENTER") {
-		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
-		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
-	}
-	else if(anchor == "TOP_CENTER") {
-		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
-	}
-	else if(anchor == "CENTER_LEFT") {
-		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
-	}
-	else if(anchor == "CENTER_RIGHT") {
-		x = target_sz.cx - (base_sz.cx - r.left - cx) - cx;
-		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
-	}
-	else if(anchor == "BOTTOM_LEFT") {
-		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
-	}
-	else if(anchor == "TOP_HSIZE") {
-		x = r.left;
-		cx = r.Width() + (target_sz.cx - base_sz.cx);
-	}
-	else if(anchor == "CENTER_HSIZE") {
-		x = r.left;
-		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
-		cx = r.Width() + (target_sz.cx - base_sz.cx);
-	}
-	else if(anchor == "BOTTOM_HSIZE") {
-		x = r.left;
-		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
-		cx = r.Width() + (target_sz.cx - base_sz.cx);
-	}
-	else if(anchor == "LEFT_VSIZE") {
-		y = r.top;
-		cy = r.Height() + (target_sz.cy - base_sz.cy);
-	}
-	else if(anchor == "CENTER_VSIZE") {
-		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
-		y = r.top;
-		cy = r.Height() + (target_sz.cy - base_sz.cy);
-	}
-	else if(anchor == "RIGHT_VSIZE") {
-		x = target_sz.cx - (base_sz.cx - r.left - cx) - cx;
-		y = r.top;
-		cy = r.Height() + (target_sz.cy - base_sz.cy);
-	}
-	else if(anchor == "SIZE") {
-		x = r.left;
-		y = r.top;
-		cx = r.Width() + (target_sz.cx - base_sz.cx);
-		cy = r.Height() + (target_sz.cy - base_sz.cy);
-	}
-
-	return RectC(x, y, max(0, cx), max(0, cy));
+Size RotatedImageSize(const Image& img, int rotation_deg)
+{
+	Image rotated = RotateCardImage(img, rotation_deg);
+	return rotated.GetSize();
 }
 
 }
 
 // --- CardGameDocumentHost ---
+
+bool CardGameDocumentHost::log_to_stdout = false;
 
 CardGameOverlay::CardGameOverlay()
 {
@@ -170,20 +128,53 @@ void CardGameOverlay::LeftDown(Point p, dword flags)
 		owner->OverlayLeftDown(p, flags);
 }
 
+CardSpriteHitCtrl::CardSpriteHitCtrl()
+{
+	Transparent();
+	NoWantFocus();
+}
+
+void CardSpriteHitCtrl::LeftDown(Point p, dword flags)
+{
+	if(owner)
+		owner->InvokePythonCard(card_id);
+}
+
+CardSpriteCtrl::CardSpriteCtrl()
+{
+	NoWantFocus();
+}
+
+void CardSpriteCtrl::LeftDown(Point p, dword flags)
+{
+	if(owner)
+		owner->InvokePythonCard(card_id);
+}
+
 CardGameDocumentHost::CardGameDocumentHost()
 {
 	game_log.SetQTF("Welcome to the Game!&Ready to play.");
 	Add(table_form.SizePos());
 	overlay.owner = this;
 	overlay.NoWantFocus();
+	overlay.IgnoreMouse();
 	Add(overlay.SizePos());
 	Upp::SetTimeCallback(-16, [=] { Animate(); }, this);
 }
 
 CardGameDocumentHost::~CardGameDocumentHost()
 {
+	Upp::KillTimeCallback(&callback_timer_key);
+	StopVmThread();
+	if(runtime_plugin)
+		runtime_plugin->Shutdown();
+	runtime_plugin.Clear();
+	runtime_context.Clear();
+	plugin = nullptr;
+	ClearCardCtrls();
 	Upp::KillTimeCallback(this);
 	Upp::KillTimeCallback(&resize_refresh_pending);
+	Upp::KillTimeCallback(&scene_sync_pending);
 }
 
 bool CardGameDocumentHost::Load(const String& path_)
@@ -202,19 +193,19 @@ bool CardGameDocumentHost::Load(const String& path_)
 	Refresh();
 	SyncFormExplorer();
 
-	// Wire this view to the plugin and run the Python game
-	if(plugin) {
-		plugin->SetView(this);
+	InitRuntime();
+	StartVmThread();
+	QueueVmTask([=] {
+		if(!plugin)
+			return;
 		try {
 			plugin->Execute(path);
-			// The first script-driven layout can happen before the host has a
-			// stable on-screen size. Re-run once on the next UI tick so zone
-			// based positioning lands in the visible area.
-			Upp::PostCallback([=] { RefreshGameView(); }, &last_layout_size);
-		} catch(Exc& e) {
-			LOG("CardGameDocumentHost: Execute error: " << e);
 		}
-	}
+		catch(Exc& e) {
+			ReportVmError("Execute", e);
+		}
+	});
+	Upp::PostCallback([=] { RefreshGameView(); }, &last_layout_size);
 
 	return true;
 }
@@ -222,7 +213,6 @@ bool CardGameDocumentHost::Load(const String& path_)
 void CardGameDocumentHost::Layout()
 {
 	Ctrl::Layout();
-	ApplyFormItemLayout();
 
 	Size sz = GetSize();
 	if(sz == last_layout_size)
@@ -237,7 +227,6 @@ void CardGameDocumentHost::Layout()
 	resize_refresh_pending = true;
 	Upp::PostCallback([=] {
 		resize_refresh_pending = false;
-		ApplyFormItemLayout();
 		RefreshGameView();
 	}, &resize_refresh_pending);
 }
@@ -268,6 +257,10 @@ void CardGameDocumentHost::DeactivateUI()
 void CardGameDocumentHost::MainMenu(Bar& bar)
 {
 	bar.Sub("Game", [=](Bar& b) {
+		b.Add("Debug Overlay", [=] {
+			debug_overlay = !debug_overlay;
+			overlay.Refresh();
+		}).Check(debug_overlay);
 		b.Add("Restart Match", [=] { Todo("Restart"); });
 		b.Add("Concede", [=] { Todo("Concede"); });
 	});
@@ -276,6 +269,288 @@ void CardGameDocumentHost::MainMenu(Bar& bar)
 void CardGameDocumentHost::Toolbar(Bar& bar)
 {
 	bar.Add("Play", CtrlImg::right_arrow(), [=] { Todo("Play Turn"); });
+	bar.Add("Debug", [=] {
+		debug_overlay = !debug_overlay;
+		overlay.Refresh();
+	}).Check(debug_overlay);
+}
+
+void CardGameDocumentHost::InitRuntime()
+{
+	Upp::KillTimeCallback(&callback_timer_key);
+	StopVmThread();
+	if(runtime_plugin)
+		runtime_plugin->Shutdown();
+	runtime_plugin.Clear();
+	runtime_context.Clear();
+
+	runtime_context.Create(vm);
+	runtime_plugin.Create();
+	plugin = ~runtime_plugin;
+	plugin->SetView(this);
+	plugin->Init(*runtime_context);
+}
+
+void CardGameDocumentHost::StartVmThread()
+{
+	StopVmThread();
+	vm_shutdown = false;
+	vm_thread_running = vm_thread.Run([=] { VmThreadMain(); });
+	ASSERT(vm_thread_running);
+}
+
+void CardGameDocumentHost::StopVmThread()
+{
+	bool wait = false;
+	{
+		Mutex::Lock __(vm_mutex);
+		if(vm_thread_running) {
+			vm_shutdown = true;
+			vm_cv.Broadcast();
+			wait = true;
+		}
+	}
+	if(wait) {
+		vm_thread.Wait();
+		vm_thread_running = false;
+	}
+	{
+		Mutex::Lock __(vm_mutex);
+		vm_tasks.Clear();
+		vm_shutdown = false;
+	}
+}
+
+void CardGameDocumentHost::VmThreadMain()
+{
+	for(;;) {
+		Function<void ()> task;
+		{
+			Mutex::Lock __(vm_mutex);
+			while(!vm_shutdown && vm_tasks.IsEmpty())
+				vm_cv.Wait(vm_mutex);
+			if(vm_shutdown && vm_tasks.IsEmpty())
+				break;
+			task = pick(vm_tasks[0]);
+			vm_tasks.Remove(0);
+		}
+		try {
+			task();
+		}
+		catch(Exc& e) {
+			ReportVmError("VM task", e);
+		}
+	}
+}
+
+void CardGameDocumentHost::QueueVmTask(Function<void ()> fn)
+{
+	Mutex::Lock __(vm_mutex);
+	if(vm_shutdown || !vm_thread_running)
+		return;
+	vm_tasks.Add(pick(fn));
+	vm_cv.Signal();
+}
+
+void CardGameDocumentHost::QueueVmRefresh()
+{
+	QueueVmTask([=] {
+		if(!plugin)
+			return;
+		PyValue refresh_ui = plugin->GetGameFunction("refresh_ui");
+		if(!refresh_ui.IsFunction())
+			return;
+		try {
+			vm.Call(refresh_ui, {});
+		}
+		catch(Exc& e) {
+			ReportVmError("refresh_ui", e);
+		}
+	});
+}
+
+void CardGameDocumentHost::QueueVmNamedCallback(const String& callback_name)
+{
+	QueueVmTask([=] {
+		if(!plugin)
+			return;
+		PyValue cb = plugin->GetGameFunction(callback_name);
+		if(!cb.IsFunction())
+			return;
+		try {
+			vm.Call(cb, {});
+		}
+		catch(Exc& e) {
+			ReportVmError(callback_name, e);
+		}
+	});
+}
+
+void CardGameDocumentHost::QueueUiCommand(Function<void ()> fn)
+{
+	bool post = false;
+	{
+		Mutex::Lock __(ui_mutex);
+		ui_commands.Add(pick(fn));
+		if(!ui_flush_pending) {
+			ui_flush_pending = true;
+			post = true;
+		}
+	}
+	if(post)
+		PostCallback([=] { DrainUiQueue(); });
+}
+
+void CardGameDocumentHost::ScheduleUiFlush()
+{
+	bool post = false;
+	{
+		Mutex::Lock __(ui_mutex);
+		if(!ui_flush_pending) {
+			ui_flush_pending = true;
+			post = true;
+		}
+	}
+	if(post)
+		PostCallback([=] { DrainUiQueue(); });
+}
+
+void CardGameDocumentHost::DrainUiQueue()
+{
+	ASSERT(IsMainThread());
+
+	Vector<Function<void ()>> cmds;
+	{
+		Mutex::Lock __(ui_mutex);
+		ui_flush_pending = false;
+		cmds <<= pick(ui_commands);
+	}
+
+	for(int i = 0; i < cmds.GetCount(); i++)
+		cmds[i]();
+
+	SyncFormControls();
+	SyncFormExplorer();
+	table_form.Refresh();
+	overlay.Refresh();
+	Refresh();
+}
+
+void CardGameDocumentHost::ApplyClearSprites()
+{
+	active_cards.Clear();
+	for(int i = 0; i < card_ctrls.GetCount(); i++) {
+		if(card_ctrls[i])
+			card_ctrls[i]->Hide();
+	}
+	sprites.Clear();
+}
+
+void CardGameDocumentHost::ApplySetLabel(const String& zone_id, const String& text)
+{
+	labels.GetAdd(zone_id) = text;
+}
+
+void CardGameDocumentHost::ApplySetButton(const String& zone_id, const String& text, bool enabled)
+{
+	ActionButton& b = buttons.GetAdd(zone_id);
+	b.text = text;
+	b.enabled = enabled;
+}
+
+void CardGameDocumentHost::ApplySetHighlight(const String& zone_id, bool enabled)
+{
+	int q = highlights.Find(zone_id);
+	if(enabled) {
+		if(q < 0)
+			highlights.Add(zone_id);
+	}
+	else if(q >= 0)
+		highlights.Remove(q);
+}
+
+void CardGameDocumentHost::ApplySetStatus(const String& text)
+{
+	status_text = text;
+}
+
+void CardGameDocumentHost::ApplyLog(const String& msg)
+{
+	if(log_to_stdout)
+		Cout() << msg << "\n";
+	game_log.SetQTF(game_log.GetQTF() + "&" + DeQtfLf(msg));
+}
+
+void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
+{
+	Sprite& s = sprites.GetAdd(card_id);
+
+	String full_path = asset_path;
+	if(!IsFullPath(asset_path))
+		full_path = AppendFileName(GetFileDirectory(path), asset_path);
+
+	if(s.img.IsEmpty() || s.asset_path != full_path) {
+		int q = image_cache.Find(full_path);
+		if(q >= 0)
+			s.img = image_cache[q];
+		else {
+			s.img = StreamRaster::LoadFileAny(full_path);
+			image_cache.Add(full_path, s.img);
+		}
+		s.asset_path = full_path;
+	}
+	s.rotation_deg = rotation_deg;
+	Size sprite_sz = RotatedImageSize(s.img, s.rotation_deg);
+	s.rect = RectC(x, y, sprite_sz.cx, sprite_sz.cy);
+	s.target_rect = s.rect;
+	s.animating = false;
+	if(active_cards.Find(card_id) < 0)
+		active_cards.Add(card_id);
+	SyncCardCtrl(card_id);
+}
+
+void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
+{
+	int qs = sprites.Find(card_id);
+	if(qs < 0)
+		return;
+
+	Rect abs_z = GetZoneRectFromForm(table_form, zone_id);
+	if(abs_z.IsEmpty())
+		return;
+	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2) + offset;
+	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
+
+	Sprite& s = sprites[qs];
+	s.target_rect = RectC(tx, ty, s.rect.GetWidth(), s.rect.GetHeight());
+	if(animated)
+		s.animating = true;
+	else {
+		s.rect = s.target_rect;
+		s.animating = false;
+	}
+	if(active_cards.Find(card_id) < 0)
+		active_cards.Add(card_id);
+	SyncCardCtrl(card_id);
+}
+
+void CardGameDocumentHost::ApplySetTimeout(int delay_ms, const String& callback_name)
+{
+	pending_callback_name = callback_name;
+	Upp::KillTimeCallback(&callback_timer_key);
+	Upp::SetTimeCallback(max(0, delay_ms), [=] {
+		QueueVmNamedCallback(callback_name);
+	}, &callback_timer_key);
+}
+
+void CardGameDocumentHost::ReportVmError(const String& where, const String& msg)
+{
+	String text = where + " error: " + msg;
+	LOG("CardGameDocumentHost: " << text);
+	QueueUiCommand([=] {
+		last_error = msg;
+		ApplyLog(text);
+	});
 }
 
 void CardGameDocumentHost::SetLayout(const String& path)
@@ -306,119 +581,108 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	for(const CardGameZoneDef& def : defs) {
 		FormItem& item = form_items.GetAdd(def.id);
 		item.id = def.id;
-		item.rect = def.rect;
 		item.anchor = def.anchor;
 		item.user_class = def.user_class;
 	}
 
-	ApplyFormItemLayout();
+	table_form.SizePos();
 	SyncFormControls();
 	Refresh();
 	SyncFormExplorer();
-}
-
-Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz)
-{
-	Size base_sz = table_form.GetLayouts().GetCount() ? table_form.GetLayouts()[0].GetFormSize() : parent_sz;
-	return ResolveAnchoredRect(r, anchor, base_sz, parent_sz);
 }
 
 // IHeartsView implementation
 
 void CardGameDocumentHost::ClearSprites()
 {
-	sprites.Clear();
-	SyncFormExplorer();
-	overlay.Refresh();
+	if(IsMainThread()) {
+		ApplyClearSprites();
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyClearSprites(); });
 }
 
 void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
 {
-	labels.GetAdd(zone_id) = text;
-	SyncFormControls();
-	SyncFormExplorer();
-	table_form.Refresh();
+	if(IsMainThread()) {
+		ApplySetLabel(zone_id, text);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetLabel(zone_id, text); });
 }
 
 void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, bool enabled)
 {
-	ActionButton& b = buttons.GetAdd(zone_id);
-	b.text = text;
-	b.enabled = enabled;
-	SyncFormControls();
-	SyncFormExplorer();
-	table_form.Refresh();
+	if(IsMainThread()) {
+		ApplySetButton(zone_id, text, enabled);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetButton(zone_id, text, enabled); });
 }
 
 void CardGameDocumentHost::SetHighlight(const String& zone_id, bool enabled)
 {
-	int q = highlights.Find(zone_id);
-	if(enabled) {
-		if(q < 0)
-			highlights.Add(zone_id);
+	if(IsMainThread()) {
+		ApplySetHighlight(zone_id, enabled);
+		DrainUiQueue();
 	}
-	else if(q >= 0) {
-		highlights.Remove(q);
-	}
-	SyncFormExplorer();
-	overlay.Refresh();
+	else
+		QueueUiCommand([=] { ApplySetHighlight(zone_id, enabled); });
 }
 
 void CardGameDocumentHost::SetStatus(const String& text)
 {
-	status_text = text;
-	SyncFormControls();
-	SyncFormExplorer();
-	table_form.Refresh();
+	if(IsMainThread()) {
+		ApplySetStatus(text);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetStatus(text); });
 }
 
-void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_path, int x, int y)
+void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
 {
-	Sprite& s = sprites.GetAdd(card_id);
-
-	String full_path = asset_path;
-	if(!IsFullPath(asset_path))
-		full_path = AppendFileName(GetFileDirectory(path), asset_path);
-
-	if(s.img.IsEmpty() || s.asset_path != full_path) {
-		s.img = StreamRaster::LoadFileAny(full_path);
-		s.asset_path = full_path;
+	if(IsMainThread()) {
+		ApplySetCard(card_id, asset_path, x, y, rotation_deg);
+		DrainUiQueue();
 	}
-	s.rect = RectC(x, y, s.img.GetWidth(), s.img.GetHeight());
-	s.target_rect = s.rect;
-	s.animating = false;
-	SyncFormExplorer();
-	overlay.Refresh();
+	else
+		QueueUiCommand([=] { ApplySetCard(card_id, asset_path, x, y, rotation_deg); });
 }
 
 void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
 {
-	int qs = sprites.Find(card_id);
-	if(qs < 0)
-		return;
-
-	Rect abs_z = GetZoneRectFromForm(table_form, zone_id);
-	if(abs_z.IsEmpty())
-		return;
-	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2) + offset;
-	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
-
-	Sprite& s = sprites[qs];
-	s.target_rect = RectC(tx, ty, s.rect.GetWidth(), s.rect.GetHeight());
-	if(animated)
-		s.animating = true;
-	else {
-		s.rect = s.target_rect;
-		s.animating = false;
+	if(IsMainThread()) {
+		ApplyMoveCardToZone(card_id, zone_id, offset, animated);
+		DrainUiQueue();
 	}
-	SyncFormExplorer();
-	overlay.Refresh();
+	else
+		QueueUiCommand([=] { ApplyMoveCardToZone(card_id, zone_id, offset, animated); });
 }
 
 Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 {
 	ValueMap m;
-	Rect r = GetZoneRectFromForm(table_form, zone_id);
+	Rect r;
+	if(IsMainThread())
+		r = GetZoneRectFromForm(table_form, zone_id);
+	else {
+		Mutex wait_mutex;
+		ConditionVariable wait_cv;
+		bool ready = false;
+		QueueUiCommand([=, &wait_mutex, &wait_cv, &ready, &r] {
+			r = GetZoneRectFromForm(table_form, zone_id);
+			Mutex::Lock __(wait_mutex);
+			ready = true;
+			wait_cv.Signal();
+		});
+		Mutex::Lock __(wait_mutex);
+		while(!ready)
+			wait_cv.Wait(wait_mutex);
+	}
 	if(!r.IsEmpty()) {
 		m.Add("x", r.left);
 		m.Add("y", r.top);
@@ -430,10 +694,87 @@ Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 	return m;
 }
 
+String CardGameDocumentHost::DumpScene()
+{
+	String out;
+	out << "path: " << path << "\n";
+	out << "form_path: " << form_path << "\n";
+	out << "plugin: " << (plugin ? "yes" : "no") << "\n";
+	PyVM* vm = plugin && plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+	out << "vm: " << (vm ? "yes" : "no") << "\n";
+	if(plugin) {
+		out << "callback refresh_ui: " << (plugin->GetGameFunction("refresh_ui").IsFunction() ? "yes" : "no") << "\n";
+		out << "callback on_click: " << (plugin->GetGameFunction("on_click").IsFunction() ? "yes" : "no") << "\n";
+		out << "callback on_button: " << (plugin->GetGameFunction("on_button").IsFunction() ? "yes" : "no") << "\n";
+		out << "callback start: " << (plugin->GetGameFunction("start").IsFunction() ? "yes" : "no") << "\n";
+	}
+	out << "host_size: " << GetSize().cx << "x" << GetSize().cy << "\n";
+	out << "table_form_size: " << table_form.GetSize().cx << "x" << table_form.GetSize().cy << "\n";
+	out << "background: " << background_color.GetR() << "," << background_color.GetG() << "," << background_color.GetB() << "\n";
+	out << "last_error: " << last_error << "\n";
+	out << "game_log_qtf: " << AsCString(game_log.GetQTF()) << "\n";
+	out << "form_items: " << form_items.GetCount() << "\n";
+	for(int i = 0; i < form_items.GetCount(); i++) {
+		const FormItem& item = form_items[i];
+		Rect r = GetZoneRectFromForm(table_form, item.id);
+		out << "  form_item " << item.id
+		    << " class=" << item.user_class
+		    << " anchor=" << item.anchor
+		    << " rect=" << r.left << "," << r.top << " " << r.GetWidth() << "x" << r.GetHeight();
+		if(Ctrl* ctrl = table_form.GetCtrl(item.id))
+			out << " ctrl_rect=" << ctrl->GetRect().left << "," << ctrl->GetRect().top << " " << ctrl->GetRect().GetWidth() << "x" << ctrl->GetRect().GetHeight()
+			    << " visible=" << (ctrl->IsShown() ? "1" : "0");
+		out << "\n";
+	}
+	out << "labels: " << labels.GetCount() << "\n";
+	for(int i = 0; i < labels.GetCount(); i++)
+		out << "  label " << labels.GetKey(i) << " text=" << AsCString(labels[i]) << "\n";
+	out << "buttons: " << buttons.GetCount() << "\n";
+	for(int i = 0; i < buttons.GetCount(); i++)
+		out << "  button " << buttons.GetKey(i) << " enabled=" << (buttons[i].enabled ? "1" : "0")
+		    << " text=" << AsCString(buttons[i].text) << "\n";
+	out << "highlights: " << highlights.GetCount() << "\n";
+	for(int i = 0; i < highlights.GetCount(); i++)
+		out << "  highlight " << highlights[i] << "\n";
+	out << "sprites: " << sprites.GetCount() << "\n";
+	for(int i = 0; i < sprites.GetCount(); i++) {
+		const String& id = sprites.GetKey(i);
+		const Sprite& s = sprites[i];
+		int q = card_ctrls.Find(id);
+		out << "  sprite " << id
+		    << " asset=" << s.asset_path
+		    << " img=" << s.img.GetWidth() << "x" << s.img.GetHeight()
+		    << " rot=" << s.rotation_deg
+		    << " rect=" << s.rect.left << "," << s.rect.top << " " << s.rect.GetWidth() << "x" << s.rect.GetHeight()
+		    << " target=" << s.target_rect.left << "," << s.target_rect.top << " " << s.target_rect.GetWidth() << "x" << s.target_rect.GetHeight()
+		    << " anim=" << (s.animating ? "1" : "0")
+		    << " ctrl=" << (q >= 0 && card_ctrls[q] ? "1" : "0");
+		if(q >= 0 && card_ctrls[q]) {
+			Rect cr = card_ctrls[q]->GetRect();
+			out << " ctrl_rect=" << cr.left << "," << cr.top << " " << cr.GetWidth() << "x" << cr.GetHeight()
+			    << " shown=" << (card_ctrls[q]->IsShown() ? "1" : "0");
+		}
+		out << "\n";
+	}
+	return out;
+}
+
 void CardGameDocumentHost::Log(const String& msg)
 {
-	game_log.SetQTF(game_log.GetQTF() + "&" + DeQtfLf(msg));
-	Refresh();
+	if(IsMainThread()) {
+		ApplyLog(msg);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyLog(msg); });
+}
+
+void CardGameDocumentHost::SetTimeout(int delay_ms, const String& callback_name)
+{
+	if(IsMainThread())
+		ApplySetTimeout(delay_ms, callback_name);
+	else
+		QueueUiCommand([=] { ApplySetTimeout(delay_ms, callback_name); });
 }
 
 void CardGameDocumentHost::Animate()
@@ -454,10 +795,18 @@ void CardGameDocumentHost::Animate()
 			} else {
 				s.rect = RectC(p.x + dx / 5, p.y + dy / 5, s.rect.GetWidth(), s.rect.GetHeight());
 			}
+			SyncCardCtrl(sprites.GetKey(i));
 			changed = true;
 		}
 	}
-	if(changed) overlay.Refresh();
+	if(changed) {
+		overlay.Refresh();
+		for(int i = 0; i < sprites.GetCount(); i++) {
+			int q = card_ctrls.Find(sprites.GetKey(i));
+			if(q >= 0 && card_ctrls[q])
+				card_ctrls[q]->Refresh();
+		}
+	}
 }
 
 void CardGameDocumentHost::RefreshGameView()
@@ -465,29 +814,142 @@ void CardGameDocumentHost::RefreshGameView()
 	if(refresh_running)
 		return;
 
-	PyVM* vm = plugin && plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-	if(!vm) {
-		Refresh();
-		return;
-	}
-
-	PyValue refresh_ui = vm->GetGlobals().GetDict().Get("refresh_ui", PyValue());
-	if(!refresh_ui.IsFunction()) {
-		Refresh();
-		return;
-	}
-
 	refresh_running = true;
-	try {
-		vm->Call(refresh_ui, {});
+	QueueVmTask([=] {
+		if(plugin) {
+			PyValue refresh_ui = plugin->GetGameFunction("refresh_ui");
+			if(refresh_ui.IsFunction()) {
+				try {
+					vm.Call(refresh_ui, {});
+				}
+				catch(Exc& e) {
+					ReportVmError("refresh_ui", e);
+				}
+			}
+		}
+		QueueUiCommand([=] { refresh_running = false; });
+	});
+}
+
+void CardGameDocumentHost::InvokePythonButton(const String& button_id)
+{
+	if(!plugin)
+		return;
+	QueueVmTask([=] {
+		PyValue on_button = plugin->GetGameFunction("on_button");
+		if(!on_button.IsFunction())
+			return;
+		try {
+			vm.Call(on_button, { PyValue(button_id) });
+		}
+		catch(Exc& e) {
+			ReportVmError("on_button", e);
+		}
+	});
+}
+
+void CardGameDocumentHost::InvokePythonCard(const String& card_id)
+{
+	if(!plugin)
+		return;
+	QueueVmTask([=] {
+		PyValue on_click = plugin->GetGameFunction("on_click");
+		if(!on_click.IsFunction())
+			return;
+		try {
+			vm.Call(on_click, { PyValue(card_id) });
+		}
+		catch(Exc& e) {
+			ReportVmError("on_click", e);
+		}
+	});
+}
+
+void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
+{
+	int qs = sprites.Find(card_id);
+	if(qs < 0)
+		return;
+
+	int qh = card_ctrls.Find(card_id);
+	CardSpriteCtrl* ctrl = nullptr;
+	if(qh < 0) {
+		ctrl = new CardSpriteCtrl;
+		ctrl->owner = this;
+		ctrl->card_id = card_id;
+		card_ctrls.Add(card_id, ctrl);
+		AddChild(ctrl);
 	}
-	catch(Exc& e) {
-		LOG("refresh_ui error: " << e);
-		Refresh();
+	else
+		ctrl = card_ctrls[qh];
+
+	if(ctrl) {
+		ctrl->SetImage(RotateCardImage(sprites[qs].img, sprites[qs].rotation_deg));
+		ctrl->SetRect(sprites[qs].rect);
+		ctrl->Show();
+		ctrl->Refresh();
 	}
-	refresh_running = false;
-	ApplyFormItemLayout();
-	SyncFormControls();
+}
+
+void CardGameDocumentHost::ClearCardCtrls()
+{
+	for(int i = 0; i < card_ctrls.GetCount(); i++) {
+		CardSpriteCtrl* ctrl = card_ctrls[i];
+		if(!ctrl)
+			continue;
+		ctrl->Remove();
+		delete ctrl;
+	}
+	card_ctrls.Clear();
+}
+
+void CardGameDocumentHost::DebugInvokeFirstHandCards(int count)
+{
+	Rect hand = GetZoneRectFromForm(table_form, "hand_self");
+	if(hand.IsEmpty() || count <= 0)
+		return;
+
+	struct HandCard : Moveable<HandCard> {
+		String id;
+		int x = 0;
+	};
+	Vector<HandCard> cards;
+	for(int i = 0; i < sprites.GetCount(); i++) {
+		const String& id = sprites.GetKey(i);
+		if(id.StartsWith("opp_"))
+			continue;
+		const Sprite& s = sprites[i];
+		Point c = s.rect.CenterPoint();
+		if(hand.Contains(c)) {
+			HandCard& hc = cards.Add();
+			hc.id = id;
+			hc.x = s.rect.left;
+		}
+	}
+	for(int i = 0; i < cards.GetCount(); i++) {
+		int best = i;
+		for(int j = i + 1; j < cards.GetCount(); j++) {
+			if(cards[j].x < cards[best].x)
+				best = j;
+		}
+		if(best != i)
+			Swap(cards[i], cards[best]);
+	}
+	if(count > cards.GetCount())
+		count = cards.GetCount();
+	for(int i = 0; i < count; i++)
+		InvokePythonCard(cards[i].id);
+}
+
+void CardGameDocumentHost::ScheduleSceneSync()
+{
+	if(scene_sync_pending)
+		return;
+	scene_sync_pending = true;
+	Upp::PostCallback([=] {
+		scene_sync_pending = false;
+		SyncFormExplorer();
+	}, &scene_sync_pending);
 }
 
 void CardGameDocumentHost::SyncFormExplorer()
@@ -552,17 +1014,6 @@ void CardGameDocumentHost::Paint(Draw& w)
 	w.DrawRect(GetSize(), background_color);
 }
 
-void CardGameDocumentHost::ApplyFormItemLayout()
-{
-	for(int i = 0; i < form_items.GetCount(); i++) {
-		const FormItem& item = form_items[i];
-		Ctrl* ctrl = table_form.GetCtrl(item.id);
-		if(!ctrl)
-			continue;
-		ctrl->SetRect(GetAbsoluteRect(item.rect, item.anchor, table_form.GetSize()));
-	}
-}
-
 void CardGameDocumentHost::SyncFormControls()
 {
 	for(int i = 0; i < labels.GetCount(); i++) {
@@ -583,8 +1034,10 @@ void CardGameDocumentHost::SyncFormControls()
 	for(int i = 0; i < buttons.GetCount(); i++) {
 		if(Ctrl* ctrl = table_form.GetCtrl(buttons.GetKey(i))) {
 			if(Button* button = dynamic_cast<Button*>(ctrl)) {
+				String button_id = buttons.GetKey(i);
 				button->SetLabel(buttons[i].text);
 				button->Enable(buttons[i].enabled);
+				button->WhenAction = [=] { InvokePythonButton(button_id); };
 			}
 		}
 	}
@@ -600,6 +1053,24 @@ void CardGameDocumentHost::SyncFormControls()
 
 void CardGameDocumentHost::PaintOverlay(Draw& w)
 {
+	if(debug_overlay) {
+		for(int i = 0; i < form_items.GetCount(); i++) {
+			const FormItem& item = form_items[i];
+			Rect r = GetZoneRectFromForm(table_form, item.id);
+			if(r.IsEmpty())
+				continue;
+			Color c = item.user_class == "HAND" ? Color(120, 180, 255)
+			        : item.user_class == "TRICK" ? Color(255, 180, 120)
+			        : item.user_class == "BUTTON" ? Color(255, 230, 120)
+			        : Color(200, 200, 200);
+			w.DrawRect(r.left, r.top, r.GetWidth(), 1, c);
+			w.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, c);
+			w.DrawRect(r.left, r.top, 1, r.GetHeight(), c);
+			w.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), c);
+			w.DrawText(r.left + 2, max(0, r.top - 14), item.id, StdFont(), c);
+		}
+	}
+
 	for(int i = 0; i < highlights.GetCount(); i++) {
 		Rect r = GetZoneRectFromForm(table_form, highlights[i]);
 		if(r.IsEmpty())
@@ -612,53 +1083,11 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 	}
 
 	for(int i = 0; i < sprites.GetCount(); i++) {
-		const Sprite& s = sprites[i];
-		if(!s.img.IsEmpty())
-			w.DrawImage(s.rect.left, s.rect.top, s.img);
 	}
 }
 
 void CardGameDocumentHost::OverlayLeftDown(Point p, dword flags)
 {
-	for(int i = 0; i < buttons.GetCount(); i++) {
-		if(!buttons[i].enabled)
-			continue;
-		Rect r = GetZoneRectFromForm(table_form, buttons.GetKey(i));
-		if(!r.Contains(p))
-			continue;
-		if(plugin) {
-			PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-			if(vm) {
-				PyValue on_button = vm->GetGlobals().GetDict().Get("on_button", PyValue());
-				if(on_button.IsFunction()) {
-					try { vm->Call(on_button, {PyValue(buttons.GetKey(i))}); }
-					catch(Exc& e) { LOG("on_button error: " << e); }
-					SyncFormControls();
-					overlay.Refresh();
-				}
-			}
-		}
-		return;
-	}
-
-	for(int i = sprites.GetCount() - 1; i >= 0; i--) {
-		if(!sprites[i].rect.Contains(p))
-			continue;
-		String card_id = sprites.GetKey(i);
-		if(plugin) {
-			PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-			if(vm) {
-				PyValue on_click = vm->GetGlobals().GetDict().Get("on_click", PyValue());
-				if(on_click.IsFunction()) {
-					try { vm->Call(on_click, {PyValue(card_id)}); }
-					catch(Exc& e) { LOG("on_click error: " << e); }
-					SyncFormControls();
-					overlay.Refresh();
-				}
-			}
-		}
-		break;
-	}
 }
 
 // --- CardGameProperties ---

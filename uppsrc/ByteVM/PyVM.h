@@ -13,6 +13,7 @@ class PyVM {
 		VectorMap<PyValue, PyValue> locals;
 		PyValue globals;
 		bool    is_module = false;
+		int     stack_base = 0; // stack depth when frame was entered
 	};
 	
 	Vector<Frame> frames;

@@ -95,6 +95,19 @@ void PythonIDE::InitLayout()
 		}
 	};
 	
+	vm.WhenPrint = [=](const String& s) { console_pane->Write(s); };
+	
+	run_manager.WhenStarted = [=] {
+		console_pane->Write("--- Running script ---\n");
+	};
+	run_manager.WhenFinished = [=] {
+		console_pane->Write("--- Script finished ---\n");
+		UpdateVariableExplorer();
+	};
+	run_manager.WhenError = [=](const String& e) {
+		console_pane->WriteError("Runtime error: " + e + "\n");
+	};
+	
 	files_pane.Create();
 	files_pane->WhenOpen = [=](const String& path) { LoadFile(path); };
 	files_pane->WhenPathManager = [=] { OnPathManager(); };
@@ -493,8 +506,6 @@ void PythonIDE::OnConsoleInput()
 		PyValue res = vm.GetLastResult();
 		if(!res.IsNone())
 			console_pane->Write(res.Repr() + "\n");
-			
-		UpdateVariableExplorer();
 	}
 	catch (Exc& e) {
 		console_pane->WriteError(String("Error: ") + e + "\n");
@@ -1063,7 +1074,7 @@ void PythonIDE::UpdateStatusBar()
 
 void PythonIDE::UpdateVariableExplorer()
 {
-	var_explorer->SetVariables(vm.GetGlobals());
+	var_explorer->SetVariables(vm.GetGlobals().GetDict());
 }
 
 void PythonIDE::OnAnalyze() { Todo("Analyze"); }

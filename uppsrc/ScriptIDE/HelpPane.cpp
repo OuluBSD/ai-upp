@@ -10,8 +10,8 @@ HelpPane::HelpPane()
 	source_selector.Add("Console");
 	source_selector.Add("Editor");
 
-	Add(header.TopPos(0, 24).HSizePos());
-	Add(viewer.VSizePos(24, 0).HSizePos());
+	Add(header.TopPos(0, 36).HSizePos());
+	Add(viewer.VSizePos(36, 0).HSizePos());
 	
 	header.Set([=](Bar& bar) { LayoutHeader(bar); });
 }
@@ -20,10 +20,10 @@ void HelpPane::LayoutHeader(Bar& bar)
 {
 	bar.Add(source_selector);
 	bar.Add(object_input);
-	bar.Add(Icons::Undo(), [=] { OnHome(); }).Help("Home");
-	bar.Add(Icons::Plus(), [=] { OnLock(); }).Help("Lock"); // Using plus as lock icon placeholder
-	bar.Gap(2000);
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add(Icons::Undo(), [=] { OnHome(); }).Tip("Home button").Help("Home");
+	bar.Add(Icons::Plus(), [=] { OnLock(); }).Tip("Lock button").Help("Lock"); // Using plus as lock icon placeholder
+	bar.ToolGapRight();
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void HelpPane::LayoutPaneMenu(Bar& bar)

@@ -26,6 +26,8 @@ struct MyAppWindow : TopWindow {
 	void SubBar(Bar& bar) {
 		bar.AddMenu("Function", TutorialImg::Fn(), [=] { MenuFn(); });
 		bar.Add(TutorialImg::Fn2(), [=] { BarFn(); });
+		// Start a right-aligned toolbar group and hide its visual handle.
+		bar.ToolGroupRight(false);
 		bar.Add("Exit", TutorialImg::Exit(), [=] { Exit(); });
 	}
 

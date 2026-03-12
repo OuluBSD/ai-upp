@@ -327,6 +327,7 @@ void PyCompiler::Statement()
 				func.GetLambdaRW().arg_values.Add(PyValue(a));
 			
 			EmitConst(func);
+			Emit(PY_MAKE_FUNCTION);
 			EmitName(PY_STORE_NAME, name);
 		}
 	else if(IsId("class")) {
@@ -359,6 +360,7 @@ void PyCompiler::Statement()
 		body_func.GetLambdaRW().ir = pick(body);
 
 		EmitConst(body_func);
+		Emit(PY_MAKE_FUNCTION);
 		{
 			PyIR build_ir(PY_BUILD_CLASS, 0, GetLine(), file);
 			build_ir.arg = PyValue(class_name);

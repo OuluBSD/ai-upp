@@ -10,10 +10,22 @@ Image GetIcon(const char *name, int size = 24);
 struct Icons {
 	static Image NewFile()    { return GetIcon("project_new"); }
 	static Image OpenFile()   { return GetIcon("project_open"); }
-	static Image Save()       { return GetIcon("filesave"); }
-	static Image SaveAll()    { return GetIcon("save_all"); }
-	static Image Run()        { return GetIcon("run_selection"); }
-	static Image Debug()      { return GetIcon("debug"); }
+	static Image Save()       { return GetIcon("run_settings"); }
+	static Image SaveAll()    { return GetIcon("ArchiveFileIcon"); }
+	
+	static Image Run()              { return GetIcon("run_selection"); }
+	static Image RunCell()          { return GetIcon("run_cell"); }
+	static Image RunCellAdvance()   { return GetIcon("run_cell_advance"); }
+	static Image RunSelection()     { return GetIcon("run_selection"); }
+	
+	static Image Debug()            { return GetIcon("debug"); }
+	static Image DebugCell()        { return GetIcon("debug_cell"); }
+	static Image DebugSelection()   { return GetIcon("debug_selection"); }
+	
+	static Image Profile()          { return GetIcon("profiler"); }
+	static Image ProfileCell()      { return GetIcon("profile_cell"); }
+	static Image ProfileSelection() { return GetIcon("profile_selection"); }
+
 	static Image Stop()       { return GetIcon("project_close"); }
 	static Image StepOver()   { return GetIcon("debug_cell"); }
 	static Image StepIn()     { return GetIcon("debug_selection"); }
@@ -25,6 +37,13 @@ struct Icons {
 	static Image Info()       { return GetIcon("spyder_about"); }
 	static Image History()    { return GetIcon("last_edit_location"); }
 	static Image VariableExplorer() { return GetIcon("variable-explorer"); }
+	static Image ImportData()      { return GetIcon("file-import"); }
+	static Image SaveData()        { return GetIcon("run_settings"); }
+	static Image SaveDataAs()      { return GetIcon("ArchiveFileIcon"); }
+	static Image RemoveAll()       { return GetIcon("editdelete"); }
+	static Image SearchVariables() { return GetIcon("findnext"); }
+	static Image FilterVariables() { return GetIcon("filter"); }
+	static Image RefreshVariables() { return GetIcon("redo"); }
 	static Image Plots()      { return GetIcon("plots"); }
 	static Image Profiler()   { return GetIcon("profiler"); }
 	static Image Outline()    { return GetIcon("syspath"); }

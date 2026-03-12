@@ -65,7 +65,9 @@ enum PyOpCode {
 	PY_BUILD_MAP = 105,
 	PY_BUILD_CONST_KEY_MAP = 156,
 	PY_LIST_APPEND = 162,
-	
+	PY_BUILD_CLASS = 200,    // (name) TOS=class body dict (run as function) -> class object
+	PY_BINARY_SLICE = 201,   // (obj, start, stop) → obj[start:stop] sublist
+
 	PY_RETURN_VALUE = 83
 };
 

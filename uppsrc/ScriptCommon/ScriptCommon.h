@@ -3,6 +3,7 @@
 
 #include <Core/Core.h>
 #include <ByteVM/ByteVM.h>
+#include <ByteVM/PyBindings.h>
 
 NAMESPACE_UPP
 

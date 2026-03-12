@@ -7,8 +7,8 @@ FindInFilesPane::FindInFilesPane()
 	Title("Find");
 	Icon(Icons::Search());
 	
-	Add(toolbar.TopPos(0, 24).HSizePos());
-	Add(results.VSizePos(24, 0).HSizePos());
+	Add(toolbar.TopPos(0, 36).HSizePos());
+	Add(results.VSizePos(36, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
@@ -34,7 +34,7 @@ FindInFilesPane::FindInFilesPane()
 void FindInFilesPane::LayoutToolbar(Bar& bar)
 {
 	bar.Add(pattern_lbl, 60);
-	search_pattern.SetRect(0, 0, 150, 20);
+	search_pattern.SetRect(0, 0, 150, 24);
 	bar.Add(search_pattern);
 	
 	bar.Add(regex_toggle);
@@ -42,18 +42,18 @@ void FindInFilesPane::LayoutToolbar(Bar& bar)
 	bar.Separator();
 	
 	bar.Add(files_lbl, 40);
-	files_pattern.SetRect(0, 0, 100, 20);
+	files_pattern.SetRect(0, 0, 100, 24);
 	bar.Add(files_pattern);
 	
-	browse_btn.SetRect(0, 0, 30, 20);
+	browse_btn.SetRect(0, 0, 30, 24);
 	bar.Add(browse_btn);
 	
 	bar.Separator();
 	bar.Add(search_btn);
 	bar.Add(stop_btn);
 	
-	bar.Gap(2000);
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.ToolGapRight();
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void FindInFilesPane::LayoutPaneMenu(Bar& bar)

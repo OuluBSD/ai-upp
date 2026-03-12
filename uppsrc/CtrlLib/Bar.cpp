@@ -438,6 +438,15 @@ Bar::Item& Bar::Sub(const char *text, const ::Upp::Image& image, const Function<
 void   Bar::ToolSeparator()                { if(IsToolBar()) Separator(); }
 void   Bar::ToolBreak()                    { if(IsToolBar()) Break(); }
 void   Bar::ToolGap(int size)              { if(IsToolBar()) Gap(size); }
+void   Bar::ToolGroup(bool right, bool handle)
+{
+	if(!IsToolBar())
+		return;
+	if(right)
+		ToolGapRight();
+	if(handle && !IsEmpty())
+		ToolSeparator();
+}
 
 void   Bar::AddTool(Ctrl& ctrl)            { if(IsToolBar()) Add(ctrl); }
 void   Bar::AddTool(Ctrl& ctrl, Size sz)   { if(IsToolBar()) Add(ctrl, sz); }

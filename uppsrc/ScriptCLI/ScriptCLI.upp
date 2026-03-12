@@ -21,4 +21,5 @@ file
 	Main.cpp;
 
 mainconfig
-	"" = "";
+	"" = "",
+	"USEMALLOC" = "USEMALLOC";

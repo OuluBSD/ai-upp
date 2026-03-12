@@ -7,8 +7,8 @@ DebuggerPane::DebuggerPane()
 	Title("Debugger");
 	Icon(Icons::Debug());
 	
-	Add(toolbar.TopPos(0, 24).HSizePos());
-	Add(stack_tree.VSizePos(24, 0).HSizePos());
+	Add(toolbar.TopPos(0, 36).HSizePos());
+	Add(stack_tree.VSizePos(36, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
@@ -17,21 +17,21 @@ DebuggerPane::DebuggerPane()
 
 void DebuggerPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add("Debug current line", Icons::StepOver(), WhenContinue).Help("Debug current line (F10)");
-	bar.Add("Execute until next breakpoint", Icons::Run(), WhenContinue).Help("Execute until next breakpoint (F12)");
-	bar.Add("Step into function or method", Icons::StepIn(), WhenStepInto).Help("Step into (F11)");
-	bar.Add("Execute until function returns", Icons::StepOut(), WhenStepOut).Help("Execute until returns (Shift+F11)");
-	bar.Add("Stop debugging", Icons::Stop(), WhenStop).Help("Stop debugging (Shift+F12)");
+	bar.Add(Icons::StepOver(), WhenContinue).Tip("Debug current line").Help("Debug current line (F10)");
+	bar.Add(Icons::Run(), WhenContinue).Tip("Execute until next breakpoint").Help("Execute until next breakpoint (F12)");
+	bar.Add(Icons::StepIn(), WhenStepInto).Tip("Step into function or method").Help("Step into (F11)");
+	bar.Add(Icons::StepOut(), WhenStepOut).Tip("Execute until function returns").Help("Execute until returns (Shift+F11)");
+	bar.Add(Icons::Stop(), WhenStop).Tip("Stop debugging").Help("Stop debugging (Shift+F12)");
 	bar.Separator();
-	bar.Add("Start debugging after last error", [=] { Todo("Debug after error"); });
-	bar.Add("Interrupt execution and start the debugger", [=] { Todo("Interrupt and debug"); });
-	bar.Add("Inspect execution", [=] { Todo("Inspect execution"); });
+	bar.Add(Icons::Plus(), [=] { Todo("Debug after error"); }).Tip("Start debugging after last error");
+	bar.Add(Icons::Stop(), [=] { Todo("Interrupt and debug"); }).Tip("Interrupt execution and start the debugger");
+	bar.Add(Icons::Search(), [=] { Todo("Inspect execution"); }).Tip("Inspect execution");
 	bar.Separator();
-	bar.Add("Show file/line in editor", [=] { Todo("Show in editor"); });
-	bar.Add("Search frames", [=] { Todo("Search frames"); });
-	bar.Gap(2000);
-	bar.Add("Show breakpoints", [=] { Todo("Show breakpoints"); });
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add(Icons::File(), [=] { Todo("Show in editor"); }).Tip("Show file/line in editor");
+	bar.Add(Icons::Search(), [=] { Todo("Search frames"); }).Tip("Search frames");
+	bar.ToolGapRight();
+	bar.Add(Icons::Breakpoint(), [=] { Todo("Show breakpoints"); }).Tip("Show breakpoints");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void DebuggerPane::LayoutPaneMenu(Bar& bar)

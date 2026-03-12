@@ -31,6 +31,7 @@ struct PyLambda : PyValue::RefCount {
 	Vector<PyIR>   ir;
 	PyBuiltin      builtin = nullptr;
 	void          *user_data = nullptr;
+	PyValue        globals; // The module-level globals dictionary
 };
 
 struct PyBoundMethod : PyValue::RefCount {

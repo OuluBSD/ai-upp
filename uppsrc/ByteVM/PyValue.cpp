@@ -303,16 +303,21 @@ Value PyValue::ToValue() const
 	}
 }
 
+thread_local int repr_depth = 0;
+
 String PyValue::ToString() const
 {
+	if(repr_depth > 10) return "...";
+	repr_depth++;
+	String res;
 	switch(type) {
-	case PY_NONE: return "None";
-	case PY_BOOL: return b ? "True" : "False";
-	case PY_INT: return IntStr64(i64);
-	case PY_FLOAT: return FormatDouble(f64);
-	case PY_COMPLEX: return Format("(%g + %g j)", complex->c.real(), complex->c.imag());
-	case PY_STR: return wstr->s.ToString();
-	case PY_BYTES: return Format("b'%s'", bytes->s); // Simple escape
+	case PY_NONE: res = "None"; break;
+	case PY_BOOL: res = b ? "True" : "False"; break;
+	case PY_INT: res = IntStr64(i64); break;
+	case PY_FLOAT: res = FormatDouble(f64); break;
+	case PY_COMPLEX: res = Format("(%g + %g j)", complex->c.real(), complex->c.imag()); break;
+	case PY_STR: res = wstr->s.ToString(); break;
+	case PY_BYTES: res = Format("b'%s'", bytes->s); break;
 	case PY_LIST: {
 		String s = "[";
 		for(int i = 0; i < list->l.GetCount(); i++) {
@@ -320,7 +325,8 @@ String PyValue::ToString() const
 			s << list->l[i].Repr();
 		}
 		s << "]";
-		return s;
+		res = s;
+		break;
 	}
 	case PY_TUPLE: {
 		String s = "(";
@@ -330,7 +336,8 @@ String PyValue::ToString() const
 		}
 		if(tuple->l.GetCount() == 1) s << ",";
 		s << ")";
-		return s;
+		res = s;
+		break;
 	}
 	case PY_DICT: {
 		String s = "{";
@@ -339,7 +346,8 @@ String PyValue::ToString() const
 			s << dict->d.GetKey(i).Repr() << ": " << dict->d[i].Repr();
 		}
 		s << "}";
-		return s;
+		res = s;
+		break;
 	}
 	case PY_SET: {
 		String s = "{";
@@ -348,17 +356,23 @@ String PyValue::ToString() const
 			s << set->s[i].Repr();
 		}
 		s << "}";
-		return s;
+		res = s;
+		break;
 	}
-	case PY_FUNCTION: return "<function " + lambda->name + ">";
-	case PY_USERDATA: return "<userdata " + userdata->GetTypeName() + ">";
-	case PY_BOUND_METHOD: return "<method " + bound->func.ToString() + ">";
-	default: return "<unknown>";
+	case PY_FUNCTION: res = "<function " + lambda->name + ">"; break;
+	case PY_USERDATA: res = "<userdata " + userdata->GetTypeName() + ">"; break;
+	case PY_BOUND_METHOD: res = "<method " + bound->func.ToString() + ">"; break;
+	default: res = "<unknown>"; break;
 	}
+	repr_depth--;
+	return res;
 }
 
 String PyValue::Repr() const
 {
+	if(repr_depth > 10) return "...";
+	repr_depth++;
+	String res;
 	if (type == PY_STR) {
 		String s = "'";
 		String raw = wstr->s.ToString();
@@ -372,9 +386,12 @@ String PyValue::Repr() const
 			else s << c;
 		}
 		s << "'";
-		return s;
+		res = s;
+	} else {
+		res = ToString();
 	}
-	return ToString();
+	repr_depth--;
+	return res;
 }
 
 hash_t PyValue::GetHashValue() const

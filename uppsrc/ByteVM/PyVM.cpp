@@ -1236,86 +1236,87 @@ PyValue PyVM::Pop()
 
 PyVM::PyVM()
 {
-	globals.GetAdd(PyValue("__name__")) = PyValue("__main__");
+	globals = PyValue::Dict();
+	globals.GetDictRW().GetAdd(PyValue("__name__")) = PyValue("__main__");
 
-	globals.GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
+	globals.GetDictRW().GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
 
 	PyValue p_len = PyValue::Function("len");
 	p_len.GetLambdaRW().builtin = builtin_len;
-	globals.GetAdd(PyValue("len")) = p_len;
+	globals.GetDictRW().GetAdd(PyValue("len")) = p_len;
 	
 	PyValue p_range = PyValue::Function("range");
 	p_range.GetLambdaRW().builtin = builtin_range;
-	globals.GetAdd(PyValue("range")) = p_range;
+	globals.GetDictRW().GetAdd(PyValue("range")) = p_range;
 
 	PyValue p_complex = PyValue::Function("complex");
 	p_complex.GetLambdaRW().builtin = builtin_complex;
-	globals.GetAdd(PyValue("complex")) = p_complex;
+	globals.GetDictRW().GetAdd(PyValue("complex")) = p_complex;
 
 	PyValue p_bool = PyValue::Function("bool");
 	p_bool.GetLambdaRW().builtin = builtin_bool;
-	globals.GetAdd(PyValue("bool")) = p_bool;
+	globals.GetDictRW().GetAdd(PyValue("bool")) = p_bool;
 
 	PyValue p_str = PyValue::Function("str");
 	p_str.GetLambdaRW().builtin = builtin_str;
-	globals.GetAdd(PyValue("str")) = p_str;
+	globals.GetDictRW().GetAdd(PyValue("str")) = p_str;
 
 
 	PyValue p_iter = PyValue::Function("iter");
 	p_iter.GetLambdaRW().builtin = builtin_iter;
-	globals.GetAdd(PyValue("iter")) = p_iter;
+	globals.GetDictRW().GetAdd(PyValue("iter")) = p_iter;
 
 	PyValue p_next = PyValue::Function("next");
 	p_next.GetLambdaRW().builtin = builtin_next;
-	globals.GetAdd(PyValue("next")) = p_next;
+	globals.GetDictRW().GetAdd(PyValue("next")) = p_next;
 
 	PyValue p_dir = PyValue::Function("dir");
 	p_dir.GetLambdaRW().builtin = builtin_dir;
-	globals.GetAdd(PyValue("dir")) = p_dir;
+	globals.GetDictRW().GetAdd(PyValue("dir")) = p_dir;
 
 	PyValue p_min = PyValue::Function("min");
 	p_min.GetLambdaRW().builtin = builtin_min;
-	globals.GetAdd(PyValue("min")) = p_min;
+	globals.GetDictRW().GetAdd(PyValue("min")) = p_min;
 
 	PyValue p_max = PyValue::Function("max");
 	p_max.GetLambdaRW().builtin = builtin_max;
-	globals.GetAdd(PyValue("max")) = p_max;
+	globals.GetDictRW().GetAdd(PyValue("max")) = p_max;
 
 	PyValue p_sum = PyValue::Function("sum");
 	p_sum.GetLambdaRW().builtin = builtin_sum;
-	globals.GetAdd(PyValue("sum")) = p_sum;
+	globals.GetDictRW().GetAdd(PyValue("sum")) = p_sum;
 
 	PyValue p_abs = PyValue::Function("abs");
 	p_abs.GetLambdaRW().builtin = builtin_abs;
-	globals.GetAdd(PyValue("abs")) = p_abs;
+	globals.GetDictRW().GetAdd(PyValue("abs")) = p_abs;
 
 	PyValue p_chr = PyValue::Function("chr");
 	p_chr.GetLambdaRW().builtin = builtin_chr;
-	globals.GetAdd(PyValue("chr")) = p_chr;
+	globals.GetDictRW().GetAdd(PyValue("chr")) = p_chr;
 
 	PyValue p_ord = PyValue::Function("ord");
 	p_ord.GetLambdaRW().builtin = builtin_ord;
-	globals.GetAdd(PyValue("ord")) = p_ord;
+	globals.GetDictRW().GetAdd(PyValue("ord")) = p_ord;
 
 	PyValue p_open = PyValue::Function("open");
 	p_open.GetLambdaRW().builtin = builtin_open;
-	globals.GetAdd(PyValue("open")) = p_open;
+	globals.GetDictRW().GetAdd(PyValue("open")) = p_open;
 
 	// shutil module
 	PyValue shutil = PyValue::Dict();
 	shutil.SetItem(PyValue("copy"), PyValue::Function("copy", builtin_shutil_copy));
-	globals.GetAdd(PyValue("shutil")) = shutil;
+	globals.GetDictRW().GetAdd(PyValue("shutil")) = shutil;
 
 	// glob module
 	PyValue glob = PyValue::Dict();
 	glob.SetItem(PyValue("glob"), PyValue::Function("glob", builtin_glob_glob));
-	globals.GetAdd(PyValue("glob")) = glob;
+	globals.GetDictRW().GetAdd(PyValue("glob")) = glob;
 
 	// threading module
 	PyValue threading = PyValue::Dict();
 	threading.SetItem(PyValue("Thread"), PyValue::Function("Thread", builtin_threading_Thread));
 	threading.SetItem(PyValue("current_thread"), PyValue::Function("current_thread", builtin_threading_current_thread));
-	globals.GetAdd(PyValue("threading")) = threading;
+	globals.GetDictRW().GetAdd(PyValue("threading")) = threading;
 
 	// os module
 	PyValue os = PyValue::Dict();
@@ -1400,7 +1401,7 @@ os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 	os_path.SetItem(PyValue("pathsep"), os.GetItem(PyValue("pathsep")));
 
 	os.SetItem(PyValue("path"), os_path);
-	globals.GetAdd(PyValue("os")) = os;
+	globals.GetDictRW().GetAdd(PyValue("os")) = os;
 
 	// sys module
 	PyValue sys = PyValue::Dict();
@@ -1434,7 +1435,7 @@ os_path.SetItem(PyValue("sep"), os.GetItem(PyValue("sep")));
 
 	sys.SetItem(PyValue("version"), PyValue("0.1v (Uppy)"));
 	
-globals.GetAdd(PyValue("sys")) = sys;
+globals.GetDictRW().GetAdd(PyValue("sys")) = sys;
 
 	// math module
 	PyValue math = PyValue::Dict();
@@ -1506,7 +1507,7 @@ globals.GetAdd(PyValue("sys")) = sys;
 	math.SetItem(PyValue("tau"), PyValue(2.0 * M_PI));
 	math.SetItem(PyValue("inf"), PyValue(std::numeric_limits<double>::infinity()));
 	math.SetItem(PyValue("nan"), PyValue(std::numeric_limits<double>::quiet_NaN()));
-	globals.GetAdd(PyValue("math")) = math;
+	globals.GetDictRW().GetAdd(PyValue("math")) = math;
 
 	// time module
 	PyValue time = PyValue::Dict();
@@ -1516,7 +1517,7 @@ globals.GetAdd(PyValue("sys")) = sys;
 	time.SetItem(PyValue("perf_counter"), PyValue::Function("perf_counter", builtin_time_perf_counter));
 	time.SetItem(PyValue("gmtime"), PyValue::Function("gmtime", builtin_time_gmtime));
 	time.SetItem(PyValue("localtime"), PyValue::Function("localtime", builtin_time_localtime));
-	globals.GetAdd(PyValue("time")) = time;
+	globals.GetDictRW().GetAdd(PyValue("time")) = time;
 
 	// json module
 	PyValue json = PyValue::Dict();
@@ -1524,23 +1525,23 @@ globals.GetAdd(PyValue("sys")) = sys;
 	json.SetItem(PyValue("loads"), PyValue::Function("loads", builtin_json_loads));
 	json.SetItem(PyValue("dump"), PyValue::Function("dump", builtin_json_dump));
 	json.SetItem(PyValue("load"), PyValue::Function("load", builtin_json_load));
-	globals.GetAdd(PyValue("json")) = json;
+	globals.GetDictRW().GetAdd(PyValue("json")) = json;
 	
 	// subprocess module
 	PyValue subprocess = PyValue::Dict();
 	subprocess.SetItem(PyValue("run"), PyValue::Function("run", builtin_subprocess_run));
-	globals.GetAdd(PyValue("subprocess")) = subprocess;
+	globals.GetDictRW().GetAdd(PyValue("subprocess")) = subprocess;
 
 	// any / all / int / float / list / isinstance
-	globals.GetAdd(PyValue("any")) = PyValue::Function("any", builtin_any);
-	globals.GetAdd(PyValue("all")) = PyValue::Function("all", builtin_all);
-	globals.GetAdd(PyValue("int")) = PyValue::Function("int", builtin_int);
-	globals.GetAdd(PyValue("float")) = PyValue::Function("float", builtin_float);
-	globals.GetAdd(PyValue("list")) = PyValue::Function("list", builtin_list);
-	globals.GetAdd(PyValue("isinstance")) = PyValue::Function("isinstance", builtin_isinstance);
+	globals.GetDictRW().GetAdd(PyValue("any")) = PyValue::Function("any", builtin_any);
+	globals.GetDictRW().GetAdd(PyValue("all")) = PyValue::Function("all", builtin_all);
+	globals.GetDictRW().GetAdd(PyValue("int")) = PyValue::Function("int", builtin_int);
+	globals.GetDictRW().GetAdd(PyValue("float")) = PyValue::Function("float", builtin_float);
+	globals.GetDictRW().GetAdd(PyValue("list")) = PyValue::Function("list", builtin_list);
+	globals.GetDictRW().GetAdd(PyValue("isinstance")) = PyValue::Function("isinstance", builtin_isinstance);
 
 	// enumerate: returns list of (index, value) tuples
-	globals.GetAdd(PyValue("enumerate")) = PyValue::Function("enumerate", [](const Vector<PyValue>& args, void*){
+	globals.GetDictRW().GetAdd(PyValue("enumerate")) = PyValue::Function("enumerate", [](const Vector<PyValue>& args, void*){
 		PyValue result = PyValue::List();
 		if(args.GetCount() == 0) return result;
 		const PyValue& src = args[0];
@@ -1555,7 +1556,7 @@ globals.GetAdd(PyValue("sys")) = sys;
 	});
 
 	// sorted: return sorted copy (supports key=func)
-	globals.GetAdd(PyValue("sorted")) = PyValue::Function("sorted", [](const Vector<PyValue>& args, void* ud){
+	globals.GetDictRW().GetAdd(PyValue("sorted")) = PyValue::Function("sorted", [](const Vector<PyValue>& args, void* ud){
 		PyVM* vm = (PyVM*)ud;
 		if(args.GetCount() == 0) return PyValue::List();
 		const PyValue& src = args[0];
@@ -1618,7 +1619,19 @@ globals.GetAdd(PyValue("sys")) = sys;
 			result.Add(src.GetItem(idx[i]));
 		return result;
 	}));
-	globals.GetAdd(PyValue("random")) = random_mod;
+	globals.GetDictRW().GetAdd(PyValue("random")) = random_mod;
+	
+	PyValue modules = sys.GetItem(PyValue("modules"));
+	modules.SetItem(PyValue("os"), globals.GetItem(PyValue("os")));
+	modules.SetItem(PyValue("sys"), sys);
+	modules.SetItem(PyValue("math"), globals.GetItem(PyValue("math")));
+	modules.SetItem(PyValue("time"), globals.GetItem(PyValue("time")));
+	modules.SetItem(PyValue("json"), globals.GetItem(PyValue("json")));
+	modules.SetItem(PyValue("shutil"), globals.GetItem(PyValue("shutil")));
+	modules.SetItem(PyValue("glob"), globals.GetItem(PyValue("glob")));
+	modules.SetItem(PyValue("threading"), globals.GetItem(PyValue("threading")));
+	modules.SetItem(PyValue("subprocess"), globals.GetItem(PyValue("subprocess")));
+	modules.SetItem(PyValue("random"), random_mod);
 }
 
 PyVM::~PyVM()
@@ -1631,14 +1644,7 @@ PyVM::~PyVM()
 	frames.Shrink();
 	ReleaseStack(stack);
 	last_result = PyValue::None();
-	Vector<PyValue> global_keys = globals.PickKeys();
-	Vector<PyValue> global_values = globals.PickValues();
-	for(int i = 0; i < global_keys.GetCount(); i++)
-		global_keys[i] = PyValue::None();
-	for(int i = 0; i < global_values.GetCount(); i++)
-		global_values[i] = PyValue::None();
 	globals.Clear();
-	globals.Shrink();
 }
 
 void PyVM::Clear()
@@ -1744,8 +1750,11 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 	Frame& f = frames.Add();
 	f.func = PyValue::Function("__main__");
 	f.func.GetLambdaRW().ir = pick(_ir);
+	f.func.GetLambdaRW().globals = globals;
 	f.ir = &f.func.GetLambda().ir;
 	f.pc = 0;
+	f.globals = globals;
+	f.is_module = true;
 	last_result = PyValue::None();
 }
 
@@ -1764,12 +1773,11 @@ PyValue PyVM::Run()
 
 bool PyVM::LoadModule(const String& module_name, const String& src, const String& filename)
 {
-	// Snapshot current global keys before running module code
-	Index<String> before_keys;
-	for(int i = 0; i < globals.GetCount(); i++)
-		before_keys.FindAdd(globals.GetKey(i).ToString());
+	PyValue mod_dict = PyValue::Dict();
+	mod_dict.SetItem(PyValue("__name__"), PyValue(module_name));
+	mod_dict.SetItem(PyValue("__file__"), PyValue(filename));
+	mod_dict.SetItem(PyValue("__builtins__"), globals);
 
-	// Compile and run the module source in shared globals
 	try {
 		Tokenizer tk;
 		tk.SkipComments();
@@ -1783,8 +1791,24 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 		Vector<PyIR> ir;
 		compiler.Compile(ir);
 
-		SetIR(ir);
-		Run();
+		// Execute the module code in its own globals
+		int base = frames.GetCount();
+		Frame& f = frames.Add();
+		f.func = PyValue::Function(module_name);
+		f.func.GetLambdaRW().ir = pick(ir);
+		f.func.GetLambdaRW().globals = mod_dict;
+		f.ir = &f.func.GetLambda().ir;
+		f.pc = 0;
+		f.globals = mod_dict;
+		f.is_module = true;
+
+		// If we are already running, we need to Step until this module returns
+		if (base > 0) {
+			while (frames.GetCount() > base)
+				Step();
+		} else {
+			Run();
+		}
 	} catch(Exc& e) {
 		LOG("PyVM::LoadModule error (" << module_name << "): " << e);
 		return false;
@@ -1796,16 +1820,8 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 		return false;
 	}
 
-	// Collect all new globals defined by the module into a dict
-	PyValue mod_dict = PyValue::Dict();
-	for(int i = 0; i < globals.GetCount(); i++) {
-		String kname = globals.GetKey(i).ToString();
-		if(before_keys.Find(kname) < 0)
-			mod_dict.SetItem(globals.GetKey(i), globals[i]);
-	}
-
 	// Store in sys.modules under the full dotted name
-	PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
+	PyValue sys = globals.GetItem(PyValue("sys"));
 	if(sys.GetType() == PY_DICT) {
 		PyValue modules = sys.GetItem(PyValue("modules"));
 		if(modules.GetType() == PY_DICT)
@@ -1816,10 +1832,10 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 	Vector<String> parts = Split(module_name, '.');
 	if(parts.GetCount() > 1) {
 		// Ensure parent package exists in globals
-		PyValue pkg = globals.Get(PyValue(parts[0]), PyValue::None());
+		PyValue pkg = globals.GetItem(PyValue(parts[0]));
 		if(pkg.IsNone()) {
 			pkg = PyValue::Dict();
-			globals.GetAdd(PyValue(parts[0])) = pkg;
+			globals.SetItem(PyValue(parts[0]), pkg);
 		}
 		// Walk down creating intermediate packages
 		for(int i = 1; i < parts.GetCount() - 1; i++) {
@@ -1832,7 +1848,7 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 		}
 		pkg.SetItem(PyValue(parts.Top()), mod_dict);
 	} else {
-		globals.GetAdd(PyValue(module_name)) = mod_dict;
+		globals.SetItem(PyValue(module_name), mod_dict);
 	}
 
 	return true;
@@ -1865,6 +1881,7 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 	f.func = callable;
 	f.ir = &l.ir;
 	f.pc = 0;
+	f.globals = l.globals.IsNone() ? globals : l.globals;
 	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
 		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 		int q = f.locals.Find(key);
@@ -1990,7 +2007,9 @@ bool PyVM::Step()
 	const PyIR& instr = (*frame.ir)[frame.pc++];
 	PYVM_TRACE("PYVM pc=" << frame.pc - 1 << " op=" << (int)instr.code << " stack=" << stack.GetCount());
 	
-try {
+	VectorMap<PyValue, PyValue>& globals = frame.globals.GetDictRW();
+
+	try {
 		switch(instr.code) {
 		case PY_NOP: break;
 		
@@ -2050,16 +2069,21 @@ try {
 			int q = frame.locals.Find(instr.arg);
 			if(q >= 0) Push(frame.locals[q]);
 			else {
-				q = globals.Find(instr.arg);
-				if(q >= 0) Push(globals[q]);
-				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+				int qg = globals.Find(instr.arg);
+				if(qg >= 0) Push(globals[qg]);
+				else {
+					// Fallback to builtins
+					int qb = this->globals.GetDict().Find(instr.arg);
+					if(qb >= 0) Push(this->globals.GetDict()[qb]);
+					else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+				}
 			}
 			break;
 		}
 	
 		case PY_STORE_NAME: {
 			PyValue value = Pop();
-			if(frames.GetCount() <= 1) {
+			if(frame.is_module) {
 				int q = globals.Find(instr.arg);
 				if(q >= 0) globals[q] = value;
 				else globals.Add(instr.arg, value);
@@ -2077,7 +2101,12 @@ try {
 		case PY_LOAD_GLOBAL: {
 			int q = globals.Find(instr.arg);
 			if(q >= 0) Push(globals[q]);
-			else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+			else {
+				// Fallback to builtins
+				int qb = this->globals.GetDict().Find(instr.arg);
+				if(qb >= 0) Push(this->globals.GetDict()[qb]);
+				else throw Exc("NameError: name '" + instr.arg.ToString() + "' is not defined");
+			}
 			break;
 		}
 			
@@ -2091,19 +2120,33 @@ try {
 			Vector<String> parts = Split(name, '.');
 			PyValue current;
 
-			// Check first part in globals
-			int q = globals.Find(parts[0]);
-			if(q >= 0) {
-				current = globals[q];
+			// Check sys.modules first
+			PyValue sys = this->globals.GetItem(PyValue("sys"));
+			if(sys.GetType() == PY_DICT) {
+				PyValue modules = sys.GetItem(PyValue("modules"));
+				if(modules.GetType() == PY_DICT) {
+					current = modules.GetItem(PyValue(parts[0]));
+				}
 			}
-			else {
-				// Check sys.modules
-				PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
-				if(sys.GetType() == PY_DICT) {
-					PyValue modules = sys.GetItem(PyValue("modules"));
-					if(modules.GetType() == PY_DICT) {
-						current = modules.GetItem(PyValue(parts[0]));
+			
+			// If still not found, try to load from disk
+			if (current.IsNone()) {
+				String path = parts[0] + ".py";
+				if (FileExists(path)) {
+					if (LoadModule(parts[0], LoadFile(path), path)) {
+						// LoadModule adds it to sys.modules
+						PyValue sys2 = this->globals.GetItem(PyValue("sys"));
+						PyValue modules2 = sys2.GetItem(PyValue("modules"));
+						current = modules2.GetItem(PyValue(parts[0]));
 					}
+				}
+			}
+			
+			// Then check builtins/main globals
+			if (current.IsNone()) {
+				int q = this->globals.GetDict().Find(parts[0]);
+				if(q >= 0) {
+					current = this->globals.GetDict()[q];
 				}
 			}
 
@@ -2338,6 +2381,7 @@ try {
 				f.func = body_func;
 				f.ir = &l.ir;
 				f.pc = 0;
+				f.globals = l.globals.IsNone() ? this->globals : l.globals;
 				// Mark this frame as a class body; after it returns, collect locals into class_dict
 				f.locals.GetAdd(PyValue("__class_body_result__")) = class_dict;
 			} else {
@@ -2542,6 +2586,25 @@ try {
 			break;
 		}
 
+		case PY_MAKE_FUNCTION: {
+			PyValue func = Pop();
+			if (func.IsFunction()) {
+				PyLambda *l2 = new PyLambda();
+				const PyLambda& l1 = func.GetLambda();
+				l2->name = l1.name;
+				l2->arg <<= l1.arg;
+				l2->arg_values <<= l1.arg_values;
+				l2->ir <<= l1.ir;
+				l2->builtin = l1.builtin;
+				l2->user_data = l1.user_data;
+				l2->globals = frame.globals;
+				Push(PyValue(PY_FUNCTION, l2));
+			} else {
+				Push(func);
+			}
+			break;
+		}
+
 		case PY_CALL_FUNCTION: {
 			int nargs = instr.iarg;
 			Vector<PyValue> args;
@@ -2571,6 +2634,7 @@ try {
 					f.func = init;
 					f.ir = &l.ir;
 					f.pc = 0;
+					f.globals = l.globals.IsNone() ? this->globals : l.globals;
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 						int q = f.locals.Find(key);
@@ -2609,6 +2673,7 @@ try {
 					f.func = callable;
 					f.ir = &l.ir;
 					f.pc = 0;
+					f.globals = l.globals.IsNone() ? this->globals : l.globals;
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 						int q = f.locals.Find(key);

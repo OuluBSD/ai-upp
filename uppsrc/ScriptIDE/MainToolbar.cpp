@@ -2,42 +2,61 @@
 
 namespace Upp {
 
+void PythonIDE::MainToolbarGroup(Bar& bar, int group)
+{
+	if(group == 0) { // Standard group
+		bar.Add(Icons::NewFile(), [this] { OnNewFile(); }).Tip("New File (Ctrl+N)").Help("Create a new Python file");
+		bar.Add(Icons::OpenFile(), [this] { OnOpenFile(); }).Tip("Open File (Ctrl+O)").Help("Open an existing Python file");
+		bar.Add(Icons::Save(), [this] { OnSaveFile(); }).Tip("Save File (Ctrl+S)").Help("Save current file");
+		bar.Add(Icons::SaveAll(), [this] { OnSaveAll(); }).Tip("Save All Files (Ctrl+Alt+S)").Help("Save all open files");
+		bar.Separator();
+		
+		bar.Add(Icons::Plus(), [this] { Todo("Create new cell"); }).Tip("New Cell").Help("Create a new code cell at current line");
+		bar.Separator();
+		
+		bar.Add(Icons::Run(), [this] { OnRun(); }).Tip("Run (F5)").Help("Run current file or configuration");
+		bar.Add(Icons::RunCell(), [this] { OnRunCell(); }).Tip("Run Cell (Ctrl+Return)").Help("Run current code cell");
+		bar.Add(Icons::RunCellAdvance(), [this] { OnRunCellAndAdvance(); }).Tip("Run Cell and Advance (Shift+Return)").Help("Run current cell and move to next");
+		bar.Add(Icons::RunSelection(), [this] { OnRunSelection(); }).Tip("Run Selection (F9)").Help("Run current selection or line");
+		bar.Separator();
+		
+		bar.Add(Icons::Debug(), [this] { OnDebug(); }).Tip("Debug (Ctrl+F5)").Help("Start debugging current file");
+		bar.Add(Icons::DebugCell(), [this] { OnDebugCell(); }).Tip("Debug Cell").Help("Debug current code cell");
+		bar.Add(Icons::DebugSelection(), [this] { OnDebugSelection(); }).Tip("Debug Selection").Help("Debug current selection or line");
+		bar.Separator();
+		
+		bar.Add(Icons::Profile(), [this] { Todo("Profile file"); }).Tip("Profile (F10)").Help("Profile current file");
+		bar.Add(Icons::ProfileCell(), [this] { Todo("Profile cell"); }).Tip("Profile Cell (Alt+F10)").Help("Profile current code cell");
+		bar.Add(Icons::ProfileSelection(), [this] { Todo("Profile current line or selection"); }).Tip("Profile Selection").Help("Profile current selection or line");
+		bar.Separator();
+		
+		bar.Add(Icons::Maximize(), [this] { OnMaximizePane(); }).Tip("Maximize Pane (Ctrl+Alt+Shift+M)").Help("Maximize the currently active pane");
+		bar.Add(Icons::Settings(), [this] { OnSettings(); }).Tip("Preferences").Help("Configure IDE settings");
+		bar.Add(Icons::Search(), [this] { OnPathManager(); }).Tip("PYTHONPATH manager").Help("Manage Python search paths");
+	}
+	else if(group == 1) { // Project group
+		bar.Add("Recent Projects", [this] { Todo("Recent projects dropdown"); }).Tip("Recent projects").Help("Select a recent project");
+		bar.Add("Working Directory", [this] { Todo("Working directory dropdown"); }).Tip("Working directory").Help("Select working directory");
+		bar.Add(Icons::OpenFile(), [this] { Todo("Browse working directory"); }).Tip("Browse working directory").Help("Choose a new working directory");
+		bar.Add(Icons::Undo(), [this] { Todo("Change to parent directory"); }).Tip("Parent directory").Help("Move to parent directory");
+	}
+}
+
 void PythonIDE::MainToolbar(Bar& bar)
 {
-	bar.Add(Icons::NewFile(), [=] { OnNewFile(); }).Help("New File");
-	bar.Add(Icons::OpenFile(), [=] { OnOpenFile(); }).Help("Open File");
-	bar.Add(Icons::Save(), [=] { OnSaveFile(); }).Help("Save File");
-	bar.Add(Icons::SaveAll(), [=] { OnSaveAll(); }).Help("Save All Files");
-	bar.Separator();
+	bool first = true;
+	for(int id : tstate.left_order) {
+		bar.ToolGroup(false, !tstate.hide_handles && !first);
+		MainToolbarGroup(bar, id);
+		first = false;
+	}
 	
-	bar.Add(Icons::Plus(), [=] { Todo("Create new cell"); }).Help("Create new cell at the current line");
-	bar.Separator();
-	
-	bar.Add(Icons::Run(), [=] { OnRun(); }).Help("Run file (F5)");
-	bar.Add(Icons::Run(), [=] { OnRunCell(); }).Help("Run cell (Ctrl+Return)");
-	bar.Add(Icons::Run(), [=] { OnRunCellAndAdvance(); }).Help("Run cell and advance (Shift+Return)");
-	bar.Add(Icons::Run(), [=] { OnRunSelection(); }).Help("Run current line or selection (F9)");
-	bar.Separator();
-	
-	bar.Add(Icons::Debug(), [=] { OnDebug(); }).Help("Debug file (Ctrl+F5)");
-	bar.Add(Icons::Debug(), [=] { OnDebugCell(); }).Help("Debug cell");
-	bar.Add(Icons::Debug(), [=] { OnDebugSelection(); }).Help("Debug the current file or selection");
-	bar.Separator();
-	
-	bar.Add(Icons::Profiler(), [=] { Todo("Profile file"); }).Help("Profile file (F10)");
-	bar.Add(Icons::Profiler(), [=] { Todo("Profile cell"); }).Help("Profile cell (Alt+F10)");
-	bar.Add(Icons::Profiler(), [=] { Todo("Profile selection"); }).Help("Profile current line or selection");
-	bar.Separator();
-	
-	bar.Add(Icons::Maximize(), [=] { OnMaximizePane(); }).Help("Maximize current pane (Ctrl+Alt+Shift+M)");
-	bar.Add(Icons::Settings(), [=] { OnSettings(); }).Help("Preferences");
-	bar.Add(Icons::Search(), [=] { OnPathManager(); }).Help("PYTHONPATH manager");
-	bar.Separator();
-	
-	bar.Add("Recent Projects", [=] { Todo("Recent projects dropdown"); });
-	bar.Add("Working Directory", [=] { Todo("Working directory dropdown"); });
-	bar.Add(Icons::OpenFile(), [=] { Todo("Browse working directory"); }).Help("Browse working directory");
-	bar.Add(Icons::Undo(), [=] { Todo("Change to parent directory"); }).Help("Change to parent directory");
+	first = true;
+	for(int id : tstate.right_order) {
+		bar.ToolGroup(true, !tstate.hide_handles && !first);
+		MainToolbarGroup(bar, id);
+		first = false;
+	}
 }
 
 }

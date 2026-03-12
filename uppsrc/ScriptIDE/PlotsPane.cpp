@@ -7,8 +7,8 @@ PlotsPane::PlotsPane()
 	Title("Plots");
 	Icon(Icons::Plots());
 	
-	Add(toolbar.TopPos(0, 24).HSizePos());
-	Add(display.VSizePos(24, 0).HSizePos());
+	Add(toolbar.TopPos(0, 36).HSizePos());
+	Add(display.VSizePos(36, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
@@ -17,24 +17,23 @@ PlotsPane::PlotsPane()
 
 void PlotsPane::LayoutToolbar(Bar& bar)
 {
-	bar.Add(Icons::Undo(), [=] { PrevPlot(); }).Help("Previous plot");
-	bar.Add(Icons::Redo(), [=] { NextPlot(); }).Help("Next plot");
-	bar.Separator();
-	bar.Add(Icons::Save(), [=] { SaveSelected(); }).Help("Save plot");
-	bar.Add(Icons::SaveAll(), [=] { SaveAll(); }).Help("Save all plots");
-	bar.Add(Icons::Undo(), [=] { CopySelected(); }).Help("Copy plot to clipboard");
-	bar.Add(Icons::Stop(), [=] { RemoveSelected(); }).Help("Remove plot");
-	bar.Add(Icons::Stop(), [=] { Clear(); }).Help("Remove all plots");
+	bar.Add(Icons::Save(), [=] { SaveSelected(); }).Tip("Save plot as...").Help("Save plot as...");
+	bar.Add(Icons::SaveAll(), [=] { SaveAll(); }).Tip("Save all plots...").Help("Save all plots...");
+	bar.Add(Icons::Undo(), [=] { CopySelected(); }).Tip("Copy plot to clipboard as image").Help("Copy plot to clipboard as image");
+	bar.Add(Icons::Stop(), [=] { RemoveSelected(); }).Tip("Remove plot").Help("Remove plot");
+	bar.Add(Icons::Stop(), [=] { Clear(); }).Tip("Remove all plots").Help("Remove all plots");
 	bar.Separator();
 	
 	// Zoom controls
 	bar.Add("Zoom:", [=] { Todo("Zoom percent"); });
-	bar.Add(Icons::Plus(), [=] { Todo("Zoom in"); }).Help("Zoom in");
-	bar.Add(Icons::Stop(), [=] { Todo("Zoom out"); }).Help("Zoom out"); // Should be minus
-	bar.Add("Fit to pane", [=] { Todo("Fit to pane"); });
+	bar.Add(Icons::Stop(), [=] { Todo("Zoom out"); }).Tip("Zoom out").Help("Zoom out"); 
+	bar.Add(Icons::Plus(), [=] { Todo("Zoom in"); }).Tip("Zoom in").Help("Zoom in");
+	bar.Add(Icons::Maximize(), [=] { Todo("Fit to pane"); }).Tip("Fit plot to pane size").Help("Fit plot to pane size");
 	
-	bar.Gap(2000);
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.ToolGapRight();
+	bar.Add(Icons::Undo(), [=] { PrevPlot(); }).Tip("Previous plot").Help("Previous plot");
+	bar.Add(Icons::Redo(), [=] { NextPlot(); }).Tip("Next plot").Help("Next plot");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void PlotsPane::LayoutPaneMenu(Bar& bar)

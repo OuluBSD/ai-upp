@@ -6,9 +6,11 @@ public:
 	typedef HistoryPane CLASSNAME;
 	HistoryPane();
 
+	void LayoutToolbar(Bar& bar);
 	void LayoutPaneMenu(Bar& bar);
 
 private:
+	ToolBar    toolbar;
 	CodeEditor editor;
 	bool wrap_lines = true;
 	bool show_line_numbers = false;

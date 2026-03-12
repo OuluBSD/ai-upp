@@ -7,8 +7,8 @@ VariableExplorer::VariableExplorer()
 	Title("Variable Explorer");
 	Icon(Icons::VariableExplorer());
 	
-	Add(toolbar.TopPos(0, 24).HSizePos());
-	Add(list.VSizePos(24, 0).HSizePos());
+	Add(toolbar.TopPos(0, 36).HSizePos());
+	Add(list.VSizePos(36, 0).HSizePos());
 	
 	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
 	
@@ -28,16 +28,17 @@ VariableExplorer::VariableExplorer()
 
 void VariableExplorer::LayoutToolbar(Bar& bar)
 {
-	bar.Add(Icons::OpenFile(), [=] { Todo("Import data"); }).Help("Import data");
-	bar.Add(Icons::Save(), [=] { Todo("Save data"); }).Help("Save data");
-	bar.Add(Icons::SaveAll(), [=] { Todo("Save data as"); }).Help("Save data as");
-	bar.Add(Icons::Stop(), WhenRemoveAll).Help("Remove all variables");
-	bar.Separator();
-	bar.Add(Icons::Search(), [=] { Todo("Search variable names and types"); }).Help("Search");
-	bar.Add(Icons::Plus(), [=] { Todo("Filter variables"); }).Help("Filter");
-	bar.Add(Icons::Redo(), WhenRefresh).Help("Refresh variables");
-	bar.Separator();
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add(Icons::ImportData(), [=] { Todo("Import data"); }).Tip("Import data").Help("Import data");
+	bar.Add(Icons::SaveData(), [=] { Todo("Save data"); }).Tip("Save data").Help("Save data");
+	bar.Add(Icons::SaveDataAs(), [=] { Todo("Save data as"); }).Tip("Save data as").Help("Save data as");
+	bar.Add(Icons::RemoveAll(), WhenRemoveAll).Tip("Remove all variables").Help("Remove all variables");
+	
+	bar.ToolGapRight(); // Align rest to the right
+	
+	bar.Add(Icons::SearchVariables(), [=] { Todo("Search variable names and types"); }).Tip("Search").Help("Search variable names and types");
+	bar.Add(Icons::FilterVariables(), [=] { Todo("Filter variables"); }).Tip("Filter").Help("Filter variables");
+	bar.Add(Icons::RefreshVariables(), WhenRefresh).Tip("Refresh variables").Help("Refresh variables");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void VariableExplorer::LayoutPaneMenu(Bar& bar)

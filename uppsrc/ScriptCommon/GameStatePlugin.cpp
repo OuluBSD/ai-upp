@@ -14,7 +14,7 @@ void GameStatePlugin::Init(IPluginContext& context_)
 {
 	context = &context_;
 	context->RegisterPythonBindingProvider(*this);
-	context->RegisterCustomExecuteProvider(*this);
+	// Note: CardGamePlugin handles .gamestate execution; GameStatePlugin only provides bindings/stats
 }
 
 void GameStatePlugin::Shutdown()

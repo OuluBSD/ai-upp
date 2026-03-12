@@ -32,6 +32,7 @@ struct PyLambda : PyValue::RefCount {
 	PyBuiltin      builtin = nullptr;
 	void          *user_data = nullptr;
 	PyValue        globals; // The module-level globals dictionary
+	PyValue        closure; // Captured locals from enclosing scope (for closures)
 };
 
 struct PyBoundMethod : PyValue::RefCount {

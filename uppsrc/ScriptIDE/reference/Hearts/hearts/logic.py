@@ -39,6 +39,8 @@ class GameState:
         self.round_number = 0
         self.phase = 'PASSING'
         self.passed_cards = [[], [], [], []]
+        self.last_trick_winner = -1
+        self.last_trick_points = 0
 
     def log(self, msg):
         if self.log_callback:
@@ -54,6 +56,8 @@ class GameState:
         self.round_scores = [0, 0, 0, 0]
         self.hearts_broken = False
         self.passed_cards = [[], [], [], []]
+        self.last_trick_winner = -1
+        self.last_trick_points = 0
         
         for i in range(52):
             self.players[i % 4].append(deck[i])
@@ -164,6 +168,8 @@ class GameState:
         # Award points
         points = sum(c.get_points() for _, c in self.trick)
         self.round_scores[winner_index] += points
+        self.last_trick_winner = winner_index
+        self.last_trick_points = points
         
         self.log(f"Trick resolved. Player {winner_index} wins {points} points.")
         

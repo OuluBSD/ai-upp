@@ -100,6 +100,8 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	form_path = path;
 	sprites.Clear();
 	zones.Clear();
+	labels.Clear();
+	buttons.Clear();
 	
 	Value v = ParseJSON(LoadFile(path));
 	if(v.IsVoid()) return;
@@ -162,6 +164,16 @@ Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, 
 	else if(anchor == "TOP_CENTER") {
 		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
 	}
+	else if(anchor == "CENTER_LEFT") {
+		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		x = parent_sz.cx - r.GetWidth() - r.left;
+		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		y = parent_sz.cy - r.GetHeight() - r.top;
+	}
 	
 	return RectC(x, y, r.GetWidth(), r.GetHeight());
 }
@@ -171,6 +183,26 @@ Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, 
 void CardGameDocumentHost::ClearSprites()
 {
 	sprites.Clear();
+	Refresh();
+}
+
+void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
+{
+	labels.GetAdd(zone_id) = text;
+	Refresh();
+}
+
+void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, bool enabled)
+{
+	ActionButton& b = buttons.GetAdd(zone_id);
+	b.text = text;
+	b.enabled = enabled;
+	Refresh();
+}
+
+void CardGameDocumentHost::SetStatus(const String& text)
+{
+	status_text = text;
 	Refresh();
 }
 
@@ -292,6 +324,54 @@ void CardGameDocumentHost::Paint(Draw& w)
 {
 	Size sz = GetSize();
 	w.DrawRect(sz, background_color);
+
+	Font label_font = SansSerif(18).Bold();
+	Font status_font = SansSerif(16);
+	Color text_color = White();
+	
+	for(int i = 0; i < labels.GetCount(); i++) {
+		int q = zones.Find(labels.GetKey(i));
+		if(q < 0)
+			continue;
+		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
+		Size tsz = GetTextSize(labels[i], label_font);
+		int tx = r.left + (r.GetWidth() - tsz.cx) / 2;
+		if(zones[q].anchor == "CENTER_LEFT")
+			tx = r.left;
+		else if(zones[q].anchor == "CENTER_RIGHT")
+			tx = r.right - tsz.cx;
+		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
+		w.DrawText(tx, ty, labels[i], label_font, text_color);
+	}
+
+	Font button_font = SansSerif(15).Bold();
+	for(int i = 0; i < buttons.GetCount(); i++) {
+		int q = zones.Find(buttons.GetKey(i));
+		if(q < 0)
+			continue;
+		const ActionButton& b = buttons[i];
+		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
+		Color bg = b.enabled ? Color(238, 238, 238) : Color(150, 150, 150);
+		Color fg = b.enabled ? Black() : Color(70, 70, 70);
+		w.DrawRect(r, bg);
+		w.DrawRect(r.left, r.top, r.GetWidth(), 1, Color(255, 255, 255));
+		w.DrawRect(r.left, r.top, 1, r.GetHeight(), Color(255, 255, 255));
+		w.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, Color(80, 80, 80));
+		w.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), Color(80, 80, 80));
+		Size tsz = GetTextSize(b.text, button_font);
+		int tx = r.left + (r.GetWidth() - tsz.cx) / 2;
+		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
+		w.DrawText(tx, ty, b.text, button_font, fg);
+	}
+
+	if(!status_text.IsEmpty()) {
+		int q = zones.Find("status_line");
+		Rect r = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz)
+		                : RectC(16, sz.cy - 40, max(0, sz.cx - 32), 24);
+		Size tsz = GetTextSize(status_text, status_font);
+		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
+		w.DrawText(r.left, ty, status_text, status_font, White());
+	}
 	
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const Sprite& s = sprites[i];
@@ -302,6 +382,27 @@ void CardGameDocumentHost::Paint(Draw& w)
 
 void CardGameDocumentHost::LeftDown(Point p, dword flags)
 {
+	for(int i = 0; i < buttons.GetCount(); i++) {
+		int q = zones.Find(buttons.GetKey(i));
+		if(q < 0 || !buttons[i].enabled)
+			continue;
+		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
+		if(r.Contains(p)) {
+			if(plugin) {
+				PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+				if(vm) {
+					PyValue on_button = vm->GetGlobals().GetDict().Get("on_button", PyValue());
+					if(on_button.IsFunction()) {
+						try { vm->Call(on_button, {PyValue(buttons.GetKey(i))}); }
+						catch(Exc& e) { LOG("on_button error: " << e); }
+						Refresh();
+					}
+				}
+			}
+			return;
+		}
+	}
+
 	for(int i = sprites.GetCount() - 1; i >= 0; i--) {
 		if(sprites[i].rect.Contains(p)) {
 			String card_id = sprites.GetKey(i);

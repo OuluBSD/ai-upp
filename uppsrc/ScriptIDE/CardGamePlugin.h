@@ -51,6 +51,9 @@ public:
 	virtual void  MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) override;
 	virtual Value GetZoneRect(const String& zone_id) override;
 	virtual void  ClearSprites() override;
+	virtual void  SetLabel(const String& zone_id, const String& text) override;
+	virtual void  SetButton(const String& zone_id, const String& text, bool enabled) override;
+	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
 
 	void SetLayout(const String& form_path);
@@ -80,6 +83,13 @@ private:
 		String type;
 	};
 	ArrayMap<String, Zone> zones;
+	ArrayMap<String, String> labels;
+	struct ActionButton {
+		String text;
+		bool   enabled = false;
+	};
+	ArrayMap<String, ActionButton> buttons;
+	String status_text;
 	
 	Color background_color = Color(40, 160, 40);
 

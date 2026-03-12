@@ -910,6 +910,33 @@ void FormEdit<T>::OpenFile()
 }
 
 template <class T>
+void FormEdit<T>::OpenPath(const String& file)
+{
+	UpdateChildZ();
+
+	if(file.IsEmpty())
+		return;
+
+	Clear();
+	_File = file;
+
+	bool compression = false;
+	if(Upp::GetFileName(_File).Find(".fz") >= 0)
+		compression = true;
+
+	_View.LoadAll(_File, compression);
+	UpdateLayoutList();
+	UpdateChildZ();
+
+	this->WhenTitle((t_("Form Editor")) + String(" - ") + ::GetFileName(_File));
+
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	UpdateTools();
+
+	ProjectSaved(true);
+}
+
+template <class T>
 void FormEdit<T>::OpenXml(const String& xml, bool compression) {
 	UpdateChildZ();
 

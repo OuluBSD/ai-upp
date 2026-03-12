@@ -76,6 +76,7 @@ public:
 
 	void NewFile();
 	void OpenFile();
+	void OpenPath(const String& file);
 	void SaveFile();
 	void SaveAsFile();
 	void OpenXml(const String& xml, bool compression);

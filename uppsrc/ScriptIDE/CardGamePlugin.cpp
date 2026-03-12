@@ -64,7 +64,7 @@ void ConfigureZoneObject(FormObject& obj, const CardGameZoneDef& zone)
 	obj.SetVAlign(Ctrl::TOP);
 	obj.Set("Variable", zone.id);
 	obj.Set("Type", control_type);
-	obj.Set("ZoneType", zone_type);
+	obj.Set("UserClass", zone_type);
 	obj.Set("Anchor", zone.anchor.IsEmpty() ? "TOP_LEFT" : zone.anchor);
 	obj.Set("Parent", zone.parent);
 
@@ -207,7 +207,10 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 		def.anchor = obj.Get("Anchor");
 		if(def.anchor.IsEmpty())
 			def.anchor = "TOP_LEFT";
-		def.zone_type = NormalizeZoneType(obj.Get("ZoneType"), obj.Get("Type"));
+		String user_class = obj.Get("UserClass");
+		if(user_class.IsEmpty())
+			user_class = obj.Get("ZoneType");
+		def.zone_type = NormalizeZoneType(user_class, obj.Get("Type"));
 		def.parent = obj.Get("Parent");
 		def.label = obj.Get("Label");
 	}
@@ -225,30 +228,66 @@ Rect ResolveAnchoredRect(const Rect& r, const String& anchor, const Size& base_s
 {
 	int x = r.left;
 	int y = r.top;
+	int cx = r.Width();
+	int cy = r.Height();
 
 	if(anchor == "CENTER") {
-		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
-		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
+		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
+		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
 	}
 	else if(anchor == "BOTTOM_CENTER") {
-		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
-		y = target_sz.cy - (base_sz.cy - r.top - r.Height()) - r.Height();
+		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
+		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
 	}
 	else if(anchor == "TOP_CENTER") {
-		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
+		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
 	}
 	else if(anchor == "CENTER_LEFT") {
-		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
+		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
 	}
 	else if(anchor == "CENTER_RIGHT") {
-		x = target_sz.cx - (base_sz.cx - r.left - r.Width()) - r.Width();
-		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
+		x = target_sz.cx - (base_sz.cx - r.left - cx) - cx;
+		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
 	}
 	else if(anchor == "BOTTOM_LEFT") {
-		y = target_sz.cy - (base_sz.cy - r.top - r.Height()) - r.Height();
+		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
+	}
+	else if(anchor == "TOP_HSIZE") {
+		x = r.left;
+		cx = r.Width() + (target_sz.cx - base_sz.cx);
+	}
+	else if(anchor == "CENTER_HSIZE") {
+		x = r.left;
+		y = (target_sz.cy - cy) / 2 + r.top - (base_sz.cy - cy) / 2;
+		cx = r.Width() + (target_sz.cx - base_sz.cx);
+	}
+	else if(anchor == "BOTTOM_HSIZE") {
+		x = r.left;
+		y = target_sz.cy - (base_sz.cy - r.top - cy) - cy;
+		cx = r.Width() + (target_sz.cx - base_sz.cx);
+	}
+	else if(anchor == "LEFT_VSIZE") {
+		y = r.top;
+		cy = r.Height() + (target_sz.cy - base_sz.cy);
+	}
+	else if(anchor == "CENTER_VSIZE") {
+		x = (target_sz.cx - cx) / 2 + r.left - (base_sz.cx - cx) / 2;
+		y = r.top;
+		cy = r.Height() + (target_sz.cy - base_sz.cy);
+	}
+	else if(anchor == "RIGHT_VSIZE") {
+		x = target_sz.cx - (base_sz.cx - r.left - cx) - cx;
+		y = r.top;
+		cy = r.Height() + (target_sz.cy - base_sz.cy);
+	}
+	else if(anchor == "SIZE") {
+		x = r.left;
+		y = r.top;
+		cx = r.Width() + (target_sz.cx - base_sz.cx);
+		cy = r.Height() + (target_sz.cy - base_sz.cy);
 	}
 
-	return RectC(x, y, r.GetWidth(), r.GetHeight());
+	return RectC(x, y, max(0, cx), max(0, cy));
 }
 
 }
@@ -769,27 +808,28 @@ void CardGameProperties::Generate(FormObject* pI, int index)
 {
 	if (!pI) return;
 
-	_Properties.Clear();
-	_Options.Clear();
-
-	_Item  = pI;
-	_Index = index;
+	PropertiesWindow::Generate(pI, index);
 
 	String type = pI->Get("Type");
-	String zone_type = NormalizeZoneType(pI->Get("ZoneType"), type);
-	if (type.IsEmpty()) return;
+	String user_class = pI->Get("UserClass");
+	if(user_class.IsEmpty())
+		user_class = pI->Get("ZoneType");
+	if (type.IsEmpty())
+		return;
 
-	Property("Variable", t_("ID:"), "EditField", Array<String>() << pI->Get("Variable"));
-	Property("ZoneType", t_("Zone Type:"), "DropList", Array<String>() << zone_type << "HAND" << "TRICK" << "CONTAINER" << "LABEL" << "BUTTON" << "SPRITE");
-	Property("Anchor", t_("Anchor:"), "DropList", Array<String>() << pI->Get("Anchor", "TOP_LEFT") << "TOP_LEFT" << "CENTER" << "BOTTOM_CENTER" << "TOP_CENTER" << "CENTER_LEFT" << "CENTER_RIGHT" << "BOTTOM_LEFT");
-	
-	if(zone_type == "LABEL" || zone_type == "BUTTON") {
-		Property("Label", t_("Text:"), "EditField", Array<String>() << pI->Get("Label"));
-	}
-	
-	if(zone_type == "SPRITE") {
+	Property("UserClass", t_("User class:"), "EditField",
+		Array<String>() << user_class);
+	Property("Anchor", t_("Anchor:"), "DropList",
+		Array<String>() << pI->Get("Anchor", "TOP_LEFT")
+		                << "TOP_LEFT" << "TOP_CENTER" << "TOP_RIGHT"
+		                << "CENTER_LEFT" << "CENTER" << "CENTER_RIGHT"
+		                << "BOTTOM_LEFT" << "BOTTOM_CENTER" << "BOTTOM_RIGHT"
+		                << "TOP_HSIZE" << "CENTER_HSIZE" << "BOTTOM_HSIZE"
+		                << "LEFT_VSIZE" << "CENTER_VSIZE" << "RIGHT_VSIZE"
+		                << "SIZE");
+
+	if(ToUpper(user_class) == "SPRITE")
 		Property("Image", t_("Asset:"), "EditField", Array<String>() << pI->Get("Image"));
-	}
 
 	_Options.HideRow(0);
 }
@@ -812,6 +852,10 @@ CardGameLayoutEditor::CardGameLayoutEditor()
 	_TypeList.Add("Label");
 	_TypeList.Add("Button");
 	
+	_View.WhenUpdate = [this] {
+		this->UpdateTools();
+		this->OpenCardProperties(_View.GetSelected());
+	};
 	_View.WhenObjectProperties = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
 	_View.WhenChildSelected = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
 	_ItemList.WhenChangeRow = [this] {
@@ -861,11 +905,13 @@ void CardGameLayoutEditor::OpenCardProperties(const Vector<int>& indexes)
 		FormObject* pI = _View.GetObject(indexes[0]);
 		if (!pI) return;
 
+		card_properties._Options.EndEdit();
 		card_properties.Generate(pI, indexes[0]);
 	}
 
 	if (indexes.GetCount() == 0)
 	{
+		card_properties._Options.EndEdit();
 		card_properties._Headers.Clear();
 		card_properties._Options.Clear();
 	}
@@ -886,7 +932,7 @@ bool CardGameLayoutEditor::Load(const String& path_)
 	UpdateLayoutList();
 	UpdateChildZ();
 	_Container.Set(_View, _View.GetPageRect().GetSize());
-	SetViewMode(VIEW_MODE_INFO);
+	SetViewMode(VIEW_MODE_WIREFRAME);
 	
 	UpdateTools();
 	ProjectSaved(true);
@@ -904,10 +950,14 @@ bool CardGameLayoutEditor::Save()
 		if(objs) {
 			for(int i = 0; i < objs->GetCount(); i++) {
 				FormObject& obj = (*objs)[i];
-				String zone_type = NormalizeZoneType(obj.Get("ZoneType"), obj.Get("Type"));
-				obj.Set("ZoneType", zone_type);
-				obj.Set("Type", ZoneTypeToControlType(zone_type));
-				if(zone_type == "BUTTON" && obj.Get("Label").IsEmpty())
+				String user_class = obj.Get("UserClass");
+				if(user_class.IsEmpty())
+					user_class = obj.Get("ZoneType");
+				user_class = NormalizeZoneType(user_class, obj.Get("Type"));
+				if(!user_class.IsEmpty())
+					obj.Set("UserClass", user_class);
+				obj.Remove("ZoneType");
+				if(obj.Get("Type") == "Button" && obj.Get("Label").IsEmpty())
 					obj.Set("Label", obj.Get("Variable"));
 			}
 		}

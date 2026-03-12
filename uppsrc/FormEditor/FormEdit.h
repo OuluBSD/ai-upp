@@ -8,7 +8,7 @@ class CtrlContEx : public Ctrl
 public:
 	virtual void Paint(Draw& w)
 	{
-		w.DrawRect(GetRect(), SColorFace());
+		w.DrawRect(GetSize(), SColorFace());
 	}
 };
 

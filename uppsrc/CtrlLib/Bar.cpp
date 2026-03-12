@@ -97,9 +97,15 @@ Size BarPane::LayOut(bool horz, int maxsize, bool repos)
 						gapsize = maxsize - rsz;
 				}
 			}
-			Size sz = q->ctrl ? q->ctrl->GetMinSize()
+			Size sz = q->ctrl ? BarCtrl::GetBarItemLayoutSize(q->ctrl)
 			                  : Size(horz ? gapsize : 0, horz ? 0 : gapsize);
-			int min_hove = max(HoVe(sz), 0);
+			int min_hove;
+			if(q->ctrl) {
+				Size msz = BarCtrl::GetBarItemMinSize(q->ctrl);
+				min_hove = max(HoVe(msz), 0);
+			}
+			else
+				min_hove = max(HoVe(sz), 0);
 			if(HoVe(sz) == INT_MAX) {
 				if(maxsize == INT_MAX)
 					HoVe(sz) = min_hove;
@@ -117,7 +123,7 @@ Size BarPane::LayOut(bool horz, int maxsize, bool repos)
 								continue;
 							}
 						}
-						Size wsz = w->ctrl ? w->ctrl->GetMinSize()
+						Size wsz = w->ctrl ? BarCtrl::GetBarItemLayoutSize(w->ctrl)
 						                   : Size(horz ? w->gapsize : 0, horz ? 0 : w->gapsize);
 						if(HoVe(wsz) == INT_MAX)
 							HoVe(wsz) = 0;
@@ -620,13 +626,37 @@ void BarCtrl::AddCtrl(Ctrl *ctrl, Size sz)
 
 Size BarCtrl::SizeCtrl::GetMinSize() const
 {
+	return GetNaturalMinSize();
+}
+
+Size BarCtrl::SizeCtrl::GetLayoutSize() const
+{
+	return size;
+}
+
+Size BarCtrl::SizeCtrl::GetNaturalMinSize() const
+{
 	Size sz = size;
 	Size chsz = Size(8, 8);
 	if(GetFirstChild())
-		chsz = GetFirstChild()->GetStdSize();
-	sz.cx = sz.cx <= 0 ? chsz.cx : sz.cx;
-	sz.cy = sz.cy <= 0 ? chsz.cy : sz.cy;
+		chsz = GetFirstChild()->GetMinSize();
+	sz.cx = sz.cx <= 0 || sz.cx == INT_MAX ? chsz.cx : sz.cx;
+	sz.cy = sz.cy <= 0 || sz.cy == INT_MAX ? chsz.cy : sz.cy;
 	return sz;
+}
+
+Size BarCtrl::GetBarItemLayoutSize(Ctrl *q)
+{
+	if(SizeCtrl *sc = dynamic_cast<SizeCtrl *>(q))
+		return sc->GetLayoutSize();
+	return q ? q->GetMinSize() : Size(0, 0);
+}
+
+Size BarCtrl::GetBarItemMinSize(Ctrl *q)
+{
+	if(SizeCtrl *sc = dynamic_cast<SizeCtrl *>(q))
+		return sc->GetNaturalMinSize();
+	return q ? q->GetMinSize() : Size(0, 0);
 }
 
 Value BarCtrl::GetBackground() const

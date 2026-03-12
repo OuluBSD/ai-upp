@@ -4,6 +4,7 @@
 #ifdef PLATFORM_POSIX
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sched.h>
 #endif
 
 #undef environ
@@ -1124,11 +1125,13 @@ static PyValue builtin_time_time(const Vector<PyValue>& args, void*) {
 
 static PyValue builtin_time_sleep(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() < 1) return PyValue::None();
+	PyScheduler::Get().Unlock();
 	#ifdef flagWIN32
 	::Sleep((int)(args[0].AsDouble() * 1000));
 	#else
 	Upp::Sleep((int)(args[0].AsDouble() * 1000));
 	#endif
+	PyScheduler::Get().Lock();
 	return PyValue::None();
 }
 
@@ -1760,14 +1763,20 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 PyValue PyVM::Run()
 {
+	PyScheduler::Get().Lock();
 	try {
 		while(IsRunning()) {
 			Step();
 		}
 	} catch (Exc& e) {
+		PyScheduler::Get().Unlock();
 		LOG("PyVM Exception: " << e);
 		throw;
+	} catch (...) {
+		PyScheduler::Get().Unlock();
+		throw;
 	}
+	PyScheduler::Get().Unlock();
 	return last_result;
 }
 
@@ -1966,6 +1975,19 @@ bool PyVM::Step()
 {
 	if(frames.IsEmpty()) return false;
 	
+	// Periodic GIL yield to allow other threads to run
+	if (++instruction_count >= 100) {
+		instruction_count = 0;
+		PyScheduler::Get().Unlock();
+		// Small yield
+		#ifdef flagWIN32
+		::Sleep(0);
+		#else
+		sched_yield();
+		#endif
+		PyScheduler::Get().Lock();
+	}
+
 	Frame& frame = TopFrame();
 
 	// Get current location (file:line) from IR metadata

@@ -266,7 +266,7 @@ void FormView::SelectAllInRect(Rect r, bool add, bool toggle)
 	if (!add) ClearSelection();
 
 	for (int i = GetObjectCount() - 1; i >= 0; --i)
-		if (r.Contains(Zoom(Offseted(GetObject(i)->GetRect()))))
+		if (r.Intersects(Zoom(Offseted(GetObject(i)->GetRect()))))
 			toggle ? ToggleSelection(i) : AddToSelection(i);
 
 	Refresh();

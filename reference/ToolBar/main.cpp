@@ -4,6 +4,7 @@ using namespace Upp;
 
 struct ToolBarApp : TopWindow {
 	struct GroupHandle;
+	struct FillGroupHost;
 
 	struct DemoToolBar : ToolBar {
 		Callback1<Point> WhenEmptyRightDown;
@@ -77,6 +78,64 @@ struct ToolBarApp : TopWindow {
 		}
 	};
 
+	struct FillGroupHost : ParentCtrl {
+		GroupHandle *handle = NULL;
+		Ctrl        *content = NULL;
+		bool         show_handle = true;
+
+		Size GetMinSize() const override
+		{
+			Size sz(0, 0);
+			if(show_handle && handle)
+				sz.cx += handle->GetMinSize().cx;
+			if(content) {
+				Size csz = content->GetMinSize();
+				sz.cx += csz.cx;
+				sz.cy = max(sz.cy, csz.cy);
+			}
+			if(show_handle && handle)
+				sz.cy = max(sz.cy, handle->GetMinSize().cy);
+			return sz;
+		}
+
+		void Layout() override
+		{
+			int x = 0;
+			Size sz = GetSize();
+			if(handle) {
+				if(show_handle) {
+					Size hsz = handle->GetMinSize();
+					handle->Show();
+					handle->SetRect(x, (sz.cy - hsz.cy) / 2, hsz.cx, hsz.cy);
+					x += hsz.cx;
+				}
+				else
+					handle->Hide();
+			}
+			if(content) {
+				Size csz = content->GetMinSize();
+				content->SetRect(x, (sz.cy - csz.cy) / 2, max(sz.cx - x, 0), csz.cy);
+			}
+		}
+
+		void Set(GroupHandle& h, Ctrl& c, bool show)
+		{
+			handle = &h;
+			content = &c;
+			show_handle = show;
+			if(h.GetParent() != this)
+				Add(h);
+			if(c.GetParent() != this)
+				Add(c);
+			RefreshLayout();
+		}
+
+		FillGroupHost()
+		{
+			NoWantFocus();
+		}
+	};
+
 	struct Group {
 		String      name;
 		Vector<String> actions;
@@ -90,6 +149,7 @@ struct ToolBarApp : TopWindow {
 	StatusBar    status;
 	Option       hide_handles;
 	Option       right_search;
+	FillGroupHost variables_host;
 	DropList     variables;
 	Array<Group> group;
 	Vector<int>  left_order;
@@ -155,12 +215,13 @@ struct ToolBarApp : TopWindow {
 				bar.ToolGroup(false, show);
 			g.handle.group = id;
 			g.handle.hidden = !show;
-			if(show)
-				bar.Add(g.handle, g.handle.GetMinSize());
 			if(g.fill) {
-				bar.Add(variables, INT_MAX, variables.GetStdSize().cy);
+				variables_host.Set(g.handle, variables, show);
+				bar.Add(variables_host, INT_MAX, variables.GetStdSize().cy);
 				return;
 			}
+			if(show)
+				bar.Add(g.handle, g.handle.GetMinSize());
 			for(const String& action : g.actions) {
 				String text = g.name + "/" + action;
 				bar.Add(text, Null, [=] {

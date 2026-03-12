@@ -224,6 +224,8 @@ private:
 	class SizeCtrl : public ParentCtrl {
 	public:
 		Size GetMinSize() const override;
+		Size GetLayoutSize() const;
+		Size GetNaturalMinSize() const;
 
 	private:
 		Size size;
@@ -265,6 +267,8 @@ public:
 	static BarCtrl *GetBarCtrlParent(Ctrl *child);
 	static void     SendHelpLine(Ctrl *q);
 	static void     ClearHelpLine(Ctrl *q);
+	static Size     GetBarItemLayoutSize(Ctrl *q);
+	static Size     GetBarItemMinSize(Ctrl *q);
 
 	enum {
 		BAR_LEFT, BAR_RIGHT, BAR_TOP, BAR_BOTTOM

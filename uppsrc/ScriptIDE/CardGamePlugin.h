@@ -28,6 +28,18 @@ public:
 	} form_handler;
 };
 
+class CardGameDocumentHost;
+
+class CardGameOverlay : public Ctrl {
+public:
+	CardGameDocumentHost* owner = nullptr;
+
+	CardGameOverlay();
+
+	virtual void Paint(Draw& w) override;
+	virtual void LeftDown(Point p, dword flags) override;
+};
+
 class CardGameDocumentHost : public IDocumentHost, public IHeartsView, public Ctrl {
 public:
 	CardGameDocumentHost();
@@ -67,6 +79,8 @@ private:
 	Size last_layout_size;
 	bool refresh_running = false;
 	bool resize_refresh_pending = false;
+	Form table_form;
+	CardGameOverlay overlay;
 	
 	struct Sprite {
 		Image  img;
@@ -100,10 +114,14 @@ private:
 	void Animate();
 	void RefreshGameView();
 	void SyncFormExplorer();
+	void ApplyFormLayout();
+	void SyncFormControls();
+	void PaintOverlay(Draw& w);
+	void OverlayLeftDown(Point p, dword flags);
 	Rect GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz);
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
-	virtual void LeftDown(Point p, dword flags) override;
+	friend class CardGameOverlay;
 };
 
 class CardGameProperties : public PropertiesWindow {
@@ -135,6 +153,8 @@ public:
 private:
 	String path;
 	CardGameProperties card_properties;
+	Splitter vsplit, hsplit;
+	ParentCtrl main;
 };
 
 #endif

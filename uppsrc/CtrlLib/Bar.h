@@ -175,6 +175,8 @@ public:
 	void   ToolBreak();
 	void   ToolGap(int size = 8);
 	void   ToolGapRight()                           { ToolGap(INT_MAX); }
+	void   ToolGroup(bool right = false, bool handle = true);
+	void   ToolGroupRight(bool handle = true)      { ToolGroup(true, handle); }
 
 	void   AddTool(Ctrl& ctrl);
 	void   AddTool(Ctrl& ctrl, Size sz);

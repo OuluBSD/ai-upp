@@ -25,24 +25,30 @@ void CustomFileTabs::Layout()
     FileTabs::Layout();
 
     Size sz = GetSize();
-    int btn_sz = 20;
+    int btn_sz = 24;
+    int y_off = (sz.cy - btn_sz) / 2;
 
     // New tab button at left
-    new_tab_button.SetRect(2, 2, btn_sz, btn_sz);
+    new_tab_button.SetRect(2, y_off, btn_sz, btn_sz);
 
     // Menu button at right
-    menu_button.SetRect(sz.cx - btn_sz - 2, 2, btn_sz, btn_sz);
+    menu_button.SetRect(sz.cx - btn_sz - 2, y_off, btn_sz, btn_sz);
 }
 
 Rect CustomFileTabs::GetNewTabRect() const
 {
-    return Rect(2, 2, 22, 22);
+    Size sz = GetSize();
+    int btn_sz = 24;
+    int y_off = (sz.cy - btn_sz) / 2;
+    return Rect(2, y_off, btn_sz + 2, y_off + btn_sz);
 }
 
 Rect CustomFileTabs::GetMenuButtonRect() const
 {
     Size sz = GetSize();
-    return Rect(sz.cx - 22, 2, sz.cx - 2, 22);
+    int btn_sz = 24;
+    int y_off = (sz.cy - btn_sz) / 2;
+    return Rect(sz.cx - btn_sz - 2, y_off, sz.cx - 2, y_off + btn_sz);
 }
 
 }

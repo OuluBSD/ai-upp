@@ -64,7 +64,7 @@ void PythonIDE::InitLayout()
 	AddFrame(toolbar);
 	AddFrame(statusbar);
 	
-	toolbar.MaxIconSize(Size(24, 24)); // Set icons to 24x24
+	toolbar.MaxIconSize(Size(28, 28)); // Set max icon size to 28x28 to push toolbar height to ~36px
 	
 	menubar.Set([this](Bar& bar) { MainMenu(bar); });
 	toolbar.Set([this](Bar& bar) { MainToolbar(bar); });
@@ -72,7 +72,7 @@ void PythonIDE::InitLayout()
 	Add(editor_area.SizePos());
 	
 	editor_tabs.Create();
-	editor_area.Add(editor_tabs->TopPos(0, 30).HSizePos());
+	editor_area.Add(editor_tabs->TopPos(0, 36).HSizePos());
 	
 	editor_tabs->WhenAction = [=] { OnTabChanged(); };
 	editor_tabs->WhenTabMenu = [=](Bar& bar) { OnTabMenu(bar); };
@@ -167,6 +167,12 @@ void PythonIDE::InitLayout()
 	profiler_pane->WhenAction = [this] { active_pane = &*profiler_pane; };
 }
 
+void PythonIDE::Jsonize(JsonIO& jio)
+{
+	JsonizeWindow(jio);
+	jio("toolbar", tstate);
+}
+
 void PythonIDE::RegisterPanes()
 {
 	Register(*files_pane);
@@ -197,7 +203,7 @@ void PythonIDE::DockInit()
 			Value v = ParseJSON(json);
 			if(!v.IsError()) {
 				JsonIO jio(v);
-				JsonizeWindow(jio);
+				Jsonize(jio);
 				loaded = true;
 			}
 		}
@@ -257,7 +263,7 @@ void PythonIDE::Close()
 {
 	if(ConfirmSaveAll()) {
 		JsonIO jio;
-		JsonizeWindow(jio);
+		Jsonize(jio);
 		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(jio.GetResult(), true));
 		StoreToFile(settings, ConfigFile("ide_settings.bin"));
 		TopWindow::Close();
@@ -540,7 +546,7 @@ public:
 void PythonIDE::OnNewFile()
 {
 	SourceDocumentHost* editor = new SourceDocumentHost();
-	editor_area.Add(editor->VSizePos(30, 0).HSizePos());
+	editor_area.Add(editor->VSizePos(36, 0).HSizePos());
 	
 	FileInfo& fi = open_files.Add();
 	fi.path = "";
@@ -593,7 +599,7 @@ void PythonIDE::LoadFile(const String& path)
 	}
 	
 	Ctrl* editor = &host->GetCtrl();
-	editor_area.Add(editor->VSizePos(30, 0).HSizePos());
+	editor_area.Add(editor->VSizePos(36, 0).HSizePos());
 	
 	FileInfo& fi = open_files.Add();
 	fi.path = path;

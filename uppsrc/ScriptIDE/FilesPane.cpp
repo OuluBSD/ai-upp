@@ -7,9 +7,9 @@ FilesPane::FilesPane()
 	Title("Files");
 	Icon(Icons::Files());
 	
-	Add(location_bar.TopPos(0, 24).HSizePos());
-	Add(pane_toolbar.TopPos(24, 24).HSizePos());
-	Add(tree.VSizePos(48, 0).HSizePos());
+	Add(location_bar.TopPos(0, 36).HSizePos());
+	Add(pane_toolbar.TopPos(36, 36).HSizePos());
+	Add(tree.VSizePos(72, 0).HSizePos());
 	
 	location_bar.Set([=](Bar& bar) { LayoutLocationBar(bar); });
 	pane_toolbar.Set([=](Bar& bar) { LayoutPaneToolbar(bar); });
@@ -22,21 +22,21 @@ FilesPane::FilesPane()
 
 void FilesPane::LayoutLocationBar(Bar& bar)
 {
-	bar.Add(Icons::Plus(), [=] { WhenPathManager(); }).Help("PYTHONPATH manager button");
+	bar.Add(Icons::Plus(), [=] { WhenPathManager(); }).Tip("PYTHONPATH manager").Help("PYTHONPATH manager button");
 	path_field.SetRect(0, 0, 300, 20);
 	bar.Add(path_field);
-	bar.Add(Icons::OpenFile(), [=] { WhenBrowse(); }).Help("Browse directory");
-	bar.Add(Icons::Undo(), [=] { WhenParent(); }).Help("Parent directory");
+	bar.Add(Icons::OpenFile(), [=] { WhenBrowse(); }).Tip("Browse directory").Help("Browse directory");
+	bar.Add(Icons::Undo(), [=] { WhenParent(); }).Tip("Parent directory").Help("Parent directory");
 }
 
 void FilesPane::LayoutPaneToolbar(Bar& bar)
 {
-	bar.Add(Icons::Undo(), [=] { Todo("Previous"); }).Help("Previous");
-	bar.Add(Icons::Redo(), [=] { Todo("Next"); }).Help("Next");
-	bar.Add(Icons::Undo(), [=] { WhenParent(); }).Help("Parent");
-	bar.Gap(2000); // Align right
-	bar.Add("Filter", [=] { Todo("Filter filenames"); }).Help("Filter filenames");
-	bar.Sub("Pane menu", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.Add(Icons::Undo(), [=] { Todo("Previous"); }).Tip("Previous").Help("Previous");
+	bar.Add(Icons::Redo(), [=] { Todo("Next"); }).Tip("Next").Help("Next");
+	bar.Add(Icons::Undo(), [=] { WhenParent(); }).Tip("Parent").Help("Parent");
+	bar.ToolGapRight(); // Align right
+	bar.Add("Filter", [=] { Todo("Filter filenames"); }).Tip("Filter filenames").Help("Filter filenames");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void FilesPane::LayoutPaneMenu(Bar& bar)

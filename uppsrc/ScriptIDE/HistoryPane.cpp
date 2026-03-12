@@ -7,11 +7,22 @@ HistoryPane::HistoryPane()
 	Title("History");
 	Icon(Icons::History());
 	
-	Add(editor.SizePos());
+	Add(toolbar.TopPos(0, 36).HSizePos());
+	Add(editor.VSizePos(36, 0).HSizePos());
+	
+	toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
+	
 	editor.SetReadOnly();
 	editor.Highlight("python");
 	
 	UpdateEditor();
+}
+
+void HistoryPane::LayoutToolbar(Bar& bar)
+{
+	bar.Add(Icons::ClearConsole(), [=] { Todo("Clear history"); }).Tip("Clear history").Help("Clear history");
+	bar.ToolGapRight();
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void HistoryPane::LayoutPaneMenu(Bar& bar)

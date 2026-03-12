@@ -14,6 +14,12 @@ class PyVM {
 		PyValue globals;
 		bool    is_module = false;
 		int     stack_base = 0; // stack depth when frame was entered
+
+		struct ExceptHandler {
+			int handler_pc;   // jump target in IR on exception
+			int stack_depth;  // stack depth to restore when entering handler
+		};
+		Vector<ExceptHandler> except_stack;
 	};
 	
 	Vector<Frame> frames;

@@ -11,12 +11,14 @@ void PyScheduler::AddVM(PyVM& vm)
 
 static void NativeThreadEntry(PyVM *vm)
 {
+	PyScheduler::Get().NativeThreadStarted();
 	try {
 		vm->Run();
 	} catch (Exc& e) {
 		Cout() << "Thread error: " << e << "\n";
 	}
 	delete vm;
+	PyScheduler::Get().NativeThreadFinished();
 }
 
 PyValue PyScheduler::CreateThread(PyValue func, Vector<PyValue>&& args)
@@ -60,8 +62,14 @@ PyValue PyScheduler::CreateThread(PyValue func, Vector<PyValue>&& args)
 void PyScheduler::Run()
 {
 	if(mode == PYTHREAD_NATIVE) {
-		// Main VM is already running in the main thread.
-		// Just wait for all native threads? No, we just return and let them run.
+		// Wait for all native threads to finish
+		for(;;) {
+			{
+				Mutex::Lock __(mutex);
+				if(active_native_threads == 0) break;
+			}
+			Sleep(10);
+		}
 	}
 	else {
 		while(!vms.IsEmpty()) {

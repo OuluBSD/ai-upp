@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE form>
 <form>
 	<layouts>
 		<item>
 			<content>
-				<item x="0" y="0" cx="246" cy="207" align="0" valign="0">
+				<item x="250" y="170" cx="246" cy="207" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="trick_area"/>
@@ -14,9 +14,11 @@
 						<property name="Anchor" value="CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="0" y="60" cx="72" cy="96" align="0" valign="0">
+				<item x="250" y="220" cx="72" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="trick_left"/>
@@ -27,9 +29,11 @@
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="87" y="0" cx="72" cy="96" align="0" valign="0">
+				<item x="340" y="180" cx="72" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="trick_top"/>
@@ -40,9 +44,11 @@
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="174" y="60" cx="72" cy="96" align="0" valign="0">
+				<item x="420" y="210" cx="72" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="trick_right"/>
@@ -53,9 +59,11 @@
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="87" y="111" cx="72" cy="96" align="0" valign="0">
+				<item x="337" y="281" cx="72" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="trick_bottom"/>
@@ -66,9 +74,11 @@
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="0" y="10" cx="552" cy="96" align="0" valign="0">
+				<item x="130" y="500" cx="552" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_self"/>
@@ -78,9 +88,11 @@
 						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="24" y="0" cx="72" cy="360" align="0" valign="0">
+				<item x="10" y="140" cx="72" cy="360" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_left"/>
@@ -90,9 +102,11 @@
 						<property name="Anchor" value="CENTER_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="0" y="58" cx="552" cy="96" align="0" valign="0">
+				<item x="130" y="40" cx="552" cy="96" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_top"/>
@@ -102,9 +116,11 @@
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="24" y="0" cx="72" cy="360" align="0" valign="0">
+				<item x="720" y="160" cx="72" cy="360" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_right"/>
@@ -114,9 +130,11 @@
 						<property name="Anchor" value="CENTER_RIGHT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="0" y="120" cx="280" cy="24" align="0" valign="0">
+				<item x="230" y="470" cx="280" cy="24" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_self"/>
@@ -127,9 +145,11 @@
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Center"/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="150" y="42" cx="120" cy="30" align="0" valign="0">
+				<item x="380" y="430" cx="120" cy="30" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="button_clear"/>
@@ -141,9 +161,10 @@
 						<property name="Action" value=""/>
 						<property name="Tip" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
 					</properties>
 				</item>
-				<item x="20" y="42" cx="120" cy="30" align="0" valign="0">
+				<item x="250" y="430" cx="120" cy="30" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="button_pass"/>
@@ -155,9 +176,10 @@
 						<property name="Action" value=""/>
 						<property name="Tip" value=""/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
 					</properties>
 				</item>
-				<item x="10" y="0" cx="160" cy="24" align="0" valign="0">
+				<item x="80" y="190" cx="160" cy="24" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_left"/>
@@ -168,9 +190,11 @@
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Left"/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="10" y="0" cx="160" cy="24" align="0" valign="0">
+				<item x="520" y="170" cx="160" cy="24" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_right"/>
@@ -181,9 +205,11 @@
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Right"/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="0" y="25" cx="280" cy="24" align="0" valign="0">
+				<item x="230" y="140" cx="280" cy="24" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_top"/>
@@ -194,9 +220,11 @@
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Center"/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="12" y="8" cx="760" cy="24" align="0" valign="0">
+				<item x="10" y="30" cx="760" cy="24" align="0" valign="0">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="status_line"/>
@@ -207,6 +235,8 @@
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Left"/>
 						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
 			</content>

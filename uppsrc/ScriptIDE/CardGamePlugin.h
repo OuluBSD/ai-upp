@@ -60,6 +60,9 @@ private:
 	String path;
 	String form_path;
 	CardGamePlugin* plugin = nullptr;
+	Size last_layout_size;
+	bool refresh_running = false;
+	bool resize_refresh_pending = false;
 	
 	struct Sprite {
 		Image  img;
@@ -83,7 +86,9 @@ private:
 	RichTextView game_log;
 
 	void Animate();
+	void RefreshGameView();
 	Rect GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz);
+	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
 	virtual void LeftDown(Point p, dword flags) override;
 };

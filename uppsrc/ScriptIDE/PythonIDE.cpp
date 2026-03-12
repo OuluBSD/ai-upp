@@ -24,6 +24,9 @@ PythonIDE::PythonIDE()
 	files_pane->SetRoot(GetCurrentDirectory());
 	
 	plugin_manager->LoadPlugins();
+	const auto& plugins = plugin_manager->GetPlugins();
+	for(int i = 0; i < plugins.GetCount(); i++)
+		plugin_manager->EnablePlugin(plugins.GetKey(i));
 	
 	ApplySettings();
 	SetTimeCallback(-200, [this] { UpdateStatusBar(); }); // DONT CHANGE THIS
@@ -31,6 +34,9 @@ PythonIDE::PythonIDE()
 
 PythonIDE::~PythonIDE()
 {
+	// Plugin shutdown unregisters dock panes, so it must happen before
+	// plugin_panes and the surrounding UI members are destroyed.
+	plugin_manager.Clear();
 }
 
 void PythonIDE::ApplySettings()
@@ -202,10 +208,71 @@ void PythonIDE::RegisterPanes()
 	Register(context_pane_right);
 }
 
+void PythonIDE::SetDefaultDocking()
+{
+	for(DockableCtrl *d : GetDockableCtrls()) d->Hide();
+
+	// Set size hints BEFORE docking
+	files_pane->SizeHint(Size(250, 400));
+	outline_pane->SizeHint(Size(250, 400));
+
+	var_explorer->SizeHint(Size(300, 300));
+	help_pane->SizeHint(Size(300, 300));
+	plots_pane->SizeHint(Size(300, 300));
+	debugger_pane->SizeHint(Size(300, 300));
+	profiler_pane->SizeHint(Size(300, 300));
+
+	console_pane->SizeHint(Size(400, 250));
+	history_pane->SizeHint(Size(400, 250));
+	find_pane->SizeHint(Size(400, 250));
+
+	// Frame order: Left and Right frames take full height.
+	SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
+
+	// 1. Left Frame: Files (active) and Outline
+	DockLeft(*files_pane);
+	Tabify(*files_pane, *outline_pane);
+	ActivateDockable(*files_pane);
+
+	// 2. Right Frame: We want exactly 2 vertical groups.
+	// Top Group (VarExplorer, Help, Plots)
+	DockRight(*var_explorer);
+	Tabify(*var_explorer, *help_pane);
+	Tabify(*var_explorer, *plots_pane);
+	ActivateDockable(*var_explorer);
+
+	// Bottom Group (IPython Console, History, Find, Debugger, Profiler)
+	DockRight(*console_pane);
+	Tabify(*console_pane, *history_pane);
+	Tabify(*console_pane, *find_pane);
+	Tabify(*console_pane, *debugger_pane);
+	Tabify(*console_pane, *profiler_pane);
+	ActivateDockable(*console_pane);
+
+	context_pane_left.Title("Context (L)").Hide();
+	context_pane_right.Title("Context (R)").Hide();
+
+	SetFrameSize(DOCK_LEFT, 250);
+	SetFrameLayoutHalf(DOCK_RIGHT);
+	SetFrameSize(DOCK_BOTTOM, 0); 
+	
+	// Show docked ctrls
+	for(DockableCtrl *d : GetDockableCtrls()) 
+		if (d->IsDocked()) d->Show();
+}
+
 void PythonIDE::DockInit()
 {
 	// Register all panes so SerializeWindow can find them by index
 	RegisterPanes();
+
+	// Capture the canonical default layout BEFORE potentially loading a session.
+	SetDefaultDocking();
+	{
+		StringStream s;
+		SerializeLayout(s);
+		default_layout = s;
+	}
 
 	// Try to restore previous session
 	String session_file = ConfigFile("ide_session.json");
@@ -222,54 +289,8 @@ void PythonIDE::DockInit()
 		}
 	}
 
-	if(!loaded) {
-		// Set size hints BEFORE docking
-		files_pane->SizeHint(Size(250, 400));
-		outline_pane->SizeHint(Size(250, 400));
-
-		var_explorer->SizeHint(Size(300, 300));
-		help_pane->SizeHint(Size(300, 300));
-		plots_pane->SizeHint(Size(300, 300));
-		debugger_pane->SizeHint(Size(300, 300));
-		profiler_pane->SizeHint(Size(300, 300));
-
-		console_pane->SizeHint(Size(400, 250));
-		history_pane->SizeHint(Size(400, 250));
-		find_pane->SizeHint(Size(400, 250));
-
-		// Perform default docking layout
-		DockLeft(*files_pane);
-		Tabify(*files_pane, *outline_pane);
-
-		DockRight(*var_explorer);
-		Tabify(*var_explorer, *help_pane);
-		Tabify(*var_explorer, *plots_pane);
-
-		DockRight(*debugger_pane);
-		Tabify(*debugger_pane, *profiler_pane);
-
-		DockBottom(*console_pane);
-		DockBottom(*history_pane);
-		Tabify(*console_pane, *find_pane);
-
-		// Context panes are dynamic, not part of default docking layout
-		// but they must be registered (already done in RegisterPanes)
-
-		context_pane_left.Title("Context (L)").Hide();
-		context_pane_right.Title("Context (R)").Hide();
-
-		// Set frame order: Left/Right take precedence (full height)
-		SetFrameOrder(DOCK_LEFT, DOCK_RIGHT, DOCK_BOTTOM, DOCK_TOP);
-
-		SetFrameSize(DOCK_LEFT, 250);
-		SetFrameLayoutHalf(DOCK_RIGHT);
-		SetFrameSize(DOCK_BOTTOM, 250);
-	}
-
-	// Capture the default layout string
-	StringStream s;
-	SerializeLayout(s);
-	default_layout = s;
+	// Ensure Files pane is active after all tabifications
+	SetTimeCallback(100, [this] { ActivateDockable(*files_pane); });
 }
 
 void PythonIDE::Close()
@@ -583,18 +604,40 @@ void PythonIDE::OnOpenFile()
 
 void PythonIDE::LoadFile(const String& path)
 {
+	String ext = GetFileExt(path);
+	IFileTypeHandler* handler = plugin_manager->FindFileTypeHandler(ext);
+	
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		if(open_files[i].path == path) {
+			if(handler && !open_files[i].is_plugin) {
+				IDocumentHost* host = handler->CreateDocumentHost();
+				if(host && host->Load(path)) {
+					if(active_file == i && active_editor) {
+						if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[i].editor))
+							h->DeactivateUI();
+					}
+					if(open_files[i].editor) {
+						open_files[i].editor->GetCtrl().Remove();
+						delete open_files[i].editor;
+					}
+					open_files[i].editor = host;
+					open_files[i].is_plugin = true;
+					editor_area.Add(host->GetCtrl().VSizePos(36, 0).HSizePos());
+					editor_tabs->SetCursor(i);
+					OnTabChanged();
+					AddRecentFile(path);
+					return;
+				}
+				delete host;
+			}
 			editor_tabs->SetCursor(i);
 			return;
 		}
 	}
 
-	String ext = GetFileExt(path);
 	IDocumentHost* host = nullptr;
 	bool is_plugin = false;
 	
-	IFileTypeHandler* handler = plugin_manager->FindFileTypeHandler(ext);
 	if(handler) {
 		host = handler->CreateDocumentHost();
 		if(host) is_plugin = true;
@@ -999,12 +1042,16 @@ void PythonIDE::OnTogglePane(DockableCtrl& pane)
 		DockBottom(pane);
 }
 
-void PythonIDE::OnLayoutDefault() 
-{ 
-	StringStream s(default_layout);
-	SerializeLayout(s);
+void PythonIDE::OnLayoutDefault()
+{
+	if(default_layout.IsEmpty()) {
+		SetDefaultDocking();
+	}
+	else {
+		StringStream s(default_layout);
+		SerializeLayout(s);
+	}
 }
-
 void PythonIDE::OnLayoutRstudio() 
 { 
 	for(DockableCtrl *d : GetDockableCtrls()) d->Hide();

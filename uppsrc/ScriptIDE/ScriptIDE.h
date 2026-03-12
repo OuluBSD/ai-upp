@@ -4,6 +4,12 @@
 #include <CtrlLib/CtrlLib.h>
 #include <CodeEditor/CodeEditor.h>
 #include <TabBar/TabBar.h>
+
+// X11 defines None as a macro, which breaks ByteVM's PyValue::None().
+#ifdef None
+#undef None
+#endif
+
 #include <ByteVM/ByteVM.h>
 #include <RichEdit/RichEdit.h>
 #include <Docking/Docking.h>

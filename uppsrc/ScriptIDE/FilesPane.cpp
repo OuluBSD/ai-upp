@@ -73,6 +73,7 @@ void FilesPane::Refresh()
 	tree.SetRoot(Icons::Folder(), root_label);
 	tree.Set(0, root_path);
 	Populate(0);
+	tree.Open(0);
 }
 
 void FilesPane::Populate(int id)

@@ -23,7 +23,7 @@ void GameStatePlugin::Shutdown()
 
 void GameStatePlugin::SyncBindings(PyVM& vm)
 {
-	vm.GetGlobals().GetAdd("get_game_score") = PyValue::Function("get_game_score", &GameStatePlugin::GetScore);
+	vm.GetGlobals().SetItem(PyValue("get_game_score"), PyValue::Function("get_game_score", &GameStatePlugin::GetScore));
 }
 
 bool GameStatePlugin::CanExecute(const String& path)

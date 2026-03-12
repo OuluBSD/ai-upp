@@ -133,7 +133,7 @@ void CardGamePlugin::Execute(const String& path)
 	SetCurrentDirectory(game_dir);
 
 	// Add game_dir to sys.path so relative Python imports resolve
-	PyValue sys = vm->GetGlobals().Get(PyValue("sys"), PyValue::None());
+	PyValue sys = vm->GetGlobals().GetItem(PyValue("sys"));
 	if(sys.GetType() == PY_DICT) {
 		PyValue path_list = sys.GetItem(PyValue("path"));
 		if(path_list.GetType() == PY_LIST) {
@@ -172,13 +172,8 @@ void CardGamePlugin::Execute(const String& path)
 		Vector<PyIR> ir;
 		compiler.Compile(ir);
 
-		// If entry_function is specified, suppress __name__ == "__main__" guard
-		if(!entry_function.IsEmpty())
-			vm->GetGlobals().GetAdd(PyValue("__name__")) = PyValue("main");
 		vm->SetIR(ir);
 		vm->Run();
-		if(!entry_function.IsEmpty())
-			vm->GetGlobals().GetAdd(PyValue("__name__")) = PyValue("__main__");
 	} catch(Exc& e) {
 		LOG("CardGamePlugin: error in entry script: " << e);
 		return;
@@ -186,7 +181,7 @@ void CardGamePlugin::Execute(const String& path)
 
 	// Call entry function if specified
 	if(!entry_function.IsEmpty()) {
-		PyValue fn = vm->GetGlobals().Get(PyValue(entry_function), PyValue::None());
+		PyValue fn = vm->GetGlobals().GetItem(PyValue(entry_function));
 		LOG("CardGamePlugin: looking for entry_function='" << entry_function << "', found=" << (!fn.IsNone() ? "yes" : "no"));
 		if(!fn.IsNone()) {
 			try {

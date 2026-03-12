@@ -2845,12 +2845,54 @@ bool PyVM::Step()
 			break;
 		}
 			
+		case PY_SETUP_EXCEPT: {
+			// Push an exception handler entry; iarg is the absolute PC of the handler
+			Frame::ExceptHandler h;
+			h.handler_pc  = instr.iarg;
+			h.stack_depth = stack.GetCount();
+			TopFrame().except_stack.Add(h);
+			break;
+		}
+
+		case PY_POP_EXCEPT: {
+			// End of try block reached normally — pop handler
+			if(!TopFrame().except_stack.IsEmpty())
+				TopFrame().except_stack.Drop();
+			break;
+		}
+
+		case PY_RAISE: {
+			// raise expr  (iarg==1) or bare raise (iarg==0, re-raise last)
+			if(instr.iarg >= 1) {
+				PyValue exc_val = Pop();
+				throw Exc(exc_val.ToString());
+			} else {
+				throw Exc("RuntimeError: bare raise outside except");
+			}
+		}
+
+		case PY_RAISE_STR: {
+			// raise with a literal string (used by assert)
+			throw Exc(instr.arg.ToString());
+		}
+
 		default:
 			throw Exc("RuntimeError: Unknown opcode: " + AsString((int)instr.code));
 		}
 	} catch (Exc& e) {
+		// Check if current frame has an except handler — if so, dispatch to it
+		Frame& cur = TopFrame();
+		if(!cur.except_stack.IsEmpty()) {
+			Frame::ExceptHandler h = cur.except_stack.Pop();
+			// Restore stack to the depth at the try block entry, then push exception string
+			stack.SetCount(h.stack_depth);
+			Push(PyValue(String(e)));   // exception accessible as TOS in handler
+			cur.pc = h.handler_pc;
+			return !frames.IsEmpty();  // continue execution at handler
+		}
+		// No handler — build traceback and propagate
 		String func_name = "<module>";
-		if (frame.func.IsFunction()) func_name = frame.func.GetLambda().name;
+		if (cur.func.IsFunction()) func_name = cur.func.GetLambda().name;
 		String loc = "  File \"<stdin>\", line " + AsString(instr.line) + ", in " + func_name;
 		if (e.Find("Traceback") < 0) {
 			throw Exc("Traceback (most recent call last):\n" + loc + "\n" + e);

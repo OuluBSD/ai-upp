@@ -746,7 +746,7 @@ void CardGameLayoutEditor::DeactivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 		card_properties.Remove();
-		_ItemList.Remove();
+		_ItemList.Ctrl::Remove();
 		ide->context_pane_left.Close();
 		ide->context_pane_right.Close();
 	}

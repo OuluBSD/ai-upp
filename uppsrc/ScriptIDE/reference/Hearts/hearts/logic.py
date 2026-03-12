@@ -121,8 +121,8 @@ class GameState:
 
         # First trick special rule: no points on first trick
         if not self.hearts_broken and len(self.players[0]) == 13 and not self.leading_suit:
-             # This is checked inside play_card logic or here
-             pass
+            # This is checked inside play_card logic or here
+            pass
 
         return True, "OK"
 

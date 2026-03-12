@@ -137,6 +137,8 @@ void PythonIDE::InitLayout()
 		}
 	};
 	var_explorer->WhenRefresh = [=] { UpdateVariableExplorer(); };
+
+	form_explorer.Create();
 	
 	plots_pane.Create();
 	debugger_pane.Create();
@@ -177,6 +179,7 @@ void PythonIDE::InitLayout()
 	files_pane->WhenAction = [this] { active_pane = &*files_pane; };
 	outline_pane->WhenAction = [this] { active_pane = &*outline_pane; };
 	var_explorer->WhenAction = [this] { active_pane = &*var_explorer; };
+	form_explorer->WhenAction = [this] { active_pane = &*form_explorer; };
 	help_pane->WhenAction = [this] { active_pane = &*help_pane; };
 	plots_pane->WhenAction = [this] { active_pane = &*plots_pane; };
 	console_pane->WhenAction = [this] { active_pane = &*console_pane; };
@@ -197,6 +200,7 @@ void PythonIDE::RegisterPanes()
 	Register(*files_pane);
 	Register(*outline_pane);
 	Register(*var_explorer);
+	Register(*form_explorer);
 	Register(*help_pane);
 	Register(*plots_pane);
 	Register(*console_pane);
@@ -217,6 +221,7 @@ void PythonIDE::SetDefaultDocking()
 	outline_pane->SizeHint(Size(250, 400));
 
 	var_explorer->SizeHint(Size(300, 300));
+	form_explorer->SizeHint(Size(300, 300));
 	help_pane->SizeHint(Size(300, 300));
 	plots_pane->SizeHint(Size(300, 300));
 	debugger_pane->SizeHint(Size(300, 300));
@@ -237,6 +242,7 @@ void PythonIDE::SetDefaultDocking()
 	// 2. Right Frame: We want exactly 2 vertical groups.
 	// Top Group (VarExplorer, Help, Plots)
 	DockRight(*var_explorer);
+	Tabify(*var_explorer, *form_explorer);
 	Tabify(*var_explorer, *help_pane);
 	Tabify(*var_explorer, *plots_pane);
 	ActivateDockable(*var_explorer);

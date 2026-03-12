@@ -81,6 +81,7 @@ struct ToolBarApp : TopWindow {
 		String      name;
 		Vector<String> actions;
 		bool        right = false;
+		bool        fill = false;
 		bool        show_handle = true;
 		GroupHandle handle;
 	};
@@ -89,16 +90,26 @@ struct ToolBarApp : TopWindow {
 	StatusBar    status;
 	Option       hide_handles;
 	Option       right_search;
+	DropList     variables;
 	Array<Group> group;
 	Vector<int>  left_order;
 	Vector<int>  right_order;
 	Vector<int>  drag_left_backup;
 	Vector<int>  drag_right_backup;
 	int          dragging_group = -1;
+	int          last_toolbar_cx = -1;
+	int          variables_group = -1;
+	int          actions_group = -1;
+	int          file_group = -1;
+	int          edit_group = -1;
+	int          run_group = -1;
+	int          window_group = -1;
 
 	typedef ToolBarApp CLASSNAME;
 
 	struct LayoutState {
+		int         version = 2;
+		int         group_count = 0;
 		Vector<int> left_order;
 		Vector<int> right_order;
 		bool        hide_handles = false;
@@ -106,25 +117,27 @@ struct ToolBarApp : TopWindow {
 
 		void Serialize(Stream& s)
 		{
-			int version = 1;
 			s / version;
-			s % left_order % right_order % hide_handles % right_search;
+			s % group_count % left_order % right_order % hide_handles % right_search;
 		}
 
 		void Jsonize(JsonIO& jio)
 		{
-			jio("left_order", left_order)
+			jio("version", version)
+			   ("group_count", group_count)
+			   ("left_order", left_order)
 			   ("right_order", right_order)
 			   ("hide_handles", hide_handles)
 			   ("right_search", right_search);
 		}
 	};
 
-	int AddGroup(const char *name, std::initializer_list<const char *> actions, bool right, bool show_handle)
+	int AddGroup(const char *name, std::initializer_list<const char *> actions, bool right, bool show_handle, bool fill = false)
 	{
 		Group& g = group.Add();
 		g.name = name;
 		g.right = right;
+		g.fill = fill;
 		g.show_handle = show_handle;
 		for(const char *s : actions)
 			g.actions.Add(s);
@@ -144,6 +157,10 @@ struct ToolBarApp : TopWindow {
 			g.handle.hidden = !show;
 			if(show)
 				bar.Add(g.handle, g.handle.GetMinSize());
+			if(g.fill) {
+				bar.Add(variables, INT_MAX, variables.GetStdSize().cy);
+				return;
+			}
 			for(const String& action : g.actions) {
 				String text = g.name + "/" + action;
 				bar.Add(text, Null, [=] {
@@ -200,6 +217,7 @@ struct ToolBarApp : TopWindow {
 	LayoutState CaptureLayoutState() const
 	{
 		LayoutState st;
+		st.group_count = group.GetCount();
 		st.left_order = CloneVec(left_order);
 		st.right_order = CloneVec(right_order);
 		st.hide_handles = hide_handles.Get();
@@ -209,6 +227,10 @@ struct ToolBarApp : TopWindow {
 
 	void ApplyLayoutState(const LayoutState& st)
 	{
+		if(st.version != 2 || st.group_count != group.GetCount()) {
+			RebuildOrder();
+			return;
+		}
 		Vector<int> used;
 		used.SetCount(group.GetCount(), 0);
 		left_order.Clear();
@@ -232,6 +254,15 @@ struct ToolBarApp : TopWindow {
 				else
 					left_order.Add(id);
 			}
+
+		// The demo relies on the variables group being the single left-side fill group.
+		if(variables_group >= 0 && variables_group < group.GetCount()) {
+			RemoveGroup(right_order, variables_group);
+			RemoveGroup(left_order, variables_group);
+			group[variables_group].right = false;
+			left_order.Insert(0, variables_group);
+		}
+
 		hide_handles = st.hide_handles;
 		right_search = st.right_search;
 	}
@@ -396,7 +427,7 @@ struct ToolBarApp : TopWindow {
 
 	void ToggleSearchSide()
 	{
-		int id = 2; // Search group
+		int id = actions_group;
 		group[id].right = right_search;
 		RemoveGroup(left_order, id);
 		RemoveGroup(right_order, id);
@@ -413,11 +444,20 @@ struct ToolBarApp : TopWindow {
 		Title("ToolBar: grouped, right aligned, draggable");
 		Sizeable().Zoomable();
 
-		AddGroup("File", { "New", "Open", "Save" }, false, true);
-		AddGroup("Edit", { "Undo", "Redo", "Find" }, false, true);
-		AddGroup("Search", { "Find", "Next", "Prev" }, true, true);
-		AddGroup("Run", { "Build", "Run" }, true, true);
-		AddGroup("Window", { "Split", "Focus" }, false, true);
+		variables_group = AddGroup("Variables", {}, false, true, true);
+		file_group = AddGroup("File", { "New", "Open", "Save" }, true, true);
+		edit_group = AddGroup("Edit", { "Undo", "Redo", "Find" }, true, true);
+		actions_group = AddGroup("Search", { "Find", "Next", "Prev" }, true, true);
+		run_group = AddGroup("Run", { "Build", "Run" }, true, true);
+		window_group = AddGroup("Window", { "Split", "Focus" }, true, true);
+
+		variables.Add("alpha");
+		variables.Add("beta");
+		variables.Add("gamma");
+		variables.Add("delta");
+		variables.Add("epsilon");
+		variables.SetIndex(0);
+		variables.SetMinSize(Size(HorzLayoutZoom(180), variables.GetStdSize().cy));
 
 		for(int i = 0; i < group.GetCount(); i++)
 			group[i].handle.WhenStartDrag = THISBACK(StartGroupDrag);
@@ -441,6 +481,16 @@ struct ToolBarApp : TopWindow {
 		right_search.WhenAction = THISBACK(ToggleSearchSide);
 
 		status = "Drag a handle to reorder groups. Drop left/right to move side.";
+	}
+
+	void Layout() override
+	{
+		TopWindow::Layout();
+		int cx = toolbar.GetSize().cx;
+		if(cx > 0 && cx != last_toolbar_cx && dragging_group < 0) {
+			last_toolbar_cx = cx;
+			toolbar.Set(THISBACK(BuildToolBar));
+		}
 	}
 
 	void Close() override

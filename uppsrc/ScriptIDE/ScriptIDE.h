@@ -44,6 +44,7 @@ NAMESPACE_UPP
 	class PythonConsole;
 	class FilesPane;
 	class VariableExplorer;
+	class FormExplorer;
 	class PlotsPane;
 	class DebuggerPane;
 	class ProfilerPane;
@@ -63,6 +64,7 @@ NAMESPACE_UPP
 #include "PythonEditor.h"
 #include "Settings.h"
 #include "VariableExplorer.h"
+#include "FormExplorer.h"
 #include "PlotsPane.h"
 #include "DebuggerPane.h"
 #include "ProfilerPane.h"

@@ -26,6 +26,11 @@ static PyValue hv_set_button(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
+static PyValue hv_set_highlight(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
 static PyValue hv_set_status(const Vector<PyValue>& args, void*)
 {
 	if(args.GetCount() >= 1)
@@ -243,6 +248,13 @@ static PyValue hv_gui_set_button(const Vector<PyValue>& args, void* ud)
 	return PyValue::None();
 }
 
+static PyValue hv_gui_set_highlight(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 2)
+		((IHeartsView*)ud)->SetHighlight(args[0].ToString(), args[1].IsTrue());
+	return PyValue::None();
+}
+
 static PyValue hv_gui_set_status(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 1)
@@ -289,6 +301,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
 		PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
 		PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
+		PY_MODULE_FUNC(set_highlight, hv_gui_set_highlight, view)
 		PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
 		PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
 		PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
@@ -300,6 +313,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
 		PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
 		PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
+		PY_MODULE_FUNC(set_highlight, hv_set_highlight, nullptr)
 		PY_MODULE_FUNC(set_status,    hv_set_status,    nullptr)
 		PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
 		PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)

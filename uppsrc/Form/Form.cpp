@@ -266,31 +266,31 @@ bool Form::Generate(Font font)
 		switch((*p)[i].GetHAlign())
 		{
 			case Ctrl::LEFT:
-				c->LeftPosZ((*p)[i].GetRect().left, (*p)[i].GetRect().Width());
+				c->LeftPosZ(HorzLayoutZoom((*p)[i].GetRect().left), HorzLayoutZoom((*p)[i].GetRect().Width()));
 				break;
 			case Ctrl::RIGHT: 
-				c->RightPosZ(sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width(), (*p)[i].GetRect().Width());
+				c->RightPosZ(HorzLayoutZoom(sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width()), HorzLayoutZoom((*p)[i].GetRect().Width()));
 				break;
 			case Ctrl::SIZE:
-				c->HSizePosZ((*p)[i].GetRect().left, sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width());
+				c->HSizePosZ(HorzLayoutZoom((*p)[i].GetRect().left), HorzLayoutZoom(sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width()));
 				break;
 			case Ctrl::CENTER:
-				c->HCenterPosZ((*p)[i].GetRect().Width());
+				c->HCenterPosZ(HorzLayoutZoom((*p)[i].GetRect().Width()));
 		}
 
 		switch((*p)[i].GetVAlign())
 		{
 			case Ctrl::TOP:
-				c->TopPosZ((*p)[i].GetRect().top, (*p)[i].GetRect().Height());
+				c->TopPosZ(VertLayoutZoom((*p)[i].GetRect().top), VertLayoutZoom((*p)[i].GetRect().Height()));
 				break;
 			case Ctrl::BOTTOM: 
-				c->BottomPosZ(sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height(), (*p)[i].GetRect().Height());
+				c->BottomPosZ(VertLayoutZoom(sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height()), VertLayoutZoom((*p)[i].GetRect().Height()));
 				break;
 			case Ctrl::SIZE:
-				c->VSizePosZ((*p)[i].GetRect().top, sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height());
+				c->VSizePosZ(VertLayoutZoom((*p)[i].GetRect().top), VertLayoutZoom(sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height()));
 				break;
 			case Ctrl::CENTER:
-				c->VCenterPosZ((*p)[i].GetRect().Height());
+				c->VCenterPosZ(VertLayoutZoom((*p)[i].GetRect().Height()));
 		}
 
 		String frame = (*p)[i].Get("Frame");
@@ -308,7 +308,7 @@ bool Form::Generate(Font font)
 		if (frame == "Right separator frame")  c->SetFrame(RightSeparatorFrame());
 		if (frame == "Bottom separator frame") c->SetFrame(BottomSeparatorFrame());
 
-		AddChild(c);
+		Add(*c);
 	}
 
 	WhenGenerate();
@@ -451,6 +451,7 @@ Ctrl* Form::GetCtrl(const String& var)
 
 
 FormWindow::FormWindow() {
+	Add(form.SizePos());
 	form.WhenGenerate << [this]{this->Generate();};
 }
 
@@ -468,5 +469,7 @@ void FormWindow::Generate() {
 
 	Title(l.Get("Form.Title"));
 
+	Size sz = l.GetFormSize();
+	SetRect(Rect(GetRect().TopLeft(), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))));
 }
 

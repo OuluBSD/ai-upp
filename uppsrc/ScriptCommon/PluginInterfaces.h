@@ -66,6 +66,8 @@ public:
 	virtual void SetLabel(const String& zone_id, const String& text) = 0;
 	// Set a clickable button inside a named zone
 	virtual void SetButton(const String& zone_id, const String& text, bool enabled) = 0;
+	// Highlight or clear a named zone
+	virtual void SetHighlight(const String& zone_id, bool enabled) = 0;
 	// Set transient status text shown on the table
 	virtual void SetStatus(const String& text) = 0;
 	// Log a message to the game log

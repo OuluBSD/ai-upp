@@ -99,8 +99,34 @@ Size BarPane::LayOut(bool horz, int maxsize, bool repos)
 			}
 			Size sz = q->ctrl ? q->ctrl->GetMinSize()
 			                  : Size(horz ? gapsize : 0, horz ? 0 : gapsize);
-			if(HoVe(sz) == INT_MAX)
-				HoVe(sz) = maxsize - HoVe(psz);
+			int min_hove = max(HoVe(sz), 0);
+			if(HoVe(sz) == INT_MAX) {
+				if(maxsize == INT_MAX)
+					HoVe(sz) = min_hove;
+				else {
+					int rsz = 0;
+					auto w = q + 1;
+					while(w < item.end()) {
+						if(!w->ctrl) {
+							if(IsNull(w->gapsize))
+								break;
+							// Alignment gaps do not consume width themselves; they reserve space
+							// for the controls that follow.
+							if(w->gapsize == INT_MAX) {
+								w++;
+								continue;
+							}
+						}
+						Size wsz = w->ctrl ? w->ctrl->GetMinSize()
+						                   : Size(horz ? w->gapsize : 0, horz ? 0 : w->gapsize);
+						if(HoVe(wsz) == INT_MAX)
+							HoVe(wsz) = 0;
+						rsz += max(HoVe(wsz), 0);
+						w++;
+					}
+					HoVe(sz) = max(maxsize - HoVe(psz) - rsz, min_hove);
+				}
+			}
 			if(HoVe(psz) + HoVe(sz) > maxsize && HoVe(psz)) {
 				while(q < item.end() && q->ctrl == NULL && !IsNull(q->gapsize) && q->gapsize != INT_MAX)
 					q++;

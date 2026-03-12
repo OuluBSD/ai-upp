@@ -27,6 +27,8 @@ file
 	Settings.cpp,
 	VariableExplorer.h,
 	VariableExplorer.cpp,
+	FormExplorer.h,
+	FormExplorer.cpp,
 	PlotsPane.h,
 	PlotsPane.cpp,
 	DebuggerPane.h,

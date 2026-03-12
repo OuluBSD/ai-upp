@@ -21,10 +21,8 @@ int RunFileCommand(const Vector<String>& args)
 	vm.WhenPrint = [](const String& s) { Cout() << s; };
 
 	String ext = ToLower(GetFileExt(path));
-	Cerr() << "DEBUG ext='" << ext << "'\n";
 
 	if(ext == ".gamestate") {
-		Cerr() << "DEBUG: routing to plugin\n";
 		// Use plugin system: initialise all internal plugins and execute
 		HeadlessPluginContext ctx(vm);
 		Vector<One<IPlugin>> plugins;

@@ -1750,6 +1750,7 @@ const VectorMap<PyValue, PyValue>& PyVM::GetLocals(int frame_index) const
 void PyVM::SetIR(Vector<PyIR>& _ir)
 {
 	frames.Clear();
+	stack.Clear();
 	Frame& f = frames.Add();
 	f.func = PyValue::Function("__main__");
 	f.func.GetLambdaRW().ir = pick(_ir);
@@ -1758,6 +1759,7 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 	f.pc = 0;
 	f.globals = globals;
 	f.is_module = true;
+	f.stack_base = 0;
 	last_result = PyValue::None();
 }
 
@@ -1810,6 +1812,7 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 		f.pc = 0;
 		f.globals = mod_dict;
 		f.is_module = true;
+		f.stack_base = stack.GetCount();
 
 		// If we are already running, we need to Step until this module returns
 		if (base > 0) {
@@ -1891,6 +1894,7 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 	f.ir = &l.ir;
 	f.pc = 0;
 	f.globals = l.globals.IsNone() ? globals : l.globals;
+	f.stack_base = stack.GetCount();
 	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
 		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 		int q = f.locals.Find(key);
@@ -2020,9 +2024,11 @@ bool PyVM::Step()
 
 	if(frame.pc >= frame.ir->GetCount()) {
 		PYVM_TRACE("PYVM frame-end drop function");
+		int sb = frame.stack_base;
 		ReleaseLocals(frame.locals);
 		frame.func = PyValue::None();
 		frames.Drop();
+		stack.SetCount(sb);
 		return !frames.IsEmpty();
 	}
 	
@@ -2404,6 +2410,7 @@ bool PyVM::Step()
 				f.ir = &l.ir;
 				f.pc = 0;
 				f.globals = l.globals.IsNone() ? this->globals : l.globals;
+				f.stack_base = stack.GetCount();
 				// Mark this frame as a class body; after it returns, collect locals into class_dict
 				f.locals.GetAdd(PyValue("__class_body_result__")) = class_dict;
 			} else {
@@ -2522,7 +2529,10 @@ bool PyVM::Step()
 				}
 			} else if(a.IsInt() && b.IsInt()) {
 				if(b.AsInt64() == 0) throw Exc("ZeroDivisionError: integer modulo by zero");
-				Push(PyValue(a.AsInt64() % b.AsInt64()));
+				int64 r = a.AsInt64() % b.AsInt64();
+				// Python modulo always has sign of divisor
+				if(r != 0 && (r < 0) != (b.AsInt64() < 0)) r += b.AsInt64();
+				Push(PyValue(r));
 			} else {
 				Push(PyValue(fmod(a.AsDouble(), b.AsDouble())));
 			}
@@ -2541,7 +2551,9 @@ bool PyVM::Step()
 			PyValue container = Pop();
 			if(sub.IsInt() && (container.GetType() == PY_LIST || container.GetType() == PY_TUPLE)) {
 				int idx = sub.AsInt();
-				if (idx < 0 || idx >= container.GetCount()) throw Exc("IndexError: list index out of range");
+				int n = container.GetCount();
+				if(idx < 0) idx += n;
+				if (idx < 0 || idx >= n) throw Exc("IndexError: list index out of range");
 				Push(container.GetItem(idx));
 			}
 			else
@@ -2657,6 +2669,7 @@ bool PyVM::Step()
 					f.ir = &l.ir;
 					f.pc = 0;
 					f.globals = l.globals.IsNone() ? this->globals : l.globals;
+					f.stack_base = stack.GetCount();
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 						int q = f.locals.Find(key);
@@ -2696,6 +2709,7 @@ bool PyVM::Step()
 					f.ir = &l.ir;
 					f.pc = 0;
 					f.globals = l.globals.IsNone() ? this->globals : l.globals;
+					f.stack_base = stack.GetCount();
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 						int q = f.locals.Find(key);
@@ -2773,11 +2787,17 @@ bool PyVM::Step()
 					if(instance_idx >= 0)
 						val = frame.locals[instance_idx];
 				}
+				// Truncate stack to frame's base (handles early return from inside for loops)
+				int sb = frame.stack_base;
+				bool is_mod = frame.is_module;
 				ReleaseLocals(frame.locals);
 				frame.func = PyValue::None();
 				frames.Drop();
+				stack.SetCount(sb);
 				if(!frames.IsEmpty()) {
-					Push(val);
+					// Don't push module return values — module loading is transparent to the caller
+					if(!is_mod)
+						Push(val);
 			}
 			else {
 				if(!val.IsNone() || last_result.IsNone())

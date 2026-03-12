@@ -115,6 +115,28 @@ void TestMultilineStatements()
 	ASSERT(tokens[i++].type == TK_EOF);
 }
 
+void TestExplicitLineContinuation()
+{
+	Tokenizer t;
+	String code =
+		"x = \"hello\" + \\\n"
+		"         \" world\"\n";
+
+	t.HaveIdents(true);
+	ASSERT(t.Process(code, "test"));
+	t.NewlineToEndStatement();
+	t.CombineTokens();
+
+	const Vector<Token>& tokens = t.GetTokens();
+	ASSERT(tokens[0].type == TK_ID && tokens[0].str_value == "x");
+	ASSERT(tokens[1].type == TK_ASS);
+	ASSERT(tokens[2].type == TK_STRING && tokens[2].str_value == "hello");
+	ASSERT(tokens[3].type == TK_PLUS);
+	ASSERT(tokens[4].type == TK_STRING && tokens[4].str_value == " world");
+	ASSERT(tokens[5].type == TK_END_STMT);
+	ASSERT(tokens[6].type == TK_EOF);
+}
+
 CONSOLE_APP_MAIN
 {
 	StdLogSetup(LOG_FILE|LOG_COUT);
@@ -124,6 +146,7 @@ CONSOLE_APP_MAIN
 	TestOperators();
 	TestIndentation();
 	TestMultilineStatements();
+	TestExplicitLineContinuation();
 	
 	LOG("=========== ALL TESTS OK");
 }

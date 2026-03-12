@@ -11,6 +11,7 @@ class PyCompiler {
 public:
 	Vector<PyIR> ir;
 private:
+	Index<String> global_names;
 
 	const Token& Peek() const;
 	void Next();
@@ -57,6 +58,7 @@ private:
 	void Emit(int code, int iarg);
 	void EmitConst(const PyValue& v);
 	void EmitName(int code, const String& name);
+	bool IsGlobalName(const String& name) const { return global_names.Find(name) >= 0; }
 	
 	int  Label();
 	void Patch(int label_pc, int target_pc);

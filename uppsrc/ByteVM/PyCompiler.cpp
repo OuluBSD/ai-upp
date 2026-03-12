@@ -374,6 +374,22 @@ void PyCompiler::Statement()
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
+	else if(IsId("global")) {
+		Next();
+		if(!IsId())
+			throw Exc(Format("Line %d: Expected name after 'global'", GetLine()));
+		while(IsId()) {
+			global_names.FindAdd(Peek().str_value);
+			Next();
+			if(IsToken(TK_COMMA))
+				Next();
+			else
+				break;
+		}
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'global', found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
 	else if(IsId("return")) {
 		Next();
 		if(IsStmtEnd()) {
@@ -615,7 +631,7 @@ void PyCompiler::Statement()
 			EmitName(PY_LOAD_NAME, "__unpack__");
 			EmitConst(PyValue((int64)ti));
 			Emit(PY_BINARY_SUBSCR);
-			EmitName(PY_STORE_NAME, targets[ti]);
+			EmitName(IsGlobalName(targets[ti]) ? PY_STORE_GLOBAL : PY_STORE_NAME, targets[ti]);
 		}
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
@@ -626,7 +642,7 @@ void PyCompiler::Statement()
 		Next(); // id
 		Next(); // =
 		Expression();
-		EmitName(PY_STORE_NAME, id);
+		EmitName(IsGlobalName(id) ? PY_STORE_GLOBAL : PY_STORE_NAME, id);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
@@ -754,6 +770,18 @@ void PyCompiler::Comparison()
 	else if(IsToken(TK_GREATER)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GT); }
 	else if(IsToken(TK_GREQ)) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_GE); }
 	else if(IsId("in")) { Next(); AddExpr(); Emit(PY_COMPARE_OP, PY_CMP_IN); }
+	else if(IsId("is")) {
+		Next();
+		if(IsId("not")) {
+			Next();
+			AddExpr();
+			Emit(PY_COMPARE_OP, PY_CMP_IS_NOT);
+		}
+		else {
+			AddExpr();
+			Emit(PY_COMPARE_OP, PY_CMP_IS);
+		}
+	}
 	else if(IsId("not")) {
 		Next();
 		if (IsId("in")) {
@@ -1018,7 +1046,7 @@ void PyCompiler::Atom()
 		else if(id == "False") EmitConst(PyValue(false));
 		else if(id == "None") EmitConst(PyValue());
 		else {
-			EmitName(PY_LOAD_NAME, id);
+			EmitName(IsGlobalName(id) ? PY_LOAD_GLOBAL : PY_LOAD_NAME, id);
 		}
 		Next();
 	}

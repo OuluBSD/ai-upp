@@ -61,6 +61,7 @@ private:
 
 class FormWindow : public TopWindow {
 	Form form;
+	bool preview_chrome = false;
 	
 public:
 	typedef FormWindow CLASSNAME;
@@ -75,6 +76,7 @@ public:
 	bool LoadString(const String& xml, bool compression) {return form.LoadString(xml, compression);}
 	bool Layout(const String& layout, Font font = StdFont()) {return form.Layout(layout, font);}
 	Form& GetForm() {return form;}
+	FormWindow& PreviewChrome(bool b = true) { preview_chrome = b; return *this; }
 protected:
 	void Generate();
 	

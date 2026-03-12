@@ -153,7 +153,6 @@ public:
 private:
 	String path;
 	CardGameProperties card_properties;
-	Splitter vsplit, hsplit;
 	ParentCtrl main;
 };
 

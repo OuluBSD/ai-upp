@@ -78,7 +78,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="130" y="500" cx="552" cy="96" align="0" valign="0">
+				<item x="130" y="500" cx="552" cy="96" align="0" valign="2">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_self"/>
@@ -106,7 +106,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="130" y="40" cx="552" cy="96" align="0" valign="0">
+				<item x="130" y="40" cx="552" cy="96" align="0" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="hand_top"/>
@@ -134,7 +134,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="230" y="470" cx="280" cy="24" align="0" valign="0">
+				<item x="230" y="470" cx="280" cy="24" align="0" valign="2">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_self"/>
@@ -209,7 +209,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="230" y="140" cx="280" cy="24" align="0" valign="0">
+				<item x="230" y="140" cx="280" cy="24" align="0" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="label_top"/>
@@ -224,7 +224,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="10" y="30" cx="760" cy="24" align="0" valign="0">
+				<item x="30" y="10" cx="750" cy="30" align="0" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="status_line"/>

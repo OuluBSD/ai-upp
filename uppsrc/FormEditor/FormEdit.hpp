@@ -497,6 +497,7 @@ void FormEdit<T>::TestLayout()
 	FormWindow form;
 
 	form.Load(preview);
+	form.PreviewChrome();
 	form.Layout(_View.GetCurrentLayout()->Get("Form.Name"), _View.GetFont());
 	form.ExecuteForm();
 

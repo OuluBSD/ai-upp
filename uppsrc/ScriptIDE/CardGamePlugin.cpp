@@ -221,31 +221,31 @@ Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
 	return Rect();
 }
 
-Rect ResolveAnchoredRect(const Rect& r, const String& anchor, const Size& parent_sz)
+Rect ResolveAnchoredRect(const Rect& r, const String& anchor, const Size& base_sz, const Size& target_sz)
 {
 	int x = r.left;
 	int y = r.top;
 
 	if(anchor == "CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
+		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
 	}
 	else if(anchor == "BOTTOM_CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
-		y = parent_sz.cy - r.GetHeight() - r.top;
+		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
+		y = target_sz.cy - (base_sz.cy - r.top - r.Height()) - r.Height();
 	}
 	else if(anchor == "TOP_CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
+		x = (target_sz.cx - r.Width()) / 2 + r.left - (base_sz.cx - r.Width()) / 2;
 	}
 	else if(anchor == "CENTER_LEFT") {
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
 	}
 	else if(anchor == "CENTER_RIGHT") {
-		x = parent_sz.cx - r.GetWidth() - r.left;
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+		x = target_sz.cx - (base_sz.cx - r.left - r.Width()) - r.Width();
+		y = (target_sz.cy - r.Height()) / 2 + r.top - (base_sz.cy - r.Height()) / 2;
 	}
 	else if(anchor == "BOTTOM_LEFT") {
-		y = parent_sz.cy - r.GetHeight() - r.top;
+		y = target_sz.cy - (base_sz.cy - r.top - r.Height()) - r.Height();
 	}
 
 	return RectC(x, y, r.GetWidth(), r.GetHeight());
@@ -421,7 +421,8 @@ void CardGameDocumentHost::SetLayout(const String& path)
 
 Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz)
 {
-	return ResolveAnchoredRect(r, anchor, parent_sz);
+	Size base_sz = table_form.GetLayouts().GetCount() ? table_form.GetLayouts()[0].GetFormSize() : parent_sz;
+	return ResolveAnchoredRect(r, anchor, base_sz, parent_sz);
 }
 
 // IHeartsView implementation
@@ -799,22 +800,40 @@ CardGameLayoutEditor::CardGameLayoutEditor()
 {
 	embedded = true;
 
-	Add(hsplit.SizePos());
-	hsplit.Horz(vsplit, main);
-	hsplit.SetPos(2000);
-
-	vsplit.Vert() << _LayoutList << _ItemList << card_properties;
-
+	Add(main.SizePos());
 	main.Add(_CtrlContainer.SizePos());
 	main.Add(_Container.SizePos());
 
 	Construct(false);
+	_View.SetBool("View.Coloring", true);
+	SetViewMode(VIEW_MODE_WIREFRAME);
 	
 	_TypeList.Clear();
 	_TypeList.Add("Label");
 	_TypeList.Add("Button");
 	
 	_View.WhenObjectProperties = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
+	_View.WhenChildSelected = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
+	_ItemList.WhenChangeRow = [this] {
+		if (!_View.IsLayout())
+			return;
+
+		if (_ItemList.IsSelected()) {
+			Vector<int> sel;
+			_View.ClearSelection();
+			for (int i = 0; i < _ItemList.GetRowCount(); ++i) {
+				if (_ItemList.IsSelected(i)) {
+					_View.AddToSelection(i);
+					if (!sel.GetCount())
+						sel << i;
+					else if (sel.GetCount() > 0)
+						sel.Clear();
+				}
+			}
+			OpenCardProperties(sel);
+		}
+	};
+	_ItemList.WhenLeftClick = _ItemList.WhenChangeRow;
 }
 
 CardGameLayoutEditor::~CardGameLayoutEditor()
@@ -911,10 +930,75 @@ bool CardGameLayoutEditor::SaveAs(const String& path_)
 
 void CardGameLayoutEditor::ActivateUI()
 {
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		Ptr<PythonIDE> p = ide;
+		Ptr<CardGameLayoutEditor> self = this;
+		PostCallback([p, self] {
+			if(!p || !self)
+				return;
+			if(p->active_file < 0 || p->active_file >= p->open_files.GetCount())
+				return;
+			if(p->open_files[p->active_file].editor != self)
+				return;
+
+			auto add_left_pane = [&](const String& id, const String& title, Ctrl& ctrl, const Size& hint, int pos) {
+				int q = p->plugin_panes.Find(id);
+				if(q >= 0) {
+					p->plugin_panes[q].Show();
+					return;
+				}
+
+				DockableCtrl& pane = p->plugin_panes.Add(id);
+				pane.Title(title);
+				pane.Add(ctrl.SizePos());
+				pane.SizeHint(hint);
+				p->Register(pane);
+				p->DockLeft(pane, pos);
+				pane.Show();
+			};
+
+			auto add_right_tab = [&](const String& id, const String& title, Ctrl& ctrl) {
+				int q = p->plugin_panes.Find(id);
+				if(q >= 0) {
+					p->plugin_panes[q].Show();
+					return;
+				}
+
+				DockableCtrl& pane = p->plugin_panes.Add(id);
+				pane.Title(title);
+				pane.Add(ctrl.SizePos());
+				p->Register(pane);
+				p->Tabify(*p->var_explorer, pane);
+				pane.Show();
+			};
+
+			add_left_pane("FormEditorLayouts", "Form Layouts", self->_LayoutList, Size(250, 240), 1);
+			add_right_tab("FormEditorItems", "Form Items", self->_ItemList);
+			add_right_tab("FormEditorProperties", "Item Properties", self->card_properties);
+		});
+	}
 }
 
 void CardGameLayoutEditor::DeactivateUI()
 {
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		auto remove_pane = [&](const String& id) {
+			int q = ide->plugin_panes.Find(id);
+			if(q < 0)
+				return;
+			ide->plugin_panes[q].Close();
+			ide->plugin_panes[q].Remove();
+			ide->plugin_panes.Remove(q);
+		};
+
+		_LayoutList.Ctrl::Remove();
+		_ItemList.Ctrl::Remove();
+		card_properties.Remove();
+
+		remove_pane("FormEditorLayouts");
+		remove_pane("FormEditorItems");
+		remove_pane("FormEditorProperties");
+	}
 }
 
 void CardGameLayoutEditor::MainMenu(Bar& bar)

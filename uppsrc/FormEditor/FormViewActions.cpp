@@ -45,20 +45,133 @@ void FormView::CreateObject(Point p, const char* type)
 	WhenChildCount(GetObjectCount());
 }
 
+static void AlignFromAnchor(const String& anchor, dword& h, dword& v)
+{
+	if(anchor == "CENTER") {
+		h = Ctrl::CENTER;
+		v = Ctrl::CENTER;
+	}
+	else if(anchor == "TOP_LEFT") {
+		h = Ctrl::LEFT;
+		v = Ctrl::TOP;
+	}
+	else if(anchor == "TOP_CENTER") {
+		h = Ctrl::CENTER;
+		v = Ctrl::TOP;
+	}
+	else if(anchor == "TOP_RIGHT") {
+		h = Ctrl::RIGHT;
+		v = Ctrl::TOP;
+	}
+	else if(anchor == "CENTER_LEFT") {
+		h = Ctrl::LEFT;
+		v = Ctrl::CENTER;
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		h = Ctrl::RIGHT;
+		v = Ctrl::CENTER;
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		h = Ctrl::LEFT;
+		v = Ctrl::BOTTOM;
+	}
+	else if(anchor == "BOTTOM_CENTER") {
+		h = Ctrl::CENTER;
+		v = Ctrl::BOTTOM;
+	}
+	else if(anchor == "BOTTOM_RIGHT") {
+		h = Ctrl::RIGHT;
+		v = Ctrl::BOTTOM;
+	}
+	else if(anchor == "TOP_HSIZE") {
+		h = Ctrl::SIZE;
+		v = Ctrl::TOP;
+	}
+	else if(anchor == "CENTER_HSIZE") {
+		h = Ctrl::SIZE;
+		v = Ctrl::CENTER;
+	}
+	else if(anchor == "BOTTOM_HSIZE") {
+		h = Ctrl::SIZE;
+		v = Ctrl::BOTTOM;
+	}
+	else if(anchor == "LEFT_VSIZE") {
+		h = Ctrl::LEFT;
+		v = Ctrl::SIZE;
+	}
+	else if(anchor == "CENTER_VSIZE") {
+		h = Ctrl::CENTER;
+		v = Ctrl::SIZE;
+	}
+	else if(anchor == "RIGHT_VSIZE") {
+		h = Ctrl::RIGHT;
+		v = Ctrl::SIZE;
+	}
+	else if(anchor == "SIZE") {
+		h = Ctrl::SIZE;
+		v = Ctrl::SIZE;
+	}
+}
+
+static Rect AbsoluteRectFromStored(const Rect& r, dword h, dword v, const Size& base_sz)
+{
+	int x = r.left;
+	int y = r.top;
+	int cx = r.Width();
+	int cy = r.Height();
+
+	if(h == Ctrl::RIGHT)
+		x = base_sz.cx - r.left - cx;
+	else if(h == Ctrl::CENTER)
+		x = (base_sz.cx - cx) / 2 + r.left;
+
+	if(v == Ctrl::BOTTOM)
+		y = base_sz.cy - r.top - cy;
+	else if(v == Ctrl::CENTER)
+		y = (base_sz.cy - cy) / 2 + r.top;
+
+	return RectC(x, y, cx, cy);
+}
+
+static Rect StoredRectFromAbsolute(const Rect& abs, dword h, dword v, const Size& base_sz)
+{
+	int x = abs.left;
+	int y = abs.top;
+	int cx = abs.Width();
+	int cy = abs.Height();
+
+	if(h == Ctrl::RIGHT)
+		x = base_sz.cx - abs.right;
+	else if(h == Ctrl::CENTER)
+		x = abs.left - (base_sz.cx - cx) / 2;
+
+	if(v == Ctrl::BOTTOM)
+		y = base_sz.cy - abs.bottom;
+	else if(v == Ctrl::CENTER)
+		y = abs.top - (base_sz.cy - cy) / 2;
+
+	return RectC(x, y, cx, cy);
+}
+
 static String AnchorFromAlign(dword h, dword v)
 {
-	// SIZE has no named anchor; return Null to leave Anchor unchanged
-	if(h == Ctrl::SIZE || v == Ctrl::SIZE)
-		return Null;
-
-	// Ctrl constants: CENTER=0, LEFT=1, RIGHT=2, TOP=1, BOTTOM=2
-	static const char* hname[] = { "CENTER", "LEFT",   "RIGHT"  };
-	static const char* vname[] = { "CENTER", "TOP",    "BOTTOM" };
-
 	if(h == Ctrl::CENTER && v == Ctrl::CENTER) return "CENTER";
-	if(h == Ctrl::CENTER) return String(vname[v]) + "_CENTER";  // TOP_CENTER, BOTTOM_CENTER
-	if(v == Ctrl::CENTER) return String("CENTER_") + hname[h];  // CENTER_LEFT, CENTER_RIGHT
-	return String(vname[v]) + "_" + hname[h];                   // TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+	if(h == Ctrl::LEFT   && v == Ctrl::TOP)    return "TOP_LEFT";
+	if(h == Ctrl::CENTER && v == Ctrl::TOP)    return "TOP_CENTER";
+	if(h == Ctrl::RIGHT  && v == Ctrl::TOP)    return "TOP_RIGHT";
+	if(h == Ctrl::LEFT   && v == Ctrl::CENTER) return "CENTER_LEFT";
+	if(h == Ctrl::RIGHT  && v == Ctrl::CENTER) return "CENTER_RIGHT";
+	if(h == Ctrl::LEFT   && v == Ctrl::BOTTOM) return "BOTTOM_LEFT";
+	if(h == Ctrl::CENTER && v == Ctrl::BOTTOM) return "BOTTOM_CENTER";
+	if(h == Ctrl::RIGHT  && v == Ctrl::BOTTOM) return "BOTTOM_RIGHT";
+	if(h == Ctrl::SIZE   && v == Ctrl::TOP)    return "TOP_HSIZE";
+	if(h == Ctrl::SIZE   && v == Ctrl::CENTER) return "CENTER_HSIZE";
+	if(h == Ctrl::SIZE   && v == Ctrl::BOTTOM) return "BOTTOM_HSIZE";
+	if(h == Ctrl::LEFT   && v == Ctrl::SIZE)   return "LEFT_VSIZE";
+	if(h == Ctrl::CENTER && v == Ctrl::SIZE)   return "CENTER_VSIZE";
+	if(h == Ctrl::RIGHT  && v == Ctrl::SIZE)   return "RIGHT_VSIZE";
+	if(h == Ctrl::SIZE   && v == Ctrl::SIZE)   return "SIZE";
+	return Null;
 }
 
 void FormView::SetSprings(dword hAlign, dword vAlign)
@@ -67,16 +180,24 @@ void FormView::SetSprings(dword hAlign, dword vAlign)
 		return;
 
 	Vector<int> sel = GetSelected();
+	Size base_sz = GetCurrentLayout()->GetFormSize();
 	for (int i = 0; i < sel.GetCount(); ++i)
 	{
 		FormObject* pI = GetObject(sel[i]);
 		if (!pI) continue;
 
-		dword newH = (hAlign != (dword)-1) ? hAlign : pI->GetHAlign();
-		dword newV = (vAlign != (dword)-1) ? vAlign : pI->GetVAlign();
+		dword curH = pI->GetHAlign();
+		dword curV = pI->GetVAlign();
+		AlignFromAnchor(pI->Get("Anchor"), curH, curV);
+		Rect abs = AbsoluteRectFromStored(pI->GetRect(), curH, curV, base_sz);
+
+		dword newH = (hAlign != (dword)-1) ? hAlign : curH;
+		dword newV = (vAlign != (dword)-1) ? vAlign : curV;
+		Rect stored = StoredRectFromAbsolute(abs, newH, newV, base_sz);
 
 		pI->SetHAlign(newH);
 		pI->SetVAlign(newV);
+		pI->SetRect(stored);
 
 		// Update Anchor string to match new alignment combination
 		String anchor = AnchorFromAlign(newH, newV);

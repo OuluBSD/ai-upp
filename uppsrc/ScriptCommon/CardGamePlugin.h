@@ -1,7 +1,7 @@
 #ifndef _ScriptCommon_CardGamePlugin_h_
 #define _ScriptCommon_CardGamePlugin_h_
 
-class CardGamePlugin : public IPlugin, 
+class CardGamePlugin : public IPlugin,
                        public ICustomExecuteProvider,
                        public IPythonBindingProvider {
 public:
@@ -22,8 +22,13 @@ public:
 	// IPythonBindingProvider
 	virtual void SyncBindings(PyVM& vm) override;
 
+	// GUI view — set by ScriptIDE before Execute(); nullptr in headless mode
+	void            SetView(IHeartsView* v) { view = v; }
+	IPluginContext* GetContext() const      { return context; }
+
 protected:
 	IPluginContext* context = nullptr;
+	IHeartsView*   view    = nullptr;
 };
 
 #endif

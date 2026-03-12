@@ -197,15 +197,70 @@ void CardGamePlugin::Execute(const String& path)
 	}
 }
 
+// ---- GUI-backed hearts_view bindings (user_data = IHeartsView*) ----
+
+static PyValue hv_gui_log(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 1)
+		((IHeartsView*)ud)->Log(args[0].ToString());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_clear_sprites(const Vector<PyValue>&, void* ud)
+{
+	((IHeartsView*)ud)->ClearSprites();
+	return PyValue::None();
+}
+
+static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
+{
+	// set_card(card_id, asset_path, x, y)
+	if(args.GetCount() >= 4)
+		((IHeartsView*)ud)->SetCard(args[0].ToString(), args[1].ToString(),
+		                            (int)args[2].AsInt64(), (int)args[3].AsInt64());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_move_card(const Vector<PyValue>& args, void* ud)
+{
+	// move_card(card_id, zone_id, offset, animated)
+	if(args.GetCount() >= 4)
+		((IHeartsView*)ud)->MoveCardToZone(args[0].ToString(), args[1].ToString(),
+		                                   (int)args[2].AsInt64(), args[3].IsTrue());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_get_zone_rect(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() < 1) return PyValue::None();
+	Value r = ((IHeartsView*)ud)->GetZoneRect(args[0].ToString());
+	PyValue d = PyValue::Dict();
+	d.SetItem(PyValue("x"), PyValue((int64)(int)r["x"]));
+	d.SetItem(PyValue("y"), PyValue((int64)(int)r["y"]));
+	d.SetItem(PyValue("w"), PyValue((int64)(int)r["w"]));
+	d.SetItem(PyValue("h"), PyValue((int64)(int)r["h"]));
+	return d;
+}
+
 void CardGamePlugin::SyncBindings(PyVM& vm)
 {
-	// Register hearts_view as a Python module with headless stubs
-	PY_MODULE(hearts_view, vm)
-	PY_MODULE_FUNC(log,           hv_log,           nullptr)
-	PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
-	PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
-	PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
-	PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)
+	if(view) {
+		// GUI-backed hearts_view module — real calls into IHeartsView
+		PY_MODULE(hearts_view, vm)
+		PY_MODULE_FUNC(log,           hv_gui_log,           view)
+		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
+		PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
+		PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
+		PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
+	} else {
+		// Headless stubs — used by ScriptCLI and tests
+		PY_MODULE(hearts_view, vm)
+		PY_MODULE_FUNC(log,           hv_log,           nullptr)
+		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
+		PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
+		PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
+		PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)
+	}
 }
 
 REGISTER_PLUGIN(CardGamePlugin)

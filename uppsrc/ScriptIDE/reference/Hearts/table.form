@@ -10,7 +10,7 @@
 						<property name="Variable" value="trick_area"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="CONTAINER"/>
+						<property name="UserClass" value="CONTAINER"/>
 						<property name="Anchor" value="CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -24,7 +24,7 @@
 						<property name="Variable" value="trick_left"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="TRICK"/>
+						<property name="UserClass" value="TRICK"/>
 						<property name="Anchor" value="CENTER"/>
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
@@ -39,7 +39,7 @@
 						<property name="Variable" value="trick_top"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="TRICK"/>
+						<property name="UserClass" value="TRICK"/>
 						<property name="Anchor" value="CENTER"/>
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
@@ -54,7 +54,7 @@
 						<property name="Variable" value="trick_right"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="TRICK"/>
+						<property name="UserClass" value="TRICK"/>
 						<property name="Anchor" value="CENTER"/>
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
@@ -69,7 +69,7 @@
 						<property name="Variable" value="trick_bottom"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="TRICK"/>
+						<property name="UserClass" value="TRICK"/>
 						<property name="Anchor" value="CENTER"/>
 						<property name="Parent" value="trick_area"/>
 						<property name="Label" value=""/>
@@ -84,7 +84,7 @@
 						<property name="Variable" value="hand_self"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="HAND"/>
+						<property name="UserClass" value="HAND"/>
 						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -98,7 +98,7 @@
 						<property name="Variable" value="hand_left"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="HAND"/>
+						<property name="UserClass" value="HAND"/>
 						<property name="Anchor" value="CENTER_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -112,7 +112,7 @@
 						<property name="Variable" value="hand_top"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="HAND"/>
+						<property name="UserClass" value="HAND"/>
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -126,7 +126,7 @@
 						<property name="Variable" value="hand_right"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="HAND"/>
+						<property name="UserClass" value="HAND"/>
 						<property name="Anchor" value="CENTER_RIGHT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -140,7 +140,7 @@
 						<property name="Variable" value="label_self"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="LABEL"/>
+						<property name="UserClass" value="LABEL"/>
 						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Center"/>
@@ -149,14 +149,14 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="380" y="430" cx="120" cy="30" align="0" valign="0">
+				<item x="380" y="430" cx="120" cy="30" align="0" valign="2">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="button_clear"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Button"/>
-						<property name="ZoneType" value="BUTTON"/>
-						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="UserClass" value="BUTTON"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value="Clear"/>
 						<property name="Action" value=""/>
 						<property name="Tip" value=""/>
@@ -164,14 +164,14 @@
 						<property name="Font.Height" value="0"/>
 					</properties>
 				</item>
-				<item x="250" y="430" cx="120" cy="30" align="0" valign="0">
+				<item x="250" y="430" cx="120" cy="30" align="0" valign="2">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="button_pass"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Button"/>
-						<property name="ZoneType" value="BUTTON"/>
-						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="UserClass" value="BUTTON"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value="Pass cards"/>
 						<property name="Action" value=""/>
 						<property name="Tip" value=""/>
@@ -185,7 +185,7 @@
 						<property name="Variable" value="label_left"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="LABEL"/>
+						<property name="UserClass" value="LABEL"/>
 						<property name="Anchor" value="CENTER_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Left"/>
@@ -200,7 +200,7 @@
 						<property name="Variable" value="label_right"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="LABEL"/>
+						<property name="UserClass" value="LABEL"/>
 						<property name="Anchor" value="CENTER_RIGHT"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Right"/>
@@ -215,7 +215,7 @@
 						<property name="Variable" value="label_top"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="LABEL"/>
+						<property name="UserClass" value="LABEL"/>
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Center"/>
@@ -224,13 +224,13 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="30" y="10" cx="750" cy="30" align="0" valign="1">
+				<item x="30" y="10" cx="750" cy="30" align="3" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="status_line"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="ZoneType" value="LABEL"/>
+						<property name="UserClass" value="LABEL"/>
 						<property name="Anchor" value="BOTTOM_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Left"/>

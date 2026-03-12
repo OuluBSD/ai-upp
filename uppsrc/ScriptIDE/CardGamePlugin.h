@@ -91,13 +91,13 @@ private:
 	};
 	ArrayMap<String, Sprite> sprites;
 	
-	struct Zone {
+	struct FormItem {
 		String id;
 		Rect   rect;
 		String anchor;
-		String type;
+		String user_class;
 	};
-	ArrayMap<String, Zone> zones;
+	ArrayMap<String, FormItem> form_items;
 	ArrayMap<String, String> labels;
 	struct ActionButton {
 		String text;
@@ -114,7 +114,7 @@ private:
 	void Animate();
 	void RefreshGameView();
 	void SyncFormExplorer();
-	void ApplyFormLayout();
+	void ApplyFormItemLayout();
 	void SyncFormControls();
 	void PaintOverlay(Draw& w);
 	void OverlayLeftDown(Point p, dword flags);

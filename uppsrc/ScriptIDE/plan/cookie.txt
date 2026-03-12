@@ -1,11 +1,11 @@
 # ScriptIDE Implementation Progress Tracker
-# Last Updated: 2026-03-12
+# Last Updated: 2026-03-13
 
 ## Current Task
 Track: plugin-system
 Phase: phase12-hearts-gui
-Task: plugin-system/phase12-hearts-gui/01-hearts-gui-integration-plan.md
-Status: IN_PROGRESS — Phase A (HeartsView widget)
+Task: plugin-system/phase12-hearts-gui/task-02-worker-vm-runtime/01-worker-thread-vm-runtime.md
+Status: IN_PROGRESS — Worker-thread Hearts VM runtime
 
 ## Active Initiative
 ScriptIDE split for headless development:
@@ -63,10 +63,10 @@ ScriptIDE split for headless development:
 112. [TODO] script-cli/phase6-mcp-server/task-04-method-contract/01-define-script-mcp-methods.md
 113. [TODO] script-cli/phase6-mcp-server/task-05-testing/01-mcp-smoke-and-regression-plan.md
 
-114. [IN_PROGRESS] plugin-system/phase12-hearts-gui/01-hearts-gui-integration-plan.md -> Phase A: HeartsView widget
-115. [TODO] plugin-system/phase12-hearts-gui/PhaseB: CardGamePlugin IHeartsView wiring
-116. [TODO] plugin-system/phase12-hearts-gui/PhaseC: ScriptIDE launcher integration
-117. [TODO] plugin-system/phase12-hearts-gui/PhaseD: Async autoplay / animation (stretch)
+114. [DONE] plugin-system/phase12-hearts-gui/01-hearts-gui-integration-plan.md -> Hearts `.gamestate` hosted in ScriptIDE with real Form runtime
+115. [IN_PROGRESS] plugin-system/phase12-hearts-gui/task-02-worker-vm-runtime/01-worker-thread-vm-runtime.md -> Move Hearts ByteVM off GUI thread with batched GUI marshaling
+116. [TODO] plugin-system/phase12-hearts-gui/task-03-opponent-rendering/01-fix-opponent-card-rendering.md
+117. [TODO] plugin-system/phase12-hearts-gui/task-04-paced-autoplay/01-paced-autoplay-and-trick-visibility.md
 
 ## Status
 ScriptIDE feature work is complete, but architecture refactor is active.

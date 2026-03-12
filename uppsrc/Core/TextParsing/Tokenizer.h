@@ -96,11 +96,12 @@ struct Token : Moveable<Token> {
 	String str_value;
 	int spaces = 0;
 	int bracket_level = 0;
-	
+	bool is_fstring = false;
+
 	Token() {}
 	Token(const Token& t) {*this = t;}
-	void Clear() {loc.Clear(); end.Clear(); type = 0; str_value.Clear(); spaces = 0; bracket_level = 0;}
-	void operator=(const Token& t) {type = t.type; str_value = t.str_value; loc = t.loc; end = t.end; spaces = t.spaces; bracket_level = t.bracket_level;}
+	void Clear() {loc.Clear(); end.Clear(); type = 0; str_value.Clear(); spaces = 0; bracket_level = 0; is_fstring = false;}
+	void operator=(const Token& t) {type = t.type; str_value = t.str_value; loc = t.loc; end = t.end; spaces = t.spaces; bracket_level = t.bracket_level; is_fstring = t.is_fstring;}
 	bool operator==(const Token& t) const {return t.type == type && t.str_value == str_value && t.loc == loc && end == t.end && t.spaces == spaces && t.bracket_level == bracket_level;}
 	bool operator!=(const Token& t) const {return !(t == *this);}
 	bool IsType(int i) const {return type == i;}

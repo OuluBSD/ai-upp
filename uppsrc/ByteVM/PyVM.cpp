@@ -137,6 +137,62 @@ static PyValue builtin_ord(const Vector<PyValue>& args, void*) {
 	return PyValue(0);
 }
 
+static PyValue builtin_any(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(false);
+	const PyValue& iterable = args[0];
+	if(iterable.GetType() == PY_LIST || iterable.GetType() == PY_TUPLE)
+		for(int i = 0; i < iterable.GetCount(); i++)
+			if(iterable.GetItem(i).IsTrue()) return PyValue(true);
+	return PyValue(false);
+}
+
+static PyValue builtin_all(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(true);
+	const PyValue& iterable = args[0];
+	if(iterable.GetType() == PY_LIST || iterable.GetType() == PY_TUPLE)
+		for(int i = 0; i < iterable.GetCount(); i++)
+			if(!iterable.GetItem(i).IsTrue()) return PyValue(false);
+	return PyValue(true);
+}
+
+static PyValue builtin_int(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue((int64)0);
+	return PyValue(args[0].AsInt64());
+}
+
+static PyValue builtin_float(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue(0.0);
+	return PyValue(args[0].AsDouble());
+}
+
+static PyValue builtin_list(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() == 0) return PyValue::List();
+	const PyValue& src = args[0];
+	PyValue result = PyValue::List();
+	if(src.GetType() == PY_LIST || src.GetType() == PY_TUPLE)
+		for(int i = 0; i < src.GetCount(); i++)
+			result.Add(src.GetItem(i));
+	return result;
+}
+
+static PyValue builtin_isinstance(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() < 2) return PyValue(false);
+	// Simplified: just return true for now (used for type checking in logic)
+	return PyValue(true);
+}
+
+static PyValue builtin_random_shuffle(const Vector<PyValue>& args, void*) {
+	if(args.GetCount() >= 1 && args[0].GetType() == PY_LIST) {
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+		int n = l.GetCount();
+		for(int i = n - 1; i > 0; i--) {
+			int j = Random(i + 1);
+			Swap(l[i], l[j]);
+		}
+	}
+	return PyValue::None();
+}
+
 class PyFile : public PyUserData {
 	One<Stream> stream;
 	bool is_out;
@@ -1474,6 +1530,95 @@ globals.GetAdd(PyValue("sys")) = sys;
 	PyValue subprocess = PyValue::Dict();
 	subprocess.SetItem(PyValue("run"), PyValue::Function("run", builtin_subprocess_run));
 	globals.GetAdd(PyValue("subprocess")) = subprocess;
+
+	// any / all / int / float / list / isinstance
+	globals.GetAdd(PyValue("any")) = PyValue::Function("any", builtin_any);
+	globals.GetAdd(PyValue("all")) = PyValue::Function("all", builtin_all);
+	globals.GetAdd(PyValue("int")) = PyValue::Function("int", builtin_int);
+	globals.GetAdd(PyValue("float")) = PyValue::Function("float", builtin_float);
+	globals.GetAdd(PyValue("list")) = PyValue::Function("list", builtin_list);
+	globals.GetAdd(PyValue("isinstance")) = PyValue::Function("isinstance", builtin_isinstance);
+
+	// enumerate: returns list of (index, value) tuples
+	globals.GetAdd(PyValue("enumerate")) = PyValue::Function("enumerate", [](const Vector<PyValue>& args, void*){
+		PyValue result = PyValue::List();
+		if(args.GetCount() == 0) return result;
+		const PyValue& src = args[0];
+		int start = args.GetCount() >= 2 ? (int)args[1].AsInt64() : 0;
+		for(int i = 0; i < src.GetCount(); i++) {
+			PyValue pair = PyValue::List();
+			pair.Add(PyValue((int64)(i + start)));
+			pair.Add(src.GetItem(i));
+			result.Add(pair);
+		}
+		return result;
+	});
+
+	// sorted: return sorted copy (supports key=func)
+	globals.GetAdd(PyValue("sorted")) = PyValue::Function("sorted", [](const Vector<PyValue>& args, void* ud){
+		PyVM* vm = (PyVM*)ud;
+		if(args.GetCount() == 0) return PyValue::List();
+		const PyValue& src = args[0];
+		PyValue result = PyValue::List();
+		for(int i = 0; i < src.GetCount(); i++) result.Add(src.GetItem(i));
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(result.GetArray());
+		if(args.GetCount() >= 2 && args[1].IsFunction()) {
+			PyValue key_fn = args[1];
+			int n = l.GetCount();
+			Vector<PyValue> keys(n);
+			for(int i = 0; i < n; i++) {
+				Vector<PyValue> kargs; kargs.Add(l[i]);
+				keys[i] = vm->Call(key_fn, kargs);
+			}
+			for(int i = 1; i < n; i++) {
+				int j = i;
+				while(j > 0 && keys[j] < keys[j-1]) {
+					Swap(keys[j], keys[j-1]);
+					Swap(l[j], l[j-1]);
+					j--;
+				}
+			}
+		} else {
+			Sort(l);
+		}
+		return result;
+	}, this);
+
+	// random module
+	PyValue random_mod = PyValue::Dict();
+	random_mod.SetItem(PyValue("shuffle"), PyValue::Function("shuffle", builtin_random_shuffle));
+	random_mod.SetItem(PyValue("random"), PyValue::Function("random", [](const Vector<PyValue>&, void*){
+		return PyValue((double)Random(1000000) / 1000000.0);
+	}));
+	random_mod.SetItem(PyValue("randint"), PyValue::Function("randint", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() < 2) return PyValue((int64)0);
+		int64 a = args[0].AsInt64(), b = args[1].AsInt64();
+		if(a > b) return PyValue(a);
+		return PyValue(a + (int64)Random((int)(b - a + 1)));
+	}));
+	random_mod.SetItem(PyValue("choice"), PyValue::Function("choice", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() == 0 || args[0].GetCount() == 0) return PyValue::None();
+		int n = args[0].GetCount();
+		return args[0].GetItem(Random(n));
+	}));
+	random_mod.SetItem(PyValue("sample"), PyValue::Function("sample", [](const Vector<PyValue>& args, void*){
+		if(args.GetCount() < 2) return PyValue::List();
+		const PyValue& src = args[0];
+		int k = (int)args[1].AsInt64();
+		int n = src.GetCount();
+		Vector<int> idx;
+		for(int i = 0; i < n; i++) idx.Add(i);
+		// Fisher-Yates for k samples
+		for(int i = 0; i < k && i < n; i++) {
+			int j = i + Random(n - i);
+			Swap(idx[i], idx[j]);
+		}
+		PyValue result = PyValue::List();
+		for(int i = 0; i < min(k, n); i++)
+			result.Add(src.GetItem(idx[i]));
+		return result;
+	}));
+	globals.GetAdd(PyValue("random")) = random_mod;
 }
 
 PyVM::~PyVM()
@@ -1615,6 +1760,82 @@ PyValue PyVM::Run()
 		throw;
 	}
 	return last_result;
+}
+
+bool PyVM::LoadModule(const String& module_name, const String& src, const String& filename)
+{
+	// Snapshot current global keys before running module code
+	Index<String> before_keys;
+	for(int i = 0; i < globals.GetCount(); i++)
+		before_keys.FindAdd(globals.GetKey(i).ToString());
+
+	// Compile and run the module source in shared globals
+	try {
+		Tokenizer tk;
+		tk.SkipComments();
+		tk.SkipPythonComments();
+		if(!tk.Process(src, filename))
+			return false;
+		tk.NewlineToEndStatement();
+		tk.CombineTokens();
+
+		PyCompiler compiler(tk.GetTokens(), filename);
+		Vector<PyIR> ir;
+		compiler.Compile(ir);
+
+		SetIR(ir);
+		Run();
+	} catch(Exc& e) {
+		LOG("PyVM::LoadModule error (" << module_name << "): " << e);
+		return false;
+	} catch(std::exception& e) {
+		LOG("PyVM::LoadModule std::exception (" << module_name << "): " << e.what());
+		return false;
+	} catch(...) {
+		LOG("PyVM::LoadModule unknown exception (" << module_name << ")");
+		return false;
+	}
+
+	// Collect all new globals defined by the module into a dict
+	PyValue mod_dict = PyValue::Dict();
+	for(int i = 0; i < globals.GetCount(); i++) {
+		String kname = globals.GetKey(i).ToString();
+		if(before_keys.Find(kname) < 0)
+			mod_dict.SetItem(globals.GetKey(i), globals[i]);
+	}
+
+	// Store in sys.modules under the full dotted name
+	PyValue sys = globals.Get(PyValue("sys"), PyValue::None());
+	if(sys.GetType() == PY_DICT) {
+		PyValue modules = sys.GetItem(PyValue("modules"));
+		if(modules.GetType() == PY_DICT)
+			modules.SetItem(PyValue(module_name), mod_dict);
+	}
+
+	// Wire into parent packages: "hearts.logic" → globals["hearts"]["logic"] = mod_dict
+	Vector<String> parts = Split(module_name, '.');
+	if(parts.GetCount() > 1) {
+		// Ensure parent package exists in globals
+		PyValue pkg = globals.Get(PyValue(parts[0]), PyValue::None());
+		if(pkg.IsNone()) {
+			pkg = PyValue::Dict();
+			globals.GetAdd(PyValue(parts[0])) = pkg;
+		}
+		// Walk down creating intermediate packages
+		for(int i = 1; i < parts.GetCount() - 1; i++) {
+			PyValue sub = pkg.GetItem(PyValue(parts[i]));
+			if(sub.IsNone()) {
+				sub = PyValue::Dict();
+				pkg.SetItem(PyValue(parts[i]), sub);
+			}
+			pkg = sub;
+		}
+		pkg.SetItem(PyValue(parts.Top()), mod_dict);
+	} else {
+		globals.GetAdd(PyValue(module_name)) = mod_dict;
+	}
+
+	return true;
 }
 
 PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
@@ -1798,6 +2019,29 @@ try {
 			last_result = Pop();
 			break;
 
+		case PY_DUP_TOP: {
+			if(stack.IsEmpty()) throw Exc("RuntimeError: DUP_TOP on empty stack");
+			Push(stack.Top());
+			break;
+		}
+
+		case PY_ROT_TWO: {
+			if(stack.GetCount() < 2) throw Exc("RuntimeError: ROT_TWO requires 2 stack items");
+			int n = stack.GetCount();
+			Swap(stack[n-1], stack[n-2]);
+			break;
+		}
+
+		case PY_ROT_THREE: {
+			if(stack.GetCount() < 3) throw Exc("RuntimeError: ROT_THREE requires 3 stack items");
+			int n = stack.GetCount();
+			PyValue tmp = stack[n-1]; // TOS
+			stack[n-1] = stack[n-2]; // TOS = old TOS1
+			stack[n-2] = stack[n-3]; // TOS1 = old TOS2
+			stack[n-3] = tmp;        // TOS2 = old TOS
+			break;
+		}
+
 		case PY_LOAD_CONST:
 			Push(instr.arg);
 			break;
@@ -1846,7 +2090,7 @@ try {
 			// Support dotted names like os.path
 			Vector<String> parts = Split(name, '.');
 			PyValue current;
-			
+
 			// Check first part in globals
 			int q = globals.Find(parts[0]);
 			if(q >= 0) {
@@ -1862,7 +2106,7 @@ try {
 					}
 				}
 			}
-			
+
 			if(!current.IsNone()) {
 				for(int i = 1; i < parts.GetCount(); i++) {
 					if(current.GetType() == PY_DICT) {
@@ -1873,7 +2117,7 @@ try {
 					}
 				}
 			}
-			
+
 			Push(current);
 			break;
 		}
@@ -1908,9 +2152,18 @@ try {
 		case PY_LOAD_ATTR: {
 			PyValue obj = Pop();
 			String attr = instr.arg.ToString();
-			LOG("PY_LOAD_ATTR obj=" << obj.ToString() << " attr=" << attr);
 			if (obj.GetType() == PY_DICT) {
-				Push(obj.GetItem(instr.arg));
+				// Instance attribute lookup: check instance first, then class dict
+				PyValue val = obj.GetItem(instr.arg);
+				if(val.IsNone()) {
+					PyValue cls = obj.GetItem(PyValue("__class__"));
+					if(cls.GetType() == PY_DICT) {
+						val = cls.GetItem(instr.arg);
+						if(val.IsFunction())
+							val = PyValue::BoundMethod(val, obj);
+					}
+				}
+				Push(val);
 			} else if (obj.GetType() == PY_STR) {
 				if(attr == "endswith") {
 					Push(PyValue::BoundMethod(PyValue::Function("endswith", builtin_str_endswith), obj));
@@ -1932,12 +2185,88 @@ try {
 			} else if (obj.GetType() == PY_LIST) {
 				if(attr == "sort") {
 					Push(PyValue::BoundMethod(PyValue::Function("sort", [](const Vector<PyValue>& args, void* ud){
-						// BoundMethod passes self as first arg
+						PyVM* vm = (PyVM*)ud;
+						// args[0]=self, args[1]=key_func (optional)
 						if(args.GetCount() > 0 && args[0].GetType() == PY_LIST) {
 							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
-							Sort(l);
+							if(args.GetCount() > 1 && args[1].IsFunction()) {
+								PyValue key_fn = args[1];
+								// Sort with key function using vm->Call
+								// Build sort key array
+								int n = l.GetCount();
+								Vector<int> idx(n);
+								for(int i = 0; i < n; i++) idx[i] = i;
+								Vector<PyValue> keys(n);
+								for(int i = 0; i < n; i++) {
+									Vector<PyValue> kargs;
+									kargs.Add(l[i]);
+									keys[i] = vm->Call(key_fn, kargs);
+								}
+								// Insertion sort by keys
+								for(int i = 1; i < n; i++) {
+									int j = i;
+									while(j > 0 && keys[j] < keys[j-1]) {
+										Swap(keys[j], keys[j-1]);
+										Swap(l[j], l[j-1]);
+										j--;
+									}
+								}
+							} else {
+								Sort(l);
+							}
 						}
 						return PyValue::None();
+					}, this), obj));
+				} else if(attr == "append") {
+					Push(PyValue::BoundMethod(PyValue::Function("append", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST)
+							const_cast<PyValue&>(args[0]).Add(args[1]);
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "extend") {
+					Push(PyValue::BoundMethod(PyValue::Function("extend", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							PyValue& lst = const_cast<PyValue&>(args[0]);
+							PyValue& other = const_cast<PyValue&>(args[1]);
+							if(other.GetType() == PY_LIST || other.GetType() == PY_TUPLE)
+								for(int i = 0; i < other.GetCount(); i++)
+									lst.Add(other.GetItem(i));
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "remove") {
+					Push(PyValue::BoundMethod(PyValue::Function("remove", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							for(int i = 0; i < l.GetCount(); i++) {
+								if(l[i] == args[1]) { l.Remove(i); break; }
+							}
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "pop") {
+					Push(PyValue::BoundMethod(PyValue::Function("pop", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 1 && args[0].GetType() == PY_LIST) {
+							Vector<PyValue>& l = const_cast<Vector<PyValue>&>(args[0].GetArray());
+							if(l.IsEmpty()) return PyValue::None();
+							int idx = args.GetCount() >= 2 ? (int)args[1].AsInt64() : l.GetCount()-1;
+							if(idx < 0) idx += l.GetCount();
+							if(idx >= 0 && idx < l.GetCount()) {
+								PyValue v = l[idx];
+								l.Remove(idx);
+								return v;
+							}
+						}
+						return PyValue::None();
+					}), obj));
+				} else if(attr == "index") {
+					Push(PyValue::BoundMethod(PyValue::Function("index", [](const Vector<PyValue>& args, void*){
+						if(args.GetCount() >= 2 && args[0].GetType() == PY_LIST) {
+							const Vector<PyValue>& l = args[0].GetArray();
+							for(int i = 0; i < l.GetCount(); i++)
+								if(l[i] == args[1]) return PyValue((int64)i);
+						}
+						return PyValue((int64)-1);
 					}), obj));
 				} else {
 					Push(PyValue::None());
@@ -1994,7 +2323,57 @@ try {
 			Push(dict);
 			break;
 		}
+
+		case PY_BUILD_CLASS: {
+			// TOS = class body function (compiled as def with no args).
+			// Execute it with a fresh local scope; collect locals into class dict.
+			String class_name = instr.arg.ToString();
+			PyValue body_func = Pop();
+			PyValue class_dict = PyValue::Dict();
+			class_dict.SetItem(PyValue("__name__"), PyValue(class_name));
+			class_dict.SetItem(PyValue("__class_dict__"), PyValue(true));
+			if(body_func.IsFunction()) {
+				const PyLambda& l = body_func.GetLambda();
+				Frame& f = frames.Add();
+				f.func = body_func;
+				f.ir = &l.ir;
+				f.pc = 0;
+				// Mark this frame as a class body; after it returns, collect locals into class_dict
+				f.locals.GetAdd(PyValue("__class_body_result__")) = class_dict;
+			} else {
+				Push(class_dict);
+			}
+			break;
+		}
 			
+		case PY_BINARY_SLICE: {
+			// Stack: [obj, start, stop] — stop=TOS
+			PyValue stop  = Pop();
+			PyValue start = Pop();
+			PyValue obj   = Pop();
+			PyValue result = PyValue::List();
+			if(obj.GetType() == PY_LIST || obj.GetType() == PY_TUPLE) {
+				int n = obj.GetCount();
+				int s = (int)start.AsInt64();
+				int e = stop.IsNone() || stop.AsInt64() == -1 ? n : (int)stop.AsInt64();
+				if(s < 0) s += n;
+				if(e < 0) e += n;
+				s = max(s, 0); e = min(e, n);
+				for(int i = s; i < e; i++) result.Add(obj.GetItem(i));
+			} else if(obj.GetType() == PY_STR) {
+				WString ws = obj.GetStr();
+				int n = ws.GetCount();
+				int s = (int)start.AsInt64();
+				int e = stop.IsNone() || stop.AsInt64() == -1 ? n : (int)stop.AsInt64();
+				if(s < 0) s += n; if(e < 0) e += n;
+				s = max(s,0); e = min(e,n);
+				Push(PyValue(ws.Mid(s, e-s)));
+				break;
+			}
+			Push(result);
+			break;
+		}
+
 		case PY_BINARY_ADD: {
 			PyValue b = Pop();
 			PyValue a = Pop();
@@ -2169,7 +2548,7 @@ try {
 			for(int i = 0; i < nargs; i++) args.Add(Pop());
 			Vector<PyValue> sorted_args;
 			for(int i = nargs - 1; i >= 0; i--) sorted_args.Add(args[i]);
-			
+
 			PyValue callable = Pop();
 			PYVM_TRACE("PYVM call callable=" << callable.ToString() << " nargs=" << nargs);
 			if (callable.IsBoundMethod()) {
@@ -2177,6 +2556,46 @@ try {
 				PyValue self = callable.GetBound().self;
 				sorted_args.Insert(0, self);
 				callable = func;
+			}
+
+			// Class instantiation: calling a class dict creates an instance
+			if(callable.GetType() == PY_DICT &&
+			   callable.GetItem(PyValue("__class_dict__")).IsTrue()) {
+				PyValue instance = PyValue::Dict();
+				instance.SetItem(PyValue("__class__"), callable);
+				PyValue init = callable.GetItem(PyValue("__init__"));
+				if(init.IsFunction()) {
+					sorted_args.Insert(0, instance);
+					const PyLambda& l = init.GetLambda();
+					Frame& f = frames.Add();
+					f.func = init;
+					f.ir = &l.ir;
+					f.pc = 0;
+					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
+						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+						int q = f.locals.Find(key);
+						if(q >= 0) f.locals[q] = sorted_args[i];
+						else f.locals.Add(key, sorted_args[i]);
+					}
+					// After __init__ returns, push instance (handled in RETURN_VALUE path)
+					// We need a way to push instance after __init__ returns.
+					// Use a sentinel: push the instance now; __init__ return will push None over it.
+					// Instead: push instance to stack BEFORE calling __init__,
+					// and after __init__ returns we need to restore it.
+					// Simplest: push it after the frame completes by noting it on the frame.
+					// For now: push instance BEFORE the frame so it's below the call frame.
+					// We'll handle in RETURN_VALUE by checking if the frame was an __init__ call.
+					// Actually easier: just push instance now and let __init__ RETURN_VALUE
+					// drop its None result. We hijack: store instance in a temp global and push after.
+					// Best simple approach: push instance to stack before the init frame runs,
+					// mark the frame as "instance init" and push instance in RETURN_VALUE.
+					// For simplicity: just push instance after the frame pop.
+					// Mark the frame with the instance to push after return:
+					f.locals.GetAdd(PyValue("__instance_result__")) = instance;
+				} else {
+					Push(instance);
+				}
+				break;
 			}
 
 			if(callable.IsFunction()) {
@@ -2248,6 +2667,25 @@ try {
 			case PY_RETURN_VALUE: {
 				PyValue val = Pop();
 				PYVM_TRACE("PYVM return function");
+				// If this frame was a class body, collect locals into class dict and push it
+				{
+					int class_body_idx = frame.locals.Find(PyValue("__class_body_result__"));
+					if(class_body_idx >= 0) {
+						PyValue class_dict = frame.locals[class_body_idx];
+						for(int ki = 0; ki < frame.locals.GetCount(); ki++) {
+							String kname = frame.locals.GetKey(ki).ToString();
+							if(kname != "__class_body_result__")
+								class_dict.SetItem(frame.locals.GetKey(ki), frame.locals[ki]);
+						}
+						val = class_dict;
+					}
+				}
+				// If this frame was a class __init__ call, push the instance instead of None
+				{
+					int instance_idx = frame.locals.Find(PyValue("__instance_result__"));
+					if(instance_idx >= 0)
+						val = frame.locals[instance_idx];
+				}
 				ReleaseLocals(frame.locals);
 				frame.func = PyValue::None();
 				frames.Drop();

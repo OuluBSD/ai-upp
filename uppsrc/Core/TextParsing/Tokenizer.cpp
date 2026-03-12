@@ -203,7 +203,8 @@ bool Tokenizer::Process(String str, String path) {
 				}
 				
 				Token& tk = Add(tk_type);
-				// TODO: handle prefix in tk? For now just store string value
+				if(prefix.Find('f') >= 0 || prefix.Find('F') >= 0)
+					tk.is_fstring = true;
 				String str;
 				bool success = false;
 				while (cursor < input.GetCount()) {

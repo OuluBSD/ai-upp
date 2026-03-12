@@ -101,6 +101,24 @@ void PyCompiler::ExpectId(const char *id)
 	Next();
 }
 
+// Parse a block body after ':'. Handles both indented blocks and single-line bodies.
+void PyCompiler::ParseBlock()
+{
+	while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
+	if(IsToken(TK_INDENT)) {
+		Next(); // consume INDENT
+		while(!IsToken(TK_DEDENT) && !IsEof()) {
+			while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
+			if(IsToken(TK_DEDENT) || IsEof()) break;
+			Statement();
+		}
+		if(IsToken(TK_DEDENT)) Next(); // consume DEDENT
+	} else {
+		// Single-line body (e.g. "if x > 0: x = 0")
+		Statement();
+	}
+}
+
 void PyCompiler::Compile(Vector<PyIR>& out)
 {
 	try {
@@ -115,7 +133,7 @@ void PyCompiler::Compile(Vector<PyIR>& out)
 		Emit(PY_RETURN_VALUE);
 		out = pick(ir);
 	} catch (Exc& e) {
-		Cout() << "Compilation error: " << e << "\n";
+		Cout() << "Compilation error [" << file << "]: " << e << "\n";
 		throw;
 	}
 }
@@ -125,7 +143,7 @@ void PyCompiler::CompileBlock(Vector<PyIR>& out)
 	ir.Clear();
 	try {
 		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
 			if(IsToken(TK_DEDENT) || IsEof()) break;
 			Statement();
 		}
@@ -140,6 +158,14 @@ void PyCompiler::CompileBlock(Vector<PyIR>& out)
 	}
 }
 
+void PyCompiler::CompileLambdaBody(Vector<PyIR>& out)
+{
+	ir.Clear();
+	Expression();
+	Emit(PY_RETURN_VALUE);
+	out = pick(ir);
+}
+
 void PyCompiler::Statement()
 {
 	if(IsId("if")) {
@@ -148,65 +174,42 @@ void PyCompiler::Statement()
 		this->Expect(TK_COLON);
 		int jump_false = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0);
-		
-		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		this->Expect(TK_INDENT);
-		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			if(IsToken(TK_DEDENT) || IsEof()) break;
-			Statement();
-		}
-		this->Expect(TK_DEDENT);
-		
+		ParseBlock();
+
 		Vector<int> jump_ends;
-		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		
+		while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
+
 		while(IsId("elif")) {
 			Next(); // skip elif
 			int jump_next = Label();
 			Emit(PY_JUMP_ABSOLUTE, 0); // Jump to end of if
 			jump_ends.Add(jump_next);
-			
+
 			Patch(jump_false, Label()); // This elif's condition check starts here
-			
+
 			Expression();
 			this->Expect(TK_COLON);
 			jump_false = Label();
 			Emit(PY_POP_JUMP_IF_FALSE, 0);
-			
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			this->Expect(TK_INDENT);
-			while(!IsToken(TK_DEDENT) && !IsEof()) {
-				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-				if(IsToken(TK_DEDENT) || IsEof()) break;
-				Statement();
-			}
-			this->Expect(TK_DEDENT);
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+			ParseBlock();
+			while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
 		}
-		
+
 		if(IsId("else")) {
 			Next(); // skip else
 			int jump_end = Label();
 			Emit(PY_JUMP_ABSOLUTE, 0); // Jump to end of if
 			jump_ends.Add(jump_end);
-			
+
 			Patch(jump_false, Label()); // Else block starts here
-			
+
 			this->Expect(TK_COLON);
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			this->Expect(TK_INDENT);
-			while(!IsToken(TK_DEDENT) && !IsEof()) {
-				while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-				if(IsToken(TK_DEDENT) || IsEof()) break;
-				Statement();
-			}
-			this->Expect(TK_DEDENT);
+			ParseBlock();
 		}
 		else {
 			Patch(jump_false, Label()); // End of if (if no else)
 		}
-		
+
 		for(int pc : jump_ends)
 			Patch(pc, Label());
 	}
@@ -220,16 +223,8 @@ void PyCompiler::Statement()
 		this->Expect(TK_COLON);
 		int jump_end = Label();
 		Emit(PY_POP_JUMP_IF_FALSE, 0); // Jumps to Patch(jump_end, Label())
-		
-		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		this->Expect(TK_INDENT);
-		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			if(IsToken(TK_DEDENT) || IsEof()) break;
-			Statement();
-		}
-		this->Expect(TK_DEDENT);
-		
+		ParseBlock();
+
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
 
@@ -239,31 +234,44 @@ void PyCompiler::Statement()
 	}
 	else if(IsId("for")) {
 		Next();
-		String target = Peek().str_value;
+		// Collect targets: single name or tuple (a, b, ...)
+		Vector<String> targets;
+		targets.Add(Peek().str_value);
 		this->Expect(TK_ID);
+		while(IsToken(TK_COMMA)) {
+			Next(); // consume ','
+			if(IsId() && !IsId("in")) {
+				targets.Add(Peek().str_value);
+				Next();
+			}
+		}
 		this->ExpectId("in");
 		Expression();
 		Emit(PY_GET_ITER);
-		
+
 		int start = Label();
 		continue_targets.Add(start);
 		break_targets.Add();
 
 		int jump_end = Label();
 		Emit(PY_FOR_ITER, 0); // Jumps to Patch(jump_end, Label())
-		
-		EmitName(PY_STORE_NAME, target);
-		
-		this->Expect(TK_COLON);
-		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-		this->Expect(TK_INDENT);
-		while(!IsToken(TK_DEDENT) && !IsEof()) {
-			while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
-			if(IsToken(TK_DEDENT) || IsEof()) break;
-			Statement();
+
+		if(targets.GetCount() == 1) {
+			EmitName(PY_STORE_NAME, targets[0]);
+		} else {
+			// Tuple unpacking: store to temp, then subscript
+			EmitName(PY_STORE_NAME, "__for_unpack__");
+			for(int ti = 0; ti < targets.GetCount(); ti++) {
+				EmitName(PY_LOAD_NAME, "__for_unpack__");
+				EmitConst(PyValue((int64)ti));
+				Emit(PY_BINARY_SUBSCR);
+				EmitName(PY_STORE_NAME, targets[ti]);
+			}
 		}
-		this->Expect(TK_DEDENT);
-		
+
+		this->Expect(TK_COLON);
+		ParseBlock();
+
 		Emit(PY_JUMP_ABSOLUTE, start);
 		Patch(jump_end, Label());
 
@@ -302,7 +310,7 @@ void PyCompiler::Statement()
 		}
 		this->Expect(TK_PARENTHESIS_END);
 		this->Expect(TK_COLON);
-		while(IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT)) Next();
+		while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
 		this->Expect(TK_INDENT);
 		
 		PyCompiler sub(tokens, file);
@@ -321,6 +329,43 @@ void PyCompiler::Statement()
 			EmitConst(func);
 			EmitName(PY_STORE_NAME, name);
 		}
+	else if(IsId("class")) {
+		Next();
+		String class_name = Peek().str_value;
+		this->Expect(TK_ID);
+		// Optional base class list: (Base1, Base2, ...) — parsed but not yet used in VM
+		if(IsToken(TK_PARENTHESIS_BEGIN)) {
+			Next();
+			int depth = 1;
+			while(!IsEof() && depth > 0) {
+				if(IsToken(TK_PARENTHESIS_BEGIN)) depth++;
+				else if(IsToken(TK_PARENTHESIS_END)) depth--;
+				Next();
+			}
+		}
+		this->Expect(TK_COLON);
+		while(!IsEof() && (IsStmtEnd() || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT))) Next();
+		this->Expect(TK_INDENT);
+
+		PyCompiler sub(tokens, file);
+		sub.pos = pos;
+		Vector<PyIR> body;
+		sub.CompileBlock(body);
+		pos = sub.pos;
+		this->Expect(TK_DEDENT);
+
+		// Emit class body as a no-arg function constant, then PY_BUILD_CLASS
+		PyValue body_func = PyValue::Function(class_name + "_body");
+		body_func.GetLambdaRW().ir = pick(body);
+
+		EmitConst(body_func);
+		{
+			PyIR build_ir(PY_BUILD_CLASS, 0, GetLine(), file);
+			build_ir.arg = PyValue(class_name);
+			ir.Add(build_ir);
+		}
+		EmitName(PY_STORE_NAME, class_name);
+	}
 	else if(IsId("pass")) {
 		Next();
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'pass', found %s", GetLine(), Peek().GetTypeString()));
@@ -334,6 +379,17 @@ void PyCompiler::Statement()
 		}
 		else {
 			Expression();
+			if(IsToken(TK_COMMA)) {
+				// Tuple return: return a, b, c
+				int n = 1;
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsStmtEnd()) break;
+					Expression();
+					n++;
+				}
+				Emit(PY_BUILD_TUPLE, n);
+			}
 		}
 		Emit(PY_RETURN_VALUE);
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'return', found %s", GetLine(), Peek().GetTypeString()));
@@ -400,6 +456,127 @@ void PyCompiler::Statement()
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
+	// Augmented assignment: name op= expr  (e.g. x += 1)
+	else if(IsId() && pos + 1 < tokens.GetCount() && (
+	        tokens[pos+1].type == TK_ADDASS || tokens[pos+1].type == TK_SUBASS ||
+	        tokens[pos+1].type == TK_MULASS || tokens[pos+1].type == TK_DIVASS ||
+	        tokens[pos+1].type == TK_MODASS)) {
+		String id = Peek().str_value;
+		int op_type = tokens[pos+1].type;
+		Next(); Next(); // id, op=
+		EmitName(PY_LOAD_NAME, id);
+		Expression();
+		if(op_type == TK_ADDASS)      Emit(PY_BINARY_ADD);
+		else if(op_type == TK_SUBASS) Emit(PY_BINARY_SUBTRACT);
+		else if(op_type == TK_MULASS) Emit(PY_BINARY_MULTIPLY);
+		else if(op_type == TK_DIVASS) Emit(PY_BINARY_TRUE_DIVIDE);
+		else if(op_type == TK_MODASS) Emit(PY_BINARY_MODULO);
+		EmitName(PY_STORE_NAME, id);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
+	// Augmented assignment: obj.attr op= expr  (e.g. self.x += 1)
+	else if(IsId() && pos + 3 < tokens.GetCount()
+	        && tokens[pos+1].type == TK_PUNCT
+	        && tokens[pos+2].type == TK_ID && (
+	        tokens[pos+3].type == TK_ADDASS || tokens[pos+3].type == TK_SUBASS ||
+	        tokens[pos+3].type == TK_MULASS || tokens[pos+3].type == TK_DIVASS ||
+	        tokens[pos+3].type == TK_MODASS)) {
+		String obj_name = Peek().str_value;
+		String attr = tokens[pos+2].str_value;
+		int op_type = tokens[pos+3].type;
+		Next(); Next(); Next(); Next(); // obj . attr op=
+		EmitName(PY_LOAD_NAME, obj_name);
+		Emit(PY_DUP_TOP);
+		EmitName(PY_LOAD_ATTR, attr);
+		Expression();
+		if(op_type == TK_ADDASS)      Emit(PY_BINARY_ADD);
+		else if(op_type == TK_SUBASS) Emit(PY_BINARY_SUBTRACT);
+		else if(op_type == TK_MULASS) Emit(PY_BINARY_MULTIPLY);
+		else if(op_type == TK_DIVASS) Emit(PY_BINARY_TRUE_DIVIDE);
+		else if(op_type == TK_MODASS) Emit(PY_BINARY_MODULO);
+		// Stack: [obj, new_val] — STORE_ATTR pops val then obj, correct order
+		EmitName(PY_STORE_ATTR, attr);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
+	// Augmented assignment: obj.attr[idx] op= expr  (e.g. self.scores[i] += x)
+	// Sequence: load obj.attr (DUP it), load idx (DUP it), BINARY_SUBSCR → current val, <rhs>, OP
+	// then: ROT_THREE to get [new_val, list, idx_copy], STORE_SUBSCR
+	else if(IsId() && pos + 4 < tokens.GetCount()
+	        && tokens[pos+1].type == TK_PUNCT
+	        && tokens[pos+2].type == TK_ID
+	        && tokens[pos+3].type == TK_SQUARE_BEGIN) {
+		String obj_name = Peek().str_value;
+		String attr     = tokens[pos+2].str_value;
+		int full_start_pos = pos; // save start in case we need to fall back completely
+		Next(); Next(); Next();    // consume obj . attr
+		// Save position BEFORE '[' so we can backtrack to it if needed
+		int peek_pos_save = pos;
+		int ir_save = ir.GetCount();
+		this->Expect(TK_SQUARE_BEGIN);
+		Expression();              // parse idx, emitting IR
+		int idx_ir_count = ir.GetCount() - ir_save;
+		this->Expect(TK_SQUARE_END);
+		bool is_aug = IsToken(TK_ADDASS) || IsToken(TK_SUBASS) || IsToken(TK_MULASS) ||
+		              IsToken(TK_DIVASS) || IsToken(TK_MODASS);
+		bool is_plain_assign = IsToken(TK_ASS);
+		if(is_aug) {
+			// Save idx IR and rollback
+			Vector<PyIR> idx_ir;
+			for(int ki = ir_save; ki < ir_save + idx_ir_count; ki++)
+				idx_ir.Add(ir[ki]);
+			ir.SetCount(ir_save); // rollback idx IR
+			int op_type = tokens[pos].type;
+			Next(); // consume op=
+			// Get current value: list[idx]
+			EmitName(PY_LOAD_NAME, obj_name);
+			EmitName(PY_LOAD_ATTR, attr);           // [list]
+			for(auto& instr : idx_ir) ir.Add(instr); // [list, idx]
+			Emit(PY_BINARY_SUBSCR);                  // [cur_val]
+			Expression();                            // [cur_val, rhs]
+			if(op_type == TK_ADDASS)      Emit(PY_BINARY_ADD);
+			else if(op_type == TK_SUBASS) Emit(PY_BINARY_SUBTRACT);
+			else if(op_type == TK_MULASS) Emit(PY_BINARY_MULTIPLY);
+			else if(op_type == TK_DIVASS) Emit(PY_BINARY_TRUE_DIVIDE);
+			else if(op_type == TK_MODASS) Emit(PY_BINARY_MODULO);
+			// Stack: [new_val]
+			// Need [list, idx, new_val] for STORE_SUBSCR (val=Pop, sub=Pop, obj=Pop)
+			// Load list and idx, then use ROT_TWO twice to insert new_val at bottom of 3:
+			// [new_val] → LOAD list → [new_val, list] → ROT_TWO → [list, new_val]
+			// → emit idx → [list, new_val, idx] → ROT_TWO → [list, idx, new_val]
+			EmitName(PY_LOAD_NAME, obj_name);
+			EmitName(PY_LOAD_ATTR, attr);            // [new_val, list]
+			Emit(PY_ROT_TWO);                        // [list, new_val]
+			for(auto& instr : idx_ir) ir.Add(instr); // [list, new_val, idx]
+			Emit(PY_ROT_TWO);                        // [list, idx, new_val]
+			Emit(PY_STORE_SUBSCR);
+		} else if(is_plain_assign) {
+			// obj.attr[idx] = rhs
+			ir.SetCount(ir_save);
+			pos = peek_pos_save;
+			EmitName(PY_LOAD_NAME, obj_name);
+			EmitName(PY_LOAD_ATTR, attr);
+			this->Expect(TK_SQUARE_BEGIN);
+			Expression();
+			this->Expect(TK_SQUARE_END);
+			this->Expect(TK_ASS);
+			Expression();
+			Emit(PY_STORE_SUBSCR);
+		} else {
+			// Not an assignment at all (e.g. obj.attr[idx].method() or just reading)
+			// Full backtrack to start of statement and use general Expression handler
+			ir.SetCount(ir_save);
+			pos = full_start_pos;
+			Expression();
+			Emit(PY_POP_TOP);
+		}
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
 	else if(IsId() && pos + 3 < tokens.GetCount()
 	        && tokens[pos+1].type == TK_PUNCT
 	        && tokens[pos+2].type == TK_ID && tokens[pos+3].type == TK_ASS) {
@@ -412,6 +589,32 @@ void PyCompiler::Statement()
 		EmitName(PY_LOAD_NAME, obj);
 		Expression();
 		EmitName(PY_STORE_ATTR, attr);
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
+	// Tuple unpacking: a, b, c = expr
+	else if(IsId() && pos + 1 < tokens.GetCount() && tokens[pos+1].type == TK_COMMA) {
+		Vector<String> targets;
+		targets.Add(Peek().str_value);
+		Next(); // id
+		while(IsToken(TK_COMMA)) {
+			Next(); // ,
+			if(IsId() && pos + 1 < tokens.GetCount() &&
+			   (tokens[pos+1].type == TK_COMMA || tokens[pos+1].type == TK_ASS)) {
+				targets.Add(Peek().str_value);
+				Next();
+			}
+		}
+		this->Expect(TK_ASS);
+		Expression();
+		EmitName(PY_STORE_NAME, "__unpack__");
+		for(int ti = 0; ti < targets.GetCount(); ti++) {
+			EmitName(PY_LOAD_NAME, "__unpack__");
+			EmitConst(PyValue((int64)ti));
+			Emit(PY_BINARY_SUBSCR);
+			EmitName(PY_STORE_NAME, targets[ti]);
+		}
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after assignment, found %s", GetLine(), Peek().GetTypeString()));
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
@@ -448,6 +651,7 @@ void PyCompiler::Statement()
 			pos = start_pos;
 			ir.SetCount(start_ir);
 			Expression();
+			Emit(PY_POP_TOP);
 			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
 			if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 				Next();
@@ -613,7 +817,64 @@ void PyCompiler::PrimaryExpr()
 			int nargs = 0;
 			if(!IsToken(TK_PARENTHESIS_END)) {
 				do {
+					// Skip keyword argument name: id = expr
+					if(IsId() && pos + 1 < tokens.GetCount()
+					   && tokens[pos+1].type == TK_ASS) {
+						Next(); Next(); // skip name and '='
+					}
+					// Handle generator expression: expr for var in iterable [if cond]
+					// Compile as a list comprehension passed as argument
+					int expr_start = ir.GetCount();
 					Expression();
+					if(IsId("for")) {
+						// Generator expression: compile as list comprehension
+						Vector<PyIR> item_ir;
+						for(int ki = expr_start; ki < ir.GetCount(); ki++)
+							item_ir.Add(ir[ki]);
+						ir.SetCount(expr_start);
+						PyValue empty_list = PyValue::List();
+						EmitConst(empty_list);
+						Next(); // consume 'for'
+						// Support tuple unpacking in generator
+						Vector<String> lvars;
+						lvars.Add(Peek().str_value);
+						this->Expect(TK_ID);
+						while(IsToken(TK_COMMA)) {
+							Next();
+							if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
+						}
+						this->ExpectId("in");
+						OrExpr(); // Use OrExpr to avoid consuming 'if' as ternary
+						Emit(PY_GET_ITER);
+						int loop_start = Label();
+						int jump_end = Label();
+						Emit(PY_FOR_ITER, 0);
+						if(lvars.GetCount() == 1) {
+							EmitName(PY_STORE_NAME, lvars[0]);
+						} else {
+							EmitName(PY_STORE_NAME, "__for_unpack__");
+							for(int ti = 0; ti < lvars.GetCount(); ti++) {
+								EmitName(PY_LOAD_NAME, "__for_unpack__");
+								EmitConst(PyValue((int64)ti));
+								Emit(PY_BINARY_SUBSCR);
+								EmitName(PY_STORE_NAME, lvars[ti]);
+							}
+						}
+						if(IsId("if")) {
+							Next();
+							Expression();
+							int skip = Label();
+							Emit(PY_POP_JUMP_IF_FALSE, 0);
+							for(auto& ins : item_ir) ir.Add(ins);
+							Emit(PY_LIST_APPEND, 1);
+							Patch(skip, Label());
+						} else {
+							for(auto& ins : item_ir) ir.Add(ins);
+							Emit(PY_LIST_APPEND, 1);
+						}
+						Emit(PY_JUMP_ABSOLUTE, loop_start);
+						Patch(jump_end, Label());
+					}
 					nargs++;
 				} while(IsToken(TK_COMMA) && (Next(), true));
 			}
@@ -622,9 +883,29 @@ void PyCompiler::PrimaryExpr()
 		}
 		else if(IsToken(TK_SQUARE_BEGIN)) {
 			Next();
-			Expression();
-			this->Expect(TK_SQUARE_END);
-			Emit(PY_BINARY_SUBSCR);
+			// Check for slice: [start:stop] or [:stop] or [start:]
+			if(IsToken(TK_COLON)) {
+				// [:stop]
+				EmitConst(PyValue((int64)0));
+				Next(); // consume ':'
+				if(IsToken(TK_SQUARE_END)) EmitConst(PyValue((int64)-1)); // [:]
+				else Expression(); // [:stop]
+				this->Expect(TK_SQUARE_END);
+				Emit(PY_BINARY_SLICE);
+			} else {
+				Expression();
+				if(IsToken(TK_COLON)) {
+					// [start:stop] or [start:]
+					Next(); // consume ':'
+					if(IsToken(TK_SQUARE_END)) EmitConst(PyValue((int64)-1)); // [start:]
+					else Expression(); // [start:stop]
+					this->Expect(TK_SQUARE_END);
+					Emit(PY_BINARY_SLICE);
+				} else {
+					this->Expect(TK_SQUARE_END);
+					Emit(PY_BINARY_SUBSCR);
+				}
+			}
 		}
 		else if(IsToken(TK_PUNCT)) {
 			Next();
@@ -656,24 +937,79 @@ void PyCompiler::Atom()
 		Next();
 	}
 	else if(IsString()) {
-		String s = Peek().str_value;
-		bool fstring = false;
-		// Check if it's an f-string. Tokenizer doesn't have separate TK_FSTRING,
-		// but maybe it's passed as f"..." in str_value if we are lucky, 
-		// or we need to check the raw input.
-		// Since Tokenizer doesn't seem to distinguish, let's look at the tokens before it if possible
-		// OR if the str_value itself starts with 'f' and then quotes.
-		// Actually, let's assume if it starts with 'f"' it is an f-string.
-		if (pos > 0 && tokens[pos].str_value.StartsWith("f")) {
-			// This is a bit of a hack since we don't have proper f-string token support
+		const Token& stok = Peek();
+		String s = stok.str_value;
+		if(stok.is_fstring) {
+			// Parse f-string: split on {expr} segments and build concatenation
+			// Each part emitted as a string; parts joined by BINARY_ADD
+			int n_parts = 0;
+			int i = 0;
+			while(i <= s.GetCount()) {
+				// Collect literal segment
+				String lit;
+				while(i < s.GetCount() && s[i] != '{') {
+					if(s[i] == '}' && i+1 < s.GetCount() && s[i+1] == '}') { lit.Cat('}'); i += 2; }
+					else lit.Cat(s[i++]);
+				}
+				if(lit.GetCount()) { EmitConst(PyValue(lit)); n_parts++; }
+				if(i >= s.GetCount()) break;
+				// Handle '{{' escape
+				if(i+1 < s.GetCount() && s[i+1] == '{') { EmitConst(PyValue(String("{"))); n_parts++; i += 2; continue; }
+				i++; // skip '{'
+				// Collect expression until matching '}'
+				String expr_src;
+				int depth = 1;
+				while(i < s.GetCount() && depth > 0) {
+					if(s[i] == '{') depth++;
+					else if(s[i] == '}') { depth--; if(depth == 0) break; }
+					expr_src.Cat(s[i++]);
+				}
+				if(i < s.GetCount()) i++; // skip '}'
+				// Compile the expression as str(expr)
+				if(!expr_src.IsEmpty()) {
+					Tokenizer etk;
+					etk.SkipComments();
+					etk.SkipPythonComments();
+					etk.Process(expr_src, file);
+					etk.NewlineToEndStatement();
+					etk.CombineTokens();
+					PyCompiler esub(etk.GetTokens(), file);
+					// Emit: LOAD_GLOBAL str, expr..., CALL_FUNCTION 1
+					EmitName(PY_LOAD_GLOBAL, "str");
+					try { esub.Expression(); } catch(...) {}
+					// Append esub's ir to our ir
+					for(auto& ins : esub.ir) ir.Add(ins);
+					Emit(PY_CALL_FUNCTION, 1);
+					n_parts++;
+				}
+			}
+			if(n_parts == 0) EmitConst(PyValue(s));
+			else for(int pi = 1; pi < n_parts; pi++) Emit(PY_BINARY_ADD);
+		} else {
+			EmitConst(PyValue(s));
 		}
-		
-		// Let's try to detect f-string by looking at the input text if available
-		// but Tokenizer already processed it.
-		// If the user wants f-strings, they should be supported.
-		// For now, let's just emit it as a normal string.
-		EmitConst(PyValue(s));
 		Next();
+	}
+	else if(IsId("lambda")) {
+		Next(); // consume 'lambda'
+		Vector<String> largs;
+		while(IsId() && !IsId("in") && !IsId("for") && !IsId("if")) {
+			largs.Add(Peek().str_value);
+			Next();
+			if(IsToken(TK_COMMA)) Next(); else break;
+		}
+		this->Expect(TK_COLON);
+		PyCompiler sub(tokens, file);
+		sub.pos = pos;
+		Vector<PyIR> body;
+		sub.CompileLambdaBody(body);
+		pos = sub.pos;
+		PyValue func = PyValue::Function("<lambda>");
+		func.GetLambdaRW().ir = pick(body);
+		func.GetLambdaRW().arg = pick(largs);
+		for(const String& a : func.GetLambda().arg)
+			func.GetLambdaRW().arg_values.Add(PyValue(a));
+		EmitConst(func);
 	}
 	else if(IsId()) {
 		String id = Peek().str_value;
@@ -691,8 +1027,58 @@ void PyCompiler::Atom()
 			Next();
 			Emit(PY_BUILD_TUPLE, 0);
 		} else {
+			int expr_start = ir.GetCount();
 			Expression();
-			if (IsToken(TK_COMMA)) {
+			if(IsId("for")) {
+				// Generator expression: (expr for var in iterable [if cond])
+				// Compile as list comprehension
+				Vector<PyIR> item_ir;
+				for(int ki = expr_start; ki < ir.GetCount(); ki++)
+					item_ir.Add(ir[ki]);
+				ir.SetCount(expr_start);
+				PyValue empty_list = PyValue::List();
+				EmitConst(empty_list);
+				Next(); // consume 'for'
+				Vector<String> lvars;
+				lvars.Add(Peek().str_value);
+				this->Expect(TK_ID);
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
+				}
+				this->ExpectId("in");
+				OrExpr(); // use OrExpr to avoid consuming 'if' as ternary
+				Emit(PY_GET_ITER);
+				int loop_start = Label();
+				int jump_end = Label();
+				Emit(PY_FOR_ITER, 0);
+				if(lvars.GetCount() == 1) {
+					EmitName(PY_STORE_NAME, lvars[0]);
+				} else {
+					EmitName(PY_STORE_NAME, "__for_unpack__");
+					for(int ti = 0; ti < lvars.GetCount(); ti++) {
+						EmitName(PY_LOAD_NAME, "__for_unpack__");
+						EmitConst(PyValue((int64)ti));
+						Emit(PY_BINARY_SUBSCR);
+						EmitName(PY_STORE_NAME, lvars[ti]);
+					}
+				}
+				if(IsId("if")) {
+					Next();
+					Expression();
+					int skip = Label();
+					Emit(PY_POP_JUMP_IF_FALSE, 0);
+					for(auto& ins : item_ir) ir.Add(ins);
+					Emit(PY_LIST_APPEND, 1);
+					Patch(skip, Label());
+				} else {
+					for(auto& ins : item_ir) ir.Add(ins);
+					Emit(PY_LIST_APPEND, 1);
+				}
+				Emit(PY_JUMP_ABSOLUTE, loop_start);
+				Patch(jump_end, Label());
+				this->Expect(TK_PARENTHESIS_END);
+			} else if (IsToken(TK_COMMA)) {
 				int n = 1;
 				while (IsToken(TK_COMMA)) {
 					Next();
@@ -709,29 +1095,162 @@ void PyCompiler::Atom()
 	}
 	else if(IsToken(TK_SQUARE_BEGIN)) {
 		Next();
-		int n = 0;
-		if(!IsToken(TK_SQUARE_END)) {
-			do {
-				Expression();
-				n++;
-			} while(IsToken(TK_COMMA) && (Next(), true));
+		if(IsToken(TK_SQUARE_END)) {
+			Next();
+			Emit(PY_BUILD_LIST, 0);
+		} else {
+			int expr_start = ir.GetCount();
+			Expression();
+			if(IsId("for")) {
+				// List comprehension: [expr for var in iterable [if cond]]
+				Vector<PyIR> item_ir;
+				for(int ki = expr_start; ki < ir.GetCount(); ki++)
+					item_ir.Add(ir[ki]);
+				ir.SetCount(expr_start);
+				PyValue empty_list = PyValue::List();
+				EmitConst(empty_list);
+				Next(); // consume 'for'
+				// Support tuple unpacking: for a, b in iterable
+				Vector<String> lvars;
+				lvars.Add(Peek().str_value);
+				this->Expect(TK_ID);
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
+				}
+				this->ExpectId("in");
+				OrExpr(); // Use OrExpr (not Expression) to avoid consuming 'if' as ternary
+				Emit(PY_GET_ITER);
+				int loop_start = Label();
+				int jump_end = Label();
+				Emit(PY_FOR_ITER, 0);
+				if(lvars.GetCount() == 1) {
+					EmitName(PY_STORE_NAME, lvars[0]);
+				} else {
+					EmitName(PY_STORE_NAME, "__for_unpack__");
+					for(int ti = 0; ti < lvars.GetCount(); ti++) {
+						EmitName(PY_LOAD_NAME, "__for_unpack__");
+						EmitConst(PyValue((int64)ti));
+						Emit(PY_BINARY_SUBSCR);
+						EmitName(PY_STORE_NAME, lvars[ti]);
+					}
+				}
+				if(IsId("if")) {
+					Next();
+					Expression();
+					int skip = Label();
+					Emit(PY_POP_JUMP_IF_FALSE, 0);
+					for(auto& ins : item_ir) ir.Add(ins);
+					Emit(PY_LIST_APPEND, 1);
+					Patch(skip, Label());
+				} else {
+					for(auto& ins : item_ir) ir.Add(ins);
+					Emit(PY_LIST_APPEND, 1);
+				}
+				Emit(PY_JUMP_ABSOLUTE, loop_start);
+				Patch(jump_end, Label());
+				this->Expect(TK_SQUARE_END);
+			} else {
+				int n = 1;
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsToken(TK_SQUARE_END)) break;
+					Expression();
+					n++;
+				}
+				this->Expect(TK_SQUARE_END);
+				Emit(PY_BUILD_LIST, n);
+			}
 		}
-		this->Expect(TK_SQUARE_END);
-		Emit(PY_BUILD_LIST, n);
 	}
 	else if(IsToken(TK_BRACKET_BEGIN)) {
 		Next();
 		int n = 0;
 		if(!IsToken(TK_BRACKET_END)) {
-			do {
-				Expression(); // key
-				this->Expect(TK_COLON);
-				Expression(); // value
-				n++;
-			} while(IsToken(TK_COMMA) && (Next(), true));
+			// Capture key IR
+			int key_start = ir.GetCount();
+			Expression(); // key
+			this->Expect(TK_COLON);
+			// Capture val IR
+			int val_start = ir.GetCount();
+			Expression(); // value
+			int val_end = ir.GetCount();
+			// Check for dict comprehension: {key: val for var in iterable}
+			if(IsId("for")) {
+				// Save key and val IR, reset
+				Vector<PyIR> key_ir, val_ir;
+				for(int ki = key_start; ki < val_start; ki++) key_ir.Add(ir[ki]);
+				for(int ki = val_start; ki < val_end; ki++) val_ir.Add(ir[ki]);
+				ir.SetCount(key_start);
+				// Create empty dict and store in temp
+				Emit(PY_BUILD_MAP, 0);
+				EmitName(PY_STORE_NAME, "__dictcomp__");
+				Next(); // consume 'for'
+				// Support tuple unpacking: for a, b in iterable
+				Vector<String> lvars;
+				lvars.Add(Peek().str_value);
+				this->Expect(TK_ID);
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsId() && !IsId("in")) { lvars.Add(Peek().str_value); Next(); }
+				}
+				this->ExpectId("in");
+				OrExpr();
+				Emit(PY_GET_ITER);
+				int loop_start = Label();
+				int jump_end = Label();
+				Emit(PY_FOR_ITER, 0);
+				if(lvars.GetCount() == 1) {
+					EmitName(PY_STORE_NAME, lvars[0]);
+				} else {
+					EmitName(PY_STORE_NAME, "__for_unpack__");
+					for(int ti = 0; ti < lvars.GetCount(); ti++) {
+						EmitName(PY_LOAD_NAME, "__for_unpack__");
+						EmitConst(PyValue((int64)ti));
+						Emit(PY_BINARY_SUBSCR);
+						EmitName(PY_STORE_NAME, lvars[ti]);
+					}
+				}
+				// Body: __dictcomp__[key] = val
+				// STORE_SUBSCR pops: val(TOS), key(TOS1), dict(TOS2)
+				auto emit_body = [&]() {
+					EmitName(PY_LOAD_NAME, "__dictcomp__");
+					for(auto& ins : key_ir) ir.Add(ins);
+					for(auto& ins : val_ir) ir.Add(ins);
+					Emit(PY_STORE_SUBSCR);
+				};
+				if(IsId("if")) {
+					Next();
+					Expression();
+					int skip = Label();
+					Emit(PY_POP_JUMP_IF_FALSE, 0);
+					emit_body();
+					Patch(skip, Label());
+				} else {
+					emit_body();
+				}
+				Emit(PY_JUMP_ABSOLUTE, loop_start);
+				Patch(jump_end, Label());
+				this->Expect(TK_BRACKET_END);
+				// Leave dict on stack
+				EmitName(PY_LOAD_NAME, "__dictcomp__");
+			} else {
+				n = 1;
+				while(IsToken(TK_COMMA)) {
+					Next();
+					if(IsToken(TK_BRACKET_END)) break;
+					Expression(); // key
+					this->Expect(TK_COLON);
+					Expression(); // value
+					n++;
+				}
+				this->Expect(TK_BRACKET_END);
+				Emit(PY_BUILD_MAP, n);
+			}
+		} else {
+			this->Expect(TK_BRACKET_END);
+			Emit(PY_BUILD_MAP, n);
 		}
-		this->Expect(TK_BRACKET_END);
-		Emit(PY_BUILD_MAP, n);
 	}
 	else {
 		throw Exc(Format("Line %d: Expected atom, found %s", GetLine(), Peek().GetTypeString()));

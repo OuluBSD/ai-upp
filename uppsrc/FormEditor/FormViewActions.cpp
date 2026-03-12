@@ -45,6 +45,22 @@ void FormView::CreateObject(Point p, const char* type)
 	WhenChildCount(GetObjectCount());
 }
 
+static String AnchorFromAlign(dword h, dword v)
+{
+	// SIZE has no named anchor; return Null to leave Anchor unchanged
+	if(h == Ctrl::SIZE || v == Ctrl::SIZE)
+		return Null;
+
+	// Ctrl constants: CENTER=0, LEFT=1, RIGHT=2, TOP=1, BOTTOM=2
+	static const char* hname[] = { "CENTER", "LEFT",   "RIGHT"  };
+	static const char* vname[] = { "CENTER", "TOP",    "BOTTOM" };
+
+	if(h == Ctrl::CENTER && v == Ctrl::CENTER) return "CENTER";
+	if(h == Ctrl::CENTER) return String(vname[v]) + "_CENTER";  // TOP_CENTER, BOTTOM_CENTER
+	if(v == Ctrl::CENTER) return String("CENTER_") + hname[h];  // CENTER_LEFT, CENTER_RIGHT
+	return String(vname[v]) + "_" + hname[h];                   // TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+}
+
 void FormView::SetSprings(dword hAlign, dword vAlign)
 {
 	if (!IsLayout())
@@ -56,9 +72,20 @@ void FormView::SetSprings(dword hAlign, dword vAlign)
 		FormObject* pI = GetObject(sel[i]);
 		if (!pI) continue;
 
-		if (hAlign != -1) pI->SetHAlign(_HAlign = hAlign);
-		if (vAlign != -1) pI->SetVAlign(_VAlign = vAlign);
+		dword newH = (hAlign != (dword)-1) ? hAlign : pI->GetHAlign();
+		dword newV = (vAlign != (dword)-1) ? vAlign : pI->GetVAlign();
+
+		pI->SetHAlign(newH);
+		pI->SetVAlign(newV);
+
+		// Update Anchor string to match new alignment combination
+		String anchor = AnchorFromAlign(newH, newV);
+		if(!IsNull(anchor))
+			pI->Set("Anchor", anchor);
 	}
+
+	if(hAlign != (dword)-1) _HAlign = hAlign;
+	if(vAlign != (dword)-1) _VAlign = vAlign;
 
 	WhenUpdate();
 	Refresh();

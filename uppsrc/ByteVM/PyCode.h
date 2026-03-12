@@ -68,7 +68,13 @@ enum PyOpCode {
 	PY_BUILD_CLASS = 200,    // (name) TOS=class body dict (run as function) -> class object
 	PY_BINARY_SLICE = 201,   // (obj, start, stop) → obj[start:stop] sublist
 
-	PY_RETURN_VALUE = 83
+	PY_RETURN_VALUE = 83,
+
+	// Exception handling
+	PY_SETUP_EXCEPT  = 202,  // (handler_offset) push except handler, jump there on exception
+	PY_POP_EXCEPT    = 203,  // pop except handler (end of try block)
+	PY_RAISE         = 204,  // (iarg=0: re-raise, iarg=1: raise TOS as exception message)
+	PY_RAISE_STR     = 205   // (arg=message string) push and raise immediately (used by assert)
 };
 
 enum PyCompare {

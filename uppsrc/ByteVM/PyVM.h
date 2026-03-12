@@ -110,6 +110,7 @@ public:
 
 private:
 	PyValue last_result = PyValue::None();
+	int     instruction_count = 0;
 	Vector<Breakpoint> breakpoints;
 	DebugState debug_state = DEBUG_RUNNING;
 	int step_frame_depth = 0;

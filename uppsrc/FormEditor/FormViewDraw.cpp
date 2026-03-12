@@ -8,21 +8,22 @@ NAMESPACE_UPP
 
 void FormView::Paint(Draw& w)
 {
+	Color face = SColorFace();
+	Color paper = SColorPaper();
+
 	if (!IsLayout())
 	{
-		w.DrawRect(GetRect(), White());
+		w.DrawRect(GetSize(), face);
 		return;
 	}
 
 	Rect r = Zoom(GetPageRect());
+	w.DrawRect(GetSize(), face);
 
 	DrawGrid(w);
 	DrawRect(w, r, 1, LtBlue());
 
-	w.DrawRect(0, 0, r.left, 3000, White());
-	w.DrawRect(r.right + 1, 0, 3000, 3000, White());
-	w.DrawRect(r.left, 0, 5000, r.top, White());
-	w.DrawRect(r.left, r.bottom + 1, 3000, 3000, White());
+	w.DrawRect(r, paper);
 
 //	if (_showInfo)
 //	{
@@ -265,7 +266,7 @@ void FormView::DrawObject(Draw& w, int id, const Color& c, bool springs)
 		if (offseted.Width() > t.cx + 15)
 		{
 			int x1 = ZoomX(pI->GetRect().right) - DeZoomX(2) - 4 - t.cx + ZoomX(X(0));
-			w.DrawRect( x1 - 2, y, t.cx + 3, t.cy, White());
+			w.DrawRect( x1 - 2, y, t.cx + 3, t.cy, SColorPaper());
 //			DrawRect(w, Point(x1 - 2, y), Size(t.cx + 3, t.cy), 1, LtGray());
 			w.DrawText( x1, y, temp, _Font, LtBlue);
 		}
@@ -276,14 +277,14 @@ void FormView::DrawObject(Draw& w, int id, const Color& c, bool springs)
 
 		if (offseted.Width() - cx > t.cx + 10)
 		{
-			w.DrawRect( offseted.left + ZoomX(5) - 2, y, t.cx + 3, t.cy, White());
+			w.DrawRect( offseted.left + ZoomX(5) - 2, y, t.cx + 3, t.cy, SColorPaper());
 //			DrawRect(w, Point(offseted.left + ZoomX(5) - 2, y), Size(t.cx + 3, t.cy),
 //				1, LtGray());
 			w.DrawText( offseted.left + ZoomX(5), y, temp, _Font, Gray());
 		}
 		else if (offseted.Width() > s.cx + 5)
 		{
-			w.DrawRect( offseted.left + ZoomX(5) - 2, y, s.cx + 3, s.cy, White());
+			w.DrawRect( offseted.left + ZoomX(5) - 2, y, s.cx + 3, s.cy, SColorPaper());
 //			DrawRect(w, Point(offseted.left + ZoomX(5) - 2, y), Size(s.cx + 3, s.cy),
 //				1, LtGray());
 			w.DrawText( offseted.left + ZoomX(5), y, AsString(id), _Font, Gray());

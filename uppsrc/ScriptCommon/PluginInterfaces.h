@@ -49,6 +49,23 @@ public:
 	ICustomExecuteProvider* FindExecuteProvider(const String& path);
 };
 
+// View interface for card game UI — implemented by CardGameDocumentHost in ScriptIDE.
+// ScriptCommon holds only this interface (no GUI dependency).
+class IHeartsView {
+public:
+	virtual ~IHeartsView() {}
+	// Place/update a card sprite at absolute pixel position
+	virtual void SetCard(const String& card_id, const String& asset_path, int x, int y) = 0;
+	// Move card sprite to the center of a named zone
+	virtual void MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) = 0;
+	// Return zone rect as a dict-like Value {x,y,w,h}
+	virtual Value GetZoneRect(const String& zone_id) = 0;
+	// Clear all card sprites
+	virtual void ClearSprites() = 0;
+	// Log a message to the game log
+	virtual void Log(const String& msg) = 0;
+};
+
 class IPlugin {
 public:
 	virtual ~IPlugin() {}

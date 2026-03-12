@@ -17,7 +17,28 @@ CardGameDocumentHost::~CardGameDocumentHost()
 bool CardGameDocumentHost::Load(const String& path_)
 {
 	path = path_;
+
+	// Load the form layout if specified in the gamestate
+	String json = LoadFile(path);
+	Value gs = ParseJSON(json);
+	if(!gs.IsVoid()) {
+		String layout = gs["layout"];
+		if(!layout.IsEmpty())
+			SetLayout(AppendFileName(GetFileDirectory(path), layout));
+	}
+
 	Refresh();
+
+	// Wire this view to the plugin and run the Python game
+	if(plugin) {
+		plugin->SetView(this);
+		try {
+			plugin->Execute(path);
+		} catch(Exc& e) {
+			LOG("CardGameDocumentHost: Execute error: " << e);
+		}
+	}
+
 	return true;
 }
 
@@ -125,69 +146,74 @@ Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, 
 	return RectC(x, y, r.GetWidth(), r.GetHeight());
 }
 
+// IHeartsView implementation
+
 void CardGameDocumentHost::ClearSprites()
 {
 	sprites.Clear();
 	Refresh();
 }
 
-void CardGameDocumentHost::SetSprite(const String& id, const String& asset_path, int x, int y)
+void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_path, int x, int y)
 {
-	Sprite& s = sprites.GetAdd(id);
-	
+	Sprite& s = sprites.GetAdd(card_id);
+
 	String full_path = asset_path;
-	if(!IsFullPath(asset_path)) {
+	if(!IsFullPath(asset_path))
 		full_path = AppendFileName(GetFileDirectory(path), asset_path);
+
+	if(s.img.IsEmpty() || s.asset_path != full_path) {
+		s.img = StreamRaster::LoadFileAny(full_path);
+		s.asset_path = full_path;
 	}
-	
-	s.img = StreamRaster::LoadFileAny(full_path);
 	s.rect = RectC(x, y, s.img.GetWidth(), s.img.GetHeight());
 	s.target_rect = s.rect;
 	s.animating = false;
 	Refresh();
 }
 
-void CardGameDocumentHost::MoveSprite(const String& id, int x, int y, bool animated)
-{
-	int q = sprites.Find(id);
-	if(q >= 0) {
-		Sprite& s = sprites[q];
-		s.target_rect = RectC(x, y, s.rect.GetWidth(), s.rect.GetHeight());
-		if(animated) {
-			s.animating = true;
-		} else {
-			s.rect = s.target_rect;
-			s.animating = false;
-			Refresh();
-		}
-	}
-}
-
-void CardGameDocumentHost::MoveSpriteToZone(const String& id, const String& zone_id, bool animated)
+void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
 {
 	int qz = zones.Find(zone_id);
-	int qs = sprites.Find(id);
-	if(qz >= 0 && qs >= 0) {
-		Zone& z = zones[qz];
-		Rect abs_z = GetAbsoluteRect(z.rect, z.anchor, GetSize());
-		int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2);
-		int ty = abs_z.top + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
-		MoveSprite(id, tx, ty, animated);
+	int qs = sprites.Find(card_id);
+	if(qz < 0 || qs < 0) return;
+
+	Zone& z = zones[qz];
+	Rect abs_z = GetAbsoluteRect(z.rect, z.anchor, GetSize());
+	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2) + offset;
+	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
+
+	Sprite& s = sprites[qs];
+	s.target_rect = RectC(tx, ty, s.rect.GetWidth(), s.rect.GetHeight());
+	if(animated)
+		s.animating = true;
+	else {
+		s.rect = s.target_rect;
+		s.animating = false;
 	}
+	Refresh();
 }
 
-Rect CardGameDocumentHost::GetZoneRect(const String& id)
+Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 {
-	int q = zones.Find(id);
+	int q = zones.Find(zone_id);
+	ValueMap m;
 	if(q >= 0) {
-		return GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
+		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
+		m.Add("x", r.left);
+		m.Add("y", r.top);
+		m.Add("w", r.GetWidth());
+		m.Add("h", r.GetHeight());
+	} else {
+		m.Add("x", 0); m.Add("y", 0); m.Add("w", 552); m.Add("h", 96);
 	}
-	return Rect(0,0,0,0);
+	return m;
 }
 
 void CardGameDocumentHost::Log(const String& msg)
 {
-	game_log.SetQTF(game_log.GetQTF() + "&" + msg);
+	game_log.SetQTF(game_log.GetQTF() + "&" + DeQtfLf(msg));
+	Refresh();
 }
 
 void CardGameDocumentHost::Animate()
@@ -230,11 +256,17 @@ void CardGameDocumentHost::LeftDown(Point p, dword flags)
 {
 	for(int i = sprites.GetCount() - 1; i >= 0; i--) {
 		if(sprites[i].rect.Contains(p)) {
-			String id = sprites.GetKey(i);
-			if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-				PyValue on_click = ide->vm.GetGlobals().Get("on_click", PyValue());
-				if(!on_click.IsNone())
-					ide->vm.Call(on_click, {PyValue(id)});
+			String card_id = sprites.GetKey(i);
+			if(plugin) {
+				PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+				if(vm) {
+					PyValue on_click = vm->GetGlobals().GetDict().Get("on_click", PyValue());
+					if(on_click.IsFunction()) {
+						try { vm->Call(on_click, {PyValue(card_id)}); }
+						catch(Exc& e) { LOG("on_click error: " << e); }
+						Refresh();
+					}
+				}
 			}
 			break;
 		}
@@ -509,7 +541,9 @@ void CardGamePluginGUI::Shutdown()
 
 IDocumentHost* CardGamePluginGUI::GameStateHandler::CreateDocumentHost()
 {
-	return new CardGameDocumentHost();
+	CardGameDocumentHost* host = new CardGameDocumentHost();
+	host->SetPlugin(plugin);
+	return host;
 }
 
 IDocumentHost* CardGamePluginGUI::FormHandler::CreateDocumentHost()

@@ -29,12 +29,17 @@ bool CardGameDocumentHost::Load(const String& path_)
 	}
 
 	Refresh();
+	SyncFormExplorer();
 
 	// Wire this view to the plugin and run the Python game
 	if(plugin) {
 		plugin->SetView(this);
 		try {
 			plugin->Execute(path);
+			// The first script-driven layout can happen before the host has a
+			// stable on-screen size. Re-run once on the next UI tick so zone
+			// based positioning lands in the visible area.
+			Upp::PostCallback([=] { RefreshGameView(); }, &last_layout_size);
 		} catch(Exc& e) {
 			LOG("CardGameDocumentHost: Execute error: " << e);
 		}
@@ -55,6 +60,8 @@ void CardGameDocumentHost::Layout()
 	if(sz.cx <= 0 || sz.cy <= 0 || refresh_running || resize_refresh_pending)
 		return;
 
+	SyncFormExplorer();
+
 	resize_refresh_pending = true;
 	Upp::PostCallback([=] {
 		resize_refresh_pending = false;
@@ -65,6 +72,7 @@ void CardGameDocumentHost::Layout()
 void CardGameDocumentHost::ActivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		SyncFormExplorer();
 		if(!ide->context_pane_right.IsDocked())
 			ide->DockRight(ide->context_pane_right);
 		
@@ -77,6 +85,8 @@ void CardGameDocumentHost::ActivateUI()
 void CardGameDocumentHost::DeactivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		if(ide->form_explorer)
+			ide->form_explorer->Clear();
 		game_log.Remove();
 		ide->context_pane_right.Close();
 	}
@@ -102,6 +112,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	zones.Clear();
 	labels.Clear();
 	buttons.Clear();
+	highlights.Clear();
 	
 	Value v = ParseJSON(LoadFile(path));
 	if(v.IsVoid()) return;
@@ -146,6 +157,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	}
 	
 	Refresh();
+	SyncFormExplorer();
 }
 
 Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz)
@@ -183,12 +195,14 @@ Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, 
 void CardGameDocumentHost::ClearSprites()
 {
 	sprites.Clear();
+	SyncFormExplorer();
 	Refresh();
 }
 
 void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
 {
 	labels.GetAdd(zone_id) = text;
+	SyncFormExplorer();
 	Refresh();
 }
 
@@ -197,12 +211,28 @@ void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, 
 	ActionButton& b = buttons.GetAdd(zone_id);
 	b.text = text;
 	b.enabled = enabled;
+	SyncFormExplorer();
+	Refresh();
+}
+
+void CardGameDocumentHost::SetHighlight(const String& zone_id, bool enabled)
+{
+	int q = highlights.Find(zone_id);
+	if(enabled) {
+		if(q < 0)
+			highlights.Add(zone_id);
+	}
+	else if(q >= 0) {
+		highlights.Remove(q);
+	}
+	SyncFormExplorer();
 	Refresh();
 }
 
 void CardGameDocumentHost::SetStatus(const String& text)
 {
 	status_text = text;
+	SyncFormExplorer();
 	Refresh();
 }
 
@@ -221,6 +251,7 @@ void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_pa
 	s.rect = RectC(x, y, s.img.GetWidth(), s.img.GetHeight());
 	s.target_rect = s.rect;
 	s.animating = false;
+	SyncFormExplorer();
 	Refresh();
 }
 
@@ -243,6 +274,7 @@ void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& z
 		s.rect = s.target_rect;
 		s.animating = false;
 	}
+	SyncFormExplorer();
 	Refresh();
 }
 
@@ -320,6 +352,66 @@ void CardGameDocumentHost::RefreshGameView()
 	refresh_running = false;
 }
 
+void CardGameDocumentHost::SyncFormExplorer()
+{
+	PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow());
+	if(!ide || !ide->form_explorer)
+		return;
+
+	Vector<FormExplorerEntry> entries;
+	Size sz = GetSize();
+
+	for(int i = 0; i < zones.GetCount(); i++) {
+		const Zone& z = zones[i];
+		FormExplorerEntry& e = entries.Add();
+		e.path = "zones/" + z.id;
+		e.type = "Zone";
+		e.rect = GetAbsoluteRect(z.rect, z.anchor, sz);
+		e.details = z.type + ", " + z.anchor;
+	}
+
+	for(int i = 0; i < sprites.GetCount(); i++) {
+		const Sprite& s = sprites[i];
+		FormExplorerEntry& e = entries.Add();
+		e.path = "sprites/" + sprites.GetKey(i);
+		e.type = s.animating ? "Sprite (animating)" : "Sprite";
+		e.rect = s.rect;
+		e.details = GetFileName(s.asset_path);
+	}
+
+	for(int i = 0; i < labels.GetCount(); i++) {
+		String zone_id = labels.GetKey(i);
+		int q = zones.Find(zone_id);
+		FormExplorerEntry& e = entries.Add();
+		e.path = "labels/" + zone_id;
+		e.type = "Label";
+		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.details = labels[i];
+	}
+
+	for(int i = 0; i < buttons.GetCount(); i++) {
+		String zone_id = buttons.GetKey(i);
+		int q = zones.Find(zone_id);
+		FormExplorerEntry& e = entries.Add();
+		e.path = "buttons/" + zone_id;
+		e.type = buttons[i].enabled ? "Button" : "Button (disabled)";
+		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.details = buttons[i].text;
+	}
+
+	for(int i = 0; i < highlights.GetCount(); i++) {
+		String zone_id = highlights[i];
+		int q = zones.Find(zone_id);
+		FormExplorerEntry& e = entries.Add();
+		e.path = "highlights/" + zone_id;
+		e.type = "Highlight";
+		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.details = "active";
+	}
+
+	ide->form_explorer->SetScene(sz, entries);
+}
+
 void CardGameDocumentHost::Paint(Draw& w)
 {
 	Size sz = GetSize();
@@ -342,6 +434,18 @@ void CardGameDocumentHost::Paint(Draw& w)
 			tx = r.right - tsz.cx;
 		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
 		w.DrawText(tx, ty, labels[i], label_font, text_color);
+	}
+
+	for(int i = 0; i < highlights.GetCount(); i++) {
+		int q = zones.Find(highlights[i]);
+		if(q < 0)
+			continue;
+		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
+		Color glow = Color(255, 215, 70);
+		w.DrawRect(r.left - 4, r.top - 4, r.GetWidth() + 8, 3, glow);
+		w.DrawRect(r.left - 4, r.bottom + 1, r.GetWidth() + 8, 3, glow);
+		w.DrawRect(r.left - 4, r.top - 4, 3, r.GetHeight() + 8, glow);
+		w.DrawRect(r.right + 1, r.top - 4, 3, r.GetHeight() + 8, glow);
 	}
 
 	Font button_font = SansSerif(15).Bold();

@@ -53,6 +53,7 @@ public:
 	virtual void  ClearSprites() override;
 	virtual void  SetLabel(const String& zone_id, const String& text) override;
 	virtual void  SetButton(const String& zone_id, const String& text, bool enabled) override;
+	virtual void  SetHighlight(const String& zone_id, bool enabled) override;
 	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
 
@@ -89,6 +90,7 @@ private:
 		bool   enabled = false;
 	};
 	ArrayMap<String, ActionButton> buttons;
+	Index<String> highlights;
 	String status_text;
 	
 	Color background_color = Color(40, 160, 40);
@@ -97,6 +99,7 @@ private:
 
 	void Animate();
 	void RefreshGameView();
+	void SyncFormExplorer();
 	Rect GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz);
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;

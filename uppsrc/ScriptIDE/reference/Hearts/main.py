@@ -31,6 +31,7 @@ def pass_direction_text():
 
 def update_hud():
     label_ids = ["label_self", "label_left", "label_top", "label_right"]
+    hand_zone_ids = ["hand_self", "hand_left", "hand_top", "hand_right"]
     for i, zone_id in enumerate(label_ids):
         name = PLAYER_NAMES[i]
         if state.phase == 'PLAYING' and state.turn == i:
@@ -39,6 +40,7 @@ def update_hud():
             zone_id,
             name + "  " + str(state.scores[i]) + "  (" + str(len(state.players[i])) + ")"
         )
+        hearts_view.set_highlight(hand_zone_ids[i], state.phase == 'PLAYING' and state.turn == i)
 
     in_passing = state.phase == 'PASSING' and pass_direction_text() != "hold"
     hearts_view.set_button("button_clear", "Clear", in_passing and len(selected_cards) > 0)

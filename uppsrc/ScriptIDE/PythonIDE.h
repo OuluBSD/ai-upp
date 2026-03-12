@@ -50,6 +50,7 @@ public:
 	One<PythonConsole>   console_pane;
 	One<FilesPane>       files_pane;
 	One<VariableExplorer> var_explorer;
+	One<FormExplorer>    form_explorer;
 	One<PlotsPane>       plots_pane;
 	One<DebuggerPane>    debugger_pane;
 	One<ProfilerPane>    profiler_pane;

@@ -16,6 +16,23 @@ static PyValue hv_clear_sprites(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
+static PyValue hv_set_label(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
+static PyValue hv_set_button(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
+static PyValue hv_set_status(const Vector<PyValue>& args, void*)
+{
+	if(args.GetCount() >= 1)
+		Cout() << args[0].ToString() << "\n";
+	return PyValue::None();
+}
+
 static PyValue hv_set_card(const Vector<PyValue>& args, void*)
 {
 	// set_card(card_id, asset_path, x, y)
@@ -212,6 +229,27 @@ static PyValue hv_gui_clear_sprites(const Vector<PyValue>&, void* ud)
 	return PyValue::None();
 }
 
+static PyValue hv_gui_set_label(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 2)
+		((IHeartsView*)ud)->SetLabel(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_set_button(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 3)
+		((IHeartsView*)ud)->SetButton(args[0].ToString(), args[1].ToString(), args[2].IsTrue());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_set_status(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 1)
+		((IHeartsView*)ud)->SetStatus(args[0].ToString());
+	return PyValue::None();
+}
+
 static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
 {
 	// set_card(card_id, asset_path, x, y)
@@ -249,6 +287,9 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)
 		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
+		PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
+		PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
+		PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
 		PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
 		PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
 		PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
@@ -257,6 +298,9 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_log,           nullptr)
 		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
+		PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
+		PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
+		PY_MODULE_FUNC(set_status,    hv_set_status,    nullptr)
 		PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
 		PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
 		PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)

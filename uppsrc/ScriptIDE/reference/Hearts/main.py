@@ -4,6 +4,7 @@ from hearts.logic import GameState
 
 state = GameState()
 asset_base = "assets/" # Resolved relative to .gamestate location in C++
+PLAYER_NAMES = ["You", "West", "North", "East"]
 
 selected_cards = []
 
@@ -19,8 +20,104 @@ def start():
     if "--autoplay" in sys.argv:
         autoplay_loop()
 
+def pass_direction_text():
+    pass_dir = state.round_number % 4
+    return {
+        0: "hold",
+        1: "left",
+        2: "right",
+        3: "across",
+    }[pass_dir]
+
+def update_hud():
+    label_ids = ["label_self", "label_left", "label_top", "label_right"]
+    for i, zone_id in enumerate(label_ids):
+        name = PLAYER_NAMES[i]
+        if state.phase == 'PLAYING' and state.turn == i:
+            name = "[" + name + "]"
+        hearts_view.set_label(
+            zone_id,
+            name + "  " + str(state.scores[i]) + "  (" + str(len(state.players[i])) + ")"
+        )
+
+    in_passing = state.phase == 'PASSING' and pass_direction_text() != "hold"
+    hearts_view.set_button("button_clear", "Clear", in_passing and len(selected_cards) > 0)
+    hearts_view.set_button("button_pass", "Pass cards", in_passing and len(selected_cards) == 3)
+
+    trick_count = len(state.trick)
+    if state.phase == 'PASSING':
+        selected = len(selected_cards)
+        if pass_direction_text() == "hold":
+            status = "Round " + str(state.round_number) + ": no passing. Starting play."
+        else:
+            status = "Round " + str(state.round_number) + ": pass 3 cards " + \
+                     pass_direction_text() + " (" + str(selected) + "/3 selected)"
+    elif state.phase == 'PLAYING':
+        actor = PLAYER_NAMES[state.turn]
+        prefix = "Your turn"
+        if state.turn != 0:
+            prefix = "Waiting for " + actor
+        broken = "hearts broken"
+        if not state.hearts_broken:
+            broken = "hearts closed"
+        status = "Round " + str(state.round_number) + ": " + prefix + \
+                 ". Trick " + str(trick_count) + "/4, " + broken + "."
+    else:
+        status = "Round " + str(state.round_number) + ": " + state.phase
+
+    if state.last_trick_winner >= 0 and len(state.trick) == 0 and state.phase == 'PLAYING':
+        status = status + " Last trick: " + PLAYER_NAMES[state.last_trick_winner] + \
+                 " won " + str(state.last_trick_points) + " pts."
+
+    hearts_view.set_status(status)
+
+def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
+    hand_rect = hearts_view.get_zone_rect(zone_id)
+    if not hand_rect:
+        return
+
+    card_count = len(state.players[player_index])
+    if card_count <= 0:
+        return
+
+    if vertical:
+        available_height = hand_rect['h'] - 96
+        step = available_height / max(1, card_count - 1)
+        if step > 18:
+            step = 18
+        total_height = step * (card_count - 1) + 96
+        start_y = hand_rect['y'] + (hand_rect['h'] - total_height) / 2
+        x = hand_rect['x']
+        for i in range(card_count):
+            hearts_view.set_card(
+                sprite_prefix + "_" + str(i),
+                asset_base + "card_back.png",
+                x,
+                int(start_y + i * step)
+            )
+    else:
+        available_width = hand_rect['w'] - 72
+        step = available_width / max(1, card_count - 1)
+        if step > 24:
+            step = 24
+        total_width = step * (card_count - 1) + 72
+        start_x = hand_rect['x'] + (hand_rect['w'] - total_width) / 2
+        y = hand_rect['y']
+        for i in range(card_count):
+            hearts_view.set_card(
+                sprite_prefix + "_" + str(i),
+                asset_base + "card_back.png",
+                int(start_x + i * step),
+                y
+            )
+
 def refresh_ui():
     hearts_view.clear_sprites()
+    update_hud()
+
+    draw_hidden_hand("hand_left", 1, "opp_left", True)
+    draw_hidden_hand("hand_top", 2, "opp_top", False)
+    draw_hidden_hand("hand_right", 3, "opp_right", True)
 
     # Human hand (Player 0)
     hand_rect = hearts_view.get_zone_rect("hand_self")
@@ -54,6 +151,17 @@ def refresh_ui():
     trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]
     for p_idx, card in state.trick:
         hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
+
+def commit_pass():
+    if len(selected_cards) != 3:
+        hearts_view.log("Select exactly 3 cards to pass.")
+        refresh_ui()
+        return
+
+    state.select_pass(0, list(selected_cards))
+    selected_cards.clear()
+    process_ai_pass()
+    process_ai_turns()
 
 def process_ai_pass():
     """Have all AI players submit their pass selections."""
@@ -115,13 +223,6 @@ def on_click(card_id):
         elif len(selected_cards) < 3:
             selected_cards.append(card)
         refresh_ui()
-
-        if len(selected_cards) == 3:
-            # Pass cards for human player, then AI
-            state.select_pass(0, list(selected_cards))
-            selected_cards.clear()
-            process_ai_pass()
-            process_ai_turns()
     else:
         success, msg = state.play_card(0, card)
         if success:
@@ -129,3 +230,13 @@ def on_click(card_id):
             process_ai_turns()
         else:
             hearts_view.log(f"Invalid move: {msg}")
+
+def on_button(button_id):
+    if button_id == "button_clear":
+        if selected_cards:
+            selected_cards.clear()
+            refresh_ui()
+        return
+
+    if button_id == "button_pass":
+        commit_pass()

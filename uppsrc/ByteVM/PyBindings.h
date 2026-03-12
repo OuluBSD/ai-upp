@@ -13,7 +13,7 @@ inline void RegisterFunction(PyValue& dict, const char* name, PyBuiltin fn, void
 // Module registration
 #define PY_MODULE(mod_name, vm) \
 	PyValue mod_name##_obj = PyValue::Dict(); \
-	(vm).GetGlobals().GetAdd(PyValue(#mod_name)) = mod_name##_obj; \
+	(vm).GetGlobals().SetItem(PyValue(#mod_name), mod_name##_obj); \
 	PyValue& current_module = mod_name##_obj;
 
 #define PY_MODULE_FUNC(name, fn, user_data) \

@@ -6,12 +6,13 @@
 CardGameDocumentHost::CardGameDocumentHost()
 {
 	game_log.SetQTF("Welcome to the Game!&Ready to play.");
-	SetTimeCallback(-16, [=] { Animate(); }, (intptr_t)this);
+	Upp::SetTimeCallback(-16, [=] { Animate(); }, this);
 }
 
 CardGameDocumentHost::~CardGameDocumentHost()
 {
-	KillTimeCallback((intptr_t)this);
+	Upp::KillTimeCallback(this);
+	Upp::KillTimeCallback(&resize_refresh_pending);
 }
 
 bool CardGameDocumentHost::Load(const String& path_)
@@ -40,6 +41,25 @@ bool CardGameDocumentHost::Load(const String& path_)
 	}
 
 	return true;
+}
+
+void CardGameDocumentHost::Layout()
+{
+	Ctrl::Layout();
+
+	Size sz = GetSize();
+	if(sz == last_layout_size)
+		return;
+
+	last_layout_size = sz;
+	if(sz.cx <= 0 || sz.cy <= 0 || refresh_running || resize_refresh_pending)
+		return;
+
+	resize_refresh_pending = true;
+	Upp::PostCallback([=] {
+		resize_refresh_pending = false;
+		RefreshGameView();
+	}, &resize_refresh_pending);
 }
 
 void CardGameDocumentHost::ActivateUI()
@@ -238,6 +258,34 @@ void CardGameDocumentHost::Animate()
 		}
 	}
 	if(changed) Refresh();
+}
+
+void CardGameDocumentHost::RefreshGameView()
+{
+	if(refresh_running)
+		return;
+
+	PyVM* vm = plugin && plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+	if(!vm) {
+		Refresh();
+		return;
+	}
+
+	PyValue refresh_ui = vm->GetGlobals().GetDict().Get("refresh_ui", PyValue());
+	if(!refresh_ui.IsFunction()) {
+		Refresh();
+		return;
+	}
+
+	refresh_running = true;
+	try {
+		vm->Call(refresh_ui, {});
+	}
+	catch(Exc& e) {
+		LOG("refresh_ui error: " << e);
+		Refresh();
+	}
+	refresh_running = false;
 }
 
 void CardGameDocumentHost::Paint(Draw& w)

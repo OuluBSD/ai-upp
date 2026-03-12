@@ -134,6 +134,7 @@ public:
 	void OnClosePane();
 	void OnFullscreen();
 	void OnLayoutDefault();
+	void SetDefaultDocking();
 	void OnLayoutRstudio();
 	void OnLayoutMatlab();
 	void OnSettings();

@@ -22,7 +22,11 @@ void PluginManager::LoadPlugins()
 		One<IPlugin> p(factories[i]());
 		if(p) {
 			String id = p->GetID();
-			plugins.Add(id).plugin = std::move(p);
+			int q = plugins.Find(id);
+			if(q >= 0)
+				plugins[q].plugin = std::move(p); // later registration wins (GUI subclass overrides headless base)
+			else
+				plugins.Add(id).plugin = std::move(p);
 		}
 	}
 }

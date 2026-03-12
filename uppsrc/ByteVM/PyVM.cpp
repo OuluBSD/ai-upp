@@ -2618,6 +2618,8 @@ bool PyVM::Step()
 			case PY_CMP_GE: res = (b < a || a == b); break;
 			case PY_CMP_IN: res = b.Contains(a); break;
 			case PY_CMP_NOT_IN: res = !b.Contains(a); break;
+			case PY_CMP_IS: res = a.IsSameObject(b); break;
+			case PY_CMP_IS_NOT: res = !a.IsSameObject(b); break;
 			}
 			Push(PyValue(res));
 			break;

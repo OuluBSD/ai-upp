@@ -673,8 +673,28 @@ bool Tokenizer::Process(String str, String path) {
 			Next();
 		}
 		else if (chr == '\\') {
-			Add(TK_SOLIDUS);
-			Next();
+			int next_chr = cursor + 1 < input.GetCount() ? input[cursor + 1] : 0;
+			int next_chr2 = cursor + 2 < input.GetCount() ? input[cursor + 2] : 0;
+			if(next_chr == '\n' || next_chr == '\r') {
+				// Python explicit line continuation: join the next physical line into
+				// the current logical statement and do not re-run indentation parsing.
+				Next();
+				if(next_chr == '\r') {
+					Next();
+					if(next_chr2 == '\n')
+						Next();
+				}
+				else {
+					Next();
+				}
+				loc.line++;
+				loc.col = 1;
+				parse_indent = false;
+			}
+			else {
+				Add(TK_SOLIDUS);
+				Next();
+			}
 		}
 		else if (chr == '^') {
 			Add(TK_ACCENT);
@@ -1257,4 +1277,3 @@ bool TokenizerCParser::IsType(int i) const {
 
 
 END_UPP_NAMESPACE
-

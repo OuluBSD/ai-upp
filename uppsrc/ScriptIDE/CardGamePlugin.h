@@ -40,10 +40,31 @@ public:
 	virtual void LeftDown(Point p, dword flags) override;
 };
 
+class CardSpriteHitCtrl : public Ctrl {
+public:
+	CardGameDocumentHost* owner = nullptr;
+	String card_id;
+
+	CardSpriteHitCtrl();
+
+	virtual void LeftDown(Point p, dword flags) override;
+};
+
+class CardSpriteCtrl : public ImageCtrl {
+public:
+	CardGameDocumentHost* owner = nullptr;
+	String card_id;
+
+	CardSpriteCtrl();
+
+	virtual void LeftDown(Point p, dword flags) override;
+};
+
 class CardGameDocumentHost : public IDocumentHost, public IHeartsView, public Ctrl {
 public:
 	CardGameDocumentHost();
 	virtual ~CardGameDocumentHost();
+	static bool log_to_stdout;
 
 	virtual Ctrl&  GetCtrl() override { return *this; }
 	virtual bool   Load(const String& path) override;
@@ -59,7 +80,7 @@ public:
 	virtual void   Toolbar(Bar& bar) override;
 
 	// IHeartsView
-	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y) override;
+	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) override;
 	virtual void  MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) override;
 	virtual Value GetZoneRect(const String& zone_id) override;
 	virtual void  ClearSprites() override;
@@ -68,17 +89,40 @@ public:
 	virtual void  SetHighlight(const String& zone_id, bool enabled) override;
 	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
+	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
 
 	void SetLayout(const String& form_path);
-	void SetPlugin(CardGamePlugin* p) { plugin = p; }
+	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; }
+	String DumpScene();
+	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
+	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }
+	void DebugInvokeFirstHandCards(int count);
 
 private:
 	String path;
 	String form_path;
+	CardGamePlugin* registration_plugin = nullptr;
 	CardGamePlugin* plugin = nullptr;
+	One<CardGamePlugin> runtime_plugin;
+	One<HeadlessPluginContext> runtime_context;
+	PyVM vm;
+	Thread vm_thread;
+	Mutex vm_mutex;
+	ConditionVariable vm_cv;
+	Vector<Function<void ()>> vm_tasks;
+	bool vm_shutdown = false;
+	bool vm_thread_running = false;
+	Mutex ui_mutex;
+	Vector<Function<void ()>> ui_commands;
+	bool ui_flush_pending = false;
 	Size last_layout_size;
 	bool refresh_running = false;
 	bool resize_refresh_pending = false;
+	bool scene_sync_pending = false;
+	bool debug_overlay = false;
+	String last_error;
+	String pending_callback_name;
+	int callback_timer_key = 0;
 	Form table_form;
 	CardGameOverlay overlay;
 	
@@ -87,13 +131,15 @@ private:
 		String asset_path;
 		Rect   rect;
 		Rect   target_rect;
+		int    rotation_deg = 0;
 		bool   animating = false;
 	};
 	ArrayMap<String, Sprite> sprites;
+	ArrayMap<String, CardSpriteCtrl*> card_ctrls;
+	ArrayMap<String, Image> image_cache;
 	
 	struct FormItem {
 		String id;
-		Rect   rect;
 		String anchor;
 		String user_class;
 	};
@@ -106,22 +152,48 @@ private:
 	ArrayMap<String, ActionButton> buttons;
 	Index<String> highlights;
 	String status_text;
+	Index<String> active_cards;
 	
 	Color background_color = Color(40, 160, 40);
 
 	RichTextView game_log;
 
 	void Animate();
+	void InitRuntime();
+	void StartVmThread();
+	void StopVmThread();
+	void VmThreadMain();
+	void QueueVmTask(Function<void ()> fn);
+	void QueueVmRefresh();
+	void QueueVmNamedCallback(const String& callback_name);
+	void QueueUiCommand(Function<void ()> fn);
+	void ScheduleUiFlush();
+	void DrainUiQueue();
+	void ApplyClearSprites();
+	void ApplySetLabel(const String& zone_id, const String& text);
+	void ApplySetButton(const String& zone_id, const String& text, bool enabled);
+	void ApplySetHighlight(const String& zone_id, bool enabled);
+	void ApplySetStatus(const String& text);
+	void ApplyLog(const String& msg);
+	void ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
+	void ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated);
+	void ApplySetTimeout(int delay_ms, const String& callback_name);
+	void ReportVmError(const String& where, const String& msg);
 	void RefreshGameView();
+	void InvokePythonButton(const String& button_id);
+	void InvokePythonCard(const String& card_id);
+	void SyncCardCtrl(const String& card_id);
+	void ClearCardCtrls();
+	void ScheduleSceneSync();
 	void SyncFormExplorer();
-	void ApplyFormItemLayout();
 	void SyncFormControls();
 	void PaintOverlay(Draw& w);
 	void OverlayLeftDown(Point p, dword flags);
-	Rect GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz);
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
 	friend class CardGameOverlay;
+	friend class CardSpriteHitCtrl;
+	friend class CardSpriteCtrl;
 };
 
 class CardGameProperties : public PropertiesWindow {

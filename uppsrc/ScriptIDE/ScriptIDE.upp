@@ -67,5 +67,6 @@ file
 
 mainconfig
 	"" = "GUI",
-	"USEMALLOC" = "GUI USEMALLOC";
-
+	"USEMALLOC" = "GUI USEMALLOC",
+	"X11" = "GUI NOGTK",
+	"X11 USEMALLOC" = "GUI NOGTK USEMALLOC";

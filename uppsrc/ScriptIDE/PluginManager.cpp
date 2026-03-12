@@ -29,6 +29,21 @@ void PluginManager::LoadPlugins()
 				plugins.Add(id).plugin = std::move(p);
 		}
 	}
+
+	// ScriptIDE must use the GUI-capable built-in plugins, not the headless
+	// ScriptCommon variants that share the same plugin IDs.
+	auto force_gui_plugin = [this](One<IPlugin> p) {
+		if(!p)
+			return;
+		String id = p->GetID();
+		int q = plugins.Find(id);
+		if(q >= 0)
+			plugins[q].plugin = std::move(p);
+		else
+			plugins.Add(id).plugin = std::move(p);
+	};
+	force_gui_plugin(One<IPlugin>(new GameStatePluginGUI()));
+	force_gui_plugin(One<IPlugin>(new CardGamePluginGUI()));
 }
 
 void PluginManager::EnablePlugin(const String& id, bool enable)
@@ -40,7 +55,6 @@ void PluginManager::EnablePlugin(const String& id, bool enable)
 	if(inst.enabled == enable) return;
 	
 	if(enable) {
-		ClearRegistry();
 		inst.plugin->Init(*this);
 		inst.enabled = true;
 	}
@@ -90,7 +104,7 @@ void PluginManager::UnregisterDockPane(const String& id)
 
 IFileTypeHandler* PluginManager::FindFileTypeHandler(const String& ext)
 {
-	for(int i = 0; i < file_handlers.GetCount(); i++) {
+	for(int i = file_handlers.GetCount() - 1; i >= 0; --i) {
 		if(file_handlers[i]->GetExtension() == ext)
 			return file_handlers[i];
 	}
@@ -105,7 +119,7 @@ void PluginManager::SyncBindings(PyVM& vm)
 
 ICustomExecuteProvider* PluginManager::FindCustomExecuteProvider(const String& path)
 {
-	for(int i = 0; i < execute_providers.GetCount(); i++) {
+	for(int i = execute_providers.GetCount() - 1; i >= 0; --i) {
 		if(execute_providers[i]->CanExecute(path))
 			return execute_providers[i];
 	}

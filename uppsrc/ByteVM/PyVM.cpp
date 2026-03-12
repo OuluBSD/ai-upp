@@ -107,9 +107,21 @@ static PyValue builtin_iter(const Vector<PyValue>& args, void*) {
 static PyValue builtin_next(const Vector<PyValue>& args, void*) {
 	if(args.GetCount() == 0) return PyValue::None();
 	PyValue iterator = args[0];
-	if(iterator.IsIterator())
-		return iterator.GetIter().Next();
-	return PyValue::None();
+	PyValue default_val = args.GetCount() >= 2 ? args[1] : PyValue::None();
+	if(iterator.IsIterator()) {
+		PyValue v = iterator.GetIter().Next();
+		// Iterator exhausted returns None sentinel — use default if provided
+		if(v.IsNone() && args.GetCount() >= 2)
+			return default_val;
+		return v;
+	}
+	// list/tuple: return first element if non-empty, else default
+	if(iterator.GetType() == PY_LIST || iterator.GetType() == PY_TUPLE) {
+		if(iterator.GetCount() > 0)
+			return iterator.GetItem(0);
+		return default_val;
+	}
+	return default_val;
 }
 
 static PyValue builtin_math_fabs(const Vector<PyValue>& args, void*) {
@@ -1868,8 +1880,6 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 
 PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 {
-	if (IsRunning())
-		return PyValue::None();
 	PyValue callable = callable_in;
 	Vector<PyValue> call_args;
 	call_args.Reserve(args.GetCount());
@@ -1889,12 +1899,19 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 		return l.builtin(call_args, l.user_data);
 
 	int base = frames.GetCount();
+	int stack_base = stack.GetCount();
 	Frame& f = frames.Add();
 	f.func = callable;
 	f.ir = &l.ir;
 	f.pc = 0;
 	f.globals = l.globals.IsNone() ? globals : l.globals;
-	f.stack_base = stack.GetCount();
+	f.stack_base = stack_base;
+	// Pre-populate locals from closure (captured enclosing scope), args override
+	if(l.closure.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& cv = l.closure.GetDict();
+		for(int ci = 0; ci < cv.GetCount(); ci++)
+			f.locals.GetAdd(cv.GetKey(ci)) = cv[ci];
+	}
 	for (int i = 0; i < min(l.arg.GetCount(), call_args.GetCount()); i++) {
 		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 		int q = f.locals.Find(key);
@@ -1914,18 +1931,25 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 			frames[i].func = PyValue::None();
 		}
 		frames.SetCount(base);
-		ReleaseStack(stack);
+		// Only clean up stack entries added by this call, not the outer caller's stack
+		for(int i = stack_base; i < stack.GetCount(); i++) stack[i] = PyValue::None();
+		stack.SetCount(stack_base);
 		last_result = prev_last;
 		throw;
 	}
-	PyValue res = last_result;
+	// RETURN_VALUE already pushed the result onto the stack and set last_result.
+	// Pop the result from the stack (it was pushed by RETURN_VALUE) so caller's stack is clean.
+	PyValue res;
+	if(stack.GetCount() > stack_base)
+		res = stack.Pop();
+	else
+		res = last_result;
 	last_result = prev_last;
 	for (int i = frames.GetCount() - 1; i >= base; --i) {
 		ReleaseLocals(frames[i].locals);
 		frames[i].func = PyValue::None();
 	}
 	frames.SetCount(base);
-	ReleaseStack(stack);
 	return res;
 }
 
@@ -2089,9 +2113,18 @@ bool PyVM::Step()
 			break;
 		}
 
-		case PY_LOAD_CONST:
-			Push(instr.arg);
+		case PY_LOAD_CONST: {
+			PyValue v = instr.arg;
+			// Attach enclosing locals as closure for lambdas/nested functions
+			if(v.IsFunction() && !v.GetLambda().builtin && !frame.locals.IsEmpty()) {
+				PyLambda& lam = v.GetLambdaRW();
+				lam.closure = PyValue::Dict();
+				for(int ci = 0; ci < frame.locals.GetCount(); ci++)
+					lam.closure.SetItem(frame.locals.GetKey(ci), frame.locals[ci]);
+			}
+			Push(v);
 			break;
+		}
 		
 		case PY_LOAD_NAME: {
 			int q = frame.locals.Find(instr.arg);
@@ -2710,6 +2743,12 @@ bool PyVM::Step()
 					f.pc = 0;
 					f.globals = l.globals.IsNone() ? this->globals : l.globals;
 					f.stack_base = stack.GetCount();
+					// Pre-populate locals from closure, args override
+					if(l.closure.GetType() == PY_DICT) {
+						const VectorMap<PyValue, PyValue>& cv = l.closure.GetDict();
+						for(int ci = 0; ci < cv.GetCount(); ci++)
+							f.locals.GetAdd(cv.GetKey(ci)) = cv[ci];
+					}
 					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
 						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
 						int q = f.locals.Find(key);

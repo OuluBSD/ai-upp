@@ -8,8 +8,10 @@ class PyCompiler {
 	String file;
 	int pos;
 	
+public:
 	Vector<PyIR> ir;
-	
+private:
+
 	const Token& Peek() const;
 	void Next();
 	bool IsEof() const;
@@ -36,6 +38,7 @@ class PyCompiler {
 
 	void Expect(int token);
 	void ExpectId(const char *id);
+	void ParseBlock();
 
 	void Statement();
 	void Expression();
@@ -63,6 +66,7 @@ public:
 	
 	void Compile(Vector<PyIR>& out);
 	void CompileBlock(Vector<PyIR>& out);
+	void CompileLambdaBody(Vector<PyIR>& out);
 };
 
 END_UPP_NAMESPACE

@@ -1,49 +1,227 @@
-{
-  "name": "KDE-Fidelity Hearts Table",
-  "background_color": {"r": 40, "g": 160, "b": 40},
-  "zones": [
-    {
-      "id": "trick_area",
-      "type": "CONTAINER",
-      "rect": {"x": 0, "y": 0, "w": 246, "h": 207},
-      "anchor": "CENTER",
-      "children": [
-        {"id": "trick_left",  "rect": {"x": 0, "y": 60, "w": 72, "h": 96}},
-        {"id": "trick_top",   "rect": {"x": 87, "y": 0, "w": 72, "h": 96}},
-        {"id": "trick_right", "rect": {"x": 174, "y": 60, "w": 72, "h": 96}},
-        {"id": "trick_bottom","rect": {"x": 87, "y": 111, "w": 72, "h": 96}}
-      ]
-    },
-    {
-      "id": "hand_self",
-      "type": "HAND",
-      "rect": {"x": 0, "y": 10, "w": 552, "h": 96},
-      "anchor": "BOTTOM_CENTER"
-    },
-    {
-      "id": "hand_left",
-      "type": "HAND",
-      "rect": {"x": 24, "y": 0, "w": 72, "h": 360},
-      "anchor": "CENTER_LEFT"
-    },
-    {
-      "id": "hand_top",
-      "type": "HAND",
-      "rect": {"x": 0, "y": 58, "w": 552, "h": 96},
-      "anchor": "TOP_CENTER"
-    },
-    {
-      "id": "hand_right",
-      "type": "HAND",
-      "rect": {"x": 24, "y": 0, "w": 72, "h": 360},
-      "anchor": "CENTER_RIGHT"
-    },
-    { "id": "label_self",  "type": "LABEL", "rect": {"x": 0, "y": 120, "w": 280, "h": 24}, "anchor": "BOTTOM_CENTER" },
-    { "id": "button_clear", "type": "BUTTON", "rect": {"x": 150, "y": 42, "w": 120, "h": 30}, "anchor": "BOTTOM_LEFT" },
-    { "id": "button_pass",  "type": "BUTTON", "rect": {"x": 20, "y": 42, "w": 120, "h": 30}, "anchor": "BOTTOM_LEFT" },
-    { "id": "label_left",  "type": "LABEL", "rect": {"x": 10, "y": 0, "w": 160, "h": 24}, "anchor": "CENTER_LEFT" },
-    { "id": "label_right", "type": "LABEL", "rect": {"x": 10, "y": 0, "w": 160, "h": 24}, "anchor": "CENTER_RIGHT" },
-    { "id": "label_top",   "type": "LABEL", "rect": {"x": 0, "y": 25, "w": 280, "h": 24}, "anchor": "TOP_CENTER" },
-    { "id": "status_line", "type": "LABEL", "rect": {"x": 12, "y": 8, "w": 760, "h": 24}, "anchor": "BOTTOM_LEFT" }
-  ]
-}
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE form>
+<form>
+	<layouts>
+		<item>
+			<content>
+				<item x="0" y="0" cx="246" cy="207" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="trick_area"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="CONTAINER"/>
+						<property name="Anchor" value="CENTER"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="0" y="60" cx="72" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="trick_left"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="TRICK"/>
+						<property name="Anchor" value="CENTER"/>
+						<property name="Parent" value="trick_area"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="87" y="0" cx="72" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="trick_top"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="TRICK"/>
+						<property name="Anchor" value="CENTER"/>
+						<property name="Parent" value="trick_area"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="174" y="60" cx="72" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="trick_right"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="TRICK"/>
+						<property name="Anchor" value="CENTER"/>
+						<property name="Parent" value="trick_area"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="87" y="111" cx="72" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="trick_bottom"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="TRICK"/>
+						<property name="Anchor" value="CENTER"/>
+						<property name="Parent" value="trick_area"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="0" y="10" cx="552" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="hand_self"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="24" y="0" cx="72" cy="360" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="hand_left"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="HAND"/>
+						<property name="Anchor" value="CENTER_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="0" y="58" cx="552" cy="96" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="hand_top"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="HAND"/>
+						<property name="Anchor" value="TOP_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="24" y="0" cx="72" cy="360" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="hand_right"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="HAND"/>
+						<property name="Anchor" value="CENTER_RIGHT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="0" y="120" cx="280" cy="24" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="label_self"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="LABEL"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="150" y="42" cx="120" cy="30" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="button_clear"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Button"/>
+						<property name="ZoneType" value="BUTTON"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value="Clear"/>
+						<property name="Action" value=""/>
+						<property name="Tip" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="20" y="42" cx="120" cy="30" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="button_pass"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Button"/>
+						<property name="ZoneType" value="BUTTON"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value="Pass cards"/>
+						<property name="Action" value=""/>
+						<property name="Tip" value=""/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="10" y="0" cx="160" cy="24" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="label_left"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="LABEL"/>
+						<property name="Anchor" value="CENTER_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Left"/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="10" y="0" cx="160" cy="24" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="label_right"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="LABEL"/>
+						<property name="Anchor" value="CENTER_RIGHT"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Right"/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="0" y="25" cx="280" cy="24" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="label_top"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="LABEL"/>
+						<property name="Anchor" value="TOP_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+				<item x="12" y="8" cx="760" cy="24" align="0" valign="0">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="status_line"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="ZoneType" value="LABEL"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Left"/>
+						<property name="OutlineDraw" value="0"/>
+					</properties>
+				</item>
+			</content>
+			<name></name>
+			<properties>
+				<property name="Form.Width" value="800"/>
+				<property name="Form.Height" value="600"/>
+				<property name="Form.MaximizeBox" value="false"/>
+				<property name="Form.MinimizeBox" value="false"/>
+				<property name="Form.Sizeable" value="false"/>
+				<property name="Form.ToolWindow" value="false"/>
+				<property name="Form.Name" value="KDE-Fidelity Hearts Table"/>
+				<property name="Form.Title" value="Hearts Table"/>
+				<property name="CardGame.Background" value="40,160,40"/>
+			</properties>
+		</item>
+	</layouts>
+</form>

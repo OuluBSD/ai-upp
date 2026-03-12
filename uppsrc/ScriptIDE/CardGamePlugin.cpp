@@ -1,11 +1,284 @@
 #include "ScriptIDE.h"
 #include "CardGamePlugin.h"
 
+namespace {
+
+struct CardGameZoneDef : Moveable<CardGameZoneDef> {
+	String id;
+	Rect   rect;
+	String anchor;
+	String zone_type;
+	String parent;
+	String label;
+};
+
+bool IsLikelyJsonForm(const String& data)
+{
+	for(int i = 0; i < data.GetCount(); i++) {
+		int c = data[i];
+		if(c == ' ' || c == '\t' || c == '\r' || c == '\n')
+			continue;
+		return c == '{' || c == '[';
+	}
+	return false;
+}
+
+String NormalizeZoneType(const String& zone_type, const String& control_type = String())
+{
+	String type = ToUpper(zone_type);
+	if(type.IsEmpty()) {
+		if(control_type == "Button")
+			type = "BUTTON";
+		else if(control_type == "Label")
+			type = "LABEL";
+	}
+	return type;
+}
+
+String ZoneTypeToControlType(const String& zone_type)
+{
+	return NormalizeZoneType(zone_type) == "BUTTON" ? "Button" : "Label";
+}
+
+String EncodeFontColor(const Color& color)
+{
+	Color c = color;
+	return Encode64(StoreAsString(c));
+}
+
+Color ParseBackgroundColor(const String& value, const Color& fallback)
+{
+	Vector<String> parts = Split(value, ',');
+	if(parts.GetCount() != 3)
+		return fallback;
+	return Color(ScanInt(parts[0]), ScanInt(parts[1]), ScanInt(parts[2]));
+}
+
+void ConfigureZoneObject(FormObject& obj, const CardGameZoneDef& zone)
+{
+	String zone_type = NormalizeZoneType(zone.zone_type);
+	String control_type = ZoneTypeToControlType(zone_type);
+
+	obj.SetRect(zone.rect);
+	obj.SetHAlign(Ctrl::LEFT);
+	obj.SetVAlign(Ctrl::TOP);
+	obj.Set("Variable", zone.id);
+	obj.Set("Type", control_type);
+	obj.Set("ZoneType", zone_type);
+	obj.Set("Anchor", zone.anchor.IsEmpty() ? "TOP_LEFT" : zone.anchor);
+	obj.Set("Parent", zone.parent);
+
+	if(control_type == "Button") {
+		obj.Set("Label", zone.label);
+	}
+	else {
+		obj.Set("Label", zone.label);
+		obj.Set("Text.Align", zone.anchor == "CENTER_LEFT" ? "Left" :
+		                        zone.anchor == "CENTER_RIGHT" ? "Right" : "Center");
+		obj.Set("Font.Color", EncodeFontColor(White()));
+		if(zone.id == "status_line")
+			obj.SetNumber("Font.Height", 16);
+		else if(zone_type == "LABEL")
+			obj.SetNumber("Font.Height", 18);
+	}
+}
+
+void AddZoneObject(FormView& view, const CardGameZoneDef& zone)
+{
+	if(!view.IsLayout())
+		return;
+	view.GetObjects()->Add();
+	ConfigureZoneObject(view.GetObjects()->Top(), zone);
+}
+
+Size GuessCardGameFormSize(const Vector<CardGameZoneDef>& zones)
+{
+	int max_right = 800;
+	int max_bottom = 600;
+	for(const CardGameZoneDef& zone : zones) {
+		max_right = max(max_right, zone.rect.right + 32);
+		max_bottom = max(max_bottom, zone.rect.bottom + 32);
+	}
+	return Size(max_right, max_bottom);
+}
+
+bool LoadCardGameJsonForm(FormView& view, const String& data, Color& background_color)
+{
+	Value root = ParseJSON(data);
+	if(root.IsVoid() || !root.Is<ValueMap>())
+		return false;
+
+	Value bg = root["background_color"];
+	if(bg.Is<ValueMap>())
+		background_color = Color((int)bg["r"], (int)bg["g"], (int)bg["b"]);
+
+	Vector<CardGameZoneDef> defs;
+	Value zones = root["zones"];
+	if(zones.Is<ValueArray>()) {
+		for(int i = 0; i < zones.GetCount(); i++) {
+			Value zone = zones[i];
+			if(!zone.Is<ValueMap>())
+				continue;
+
+			CardGameZoneDef def;
+			def.id = zone["id"];
+			def.zone_type = zone["type"];
+			def.anchor = zone["anchor"];
+			Value rect = zone["rect"];
+			def.rect = RectC((int)rect["x"], (int)rect["y"], (int)rect["w"], (int)rect["h"]);
+			def.label = NormalizeZoneType(def.zone_type) == "BUTTON" ? def.id : String();
+			defs.Add(def);
+
+			Value children = zone["children"];
+			if(children.Is<ValueArray>()) {
+				for(int j = 0; j < children.GetCount(); j++) {
+					Value child = children[j];
+					if(!child.Is<ValueMap>())
+						continue;
+
+					CardGameZoneDef cdef;
+					cdef.id = child["id"];
+					cdef.zone_type = child["type"];
+					cdef.anchor = def.anchor;
+					cdef.parent = def.id;
+					Value child_rect = child["rect"];
+					cdef.rect = RectC(def.rect.left + (int)child_rect["x"],
+					                  def.rect.top + (int)child_rect["y"],
+					                  (int)child_rect["w"], (int)child_rect["h"]);
+					defs.Add(cdef);
+				}
+			}
+		}
+	}
+
+	view.New();
+	if(view.GetLayoutCount() <= 0)
+		return false;
+
+	FormLayout* layout = view.GetCurrentLayout();
+	layout->Set("Form.Name", root["name"]);
+	layout->SetNumber("Form.Width", GuessCardGameFormSize(defs).cx);
+	layout->SetNumber("Form.Height", GuessCardGameFormSize(defs).cy);
+	layout->Set("CardGame.Background", AsString(background_color.GetR()) + "," +
+	                                  AsString(background_color.GetG()) + "," +
+	                                  AsString(background_color.GetB()));
+	for(const CardGameZoneDef& def : defs)
+		AddZoneObject(view, def);
+
+	return true;
+}
+
+bool LoadCardGameFormView(FormView& view, const String& path, Color& background_color)
+{
+	String data = LoadFile(path);
+	if(data.IsVoid())
+		return false;
+
+	background_color = Color(40, 160, 40);
+	if(IsLikelyJsonForm(data))
+		return LoadCardGameJsonForm(view, data, background_color);
+
+	if(!view.LoadAll(path, false))
+		return false;
+
+	if(!view.IsLayout() && view.GetLayoutCount() > 0)
+		view.SelectLayout(0);
+	if(view.IsLayout()) {
+		String bg = view.GetCurrentLayout()->Get("CardGame.Background");
+		if(!bg.IsEmpty())
+			background_color = ParseBackgroundColor(bg, background_color);
+	}
+	return true;
+}
+
+Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
+{
+	Vector<CardGameZoneDef> defs;
+	const FormLayout* layout = view.GetCurrentLayout();
+	if(!layout)
+		return defs;
+
+	const Array<FormObject>& objects = layout->GetObjects();
+	for(int i = 0; i < objects.GetCount(); i++) {
+		const FormObject& obj = objects[i];
+		CardGameZoneDef& def = defs.Add();
+		def.id = obj.Get("Variable");
+		def.rect = obj.GetRect();
+		def.anchor = obj.Get("Anchor");
+		if(def.anchor.IsEmpty())
+			def.anchor = "TOP_LEFT";
+		def.zone_type = NormalizeZoneType(obj.Get("ZoneType"), obj.Get("Type"));
+		def.parent = obj.Get("Parent");
+		def.label = obj.Get("Label");
+	}
+	return defs;
+}
+
+Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
+{
+	if(Ctrl* ctrl = const_cast<Form&>(form).GetCtrl(zone_id))
+		return ctrl->GetRect();
+	return Rect();
+}
+
+Rect ResolveAnchoredRect(const Rect& r, const String& anchor, const Size& parent_sz)
+{
+	int x = r.left;
+	int y = r.top;
+
+	if(anchor == "CENTER") {
+		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
+		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+	}
+	else if(anchor == "BOTTOM_CENTER") {
+		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
+		y = parent_sz.cy - r.GetHeight() - r.top;
+	}
+	else if(anchor == "TOP_CENTER") {
+		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
+	}
+	else if(anchor == "CENTER_LEFT") {
+		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		x = parent_sz.cx - r.GetWidth() - r.left;
+		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		y = parent_sz.cy - r.GetHeight() - r.top;
+	}
+
+	return RectC(x, y, r.GetWidth(), r.GetHeight());
+}
+
+}
+
 // --- CardGameDocumentHost ---
+
+CardGameOverlay::CardGameOverlay()
+{
+	Transparent();
+}
+
+void CardGameOverlay::Paint(Draw& w)
+{
+	if(owner)
+		owner->PaintOverlay(w);
+}
+
+void CardGameOverlay::LeftDown(Point p, dword flags)
+{
+	if(owner)
+		owner->OverlayLeftDown(p, flags);
+}
 
 CardGameDocumentHost::CardGameDocumentHost()
 {
 	game_log.SetQTF("Welcome to the Game!&Ready to play.");
+	Add(table_form.SizePos());
+	overlay.owner = this;
+	overlay.NoWantFocus();
+	Add(overlay.SizePos());
 	Upp::SetTimeCallback(-16, [=] { Animate(); }, this);
 }
 
@@ -51,6 +324,7 @@ bool CardGameDocumentHost::Load(const String& path_)
 void CardGameDocumentHost::Layout()
 {
 	Ctrl::Layout();
+	ApplyFormLayout();
 
 	Size sz = GetSize();
 	if(sz == last_layout_size)
@@ -65,6 +339,7 @@ void CardGameDocumentHost::Layout()
 	resize_refresh_pending = true;
 	Upp::PostCallback([=] {
 		resize_refresh_pending = false;
+		ApplyFormLayout();
 		RefreshGameView();
 	}, &resize_refresh_pending);
 }
@@ -113,81 +388,40 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	labels.Clear();
 	buttons.Clear();
 	highlights.Clear();
-	
-	Value v = ParseJSON(LoadFile(path));
-	if(v.IsVoid()) return;
-	
-	if(v.Is<ValueMap>()) {
-		Value bg = v["background_color"];
-		if(bg.Is<ValueMap>()) {
-			background_color = Color((int)bg["r"], (int)bg["g"], (int)bg["b"]);
-		}
-		
-		Value vzones = v["zones"];
-		if(vzones.Is<ValueArray>()) {
-			for(int i = 0; i < vzones.GetCount(); i++) {
-				Value vz = vzones[i];
-				if(vz.Is<ValueMap>()) {
-					String zid = vz["id"];
-					Zone& z = zones.Add(zid);
-					z.id = zid;
-					Value vr = vz["rect"];
-					z.rect = RectC((int)vr["x"], (int)vr["y"], (int)vr["w"], (int)vr["h"]);
-					z.anchor = vz["anchor"];
-					z.type = vz["type"];
-					
-					Value vchildren = vz["children"];
-					if(vchildren.Is<ValueArray>()) {
-						for(int j = 0; j < vchildren.GetCount(); j++) {
-							Value vc = vchildren[j];
-							if(vc.Is<ValueMap>()) {
-								String cid = vc["id"];
-								Zone& cz = zones.Add(cid);
-								cz.id = cid;
-								Value cr = vc["rect"];
-								cz.rect = RectC(z.rect.left + (int)vc["rect"]["x"], z.rect.top + (int)vc["rect"]["y"], (int)vc["rect"]["w"], (int)vc["rect"]["h"]);
-								cz.anchor = z.anchor; 
-								cz.type = vc["type"];
-							}
-						}
-					}
-				}
-			}
-		}
+
+	FormView view;
+	if(!LoadCardGameFormView(view, path, background_color))
+		return;
+
+	String xml;
+	view.SaveAllString(xml, false);
+	if(!table_form.LoadString(xml, false))
+		return;
+
+	String layout_name = "Default";
+	if(view.IsLayout())
+		layout_name = view.GetCurrentLayout()->Get("Form.Name", "Default");
+	if(!table_form.Layout(layout_name))
+		return;
+
+	Vector<CardGameZoneDef> defs = ExtractCardGameZones(view);
+	for(const CardGameZoneDef& def : defs) {
+		Zone& z = zones.GetAdd(def.id);
+		z.id = def.id;
+		z.rect = def.rect;
+		z.anchor = def.anchor;
+		z.type = def.zone_type;
 	}
-	
+
+	ApplyFormLayout();
+	SyncFormControls();
 	Refresh();
 	SyncFormExplorer();
 }
 
 Rect CardGameDocumentHost::GetAbsoluteRect(const Rect& r, const String& anchor, const Size& parent_sz)
 {
-	int x = r.left;
-	int y = r.top;
-	
-	if(anchor == "CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
-	}
-	else if(anchor == "BOTTOM_CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
-		y = parent_sz.cy - r.GetHeight() - r.top;
-	}
-	else if(anchor == "TOP_CENTER") {
-		x = (parent_sz.cx / 2) - (r.GetWidth() / 2) + r.left;
-	}
-	else if(anchor == "CENTER_LEFT") {
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
-	}
-	else if(anchor == "CENTER_RIGHT") {
-		x = parent_sz.cx - r.GetWidth() - r.left;
-		y = (parent_sz.cy / 2) - (r.GetHeight() / 2) + r.top;
-	}
-	else if(anchor == "BOTTOM_LEFT") {
-		y = parent_sz.cy - r.GetHeight() - r.top;
-	}
-	
-	return RectC(x, y, r.GetWidth(), r.GetHeight());
+	return ResolveAnchoredRect(r, anchor, parent_sz);
 }
 
 // IHeartsView implementation
@@ -196,14 +430,15 @@ void CardGameDocumentHost::ClearSprites()
 {
 	sprites.Clear();
 	SyncFormExplorer();
-	Refresh();
+	overlay.Refresh();
 }
 
 void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
 {
 	labels.GetAdd(zone_id) = text;
+	SyncFormControls();
 	SyncFormExplorer();
-	Refresh();
+	table_form.Refresh();
 }
 
 void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, bool enabled)
@@ -211,8 +446,9 @@ void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, 
 	ActionButton& b = buttons.GetAdd(zone_id);
 	b.text = text;
 	b.enabled = enabled;
+	SyncFormControls();
 	SyncFormExplorer();
-	Refresh();
+	table_form.Refresh();
 }
 
 void CardGameDocumentHost::SetHighlight(const String& zone_id, bool enabled)
@@ -226,14 +462,15 @@ void CardGameDocumentHost::SetHighlight(const String& zone_id, bool enabled)
 		highlights.Remove(q);
 	}
 	SyncFormExplorer();
-	Refresh();
+	overlay.Refresh();
 }
 
 void CardGameDocumentHost::SetStatus(const String& text)
 {
 	status_text = text;
+	SyncFormControls();
 	SyncFormExplorer();
-	Refresh();
+	table_form.Refresh();
 }
 
 void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_path, int x, int y)
@@ -252,17 +489,18 @@ void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_pa
 	s.target_rect = s.rect;
 	s.animating = false;
 	SyncFormExplorer();
-	Refresh();
+	overlay.Refresh();
 }
 
 void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
 {
-	int qz = zones.Find(zone_id);
 	int qs = sprites.Find(card_id);
-	if(qz < 0 || qs < 0) return;
+	if(qs < 0)
+		return;
 
-	Zone& z = zones[qz];
-	Rect abs_z = GetAbsoluteRect(z.rect, z.anchor, GetSize());
+	Rect abs_z = GetZoneRectFromForm(table_form, zone_id);
+	if(abs_z.IsEmpty())
+		return;
 	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2) + offset;
 	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
 
@@ -275,15 +513,14 @@ void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& z
 		s.animating = false;
 	}
 	SyncFormExplorer();
-	Refresh();
+	overlay.Refresh();
 }
 
 Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 {
-	int q = zones.Find(zone_id);
 	ValueMap m;
-	if(q >= 0) {
-		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
+	Rect r = GetZoneRectFromForm(table_form, zone_id);
+	if(!r.IsEmpty()) {
 		m.Add("x", r.left);
 		m.Add("y", r.top);
 		m.Add("w", r.GetWidth());
@@ -321,7 +558,7 @@ void CardGameDocumentHost::Animate()
 			changed = true;
 		}
 	}
-	if(changed) Refresh();
+	if(changed) overlay.Refresh();
 }
 
 void CardGameDocumentHost::RefreshGameView()
@@ -350,6 +587,8 @@ void CardGameDocumentHost::RefreshGameView()
 		Refresh();
 	}
 	refresh_running = false;
+	ApplyFormLayout();
+	SyncFormControls();
 }
 
 void CardGameDocumentHost::SyncFormExplorer()
@@ -366,7 +605,7 @@ void CardGameDocumentHost::SyncFormExplorer()
 		FormExplorerEntry& e = entries.Add();
 		e.path = "zones/" + z.id;
 		e.type = "Zone";
-		e.rect = GetAbsoluteRect(z.rect, z.anchor, sz);
+		e.rect = GetZoneRectFromForm(table_form, z.id);
 		e.details = z.type + ", " + z.anchor;
 	}
 
@@ -381,31 +620,28 @@ void CardGameDocumentHost::SyncFormExplorer()
 
 	for(int i = 0; i < labels.GetCount(); i++) {
 		String zone_id = labels.GetKey(i);
-		int q = zones.Find(zone_id);
 		FormExplorerEntry& e = entries.Add();
 		e.path = "labels/" + zone_id;
 		e.type = "Label";
-		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.rect = GetZoneRectFromForm(table_form, zone_id);
 		e.details = labels[i];
 	}
 
 	for(int i = 0; i < buttons.GetCount(); i++) {
 		String zone_id = buttons.GetKey(i);
-		int q = zones.Find(zone_id);
 		FormExplorerEntry& e = entries.Add();
 		e.path = "buttons/" + zone_id;
 		e.type = buttons[i].enabled ? "Button" : "Button (disabled)";
-		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.rect = GetZoneRectFromForm(table_form, zone_id);
 		e.details = buttons[i].text;
 	}
 
 	for(int i = 0; i < highlights.GetCount(); i++) {
 		String zone_id = highlights[i];
-		int q = zones.Find(zone_id);
 		FormExplorerEntry& e = entries.Add();
 		e.path = "highlights/" + zone_id;
 		e.type = "Highlight";
-		e.rect = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz) : Rect();
+		e.rect = GetZoneRectFromForm(table_form, zone_id);
 		e.details = "active";
 	}
 
@@ -414,33 +650,61 @@ void CardGameDocumentHost::SyncFormExplorer()
 
 void CardGameDocumentHost::Paint(Draw& w)
 {
-	Size sz = GetSize();
-	w.DrawRect(sz, background_color);
+	w.DrawRect(GetSize(), background_color);
+}
 
-	Font label_font = SansSerif(18).Bold();
-	Font status_font = SansSerif(16);
-	Color text_color = White();
-	
-	for(int i = 0; i < labels.GetCount(); i++) {
-		int q = zones.Find(labels.GetKey(i));
-		if(q < 0)
+void CardGameDocumentHost::ApplyFormLayout()
+{
+	for(int i = 0; i < zones.GetCount(); i++) {
+		const Zone& zone = zones[i];
+		Ctrl* ctrl = table_form.GetCtrl(zone.id);
+		if(!ctrl)
 			continue;
-		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
-		Size tsz = GetTextSize(labels[i], label_font);
-		int tx = r.left + (r.GetWidth() - tsz.cx) / 2;
-		if(zones[q].anchor == "CENTER_LEFT")
-			tx = r.left;
-		else if(zones[q].anchor == "CENTER_RIGHT")
-			tx = r.right - tsz.cx;
-		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
-		w.DrawText(tx, ty, labels[i], label_font, text_color);
+		ctrl->SetRect(GetAbsoluteRect(zone.rect, zone.anchor, table_form.GetSize()));
+	}
+}
+
+void CardGameDocumentHost::SyncFormControls()
+{
+	for(int i = 0; i < labels.GetCount(); i++) {
+		if(Ctrl* ctrl = table_form.GetCtrl(labels.GetKey(i))) {
+			if(Label* label = dynamic_cast<Label*>(ctrl)) {
+				label->SetLabel(labels[i]);
+				label->SetInk(White());
+				int q = zones.Find(labels.GetKey(i));
+				if(q >= 0) {
+					label->SetAlign(zones[q].anchor == "CENTER_LEFT" ? ALIGN_LEFT :
+					               zones[q].anchor == "CENTER_RIGHT" ? ALIGN_RIGHT :
+					               ALIGN_CENTER);
+				}
+			}
+		}
 	}
 
+	for(int i = 0; i < buttons.GetCount(); i++) {
+		if(Ctrl* ctrl = table_form.GetCtrl(buttons.GetKey(i))) {
+			if(Button* button = dynamic_cast<Button*>(ctrl)) {
+				button->SetLabel(buttons[i].text);
+				button->Enable(buttons[i].enabled);
+			}
+		}
+	}
+
+	if(Ctrl* ctrl = table_form.GetCtrl("status_line")) {
+		if(Label* label = dynamic_cast<Label*>(ctrl)) {
+			label->SetLabel(status_text);
+			label->SetInk(White());
+			label->SetAlign(ALIGN_LEFT);
+		}
+	}
+}
+
+void CardGameDocumentHost::PaintOverlay(Draw& w)
+{
 	for(int i = 0; i < highlights.GetCount(); i++) {
-		int q = zones.Find(highlights[i]);
-		if(q < 0)
+		Rect r = GetZoneRectFromForm(table_form, highlights[i]);
+		if(r.IsEmpty())
 			continue;
-		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
 		Color glow = Color(255, 215, 70);
 		w.DrawRect(r.left - 4, r.top - 4, r.GetWidth() + 8, 3, glow);
 		w.DrawRect(r.left - 4, r.bottom + 1, r.GetWidth() + 8, 3, glow);
@@ -448,35 +712,6 @@ void CardGameDocumentHost::Paint(Draw& w)
 		w.DrawRect(r.right + 1, r.top - 4, 3, r.GetHeight() + 8, glow);
 	}
 
-	Font button_font = SansSerif(15).Bold();
-	for(int i = 0; i < buttons.GetCount(); i++) {
-		int q = zones.Find(buttons.GetKey(i));
-		if(q < 0)
-			continue;
-		const ActionButton& b = buttons[i];
-		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz);
-		Color bg = b.enabled ? Color(238, 238, 238) : Color(150, 150, 150);
-		Color fg = b.enabled ? Black() : Color(70, 70, 70);
-		w.DrawRect(r, bg);
-		w.DrawRect(r.left, r.top, r.GetWidth(), 1, Color(255, 255, 255));
-		w.DrawRect(r.left, r.top, 1, r.GetHeight(), Color(255, 255, 255));
-		w.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, Color(80, 80, 80));
-		w.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), Color(80, 80, 80));
-		Size tsz = GetTextSize(b.text, button_font);
-		int tx = r.left + (r.GetWidth() - tsz.cx) / 2;
-		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
-		w.DrawText(tx, ty, b.text, button_font, fg);
-	}
-
-	if(!status_text.IsEmpty()) {
-		int q = zones.Find("status_line");
-		Rect r = q >= 0 ? GetAbsoluteRect(zones[q].rect, zones[q].anchor, sz)
-		                : RectC(16, sz.cy - 40, max(0, sz.cx - 32), 24);
-		Size tsz = GetTextSize(status_text, status_font);
-		int ty = r.top + (r.GetHeight() - tsz.cy) / 2;
-		w.DrawText(r.left, ty, status_text, status_font, White());
-	}
-	
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const Sprite& s = sprites[i];
 		if(!s.img.IsEmpty())
@@ -484,45 +719,46 @@ void CardGameDocumentHost::Paint(Draw& w)
 	}
 }
 
-void CardGameDocumentHost::LeftDown(Point p, dword flags)
+void CardGameDocumentHost::OverlayLeftDown(Point p, dword flags)
 {
 	for(int i = 0; i < buttons.GetCount(); i++) {
-		int q = zones.Find(buttons.GetKey(i));
-		if(q < 0 || !buttons[i].enabled)
+		if(!buttons[i].enabled)
 			continue;
-		Rect r = GetAbsoluteRect(zones[q].rect, zones[q].anchor, GetSize());
-		if(r.Contains(p)) {
-			if(plugin) {
-				PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-				if(vm) {
-					PyValue on_button = vm->GetGlobals().GetDict().Get("on_button", PyValue());
-					if(on_button.IsFunction()) {
-						try { vm->Call(on_button, {PyValue(buttons.GetKey(i))}); }
-						catch(Exc& e) { LOG("on_button error: " << e); }
-						Refresh();
-					}
+		Rect r = GetZoneRectFromForm(table_form, buttons.GetKey(i));
+		if(!r.Contains(p))
+			continue;
+		if(plugin) {
+			PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+			if(vm) {
+				PyValue on_button = vm->GetGlobals().GetDict().Get("on_button", PyValue());
+				if(on_button.IsFunction()) {
+					try { vm->Call(on_button, {PyValue(buttons.GetKey(i))}); }
+					catch(Exc& e) { LOG("on_button error: " << e); }
+					SyncFormControls();
+					overlay.Refresh();
 				}
 			}
-			return;
 		}
+		return;
 	}
 
 	for(int i = sprites.GetCount() - 1; i >= 0; i--) {
-		if(sprites[i].rect.Contains(p)) {
-			String card_id = sprites.GetKey(i);
-			if(plugin) {
-				PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-				if(vm) {
-					PyValue on_click = vm->GetGlobals().GetDict().Get("on_click", PyValue());
-					if(on_click.IsFunction()) {
-						try { vm->Call(on_click, {PyValue(card_id)}); }
-						catch(Exc& e) { LOG("on_click error: " << e); }
-						Refresh();
-					}
+		if(!sprites[i].rect.Contains(p))
+			continue;
+		String card_id = sprites.GetKey(i);
+		if(plugin) {
+			PyVM* vm = plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
+			if(vm) {
+				PyValue on_click = vm->GetGlobals().GetDict().Get("on_click", PyValue());
+				if(on_click.IsFunction()) {
+					try { vm->Call(on_click, {PyValue(card_id)}); }
+					catch(Exc& e) { LOG("on_click error: " << e); }
+					SyncFormControls();
+					overlay.Refresh();
 				}
 			}
-			break;
 		}
+		break;
 	}
 }
 
@@ -539,17 +775,18 @@ void CardGameProperties::Generate(FormObject* pI, int index)
 	_Index = index;
 
 	String type = pI->Get("Type");
+	String zone_type = NormalizeZoneType(pI->Get("ZoneType"), type);
 	if (type.IsEmpty()) return;
 
 	Property("Variable", t_("ID:"), "EditField", Array<String>() << pI->Get("Variable"));
-	Property("Type", t_("Zone Type:"), "DropList", Array<String>() << pI->Get("Type") << "HAND" << "TRICK" << "CONTAINER" << "LABEL" << "SPRITE");
-	Property("Anchor", t_("Anchor:"), "DropList", Array<String>() << pI->Get("Anchor") << "TOP_LEFT" << "CENTER" << "BOTTOM_CENTER" << "TOP_CENTER" << "CENTER_LEFT" << "CENTER_RIGHT");
+	Property("ZoneType", t_("Zone Type:"), "DropList", Array<String>() << zone_type << "HAND" << "TRICK" << "CONTAINER" << "LABEL" << "BUTTON" << "SPRITE");
+	Property("Anchor", t_("Anchor:"), "DropList", Array<String>() << pI->Get("Anchor", "TOP_LEFT") << "TOP_LEFT" << "CENTER" << "BOTTOM_CENTER" << "TOP_CENTER" << "CENTER_LEFT" << "CENTER_RIGHT" << "BOTTOM_LEFT");
 	
-	if(type == "LABEL") {
+	if(zone_type == "LABEL" || zone_type == "BUTTON") {
 		Property("Label", t_("Text:"), "EditField", Array<String>() << pI->Get("Label"));
 	}
 	
-	if(type == "SPRITE") {
+	if(zone_type == "SPRITE") {
 		Property("Image", t_("Asset:"), "EditField", Array<String>() << pI->Get("Image"));
 	}
 
@@ -560,15 +797,22 @@ void CardGameProperties::Generate(FormObject* pI, int index)
 
 CardGameLayoutEditor::CardGameLayoutEditor()
 {
-	Construct(true);
 	embedded = true;
+
+	Add(hsplit.SizePos());
+	hsplit.Horz(vsplit, main);
+	hsplit.SetPos(2000);
+
+	vsplit.Vert() << _LayoutList << _ItemList << card_properties;
+
+	main.Add(_CtrlContainer.SizePos());
+	main.Add(_Container.SizePos());
+
+	Construct(false);
 	
 	_TypeList.Clear();
-	_TypeList.Add("ZONE");
-	_TypeList.Add("CARD_SLOT");
-	_TypeList.Add("LABEL");
-	_TypeList.Add("CONTAINER");
-	_TypeList.Add("SPRITE");
+	_TypeList.Add("Label");
+	_TypeList.Add("Button");
 	
 	_View.WhenObjectProperties = [this](const Vector<int>& idx) { this->OpenCardProperties(idx); };
 }
@@ -613,46 +857,17 @@ void CardGameLayoutEditor::OpenCardProperties(const Vector<int>& indexes)
 bool CardGameLayoutEditor::Load(const String& path_)
 {
 	path = path_;
-	_View.New();
-	
-	Value v = ParseJSON(LoadFile(path));
-	if(v.IsVoid()) return false;
-	
-	if(v.Is<ValueMap>()) {
-		_View.AddLayout(v["name"]);
+	Clear();
+
+	Color bg;
+	if(!LoadCardGameFormView(_View, path, bg))
+		return false;
+	if(!_View.IsLayout() && _View.GetLayoutCount() > 0)
 		_View.SelectLayout(0);
-		
-		Value vzones = v["zones"];
-		if(vzones.Is<ValueArray>()) {
-			for(int i = 0; i < vzones.GetCount(); i++) {
-				Value vz = vzones[i];
-				Rect r = RectC((int)vz["rect"]["x"], (int)vz["rect"]["y"], (int)vz["rect"]["w"], (int)vz["rect"]["h"]);
-				
-				_View.CreateObject(r.TopLeft(), "ZONE"); 
-				int last = _View.GetObjectCount() - 1;
-				FormObject& obj = (*_View.GetObjects())[last];
-				obj.SetRect(r);
-				obj.Set("Variable", vz["id"]);
-				obj.Set("Type", vz["type"]);
-				obj.Set("Anchor", vz["anchor"]);
-				
-				Value vchildren = vz["children"];
-				if(vchildren.Is<ValueArray>()) {
-					for(int j = 0; j < vchildren.GetCount(); j++) {
-						Value vc = vchildren[j];
-						Rect cr = RectC(r.left + (int)vc["rect"]["x"], r.top + (int)vc["rect"]["y"], (int)vc["rect"]["w"], (int)vc["rect"]["h"]);
-						_View.CreateObject(cr.TopLeft(), "ZONE");
-						int clast = _View.GetObjectCount() - 1;
-						FormObject& cobj = (*_View.GetObjects())[clast];
-						cobj.SetRect(cr);
-						cobj.Set("Variable", vc["id"]);
-						cobj.Set("Type", vc["type"]);
-						cobj.Set("Parent", vz["id"]);
-					}
-				}
-			}
-		}
-	}
+	UpdateLayoutList();
+	UpdateChildZ();
+	_Container.Set(_View, _View.GetPageRect().GetSize());
+	SetViewMode(VIEW_MODE_INFO);
 	
 	UpdateTools();
 	ProjectSaved(true);
@@ -661,56 +876,27 @@ bool CardGameLayoutEditor::Load(const String& path_)
 
 bool CardGameLayoutEditor::Save()
 {
-	ValueMap m;
 	if(_View.IsLayout()) {
-		m.Add("name", _View.GetCurrentLayout()->Get("Form.Name"));
-		
-		ValueMap bg;
-		bg.Add("r", 40); bg.Add("g", 160); bg.Add("b", 40);
-		m.Add("background_color", bg);
-		
-		ValueArray vzones;
+		FormLayout* layout = _View.GetCurrentLayout();
+		if(layout && layout->Get("CardGame.Background").IsEmpty())
+			layout->Set("CardGame.Background", "40,160,40");
+
 		Array<FormObject>* objs = _View.GetObjects();
 		if(objs) {
 			for(int i = 0; i < objs->GetCount(); i++) {
 				FormObject& obj = (*objs)[i];
-				if(!obj.Get("Parent").IsEmpty()) continue;
-				
-				ValueMap vz;
-				vz.Add("id", obj.Get("Variable"));
-				vz.Add("type", obj.Get("Type"));
-				vz.Add("anchor", obj.Get("Anchor", "TOP_LEFT"));
-				
-				Rect r = obj.GetRect();
-				ValueMap rect;
-				rect.Add("x", r.left); rect.Add("y", r.top); rect.Add("w", r.GetWidth()); rect.Add("h", r.GetHeight());
-				vz.Add("rect", rect);
-				
-				ValueArray children;
-				for(int j = 0; j < objs->GetCount(); j++) {
-					FormObject& cobj = (*objs)[j];
-					if(cobj.Get("Parent") == obj.Get("Variable")) {
-						ValueMap cvz;
-						cvz.Add("id", cobj.Get("Variable"));
-						cvz.Add("type", cobj.Get("Type", "ZONE"));
-						Rect cr = cobj.GetRect();
-						ValueMap crect;
-						crect.Add("x", cr.left - r.left); crect.Add("y", cr.top - r.top); crect.Add("w", cr.GetWidth()); crect.Add("h", cr.GetHeight());
-						cvz.Add("rect", crect);
-						children.Add(cvz);
-					}
-				}
-				if(children.GetCount() > 0)
-					vz.Add("children", children);
-					
-				vzones.Add(vz);
+				String zone_type = NormalizeZoneType(obj.Get("ZoneType"), obj.Get("Type"));
+				obj.Set("ZoneType", zone_type);
+				obj.Set("Type", ZoneTypeToControlType(zone_type));
+				if(zone_type == "BUTTON" && obj.Get("Label").IsEmpty())
+					obj.Set("Label", obj.Get("Variable"));
 			}
 		}
-		m.Add("zones", vzones);
 	}
-	
-	String json = AsJSON(Value(m), true);
-	if(::Upp::SaveFile(path, json)) {
+
+	bool ok = _View.SaveAll(path, false);
+
+	if(ok) {
 		ProjectSaved(true);
 		return true;
 	}
@@ -725,31 +911,10 @@ bool CardGameLayoutEditor::SaveAs(const String& path_)
 
 void CardGameLayoutEditor::ActivateUI()
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-		if(!ide->context_pane_left.IsDocked())
-			ide->DockLeft(ide->context_pane_left);
-		
-		if(!ide->context_pane_right.IsDocked())
-			ide->DockRight(ide->context_pane_right);
-		
-		ide->context_pane_left.Title("Properties");
-		ide->context_pane_left.Add(card_properties.SizePos());
-		ide->context_pane_left.Show();
-		
-		ide->context_pane_right.Title("Items");
-		ide->context_pane_right.Add(_ItemList.SizePos());
-		ide->context_pane_right.Show();
-	}
 }
 
 void CardGameLayoutEditor::DeactivateUI()
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-		card_properties.Remove();
-		_ItemList.Ctrl::Remove();
-		ide->context_pane_left.Close();
-		ide->context_pane_right.Close();
-	}
 }
 
 void CardGameLayoutEditor::MainMenu(Bar& bar)

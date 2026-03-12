@@ -7,25 +7,14 @@ struct CardGameZoneDef : Moveable<CardGameZoneDef> {
 	String id;
 	Rect   rect;
 	String anchor;
-	String zone_type;
+	String user_class;
 	String parent;
 	String label;
 };
 
-bool IsLikelyJsonForm(const String& data)
+String NormalizeUserClass(const String& user_class, const String& control_type = String())
 {
-	for(int i = 0; i < data.GetCount(); i++) {
-		int c = data[i];
-		if(c == ' ' || c == '\t' || c == '\r' || c == '\n')
-			continue;
-		return c == '{' || c == '[';
-	}
-	return false;
-}
-
-String NormalizeZoneType(const String& zone_type, const String& control_type = String())
-{
-	String type = ToUpper(zone_type);
+	String type = ToUpper(user_class);
 	if(type.IsEmpty()) {
 		if(control_type == "Button")
 			type = "BUTTON";
@@ -35,15 +24,9 @@ String NormalizeZoneType(const String& zone_type, const String& control_type = S
 	return type;
 }
 
-String ZoneTypeToControlType(const String& zone_type)
+String UserClassToControlType(const String& user_class)
 {
-	return NormalizeZoneType(zone_type) == "BUTTON" ? "Button" : "Label";
-}
-
-String EncodeFontColor(const Color& color)
-{
-	Color c = color;
-	return Encode64(StoreAsString(c));
+	return NormalizeUserClass(user_class) == "BUTTON" ? "Button" : "Label";
 }
 
 Color ParseBackgroundColor(const String& value, const Color& fallback)
@@ -54,130 +37,9 @@ Color ParseBackgroundColor(const String& value, const Color& fallback)
 	return Color(ScanInt(parts[0]), ScanInt(parts[1]), ScanInt(parts[2]));
 }
 
-void ConfigureZoneObject(FormObject& obj, const CardGameZoneDef& zone)
-{
-	String zone_type = NormalizeZoneType(zone.zone_type);
-	String control_type = ZoneTypeToControlType(zone_type);
-
-	obj.SetRect(zone.rect);
-	obj.SetHAlign(Ctrl::LEFT);
-	obj.SetVAlign(Ctrl::TOP);
-	obj.Set("Variable", zone.id);
-	obj.Set("Type", control_type);
-	obj.Set("UserClass", zone_type);
-	obj.Set("Anchor", zone.anchor.IsEmpty() ? "TOP_LEFT" : zone.anchor);
-	obj.Set("Parent", zone.parent);
-
-	if(control_type == "Button") {
-		obj.Set("Label", zone.label);
-	}
-	else {
-		obj.Set("Label", zone.label);
-		obj.Set("Text.Align", zone.anchor == "CENTER_LEFT" ? "Left" :
-		                        zone.anchor == "CENTER_RIGHT" ? "Right" : "Center");
-		obj.Set("Font.Color", EncodeFontColor(White()));
-		if(zone.id == "status_line")
-			obj.SetNumber("Font.Height", 16);
-		else if(zone_type == "LABEL")
-			obj.SetNumber("Font.Height", 18);
-	}
-}
-
-void AddZoneObject(FormView& view, const CardGameZoneDef& zone)
-{
-	if(!view.IsLayout())
-		return;
-	view.GetObjects()->Add();
-	ConfigureZoneObject(view.GetObjects()->Top(), zone);
-}
-
-Size GuessCardGameFormSize(const Vector<CardGameZoneDef>& zones)
-{
-	int max_right = 800;
-	int max_bottom = 600;
-	for(const CardGameZoneDef& zone : zones) {
-		max_right = max(max_right, zone.rect.right + 32);
-		max_bottom = max(max_bottom, zone.rect.bottom + 32);
-	}
-	return Size(max_right, max_bottom);
-}
-
-bool LoadCardGameJsonForm(FormView& view, const String& data, Color& background_color)
-{
-	Value root = ParseJSON(data);
-	if(root.IsVoid() || !root.Is<ValueMap>())
-		return false;
-
-	Value bg = root["background_color"];
-	if(bg.Is<ValueMap>())
-		background_color = Color((int)bg["r"], (int)bg["g"], (int)bg["b"]);
-
-	Vector<CardGameZoneDef> defs;
-	Value zones = root["zones"];
-	if(zones.Is<ValueArray>()) {
-		for(int i = 0; i < zones.GetCount(); i++) {
-			Value zone = zones[i];
-			if(!zone.Is<ValueMap>())
-				continue;
-
-			CardGameZoneDef def;
-			def.id = zone["id"];
-			def.zone_type = zone["type"];
-			def.anchor = zone["anchor"];
-			Value rect = zone["rect"];
-			def.rect = RectC((int)rect["x"], (int)rect["y"], (int)rect["w"], (int)rect["h"]);
-			def.label = NormalizeZoneType(def.zone_type) == "BUTTON" ? def.id : String();
-			defs.Add(def);
-
-			Value children = zone["children"];
-			if(children.Is<ValueArray>()) {
-				for(int j = 0; j < children.GetCount(); j++) {
-					Value child = children[j];
-					if(!child.Is<ValueMap>())
-						continue;
-
-					CardGameZoneDef cdef;
-					cdef.id = child["id"];
-					cdef.zone_type = child["type"];
-					cdef.anchor = def.anchor;
-					cdef.parent = def.id;
-					Value child_rect = child["rect"];
-					cdef.rect = RectC(def.rect.left + (int)child_rect["x"],
-					                  def.rect.top + (int)child_rect["y"],
-					                  (int)child_rect["w"], (int)child_rect["h"]);
-					defs.Add(cdef);
-				}
-			}
-		}
-	}
-
-	view.New();
-	if(view.GetLayoutCount() <= 0)
-		return false;
-
-	FormLayout* layout = view.GetCurrentLayout();
-	layout->Set("Form.Name", root["name"]);
-	layout->SetNumber("Form.Width", GuessCardGameFormSize(defs).cx);
-	layout->SetNumber("Form.Height", GuessCardGameFormSize(defs).cy);
-	layout->Set("CardGame.Background", AsString(background_color.GetR()) + "," +
-	                                  AsString(background_color.GetG()) + "," +
-	                                  AsString(background_color.GetB()));
-	for(const CardGameZoneDef& def : defs)
-		AddZoneObject(view, def);
-
-	return true;
-}
-
 bool LoadCardGameFormView(FormView& view, const String& path, Color& background_color)
 {
-	String data = LoadFile(path);
-	if(data.IsVoid())
-		return false;
-
 	background_color = Color(40, 160, 40);
-	if(IsLikelyJsonForm(data))
-		return LoadCardGameJsonForm(view, data, background_color);
-
 	if(!view.LoadAll(path, false))
 		return false;
 
@@ -207,10 +69,7 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 		def.anchor = obj.Get("Anchor");
 		if(def.anchor.IsEmpty())
 			def.anchor = "TOP_LEFT";
-		String user_class = obj.Get("UserClass");
-		if(user_class.IsEmpty())
-			user_class = obj.Get("ZoneType");
-		def.zone_type = NormalizeZoneType(user_class, obj.Get("Type"));
+		def.user_class = NormalizeUserClass(obj.Get("UserClass"), obj.Get("Type"));
 		def.parent = obj.Get("Parent");
 		def.label = obj.Get("Label");
 	}
@@ -363,7 +222,7 @@ bool CardGameDocumentHost::Load(const String& path_)
 void CardGameDocumentHost::Layout()
 {
 	Ctrl::Layout();
-	ApplyFormLayout();
+	ApplyFormItemLayout();
 
 	Size sz = GetSize();
 	if(sz == last_layout_size)
@@ -378,7 +237,7 @@ void CardGameDocumentHost::Layout()
 	resize_refresh_pending = true;
 	Upp::PostCallback([=] {
 		resize_refresh_pending = false;
-		ApplyFormLayout();
+		ApplyFormItemLayout();
 		RefreshGameView();
 	}, &resize_refresh_pending);
 }
@@ -423,7 +282,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 {
 	form_path = path;
 	sprites.Clear();
-	zones.Clear();
+	form_items.Clear();
 	labels.Clear();
 	buttons.Clear();
 	highlights.Clear();
@@ -445,14 +304,14 @@ void CardGameDocumentHost::SetLayout(const String& path)
 
 	Vector<CardGameZoneDef> defs = ExtractCardGameZones(view);
 	for(const CardGameZoneDef& def : defs) {
-		Zone& z = zones.GetAdd(def.id);
-		z.id = def.id;
-		z.rect = def.rect;
-		z.anchor = def.anchor;
-		z.type = def.zone_type;
+		FormItem& item = form_items.GetAdd(def.id);
+		item.id = def.id;
+		item.rect = def.rect;
+		item.anchor = def.anchor;
+		item.user_class = def.user_class;
 	}
 
-	ApplyFormLayout();
+	ApplyFormItemLayout();
 	SyncFormControls();
 	Refresh();
 	SyncFormExplorer();
@@ -627,7 +486,7 @@ void CardGameDocumentHost::RefreshGameView()
 		Refresh();
 	}
 	refresh_running = false;
-	ApplyFormLayout();
+	ApplyFormItemLayout();
 	SyncFormControls();
 }
 
@@ -640,13 +499,13 @@ void CardGameDocumentHost::SyncFormExplorer()
 	Vector<FormExplorerEntry> entries;
 	Size sz = GetSize();
 
-	for(int i = 0; i < zones.GetCount(); i++) {
-		const Zone& z = zones[i];
+	for(int i = 0; i < form_items.GetCount(); i++) {
+		const FormItem& item = form_items[i];
 		FormExplorerEntry& e = entries.Add();
-		e.path = "zones/" + z.id;
-		e.type = "Zone";
-		e.rect = GetZoneRectFromForm(table_form, z.id);
-		e.details = z.type + ", " + z.anchor;
+		e.path = "form_items/" + item.id;
+		e.type = "Form item";
+		e.rect = GetZoneRectFromForm(table_form, item.id);
+		e.details = item.user_class + ", " + item.anchor;
 	}
 
 	for(int i = 0; i < sprites.GetCount(); i++) {
@@ -693,14 +552,14 @@ void CardGameDocumentHost::Paint(Draw& w)
 	w.DrawRect(GetSize(), background_color);
 }
 
-void CardGameDocumentHost::ApplyFormLayout()
+void CardGameDocumentHost::ApplyFormItemLayout()
 {
-	for(int i = 0; i < zones.GetCount(); i++) {
-		const Zone& zone = zones[i];
-		Ctrl* ctrl = table_form.GetCtrl(zone.id);
+	for(int i = 0; i < form_items.GetCount(); i++) {
+		const FormItem& item = form_items[i];
+		Ctrl* ctrl = table_form.GetCtrl(item.id);
 		if(!ctrl)
 			continue;
-		ctrl->SetRect(GetAbsoluteRect(zone.rect, zone.anchor, table_form.GetSize()));
+		ctrl->SetRect(GetAbsoluteRect(item.rect, item.anchor, table_form.GetSize()));
 	}
 }
 
@@ -711,10 +570,10 @@ void CardGameDocumentHost::SyncFormControls()
 			if(Label* label = dynamic_cast<Label*>(ctrl)) {
 				label->SetLabel(labels[i]);
 				label->SetInk(White());
-				int q = zones.Find(labels.GetKey(i));
+				int q = form_items.Find(labels.GetKey(i));
 				if(q >= 0) {
-					label->SetAlign(zones[q].anchor == "CENTER_LEFT" ? ALIGN_LEFT :
-					               zones[q].anchor == "CENTER_RIGHT" ? ALIGN_RIGHT :
+					label->SetAlign(form_items[q].anchor == "CENTER_LEFT" ? ALIGN_LEFT :
+					               form_items[q].anchor == "CENTER_RIGHT" ? ALIGN_RIGHT :
 					               ALIGN_CENTER);
 				}
 			}
@@ -812,8 +671,6 @@ void CardGameProperties::Generate(FormObject* pI, int index)
 
 	String type = pI->Get("Type");
 	String user_class = pI->Get("UserClass");
-	if(user_class.IsEmpty())
-		user_class = pI->Get("ZoneType");
 	if (type.IsEmpty())
 		return;
 
@@ -950,13 +807,9 @@ bool CardGameLayoutEditor::Save()
 		if(objs) {
 			for(int i = 0; i < objs->GetCount(); i++) {
 				FormObject& obj = (*objs)[i];
-				String user_class = obj.Get("UserClass");
-				if(user_class.IsEmpty())
-					user_class = obj.Get("ZoneType");
-				user_class = NormalizeZoneType(user_class, obj.Get("Type"));
+				String user_class = NormalizeUserClass(obj.Get("UserClass"), obj.Get("Type"));
 				if(!user_class.IsEmpty())
 					obj.Set("UserClass", user_class);
-				obj.Remove("ZoneType");
 				if(obj.Get("Type") == "Button" && obj.Get("Label").IsEmpty())
 					obj.Set("Label", obj.Get("Variable"));
 			}

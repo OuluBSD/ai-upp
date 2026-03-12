@@ -95,5 +95,3 @@ def process_ai_turns():
         state.play_card(p_idx, card)
         refresh_ui()
 
-if __name__ == "__main__":
-    start()

@@ -17,7 +17,7 @@ void PathManager::RemovePath(int index)
 
 void PathManager::SyncToVM(PyVM& vm)
 {
-	PyValue sys = vm.GetGlobals().Get(PyValue("sys"), PyValue::None());
+	PyValue sys = vm.GetGlobals().GetItem(PyValue("sys"));
 	if(sys.GetType() == PY_DICT) {
 		PyValue path_list = PyValue::List();
 		for(const String& p : paths)

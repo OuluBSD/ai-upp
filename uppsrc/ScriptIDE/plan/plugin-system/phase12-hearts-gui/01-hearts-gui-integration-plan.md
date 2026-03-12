@@ -17,16 +17,26 @@ playable Hearts window that opens inside ScriptIDE when a `.gamestate` file is e
 | `main.py` bridge | Complete (`start`, `refresh_ui`, `on_click`, `autoplay_loop`) |
 | Headless autoplay | **Working** — `bin/ScriptCLI run game.gamestate --autoplay` |
 | Card assets | 52 cards + back PNG in `reference/Hearts/assets/` |
-| Zone layout | `table.form` JSON defines all zones |
-| `hearts_view` module | Headless stubs only — **to replace** |
+| Zone layout | Current implementation uses custom JSON `.form` — **wrong target** |
+| `hearts_view` module | Replaced with GUI bindings, but still driving a custom scene host |
+
+## Architectural Correction
+This plan originally assumed a new `HeartsView` widget with its own layout parser.
+That direction was implemented in spirit as `CardGameDocumentHost`, and it is now
+considered the wrong long-term architecture.
+
+Correct target:
+- `.form` should use the real U++ `Form` runtime path (`Form::Load`, `Form::Layout`)
+- `.gamestate` should host a real form-backed table view
+- game-specific sprites / hit testing / animation should extend that view, not replace it
 
 ---
 
-## Architecture
+## Deprecated Architecture
 
 ```
 ScriptIDE
-└── HeartsView  (new Ctrl, owns card sprites + zone rects)
+└── HeartsView / CardGameDocumentHost  (custom Ctrl, owns card sprites + zone rects)
       │
       │  registered as dockable pane or standalone window
       │  opened by CardGamePlugin::Execute()
@@ -43,9 +53,39 @@ main.py  (start → refresh_ui → process_ai_turns → on_click)
 
 ---
 
-## Implementation Phases
+## Revised Implementation Phases
 
-### Phase A — HeartsView Widget (ScriptIDE)
+### Phase A — Real Form Runtime Host
+
+Replace the custom JSON `SetLayout()` path with a host that embeds the real `Form`
+runtime:
+- load a real `.form` file via the `Form` package
+- layout it inside the `.gamestate` document host
+- expose named controls / rects to Python
+
+### Phase B — Card Overlay Layer
+
+Add the card-game overlay above the form runtime:
+- card sprites
+- trick animation
+- click dispatch
+- highlight frames
+
+### Phase C — FormEditor Alignment
+
+Make `.form` editing and `.gamestate` runtime share the same storage and renderer.
+
+### Phase D — Hearts-specific polish
+
+Only after the runtime host is corrected:
+- hidden opponent hands
+- pass controls
+- trick feedback
+- scoring UI
+
+## Deprecated Phases
+
+### Deprecated Phase A — HeartsView Widget (ScriptIDE)
 
 **File**: `uppsrc/ScriptIDE/HeartsView.h` / `HeartsView.cpp`
 
@@ -95,7 +135,7 @@ main.py  (start → refresh_ui → process_ai_turns → on_click)
 
 ---
 
-### Phase B — CardGamePlugin GUI Wiring
+### Deprecated Phase B — CardGamePlugin GUI Wiring
 
 **File**: `uppsrc/ScriptCommon/CardGamePlugin.cpp`
 
@@ -142,7 +182,7 @@ struct IHeartsView {
 
 ---
 
-### Phase C — ScriptIDE Launcher Integration
+### Deprecated Phase C — ScriptIDE Launcher Integration
 
 **File**: `uppsrc/ScriptIDE/PythonIDE.cpp`
 
@@ -161,7 +201,7 @@ the GUI will need a thread or a timer-driven step loop (defer to Phase D).
 
 ---
 
-### Phase D — Async / Animated Playback (stretch goal)
+### Deprecated Phase D — Async / Animated Playback (stretch goal)
 
 - Run `autoplay_loop()` on a background thread with GIL.
 - Each `refresh_ui()` call posts a `Refresh()` to the GUI thread.
@@ -204,21 +244,13 @@ container's computed top-left.
 
 ## Acceptance Criteria
 
-- [ ] `bin/ScriptIDE` opens a Hearts table window when executing `game.gamestate`
-- [ ] All 13 cards of Player 0 are rendered in the hand zone
-- [ ] Clicking a card in the passing phase selects it (pops up 20 px)
-- [ ] After 3 cards selected, pass executes and trick play begins
-- [ ] AI players play their cards (visible in trick zones)
-- [ ] Score display updates at round end
-- [ ] Autoplay mode (via `--autoplay` CLI flag or menu) runs full game visually
+- [ ] `.form` for Hearts loads through the real `Form` runtime, not a JSON parser
+- [ ] opening the same `.form` in editor and in `.gamestate` uses the same logical format
+- [ ] card-game-specific visuals are implemented as extensions on top of the form host
+- [ ] Hearts gameplay is visible and interactive inside the corrected runtime host
 
----
+## Start Point
 
-## Start Point: Phase A (HeartsView widget)
-
-Begin with `HeartsView.h` / `HeartsView.cpp` as a standalone `Ctrl` that:
-- Accepts hard-coded zone rects initially (from `table.form` defaults)
-- Renders PNG card images
-- Fires `WhenCardClick`
-
-Integrate with `CardGamePlugin` / ScriptIDE launcher in Phase B/C.
+Begin by retiring the custom JSON `.form` path in `CardGameDocumentHost::SetLayout()`
+and by migrating `reference/Hearts/table.form` to a real `Form` file or a documented
+compatible extension of it.

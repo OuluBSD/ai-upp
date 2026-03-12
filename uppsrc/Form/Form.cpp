@@ -3,6 +3,74 @@
 
 static int tempFormsCount = 0;
 
+static void ResolveAnchorLayout(Rect& r, dword& h_align, dword& v_align, const String& anchor, const Size& base_sz)
+{
+	// Save original size before transforming origin
+	int cx = r.Width();
+	int cy = r.Height();
+	int x  = r.left;
+	int y  = r.top;
+
+	if(anchor == "CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top  = y - (base_sz.cy - cy) / 2;
+		h_align = Ctrl::CENTER;
+		v_align = Ctrl::CENTER;
+	}
+	else if(anchor == "BOTTOM_CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top  = base_sz.cy - y - cy;
+		h_align = Ctrl::CENTER;
+		v_align = Ctrl::BOTTOM;
+	}
+	else if(anchor == "TOP_CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top  = y;
+		h_align = Ctrl::CENTER;
+		v_align = Ctrl::TOP;
+	}
+	else if(anchor == "CENTER_LEFT") {
+		r.left = x;
+		r.top  = y - (base_sz.cy - cy) / 2;
+		h_align = Ctrl::LEFT;
+		v_align = Ctrl::CENTER;
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top  = y - (base_sz.cy - cy) / 2;
+		h_align = Ctrl::RIGHT;
+		v_align = Ctrl::CENTER;
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		r.left = x;
+		r.top  = base_sz.cy - y - cy;
+		h_align = Ctrl::LEFT;
+		v_align = Ctrl::BOTTOM;
+	}
+	else if(anchor == "BOTTOM_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top  = base_sz.cy - y - cy;
+		h_align = Ctrl::RIGHT;
+		v_align = Ctrl::BOTTOM;
+	}
+	else if(anchor == "TOP_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top  = y;
+		h_align = Ctrl::RIGHT;
+		v_align = Ctrl::TOP;
+	}
+	else { // TOP_LEFT or unknown: no transformation needed
+		r.left = x;
+		r.top  = y;
+		h_align = Ctrl::LEFT;
+		v_align = Ctrl::TOP;
+	}
+
+	// Restore size (right/bottom derived from new origin + original size)
+	r.right  = r.left + cx;
+	r.bottom = r.top  + cy;
+}
+
 Form:: Form() : _Current(-1) {}
 Form::~Form() { Clear(); }
 
@@ -263,34 +331,45 @@ bool Form::Generate(Font font)
 
 		if (!c) continue;
 
-		switch((*p)[i].GetHAlign())
+		Rect obj_rect = (*p)[i].GetRect();
+		dword h_align = (*p)[i].GetHAlign();
+		dword v_align = (*p)[i].GetVAlign();
+		String anchor = (*p)[i].Get("Anchor");
+		if(!anchor.IsEmpty())
+			ResolveAnchorLayout(obj_rect, h_align, v_align, anchor, sz);
+
+		switch(h_align)
 		{
 			case Ctrl::LEFT:
-				c->LeftPosZ(HorzLayoutZoom((*p)[i].GetRect().left), HorzLayoutZoom((*p)[i].GetRect().Width()));
+				c->LeftPosZ(obj_rect.left, obj_rect.Width());
 				break;
-			case Ctrl::RIGHT: 
-				c->RightPosZ(HorzLayoutZoom(sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width()), HorzLayoutZoom((*p)[i].GetRect().Width()));
+			case Ctrl::RIGHT:
+				// obj_rect.left holds right margin (set by ResolveAnchorLayout)
+				c->RightPosZ(obj_rect.left, obj_rect.Width());
 				break;
 			case Ctrl::SIZE:
-				c->HSizePosZ(HorzLayoutZoom((*p)[i].GetRect().left), HorzLayoutZoom(sz.cx - (*p)[i].GetRect().left - (*p)[i].GetRect().Width()));
+				c->HSizePosZ(obj_rect.left, sz.cx - obj_rect.right);
 				break;
 			case Ctrl::CENTER:
-				c->HCenterPosZ(HorzLayoutZoom((*p)[i].GetRect().Width()));
+				// obj_rect.left holds delta from center (set by ResolveAnchorLayout)
+				c->HCenterPosZ(obj_rect.Width(), obj_rect.left);
 		}
 
-		switch((*p)[i].GetVAlign())
+		switch(v_align)
 		{
 			case Ctrl::TOP:
-				c->TopPosZ(VertLayoutZoom((*p)[i].GetRect().top), VertLayoutZoom((*p)[i].GetRect().Height()));
+				c->TopPosZ(obj_rect.top, obj_rect.Height());
 				break;
-			case Ctrl::BOTTOM: 
-				c->BottomPosZ(VertLayoutZoom(sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height()), VertLayoutZoom((*p)[i].GetRect().Height()));
+			case Ctrl::BOTTOM:
+				// obj_rect.top holds bottom margin (set by ResolveAnchorLayout)
+				c->BottomPosZ(obj_rect.top, obj_rect.Height());
 				break;
 			case Ctrl::SIZE:
-				c->VSizePosZ(VertLayoutZoom((*p)[i].GetRect().top), VertLayoutZoom(sz.cy - (*p)[i].GetRect().top - (*p)[i].GetRect().Height()));
+				c->VSizePosZ(obj_rect.top, sz.cy - obj_rect.bottom);
 				break;
 			case Ctrl::CENTER:
-				c->VCenterPosZ(VertLayoutZoom((*p)[i].GetRect().Height()));
+				// obj_rect.top holds delta from center (set by ResolveAnchorLayout)
+				c->VCenterPosZ(obj_rect.Height(), obj_rect.top);
 		}
 
 		String frame = (*p)[i].Get("Frame");
@@ -458,18 +537,17 @@ FormWindow::FormWindow() {
 void FormWindow::Generate() {
 	auto& l = form._Layouts[form._Current];
 	
-	if (l.GetBool("Form.MinimizeBox", false)) MinimizeBox();
-	if (l.GetBool("Form.MaximizeBox", false)) MaximizeBox();
+	if (preview_chrome || l.GetBool("Form.MinimizeBox", false)) MinimizeBox();
+	if (preview_chrome || l.GetBool("Form.MaximizeBox", false)) MaximizeBox();
 
 #ifdef PLATFORM_WIN32
-	if (l.GetBool("Form.ToolWindow", false)) ToolWindow();
+	if (!preview_chrome && l.GetBool("Form.ToolWindow", false)) ToolWindow();
 #endif
 
-	if (l.GetBool("Form.Sizeable", false)) Sizeable();
+	if (preview_chrome || l.GetBool("Form.Sizeable", false)) Sizeable();
 
 	Title(l.Get("Form.Title"));
 
 	Size sz = l.GetFormSize();
 	SetRect(Rect(GetRect().TopLeft(), Size(HorzLayoutZoom(sz.cx), VertLayoutZoom(sz.cy))));
 }
-

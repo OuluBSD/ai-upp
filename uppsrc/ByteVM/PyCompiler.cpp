@@ -834,8 +834,7 @@ void PyCompiler::PrimaryExpr()
 						for(int ki = expr_start; ki < ir.GetCount(); ki++)
 							item_ir.Add(ir[ki]);
 						ir.SetCount(expr_start);
-						PyValue empty_list = PyValue::List();
-						EmitConst(empty_list);
+						Emit(PY_BUILD_LIST, 0);
 						Next(); // consume 'for'
 						// Support tuple unpacking in generator
 						Vector<String> lvars;
@@ -868,11 +867,11 @@ void PyCompiler::PrimaryExpr()
 							int skip = Label();
 							Emit(PY_POP_JUMP_IF_FALSE, 0);
 							for(auto& ins : item_ir) ir.Add(ins);
-							Emit(PY_LIST_APPEND, 1);
+							Emit(PY_LIST_APPEND, 2);
 							Patch(skip, Label());
 						} else {
 							for(auto& ins : item_ir) ir.Add(ins);
-							Emit(PY_LIST_APPEND, 1);
+							Emit(PY_LIST_APPEND, 2);
 						}
 						Emit(PY_JUMP_ABSOLUTE, loop_start);
 						Patch(jump_end, Label());
@@ -1038,8 +1037,7 @@ void PyCompiler::Atom()
 				for(int ki = expr_start; ki < ir.GetCount(); ki++)
 					item_ir.Add(ir[ki]);
 				ir.SetCount(expr_start);
-				PyValue empty_list = PyValue::List();
-				EmitConst(empty_list);
+				Emit(PY_BUILD_LIST, 0);
 				Next(); // consume 'for'
 				Vector<String> lvars;
 				lvars.Add(Peek().str_value);
@@ -1071,11 +1069,11 @@ void PyCompiler::Atom()
 					int skip = Label();
 					Emit(PY_POP_JUMP_IF_FALSE, 0);
 					for(auto& ins : item_ir) ir.Add(ins);
-					Emit(PY_LIST_APPEND, 1);
+					Emit(PY_LIST_APPEND, 2);
 					Patch(skip, Label());
 				} else {
 					for(auto& ins : item_ir) ir.Add(ins);
-					Emit(PY_LIST_APPEND, 1);
+					Emit(PY_LIST_APPEND, 2);
 				}
 				Emit(PY_JUMP_ABSOLUTE, loop_start);
 				Patch(jump_end, Label());
@@ -1109,8 +1107,7 @@ void PyCompiler::Atom()
 				for(int ki = expr_start; ki < ir.GetCount(); ki++)
 					item_ir.Add(ir[ki]);
 				ir.SetCount(expr_start);
-				PyValue empty_list = PyValue::List();
-				EmitConst(empty_list);
+				Emit(PY_BUILD_LIST, 0);
 				Next(); // consume 'for'
 				// Support tuple unpacking: for a, b in iterable
 				Vector<String> lvars;
@@ -1143,11 +1140,11 @@ void PyCompiler::Atom()
 					int skip = Label();
 					Emit(PY_POP_JUMP_IF_FALSE, 0);
 					for(auto& ins : item_ir) ir.Add(ins);
-					Emit(PY_LIST_APPEND, 1);
+					Emit(PY_LIST_APPEND, 2);
 					Patch(skip, Label());
 				} else {
 					for(auto& ins : item_ir) ir.Add(ins);
-					Emit(PY_LIST_APPEND, 1);
+					Emit(PY_LIST_APPEND, 2);
 				}
 				Emit(PY_JUMP_ABSOLUTE, loop_start);
 				Patch(jump_end, Label());

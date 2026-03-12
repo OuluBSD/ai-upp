@@ -7,9 +7,9 @@ PythonConsole::PythonConsole()
     Title("IPython Console");
     Icon(Icons::Outline());
     
-    Add(toolbar.TopPos(0, 24).HSizePos());
-    Add(output.VSizePos(24, 24).HSizePos());
-    Add(input.BottomPos(0, 24).HSizePos());
+    Add(toolbar.TopPos(0, 36).HSizePos());
+    Add(output.VSizePos(36, 36).HSizePos());
+    Add(input.BottomPos(0, 36).HSizePos());
     
     toolbar.Set([=](Bar& bar) { LayoutToolbar(bar); });
     
@@ -21,10 +21,10 @@ PythonConsole::PythonConsole()
 void PythonConsole::LayoutToolbar(Bar& bar)
 {
 	bar.Add("Console 1/A", [=] {}).Enable(false); // Display current console name
-	bar.Gap(2000);
-	bar.Add(Icons::ClearConsole(), [=] { Clear(); }).Help("Clear console");
-	bar.Add(Icons::Stop(), WhenInterrupt).Help("Interrupt kernel");
-	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); });
+	bar.ToolGapRight();
+	bar.Add(Icons::ClearConsole(), [=] { Clear(); }).Tip("Clear console").Help("Clear console");
+	bar.Add(Icons::Stop(), WhenInterrupt).Tip("Interrupt kernel").Help("Interrupt kernel");
+	bar.Sub("Options", Icons::Settings(), [=](Bar& b) { LayoutPaneMenu(b); }).Tip("Pane menu");
 }
 
 void PythonConsole::LayoutPaneMenu(Bar& bar)

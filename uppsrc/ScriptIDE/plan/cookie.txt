@@ -56,7 +56,7 @@ ScriptIDE split for headless development:
 105. [DONE] script-cli/phase4-scriptcli-bootstrap/task-01-package-create/01-scriptcli-package-layout.md -> Result: ScriptCommon+ScriptCLI packages created, ScriptIDE wired to ScriptCommon, ScriptIDE/ScriptCLI builds passing
 106. [DONE] script-cli/phase4-scriptcli-bootstrap/task-02-cli-commands/01-cli-command-surface.md -> Result: Command surface implemented (`run`, `lint`, `plugin`, `mcp`) in ScriptCLI, ScriptIDE/ScriptCLI builds passing
 107. [DONE] script-cli/phase5-test-headless/task-01-headless-plugin-tests/01-headless-plugin-testing-strategy.md -> Result: PLUGIN_TESTING.md (Strategy documented and verified with GameStatePlugin)
-108. [IN_PROGRESS] script-cli/phase5-test-headless/task-02-acceptance/01-split-acceptance-gates.md
+108. [DONE] script-cli/phase5-test-headless/task-02-acceptance/01-split-acceptance-gates.md -> Result: Acceptance criteria met for ScriptCommon/ScriptCLI split.
 109. [TODO] script-cli/phase6-mcp-server/task-01-reference-audit/01-audit-ide-mcp-reference.md
 110. [TODO] script-cli/phase6-mcp-server/task-02-scriptcommon-mcp-core/01-design-scriptcommon-mcp-core.md
 111. [TODO] script-cli/phase6-mcp-server/task-03-scriptcli-mcp-host/01-design-scriptcli-mcp-host.md

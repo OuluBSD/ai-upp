@@ -11,11 +11,13 @@ class PyVM {
 		const Vector<PyIR>* ir;
 		int pc;
 		VectorMap<PyValue, PyValue> locals;
+		PyValue globals;
+		bool    is_module = false;
 	};
 	
 	Vector<Frame> frames;
 	Vector<PyValue> stack;
-	VectorMap<PyValue, PyValue> globals;
+	PyValue globals; // This is the 'main' module's globals dict
 
 	Frame& TopFrame() { return frames.Top(); }
 	void Push(PyValue v);
@@ -90,8 +92,13 @@ public:
 	void SetIR(Vector<PyIR>& ir);
 	PyValue Run();
 	PyValue Call(const PyValue& callable, const Vector<PyValue>& args);
+
+	// Pre-load a Python source file as a named module into sys.modules.
+	// Dotted name like "hearts.logic" is supported: the parent "hearts" package
+	// dict is created automatically.  Returns false on compile/run error.
+	bool LoadModule(const String& module_name, const String& src, const String& filename);
 	
-	VectorMap<PyValue, PyValue>& GetGlobals() { return globals; }
+	PyValue GetGlobals() { return globals; }
 	
 	bool    Step();
 	PyValue GetLastResult() const { return last_result; }

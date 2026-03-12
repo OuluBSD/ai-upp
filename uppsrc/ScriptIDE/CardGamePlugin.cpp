@@ -24,6 +24,9 @@ bool CardGameDocumentHost::Load(const String& path_)
 void CardGameDocumentHost::ActivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		if(!ide->context_pane_right.IsDocked())
+			ide->DockRight(ide->context_pane_right);
+		
 		ide->context_pane_right.Title("Game Log");
 		ide->context_pane_right.Add(game_log.SizePos());
 		ide->context_pane_right.Show();
@@ -34,7 +37,7 @@ void CardGameDocumentHost::DeactivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 		game_log.Remove();
-		ide->context_pane_right.Hide();
+		ide->context_pane_right.Close();
 	}
 }
 
@@ -88,7 +91,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 								Zone& cz = zones.Add(cid);
 								cz.id = cid;
 								Value cr = vc["rect"];
-								cz.rect = RectC(z.rect.left + (int)cr["x"], z.rect.top + (int)cr["y"], (int)cr["w"], (int)cr["h"]);
+								cz.rect = RectC(z.rect.left + (int)vc["rect"]["x"], z.rect.top + (int)vc["rect"]["y"], (int)vc["rect"]["w"], (int)vc["rect"]["h"]);
 								cz.anchor = z.anchor; 
 								cz.type = vc["type"];
 							}
@@ -438,6 +441,12 @@ bool CardGameLayoutEditor::SaveAs(const String& path_)
 void CardGameLayoutEditor::ActivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		if(!ide->context_pane_left.IsDocked())
+			ide->DockLeft(ide->context_pane_left);
+		
+		if(!ide->context_pane_right.IsDocked())
+			ide->DockRight(ide->context_pane_right);
+		
 		ide->context_pane_left.Title("Properties");
 		ide->context_pane_left.Add(card_properties.SizePos());
 		ide->context_pane_left.Show();
@@ -453,8 +462,8 @@ void CardGameLayoutEditor::DeactivateUI()
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 		card_properties.Remove();
 		_ItemList.Remove();
-		ide->context_pane_left.Hide();
-		ide->context_pane_right.Hide();
+		ide->context_pane_left.Close();
+		ide->context_pane_right.Close();
 	}
 }
 

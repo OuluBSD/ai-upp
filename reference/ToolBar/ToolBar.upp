@@ -1,0 +1,10 @@
+description "ToolBar groups demo with right alignment and drag-and-drop reordering.\377";
+
+uses
+	CtrlLib;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";

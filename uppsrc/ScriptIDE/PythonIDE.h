@@ -69,6 +69,7 @@ public:
 	void InitLayout();
 	void RegisterPanes();
 	virtual void DockInit() override;
+	void Jsonize(JsonIO& jio) override;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);
@@ -84,6 +85,22 @@ public:
 	void HelpMenu(Bar& bar);
 
 	void MainToolbar(Bar& bar);
+	void MainToolbarGroup(Bar& bar, int group);
+
+	struct ToolbarState {
+		Vector<int> left_order;
+		Vector<int> right_order;
+		bool        hide_handles = true;
+
+		void Jsonize(JsonIO& jio) {
+			jio("left", left_order)("right", right_order)("hide_handles", hide_handles);
+		}
+		
+		ToolbarState() {
+			left_order.Add(0);
+			right_order.Add(1);
+		}
+	} tstate;
 
 	void OnNewFile();
 	void OnOpenFile();

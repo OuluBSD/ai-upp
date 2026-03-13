@@ -138,7 +138,17 @@ bool InitGtkApp(int argc, char **argv, const char **envptr)
 	XInitThreads(); // otherwise there are errors despite GuiLock
 	// this has to be called before gtk_init_check, otherwise it crashes with xfce (at least
 	// some versions)
-	
+
+#if CATCH_ERRORS
+	g_log_set_default_handler(CatchError, 0);
+	g_log_set_handler("Gdk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
+	g_log_set_handler("Gtk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
+	g_log_set_handler("GLib", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
+#if GLIB_CHECK_VERSION(2, 50, 0)
+	g_log_set_writer_func(CatchErrorStructured, 0, 0);
+#endif
+#endif
+
 #if GTK_CHECK_VERSION(3, 10, 0)
 	String backends = "x11,wayland";
 #ifdef flagWAYLAND // Sets GTK to prefer Wayland backend
@@ -178,15 +188,6 @@ bool InitGtkApp(int argc, char **argv, const char **envptr)
 	InstallPanicMessageBox(Ctrl::PanicMsgBox);
 	if(Ctrl::IsX11())
 		gdk_window_add_filter(NULL, Ctrl::RootKeyFilter, NULL);
-#if CATCH_ERRORS
-	g_log_set_default_handler(CatchError, 0);
-	g_log_set_handler("Gdk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
-	g_log_set_handler("Gtk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
-	g_log_set_handler("GLib", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
-#if GLIB_CHECK_VERSION(2, 50, 0)
-	g_log_set_writer_func(CatchErrorStructured, 0, 0);
-#endif
-#endif
 
 	GtkSettings *settings = gtk_settings_get_default();
 	if(settings) {

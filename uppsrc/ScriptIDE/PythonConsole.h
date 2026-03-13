@@ -9,6 +9,8 @@ public:
     void Write(const String& s);
     void WriteError(const String& s);
     void Clear();
+    String GetOutputText() const;
+    void MirrorStdout(bool b = true) { mirror_stdout = b; }
 
     String GetInput() const { return last_input; }
     Event<> WhenInput;
@@ -25,6 +27,7 @@ private:
     String last_input;
     Vector<String> history;
     int history_index = -1;
+    bool mirror_stdout = false;
     
     void OnInput();
     void LayoutToolbar(Bar& bar);

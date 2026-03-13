@@ -1777,25 +1777,37 @@ void PyVM::SetIR(Vector<PyIR>& _ir)
 
 PyValue PyVM::Run()
 {
+	Cout() << "[pyrun] lock begin\n";
+	Cout().Flush();
 	PyScheduler::Get().Lock();
+	Cout() << "[pyrun] lock acquired\n";
+	Cout().Flush();
 	try {
 		while(IsRunning()) {
 			Step();
 		}
 	} catch (Exc& e) {
 		PyScheduler::Get().Unlock();
+		Cout() << "[pyrun] exception unlock\n";
+		Cout().Flush();
 		LOG("PyVM Exception: " << e);
 		throw;
 	} catch (...) {
 		PyScheduler::Get().Unlock();
+		Cout() << "[pyrun] unknown exception unlock\n";
+		Cout().Flush();
 		throw;
 	}
 	PyScheduler::Get().Unlock();
+	Cout() << "[pyrun] unlock done\n";
+	Cout().Flush();
 	return last_result;
 }
 
 bool PyVM::LoadModule(const String& module_name, const String& src, const String& filename)
 {
+	Cout() << "[loadmodule] begin " << module_name << "\n";
+	Cout().Flush();
 	PyValue mod_dict = PyValue::Dict();
 	mod_dict.SetItem(PyValue("__name__"), PyValue(module_name));
 	mod_dict.SetItem(PyValue("__file__"), PyValue(filename));
@@ -1807,12 +1819,16 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 		tk.SkipPythonComments();
 		if(!tk.Process(src, filename))
 			return false;
+		Cout() << "[loadmodule] tokenized " << module_name << "\n";
+		Cout().Flush();
 		tk.NewlineToEndStatement();
 		tk.CombineTokens();
 
 		PyCompiler compiler(tk.GetTokens(), filename);
 		Vector<PyIR> ir;
 		compiler.Compile(ir);
+		Cout() << "[loadmodule] compiled " << module_name << "\n";
+		Cout().Flush();
 
 		// Execute the module code in its own globals
 		int base = frames.GetCount();
@@ -1828,19 +1844,33 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 
 		// If we are already running, we need to Step until this module returns
 		if (base > 0) {
+			Cout() << "[loadmodule] step-run begin " << module_name << "\n";
+			Cout().Flush();
 			while (frames.GetCount() > base)
 				Step();
+			Cout() << "[loadmodule] step-run done " << module_name << "\n";
+			Cout().Flush();
 		} else {
+			Cout() << "[loadmodule] run begin " << module_name << "\n";
+			Cout().Flush();
 			Run();
+			Cout() << "[loadmodule] run done " << module_name << "\n";
+			Cout().Flush();
 		}
 	} catch(Exc& e) {
 		LOG("PyVM::LoadModule error (" << module_name << "): " << e);
+		Cout() << "[loadmodule] error " << module_name << ": " << e << "\n";
+		Cout().Flush();
 		return false;
 	} catch(std::exception& e) {
 		LOG("PyVM::LoadModule std::exception (" << module_name << "): " << e.what());
+		Cout() << "[loadmodule] std-error " << module_name << ": " << e.what() << "\n";
+		Cout().Flush();
 		return false;
 	} catch(...) {
 		LOG("PyVM::LoadModule unknown exception (" << module_name << ")");
+		Cout() << "[loadmodule] unknown-error " << module_name << "\n";
+		Cout().Flush();
 		return false;
 	}
 
@@ -1874,6 +1904,9 @@ bool PyVM::LoadModule(const String& module_name, const String& src, const String
 	} else {
 		globals.SetItem(PyValue(module_name), mod_dict);
 	}
+
+	Cout() << "[loadmodule] done " << module_name << "\n";
+	Cout().Flush();
 
 	return true;
 }
@@ -1921,11 +1954,13 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 
 	PyValue prev_last = last_result;
 	last_result = PyValue::None();
+	PyScheduler::Get().Lock();
 	try {
 		while (frames.GetCount() > base)
 			Step();
 	}
 	catch (...) {
+		PyScheduler::Get().Unlock();
 		for (int i = frames.GetCount() - 1; i >= base; --i) {
 			ReleaseLocals(frames[i].locals);
 			frames[i].func = PyValue::None();
@@ -1937,6 +1972,7 @@ PyValue PyVM::Call(const PyValue& callable_in, const Vector<PyValue>& args)
 		last_result = prev_last;
 		throw;
 	}
+	PyScheduler::Get().Unlock();
 	// RETURN_VALUE already pushed the result onto the stack and set last_result.
 	// Pop the result from the stack (it was pushed by RETURN_VALUE) so caller's stack is clean.
 	PyValue res;
@@ -1997,6 +2033,7 @@ void PyVM::Reset()
 	ReleaseStack(stack);
 	debug_state = DEBUG_RUNNING;
 	last_result = PyValue::None();
+	breakpoints_enabled = true;
 }
 
 bool PyVM::Step()
@@ -2025,7 +2062,7 @@ bool PyVM::Step()
 		current_line = instr.line;
 
 		// Check for breakpoint
-		if(debug_state == DEBUG_RUNNING && HasBreakpoint(current_file, current_line)) {
+		if(debug_state == DEBUG_RUNNING && breakpoints_enabled && HasBreakpoint(current_file, current_line)) {
 			if(CheckBreakpoint(current_file, current_line)) {
 				debug_state = DEBUG_PAUSED;
 				return true; // Paused at breakpoint

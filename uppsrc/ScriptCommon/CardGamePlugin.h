@@ -29,6 +29,10 @@ public:
 protected:
 	IPluginContext* context = nullptr;
 	IHeartsView*   view    = nullptr;
+	String         entry_module_name;
+
+public:
+	PyValue         GetGameFunction(const String& name) const;
 };
 
 #endif

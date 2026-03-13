@@ -78,6 +78,16 @@ public:
 	virtual void   DeactivateUI() override;
 	virtual void   MainMenu(Bar& bar) override;
 	virtual void   Toolbar(Bar& bar) override;
+	virtual bool   CanRun() const override { return true; }
+	virtual bool   IsRunning() const override { return game_running || stop_in_progress || vm_thread_running; }
+	virtual bool   CanPause() const override { return true; }
+	virtual bool   IsPaused() const override { return game_paused; }
+	virtual void   Run() override;
+	virtual void   Debug() override;
+	virtual void   Profile() override;
+	virtual void   Pause() override;
+	virtual void   Stop() override;
+	virtual void   PopulateDebugState(PythonIDE& ide) override;
 
 	// IHeartsView
 	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) override;
@@ -115,13 +125,22 @@ private:
 	Mutex ui_mutex;
 	Vector<Function<void ()>> ui_commands;
 	bool ui_flush_pending = false;
+	Mutex rect_cache_mutex;
+	ArrayMap<String, Rect> rect_cache;
 	Size last_layout_size;
 	bool refresh_running = false;
 	bool resize_refresh_pending = false;
 	bool scene_sync_pending = false;
 	bool debug_overlay = false;
+	bool game_running = false;
+	bool game_paused = false;
+	bool stop_requested = false;
+	bool stop_in_progress = false;
 	String last_error;
+	String execution_mode = "run";
+	String pending_start_mode;
 	String pending_callback_name;
+	int pending_timeout_ms = -1;
 	int callback_timer_key = 0;
 	Form table_form;
 	CardGameOverlay overlay;
@@ -157,9 +176,15 @@ private:
 	Color background_color = Color(40, 160, 40);
 
 	RichTextView game_log;
+	Vector<String> game_log_lines;
+	Vector<PyVM::StackFrame> paused_stack;
+	VectorMap<PyValue, PyValue> paused_globals;
 
 	void Animate();
 	void InitRuntime();
+	void StartGame(const String& mode);
+	void ResumeGame();
+	void FinishStop();
 	void StartVmThread();
 	void StopVmThread();
 	void VmThreadMain();
@@ -178,7 +203,9 @@ private:
 	void ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
 	void ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated);
 	void ApplySetTimeout(int delay_ms, const String& callback_name);
+	void CapturePausedDebugState();
 	void ReportVmError(const String& where, const String& msg);
+	void ResetGameView();
 	void RefreshGameView();
 	void InvokePythonButton(const String& button_id);
 	void InvokePythonCard(const String& card_id);

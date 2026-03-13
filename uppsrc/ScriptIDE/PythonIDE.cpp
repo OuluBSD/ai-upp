@@ -101,17 +101,24 @@ void PythonIDE::InitLayout()
 		}
 	};
 	
-	vm.WhenPrint = [=](const String& s) { console_pane->Write(s); };
+	vm.WhenPrint = [=](const String& s) {
+		console_pane->Write(s);
+		if(CardGameDocumentHost::log_to_stdout)
+			Cout() << s;
+	};
 	
 	run_manager.WhenStarted = [=] {
 		console_pane->Write("--- Running script ---\n");
+		RefreshRunStateUI();
 	};
 	run_manager.WhenFinished = [=] {
 		console_pane->Write("--- Script finished ---\n");
 		UpdateVariableExplorer();
+		RefreshRunStateUI();
 	};
 	run_manager.WhenError = [=](const String& e) {
 		console_pane->WriteError("Runtime error: " + e + "\n");
+		RefreshRunStateUI();
 	};
 	
 	files_pane.Create();
@@ -145,8 +152,18 @@ void PythonIDE::InitLayout()
 	debugger_pane->WhenStepOver = [=] { vm.StepOver(); };
 	debugger_pane->WhenStepInto = [=] { vm.StepIn(); };
 	debugger_pane->WhenStepOut = [=] { vm.StepOut(); };
-	debugger_pane->WhenContinue = [=] { vm.Run(); };
-	debugger_pane->WhenStop = [=] { run_manager.Stop(); };
+	debugger_pane->WhenContinue = [=] {
+		if(active_file >= 0 && active_file < open_files.GetCount()) {
+			if(IDocumentHost* h = open_files[active_file].editor) {
+				if(h->CanPause() && h->IsPaused()) {
+					h->Run();
+					return;
+				}
+			}
+		}
+		vm.Run();
+	};
+	debugger_pane->WhenStop = [=] { OnStop(); };
 
 	profiler_pane.Create();
 	find_pane.Create();
@@ -195,6 +212,19 @@ void PythonIDE::Jsonize(JsonIO& jio)
 	jio("toolbar", tstate);
 }
 
+bool PythonIDE::Key(dword key, int count)
+{
+	if(key == (K_SHIFT|K_F5)) {
+		OnRun();
+		return true;
+	}
+	if(key == K_F5) {
+		OnDebug();
+		return true;
+	}
+	return DockWindow::Key(key, count);
+}
+
 void PythonIDE::RegisterPanes()
 {
 	Register(*files_pane);
@@ -208,8 +238,6 @@ void PythonIDE::RegisterPanes()
 	Register(*find_pane);
 	Register(*debugger_pane);
 	Register(*profiler_pane);
-	Register(context_pane_left);
-	Register(context_pane_right);
 }
 
 void PythonIDE::SetDefaultDocking()
@@ -255,9 +283,6 @@ void PythonIDE::SetDefaultDocking()
 	Tabify(*console_pane, *profiler_pane);
 	ActivateDockable(*console_pane);
 
-	context_pane_left.Title("Context (L)").Hide();
-	context_pane_right.Title("Context (R)").Hide();
-
 	SetFrameSize(DOCK_LEFT, 250);
 	SetFrameLayoutHalf(DOCK_RIGHT);
 	SetFrameSize(DOCK_BOTTOM, 0); 
@@ -301,13 +326,61 @@ void PythonIDE::DockInit()
 
 void PythonIDE::Close()
 {
+	if(force_close_now) {
+		JsonIO jio;
+		Jsonize(jio);
+		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(jio.GetResult(), true));
+		StoreToFile(settings, ConfigFile("ide_settings.bin"));
+		TopWindow::Close();
+		return;
+	}
 	if(ConfirmSaveAll()) {
+		for(int i = 0; i < open_files.GetCount(); i++) {
+			IDocumentHost* h = open_files[i].editor;
+			if(h && h->CanRun() && h->IsRunning())
+				h->Stop();
+		}
+		if(vm.IsRunning())
+			run_manager.Stop();
+		dword wait0 = msecs();
+		for(;;) {
+			bool any_running = vm.IsRunning();
+			for(int i = 0; i < open_files.GetCount() && !any_running; i++) {
+				IDocumentHost* h = open_files[i].editor;
+				if(h && h->CanRun() && h->IsRunning())
+					any_running = true;
+			}
+			if(!any_running || int(msecs(wait0)) > 3000)
+				break;
+			ProcessEvents();
+			Sleep(10);
+		}
 		JsonIO jio;
 		Jsonize(jio);
 		::Upp::SaveFile(ConfigFile("ide_session.json"), AsJSON(jio.GetResult(), true));
 		StoreToFile(settings, ConfigFile("ide_settings.bin"));
 		TopWindow::Close();
 	}
+}
+
+bool PythonIDE::HasActiveRunners() const
+{
+	bool any_running = vm.IsRunning();
+	for(int i = 0; i < open_files.GetCount() && !any_running; i++) {
+		IDocumentHost* h = open_files[i].editor;
+		if(h && h->CanRun() && h->IsRunning())
+			any_running = true;
+	}
+	return any_running;
+}
+
+void PythonIDE::ForceCloseNow()
+{
+	Cout() << "[force-close] begin\n";
+	force_close_now = true;
+	Break(IDEXIT);
+	TopWindow::Close();
+	Cout() << "[force-close] close requested\n";
 }
 
 void PythonIDE::ShowHelp(const String& topic)
@@ -331,6 +404,11 @@ void PythonIDE::OnPathManager()
 void PythonIDE::OnRun()
 {
 	if(active_file < 0) return;
+	IDocumentHost* active_host = open_files[active_file].editor;
+	if(active_host && active_host->CanRun()) {
+		active_host->Run();
+		return;
+	}
 	
 	String path = open_files[active_file].path;
 	if(path.IsEmpty()) {
@@ -386,8 +464,9 @@ void PythonIDE::OnRunSelection()
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
 		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
-			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
+			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				run_manager.RunSelection(ed->GetSelection());
+			}
 		}
 	}
 }
@@ -397,8 +476,9 @@ void PythonIDE::OnRunCell()
 	if(active_file < 0) return;
 	if(active_file >= 0 && open_files[active_file].editor) {
 		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor)) {
-			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl()))
+			if(PythonEditor* ed = dynamic_cast<PythonEditor*>(&h->GetCtrl())) {
 				run_manager.RunSelection(ed->GetCurrentCell());
+			}
 		}
 	}
 }
@@ -460,14 +540,71 @@ void PythonIDE::OnRunConfig() { Todo("Run Configuration"); }
 
 void PythonIDE::OnDebug()
 {
-	// Similar to Run but maybe with some debug flags set in VM
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		IDocumentHost* active_host = open_files[active_file].editor;
+		if(active_host && active_host->CanRun()) {
+			active_host->Debug();
+			return;
+		}
+	}
+	run_manager.SetMode(RunManager::RUN_DEBUG);
 	OnRun();
 }
 
-void PythonIDE::OnDebugCell() { OnRunCell(); }
-void PythonIDE::OnDebugSelection() { OnRunSelection(); }
-void PythonIDE::OnDebugToLine() { OnRunToLine(); }
-void PythonIDE::OnStop() { run_manager.Stop(); }
+void PythonIDE::OnProfile()
+{
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		IDocumentHost* active_host = open_files[active_file].editor;
+		if(active_host && active_host->CanRun()) {
+			active_host->Profile();
+			return;
+		}
+	}
+	run_manager.SetMode(RunManager::RUN_PROFILE);
+	Todo("Profile file");
+}
+
+void PythonIDE::OnPause()
+{
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		IDocumentHost* active_host = open_files[active_file].editor;
+		if(active_host && active_host->CanPause() && active_host->IsRunning()) {
+			if(active_host->IsPaused())
+				active_host->Run();
+			else
+				active_host->Pause();
+			RefreshRunStateUI();
+		}
+	}
+}
+
+void PythonIDE::OnDebugCell() {
+	run_manager.SetMode(RunManager::RUN_DEBUG);
+	OnRunCell();
+}
+
+void PythonIDE::OnDebugSelection() {
+	run_manager.SetMode(RunManager::RUN_DEBUG);
+	OnRunSelection();
+}
+
+void PythonIDE::OnDebugToLine() {
+	run_manager.SetMode(RunManager::RUN_DEBUG);
+	OnRunToLine();
+}
+void PythonIDE::OnStop()
+{
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		IDocumentHost* active_host = open_files[active_file].editor;
+		if(active_host && active_host->CanRun() && active_host->IsRunning()) {
+			active_host->Stop();
+			ClearDebugState();
+			return;
+		}
+	}
+	run_manager.Stop();
+	ClearDebugState();
+}
 void PythonIDE::OnStepOver() { vm.StepOver(); }
 void PythonIDE::OnStepIn() { vm.StepIn(); }
 void PythonIDE::OnStepOut() { vm.StepOut(); }
@@ -1003,8 +1140,7 @@ void PythonIDE::OnBreakpointHit(const String& file, int line)
 		}
 	}
 	
-	debugger_pane->SetStack(vm.GetCallStack());
-	UpdateVariableExplorer();
+	ShowDebugState(vm.GetCallStack(), vm.GetGlobals().GetDict(), true);
 	
 	console_pane->Write(Format("Breakpoint hit at %s:%d\n", file, line));
 	Show();
@@ -1035,9 +1171,32 @@ void PythonIDE::OnTabChanged()
 	}
 	
 	AddCursorHistory();
-	
+	RefreshRunStateUI();
+}
+
+void PythonIDE::RefreshRunStateUI()
+{
 	menubar.Set([=](Bar& bar) { MainMenu(bar); });
 	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
+	menubar.Refresh();
+	toolbar.Refresh();
+}
+
+void PythonIDE::ShowDebugState(const Vector<PyVM::StackFrame>& stack, const VectorMap<PyValue, PyValue>& globals, bool activate_panes)
+{
+	debugger_pane->SetStack(stack);
+	var_explorer->SetVariables(globals);
+	if(activate_panes) {
+		debugger_pane->Show();
+		var_explorer->Show();
+		active_pane = &*debugger_pane;
+	}
+}
+
+void PythonIDE::ClearDebugState()
+{
+	debugger_pane->Clear();
+	var_explorer->Clear();
 }
 
 void PythonIDE::OnTogglePane(DockableCtrl& pane)
@@ -1127,6 +1286,14 @@ void PythonIDE::UpdateStatusBar()
 
 void PythonIDE::UpdateVariableExplorer()
 {
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		if(IDocumentHost* h = open_files[active_file].editor) {
+			if(h->CanPause() && h->IsPaused()) {
+				h->PopulateDebugState(*this);
+				return;
+			}
+		}
+	}
 	var_explorer->SetVariables(vm.GetGlobals().GetDict());
 }
 
@@ -1195,6 +1362,61 @@ void PythonIDE::AddCursorHistory()
 			}
 		}
 	}
+}
+
+String PythonIDE::DumpActiveScene()
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return "no active file\n";
+	IDocumentHost* h = open_files[active_file].editor;
+	if(!h)
+		return "active file has no document host\n";
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h))
+		return cg->DumpScene();
+	return "active document does not support scene dump\n";
+}
+
+String PythonIDE::DumpConsoleText() const
+{
+	if(!console_pane)
+		return String();
+	return console_pane->GetOutputText();
+}
+
+bool PythonIDE::InvokeActiveSceneButton(const String& button_id)
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return false;
+	IDocumentHost* h = open_files[active_file].editor;
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h)) {
+		cg->DebugInvokeButton(button_id);
+		return true;
+	}
+	return false;
+}
+
+bool PythonIDE::InvokeActiveSceneCard(const String& card_id)
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return false;
+	IDocumentHost* h = open_files[active_file].editor;
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h)) {
+		cg->DebugInvokeCard(card_id);
+		return true;
+	}
+	return false;
+}
+
+bool PythonIDE::InvokeActiveSceneFirstHandCards(int count)
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return false;
+	IDocumentHost* h = open_files[active_file].editor;
+	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h)) {
+		cg->DebugInvokeFirstHandCards(count);
+		return true;
+	}
+	return false;
 }
 
 size_t PythonIDE::MemoryUsedKb() { return 0; }

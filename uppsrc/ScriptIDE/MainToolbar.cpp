@@ -4,6 +4,20 @@ namespace Upp {
 
 void PythonIDE::MainToolbarGroup(Bar& bar, int group)
 {
+	bool doc_running = false;
+	bool doc_paused = false;
+	bool doc_can_pause = false;
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		if(IDocumentHost* h = open_files[active_file].editor) {
+			doc_running = h->IsRunning();
+			doc_paused = h->IsPaused();
+			doc_can_pause = h->CanPause();
+		}
+	}
+	bool stop_enabled = doc_running || vm.IsRunning();
+	bool run_enabled = !stop_enabled;
+	bool pause_enabled = doc_can_pause && doc_running;
+
 	if(group == 0) { // Standard group
 		bar.Add(Icons::NewFile(), [this] { OnNewFile(); }).Tip("New File (Ctrl+N)").Help("Create a new Python file");
 		bar.Add(Icons::OpenFile(), [this] { OnOpenFile(); }).Tip("Open File (Ctrl+O)").Help("Open an existing Python file");
@@ -14,20 +28,24 @@ void PythonIDE::MainToolbarGroup(Bar& bar, int group)
 		bar.Add(Icons::Plus(), [this] { Todo("Create new cell"); }).Tip("New Cell").Help("Create a new code cell at current line");
 		bar.Separator();
 		
-		bar.Add(Icons::Run(), [this] { OnRun(); }).Tip("Run (F5)").Help("Run current file or configuration");
-		bar.Add(Icons::RunCell(), [this] { OnRunCell(); }).Tip("Run Cell (Ctrl+Return)").Help("Run current code cell");
-		bar.Add(Icons::RunCellAdvance(), [this] { OnRunCellAndAdvance(); }).Tip("Run Cell and Advance (Shift+Return)").Help("Run current cell and move to next");
-		bar.Add(Icons::RunSelection(), [this] { OnRunSelection(); }).Tip("Run Selection (F9)").Help("Run current selection or line");
+		bar.Add(Icons::Run(), [this] { OnRun(); }).Tip("Run (Ctrl+F5)").Help("Run current file without stopping at breakpoints").Enable(run_enabled);
+		bar.Add(Icons::RunCell(), [this] { OnRunCell(); }).Tip("Run Cell (Ctrl+Return)").Help("Run current code cell").Enable(run_enabled);
+		bar.Add(Icons::RunCellAdvance(), [this] { OnRunCellAndAdvance(); }).Tip("Run Cell and Advance (Shift+Return)").Help("Run current cell and move to next").Enable(run_enabled);
+		bar.Add(Icons::RunSelection(), [this] { OnRunSelection(); }).Tip("Run Selection (F9)").Help("Run current selection or line").Enable(run_enabled);
 		bar.Separator();
 		
-		bar.Add(Icons::Debug(), [this] { OnDebug(); }).Tip("Debug (Ctrl+F5)").Help("Start debugging current file");
-		bar.Add(Icons::DebugCell(), [this] { OnDebugCell(); }).Tip("Debug Cell").Help("Debug current code cell");
-		bar.Add(Icons::DebugSelection(), [this] { OnDebugSelection(); }).Tip("Debug Selection").Help("Debug current selection or line");
+		bar.Add(Icons::Debug(), [this] { OnDebug(); }).Tip("Debug (F5)").Help("Start debugging current file with breakpoints enabled").Enable(run_enabled);
+		bar.Add(Icons::DebugCell(), [this] { OnDebugCell(); }).Tip("Debug Cell").Help("Debug current code cell").Enable(run_enabled);
+		bar.Add(Icons::DebugSelection(), [this] { OnDebugSelection(); }).Tip("Debug Selection").Help("Debug current selection or line").Enable(run_enabled);
 		bar.Separator();
 		
-		bar.Add(Icons::Profile(), [this] { Todo("Profile file"); }).Tip("Profile (F10)").Help("Profile current file");
-		bar.Add(Icons::ProfileCell(), [this] { Todo("Profile cell"); }).Tip("Profile Cell (Alt+F10)").Help("Profile current code cell");
-		bar.Add(Icons::ProfileSelection(), [this] { Todo("Profile current line or selection"); }).Tip("Profile Selection").Help("Profile current selection or line");
+		bar.Add(Icons::Profile(), [this] { OnProfile(); }).Tip("Profile (F10)").Help("Profile current file").Enable(active_file >= 0 && run_enabled);
+		bar.Add(Icons::ProfileCell(), [this] { Todo("Profile cell"); }).Tip("Profile Cell (Alt+F10)").Help("Profile current code cell").Enable(run_enabled);
+		bar.Add(Icons::ProfileSelection(), [this] { Todo("Profile current line or selection"); }).Tip("Profile Selection").Help("Profile current selection or line").Enable(run_enabled);
+		bar.Separator();
+		
+		bar.Add(doc_paused ? Icons::Run() : Icons::StepOver(), [this] { OnPause(); }).Tip(doc_paused ? "Resume" : "Pause").Help(doc_paused ? "Resume current run" : "Pause current run").Enable(pause_enabled);
+		bar.Add(Icons::Stop(), [this] { OnStop(); }).Tip("Stop").Help("Stop current run").Enable(stop_enabled);
 		bar.Separator();
 		
 		bar.Add(Icons::Maximize(), [this] { OnMaximizePane(); }).Tip("Maximize Pane (Ctrl+Alt+Shift+M)").Help("Maximize the currently active pane");

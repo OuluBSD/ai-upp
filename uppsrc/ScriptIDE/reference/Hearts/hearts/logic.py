@@ -7,7 +7,7 @@ class Card:
     def __init__(self, suit, rank):
         self.suit = suit
         self.rank = rank
-        self.id = f"{suit}_{rank}"
+        self.id = str(suit) + "_" + str(rank)
 
     def __repr__(self):
         return self.id
@@ -26,6 +26,12 @@ def create_deck():
             deck.append(Card(s, r))
     return deck
 
+def rank_index(rank):
+    for i in range(len(RANKS)):
+        if RANKS[i] == rank:
+            return i
+    return -1
+
 class GameState:
     def __init__(self):
         self.players = [[], [], [], []]
@@ -41,6 +47,9 @@ class GameState:
         self.passed_cards = [[], [], [], []]
         self.last_trick_winner = -1
         self.last_trick_points = 0
+        self.trick_pending = False
+        self.pending_trick_winner = -1
+        self.pending_trick_points = 0
 
     def log(self, msg):
         if self.log_callback:
@@ -58,6 +67,9 @@ class GameState:
         self.passed_cards = [[], [], [], []]
         self.last_trick_winner = -1
         self.last_trick_points = 0
+        self.trick_pending = False
+        self.pending_trick_winner = -1
+        self.pending_trick_points = 0
         
         for i in range(52):
             self.players[i % 4].append(deck[i])
@@ -68,7 +80,7 @@ class GameState:
             self.start_play_phase()
         else:
             self.phase = 'PASSING'
-            self.log(f"Round {self.round_number}: Passing phase. Select 3 cards.")
+            self.log("Round " + str(self.round_number) + ": Passing phase. Select 3 cards.")
 
     def select_pass(self, player_index, cards):
         if self.phase != 'PASSING': return False
@@ -76,7 +88,12 @@ class GameState:
         
         self.passed_cards[player_index] = cards
         
-        if all(len(p) == 3 for p in self.passed_cards):
+        everyone_selected = True
+        for p in self.passed_cards:
+            if len(p) != 3:
+                everyone_selected = False
+                break
+        if everyone_selected:
             self.execute_pass()
             
         return True
@@ -102,24 +119,34 @@ class GameState:
             for card in self.players[i]:
                 if card.suit == 'clubs' and card.rank == '2':
                     self.turn = i
-                    self.log(f"Player {i} has 2 of Clubs and starts.")
+                    self.log("Player " + str(i) + " has 2 of Clubs and starts.")
                     return
 
     def validate_play(self, player_index, card):
         if self.phase != 'PLAYING':
             return False, "Not in playing phase"
+        if self.trick_pending:
+            return False, "Waiting for trick resolution"
         if player_index != self.turn:
             return False, "Not your turn"
         
         # Must follow suit
         if self.leading_suit:
-            has_suit = any(c.suit == self.leading_suit for c in self.players[player_index])
+            has_suit = False
+            for c in self.players[player_index]:
+                if c.suit == self.leading_suit:
+                    has_suit = True
+                    break
             if has_suit and card.suit != self.leading_suit:
-                return False, f"Must follow suit: {self.leading_suit}"
+                return False, "Must follow suit: " + str(self.leading_suit)
         
         # Hearts breaking rule
         if card.suit == 'hearts' and not self.hearts_broken:
-            has_other = any(c.suit != 'hearts' for c in self.players[player_index])
+            has_other = False
+            for c in self.players[player_index]:
+                if c.suit != 'hearts':
+                    has_other = True
+                    break
             if has_other and not self.leading_suit:
                 return False, "Hearts not broken yet"
 
@@ -145,33 +172,49 @@ class GameState:
             self.hearts_broken = True
             
         if len(self.trick) == 4:
-            self.resolve_trick()
+            winner_index, points = self.get_trick_result()
+            self.trick_pending = True
+            self.pending_trick_winner = winner_index
+            self.pending_trick_points = points
         else:
             self.turn = (self.turn + 1) % 4
             
         return True, "OK"
 
-    def resolve_trick(self):
-        # Determine winner
+    def get_trick_result(self):
         winner_index = 0
         highest_rank_idx = -1
         
-        rank_order = {r: i for i, r in enumerate(RANKS)}
-        
-        for p_idx, card in self.trick:
+        for trick_item in self.trick:
+            p_idx, card = trick_item
             if card.suit == self.leading_suit:
-                r_idx = rank_order[card.rank]
+                r_idx = rank_index(card.rank)
                 if r_idx > highest_rank_idx:
                     highest_rank_idx = r_idx
                     winner_index = p_idx
         
         # Award points
-        points = sum(c.get_points() for _, c in self.trick)
+        points = 0
+        for trick_item in self.trick:
+            _, c = trick_item
+            points += c.get_points()
+        return winner_index, points
+
+    def resolve_trick(self):
+        if self.trick_pending:
+            winner_index = self.pending_trick_winner
+            points = self.pending_trick_points
+        else:
+            winner_index, points = self.get_trick_result()
+
         self.round_scores[winner_index] += points
         self.last_trick_winner = winner_index
         self.last_trick_points = points
+        self.trick_pending = False
+        self.pending_trick_winner = -1
+        self.pending_trick_points = 0
         
-        self.log(f"Trick resolved. Player {winner_index} wins {points} points.")
+        self.log("Trick resolved. Player " + str(winner_index) + " wins " + str(points) + " points.")
         
         # Clean up
         self.trick = []
@@ -179,7 +222,12 @@ class GameState:
         self.turn = winner_index
         
         # Check round end
-        if all(len(p) == 0 for p in self.players):
+        round_done = True
+        for p in self.players:
+            if len(p) != 0:
+                round_done = False
+                break
+        if round_done:
             self.resolve_round()
 
     def resolve_round(self):
@@ -193,7 +241,7 @@ class GameState:
                 break
         
         if moon_shooter != -1:
-            self.log(f"PLAYER {moon_shooter} SHOT THE MOON!")
+            self.log("PLAYER " + str(moon_shooter) + " SHOT THE MOON!")
             for i in range(4):
                 if i == moon_shooter:
                     self.round_scores[i] = 0
@@ -202,10 +250,15 @@ class GameState:
         
         for i in range(4):
             self.scores[i] += self.round_scores[i]
-            self.log(f"Player {i} total score: {self.scores[i]}")
+            self.log("Player " + str(i) + " total score: " + str(self.scores[i]))
             
         # Check Game Over (100 pts)
-        if any(s >= 100 for s in self.scores):
+        game_over = False
+        for s in self.scores:
+            if s >= 100:
+                game_over = True
+                break
+        if game_over:
             self.log("GAME OVER!")
         else:
             self.deal()

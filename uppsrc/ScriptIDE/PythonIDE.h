@@ -63,6 +63,7 @@ public:
 	
 	DockableCtrl context_pane_left;
 	DockableCtrl context_pane_right;
+	bool force_close_now = false;
 
 	void Log(const String& s);
 	void Error(const String& s);
@@ -71,6 +72,7 @@ public:
 	void RegisterPanes();
 	virtual void DockInit() override;
 	void Jsonize(JsonIO& jio) override;
+	virtual bool Key(dword key, int count) override;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);
@@ -150,8 +152,10 @@ public:
 	void OnRunCellAndAdvance();
 	void OnRunToLine();
 	void OnRunFromLine();
+	void OnProfile();
 	void OnRunConfig();
 	void OnDebug();
+	void OnPause();
 	void OnDebugCell();
 	void OnDebugSelection();
 	void OnDebugToLine();
@@ -165,6 +169,9 @@ public:
 
 	void UpdateStatusBar();
 	void UpdateVariableExplorer();
+	void RefreshRunStateUI();
+	void ShowDebugState(const Vector<PyVM::StackFrame>& stack, const VectorMap<PyValue, PyValue>& globals, bool activate_panes = true);
+	void ClearDebugState();
 	void UpdateRecentFilesMenu(Bar& bar);
 	void AddRecentFile(const String& path);
 	void SyncTabsWithFiles();
@@ -174,6 +181,13 @@ public:
 	void AddCursorHistory();
 	void OnPrevCursor();
 	void OnNextCursor();
+	String DumpActiveScene();
+	String DumpConsoleText() const;
+	bool InvokeActiveSceneButton(const String& button_id);
+	bool InvokeActiveSceneCard(const String& card_id);
+	bool InvokeActiveSceneFirstHandCards(int count);
+	bool HasActiveRunners() const;
+	void ForceCloseNow();
 
 	bool ConfirmSave(int idx);
 	bool ConfirmSaveAll();

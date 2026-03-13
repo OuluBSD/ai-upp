@@ -50,11 +50,26 @@ static bool LineEndsWithBlockColon(const wchar *s, const wchar *end)
 	return limit > s && limit[-1] == ':';
 }
 
+static bool LineStartsWithExitKeyword(const wchar *p, const wchar *e)
+{
+	static const char *kws[] = { "return", "raise", "break", "continue" };
+	for(const char *kw : kws) {
+		int len = (int)strlen(kw);
+		int i = 0;
+		while(i < len && p + i < e && p[i] == (wchar)kw[i])
+			i++;
+		if(i == len && (p + len >= e || !IsAlNum(p[len]) && p[len] != '_'))
+			return true;
+	}
+	return false;
+}
+
 void PythonSyntax::Clear()
 {
 	block_indent.Clear();
 	block_indent.Add(0);
 	expect_indent = false;
+	after_exit = false;
 }
 
 void PythonSyntax::ScanSyntax(const wchar *ln, const wchar *e, int line, int tab_size)
@@ -72,19 +87,23 @@ void PythonSyntax::ScanSyntax(const wchar *ln, const wchar *e, int line, int tab
 	if(block_indent.IsEmpty())
 		block_indent.Add(0);
 	if(significant) {
+		after_exit = false;
 		while(block_indent.GetCount() > 1 && lindent < block_indent.Top())
 			block_indent.Drop();
 		bool need_indent = expect_indent;
 		if(need_indent && lindent > block_indent.Top())
 			block_indent.Add(lindent);
 		expect_indent = LineEndsWithBlockColon(ln, e);
+		bool continuation = e > ln && e[-1] == '\\';
+		if(!continuation)
+			after_exit = LineStartsWithExitKeyword(p, e);
 	}
 	(void)line;
 }
 
 void PythonSyntax::Serialize(Stream& s)
 {
-	s % block_indent % expect_indent;
+	s % block_indent % expect_indent % after_exit;
 }
 
 void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& hls, CodeEditor *editor, int line, int64 pos)
@@ -104,11 +123,9 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 	lindent_chars = int(p0 - s);
 	int level = max(0, block_indent.GetCount() - 1);
 	bool significant = p0 < end && p0[0] != '#';
-	if(!block_indent.IsEmpty()) {
+	if(significant && !block_indent.IsEmpty()) {
 		while(level > 0 && lindent < block_indent[level])
 			level--;
-	}
-	if(significant && !block_indent.IsEmpty()) {
 		if(expect_indent && lindent > block_indent[level])
 			level++;
 	}
@@ -116,15 +133,42 @@ void PythonSyntax::Highlight(const wchar *s, const wchar *end, HighlightOutput& 
 		int i = 0;
 		int bid = 0;
 		int tabpos = 0;
-		while(bid < level && i < lindent_chars) {
-			hls.SetPaper(i, 1, PythonBlockColor(bid));
-			if(s[i] == '\t' || ++tabpos >= tabsize) {
-				tabpos = 0;
-				bid++;
+		bool done = false;
+		if(significant) {
+			while(bid < level && i < lindent_chars) {
+				hls.SetPaper(i, 1, PythonBlockColor(bid));
+				if(s[i] == '\t' || ++tabpos >= tabsize) {
+					tabpos = 0;
+					bid++;
+				}
+				i++;
 			}
-			i++;
 		}
-		hls.SetPaper(i, 1 + max(0, linelen - i), PythonBlockColor(level));
+		else {
+			if(linelen == 0) {
+				// Truly blank line: paint virtual indentation bands using tab width
+				level = after_exit ? max(0, level - 1) : level;
+				for(bid = 0; bid < level; bid++) {
+					hls.SetPaper(i, tabsize, PythonBlockColor(bid));
+					i += tabsize;
+				}
+			}
+			else {
+				// Comment line: paint leading whitespace band-by-band, then flat from #
+				while(bid < level && i < lindent_chars) {
+					hls.SetPaper(i, 1, PythonBlockColor(bid));
+					if(s[i] == '\t' || ++tabpos >= tabsize) {
+						tabpos = 0;
+						bid++;
+					}
+					i++;
+				}
+				hls.SetPaper(i, 1 + max(0, linelen - i), PythonBlockColor(bid));
+				done = true;
+			}
+		}
+		if(!done)
+			hls.SetPaper(i, 1 + max(0, linelen - i), PythonBlockColor(level));
 	}
 	else
 		hls.SetPaper(0, linelen + 1, hl_style[PAPER_NORMAL].color);

@@ -24,4 +24,5 @@ private:
 
 	Vector<int>      block_indent;
 	bool             expect_indent = false;
+	bool             after_exit = false;
 };

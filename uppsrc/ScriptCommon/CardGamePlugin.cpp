@@ -16,6 +16,11 @@ static PyValue hv_clear_sprites(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
+static PyValue hv_begin_sprite_frame(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
 static PyValue hv_remove_sprite(const Vector<PyValue>& args, void*)
 {
 	return PyValue::None();
@@ -342,6 +347,12 @@ static PyValue hv_gui_clear_sprites(const Vector<PyValue>&, void* ud)
 	return PyValue::None();
 }
 
+static PyValue hv_gui_begin_sprite_frame(const Vector<PyValue>&, void* ud)
+{
+	((IHeartsView*)ud)->BeginSpriteFrame();
+	return PyValue::None();
+}
+
 static PyValue hv_gui_remove_sprite(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 1)
@@ -434,6 +445,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)
 		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
+		PY_MODULE_FUNC(begin_sprite_frame, hv_gui_begin_sprite_frame, view)
 		PY_MODULE_FUNC(remove_sprite, hv_gui_remove_sprite, view)
 		PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
 		PY_MODULE_FUNC(set_expected_sprite_count, hv_gui_set_expected_sprite_count, view)
@@ -451,6 +463,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_log,           nullptr)
 		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
+		PY_MODULE_FUNC(begin_sprite_frame, hv_begin_sprite_frame, nullptr)
 		PY_MODULE_FUNC(remove_sprite, hv_remove_sprite, nullptr)
 		PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
 		PY_MODULE_FUNC(set_expected_sprite_count, hv_set_expected_sprite_count, nullptr)

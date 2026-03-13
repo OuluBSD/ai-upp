@@ -3,10 +3,32 @@
 
 NAMESPACE_UPP
 
+static thread_local int s_py_gil_depth = 0;
+
 void PyScheduler::AddVM(PyVM& vm)
 {
 	Mutex::Lock __(mutex);
 	vms.Add(&vm);
+}
+
+void PyScheduler::Lock()
+{
+	if(s_py_gil_depth++ == 0)
+		gil.Enter();
+}
+
+void PyScheduler::Unlock()
+{
+	ASSERT(s_py_gil_depth > 0);
+	if(s_py_gil_depth <= 0)
+		return;
+	if(--s_py_gil_depth == 0)
+		gil.Leave();
+}
+
+bool PyScheduler::HasLock() const
+{
+	return s_py_gil_depth > 0;
 }
 
 static void NativeThreadEntry(PyVM *vm)
@@ -39,7 +61,7 @@ PyValue PyScheduler::CreateThread(PyValue func, Vector<PyValue>&& args)
 		new_vm->SetIR(ir);
 		
 		Thread t;
-		t.Run([new_vm] { NativeThreadEntry(new_vm); });
+		t.Run([new_vm] { NativeThreadEntry(new_vm); }, true);
 		t.Detach();
 		
 		return PyValue("Thread started (native)");

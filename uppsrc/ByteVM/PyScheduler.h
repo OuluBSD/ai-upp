@@ -28,8 +28,9 @@ public:
 	void Run();
 	
 	// GIL operations
-	void Lock() { gil.Enter(); }
-	void Unlock() { gil.Leave(); }
+	void Lock();
+	void Unlock();
+	bool HasLock() const;
 	
 	// Threading module support
 	PyValue CreateThread(PyValue func, Vector<PyValue>&& args);

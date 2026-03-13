@@ -80,6 +80,8 @@ public:
 	void RemoveBreakpoint(const String& file, int line);
 	void ClearBreakpoints();
 	void EnableBreakpoint(const String& file, int line, bool enable = true);
+	void EnableBreakpoints(bool enable = true) { breakpoints_enabled = enable; }
+	bool AreBreakpointsEnabled() const { return breakpoints_enabled; }
 
 	// Query breakpoints
 	bool HasBreakpoint(const String& file, int line) const;
@@ -123,6 +125,7 @@ private:
 	int step_frame_depth = 0;
 	String current_file;
 	int current_line = 0;
+	bool breakpoints_enabled = true;
 
 	bool CheckBreakpoint(const String& file, int line);
 };

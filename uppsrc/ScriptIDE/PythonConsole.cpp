@@ -51,17 +51,30 @@ void PythonConsole::Write(const String& s)
 {
     output.Append(s);
     output.SetCursor(output.GetLength());
+    if(mirror_stdout) {
+        Cout() << s;
+        Cout().Flush();
+    }
 }
 
 void PythonConsole::WriteError(const String& s)
 {
     output.Append(s); // TODO: Red color
     output.SetCursor(output.GetLength());
+    if(mirror_stdout) {
+        Cout() << s;
+        Cout().Flush();
+    }
 }
 
 void PythonConsole::Clear()
 {
     output.Clear();
+}
+
+String PythonConsole::GetOutputText() const
+{
+	return output.Get();
 }
 
 void PythonConsole::OnInput()

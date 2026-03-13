@@ -115,36 +115,67 @@ void PythonIDE::SourceMenu(Bar& bar)
 
 void PythonIDE::RunMenu(Bar& bar)
 {
-	bar.Add("Run", Icons::Run(), [this] { OnRun(); }).Key(K_F5);
+	bool doc_running = false;
+	bool doc_paused = false;
+	bool doc_can_pause = false;
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		if(IDocumentHost* h = open_files[active_file].editor) {
+			doc_running = h->IsRunning();
+			doc_paused = h->IsPaused();
+			doc_can_pause = h->CanPause();
+		}
+	}
+	bool run_enabled = !(doc_running || vm.IsRunning());
+	bool pause_enabled = doc_can_pause && doc_running;
+
+	bar.Add("Run", Icons::Run(), [this] { OnRun(); }).Key(K_CTRL|K_F5).Enable(run_enabled);
 	bar.Add("Re-run last file", [this] { OnRunLast(); }).Key(K_F6);
 	bar.Add("Configuration per file", [this] { OnRunConfig(); }).Key(K_CTRL_F6);
 	bar.Add("Global presets", [this] { Todo("Global presets"); });
 	bar.Separator();
-	bar.Add("Run cell", [this] { OnRunCell(); }).Key(K_CTRL_RETURN);
-	bar.Add("Run cell and advance", [this] { OnRunCellAndAdvance(); }).Key(K_SHIFT_RETURN);
-	bar.Add("Re-run last cell", [this] { Todo("Re-run last cell"); }).Key(K_ALT_RETURN);
-	bar.Add("Run current line/selection", [this] { OnRunSelection(); }).Key(K_F9);
-	bar.Add("Run to line", [this] { OnRunToLine(); }).Key(K_SHIFT_F9);
-	bar.Add("Run from line", [this] { OnRunFromLine(); }).Key(K_ALT_F9);
+	bar.Add("Run cell", [this] { OnRunCell(); }).Key(K_CTRL_RETURN).Enable(run_enabled);
+	bar.Add("Run cell and advance", [this] { OnRunCellAndAdvance(); }).Key(K_SHIFT_RETURN).Enable(run_enabled);
+	bar.Add("Re-run last cell", [this] { Todo("Re-run last cell"); }).Key(K_ALT_RETURN).Enable(run_enabled);
+	bar.Add("Run current line/selection", [this] { OnRunSelection(); }).Key(K_F9).Enable(run_enabled);
+	bar.Add("Run to line", [this] { OnRunToLine(); }).Key(K_SHIFT_F9).Enable(run_enabled);
+	bar.Add("Run from line", [this] { OnRunFromLine(); }).Key(K_ALT_F9).Enable(run_enabled);
 	bar.Separator();
 	bar.Add("Run in external terminal", [this] { Todo("Run in external terminal"); });
 	bar.Separator();
-	bar.Add("Profile file", Icons::Profiler(), [this] { Todo("Profile file"); }).Key(K_F10);
-	bar.Add("Profile cell", Icons::Profiler(), [this] { Todo("Profile cell"); }).Key(K_ALT_F10);
-	bar.Add("Profile current line or selection", Icons::Profiler(), [this] { Todo("Profile selection"); });
+	bar.Add("Profile file", Icons::Profiler(), [this] { OnProfile(); }).Key(K_F10).Enable(active_file >= 0 && run_enabled);
+	bar.Add("Profile cell", Icons::Profiler(), [this] { Todo("Profile cell"); }).Key(K_ALT_F10).Enable(run_enabled);
+	bar.Add("Profile current line or selection", Icons::Profiler(), [this] { Todo("Profile selection"); }).Enable(run_enabled);
+	bar.Separator();
+	bar.Add(doc_paused ? "Resume" : "Pause", [this] { OnPause(); }).Enable(pause_enabled);
+	bar.Add("Stop", Icons::Stop(), [this] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12).Enable(doc_running || vm.IsRunning());
 }
 
 void PythonIDE::DebugMenu(Bar& bar)
 {
-	bar.Add("Debug file", Icons::Debug(), [this] { OnDebug(); }).Key(K_CTRL|K_F5);
-	bar.Add("Debug cell", [this] { OnDebugCell(); });
-	bar.Add("Debug the current line or selection", [this] { OnDebugSelection(); });
+	bool doc_running = false;
+	bool doc_paused = false;
+	bool doc_can_pause = false;
+	if(active_file >= 0 && active_file < open_files.GetCount()) {
+		if(IDocumentHost* h = open_files[active_file].editor) {
+			doc_running = h->IsRunning();
+			doc_paused = h->IsPaused();
+			doc_can_pause = h->CanPause();
+		}
+	}
+	bool stop_enabled = doc_running || vm.IsRunning();
+	bool run_enabled = !stop_enabled;
+	bool pause_enabled = doc_can_pause && doc_running;
+
+	bar.Add("Debug file", Icons::Debug(), [this] { OnDebug(); }).Key(K_F5).Enable(run_enabled);
+	bar.Add("Debug cell", [this] { OnDebugCell(); }).Enable(run_enabled);
+	bar.Add("Debug the current line or selection", [this] { OnDebugSelection(); }).Enable(run_enabled);
 	bar.Separator();
 	bar.Add("Debug current line", Icons::StepOver(), [this] { vm.StepOver(); }).Key(K_CTRL_F10).Enable(vm.IsRunning());
 	bar.Add("Step into function or method", Icons::StepIn(), [this] { vm.StepIn(); }).Key(K_CTRL_F11).Enable(vm.IsRunning());
 	bar.Add("Execute until function returns", Icons::StepOut(), [this] { vm.StepOut(); }).Key(K_CTRL|K_SHIFT|K_F11).Enable(vm.IsRunning());
 	bar.Add("Execute until next breakpoint", Icons::Run(), [this] { vm.Run(); }).Key(K_CTRL_F12).Enable(vm.IsRunning());
-	bar.Add("Stop debugging", Icons::Stop(), [this] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12).Enable(vm.IsRunning());
+	bar.Add(doc_paused ? "Resume debugging" : "Pause debugging", [this] { OnPause(); }).Enable(pause_enabled);
+	bar.Add("Stop debugging", Icons::Stop(), [this] { OnStop(); }).Key(K_CTRL|K_SHIFT|K_F12).Enable(stop_enabled);
 	bar.Separator();
 	bar.Add("Toggle breakpoint", Icons::Breakpoint(), [this] { OnToggleBreakpoint(); }).Key(K_F12);
 	bar.Add("Set/edit conditional breakpoint", [this] { Todo("Conditional breakpoint"); }).Key(K_SHIFT|K_F12);

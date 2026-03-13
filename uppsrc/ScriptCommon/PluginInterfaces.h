@@ -55,7 +55,7 @@ class IHeartsView {
 public:
 	virtual ~IHeartsView() {}
 	// Place/update a card sprite at absolute pixel position
-	virtual void SetCard(const String& card_id, const String& asset_path, int x, int y) = 0;
+	virtual void SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) = 0;
 	// Move card sprite to the center of a named zone
 	virtual void MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) = 0;
 	// Return zone rect as a dict-like Value {x,y,w,h}
@@ -72,6 +72,8 @@ public:
 	virtual void SetStatus(const String& text) = 0;
 	// Log a message to the game log
 	virtual void Log(const String& msg) = 0;
+	// Schedule a named Python callback after a delay
+	virtual void SetTimeout(int delay_ms, const String& callback_name) = 0;
 };
 
 class IPlugin {

@@ -182,6 +182,7 @@ public:
 	void OnPrevCursor();
 	void OnNextCursor();
 	String DumpActiveScene();
+	String DumpActivePythonStack() const;
 	String DumpConsoleText() const;
 	bool InvokeActiveSceneButton(const String& button_id);
 	bool InvokeActiveSceneCard(const String& card_id);

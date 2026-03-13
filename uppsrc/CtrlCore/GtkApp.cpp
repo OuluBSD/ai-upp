@@ -26,6 +26,22 @@ void CatchError(const gchar *log_domain,
 	RLOG((const char *)message);
 	// __BREAK__;
 }
+
+#if GLIB_CHECK_VERSION(2, 50, 0)
+GLogWriterOutput CatchErrorStructured(GLogLevelFlags log_level,
+                                      const GLogField *fields,
+                                      gsize n_fields,
+                                      gpointer user_data)
+{
+	for(gsize i = 0; i < n_fields; i++) {
+		if(strcmp(fields[i].key, "MESSAGE") == 0 && fields[i].value) {
+			RLOG((const char *)fields[i].value);
+			break;
+		}
+	}
+	return G_LOG_WRITER_HANDLED;
+}
+#endif
 #endif
 
 void Ctrl::PanicMsgBox(const char *title, const char *text)
@@ -163,7 +179,10 @@ bool InitGtkApp(int argc, char **argv, const char **envptr)
 	if(Ctrl::IsX11())
 		gdk_window_add_filter(NULL, Ctrl::RootKeyFilter, NULL);
 #if CATCH_ERRORS
-	g_log_set_default_handler (CatchError, 0);
+	g_log_set_default_handler(CatchError, 0);
+#if GLIB_CHECK_VERSION(2, 50, 0)
+	g_log_set_writer_func(CatchErrorStructured, 0, 0);
+#endif
 #endif
 
 	GtkSettings *settings = gtk_settings_get_default();

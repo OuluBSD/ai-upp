@@ -108,7 +108,6 @@ def start():
     global current_hand_ids_for_assert
     global current_trick_ids_for_assert
     if started:
-        hearts_view.log("Duplicate start() ignored.")
         return
     started = True
     state = GameState()
@@ -583,9 +582,6 @@ def refresh_ui():
         if not found:
             hearts_view.remove_sprite(old_id)
     rendered_trick_ids = current_trick_ids
-    hearts_view.log("refresh_ui: trick sync state_trick=" + str(len(state.trick)) +
-                    " rendered=" + str(len(rendered_trick_ids)) +
-                    " ids=" + str(current_trick_ids))
 
     for old_id in rendered_hand_ids:
         found_in_hand = False
@@ -602,11 +598,7 @@ def refresh_ui():
                 break
         if not found_in_trick:
             hearts_view.remove_sprite(old_id)
-    hearts_view.log("refresh_ui: hand prune done old=" + str(len(rendered_hand_ids)) +
-                    " new=" + str(len(current_hand_ids)) +
-                    " trick=" + str(len(state.trick)))
     rendered_hand_ids = current_hand_ids
-    hearts_view.log("refresh_ui: hand assign done")
     current_hand_ids_for_assert = current_hand_ids
     current_trick_ids_for_assert = current_trick_ids
     # DONT REMOVE: host-side render assertions catch stale visible sprites that the logical
@@ -615,9 +607,7 @@ def refresh_ui():
     hearts_view.set_expected_sprite_count("hand_left", len(state.players[1]))
     hearts_view.set_expected_sprite_count("hand_top", len(state.players[2]))
     hearts_view.set_expected_sprite_count("hand_right", len(state.players[3]))
-    hearts_view.log("refresh_ui: expected counts done")
     assert_render_invariants("refresh_ui.render", current_face_card_ids)
-    hearts_view.log("refresh_ui: done")
 
 def commit_pass():
     global selected_cards
@@ -664,9 +654,6 @@ def ai_step():
     global pending_pass_player
 
     assert_state_invariants("ai_step.begin")
-    hearts_view.log("ai_step: phase=" + str(state.phase) + " turn=" + str(state.turn) +
-                    " pending_pass_player=" + str(pending_pass_player) +
-                    " trick_pending=" + str(state.trick_pending))
 
     if has_game_over_score():
         finish_autoplay_if_needed()
@@ -711,18 +698,14 @@ def ai_step():
         return
 
     if state.phase != 'PLAYING':
-        hearts_view.log("ai_step: not in playing phase")
         return
 
     if not autoplay_enabled and state.turn == 0:
-        hearts_view.log("ai_step: waiting for human turn")
         return
 
     p_idx = state.turn
     card = choose_simple_play_card(p_idx)
-    hearts_view.log("ai_step: chose card " + str(card) + " for player " + str(p_idx))
     if not card:
-        hearts_view.log("ai_step: no valid card")
         return
     success, msg = state.play_card(p_idx, card)
     if not success:
@@ -754,17 +737,11 @@ def on_click(card_id):
     else:
         success, msg = state.play_card(0, card)
         if success:
-            hearts_view.log("on_click: played " + str(card.id) + " turn=" + str(state.turn) +
-                            " trick_pending=" + str(state.trick_pending))
             assert_state_invariants("on_click.play")
             refresh_ui()
-            hearts_view.log("on_click: refresh complete turn=" + str(state.turn) +
-                            " trick_pending=" + str(state.trick_pending))
             if state.trick_pending:
-                hearts_view.log("on_click: scheduling trick resolve")
                 schedule_ai_step(TRICK_RESOLVE_DELAY_MS)
             elif state.turn != 0:
-                hearts_view.log("on_click: scheduling next ai step")
                 schedule_ai_step(AI_ACTION_DELAY_MS)
         else:
             hearts_view.log("Invalid move: " + str(msg))

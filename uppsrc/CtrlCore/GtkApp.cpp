@@ -180,6 +180,9 @@ bool InitGtkApp(int argc, char **argv, const char **envptr)
 		gdk_window_add_filter(NULL, Ctrl::RootKeyFilter, NULL);
 #if CATCH_ERRORS
 	g_log_set_default_handler(CatchError, 0);
+	g_log_set_handler("Gdk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
+	g_log_set_handler("Gtk", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
+	g_log_set_handler("GLib", (GLogLevelFlags)(G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION), CatchError, 0);
 #if GLIB_CHECK_VERSION(2, 50, 0)
 	g_log_set_writer_func(CatchErrorStructured, 0, 0);
 #endif

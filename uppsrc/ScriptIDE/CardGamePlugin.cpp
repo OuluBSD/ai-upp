@@ -677,6 +677,7 @@ void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& ass
 	if(active_cards.Find(card_id) < 0)
 		active_cards.Add(card_id);
 	SyncCardCtrl(card_id);
+	overlay.Refresh();
 }
 
 void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
@@ -702,6 +703,7 @@ void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const Stri
 	if(active_cards.Find(card_id) < 0)
 		active_cards.Add(card_id);
 	SyncCardCtrl(card_id);
+	overlay.Refresh();
 }
 
 void CardGameDocumentHost::ApplySetTimeout(int delay_ms, const String& callback_name)
@@ -1293,6 +1295,13 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 	}
 
 	for(int i = 0; i < sprites.GetCount(); i++) {
+		const Sprite& s = sprites[i];
+		if(s.img.IsEmpty())
+			continue;
+		Image img = RotateCardImage(s.img, s.rotation_deg);
+		if(img.IsEmpty())
+			continue;
+		w.DrawImage(s.rect.left, s.rect.top, img);
 	}
 }
 

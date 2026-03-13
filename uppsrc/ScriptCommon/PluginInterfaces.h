@@ -62,6 +62,10 @@ public:
 	virtual Value GetZoneRect(const String& zone_id) = 0;
 	// Clear all card sprites
 	virtual void ClearSprites() = 0;
+	// Remove a single card sprite
+	virtual void RemoveSprite(const String& card_id) = 0;
+	// Set expected rendered sprite count for a named zone; host asserts after UI sync
+	virtual void SetExpectedSpriteCount(const String& zone_id, int count) = 0;
 	// Set a text label inside a named zone
 	virtual void SetLabel(const String& zone_id, const String& text) = 0;
 	// Set a clickable button inside a named zone

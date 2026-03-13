@@ -390,6 +390,26 @@ void PyCompiler::Statement()
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}
+	else if(IsId("assert")) {
+		Next();
+		Expression();
+		int ok = Label();
+		Emit(PY_POP_JUMP_IF_TRUE, 0);
+		if(IsToken(TK_COMMA)) {
+			Next();
+			Expression();
+			Emit(PY_RAISE, 1);
+		}
+		else {
+			PyIR r(PY_RAISE_STR, 0, GetLine(), file);
+			r.arg = PyValue("AssertionError: assertion failed");
+			ir.Add(r);
+		}
+		Patch(ok, Label());
+		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'assert', found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
 	else if(IsId("return")) {
 		Next();
 		if(IsStmtEnd()) {

@@ -50,7 +50,7 @@ public:
 	virtual void LeftDown(Point p, dword flags) override;
 };
 
-class CardSpriteCtrl : public ImageCtrl {
+class CardSpriteCtrl : public Ctrl {
 public:
 	CardGameDocumentHost* owner = nullptr;
 	String card_id;
@@ -65,6 +65,7 @@ public:
 	CardGameDocumentHost();
 	virtual ~CardGameDocumentHost();
 	static bool log_to_stdout;
+	static bool exit_on_assert;
 
 	virtual Ctrl&  GetCtrl() override { return *this; }
 	virtual bool   Load(const String& path) override;
@@ -88,12 +89,15 @@ public:
 	virtual void   Pause() override;
 	virtual void   Stop() override;
 	virtual void   PopulateDebugState(PythonIDE& ide) override;
+	virtual String DumpPythonStack() const override;
 
 	// IHeartsView
 	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) override;
 	virtual void  MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) override;
 	virtual Value GetZoneRect(const String& zone_id) override;
 	virtual void  ClearSprites() override;
+	virtual void  RemoveSprite(const String& card_id) override;
+	virtual void  SetExpectedSpriteCount(const String& zone_id, int count) override;
 	virtual void  SetLabel(const String& zone_id, const String& text) override;
 	virtual void  SetButton(const String& zone_id, const String& text, bool enabled) override;
 	virtual void  SetHighlight(const String& zone_id, bool enabled) override;
@@ -131,6 +135,7 @@ private:
 	bool refresh_running = false;
 	bool resize_refresh_pending = false;
 	bool scene_sync_pending = false;
+	int ui_batch_depth = 0;
 	bool debug_overlay = false;
 	bool game_running = false;
 	bool game_paused = false;
@@ -163,6 +168,7 @@ private:
 		String user_class;
 	};
 	ArrayMap<String, FormItem> form_items;
+	ArrayMap<String, int> expected_sprite_counts;
 	ArrayMap<String, String> labels;
 	struct ActionButton {
 		String text;
@@ -178,6 +184,7 @@ private:
 	RichTextView game_log;
 	Vector<String> game_log_lines;
 	Vector<PyVM::StackFrame> paused_stack;
+	Vector<PyVM::StackFrame> last_error_stack;
 	VectorMap<PyValue, PyValue> paused_globals;
 
 	void Animate();
@@ -195,6 +202,8 @@ private:
 	void ScheduleUiFlush();
 	void DrainUiQueue();
 	void ApplyClearSprites();
+	void ApplyRemoveSprite(const String& card_id);
+	void ApplySetExpectedSpriteCount(const String& zone_id, int count);
 	void ApplySetLabel(const String& zone_id, const String& text);
 	void ApplySetButton(const String& zone_id, const String& text, bool enabled);
 	void ApplySetHighlight(const String& zone_id, bool enabled);
@@ -203,6 +212,8 @@ private:
 	void ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
 	void ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated);
 	void ApplySetTimeout(int delay_ms, const String& callback_name);
+	void PruneInactiveSprites();
+	bool CheckExpectedSpriteCounts();
 	void CapturePausedDebugState();
 	void ReportVmError(const String& where, const String& msg);
 	void ResetGameView();
@@ -240,7 +251,7 @@ public:
 	virtual bool   Save() override;
 	virtual bool   SaveAs(const String& path) override;
 	virtual String GetPath() const override { return path; }
-	virtual bool   IsModified() const override { return !const_cast<CardGameLayoutEditor*>(this)->IsProjectSaved(); }
+	virtual bool   IsModified() const override;
 	virtual void   SetFocus() override { FormEdit<ParentCtrl>::SetFocus(); }
 	
 	virtual void   ActivateUI() override;
@@ -249,9 +260,11 @@ public:
 	virtual void   Toolbar(Bar& bar) override;
 
 	void OpenCardProperties(const Vector<int>& indexes);
+	void RefreshSavedState();
 
 private:
 	String path;
+	String last_saved_xml;
 	CardGameProperties card_properties;
 	ParentCtrl main;
 };

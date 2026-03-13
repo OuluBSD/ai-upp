@@ -105,11 +105,37 @@ Size RotatedImageSize(const Image& img, int rotation_deg)
 	return rotated.GetSize();
 }
 
+struct SpritePaintOrder : Moveable<SpritePaintOrder> {
+	int index = -1;
+	int group = 0;
+	int major = 0;
+	int minor = 0;
+};
+
+String FormatPythonStackText(const Vector<PyVM::StackFrame>& stack)
+{
+	String out;
+	if(stack.IsEmpty()) {
+		out << "python stack: <empty>\n";
+		return out;
+	}
+	out << "python stack:\n";
+	for(int i = 0; i < stack.GetCount(); i++) {
+		const PyVM::StackFrame& sf = stack[i];
+		out << "  #" << i
+		    << " " << sf.function_name
+		    << " at " << sf.file << ":" << sf.line
+		    << "\n";
+	}
+	return out;
+}
+
 }
 
 // --- CardGameDocumentHost ---
 
 bool CardGameDocumentHost::log_to_stdout = false;
+bool CardGameDocumentHost::exit_on_assert = false;
 
 CardGameOverlay::CardGameOverlay()
 {
@@ -142,6 +168,7 @@ void CardSpriteHitCtrl::LeftDown(Point p, dword flags)
 
 CardSpriteCtrl::CardSpriteCtrl()
 {
+	Transparent();
 	NoWantFocus();
 }
 
@@ -318,18 +345,24 @@ void CardGameDocumentHost::StartGame(const String& mode)
 	stop_requested = false;
 	stop_in_progress = false;
 	paused_stack.Clear();
+	last_error_stack.Clear();
 	paused_globals.Clear();
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
 		ide->RefreshRunStateUI();
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		if(!plugin)
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		try {
 			plugin->Execute(path);
 		}
 		catch(Exc& e) {
 			ReportVmError("Execute", e);
 		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 	PostCallback([=] { RefreshGameView(); });
 }
@@ -461,6 +494,7 @@ void CardGameDocumentHost::FinishStop()
 	pending_callback_name.Clear();
 	pending_timeout_ms = -1;
 	paused_stack.Clear();
+	last_error_stack.Clear();
 	paused_globals.Clear();
 	ResetGameView();
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
@@ -513,34 +547,50 @@ void CardGameDocumentHost::QueueVmTask(Function<void ()> fn)
 void CardGameDocumentHost::QueueVmRefresh()
 {
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		if(!plugin)
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		PyValue refresh_ui = plugin->GetGameFunction("refresh_ui");
 		if(!refresh_ui.IsFunction())
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		try {
 			vm.Call(refresh_ui, {});
 		}
 		catch(Exc& e) {
 			ReportVmError("refresh_ui", e);
 		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 }
 
 void CardGameDocumentHost::QueueVmNamedCallback(const String& callback_name)
 {
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		if(!plugin)
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		PyValue cb = plugin->GetGameFunction(callback_name);
 		if(!cb.IsFunction())
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		try {
 			vm.Call(cb, {});
 		}
 		catch(Exc& e) {
 			ReportVmError(callback_name, e);
 		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 }
 
@@ -587,6 +637,9 @@ void CardGameDocumentHost::DrainUiQueue()
 	for(int i = 0; i < cmds.GetCount(); i++)
 		cmds[i]();
 
+	PruneInactiveSprites();
+	if(!refresh_running && ui_batch_depth <= 0 && CheckExpectedSpriteCounts())
+		return;
 	SyncFormControls();
 	SyncFormExplorer();
 	table_form.Refresh();
@@ -597,11 +650,25 @@ void CardGameDocumentHost::DrainUiQueue()
 void CardGameDocumentHost::ApplyClearSprites()
 {
 	active_cards.Clear();
-	for(int i = 0; i < card_ctrls.GetCount(); i++) {
-		if(card_ctrls[i])
-			card_ctrls[i]->Hide();
-	}
-	sprites.Clear();
+	expected_sprite_counts.Clear();
+}
+
+void CardGameDocumentHost::ApplyRemoveSprite(const String& card_id)
+{
+	int qs = sprites.Find(card_id);
+	if(qs >= 0)
+		sprites.Remove(qs);
+	int qa = active_cards.Find(card_id);
+	if(qa >= 0)
+		active_cards.Remove(qa);
+	int qc = card_ctrls.Find(card_id);
+	if(qc >= 0 && card_ctrls[qc])
+		card_ctrls[qc]->Hide();
+}
+
+void CardGameDocumentHost::ApplySetExpectedSpriteCount(const String& zone_id, int count)
+{
+	expected_sprite_counts.GetAdd(zone_id) = count;
 }
 
 void CardGameDocumentHost::ApplySetLabel(const String& zone_id, const String& text)
@@ -710,10 +777,84 @@ void CardGameDocumentHost::ApplySetTimeout(int delay_ms, const String& callback_
 {
 	pending_timeout_ms = delay_ms;
 	pending_callback_name = callback_name;
+	if(log_to_stdout)
+		Cout() << "[hearts-timeout] schedule " << callback_name << " in " << delay_ms << "ms\n";
 	Upp::KillTimeCallback(&callback_timer_key);
 	Upp::SetTimeCallback(max(0, delay_ms), [=] {
+		if(log_to_stdout)
+			Cout() << "[hearts-timeout] fire " << callback_name << "\n";
 		QueueVmNamedCallback(callback_name);
 	}, &callback_timer_key);
+}
+
+void CardGameDocumentHost::PruneInactiveSprites()
+{
+	for(int i = sprites.GetCount() - 1; i >= 0; i--) {
+		const String& card_id = sprites.GetKey(i);
+		if(active_cards.Find(card_id) >= 0)
+			continue;
+		sprites.Remove(i);
+	}
+	for(int i = 0; i < card_ctrls.GetCount(); i++) {
+		CardSpriteCtrl* ctrl = card_ctrls[i];
+		if(!ctrl)
+			continue;
+		if(active_cards.Find(card_ctrls.GetKey(i)) < 0)
+			ctrl->Hide();
+	}
+}
+
+bool CardGameDocumentHost::CheckExpectedSpriteCounts()
+{
+	for(int i = 0; i < expected_sprite_counts.GetCount(); i++) {
+		const String& zone_id = expected_sprite_counts.GetKey(i);
+		int expected = expected_sprite_counts[i];
+		Rect zone = GetZoneRectFromForm(table_form, zone_id);
+		if(zone.IsEmpty())
+			continue;
+
+		int actual = 0;
+		Vector<String> zone_sprite_ids;
+		for(int j = 0; j < sprites.GetCount(); j++) {
+			const Sprite& s = sprites[j];
+			bool in_current = zone.Contains(s.rect.CenterPoint());
+			bool in_target = zone.Contains(s.target_rect.CenterPoint());
+			if(s.animating && in_current && !in_target)
+				continue;
+			if(in_current) {
+				actual++;
+				zone_sprite_ids.Add(sprites.GetKey(j));
+			}
+		}
+
+		// DONT REMOVE: this catches real host-side render corruption where stale sprites remain
+		// visible even though the Python game state says the hand/trick size is different.
+		if(actual != expected) {
+			String msg;
+			msg << "AssertionError: render sprite count mismatch in " << zone_id
+			    << ": expected " << expected << ", got " << actual
+			    << " ids=" << Join(zone_sprite_ids, ",");
+			last_error = msg;
+			last_error_stack = vm.GetCallStack();
+			ApplyLog(msg);
+			if(log_to_stdout) {
+				Cout() << DumpScene();
+				Cout() << DumpPythonStack();
+			}
+			game_running = false;
+			game_paused = false;
+			stop_requested = true;
+			stop_in_progress = false;
+			Upp::KillTimeCallback(&callback_timer_key);
+			if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+				ide->RefreshRunStateUI();
+				if(exit_on_assert)
+					PostCallback([=] { ide->ForceCloseNow(); });
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 void CardGameDocumentHost::CapturePausedDebugState()
@@ -728,14 +869,18 @@ void CardGameDocumentHost::CapturePausedDebugState()
 void CardGameDocumentHost::ReportVmError(const String& where, const String& msg)
 {
 	String text = where + " error: " + msg;
+	last_error_stack = vm.GetCallStack();
 	LOG("CardGameDocumentHost: " << text);
 	QueueUiCommand([=] {
 		last_error = msg;
 		ApplyLog(text);
 		game_running = false;
 		game_paused = false;
-		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 			ide->RefreshRunStateUI();
+			if(exit_on_assert && (msg.Find("AssertionError") >= 0 || msg.Find("assertion failed") >= 0))
+				PostCallback([=] { ide->ForceCloseNow(); });
+		}
 	});
 }
 
@@ -744,12 +889,44 @@ void CardGameDocumentHost::PopulateDebugState(PythonIDE& ide)
 	ide.ShowDebugState(paused_stack, paused_globals, false);
 }
 
+String CardGameDocumentHost::DumpPythonStack() const
+{
+	if(!last_error_stack.IsEmpty())
+		return FormatPythonStackText(last_error_stack);
+	if(!paused_stack.IsEmpty())
+		return FormatPythonStackText(paused_stack);
+	Vector<PyVM::StackFrame> live_stack;
+	String current_file;
+	int current_line = 0;
+	{
+		Mutex::Lock __(const_cast<CardGameDocumentHost*>(this)->vm_mutex);
+		live_stack = vm.GetCallStack();
+		current_file = vm.GetCurrentFile();
+		current_line = vm.GetCurrentLine();
+	}
+	if(!live_stack.IsEmpty())
+		return FormatPythonStackText(live_stack);
+	if(!current_file.IsEmpty()) {
+		String out;
+		out << "python stack:\n";
+		out << "  <idle> at " << current_file << ":" << current_line << "\n";
+		return out;
+	}
+	return "python stack: <idle>\n";
+}
+
 void CardGameDocumentHost::ResetGameView()
 {
 	ApplyClearSprites();
+	sprites.Clear();
+	for(int i = 0; i < card_ctrls.GetCount(); i++) {
+		if(card_ctrls[i])
+			card_ctrls[i]->Hide();
+	}
 	labels.Clear();
 	buttons.Clear();
 	highlights.Clear();
+	expected_sprite_counts.Clear();
 	status_text.Clear();
 	last_error.Clear();
 	game_log_lines.Clear();
@@ -811,6 +988,26 @@ void CardGameDocumentHost::ClearSprites()
 	}
 	else
 		QueueUiCommand([=] { ApplyClearSprites(); });
+}
+
+void CardGameDocumentHost::RemoveSprite(const String& card_id)
+{
+	if(IsMainThread()) {
+		ApplyRemoveSprite(card_id);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyRemoveSprite(card_id); });
+}
+
+void CardGameDocumentHost::SetExpectedSpriteCount(const String& zone_id, int count)
+{
+	if(IsMainThread()) {
+		ApplySetExpectedSpriteCount(zone_id, count);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetExpectedSpriteCount(zone_id, count); });
 }
 
 void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
@@ -936,6 +1133,9 @@ String CardGameDocumentHost::DumpScene()
 	for(int i = 0; i < buttons.GetCount(); i++)
 		out << "  button " << buttons.GetKey(i) << " enabled=" << (buttons[i].enabled ? "1" : "0")
 		    << " text=" << AsCString(buttons[i].text) << "\n";
+	out << "expected_sprite_counts: " << expected_sprite_counts.GetCount() << "\n";
+	for(int i = 0; i < expected_sprite_counts.GetCount(); i++)
+		out << "  expected " << expected_sprite_counts.GetKey(i) << "=" << expected_sprite_counts[i] << "\n";
 	out << "highlights: " << highlights.GetCount() << "\n";
 	for(int i = 0; i < highlights.GetCount(); i++)
 		out << "  highlight " << highlights[i] << "\n";
@@ -1004,11 +1204,6 @@ void CardGameDocumentHost::Animate()
 	}
 	if(changed) {
 		overlay.Refresh();
-		for(int i = 0; i < sprites.GetCount(); i++) {
-			int q = card_ctrls.Find(sprites.GetKey(i));
-			if(q >= 0 && card_ctrls[q])
-				card_ctrls[q]->Refresh();
-		}
 	}
 }
 
@@ -1021,6 +1216,7 @@ void CardGameDocumentHost::RefreshGameView()
 
 	refresh_running = true;
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		if(plugin) {
 			PyValue refresh_ui = plugin->GetGameFunction("refresh_ui");
 			if(refresh_ui.IsFunction()) {
@@ -1032,7 +1228,10 @@ void CardGameDocumentHost::RefreshGameView()
 				}
 			}
 		}
-		QueueUiCommand([=] { refresh_running = false; });
+		QueueUiCommand([=] {
+			if(ui_batch_depth > 0) ui_batch_depth--;
+			refresh_running = false;
+		});
 	});
 }
 
@@ -1041,15 +1240,20 @@ void CardGameDocumentHost::InvokePythonButton(const String& button_id)
 	if(!plugin || !game_running)
 		return;
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		PyValue on_button = plugin->GetGameFunction("on_button");
 		if(!on_button.IsFunction())
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		try {
 			vm.Call(on_button, { PyValue(button_id) });
 		}
 		catch(Exc& e) {
 			ReportVmError("on_button", e);
 		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 }
 
@@ -1058,15 +1262,20 @@ void CardGameDocumentHost::InvokePythonCard(const String& card_id)
 	if(!plugin || !game_running)
 		return;
 	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
 		PyValue on_click = plugin->GetGameFunction("on_click");
 		if(!on_click.IsFunction())
+		{
+			QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 			return;
+		}
 		try {
 			vm.Call(on_click, { PyValue(card_id) });
 		}
 		catch(Exc& e) {
 			ReportVmError("on_click", e);
 		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 }
 
@@ -1075,6 +1284,10 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 	int qs = sprites.Find(card_id);
 	if(qs < 0)
 		return;
+
+	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
+	Point c = sprites[qs].rect.CenterPoint();
+	bool clickable = hand_self.Contains(c);
 
 	int qh = card_ctrls.Find(card_id);
 	CardSpriteCtrl* ctrl = nullptr;
@@ -1089,10 +1302,13 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 		ctrl = card_ctrls[qh];
 
 	if(ctrl) {
-		ctrl->SetImage(RotateCardImage(sprites[qs].img, sprites[qs].rotation_deg));
+		if(!clickable) {
+			ctrl->Hide();
+			return;
+		}
 		ctrl->SetRect(sprites[qs].rect);
+		AddChild(ctrl);
 		ctrl->Show();
-		ctrl->Refresh();
 	}
 }
 
@@ -1249,6 +1465,7 @@ void CardGameDocumentHost::SyncFormControls()
 				String button_id = buttons.GetKey(i);
 				button->SetLabel(buttons[i].text);
 				button->Enable(buttons[i].enabled);
+				button->Show(!buttons[i].text.IsEmpty());
 				button->WhenAction = [=] { InvokePythonButton(button_id); };
 			}
 		}
@@ -1294,8 +1511,62 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 		w.DrawRect(r.right + 1, r.top - 4, 3, r.GetHeight() + 8, glow);
 	}
 
+	Vector<SpritePaintOrder> order;
+	order.Reserve(sprites.GetCount());
+	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
+	Rect hand_left = GetZoneRectFromForm(table_form, "hand_left");
+	Rect hand_top = GetZoneRectFromForm(table_form, "hand_top");
+	Rect hand_right = GetZoneRectFromForm(table_form, "hand_right");
+	Rect trick_bottom = GetZoneRectFromForm(table_form, "trick_bottom");
+	Rect trick_left = GetZoneRectFromForm(table_form, "trick_left");
+	Rect trick_top = GetZoneRectFromForm(table_form, "trick_top");
+	Rect trick_right = GetZoneRectFromForm(table_form, "trick_right");
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const Sprite& s = sprites[i];
+		Point c = s.rect.CenterPoint();
+		SpritePaintOrder& po = order.Add();
+		po.index = i;
+		po.group = 10;
+		po.major = 0;
+		po.minor = i;
+		if(trick_bottom.Contains(c) || trick_left.Contains(c) || trick_top.Contains(c) || trick_right.Contains(c)) {
+			po.group = 30;
+			po.major = s.rect.top;
+			po.minor = s.rect.left;
+		}
+		else if(hand_self.Contains(c)) {
+			po.group = 20;
+			po.major = s.rect.left;
+			po.minor = s.rect.top;
+		}
+		else if(hand_top.Contains(c)) {
+			po.group = 12;
+			po.major = s.rect.left;
+			po.minor = s.rect.top;
+		}
+		else if(hand_left.Contains(c)) {
+			po.group = 11;
+			po.major = s.rect.top;
+			po.minor = s.rect.left;
+		}
+		else if(hand_right.Contains(c)) {
+			po.group = 11;
+			po.major = s.rect.top;
+			po.minor = s.rect.left;
+		}
+	}
+	Sort(order, [](const SpritePaintOrder& a, const SpritePaintOrder& b) {
+		if(a.group != b.group)
+			return a.group < b.group;
+		if(a.major != b.major)
+			return a.major < b.major;
+		if(a.minor != b.minor)
+			return a.minor < b.minor;
+		return a.index < b.index;
+	});
+
+	for(int oi = 0; oi < order.GetCount(); oi++) {
+		const Sprite& s = sprites[order[oi].index];
 		if(s.img.IsEmpty())
 			continue;
 		Image img = RotateCardImage(s.img, s.rotation_deg);
@@ -1358,6 +1629,7 @@ CardGameLayoutEditor::CardGameLayoutEditor()
 	_TypeList.Add("Button");
 	
 	_View.WhenUpdate = [this] {
+		this->RefreshSavedState();
 		this->UpdateTools();
 		this->OpenCardProperties(_View.GetSelected());
 	};
@@ -1422,6 +1694,14 @@ void CardGameLayoutEditor::OpenCardProperties(const Vector<int>& indexes)
 	}
 
 	UpdateItemList();
+	RefreshSavedState();
+}
+
+void CardGameLayoutEditor::RefreshSavedState()
+{
+	String current_xml;
+	_View.SaveAllString(current_xml, false);
+	ProjectSaved(current_xml == last_saved_xml);
 }
 
 bool CardGameLayoutEditor::Load(const String& path_)
@@ -1440,12 +1720,16 @@ bool CardGameLayoutEditor::Load(const String& path_)
 	SetViewMode(VIEW_MODE_WIREFRAME);
 	
 	UpdateTools();
+	_View.SaveAllString(last_saved_xml, false);
 	ProjectSaved(true);
 	return true; 
 }
 
 bool CardGameLayoutEditor::Save()
 {
+	card_properties._Options.EndEdit();
+	_LayoutList.EndEdit();
+	_ItemList.EndEdit(false, false, false);
 	if(_View.IsLayout()) {
 		FormLayout* layout = _View.GetCurrentLayout();
 		if(layout && layout->Get("CardGame.Background").IsEmpty())
@@ -1467,6 +1751,7 @@ bool CardGameLayoutEditor::Save()
 	bool ok = _View.SaveAll(path, false);
 
 	if(ok) {
+		_View.SaveAllString(last_saved_xml, false);
 		ProjectSaved(true);
 		return true;
 	}
@@ -1477,6 +1762,14 @@ bool CardGameLayoutEditor::SaveAs(const String& path_)
 {
 	path = path_;
 	return Save();
+}
+
+bool CardGameLayoutEditor::IsModified() const
+{
+	String current_xml;
+	const_cast<CardGameLayoutEditor*>(this)->card_properties._Options.EndEdit();
+	const_cast<CardGameLayoutEditor*>(this)->_View.SaveAllString(current_xml, false);
+	return current_xml != last_saved_xml;
 }
 
 void CardGameLayoutEditor::ActivateUI()
@@ -1495,6 +1788,11 @@ void CardGameLayoutEditor::ActivateUI()
 			auto add_left_pane = [&](const String& id, const String& title, Ctrl& ctrl, const Size& hint, int pos) {
 				int q = p->plugin_panes.Find(id);
 				if(q >= 0) {
+					DockableCtrl& pane = p->plugin_panes[q];
+					if(ctrl.GetParent() != &pane) {
+						ctrl.Remove();
+						pane.Add(ctrl.SizePos());
+					}
 					p->plugin_panes[q].Show();
 					return;
 				}
@@ -1511,6 +1809,11 @@ void CardGameLayoutEditor::ActivateUI()
 			auto add_right_tab = [&](const String& id, const String& title, Ctrl& ctrl) {
 				int q = p->plugin_panes.Find(id);
 				if(q >= 0) {
+					DockableCtrl& pane = p->plugin_panes[q];
+					if(ctrl.GetParent() != &pane) {
+						ctrl.Remove();
+						pane.Add(ctrl.SizePos());
+					}
 					p->plugin_panes[q].Show();
 					return;
 				}
@@ -1533,22 +1836,27 @@ void CardGameLayoutEditor::ActivateUI()
 void CardGameLayoutEditor::DeactivateUI()
 {
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-		auto remove_pane = [&](const String& id) {
-			int q = ide->plugin_panes.Find(id);
-			if(q < 0)
+		Ptr<PythonIDE> p = ide;
+		PostCallback([p] {
+			if(!p)
 				return;
-			ide->plugin_panes[q].Close();
-			ide->plugin_panes[q].Remove();
-			ide->plugin_panes.Remove(q);
-		};
+			if(p->active_file >= 0 && p->active_file < p->open_files.GetCount()) {
+				if(dynamic_cast<CardGameLayoutEditor*>(p->open_files[p->active_file].editor))
+					return;
+			}
 
-		_LayoutList.Ctrl::Remove();
-		_ItemList.Ctrl::Remove();
-		card_properties.Remove();
+			auto hide_pane = [&](const String& id) {
+				int q = p->plugin_panes.Find(id);
+				if(q < 0)
+					return;
+				p->plugin_panes[q].Close();
+				p->plugin_panes[q].Hide();
+			};
 
-		remove_pane("FormEditorLayouts");
-		remove_pane("FormEditorItems");
-		remove_pane("FormEditorProperties");
+			hide_pane("FormEditorLayouts");
+			hide_pane("FormEditorItems");
+			hide_pane("FormEditorProperties");
+		});
 	}
 }
 

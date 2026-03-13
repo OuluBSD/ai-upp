@@ -129,6 +129,16 @@ class GameState:
             return False, "Waiting for trick resolution"
         if player_index != self.turn:
             return False, "Not your turn"
+
+        total_cards_in_hands = 0
+        for p in self.players:
+            total_cards_in_hands += len(p)
+        first_trick = total_cards_in_hands == 52
+        first_lead = first_trick and not self.leading_suit
+
+        if first_lead:
+            if card.suit != 'clubs' or card.rank != '2':
+                return False, "Must lead 2 of Clubs"
         
         # Must follow suit
         if self.leading_suit:
@@ -151,9 +161,14 @@ class GameState:
                 return False, "Hearts not broken yet"
 
         # First trick special rule: no points on first trick
-        if not self.hearts_broken and len(self.players[0]) == 13 and not self.leading_suit:
-            # This is checked inside play_card logic or here
-            pass
+        if first_trick and card.get_points() > 0:
+            has_safe_card = False
+            for c in self.players[player_index]:
+                if c.get_points() == 0:
+                    has_safe_card = True
+                    break
+            if has_safe_card:
+                return False, "No point cards allowed on first trick"
 
         return True, "OK"
 

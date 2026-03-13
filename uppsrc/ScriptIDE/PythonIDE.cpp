@@ -747,6 +747,14 @@ void PythonIDE::LoadFile(const String& path)
 {
 	String ext = GetFileExt(path);
 	IFileTypeHandler* handler = plugin_manager->FindFileTypeHandler(ext);
+	auto safe_set_cursor = [&](int idx) {
+		if(idx >= 0 && idx < editor_tabs->GetCount())
+			editor_tabs->SetCursor(idx);
+		else if(idx >= 0 && idx < open_files.GetCount()) {
+			active_file = idx;
+			OnTabChanged();
+		}
+	};
 	
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		if(open_files[i].path == path) {
@@ -764,14 +772,14 @@ void PythonIDE::LoadFile(const String& path)
 					open_files[i].editor = host;
 					open_files[i].is_plugin = true;
 					editor_area.Add(host->GetCtrl().VSizePos(36, 0).HSizePos());
-					editor_tabs->SetCursor(i);
+					safe_set_cursor(i);
 					OnTabChanged();
 					AddRecentFile(path);
 					return;
 				}
 				delete host;
 			}
-			editor_tabs->SetCursor(i);
+			safe_set_cursor(i);
 			return;
 		}
 	}
@@ -804,7 +812,7 @@ void PythonIDE::LoadFile(const String& path)
 	
 	active_file = open_files.GetCount() - 1;
 	editor_tabs->Add(GetFileName(path), Icons::File());
-	editor_tabs->SetCursor(active_file);
+	safe_set_cursor(active_file);
 	
 	OnTabChanged();
 	AddRecentFile(path);
@@ -916,6 +924,8 @@ void PythonIDE::OnTabMenu(Bar& bar)
 
 void PythonIDE::SyncTabsWithFiles()
 {
+	int keep_cursor = editor_tabs->GetCursor();
+	editor_tabs->Clear();
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		FileInfo& fi = open_files[i];
 		String title = fi.path.IsEmpty() ? "<untitled>" : GetFileName(fi.path);
@@ -926,8 +936,15 @@ void PythonIDE::SyncTabsWithFiles()
 			
 		if(dirty) title = "*" + title;
 		
-		editor_tabs->Set(i, i, title);
+		editor_tabs->Add(title, Icons::File());
 	}
+	if(open_files.IsEmpty()) {
+		active_file = -1;
+		return;
+	}
+	keep_cursor = minmax(keep_cursor, 0, open_files.GetCount() - 1);
+	editor_tabs->SetCursor(keep_cursor);
+	active_file = keep_cursor;
 }
 
 void PythonIDE::AddRecentFile(const String& path)
@@ -1372,6 +1389,19 @@ String PythonIDE::DumpActiveScene()
 	if(CardGameDocumentHost* cg = dynamic_cast<CardGameDocumentHost*>(h))
 		return cg->DumpScene();
 	return "active document does not support scene dump\n";
+}
+
+String PythonIDE::DumpActivePythonStack() const
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return "no active file\n";
+	IDocumentHost* h = open_files[active_file].editor;
+	if(!h)
+		return "active file has no document host\n";
+	String s = h->DumpPythonStack();
+	if(s.IsEmpty())
+		return "active document does not support python stack dump\n";
+	return s;
 }
 
 String PythonIDE::DumpConsoleText() const

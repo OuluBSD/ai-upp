@@ -16,7 +16,17 @@ static PyValue hv_clear_sprites(const Vector<PyValue>& args, void*)
 	return PyValue::None();
 }
 
+static PyValue hv_remove_sprite(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
 static PyValue hv_set_label(const Vector<PyValue>& args, void*)
+{
+	return PyValue::None();
+}
+
+static PyValue hv_set_expected_sprite_count(const Vector<PyValue>& args, void*)
 {
 	return PyValue::None();
 }
@@ -332,10 +342,24 @@ static PyValue hv_gui_clear_sprites(const Vector<PyValue>&, void* ud)
 	return PyValue::None();
 }
 
+static PyValue hv_gui_remove_sprite(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 1)
+		((IHeartsView*)ud)->RemoveSprite(args[0].ToString());
+	return PyValue::None();
+}
+
 static PyValue hv_gui_set_label(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
 		((IHeartsView*)ud)->SetLabel(args[0].ToString(), args[1].ToString());
+	return PyValue::None();
+}
+
+static PyValue hv_gui_set_expected_sprite_count(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 2)
+		((IHeartsView*)ud)->SetExpectedSpriteCount(args[0].ToString(), (int)args[1].AsInt64());
 	return PyValue::None();
 }
 
@@ -410,7 +434,9 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)
 		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
+		PY_MODULE_FUNC(remove_sprite, hv_gui_remove_sprite, view)
 		PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
+		PY_MODULE_FUNC(set_expected_sprite_count, hv_gui_set_expected_sprite_count, view)
 		PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
 		PY_MODULE_FUNC(set_highlight, hv_gui_set_highlight, view)
 		PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
@@ -425,7 +451,9 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE(hearts_view, vm)
 		PY_MODULE_FUNC(log,           hv_log,           nullptr)
 		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
+		PY_MODULE_FUNC(remove_sprite, hv_remove_sprite, nullptr)
 		PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
+		PY_MODULE_FUNC(set_expected_sprite_count, hv_set_expected_sprite_count, nullptr)
 		PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
 		PY_MODULE_FUNC(set_highlight, hv_set_highlight, nullptr)
 		PY_MODULE_FUNC(set_status,    hv_set_status,    nullptr)

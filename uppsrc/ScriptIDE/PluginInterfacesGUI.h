@@ -35,6 +35,7 @@ public:
 	virtual void   Pause() {}
 	virtual void   Stop() {}
 	virtual void   PopulateDebugState(PythonIDE& ide) {}
+	virtual String DumpPythonStack() const { return String(); }
 
 	// Command Routing
 	virtual void   Undo() {}

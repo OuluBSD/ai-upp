@@ -224,6 +224,21 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
+				<item x="560" y="40" cx="220" cy="108" align="2" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="score_board"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="LABEL"/>
+						<property name="Anchor" value="TOP_RIGHT"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Left"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
 				<item x="10" y="0" cx="750" cy="30" align="3" valign="1">
 					<name>Noname</name>
 					<properties>

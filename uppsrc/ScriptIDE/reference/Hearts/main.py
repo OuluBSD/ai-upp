@@ -388,6 +388,13 @@ def update_hud():
         )
         hearts_view.set_highlight(hand_zone_ids[i], state.phase == 'PLAYING' and state.turn == i)
 
+    score_lines = []
+    for i in range(4):
+        score_lines = score_lines + [
+            PLAYER_NAMES[i] + "  T:" + str(state.scores[i]) + "  R:+" + str(state.round_scores[i])
+        ]
+    hearts_view.set_label("score_board", "\n".join(score_lines))
+
     in_passing = state.phase == 'PASSING' and pass_direction_text() != "hold"
     show_pass_controls = in_passing and pending_pass_player < 0
     if show_pass_controls:

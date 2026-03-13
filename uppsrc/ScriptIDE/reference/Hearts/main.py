@@ -489,6 +489,7 @@ def refresh_ui():
         rendered_hand_ids = []
         current_hand_ids_for_assert = []
         current_trick_ids_for_assert = []
+    hearts_view.begin_sprite_frame()
     assert_state_invariants("refresh_ui")
     update_hud()
 

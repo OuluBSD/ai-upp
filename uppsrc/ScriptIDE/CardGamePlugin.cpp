@@ -637,14 +637,21 @@ void CardGameDocumentHost::DrainUiQueue()
 	for(int i = 0; i < cmds.GetCount(); i++)
 		cmds[i]();
 
-	PruneInactiveSprites();
-	if(!refresh_running && ui_batch_depth <= 0 && CheckExpectedSpriteCounts())
-		return;
+	if(ui_batch_depth <= 0) {
+		PruneInactiveSprites();
+		if(!refresh_running && CheckExpectedSpriteCounts())
+			return;
+	}
 	SyncFormControls();
 	SyncFormExplorer();
 	table_form.Refresh();
 	overlay.Refresh();
 	Refresh();
+}
+
+void CardGameDocumentHost::ApplyBeginSpriteFrame()
+{
+	active_cards.Clear();
 }
 
 void CardGameDocumentHost::ApplyClearSprites()
@@ -979,6 +986,16 @@ void CardGameDocumentHost::SetLayout(const String& path)
 }
 
 // IHeartsView implementation
+
+void CardGameDocumentHost::BeginSpriteFrame()
+{
+	if(IsMainThread()) {
+		ApplyBeginSpriteFrame();
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyBeginSpriteFrame(); });
+}
 
 void CardGameDocumentHost::ClearSprites()
 {

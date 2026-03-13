@@ -92,6 +92,7 @@ public:
 	virtual String DumpPythonStack() const override;
 
 	// IHeartsView
+	virtual void  BeginSpriteFrame() override;
 	virtual void  SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) override;
 	virtual void  MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated) override;
 	virtual Value GetZoneRect(const String& zone_id) override;
@@ -201,6 +202,7 @@ private:
 	void QueueUiCommand(Function<void ()> fn);
 	void ScheduleUiFlush();
 	void DrainUiQueue();
+	void ApplyBeginSpriteFrame();
 	void ApplyClearSprites();
 	void ApplyRemoveSprite(const String& card_id);
 	void ApplySetExpectedSpriteCount(const String& zone_id, int count);

@@ -54,6 +54,8 @@ public:
 class IHeartsView {
 public:
 	virtual ~IHeartsView() {}
+	// Start a new sprite frame; sprites not touched in this frame are pruned by the host.
+	virtual void BeginSpriteFrame() = 0;
 	// Place/update a card sprite at absolute pixel position
 	virtual void SetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) = 0;
 	// Move card sprite to the center of a named zone

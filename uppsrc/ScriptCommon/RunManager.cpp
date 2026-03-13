@@ -10,6 +10,7 @@ void RunManager::Run(const String& code, const String& filename)
 {
 	WhenStarted();
 	try {
+		vm.EnableBreakpoints(mode != RUN_NORMAL);
 		Tokenizer tk;
 		tk.SkipComments();
 		tk.SkipPythonComments();
@@ -24,9 +25,11 @@ void RunManager::Run(const String& code, const String& filename)
 		vm.SetIR(ir);
 		vm.Run();
 		
+		mode = RUN_NORMAL;
 		WhenFinished();
 	}
 	catch (Exc& e) {
+		mode = RUN_NORMAL;
 		WhenError(e);
 	}
 }
@@ -35,6 +38,7 @@ void RunManager::RunSelection(const String& code)
 {
 	WhenStarted();
 	try {
+		vm.EnableBreakpoints(mode != RUN_NORMAL);
 		Tokenizer tk;
 		tk.SkipComments();
 		tk.SkipPythonComments();
@@ -49,9 +53,11 @@ void RunManager::RunSelection(const String& code)
 		vm.SetIR(ir);
 		vm.Run();
 		
+		mode = RUN_NORMAL;
 		WhenFinished();
 	}
 	catch (Exc& e) {
+		mode = RUN_NORMAL;
 		WhenError(e);
 	}
 }
@@ -59,6 +65,7 @@ void RunManager::RunSelection(const String& code)
 void RunManager::Stop()
 {
 	vm.Reset();
+	mode = RUN_NORMAL;
 	WhenFinished();
 }
 

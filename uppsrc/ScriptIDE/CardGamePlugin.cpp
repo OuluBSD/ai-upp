@@ -153,6 +153,7 @@ void CardSpriteCtrl::LeftDown(Point p, dword flags)
 
 CardGameDocumentHost::CardGameDocumentHost()
 {
+	game_log_lines << "Welcome to the Game!" << "Ready to play.";
 	game_log.SetQTF("Welcome to the Game!&Ready to play.");
 	Add(table_form.SizePos());
 	overlay.owner = this;
@@ -193,20 +194,6 @@ bool CardGameDocumentHost::Load(const String& path_)
 	Refresh();
 	SyncFormExplorer();
 
-	InitRuntime();
-	StartVmThread();
-	QueueVmTask([=] {
-		if(!plugin)
-			return;
-		try {
-			plugin->Execute(path);
-		}
-		catch(Exc& e) {
-			ReportVmError("Execute", e);
-		}
-	});
-	Upp::PostCallback([=] { RefreshGameView(); }, &last_layout_size);
-
 	return true;
 }
 
@@ -233,15 +220,7 @@ void CardGameDocumentHost::Layout()
 
 void CardGameDocumentHost::ActivateUI()
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
-		SyncFormExplorer();
-		if(!ide->context_pane_right.IsDocked())
-			ide->DockRight(ide->context_pane_right);
-		
-		ide->context_pane_right.Title("Game Log");
-		ide->context_pane_right.Add(game_log.SizePos());
-		ide->context_pane_right.Show();
-	}
+	SyncFormExplorer();
 }
 
 void CardGameDocumentHost::DeactivateUI()
@@ -249,14 +228,16 @@ void CardGameDocumentHost::DeactivateUI()
 	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
 		if(ide->form_explorer)
 			ide->form_explorer->Clear();
-		game_log.Remove();
-		ide->context_pane_right.Close();
 	}
 }
 
 void CardGameDocumentHost::MainMenu(Bar& bar)
 {
 	bar.Sub("Game", [=](Bar& b) {
+		b.Add(game_running ? "Stop" : "Run", [=] {
+			if(game_running) Stop();
+			else Run();
+		});
 		b.Add("Debug Overlay", [=] {
 			debug_overlay = !debug_overlay;
 			overlay.Refresh();
@@ -268,7 +249,10 @@ void CardGameDocumentHost::MainMenu(Bar& bar)
 
 void CardGameDocumentHost::Toolbar(Bar& bar)
 {
-	bar.Add("Play", CtrlImg::right_arrow(), [=] { Todo("Play Turn"); });
+	bar.Add(game_running ? "Stop" : "Run", game_running ? Icons::Stop() : CtrlImg::right_arrow(), [=] {
+		if(game_running) Stop();
+		else Run();
+	});
 	bar.Add("Debug", [=] {
 		debug_overlay = !debug_overlay;
 		overlay.Refresh();
@@ -283,6 +267,7 @@ void CardGameDocumentHost::InitRuntime()
 		runtime_plugin->Shutdown();
 	runtime_plugin.Clear();
 	runtime_context.Clear();
+	vm.Clear();
 
 	runtime_context.Create(vm);
 	runtime_plugin.Create();
@@ -291,11 +276,76 @@ void CardGameDocumentHost::InitRuntime()
 	plugin->Init(*runtime_context);
 }
 
+void CardGameDocumentHost::StartGame(const String& mode)
+{
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->Log("CardGameDocumentHost: StartGame(" + mode + ")");
+	if(stop_in_progress) {
+		pending_start_mode = mode;
+		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+			ide->Log("CardGameDocumentHost: deferring start until stop completes");
+		return;
+	}
+	if(game_running) {
+		pending_start_mode = mode;
+		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+			ide->Log("CardGameDocumentHost: stopping current session before restart");
+		Stop();
+		return;
+	}
+	execution_mode = mode;
+	last_error.Clear();
+	game_log_lines.Clear();
+	game_log_lines << "Starting Hearts game (" + mode + ")...";
+	game_log.SetQTF(DeQtfLf(game_log_lines[0]));
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		ide->Log("--- Running " + GetFileName(path) + " (" + mode + ") ---");
+		ide->Log("Python engine: ByteVM");
+		ide->Log("Working directory: " + GetFileDirectory(path));
+	}
+	InitRuntime();
+	vm.EnableBreakpoints(mode != "run");
+	StartVmThread();
+	game_running = true;
+	game_paused = false;
+	stop_requested = false;
+	stop_in_progress = false;
+	paused_stack.Clear();
+	paused_globals.Clear();
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->RefreshRunStateUI();
+	QueueVmTask([=] {
+		if(!plugin)
+			return;
+		try {
+			plugin->Execute(path);
+		}
+		catch(Exc& e) {
+			ReportVmError("Execute", e);
+		}
+	});
+	PostCallback([=] { RefreshGameView(); });
+}
+
+void CardGameDocumentHost::ResumeGame()
+{
+	{
+		Mutex::Lock __(vm_mutex);
+		game_paused = false;
+		vm_cv.Broadcast();
+	}
+	stop_requested = false;
+	if(!pending_callback_name.IsEmpty() && pending_timeout_ms >= 0)
+		ApplySetTimeout(pending_timeout_ms, pending_callback_name);
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->RefreshRunStateUI();
+}
+
 void CardGameDocumentHost::StartVmThread()
 {
 	StopVmThread();
 	vm_shutdown = false;
-	vm_thread_running = vm_thread.Run([=] { VmThreadMain(); });
+	vm_thread_running = vm_thread.Run([=] { VmThreadMain(); }, true);
 	ASSERT(vm_thread_running);
 }
 
@@ -321,16 +371,121 @@ void CardGameDocumentHost::StopVmThread()
 	}
 }
 
+void CardGameDocumentHost::Run()
+{
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->Log("CardGameDocumentHost: Run()");
+	if(game_running && game_paused) {
+		ResumeGame();
+		return;
+	}
+	StartGame("run");
+}
+
+void CardGameDocumentHost::Debug()
+{
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->Log("CardGameDocumentHost: Debug()");
+	if(game_running && game_paused) {
+		ResumeGame();
+		return;
+	}
+	StartGame("debug");
+}
+
+void CardGameDocumentHost::Profile()
+{
+	if(game_running && game_paused) {
+		ResumeGame();
+		return;
+	}
+	StartGame("profile");
+}
+
+void CardGameDocumentHost::Pause()
+{
+	if(!game_running || game_paused)
+		return;
+	Upp::KillTimeCallback(&callback_timer_key);
+	QueueVmTask([=] {
+		{
+			Mutex::Lock __(vm_mutex);
+			game_paused = true;
+		}
+		if(execution_mode != "run")
+			CapturePausedDebugState();
+		QueueUiCommand([=] {
+			if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+				if(execution_mode != "run")
+					PopulateDebugState(*ide);
+				ide->RefreshRunStateUI();
+			}
+			if(stop_requested)
+				PostCallback([=] { FinishStop(); });
+		});
+	});
+}
+
+void CardGameDocumentHost::Stop()
+{
+	if(stop_in_progress)
+		return;
+	if(game_running && !game_paused) {
+		stop_requested = true;
+		stop_in_progress = true;
+		Pause();
+		return;
+	}
+	stop_in_progress = true;
+	FinishStop();
+}
+
+void CardGameDocumentHost::FinishStop()
+{
+	bool had_session = game_running || game_paused || stop_requested || vm_thread_running || (bool)runtime_plugin;
+	Upp::KillTimeCallback(&callback_timer_key);
+	StopVmThread();
+	if(runtime_plugin)
+		runtime_plugin->Shutdown();
+	runtime_plugin.Clear();
+	runtime_context.Clear();
+	plugin = nullptr;
+	game_running = false;
+	game_paused = false;
+	stop_requested = false;
+	stop_in_progress = false;
+	execution_mode = "run";
+	pending_callback_name.Clear();
+	pending_timeout_ms = -1;
+	paused_stack.Clear();
+	paused_globals.Clear();
+	ResetGameView();
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		if(had_session) {
+			ide->Log("--- Script finished ---");
+			ide->Log("Exit: stopped");
+		}
+		ide->RefreshRunStateUI();
+	}
+	if(!pending_start_mode.IsEmpty()) {
+		String mode = pending_start_mode;
+		pending_start_mode.Clear();
+		PostCallback([=] { StartGame(mode); });
+	}
+}
+
 void CardGameDocumentHost::VmThreadMain()
 {
 	for(;;) {
 		Function<void ()> task;
 		{
 			Mutex::Lock __(vm_mutex);
-			while(!vm_shutdown && vm_tasks.IsEmpty())
+			while(!vm_shutdown && (vm_tasks.IsEmpty() || game_paused))
 				vm_cv.Wait(vm_mutex);
-			if(vm_shutdown && vm_tasks.IsEmpty())
+			if(vm_shutdown) {
+				vm_tasks.Clear();
 				break;
+			}
 			task = pick(vm_tasks[0]);
 			vm_tasks.Remove(0);
 		}
@@ -423,7 +578,7 @@ void CardGameDocumentHost::DrainUiQueue()
 	{
 		Mutex::Lock __(ui_mutex);
 		ui_flush_pending = false;
-		cmds <<= pick(ui_commands);
+		Swap(cmds, ui_commands);
 	}
 
 	for(int i = 0; i < cmds.GetCount(); i++)
@@ -478,7 +633,19 @@ void CardGameDocumentHost::ApplyLog(const String& msg)
 {
 	if(log_to_stdout)
 		Cout() << msg << "\n";
-	game_log.SetQTF(game_log.GetQTF() + "&" + DeQtfLf(msg));
+	game_log_lines.Add(msg);
+	const int max_log_lines = 200;
+	while(game_log_lines.GetCount() > max_log_lines)
+		game_log_lines.Remove(0);
+	String qtf;
+	for(int i = 0; i < game_log_lines.GetCount(); i++) {
+		if(i)
+			qtf << "&";
+		qtf << DeQtfLf(game_log_lines[i]);
+	}
+	game_log.SetQTF(qtf);
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+		ide->Log(msg);
 }
 
 void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
@@ -536,11 +703,21 @@ void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const Stri
 
 void CardGameDocumentHost::ApplySetTimeout(int delay_ms, const String& callback_name)
 {
+	pending_timeout_ms = delay_ms;
 	pending_callback_name = callback_name;
 	Upp::KillTimeCallback(&callback_timer_key);
 	Upp::SetTimeCallback(max(0, delay_ms), [=] {
 		QueueVmNamedCallback(callback_name);
 	}, &callback_timer_key);
+}
+
+void CardGameDocumentHost::CapturePausedDebugState()
+{
+	paused_stack = vm.GetCallStack();
+	paused_globals.Clear();
+	const VectorMap<PyValue, PyValue>& globals = vm.GetGlobals().GetDict();
+	for(int i = 0; i < globals.GetCount(); i++)
+		paused_globals.Add(globals.GetKey(i), globals[i]);
 }
 
 void CardGameDocumentHost::ReportVmError(const String& where, const String& msg)
@@ -550,7 +727,35 @@ void CardGameDocumentHost::ReportVmError(const String& where, const String& msg)
 	QueueUiCommand([=] {
 		last_error = msg;
 		ApplyLog(text);
+		game_running = false;
+		game_paused = false;
+		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+			ide->RefreshRunStateUI();
 	});
+}
+
+void CardGameDocumentHost::PopulateDebugState(PythonIDE& ide)
+{
+	ide.ShowDebugState(paused_stack, paused_globals, false);
+}
+
+void CardGameDocumentHost::ResetGameView()
+{
+	ApplyClearSprites();
+	labels.Clear();
+	buttons.Clear();
+	highlights.Clear();
+	status_text.Clear();
+	last_error.Clear();
+	game_log_lines.Clear();
+	game_log.SetQTF("");
+	if(!form_path.IsEmpty())
+		SetLayout(form_path);
+	SyncFormControls();
+	SyncFormExplorer();
+	table_form.Refresh();
+	overlay.Refresh();
+	Refresh();
 }
 
 void CardGameDocumentHost::SetLayout(const String& path)
@@ -667,21 +872,14 @@ Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 {
 	ValueMap m;
 	Rect r;
-	if(IsMainThread())
+	if(IsMainThread()) {
 		r = GetZoneRectFromForm(table_form, zone_id);
+	}
 	else {
-		Mutex wait_mutex;
-		ConditionVariable wait_cv;
-		bool ready = false;
-		QueueUiCommand([=, &wait_mutex, &wait_cv, &ready, &r] {
-			r = GetZoneRectFromForm(table_form, zone_id);
-			Mutex::Lock __(wait_mutex);
-			ready = true;
-			wait_cv.Signal();
-		});
-		Mutex::Lock __(wait_mutex);
-		while(!ready)
-			wait_cv.Wait(wait_mutex);
+		Mutex::Lock __(rect_cache_mutex);
+		int q = rect_cache.Find(zone_id);
+		if(q >= 0)
+			r = rect_cache[q];
 	}
 	if(!r.IsEmpty()) {
 		m.Add("x", r.left);
@@ -811,6 +1009,8 @@ void CardGameDocumentHost::Animate()
 
 void CardGameDocumentHost::RefreshGameView()
 {
+	if(!game_running)
+		return;
 	if(refresh_running)
 		return;
 
@@ -833,7 +1033,7 @@ void CardGameDocumentHost::RefreshGameView()
 
 void CardGameDocumentHost::InvokePythonButton(const String& button_id)
 {
-	if(!plugin)
+	if(!plugin || !game_running)
 		return;
 	QueueVmTask([=] {
 		PyValue on_button = plugin->GetGameFunction("on_button");
@@ -850,7 +1050,7 @@ void CardGameDocumentHost::InvokePythonButton(const String& button_id)
 
 void CardGameDocumentHost::InvokePythonCard(const String& card_id)
 {
-	if(!plugin)
+	if(!plugin || !game_running)
 		return;
 	QueueVmTask([=] {
 		PyValue on_click = plugin->GetGameFunction("on_click");
@@ -1016,6 +1216,13 @@ void CardGameDocumentHost::Paint(Draw& w)
 
 void CardGameDocumentHost::SyncFormControls()
 {
+	{
+		Mutex::Lock __(rect_cache_mutex);
+		rect_cache.Clear();
+		for(int i = 0; i < form_items.GetCount(); i++)
+			rect_cache.Add(form_items[i].id, GetZoneRectFromForm(table_form, form_items[i].id));
+	}
+
 	for(int i = 0; i < labels.GetCount(); i++) {
 		if(Ctrl* ctrl = table_form.GetCtrl(labels.GetKey(i))) {
 			if(Label* label = dynamic_cast<Label*>(ctrl)) {

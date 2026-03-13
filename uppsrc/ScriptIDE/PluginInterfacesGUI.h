@@ -24,6 +24,18 @@ public:
 	virtual void   MainMenu(Bar& bar) {}
 	virtual void   Toolbar(Bar& bar) {}
 
+	// Run/Debug lifecycle
+	virtual bool   CanRun() const { return false; }
+	virtual bool   IsRunning() const { return false; }
+	virtual bool   CanPause() const { return false; }
+	virtual bool   IsPaused() const { return false; }
+	virtual void   Run() {}
+	virtual void   Debug() { Run(); }
+	virtual void   Profile() { Run(); }
+	virtual void   Pause() {}
+	virtual void   Stop() {}
+	virtual void   PopulateDebugState(PythonIDE& ide) {}
+
 	// Command Routing
 	virtual void   Undo() {}
 	virtual void   Redo() {}

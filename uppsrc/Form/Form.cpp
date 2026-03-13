@@ -371,8 +371,13 @@ bool Form::Generate(Font font)
 			c = f;
 		}
 
-		if (!c) continue;
+		if (!c)
+			continue;
+	}
 
+	for (int i = 0; i < p->GetCount(); ++i)
+	{
+		Ctrl& c = _Ctrls[i];
 		Rect obj_rect = (*p)[i].GetRect();
 		dword h_align = (*p)[i].GetHAlign();
 		dword v_align = (*p)[i].GetVAlign();
@@ -383,53 +388,62 @@ bool Form::Generate(Font font)
 		switch(h_align)
 		{
 			case Ctrl::LEFT:
-				c->LeftPosZ(obj_rect.left, obj_rect.Width());
+				c.LeftPosZ(obj_rect.left, obj_rect.Width());
 				break;
 			case Ctrl::RIGHT:
-				// obj_rect.left holds right margin (set by ResolveAnchorLayout)
-				c->RightPosZ(obj_rect.left, obj_rect.Width());
+				c.RightPosZ(obj_rect.left, obj_rect.Width());
 				break;
 			case Ctrl::SIZE:
-				c->HSizePosZ(obj_rect.left, sz.cx - obj_rect.right);
+				c.HSizePosZ(obj_rect.left, sz.cx - obj_rect.right);
 				break;
 			case Ctrl::CENTER:
-				// obj_rect.left holds delta from center (set by ResolveAnchorLayout)
-				c->HCenterPosZ(obj_rect.Width(), obj_rect.left);
+				c.HCenterPosZ(obj_rect.Width(), obj_rect.left);
+				break;
 		}
 
 		switch(v_align)
 		{
 			case Ctrl::TOP:
-				c->TopPosZ(obj_rect.top, obj_rect.Height());
+				c.TopPosZ(obj_rect.top, obj_rect.Height());
 				break;
 			case Ctrl::BOTTOM:
-				// obj_rect.top holds bottom margin (set by ResolveAnchorLayout)
-				c->BottomPosZ(obj_rect.top, obj_rect.Height());
+				c.BottomPosZ(obj_rect.top, obj_rect.Height());
 				break;
 			case Ctrl::SIZE:
-				c->VSizePosZ(obj_rect.top, sz.cy - obj_rect.bottom);
+				c.VSizePosZ(obj_rect.top, sz.cy - obj_rect.bottom);
 				break;
 			case Ctrl::CENTER:
-				// obj_rect.top holds delta from center (set by ResolveAnchorLayout)
-				c->VCenterPosZ(obj_rect.Height(), obj_rect.top);
+				c.VCenterPosZ(obj_rect.Height(), obj_rect.top);
+				break;
 		}
 
 		String frame = (*p)[i].Get("Frame");
 
-		if (frame == "Null frame")             c->SetFrame(NullFrame());
-		if (frame == "Field frame")            c->SetFrame(FieldFrame());
-		if (frame == "Inset frame")            c->SetFrame(InsetFrame());
-		if (frame == "Outset frame")           c->SetFrame(OutsetFrame());
-		if (frame == "Thin inset frame")       c->SetFrame(ThinInsetFrame());
-		if (frame == "Thin outset frame")      c->SetFrame(ThinOutsetFrame());
-		if (frame == "Black frame")            c->SetFrame(BlackFrame());
-		if (frame == "Button frame")           c->SetFrame(ButtonFrame());
-		if (frame == "Top separator frame")    c->SetFrame(TopSeparatorFrame());
-		if (frame == "Left separator frame")   c->SetFrame(LeftSeparatorFrame());
-		if (frame == "Right separator frame")  c->SetFrame(RightSeparatorFrame());
-		if (frame == "Bottom separator frame") c->SetFrame(BottomSeparatorFrame());
+		if (frame == "Null frame")             c.SetFrame(NullFrame());
+		if (frame == "Field frame")            c.SetFrame(FieldFrame());
+		if (frame == "Inset frame")            c.SetFrame(InsetFrame());
+		if (frame == "Outset frame")           c.SetFrame(OutsetFrame());
+		if (frame == "Thin inset frame")       c.SetFrame(ThinInsetFrame());
+		if (frame == "Thin outset frame")      c.SetFrame(ThinOutsetFrame());
+		if (frame == "Black frame")            c.SetFrame(BlackFrame());
+		if (frame == "Button frame")           c.SetFrame(ButtonFrame());
+		if (frame == "Top separator frame")    c.SetFrame(TopSeparatorFrame());
+		if (frame == "Left separator frame")   c.SetFrame(LeftSeparatorFrame());
+		if (frame == "Right separator frame")  c.SetFrame(RightSeparatorFrame());
+		if (frame == "Bottom separator frame") c.SetFrame(BottomSeparatorFrame());
+	}
 
-		Add(*c);
+	for (int i = 0; i < p->GetCount(); ++i)
+	{
+		Ctrl& c = _Ctrls[i];
+		String parent = (*p)[i].Get("Parent");
+		if(!parent.IsEmpty()) {
+			if(Ctrl* parent_ctrl = GetCtrl(parent)) {
+				parent_ctrl->Add(c);
+				continue;
+			}
+		}
+		Add(c);
 	}
 
 	WhenGenerate();

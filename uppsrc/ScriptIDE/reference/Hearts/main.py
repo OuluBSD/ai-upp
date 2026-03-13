@@ -3,7 +3,7 @@ import hearts_view
 from hearts.logic import GameState
 
 state = None
-asset_base = "assets/" # Resolved relative to .gamestate location in C++
+asset_base = "../../../../share/imgs/cards/default/" # Resolved relative to .gamestate location in C++
 PLAYER_NAMES = ["You", "West", "North", "East"]
 
 selected_cards = []
@@ -352,7 +352,7 @@ def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
         for i in range(card_count):
             hearts_view.set_card(
                 sprite_prefix + "_" + str(i),
-                asset_base + "card_back.png",
+                asset_base + "back9.png",
                 x,
                 int(start_y + i * step),
                 90 if zone_id == "hand_left" else 270
@@ -368,7 +368,7 @@ def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
         for i in range(card_count):
             hearts_view.set_card(
                 sprite_prefix + "_" + str(i),
-                asset_base + "card_back.png",
+                asset_base + "back9.png",
                 int(start_x + i * step),
                 y,
                 0
@@ -415,6 +415,7 @@ def refresh_ui():
     trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]
     for i in range(len(state.trick)):
         p_idx, card = state.trick[i]
+        hearts_view.set_card(card.id, asset_base + card.id + ".png", 0, 0, 0)
         hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
 
 def commit_pass():

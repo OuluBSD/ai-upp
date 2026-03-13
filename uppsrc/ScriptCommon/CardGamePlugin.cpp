@@ -2,7 +2,7 @@
 
 NAMESPACE_UPP
 
-// ---- headless hearts_view stub bindings ----
+// ---- headless cardgame_view stub bindings ----
 
 static PyValue hv_log(const Vector<PyValue>& args, void*)
 {
@@ -215,7 +215,7 @@ void CardGamePlugin::Execute(const String& path)
 		}
 	}
 
-	// Register hearts_view stub module (headless)
+	// Register cardgame_view stub module (headless)
 	SyncBindings(*vm);
 
 	// Pre-load all Python packages/modules from game_dir into sys.modules
@@ -332,7 +332,7 @@ PyValue CardGamePlugin::GetGameFunction(const String& name) const
 	return fn;
 }
 
-// ---- GUI-backed hearts_view bindings (user_data = IHeartsView*) ----
+// ---- GUI-backed cardgame_view bindings (user_data = IHeartsView*) ----
 
 static PyValue hv_gui_log(const Vector<PyValue>& args, void* ud)
 {
@@ -441,8 +441,8 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		modules = sys.GetItem(PyValue("modules"));
 
 	if(view) {
-		// GUI-backed hearts_view module — real calls into IHeartsView
-		PY_MODULE(hearts_view, vm)
+		// GUI-backed cardgame_view module — real calls into IHeartsView
+		PY_MODULE(cardgame_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)
 		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
 		PY_MODULE_FUNC(begin_sprite_frame, hv_gui_begin_sprite_frame, view)
@@ -456,11 +456,13 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
 		PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
 		PY_MODULE_FUNC(set_timeout,   hv_gui_set_timeout,   view)
-		if(modules.GetType() == PY_DICT)
-			modules.SetItem(PyValue("hearts_view"), hearts_view_obj);
+		if(modules.GetType() == PY_DICT) {
+			modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
+			modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+		}
 	} else {
 		// Headless stubs — used by ScriptCLI and tests
-		PY_MODULE(hearts_view, vm)
+		PY_MODULE(cardgame_view, vm)
 		PY_MODULE_FUNC(log,           hv_log,           nullptr)
 		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
 		PY_MODULE_FUNC(begin_sprite_frame, hv_begin_sprite_frame, nullptr)
@@ -474,8 +476,10 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
 		PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)
 		PY_MODULE_FUNC(set_timeout,   hv_set_timeout,   &vm)
-		if(modules.GetType() == PY_DICT)
-			modules.SetItem(PyValue("hearts_view"), hearts_view_obj);
+		if(modules.GetType() == PY_DICT) {
+			modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
+			modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+		}
 	}
 }
 

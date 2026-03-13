@@ -376,11 +376,9 @@ bool PythonIDE::HasActiveRunners() const
 
 void PythonIDE::ForceCloseNow()
 {
-	Cout() << "[force-close] begin\n";
 	force_close_now = true;
 	Break(IDEXIT);
 	TopWindow::Close();
-	Cout() << "[force-close] close requested\n";
 }
 
 void PythonIDE::ShowHelp(const String& topic)

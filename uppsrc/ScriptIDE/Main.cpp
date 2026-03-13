@@ -114,28 +114,22 @@ GUI_APP_MAIN
 
 	if(dump_scene || dump_console) {
 		SetTimeCallback(timeout_ms, [&ide, dump_scene, dump_console, timeout_ms] {
-			Cout() << "[timeout] fired at " << timeout_ms << "ms\n";
+			if(dump_scene)
+				Cout() << ide.DumpActiveScene();
 			KillTimeCallback((void*)0xC0E0);
 			KillTimeCallback((void*)0xC0E1);
 			KillTimeCallback((void*)0xC0E2);
 			KillTimeCallback((void*)0xC0E3);
-			Cout() << "[timeout] cancelled timed actions\n";
 			ide.OnStop();
-			Cout() << "[timeout] stop requested\n";
 			auto poll_done = std::make_shared<Function<void ()>>();
 			dword wait0 = msecs();
 			*poll_done = [&, dump_scene, dump_console, wait0, poll_done] {
 				bool runners = ide.HasActiveRunners();
 				int elapsed = int(msecs(wait0));
-				Cout() << "[timeout] poll elapsed=" << elapsed << " runners=" << (runners ? 1 : 0) << "\n";
 				if(runners && elapsed < 1000) {
 					SetTimeCallback(50, *poll_done, (void*)0xC0E3);
 					return;
 				}
-				Cout() << "[timeout] dumping\n";
-				if(dump_scene)
-					Cout() << ide.DumpActiveScene();
-				Cout() << "[timeout] force close\n";
 				ide.ForceCloseNow();
 			};
 			SetTimeCallback(50, *poll_done, (void*)0xC0E3);

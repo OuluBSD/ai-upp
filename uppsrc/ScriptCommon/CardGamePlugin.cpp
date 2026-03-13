@@ -89,15 +89,11 @@ static bool LoadPyModulesFromDir(PyVM& vm, const String& base_dir, const String&
 				String stem = GetFileTitle(name);
 				String mod_name = mod_prefix + "." + stem;
 				String src = LoadFile(AppendFileName(pkg_dir, name));
-				Cout() << "[preload] module begin " << mod_name << "\n";
-				Cout().Flush();
 				if(!src.IsVoid() && !vm.LoadModule(mod_name, src, AppendFileName(pkg_dir, name))) {
 					if(failed_module) *failed_module = mod_name;
 					if(failed_path) *failed_path = AppendFileName(pkg_dir, name);
 					return false;
 				}
-				Cout() << "[preload] module done " << mod_name << "\n";
-				Cout().Flush();
 			}
 			ff.Next();
 		}
@@ -111,15 +107,11 @@ static bool LoadPyModulesFromDir(PyVM& vm, const String& base_dir, const String&
 			String init = AppendFileName(subdir, "__init__.py");
 			if(FileExists(init)) {
 				String src = LoadFile(init);
-				Cout() << "[preload] package begin " << sub_prefix << "\n";
-				Cout().Flush();
 				if(!src.IsVoid() && !vm.LoadModule(sub_prefix, src, init)) {
 					if(failed_module) *failed_module = sub_prefix;
 					if(failed_path) *failed_path = init;
 					return false;
 				}
-				Cout() << "[preload] package done " << sub_prefix << "\n";
-				Cout().Flush();
 			}
 			if(!LoadPyModulesFromDir(vm, base_dir, subdir, sub_prefix, failed_module, failed_path))
 				return false;
@@ -160,8 +152,6 @@ void CardGamePlugin::Execute(const String& path)
 	PyVM* vm = context ? context->GetVM() : nullptr;
 	if(!vm) { LOG("CardGamePlugin: no VM!"); return; }
 	entry_module_name.Clear();
-	if(view) view->Log("CardGamePlugin: Execute(" + GetFileName(path) + ")");
-	if(view) view->Log("CardGamePlugin: stage=json");
 	bool want_breakpoints = vm->AreBreakpointsEnabled();
 	struct BreakpointRestore {
 		PyVM* vm;
@@ -195,7 +185,6 @@ void CardGamePlugin::Execute(const String& path)
 
 	// Change working directory to game folder
 	SetCurrentDirectory(game_dir);
-	if(view) view->Log("CardGamePlugin: stage=sys.path");
 
 	// Add game_dir to sys.path so relative Python imports resolve
 	PyValue sys = vm->GetGlobals().GetItem(PyValue("sys"));
@@ -213,7 +202,6 @@ void CardGamePlugin::Execute(const String& path)
 
 	// Register hearts_view stub module (headless)
 	SyncBindings(*vm);
-	if(view) view->Log("CardGamePlugin: stage=preload");
 
 	// Pre-load all Python packages/modules from game_dir into sys.modules
 	String failed_module, failed_path;
@@ -228,7 +216,6 @@ void CardGamePlugin::Execute(const String& path)
 
 	// Load and run entry script
 	String entry_path = AppendFileName(game_dir, entry_script);
-	if(view) view->Log("CardGamePlugin: stage=entry-load " + entry_path);
 	String entry_src = LoadFile(entry_path);
 	if(entry_src.IsVoid()) {
 		LOG("CardGamePlugin: cannot read entry script " << entry_path);
@@ -239,7 +226,6 @@ void CardGamePlugin::Execute(const String& path)
 	entry_module_name = GetFileTitle(entry_script);
 	if(entry_module_name.IsEmpty())
 		entry_module_name = "__game_main__";
-	if(view) view->Log("CardGamePlugin: stage=entry-compile " + entry_module_name);
 
 	try {
 		Tokenizer tk;
@@ -265,13 +251,11 @@ void CardGamePlugin::Execute(const String& path)
 		return;
 	}
 
-	if(view) view->Log("CardGamePlugin: stage=load-module " + entry_module_name);
 	if(!vm->LoadModule(entry_module_name, entry_src, entry_path)) {
 		LOG("CardGamePlugin: failed to load entry module " << entry_module_name);
 		if(view) view->Log("CardGamePlugin: failed to load entry module " + entry_module_name);
 		return;
 	}
-	if(view) view->Log("CardGamePlugin: stage=globals-merge");
 
 	PyValue entry_sys = vm->GetGlobals().GetItem(PyValue("sys"));
 	PyValue mod_dict;
@@ -290,14 +274,11 @@ void CardGamePlugin::Execute(const String& path)
 	// Call entry function if specified
 	if(!entry_function.IsEmpty()) {
 		vm->EnableBreakpoints(want_breakpoints);
-		if(view) view->Log("CardGamePlugin: stage=lookup-entry " + entry_function);
 		PyValue fn = GetGameFunction(entry_function);
 		LOG("CardGamePlugin: looking for entry_function='" << entry_function << "', found=" << (!fn.IsNone() ? "yes" : "no"));
 		if(!fn.IsNone()) {
 			try {
-				if(view) view->Log("CardGamePlugin: calling " + entry_function + "()");
 				vm->Call(fn, {});
-				if(view) view->Log("CardGamePlugin: " + entry_function + "() completed");
 				LOG("CardGamePlugin: entry function completed");
 			} catch(Exc& e) {
 				LOG("CardGamePlugin: error calling " << entry_function << "(): " << e);

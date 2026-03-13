@@ -413,10 +413,29 @@ def refresh_ui():
 
     # Trick area
     trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]
+    source_zones = ["hand_self", "hand_left", "hand_top", "hand_right"]
     for i in range(len(state.trick)):
         p_idx, card = state.trick[i]
-        hearts_view.set_card(card.id, asset_base + card.id + ".png", 0, 0, 0)
-        hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
+        trick_rect = hearts_view.get_zone_rect(trick_zones[p_idx])
+        if not trick_rect:
+            continue
+
+        target_x = trick_rect['x'] + (trick_rect['w'] - 72) / 2
+        target_y = trick_rect['y'] + (trick_rect['h'] - 96) / 2
+
+        if i == len(state.trick) - 1:
+            source_rect = hearts_view.get_zone_rect(source_zones[p_idx])
+            if source_rect:
+                start_x = source_rect['x'] + (source_rect['w'] - 72) / 2
+                start_y = source_rect['y'] + (source_rect['h'] - 96) / 2
+            else:
+                start_x = target_x
+                start_y = target_y
+            hearts_view.set_card(card.id, asset_base + card.id + ".png", int(start_x), int(start_y), 0)
+            hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
+        else:
+            hearts_view.set_card(card.id, asset_base + card.id + ".png", int(target_x), int(target_y), 0)
+            hearts_view.move_card(card.id, trick_zones[p_idx], 0, False)
 
 def commit_pass():
     global selected_cards

@@ -16,6 +16,8 @@ GUI_APP_MAIN
     int stop_after_ms = -1;
     int run_after_ms = -1;
     int debug_after_ms = -1;
+    int click_after_ms = 800;
+    int press_after_ms = 1400;
     int click_first_hand_cards = 0;
 	Vector<String> click_cards;
 	Vector<String> press_buttons;
@@ -55,6 +57,14 @@ GUI_APP_MAIN
         }
         if(arg.StartsWith("--debug-after-ms=")) {
             debug_after_ms = max(0, ScanInt(arg.Mid(17)));
+            continue;
+        }
+        if(arg.StartsWith("--click-after-ms=")) {
+            click_after_ms = max(0, ScanInt(arg.Mid(17)));
+            continue;
+        }
+        if(arg.StartsWith("--press-after-ms=")) {
+            press_after_ms = max(0, ScanInt(arg.Mid(17)));
             continue;
         }
         if(arg.StartsWith("--click-card=")) {
@@ -98,14 +108,14 @@ GUI_APP_MAIN
         SetTimeCallback(debug_after_ms, [&] { ide.OnDebug(); }, (void*)0xC0E2);
 
     if(click_cards.GetCount() || press_buttons.GetCount() || click_first_hand_cards > 0) {
-        SetTimeCallback(300, [&] {
+        SetTimeCallback(click_after_ms, [&] {
             if(click_first_hand_cards > 0)
                 ide.InvokeActiveSceneFirstHandCards(click_first_hand_cards);
             for(int i = 0; i < click_cards.GetCount(); i++)
                 ide.InvokeActiveSceneCard(click_cards[i]);
         }, (void*)0xC0DE);
         if(press_buttons.GetCount()) {
-            SetTimeCallback(650, [&] {
+            SetTimeCallback(press_after_ms, [&] {
                 for(int i = 0; i < press_buttons.GetCount(); i++)
                     ide.InvokeActiveSceneButton(press_buttons[i]);
             }, (void*)0xC0DF);

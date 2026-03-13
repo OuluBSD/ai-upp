@@ -490,7 +490,7 @@ def ai_step():
         pass_cards = choose_simple_pass_cards(hand)
         hearts_view.log("AI player " + str(pending_pass_player) + " passes cards")
         state.select_pass(pending_pass_player, pass_cards)
-        pending_pass_player += 1
+        pending_pass_player = pending_pass_player + 1
         if pending_pass_player >= 4:
             pending_pass_player = -1
         refresh_ui()

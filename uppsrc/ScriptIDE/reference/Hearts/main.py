@@ -17,9 +17,16 @@ rendered_hidden_counts = {"opp_left": 0, "opp_top": 0, "opp_right": 0}
 rendered_hand_ids = []
 current_hand_ids_for_assert = []
 current_trick_ids_for_assert = []
+collecting_trick = False
+collecting_winner = -1
+collecting_points = 0
+pass_animating = False
 
 AI_ACTION_DELAY_MS = 500
 TRICK_RESOLVE_DELAY_MS = 900
+TRICK_COLLECT_DELAY_MS = 700
+PASS_ANIMATION_DELAY_MS = 700
+ROUND_SUMMARY_DELAY_MS = 2500
 
 def ui_log(msg):
     hearts_view.log(msg)
@@ -107,6 +114,10 @@ def start():
     global rendered_hand_ids
     global current_hand_ids_for_assert
     global current_trick_ids_for_assert
+    global collecting_trick
+    global collecting_winner
+    global collecting_points
+    global pass_animating
     if started:
         return
     started = True
@@ -121,6 +132,10 @@ def start():
     rendered_hand_ids = []
     current_hand_ids_for_assert = []
     current_trick_ids_for_assert = []
+    collecting_trick = False
+    collecting_winner = -1
+    collecting_points = 0
+    pass_animating = False
     hearts_view.log("Hearts game starting...")
     state.deal()
     assert_state_invariants("start.deal")
@@ -388,12 +403,38 @@ def update_hud():
         )
         hearts_view.set_highlight(hand_zone_ids[i], state.phase == 'PLAYING' and state.turn == i)
 
-    score_lines = []
-    for i in range(4):
-        score_lines = score_lines + [
-            PLAYER_NAMES[i] + "  T:" + str(state.scores[i]) + "  R:+" + str(state.round_scores[i])
-        ]
-    hearts_view.set_label("score_board", "\n".join(score_lines))
+    if state.phase == 'ROUND_END':
+        summary_lines = ["Hand complete"]
+        for i in range(4):
+            summary_lines = summary_lines + [
+                PLAYER_NAMES[i] + "  +" + str(state.last_round_scores[i]) + "  T:" + str(state.scores[i])
+            ]
+        if state.last_round_moon_shooter >= 0:
+            summary_lines = summary_lines + ["Moon: " + PLAYER_NAMES[state.last_round_moon_shooter]]
+        hearts_view.set_label("trick_area", "\n".join(summary_lines))
+    elif state.game_over:
+        hearts_view.set_label("trick_area", "Game over")
+    else:
+        hearts_view.set_label("trick_area", "")
+
+    if state.game_over:
+        score_lines = []
+        for i in range(4):
+            score_lines = score_lines + [
+                PLAYER_NAMES[i] + "  T:" + str(state.scores[i]) + "  R:+" + str(state.round_scores[i])
+            ]
+        if state.last_round_scores[0] != 0 or state.last_round_scores[1] != 0 or state.last_round_scores[2] != 0 or state.last_round_scores[3] != 0:
+            score_lines = score_lines + [""]
+            score_lines = score_lines + ["Last hand:"]
+            for i in range(4):
+                score_lines = score_lines + [
+                    PLAYER_NAMES[i] + "  +" + str(state.last_round_scores[i])
+                ]
+            if state.last_round_moon_shooter >= 0:
+                score_lines = score_lines + ["Moon: " + PLAYER_NAMES[state.last_round_moon_shooter]]
+        hearts_view.set_label("score_board", "\n".join(score_lines))
+    else:
+        hearts_view.set_label("score_board", "")
 
     in_passing = state.phase == 'PASSING' and pass_direction_text() != "hold"
     show_pass_controls = in_passing and pending_pass_player < 0
@@ -412,6 +453,8 @@ def update_hud():
         else:
             status = "Round " + str(state.round_number) + ": pass 3 cards " + \
                      pass_direction_text() + " (" + str(selected) + "/3 selected)"
+    elif state.phase == 'ROUND_END':
+        status = "Round " + str(state.round_number) + " complete. Next hand starting soon."
     elif state.phase == 'PLAYING':
         actor = PLAYER_NAMES[state.turn]
         prefix = "Your turn"
@@ -419,6 +462,8 @@ def update_hud():
             prefix = "Waiting for " + actor
         if state.trick_pending:
             prefix = "Resolving trick"
+        if collecting_trick and collecting_winner >= 0:
+            prefix = "Collecting trick for " + PLAYER_NAMES[collecting_winner]
         broken = "hearts broken"
         if not state.hearts_broken:
             broken = "hearts closed"
@@ -430,6 +475,13 @@ def update_hud():
     if state.last_trick_winner >= 0 and len(state.trick) == 0 and state.phase == 'PLAYING':
         status = status + " Last trick: " + PLAYER_NAMES[state.last_trick_winner] + \
                  " won " + str(state.last_trick_points) + " pts."
+
+    if state.game_over:
+        winner = 0
+        for i in range(1, 4):
+            if state.scores[i] < state.scores[winner]:
+                winner = i
+        status = "Game over. Winner: " + PLAYER_NAMES[winner] + " with " + str(state.scores[winner]) + " points."
 
     hearts_view.set_status(status)
 
@@ -485,6 +537,7 @@ def refresh_ui():
     global rendered_hand_ids
     global current_hand_ids_for_assert
     global current_trick_ids_for_assert
+    global selected_cards
     if rendered_round_number != state.round_number:
         hearts_view.clear_sprites()
         rendered_round_number = state.round_number
@@ -495,6 +548,8 @@ def refresh_ui():
         rendered_hand_ids = []
         current_hand_ids_for_assert = []
         current_trick_ids_for_assert = []
+    if state.phase != 'PASSING' and len(selected_cards) != 0:
+        selected_cards = []
     hearts_view.begin_sprite_frame()
     assert_state_invariants("refresh_ui")
     update_hud()
@@ -657,6 +712,116 @@ def schedule_ai_step(delay_ms):
         return
     hearts_view.set_timeout(delay_ms, "ai_step")
 
+def hand_zone_id(player_index):
+    if player_index == 0:
+        return "hand_self"
+    if player_index == 1:
+        return "hand_left"
+    if player_index == 2:
+        return "hand_top"
+    return "hand_right"
+
+def pass_target_index(player_index):
+    pass_dir = state.round_number % 4
+    if pass_dir == 1:
+        return (player_index + 1) % 4
+    if pass_dir == 2:
+        return (player_index + 3) % 4
+    return (player_index + 2) % 4
+
+def start_pass_animation():
+    global pass_animating
+    if pass_animating:
+        return
+    pass_animating = True
+    for i in range(4):
+        source_zone = hand_zone_id(i)
+        target_zone = hand_zone_id(pass_target_index(i))
+        cards = state.passed_cards[i]
+        for j in range(len(cards)):
+            card = cards[j]
+            sprite_id = "pass_" + str(i) + "_" + str(j) + "_" + str(card.id)
+            asset = asset_base + "back9.png"
+            if i == 0:
+                asset = asset_base + card.id + ".png"
+            source_rect = hearts_view.get_zone_rect(source_zone)
+            if source_rect:
+                sx = source_rect['x'] + (source_rect['w'] - 72) / 2 + (j - 1) * 18
+                sy = source_rect['y'] + (source_rect['h'] - 96) / 2
+            else:
+                sx = 0
+                sy = 0
+            hearts_view.set_card(sprite_id, asset, int(sx), int(sy), 0)
+            hearts_view.move_card(sprite_id, target_zone, (j - 1) * 18, True)
+    hearts_view.set_timeout(PASS_ANIMATION_DELAY_MS, "finish_pass_animation")
+
+def finish_pass_animation():
+    global pass_animating
+    pass_animating = False
+    for i in range(4):
+        cards = state.passed_cards[i]
+        for j in range(len(cards)):
+            card = cards[j]
+            hearts_view.remove_sprite("pass_" + str(i) + "_" + str(j) + "_" + str(card.id))
+    refresh_ui()
+    if autoplay_enabled or state.turn != 0:
+        schedule_ai_step(AI_ACTION_DELAY_MS)
+
+def start_trick_collect():
+    global collecting_trick
+    global collecting_winner
+    global collecting_points
+    if not state.trick_pending:
+        return
+    collecting_trick = True
+    collecting_winner = state.pending_trick_winner
+    collecting_points = state.pending_trick_points
+    offsets = [-24, -8, 8, 24]
+    zone_id = hand_zone_id(collecting_winner)
+    for i in range(len(state.trick)):
+        p_idx, card = state.trick[i]
+        offset = 0
+        if i < len(offsets):
+            offset = offsets[i]
+        hearts_view.move_card(card.id, zone_id, offset, True)
+    update_hud()
+    hearts_view.set_timeout(TRICK_COLLECT_DELAY_MS, "finish_trick_collect")
+
+def finish_trick_collect():
+    global collecting_trick
+    global collecting_winner
+    global collecting_points
+    if not state.trick_pending:
+        collecting_trick = False
+        collecting_winner = -1
+        collecting_points = 0
+        return
+    state.resolve_trick()
+    collecting_trick = False
+    collecting_winner = -1
+    collecting_points = 0
+    refresh_ui()
+    if has_game_over_score():
+        finish_autoplay_if_needed()
+        return
+    if state.phase == 'ROUND_END':
+        hearts_view.set_timeout(ROUND_SUMMARY_DELAY_MS, "next_round")
+        return
+    if autoplay_enabled or state.turn != 0 or pending_pass_player >= 0:
+        schedule_ai_step(AI_ACTION_DELAY_MS)
+
+def next_round():
+    if state.game_over:
+        finish_autoplay_if_needed()
+        return
+    if state.phase != 'ROUND_END':
+        return
+    state.begin_next_round()
+    assert_state_invariants("next_round.deal")
+    refresh_ui()
+    if autoplay_enabled:
+        schedule_ai_step(AI_ACTION_DELAY_MS)
+
 def ai_step():
     global pending_pass_player
 
@@ -666,14 +831,12 @@ def ai_step():
         finish_autoplay_if_needed()
         return
 
+    if pass_animating:
+        return
+
     if state.trick_pending:
-        state.resolve_trick()
-        refresh_ui()
-        if has_game_over_score():
-            finish_autoplay_if_needed()
-            return
-        if autoplay_enabled or state.turn != 0 or pending_pass_player >= 0:
-            schedule_ai_step(AI_ACTION_DELAY_MS)
+        if not collecting_trick:
+            start_trick_collect()
         return
 
     if state.phase == 'PASSING':
@@ -696,6 +859,10 @@ def ai_step():
         pending_pass_player = pending_pass_player + 1
         if pending_pass_player >= 4:
             pending_pass_player = -1
+        if state.phase == 'PLAYING':
+            refresh_ui()
+            start_pass_animation()
+            return
         refresh_ui()
         if has_game_over_score():
             finish_autoplay_if_needed()
@@ -734,6 +901,8 @@ def on_click(card_id):
             card = c
             break
     if not card: return
+    if pass_animating:
+        return
 
     if state.phase == 'PASSING':
         if card in selected_cards:

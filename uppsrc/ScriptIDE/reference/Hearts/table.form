@@ -224,7 +224,7 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="560" y="40" cx="220" cy="108" align="2" valign="1">
+				<item x="260" y="220" cx="220" cy="108" align="2" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="score_board"/>

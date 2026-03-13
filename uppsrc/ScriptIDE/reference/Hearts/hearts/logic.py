@@ -47,6 +47,9 @@ class GameState:
         self.passed_cards = [[], [], [], []]
         self.last_trick_winner = -1
         self.last_trick_points = 0
+        self.last_round_scores = [0, 0, 0, 0]
+        self.last_round_moon_shooter = -1
+        self.game_over = False
         self.trick_pending = False
         self.pending_trick_winner = -1
         self.pending_trick_points = 0
@@ -67,6 +70,9 @@ class GameState:
         self.passed_cards = [[], [], [], []]
         self.last_trick_winner = -1
         self.last_trick_points = 0
+        self.last_round_scores = [0, 0, 0, 0]
+        self.last_round_moon_shooter = -1
+        self.game_over = False
         self.trick_pending = False
         self.pending_trick_winner = -1
         self.pending_trick_points = 0
@@ -262,6 +268,9 @@ class GameState:
                     self.round_scores[i] = 0
                 else:
                     self.round_scores[i] = 26
+
+        self.last_round_scores = list(self.round_scores)
+        self.last_round_moon_shooter = moon_shooter
         
         for i in range(4):
             self.scores[i] += self.round_scores[i]
@@ -273,7 +282,14 @@ class GameState:
             if s >= 100:
                 game_over = True
                 break
+        self.game_over = game_over
         if game_over:
+            self.phase = 'GAME_OVER'
             self.log("GAME OVER!")
         else:
-            self.deal()
+            self.phase = 'ROUND_END'
+
+    def begin_next_round(self):
+        if self.game_over:
+            return
+        self.deal()

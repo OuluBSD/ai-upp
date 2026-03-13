@@ -224,14 +224,14 @@
 						<property name="Font.Color" value="data"/>
 					</properties>
 				</item>
-				<item x="30" y="10" cx="750" cy="30" align="3" valign="1">
+				<item x="10" y="0" cx="750" cy="30" align="3" valign="1">
 					<name>Noname</name>
 					<properties>
 						<property name="Variable" value="status_line"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
 						<property name="UserClass" value="LABEL"/>
-						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Anchor" value="TOP_HSIZE"/>
 						<property name="Label" value=""/>
 						<property name="Text.Align" value="Left"/>
 						<property name="OutlineDraw" value="0"/>

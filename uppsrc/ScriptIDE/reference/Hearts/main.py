@@ -11,12 +11,88 @@ autoplay_enabled = False
 autoplay_finished = False
 pending_pass_player = -1
 started = False
+rendered_round_number = -1
+rendered_trick_ids = []
+rendered_hidden_counts = {"opp_left": 0, "opp_top": 0, "opp_right": 0}
+rendered_hand_ids = []
+current_hand_ids_for_assert = []
+current_trick_ids_for_assert = []
 
 AI_ACTION_DELAY_MS = 500
 TRICK_RESOLVE_DELAY_MS = 900
 
 def ui_log(msg):
     hearts_view.log(msg)
+
+def assert_state_invariants(where):
+    total_cards = len(state.trick)
+    ids = []
+    for i in range(4):
+        total_cards = total_cards + len(state.players[i])
+        for c in state.players[i]:
+            # DONT REMOVE: None cards or cards without ids have repeatedly shown up as
+            # impossible rendered sprites (for example sprite id "None") during pass/play transitions.
+            assert c is not None, where + ": player " + str(i) + " has None card"
+            cid = str(c.id)
+            assert cid != "" and cid != "None", where + ": player " + str(i) + " has card with invalid id"
+            ids.append(c.id)
+    for trick_item in state.trick:
+        _, c = trick_item
+        assert c is not None, where + ": trick has None card"
+        cid = str(c.id)
+        assert cid != "" and cid != "None", where + ": trick has card with invalid id"
+        ids.append(c.id)
+
+    assert total_cards >= 0 and total_cards <= 52, where + ": total cards = " + str(total_cards)
+    assert (total_cards % 4) == 0, where + ": total cards not divisible by 4: " + str(total_cards)
+
+    unique = []
+    for card_id in ids:
+        seen = False
+        for old_id in unique:
+            if old_id == card_id:
+                seen = True
+                break
+        assert not seen, where + ": duplicate card " + str(card_id)
+        unique.append(card_id)
+
+    if state.phase == 'PASSING':
+        selected_total = 0
+        for i in range(4):
+            selected_total = selected_total + len(state.passed_cards[i])
+            assert len(state.passed_cards[i]) <= 3, where + ": player " + str(i) + " passed > 3 cards"
+        assert selected_total <= 12, where + ": selected_total = " + str(selected_total)
+
+    if state.phase == 'PLAYING':
+        assert state.turn >= 0 and state.turn < 4, where + ": invalid turn " + str(state.turn)
+        assert len(state.trick) <= 4, where + ": trick size = " + str(len(state.trick))
+        if state.trick_pending:
+            assert len(state.trick) == 4, where + ": trick_pending with trick size " + str(len(state.trick))
+
+def assert_render_invariants(where, current_face_card_ids):
+    # DONT REMOVE: these assertions catch stale visible hand/trick sprites that are
+    # otherwise easy to miss because the logical game state can already be correct.
+    assert len(current_hand_ids_for_assert) == len(state.players[0]), where + ": rendered hand ids = " + str(len(current_hand_ids_for_assert)) + ", expected " + str(len(state.players[0]))
+    expected_face = len(state.players[0]) + len(state.trick)
+    assert len(current_face_card_ids) == expected_face, where + ": rendered face cards = " + str(len(current_face_card_ids)) + ", expected " + str(expected_face)
+
+    unique = []
+    for card_id in current_face_card_ids:
+        seen = False
+        for old_id in unique:
+            if old_id == card_id:
+                seen = True
+                break
+        assert not seen, where + ": duplicate rendered face card " + str(card_id)
+        unique.append(card_id)
+
+    for hand_id in current_hand_ids_for_assert:
+        for trick_id in current_trick_ids_for_assert:
+            assert hand_id != trick_id, where + ": card rendered both in hand and trick: " + str(hand_id)
+
+    assert rendered_hidden_counts["opp_left"] == len(state.players[1]), where + ": left hidden count mismatch"
+    assert rendered_hidden_counts["opp_top"] == len(state.players[2]), where + ": top hidden count mismatch"
+    assert rendered_hidden_counts["opp_right"] == len(state.players[3]), where + ": right hidden count mismatch"
 
 def start():
     global state
@@ -25,6 +101,12 @@ def start():
     global pending_pass_player
     global selected_cards
     global started
+    global rendered_round_number
+    global rendered_trick_ids
+    global rendered_hidden_counts
+    global rendered_hand_ids
+    global current_hand_ids_for_assert
+    global current_trick_ids_for_assert
     if started:
         hearts_view.log("Duplicate start() ignored.")
         return
@@ -34,8 +116,15 @@ def start():
     selected_cards = []
     autoplay_finished = False
     pending_pass_player = -1
+    rendered_round_number = -1
+    rendered_trick_ids = []
+    rendered_hidden_counts = {"opp_left": 0, "opp_top": 0, "opp_right": 0}
+    rendered_hand_ids = []
+    current_hand_ids_for_assert = []
+    current_trick_ids_for_assert = []
     hearts_view.log("Hearts game starting...")
     state.deal()
+    assert_state_invariants("start.deal")
     autoplay_enabled = "--autoplay" in sys.argv
     refresh_ui()
     if autoplay_enabled:
@@ -295,13 +384,19 @@ def update_hud():
             name = "[" + name + "]"
         hearts_view.set_label(
             zone_id,
-            name + "  " + str(state.scores[i]) + "  (" + str(len(state.players[i])) + ")"
+            name + "  T:" + str(state.scores[i]) + "  R:+" + str(state.round_scores[i]) + \
+            "  C:" + str(len(state.players[i]))
         )
         hearts_view.set_highlight(hand_zone_ids[i], state.phase == 'PLAYING' and state.turn == i)
 
     in_passing = state.phase == 'PASSING' and pass_direction_text() != "hold"
-    hearts_view.set_button("button_clear", "Clear", in_passing and len(selected_cards) > 0)
-    hearts_view.set_button("button_pass", "Pass cards", in_passing and len(selected_cards) == 3)
+    show_pass_controls = in_passing and pending_pass_player < 0
+    if show_pass_controls:
+        hearts_view.set_button("button_clear", "Clear", len(selected_cards) > 0)
+        hearts_view.set_button("button_pass", "Pass cards", len(selected_cards) == 3)
+    else:
+        hearts_view.set_button("button_clear", "", False)
+        hearts_view.set_button("button_pass", "", False)
 
     trick_count = len(state.trick)
     if state.phase == 'PASSING':
@@ -333,20 +428,20 @@ def update_hud():
     hearts_view.set_status(status)
 
 def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
+    global rendered_hidden_counts
     hand_rect = hearts_view.get_zone_rect(zone_id)
     if not hand_rect:
         return
 
     card_count = len(state.players[player_index])
-    if card_count <= 0:
-        return
+    old_count = rendered_hidden_counts[sprite_prefix]
 
     if vertical:
         available_height = hand_rect['h'] - 96
         step = available_height / max(1, card_count - 1)
         if step > 18:
             step = 18
-        total_height = step * (card_count - 1) + 96
+        total_height = step * max(0, card_count - 1) + 96
         start_y = hand_rect['y'] + (hand_rect['h'] - total_height) / 2
         x = hand_rect['x']
         for i in range(card_count):
@@ -362,7 +457,7 @@ def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
         step = available_width / max(1, card_count - 1)
         if step > 24:
             step = 24
-        total_width = step * (card_count - 1) + 72
+        total_width = step * max(0, card_count - 1) + 72
         start_x = hand_rect['x'] + (hand_rect['w'] - total_width) / 2
         y = hand_rect['y']
         for i in range(card_count):
@@ -374,8 +469,27 @@ def draw_hidden_hand(zone_id, player_index, sprite_prefix, vertical):
                 0
             )
 
+    for i in range(card_count, old_count):
+        hearts_view.remove_sprite(sprite_prefix + "_" + str(i))
+    rendered_hidden_counts[sprite_prefix] = card_count
+
 def refresh_ui():
-    hearts_view.clear_sprites()
+    global rendered_round_number
+    global rendered_trick_ids
+    global rendered_hand_ids
+    global current_hand_ids_for_assert
+    global current_trick_ids_for_assert
+    if rendered_round_number != state.round_number:
+        hearts_view.clear_sprites()
+        rendered_round_number = state.round_number
+        rendered_trick_ids = []
+        rendered_hidden_counts["opp_left"] = 0
+        rendered_hidden_counts["opp_top"] = 0
+        rendered_hidden_counts["opp_right"] = 0
+        rendered_hand_ids = []
+        current_hand_ids_for_assert = []
+        current_trick_ids_for_assert = []
+    assert_state_invariants("refresh_ui")
     update_hud()
 
     draw_hidden_hand("hand_left", 1, "opp_left", True)
@@ -383,6 +497,8 @@ def refresh_ui():
     draw_hidden_hand("hand_right", 3, "opp_right", True)
 
     # Human hand (Player 0)
+    current_face_card_ids = []
+    current_hand_ids = []
     hand_rect = hearts_view.get_zone_rect("hand_self")
     if hand_rect:
         card_count = len(state.players[0])
@@ -400,8 +516,11 @@ def refresh_ui():
             # Sync sorted hand back so logic matches visual index if needed, though we find by id
             state.players[0] = sorted_hand
 
-            for i in range(len(state.players[0])):
+            i = 0
+            while i < len(state.players[0]):
                 card = state.players[0][i]
+                current_face_card_ids = current_face_card_ids + [card.id]
+                current_hand_ids = current_hand_ids + [card.id]
                 cx = start_x + (i * step_x)
                 cy = hand_rect['y']
 
@@ -410,32 +529,94 @@ def refresh_ui():
                     cy -= 20
 
                 hearts_view.set_card(card.id, asset_base + card.id + ".png", int(cx), cy, 0)
-
+                i = i + 1
     # Trick area
     trick_zones = ["trick_bottom", "trick_left", "trick_top", "trick_right"]
     source_zones = ["hand_self", "hand_left", "hand_top", "hand_right"]
-    for i in range(len(state.trick)):
+    current_trick_ids = []
+    i = 0
+    while i < len(state.trick):
         p_idx, card = state.trick[i]
+        current_trick_ids = current_trick_ids + [card.id]
+        current_face_card_ids = current_face_card_ids + [card.id]
         trick_rect = hearts_view.get_zone_rect(trick_zones[p_idx])
         if not trick_rect:
+            i = i + 1
             continue
 
         target_x = trick_rect['x'] + (trick_rect['w'] - 72) / 2
         target_y = trick_rect['y'] + (trick_rect['h'] - 96) / 2
 
         if i == len(state.trick) - 1:
-            source_rect = hearts_view.get_zone_rect(source_zones[p_idx])
-            if source_rect:
-                start_x = source_rect['x'] + (source_rect['w'] - 72) / 2
-                start_y = source_rect['y'] + (source_rect['h'] - 96) / 2
-            else:
-                start_x = target_x
-                start_y = target_y
-            hearts_view.set_card(card.id, asset_base + card.id + ".png", int(start_x), int(start_y), 0)
+            already_rendered = False
+            for existing_id in rendered_hand_ids:
+                if existing_id == card.id:
+                    already_rendered = True
+                    break
+            if not already_rendered:
+                for existing_id in rendered_trick_ids:
+                    if existing_id == card.id:
+                        already_rendered = True
+                        break
+            if not already_rendered:
+                source_rect = hearts_view.get_zone_rect(source_zones[p_idx])
+                if source_rect:
+                    start_x = source_rect['x'] + (source_rect['w'] - 72) / 2
+                    start_y = source_rect['y'] + (source_rect['h'] - 96) / 2
+                else:
+                    start_x = target_x
+                    start_y = target_y
+                hearts_view.set_card(card.id, asset_base + card.id + ".png", int(start_x), int(start_y), 0)
             hearts_view.move_card(card.id, trick_zones[p_idx], 0, True)
         else:
             hearts_view.set_card(card.id, asset_base + card.id + ".png", int(target_x), int(target_y), 0)
             hearts_view.move_card(card.id, trick_zones[p_idx], 0, False)
+        i = i + 1
+
+    for old_id in rendered_trick_ids:
+        found = False
+        for current_id in current_trick_ids:
+            if current_id == old_id:
+                found = True
+                break
+        if not found:
+            hearts_view.remove_sprite(old_id)
+    rendered_trick_ids = current_trick_ids
+    hearts_view.log("refresh_ui: trick sync state_trick=" + str(len(state.trick)) +
+                    " rendered=" + str(len(rendered_trick_ids)) +
+                    " ids=" + str(current_trick_ids))
+
+    for old_id in rendered_hand_ids:
+        found_in_hand = False
+        for current_id in current_hand_ids:
+            if current_id == old_id:
+                found_in_hand = True
+                break
+        if found_in_hand:
+            continue
+        found_in_trick = False
+        for trick_id in current_trick_ids:
+            if trick_id == old_id:
+                found_in_trick = True
+                break
+        if not found_in_trick:
+            hearts_view.remove_sprite(old_id)
+    hearts_view.log("refresh_ui: hand prune done old=" + str(len(rendered_hand_ids)) +
+                    " new=" + str(len(current_hand_ids)) +
+                    " trick=" + str(len(state.trick)))
+    rendered_hand_ids = current_hand_ids
+    hearts_view.log("refresh_ui: hand assign done")
+    current_hand_ids_for_assert = current_hand_ids
+    current_trick_ids_for_assert = current_trick_ids
+    # DONT REMOVE: host-side render assertions catch stale visible sprites that the logical
+    # Python card-state checks cannot see, especially after pass/trick transitions.
+    hearts_view.set_expected_sprite_count("hand_self", len(state.players[0]))
+    hearts_view.set_expected_sprite_count("hand_left", len(state.players[1]))
+    hearts_view.set_expected_sprite_count("hand_top", len(state.players[2]))
+    hearts_view.set_expected_sprite_count("hand_right", len(state.players[3]))
+    hearts_view.log("refresh_ui: expected counts done")
+    assert_render_invariants("refresh_ui.render", current_face_card_ids)
+    hearts_view.log("refresh_ui: done")
 
 def commit_pass():
     global selected_cards
@@ -450,6 +631,7 @@ def commit_pass():
         pass_cards.append(card)
     hearts_view.log("Passing selected cards...")
     state.select_pass(0, pass_cards)
+    assert_state_invariants("commit_pass.select_pass")
     selected_cards = []
     refresh_ui()
     pending_pass_player = 1
@@ -479,6 +661,11 @@ def schedule_ai_step(delay_ms):
 
 def ai_step():
     global pending_pass_player
+
+    assert_state_invariants("ai_step.begin")
+    hearts_view.log("ai_step: phase=" + str(state.phase) + " turn=" + str(state.turn) +
+                    " pending_pass_player=" + str(pending_pass_player) +
+                    " trick_pending=" + str(state.trick_pending))
 
     if has_game_over_score():
         finish_autoplay_if_needed()
@@ -510,6 +697,7 @@ def ai_step():
         pass_cards = choose_simple_pass_cards(hand)
         hearts_view.log("AI player " + str(pending_pass_player) + " passes cards")
         state.select_pass(pending_pass_player, pass_cards)
+        assert_state_invariants("ai_step.pass")
         pending_pass_player = pending_pass_player + 1
         if pending_pass_player >= 4:
             pending_pass_player = -1
@@ -522,16 +710,25 @@ def ai_step():
         return
 
     if state.phase != 'PLAYING':
+        hearts_view.log("ai_step: not in playing phase")
         return
 
     if not autoplay_enabled and state.turn == 0:
+        hearts_view.log("ai_step: waiting for human turn")
         return
 
     p_idx = state.turn
     card = choose_simple_play_card(p_idx)
+    hearts_view.log("ai_step: chose card " + str(card) + " for player " + str(p_idx))
     if not card:
+        hearts_view.log("ai_step: no valid card")
         return
-    state.play_card(p_idx, card)
+    success, msg = state.play_card(p_idx, card)
+    if not success:
+        hearts_view.log("AI move failed: " + str(msg))
+        schedule_ai_step(AI_ACTION_DELAY_MS)
+        return
+    assert_state_invariants("ai_step.play")
     refresh_ui()
     if state.trick_pending:
         schedule_ai_step(TRICK_RESOLVE_DELAY_MS)
@@ -556,10 +753,17 @@ def on_click(card_id):
     else:
         success, msg = state.play_card(0, card)
         if success:
+            hearts_view.log("on_click: played " + str(card.id) + " turn=" + str(state.turn) +
+                            " trick_pending=" + str(state.trick_pending))
+            assert_state_invariants("on_click.play")
             refresh_ui()
+            hearts_view.log("on_click: refresh complete turn=" + str(state.turn) +
+                            " trick_pending=" + str(state.trick_pending))
             if state.trick_pending:
+                hearts_view.log("on_click: scheduling trick resolve")
                 schedule_ai_step(TRICK_RESOLVE_DELAY_MS)
             elif state.turn != 0:
+                hearts_view.log("on_click: scheduling next ai step")
                 schedule_ai_step(AI_ACTION_DELAY_MS)
         else:
             hearts_view.log("Invalid move: " + str(msg))

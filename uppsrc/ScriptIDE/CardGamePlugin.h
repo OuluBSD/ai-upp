@@ -214,6 +214,7 @@ private:
 	void ScheduleSceneSync();
 	void SyncFormExplorer();
 	void SyncFormControls();
+	void RetryLayoutRefresh();
 	void PaintOverlay(Draw& w);
 	void OverlayLeftDown(Point p, dword flags);
 	virtual void Layout() override;

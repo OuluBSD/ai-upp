@@ -206,16 +206,29 @@ void CardGameDocumentHost::Layout()
 		return;
 
 	last_layout_size = sz;
-	if(sz.cx <= 0 || sz.cy <= 0 || refresh_running || resize_refresh_pending)
+	if(sz.cx <= 0 || sz.cy <= 0)
 		return;
 
+	SyncFormControls();
 	SyncFormExplorer();
 
+	if(resize_refresh_pending)
+		return;
+
 	resize_refresh_pending = true;
-	Upp::PostCallback([=] {
-		resize_refresh_pending = false;
-		RefreshGameView();
-	}, &resize_refresh_pending);
+	Upp::PostCallback(callback(this, &CardGameDocumentHost::RetryLayoutRefresh), &resize_refresh_pending);
+}
+
+void CardGameDocumentHost::RetryLayoutRefresh()
+{
+	if(!resize_refresh_pending)
+		return;
+	if(refresh_running) {
+		Upp::PostCallback(callback(this, &CardGameDocumentHost::RetryLayoutRefresh), &resize_refresh_pending);
+		return;
+	}
+	resize_refresh_pending = false;
+	RefreshGameView();
 }
 
 void CardGameDocumentHost::ActivateUI()
@@ -278,18 +291,12 @@ void CardGameDocumentHost::InitRuntime()
 
 void CardGameDocumentHost::StartGame(const String& mode)
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
-		ide->Log("CardGameDocumentHost: StartGame(" + mode + ")");
 	if(stop_in_progress) {
 		pending_start_mode = mode;
-		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
-			ide->Log("CardGameDocumentHost: deferring start until stop completes");
 		return;
 	}
 	if(game_running) {
 		pending_start_mode = mode;
-		if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
-			ide->Log("CardGameDocumentHost: stopping current session before restart");
 		Stop();
 		return;
 	}
@@ -373,8 +380,6 @@ void CardGameDocumentHost::StopVmThread()
 
 void CardGameDocumentHost::Run()
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
-		ide->Log("CardGameDocumentHost: Run()");
 	if(game_running && game_paused) {
 		ResumeGame();
 		return;
@@ -384,8 +389,6 @@ void CardGameDocumentHost::Run()
 
 void CardGameDocumentHost::Debug()
 {
-	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
-		ide->Log("CardGameDocumentHost: Debug()");
 	if(game_running && game_paused) {
 		ResumeGame();
 		return;

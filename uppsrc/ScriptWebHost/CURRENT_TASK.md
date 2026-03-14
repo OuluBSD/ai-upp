@@ -17,9 +17,9 @@ Current baseline:
   - `kind: "py"` for host-transpiled Python helpers with explicit exports
 - dotted imports like `import solitaire.bridge` now work for transpiled Python helper modules
 - browser hand cards now support live pointer dragging with drop callbacks through optional `on_drag(card_id, zone_id)`
+- smoke coverage now includes a dedicated browser drag regression beside the autoplay/trick regression
 
 Next steps:
 
-- add explicit browser drag regression coverage beside the autoplay/trick regression
 - continue tightening browser presentation details like hand stacking and animation polish
 - replace the remaining dedicated runtime route wording/docs to match the static-asset design

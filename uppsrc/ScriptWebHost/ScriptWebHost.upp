@@ -14,6 +14,7 @@ file
 	Handlers.cpp,
 	Main.cpp,
 	BrowserRegression.py,
+	BrowserDragRegression.py,
 	SmokeTest.sh,
 	static/runtime.js,
 	static/style.css;

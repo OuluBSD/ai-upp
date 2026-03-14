@@ -42,7 +42,14 @@ Example `.gamestate`:
   "entry_function": "start",
   "layout": "table.form",
   "metadata": {
-    "players": 4
+    "players": 4,
+    "browser_modules": [
+      {
+        "name": "mygame.logic",
+        "kind": "js",
+        "path": "browser/mygame.logic.js"
+      }
+    ]
   }
 }
 ```
@@ -68,6 +75,27 @@ Core calls:
 - `cardgame_view.log(text)`
 - `cardgame_view.set_timeout(delay_ms, callback_name)`
 - `cardgame_view.set_expected_sprite_count(zone_id, count)`
+
+## Browser Module Convention
+
+For browser-hosted projects, `.gamestate` metadata may declare `browser_modules`.
+Current supported module kind:
+
+- `js`: fetch a project-owned JavaScript file and expose `__scriptwebhost_module__`
+
+Example browser module file:
+
+```javascript
+const __scriptwebhost_module__ = {
+  answer() { return 42; }
+};
+```
+
+The transpiled Python entry can then import it by name, for example:
+
+```python
+import mygame.logic
+```
 
 ## Required Python Entry Points
 

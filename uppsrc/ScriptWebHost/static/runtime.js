@@ -6,6 +6,7 @@ const spriteLayer = document.getElementById('sprite-layer');
 const stageTitle = document.getElementById('stage-title');
 
 const runtime = {
+  mode: 'loading',
   bootstrap: null,
   zones: new Map(),
   sprites: new Map(),
@@ -16,11 +17,12 @@ const runtime = {
 };
 
 function syncRuntimeState() {
-  document.body.dataset.runtime = runtime.currentModule ? 'booting' : 'loading';
+  document.body.dataset.runtime = runtime.mode;
   document.body.dataset.spriteCount = String(runtime.sprites.size);
 }
 
 function setRuntimeMode(mode) {
+  runtime.mode = mode;
   document.body.dataset.runtime = mode;
 }
 
@@ -691,8 +693,8 @@ async function loadAndRunGame() {
     throw new Error('Transpiled entry did not expose start()');
   runtime.currentModule.start();
   setStatus('Running');
-  syncRuntimeState();
   setRuntimeMode('running');
+  syncRuntimeState();
 }
 
 loadAndRunGame().catch(err => {
@@ -700,4 +702,18 @@ loadAndRunGame().catch(err => {
   logLine(err && err.stack ? err.stack : String(err));
   setStatus('Runtime error');
   setRuntimeMode('error');
+  syncRuntimeState();
 });
+
+window.ScriptWebHostRuntime = {
+  runtime,
+  getZoneRect,
+  getZoneElement,
+  sprites: () => Array.from(runtime.sprites.values()).map(img => ({
+    id: img.dataset.id,
+    layer: img.dataset.layer,
+    left: img.style.left,
+    top: img.style.top,
+    zIndex: img.style.zIndex,
+  })),
+};

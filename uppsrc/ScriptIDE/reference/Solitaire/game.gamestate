@@ -4,6 +4,13 @@
   "layout": "table.form",
   "metadata": {
     "players": 1,
-    "browser_modules": []
+    "browser_modules": [
+      {
+        "name": "solitaire_bridge",
+        "kind": "py",
+        "path": "browser/solitaire_bridge.py",
+        "exports": ["deal_label", "title_text", "status_text"]
+      }
+    ]
   }
 }

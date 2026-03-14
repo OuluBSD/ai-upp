@@ -471,6 +471,28 @@ String ScriptWebHostApp::GetBootstrapJson() const
 	return AsJSON(m, true);
 }
 
+String ScriptWebHostApp::GetGamestateDir() const
+{
+	if(gamestate_path.IsEmpty())
+		return String();
+	return GetFileDirectory(gamestate_path);
+}
+
+String ScriptWebHostApp::ResolveProjectPath(const String& relpath) const
+{
+	String base = GetGamestateDir();
+	if(base.IsEmpty())
+		return String();
+	String rel = TrimBoth(relpath);
+	if(rel.IsEmpty() || rel.StartsWith("/") || rel.Find(':') >= 0)
+		return String();
+	String resolved = NormalizePath(AppendFileName(base, rel));
+	String base_slash = AppendFileName(base, "");
+	if(!resolved.StartsWith(base_slash) && resolved != base)
+		return String();
+	return resolved;
+}
+
 PyToJsResult ScriptWebHostApp::GetEntryTranspile() const
 {
 	PyToJsResult out;
@@ -501,6 +523,28 @@ PyToJsResult ScriptWebHostApp::GetEntryTranspile() const
 		return out;
 	}
 	return TranspilePythonToJavascript(LoadFile(entry_path), entry_path);
+}
+
+PyToJsResult ScriptWebHostApp::GetModuleTranspile(const String& relpath) const
+{
+	PyToJsResult out;
+	if(relpath.IsEmpty()) {
+		out.errors.Add("missing module path");
+		return out;
+	}
+	String module_path = ResolveProjectPath(relpath);
+	if(module_path.IsEmpty()) {
+		out.errors.Add("module path escapes project root: " + relpath);
+		return out;
+	}
+	if(!FileExists(module_path)) {
+		out.errors.Add("module script not found: " + module_path);
+		return out;
+	}
+	PyToJsOptions opts;
+	opts.emit_prelude = true;
+	opts.browser_module = true;
+	return TranspilePythonToJavascript(LoadFile(module_path), module_path, opts);
 }
 
 static void PrintUsage()

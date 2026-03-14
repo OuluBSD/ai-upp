@@ -20,7 +20,10 @@ public:
 	bool   IsVerboseLogging() const     { return verbose_logging; }
 	String GetStatusJson() const;
 	String GetBootstrapJson() const;
+	String GetGamestateDir() const;
+	String ResolveProjectPath(const String& relpath) const;
 	PyToJsResult GetEntryTranspile() const;
+	PyToJsResult GetModuleTranspile(const String& relpath) const;
 };
 
 int ScriptWebHostMain(const Vector<String>& args);

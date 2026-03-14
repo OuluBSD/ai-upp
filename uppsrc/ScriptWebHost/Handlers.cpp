@@ -96,6 +96,21 @@ SKYLARK(TranspileEntryJs, "api/transpile-entry.js")
 	}
 }
 
+SKYLARK(TranspileModuleJs, "api/transpile-module")
+{
+	const ScriptWebHostApp& app = GetScriptWebHostApp(http);
+	String path = http["path"];
+	PyToJsResult tr = app.GetModuleTranspile(path);
+	http.ContentType("text/javascript; charset=utf-8");
+	if(tr.ok)
+		http << tr.javascript;
+	else {
+		http << "// transpilation failed\n";
+		for(int i = 0; i < tr.errors.GetCount(); i++)
+			http << "// error: " << tr.errors[i] << "\n";
+	}
+}
+
 SKYLARK(RepoFile, "fs/**")
 {
 	const ScriptWebHostApp& app = GetScriptWebHostApp(http);

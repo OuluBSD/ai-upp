@@ -15,7 +15,7 @@
 #include <GameRules/PlayerInterface.h>
 #include <GameRules/EngineFactory.h>
 #include <GameRules/GuiInterface.h>
-#include <GameCommon/Poker/CardsValue.h>
+#include <Poker/CardsValue.h>
 #include <GameRules/ArrayData.h>
 #include <GameRules/LocalPlayer.h>
 #include <GameRules/EngineLog.h>

@@ -2,7 +2,8 @@ description "Standalone Skylark-based browser host for ScriptIDE GameState sessi
 
 uses
 	Skylark,
-	ScriptCommon;
+	ScriptCommon,
+	ScriptTranspiler;
 
 file
 	AGENTS.md,

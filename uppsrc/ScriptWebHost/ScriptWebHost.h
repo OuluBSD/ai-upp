@@ -3,6 +3,7 @@
 
 #include <Skylark/Skylark.h>
 #include <ScriptCommon/ScriptCommon.h>
+#include <ScriptTranspiler/ScriptTranspiler.h>
 
 NAMESPACE_UPP
 

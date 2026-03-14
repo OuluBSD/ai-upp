@@ -1,5 +1,10 @@
 # JavaScript Web GameState Track
 
+## Status
+
+Superseded by `plan/py-js-transpile-web/`.
+This older track captured the native-JavaScript-frontend direction, which is no longer the preferred architecture.
+
 ## Goal
 
 Add a JavaScript frontend path to `ByteVM`, host `.gamestate` projects in a browser through a separate Skylark-based local web program coordinated by ScriptIDE, and prove the stack with a Klondike reference project under `uppsrc/ScriptIDE/reference/Solitaire`.

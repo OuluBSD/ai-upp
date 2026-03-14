@@ -516,9 +516,13 @@ String ScriptWebHostApp::GetBootstrapJson() const
 	if(gamestate.Is<ValueMap>()) {
 		ValueMap resolved;
 		String entry_script = AsString(gamestate["entry_script"]);
+		String entry_language = AsString(gamestate["entry_language"]);
 		String layout = AsString(gamestate["layout"]);
 		String host = AsString(gamestate["host"]);
 		String runtime_host = AsString(gamestate["runtime_host"]);
+		if(entry_language.IsEmpty())
+			entry_language = "python";
+		resolved.Add("entry_language", entry_language);
 		if(!entry_script.IsEmpty())
 			resolved.Add("entry_script_path", AppendFileName(gamestate_dir, entry_script));
 		if(!layout.IsEmpty())
@@ -530,9 +534,43 @@ String ScriptWebHostApp::GetBootstrapJson() const
 		m.Add("resolved", resolved);
 		if(!layout.IsEmpty())
 			m.Add("form", ParseFormSummary(AppendFileName(gamestate_dir, layout)));
+		if(ToLower(entry_language) == "python")
+			m.Add("transpile", StoreAsJsonValue(GetEntryTranspile()));
 	}
 
 	return AsJSON(m, true);
+}
+
+PyToJsResult ScriptWebHostApp::GetEntryTranspile() const
+{
+	PyToJsResult out;
+	if(gamestate_path.IsEmpty() || !FileExists(gamestate_path)) {
+		out.errors.Add("missing gamestate file");
+		return out;
+	}
+	Value gamestate = ParseJSON(LoadFile(gamestate_path));
+	if(gamestate.IsVoid()) {
+		out.errors.Add("invalid gamestate json");
+		return out;
+	}
+	String entry_script = AsString(gamestate["entry_script"]);
+	String entry_language = AsString(gamestate["entry_language"]);
+	if(entry_language.IsEmpty())
+		entry_language = "python";
+	if(ToLower(entry_language) != "python") {
+		out.errors.Add("transpiler currently expects python entry source");
+		return out;
+	}
+	if(entry_script.IsEmpty()) {
+		out.errors.Add("missing entry_script");
+		return out;
+	}
+	String entry_path = AppendFileName(GetFileDirectory(gamestate_path), entry_script);
+	if(!FileExists(entry_path)) {
+		out.errors.Add("entry script not found: " + entry_path);
+		return out;
+	}
+	return TranspilePythonToJavascript(LoadFile(entry_path), entry_path);
 }
 
 static void PrintUsage()

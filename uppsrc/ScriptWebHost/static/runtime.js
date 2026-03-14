@@ -131,7 +131,22 @@ function ensureSprite(id) {
   return img;
 }
 
-function setSpritePosition(img, x, y, rotation, animate) {
+function spriteLayerBase(layer) {
+  if (layer === 'moving')
+    return 30000;
+  if (layer === 'trick')
+    return 20000;
+  return 10000;
+}
+
+function inferZoneLayer(zoneId) {
+  const zone = String(zoneId || '');
+  if (zone.startsWith('trick_'))
+    return 'trick';
+  return 'hand';
+}
+
+function setSpritePosition(img, x, y, rotation, animate, layer) {
   if (animate)
     img.classList.add('animating');
   else
@@ -139,14 +154,15 @@ function setSpritePosition(img, x, y, rotation, animate) {
   img.style.left = `${x}px`;
   img.style.top = `${y}px`;
   img.style.transform = `rotate(${rotation || 0}deg)`;
-  img.style.zIndex = String(10000 - Math.round(y) * 10 + Math.round(x));
+  img.dataset.layer = layer || img.dataset.layer || 'hand';
+  img.style.zIndex = String(spriteLayerBase(img.dataset.layer) - Math.round(y) * 10 + Math.round(x));
 }
 
 function setCard(id, asset, x, y, rotation) {
   const img = ensureSprite(id);
   img.src = resolveRepoUrl(asset);
   img.alt = id;
-  setSpritePosition(img, x, y, rotation, false);
+  setSpritePosition(img, x, y, rotation, false, img.dataset.layer || 'hand');
 }
 
 function removeSprite(id) {
@@ -171,14 +187,17 @@ function moveCard(id, zoneId, offset, animate) {
     return;
   const x = rect.x + (rect.w - 72) / 2 + (offset || 0);
   const y = rect.y + (rect.h - 96) / 2;
+  const targetLayer = inferZoneLayer(zoneId);
   if (!animate) {
-    setSpritePosition(img, x, y, 0, false);
+    setSpritePosition(img, x, y, 0, false, targetLayer);
     return;
   }
   img.classList.remove('animating');
+  img.dataset.layer = 'moving';
+  img.style.zIndex = String(spriteLayerBase('moving'));
   img.getBoundingClientRect();
   window.requestAnimationFrame(() => {
-    setSpritePosition(img, x, y, 0, true);
+    setSpritePosition(img, x, y, 0, true, targetLayer);
   });
 }
 

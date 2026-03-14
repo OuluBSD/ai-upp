@@ -2,7 +2,7 @@
 
 #define LLOG(x)   // DLOG(x)
 
-namespace UPP {
+namespace Upp {
 
 void Compiler::Iterate(Vector< One<Exe> >& a, Callback1< One<Exe>& > op)
 {

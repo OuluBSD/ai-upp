@@ -3,7 +3,7 @@
 #define LLOG(x)    // DLOG(x)
 #define LTIMING(x) // RTIMING(x)
 
-namespace UPP {
+namespace Upp {
 
 Http::Http(SkylarkApp& app)
 :	app(app)
@@ -137,6 +137,13 @@ Http& Http::Content(const char *s, const Value& data)
 Http& Http::operator<<(const Value& s)
 {
 	response << HttpAsString(s);
+	return *this;
+}
+
+Http& Http::SendFile(const Upp::String& filepath, int chunksize)
+{
+	file_to_send = filepath;
+	chunk_size = chunksize;
 	return *this;
 }
 
@@ -434,18 +441,6 @@ Http& Http::UxSet(const char *id, const String& value)
 Http& Http::UxRun(const String& js_code)
 {
 	return Ux("!", js_code);
-}
-
-String Http::GetURI() const {
-	return hdr.GetURI();
-}
-
-String Http::GetResponseCodeText() const {
-	switch (code) {
-		case 200: return "OK";
-		case 304: return "Not Modified";
-		default: return "OK";
-	}
 }
 
 };

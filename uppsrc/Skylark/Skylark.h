@@ -3,7 +3,7 @@
 
 #include <Sql/Sql.h>
 
-namespace UPP {
+namespace Upp {
 	
 namespace Ini {
 extern IniBool skylark_log;

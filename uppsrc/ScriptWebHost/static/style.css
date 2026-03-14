@@ -1,0 +1,221 @@
+:root {
+  --chrome: #17261c;
+  --panel: #f3efe3;
+  --table: #289c43;
+  --ink: #101612;
+  --line: rgba(16, 22, 18, 0.18);
+  --zone: rgba(255, 255, 255, 0.14);
+  --zone-line: rgba(255, 255, 255, 0.35);
+  --button: #f4e8b2;
+  --button-ink: #2d2b1a;
+  --log: #0e1711;
+  --log-ink: #d9e6db;
+  --sprite-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Iosevka Aile", ui-sans-serif, sans-serif;
+  background: linear-gradient(180deg, #ebe6da, #d8d0bf);
+  color: var(--ink);
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 380px;
+  min-height: 100vh;
+}
+
+.stage-wrap {
+  padding: 24px;
+}
+
+.stage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.meta {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.table-frame {
+  background: #0d1710;
+  padding: 18px;
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+.table {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  width: min(100%, 1000px);
+  background: var(--table);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+#sprite-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.obj {
+  position: absolute;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.obj.zone {
+  background: var(--zone);
+  border: 1px dashed var(--zone-line);
+}
+
+.obj.zone.highlight {
+  box-shadow: inset 0 0 0 2px #ffe08a;
+}
+
+.obj.label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  font-size: 15px;
+  color: #f7f4eb;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  white-space: pre-line;
+  text-align: center;
+}
+
+.obj.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background: var(--button);
+  color: var(--button-ink);
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+}
+
+.obj.button.disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.obj.hand::after,
+.obj.trick::after,
+.obj.container::after {
+  content: attr(data-id);
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.sprite {
+  position: absolute;
+  width: 72px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: var(--sprite-shadow);
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: center center;
+}
+
+.sprite.animating {
+  transition: left 0.25s ease, top 0.25s ease, transform 0.25s ease;
+}
+
+.side {
+  border-left: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  padding: 24px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8f5ed;
+  border: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.side pre,
+.log {
+  margin: 0;
+  background: #f8f5ed;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 12px;
+  overflow: auto;
+  font: 12px/1.35 "Iosevka Term", ui-monospace, monospace;
+}
+
+.log {
+  background: var(--log);
+  color: var(--log-ink);
+  min-height: 220px;
+  max-height: 320px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(23, 38, 28, 0.08);
+  border: 1px solid rgba(23, 38, 28, 0.12);
+}
+
+@media (max-width: 1100px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

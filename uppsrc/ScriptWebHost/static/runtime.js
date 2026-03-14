@@ -15,6 +15,7 @@ const runtime = {
   callbacks: {},
   timeouts: new Set(),
   currentModule: null,
+  drag: null,
 };
 
 function syncRuntimeState() {
@@ -124,6 +125,151 @@ function getZoneRect(id) {
   };
 }
 
+function pointInRect(x, y, rect) {
+  return !!rect && x >= rect.x && y >= rect.y && x <= rect.x + rect.w && y <= rect.y + rect.h;
+}
+
+function spriteRect(img) {
+  return {
+    x: Number.parseFloat(img.style.left) || 0,
+    y: Number.parseFloat(img.style.top) || 0,
+    w: img.offsetWidth || 72,
+    h: img.offsetHeight || 96,
+  };
+}
+
+function spriteCanInteract(img) {
+  const handRect = getZoneRect('hand_self');
+  const rect = spriteRect(img);
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  return pointInRect(cx, cy, handRect);
+}
+
+function findDropZoneAt(clientX, clientY) {
+  let bestId = '';
+  let bestArea = Number.POSITIVE_INFINITY;
+  for (const [id, el] of runtime.zones.entries()) {
+    if (!id || !el || el.classList.contains('button') || el.classList.contains('label'))
+      continue;
+    const rect = el.getBoundingClientRect();
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom)
+      continue;
+    const area = Math.max(1, rect.width * rect.height);
+    if (area < bestArea) {
+      bestArea = area;
+      bestId = id;
+    }
+  }
+  return bestId;
+}
+
+function finishSpriteDrag(img, clientX, clientY) {
+  const drag = runtime.drag;
+  runtime.drag = null;
+  if (!drag || drag.id !== img.dataset.id)
+    return;
+  img.classList.remove('dragging');
+  img.dataset.layer = drag.baseLayer;
+  img.style.zIndex = String(drag.baseZ);
+  if (!drag.moved) {
+    if (runtime.currentModule && typeof runtime.currentModule.on_click === 'function')
+      runtime.currentModule.on_click(drag.id);
+    return;
+  }
+  setSpritePosition(img, drag.originX, drag.originY, drag.rotation, false, drag.baseLayer);
+  const zoneId = findDropZoneAt(clientX, clientY);
+  if (runtime.currentModule && typeof runtime.currentModule.on_drag === 'function') {
+    runtime.currentModule.on_drag(drag.id, zoneId);
+    return;
+  }
+  if (runtime.currentModule && typeof runtime.currentModule.on_click === 'function')
+    runtime.currentModule.on_click(drag.id);
+}
+
+function cancelSpriteDrag() {
+  if (!runtime.drag)
+    return;
+  const drag = runtime.drag;
+  const img = runtime.sprites.get(drag.id);
+  runtime.drag = null;
+  if (!img)
+    return;
+  img.classList.remove('dragging');
+  setSpritePosition(img, drag.originX, drag.originY, drag.rotation, false, drag.baseLayer);
+}
+
+function beginSpriteDrag(ev, img) {
+  if (!spriteCanInteract(img))
+    return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  const rect = spriteRect(img);
+  const tableRect = table.getBoundingClientRect();
+  const clientX = ev.clientX;
+  const clientY = ev.clientY;
+  runtime.drag = {
+    id: img.dataset.id,
+    pointerId: ev.pointerId,
+    startClientX: clientX,
+    startClientY: clientY,
+    grabX: clientX - tableRect.left - rect.x,
+    grabY: clientY - tableRect.top - rect.y,
+    originX: rect.x,
+    originY: rect.y,
+    rotation: Number.parseFloat((img.style.transform.match(/-?\d+(?:\.\d+)?/) || ['0'])[0]) || 0,
+    moved: false,
+    baseLayer: img.dataset.layer || 'hand',
+    baseZ: Number.parseInt(img.style.zIndex || '0', 10) || 0,
+  };
+  img.classList.remove('animating');
+  img.classList.add('dragging');
+  img.style.zIndex = String(spriteLayerBase('moving') + 9999);
+  if (typeof img.setPointerCapture === 'function')
+    img.setPointerCapture(ev.pointerId);
+}
+
+function handlePointerMove(ev) {
+  const drag = runtime.drag;
+  if (!drag)
+    return;
+  if (drag.pointerId !== undefined && ev.pointerId !== undefined && drag.pointerId !== ev.pointerId)
+    return;
+  const img = runtime.sprites.get(drag.id);
+  if (!img)
+    return;
+  const dx = ev.clientX - drag.startClientX;
+  const dy = ev.clientY - drag.startClientY;
+  if (!drag.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3))
+    drag.moved = true;
+  if (!drag.moved)
+    return;
+  const tableRect = table.getBoundingClientRect();
+  const x = ev.clientX - tableRect.left - drag.grabX;
+  const y = ev.clientY - tableRect.top - drag.grabY;
+  setSpritePosition(img, x, y, drag.rotation, false, 'moving');
+}
+
+function handlePointerUp(ev) {
+  const drag = runtime.drag;
+  if (!drag)
+    return;
+  if (drag.pointerId !== undefined && ev.pointerId !== undefined && drag.pointerId !== ev.pointerId)
+    return;
+  const img = runtime.sprites.get(drag.id);
+  if (!img) {
+    runtime.drag = null;
+    return;
+  }
+  if (typeof img.releasePointerCapture === 'function' && ev.pointerId !== undefined) {
+    try {
+      img.releasePointerCapture(ev.pointerId);
+    } catch (e) {
+    }
+  }
+  finishSpriteDrag(img, ev.clientX, ev.clientY);
+}
+
 function ensureSprite(id) {
   let img = runtime.sprites.get(id);
   if (img)
@@ -132,10 +278,8 @@ function ensureSprite(id) {
   img.className = 'sprite';
   img.dataset.id = id;
   img.draggable = false;
-  img.addEventListener('click', () => {
-    if (runtime.currentModule && typeof runtime.currentModule.on_click === 'function')
-      runtime.currentModule.on_click(id);
-  });
+  img.addEventListener('pointerdown', ev => beginSpriteDrag(ev, img));
+  img.addEventListener('dragstart', ev => ev.preventDefault());
   spriteLayer.appendChild(img);
   runtime.sprites.set(id, img);
   syncRuntimeState();
@@ -159,8 +303,8 @@ function spriteZIndex(layer, x, y) {
 }
 
 function inferZoneLayer(zoneId) {
-  const zone = String(zoneId || '');
-  if (zone.startsWith('trick_'))
+  const el = getZoneElement(zoneId);
+  if (el && el.classList && el.classList.contains('trick'))
     return 'trick';
   return 'hand';
 }
@@ -192,6 +336,8 @@ function removeSprite(id) {
   const img = runtime.sprites.get(id);
   if (!img)
     return;
+  if (runtime.drag && runtime.drag.id === id)
+    runtime.drag = null;
   img.remove();
   runtime.sprites.delete(id);
   syncRuntimeState();
@@ -291,6 +437,7 @@ function renderBaseLayout(data) {
     const el = document.createElement(isButton ? 'button' : 'div');
     el.className = 'obj ' + classify(obj);
     el.dataset.id = obj.id || '';
+    el.dataset.userClass = String(obj.user_class || '');
     el.title = obj.anchor || '';
     const txt = textFor(obj);
     if (isButton) {
@@ -332,6 +479,10 @@ function renderBaseLayout(data) {
   }
   table.appendChild(spriteLayer);
 }
+
+window.addEventListener('pointermove', handlePointerMove, true);
+window.addEventListener('pointerup', handlePointerUp, true);
+window.addEventListener('pointercancel', cancelSpriteDrag, true);
 
 function installPythonJsHelpers() {
   if (!String.prototype.join) {
@@ -467,16 +618,12 @@ async function loadAndRunGame() {
     return modules[name];
   }
   const code = await fetch('/api/transpile-entry.js').then(r => r.text());
-  const factory = new Function('__py_import__', code + '\nreturn {' +
-    'start: typeof start !== "undefined" ? start : null,' +
-    'on_click: typeof on_click !== "undefined" ? on_click : null,' +
-    'on_button: typeof on_button !== "undefined" ? on_button : null,' +
-    'ai_step: typeof ai_step !== "undefined" ? ai_step : null,' +
-    'next_round: typeof next_round !== "undefined" ? next_round : null,' +
-    'commit_pass: typeof commit_pass !== "undefined" ? commit_pass : null,' +
-    'finish_pass_animation: typeof finish_pass_animation !== "undefined" ? finish_pass_animation : null,' +
-    'finish_trick_collect: typeof finish_trick_collect !== "undefined" ? finish_trick_collect : null' +
-  '};');
+  const factory = new Function('__py_import__', code + '\nreturn new Proxy({}, {' +
+    'get(_target, prop) {' +
+      'if (typeof prop !== "string") return undefined;' +
+      'try { return eval(prop); } catch (e) { return undefined; }' +
+    '}' +
+  '});');
   runtime.currentModule = factory(__py_import__);
   setRuntimeMode('booting');
   if (!runtime.currentModule || typeof runtime.currentModule.start !== 'function')

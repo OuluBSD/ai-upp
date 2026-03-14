@@ -207,7 +207,22 @@ CardSpriteCtrl::CardSpriteCtrl()
 void CardSpriteCtrl::LeftDown(Point p, dword flags)
 {
 	if(owner)
-		owner->InvokePythonCard(card_id);
+		owner->BeginCardDrag(card_id, GetRect().TopLeft() + p);
+	SetCapture();
+}
+
+void CardSpriteCtrl::MouseMove(Point p, dword flags)
+{
+	if(owner && HasCapture())
+		owner->UpdateCardDrag(GetRect().TopLeft() + p);
+}
+
+void CardSpriteCtrl::LeftUp(Point p, dword flags)
+{
+	if(HasCapture())
+		ReleaseCapture();
+	if(owner)
+		owner->EndCardDrag(GetRect().TopLeft() + p);
 }
 
 CardGameDocumentHost::CardGameDocumentHost()
@@ -1420,6 +1435,27 @@ void CardGameDocumentHost::InvokePythonCard(const String& card_id)
 	});
 }
 
+void CardGameDocumentHost::InvokePythonDrag(const String& card_id, const String& zone_id)
+{
+	if(!plugin || !game_running)
+		return;
+	PyValue on_drag = plugin->GetGameFunction("on_drag");
+	if(!on_drag.IsFunction()) {
+		InvokePythonCard(card_id);
+		return;
+	}
+	QueueVmTask([=] {
+		QueueUiCommand([=] { ui_batch_depth++; });
+		try {
+			vm.Call(on_drag, { PyValue(card_id), PyValue(zone_id) });
+		}
+		catch(Exc& e) {
+			ReportVmError("on_drag", e);
+		}
+		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
+	});
+}
+
 void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 {
 	int qs = sprites.Find(card_id);
@@ -1451,6 +1487,86 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 		AddChild(ctrl);
 		ctrl->Show();
 	}
+}
+
+String CardGameDocumentHost::FindDropZone(Point p) const
+{
+	String best_id;
+	int best_area = INT_MAX;
+	for(int i = 0; i < form_items.GetCount(); i++) {
+		const String& zone_id = form_items.GetKey(i);
+		Rect r = GetZoneRectFromForm(const_cast<Form&>(table_form), zone_id);
+		if(r.IsEmpty() || !r.Contains(p))
+			continue;
+		int area = max(1, r.GetWidth() * r.GetHeight());
+		if(area < best_area) {
+			best_area = area;
+			best_id = zone_id;
+		}
+	}
+	return best_id;
+}
+
+void CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
+{
+	int q = sprites.Find(card_id);
+	if(q < 0)
+		return;
+	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
+	if(!hand_self.Contains(sprites[q].rect.CenterPoint()))
+		return;
+	drag_state.card_id = card_id;
+	drag_state.start_point = p;
+	drag_state.original_rect = sprites[q].rect;
+	drag_state.grab_offset = p - sprites[q].rect.TopLeft();
+	drag_state.moved = false;
+	drag_state.active = true;
+	sprites[q].animating = false;
+	sprites[q].target_rect = sprites[q].rect;
+}
+
+void CardGameDocumentHost::UpdateCardDrag(Point p)
+{
+	if(!drag_state.active || drag_state.card_id.IsEmpty())
+		return;
+	int q = sprites.Find(drag_state.card_id);
+	if(q < 0)
+		return;
+	Point delta = p - drag_state.start_point;
+	if(!drag_state.moved && (abs(delta.x) > 3 || abs(delta.y) > 3))
+		drag_state.moved = true;
+	if(!drag_state.moved)
+		return;
+	Sprite& s = sprites[q];
+	Point tl = p - drag_state.grab_offset;
+	s.rect = RectC(tl.x, tl.y, s.rect.GetWidth(), s.rect.GetHeight());
+	s.target_rect = s.rect;
+	s.animating = false;
+	SyncCardCtrl(drag_state.card_id);
+	overlay.Refresh();
+}
+
+void CardGameDocumentHost::EndCardDrag(Point p)
+{
+	if(!drag_state.active || drag_state.card_id.IsEmpty())
+		return;
+	String card_id = drag_state.card_id;
+	bool moved = drag_state.moved;
+	Rect original = drag_state.original_rect;
+	drag_state = DragState();
+	if(!moved) {
+		InvokePythonCard(card_id);
+		return;
+	}
+	int q = sprites.Find(card_id);
+	if(q >= 0) {
+		sprites[q].rect = original;
+		sprites[q].target_rect = original;
+		sprites[q].animating = false;
+		SyncCardCtrl(card_id);
+		overlay.Refresh();
+	}
+	InvokePythonDrag(card_id, FindDropZone(p));
 }
 
 void CardGameDocumentHost::ClearCardCtrls()

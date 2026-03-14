@@ -63,6 +63,13 @@ plan/
     ├── phase4-html-form-runtime/
     ├── phase5-solitaire-reference/
     └── phase6-integration-testing/
+└── py-js-transpile-web/          # Track: Python-authored browser execution via transpilation
+    ├── phase1-discovery/
+    ├── phase2-transpiler-core/
+    ├── phase3-browser-runtime/
+    ├── phase4-form-dom-runtime/
+    ├── phase5-solitaire-reference/
+    └── phase6-testing/
 ```
 
 ## Implementation Order

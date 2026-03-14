@@ -1,0 +1,11 @@
+description "Python to JavaScript transpilation support for browser-hosted ScriptIDE projects\377";
+
+uses
+	Core;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	ScriptTranspiler.h,
+	Transpile.h,
+	Transpile.cpp;

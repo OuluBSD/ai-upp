@@ -12,7 +12,10 @@ file
 	App.h,
 	App.cpp,
 	Handlers.cpp,
-	Main.cpp;
+	Main.cpp,
+	SmokeTest.sh,
+	static/runtime.js,
+	static/style.css;
 
 mainconfig
 	"" = "",

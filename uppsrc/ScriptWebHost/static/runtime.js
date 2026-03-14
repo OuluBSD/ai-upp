@@ -139,7 +139,7 @@ function setSpritePosition(img, x, y, rotation, animate) {
   img.style.left = `${x}px`;
   img.style.top = `${y}px`;
   img.style.transform = `rotate(${rotation || 0}deg)`;
-  img.style.zIndex = String(100 + Math.round(y));
+  img.style.zIndex = String(10000 - Math.round(y) * 10 + Math.round(x));
 }
 
 function setCard(id, asset, x, y, rotation) {
@@ -171,7 +171,15 @@ function moveCard(id, zoneId, offset, animate) {
     return;
   const x = rect.x + (rect.w - 72) / 2 + (offset || 0);
   const y = rect.y + (rect.h - 96) / 2;
-  setSpritePosition(img, x, y, 0, !!animate);
+  if (!animate) {
+    setSpritePosition(img, x, y, 0, false);
+    return;
+  }
+  img.classList.remove('animating');
+  img.getBoundingClientRect();
+  window.requestAnimationFrame(() => {
+    setSpritePosition(img, x, y, 0, true);
+  });
 }
 
 function setLabel(id, text) {
@@ -263,6 +271,7 @@ function renderBaseLayout(data) {
     if (obj.id)
       runtime.zones.set(obj.id, obj.__el);
   }
+  table.appendChild(spriteLayer);
 }
 
 function installPythonJsHelpers() {

@@ -2,10 +2,10 @@
 # Last Updated: 2026-03-14
 
 ## Current Task
-Track: plugin-system
-Phase: phase13-video-record
-Task: plugin-system/phase13-video-record/task-01-plugin-scaffold/01-video-record-plugin-scaffold.md
-Status: IN_PROGRESS — VideoRecord plugin scaffold and GUI plugin API cleanup
+Track: js-web-gamestate
+Phase: phase1-discovery
+Task: js-web-gamestate/phase1-discovery/task-01-feasibility/01-audit-bytevm-js-browser-path.md
+Status: IN_PROGRESS — Investigate JavaScript ByteVM frontend, separate Skylark-based web host, and Klondike `.gamestate` plan
 
 ## Active Initiative
 ScriptIDE split for headless development:
@@ -67,6 +67,12 @@ ScriptIDE split for headless development:
 115. [IN_PROGRESS] plugin-system/phase12-hearts-gui/task-02-worker-vm-runtime/01-worker-thread-vm-runtime.md -> Move Hearts ByteVM off GUI thread with batched GUI marshaling
 116. [TODO] plugin-system/phase12-hearts-gui/task-03-opponent-rendering/01-fix-opponent-card-rendering.md
 117. [TODO] plugin-system/phase12-hearts-gui/task-04-paced-autoplay/01-paced-autoplay-and-trick-visibility.md
+118. [IN_PROGRESS] js-web-gamestate/phase1-discovery/task-01-feasibility/01-audit-bytevm-js-browser-path.md
+119. [TODO] js-web-gamestate/phase2-bytevm-js-frontend/task-01-ir-contract/01-design-js-frontend-for-bytevm.md
+120. [TODO] js-web-gamestate/phase3-web-runtime/task-01-local-server/01-design-skylark-web-host.md
+121. [TODO] js-web-gamestate/phase4-html-form-runtime/task-01-dom-renderer/01-design-form-dom-renderer.md
+122. [TODO] js-web-gamestate/phase5-solitaire-reference/task-01-klondike-spec/01-plan-klondike-gamestate-project.md
+123. [TODO] js-web-gamestate/phase6-integration-testing/task-01-acceptance/01-define-end-to-end-acceptance.md
 
 ## Status
 ScriptIDE feature work is complete, but architecture refactor is active.

@@ -13,6 +13,7 @@ file
 	App.cpp,
 	Handlers.cpp,
 	Main.cpp,
+	BrowserRegression.py,
 	SmokeTest.sh,
 	static/runtime.js,
 	static/style.css;

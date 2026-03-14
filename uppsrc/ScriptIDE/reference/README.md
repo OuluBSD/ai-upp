@@ -2,7 +2,11 @@
 
 This directory contains reference `.gamestate` projects for the `ScriptIDE` card-game host.
 
-At the moment, [`Hearts`](./Hearts) is the main example. It shows:
+Current references:
+- [`Hearts`](./Hearts): full multiplayer sample with rules, AI, and animations
+- [`Solitaire`](./Solitaire): browser-hosted Klondike board scaffold used to validate the transpiler + `.form` path without Hearts-specific logic
+
+`Hearts` remains the richest example. It shows:
 - a real `.gamestate` entrypoint
 - a real `.form` table layout
 - Python game logic running inside ByteVM

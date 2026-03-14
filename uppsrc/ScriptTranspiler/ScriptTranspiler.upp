@@ -6,6 +6,7 @@ uses
 file
 	AGENTS.md,
 	CURRENT_TASK.md,
+	SUPPORTED_SUBSET.md,
 	ScriptTranspiler.h,
 	Transpile.h,
 	Transpile.cpp;

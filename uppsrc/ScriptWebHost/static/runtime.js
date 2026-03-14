@@ -685,18 +685,45 @@ function makeCardGameView() {
   };
 }
 
+function gameModuleFactories() {
+  return {
+    'hearts.logic': makeHeartsLogicModule,
+  };
+}
+
+function requestedGameModules(bootstrap) {
+  const metadata = ((bootstrap || {}).gamestate || {}).metadata || {};
+  const requested = metadata.browser_modules;
+  if (Array.isArray(requested) && requested.length)
+    return requested.map(String);
+  const gamestatePath = String((bootstrap || {}).gamestate_path || '');
+  if (gamestatePath.includes('/reference/Hearts/'))
+    return ['hearts.logic'];
+  return [];
+}
+
+function makeModuleRegistry(bootstrap) {
+  const modules = {
+    sys: { argv: queryArgv() },
+    cardgame_view: makeCardGameView(),
+  };
+  const factories = gameModuleFactories();
+  for (const name of requestedGameModules(bootstrap)) {
+    const factory = factories[name];
+    if (!factory)
+      throw new Error(`Unsupported browser module: ${name}`);
+    modules[name] = factory();
+  }
+  return modules;
+}
+
 async function loadAndRunGame() {
   installPythonJsHelpers();
   setRuntimeMode('loading');
   syncRuntimeState();
   const bootstrap = await fetch('/api/bootstrap').then(r => r.json());
   renderBaseLayout(bootstrap);
-  const sysModule = { argv: queryArgv() };
-  const modules = {
-    sys: sysModule,
-    cardgame_view: makeCardGameView(),
-    'hearts.logic': makeHeartsLogicModule(),
-  };
+  const modules = makeModuleRegistry(bootstrap);
   function __py_import__(name) {
     if (!(name in modules))
       throw new Error(`Unsupported module import: ${name}`);

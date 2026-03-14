@@ -56,6 +56,13 @@ plan/
     ├── phase4-scriptcli-bootstrap/
     ├── phase5-test-headless/
     └── phase6-mcp-server/
+└── js-web-gamestate/             # Track: JavaScript ByteVM frontend + browser host
+    ├── phase1-discovery/
+    ├── phase2-bytevm-js-frontend/
+    ├── phase3-web-runtime/
+    ├── phase4-html-form-runtime/
+    ├── phase5-solitaire-reference/
+    └── phase6-integration-testing/
 ```
 
 ## Implementation Order

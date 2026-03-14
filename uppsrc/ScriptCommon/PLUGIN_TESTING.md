@@ -46,5 +46,7 @@ To ensure CI stability:
 
 ## CI Integration
 Headless plugin tests are part of the standard `autotest` suite:
-- `script/test.py` will include a stage for `ScriptCLI plugin test` for all enabled plugins.
+- `script/test.py` is the umbrella headless test entrypoint.
+- `script/test.py` currently includes the ScriptCLI MCP smoke/regression test.
+- future expansion should add a stage for `ScriptCLI plugin test` for all enabled plugins.
 - Failure in any plugin test blocks the merge.

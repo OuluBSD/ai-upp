@@ -9,24 +9,25 @@ int LintFileCommand(const Vector<String>& args)
 		return SCRIPTCLI_USAGE_ERROR;
 	}
 
-	String path = args[1];
-	if(!FileExists(path)) {
-		Cerr() << "lint: file not found: " << path << "\n";
+	ScriptServices services(GetCurrentDirectory());
+	ScriptLintResult result = services.LintFile(args[1]);
+	if(result.path.IsEmpty()) {
+		Cerr() << "lint: path is required\n";
+		return SCRIPTCLI_USAGE_ERROR;
+	}
+	if(!FileExists(result.path)) {
+		Cerr() << "lint: file not found: " << result.path << "\n";
 		return SCRIPTCLI_INFRA_ERROR;
 	}
 
-	String code = LoadFile(path);
-	Linter lint;
-	Vector<Linter::Message> msgs = lint.Analyze(code, path);
-
-	if(msgs.IsEmpty()) {
+	if(result.issues.IsEmpty()) {
 		Cout() << "lint: OK\n";
 		return SCRIPTCLI_OK;
 	}
 
-	for(const auto& m : msgs) {
-		Cout() << path << ":" << m.line << ":" << m.column << ": "
-		       << (m.is_error ? "error" : "warning") << ": " << m.text << "\n";
+	for(const auto& m : result.issues) {
+		Cout() << result.path << ":" << m.line << ":" << m.column << ": "
+		       << m.severity << ": " << m.text << "\n";
 	}
 	return SCRIPTCLI_RUNTIME_ERROR;
 }

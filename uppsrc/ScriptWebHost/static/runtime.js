@@ -139,6 +139,14 @@ function spriteLayerBase(layer) {
   return 10000;
 }
 
+function spriteZIndex(layer, x, y) {
+  if (layer === 'moving')
+    return spriteLayerBase(layer) + Math.round(x) + Math.round(y);
+  if (layer === 'trick')
+    return spriteLayerBase(layer) + Math.round(x);
+  return spriteLayerBase(layer) + Math.round(x);
+}
+
 function inferZoneLayer(zoneId) {
   const zone = String(zoneId || '');
   if (zone.startsWith('trick_'))
@@ -147,6 +155,10 @@ function inferZoneLayer(zoneId) {
 }
 
 function setSpritePosition(img, x, y, rotation, animate, layer) {
+  const maxX = Math.max(0, table.clientWidth - 72);
+  const maxY = Math.max(0, table.clientHeight - 96);
+  x = Math.max(0, Math.min(maxX, x));
+  y = Math.max(0, Math.min(maxY, y));
   if (animate)
     img.classList.add('animating');
   else
@@ -155,7 +167,7 @@ function setSpritePosition(img, x, y, rotation, animate, layer) {
   img.style.top = `${y}px`;
   img.style.transform = `rotate(${rotation || 0}deg)`;
   img.dataset.layer = layer || img.dataset.layer || 'hand';
-  img.style.zIndex = String(spriteLayerBase(img.dataset.layer) - Math.round(y) * 10 + Math.round(x));
+  img.style.zIndex = String(spriteZIndex(img.dataset.layer, x, y));
 }
 
 function setCard(id, asset, x, y, rotation) {
@@ -194,7 +206,7 @@ function moveCard(id, zoneId, offset, animate) {
   }
   img.classList.remove('animating');
   img.dataset.layer = 'moving';
-  img.style.zIndex = String(spriteLayerBase('moving'));
+  img.style.zIndex = String(spriteZIndex('moving', x, y));
   img.getBoundingClientRect();
   window.requestAnimationFrame(() => {
     setSpritePosition(img, x, y, 0, true, targetLayer);

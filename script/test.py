@@ -17,10 +17,28 @@ def run_step(cmd, description):
     return 0
 
 
+def discover_plugin_ids():
+    plugins_root = REPO_ROOT / "autotest" / "Plugins"
+    plugin_ids = []
+    if not plugins_root.exists():
+        return plugin_ids
+    for plugin_dir in sorted(plugins_root.iterdir()):
+        tests_dir = plugin_dir / "tests"
+        if plugin_dir.is_dir() and tests_dir.is_dir():
+            plugin_ids.append(plugin_dir.name)
+    return plugin_ids
+
+
 def main():
     steps = [
         ([sys.executable, "script/test_scriptcli_mcp.py"], "ScriptCLI MCP smoke/regression"),
     ]
+
+    for plugin_id in discover_plugin_ids():
+        steps.append(
+            ([str(REPO_ROOT / "bin" / "ScriptCLI"), "plugin", "test", plugin_id],
+             f"ScriptCLI plugin test: {plugin_id}")
+        )
 
     for cmd, description in steps:
         rc = run_step(cmd, description)

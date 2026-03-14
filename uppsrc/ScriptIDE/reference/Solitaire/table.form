@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE form>
+<form>
+	<layouts>
+		<item>
+			<content>
+				<item x="10" y="10" cx="780" cy="28" align="3" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="status_line"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="LABEL"/>
+						<property name="Anchor" value="TOP_HSIZE"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Left"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="10" y="52" cx="240" cy="24" align="1" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="label_title"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="LABEL"/>
+						<property name="Anchor" value="TOP_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="Text.Align" value="Left"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="660" y="48" cx="120" cy="30" align="2" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="button_new"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Button"/>
+						<property name="UserClass" value="BUTTON"/>
+						<property name="Anchor" value="TOP_RIGHT"/>
+						<property name="Label" value="Next deal"/>
+						<property name="Action" value=""/>
+						<property name="Tip" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+					</properties>
+				</item>
+				<item x="40" y="108" cx="72" cy="96" align="1" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="stock"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="TOP_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="138" y="108" cx="72" cy="96" align="1" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="waste"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="TOP_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="430" y="108" cx="72" cy="96" align="0" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="foundation_1"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="TRICK"/>
+						<property name="Anchor" value="TOP_CENTER"/>
+						<property name="Label" value="A"/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="518" y="108" cx="72" cy="96" align="0" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="foundation_2"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="TRICK"/>
+						<property name="Anchor" value="TOP_CENTER"/>
+						<property name="Label" value="A"/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="606" y="108" cx="72" cy="96" align="0" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="foundation_3"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="TRICK"/>
+						<property name="Anchor" value="TOP_CENTER"/>
+						<property name="Label" value="A"/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="694" y="108" cx="72" cy="96" align="2" valign="1">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="foundation_4"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="TRICK"/>
+						<property name="Anchor" value="TOP_RIGHT"/>
+						<property name="Label" value="A"/>
+						<property name="Text.Align" value="Center"/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="40" y="250" cx="72" cy="280" align="1" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_1"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="148" y="250" cx="72" cy="280" align="1" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_2"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="256" y="250" cx="72" cy="280" align="1" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_3"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_LEFT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="364" y="250" cx="72" cy="280" align="0" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_4"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="472" y="250" cx="72" cy="280" align="0" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_5"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_CENTER"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="580" y="250" cx="72" cy="280" align="2" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_6"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_RIGHT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+				<item x="688" y="250" cx="72" cy="280" align="2" valign="2">
+					<name>Noname</name>
+					<properties>
+						<property name="Variable" value="tableau_7"/>
+						<property name="Frame" value="Default frame"/>
+						<property name="Type" value="Label"/>
+						<property name="UserClass" value="HAND"/>
+						<property name="Anchor" value="BOTTOM_RIGHT"/>
+						<property name="Label" value=""/>
+						<property name="OutlineDraw" value="0"/>
+						<property name="Font.Height" value="0"/>
+						<property name="Font.Color" value="data"/>
+					</properties>
+				</item>
+			</content>
+			<name></name>
+			<properties>
+				<property name="Form.Width" value="800"/>
+				<property name="Form.Height" value="600"/>
+				<property name="Form.MaximizeBox" value="false"/>
+				<property name="Form.MinimizeBox" value="false"/>
+				<property name="Form.Sizeable" value="false"/>
+				<property name="Form.ToolWindow" value="false"/>
+				<property name="Form.Name" value="Klondike Browser Scaffold"/>
+				<property name="Form.Title" value="Klondike"/>
+				<property name="CardGame.Background" value="40,160,40"/>
+			</properties>
+		</item>
+	</layouts>
+</form>

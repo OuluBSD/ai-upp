@@ -25,8 +25,25 @@ PythonIDE::PythonIDE()
 	
 	plugin_manager->LoadPlugins();
 	const auto& plugins = plugin_manager->GetPlugins();
-	for(int i = 0; i < plugins.GetCount(); i++)
-		plugin_manager->EnablePlugin(plugins.GetKey(i));
+	for(int i = 0; i < plugins.GetCount(); i++) {
+		String id = plugins.GetKey(i);
+		int q = -1;
+		for(int j = 0; j < settings.plugins.states.GetCount(); j++) {
+			if(settings.plugins.states[j].id == id) {
+				q = j;
+				break;
+			}
+		}
+		bool enabled = true;
+		if(q >= 0)
+			enabled = settings.plugins.states[q].enabled;
+		else {
+			auto& ps = settings.plugins.states.Add();
+			ps.id = id;
+			ps.enabled = true;
+		}
+		plugin_manager->EnablePlugin(id, enabled);
+	}
 	
 	ApplySettings();
 	SetTimeCallback(-200, [this] { UpdateStatusBar(); }); // DONT CHANGE THIS
@@ -304,6 +321,7 @@ void PythonIDE::DockInit()
 		SerializeLayout(s);
 		default_layout = s;
 	}
+	SyncPluginPanes();
 
 	// Try to restore previous session
 	String session_file = ConfigFile("ide_session.json");
@@ -745,8 +763,16 @@ void PythonIDE::OnOpenFile()
 
 void PythonIDE::LoadFile(const String& path)
 {
-	String ext = GetFileExt(path);
-	IFileTypeHandler* handler = plugin_manager->FindFileTypeHandler(ext);
+	IFileTypeHandler* handler = plugin_manager->FindFileTypeHandler(path);
+	auto create_preferred_host = [&](IFileTypeHandler* handler) -> IDocumentHost* {
+		if(!handler)
+			return nullptr;
+		if(handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_EDITOR))
+			return handler->CreateHost(IFileTypeHandler::HOSTROLE_EDITOR);
+		if(handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_VIEWER))
+			return handler->CreateHost(IFileTypeHandler::HOSTROLE_VIEWER);
+		return nullptr;
+	};
 	auto safe_set_cursor = [&](int idx) {
 		if(idx >= 0 && idx < editor_tabs->GetCount())
 			editor_tabs->SetCursor(idx);
@@ -759,7 +785,7 @@ void PythonIDE::LoadFile(const String& path)
 	for(int i = 0; i < open_files.GetCount(); i++) {
 		if(open_files[i].path == path) {
 			if(handler && !open_files[i].is_plugin) {
-				IDocumentHost* host = handler->CreateDocumentHost();
+				IDocumentHost* host = create_preferred_host(handler);
 				if(host && host->Load(path)) {
 					if(active_file == i && active_editor) {
 						if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[i].editor))
@@ -788,7 +814,7 @@ void PythonIDE::LoadFile(const String& path)
 	bool is_plugin = false;
 	
 	if(handler) {
-		host = handler->CreateDocumentHost();
+		host = create_preferred_host(handler);
 		if(host) is_plugin = true;
 	}
 	
@@ -1191,6 +1217,8 @@ void PythonIDE::OnTabChanged()
 
 void PythonIDE::RefreshRunStateUI()
 {
+	if(plugin_manager)
+		plugin_manager->NotifyRunStateChanged();
 	menubar.Set([=](Bar& bar) { MainMenu(bar); });
 	toolbar.Set([=](Bar& bar) { MainToolbar(bar); });
 	menubar.Refresh();
@@ -1316,6 +1344,25 @@ void PythonIDE::OnAnalyze() { Todo("Analyze"); }
 
 void PythonIDE::SyncPluginPanes()
 {
+	Size sz = GetSize();
+	if(default_layout.IsEmpty() || !IsOpen() || sz.cx <= 0 || sz.cy <= 0) {
+		if(!plugin_panes_sync_pending) {
+			plugin_panes_sync_pending = true;
+			PostCallback([=] {
+				plugin_panes_sync_pending = false;
+				SyncPluginPanes();
+			});
+		}
+		return;
+	}
+
+	for(int i = 0; i < plugin_panes.GetCount(); i++) {
+		DockableCtrl& pane = plugin_panes[i];
+		pane.SizeHint(Size(320, 220));
+		if(!pane.IsDocked())
+			DockRight(pane);
+		pane.Show();
+	}
 }
 
 void PythonIDE::OnPrevCursor()

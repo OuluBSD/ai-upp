@@ -488,6 +488,7 @@ String ScriptWebHostApp::GetStatusJson() const
 	m.Add("session_id", session_id);
 	m.Add("gamestate_path", gamestate_path);
 	m.Add("browser_root", browser_root);
+	m.Add("server_root_path", path);
 	m.Add("ip", ip);
 	m.Add("port", port);
 	return AsJSON(m, true);
@@ -499,6 +500,7 @@ String ScriptWebHostApp::GetBootstrapJson() const
 	m.Add("session_id", session_id);
 	m.Add("browser_root", browser_root);
 	m.Add("gamestate_path", gamestate_path);
+	m.Add("server_root_path", path);
 
 	Value gamestate = Null;
 	String gamestate_dir;

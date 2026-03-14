@@ -6,15 +6,22 @@ public:
     typedef PreferencesWindow CLASSNAME;
 
     PreferencesWindow(IDEContext& ctx, IDESettings& settings);
+    void RefreshPluginPages();
 
     void AddPage(const String& id, const String& title, Image icon, PreferencesPage* page);
+    void AddPage(const String& category, const String& id, const String& title, Image icon, PreferencesPage* page);
+    void AddPage(const String& id, const String& title, Image icon, IPluginPreferencesPage* page);
+    void AddPage(const String& category, const String& id, const String& title, Image icon, IPluginPreferencesPage* page);
 
 private:
+    static String ConfigPath();
     void OnNavSelection();
     void OnOK();
     void OnCancel();
     void OnApply();
     void OnResetDefaults();
+    void PopulatePages();
+    void ClearPages();
     
     void MarkModified();
 
@@ -24,9 +31,11 @@ private:
 
     struct PageEntry : Moveable<PageEntry> {
         String id;
+        String category;
         String title;
         Image icon;
-        PreferencesPage* page;
+        PreferencesPage* page = nullptr;
+        IPluginPreferencesPage* plugin_page = nullptr;
     };
     Array<PageEntry> pages;
 };

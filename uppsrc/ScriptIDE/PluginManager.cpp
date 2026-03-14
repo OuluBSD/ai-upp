@@ -102,10 +102,10 @@ void PluginManager::UnregisterDockPane(const String& id)
 	ide->SyncPluginPanes();
 }
 
-IFileTypeHandler* PluginManager::FindFileTypeHandler(const String& ext)
+IFileTypeHandler* PluginManager::FindFileTypeHandler(const String& path)
 {
 	for(int i = file_handlers.GetCount() - 1; i >= 0; --i) {
-		if(file_handlers[i]->GetExtension() == ext)
+		if(file_handlers[i]->CanHandle(path))
 			return file_handlers[i];
 	}
 	return nullptr;
@@ -126,10 +126,42 @@ ICustomExecuteProvider* PluginManager::FindCustomExecuteProvider(const String& p
 	return nullptr;
 }
 
+void PluginManager::NotifyRunStateChanged()
+{
+	if(!ide)
+		return;
+
+	ScriptRunState state;
+	if(ide->active_file >= 0 && ide->active_file < ide->open_files.GetCount()) {
+		state.path = ide->open_files[ide->active_file].path;
+		state.host = ide->open_files[ide->active_file].editor;
+	}
+
+	if(state.host && state.host->CanRun()) {
+		state.can_run = true;
+		state.running = state.host->IsRunning();
+		state.paused = state.host->IsPaused();
+		state.mode = state.host->GetRunMode();
+	}
+	else if(ide->run_manager.IsRunning()) {
+		state.running = true;
+		switch(ide->run_manager.GetMode()) {
+		case RunManager::RUN_DEBUG:   state.mode = IDocumentHost::RUNMODE_DEBUG;   break;
+		case RunManager::RUN_PROFILE: state.mode = IDocumentHost::RUNMODE_PROFILE; break;
+		default:                      state.mode = IDocumentHost::RUNMODE_RUN;     break;
+		}
+	}
+
+	for(int i = 0; i < run_state_listeners.GetCount(); i++)
+		run_state_listeners[i]->OnRunStateChanged(*ide, state);
+}
+
 void PluginManager::ClearRegistry()
 {
 	file_handlers.Clear();
 	pane_providers.Clear();
+	preferences_providers.Clear();
+	run_state_listeners.Clear();
 	binding_providers.Clear();
 	execute_providers.Clear();
 }

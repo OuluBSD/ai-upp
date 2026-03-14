@@ -49,8 +49,10 @@ private:
 	EditString ffmpeg_path;
 	Label      frames_lbl;
 	EditString frames_dir;
+	Button     browse_frames;
 	Label      output_lbl;
 	EditString output_file;
+	Button     browse_output;
 	Label      fps_lbl;
 	EditIntSpin fps;
 	Label      width_lbl;

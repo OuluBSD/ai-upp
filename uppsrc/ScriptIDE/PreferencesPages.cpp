@@ -720,15 +720,41 @@ public:
 class PluginsPage : public WithPluginsPageLayout<PreferencesPage> {
 public:
     typedef PluginsPage CLASSNAME;
+    IDEContext* ctx = nullptr;
+    PreferencesWindow* owner = nullptr;
+
     PluginsPage() {
         CtrlLayout(*this);
         list.AddColumn("ID");
         list.AddColumn("Enabled").Ctrls<Option>();
+        list.WhenCtrlsAction = [this] {
+            if(!ctx || !ctx->main_window || !ctx->main_window->plugin_manager)
+                return;
+            int row = list.GetCursor();
+            if(row < 0 || row >= list.GetCount())
+                return;
+            String id = list.Get(row, 0);
+            bool enabled = list.Get(row, 1);
+            ctx->main_window->plugin_manager->EnablePlugin(id, enabled);
+            if(owner)
+                owner->RefreshPluginPages();
+        };
+    }
+    void Configure(IDEContext& c, PreferencesWindow& w) {
+        ctx = &c;
+        owner = &w;
     }
     virtual void Load(const IDESettings& cfg) override {
         list.Clear();
-        for(const auto& ps : cfg.plugins.states)
-            list.Add(ps.id, ps.enabled);
+        if(ctx && ctx->main_window && ctx->main_window->plugin_manager) {
+            const auto& plugins = ctx->main_window->plugin_manager->GetPlugins();
+            for(int i = 0; i < plugins.GetCount(); i++)
+                list.Add(plugins.GetKey(i), ctx->main_window->plugin_manager->IsPluginEnabled(plugins.GetKey(i)));
+        }
+        else {
+            for(const auto& ps : cfg.plugins.states)
+                list.Add(ps.id, ps.enabled);
+        }
     }
     virtual void Save(IDESettings& cfg) const override {
         cfg.plugins.states.Clear();
@@ -759,26 +785,20 @@ public:
     virtual bool IsModified() const override { return false; }
 };
 
-
-PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
-	: ctx(ctx), settings(settings)
+void PreferencesWindow::ClearPages()
 {
-	CtrlLayout(*this, "Preferences");
-	Sizeable().Zoomable().CenterScreen();
+	for(int i = 0; i < pages.GetCount(); i++) {
+		Ctrl* ctrl = pages[i].page
+			? static_cast<Ctrl*>(pages[i].page)
+			: &pages[i].plugin_page->GetCtrl();
+		ctrl->Remove();
+	}
+	pages.Clear();
+	nav.Clear();
+}
 
-	old_settings.CopyFrom(settings);
-
-	split << nav << page_host;
-	split.SetPos(2000);
-
-	nav.AddColumn("Category");
-	nav.WhenSel = [this] { OnNavSelection(); };
-
-	reset_defaults.WhenAction = [this] { OnResetDefaults(); };
-	ok.WhenAction = [this] { OnOK(); };
-	cancel.WhenAction = [this] { OnCancel(); };
-	apply.WhenAction = [this] { OnApply(); };
-
+void PreferencesWindow::PopulatePages()
+{
     static AppearancePage appearance;
     static ApplicationPage application;
     static PythonInterpreterPage python;
@@ -798,6 +818,7 @@ PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
     static WorkingDirectoryPage work_dir;
     static PluginsPage plugins;
 
+    plugins.Configure(ctx, *this);
     AddPage("appearance", "Appearance", Icons::Settings(), &appearance);
     AddPage("application", "Application", Icons::Plus(), &application);
     AddPage("python_interpreter", "Python interpreter", Icons::Python(), &python);
@@ -816,6 +837,60 @@ PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
     AddPage("variable_explorer", "Variable explorer", Icons::VariableExplorer(), &var_explorer_p);
     AddPage("working_directory", "Working directory", Icons::Folder(), &work_dir);
     AddPage("plugins", "Plugins", Icons::Plus(), &plugins);
+
+	if(ctx.main_window && ctx.main_window->plugin_manager) {
+		const auto& providers = ctx.main_window->plugin_manager->GetPreferencesProviders();
+		for(int i = 0; i < providers.GetCount(); i++) {
+			IPluginPreferencesProvider& provider = *providers[i];
+			for(int j = 0; j < provider.GetPreferencesPageCount(); j++) {
+				AddPage(provider.GetPreferencesPageCategory(j),
+				        provider.GetPreferencesPageID(j),
+				        provider.GetPreferencesPageTitle(j),
+				        provider.GetPreferencesPageIcon(j),
+				        &provider.GetPreferencesPage(j));
+			}
+		}
+	}
+}
+
+
+PreferencesWindow::PreferencesWindow(IDEContext& ctx, IDESettings& settings)
+	: ctx(ctx), settings(settings)
+{
+	CtrlLayout(*this, "Preferences");
+	Sizeable().Zoomable().CenterScreen();
+
+	old_settings.CopyFrom(settings);
+
+	split << nav << page_host;
+	split.SetPos(2000);
+
+	nav.AddColumn("Category");
+	nav.WhenSel = [this] { OnNavSelection(); };
+
+	reset_defaults.WhenAction = [this] { OnResetDefaults(); };
+	ok.WhenAction = [this] { OnOK(); };
+	cancel.WhenAction = [this] { OnCancel(); };
+	apply.WhenAction = [this] { OnApply(); };
+	PopulatePages();
+	if(pages.GetCount()) {
+		int target = 0;
+		struct PreferencesWindowState {
+			String selected_page_id;
+			void Serialize(Stream& s) { s % selected_page_id; }
+		} st;
+		LoadFromFile(st, ConfigPath());
+		if(!st.selected_page_id.IsEmpty()) {
+			for(int i = 0; i < pages.GetCount(); i++) {
+				if(pages[i].id == st.selected_page_id) {
+					target = i;
+					break;
+				}
+			}
+		}
+		nav.SetCursor(target);
+		OnNavSelection();
+	}
 }
 
 END_UPP_NAMESPACE

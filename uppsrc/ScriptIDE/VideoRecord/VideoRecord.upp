@@ -1,0 +1,11 @@
+description "ScriptIDE video recording plugin\377";
+
+uses
+	ScriptIDE;
+
+file
+	AGENTS.md,
+	VideoRecord.h,
+	VideoRecordPlugin.h,
+	VideoRecordPlugin.cpp,
+	VideoRecordInit.icpp;

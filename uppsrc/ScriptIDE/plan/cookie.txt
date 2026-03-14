@@ -1,11 +1,11 @@
 # ScriptIDE Implementation Progress Tracker
-# Last Updated: 2026-03-13
+# Last Updated: 2026-03-14
 
 ## Current Task
 Track: plugin-system
-Phase: phase12-hearts-gui
-Task: plugin-system/phase12-hearts-gui/task-02-worker-vm-runtime/01-worker-thread-vm-runtime.md
-Status: IN_PROGRESS — Worker-thread Hearts VM runtime
+Phase: phase13-video-record
+Task: plugin-system/phase13-video-record/task-01-plugin-scaffold/01-video-record-plugin-scaffold.md
+Status: IN_PROGRESS — VideoRecord plugin scaffold and GUI plugin API cleanup
 
 ## Active Initiative
 ScriptIDE split for headless development:

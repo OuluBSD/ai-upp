@@ -60,6 +60,7 @@ public:
 	One<HistoryPane>     history_pane;
 
 	ArrayMap<String, DockableCtrl> plugin_panes;
+	bool plugin_panes_sync_pending = false;
 	
 	DockableCtrl context_pane_left;
 	DockableCtrl context_pane_right;

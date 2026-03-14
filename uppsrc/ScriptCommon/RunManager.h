@@ -13,6 +13,7 @@ public:
 
 	void SetMode(Mode mode) { this->mode = mode; }
 	Mode GetMode() const { return mode; }
+	bool IsRunning() const { return running; }
 	void Run(const String& code, const String& filename);
 	void RunSelection(const String& code);
 	void Stop();
@@ -24,6 +25,7 @@ public:
 private:
 	PyVM& vm;
 	Mode mode = RUN_NORMAL;
+	bool running = false;
 };
 
 #endif

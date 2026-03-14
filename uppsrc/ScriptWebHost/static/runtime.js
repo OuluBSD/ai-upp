@@ -33,6 +33,14 @@ function logLine(msg) {
   logDump.scrollTop = logDump.scrollHeight;
 }
 
+function queryArgv() {
+  const argv = [];
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('autoplay') === '1' || params.get('autoplay') === 'true')
+    argv.push('--autoplay');
+  return argv;
+}
+
 function setStatus(msg) {
   statusLine.textContent = String(msg || '');
 }
@@ -665,7 +673,7 @@ async function loadAndRunGame() {
   syncRuntimeState();
   const bootstrap = await fetch('/api/bootstrap').then(r => r.json());
   renderBaseLayout(bootstrap);
-  const sysModule = { argv: [] };
+  const sysModule = { argv: queryArgv() };
   const modules = {
     sys: sysModule,
     cardgame_view: makeCardGameView(),

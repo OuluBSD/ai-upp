@@ -1,6 +1,6 @@
 #include "Skylark.h"
 
-namespace UPP {
+namespace Upp {
 
 struct sFieldsToRenderer : public FieldOperator {
 	Renderer& http;

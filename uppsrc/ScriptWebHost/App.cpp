@@ -155,6 +155,30 @@ static Value MakeNormalizedRectJson(const Rect& r, const Size& base_sz)
 	return m;
 }
 
+static Value MakeParentLocalLayoutJson(const Rect& child_rect, const Rect& parent_rect)
+{
+	ValueMap m;
+	int pw = max(1, parent_rect.Width());
+	int ph = max(1, parent_rect.Height());
+	Rect local = child_rect;
+	local.Offset(-parent_rect.left, -parent_rect.top);
+	m.Add("rect", MakeRectJson(local));
+	m.Add("normalized_rect", MakeNormalizedRectJson(local, Size(pw, ph)));
+
+	ValueMap browser;
+	browser.Add("position", "absolute");
+	browser.Add("left", (double)local.left / pw);
+	browser.Add("top", (double)local.top / ph);
+	browser.Add("width", (double)local.Width() / pw);
+	browser.Add("height", (double)local.Height() / ph);
+	browser.Add("transform_x", 0.0);
+	browser.Add("transform_y", 0.0);
+	browser.Add("stretch_x", false);
+	browser.Add("stretch_y", false);
+	m.Add("browser", browser);
+	return m;
+}
+
 static Value MakeBrowserLayoutJson(int x, int y, int cx, int cy, String anchor, const Size& base_sz)
 {
 	ValueMap m;
@@ -316,6 +340,8 @@ static Value ParseFormSummary(const String& form_path)
 	out.Add("meta", meta);
 
 	ValueArray objects;
+	VectorMap<String, int> object_index;
+	Vector<Rect> resolved_rects;
 	if(content) {
 		for(int i = 0; i < content->GetCount(); i++) {
 			const XmlNode& obj = (*content)[i];
@@ -373,7 +399,26 @@ static Value ParseFormSummary(const String& form_path)
 			layout.Add("edge_ratios", edge_ratios);
 			layout.Add("browser", MakeBrowserLayoutJson(x, y, cx, cy, AsString(one["anchor"]), form_size));
 			one.Add("layout", layout);
+			String id = AsString(one["id"]);
+			if(!id.IsEmpty())
+				object_index.Add(id, objects.GetCount());
+			resolved_rects.Add(raw_rect);
 			objects.Add(one);
+		}
+	}
+
+	for(int i = 0; i < objects.GetCount(); i++) {
+		ValueMap one = objects[i];
+		String parent = AsString(one["parent"]);
+		if(!parent.IsEmpty()) {
+			int q = object_index.Find(parent);
+			if(q >= 0 && q < resolved_rects.GetCount()) {
+				ValueMap layout = one["layout"];
+				layout.Add("parent_id", parent);
+				layout.Add("local_to_parent", MakeParentLocalLayoutJson(resolved_rects[i], resolved_rects[q]));
+				one.Set("layout", layout);
+				objects.Set(i, one);
+			}
 		}
 	}
 	out.Add("objects", objects);

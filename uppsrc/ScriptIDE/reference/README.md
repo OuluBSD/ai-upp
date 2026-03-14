@@ -117,6 +117,9 @@ Current host conventions expect these functions in `main.py`:
 - `on_click(card_id)`
 - `on_button(button_id)`
 
+Optional interaction callbacks:
+- `on_drag(card_id, zone_id)`
+
 Optional timed callbacks can be scheduled by name with `set_timeout()`, for example:
 - `ai_step()`
 - `next_round()`
@@ -200,6 +203,7 @@ Examples:
 
 Recommended pattern:
 - player interaction through `on_click()` / `on_button()`
+- add `on_drag()` when card movement should follow the pointer before drop
 - no networking
 - no remote authority
 - logic state fully local
@@ -209,7 +213,7 @@ For a solitaire-like game:
 - represent tableau/foundation/waste/stock as separate logic piles
 - define one form zone per pile
 - render each pile as a stack of sprites
-- click and drag is not available as a built-in abstraction yet, so start with click-to-select / click-to-move
+- prefer `on_drag(card_id, zone_id)` for move/drop interaction
 
 ## Local Multiplayer / Hotseat
 

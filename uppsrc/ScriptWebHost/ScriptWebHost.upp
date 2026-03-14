@@ -1,0 +1,18 @@
+description "Standalone Skylark-based browser host for ScriptIDE GameState sessions\377";
+
+uses
+	Skylark,
+	ScriptCommon;
+
+file
+	AGENTS.md,
+	CURRENT_TASK.md,
+	ScriptWebHost.h,
+	App.h,
+	App.cpp,
+	Handlers.cpp,
+	Main.cpp;
+
+mainconfig
+	"" = "",
+	"USEMALLOC" = "USEMALLOC";

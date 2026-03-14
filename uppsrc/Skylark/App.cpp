@@ -8,7 +8,7 @@
 #include <wincon.h>
 #endif
 
-namespace UPP {
+namespace Upp {
 
 String GetThreadName()
 {

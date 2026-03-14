@@ -23,7 +23,7 @@ protected:
 	const One<Exe>& GetTemplate(const char *template_name);
 	friend String GetIdentity(const Renderer *r);
 
-public:	
+public:
 	Renderer& operator()(const char *id, const char *v)   { var.GetAdd(id) = v; return *this; }
 	Renderer& operator()(const char *id, const String& v) { var.GetAdd(id) = v; return *this; }
 	Renderer& operator()(const char *id, const Value& v)  { var.GetAdd(id) = v; return *this; }
@@ -80,6 +80,9 @@ class Http : public Renderer {
 	
 	VectorMap<String, String> cookies;
 	VectorMap<String, String> headers;
+
+	String file_to_send;
+	int chunk_size;
 	
 	void   ParseRequest(const char *s);
 	void   ReadMultiPart(const String& content);
@@ -93,6 +96,9 @@ class Http : public Renderer {
 	friend String GetIdentity(const Renderer *r);
 	
 	void WaitHandler(int (*progress)(int, Http&, int), TcpSocket *socket);
+	
+	void Redirect();
+	void Response();
 
 public:
 	Http&  operator()(const char *id, const char *v)   { var.GetAdd(id) = v; return *this; }
@@ -130,9 +136,9 @@ public:
 	int    GetParamCount() const                       { return arg.GetCount(); }
 
 	Http&  ContentType(const char *s)                  { content_type = s; return *this; }
-
 	Http&  Content(const char *s, const Value& data);
 	Http&  operator<<(const Value& s);
+	Http&  SendFile(const Upp::String& filepath, int chunksize);
 
 	Http&  SetRawCookie(const char *id, const String& value,
 	                    Time expires = Null, const char *path = NULL,
@@ -166,10 +172,8 @@ public:
 	Http&  UxRun(const String& js_code);
 	
 	String GetResponse() const                        { return response; }
-	int    GetResponseCode() const                    { return code; }
-	String GetResponseCodeText() const;
+	
 	void   Finalize();
-	String GetURI() const;
 
 	void   Dispatch(TcpSocket& socket);
 	

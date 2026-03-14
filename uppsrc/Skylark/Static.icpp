@@ -1,6 +1,6 @@
 #include "Skylark.h"
 
-namespace UPP {
+namespace Upp {
 
 String GetFileTimeText(const String& path)
 {

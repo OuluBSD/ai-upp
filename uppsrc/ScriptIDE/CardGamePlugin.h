@@ -126,10 +126,16 @@ public:
 private:
 	String path;
 	String form_path;
+	bool browser_host_enabled = false;
+	int browser_host_port = -1;
+	String browser_host_url;
+	String browser_host_session_id;
+	byte browser_launch_timer_key = 0;
 	CardGamePlugin* registration_plugin = nullptr;
 	CardGamePlugin* plugin = nullptr;
 	One<CardGamePlugin> runtime_plugin;
 	One<HeadlessPluginContext> runtime_context;
+	One<LocalProcess> web_host_process;
 	PyVM vm;
 	Thread vm_thread;
 	Mutex vm_mutex;
@@ -199,6 +205,9 @@ private:
 	VectorMap<PyValue, PyValue> paused_globals;
 
 	void Animate();
+	void LoadGameStateSettings();
+	bool StartBrowserHost(const String& mode);
+	void StopBrowserHost();
 	void InitRuntime();
 	void StartGame(const String& mode);
 	void ResumeGame();

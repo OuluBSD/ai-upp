@@ -112,6 +112,38 @@ struct SpritePaintOrder : Moveable<SpritePaintOrder> {
 	int minor = 0;
 };
 
+String MakeBrowserSessionId(const String& path)
+{
+	String id = GetFileTitle(path) + "-" + AsString((int64)GetSysTime().Get());
+	for(int i = 0; i < id.GetCount(); i++)
+		if(!IsAlNum(id[i]) && id[i] != '-' && id[i] != '_')
+			id.Set(i, '_');
+	return id;
+}
+
+int FindAvailablePort(int base_port = 9234, int attempts = 64)
+{
+	for(int i = 0; i < attempts; i++) {
+		int port = base_port + i;
+		TcpSocket probe;
+		if(probe.Listen(port, 1)) {
+			probe.Close();
+			return port;
+		}
+	}
+	return -1;
+}
+
+String FindScriptWebHostExecutable()
+{
+	String exe = GetExeDirFile("ScriptWebHost");
+#ifdef PLATFORM_WIN32
+	if(!FileExists(exe) && FileExists(exe + ".exe"))
+		exe += ".exe";
+#endif
+	return exe;
+}
+
 String FormatPythonStackText(const Vector<PyVM::StackFrame>& stack)
 {
 	String out;
@@ -198,6 +230,7 @@ CardGameDocumentHost::~CardGameDocumentHost()
 		runtime_plugin->Shutdown();
 	runtime_plugin.Clear();
 	runtime_context.Clear();
+	Upp::KillTimeCallback(&browser_launch_timer_key);
 	plugin = nullptr;
 	ClearCardCtrls();
 	Upp::KillTimeCallback(this);
@@ -208,6 +241,7 @@ CardGameDocumentHost::~CardGameDocumentHost()
 bool CardGameDocumentHost::Load(const String& path_)
 {
 	path = path_;
+	LoadGameStateSettings();
 
 	// Load the form layout if specified in the gamestate
 	String json = LoadFile(path);
@@ -222,6 +256,23 @@ bool CardGameDocumentHost::Load(const String& path_)
 	SyncFormExplorer();
 
 	return true;
+}
+
+void CardGameDocumentHost::LoadGameStateSettings()
+{
+	browser_host_enabled = false;
+	browser_host_port = -1;
+	browser_host_url.Clear();
+	browser_host_session_id.Clear();
+	String json = LoadFile(path);
+	Value gs = ParseJSON(json);
+	if(gs.IsVoid())
+		return;
+
+	String host = ToLower(AsString(gs["host"]));
+	String runtime_host = ToLower(AsString(gs["runtime_host"]));
+	if(host == "browser" || runtime_host == "browser")
+		browser_host_enabled = true;
 }
 
 void CardGameDocumentHost::Layout()
@@ -318,6 +369,18 @@ void CardGameDocumentHost::InitRuntime()
 
 void CardGameDocumentHost::StartGame(const String& mode)
 {
+	if(browser_host_enabled) {
+		if(StartBrowserHost(mode)) {
+			game_running = true;
+			game_paused = false;
+			stop_requested = false;
+			stop_in_progress = false;
+			execution_mode = mode;
+			if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow()))
+				ide->RefreshRunStateUI();
+		}
+		return;
+	}
 	if(stop_in_progress) {
 		pending_start_mode = mode;
 		return;
@@ -365,6 +428,66 @@ void CardGameDocumentHost::StartGame(const String& mode)
 		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
 	PostCallback([=] { RefreshGameView(); });
+}
+
+bool CardGameDocumentHost::StartBrowserHost(const String& mode)
+{
+	StopBrowserHost();
+	String host_exe = FindScriptWebHostExecutable();
+	if(host_exe.IsEmpty() || !FileExists(host_exe)) {
+		Exclamation("ScriptWebHost executable not found next to ScriptIDE binary.");
+		return false;
+	}
+
+	int port = FindAvailablePort();
+	if(port < 0) {
+		Exclamation("Unable to find a free localhost port for ScriptWebHost.");
+		return false;
+	}
+
+	browser_host_session_id = MakeBrowserSessionId(path);
+	browser_host_port = port;
+	browser_host_url = Format("http://127.0.0.1:%d/", port);
+
+	Vector<String> args;
+	args.Add("--port=" + AsString(port));
+	args.Add("--session=" + browser_host_session_id);
+	args.Add("--gamestate=" + NormalizePath(path));
+	args.Add("--root=" + NormalizePath(GetCurrentDirectory()));
+
+	web_host_process.Create();
+	if(!web_host_process->Start(host_exe, args, NULL, GetFileDirectory(path))) {
+		web_host_process.Clear();
+		Exclamation("Failed to start ScriptWebHost.");
+		return false;
+	}
+
+	game_log_lines.Clear();
+	game_log_lines
+		<< "Starting browser host (" + mode + ")..."
+		<< "URL: " + browser_host_url;
+	game_log.SetQTF(DeQtfLf(Join(game_log_lines, "\n")));
+
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		ide->Log("--- Launching browser host for " + GetFileName(path) + " ---");
+		ide->Log("Host executable: " + host_exe);
+		ide->Log("Browser URL: " + browser_host_url);
+	}
+
+	Upp::SetTimeCallback(250, [url = browser_host_url] { LaunchWebBrowser(url); }, &browser_launch_timer_key);
+	return true;
+}
+
+void CardGameDocumentHost::StopBrowserHost()
+{
+	Upp::KillTimeCallback(&browser_launch_timer_key);
+	if(web_host_process) {
+		web_host_process->Kill();
+		web_host_process.Clear();
+	}
+	browser_host_port = -1;
+	browser_host_url.Clear();
+	browser_host_session_id.Clear();
 }
 
 void CardGameDocumentHost::ResumeGame()
@@ -478,8 +601,9 @@ void CardGameDocumentHost::Stop()
 
 void CardGameDocumentHost::FinishStop()
 {
-	bool had_session = game_running || game_paused || stop_requested || vm_thread_running || (bool)runtime_plugin;
+	bool had_session = game_running || game_paused || stop_requested || vm_thread_running || (bool)runtime_plugin || (bool)web_host_process;
 	Upp::KillTimeCallback(&callback_timer_key);
+	StopBrowserHost();
 	StopVmThread();
 	if(runtime_plugin)
 		runtime_plugin->Shutdown();

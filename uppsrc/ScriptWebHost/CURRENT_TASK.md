@@ -10,11 +10,11 @@ Current baseline:
 - browser runtime assets now live in `static/`
 - `SmokeTest.sh` uses Playwright CLI to wait for a running page with 52 sprites before capturing evidence
 - container labels no longer destroy nested trick zones; `trick_*` slots now survive `set_label("trick_area", ...)` and mid-trick cards render in the center area again
-- browser module loading now goes through a registry driven by `.gamestate` metadata / known game mapping instead of one hard-coded inline module list
+- browser module loading now goes through `.gamestate` metadata and project-owned JS module assets instead of a hard-coded Hearts shim in `runtime.js`
 - `reference/Solitaire` now provides a second browser-hosted `.gamestate` scaffold that runs without Hearts-specific logic modules
 
 Next steps:
 
-- broaden the runtime/import model beyond the current built-in game-specific shims
+- support more than JS-only browser modules when the transpiler path for imported Python modules is ready
 - continue tightening browser presentation details like hand stacking and animation polish
 - replace the remaining dedicated runtime route wording/docs to match the static-asset design

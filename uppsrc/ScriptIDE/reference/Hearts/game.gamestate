@@ -4,6 +4,13 @@
   "layout": "table.form",
   "metadata": {
     "players": 4,
+    "browser_modules": [
+      {
+        "name": "hearts.logic",
+        "kind": "js",
+        "path": "browser/hearts.logic.js"
+      }
+    ],
     "ocr_verify": true,
     "ocr_min_confidence": 0.5,
     "ocr_expected": {

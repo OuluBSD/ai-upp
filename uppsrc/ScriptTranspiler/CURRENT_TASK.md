@@ -9,6 +9,7 @@ Current baseline:
 - Hearts entry now survives a Node harness `start()` run with browser-host shims
 - Solitaire browser scaffold also transpiles and runs through `ScriptWebHost`
 - supported subset is now documented in `SUPPORTED_SUBSET.md`
+- browser-side helper modules are now project-owned assets declared via `.gamestate` metadata rather than baked into `runtime.js`
 
 Next steps:
 

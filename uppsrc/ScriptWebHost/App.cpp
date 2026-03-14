@@ -20,6 +20,254 @@ static String FindPropertyValue(const XmlNode& properties, const char* key)
 	return String();
 }
 
+static void ResolveAnchorRect(Rect& r, String anchor, const Size& base_sz, String& h_mode, String& v_mode)
+{
+	int cx = r.Width();
+	int cy = r.Height();
+	int x = r.left;
+	int y = r.top;
+
+	anchor = ToUpper(anchor);
+	if(anchor == "CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top = y - (base_sz.cy - cy) / 2;
+		h_mode = "CENTER";
+		v_mode = "CENTER";
+	}
+	else if(anchor == "BOTTOM_CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top = base_sz.cy - y - cy;
+		h_mode = "CENTER";
+		v_mode = "BOTTOM";
+	}
+	else if(anchor == "TOP_CENTER") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top = y;
+		h_mode = "CENTER";
+		v_mode = "TOP";
+	}
+	else if(anchor == "CENTER_LEFT") {
+		r.left = x;
+		r.top = y - (base_sz.cy - cy) / 2;
+		h_mode = "LEFT";
+		v_mode = "CENTER";
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top = y - (base_sz.cy - cy) / 2;
+		h_mode = "RIGHT";
+		v_mode = "CENTER";
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		r.left = x;
+		r.top = base_sz.cy - y - cy;
+		h_mode = "LEFT";
+		v_mode = "BOTTOM";
+	}
+	else if(anchor == "BOTTOM_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top = base_sz.cy - y - cy;
+		h_mode = "RIGHT";
+		v_mode = "BOTTOM";
+	}
+	else if(anchor == "TOP_HSIZE") {
+		r.left = x;
+		r.top = y;
+		h_mode = "HSIZE";
+		v_mode = "TOP";
+	}
+	else if(anchor == "CENTER_HSIZE") {
+		r.left = x;
+		r.top = y - (base_sz.cy - cy) / 2;
+		h_mode = "HSIZE";
+		v_mode = "CENTER";
+	}
+	else if(anchor == "BOTTOM_HSIZE") {
+		r.left = x;
+		r.top = base_sz.cy - y - cy;
+		h_mode = "HSIZE";
+		v_mode = "BOTTOM";
+	}
+	else if(anchor == "LEFT_VSIZE") {
+		r.left = x;
+		r.top = y;
+		h_mode = "LEFT";
+		v_mode = "VSIZE";
+	}
+	else if(anchor == "CENTER_VSIZE") {
+		r.left = x - (base_sz.cx - cx) / 2;
+		r.top = y;
+		h_mode = "CENTER";
+		v_mode = "VSIZE";
+	}
+	else if(anchor == "RIGHT_VSIZE") {
+		r.left = base_sz.cx - x - cx;
+		r.top = y;
+		h_mode = "RIGHT";
+		v_mode = "VSIZE";
+	}
+	else if(anchor == "SIZE") {
+		r.left = x;
+		r.top = y;
+		h_mode = "HSIZE";
+		v_mode = "VSIZE";
+	}
+	else if(anchor == "TOP_RIGHT") {
+		r.left = base_sz.cx - x - cx;
+		r.top = y;
+		h_mode = "RIGHT";
+		v_mode = "TOP";
+	}
+	else {
+		r.left = x;
+		r.top = y;
+		h_mode = "LEFT";
+		v_mode = "TOP";
+	}
+
+	r.right = r.left + cx;
+	r.bottom = r.top + cy;
+}
+
+static Value MakeRectJson(const Rect& r)
+{
+	ValueMap m;
+	m.Add("left", r.left);
+	m.Add("top", r.top);
+	m.Add("right", r.right);
+	m.Add("bottom", r.bottom);
+	m.Add("width", r.Width());
+	m.Add("height", r.Height());
+	return m;
+}
+
+static Value MakeNormalizedRectJson(const Rect& r, const Size& base_sz)
+{
+	ValueMap m;
+	double bw = base_sz.cx > 0 ? (double)base_sz.cx : 1.0;
+	double bh = base_sz.cy > 0 ? (double)base_sz.cy : 1.0;
+	m.Add("left", r.left / bw);
+	m.Add("top", r.top / bh);
+	m.Add("right", r.right / bw);
+	m.Add("bottom", r.bottom / bh);
+	m.Add("width", r.Width() / bw);
+	m.Add("height", r.Height() / bh);
+	return m;
+}
+
+static Value MakeBrowserLayoutJson(int x, int y, int cx, int cy, String anchor, const Size& base_sz)
+{
+	ValueMap m;
+	double bw = base_sz.cx > 0 ? (double)base_sz.cx : 1.0;
+	double bh = base_sz.cy > 0 ? (double)base_sz.cy : 1.0;
+	double left = x / bw;
+	double top = y / bh;
+	double right = (base_sz.cx - x - cx) / bw;
+	double bottom = (base_sz.cy - y - cy) / bh;
+	double width = cx / bw;
+	double height = cy / bh;
+
+	anchor = ToUpper(anchor);
+	m.Add("position", "absolute");
+	m.Add("anchor", anchor);
+	m.Add("width", width);
+	m.Add("height", height);
+	m.Add("stretch_x", false);
+	m.Add("stretch_y", false);
+	m.Add("transform_x", 0.0);
+	m.Add("transform_y", 0.0);
+
+	if(anchor == "CENTER") {
+		m.Add("left", left);
+		m.Add("top", top);
+		m.Set("transform_x", -0.5);
+		m.Set("transform_y", -0.5);
+	}
+	else if(anchor == "BOTTOM_CENTER") {
+		m.Add("left", left);
+		m.Add("bottom", y / bh);
+		m.Set("transform_x", -0.5);
+	}
+	else if(anchor == "TOP_CENTER") {
+		m.Add("left", left);
+		m.Add("top", top);
+		m.Set("transform_x", -0.5);
+	}
+	else if(anchor == "CENTER_LEFT") {
+		m.Add("left", left);
+		m.Add("top", top);
+		m.Set("transform_y", -0.5);
+	}
+	else if(anchor == "CENTER_RIGHT") {
+		m.Add("right", x / bw);
+		m.Add("top", top);
+		m.Set("transform_y", -0.5);
+	}
+	else if(anchor == "BOTTOM_LEFT") {
+		m.Add("left", left);
+		m.Add("bottom", y / bh);
+	}
+	else if(anchor == "BOTTOM_RIGHT") {
+		m.Add("right", x / bw);
+		m.Add("bottom", y / bh);
+	}
+	else if(anchor == "TOP_HSIZE") {
+		m.Add("left", left);
+		m.Add("right", right);
+		m.Add("top", top);
+		m.Set("stretch_x", true);
+	}
+	else if(anchor == "CENTER_HSIZE") {
+		m.Add("left", left);
+		m.Add("right", right);
+		m.Add("top", top);
+		m.Set("stretch_x", true);
+		m.Set("transform_y", -0.5);
+	}
+	else if(anchor == "BOTTOM_HSIZE") {
+		m.Add("left", left);
+		m.Add("right", right);
+		m.Add("bottom", y / bh);
+		m.Set("stretch_x", true);
+	}
+	else if(anchor == "LEFT_VSIZE") {
+		m.Add("left", left);
+		m.Add("top", top);
+		m.Add("bottom", bottom);
+		m.Set("stretch_y", true);
+	}
+	else if(anchor == "CENTER_VSIZE") {
+		m.Add("left", left);
+		m.Add("top", top);
+		m.Add("bottom", bottom);
+		m.Set("stretch_y", true);
+		m.Set("transform_x", -0.5);
+	}
+	else if(anchor == "RIGHT_VSIZE") {
+		m.Add("right", x / bw);
+		m.Add("top", top);
+		m.Add("bottom", bottom);
+		m.Set("stretch_y", true);
+	}
+	else if(anchor == "SIZE") {
+		m.Add("left", left);
+		m.Add("right", right);
+		m.Add("top", top);
+		m.Add("bottom", bottom);
+		m.Set("stretch_x", true);
+		m.Set("stretch_y", true);
+	}
+	else if(anchor == "TOP_RIGHT") {
+		m.Add("right", x / bw);
+		m.Add("top", top);
+	}
+	else {
+		m.Add("left", left);
+		m.Add("top", top);
+	}
+	return m;
+}
+
 static Value ParseFormSummary(const String& form_path)
 {
 	ValueMap out;
@@ -54,12 +302,17 @@ static Value ParseFormSummary(const String& form_path)
 	const XmlNode* properties = item ? FindChildTag(*item, "properties") : nullptr;
 
 	ValueMap meta;
+	Size form_size(400, 300);
 	if(properties) {
 		meta.Add("width", FindPropertyValue(*properties, "Form.Width"));
 		meta.Add("height", FindPropertyValue(*properties, "Form.Height"));
 		meta.Add("name", FindPropertyValue(*properties, "Form.Name"));
 		meta.Add("background", FindPropertyValue(*properties, "CardGame.Background"));
+		form_size.cx = max(1, ScanInt(FindPropertyValue(*properties, "Form.Width")));
+		form_size.cy = max(1, ScanInt(FindPropertyValue(*properties, "Form.Height")));
 	}
+	meta.Add("width_int", form_size.cx);
+	meta.Add("height_int", form_size.cy);
 	out.Add("meta", meta);
 
 	ValueArray objects;
@@ -70,10 +323,14 @@ static Value ParseFormSummary(const String& form_path)
 				continue;
 
 			ValueMap one;
-			one.Add("x", obj.AttrInt("x"));
-			one.Add("y", obj.AttrInt("y"));
-			one.Add("cx", obj.AttrInt("cx"));
-			one.Add("cy", obj.AttrInt("cy"));
+			int x = obj.AttrInt("x");
+			int y = obj.AttrInt("y");
+			int cx = obj.AttrInt("cx");
+			int cy = obj.AttrInt("cy");
+			one.Add("x", x);
+			one.Add("y", y);
+			one.Add("cx", cx);
+			one.Add("cy", cy);
 			one.Add("align", obj.AttrInt("align"));
 			one.Add("valign", obj.AttrInt("valign"));
 
@@ -91,6 +348,31 @@ static Value ParseFormSummary(const String& form_path)
 				one.Add("action", FindPropertyValue(*obj_props, "Action"));
 				one.Add("tip", FindPropertyValue(*obj_props, "Tip"));
 			}
+
+			Rect raw_rect(x, y, x + cx, y + cy);
+			String h_mode, v_mode;
+			ResolveAnchorRect(raw_rect, AsString(one["anchor"]), form_size, h_mode, v_mode);
+			ValueMap layout;
+			layout.Add("anchor", one["anchor"]);
+			layout.Add("h_mode", h_mode);
+			layout.Add("v_mode", v_mode);
+			layout.Add("base_rect", MakeRectJson(raw_rect));
+			layout.Add("normalized_rect", MakeNormalizedRectJson(raw_rect, form_size));
+			layout.Add("edge_offsets", ValueMap());
+			ValueMap edges;
+			edges.Add("left", raw_rect.left);
+			edges.Add("top", raw_rect.top);
+			edges.Add("right", form_size.cx - raw_rect.right);
+			edges.Add("bottom", form_size.cy - raw_rect.bottom);
+			layout.Set("edge_offsets", edges);
+			ValueMap edge_ratios;
+			edge_ratios.Add("left", form_size.cx ? (double)raw_rect.left / form_size.cx : 0.0);
+			edge_ratios.Add("top", form_size.cy ? (double)raw_rect.top / form_size.cy : 0.0);
+			edge_ratios.Add("right", form_size.cx ? (double)(form_size.cx - raw_rect.right) / form_size.cx : 0.0);
+			edge_ratios.Add("bottom", form_size.cy ? (double)(form_size.cy - raw_rect.bottom) / form_size.cy : 0.0);
+			layout.Add("edge_ratios", edge_ratios);
+			layout.Add("browser", MakeBrowserLayoutJson(x, y, cx, cy, AsString(one["anchor"]), form_size));
+			one.Add("layout", layout);
 			objects.Add(one);
 		}
 	}

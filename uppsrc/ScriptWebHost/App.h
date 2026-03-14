@@ -18,6 +18,7 @@ public:
 	String GetBrowserRoot() const       { return browser_root; }
 	bool   IsVerboseLogging() const     { return verbose_logging; }
 	String GetStatusJson() const;
+	String GetBootstrapJson() const;
 };
 
 int ScriptWebHostMain(const Vector<String>& args);

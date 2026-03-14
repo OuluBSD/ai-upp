@@ -2,6 +2,102 @@
 
 NAMESPACE_UPP
 
+static const XmlNode* FindChildTag(const XmlNode& node, const char* tag)
+{
+	for(int i = 0; i < node.GetCount(); i++)
+		if(node[i].IsTag(tag))
+			return &node[i];
+	return nullptr;
+}
+
+static String FindPropertyValue(const XmlNode& properties, const char* key)
+{
+	for(int i = 0; i < properties.GetCount(); i++) {
+		const XmlNode& prop = properties[i];
+		if(prop.IsTag("property") && prop.Attr("name") == key)
+			return prop.Attr("value");
+	}
+	return String();
+}
+
+static Value ParseFormSummary(const String& form_path)
+{
+	ValueMap out;
+	out.Add("path", form_path);
+	if(form_path.IsEmpty() || !FileExists(form_path)) {
+		out.Add("error", "form file not found");
+		return out;
+	}
+
+	XmlNode xml;
+	try {
+		xml = ParseXML(LoadFile(form_path));
+	}
+	catch(Exc& e) {
+		out.Add("error", "xml parse failed: " + String(e));
+		return out;
+	}
+
+	const XmlNode* form = nullptr;
+	if(xml.IsTag("form"))
+		form = &xml;
+	else
+		form = FindChildTag(xml, "form");
+	if(!form) {
+		out.Add("error", "missing <form> root");
+		return out;
+	}
+
+	const XmlNode* layouts = FindChildTag(*form, "layouts");
+	const XmlNode* item = layouts ? FindChildTag(*layouts, "item") : nullptr;
+	const XmlNode* content = item ? FindChildTag(*item, "content") : nullptr;
+	const XmlNode* properties = item ? FindChildTag(*item, "properties") : nullptr;
+
+	ValueMap meta;
+	if(properties) {
+		meta.Add("width", FindPropertyValue(*properties, "Form.Width"));
+		meta.Add("height", FindPropertyValue(*properties, "Form.Height"));
+		meta.Add("name", FindPropertyValue(*properties, "Form.Name"));
+		meta.Add("background", FindPropertyValue(*properties, "CardGame.Background"));
+	}
+	out.Add("meta", meta);
+
+	ValueArray objects;
+	if(content) {
+		for(int i = 0; i < content->GetCount(); i++) {
+			const XmlNode& obj = (*content)[i];
+			if(!obj.IsTag("item"))
+				continue;
+
+			ValueMap one;
+			one.Add("x", obj.AttrInt("x"));
+			one.Add("y", obj.AttrInt("y"));
+			one.Add("cx", obj.AttrInt("cx"));
+			one.Add("cy", obj.AttrInt("cy"));
+			one.Add("align", obj.AttrInt("align"));
+			one.Add("valign", obj.AttrInt("valign"));
+
+			const XmlNode* name = FindChildTag(obj, "name");
+			const XmlNode* obj_props = FindChildTag(obj, "properties");
+			if(name)
+				one.Add("name", ~(*name));
+			if(obj_props) {
+				one.Add("id", FindPropertyValue(*obj_props, "Variable"));
+				one.Add("type", FindPropertyValue(*obj_props, "Type"));
+				one.Add("user_class", FindPropertyValue(*obj_props, "UserClass"));
+				one.Add("anchor", FindPropertyValue(*obj_props, "Anchor"));
+				one.Add("parent", FindPropertyValue(*obj_props, "Parent"));
+				one.Add("label", FindPropertyValue(*obj_props, "Label"));
+				one.Add("action", FindPropertyValue(*obj_props, "Action"));
+				one.Add("tip", FindPropertyValue(*obj_props, "Tip"));
+			}
+			objects.Add(one);
+		}
+	}
+	out.Add("objects", objects);
+	return out;
+}
+
 ScriptWebHostApp::ScriptWebHostApp()
 {
 	root = "";
@@ -67,6 +163,48 @@ String ScriptWebHostApp::GetStatusJson() const
 	m.Add("browser_root", browser_root);
 	m.Add("ip", ip);
 	m.Add("port", port);
+	return AsJSON(m, true);
+}
+
+String ScriptWebHostApp::GetBootstrapJson() const
+{
+	ValueMap m;
+	m.Add("session_id", session_id);
+	m.Add("browser_root", browser_root);
+	m.Add("gamestate_path", gamestate_path);
+
+	Value gamestate = Null;
+	String gamestate_dir;
+	if(!gamestate_path.IsEmpty() && FileExists(gamestate_path)) {
+		gamestate_dir = GetFileDirectory(gamestate_path);
+		String json = LoadFile(gamestate_path);
+		Value parsed = ParseJSON(json);
+		if(!parsed.IsVoid())
+			gamestate = parsed;
+	}
+
+	m.Add("gamestate_dir", gamestate_dir);
+	m.Add("gamestate", gamestate);
+
+	if(gamestate.Is<ValueMap>()) {
+		ValueMap resolved;
+		String entry_script = AsString(gamestate["entry_script"]);
+		String layout = AsString(gamestate["layout"]);
+		String host = AsString(gamestate["host"]);
+		String runtime_host = AsString(gamestate["runtime_host"]);
+		if(!entry_script.IsEmpty())
+			resolved.Add("entry_script_path", AppendFileName(gamestate_dir, entry_script));
+		if(!layout.IsEmpty())
+			resolved.Add("layout_path", AppendFileName(gamestate_dir, layout));
+		if(!host.IsEmpty())
+			resolved.Add("host", host);
+		if(!runtime_host.IsEmpty())
+			resolved.Add("runtime_host", runtime_host);
+		m.Add("resolved", resolved);
+		if(!layout.IsEmpty())
+			m.Add("form", ParseFormSummary(AppendFileName(gamestate_dir, layout)));
+	}
+
 	return AsJSON(m, true);
 }
 

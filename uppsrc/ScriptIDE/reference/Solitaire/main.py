@@ -1,5 +1,5 @@
 import cardgame_view
-import solitaire_bridge
+import solitaire.bridge
 
 asset_base = "../../../../share/imgs/cards/default/"
 
@@ -57,9 +57,9 @@ def refresh_ui():
     global deal_index
     cardgame_view.begin_sprite_frame()
     cardgame_view.clear_sprites()
-    cardgame_view.set_status(solitaire_bridge.deal_label(deal_index))
-    cardgame_view.set_label("label_title", solitaire_bridge.title_text())
-    cardgame_view.set_label("status_line", solitaire_bridge.status_text())
+    cardgame_view.set_status(solitaire.bridge.deal_label(deal_index))
+    cardgame_view.set_label("label_title", solitaire.bridge.title_text())
+    cardgame_view.set_label("status_line", solitaire.bridge.status_text())
     cardgame_view.set_button("button_new", "Next deal", True)
 
     draw_top_card("stock", "back9")

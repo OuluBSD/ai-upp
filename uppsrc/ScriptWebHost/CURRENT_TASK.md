@@ -15,9 +15,9 @@ Current baseline:
 - browser modules now support both:
   - `kind: "js"` for project-owned JavaScript helpers
   - `kind: "py"` for host-transpiled Python helpers with explicit exports
+- dotted imports like `import solitaire.bridge` now work for transpiled Python helper modules
 
 Next steps:
 
-- support dotted imports for transpiled Python helper modules
 - continue tightening browser presentation details like hand stacking and animation polish
 - replace the remaining dedicated runtime route wording/docs to match the static-asset design

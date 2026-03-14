@@ -407,25 +407,50 @@ async function loadJsModule(def, bootstrap) {
   return moduleValue;
 }
 
-async function loadProjectModules(bootstrap) {
-  const loaded = {};
-  for (const def of requestedGameModules(bootstrap)) {
-    const name = String((def || {}).name || '');
-    const kind = String((def || {}).kind || 'js');
-    if (!name)
-      throw new Error('Browser module definition is missing name');
-    if (kind !== 'js')
-      throw new Error(`Unsupported browser module kind: ${kind}`);
-    loaded[name] = await loadJsModule(def, bootstrap);
+function pythonModuleExports(def) {
+  const exportsList = (def && Array.isArray(def.exports)) ? def.exports.map(String) : [];
+  if (!exportsList.length)
+    throw new Error(`Python browser module requires exports: ${String((def || {}).name || '')}`);
+  return exportsList;
+}
+
+async function loadPyModule(def, bootstrap, modules) {
+  const path = String((def || {}).path || '');
+  if (!path)
+    throw new Error(`Browser module ${String((def || {}).name || '')} is missing path`);
+  const url = `/api/transpile-module?path=${encodeURIComponent(path)}`;
+  const code = await fetch(url).then(r => {
+    if (!r.ok)
+      throw new Error(`Python browser module fetch failed: ${url}`);
+    return r.text();
+  });
+  const exportsList = pythonModuleExports(def);
+  const exportPairs = exportsList.map(name => `${JSON.stringify(name)}: typeof ${name} !== "undefined" ? ${name} : null`);
+  function __py_import__(name) {
+    if (!(name in modules))
+      throw new Error(`Unsupported module import: ${name}`);
+    return modules[name];
   }
-  return loaded;
+  const factory = new Function('__py_import__', code + '\nreturn {' + exportPairs.join(',') + '};');
+  return factory(__py_import__);
 }
 
 async function makeModuleRegistry(bootstrap) {
   const modules = {
     ...makeBuiltinModuleRegistry(),
   };
-  Object.assign(modules, await loadProjectModules(bootstrap));
+  for (const def of requestedGameModules(bootstrap)) {
+    const name = String((def || {}).name || '');
+    const kind = String((def || {}).kind || 'js');
+    if (!name)
+      throw new Error('Browser module definition is missing name');
+    if (kind === 'js')
+      modules[name] = await loadJsModule(def, bootstrap);
+    else if (kind === 'py')
+      modules[name] = await loadPyModule(def, bootstrap, modules);
+    else
+      throw new Error(`Unsupported browser module kind: ${kind}`);
+  }
   return modules;
 }
 

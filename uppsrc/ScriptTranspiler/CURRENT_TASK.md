@@ -11,6 +11,7 @@ Current baseline:
 - supported subset is now documented in `SUPPORTED_SUBSET.md`
 - browser-side helper modules are now project-owned assets declared via `.gamestate` metadata rather than baked into `runtime.js`
 - transpiled helper modules now load in-browser through `kind: "py"` with explicit export lists
+- dotted `import a.b` now transpiles to valid browser JS bindings
 
 Next steps:
 

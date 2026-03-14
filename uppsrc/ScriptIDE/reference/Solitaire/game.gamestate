@@ -6,7 +6,7 @@
     "players": 1,
     "browser_modules": [
       {
-        "name": "solitaire_bridge",
+        "name": "solitaire.bridge",
         "kind": "py",
         "path": "browser/solitaire_bridge.py",
         "exports": ["deal_label", "title_text", "status_text"]

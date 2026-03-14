@@ -228,6 +228,7 @@ static String JoinFrom(const Vector<String>& parts, int begin)
 static bool IsIdentifier(const String& s);
 static String ConvertEmbeddedConditional(String expr);
 static String ConvertSimpleStatement(const String& stripped);
+static String ConvertCondition(const String& expr);
 
 static String ConvertExpr(String expr)
 {
@@ -241,7 +242,7 @@ static String ConvertExpr(String expr)
 			String when_true = TrimBoth(expr.Left(if_pos));
 			String cond = TrimBoth(expr.Mid(if_pos + 4, else_pos - (if_pos + 4)));
 			String when_false = TrimBoth(expr.Mid(else_pos + 6));
-			expr = "(" + ConvertExpr(cond) + " ? " + ConvertExpr(when_true) + " : " + ConvertExpr(when_false) + ")";
+			expr = "(" + ConvertCondition(cond) + " ? " + ConvertExpr(when_true) + " : " + ConvertExpr(when_false) + ")";
 			return expr;
 		}
 	}
@@ -265,6 +266,11 @@ static String ConvertExpr(String expr)
 		expr = "__py_in__(" + lhs + ", " + rhs + ")";
 	}
 	return expr;
+}
+
+static String ConvertCondition(const String& expr)
+{
+	return "__py_bool__(" + ConvertExpr(expr) + ")";
 }
 
 static String ConvertSimpleStatement(const String& stripped)
@@ -309,13 +315,18 @@ static String ConvertSimpleStatement(const String& stripped)
 	if(assignment) {
 		String lhs = TrimBoth(s.Left(eq));
 		String rhs = TrimBoth(s.Mid(eq + 1));
+		if(IsIdentifier(lhs)) {
+			String listcat = lhs + " + [";
+			if(rhs.StartsWith(listcat) && rhs.EndsWith("]"))
+				return lhs + " = " + lhs + ".concat(" + ConvertExpr(rhs.Mid(lhs.GetCount() + 3)) + ");";
+		}
 		Vector<String> tuple_lhs = SplitTopLevel(lhs, ',');
 		if(tuple_lhs.GetCount() > 1) {
 			bool ok = true;
 			for(const String& part : tuple_lhs)
 				ok = ok && (part == "_" || IsIdentifier(part));
 			if(ok) {
-				String out = "let [";
+				String out = "var [";
 				for(int i = 0; i < tuple_lhs.GetCount(); i++) {
 					if(i) out << ", ";
 					out << tuple_lhs[i];
@@ -420,7 +431,7 @@ static String ConvertEmbeddedConditional(String expr)
 	String suffix = expr.Mid(end_false);
 	if(when_true.IsEmpty() || cond.IsEmpty() || when_false.IsEmpty())
 		return expr;
-	return prefix + "(" + ConvertExpr(cond) + " ? " + ConvertExpr(when_true) + " : " + ConvertExpr(when_false) + ")" + suffix;
+	return prefix + "(" + ConvertCondition(cond) + " ? " + ConvertExpr(when_true) + " : " + ConvertExpr(when_false) + ")" + suffix;
 }
 
 static bool IsIdentifier(const String& s)
@@ -482,6 +493,10 @@ PyToJsResult TranspilePythonToJavascript(const String& source, const String& fil
 		js << (options.browser_module ? "\"use strict\";\n\n" : "");
 		js << "function len(x) { return x && typeof x.length === \"number\" ? x.length : Object.keys(x || {}).length; }\n";
 		js << "function str(x) { return String(x); }\n";
+		js << "function int(x) { const n = Number(x); return n < 0 ? Math.ceil(n) : Math.floor(n); }\n";
+		js << "function max() { return Math.max.apply(Math, arguments); }\n";
+		js << "function min() { return Math.min.apply(Math, arguments); }\n";
+		js << "function __py_bool__(x) { if(x === null || x === undefined || x === false || x === 0) return false; if(Array.isArray(x) || typeof x === \"string\") return x.length > 0; if(typeof x === \"object\") return Object.keys(x).length > 0; return true; }\n";
 		js << "function __py_assert__(cond, msg) { if(!cond) throw new Error(msg || \"assertion failed\"); }\n";
 		js << "function __py_in__(needle, haystack) { if(Array.isArray(haystack) || typeof haystack === \"string\") return haystack.includes(needle); return !!(haystack && Object.prototype.hasOwnProperty.call(haystack, needle)); }\n";
 		js << "function __py_remove__(arr, item) { const i = arr.indexOf(item); if(i >= 0) arr.splice(i, 1); }\n\n";
@@ -555,16 +570,16 @@ PyToJsResult TranspilePythonToJavascript(const String& source, const String& fil
 		if(inline_if_colon > 0) {
 			String cond = TrimBoth(stripped.Mid(3, inline_if_colon - 3));
 			String stmt = TrimBoth(stripped.Mid(inline_if_colon + 2));
-			js << ind << "if (" << ConvertExpr(cond) << ") { " << ConvertSimpleStatement(stmt) << " }\n";
+			js << ind << "if (" << ConvertCondition(cond) << ") { " << ConvertSimpleStatement(stmt) << " }\n";
 			continue;
 		}
 		if(stripped.StartsWith("if ") && stripped.EndsWith(":")) {
-			js << ind << "if (" << ConvertExpr(stripped.Mid(3, stripped.GetCount() - 4)) << ") {\n";
+			js << ind << "if (" << ConvertCondition(stripped.Mid(3, stripped.GetCount() - 4)) << ") {\n";
 			expect_block_indent = true;
 			continue;
 		}
 		if(stripped.StartsWith("elif ") && stripped.EndsWith(":")) {
-			js << ind << "else if (" << ConvertExpr(stripped.Mid(5, stripped.GetCount() - 6)) << ") {\n";
+			js << ind << "else if (" << ConvertCondition(stripped.Mid(5, stripped.GetCount() - 6)) << ") {\n";
 			expect_block_indent = true;
 			continue;
 		}
@@ -574,7 +589,7 @@ PyToJsResult TranspilePythonToJavascript(const String& source, const String& fil
 			continue;
 		}
 		if(stripped.StartsWith("while ") && stripped.EndsWith(":")) {
-			js << ind << "while (" << ConvertExpr(stripped.Mid(6, stripped.GetCount() - 7)) << ") {\n";
+			js << ind << "while (" << ConvertCondition(stripped.Mid(6, stripped.GetCount() - 7)) << ") {\n";
 			expect_block_indent = true;
 			continue;
 		}
@@ -631,12 +646,23 @@ PyToJsResult TranspilePythonToJavascript(const String& source, const String& fil
 			String lhs = TrimBoth(stripped.Left(eq));
 			String rhs = TrimBoth(stripped.Mid(eq + 1));
 			if(IsIdentifier(lhs)) {
+				String listcat = lhs + " + [";
+				if(rhs.StartsWith(listcat) && rhs.EndsWith("]")) {
+					bool declared_here = false;
+					for(int i = declared.GetCount() - 1; i >= 0 && !declared_here; i--)
+						declared_here = declared[i].Find(lhs) >= 0;
+					if(!declared_here)
+						declared.Top().Add(lhs);
+					js << ind << (declared_here ? String() : String("var ")) << lhs << " = " << lhs
+					   << ".concat(" << ConvertExpr(rhs.Mid(lhs.GetCount() + 3)) << ");\n";
+					continue;
+				}
 				bool declared_here = false;
 				for(int i = declared.GetCount() - 1; i >= 0 && !declared_here; i--)
 					declared_here = declared[i].Find(lhs) >= 0;
 				if(!declared_here) {
 					declared.Top().Add(lhs);
-					js << ind << "let " << lhs << " = " << ConvertExpr(rhs) << ";\n";
+					js << ind << "var " << lhs << " = " << ConvertExpr(rhs) << ";\n";
 				}
 				else
 					js << ind << lhs << " = " << ConvertExpr(rhs) << ";\n";

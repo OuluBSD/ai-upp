@@ -16,6 +16,7 @@ public:
 	String GetSessionId() const         { return session_id; }
 	String GetGamestatePath() const     { return gamestate_path; }
 	String GetBrowserRoot() const       { return browser_root; }
+	String GetServerRootPath() const    { return path; }
 	bool   IsVerboseLogging() const     { return verbose_logging; }
 	String GetStatusJson() const;
 	String GetBootstrapJson() const;

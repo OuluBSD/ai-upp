@@ -6,9 +6,10 @@ Current baseline:
 - result object with warnings/errors is stable
 - Hearts `main.py` transpiles through `ScriptWebHost`
 - generated JS passes `node --check`
+- Hearts entry now survives a Node harness `start()` run with browser-host shims
 
 Next steps:
 
 - document the supported Python subset explicitly
 - decide whether imported Python modules are transpiled recursively or replaced by browser host shims
-- add runtime helper strategy for Python builtins and module imports beyond the current prelude
+- continue reducing Python/JavaScript semantic gaps like constructors and container behavior

@@ -18,6 +18,8 @@ file
 	PluginCommand.cpp,
 	McpCommand.h,
 	McpCommand.cpp,
+	McpHost.h,
+	McpHost.cpp,
 	Main.cpp;
 
 mainconfig

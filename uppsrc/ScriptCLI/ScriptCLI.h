@@ -11,6 +11,7 @@ NAMESPACE_UPP
 #include "LintCommand.h"
 #include "PluginCommand.h"
 #include "McpCommand.h"
+#include "McpHost.h"
 
 int ScriptCliMain(const Vector<String>& args);
 

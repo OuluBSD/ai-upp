@@ -1659,7 +1659,9 @@ PyVM::~PyVM()
 	frames.Shrink();
 	ReleaseStack(stack);
 	last_result = PyValue::None();
-	globals.Clear();
+	if(globals.GetType() == PY_DICT)
+		globals.GetDictRW().Clear();
+	globals = PyValue::None();
 }
 
 void PyVM::Clear()
@@ -2000,6 +2002,9 @@ void PyVM::Reset()
 	ReleaseStack(stack);
 	debug_state = DEBUG_RUNNING;
 	last_result = PyValue::None();
+	if(globals.GetType() == PY_DICT)
+		globals.GetDictRW().Clear();
+	globals = PyValue::None();
 	breakpoints_enabled = true;
 }
 

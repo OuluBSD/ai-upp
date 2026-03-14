@@ -14,10 +14,16 @@ file
 	Linter.cpp,
 	RunManager.h,
 	RunManager.cpp,
+	ScriptServices.h,
+	ScriptServices.cpp,
+	ScriptMcpProtocol.h,
+	ScriptMcpCapabilities.h,
+	ScriptMcpCapabilities.cpp,
+	ScriptMcpHandlers.h,
+	ScriptMcpHandlers.cpp,
 	PluginInterfaces.h,
 	PluginInterfaces.cpp,
 	GameStatePlugin.h,
 	GameStatePlugin.cpp,
 	CardGamePlugin.h,
 	CardGamePlugin.cpp;
-

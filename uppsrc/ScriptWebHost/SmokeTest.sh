@@ -12,4 +12,6 @@ npx playwright screenshot \
   --viewport-size "1400,1000" \
   "$url" "$out" >/dev/null
 
+python3 uppsrc/ScriptWebHost/BrowserRegression.py "${url}?autoplay=1" "${out%.png}-autoplay.png" >/dev/null
+
 file "$out"

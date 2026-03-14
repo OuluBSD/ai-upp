@@ -1,14 +1,14 @@
 # Current Task
 
-Create the initial standalone `ScriptWebHost` package scaffold:
+Current baseline:
 
-- standalone `SkylarkApp` executable
-- localhost configuration
-- command-line parsing for session bootstrap
-- basic status and session routes
+- standalone `SkylarkApp` executable is in place
+- localhost configuration and command-line bootstrap are working
+- `/api/status`, `/api/bootstrap`, and `/api/transpile-entry.js` are exposed
+- browser bootstrap includes `.gamestate`, `.form`, layout geometry, and transpiled entry JS metadata
 
 Next steps:
 
-- define the ScriptIDE -> ScriptWebHost launch contract
-- decide whether the VM runs in this process or over IPC
-- add WebSocket session transport for live UI diffs
+- move from bootstrap/transpile inspection to executable browser runtime wiring
+- define the browser-side host API expected by transpiled game code
+- add static client assets instead of keeping the renderer inline in route handlers

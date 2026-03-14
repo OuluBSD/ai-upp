@@ -131,6 +131,20 @@ SKYLARK(Bootstrap, "api/bootstrap")
 	http.ContentType("application/json; charset=utf-8") << app.GetBootstrapJson();
 }
 
+SKYLARK(TranspileEntryJs, "api/transpile-entry.js")
+{
+	const ScriptWebHostApp& app = GetScriptWebHostApp(http);
+	PyToJsResult tr = app.GetEntryTranspile();
+	http.ContentType("text/javascript; charset=utf-8");
+	if(tr.ok)
+		http << tr.javascript;
+	else {
+		http << "// transpilation failed\n";
+		for(int i = 0; i < tr.errors.GetCount(); i++)
+			http << "// error: " << tr.errors[i] << "\n";
+	}
+}
+
 SKYLARK(CatchAll, "**")
 {
 	http.Redirect(HomePage);

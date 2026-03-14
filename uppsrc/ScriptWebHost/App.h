@@ -19,6 +19,7 @@ public:
 	bool   IsVerboseLogging() const     { return verbose_logging; }
 	String GetStatusJson() const;
 	String GetBootstrapJson() const;
+	PyToJsResult GetEntryTranspile() const;
 };
 
 int ScriptWebHostMain(const Vector<String>& args);

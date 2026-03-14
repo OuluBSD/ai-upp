@@ -2,10 +2,10 @@
 # Last Updated: 2026-03-14
 
 ## Current Task
-Track: js-web-gamestate
+Track: py-js-transpile-web
 Phase: phase1-discovery
-Task: js-web-gamestate/phase1-discovery/task-01-feasibility/01-audit-bytevm-js-browser-path.md
-Status: IN_PROGRESS — Investigate JavaScript ByteVM frontend, separate Skylark-based web host, and Klondike `.gamestate` plan
+Task: py-js-transpile-web/phase1-discovery/task-01-scope/01-audit-python-subset-for-browser.md
+Status: IN_PROGRESS — Shift browser execution direction to Python->JavaScript transpilation for `.gamestate`
 
 ## Active Initiative
 ScriptIDE split for headless development:
@@ -73,6 +73,12 @@ ScriptIDE split for headless development:
 121. [TODO] js-web-gamestate/phase4-html-form-runtime/task-01-dom-renderer/01-design-form-dom-renderer.md
 122. [TODO] js-web-gamestate/phase5-solitaire-reference/task-01-klondike-spec/01-plan-klondike-gamestate-project.md
 123. [TODO] js-web-gamestate/phase6-integration-testing/task-01-acceptance/01-define-end-to-end-acceptance.md
+124. [IN_PROGRESS] py-js-transpile-web/phase1-discovery/task-01-scope/01-audit-python-subset-for-browser.md
+125. [TODO] py-js-transpile-web/phase2-transpiler-core/task-01-python-subset/01-design-python-to-js-transpiler.md
+126. [TODO] py-js-transpile-web/phase3-browser-runtime/task-01-js-host-contract/01-design-browser-js-runtime-contract.md
+127. [TODO] py-js-transpile-web/phase4-form-dom-runtime/task-01-layout-binding/01-bind-form-layout-to-transpiled-js.md
+128. [TODO] py-js-transpile-web/phase5-solitaire-reference/task-01-klondike-python-source/01-plan-klondike-python-authored-project.md
+129. [TODO] py-js-transpile-web/phase6-testing/task-01-acceptance/01-define-transpile-browser-acceptance.md
 
 ## Status
 ScriptIDE feature work is complete, but architecture refactor is active.

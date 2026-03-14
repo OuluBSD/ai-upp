@@ -1,6 +1,7 @@
 description "Python IDE using ByteVM\377";
 
 uses
+	OCRPlugin,
 	ScriptCommon,
 	CtrlLib,
 	plugin/png,

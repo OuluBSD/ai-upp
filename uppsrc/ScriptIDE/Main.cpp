@@ -1,3 +1,4 @@
+#ifdef flagMAIN
 #include "ScriptIDE.h"
 #include <memory>
 
@@ -228,3 +229,5 @@ GUI_APP_MAIN
 
     ide.Run();
 }
+
+#endif

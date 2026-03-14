@@ -155,30 +155,6 @@ static Value MakeNormalizedRectJson(const Rect& r, const Size& base_sz)
 	return m;
 }
 
-static Value MakeParentLocalLayoutJson(const Rect& child_rect, const Rect& parent_rect)
-{
-	ValueMap m;
-	int pw = max(1, parent_rect.Width());
-	int ph = max(1, parent_rect.Height());
-	Rect local = child_rect;
-	local.Offset(-parent_rect.left, -parent_rect.top);
-	m.Add("rect", MakeRectJson(local));
-	m.Add("normalized_rect", MakeNormalizedRectJson(local, Size(pw, ph)));
-
-	ValueMap browser;
-	browser.Add("position", "absolute");
-	browser.Add("left", (double)local.left / pw);
-	browser.Add("top", (double)local.top / ph);
-	browser.Add("width", (double)local.Width() / pw);
-	browser.Add("height", (double)local.Height() / ph);
-	browser.Add("transform_x", 0.0);
-	browser.Add("transform_y", 0.0);
-	browser.Add("stretch_x", false);
-	browser.Add("stretch_y", false);
-	m.Add("browser", browser);
-	return m;
-}
-
 static Value MakeBrowserLayoutJson(int x, int y, int cx, int cy, String anchor, const Size& base_sz)
 {
 	ValueMap m;
@@ -201,94 +177,43 @@ static Value MakeBrowserLayoutJson(int x, int y, int cx, int cy, String anchor, 
 	m.Add("transform_x", 0.0);
 	m.Add("transform_y", 0.0);
 
-	if(anchor == "CENTER") {
-		m.Add("left", left);
-		m.Add("top", top);
-		m.Set("transform_x", -0.5);
-		m.Set("transform_y", -0.5);
-	}
-	else if(anchor == "BOTTOM_CENTER") {
-		m.Add("left", left);
-		m.Add("bottom", y / bh);
-		m.Set("transform_x", -0.5);
-	}
-	else if(anchor == "TOP_CENTER") {
-		m.Add("left", left);
-		m.Add("top", top);
-		m.Set("transform_x", -0.5);
-	}
-	else if(anchor == "CENTER_LEFT") {
-		m.Add("left", left);
-		m.Add("top", top);
-		m.Set("transform_y", -0.5);
-	}
-	else if(anchor == "CENTER_RIGHT") {
-		m.Add("right", x / bw);
-		m.Add("top", top);
-		m.Set("transform_y", -0.5);
-	}
-	else if(anchor == "BOTTOM_LEFT") {
-		m.Add("left", left);
-		m.Add("bottom", y / bh);
-	}
-	else if(anchor == "BOTTOM_RIGHT") {
-		m.Add("right", x / bw);
-		m.Add("bottom", y / bh);
-	}
-	else if(anchor == "TOP_HSIZE") {
+	bool anchor_right = anchor.Find("RIGHT") >= 0;
+	bool anchor_bottom = anchor.Find("BOTTOM") >= 0;
+	bool stretch_x = anchor.Find("HSIZE") >= 0 || anchor == "SIZE";
+	bool stretch_y = anchor.Find("VSIZE") >= 0 || anchor == "SIZE";
+
+	if(stretch_x) {
 		m.Add("left", left);
 		m.Add("right", right);
-		m.Add("top", top);
 		m.Set("stretch_x", true);
 	}
-	else if(anchor == "CENTER_HSIZE") {
-		m.Add("left", left);
+	else if(anchor_right)
 		m.Add("right", right);
-		m.Add("top", top);
-		m.Set("stretch_x", true);
-		m.Set("transform_y", -0.5);
-	}
-	else if(anchor == "BOTTOM_HSIZE") {
+	else
 		m.Add("left", left);
-		m.Add("right", right);
-		m.Add("bottom", y / bh);
-		m.Set("stretch_x", true);
-	}
-	else if(anchor == "LEFT_VSIZE") {
-		m.Add("left", left);
+
+	if(stretch_y) {
 		m.Add("top", top);
 		m.Add("bottom", bottom);
 		m.Set("stretch_y", true);
 	}
-	else if(anchor == "CENTER_VSIZE") {
-		m.Add("left", left);
-		m.Add("top", top);
+	else if(anchor_bottom)
 		m.Add("bottom", bottom);
-		m.Set("stretch_y", true);
-		m.Set("transform_x", -0.5);
-	}
-	else if(anchor == "RIGHT_VSIZE") {
-		m.Add("right", x / bw);
+	else
 		m.Add("top", top);
-		m.Add("bottom", bottom);
-		m.Set("stretch_y", true);
-	}
-	else if(anchor == "SIZE") {
-		m.Add("left", left);
-		m.Add("right", right);
-		m.Add("top", top);
-		m.Add("bottom", bottom);
-		m.Set("stretch_x", true);
-		m.Set("stretch_y", true);
-	}
-	else if(anchor == "TOP_RIGHT") {
-		m.Add("right", x / bw);
-		m.Add("top", top);
-	}
-	else {
-		m.Add("left", left);
-		m.Add("top", top);
-	}
+	return m;
+}
+
+static Value MakeParentLocalLayoutJson(const Rect& child_source_rect, const Rect& parent_source_rect, String anchor)
+{
+	ValueMap m;
+	int pw = max(1, parent_source_rect.Width());
+	int ph = max(1, parent_source_rect.Height());
+	Rect local = child_source_rect;
+	local.Offset(-parent_source_rect.left, -parent_source_rect.top);
+	m.Add("rect", MakeRectJson(local));
+	m.Add("normalized_rect", MakeNormalizedRectJson(local, Size(pw, ph)));
+	m.Add("browser", MakeBrowserLayoutJson(local.left, local.top, local.Width(), local.Height(), anchor, Size(pw, ph)));
 	return m;
 }
 
@@ -342,6 +267,7 @@ static Value ParseFormSummary(const String& form_path)
 	ValueArray objects;
 	VectorMap<String, int> object_index;
 	Vector<Rect> resolved_rects;
+	Vector<Rect> source_rects;
 	if(content) {
 		for(int i = 0; i < content->GetCount(); i++) {
 			const XmlNode& obj = (*content)[i];
@@ -376,6 +302,7 @@ static Value ParseFormSummary(const String& form_path)
 			}
 
 			Rect raw_rect(x, y, x + cx, y + cy);
+			Rect source_rect = raw_rect;
 			String h_mode, v_mode;
 			ResolveAnchorRect(raw_rect, AsString(one["anchor"]), form_size, h_mode, v_mode);
 			ValueMap layout;
@@ -402,6 +329,7 @@ static Value ParseFormSummary(const String& form_path)
 			String id = AsString(one["id"]);
 			if(!id.IsEmpty())
 				object_index.Add(id, objects.GetCount());
+			source_rects.Add(source_rect);
 			resolved_rects.Add(raw_rect);
 			objects.Add(one);
 		}
@@ -415,7 +343,7 @@ static Value ParseFormSummary(const String& form_path)
 			if(q >= 0 && q < resolved_rects.GetCount()) {
 				ValueMap layout = one["layout"];
 				layout.Add("parent_id", parent);
-				layout.Add("local_to_parent", MakeParentLocalLayoutJson(resolved_rects[i], resolved_rects[q]));
+				layout.Add("local_to_parent", MakeParentLocalLayoutJson(source_rects[i], source_rects[q], AsString(one["anchor"])));
 				one.Set("layout", layout);
 				objects.Set(i, one);
 			}

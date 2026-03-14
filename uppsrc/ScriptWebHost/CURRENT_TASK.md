@@ -12,9 +12,12 @@ Current baseline:
 - container labels no longer destroy nested trick zones; `trick_*` slots now survive `set_label("trick_area", ...)` and mid-trick cards render in the center area again
 - browser module loading now goes through `.gamestate` metadata and project-owned JS module assets instead of a hard-coded Hearts shim in `runtime.js`
 - `reference/Solitaire` now provides a second browser-hosted `.gamestate` scaffold that runs without Hearts-specific logic modules
+- browser modules now support both:
+  - `kind: "js"` for project-owned JavaScript helpers
+  - `kind: "py"` for host-transpiled Python helpers with explicit exports
 
 Next steps:
 
-- support more than JS-only browser modules when the transpiler path for imported Python modules is ready
+- support dotted imports for transpiled Python helper modules
 - continue tightening browser presentation details like hand stacking and animation polish
 - replace the remaining dedicated runtime route wording/docs to match the static-asset design

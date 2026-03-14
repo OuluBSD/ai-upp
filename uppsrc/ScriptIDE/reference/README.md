@@ -82,6 +82,7 @@ For browser-hosted projects, `.gamestate` metadata may declare `browser_modules`
 Current supported module kind:
 
 - `js`: fetch a project-owned JavaScript file and expose `__scriptwebhost_module__`
+- `py`: transpile a project-owned Python file and export the listed names
 
 Example browser module file:
 
@@ -96,6 +97,21 @@ The transpiled Python entry can then import it by name, for example:
 ```python
 import mygame.logic
 ```
+
+Example Python browser module metadata:
+
+```json
+{
+  "name": "mygame_bridge",
+  "kind": "py",
+  "path": "browser/mygame_bridge.py",
+  "exports": ["make_label", "next_state"]
+}
+```
+
+Current limitation:
+- Python browser-module imports should use flat module names like `import mygame_bridge`
+- dotted imports for transpiled helper modules are not supported yet
 
 ## Required Python Entry Points
 

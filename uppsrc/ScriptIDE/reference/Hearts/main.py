@@ -922,6 +922,22 @@ def on_click(card_id):
         else:
             cardgame_view.log("Invalid move: " + str(msg))
 
+def on_drag(card_id, zone_id):
+    if pass_animating:
+        return
+
+    if state.phase == 'PASSING':
+        on_click(card_id)
+        return
+
+    if zone_id == "" or zone_id == "hand_self":
+        return
+
+    if zone_id != "trick_area" and zone_id != "trick_bottom" and zone_id != "trick_left" and zone_id != "trick_top" and zone_id != "trick_right":
+        return
+
+    on_click(card_id)
+
 def on_button(button_id):
     if button_id == "button_clear":
         if selected_cards:

@@ -171,6 +171,11 @@ body {
   transform-origin: center center;
 }
 
+.sprite.dragging {
+  cursor: grabbing;
+  transition: none !important;
+}
+
 .sprite.animating {
   transition: left 0.25s ease, top 0.25s ease, transform 0.25s ease;
 }

@@ -60,6 +60,8 @@ public:
 	CardSpriteCtrl();
 
 	virtual void LeftDown(Point p, dword flags) override;
+	virtual void MouseMove(Point p, dword flags) override;
+	virtual void LeftUp(Point p, dword flags) override;
 };
 
 class CardGameDocumentHost : public IDocumentHost, public IVideoRenderSource, public IHeartsView, public Ctrl {
@@ -121,7 +123,9 @@ public:
 	String DumpScene();
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
 	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }
+	void DebugInvokeDrag(const String& card_id, const String& zone_id) { InvokePythonDrag(card_id, zone_id); }
 	void DebugInvokeFirstHandCards(int count);
+	virtual PyVM* GetVM() override { return &vm; }
 
 private:
 	String path;
@@ -195,6 +199,14 @@ private:
 	Index<String> highlights;
 	String status_text;
 	Index<String> active_cards;
+	struct DragState {
+		String card_id;
+		Point start_point;
+		Point grab_offset;
+		Rect  original_rect;
+		bool  moved = false;
+		bool  active = false;
+	} drag_state;
 	
 	Color background_color = Color(40, 160, 40);
 
@@ -241,8 +253,13 @@ private:
 	void RefreshGameView();
 	void InvokePythonButton(const String& button_id);
 	void InvokePythonCard(const String& card_id);
+	void InvokePythonDrag(const String& card_id, const String& zone_id);
 	void SyncCardCtrl(const String& card_id);
 	void ClearCardCtrls();
+	String FindDropZone(Point p) const;
+	void BeginCardDrag(const String& card_id, Point p);
+	void UpdateCardDrag(Point p);
+	void EndCardDrag(Point p);
 	void ScheduleSceneSync();
 	void SyncFormExplorer();
 	void SyncFormControls();

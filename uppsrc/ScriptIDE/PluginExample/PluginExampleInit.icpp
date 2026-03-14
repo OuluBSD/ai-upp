@@ -1,0 +1,7 @@
+#include "PluginExample.h"
+
+NAMESPACE_UPP
+
+REGISTER_SCRIPTIDE_PLUGIN(PluginExample)
+
+END_UPP_NAMESPACE

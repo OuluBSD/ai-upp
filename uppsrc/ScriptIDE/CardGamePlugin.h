@@ -17,14 +17,16 @@ public:
 		CardGamePluginGUI* plugin;
 		virtual String         GetExtension() const override { return ".gamestate"; }
 		virtual String         GetFileDescription() const override { return "Game State JSON"; }
-		virtual IDocumentHost* CreateDocumentHost() override;
+		virtual bool           SupportsHostRole(HostRole role) const override { return role == HOSTROLE_EDITOR; }
+		virtual IDocumentHost* CreateEditorHost() override;
 	} gamestate_handler;
 
 	struct FormHandler : public IFileTypeHandler {
 		CardGamePluginGUI* plugin;
 		virtual String         GetExtension() const override { return ".form"; }
 		virtual String         GetFileDescription() const override { return "Card Game Layout"; }
-		virtual IDocumentHost* CreateDocumentHost() override;
+		virtual bool           SupportsHostRole(HostRole role) const override { return role == HOSTROLE_EDITOR; }
+		virtual IDocumentHost* CreateEditorHost() override;
 	} form_handler;
 };
 
@@ -60,7 +62,7 @@ public:
 	virtual void LeftDown(Point p, dword flags) override;
 };
 
-class CardGameDocumentHost : public IDocumentHost, public IHeartsView, public Ctrl {
+class CardGameDocumentHost : public IDocumentHost, public IVideoRenderSource, public IHeartsView, public Ctrl {
 public:
 	CardGameDocumentHost();
 	virtual ~CardGameDocumentHost();
@@ -83,6 +85,14 @@ public:
 	virtual bool   IsRunning() const override { return game_running || stop_in_progress || vm_thread_running; }
 	virtual bool   CanPause() const override { return true; }
 	virtual bool   IsPaused() const override { return game_paused; }
+	virtual RunMode GetRunMode() const override {
+		if(execution_mode == "debug")   return RUNMODE_DEBUG;
+		if(execution_mode == "profile") return RUNMODE_PROFILE;
+		return game_running || stop_in_progress || vm_thread_running ? RUNMODE_RUN : RUNMODE_NONE;
+	}
+	virtual bool   CanRecordVideo() const override { return game_running && !game_paused; }
+	virtual Size   GetRecordFrameSize() const override { return table_form.GetSize().cx > 0 ? table_form.GetSize() : GetSize(); }
+	virtual Image  CaptureRecordFrame(Size target_size = Size()) const override;
 	virtual void   Run() override;
 	virtual void   Debug() override;
 	virtual void   Profile() override;
@@ -229,6 +239,7 @@ private:
 	void SyncFormControls();
 	void RetryLayoutRefresh();
 	void PaintOverlay(Draw& w);
+	void PaintOverlayScaled(Draw& w, double sx, double sy, bool include_debug) const;
 	void OverlayLeftDown(Point p, dword flags);
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;

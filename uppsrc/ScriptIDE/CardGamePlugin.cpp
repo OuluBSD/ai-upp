@@ -1452,6 +1452,77 @@ void CardGameDocumentHost::Paint(Draw& w)
 	w.DrawRect(GetSize(), background_color);
 }
 
+Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
+{
+	Size base = GetRecordFrameSize();
+	if(base.cx <= 0 || base.cy <= 0)
+		base = GetSize();
+	if(base.cx <= 0 || base.cy <= 0)
+		return Image();
+	if(target_size.cx <= 0 || target_size.cy <= 0)
+		target_size = base;
+
+	ImageDraw iw(target_size);
+	iw.DrawRect(target_size, background_color);
+
+	double sx = base.cx ? (double)target_size.cx / (double)base.cx : 1.0;
+	double sy = base.cy ? (double)target_size.cy / (double)base.cy : 1.0;
+
+	auto scale_rect = [&](Rect r) {
+		return Rect((int)floor(r.left * sx),
+		            (int)floor(r.top * sy),
+		            (int)ceil(r.right * sx),
+		            (int)ceil(r.bottom * sy));
+	};
+
+	for(int i = 0; i < labels.GetCount(); i++) {
+		Rect r = scale_rect(GetZoneRectFromForm(table_form, labels.GetKey(i)));
+		if(r.IsEmpty())
+			continue;
+		int align = ALIGN_CENTER;
+		int q = form_items.Find(labels.GetKey(i));
+		if(q >= 0) {
+			align = form_items[q].anchor == "CENTER_LEFT" ? ALIGN_LEFT :
+			        form_items[q].anchor == "CENTER_RIGHT" ? ALIGN_RIGHT :
+			        ALIGN_CENTER;
+		}
+		Size tsz = GetTextSize(labels[i], StdFont());
+		int tx = align == ALIGN_LEFT ? r.left + 4 :
+		         align == ALIGN_RIGHT ? r.right - tsz.cx - 4 :
+		         r.left + max(0, (r.GetWidth() - tsz.cx) / 2);
+		int ty = r.top + max(0, (r.GetHeight() - tsz.cy) / 2);
+		iw.DrawText(tx, ty, labels[i], StdFont(), White());
+	}
+
+	for(int i = 0; i < buttons.GetCount(); i++) {
+		const ActionButton& btn = buttons[i];
+		if(btn.text.IsEmpty())
+			continue;
+		Rect r = scale_rect(GetZoneRectFromForm(table_form, buttons.GetKey(i)));
+		if(r.IsEmpty())
+			continue;
+		Color face = btn.enabled ? SColorFace() : Blend(SColorFace(), GrayColor(180));
+		iw.DrawRect(r, face);
+		iw.DrawRect(r.left, r.top, r.GetWidth(), 1, SColorShadow());
+		iw.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, SColorShadow());
+		iw.DrawRect(r.left, r.top, 1, r.GetHeight(), SColorShadow());
+		iw.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), SColorShadow());
+		Size tsz = GetTextSize(btn.text, StdFont());
+		int tx = r.left + max(0, (r.GetWidth() - tsz.cx) / 2);
+		int ty = r.top + max(0, (r.GetHeight() - tsz.cy) / 2);
+		iw.DrawText(tx, ty, btn.text, StdFont(), btn.enabled ? SColorText() : GrayColor(96));
+	}
+
+	if(!status_text.IsEmpty()) {
+		Rect r = scale_rect(GetZoneRectFromForm(table_form, "status_line"));
+		if(!r.IsEmpty())
+			iw.DrawText(r.left + 4, r.top + max(0, (r.GetHeight() - GetTextSize(status_text, StdFont()).cy) / 2), status_text, StdFont(), White());
+	}
+
+	PaintOverlayScaled(iw, sx, sy, false);
+	return iw;
+}
+
 void CardGameDocumentHost::SyncFormControls()
 {
 	{
@@ -1499,10 +1570,22 @@ void CardGameDocumentHost::SyncFormControls()
 
 void CardGameDocumentHost::PaintOverlay(Draw& w)
 {
-	if(debug_overlay) {
+	PaintOverlayScaled(w, 1.0, 1.0, debug_overlay);
+}
+
+void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, bool include_debug) const
+{
+	auto scale_rect = [&](Rect r) -> Rect {
+		return Rect((int)floor(r.left * sx),
+		            (int)floor(r.top * sy),
+		            (int)ceil(r.right * sx),
+		            (int)ceil(r.bottom * sy));
+	};
+
+	if(include_debug) {
 		for(int i = 0; i < form_items.GetCount(); i++) {
 			const FormItem& item = form_items[i];
-			Rect r = GetZoneRectFromForm(table_form, item.id);
+			Rect r = scale_rect(GetZoneRectFromForm(table_form, item.id));
 			if(r.IsEmpty())
 				continue;
 			Color c = item.user_class == "HAND" ? Color(120, 180, 255)
@@ -1518,7 +1601,7 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 	}
 
 	for(int i = 0; i < highlights.GetCount(); i++) {
-		Rect r = GetZoneRectFromForm(table_form, highlights[i]);
+		Rect r = scale_rect(GetZoneRectFromForm(table_form, highlights[i]));
 		if(r.IsEmpty())
 			continue;
 		Color glow = Color(255, 215, 70);
@@ -1530,17 +1613,18 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 
 	Vector<SpritePaintOrder> order;
 	order.Reserve(sprites.GetCount());
-	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
-	Rect hand_left = GetZoneRectFromForm(table_form, "hand_left");
-	Rect hand_top = GetZoneRectFromForm(table_form, "hand_top");
-	Rect hand_right = GetZoneRectFromForm(table_form, "hand_right");
-	Rect trick_bottom = GetZoneRectFromForm(table_form, "trick_bottom");
-	Rect trick_left = GetZoneRectFromForm(table_form, "trick_left");
-	Rect trick_top = GetZoneRectFromForm(table_form, "trick_top");
-	Rect trick_right = GetZoneRectFromForm(table_form, "trick_right");
+	Rect hand_self = scale_rect(GetZoneRectFromForm(table_form, "hand_self"));
+	Rect hand_left = scale_rect(GetZoneRectFromForm(table_form, "hand_left"));
+	Rect hand_top = scale_rect(GetZoneRectFromForm(table_form, "hand_top"));
+	Rect hand_right = scale_rect(GetZoneRectFromForm(table_form, "hand_right"));
+	Rect trick_bottom = scale_rect(GetZoneRectFromForm(table_form, "trick_bottom"));
+	Rect trick_left = scale_rect(GetZoneRectFromForm(table_form, "trick_left"));
+	Rect trick_top = scale_rect(GetZoneRectFromForm(table_form, "trick_top"));
+	Rect trick_right = scale_rect(GetZoneRectFromForm(table_form, "trick_right"));
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const Sprite& s = sprites[i];
-		Point c = s.rect.CenterPoint();
+		Rect sr = scale_rect(s.rect);
+		Point c = sr.CenterPoint();
 		SpritePaintOrder& po = order.Add();
 		po.index = i;
 		po.group = 10;
@@ -1589,7 +1673,11 @@ void CardGameDocumentHost::PaintOverlay(Draw& w)
 		Image img = RotateCardImage(s.img, s.rotation_deg);
 		if(img.IsEmpty())
 			continue;
-		w.DrawImage(s.rect.left, s.rect.top, img);
+		Rect sr = scale_rect(s.rect);
+		if(sr.GetSize() == img.GetSize())
+			w.DrawImage(sr.left, sr.top, img);
+		else
+			w.DrawImage(sr, img);
 	}
 }
 
@@ -1917,14 +2005,14 @@ void CardGamePluginGUI::Shutdown()
 	CardGamePlugin::Shutdown();
 }
 
-IDocumentHost* CardGamePluginGUI::GameStateHandler::CreateDocumentHost()
+IDocumentHost* CardGamePluginGUI::GameStateHandler::CreateEditorHost()
 {
 	CardGameDocumentHost* host = new CardGameDocumentHost();
 	host->SetPlugin(plugin);
 	return host;
 }
 
-IDocumentHost* CardGamePluginGUI::FormHandler::CreateDocumentHost()
+IDocumentHost* CardGamePluginGUI::FormHandler::CreateEditorHost()
 {
 	return new CardGameLayoutEditor();
 }

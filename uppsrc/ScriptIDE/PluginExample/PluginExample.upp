@@ -1,0 +1,10 @@
+description "Reference external-style plugin example for ScriptIDE\377";
+
+uses
+	ScriptIDE;
+
+file
+	AGENTS.md,
+	PluginExample.h,
+	PluginExample.cpp,
+	PluginExampleInit.icpp;

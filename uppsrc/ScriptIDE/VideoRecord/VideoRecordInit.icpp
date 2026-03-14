@@ -1,0 +1,7 @@
+#include "VideoRecord.h"
+
+NAMESPACE_UPP
+
+REGISTER_SCRIPTIDE_PLUGIN(VideoRecordPlugin)
+
+END_UPP_NAMESPACE

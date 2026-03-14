@@ -8,6 +8,7 @@ RunManager::RunManager(PyVM& vm) : vm(vm)
 
 void RunManager::Run(const String& code, const String& filename)
 {
+	running = true;
 	WhenStarted();
 	try {
 		vm.EnableBreakpoints(mode != RUN_NORMAL);
@@ -25,10 +26,12 @@ void RunManager::Run(const String& code, const String& filename)
 		vm.SetIR(ir);
 		vm.Run();
 		
+		running = false;
 		mode = RUN_NORMAL;
 		WhenFinished();
 	}
 	catch (Exc& e) {
+		running = false;
 		mode = RUN_NORMAL;
 		WhenError(e);
 	}
@@ -36,6 +39,7 @@ void RunManager::Run(const String& code, const String& filename)
 
 void RunManager::RunSelection(const String& code)
 {
+	running = true;
 	WhenStarted();
 	try {
 		vm.EnableBreakpoints(mode != RUN_NORMAL);
@@ -53,10 +57,12 @@ void RunManager::RunSelection(const String& code)
 		vm.SetIR(ir);
 		vm.Run();
 		
+		running = false;
 		mode = RUN_NORMAL;
 		WhenFinished();
 	}
 	catch (Exc& e) {
+		running = false;
 		mode = RUN_NORMAL;
 		WhenError(e);
 	}
@@ -65,6 +71,7 @@ void RunManager::RunSelection(const String& code)
 void RunManager::Stop()
 {
 	vm.Reset();
+	running = false;
 	mode = RUN_NORMAL;
 	WhenFinished();
 }

@@ -13,5 +13,6 @@ npx playwright screenshot \
   "$url" "$out" >/dev/null
 
 python3 uppsrc/ScriptWebHost/BrowserRegression.py "${url}?autoplay=1" "${out%.png}-autoplay.png" >/dev/null
+python3 uppsrc/ScriptWebHost/BrowserDragRegression.py "${url}" "${out%.png}-drag.png" >/dev/null
 
 file "$out"

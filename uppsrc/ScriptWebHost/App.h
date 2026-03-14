@@ -5,6 +5,7 @@ class ScriptWebHostApp : public SkylarkApp {
 	String session_id;
 	String gamestate_path;
 	String browser_root;
+	bool   verbose_logging = false;
 
 public:
 	typedef ScriptWebHostApp CLASSNAME;
@@ -15,6 +16,7 @@ public:
 	String GetSessionId() const         { return session_id; }
 	String GetGamestatePath() const     { return gamestate_path; }
 	String GetBrowserRoot() const       { return browser_root; }
+	bool   IsVerboseLogging() const     { return verbose_logging; }
 	String GetStatusJson() const;
 };
 

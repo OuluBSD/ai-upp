@@ -44,6 +44,8 @@ bool ScriptWebHostApp::ApplyCommandLine(const Vector<String>& args, String& erro
 			path = NormalizePath(arg.Mid(7));
 		else if(arg.StartsWith("--browser-root="))
 			browser_root = arg.Mid(15);
+		else if(arg == "--verbose")
+			verbose_logging = true;
 		else {
 			error = "unknown argument: " + arg;
 			return false;
@@ -77,7 +79,8 @@ static void PrintUsage()
 		"  --session=<id>       Session identifier\n"
 		"  --gamestate=<path>   Target .gamestate file\n"
 		"  --root=<path>        Asset/template root\n"
-		"  --browser-root=<p>   Browser entry route (default /)\n";
+		"  --browser-root=<p>   Browser entry route (default /)\n"
+		"  --verbose            Enable Skylark logging\n";
 }
 
 int ScriptWebHostMain(const Vector<String>& args)
@@ -95,10 +98,10 @@ int ScriptWebHostMain(const Vector<String>& args)
 		return 0;
 	}
 
-#ifdef _DEBUG
-	StdLogSetup(LOG_FILE|LOG_COUT);
-	Ini::skylark_log = true;
-#endif
+	if(app.IsVerboseLogging()) {
+		StdLogSetup(LOG_FILE|LOG_COUT);
+		Ini::skylark_log = true;
+	}
 
 	app.Run();
 	return 0;

@@ -65,7 +65,7 @@ void GameStatePluginGUI::Shutdown()
 	GameStatePlugin::Shutdown();
 }
 
-IDocumentHost* GameStatePluginGUI::CreateDocumentHost()
+IDocumentHost* GameStatePluginGUI::CreateViewerHost()
 {
 	return new GameStateDocumentHost();
 }

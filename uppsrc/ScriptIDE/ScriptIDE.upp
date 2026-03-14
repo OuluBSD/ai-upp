@@ -10,12 +10,14 @@ uses
 	ByteVM,
 	RichEdit,
 	Docking,
-	FormEditor;
+	FormEditor,
+	ScriptIDE/VideoRecord;
 
 pkg_config(POSIX !X11 !OSX !VIRTUALGUI) "librsvg-2.0 cairo";
 
 file
 	AGENTS.md,
+	HOWTO_PLUGINS.md,
 	ScriptIDE.h,
 	Icons.h,
 	Icons.cpp,
@@ -72,4 +74,3 @@ mainconfig
 	"USEMALLOC" = "GUI USEMALLOC",
 	"X11" = "GUI NOGTK",
 	"X11 USEMALLOC" = "GUI NOGTK USEMALLOC";
-

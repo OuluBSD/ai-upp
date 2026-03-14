@@ -15,7 +15,8 @@ public:
 	// IFileTypeHandler
 	virtual String         GetExtension() const override { return ".gamestate"; }
 	virtual String         GetFileDescription() const override { return "Game State JSON"; }
-	virtual IDocumentHost* CreateDocumentHost() override;
+	virtual bool           SupportsHostRole(HostRole role) const override { return role == HOSTROLE_VIEWER; }
+	virtual IDocumentHost* CreateViewerHost() override;
 
 	// IDockPaneProvider
 	virtual int    GetPaneCount() const override { return 1; }

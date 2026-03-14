@@ -14,6 +14,8 @@ class PluginManager : public IPluginContextGUI, public IPluginRegistryGUI {
 
 	Vector<IFileTypeHandler*> file_handlers;
 	Vector<IDockPaneProvider*> pane_providers;
+	Vector<IPluginPreferencesProvider*> preferences_providers;
+	Vector<IRunStateListener*> run_state_listeners;
 	Vector<IPythonBindingProvider*> binding_providers;
 	Vector<ICustomExecuteProvider*> execute_providers;
 
@@ -37,16 +39,20 @@ public:
 	// IPluginRegistryGUI
 	virtual void RegisterFileTypeHandler(IFileTypeHandler& h) override { file_handlers.Add(&h); }
 	virtual void RegisterDockPaneProvider(IDockPaneProvider& p) override { pane_providers.Add(&p); }
+	virtual void RegisterPreferencesProvider(IPluginPreferencesProvider& p) override { preferences_providers.Add(&p); }
+	virtual void RegisterRunStateListener(IRunStateListener& l) override { run_state_listeners.Add(&l); }
 	
 	// IPluginRegistry (from IPluginRegistryGUI)
 	virtual void RegisterPythonBindingProvider(IPythonBindingProvider& p) override { binding_providers.Add(&p); }
 	virtual void RegisterCustomExecuteProvider(ICustomExecuteProvider& p) override { execute_providers.Add(&p); }
 
 	// Dispatchers
-	IFileTypeHandler*      FindFileTypeHandler(const String& ext);
+	IFileTypeHandler*      FindFileTypeHandler(const String& path);
 	Vector<IDockPaneProvider*> GetDockPaneProviders();
+	const Vector<IPluginPreferencesProvider*>& GetPreferencesProviders() const { return preferences_providers; }
 	void                   SyncBindings(PyVM& vm);
 	ICustomExecuteProvider* FindCustomExecuteProvider(const String& path);
+	void                   NotifyRunStateChanged();
 
 private:
 	void ClearRegistry();

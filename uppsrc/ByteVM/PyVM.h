@@ -107,7 +107,8 @@ public:
 	// dict is created automatically.  Returns false on compile/run error.
 	bool LoadModule(const String& module_name, const String& src, const String& filename);
 	
-	PyValue GetGlobals() { return globals; }
+	PyValue  GetGlobals()    { return globals; }
+	PyValue& GetGlobalsRW()  { return globals; }
 	
 	bool    Step();
 	PyValue GetLastResult() const { return last_result; }

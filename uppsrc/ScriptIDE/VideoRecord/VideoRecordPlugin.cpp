@@ -100,11 +100,33 @@ VideoRecordPreferencesPage::VideoRecordPreferencesPage()
 
 	Add(frames_lbl.LeftPosZ(8, 120).TopPosZ(36, 20));
 	frames_lbl.SetLabel("Frames dir:");
-	Add(frames_dir.HSizePosZ(136, 8).TopPosZ(36, 20));
+	Add(frames_dir.HSizePosZ(136, 36).TopPosZ(36, 20));
+	Add(browse_frames.RightPosZ(8, 24).TopPosZ(36, 20));
+	browse_frames.SetLabel("...");
+	browse_frames.WhenAction = [=] {
+		FileSel fs;
+		String dir = frames_dir.GetData();
+		if(!dir.IsEmpty())
+			fs.ActiveDir(dir);
+		if(fs.ExecuteSelectDir("Select Frames Directory"))
+			frames_dir.SetData(fs.Get());
+	};
 
 	Add(output_lbl.LeftPosZ(8, 120).TopPosZ(64, 20));
 	output_lbl.SetLabel("Output file:");
-	Add(output_file.HSizePosZ(136, 8).TopPosZ(64, 20));
+	Add(output_file.HSizePosZ(136, 36).TopPosZ(64, 20));
+	Add(browse_output.RightPosZ(8, 24).TopPosZ(64, 20));
+	browse_output.SetLabel("...");
+	browse_output.WhenAction = [=] {
+		FileSel fs;
+		fs.Type("MP4 video", "*.mp4");
+		fs.AllFilesType();
+		String path = output_file.GetData();
+		if(!path.IsEmpty())
+			fs.Set(path);
+		if(fs.ExecuteSaveAs("Select Output Video File"))
+			output_file.SetData(fs.Get());
+	};
 
 	Add(fps_lbl.LeftPosZ(8, 120).TopPosZ(92, 20));
 	fps_lbl.SetLabel("FPS:");

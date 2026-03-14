@@ -373,7 +373,7 @@ void Orb::DescribeAmp(const ByteMat& src, const Vector<Keypoint>& corners, Vecto
 	array_view<int, 1> pattern_view(pattern.GetCount(), pattern.Begin());
 	array_view<uint32, 1> out_view(words.GetCount(), words.Begin());
 
-	parallel_for_each(out_view.extent, [=](index<1> idx) PARALLEL {
+	parallel_for_each(out_view.extent, [=](concurrency::index<1> idx) PARALLEL {
 		int k = idx[0];
 		int ci = k >> 3;
 		int wi = k & 7;

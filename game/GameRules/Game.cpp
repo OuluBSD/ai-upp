@@ -1,5 +1,5 @@
 #include <GameRules/Game.h>
-#include <GameCommon/Poker/LocalHand.h>
+#include <Poker/LocalHand.h>
 #include <GameRules/EngineFactory.h>
 #include <GameRules/GuiInterface.h>
 #include <GameRules/EngineLog.h>

@@ -84,6 +84,12 @@ body {
   z-index: 5;
 }
 
+.obj-text {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .obj.zone {
   background: var(--zone);
   border: 1px dashed var(--zone-line);
@@ -94,16 +100,31 @@ body {
 }
 
 .obj.label {
+  font-size: 15px;
+  color: #f7f4eb;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  z-index: 30;
+}
+
+.obj.label > .obj-text {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 6px 10px;
-  font-size: 15px;
-  color: #f7f4eb;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
   white-space: pre-line;
   text-align: center;
-  z-index: 30;
+}
+
+.obj.container > .obj-text {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10px 12px;
+  white-space: pre-line;
+  text-align: center;
+  color: #f7f4eb;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  z-index: 1;
 }
 
 .obj.button {

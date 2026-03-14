@@ -9,6 +9,7 @@ const runtime = {
   mode: 'loading',
   bootstrap: null,
   zones: new Map(),
+  zoneTexts: new Map(),
   sprites: new Map(),
   buttons: new Map(),
   callbacks: {},
@@ -227,6 +228,11 @@ function setLabel(id, text) {
   const el = getZoneElement(id);
   if (!el)
     return;
+  const textNode = runtime.zoneTexts.get(id);
+  if (textNode) {
+    textNode.textContent = String(text || '');
+    return;
+  }
   el.textContent = String(text || '');
 }
 
@@ -270,6 +276,7 @@ function renderBaseLayout(data) {
   table.innerHTML = '';
   table.appendChild(spriteLayer);
   runtime.zones.clear();
+  runtime.zoneTexts.clear();
   runtime.buttons.clear();
 
   const form = data.form || {};
@@ -286,10 +293,21 @@ function renderBaseLayout(data) {
     el.dataset.id = obj.id || '';
     el.title = obj.anchor || '';
     const txt = textFor(obj);
-    if (txt)
-      el.textContent = txt;
-    if (obj.type !== 'Button' && !txt && obj.id && !String(el.className).includes('zone'))
-      el.textContent = obj.id;
+    if (isButton) {
+      if (txt)
+        el.textContent = txt;
+    }
+    else {
+      const textNode = document.createElement('div');
+      textNode.className = 'obj-text';
+      if (txt)
+        textNode.textContent = txt;
+      else if (obj.id && !String(el.className).includes('zone'))
+        textNode.textContent = obj.id;
+      el.appendChild(textNode);
+      if (obj.id)
+        runtime.zoneTexts.set(obj.id, textNode);
+    }
     if (isButton) {
       el.addEventListener('click', () => {
         if (runtime.currentModule && typeof runtime.currentModule.on_button === 'function')

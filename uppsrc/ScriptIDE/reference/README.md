@@ -109,10 +109,6 @@ Example Python browser module metadata:
 }
 ```
 
-Current limitation:
-- Python browser-module imports should use flat module names like `import mygame_bridge`
-- dotted imports for transpiled helper modules are not supported yet
-
 ## Required Python Entry Points
 
 Current host conventions expect these functions in `main.py`:

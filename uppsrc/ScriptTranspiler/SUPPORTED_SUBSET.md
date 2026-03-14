@@ -10,6 +10,7 @@ It is intentionally not general Python.
 ## Supported Patterns
 
 - top-level `import module`
+- dotted top-level imports like `import package.module`
 - function definitions
 - `if` / `elif` / `else`
 - `while`
@@ -40,7 +41,6 @@ It is intentionally not general Python.
 ## Current Assumptions
 
 - modules are resolved by the browser host, not by recursive Python file transpilation
-- transpiled helper-module imports should currently use flat names (`import mymodule`)
 - dynamic Python features are out of scope
 - mixed object models and runtime metaprogramming are out of scope
 - classes only work where the host/runtime explicitly supports the resulting patterns

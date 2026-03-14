@@ -225,6 +225,36 @@ static String JoinFrom(const Vector<String>& parts, int begin)
 	return out;
 }
 
+static String DottedModuleImport(const String& mod)
+{
+	Vector<String> parts = Split(mod, '.');
+	if(parts.IsEmpty())
+		return String();
+	String out;
+	String prefix;
+	for(int i = 0; i < parts.GetCount() - 1; i++) {
+		String part = TrimBoth(parts[i]);
+		if(part.IsEmpty())
+			return String();
+		if(prefix.IsEmpty())
+			out << "var " << part << " = typeof " << part << " !== \"undefined\" ? " << part << " : {};\n";
+		else
+			out << prefix << "." << part << " = " << prefix << "." << part << " || {};\n";
+		if(prefix.IsEmpty())
+			prefix = part;
+		else
+			prefix << "." << part;
+	}
+	String leaf = TrimBoth(parts.Top());
+	if(leaf.IsEmpty())
+		return String();
+	if(prefix.IsEmpty())
+		out << "const " << leaf << " = __py_import__(\"" << mod << "\");";
+	else
+		out << prefix << "." << leaf << " = __py_import__(\"" << mod << "\");";
+	return out;
+}
+
 static bool IsIdentifier(const String& s);
 static String ConvertEmbeddedConditional(String expr);
 static String ConvertSimpleStatement(const String& stripped);
@@ -625,7 +655,19 @@ PyToJsResult TranspilePythonToJavascript(const String& source, const String& fil
 		}
 		if(stripped.StartsWith("import ")) {
 			String mod = TrimBoth(stripped.Mid(7));
-			js << ind << "const " << mod << " = __py_import__(\"" << mod << "\");\n";
+			if(mod.Find('.') >= 0) {
+				String imp = DottedModuleImport(mod);
+				if(imp.IsEmpty()) {
+					out.errors.Add(Format("%s:%d: invalid dotted import syntax", filename, lineno));
+					return out;
+				}
+				Vector<String> lines = Split(imp, '\n');
+				for(const String& line : lines)
+					if(!line.IsEmpty())
+						js << ind << line << "\n";
+			}
+			else
+				js << ind << "const " << mod << " = __py_import__(\"" << mod << "\");\n";
 			continue;
 		}
 		if(stripped.StartsWith("from ")) {

@@ -95,6 +95,7 @@ void PythonIDE::InitLayout()
 	Add(editor_area.SizePos());
 	
 	editor_tabs.Create();
+	editor_tabs->MinTabCount(0);
 	editor_area.Add(editor_tabs->TopPos(0, 36).HSizePos());
 	
 	editor_tabs->WhenAction = [=] { OnTabChanged(); };
@@ -1144,27 +1145,57 @@ void PythonIDE::OnCloseFile()
 {
 	if(active_file < 0) return;
 	if(!ConfirmSave(active_file)) return;
-	
+
 	int to_close = active_file;
+	if(active_editor) {
+		if(active_file >= 0 && active_file < open_files.GetCount()) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
+				h->DeactivateUI();
+		}
+		active_editor->Hide();
+		active_editor = nullptr;
+	}
+	if(to_close >= 0 && to_close < open_files.GetCount() && open_files[to_close].editor) {
+		open_files[to_close].editor->GetCtrl().Remove();
+		delete open_files[to_close].editor;
+		open_files[to_close].editor = nullptr;
+	}
 	open_files.Remove(to_close);
 	editor_tabs->Close(to_close);
-	
+
 	if(open_files.GetCount() > 0) {
-		active_file = editor_tabs->GetCursor();
-		OnTabChanged();
+		int next = min(to_close, open_files.GetCount() - 1);
+		editor_tabs->SetCursor(next);
 	}
 	else {
 		active_file = -1;
 		active_editor = nullptr;
-		OnTabChanged();
 	}
+	OnTabChanged();
 }
 
 void PythonIDE::OnCloseAll()
 {
 	if(!ConfirmSaveAll()) return;
+	if(active_editor) {
+		if(active_file >= 0 && active_file < open_files.GetCount()) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
+				h->DeactivateUI();
+		}
+		active_editor->Hide();
+		active_editor = nullptr;
+	}
+	for(int i = 0; i < open_files.GetCount(); i++) {
+		if(open_files[i].editor) {
+			open_files[i].editor->GetCtrl().Remove();
+			delete open_files[i].editor;
+			open_files[i].editor = nullptr;
+		}
+	}
 	open_files.Clear();
 	editor_tabs->Clear();
+	active_file = -1;
+	active_editor = nullptr;
 	OnTabChanged();
 }
 
@@ -1190,8 +1221,10 @@ void PythonIDE::OnBreakpointHit(const String& file, int line)
 void PythonIDE::OnTabChanged()
 {
 	if(active_editor) {
-		if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
-			h->DeactivateUI();
+		if(active_file >= 0 && active_file < open_files.GetCount()) {
+			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
+				h->DeactivateUI();
+		}
 		active_editor->Hide();
 	}
 	int idx = editor_tabs->GetCursor();

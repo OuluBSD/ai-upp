@@ -133,6 +133,7 @@ void PreferencesWindow::OnApply()
 	
 	settings.CopyFrom(new_settings);
 	old_settings.CopyFrom(settings);
+	StoreToFile(settings, ConfigFile("ide_settings.bin"));
 	RefreshPluginPages();
 }
 

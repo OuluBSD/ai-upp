@@ -12,6 +12,9 @@ fiFI("N\303\244kym\303\244")
 T_("Setup")
 fiFI("Asetukset")
 
+T_("Open Internal Shell")
+fiFI("")
+
 
 // DropTerm.key
 

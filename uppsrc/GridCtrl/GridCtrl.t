@@ -21,7 +21,7 @@ T_("Search")
 caES("Cercar")
 deDE("Suchen")
 esES("Buscar")
-fiFI("")
+fiFI("Etsi")
 frFR("Chercher")
 huHU("Keres\303\251s")
 nlNL("Zoeken")
@@ -559,6 +559,41 @@ ruRU("\320\262\321\201\321\202\320\260\320\262\320\273\320\265\320\275\320\276")
 skSK("vlo\305\276en\303\275")
 zhTW("\345\267\262\346\217\222\345\205\245")
 
+T_("Do you really want to delete selected %s ?")
+caES("Realment vols esborrar les %s seleccionades?")
+deDE("M\303\266chten sie wirklich die ausgew\303\244hlte %s l\303\266schen?")
+esES("\302\277 Realmente quieres borrar las %s seleccionadas ?")
+fiFI("Haluatko varmasti poistaa valitun %s ?")
+frFR("Voulez vous vraiment effacer la s\303\251lection %s ?")
+huHU("Biztosan t\303\266r\303\266lj\303\274k a kijel\303\266lt %s ?")
+nlNL("Weet je zeker dat je de geselecteerde %s wilt verwijderen?")
+plPL("Czy na pewno chcesz usun\304\205\304\207 zaznaczone %s ?")
+ptBR("Voc\303\252 realmente deseja excluir %s selecionada ?")
+ruRU("\320\222\321\213 \320\264\320\265\320\271\321\201\321\202\320\262\320\270\321\202\320\265\320\273\321\214\320\275\320\276 "
+     "\321\205\320\276\321\202\320\270\321\202\320\265 \321\203\320\264\320\260\320\273\320\270\321\202\321\214 "
+     "\320\262\321\213\320\264\320\265\320\273\320\265\320\275\320\275\321\213\320\271 "
+     "%s?")
+skSK("Zmaza\305\245 aktu\303\241lny %s ?")
+zhTW("\347\234\237\347\232\204\350\246\201\345\210\252\351\231\244\346\211\200\351\201\270\345\217\226\347\232\204 "
+     "%s \345\227\216\357\274\237")
+
+T_("rows")
+caES("files")
+deDE("Reihen")
+esES("filas")
+fiFI("rivit")
+frFR("lignes")
+huHU("sorok")
+nlNL("rijen")
+plPL("wierszy")
+ptBR("Linhas")
+ruRU("\321\201\321\202\321\200\320\276\320\272")
+skSK("riadky")
+zhTW("\345\210\227")
+
+
+// GridMouse.cpp
+
 T_("Moving selection (%d %s) before row %d")
 caES("Movent selecci\303\263 (%d %s) abans de fila %d")
 deDE("Verschieben der Auswahl (%d %s) vor Reihe %d")
@@ -576,20 +611,6 @@ ruRU("\320\237\320\265\321\200\320\265\320\274\320\265\321\201\321\202\320\270\3
 skSK("Presun\303\272\305\245 ozna\304\215en\303\251 (%d %s) pred riadok %d")
 zhTW("\347\247\273\345\213\225\346\211\200\351\201\270\345\217\226\347\232\204(%d "
      "%s)\345\210\260 \345\210\227%d\344\271\213\345\211\215")
-
-T_("rows")
-caES("files")
-deDE("Reihen")
-esES("filas")
-fiFI("rivit")
-frFR("lignes")
-huHU("sorok")
-nlNL("rijen")
-plPL("wierszy")
-ptBR("Linhas")
-ruRU("\321\201\321\202\321\200\320\276\320\272")
-skSK("riadky")
-zhTW("\345\210\227")
 
 T_("Moving row %d before row %d")
 caES("Movent fila %d abans de fila %d")
@@ -650,24 +671,6 @@ ptBR("c\303\251lulas")
 ruRU("\321\217\321\207\320\265\320\271\320\272\320\270")
 skSK("bunky")
 zhTW("\345\226\256\346\240\274")
-
-T_("Do you really want to delete selected %s ?")
-caES("Realment vols esborrar les %s seleccionades?")
-deDE("M\303\266chten sie wirklich die ausgew\303\244hlte %s l\303\266schen?")
-esES("\302\277 Realmente quieres borrar las %s seleccionadas ?")
-fiFI("Haluatko varmasti poistaa valitun %s ?")
-frFR("Voulez vous vraiment effacer la s\303\251lection %s ?")
-huHU("Biztosan t\303\266r\303\266lj\303\274k a kijel\303\266lt %s ?")
-nlNL("Weet je zeker dat je de geselecteerde %s wilt verwijderen?")
-plPL("Czy na pewno chcesz usun\304\205\304\207 zaznaczone %s ?")
-ptBR("Voc\303\252 realmente deseja excluir %s selecionada ?")
-ruRU("\320\222\321\213 \320\264\320\265\320\271\321\201\321\202\320\262\320\270\321\202\320\265\320\273\321\214\320\275\320\276 "
-     "\321\205\320\276\321\202\320\270\321\202\320\265 \321\203\320\264\320\260\320\273\320\270\321\202\321\214 "
-     "\320\262\321\213\320\264\320\265\320\273\320\265\320\275\320\275\321\213\320\271 "
-     "%s?")
-skSK("Zmaza\305\245 aktu\303\241lny %s ?")
-zhTW("\347\234\237\347\232\204\350\246\201\345\210\252\351\231\244\346\211\200\351\201\270\345\217\226\347\232\204 "
-     "%s \345\227\216\357\274\237")
 
 
 // Obsolete

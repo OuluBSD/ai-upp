@@ -4,6 +4,7 @@
 // AESStream.cpp
 
 T_("AESInit: Random generator init error")
+fiFI("AESInit: Satunnaisgeneraattorin alustusvirhe")
 esES("AESInit: Error en la inicializaci\303\263n del generador de n\303\272meros "
      "aleatorios")
 frFR("AESInit: Erreur d'initialisation du g\303\251n\303\251rateur de nombres "
@@ -14,6 +15,7 @@ ruRU("AESInit: \320\236\321\210\320\270\320\261\320\272\320\260 \320\270\320\275
      "\321\207\320\270\321\201\320\265\320\273")
 
 T_("AESEncoderStream::ctor: Key must be 16, 24 or 32 bytes long")
+fiFI("AESEncoderStream::ctor: Avaimen on oltava 16, 24 tai 32 tavua pitk\303\244")
 esES("AESEncoderStream::ctor: La clave ha de tener una longitud de 16, 24 o "
      "32 bytes")
 frFR("AESEncoderStream::ctor: La cl\303\251 doit avoir une longueur de 16, 24 "
@@ -24,6 +26,7 @@ ruRU("AESEncoderStream::ctor: \320\235\320\265\320\262\320\265\321\200\320\275\3
      "32 \320\261\320\260\320\271\321\202")
 
 T_("AESEncoderStream::ctor: Could not setup AES key. OpenSSL problem?")
+fiFI("AESEncoderStream::ctor: AES-avaimen asetus ep\303\244onnistui. OpenSSL-ongelma?")
 esES("AESEncoderStream::ctor: Imposible configurar la clave AES. \302\277Problema "
      "con OpenSSL?")
 frFR("AESEncoderStream::ctor: Impossible de configurer la cl\303\251 AES. Probl\303\250me "
@@ -33,6 +36,7 @@ ruRU("AESEncoderStream::ctor: \320\235\320\265 \321\203\321\201\321\202\320\260\
      "\320\262 OpenSSL?")
 
 T_("AESDecoderStream::ctor: Key must be 16, 24 or 32 bytes long")
+fiFI("AESDecoderStream::ctor: Avaimen on oltava 16, 24 tai 32 tavua pitk\303\244")
 esES("AESDecoderStream::ctor: La clave ha de tener una longitud de 16, 24 o "
      "32 bytes")
 frFR("AESDecoderStream::ctor: La cl\303\251 doit avoir une longueur de 16, 24 "
@@ -43,6 +47,7 @@ ruRU("AESDecoderStream::ctor: \320\235\320\265\320\262\320\265\321\200\320\275\3
      "32 \320\261\320\260\320\271\321\202")
 
 T_("AESDecoderStream::ctor: Could not setup AES key. OpenSSL problem?")
+fiFI("AESDecoderStream::ctor: AES-avaimen asetus ep\303\244onnistui. OpenSSL-ongelma?")
 esES("AESDecoderStream::ctor: Imposible configurar la clave AES. \302\277Problema "
      "con OpenSSL?")
 frFR("AESDecoderStream::ctor: Impossible de configurer la cl\303\251 AES. Probl\303\250me "

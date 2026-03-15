@@ -9,6 +9,7 @@ itIT("Conferma")
 
 T_("Cancel")
 deDE("Abbrechen")
+fiFI("Peruuta")
 itIT("Annulla")
 
 T_("Password :")

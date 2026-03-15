@@ -4,45 +4,58 @@
 // pathCtrl.cpp
 
 T_("Close")
+fiFI("Sulje")
 csCZ("Zav\305\231\303\255t")
 
 
 // pathedit.lay
 
 T_("&Initial segment:")
+fiFI("&Alkusegmentti:")
 csCZ("&Za\304\215\303\241tek:")
 
 T_("&Line segment:")
+fiFI("&Viivasegmentti:")
 csCZ("&Segment:")
 
 T_("&End segment:")
+fiFI("&Loppusegmentti:")
 csCZ("&Konec:")
 
 T_("&Relative width:")
+fiFI("&Suhteellinen leveys:")
 csCZ("&Vzta\305\276n\303\241 \305\241\303\255\305\231ka:")
 
 T_("&Cap style:")
+fiFI("&P\303\244\303\244n tyyli:")
 csCZ("St&yl zlomu \304\215\303\241ry:")
 
 T_("&Chamfer length:")
+fiFI("&Viisteen pituus:")
 csCZ("V&elikost zkosu:")
 
 T_("OK")
+fiFI("OK")
 csCZ("OK")
 
 T_("Cancel")
+fiFI("Peruuta")
 csCZ("Storno")
 
 T_("&Grid:")
+fiFI("&Ruudukko:")
 csCZ("&M\305\231\303\255\305\276ka:")
 
 T_("&Snap:")
+fiFI("&Tartu:")
 csCZ("&P\305\231ichytit do m\305\231\303\255\305\276ky:")
 
 T_("&Ruler")
+fiFI("&Viivain")
 csCZ("&Prav\303\255tko")
 
 T_("&Axis")
+fiFI("&Akseli")
 csCZ("&Osa \304\215\303\241ry")
 
 

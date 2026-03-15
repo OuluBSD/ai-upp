@@ -8,15 +8,19 @@ T_("Miscellaneous")
 csCZ("Obecné")
 
 T_("Backups")
+fiFI("Varmuuskopiot")
 csCZ("Zálohy")
 
 T_("Exclude files")
+fiFI("Sulje pois tiedostoja")
 csCZ("Vyloučit soubory")
 
 T_("Exclude folders")
+fiFI("Sulje pois kansioita")
 csCZ("Vyloučit složky")
 
 T_("Binary files")
+fiFI("Bin\303\244\303\244ritiedostot")
 csCZ("Binární soubory")
 
 T_("Source file folder")
@@ -32,51 +36,66 @@ T_("Separate files")
 csCZ("Samostatné soubory")
 
 T_("Chapter archive")
+fiFI("Lukukappaleen arkisto")
 csCZ("Kapitolový archiv")
 
 
 // DlgFilesSetup.lay
 
 T_("&Source files")
+fiFI("&L\303\244hdetiedostot")
 csCZ("&Zdrojové soubory:")
 
 T_("&Local repository:")
+fiFI("&Paikallinen tietovarasto:")
 csCZ("&Lokální archiv:")
 
 T_("&Author:")
+fiFI("&Tekij\303\244:")
 csCZ("&Autor:")
 
 T_("&FTP server:")
+fiFI("&FTP-palvelin:")
 csCZ("&FTP server:")
 
 T_("&FTP username:")
+fiFI("&FTP-k\303\244ytt\303\244j\303\244tunnus:")
 csCZ("&Uživatel:")
 
 T_("&Password:")
+fiFI("&Salasana:")
 csCZ("&Heslo:")
 
 T_("&FTP archive dir:")
+fiFI("&FTP-arkistohakemisto:")
 csCZ("Složka &FTP archivu:")
 
 T_("Anonymous access (read only)")
+fiFI("Anonyymi p\303\244\303\244sy (vain luku)")
 csCZ("Anonymní přístup (jen číst)")
 
 T_("&Use CR")
+fiFI("&K\303\244yt\303\244 CR:\303\244\303\244")
 csCZ("Používat &CR")
 
 T_("Always save &full block")
+fiFI("Tallenna aina &kokonainen lohko")
 csCZ("&Vždy ulož plný blok")
 
 T_("&Source files:")
+fiFI("&L\303\244hdetiedostot:")
 csCZ("&Zdrojové soubory:")
 
 T_("&Local archive:")
+fiFI("&Paikallinen arkisto:")
 csCZ("&Lokální archiv:")
 
 T_("OK")
+fiFI("OK")
 csCZ("OK")
 
 T_("Cancel")
+fiFI("Peruuta")
 csCZ("Storno")
 
 
@@ -86,36 +105,46 @@ T_("current")
 csCZ("aktuální")
 
 T_("Decompress archive")
+fiFI("Pura arkisto")
 csCZ("Rozbalit archiv")
 
 T_("File")
+fiFI("Tiedosto")
 csCZ("Soubor")
 
 T_("Date / time")
+fiFI("P\303\244iv\303\244m\303\244\303\244r\303\244 / aika")
 csCZ("Datum / čas")
 
 T_("Length")
+fiFI("Pituus")
 csCZ("Velikost")
 
 T_("Author")
+fiFI("Tekij\303\244")
 csCZ("Autor")
 
 T_(" (deleted)")
+fiFI(" (poistettu)")
 csCZ(" (smazán)")
 
 T_("Decompress into folder")
+fiFI("Pura kansioon")
 csCZ("Rozbalit do složky")
 
 T_("Synchronization")
 csCZ("Synchronizační operace")
 
 T_("Action")
+fiFI("Toiminto")
 csCZ("Akce")
 
 T_("Folder")
+fiFI("Kansio")
 csCZ("Složka")
 
 T_("Modified")
+fiFI("Muutettu")
 csCZ("Změněn")
 
 T_("download & upload changes")
@@ -131,15 +160,18 @@ T_("UVS version %s, %`")
 csCZ("UVS, verze %s, %`")
 
 T_("Date/time")
+fiFI("P\303\244iv\303\244m\303\244\303\244r\303\244/aika")
 csCZ("Datum/čas")
 
 T_("    Font:  ")
+fiFI("    Fontti:  ")
 csCZ("    Font:   ")
 
 T_("Synchronizing: ")
 csCZ("Synchronizuji:")
 
 T_("Name")
+fiFI("Nimi")
 csCZ("Jméno")
 
 T_("Project file management")
@@ -152,24 +184,30 @@ T_("Synchronizing files with remote server")
 csCZ("Synchronizace souborů se vzdáleným serverem")
 
 T_("View")
+fiFI("N\303\244kym\303\244")
 csCZ("Zobrazit")
 
 T_("File list view options")
 csCZ("Parametry zobrazení seznamu souborů")
 
 T_("Help")
+fiFI("Apua")
 csCZ("Nápověda")
 
 T_("Application information")
+fiFI("Sovelluksen tiedot")
 csCZ("Informace o aplikaci")
 
 T_("New")
+fiFI("Uusi")
 csCZ("Nový")
 
 T_("Create new project")
+fiFI("Luo uusi projekti")
 csCZ("Založit nový projekt")
 
 T_("Open")
+fiFI("Avaa")
 csCZ("Otevřít")
 
 T_("Open an existing project")
@@ -185,6 +223,7 @@ T_("Error opening project [* \1%s\1].")
 csCZ("Nelze otevřít projekt [* \1%s\1].")
 
 T_("Save")
+fiFI("Tallenna")
 csCZ("Uložit")
 
 T_("Save project definition to the disk")
@@ -197,12 +236,14 @@ T_("Save project with a different name")
 csCZ("Uložit projekt pod jiným názvem")
 
 T_("Parameters")
+fiFI("Parametrit")
 csCZ("Parametry")
 
 T_("Display / edit project parameters")
 csCZ("Zobrazit / změnit parametry projektu")
 
 T_("Decompress file")
+fiFI("Pura tiedosto")
 csCZ("Rozbalit soubor")
 
 T_("Decompress a selected UVS archive data block")
@@ -224,21 +265,25 @@ T_("Error reading file [* \1%s\1]: %s")
 csCZ("Chyba při načítání souboru [* \1%s\1]: %s")
 
 T_("Quit")
+fiFI("Lopeta")
 csCZ("Konec programu")
 
 T_("Quit the application")
 csCZ("Opustit aplikaci")
 
 T_("Refresh")
+fiFI("P\303\244ivit\303\244")
 csCZ("Obnovit")
 
 T_("Refresh status of project files")
 csCZ("Obnovit stav souborů projektu z disku")
 
 T_("Check local archive")
+fiFI("Tarkista paikallinen arkisto")
 csCZ("Kontrola lokálního archivu")
 
 T_("Check integrity of source file mirrors in the local archive")
+fiFI("Tarkista l\303\244hdetiedostopeilien eheys paikallisessa arkistossa")
 csCZ("Kontrolovat integritu zrcadlových zdrojových souborů v lokálním archivu")
 
 T_("Correctable error")
@@ -263,6 +308,7 @@ csCZ("Zdrojový soubor [* \1%s\1] se liší ve stromu zdrojových souborů a "
      "Chcete jej přepsat aktuální verzí?")
 
 T_("Error saving file '%s'.")
+fiFI("Virhe tallennettaessa tiedostoa '%s'.")
 csCZ("Nelze uložit soubor '%s'.")
 
 T_("Removing invalid history '%s'.")
@@ -310,6 +356,7 @@ T_("Saving corrected history '%s'.")
 csCZ("Ukládám opravenou historii '%s'.")
 
 T_("Archive check aborted by user.")
+fiFI("Arkiston tarkistus keskeytetty k\303\244ytt\303\244j\303\244n toimesta.")
 csCZ("Kontrola archivu byla přerušena uživatelem.")
 
 T_("No error found during local archive check.")
@@ -319,6 +366,7 @@ T_("Local archive check finished with %d error(s).")
 csCZ("Kontrola odhalila %d chyb v lokálním archivu.")
 
 T_("Correct times")
+fiFI("Korjaa ajat")
 csCZ("Opravit časy")
 
 T_("Set modification times for non-modified files according to uvs.$dir in the local archive")
@@ -328,36 +376,46 @@ T_("%s set to %` (old = %`)")
 csCZ("%s změněno na %` (bylo %`)")
 
 T_("%s: error setting file time to %`")
+fiFI("%s: virhe asetettaessa tiedoston aikaa arvoon %`")
 csCZ("%s: nelze nastavit čas změny na %`")
 
 T_("Download & upload")
+fiFI("Lataa & l\303\244het\303\244")
 csCZ("Načíst a uložit")
 
 T_("Download & upload all updates")
+fiFI("Lataa & l\303\244het\303\244 kaikki p\303\244ivitykset")
 csCZ("Načíst a uložit všechny změněné soubory")
 
 T_("Batch processing")
+fiFI("Er\303\244k\303\244sittely")
 csCZ("Dávkové zpracování")
 
 T_("Download & upload changes in recent projects")
+fiFI("Lataa & l\303\244het\303\244 muutokset viimeaikaisissa projekteissa")
 csCZ("Načíst a uložit změny v naposledy používaných projektech")
 
 T_("Batch synchronization")
+fiFI("Er\303\244synkronointi")
 csCZ("Dávková synchronizace")
 
 T_("Project")
+fiFI("Projekti")
 csCZ("Projekt")
 
 T_("Synchronize")
 csCZ("Synchronizovat")
 
 T_("Insert")
+fiFI("Lis\303\244\303\244")
 csCZ("Vložit")
 
 T_("Add project into batch synchronization")
+fiFI("Lis\303\244\303\244 projekti er\303\244synkronointiin")
 csCZ("Přidat projekt do dávkové synchronizace")
 
 T_("Remove")
+fiFI("Poista")
 csCZ("Odstranit")
 
 T_("Remove project from the list")
@@ -388,6 +446,7 @@ T_("Import archive")
 csCZ("Připojit archiv")
 
 T_("Add another local archive to the current local archive")
+fiFI("Lis\303\244\303\244 toinen paikallinen arkisto nykyiseen paikalliseen arkistoon")
 csCZ("Připojit k lokálnímu archivu jiný lokální archiv")
 
 T_("Local archive folder not specified; check project settings.")
@@ -403,6 +462,7 @@ T_("Re-generate and upload full archive including history to the server")
 csCZ("Regenerovat archiv a uložit jej i s historií na server")
 
 T_("Stop")
+fiFI("Pys\303\244yt\303\244")
 csCZ("Zastavit")
 
 T_("Stop project synchronization")
@@ -421,21 +481,27 @@ T_("Display only modified & conflicting files")
 csCZ("Zobrazit jen soubory, ve kterých došlo ke změnám")
 
 T_("All files")
+fiFI("Kaikki tiedostot")
 csCZ("Všechny soubory")
 
 T_("Display all files (including files excluded from the project)")
+fiFI("N\303\244yt\303\244 kaikki tiedostoja (mukaan lukien projektista pois suljetut tiedostot)")
 csCZ("Zobrazit všechny soubory (včetně souborů vyloučených z projektu)")
 
 T_("Difference")
+fiFI("Ero")
 csCZ("Rozdíl")
 
 T_("Display differential changes from previous version")
+fiFI("N\303\244yt\303\244 erotukset edellisest\303\244 versiosta")
 csCZ("Zobraz změny oproti předchozí verzi")
 
 T_("Compare")
+fiFI("Vertaa")
 csCZ("Srovnat")
 
 T_("Compare files in two windows")
+fiFI("Vertaa tiedostoja kahdessa ikkunassa")
 csCZ("Porovnat soubory ve dvou oknech")
 
 T_("Find changes")
@@ -482,15 +548,19 @@ T_("Sort files by file size")
 csCZ("Uspořádat soubory podle velikosti")
 
 T_("About application")
+fiFI("Tietoja sovelluksesta")
 csCZ("O aplikaci")
 
 T_("Display application version and copyright")
+fiFI("N\303\244yt\303\244 sovelluksen versio ja tekij\303\244noikeudet")
 csCZ("Zobrazit verzi a copyright aplikace")
 
 T_("Add")
+fiFI("Lis\303\244\303\244")
 csCZ("Přidat")
 
 T_("Add selected file to the project")
+fiFI("Lis\303\244\303\244 valittu tiedosto projektiin")
 csCZ("Přidat vybraný soubor do projektu")
 
 T_("Remove files of selected type from the project")
@@ -506,6 +576,7 @@ T_("Error reading file [* \1%s\1]: \1%s")
 csCZ("Nelze načíst soubor [* \1%s\1]: \1%s")
 
 T_("Do you want to save changes to current job?")
+fiFI("Haluatko tallentaa muutokset nykyiseen ty\303\266h\303\266n?")
 csCZ("Chcete uložit změněný projekt?")
 
 T_("Unable to save job to [* \1%s\1].")
@@ -518,12 +589,15 @@ T_("Error saving file [* \1%s\1].")
 csCZ("Chyba při ukládání souboru [* \1%s\1].")
 
 T_("Current")
+fiFI("Nykyinen")
 csCZ("Aktuální")
 
 T_("Before %s")
+fiFI("Ennen %s")
 csCZ("Před %s")
 
 T_("Cannot open file '%s'.")
+fiFI("Tiedostoa '%s' ei voida avata.")
 csCZ("Nelze otevřít soubor '%s'.")
 
 T_("Error writing file '%s'.")
@@ -548,9 +622,11 @@ T_("Remote archive folder on UVS server not specified.")
 csCZ("Není zadána vzdálená složka archivu na UVS serveru.")
 
 T_("Connecting to server: %s")
+fiFI("Yhdistet\303\244\303\244n palvelimeen: %s")
 csCZ("Připojuji se k serveru: %s")
 
 T_("Error connecting to server '%s', user '%s'.")
+fiFI("Virhe yhdistett\303\244ess\303\244 palvelimeen '%s', k\303\244ytt\303\244j\303\244 '%s'.")
 csCZ("Nelze provést připojení k serveru '%s', uživatel '%s'.")
 
 T_("Error connecting to '%s', retrying (%d of %d); FTP error: %s")
@@ -569,6 +645,7 @@ T_("Server archive is empty. Create a new archive?")
 csCZ("Archiv na serveru je prázdný. Chcete vytvořit nový archiv?")
 
 T_("; local - ")
+fiFI("; paikallinen -")
 csCZ("; lokál - ")
 
 T_("Last block index in the local archive (%d) doesn't match empty remote archive.")
@@ -592,6 +669,7 @@ T_("Identical changes: ")
 csCZ("Identické změny: ")
 
 T_("Conflict: ")
+fiFI("Konflikti: ")
 csCZ("Konflikt: ")
 
 T_("Modified files: ")
@@ -601,6 +679,7 @@ T_("Modified: ")
 csCZ("Změněný: ")
 
 T_("Compressing modified files (%d total)")
+fiFI("Tiivistet\303\244\303\244n muutettuja tiedostoja (%d yhteens\303\244)")
 csCZ("Komprimuji změněné soubory (celkem %d)")
 
 T_("Saving changes (%d B)")
@@ -613,9 +692,11 @@ T_("Preparing full update block")
 csCZ("Připravuji úplný změnový blok")
 
 T_("Error reading file '%s'.")
+fiFI("Virhe luettaessa tiedostoa '%s'.")
 csCZ("Nelze načíst soubor '%s'.")
 
 T_("Compressing update block")
+fiFI("Tiivistet\303\244\303\244n p\303\244ivityslohkoa")
 csCZ("Komprimuji změnový blok")
 
 T_("Saving full block - %d B")
@@ -634,9 +715,11 @@ T_("\nSynchronization aborted, unlocking server archive")
 csCZ("\nSynchronizace byla přerušena, odemykám archiv na serveru")
 
 T_(" - OK")
+fiFI(" - OK")
 csCZ(" - OK")
 
 T_(" - error: ")
+fiFI(" - virhe: ")
 csCZ(" - chyba: ")
 
 T_("Synchronization finished with error(s): %s")
@@ -667,18 +750,23 @@ T_("Locking server archive: %s, %s")
 csCZ("Zamykám archiv na serveru: %s, %s")
 
 T_("Backing up folder %s")
+fiFI("Varmuuskopioidaan kansiota %s")
 csCZ("Záloha složky %s")
 
 T_(" - folder is empty")
+fiFI(" - kansio on tyhj\303\244")
 csCZ(" - složka je prázdná")
 
 T_("Error executing process '%s'.")
+fiFI("Virhe suoritettaessa prosessia '%s'.")
 csCZ("Nelze spustit proces '%s'.")
 
 T_("Archivation process '%s' returned error code %d.")
+fiFI("Arkistointiprosessi '%s' palautti virhekoodin %d.")
 csCZ("Archivační proces '%s' vrátil chybový kód %d.")
 
 T_("Backup of folder %s finished successfully.")
+fiFI("Kansion %s varmuuskopiointi valmistui onnistuneesti.")
 csCZ("Archivace složky %s byla úspěšně dokončena.")
 
 T_("Newer")
@@ -694,21 +782,27 @@ T_("Move to older history entry")
 csCZ("Přejít na starší záznam v historii souboru")
 
 T_("Compare newer")
+fiFI("Vertaa uudempaan")
 csCZ("Porovnat novější")
 
 T_("Compare with newer history entry")
+fiFI("Vertaa uudempaan historiamerkint\303\244\303\244n")
 csCZ("Porovnat s novější verzí souboru")
 
 T_("Compare older")
+fiFI("Vertaa vanhempaan")
 csCZ("Porovnat starší")
 
 T_("Compare with older history entry")
+fiFI("Vertaa vanhempaan historiamerkint\303\244\303\244n")
 csCZ("Porovnat se starší verzí souboru")
 
 T_("Compare this")
+fiFI("Vertaa t\303\244t\303\244")
 csCZ("Porovnat vybraný")
 
 T_("Compare with selected history entry")
+fiFI("Vertaa valittuun historiamerkint\303\244\303\244n")
 csCZ("Porovnat se zvolenou verzí souboru")
 
 T_("Newer + compare")
@@ -745,12 +839,14 @@ T_("Identical changes: %s")
 csCZ("Identické změny: %s")
 
 T_("Conflict: %s")
+fiFI("Konflikti: %s")
 csCZ("Konflikt: %s")
 
 T_("File '%s': %s")
 csCZ("Soubor '%s': %s")
 
 T_("Archive import from folder '%s' finished successfully.")
+fiFI("Arkiston tuonti kansiosta '%s' valmistui onnistuneesti.")
 csCZ("Import archivu ze složky '%s' byl korektně dokončen.")
 
 T_("Last full block: server - ")
@@ -769,9 +865,11 @@ T_("\nExport aborted, unlocking server archive")
 csCZ("\nExport byl přerušen, odemykám archiv na serveru")
 
 T_("Cannot delete file '%s'.")
+fiFI("Tiedostoa '%s' ei voida poistaa.")
 csCZ("Nelze odstranit soubor '%s'")
 
 T_("Cannot remove folder '%s'")
+fiFI("Kansiota '%s' ei voida poistaa")
 csCZ("Nelze odstranit složku '%s'")
 
 T_("Saving index file")
@@ -784,6 +882,7 @@ T_("Error updating index file 'uvs.idx'.")
 csCZ("Nelze aktualizovat indexový soubor 'uvs.idx'.")
 
 T_("%s, retrying (%d of %d)")
+fiFI("%s, yritet\303\244\303\244n uudelleen (%d / %d)")
 csCZ("%d, opakuji (%d z %d)")
 
 T_("Error saving file '%s': %s")
@@ -805,6 +904,7 @@ T_("Error deleting file '%s', retrying (%d of %d); FTP error: %s")
 csCZ("Chyba při mazání souboru '%s', opakuji (%d z %d); chyba FTP: %s")
 
 T_(" Ln %d, Col %d")
+fiFI(" Rv %d, Sr %d")
 csCZ("  Ln %d, Col %d")
 
 T_("Error reading configuration file [* \1%s\1].")
@@ -817,21 +917,26 @@ csCZ("Nelze uložit konfigurační soubor [* \1%s\1].")
 // DlgFiles.lay
 
 T_("&Save file")
+fiFI("&Tallenna tiedosto")
 csCZ("&Uložit soubor")
 
 T_("Unpack all")
 csCZ("Rozbalit vše")
 
 T_("&Synchronize")
+fiFI("&Synkronoi")
 csCZ("&Synchronizovat")
 
 T_("&Manual confirm")
+fiFI("&Manuaalinen vahvistus")
 csCZ("&Potvrzovat")
 
 T_("&Action:")
+fiFI("&Toiminto:")
 csCZ("&Operace:")
 
 T_("&Check archive")
+fiFI("&Tarkista arkisto")
 csCZ("&Kontrolovat archiv")
 
 T_("[5/= [* U]ltimate [* V]ersioning [* S]ystem")
@@ -843,35 +948,42 @@ csCZ("Verze:")
 T_("Released:")
 csCZ("Datum výroby:")
 
-T_("[G2 Application uses the following third-party components: [/ zlib 1.0.4] library, copyright �1995-1996 Jean-loup Gailly and Mark Adler.")
+T_("[G2 Application uses the following third-party components: [/ zlib 1.0.4] library, copyright 1995-1996 Jean-loup Gailly and Mark Adler.")
 csCZ("[G2 Aplikace používá následující součásti z cizích zdrojů: knihovna "
-     "[/ zlib 1.0.4], copyright �1995-1996 Jean-loup Gailly a Mark Adler.")
+     "[/ zlib 1.0.4], copyright 1995-1996 Jean-loup Gailly a Mark Adler.")
 
 T_("&Fix all")
+fiFI("&Korjaa kaikki")
 csCZ("&Opravit vše")
 
 T_("Fi&x")
 csCZ("O&pravit")
 
 T_("&Skip")
+fiFI("&Ohita")
 csCZ("Pře&skočit")
 
 T_("&Find text:")
+fiFI("&Etsi teksti\303\244:")
 csCZ("&Find text:")
 
 T_("&Whole word")
+fiFI("&Kokonainen sana")
 csCZ("&Celé slovo")
 
 T_("&Ignore case")
+fiFI("&Isot ja pienet")
 csCZ("&Ignorovat velikost písma")
 
 T_("Wild&cards")
 csCZ("Wild&cards")
 
 T_("&Search archive")
+fiFI("&Etsi arkistosta")
 csCZ("&Search archive")
 
 T_("&From date:")
+fiFI("&Alkup\303\244iv\303\244m\303\244\303\244r\303\244:")
 csCZ("&From date:")
 
 T_("W&hole subtree")
@@ -887,12 +999,15 @@ csCZ("Zobrazit jen nalezené soubory")
 // Obsolete
 
 T_("&Always save &full block")
+fiFI("&Tallenna aina &kokonainen lohko")
 csCZ("&Vždy ulož plný blok")
 
 T_("All changes")
+fiFI("Kaikki muutokset")
 csCZ("Souhrn změn")
 
 T_("Display all changes in the file history")
+fiFI("N\303\244yt\303\244 kaikki muutokset tiedostohistoriassa")
 csCZ("Zobrazit všechny změny v historii souboru")
 
 T_("Saving modification block %d - %d B")

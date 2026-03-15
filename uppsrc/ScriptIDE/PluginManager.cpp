@@ -71,11 +71,17 @@ void PluginManager::UnregisterDockPane(const String& id)
 
 IFileTypeHandler* PluginManager::FindFileTypeHandler(const String& path)
 {
+	IFileTypeHandler* viewer = nullptr;
 	for(int i = file_handlers.GetCount() - 1; i >= 0; --i) {
-		if(file_handlers[i]->CanHandle(path))
-			return file_handlers[i];
+		IFileTypeHandler* handler = file_handlers[i];
+		if(!handler->CanHandle(path))
+			continue;
+		if(handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_EDITOR))
+			return handler;
+		if(!viewer && handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_VIEWER))
+			viewer = handler;
 	}
-	return nullptr;
+	return viewer;
 }
 
 Vector<IDockPaneProvider*> PluginManager::GetDockPaneProviders()

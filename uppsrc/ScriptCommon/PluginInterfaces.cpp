@@ -25,10 +25,17 @@ ICustomExecuteProvider* HeadlessPluginContext::FindExecuteProvider(const String&
 
 IFileTypeHandler* HeadlessPluginContext::FindFileTypeHandler(const String& path)
 {
-	for(int i = file_handlers.GetCount() - 1; i >= 0; i--)
-		if(file_handlers[i]->CanHandle(path))
-			return file_handlers[i];
-	return nullptr;
+	IFileTypeHandler* viewer = nullptr;
+	for(int i = file_handlers.GetCount() - 1; i >= 0; i--) {
+		IFileTypeHandler* handler = file_handlers[i];
+		if(!handler->CanHandle(path))
+			continue;
+		if(handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_EDITOR))
+			return handler;
+		if(!viewer && handler->SupportsHostRole(IFileTypeHandler::HOSTROLE_VIEWER))
+			viewer = handler;
+	}
+	return viewer;
 }
 
 END_UPP_NAMESPACE

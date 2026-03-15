@@ -31,7 +31,21 @@ String UserClassToControlType(const String& user_class)
 bool IsInteractiveCardZoneClass(const String& user_class)
 {
 	String type = NormalizeUserClass(user_class);
-	return type == "HAND" || type == "TRICK" || type == "CONTAINER";
+	return type == "HAND" || type == "TRICK" || type == "CONTAINER"
+	    || type == "STOCK" || type == "WASTE" || type == "FOUNDATION" || type == "TABLEAU";
+}
+
+bool IsDraggableCardZoneClass(const String& user_class)
+{
+	String type = NormalizeUserClass(user_class);
+	return type == "HAND" || type == "TRICK" || type == "CONTAINER"
+	    || type == "WASTE" || type == "FOUNDATION" || type == "TABLEAU";
+}
+
+bool IsFaceDownCardAsset(const String& asset_path)
+{
+	String title = ToLower(GetFileTitle(asset_path));
+	return title.StartsWith("back");
 }
 
 Color ParseBackgroundColor(const String& value, const Color& fallback)
@@ -212,8 +226,10 @@ CardSpriteCtrl::CardSpriteCtrl()
 
 void CardSpriteCtrl::LeftDown(Point p, dword flags)
 {
-	if(owner)
-		owner->BeginCardDrag(card_id, GetRect().TopLeft() + p);
+	if(!owner)
+		return;
+	if(!owner->BeginCardDrag(card_id, GetRect().TopLeft() + p))
+		owner->InvokePythonCard(card_id);
 }
 
 CardGameDocumentHost::CardGameDocumentHost()
@@ -1505,23 +1521,25 @@ String CardGameDocumentHost::FindDropZone(Point p) const
 	return best_id;
 }
 
-void CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
+bool CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 {
 	int q = sprites.Find(card_id);
 	if(q < 0)
-		return;
+		return false;
 	Point c = sprites[q].rect.CenterPoint();
 	bool draggable = false;
 	for(int i = 0; i < form_items.GetCount() && !draggable; i++) {
 		const FormItem& item = form_items[i];
-		if(!IsInteractiveCardZoneClass(item.user_class))
+		if(!IsDraggableCardZoneClass(item.user_class))
 			continue;
 		Rect r = GetZoneRectFromForm(table_form, form_items.GetKey(i));
 		if(!r.IsEmpty() && r.Contains(c))
 			draggable = true;
 	}
 	if(!draggable)
-		return;
+		return false;
+	if(IsFaceDownCardAsset(sprites[q].asset_path))
+		return false;
 	drag_state.card_id = card_id;
 	drag_state.start_point = p;
 	drag_state.original_rect = sprites[q].rect;
@@ -1532,6 +1550,7 @@ void CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 	sprites[q].target_rect = sprites[q].rect;
 	if(!HasCapture())
 		SetCapture();
+	return true;
 }
 
 void CardGameDocumentHost::UpdateCardDrag(Point p)
@@ -1850,10 +1869,11 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 		for(int i = 0; i < form_items.GetCount(); i++) {
 			const FormItem& item = form_items[i];
 			Rect r = scale_rect(GetZoneRectFromForm(table_form, item.id));
-			if(r.IsEmpty())
-				continue;
-			Color c = item.user_class == "HAND" ? Color(120, 180, 255)
-			        : item.user_class == "TRICK" ? Color(255, 180, 120)
+		if(r.IsEmpty())
+			continue;
+			Color c = item.user_class == "HAND" || item.user_class == "WASTE" || item.user_class == "TABLEAU" ? Color(120, 180, 255)
+			        : item.user_class == "TRICK" || item.user_class == "FOUNDATION" ? Color(255, 180, 120)
+			        : item.user_class == "STOCK" ? Color(180, 220, 180)
 			        : item.user_class == "BUTTON" ? Color(255, 230, 120)
 			        : Color(200, 200, 200);
 			w.DrawRect(r.left, r.top, r.GetWidth(), 1, c);
@@ -1918,6 +1938,11 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 			po.group = 11;
 			po.major = s.rect.top;
 			po.minor = s.rect.left;
+		}
+		if(drag_state.active && drag_state.card_id == sprites.GetKey(i)) {
+			po.group = 100;
+			po.major = 0;
+			po.minor = 0;
 		}
 	}
 	Sort(order, [](const SpritePaintOrder& a, const SpritePaintOrder& b) {

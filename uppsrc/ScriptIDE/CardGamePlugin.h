@@ -257,7 +257,7 @@ private:
 	void SyncCardCtrl(const String& card_id);
 	void ClearCardCtrls();
 	String FindDropZone(Point p) const;
-	void BeginCardDrag(const String& card_id, Point p);
+	bool BeginCardDrag(const String& card_id, Point p);
 	void UpdateCardDrag(Point p);
 	void EndCardDrag(Point p);
 	void ScheduleSceneSync();

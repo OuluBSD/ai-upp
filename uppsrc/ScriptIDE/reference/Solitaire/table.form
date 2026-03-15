@@ -55,7 +55,7 @@
 						<property name="Variable" value="stock"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="STOCK"/>
 						<property name="Anchor" value="TOP_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -69,7 +69,7 @@
 						<property name="Variable" value="waste"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="WASTE"/>
 						<property name="Anchor" value="TOP_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -83,7 +83,7 @@
 						<property name="Variable" value="foundation_1"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="TRICK"/>
+						<property name="UserClass" value="FOUNDATION"/>
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value="A"/>
 						<property name="Text.Align" value="Center"/>
@@ -98,7 +98,7 @@
 						<property name="Variable" value="foundation_2"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="TRICK"/>
+						<property name="UserClass" value="FOUNDATION"/>
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value="A"/>
 						<property name="Text.Align" value="Center"/>
@@ -113,7 +113,7 @@
 						<property name="Variable" value="foundation_3"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="TRICK"/>
+						<property name="UserClass" value="FOUNDATION"/>
 						<property name="Anchor" value="TOP_CENTER"/>
 						<property name="Label" value="A"/>
 						<property name="Text.Align" value="Center"/>
@@ -128,7 +128,7 @@
 						<property name="Variable" value="foundation_4"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="TRICK"/>
+						<property name="UserClass" value="FOUNDATION"/>
 						<property name="Anchor" value="TOP_RIGHT"/>
 						<property name="Label" value="A"/>
 						<property name="Text.Align" value="Center"/>
@@ -143,7 +143,7 @@
 						<property name="Variable" value="tableau_1"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -157,7 +157,7 @@
 						<property name="Variable" value="tableau_2"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -171,7 +171,7 @@
 						<property name="Variable" value="tableau_3"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_LEFT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -185,7 +185,7 @@
 						<property name="Variable" value="tableau_4"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -199,7 +199,7 @@
 						<property name="Variable" value="tableau_5"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_CENTER"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -213,7 +213,7 @@
 						<property name="Variable" value="tableau_6"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_RIGHT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>
@@ -227,7 +227,7 @@
 						<property name="Variable" value="tableau_7"/>
 						<property name="Frame" value="Default frame"/>
 						<property name="Type" value="Label"/>
-						<property name="UserClass" value="HAND"/>
+						<property name="UserClass" value="TABLEAU"/>
 						<property name="Anchor" value="BOTTOM_RIGHT"/>
 						<property name="Label" value=""/>
 						<property name="OutlineDraw" value="0"/>

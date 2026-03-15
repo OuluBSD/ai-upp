@@ -67,8 +67,8 @@ String Ctrl::Name() const {
 #else
 	String s = String(typeid(*this).name()) + " : " + Format("0x%x", (int) this);
 #endif
-		if(uparent)
-			s << "(parent " << String(typeid(*uparent).name()) << ")";
+	if(uparent)
+		s << "(parent 0x" << FormatIntHex(uparent) << ")";
 	return s;
 }
 

@@ -19,7 +19,7 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size psz, P
 }
 
 #define IMAGECLASS FBImg
-#define IMAGEFILE <SDL20GL/FB.iml>
+#define IMAGEFILE <SDL2GL/FB.iml>
 #include <Draw/iml_source.h>
 
 #define STD_CURSOR(name, sdl) \

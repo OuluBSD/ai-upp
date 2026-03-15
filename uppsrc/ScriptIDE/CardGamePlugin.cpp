@@ -28,6 +28,12 @@ String UserClassToControlType(const String& user_class)
 	return NormalizeUserClass(user_class) == "BUTTON" ? "Button" : "Label";
 }
 
+bool IsInteractiveCardZoneClass(const String& user_class)
+{
+	String type = NormalizeUserClass(user_class);
+	return type == "HAND" || type == "TRICK" || type == "CONTAINER";
+}
+
 Color ParseBackgroundColor(const String& value, const Color& fallback)
 {
 	Vector<String> parts = Split(value, ',');
@@ -1462,9 +1468,16 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 	if(qs < 0)
 		return;
 
-	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
 	Point c = sprites[qs].rect.CenterPoint();
-	bool clickable = hand_self.Contains(c);
+	bool clickable = false;
+	for(int i = 0; i < form_items.GetCount() && !clickable; i++) {
+		const FormItem& item = form_items[i];
+		if(!IsInteractiveCardZoneClass(item.user_class))
+			continue;
+		Rect r = GetZoneRectFromForm(table_form, form_items.GetKey(i));
+		if(!r.IsEmpty() && r.Contains(c))
+			clickable = true;
+	}
 
 	int qh = card_ctrls.Find(card_id);
 	CardSpriteCtrl* ctrl = nullptr;
@@ -1512,8 +1525,17 @@ void CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 	int q = sprites.Find(card_id);
 	if(q < 0)
 		return;
-	Rect hand_self = GetZoneRectFromForm(table_form, "hand_self");
-	if(!hand_self.Contains(sprites[q].rect.CenterPoint()))
+	Point c = sprites[q].rect.CenterPoint();
+	bool draggable = false;
+	for(int i = 0; i < form_items.GetCount() && !draggable; i++) {
+		const FormItem& item = form_items[i];
+		if(!IsInteractiveCardZoneClass(item.user_class))
+			continue;
+		Rect r = GetZoneRectFromForm(table_form, form_items.GetKey(i));
+		if(!r.IsEmpty() && r.Contains(c))
+			draggable = true;
+	}
+	if(!draggable)
 		return;
 	drag_state.card_id = card_id;
 	drag_state.start_point = p;

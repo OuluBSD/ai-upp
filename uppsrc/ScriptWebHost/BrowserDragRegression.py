@@ -4,6 +4,8 @@ import sys
 import time
 
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 
@@ -41,7 +43,7 @@ def main():
         if not ready or ready["runtime"] != "running":
             fail("browser drag regression: runtime did not reach running state")
 
-        result = driver.execute_script(
+        hand_info = driver.execute_script(
             """
             const api = window.ScriptWebHostRuntime;
             if (!api)
@@ -50,62 +52,81 @@ def main():
             if (!hand)
               return { error: 'hand_self zone missing' };
             const sprites = Array.from(document.querySelectorAll('#sprite-layer img.sprite'));
-            const sprite = sprites.find(s => {
+            const index = sprites.findIndex(s => {
               const left = parseFloat(s.style.left) || 0;
               const top = parseFloat(s.style.top) || 0;
               const cx = left + 36;
               const cy = top + 48;
               return cx >= hand.x && cx <= hand.x + hand.w && cy >= hand.y && cy <= hand.y + hand.h;
             });
-            if (!sprite)
+            if (index < 0)
               return { error: 'no hand sprite found' };
+            return { index, id: sprites[index].dataset.id || '' };
+            """
+        )
+        if "error" in hand_info:
+            fail(f"browser drag regression: {hand_info['error']}")
 
-            const before = {
-              left: parseFloat(sprite.style.left) || 0,
-              top: parseFloat(sprite.style.top) || 0,
-              className: sprite.className,
-            };
-            const rect = sprite.getBoundingClientRect();
-            const downX = rect.left + 12;
-            const downY = rect.top + 12;
-            const moveX = downX + 48;
-            const moveY = downY - 32;
-
-            function fire(target, type, x, y) {
-              target.dispatchEvent(new PointerEvent(type, {
-                pointerId: 1,
-                pointerType: 'mouse',
-                clientX: x,
-                clientY: y,
-                bubbles: true,
-              }));
+        sprite = driver.find_elements(By.CSS_SELECTOR, "#sprite-layer img.sprite")[hand_info["index"]]
+        before_map = driver.execute_script(
+            """
+            const out = {};
+            for (const s of document.querySelectorAll('#sprite-layer img.sprite')) {
+              const id = s.dataset.id || '';
+              out[id] = {
+                left: parseFloat(s.style.left) || 0,
+                top: parseFloat(s.style.top) || 0,
+                className: s.className,
+              };
             }
-
-            fire(sprite, 'pointerdown', downX, downY);
-            fire(window, 'pointermove', moveX, moveY);
-
-            const during = {
-              left: parseFloat(sprite.style.left) || 0,
-              top: parseFloat(sprite.style.top) || 0,
-              className: sprite.className,
-              drag_active: !!api.runtime.drag,
-            };
-
-            fire(window, 'pointerup', moveX, moveY);
-
-            const after = {
-              left: parseFloat(sprite.style.left) || 0,
-              top: parseFloat(sprite.style.top) || 0,
-              className: sprite.className,
-              drag_active: !!api.runtime.drag,
-            };
-
-            return { before, during, after };
+            return out;
             """
         )
 
-        if "error" in result:
-            fail(f"browser drag regression: {result['error']}")
+        ActionChains(driver).move_to_element_with_offset(sprite, 12, 12).click_and_hold().move_by_offset(48, -32).pause(0.2).perform()
+
+        during_info = driver.execute_script(
+            """
+            const api = window.ScriptWebHostRuntime;
+            const dragId = api && api.runtime.drag ? api.runtime.drag.id : '';
+            const s = dragId ? document.querySelector(`#sprite-layer img.sprite[data-id="${dragId}"]`) : null;
+            return s ? {
+              id: dragId,
+              left: parseFloat(s.style.left)||0,
+              top: parseFloat(s.style.top)||0,
+              className: s.className,
+              drag_active: !!api.runtime.drag
+            } : null;
+            """
+        )
+        if not during_info:
+            fail("browser drag regression: target sprite missing during drag")
+        drag_id = during_info["id"]
+        before = before_map.get(drag_id)
+        if not before:
+            fail(f"browser drag regression: missing pre-drag snapshot for {drag_id}")
+        during = {
+            "left": during_info["left"],
+            "top": during_info["top"],
+            "className": during_info["className"],
+            "drag_active": during_info["drag_active"],
+        }
+
+        ActionChains(driver).release().perform()
+        time.sleep(0.2)
+
+        after = driver.execute_script(
+            """
+            const id = arguments[0];
+            const api = window.ScriptWebHostRuntime;
+            const s = document.querySelector(`#sprite-layer img.sprite[data-id="${id}"]`);
+            return s ? {left: parseFloat(s.style.left)||0, top: parseFloat(s.style.top)||0, className: s.className, drag_active: !!api.runtime.drag} : null;
+            """,
+            drag_id,
+        )
+        if not after:
+            fail("browser drag regression: target sprite missing after drag")
+        result = {"before": before, "during": during, "after": after}
 
         before = result["before"]
         during = result["during"]

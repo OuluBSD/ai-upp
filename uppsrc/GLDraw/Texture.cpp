@@ -12,7 +12,7 @@ GLuint CreateGLTexture(const Image& img, dword flags)
 	GLuint texture_id;
 	glGenTextures(1, &texture_id);
 	glBindTexture(GL_TEXTURE_2D, texture_id);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sz.cx, sz.cy, 0, GL_BGRA, GL_UNSIGNED_BYTE, ~img);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sz.cx, sz.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, ~img);
 	if(flags & TEXTURE_MIPMAP)
 		glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, flags & TEXTURE_LINEAR ? GL_LINEAR : GL_NEAREST);

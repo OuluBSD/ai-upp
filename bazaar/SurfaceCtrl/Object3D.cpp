@@ -206,7 +206,7 @@ int Object3D::LoadTexture(const Image& img , const String& name, int indiceWhere
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.cx , size.cy , 0, GL_BGRA, GL_UNSIGNED_BYTE, ~image);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.cx , size.cy , 0, GL_RGBA, GL_UNSIGNED_BYTE, ~image);
 	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.cy , size.cx, 0, GL_RGBA, GL_UNSIGNED_BYTE, ~image);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -794,10 +794,10 @@ Skybox& Skybox::Init(const Vector<Image>& images){
 	for(const Image& img : images){
 		if(img){
 			Size size = img.GetSize();
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size.cx , size.cy, 0, GL_BGRA, GL_UNSIGNED_BYTE, ~img);
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size.cx , size.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, ~img);
 		}else{
 			Size size = TexturesImg::empty().GetSize();
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size.cx , size.cy, 0, GL_BGRA, GL_UNSIGNED_BYTE, ~(TexturesImg::empty()));
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, size.cx , size.cy, 0, GL_RGBA, GL_UNSIGNED_BYTE, ~(TexturesImg::empty()));
 		}
 		i++;
 	}

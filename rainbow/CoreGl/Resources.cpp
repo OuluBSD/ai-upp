@@ -44,7 +44,7 @@ const TextureResource& Resources::CreateTexture(const Image& img, int width, int
 	t.y = 0;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.width, t.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, img);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, t.width, t.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
 	++bindedTextures;
 	return t;
 }
@@ -52,7 +52,7 @@ const TextureResource& Resources::CreateTexture(const Image& img, int width, int
 void Resources::CreateSubTexture(const TextureResource& t, const Image& img, int x, int y)
 {
 	Bind(autoAtlas.serialId, 0);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, img.GetWidth(), img.GetHeight(), GL_BGRA, GL_UNSIGNED_BYTE, img);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, img.GetWidth(), img.GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, img);
 }
 
  const TextureResource& Resources::Bind(const Image& img, int opts)

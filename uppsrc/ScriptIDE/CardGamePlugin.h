@@ -118,7 +118,7 @@ public:
 	virtual void  Log(const String& msg) override;
 	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
 
-	void SetLayout(const String& form_path);
+	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; }
 	String DumpScene();
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }

@@ -1249,8 +1249,11 @@ PyValue PyVM::Pop()
 	return stack.Pop();
 }
 
-PyVM::PyVM()
+void PyVM::InitBuiltins()
 {
+    if (globals.IsNone()) globals = PyValue::Dict();
+    else if (globals.GetType() == PY_DICT) globals.GetDictRW().Clear();
+    else globals = PyValue::Dict();
 	globals = PyValue::Dict();
 	globals.GetDictRW().GetAdd(PyValue("__name__")) = PyValue("__main__");
 
@@ -1566,7 +1569,8 @@ globals.GetDictRW().GetAdd(PyValue("sys")) = sys;
 			pair.Add(PyValue((int64)(i + start)));
 			pair.Add(src.GetItem(i));
 			result.Add(pair);
-		}
+}
+
 		return result;
 	});
 
@@ -1647,6 +1651,11 @@ globals.GetDictRW().GetAdd(PyValue("sys")) = sys;
 	modules.SetItem(PyValue("threading"), globals.GetItem(PyValue("threading")));
 	modules.SetItem(PyValue("subprocess"), globals.GetItem(PyValue("subprocess")));
 	modules.SetItem(PyValue("random"), random_mod);
+}
+
+PyVM::PyVM()
+{
+    InitBuiltins();
 }
 
 PyVM::~PyVM()
@@ -1997,14 +2006,16 @@ void PyVM::Reset()
 	for(int i = 0; i < frames.GetCount(); i++) {
 		ReleaseLocals(frames[i].locals);
 		frames[i].func = PyValue::None();
-	}
+    InitBuiltins();
+    breakpoints_enabled = true;
+}
 	frames.Clear();
 	ReleaseStack(stack);
 	debug_state = DEBUG_RUNNING;
 	last_result = PyValue::None();
 	if(globals.GetType() == PY_DICT)
 		globals.GetDictRW().Clear();
-	globals = PyValue::None();
+	globals = PyValue::Dict();
 	breakpoints_enabled = true;
 }
 
@@ -2211,6 +2222,22 @@ bool PyVM::Step()
 					}
 				}
 			}
+			if (current.IsNone()) {
+				if (DirectoryExists(parts[0])) {
+					// Create dummy module for package directory
+					PyValue pkg = PyValue::Dict();
+					pkg.SetItem(PyValue("__name__"), PyValue(parts[0]));
+					pkg.SetItem(PyValue("__path__"), PyValue(parts[0]));
+					PyValue sys4 = this->globals.GetItem(PyValue("sys"));
+					if(sys4.GetType() == PY_DICT) {
+						PyValue modules4 = sys4.GetItem(PyValue("modules"));
+						if(modules4.GetType() == PY_DICT) {
+							modules4.SetItem(PyValue(parts[0]), pkg);
+							current = pkg;
+						}
+					}
+				}
+			}
 			
 			// Then check builtins/main globals
 			if (current.IsNone()) {
@@ -2221,14 +2248,30 @@ bool PyVM::Step()
 			}
 
 			if(!current.IsNone()) {
-				for(int i = 1; i < parts.GetCount(); i++) {
-					if(current.GetType() == PY_DICT) {
-						current = current.GetItem(PyValue(parts[i]));
-					} else {
-						current = PyValue::None();
-						break;
+			for(int i = 1; i < parts.GetCount(); i++) {
+				if(current.GetType() == PY_DICT) {
+					PyValue next = current.GetItem(PyValue(parts[i]));
+					if(next.IsNone()) {
+						String sub_name = "";
+						for(int j = 0; j <= i; j++) { if(j>0) sub_name << "."; sub_name << parts[j]; }
+						String sub_path = "";
+						for(int j = 0; j <= i; j++) { if(j>0) sub_path << "/"; sub_path << parts[j]; }
+						sub_path << ".py";
+						if(FileExists(sub_path)) {
+							if(LoadModule(sub_name, LoadFile(sub_path), sub_path)) {
+								PyValue sys3 = this->globals.GetItem(PyValue("sys"));
+								PyValue modules3 = sys3.GetItem(PyValue("modules"));
+								next = modules3.GetItem(PyValue(sub_name));
+								current.SetItem(PyValue(parts[i]), next);
+							}
+						}
 					}
+					current = next;
+				} else {
+					current = PyValue::None();
+					break;
 				}
+			}
 			}
 
 			Push(current);

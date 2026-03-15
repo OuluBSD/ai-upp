@@ -9,6 +9,8 @@ public:
 	virtual ~CardGamePluginGUI();
 
 	// IPlugin overrides
+	virtual String GetID() const override { return "CardGamePluginGUI"; }
+	virtual String GetName() const override { return "Card Game Engine (GUI)"; }
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
@@ -60,8 +62,6 @@ public:
 	CardSpriteCtrl();
 
 	virtual void LeftDown(Point p, dword flags) override;
-	virtual void MouseMove(Point p, dword flags) override;
-	virtual void LeftUp(Point p, dword flags) override;
 };
 
 class CardGameDocumentHost : public IDocumentHost, public IVideoRenderSource, public IHeartsView, public Ctrl {
@@ -267,6 +267,8 @@ private:
 	void PaintOverlay(Draw& w);
 	void PaintOverlayScaled(Draw& w, double sx, double sy, bool include_debug) const;
 	void OverlayLeftDown(Point p, dword flags);
+	virtual void MouseMove(Point p, dword flags) override;
+	virtual void LeftUp(Point p, dword flags) override;
 	virtual void Layout() override;
 	virtual void Paint(Draw& w) override;
 	friend class CardGameOverlay;

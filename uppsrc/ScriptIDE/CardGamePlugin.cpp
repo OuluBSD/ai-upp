@@ -214,21 +214,6 @@ void CardSpriteCtrl::LeftDown(Point p, dword flags)
 {
 	if(owner)
 		owner->BeginCardDrag(card_id, GetRect().TopLeft() + p);
-	SetCapture();
-}
-
-void CardSpriteCtrl::MouseMove(Point p, dword flags)
-{
-	if(owner && HasCapture())
-		owner->UpdateCardDrag(GetRect().TopLeft() + p);
-}
-
-void CardSpriteCtrl::LeftUp(Point p, dword flags)
-{
-	if(HasCapture())
-		ReleaseCapture();
-	if(owner)
-		owner->EndCardDrag(GetRect().TopLeft() + p);
 }
 
 CardGameDocumentHost::CardGameDocumentHost()
@@ -1545,6 +1530,8 @@ void CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 	drag_state.active = true;
 	sprites[q].animating = false;
 	sprites[q].target_rect = sprites[q].rect;
+	if(!HasCapture())
+		SetCapture();
 }
 
 void CardGameDocumentHost::UpdateCardDrag(Point p)
@@ -1589,6 +1576,21 @@ void CardGameDocumentHost::EndCardDrag(Point p)
 		overlay.Refresh();
 	}
 	InvokePythonDrag(card_id, FindDropZone(p));
+}
+
+void CardGameDocumentHost::MouseMove(Point p, dword flags)
+{
+	if(drag_state.active && HasCapture())
+		UpdateCardDrag(p);
+}
+
+void CardGameDocumentHost::LeftUp(Point p, dword flags)
+{
+	if(!drag_state.active)
+		return;
+	if(HasCapture())
+		ReleaseCapture();
+	EndCardDrag(p);
 }
 
 void CardGameDocumentHost::ClearCardCtrls()

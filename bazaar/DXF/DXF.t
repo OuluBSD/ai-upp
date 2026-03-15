@@ -21,6 +21,7 @@ itIT("Indice colore :")
 
 T_("Cancel")
 deDE("Abbrechen")
+fiFI("Peruuta")
 itIT("Annulla")
 
 T_("Ok")

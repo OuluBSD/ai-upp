@@ -9,14 +9,17 @@ plPL("Bud\305\274et domowy")
 
 T_("Expenses")
 csCZ("V\303\275daje")
+fiFI("Menot")
 plPL("Wydatki")
 
 T_("Categories")
 csCZ("Kategorie")
+fiFI("Kategoriat")
 plPL("Kategorie")
 
 T_("Category")
 csCZ("Kategorie")
+fiFI("Kategoria")
 plPL("Kategoria")
 
 T_("Plus / Minus")
@@ -25,6 +28,7 @@ plPL("Plus / Minus")
 
 T_("Value")
 csCZ("Hodnota")
+fiFI("Arvo")
 plPL("Ile")
 
 T_("When")
@@ -37,14 +41,17 @@ plPL("Opis")
 
 T_("Month")
 csCZ("M\304\233s\303\255c")
+fiFI("Kuukausi")
 plPL("Miesi\304\205c")
 
 T_("Name")
 csCZ("N\303\241zev")
+fiFI("Nimi")
 plPL("Nazwa")
 
 T_("Default value")
 csCZ("V\303\275choz\303\255 hodnota")
+fiFI("Oletusarvo")
 plPL("Warto\305\233\304\207 domy\305\233lna")
 
 T_("Default for a new month")
@@ -53,6 +60,7 @@ plPL("Domy\305\233lnie w nowym miesi\304\205cu")
 
 T_("Amount")
 csCZ("\304\214\303\241stka")
+fiFI("M\303\244\303\244r\303\244")
 plPL("Ile")
 
 T_("Product")
@@ -69,10 +77,12 @@ plPL("Plus")
 
 T_("No")
 csCZ("Ne")
+fiFI("Ei")
 plPL("Nie")
 
 T_("Yes")
 csCZ("Ano")
+fiFI("Kyll\303\244")
 plPL("Tak")
 
 T_("You can't remove this group. It is not empty.")
@@ -94,6 +104,7 @@ plPL("Nie mo\305\274na usun\304\205\304\207 pozycji '%s'. Jest wykorzystywana "
 
 T_("Options")
 csCZ("Nastaven\303\255")
+fiFI("Asetukset")
 plPL("Ustawienia")
 
 T_("Database was cleared")
@@ -102,6 +113,7 @@ plPL("Baza danych zosta\305\202a wyczyszczona")
 
 T_("About")
 csCZ("O programu")
+fiFI("Tietoja")
 plPL("O programie")
 
 T_("No help available yet")
@@ -110,6 +122,7 @@ plPL("Pomoc nie jest obecnie dost\304\231pna")
 
 T_("Can't create or open database file")
 csCZ("Nelze vytvo\305\231it nebo otev\305\231\303\255t soubor s datab\303\241z\303\255")
+fiFI("Tietokantatiedostoa ei voida luoda tai avata")
 plPL("Nie mo\305\274na utworzy\304\207 lub otworzy\304\207 bazy danych")
 
 
@@ -117,10 +130,12 @@ plPL("Nie mo\305\274na utworzy\304\207 lub otworzy\304\207 bazy danych")
 
 T_("Help")
 csCZ("N\303\241pov\304\233da")
+fiFI("Apua")
 plPL("")
 
 T_("Exit")
 csCZ("Ukon\304\215it")
+fiFI("Lopeta")
 plPL("Zako\305\204cz")
 
 T_("Summary")
@@ -141,6 +156,7 @@ plPL("Zosta\305\202o:")
 
 T_("Amount from prev. month:")
 csCZ("\304\214\303\241stka z p\305\231edchoz\303\255ho m\304\233s\303\255ce:")
+fiFI("M\303\244\303\244r\303\244 edelliselt\303\244 kuukaudelta:")
 plPL("Kwota z poprz. miesi\304\205ca:")
 
 T_("Final rest:")
@@ -153,14 +169,17 @@ plPL("Najwi\304\231cej wydano na")
 
 T_("Language")
 csCZ("Jazyk")
+fiFI("Kieli")
 plPL("J\304\231zyk")
 
 T_("OK")
 csCZ("")
+fiFI("OK")
 plPL("")
 
 T_("Clear all data from database")
 csCZ("Vyma\305\276 v\305\241echna data z datab\303\241ze")
+fiFI("Tyhjenn\303\244 kaikki tiedot tietokannasta")
 plPL("Usu\305\204 wszystkie dane z bazy danych")
 
 T_("Plus\nMinus")
@@ -169,6 +188,7 @@ plPL("")
 
 T_("Cancel")
 csCZ("Zru\305\241it")
+fiFI("Peruuta")
 plPL("")
 
 

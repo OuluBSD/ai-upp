@@ -34,6 +34,7 @@ def print_help(prog):
                 "  --verbose, -Verbose, -v            Verbose output",
                 "  --add-root P, -ar P                Add source root passed to umk (repeatable)",
                 "  --search-root P, -sr P             Add package lookup root for target/mainconf (repeatable)",
+                "  --output-dir P, -od P              Copy built executable to this directory instead of bin/",
                 "  --dump-cmd                         Dump the umk command and exit",
                 "  --help, -Help                      Show this help",
             ]
@@ -87,6 +88,7 @@ def parse_args(argv):
         "add_roots": [],
         "search_roots": [],
         "target": None,
+        "output_dir": None,
         "dump_cmd": False,
         "help": False,
     }
@@ -210,6 +212,17 @@ def parse_args(argv):
             continue
         if lower.startswith("-j") and len(arg) > 2:
             opts["jobs"] = parse_jobs(arg[2:])
+            i += 1
+            continue
+        if lower in ("--output-dir", "-output-dir", "-od"):
+            if i + 1 >= len(argv):
+                raise ValueError("Missing value for --output-dir")
+            i += 1
+            opts["output_dir"] = argv[i]
+            i += 1
+            continue
+        if lower.startswith("--output-dir="):
+            opts["output_dir"] = arg.split("=", 1)[1]
             i += 1
             continue
         if arg.startswith("-"):
@@ -1381,6 +1394,14 @@ def main():
     copy_eon_files(upp_path, output_path.parent, opts["verbose"])
     if output_path.exists():
         print(f"Executable compiled: {output_path}")
+    if opts.get("output_dir") and output_path.exists():
+        out_dir = Path(opts["output_dir"])
+        if not out_dir.is_absolute():
+            out_dir = invocation_cwd / out_dir
+        out_dir.mkdir(parents=True, exist_ok=True)
+        dest = out_dir / output_path.name
+        shutil.copy2(output_path, dest)
+        print(f"Copied to: {dest}")
     return 0
 
 

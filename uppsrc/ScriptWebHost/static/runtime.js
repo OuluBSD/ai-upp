@@ -199,18 +199,14 @@ function cancelSpriteDrag() {
   setSpritePosition(img, drag.originX, drag.originY, drag.rotation, false, drag.baseLayer);
 }
 
-function beginSpriteDrag(ev, img) {
-  if (!spriteCanInteract(img))
+function beginSpriteDrag(img, clientX, clientY, pointerId) {
+  if (runtime.drag || !spriteCanInteract(img))
     return;
-  ev.preventDefault();
-  ev.stopPropagation();
   const rect = spriteRect(img);
   const tableRect = table.getBoundingClientRect();
-  const clientX = ev.clientX;
-  const clientY = ev.clientY;
   runtime.drag = {
     id: img.dataset.id,
-    pointerId: ev.pointerId,
+    pointerId,
     startClientX: clientX,
     startClientY: clientY,
     grabX: clientX - tableRect.left - rect.x,
@@ -225,49 +221,66 @@ function beginSpriteDrag(ev, img) {
   img.classList.remove('animating');
   img.classList.add('dragging');
   img.style.zIndex = String(spriteLayerBase('moving') + 9999);
-  if (typeof img.setPointerCapture === 'function')
-    img.setPointerCapture(ev.pointerId);
 }
 
-function handlePointerMove(ev) {
+function updateSpriteDrag(clientX, clientY, pointerId) {
   const drag = runtime.drag;
   if (!drag)
     return;
-  if (drag.pointerId !== undefined && ev.pointerId !== undefined && drag.pointerId !== ev.pointerId)
+  if (drag.pointerId !== undefined && pointerId !== undefined && drag.pointerId !== pointerId)
     return;
   const img = runtime.sprites.get(drag.id);
   if (!img)
     return;
-  const dx = ev.clientX - drag.startClientX;
-  const dy = ev.clientY - drag.startClientY;
+  const dx = clientX - drag.startClientX;
+  const dy = clientY - drag.startClientY;
   if (!drag.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3))
     drag.moved = true;
   if (!drag.moved)
     return;
   const tableRect = table.getBoundingClientRect();
-  const x = ev.clientX - tableRect.left - drag.grabX;
-  const y = ev.clientY - tableRect.top - drag.grabY;
+  const x = clientX - tableRect.left - drag.grabX;
+  const y = clientY - tableRect.top - drag.grabY;
   setSpritePosition(img, x, y, drag.rotation, false, 'moving');
 }
 
-function handlePointerUp(ev) {
+function endSpriteDrag(clientX, clientY, pointerId) {
   const drag = runtime.drag;
   if (!drag)
     return;
-  if (drag.pointerId !== undefined && ev.pointerId !== undefined && drag.pointerId !== ev.pointerId)
+  if (drag.pointerId !== undefined && pointerId !== undefined && drag.pointerId !== pointerId)
     return;
   const img = runtime.sprites.get(drag.id);
   if (!img) {
     runtime.drag = null;
     return;
   }
-  if (typeof img.releasePointerCapture === 'function' && ev.pointerId !== undefined) {
-    try {
-      img.releasePointerCapture(ev.pointerId);
-    } catch (e) {
+  finishSpriteDrag(img, clientX, clientY);
+}
+
+function handlePointerMove(ev) {
+  updateSpriteDrag(ev.clientX, ev.clientY, ev.pointerId);
+}
+
+function handlePointerUp(ev) {
+  if (runtime.drag) {
+    const img = runtime.sprites.get(runtime.drag.id);
+    if (img && typeof img.releasePointerCapture === 'function' && ev.pointerId !== undefined) {
+      try {
+        img.releasePointerCapture(ev.pointerId);
+      } catch (e) {
+      }
     }
   }
-  finishSpriteDrag(img, ev.clientX, ev.clientY);
+  endSpriteDrag(ev.clientX, ev.clientY, ev.pointerId);
+}
+
+function handleMouseMove(ev) {
+  updateSpriteDrag(ev.clientX, ev.clientY, undefined);
+}
+
+function handleMouseUp(ev) {
+  endSpriteDrag(ev.clientX, ev.clientY, undefined);
 }
 
 function ensureSprite(id) {
@@ -278,7 +291,22 @@ function ensureSprite(id) {
   img.className = 'sprite';
   img.dataset.id = id;
   img.draggable = false;
-  img.addEventListener('pointerdown', ev => beginSpriteDrag(ev, img));
+  img.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    beginSpriteDrag(img, ev.clientX, ev.clientY, ev.pointerId);
+    if (runtime.drag && typeof img.setPointerCapture === 'function')
+      img.setPointerCapture(ev.pointerId);
+  });
+  img.addEventListener('mousedown', ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    beginSpriteDrag(img, ev.clientX, ev.clientY, undefined);
+  });
+  img.addEventListener('pointermove', handlePointerMove, true);
+  img.addEventListener('mousemove', handleMouseMove, true);
+  img.addEventListener('pointerup', handlePointerUp, true);
+  img.addEventListener('mouseup', handleMouseUp, true);
   img.addEventListener('dragstart', ev => ev.preventDefault());
   spriteLayer.appendChild(img);
   runtime.sprites.set(id, img);
@@ -480,9 +508,16 @@ function renderBaseLayout(data) {
   table.appendChild(spriteLayer);
 }
 
+document.addEventListener('pointermove', handlePointerMove, true);
+document.addEventListener('pointerup', handlePointerUp, true);
+document.addEventListener('pointercancel', cancelSpriteDrag, true);
+document.addEventListener('mousemove', handleMouseMove, true);
+document.addEventListener('mouseup', handleMouseUp, true);
 window.addEventListener('pointermove', handlePointerMove, true);
 window.addEventListener('pointerup', handlePointerUp, true);
 window.addEventListener('pointercancel', cancelSpriteDrag, true);
+window.addEventListener('mousemove', handleMouseMove, true);
+window.addEventListener('mouseup', handleMouseUp, true);
 
 function installPythonJsHelpers() {
   if (!String.prototype.join) {

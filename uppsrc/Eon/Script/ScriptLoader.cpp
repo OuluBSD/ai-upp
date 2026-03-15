@@ -203,7 +203,8 @@ void RegisterEonModule(PyVM& vm, Engine& eng) {
 	router_mod.SetItem(PyValue("BuildRouterChain"), PyValue::Function("BuildRouterChain", PyBuildRouterChain, &eng));
 	router_mod.SetItem(PyValue("Direction_Source"), PyValue((int64)RouterPortDesc::Direction::Source));
 	router_mod.SetItem(PyValue("Direction_Sink"), PyValue((int64)RouterPortDesc::Direction::Sink));
-	vm.GetGlobals().GetAdd(PyValue("router")) = router_mod;
+	vm.GetGlobals().SetItem(PyValue("router"), router_mod);
+
 }
 
 namespace Eon {

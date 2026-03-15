@@ -8,9 +8,11 @@ namespace Upp {
 #define IMAGEFILE <CtrlCore/CtrlCore.iml>
 #include <Draw/iml_source.h>
 
+#ifndef GUIPLATFORM_FBIMG_INTERFACE
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_source.h>
+#endif
 
 static bool StdDisplayErrorFn(const Value& e)
 {

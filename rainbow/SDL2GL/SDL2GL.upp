@@ -4,9 +4,10 @@ uses
 	Painter,
 	CtrlLib,
 	GLDraw,
-	PdfDraw;
+	PdfDraw,
+	GuboLib;
 
-library(POSIX) "SDL2 SDL2main GL";
+library(POSIX) "SDL2 SDL2main GL GLEW GLU OpenGL";
 
 library(WIN32) "SDL2.lib SDL2main.lib OpenGL32.lib";
 

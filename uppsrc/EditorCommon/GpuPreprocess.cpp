@@ -1483,10 +1483,6 @@ public:
 		TimeStop upload_ts;
 		glBindTexture(GL_TEXTURE_2D, tex_rgba);
 		upload_format = GL_RGBA;
-#ifdef PLATFORM_LINUX
-		if (HasExtension("GL_EXT_bgra") || HasExtension("GL_EXT_texture_format_BGRA8888"))
-			upload_format = GL_BGRA;
-#endif
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, upload_format, GL_UNSIGNED_BYTE, ~img);
 		Upp::Cout() << "DEBUG: PrepareFrameGpu upload_format=" << (upload_format == GL_BGRA ? "BGRA" : "RGBA") << "\n";
 		GLenum err = glGetError();

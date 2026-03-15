@@ -3,7 +3,8 @@ uses
 	RichEdit,
 	plugin/DroidFonts,
 	SDL2Uword,
-	SDL2GL;
+	SDL2GL,
+	AI/Core;
 
 file
 	test.cpp,

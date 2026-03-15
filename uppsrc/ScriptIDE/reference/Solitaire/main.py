@@ -82,9 +82,12 @@ def take_last(items):
 
 
 def clear_sprite_registry():
-    sprite_ids.clear()
-    sprite_zones.clear()
-    sprite_indexes.clear()
+    global sprite_ids
+    global sprite_zones
+    global sprite_indexes
+    sprite_ids = []
+    sprite_zones = []
+    sprite_indexes = []
 
 
 def register_sprite(sprite_id, zone_id, index):
@@ -113,11 +116,18 @@ def zone_index(zone_names, zone_id):
 
 def make_deck(offset):
     deck = []
+    pool = []
     i = 0
     while i < len(card_defs):
-        deck_index = (offset + i) % len(card_defs)
-        deck.append(card_defs[deck_index][0])
+        pool.append(card_defs[i][0])
         i = i + 1
+    seed = (offset + 1) * 7919
+    while len(pool) > 0:
+        seed = (seed * 1103515245 + 12345) % 2147483647
+        pick_index = seed % len(pool)
+        pick = pool[pick_index]
+        deck.append(pick)
+        pool.remove(pick)
     return deck
 
 
@@ -131,19 +141,16 @@ def append_cards(dst, cards):
 def reset_game():
     global move_count
     global last_action
-    stock.clear()
-    waste.clear()
-
-    i = 0
-    while i < len(foundations):
-        foundations[i].clear()
-        i = i + 1
-
-    i = 0
-    while i < len(tableau):
-        tableau[i].clear()
-        tableau_up[i] = 0
-        i = i + 1
+    global stock
+    global waste
+    global foundations
+    global tableau
+    global tableau_up
+    stock = []
+    waste = []
+    foundations = [[], [], [], []]
+    tableau = [[], [], [], [], [], [], []]
+    tableau_up = [0, 0, 0, 0, 0, 0, 0]
 
     deck = make_deck((deal_index * 7) % len(card_defs))
 

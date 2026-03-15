@@ -1,0 +1,14 @@
+{
+  "entry_script": "ci_verify.py",
+  "layout": "table.form",
+  "metadata": {
+    "players": 4,
+    "ocr_verify": true,
+    "ocr_expected": {
+      "label_self": "You  T:0  R:+0  C:13",
+      "label_left": "West  T:0  R:+0  C:13",
+      "label_top": "North  T:0  R:+0  C:13",
+      "label_right": "East  T:0  R:+0  C:13"
+    }
+  }
+}

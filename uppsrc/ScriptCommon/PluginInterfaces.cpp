@@ -23,4 +23,12 @@ ICustomExecuteProvider* HeadlessPluginContext::FindExecuteProvider(const String&
 	return nullptr;
 }
 
+IFileTypeHandler* HeadlessPluginContext::FindFileTypeHandler(const String& path)
+{
+	for(int i = file_handlers.GetCount() - 1; i >= 0; i--)
+		if(file_handlers[i]->CanHandle(path))
+			return file_handlers[i];
+	return nullptr;
+}
+
 END_UPP_NAMESPACE

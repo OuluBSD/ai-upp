@@ -4,6 +4,7 @@
 // No includes here - they are in ScriptCommon.h or Main package header
 
 class PyVM;
+class IDocumentHost;
 
 class IPythonBindingProvider {
 public:
@@ -18,11 +19,32 @@ public:
 	virtual void Execute(const String& path) = 0;
 };
 
+class IFileTypeHandler {
+public:
+	enum HostRole {
+		HOSTROLE_EDITOR,
+		HOSTROLE_VIEWER,
+	};
+
+	virtual ~IFileTypeHandler() {}
+	virtual String         GetExtension() const = 0;
+	virtual String         GetFileDescription() const = 0;
+	virtual bool           CanHandle(const String& path) const { return ToLower(GetFileExt(path)) == ToLower(GetExtension()); }
+	virtual bool           SupportsHostRole(HostRole role) const { return role == HOSTROLE_EDITOR; }
+	virtual IDocumentHost* CreateHost(HostRole role) {
+		return role == HOSTROLE_EDITOR ? CreateEditorHost() : CreateViewerHost();
+	}
+	virtual IDocumentHost* CreateEditorHost() { return CreateDocumentHost(); }
+	virtual IDocumentHost* CreateViewerHost() { return nullptr; }
+	virtual IDocumentHost* CreateDocumentHost() { return nullptr; }
+};
+
 class IPluginRegistry {
 public:
 	virtual ~IPluginRegistry() {}
 	virtual void RegisterPythonBindingProvider(IPythonBindingProvider& provider) = 0;
 	virtual void RegisterCustomExecuteProvider(ICustomExecuteProvider& provider) = 0;
+	virtual void RegisterFileTypeHandler(IFileTypeHandler& handler) = 0;
 };
 
 class IPluginContext : public IPluginRegistry {
@@ -35,6 +57,7 @@ class HeadlessPluginContext : public IPluginContext {
 	PyVM* vm;
 	Vector<IPythonBindingProvider*> binding_providers;
 	Vector<ICustomExecuteProvider*> execute_providers;
+	Vector<IFileTypeHandler*> file_handlers;
 
 public:
 	HeadlessPluginContext(PyVM& vm) : vm(&vm) {}
@@ -44,9 +67,11 @@ public:
 	// IPluginRegistry
 	virtual void RegisterPythonBindingProvider(IPythonBindingProvider& p) override { binding_providers.Add(&p); }
 	virtual void RegisterCustomExecuteProvider(ICustomExecuteProvider& p) override { execute_providers.Add(&p); }
+	virtual void RegisterFileTypeHandler(IFileTypeHandler& handler) override { file_handlers.Add(&handler); }
 
 	void SyncBindings();
 	ICustomExecuteProvider* FindExecuteProvider(const String& path);
+	IFileTypeHandler* FindFileTypeHandler(const String& path);
 };
 
 // View interface for card game UI — implemented by CardGameDocumentHost in ScriptIDE.
@@ -54,6 +79,7 @@ public:
 class IHeartsView {
 public:
 	virtual ~IHeartsView() {}
+	virtual PyVM* GetVM() = 0;
 	// Start a new sprite frame; sprites not touched in this frame are pruned by the host.
 	virtual void BeginSpriteFrame() = 0;
 	// Place/update a card sprite at absolute pixel position
@@ -64,7 +90,7 @@ public:
 	virtual Value GetZoneRect(const String& zone_id) = 0;
 	// Clear all card sprites
 	virtual void ClearSprites() = 0;
-	// Remove a single card sprite
+	// Return a single card sprite
 	virtual void RemoveSprite(const String& card_id) = 0;
 	// Set expected rendered sprite count for a named zone; host asserts after UI sync
 	virtual void SetExpectedSpriteCount(const String& zone_id, int count) = 0;
@@ -78,6 +104,7 @@ public:
 	virtual void SetStatus(const String& text) = 0;
 	// Log a message to the game log
 	virtual void Log(const String& msg) = 0;
+	virtual void  SetLayout(const String& path) = 0;
 	// Schedule a named Python callback after a delay
 	virtual void SetTimeout(int delay_ms, const String& callback_name) = 0;
 };

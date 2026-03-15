@@ -1,6 +1,6 @@
 #include <EditorCommon/GameThemeRender.h>
-#include <GameCommon/Poker/TexasRenderer.h>
-#include <GameCommon/Poker/TableLayoutProfile.h>
+#include <Poker/TexasRenderer.h>
+#include <Poker/TableLayoutProfile.h>
 #include <Painter/Painter.h>
 
 namespace Upp {

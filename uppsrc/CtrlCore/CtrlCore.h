@@ -53,9 +53,11 @@ namespace Upp {
 
 struct Visitor;
 
+#ifndef GUIPLATFORM_FBIMG_INTERFACE
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_header.h>
+#endif
 
 INITIALIZE(CtrlCore)
 

@@ -18,8 +18,9 @@
 NAMESPACE_UPP
 
 #define IMAGECLASS FBImg
-#define IMAGEFILE <SDL20GL/FB.iml>
+#define IMAGEFILE <SDL2GL/FB.iml>
 #include <Draw/iml_header.h>
+#define GUIPLATFORM_FBIMG_INTERFACE
 
 struct SDLWindow {
 	SDL_Window   *win;
@@ -82,13 +83,13 @@ class TopWindowFrame;
 
 #define GUIPLATFORM_CTRL_TOP_DECLS   Ctrl *owner_window;
 
-#define GUIPLATFORM_CTRL_DECLS_INCLUDE <SDL20GL/Ctrl.h>
+#define GUIPLATFORM_CTRL_DECLS_INCLUDE <SDL2GL/Ctrl.h>
 
 #define GUIPLATFORM_PASTECLIP_DECLS \
 	bool dnd; \
 	friend struct DnDLoop; \
 
-#define GUIPLATFORM_TOPWINDOW_DECLS_INCLUDE <SDL20GL/Top.h>
+#define GUIPLATFORM_TOPWINDOW_DECLS_INCLUDE <SDL2GL/Top.h>
 
 void USDLSetup(dword flags);
 

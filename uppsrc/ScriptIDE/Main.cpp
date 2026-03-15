@@ -27,6 +27,7 @@ GUI_APP_MAIN
     bool exit_on_assert = false;
     bool stdout_log = false;
     bool maximize_window = false;
+    Size window_size = Size(0, 0);
     bool autostart = false;
     int timeout_ms = 1500;
     int stop_after_ms = -1;
@@ -60,6 +61,11 @@ GUI_APP_MAIN
         }
         if(arg == "--stdout-log") {
             stdout_log = true;
+            continue;
+        }
+        if(arg.StartsWith("--size=")) {
+            Vector<String> sz = Split(arg.Mid(7), "x");
+            if(sz.GetCount() == 2) window_size = Size(StrInt(sz[0]), StrInt(sz[1]));
             continue;
         }
         if(arg == "--maximize") {
@@ -149,6 +155,7 @@ GUI_APP_MAIN
     CardGameDocumentHost::log_to_stdout = stdout_log;
     CardGameDocumentHost::exit_on_assert = exit_on_assert;
     ide.console_pane->MirrorStdout(dump_console);
+    if(window_size.cx > 0 && window_size.cy > 0) ide.SetRect(0, 0, window_size.cx, window_size.cy);
     if(maximize_window)
         ide.Maximize();
 

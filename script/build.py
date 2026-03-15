@@ -580,6 +580,7 @@ def detect_build_paths():
         add_path(root / "lib64", lib_entries)
 
     include_candidates = [
+        Path("/usr/include/SDL2"),
         Path("/usr/include/opencv4"),
         Path("/usr/include/gtk-4.0"),
         Path("/usr/include/glib-2.0"),

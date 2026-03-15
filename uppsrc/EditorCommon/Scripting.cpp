@@ -1,7 +1,7 @@
 #include <StrategyBridge/StrategyBridge.h>
 #include <EditorCommon/Scripting.h>
 #include <GameRules/EngineDefs.h>
-#include <GameCommon/Poker/ServerListSim.h>
+#include <Poker/ServerListSim.h>
 #include <ConvNet/ConvNet.h>
 #ifdef PLATFORM_WIN32
 #include <windows.h>
@@ -1412,48 +1412,48 @@ static PyValue builtin_get_server_ping(const Vector<PyValue>& args, void*) {
 }
 
 GameScript::GameScript() {
-	vm.GetGlobals().GetAdd(PyValue("get_pot")) = PyValue::Function("get_pot", builtin_get_pot);
-	vm.GetGlobals().GetAdd(PyValue("get_game_type")) = PyValue::Function("get_game_type", builtin_get_game_type);
-	vm.GetGlobals().GetAdd(PyValue("get_hand_size")) = PyValue::Function("get_hand_size", builtin_get_hand_size);
-	vm.GetGlobals().GetAdd(PyValue("get_table_id")) = PyValue::Function("get_table_id", builtin_get_table_id);
-	vm.GetGlobals().GetAdd(PyValue("get_tournament_mode")) = PyValue::Function("get_tournament_mode", builtin_get_tournament_mode);
-	vm.GetGlobals().GetAdd(PyValue("is_my_turn")) = PyValue::Function("is_my_turn", builtin_is_my_turn);
-	vm.GetGlobals().GetAdd(PyValue("is_found")) = PyValue::Function("is_found", builtin_is_found);
-	vm.GetGlobals().GetAdd(PyValue("get_stack")) = PyValue::Function("get_stack", builtin_get_stack);
-	vm.GetGlobals().GetAdd(PyValue("get_stacks_count")) = PyValue::Function("get_stacks_count", builtin_get_stacks_count);
-	vm.GetGlobals().GetAdd(PyValue("find_orb")) = PyValue::Function("find_orb", builtin_find_orb);
-	vm.GetGlobals().GetAdd(PyValue("find_bruteforce")) = PyValue::Function("find_bruteforce", builtin_find_bruteforce);
-	vm.GetGlobals().GetAdd(PyValue("set_window_rects")) = PyValue::Function("set_window_rects", builtin_set_window_rects);
-	vm.GetGlobals().GetAdd(PyValue("set_window_rect")) = PyValue::Function("set_window_rect", builtin_set_window_rect);
-	vm.GetGlobals().GetAdd(PyValue("get_rule_prop")) = PyValue::Function("get_rule_prop", builtin_get_rule_prop);
-	vm.GetGlobals().GetAdd(PyValue("tracker_get")) = PyValue::Function("tracker_get", builtin_tracker_get);
-	vm.GetGlobals().GetAdd(PyValue("tracker_set")) = PyValue::Function("tracker_set", builtin_tracker_set);
-	vm.GetGlobals().GetAdd(PyValue("tracker_mark_miss")) = PyValue::Function("tracker_mark_miss", builtin_tracker_mark_miss);
-	vm.GetGlobals().GetAdd(PyValue("tracker_clear")) = PyValue::Function("tracker_clear", builtin_tracker_clear);
-	vm.GetGlobals().GetAdd(PyValue("tracker_should_reset")) = PyValue::Function("tracker_should_reset", builtin_tracker_should_reset);
-	vm.GetGlobals().GetAdd(PyValue("clear_result_objects")) = PyValue::Function("clear_result_objects", builtin_clear_result_objects);
-	vm.GetGlobals().GetAdd(PyValue("set_result_object")) = PyValue::Function("set_result_object", builtin_set_result_object);
-	vm.GetGlobals().GetAdd(PyValue("set_result_prop")) = PyValue::Function("set_result_prop", builtin_set_result_prop);
-	vm.GetGlobals().GetAdd(PyValue("set_result_semantic")) = PyValue::Function("set_result_semantic", builtin_set_result_semantic);
-	vm.GetGlobals().GetAdd(PyValue("compare_patch_orb")) = PyValue::Function("compare_patch_orb", builtin_compare_patch_orb);
-	vm.GetGlobals().GetAdd(PyValue("get_tracked_text")) = PyValue::Function("get_tracked_text", builtin_get_tracked_text);
-	vm.GetGlobals().GetAdd(PyValue("set_tracked_text")) = PyValue::Function("set_tracked_text", builtin_set_tracked_text);
-	vm.GetGlobals().GetAdd(PyValue("set_convnet_model_dir")) = PyValue::Function("set_convnet_model_dir", builtin_set_convnet_model_dir);
-	vm.GetGlobals().GetAdd(PyValue("classify_convnet")) = PyValue::Function("classify_convnet", builtin_classify_convnet);
-	vm.GetGlobals().GetAdd(PyValue("read_text_backend")) = PyValue::Function("read_text_backend", builtin_read_text_backend);
-	vm.GetGlobals().GetAdd(PyValue("openai_repair_text")) = PyValue::Function("openai_repair_text", builtin_openai_repair_text);
-	vm.GetGlobals().GetAdd(PyValue("get_rule_ocr")) = PyValue::Function("get_rule_ocr", builtin_get_rule_ocr);
-	vm.GetGlobals().GetAdd(PyValue("sg_parse_int")) = PyValue::Function("sg_parse_int", builtin_sg_parse_int);
-	vm.GetGlobals().GetAdd(PyValue("log")) = PyValue::Function("log", builtin_log, this);
-	vm.GetGlobals().GetAdd(PyValue("perform_action")) = PyValue::Function("perform_action", builtin_perform_action, this);
-	vm.GetGlobals().GetAdd(PyValue("get_strategy_advice")) = PyValue::Function("get_strategy_advice", builtin_get_strategy_advice, this);
-	vm.GetGlobals().GetAdd(PyValue("refresh_server_list")) = PyValue::Function("refresh_server_list", builtin_refresh_server_list);
-	vm.GetGlobals().GetAdd(PyValue("get_server_count")) = PyValue::Function("get_server_count", builtin_get_server_count);
-	vm.GetGlobals().GetAdd(PyValue("get_server_name")) = PyValue::Function("get_server_name", builtin_get_server_name);
-	vm.GetGlobals().GetAdd(PyValue("get_server_game_type")) = PyValue::Function("get_server_game_type", builtin_get_server_game_type);
-	vm.GetGlobals().GetAdd(PyValue("get_server_players")) = PyValue::Function("get_server_players", builtin_get_server_players);
-	vm.GetGlobals().GetAdd(PyValue("get_server_max_players")) = PyValue::Function("get_server_max_players", builtin_get_server_max_players);
-	vm.GetGlobals().GetAdd(PyValue("get_server_ping")) = PyValue::Function("get_server_ping", builtin_get_server_ping);
+	vm.GetGlobalsRW().SetItem(PyValue("get_pot"), PyValue::Function("get_pot", builtin_get_pot));
+	vm.GetGlobalsRW().SetItem(PyValue("get_game_type"), PyValue::Function("get_game_type", builtin_get_game_type));
+	vm.GetGlobalsRW().SetItem(PyValue("get_hand_size"), PyValue::Function("get_hand_size", builtin_get_hand_size));
+	vm.GetGlobalsRW().SetItem(PyValue("get_table_id"), PyValue::Function("get_table_id", builtin_get_table_id));
+	vm.GetGlobalsRW().SetItem(PyValue("get_tournament_mode"), PyValue::Function("get_tournament_mode", builtin_get_tournament_mode));
+	vm.GetGlobalsRW().SetItem(PyValue("is_my_turn"), PyValue::Function("is_my_turn", builtin_is_my_turn));
+	vm.GetGlobalsRW().SetItem(PyValue("is_found"), PyValue::Function("is_found", builtin_is_found));
+	vm.GetGlobalsRW().SetItem(PyValue("get_stack"), PyValue::Function("get_stack", builtin_get_stack));
+	vm.GetGlobalsRW().SetItem(PyValue("get_stacks_count"), PyValue::Function("get_stacks_count", builtin_get_stacks_count));
+	vm.GetGlobalsRW().SetItem(PyValue("find_orb"), PyValue::Function("find_orb", builtin_find_orb));
+	vm.GetGlobalsRW().SetItem(PyValue("find_bruteforce"), PyValue::Function("find_bruteforce", builtin_find_bruteforce));
+	vm.GetGlobalsRW().SetItem(PyValue("set_window_rects"), PyValue::Function("set_window_rects", builtin_set_window_rects));
+	vm.GetGlobalsRW().SetItem(PyValue("set_window_rect"), PyValue::Function("set_window_rect", builtin_set_window_rect));
+	vm.GetGlobalsRW().SetItem(PyValue("get_rule_prop"), PyValue::Function("get_rule_prop", builtin_get_rule_prop));
+	vm.GetGlobalsRW().SetItem(PyValue("tracker_get"), PyValue::Function("tracker_get", builtin_tracker_get));
+	vm.GetGlobalsRW().SetItem(PyValue("tracker_set"), PyValue::Function("tracker_set", builtin_tracker_set));
+	vm.GetGlobalsRW().SetItem(PyValue("tracker_mark_miss"), PyValue::Function("tracker_mark_miss", builtin_tracker_mark_miss));
+	vm.GetGlobalsRW().SetItem(PyValue("tracker_clear"), PyValue::Function("tracker_clear", builtin_tracker_clear));
+	vm.GetGlobalsRW().SetItem(PyValue("tracker_should_reset"), PyValue::Function("tracker_should_reset", builtin_tracker_should_reset));
+	vm.GetGlobalsRW().SetItem(PyValue("clear_result_objects"), PyValue::Function("clear_result_objects", builtin_clear_result_objects));
+	vm.GetGlobalsRW().SetItem(PyValue("set_result_object"), PyValue::Function("set_result_object", builtin_set_result_object));
+	vm.GetGlobalsRW().SetItem(PyValue("set_result_prop"), PyValue::Function("set_result_prop", builtin_set_result_prop));
+	vm.GetGlobalsRW().SetItem(PyValue("set_result_semantic"), PyValue::Function("set_result_semantic", builtin_set_result_semantic));
+	vm.GetGlobalsRW().SetItem(PyValue("compare_patch_orb"), PyValue::Function("compare_patch_orb", builtin_compare_patch_orb));
+	vm.GetGlobalsRW().SetItem(PyValue("get_tracked_text"), PyValue::Function("get_tracked_text", builtin_get_tracked_text));
+	vm.GetGlobalsRW().SetItem(PyValue("set_tracked_text"), PyValue::Function("set_tracked_text", builtin_set_tracked_text));
+	vm.GetGlobalsRW().SetItem(PyValue("set_convnet_model_dir"), PyValue::Function("set_convnet_model_dir", builtin_set_convnet_model_dir));
+	vm.GetGlobalsRW().SetItem(PyValue("classify_convnet"), PyValue::Function("classify_convnet", builtin_classify_convnet));
+	vm.GetGlobalsRW().SetItem(PyValue("read_text_backend"), PyValue::Function("read_text_backend", builtin_read_text_backend));
+	vm.GetGlobalsRW().SetItem(PyValue("openai_repair_text"), PyValue::Function("openai_repair_text", builtin_openai_repair_text));
+	vm.GetGlobalsRW().SetItem(PyValue("get_rule_ocr"), PyValue::Function("get_rule_ocr", builtin_get_rule_ocr));
+	vm.GetGlobalsRW().SetItem(PyValue("sg_parse_int"), PyValue::Function("sg_parse_int", builtin_sg_parse_int));
+	vm.GetGlobalsRW().SetItem(PyValue("log"), PyValue::Function("log", builtin_log, this));
+	vm.GetGlobalsRW().SetItem(PyValue("perform_action"), PyValue::Function("perform_action", builtin_perform_action, this));
+	vm.GetGlobalsRW().SetItem(PyValue("get_strategy_advice"), PyValue::Function("get_strategy_advice", builtin_get_strategy_advice, this));
+	vm.GetGlobalsRW().SetItem(PyValue("refresh_server_list"), PyValue::Function("refresh_server_list", builtin_refresh_server_list));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_count"), PyValue::Function("get_server_count", builtin_get_server_count));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_name"), PyValue::Function("get_server_name", builtin_get_server_name));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_game_type"), PyValue::Function("get_server_game_type", builtin_get_server_game_type));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_players"), PyValue::Function("get_server_players", builtin_get_server_players));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_max_players"), PyValue::Function("get_server_max_players", builtin_get_server_max_players));
+	vm.GetGlobalsRW().SetItem(PyValue("get_server_ping"), PyValue::Function("get_server_ping", builtin_get_server_ping));
 }
 
 GameScript::~GameScript() {
@@ -1593,20 +1593,20 @@ bool GameScript::CallPlatformHooks(const Image& img) {
 	try {
 		g_script = this;
 		PyValue image_val = MakeImageValue(img);
-		int q_find = vm.GetGlobals().Find(PyValue("find_instances"));
-		if (q_find < 0) {
+		PyValue q_find = vm.GetGlobals().GetItem(PyValue("find_instances"));
+		if (q_find.IsNone()) {
 			ScriptLog(log_cb, "Platform script missing find_instances(image)");
 			g_script = prev_script;
 			return false;
 		}
-		int q_update = vm.GetGlobals().Find(PyValue("update_instances"));
-		if (q_update < 0) {
+		PyValue q_update = vm.GetGlobals().GetItem(PyValue("update_instances"));
+		if (q_update.IsNone()) {
 			ScriptLog(log_cb, "Platform script missing update_instances(instances, image)");
 			g_script = prev_script;
 			return false;
 		}
-		PyValue instances = vm.Call(vm.GetGlobals()[q_find], Vector<PyValue>() << image_val);
-		vm.Call(vm.GetGlobals()[q_update], Vector<PyValue>() << instances << image_val);
+		PyValue instances = vm.Call(q_find, Vector<PyValue>() << image_val);
+		vm.Call(q_update, Vector<PyValue>() << instances << image_val);
 	} catch (const Exc& e) {
 		error = e;
 		ScriptLog(log_cb, "Platform script error: " + error);
@@ -1627,9 +1627,9 @@ PyValue GameScript::RunCommonMain(const Image& img) {
 		g_script = this;
 		current_platform = "common";
 		PyValue image_val = MakeImageValue(img);
-		int q = vm.GetGlobals().Find(PyValue("common_main"));
-		if (q >= 0) {
-			PyValue res = vm.Call(vm.GetGlobals()[q], Vector<PyValue>() << image_val);
+		PyValue q = vm.GetGlobals().GetItem(PyValue("common_main"));
+		if (!q.IsNone()) {
+			PyValue res = vm.Call(q, Vector<PyValue>() << image_val);
 			g_script = prev_script;
 			current_platform = prev_plat;
 			return res;
@@ -1658,11 +1658,11 @@ bool GameScript::RunPlatformMain(const String& name, const PyValue& instance, co
 		current_platform = name;
 		PyValue image_val = MakeImageValue(img);
 		String ident = ScriptIdentFromName(name);
-		int q = vm.GetGlobals().Find(PyValue("platform_main_" + ident));
-		if (q < 0) {
+		PyValue q = vm.GetGlobals().GetItem(PyValue("platform_main_" + ident));
+		if (q.IsNone()) {
 			return CallNamedPlatformHooks(name, img, rects, scores);
 		}
-		PyValue instances = vm.Call(vm.GetGlobals()[q], Vector<PyValue>() << instance << image_val << common_state);
+		PyValue instances = vm.Call(q, Vector<PyValue>() << instance << image_val << common_state);
 		if (instances.GetType() == PY_LIST || instances.GetType() == PY_TUPLE) {
 			for (int i = 0; i < instances.GetCount(); i++) {
 				Rect r;
@@ -1697,16 +1697,16 @@ bool GameScript::CallNamedPlatformHooks(const String& name, const Image& img, Ve
 		current_platform = name;
 		PyValue image_val = MakeImageValue(img);
 		String ident = ScriptIdentFromName(name);
-		int q_find = vm.GetGlobals().Find(PyValue("find_instances_" + ident));
-		int q_update = vm.GetGlobals().Find(PyValue("update_instances_" + ident));
-		if (q_find < 0 || q_update < 0) {
+		PyValue q_find = vm.GetGlobals().GetItem(PyValue("find_instances_" + ident));
+		PyValue q_update = vm.GetGlobals().GetItem(PyValue("update_instances_" + ident));
+		if (q_find.IsNone() || q_update.IsNone()) {
 			ScriptLog(log_cb, "Platform " + name + " missing hooks");
 			g_script = prev_script;
 			current_platform = prev_plat;
 			return false;
 		}
-		PyValue instances = vm.Call(vm.GetGlobals()[q_find], Vector<PyValue>() << image_val);
-		vm.Call(vm.GetGlobals()[q_update], Vector<PyValue>() << instances << image_val);
+		PyValue instances = vm.Call(q_find, Vector<PyValue>() << image_val);
+		vm.Call(q_update, Vector<PyValue>() << instances << image_val);
 		if (instances.GetType() == PY_LIST || instances.GetType() == PY_TUPLE) {
 			for (int i = 0; i < instances.GetCount(); i++) {
 				Rect r;
@@ -1738,15 +1738,15 @@ int GameScript::RunPlatformTracking(const Image& img) {
 	try {
 		g_script = this;
 		PyValue image_val = MakeImageValue(img);
-		int q_find = vm.GetGlobals().Find(PyValue("find_instances"));
-		int q_update = vm.GetGlobals().Find(PyValue("update_instances"));
-		if (q_find < 0 || q_update < 0) {
+		PyValue q_find = vm.GetGlobals().GetItem(PyValue("find_instances"));
+		PyValue q_update = vm.GetGlobals().GetItem(PyValue("update_instances"));
+		if (q_find.IsNone() || q_update.IsNone()) {
 			ScriptLog(log_cb, "Platform script missing find_instances or update_instances");
 			g_script = prev_script;
 			return 0;
 		}
-		PyValue instances = vm.Call(vm.GetGlobals()[q_find], Vector<PyValue>() << image_val);
-		vm.Call(vm.GetGlobals()[q_update], Vector<PyValue>() << instances << image_val);
+		PyValue instances = vm.Call(q_find, Vector<PyValue>() << image_val);
+		vm.Call(q_update, Vector<PyValue>() << instances << image_val);
 		if (instances.GetType() == PY_LIST || instances.GetType() == PY_TUPLE) {
 			g_script = prev_script;
 			return instances.GetCount();
@@ -1772,15 +1772,15 @@ bool GameScript::RunPlatformTracking(const Image& img, Vector<Rect>& rects, Vect
 	try {
 		g_script = this;
 		PyValue image_val = MakeImageValue(img);
-		int q_find = vm.GetGlobals().Find(PyValue("find_instances"));
-		int q_update = vm.GetGlobals().Find(PyValue("update_instances"));
-		if (q_find < 0 || q_update < 0) {
+		PyValue q_find = vm.GetGlobals().GetItem(PyValue("find_instances"));
+		PyValue q_update = vm.GetGlobals().GetItem(PyValue("update_instances"));
+		if (q_find.IsNone() || q_update.IsNone()) {
 			ScriptLog(log_cb, "Platform script missing find_instances or update_instances");
 			g_script = prev_script;
 			return false;
 		}
-		PyValue instances = vm.Call(vm.GetGlobals()[q_find], Vector<PyValue>() << image_val);
-		vm.Call(vm.GetGlobals()[q_update], Vector<PyValue>() << instances << image_val);
+		PyValue instances = vm.Call(q_find, Vector<PyValue>() << image_val);
+		vm.Call(q_update, Vector<PyValue>() << instances << image_val);
 		if (instances.GetType() != PY_LIST && instances.GetType() != PY_TUPLE) {
 			g_script = prev_script;
 			return true;

@@ -28,6 +28,7 @@ deals = [
 
 foundations = ["", "", "", ""]
 waste_cards = ["spades_king", "hearts_2", "clubs_5"]
+last_action = "Click or drag a visible card."
 
 def card_asset(card_name):
     return asset_base + card_name + ".png"
@@ -59,7 +60,7 @@ def refresh_ui():
     cardgame_view.clear_sprites()
     cardgame_view.set_status(solitaire_bridge.deal_label(deal_index))
     cardgame_view.set_label("label_title", solitaire_bridge.title_text())
-    cardgame_view.set_label("status_line", solitaire_bridge.status_text())
+    cardgame_view.set_label("status_line", last_action)
     cardgame_view.set_button("button_new", "Next deal", True)
 
     draw_top_card("stock", "back9")
@@ -87,10 +88,24 @@ def start():
 
 def on_button(button_id):
     global deal_index
+    global last_action
     if button_id != "button_new":
         return
     deal_index = (deal_index + 1) % len(deals)
+    last_action = "Loaded deal " + str(deal_index + 1)
     refresh_ui()
 
 def on_click(card_id):
-    cardgame_view.log("Clicked: " + str(card_id))
+    global last_action
+    last_action = "Clicked " + str(card_id)
+    cardgame_view.log(last_action)
+    refresh_ui()
+
+def on_drag(card_id, zone_id):
+    global last_action
+    if zone_id == "":
+        last_action = "Dragged " + str(card_id)
+    else:
+        last_action = "Dragged " + str(card_id) + " to " + str(zone_id)
+    cardgame_view.log(last_action)
+    refresh_ui()

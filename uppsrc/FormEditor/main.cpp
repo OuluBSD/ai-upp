@@ -1,3 +1,4 @@
+#if defined(flagMAIN) && defined(flagFORMEDITOR)
 #include "FormEditor.h"
 
 static void DumpFormPreview(const String& path)
@@ -188,4 +189,6 @@ GUI_APP_MAIN
 		tw.Run();
 	}
 }
+#endif
+
 #endif

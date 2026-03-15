@@ -110,25 +110,6 @@ public:
 	virtual void       UnregisterDockPane(const String& id) = 0;
 };
 
-class IFileTypeHandler {
-public:
-	enum HostRole {
-		HOSTROLE_VIEWER,
-		HOSTROLE_EDITOR,
-	};
-
-	virtual ~IFileTypeHandler() {}
-	virtual String         GetExtension() const = 0;
-	virtual String         GetFileDescription() const = 0;
-	virtual bool           CanHandle(const String& path) const { return ToLower(GetFileExt(path)) == ToLower(GetExtension()); }
-	virtual bool           SupportsHostRole(HostRole role) const { return role == HOSTROLE_EDITOR; }
-	virtual IDocumentHost* CreateHost(HostRole role) {
-		return role == HOSTROLE_EDITOR ? CreateEditorHost() : CreateViewerHost();
-	}
-	virtual IDocumentHost* CreateEditorHost() { return CreateDocumentHost(); }
-	virtual IDocumentHost* CreateViewerHost() { return nullptr; }
-	virtual IDocumentHost* CreateDocumentHost() { return nullptr; }
-};
 
 class IDockPaneProvider {
 public:
@@ -142,7 +123,6 @@ public:
 class IPluginRegistryGUI : public IPluginRegistry {
 public:
 	virtual ~IPluginRegistryGUI() {}
-	virtual void RegisterFileTypeHandler(IFileTypeHandler& handler) = 0;
 	virtual void RegisterDockPaneProvider(IDockPaneProvider& provider) = 0;
 	virtual void RegisterPreferencesProvider(IPluginPreferencesProvider& provider) = 0;
 	virtual void RegisterRunStateListener(IRunStateListener& listener) = 0;

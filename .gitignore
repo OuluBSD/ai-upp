@@ -64,3 +64,5 @@ share/mods/*/proprietary/**
 # Large icons
 share/icons/large/*.png
 
+# ScriptIDE local reference render output
+uppsrc/ScriptIDE/reference/Hearts/render.mp4

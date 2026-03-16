@@ -96,16 +96,14 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 
 Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
 {
-	if(form.GetLayouts().GetCount() == 0) {
-		// Try to find the active host and its table_form
-		return Rect();
-	}
 	for(int j = 0; j < form.GetLayouts().GetCount(); j++) {
 		const FormLayout& layout = form.GetLayouts()[j];
 		const Array<FormObject>& objects = layout.GetObjects();
 		for(int i = 0; i < objects.GetCount(); i++) {
-			if(objects[i].Get("Variable") == zone_id) {
-				return objects[i].GetRect();
+			String var = objects[i].Get("Variable");
+			if(var == zone_id) {
+				Rect r = objects[i].GetRect();
+				return r;
 			}
 		}
 	}
@@ -184,7 +182,7 @@ String FormatPythonStackText(const Vector<PyVM::StackFrame>& stack)
 		out << "  #" << i
 		    << " " << sf.function_name
 		    << " at " << sf.file << ":" << sf.line
-		    << "\n";
+		    << "\n"; Cout().Flush();
 	}
 	return out;
 }
@@ -394,6 +392,23 @@ void CardGameDocumentHost::InitRuntime()
 	plugin = ~runtime_plugin;
 	plugin->SetView(this);
 	plugin->Init(*runtime_context);
+	
+	// Instantiate other internal plugins into this context
+	for(int i = 0; i < GetInternalPluginFactories().GetCount(); i++) {
+		IPlugin* p = GetInternalPluginFactories()[i]();
+		if(p->GetID() != plugin->GetID()) {
+			p->Init(*runtime_context);
+		} else {
+			delete p;
+		}
+	}
+	
+	runtime_context->SyncBindings();
+	runtime_context->SyncBindings();
+	// Also sync all providers registered in the main context
+	if(PythonIDE* ide = dynamic_cast<PythonIDE*>(Ctrl::GetTopWindow())) {
+		if(ide->plugin_manager) ide->plugin_manager->SyncBindings(vm);
+	}
 }
 
 void CardGameDocumentHost::StartGame(const String& mode)
@@ -862,7 +877,7 @@ void CardGameDocumentHost::ApplySetStatus(const String& text)
 void CardGameDocumentHost::ApplyLog(const String& msg)
 {
 	if(log_to_stdout)
-		Cout() << msg << "\n";
+		Cout() << msg << "\n"; Cout().Flush();
 	game_log_lines.Add(msg);
 	const int max_log_lines = 200;
 	while(game_log_lines.GetCount() > max_log_lines)
@@ -942,7 +957,7 @@ void CardGameDocumentHost::ApplySetTimeout(int delay_ms, const String& callback_
 	Upp::KillTimeCallback(&callback_timer_key);
 	Upp::SetTimeCallback(max(0, delay_ms), [=] {
 		if(log_to_stdout)
-			Cout() << "[hearts-timeout] fire " << callback_name << "\n";
+			Cout() << "[hearts-timeout] fire " << callback_name << "\n"; Cout().Flush();
 		QueueVmNamedCallback(callback_name);
 	}, &callback_timer_key);
 }
@@ -1069,7 +1084,7 @@ String CardGameDocumentHost::DumpPythonStack() const
 	if(!current_file.IsEmpty()) {
 		String out;
 		out << "python stack:\n";
-		out << "  <idle> at " << current_file << ":" << current_line << "\n";
+		out << "  <idle> at " << current_file << ":" << current_line << "\n"; Cout().Flush();
 		return out;
 	}
 	return "python stack: <idle>\n";
@@ -1110,19 +1125,26 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	highlights.Clear();
 
 	FormView view;
-	if(!LoadCardGameFormView(view, path, background_color))
+	if(!LoadCardGameFormView(view, path, background_color)) {
 		return;
+	}
 
 	String xml;
 	view.SaveAllString(xml, false);
-	if(!table_form.LoadString(xml, false))
+	if(!table_form.LoadString(xml, false)) {
 		return;
+	}
+
 
 	String layout_name = "Default";
 	if(view.IsLayout())
 		layout_name = view.GetCurrentLayout()->Get("Form.Name", "Default");
-	if(!table_form.Layout(layout_name))
-		return;
+	
+	if(!table_form.Layout(layout_name)) {
+		if(table_form.GetLayouts().GetCount() > 0) {
+			table_form.Layout(table_form.GetLayouts()[0].Get("Form.Name", "Default"));
+		}
+	}
 
 	Vector<CardGameZoneDef> defs = ExtractCardGameZones(view);
 	for(const CardGameZoneDef& def : defs) {
@@ -1278,23 +1300,23 @@ Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 String CardGameDocumentHost::DumpScene()
 {
 	String out;
-	out << "path: " << path << "\n";
-	out << "form_path: " << form_path << "\n";
-	out << "plugin: " << (plugin ? "yes" : "no") << "\n";
+	out << "path: " << path << "\n"; Cout().Flush();
+	out << "form_path: " << form_path << "\n"; Cout().Flush();
+	out << "plugin: " << (plugin ? "yes" : "no") << "\n"; Cout().Flush();
 	PyVM* vm = plugin && plugin->GetContext() ? plugin->GetContext()->GetVM() : nullptr;
-	out << "vm: " << (vm ? "yes" : "no") << "\n";
+	out << "vm: " << (vm ? "yes" : "no") << "\n"; Cout().Flush();
 	if(plugin) {
-		out << "callback refresh_ui: " << (plugin->GetGameFunction("refresh_ui").IsFunction() ? "yes" : "no") << "\n";
-		out << "callback on_click: " << (plugin->GetGameFunction("on_click").IsFunction() ? "yes" : "no") << "\n";
-		out << "callback on_button: " << (plugin->GetGameFunction("on_button").IsFunction() ? "yes" : "no") << "\n";
-		out << "callback start: " << (plugin->GetGameFunction("start").IsFunction() ? "yes" : "no") << "\n";
+		out << "callback refresh_ui: " << (plugin->GetGameFunction("refresh_ui").IsFunction() ? "yes" : "no") << "\n"; Cout().Flush();
+		out << "callback on_click: " << (plugin->GetGameFunction("on_click").IsFunction() ? "yes" : "no") << "\n"; Cout().Flush();
+		out << "callback on_button: " << (plugin->GetGameFunction("on_button").IsFunction() ? "yes" : "no") << "\n"; Cout().Flush();
+		out << "callback start: " << (plugin->GetGameFunction("start").IsFunction() ? "yes" : "no") << "\n"; Cout().Flush();
 	}
-	out << "host_size: " << GetSize().cx << "x" << GetSize().cy << "\n";
-	out << "table_form_size: " << table_form.GetSize().cx << "x" << table_form.GetSize().cy << "\n";
-	out << "background: " << background_color.GetR() << "," << background_color.GetG() << "," << background_color.GetB() << "\n";
-	out << "last_error: " << last_error << "\n";
-	out << "game_log_qtf: " << AsCString(game_log.GetQTF()) << "\n";
-	out << "form_items: " << form_items.GetCount() << "\n";
+	out << "host_size: " << GetSize().cx << "x" << GetSize().cy << "\n"; Cout().Flush();
+	out << "table_form_size: " << table_form.GetSize().cx << "x" << table_form.GetSize().cy << "\n"; Cout().Flush();
+	out << "background: " << background_color.GetR() << "," << background_color.GetG() << "," << background_color.GetB() << "\n"; Cout().Flush();
+	out << "last_error: " << last_error << "\n"; Cout().Flush();
+	out << "game_log_qtf: " << AsCString(game_log.GetQTF()) << "\n"; Cout().Flush();
+	out << "form_items: " << form_items.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < form_items.GetCount(); i++) {
 		const FormItem& item = form_items[i];
 		Rect r = GetZoneRectFromForm(table_form, item.id);
@@ -1305,22 +1327,22 @@ String CardGameDocumentHost::DumpScene()
 		if(Ctrl* ctrl = table_form.GetCtrl(item.id))
 			out << " ctrl_rect=" << ctrl->GetRect().left << "," << ctrl->GetRect().top << " " << ctrl->GetRect().GetWidth() << "x" << ctrl->GetRect().GetHeight()
 			    << " visible=" << (ctrl->IsShown() ? "1" : "0");
-		out << "\n";
+		out << "\n"; Cout().Flush();
 	}
-	out << "labels: " << labels.GetCount() << "\n";
+	out << "labels: " << labels.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < labels.GetCount(); i++)
-		out << "  label " << labels.GetKey(i) << " text=" << AsCString(labels[i]) << "\n";
-	out << "buttons: " << buttons.GetCount() << "\n";
+		out << "  label " << labels.GetKey(i) << " text=" << AsCString(labels[i]) << "\n"; Cout().Flush();
+	out << "buttons: " << buttons.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < buttons.GetCount(); i++)
 		out << "  button " << buttons.GetKey(i) << " enabled=" << (buttons[i].enabled ? "1" : "0")
-		    << " text=" << AsCString(buttons[i].text) << "\n";
-	out << "expected_sprite_counts: " << expected_sprite_counts.GetCount() << "\n";
+		    << " text=" << AsCString(buttons[i].text) << "\n"; Cout().Flush();
+	out << "expected_sprite_counts: " << expected_sprite_counts.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < expected_sprite_counts.GetCount(); i++)
-		out << "  expected " << expected_sprite_counts.GetKey(i) << "=" << expected_sprite_counts[i] << "\n";
-	out << "highlights: " << highlights.GetCount() << "\n";
+		out << "  expected " << expected_sprite_counts.GetKey(i) << "=" << expected_sprite_counts[i] << "\n"; Cout().Flush();
+	out << "highlights: " << highlights.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < highlights.GetCount(); i++)
-		out << "  highlight " << highlights[i] << "\n";
-	out << "sprites: " << sprites.GetCount() << "\n";
+		out << "  highlight " << highlights[i] << "\n"; Cout().Flush();
+	out << "sprites: " << sprites.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const String& id = sprites.GetKey(i);
 		const Sprite& s = sprites[i];
@@ -1338,7 +1360,7 @@ String CardGameDocumentHost::DumpScene()
 			out << " ctrl_rect=" << cr.left << "," << cr.top << " " << cr.GetWidth() << "x" << cr.GetHeight()
 			    << " shown=" << (card_ctrls[q]->IsShown() ? "1" : "0");
 		}
-		out << "\n";
+		out << "\n"; Cout().Flush();
 	}
 	return out;
 }

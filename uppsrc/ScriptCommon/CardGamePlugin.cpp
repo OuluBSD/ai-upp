@@ -2,6 +2,8 @@
 
 NAMESPACE_UPP
 
+IHeartsView* g_cardgame_view = nullptr;
+
 // ---- headless cardgame_view stub bindings ----
 
 static PyValue hv_log(const Vector<PyValue>& args, void*)
@@ -174,6 +176,13 @@ void CardGamePlugin::Execute(const String& path)
 		~BreakpointRestore() { if(vm) vm->EnableBreakpoints(enabled); }
 	} breakpoint_restore { vm, want_breakpoints };
 	vm->EnableBreakpoints(false);
+	SyncBindings(*vm);
+	{
+		PyValue cg = vm->GetGlobals().GetItem(PyValue("cardgame_view"));
+		if(cg.GetType() == PY_DICT) {
+			PyValue log_func = cg.GetItem(PyValue("log"));
+		}
+	}
 
 	// Parse .gamestate JSON
 	String json = LoadFile(path);
@@ -440,7 +449,8 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 	if(sys.GetType() == PY_DICT)
 		modules = sys.GetItem(PyValue("modules"));
 
-	if(view) {
+	if(g_cardgame_view) {
+		IHeartsView* view = g_cardgame_view;
 		// GUI-backed cardgame_view module — real calls into IHeartsView
 		PY_MODULE(cardgame_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)

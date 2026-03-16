@@ -121,7 +121,7 @@ public:
 	virtual const Form& GetLayout() const override { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
-	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; }
+	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; if(p) p->SetView(this); }
 	String DumpScene();
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
 	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }

@@ -24,7 +24,7 @@ public:
 
 	// GUI view — set by ScriptIDE before Execute(); nullptr in headless mode
 	void            SetView(IHeartsView* v) { view = v; }
-	IPluginContext* GetContext() const      { return context; }
+	IPluginContext* GetContext() const      { return context; } PyVM* GetVM() { return context ? context->GetVM() : nullptr; }
 
 protected:
 	IPluginContext* context = nullptr;

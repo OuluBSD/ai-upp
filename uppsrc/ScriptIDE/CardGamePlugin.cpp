@@ -96,11 +96,18 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 
 Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
 {
-	if(Ctrl* ctrl = const_cast<Form&>(form).GetCtrl(zone_id)) {
-		Rect r = ctrl->GetRect();
-		for(Ctrl* parent = ctrl->GetParent(); parent && parent != &form; parent = parent->GetParent())
-			r.Offset(parent->GetRect().TopLeft());
-		return r;
+	if(form.GetLayouts().GetCount() == 0) {
+		// Try to find the active host and its table_form
+		return Rect();
+	}
+	for(int j = 0; j < form.GetLayouts().GetCount(); j++) {
+		const FormLayout& layout = form.GetLayouts()[j];
+		const Array<FormObject>& objects = layout.GetObjects();
+		for(int i = 0; i < objects.GetCount(); i++) {
+			if(objects[i].Get("Variable") == zone_id) {
+				return objects[i].GetRect();
+			}
+		}
 	}
 	return Rect();
 }
@@ -1239,6 +1246,17 @@ Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 	Rect r;
 	if(IsMainThread()) {
 		r = GetZoneRectFromForm(table_form, zone_id);
+		if(r.IsEmpty()) {
+			int q = form_items.Find(zone_id);
+			if(q >= 0) {
+				// We need to find where the rect is stored in form_items.
+				// Since FormItem doesn't have a rect in its current definition, 
+				// we'll check the rect_cache which IS updated in RefreshGameView.
+				Mutex::Lock __(rect_cache_mutex);
+				int qc = rect_cache.Find(zone_id);
+				if(qc >= 0) r = rect_cache[qc];
+			}
+		}
 	}
 	else {
 		Mutex::Lock __(rect_cache_mutex);

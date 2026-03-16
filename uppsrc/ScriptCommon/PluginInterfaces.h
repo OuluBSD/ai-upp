@@ -76,6 +76,14 @@ public:
 
 // View interface for card game UI — implemented by CardGameDocumentHost in ScriptIDE.
 // ScriptCommon holds only this interface (no GUI dependency).
+
+struct CardGameSprite : Moveable<CardGameSprite> {
+	String asset_path;
+	Image  img;
+	Rect   rect;
+	int    angle = 0;
+};
+
 class IHeartsView {
 public:
 	virtual ~IHeartsView() {}
@@ -107,6 +115,8 @@ public:
 	virtual void  SetLayout(const String& path) = 0;
 	// Schedule a named Python callback after a delay
 	virtual void SetTimeout(int delay_ms, const String& callback_name) = 0;
+	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const = 0;
+	virtual const Form& GetLayout() const = 0;
 };
 
 class IPlugin {

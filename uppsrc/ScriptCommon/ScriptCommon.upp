@@ -27,3 +27,4 @@ file
 	GameStatePlugin.cpp,
 	CardGamePlugin.h,
 	CardGamePlugin.cpp;
+

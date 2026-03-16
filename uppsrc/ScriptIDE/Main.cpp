@@ -90,6 +90,23 @@ GUI_APP_MAIN
 
 	if(!path.IsEmpty() && FileExists(path)) {
 		ide.LoadFile(path);
+		if(ToLower(GetFileExt(path)) == ".gamestate") {
+			bool found_host = false;
+			for(int i = 0; i < ide.open_files.GetCount(); i++) {
+				if(dynamic_cast<CardGameDocumentHost*>(ide.open_files[i].editor)) {
+					found_host = true;
+					break;
+				}
+			}
+			if(!found_host) {
+				CardGameDocumentHost* host = new CardGameDocumentHost();
+				PythonIDE::FileInfo& fi = ide.open_files.Add();
+				fi.path = path;
+				fi.editor = host;
+				ide.active_file = ide.open_files.GetCount() - 1;
+				host->Load(path);
+			}
+		}
 	}
 
 	if(autostart || run_after_ms >= 0) {

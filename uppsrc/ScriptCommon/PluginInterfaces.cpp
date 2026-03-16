@@ -11,8 +11,9 @@ Vector<PluginFactory>& GetInternalPluginFactories()
 void HeadlessPluginContext::SyncBindings()
 {
 	if(!vm) return;
-	for(auto* p : binding_providers)
-		p->SyncBindings(*vm);
+	for(int i = 0; i < binding_providers.GetCount(); i++) {
+		binding_providers[i]->SyncBindings(*vm);
+	}
 }
 
 ICustomExecuteProvider* HeadlessPluginContext::FindExecuteProvider(const String& path)

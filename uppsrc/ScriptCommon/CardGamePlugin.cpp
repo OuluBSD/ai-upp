@@ -8,61 +8,61 @@ static PyValue hv_log(const Vector<PyValue>& args, void*)
 {
 	if(args.GetCount() >= 1)
 		Cout() << args[0].ToString() << "\n";
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_clear_sprites(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_begin_sprite_frame(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_remove_sprite(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_label(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_expected_sprite_count(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_button(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_highlight(const Vector<PyValue>& args, void*)
 {
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_status(const Vector<PyValue>& args, void*)
 {
 	if(args.GetCount() >= 1)
 		Cout() << args[0].ToString() << "\n";
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_set_card(const Vector<PyValue>& args, void*)
 {
 	// set_card(card_id, asset_path, x, y)
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_move_card(const Vector<PyValue>& args, void*)
 {
 	// move_card(card_id, zone_id, offset, animated)
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_get_zone_rect(const Vector<PyValue>& args, void*)
@@ -79,13 +79,13 @@ static PyValue hv_get_zone_rect(const Vector<PyValue>& args, void*)
 static PyValue hv_set_timeout(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() < 2 || !ud)
-		return PyValue::None();
+		return PyValue();
 	PyVM& vm = *(PyVM*)ud;
 	String callback_name = args[1].ToString();
 	PyValue fn = vm.GetGlobals().GetItem(PyValue(callback_name));
 	if(fn.IsFunction())
 		vm.Call(fn, {});
-	return PyValue::None();
+	return PyValue();
 }
 
 // ---- helpers ----
@@ -338,61 +338,61 @@ static PyValue hv_gui_log(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 1)
 		((IHeartsView*)ud)->Log(args[0].ToString());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_clear_sprites(const Vector<PyValue>&, void* ud)
 {
 	((IHeartsView*)ud)->ClearSprites();
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_begin_sprite_frame(const Vector<PyValue>&, void* ud)
 {
 	((IHeartsView*)ud)->BeginSpriteFrame();
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_remove_sprite(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 1)
 		((IHeartsView*)ud)->RemoveSprite(args[0].ToString());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_label(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
 		((IHeartsView*)ud)->SetLabel(args[0].ToString(), args[1].ToString());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_expected_sprite_count(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
 		((IHeartsView*)ud)->SetExpectedSpriteCount(args[0].ToString(), (int)args[1].AsInt64());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_button(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 3)
 		((IHeartsView*)ud)->SetButton(args[0].ToString(), args[1].ToString(), args[2].IsTrue());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_highlight(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
 		((IHeartsView*)ud)->SetHighlight(args[0].ToString(), args[1].IsTrue());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_status(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 1)
 		((IHeartsView*)ud)->SetStatus(args[0].ToString());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
@@ -402,7 +402,7 @@ static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
 		((IHeartsView*)ud)->SetCard(args[0].ToString(), args[1].ToString(),
 		                            (int)args[2].AsInt64(), (int)args[3].AsInt64(),
 		                            args.GetCount() >= 5 ? (int)args[4].AsInt64() : 0);
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_move_card(const Vector<PyValue>& args, void* ud)
@@ -411,12 +411,12 @@ static PyValue hv_gui_move_card(const Vector<PyValue>& args, void* ud)
 	if(args.GetCount() >= 4)
 		((IHeartsView*)ud)->MoveCardToZone(args[0].ToString(), args[1].ToString(),
 		                                   (int)args[2].AsInt64(), args[3].IsTrue());
-	return PyValue::None();
+	return PyValue();
 }
 
 static PyValue hv_gui_get_zone_rect(const Vector<PyValue>& args, void* ud)
 {
-	if(args.GetCount() < 1) return PyValue::None();
+	if(args.GetCount() < 1) return PyValue();
 	Value r = ((IHeartsView*)ud)->GetZoneRect(args[0].ToString());
 	PyValue d = PyValue::Dict();
 	d.SetItem(PyValue("x"), PyValue((int64)(int)r["x"]));
@@ -430,7 +430,7 @@ static PyValue hv_gui_set_timeout(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
 		((IHeartsView*)ud)->SetTimeout((int)args[0].AsInt64(), args[1].ToString());
-	return PyValue::None();
+	return PyValue();
 }
 
 void CardGamePlugin::SyncBindings(PyVM& vm)

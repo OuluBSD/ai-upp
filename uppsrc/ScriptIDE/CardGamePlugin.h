@@ -117,6 +117,8 @@ public:
 	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
 	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
+	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const override { return (const ArrayMap<String, CardGameSprite>&)sprites; }
+	virtual const Form& GetLayout() const override { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; }

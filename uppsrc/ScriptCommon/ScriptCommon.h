@@ -4,7 +4,8 @@
 #include <Core/Core.h>
 #include <ByteVM/ByteVM.h>
 #include <ByteVM/PyBindings.h>
-
+#include <Form/Form.hpp>
+	
 NAMESPACE_UPP
 
 #include "IDESettings.h"

@@ -1288,7 +1288,7 @@ def main():
         print(f"Build model not found: {build_model}", file=sys.stderr)
         return 2
 
-    build_flags = "-bsH1" if opts["release"] else "-bsdH1"
+    build_flags = "-rbsH1" if opts["release"] else "-bsdH1"
     if opts["clean"]:
         build_flags += "a"
     if opts["jobs"]:

@@ -1,0 +1,7 @@
+{
+  "entry_script": "agent_loop.py",
+  "layout": "table.form",
+  "metadata": {
+    "players": 4
+  }
+}

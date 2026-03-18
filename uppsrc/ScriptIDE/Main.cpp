@@ -105,6 +105,7 @@ GUI_APP_MAIN
 				fi.editor = host;
 				ide.active_file = ide.open_files.GetCount() - 1;
 				host->Load(path);
+				if(autostart) host->Run();
 			}
 		}
 	}

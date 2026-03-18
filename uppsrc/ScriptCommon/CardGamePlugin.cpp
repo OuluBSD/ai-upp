@@ -2,8 +2,6 @@
 
 NAMESPACE_UPP
 
-IHeartsView* g_cardgame_view = nullptr;
-
 // ---- headless cardgame_view stub bindings ----
 
 static PyValue hv_log(const Vector<PyValue>& args, void*)
@@ -449,8 +447,7 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 	if(sys.GetType() == PY_DICT)
 		modules = sys.GetItem(PyValue("modules"));
 
-	if(g_cardgame_view) {
-		IHeartsView* view = g_cardgame_view;
+	if(view) {
 		// GUI-backed cardgame_view module — real calls into IHeartsView
 		PY_MODULE(cardgame_view, vm)
 		PY_MODULE_FUNC(log,           hv_gui_log,           view)

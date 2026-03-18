@@ -985,9 +985,11 @@ Vector<Event<>>& __ExitEvents(bool rm=false) {
 	static Vector<Event<>>* v;
 	if (!v)
 		v = new Vector<Event<>>();
-	if (rm && v) {
+	if (rm) {
 		delete v;
-		v = 0;
+		v = nullptr;
+		static Vector<Event<>> empty;
+		return empty;
 	}
 	return *v;
 }

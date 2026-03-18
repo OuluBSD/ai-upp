@@ -25,6 +25,7 @@ PythonIDE::PythonIDE()
 	
 	plugin_manager->LoadPlugins();
 	const auto& plugins = plugin_manager->GetPlugins();
+	bool settings_changed = false;
 	for(int i = 0; i < plugins.GetCount(); i++) {
 		String id = plugins.GetKey(i);
 		int q = -1;
@@ -41,9 +42,13 @@ PythonIDE::PythonIDE()
 			auto& ps = settings.plugins.states.Add();
 			ps.id = id;
 			ps.enabled = true;
+			settings_changed = true;
 		}
 		plugin_manager->EnablePlugin(id, enabled);
 	}
+	
+	if(settings_changed)
+		StoreToFile(settings, ConfigFile("ide_settings.bin"));
 	
 	ApplySettings();
 	SetTimeCallback(-200, [this] { UpdateStatusBar(); }); // DONT CHANGE THIS
@@ -1225,8 +1230,13 @@ void PythonIDE::OnTabChanged()
 			if(IDocumentHost* h = dynamic_cast<IDocumentHost*>(open_files[active_file].editor))
 				h->DeactivateUI();
 		}
-		active_editor->Hide();
 	}
+	
+	for(Ctrl& c : editor_area) {
+		if(&c != &*editor_tabs)
+			c.Hide();
+	}
+
 	int idx = editor_tabs->GetCursor();
 	if(idx >= 0 && idx < open_files.GetCount()) {
 		active_file = idx;

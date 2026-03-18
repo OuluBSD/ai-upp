@@ -196,6 +196,31 @@ String OCRModule::ReadText(const ByteMat& gray) {
 CardClassifier::CardClassifier() {}
 
 bool CardClassifier::Load(const String& model_dir, const String& platform) {
+	Cout() << "DEBUG: CardClassifier::Load called with [" << model_dir << "]\n";
+	if (FileExists(model_dir) && !DirectoryExists(model_dir)) {
+		String bin = model_dir;
+		String base = bin;
+		if (bin.EndsWith(".model.bin")) base = bin.Left(bin.GetCount() - 10);
+		else if (bin.EndsWith(".bin")) base = bin.Left(bin.GetCount() - 4);
+		String meta_path = base + ".metadata.json";
+		if (FileExists(meta_path)) {
+			Value m = ParseJSON(LoadFile(meta_path));
+			if (!IsNull(m)) {
+				unified_w = m["width"]; unified_h = m["height"]; unified_d = m["depth"];
+				const Value& cls = m["classes"];
+				unified_classes.Clear();
+				for (int i = 0; i < cls.GetCount(); i++) unified_classes.Add(cls[i]);
+			}
+		}
+		FileIn fi(bin);
+		unified_ses.Serialize(fi);
+		unified_loaded = unified_ses.GetLayerCount() > 0;
+		Cout() << "DEBUG: CardClassifier::Load unified_loaded=" << unified_loaded << " layers=" << unified_ses.GetLayerCount() << "\n";
+		if (unified_loaded) {
+			if (unified_w <= 0) { unified_w = 32; unified_h = 64; unified_d = 1; }
+			return true;
+		}
+	}
 	auto load_tag = [&](const String& tag, ConvNet::Session& ses, bool& loaded, int& w, int& h, int& d, Vector<String>& classes) {
 		String base = AppendFileName(model_dir, tag);
 		if (!platform.IsEmpty()) {

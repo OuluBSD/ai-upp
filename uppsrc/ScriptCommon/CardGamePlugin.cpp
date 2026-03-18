@@ -273,7 +273,7 @@ void CardGamePlugin::Execute(const String& path)
 		return;
 	}
 
-	if(!vm->LoadModule(entry_module_name, entry_src, entry_path)) {
+        if(!vm->LoadModule(entry_module_name, entry_src, entry_path)) {
 		LOG("CardGamePlugin: failed to load entry module " << entry_module_name);
 		if(view) view->Log("CardGamePlugin: failed to load entry module " + entry_module_name);
 		return;
@@ -404,12 +404,13 @@ static PyValue hv_gui_set_status(const Vector<PyValue>& args, void* ud)
 
 static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
 {
-	// set_card(card_id, asset_path, x, y, rotation_deg=0)
-	if(args.GetCount() >= 4)
-		((IHeartsView*)ud)->SetCard(args[0].ToString(), args[1].ToString(),
-		                            (int)args[2].AsInt64(), (int)args[3].AsInt64(),
-		                            args.GetCount() >= 5 ? (int)args[4].AsInt64() : 0);
-	return PyValue();
+        // set_card(card_id, asset_path, x, y, rotation_deg=0)
+        if(args.GetCount() >= 4) {
+                ((IHeartsView*)ud)->SetCard(args[0].ToString(), args[1].ToString(),
+                                            (int)args[2].AsInt64(), (int)args[3].AsInt64(),
+                                            args.GetCount() >= 5 ? (int)args[4].AsInt64() : 0);
+        }
+        return PyValue();
 }
 
 static PyValue hv_gui_move_card(const Vector<PyValue>& args, void* ud)

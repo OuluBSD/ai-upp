@@ -1,7 +1,23 @@
 {
   "entry_script": "agent_loop.py",
+  "entry_function": "run_agent_loop",
   "layout": "table.form",
   "metadata": {
-    "players": 4
+    "players": 4,
+    "browser_modules": [
+      {
+        "name": "hearts.logic",
+        "kind": "js",
+        "path": "browser/hearts.logic.js"
+      }
+    ],
+    "ocr_verify": true,
+    "ocr_min_confidence": 0.5,
+    "ocr_expected": {
+      "label_self": "You  T:0  R:+0  C:13",
+      "label_left": "West  T:0  R:+0  C:13",
+      "label_top": "North  T:0  R:+0  C:13",
+      "label_right": "East  T:0  R:+0  C:13"
+    }
   }
 }

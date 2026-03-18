@@ -267,7 +267,7 @@ CardGameDocumentHost::~CardGameDocumentHost()
 
 bool CardGameDocumentHost::Load(const String& path_)
 {
-	path = path_;
+        path = path_;
 	LoadGameStateSettings();
 
 	// Load the form layout if specified in the gamestate

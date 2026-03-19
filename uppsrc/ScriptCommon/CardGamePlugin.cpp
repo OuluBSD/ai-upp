@@ -225,7 +225,8 @@ void CardGamePlugin::Execute(const String& path)
 	// Add extra pythonpath entries from metadata (same as OCRPlugin does).
 	// Without this, 'import main' and other cross-directory imports fail when
 	// the entry script lives in a different folder than the dependency modules.
-	Value pythonpath = gs["metadata"]["pythonpath"];
+	Value metadata = gs["metadata"];
+	Value pythonpath = metadata["pythonpath"];
 	if(pythonpath.Is<ValueArray>()) {
 		const ValueArray& pa = pythonpath;
 		PyValue sys2 = vm->GetGlobals().GetItem(PyValue("sys"));
@@ -270,8 +271,23 @@ void CardGamePlugin::Execute(const String& path)
 			if(!IsFullPath(extra))
 				extra = AppendFileName(game_dir, extra);
 			if(!DirectoryExists(extra)) continue;
+			// LoadPyModulesFromDir skips top-level .py files (by design, to avoid
+			// loading game_dir scripts twice). For pythonpath dirs we want top-level
+			// modules too (e.g. main.py), so load them explicitly before subpackages.
+			{
+				FindFile ff(AppendFileName(extra, "*.py"));
+				while(ff) {
+					String stem = GetFileTitle(ff.GetName());
+					if(stem != "__init__") {
+						String src = LoadFile(ff.GetPath());
+						if(!src.IsVoid())
+							vm->LoadModule(stem, src, ff.GetPath());
+					}
+					ff.Next();
+				}
+			}
+			// Load subpackages (hearts/, etc.)
 			String fm, fp;
-			// Non-fatal: pythonpath dirs may be optional
 			LoadPyModulesFromDir(*vm, extra, extra, "", &fm, &fp);
 		}
 	}

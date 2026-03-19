@@ -670,6 +670,8 @@ struct Edit3D : DockWindow {
 	bool Get2DSelectionCenter(vec3& out);
 	bool GetSelectionCenterWorld(vec3& out, GeomObject*& obj, bool& is2d);
 	void ApplyMeshSelectionDelta(const vec3& delta);
+	void ApplyMeshSelectionRotate(float angle_rad, const vec3& axis_local);
+	void ApplyMeshSelectionScale(float factor);
 	void Apply2DSelectionDelta(const vec2& delta);
 	void ClearMeshSelection();
 	void ToggleMeshPoint(int idx);
@@ -740,6 +742,7 @@ struct Edit3D : DockWindow {
 	void FocusSelectedNode();
 	void SyncRibbonLightmapControls();
 	void StoreRibbonLightmapSettings(bool bake);
+	bool BakeSceneLightmaps(String& summary);
 	void CreatePrimitiveCube(double size);
 	void CreatePrimitiveSphere(double radius, int slices, int stacks);
 	void CreatePrimitiveCylinder(double radius, double length, int slices);

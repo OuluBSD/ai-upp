@@ -1,4 +1,5 @@
 #include "ModelerApp.h"
+#include <cfloat>
 #include <functional>
 #include <Vfs/Ecs/Ecs.h>
 
@@ -657,6 +658,47 @@ struct TexturePreviewCtrl : Ctrl {
 
 }
 
+
+struct BehaviorClipboardItem : Moveable<BehaviorClipboardItem> {
+	String id;
+	String file;
+	bool enabled = true;
+	bool run_on_load = false;
+	bool run_every_frame = false;
+};
+
+static Vector<BehaviorClipboardItem> s_behavior_clipboard;
+
+static bool IsScriptOwnerNode(const VfsValue* node) {
+	if (!node)
+		return false;
+	return IsVfsType(*node, AsTypeHash<GeomObject>()) ||
+	       IsVfsType(*node, AsTypeHash<GeomDirectory>()) ||
+	       IsVfsType(*node, AsTypeHash<GeomScene>());
+}
+
+static String MakeUniqueScriptNodeId(const VfsValue& owner, const String& base_id) {
+	const hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+	String safe = ToVarName(base_id, '_');
+	if (safe.IsEmpty())
+		safe = "script";
+	String id = safe;
+	int idx = 1;
+	while (owner.Find(id, script_hash) >= 0)
+		id = safe + "_" + IntStr(idx++);
+	return id;
+}
+
+static String ResolveAssetPathForReload(const Edit3D& e, const String& ref) {
+	if (ref.IsEmpty())
+		return String();
+	if (IsFullPath(ref))
+		return NormalizePath(ref);
+	String p = AppendFileName(e.GetProjectDir(), ref);
+	if (FileExists(p))
+		return NormalizePath(p);
+	return NormalizePath(AppendFileName(e.GetAssetRootDir(), ref));
+}
 
 GeomProjectCtrl::GeomProjectCtrl(Edit3D* e) {
 	this->e = e;
@@ -1810,13 +1852,7 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		return;
 	bool can_create_path_node = false;
 	if (obj) {
-		String kind;
-		if (GeomDynamicProperties* dyn = obj->FindDynamicProperties()) {
-			int idx = dyn->props.Find("type");
-			if (idx >= 0)
-				kind = ToLower(AsString(dyn->props[idx]));
-		}
-		if (kind == "path" || ToLower(obj->name).Find("path") >= 0)
+		if (obj->ui_type == "path" || ToLower(obj->name).Find("path") >= 0)
 			can_create_path_node = true;
 	}
 	if (!is_root)
@@ -1866,30 +1902,223 @@ void GeomProjectCtrl::TreeMenu(Bar& bar) {
 		}).Key(K_DELETE);
 	if (!is_root)
 		bar.Sub(t_("Modify Selection"), [=](Bar& bar) {
-			auto stub = [&](const String& text) -> Bar::Item& {
-				return bar.Add(text, [=] { LOG("Modify selection: " + text); });
+			const bool has_mesh = obj && obj->IsModel() && obj->mdl;
+			const bool has_asset = obj && obj->IsModel() && !obj->asset_ref.IsEmpty();
+			const bool can_copy_behaviors = IsScriptOwnerNode(node);
+			const bool can_paste_behaviors = IsScriptOwnerNode(node) && !s_behavior_clipboard.IsEmpty();
+			
+			auto apply_mesh_change = [&](const String& undo_label, const std::function<void(Model&)>& fn) {
+				if (!e || !obj || !obj->IsModel() || !obj->mdl)
+					return;
+				e->PushUndo(undo_label);
+				fn(*obj->mdl);
+				if (e->state)
+					e->state->UpdateObjects();
+				e->RefreshData();
+				e->RefrehRenderers();
 			};
-			stub(t_("Set planar texture coordinates for mesh"));
-			stub(t_("Flip direction of all faces"));
-			stub(t_("Center pivot point"));
-			stub(t_("Free scale and normalize normals"));
-			stub(t_("Clear vertex colors"));
-			stub(t_("Set vertex colors"));
-			stub(t_("Recalculate normals and tangents"));
-			stub(t_("Clone as static animated mesh"));
-			stub(t_("Distribute over terrain"));
-			stub(t_("Bake all textures of selection into one"));
+			
+			bar.Add(t_("Set planar texture coordinates for mesh"), [=] {
+				apply_mesh_change("Set planar UV", [&](Model& mdl) {
+					vec3 mn(DBL_MAX, DBL_MAX, DBL_MAX);
+					vec3 mx(-DBL_MAX, -DBL_MAX, -DBL_MAX);
+					int vert_count = 0;
+					for (Mesh& mesh : mdl.meshes) {
+						for (const Vertex& vtx : mesh.vertices) {
+							const vec3 p = vtx.position.Splice();
+							mn = Min(mn, p);
+							mx = Max(mx, p);
+							vert_count++;
+						}
+					}
+					if (vert_count == 0)
+						return;
+					double sx = max((double)(mx[0] - mn[0]), 1e-6);
+					double sy = max((double)(mx[1] - mn[1]), 1e-6);
+					double sz = max((double)(mx[2] - mn[2]), 1e-6);
+					bool use_xy = sz <= 1e-5 && sy > 1e-5;
+					for (Mesh& mesh : mdl.meshes) {
+						for (Vertex& vtx : mesh.vertices) {
+							const vec3 p = vtx.position.Splice();
+							double u = (p[0] - mn[0]) / sx;
+							double vv = use_xy ? ((p[1] - mn[1]) / sy) : ((p[2] - mn[2]) / sz);
+							vtx.tex_coord = vec2((float)u, (float)vv);
+						}
+					}
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Flip direction of all faces"), [=] {
+				apply_mesh_change("Flip mesh faces", [&](Model& mdl) {
+					for (Mesh& mesh : mdl.meshes)
+						mesh.ReverseFaces();
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Center pivot point"), [=] {
+				apply_mesh_change("Center mesh pivot", [&](Model& mdl) {
+					for (Mesh& mesh : mdl.meshes)
+						mesh.CenterAnchor();
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Free scale and normalize normals"), [=] {
+				if (!obj || !obj->mdl)
+					return;
+				vec3 old_scale(1, 1, 1);
+				if (GeomTransform* tr = obj->FindTransform())
+					old_scale = tr->scale;
+				apply_mesh_change("Freeze scale and normalize normals", [=](Model& mdl) {
+					vec3 scale = old_scale;
+					for (Mesh& mesh : mdl.meshes) {
+						for (Vertex& vtx : mesh.vertices) {
+							vec3 p = vtx.position.Splice();
+							p[0] *= scale[0];
+							p[1] *= scale[1];
+							p[2] *= scale[2];
+							vtx.position = p.Embed();
+							vec3 n = vtx.normal;
+							double sx = fabs((double)scale[0]) > 1e-6 ? scale[0] : 1.0;
+							double sy = fabs((double)scale[1]) > 1e-6 ? scale[1] : 1.0;
+							double sz = fabs((double)scale[2]) > 1e-6 ? scale[2] : 1.0;
+							n[0] = (float)(n[0] / sx);
+							n[1] = (float)(n[1] / sy);
+							n[2] = (float)(n[2] / sz);
+							vtx.normal = safe_normalize(n);
+						}
+						mesh.UpdateBoundingBox();
+					}
+				});
+				if (GeomTransform* tr = obj->FindTransform())
+					tr->scale = vec3(1, 1, 1);
+				if (e) {
+					e->RefreshData();
+					e->RefrehRenderers();
+				}
+			}).Enable(has_mesh);
+			bar.Add(t_("Clear vertex colors"), [=] {
+				apply_mesh_change("Clear vertex colors", [&](Model& mdl) {
+					for (int i = 0; i < mdl.materials.GetCount(); i++)
+						mdl.materials[i].params->base_clr_factor = vec4(1, 1, 1, 1);
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Set vertex colors"), [=] {
+				apply_mesh_change("Set vertex colors", [&](Model& mdl) {
+					for (int i = 0; i < mdl.materials.GetCount(); i++)
+						mdl.materials[i].params->base_clr_factor = vec4(0.85f, 0.85f, 0.85f, 1.0f);
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Recalculate normals and tangents"), [=] {
+				apply_mesh_change("Recalculate normals", [&](Model& mdl) {
+					for (Mesh& mesh : mdl.meshes)
+						mesh.UpdateNormalsAndTangents();
+				});
+			}).Enable(has_mesh);
+			bar.Add(t_("Clone as static animated mesh"), [=] {
+				if (!node || !node->owner || !obj || !obj->mdl || !e || !e->prj)
+					return;
+				e->PushUndo("Clone as static animated mesh");
+				String base = node->id.IsEmpty() ? String("node") : node->id;
+				String name = base + "_static_anim";
+				int idx = 1;
+				while (node->owner->Find(name) >= 0)
+					name = base + "_static_anim_" + IntStr(idx++);
+				VfsValue& dst = node->owner->Add(name, node->type_hash);
+				dst.CopyFrom(*node);
+				dst.id = name;
+				dst.owner = node->owner;
+				dst.FixParent();
+				GeomObject& clone = dst.GetExt<GeomObject>();
+				clone.key = e->prj->NewKey();
+				if (clone.mdl && !clone.mdl->meshes.IsEmpty()) {
+					GeomMeshAnimation& anim = clone.GetMeshAnimation();
+					anim.keyframes.Clear();
+					GeomMeshKeyframe& kf = anim.GetAddKeyframe(0);
+					kf.points.Clear();
+					for (const Vertex& vtx : clone.mdl->meshes[0].vertices)
+						kf.points.Add(vtx.position.Splice());
+				}
+				if (e->state)
+					e->state->UpdateObjects();
+				e->RefreshData();
+				e->RefrehRenderers();
+			}).Enable(has_mesh);
+			bar.Add(t_("Distribute over terrain"), [=] {
+				PromptOK(t_("Distribute over terrain is not implemented yet."));
+			}).Enable(false);
+			bar.Add(t_("Bake all textures of selection into one"), [=] {
+				PromptOK(t_("Texture baking into one map is not implemented yet."));
+			}).Enable(false);
 			bar.Separator();
 			bar.Add(t_("Edit 2D room map"), [] {}).Enable(false);
 			bar.Add(t_("Open in animation editor"), [] {}).Enable(false);
 			bar.Add(t_("Attach node to animated joint"), [] {}).Enable(false);
 			bar.Separator();
 			bar.Add(t_("Export mesh as"), [] {}).Enable(false);
-			stub(t_("Reload this mesh from disk"));
+			bar.Add(t_("Reload this mesh from disk"), [=] {
+				if (!e || !obj || !obj->IsModel())
+					return;
+				if (obj->asset_ref.IsEmpty()) {
+					PromptOK(t_("Selected mesh does not have an asset path."));
+					return;
+				}
+				if (obj->asset_ref.StartsWith("preset:")) {
+					PromptOK(t_("Preset meshes cannot be reloaded from disk."));
+					return;
+				}
+				String abs = ResolveAssetPathForReload(*e, obj->asset_ref);
+				if (!FileExists(abs)) {
+					PromptOK(t_("Asset file not found: ") + abs);
+					return;
+				}
+				ModelLoader loader;
+				if (!loader.LoadModel(abs)) {
+					PromptOK(t_("Failed to reload mesh from disk."));
+					return;
+				}
+				e->PushUndo("Reload mesh");
+				obj->mdl.Create();
+				*obj->mdl = loader.Realize();
+				if (e->state)
+					e->state->UpdateObjects();
+				e->RefreshData();
+				e->RefrehRenderers();
+			}).Enable(has_asset);
 			bar.Add(t_("Load new mesh from disk"), [] {}).Enable(false);
 			bar.Separator();
-			stub(t_("Copy behaviors of this node")).Key(K_CTRL|K_B);
-			bar.Add(t_("Paste the behaviors to this node"), [] {}).Enable(false).Key(K_CTRL|K_I);
+			bar.Add(t_("Copy behaviors of this node"), [=] {
+				s_behavior_clipboard.Clear();
+				if (!node)
+					return;
+				const hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+				for (VfsValue& sub : node->sub) {
+					if (!IsVfsType(sub, script_hash))
+						continue;
+					GeomScript& src = sub.GetExt<GeomScript>();
+					BehaviorClipboardItem& item = s_behavior_clipboard.Add();
+					item.id = sub.id;
+					item.file = src.file;
+					item.enabled = src.enabled;
+					item.run_on_load = src.run_on_load;
+					item.run_every_frame = src.run_every_frame;
+				}
+				if (s_behavior_clipboard.IsEmpty())
+					PromptOK(t_("No behaviors found on selected node."));
+			}).Enable(can_copy_behaviors).Key(K_CTRL|K_B);
+			bar.Add(t_("Paste the behaviors to this node"), [=] {
+				if (!node || s_behavior_clipboard.IsEmpty() || !e)
+					return;
+				e->PushUndo("Paste behaviors");
+				const hash_t script_hash = TypedStringHasher<GeomScript>("GeomScript");
+				for (const BehaviorClipboardItem& item : s_behavior_clipboard) {
+					String id = MakeUniqueScriptNodeId(*node, item.id);
+					VfsValue& sc_node = node->Add(id, script_hash);
+					sc_node.id = id;
+					GeomScript& sc = sc_node.GetExt<GeomScript>();
+					sc.file = item.file;
+					sc.enabled = item.enabled;
+					sc.run_on_load = item.run_on_load;
+					sc.run_every_frame = item.run_every_frame;
+				}
+				e->RefreshData();
+			}).Enable(can_paste_behaviors).Key(K_CTRL|K_I);
 		});
 	bar.Sub(t_("Insert"), [=](Bar& bar) {
 		auto add = [&](const char* text, const char* id, bool enabled = true) {

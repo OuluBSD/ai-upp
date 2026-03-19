@@ -1,7 +1,7 @@
 # Task 0403 - Modify Selection Actions
 
 ## Status
-- Partial / Open (updated 2026-02-17)
+- Done (2026-02-19)
 
 ## Goal
 Add modify-selection actions from the Scene Graph Explorer context menu.
@@ -18,8 +18,17 @@ Add modify-selection actions from the Scene Graph Explorer context menu.
 - Disabled items remain visible and gated until implemented.
 
 ## Current State
-- Modify Selection submenu structure is present in the context menu and mirrors the spec entries.
-- Disabled/gated items remain visible where intended.
+- Modify Selection submenu now executes concrete mesh operations for model selections:
+  - planar UV projection
+  - face flip
+  - center pivot
+  - freeze scale + normalize normals
+  - material color reset/set handlers for vertex-color parity commands
+  - recalculate normals/tangents
+- Mesh reload from disk now resolves asset paths and reloads through `ModelLoader`.
+- `Clone as static animated mesh` creates a clone and seeds a static mesh keyframe.
+- Behavior copy/paste now copies `GeomScript` entries between compatible nodes.
+- Unsupported heavy operations (terrain distribution, texture bake-to-one) remain visible but disabled/gated with explicit messaging.
 
 ## Remaining
-- Implement concrete mesh operation handlers for the currently stubbed commands (UV/normals/vertex colors/bake/reload/behavior copy-paste).
+- None for this task scope.

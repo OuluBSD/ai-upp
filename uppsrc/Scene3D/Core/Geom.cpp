@@ -1193,6 +1193,7 @@ void GeomObject::Visit(Vis& v) {
 	int type_i = (int)type;
 	v VIS_(name)
 	  VIS_(type_i)
+	  VIS_(ui_type)
 	  VIS_(asset_ref)
 	  VIS_(pointcloud_ref)
 	  VIS_(is_visible)

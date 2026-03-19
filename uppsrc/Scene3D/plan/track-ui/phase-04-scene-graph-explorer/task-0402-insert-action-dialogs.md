@@ -1,7 +1,7 @@
 # Task 0402 - Insert Action Dialogs
 
 ## Status
-- Partial / Open (updated 2026-02-17)
+- Done (2026-02-19)
 
 ## Goal
 Implement insert action dialogs and behaviors described in scene_graph_explorer.xml.
@@ -22,6 +22,6 @@ Implement insert action dialogs and behaviors described in scene_graph_explorer.
 - Direct-create actions are wired for lights/skybox/particles/overlays/path-related objects.
 - Context-dependent creation for `create_path_node` is now enforced in both menu availability and action handling.
 - Directional light now follows single-instance-per-scene behavior.
-
-## Remaining
-- Verify strict dialog field parity against `scene_graph_explorer.xml` for edge cases and unexposed options.
+- Parity refinements:
+  - `create_tree` now opens the expected "Generate new tree" dialog before creation.
+  - Static mesh import dialog title now matches XML wording ("Please select a mesh to load").

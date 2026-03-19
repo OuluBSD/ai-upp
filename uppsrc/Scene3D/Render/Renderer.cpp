@@ -248,6 +248,320 @@ static void CountGizmoPixels(Scene3DRenderContext& ctx, Size sz, const mat4& vie
 	ctx.gizmo_pixels += 1;
 }
 
+static String GetUiTypeLower(const GeomObject& go) {
+	if (!go.ui_type.IsEmpty())
+		return ToLower(go.ui_type);
+	if (const GeomDynamicProperties* props = go.FindDynamicProperties()) {
+		int ti = props->props.Find("type");
+		if (ti >= 0) {
+			String t = AsString(props->props[ti]);
+			if (!t.IsEmpty())
+				return ToLower(t);
+		}
+	}
+	return String();
+}
+
+static bool GetDynamicString(const GeomObject& go, const String& key, String& out) {
+	const GeomDynamicProperties* props = go.FindDynamicProperties();
+	if (!props)
+		return false;
+	int i = props->props.Find(key);
+	if (i < 0)
+		return false;
+	out = AsString(props->props[i]);
+	return !out.IsEmpty();
+}
+
+static bool GetDynamicFloat(const GeomObject& go, const String& key, float& out) {
+	const GeomDynamicProperties* props = go.FindDynamicProperties();
+	if (!props)
+		return false;
+	int i = props->props.Find(key);
+	if (i < 0)
+		return false;
+	Value v = props->props[i];
+	if (v.Is<double>() || v.Is<int>() || v.Is<int64>()) {
+		out = (float)v;
+		return true;
+	}
+	return false;
+}
+
+struct UiSceneLight : Moveable<UiSceneLight> {
+	bool directional = true;
+	vec3 position = vec3(0);
+	vec3 direction = vec3(0, -1, 0);
+	float intensity = 1.0f;
+	float range = 8.0f;
+};
+
+static void CollectUiLights(const Scene3DRenderContext* ctx, Vector<UiSceneLight>& out) {
+	out.Clear();
+	if (!ctx || !ctx->state)
+		return;
+	for (const GeomObjectState& os : ctx->state->objs) {
+		if (!os.obj || !os.obj->is_visible)
+			continue;
+		const GeomObject& go = *os.obj;
+		String t = GetUiTypeLower(go);
+		if (t == "light.directional") {
+			UiSceneLight& l = out.Add();
+			l.directional = true;
+			l.direction = VectorTransform(VEC_FWD, os.orientation);
+			if (l.direction.GetLength() == 0)
+				l.direction = vec3(0, -1, 0);
+			else
+				l.direction.Normalize();
+			GetDynamicFloat(go, "intensity", l.intensity);
+			continue;
+		}
+		if (t == "light" || t == "light.point") {
+			UiSceneLight& l = out.Add();
+			l.directional = false;
+			l.position = os.position;
+			GetDynamicFloat(go, "intensity", l.intensity);
+			GetDynamicFloat(go, "range", l.range);
+			if (l.range <= 0)
+				l.range = 8.0f;
+			continue;
+		}
+	}
+}
+
+static void DrawUiTypeOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os, bool z_cull, Scene3DRenderContext* ctx) {
+	const GeomObject& go = *os.obj;
+	String t = GetUiTypeLower(go);
+	if (t.IsEmpty())
+		return;
+	vec3 pos = os.position;
+	auto draw_cross = [&](const vec3& p, float r, Color c, int w = 1) {
+		DrawLine(sz, d, view, p + vec3(-r, 0, 0), p + vec3(+r, 0, 0), w, c, z_cull);
+		DrawLine(sz, d, view, p + vec3(0, -r, 0), p + vec3(0, +r, 0), w, c, z_cull);
+		DrawLine(sz, d, view, p + vec3(0, 0, -r), p + vec3(0, 0, +r), w, c, z_cull);
+	};
+	auto draw_box = [&](const vec3& p, float sx, float sy, float szl, Color c, int w = 1) {
+		vec3 p000 = p + vec3(-sx, -sy, -szl);
+		vec3 p001 = p + vec3(-sx, -sy, +szl);
+		vec3 p010 = p + vec3(-sx, +sy, -szl);
+		vec3 p011 = p + vec3(-sx, +sy, +szl);
+		vec3 p100 = p + vec3(+sx, -sy, -szl);
+		vec3 p101 = p + vec3(+sx, -sy, +szl);
+		vec3 p110 = p + vec3(+sx, +sy, -szl);
+		vec3 p111 = p + vec3(+sx, +sy, +szl);
+		DrawLine(sz, d, view, p000, p001, w, c, z_cull);
+		DrawLine(sz, d, view, p000, p010, w, c, z_cull);
+		DrawLine(sz, d, view, p000, p100, w, c, z_cull);
+		DrawLine(sz, d, view, p111, p110, w, c, z_cull);
+		DrawLine(sz, d, view, p111, p101, w, c, z_cull);
+		DrawLine(sz, d, view, p111, p011, w, c, z_cull);
+		DrawLine(sz, d, view, p001, p011, w, c, z_cull);
+		DrawLine(sz, d, view, p001, p101, w, c, z_cull);
+		DrawLine(sz, d, view, p010, p011, w, c, z_cull);
+		DrawLine(sz, d, view, p010, p110, w, c, z_cull);
+		DrawLine(sz, d, view, p100, p101, w, c, z_cull);
+		DrawLine(sz, d, view, p100, p110, w, c, z_cull);
+	};
+	if (t == "light" || t == "light.point") {
+		Color c(255, 235, 130);
+		draw_cross(pos, 0.2f, c, 2);
+		DrawRect(sz, d, view, pos, Size(7, 7), c, z_cull);
+		return;
+	}
+	if (t == "light.directional") {
+		Color c(255, 220, 120);
+		vec3 dir = VectorTransform(VEC_FWD, os.orientation);
+		if (dir.GetLength() == 0)
+			dir = vec3(0, -1, 0);
+		else
+			dir.Normalize();
+		vec3 tip = pos + dir * 0.9f;
+		DrawLine(sz, d, view, pos, tip, 2, c, z_cull);
+		vec3 side = Cross(dir, VEC_UP);
+		if (side.GetLength() == 0)
+			side = vec3(1, 0, 0);
+		else
+			side.Normalize();
+		DrawLine(sz, d, view, tip, tip - dir * 0.2f + side * 0.15f, 2, c, z_cull);
+		DrawLine(sz, d, view, tip, tip - dir * 0.2f - side * 0.15f, 2, c, z_cull);
+		return;
+	}
+	if (t == "skybox") {
+		float e = max(1.5f, max(fabs(os.scale[0]), max(fabs(os.scale[1]), fabs(os.scale[2]))));
+		draw_box(pos, e, e, e, Color(120, 170, 255), 1);
+		String display, spec, irr;
+		GetDynamicString(go, "display", display);
+		GetDynamicString(go, "specular", spec);
+		GetDynamicString(go, "irradiance", irr);
+		String info = "Skybox";
+		if (!display.IsEmpty() || !spec.IsEmpty() || !irr.IsEmpty())
+			info << " [d/s/i]";
+		d.DrawText(6, 6, info, StdFont(), Color(160, 200, 255));
+		return;
+	}
+	if (t == "billboard" || t == "billboard_vertical") {
+		GeomCamera* cam = nullptr;
+		if (ctx && ctx->state)
+			cam = &ctx->state->GetProgram();
+		vec3 right(1, 0, 0);
+		vec3 up(0, 1, 0);
+		if (cam) {
+			vec3 to_cam = cam->position - pos;
+			if (to_cam.GetLength() > 0)
+				to_cam.Normalize();
+			if (t == "billboard_vertical") {
+				up = vec3(0, 1, 0);
+				right = Cross(up, to_cam);
+			}
+			else {
+				right = VectorTransform(VEC_RIGHT, cam->orientation);
+				up = VectorTransform(VEC_UP, cam->orientation);
+			}
+			if (right.GetLength() > 0)
+				right.Normalize();
+			if (up.GetLength() > 0)
+				up.Normalize();
+		}
+		float hx = 0.45f, hy = 0.45f;
+		vec3 p0 = pos - right * hx - up * hy;
+		vec3 p1 = pos + right * hx - up * hy;
+		vec3 p2 = pos + right * hx + up * hy;
+		vec3 p3 = pos - right * hx + up * hy;
+		Color c = t == "billboard_vertical" ? Color(120, 230, 160) : Color(120, 210, 255);
+		DrawLine(sz, d, view, p0, p1, 1, c, z_cull);
+		DrawLine(sz, d, view, p1, p2, 1, c, z_cull);
+		DrawLine(sz, d, view, p2, p3, 1, c, z_cull);
+		DrawLine(sz, d, view, p3, p0, 1, c, z_cull);
+		DrawLine(sz, d, view, p0, p2, 1, c, z_cull);
+		return;
+	}
+	if (t == "particle_system") {
+		draw_cross(pos, 0.18f, Color(255, 180, 120), 1);
+		int frame = (ctx && ctx->anim) ? ctx->anim->position : 0;
+		for (int i = 0; i < 12; i++) {
+			float a = ((float)i / 12.0f) * 2.0f * (float)M_PI + (float)frame * 0.12f;
+			float r = 0.22f + 0.06f * (float)((i + frame) % 5);
+			vec3 p = pos + vec3(cos(a) * r, 0.08f * (float)(i % 4), sin(a) * r);
+			DrawRect(sz, d, view, p, Size(2, 2), Color(255, 160, 120), z_cull);
+		}
+		return;
+	}
+	if (t == "overlay2d" || t == "touch2d") {
+		int slot = (int)(go.key % 6);
+		int x = max(6, sz.cx - 188);
+		int y = 16 + slot * 30;
+		Color bg = (t == "touch2d") ? Color(90, 130, 90) : Color(90, 90, 130);
+		d.DrawRect(x, y, 172, 22, bg);
+		d.DrawRect(x + 1, y + 1, 170, 20, Color(35, 35, 40));
+		d.DrawText(x + 6, y + 4, t == "touch2d" ? "Touch Overlay Hook" : "Overlay 2D Layer",
+			StdFont(), LtGray());
+		return;
+	}
+	if (t == "sound3d") {
+		Color c(170, 210, 255);
+		draw_cross(pos, 0.12f, c, 1);
+		const int steps = 20;
+		for (int ring = 1; ring <= 2; ring++) {
+			float r = 0.18f * ring;
+			for (int i = 1; i <= steps; i++) {
+				float a0 = ((float)(i - 1) / (float)steps) * 2.0f * (float)M_PI;
+				float a1 = ((float)i / (float)steps) * 2.0f * (float)M_PI;
+				vec3 p0 = pos + vec3(cos(a0) * r, sin(a0) * r * 0.5f, 0);
+				vec3 p1 = pos + vec3(cos(a1) * r, sin(a1) * r * 0.5f, 0);
+				DrawLine(sz, d, view, p0, p1, 1, c, z_cull);
+			}
+		}
+		return;
+	}
+	if (t == "path") {
+		draw_cross(pos, 0.15f, Color(160, 255, 160), 1);
+		if (ctx && ctx->state) {
+			Vector<vec3> pts;
+			for (const GeomObjectState& other : ctx->state->objs) {
+				if (!other.obj || !other.obj->is_visible)
+					continue;
+				if (GetUiTypeLower(*other.obj) != "path_node")
+					continue;
+				String owner;
+				if (!GetDynamicString(*other.obj, "path_owner", owner))
+					continue;
+				if (owner != go.name)
+					continue;
+				pts.Add(other.position);
+			}
+			for (int i = 1; i < pts.GetCount(); i++)
+				DrawLine(sz, d, view, pts[i - 1], pts[i], 2, Color(120, 235, 120), z_cull);
+			for (const vec3& p : pts)
+				DrawRect(sz, d, view, p, Size(4, 4), Color(140, 255, 140), z_cull);
+		}
+		return;
+	}
+	if (t == "path_node") {
+		DrawRect(sz, d, view, pos, Size(6, 6), Color(170, 255, 170), z_cull);
+		DrawLine(sz, d, view, pos, pos + vec3(0, 0.2f, 0), 1, Color(170, 255, 170), z_cull);
+		return;
+	}
+}
+
+struct UiLightEval {
+	float diffuse = 0.0f;
+	float specular = 0.0f;
+	float ambient = 0.25f;
+};
+
+static UiLightEval EvaluateUiLighting(const Vector<UiSceneLight>& lights, const vec3& world_pos,
+                                      const vec3& normal_world, const vec3& view_dir, float shininess) {
+	UiLightEval ev;
+	if (lights.IsEmpty()) {
+		vec3 dir(0.4f, 0.7f, 0.5f);
+		dir.Normalize();
+		float diff = max(0.0f, Dot(normal_world, dir));
+		vec3 refl = normal_world * (2.0f * Dot(normal_world, dir)) - dir;
+		if (refl.GetLength() > 0)
+			refl.Normalize();
+		float spec = 0.0f;
+		if (diff > 0 && view_dir.GetLength() > 0)
+			spec = pow(max(0.0f, Dot(refl, view_dir)), shininess);
+		ev.diffuse = diff;
+		ev.specular = spec;
+		return ev;
+	}
+	float diff = 0;
+	float spec = 0;
+	float ambient = 0.15f;
+	for (const UiSceneLight& l : lights) {
+		vec3 to_light;
+		float att = 1.0f;
+		if (l.directional) {
+			to_light = -l.direction;
+		}
+		else {
+			to_light = l.position - world_pos;
+			float dist = to_light.GetLength();
+			if (dist > 0)
+				to_light /= dist;
+			float k = l.range > 0 ? dist / l.range : 0;
+			att = Clamp(1.0f - k * k, 0.0f, 1.0f);
+		}
+		if (to_light.GetLength() == 0)
+			continue;
+		float d = max(0.0f, Dot(normal_world, to_light));
+		vec3 refl = normal_world * (2.0f * Dot(normal_world, to_light)) - to_light;
+		if (refl.GetLength() > 0)
+			refl.Normalize();
+		float s = 0.0f;
+		if (d > 0 && view_dir.GetLength() > 0)
+			s = pow(max(0.0f, Dot(refl, view_dir)), shininess);
+		diff += d * l.intensity * att;
+		spec += s * l.intensity * att;
+		ambient += 0.05f * l.intensity * (l.directional ? 1.0f : att);
+	}
+	ev.diffuse = diff;
+	ev.specular = spec;
+	ev.ambient = ambient;
+	return ev;
+}
+
 void DrawEditableMeshOverlay(Size sz, Draw& d, const mat4& view, const GeomObjectState& os,
                              const GeomEditableMesh& mesh, bool z_cull,
                              const Vector<float>* weights = nullptr, bool show_weights = false,
@@ -874,10 +1188,7 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 	mat4 o_world = (QuatMat(os.orientation) * Translate(os.position) * Scale(os.scale)).GetInverse();
 	mat4 o_view = view * o_world;
 	
-	if (go.IsModel()) {
-		if (!go.mdl)
-			return;
-		
+	if (go.IsModel() && go.mdl) {
 		const Model& mdl = *go.mdl;
 		for (const Mesh& mesh : mdl.meshes) {
 			int tri_count = mesh.indices.GetCount() / 3;
@@ -951,6 +1262,7 @@ void EditRendererV1::PaintObject(Draw& d, const GeomObjectState& os, const mat4&
 		}
 		DrawCameraGizmo(sz, d, view, os.position, os.orientation, fov_deg, scale, CameraColor(go), z_cull);
 	}
+	DrawUiTypeOverlay(sz, d, view, os, z_cull, ctx);
 	if (GeomEditableMesh* mesh = go.FindEditableMesh()) {
 		if (!mesh->points.IsEmpty() || !mesh->lines.IsEmpty() || !mesh->faces.IsEmpty()) {
 			const Vector<float>* weights = nullptr;
@@ -1550,12 +1862,12 @@ void EditRendererV2::Paint(Draw& d) {
 	
 	int models_painted = 0;
 	int triangles_submitted = 0;
+	Vector<UiSceneLight> ui_lights;
+	CollectUiLights(ctx, ui_lights);
 	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
 		models_painted++;
 		mat4 o_world = Translate(os.position) * QuatMat(os.orientation) * Scale(os.scale);
 		mat4 o_view = view * o_world;
-		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
-		light_dir.Normalize();
 		for (const Mesh& mesh : mdl.meshes) {
 			vec3 base_clr(1, 1, 1);
 			vec3 emissive(0, 0, 0);
@@ -1602,17 +1914,9 @@ void EditRendererV2::Paint(Draw& d) {
 				vec3 view_dir = camera.position - center;
 				if (view_dir.GetLength() > 0)
 					view_dir.Normalize();
-				float diff = max(0.0f, Dot(n_world, light_dir));
-				vec3 reflect_dir = (n_world * (2.0f * Dot(n_world, light_dir)) - light_dir);
-				if (reflect_dir.GetLength() > 0)
-					reflect_dir.Normalize();
-				float spec = 0.0f;
-				if (diff > 0 && view_dir.GetLength() > 0)
-					spec = pow(max(0.0f, Dot(reflect_dir, view_dir)), shininess);
-				const float ambient_strength = 0.25f;
-				const float diffuse_strength = 0.75f;
-				vec3 shaded = base * (ambient_strength + diff * diffuse_strength)
-				            + base_clr * ambient + specular * spec + emissive;
+				UiLightEval ev = EvaluateUiLighting(ui_lights, center, n_world, view_dir, shininess);
+				vec3 shaded = base * (ev.ambient + ev.diffuse * 0.75f)
+				            + base_clr * ambient + specular * ev.specular + emissive;
 				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
 				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
 				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);
@@ -1703,6 +2007,34 @@ void EditRendererV2::Paint(Draw& d) {
 		}
 	};
 	draw_camera_gizmos();
+	auto draw_ui_overlays = [&] {
+		if (ctx->anim && ctx->anim->is_playing) {
+			for (const GeomObjectState& os : state.objs) {
+				if (!os.obj || !os.obj->is_visible)
+					continue;
+				DrawUiTypeOverlay(sz, d, view, os, z_cull, ctx);
+			}
+		}
+		else {
+			GeomObjectCollection iter(scene);
+			GeomObjectState os;
+			for (GeomObject& go : iter) {
+				if (!go.is_visible)
+					continue;
+				os.obj = &go;
+				os.position = vec3(0);
+				os.orientation = Identity<quat>();
+				os.scale = vec3(1);
+				if (GeomTransform* tr = go.FindTransform()) {
+					os.position = tr->position;
+					os.orientation = tr->orientation;
+					os.scale = tr->scale;
+				}
+				DrawUiTypeOverlay(sz, d, view, os, z_cull, ctx);
+			}
+		}
+	};
+	draw_ui_overlays();
 	if (ctx && ctx->selection_gizmo_enabled && ctx->selection_center_valid) {
 		DrawSelectionGizmo(sz, d, view, ctx->selection_center_world, z_cull, 0.4f);
 		CountGizmoPixels(*ctx, sz, view, ctx->selection_center_world);
@@ -2098,12 +2430,12 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 	int triangles_submitted = 0;
 	bool debug_captured = false;
 	String debug_dump;
+	Vector<UiSceneLight> ui_lights;
+	CollectUiLights(&ctx, ui_lights);
 	auto paint_model = [&](const GeomObjectState& os, const Model& mdl) {
 		models_painted++;
 		mat4 o_world = Translate(os.position) * QuatMat(os.orientation) * Scale(os.scale);
 		mat4 o_view = view * o_world;
-		vec3 light_dir = vec3(0.4f, 0.7f, 0.5f);
-		light_dir.Normalize();
 		for (const Mesh& mesh : mdl.meshes) {
 			vec3 base_clr(1, 1, 1);
 			vec3 emissive(0, 0, 0);
@@ -2150,17 +2482,9 @@ bool RenderSceneV2Headless(Scene3DRenderContext& ctx, Size sz, Scene3DRenderStat
 				vec3 view_dir = camera.position - center;
 				if (view_dir.GetLength() > 0)
 					view_dir.Normalize();
-				float diff = max(0.0f, Dot(n_world, light_dir));
-				vec3 reflect_dir = (n_world * (2.0f * Dot(n_world, light_dir)) - light_dir);
-				if (reflect_dir.GetLength() > 0)
-					reflect_dir.Normalize();
-				float spec = 0.0f;
-				if (diff > 0 && view_dir.GetLength() > 0)
-					spec = pow(max(0.0f, Dot(reflect_dir, view_dir)), shininess);
-				const float ambient_strength = 0.25f;
-				const float diffuse_strength = 0.75f;
-				vec3 shaded = base * (ambient_strength + diff * diffuse_strength)
-				            + base_clr * ambient + specular * spec + emissive;
+				UiLightEval ev = EvaluateUiLighting(ui_lights, center, n_world, view_dir, shininess);
+				vec3 shaded = base * (ev.ambient + ev.diffuse * 0.75f)
+				            + base_clr * ambient + specular * ev.specular + emissive;
 				shaded[0] = Clamp(shaded[0], 0.0f, 1.0f);
 				shaded[1] = Clamp(shaded[1], 0.0f, 1.0f);
 				shaded[2] = Clamp(shaded[2], 0.0f, 1.0f);

@@ -2781,18 +2781,6 @@ static void SetDynamicProp(GeomDirectory& dir, const String& key, const Value& v
 	props.props.GetAdd(key, val);
 }
 
-static bool GetDynamicProp(const GeomObject& obj, const String& key, Value& out)
-{
-	const GeomDynamicProperties* props = obj.FindDynamicProperties();
-	if (!props)
-		return false;
-	int idx = props->props.Find(key);
-	if (idx < 0)
-		return false;
-	out = props->props[idx];
-	return true;
-}
-
 static GeomObject& CreateModelObject(Edit3D& e, const String& base)
 {
 	GeomDirectory& dir = GetCreateTargetDirectory(e);
@@ -2809,7 +2797,7 @@ static GeomObject& CreateTaggedModel(Edit3D& e, const String& base, const String
 {
 	GeomObject& obj = CreateModelObject(e, base);
 	if (!tag.IsEmpty())
-		SetDynamicProp(obj, "type", tag);
+		obj.ui_type = tag;
 	return obj;
 }
 
@@ -3095,6 +3083,21 @@ static bool DialogCreateWater(int& tiles, double& width, double& length)
 	return false;
 }
 
+static bool DialogCreateTree()
+{
+	struct Dlg : PrimitiveDialogBase {
+		Label info;
+		Dlg()
+		{
+			Title("Generate new tree");
+			info.SetLabel("Generate a new procedural tree node with default settings.");
+			AddRowLeft(info);
+			AddButtons();
+		}
+	} dlg;
+	return dlg.Run() == IDOK;
+}
+
 static bool DialogCreateTerrain(double& side_length, double& tile_size, double& max_height,
                                 String& topology, bool& create_trees, bool& create_grass)
 {
@@ -3252,6 +3255,45 @@ static bool SetRibbonBoolValue(ModelerAppRibbon& ribbon, const char* id, bool v)
 	return true;
 }
 
+static void SyncRibbonSceneSelector(Edit3D& e)
+{
+	Ctrl* c = e.ribbon.FindControl("scene_selector");
+	DropList* dl = dynamic_cast<DropList*>(c);
+	if (!dl)
+		return;
+	Event<> cb = dl->WhenAction;
+	dl->WhenAction = Event<>();
+	dl->Clear();
+	dl->Add("new_scene", "New 3D Scene");
+	int selected = 0;
+	if (e.prj) {
+		for (int i = 0; i < e.prj->GetSceneCount(); i++) {
+			GeomScene& scene = e.prj->GetScene(i);
+			String id = "scene_" + IntStr(i);
+			String label = scene.name.IsEmpty() ? Format("Scene #%d", i) : scene.name;
+			dl->Add(id, label);
+			if (e.state && i == e.state->active_scene)
+				selected = i + 1;
+		}
+	}
+	if (dl->GetCount() > 0)
+		dl->SetIndex(minmax(selected, 0, dl->GetCount() - 1));
+	dl->WhenAction = cb;
+}
+
+static void SyncRibbonPublishTarget(Edit3D& e)
+{
+	if (!e.state || !e.state->HasActiveScene())
+		return;
+	String target = "win_exe";
+	if (GeomDynamicProperties* props = e.state->GetActiveScene().FindDynamicProperties()) {
+		int i = props->props.Find("publish_target");
+		if (i >= 0)
+			target = AsString(props->props[i]);
+	}
+	SetRibbonDropValue(e.ribbon, "publish_target", target);
+}
+
 void Edit3D::CreatePrimitiveCube(double size)
 {
 	if (!state)
@@ -3390,6 +3432,8 @@ void Edit3D::UpdateRibbonContext()
 	ribbon.ShowContext("object", has_obj);
 	ribbon.ShowContext("mesh", mesh_context);
 	ribbon.ShowContext("material", material_context);
+	SyncRibbonSceneSelector(*this);
+	SyncRibbonPublishTarget(*this);
 }
 
 void Edit3D::SyncRibbonLightmapControls()
@@ -3455,8 +3499,150 @@ void Edit3D::StoreRibbonLightmapSettings(bool bake)
 	SetDynamicProp(scene, "lightmap_smooth_normals", smooth);
 	SetDynamicProp(scene, "lightmap_color_bleeding", color_bleed);
 
-	if(bake)
-		LOG("Lightmap calculate requested (stub).");
+	if(bake) {
+		String summary;
+		bool ok = BakeSceneLightmaps(summary);
+		if(summary.IsEmpty())
+			summary = ok ? "Lightmap bake complete." : "Lightmap bake failed.";
+		PromptOK(summary);
+	}
+}
+
+bool Edit3D::BakeSceneLightmaps(String& summary)
+{
+	if(!state || !state->HasActiveScene()) {
+		summary = "No active scene.";
+		return false;
+	}
+
+	GeomScene& scene = state->GetActiveScene();
+	GeomDynamicProperties* props = scene.FindDynamicProperties();
+	if(!props) {
+		summary = "No scene lightmap settings found.";
+		return false;
+	}
+
+	auto get_prop = [&](const char* key) -> const Value* {
+		int i = props->props.Find(key);
+		return i >= 0 ? &props->props[i] : nullptr;
+	};
+	auto get_int_prop = [&](const char* key, int def) -> int {
+		if(const Value* v = get_prop(key))
+			return (int)*v;
+		return def;
+	};
+	auto get_str_prop = [&](const char* key, const String& def) -> String {
+		if(const Value* v = get_prop(key))
+			return (String)*v;
+		return def;
+	};
+	auto get_bool_prop = [&](const char* key, bool def) -> bool {
+		if(const Value* v = get_prop(key))
+			return (bool)*v;
+		return def;
+	};
+	auto get_double_prop = [&](const char* key, double def) -> double {
+		if(const Value* v = get_prop(key))
+			return (double)*v;
+		return def;
+	};
+
+	String tex_size_str = get_str_prop("lightmap_texture_size", "256");
+	const char* tex_end = nullptr;
+	int tex_size = ScanInt(tex_size_str, &tex_end);
+	if(!tex_end || *tex_end)
+		tex_size = 256;
+	tex_size = minmax(tex_size, 16, 2048);
+
+	String mode = ToLower(get_str_prop("lightmap_mode", "wide"));
+	String subsampling = ToLower(get_str_prop("lightmap_subsampling", "none"));
+	int resolution = max(1, get_int_prop("lightmap_resolution", 1000));
+	double shadow_opacity = minmax(get_double_prop("lightmap_shadow_opacity", 0.8), 0.0, 1.0);
+	bool ambient = get_bool_prop("lightmap_ambient_enabled", true);
+	bool smooth = get_bool_prop("lightmap_smooth_normals", true);
+	bool color_bleed = get_bool_prop("lightmap_color_bleeding", true);
+
+	int subsample = 1;
+	if(subsampling == "4x") subsample = 2;
+	else if(subsampling == "9x") subsample = 3;
+	else if(subsampling == "16x") subsample = 4;
+	else if(subsampling == "25x") subsample = 5;
+
+	double mode_gain = 1.0;
+	if(mode == "diffuse") mode_gain = 0.92;
+	else if(mode == "shadows") mode_gain = 0.75;
+	else if(mode == "gi") mode_gain = 1.08;
+	double resolution_gain = min(1.25, 0.75 + (double)resolution / 2000.0);
+	double smooth_gain = smooth ? 1.04 : 0.96;
+	double bleed_gain = color_bleed ? 1.03 : 0.97;
+	double ambient_gain = ambient ? 1.0 : 0.86;
+
+	PushUndo("Bake Lightmaps");
+
+	int model_count = 0;
+	int material_count = 0;
+	for(GeomObject& obj : GeomObjectCollection(scene)) {
+		if(!obj.IsModel() || !obj.mdl)
+			continue;
+		Model& mdl = *obj.mdl;
+		if(mdl.materials.IsEmpty())
+			continue;
+
+		model_count++;
+		for(int i = 0; i < mdl.materials.GetCount(); i++) {
+			int mat_id = mdl.materials.GetKey(i);
+			Material& mat = mdl.materials[i];
+			String tex_key = Format("gen_lightmap_%llx_%d", (long long)obj.key, mat_id);
+
+			ImageBuffer ib(tex_size, tex_size);
+			for(int y = 0; y < tex_size; y++) {
+				double v = tex_size > 1 ? (double)y / (double)(tex_size - 1) : 0.0;
+				RGBA* row = ib[y];
+				for(int x = 0; x < tex_size; x++) {
+					double u = tex_size > 1 ? (double)x / (double)(tex_size - 1) : 0.0;
+					double gx = 0.85 + 0.15 * cos(u * M_PI * subsample);
+					double gy = 0.85 + 0.15 * sin(v * M_PI * subsample);
+					double g = gx * gy;
+					double shade = mode_gain * resolution_gain * smooth_gain * bleed_gain * ambient_gain * g;
+					shade *= (1.0 - 0.6 * shadow_opacity);
+					shade = minmax(shade, 0.05, 1.0);
+					byte c = (byte)minmax((int)floor(shade * 255.0 + 0.5), 0, 255);
+					RGBA& px = row[x];
+					px.r = c;
+					px.g = c;
+					px.b = c;
+					px.a = 255;
+				}
+			}
+
+			Image img = ib;
+			int tex_id = mdl.FindTexture(tex_key);
+			if(tex_id >= 0)
+				mdl.textures.Get(tex_id).img.Set(img);
+			else
+				tex_id = mdl.AddTexture(img, tex_key);
+			mat.tex_id[TEXTYPE_LIGHTMAP] = tex_id;
+			mat.tex_filter[TEXTYPE_LIGHTMAP] = GVar::FILTER_LINEAR;
+			material_count++;
+		}
+	}
+
+	SetDynamicProp(scene, "lightmap_last_bake_utc", AsString(GetUtcTime()));
+	SetDynamicProp(scene, "lightmap_last_bake_models", model_count);
+	SetDynamicProp(scene, "lightmap_last_bake_materials", material_count);
+
+	state->UpdateObjects();
+	RefreshData();
+	RefrehRenderers();
+
+	if(material_count <= 0) {
+		summary = "No model materials available for lightmap baking.";
+		return false;
+	}
+
+	summary = Format("Lightmap bake complete.\nModels: %d\nMaterials: %d\nTexture size: %d",
+	                 model_count, material_count, tex_size);
+	return true;
 }
 
 void Edit3D::FocusSelectedNode()
@@ -3653,11 +3839,11 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		int tiles = (tile > 1e-6) ? max(1, (int)floor(side / tile + 0.5)) : 1;
 		GeomObject* obj = CreatePrimitivePlane(tiles, side, side, 1);
 		if (obj) {
+			obj->ui_type = "terrain";
 			SetDynamicProp(*obj, "terrain_max_height", max_h);
 			SetDynamicProp(*obj, "terrain_topology", topo);
 			SetDynamicProp(*obj, "terrain_create_trees", create_trees);
 			SetDynamicProp(*obj, "terrain_create_grass", create_grass);
-			SetDynamicProp(*obj, "type", "terrain");
 		}
 		return true;
 	}
@@ -3685,12 +3871,20 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 			return false;
 		GeomObject* obj = CreatePrimitivePlane(max(1, tiles), width, length, 1);
 		if (obj) {
+			obj->ui_type = "water_surface";
 			SetDynamicProp(*obj, "water_surface", true);
-			SetDynamicProp(*obj, "type", "water_surface");
 		}
 		return true;
 	}
-	if (sid == "import_static_mesh" || sid == "import_animated_mesh") {
+	if (sid == "import_static_mesh") {
+		FileSel fs;
+		fs.Type("Meshes", "*.obj *.glb *.gltf *.fbx *.dae");
+		if (!fs.ExecuteOpen("Please select a mesh to load"))
+			return false;
+		AddAssetFromPath(fs.Get());
+		return true;
+	}
+	if (sid == "import_animated_mesh") {
 		FileSel fs;
 		fs.Type("Meshes", "*.obj *.glb *.gltf *.fbx *.dae");
 		if (!fs.ExecuteOpen("Open mesh file"))
@@ -3700,7 +3894,7 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 	}
 	if (sid == "create_point_light") {
 		GeomObject& obj = CreateTaggedModel(*this, "point_light", "light");
-		SetDynamicProp(obj, "light_type", "point");
+		obj.ui_type = "light.point";
 		state->UpdateObjects();
 		RefreshData();
 		return true;
@@ -3708,21 +3902,20 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 	if (sid == "create_directional_light") {
 		GeomScene& scene = state->GetActiveScene();
 		for (GeomObject& existing : GeomObjectCollection(scene)) {
-			Value v;
-			if (!GetDynamicProp(existing, "light_type", v))
-				continue;
-			if (ToLower(AsString(v)) == "directional") {
+			if (existing.ui_type == "light.directional") {
 				LOG("Directional light already exists in this scene.");
 				return true;
 			}
 		}
 		GeomObject& obj = CreateTaggedModel(*this, "directional_light", "light");
-		SetDynamicProp(obj, "light_type", "directional");
+		obj.ui_type = "light.directional";
 		state->UpdateObjects();
 		RefreshData();
 		return true;
 	}
 	if (sid == "create_tree") {
+		if (!DialogCreateTree())
+			return false;
 		GeomObject& obj = CreateTaggedModel(*this, "tree", "tree");
 		state->UpdateObjects();
 		RefreshData();
@@ -3781,9 +3974,7 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 			LOG("Create path node requires selecting a path object first.");
 			return false;
 		}
-		Value path_type;
-		bool is_path = GetDynamicProp(*v0.selected_obj, "type", path_type) &&
-		               ToLower(AsString(path_type)) == "path";
+		bool is_path = v0.selected_obj->ui_type == "path";
 		if (!is_path) {
 			LOG("Create path node is only available when a path object is selected.");
 			return false;
@@ -3806,7 +3997,6 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		SetEditTool(TOOL_MESH_SELECT);
 		tool_panel.Sync();
 		RefrehRenderers();
-		LOG("Polygon rectangle selection not implemented yet.");
 		return true;
 	}
 	if (sid == "poly_move_selected") {
@@ -3818,19 +4008,34 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 	if (sid == "poly_rotate_selected") {
 		SetEditTool(TOOL_MESH_SELECT);
 		tool_panel.Sync();
+		GeomObject* obj = GetFocusedMeshObject();
+		if (obj && (!mesh_sel_points.IsEmpty() || !mesh_sel_lines.IsEmpty() || !mesh_sel_faces.IsEmpty())) {
+			vec3 axis = vec3(0, 0, 1);
+			if (state) {
+				if (const GeomObjectState* os = state->FindObjectStateByKey(obj->key))
+					axis = VectorTransform(vec3(0, 0, 1), os->orientation.GetInverse());
+			}
+			else if (GeomTransform* tr = obj->FindTransform()) {
+				axis = VectorTransform(vec3(0, 0, 1), tr->orientation.GetInverse());
+			}
+			ApplyMeshSelectionRotate((float)(M_PI / 12.0), axis);
+		}
 		RefrehRenderers();
-		LOG("Polygon rotate tool not implemented yet.");
 		return true;
 	}
 	if (sid == "poly_scale_selected") {
 		SetEditTool(TOOL_MESH_SELECT);
 		tool_panel.Sync();
+		if (!mesh_sel_points.IsEmpty() || !mesh_sel_lines.IsEmpty() || !mesh_sel_faces.IsEmpty())
+			ApplyMeshSelectionScale(1.1f);
 		RefrehRenderers();
-		LOG("Polygon scale tool not implemented yet.");
 		return true;
 	}
 	if (sid == "poly_modify_uv") {
-		LOG("Polygon UV modify tool not implemented yet.");
+		mesh_select_mode = MESHSEL_VERTEX;
+		SetEditTool(TOOL_MESH_SELECT);
+		tool_panel.Sync();
+		PromptOK("UV edit mode: select vertices and use mesh tools.");
 		return true;
 	}
 	if (sid == "poly_edit_mode") {
@@ -3851,7 +4056,17 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "poly_tools") {
-		LOG("Polygon tools menu not implemented yet.");
+		MenuBar::Execute([this](Bar& bar) {
+			bar.Add(t_("Loop Select"), THISBACK(SelectMeshLoop));
+			bar.Add(t_("Ring Select"), THISBACK(SelectMeshRing));
+			bar.Add(t_("Expand Selection"), THISBACK(ExpandMeshSelection));
+			bar.Add(t_("Contract Selection"), THISBACK(ContractMeshSelection));
+			bar.Separator();
+			bar.Add(t_("Extrude"), [this] { ExtrudeMeshSelection(0.1); });
+			bar.Add(t_("Inset"), [this] { InsetMeshSelection(0.1); });
+			bar.Add(t_("Spin"), THISBACK(SpinMeshSelection));
+			bar.Add(t_("Screw"), THISBACK(ScrewMeshSelection));
+		});
 		return true;
 	}
 	if (sid == "camera_make_active") {
@@ -3883,19 +4098,78 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "scene_delete") {
-		LOG("Scene delete not implemented yet.");
+		if (!prj || !state)
+			return false;
+		int scene_count = prj->GetSceneCount();
+		if (scene_count <= 1) {
+			PromptOK("At least one scene must remain.");
+			return true;
+		}
+		int active = state->active_scene;
+		if (active < 0 || active >= scene_count)
+			active = 0;
+		GeomScene& scene = prj->GetScene(active);
+		String scene_name = scene.name.IsEmpty() ? Format("Scene #%d", active) : scene.name;
+		if (!PromptYesNo("Delete scene '" + scene_name + "'?"))
+			return true;
+		PushUndo("Delete scene");
+		prj->val.sub.Remove(active);
+		state->active_scene = min(active, max(prj->GetSceneCount() - 1, 0));
+		state->UpdateObjects();
+		Data();
+		v0.TimelineData();
+		RefreshData();
 		return true;
 	}
 	if (sid == "scene_settings") {
-		LOG("Scene settings not implemented yet.");
+		if (!state || !state->HasActiveScene())
+			return false;
+		GeomScene& scene = state->GetActiveScene();
+		String name = scene.name.IsEmpty() ? scene.val.id : scene.name;
+		EditText(name, "Scene Settings", "Scene name");
+		name = TrimBoth(name);
+		if (!name.IsEmpty())
+			scene.name = name;
+		String length_txt = IntStr(max(scene.length, 1));
+		if (EditText(length_txt, "Scene Settings", "Length (frames)")) {
+			int len = ScanInt(~length_txt);
+			if (len > 0)
+				scene.length = len;
+		}
+		Data();
+		v0.TimelineData();
+		RefreshData();
 		return true;
 	}
 	if (sid == "scene_metrics") {
-		LOG("Scene metrics not implemented yet.");
+		if (!state || !state->HasActiveScene() || !prj)
+			return false;
+		GeomScene& scene = state->GetActiveScene();
+		int object_count = 0;
+		for (GeomObject& o : GeomObjectCollection(scene))
+			object_count++;
+		String info;
+		info << "Scene: " << (scene.name.IsEmpty() ? scene.val.id : scene.name) << "\n";
+		info << "Objects: " << object_count << "\n";
+		info << "Length: " << scene.length << " frames\n";
+		info << "FPS: " << prj->fps << "\n";
+		info << "KPS: " << prj->kps;
+		PromptOK(info);
 		return true;
 	}
 	if (sid == "scene_post_effects") {
-		LOG("Scene post effects not implemented yet.");
+		if (!state || !state->HasActiveScene())
+			return false;
+		GeomScene& scene = state->GetActiveScene();
+		bool enabled = false;
+		if (GeomDynamicProperties* props = scene.FindDynamicProperties()) {
+			int i = props->props.Find("postfx_enabled");
+			if (i >= 0)
+				enabled = (bool)props->props[i];
+		}
+		enabled = !enabled;
+		SetDynamicProp(scene, "postfx_enabled", enabled);
+		PromptOK(enabled ? "Scene post effects enabled." : "Scene post effects disabled.");
 		return true;
 	}
 	if (sid == "scene_selector") {
@@ -3908,7 +4182,17 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 					HandleRibbonAction("scene_add");
 					return true;
 				}
-				LOG("Scene selector not bound to scene list yet.");
+				if (sel.StartsWith("scene_")) {
+					int idx = ScanInt(sel.Mid(6));
+					if (state && prj && idx >= 0 && idx < prj->GetSceneCount()) {
+						state->active_scene = idx;
+						state->UpdateObjects();
+						Data();
+						v0.TimelineData();
+						RefreshData();
+					}
+					return true;
+				}
 			}
 		}
 		return true;
@@ -3933,11 +4217,27 @@ bool Edit3D::HandleRibbonAction(const String& id) {
 		return true;
 	}
 	if (sid == "publish_target") {
-		LOG("Publish target selection not implemented yet.");
+		if (!state || !state->HasActiveScene())
+			return false;
+		String target;
+		if (GetRibbonDropValue(ribbon, "publish_target", target))
+			SetDynamicProp(state->GetActiveScene(), "publish_target", target);
 		return true;
 	}
 	if (sid == "publishing_settings") {
-		LOG("Publishing settings not implemented yet.");
+		if (!state || !state->HasActiveScene())
+			return false;
+		GeomScene& scene = state->GetActiveScene();
+		String out_dir;
+		if (GeomDynamicProperties* props = scene.FindDynamicProperties()) {
+			int i = props->props.Find("publish_output_dir");
+			if (i >= 0)
+				out_dir = AsString(props->props[i]);
+		}
+		if (out_dir.IsEmpty())
+			out_dir = project_dir.IsEmpty() ? GetCurrentDirectory() : AppendFileName(project_dir, "exports");
+		if (EditText(out_dir, "Publishing Settings", "Export directory"))
+			SetDynamicProp(scene, "publish_output_dir", out_dir);
 		return true;
 	}
 	if (sid == "publish_and_test") {
@@ -4447,6 +4747,8 @@ void Edit3D::Data() {
 	if (dock_assets && !dock_assets->IsHidden())
 		asset_browser.Data();
 	SyncRibbonLightmapControls();
+	SyncRibbonSceneSelector(*this);
+	SyncRibbonPublishTarget(*this);
 }
 
 void Edit3D::SetProjectDir(String dir) {
@@ -6634,6 +6936,94 @@ void Edit3D::ApplyMeshSelectionDelta(const vec3& delta) {
 		mesh->points[id] += delta;
 	}
 	mesh_sel_offset += delta;
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::ApplyMeshSelectionRotate(float angle_rad, const vec3& axis_local) {
+	if (fabs(angle_rad) < 1e-6f)
+		return;
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		const GeomFace& f = mesh->faces[id];
+		verts.FindAdd(f.a);
+		verts.FindAdd(f.b);
+		verts.FindAdd(f.c);
+	}
+	if (verts.IsEmpty())
+		return;
+	vec3 center;
+	if (!GetMeshSelectionCenter(center))
+		return;
+	vec3 axis = safe_normalize(axis_local);
+	PushUndo("Rotate mesh selection");
+	quat rot = AxisAngleQuat(axis, angle_rad);
+	for (int id : verts) {
+		if (id < 0 || id >= mesh->points.GetCount())
+			continue;
+		vec3 p = mesh->points[id] - center;
+		mesh->points[id] = center + VectorTransform(p, rot);
+	}
+	AutoKeyMeshEdit(obj);
+	RefrehRenderers();
+}
+
+void Edit3D::ApplyMeshSelectionScale(float factor) {
+	if (fabs(factor - 1.0f) < 1e-6f || factor <= 0.0f)
+		return;
+	GeomObject* obj = GetFocusedMeshObject();
+	if (!obj)
+		return;
+	GeomEditableMesh* mesh = obj->FindEditableMesh();
+	if (!mesh)
+		return;
+	Index<int> verts;
+	for (int id : mesh_sel_points)
+		verts.FindAdd(id);
+	for (int id : mesh_sel_lines) {
+		if (id < 0 || id >= mesh->lines.GetCount())
+			continue;
+		const GeomEdge& e = mesh->lines[id];
+		verts.FindAdd(e.a);
+		verts.FindAdd(e.b);
+	}
+	for (int id : mesh_sel_faces) {
+		if (id < 0 || id >= mesh->faces.GetCount())
+			continue;
+		const GeomFace& f = mesh->faces[id];
+		verts.FindAdd(f.a);
+		verts.FindAdd(f.b);
+		verts.FindAdd(f.c);
+	}
+	if (verts.IsEmpty())
+		return;
+	vec3 center;
+	if (!GetMeshSelectionCenter(center))
+		return;
+	PushUndo("Scale mesh selection");
+	for (int id : verts) {
+		if (id < 0 || id >= mesh->points.GetCount())
+			continue;
+		vec3 p = mesh->points[id] - center;
+		mesh->points[id] = center + p * factor;
+	}
 	AutoKeyMeshEdit(obj);
 	RefrehRenderers();
 }

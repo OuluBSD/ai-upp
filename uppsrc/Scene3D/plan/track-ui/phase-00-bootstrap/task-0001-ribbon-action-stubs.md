@@ -1,5 +1,8 @@
 # Task 0001 - Ribbon Action Stubs
 
+## Status
+- Done (2026-02-19)
+
 ## Goal
 Wire ribbon action ids to existing ModelerApp commands and provide stubs for unimplemented actions.
 

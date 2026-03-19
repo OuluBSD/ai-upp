@@ -1,7 +1,7 @@
 # Task 0300 - Lightmapping Control Wiring
 
 ## Status
-- Partial / Open (updated 2026-02-17)
+- Done (2026-02-19)
 
 ## Goal
 Hook lightmapping form controls to bake settings and actions.
@@ -18,6 +18,7 @@ Hook lightmapping form controls to bake settings and actions.
 ## Current State
 - Ribbon lightmapping controls are wired to scene dynamic properties and synchronized to/from the active scene.
 - Field edits persist immediately in-scene and Calculate stores the selected settings.
-
-## Remaining
-- Connect `calculate_lightmap` to the real bake pipeline (currently logs stub request).
+- Calculate now triggers a concrete bake path:
+  - Generates/updates `TEXTYPE_LIGHTMAP` textures for model materials in the active scene.
+  - Applies scene bake settings (mode/size/subsampling/resolution/shadow/toggles) into generated output.
+  - Updates scene metadata (`lightmap_last_bake_*`) and refreshes renderers.

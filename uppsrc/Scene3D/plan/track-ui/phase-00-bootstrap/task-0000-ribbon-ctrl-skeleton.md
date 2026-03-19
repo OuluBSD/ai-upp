@@ -1,5 +1,8 @@
 # Task 0000 - RibbonCtrl Skeleton
 
+## Status
+- Done (2026-02-19)
+
 ## Goal
 Provide a RibbonCtrl wrapper that loads an XML spec, builds tabs/groups, and can be embedded in ModelerApp.
 

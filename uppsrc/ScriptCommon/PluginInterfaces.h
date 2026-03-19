@@ -78,8 +78,10 @@ public:
 // ScriptCommon holds only this interface (no GUI dependency).
 
 struct CardGameSprite : Moveable<CardGameSprite> {
-	String asset_path;
+	// Field order must match CardGameDocumentHost::Sprite for the reinterpret-cast
+	// in CardGameDocumentHost::GetSprites() to be valid.
 	Image  img;
+	String asset_path;
 	Rect   rect;
 	int    angle = 0;
 };

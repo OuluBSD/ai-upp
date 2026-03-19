@@ -981,6 +981,10 @@ bool IsUserAdmin()
 #endif
 }
 
+// NOTE: rm=true path must return a valid reference even after deleting v, because the
+// caller (EXITBLOCK below) does not use the return value when rm=true — but the compiler
+// does not know that. Previously `return *v` after `v = nullptr` was UB that clang -O2+
+// exploited to produce `free(): invalid pointer` at process exit.
 Vector<Event<>>& __ExitEvents(bool rm=false) {
 	static Vector<Event<>>* v;
 	if (!v)
@@ -988,7 +992,7 @@ Vector<Event<>>& __ExitEvents(bool rm=false) {
 	if (rm) {
 		delete v;
 		v = nullptr;
-		static Vector<Event<>> empty;
+		static Vector<Event<>> empty; // safe dummy to return; caller ignores it
 		return empty;
 	}
 	return *v;

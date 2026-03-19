@@ -53,6 +53,8 @@ file
 	ConversionPlanner.cpp,
 	ConversionOrchestrator.h,
 	ConversionOrchestrator.cpp,
+	TerminalBuffer.h,
+	TerminalBuffer.cpp,
 	Playbook.h,
 	Playbook.cpp,
 	EvidencePack.h,

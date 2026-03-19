@@ -1,0 +1,8 @@
+description "TerminalBuffer test application\377";
+
+uses
+	Core,
+	Maestro;
+
+file
+	main.cpp;

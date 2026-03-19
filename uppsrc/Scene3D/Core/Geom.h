@@ -247,6 +247,7 @@ struct GeomObject : VfsValueExt {
 	hash_t key = 0;
 	String name;
 	Type type = O_NULL;
+	String ui_type;
 	String asset_ref;
 	String pointcloud_ref;
 	bool is_visible = true;

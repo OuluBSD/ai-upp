@@ -153,6 +153,27 @@ static GeomDynamicProperties* FindDynamicProps(VfsValue& n) {
 
 static bool NodeTypeMatches(const VfsValue& node, const String& type) {
 	String t = ToLower(type);
+	if (IsVfsType(node, HashGeomObject())) {
+		const GeomObject& obj = const_cast<VfsValue&>(node).GetExt<GeomObject>();
+		String ui = ToLower(obj.ui_type);
+		if (ui.IsEmpty()) {
+			if (GeomDynamicProperties* props = FindDynamicProps(const_cast<VfsValue&>(node))) {
+				int pi = props->props.Find("type");
+				if (pi >= 0)
+					ui = ToLower(AsString(props->props[pi]));
+			}
+		}
+		if (!ui.IsEmpty()) {
+			if (t == ui)
+				return true;
+			if (t == "light" && (ui == "light" || ui == "light.point" || ui == "light.directional"))
+				return true;
+			if (t == "overlay" && (ui == "overlay2d" || ui == "touch2d"))
+				return true;
+			if (t == "pathnode" && ui == "path_node")
+				return true;
+		}
+	}
 	if (t == "object" && IsVfsType(node, HashGeomObject()))
 		return true;
 	if (t == "model" && IsVfsType(node, HashGeomObject()) && const_cast<VfsValue&>(node).GetExt<GeomObject>().IsModel())
@@ -383,6 +404,12 @@ PyValue DisplayObjectProxy::GetAttr(const String& name) {
 	GeomTransform* tr = GetNodeTransform(*node);
 	if (name == "name")
 		return PyValue(GetNodeName(*node));
+	if (name == "type") {
+		if (GeomObject* obj = GetNodeObject(*node)) {
+			if (!obj->ui_type.IsEmpty())
+				return PyValue(obj->ui_type);
+		}
+	}
 	if (name == "x" && tr)
 		return PyValue(tr->position[0]);
 	if (name == "y" && tr)

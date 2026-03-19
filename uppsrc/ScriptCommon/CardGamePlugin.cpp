@@ -222,10 +222,37 @@ void CardGamePlugin::Execute(const String& path)
 		}
 	}
 
+	// Add extra pythonpath entries from metadata (same as OCRPlugin does).
+	// Without this, 'import main' and other cross-directory imports fail when
+	// the entry script lives in a different folder than the dependency modules.
+	Value pythonpath = gs["metadata"]["pythonpath"];
+	if(pythonpath.Is<ValueArray>()) {
+		const ValueArray& pa = pythonpath;
+		PyValue sys2 = vm->GetGlobals().GetItem(PyValue("sys"));
+		if(sys2.GetType() == PY_DICT) {
+			PyValue path_list2 = sys2.GetItem(PyValue("path"));
+			if(path_list2.GetType() == PY_LIST) {
+				for(int i = 0; i < pa.GetCount(); i++) {
+					String extra = pa[i].ToString();
+					if(extra.IsEmpty()) continue;
+					if(!IsFullPath(extra))
+						extra = AppendFileName(game_dir, extra);
+					// Avoid duplicates
+					bool found = false;
+					for(int j = 0; j < path_list2.GetCount(); j++)
+						if(path_list2.GetItem(j).ToString() == extra) { found = true; break; }
+					if(!found) path_list2.Add(PyValue(extra));
+				}
+				sys2.SetItem(PyValue("path"), path_list2);
+			}
+		}
+	}
+
 	// Register cardgame_view stub module (headless)
 	SyncBindings(*vm);
 
-	// Pre-load all Python packages/modules from game_dir into sys.modules
+	// Pre-load all Python packages/modules from game_dir and pythonpath dirs into sys.modules.
+	// game_dir is loaded first (highest priority); pythonpath dirs are loaded after.
 	String failed_module, failed_path;
 	if(!LoadPyModulesFromDir(*vm, game_dir, game_dir, "", &failed_module, &failed_path)) {
 		String msg = "CardGamePlugin: failed to preload module " + failed_module;
@@ -234,6 +261,19 @@ void CardGamePlugin::Execute(const String& path)
 		LOG(msg);
 		if(view) view->Log(msg);
 		return;
+	}
+	if(pythonpath.Is<ValueArray>()) {
+		const ValueArray& pa = pythonpath;
+		for(int i = 0; i < pa.GetCount(); i++) {
+			String extra = pa[i].ToString();
+			if(extra.IsEmpty()) continue;
+			if(!IsFullPath(extra))
+				extra = AppendFileName(game_dir, extra);
+			if(!DirectoryExists(extra)) continue;
+			String fm, fp;
+			// Non-fatal: pythonpath dirs may be optional
+			LoadPyModulesFromDir(*vm, extra, extra, "", &fm, &fp);
+		}
 	}
 
 	// Load and run entry script

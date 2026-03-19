@@ -271,14 +271,22 @@ void CardGamePlugin::Execute(const String& path)
 			if(!IsFullPath(extra))
 				extra = AppendFileName(game_dir, extra);
 			if(!DirectoryExists(extra)) continue;
-			// LoadPyModulesFromDir skips top-level .py files (by design, to avoid
-			// loading game_dir scripts twice). For pythonpath dirs we want top-level
-			// modules too (e.g. main.py), so load them explicitly before subpackages.
+			// Load subpackages first (e.g. hearts/logic.py → "hearts.logic") so that
+			// top-level modules which import from them (e.g. main.py: from hearts.logic
+			// import GameState) can resolve those imports when they are loaded next.
+			{
+				String fm, fp;
+				LoadPyModulesFromDir(*vm, extra, extra, "", &fm, &fp);
+			}
+			// Now load top-level .py files. LoadPyModulesFromDir skips them (by design,
+			// to avoid loading game_dir scripts twice), so we load them explicitly here.
+			// Skip test/ci scripts: they often use syntax unsupported by ByteVM and are
+			// not needed as importable modules.
 			{
 				FindFile ff(AppendFileName(extra, "*.py"));
 				while(ff) {
 					String stem = GetFileTitle(ff.GetName());
-					if(stem != "__init__") {
+					if(stem != "__init__" && !stem.StartsWith("test_") && !stem.StartsWith("ci_")) {
 						String src = LoadFile(ff.GetPath());
 						if(!src.IsVoid())
 							vm->LoadModule(stem, src, ff.GetPath());
@@ -286,9 +294,6 @@ void CardGamePlugin::Execute(const String& path)
 					ff.Next();
 				}
 			}
-			// Load subpackages (hearts/, etc.)
-			String fm, fp;
-			LoadPyModulesFromDir(*vm, extra, extra, "", &fm, &fp);
 		}
 	}
 

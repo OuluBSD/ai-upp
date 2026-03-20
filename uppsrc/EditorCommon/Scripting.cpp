@@ -1280,9 +1280,9 @@ static PyValue builtin_get_strategy_advice(const Vector<PyValue>& args, void* us
 	for (int i = 0; i < history_val.GetCount(); i++) history.Add((byte)history_val.GetItem(i).AsInt());
 	static void* eval_ptr = nullptr;
 	static void* strategy_ptr = nullptr;
-	if (!strategy_ptr) InitStrategy(eval_ptr, strategy_ptr);
+	if (!strategy_ptr) SB_InitStrategy(eval_ptr, strategy_ptr);
 	Vector<double> probs;
-	String advice = GetStrategyAdvice(hole, board, pot, history, strategy_ptr, probs);
+	String advice = SB_GetStrategyAdvice(hole, board, pot, history, strategy_ptr, probs);
 	PyValue res = PyValue::Dict();
 	res.SetItem(PyValue("advice"), PyValue(advice));
 	PyValue probs_list = PyValue::List();

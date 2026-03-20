@@ -130,12 +130,6 @@ Size RotatedImageSize(const Image& img, int rotation_deg)
 	return rotated.GetSize();
 }
 
-struct SpritePaintOrder : Moveable<SpritePaintOrder> {
-	int index = -1;
-	int group = 0;
-	int major = 0;
-	int minor = 0;
-};
 
 String MakeBrowserSessionId(const String& path)
 {
@@ -307,6 +301,12 @@ void CardGameDocumentHost::Layout()
 	Ctrl::Layout();
 
 	Size sz = GetSize();
+	if(fixed_area.cx > 0 && fixed_area.cy > 0) {
+		sz = fixed_area;
+		table_form.SetRect(0, 0, sz.cx, sz.cy);
+		overlay.SetRect(0, 0, sz.cx, sz.cy);
+	}
+
 	if(sz == last_layout_size)
 		return;
 
@@ -833,6 +833,9 @@ void CardGameDocumentHost::ApplyRemoveSprite(const String& card_id)
 	int qs = sprites.Find(card_id);
 	if(qs >= 0)
 		sprites.Remove(qs);
+	int qe = sprite_export.Find(card_id);
+	if(qe >= 0)
+		sprite_export.Remove(qe);
 	int qa = active_cards.Find(card_id);
 	if(qa >= 0)
 		active_cards.Remove(qa);
@@ -895,7 +898,9 @@ void CardGameDocumentHost::ApplyLog(const String& msg)
 
 void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
 {
-	Sprite& s = sprites.GetAdd(card_id);
+	Ptr<Sprite>& sptr = sprites.GetAdd(card_id);
+	if(!sptr) sptr = new Sprite();
+	Sprite& s = *sptr;
 
 	String full_path = asset_path;
 	if(!IsFullPath(asset_path))
@@ -916,6 +921,11 @@ void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& ass
 	s.rect = RectC(x, y, sprite_sz.cx, sprite_sz.cy);
 	s.target_rect = s.rect;
 	s.animating = false;
+	CardGameSprite& ex = sprite_export.GetAdd(card_id);
+	ex.img = s.img;
+	ex.asset_path = s.asset_path;
+	ex.rect = s.rect;
+	ex.angle = s.rotation_deg;
 	if(active_cards.Find(card_id) < 0)
 		active_cards.Add(card_id);
 	SyncCardCtrl(card_id);
@@ -931,16 +941,18 @@ void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const Stri
 	Rect abs_z = GetZoneRectFromForm(table_form, zone_id);
 	if(abs_z.IsEmpty())
 		return;
-	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs].rect.GetWidth() / 2) + offset;
-	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs].rect.GetHeight() / 2);
+	int tx = abs_z.left + (abs_z.GetWidth() / 2) - (sprites[qs]->rect.GetWidth() / 2) + offset;
+	int ty = abs_z.top  + (abs_z.GetHeight() / 2) - (sprites[qs]->rect.GetHeight() / 2);
 
-	Sprite& s = sprites[qs];
+	Sprite& s = *sprites[qs];
 	s.target_rect = RectC(tx, ty, s.rect.GetWidth(), s.rect.GetHeight());
 	if(animated)
 		s.animating = true;
 	else {
 		s.rect = s.target_rect;
 		s.animating = false;
+		int qe = sprite_export.Find(card_id);
+		if(qe >= 0) sprite_export[qe].rect = s.rect;
 	}
 	if(active_cards.Find(card_id) < 0)
 		active_cards.Add(card_id);
@@ -991,7 +1003,7 @@ bool CardGameDocumentHost::CheckExpectedSpriteCounts()
 		int actual = 0;
 		Vector<String> zone_sprite_ids;
 		for(int j = 0; j < sprites.GetCount(); j++) {
-			const Sprite& s = sprites[j];
+			const Sprite& s = *sprites[j];
 			bool in_current = zone.Contains(s.rect.CenterPoint());
 			bool in_target = zone.Contains(s.target_rect.CenterPoint());
 			if(s.animating && in_current && !in_target)
@@ -1094,6 +1106,7 @@ void CardGameDocumentHost::ResetGameView()
 {
 	ApplyClearSprites();
 	sprites.Clear();
+	sprite_export.Clear();
 	for(int i = 0; i < card_ctrls.GetCount(); i++) {
 		if(card_ctrls[i])
 			card_ctrls[i]->Hide();
@@ -1119,6 +1132,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 {
 	form_path = path;
 	sprites.Clear();
+	sprite_export.Clear();
 	form_items.Clear();
 	labels.Clear();
 	buttons.Clear();
@@ -1345,7 +1359,7 @@ String CardGameDocumentHost::DumpScene()
 	out << "sprites: " << sprites.GetCount() << "\n"; Cout().Flush();
 	for(int i = 0; i < sprites.GetCount(); i++) {
 		const String& id = sprites.GetKey(i);
-		const Sprite& s = sprites[i];
+		const Sprite& s = *sprites[i];
 		int q = card_ctrls.Find(id);
 		out << "  sprite " << id
 		    << " asset=" << s.asset_path
@@ -1387,7 +1401,7 @@ void CardGameDocumentHost::Animate()
 {
 	bool changed = false;
 	for(int i = 0; i < sprites.GetCount(); i++) {
-		Sprite& s = sprites[i];
+		Sprite& s = *sprites[i];
 		if(s.animating) {
 			Point p = s.rect.TopLeft();
 			Point tp = s.target_rect.TopLeft();
@@ -1398,6 +1412,8 @@ void CardGameDocumentHost::Animate()
 			if(Upp::abs(dx) <= 2 && Upp::abs(dy) <= 2) {
 				s.rect = s.target_rect;
 				s.animating = false;
+				int qe = sprite_export.Find(sprites.GetKey(i));
+				if(qe >= 0) sprite_export[qe].rect = s.rect;
 			} else {
 				s.rect = RectC(p.x + dx / 5, p.y + dy / 5, s.rect.GetWidth(), s.rect.GetHeight());
 			}
@@ -1509,7 +1525,7 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 	if(qs < 0)
 		return;
 
-	Point c = sprites[qs].rect.CenterPoint();
+	Point c = sprites[qs]->rect.CenterPoint();
 	bool clickable = false;
 	for(int i = 0; i < form_items.GetCount() && !clickable; i++) {
 		const FormItem& item = form_items[i];
@@ -1537,7 +1553,7 @@ void CardGameDocumentHost::SyncCardCtrl(const String& card_id)
 			ctrl->Hide();
 			return;
 		}
-		ctrl->SetRect(sprites[qs].rect);
+		ctrl->SetRect(sprites[qs]->rect);
 		AddChild(ctrl);
 		ctrl->Show();
 	}
@@ -1566,7 +1582,7 @@ bool CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 	int q = sprites.Find(card_id);
 	if(q < 0)
 		return false;
-	Point c = sprites[q].rect.CenterPoint();
+	Point c = sprites[q]->rect.CenterPoint();
 	bool draggable = false;
 	for(int i = 0; i < form_items.GetCount() && !draggable; i++) {
 		const FormItem& item = form_items[i];
@@ -1578,16 +1594,16 @@ bool CardGameDocumentHost::BeginCardDrag(const String& card_id, Point p)
 	}
 	if(!draggable)
 		return false;
-	if(IsFaceDownCardAsset(sprites[q].asset_path))
+	if(IsFaceDownCardAsset(sprites[q]->asset_path))
 		return false;
 	drag_state.card_id = card_id;
 	drag_state.start_point = p;
-	drag_state.original_rect = sprites[q].rect;
-	drag_state.grab_offset = p - sprites[q].rect.TopLeft();
+	drag_state.original_rect = sprites[q]->rect;
+	drag_state.grab_offset = p - sprites[q]->rect.TopLeft();
 	drag_state.moved = false;
 	drag_state.active = true;
-	sprites[q].animating = false;
-	sprites[q].target_rect = sprites[q].rect;
+	sprites[q]->animating = false;
+	sprites[q]->target_rect = sprites[q]->rect;
 	if(!HasCapture())
 		SetCapture();
 	return true;
@@ -1605,7 +1621,7 @@ void CardGameDocumentHost::UpdateCardDrag(Point p)
 		drag_state.moved = true;
 	if(!drag_state.moved)
 		return;
-	Sprite& s = sprites[q];
+	Sprite& s = *sprites[q];
 	Point tl = p - drag_state.grab_offset;
 	s.rect = RectC(tl.x, tl.y, s.rect.GetWidth(), s.rect.GetHeight());
 	s.target_rect = s.rect;
@@ -1628,9 +1644,9 @@ void CardGameDocumentHost::EndCardDrag(Point p)
 	}
 	int q = sprites.Find(card_id);
 	if(q >= 0) {
-		sprites[q].rect = original;
-		sprites[q].target_rect = original;
-		sprites[q].animating = false;
+		sprites[q]->rect = original;
+		sprites[q]->target_rect = original;
+		sprites[q]->animating = false;
 		SyncCardCtrl(card_id);
 		overlay.Refresh();
 	}
@@ -1679,7 +1695,7 @@ void CardGameDocumentHost::DebugInvokeFirstHandCards(int count)
 		const String& id = sprites.GetKey(i);
 		if(id.StartsWith("opp_"))
 			continue;
-		const Sprite& s = sprites[i];
+		const Sprite& s = *sprites[i];
 		Point c = s.rect.CenterPoint();
 		if(hand.Contains(c)) {
 			HandCard& hc = cards.Add();
@@ -1720,7 +1736,7 @@ void CardGameDocumentHost::SyncFormExplorer()
 		return;
 
 	Vector<FormExplorerEntry> entries;
-	Size sz = GetSize();
+	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
 
 	for(int i = 0; i < form_items.GetCount(); i++) {
 		const FormItem& item = form_items[i];
@@ -1732,7 +1748,7 @@ void CardGameDocumentHost::SyncFormExplorer()
 	}
 
 	for(int i = 0; i < sprites.GetCount(); i++) {
-		const Sprite& s = sprites[i];
+		const Sprite& s = *sprites[i];
 		FormExplorerEntry& e = entries.Add();
 		e.path = "sprites/" + sprites.GetKey(i);
 		e.type = s.animating ? "Sprite (animating)" : "Sprite";
@@ -1772,7 +1788,12 @@ void CardGameDocumentHost::SyncFormExplorer()
 
 void CardGameDocumentHost::Paint(Draw& w)
 {
-	w.DrawRect(GetSize(), background_color);
+	if(fixed_area.cx > 0 && fixed_area.cy > 0) {
+		w.DrawRect(GetSize(), GrayColor(40));
+		w.DrawRect(0, 0, fixed_area.cx, fixed_area.cy, background_color);
+	}
+	else
+		w.DrawRect(GetSize(), background_color);
 }
 
 Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
@@ -1946,11 +1967,14 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 	Rect trick_top = scale_rect(GetZoneRectFromForm(table_form, "trick_top"));
 	Rect trick_right = scale_rect(GetZoneRectFromForm(table_form, "trick_right"));
 	for(int i = 0; i < sprites.GetCount(); i++) {
-		const Sprite& s = sprites[i];
+		Ptr<Sprite> sptr = sprites[i];
+		if(!sptr) continue;
+		const Sprite& s = *sptr;
 		Rect sr = scale_rect(s.rect);
 		Point c = sr.CenterPoint();
 		SpritePaintOrder& po = order.Add();
-		po.index = i;
+		po.sprite = sptr;
+		po.card_id = sprites.GetKey(i);
 		po.group = 10;
 		po.major = 0;
 		po.minor = i;
@@ -1979,7 +2003,7 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 			po.major = s.rect.top;
 			po.minor = s.rect.left;
 		}
-		if(drag_state.active && drag_state.card_id == sprites.GetKey(i)) {
+		if(drag_state.active && drag_state.card_id == po.card_id) {
 			po.group = 100;
 			po.major = 0;
 			po.minor = 0;
@@ -1992,11 +2016,11 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 			return a.major < b.major;
 		if(a.minor != b.minor)
 			return a.minor < b.minor;
-		return a.index < b.index;
+		return ~a.sprite < ~b.sprite;
 	});
 
 	for(int oi = 0; oi < order.GetCount(); oi++) {
-		const Sprite& s = sprites[order[oi].index];
+		const Sprite& s = *order[oi].sprite;
 		if(s.img.IsEmpty())
 			continue;
 		Image img = RotateCardImage(s.img, s.rotation_deg);

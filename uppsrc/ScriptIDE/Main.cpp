@@ -85,28 +85,29 @@ GUI_APP_MAIN
 	CardGameDocumentHost::exit_on_assert = exit_on_assert;
 	ide.console_pane->MirrorStdout(dump_console);
 	
-	if(window_size.cx > 0 && window_size.cy > 0) ide.SetRect(0, 0, window_size.cx, window_size.cy);
 	if(maximize_window) ide.Maximize();
 
 	if(!path.IsEmpty() && FileExists(path)) {
 		ide.LoadFile(path);
 		if(ToLower(GetFileExt(path)) == ".gamestate") {
-			bool found_host = false;
-			for(int i = 0; i < ide.open_files.GetCount(); i++) {
-				if(dynamic_cast<CardGameDocumentHost*>(ide.open_files[i].editor)) {
-					found_host = true;
+			// Find the host that LoadFile just created, or create a fallback.
+			CardGameDocumentHost* host = nullptr;
+			for(int i = 0; i < ide.open_files.GetCount(); i++)
+				if(CardGameDocumentHost* h = dynamic_cast<CardGameDocumentHost*>(ide.open_files[i].editor)) {
+					host = h;
 					break;
 				}
-			}
-			if(!found_host) {
-				CardGameDocumentHost* host = new CardGameDocumentHost();
+			if(!host) {
+				host = new CardGameDocumentHost();
 				PythonIDE::FileInfo& fi = ide.open_files.Add();
 				fi.path = path;
 				fi.editor = host;
 				ide.active_file = ide.open_files.GetCount() - 1;
 				host->Load(path);
-				if(autostart) host->Run();
 			}
+			// --size sets the game-content fixed area, not the window size.
+			if(window_size.cx > 0 && window_size.cy > 0)
+				host->SetFixedArea(window_size);
 		}
 	}
 

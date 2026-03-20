@@ -117,11 +117,12 @@ public:
 	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
 	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
-	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const override { return (const ArrayMap<String, CardGameSprite>&)sprites; }
+	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const override { return sprite_export; }
 	virtual const Form& GetLayout() const override { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; if(p) p->SetView(this); }
+	void SetFixedArea(Size sz)        { fixed_area = sz; }
 	String DumpScene();
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
 	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }
@@ -173,7 +174,7 @@ private:
 	Form table_form;
 	CardGameOverlay overlay;
 	
-	struct Sprite {
+	struct Sprite : Pte<Sprite> {
 		Image  img;
 		String asset_path;
 		Rect   rect;
@@ -181,7 +182,8 @@ private:
 		int    rotation_deg = 0;
 		bool   animating = false;
 	};
-	ArrayMap<String, Sprite> sprites;
+	ArrayMap<String, Ptr<Sprite>> sprites;
+	ArrayMap<String, CardGameSprite> sprite_export; // mirrors sprites for GetSprites()
 	ArrayMap<String, CardSpriteCtrl*> card_ctrls;
 	ArrayMap<String, Image> image_cache;
 	
@@ -210,7 +212,16 @@ private:
 		bool  active = false;
 	} drag_state;
 	
+	struct SpritePaintOrder : Moveable<SpritePaintOrder> {
+		Ptr<Sprite> sprite;
+		String      card_id;
+		int group = 0;
+		int major = 0;
+		int minor = 0;
+	};
+
 	Color background_color = Color(40, 160, 40);
+	Size  fixed_area;
 
 	RichTextView game_log;
 	Vector<String> game_log_lines;

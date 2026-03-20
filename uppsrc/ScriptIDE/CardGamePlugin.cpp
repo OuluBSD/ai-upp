@@ -96,18 +96,21 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 
 Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
 {
-	for(int j = 0; j < form.GetLayouts().GetCount(); j++) {
-		const FormLayout& layout = form.GetLayouts()[j];
-		const Array<FormObject>& objects = layout.GetObjects();
-		for(int i = 0; i < objects.GetCount(); i++) {
-			String var = objects[i].Get("Variable");
-			if(var == zone_id) {
-				Rect r = objects[i].GetRect();
-				return r;
-			}
-		}
-	}
-	return Rect();
+	// Use the live Ctrl rect — it reflects the current anchor-adjusted position
+	// after the form has been laid out at its actual size.  The design-time
+	// FormObject::GetRect() always returns the original 800×600 coords and
+	// ignores BOTTOM_CENTER / CENTER_LEFT / etc. anchor rules entirely.
+	//
+	// ctrl->GetRect() is relative to the ctrl's parent, not necessarily to the
+	// form.  Walk up the parent chain to accumulate form-local coordinates.
+	Form& f = const_cast<Form&>(form);
+	Ctrl* ctrl = f.GetCtrl(zone_id);
+	if(!ctrl)
+		return Rect();
+	Rect r = ctrl->GetRect();
+	for(Ctrl* p = ctrl->GetParent(); p && p != &f; p = p->GetParent())
+		r = r.Offseted(p->GetRect().TopLeft());
+	return r;
 }
 
 Image RotateCardImage(const Image& img, int rotation_deg)

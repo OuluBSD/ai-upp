@@ -276,11 +276,11 @@ int CardClassifier::ClassifyUnified(const ByteMat& gray) {
 RecognitionEngine::RecognitionEngine() {
 	orb.InitDefault();
 	card_clf.Load(AppendFileName(GetExeDirFile("data"), "convnet_models"));
-	InitStrategy(eval_pimpl, strategy_pimpl);
+	SB_InitStrategy(eval_pimpl, strategy_pimpl);
 }
 
 RecognitionEngine::~RecognitionEngine() {
-	CleanupStrategy(eval_pimpl, strategy_pimpl);
+	SB_CleanupStrategy(eval_pimpl, strategy_pimpl);
 }
 
 void RecognitionEngine::SetAnchor(const Image& img) {
@@ -382,9 +382,9 @@ GameState RecognitionEngine::Process(const Image& frame) {
 	if (eval_pimpl && strategy_pimpl && (state.players.GetCount() > 0 && state.players[0].hand.GetCount() == 2)) {
 		const auto& hole = state.players[0].hand;
 		const auto& board = state.community_cards;
-		state.hero_equity = ComputeHeroEquity(hole, board, eval_pimpl);
+		state.hero_equity = SB_ComputeHeroEquity(hole, board, eval_pimpl);
 		if (state.my_turn) {
-			Vector<byte> history; state.advice = GetStrategyAdvice(hole, board, state.pot, history, strategy_pimpl, state.advice_probs);
+			Vector<byte> history; state.advice = SB_GetStrategyAdvice(hole, board, state.pot, history, strategy_pimpl, state.advice_probs);
 		}
 	}
 	state.found = true;
@@ -497,16 +497,16 @@ GameState RecognitionEngine::ProcessGpu(GpuPreprocessEngine& gpu) {
 		const HandHistory& hh = hh_builder.GetCurrentHand();
 		state.history.Clear();
 		for (const auto& a : hh.actions) {
-			int tok = GetActionToken(a.action);
+			int tok = SB_GetActionToken(a.action);
 			if (tok >= 0) state.history.Add((byte)tok);
 		}
 
 		if (eval_pimpl && strategy_pimpl && (state.players.GetCount() > 0 && state.players[0].hand.GetCount() == 2)) {
 			const auto& hole = state.players[0].hand;
 			const auto& board = state.community_cards;
-			state.hero_equity = ComputeHeroEquity(hole, board, eval_pimpl);
+			state.hero_equity = SB_ComputeHeroEquity(hole, board, eval_pimpl);
 			if (state.my_turn) {
-				state.advice = GetStrategyAdvice(hole, board, state.pot, state.history, strategy_pimpl, state.advice_probs);
+				state.advice = SB_GetStrategyAdvice(hole, board, state.pot, state.history, strategy_pimpl, state.advice_probs);
 			}
 		}
 	} else {

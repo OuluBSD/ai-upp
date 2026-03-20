@@ -1,4 +1,5 @@
 #include "ScriptCommon.h"
+#include <StrategyBridge/StrategyBridge.h>
 
 NAMESPACE_UPP
 
@@ -502,6 +503,84 @@ static PyValue hv_gui_set_timeout(const Vector<PyValue>& args, void* ud)
 	return PyValue();
 }
 
+static PyValue hv_gui_get_config(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() < 1) return PyValue();
+	return PyValue::FromValue(((IHeartsView*)ud)->GetConfig(args[0].ToString()));
+}
+
+static void* s_eval_ptr = nullptr;
+static void* s_strategy_ptr = nullptr;
+
+static PyValue sb_init(const Vector<PyValue>& args, void*)
+{
+	String model_path;
+	if(args.GetCount() >= 1) model_path = args[0].ToString();
+	SB_InitStrategy(s_eval_ptr, s_strategy_ptr, model_path);
+	return PyValue(s_strategy_ptr != nullptr);
+}
+
+static PyValue sb_is_ready(const Vector<PyValue>& args, void*)
+{
+	return PyValue(s_strategy_ptr != nullptr);
+}
+
+static PyValue sb_cleanup(const Vector<PyValue>& args, void*)
+{
+	SB_CleanupStrategy(s_eval_ptr, s_strategy_ptr);
+	s_eval_ptr = nullptr;
+	s_strategy_ptr = nullptr;
+	return PyValue();
+}
+
+static PyValue sb_get_advice(const Vector<PyValue>& args, void*)
+{
+	if(!s_strategy_ptr || args.GetCount() < 4) return PyValue::Dict();
+	
+	Vector<int> hole_cards;
+	if(args[0].GetType() == PY_LIST) {
+		PyValue list = args[0];
+		for(int i = 0; i < list.GetCount(); i++) hole_cards.Add((int)list.GetItem(i).AsInt64());
+	}
+	
+	Vector<int> board_cards;
+	if(args[1].GetType() == PY_LIST) {
+		PyValue list = args[1];
+		for(int i = 0; i < list.GetCount(); i++) board_cards.Add((int)list.GetItem(i).AsInt64());
+	}
+	
+	int pot = (int)args[2].AsInt64();
+	
+	Vector<byte> history;
+	if(args[3].GetType() == PY_LIST) {
+		PyValue list = args[3];
+		for(int i = 0; i < list.GetCount(); i++) history.Add((byte)list.GetItem(i).AsInt64());
+	}
+	
+	Vector<double> probs;
+	String action_name = SB_GetStrategyAdvice(hole_cards, board_cards, pot, history, s_strategy_ptr, probs);
+	
+	PyValue res = PyValue::Dict();
+	String action = "fold";
+	String a = ToLower(action_name);
+	if(a.Find("call") >= 0 || a.Find("check") >= 0) action = "call";
+	else if(a.Find("raise") >= 0 || a.Find("bet") >= 0 || a.Find("all-in") >= 0) action = "raise";
+	
+	res.SetItem(PyValue("action"), PyValue(action));
+	res.SetItem(PyValue("amount"), PyValue(action == "raise" ? 2 * pot : 0));
+	
+	PyValue p_list = PyValue::List();
+	for(double p : probs) p_list.Add(PyValue(p));
+	res.SetItem(PyValue("probs"), p_list);
+	
+	return res;
+}
+
+static PyValue hv_get_config(const Vector<PyValue>& args, void*)
+{
+	return PyValue();
+}
+
 void CardGamePlugin::SyncBindings(PyVM& vm)
 {
 	PyValue sys = vm.GetGlobals().GetItem(PyValue("sys"));
@@ -511,43 +590,71 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 
 	if(view) {
 		// GUI-backed cardgame_view module — real calls into IHeartsView
-		PY_MODULE(cardgame_view, vm)
-		PY_MODULE_FUNC(log,           hv_gui_log,           view)
-		PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
-		PY_MODULE_FUNC(begin_sprite_frame, hv_gui_begin_sprite_frame, view)
-		PY_MODULE_FUNC(remove_sprite, hv_gui_remove_sprite, view)
-		PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
-		PY_MODULE_FUNC(set_expected_sprite_count, hv_gui_set_expected_sprite_count, view)
-		PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
-		PY_MODULE_FUNC(set_highlight, hv_gui_set_highlight, view)
-		PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
-		PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
-		PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
-		PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
-		PY_MODULE_FUNC(set_timeout,   hv_gui_set_timeout,   view)
-		if(modules.GetType() == PY_DICT) {
-			modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
-			modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+		{
+			PY_MODULE(cardgame_view, vm)
+			PY_MODULE_FUNC(log,           hv_gui_log,           view)
+			PY_MODULE_FUNC(clear_sprites, hv_gui_clear_sprites, view)
+			PY_MODULE_FUNC(begin_sprite_frame, hv_gui_begin_sprite_frame, view)
+			PY_MODULE_FUNC(remove_sprite, hv_gui_remove_sprite, view)
+			PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
+			PY_MODULE_FUNC(set_expected_sprite_count, hv_gui_set_expected_sprite_count, view)
+			PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
+			PY_MODULE_FUNC(set_highlight, hv_gui_set_highlight, view)
+			PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
+			PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
+			PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
+			PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
+			PY_MODULE_FUNC(set_timeout,   hv_gui_set_timeout,   view)
+			PY_MODULE_FUNC(get_config,    hv_gui_get_config,    view)
+			if(modules.GetType() == PY_DICT) {
+				modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
+				modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+			}
+		}
+		
+		{
+			PY_MODULE(strategy_bridge, vm)
+			PY_MODULE_FUNC(init,       sb_init,       nullptr)
+			PY_MODULE_FUNC(get_advice, sb_get_advice, nullptr)
+			PY_MODULE_FUNC(cleanup,    sb_cleanup,    nullptr)
+			PY_MODULE_FUNC(is_ready,   sb_is_ready,   nullptr)
+			if(modules.GetType() == PY_DICT) {
+				modules.SetItem(PyValue("strategy_bridge"), strategy_bridge_obj);
+			}
 		}
 	} else {
 		// Headless stubs — used by ScriptCLI and tests
-		PY_MODULE(cardgame_view, vm)
-		PY_MODULE_FUNC(log,           hv_log,           nullptr)
-		PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
-		PY_MODULE_FUNC(begin_sprite_frame, hv_begin_sprite_frame, nullptr)
-		PY_MODULE_FUNC(remove_sprite, hv_remove_sprite, nullptr)
-		PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
-		PY_MODULE_FUNC(set_expected_sprite_count, hv_set_expected_sprite_count, nullptr)
-		PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
-		PY_MODULE_FUNC(set_highlight, hv_set_highlight, nullptr)
-		PY_MODULE_FUNC(set_status,    hv_set_status,    nullptr)
-		PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
-		PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
-		PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)
-		PY_MODULE_FUNC(set_timeout,   hv_set_timeout,   &vm)
-		if(modules.GetType() == PY_DICT) {
-			modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
-			modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+		{
+			PY_MODULE(cardgame_view, vm)
+			PY_MODULE_FUNC(log,           hv_log,           nullptr)
+			PY_MODULE_FUNC(clear_sprites, hv_clear_sprites, nullptr)
+			PY_MODULE_FUNC(begin_sprite_frame, hv_begin_sprite_frame, nullptr)
+			PY_MODULE_FUNC(remove_sprite, hv_remove_sprite, nullptr)
+			PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
+			PY_MODULE_FUNC(set_expected_sprite_count, hv_set_expected_sprite_count, nullptr)
+			PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
+			PY_MODULE_FUNC(set_highlight, hv_set_highlight, nullptr)
+			PY_MODULE_FUNC(set_status,    hv_set_status,    nullptr)
+			PY_MODULE_FUNC(set_card,      hv_set_card,      nullptr)
+			PY_MODULE_FUNC(move_card,     hv_move_card,     nullptr)
+			PY_MODULE_FUNC(get_zone_rect, hv_get_zone_rect, nullptr)
+			PY_MODULE_FUNC(set_timeout,   hv_set_timeout,   &vm)
+			PY_MODULE_FUNC(get_config,    hv_get_config,    nullptr)
+			if(modules.GetType() == PY_DICT) {
+				modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
+				modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
+			}
+		}
+		
+		{
+			PY_MODULE(strategy_bridge, vm)
+			PY_MODULE_FUNC(init,       sb_init,       nullptr)
+			PY_MODULE_FUNC(get_advice, sb_get_advice, nullptr)
+			PY_MODULE_FUNC(cleanup,    sb_cleanup,    nullptr)
+			PY_MODULE_FUNC(is_ready,   sb_is_ready,   nullptr)
+			if(modules.GetType() == PY_DICT) {
+				modules.SetItem(PyValue("strategy_bridge"), strategy_bridge_obj);
+			}
 		}
 	}
 }

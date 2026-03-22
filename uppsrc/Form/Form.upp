@@ -1,19 +1,10 @@
 uses
 	CtrlLib,
-	GridCtrl;
+	GridCtrl,
+	Form/Common;
 
 file
 	AGENTS.md,
-	XMLConfig.h,
-	XMLConfig.cpp,
-	IniConfig.hpp,
-	IniConfig.cpp,
 	Form.hpp,
 	Form.cpp,
-	FormLayout.hpp,
-	FormLayout.cpp,
-	FormObject.hpp,
-	FormObject.cpp,
-	Container.hpp,
-	Macro.hpp;
-
+	Container.hpp;

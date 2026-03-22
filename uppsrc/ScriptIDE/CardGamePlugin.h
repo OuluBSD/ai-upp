@@ -117,8 +117,9 @@ public:
 	virtual void  SetStatus(const String& text) override;
 	virtual void  Log(const String& msg) override;
 	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
+	virtual Value GetConfig(const String& key) override;
 	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const override { return sprite_export; }
-	virtual const Form& GetLayout() const override { return table_form; }
+	virtual const Form& GetLayout() const { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; if(p) p->SetView(this); }
@@ -132,6 +133,7 @@ public:
 
 private:
 	String path;
+	Value  gs;
 	String form_path;
 	bool browser_host_enabled = false;
 	int browser_host_port = -1;

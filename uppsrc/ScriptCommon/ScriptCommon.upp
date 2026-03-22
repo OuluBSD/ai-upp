@@ -1,6 +1,7 @@
 description "Headless shared script runtime core\377";
 
 uses
+        Form/Common,
 	Core,
 	ByteVM,
 	StrategyBridge;

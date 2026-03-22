@@ -117,8 +117,8 @@ public:
 	virtual void  SetLayout(const String& path) = 0;
 	// Schedule a named Python callback after a delay
 	virtual void SetTimeout(int delay_ms, const String& callback_name) = 0;
+	virtual Value GetConfig(const String& key) = 0;
 	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const = 0;
-	virtual const Form& GetLayout() const = 0;
 };
 
 class IPlugin {

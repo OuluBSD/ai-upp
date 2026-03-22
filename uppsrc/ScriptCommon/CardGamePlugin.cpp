@@ -4,6 +4,18 @@
 NAMESPACE_UPP
 
 // ---- headless cardgame_view stub bindings ----
+// ---- headless ocr_verify stub bindings ----
+
+static PyValue ov_set_models(const Vector<PyValue>& args, void*) { return PyValue(); }
+static PyValue ov_read_cards(const Vector<PyValue>& args, void*) { return PyValue::List(); }
+static PyValue ov_last_error(const Vector<PyValue>& args, void*) { return PyValue(""); }
+static PyValue ov_compare(const Vector<PyValue>& args, void*) {
+    PyValue d = PyValue::Dict();
+    d.SetItem(PyValue("pass"), PyValue(true));
+    d.SetItem(PyValue("signal"), PyValue("pass"));
+    d.SetItem(PyValue("zones"), PyValue::List());
+    return d;
+}
 
 static PyValue hv_log(const Vector<PyValue>& args, void*)
 {
@@ -647,6 +659,16 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 		}
 		
 		{
+                {
+                        PY_MODULE(ocr_verify, vm)
+                        PY_MODULE_FUNC(set_models, ov_set_models, nullptr)
+                        PY_MODULE_FUNC(read_cards, ov_read_cards, nullptr)
+                        PY_MODULE_FUNC(last_error, ov_last_error, nullptr)
+                        PY_MODULE_FUNC(compare,    ov_compare,    nullptr)
+                        if(modules.GetType() == PY_DICT) {
+                                modules.SetItem(PyValue("ocr_verify"), ocr_verify_obj);
+                        }
+                }
 			PY_MODULE(strategy_bridge, vm)
 			PY_MODULE_FUNC(init,       sb_init,       nullptr)
 			PY_MODULE_FUNC(get_advice, sb_get_advice, nullptr)

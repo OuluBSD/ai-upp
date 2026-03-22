@@ -4,7 +4,7 @@
 #include <Core/Core.h>
 #include <ByteVM/ByteVM.h>
 #include <ByteVM/PyBindings.h>
-#include <Form/Form.hpp>
+#include <Form/Common/FormLayout.hpp>
 	
 NAMESPACE_UPP
 

@@ -4,6 +4,10 @@ from hearts.logic import GameState
 
 state = None
 asset_base = "../../../../share/imgs/cards/default/" # Resolved relative to .gamestate location in C++
+if hasattr(cardgame_view, "get_config"):
+    cfg_base = cardgame_view.get_config("asset_base")
+    if cfg_base:
+        asset_base = cfg_base
 PLAYER_NAMES = ["You", "West", "North", "East"]
 
 selected_cards = []

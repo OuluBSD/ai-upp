@@ -1,0 +1,17 @@
+description "Non-GUI common form data structures and logic\377";
+
+uses
+	Core;
+
+file
+	FormCommon.h,
+	FormCommon.cpp,
+	XMLConfig.h,
+	XMLConfig.cpp,
+	IniConfig.hpp,
+	IniConfig.cpp,
+	Macro.hpp,
+	FormObject.hpp,
+	FormObject.cpp,
+	FormLayout.hpp,
+	FormLayout.cpp;

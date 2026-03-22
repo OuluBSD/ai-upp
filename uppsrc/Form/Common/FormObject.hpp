@@ -1,7 +1,12 @@
-#ifndef FORM_EDITOR_HPP
-#define FORM_EDITOR_HPP
+#ifndef FORM_OBJECT_HPP
+#define FORM_OBJECT_HPP
 
+#ifdef flagGUI
 #include <CtrlCore/CtrlCore.h>
+#endif
+
+#include "FormCommon.h"
+
 using namespace Upp;
 
 #include "XMLConfig.h"
@@ -32,4 +37,4 @@ public:
 	enum { NONE, SELECTED };
 };
 
-#endif // .. FORM_EDITOR_HPP
+#endif // .. FORM_OBJECT_HPP

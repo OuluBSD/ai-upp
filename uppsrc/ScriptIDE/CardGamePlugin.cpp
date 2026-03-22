@@ -269,7 +269,7 @@ bool CardGameDocumentHost::Load(const String& path_)
 
 	// Load the form layout if specified in the gamestate
 	String json = LoadFile(path);
-	Value gs = ParseJSON(json);
+	gs = ParseJSON(json);
 	if(!gs.IsVoid()) {
 		String layout = gs["layout"];
 		if(!layout.IsEmpty())
@@ -289,7 +289,7 @@ void CardGameDocumentHost::LoadGameStateSettings()
 	browser_host_url.Clear();
 	browser_host_session_id.Clear();
 	String json = LoadFile(path);
-	Value gs = ParseJSON(json);
+	gs = ParseJSON(json);
 	if(gs.IsVoid())
 		return;
 
@@ -1398,6 +1398,17 @@ void CardGameDocumentHost::SetTimeout(int delay_ms, const String& callback_name)
 		ApplySetTimeout(delay_ms, callback_name);
 	else
 		QueueUiCommand([=] { ApplySetTimeout(delay_ms, callback_name); });
+}
+
+Value CardGameDocumentHost::GetConfig(const String& key)
+{
+	if(gs.IsVoid()) return Value();
+	Value metadata = gs["metadata"];
+	if(!metadata.IsVoid()) {
+		Value v = metadata[key];
+		if(!v.IsVoid()) return v;
+	}
+	return gs[key];
 }
 
 void CardGameDocumentHost::Animate()

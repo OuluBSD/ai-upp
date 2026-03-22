@@ -1,22 +1,9 @@
+#include "Common/FormCommon.h"
 #include "Form.hpp"
-#include "IniConfig.hpp"
+#include "Common/IniConfig.hpp"
 
 static int tempFormsCount = 0;
 
-static void ResolveAnchorLayout(Rect& r, dword& h_align, dword& v_align, const String& anchor, const Size& base_sz)
-{
-	// Save original size before transforming origin
-	int cx = r.Width();
-	int cy = r.Height();
-	int x  = r.left;
-	int y  = r.top;
-
-	if(anchor == "CENTER") {
-		r.left = x - (base_sz.cx - cx) / 2;
-		r.top  = y - (base_sz.cy - cy) / 2;
-		h_align = Ctrl::CENTER;
-		v_align = Ctrl::CENTER;
-	}
 	else if(anchor == "BOTTOM_CENTER") {
 		r.left = x - (base_sz.cx - cx) / 2;
 		r.top  = base_sz.cy - y - cy;

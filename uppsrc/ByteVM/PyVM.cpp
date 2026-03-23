@@ -35,6 +35,30 @@ static inline void ReleaseStack(Vector<PyValue>& stack) {
 	stack.Shrink();
 }
 
+void PyVM::BindCallArgs(Frame& f, const PyLambda& l, const Vector<PyValue>& sorted_args) {
+	for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
+		PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
+		int q = f.locals.Find(key);
+		if(q >= 0) f.locals[q] = sorted_args[i];
+		else f.locals.Add(key, sorted_args[i]);
+	}
+	for(int i = sorted_args.GetCount(); i < l.arg.GetCount(); i++) {
+		String arg_name = l.arg[i];
+		int def_i = l.defaults.Find(arg_name);
+		if(def_i >= 0) {
+			PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(arg_name);
+			int q = f.locals.Find(key);
+			if(q >= 0) f.locals[q] = l.defaults[def_i];
+			else f.locals.Add(key, l.defaults[def_i]);
+		}
+		else {
+			throw Exc("TypeError: " + l.name + "() missing required argument: '" + arg_name + "'");
+		}
+	}
+	if(sorted_args.GetCount() > l.arg.GetCount())
+		throw Exc("TypeError: " + l.name + "() takes " + AsString(l.arg.GetCount()) + " positional argument(s) but " + AsString(sorted_args.GetCount()) + " were given");
+}
+
 static String GetRelPath(String path, String base) {
 	path = NormalizePath(path);
 	base = NormalizePath(base);
@@ -1258,6 +1282,19 @@ void PyVM::InitBuiltins()
 	globals.GetDictRW().GetAdd(PyValue("__name__")) = PyValue("__main__");
 
 	globals.GetDictRW().GetAdd(PyValue("print")) = PyValue::Function("print", builtin_print, this);
+
+	static const char* exc_names[] = {
+		"Exception", "ValueError", "RuntimeError", "TypeError",
+		"KeyError", "IndexError", "StopIteration"
+	};
+	for(const char* n : exc_names)
+		globals.GetDictRW().GetAdd(PyValue(n)) = PyValue::Function(n,
+			[](const Vector<PyValue>& args, void* user_data) -> PyValue {
+				String msg = (const char*)user_data;
+				if(args.GetCount() >= 1)
+					msg << ": " << args[0].ToString();
+				return PyValue(msg);
+			}, (void*)n);
 
 	PyValue p_len = PyValue::Function("len");
 	p_len.GetLambdaRW().builtin = builtin_len;
@@ -2715,6 +2752,7 @@ bool PyVM::Step()
 				l2->name = l1.name;
 				l2->arg <<= l1.arg;
 				l2->arg_values <<= l1.arg_values;
+				l2->defaults <<= l1.defaults;
 				l2->ir <<= l1.ir;
 				l2->builtin = l1.builtin;
 				l2->user_data = l1.user_data;
@@ -2757,12 +2795,7 @@ bool PyVM::Step()
 					f.pc = 0;
 					f.globals = l.globals.IsNone() ? this->globals : l.globals;
 					f.stack_base = stack.GetCount();
-					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
-						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
-						int q = f.locals.Find(key);
-						if(q >= 0) f.locals[q] = sorted_args[i];
-						else f.locals.Add(key, sorted_args[i]);
-					}
+					BindCallArgs(f, l, sorted_args);
 					// After __init__ returns, push instance (handled in RETURN_VALUE path)
 					// We need a way to push instance after __init__ returns.
 					// Use a sentinel: push the instance now; __init__ return will push None over it.
@@ -2803,12 +2836,7 @@ bool PyVM::Step()
 						for(int ci = 0; ci < cv.GetCount(); ci++)
 							f.locals.GetAdd(cv.GetKey(ci)) = cv[ci];
 					}
-					for(int i = 0; i < min(l.arg.GetCount(), sorted_args.GetCount()); i++) {
-						PyValue key = i < l.arg_values.GetCount() ? l.arg_values[i] : PyValue(l.arg[i]);
-						int q = f.locals.Find(key);
-						if(q >= 0) f.locals[q] = sorted_args[i];
-						else f.locals.Add(key, sorted_args[i]);
-					}
+					BindCallArgs(f, l, sorted_args);
 				}
 			}
 			else {

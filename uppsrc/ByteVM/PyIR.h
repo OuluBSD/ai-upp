@@ -28,6 +28,7 @@ struct PyLambda : PyValue::RefCount {
 	String         name;
 	Vector<String> arg;
 	Vector<PyValue> arg_values;
+	VectorMap<String, PyValue> defaults;
 	Vector<PyIR>   ir;
 	PyBuiltin      builtin = nullptr;
 	void          *user_data = nullptr;

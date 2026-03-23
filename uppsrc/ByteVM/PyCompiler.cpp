@@ -302,10 +302,54 @@ void PyCompiler::Statement()
 		this->Expect(TK_ID);
 		this->Expect(TK_PARENTHESIS_BEGIN);
 		Vector<String> args;
+		VectorMap<String, PyValue> defaults;
 		if(!IsToken(TK_PARENTHESIS_END)) {
 			do {
+				if(IsToken(TK_MUL)) {
+					Next();
+					if(IsId())
+						Next();
+					break;
+				}
 				args.Add(Peek().str_value);
 				this->Expect(TK_ID);
+				if(IsToken(TK_ASS)) {
+					Next();
+					PyValue def_val;
+					if(IsInt()) {
+						int64 v;
+						if(Peek().type == TK_HEX) v = ScanInt64(Peek().str_value, nullptr, 16);
+						else if(Peek().type == TK_OCT) v = ScanInt64(Peek().str_value, nullptr, 8);
+						else if(Peek().type == TK_BIN) v = ScanInt64(Peek().str_value, nullptr, 2);
+						else v = StrInt64(Peek().str_value);
+						def_val = PyValue(v);
+						Next();
+					}
+					else if(IsDouble()) {
+						def_val = PyValue(ScanDouble(Peek().str_value));
+						Next();
+					}
+					else if(IsString()) {
+						def_val = PyValue(Peek().str_value);
+						Next();
+					}
+					else if(IsId("None")) {
+						def_val = PyValue();
+						Next();
+					}
+					else if(IsId("True")) {
+						def_val = PyValue(true);
+						Next();
+					}
+					else if(IsId("False")) {
+						def_val = PyValue(false);
+						Next();
+					}
+					else {
+						throw Exc(Format("Line %d: default parameter must be a literal constant", GetLine()));
+					}
+					defaults.Add(args.Top(), def_val);
+				}
 			} while(IsToken(TK_COMMA) && (Next(), true));
 		}
 		this->Expect(TK_PARENTHESIS_END);
@@ -323,6 +367,7 @@ void PyCompiler::Statement()
 			PyValue func = PyValue::Function(name);
 			func.GetLambdaRW().ir = pick(body);
 			func.GetLambdaRW().arg = pick(args);
+			func.GetLambdaRW().defaults = pick(defaults);
 			for (const String& a : func.GetLambda().arg)
 				func.GetLambdaRW().arg_values.Add(PyValue(a));
 			
@@ -407,6 +452,18 @@ void PyCompiler::Statement()
 		}
 		Patch(ok, Label());
 		if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after 'assert', found %s", GetLine(), Peek().GetTypeString()));
+		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
+			Next();
+	}
+	else if(IsId("raise")) {
+		Next();
+		if(!IsStmtEnd()) {
+			Expression();
+			Emit(PY_RAISE, 1);
+		}
+		else {
+			Emit(PY_RAISE, 0);
+		}
 		while (IsToken(TK_NEWLINE) || IsToken(TK_COMMENT) || IsToken(TK_BLOCK_COMMENT) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))
 			Next();
 	}

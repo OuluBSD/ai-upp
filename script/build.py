@@ -248,6 +248,48 @@ def find_repo_root():
     return Path(__file__).resolve().parent.parent
 
 
+def ensure_build_wrapper(target, dependency):
+    wrapper_name = f"BuildWrap_{target}"
+    wrapper_root = Path(tempfile.gettempdir()) / "upp_build_wrappers" / wrapper_name
+    wrapper_dir = wrapper_root / wrapper_name
+    wrapper_dir.mkdir(parents=True, exist_ok=True)
+
+    (wrapper_dir / f"{wrapper_name}.upp").write_text(
+        "\n".join(
+            [
+                f'description "Auto-generated build wrapper for {target}\\377";',
+                "",
+                "uses",
+                f"\t{dependency};",
+                "",
+                "file",
+                "\tmain.cpp;",
+                "",
+                "mainconfig",
+                '\t"" = "";',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (wrapper_dir / "main.cpp").write_text(
+        "\n".join(
+            [
+                "#include <Core/Core.h>",
+                "",
+                "using namespace Upp;",
+                "",
+                "CONSOLE_APP_MAIN",
+                "{",
+                "}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return wrapper_root, (wrapper_dir / f"{wrapper_name}.upp")
+
+
 def resolve_upp_path(repo_root, target, extra_search_roots=None):
     target_path = Path(target)
     if target_path.is_dir():
@@ -1213,9 +1255,15 @@ def main():
         return 2
 
     target = upp_path.stem
+    requested_target = target
     is_windows = os.name == "nt"
     methods = collect_methods_windows() if is_windows else collect_methods_posix()
     configs = read_mainconfigs(upp_path)
+    wrapper_root = None
+    if not configs:
+        wrapper_root, upp_path = ensure_build_wrapper(target, target)
+        target = upp_path.stem
+        configs = read_mainconfigs(upp_path)
 
     if opts["mainconf"]:
         try:
@@ -1312,9 +1360,13 @@ def main():
         path_str = str(path)
         if path_str not in roots_list:
             roots_list.append(path_str)
+    if wrapper_root is not None:
+        wrapper_root_str = str(wrapper_root)
+        if wrapper_root_str not in roots_list:
+            roots_list.append(wrapper_root_str)
     separator = ";" if is_windows else ","
     roots = separator.join(roots_list)
-    output_name = f"{target}.exe" if is_windows else target
+    output_name = f"{requested_target}.exe" if is_windows else requested_target
     output_path = Path("bin") / output_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

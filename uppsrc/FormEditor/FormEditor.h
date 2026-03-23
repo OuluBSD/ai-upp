@@ -5,7 +5,7 @@
 #include <GridCtrl/GridCtrl.h>
 #include <Docking/Docking.h>
 #include <Form/Form.hpp>
-#include <Form/IniConfig.hpp>
+#include <Form/Common/IniConfig.hpp>
 
 #define IMAGECLASS FormEditImg
 #define IMAGEFILE <FormEditor/FormEdit.iml>

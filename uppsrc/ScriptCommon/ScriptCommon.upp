@@ -3,8 +3,7 @@ description "Headless shared script runtime core\377";
 uses
         Form/Common,
 	Core,
-	ByteVM,
-	StrategyBridge;
+	ByteVM;
 
 file
 	AGENTS.md,
@@ -29,4 +28,3 @@ file
 	GameStatePlugin.cpp,
 	CardGamePlugin.h,
 	CardGamePlugin.cpp;
-

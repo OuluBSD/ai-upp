@@ -39,18 +39,18 @@ ScriptRunResult ScriptServices::RunFile(const ScriptRunRequest& req) const
 		req.WhenStdout(s);
 	};
 
+	HeadlessPluginContext ctx(vm);
+	Vector<One<IPlugin>> plugins;
+	for(auto factory : GetInternalPluginFactories()) {
+		One<IPlugin> p(factory());
+		p->Init(ctx);
+		plugins.Add(pick(p));
+	}
+	ctx.SyncBindings();
+
 	String ext = ToLower(GetFileExt(result.path));
 	if(ext == ".gamestate") {
 		result.kind = "gamestate";
-		HeadlessPluginContext ctx(vm);
-		Vector<One<IPlugin>> plugins;
-		for(auto factory : GetInternalPluginFactories()) {
-			One<IPlugin> p(factory());
-			p->Init(ctx);
-			plugins.Add(pick(p));
-		}
-		ctx.SyncBindings();
-
 		ICustomExecuteProvider* provider = ctx.FindExecuteProvider(result.path);
 		if(!provider) {
 			result.error = "no plugin handles " + ext;

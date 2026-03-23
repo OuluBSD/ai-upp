@@ -12,98 +12,98 @@ void ResolveAnchorLayout(Rect& r, dword& h_align, dword& v_align, const String& 
 	if(anchor == "CENTER") {
 		r.left = x - (base_sz.cx - cx) / 2;
 		r.top  = y - (base_sz.cy - cy) / 2;
-		h_align = Ctrl::CENTER;
-		v_align = Ctrl::CENTER;
+		h_align = FORM_CENTER;
+		v_align = FORM_CENTER;
 	}
 	else if(anchor == "BOTTOM_CENTER") {
 		r.left = x - (base_sz.cx - cx) / 2;
 		r.top  = base_sz.cy - y - cy;
-		h_align = Ctrl::CENTER;
-		v_align = Ctrl::BOTTOM;
+		h_align = FORM_CENTER;
+		v_align = FORM_BOTTOM;
 	}
 	else if(anchor == "TOP_CENTER") {
 		r.left = x - (base_sz.cx - cx) / 2;
 		r.top  = y;
-		h_align = Ctrl::CENTER;
-		v_align = Ctrl::TOP;
+		h_align = FORM_CENTER;
+		v_align = FORM_TOP;
 	}
 	else if(anchor == "CENTER_LEFT") {
 		r.left = x;
 		r.top  = y - (base_sz.cy - cy) / 2;
-		h_align = Ctrl::LEFT;
-		v_align = Ctrl::CENTER;
+		h_align = FORM_LEFT;
+		v_align = FORM_CENTER;
 	}
 	else if(anchor == "CENTER_RIGHT") {
 		r.left = base_sz.cx - x - cx;
 		r.top  = y - (base_sz.cy - cy) / 2;
-		h_align = Ctrl::RIGHT;
-		v_align = Ctrl::CENTER;
+		h_align = FORM_RIGHT;
+		v_align = FORM_CENTER;
 	}
 	else if(anchor == "BOTTOM_LEFT") {
 		r.left = x;
 		r.top  = base_sz.cy - y - cy;
-		h_align = Ctrl::LEFT;
-		v_align = Ctrl::BOTTOM;
+		h_align = FORM_LEFT;
+		v_align = FORM_BOTTOM;
 	}
 	else if(anchor == "BOTTOM_RIGHT") {
 		r.left = base_sz.cx - x - cx;
 		r.top  = base_sz.cy - y - cy;
-		h_align = Ctrl::RIGHT;
-		v_align = Ctrl::BOTTOM;
+		h_align = FORM_RIGHT;
+		v_align = FORM_BOTTOM;
 	}
 	else if(anchor == "TOP_HSIZE") {
 		r.left = x;
 		r.top  = y;
-		h_align = Ctrl::SIZE;
-		v_align = Ctrl::TOP;
+		h_align = FORM_SIZE;
+		v_align = FORM_TOP;
 	}
 	else if(anchor == "CENTER_HSIZE") {
 		r.left = x;
 		r.top  = y - (base_sz.cy - cy) / 2;
-		h_align = Ctrl::SIZE;
-		v_align = Ctrl::CENTER;
+		h_align = FORM_SIZE;
+		v_align = FORM_CENTER;
 	}
 	else if(anchor == "BOTTOM_HSIZE") {
 		r.left = x;
 		r.top  = base_sz.cy - y - cy;
-		h_align = Ctrl::SIZE;
-		v_align = Ctrl::BOTTOM;
+		h_align = FORM_SIZE;
+		v_align = FORM_BOTTOM;
 	}
 	else if(anchor == "LEFT_VSIZE") {
 		r.left = x;
 		r.top  = y;
-		h_align = Ctrl::LEFT;
-		v_align = Ctrl::SIZE;
+		h_align = FORM_LEFT;
+		v_align = FORM_SIZE;
 	}
 	else if(anchor == "CENTER_VSIZE") {
 		r.left = x - (base_sz.cx - cx) / 2;
 		r.top  = y;
-		h_align = Ctrl::CENTER;
-		v_align = Ctrl::SIZE;
+		h_align = FORM_CENTER;
+		v_align = FORM_SIZE;
 	}
 	else if(anchor == "RIGHT_VSIZE") {
 		r.left = base_sz.cx - x - cx;
 		r.top  = y;
-		h_align = Ctrl::RIGHT;
-		v_align = Ctrl::SIZE;
+		h_align = FORM_RIGHT;
+		v_align = FORM_SIZE;
 	}
 	else if(anchor == "SIZE") {
 		r.left = x;
 		r.top  = y;
-		h_align = Ctrl::SIZE;
-		v_align = Ctrl::SIZE;
+		h_align = FORM_SIZE;
+		v_align = FORM_SIZE;
 	}
 	else if(anchor == "TOP_RIGHT") {
 		r.left = base_sz.cx - x - cx;
 		r.top  = y;
-		h_align = Ctrl::RIGHT;
-		v_align = Ctrl::TOP;
+		h_align = FORM_RIGHT;
+		v_align = FORM_TOP;
 	}
 	else {
 		r.left = x;
 		r.top  = y;
-		h_align = Ctrl::LEFT;
-		v_align = Ctrl::TOP;
+		h_align = FORM_LEFT;
+		v_align = FORM_TOP;
 	}
 
 	r.right  = r.left + cx;

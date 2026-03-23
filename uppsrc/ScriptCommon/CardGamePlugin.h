@@ -35,4 +35,18 @@ public:
 	PyValue         GetGameFunction(const String& name) const;
 };
 
+// Strategy bridge vtable — default stubs; PKR registers real implementation.
+struct StrategyBridgeAPI {
+	bool   (*init)(void*& eval_ptr, void*& strategy_ptr, const String& model_path);
+	bool   (*is_ready)(void* strategy_ptr);
+	void   (*cleanup)(void* eval_ptr, void* strategy_ptr);
+	String (*get_advice)(const Vector<int>& hole, const Vector<int>& board,
+	                     int pot, const Vector<byte>& history,
+	                     void* strategy_ptr, Vector<double>& out_probs);
+};
+
+// Call this once at startup to install the real implementation.
+// If never called, strategy_bridge is a no-op stub.
+void CardGamePlugin_RegisterStrategyBridge(const StrategyBridgeAPI& api);
+
 #endif

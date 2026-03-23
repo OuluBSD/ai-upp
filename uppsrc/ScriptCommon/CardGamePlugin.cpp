@@ -1,5 +1,4 @@
 #include "ScriptCommon.h"
-#include <StrategyBridge/StrategyBridge.h>
 
 NAMESPACE_UPP
 
@@ -15,6 +14,23 @@ static PyValue ov_compare(const Vector<PyValue>& args, void*) {
     d.SetItem(PyValue("signal"), PyValue("pass"));
     d.SetItem(PyValue("zones"), PyValue::List());
     return d;
+}
+
+// Default stubs — no-ops when PKR's StrategyBridge is not linked.
+static bool sb_stub_init(void*&, void*&, const String&) { return false; }
+static bool sb_stub_is_ready(void*) { return false; }
+static void sb_stub_cleanup(void*, void*) {}
+static String sb_stub_advice(const Vector<int>&, const Vector<int>&,
+                             int, const Vector<byte>&,
+                             void*, Vector<double>&) { return ""; }
+
+static StrategyBridgeAPI s_sb_api = {
+	sb_stub_init, sb_stub_is_ready, sb_stub_cleanup, sb_stub_advice
+};
+
+void CardGamePlugin_RegisterStrategyBridge(const StrategyBridgeAPI& api)
+{
+	s_sb_api = api;
 }
 
 static PyValue hv_log(const Vector<PyValue>& args, void*)
@@ -528,18 +544,17 @@ static PyValue sb_init(const Vector<PyValue>& args, void*)
 {
 	String model_path;
 	if(args.GetCount() >= 1) model_path = args[0].ToString();
-	SB_InitStrategy(s_eval_ptr, s_strategy_ptr, model_path);
-	return PyValue(s_strategy_ptr != nullptr);
+	return PyValue(s_sb_api.init(s_eval_ptr, s_strategy_ptr, model_path));
 }
 
 static PyValue sb_is_ready(const Vector<PyValue>& args, void*)
 {
-	return PyValue(s_strategy_ptr != nullptr);
+	return PyValue(s_sb_api.is_ready(s_strategy_ptr));
 }
 
 static PyValue sb_cleanup(const Vector<PyValue>& args, void*)
 {
-	SB_CleanupStrategy(s_eval_ptr, s_strategy_ptr);
+	s_sb_api.cleanup(s_eval_ptr, s_strategy_ptr);
 	s_eval_ptr = nullptr;
 	s_strategy_ptr = nullptr;
 	return PyValue();
@@ -570,7 +585,7 @@ static PyValue sb_get_advice(const Vector<PyValue>& args, void*)
 	}
 	
 	Vector<double> probs;
-	String action_name = SB_GetStrategyAdvice(hole_cards, board_cards, pot, history, s_strategy_ptr, probs);
+	String action_name = s_sb_api.get_advice(hole_cards, board_cards, pot, history, s_strategy_ptr, probs);
 	
 	PyValue res = PyValue::Dict();
 	String action = "fold";

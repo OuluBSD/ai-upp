@@ -129,6 +129,7 @@ private:
 	int current_line = 0;
 	bool breakpoints_enabled = true;
 
+	void BindCallArgs(Frame& f, const PyLambda& l, const Vector<PyValue>& sorted_args);
 	bool CheckBreakpoint(const String& file, int line);
 };
 

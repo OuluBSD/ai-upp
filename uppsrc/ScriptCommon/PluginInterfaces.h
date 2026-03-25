@@ -106,6 +106,8 @@ public:
 	virtual void SetExpectedSpriteCount(const String& zone_id, int count) = 0;
 	// Set a text label inside a named zone
 	virtual void SetLabel(const String& zone_id, const String& text) = 0;
+	virtual void SetLabelColor(const String& zone_id, int r, int g, int b) {}
+	virtual void SetZoneRect(const String& zone_id, int x, int y, int w, int h) {}
 	// Set a clickable button inside a named zone
 	virtual void SetButton(const String& zone_id, const String& text, bool enabled) = 0;
 	// Highlight or clear a named zone
@@ -119,6 +121,14 @@ public:
 	virtual void SetTimeout(int delay_ms, const String& callback_name) = 0;
 	virtual Value GetConfig(const String& key) = 0;
 	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const = 0;
+	virtual String DumpScene() { return String(); }
+	virtual void DrawImage(const String& id, const String& asset_path, int x, int y, int w, int h) {}
+	virtual void SetCardDim(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) {
+		SetCard(card_id, asset_path, x, y, rotation_deg);
+	}
+	virtual void DrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced = false) {}
+	virtual Value GetCanvasSize() { return Value(); }
+	virtual void SetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset) {}
 };
 
 class IPlugin {

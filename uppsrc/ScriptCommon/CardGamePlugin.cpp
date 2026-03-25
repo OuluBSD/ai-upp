@@ -60,6 +60,16 @@ static PyValue hv_set_label(const Vector<PyValue>& args, void*)
 	return PyValue();
 }
 
+static PyValue hv_set_label_color(const Vector<PyValue>& args, void*)
+{
+	return PyValue();
+}
+
+static PyValue hv_set_zone_rect(const Vector<PyValue>& args, void*)
+{
+	return PyValue();
+}
+
 static PyValue hv_set_expected_sprite_count(const Vector<PyValue>& args, void*)
 {
 	return PyValue();
@@ -464,6 +474,22 @@ static PyValue hv_gui_set_label(const Vector<PyValue>& args, void* ud)
 	return PyValue();
 }
 
+static PyValue hv_gui_set_label_color(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 4)
+		((IHeartsView*)ud)->SetLabelColor(args[0].ToString(), (int)args[1].AsInt(), (int)args[2].AsInt(), (int)args[3].AsInt());
+	return PyValue();
+}
+
+static PyValue hv_gui_set_zone_rect(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 5)
+		((IHeartsView*)ud)->SetZoneRect(args[0].ToString(),
+		                                (int)args[1].AsInt64(), (int)args[2].AsInt64(),
+		                                (int)args[3].AsInt64(), (int)args[4].AsInt64());
+	return PyValue();
+}
+
 static PyValue hv_gui_set_expected_sprite_count(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() >= 2)
@@ -503,6 +529,47 @@ static PyValue hv_gui_set_card(const Vector<PyValue>& args, void* ud)
         return PyValue();
 }
 
+static PyValue hv_gui_draw_image(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 6)
+		((IHeartsView*)ud)->DrawImage(args[0].ToString(), args[1].ToString(),
+		                              (int)args[2].AsInt64(), (int)args[3].AsInt64(),
+		                              (int)args[4].AsInt64(), (int)args[5].AsInt64());
+	return PyValue();
+}
+
+static PyValue hv_gui_set_card_dim(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 4)
+		((IHeartsView*)ud)->SetCardDim(args[0].ToString(), args[1].ToString(),
+		                               (int)args[2].AsInt64(), (int)args[3].AsInt64(),
+		                               args.GetCount() >= 5 ? (int)args[4].AsInt64() : 0);
+	return PyValue();
+}
+
+static PyValue hv_gui_draw_rect(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 7)
+		((IHeartsView*)ud)->DrawRect((int)args[0].AsInt64(), (int)args[1].AsInt64(),
+		                             (int)args[2].AsInt64(), (int)args[3].AsInt64(),
+		                             (int)args[4].AsInt64(), (int)args[5].AsInt64(),
+		                             (int)args[6].AsInt64(), args.GetCount() >= 8 ? args[7].IsTrue() : false);
+	return PyValue();
+}
+
+static PyValue hv_gui_get_canvas_size(const Vector<PyValue>&, void* ud)
+{
+	return PyValue::FromValue(((IHeartsView*)ud)->GetCanvasSize());
+}
+
+static PyValue hv_gui_set_button_image(const Vector<PyValue>& args, void* ud)
+{
+	if(args.GetCount() >= 4)
+		((IHeartsView*)ud)->SetButtonImage(args[0].ToString(), args[1].ToString(),
+		                                   args[2].ToString(), args[3].ToString());
+	return PyValue();
+}
+
 static PyValue hv_gui_move_card(const Vector<PyValue>& args, void* ud)
 {
 	// move_card(card_id, zone_id, offset, animated)
@@ -535,6 +602,11 @@ static PyValue hv_gui_get_config(const Vector<PyValue>& args, void* ud)
 {
 	if(args.GetCount() < 1) return PyValue();
 	return PyValue::FromValue(((IHeartsView*)ud)->GetConfig(args[0].ToString()));
+}
+
+static PyValue hv_gui_dump_scene(const Vector<PyValue>& args, void* ud)
+{
+	return PyValue(((IHeartsView*)ud)->DumpScene());
 }
 
 static void* s_eval_ptr = nullptr;
@@ -624,15 +696,23 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 			PY_MODULE_FUNC(begin_sprite_frame, hv_gui_begin_sprite_frame, view)
 			PY_MODULE_FUNC(remove_sprite, hv_gui_remove_sprite, view)
 			PY_MODULE_FUNC(set_label,     hv_gui_set_label,     view)
+			PY_MODULE_FUNC(set_label_color, hv_gui_set_label_color, view)
+			PY_MODULE_FUNC(set_zone_rect, hv_gui_set_zone_rect, view)
 			PY_MODULE_FUNC(set_expected_sprite_count, hv_gui_set_expected_sprite_count, view)
 			PY_MODULE_FUNC(set_button,    hv_gui_set_button,    view)
 			PY_MODULE_FUNC(set_highlight, hv_gui_set_highlight, view)
 			PY_MODULE_FUNC(set_status,    hv_gui_set_status,    view)
 			PY_MODULE_FUNC(set_card,      hv_gui_set_card,      view)
+			PY_MODULE_FUNC(draw_image,    hv_gui_draw_image,    view)
+			PY_MODULE_FUNC(set_card_dim,  hv_gui_set_card_dim,  view)
+			PY_MODULE_FUNC(draw_rect,     hv_gui_draw_rect,     view)
+			PY_MODULE_FUNC(get_canvas_size, hv_gui_get_canvas_size, view)
+			PY_MODULE_FUNC(set_button_image, hv_gui_set_button_image, view)
 			PY_MODULE_FUNC(move_card,     hv_gui_move_card,     view)
 			PY_MODULE_FUNC(get_zone_rect, hv_gui_get_zone_rect, view)
 			PY_MODULE_FUNC(set_timeout,   hv_gui_set_timeout,   view)
 			PY_MODULE_FUNC(get_config,    hv_gui_get_config,    view)
+			PY_MODULE_FUNC(dump_scene,    hv_gui_dump_scene,    view)
 			if(modules.GetType() == PY_DICT) {
 				modules.SetItem(PyValue("cardgame_view"), cardgame_view_obj);
 				modules.SetItem(PyValue("hearts_view"), cardgame_view_obj);
@@ -658,6 +738,8 @@ void CardGamePlugin::SyncBindings(PyVM& vm)
 			PY_MODULE_FUNC(begin_sprite_frame, hv_begin_sprite_frame, nullptr)
 			PY_MODULE_FUNC(remove_sprite, hv_remove_sprite, nullptr)
 			PY_MODULE_FUNC(set_label,     hv_set_label,     nullptr)
+			PY_MODULE_FUNC(set_label_color, hv_set_label_color, nullptr)
+			PY_MODULE_FUNC(set_zone_rect, hv_set_zone_rect, nullptr)
 			PY_MODULE_FUNC(set_expected_sprite_count, hv_set_expected_sprite_count, nullptr)
 			PY_MODULE_FUNC(set_button,    hv_set_button,    nullptr)
 			PY_MODULE_FUNC(set_highlight, hv_set_highlight, nullptr)

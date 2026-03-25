@@ -124,8 +124,10 @@ public:
 	virtual void SetLayout(const String& form_path) override;
 	void SetPlugin(CardGamePlugin* p) { registration_plugin = p; if(p) p->SetView(this); }
 	void SetFixedArea(Size sz)        { fixed_area = sz; }
-	String DumpScene();
+	virtual String DumpScene() override;
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
+	bool DebugPressFormButton(const String& button_id);
+	bool DebugCallFormButtonAction(const String& button_id);
 	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }
 	void DebugInvokeDrag(const String& card_id, const String& zone_id) { InvokePythonDrag(card_id, zone_id); }
 	void DebugInvokeFirstHandCards(int count);
@@ -205,6 +207,8 @@ private:
 	Index<String> highlights;
 	String status_text;
 	Index<String> active_cards;
+	String last_form_button_event_id;
+	int64 last_form_button_event_ms = -1000;
 	struct DragState {
 		String card_id;
 		Point start_point;
@@ -248,6 +252,7 @@ private:
 	void QueueUiCommand(Function<void ()> fn);
 	void ScheduleUiFlush();
 	void DrainUiQueue();
+	void OnFormSignal(const String& script, const String& signal, const String& action);
 	void ApplyBeginSpriteFrame();
 	void ApplyClearSprites();
 	void ApplyRemoveSprite(const String& card_id);
@@ -260,12 +265,14 @@ private:
 	void ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
 	void ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated);
 	void ApplySetTimeout(int delay_ms, const String& callback_name);
+	void EnsureViewportLayout();
 	void PruneInactiveSprites();
 	bool CheckExpectedSpriteCounts();
 	void CapturePausedDebugState();
 	void ReportVmError(const String& where, const String& msg);
 	void ResetGameView();
 	void RefreshGameView();
+	void FireFormButtonEvent(const String& button_id, const char* source);
 	void InvokePythonButton(const String& button_id);
 	void InvokePythonCard(const String& card_id);
 	void InvokePythonDrag(const String& card_id, const String& zone_id);

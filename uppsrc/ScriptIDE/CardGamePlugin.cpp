@@ -302,18 +302,11 @@ void CardGameDocumentHost::LoadGameStateSettings()
 void CardGameDocumentHost::Layout()
 {
 	Ctrl::Layout();
-
-	Size sz = GetSize();
-	if(fixed_area.cx > 0 && fixed_area.cy > 0) {
-		sz = fixed_area;
-		table_form.SetRect(0, 0, sz.cx, sz.cy);
-		overlay.SetRect(0, 0, sz.cx, sz.cy);
-	}
-
-	if(sz == last_layout_size)
+	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
+	bool unchanged = (sz == last_layout_size);
+	EnsureViewportLayout();
+	if(unchanged)
 		return;
-
-	last_layout_size = sz;
 	if(sz.cx <= 0 || sz.cy <= 0)
 		return;
 
@@ -337,6 +330,20 @@ void CardGameDocumentHost::RetryLayoutRefresh()
 	}
 	resize_refresh_pending = false;
 	RefreshGameView();
+}
+
+void CardGameDocumentHost::EnsureViewportLayout()
+{
+	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
+	if(sz.cx <= 0 || sz.cy <= 0)
+		return;
+	if(sz == last_layout_size && table_form.GetSize() == sz && overlay.GetSize() == sz)
+		return;
+
+	last_layout_size = sz;
+	table_form.SetRect(0, 0, sz.cx, sz.cy);
+	table_form.UpdateLayout();
+	overlay.SetRect(0, 0, sz.cx, sz.cy);
 }
 
 void CardGameDocumentHost::ActivateUI()
@@ -813,11 +820,21 @@ void CardGameDocumentHost::DrainUiQueue()
 		if(!refresh_running && CheckExpectedSpriteCounts())
 			return;
 	}
+	EnsureViewportLayout();
 	SyncFormControls();
 	SyncFormExplorer();
 	table_form.Refresh();
 	overlay.Refresh();
 	Refresh();
+}
+
+void CardGameDocumentHost::OnFormSignal(const String& script, const String& signal, const String& action)
+{
+	if(signal != "OnAction" || action.IsEmpty())
+		return;
+	LOG("CardGameDocumentHost::OnFormSignal action=" << action
+	    << " host=" << FormatIntHex((int64)(intptr_t)this));
+	FireFormButtonEvent(action, "FormSignal");
 }
 
 void CardGameDocumentHost::ApplyBeginSpriteFrame()
@@ -862,6 +879,10 @@ void CardGameDocumentHost::ApplySetButton(const String& zone_id, const String& t
 	ActionButton& b = buttons.GetAdd(zone_id);
 	b.text = text;
 	b.enabled = enabled;
+	LOG("CardGameDocumentHost::ApplySetButton id=" << zone_id
+	    << " enabled=" << (enabled ? "yes" : "no")
+	    << " text=" << AsCString(text)
+	    << " host=" << FormatIntHex((int64)(intptr_t)this));
 }
 
 void CardGameDocumentHost::ApplySetHighlight(const String& zone_id, bool enabled)
@@ -1151,6 +1172,7 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	if(!table_form.LoadString(xml, false)) {
 		return;
 	}
+	table_form.SignalHandler = callback(this, &CardGameDocumentHost::OnFormSignal);
 
 
 	String layout_name = "Default";
@@ -1171,7 +1193,14 @@ void CardGameDocumentHost::SetLayout(const String& path)
 		item.user_class = def.user_class;
 	}
 
-	table_form.SizePos();
+	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
+	if(sz.cx <= 0 || sz.cy <= 0)
+		sz = table_form.GetSize();
+	if(sz.cx > 0 && sz.cy > 0) {
+		table_form.SetRect(0, 0, sz.cx, sz.cy);
+		table_form.UpdateLayout();
+		overlay.SetRect(0, 0, sz.cx, sz.cy);
+	}
 	SyncFormControls();
 	Refresh();
 	SyncFormExplorer();
@@ -1468,8 +1497,29 @@ void CardGameDocumentHost::RefreshGameView()
 	});
 }
 
+void CardGameDocumentHost::FireFormButtonEvent(const String& button_id, const char* source)
+{
+	int64 now = msecs();
+	if(button_id == last_form_button_event_id && now - last_form_button_event_ms < 100) {
+		LOG("CardGameDocumentHost::SkipDuplicateFormButtonEvent id=" << button_id
+		    << " source=" << source
+		    << " host=" << FormatIntHex((int64)(intptr_t)this));
+		return;
+	}
+	last_form_button_event_id = button_id;
+	last_form_button_event_ms = now;
+	LOG("CardGameDocumentHost::FormButtonEvent id=" << button_id
+	    << " source=" << source
+	    << " host=" << FormatIntHex((int64)(intptr_t)this));
+	InvokePythonButton(button_id);
+}
+
 void CardGameDocumentHost::InvokePythonButton(const String& button_id)
 {
+	LOG("CardGameDocumentHost::InvokePythonButton id=" << button_id
+	    << " host=" << FormatIntHex((int64)(intptr_t)this)
+	    << " plugin=" << (plugin ? "yes" : "no")
+	    << " game_running=" << (game_running ? "1" : "0"));
 	if(!plugin || !game_running)
 		return;
 	QueueVmTask([=] {
@@ -1488,6 +1538,41 @@ void CardGameDocumentHost::InvokePythonButton(const String& button_id)
 		}
 		QueueUiCommand([=] { if(ui_batch_depth > 0) ui_batch_depth--; });
 	});
+}
+
+bool CardGameDocumentHost::DebugPressFormButton(const String& button_id)
+{
+	Ctrl* ctrl = table_form.GetCtrl(button_id);
+	Button* button = dynamic_cast<Button*>(ctrl);
+	LOG("CardGameDocumentHost::DebugPressFormButton id=" << button_id
+	    << " host=" << FormatIntHex((int64)(intptr_t)this)
+	    << " ctrl=" << (ctrl ? "yes" : "no")
+	    << " button=" << (button ? "yes" : "no")
+	    << " ctrl_ptr=" << FormatIntHex((int64)(intptr_t)ctrl)
+	    << " has_action=" << (button && button->WhenAction ? "yes" : "no")
+	    << " enabled=" << (button && button->IsEnabled() ? "yes" : "no")
+	    << " visible=" << (button && button->IsShown() ? "yes" : "no")
+	    << " readonly=" << (button && button->IsReadOnly() ? "yes" : "no"));
+	if(!button)
+		return false;
+	button->PseudoPush();
+	return true;
+}
+
+bool CardGameDocumentHost::DebugCallFormButtonAction(const String& button_id)
+{
+	Ctrl* ctrl = table_form.GetCtrl(button_id);
+	Button* button = dynamic_cast<Button*>(ctrl);
+	LOG("CardGameDocumentHost::DebugCallFormButtonAction id=" << button_id
+	    << " host=" << FormatIntHex((int64)(intptr_t)this)
+	    << " ctrl=" << (ctrl ? "yes" : "no")
+	    << " button=" << (button ? "yes" : "no")
+	    << " ctrl_ptr=" << FormatIntHex((int64)(intptr_t)ctrl)
+	    << " has_action=" << (button && button->WhenAction ? "yes" : "no"));
+	if(!button || !button->WhenAction)
+		return false;
+	button->WhenAction();
+	return true;
 }
 
 void CardGameDocumentHost::InvokePythonCard(const String& card_id)
@@ -1802,6 +1887,7 @@ void CardGameDocumentHost::SyncFormExplorer()
 
 void CardGameDocumentHost::Paint(Draw& w)
 {
+	EnsureViewportLayout();
 	if(fixed_area.cx > 0 && fixed_area.cy > 0) {
 		w.DrawRect(GetSize(), GrayColor(40));
 		w.DrawRect(0, 0, fixed_area.cx, fixed_area.cy, background_color);
@@ -1912,7 +1998,12 @@ void CardGameDocumentHost::SyncFormControls()
 				button->SetLabel(buttons[i].text);
 				button->Enable(buttons[i].enabled);
 				button->Show(!buttons[i].text.IsEmpty());
-				button->WhenAction = [=] { InvokePythonButton(button_id); };
+				LOG("CardGameDocumentHost::BindFormButtonAction id=" << button_id
+				    << " enabled=" << (buttons[i].enabled ? "yes" : "no")
+				    << " visible=" << (!buttons[i].text.IsEmpty() ? "yes" : "no")
+				    << " text=" << AsCString(buttons[i].text)
+				    << " host=" << FormatIntHex((int64)(intptr_t)this)
+				    << " ctrl_ptr=" << FormatIntHex((int64)(intptr_t)button));
 			}
 		}
 	}

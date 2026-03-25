@@ -112,6 +112,8 @@ public:
 	virtual void  RemoveSprite(const String& card_id) override;
 	virtual void  SetExpectedSpriteCount(const String& zone_id, int count) override;
 	virtual void  SetLabel(const String& zone_id, const String& text) override;
+	virtual void  SetLabelColor(const String& zone_id, int r, int g, int b) override;
+	virtual void  SetZoneRect(const String& zone_id, int x, int y, int w, int h) override;
 	virtual void  SetButton(const String& zone_id, const String& text, bool enabled) override;
 	virtual void  SetHighlight(const String& zone_id, bool enabled) override;
 	virtual void  SetStatus(const String& text) override;
@@ -119,6 +121,11 @@ public:
 	virtual void  SetTimeout(int delay_ms, const String& callback_name) override;
 	virtual Value GetConfig(const String& key) override;
 	virtual const ArrayMap<String, CardGameSprite>& GetSprites() const override { return sprite_export; }
+	virtual void  DrawImage(const String& id, const String& asset_path, int x, int y, int w, int h) override;
+	virtual void  SetCardDim(const String& card_id, const String& asset_path, int x, int y, int rotation_deg = 0) override;
+	virtual void  DrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced = false) override;
+	virtual Value GetCanvasSize() override;
+	virtual void  SetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset) override;
 	virtual const Form& GetLayout() const { return table_form; }
 
 	virtual void SetLayout(const String& form_path) override;
@@ -185,6 +192,12 @@ private:
 		Rect   target_rect;
 		int    rotation_deg = 0;
 		bool   animating = false;
+		bool   dimmed = false;
+	};
+	struct VisualRect : Moveable<VisualRect> {
+		Rect  rect;
+		Color color;
+		bool  interlaced = false;
 	};
 	ArrayMap<String, Ptr<Sprite>> sprites;
 	ArrayMap<String, CardGameSprite> sprite_export; // mirrors sprites for GetSprites()
@@ -195,17 +208,26 @@ private:
 		String id;
 		String anchor;
 		String user_class;
+		Rect   design_rect;
 	};
 	ArrayMap<String, FormItem> form_items;
 	ArrayMap<String, int> expected_sprite_counts;
 	ArrayMap<String, String> labels;
+	ArrayMap<String, Color> label_colors;
+	ArrayMap<String, Rect> zone_rect_overrides;
 	struct ActionButton {
 		String text;
 		bool   enabled = false;
+		String normal_asset;
+		String hover_asset;
+		String pressed_asset;
 	};
 	ArrayMap<String, ActionButton> buttons;
+	Array<VisualRect> visual_rects;
 	Index<String> highlights;
 	String status_text;
+	Size design_form_size;
+	Rect viewport_rect;
 	Index<String> active_cards;
 	String last_form_button_event_id;
 	int64 last_form_button_event_ms = -1000;
@@ -258,11 +280,17 @@ private:
 	void ApplyRemoveSprite(const String& card_id);
 	void ApplySetExpectedSpriteCount(const String& zone_id, int count);
 	void ApplySetLabel(const String& zone_id, const String& text);
+	void ApplySetLabelColor(const String& zone_id, int r, int g, int b);
+	void ApplySetZoneRect(const String& zone_id, int x, int y, int w, int h);
 	void ApplySetButton(const String& zone_id, const String& text, bool enabled);
 	void ApplySetHighlight(const String& zone_id, bool enabled);
 	void ApplySetStatus(const String& text);
 	void ApplyLog(const String& msg);
 	void ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
+	void ApplyDrawImage(const String& id, const String& asset_path, int x, int y, int w, int h);
+	void ApplySetCardDim(const String& card_id, const String& asset_path, int x, int y, int rotation_deg);
+	void ApplyDrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced);
+	void ApplySetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset);
 	void ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated);
 	void ApplySetTimeout(int delay_ms, const String& callback_name);
 	void EnsureViewportLayout();

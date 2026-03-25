@@ -9,6 +9,7 @@ struct CardGameZoneDef : Moveable<CardGameZoneDef> {
 	String user_class;
 	String parent;
 	String label;
+	Rect   rect;
 };
 
 String NormalizeUserClass(const String& user_class, const String& control_type = String())
@@ -90,8 +91,25 @@ Vector<CardGameZoneDef> ExtractCardGameZones(const FormView& view)
 		def.user_class = NormalizeUserClass(obj.Get("UserClass"), obj.Get("Type"));
 		def.parent = obj.Get("Parent");
 		def.label = obj.Get("Label");
+		def.rect = obj.GetRect();
 	}
 	return defs;
+}
+
+Rect FitRectPreserveAspect(Size outer, Size inner)
+{
+	if(outer.cx <= 0 || outer.cy <= 0)
+		return Rect();
+	if(inner.cx <= 0 || inner.cy <= 0)
+		return RectC(0, 0, outer.cx, outer.cy);
+	double sx = (double)outer.cx / (double)inner.cx;
+	double sy = (double)outer.cy / (double)inner.cy;
+	double scale = min(sx, sy);
+	int w = max(1, (int)floor(inner.cx * scale + 0.5));
+	int h = max(1, (int)floor(inner.cy * scale + 0.5));
+	int x = max(0, (outer.cx - w) / 2);
+	int y = max(0, (outer.cy - h) / 2);
+	return RectC(x, y, w, h);
 }
 
 Rect GetZoneRectFromForm(const Form& form, const String& zone_id)
@@ -337,13 +355,37 @@ void CardGameDocumentHost::EnsureViewportLayout()
 	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
 	if(sz.cx <= 0 || sz.cy <= 0)
 		return;
-	if(sz == last_layout_size && table_form.GetSize() == sz && overlay.GetSize() == sz)
+	Size design = design_form_size;
+	if(design.cx <= 0 || design.cy <= 0)
+		design = table_form.GetSize();
+	Rect viewport = FitRectPreserveAspect(sz, design);
+	if(sz == last_layout_size && viewport == viewport_rect && table_form.GetRect() == viewport && overlay.GetRect() == viewport)
 		return;
 
 	last_layout_size = sz;
-	table_form.SetRect(0, 0, sz.cx, sz.cy);
+	viewport_rect = viewport;
+	table_form.SetRect(viewport);
 	table_form.UpdateLayout();
-	overlay.SetRect(0, 0, sz.cx, sz.cy);
+	overlay.SetRect(viewport);
+
+	if(design.cx > 0 && design.cy > 0) {
+		double sx = (double)viewport.GetWidth() / (double)design.cx;
+		double sy = (double)viewport.GetHeight() / (double)design.cy;
+		for(int i = 0; i < form_items.GetCount(); i++) {
+			const FormItem& item = form_items[i];
+			Ctrl* ctrl = table_form.GetCtrl(item.id);
+			if(!ctrl)
+				continue;
+			const Rect& dr = item.design_rect;
+			Rect sr(
+				(int)floor(dr.left * sx + 0.5),
+				(int)floor(dr.top * sy + 0.5),
+				(int)floor(dr.right * sx + 0.5),
+				(int)floor(dr.bottom * sy + 0.5)
+			);
+			ctrl->SetRect(sr);
+		}
+	}
 }
 
 void CardGameDocumentHost::ActivateUI()
@@ -840,12 +882,14 @@ void CardGameDocumentHost::OnFormSignal(const String& script, const String& sign
 void CardGameDocumentHost::ApplyBeginSpriteFrame()
 {
 	active_cards.Clear();
+	visual_rects.Clear();
 }
 
 void CardGameDocumentHost::ApplyClearSprites()
 {
 	active_cards.Clear();
 	expected_sprite_counts.Clear();
+	visual_rects.Clear();
 }
 
 void CardGameDocumentHost::ApplyRemoveSprite(const String& card_id)
@@ -872,6 +916,19 @@ void CardGameDocumentHost::ApplySetExpectedSpriteCount(const String& zone_id, in
 void CardGameDocumentHost::ApplySetLabel(const String& zone_id, const String& text)
 {
 	labels.GetAdd(zone_id) = text;
+}
+
+void CardGameDocumentHost::ApplySetLabelColor(const String& zone_id, int r, int g, int b)
+{
+	label_colors.GetAdd(zone_id) = Color(r, g, b);
+}
+
+void CardGameDocumentHost::ApplySetZoneRect(const String& zone_id, int x, int y, int w, int h)
+{
+	Rect r = RectC(x, y, max(0, w), max(0, h));
+	zone_rect_overrides.GetAdd(zone_id) = r;
+	if(Ctrl* ctrl = table_form.GetCtrl(zone_id))
+		ctrl->SetRect(r);
 }
 
 void CardGameDocumentHost::ApplySetButton(const String& zone_id, const String& text, bool enabled)
@@ -920,6 +977,47 @@ void CardGameDocumentHost::ApplyLog(const String& msg)
 		ide->Log(msg);
 }
 
+void CardGameDocumentHost::ApplyDrawImage(const String& id, const String& asset_path, int x, int y, int w, int h)
+{
+	Ptr<Sprite>& sptr = sprites.GetAdd(id);
+	if(!sptr) sptr = new Sprite();
+	Sprite& s = *sptr;
+
+	String full_path = asset_path;
+	if(!IsFullPath(asset_path))
+		full_path = AppendFileName(GetFileDirectory(path), asset_path);
+
+	if(s.img.IsEmpty() || s.asset_path != full_path || s.rect.GetWidth() != w || s.rect.GetHeight() != h) {
+		Image raw;
+		int q = image_cache.Find(full_path);
+		if(q >= 0)
+			raw = image_cache[q];
+		else {
+			raw = StreamRaster::LoadFileAny(full_path);
+			image_cache.Add(full_path, raw);
+		}
+		if(raw.GetWidth() != w || raw.GetHeight() != h)
+			s.img = Rescale(raw, w, h);
+		else
+			s.img = raw;
+		s.asset_path = full_path;
+	}
+	s.rotation_deg = 0;
+	s.dimmed = false;
+	s.rect = RectC(x, y, w, h);
+	s.target_rect = s.rect;
+	s.animating = false;
+	CardGameSprite& ex = sprite_export.GetAdd(id);
+	ex.img = s.img;
+	ex.asset_path = s.asset_path;
+	ex.rect = s.rect;
+	ex.angle = 0;
+	if(active_cards.Find(id) < 0)
+		active_cards.Add(id);
+	SyncCardCtrl(id);
+	overlay.Refresh();
+}
+
 void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
 {
 	Ptr<Sprite>& sptr = sprites.GetAdd(card_id);
@@ -941,6 +1039,7 @@ void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& ass
 		s.asset_path = full_path;
 	}
 	s.rotation_deg = rotation_deg;
+	s.dimmed = false;
 	Size sprite_sz = RotatedImageSize(s.img, s.rotation_deg);
 	s.rect = RectC(x, y, sprite_sz.cx, sprite_sz.cy);
 	s.target_rect = s.rect;
@@ -954,6 +1053,32 @@ void CardGameDocumentHost::ApplySetCard(const String& card_id, const String& ass
 		active_cards.Add(card_id);
 	SyncCardCtrl(card_id);
 	overlay.Refresh();
+}
+
+void CardGameDocumentHost::ApplySetCardDim(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
+{
+	ApplySetCard(card_id, asset_path, x, y, rotation_deg);
+	int q = sprites.Find(card_id);
+	if(q >= 0)
+		sprites[q]->dimmed = true;
+	overlay.Refresh();
+}
+
+void CardGameDocumentHost::ApplyDrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced)
+{
+	VisualRect& vr = visual_rects.Add();
+	vr.rect = RectC(x, y, w, h);
+	vr.color = Color(r, g, b);
+	vr.interlaced = interlaced;
+	overlay.Refresh();
+}
+
+void CardGameDocumentHost::ApplySetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset)
+{
+	ActionButton& b = buttons.GetAdd(zone_id);
+	b.normal_asset = normal_asset;
+	b.hover_asset = hover_asset;
+	b.pressed_asset = pressed_asset;
 }
 
 void CardGameDocumentHost::ApplyMoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
@@ -1159,6 +1284,8 @@ void CardGameDocumentHost::SetLayout(const String& path)
 	sprite_export.Clear();
 	form_items.Clear();
 	labels.Clear();
+	label_colors.Clear();
+	zone_rect_overrides.Clear();
 	buttons.Clear();
 	highlights.Clear();
 
@@ -1191,15 +1318,17 @@ void CardGameDocumentHost::SetLayout(const String& path)
 		item.id = def.id;
 		item.anchor = def.anchor;
 		item.user_class = def.user_class;
+		item.design_rect = def.rect;
 	}
+
+	design_form_size = table_form.GetSize();
 
 	Size sz = (fixed_area.cx > 0 && fixed_area.cy > 0) ? fixed_area : GetSize();
 	if(sz.cx <= 0 || sz.cy <= 0)
-		sz = table_form.GetSize();
+		sz = design_form_size;
 	if(sz.cx > 0 && sz.cy > 0) {
-		table_form.SetRect(0, 0, sz.cx, sz.cy);
-		table_form.UpdateLayout();
-		overlay.SetRect(0, 0, sz.cx, sz.cy);
+		last_layout_size = Size(-1, -1);
+		EnsureViewportLayout();
 	}
 	SyncFormControls();
 	Refresh();
@@ -1258,6 +1387,26 @@ void CardGameDocumentHost::SetLabel(const String& zone_id, const String& text)
 		QueueUiCommand([=] { ApplySetLabel(zone_id, text); });
 }
 
+void CardGameDocumentHost::SetLabelColor(const String& zone_id, int r, int g, int b)
+{
+	if(IsMainThread()) {
+		ApplySetLabelColor(zone_id, r, g, b);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetLabelColor(zone_id, r, g, b); });
+}
+
+void CardGameDocumentHost::SetZoneRect(const String& zone_id, int x, int y, int w, int h)
+{
+	if(IsMainThread()) {
+		ApplySetZoneRect(zone_id, x, y, w, h);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetZoneRect(zone_id, x, y, w, h); });
+}
+
 void CardGameDocumentHost::SetButton(const String& zone_id, const String& text, bool enabled)
 {
 	if(IsMainThread()) {
@@ -1298,6 +1447,60 @@ void CardGameDocumentHost::SetCard(const String& card_id, const String& asset_pa
 		QueueUiCommand([=] { ApplySetCard(card_id, asset_path, x, y, rotation_deg); });
 }
 
+void CardGameDocumentHost::DrawImage(const String& id, const String& asset_path, int x, int y, int w, int h)
+{
+	if(IsMainThread()) {
+		ApplyDrawImage(id, asset_path, x, y, w, h);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyDrawImage(id, asset_path, x, y, w, h); });
+}
+
+void CardGameDocumentHost::SetCardDim(const String& card_id, const String& asset_path, int x, int y, int rotation_deg)
+{
+	if(IsMainThread()) {
+		ApplySetCardDim(card_id, asset_path, x, y, rotation_deg);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetCardDim(card_id, asset_path, x, y, rotation_deg); });
+}
+
+void CardGameDocumentHost::DrawRect(int x, int y, int w, int h, int r, int g, int b, bool interlaced)
+{
+	if(IsMainThread()) {
+		ApplyDrawRect(x, y, w, h, r, g, b, interlaced);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplyDrawRect(x, y, w, h, r, g, b, interlaced); });
+}
+
+Value CardGameDocumentHost::GetCanvasSize()
+{
+	ValueMap m;
+	Size sz = viewport_rect.GetSize();
+	if(sz.cx <= 0 || sz.cy <= 0) {
+		sz = fixed_area;
+		if(sz.cx <= 0 || sz.cy <= 0)
+			sz = GetSize();
+	}
+	m.Add("w", sz.cx);
+	m.Add("h", sz.cy);
+	return m;
+}
+
+void CardGameDocumentHost::SetButtonImage(const String& zone_id, const String& normal_asset, const String& hover_asset, const String& pressed_asset)
+{
+	if(IsMainThread()) {
+		ApplySetButtonImage(zone_id, normal_asset, hover_asset, pressed_asset);
+		DrainUiQueue();
+	}
+	else
+		QueueUiCommand([=] { ApplySetButtonImage(zone_id, normal_asset, hover_asset, pressed_asset); });
+}
+
 void CardGameDocumentHost::MoveCardToZone(const String& card_id, const String& zone_id, int offset, bool animated)
 {
 	if(IsMainThread()) {
@@ -1313,7 +1516,11 @@ Value CardGameDocumentHost::GetZoneRect(const String& zone_id)
 	ValueMap m;
 	Rect r;
 	if(IsMainThread()) {
-		r = GetZoneRectFromForm(table_form, zone_id);
+		int qo = zone_rect_overrides.Find(zone_id);
+		if(qo >= 0)
+			r = zone_rect_overrides[qo];
+		else
+			r = GetZoneRectFromForm(table_form, zone_id);
 		if(r.IsEmpty()) {
 			int q = form_items.Find(zone_id);
 			if(q >= 0) {
@@ -1919,8 +2126,23 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 		            (int)ceil(r.bottom * sy));
 	};
 
+	for(int i = 0; i < visual_rects.GetCount(); i++) {
+		Rect r = scale_rect(visual_rects[i].rect);
+		if(r.IsEmpty())
+			continue;
+		if(visual_rects[i].interlaced) {
+			iw.DrawRect(r, Black());
+			for(int y = 0; y < r.GetHeight(); y += 2)
+				iw.DrawRect(r.left, r.top + y, r.GetWidth(), 1, visual_rects[i].color);
+		}
+		else
+			iw.DrawRect(r, visual_rects[i].color);
+	}
+
 	for(int i = 0; i < labels.GetCount(); i++) {
-		Rect r = scale_rect(GetZoneRectFromForm(table_form, labels.GetKey(i)));
+		int qo = zone_rect_overrides.Find(labels.GetKey(i));
+		Rect base = qo >= 0 ? zone_rect_overrides[qo] : GetZoneRectFromForm(table_form, labels.GetKey(i));
+		Rect r = scale_rect(base);
 		if(r.IsEmpty())
 			continue;
 		int align = ALIGN_CENTER;
@@ -1935,22 +2157,38 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 		         align == ALIGN_RIGHT ? r.right - tsz.cx - 4 :
 		         r.left + max(0, (r.GetWidth() - tsz.cx) / 2);
 		int ty = r.top + max(0, (r.GetHeight() - tsz.cy) / 2);
-		iw.DrawText(tx, ty, labels[i], StdFont(), White());
+		int qc = label_colors.Find(labels.GetKey(i));
+		Color ink = qc >= 0 ? label_colors[qc] : White();
+		iw.DrawText(tx, ty, labels[i], StdFont(), ink);
 	}
 
 	for(int i = 0; i < buttons.GetCount(); i++) {
 		const ActionButton& btn = buttons[i];
 		if(btn.text.IsEmpty())
 			continue;
-		Rect r = scale_rect(GetZoneRectFromForm(table_form, buttons.GetKey(i)));
+		int qo = zone_rect_overrides.Find(buttons.GetKey(i));
+		Rect base = qo >= 0 ? zone_rect_overrides[qo] : GetZoneRectFromForm(table_form, buttons.GetKey(i));
+		Rect r = scale_rect(base);
 		if(r.IsEmpty())
 			continue;
-		Color face = btn.enabled ? SColorFace() : Blend(SColorFace(), GrayColor(180));
-		iw.DrawRect(r, face);
-		iw.DrawRect(r.left, r.top, r.GetWidth(), 1, SColorShadow());
-		iw.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, SColorShadow());
-		iw.DrawRect(r.left, r.top, 1, r.GetHeight(), SColorShadow());
-		iw.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), SColorShadow());
+		String asset_path = btn.normal_asset;
+		if(!asset_path.IsEmpty()) {
+			if(!IsFullPath(asset_path))
+				asset_path = AppendFileName(GetFileDirectory(path), asset_path);
+			Image img = StreamRaster::LoadFileAny(asset_path);
+			if(!img.IsEmpty())
+				iw.DrawImage(r, img);
+			else
+				iw.DrawRect(r, btn.enabled ? SColorFace() : Blend(SColorFace(), GrayColor(180)));
+		}
+		else {
+			Color face = btn.enabled ? SColorFace() : Blend(SColorFace(), GrayColor(180));
+			iw.DrawRect(r, face);
+			iw.DrawRect(r.left, r.top, r.GetWidth(), 1, SColorShadow());
+			iw.DrawRect(r.left, r.bottom - 1, r.GetWidth(), 1, SColorShadow());
+			iw.DrawRect(r.left, r.top, 1, r.GetHeight(), SColorShadow());
+			iw.DrawRect(r.right - 1, r.top, 1, r.GetHeight(), SColorShadow());
+		}
 		Size tsz = GetTextSize(btn.text, StdFont());
 		int tx = r.left + max(0, (r.GetWidth() - tsz.cx) / 2);
 		int ty = r.top + max(0, (r.GetHeight() - tsz.cy) / 2);
@@ -1958,7 +2196,9 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 	}
 
 	if(!status_text.IsEmpty()) {
-		Rect r = scale_rect(GetZoneRectFromForm(table_form, "status_line"));
+		int qo = zone_rect_overrides.Find("status_line");
+		Rect base = qo >= 0 ? zone_rect_overrides[qo] : GetZoneRectFromForm(table_form, "status_line");
+		Rect r = scale_rect(base);
 		if(!r.IsEmpty())
 			iw.DrawText(r.left + 4, r.top + max(0, (r.GetHeight() - GetTextSize(status_text, StdFont()).cy) / 2), status_text, StdFont(), White());
 	}
@@ -1969,18 +2209,31 @@ Image CardGameDocumentHost::CaptureRecordFrame(Size target_size) const
 
 void CardGameDocumentHost::SyncFormControls()
 {
+	for(int i = 0; i < zone_rect_overrides.GetCount(); i++) {
+		if(Ctrl* ctrl = table_form.GetCtrl(zone_rect_overrides.GetKey(i)))
+			ctrl->SetRect(zone_rect_overrides[i]);
+	}
+
 	{
 		Mutex::Lock __(rect_cache_mutex);
 		rect_cache.Clear();
-		for(int i = 0; i < form_items.GetCount(); i++)
-			rect_cache.Add(form_items[i].id, GetZoneRectFromForm(table_form, form_items[i].id));
+		for(int i = 0; i < form_items.GetCount(); i++) {
+			const String& zone_id = form_items[i].id;
+			int qo = zone_rect_overrides.Find(zone_id);
+			Rect r = qo >= 0 ? zone_rect_overrides[qo] : GetZoneRectFromForm(table_form, zone_id);
+			rect_cache.Add(zone_id, r);
+		}
 	}
 
 	for(int i = 0; i < labels.GetCount(); i++) {
 		if(Ctrl* ctrl = table_form.GetCtrl(labels.GetKey(i))) {
 			if(Label* label = dynamic_cast<Label*>(ctrl)) {
 				label->SetLabel(labels[i]);
-				label->SetInk(White());
+				int qc = label_colors.Find(labels.GetKey(i));
+				if(qc >= 0)
+					label->SetInk(label_colors[qc]);
+				else
+					label->SetInk(White());
 				int q = form_items.Find(labels.GetKey(i));
 				if(q >= 0) {
 					label->SetAlign(form_items[q].anchor == "CENTER_LEFT" ? ALIGN_LEFT :
@@ -2050,6 +2303,19 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 		}
 	}
 
+	for(int i = 0; i < visual_rects.GetCount(); i++) {
+		Rect r = scale_rect(visual_rects[i].rect);
+		if(r.IsEmpty())
+			continue;
+		if(visual_rects[i].interlaced) {
+			w.DrawRect(r, Black());
+			for(int y = 0; y < r.GetHeight(); y += 2)
+				w.DrawRect(r.left, r.top + y, r.GetWidth(), 1, visual_rects[i].color);
+		}
+		else
+			w.DrawRect(r, visual_rects[i].color);
+	}
+
 	for(int i = 0; i < highlights.GetCount(); i++) {
 		Rect r = scale_rect(GetZoneRectFromForm(table_form, highlights[i]));
 		if(r.IsEmpty())
@@ -2108,6 +2374,16 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 			po.major = s.rect.top;
 			po.minor = s.rect.left;
 		}
+		if(po.card_id.StartsWith("seat_plate_")) {
+			po.group = 25;
+			po.major = s.rect.top;
+			po.minor = s.rect.left;
+		}
+		else if(po.card_id.StartsWith("seat_flag_")) {
+			po.group = 26;
+			po.major = s.rect.top;
+			po.minor = s.rect.left;
+		}
 		if(drag_state.active && drag_state.card_id == po.card_id) {
 			po.group = 100;
 			po.major = 0;
@@ -2131,6 +2407,15 @@ void CardGameDocumentHost::PaintOverlayScaled(Draw& w, double sx, double sy, boo
 		Image img = RotateCardImage(s.img, s.rotation_deg);
 		if(img.IsEmpty())
 			continue;
+		if(s.dimmed) {
+			ImageBuffer ib(img);
+			for(int y = 1; y < ib.GetHeight(); y += 2) {
+				RGBA* row = ib[y];
+				for(int x = 0; x < ib.GetWidth(); x++)
+					row[x] = RGBAZero();
+			}
+			img = Image(ib);
+		}
 		Rect sr = scale_rect(s.rect);
 		if(sr.GetSize() == img.GetSize())
 			w.DrawImage(sr.left, sr.top, img);

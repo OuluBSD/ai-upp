@@ -14,6 +14,9 @@ public:
 	virtual void   Init(IPluginContext& context) override;
 	virtual void   Shutdown() override;
 
+	virtual void   ExecuteSeparateWindow(const String& path) override;
+	virtual void   DebugSeparateWindow(const String& path) override;
+
 	// File Type Handlers
 	struct GameStateHandler : public IFileTypeHandler {
 		CardGamePluginGUI* plugin;
@@ -135,12 +138,16 @@ public:
 	void DebugInvokeButton(const String& button_id) { InvokePythonButton(button_id); }
 	bool DebugPressFormButton(const String& button_id);
 	bool DebugCallFormButtonAction(const String& button_id);
+	bool DebugExportStandalone(const String& output_exe_path, String& final_output_path, String& error_text);
+	void ExportStandaloneExecutable();
 	void DebugInvokeCard(const String& card_id) { InvokePythonCard(card_id); }
 	void DebugInvokeDrag(const String& card_id, const String& zone_id) { InvokePythonDrag(card_id, zone_id); }
 	void DebugInvokeFirstHandCards(int count);
 	virtual PyVM* GetVM() override { return &vm; }
 
 private:
+	bool ExportStandalonePackage(const String& output_exe_path, String& final_output_path, String& error_text);
+
 	String path;
 	Value  gs;
 	String form_path;

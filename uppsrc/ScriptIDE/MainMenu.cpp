@@ -37,6 +37,14 @@ void PythonIDE::FileMenu(Bar& bar)
 	bar.Add("Save copy as...", [this] { OnSaveCopyAs(); });
 	bar.Add("Revert", [this] { OnRevert(); });
 	bar.Separator();
+	bar.Sub("Export", [this](Bar& b) {
+		CardGameDocumentHost* game_host = nullptr;
+		if(active_file >= 0 && active_file < open_files.GetCount())
+			game_host = dynamic_cast<CardGameDocumentHost*>(open_files[active_file].editor);
+		b.Add("Standalone executable...", [this] { OnExportStandalone(); })
+		 .Enable(game_host != nullptr);
+	});
+	bar.Separator();
 	bar.Add("Print preview", [this] { Todo("Print preview"); });
 	bar.Add("Print...", [this] { Todo("Print"); });
 	bar.Separator();
@@ -49,6 +57,14 @@ void PythonIDE::FileMenu(Bar& bar)
 	bar.Add("Restart", [this] { OnRestart(); }).Key(K_ALT|K_SHIFT|K_R);
 	bar.Add("Restart in debug mode", [this] { Todo("Restart in debug mode"); });
 	bar.Add("Quit", [this] { Close(); }).Key(K_CTRL_Q);
+}
+
+void PythonIDE::OnExportStandalone()
+{
+	if(active_file < 0 || active_file >= open_files.GetCount())
+		return;
+	if(CardGameDocumentHost* game_host = dynamic_cast<CardGameDocumentHost*>(open_files[active_file].editor))
+		game_host->ExportStandaloneExecutable();
 }
 
 void PythonIDE::EditMenu(Bar& bar)
@@ -128,9 +144,10 @@ void PythonIDE::RunMenu(Bar& bar)
 	bool run_enabled = !(doc_running || vm.IsRunning());
 	bool pause_enabled = doc_can_pause && doc_running;
 
-	bar.Add("Run", Icons::Run(), [this] { OnRun(); }).Key(K_CTRL|K_F5).Enable(run_enabled);
+	bar.Add("Run", Icons::Run(), [this] { OnRun(); }).Key(K_F5).Enable(run_enabled);
+	bar.Add("Run in separate window", [this] { OnRunSeparateWindow(); }).Key(K_CTRL|K_F5).Enable(run_enabled);
 	bar.Add("Re-run last file", [this] { OnRunLast(); }).Key(K_F6);
-	bar.Add("Configuration per file", [this] { OnRunConfig(); }).Key(K_CTRL_F6);
+	bar.Add("Run Options...", [this] { OnRunConfig(); }).Key(K_CTRL_F6);
 	bar.Add("Global presets", [this] { Todo("Global presets"); });
 	bar.Separator();
 	bar.Add("Run cell", [this] { OnRunCell(); }).Key(K_CTRL_RETURN).Enable(run_enabled);
@@ -167,6 +184,7 @@ void PythonIDE::DebugMenu(Bar& bar)
 	bool pause_enabled = doc_can_pause && doc_running;
 
 	bar.Add("Debug file", Icons::Debug(), [this] { OnDebug(); }).Key(K_F5).Enable(run_enabled);
+	bar.Add("Debug in separate Window", [this] { OnDebugSeparateWindow(); }).Key(K_CTRL|K_SHIFT|K_F5).Enable(run_enabled);
 	bar.Add("Debug cell", [this] { OnDebugCell(); }).Enable(run_enabled);
 	bar.Add("Debug the current line or selection", [this] { OnDebugSelection(); }).Enable(run_enabled);
 	bar.Separator();

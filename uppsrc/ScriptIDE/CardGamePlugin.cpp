@@ -1,5 +1,8 @@
 #include "ScriptIDE.h"
 #include "CardGamePlugin.h"
+#ifdef PLATFORM_POSIX
+#include <sys/stat.h>
+#endif
 
 namespace {
 
@@ -202,6 +205,137 @@ String FormatPythonStackText(const Vector<PyVM::StackFrame>& stack)
 	return out;
 }
 
+String ToPosixSeparators(String path)
+{
+	for(int i = 0; i < path.GetCount(); i++)
+		if(path[i] == '\\')
+			path.Set(i, '/');
+	return path;
+}
+
+String TrimLeadingSeparators(String path)
+{
+	while(!path.IsEmpty() && (path[0] == '/' || path[0] == '\\'))
+		path = path.Mid(1);
+	return path;
+}
+
+String RelativeToRootPath(const String& root_dir, const String& full_path)
+{
+	String root = NormalizePath(root_dir);
+	String full = NormalizePath(full_path);
+	if(root.IsEmpty())
+		return TrimLeadingSeparators(full);
+	if(!root.EndsWith(String(DIR_SEP, 1)))
+		root << DIR_SEP;
+#ifdef PLATFORM_WIN32
+	String root_cmp = ToLower(root);
+	String full_cmp = ToLower(full);
+	if(full_cmp.StartsWith(root_cmp))
+		return TrimLeadingSeparators(full.Mid(root.GetCount()));
+#else
+	if(full.StartsWith(root))
+		return TrimLeadingSeparators(full.Mid(root.GetCount()));
+#endif
+	return TrimLeadingSeparators(GetFileName(full));
+}
+
+void CollectFilesRecursive(const String& dir, Vector<String>& files, const String& exclude_prefix)
+{
+	FindFile ff(AppendFileName(dir, "*"));
+	if(!ff)
+		return;
+	do {
+		String name = ff.GetName();
+		if(name == "." || name == "..")
+			continue;
+		String full = NormalizePath(AppendFileName(dir, name));
+#ifdef PLATFORM_WIN32
+		if(!exclude_prefix.IsEmpty() && ToLower(full).StartsWith(ToLower(exclude_prefix)))
+			continue;
+#else
+		if(!exclude_prefix.IsEmpty() && full.StartsWith(exclude_prefix))
+			continue;
+#endif
+		if(ff.IsFolder())
+			CollectFilesRecursive(full, files, exclude_prefix);
+		else
+			files.Add(full);
+	}
+	while(ff.Next());
+}
+
+String SanitizeIdentifier(const String& input, const String& fallback)
+{
+	String out;
+	for(int i = 0; i < input.GetCount(); i++) {
+		int c = (byte)input[i];
+		if(IsAlNum(c))
+			out.Cat((char)c);
+		else
+			out.Cat('_');
+	}
+	while(out.Find("__") >= 0)
+		out.Replace("__", "_");
+	while(!out.IsEmpty() && out[0] == '_')
+		out = out.Mid(1);
+	while(!out.IsEmpty() && out[out.GetCount() - 1] == '_')
+		out.TrimLast();
+	if(out.IsEmpty())
+		out = fallback;
+	if(IsDigit((byte)out[0]))
+		out = "x" + out;
+	return out;
+}
+
+String EscapeCppString(const String& s)
+{
+	String out;
+	for(int i = 0; i < s.GetCount(); i++) {
+		byte c = (byte)s[i];
+		switch(c) {
+		case '\\': out << "\\\\"; break;
+		case '"': out << "\\\""; break;
+		case '\n': out << "\\n"; break;
+		case '\r': out << "\\r"; break;
+		case '\t': out << "\\t"; break;
+		default:
+			if(c < 32)
+				out << Format("\\x%02x", (int)c);
+			else
+				out.Cat((char)c);
+			break;
+		}
+	}
+	return out;
+}
+
+String EscapeBashDoubleQuoted(const String& s)
+{
+	String out;
+	for(int i = 0; i < s.GetCount(); i++) {
+		byte c = (byte)s[i];
+		if(c == '\\' || c == '"' || c == '$' || c == '`')
+			out.Cat('\\');
+		out.Cat((char)c);
+	}
+	return out;
+}
+
+String TailText(const String& text, int max_len = 2000)
+{
+	if(text.GetCount() <= max_len)
+		return text;
+	return text.Mid(text.GetCount() - max_len);
+}
+
+struct EmbeddedExportFile : Moveable<EmbeddedExportFile> {
+	String src_path;
+	String rel_path;
+	String rel_posix;
+	String res_name;
+};
+
 }
 
 // --- CardGameDocumentHost ---
@@ -256,11 +390,11 @@ CardGameDocumentHost::CardGameDocumentHost()
 {
 	game_log_lines << "Welcome to the Game!" << "Ready to play.";
 	game_log.SetQTF("Welcome to the Game!&Ready to play.");
-	Add(table_form.SizePos());
 	overlay.owner = this;
 	overlay.NoWantFocus();
 	overlay.IgnoreMouse();
 	Add(overlay.SizePos());
+	Add(table_form.SizePos());
 	Upp::SetTimeCallback(-16, [=] { Animate(); }, this);
 }
 
@@ -408,6 +542,9 @@ void CardGameDocumentHost::MainMenu(Bar& bar)
 			if(game_running) Stop();
 			else Run();
 		});
+		b.Separator();
+		b.Add("Export standalone executable...", [=] { ExportStandaloneExecutable(); });
+		b.Separator();
 		b.Add("Debug Overlay", [=] {
 			debug_overlay = !debug_overlay;
 			overlay.Refresh();
@@ -427,6 +564,364 @@ void CardGameDocumentHost::Toolbar(Bar& bar)
 		debug_overlay = !debug_overlay;
 		overlay.Refresh();
 	}).Check(debug_overlay);
+}
+
+void CardGameDocumentHost::ExportStandaloneExecutable()
+{
+	if(path.IsEmpty() || !FileExists(path)) {
+		Exclamation("Current .gamestate file path is not available.");
+		return;
+	}
+
+	String default_name = GetFileTitle(path);
+	if(default_name.IsEmpty())
+		default_name = "GameExport";
+#ifdef PLATFORM_WIN32
+	default_name << ".exe";
+#endif
+
+	FileSel fs;
+	fs.Type("Executable", "*");
+	fs.ActiveDir(GetFileDirectory(path));
+	fs.PreSelect(default_name);
+	if(!fs.ExecuteSaveAs("Export Standalone Executable"))
+		return;
+
+	String output_exe_path = NormalizePath(fs.Get());
+	if(output_exe_path.IsEmpty())
+		return;
+
+	String final_output_path;
+	String error_text;
+	if(!ExportStandalonePackage(output_exe_path, final_output_path, error_text)) {
+		Exclamation("Standalone export failed:\n\n" + error_text);
+		return;
+	}
+
+	PromptOK("Standalone export completed.\n\nOutput:\n" + final_output_path);
+}
+
+bool CardGameDocumentHost::ExportStandalonePackage(const String& output_exe_path, String& final_output_path, String& error_text)
+{
+	final_output_path.Clear();
+	error_text.Clear();
+
+	String source_gamestate = NormalizePath(path);
+	if(source_gamestate.IsEmpty() || !FileExists(source_gamestate)) {
+		error_text = "Missing source .gamestate file: " + source_gamestate;
+		return false;
+	}
+
+	String project_dir = NormalizePath(GetFileDirectory(source_gamestate));
+	String requested_output = NormalizePath(output_exe_path);
+#ifdef PLATFORM_WIN32
+	if(ToLower(GetFileExt(requested_output)) != ".exe")
+		requested_output << ".exe";
+#endif
+	String output_dir = NormalizePath(GetFileDirectory(requested_output));
+	if(output_dir.IsEmpty())
+		output_dir = project_dir;
+	if(!RealizeDirectory(output_dir)) {
+		error_text = "Failed to create output directory:\n" + output_dir;
+		return false;
+	}
+
+	String package_name = SanitizeIdentifier(GetFileTitle(requested_output), "GameExport") + "_standalone_src";
+	String package_dir = NormalizePath(AppendFileName(output_dir, package_name));
+	String payload_dir = NormalizePath(AppendFileName(package_dir, "payload"));
+
+	if(DirectoryExists(package_dir) && !DeleteFolderDeep(package_dir)) {
+		error_text = "Failed to clean previous export directory:\n" + package_dir;
+		return false;
+	}
+	if(!RealizeDirectory(payload_dir)) {
+		error_text = "Failed to create export payload directory:\n" + payload_dir;
+		return false;
+	}
+
+	Vector<String> files;
+	CollectFilesRecursive(project_dir, files, package_dir);
+	Sort(files);
+
+	String gamestate_rel = ToPosixSeparators(RelativeToRootPath(project_dir, source_gamestate));
+	if(gamestate_rel.IsEmpty()) {
+		error_text = "Could not resolve relative path for source .gamestate.";
+		return false;
+	}
+
+	Vector<EmbeddedExportFile> embedded_files;
+	Index<String> used_res_names;
+	Index<String> seen_rel_paths;
+
+	for(int i = 0; i < files.GetCount(); i++) {
+		String src = NormalizePath(files[i]);
+		String rel = RelativeToRootPath(project_dir, src);
+		if(rel.IsEmpty())
+			continue;
+		String rel_posix = ToPosixSeparators(rel);
+		if(seen_rel_paths.Find(rel_posix) >= 0)
+			continue;
+		seen_rel_paths.Add(rel_posix);
+
+		String data = LoadFile(src);
+		if(data.IsVoid()) {
+			error_text = "Failed to read source file:\n" + src;
+			return false;
+		}
+
+		String dst = NormalizePath(AppendFileName(payload_dir, rel_posix));
+		if(!RealizeDirectory(GetFileDirectory(dst))) {
+			error_text = "Failed to create export file directory:\n" + GetFileDirectory(dst);
+			return false;
+		}
+		if(!SaveFile(dst, data)) {
+			error_text = "Failed to write export file:\n" + dst;
+			return false;
+		}
+
+		EmbeddedExportFile& ef = embedded_files.Add();
+		ef.src_path = src;
+		ef.rel_path = rel;
+		ef.rel_posix = rel_posix;
+		String id_base = "res_" + ToLower(SanitizeIdentifier(rel_posix, "file"));
+		String id = id_base;
+		for(int n = 2; used_res_names.Find(id) >= 0; n++)
+			id = id_base + "_" + AsString(n);
+		used_res_names.Add(id);
+		ef.res_name = id;
+	}
+
+	if(embedded_files.IsEmpty()) {
+		error_text = "No source files found under project directory:\n" + project_dir;
+		return false;
+	}
+
+	bool has_gamestate = false;
+	for(int i = 0; i < embedded_files.GetCount(); i++) {
+#ifdef PLATFORM_WIN32
+		if(ToLower(embedded_files[i].rel_posix) == ToLower(gamestate_rel)) {
+#else
+		if(embedded_files[i].rel_posix == gamestate_rel) {
+#endif
+			has_gamestate = true;
+			break;
+		}
+	}
+	if(!has_gamestate) {
+		error_text = "Embedded file set does not include source .gamestate:\n" + gamestate_rel;
+		return false;
+	}
+
+	String brc_path = AppendFileName(package_dir, package_name + ".brc");
+	String brc;
+	for(int i = 0; i < embedded_files.GetCount(); i++) {
+		const EmbeddedExportFile& ef = embedded_files[i];
+		brc << "BINARY(" << ef.res_name << ", \"payload/" << ef.rel_posix << "\")\n";
+	}
+	if(!SaveFile(brc_path, brc)) {
+		error_text = "Failed to write .brc file:\n" + brc_path;
+		return false;
+	}
+
+	String header_guard = "_" + package_name + "_" + package_name + "_h_";
+	String header_path = AppendFileName(package_dir, package_name + ".h");
+	String header;
+	header
+		<< "#ifndef " << header_guard << "\n"
+		<< "#define " << header_guard << "\n\n"
+		<< "#include <ScriptIDE/ScriptIDE.h>\n\n"
+		<< "#endif\n";
+	if(!SaveFile(header_path, header)) {
+		error_text = "Failed to write package header:\n" + header_path;
+		return false;
+	}
+
+	String main_cpp_path = AppendFileName(package_dir, "Main.cpp");
+	String main_cpp;
+	main_cpp
+		<< "#include \"" << package_name << ".h\"\n"
+		<< "#include \"" << package_name << ".brc\"\n\n"
+		<< "using namespace Upp;\n\n"
+		<< "struct EmbeddedFile {\n"
+		<< "\tconst char* rel;\n"
+		<< "\tbyte* data;\n"
+		<< "\tint len;\n"
+		<< "};\n\n"
+		<< "static void WriteEmbeddedFile(const EmbeddedFile& file, const String& root)\n"
+		<< "{\n"
+		<< "\tString dst = AppendFileName(root, file.rel);\n"
+		<< "\tRealizeDirectory(GetFileDirectory(dst));\n"
+		<< "\tSaveFile(dst, String((const char*)file.data, file.len));\n"
+		<< "}\n\n"
+		<< "static const EmbeddedFile kEmbeddedFiles[] = {\n";
+	for(int i = 0; i < embedded_files.GetCount(); i++) {
+		const EmbeddedExportFile& ef = embedded_files[i];
+		main_cpp << "\t{\"" << EscapeCppString(ef.rel_posix) << "\", "
+		         << ef.res_name << ", " << ef.res_name << "_length},\n";
+	}
+	main_cpp
+		<< "};\n\n"
+		<< "GUI_APP_MAIN\n"
+		<< "{\n"
+		<< "\tString base_root = AppendFileName(GetTempDirectory(), \"" << EscapeCppString(ToLower(package_name)) << "_embedded\");\n"
+		<< "\tRealizeDirectory(base_root);\n"
+		<< "\tString run_root = AppendFileName(base_root, AsString((int64)GetSysTime().Get()));\n"
+		<< "\tfor(int n = 0; DirectoryExists(run_root); n++)\n"
+		<< "\t\trun_root = AppendFileName(base_root, AsString((int64)GetSysTime().Get()) + \"_\" + AsString(n + 1));\n"
+		<< "\tif(!RealizeDirectory(run_root)) {\n"
+		<< "\t\tExclamation(\"Failed to create export temp directory.\");\n"
+		<< "\t\treturn;\n"
+		<< "\t}\n"
+		<< "\tfor(int i = 0; i < (int)(sizeof(kEmbeddedFiles) / sizeof(kEmbeddedFiles[0])); i++)\n"
+		<< "\t\tWriteEmbeddedFile(kEmbeddedFiles[i], run_root);\n"
+		<< "\tString gamestate_path = AppendFileName(run_root, \"" << EscapeCppString(gamestate_rel) << "\");\n"
+		<< "\tif(!FileExists(gamestate_path)) {\n"
+		<< "\t\tExclamation(\"Embedded gamestate file missing.\");\n"
+		<< "\t\treturn;\n"
+		<< "\t}\n"
+		<< "\tSetCurrentDirectory(GetFileDirectory(gamestate_path));\n"
+		<< "\tRunStandaloneGameWindow(gamestate_path, RunMode::Run);\n"
+		<< "}\n";
+	if(!SaveFile(main_cpp_path, main_cpp)) {
+		error_text = "Failed to write package main source:\n" + main_cpp_path;
+		return false;
+	}
+
+	String upp_path = AppendFileName(package_dir, package_name + ".upp");
+	String upp;
+	upp
+		<< "description \"Embedded standalone export generated by ScriptIDE\\377\";\n\n"
+		<< "uses\n"
+		<< "\tScriptIDE;\n\n"
+		<< "file\n"
+		<< "\t" << package_name << ".h,\n"
+		<< "\tMain.cpp,\n"
+		<< "\t" << package_name << ".brc;\n\n"
+		<< "mainconfig\n"
+		<< "\t\"\" = \"GUI GAMELAUNCHER\",\n"
+		<< "\t\"USEMALLOC\" = \"GUI USEMALLOC GAMELAUNCHER\",\n"
+		<< "\t\"X11\" = \"GUI NOGTK GAMELAUNCHER\",\n"
+		<< "\t\"X11 USEMALLOC\" = \"GUI NOGTK USEMALLOC GAMELAUNCHER\";\n";
+	if(!SaveFile(upp_path, upp)) {
+		error_text = "Failed to write package .upp:\n" + upp_path;
+		return false;
+	}
+
+	auto find_build_py = [&](String start_dir) -> String {
+		String dir = NormalizePath(start_dir);
+		if(dir.EndsWith(String(DIR_SEP, 1)))
+			dir.TrimLast();
+		for(int depth = 0; depth < 12 && !dir.IsEmpty(); depth++) {
+			String candidate = NormalizePath(AppendFileName(dir, "script/build.py"));
+			if(FileExists(candidate))
+				return candidate;
+			String parent = NormalizePath(GetFileDirectory(dir));
+			if(parent.EndsWith(String(DIR_SEP, 1)))
+				parent.TrimLast();
+			if(parent == dir)
+				break;
+			dir = parent;
+		}
+		return String();
+	};
+
+	String build_py = find_build_py(GetCurrentDirectory());
+	if(build_py.IsEmpty())
+		build_py = find_build_py(project_dir);
+	if(build_py.IsEmpty())
+		build_py = find_build_py(GetFileDirectory(GetExeFilePath()));
+	if(build_py.IsEmpty()) {
+		error_text = "Build helper not found. Expected to locate script/build.py from current/project/exe directories.";
+		return false;
+	}
+	String build_output_dir = NormalizePath(AppendFileName(package_dir, "build-out"));
+	if(!RealizeDirectory(build_output_dir)) {
+		error_text = "Failed to create build output directory:\n" + build_output_dir;
+		return false;
+	}
+
+	String helper_script_path = AppendFileName(package_dir, "build_export.sh");
+	String helper_script;
+	helper_script
+		<< "#!/usr/bin/env bash\n"
+		<< "set -euo pipefail\n"
+		<< "\"" << EscapeBashDoubleQuoted(build_py) << "\" -mc 1 -c -j8 -od \""
+		<< EscapeBashDoubleQuoted(build_output_dir) << "\" \""
+		<< EscapeBashDoubleQuoted(package_dir) << "\"\n";
+	SaveFile(helper_script_path, helper_script);
+
+	Vector<String> build_args;
+	build_args.Add("-mc");
+	build_args.Add("1");
+	build_args.Add("-c");
+	build_args.Add("-j8");
+	build_args.Add("-od");
+	build_args.Add(build_output_dir);
+	build_args.Add(package_dir);
+
+	String build_output;
+	int build_code = Sys(build_py, build_args, build_output);
+	String build_log_path = AppendFileName(package_dir, "build.log");
+	SaveFile(build_log_path, build_output);
+	if(build_code != 0) {
+		error_text
+			<< "Build failed (exit code " << build_code << ").\n\n"
+			<< "Generated package:\n" << package_dir << "\n\n"
+			<< "Helper script:\n" << helper_script_path << "\n\n"
+			<< "Build log:\n" << build_log_path << "\n\n"
+			<< "Last output:\n" << TailText(build_output, 2000);
+		return false;
+	}
+
+#ifdef PLATFORM_WIN32
+	String built_output = AppendFileName(build_output_dir, package_name + ".exe");
+	String legacy_output = AppendFileName(output_dir, package_name + ".exe");
+#else
+	String built_output = AppendFileName(build_output_dir, package_name);
+	String legacy_output = AppendFileName(output_dir, package_name);
+#endif
+	built_output = NormalizePath(built_output);
+	legacy_output = NormalizePath(legacy_output);
+	if(!FileExists(built_output)) {
+		if(FileExists(legacy_output))
+			built_output = legacy_output;
+		else if(DirectoryExists(legacy_output)) {
+			String nested = NormalizePath(AppendFileName(legacy_output, GetFileName(legacy_output)));
+			if(FileExists(nested))
+				built_output = nested;
+		}
+	}
+	if(!FileExists(built_output)) {
+		error_text
+			<< "Build completed but output binary was not found.\n"
+			<< "Expected primary path:\n" << NormalizePath(AppendFileName(build_output_dir, GetFileName(legacy_output))) << "\n\n"
+			<< "Checked legacy path:\n" << legacy_output << "\n\n"
+			<< "Build log:\n" << build_log_path;
+		return false;
+	}
+
+	if(NormalizePath(requested_output) != built_output) {
+		if(FileExists(requested_output))
+			DeleteFile(requested_output);
+		if(!FileCopy(built_output, requested_output)) {
+			error_text
+				<< "Failed to copy built binary to requested output path.\n"
+				<< "From: " << built_output << "\n"
+				<< "To: " << requested_output;
+			return false;
+		}
+#ifdef PLATFORM_POSIX
+		struct stat st;
+		if(stat(~built_output, &st) == 0)
+			chmod(~requested_output, st.st_mode & 0777);
+#endif
+		final_output_path = requested_output;
+	}
+	else {
+		final_output_path = built_output;
+	}
+
+	return true;
 }
 
 void CardGameDocumentHost::InitRuntime()
@@ -1782,6 +2277,11 @@ bool CardGameDocumentHost::DebugCallFormButtonAction(const String& button_id)
 	return true;
 }
 
+bool CardGameDocumentHost::DebugExportStandalone(const String& output_exe_path, String& final_output_path, String& error_text)
+{
+	return ExportStandalonePackage(output_exe_path, final_output_path, error_text);
+}
+
 void CardGameDocumentHost::InvokePythonCard(const String& card_id)
 {
 	if(!plugin || !game_running)
@@ -2746,6 +3246,16 @@ void CardGamePluginGUI::Init(IPluginContext& context_)
 void CardGamePluginGUI::Shutdown()
 {
 	CardGamePlugin::Shutdown();
+}
+
+void CardGamePluginGUI::ExecuteSeparateWindow(const String& path)
+{
+	OpenStandaloneGameWindow(path, RunMode::Run);
+}
+
+void CardGamePluginGUI::DebugSeparateWindow(const String& path)
+{
+	OpenStandaloneGameWindow(path, RunMode::Debug);
 }
 
 IDocumentHost* CardGamePluginGUI::GameStateHandler::CreateEditorHost()

@@ -145,20 +145,23 @@ public:
 	void OnPathManager();
 	void OnBreakpointHit(const String& file, int line);
 	void OnConsoleInput();
-
 	void OnRun();
+	void OnRunSeparateWindow();
 	void OnRunLast();
 	void OnRunSelection();
 	void OnRunCell();
 	void OnRunCellAndAdvance();
 	void OnRunToLine();
 	void OnRunFromLine();
-	void OnProfile();
 	void OnRunConfig();
-	void OnDebug();
-	void OnPause();
-	void OnDebugCell();
-	void OnDebugSelection();
+	void OnExportStandalone();
+
+		void OnDebug();
+		void OnDebugSeparateWindow();
+		void OnDebugCell();
+		void OnProfile();
+		void OnPause();
+		void OnDebugSelection();
 	void OnDebugToLine();
 	void OnStop();
 	void OnStepOver();
@@ -171,6 +174,7 @@ public:
 	void UpdateStatusBar();
 	void UpdateVariableExplorer();
 	void RefreshRunStateUI();
+	void RefreshRunTargetsFromSettings();
 	void ShowDebugState(const Vector<PyVM::StackFrame>& stack, const VectorMap<PyValue, PyValue>& globals, bool activate_panes = true);
 	void ClearDebugState();
 	void UpdateRecentFilesMenu(Bar& bar);
@@ -186,6 +190,8 @@ public:
 	String DumpActivePythonStack() const;
 	String DumpConsoleText() const;
 	bool InvokeActiveSceneButton(const String& button_id);
+	bool PressActiveFormButton(const String& button_id);
+	bool CallActiveFormButtonAction(const String& button_id);
 	bool InvokeActiveSceneCard(const String& card_id);
 	bool InvokeActiveSceneFirstHandCards(int count);
 	bool HasActiveRunners() const;

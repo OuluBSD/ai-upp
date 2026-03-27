@@ -16,9 +16,9 @@ This file summarizes how `Core.upp` is organized and how the main subsystems ins
 - values and formatting: `TimeDate.*`, `Value*`, `Format*`, `Convert*`, `Color*`, `Gtypes*`
 - language and i18n: `i18n.h`, `Lang.*`, `LangInfo.cpp`, translation data
 - parsing and serialization: `Parser.h`, `XML.*`, `Xmlize*`, `JSON.*`, `Visitor.*`, `Topic.*`
-- hashing and compression: `Hash.h`, `MD5.cpp`, `SHA1.cpp`, `SHA256.cpp`, `xxhash`, `lz4`, `z`
+- hashing, caching, and compression: `Hash.h`, `MD5.cpp`, `SHA1.cpp`, `SHA256.cpp`, `xxhash`, `ValueCache.*`, `lz4`, `z`
 - concurrency helper layer: `CoWork.*`
-- web/system helpers: `Inet.*`, `Socket.cpp`, `Http.cpp`, `WebSocket.cpp`, `Daemon.*`, runtime linking, Win32 support
+- web/system helpers: `Inet.*`, `Socket.cpp`, `Http.cpp`, `WebSocket.cpp`, `Daemon.*`, `dli.*`, `Win32Util.*`, `Uwp.h`
 
 ## Central domains
 ### Platform and build configuration

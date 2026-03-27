@@ -29,3 +29,9 @@ Core overview documents:
 - [22-Topics-Help.md](22-Topics-Help.md): packaged Topic++ help records, `topic://` links, and runtime topic lookup.
 - [23-CoWork.md](23-CoWork.md): the global worker pool, scheduling model, and saturation behavior.
 - [24-UUID.md](24-UUID.md): random UUID values, formatting, parsing, and `Value`/JSON/XML integration.
+- [25-Caching.md](25-Caching.md): `ValueCache`, `MakeValue`, and the `LRUCache<Value>`-based memoization layer.
+- [26-Hashing.md](26-Hashing.md): structural hashing, digest helpers, and the bundled xxHash wrappers.
+- [27-Networking.md](27-Networking.md): TCP sockets, HTTP, WebSocket, and the current transport boundary.
+- [28-Daemon.md](28-Daemon.md): the service host loop and the fork-specific serial/TCP daemon helpers.
+- [29-Runtime-Linking.md](29-Runtime-Linking.md): the macro-driven runtime library binding layer in `dli.*`.
+- [30-Windows-Specific.md](30-Windows-Specific.md): Win32 utility helpers, UWP stubs, and retained legacy Windows branches.

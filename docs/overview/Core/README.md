@@ -17,3 +17,15 @@ Core overview documents:
 - [10-Recycling.md](10-Recycling.md): recycler utilities and pooled object lifetime.
 - [11-Callbacks-and-Events.md](11-Callbacks-and-Events.md): `Function`, `Event`, `Gate`, and callback compatibility layers.
 - [12-Time.md](12-Time.md): civil time, UTC helpers, parsing/formatting, and elapsed-time utilities.
+- [13-Value.md](13-Value.md): the dynamic value system, `ValueArray`, `ValueMap`, and type registration.
+- [14-Formatting-and-Conversion.md](14-Formatting-and-Conversion.md): formatter registry, scanners, and `Convert` classes.
+- [15-Color.md](15-Color.md): `Color`, `RGBA`, symbolic colors, and color-space helpers.
+- [16-Geometry-Primitives.md](16-Geometry-Primitives.md): `Point`, `Size`, `Rect`, and the foundational 2D geometry helpers.
+- [17-Localization.md](17-Localization.md): translation lookup, language IDs, and `LanguageInfo`.
+- [18-Parsers-and-Serialization.md](18-Parsers-and-Serialization.md): `CParser`, XML, JSON, `Xmlize`, and `Jsonize`.
+- [19-Visitor.md](19-Visitor.md): the mode-driven visitor layer used by this repository's extended serialization/runtime flows.
+- [20-Pointer-Safety.md](20-Pointer-Safety.md): `Pte`, `Ptr`, and the opt-in tracked-pointer mechanism.
+- [21-Compression.md](21-Compression.md): zlib/gzip helpers, CRC32, and the separate LZ4 fast path.
+- [22-Topics-Help.md](22-Topics-Help.md): packaged Topic++ help records, `topic://` links, and runtime topic lookup.
+- [23-CoWork.md](23-CoWork.md): the global worker pool, scheduling model, and saturation behavior.
+- [24-UUID.md](24-UUID.md): random UUID values, formatting, parsing, and `Value`/JSON/XML integration.

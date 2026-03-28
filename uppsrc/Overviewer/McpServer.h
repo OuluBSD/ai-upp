@@ -39,6 +39,8 @@ private:
 	Value FindEntriesMissingNumeric(const Value& args);
 	Value FindEntriesByTag(const Value& args);
 	Value GetRegistryTags(const Value& args);
+	Value GetRecoveryInfo(const Value& args);
+	Value WriteBackupNow(const Value& args);
 
 	// Helpers
 	void DoScan();

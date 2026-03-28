@@ -1,0 +1,14 @@
+description "Overviewer - Unified Project Overview Tool\377";
+
+uses
+	Core,
+	CtrlLib,
+	Docking;
+
+file
+	Overviewer.h,
+	Project.cpp,
+	Main.cpp;
+
+mainconfig
+	"" = "GUI";

@@ -15,9 +15,25 @@ void PrintHelp() {
 	       << "  Overviewer --remove-tag <project> <path> <category> <tag>\n"
 	       << "  Overviewer --add-list-item <project> <path> <listtype> <text>\n"
 	       << "  Overviewer --set-list-item-done <project> <path> <listtype> <index> <0|1>\n"
+	       << "  Overviewer --batch-set-priority <project> <path> <value> [--recursive]\n"
+	       << "  Overviewer --batch-add-flag <project> <path> <flag> [--recursive]\n"
+	       << "  Overviewer --batch-add-tag <project> <path> <category> <tag> [--recursive]\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
+}
+
+static Vector<String> GetAffectedPaths(const OverviewerProject& project, const String& start_path, bool recursive) {
+	Vector<String> res;
+	res.Add(start_path);
+	if(recursive) {
+		for(int i = 0; i < project.metadata.GetCount(); i++) {
+			String p = project.metadata.GetKey(i);
+			if(p.StartsWith(start_path + "/") || p.StartsWith(start_path + "\\"))
+				res.Add(p);
+		}
+	}
+	return res;
 }
 
 int CliMain(const Vector<String>& args) {
@@ -141,28 +157,31 @@ int CliMain(const Vector<String>& args) {
 			return 1;
 		}
 		
+		FileMetadata effective = p.GetEffectiveMetadata(f_path);
 		const FileMetadata* m = p.metadata.FindPtr(f_path);
-		if(m) {
+		if(m || effective.priority != 0) {
 			Cout() << "Path: " << f_path << "\n";
-			Cout() << "Flags: " << (int)m->flags << "\n";
-			Cout() << "Priority: " << m->priority << "\n";
-			Cout() << "Quality: " << m->quality << "\n";
-			Cout() << "Completion: " << m->completion << "\n";
-			Cout() << "Note: " << m->notes << "\n";
+			Cout() << "Flags: " << (int)(m ? m->flags : 0) << "\n";
+			Cout() << "Priority: " << (m ? m->priority : 0) << " (effective: " << effective.priority << ")\n";
+			Cout() << "Quality: " << (m ? m->quality : 0) << " (effective: " << effective.quality << ")\n";
+			Cout() << "Completion: " << (m ? m->completion : 0) << " (effective: " << effective.completion << ")\n";
+			Cout() << "Note: " << (m ? m->notes : "") << "\n";
 			auto print_tags = [](const char* title, const Vector<String>& tags) {
 				Cout() << title << ": " << Join(tags, ", ") << "\n";
 			};
-			print_tags("Current Tags", m->current_tags);
-			print_tags("Reason Tags", m->reason_tags);
-			print_tags("Gap Tags", m->gap_tags);
-			auto print_list = [](const char* title, const Vector<ListItem>& items) {
-				Cout() << title << ":\n";
-				for(int i = 0; i < items.GetCount(); i++)
-					Cout() << "  [" << i << "] " << (items[i].done ? "[X] " : "[ ] ") << items[i].text << "\n";
-			};
-			print_list("Problems", m->problems);
-			print_list("Tasks", m->tasks);
-			print_list("Leads", m->leads);
+			if(m) {
+				print_tags("Current Tags", m->current_tags);
+				print_tags("Reason Tags", m->reason_tags);
+				print_tags("Gap Tags", m->gap_tags);
+				auto print_list = [](const char* title, const Vector<ListItem>& items) {
+					Cout() << title << ":\n";
+					for(int i = 0; i < items.GetCount(); i++)
+						Cout() << "  [" << i << "] " << (items[i].done ? "[X] " : "[ ] ") << items[i].text << "\n";
+				};
+				print_list("Problems", m->problems);
+				print_list("Tasks", m->tasks);
+				print_list("Leads", m->leads);
+			}
 			return 0;
 		} else {
 			Cerr() << "No metadata for path: " << f_path << "\n";
@@ -247,6 +266,61 @@ int CliMain(const Vector<String>& args) {
 		else if(ltype == "leads") target = &m.leads;
 		if(!target || idx < 0 || idx >= target->GetCount()) return 1;
 		(*target)[idx].done = done;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--batch-set-priority" && args.GetCount() >= 4) {
+		String p_path = args[1];
+		String f_path = args[2];
+		int val = ScanInt(args[3]);
+		bool rec = args.GetCount() >= 5 && args[4] == "--recursive";
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
+		for(const String& path : paths) p.metadata.GetAdd(path).priority = val;
+		Cout() << "Affected " << paths.GetCount() << " entries.\n";
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--batch-add-flag" && args.GetCount() >= 4) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String flag_name = args[3];
+		bool rec = args.GetCount() >= 5 && args[4] == "--recursive";
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		uint32 bit = 0;
+		if(flag_name == "TEMPORARY") bit = FLAG_TEMPORARY;
+		else if(flag_name == "WRONG_LOCATION") bit = FLAG_WRONG_LOCATION;
+		else if(flag_name == "WRONG_NAME") bit = FLAG_WRONG_NAME;
+		else if(flag_name == "TOO_LARGE") bit = FLAG_TOO_LARGE;
+		else if(flag_name == "NEEDS_REVIEW") bit = FLAG_NEEDS_REVIEW;
+		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
+		else return 1;
+		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
+		for(const String& path : paths) p.metadata.GetAdd(path).flags |= bit;
+		Cout() << "Affected " << paths.GetCount() << " entries.\n";
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--batch-add-tag" && args.GetCount() >= 5) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String cat = args[3];
+		String tag = args[4];
+		bool rec = args.GetCount() >= 6 && args[5] == "--recursive";
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
+		for(const String& path : paths) {
+			FileMetadata& m = p.metadata.GetAdd(path);
+			Vector<String>* v = nullptr;
+			if(cat == "current") v = &m.current_tags;
+			else if(cat == "reason") v = &m.reason_tags;
+			else if(cat == "gap") v = &m.gap_tags;
+			if(v && FindIndex(*v, tag) < 0) v->Add(tag);
+		}
+		Cout() << "Affected " << paths.GetCount() << " entries.\n";
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 

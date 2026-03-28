@@ -1,33 +1,189 @@
 #include "Overviewer.h"
 
+FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
+	FileMetadata res;
+	const FileMetadata* m = metadata.FindPtr(rel_path);
+	if(m) {
+		res.flags = m->flags;
+		res.quality = m->quality;
+		res.completion = m->completion;
+		res.priority = m->priority;
+		res.notes = m->notes;
+		res.current_tags <<= m->current_tags;
+		res.reason_tags <<= m->reason_tags;
+		res.gap_tags <<= m->gap_tags;
+		// Problems/Tasks/Leads lists not inherited for now to keep it simple
+	}
+
+	// Inheritance for numeric values
+	auto inherit = [&](int& val, int (FileMetadata::*field)) {
+		if(val != 0) return;
+		String p = rel_path;
+		while(!p.IsEmpty()) {
+			p = GetFileDirectory(p);
+			if(p.EndsWith("/") || p.EndsWith("\\")) p.Trim(p.GetCount()-1);
+			if(p.IsEmpty()) break;
+			const FileMetadata* pm = metadata.FindPtr(p);
+			if(pm && pm->*field != 0) {
+				val = pm->*field;
+				break;
+			}
+		}
+	};
+
+	inherit(res.quality, &FileMetadata::quality);
+	inherit(res.completion, &FileMetadata::completion);
+	inherit(res.priority, &FileMetadata::priority);
+
+	return res;
+}
+
+BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
+	Title("Batch Edit");
+	Sizeable().Zoomable();
+	SetRect(0, 0, 600, 500);
+
+	Add(list.LeftPos(10, 200).VSizePos(10, 70));
+	list.AddColumn("Path");
+	list.MultiSelect();
+
+	for(int i = 0; i < project.metadata.GetCount(); i++)
+		list.Add(project.metadata.GetKey(i));
+	
+	if(!initial_path.IsEmpty()) {
+		for(int i = 0; i < list.GetCount(); i++) {
+			if((String)list.Get(i, 0) == initial_path) {
+				list.SetCursor(i);
+				break;
+			}
+		}
+	}
+
+	Add(recursive.SetLabel("Include subdirectories (recursive)").LeftPos(10, 250).BottomPos(40, 20));
+
+	int right_x = 220;
+	Add(apply_flags.SetLabel("Modify Flags").LeftPos(right_x, 150).TopPos(10, 20));
+	Add(op_flags.LeftPos(right_x + 160, 100).TopPos(10, 20));
+	op_flags.Add("Add").Add("Remove");
+	op_flags.SetIndex(0);
+
+	Add(f_temp.SetLabel("TEMPORARY").LeftPos(right_x + 10, 150).TopPos(35, 20));
+	Add(f_loc.SetLabel("WRONG_LOCATION").LeftPos(right_x + 10, 150).TopPos(55, 20));
+	Add(f_name.SetLabel("WRONG_NAME").LeftPos(right_x + 10, 150).TopPos(75, 20));
+	Add(f_large.SetLabel("TOO_LARGE").LeftPos(right_x + 10, 150).TopPos(95, 20));
+	Add(f_needs.SetLabel("NEEDS_REVIEW").LeftPos(right_x + 10, 150).TopPos(115, 20));
+	Add(f_content.SetLabel("CONTENT_NEEDS_REVIEW").LeftPos(right_x + 10, 150).TopPos(135, 20));
+
+	Add(apply_numeric.SetLabel("Modify Numeric").LeftPos(right_x, 150).TopPos(165, 20));
+	Add(en_q.SetLabel("Q").LeftPos(right_x + 10, 30).TopPos(190, 20));
+	Add(quality.LeftPos(right_x + 45, 60).TopPos(190, 20));
+	Add(en_c.SetLabel("C").LeftPos(right_x + 115, 30).TopPos(190, 20));
+	Add(completion.LeftPos(right_x + 150, 60).TopPos(190, 20));
+	Add(en_p.SetLabel("P").LeftPos(right_x + 220, 30).TopPos(190, 20));
+	Add(priority.LeftPos(right_x + 255, 60).TopPos(190, 20));
+	for(int i = 0; i <= 5; i++) { quality.Add(i); completion.Add(i); priority.Add(i); }
+	quality.SetIndex(0); completion.SetIndex(0); priority.SetIndex(0);
+
+	Add(apply_tags.SetLabel("Modify Tags").LeftPos(right_x, 150).TopPos(220, 20));
+	Add(op_tags.LeftPos(right_x + 160, 100).TopPos(220, 20));
+	op_tags.Add("Add").Add("Remove");
+	op_tags.SetIndex(0);
+	Add(en_tc.SetLabel("Current").LeftPos(right_x + 10, 80).TopPos(245, 20));
+	Add(tag_current.LeftPos(right_x + 100, 200).TopPos(245, 20));
+	Add(en_tr.SetLabel("Reason").LeftPos(right_x + 10, 80).TopPos(270, 20));
+	Add(tag_reason.LeftPos(right_x + 100, 200).TopPos(270, 20));
+	Add(en_tg.SetLabel("Gap").LeftPos(right_x + 10, 80).TopPos(295, 20));
+	Add(tag_gap.LeftPos(right_x + 100, 200).TopPos(295, 20));
+
+	Add(ok.SetLabel("Apply").RightPos(110, 80).BottomPos(10, 30));
+	Add(cancel.SetLabel("Cancel").RightPos(10, 80).BottomPos(10, 30));
+	ok.WhenAction = THISBACK(OnApply);
+	cancel.WhenAction = [this]{ Reject(); };
+}
+
+void BatchEditDialog::OnApply() {
+	Vector<String> targets;
+	for(int i = 0; i < list.GetCount(); i++)
+		if(list.IsSelected(i)) targets.Add(list.Get(i, 0));
+	
+	if(targets.IsEmpty()) { Exclamation("No targets selected."); return; }
+
+	auto apply_to = [&](const String& path) {
+		FileMetadata& m = project.metadata.GetAdd(path);
+		if(apply_flags) {
+			uint32 bits = 0;
+			if(f_temp) bits |= FLAG_TEMPORARY;
+			if(f_loc) bits |= FLAG_WRONG_LOCATION;
+			if(f_name) bits |= FLAG_WRONG_NAME;
+			if(f_large) bits |= FLAG_TOO_LARGE;
+			if(f_needs) bits |= FLAG_NEEDS_REVIEW;
+			if(f_content) bits |= FLAG_CONTENT_NEEDS_REVIEW;
+			if(op_flags.GetIndex() == 0) m.flags |= bits;
+			else m.flags &= ~bits;
+		}
+		if(apply_numeric) {
+			if(en_q) m.quality = quality.GetIndex();
+			if(en_c) m.completion = completion.GetIndex();
+			if(en_p) m.priority = priority.GetIndex();
+		}
+		if(apply_tags) {
+			auto mod_tag = [&](const String& val, Vector<String>& v) {
+				if(val.IsEmpty()) return;
+				int idx = FindIndex(v, val);
+				if(op_tags.GetIndex() == 0) { if(idx < 0) v.Add(val); }
+				else { if(idx >= 0) v.Remove(idx); }
+			};
+			if(en_tc) mod_tag(~tag_current, m.current_tags);
+			if(en_tr) mod_tag(~tag_reason, m.reason_tags);
+			if(en_tg) mod_tag(~tag_gap, m.gap_tags);
+		}
+	};
+
+	for(const String& t : targets) {
+		apply_to(t);
+		if(recursive) {
+			for(int i = 0; i < project.metadata.GetCount(); i++) {
+				String p = project.metadata.GetKey(i);
+				if(p.StartsWith(t + "/") || p.StartsWith(t + "\\"))
+					apply_to(p);
+			}
+		}
+	}
+	Break(IDOK);
+}
+
 void OverviewerWindow::TagPanel::Refresh() {
 	list.Clear();
-	for(const String& s : assigned)
-		list.Add(s);
+	if(assigned) {
+		for(const String& s : *assigned)
+			list.Add(s);
+	}
 }
 
 void OverviewerWindow::TagPanel::OnAdd() {
+	if(!assigned || !global_known) return;
 	String name;
 	if(!EditText(name, "Add Tag", "Tag name:")) return;
 	name = TrimBoth(name);
 	if(name.IsEmpty()) return;
 	
-	if(FindIndex(assigned, name) < 0) {
-		assigned.Add(name);
-		if(FindIndex(global_known, name) < 0)
-			global_known.Add(name);
+	if(FindIndex(*assigned, name) < 0) {
+		assigned->Add(name);
+		if(FindIndex(*global_known, name) < 0)
+			global_known->Add(name);
 		Refresh();
 		when_change();
 	}
 }
 
 void OverviewerWindow::TagPanel::OnRemove() {
+	if(!assigned) return;
 	int id = list.GetCursor();
 	if(id < 0) return;
 	String name = list.Get(id, 0);
-	int idx = FindIndex(assigned, name);
+	int idx = FindIndex(*assigned, name);
 	if(idx >= 0) {
-		assigned.Remove(idx);
+		assigned->Remove(idx);
 		Refresh();
 		when_change();
 	}
@@ -35,25 +191,29 @@ void OverviewerWindow::TagPanel::OnRemove() {
 
 void OverviewerWindow::ListPanel::Refresh() {
 	list.Clear();
-	for(const ListItem& it : items)
-		list.Add(it.done ? "X" : "", it.text, it.date, it.commit);
+	if(items) {
+		for(const ListItem& it : *items)
+			list.Add(it.done ? "X" : "", it.text, it.date, it.commit);
+	}
 }
 
 void OverviewerWindow::ListPanel::OnAdd() {
+	if(!items) return;
 	String text;
 	if(!EditText(text, "Add Item", "Text:")) return;
 	text = TrimBoth(text);
 	if(text.IsEmpty()) return;
-	ListItem& it = items.Add();
+	ListItem& it = items->Add();
 	it.text = text;
 	Refresh();
 	when_change();
 }
 
 void OverviewerWindow::ListPanel::OnEdit() {
+	if(!items) return;
 	int id = list.GetCursor();
 	if(id < 0) return;
-	ListItem& it = items[id];
+	ListItem& it = (*items)[id];
 	if(!EditText(it.text, "Edit Item", "Text:")) return;
 	it.text = TrimBoth(it.text);
 	Refresh();
@@ -61,28 +221,30 @@ void OverviewerWindow::ListPanel::OnEdit() {
 }
 
 void OverviewerWindow::ListPanel::OnRemove() {
+	if(!items) return;
 	int id = list.GetCursor();
 	if(id < 0) return;
-	items.Remove(id);
+	items->Remove(id);
 	Refresh();
 	when_change();
 }
 
 void OverviewerWindow::ListPanel::OnToggleDone() {
+	if(!items) return;
 	int id = list.GetCursor();
 	if(id < 0) return;
-	items[id].done = !items[id].done;
+	(*items)[id].done = !(*items)[id].done;
 	Refresh();
 	when_change();
 }
 
 OverviewerWindow::OverviewerWindow() 
-	: current_tags_pane(dummy_metadata.current_tags, project.known_current_tags)
-	, reason_tags_pane(dummy_metadata.reason_tags, project.known_reason_tags)
-	, gap_tags_pane(dummy_metadata.gap_tags, project.known_gap_tags)
-	, problems_pane(dummy_metadata.problems)
-	, tasks_pane(dummy_metadata.tasks)
-	, leads_pane(dummy_metadata.leads)
+	: current_tags_pane(&dummy_metadata.current_tags, &project.known_current_tags)
+	, reason_tags_pane(&dummy_metadata.reason_tags, &project.known_reason_tags)
+	, gap_tags_pane(&dummy_metadata.gap_tags, &project.known_gap_tags)
+	, problems_pane(&dummy_metadata.problems)
+	, tasks_pane(&dummy_metadata.tasks)
+	, leads_pane(&dummy_metadata.leads)
 {
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -102,7 +264,6 @@ OverviewerWindow::OverviewerWindow()
 		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
 		p.when_change = THISBACK(OnMetadataChange);
-		// Note: Button layout is simple for now
 		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
 	};
@@ -196,15 +357,15 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_numeric);
 	DockBottom(*dock_info);
 	
-	DockBottom(*dock_notes, *dock_tree);
+	DockBottom(*dock_notes);
 	
-	DockBottom(*dock_current_tags, *dock_flags);
-	DockBottom(*dock_reason_tags, *dock_current_tags);
-	DockBottom(*dock_gap_tags, *dock_reason_tags);
+	DockBottom(*dock_current_tags);
+	DockBottom(*dock_reason_tags);
+	DockBottom(*dock_gap_tags);
 	
 	DockRight(*dock_problems);
-	DockBottom(*dock_tasks, *dock_problems);
-	DockBottom(*dock_leads, *dock_tasks);
+	DockBottom(*dock_tasks);
+	DockBottom(*dock_leads);
 }
 
 void OverviewerWindow::SyncTitle() {
@@ -243,8 +404,13 @@ void OverviewerWindow::OpenFile(const String& path) {
 	try {
 		OverviewerProject p;
 		LoadFromJson(p, content);
-		project = pick(p);
 		project.path = path;
+		project.working_dir = p.working_dir;
+		project.version = p.version;
+		project.metadata <<= p.metadata;
+		project.known_current_tags <<= p.known_current_tags;
+		project.known_reason_tags <<= p.known_reason_tags;
+		project.known_gap_tags <<= p.known_gap_tags;
 		RefreshTree();
 		ClearDirty();
 	} catch (const Exc& e) {
@@ -296,21 +462,26 @@ void OverviewerWindow::Close() {
 	}
 }
 
-static void ScanDir(TreeCtrl& tree, int parent, const String& dir, const String& base, const OverviewerProject& project, int filter_mode) {
+static void ScanDir(TreeCtrl& tree, int parent, const String& dir, const String& base, const OverviewerProject& project, const OverviewerWindow::FilterConfig& filter) {
 	for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
 		String rel = ff.GetName();
 		if(!base.IsEmpty()) rel = AppendFileName(base, rel);
 		
 		bool visible = true;
-		if(filter_mode > 0) {
-			const FileMetadata* m = project.metadata.FindPtr(rel);
-			if(filter_mode == 1) visible = (m && m->flags != 0);
-			else if(filter_mode == 2) visible = (m && m->priority == 5);
+		if(filter.mode == 1) {
+			FileMetadata m = project.GetEffectiveMetadata(rel);
+			if(filter.flags != 0 && (m.flags & filter.flags) == 0) visible = false;
+			if(filter.priority_min > 0 && m.priority < filter.priority_min) visible = false;
+			if(filter.missing_priority && m.priority != 0) visible = false;
+			if(filter.missing_completion && m.completion != 0) visible = false;
+			if(!filter.tag_current.IsEmpty() && FindIndex(m.current_tags, filter.tag_current) < 0) visible = false;
+			if(!filter.tag_reason.IsEmpty() && FindIndex(m.reason_tags, filter.tag_reason) < 0) visible = false;
+			if(!filter.tag_gap.IsEmpty() && FindIndex(m.gap_tags, filter.tag_gap) < 0) visible = false;
 		}
 		
 		if(ff.IsFolder()) {
 			int node = tree.Add(parent, CtrlImg::Dir(), rel, ff.GetName());
-			ScanDir(tree, node, ff.GetPath(), rel, project, filter_mode);
+			ScanDir(tree, node, ff.GetPath(), rel, project, filter);
 		} else if(visible) {
 			tree.Add(parent, CtrlImg::File(), rel, ff.GetName());
 		}
@@ -326,7 +497,7 @@ void OverviewerWindow::RefreshTree() {
 	if(root_dir.IsEmpty()) return;
 	
 	int root = tree.Add(0, CtrlImg::Dir(), ".", root_dir);
-	ScanDir(tree, root, root_dir, "", project, filter_mode);
+	ScanDir(tree, root, root_dir, "", project, filter);
 	tree.Open(root);
 }
 
@@ -342,7 +513,7 @@ void OverviewerWindow::OnTreeSelection() {
 }
 
 void OverviewerWindow::UpdatePanels() {
-	// Re-bind panes to selected metadata
+	FileMetadata effective = project.GetEffectiveMetadata(current_selection);
 	FileMetadata* m = current_selection.IsEmpty() || current_selection == "." ? nullptr : &project.metadata.GetAdd(current_selection);
 	
 	if(m) {
@@ -352,32 +523,29 @@ void OverviewerWindow::UpdatePanels() {
 		too_large = !!(m->flags & FLAG_TOO_LARGE);
 		needs_review = !!(m->flags & FLAG_NEEDS_REVIEW);
 		content_needs_review = !!(m->flags & FLAG_CONTENT_NEEDS_REVIEW);
-		quality.SetIndex(m->quality);
-		completion.SetIndex(m->completion);
-		priority.SetIndex(m->priority);
+		
+		quality.SetIndex(effective.quality);
+		completion.SetIndex(effective.completion);
+		priority.SetIndex(effective.priority);
 		
 		notes_editor.SetData(m->notes);
-		
-		current_tags_pane.assigned = m->current_tags;
-		reason_tags_pane.assigned = m->reason_tags;
-		gap_tags_pane.assigned = m->gap_tags;
-		
-		problems_pane.items = m->problems;
-		tasks_pane.items = m->tasks;
-		leads_pane.items = m->leads;
+		current_tags_pane.assigned = &m->current_tags;
+		reason_tags_pane.assigned = &m->reason_tags;
+		gap_tags_pane.assigned = &m->gap_tags;
+		problems_pane.items = &m->problems;
+		tasks_pane.items = &m->tasks;
+		leads_pane.items = &m->leads;
 	} else {
 		temporary = 0; wrong_location = 0; wrong_name = 0;
 		too_large = 0; needs_review = 0; content_needs_review = 0;
 		quality.SetIndex(0); completion.SetIndex(0); priority.SetIndex(0);
 		notes_editor.SetData("");
-		
-		current_tags_pane.assigned = dummy_metadata.current_tags;
-		reason_tags_pane.assigned = dummy_metadata.reason_tags;
-		gap_tags_pane.assigned = dummy_metadata.gap_tags;
-		
-		problems_pane.items = dummy_metadata.problems;
-		tasks_pane.items = dummy_metadata.tasks;
-		leads_pane.items = dummy_metadata.leads;
+		current_tags_pane.assigned = &dummy_metadata.current_tags;
+		reason_tags_pane.assigned = &dummy_metadata.reason_tags;
+		gap_tags_pane.assigned = &dummy_metadata.gap_tags;
+		problems_pane.items = &dummy_metadata.problems;
+		tasks_pane.items = &dummy_metadata.tasks;
+		leads_pane.items = &dummy_metadata.leads;
 	}
 	
 	current_tags_pane.Refresh();
@@ -403,7 +571,6 @@ void OverviewerWindow::UpdatePanels() {
 
 void OverviewerWindow::OnMetadataChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
-	
 	FileMetadata& m = project.metadata.GetAdd(current_selection);
 	m.flags = 0;
 	if(temporary) m.flags |= FLAG_TEMPORARY;
@@ -412,11 +579,9 @@ void OverviewerWindow::OnMetadataChange() {
 	if(too_large) m.flags |= FLAG_TOO_LARGE;
 	if(needs_review) m.flags |= FLAG_NEEDS_REVIEW;
 	if(content_needs_review) m.flags |= FLAG_CONTENT_NEEDS_REVIEW;
-	
 	m.quality = quality.GetIndex();
 	m.completion = completion.GetIndex();
 	m.priority = priority.GetIndex();
-	
 	MarkDirty();
 }
 
@@ -424,10 +589,12 @@ void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
 	FileMetadata& m = project.metadata.GetAdd(current_selection);
 	String n = notes_editor.GetData();
-	if(m.notes != n) {
-		m.notes = n;
-		MarkDirty();
-	}
+	if(m.notes != n) { m.notes = n; MarkDirty(); }
+}
+
+void OverviewerWindow::OnBatchEdit() {
+	BatchEditDialog dlg(project, current_selection);
+	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); }
 }
 
 void OverviewerWindow::MainMenu(Bar& bar) {
@@ -447,15 +614,21 @@ void OverviewerWindow::FileMenu(Bar& bar) {
 }
 
 void OverviewerWindow::EditMenu(Bar& bar) {
+	bar.Add("Batch Edit...", THISBACK(OnBatchEdit));
 	bar.Add("Mark Dirty (debug)", THISBACK(MarkDirty));
 }
 
 void OverviewerWindow::ViewMenu(Bar& bar) {
-	bar.Add("Show All", [=] { filter_mode = 0; RefreshTree(); }).Check(filter_mode == 0);
-	bar.Add("Show with Any Flag", [=] { filter_mode = 1; RefreshTree(); }).Check(filter_mode == 1);
-	bar.Add("Show with Priority 5", [=] { filter_mode = 2; RefreshTree(); }).Check(filter_mode == 2);
+	bar.Add("Show All", [=] { filter.mode = 0; RefreshTree(); }).Check(filter.mode == 0);
+	bar.Add("Advanced Filter", [=] {
+		// Simple prompt for now
+		filter.mode = 1;
+		String tags;
+		if(EditText(tags, "Filter Tags", "Current tag:")) filter.tag_current = tags;
+		RefreshTree();
+	}).Check(filter.mode == 1);
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 3"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 4"); });
 }

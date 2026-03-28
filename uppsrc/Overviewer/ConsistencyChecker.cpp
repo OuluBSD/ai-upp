@@ -2,6 +2,8 @@
 
 ProjectDashboard OverviewerProject::GetDashboard() const {
 	ProjectDashboard db;
+	Time now = GetSysTime();
+	
 	for(int i = 0; i < metadata.GetCount(); i++) {
 		const String& path = metadata.GetKey(i);
 		const FileMetadata& m = metadata[i];
@@ -23,8 +25,26 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		for(const String& t : m.reason_tags) db.top_reason_tags.GetAdd(t, 0)++;
 		for(const String& t : m.gap_tags) db.top_gap_tags.GetAdd(t, 0)++;
 		for(const String& t : m.current_tags) db.top_current_tags.GetAdd(t, 0)++;
+		
+		// Stale check: find last history event for this path
+		bool found = false;
+		for(int j = history.GetCount() - 1; j >= 0; j--) {
+			if(history[j].path == path) {
+				if(now - history[j].time > 30 * 24 * 3600) db.stale_entries++;
+				found = true;
+				break;
+			}
+		}
+		if(!found && history.GetCount() > 0) db.stale_entries++;
 	}
 	
+	db.recent_changes = history.GetCount();
+	Index<String> recent_paths;
+	for(int i = history.GetCount() - 1; i >= 0 && i >= history.GetCount() - 100; i--) {
+		if(!history[i].path.IsEmpty()) recent_paths.FindAdd(history[i].path);
+	}
+	for(const String& p : recent_paths) db.recently_modified.Add(p);
+
 	for(int i = 0; i < suggestions.GetCount(); i++) {
 		const EntrySuggestions& s = suggestions[i];
 		int pending = 0;
@@ -44,6 +64,7 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 
 void OverviewerProject::RunConsistencyCheck() {
 	review_queue.Clear();
+	Time now = GetSysTime();
 	
 	auto add_review = [&](const String& path, const String& type, const String& msg, int sev, const String& src) {
 		String id = path + ":" + msg;
@@ -90,6 +111,24 @@ void OverviewerProject::RunConsistencyCheck() {
 		
 		if(m.flags & FLAG_NEEDS_REVIEW)
 			add_review(path, "Flag", "Manual review requested via flag.", 1, "flag");
+
+		// History-based checks
+		int path_events = 0;
+		Time last_touch;
+		for(int j = history.GetCount() - 1; j >= 0; j--) {
+			if(history[j].path == path) {
+				if(path_events == 0) last_touch = history[j].time;
+				path_events++;
+			}
+		}
+		
+		if(path_events > 0 && (now - last_touch > 30 * 24 * 3600) && (!m.problems.IsEmpty() || !m.tasks.IsEmpty())) {
+			add_review(path, "Temporal", "Entry is stale (untouched for 30d) but has active items.", 0, "checker");
+		}
+		
+		if(path_events > 10 && m.completion == 5) {
+			add_review(path, "Temporal", "Entry heavily modified recently but marked as complete.", 0, "checker");
+		}
 	}
 
 	// Suggestions as review items

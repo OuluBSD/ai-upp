@@ -72,6 +72,21 @@ struct ReviewItem : Moveable<ReviewItem> {
 	}
 };
 
+struct HistoryEvent : Moveable<HistoryEvent> {
+	Time time;
+	String path;
+	String type;
+	String description;
+	String old_value;
+	String new_value;
+	String source;
+
+	void Jsonize(JsonIO& jio) {
+		jio("time", time)("path", path)("type", type)("description", description)
+		   ("old_value", old_value)("new_value", new_value)("source", source);
+	}
+};
+
 struct ProjectDashboard {
 	int total_files = 0;
 	int total_dirs = 0;
@@ -88,11 +103,16 @@ struct ProjectDashboard {
 	VectorMap<String, int> top_reason_tags;
 	VectorMap<String, int> top_gap_tags;
 	VectorMap<String, int> top_current_tags;
+	
+	int recent_changes = 0;
+	Vector<String> recently_modified;
+	int stale_entries = 0;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
 		missing_priority = missing_completion = with_notes = with_problems = 0;
 		with_tasks = with_leads = suggestions_pending = 0;
+		recent_changes = stale_entries = 0;
 		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
 };
@@ -126,6 +146,8 @@ struct OverviewerProject {
 	VectorMap<String, EntrySuggestions> suggestions;
 	Vector<ReviewItem> review_queue;
 	Index<String> dismissed_review_ids;
+	Vector<HistoryEvent> history;
+	int max_history = 1000;
 	Vector<String> known_current_tags;
 	Vector<String> known_reason_tags;
 	Vector<String> known_gap_tags;
@@ -134,6 +156,7 @@ struct OverviewerProject {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
 		   ("suggestions", suggestions)
 		   ("dismissed_review_ids", dismissed_review_ids)
+		   ("history", history)
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags);
@@ -147,6 +170,7 @@ struct OverviewerProject {
 		suggestions.Clear();
 		review_queue.Clear();
 		dismissed_review_ids.Clear();
+		history.Clear();
 		known_current_tags.Clear();
 		known_reason_tags.Clear();
 		known_gap_tags.Clear();
@@ -159,6 +183,8 @@ struct OverviewerProject {
 	void AnalyzeEntry(const String& rel_path);
 	void RunConsistencyCheck();
 	ProjectDashboard GetDashboard() const;
+
+	void LogEvent(const String& path, const String& type, const String& desc, const String& old_val = "", const String& new_val = "", const String& src = "user");
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -203,6 +229,7 @@ public:
 	void OnRunConsistencyCheck();
 	void OnShowDashboard();
 	void OnShowReviewQueue();
+	void OnShowTimeline();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -216,6 +243,7 @@ public:
 
 	void RefreshReviewQueue();
 	void RefreshDashboard();
+	void RefreshTimeline();
 
 public:
 	struct FilterConfig {
@@ -318,11 +346,21 @@ private:
 		void OnDismiss();
 	};
 
+	struct TimelinePanel : ParentCtrl {
+		typedef TimelinePanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		TimelinePanel();
+		void Refresh(const Vector<HistoryEvent>& history);
+		void OnJump();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
 	DashboardPanel dashboard_pane;
 	ReviewQueuePanel review_queue_pane;
+	TimelinePanel timeline_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -338,6 +376,7 @@ private:
 	DockableCtrl* dock_suggestions = nullptr;
 	DockableCtrl* dock_dashboard = nullptr;
 	DockableCtrl* dock_review_queue = nullptr;
+	DockableCtrl* dock_timeline = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

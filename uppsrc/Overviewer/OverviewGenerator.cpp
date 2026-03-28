@@ -34,6 +34,7 @@ String OverviewGenerator::Generate(const String& rel_path, const OverviewOptions
 	AddSection(sections, "Important Items", GetImportant(rel_path, opt));
 	AddSection(sections, "Action Priorities", GetPriorities(rel_path, opt));
 	AddSection(sections, "Change Attribution", GetAttribution(rel_path, opt));
+	AddSection(sections, "Key Decisions", GetDecisions(rel_path, opt));
 	AddSection(sections, "Review Notes", GetReview(rel_path, opt));
 
 	String result = opt.markdown_output ? "# " + title + "\n\n" : title + "\n" + String('*', title.GetCount()) + "\n\n";
@@ -203,6 +204,18 @@ String OverviewGenerator::GetAttribution(const String& path, const OverviewOptio
 	out << "Recent activity breakdown:\n";
 	for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
 		out << "- " << db.activity_by_actor.GetKey(i) << ": " << db.activity_by_actor[i] << " events\n";
+	return out;
+}
+
+String OverviewGenerator::GetDecisions(const String& path, const OverviewOptions& opt) {
+	if(project.decisions.IsEmpty()) return "";
+	String out;
+	for(int i = 0; i < project.decisions.GetCount(); i++) {
+		const Decision& d = project.decisions[i];
+		if(d.status == "accepted" || d.status == "proposed") {
+			out << "- " << d.title << " (Status: " << d.status << ", Actor: " << d.actor_id << ")\n";
+		}
+	}
 	return out;
 }
 

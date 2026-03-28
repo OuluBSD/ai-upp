@@ -80,6 +80,13 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "delete_scenario") res = DeleteScenario(args);
 		else if(method == "compare_scenario") res = CompareScenario(args);
 		else if(method == "apply_scenario") res = ApplyScenario(args);
+		else if(method == "create_decision") res = CreateDecision(args);
+		else if(method == "update_decision") res = UpdateDecision(args);
+		else if(method == "set_decision_status") res = SetDecisionStatus(args);
+		else if(method == "list_decisions") res = ListDecisions(args);
+		else if(method == "get_decision") res = GetDecision(args);
+		else if(method == "link_decision_to_entry") res = LinkDecisionToEntry(args);
+		else if(method == "link_decision_to_scenario") res = LinkDecisionToScenario(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -791,6 +798,71 @@ Value McpServer::ApplyScenario(const Value& args) {
 	if(id.IsEmpty()) throw Exc("Scenario ID missing and no active scenario");
 	project.ApplyScenario(id);
 	return "Scenario applied";
+}
+
+Value McpServer::CreateDecision(const Value& args) {
+	String title = args["title"];
+	if(title.IsEmpty()) throw Exc("Title missing");
+	return project.CreateDecision(title);
+}
+
+Value McpServer::UpdateDecision(const Value& args) {
+	String id = args["decision_id"];
+	String desc = args["description"];
+	String status = args["status"];
+	project.UpdateDecision(id, desc, status);
+	return "Decision updated";
+}
+
+Value McpServer::SetDecisionStatus(const Value& args) {
+	String id = args["decision_id"];
+	String status = args["status"];
+	project.UpdateDecision(id, "", status);
+	return "Decision status set";
+}
+
+Value McpServer::ListDecisions(const Value& args) {
+	ValueArray arr;
+	for(int i = 0; i < project.decisions.GetCount(); i++) {
+		const Decision& d = project.decisions[i];
+		ValueMap m;
+		m.Add("id", d.id);
+		m.Add("title", d.title);
+		m.Add("status", d.status);
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::GetDecision(const Value& args) {
+	String id = args["decision_id"];
+	const Decision* d = project.decisions.FindPtr(id);
+	if(!d) throw Exc("Decision not found");
+	ValueMap m;
+	m.Add("id", d->id);
+	m.Add("title", d->title);
+	m.Add("description", d->description);
+	m.Add("status", d->status);
+	m.Add("actor_id", d->actor_id);
+	ValueArray entries;
+	for(const auto& e : d->related_entries) entries.Add(e);
+	m.Add("related_entries", entries);
+	m.Add("related_scenario_id", d->related_scenario_id);
+	return m;
+}
+
+Value McpServer::LinkDecisionToEntry(const Value& args) {
+	String id = args["decision_id"];
+	String path = args["path"];
+	project.LinkDecisionToEntry(id, path);
+	return "Decision linked to entry";
+}
+
+Value McpServer::LinkDecisionToScenario(const Value& args) {
+	String id = args["decision_id"];
+	String scenario_id = args["scenario_id"];
+	project.LinkDecisionToScenario(id, scenario_id);
+	return "Decision linked to scenario";
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

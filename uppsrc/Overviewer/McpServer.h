@@ -53,6 +53,8 @@ private:
 	Value ClearHistory(const Value& args);
 	Value GetActionView(const Value& args);
 	Value GetEntryScore(const Value& args);
+	Value GenerateOverview(const Value& args);
+	Value ExportOverview(const Value& args);
 
 	// Helpers
 	void DoScan();

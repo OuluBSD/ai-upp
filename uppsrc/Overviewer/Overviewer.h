@@ -4,6 +4,7 @@
 #include <CtrlLib/CtrlLib.h>
 #include <Docking/Docking.h>
 #include "Settings.h"
+#include "OverviewGenerator.h"
 
 using namespace Upp;
 
@@ -245,6 +246,7 @@ public:
 	void OnShowReviewQueue();
 	void OnShowTimeline();
 	void OnShowActionView();
+	void OnShowOverviewPreview();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -260,6 +262,9 @@ public:
 	void RefreshDashboard();
 	void RefreshTimeline();
 	void RefreshActionView();
+	void RefreshOverviewPreview();
+
+	void OnExportOverview();
 
 public:
 	struct FilterConfig {
@@ -380,6 +385,17 @@ private:
 		void OnJump();
 	};
 
+	struct OverviewPreviewPanel : ParentCtrl {
+		typedef OverviewPreviewPanel CLASSNAME;
+		RichTextView view;
+		Button refresh, export_btn;
+		Option markdown;
+		OverviewerWindow* window;
+
+		OverviewPreviewPanel();
+		void Refresh();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -387,6 +403,7 @@ private:
 	ReviewQueuePanel review_queue_pane;
 	TimelinePanel timeline_pane;
 	ActionViewPanel action_view_pane;
+	OverviewPreviewPanel overview_preview_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -404,6 +421,7 @@ private:
 	DockableCtrl* dock_review_queue = nullptr;
 	DockableCtrl* dock_timeline = nullptr;
 	DockableCtrl* dock_action_view = nullptr;
+	DockableCtrl* dock_overview_preview = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

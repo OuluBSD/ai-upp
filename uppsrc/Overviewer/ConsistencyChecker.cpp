@@ -69,6 +69,10 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 	
 	db.total_comments = comments.GetCount();
 	
+	for(int i = 0; i < insights.GetCount(); i++) {
+		if(!insights[i].dismissed) db.active_insights++;
+	}
+	
 	VectorMap<String, EntryScore> actions = GetActionView(5);
 	for(int i = 0; i < actions.GetCount(); i++)
 		db.top_action_items.Add(actions.GetKey(i), actions[i].score);

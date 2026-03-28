@@ -61,6 +61,12 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		if(pending > 0) db.suggestions_pending++;
 	}
 	
+	for(int i = 0; i < decisions.GetCount(); i++) {
+		const Decision& d = decisions[i];
+		if(d.status == "proposed") db.proposed_decisions++;
+		else if(d.status == "accepted") db.accepted_decisions++;
+	}
+	
 	VectorMap<String, EntryScore> actions = GetActionView(5);
 	for(int i = 0; i < actions.GetCount(); i++)
 		db.top_action_items.Add(actions.GetKey(i), actions[i].score);
@@ -137,6 +143,19 @@ void OverviewerProject::RunConsistencyCheck() {
 		
 		if(last_actor_type == "agent" && (now - last_touch < 3600) && !(m.flags & FLAG_NEEDS_REVIEW)) {
 			add_review(path, "Attribution", "Recently modified by agent; needs human review.", 0, "checker");
+		}
+		
+		// Decisions check
+		if(path_events > 20) {
+			bool has_decision = false;
+			for(int j = 0; j < decisions.GetCount(); j++) {
+				if(FindIndex(decisions[j].related_entries, path) >= 0) {
+					has_decision = true;
+					break;
+				}
+			}
+			if(!has_decision)
+				add_review(path, "Planning", "High activity entry with no linked decisions.", 0, "checker");
 		}
 		
 		// Git awareness

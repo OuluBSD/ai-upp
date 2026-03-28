@@ -70,6 +70,13 @@ private:
 	Value DeleteScenario(const Value& args);
 	Value CompareScenario(const Value& args);
 	Value ApplyScenario(const Value& args);
+	Value CreateDecision(const Value& args);
+	Value UpdateDecision(const Value& args);
+	Value SetDecisionStatus(const Value& args);
+	Value ListDecisions(const Value& args);
+	Value GetDecision(const Value& args);
+	Value LinkDecisionToEntry(const Value& args);
+	Value LinkDecisionToScenario(const Value& args);
 
 	// Helpers
 	void DoScan();

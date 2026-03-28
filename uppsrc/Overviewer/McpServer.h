@@ -77,6 +77,10 @@ private:
 	Value GetDecision(const Value& args);
 	Value LinkDecisionToEntry(const Value& args);
 	Value LinkDecisionToScenario(const Value& args);
+	Value AddComment(const Value& args);
+	Value ListComments(const Value& args);
+	Value GetCommentsForEntry(const Value& args);
+	Value GetCommentsForDecision(const Value& args);
 
 	// Helpers
 	void DoScan();

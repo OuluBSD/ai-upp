@@ -214,6 +214,20 @@ struct Decision : Moveable<Decision> {
 	}
 };
 
+struct Comment : Moveable<Comment> {
+	String id;
+	String text;
+	Time timestamp;
+	String actor_id;
+	String related_entry;
+	String related_decision;
+
+	void Jsonize(JsonIO& jio) {
+		jio("id", id)("text", text)("timestamp", timestamp)("actor_id", actor_id)
+		   ("related_entry", related_entry)("related_decision", related_decision);
+	}
+};
+
 struct UndoEvent : Moveable<UndoEvent> {
 	String path;
 	FileMetadata old_meta;
@@ -246,13 +260,14 @@ struct ProjectDashboard {
 	
 	int proposed_decisions = 0;
 	int accepted_decisions = 0;
+	int total_comments = 0;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
 		missing_priority = missing_completion = with_notes = with_problems = 0;
 		with_tasks = with_leads = suggestions_pending = 0;
 		recent_changes = stale_entries = 0;
-		proposed_decisions = accepted_decisions = 0;
+		proposed_decisions = accepted_decisions = total_comments = 0;
 		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
 };
@@ -283,6 +298,7 @@ struct OverviewerProject {
 	String active_scenario_id;
 	
 	VectorMap<String, Decision> decisions;
+	Vector<Comment> comments;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -294,7 +310,8 @@ struct OverviewerProject {
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags)
 		   ("scenarios", scenarios)
-		   ("decisions", decisions);
+		   ("decisions", decisions)
+		   ("comments", comments);
 	}
 	
 	void Reset() {
@@ -303,7 +320,7 @@ struct OverviewerProject {
 		dismissed_review_ids.Clear(); history.Clear(); sessions.Clear();
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
-		decisions.Clear();
+		decisions.Clear(); comments.Clear();
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
@@ -332,6 +349,8 @@ struct OverviewerProject {
 	void UpdateDecision(const String& id, const String& desc, const String& status);
 	void LinkDecisionToEntry(const String& id, const String& path);
 	void LinkDecisionToScenario(const String& id, const String& scenario_id);
+	
+	String AddComment(const String& text, const String& entry = "", const String& decision = "");
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -383,6 +402,7 @@ public:
 	void OnShowGitHistory();
 	void OnShowSessions();
 	void OnShowDecisions();
+	void OnShowComments();
 	
 	void OnScenarioMenu(Bar& bar);
 	void OnCreateScenario();
@@ -398,6 +418,7 @@ public:
 	void CheckAutosave();
 	void MarkSession(bool active);
 	bool CheckRecovery();
+	void CheckExternalChange();
 
 	void ApplySuggestion(const String& path, int type, int category, const String& value);
 	void DismissSuggestion(const String& path, int type, int category, const String& value);
@@ -410,9 +431,11 @@ public:
 	void RefreshGitHistory();
 	void RefreshSessions();
 	void RefreshDecisions();
+	void RefreshComments();
 
 	void OnExportOverview();
 	void OnRefreshGit();
+	void OnAddComment();
 	
 	void Undo();
 	void Redo();
@@ -436,6 +459,7 @@ private:
 	bool dirty = false;
 	String current_selection;
 	Time last_autosave;
+	Time last_file_time;
 
 	MenuBar menu;
 	ToolBar quick_actions;
@@ -604,6 +628,14 @@ private:
 		void OnDescChange();
 	};
 
+	struct CommentPanel : ParentCtrl {
+		typedef CommentPanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		CommentPanel() { Add(list.SizePos()); list.AddColumn("Actor", 20); list.AddColumn("Date", 30); list.AddColumn("Text"); }
+		void Refresh(const Vector<Comment>& comments, const String& rel_path = "", const String& decision_id = "");
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -616,6 +648,7 @@ private:
 	SessionPanel session_pane;
 	ScenarioDiffPanel scenario_diff_pane;
 	DecisionPanel decision_pane;
+	CommentPanel comment_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -637,6 +670,7 @@ private:
 	DockableCtrl* dock_git_history = nullptr;
 	DockableCtrl* dock_sessions = nullptr;
 	DockableCtrl* dock_decisions = nullptr;
+	DockableCtrl* dock_comments = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

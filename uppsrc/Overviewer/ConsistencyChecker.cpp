@@ -67,6 +67,8 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		else if(d.status == "accepted") db.accepted_decisions++;
 	}
 	
+	db.total_comments = comments.GetCount();
+	
 	VectorMap<String, EntryScore> actions = GetActionView(5);
 	for(int i = 0; i < actions.GetCount(); i++)
 		db.top_action_items.Add(actions.GetKey(i), actions[i].score);
@@ -122,16 +124,25 @@ void OverviewerProject::RunConsistencyCheck() {
 
 		int path_events = 0;
 		Time last_touch;
+		String last_actor_id;
 		String last_actor_type;
+		bool potential_conflict = false;
 		for(int j = history.GetCount() - 1; j >= 0; j--) {
 			if(history[j].path == path) {
 				if(path_events == 0) {
 					last_touch = history[j].time;
+					last_actor_id = history[j].actor_id;
 					last_actor_type = history[j].actor_type;
+				} else {
+					if(history[j].actor_id != last_actor_id && (last_touch - history[j].time < 3600))
+						potential_conflict = true;
 				}
 				path_events++;
 			}
 		}
+		
+		if(potential_conflict)
+			add_review(path, "Conflict", "Multiple actors modified this entry within 1h.", 1, "checker");
 		
 		if(path_events > 0 && (now - last_touch > 30 * 24 * 3600) && (!m.problems.IsEmpty() || !m.tasks.IsEmpty())) {
 			add_review(path, "Temporal", "Entry is stale (untouched for 30d) but has active items.", 0, "checker");

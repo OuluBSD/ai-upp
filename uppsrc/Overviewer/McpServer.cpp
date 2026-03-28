@@ -91,6 +91,9 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "list_comments") res = ListComments(args);
 		else if(method == "get_comments_for_entry") res = GetCommentsForEntry(args);
 		else if(method == "get_comments_for_decision") res = GetCommentsForDecision(args);
+		else if(method == "generate_insights") res = GenerateInsights(args);
+		else if(method == "list_insights") res = ListInsights(args);
+		else if(method == "dismiss_insight") res = DismissInsight(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -588,6 +591,11 @@ Value McpServer::GetRecentChanges(const Value& args) {
 	return res;
 }
 
+Value McpServer::ClearHistory(const Value& args) {
+	project.history.Clear();
+	return "History cleared";
+}
+
 Value McpServer::GetActionView(const Value& args) {
 	int limit = args["limit"];
 	if(limit <= 0) limit = 20;
@@ -918,6 +926,44 @@ Value McpServer::GetCommentsForDecision(const Value& args) {
 		}
 	}
 	return arr;
+}
+
+Value McpServer::GenerateInsights(const Value& args) {
+	project.GenerateInsights();
+	return "Insights generated";
+}
+
+Value McpServer::ListInsights(const Value& args) {
+	ValueArray arr;
+	for(const auto& ins : project.insights) {
+		if(!ins.dismissed) {
+			ValueMap m;
+			m.Add("id", ins.id);
+			m.Add("type", ins.type);
+			m.Add("title", ins.title);
+			m.Add("description", ins.description);
+			m.Add("severity", ins.severity);
+			ValueArray entries;
+			for(const auto& e : ins.related_entries) entries.Add(e);
+			m.Add("related_entries", entries);
+			ValueArray evidence;
+			for(const auto& e : ins.supporting_evidence) evidence.Add(e);
+			m.Add("supporting_evidence", evidence);
+			arr.Add(m);
+		}
+	}
+	return arr;
+}
+
+Value McpServer::DismissInsight(const Value& args) {
+	String id = args["insight_id"];
+	for(auto& ins : project.insights) {
+		if(ins.id == id) {
+			ins.dismissed = true;
+			return "Insight dismissed";
+		}
+	}
+	throw Exc("Insight not found");
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

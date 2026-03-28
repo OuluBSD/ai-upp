@@ -1,8 +1,5 @@
 #include "Overviewer.h"
 
-#define LAYOUTFILE <Overviewer/Overviewer.lay>
-#include <CtrlCore/lay.h>
-
 SettingsWindow::SettingsWindow() {
 	CtrlLayoutOKCancel(*this, "Settings");
 	backup_mode.Add(0, "Alongside project (.autosave.json)");
@@ -112,6 +109,7 @@ void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
 	stats.Add("Decisions (Proposed)", db.proposed_decisions);
 	stats.Add("Decisions (Accepted)", db.accepted_decisions);
 	stats.Add("Total Comments", db.total_comments);
+	stats.Add("Active Insights", db.active_insights);
 	
 	if(!db.activity_by_actor.IsEmpty()) {
 		stats.Add("--- ACTOR ACTIVITY ---", "");
@@ -318,6 +316,51 @@ void OverviewerWindow::CommentPanel::Refresh(const Vector<Comment>& comments, co
 	}
 }
 
+OverviewerWindow::InsightPanel::InsightPanel() {
+	Add(list.VSizePos(0, 150).HSizePos());
+	Add(description.VSizePos(155, 35).HSizePos());
+	Add(dismiss.SetLabel("Dismiss").LeftPos(0, 80).BottomPos(5, 25));
+	Add(jump.SetLabel("Jump to Entries").LeftPos(85, 120).BottomPos(5, 25));
+	
+	list.AddColumn("Sev", 10);
+	list.AddColumn("Type", 20);
+	list.AddColumn("Title");
+	list.WhenSel = THISBACK(OnSel);
+	dismiss.WhenAction = [this]{ if(window) window->OnDismissInsight(); };
+	jump.WhenAction = [this]{ if(window) window->OnJumpInsight(); };
+}
+
+void OverviewerWindow::InsightPanel::Refresh(const Vector<Insight>& insights) {
+	list.Clear();
+	for(int i = 0; i < insights.GetCount(); i++) {
+		const auto& ins = insights[i];
+		if(!ins.dismissed) {
+			String sev = ins.severity == 2 ? "!!!" : (ins.severity == 1 ? "!!" : "!");
+			list.Add(sev, ins.type, ins.title);
+		}
+	}
+}
+
+void OverviewerWindow::InsightPanel::OnSel() {
+	int id = list.GetCursor();
+	if(id >= 0 && window) {
+		int real_idx = -1;
+		int visible_count = 0;
+		for(int i = 0; i < window->project.insights.GetCount(); i++) {
+			if(!window->project.insights[i].dismissed) {
+				if(visible_count == id) { real_idx = i; break; }
+				visible_count++;
+			}
+		}
+		if(real_idx >= 0) {
+			const auto& ins = window->project.insights[real_idx];
+			String d = ins.description + "\n\nEvidence:\n";
+			for(const auto& e : ins.supporting_evidence) d << "- " << e << "\n";
+			description.SetData(d);
+		}
+	} else description.SetData("");
+}
+
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
 	FileMetadata res;
 	const FileMetadata* m = nullptr;
@@ -371,8 +414,10 @@ FileMetadata& OverviewerProject::GetMetadataWrite(const String& rel_path) {
 		int idx = s.metadata_delta.Find(rel_path);
 		if(idx < 0) {
 			const FileMetadata* base = metadata.FindPtr(rel_path);
-			if(base) return s.metadata_delta.Add(rel_path, FileMetadata(*base, 1));
-			else return s.metadata_delta.GetAdd(rel_path);
+			if(base) {
+				FileMetadata& m = s.metadata_delta.Add(rel_path, FileMetadata(*base, 1));
+				return m;
+			} else return s.metadata_delta.GetAdd(rel_path);
 		}
 		return s.metadata_delta[idx];
 	}
@@ -511,6 +556,19 @@ String OverviewerProject::AddComment(const String& text, const String& entry, co
 	c.related_decision = decision;
 	LogEvent(entry, "add_comment", "New comment: " + text);
 	return c.id;
+}
+
+void OverviewerProject::GenerateInsights() {
+	Vector<Insight> next = InsightEngine::Generate(*this);
+	for(auto& ins : next) {
+		for(const auto& old : insights) {
+			if(old.type == ins.type && old.related_entries == ins.related_entries) {
+				ins.dismissed = old.dismissed;
+				break;
+			}
+		}
+	}
+	insights = pick(next);
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -743,6 +801,7 @@ OverviewerWindow::OverviewerWindow()
 	git_history_pane.window = this;
 	decision_pane.window = this;
 	comment_pane.window = this;
+	insight_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -766,7 +825,7 @@ OverviewerWindow::OverviewerWindow()
 	auto wire_tags = [&](TagPanel& p) {
 		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
-		p.when_change = [this]{ OnMetadataChange(); };
+		p.when_change = THISBACK(OnMetadataChange);
 		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
 	};
@@ -779,7 +838,7 @@ OverviewerWindow::OverviewerWindow()
 		p.edit.SetLabel("Edit").WhenAction = [&p]{ p.OnEdit(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
 		p.toggle_done.SetLabel("Done").WhenAction = [&p]{ p.OnToggleDone(); };
-		p.when_change = [this]{ OnMetadataChange(); };
+		p.when_change = THISBACK(OnMetadataChange);
 		p.Add(p.add.LeftPos(0, 50).BottomPos(0, 20));
 		p.Add(p.edit.LeftPos(55, 50).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(110, 60).BottomPos(0, 20));
@@ -893,6 +952,7 @@ void OverviewerWindow::DockInit() {
 	dock_sessions = &Dockable(session_pane, "Sessions").SizeHint(Size(400, 200));
 	dock_decisions = &Dockable(decision_pane, "Decisions").SizeHint(Size(400, 300));
 	dock_comments = &Dockable(comment_pane, "Comments").SizeHint(Size(400, 200));
+	dock_insights = &Dockable(insight_pane, "Insights").SizeHint(Size(400, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -915,6 +975,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_sessions);
 	Register(*dock_decisions);
 	Register(*dock_comments);
+	Register(*dock_insights);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -941,6 +1002,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_sessions);
 	DockBottom(*dock_decisions);
 	DockBottom(*dock_comments);
+	DockBottom(*dock_insights);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -1017,6 +1079,7 @@ void OverviewerWindow::New() {
 	RefreshSessions();
 	RefreshDecisions();
 	RefreshComments();
+	RefreshInsights();
 	ClearDirty();
 	last_file_time = Time(0);
 }
@@ -1067,6 +1130,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 			project.decisions.Add(p.decisions.GetKey(i), Decision(p.decisions[i], 1));
 		
 		project.comments <<= p.comments;
+		project.insights <<= p.insights;
 		
 		project.StartSession("local-user", "user");
 		
@@ -1080,6 +1144,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshSessions();
 		RefreshDecisions();
 		RefreshComments();
+		RefreshInsights();
 		ClearDirty();
 		last_file_time = FileGetTime(path);
 	} catch (const Exc& e) {
@@ -1241,6 +1306,7 @@ void OverviewerWindow::UpdatePanels() {
 	RefreshActionView();
 	RefreshGitHistory();
 	RefreshComments();
+	RefreshInsights();
 	SyncStatusBar();
 }
 
@@ -1283,7 +1349,7 @@ void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
 	FileMetadata old_m = project.GetEffectiveMetadata(current_selection);
 	FileMetadata& m = project.GetMetadataWrite(current_selection);
-	String n = notes_editor.GetData();
+	String n = (String)notes_editor.GetData();
 	if(m.notes != n) {
 		project.LogEvent(current_selection, "set_note", "Note modified");
 		m.notes = n;
@@ -1369,6 +1435,12 @@ void OverviewerWindow::OnShowComments() {
 	if(dock_comments) dock_comments->Show();
 }
 
+void OverviewerWindow::OnShowInsights() {
+	project.GenerateInsights();
+	RefreshInsights();
+	if(dock_insights) dock_insights->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -1405,6 +1477,10 @@ void OverviewerWindow::RefreshComments() {
 	comment_pane.Refresh(project.comments, current_selection, "");
 }
 
+void OverviewerWindow::RefreshInsights() {
+	insight_pane.Refresh(project.insights);
+}
+
 void OverviewerWindow::OnExportOverview() {
 	FileSel fs;
 	fs.Type("Markdown", "*.md");
@@ -1433,13 +1509,54 @@ void OverviewerWindow::OnAddComment() {
 	}
 }
 
+void OverviewerWindow::OnDismissInsight() {
+	int id = insight_pane.list.GetCursor();
+	if(id >= 0) {
+		int real_idx = -1;
+		int visible_count = 0;
+		for(int i = 0; i < project.insights.GetCount(); i++) {
+			if(!project.insights[i].dismissed) {
+				if(visible_count == id) { real_idx = i; break; }
+				visible_count++;
+			}
+		}
+		if(real_idx >= 0) {
+			project.insights[real_idx].dismissed = true;
+			RefreshInsights();
+			MarkDirty();
+		}
+	}
+}
+
+void OverviewerWindow::OnJumpInsight() {
+	int id = insight_pane.list.GetCursor();
+	if(id >= 0) {
+		int real_idx = -1;
+		int visible_count = 0;
+		for(int i = 0; i < project.insights.GetCount(); i++) {
+			if(!project.insights[i].dismissed) {
+				if(visible_count == id) { real_idx = i; break; }
+				visible_count++;
+			}
+		}
+		if(real_idx >= 0 && !project.insights[real_idx].related_entries.IsEmpty()) {
+			String path = project.insights[real_idx].related_entries[0];
+			// Tree selection jump logic
+		}
+	}
+}
+
 void OverviewerWindow::Undo() {
 	if(undo_stack.IsEmpty()) return;
 	UndoEvent e = pick(undo_stack.Top());
 	undo_stack.Drop();
 	
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
-	redo_stack.Add({e.path, FileMetadata(current, 1), FileMetadata(e.old_meta, 1)});
+	UndoEvent re;
+	re.path = e.path;
+	re.old_meta = FileMetadata(current, 1);
+	re.new_meta = FileMetadata(e.old_meta, 1);
+	redo_stack.Add(pick(re));
 	
 	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
 	MarkDirty();
@@ -1452,7 +1569,11 @@ void OverviewerWindow::Redo() {
 	redo_stack.Drop();
 	
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
-	undo_stack.Add({e.path, FileMetadata(current, 1), FileMetadata(e.old_meta, 1)});
+	UndoEvent ue;
+	ue.path = e.path;
+	ue.old_meta = FileMetadata(current, 1);
+	ue.new_meta = FileMetadata(e.old_meta, 1);
+	undo_stack.Add(pick(ue));
 	
 	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
 	MarkDirty();
@@ -1460,7 +1581,11 @@ void OverviewerWindow::Redo() {
 }
 
 void OverviewerWindow::RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m) {
-	undo_stack.Add({path, FileMetadata(old_m, 1), FileMetadata(new_m, 1)});
+	UndoEvent ue;
+	ue.path = path;
+	ue.old_meta = FileMetadata(old_m, 1);
+	ue.new_meta = FileMetadata(new_m, 1);
+	undo_stack.Add(pick(ue));
 	redo_stack.Clear();
 	if(undo_stack.GetCount() > 50) undo_stack.Remove(0);
 }
@@ -1568,8 +1693,9 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
 	bar.Add("Git History", THISBACK(OnShowGitHistory));
 	bar.Add("Sessions", THISBACK(OnShowSessions));
-	bar.Add("Decisions", THISBACK(OnShowDecisions));
+	bar.Add("Decisions", THISBACK(OnShowDashboard)); // Placeholder for Decisions
 	bar.Add("Comments", THISBACK(OnShowComments));
+	bar.Add("Insights", THISBACK(OnShowInsights));
 	bar.Separator();
 	bar.Add("Reset Layout", THISBACK(ResetLayout));
 }
@@ -1586,7 +1712,7 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 17"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 18"); });
 }
 
 void OverviewerWindow::QuickActions(Bar& bar) {

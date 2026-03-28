@@ -59,11 +59,27 @@ void PrintHelp() {
 	       << "  Overviewer --add-comment <project> <text> [--path <entry_path>] [--decision <decision_id>]\n"
 	       << "  Overviewer --list-comments <project>\n"
 	       << "  Overviewer --get-comments-entry <project> <path>\n"
+	       << "  Overviewer --generate-insights <project>\n"
+	       << "  Overviewer --list-insights <project>\n"
+	       << "  Overviewer --dismiss-insight <project> <id>\n"
 	       << "\nOptions:\n"
 	       << "  --actor <id> : specify actor id for the CLI run\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
+}
+
+static Vector<String> GetAffectedPaths(const OverviewerProject& project, const String& start_path, bool recursive) {
+	Vector<String> res;
+	res.Add(start_path);
+	if(recursive) {
+		for(int i = 0; i < project.metadata.GetCount(); i++) {
+			String p = project.metadata.GetKey(i);
+			if(p.StartsWith(start_path + "/") || p.StartsWith(start_path + "\\"))
+				res.Add(p);
+		}
+	}
+	return res;
 }
 
 int CliMain(Vector<String>& args) {
@@ -158,7 +174,7 @@ int CliMain(Vector<String>& args) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
 		ProjectDashboard db = p.GetDashboard();
-		Cout() << "Dashboard: " << db.total_files << " files, " << db.total_comments << " comments.\n";
+		Cout() << "Dashboard: " << db.total_files << " files, " << db.flagged_entries << " flagged, " << db.active_insights << " active insights.\n";
 		return 0;
 	}
 
@@ -187,14 +203,6 @@ int CliMain(Vector<String>& args) {
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--list-scenarios" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		for(int i = 0; i < p.scenarios.GetCount(); i++)
-			Cout() << p.scenarios.GetKey(i) << " | " << p.scenarios[i].name << (p.active_scenario_id == p.scenarios.GetKey(i) ? " [ACTIVE]" : "") << "\n";
-		return 0;
-	}
-
 	if (args[0] == "--create-decision" && args.GetCount() >= 3) {
 		OverviewerProject p;
 		if(!load_p(p, args[1])) return 1;
@@ -210,14 +218,6 @@ int CliMain(Vector<String>& args) {
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--list-decisions" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		for(int i = 0; i < p.decisions.GetCount(); i++)
-			Cout() << p.decisions.GetKey(i) << " | " << p.decisions[i].title << " [" << p.decisions[i].status << "]\n";
-		return 0;
-	}
-
 	if (args[0] == "--add-comment" && args.GetCount() >= 3) {
 		OverviewerProject p;
 		if(!load_p(p, args[1])) return 1;
@@ -231,22 +231,34 @@ int CliMain(Vector<String>& args) {
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
-	if (args[0] == "--list-comments" && args.GetCount() >= 2) {
+	if (args[0] == "--generate-insights" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.GenerateInsights();
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--list-insights" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
-		for(const auto& c : p.comments)
-			Cout() << Format(c.timestamp) << " | " << c.actor_id << " | " << (c.related_entry.IsEmpty() ? "(global)" : c.related_entry) << " | " << c.text << "\n";
+		for(const auto& ins : p.insights) {
+			if(!ins.dismissed)
+				Cout() << ins.id << " | [" << ins.severity << "] " << ins.type << " | " << ins.title << " | " << ins.description << "\n";
+		}
 		return 0;
 	}
 
-	if (args[0] == "--get-comments-entry" && args.GetCount() >= 3) {
+	if (args[0] == "--dismiss-insight" && args.GetCount() >= 3) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		String path = args[2];
-		for(const auto& c : p.comments)
-			if(c.related_entry == path)
-				Cout() << Format(c.timestamp) << " | " << c.actor_id << " | " << c.text << "\n";
-		return 0;
+		if(!load_p(p, args[1])) return 1;
+		String id = args[2];
+		for(auto& ins : p.insights) {
+			if(ins.id == id) {
+				ins.dismissed = true;
+				break;
+			}
+		}
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
 	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {

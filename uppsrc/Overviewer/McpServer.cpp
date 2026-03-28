@@ -61,6 +61,8 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_history") res = GetHistory(args);
 		else if(method == "get_recent_changes") res = GetRecentChanges(args);
 		else if(method == "clear_history") res = ClearHistory(args);
+		else if(method == "get_action_view") res = GetActionView(args);
+		else if(method == "get_entry_score") res = GetEntryScore(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -301,7 +303,7 @@ Value McpServer::MoveEntry(const Value& args) {
 	VectorMap<String, FileMetadata> new_meta;
 	for(int i = 0; i < project.metadata.GetCount(); i++) {
 		String p = project.metadata.GetKey(i);
-		FileMetadata m = project.metadata[i];
+		FileMetadata& m = project.metadata[i];
 		String new_p = p;
 		if(p == src) {
 			new_p = dst;
@@ -513,6 +515,66 @@ Value McpServer::DismissReviewItem(const Value& args) {
 	return "Review item dismissed";
 }
 
+Value McpServer::GetHistory(const Value& args) {
+	String path = args["path"];
+	int limit = args["limit"];
+	if(limit <= 0) limit = 100;
+	
+	ValueArray arr;
+	int count = 0;
+	for(int i = project.history.GetCount() - 1; i >= 0 && count < limit; i--) {
+		const auto& e = project.history[i];
+		if(path.IsEmpty() || e.path == path) {
+			ValueMap m;
+			m.Add("time", Format(e.time));
+			m.Add("path", e.path);
+			m.Add("type", e.type);
+			m.Add("description", e.description);
+			m.Add("source", e.source);
+			arr.Add(m);
+			count++;
+		}
+	}
+	return arr;
+}
+
+Value McpServer::GetRecentChanges(const Value& args) {
+	ProjectDashboard db = project.GetDashboard();
+	ValueMap res;
+	res.Add("recent_changes_count", db.recent_changes);
+	ValueArray rm;
+	for(const String& p : db.recently_modified) rm.Add(p);
+	res.Add("recently_modified", rm);
+	return res;
+}
+
+Value McpServer::GetActionView(const Value& args) {
+	int limit = args["limit"];
+	if(limit <= 0) limit = 20;
+	VectorMap<String, EntryScore> view = project.GetActionView(limit);
+	ValueArray arr;
+	for(int i = 0; i < view.GetCount(); i++) {
+		ValueMap m;
+		m.Add("path", view.GetKey(i));
+		m.Add("score", view[i].score);
+		m.Add("explanation", Join(view[i].factors, ", "));
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::GetEntryScore(const Value& args) {
+	String path = args["path"];
+	if(path.IsEmpty()) throw Exc("Path required");
+	EntryScore s = project.ComputeScore(path);
+	ValueMap m;
+	m.Add("score", s.score);
+	ValueArray factors;
+	for(const String& f : s.factors) factors.Add(f);
+	m.Add("factors", factors);
+	return m;
+}
+
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {
 	for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
 		String rel = ff.GetName();
@@ -533,27 +595,6 @@ void McpServer::DoScan() {
 }
 
 bool McpServer::IsPathValid(const String& path) {
-	if(path.StartsWith("/") || path.StartsWith("\\") || path.Find("..") >= 0) return false;
-	return true;
-}
-
-String McpServer::GetAbsPath(const String& rel_path) {
-	String root = project.working_dir;
-	if(root.IsEmpty() && !project.path.IsEmpty())
-		root = GetFileDirectory(project.path);
-	return AppendFileName(root, rel_path);
-}
-
-uint32 McpServer::StringToFlag(const String& name) {
-	if(name == "TEMPORARY") return FLAG_TEMPORARY;
-	if(name == "WRONG_LOCATION") return FLAG_WRONG_LOCATION;
-	if(name == "WRONG_NAME") return FLAG_WRONG_NAME;
-	if(name == "TOO_LARGE") return FLAG_TOO_LARGE;
-	if(name == "NEEDS_REVIEW") return FLAG_NEEDS_REVIEW;
-	if(name == "CONTENT_NEEDS_REVIEW") return FLAG_CONTENT_NEEDS_REVIEW;
-	return 0;
-}
-athValid(const String& path) {
 	if(path.StartsWith("/") || path.StartsWith("\\") || path.Find("..") >= 0) return false;
 	return true;
 }

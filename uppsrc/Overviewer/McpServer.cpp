@@ -73,6 +73,13 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_sessions") res = GetSessions(args);
 		else if(method == "get_history_by_actor") res = GetHistoryByActor(args);
 		else if(method == "get_actor_summary") res = GetActorSummary(args);
+		else if(method == "create_scenario") res = CreateScenario(args);
+		else if(method == "activate_scenario") res = ActivateScenario(args);
+		else if(method == "deactivate_scenario") res = DeactivateScenario(args);
+		else if(method == "list_scenarios") res = ListScenarios(args);
+		else if(method == "delete_scenario") res = DeleteScenario(args);
+		else if(method == "compare_scenario") res = CompareScenario(args);
+		else if(method == "apply_scenario") res = ApplyScenario(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -136,6 +143,13 @@ Value McpServer::GetEntry(const Value& args) {
 	
 	FileMetadata effective = project.GetEffectiveMetadata(rel_path);
 	const FileMetadata* m = project.metadata.FindPtr(rel_path);
+	if(!project.active_scenario_id.IsEmpty()) {
+		const Scenario* s = project.scenarios.FindPtr(project.active_scenario_id);
+		if(s) {
+			const FileMetadata* sm = s->metadata_delta.FindPtr(rel_path);
+			if(sm) m = sm;
+		}
+	}
 	
 	ValueMap res;
 	res.Add("path", rel_path);
@@ -188,14 +202,14 @@ Value McpServer::SetNote(const Value& args) {
 	String path = args["path"];
 	String note = args["note"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	project.metadata.GetAdd(path).notes = note;
+	project.GetMetadataWrite(path).notes = note;
 	return "Note set";
 }
 
 Value McpServer::SetNumeric(const Value& args) {
 	String path = args["path"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata& m = project.metadata.GetAdd(path);
+	FileMetadata& m = project.GetMetadataWrite(path);
 	if(!args["quality"].IsNull()) m.quality = (int)args["quality"];
 	if(!args["completion"].IsNull()) m.completion = (int)args["completion"];
 	if(!args["priority"].IsNull()) m.priority = (int)args["priority"];
@@ -211,7 +225,7 @@ Value McpServer::SetFlags(const Value& args) {
 		for(int i = 0; i < arr.GetCount(); i++)
 			bits |= StringToFlag(arr[i]);
 	}
-	project.metadata.GetAdd(path).flags = bits;
+	project.GetMetadataWrite(path).flags = bits;
 	return "Flags set";
 }
 
@@ -220,7 +234,7 @@ Value McpServer::AddTag(const Value& args) {
 	String cat = args["category"];
 	String tag = args["tag"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata& m = project.metadata.GetAdd(path);
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<String>* v = nullptr;
 	if(cat == "current") v = &m.current_tags;
 	else if(cat == "reason") v = &m.reason_tags;
@@ -235,12 +249,11 @@ Value McpServer::RemoveTag(const Value& args) {
 	String cat = args["category"];
 	String tag = args["tag"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata* m = project.metadata.FindPtr(path);
-	if(!m) return "No metadata";
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<String>* v = nullptr;
-	if(cat == "current") v = &m->current_tags;
-	else if(cat == "reason") v = &m->reason_tags;
-	else if(cat == "gap") v = &m->gap_tags;
+	if(cat == "current") v = &m.current_tags;
+	else if(cat == "reason") v = &m.reason_tags;
+	else if(cat == "gap") v = &m.gap_tags;
 	if(!v) throw Exc("Invalid category");
 	int idx = FindIndex(*v, tag);
 	if(idx >= 0) v->Remove(idx);
@@ -252,7 +265,7 @@ Value McpServer::AddListItem(const Value& args) {
 	String ltype = args["list_type"];
 	String text = args["text"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata& m = project.metadata.GetAdd(path);
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<ListItem>* v = nullptr;
 	if(ltype == "problems") v = &m.problems;
 	else if(ltype == "tasks") v = &m.tasks;
@@ -267,12 +280,11 @@ Value McpServer::UpdateListItem(const Value& args) {
 	String ltype = args["list_type"];
 	int idx = args["index"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata* m = project.metadata.FindPtr(path);
-	if(!m) throw Exc("No metadata");
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<ListItem>* v = nullptr;
-	if(ltype == "problems") v = &m->problems;
-	else if(ltype == "tasks") v = &m->tasks;
-	else if(ltype == "leads") v = &m->leads;
+	if(ltype == "problems") v = &m.problems;
+	else if(ltype == "tasks") v = &m.tasks;
+	else if(ltype == "leads") v = &m.leads;
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	ListItem& it = (*v)[idx];
 	if(!args["text"].IsNull()) it.text = (String)args["text"];
@@ -287,12 +299,11 @@ Value McpServer::RemoveListItem(const Value& args) {
 	String ltype = args["list_type"];
 	int idx = args["index"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	FileMetadata* m = project.metadata.FindPtr(path);
-	if(!m) throw Exc("No metadata");
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<ListItem>* v = nullptr;
-	if(ltype == "problems") v = &m->problems;
-	else if(ltype == "tasks") v = &m->tasks;
-	else if(ltype == "leads") v = &m->leads;
+	if(ltype == "problems") v = &m.problems;
+	else if(ltype == "tasks") v = &m.tasks;
+	else if(ltype == "leads") v = &m.leads;
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	v->Remove(idx);
 	return "Item removed";
@@ -342,9 +353,10 @@ Value McpServer::RefreshScan(const Value& args) {
 Value McpServer::FindEntriesWithFlag(const Value& args) {
 	uint32 bit = StringToFlag(args["flag"]);
 	ValueArray arr;
-	for(int i = 0; i < project.metadata.GetCount(); i++) {
-		if(project.metadata[i].flags & bit)
-			arr.Add(project.metadata.GetKey(i));
+	for(const String& p : current_scan) {
+		FileMetadata effective = project.GetEffectiveMetadata(p);
+		if(effective.flags & bit)
+			arr.Add(p);
 	}
 	return arr;
 }
@@ -353,11 +365,11 @@ Value McpServer::FindEntriesMissingNumeric(const Value& args) {
 	String field = args["field"];
 	ValueArray arr;
 	for(const String& p : current_scan) {
-		const FileMetadata* m = project.metadata.FindPtr(p);
+		FileMetadata effective = project.GetEffectiveMetadata(p);
 		bool missing = false;
-		if(field == "quality") missing = (!m || m->quality == 0);
-		else if(field == "completion") missing = (!m || m->completion == 0);
-		else if(field == "priority") missing = (!m || m->priority == 0);
+		if(field == "quality") missing = (effective.quality == 0);
+		else if(field == "completion") missing = (effective.completion == 0);
+		else if(field == "priority") missing = (effective.priority == 0);
 		else throw Exc("Invalid field");
 		if(missing) arr.Add(p);
 	}
@@ -368,14 +380,14 @@ Value McpServer::FindEntriesByTag(const Value& args) {
 	String cat = args["category"];
 	String tag = args["tag"];
 	ValueArray arr;
-	for(int i = 0; i < project.metadata.GetCount(); i++) {
-		const FileMetadata& m = project.metadata[i];
+	for(const String& p : current_scan) {
+		FileMetadata effective = project.GetEffectiveMetadata(p);
 		const Vector<String>* v = nullptr;
-		if(cat == "current") v = &m.current_tags;
-		else if(cat == "reason") v = &m.reason_tags;
-		else if(cat == "gap") v = &m.gap_tags;
+		if(cat == "current") v = &effective.current_tags;
+		else if(cat == "reason") v = &effective.reason_tags;
+		else if(cat == "gap") v = &effective.gap_tags;
 		if(v && FindIndex(*v, tag) >= 0)
-			arr.Add(project.metadata.GetKey(i));
+			arr.Add(p);
 	}
 	return arr;
 }
@@ -434,7 +446,7 @@ Value McpServer::ApplySuggestion(const Value& args) {
 	int category = args["category"];
 	String value = args["value"];
 	
-	FileMetadata& m = project.metadata.GetAdd(path);
+	FileMetadata& m = project.GetMetadataWrite(path);
 	if(type == 0) { // Tag
 		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
 		if(v && FindIndex(*v, value) < 0) v->Add(value);
@@ -665,12 +677,11 @@ Value McpServer::LinkListItemCommit(const Value& args) {
 	int idx = args["index"];
 	String commit = args["commit"];
 	
-	FileMetadata* m = project.metadata.FindPtr(path);
-	if(!m) throw Exc("No metadata for path");
+	FileMetadata& m = project.GetMetadataWrite(path);
 	Vector<ListItem>* v = nullptr;
-	if(ltype == "problems") v = &m->problems;
-	else if(ltype == "tasks") v = &m->tasks;
-	else if(ltype == "leads") v = &m->leads;
+	if(ltype == "problems") v = &m.problems;
+	else if(ltype == "tasks") v = &m.tasks;
+	else if(ltype == "leads") v = &m.leads;
 	
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	(*v)[idx].commit = commit;
@@ -702,6 +713,7 @@ Value McpServer::GetHistoryByActor(const Value& args) {
 			m.Add("path", e.path);
 			m.Add("type", e.type);
 			m.Add("description", e.description);
+			m.Add("source", e.source);
 			m.Add("actor_id", e.actor_id);
 			m.Add("actor_type", e.actor_type);
 			arr.Add(m);
@@ -716,6 +728,69 @@ Value McpServer::GetActorSummary(const Value& args) {
 	for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
 		res.Add(db.activity_by_actor.GetKey(i), db.activity_by_actor[i]);
 	return res;
+}
+
+Value McpServer::CreateScenario(const Value& args) {
+	String name = args["name"];
+	if(name.IsEmpty()) throw Exc("Name missing");
+	return project.CreateScenario(name);
+}
+
+Value McpServer::ActivateScenario(const Value& args) {
+	String id = args["scenario_id"];
+	project.ActivateScenario(id);
+	return "Scenario activated";
+}
+
+Value McpServer::DeactivateScenario(const Value& args) {
+	project.DeactivateScenario();
+	return "Scenario deactivated";
+}
+
+Value McpServer::ListScenarios(const Value& args) {
+	ValueArray arr;
+	for(int i = 0; i < project.scenarios.GetCount(); i++) {
+		ValueMap m;
+		m.Add("id", project.scenarios.GetKey(i));
+		m.Add("name", project.scenarios[i].name);
+		m.Add("active", project.active_scenario_id == project.scenarios.GetKey(i));
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::DeleteScenario(const Value& args) {
+	String id = args["scenario_id"];
+	int idx = project.scenarios.Find(id);
+	if(idx >= 0) {
+		if(project.active_scenario_id == id) project.active_scenario_id = "";
+		project.scenarios.Remove(idx);
+		return "Scenario deleted";
+	}
+	throw Exc("Scenario not found");
+}
+
+Value McpServer::CompareScenario(const Value& args) {
+	if(project.active_scenario_id.IsEmpty()) throw Exc("No active scenario");
+	int idx = project.scenarios.Find(project.active_scenario_id);
+	Scenario& s = project.scenarios[idx];
+	
+	ValueArray arr;
+	for(int i = 0; i < s.metadata_delta.GetCount(); i++) {
+		ValueMap m;
+		m.Add("path", s.metadata_delta.GetKey(i));
+		m.Add("change", "Modified");
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::ApplyScenario(const Value& args) {
+	String id = args["scenario_id"];
+	if(id.IsEmpty()) id = project.active_scenario_id;
+	if(id.IsEmpty()) throw Exc("Scenario ID missing and no active scenario");
+	project.ApplyScenario(id);
+	return "Scenario applied";
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

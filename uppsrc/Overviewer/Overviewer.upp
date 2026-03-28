@@ -18,6 +18,8 @@ file
 	GitContext.cpp,
 	InsightEngine.h,
 	InsightEngine.cpp,
+	UsageTracker.h,
+	UsageTracker.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

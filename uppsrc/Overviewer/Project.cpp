@@ -9,7 +9,7 @@ SettingsWindow::SettingsWindow() {
 void SettingsWindow::Load() {
 	OverviewerSettings& s = GetSettings();
 	autosave_enabled = s.autosave_enabled;
-	autosave_interval = s.autosave_interval_minutes;
+	autosave_interval.SetData(s.autosave_interval_minutes);
 	backup_mode.SetData(s.backup_mode);
 	restore_layout = s.restore_layout;
 }
@@ -17,10 +17,78 @@ void SettingsWindow::Load() {
 void SettingsWindow::Save() {
 	OverviewerSettings& s = GetSettings();
 	s.autosave_enabled = autosave_enabled;
-	s.autosave_interval_minutes = autosave_interval;
+	s.autosave_interval_minutes = (int)autosave_interval.GetData();
 	s.backup_mode = (int)backup_mode.GetData();
 	s.restore_layout = restore_layout;
 	s.Save();
+}
+
+OverviewerWindow::SuggestionPanel::SuggestionPanel() {
+	Add(list.SizePos());
+	list.AddColumn("Type");
+	list.AddColumn("Category");
+	list.AddColumn("Value");
+	list.AddColumn("Conf");
+	list.AddColumn("Source");
+	list.WhenLeftDouble = THISBACK(OnApply);
+}
+
+void OverviewerWindow::SuggestionPanel::Refresh() {
+	list.Clear();
+	if(!suggestions) return;
+	auto add_sugs = [&](const char* type, const char* cat, const Vector<Suggestion>& v, int type_id, int cat_id) {
+		for(const Suggestion& s : v) {
+			if(!s.rejected)
+				list.Add(type, cat, s.text, FormatDouble(s.confidence, 2), s.source, type_id, cat_id);
+		}
+	};
+	add_sugs("Tag", "Current", suggestions->current_tags, 0, 0);
+	add_sugs("Tag", "Reason", suggestions->reason_tags, 0, 1);
+	add_sugs("Tag", "Gap", suggestions->gap_tags, 0, 2);
+	add_sugs("Problem", "", suggestions->problems, 1, 0);
+	add_sugs("Task", "", suggestions->tasks, 2, 0);
+}
+
+void OverviewerWindow::SuggestionPanel::OnApply() {
+	int id = list.GetCursor();
+	if(id < 0 || !window || !current_path) return;
+	window->ApplySuggestion(*current_path, list.Get(id, 5), list.Get(id, 6), list.Get(id, 2));
+}
+
+void OverviewerWindow::SuggestionPanel::OnDismiss() {
+	int id = list.GetCursor();
+	if(id < 0 || !window || !current_path) return;
+	window->DismissSuggestion(*current_path, list.Get(id, 5), list.Get(id, 6), list.Get(id, 2));
+}
+
+void OverviewerWindow::ApplySuggestion(const String& path, int type, int category, const String& value) {
+	FileMetadata& m = project.metadata.GetAdd(path);
+	if(type == 0) { // Tag
+		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
+		if(FindIndex(*v, value) < 0) v->Add(value);
+	} else if(type == 1) { // Problem
+		m.problems.Add().text = value;
+	} else if(type == 2) { // Task
+		m.tasks.Add().text = value;
+	}
+	DismissSuggestion(path, type, category, value);
+	MarkDirty();
+	UpdatePanels();
+}
+
+void OverviewerWindow::DismissSuggestion(const String& path, int type, int category, const String& value) {
+	EntrySuggestions* sug = project.suggestions.FindPtr(path);
+	if(!sug) return;
+	auto dismiss = [&](Vector<Suggestion>& v) {
+		for(Suggestion& s : v) if(s.text == value) s.rejected = true;
+	};
+	if(type == 0) {
+		if(category == 0) dismiss(sug->current_tags);
+		else if(category == 1) dismiss(sug->reason_tags);
+		else dismiss(sug->gap_tags);
+	} else if(type == 1) dismiss(sug->problems);
+	else if(type == 2) dismiss(sug->tasks);
+	suggestion_pane.Refresh();
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -208,7 +276,7 @@ void OverviewerWindow::TagPanel::OnAdd() {
 		if(FindIndex(*global_known, name) < 0)
 			global_known->Add(name);
 		Refresh();
-		when_change();
+		if(when_change) when_change();
 	}
 }
 
@@ -221,7 +289,7 @@ void OverviewerWindow::TagPanel::OnRemove() {
 	if(idx >= 0) {
 		assigned->Remove(idx);
 		Refresh();
-		when_change();
+		if(when_change) when_change();
 	}
 }
 
@@ -242,7 +310,7 @@ void OverviewerWindow::ListPanel::OnAdd() {
 	ListItem& it = items->Add();
 	it.text = text;
 	Refresh();
-	when_change();
+	if(when_change) when_change();
 }
 
 void OverviewerWindow::ListPanel::OnEdit() {
@@ -253,7 +321,7 @@ void OverviewerWindow::ListPanel::OnEdit() {
 	if(!EditText(it.text, "Edit Item", "Text:")) return;
 	it.text = TrimBoth(it.text);
 	Refresh();
-	when_change();
+	if(when_change) when_change();
 }
 
 void OverviewerWindow::ListPanel::OnRemove() {
@@ -262,7 +330,7 @@ void OverviewerWindow::ListPanel::OnRemove() {
 	if(id < 0) return;
 	items->Remove(id);
 	Refresh();
-	when_change();
+	if(when_change) when_change();
 }
 
 void OverviewerWindow::ListPanel::OnToggleDone() {
@@ -271,7 +339,7 @@ void OverviewerWindow::ListPanel::OnToggleDone() {
 	if(id < 0) return;
 	(*items)[id].done = !(*items)[id].done;
 	Refresh();
-	when_change();
+	if(when_change) when_change();
 }
 
 OverviewerWindow::OverviewerWindow() 
@@ -286,6 +354,10 @@ OverviewerWindow::OverviewerWindow()
 	dummy_metadata.quality = 0;
 	dummy_metadata.completion = 0;
 	dummy_metadata.priority = 0;
+
+	suggestion_pane.window = this;
+	suggestion_pane.current_path = &current_selection;
+	suggestion_pane.suggestions = &dummy_suggestions;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -304,7 +376,7 @@ OverviewerWindow::OverviewerWindow()
 	auto wire_tags = [&](TagPanel& p) {
 		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
-		p.when_change = THISBACK(OnMetadataChange);
+		p.when_change = [this]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
 	};
@@ -317,7 +389,7 @@ OverviewerWindow::OverviewerWindow()
 		p.edit.SetLabel("Edit").WhenAction = [&p]{ p.OnEdit(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
 		p.toggle_done.SetLabel("Done").WhenAction = [&p]{ p.OnToggleDone(); };
-		p.when_change = THISBACK(OnMetadataChange);
+		p.when_change = [this]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 50).BottomPos(0, 20));
 		p.Add(p.edit.LeftPos(55, 50).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(110, 60).BottomPos(0, 20));
@@ -395,6 +467,7 @@ void OverviewerWindow::DockInit() {
 	dock_problems = &Dockable(problems_pane, "Problems").SizeHint(Size(300, 200));
 	dock_tasks = &Dockable(tasks_pane, "Tasks").SizeHint(Size(300, 200));
 	dock_leads = &Dockable(leads_pane, "Leads").SizeHint(Size(300, 200));
+	dock_suggestions = &Dockable(suggestion_pane, "Suggestions").SizeHint(Size(400, 200));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -407,6 +480,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_problems);
 	Register(*dock_tasks);
 	Register(*dock_leads);
+	Register(*dock_suggestions);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -422,6 +496,7 @@ void OverviewerWindow::DockInit() {
 	DockRight(*dock_problems);
 	DockBottom(*dock_tasks);
 	DockBottom(*dock_leads);
+	DockBottom(*dock_suggestions);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -502,6 +577,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.working_dir = p.working_dir;
 		project.version = p.version;
 		project.metadata <<= p.metadata;
+		project.suggestions <<= p.suggestions;
 		project.known_current_tags <<= p.known_current_tags;
 		project.known_reason_tags <<= p.known_reason_tags;
 		project.known_gap_tags <<= p.known_gap_tags;
@@ -613,7 +689,8 @@ void OverviewerWindow::OnTreeSelection() {
 void OverviewerWindow::UpdatePanels() {
 	FileMetadata effective = project.GetEffectiveMetadata(current_selection);
 	FileMetadata* m = current_selection.IsEmpty() || current_selection == "." ? nullptr : &project.metadata.GetAdd(current_selection);
-	
+	EntrySuggestions* s = current_selection.IsEmpty() || current_selection == "." ? nullptr : project.suggestions.FindPtr(current_selection);
+
 	if(m) {
 		temporary = !!(m->flags & FLAG_TEMPORARY);
 		wrong_location = !!(m->flags & FLAG_WRONG_LOCATION);
@@ -646,6 +723,9 @@ void OverviewerWindow::UpdatePanels() {
 		leads_pane.items = &dummy_metadata.leads;
 	}
 	
+	suggestion_pane.suggestions = s ? s : &dummy_suggestions;
+	suggestion_pane.Refresh();
+
 	current_tags_pane.Refresh();
 	reason_tags_pane.Refresh();
 	gap_tags_pane.Refresh();
@@ -703,10 +783,18 @@ void OverviewerWindow::OnSettings() {
 	}
 }
 
+void OverviewerWindow::OnAnalyze() {
+	if(!current_selection.IsEmpty() && current_selection != ".") {
+		project.AnalyzeEntry(current_selection);
+		UpdatePanels();
+	}
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
 	bar.Add("View", THISBACK(ViewMenu));
+	bar.Add("Tools", THISBACK(ToolsMenu));
 	bar.Add("Help", THISBACK(HelpMenu));
 }
 
@@ -735,6 +823,10 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	}).Check(filter.mode == 1);
 }
 
+void OverviewerWindow::ToolsMenu(Bar& bar) {
+	bar.Add("Analyze Selection", THISBACK(OnAnalyze));
+}
+
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 6"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 7"); });
 }

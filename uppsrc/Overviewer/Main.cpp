@@ -24,6 +24,10 @@ void PrintHelp() {
 	       << "  Overviewer --show-recovery-info <project>\n"
 	       << "  Overviewer --generate-suggestions <project> <path> [--recursive]\n"
 	       << "  Overviewer --apply-suggestion <project> <path> <type_id> <category_id> <value>\n"
+	       << "  Overviewer --get-dashboard <project>\n"
+	       << "  Overviewer --run-consistency-check <project>\n"
+	       << "  Overviewer --list-review-items <project>\n"
+	       << "  Overviewer --dismiss-review-item <project> <path> <message>\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -81,28 +85,6 @@ int CliMain(const Vector<String>& args) {
 		}
 	}
 
-	if (args[0] == "--roundtrip-project" && args.GetCount() >= 3) {
-		String content = LoadFile(args[1]);
-		if (content.IsEmpty()) {
-			Cerr() << "Failed to load input project: " << args[1] << "\n";
-			return 1;
-		}
-		OverviewerProject p;
-		try {
-			LoadFromJson(p, content);
-			String json = StoreAsJson(p);
-			if (SaveFile(args[2], json)) {
-				Cout() << "Project roundtripped to: " << args[2] << "\n";
-				return 0;
-			}
-			Cerr() << "Failed to save output project: " << args[2] << "\n";
-			return 1;
-		} catch (const Exc& e) {
-			Cerr() << "Failed to parse input project: " << e << "\n";
-			return 1;
-		}
-	}
-
 	if (args[0] == "--set-flag" && args.GetCount() >= 4) {
 		String p_path = args[1];
 		String f_path = args[2];
@@ -118,16 +100,6 @@ int CliMain(const Vector<String>& args) {
 		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
 		else return 1;
 		p.metadata.GetAdd(f_path).flags |= bit;
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--set-priority" && args.GetCount() >= 4) {
-		String p_path = args[1];
-		String f_path = args[2];
-		int val = ScanInt(args[3]);
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		p.metadata.GetAdd(f_path).priority = val;
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
@@ -180,60 +152,6 @@ int CliMain(const Vector<String>& args) {
 		return 1;
 	}
 
-	if (args[0] == "--set-note" && args.GetCount() >= 4) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String note = args[3];
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		p.metadata.GetAdd(f_path).notes = note;
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--add-tag" && args.GetCount() >= 5) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String cat = args[3];
-		String tag = args[4];
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		FileMetadata& m = p.metadata.GetAdd(f_path);
-		Vector<String>* target = (cat == "current" ? &m.current_tags : (cat == "reason" ? &m.reason_tags : (cat == "gap" ? &m.gap_tags : nullptr)));
-		if(!target) return 1;
-		if(FindIndex(*target, tag) < 0) target->Add(tag);
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--batch-set-priority" && args.GetCount() >= 4) {
-		String p_path = args[1];
-		String f_path = args[2];
-		int val = ScanInt(args[3]);
-		bool rec = args.GetCount() >= 5 && args[4] == "--recursive";
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
-		for(const String& path : paths) p.metadata.GetAdd(path).priority = val;
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--write-backup" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		return p.WriteBackup() ? 0 : 1;
-	}
-
-	if (args[0] == "--show-recovery-info" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		String bpath = p.GetBackupPath();
-		bool exists = !bpath.IsEmpty() && FileExists(bpath);
-		Cout() << "Backup path: " << bpath << "\n";
-		Cout() << "Exists: " << (exists ? "YES" : "NO") << "\n";
-		return 0;
-	}
-
 	if (args[0] == "--generate-suggestions" && args.GetCount() >= 3) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
@@ -247,7 +165,7 @@ int CliMain(const Vector<String>& args) {
 				if(k.StartsWith(fpath + "/") || k.StartsWith(fpath + "\\")) p.AnalyzeEntry(k);
 			}
 		}
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
 	if (args[0] == "--apply-suggestion" && args.GetCount() >= 6) {
@@ -264,7 +182,47 @@ int CliMain(const Vector<String>& args) {
 			if(v && FindIndex(*v, val) < 0) v->Add(val);
 		} else if(type == 1) m.problems.Add().text = val;
 		else if(type == 2) m.tasks.Add().text = val;
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
+	}
+
+	if (args[0] == "--get-dashboard" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		ProjectDashboard db = p.GetDashboard();
+		Cout() << "Dashboard for " << args[1] << ":\n"
+		       << "  Total Files: " << db.total_files << "\n"
+		       << "  Total Dirs: " << db.total_dirs << "\n"
+		       << "  Flagged: " << db.flagged_entries << "\n"
+		       << "  Suggestions Pending: " << db.suggestions_pending << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--run-consistency-check" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		p.RunConsistencyCheck();
+		Cout() << "Consistency check complete. Review items: " << p.review_queue.GetCount() << "\n";
+		for(const auto& it : p.review_queue)
+			Cout() << "  - [" << it.severity << "] " << it.path << ": " << it.message << "\n";
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
+	}
+
+	if (args[0] == "--list-review-items" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.RunConsistencyCheck();
+		for(const auto& it : p.review_queue)
+			Cout() << it.path << "|" << it.type << "|" << it.message << "|" << it.severity << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--dismiss-review-item" && args.GetCount() >= 4) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		p.dismissed_review_ids.FindAdd(args[2] + ":" + args[3]);
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
 	Cerr() << "Unknown arguments. Use --help for usage.\n";

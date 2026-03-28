@@ -1,5 +1,8 @@
 #include "Overviewer.h"
 
+#define LAYOUTFILE <Overviewer/Overviewer.lay>
+#include <CtrlCore/lay.h>
+
 SettingsWindow::SettingsWindow() {
 	CtrlLayoutOKCancel(*this, "Settings");
 	backup_mode.Add(0, "Alongside project (.autosave.json)");
@@ -52,13 +55,13 @@ void OverviewerWindow::SuggestionPanel::Refresh() {
 void OverviewerWindow::SuggestionPanel::OnApply() {
 	int id = list.GetCursor();
 	if(id < 0 || !window || !current_path) return;
-	window->ApplySuggestion(*current_path, list.Get(id, 5), list.Get(id, 6), list.Get(id, 2));
+	window->ApplySuggestion(*current_path, (int)list.Get(id, 5), (int)list.Get(id, 6), (String)list.Get(id, 2));
 }
 
 void OverviewerWindow::SuggestionPanel::OnDismiss() {
 	int id = list.GetCursor();
 	if(id < 0 || !window || !current_path) return;
-	window->DismissSuggestion(*current_path, list.Get(id, 5), list.Get(id, 6), list.Get(id, 2));
+	window->DismissSuggestion(*current_path, (int)list.Get(id, 5), (int)list.Get(id, 6), (String)list.Get(id, 2));
 }
 
 void OverviewerWindow::ApplySuggestion(const String& path, int type, int category, const String& value) {
@@ -89,6 +92,53 @@ void OverviewerWindow::DismissSuggestion(const String& path, int type, int categ
 	} else if(type == 1) dismiss(sug->problems);
 	else if(type == 2) dismiss(sug->tasks);
 	suggestion_pane.Refresh();
+}
+
+void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
+	stats.Clear();
+	stats.Add("Total Files", db.total_files);
+	stats.Add("Total Directories", db.total_dirs);
+	stats.Add("Flagged Entries", db.flagged_entries);
+	stats.Add("Needs Review (Flagged)", db.needs_review);
+	stats.Add("Missing Priority", db.missing_priority);
+	stats.Add("Missing Completion", db.missing_completion);
+	stats.Add("With Notes", db.with_notes);
+	stats.Add("With Problems", db.with_problems);
+	stats.Add("With Tasks", db.with_tasks);
+	stats.Add("With Leads", db.with_leads);
+	stats.Add("Suggestions Pending", db.suggestions_pending);
+}
+
+OverviewerWindow::ReviewQueuePanel::ReviewQueuePanel() {
+	Add(list.SizePos());
+	list.AddColumn("Path");
+	list.AddColumn("Type");
+	list.AddColumn("Message");
+	list.AddColumn("Sev");
+	list.WhenLeftDouble = THISBACK(OnJump);
+}
+
+void OverviewerWindow::ReviewQueuePanel::Refresh(const Vector<ReviewItem>& queue) {
+	list.Clear();
+	for(const auto& it : queue) {
+		if(!it.dismissed)
+			list.Add(it.path, it.type, it.message, it.severity);
+	}
+}
+
+void OverviewerWindow::ReviewQueuePanel::OnJump() {
+	int id = list.GetCursor();
+	if(id < 0 || !window) return;
+	// Path is in list.Get(id, 0);
+}
+
+void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
+	int id = list.GetCursor();
+	if(id < 0 || !window) return;
+	String p = list.Get(id, 0);
+	String msg = list.Get(id, 2);
+	window->project.dismissed_review_ids.FindAdd(p + ":" + msg);
+	window->RefreshReviewQueue();
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -358,6 +408,8 @@ OverviewerWindow::OverviewerWindow()
 	suggestion_pane.window = this;
 	suggestion_pane.current_path = &current_selection;
 	suggestion_pane.suggestions = &dummy_suggestions;
+	
+	review_queue_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -468,6 +520,8 @@ void OverviewerWindow::DockInit() {
 	dock_tasks = &Dockable(tasks_pane, "Tasks").SizeHint(Size(300, 200));
 	dock_leads = &Dockable(leads_pane, "Leads").SizeHint(Size(300, 200));
 	dock_suggestions = &Dockable(suggestion_pane, "Suggestions").SizeHint(Size(400, 200));
+	dock_dashboard = &Dockable(dashboard_pane, "Dashboard").SizeHint(Size(300, 400));
+	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -481,6 +535,8 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_tasks);
 	Register(*dock_leads);
 	Register(*dock_suggestions);
+	Register(*dock_dashboard);
+	Register(*dock_review_queue);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -497,6 +553,9 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_tasks);
 	DockBottom(*dock_leads);
 	DockBottom(*dock_suggestions);
+	
+	DockLeft(*dock_dashboard);
+	DockBottom(*dock_review_queue);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -552,6 +611,8 @@ void OverviewerWindow::New() {
 	if (!ConfirmSave()) return;
 	project.Reset();
 	RefreshTree();
+	RefreshDashboard();
+	RefreshReviewQueue();
 	ClearDirty();
 }
 
@@ -578,10 +639,13 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.version = p.version;
 		project.metadata <<= p.metadata;
 		project.suggestions <<= p.suggestions;
+		project.dismissed_review_ids <<= p.dismissed_review_ids;
 		project.known_current_tags <<= p.known_current_tags;
 		project.known_reason_tags <<= p.known_reason_tags;
 		project.known_gap_tags <<= p.known_gap_tags;
 		RefreshTree();
+		RefreshDashboard();
+		RefreshReviewQueue();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -790,6 +854,30 @@ void OverviewerWindow::OnAnalyze() {
 	}
 }
 
+void OverviewerWindow::OnRunConsistencyCheck() {
+	project.RunConsistencyCheck();
+	RefreshReviewQueue();
+	RefreshDashboard();
+}
+
+void OverviewerWindow::OnShowDashboard() {
+	RefreshDashboard();
+	if(dock_dashboard) dock_dashboard->Show();
+}
+
+void OverviewerWindow::OnShowReviewQueue() {
+	RefreshReviewQueue();
+	if(dock_review_queue) dock_review_queue->Show();
+}
+
+void OverviewerWindow::RefreshReviewQueue() {
+	review_queue_pane.Refresh(project.review_queue);
+}
+
+void OverviewerWindow::RefreshDashboard() {
+	dashboard_pane.Refresh(project.GetDashboard());
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
@@ -821,12 +909,16 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 		if(EditText(tags, "Filter Tags", "Current tag:")) filter.tag_current = tags;
 		RefreshTree();
 	}).Check(filter.mode == 1);
+	bar.Separator();
+	bar.Add("Dashboard", THISBACK(OnShowDashboard));
+	bar.Add("Review Queue", THISBACK(OnShowReviewQueue));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
 	bar.Add("Analyze Selection", THISBACK(OnAnalyze));
+	bar.Add("Run Consistency Check", THISBACK(OnRunConsistencyCheck));
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 7"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 8"); });
 }

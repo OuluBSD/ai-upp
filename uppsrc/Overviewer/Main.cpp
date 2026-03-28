@@ -264,6 +264,41 @@ int CliMain(const Vector<String>& args) {
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
+	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		OverviewOptions opt;
+		opt.markdown_output = args.GetCount() >= 3 && args[2] == "--markdown";
+		Cout() << OverviewGenerator(p).GenerateProject(opt);
+		return 0;
+	}
+
+	if (args[0] == "--generate-overview-subtree" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		OverviewOptions opt;
+		opt.markdown_output = args.GetCount() >= 4 && args[3] == "--markdown";
+		Cout() << OverviewGenerator(p).Generate(args[2], opt);
+		return 0;
+	}
+
+	if (args[0] == "--generate-overview-entry" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		OverviewOptions opt;
+		opt.markdown_output = args.GetCount() >= 4 && args[3] == "--markdown";
+		Cout() << OverviewGenerator(p).Generate(args[2], opt);
+		return 0;
+	}
+
+	if (args[0] == "--export-overview" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		OverviewOptions opt;
+		opt.markdown_output = GetFileExt(args[2]) == ".md";
+		return SaveFile(args[2], OverviewGenerator(p).GenerateProject(opt)) ? 0 : 1;
+	}
+
 	Cerr() << "Unknown arguments. Use --help for usage.\n";
 	return 1;
 }

@@ -189,6 +189,26 @@ void OverviewerWindow::ActionViewPanel::OnJump() {
 	if(id < 0 || !window) return;
 }
 
+OverviewerWindow::OverviewPreviewPanel::OverviewPreviewPanel() {
+	Add(view.VSizePos(0, 40).HSizePos());
+	Add(refresh.SetLabel("Refresh").LeftPos(5, 80).BottomPos(5, 25));
+	Add(markdown.SetLabel("Markdown").LeftPos(90, 100).BottomPos(5, 25));
+	Add(export_btn.SetLabel("Export...").RightPos(5, 80).BottomPos(5, 25));
+	markdown = true;
+	refresh.WhenAction = THISBACK(Refresh);
+	export_btn.WhenAction = [this]{ if(window) window->OnExportOverview(); };
+}
+
+void OverviewerWindow::OverviewPreviewPanel::Refresh() {
+	if(!window) return;
+	OverviewOptions opt;
+	opt.markdown_output = markdown;
+	String text = OverviewGenerator(window->project).GenerateProject(opt);
+	if(markdown) view.SetQTF(Format(text)); // Simplified Markdown->QTF conversion or just plain
+	else view.SetData(text);
+	view.SetData(text); // For now just set as text
+}
+
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
 	FileMetadata res;
 	const FileMetadata* m = metadata.FindPtr(rel_path);
@@ -476,6 +496,7 @@ OverviewerWindow::OverviewerWindow()
 	review_queue_pane.window = this;
 	timeline_pane.window = this;
 	action_view_pane.window = this;
+	overview_preview_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -590,6 +611,7 @@ void OverviewerWindow::DockInit() {
 	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300));
 	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300));
 	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300));
+	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -607,6 +629,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_review_queue);
 	Register(*dock_timeline);
 	Register(*dock_action_view);
+	Register(*dock_overview_preview);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -628,6 +651,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_review_queue);
 	DockBottom(*dock_timeline);
 	DockBottom(*dock_action_view);
+	DockBottom(*dock_overview_preview);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -688,6 +712,7 @@ void OverviewerWindow::New() {
 	RefreshReviewQueue();
 	RefreshTimeline();
 	RefreshActionView();
+	RefreshOverviewPreview();
 	ClearDirty();
 }
 
@@ -724,6 +749,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshReviewQueue();
 		RefreshTimeline();
 		RefreshActionView();
+		RefreshOverviewPreview();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -989,6 +1015,11 @@ void OverviewerWindow::OnShowActionView() {
 	if(dock_action_view) dock_action_view->Show();
 }
 
+void OverviewerWindow::OnShowOverviewPreview() {
+	RefreshOverviewPreview();
+	if(dock_overview_preview) dock_overview_preview->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -1005,6 +1036,22 @@ void OverviewerWindow::RefreshActionView() {
 	action_view_pane.Refresh(project.GetActionView(20));
 }
 
+void OverviewerWindow::RefreshOverviewPreview() {
+	overview_preview_pane.Refresh();
+}
+
+void OverviewerWindow::OnExportOverview() {
+	FileSel fs;
+	fs.Type("Markdown", "*.md");
+	fs.Type("Text", "*.txt");
+	if(fs.ExecuteSaveAs("Export Overview")) {
+		OverviewOptions opt;
+		opt.markdown_output = GetFileExt(fs.Get()) == ".md";
+		String text = OverviewGenerator(project).GenerateProject(opt);
+		SaveFile(fs.Get(), text);
+	}
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
@@ -1018,6 +1065,8 @@ void OverviewerWindow::FileMenu(Bar& bar) {
 	bar.Add("Open", THISBACK(Open));
 	bar.Add("Save", THISBACK(Save));
 	bar.Add("Save As", THISBACK(SaveAs));
+	bar.Separator();
+	bar.Add("Export Overview...", THISBACK(OnExportOverview));
 	bar.Separator();
 	bar.Add("Exit", THISBACK(Exit));
 }
@@ -1041,6 +1090,7 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Review Queue", THISBACK(OnShowReviewQueue));
 	bar.Add("Timeline", THISBACK(OnShowTimeline));
 	bar.Add("Action View", THISBACK(OnShowActionView));
+	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -1049,5 +1099,5 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 10"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 11"); });
 }

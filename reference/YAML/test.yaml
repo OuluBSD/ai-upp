@@ -1,48 +1,98 @@
-- firstName: John
-  lastName: Smith
-  age: 25
-  address:
-    streetAddress: "21 2nd Street"
-    city: New York
-    state: NY
-    postalCode: "10021"
-  phoneNumber:
-    - type: home
-      number: "212 555-1234"
-    - type: fax
-      number: "646 555-4567"
-  nulltest: null
-  truetest: true
-  falsetest: false
-- firstName: Peter
-  lastName: Bush
-  age: 33
-  address:
-    streetAddress: "25 5th Street"
-    city: New York
-    state: NY
-    postalCode: "10021"
-  phoneNumber:
-    - type: home
-      number: "212 555-3421"
-    - type: fax
-      number: "646 555-8765"
-  nulltest: null
-  truetest: true
-  falsetest: false
-- firstName: Alice
-  lastName: Banks
-  age: 55
-  address:
-    streetAddress: "11 3rd Street"
-    city: New York
-    state: NY
-    postalCode: "10021"
-  phoneNumber:
-    - type: home
-      number: "212 523-1234"
-    - type: fax
-      number: "646 532-4567"
-  nulltest: null
-  truetest: true
-  falsetest: false
+# Basic YAML test data - structured as a single map
+people:
+  - firstName: John
+    lastName: Smith
+    age: 25
+    address:
+      streetAddress: "21 2nd Street"
+      city: New York
+      state: NY
+      postalCode: "10021"
+    phoneNumber:
+      - type: home
+        number: "212 555-1234"
+      - type: fax
+        number: "646 555-4567"
+    nulltest: null
+    truetest: true
+    falsetest: false
+  - firstName: Peter
+    lastName: Bush
+    age: 33
+    address:
+      streetAddress: "25 5th Street"
+      city: New York
+      state: NY
+      postalCode: "10021"
+    phoneNumber:
+      - type: home
+        number: "212 555-3421"
+      - type: fax
+        number: "646 555-8765"
+    nulltest: null
+    truetest: true
+    falsetest: false
+  - firstName: Alice
+    lastName: Banks
+    age: 55
+    address:
+      streetAddress: "11 3rd Street"
+      city: New York
+      state: NY
+      postalCode: "10021"
+    phoneNumber:
+      - type: home
+        number: "212 523-1234"
+      - type: fax
+        number: "646 532-4567"
+    nulltest: null
+    truetest: true
+    falsetest: false
+
+# Multi-line strings test
+multi_line_test:
+  literal: |
+    Line 1
+    Line 2
+    Line 3 (preserved newlines)
+  folded: >
+    This is a long
+    line that folds
+    to single line.
+    
+    This is a new paragraph.
+  description: Simple scalar
+
+# Anchors and aliases test
+anchors_test:
+  defaults: &defaults
+    timeout: 30
+    retries: 3
+    enabled: true
+  config1: *defaults
+  config2: *defaults
+  custom:
+    timeout: 60
+    retries: 5
+    enabled: false
+
+# Flow style test
+flow_style_test:
+  point: {x: 10, y: 20}
+  list: [1, 2, 3, 4, 5]
+  nested: {items: [a, b, c], count: 3}
+  empty_map: {}
+  empty_list: []
+  mixed: {name: test, values: [1, 2], active: true}
+
+# Combined features test
+combined_test:
+  description: |
+    This tests all advanced
+    YAML features together.
+  settings: &settings
+    mode: advanced
+    features: [yaml, parser, test]
+  copy1: *settings
+  copy2: *settings
+  inline: {key: value, num: 42}

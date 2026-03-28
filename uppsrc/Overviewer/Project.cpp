@@ -142,8 +142,8 @@ void OverviewerWindow::ReviewQueuePanel::OnJump() {
 void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
 	int id = list.GetCursor();
 	if(id < 0 || !window) return;
-	String p = list.Get(id, 0);
-	String msg = list.Get(id, 2);
+	String p = (String)list.Get(id, 0);
+	String msg = (String)list.Get(id, 2);
 	window->project.dismissed_review_ids.FindAdd(p + ":" + msg);
 	window->RefreshReviewQueue();
 }
@@ -204,9 +204,27 @@ void OverviewerWindow::OverviewPreviewPanel::Refresh() {
 	OverviewOptions opt;
 	opt.markdown_output = markdown;
 	String text = OverviewGenerator(window->project).GenerateProject(opt);
-	if(markdown) view.SetQTF(Format(text)); // Simplified Markdown->QTF conversion or just plain
-	else view.SetData(text);
-	view.SetData(text); // For now just set as text
+	view.SetData(text);
+}
+
+OverviewerWindow::GitHistoryPanel::GitHistoryPanel() {
+	Add(list.SizePos());
+	list.AddColumn("Hash", 20);
+	list.AddColumn("Author");
+	list.AddColumn("Date");
+	list.AddColumn("Subject");
+	list.WhenLeftDouble = THISBACK(OnLink);
+}
+
+void OverviewerWindow::GitHistoryPanel::Refresh(const Vector<GitCommit>& history) {
+	list.Clear();
+	for(const auto& c : history)
+		list.Add(c.hash, c.author, Format(c.date), c.subject);
+}
+
+void OverviewerWindow::GitHistoryPanel::OnLink() {
+	int id = list.GetCursor();
+	if(id < 0 || !window) return;
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -218,9 +236,9 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 		res.completion = m->completion;
 		res.priority = m->priority;
 		res.notes = m->notes;
-		res.current_tags <<= m->current_tags;
-		res.reason_tags <<= m->reason_tags;
-		res.gap_tags <<= m->gap_tags;
+		for(const auto& x : m->current_tags) res.current_tags.Add(x);
+		for(const auto& x : m->reason_tags) res.reason_tags.Add(x);
+		for(const auto& x : m->gap_tags) res.gap_tags.Add(x);
 	}
 
 	auto inherit = [&](int& val, int (FileMetadata::*field)) {
@@ -272,6 +290,10 @@ void OverviewerProject::LogEvent(const String& path, const String& type, const S
 	
 	if(history.GetCount() > max_history)
 		history.Remove(0, history.GetCount() - max_history);
+}
+
+void OverviewerProject::RefreshGit() {
+	if(!working_dir.IsEmpty()) git.Refresh(working_dir);
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -418,7 +440,7 @@ void OverviewerWindow::TagPanel::OnRemove() {
 	if(!assigned) return;
 	int id = list.GetCursor();
 	if(id < 0) return;
-	String name = list.Get(id, 0);
+	String name = (String)list.Get(id, 0);
 	int idx = FindIndex(*assigned, name);
 	if(idx >= 0) {
 		assigned->Remove(idx);
@@ -497,6 +519,7 @@ OverviewerWindow::OverviewerWindow()
 	timeline_pane.window = this;
 	action_view_pane.window = this;
 	overview_preview_pane.window = this;
+	git_history_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -515,7 +538,7 @@ OverviewerWindow::OverviewerWindow()
 	auto wire_tags = [&](TagPanel& p) {
 		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
-		p.when_change = [this]{ OnMetadataChange(); };
+		p.when_change = [=]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
 	};
@@ -528,7 +551,7 @@ OverviewerWindow::OverviewerWindow()
 		p.edit.SetLabel("Edit").WhenAction = [&p]{ p.OnEdit(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
 		p.toggle_done.SetLabel("Done").WhenAction = [&p]{ p.OnToggleDone(); };
-		p.when_change = [this]{ OnMetadataChange(); };
+		p.when_change = [=]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 50).BottomPos(0, 20));
 		p.Add(p.edit.LeftPos(55, 50).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(110, 60).BottomPos(0, 20));
@@ -612,6 +635,7 @@ void OverviewerWindow::DockInit() {
 	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300));
 	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300));
 	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400));
+	dock_git_history = &Dockable(git_history_pane, "Git History").SizeHint(Size(400, 200));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -630,6 +654,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_timeline);
 	Register(*dock_action_view);
 	Register(*dock_overview_preview);
+	Register(*dock_git_history);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -652,6 +677,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_timeline);
 	DockBottom(*dock_action_view);
 	DockBottom(*dock_overview_preview);
+	DockBottom(*dock_git_history);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -713,6 +739,7 @@ void OverviewerWindow::New() {
 	RefreshTimeline();
 	RefreshActionView();
 	RefreshOverviewPreview();
+	RefreshGitHistory();
 	ClearDirty();
 }
 
@@ -750,6 +777,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshTimeline();
 		RefreshActionView();
 		RefreshOverviewPreview();
+		RefreshGitHistory();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -916,6 +944,7 @@ void OverviewerWindow::UpdatePanels() {
 	
 	RefreshTimeline();
 	RefreshActionView();
+	RefreshGitHistory();
 }
 
 void OverviewerWindow::OnMetadataChange() {
@@ -1020,6 +1049,11 @@ void OverviewerWindow::OnShowOverviewPreview() {
 	if(dock_overview_preview) dock_overview_preview->Show();
 }
 
+void OverviewerWindow::OnShowGitHistory() {
+	RefreshGitHistory();
+	if(dock_git_history) dock_git_history->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -1040,6 +1074,10 @@ void OverviewerWindow::RefreshOverviewPreview() {
 	overview_preview_pane.Refresh();
 }
 
+void OverviewerWindow::RefreshGitHistory() {
+	git_history_pane.Refresh(project.git.GetHistory(project.working_dir, current_selection));
+}
+
 void OverviewerWindow::OnExportOverview() {
 	FileSel fs;
 	fs.Type("Markdown", "*.md");
@@ -1050,6 +1088,13 @@ void OverviewerWindow::OnExportOverview() {
 		String text = OverviewGenerator(project).GenerateProject(opt);
 		SaveFile(fs.Get(), text);
 	}
+}
+
+void OverviewerWindow::OnRefreshGit() {
+	project.RefreshGit();
+	RefreshGitHistory();
+	RefreshDashboard();
+	RefreshReviewQueue();
 }
 
 void OverviewerWindow::MainMenu(Bar& bar) {
@@ -1091,13 +1136,16 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Timeline", THISBACK(OnShowTimeline));
 	bar.Add("Action View", THISBACK(OnShowActionView));
 	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
+	bar.Add("Git History", THISBACK(OnShowGitHistory));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
 	bar.Add("Analyze Selection", THISBACK(OnAnalyze));
 	bar.Add("Run Consistency Check", THISBACK(OnRunConsistencyCheck));
+	bar.Separator();
+	bar.Add("Refresh Git Status", THISBACK(OnRefreshGit));
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 11"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 12"); });
 }

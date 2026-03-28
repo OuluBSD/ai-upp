@@ -5,9 +5,11 @@
 #include <Docking/Docking.h>
 #include "Settings.h"
 #include "OverviewGenerator.h"
+#include "GitContext.h"
 
 using namespace Upp;
 
+// Standard layout inclusion pattern
 #define LAYOUTFILE <Overviewer/Overviewer.lay>
 #include <CtrlCore/lay.h>
 
@@ -57,6 +59,15 @@ struct EntrySuggestions : Moveable<EntrySuggestions> {
 	void Clear() {
 		current_tags.Clear(); reason_tags.Clear(); gap_tags.Clear();
 		problems.Clear(); tasks.Clear();
+	}
+	
+	EntrySuggestions() {}
+	EntrySuggestions(const EntrySuggestions& s, int) {
+		for(const auto& x : s.current_tags) current_tags.Add(x);
+		for(const auto& x : s.reason_tags) reason_tags.Add(x);
+		for(const auto& x : s.gap_tags) gap_tags.Add(x);
+		for(const auto& x : s.problems) problems.Add(x);
+		for(const auto& x : s.tasks) tasks.Add(x);
 	}
 };
 
@@ -148,6 +159,18 @@ struct FileMetadata : Moveable<FileMetadata> {
 		   ("current_tags", current_tags)("reason_tags", reason_tags)("gap_tags", gap_tags)
 		   ("problems", problems)("tasks", tasks)("leads", leads);
 	}
+	
+	FileMetadata() {}
+	FileMetadata(const FileMetadata& s, int) {
+		flags = s.flags; quality = s.quality; completion = s.completion; priority = s.priority;
+		notes = s.notes;
+		for(const auto& x : s.current_tags) current_tags.Add(x);
+		for(const auto& x : s.reason_tags) reason_tags.Add(x);
+		for(const auto& x : s.gap_tags) gap_tags.Add(x);
+		for(const auto& x : s.problems) problems.Add(x);
+		for(const auto& x : s.tasks) tasks.Add(x);
+		for(const auto& x : s.leads) leads.Add(x);
+	}
 };
 
 struct OverviewerProject {
@@ -163,6 +186,8 @@ struct OverviewerProject {
 	Vector<String> known_current_tags;
 	Vector<String> known_reason_tags;
 	Vector<String> known_gap_tags;
+	
+	GitContext git;
 	
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -200,6 +225,8 @@ struct OverviewerProject {
 	
 	EntryScore ComputeScore(const String& path) const;
 	VectorMap<String, EntryScore> GetActionView(int limit = 0) const;
+	
+	void RefreshGit();
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -247,6 +274,7 @@ public:
 	void OnShowTimeline();
 	void OnShowActionView();
 	void OnShowOverviewPreview();
+	void OnShowGitHistory();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -263,8 +291,10 @@ public:
 	void RefreshTimeline();
 	void RefreshActionView();
 	void RefreshOverviewPreview();
+	void RefreshGitHistory();
 
 	void OnExportOverview();
+	void OnRefreshGit();
 
 public:
 	struct FilterConfig {
@@ -396,6 +426,15 @@ private:
 		void Refresh();
 	};
 
+	struct GitHistoryPanel : ParentCtrl {
+		typedef GitHistoryPanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		GitHistoryPanel();
+		void Refresh(const Vector<GitCommit>& history);
+		void OnLink();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -404,6 +443,7 @@ private:
 	TimelinePanel timeline_pane;
 	ActionViewPanel action_view_pane;
 	OverviewPreviewPanel overview_preview_pane;
+	GitHistoryPanel git_history_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -422,6 +462,7 @@ private:
 	DockableCtrl* dock_timeline = nullptr;
 	DockableCtrl* dock_action_view = nullptr;
 	DockableCtrl* dock_overview_preview = nullptr;
+	DockableCtrl* dock_git_history = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

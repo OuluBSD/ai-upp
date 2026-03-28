@@ -65,6 +65,11 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_entry_score") res = GetEntryScore(args);
 		else if(method == "generate_overview") res = GenerateOverview(args);
 		else if(method == "export_overview") res = ExportOverview(args);
+		else if(method == "get_git_info") res = GetGitInfo(args);
+		else if(method == "refresh_git_status") res = RefreshGitStatus(args);
+		else if(method == "get_entry_git_status") res = GetEntryGitStatus(args);
+		else if(method == "get_entry_commits") res = GetEntryCommits(args);
+		else if(method == "link_list_item_commit") res = LinkListItemCommit(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -579,7 +584,7 @@ Value McpServer::GetEntryScore(const Value& args) {
 
 Value McpServer::GenerateOverview(const Value& args) {
 	OverviewOptions opt;
-	if(!args["options"].IsNull()) LoadFromJson(opt, args["options"]);
+	if(!args["options"].IsNull()) LoadFromJsonValue(opt, args["options"]);
 	String path = args["path"];
 	String type = args["scope_type"];
 	
@@ -599,6 +604,67 @@ Value McpServer::ExportOverview(const Value& args) {
 	Value res = GenerateOverview(args);
 	if(SaveFile(out_path, res["text"])) return "Overview exported to " + out_path;
 	throw Exc("Failed to write export file");
+}
+
+Value McpServer::GetGitInfo(const Value& args) {
+	ValueMap m;
+	m.Add("repo_detected", project.git.repo_detected);
+	m.Add("repo_root", project.git.repo_root);
+	m.Add("branch", project.git.branch);
+	m.Add("head_hash", project.git.head_hash);
+	return m;
+}
+
+Value McpServer::RefreshGitStatus(const Value& args) {
+	project.RefreshGit();
+	return "Git status refreshed";
+}
+
+Value McpServer::GetEntryGitStatus(const Value& args) {
+	String path = args["path"];
+	int s = project.git.GetStatus(path);
+	String st = "none";
+	if(s == GIT_UNTRACKED) st = "untracked";
+	else if(s == GIT_MODIFIED) st = "modified";
+	else if(s == GIT_ADDED) st = "added";
+	else if(s == GIT_DELETED) st = "deleted";
+	else if(s == GIT_RENAMED) st = "renamed";
+	return st;
+}
+
+Value McpServer::GetEntryCommits(const Value& args) {
+	String path = args["path"];
+	int limit = args["limit"];
+	if(limit <= 0) limit = 10;
+	Vector<GitCommit> commits = project.git.GetHistory(project.working_dir, path, limit);
+	ValueArray arr;
+	for(const auto& c : commits) {
+		ValueMap m;
+		m.Add("hash", c.hash);
+		m.Add("author", c.author);
+		m.Add("date", Format(c.date));
+		m.Add("subject", c.subject);
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::LinkListItemCommit(const Value& args) {
+	String path = args["path"];
+	String ltype = args["list_type"];
+	int idx = args["index"];
+	String commit = args["commit"];
+	
+	FileMetadata* m = project.metadata.FindPtr(path);
+	if(!m) throw Exc("No metadata for path");
+	Vector<ListItem>* v = nullptr;
+	if(ltype == "problems") v = &m->problems;
+	else if(ltype == "tasks") v = &m->tasks;
+	else if(ltype == "leads") v = &m->leads;
+	
+	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
+	(*v)[idx].commit = commit;
+	return "Commit linked";
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

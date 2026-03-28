@@ -42,6 +42,11 @@ void ValueArray::Data::Jsonize(JsonIO& jio)
 	Upp::Jsonize(jio, data);
 }
 
+void ValueArray::Data::Yamlize(YamlIO& yio)
+{
+	Upp::Yamlize(yio, data);
+}
+
 void ValueArray::Data::Xmlize(XmlIO& io)
 {
 	Upp::Xmlize(io, data);
@@ -180,6 +185,15 @@ void ValueArray::Jsonize(JsonIO& jio)
 	data->Jsonize(jio);
 }
 
+void ValueArray::Yamlize(YamlIO& yio)
+{
+	if(yio.IsLoading()) {
+		data->Release();
+		Create();
+	}
+	data->Yamlize(yio);
+}
+
 void ValueArray::Xmlize(XmlIO& xio)
 {
 	if(xio.IsLoading()) {
@@ -299,6 +313,33 @@ void ValueMap::Data::Xmlize(XmlIO& xio)
 {
 	Upp::Xmlize(xio, key);
 	Upp::Xmlize(xio, value);
+}
+
+void ValueMap::Data::Yamlize(YamlIO& yio)
+{
+	if(yio.IsStoring()) {
+		ValueArray va;
+		int n = min(value.GetCount(), key.GetCount());
+		for(int i = 0; i < n; i++) {
+			ValueMap m;
+			m.Add("key", StoreAsYamlValue(key[i]));
+			m.Add("value", StoreAsYamlValue(value[i]));
+			va.Add(m);
+		}
+		yio.Set(va);
+	}
+	else {
+		Value va = yio.Get();
+		key.Clear();
+		value.Clear();
+		for(int i = 0; i < va.GetCount(); i++) {
+			Value k, v;
+			LoadFromYamlValue(k, va[i]["key"]);
+			LoadFromYamlValue(v, va[i]["value"]);
+			key.Add(k);
+			value.Add(v);
+		}
+	}
 }
 
 void ValueMap::Data::Jsonize(JsonIO& jio)
@@ -516,6 +557,15 @@ void ValueMap::Jsonize(JsonIO& jio)
 		Create();
 	}
 	data->Jsonize(jio);
+}
+
+void ValueMap::Yamlize(YamlIO& yio)
+{
+	if(yio.IsLoading()) {
+		data->Release();
+		Create();
+	}
+	data->Yamlize(yio);
 }
 
 void ValueMap::Xmlize(XmlIO& xio)

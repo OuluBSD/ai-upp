@@ -173,6 +173,8 @@ file
 	Xmlize.cpp,
 	JSON.h,
 	JSON.cpp,
+	YAML.h,
+	YAML.cpp,
 	VCS.h,
 	VCS.cpp,
 	Visitor.h,

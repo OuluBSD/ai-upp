@@ -68,6 +68,7 @@ public:
 
 	void     Serialize(Stream& s)      { s % color; }
 	void     Jsonize(JsonIO& jio);
+	void     Yamlize(YamlIO& yio);
 	void     Xmlize(XmlIO& xio);
 
 	Color()                            { SetNull(); }

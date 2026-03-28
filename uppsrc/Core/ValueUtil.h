@@ -210,6 +210,7 @@ class ValueArray : public ValueType<ValueArray, VALUEARRAY_V, Moveable<ValueArra
 		virtual void         Serialize(Stream& s);
 		virtual void         Xmlize(XmlIO& xio);
 		virtual void         Jsonize(JsonIO& jio);
+		virtual void         Yamlize(YamlIO& yio);
 		virtual hash_t       GetHashValue() const;
 		virtual bool         IsEqual(const Value::Void *p);
 		virtual String       AsString() const;
@@ -277,6 +278,7 @@ public:
 	hash_t   GetHashValue() const             { return data->GetHashValue(); }
 	void     Serialize(Stream& s);
 	void     Jsonize(JsonIO& jio);
+	void     Yamlize(YamlIO& yio);
 	void     Xmlize(XmlIO& xio);
 	String   ToString() const;
 
@@ -312,6 +314,7 @@ class ValueMap : public ValueType<ValueMap, VALUEMAP_V, Moveable<ValueMap> >{
 		virtual void       Serialize(Stream& s);
 		virtual void       Xmlize(XmlIO& xio);
 		virtual void       Jsonize(JsonIO& jio);
+		virtual void       Yamlize(YamlIO& yio);
 		virtual hash_t     GetHashValue() const;
 		virtual bool       IsEqual(const Value::Void *p);
 		virtual String     AsString() const;
@@ -439,6 +442,7 @@ public:
 	hash_t   GetHashValue() const                   { return data->GetHashValue(); }
 	void     Serialize(Stream& s);
 	void     Jsonize(JsonIO& jio);
+	void     Yamlize(YamlIO& yio);
 	void     Xmlize(XmlIO& xio);
 	String   ToString() const                       { return data->AsString(); }
 

@@ -63,6 +63,13 @@ private:
 	Value GetSessions(const Value& args);
 	Value GetHistoryByActor(const Value& args);
 	Value GetActorSummary(const Value& args);
+	Value CreateScenario(const Value& args);
+	Value ActivateScenario(const Value& args);
+	Value DeactivateScenario(const Value& args);
+	Value ListScenarios(const Value& args);
+	Value DeleteScenario(const Value& args);
+	Value CompareScenario(const Value& args);
+	Value ApplyScenario(const Value& args);
 
 	// Helpers
 	void DoScan();

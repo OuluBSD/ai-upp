@@ -43,24 +43,18 @@ void PrintHelp() {
 	       << "  Overviewer --get-sessions <project>\n"
 	       << "  Overviewer --get-history-by-actor <project> <actor_id>\n"
 	       << "  Overviewer --get-actor-summary <project>\n"
+	       << "  Overviewer --create-scenario <project> <name>\n"
+	       << "  Overviewer --activate-scenario <project> <id>\n"
+	       << "  Overviewer --deactivate-scenario <project>\n"
+	       << "  Overviewer --list-scenarios <project>\n"
+	       << "  Overviewer --delete-scenario <project> <id>\n"
+	       << "  Overviewer --compare-scenario <project>\n"
+	       << "  Overviewer --apply-scenario <project> [id]\n"
 	       << "\nOptions:\n"
 	       << "  --actor <id> : specify actor id for the CLI run\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
-}
-
-static Vector<String> GetAffectedPaths(const OverviewerProject& project, const String& start_path, bool recursive) {
-	Vector<String> res;
-	res.Add(start_path);
-	if(recursive) {
-		for(int i = 0; i < project.metadata.GetCount(); i++) {
-			String p = project.metadata.GetKey(i);
-			if(p.StartsWith(start_path + "/") || p.StartsWith(start_path + "\\"))
-				res.Add(p);
-		}
-	}
-	return res;
 }
 
 int CliMain(Vector<String>& args) {
@@ -100,25 +94,6 @@ int CliMain(Vector<String>& args) {
 		return 1;
 	}
 
-	if (args[0] == "--open-project" && args.GetCount() >= 2) {
-		String content = LoadFile(args[1]);
-		if (content.IsEmpty()) {
-			Cerr() << "Failed to load project: " << args[1] << "\n";
-			return 1;
-		}
-		OverviewerProject p;
-		try {
-			LoadFromJson(p, content);
-			Cout() << "Project loaded: " << args[1] << "\n";
-			Cout() << "Working directory: " << p.working_dir << "\n";
-			Cout() << "Entries: " << p.metadata.GetCount() << "\n";
-			return 0;
-		} catch (const Exc& e) {
-			Cerr() << "Failed to parse project: " << e << "\n";
-			return 1;
-		}
-	}
-
 	if (args[0] == "--set-flag" && args.GetCount() >= 4) {
 		String p_path = args[1];
 		String f_path = args[2];
@@ -133,68 +108,144 @@ int CliMain(Vector<String>& args) {
 		else if(flag_name == "NEEDS_REVIEW") bit = FLAG_NEEDS_REVIEW;
 		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
 		else return 1;
-		p.metadata.GetAdd(f_path).flags |= bit;
+		p.GetMetadataWrite(f_path).flags |= bit;
 		p.LogEvent(f_path, "set_flags", "Flag set via CLI: " + flag_name);
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
-	if (args[0] == "--get-entry" && args.GetCount() >= 3) {
-		String p_path = args[1];
-		String f_path = args[2];
+	if (args[0] == "--set-priority" && args.GetCount() >= 4) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		FileMetadata effective = p.GetEffectiveMetadata(f_path);
-		const FileMetadata* m = p.metadata.FindPtr(f_path);
-		if(m || effective.priority != 0) {
-			Cout() << "Path: " << f_path << "\n";
-			Cout() << "Flags: " << (int)(m ? m->flags : 0) << "\n";
-			Cout() << "Priority: " << (m ? m->priority : 0) << " (effective: " << effective.priority << ")\n";
-			Cout() << "Quality: " << (m ? m->quality : 0) << " (effective: " << effective.quality << ")\n";
-			Cout() << "Completion: " << (m ? m->completion : 0) << " (effective: " << effective.completion << ")\n";
-			Cout() << "Note: " << (m ? m->notes : "") << "\n";
-			if(m) {
-				auto print_tags = [](const char* title, const Vector<String>& tags) {
-					Cout() << title << ": " << Join(tags, ", ") << "\n";
-				};
-				print_tags("Current Tags", m->current_tags);
-				print_tags("Reason Tags", m->reason_tags);
-				print_tags("Gap Tags", m->gap_tags);
-				auto print_list = [](const char* title, const Vector<ListItem>& items) {
-					Cout() << title << ":\n";
-					for(int i = 0; i < items.GetCount(); i++)
-						Cout() << "  [" << i << "] " << (items[i].done ? "[X] " : "[ ] ") << items[i].text << "\n";
-				};
-				print_list("Problems", m->problems);
-				print_list("Tasks", m->tasks);
-				print_list("Leads", m->leads);
-			}
-			return 0;
-		}
-		return 1;
+		if(!load_p(p, args[1])) return 1;
+		p.GetMetadataWrite(args[2]).priority = ScanInt(args[3]);
+		p.LogEvent(args[2], "set_priority", "Priority set to " + args[3]);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--set-note" && args.GetCount() >= 4) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.GetMetadataWrite(args[2]).notes = args[3];
+		p.LogEvent(args[2], "set_note", "Note modified via CLI");
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--add-tag" && args.GetCount() >= 5) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		String fpath = args[2], cat = args[3], tag = args[4];
+		FileMetadata& m = p.GetMetadataWrite(fpath);
+		Vector<String>* v = (cat == "current" ? &m.current_tags : (cat == "reason" ? &m.reason_tags : (cat == "gap" ? &m.gap_tags : nullptr)));
+		if(!v) return 1;
+		if(FindIndex(*v, tag) < 0) v->Add(tag);
+		p.LogEvent(fpath, "add_tag", "Tag added: " + tag);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--add-list-item" && args.GetCount() >= 5) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		String fpath = args[2], ltype = args[3], text = args[4];
+		FileMetadata& m = p.GetMetadataWrite(fpath);
+		Vector<ListItem>* target = (ltype == "problems" ? &m.problems : (ltype == "tasks" ? &m.tasks : (ltype == "leads" ? &m.leads : nullptr)));
+		if(!target) return 1;
+		target->Add().text = text;
+		p.LogEvent(fpath, "add_list_item", "List item added to " + ltype);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--get-entry" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		FileMetadata effective = p.GetEffectiveMetadata(args[2]);
+		const FileMetadata* m = p.metadata.FindPtr(args[2]);
+		Cout() << "Path: " << args[2] << "\n";
+		Cout() << "Flags: " << (int)(m ? m->flags : 0) << "\n";
+		Cout() << "Priority: " << (m ? m->priority : 0) << " (effective: " << effective.priority << ")\n";
+		Cout() << "Quality: " << (m ? m->quality : 0) << " (effective: " << effective.quality << ")\n";
+		Cout() << "Completion: " << (m ? m->completion : 0) << " (effective: " << effective.completion << ")\n";
+		Cout() << "Note: " << (m ? m->notes : "") << "\n";
+		return 0;
 	}
 
 	if (args[0] == "--get-dashboard" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
 		ProjectDashboard db = p.GetDashboard();
-		Cout() << "Dashboard for " << args[1] << ":\n"
-		       << "  Total Files: " << db.total_files << "\n"
-		       << "  Total Dirs: " << db.total_dirs << "\n"
-		       << "  Flagged: " << db.flagged_entries << "\n"
-		       << "  Suggestions Pending: " << db.suggestions_pending << "\n";
+		Cout() << "Dashboard: " << db.total_files << " files, " << db.flagged_entries << " flagged.\n";
 		return 0;
 	}
 
 	if (args[0] == "--get-history" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
-		String filter_path = args.GetCount() >= 3 ? args[2] : "";
 		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
 			const auto& e = p.history[i];
-			if(filter_path.IsEmpty() || e.path == filter_path)
-				Cout() << Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
+			Cout() << Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
 		}
 		return 0;
+	}
+
+	if (args[0] == "--create-scenario" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		String id = p.CreateScenario(args[2]);
+		Cout() << "Scenario created: " << id << "\n";
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--activate-scenario" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.ActivateScenario(args[2]);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--deactivate-scenario" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.DeactivateScenario();
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--list-scenarios" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		for(int i = 0; i < p.scenarios.GetCount(); i++)
+			Cout() << p.scenarios.GetKey(i) << " | " << p.scenarios[i].name << (p.active_scenario_id == p.scenarios.GetKey(i) ? " [ACTIVE]" : "") << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--delete-scenario" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		int idx = p.scenarios.Find(args[2]);
+		if(idx >= 0) {
+			if(p.active_scenario_id == args[2]) p.active_scenario_id = "";
+			p.scenarios.Remove(idx);
+			return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		}
+		return 1;
+	}
+
+	if (args[0] == "--compare-scenario" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		if(p.active_scenario_id.IsEmpty()) { Cerr() << "No active scenario\n"; return 1; }
+		int idx = p.scenarios.Find(p.active_scenario_id);
+		Scenario& s = p.scenarios[idx];
+		Cout() << "Comparison for scenario: " << s.name << "\n";
+		for(int i = 0; i < s.metadata_delta.GetCount(); i++)
+			Cout() << "  " << s.metadata_delta.GetKey(i) << " : Modified\n";
+		return 0;
+	}
+
+	if (args[0] == "--apply-scenario" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		String id = args.GetCount() >= 3 ? args[2] : p.active_scenario_id;
+		if(id.IsEmpty()) return 1;
+		p.ApplyScenario(id);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
 	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {
@@ -206,82 +257,17 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--get-git-info" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.RefreshGit();
-		Cout() << "Repo detected: " << (p.git.repo_detected ? "YES" : "NO") << "\n";
-		if(p.git.repo_detected) {
-			Cout() << "Root: " << p.git.repo_root << "\n";
-			Cout() << "Branch: " << p.git.branch << "\n";
-			Cout() << "HEAD: " << p.git.head_hash << "\n";
-		}
-		return 0;
-	}
-
-	if (args[0] == "--get-entry-git-status" && args.GetCount() >= 3) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.RefreshGit();
-		int s = p.git.GetStatus(args[2]);
-		Cout() << "Status for " << args[2] << ": " << s << "\n";
-		return 0;
-	}
-
-	if (args[0] == "--get-entry-commits" && args.GetCount() >= 3) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.RefreshGit();
-		int limit = args.GetCount() >= 4 ? ScanInt(args[3]) : 10;
-		Vector<GitCommit> cs = p.git.GetHistory(p.working_dir, args[2], limit);
-		for(const auto& c : cs)
-			Cout() << c.hash << " | " << c.author << " | " << c.subject << "\n";
-		return 0;
-	}
-
 	if (args[0] == "--link-list-item-commit" && args.GetCount() >= 6) {
 		OverviewerProject p;
 		if(!load_p(p, args[1])) return 1;
-		String fpath = args[2];
-		String ltype = args[3];
+		String fpath = args[2], ltype = args[3], commit = args[5];
 		int idx = ScanInt(args[4]);
-		String commit = args[5];
-		
-		FileMetadata& m = p.metadata.GetAdd(fpath);
+		FileMetadata& m = p.GetMetadataWrite(fpath);
 		Vector<ListItem>* target = (ltype == "problems" ? &m.problems : (ltype == "tasks" ? &m.tasks : (ltype == "leads" ? &m.leads : nullptr)));
 		if(!target || idx < 0 || idx >= target->GetCount()) return 1;
 		(*target)[idx].commit = commit;
 		p.LogEvent(fpath, "link_commit", "Linked commit " + commit + " to " + ltype + "[" + AsString(idx) + "]");
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
-	}
-
-	if (args[0] == "--get-sessions" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		for(const auto& s : p.sessions)
-			Cout() << s.session_id << " | " << Format(s.start_time) << " | " << s.actor_type << ":" << s.actor_id << "\n";
-		return 0;
-	}
-
-	if (args[0] == "--get-history-by-actor" && args.GetCount() >= 3) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		String aid = args[2];
-		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
-			const auto& e = p.history[i];
-			if(e.actor_id == aid)
-				Cout() << Format(e.time) << " | " << e.path << " | " << e.type << "\n";
-		}
-		return 0;
-	}
-
-	if (args[0] == "--get-actor-summary" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		ProjectDashboard db = p.GetDashboard();
-		for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
-			Cout() << db.activity_by_actor.GetKey(i) << ": " << db.activity_by_actor[i] << "\n";
-		return 0;
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
 	Cerr() << "Unknown arguments. Use --help for usage.\n";

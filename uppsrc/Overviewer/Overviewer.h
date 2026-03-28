@@ -95,11 +95,13 @@ struct HistoryEvent : Moveable<HistoryEvent> {
 	String actor_id;
 	String actor_type;
 	String session_id;
+	String scenario_id;
 
 	void Jsonize(JsonIO& jio) {
 		jio("time", time)("path", path)("type", type)("description", description)
 		   ("old_value", old_value)("new_value", new_value)("source", source)
-		   ("actor_id", actor_id)("actor_type", actor_type)("session_id", session_id);
+		   ("actor_id", actor_id)("actor_type", actor_type)("session_id", session_id)
+		   ("scenario_id", scenario_id);
 	}
 };
 
@@ -126,40 +128,6 @@ struct EntryScore : Moveable<EntryScore> {
 	EntryScore(const EntryScore& s, int) {
 		score = s.score;
 		for(const auto& x : s.factors) factors.Add(x);
-	}
-};
-
-struct ProjectDashboard {
-	int total_files = 0;
-	int total_dirs = 0;
-	int flagged_entries = 0;
-	int needs_review = 0;
-	int missing_priority = 0;
-	int missing_completion = 0;
-	int with_notes = 0;
-	int with_problems = 0;
-	int with_tasks = 0;
-	int with_leads = 0;
-	int suggestions_pending = 0;
-	int priority_counts[6];
-	VectorMap<String, int> top_reason_tags;
-	VectorMap<String, int> top_gap_tags;
-	VectorMap<String, int> top_current_tags;
-	
-	int recent_changes = 0;
-	Vector<String> recently_modified;
-	int stale_entries = 0;
-	
-	VectorMap<String, double> top_action_items;
-	
-	VectorMap<String, int> activity_by_actor;
-
-	ProjectDashboard() {
-		total_files = total_dirs = flagged_entries = needs_review = 0;
-		missing_priority = missing_completion = with_notes = with_problems = 0;
-		with_tasks = with_leads = suggestions_pending = 0;
-		recent_changes = stale_entries = 0;
-		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
 };
 
@@ -196,6 +164,56 @@ struct FileMetadata : Moveable<FileMetadata> {
 	}
 };
 
+struct Scenario : Moveable<Scenario> {
+	String id;
+	String name;
+	VectorMap<String, FileMetadata> metadata_delta;
+
+	void Jsonize(JsonIO& jio) {
+		jio("id", id)("name", name)("metadata_delta", metadata_delta);
+	}
+	
+	Scenario() {}
+	Scenario(const Scenario& s, int) {
+		id = s.id; name = s.name;
+		for(int i = 0; i < s.metadata_delta.GetCount(); i++)
+			metadata_delta.Add(s.metadata_delta.GetKey(i), FileMetadata(s.metadata_delta[i], 1));
+	}
+};
+
+struct ProjectDashboard {
+	int total_files = 0;
+	int total_dirs = 0;
+	int flagged_entries = 0;
+	int needs_review = 0;
+	int missing_priority = 0;
+	int missing_completion = 0;
+	int with_notes = 0;
+	int with_problems = 0;
+	int with_tasks = 0;
+	int with_leads = 0;
+	int suggestions_pending = 0;
+	int priority_counts[6];
+	VectorMap<String, int> top_reason_tags;
+	VectorMap<String, int> top_gap_tags;
+	VectorMap<String, int> top_current_tags;
+	
+	int recent_changes = 0;
+	Vector<String> recently_modified;
+	int stale_entries = 0;
+	
+	VectorMap<String, double> top_action_items;
+	VectorMap<String, int> activity_by_actor;
+
+	ProjectDashboard() {
+		total_files = total_dirs = flagged_entries = needs_review = 0;
+		missing_priority = missing_completion = with_notes = with_problems = 0;
+		with_tasks = with_leads = suggestions_pending = 0;
+		recent_changes = stale_entries = 0;
+		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
+	}
+};
+
 struct OverviewerProject {
 	String path;
 	String working_dir;
@@ -217,6 +235,9 @@ struct OverviewerProject {
 	String current_actor_id = "user";
 	String current_actor_type = "user";
 	String current_session_id;
+	
+	VectorMap<String, Scenario> scenarios;
+	String active_scenario_id;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -226,25 +247,20 @@ struct OverviewerProject {
 		   ("sessions", sessions)
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
-		   ("known_gap_tags", known_gap_tags);
+		   ("known_gap_tags", known_gap_tags)
+		   ("scenarios", scenarios);
 	}
 	
 	void Reset() {
-		path = "";
-		working_dir = "";
-		version = 1;
-		metadata.Clear();
-		suggestions.Clear();
-		review_queue.Clear();
-		dismissed_review_ids.Clear();
-		history.Clear();
-		sessions.Clear();
-		known_current_tags.Clear();
-		known_reason_tags.Clear();
-		known_gap_tags.Clear();
+		path = ""; working_dir = ""; version = 1;
+		metadata.Clear(); suggestions.Clear(); review_queue.Clear();
+		dismissed_review_ids.Clear(); history.Clear(); sessions.Clear();
+		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
+		scenarios.Clear(); active_scenario_id = "";
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
+	FileMetadata& GetMetadataWrite(const String& rel_path);
 	String GetBackupPath() const;
 	bool WriteBackup() const;
 
@@ -253,13 +269,17 @@ struct OverviewerProject {
 	ProjectDashboard GetDashboard() const;
 
 	void LogEvent(const String& path, const String& type, const String& desc, const String& old_val = "", const String& new_val = "", const String& src = "user");
-	
 	void StartSession(const String& actor_id, const String& actor_type);
 
 	EntryScore ComputeScore(const String& path) const;
 	VectorMap<String, EntryScore> GetActionView(int limit = 0) const;
 	
 	void RefreshGit();
+	
+	String CreateScenario(const String& name);
+	void ActivateScenario(const String& id);
+	void DeactivateScenario();
+	void ApplyScenario(const String& id);
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -309,6 +329,13 @@ public:
 	void OnShowOverviewPreview();
 	void OnShowGitHistory();
 	void OnShowSessions();
+	
+	void OnScenarioMenu(Bar& bar);
+	void OnCreateScenario();
+	void OnActivateScenario(String id);
+	void OnDeactivateScenario();
+	void OnApplyScenario();
+	void OnCompareScenario();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -477,6 +504,24 @@ private:
 		void Refresh(const Vector<SessionInfo>& sessions);
 	};
 
+	struct ScenarioDiffPanel : TopWindow {
+		typedef ScenarioDiffPanel CLASSNAME;
+		ArrayCtrl list;
+		ScenarioDiffPanel() {
+			Title("Scenario Diff");
+			SetRect(0, 0, 400, 300);
+			Add(list.SizePos());
+			list.AddColumn("Path");
+			list.AddColumn("Change");
+		}
+		void Refresh(const String& scenario_name, const VectorMap<String, String>& diff) {
+			list.Clear();
+			Title("Scenario Diff: " + scenario_name);
+			for(int i = 0; i < diff.GetCount(); i++)
+				list.Add(diff.GetKey(i), diff[i]);
+		}
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -487,6 +532,7 @@ private:
 	OverviewPreviewPanel overview_preview_pane;
 	GitHistoryPanel git_history_pane;
 	SessionPanel session_pane;
+	ScenarioDiffPanel scenario_diff_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;

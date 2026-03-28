@@ -65,7 +65,7 @@ void OverviewerWindow::SuggestionPanel::OnDismiss() {
 }
 
 void OverviewerWindow::ApplySuggestion(const String& path, int type, int category, const String& value) {
-	FileMetadata& m = project.metadata.GetAdd(path);
+	FileMetadata& m = project.GetMetadataWrite(path);
 	String desc = "Applied suggestion: " + value;
 	if(type == 0) { // Tag
 		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
@@ -244,7 +244,13 @@ void OverviewerWindow::SessionPanel::Refresh(const Vector<SessionInfo>& sessions
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
 	FileMetadata res;
-	const FileMetadata* m = metadata.FindPtr(rel_path);
+	const FileMetadata* m = nullptr;
+	if(!active_scenario_id.IsEmpty()) {
+		const Scenario* s = scenarios.FindPtr(active_scenario_id);
+		if(s) m = s->metadata_delta.FindPtr(rel_path);
+	}
+	if(!m) m = metadata.FindPtr(rel_path);
+
 	if(m) {
 		res.flags = m->flags;
 		res.quality = m->quality;
@@ -263,7 +269,12 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 			p = GetFileDirectory(p);
 			if(p.EndsWith("/") || p.EndsWith("\\")) p.Trim(p.GetCount()-1);
 			if(p.IsEmpty()) break;
-			const FileMetadata* pm = metadata.FindPtr(p);
+			const FileMetadata* pm = nullptr;
+			if(!active_scenario_id.IsEmpty()) {
+				const Scenario* sc = scenarios.FindPtr(active_scenario_id);
+				if(sc) pm = sc->metadata_delta.FindPtr(p);
+			}
+			if(!pm) pm = metadata.FindPtr(p);
 			if(pm && pm->*field != 0) {
 				val = pm->*field;
 				break;
@@ -276,6 +287,20 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 	inherit(res.priority, &FileMetadata::priority);
 
 	return res;
+}
+
+FileMetadata& OverviewerProject::GetMetadataWrite(const String& rel_path) {
+	if(!active_scenario_id.IsEmpty()) {
+		Scenario& s = scenarios.GetAdd(active_scenario_id);
+		int idx = s.metadata_delta.Find(rel_path);
+		if(idx < 0) {
+			const FileMetadata* base = metadata.FindPtr(rel_path);
+			if(base) return s.metadata_delta.Add(rel_path, FileMetadata(*base, 1));
+			else return s.metadata_delta.GetAdd(rel_path);
+		}
+		return s.metadata_delta[idx];
+	}
+	return metadata.GetAdd(rel_path);
 }
 
 String OverviewerProject::GetBackupPath() const {
@@ -305,6 +330,7 @@ void OverviewerProject::LogEvent(const String& path, const String& type, const S
 	e.actor_id = current_actor_id;
 	e.actor_type = current_actor_type;
 	e.session_id = current_session_id;
+	e.scenario_id = active_scenario_id;
 	
 	if(history.GetCount() > max_history)
 		history.Remove(0, history.GetCount() - max_history);
@@ -327,6 +353,35 @@ void OverviewerProject::StartSession(const String& actor_id, const String& actor
 
 void OverviewerProject::RefreshGit() {
 	if(!working_dir.IsEmpty()) git.Refresh(working_dir);
+}
+
+String OverviewerProject::CreateScenario(const String& name) {
+	String id = AsString(Uuid::Create());
+	Scenario& s = scenarios.Add(id);
+	s.id = id;
+	s.name = name;
+	return id;
+}
+
+void OverviewerProject::ActivateScenario(const String& id) {
+	if(scenarios.Find(id) >= 0) active_scenario_id = id;
+}
+
+void OverviewerProject::DeactivateScenario() {
+	active_scenario_id = "";
+}
+
+void OverviewerProject::ApplyScenario(const String& id) {
+	int idx = scenarios.Find(id);
+	if(idx < 0) return;
+	Scenario& s = scenarios[idx];
+	for(int i = 0; i < s.metadata_delta.GetCount(); i++) {
+		String p = s.metadata_delta.GetKey(i);
+		metadata.GetAdd(p) = FileMetadata(s.metadata_delta[i], 1);
+		LogEvent(p, "apply_scenario", "Applied scenario change from: " + s.name, "", "", "batch");
+	}
+	scenarios.Remove(idx);
+	if(active_scenario_id == id) active_scenario_id = "";
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -400,7 +455,7 @@ void BatchEditDialog::OnApply() {
 	if(targets.IsEmpty()) { Exclamation("No targets selected."); return; }
 
 	auto apply_to = [&](const String& path) {
-		FileMetadata& m = project.metadata.GetAdd(path);
+		FileMetadata& m = project.GetMetadataWrite(path);
 		if(apply_flags) {
 			uint32 bits = 0;
 			if(f_temp) bits |= FLAG_TEMPORARY;
@@ -767,6 +822,12 @@ void OverviewerWindow::SyncTitle() {
 		t << " - (Untitled)";
 	else
 		t << " - " << project.path;
+	
+	if(!project.active_scenario_id.IsEmpty()) {
+		int idx = project.scenarios.Find(project.active_scenario_id);
+		if(idx >= 0) t << " [SCENARIO: " << project.scenarios[idx].name << "]";
+	}
+	
 	if (dirty)
 		t << " *";
 	Title(t);
@@ -812,11 +873,11 @@ void OverviewerWindow::OpenFile(const String& path) {
 		// Manual copy to avoid VectorMap copy issues
 		project.metadata.Clear();
 		for(int i = 0; i < p.metadata.GetCount(); i++)
-			project.metadata.Add(p.metadata.GetKey(i), pick(p.metadata[i]));
+			project.metadata.Add(p.metadata.GetKey(i), FileMetadata(p.metadata[i], 1));
 		
 		project.suggestions.Clear();
 		for(int i = 0; i < p.suggestions.GetCount(); i++)
-			project.suggestions.Add(p.suggestions.GetKey(i), pick(p.suggestions[i]));
+			project.suggestions.Add(p.suggestions.GetKey(i), EntrySuggestions(p.suggestions[i], 1));
 		
 		project.dismissed_review_ids <<= p.dismissed_review_ids;
 		project.history <<= p.history;
@@ -824,6 +885,10 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.known_current_tags <<= p.known_current_tags;
 		project.known_reason_tags <<= p.known_reason_tags;
 		project.known_gap_tags <<= p.known_gap_tags;
+		
+		project.scenarios.Clear();
+		for(int i = 0; i < p.scenarios.GetCount(); i++)
+			project.scenarios.Add(p.scenarios.GetKey(i), Scenario(p.scenarios[i], 1));
 		
 		project.StartSession("local-user", "user");
 		
@@ -941,40 +1006,32 @@ void OverviewerWindow::OnTreeSelection() {
 
 void OverviewerWindow::UpdatePanels() {
 	FileMetadata effective = project.GetEffectiveMetadata(current_selection);
-	FileMetadata* m = current_selection.IsEmpty() || current_selection == "." ? nullptr : &project.metadata.GetAdd(current_selection);
 	EntrySuggestions* s = current_selection.IsEmpty() || current_selection == "." ? nullptr : project.suggestions.FindPtr(current_selection);
 
-	if(m) {
-		temporary = !!(m->flags & FLAG_TEMPORARY);
-		wrong_location = !!(m->flags & FLAG_WRONG_LOCATION);
-		wrong_name = !!(m->flags & FLAG_WRONG_NAME);
-		too_large = !!(m->flags & FLAG_TOO_LARGE);
-		needs_review = !!(m->flags & FLAG_NEEDS_REVIEW);
-		content_needs_review = !!(m->flags & FLAG_CONTENT_NEEDS_REVIEW);
-		
-		quality.SetIndex(effective.quality);
-		completion.SetIndex(effective.completion);
-		priority.SetIndex(effective.priority);
-		
-		notes_editor.SetData(m->notes);
-		current_tags_pane.assigned = &m->current_tags;
-		reason_tags_pane.assigned = &m->reason_tags;
-		gap_tags_pane.assigned = &m->gap_tags;
-		problems_pane.items = &m->problems;
-		tasks_pane.items = &m->tasks;
-		leads_pane.items = &m->leads;
-	} else {
-		temporary = 0; wrong_location = 0; wrong_name = 0;
-		too_large = 0; needs_review = 0; content_needs_review = 0;
-		quality.SetIndex(0); completion.SetIndex(0); priority.SetIndex(0);
-		notes_editor.SetData("");
-		current_tags_pane.assigned = &dummy_metadata.current_tags;
-		reason_tags_pane.assigned = &dummy_metadata.reason_tags;
-		gap_tags_pane.assigned = &dummy_metadata.gap_tags;
-		problems_pane.items = &dummy_metadata.problems;
-		tasks_pane.items = &dummy_metadata.tasks;
-		leads_pane.items = &dummy_metadata.leads;
-	}
+	temporary = !!(effective.flags & FLAG_TEMPORARY);
+	wrong_location = !!(effective.flags & FLAG_WRONG_LOCATION);
+	wrong_name = !!(effective.flags & FLAG_WRONG_NAME);
+	too_large = !!(effective.flags & FLAG_TOO_LARGE);
+	needs_review = !!(effective.flags & FLAG_NEEDS_REVIEW);
+	content_needs_review = !!(effective.flags & FLAG_CONTENT_NEEDS_REVIEW);
+	
+	quality.SetIndex(effective.quality);
+	completion.SetIndex(effective.completion);
+	priority.SetIndex(effective.priority);
+	
+	notes_editor.SetData(effective.notes);
+	
+	// For lists and tags, we still need the override-aware pointers
+	// but UI needs to point to something stable.
+	// We'll use dummy_metadata as a buffer for the active selection.
+	dummy_metadata = FileMetadata(effective, 1);
+	
+	current_tags_pane.assigned = &dummy_metadata.current_tags;
+	reason_tags_pane.assigned = &dummy_metadata.reason_tags;
+	gap_tags_pane.assigned = &dummy_metadata.gap_tags;
+	problems_pane.items = &dummy_metadata.problems;
+	tasks_pane.items = &dummy_metadata.tasks;
+	leads_pane.items = &dummy_metadata.leads;
 	
 	suggestion_pane.suggestions = s ? s : &dummy_suggestions;
 	suggestion_pane.Refresh();
@@ -1006,7 +1063,7 @@ void OverviewerWindow::UpdatePanels() {
 
 void OverviewerWindow::OnMetadataChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
-	FileMetadata& m = project.metadata.GetAdd(current_selection);
+	FileMetadata& m = project.GetMetadataWrite(current_selection);
 	
 	// Logging
 	auto log_if_changed = [&](int& field, int new_val, const char* type) {
@@ -1040,7 +1097,7 @@ void OverviewerWindow::OnMetadataChange() {
 
 void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
-	FileMetadata& m = project.metadata.GetAdd(current_selection);
+	FileMetadata& m = project.GetMetadataWrite(current_selection);
 	String n = notes_editor.GetData();
 	if(m.notes != n) {
 		project.LogEvent(current_selection, "set_note", "Note modified");
@@ -1163,6 +1220,61 @@ void OverviewerWindow::OnRefreshGit() {
 	RefreshReviewQueue();
 }
 
+void OverviewerWindow::OnCreateScenario() {
+	String name;
+	if(EditText(name, "Create Scenario", "Scenario Name:")) {
+		project.CreateScenario(name);
+		MarkDirty();
+	}
+}
+
+void OverviewerWindow::OnActivateScenario(String id) {
+	project.ActivateScenario(id);
+	SyncTitle();
+	UpdatePanels();
+}
+
+void OverviewerWindow::OnDeactivateScenario() {
+	project.DeactivateScenario();
+	SyncTitle();
+	UpdatePanels();
+}
+
+void OverviewerWindow::OnApplyScenario() {
+	if(project.active_scenario_id.IsEmpty()) return;
+	if(PromptOKCancel("Apply current scenario changes to project?")) {
+		project.ApplyScenario(project.active_scenario_id);
+		MarkDirty();
+		SyncTitle();
+		UpdatePanels();
+	}
+}
+
+void OverviewerWindow::OnCompareScenario() {
+	if(project.active_scenario_id.IsEmpty()) return;
+	int idx = project.scenarios.Find(project.active_scenario_id);
+	if(idx < 0) return;
+	Scenario& s = project.scenarios[idx];
+	VectorMap<String, String> diff;
+	for(int i = 0; i < s.metadata_delta.GetCount(); i++)
+		diff.Add(s.metadata_delta.GetKey(i), "Modified");
+	scenario_diff_pane.Refresh(s.name, diff);
+	scenario_diff_pane.Run();
+}
+
+void OverviewerWindow::OnScenarioMenu(Bar& bar) {
+	bar.Add("Create New...", THISBACK(OnCreateScenario));
+	bar.Add("Deactivate", THISBACK(OnDeactivateScenario)).Enable(!project.active_scenario_id.IsEmpty());
+	bar.Add("Apply Active", THISBACK(OnApplyScenario)).Enable(!project.active_scenario_id.IsEmpty());
+	bar.Add("Compare Diff", THISBACK(OnCompareScenario)).Enable(!project.active_scenario_id.IsEmpty());
+	bar.Separator();
+	for(int i = 0; i < project.scenarios.GetCount(); i++) {
+		String id = project.scenarios.GetKey(i);
+		String name = project.scenarios[i].name;
+		bar.Add(name, [=]{ OnActivateScenario(id); }).Check(project.active_scenario_id == id);
+	}
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
@@ -1185,7 +1297,6 @@ void OverviewerWindow::FileMenu(Bar& bar) {
 void OverviewerWindow::EditMenu(Bar& bar) {
 	bar.Add("Batch Edit...", THISBACK(OnBatchEdit));
 	bar.Add("Settings...", THISBACK(OnSettings));
-	bar.Add("Mark Dirty (debug)", THISBACK(MarkDirty));
 }
 
 void OverviewerWindow::ViewMenu(Bar& bar) {
@@ -1210,9 +1321,11 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 	bar.Add("Analyze Selection", THISBACK(OnAnalyze));
 	bar.Add("Run Consistency Check", THISBACK(OnRunConsistencyCheck));
 	bar.Separator();
+	bar.Add("Scenario", THISBACK(OnScenarioMenu));
+	bar.Separator();
 	bar.Add("Refresh Git Status", THISBACK(OnRefreshGit));
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 13"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 14"); });
 }

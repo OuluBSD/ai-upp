@@ -59,6 +59,7 @@ private:
 	String GetTasks(const String& path, const OverviewOptions& opt);
 	String GetLeads(const String& path, const OverviewOptions& opt);
 	String GetImportant(const String& path, const OverviewOptions& opt);
+	String GetAttribution(const String& path, const OverviewOptions& opt);
 	String GetReview(const String& path, const OverviewOptions& opt);
 	String GetPriorities(const String& path, const OverviewOptions& opt);
 };

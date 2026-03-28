@@ -70,6 +70,9 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_entry_git_status") res = GetEntryGitStatus(args);
 		else if(method == "get_entry_commits") res = GetEntryCommits(args);
 		else if(method == "link_list_item_commit") res = LinkListItemCommit(args);
+		else if(method == "get_sessions") res = GetSessions(args);
+		else if(method == "get_history_by_actor") res = GetHistoryByActor(args);
+		else if(method == "get_actor_summary") res = GetActorSummary(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -91,6 +94,11 @@ Value McpServer::OpenProject(const Value& args) {
 	if(path.IsEmpty()) throw Exc("Path missing");
 	if(!LoadFromJsonFile(project, path)) throw Exc("Failed to load project");
 	project.path = path;
+	
+	String actor_id = args["actor_id"];
+	if(actor_id.IsEmpty()) actor_id = "generic-agent";
+	project.StartSession(actor_id, "agent");
+	
 	DoScan();
 	return "Project opened";
 }
@@ -538,6 +546,8 @@ Value McpServer::GetHistory(const Value& args) {
 			m.Add("type", e.type);
 			m.Add("description", e.description);
 			m.Add("source", e.source);
+			m.Add("actor_id", e.actor_id);
+			m.Add("actor_type", e.actor_type);
 			arr.Add(m);
 			count++;
 		}
@@ -665,6 +675,47 @@ Value McpServer::LinkListItemCommit(const Value& args) {
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	(*v)[idx].commit = commit;
 	return "Commit linked";
+}
+
+Value McpServer::GetSessions(const Value& args) {
+	ValueArray arr;
+	for(const auto& s : project.sessions) {
+		ValueMap m;
+		m.Add("session_id", s.session_id);
+		m.Add("start_time", Format(s.start_time));
+		m.Add("actor_id", s.actor_id);
+		m.Add("actor_type", s.actor_type);
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::GetHistoryByActor(const Value& args) {
+	String aid = args["actor_id"];
+	String atype = args["actor_type"];
+	ValueArray arr;
+	for(int i = project.history.GetCount() - 1; i >= 0; i--) {
+		const auto& e = project.history[i];
+		if((aid.IsEmpty() || e.actor_id == aid) && (atype.IsEmpty() || e.actor_type == atype)) {
+			ValueMap m;
+			m.Add("time", Format(e.time));
+			m.Add("path", e.path);
+			m.Add("type", e.type);
+			m.Add("description", e.description);
+			m.Add("actor_id", e.actor_id);
+			m.Add("actor_type", e.actor_type);
+			arr.Add(m);
+		}
+	}
+	return arr;
+}
+
+Value McpServer::GetActorSummary(const Value& args) {
+	ProjectDashboard db = project.GetDashboard();
+	ValueMap res;
+	for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
+		res.Add(db.activity_by_actor.GetKey(i), db.activity_by_actor[i]);
+	return res;
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

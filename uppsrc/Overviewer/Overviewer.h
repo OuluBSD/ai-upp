@@ -92,10 +92,25 @@ struct HistoryEvent : Moveable<HistoryEvent> {
 	String old_value;
 	String new_value;
 	String source;
+	String actor_id;
+	String actor_type;
+	String session_id;
 
 	void Jsonize(JsonIO& jio) {
 		jio("time", time)("path", path)("type", type)("description", description)
-		   ("old_value", old_value)("new_value", new_value)("source", source);
+		   ("old_value", old_value)("new_value", new_value)("source", source)
+		   ("actor_id", actor_id)("actor_type", actor_type)("session_id", session_id);
+	}
+};
+
+struct SessionInfo : Moveable<SessionInfo> {
+	String session_id;
+	Time start_time;
+	String actor_id;
+	String actor_type;
+
+	void Jsonize(JsonIO& jio) {
+		jio("session_id", session_id)("start_time", start_time)("actor_id", actor_id)("actor_type", actor_type);
 	}
 };
 
@@ -105,6 +120,12 @@ struct EntryScore : Moveable<EntryScore> {
 
 	void Jsonize(JsonIO& jio) {
 		jio("score", score)("factors", factors);
+	}
+	
+	EntryScore() {}
+	EntryScore(const EntryScore& s, int) {
+		score = s.score;
+		for(const auto& x : s.factors) factors.Add(x);
 	}
 };
 
@@ -130,6 +151,8 @@ struct ProjectDashboard {
 	int stale_entries = 0;
 	
 	VectorMap<String, double> top_action_items;
+	
+	VectorMap<String, int> activity_by_actor;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
@@ -182,18 +205,25 @@ struct OverviewerProject {
 	Vector<ReviewItem> review_queue;
 	Index<String> dismissed_review_ids;
 	Vector<HistoryEvent> history;
+	Vector<SessionInfo> sessions;
 	int max_history = 1000;
+	int max_sessions = 100;
 	Vector<String> known_current_tags;
 	Vector<String> known_reason_tags;
 	Vector<String> known_gap_tags;
 	
 	GitContext git;
 	
+	String current_actor_id = "user";
+	String current_actor_type = "user";
+	String current_session_id;
+
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
 		   ("suggestions", suggestions)
 		   ("dismissed_review_ids", dismissed_review_ids)
 		   ("history", history)
+		   ("sessions", sessions)
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags);
@@ -208,6 +238,7 @@ struct OverviewerProject {
 		review_queue.Clear();
 		dismissed_review_ids.Clear();
 		history.Clear();
+		sessions.Clear();
 		known_current_tags.Clear();
 		known_reason_tags.Clear();
 		known_gap_tags.Clear();
@@ -223,6 +254,8 @@ struct OverviewerProject {
 
 	void LogEvent(const String& path, const String& type, const String& desc, const String& old_val = "", const String& new_val = "", const String& src = "user");
 	
+	void StartSession(const String& actor_id, const String& actor_type);
+
 	EntryScore ComputeScore(const String& path) const;
 	VectorMap<String, EntryScore> GetActionView(int limit = 0) const;
 	
@@ -275,6 +308,7 @@ public:
 	void OnShowActionView();
 	void OnShowOverviewPreview();
 	void OnShowGitHistory();
+	void OnShowSessions();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -292,6 +326,7 @@ public:
 	void RefreshActionView();
 	void RefreshOverviewPreview();
 	void RefreshGitHistory();
+	void RefreshSessions();
 
 	void OnExportOverview();
 	void OnRefreshGit();
@@ -335,7 +370,7 @@ private:
 		Vector<String>* global_known;
 		Callback when_change;
 
-		TagPanel(Vector<String>* a, Vector<String>* g) : assigned(a), global_known(g) {
+		TagPanel() : assigned(nullptr), global_known(nullptr) {
 			Add(list.SizePos());
 			AddFrame(TopSeparatorFrame());
 			AddFrame(BottomSeparatorFrame());
@@ -353,7 +388,7 @@ private:
 		Vector<ListItem>* items;
 		Callback when_change;
 
-		ListPanel(Vector<ListItem>* it) : items(it) {
+		ListPanel() : items(nullptr) {
 			Add(list.SizePos());
 			list.AddColumn("Done", 20);
 			list.AddColumn("Text");
@@ -435,6 +470,13 @@ private:
 		void OnLink();
 	};
 
+	struct SessionPanel : ParentCtrl {
+		typedef SessionPanel CLASSNAME;
+		ArrayCtrl list;
+		SessionPanel() { Add(list.SizePos()); list.AddColumn("ID"); list.AddColumn("Start"); list.AddColumn("Actor"); }
+		void Refresh(const Vector<SessionInfo>& sessions);
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -444,6 +486,7 @@ private:
 	ActionViewPanel action_view_pane;
 	OverviewPreviewPanel overview_preview_pane;
 	GitHistoryPanel git_history_pane;
+	SessionPanel session_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -463,6 +506,7 @@ private:
 	DockableCtrl* dock_action_view = nullptr;
 	DockableCtrl* dock_overview_preview = nullptr;
 	DockableCtrl* dock_git_history = nullptr;
+	DockableCtrl* dock_sessions = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

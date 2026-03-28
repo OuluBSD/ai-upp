@@ -40,6 +40,11 @@ void PrintHelp() {
 	       << "  Overviewer --get-entry-git-status <project> <path>\n"
 	       << "  Overviewer --get-entry-commits <project> <path> [limit]\n"
 	       << "  Overviewer --link-list-item-commit <project> <path> <listtype> <index> <commit>\n"
+	       << "  Overviewer --get-sessions <project>\n"
+	       << "  Overviewer --get-history-by-actor <project> <actor_id>\n"
+	       << "  Overviewer --get-actor-summary <project>\n"
+	       << "\nOptions:\n"
+	       << "  --actor <id> : specify actor id for the CLI run\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -58,17 +63,34 @@ static Vector<String> GetAffectedPaths(const OverviewerProject& project, const S
 	return res;
 }
 
-int CliMain(const Vector<String>& args) {
+int CliMain(Vector<String>& args) {
 	if (args.GetCount() == 0 || args[0] == "--help") {
 		PrintHelp();
 		return 0;
 	}
+
+	String actor_id = "cli";
+	for(int i = 0; i < args.GetCount(); i++) {
+		if(args[i] == "--actor" && i + 1 < args.GetCount()) {
+			actor_id = args[i+1];
+			args.Remove(i, 2);
+			break;
+		}
+	}
+
+	auto load_p = [&](OverviewerProject& p, const String& path) {
+		if(!LoadFromJsonFile(p, path)) return false;
+		p.path = path;
+		p.StartSession(actor_id, "cli");
+		return true;
+	};
 
 	if (args[0] == "--create-project" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		p.path = args[1];
 		if (args.GetCount() >= 4 && args[2] == "--dir")
 			p.working_dir = args[3];
+		p.StartSession(actor_id, "cli");
 		String json = StoreAsJson(p);
 		if (SaveFile(p.path, json)) {
 			Cout() << "Project created: " << p.path << "\n";
@@ -102,7 +124,7 @@ int CliMain(const Vector<String>& args) {
 		String f_path = args[2];
 		String flag_name = args[3];
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
+		if(!load_p(p, p_path)) return 1;
 		uint32 bit = 0;
 		if(flag_name == "TEMPORARY") bit = FLAG_TEMPORARY;
 		else if(flag_name == "WRONG_LOCATION") bit = FLAG_WRONG_LOCATION;
@@ -170,7 +192,7 @@ int CliMain(const Vector<String>& args) {
 		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
 			const auto& e = p.history[i];
 			if(filter_path.IsEmpty() || e.path == filter_path)
-				Cout() << Format(e.time) << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
+				Cout() << Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
 		}
 		return 0;
 	}
@@ -219,8 +241,7 @@ int CliMain(const Vector<String>& args) {
 
 	if (args[0] == "--link-list-item-commit" && args.GetCount() >= 6) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
+		if(!load_p(p, args[1])) return 1;
 		String fpath = args[2];
 		String ltype = args[3];
 		int idx = ScanInt(args[4]);
@@ -234,12 +255,44 @@ int CliMain(const Vector<String>& args) {
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
+	if (args[0] == "--get-sessions" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		for(const auto& s : p.sessions)
+			Cout() << s.session_id << " | " << Format(s.start_time) << " | " << s.actor_type << ":" << s.actor_id << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--get-history-by-actor" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		String aid = args[2];
+		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
+			const auto& e = p.history[i];
+			if(e.actor_id == aid)
+				Cout() << Format(e.time) << " | " << e.path << " | " << e.type << "\n";
+		}
+		return 0;
+	}
+
+	if (args[0] == "--get-actor-summary" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		ProjectDashboard db = p.GetDashboard();
+		for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
+			Cout() << db.activity_by_actor.GetKey(i) << ": " << db.activity_by_actor[i] << "\n";
+		return 0;
+	}
+
 	Cerr() << "Unknown arguments. Use --help for usage.\n";
 	return 1;
 }
 
 GUI_APP_MAIN {
-	const Vector<String>& args = CommandLine();
+	const Vector<String>& cmdline = CommandLine();
+	Vector<String> args;
+	for(const String& s : cmdline) args.Add(s);
+
 	if (args.GetCount() > 0 && args[0] == "--mcp") {
 		OverviewerProject p;
 		McpServer(p).Run();

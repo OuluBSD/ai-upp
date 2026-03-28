@@ -41,7 +41,9 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 	db.recent_changes = history.GetCount();
 	Index<String> recent_paths;
 	for(int i = history.GetCount() - 1; i >= 0 && i >= history.GetCount() - 100; i--) {
-		if(!history[i].path.IsEmpty()) recent_paths.FindAdd(history[i].path);
+		const auto& e = history[i];
+		if(!e.path.IsEmpty()) recent_paths.FindAdd(e.path);
+		if(!e.actor_id.IsEmpty()) db.activity_by_actor.GetAdd(e.actor_type + ":" + e.actor_id, 0)++;
 	}
 	for(const String& p : recent_paths) db.recently_modified.Add(p);
 
@@ -114,9 +116,13 @@ void OverviewerProject::RunConsistencyCheck() {
 
 		int path_events = 0;
 		Time last_touch;
+		String last_actor_type;
 		for(int j = history.GetCount() - 1; j >= 0; j--) {
 			if(history[j].path == path) {
-				if(path_events == 0) last_touch = history[j].time;
+				if(path_events == 0) {
+					last_touch = history[j].time;
+					last_actor_type = history[j].actor_type;
+				}
 				path_events++;
 			}
 		}
@@ -127,6 +133,10 @@ void OverviewerProject::RunConsistencyCheck() {
 		
 		if(path_events > 10 && m.completion == 5) {
 			add_review(path, "Temporal", "Entry heavily modified recently but marked as complete.", 0, "checker");
+		}
+		
+		if(last_actor_type == "agent" && (now - last_touch < 3600) && !(m.flags & FLAG_NEEDS_REVIEW)) {
+			add_review(path, "Attribution", "Recently modified by agent; needs human review.", 0, "checker");
 		}
 		
 		// Git awareness

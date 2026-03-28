@@ -63,6 +63,8 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "clear_history") res = ClearHistory(args);
 		else if(method == "get_action_view") res = GetActionView(args);
 		else if(method == "get_entry_score") res = GetEntryScore(args);
+		else if(method == "generate_overview") res = GenerateOverview(args);
+		else if(method == "export_overview") res = ExportOverview(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -573,6 +575,30 @@ Value McpServer::GetEntryScore(const Value& args) {
 	for(const String& f : s.factors) factors.Add(f);
 	m.Add("factors", factors);
 	return m;
+}
+
+Value McpServer::GenerateOverview(const Value& args) {
+	OverviewOptions opt;
+	if(!args["options"].IsNull()) LoadFromJson(opt, args["options"]);
+	String path = args["path"];
+	String type = args["scope_type"];
+	
+	OverviewGenerator gen(project);
+	String text;
+	if(type == "project" || path.IsEmpty()) text = gen.GenerateProject(opt);
+	else text = gen.Generate(path, opt);
+	
+	ValueMap res;
+	res.Add("text", text);
+	return res;
+}
+
+Value McpServer::ExportOverview(const Value& args) {
+	String out_path = args["output_path"];
+	if(out_path.IsEmpty()) throw Exc("Output path required");
+	Value res = GenerateOverview(args);
+	if(SaveFile(out_path, res["text"])) return "Overview exported to " + out_path;
+	throw Exc("Failed to write export file");
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

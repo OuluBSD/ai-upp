@@ -13,6 +13,7 @@ file
 	SuggestionEngine.cpp,
 	ConsistencyChecker.cpp,
 	Prioritization.cpp,
+	OverviewGenerator.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

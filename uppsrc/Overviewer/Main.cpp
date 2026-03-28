@@ -18,6 +18,8 @@ void PrintHelp() {
 	       << "  Overviewer --batch-set-priority <project> <path> <value> [--recursive]\n"
 	       << "  Overviewer --batch-add-flag <project> <path> <flag> [--recursive]\n"
 	       << "  Overviewer --batch-add-tag <project> <path> <category> <tag> [--recursive]\n"
+	       << "  Overviewer --write-backup <project>\n"
+	       << "  Overviewer --show-recovery-info <project>\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -322,6 +324,31 @@ int CliMain(const Vector<String>& args) {
 		}
 		Cout() << "Affected " << paths.GetCount() << " entries.\n";
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	Cerr() << "Unknown arguments. Use --help for usage.\n";
+	return 1;
+}
+
+GUI_APP_MAIN {
+	const Vector<String>& args = CommandLine();
+	if (args.GetCount() > 0 && args[0] == "--mcp") {
+		OverviewerProject p;
+		McpServer(p).Run();
+		return;
+	}
+	if (args.GetCount() > 0 && args[0].StartsWith("--")) {
+		SetExitCode(CliMain(args));
+		return;
+	}
+
+	OverviewerWindow().Run();
+}
+h.IsEmpty() && FileExists(bpath);
+		Cout() << "Backup path: " << bpath << "\n";
+		Cout() << "Exists: " << (exists ? "YES" : "NO") << "\n";
+		if(exists) Cout() << "Timestamp: " << FileGetTime(bpath) << "\n";
+		return 0;
 	}
 
 	Cerr() << "Unknown arguments. Use --help for usage.\n";

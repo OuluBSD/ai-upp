@@ -3,8 +3,12 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <Docking/Docking.h>
+#include "Settings.h"
 
 using namespace Upp;
+
+#define LAYOUTFILE <Overviewer/Overviewer.lay>
+#include <CtrlCore/lay.h>
 
 enum {
 	FLAG_TEMPORARY = 1,
@@ -74,6 +78,16 @@ struct OverviewerProject {
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
+	String GetBackupPath() const;
+	bool WriteBackup() const;
+};
+
+class SettingsWindow : public WithSettingsLayout<TopWindow> {
+public:
+	typedef SettingsWindow CLASSNAME;
+	SettingsWindow();
+	void Load();
+	void Save();
 };
 
 class OverviewerWindow : public DockWindow {
@@ -105,6 +119,14 @@ public:
 	void OnNoteChange();
 
 	void OnBatchEdit();
+	void OnSettings();
+
+	void SaveLayout();
+	void LoadLayout();
+
+	void CheckAutosave();
+	void MarkSession(bool active);
+	bool CheckRecovery();
 
 public:
 	struct FilterConfig {
@@ -120,6 +142,7 @@ private:
 	OverviewerProject project;
 	bool dirty = false;
 	String current_selection;
+	Time last_autosave;
 
 	MenuBar menu;
 	

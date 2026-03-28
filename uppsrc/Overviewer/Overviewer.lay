@@ -1,0 +1,10 @@
+LAYOUT(SettingsLayout, 400, 200)
+	ITEM(Upp::Option, autosave_enabled, SetLabel(t_("Enable Autosave")).LeftPosZ(10, 150).TopPosZ(10, 20))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("Interval (minutes):")).LeftPosZ(10, 120).TopPosZ(35, 20))
+	ITEM(Upp::EditIntSpin, autosave_interval, Min(1).Max(1440).LeftPosZ(130, 60).TopPosZ(35, 20))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("Backup Mode:")).LeftPosZ(10, 120).TopPosZ(60, 20))
+	ITEM(Upp::DropList, backup_mode, LeftPosZ(130, 200).TopPosZ(60, 20))
+	ITEM(Upp::Option, restore_layout, SetLabel(t_("Restore last layout")).LeftPosZ(10, 200).TopPosZ(85, 20))
+	ITEM(Upp::Button, ok, SetLabel(t_("OK")).RightPosZ(90, 80).BottomPosZ(10, 24))
+	ITEM(Upp::Button, cancel, SetLabel(t_("Cancel")).RightPosZ(10, 80).BottomPosZ(10, 24))
+END_LAYOUT

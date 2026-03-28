@@ -7,10 +7,13 @@ uses
 
 file
 	Overviewer.h,
+	Settings.h,
+	Settings.cpp,
 	Project.cpp,
 	McpServer.h,
 	McpServer.cpp,
-	Main.cpp;
+	Main.cpp,
+	Overviewer.lay;
 
 mainconfig
 	"" = "GUI";

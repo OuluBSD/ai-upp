@@ -19,7 +19,7 @@ Json McpServer::ValorizeResponse(bool success, const Value& result, const String
 void McpServer::ProcessRequest(const String& line) {
 	Value req = ParseJSON(line);
 	if(req.IsError()) {
-		Cout() << ValorizeResponse(false, Value(), "Invalid JSON request") << "\n";
+		Cout() << ValorizeResponse(false, Value(), "Invalid JSON request").ToString() << "\n";
 		return;
 	}
 
@@ -47,19 +47,21 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "find_entries_missing_numeric") res = FindEntriesMissingNumeric(args);
 		else if(method == "find_entries_by_tag") res = FindEntriesByTag(args);
 		else if(method == "get_registry_tags") res = GetRegistryTags(args);
+		else if(method == "get_recovery_info") res = GetRecoveryInfo(args);
+		else if(method == "write_backup_now") res = WriteBackupNow(args);
 		else if(method == "shutdown") {
-			Cout() << ValorizeResponse(true, "Shutting down") << "\n";
+			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
 		}
 		else {
-			Cout() << ValorizeResponse(false, Value(), "Unknown method: " + method) << "\n";
+			Cout() << ValorizeResponse(false, Value(), "Unknown method: " + method).ToString() << "\n";
 			return;
 		}
-		Cout() << ValorizeResponse(true, res) << "\n";
+		Cout() << ValorizeResponse(true, res).ToString() << "\n";
 	} catch(const Exc& e) {
-		Cout() << ValorizeResponse(false, Value(), e) << "\n";
+		Cout() << ValorizeResponse(false, Value(), e).ToString() << "\n";
 	} catch(...) {
-		Cout() << ValorizeResponse(false, Value(), "Internal error") << "\n";
+		Cout() << ValorizeResponse(false, Value(), "Internal error").ToString() << "\n";
 	}
 }
 
@@ -79,21 +81,21 @@ Value McpServer::SaveProject(const Value& args) {
 }
 
 Value McpServer::GetProjectInfo(const Value& args) {
-	Json json;
-	json("path", project.path)
-	    ("working_dir", project.working_dir)
-	    ("dirty", false); // We don't track dirty state properly in McpServer yet as it's meant for headless
-	return json;
+	ValueMap m;
+	m.Add("path", project.path);
+	m.Add("working_dir", project.working_dir);
+	m.Add("dirty", false);
+	return m;
 }
 
 Value McpServer::ListEntries(const Value& args) {
 	String prefix = args["prefix"];
 	bool recursive = args["recursive"];
-	JsonArray arr;
+	ValueArray arr;
 	for(const String& p : current_scan) {
 		if(prefix.IsEmpty() || p.StartsWith(prefix)) {
 			if(!recursive && p.Mid(prefix.GetCount()).Find('/') >= 0) continue;
-			arr << p;
+			arr.Add(p);
 		}
 	}
 	return arr;
@@ -106,44 +108,51 @@ Value McpServer::GetEntry(const Value& args) {
 	FileMetadata effective = project.GetEffectiveMetadata(rel_path);
 	const FileMetadata* m = project.metadata.FindPtr(rel_path);
 	
-	Json json;
-	json("path", rel_path)
-	    ("explicit_flags", (int)(m ? m->flags : 0))
-	    ("priority", (m ? m->priority : 0))
-	    ("priority_effective", effective.priority)
-	    ("quality", (m ? m->quality : 0))
-	    ("quality_effective", effective.quality)
-	    ("completion", (m ? m->completion : 0))
-	    ("completion_effective", effective.completion)
-	    ("notes", (m ? m->notes : ""));
+	ValueMap res;
+	res.Add("path", rel_path);
+	res.Add("explicit_flags", (int)(m ? m->flags : 0));
+	res.Add("priority", (m ? m->priority : 0));
+	res.Add("priority_effective", effective.priority);
+	res.Add("quality", (m ? m->quality : 0));
+	res.Add("quality_effective", effective.quality);
+	res.Add("completion", (m ? m->completion : 0));
+	res.Add("completion_effective", effective.completion);
+	res.Add("notes", (m ? m->notes : ""));
 	
-	JsonArray ctags, rtags, gtags;
+	ValueArray ctags, rtags, gtags;
 	if(m) {
-		for(const String& s : m->current_tags) ctags << s;
-		for(const String& s : m->reason_tags) rtags << s;
-		for(const String& s : m->gap_tags) gtags << s;
+		for(const String& s : m->current_tags) ctags.Add(s);
+		for(const String& s : m->reason_tags) rtags.Add(s);
+		for(const String& s : m->gap_tags) gtags.Add(s);
 	}
-	json("current_tags", ctags)("reason_tags", rtags)("gap_tags", gtags);
+	res.Add("current_tags", ctags);
+	res.Add("reason_tags", rtags);
+	res.Add("gap_tags", gtags);
 	
 	auto serialize_list = [](const Vector<ListItem>& src) {
-		JsonArray a;
+		ValueArray a;
 		for(const ListItem& it : src) {
-			Json j;
-			j("text", it.text)("done", it.done)("date", it.date)("commit", it.commit);
-			a << j;
+			ValueMap j;
+			j.Add("text", it.text);
+			j.Add("done", it.done);
+			j.Add("date", it.date);
+			j.Add("commit", it.commit);
+			a.Add(j);
 		}
 		return a;
 	};
 	
 	if(m) {
-		json("problems", serialize_list(m->problems))
-		    ("tasks", serialize_list(m->tasks))
-		    ("leads", serialize_list(m->leads));
+		res.Add("problems", serialize_list(m->problems));
+		res.Add("tasks", serialize_list(m->tasks));
+		res.Add("leads", serialize_list(m->leads));
 	} else {
-		json("problems", JsonArray())("tasks", JsonArray())("leads", JsonArray());
+		res.Add("problems", ValueArray());
+		res.Add("tasks", ValueArray());
+		res.Add("leads", ValueArray());
 	}
 	
-	return json;
+	return res;
 }
 
 Value McpServer::SetNote(const Value& args) {
@@ -167,10 +176,12 @@ Value McpServer::SetNumeric(const Value& args) {
 Value McpServer::SetFlags(const Value& args) {
 	String path = args["path"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
-	JsonArray arr = args["flags"];
+	Value arr = args["flags"];
 	uint32 bits = 0;
-	for(int i = 0; i < arr.GetCount(); i++)
-		bits |= StringToFlag(arr[i]);
+	if(arr.IsArray()) {
+		for(int i = 0; i < arr.GetCount(); i++)
+			bits |= StringToFlag(arr[i]);
+	}
 	project.metadata.GetAdd(path).flags = bits;
 	return "Flags set";
 }
@@ -271,12 +282,10 @@ Value McpServer::MoveEntry(const Value& args) {
 	if(!FileExists(abs_src) && !DirectoryExists(abs_src)) throw Exc("Source does not exist");
 	if(FileExists(abs_dst) || DirectoryExists(abs_dst)) throw Exc("Destination already exists");
 	
-	// Ensure parent dir of dst exists
 	RealizeDirectory(GetFileDirectory(abs_dst));
 	
 	if(rename(abs_src, abs_dst) != 0) throw Exc("Filesystem move failed");
 	
-	// Update metadata
 	VectorMap<String, FileMetadata> new_meta;
 	for(int i = 0; i < project.metadata.GetCount(); i++) {
 		String p = project.metadata.GetKey(i);
@@ -303,17 +312,17 @@ Value McpServer::RefreshScan(const Value& args) {
 
 Value McpServer::FindEntriesWithFlag(const Value& args) {
 	uint32 bit = StringToFlag(args["flag"]);
-	JsonArray arr;
+	ValueArray arr;
 	for(int i = 0; i < project.metadata.GetCount(); i++) {
 		if(project.metadata[i].flags & bit)
-			arr << project.metadata.GetKey(i);
+			arr.Add(project.metadata.GetKey(i));
 	}
 	return arr;
 }
 
 Value McpServer::FindEntriesMissingNumeric(const Value& args) {
 	String field = args["field"];
-	JsonArray arr;
+	ValueArray arr;
 	for(const String& p : current_scan) {
 		const FileMetadata* m = project.metadata.FindPtr(p);
 		bool missing = false;
@@ -321,7 +330,7 @@ Value McpServer::FindEntriesMissingNumeric(const Value& args) {
 		else if(field == "completion") missing = (!m || m->completion == 0);
 		else if(field == "priority") missing = (!m || m->priority == 0);
 		else throw Exc("Invalid field");
-		if(missing) arr << p;
+		if(missing) arr.Add(p);
 	}
 	return arr;
 }
@@ -329,7 +338,7 @@ Value McpServer::FindEntriesMissingNumeric(const Value& args) {
 Value McpServer::FindEntriesByTag(const Value& args) {
 	String cat = args["category"];
 	String tag = args["tag"];
-	JsonArray arr;
+	ValueArray arr;
 	for(int i = 0; i < project.metadata.GetCount(); i++) {
 		const FileMetadata& m = project.metadata[i];
 		const Vector<String>* v = nullptr;
@@ -337,19 +346,38 @@ Value McpServer::FindEntriesByTag(const Value& args) {
 		else if(cat == "reason") v = &m.reason_tags;
 		else if(cat == "gap") v = &m.gap_tags;
 		if(v && FindIndex(*v, tag) >= 0)
-			arr << project.metadata.GetKey(i);
+			arr.Add(project.metadata.GetKey(i));
 	}
 	return arr;
 }
 
 Value McpServer::GetRegistryTags(const Value& args) {
-	Json json;
-	JsonArray c, r, g;
-	for(const String& s : project.known_current_tags) c << s;
-	for(const String& s : project.known_reason_tags) r << s;
-	for(const String& s : project.known_gap_tags) g << s;
-	json("current", c)("reason", r)("gap", g);
-	return json;
+	ValueMap res;
+	ValueArray c, r, g;
+	for(const String& s : project.known_current_tags) c.Add(s);
+	for(const String& s : project.known_reason_tags) r.Add(s);
+	for(const String& s : project.known_gap_tags) g.Add(s);
+	res.Add("current", c);
+	res.Add("reason", r);
+	res.Add("gap", g);
+	return res;
+}
+
+Value McpServer::GetRecoveryInfo(const Value& args) {
+	String bpath = project.GetBackupPath();
+	bool exists = !bpath.IsEmpty() && FileExists(bpath);
+	ValueMap m;
+	m.Add("has_recovery", exists);
+	m.Add("recovery_path", bpath);
+	m.Add("timestamp", exists ? Format(FileGetTime(bpath)) : "");
+	m.Add("previous_unclean_shutdown", FileExists(ConfigFile("session.active")));
+	return m;
+}
+
+Value McpServer::WriteBackupNow(const Value& args) {
+	if(project.path.IsEmpty()) throw Exc("No project path set");
+	if(project.WriteBackup()) return "Backup written";
+	throw Exc("Failed to write backup");
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {
@@ -373,7 +401,6 @@ void McpServer::DoScan() {
 
 bool McpServer::IsPathValid(const String& path) {
 	if(path.StartsWith("/") || path.StartsWith("\\") || path.Find("..") >= 0) return false;
-	// Further validation could check against working_dir
 	return true;
 }
 

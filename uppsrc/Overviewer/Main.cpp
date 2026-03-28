@@ -10,7 +10,14 @@ void PrintHelp() {
 	       << "  Overviewer --set-flag <project> <path> <flag>\n"
 	       << "  Overviewer --set-priority <project> <path> <value>\n"
 	       << "  Overviewer --get-entry <project> <path>\n"
-	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n";
+	       << "  Overviewer --set-note <project> <path> <text>\n"
+	       << "  Overviewer --add-tag <project> <path> <category> <tag>\n"
+	       << "  Overviewer --remove-tag <project> <path> <category> <tag>\n"
+	       << "  Overviewer --add-list-item <project> <path> <listtype> <text>\n"
+	       << "  Overviewer --set-list-item-done <project> <path> <listtype> <index> <0|1>\n"
+	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
+	       << "Categories: current, reason, gap\n"
+	       << "ListTypes: problems, tasks, leads\n";
 }
 
 int CliMain(const Vector<String>& args) {
@@ -141,11 +148,106 @@ int CliMain(const Vector<String>& args) {
 			Cout() << "Priority: " << m->priority << "\n";
 			Cout() << "Quality: " << m->quality << "\n";
 			Cout() << "Completion: " << m->completion << "\n";
+			Cout() << "Note: " << m->notes << "\n";
+			auto print_tags = [](const char* title, const Vector<String>& tags) {
+				Cout() << title << ": " << Join(tags, ", ") << "\n";
+			};
+			print_tags("Current Tags", m->current_tags);
+			print_tags("Reason Tags", m->reason_tags);
+			print_tags("Gap Tags", m->gap_tags);
+			auto print_list = [](const char* title, const Vector<ListItem>& items) {
+				Cout() << title << ":\n";
+				for(int i = 0; i < items.GetCount(); i++)
+					Cout() << "  [" << i << "] " << (items[i].done ? "[X] " : "[ ] ") << items[i].text << "\n";
+			};
+			print_list("Problems", m->problems);
+			print_list("Tasks", m->tasks);
+			print_list("Leads", m->leads);
 			return 0;
 		} else {
 			Cerr() << "No metadata for path: " << f_path << "\n";
 			return 1;
 		}
+	}
+
+	if (args[0] == "--set-note" && args.GetCount() >= 4) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String note = args[3];
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		p.metadata.GetAdd(f_path).notes = note;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--add-tag" && args.GetCount() >= 5) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String cat = args[3];
+		String tag = args[4];
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		FileMetadata& m = p.metadata.GetAdd(f_path);
+		Vector<String>* target = nullptr;
+		if(cat == "current") target = &m.current_tags;
+		else if(cat == "reason") target = &m.reason_tags;
+		else if(cat == "gap") target = &m.gap_tags;
+		if(!target) return 1;
+		if(FindIndex(*target, tag) < 0) target->Add(tag);
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--remove-tag" && args.GetCount() >= 5) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String cat = args[3];
+		String tag = args[4];
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		FileMetadata& m = p.metadata.GetAdd(f_path);
+		Vector<String>* target = nullptr;
+		if(cat == "current") target = &m.current_tags;
+		else if(cat == "reason") target = &m.reason_tags;
+		else if(cat == "gap") target = &m.gap_tags;
+		if(!target) return 1;
+		int idx = FindIndex(*target, tag);
+		if(idx >= 0) target->Remove(idx);
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--add-list-item" && args.GetCount() >= 5) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String ltype = args[3];
+		String text = args[4];
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		FileMetadata& m = p.metadata.GetAdd(f_path);
+		Vector<ListItem>* target = nullptr;
+		if(ltype == "problems") target = &m.problems;
+		else if(ltype == "tasks") target = &m.tasks;
+		else if(ltype == "leads") target = &m.leads;
+		if(!target) return 1;
+		target->Add().text = text;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--set-list-item-done" && args.GetCount() >= 6) {
+		String p_path = args[1];
+		String f_path = args[2];
+		String ltype = args[3];
+		int idx = ScanInt(args[4]);
+		bool done = ScanInt(args[5]) != 0;
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, p_path)) return 1;
+		FileMetadata& m = p.metadata.GetAdd(f_path);
+		Vector<ListItem>* target = nullptr;
+		if(ltype == "problems") target = &m.problems;
+		else if(ltype == "tasks") target = &m.tasks;
+		else if(ltype == "leads") target = &m.leads;
+		if(!target || idx < 0 || idx >= target->GetCount()) return 1;
+		(*target)[idx].done = done;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
 	Cerr() << "Unknown arguments. Use --help for usage.\n";

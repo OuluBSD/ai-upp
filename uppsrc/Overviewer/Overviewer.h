@@ -15,14 +15,35 @@ enum {
 	FLAG_CONTENT_NEEDS_REVIEW = 32
 };
 
+struct ListItem : Moveable<ListItem> {
+	String text;
+	bool done = false;
+	String date;
+	String commit;
+
+	void Jsonize(JsonIO& jio) {
+		jio("text", text)("done", done)("date", date)("commit", commit);
+	}
+};
+
 struct FileMetadata : Moveable<FileMetadata> {
 	uint32 flags = 0;
 	int quality = 0;
 	int completion = 0;
 	int priority = 0;
+	String notes;
+	Vector<String> current_tags;
+	Vector<String> reason_tags;
+	Vector<String> gap_tags;
+	Vector<ListItem> problems;
+	Vector<ListItem> tasks;
+	Vector<ListItem> leads;
 
 	void Jsonize(JsonIO& jio) {
-		jio("flags", (int&)flags)("quality", quality)("completion", completion)("priority", priority);
+		jio("flags", (int&)flags)("quality", quality)("completion", completion)("priority", priority)
+		   ("notes", notes)
+		   ("current_tags", current_tags)("reason_tags", reason_tags)("gap_tags", gap_tags)
+		   ("problems", problems)("tasks", tasks)("leads", leads);
 	}
 };
 
@@ -31,9 +52,15 @@ struct OverviewerProject {
 	String working_dir;
 	int version = 1;
 	VectorMap<String, FileMetadata> metadata;
+	Vector<String> known_current_tags;
+	Vector<String> known_reason_tags;
+	Vector<String> known_gap_tags;
 	
 	void Jsonize(JsonIO& jio) {
-		jio("version", version)("working_dir", working_dir)("metadata", metadata);
+		jio("version", version)("working_dir", working_dir)("metadata", metadata)
+		   ("known_current_tags", known_current_tags)
+		   ("known_reason_tags", known_reason_tags)
+		   ("known_gap_tags", known_gap_tags);
 	}
 	
 	void Reset() {
@@ -41,6 +68,9 @@ struct OverviewerProject {
 		working_dir = "";
 		version = 1;
 		metadata.Clear();
+		known_current_tags.Clear();
+		known_reason_tags.Clear();
+		known_gap_tags.Clear();
 	}
 };
 
@@ -70,6 +100,7 @@ public:
 	void OnTreeSelection();
 	void UpdatePanels();
 	void OnMetadataChange();
+	void OnNoteChange();
 
 private:
 	OverviewerProject project;
@@ -90,10 +121,62 @@ private:
 	ParentCtrl info_pane;
 	Label path_lbl, type_lbl, size_lbl;
 
+	DocEdit notes_editor;
+
+	struct TagPanel : ParentCtrl {
+		typedef TagPanel CLASSNAME;
+		ArrayCtrl list;
+		Button add, remove;
+		Vector<String>& assigned;
+		Vector<String>& global_known;
+		Gate<> when_change;
+
+		TagPanel(Vector<String>& a, Vector<String>& g) : assigned(a), global_known(g) {
+			Add(list.SizePos());
+			AddFrame(TopSeparatorFrame());
+			AddFrame(BottomSeparatorFrame());
+			list.AddColumn("Tag");
+		}
+		void Refresh();
+		void OnAdd();
+		void OnRemove();
+	};
+
+	struct ListPanel : ParentCtrl {
+		typedef ListPanel CLASSNAME;
+		ArrayCtrl list;
+		Button add, edit, remove, toggle_done;
+		Vector<ListItem>& items;
+		Gate<> when_change;
+
+		ListPanel(Vector<ListItem>& it) : items(it) {
+			Add(list.SizePos());
+			list.AddColumn("Done", 20);
+			list.AddColumn("Text");
+			list.AddColumn("Date");
+			list.AddColumn("Commit");
+		}
+		void Refresh();
+		void OnAdd();
+		void OnEdit();
+		void OnRemove();
+		void OnToggleDone();
+	};
+
+	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
+	ListPanel problems_pane, tasks_pane, leads_pane;
+
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
 	DockableCtrl* dock_numeric = nullptr;
 	DockableCtrl* dock_info = nullptr;
+	DockableCtrl* dock_notes = nullptr;
+	DockableCtrl* dock_current_tags = nullptr;
+	DockableCtrl* dock_reason_tags = nullptr;
+	DockableCtrl* dock_gap_tags = nullptr;
+	DockableCtrl* dock_problems = nullptr;
+	DockableCtrl* dock_tasks = nullptr;
+	DockableCtrl* dock_leads = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);
@@ -104,6 +187,8 @@ private:
 	void CreateFlagsPane();
 	void CreateNumericPane();
 	void CreateInfoPane();
+	
+	FileMetadata dummy_metadata; // for when nothing is selected
 };
 
 #endif

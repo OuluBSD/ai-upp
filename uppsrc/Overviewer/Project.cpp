@@ -1,6 +1,89 @@
 #include "Overviewer.h"
 
-OverviewerWindow::OverviewerWindow() {
+void OverviewerWindow::TagPanel::Refresh() {
+	list.Clear();
+	for(const String& s : assigned)
+		list.Add(s);
+}
+
+void OverviewerWindow::TagPanel::OnAdd() {
+	String name;
+	if(!EditText(name, "Add Tag", "Tag name:")) return;
+	name = TrimBoth(name);
+	if(name.IsEmpty()) return;
+	
+	if(FindIndex(assigned, name) < 0) {
+		assigned.Add(name);
+		if(FindIndex(global_known, name) < 0)
+			global_known.Add(name);
+		Refresh();
+		when_change();
+	}
+}
+
+void OverviewerWindow::TagPanel::OnRemove() {
+	int id = list.GetCursor();
+	if(id < 0) return;
+	String name = list.Get(id, 0);
+	int idx = FindIndex(assigned, name);
+	if(idx >= 0) {
+		assigned.Remove(idx);
+		Refresh();
+		when_change();
+	}
+}
+
+void OverviewerWindow::ListPanel::Refresh() {
+	list.Clear();
+	for(const ListItem& it : items)
+		list.Add(it.done ? "X" : "", it.text, it.date, it.commit);
+}
+
+void OverviewerWindow::ListPanel::OnAdd() {
+	String text;
+	if(!EditText(text, "Add Item", "Text:")) return;
+	text = TrimBoth(text);
+	if(text.IsEmpty()) return;
+	ListItem& it = items.Add();
+	it.text = text;
+	Refresh();
+	when_change();
+}
+
+void OverviewerWindow::ListPanel::OnEdit() {
+	int id = list.GetCursor();
+	if(id < 0) return;
+	ListItem& it = items[id];
+	if(!EditText(it.text, "Edit Item", "Text:")) return;
+	it.text = TrimBoth(it.text);
+	Refresh();
+	when_change();
+}
+
+void OverviewerWindow::ListPanel::OnRemove() {
+	int id = list.GetCursor();
+	if(id < 0) return;
+	items.Remove(id);
+	Refresh();
+	when_change();
+}
+
+void OverviewerWindow::ListPanel::OnToggleDone() {
+	int id = list.GetCursor();
+	if(id < 0) return;
+	items[id].done = !items[id].done;
+	Refresh();
+	when_change();
+}
+
+OverviewerWindow::OverviewerWindow() 
+	: current_tags_pane(dummy_metadata.current_tags, project.known_current_tags)
+	, reason_tags_pane(dummy_metadata.reason_tags, project.known_reason_tags)
+	, gap_tags_pane(dummy_metadata.gap_tags, project.known_gap_tags)
+	, problems_pane(dummy_metadata.problems)
+	, tasks_pane(dummy_metadata.tasks)
+	, leads_pane(dummy_metadata.leads)
+{
 	Title("Overviewer");
 	Sizeable().Zoomable();
 
@@ -12,6 +95,35 @@ OverviewerWindow::OverviewerWindow() {
 	CreateFlagsPane();
 	CreateNumericPane();
 	CreateInfoPane();
+	
+	notes_editor.WhenAction = THISBACK(OnNoteChange);
+
+	auto wire_tags = [&](TagPanel& p) {
+		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
+		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
+		p.when_change = THISBACK(OnMetadataChange);
+		// Note: Button layout is simple for now
+		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
+		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
+	};
+	wire_tags(current_tags_pane);
+	wire_tags(reason_tags_pane);
+	wire_tags(gap_tags_pane);
+
+	auto wire_list = [&](ListPanel& p) {
+		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
+		p.edit.SetLabel("Edit").WhenAction = [&p]{ p.OnEdit(); };
+		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
+		p.toggle_done.SetLabel("Done").WhenAction = [&p]{ p.OnToggleDone(); };
+		p.when_change = THISBACK(OnMetadataChange);
+		p.Add(p.add.LeftPos(0, 50).BottomPos(0, 20));
+		p.Add(p.edit.LeftPos(55, 50).BottomPos(0, 20));
+		p.Add(p.remove.LeftPos(110, 60).BottomPos(0, 20));
+		p.Add(p.toggle_done.LeftPos(175, 50).BottomPos(0, 20));
+	};
+	wire_list(problems_pane);
+	wire_list(tasks_pane);
+	wire_list(leads_pane);
 }
 
 void OverviewerWindow::CreateFlagsPane() {
@@ -57,16 +169,42 @@ void OverviewerWindow::DockInit() {
 	dock_flags = &Dockable(flags_pane, "Flags").SizeHint(Size(200, 150));
 	dock_numeric = &Dockable(numeric_pane, "Attributes").SizeHint(Size(200, 100));
 	dock_info = &Dockable(info_pane, "Info").SizeHint(Size(200, 100));
+	dock_notes = &Dockable(notes_editor, "Notes").SizeHint(Size(400, 300));
+	
+	dock_current_tags = &Dockable(current_tags_pane, "Current Tags").SizeHint(Size(200, 200));
+	dock_reason_tags = &Dockable(reason_tags_pane, "Reason Tags").SizeHint(Size(200, 200));
+	dock_gap_tags = &Dockable(gap_tags_pane, "Gap/Future Tags").SizeHint(Size(200, 200));
+	
+	dock_problems = &Dockable(problems_pane, "Problems").SizeHint(Size(300, 200));
+	dock_tasks = &Dockable(tasks_pane, "Tasks").SizeHint(Size(300, 200));
+	dock_leads = &Dockable(leads_pane, "Leads").SizeHint(Size(300, 200));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
 	Register(*dock_numeric);
 	Register(*dock_info);
+	Register(*dock_notes);
+	Register(*dock_current_tags);
+	Register(*dock_reason_tags);
+	Register(*dock_gap_tags);
+	Register(*dock_problems);
+	Register(*dock_tasks);
+	Register(*dock_leads);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
 	DockBottom(*dock_numeric);
 	DockBottom(*dock_info);
+	
+	DockBottom(*dock_notes, *dock_tree);
+	
+	DockBottom(*dock_current_tags, *dock_flags);
+	DockBottom(*dock_reason_tags, *dock_current_tags);
+	DockBottom(*dock_gap_tags, *dock_reason_tags);
+	
+	DockRight(*dock_problems);
+	DockBottom(*dock_tasks, *dock_problems);
+	DockBottom(*dock_leads, *dock_tasks);
 }
 
 void OverviewerWindow::SyncTitle() {
@@ -204,15 +342,9 @@ void OverviewerWindow::OnTreeSelection() {
 }
 
 void OverviewerWindow::UpdatePanels() {
-	if(current_selection.IsEmpty() || current_selection == ".") {
-		temporary = 0; wrong_location = 0; wrong_name = 0;
-		too_large = 0; needs_review = 0; content_needs_review = 0;
-		quality = 0; completion = 0; priority = 0;
-		path_lbl = ""; type_lbl = ""; size_lbl = "";
-		return;
-	}
+	// Re-bind panes to selected metadata
+	FileMetadata* m = current_selection.IsEmpty() || current_selection == "." ? nullptr : &project.metadata.GetAdd(current_selection);
 	
-	const FileMetadata* m = project.metadata.FindPtr(current_selection);
 	if(m) {
 		temporary = !!(m->flags & FLAG_TEMPORARY);
 		wrong_location = !!(m->flags & FLAG_WRONG_LOCATION);
@@ -223,11 +355,37 @@ void OverviewerWindow::UpdatePanels() {
 		quality.SetIndex(m->quality);
 		completion.SetIndex(m->completion);
 		priority.SetIndex(m->priority);
+		
+		notes_editor.SetData(m->notes);
+		
+		current_tags_pane.assigned = m->current_tags;
+		reason_tags_pane.assigned = m->reason_tags;
+		gap_tags_pane.assigned = m->gap_tags;
+		
+		problems_pane.items = m->problems;
+		tasks_pane.items = m->tasks;
+		leads_pane.items = m->leads;
 	} else {
 		temporary = 0; wrong_location = 0; wrong_name = 0;
 		too_large = 0; needs_review = 0; content_needs_review = 0;
 		quality.SetIndex(0); completion.SetIndex(0); priority.SetIndex(0);
+		notes_editor.SetData("");
+		
+		current_tags_pane.assigned = dummy_metadata.current_tags;
+		reason_tags_pane.assigned = dummy_metadata.reason_tags;
+		gap_tags_pane.assigned = dummy_metadata.gap_tags;
+		
+		problems_pane.items = dummy_metadata.problems;
+		tasks_pane.items = dummy_metadata.tasks;
+		leads_pane.items = dummy_metadata.leads;
 	}
+	
+	current_tags_pane.Refresh();
+	reason_tags_pane.Refresh();
+	gap_tags_pane.Refresh();
+	problems_pane.Refresh();
+	tasks_pane.Refresh();
+	leads_pane.Refresh();
 	
 	path_lbl = current_selection;
 	String root_path = project.working_dir;
@@ -262,6 +420,16 @@ void OverviewerWindow::OnMetadataChange() {
 	MarkDirty();
 }
 
+void OverviewerWindow::OnNoteChange() {
+	if(current_selection.IsEmpty() || current_selection == ".") return;
+	FileMetadata& m = project.metadata.GetAdd(current_selection);
+	String n = notes_editor.GetData();
+	if(m.notes != n) {
+		m.notes = n;
+		MarkDirty();
+	}
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
@@ -289,5 +457,5 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 2"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 3"); });
 }

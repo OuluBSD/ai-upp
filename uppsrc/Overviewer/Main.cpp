@@ -50,6 +50,12 @@ void PrintHelp() {
 	       << "  Overviewer --delete-scenario <project> <id>\n"
 	       << "  Overviewer --compare-scenario <project>\n"
 	       << "  Overviewer --apply-scenario <project> [id]\n"
+	       << "  Overviewer --create-decision <project> <title>\n"
+	       << "  Overviewer --set-decision-status <project> <id> <status>\n"
+	       << "  Overviewer --list-decisions <project>\n"
+	       << "  Overviewer --get-decision <project> <id>\n"
+	       << "  Overviewer --link-decision-entry <project> <id> <path>\n"
+	       << "  Overviewer --link-decision-scenario <project> <id> <scenario_id>\n"
 	       << "\nOptions:\n"
 	       << "  --actor <id> : specify actor id for the CLI run\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
@@ -245,6 +251,54 @@ int CliMain(Vector<String>& args) {
 		String id = args.GetCount() >= 3 ? args[2] : p.active_scenario_id;
 		if(id.IsEmpty()) return 1;
 		p.ApplyScenario(id);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--create-decision" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		String id = p.CreateDecision(args[2]);
+		Cout() << "Decision created: " << id << "\n";
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--set-decision-status" && args.GetCount() >= 4) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.UpdateDecision(args[2], "", args[3]);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--list-decisions" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		for(int i = 0; i < p.decisions.GetCount(); i++)
+			Cout() << p.decisions.GetKey(i) << " | " << p.decisions[i].title << " [" << p.decisions[i].status << "]\n";
+		return 0;
+	}
+
+	if (args[0] == "--get-decision" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		const Decision* d = p.decisions.FindPtr(args[2]);
+		if(d) {
+			Cout() << "ID: " << d->id << "\nTitle: " << d->title << "\nStatus: " << d->status << "\nDescription: " << d->description << "\n";
+			return 0;
+		}
+		return 1;
+	}
+
+	if (args[0] == "--link-decision-entry" && args.GetCount() >= 4) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.LinkDecisionToEntry(args[2], args[3]);
+		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+	}
+
+	if (args[0] == "--link-decision-scenario" && args.GetCount() >= 4) {
+		OverviewerProject p;
+		if(!load_p(p, args[1])) return 1;
+		p.LinkDecisionToScenario(args[2], args[3]);
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 

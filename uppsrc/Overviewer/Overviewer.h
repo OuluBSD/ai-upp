@@ -181,6 +181,39 @@ struct Scenario : Moveable<Scenario> {
 	}
 };
 
+struct Decision : Moveable<Decision> {
+	String id;
+	String title;
+	String description;
+	Time timestamp;
+	String actor_id;
+	String actor_type;
+	String session_id;
+	Vector<String> related_entries;
+	String related_scenario_id;
+	String status; // proposed, accepted, rejected, superseded
+	Vector<String> tags;
+	Vector<String> linked_commits;
+
+	void Jsonize(JsonIO& jio) {
+		jio("id", id)("title", title)("description", description)("timestamp", timestamp)
+		   ("actor_id", actor_id)("actor_type", actor_type)("session_id", session_id)
+		   ("related_entries", related_entries)("related_scenario_id", related_scenario_id)
+		   ("status", status)("tags", tags)("linked_commits", linked_commits);
+	}
+	
+	Decision() {}
+	Decision(const Decision& s, int) {
+		id = s.id; title = s.title; description = s.description; timestamp = s.timestamp;
+		actor_id = s.actor_id; actor_type = s.actor_type; session_id = s.session_id;
+		related_entries <<= s.related_entries;
+		related_scenario_id = s.related_scenario_id;
+		status = s.status;
+		tags <<= s.tags;
+		linked_commits <<= s.linked_commits;
+	}
+};
+
 struct ProjectDashboard {
 	int total_files = 0;
 	int total_dirs = 0;
@@ -204,12 +237,16 @@ struct ProjectDashboard {
 	
 	VectorMap<String, double> top_action_items;
 	VectorMap<String, int> activity_by_actor;
+	
+	int proposed_decisions = 0;
+	int accepted_decisions = 0;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
 		missing_priority = missing_completion = with_notes = with_problems = 0;
 		with_tasks = with_leads = suggestions_pending = 0;
 		recent_changes = stale_entries = 0;
+		proposed_decisions = accepted_decisions = 0;
 		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
 };
@@ -238,6 +275,8 @@ struct OverviewerProject {
 	
 	VectorMap<String, Scenario> scenarios;
 	String active_scenario_id;
+	
+	VectorMap<String, Decision> decisions;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -248,7 +287,8 @@ struct OverviewerProject {
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags)
-		   ("scenarios", scenarios);
+		   ("scenarios", scenarios)
+		   ("decisions", decisions);
 	}
 	
 	void Reset() {
@@ -257,6 +297,7 @@ struct OverviewerProject {
 		dismissed_review_ids.Clear(); history.Clear(); sessions.Clear();
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
+		decisions.Clear();
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
@@ -280,6 +321,11 @@ struct OverviewerProject {
 	void ActivateScenario(const String& id);
 	void DeactivateScenario();
 	void ApplyScenario(const String& id);
+	
+	String CreateDecision(const String& title);
+	void UpdateDecision(const String& id, const String& desc, const String& status);
+	void LinkDecisionToEntry(const String& id, const String& path);
+	void LinkDecisionToScenario(const String& id, const String& scenario_id);
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -329,6 +375,7 @@ public:
 	void OnShowOverviewPreview();
 	void OnShowGitHistory();
 	void OnShowSessions();
+	void OnShowDecisions();
 	
 	void OnScenarioMenu(Bar& bar);
 	void OnCreateScenario();
@@ -354,6 +401,7 @@ public:
 	void RefreshOverviewPreview();
 	void RefreshGitHistory();
 	void RefreshSessions();
+	void RefreshDecisions();
 
 	void OnExportOverview();
 	void OnRefreshGit();
@@ -522,6 +570,21 @@ private:
 		}
 	};
 
+	struct DecisionPanel : ParentCtrl {
+		typedef DecisionPanel CLASSNAME;
+		ArrayCtrl list;
+		DocEdit description;
+		Button add, accept, reject;
+		OverviewerWindow* window;
+		
+		DecisionPanel();
+		void Refresh(const VectorMap<String, Decision>& decisions);
+		void OnAdd();
+		void OnStatus(String status);
+		void OnSel();
+		void OnDescChange();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -533,6 +596,7 @@ private:
 	GitHistoryPanel git_history_pane;
 	SessionPanel session_pane;
 	ScenarioDiffPanel scenario_diff_pane;
+	DecisionPanel decision_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -553,6 +617,7 @@ private:
 	DockableCtrl* dock_overview_preview = nullptr;
 	DockableCtrl* dock_git_history = nullptr;
 	DockableCtrl* dock_sessions = nullptr;
+	DockableCtrl* dock_decisions = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

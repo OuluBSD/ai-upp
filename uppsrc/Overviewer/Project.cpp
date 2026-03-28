@@ -109,6 +109,8 @@ void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
 	stats.Add("Flagged Entries", db.flagged_entries);
 	stats.Add("Needs Review (Flagged)", db.needs_review);
 	stats.Add("Suggestions Pending", db.suggestions_pending);
+	stats.Add("Decisions (Proposed)", db.proposed_decisions);
+	stats.Add("Decisions (Accepted)", db.accepted_decisions);
 	
 	if(!db.activity_by_actor.IsEmpty()) {
 		stats.Add("--- ACTOR ACTIVITY ---", "");
@@ -239,6 +241,70 @@ void OverviewerWindow::SessionPanel::Refresh(const Vector<SessionInfo>& sessions
 	for(int i = sessions.GetCount() - 1; i >= 0; i--) {
 		const auto& s = sessions[i];
 		list.Add(s.session_id, Format(s.start_time), s.actor_type + ":" + s.actor_id);
+	}
+}
+
+OverviewerWindow::DecisionPanel::DecisionPanel() {
+	Add(list.VSizePos(0, 150).HSizePos());
+	Add(description.VSizePos(155, 35).HSizePos());
+	Add(add.SetLabel("New Decision").LeftPos(0, 100).BottomPos(5, 25));
+	Add(accept.SetLabel("Accept").LeftPos(105, 80).BottomPos(5, 25));
+	Add(reject.SetLabel("Reject").LeftPos(190, 80).BottomPos(5, 25));
+	
+	list.AddColumn("Status", 20);
+	list.AddColumn("Title");
+	list.AddColumn("Actor");
+	list.WhenSel = THISBACK(OnSel);
+	add.WhenAction = THISBACK(OnAdd);
+	accept.WhenAction = [this]{ OnStatus("accepted"); };
+	reject.WhenAction = [this]{ OnStatus("rejected"); };
+	description.WhenAction = THISBACK(OnDescChange);
+}
+
+void OverviewerWindow::DecisionPanel::Refresh(const VectorMap<String, Decision>& decisions) {
+	list.Clear();
+	for(int i = 0; i < decisions.GetCount(); i++) {
+		const auto& d = decisions[i];
+		list.Add(d.status, d.title, d.actor_id);
+	}
+}
+
+void OverviewerWindow::DecisionPanel::OnSel() {
+	int id = list.GetCursor();
+	if(id >= 0 && window) {
+		String did = window->project.decisions.GetKey(id);
+		description.SetData(window->project.decisions[id].description);
+	} else description.SetData("");
+}
+
+void OverviewerWindow::DecisionPanel::OnAdd() {
+	if(window) window->OnShowDecisions(); // Ensure focus or trigger dialog? Let's use simple logic.
+	String title;
+	if(EditText(title, "Create Decision", "Title:")) {
+		if(window) {
+			window->project.CreateDecision(title);
+			window->RefreshDecisions();
+			window->MarkDirty();
+		}
+	}
+}
+
+void OverviewerWindow::DecisionPanel::OnStatus(String status) {
+	int id = list.GetCursor();
+	if(id >= 0 && window) {
+		String did = window->project.decisions.GetKey(id);
+		window->project.UpdateDecision(did, window->project.decisions[id].description, status);
+		Refresh(window->project.decisions);
+		window->MarkDirty();
+	}
+}
+
+void OverviewerWindow::DecisionPanel::OnDescChange() {
+	int id = list.GetCursor();
+	if(id >= 0 && window) {
+		String did = window->project.decisions.GetKey(id);
+		window->project.UpdateDecision(did, (String)description.GetData(), window->project.decisions[id].status);
+		window->MarkDirty();
 	}
 }
 
@@ -382,6 +448,47 @@ void OverviewerProject::ApplyScenario(const String& id) {
 	}
 	scenarios.Remove(idx);
 	if(active_scenario_id == id) active_scenario_id = "";
+}
+
+String OverviewerProject::CreateDecision(const String& title) {
+	String id = AsString(Uuid::Create());
+	Decision& d = decisions.Add(id);
+	d.id = id;
+	d.title = title;
+	d.timestamp = GetSysTime();
+	d.actor_id = current_actor_id;
+	d.actor_type = current_actor_type;
+	d.session_id = current_session_id;
+	d.status = "proposed";
+	LogEvent("", "create_decision", "Created decision: " + title);
+	return id;
+}
+
+void OverviewerProject::UpdateDecision(const String& id, const String& desc, const String& status) {
+	Decision* d = decisions.FindPtr(id);
+	if(d) {
+		d->description = desc;
+		if(d->status != status) {
+			LogEvent("", "decision_status", "Decision " + d->title + " status changed to " + status);
+			d->status = status;
+		}
+	}
+}
+
+void OverviewerProject::LinkDecisionToEntry(const String& id, const String& path) {
+	Decision* d = decisions.FindPtr(id);
+	if(d && FindIndex(d->related_entries, path) < 0) {
+		d->related_entries.Add(path);
+		LogEvent(path, "link_decision", "Linked to decision: " + d->title);
+	}
+}
+
+void OverviewerProject::LinkDecisionToScenario(const String& id, const String& scenario_id) {
+	Decision* d = decisions.FindPtr(id);
+	if(d) {
+		d->related_scenario_id = scenario_id;
+		LogEvent("", "link_decision_scenario", "Linked decision " + d->title + " to scenario " + scenario_id);
+	}
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -612,6 +719,7 @@ OverviewerWindow::OverviewerWindow()
 	action_view_pane.window = this;
 	overview_preview_pane.window = this;
 	git_history_pane.window = this;
+	decision_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -731,6 +839,7 @@ void OverviewerWindow::DockInit() {
 	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400));
 	dock_git_history = &Dockable(git_history_pane, "Git History").SizeHint(Size(400, 200));
 	dock_sessions = &Dockable(session_pane, "Sessions").SizeHint(Size(400, 200));
+	dock_decisions = &Dockable(decision_pane, "Decisions").SizeHint(Size(400, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -751,6 +860,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_overview_preview);
 	Register(*dock_git_history);
 	Register(*dock_sessions);
+	Register(*dock_decisions);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -775,6 +885,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_overview_preview);
 	DockBottom(*dock_git_history);
 	DockBottom(*dock_sessions);
+	DockBottom(*dock_decisions);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -845,6 +956,7 @@ void OverviewerWindow::New() {
 	RefreshOverviewPreview();
 	RefreshGitHistory();
 	RefreshSessions();
+	RefreshDecisions();
 	ClearDirty();
 }
 
@@ -890,6 +1002,10 @@ void OverviewerWindow::OpenFile(const String& path) {
 		for(int i = 0; i < p.scenarios.GetCount(); i++)
 			project.scenarios.Add(p.scenarios.GetKey(i), Scenario(p.scenarios[i], 1));
 		
+		project.decisions.Clear();
+		for(int i = 0; i < p.decisions.GetCount(); i++)
+			project.decisions.Add(p.decisions.GetKey(i), Decision(p.decisions[i], 1));
+		
 		project.StartSession("local-user", "user");
 		
 		RefreshTree();
@@ -900,6 +1016,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshOverviewPreview();
 		RefreshGitHistory();
 		RefreshSessions();
+		RefreshDecisions();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -1173,6 +1290,11 @@ void OverviewerWindow::OnShowSessions() {
 	if(dock_sessions) dock_sessions->Show();
 }
 
+void OverviewerWindow::OnShowDecisions() {
+	RefreshDecisions();
+	if(dock_decisions) dock_decisions->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -1199,6 +1321,10 @@ void OverviewerWindow::RefreshGitHistory() {
 
 void OverviewerWindow::RefreshSessions() {
 	session_pane.Refresh(project.sessions);
+}
+
+void OverviewerWindow::RefreshDecisions() {
+	decision_pane.Refresh(project.decisions);
 }
 
 void OverviewerWindow::OnExportOverview() {
@@ -1315,6 +1441,7 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
 	bar.Add("Git History", THISBACK(OnShowGitHistory));
 	bar.Add("Sessions", THISBACK(OnShowSessions));
+	bar.Add("Decisions", THISBACK(OnShowDecisions));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -1327,5 +1454,5 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 14"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 15"); });
 }

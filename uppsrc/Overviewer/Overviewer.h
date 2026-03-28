@@ -72,6 +72,8 @@ struct OverviewerProject {
 		known_reason_tags.Clear();
 		known_gap_tags.Clear();
 	}
+	
+	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
 };
 
 class OverviewerWindow : public DockWindow {
@@ -102,11 +104,22 @@ public:
 	void OnMetadataChange();
 	void OnNoteChange();
 
+	void OnBatchEdit();
+
+public:
+	struct FilterConfig {
+		int mode = 0; // 0: all, 1: advanced
+		uint32 flags = 0;
+		int priority_min = 0;
+		bool missing_priority = false;
+		bool missing_completion = false;
+		String tag_current, tag_reason, tag_gap;
+	} filter;
+
 private:
 	OverviewerProject project;
 	bool dirty = false;
 	String current_selection;
-	int filter_mode = 0; // 0: all, 1: any flag, 2: priority 5
 
 	MenuBar menu;
 	
@@ -127,11 +140,11 @@ private:
 		typedef TagPanel CLASSNAME;
 		ArrayCtrl list;
 		Button add, remove;
-		Vector<String>& assigned;
-		Vector<String>& global_known;
+		Vector<String>* assigned;
+		Vector<String>* global_known;
 		Gate<> when_change;
 
-		TagPanel(Vector<String>& a, Vector<String>& g) : assigned(a), global_known(g) {
+		TagPanel(Vector<String>* a, Vector<String>* g) : assigned(a), global_known(g) {
 			Add(list.SizePos());
 			AddFrame(TopSeparatorFrame());
 			AddFrame(BottomSeparatorFrame());
@@ -146,10 +159,10 @@ private:
 		typedef ListPanel CLASSNAME;
 		ArrayCtrl list;
 		Button add, edit, remove, toggle_done;
-		Vector<ListItem>& items;
+		Vector<ListItem>* items;
 		Gate<> when_change;
 
-		ListPanel(Vector<ListItem>& it) : items(it) {
+		ListPanel(Vector<ListItem>* it) : items(it) {
 			Add(list.SizePos());
 			list.AddColumn("Done", 20);
 			list.AddColumn("Text");
@@ -189,6 +202,40 @@ private:
 	void CreateInfoPane();
 	
 	FileMetadata dummy_metadata; // for when nothing is selected
+};
+
+class BatchEditDialog : public TopWindow {
+public:
+	typedef BatchEditDialog CLASSNAME;
+	BatchEditDialog(OverviewerProject& p, const String& start_path);
+
+	struct FieldEdit : ParentCtrl {
+		Option enable;
+		Ctrl* ctrl;
+		FieldEdit(const char* label, Ctrl& c);
+	};
+
+	ArrayCtrl list;
+	Option recursive;
+	
+	Option apply_flags, apply_numeric, apply_tags;
+	
+	Option f_temp, f_loc, f_name, f_large, f_needs, f_content;
+	DropList op_flags; // Add, Remove
+	
+	DropList quality, completion, priority;
+	Option en_q, en_c, en_p;
+	
+	EditString tag_current, tag_reason, tag_gap;
+	DropList op_tags; // Add, Remove
+	Option en_tc, en_tr, en_tg;
+
+	Button ok, cancel;
+
+	OverviewerProject& project;
+	String initial_path;
+
+	void OnApply();
 };
 
 #endif

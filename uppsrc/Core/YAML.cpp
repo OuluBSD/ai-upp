@@ -2,21 +2,30 @@
 
 namespace Upp {
 
-// Simple line-based YAML parser
+// YAML parser with advanced features (multi-line, anchors, flow style)
 class YamlParser {
 	Vector<String> lines;
 	int            line_idx;
-
+	
+	// Use parallel vectors for anchors to avoid ValueMap corruption issue
+	Vector<String> anchor_names;
+	Vector<Value>  anchor_values;
+	
 	int    GetLineIndent(int line) const;
 	String GetLine(int line) const;
 	bool   IsEnd() const;
 	void   SkipCommentsAndBlanks();
 	Value  ParseScalar(const String& s);
+	Value  ParseFlowStyle(const String& s);  // Handle {map} and [list]
 	Value  ParseValue(int min_indent);
 	Value  ParseList(int min_indent);
 	Value  ParseMap(int min_indent);
 	String Trim(const String& s);
 	String Unquote(const String& s);
+	String ParseAnchorName(String& s);  // Extract &name from string
+	String ParseAliasName(const String& s);  // Extract *name from string
+	void   SetAnchor(const String& name, const Value& v);
+	Value  GetAnchor(const String& name);
 
 public:
 	YamlParser(const String& yaml);
@@ -54,6 +63,159 @@ String YamlParser::Unquote(const String& s)
 	if((s[0] == '"' && s[s.GetCount()-1] == '"') || (s[0] == '\'' && s[s.GetCount()-1] == '\''))
 		return s.Mid(1, s.GetCount() - 2);
 	return s;
+}
+
+String YamlParser::ParseAnchorName(String& s)
+{
+	int amp_pos = s.Find('&');
+	if(amp_pos < 0) return String();
+	
+	int name_start = amp_pos + 1;
+	int name_end = name_start;
+	while(name_end < s.GetCount() && s[name_end] != ' ' && s[name_end] != '\t' && s[name_end] != ':' && s[name_end] != '#')
+		name_end++;
+	
+	if(name_end <= name_start) return String();
+	
+	String anchor_name = s.Mid(name_start, name_end - name_start);
+	String result = s.Left(amp_pos);
+	if(name_end < s.GetCount()) result << s.Mid(name_end);
+	s = Trim(result);
+	return anchor_name;
+}
+
+String YamlParser::ParseAliasName(const String& s)
+{
+	String trimmed = Trim(s);
+	if(trimmed.IsEmpty() || trimmed[0] != '*') return String();
+	
+	int name_end = 1;
+	while(name_end < trimmed.GetCount() && trimmed[name_end] != ' ' && trimmed[name_end] != '\t' && trimmed[name_end] != '#')
+		name_end++;
+	
+	return name_end > 1 ? trimmed.Mid(1, name_end - 1) : String();
+}
+
+void YamlParser::SetAnchor(const String& name, const Value& v)
+{
+	// Check if anchor already exists
+	for(int i = 0; i < anchor_names.GetCount(); i++) {
+		if(anchor_names[i] == name) {
+			anchor_values[i] = v;
+			return;
+		}
+	}
+	// Add new anchor
+	anchor_names.Add(name);
+	anchor_values.Add(v);
+}
+
+Value YamlParser::GetAnchor(const String& name)
+{
+	for(int i = 0; i < anchor_names.GetCount(); i++) {
+		if(anchor_names[i] == name)
+			return anchor_values[i];
+	}
+	return Null;
+}
+
+// Parse flow style: {key: value} or [item, item]
+Value YamlParser::ParseFlowStyle(const String& s)
+{
+	String trimmed = Trim(s);
+	if(trimmed.IsEmpty() || (trimmed[0] != '{' && trimmed[0] != '['))
+		return Null;
+	
+	if(trimmed[0] == '{') {
+		ValueMap m;
+		String content = trimmed.Mid(1);
+		int end = content.Find('}');
+		if(end >= 0) content = content.Left(end);
+		
+		int pos = 0;
+		while(pos < content.GetCount()) {
+			while(pos < content.GetCount() && (content[pos] == ' ' || content[pos] == '\t' || content[pos] == '\n')) pos++;
+			if(pos >= content.GetCount()) break;
+			
+			// Find key
+			bool in_q = false; char q_c = 0;
+			int key_start = pos;
+			while(pos < content.GetCount()) {
+				char c = content[pos];
+				if((c == '"' || c == '\'') && (pos == 0 || content[pos-1] != '\\')) {
+					in_q = !in_q; q_c = c;
+				} else if(c == ':' && !in_q) break;
+				pos++;
+			}
+			if(pos >= content.GetCount()) break;
+			
+			String key = Unquote(Trim(content.Mid(key_start, pos - key_start)));
+			pos++; // skip ':'
+			while(pos < content.GetCount() && (content[pos] == ' ' || content[pos] == '\t')) pos++;
+			
+			// Find value
+			int v_start = pos, brace = 0, bracket = 0;
+			in_q = false;
+			while(pos < content.GetCount()) {
+				char c = content[pos];
+				if((c == '"' || c == '\'') && (pos == 0 || content[pos-1] != '\\')) in_q = !in_q;
+				else if(!in_q) {
+					if(c == '{') brace++; else if(c == '}') brace--;
+					else if(c == '[') bracket++; else if(c == ']') bracket--;
+					else if(c == ',' && brace == 0 && bracket == 0) break;
+				}
+				pos++;
+			}
+			
+			String v_str = Trim(content.Mid(v_start, pos - v_start));
+			Value v;
+			if(v_str.GetCount() > 0 && (v_str[0] == '{' || v_str[0] == '['))
+				v = ParseFlowStyle(v_str);
+			else if(v_str.GetCount() > 0)
+				v = ParseScalar(v_str);
+			else
+				v = Null;
+			
+			m.Add(key, v);
+			if(pos < content.GetCount() && content[pos] == ',') pos++;
+		}
+		return m;
+	}
+	else {
+		ValueArray va;
+		String content = trimmed.Mid(1);
+		int end = content.Find(']');
+		if(end >= 0) content = content.Left(end);
+		
+		int pos = 0;
+		while(pos < content.GetCount()) {
+			while(pos < content.GetCount() && (content[pos] == ' ' || content[pos] == '\t' || content[pos] == '\n')) pos++;
+			if(pos >= content.GetCount()) break;
+			
+			int item_start = pos, brace = 0, bracket = 0;
+			bool in_q = false;
+			while(pos < content.GetCount()) {
+				char c = content[pos];
+				if((c == '"' || c == '\'') && (pos == 0 || content[pos-1] != '\\')) in_q = !in_q;
+				else if(!in_q) {
+					if(c == '{') brace++; else if(c == '}') brace--;
+					else if(c == '[') bracket++; else if(c == ']') bracket--;
+					else if(c == ',' && brace == 0 && bracket == 0) break;
+				}
+				pos++;
+			}
+			
+			String item = Trim(content.Mid(item_start, pos - item_start));
+			if(item.GetCount() > 0) {
+				if(item[0] == '{' || item[0] == '[')
+					va.Add(ParseFlowStyle(item));
+				else
+					va.Add(ParseScalar(item));
+			}
+			if(pos < content.GetCount() && content[pos] == ',') pos++;
+		}
+		return va;
+	}
 }
 
 int YamlParser::GetLineIndent(int line) const
@@ -100,113 +262,125 @@ void YamlParser::SkipCommentsAndBlanks()
 Value YamlParser::ParseScalar(const String& s)
 {
 	String trimmed = Trim(s);
+
+	// Check for alias (*name) first
+	String alias_name = ParseAliasName(trimmed);
+	if(!alias_name.IsEmpty()) {
+		Value v = GetAnchor(alias_name);
+		return v.IsVoid() ? Null : v;
+	}
 	
-	// Remove inline comment (not inside quotes)
+	// Check for flow style
+	if(trimmed.GetCount() > 0 && (trimmed[0] == '{' || trimmed[0] == '['))
+		return ParseFlowStyle(trimmed);
+
+	// Remove inline comment
 	int comment_pos = -1;
 	bool in_quote = false;
 	char quote_char = 0;
 	for(int i = 0; i < trimmed.GetCount(); i++) {
 		char c = trimmed[i];
 		if((c == '"' || c == '\'') && (i == 0 || trimmed[i-1] != '\\')) {
-			if(!in_quote) {
-				in_quote = true;
-				quote_char = c;
-			}
-			else if(c == quote_char) {
-				in_quote = false;
-			}
-		}
-		else if(c == '#' && !in_quote) {
-			comment_pos = i;
-			break;
+			in_quote = !in_quote; quote_char = c;
+		} else if(c == '#' && !in_quote) {
+			comment_pos = i; break;
 		}
 	}
-	
-	if(comment_pos >= 0) {
-		trimmed = Trim(trimmed.Left(comment_pos));
-	}
-	
-	if(trimmed.IsEmpty())
-		return Null;
-	
-	// Check for quoted string (double quotes)
-	if(trimmed[0] == '"') {
+	if(comment_pos >= 0) trimmed = Trim(trimmed.Left(comment_pos));
+	if(trimmed.IsEmpty()) return Null;
+
+	// Check for multi-line string (| or >)
+	if(trimmed[0] == '|' || trimmed[0] == '>') {
+		char ml = trimmed[0];
 		String result;
+		int base_indent = -1;
+		// Note: line_idx was already incremented by ParseMap, so we're at the first content line
+		
+		while(!IsEnd()) {
+			String line = GetLine(line_idx);
+			int indent = GetLineIndent(line_idx);
+			String t = Trim(line);
+			
+			if(t.IsEmpty() || t[0] == '#') {
+				if(ml == '|') { if(result.GetCount()) result << '\n'; }
+				else { if(result.GetCount() && *result.End() != '\n') result << "\n\n"; }
+				line_idx++; continue;
+			}
+			
+			if(base_indent < 0) base_indent = indent;
+			if(indent < base_indent) break;
+			
+			String content = line.Mid(base_indent);
+			if(ml == '>') {
+				if(result.GetCount() && *result.End() != '\n') result << ' ';
+				result << content;
+			} else {
+				if(result.GetCount()) result << '\n';
+				result << content;
+			}
+			line_idx++;
+		}
+		return Value(result);
+	}
+
+	// Check for anchor (&name)
+	String anchor_name = ParseAnchorName(trimmed);
+	
+	// Quoted strings
+	if(trimmed[0] == '"') {
+		String r;
 		for(int i = 1; i < trimmed.GetCount(); i++) {
-			if(trimmed[i] == '"' && trimmed[i-1] != '\\')
-				break;
+			if(trimmed[i] == '"' && trimmed[i-1] != '\\') break;
 			if(trimmed[i] == '\\' && i+1 < trimmed.GetCount()) {
 				i++;
 				switch(trimmed[i]) {
-				case 'n': result << '\n'; break;
-				case 'r': result << '\r'; break;
-				case 't': result << '\t'; break;
-				case '\\': result << '\\'; break;
-				case '"': result << '"'; break;
-				case '\'': result << '\''; break;
-				default: result << (char)trimmed[i];
+					case 'n': r << '\n'; break; case 'r': r << '\r'; break;
+					case 't': r << '\t'; break; case '\\': r << '\\'; break;
+					case '"': r << '"'; break; case '\'': r << '\''; break;
+					default: r << (char)trimmed[i];
 				}
-			}
-			else
-				result << (char)trimmed[i];
+			} else r << (char)trimmed[i];
 		}
-		return Value(result);
+		Value v(r);
+		if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+		return v;
 	}
 
-	// Check for quoted string (single quotes)
 	if(trimmed[0] == '\'') {
-		String result;
+		String r;
 		for(int i = 1; i < trimmed.GetCount(); i++) {
-			if(trimmed[i] == '\'' && trimmed[i-1] != '\\')
-				break;
-			if(trimmed[i] == '\\' && i+1 < trimmed.GetCount() && trimmed[i+1] == '\'') {
-				i++;
-				result << '\'';
-			}
-			else
-				result << (char)trimmed[i];
+			if(trimmed[i] == '\'' && trimmed[i-1] != '\\') break;
+			if(trimmed[i] == '\\' && i+1 < trimmed.GetCount() && trimmed[i+1] == '\'') { i++; r << '\''; }
+			else r << (char)trimmed[i];
 		}
-		return Value(result);
+		Value v(r);
+		if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+		return v;
 	}
-	
-	// Check for null
-	if(trimmed == "null" || trimmed == "~")
-		return Null;
-	
-	// Check for boolean
-	if(trimmed == "true")
-		return true;
-	if(trimmed == "false")
-		return false;
-	
-	// Check for number (integer or double)
+
+	// Special values
+	if(trimmed == "null" || trimmed == "~") return Null;
+	if(trimmed == "true") return true;
+	if(trimmed == "false") return false;
+
+	// Numbers
 	const char* p = trimmed;
-	bool is_number = true;
-	bool has_dot = false;
+	bool is_num = true, has_dot = false;
 	if(*p == '-' || *p == '+') p++;
 	while(*p) {
-		if(*p >= '0' && *p <= '9') {
-			p++;
-		}
-		else if(*p == '.' && !has_dot) {
-			has_dot = true;
-			p++;
-		}
-		else {
-			is_number = false;
-			break;
-		}
-	}
-	
-	if(is_number && trimmed.GetCount() > 0) {
-		if(has_dot)
-			return ScanDouble(trimmed);
-		else
-			return ScanInt(trimmed);
+		if(*p >= '0' && *p <= '9') p++;
+		else if(*p == '.' && !has_dot) { has_dot = true; p++; }
+		else { is_num = false; break; }
 	}
 
-	// Plain scalar (unquoted string)
-	return Value(trimmed);
+	Value v;
+	if(is_num && trimmed.GetCount() > 0)
+		v = has_dot ? ScanDouble(trimmed) : ScanInt(trimmed);
+	else
+		v = Value(trimmed);
+
+	if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+	return v;
 }
 
 Value YamlParser::ParseValue(int min_indent)
@@ -485,36 +659,47 @@ Value YamlParser::ParseMap(int min_indent)
 		String key = Unquote(Trim(trimmed.Left(colon_pos)));
 		String value_part = trimmed.Mid(colon_pos + 1);
 		
+		// Check for anchor in value_part
+		String anchor_name;
+		String vp_trimmed = Trim(value_part);
+		if(vp_trimmed.Find('&') >= 0) {
+			anchor_name = ParseAnchorName(vp_trimmed);
+		}
+
 		line_idx++;
-		
-		// Check if value is on same line
-		if(!value_part.IsEmpty() && value_part[0] != '#' && Trim(value_part).GetCount() > 0) {
+
+		// Check if value is on same line (excluding just anchor)
+		if(!vp_trimmed.IsEmpty() && vp_trimmed[0] != '#' && !vp_trimmed.StartsWith("&")) {
 			// Value on same line
 			m.Add(key, ParseScalar(value_part));
 		}
 		else {
 			// Value on next line(s) - check for nested structure
 			SkipCommentsAndBlanks();
-			
+
 			if(IsEnd()) {
 				m.Add(key, Null);
 				break;
 			}
-			
+
 			int next_indent = GetLineIndent(line_idx);
 			String next_trimmed = Trim(GetLine(line_idx));
-			
+
 			// If next line is not more indented, value is null
 			if(next_indent <= line_indent) {
 				m.Add(key, Null);
 			}
 			else if(next_trimmed.StartsWith("-")) {
 				// Nested list
-				m.Add(key, ParseList(next_indent));
+				Value v = ParseList(next_indent);
+				if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+				m.Add(key, v);
 			}
 			else {
 				// Nested map or scalar
-				m.Add(key, ParseValue(next_indent));
+				Value v = ParseValue(next_indent);
+				if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+				m.Add(key, v);
 			}
 		}
 	}

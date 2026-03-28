@@ -54,6 +54,10 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "generate_suggestions") res = GenerateSuggestions(args);
 		else if(method == "apply_suggestion") res = ApplySuggestion(args);
 		else if(method == "reject_suggestion") res = RejectSuggestion(args);
+		else if(method == "get_dashboard") res = GetDashboard(args);
+		else if(method == "run_consistency_check") res = RunConsistencyCheck(args);
+		else if(method == "list_review_items") res = ListReviewItems(args);
+		else if(method == "dismiss_review_item") res = DismissReviewItem(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -183,7 +187,6 @@ Value McpServer::SetFlags(const Value& args) {
 	if(!IsPathValid(path)) throw Exc("Invalid path");
 	Value arr = args["flags"];
 	uint32 bits = 0;
-	// Use Value::GetCount and operator[] for arrays
 	if(arr.GetCount() > 0) {
 		for(int i = 0; i < arr.GetCount(); i++)
 			bits |= StringToFlag(arr[i]);
@@ -295,7 +298,7 @@ Value McpServer::MoveEntry(const Value& args) {
 	VectorMap<String, FileMetadata> new_meta;
 	for(int i = 0; i < project.metadata.GetCount(); i++) {
 		String p = project.metadata.GetKey(i);
-		FileMetadata& m = project.metadata[i];
+		FileMetadata m = project.metadata[i];
 		String new_p = p;
 		if(p == src) {
 			new_p = dst;
@@ -414,7 +417,7 @@ Value McpServer::ApplySuggestion(const Value& args) {
 	FileMetadata& m = project.metadata.GetAdd(path);
 	if(type == 0) { // Tag
 		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
-		if(FindIndex(*v, value) < 0) v->Add(value);
+		if(v && FindIndex(*v, value) < 0) v->Add(value);
 	} else if(type == 1) { // Problem
 		m.problems.Add().text = value;
 	} else if(type == 2) { // Task
@@ -457,6 +460,54 @@ Value McpServer::RejectSuggestion(const Value& args) {
 		else if(type == 2) dismiss(sug->tasks);
 	}
 	return "Suggestion rejected";
+}
+
+Value McpServer::GetDashboard(const Value& args) {
+	ProjectDashboard db = project.GetDashboard();
+	ValueMap res;
+	res.Add("total_files", db.total_files);
+	res.Add("total_dirs", db.total_dirs);
+	res.Add("flagged_entries", db.flagged_entries);
+	res.Add("needs_review", db.needs_review);
+	res.Add("missing_priority", db.missing_priority);
+	res.Add("missing_completion", db.missing_completion);
+	res.Add("with_notes", db.with_notes);
+	res.Add("with_problems", db.with_problems);
+	res.Add("with_tasks", db.with_tasks);
+	res.Add("with_leads", db.with_leads);
+	res.Add("suggestions_pending", db.suggestions_pending);
+	ValueArray pc;
+	for(int i = 0; i < 6; i++) pc.Add(db.priority_counts[i]);
+	res.Add("priority_counts", pc);
+	return res;
+}
+
+Value McpServer::RunConsistencyCheck(const Value& args) {
+	project.RunConsistencyCheck();
+	return ListReviewItems(args);
+}
+
+Value McpServer::ListReviewItems(const Value& args) {
+	ValueArray arr;
+	for(const auto& it : project.review_queue) {
+		ValueMap m;
+		m.Add("path", it.path);
+		m.Add("type", it.type);
+		m.Add("message", it.message);
+		m.Add("severity", it.severity);
+		m.Add("source", it.source);
+		m.Add("dismissed", it.dismissed);
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::DismissReviewItem(const Value& args) {
+	String path = args["path"];
+	String msg = args["message"];
+	if(path.IsEmpty() || msg.IsEmpty()) throw Exc("Path and message required");
+	project.dismissed_review_ids.FindAdd(path + ":" + msg);
+	return "Review item dismissed";
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

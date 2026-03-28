@@ -59,6 +59,44 @@ struct EntrySuggestions : Moveable<EntrySuggestions> {
 	}
 };
 
+struct ReviewItem : Moveable<ReviewItem> {
+	String path;
+	String type;
+	String message;
+	int severity = 0; // 0: info, 1: warning, 2: error
+	String source;
+	bool dismissed = false;
+
+	void Jsonize(JsonIO& jio) {
+		jio("path", path)("type", type)("message", message)("severity", severity)("source", source)("dismissed", dismissed);
+	}
+};
+
+struct ProjectDashboard {
+	int total_files = 0;
+	int total_dirs = 0;
+	int flagged_entries = 0;
+	int needs_review = 0;
+	int missing_priority = 0;
+	int missing_completion = 0;
+	int with_notes = 0;
+	int with_problems = 0;
+	int with_tasks = 0;
+	int with_leads = 0;
+	int suggestions_pending = 0;
+	int priority_counts[6];
+	VectorMap<String, int> top_reason_tags;
+	VectorMap<String, int> top_gap_tags;
+	VectorMap<String, int> top_current_tags;
+
+	ProjectDashboard() {
+		total_files = total_dirs = flagged_entries = needs_review = 0;
+		missing_priority = missing_completion = with_notes = with_problems = 0;
+		with_tasks = with_leads = suggestions_pending = 0;
+		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
+	}
+};
+
 struct FileMetadata : Moveable<FileMetadata> {
 	uint32 flags = 0;
 	int quality = 0;
@@ -86,6 +124,8 @@ struct OverviewerProject {
 	int version = 1;
 	VectorMap<String, FileMetadata> metadata;
 	VectorMap<String, EntrySuggestions> suggestions;
+	Vector<ReviewItem> review_queue;
+	Index<String> dismissed_review_ids;
 	Vector<String> known_current_tags;
 	Vector<String> known_reason_tags;
 	Vector<String> known_gap_tags;
@@ -93,6 +133,7 @@ struct OverviewerProject {
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
 		   ("suggestions", suggestions)
+		   ("dismissed_review_ids", dismissed_review_ids)
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags);
@@ -104,6 +145,8 @@ struct OverviewerProject {
 		version = 1;
 		metadata.Clear();
 		suggestions.Clear();
+		review_queue.Clear();
+		dismissed_review_ids.Clear();
 		known_current_tags.Clear();
 		known_reason_tags.Clear();
 		known_gap_tags.Clear();
@@ -114,6 +157,8 @@ struct OverviewerProject {
 	bool WriteBackup() const;
 
 	void AnalyzeEntry(const String& rel_path);
+	void RunConsistencyCheck();
+	ProjectDashboard GetDashboard() const;
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -155,6 +200,9 @@ public:
 	void OnBatchEdit();
 	void OnSettings();
 	void OnAnalyze();
+	void OnRunConsistencyCheck();
+	void OnShowDashboard();
+	void OnShowReviewQueue();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -165,6 +213,9 @@ public:
 
 	void ApplySuggestion(const String& path, int type, int category, const String& value);
 	void DismissSuggestion(const String& path, int type, int category, const String& value);
+
+	void RefreshReviewQueue();
+	void RefreshDashboard();
 
 public:
 	struct FilterConfig {
@@ -203,7 +254,7 @@ private:
 		Button add, remove;
 		Vector<String>* assigned;
 		Vector<String>* global_known;
-		Gate<> when_change;
+		Callback when_change;
 
 		TagPanel(Vector<String>* a, Vector<String>* g) : assigned(a), global_known(g) {
 			Add(list.SizePos());
@@ -221,7 +272,7 @@ private:
 		ArrayCtrl list;
 		Button add, edit, remove, toggle_done;
 		Vector<ListItem>* items;
-		Gate<> when_change;
+		Callback when_change;
 
 		ListPanel(Vector<ListItem>* it) : items(it) {
 			Add(list.SizePos());
@@ -250,9 +301,28 @@ private:
 		void OnDismiss();
 	};
 
+	struct DashboardPanel : ParentCtrl {
+		typedef DashboardPanel CLASSNAME;
+		ArrayCtrl stats;
+		DashboardPanel() { Add(stats.SizePos()); stats.AddColumn("Metric"); stats.AddColumn("Value"); }
+		void Refresh(const ProjectDashboard& db);
+	};
+
+	struct ReviewQueuePanel : ParentCtrl {
+		typedef ReviewQueuePanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		ReviewQueuePanel();
+		void Refresh(const Vector<ReviewItem>& queue);
+		void OnJump();
+		void OnDismiss();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
+	DashboardPanel dashboard_pane;
+	ReviewQueuePanel review_queue_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -266,6 +336,8 @@ private:
 	DockableCtrl* dock_tasks = nullptr;
 	DockableCtrl* dock_leads = nullptr;
 	DockableCtrl* dock_suggestions = nullptr;
+	DockableCtrl* dock_dashboard = nullptr;
+	DockableCtrl* dock_review_queue = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

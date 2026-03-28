@@ -94,6 +94,8 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "generate_insights") res = GenerateInsights(args);
 		else if(method == "list_insights") res = ListInsights(args);
 		else if(method == "dismiss_insight") res = DismissInsight(args);
+		else if(method == "get_usage_summary") res = GetUsageSummary(args);
+		else if(method == "get_friction_signals") res = GetFrictionSignals(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -121,12 +123,14 @@ Value McpServer::OpenProject(const Value& args) {
 	project.StartSession(actor_id, "agent");
 	
 	DoScan();
+	project.RecordUsage("open_project", path);
 	return "Project opened";
 }
 
 Value McpServer::SaveProject(const Value& args) {
 	if(project.path.IsEmpty()) throw Exc("No project open");
 	if(!StoreAsJsonFile(project, project.path)) throw Exc("Failed to save project");
+	project.RecordUsage("save_project", "");
 	return "Project saved";
 }
 
@@ -209,6 +213,7 @@ Value McpServer::GetEntry(const Value& args) {
 		res.Add("leads", ValueArray());
 	}
 	
+	project.RecordUsage("get_entry", rel_path);
 	return res;
 }
 
@@ -217,6 +222,7 @@ Value McpServer::SetNote(const Value& args) {
 	String note = args["note"];
 	if(!IsPathValid(path)) throw Exc("Invalid path");
 	project.GetMetadataWrite(path).notes = note;
+	project.RecordUsage("set_note", path);
 	return "Note set";
 }
 
@@ -227,6 +233,7 @@ Value McpServer::SetNumeric(const Value& args) {
 	if(!args["quality"].IsNull()) m.quality = (int)args["quality"];
 	if(!args["completion"].IsNull()) m.completion = (int)args["completion"];
 	if(!args["priority"].IsNull()) m.priority = (int)args["priority"];
+	project.RecordUsage("set_numeric", path);
 	return "Numeric values set";
 }
 
@@ -240,6 +247,7 @@ Value McpServer::SetFlags(const Value& args) {
 			bits |= StringToFlag(arr[i]);
 	}
 	project.GetMetadataWrite(path).flags = bits;
+	project.RecordUsage("set_flags", path);
 	return "Flags set";
 }
 
@@ -255,6 +263,7 @@ Value McpServer::AddTag(const Value& args) {
 	else if(cat == "gap") v = &m.gap_tags;
 	if(!v) throw Exc("Invalid category");
 	if(FindIndex(*v, tag) < 0) v->Add(tag);
+	project.RecordUsage("add_tag", path);
 	return "Tag added";
 }
 
@@ -271,6 +280,7 @@ Value McpServer::RemoveTag(const Value& args) {
 	if(!v) throw Exc("Invalid category");
 	int idx = FindIndex(*v, tag);
 	if(idx >= 0) v->Remove(idx);
+	project.RecordUsage("remove_tag", path);
 	return "Tag removed";
 }
 
@@ -286,6 +296,7 @@ Value McpServer::AddListItem(const Value& args) {
 	else if(ltype == "leads") v = &m.leads;
 	if(!v) throw Exc("Invalid list type");
 	v->Add().text = text;
+	project.RecordUsage("add_list_item", path);
 	return "Item added";
 }
 
@@ -305,6 +316,7 @@ Value McpServer::UpdateListItem(const Value& args) {
 	if(!args["done"].IsNull()) it.done = (bool)args["done"];
 	if(!args["date"].IsNull()) it.date = (String)args["date"];
 	if(!args["commit"].IsNull()) it.commit = (String)args["commit"];
+	project.RecordUsage("update_list_item", path);
 	return "Item updated";
 }
 
@@ -320,6 +332,7 @@ Value McpServer::RemoveListItem(const Value& args) {
 	else if(ltype == "leads") v = &m.leads;
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	v->Remove(idx);
+	project.RecordUsage("remove_list_item", path);
 	return "Item removed";
 }
 
@@ -356,6 +369,7 @@ Value McpServer::MoveEntry(const Value& args) {
 	project.metadata = pick(new_meta);
 	
 	DoScan();
+	project.RecordUsage("move_entry", src + "->" + dst);
 	return "Entry moved";
 }
 
@@ -451,6 +465,7 @@ Value McpServer::GenerateSuggestions(const Value& args) {
 				analyze(p);
 		}
 	}
+	project.RecordUsage("generate_suggestions", path);
 	return "Suggestions generated";
 }
 
@@ -483,7 +498,7 @@ Value McpServer::ApplySuggestion(const Value& args) {
 		} else if(type == 1) dismiss(sug->problems);
 		else if(type == 2) dismiss(sug->tasks);
 	}
-	
+	project.RecordUsage("apply_suggestion", path);
 	return "Suggestion applied";
 }
 
@@ -505,6 +520,7 @@ Value McpServer::RejectSuggestion(const Value& args) {
 		} else if(type == 1) dismiss(sug->problems);
 		else if(type == 2) dismiss(sug->tasks);
 	}
+	project.RecordUsage("reject_suggestion", path);
 	return "Suggestion rejected";
 }
 
@@ -553,6 +569,7 @@ Value McpServer::DismissReviewItem(const Value& args) {
 	String msg = args["message"];
 	if(path.IsEmpty() || msg.IsEmpty()) throw Exc("Path and message required");
 	project.dismissed_review_ids.FindAdd(path + ":" + msg);
+	project.RecordUsage("dismiss_review", path);
 	return "Review item dismissed";
 }
 
@@ -593,6 +610,7 @@ Value McpServer::GetRecentChanges(const Value& args) {
 
 Value McpServer::ClearHistory(const Value& args) {
 	project.history.Clear();
+	project.RecordUsage("clear_history", "");
 	return "History cleared";
 }
 
@@ -636,6 +654,7 @@ Value McpServer::GenerateOverview(const Value& args) {
 	
 	ValueMap res;
 	res.Add("text", text);
+	project.RecordUsage("generate_overview", path);
 	return res;
 }
 
@@ -643,7 +662,10 @@ Value McpServer::ExportOverview(const Value& args) {
 	String out_path = args["output_path"];
 	if(out_path.IsEmpty()) throw Exc("Output path required");
 	Value res = GenerateOverview(args);
-	if(SaveFile(out_path, res["text"])) return "Overview exported to " + out_path;
+	if(SaveFile(out_path, res["text"])) {
+		project.RecordUsage("export_overview", out_path);
+		return "Overview exported to " + out_path;
+	}
 	throw Exc("Failed to write export file");
 }
 
@@ -658,6 +680,7 @@ Value McpServer::GetGitInfo(const Value& args) {
 
 Value McpServer::RefreshGitStatus(const Value& args) {
 	project.RefreshGit();
+	project.RecordUsage("refresh_git", "");
 	return "Git status refreshed";
 }
 
@@ -704,6 +727,7 @@ Value McpServer::LinkListItemCommit(const Value& args) {
 	
 	if(!v || idx < 0 || idx >= v->GetCount()) throw Exc("Invalid list type or index");
 	(*v)[idx].commit = commit;
+	project.RecordUsage("link_commit", path);
 	return "Commit linked";
 }
 
@@ -784,6 +808,7 @@ Value McpServer::DeleteScenario(const Value& args) {
 	if(idx >= 0) {
 		if(project.active_scenario_id == id) project.active_scenario_id = "";
 		project.scenarios.Remove(idx);
+		project.RecordUsage("delete_scenario", id);
 		return "Scenario deleted";
 	}
 	throw Exc("Scenario not found");
@@ -801,6 +826,7 @@ Value McpServer::CompareScenario(const Value& args) {
 		m.Add("change", "Modified");
 		arr.Add(m);
 	}
+	project.RecordUsage("compare_scenario", project.active_scenario_id);
 	return arr;
 }
 
@@ -960,10 +986,42 @@ Value McpServer::DismissInsight(const Value& args) {
 	for(auto& ins : project.insights) {
 		if(ins.id == id) {
 			ins.dismissed = true;
+			project.RecordUsage("dismiss_insight", id);
 			return "Insight dismissed";
 		}
 	}
 	throw Exc("Insight not found");
+}
+
+Value McpServer::GetUsageSummary(const Value& args) {
+	UsageSummary s = UsageTracker::GetSummary(project);
+	ValueMap res;
+	res.Add("total_actions", s.total_actions);
+	res.Add("sessions_count", s.sessions_count);
+	
+	ValueMap top_actions;
+	for(int i = 0; i < s.top_actions.GetCount(); i++)
+		top_actions.Add(s.top_actions.GetKey(i), s.top_actions[i]);
+	res.Add("top_actions", top_actions);
+	
+	ValueArray unused;
+	for(const auto& f : s.unused_features) unused.Add(f);
+	res.Add("unused_features", unused);
+	
+	return res;
+}
+
+Value McpServer::GetFrictionSignals(const Value& args) {
+	Vector<FrictionSignal> friction = UsageTracker::GetFriction(project);
+	ValueArray arr;
+	for(const auto& sig : friction) {
+		ValueMap m;
+		m.Add("type", sig.type);
+		m.Add("description", sig.description);
+		m.Add("severity", sig.severity);
+		arr.Add(m);
+	}
+	return arr;
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

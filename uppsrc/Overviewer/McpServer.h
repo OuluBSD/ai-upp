@@ -84,6 +84,8 @@ private:
 	Value GenerateInsights(const Value& args);
 	Value ListInsights(const Value& args);
 	Value DismissInsight(const Value& args);
+	Value GetUsageSummary(const Value& args);
+	Value GetFrictionSignals(const Value& args);
 
 	// Helpers
 	void DoScan();

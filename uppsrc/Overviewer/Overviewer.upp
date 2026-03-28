@@ -12,6 +12,7 @@ file
 	Project.cpp,
 	SuggestionEngine.cpp,
 	ConsistencyChecker.cpp,
+	Prioritization.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

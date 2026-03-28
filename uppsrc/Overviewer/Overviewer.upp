@@ -10,6 +10,7 @@ file
 	Settings.h,
 	Settings.cpp,
 	Project.cpp,
+	SuggestionEngine.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

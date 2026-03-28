@@ -30,6 +30,35 @@ struct ListItem : Moveable<ListItem> {
 	}
 };
 
+struct Suggestion : Moveable<Suggestion> {
+	String text;
+	double confidence = 0.5;
+	String source;
+	bool rejected = false;
+
+	void Jsonize(JsonIO& jio) {
+		jio("text", text)("confidence", confidence)("source", source)("rejected", rejected);
+	}
+};
+
+struct EntrySuggestions : Moveable<EntrySuggestions> {
+	Vector<Suggestion> current_tags;
+	Vector<Suggestion> reason_tags;
+	Vector<Suggestion> gap_tags;
+	Vector<Suggestion> problems;
+	Vector<Suggestion> tasks;
+
+	void Jsonize(JsonIO& jio) {
+		jio("current_tags", current_tags)("reason_tags", reason_tags)("gap_tags", gap_tags)
+		   ("problems", problems)("tasks", tasks);
+	}
+	
+	void Clear() {
+		current_tags.Clear(); reason_tags.Clear(); gap_tags.Clear();
+		problems.Clear(); tasks.Clear();
+	}
+};
+
 struct FileMetadata : Moveable<FileMetadata> {
 	uint32 flags = 0;
 	int quality = 0;
@@ -56,12 +85,14 @@ struct OverviewerProject {
 	String working_dir;
 	int version = 1;
 	VectorMap<String, FileMetadata> metadata;
+	VectorMap<String, EntrySuggestions> suggestions;
 	Vector<String> known_current_tags;
 	Vector<String> known_reason_tags;
 	Vector<String> known_gap_tags;
 	
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
+		   ("suggestions", suggestions)
 		   ("known_current_tags", known_current_tags)
 		   ("known_reason_tags", known_reason_tags)
 		   ("known_gap_tags", known_gap_tags);
@@ -72,6 +103,7 @@ struct OverviewerProject {
 		working_dir = "";
 		version = 1;
 		metadata.Clear();
+		suggestions.Clear();
 		known_current_tags.Clear();
 		known_reason_tags.Clear();
 		known_gap_tags.Clear();
@@ -80,6 +112,8 @@ struct OverviewerProject {
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
 	String GetBackupPath() const;
 	bool WriteBackup() const;
+
+	void AnalyzeEntry(const String& rel_path);
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -120,6 +154,7 @@ public:
 
 	void OnBatchEdit();
 	void OnSettings();
+	void OnAnalyze();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -127,6 +162,9 @@ public:
 	void CheckAutosave();
 	void MarkSession(bool active);
 	bool CheckRecovery();
+
+	void ApplySuggestion(const String& path, int type, int category, const String& value);
+	void DismissSuggestion(const String& path, int type, int category, const String& value);
 
 public:
 	struct FilterConfig {
@@ -199,8 +237,22 @@ private:
 		void OnToggleDone();
 	};
 
+	struct SuggestionPanel : ParentCtrl {
+		typedef SuggestionPanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		String* current_path;
+		EntrySuggestions* suggestions;
+
+		SuggestionPanel();
+		void Refresh();
+		void OnApply();
+		void OnDismiss();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
+	SuggestionPanel suggestion_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -213,11 +265,13 @@ private:
 	DockableCtrl* dock_problems = nullptr;
 	DockableCtrl* dock_tasks = nullptr;
 	DockableCtrl* dock_leads = nullptr;
+	DockableCtrl* dock_suggestions = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);
 	void EditMenu(Bar& bar);
 	void ViewMenu(Bar& bar);
+	void ToolsMenu(Bar& bar);
 	void HelpMenu(Bar& bar);
 	
 	void CreateFlagsPane();
@@ -225,6 +279,7 @@ private:
 	void CreateInfoPane();
 	
 	FileMetadata dummy_metadata; // for when nothing is selected
+	EntrySuggestions dummy_suggestions;
 };
 
 class BatchEditDialog : public TopWindow {

@@ -1,10 +1,12 @@
 #include "McpServer.h"
+#include <iostream>
 
 void McpServer::Run() {
-	while(!Cout().IsError() && !Cin().IsEof()) {
-		String line = Cin().GetLine();
-		if(line.IsEmpty()) continue;
-		ProcessRequest(line);
+	while(std::cin.good() && !std::cin.eof()) {
+		std::string line;
+		std::getline(std::cin, line);
+		if(line.empty()) continue;
+		ProcessRequest(String(line));
 	}
 }
 
@@ -49,6 +51,9 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_registry_tags") res = GetRegistryTags(args);
 		else if(method == "get_recovery_info") res = GetRecoveryInfo(args);
 		else if(method == "write_backup_now") res = WriteBackupNow(args);
+		else if(method == "generate_suggestions") res = GenerateSuggestions(args);
+		else if(method == "apply_suggestion") res = ApplySuggestion(args);
+		else if(method == "reject_suggestion") res = RejectSuggestion(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -178,7 +183,8 @@ Value McpServer::SetFlags(const Value& args) {
 	if(!IsPathValid(path)) throw Exc("Invalid path");
 	Value arr = args["flags"];
 	uint32 bits = 0;
-	if(arr.IsArray()) {
+	// Use Value::GetCount and operator[] for arrays
+	if(arr.GetCount() > 0) {
 		for(int i = 0; i < arr.GetCount(); i++)
 			bits |= StringToFlag(arr[i]);
 	}
@@ -378,6 +384,79 @@ Value McpServer::WriteBackupNow(const Value& args) {
 	if(project.path.IsEmpty()) throw Exc("No project path set");
 	if(project.WriteBackup()) return "Backup written";
 	throw Exc("Failed to write backup");
+}
+
+Value McpServer::GenerateSuggestions(const Value& args) {
+	String path = args["path"];
+	bool recursive = args["recursive"];
+	if(!IsPathValid(path)) throw Exc("Invalid path");
+	
+	auto analyze = [&](const String& p) {
+		project.AnalyzeEntry(p);
+	};
+
+	analyze(path);
+	if(recursive) {
+		for(const String& p : current_scan) {
+			if(p.StartsWith(path + "/") || p.StartsWith(path + "\\"))
+				analyze(p);
+		}
+	}
+	return "Suggestions generated";
+}
+
+Value McpServer::ApplySuggestion(const Value& args) {
+	String path = args["path"];
+	int type = args["type"];
+	int category = args["category"];
+	String value = args["value"];
+	
+	FileMetadata& m = project.metadata.GetAdd(path);
+	if(type == 0) { // Tag
+		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
+		if(FindIndex(*v, value) < 0) v->Add(value);
+	} else if(type == 1) { // Problem
+		m.problems.Add().text = value;
+	} else if(type == 2) { // Task
+		m.tasks.Add().text = value;
+	}
+	
+	// Dismiss
+	EntrySuggestions* sug = project.suggestions.FindPtr(path);
+	if(sug) {
+		auto dismiss = [&](Vector<Suggestion>& v) {
+			for(Suggestion& s : v) if(s.text == value) s.rejected = true;
+		};
+		if(type == 0) {
+			if(category == 0) dismiss(sug->current_tags);
+			else if(category == 1) dismiss(sug->reason_tags);
+			else dismiss(sug->gap_tags);
+		} else if(type == 1) dismiss(sug->problems);
+		else if(type == 2) dismiss(sug->tasks);
+	}
+	
+	return "Suggestion applied";
+}
+
+Value McpServer::RejectSuggestion(const Value& args) {
+	String path = args["path"];
+	int type = args["type"];
+	int category = args["category"];
+	String value = args["value"];
+	
+	EntrySuggestions* sug = project.suggestions.FindPtr(path);
+	if(sug) {
+		auto dismiss = [&](Vector<Suggestion>& v) {
+			for(Suggestion& s : v) if(s.text == value) s.rejected = true;
+		};
+		if(type == 0) {
+			if(category == 0) dismiss(sug->current_tags);
+			else if(category == 1) dismiss(sug->reason_tags);
+			else dismiss(sug->gap_tags);
+		} else if(type == 1) dismiss(sug->problems);
+		else if(type == 2) dismiss(sug->tasks);
+	}
+	return "Suggestion rejected";
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

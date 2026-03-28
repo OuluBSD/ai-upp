@@ -41,6 +41,9 @@ private:
 	Value GetRegistryTags(const Value& args);
 	Value GetRecoveryInfo(const Value& args);
 	Value WriteBackupNow(const Value& args);
+	Value GenerateSuggestions(const Value& args);
+	Value ApplySuggestion(const Value& args);
+	Value RejectSuggestion(const Value& args);
 
 	// Helpers
 	void DoScan();

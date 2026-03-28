@@ -1,9 +1,11 @@
 #include "Overviewer.h"
+#include "McpServer.h"
 
 void PrintHelp() {
 	Cout() << "Overviewer CLI Mode\n"
 	       << "Usage:\n"
 	       << "  Overviewer [--help]\n"
+	       << "  Overviewer --mcp\n"
 	       << "  Overviewer --create-project <file> [--dir <working_dir>]\n"
 	       << "  Overviewer --open-project <file>\n"
 	       << "  Overviewer --roundtrip-project <input> <output>\n"
@@ -20,6 +22,8 @@ void PrintHelp() {
 	       << "  Overviewer --batch-add-tag <project> <path> <category> <tag> [--recursive]\n"
 	       << "  Overviewer --write-backup <project>\n"
 	       << "  Overviewer --show-recovery-info <project>\n"
+	       << "  Overviewer --generate-suggestions <project> <path> [--recursive]\n"
+	       << "  Overviewer --apply-suggestion <project> <path> <type_id> <category_id> <value>\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -103,13 +107,8 @@ int CliMain(const Vector<String>& args) {
 		String p_path = args[1];
 		String f_path = args[2];
 		String flag_name = args[3];
-		
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) {
-			Cerr() << "Failed to load project: " << p_path << "\n";
-			return 1;
-		}
-		
+		if(!LoadFromJsonFile(p, p_path)) return 1;
 		uint32 bit = 0;
 		if(flag_name == "TEMPORARY") bit = FLAG_TEMPORARY;
 		else if(flag_name == "WRONG_LOCATION") bit = FLAG_WRONG_LOCATION;
@@ -117,48 +116,26 @@ int CliMain(const Vector<String>& args) {
 		else if(flag_name == "TOO_LARGE") bit = FLAG_TOO_LARGE;
 		else if(flag_name == "NEEDS_REVIEW") bit = FLAG_NEEDS_REVIEW;
 		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
-		else {
-			Cerr() << "Invalid flag name: " << flag_name << "\n";
-			return 1;
-		}
-		
+		else return 1;
 		p.metadata.GetAdd(f_path).flags |= bit;
-		if(StoreAsJsonFile(p, p_path)) {
-			Cout() << "Flag " << flag_name << " set for " << f_path << "\n";
-			return 0;
-		}
-		return 1;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
 	if (args[0] == "--set-priority" && args.GetCount() >= 4) {
 		String p_path = args[1];
 		String f_path = args[2];
 		int val = ScanInt(args[3]);
-		
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) {
-			Cerr() << "Failed to load project: " << p_path << "\n";
-			return 1;
-		}
-		
+		if(!LoadFromJsonFile(p, p_path)) return 1;
 		p.metadata.GetAdd(f_path).priority = val;
-		if(StoreAsJsonFile(p, p_path)) {
-			Cout() << "Priority set to " << val << " for " << f_path << "\n";
-			return 0;
-		}
-		return 1;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
 	if (args[0] == "--get-entry" && args.GetCount() >= 3) {
 		String p_path = args[1];
 		String f_path = args[2];
-		
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) {
-			Cerr() << "Failed to load project: " << p_path << "\n";
-			return 1;
-		}
-		
+		if(!LoadFromJsonFile(p, p_path)) return 1;
 		FileMetadata effective = p.GetEffectiveMetadata(f_path);
 		const FileMetadata* m = p.metadata.FindPtr(f_path);
 		if(m || effective.priority != 0) {
@@ -168,10 +145,10 @@ int CliMain(const Vector<String>& args) {
 			Cout() << "Quality: " << (m ? m->quality : 0) << " (effective: " << effective.quality << ")\n";
 			Cout() << "Completion: " << (m ? m->completion : 0) << " (effective: " << effective.completion << ")\n";
 			Cout() << "Note: " << (m ? m->notes : "") << "\n";
-			auto print_tags = [](const char* title, const Vector<String>& tags) {
-				Cout() << title << ": " << Join(tags, ", ") << "\n";
-			};
 			if(m) {
+				auto print_tags = [](const char* title, const Vector<String>& tags) {
+					Cout() << title << ": " << Join(tags, ", ") << "\n";
+				};
 				print_tags("Current Tags", m->current_tags);
 				print_tags("Reason Tags", m->reason_tags);
 				print_tags("Gap Tags", m->gap_tags);
@@ -184,11 +161,23 @@ int CliMain(const Vector<String>& args) {
 				print_list("Tasks", m->tasks);
 				print_list("Leads", m->leads);
 			}
+			const EntrySuggestions* sug = p.suggestions.FindPtr(f_path);
+			if(sug) {
+				auto print_sugs = [](const char* title, const Vector<Suggestion>& v) {
+					if(v.IsEmpty()) return;
+					Cout() << title << ":\n";
+					for(const Suggestion& s : v)
+						if(!s.rejected) Cout() << "  - " << s.text << " (conf: " << s.confidence << ", src: " << s.source << ")\n";
+				};
+				print_sugs("Suggested Current Tags", sug->current_tags);
+				print_sugs("Suggested Reason Tags", sug->reason_tags);
+				print_sugs("Suggested Gap Tags", sug->gap_tags);
+				print_sugs("Suggested Problems", sug->problems);
+				print_sugs("Suggested Tasks", sug->tasks);
+			}
 			return 0;
-		} else {
-			Cerr() << "No metadata for path: " << f_path << "\n";
-			return 1;
 		}
+		return 1;
 	}
 
 	if (args[0] == "--set-note" && args.GetCount() >= 4) {
@@ -209,65 +198,9 @@ int CliMain(const Vector<String>& args) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, p_path)) return 1;
 		FileMetadata& m = p.metadata.GetAdd(f_path);
-		Vector<String>* target = nullptr;
-		if(cat == "current") target = &m.current_tags;
-		else if(cat == "reason") target = &m.reason_tags;
-		else if(cat == "gap") target = &m.gap_tags;
+		Vector<String>* target = (cat == "current" ? &m.current_tags : (cat == "reason" ? &m.reason_tags : (cat == "gap" ? &m.gap_tags : nullptr)));
 		if(!target) return 1;
 		if(FindIndex(*target, tag) < 0) target->Add(tag);
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--remove-tag" && args.GetCount() >= 5) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String cat = args[3];
-		String tag = args[4];
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		FileMetadata& m = p.metadata.GetAdd(f_path);
-		Vector<String>* target = nullptr;
-		if(cat == "current") target = &m.current_tags;
-		else if(cat == "reason") target = &m.reason_tags;
-		else if(cat == "gap") target = &m.gap_tags;
-		if(!target) return 1;
-		int idx = FindIndex(*target, tag);
-		if(idx >= 0) target->Remove(idx);
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--add-list-item" && args.GetCount() >= 5) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String ltype = args[3];
-		String text = args[4];
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		FileMetadata& m = p.metadata.GetAdd(f_path);
-		Vector<ListItem>* target = nullptr;
-		if(ltype == "problems") target = &m.problems;
-		else if(ltype == "tasks") target = &m.tasks;
-		else if(ltype == "leads") target = &m.leads;
-		if(!target) return 1;
-		target->Add().text = text;
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	if (args[0] == "--set-list-item-done" && args.GetCount() >= 6) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String ltype = args[3];
-		int idx = ScanInt(args[4]);
-		bool done = ScanInt(args[5]) != 0;
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		FileMetadata& m = p.metadata.GetAdd(f_path);
-		Vector<ListItem>* target = nullptr;
-		if(ltype == "problems") target = &m.problems;
-		else if(ltype == "tasks") target = &m.tasks;
-		else if(ltype == "leads") target = &m.leads;
-		if(!target || idx < 0 || idx >= target->GetCount()) return 1;
-		(*target)[idx].done = done;
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
@@ -280,77 +213,60 @@ int CliMain(const Vector<String>& args) {
 		if(!LoadFromJsonFile(p, p_path)) return 1;
 		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
 		for(const String& path : paths) p.metadata.GetAdd(path).priority = val;
-		Cout() << "Affected " << paths.GetCount() << " entries.\n";
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
-	if (args[0] == "--batch-add-flag" && args.GetCount() >= 4) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String flag_name = args[3];
-		bool rec = args.GetCount() >= 5 && args[4] == "--recursive";
+	if (args[0] == "--write-backup" && args.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		uint32 bit = 0;
-		if(flag_name == "TEMPORARY") bit = FLAG_TEMPORARY;
-		else if(flag_name == "WRONG_LOCATION") bit = FLAG_WRONG_LOCATION;
-		else if(flag_name == "WRONG_NAME") bit = FLAG_WRONG_NAME;
-		else if(flag_name == "TOO_LARGE") bit = FLAG_TOO_LARGE;
-		else if(flag_name == "NEEDS_REVIEW") bit = FLAG_NEEDS_REVIEW;
-		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
-		else return 1;
-		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
-		for(const String& path : paths) p.metadata.GetAdd(path).flags |= bit;
-		Cout() << "Affected " << paths.GetCount() << " entries.\n";
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		return p.WriteBackup() ? 0 : 1;
 	}
 
-	if (args[0] == "--batch-add-tag" && args.GetCount() >= 5) {
-		String p_path = args[1];
-		String f_path = args[2];
-		String cat = args[3];
-		String tag = args[4];
-		bool rec = args.GetCount() >= 6 && args[5] == "--recursive";
+	if (args[0] == "--show-recovery-info" && args.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!LoadFromJsonFile(p, p_path)) return 1;
-		Vector<String> paths = GetAffectedPaths(p, f_path, rec);
-		for(const String& path : paths) {
-			FileMetadata& m = p.metadata.GetAdd(path);
-			Vector<String>* v = nullptr;
-			if(cat == "current") v = &m.current_tags;
-			else if(cat == "reason") v = &m.reason_tags;
-			else if(cat == "gap") v = &m.gap_tags;
-			if(v && FindIndex(*v, tag) < 0) v->Add(tag);
-		}
-		Cout() << "Affected " << paths.GetCount() << " entries.\n";
-		return StoreAsJsonFile(p, p_path) ? 0 : 1;
-	}
-
-	Cerr() << "Unknown arguments. Use --help for usage.\n";
-	return 1;
-}
-
-GUI_APP_MAIN {
-	const Vector<String>& args = CommandLine();
-	if (args.GetCount() > 0 && args[0] == "--mcp") {
-		OverviewerProject p;
-		McpServer(p).Run();
-		return;
-	}
-	if (args.GetCount() > 0 && args[0].StartsWith("--")) {
-		SetExitCode(CliMain(args));
-		return;
-	}
-
-	OverviewerWindow().Run();
-}
-h.IsEmpty() && FileExists(bpath);
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		String bpath = p.GetBackupPath();
+		bool exists = !bpath.IsEmpty() && FileExists(bpath);
 		Cout() << "Backup path: " << bpath << "\n";
 		Cout() << "Exists: " << (exists ? "YES" : "NO") << "\n";
-		if(exists) Cout() << "Timestamp: " << FileGetTime(bpath) << "\n";
 		return 0;
 	}
 
+	if (args[0] == "--generate-suggestions" && args.GetCount() >= 3) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		String fpath = args[2];
+		bool rec = args.GetCount() >= 4 && args[3] == "--recursive";
+		p.AnalyzeEntry(fpath);
+		if(rec) {
+			for(int i = 0; i < p.metadata.GetCount(); i++) {
+				String k = p.metadata.GetKey(i);
+				if(k.StartsWith(fpath + "/") || k.StartsWith(fpath + "\\")) p.AnalyzeEntry(k);
+			}
+		}
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
+	if (args[0] == "--apply-suggestion" && args.GetCount() >= 6) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		String fpath = args[2];
+		int type = ScanInt(args[3]);
+		int cat = ScanInt(args[4]);
+		String val = args[5];
+		FileMetadata& m = p.metadata.GetAdd(fpath);
+		if(type == 0) {
+			Vector<String>* v = (cat == 0 ? &m.current_tags : (cat == 1 ? &m.reason_tags : &m.gap_tags));
+			if(v && FindIndex(*v, val) < 0) v->Add(val);
+		} else if(type == 1) m.problems.Add().text = val;
+		else if(type == 2) m.tasks.Add().text = val;
+		return StoreAsJsonFile(p, p_path) ? 0 : 1;
+	}
+
 	Cerr() << "Unknown arguments. Use --help for usage.\n";
 	return 1;
 }
@@ -367,5 +283,9 @@ GUI_APP_MAIN {
 		return;
 	}
 
-	OverviewerWindow().Run();
+	OverviewerWindow w;
+	w.LoadLayout();
+	w.CheckRecovery();
+	w.MarkSession(true);
+	w.Run();
 }

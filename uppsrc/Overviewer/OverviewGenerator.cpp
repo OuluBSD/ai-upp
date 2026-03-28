@@ -33,6 +33,7 @@ String OverviewGenerator::Generate(const String& rel_path, const OverviewOptions
 	AddSection(sections, "Future Leads", GetLeads(rel_path, opt));
 	AddSection(sections, "Important Items", GetImportant(rel_path, opt));
 	AddSection(sections, "Action Priorities", GetPriorities(rel_path, opt));
+	AddSection(sections, "Change Attribution", GetAttribution(rel_path, opt));
 	AddSection(sections, "Review Notes", GetReview(rel_path, opt));
 
 	String result = opt.markdown_output ? "# " + title + "\n\n" : title + "\n" + String('*', title.GetCount()) + "\n\n";
@@ -192,6 +193,16 @@ String OverviewGenerator::GetReview(const String& path, const OverviewOptions& o
 			out << "- " << it.path << " [" << it.type << "]: " << it.message << " (Severity: " << it.severity << ")\n";
 		}
 	}
+	return out;
+}
+
+String OverviewGenerator::GetAttribution(const String& path, const OverviewOptions& opt) {
+	ProjectDashboard db = project.GetDashboard();
+	if(db.activity_by_actor.IsEmpty()) return "";
+	String out;
+	out << "Recent activity breakdown:\n";
+	for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
+		out << "- " << db.activity_by_actor.GetKey(i) << ": " << db.activity_by_actor[i] << " events\n";
 	return out;
 }
 

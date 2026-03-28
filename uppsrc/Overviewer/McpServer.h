@@ -60,6 +60,9 @@ private:
 	Value GetEntryGitStatus(const Value& args);
 	Value GetEntryCommits(const Value& args);
 	Value LinkListItemCommit(const Value& args);
+	Value GetSessions(const Value& args);
+	Value GetHistoryByActor(const Value& args);
+	Value GetActorSummary(const Value& args);
 
 	// Helpers
 	void DoScan();

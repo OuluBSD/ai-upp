@@ -110,6 +110,12 @@ void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
 	stats.Add("Needs Review (Flagged)", db.needs_review);
 	stats.Add("Suggestions Pending", db.suggestions_pending);
 	
+	if(!db.activity_by_actor.IsEmpty()) {
+		stats.Add("--- ACTOR ACTIVITY ---", "");
+		for(int i = 0; i < db.activity_by_actor.GetCount(); i++)
+			stats.Add(db.activity_by_actor.GetKey(i), db.activity_by_actor[i]);
+	}
+
 	if(!db.top_action_items.IsEmpty()) {
 		stats.Add("--- TOP ACTIONS ---", "");
 		for(int i = 0; i < db.top_action_items.GetCount(); i++)
@@ -151,6 +157,7 @@ void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
 OverviewerWindow::TimelinePanel::TimelinePanel() {
 	Add(list.SizePos());
 	list.AddColumn("Time");
+	list.AddColumn("Actor");
 	list.AddColumn("Path");
 	list.AddColumn("Type");
 	list.AddColumn("Description");
@@ -161,7 +168,7 @@ void OverviewerWindow::TimelinePanel::Refresh(const Vector<HistoryEvent>& histor
 	list.Clear();
 	for(int i = history.GetCount() - 1; i >= 0; i--) {
 		const auto& e = history[i];
-		list.Add(Format(e.time), e.path, e.type, e.description);
+		list.Add(Format(e.time), e.actor_id, e.path, e.type, e.description);
 	}
 }
 
@@ -227,6 +234,14 @@ void OverviewerWindow::GitHistoryPanel::OnLink() {
 	if(id < 0 || !window) return;
 }
 
+void OverviewerWindow::SessionPanel::Refresh(const Vector<SessionInfo>& sessions) {
+	list.Clear();
+	for(int i = sessions.GetCount() - 1; i >= 0; i--) {
+		const auto& s = sessions[i];
+		list.Add(s.session_id, Format(s.start_time), s.actor_type + ":" + s.actor_id);
+	}
+}
+
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
 	FileMetadata res;
 	const FileMetadata* m = metadata.FindPtr(rel_path);
@@ -287,9 +302,27 @@ void OverviewerProject::LogEvent(const String& path, const String& type, const S
 	e.old_value = old_val;
 	e.new_value = new_val;
 	e.source = src;
+	e.actor_id = current_actor_id;
+	e.actor_type = current_actor_type;
+	e.session_id = current_session_id;
 	
 	if(history.GetCount() > max_history)
 		history.Remove(0, history.GetCount() - max_history);
+}
+
+void OverviewerProject::StartSession(const String& actor_id, const String& actor_type) {
+	current_actor_id = actor_id;
+	current_actor_type = actor_type;
+	current_session_id = AsString(Uuid::Create());
+	
+	SessionInfo& s = sessions.Add();
+	s.session_id = current_session_id;
+	s.start_time = GetSysTime();
+	s.actor_id = actor_id;
+	s.actor_type = actor_type;
+	
+	if(sessions.GetCount() > max_sessions)
+		sessions.Remove(0, sessions.GetCount() - max_sessions);
 }
 
 void OverviewerProject::RefreshGit() {
@@ -397,7 +430,7 @@ void BatchEditDialog::OnApply() {
 		}
 	};
 
-	project.LogEvent("", "batch_update", "Batch edit applied to " + AsString(targets.GetCount()) + " entries");
+	project.LogEvent("", "batch_update", "Batch edit applied to " + AsString(targets.GetCount()) + " entries", "", "", "batch");
 
 	for(const String& t : targets) {
 		apply_to(t);
@@ -499,17 +532,21 @@ void OverviewerWindow::ListPanel::OnToggleDone() {
 }
 
 OverviewerWindow::OverviewerWindow() 
-	: current_tags_pane(&dummy_metadata.current_tags, &project.known_current_tags)
-	, reason_tags_pane(&dummy_metadata.reason_tags, &project.known_reason_tags)
-	, gap_tags_pane(&dummy_metadata.gap_tags, &project.known_gap_tags)
-	, problems_pane(&dummy_metadata.problems)
-	, tasks_pane(&dummy_metadata.tasks)
-	, leads_pane(&dummy_metadata.leads)
 {
 	dummy_metadata.flags = 0;
 	dummy_metadata.quality = 0;
 	dummy_metadata.completion = 0;
 	dummy_metadata.priority = 0;
+
+	current_tags_pane.assigned = &dummy_metadata.current_tags;
+	current_tags_pane.global_known = &project.known_current_tags;
+	reason_tags_pane.assigned = &dummy_metadata.reason_tags;
+	reason_tags_pane.global_known = &project.known_reason_tags;
+	gap_tags_pane.assigned = &dummy_metadata.gap_tags;
+	gap_tags_pane.global_known = &project.known_gap_tags;
+	problems_pane.items = &dummy_metadata.problems;
+	tasks_pane.items = &dummy_metadata.tasks;
+	leads_pane.items = &dummy_metadata.leads;
 
 	suggestion_pane.window = this;
 	suggestion_pane.current_path = &current_selection;
@@ -538,7 +575,7 @@ OverviewerWindow::OverviewerWindow()
 	auto wire_tags = [&](TagPanel& p) {
 		p.add.SetLabel("Add").WhenAction = [&p]{ p.OnAdd(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
-		p.when_change = [=]{ OnMetadataChange(); };
+		p.when_change = [this]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 60).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(65, 60).BottomPos(0, 20));
 	};
@@ -551,7 +588,7 @@ OverviewerWindow::OverviewerWindow()
 		p.edit.SetLabel("Edit").WhenAction = [&p]{ p.OnEdit(); };
 		p.remove.SetLabel("Remove").WhenAction = [&p]{ p.OnRemove(); };
 		p.toggle_done.SetLabel("Done").WhenAction = [&p]{ p.OnToggleDone(); };
-		p.when_change = [=]{ OnMetadataChange(); };
+		p.when_change = [this]{ OnMetadataChange(); };
 		p.Add(p.add.LeftPos(0, 50).BottomPos(0, 20));
 		p.Add(p.edit.LeftPos(55, 50).BottomPos(0, 20));
 		p.Add(p.remove.LeftPos(110, 60).BottomPos(0, 20));
@@ -563,6 +600,8 @@ OverviewerWindow::OverviewerWindow()
 
 	last_autosave = GetSysTime();
 	SetTimeCallback(-1000, THISBACK(CheckAutosave));
+	
+	project.StartSession("local-user", "user");
 }
 
 void OverviewerWindow::CheckAutosave() {
@@ -636,6 +675,7 @@ void OverviewerWindow::DockInit() {
 	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300));
 	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400));
 	dock_git_history = &Dockable(git_history_pane, "Git History").SizeHint(Size(400, 200));
+	dock_sessions = &Dockable(session_pane, "Sessions").SizeHint(Size(400, 200));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -655,6 +695,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_action_view);
 	Register(*dock_overview_preview);
 	Register(*dock_git_history);
+	Register(*dock_sessions);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -678,6 +719,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_action_view);
 	DockBottom(*dock_overview_preview);
 	DockBottom(*dock_git_history);
+	DockBottom(*dock_sessions);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -733,6 +775,7 @@ void OverviewerWindow::SyncTitle() {
 void OverviewerWindow::New() {
 	if (!ConfirmSave()) return;
 	project.Reset();
+	project.StartSession("local-user", "user");
 	RefreshTree();
 	RefreshDashboard();
 	RefreshReviewQueue();
@@ -740,6 +783,7 @@ void OverviewerWindow::New() {
 	RefreshActionView();
 	RefreshOverviewPreview();
 	RefreshGitHistory();
+	RefreshSessions();
 	ClearDirty();
 }
 
@@ -764,13 +808,25 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.path = path;
 		project.working_dir = p.working_dir;
 		project.version = p.version;
-		project.metadata <<= p.metadata;
-		project.suggestions <<= p.suggestions;
+		
+		// Manual copy to avoid VectorMap copy issues
+		project.metadata.Clear();
+		for(int i = 0; i < p.metadata.GetCount(); i++)
+			project.metadata.Add(p.metadata.GetKey(i), pick(p.metadata[i]));
+		
+		project.suggestions.Clear();
+		for(int i = 0; i < p.suggestions.GetCount(); i++)
+			project.suggestions.Add(p.suggestions.GetKey(i), pick(p.suggestions[i]));
+		
 		project.dismissed_review_ids <<= p.dismissed_review_ids;
 		project.history <<= p.history;
+		project.sessions <<= p.sessions;
 		project.known_current_tags <<= p.known_current_tags;
 		project.known_reason_tags <<= p.known_reason_tags;
 		project.known_gap_tags <<= p.known_gap_tags;
+		
+		project.StartSession("local-user", "user");
+		
 		RefreshTree();
 		RefreshDashboard();
 		RefreshReviewQueue();
@@ -778,6 +834,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshActionView();
 		RefreshOverviewPreview();
 		RefreshGitHistory();
+		RefreshSessions();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -1054,6 +1111,11 @@ void OverviewerWindow::OnShowGitHistory() {
 	if(dock_git_history) dock_git_history->Show();
 }
 
+void OverviewerWindow::OnShowSessions() {
+	RefreshSessions();
+	if(dock_sessions) dock_sessions->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -1076,6 +1138,10 @@ void OverviewerWindow::RefreshOverviewPreview() {
 
 void OverviewerWindow::RefreshGitHistory() {
 	git_history_pane.Refresh(project.git.GetHistory(project.working_dir, current_selection));
+}
+
+void OverviewerWindow::RefreshSessions() {
+	session_pane.Refresh(project.sessions);
 }
 
 void OverviewerWindow::OnExportOverview() {
@@ -1137,6 +1203,7 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Action View", THISBACK(OnShowActionView));
 	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
 	bar.Add("Git History", THISBACK(OnShowGitHistory));
+	bar.Add("Sessions", THISBACK(OnShowSessions));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -1147,5 +1214,5 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 12"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 13"); });
 }

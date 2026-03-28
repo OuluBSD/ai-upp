@@ -214,6 +214,12 @@ struct Decision : Moveable<Decision> {
 	}
 };
 
+struct UndoEvent : Moveable<UndoEvent> {
+	String path;
+	FileMetadata old_meta;
+	FileMetadata new_meta;
+};
+
 struct ProjectDashboard {
 	int total_files = 0;
 	int total_dirs = 0;
@@ -348,11 +354,12 @@ public:
 	void SaveAs();
 	void Exit();
 
-	void MarkDirty() { dirty = true; SyncTitle(); }
-	void ClearDirty() { dirty = false; SyncTitle(); }
+	void MarkDirty() { dirty = true; SyncTitle(); SyncStatusBar(); }
+	void ClearDirty() { dirty = false; SyncTitle(); SyncStatusBar(); }
 	bool IsDirty() const { return dirty; }
 
 	void SyncTitle();
+	void SyncStatusBar();
 	bool ConfirmSave();
 
 	virtual void Close() override;
@@ -386,6 +393,7 @@ public:
 
 	void SaveLayout();
 	void LoadLayout();
+	void ResetLayout();
 
 	void CheckAutosave();
 	void MarkSession(bool active);
@@ -405,6 +413,12 @@ public:
 
 	void OnExportOverview();
 	void OnRefreshGit();
+	
+	void Undo();
+	void Redo();
+	void RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m);
+
+	void OnSearch();
 
 public:
 	struct FilterConfig {
@@ -414,6 +428,7 @@ public:
 		bool missing_priority = false;
 		bool missing_completion = false;
 		String tag_current, tag_reason, tag_gap;
+		String search_text;
 	} filter;
 
 private:
@@ -423,6 +438,10 @@ private:
 	Time last_autosave;
 
 	MenuBar menu;
+	ToolBar quick_actions;
+	StatusBar status_bar;
+	
+	EditString search_ctrl;
 	
 	TreeCtrl tree;
 	
@@ -626,12 +645,17 @@ private:
 	void ToolsMenu(Bar& bar);
 	void HelpMenu(Bar& bar);
 	
+	void QuickActions(Bar& bar);
+	
 	void CreateFlagsPane();
 	void CreateNumericPane();
 	void CreateInfoPane();
 	
 	FileMetadata dummy_metadata; // for when nothing is selected
 	EntrySuggestions dummy_suggestions;
+	
+	Vector<UndoEvent> undo_stack;
+	Vector<UndoEvent> redo_stack;
 };
 
 class BatchEditDialog : public TopWindow {

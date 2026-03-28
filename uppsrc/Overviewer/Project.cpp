@@ -278,7 +278,6 @@ void OverviewerWindow::DecisionPanel::OnSel() {
 }
 
 void OverviewerWindow::DecisionPanel::OnAdd() {
-	if(window) window->OnShowDecisions(); // Ensure focus or trigger dialog? Let's use simple logic.
 	String title;
 	if(EditText(title, "Create Decision", "Title:")) {
 		if(window) {
@@ -726,6 +725,11 @@ OverviewerWindow::OverviewerWindow()
 
 	AddFrame(menu);
 	menu.Set(THISBACK(MainMenu));
+	
+	AddFrame(quick_actions);
+	quick_actions.Set(THISBACK(QuickActions));
+	
+	AddFrame(status_bar);
 
 	tree.WhenSel = THISBACK(OnTreeSelection);
 	
@@ -764,6 +768,9 @@ OverviewerWindow::OverviewerWindow()
 	last_autosave = GetSysTime();
 	SetTimeCallback(-1000, THISBACK(CheckAutosave));
 	
+	search_ctrl.WhenAction = THISBACK(OnSearch);
+	search_ctrl.SetFilter(CharFilterAscii);
+	
 	project.StartSession("local-user", "user");
 }
 
@@ -777,6 +784,14 @@ void OverviewerWindow::CheckAutosave() {
 		}
 	}
 	SetTimeCallback(-1000, THISBACK(CheckAutosave));
+}
+
+void OverviewerWindow::SyncStatusBar() {
+	String msg;
+	if(!project.active_scenario_id.IsEmpty()) msg << "[SCENARIO ACTIVE] ";
+	ProjectDashboard db = project.GetDashboard();
+	msg << "Review Items: " << db.needs_review << " | Suggestions: " << db.suggestions_pending;
+	status_bar.Set(msg);
 }
 
 void OverviewerWindow::CreateFlagsPane() {
@@ -902,6 +917,10 @@ void OverviewerWindow::LoadLayout() {
 	}
 }
 
+void OverviewerWindow::ResetLayout() {
+	DockInit();
+}
+
 void OverviewerWindow::MarkSession(bool active) {
 	String path = ConfigFile("session.active");
 	if(active) SaveFile(path, "1");
@@ -982,7 +1001,6 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.working_dir = p.working_dir;
 		project.version = p.version;
 		
-		// Manual copy to avoid VectorMap copy issues
 		project.metadata.Clear();
 		for(int i = 0; i < p.metadata.GetCount(); i++)
 			project.metadata.Add(p.metadata.GetKey(i), FileMetadata(p.metadata[i], 1));
@@ -1077,7 +1095,9 @@ static void ScanDir(TreeCtrl& tree, int parent, const String& dir, const String&
 		if(!base.IsEmpty()) rel = AppendFileName(base, rel);
 		
 		bool visible = true;
-		if(filter.mode == 1) {
+		if(!filter.search_text.IsEmpty() && rel.Find(filter.search_text) < 0) visible = false;
+		
+		if(visible && filter.mode == 1) {
 			FileMetadata m = project.GetEffectiveMetadata(rel);
 			if(filter.flags != 0 && (m.flags & filter.flags) == 0) visible = false;
 			if(filter.priority_min > 0 && m.priority < filter.priority_min) visible = false;
@@ -1138,9 +1158,6 @@ void OverviewerWindow::UpdatePanels() {
 	
 	notes_editor.SetData(effective.notes);
 	
-	// For lists and tags, we still need the override-aware pointers
-	// but UI needs to point to something stable.
-	// We'll use dummy_metadata as a buffer for the active selection.
 	dummy_metadata = FileMetadata(effective, 1);
 	
 	current_tags_pane.assigned = &dummy_metadata.current_tags;
@@ -1176,13 +1193,14 @@ void OverviewerWindow::UpdatePanels() {
 	RefreshTimeline();
 	RefreshActionView();
 	RefreshGitHistory();
+	SyncStatusBar();
 }
 
 void OverviewerWindow::OnMetadataChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
+	FileMetadata old_m = project.GetEffectiveMetadata(current_selection);
 	FileMetadata& m = project.GetMetadataWrite(current_selection);
 	
-	// Logging
 	auto log_if_changed = [&](int& field, int new_val, const char* type) {
 		if(field != new_val) {
 			project.LogEvent(current_selection, type, String().Cat() << "Changed " << type << " from " << field << " to " << new_val, AsString(field), AsString(new_val));
@@ -1207,6 +1225,7 @@ void OverviewerWindow::OnMetadataChange() {
 		m.flags = bits;
 	}
 
+	RecordUndo(current_selection, old_m, m);
 	MarkDirty();
 	RefreshTimeline();
 	RefreshActionView();
@@ -1214,11 +1233,13 @@ void OverviewerWindow::OnMetadataChange() {
 
 void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
+	FileMetadata old_m = project.GetEffectiveMetadata(current_selection);
 	FileMetadata& m = project.GetMetadataWrite(current_selection);
 	String n = notes_editor.GetData();
 	if(m.notes != n) {
 		project.LogEvent(current_selection, "set_note", "Note modified");
 		m.notes = n;
+		RecordUndo(current_selection, old_m, m);
 		MarkDirty();
 		RefreshTimeline();
 		RefreshActionView();
@@ -1346,6 +1367,43 @@ void OverviewerWindow::OnRefreshGit() {
 	RefreshReviewQueue();
 }
 
+void OverviewerWindow::Undo() {
+	if(undo_stack.IsEmpty()) return;
+	UndoEvent e = pick(undo_stack.Top());
+	undo_stack.Drop();
+	
+	FileMetadata current = project.GetEffectiveMetadata(e.path);
+	redo_stack.Add({e.path, current, e.old_meta});
+	
+	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
+	MarkDirty();
+	UpdatePanels();
+}
+
+void OverviewerWindow::Redo() {
+	if(redo_stack.IsEmpty()) return;
+	UndoEvent e = pick(redo_stack.Top());
+	redo_stack.Drop();
+	
+	FileMetadata current = project.GetEffectiveMetadata(e.path);
+	undo_stack.Add({e.path, current, e.old_meta});
+	
+	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
+	MarkDirty();
+	UpdatePanels();
+}
+
+void OverviewerWindow::RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m) {
+	undo_stack.Add({path, FileMetadata(old_m, 1), FileMetadata(new_m, 1)});
+	redo_stack.Clear();
+	if(undo_stack.GetCount() > 50) undo_stack.Remove(0);
+}
+
+void OverviewerWindow::OnSearch() {
+	filter.search_text = ~search_ctrl;
+	RefreshTree();
+}
+
 void OverviewerWindow::OnCreateScenario() {
 	String name;
 	if(EditText(name, "Create Scenario", "Scenario Name:")) {
@@ -1421,6 +1479,9 @@ void OverviewerWindow::FileMenu(Bar& bar) {
 }
 
 void OverviewerWindow::EditMenu(Bar& bar) {
+	bar.Add("Undo", THISBACK(Undo)).Key(K_CTRL_Z).Enable(!undo_stack.IsEmpty());
+	bar.Add("Redo", THISBACK(Redo)).Key(K_CTRL_Y).Enable(!redo_stack.IsEmpty());
+	bar.Separator();
 	bar.Add("Batch Edit...", THISBACK(OnBatchEdit));
 	bar.Add("Settings...", THISBACK(OnSettings));
 }
@@ -1442,6 +1503,8 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Git History", THISBACK(OnShowGitHistory));
 	bar.Add("Sessions", THISBACK(OnShowSessions));
 	bar.Add("Decisions", THISBACK(OnShowDecisions));
+	bar.Separator();
+	bar.Add("Reset Layout", THISBACK(ResetLayout));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -1454,5 +1517,15 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 15"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 16"); });
+}
+
+void OverviewerWindow::QuickActions(Bar& bar) {
+	bar.Add("Analyze", THISBACK(OnAnalyze));
+	bar.Add("Consistency", THISBACK(OnRunConsistencyCheck));
+	bar.Separator();
+	bar.Add("New Scenario", THISBACK(OnCreateScenario));
+	bar.Add("New Decision", [this]{ decision_pane.OnAdd(); });
+	bar.Separator();
+	bar.Add(search_ctrl, 150);
 }

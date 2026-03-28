@@ -288,6 +288,7 @@ struct SvoVoidFn {
 	static void       Serialize(void *p, Stream& s)              {}
 	static void       Xmlize(void *p, XmlIO& xio)               {}
 	static void       Jsonize(void *p, JsonIO& jio)             {}
+	static void       Yamlize(void *p, YamlIO& yio)             {}
 	static hash_t     GetHashValue(const void *p)                { return 0; }
 	static bool       IsEqual(const void *p1, const void *p2)    { return true; }
 	static bool       IsPolyEqual(const void *p, const Value& v) { return false; }
@@ -295,7 +296,7 @@ struct SvoVoidFn {
 };
 
 static Value::Sval s_void = {
-	SvoVoidFn::IsNull, SvoVoidFn::Serialize,SvoVoidFn::Xmlize, SvoVoidFn::Jsonize,
+	SvoVoidFn::IsNull, SvoVoidFn::Serialize,SvoVoidFn::Xmlize, SvoVoidFn::Jsonize, SvoVoidFn::Yamlize,
 	SvoVoidFn::GetHashValue, SvoVoidFn::IsEqual,
 	SvoVoidFn::IsPolyEqual, SvoVoidFn::AsString
 };
@@ -577,6 +578,97 @@ void Value::Jsonize(JsonIO& jio)
 						}
 						else
 							throw JsonizeError("invalid Value type");
+					}
+				}
+			}
+		}
+	}
+}
+
+void Value::Yamlize(YamlIO& yio)
+{
+	RegisterStd();
+	if(yio.IsStoring()) {
+		if(IsNull())
+			yio.Set(Null);
+		else {
+			dword type = GetType();
+			String name = GetName(type);
+			if(name.GetCount() == 0) {
+				String s = HexString(StoreAsString(*this));
+				yio("type", s_binary)
+				   ("value", s);
+			}
+			else {
+				int st = data.GetSpecial();
+				ASSERT_(!type || type == ERROR_V || type == UNKNOWN_V || st == STRING ||
+				        (IsRef() ? Typemap().Find(type) >= 0 : st < 255 && svo[st]),
+				        GetName() + " is not registred for yamlize");
+				if(st == VOIDV)
+					return;
+				YamlIO hio;
+				if(st == STRING) {
+					String h = data;
+					Upp::Yamlize(hio, h);
+				}
+				else {
+					if(IsRef())
+						ptr()->Yamlize(hio);
+					else
+						svo[st]->Yamlize(&data, hio);
+				}
+				ValueMap m;
+				m.Add("type", name);
+				m.Add("value", hio.GetResult());
+				yio.Set(m);
+			}
+		}
+	}
+	else {
+		Value g = yio.Get();
+		if(g.IsNull())
+			*this = Null;
+		else {
+			String name = g["type"];
+			Value  val = g["value"];
+			if(name == s_binary) {
+				if(!Upp::IsString(val))
+					throw YamlizeError("serialized_binary Error");
+				String s = val;
+				try {
+					LoadFromString(*this, ScanHexString(s));
+				}
+				catch(LoadingError) {
+					throw YamlizeError("serialized_binary Error");
+				}
+			}
+			else {
+				int type = GetType(name);
+				if(Upp::IsNull(type))
+					throw YamlizeError("invalid Value type");
+				Free();
+				int st = (dword)type == VOID_V ? VOIDV : (dword)type == STRING_V ? STRING : type;
+				if(st == STRING) {
+					if(!Upp::IsString(val))
+						throw YamlizeError("serialized_binary Error");
+					data = val;
+				}
+				else {
+					YamlIO hio(val);
+					if(st < 255 && svo[st]) {
+						data.SetSpecial((byte)type);
+						svo[st]->Yamlize(&data, hio);
+					}
+					else {
+						typedef Void* (*vp)();
+						vp *cr = Typemap().FindPtr(type);
+						if(cr) {
+							Void *p = (**cr)();
+							p->Yamlize(hio);
+							InitRef(p, type);
+						}
+						else
+							throw YamlizeError("invalid Value type");
 					}
 				}
 			}

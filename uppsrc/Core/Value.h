@@ -4,6 +4,7 @@ class   ValueArray;
 class   ValueMap;
 class   XmlIO;
 class   JsonIO;
+class   YamlIO;
 
 class   Ref;
 struct  ValueTypeRef;
@@ -13,6 +14,9 @@ void Jsonize(JsonIO& io, T& var);
 
 template <class T>
 void Xmlize(XmlIO& xml, T& var);
+
+template <class T>
+void Yamlize(YamlIO& yio, T& var);
 
 const dword VOID_V    = 0;
 
@@ -92,6 +96,7 @@ public:
 		virtual void       Serialize(Stream& s)        {}
 		virtual void       Xmlize(XmlIO& xio)          {}
 		virtual void       Jsonize(JsonIO& jio)        {}
+		virtual void       Yamlize(YamlIO& yio)        {}
 		virtual hash_t     GetHashValue() const        { return 0; }
 		virtual bool       IsEqual(const Void *p)      { return false; }
 		virtual bool       IsPolyEqual(const Value& v) { return false; }
@@ -110,6 +115,7 @@ public:
 		void       (*Serialize)(void *p, Stream& s);
 		void       (*Xmlize)(void *p, XmlIO& xio);
 		void       (*Jsonize)(void *p, JsonIO& jio);
+		void       (*Yamlize)(void *p, YamlIO& yio);
 		hash_t     (*GetHashValue)(const void *p);
 		bool       (*IsEqual)(const void *p1, const void *p2);
 		bool       (*IsPolyEqual)(const void *p, const Value& v);
@@ -264,6 +270,7 @@ public:
 	void  Serialize(Stream& s);
 	void  Xmlize(XmlIO& xio);
 	void  Jsonize(JsonIO& jio);
+	void  Yamlize(YamlIO& yio);
 
 	hash_t GetHashValue() const;
 

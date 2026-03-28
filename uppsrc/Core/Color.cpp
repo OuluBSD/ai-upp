@@ -226,6 +226,24 @@ void Color::Jsonize(JsonIO& jio)
 		*this = Color(r, g, b);
 }
 
+void Color::Yamlize(YamlIO& yio)
+{
+	int r, g, b;
+	if(IsNullInstance()) {
+		r = g = b = Null;
+	}
+	else {
+		r = GetR();
+		g = GetG();
+		b = GetB();
+	}
+	yio("red", r)("green", g)("blue", b);
+	if(IsNull(r))
+		*this = Null;
+	else
+		*this = Color(r, g, b);
+}
+
 void Color::Xmlize(XmlIO& xio)
 {
 	int r, g, b;

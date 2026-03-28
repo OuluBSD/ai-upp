@@ -28,6 +28,9 @@ void PrintHelp() {
 	       << "  Overviewer --run-consistency-check <project>\n"
 	       << "  Overviewer --list-review-items <project>\n"
 	       << "  Overviewer --dismiss-review-item <project> <path> <message>\n"
+	       << "  Overviewer --get-history <project> [path]\n"
+	       << "  Overviewer --get-recent-changes <project>\n"
+	       << "  Overviewer --clear-history <project>\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -100,6 +103,7 @@ int CliMain(const Vector<String>& args) {
 		else if(flag_name == "CONTENT_NEEDS_REVIEW") bit = FLAG_CONTENT_NEEDS_REVIEW;
 		else return 1;
 		p.metadata.GetAdd(f_path).flags |= bit;
+		p.LogEvent(f_path, "set_flags", "Flag set via CLI: " + flag_name);
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
@@ -165,6 +169,7 @@ int CliMain(const Vector<String>& args) {
 				if(k.StartsWith(fpath + "/") || k.StartsWith(fpath + "\\")) p.AnalyzeEntry(k);
 			}
 		}
+		p.LogEvent(fpath, "generate_suggestions", "Analysis triggered via CLI");
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
@@ -182,6 +187,7 @@ int CliMain(const Vector<String>& args) {
 			if(v && FindIndex(*v, val) < 0) v->Add(val);
 		} else if(type == 1) m.problems.Add().text = val;
 		else if(type == 2) m.tasks.Add().text = val;
+		p.LogEvent(fpath, "apply_suggestion", "Applied suggestion: " + val);
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
@@ -193,6 +199,8 @@ int CliMain(const Vector<String>& args) {
 		       << "  Total Files: " << db.total_files << "\n"
 		       << "  Total Dirs: " << db.total_dirs << "\n"
 		       << "  Flagged: " << db.flagged_entries << "\n"
+		       << "  Recent Changes: " << db.recent_changes << "\n"
+		       << "  Stale Entries: " << db.stale_entries << "\n"
 		       << "  Suggestions Pending: " << db.suggestions_pending << "\n";
 		return 0;
 	}
@@ -205,6 +213,7 @@ int CliMain(const Vector<String>& args) {
 		Cout() << "Consistency check complete. Review items: " << p.review_queue.GetCount() << "\n";
 		for(const auto& it : p.review_queue)
 			Cout() << "  - [" << it.severity << "] " << it.path << ": " << it.message << "\n";
+		p.LogEvent("", "run_consistency_check", "Check finished via CLI");
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
@@ -222,6 +231,36 @@ int CliMain(const Vector<String>& args) {
 		if(!LoadFromJsonFile(p, args[1])) return 1;
 		p.path = args[1];
 		p.dismissed_review_ids.FindAdd(args[2] + ":" + args[3]);
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
+	}
+
+	if (args[0] == "--get-history" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		String filter_path = args.GetCount() >= 3 ? args[2] : "";
+		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
+			const auto& e = p.history[i];
+			if(filter_path.IsEmpty() || e.path == filter_path)
+				Cout() << Format(e.time) << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
+		}
+		return 0;
+	}
+
+	if (args[0] == "--get-recent-changes" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		ProjectDashboard db = p.GetDashboard();
+		Cout() << "Recent Changes: " << db.recent_changes << "\n";
+		Cout() << "Recently Modified Entries:\n";
+		for(const String& path : db.recently_modified) Cout() << "  - " << path << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--clear-history" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		p.history.Clear();
 		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 

@@ -48,6 +48,9 @@ private:
 	Value RunConsistencyCheck(const Value& args);
 	Value ListReviewItems(const Value& args);
 	Value DismissReviewItem(const Value& args);
+	Value GetHistory(const Value& args);
+	Value GetRecentChanges(const Value& args);
+	Value ClearHistory(const Value& args);
 
 	// Helpers
 	void DoScan();

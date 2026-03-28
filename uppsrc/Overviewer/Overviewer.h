@@ -87,6 +87,15 @@ struct HistoryEvent : Moveable<HistoryEvent> {
 	}
 };
 
+struct EntryScore : Moveable<EntryScore> {
+	double score = 0;
+	Vector<String> factors;
+
+	void Jsonize(JsonIO& jio) {
+		jio("score", score)("factors", factors);
+	}
+};
+
 struct ProjectDashboard {
 	int total_files = 0;
 	int total_dirs = 0;
@@ -107,6 +116,8 @@ struct ProjectDashboard {
 	int recent_changes = 0;
 	Vector<String> recently_modified;
 	int stale_entries = 0;
+	
+	VectorMap<String, double> top_action_items;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
@@ -185,6 +196,9 @@ struct OverviewerProject {
 	ProjectDashboard GetDashboard() const;
 
 	void LogEvent(const String& path, const String& type, const String& desc, const String& old_val = "", const String& new_val = "", const String& src = "user");
+	
+	EntryScore ComputeScore(const String& path) const;
+	VectorMap<String, EntryScore> GetActionView(int limit = 0) const;
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -230,6 +244,7 @@ public:
 	void OnShowDashboard();
 	void OnShowReviewQueue();
 	void OnShowTimeline();
+	void OnShowActionView();
 
 	void SaveLayout();
 	void LoadLayout();
@@ -244,6 +259,7 @@ public:
 	void RefreshReviewQueue();
 	void RefreshDashboard();
 	void RefreshTimeline();
+	void RefreshActionView();
 
 public:
 	struct FilterConfig {
@@ -355,12 +371,22 @@ private:
 		void OnJump();
 	};
 
+	struct ActionViewPanel : ParentCtrl {
+		typedef ActionViewPanel CLASSNAME;
+		ArrayCtrl list;
+		OverviewerWindow* window;
+		ActionViewPanel();
+		void Refresh(const VectorMap<String, EntryScore>& view);
+		void OnJump();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
 	DashboardPanel dashboard_pane;
 	ReviewQueuePanel review_queue_pane;
 	TimelinePanel timeline_pane;
+	ActionViewPanel action_view_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -377,6 +403,7 @@ private:
 	DockableCtrl* dock_dashboard = nullptr;
 	DockableCtrl* dock_review_queue = nullptr;
 	DockableCtrl* dock_timeline = nullptr;
+	DockableCtrl* dock_action_view = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

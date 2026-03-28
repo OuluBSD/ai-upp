@@ -51,6 +51,8 @@ private:
 	Value GetHistory(const Value& args);
 	Value GetRecentChanges(const Value& args);
 	Value ClearHistory(const Value& args);
+	Value GetActionView(const Value& args);
+	Value GetEntryScore(const Value& args);
 
 	// Helpers
 	void DoScan();

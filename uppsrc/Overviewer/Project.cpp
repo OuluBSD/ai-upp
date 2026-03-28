@@ -108,13 +108,13 @@ void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
 	stats.Add("Stale Entries", db.stale_entries);
 	stats.Add("Flagged Entries", db.flagged_entries);
 	stats.Add("Needs Review (Flagged)", db.needs_review);
-	stats.Add("Missing Priority", db.missing_priority);
-	stats.Add("Missing Completion", db.missing_completion);
-	stats.Add("With Notes", db.with_notes);
-	stats.Add("With Problems", db.with_problems);
-	stats.Add("With Tasks", db.with_tasks);
-	stats.Add("With Leads", db.with_leads);
 	stats.Add("Suggestions Pending", db.suggestions_pending);
+	
+	if(!db.top_action_items.IsEmpty()) {
+		stats.Add("--- TOP ACTIONS ---", "");
+		for(int i = 0; i < db.top_action_items.GetCount(); i++)
+			stats.Add(db.top_action_items.GetKey(i), db.top_action_items[i]);
+	}
 }
 
 OverviewerWindow::ReviewQueuePanel::ReviewQueuePanel() {
@@ -166,6 +166,25 @@ void OverviewerWindow::TimelinePanel::Refresh(const Vector<HistoryEvent>& histor
 }
 
 void OverviewerWindow::TimelinePanel::OnJump() {
+	int id = list.GetCursor();
+	if(id < 0 || !window) return;
+}
+
+OverviewerWindow::ActionViewPanel::ActionViewPanel() {
+	Add(list.SizePos());
+	list.AddColumn("Score", 20);
+	list.AddColumn("Path");
+	list.AddColumn("Factors");
+	list.WhenLeftDouble = THISBACK(OnJump);
+}
+
+void OverviewerWindow::ActionViewPanel::Refresh(const VectorMap<String, EntryScore>& view) {
+	list.Clear();
+	for(int i = 0; i < view.GetCount(); i++)
+		list.Add(FormatDouble(view[i].score, 1), view.GetKey(i), Join(view[i].factors, ", "));
+}
+
+void OverviewerWindow::ActionViewPanel::OnJump() {
 	int id = list.GetCursor();
 	if(id < 0 || !window) return;
 }
@@ -456,6 +475,7 @@ OverviewerWindow::OverviewerWindow()
 	
 	review_queue_pane.window = this;
 	timeline_pane.window = this;
+	action_view_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -569,6 +589,7 @@ void OverviewerWindow::DockInit() {
 	dock_dashboard = &Dockable(dashboard_pane, "Dashboard").SizeHint(Size(300, 400));
 	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300));
 	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300));
+	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -585,6 +606,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_dashboard);
 	Register(*dock_review_queue);
 	Register(*dock_timeline);
+	Register(*dock_action_view);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -605,6 +627,7 @@ void OverviewerWindow::DockInit() {
 	DockLeft(*dock_dashboard);
 	DockBottom(*dock_review_queue);
 	DockBottom(*dock_timeline);
+	DockBottom(*dock_action_view);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -664,6 +687,7 @@ void OverviewerWindow::New() {
 	RefreshDashboard();
 	RefreshReviewQueue();
 	RefreshTimeline();
+	RefreshActionView();
 	ClearDirty();
 }
 
@@ -699,6 +723,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshDashboard();
 		RefreshReviewQueue();
 		RefreshTimeline();
+		RefreshActionView();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -864,6 +889,7 @@ void OverviewerWindow::UpdatePanels() {
 	}
 	
 	RefreshTimeline();
+	RefreshActionView();
 }
 
 void OverviewerWindow::OnMetadataChange() {
@@ -897,6 +923,7 @@ void OverviewerWindow::OnMetadataChange() {
 
 	MarkDirty();
 	RefreshTimeline();
+	RefreshActionView();
 }
 
 void OverviewerWindow::OnNoteChange() {
@@ -908,12 +935,13 @@ void OverviewerWindow::OnNoteChange() {
 		m.notes = n;
 		MarkDirty();
 		RefreshTimeline();
+		RefreshActionView();
 	}
 }
 
 void OverviewerWindow::OnBatchEdit() {
 	BatchEditDialog dlg(project, current_selection);
-	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); RefreshTimeline(); }
+	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); RefreshTimeline(); RefreshActionView(); }
 }
 
 void OverviewerWindow::OnSettings() {
@@ -938,6 +966,7 @@ void OverviewerWindow::OnRunConsistencyCheck() {
 	RefreshReviewQueue();
 	RefreshDashboard();
 	RefreshTimeline();
+	RefreshActionView();
 }
 
 void OverviewerWindow::OnShowDashboard() {
@@ -955,6 +984,11 @@ void OverviewerWindow::OnShowTimeline() {
 	if(dock_timeline) dock_timeline->Show();
 }
 
+void OverviewerWindow::OnShowActionView() {
+	RefreshActionView();
+	if(dock_action_view) dock_action_view->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
@@ -965,6 +999,10 @@ void OverviewerWindow::RefreshDashboard() {
 
 void OverviewerWindow::RefreshTimeline() {
 	timeline_pane.Refresh(project.history);
+}
+
+void OverviewerWindow::RefreshActionView() {
+	action_view_pane.Refresh(project.GetActionView(20));
 }
 
 void OverviewerWindow::MainMenu(Bar& bar) {
@@ -1002,6 +1040,7 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Dashboard", THISBACK(OnShowDashboard));
 	bar.Add("Review Queue", THISBACK(OnShowReviewQueue));
 	bar.Add("Timeline", THISBACK(OnShowTimeline));
+	bar.Add("Action View", THISBACK(OnShowActionView));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -1010,5 +1049,5 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 9"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 10"); });
 }

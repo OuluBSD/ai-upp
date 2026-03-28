@@ -26,7 +26,7 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		for(const String& t : m.gap_tags) db.top_gap_tags.GetAdd(t, 0)++;
 		for(const String& t : m.current_tags) db.top_current_tags.GetAdd(t, 0)++;
 		
-		// Stale check: find last history event for this path
+		// Stale check
 		bool found = false;
 		for(int j = history.GetCount() - 1; j >= 0; j--) {
 			if(history[j].path == path) {
@@ -59,6 +59,10 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		if(pending > 0) db.suggestions_pending++;
 	}
 	
+	VectorMap<String, EntryScore> actions = GetActionView(5);
+	for(int i = 0; i < actions.GetCount(); i++)
+		db.top_action_items.Add(actions.GetKey(i), actions[i].score);
+	
 	return db;
 }
 
@@ -82,7 +86,6 @@ void OverviewerProject::RunConsistencyCheck() {
 		const FileMetadata& m = metadata[i];
 		FileMetadata effective = GetEffectiveMetadata(path);
 
-		// A. Wrong location suspicion (simplified heuristic)
 		if(m.flags & FLAG_WRONG_LOCATION) {
 			String parent_path = GetFileDirectory(path);
 			const FileMetadata* pm = metadata.FindPtr(parent_path);
@@ -91,7 +94,6 @@ void OverviewerProject::RunConsistencyCheck() {
 			}
 		}
 
-		// C. Completion/priority mismatch
 		if(m.completion == 5 && m.priority == 5) {
 			int active_tasks = 0;
 			for(const auto& t : m.tasks) if(!t.done) active_tasks++;
@@ -99,12 +101,10 @@ void OverviewerProject::RunConsistencyCheck() {
 				add_review(path, "Logic", "High priority/completion but many active tasks.", 1, "checker");
 		}
 
-		// E. Missing context
 		if((!m.problems.IsEmpty() || !m.tasks.IsEmpty()) && m.notes.IsEmpty() && m.current_tags.IsEmpty()) {
 			add_review(path, "Context", "Thin context: has items but no notes or tags.", 0, "checker");
 		}
 
-		// G. Review-worthy inherited-only
 		if(m.priority == 0 && effective.priority != 0 && !m.problems.IsEmpty()) {
 			add_review(path, "Metadata", "Relies on inherited priority while having problems.", 0, "checker");
 		}
@@ -112,7 +112,6 @@ void OverviewerProject::RunConsistencyCheck() {
 		if(m.flags & FLAG_NEEDS_REVIEW)
 			add_review(path, "Flag", "Manual review requested via flag.", 1, "flag");
 
-		// History-based checks
 		int path_events = 0;
 		Time last_touch;
 		for(int j = history.GetCount() - 1; j >= 0; j--) {
@@ -131,7 +130,6 @@ void OverviewerProject::RunConsistencyCheck() {
 		}
 	}
 
-	// Suggestions as review items
 	for(int i = 0; i < suggestions.GetCount(); i++) {
 		const String& path = suggestions.GetKey(i);
 		const EntrySuggestions& s = suggestions[i];

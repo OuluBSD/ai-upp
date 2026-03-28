@@ -55,6 +55,11 @@ private:
 	Value GetEntryScore(const Value& args);
 	Value GenerateOverview(const Value& args);
 	Value ExportOverview(const Value& args);
+	Value GetGitInfo(const Value& args);
+	Value RefreshGitStatus(const Value& args);
+	Value GetEntryGitStatus(const Value& args);
+	Value GetEntryCommits(const Value& args);
+	Value LinkListItemCommit(const Value& args);
 
 	// Helpers
 	void DoScan();

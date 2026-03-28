@@ -14,6 +14,8 @@ file
 	ConsistencyChecker.cpp,
 	Prioritization.cpp,
 	OverviewGenerator.cpp,
+	GitContext.h,
+	GitContext.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

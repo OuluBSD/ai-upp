@@ -237,6 +237,7 @@ public:
 	void     Serialize(Stream& s)                        { StreamContainer(s, *this); }
 	void     Xmlize(XmlIO& xio, const char *itemtag = "item");
 	void     Jsonize(JsonIO& jio);
+	void     Yamlize(YamlIO& yio);
 	String   ToString() const;
 	hash_t   GetHashValue() const                        { return HashBySerialize(*this); }
 	template <class B> bool operator==(const B& b) const { return IsEqualRange(*this, b); }

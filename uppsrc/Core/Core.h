@@ -298,6 +298,7 @@ namespace Upp {
 
 class XmlIO;
 class JsonIO;
+class YamlIO;
 
 #include "Ops.h"
 #include "Fn.h"
@@ -398,6 +399,7 @@ class JsonIO;
 
 #include "Parser.h"
 #include "JSON.h"
+#include "YAML.h"
 #include "VCS.h"
 #include "Visitor.h"
 #include "XML.h"

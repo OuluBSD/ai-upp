@@ -177,6 +177,7 @@ struct SvoFn {
 	static void       Serialize(void *p, Stream& s)              { s % *(T*)p; }
 	static void       Xmlize(void *p, XmlIO& xio)                { Upp::Xmlize(xio, *(T*)p); }
 	static void       Jsonize(void *p, JsonIO& jio)              { Upp::Jsonize(jio, *(T*)p); }
+	static void       Yamlize(void *p, YamlIO& yio)              { Upp::Yamlize(yio, *(T*)p); }
 	static hash_t     GetHashValue(const void *p)                { return UPP::ValueGetHashValue(*(T*)p); }
 	static bool       IsEqual(const void *p1, const void *p2)    { return *(T*)p1 == *(T*)p2; }
 	static bool       IsPolyEqual(const void *p, const Value& v) { return UPP::IsPolyEqual(*(T*)p, v); }
@@ -187,7 +188,7 @@ struct SvoFn {
 
 #define SVO_FN(id, T) \
 	static Value::Sval id = { \
-		SvoFn<T>::IsNull, SvoFn<T>::Serialize, SvoFn<T>::Xmlize, SvoFn<T>::Jsonize, \
+		SvoFn<T>::IsNull, SvoFn<T>::Serialize, SvoFn<T>::Xmlize, SvoFn<T>::Jsonize, SvoFn<T>::Yamlize, \
 		SvoFn<T>::GetHashValue, SvoFn<T>::IsEqual, \
 		SvoFn<T>::IsPolyEqual, SvoFn<T>::AsString, \
 		SvoFn<T>::Compare, SvoFn<T>::PolyCompare \

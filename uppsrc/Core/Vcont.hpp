@@ -500,6 +500,12 @@ void Vector<T>::Jsonize(JsonIO& jio)
 	JsonizeArray<Vector<T>>(jio, *this);
 }
 
+template <class T>
+void Vector<T>::Yamlize(YamlIO& yio)
+{
+	YamlizeArray<Vector<T>>(yio, *this);
+}
+
 template <class C>
 String AsStringArray(const C& v)
 {

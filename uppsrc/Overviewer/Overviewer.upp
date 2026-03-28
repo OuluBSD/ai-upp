@@ -8,6 +8,8 @@ uses
 file
 	Overviewer.h,
 	Project.cpp,
+	McpServer.h,
+	McpServer.cpp,
 	Main.cpp;
 
 mainconfig

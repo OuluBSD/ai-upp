@@ -330,6 +330,11 @@ int CliMain(const Vector<String>& args) {
 
 GUI_APP_MAIN {
 	const Vector<String>& args = CommandLine();
+	if (args.GetCount() > 0 && args[0] == "--mcp") {
+		OverviewerProject p;
+		McpServer(p).Run();
+		return;
+	}
 	if (args.GetCount() > 0 && args[0].StartsWith("--")) {
 		SetExitCode(CliMain(args));
 		return;

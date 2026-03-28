@@ -87,6 +87,10 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "get_decision") res = GetDecision(args);
 		else if(method == "link_decision_to_entry") res = LinkDecisionToEntry(args);
 		else if(method == "link_decision_to_scenario") res = LinkDecisionToScenario(args);
+		else if(method == "add_comment") res = AddComment(args);
+		else if(method == "list_comments") res = ListComments(args);
+		else if(method == "get_comments_for_entry") res = GetCommentsForEntry(args);
+		else if(method == "get_comments_for_decision") res = GetCommentsForDecision(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -863,6 +867,57 @@ Value McpServer::LinkDecisionToScenario(const Value& args) {
 	String scenario_id = args["scenario_id"];
 	project.LinkDecisionToScenario(id, scenario_id);
 	return "Decision linked to scenario";
+}
+
+Value McpServer::AddComment(const Value& args) {
+	String text = args["text"];
+	String entry = args["path"];
+	String decision = args["decision_id"];
+	if(text.IsEmpty()) throw Exc("Comment text missing");
+	return project.AddComment(text, entry, decision);
+}
+
+Value McpServer::ListComments(const Value& args) {
+	ValueArray arr;
+	for(const auto& c : project.comments) {
+		ValueMap m;
+		m.Add("id", c.id);
+		m.Add("text", c.text);
+		m.Add("actor_id", c.actor_id);
+		m.Add("timestamp", Format(c.timestamp));
+		arr.Add(m);
+	}
+	return arr;
+}
+
+Value McpServer::GetCommentsForEntry(const Value& args) {
+	String path = args["path"];
+	ValueArray arr;
+	for(const auto& c : project.comments) {
+		if(c.related_entry == path) {
+			ValueMap m;
+			m.Add("text", c.text);
+			m.Add("actor_id", c.actor_id);
+			m.Add("timestamp", Format(c.timestamp));
+			arr.Add(m);
+		}
+	}
+	return arr;
+}
+
+Value McpServer::GetCommentsForDecision(const Value& args) {
+	String id = args["decision_id"];
+	ValueArray arr;
+	for(const auto& c : project.comments) {
+		if(c.related_decision == id) {
+			ValueMap m;
+			m.Add("text", c.text);
+			m.Add("actor_id", c.actor_id);
+			m.Add("timestamp", Format(c.timestamp));
+			arr.Add(m);
+		}
+	}
+	return arr;
 }
 
 static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {

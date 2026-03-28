@@ -44,6 +44,10 @@ private:
 	Value GenerateSuggestions(const Value& args);
 	Value ApplySuggestion(const Value& args);
 	Value RejectSuggestion(const Value& args);
+	Value GetDashboard(const Value& args);
+	Value RunConsistencyCheck(const Value& args);
+	Value ListReviewItems(const Value& args);
+	Value DismissReviewItem(const Value& args);
 
 	// Helpers
 	void DoScan();

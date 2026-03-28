@@ -11,6 +11,7 @@ file
 	Settings.cpp,
 	Project.cpp,
 	SuggestionEngine.cpp,
+	ConsistencyChecker.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

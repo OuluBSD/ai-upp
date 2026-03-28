@@ -7,6 +7,7 @@
 #include "OverviewGenerator.h"
 #include "GitContext.h"
 #include "InsightEngine.h"
+#include "UsageTracker.h"
 
 using namespace Upp;
 
@@ -318,6 +319,7 @@ struct OverviewerProject {
 	VectorMap<String, Decision> decisions;
 	Vector<Comment> comments;
 	Vector<Insight> insights;
+	Vector<UsageEvent> usage_history;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -331,7 +333,8 @@ struct OverviewerProject {
 		   ("scenarios", scenarios)
 		   ("decisions", decisions)
 		   ("comments", comments)
-		   ("insights", insights);
+		   ("insights", insights)
+		   ("usage_history", usage_history);
 	}
 	
 	void Reset() {
@@ -340,7 +343,7 @@ struct OverviewerProject {
 		dismissed_review_ids.Clear(); history.Clear(); sessions.Clear();
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
-		decisions.Clear(); comments.Clear(); insights.Clear();
+		decisions.Clear(); comments.Clear(); insights.Clear(); usage_history.Clear();
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
@@ -373,6 +376,7 @@ struct OverviewerProject {
 	String AddComment(const String& text, const String& entry = "", const String& decision = "");
 	
 	void GenerateInsights();
+	void RecordUsage(const String& action, const String& target, bool success = true, int duration = 0);
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -426,6 +430,7 @@ public:
 	void OnShowDecisions();
 	void OnShowComments();
 	void OnShowInsights();
+	void OnShowUsage();
 	
 	void OnScenarioMenu(Bar& bar);
 	void OnCreateScenario();
@@ -456,6 +461,7 @@ public:
 	void RefreshDecisions();
 	void RefreshComments();
 	void RefreshInsights();
+	void RefreshUsage();
 
 	void OnExportOverview();
 	void OnRefreshGit();
@@ -674,6 +680,14 @@ private:
 		void OnSel();
 	};
 
+	struct UsagePanel : ParentCtrl {
+		typedef UsagePanel CLASSNAME;
+		ArrayCtrl summary;
+		ArrayCtrl friction;
+		UsagePanel();
+		void Refresh(const UsageSummary& s, const Vector<FrictionSignal>& f);
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -688,6 +702,7 @@ private:
 	DecisionPanel decision_pane;
 	CommentPanel comment_pane;
 	InsightPanel insight_pane;
+	UsagePanel usage_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -711,6 +726,7 @@ private:
 	DockableCtrl* dock_decisions = nullptr;
 	DockableCtrl* dock_comments = nullptr;
 	DockableCtrl* dock_insights = nullptr;
+	DockableCtrl* dock_usage = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

@@ -80,6 +80,7 @@ void OverviewerWindow::ApplySuggestion(const String& path, int type, int categor
 	DismissSuggestion(path, type, category, value);
 	MarkDirty();
 	UpdatePanels();
+	project.RecordUsage("apply_suggestion", path);
 }
 
 void OverviewerWindow::DismissSuggestion(const String& path, int type, int category, const String& value) {
@@ -95,6 +96,7 @@ void OverviewerWindow::DismissSuggestion(const String& path, int type, int categ
 	} else if(type == 1) dismiss(sug->problems);
 	else if(type == 2) dismiss(sug->tasks);
 	suggestion_pane.Refresh();
+	project.RecordUsage("dismiss_suggestion", path);
 }
 
 void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
@@ -153,6 +155,7 @@ void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
 	String msg = (String)list.Get(id, 2);
 	window->project.dismissed_review_ids.FindAdd(p + ":" + msg);
 	window->RefreshReviewQueue();
+	window->project.RecordUsage("dismiss_review", p);
 }
 
 OverviewerWindow::TimelinePanel::TimelinePanel() {
@@ -213,6 +216,7 @@ void OverviewerWindow::OverviewPreviewPanel::Refresh() {
 	opt.markdown_output = markdown;
 	String text = OverviewGenerator(window->project).GenerateProject(opt);
 	view.SetData(text);
+	window->project.RecordUsage("generate_overview", "");
 }
 
 OverviewerWindow::GitHistoryPanel::GitHistoryPanel() {
@@ -273,6 +277,7 @@ void OverviewerWindow::DecisionPanel::OnSel() {
 	if(id >= 0 && window) {
 		String did = window->project.decisions.GetKey(id);
 		description.SetData(window->project.decisions[id].description);
+		window->project.RecordUsage("view_decision", did);
 	} else description.SetData("");
 }
 
@@ -357,8 +362,39 @@ void OverviewerWindow::InsightPanel::OnSel() {
 			String d = ins.description + "\n\nEvidence:\n";
 			for(const auto& e : ins.supporting_evidence) d << "- " << e << "\n";
 			description.SetData(d);
+			window->project.RecordUsage("view_insight", ins.id);
 		}
 	} else description.SetData("");
+}
+
+OverviewerWindow::UsagePanel::UsagePanel() {
+	Add(summary.LeftPos(0, 300).VSizePos());
+	Add(friction.HSizePos(305, 0).VSizePos());
+	
+	summary.AddColumn("Action Metric");
+	summary.AddColumn("Value");
+	
+	friction.AddColumn("Sev", 10);
+	friction.AddColumn("Friction Signal");
+	friction.AddColumn("Description");
+}
+
+void OverviewerWindow::UsagePanel::Refresh(const UsageSummary& s, const Vector<FrictionSignal>& f) {
+	summary.Clear();
+	summary.Add("Total Actions Recorded", s.total_actions);
+	summary.Add("Total Sessions", s.sessions_count);
+	if(!s.unused_features.IsEmpty())
+		summary.Add("Unused Features", Join(s.unused_features, ", "));
+	
+	summary.Add("--- TOP ACTIONS ---", "");
+	for(int i = 0; i < s.top_actions.GetCount() && i < 10; i++)
+		summary.Add(s.top_actions.GetKey(i), s.top_actions[i]);
+	
+	friction.Clear();
+	for(const auto& sig : f) {
+		String sev = sig.severity == 2 ? "!!!" : (sig.severity == 1 ? "!!" : "!");
+		friction.Add(sev, sig.type, sig.description);
+	}
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -376,9 +412,9 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 		res.completion = m->completion;
 		res.priority = m->priority;
 		res.notes = m->notes;
-		for(const auto& x : m->current_tags) res.current_tags.Add(x);
-		for(const auto& x : m->reason_tags) res.reason_tags.Add(x);
-		for(const auto& x : m->gap_tags) res.gap_tags.Add(x);
+		res.current_tags <<= m->current_tags;
+		res.reason_tags <<= m->reason_tags;
+		res.gap_tags <<= m->gap_tags;
 	}
 
 	auto inherit = [&](int& val, int (FileMetadata::*field)) {
@@ -414,10 +450,8 @@ FileMetadata& OverviewerProject::GetMetadataWrite(const String& rel_path) {
 		int idx = s.metadata_delta.Find(rel_path);
 		if(idx < 0) {
 			const FileMetadata* base = metadata.FindPtr(rel_path);
-			if(base) {
-				FileMetadata& m = s.metadata_delta.Add(rel_path, FileMetadata(*base, 1));
-				return m;
-			} else return s.metadata_delta.GetAdd(rel_path);
+			if(base) return s.metadata_delta.Add(rel_path, FileMetadata(*base));
+			else return s.metadata_delta.GetAdd(rel_path);
 		}
 		return s.metadata_delta[idx];
 	}
@@ -481,15 +515,20 @@ String OverviewerProject::CreateScenario(const String& name) {
 	Scenario& s = scenarios.Add(id);
 	s.id = id;
 	s.name = name;
+	RecordUsage("create_scenario", id);
 	return id;
 }
 
 void OverviewerProject::ActivateScenario(const String& id) {
-	if(scenarios.Find(id) >= 0) active_scenario_id = id;
+	if(scenarios.Find(id) >= 0) {
+		active_scenario_id = id;
+		RecordUsage("activate_scenario", id);
+	}
 }
 
 void OverviewerProject::DeactivateScenario() {
 	active_scenario_id = "";
+	RecordUsage("deactivate_scenario", "");
 }
 
 void OverviewerProject::ApplyScenario(const String& id) {
@@ -498,11 +537,12 @@ void OverviewerProject::ApplyScenario(const String& id) {
 	Scenario& s = scenarios[idx];
 	for(int i = 0; i < s.metadata_delta.GetCount(); i++) {
 		String p = s.metadata_delta.GetKey(i);
-		metadata.GetAdd(p) = FileMetadata(s.metadata_delta[i], 1);
+		metadata.GetAdd(p) = FileMetadata(s.metadata_delta[i]);
 		LogEvent(p, "apply_scenario", "Applied scenario change from: " + s.name, "", "", "batch");
 	}
 	scenarios.Remove(idx);
 	if(active_scenario_id == id) active_scenario_id = "";
+	RecordUsage("apply_scenario", id);
 }
 
 String OverviewerProject::CreateDecision(const String& title) {
@@ -516,6 +556,7 @@ String OverviewerProject::CreateDecision(const String& title) {
 	d.session_id = current_session_id;
 	d.status = "proposed";
 	LogEvent("", "create_decision", "Created decision: " + title);
+	RecordUsage("create_decision", id);
 	return id;
 }
 
@@ -527,6 +568,7 @@ void OverviewerProject::UpdateDecision(const String& id, const String& desc, con
 			LogEvent("", "decision_status", "Decision " + d->title + " status changed to " + status);
 			d->status = status;
 		}
+		RecordUsage("update_decision", id);
 	}
 }
 
@@ -535,6 +577,7 @@ void OverviewerProject::LinkDecisionToEntry(const String& id, const String& path
 	if(d && FindIndex(d->related_entries, path) < 0) {
 		d->related_entries.Add(path);
 		LogEvent(path, "link_decision", "Linked to decision: " + d->title);
+		RecordUsage("link_decision_entry", id + ":" + path);
 	}
 }
 
@@ -543,6 +586,7 @@ void OverviewerProject::LinkDecisionToScenario(const String& id, const String& s
 	if(d) {
 		d->related_scenario_id = scenario_id;
 		LogEvent("", "link_decision_scenario", "Linked decision " + d->title + " to scenario " + scenario_id);
+		RecordUsage("link_decision_scenario", id + ":" + scenario_id);
 	}
 }
 
@@ -555,6 +599,7 @@ String OverviewerProject::AddComment(const String& text, const String& entry, co
 	c.related_entry = entry;
 	c.related_decision = decision;
 	LogEvent(entry, "add_comment", "New comment: " + text);
+	RecordUsage("add_comment", entry.IsEmpty() ? decision : entry);
 	return c.id;
 }
 
@@ -569,6 +614,22 @@ void OverviewerProject::GenerateInsights() {
 		}
 	}
 	insights = pick(next);
+	RecordUsage("generate_insights", "");
+}
+
+void OverviewerProject::RecordUsage(const String& action, const String& target, bool success, int duration) {
+	UsageEvent& e = usage_history.Add();
+	e.timestamp = GetSysTime();
+	e.actor_id = current_actor_id;
+	e.actor_type = current_actor_type;
+	e.session_id = current_session_id;
+	e.action_type = action;
+	e.target = target;
+	e.success = success;
+	e.duration_ms = duration;
+	
+	if(usage_history.GetCount() > 5000)
+		usage_history.Remove(0, usage_history.GetCount() - 5000);
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -684,6 +745,7 @@ void BatchEditDialog::OnApply() {
 			}
 		}
 	}
+	project.RecordUsage("batch_edit", AsString(targets.GetCount()) + " entries");
 	Break(IDOK);
 }
 
@@ -953,6 +1015,7 @@ void OverviewerWindow::DockInit() {
 	dock_decisions = &Dockable(decision_pane, "Decisions").SizeHint(Size(400, 300));
 	dock_comments = &Dockable(comment_pane, "Comments").SizeHint(Size(400, 200));
 	dock_insights = &Dockable(insight_pane, "Insights").SizeHint(Size(400, 300));
+	dock_usage = &Dockable(usage_pane, "Usage Insights").SizeHint(Size(600, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -976,6 +1039,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_decisions);
 	Register(*dock_comments);
 	Register(*dock_insights);
+	Register(*dock_usage);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -1003,6 +1067,7 @@ void OverviewerWindow::DockInit() {
 	DockBottom(*dock_decisions);
 	DockBottom(*dock_comments);
 	DockBottom(*dock_insights);
+	DockBottom(*dock_usage);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -1080,6 +1145,7 @@ void OverviewerWindow::New() {
 	RefreshDecisions();
 	RefreshComments();
 	RefreshInsights();
+	RefreshUsage();
 	ClearDirty();
 	last_file_time = Time(0);
 }
@@ -1108,11 +1174,11 @@ void OverviewerWindow::OpenFile(const String& path) {
 		
 		project.metadata.Clear();
 		for(int i = 0; i < p.metadata.GetCount(); i++)
-			project.metadata.Add(p.metadata.GetKey(i), FileMetadata(p.metadata[i], 1));
+			project.metadata.Add(p.metadata.GetKey(i), FileMetadata(p.metadata[i]));
 		
 		project.suggestions.Clear();
 		for(int i = 0; i < p.suggestions.GetCount(); i++)
-			project.suggestions.Add(p.suggestions.GetKey(i), EntrySuggestions(p.suggestions[i], 1));
+			project.suggestions.Add(p.suggestions.GetKey(i), EntrySuggestions(p.suggestions[i]));
 		
 		project.dismissed_review_ids <<= p.dismissed_review_ids;
 		project.history <<= p.history;
@@ -1123,14 +1189,15 @@ void OverviewerWindow::OpenFile(const String& path) {
 		
 		project.scenarios.Clear();
 		for(int i = 0; i < p.scenarios.GetCount(); i++)
-			project.scenarios.Add(p.scenarios.GetKey(i), Scenario(p.scenarios[i], 1));
+			project.scenarios.Add(p.scenarios.GetKey(i), Scenario(p.scenarios[i]));
 		
 		project.decisions.Clear();
 		for(int i = 0; i < p.decisions.GetCount(); i++)
-			project.decisions.Add(p.decisions.GetKey(i), Decision(p.decisions[i], 1));
+			project.decisions.Add(p.decisions.GetKey(i), Decision(p.decisions[i]));
 		
 		project.comments <<= p.comments;
 		project.insights <<= p.insights;
+		project.usage_history <<= p.usage_history;
 		
 		project.StartSession("local-user", "user");
 		
@@ -1145,6 +1212,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		RefreshDecisions();
 		RefreshComments();
 		RefreshInsights();
+		RefreshUsage();
 		ClearDirty();
 		last_file_time = FileGetTime(path);
 	} catch (const Exc& e) {
@@ -1247,6 +1315,7 @@ void OverviewerWindow::OnTreeSelection() {
 	if(id >= 0) {
 		current_selection = (String)tree.Get(id);
 		UpdatePanels();
+		project.RecordUsage("select_entry", current_selection);
 	} else {
 		current_selection = "";
 		UpdatePanels();
@@ -1270,7 +1339,7 @@ void OverviewerWindow::UpdatePanels() {
 	
 	notes_editor.SetData(effective.notes);
 	
-	dummy_metadata = FileMetadata(effective, 1);
+	dummy_metadata = FileMetadata(effective);
 	
 	current_tags_pane.assigned = &dummy_metadata.current_tags;
 	reason_tags_pane.assigned = &dummy_metadata.reason_tags;
@@ -1307,6 +1376,7 @@ void OverviewerWindow::UpdatePanels() {
 	RefreshGitHistory();
 	RefreshComments();
 	RefreshInsights();
+	RefreshUsage();
 	SyncStatusBar();
 }
 
@@ -1319,12 +1389,13 @@ void OverviewerWindow::OnMetadataChange() {
 		if(field != new_val) {
 			project.LogEvent(current_selection, type, String().Cat() << "Changed " << type << " from " << field << " to " << new_val, AsString(field), AsString(new_val));
 			field = new_val;
+			project.RecordUsage(String("set_") + type, current_selection);
 		}
 	};
 	
-	log_if_changed(m.quality, quality.GetIndex(), "set_quality");
-	log_if_changed(m.completion, completion.GetIndex(), "set_completion");
-	log_if_changed(m.priority, priority.GetIndex(), "set_priority");
+	log_if_changed(m.quality, quality.GetIndex(), "quality");
+	log_if_changed(m.completion, completion.GetIndex(), "completion");
+	log_if_changed(m.priority, priority.GetIndex(), "priority");
 
 	uint32 bits = 0;
 	if(temporary) bits |= FLAG_TEMPORARY;
@@ -1337,6 +1408,7 @@ void OverviewerWindow::OnMetadataChange() {
 	if(m.flags != bits) {
 		project.LogEvent(current_selection, "set_flags", "Metadata flags changed", AsString((int)m.flags), AsString((int)bits));
 		m.flags = bits;
+		project.RecordUsage("set_flags", current_selection);
 	}
 
 	RecordUndo(current_selection, old_m, m);
@@ -1357,6 +1429,7 @@ void OverviewerWindow::OnNoteChange() {
 		MarkDirty();
 		RefreshTimeline();
 		RefreshActionView();
+		project.RecordUsage("edit_note", current_selection);
 	}
 }
 
@@ -1371,6 +1444,7 @@ void OverviewerWindow::OnSettings() {
 	if(dlg.Run() == IDOK) {
 		dlg.Save();
 	}
+	project.RecordUsage("open_settings", "");
 }
 
 void OverviewerWindow::OnAnalyze() {
@@ -1378,6 +1452,7 @@ void OverviewerWindow::OnAnalyze() {
 		project.AnalyzeEntry(current_selection);
 		project.LogEvent(current_selection, "generate_suggestions", "Heuristic analysis triggered");
 		UpdatePanels();
+		project.RecordUsage("analyze_entry", current_selection);
 	}
 }
 
@@ -1388,57 +1463,74 @@ void OverviewerWindow::OnRunConsistencyCheck() {
 	RefreshDashboard();
 	RefreshTimeline();
 	RefreshActionView();
+	project.RecordUsage("run_consistency", "");
 }
 
 void OverviewerWindow::OnShowDashboard() {
 	RefreshDashboard();
 	if(dock_dashboard) dock_dashboard->Show();
+	project.RecordUsage("open_panel", "dashboard");
 }
 
 void OverviewerWindow::OnShowReviewQueue() {
 	RefreshReviewQueue();
 	if(dock_review_queue) dock_review_queue->Show();
+	project.RecordUsage("open_panel", "review");
 }
 
 void OverviewerWindow::OnShowTimeline() {
 	RefreshTimeline();
 	if(dock_timeline) dock_timeline->Show();
+	project.RecordUsage("open_panel", "timeline");
 }
 
 void OverviewerWindow::OnShowActionView() {
 	RefreshActionView();
 	if(dock_action_view) dock_action_view->Show();
+	project.RecordUsage("open_panel", "action_view");
 }
 
 void OverviewerWindow::OnShowOverviewPreview() {
 	RefreshOverviewPreview();
 	if(dock_overview_preview) dock_overview_preview->Show();
+	project.RecordUsage("open_panel", "preview");
 }
 
 void OverviewerWindow::OnShowGitHistory() {
 	RefreshGitHistory();
 	if(dock_git_history) dock_git_history->Show();
+	project.RecordUsage("open_panel", "git");
 }
 
 void OverviewerWindow::OnShowSessions() {
 	RefreshSessions();
 	if(dock_sessions) dock_sessions->Show();
+	project.RecordUsage("open_panel", "sessions");
 }
 
 void OverviewerWindow::OnShowDecisions() {
 	RefreshDecisions();
 	if(dock_decisions) dock_decisions->Show();
+	project.RecordUsage("open_panel", "decisions");
 }
 
 void OverviewerWindow::OnShowComments() {
 	RefreshComments();
 	if(dock_comments) dock_comments->Show();
+	project.RecordUsage("open_panel", "comments");
 }
 
 void OverviewerWindow::OnShowInsights() {
 	project.GenerateInsights();
 	RefreshInsights();
 	if(dock_insights) dock_insights->Show();
+	project.RecordUsage("open_panel", "insights");
+}
+
+void OverviewerWindow::OnShowUsage() {
+	RefreshUsage();
+	if(dock_usage) dock_usage->Show();
+	project.RecordUsage("open_panel", "usage_insights");
 }
 
 void OverviewerWindow::RefreshReviewQueue() {
@@ -1481,6 +1573,10 @@ void OverviewerWindow::RefreshInsights() {
 	insight_pane.Refresh(project.insights);
 }
 
+void OverviewerWindow::RefreshUsage() {
+	usage_pane.Refresh(UsageTracker::GetSummary(project), UsageTracker::GetFriction(project));
+}
+
 void OverviewerWindow::OnExportOverview() {
 	FileSel fs;
 	fs.Type("Markdown", "*.md");
@@ -1490,6 +1586,7 @@ void OverviewerWindow::OnExportOverview() {
 		opt.markdown_output = GetFileExt(fs.Get()) == ".md";
 		String text = OverviewGenerator(project).GenerateProject(opt);
 		SaveFile(fs.Get(), text);
+		project.RecordUsage("export_overview", fs.Get());
 	}
 }
 
@@ -1498,6 +1595,7 @@ void OverviewerWindow::OnRefreshGit() {
 	RefreshGitHistory();
 	RefreshDashboard();
 	RefreshReviewQueue();
+	project.RecordUsage("refresh_git", "");
 }
 
 void OverviewerWindow::OnAddComment() {
@@ -1524,6 +1622,7 @@ void OverviewerWindow::OnDismissInsight() {
 			project.insights[real_idx].dismissed = true;
 			RefreshInsights();
 			MarkDirty();
+			project.RecordUsage("dismiss_insight", project.insights[real_idx].id);
 		}
 	}
 }
@@ -1541,7 +1640,7 @@ void OverviewerWindow::OnJumpInsight() {
 		}
 		if(real_idx >= 0 && !project.insights[real_idx].related_entries.IsEmpty()) {
 			String path = project.insights[real_idx].related_entries[0];
-			// Tree selection jump logic
+			project.RecordUsage("jump_insight", project.insights[real_idx].id);
 		}
 	}
 }
@@ -1554,13 +1653,14 @@ void OverviewerWindow::Undo() {
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
 	UndoEvent re;
 	re.path = e.path;
-	re.old_meta = FileMetadata(current, 1);
-	re.new_meta = FileMetadata(e.old_meta, 1);
+	re.old_meta = FileMetadata(current);
+	re.new_meta = FileMetadata(e.old_meta);
 	redo_stack.Add(pick(re));
 	
-	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
+	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta);
 	MarkDirty();
 	UpdatePanels();
+	project.RecordUsage("undo", e.path);
 }
 
 void OverviewerWindow::Redo() {
@@ -1571,20 +1671,21 @@ void OverviewerWindow::Redo() {
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
 	UndoEvent ue;
 	ue.path = e.path;
-	ue.old_meta = FileMetadata(current, 1);
-	ue.new_meta = FileMetadata(e.old_meta, 1);
+	ue.old_meta = FileMetadata(current);
+	ue.new_meta = FileMetadata(e.old_meta);
 	undo_stack.Add(pick(ue));
 	
-	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta, 1);
+	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta);
 	MarkDirty();
 	UpdatePanels();
+	project.RecordUsage("redo", e.path);
 }
 
 void OverviewerWindow::RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m) {
 	UndoEvent ue;
 	ue.path = path;
-	ue.old_meta = FileMetadata(old_m, 1);
-	ue.new_meta = FileMetadata(new_m, 1);
+	ue.old_meta = FileMetadata(old_m);
+	ue.new_meta = FileMetadata(new_m);
 	undo_stack.Add(pick(ue));
 	redo_stack.Clear();
 	if(undo_stack.GetCount() > 50) undo_stack.Remove(0);
@@ -1593,6 +1694,7 @@ void OverviewerWindow::RecordUndo(const String& path, const FileMetadata& old_m,
 void OverviewerWindow::OnSearch() {
 	filter.search_text = ~search_ctrl;
 	RefreshTree();
+	project.RecordUsage("search", ~search_ctrl);
 }
 
 void OverviewerWindow::OnCreateScenario() {
@@ -1693,9 +1795,10 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
 	bar.Add("Git History", THISBACK(OnShowGitHistory));
 	bar.Add("Sessions", THISBACK(OnShowSessions));
-	bar.Add("Decisions", THISBACK(OnShowDashboard)); // Placeholder for Decisions
+	bar.Add("Decisions", THISBACK(OnShowDecisions));
 	bar.Add("Comments", THISBACK(OnShowComments));
 	bar.Add("Insights", THISBACK(OnShowInsights));
+	bar.Add("Usage Insights", THISBACK(OnShowUsage));
 	bar.Separator();
 	bar.Add("Reset Layout", THISBACK(ResetLayout));
 }
@@ -1712,7 +1815,7 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 18"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 19"); });
 }
 
 void OverviewerWindow::QuickActions(Bar& bar) {

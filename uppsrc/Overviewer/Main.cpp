@@ -62,6 +62,8 @@ void PrintHelp() {
 	       << "  Overviewer --generate-insights <project>\n"
 	       << "  Overviewer --list-insights <project>\n"
 	       << "  Overviewer --dismiss-insight <project> <id>\n"
+	       << "  Overviewer --get-usage-summary <project>\n"
+	       << "  Overviewer --get-friction <project>\n"
 	       << "\nOptions:\n"
 	       << "  --actor <id> : specify actor id for the CLI run\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
@@ -110,6 +112,7 @@ int CliMain(Vector<String>& args) {
 		if (args.GetCount() >= 4 && args[2] == "--dir")
 			p.working_dir = args[3];
 		p.StartSession(actor_id, "cli");
+		p.RecordUsage("create_project", p.path);
 		String json = StoreAsJson(p);
 		if (SaveFile(p.path, json)) {
 			Cout() << "Project created: " << p.path << "\n";
@@ -135,6 +138,7 @@ int CliMain(Vector<String>& args) {
 		else return 1;
 		p.GetMetadataWrite(f_path).flags |= bit;
 		p.LogEvent(f_path, "set_flags", "Flag set via CLI: " + flag_name);
+		p.RecordUsage("set_flags_cli", f_path);
 		return StoreAsJsonFile(p, p_path) ? 0 : 1;
 	}
 
@@ -143,6 +147,7 @@ int CliMain(Vector<String>& args) {
 		if(!load_p(p, args[1])) return 1;
 		p.GetMetadataWrite(args[2]).priority = ScanInt(args[3]);
 		p.LogEvent(args[2], "set_priority", "Priority set to " + args[3]);
+		p.RecordUsage("set_priority_cli", args[2]);
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
@@ -155,6 +160,7 @@ int CliMain(Vector<String>& args) {
 		if(!v) return 1;
 		if(FindIndex(*v, tag) < 0) v->Add(tag);
 		p.LogEvent(fpath, "add_tag", "Tag added: " + tag);
+		p.RecordUsage("add_tag_cli", fpath);
 		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
 	}
 
@@ -183,7 +189,7 @@ int CliMain(Vector<String>& args) {
 		if(!LoadFromJsonFile(p, args[1])) return 1;
 		for(int i = p.history.GetCount() - 1; i >= 0; i--) {
 			const auto& e = p.history[i];
-			Cout() << Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
+			Cout() << Upp::Format(e.time) << " | " << e.actor_id << " | " << e.path << " | " << e.type << " | " << e.description << "\n";
 		}
 		return 0;
 	}
@@ -248,17 +254,29 @@ int CliMain(Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--dismiss-insight" && args.GetCount() >= 3) {
+	if (args[0] == "--get-usage-summary" && args.GetCount() >= 2) {
 		OverviewerProject p;
-		if(!load_p(p, args[1])) return 1;
-		String id = args[2];
-		for(auto& ins : p.insights) {
-			if(ins.id == id) {
-				ins.dismissed = true;
-				break;
-			}
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		UsageSummary s = UsageTracker::GetSummary(p);
+		Cout() << "Total Actions: " << s.total_actions << "\n";
+		Cout() << "Total Sessions: " << s.sessions_count << "\n";
+		Cout() << "Top Actions:\n";
+		for(int i = 0; i < s.top_actions.GetCount() && i < 5; i++)
+			Cout() << "  " << s.top_actions.GetKey(i) << ": " << s.top_actions[i] << "\n";
+		Cout() << "Unused Features: " << Join(s.unused_features, ", ") << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--get-friction" && args.GetCount() >= 2) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		Vector<FrictionSignal> friction = UsageTracker::GetFriction(p);
+		if(friction.IsEmpty()) { Cout() << "No friction detected.\n"; }
+		else {
+			for(const auto& sig : friction)
+				Cout() << "[" << sig.severity << "] " << sig.type << " | " << sig.description << "\n";
 		}
-		return StoreAsJsonFile(p, args[1]) ? 0 : 1;
+		return 0;
 	}
 
 	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {
@@ -267,6 +285,8 @@ int CliMain(Vector<String>& args) {
 		OverviewOptions opt;
 		opt.markdown_output = args.GetCount() >= 3 && args[2] == "--markdown";
 		Cout() << OverviewGenerator(p).GenerateProject(opt);
+		p.RecordUsage("generate_overview_cli", "");
+		StoreAsJsonFile(p, args[1]);
 		return 0;
 	}
 

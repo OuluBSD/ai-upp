@@ -81,6 +81,9 @@ private:
 	Value ListComments(const Value& args);
 	Value GetCommentsForEntry(const Value& args);
 	Value GetCommentsForDecision(const Value& args);
+	Value GenerateInsights(const Value& args);
+	Value ListInsights(const Value& args);
+	Value DismissInsight(const Value& args);
 
 	// Helpers
 	void DoScan();

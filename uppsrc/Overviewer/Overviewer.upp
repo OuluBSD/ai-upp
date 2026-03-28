@@ -16,6 +16,8 @@ file
 	OverviewGenerator.cpp,
 	GitContext.h,
 	GitContext.cpp,
+	InsightEngine.h,
+	InsightEngine.cpp,
 	McpServer.h,
 	McpServer.cpp,
 	Main.cpp,

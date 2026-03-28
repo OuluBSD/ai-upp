@@ -35,6 +35,7 @@ String OverviewGenerator::Generate(const String& rel_path, const OverviewOptions
 	AddSection(sections, "Action Priorities", GetPriorities(rel_path, opt));
 	AddSection(sections, "Change Attribution", GetAttribution(rel_path, opt));
 	AddSection(sections, "Key Decisions", GetDecisions(rel_path, opt));
+	AddSection(sections, "Key Insights", GetInsights(rel_path, opt));
 	AddSection(sections, "Discussion & Comments", GetComments(rel_path, opt));
 	AddSection(sections, "Review Notes", GetReview(rel_path, opt));
 
@@ -220,12 +221,24 @@ String OverviewGenerator::GetDecisions(const String& path, const OverviewOptions
 	return out;
 }
 
+String OverviewGenerator::GetInsights(const String& path, const OverviewOptions& opt) {
+	if(project.insights.IsEmpty()) return "";
+	String out;
+	for(const auto& ins : project.insights) {
+		if(!ins.dismissed && (path.IsEmpty() || FindIndex(ins.related_entries, path) >= 0)) {
+			String sev = ins.severity == 2 ? "!!!" : (ins.severity == 1 ? "!!" : "!");
+			out << "- [" << sev << "] " << ins.title << ": " << ins.description << "\n";
+		}
+	}
+	return out;
+}
+
 String OverviewGenerator::GetComments(const String& path, const OverviewOptions& opt) {
 	if(project.comments.IsEmpty()) return "";
 	String out;
 	for(const auto& c : project.comments) {
 		if(path.IsEmpty() || c.related_entry == path) {
-			out << "- [" << Format(c.timestamp) << "] " << c.actor_id << ": " << c.text << "\n";
+			out << "- [" << Upp::Format(c.timestamp, true) << "] " << c.actor_id << ": " << c.text << "\n";
 		}
 	}
 	return out;

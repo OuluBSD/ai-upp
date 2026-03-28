@@ -6,6 +6,7 @@
 #include "Settings.h"
 #include "OverviewGenerator.h"
 #include "GitContext.h"
+#include "InsightEngine.h"
 
 using namespace Upp;
 
@@ -62,12 +63,12 @@ struct EntrySuggestions : Moveable<EntrySuggestions> {
 	}
 	
 	EntrySuggestions() {}
-	EntrySuggestions(const EntrySuggestions& s, int) {
-		for(const auto& x : s.current_tags) current_tags.Add(x);
-		for(const auto& x : s.reason_tags) reason_tags.Add(x);
-		for(const auto& x : s.gap_tags) gap_tags.Add(x);
-		for(const auto& x : s.problems) problems.Add(x);
-		for(const auto& x : s.tasks) tasks.Add(x);
+	EntrySuggestions(const EntrySuggestions& s) { *this = s; }
+	EntrySuggestions(const EntrySuggestions& s, int) { *this = s; }
+	EntrySuggestions& operator=(const EntrySuggestions& s) {
+		current_tags <<= s.current_tags; reason_tags <<= s.reason_tags; gap_tags <<= s.gap_tags;
+		problems <<= s.problems; tasks <<= s.tasks;
+		return *this;
 	}
 };
 
@@ -125,9 +126,12 @@ struct EntryScore : Moveable<EntryScore> {
 	}
 	
 	EntryScore() {}
-	EntryScore(const EntryScore& s, int) {
+	EntryScore(const EntryScore& s) { *this = s; }
+	EntryScore(const EntryScore& s, int) { *this = s; }
+	EntryScore& operator=(const EntryScore& s) {
 		score = s.score;
-		for(const auto& x : s.factors) factors.Add(x);
+		factors <<= s.factors;
+		return *this;
 	}
 };
 
@@ -152,15 +156,14 @@ struct FileMetadata : Moveable<FileMetadata> {
 	}
 	
 	FileMetadata() {}
-	FileMetadata(const FileMetadata& s, int) {
+	FileMetadata(const FileMetadata& s) { *this = s; }
+	FileMetadata(const FileMetadata& s, int) { *this = s; }
+	FileMetadata& operator=(const FileMetadata& s) {
 		flags = s.flags; quality = s.quality; completion = s.completion; priority = s.priority;
 		notes = s.notes;
-		for(const auto& x : s.current_tags) current_tags.Add(x);
-		for(const auto& x : s.reason_tags) reason_tags.Add(x);
-		for(const auto& x : s.gap_tags) gap_tags.Add(x);
-		for(const auto& x : s.problems) problems.Add(x);
-		for(const auto& x : s.tasks) tasks.Add(x);
-		for(const auto& x : s.leads) leads.Add(x);
+		current_tags <<= s.current_tags; reason_tags <<= s.reason_tags; gap_tags <<= s.gap_tags;
+		problems <<= s.problems; tasks <<= s.tasks; leads <<= s.leads;
+		return *this;
 	}
 };
 
@@ -174,10 +177,14 @@ struct Scenario : Moveable<Scenario> {
 	}
 	
 	Scenario() {}
-	Scenario(const Scenario& s, int) {
+	Scenario(const Scenario& s) { *this = s; }
+	Scenario(const Scenario& s, int) { *this = s; }
+	Scenario& operator=(const Scenario& s) {
 		id = s.id; name = s.name;
+		metadata_delta.Clear();
 		for(int i = 0; i < s.metadata_delta.GetCount(); i++)
-			metadata_delta.Add(s.metadata_delta.GetKey(i), FileMetadata(s.metadata_delta[i], 1));
+			metadata_delta.Add(s.metadata_delta.GetKey(i), s.metadata_delta[i]);
+		return *this;
 	}
 };
 
@@ -203,14 +210,14 @@ struct Decision : Moveable<Decision> {
 	}
 	
 	Decision() {}
-	Decision(const Decision& s, int) {
+	Decision(const Decision& s) { *this = s; }
+	Decision(const Decision& s, int) { *this = s; }
+	Decision& operator=(const Decision& s) {
 		id = s.id; title = s.title; description = s.description; timestamp = s.timestamp;
 		actor_id = s.actor_id; actor_type = s.actor_type; session_id = s.session_id;
-		related_entries <<= s.related_entries;
-		related_scenario_id = s.related_scenario_id;
-		status = s.status;
-		tags <<= s.tags;
-		linked_commits <<= s.linked_commits;
+		related_entries <<= s.related_entries; related_scenario_id = s.related_scenario_id;
+		status = s.status; tags <<= s.tags; linked_commits <<= s.linked_commits;
+		return *this;
 	}
 };
 
@@ -232,6 +239,16 @@ struct UndoEvent : Moveable<UndoEvent> {
 	String path;
 	FileMetadata old_meta;
 	FileMetadata new_meta;
+	
+	UndoEvent() {}
+	UndoEvent(const UndoEvent& s) { *this = s; }
+	UndoEvent(const UndoEvent& s, int) { *this = s; }
+	UndoEvent& operator=(const UndoEvent& s) {
+		path = s.path;
+		old_meta = s.old_meta;
+		new_meta = s.new_meta;
+		return *this;
+	}
 };
 
 struct ProjectDashboard {
@@ -261,13 +278,14 @@ struct ProjectDashboard {
 	int proposed_decisions = 0;
 	int accepted_decisions = 0;
 	int total_comments = 0;
+	int active_insights = 0;
 
 	ProjectDashboard() {
 		total_files = total_dirs = flagged_entries = needs_review = 0;
 		missing_priority = missing_completion = with_notes = with_problems = 0;
 		with_tasks = with_leads = suggestions_pending = 0;
 		recent_changes = stale_entries = 0;
-		proposed_decisions = accepted_decisions = total_comments = 0;
+		proposed_decisions = accepted_decisions = total_comments = active_insights = 0;
 		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
 };
@@ -299,6 +317,7 @@ struct OverviewerProject {
 	
 	VectorMap<String, Decision> decisions;
 	Vector<Comment> comments;
+	Vector<Insight> insights;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -311,7 +330,8 @@ struct OverviewerProject {
 		   ("known_gap_tags", known_gap_tags)
 		   ("scenarios", scenarios)
 		   ("decisions", decisions)
-		   ("comments", comments);
+		   ("comments", comments)
+		   ("insights", insights);
 	}
 	
 	void Reset() {
@@ -320,7 +340,7 @@ struct OverviewerProject {
 		dismissed_review_ids.Clear(); history.Clear(); sessions.Clear();
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
-		decisions.Clear(); comments.Clear();
+		decisions.Clear(); comments.Clear(); insights.Clear();
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
@@ -351,6 +371,8 @@ struct OverviewerProject {
 	void LinkDecisionToScenario(const String& id, const String& scenario_id);
 	
 	String AddComment(const String& text, const String& entry = "", const String& decision = "");
+	
+	void GenerateInsights();
 };
 
 class SettingsWindow : public WithSettingsLayout<TopWindow> {
@@ -403,6 +425,7 @@ public:
 	void OnShowSessions();
 	void OnShowDecisions();
 	void OnShowComments();
+	void OnShowInsights();
 	
 	void OnScenarioMenu(Bar& bar);
 	void OnCreateScenario();
@@ -432,10 +455,13 @@ public:
 	void RefreshSessions();
 	void RefreshDecisions();
 	void RefreshComments();
+	void RefreshInsights();
 
 	void OnExportOverview();
 	void OnRefreshGit();
 	void OnAddComment();
+	void OnDismissInsight();
+	void OnJumpInsight();
 	
 	void Undo();
 	void Redo();
@@ -636,6 +662,18 @@ private:
 		void Refresh(const Vector<Comment>& comments, const String& rel_path = "", const String& decision_id = "");
 	};
 
+	struct InsightPanel : ParentCtrl {
+		typedef InsightPanel CLASSNAME;
+		ArrayCtrl list;
+		DocEdit description;
+		Button dismiss, jump;
+		OverviewerWindow* window;
+		
+		InsightPanel();
+		void Refresh(const Vector<Insight>& insights);
+		void OnSel();
+	};
+
 	TagPanel current_tags_pane, reason_tags_pane, gap_tags_pane;
 	ListPanel problems_pane, tasks_pane, leads_pane;
 	SuggestionPanel suggestion_pane;
@@ -649,6 +687,7 @@ private:
 	ScenarioDiffPanel scenario_diff_pane;
 	DecisionPanel decision_pane;
 	CommentPanel comment_pane;
+	InsightPanel insight_pane;
 
 	DockableCtrl* dock_tree = nullptr;
 	DockableCtrl* dock_flags = nullptr;
@@ -671,6 +710,7 @@ private:
 	DockableCtrl* dock_sessions = nullptr;
 	DockableCtrl* dock_decisions = nullptr;
 	DockableCtrl* dock_comments = nullptr;
+	DockableCtrl* dock_insights = nullptr;
 
 	void MainMenu(Bar& bar);
 	void FileMenu(Bar& bar);

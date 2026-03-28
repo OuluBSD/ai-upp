@@ -1,5 +1,28 @@
 #include "Overviewer.h"
 
+SettingsWindow::SettingsWindow() {
+	CtrlLayoutOKCancel(*this, "Settings");
+	backup_mode.Add(0, "Alongside project (.autosave.json)");
+	backup_mode.Add(1, "In project recovery dir");
+}
+
+void SettingsWindow::Load() {
+	OverviewerSettings& s = GetSettings();
+	autosave_enabled = s.autosave_enabled;
+	autosave_interval = s.autosave_interval_minutes;
+	backup_mode.SetData(s.backup_mode);
+	restore_layout = s.restore_layout;
+}
+
+void SettingsWindow::Save() {
+	OverviewerSettings& s = GetSettings();
+	s.autosave_enabled = autosave_enabled;
+	s.autosave_interval_minutes = autosave_interval;
+	s.backup_mode = (int)backup_mode.GetData();
+	s.restore_layout = restore_layout;
+	s.Save();
+}
+
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
 	FileMetadata res;
 	const FileMetadata* m = metadata.FindPtr(rel_path);
@@ -12,10 +35,8 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 		res.current_tags <<= m->current_tags;
 		res.reason_tags <<= m->reason_tags;
 		res.gap_tags <<= m->gap_tags;
-		// Problems/Tasks/Leads lists not inherited for now to keep it simple
 	}
 
-	// Inheritance for numeric values
 	auto inherit = [&](int& val, int (FileMetadata::*field)) {
 		if(val != 0) return;
 		String p = rel_path;
@@ -36,6 +57,21 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 	inherit(res.priority, &FileMetadata::priority);
 
 	return res;
+}
+
+String OverviewerProject::GetBackupPath() const {
+	if(path.IsEmpty()) return "";
+	if(GetSettings().backup_mode == 0)
+		return path + ".autosave.json";
+	else
+		return AppendFileName(GetFileDirectory(path), ".overviewer_recovery/" + GetFileName(path));
+}
+
+bool OverviewerProject::WriteBackup() const {
+	String bpath = GetBackupPath();
+	if(bpath.IsEmpty()) return false;
+	RealizeDirectory(GetFileDirectory(bpath));
+	return StoreAsJsonFile(*this, bpath);
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -246,6 +282,11 @@ OverviewerWindow::OverviewerWindow()
 	, tasks_pane(&dummy_metadata.tasks)
 	, leads_pane(&dummy_metadata.leads)
 {
+	dummy_metadata.flags = 0;
+	dummy_metadata.quality = 0;
+	dummy_metadata.completion = 0;
+	dummy_metadata.priority = 0;
+
 	Title("Overviewer");
 	Sizeable().Zoomable();
 
@@ -285,6 +326,21 @@ OverviewerWindow::OverviewerWindow()
 	wire_list(problems_pane);
 	wire_list(tasks_pane);
 	wire_list(leads_pane);
+
+	last_autosave = GetSysTime();
+	SetTimeCallback(-1000, THISBACK(CheckAutosave));
+}
+
+void OverviewerWindow::CheckAutosave() {
+	OverviewerSettings& s = GetSettings();
+	if(s.autosave_enabled && !project.path.IsEmpty() && dirty) {
+		if(GetSysTime() - last_autosave > s.autosave_interval_minutes * 60) {
+			if(project.WriteBackup()) {
+				last_autosave = GetSysTime();
+			}
+		}
+	}
+	SetTimeCallback(-1000, THISBACK(CheckAutosave));
 }
 
 void OverviewerWindow::CreateFlagsPane() {
@@ -366,6 +422,44 @@ void OverviewerWindow::DockInit() {
 	DockRight(*dock_problems);
 	DockBottom(*dock_tasks);
 	DockBottom(*dock_leads);
+}
+
+void OverviewerWindow::SaveLayout() {
+	if(GetSettings().restore_layout) {
+		FileOut out(ConfigFile("layout.bin"));
+		Serialize(out);
+	}
+}
+
+void OverviewerWindow::LoadLayout() {
+	if(GetSettings().restore_layout) {
+		FileIn in(ConfigFile("layout.bin"));
+		if(in) Serialize(in);
+	}
+}
+
+void OverviewerWindow::MarkSession(bool active) {
+	String path = ConfigFile("session.active");
+	if(active) SaveFile(path, "1");
+	else DeleteFile(path);
+}
+
+bool OverviewerWindow::CheckRecovery() {
+	if(FileExists(ConfigFile("session.active"))) {
+		String bpath = project.GetBackupPath();
+		if(FileExists(bpath)) {
+			int res = PromptYesNoCancel("Previous session ended unexpectedly. Recover from autosave?");
+			if(res == 1) {
+				OpenFile(bpath);
+				project.path = ""; // Clear path so user has to Save As
+				MarkDirty();
+				return true;
+			} else if(res == 0) {
+				DeleteFile(bpath);
+			}
+		}
+	}
+	return false;
 }
 
 void OverviewerWindow::SyncTitle() {
@@ -452,12 +546,16 @@ bool OverviewerWindow::ConfirmSave() {
 
 void OverviewerWindow::Exit() {
 	if (ConfirmSave()) {
+		MarkSession(false);
+		SaveLayout();
 		Break();
 	}
 }
 
 void OverviewerWindow::Close() {
 	if (ConfirmSave()) {
+		MarkSession(false);
+		SaveLayout();
 		TopWindow::Close();
 	}
 }
@@ -597,6 +695,14 @@ void OverviewerWindow::OnBatchEdit() {
 	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); }
 }
 
+void OverviewerWindow::OnSettings() {
+	SettingsWindow dlg;
+	dlg.Load();
+	if(dlg.Run() == IDOK) {
+		dlg.Save();
+	}
+}
+
 void OverviewerWindow::MainMenu(Bar& bar) {
 	bar.Add("File", THISBACK(FileMenu));
 	bar.Add("Edit", THISBACK(EditMenu));
@@ -615,13 +721,13 @@ void OverviewerWindow::FileMenu(Bar& bar) {
 
 void OverviewerWindow::EditMenu(Bar& bar) {
 	bar.Add("Batch Edit...", THISBACK(OnBatchEdit));
+	bar.Add("Settings...", THISBACK(OnSettings));
 	bar.Add("Mark Dirty (debug)", THISBACK(MarkDirty));
 }
 
 void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Add("Show All", [=] { filter.mode = 0; RefreshTree(); }).Check(filter.mode == 0);
 	bar.Add("Advanced Filter", [=] {
-		// Simple prompt for now
 		filter.mode = 1;
 		String tags;
 		if(EditText(tags, "Filter Tags", "Current tag:")) filter.tag_current = tags;
@@ -630,5 +736,5 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 4"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 6"); });
 }

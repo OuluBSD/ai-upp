@@ -58,6 +58,9 @@ void McpServer::ProcessRequest(const String& line) {
 		else if(method == "run_consistency_check") res = RunConsistencyCheck(args);
 		else if(method == "list_review_items") res = ListReviewItems(args);
 		else if(method == "dismiss_review_item") res = DismissReviewItem(args);
+		else if(method == "get_history") res = GetHistory(args);
+		else if(method == "get_recent_changes") res = GetRecentChanges(args);
+		else if(method == "clear_history") res = ClearHistory(args);
 		else if(method == "shutdown") {
 			Cout() << ValorizeResponse(true, "Shutting down").ToString() << "\n";
 			exit(0);
@@ -530,6 +533,27 @@ void McpServer::DoScan() {
 }
 
 bool McpServer::IsPathValid(const String& path) {
+	if(path.StartsWith("/") || path.StartsWith("\\") || path.Find("..") >= 0) return false;
+	return true;
+}
+
+String McpServer::GetAbsPath(const String& rel_path) {
+	String root = project.working_dir;
+	if(root.IsEmpty() && !project.path.IsEmpty())
+		root = GetFileDirectory(project.path);
+	return AppendFileName(root, rel_path);
+}
+
+uint32 McpServer::StringToFlag(const String& name) {
+	if(name == "TEMPORARY") return FLAG_TEMPORARY;
+	if(name == "WRONG_LOCATION") return FLAG_WRONG_LOCATION;
+	if(name == "WRONG_NAME") return FLAG_WRONG_NAME;
+	if(name == "TOO_LARGE") return FLAG_TOO_LARGE;
+	if(name == "NEEDS_REVIEW") return FLAG_NEEDS_REVIEW;
+	if(name == "CONTENT_NEEDS_REVIEW") return FLAG_CONTENT_NEEDS_REVIEW;
+	return 0;
+}
+athValid(const String& path) {
 	if(path.StartsWith("/") || path.StartsWith("\\") || path.Find("..") >= 0) return false;
 	return true;
 }

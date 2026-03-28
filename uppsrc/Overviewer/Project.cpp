@@ -66,13 +66,19 @@ void OverviewerWindow::SuggestionPanel::OnDismiss() {
 
 void OverviewerWindow::ApplySuggestion(const String& path, int type, int category, const String& value) {
 	FileMetadata& m = project.metadata.GetAdd(path);
+	String desc = "Applied suggestion: " + value;
 	if(type == 0) { // Tag
 		Vector<String>* v = (category == 0 ? &m.current_tags : (category == 1 ? &m.reason_tags : &m.gap_tags));
-		if(FindIndex(*v, value) < 0) v->Add(value);
-	} else if(type == 1) { // Problem
+		if(FindIndex(*v, value) < 0) {
+			v->Add(value);
+			project.LogEvent(path, "add_tag", desc, "", value, "suggestion");
+		}
+	} else if(type == 1) {
 		m.problems.Add().text = value;
-	} else if(type == 2) { // Task
+		project.LogEvent(path, "add_problem", desc, "", value, "suggestion");
+	} else if(type == 2) {
 		m.tasks.Add().text = value;
+		project.LogEvent(path, "add_task", desc, "", value, "suggestion");
 	}
 	DismissSuggestion(path, type, category, value);
 	MarkDirty();
@@ -98,6 +104,8 @@ void OverviewerWindow::DashboardPanel::Refresh(const ProjectDashboard& db) {
 	stats.Clear();
 	stats.Add("Total Files", db.total_files);
 	stats.Add("Total Directories", db.total_dirs);
+	stats.Add("Recent Changes", db.recent_changes);
+	stats.Add("Stale Entries", db.stale_entries);
 	stats.Add("Flagged Entries", db.flagged_entries);
 	stats.Add("Needs Review (Flagged)", db.needs_review);
 	stats.Add("Missing Priority", db.missing_priority);
@@ -129,7 +137,6 @@ void OverviewerWindow::ReviewQueuePanel::Refresh(const Vector<ReviewItem>& queue
 void OverviewerWindow::ReviewQueuePanel::OnJump() {
 	int id = list.GetCursor();
 	if(id < 0 || !window) return;
-	// Path is in list.Get(id, 0);
 }
 
 void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
@@ -139,6 +146,28 @@ void OverviewerWindow::ReviewQueuePanel::OnDismiss() {
 	String msg = list.Get(id, 2);
 	window->project.dismissed_review_ids.FindAdd(p + ":" + msg);
 	window->RefreshReviewQueue();
+}
+
+OverviewerWindow::TimelinePanel::TimelinePanel() {
+	Add(list.SizePos());
+	list.AddColumn("Time");
+	list.AddColumn("Path");
+	list.AddColumn("Type");
+	list.AddColumn("Description");
+	list.WhenLeftDouble = THISBACK(OnJump);
+}
+
+void OverviewerWindow::TimelinePanel::Refresh(const Vector<HistoryEvent>& history) {
+	list.Clear();
+	for(int i = history.GetCount() - 1; i >= 0; i--) {
+		const auto& e = history[i];
+		list.Add(Format(e.time), e.path, e.type, e.description);
+	}
+}
+
+void OverviewerWindow::TimelinePanel::OnJump() {
+	int id = list.GetCursor();
+	if(id < 0 || !window) return;
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -190,6 +219,20 @@ bool OverviewerProject::WriteBackup() const {
 	if(bpath.IsEmpty()) return false;
 	RealizeDirectory(GetFileDirectory(bpath));
 	return StoreAsJsonFile(*this, bpath);
+}
+
+void OverviewerProject::LogEvent(const String& path, const String& type, const String& desc, const String& old_val, const String& new_val, const String& src) {
+	HistoryEvent& e = history.Add();
+	e.time = GetSysTime();
+	e.path = path;
+	e.type = type;
+	e.description = desc;
+	e.old_value = old_val;
+	e.new_value = new_val;
+	e.source = src;
+	
+	if(history.GetCount() > max_history)
+		history.Remove(0, history.GetCount() - max_history);
 }
 
 BatchEditDialog::BatchEditDialog(OverviewerProject& p, const String& start_path) : project(p), initial_path(start_path) {
@@ -292,6 +335,8 @@ void BatchEditDialog::OnApply() {
 			if(en_tg) mod_tag(~tag_gap, m.gap_tags);
 		}
 	};
+
+	project.LogEvent("", "batch_update", "Batch edit applied to " + AsString(targets.GetCount()) + " entries");
 
 	for(const String& t : targets) {
 		apply_to(t);
@@ -410,6 +455,7 @@ OverviewerWindow::OverviewerWindow()
 	suggestion_pane.suggestions = &dummy_suggestions;
 	
 	review_queue_pane.window = this;
+	timeline_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -522,6 +568,7 @@ void OverviewerWindow::DockInit() {
 	dock_suggestions = &Dockable(suggestion_pane, "Suggestions").SizeHint(Size(400, 200));
 	dock_dashboard = &Dockable(dashboard_pane, "Dashboard").SizeHint(Size(300, 400));
 	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300));
+	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300));
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -537,6 +584,7 @@ void OverviewerWindow::DockInit() {
 	Register(*dock_suggestions);
 	Register(*dock_dashboard);
 	Register(*dock_review_queue);
+	Register(*dock_timeline);
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
@@ -556,6 +604,7 @@ void OverviewerWindow::DockInit() {
 	
 	DockLeft(*dock_dashboard);
 	DockBottom(*dock_review_queue);
+	DockBottom(*dock_timeline);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -587,6 +636,7 @@ bool OverviewerWindow::CheckRecovery() {
 				OpenFile(bpath);
 				project.path = ""; // Clear path so user has to Save As
 				MarkDirty();
+				project.LogEvent("", "recovery_loaded", "Recovered project from autosave", "", bpath);
 				return true;
 			} else if(res == 0) {
 				DeleteFile(bpath);
@@ -613,6 +663,7 @@ void OverviewerWindow::New() {
 	RefreshTree();
 	RefreshDashboard();
 	RefreshReviewQueue();
+	RefreshTimeline();
 	ClearDirty();
 }
 
@@ -640,12 +691,14 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.metadata <<= p.metadata;
 		project.suggestions <<= p.suggestions;
 		project.dismissed_review_ids <<= p.dismissed_review_ids;
+		project.history <<= p.history;
 		project.known_current_tags <<= p.known_current_tags;
 		project.known_reason_tags <<= p.known_reason_tags;
 		project.known_gap_tags <<= p.known_gap_tags;
 		RefreshTree();
 		RefreshDashboard();
 		RefreshReviewQueue();
+		RefreshTimeline();
 		ClearDirty();
 	} catch (const Exc& e) {
 		Exclamation("Failed to parse project file: " + e);
@@ -809,34 +862,58 @@ void OverviewerWindow::UpdatePanels() {
 		type_lbl = "Type: File";
 		size_lbl = "Size: " + FormatInt64(GetFileLength(abs_path));
 	}
+	
+	RefreshTimeline();
 }
 
 void OverviewerWindow::OnMetadataChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
 	FileMetadata& m = project.metadata.GetAdd(current_selection);
-	m.flags = 0;
-	if(temporary) m.flags |= FLAG_TEMPORARY;
-	if(wrong_location) m.flags |= FLAG_WRONG_LOCATION;
-	if(wrong_name) m.flags |= FLAG_WRONG_NAME;
-	if(too_large) m.flags |= FLAG_TOO_LARGE;
-	if(needs_review) m.flags |= FLAG_NEEDS_REVIEW;
-	if(content_needs_review) m.flags |= FLAG_CONTENT_NEEDS_REVIEW;
-	m.quality = quality.GetIndex();
-	m.completion = completion.GetIndex();
-	m.priority = priority.GetIndex();
+	
+	// Logging
+	auto log_if_changed = [&](int& field, int new_val, const char* type) {
+		if(field != new_val) {
+			project.LogEvent(current_selection, type, String().Cat() << "Changed " << type << " from " << field << " to " << new_val, AsString(field), AsString(new_val));
+			field = new_val;
+		}
+	};
+	
+	log_if_changed(m.quality, quality.GetIndex(), "set_quality");
+	log_if_changed(m.completion, completion.GetIndex(), "set_completion");
+	log_if_changed(m.priority, priority.GetIndex(), "set_priority");
+
+	uint32 bits = 0;
+	if(temporary) bits |= FLAG_TEMPORARY;
+	if(wrong_location) bits |= FLAG_WRONG_LOCATION;
+	if(wrong_name) bits |= FLAG_WRONG_NAME;
+	if(too_large) bits |= FLAG_TOO_LARGE;
+	if(needs_review) bits |= FLAG_NEEDS_REVIEW;
+	if(content_needs_review) bits |= FLAG_CONTENT_NEEDS_REVIEW;
+	
+	if(m.flags != bits) {
+		project.LogEvent(current_selection, "set_flags", "Metadata flags changed", AsString((int)m.flags), AsString((int)bits));
+		m.flags = bits;
+	}
+
 	MarkDirty();
+	RefreshTimeline();
 }
 
 void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
 	FileMetadata& m = project.metadata.GetAdd(current_selection);
 	String n = notes_editor.GetData();
-	if(m.notes != n) { m.notes = n; MarkDirty(); }
+	if(m.notes != n) {
+		project.LogEvent(current_selection, "set_note", "Note modified");
+		m.notes = n;
+		MarkDirty();
+		RefreshTimeline();
+	}
 }
 
 void OverviewerWindow::OnBatchEdit() {
 	BatchEditDialog dlg(project, current_selection);
-	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); }
+	if(dlg.Run() == IDOK) { MarkDirty(); RefreshTree(); RefreshTimeline(); }
 }
 
 void OverviewerWindow::OnSettings() {
@@ -850,14 +927,17 @@ void OverviewerWindow::OnSettings() {
 void OverviewerWindow::OnAnalyze() {
 	if(!current_selection.IsEmpty() && current_selection != ".") {
 		project.AnalyzeEntry(current_selection);
+		project.LogEvent(current_selection, "generate_suggestions", "Heuristic analysis triggered");
 		UpdatePanels();
 	}
 }
 
 void OverviewerWindow::OnRunConsistencyCheck() {
 	project.RunConsistencyCheck();
+	project.LogEvent("", "run_consistency_check", "Project-wide consistency check finished");
 	RefreshReviewQueue();
 	RefreshDashboard();
+	RefreshTimeline();
 }
 
 void OverviewerWindow::OnShowDashboard() {
@@ -870,12 +950,21 @@ void OverviewerWindow::OnShowReviewQueue() {
 	if(dock_review_queue) dock_review_queue->Show();
 }
 
+void OverviewerWindow::OnShowTimeline() {
+	RefreshTimeline();
+	if(dock_timeline) dock_timeline->Show();
+}
+
 void OverviewerWindow::RefreshReviewQueue() {
 	review_queue_pane.Refresh(project.review_queue);
 }
 
 void OverviewerWindow::RefreshDashboard() {
 	dashboard_pane.Refresh(project.GetDashboard());
+}
+
+void OverviewerWindow::RefreshTimeline() {
+	timeline_pane.Refresh(project.history);
 }
 
 void OverviewerWindow::MainMenu(Bar& bar) {
@@ -912,6 +1001,7 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 	bar.Separator();
 	bar.Add("Dashboard", THISBACK(OnShowDashboard));
 	bar.Add("Review Queue", THISBACK(OnShowReviewQueue));
+	bar.Add("Timeline", THISBACK(OnShowTimeline));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
@@ -920,5 +1010,5 @@ void OverviewerWindow::ToolsMenu(Bar& bar) {
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
-	bar.Add("About", [] { PromptOK("Overviewer Milestone 8"); });
+	bar.Add("About", [] { PromptOK("Overviewer Milestone 9"); });
 }

@@ -128,6 +128,15 @@ void OverviewerProject::RunConsistencyCheck() {
 		if(path_events > 10 && m.completion == 5) {
 			add_review(path, "Temporal", "Entry heavily modified recently but marked as complete.", 0, "checker");
 		}
+		
+		// Git awareness
+		if(git.repo_detected) {
+			int gst = git.GetStatus(path);
+			if(gst == GIT_MODIFIED && m.completion == 5)
+				add_review(path, "Git", "Modified in Git but marked as complete in Overviewer.", 1, "git");
+			if(gst == GIT_UNTRACKED && (m.priority >= 4 || !m.tasks.IsEmpty()))
+				add_review(path, "Git", "Untracked in Git but has high priority/tasks.", 0, "git");
+		}
 	}
 
 	for(int i = 0; i < suggestions.GetCount(); i++) {

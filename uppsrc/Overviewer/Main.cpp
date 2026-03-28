@@ -31,6 +31,15 @@ void PrintHelp() {
 	       << "  Overviewer --get-history <project> [path]\n"
 	       << "  Overviewer --get-recent-changes <project>\n"
 	       << "  Overviewer --clear-history <project>\n"
+	       << "  Overviewer --generate-overview <project> [--markdown]\n"
+	       << "  Overviewer --generate-overview-subtree <project> <path> [--markdown]\n"
+	       << "  Overviewer --generate-overview-entry <project> <path> [--markdown]\n"
+	       << "  Overviewer --export-overview <project> <output_path>\n"
+	       << "  Overviewer --get-git-info <project>\n"
+	       << "  Overviewer --refresh-git-status <project>\n"
+	       << "  Overviewer --get-entry-git-status <project> <path>\n"
+	       << "  Overviewer --get-entry-commits <project> <path> [limit]\n"
+	       << "  Overviewer --link-list-item-commit <project> <path> <listtype> <index> <commit>\n"
 	       << "\nFlags: TEMPORARY, WRONG_LOCATION, WRONG_NAME, TOO_LARGE, NEEDS_REVIEW, CONTENT_NEEDS_REVIEW\n"
 	       << "Categories: current, reason, gap\n"
 	       << "ListTypes: problems, tasks, leads\n";
@@ -137,58 +146,9 @@ int CliMain(const Vector<String>& args) {
 				print_list("Tasks", m->tasks);
 				print_list("Leads", m->leads);
 			}
-			const EntrySuggestions* sug = p.suggestions.FindPtr(f_path);
-			if(sug) {
-				auto print_sugs = [](const char* title, const Vector<Suggestion>& v) {
-					if(v.IsEmpty()) return;
-					Cout() << title << ":\n";
-					for(const Suggestion& s : v)
-						if(!s.rejected) Cout() << "  - " << s.text << " (conf: " << s.confidence << ", src: " << s.source << ")\n";
-				};
-				print_sugs("Suggested Current Tags", sug->current_tags);
-				print_sugs("Suggested Reason Tags", sug->reason_tags);
-				print_sugs("Suggested Gap Tags", sug->gap_tags);
-				print_sugs("Suggested Problems", sug->problems);
-				print_sugs("Suggested Tasks", sug->tasks);
-			}
 			return 0;
 		}
 		return 1;
-	}
-
-	if (args[0] == "--generate-suggestions" && args.GetCount() >= 3) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		String fpath = args[2];
-		bool rec = args.GetCount() >= 4 && args[3] == "--recursive";
-		p.AnalyzeEntry(fpath);
-		if(rec) {
-			for(int i = 0; i < p.metadata.GetCount(); i++) {
-				String k = p.metadata.GetKey(i);
-				if(k.StartsWith(fpath + "/") || k.StartsWith(fpath + "\\")) p.AnalyzeEntry(k);
-			}
-		}
-		p.LogEvent(fpath, "generate_suggestions", "Analysis triggered via CLI");
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
-	}
-
-	if (args[0] == "--apply-suggestion" && args.GetCount() >= 6) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		String fpath = args[2];
-		int type = ScanInt(args[3]);
-		int cat = ScanInt(args[4]);
-		String val = args[5];
-		FileMetadata& m = p.metadata.GetAdd(fpath);
-		if(type == 0) {
-			Vector<String>* v = (cat == 0 ? &m.current_tags : (cat == 1 ? &m.reason_tags : &m.gap_tags));
-			if(v && FindIndex(*v, val) < 0) v->Add(val);
-		} else if(type == 1) m.problems.Add().text = val;
-		else if(type == 2) m.tasks.Add().text = val;
-		p.LogEvent(fpath, "apply_suggestion", "Applied suggestion: " + val);
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
 	if (args[0] == "--get-dashboard" && args.GetCount() >= 2) {
@@ -199,39 +159,8 @@ int CliMain(const Vector<String>& args) {
 		       << "  Total Files: " << db.total_files << "\n"
 		       << "  Total Dirs: " << db.total_dirs << "\n"
 		       << "  Flagged: " << db.flagged_entries << "\n"
-		       << "  Recent Changes: " << db.recent_changes << "\n"
-		       << "  Stale Entries: " << db.stale_entries << "\n"
 		       << "  Suggestions Pending: " << db.suggestions_pending << "\n";
 		return 0;
-	}
-
-	if (args[0] == "--run-consistency-check" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		p.RunConsistencyCheck();
-		Cout() << "Consistency check complete. Review items: " << p.review_queue.GetCount() << "\n";
-		for(const auto& it : p.review_queue)
-			Cout() << "  - [" << it.severity << "] " << it.path << ": " << it.message << "\n";
-		p.LogEvent("", "run_consistency_check", "Check finished via CLI");
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
-	}
-
-	if (args[0] == "--list-review-items" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.RunConsistencyCheck();
-		for(const auto& it : p.review_queue)
-			Cout() << it.path << "|" << it.type << "|" << it.message << "|" << it.severity << "\n";
-		return 0;
-	}
-
-	if (args[0] == "--dismiss-review-item" && args.GetCount() >= 4) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		p.dismissed_review_ids.FindAdd(args[2] + ":" + args[3]);
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
 	if (args[0] == "--get-history" && args.GetCount() >= 2) {
@@ -246,24 +175,6 @@ int CliMain(const Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--get-recent-changes" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		ProjectDashboard db = p.GetDashboard();
-		Cout() << "Recent Changes: " << db.recent_changes << "\n";
-		Cout() << "Recently Modified Entries:\n";
-		for(const String& path : db.recently_modified) Cout() << "  - " << path << "\n";
-		return 0;
-	}
-
-	if (args[0] == "--clear-history" && args.GetCount() >= 2) {
-		OverviewerProject p;
-		if(!LoadFromJsonFile(p, args[1])) return 1;
-		p.path = args[1];
-		p.history.Clear();
-		return StoreAsJsonFile(p, p.path) ? 0 : 1;
-	}
-
 	if (args[0] == "--generate-overview" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
@@ -273,30 +184,54 @@ int CliMain(const Vector<String>& args) {
 		return 0;
 	}
 
-	if (args[0] == "--generate-overview-subtree" && args.GetCount() >= 3) {
+	if (args[0] == "--get-git-info" && args.GetCount() >= 2) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
-		OverviewOptions opt;
-		opt.markdown_output = args.GetCount() >= 4 && args[3] == "--markdown";
-		Cout() << OverviewGenerator(p).Generate(args[2], opt);
+		p.RefreshGit();
+		Cout() << "Repo detected: " << (p.git.repo_detected ? "YES" : "NO") << "\n";
+		if(p.git.repo_detected) {
+			Cout() << "Root: " << p.git.repo_root << "\n";
+			Cout() << "Branch: " << p.git.branch << "\n";
+			Cout() << "HEAD: " << p.git.head_hash << "\n";
+		}
 		return 0;
 	}
 
-	if (args[0] == "--generate-overview-entry" && args.GetCount() >= 3) {
+	if (args[0] == "--get-entry-git-status" && args.GetCount() >= 3) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
-		OverviewOptions opt;
-		opt.markdown_output = args.GetCount() >= 4 && args[3] == "--markdown";
-		Cout() << OverviewGenerator(p).Generate(args[2], opt);
+		p.RefreshGit();
+		int s = p.git.GetStatus(args[2]);
+		Cout() << "Status for " << args[2] << ": " << s << "\n";
 		return 0;
 	}
 
-	if (args[0] == "--export-overview" && args.GetCount() >= 3) {
+	if (args[0] == "--get-entry-commits" && args.GetCount() >= 3) {
 		OverviewerProject p;
 		if(!LoadFromJsonFile(p, args[1])) return 1;
-		OverviewOptions opt;
-		opt.markdown_output = GetFileExt(args[2]) == ".md";
-		return SaveFile(args[2], OverviewGenerator(p).GenerateProject(opt)) ? 0 : 1;
+		p.RefreshGit();
+		int limit = args.GetCount() >= 4 ? ScanInt(args[3]) : 10;
+		Vector<GitCommit> cs = p.git.GetHistory(p.working_dir, args[2], limit);
+		for(const auto& c : cs)
+			Cout() << c.hash << " | " << c.author << " | " << c.subject << "\n";
+		return 0;
+	}
+
+	if (args[0] == "--link-list-item-commit" && args.GetCount() >= 6) {
+		OverviewerProject p;
+		if(!LoadFromJsonFile(p, args[1])) return 1;
+		p.path = args[1];
+		String fpath = args[2];
+		String ltype = args[3];
+		int idx = ScanInt(args[4]);
+		String commit = args[5];
+		
+		FileMetadata& m = p.metadata.GetAdd(fpath);
+		Vector<ListItem>* target = (ltype == "problems" ? &m.problems : (ltype == "tasks" ? &m.tasks : (ltype == "leads" ? &m.leads : nullptr)));
+		if(!target || idx < 0 || idx >= target->GetCount()) return 1;
+		(*target)[idx].commit = commit;
+		p.LogEvent(fpath, "link_commit", "Linked commit " + commit + " to " + ltype + "[" + AsString(idx) + "]");
+		return StoreAsJsonFile(p, p.path) ? 0 : 1;
 	}
 
 	Cerr() << "Unknown arguments. Use --help for usage.\n";

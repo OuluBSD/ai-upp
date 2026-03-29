@@ -112,6 +112,15 @@ def startup_script():
 # ============================================================================
 
 # Switch objects (for debugging/switching characters)
+def _switch_tent_use(me):
+    use_switch_tent(me)
+
+def _switch_player_use(me):
+    use_switch_player(me)
+
+def _duck_pickup(me):
+    pickup_obj(me)
+
 obj_switch_tent = {
     "name": "purple tentacle",
     "state": "state_here",
@@ -121,9 +130,9 @@ obj_switch_tent = {
     "y": 1,
     "w": 1,
     "h": 1,
-    
+
     "verbs": {
-        "use": lambda me: use_switch_tent(me)
+        "use": _switch_tent_use
     }
 }
 
@@ -136,9 +145,9 @@ obj_switch_player = {
     "y": 1,
     "w": 1,
     "h": 1,
-    
+
     "verbs": {
-        "use": lambda me: use_switch_player(me)
+        "use": _switch_player_use
     }
 }
 
@@ -152,9 +161,9 @@ obj_duck = {
     "w": 1,
     "h": 1,
     "classes": ["class_pickupable"],
-    
+
     "verbs": {
-        "pickup": lambda me: pickup_obj(me)
+        "pickup": _duck_pickup
     }
 }
 
@@ -188,15 +197,21 @@ def rm_title_fn1(me):
 # Room Definitions
 # ============================================================================
 
-rm_title = {
-    "map": [0, 16],
-    "objects": [],
-    "enter": lambda me: cutscene(
+def _title_enter(me):
+    cutscene(
         3,  # no verbs & no follow
         rm_title_fn0,
         rm_title_fn1
-    ),
-    "exit": lambda: None  # todo: "anything here?"
+    )
+
+def _title_exit():
+    pass  # todo: "anything here?"
+
+rm_title = {
+    "map": [0, 16],
+    "objects": [],
+    "enter": _title_enter,
+    "exit": _title_exit
 }
 
 
@@ -204,15 +219,16 @@ rm_title = {
 # Outside Room Objects
 # ============================================================================
 
+def _outside_stairs_draw(me):
+    set_trans_col(8, True)
+    map_draw(56, 23, 136, 60, 6, 1)
+
 obj_outside_stairs = {
     "x": 1,
     "y": 1,
     "classes": ["class_untouchable"],
-    
-    "draw": lambda me: (
-        set_trans_col(8, True),
-        map_draw(56, 23, 136, 60, 6, 1)
-    )
+
+    "draw": _outside_stairs_draw
 }
 
 obj_rail_left = {
@@ -239,6 +255,9 @@ obj_rail_right = {
     "classes": ["class_untouchable"]
 }
 
+def _front_door_init(me):
+    me.update({"target_door": obj_front_door_inside})
+
 obj_front_door = {
     "name": "front door",
     "state": "state_closed",
@@ -250,9 +269,18 @@ obj_front_door = {
     "flip_x": True,
     "classes": ["class_openable", "class_door"],
     "use_dir": "face_back",
-    
-    "init": lambda me: me.update({"target_door": obj_front_door_inside})
+
+    "init": _front_door_init
 }
+
+def _bucket_lookat(me):
+    say_line("it's an old bucket")
+
+def _bucket_pickup(me):
+    pickup_obj(me)
+
+def _bucket_use(me, noun2):
+    bucket_use(me, noun2)
 
 obj_bucket = {
     "name": "bucket",
@@ -266,11 +294,11 @@ obj_bucket = {
     "trans_col": 15,
     "use_with": True,
     "classes": ["class_pickupable"],
-    
+
     "verbs": {
-        "lookat": lambda me: say_line("it's an old bucket"),
-        "pickup": lambda me: pickup_obj(me),
-        "use": lambda me, noun2: bucket_use(me, noun2)
+        "lookat": _bucket_lookat,
+        "pickup": _bucket_pickup,
+        "use": _bucket_use
     }
 }
 
@@ -289,10 +317,16 @@ def bucket_use(me, noun2):
         say_line("that's better!")
 
 
+def _rm_outside_enter(me):
+    rm_outside_enter(me)
+
+def _rm_outside_exit(me):
+    pass  # todo: "anything here?"
+
 rm_outside = {
     "map": [0, 24, 31, 31],
     "autodepth_scale": [0.75, 1],
-    
+
     "objects": [
         obj_outside_stairs,
         obj_rail_left,
@@ -300,36 +334,37 @@ rm_outside = {
         obj_front_door,
         obj_bucket
     ],
-    
-    "enter": lambda me: rm_outside_enter(me),
-    "exit": lambda me: None  # todo: "anything here?"
+
+    "enter": _rm_outside_enter,
+    "exit": _rm_outside_exit
 }
 
+
+def _rm_outside_intro(me):
+    camera_at(144)
+    camera_pan_to(selected_actor)
+    wait_for_camera()
+    say_line("wow! look at that old house:i wonder if anyone's home...")
 
 def rm_outside_enter(me):
     """Outside room enter handler"""
     if not me["done_intro"]:
         # Don't do this again
         me["done_intro"] = True
-        
+
         # Set which actor the player controls by default
         selected_actor = main_actor
-        
+
         # Init actor
         put_at(selected_actor, 30, 55, rm_outside)
-        
+
         # Make camera follow player
         camera_follow(selected_actor)
-        
+
         # Do cutscene
         cutscene(
             1,  # no verbs
-            lambda me: (
-                camera_at(144),
-                camera_pan_to(selected_actor),
-                wait_for_camera(),
-                say_line("wow! look at that old house:i wonder if anyone's home...")
-            ),
+            _rm_outside_intro,
             None
         )
 
@@ -337,6 +372,9 @@ def rm_outside_enter(me):
 # ============================================================================
 # Hall Room Objects
 # ============================================================================
+
+def _front_door_inside_init(me):
+    me.update({"target_door": obj_front_door})
 
 obj_front_door_inside = {
     "name": "front door",
@@ -350,9 +388,16 @@ obj_front_door_inside = {
     "classes": ["class_door"],
     "use_pos": "pos_right",
     "use_dir": "face_left",
-    
-    "init": lambda me: me.update({"target_door": obj_front_door})
+
+    "init": _front_door_inside_init
 }
+
+def _clock_draw(me):
+    set_trans_col(8, True)
+    map_draw(56, 16, 32, 16, 2, 6)
+
+def _clock_lookat(me):
+    say_line("wow. that is impressive...:must've taken ages to code that!")
 
 obj_clock = {
     "name": "clock",
@@ -361,16 +406,18 @@ obj_clock = {
     "w": 2,
     "h": 5,
     "z": 2,
-    
-    "draw": lambda me: (
-        set_trans_col(8, True),
-        map_draw(56, 16, 32, 16, 2, 6)
-    ),
-    
+
+    "draw": _clock_draw,
+
     "verbs": {
-        "lookat": lambda me: say_line("wow. that is impressive...:must've taken ages to code that!")
+        "lookat": _clock_lookat
     }
 }
+
+def _pendulum_draw(me):
+    rectfill(35, 20, 43, 56, 0)
+    line(me["x"], me["y"], obj_pendulum["bobx"], obj_pendulum["boby"], 9)
+    circfill(obj_pendulum["bobx"], obj_pendulum["boby"], 2)
 
 obj_pendulum = {
     "x": 40,
@@ -379,13 +426,13 @@ obj_pendulum = {
     "z": 1,
     "bobx": 40,
     "boby": 20,
-    
-    "draw": lambda me: (
-        rectfill(35, 20, 43, 56, 0),
-        line(me["x"], me["y"], obj_pendulum["bobx"], obj_pendulum["boby"], 9),
-        circfill(obj_pendulum["bobx"], obj_pendulum["boby"], 2)
-    )
+
+    "draw": _pendulum_draw
 }
+
+def _inside_stairs_draw(me):
+    set_trans_col(8, True)
+    map_draw(56, 23, 68, 52, 6, 1)
 
 obj_inside_stairs = {
     "x": 1,
@@ -395,12 +442,13 @@ obj_inside_stairs = {
     "state": "state_here",
     "state_here": 3,
     "classes": ["class_untouchable"],
-    
-    "draw": lambda me: (
-        set_trans_col(8, True),
-        map_draw(56, 23, 68, 52, 6, 1)
-    )
+
+    "draw": _inside_stairs_draw
 }
+
+def _hall_rail_draw(me):
+    set_trans_col(8, True)
+    map_draw(59, 19, 100, 12, 4, 4)
 
 obj_hall_rail = {
     "state": "state_here",
@@ -411,12 +459,12 @@ obj_hall_rail = {
     "z": 30,
     "state_here": 3,
     "classes": ["class_untouchable"],
-    
-    "draw": lambda me: (
-        set_trans_col(8, True),
-        map_draw(59, 19, 100, 12, 4, 4)
-    )
+
+    "draw": _hall_rail_draw
 }
+
+def _hall_exit_landing_walkto(me):
+    come_out_door(me, obj_landing_exit_hall)
 
 obj_hall_exit_landing = {
     "name": "upstairs",
@@ -427,11 +475,14 @@ obj_hall_exit_landing = {
     "h": 2,
     "use_pos": "pos_center",
     "use_dir": "face_back",
-    
+
     "verbs": {
-        "walkto": lambda me: come_out_door(me, obj_landing_exit_hall)
+        "walkto": _hall_exit_landing_walkto
     }
 }
+
+def _hall_door_library_walkto(me):
+    come_out_door(me, obj_library_door_hall)
 
 obj_hall_door_library = {
     "name": "library",
@@ -441,11 +492,14 @@ obj_hall_door_library = {
     "w": 1,
     "h": 3,
     "use_dir": "face_back",
-    
+
     "verbs": {
-        "walkto": lambda me: come_out_door(me, obj_library_door_hall)
+        "walkto": _hall_door_library_walkto
     }
 }
+
+def _hall_door_kitchen_walkto(me):
+    come_out_door(me, obj_kitchen_door_hall)
 
 obj_hall_door_kitchen = {
     "name": "kitchen",
@@ -456,9 +510,9 @@ obj_hall_door_kitchen = {
     "h": 4,
     "use_pos": "pos_left",
     "use_dir": "face_right",
-    
+
     "verbs": {
-        "walkto": lambda me: come_out_door(me, obj_kitchen_door_hall)
+        "walkto": _hall_door_kitchen_walkto
     }
 }
 
@@ -487,12 +541,18 @@ def hall_anim_clock():
         break_time(None)
 
 
+def _hall_enter(me):
+    start_script(hall_anim_clock, True)
+
+def _hall_exit(me):
+    stop_script(hall_anim_clock)
+
 rm_hall = {
     "map": [32, 24, 55, 31],
     "col_replace": [5, 2],
     "autodepth_pos": [40, 50],
     "autodepth_scale": [0.82, 1],
-    
+
     "objects": [
         obj_clock,
         obj_pendulum,
@@ -503,9 +563,9 @@ rm_hall = {
         obj_hall_door_library,
         obj_hall_door_kitchen
     ],
-    
-    "enter": lambda me: start_script(hall_anim_clock, True),
-    "exit": lambda me: stop_script(hall_anim_clock),
+
+    "enter": _hall_enter,
+    "exit": _hall_exit,
     "scripts": {
         "anim_clock": hall_anim_clock
     }
@@ -515,6 +575,9 @@ rm_hall = {
 # ============================================================================
 # Library Room Objects
 # ============================================================================
+
+def _library_door_hall_init(me):
+    me.update({"target_door": obj_hall_door_library})
 
 obj_library_door_hall = {
     "name": "hall",
@@ -527,9 +590,12 @@ obj_library_door_hall = {
     "use_dir": "face_back",
     "classes": ["class_door"],
     "lighting": 1,
-    
-    "init": lambda me: me.update({"target_door": obj_hall_door_library})
+
+    "init": _library_door_hall_init
 }
+
+def _lightswitch_use(me):
+    lightswitch_use(me)
 
 obj_lightswitch = {
     "name": "light switch",
@@ -541,9 +607,9 @@ obj_lightswitch = {
     "state_here": 125,
     "lighting": 0.6,
     "on": True,
-    
+
     "verbs": {
-        "use": lambda me: lightswitch_use(me)
+        "use": _lightswitch_use
     }
 }
 
@@ -562,6 +628,15 @@ def lightswitch_use(me):
         me["on"] = True
 
 
+def _fire_lookat_wrapper():
+    fire_lookat()
+
+def _fire_talkto_wrapper():
+    fire_talkto()
+
+def _fire_pickup(me):
+    pickup_obj(me)
+
 obj_fire = {
     "name": "fire",
     "x": 88,
@@ -572,11 +647,11 @@ obj_fire = {
     "states": [81, 82, 83],
     "use_pos": [97, 42],
     "lighting": 1,
-    
+
     "verbs": {
-        "lookat": lambda: fire_lookat(),
-        "talkto": lambda: fire_talkto(),
-        "pickup": lambda me: pickup_obj(me)
+        "lookat": _fire_lookat_wrapper,
+        "talkto": _fire_talkto_wrapper,
+        "pickup": _fire_pickup
     }
 }
 
@@ -613,6 +688,9 @@ obj_library_secret_panel = {
     "verbs": {}
 }
 
+def _library_secret_walkto_wrapper(me):
+    library_secret_walkto(me)
+
 obj_library_door_secret = {
     "name": "secret passage",
     "state": "state_closed",
@@ -626,9 +704,9 @@ obj_library_door_secret = {
     "dependent_on_state": "state_open",
     "dependent_on": obj_library_secret_panel,
     "dependent_on_state": "state_open",
-    
+
     "verbs": {
-        "walkto": lambda me: library_secret_walkto(me)
+        "walkto": _library_secret_walkto_wrapper
     }
 }
 
@@ -638,6 +716,15 @@ def library_secret_walkto(me):
     rm_title["gameover"] = True
     change_room(rm_title, 1)
 
+
+def _book_lookat_wrapper(me):
+    book_lookat(me)
+
+def _book_pull_wrapper(me):
+    book_pull(me)
+
+def _book_pickup_wrapper(me):
+    book_pickup(me)
 
 obj_book = {
     "name": "loose book",
@@ -650,11 +737,11 @@ obj_book = {
     "state_here": 65,
     "use_pos": [144, 40],
     "classes": ["class_pickupable"],
-    
+
     "verbs": {
-        "lookat": lambda me: book_lookat(me),
-        "pull": lambda me: book_pull(me),
-        "pickup": lambda me: book_pickup(me)
+        "lookat": _book_lookat_wrapper,
+        "pull": _book_pull_wrapper,
+        "pickup": _book_pickup_wrapper
     }
 }
 
@@ -678,6 +765,15 @@ def book_pickup(me):
     book_pull(me)
 
 
+def _key_lookat(me):
+    say_line("it's a gold key")
+
+def _key_pickup(me):
+    key_pickup(me)
+
+def _key_use(me, noun2):
+    key_use(me, noun2)
+
 obj_key = {
     "name": "gold key",
     "state": "state_gone",
@@ -690,11 +786,11 @@ obj_key = {
     "state_here": 173,
     "use_with": True,
     "classes": ["class_pickupable"],
-    
+
     "verbs": {
-        "lookat": lambda me: say_line("it's a gold key"),
-        "pickup": lambda me: key_pickup(me),
-        "use": lambda me, noun2: key_use(me, noun2)
+        "lookat": _key_lookat,
+        "pickup": _key_pickup,
+        "use": _key_use
     }
 }
 
@@ -725,12 +821,18 @@ def library_anim_fire():
             break_time(8)
 
 
+def _library_enter(me):
+    start_script(library_anim_fire, True)
+
+def _library_exit(me):
+    stop_script(library_anim_fire)
+
 rm_library = {
     "map": [56, 24, 79, 31],
     "trans_col": 10,
     "col_replace": [7, 4],
     "lighting": 0.25,
-    
+
     "objects": [
         obj_library_door_hall,
         obj_lightswitch,
@@ -739,9 +841,9 @@ rm_library = {
         obj_library_secret_panel,
         obj_book
     ],
-    
-    "enter": lambda me: start_script(library_anim_fire, True),
-    "exit": lambda me: stop_script(library_anim_fire),
+
+    "enter": _library_enter,
+    "exit": _library_exit,
     "scripts": {
         "anim_fire": library_anim_fire
     }
@@ -751,6 +853,9 @@ rm_library = {
 # ============================================================================
 # Kitchen Room Objects
 # ============================================================================
+
+def _spinning_top_use(me):
+    spinning_top_use(me)
 
 obj_spinning_top = {
     "name": "spinning top",
@@ -762,13 +867,13 @@ obj_spinning_top = {
     "states": [158, 174, 190],
     "col_replace": [12, 7],
     "trans_col": 15,
-    
+
     "scripts": {
         "spin_top": None  # Will be set below
     },
-    
+
     "verbs": {
-        "use": lambda me: spinning_top_use(me)
+        "use": _spinning_top_use
     }
 }
 
@@ -798,6 +903,9 @@ def spinning_top_use(me):
         start_script(me["scripts"]["spin_top"])
 
 
+def _kitchen_door_hall_init(me):
+    me.update({"target_door": obj_hall_door_kitchen})
+
 obj_kitchen_door_hall = {
     "name": "hall",
     "state": "state_open",
@@ -808,9 +916,12 @@ obj_kitchen_door_hall = {
     "use_pos": "pos_right",
     "use_dir": "face_left",
     "classes": ["class_door"],
-    
-    "init": lambda me: me.update({"target_door": obj_hall_door_kitchen})
+
+    "init": _kitchen_door_hall_init
 }
+
+def _back_door_init(me):
+    me.update({"target_door": obj_garden_door_kitchen})
 
 obj_back_door = {
     "name": "back door",
@@ -825,10 +936,17 @@ obj_back_door = {
     "classes": ["class_openable", "class_door"],
     "use_pos": "pos_left",
     "use_dir": "face_right",
-    
-    "init": lambda me: me.update({"target_door": obj_garden_door_kitchen})
+
+    "init": _back_door_init
 }
 
+
+def _kitchen_tentacle_stop(me):
+    stop_actor(selected_actor)
+    say_line_actor(purp_tentacle, "stop!:come back here!", True, 0)
+    walk_to(selected_actor, purp_tentacle["x"] - 8, purp_tentacle["y"])
+    do_anim(selected_actor, "face_towards", purp_tentacle)
+    purp_tentacle.update({"alerting": False})
 
 def kitchen_tentacle_guard():
     """Kitchen room - tentacle guard script"""
@@ -840,17 +958,17 @@ def kitchen_tentacle_guard():
             purp_tentacle["stopped_player"] = True
             cutscene(
                 2,
-                lambda me: (
-                    stop_actor(selected_actor),
-                    say_line_actor(purp_tentacle, "stop!:come back here!", True, 0),
-                    walk_to(selected_actor, purp_tentacle["x"] - 8, purp_tentacle["y"]),
-                    do_anim(selected_actor, "face_towards", purp_tentacle),
-                    purp_tentacle.update({"alerting": False})
-                ),
+                _kitchen_tentacle_stop,
                 None
             )
         break_time(10)
 
+
+def rm_kitchen_enter(me):
+    start_script(kitchen_tentacle_guard, True)
+
+def rm_kitchen_exit(me):
+    stop_script(kitchen_tentacle_guard)
 
 rm_kitchen = {
     "map": [80, 24, 103, 31],
@@ -861,8 +979,8 @@ rm_kitchen = {
         obj_back_door
     ],
     
-    "enter": lambda me: start_script(kitchen_tentacle_guard, True),
-    "exit": lambda me: stop_script(kitchen_tentacle_guard),
+    "enter": rm_kitchen_enter,
+    "exit": rm_kitchen_exit,
     "scripts": {
         "tentacle_guard": kitchen_tentacle_guard
     }
@@ -872,6 +990,9 @@ rm_kitchen = {
 # ============================================================================
 # Garden Room Objects
 # ============================================================================
+
+def _garden_door_kitchen_init(me):
+    me.update({"target_door": obj_back_door})
 
 obj_garden_door_kitchen = {
     "name": "kitchen",
@@ -883,9 +1004,15 @@ obj_garden_door_kitchen = {
     "state_closed": 78,
     "classes": ["class_openable", "class_door"],
     "use_dir": "face_back",
-    
-    "init": lambda me: me.update({"target_door": obj_back_door})
+
+    "init": _garden_door_kitchen_init
 }
+
+def _pool_walkto(me):
+    say_line("i can't swim!")
+
+def _pool_lookat(me):
+    say_line("it's filled with water")
 
 obj_pool = {
     "name": "swimming pool",
@@ -895,24 +1022,30 @@ obj_pool = {
     "h": 2,
     "use_pos": "pos_above",
     "use_dir": "face_front",
-    
+
     "verbs": {
-        "walkto": lambda me: say_line("i can't swim!"),
-        "lookat": lambda me: say_line("it's filled with water")
+        "walkto": _pool_walkto,
+        "lookat": _pool_lookat
     }
 }
+
+def _garden_enter():
+    pass  # todo: "anything here?"
+
+def _garden_exit():
+    pass  # todo: "anything here?"
 
 rm_garden = {
     "map": [104, 24, 127, 31],
     "autodepth_scale": [0.75, 1],
-    
+
     "objects": [
         obj_garden_door_kitchen,
         obj_pool
     ],
-    
-    "enter": lambda: None,  # todo: "anything here?"
-    "exit": lambda: None  # todo: "anything here?"
+
+    "enter": _garden_enter,
+    "exit": _garden_exit
 }
 
 
@@ -944,6 +1077,9 @@ obj_landing_rail_right = {
     "classes": ["class_untouchable"]
 }
 
+def _landing_exit_hall_init(me):
+    me.update({"target_door": obj_hall_exit_landing})
+
 obj_landing_exit_hall = {
     "name": "hall",
     "state": "state_open",
@@ -954,9 +1090,12 @@ obj_landing_exit_hall = {
     "use_pos": "pos_center",
     "use_dir": "face_front",
     "classes": ["class_door"],
-    
-    "init": lambda me: me.update({"target_door": obj_hall_exit_landing})
+
+    "init": _landing_exit_hall_init
 }
+
+def _landing_door_computer_init(me):
+    me.update({"target_door": obj_computer_door_landing})
 
 obj_landing_door_computer = {
     "name": "computer room",
@@ -968,9 +1107,12 @@ obj_landing_door_computer = {
     "use_pos": "pos_left",
     "use_dir": "face_right",
     "classes": ["class_door"],
-    
-    "init": lambda me: me.update({"target_door": obj_computer_door_landing})
+
+    "init": _landing_door_computer_init
 }
+
+def _landing_door_room1_open(me):
+    landing_door_teleport(me, obj_landing_door_room3)
 
 obj_landing_door_room1 = {
     "name": "door #1",
@@ -985,11 +1127,14 @@ obj_landing_door_room1 = {
     "classes": ["class_openable"],
     "use_pos": "pos_right",
     "use_dir": "face_left",
-    
+
     "verbs": {
-        "open": lambda me: landing_door_teleport(me, obj_landing_door_room3)
+        "open": _landing_door_room1_open
     }
 }
+
+def _landing_door_room2_open(me):
+    landing_door_teleport(me, obj_landing_door_room3)
 
 obj_landing_door_room2 = {
     "name": "door #2",
@@ -1003,11 +1148,14 @@ obj_landing_door_room2 = {
     "classes": ["class_openable"],
     "use_pos": "pos_infront",
     "use_dir": "face_back",
-    
+
     "verbs": {
-        "open": lambda me: landing_door_teleport(me, obj_landing_door_room3)
+        "open": _landing_door_room2_open
     }
 }
+
+def _landing_door_room3_open(me):
+    landing_door_teleport(me, obj_landing_door_room1)
 
 obj_landing_door_room3 = {
     "name": "door #3",
@@ -1022,37 +1170,52 @@ obj_landing_door_room3 = {
     "classes": ["class_openable"],
     "use_pos": "pos_infront",
     "use_dir": "face_back",
-    
+
     "verbs": {
-        "open": lambda me: landing_door_teleport(me, obj_landing_door_room1)
+        "open": _landing_door_room3_open
     }
 }
 
 
+def _landing_door_teleport_scene(me, door1, door2):
+    open_door(door1, None)
+    break_time(10)
+    put_at(selected_actor, 0, 0, rm_void)
+    close_door(door1)
+    camera_pan_to(door2)
+    wait_for_camera()
+    open_door(door1, door2)
+    break_time(10)
+    come_out_door(door1, door2)
+    close_door(door1, door2)
+    camera_follow(selected_actor)
+
+# Store door params for teleport scene
+_landing_door_teleport_params = {"door1": None, "door2": None}
+
+def _landing_door_teleport_fn(me):
+    _landing_door_teleport_scene(me, _landing_door_teleport_params["door1"], _landing_door_teleport_params["door2"])
+
 def landing_door_teleport(door1, door2):
     """Landing room - door teleport cutscene"""
+    _landing_door_teleport_params["door1"] = door1
+    _landing_door_teleport_params["door2"] = door2
     cutscene(
         2,  # quick-cut
-        lambda me: (
-            open_door(door1, None),
-            break_time(10),
-            put_at(selected_actor, 0, 0, rm_void),
-            close_door(door1),
-            camera_pan_to(door2),
-            wait_for_camera(),
-            open_door(door1, door2),
-            break_time(10),
-            come_out_door(door1, door2),
-            close_door(door1, door2),
-            camera_follow(selected_actor)
-        ),
+        _landing_door_teleport_fn,
         None
     )
 
 
+def _landing_enter(me):
+    pass
+
+def _landing_exit(me):
+    pass
+
 rm_landing = {
     "map": [32, 16, 55, 31],
-    
+
     "objects": [
         obj_landing_rail_left,
         obj_landing_rail_right,
@@ -1062,9 +1225,9 @@ rm_landing = {
         obj_landing_door_room3,
         obj_landing_door_computer
     ],
-    
-    "enter": lambda me: None,
-    "exit": lambda me: None,
+
+    "enter": _landing_enter,
+    "exit": _landing_exit,
     "scripts": {
         "door_teleport": landing_door_teleport
     }
@@ -1074,6 +1237,9 @@ rm_landing = {
 # ============================================================================
 # Computer Room Objects
 # ============================================================================
+
+def _computer_door_landing_init(me):
+    me.update({"target_door": obj_landing_door_computer})
 
 obj_computer_door_landing = {
     "name": "first floor",
@@ -1085,9 +1251,19 @@ obj_computer_door_landing = {
     "use_pos": "pos_right",
     "use_dir": "face_left",
     "classes": ["class_door"],
-    
-    "init": lambda me: me.update({"target_door": obj_landing_door_computer})
+
+    "init": _computer_door_landing_init
 }
+
+def _computer_draw(me):
+    set_trans_col(8, True)
+    map_draw(58, 16, 40, 28, 6, 4, 0x80)
+
+def _computer_lookat(me):
+    say_line("it's old \"286\" pc-compatible")
+
+def _computer_use(me):
+    computer_use(me)
 
 obj_computer = {
     "name": "computer",
@@ -1101,15 +1277,12 @@ obj_computer = {
     "use_pos": [63, 44],
     "use_dir": "face_back",
     "played": False,
-    
-    "draw": lambda me: (
-        set_trans_col(8, True),
-        map_draw(58, 16, 40, 28, 6, 4, 0x80)
-    ),
-    
+
+    "draw": _computer_draw,
+
     "verbs": {
-        "lookat": lambda me: say_line("it's old \"286\" pc-compatible"),
-        "use": lambda me: computer_use(me)
+        "lookat": _computer_lookat,
+        "use": _computer_use
     }
 }
 
@@ -1133,6 +1306,18 @@ obj_cursor = {
     "verbs": {}
 }
 
+def _floppy_lookat(me):
+    floppy_lookat(me)
+
+def _floppy_pickup(me):
+    pickup_obj(me)
+
+def _floppy_use(me, noun2):
+    floppy_use(me, noun2)
+
+def _floppy_give(me, noun2):
+    floppy_give(me, noun2)
+
 obj_floppy_disk = {
     "name": "pico-8",
     "x": 60,
@@ -1144,12 +1329,12 @@ obj_floppy_disk = {
     "trans_col": 11,
     "use_with": True,
     "classes": ["class_pickupable"],
-    
+
     "verbs": {
-        "lookat": lambda me: floppy_lookat(me),
-        "pickup": lambda me: pickup_obj(me),
-        "use": lambda me, noun2: floppy_use(me, noun2),
-        "give": lambda me, noun2: floppy_give(me, noun2)
+        "lookat": _floppy_lookat,
+        "pickup": _floppy_pickup,
+        "use": _floppy_use,
+        "give": _floppy_give
     }
 }
 
@@ -1189,24 +1374,38 @@ def computer_anim_cursor():
             break_time(15)
 
 
+def _computer_enter(me):
+    computer_enter(me)
+
+def _computer_exit(me):
+    stop_script(me["scripts"]["anim_cursor"])
+
 rm_computer = {
     "map": [64, 16],
     "autodepth_scale": [0.75, 1],
-    
+
     "objects": [
         obj_computer_door_landing,
         obj_computer,
         obj_cursor,
         obj_floppy_disk
     ],
-    
-    "enter": lambda me: computer_enter(me),
-    "exit": lambda me: stop_script(me["scripts"]["anim_cursor"]),
+
+    "enter": _computer_enter,
+    "exit": _computer_exit,
     "scripts": {
         "anim_cursor": computer_anim_cursor
     }
 }
 
+
+def _computer_enter_scene(me):
+    reload()
+    reset_ui()
+    selected_actor.__setitem__("selected_actor", main_actor)
+    camera_follow(main_actor)
+    do_anim(main_actor, "face_towards", "face_front")
+    say_line("well, that was short!:developers are so lazy...")
 
 def computer_enter(me):
     """Computer room enter handler"""
@@ -1216,14 +1415,7 @@ def computer_enter(me):
         obj_computer["played"] = False
         cutscene(
             3,  # no verbs & no follow
-            lambda me: (
-                reload(),
-                reset_ui(),
-                selected_actor.__setitem__("selected_actor", main_actor),
-                camera_follow(main_actor),
-                do_anim(main_actor, "face_towards", "face_front"),
-                say_line("well, that was short!:developers are so lazy...")
-            ),
+            _computer_enter_scene,
             None
         )
 
@@ -1232,31 +1424,38 @@ def computer_enter(me):
 # Monkey Island Mini-Game - Title Room
 # ============================================================================
 
+def _mi_title_enter(me):
+    mi_title_enter(me)
+
+def _mi_title_exit():
+    pass  # todo: "anything here?"
+
 rm_mi_title = {
     "map": [72, 0],
     "objects": {},
-    
-    "enter": lambda me: mi_title_enter(me),
-    "exit": lambda: None  # todo: "anything here?"
+
+    "enter": _mi_title_enter,
+    "exit": _mi_title_exit
 }
 
+
+def _mi_title_intro(me):
+    break_time(50)
+    print_line("deep in the; caribbean:on the isle of;...thimbleweed!", 64, 40, 8, 1, True, None, True)
+    change_room(rm_mi_dock, 1)
 
 def mi_title_enter(me):
     """Monkey Island title room enter handler"""
     # Load embedded gfx (from sfx area)
     reload(0, 0x3b00, 0x800)
-    
+
     # Load embedded gfx flags (from sfx area)
     reload(0x3000, 0x3a00, 0x100)
-    
+
     # Demo intro
     cutscene(
         3,  # no verbs & no follow
-        lambda me: (
-            break_time(50),
-            print_line("deep in the; caribbean:on the isle of;...thimbleweed!", 64, 40, 8, 1, True, None, True),
-            change_room(rm_mi_dock, 1)
-        ),
+        _mi_title_intro,
         None
     )
 
@@ -1264,6 +1463,9 @@ def mi_title_enter(me):
 # ============================================================================
 # Monkey Island Mini-Game - Dock Room
 # ============================================================================
+
+def _mi_bg_draw(me):
+    map_draw(88, 0, 0, 16, 40, 7)
 
 obj_mi_bg = {
     "x": 0,
@@ -1274,9 +1476,12 @@ obj_mi_bg = {
     "classes": ["class_untouchable"],
     "state": "state_here",
     "state_here": 1,
-    
-    "draw": lambda me: map_draw(88, 0, 0, 16, 40, 7)
+
+    "draw": _mi_bg_draw
 }
+
+def _mi_poster_lookat(me):
+    say_line("\"re-elect governor marly\"")
 
 obj_mi_poster = {
     "name": "poster",
@@ -1284,11 +1489,20 @@ obj_mi_poster = {
     "y": 40,
     "w": 1,
     "h": 1,
-    
+
     "verbs": {
-        "lookat": lambda me: say_line("\"re-elect governor marly\"")
+        "lookat": _mi_poster_lookat
     }
 }
+
+def _mi_scummdoor_walkto(me):
+    mi_scummdoor_walkto(me)
+
+def _mi_scummdoor_open(me):
+    open_door(me, obj_front_door_inside)
+
+def _mi_scummdoor_close(me):
+    close_door(me, obj_front_door_inside)
 
 obj_mi_scummdoor = {
     "name": "door",
@@ -1301,11 +1515,11 @@ obj_mi_scummdoor = {
     "state_open": 12,
     "classes": ["class_openable"],
     "use_dir": "face_back",
-    
+
     "verbs": {
-        "walkto": lambda me: mi_scummdoor_walkto(me),
-        "open": lambda me: open_door(me, obj_front_door_inside),
-        "close": lambda me: close_door(me, obj_front_door_inside)
+        "walkto": _mi_scummdoor_walkto,
+        "open": _mi_scummdoor_open,
+        "close": _mi_scummdoor_close
     }
 }
 
@@ -1319,18 +1533,24 @@ def mi_scummdoor_walkto(me):
         say_line("the door is closed")
 
 
+def _mi_dock_enter(me):
+    mi_dock_enter(me)
+
+def _mi_dock_exit(me):
+    pass  # todo: "anything here?"
+
 rm_mi_dock = {
     "map": [88, 8, 127, 15],
     "trans_col": 11,
-    
+
     "objects": [
         obj_mi_bg,
         obj_mi_poster,
         obj_mi_scummdoor
     ],
-    
-    "enter": lambda me: mi_dock_enter(me),
-    "exit": lambda me: None  # todo: "anything here?"
+
+    "enter": _mi_dock_enter,
+    "exit": _mi_dock_exit
 }
 
 
@@ -1376,6 +1596,9 @@ rm_void = {
 # ============================================================================
 
 # Initialize the player's actor object
+def _main_actor_use(me):
+    actor_use(me)
+
 main_actor = {
     "name": "humanoid",
     "w": 1,
@@ -1391,13 +1614,13 @@ main_actor = {
     "frame_delay": 5,
     "classes": ["class_actor"],
     "face_dir": "face_front",
-    
+
     # Sprites for directions (front, left, back, right)
     "inventory": [
         obj_switch_tent
     ],
     "verbs": {
-        "use": lambda me: actor_use(me)
+        "use": _main_actor_use
     },
     "in_room": None,
     "alerting": False,
@@ -1415,6 +1638,15 @@ def actor_use(me):
     camera_follow(me)
 
 
+def _purp_tentacle_lookat():
+    say_line("it's a weird looking tentacle, thing!")
+
+def _purp_tentacle_talkto(me):
+    purp_tentacle_talkto(me)
+
+def _purp_tentacle_use(me):
+    actor_use(me)
+
 purp_tentacle = {
     "name": "purple tentacle",
     "x": 140,
@@ -1430,15 +1662,15 @@ purp_tentacle = {
     "classes": ["class_actor", "class_talkable"],
     "face_dir": "face_front",
     "use_pos": "pos_left",
-    
+
     "in_room": rm_kitchen,
     "inventory": [
         obj_switch_player
     ],
     "verbs": {
-        "lookat": lambda: say_line("it's a weird looking tentacle, thing!"),
-        "talkto": lambda me: purp_tentacle_talkto(me),
-        "use": lambda me: actor_use(me)
+        "lookat": _purp_tentacle_lookat,
+        "talkto": _purp_tentacle_talkto,
+        "use": _purp_tentacle_use
     },
     "alerting": False,
     "stopped_player": False,
@@ -1448,13 +1680,14 @@ purp_tentacle = {
 }
 
 
+def _purp_tentacle_talkto_scene(me):
+    say_line_actor(me, "what do you want?", 0, 0)
+
 def purp_tentacle_talkto(me):
     """Purple tentacle talk-to handler"""
     cutscene(
         1,  # no verbs
-        lambda me: (
-            say_line_actor(me, "what do you want?", 0, 0)
-        ),
+        _purp_tentacle_talkto_scene,
         None
     )
     

@@ -23,6 +23,12 @@ void ProgramDraw::SetPalette(int idx, PaletteColor clr) {
 }
 
 void ProgramDraw::Paint(Draw& w) {
+	// Guard: don't paint before program is initialized
+	if (!p) {
+		w.DrawRect(GetSize(), Black());
+		return;
+	}
+
 	Size sz = GetSize();
 	int min_edge = min(sz.cx, sz.cy);
 	Size tgt_sz(min_edge, min_edge);

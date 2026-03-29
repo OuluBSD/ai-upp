@@ -1,71 +1,49 @@
-# Phase 05: Testing
+# Phase 05: Testing and Debugging
 
-## Overview
-
-Test the Python conversion to ensure the game works correctly.
-
-## Scope
-
-- Unit tests for individual functions
-- Integration tests for game flow
-- Visual verification of game behavior
+## Status: IN PROGRESS (1/5 tasks)
 
 ## Tasks
 
-1. [ ] **001-test-bindings** - Test all Python bindings work
-2. [ ] **002-test-game-init** - Test game initialization
-3. [ ] **003-test-room-transitions** - Test changing rooms
-4. [ ] **004-test-actor-movement** - Test actor movement and collision
-5. [ ] **005-test-verbs** - Test all verb interactions
-6. [ ] **006-test-inventory** - Test pickup and use mechanics
-7. [ ] **007-test-cutscenes** - Test cutscene playback
-8. [ ] **008-full-playthrough** - Play through entire game
+1. [x] **001-fix-graphics-crash** - Fix pre-existing graphics crash ✓
+2. [ ] **002-test-python-loading** - Verify Game.py loads
+3. [ ] **003-test-bindings** - Test Python bindings work
+4. [ ] **004-compare-esc-python** - Verify behavior matches ESC
+5. [ ] **005-document-api** - Write Python API docs
 
-## Test Approach
+## Progress
 
-### Manual Testing
+### Task 001: Fix Graphics Crash ✓
 
-1. Build Adventure package: `script/build.py Adventure`
-2. Run: `bin/Adventure`
-3. Verify each game feature works
+**Issue**: SIGTRAP crash on startup (exit code 133)
+**Fix**: Prevent painting before initialization complete
+**Result**: ✅ Application runs (exit code 124)
 
-### Automated Testing (if feasible)
+**Files Modified**:
+- App.cpp - Init sequence, Hide()/Show()
+- Program.h - MarkInitialized() method
+- ProgramDraw.cpp - Paint() null check
+- Adventure.cpp - Call MarkInitialized()
 
-Create `test_adventure.py` with:
-```python
-def test_room_loading():
-    # Test that rooms load correctly
-    pass
+See `001-fix-graphics-crash.md` for details.
 
-def test_actor_movement():
-    # Test actor can move and collide
-    pass
+### Remaining Tasks
 
-def test_verb_interactions():
-    # Test verb actions work
-    pass
-```
+**Task 002**: Test Python script loading
+- Verify Game.py loads via InitPyVM()
+- Check for Python syntax errors
+- Confirm PyVM initialization works
 
-## Expected Output
+**Task 003**: Test bindings
+- Call each of 52 bindings
+- Verify correct behavior
+- Document any issues
 
-- Test results documenting what works/doesn't work
-- Bug list for any issues found
-- Final verification that game is playable
+**Task 004**: Compare ESC vs Python
+- Run with ESC (rename Game.py)
+- Run with Python
+- Verify identical behavior
 
-## Acceptance Criteria
-
-- [ ] Game starts without errors
-- [ ] Player can move around
-- [ ] Verbs work correctly
-- [ ] Inventory system works
-- [ ] Cutscenes play correctly
-- [ ] Game can be completed (or reaches intended end state)
-
-## Dependencies
-
-- All previous phases complete
-- Working Python integration
-
-## Time Estimate
-
-8-16 hours (depends on bugs found)
+**Task 005**: Document API
+- Write PYTHON_API.md
+- Document all 52 functions
+- Add usage examples

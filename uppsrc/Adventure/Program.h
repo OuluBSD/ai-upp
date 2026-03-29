@@ -594,16 +594,17 @@ class ProgramApp : public TopWindow {
 	ProgramDraw draw;
 	Program prog;
 	TimeCallback tc;
-	
+
 public:
 	typedef ProgramApp CLASSNAME;
-	
+
 	ProgramApp();
-	
+
 	void ProcessScript();
-	
+	void MarkInitialized();  // Call after Init() to mark initialization complete
+
 	bool Init() {return prog.Init();}
-	
+
 };
 
 }

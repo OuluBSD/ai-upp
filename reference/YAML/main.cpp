@@ -97,7 +97,31 @@ CONSOLE_APP_MAIN
 		LOG("copy1 == settings: " << (combined["copy1"] == combined["settings"]));
 		LOG("inline: key=" << combined["inline"]["key"] << ", num=" << combined["inline"]["num"]);
 	}
-	
+
+	// Test chomping indicators
+	LOG("\n=== Chomping Indicators Test ===");
+	Value chomp = yml["chomping_test"];
+	if(!chomp.IsVoid()) {
+		String strip = chomp["strip"];
+		String keep = chomp["keep"];
+		LOG("strip (|-): '" << strip << "' (ends with newline: " << (strip.GetCount() && *strip.End() == '\n' ? "yes" : "no") << ")");
+		LOG("keep (|+): '" << keep << "' (ends with newline: " << (keep.GetCount() && *keep.End() == '\n' ? "yes" : "no") << ")");
+	}
+
+	// Test merge keys
+	LOG("\n=== Merge Keys Test ===");
+	Value merge = yml["merge_test"];
+	if(!merge.IsVoid()) {
+		LOG("production: name=" << merge["production"]["name"]
+		                       << ", timeout=" << merge["production"]["timeout"]
+		                       << ", environment=" << merge["production"]["environment"]);
+		LOG("  (has retries from defaults: " << (!merge["production"]["retries"].IsVoid() ? "yes" : "no") << ")");
+		LOG("development: name=" << merge["development"]["name"]
+		                        << ", timeout=" << merge["development"]["timeout"]
+		                        << ", debug=" << (bool)merge["development"]["debug"]);
+		LOG("  (has retries from defaults: " << (!merge["development"]["retries"].IsVoid() ? "yes" : "no") << ")");
+	}
+
 	// Test YAML generation (round-trip)
 	LOG("\n=== YAML Generation Test ===");
 	String generated = AsYAML(yml, true);

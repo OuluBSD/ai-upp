@@ -289,12 +289,22 @@ Value YamlParser::ParseScalar(const String& s)
 	if(comment_pos >= 0) trimmed = Trim(trimmed.Left(comment_pos));
 	if(trimmed.IsEmpty()) return Null;
 
-	// Check for multi-line string (| or >)
+	// Check for multi-line string (| or >) with optional chomping indicator
 	if(trimmed[0] == '|' || trimmed[0] == '>') {
 		char ml = trimmed[0];
+		char chomp = 0;  // 0=clip, +=keep, -=strip
+		String rest = trimmed.Mid(1);
+		
+		// Parse chomping indicator (|-, |+, -|, +|, etc.)
+		for(int i = 0; i < rest.GetCount(); i++) {
+			if(rest[i] == '+' || rest[i] == '-') {
+				chomp = rest[i];
+				break;
+			}
+		}
+		
 		String result;
 		int base_indent = -1;
-		// Note: line_idx was already incremented by ParseMap, so we're at the first content line
 		
 		while(!IsEnd()) {
 			String line = GetLine(line_idx);
@@ -302,8 +312,10 @@ Value YamlParser::ParseScalar(const String& s)
 			String t = Trim(line);
 			
 			if(t.IsEmpty() || t[0] == '#') {
-				if(ml == '|') { if(result.GetCount()) result << '\n'; }
-				else { if(result.GetCount() && *result.End() != '\n') result << "\n\n"; }
+				if(base_indent >= 0) {
+					if(ml == '|') { if(result.GetCount()) result << '\n'; }
+					else { if(result.GetCount() && *result.End() != '\n') result << "\n\n"; }
+				}
 				line_idx++; continue;
 			}
 			
@@ -320,6 +332,21 @@ Value YamlParser::ParseScalar(const String& s)
 			}
 			line_idx++;
 		}
+		
+		// Apply chomping
+		if(chomp == '-') {
+			while(result.GetCount() && *result.End() == '\n')
+				result.Trim(1);
+		}
+		else if(chomp == '+') {
+			if(ml == '>' && result.GetCount() && *result.End() != '\n')
+				result << '\n';
+		}
+		else {
+			if(ml == '>' && result.GetCount() && *result.End() == '\n')
+				result.Trim(1);
+		}
+		
 		return Value(result);
 	}
 
@@ -379,6 +406,7 @@ Value YamlParser::ParseScalar(const String& s)
 	else
 		v = Value(trimmed);
 
+	
 	if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
 	return v;
 }
@@ -611,24 +639,25 @@ Value YamlParser::ParseList(int min_indent)
 Value YamlParser::ParseMap(int min_indent)
 {
 	ValueMap m;
-	
+	Vector<String> merge_aliases;  // Collect merge keys to process later
+
 	while(!IsEnd()) {
 		SkipCommentsAndBlanks();
 		if(IsEnd())
 			break;
-		
+
 		String line = GetLine(line_idx);
 		int line_indent = GetLineIndent(line_idx);
 		String trimmed = Trim(line);
-		
+
 		// If less indented than min_indent, end of map
 		if(line_indent < min_indent)
 			break;
-		
+
 		// If it's a list item at same or less indent, end of map
 		if(trimmed.StartsWith("-") && line_indent <= min_indent)
 			break;
-		
+
 		// Parse key: value
 		int colon_pos = -1;
 		bool in_quote = false;
@@ -649,7 +678,7 @@ Value YamlParser::ParseMap(int min_indent)
 				break;
 			}
 		}
-		
+
 		if(colon_pos < 0) {
 			// No colon found - skip malformed line
 			line_idx++;
@@ -658,10 +687,22 @@ Value YamlParser::ParseMap(int min_indent)
 
 		String key = Unquote(Trim(trimmed.Left(colon_pos)));
 		String value_part = trimmed.Mid(colon_pos + 1);
-		
+		String vp_trimmed = Trim(value_part);
+
+
+		// Collect merge keys (<<: *alias) for later processing
+		if(key == "<<") {
+			if(!vp_trimmed.IsEmpty() && vp_trimmed[0] == '*') {
+				String alias = ParseAliasName(vp_trimmed);
+				if(!alias.IsEmpty())
+					merge_aliases.Add(alias);
+			}
+			line_idx++;
+			continue;
+		}
+
 		// Check for anchor in value_part
 		String anchor_name;
-		String vp_trimmed = Trim(value_part);
 		if(vp_trimmed.Find('&') >= 0) {
 			anchor_name = ParseAnchorName(vp_trimmed);
 		}
@@ -692,18 +733,39 @@ Value YamlParser::ParseMap(int min_indent)
 			else if(next_trimmed.StartsWith("-")) {
 				// Nested list
 				Value v = ParseList(next_indent);
-				if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+				if(!anchor_name.IsEmpty()) {
+					SetAnchor(anchor_name, v);
+				}
 				m.Add(key, v);
 			}
 			else {
 				// Nested map or scalar
 				Value v = ParseValue(next_indent);
-				if(!anchor_name.IsEmpty()) SetAnchor(anchor_name, v);
+				if(!anchor_name.IsEmpty()) {
+					SetAnchor(anchor_name, v);
+				}
 				m.Add(key, v);
 			}
 		}
 	}
-	
+
+	// Process merge keys AFTER all explicit keys
+	for(int i = 0; i < merge_aliases.GetCount(); i++) {
+		Value merge_value = GetAnchor(merge_aliases[i]);
+		if(!merge_value.IsVoid() && merge_value.GetType() == VALUEMAP_V) {
+			ValueMap merge_map = merge_value;
+			// Add only keys that don't already exist
+			for(int j = 0; j < merge_map.GetCount(); j++) {
+				String merge_key = merge_map.GetKey(j);
+				if(m.Find(merge_key) < 0) {
+					m.Add(merge_key, merge_map[j]);
+				}
+			}
+		}
+	}
+
+	for(int i = 0; i < m.GetCount(); i++) {
+	}
 	return m;
 }
 

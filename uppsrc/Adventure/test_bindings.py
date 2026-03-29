@@ -14,13 +14,13 @@ def test_function(name, fn, *args, **kwargs):
     try:
         fn(*args, **kwargs)
         print(f"  [PASS] {name}")
-        tests_passed += 1
+        tests_passed = tests_passed + 1
     except Exception as e:
         print(f"  [FAIL] {name}: {e}")
-        tests_failed += 1
+        tests_failed = tests_failed + 1
     except:
         print(f"  [PASS] {name} (signature OK)")
-        tests_passed += 1
+        tests_passed = tests_passed + 1
 
 print("\n" + "=" * 70)
 print("SECTION 1: Core Functions - Room & Camera (12 functions)")

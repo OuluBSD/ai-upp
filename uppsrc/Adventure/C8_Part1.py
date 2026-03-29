@@ -573,7 +573,7 @@ def bens_ship_play_holo_inner():
     selected_actor = ben_holo_actor
 
     while ben_holo_actor["lighting"] < 1:
-        ben_holo_actor["lighting"] += 0.01
+        ben_holo_actor["lighting"] = ben_holo_actor["lighting"] + 0.01
         break_time(1)
 
     break_time(25)
@@ -582,7 +582,7 @@ def bens_ship_play_holo_inner():
     say_line("i am in great danger:something is trying to break through the ship's hull:i don't know what it wants, but-:oh no!:it's here...")
 
     while ben_holo_actor["lighting"] > 0:
-        ben_holo_actor["lighting"] -= 0.02
+        ben_holo_actor["lighting"] = ben_holo_actor["lighting"] - 0.02
         break_time(1)
 
     selected_actor = main_actor

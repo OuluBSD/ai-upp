@@ -45,22 +45,36 @@ Program::Program() {
 }
 
 bool Program::InitPyVM() {
+	LOG("InitPyVM: Starting initialization");
+	
 	// Initialize PyVM and register all bindings
 	AdventureBindings::RegisterAll(vm, *this);
-	
+	LOG("InitPyVM: Registered bindings");
+
 	// Load Python game script if it exists
 	String game_py_path = GetDataFile("Game.py");
+	LOG("InitPyVM: Looking for Game.py at: " << game_py_path);
+	
 	if (FileExists(game_py_path)) {
 		String src = LoadFile(game_py_path);
+		LOG("InitPyVM: Loaded " << src.GetCount() << " bytes");
+		
 		if (!src.IsEmpty()) {
-			if (!vm.LoadModule("game", src, game_py_path)) {
-				LOG("Failed to load Game.py");
+			if (vm.LoadModule("game", src, game_py_path)) {
+				LOG("InitPyVM: SUCCESS - Game.py loaded");
+			} else {
+				LOG("InitPyVM: FAILED - LoadModule returned error");
 				return false;
 			}
-			LOG("Loaded Game.py successfully");
+		} else {
+			LOG("InitPyVM: FAILED - Game.py is empty");
+			return false;
 		}
+	} else {
+		LOG("InitPyVM: FAILED - Game.py not found");
+		return false;
 	}
-	
+
 	return true;
 }
 

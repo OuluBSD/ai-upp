@@ -1,9 +1,117 @@
 #include "Adventure.h"
 
 namespace Adventure {
-	
-	
 
+// ============================================================================
+// Script class implementation - PyVM support
+// ============================================================================
+
+Program::Script::Script() {
+	is_python = false;
+	calls_remaining = 1;
+	py_func = PyValue();
+	py_args.Clear();
+	py_vm = nullptr;
+}
+
+void Program::Script::Clear() {
+	// Call base class clear
+	EscAnimProgram::Clear();
+	
+	// Clear PyVM members
+	py_func = PyValue();
+	py_args.Clear();
+	calls_remaining = 1;
+	is_python = false;
+	py_vm = nullptr;
+}
+
+Program::Script& Program::Script::SetPyVM(PyVM& vm, const PyValue& func, const Vector<PyValue>& args, int calls) {
+	Clear();
+	
+	// Store the Python function
+	py_func = func;
+	// Copy args manually since Vector doesn't have copy assignment
+	py_args.Clear();
+	for(int i = 0; i < args.GetCount(); i++)
+		py_args.Add(args[i]);
+	calls_remaining = calls;
+	is_python = true;
+	py_vm = &vm;
+	
+	// Mark as running (use native flag since we're managing execution ourselves)
+	is_native = true;
+	is_native_running = true;
+	
+	return *this;
+}
+
+void Program::Script::Iterate() {
+	if (is_python) {
+		// Handle PyVM execution
+		ProcessPyVM();
+	}
+	else {
+		// Fall back to base class behavior (ESC or native)
+		EscAnimProgram::Iterate();
+	}
+}
+
+bool Program::Script::ProcessPyVM() {
+	LOG("Script::ProcessPyVM: is_python=" << is_python << ", calls_remaining=" << calls_remaining);
+	
+	if (!is_python) {
+		return false;  // Not a Python script
+	}
+	
+	if (!py_vm) {
+		LOG("Script::ProcessPyVM: py_vm is null");
+		is_native_running = false;
+		return false;
+	}
+	
+	if (!py_func.IsFunction()) {
+		LOG("Script::ProcessPyVM: py_func is not a function");
+		is_native_running = false;
+		return false;
+	}
+	
+	if (calls_remaining == 0) {
+		LOG("Script::ProcessPyVM: no more calls remaining");
+		is_native_running = false;
+		return false;
+	}
+	
+	// Call the Python function
+	try {
+		py_vm->Call(py_func, py_args);
+		
+		// Decrement calls remaining (unless infinite)
+		if (calls_remaining > 0) {
+			calls_remaining--;
+		}
+		
+		// Check if we should stop
+		if (calls_remaining == 0) {
+			is_native_running = false;
+			LOG("Script::ProcessPyVM: script completed");
+			if (WhenStop) {
+				WhenStop(*this);
+			}
+			return false;
+		}
+		
+		return true;  // Still running
+	}
+	catch (...) {
+		LOG("Script::ProcessPyVM: exception during Python function call");
+		is_native_running = false;
+		if (WhenStop) {
+			WhenStop(*this);
+		}
+		return false;
+	}
+}
 
 /*
 
@@ -182,27 +290,29 @@ void Program::Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, E
 	}
 }
 
-void Program::ClearCutsceneOverride(Script& s) {
+void Program::ClearCutsceneOverride(EscAnimProgram& s) {
 	cutscene_override = EscValue();
-	
-	if (&s == cutscene_curr)
+
+	// Cast to Script to compare
+	Script* script_ptr = dynamic_cast<Script*>(&s);
+	if (script_ptr && script_ptr == cutscene_curr)
 		cutscene_curr = 0;
 }
 
 
-EscAnimProgram& Program::AddScript(String name, int group) {
+Program::Script& Program::AddScript(String name, int group) {
 	return ctx.CreateProgramT<Script>(name, group);
 }
 
-EscAnimProgram& Program::AddLocal(String name) {
+Program::Script& Program::AddLocal(String name) {
 	return AddScript(name, SCRIPT_LOCAL);
 }
 
-EscAnimProgram& Program::AddGlobal(String name) {
+Program::Script& Program::AddGlobal(String name) {
 	return AddScript(name, SCRIPT_GLOBAL);
 }
 
-EscAnimProgram& Program::AddCutscene(String name) {
+Program::Script& Program::AddCutscene(String name) {
 	return AddScript(name, SCRIPT_CUTSCENE);
 }
 
@@ -217,17 +327,38 @@ EscAnimProgram& Program::StartScript(Gate0 func, bool bg, EscValue noun1, EscVal
 		return AddLocal("script").Set(func, noun1, noun2);
 }
 
-EscAnimProgram& Program::StartScriptEsc(EscValue* self, EscValue script_name, bool bg, EscValue noun1, EscValue noun2) {
-	
+Program::Script& Program::StartScriptEsc(EscValue* self, EscValue script_name, bool bg, EscValue noun1, EscValue noun2) {
+
 	//LOG("Program::StartScriptEsc: " << script_name);
+	RemoveStoppedScripts();
+
+	// background || local?
+	if (bg) {
+		Script& s = AddGlobal("hi-script");
+		s.Set(self, script_name, noun1, noun2);
+		return s;
+	}
+	else {
+		Script& s = AddLocal("hi-script");
+		s.Set(self, script_name, noun1, noun2);
+		return s;
+	}
+}
+
+Program::Script& Program::StartScriptPyVM(const PyValue& func, const Vector<PyValue>& args, bool bg, int calls) {
 	RemoveStoppedScripts();
 	
 	// background || local?
-	if (bg)
-		return AddGlobal("hi-script").Set(self, script_name, noun1, noun2);
-	
-	else
-		return AddLocal("hi-script").Set(self, script_name, noun1, noun2);
+	if (bg) {
+		Script& s = AddGlobal("py-script");
+		s.SetPyVM(vm, func, args, calls);
+		return s;
+	}
+	else {
+		Script& s = AddLocal("py-script");
+		s.SetPyVM(vm, func, args, calls);
+		return s;
+	}
 }
 
 bool Program::ScriptRunning(Script& func)  {

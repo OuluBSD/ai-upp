@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 #include "builtin.brc"
 
 namespace Adventure {
@@ -30,55 +31,80 @@ void ProgramDraw::LoadBuiltinGfx() {
 
 Program::Program() {
 	draw_zplanes.SetCount(128+1);
-	
+
 	map_sz = Size(256,32);
 	gff_sz = Size(256,2);
-	
+
 	map.SetCount(builtin_map_length);
 	memcpy(map.Begin(), builtin_map, builtin_map_length);
-	
+
 	gff.SetCount(builtin_gff_length);
 	memcpy(gff.Begin(), builtin_gff, builtin_gff_length);
-	
+
 	ResetUI();
 }
 
+bool Program::InitPyVM() {
+	// Initialize PyVM and register all bindings
+	AdventureBindings::RegisterAll(vm, *this);
+	
+	// Load Python game script if it exists
+	String game_py_path = GetDataFile("Game.py");
+	if (FileExists(game_py_path)) {
+		String src = LoadFile(game_py_path);
+		if (!src.IsEmpty()) {
+			if (!vm.LoadModule("game", src, game_py_path)) {
+				LOG("Failed to load Game.py");
+				return false;
+			}
+			LOG("Loaded Game.py successfully");
+		}
+	}
+	
+	return true;
+}
+
 bool Program::Init() {
-	
+
 	ResetUI();
-	
+
 	ClearCurrCmd();
-	
+
 	// talking_curr = NULL  // currently displayed speech {x,y,col,lines ... }
 	// dialog_curr = NULL   // currently displayed dialog options to pick
 	// cutscene_curr = NULL // currently active cutscene
 	// talking_actor = NULL // currently talking actor
-	
+
 	ctx.Clear();
-	
+
 	fade_iris = 0;
 	cutscene_cooloff = 0;
-	
+
 	ctx.InitializeEmptyScene();
-	
+
+	// Initialize PyVM and register bindings
+	if (!InitPyVM())
+		return false;
+
+	// Initialize ESC VM for backward compatibility (can be removed later)
 	if (!ctx.AddCodePath(GetDataFile("Game.esc")))
 		return false;
-	
+
 	if (!ctx.Init(false))
 		return false;
-	
+
 	if (!AddEscFunctions())
 		return false;
-	
+
 	// init all the rooms/objects/actors
 	if (!InitGame())
 		return false;
-	
+
 	if (!ReadGame())
 		return false;
-	
+
 	ctx.KeepRunning();
-	
+
 	return true;
 }
 
@@ -340,7 +366,7 @@ void Program::Update() {
 			// any more cutscenes?
 			Vector<EscAnimProgram*> cutscenes = ctx.FindGroupPrograms(SCRIPT_CUTSCENE);
 			if (!cutscenes.IsEmpty()) {
-				cutscene_curr = cutscenes.Top();
+				cutscene_curr = dynamic_cast<Script*>(cutscenes.Top());
 				ASSERT(cutscene_curr);
 			}
 			else {

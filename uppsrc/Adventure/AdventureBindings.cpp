@@ -440,12 +440,13 @@ PyValue AdventureBindings::cutscene(const Vector<PyValue>& args, void* user_data
 	PyValue setup_fn = args[1];
 	PyValue cleanup_fn = args.GetCount() > 2 ? args[2] : PyValue::None();
 
-	// Store the function for later execution
-	// This would need to integrate with the cutscene system
-	// For now, we can call the setup function immediately if it's callable
+	// For Python cutscenes, we start the setup function as a cutscene script
+	// The cleanup function would be called when the cutscene ends (via WhenStop callback)
 	if(setup_fn.IsFunction()) {
-		// Could call it immediately or schedule it
-		// For now, we just acknowledge it
+		// Start as a cutscene script (background=true, calls=1)
+		Vector<PyValue> cut_args;
+		cut_args.Add(PyValue::None());  // Placeholder for self/context
+		prog->StartScriptPyVM(setup_fn, cut_args, true, 1);
 	}
 
 	return PyValue::None();
@@ -478,10 +479,15 @@ PyValue AdventureBindings::start_script(const Vector<PyValue>& args, void* user_
 
 	PyValue script_fn = args[0];
 	bool background = args.GetCount() > 1 ? args[1].IsTrue() : false;
+	
+	// Extract additional arguments for the script function
+	Vector<PyValue> script_args;
+	for(int i = 2; i < args.GetCount(); i++) {
+		script_args.Add(args[i]);
+	}
 
-	// Start a script - would need to store the Python function
-	// and integrate with the script scheduler
-	// For now, just acknowledge
+	// Start a Python script using PyVM
+	prog->StartScriptPyVM(script_fn, script_args, background);
 
 	return PyValue::None();
 }

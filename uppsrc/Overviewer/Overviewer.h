@@ -15,6 +15,40 @@ using namespace Upp;
 #define LAYOUTFILE <Overviewer/Overviewer.lay>
 #include <CtrlCore/lay.h>
 
+#include "Overviewer.brc"
+
+class OverviewerImg {
+public:
+	static Image Get(const void *data, int length) {
+		if(!data || length <= 0) return Image();
+		return PNGRaster().LoadString(String((const char *)data, length));
+	}
+	
+	static Image IconNew() { return Get(::IconNew, ::IconNew_length); }
+	static Image IconOpen() { return Get(::IconOpen, ::IconOpen_length); }
+	static Image IconSave() { return Get(::IconSave, ::IconSave_length); }
+	static Image IconAnalyze() { return Get(::IconAnalyze, ::IconAnalyze_length); }
+	static Image IconConsistency() { return Get(::IconConsistency, ::IconConsistency_length); }
+	static Image IconScenario() { return Get(::IconScenario, ::IconScenario_length); }
+	static Image IconDecision() { return Get(::IconDecision, ::IconDecision_length); }
+	static Image IconComment() { return Get(::IconComment, ::IconComment_length); }
+	static Image IconDashboard() { return Get(::IconDashboard, ::IconDashboard_length); }
+	static Image IconReview() { return Get(::IconReview, ::IconReview_length); }
+	static Image IconTimeline() { return Get(::IconTimeline, ::IconTimeline_length); }
+	static Image IconAction() { return Get(::IconAction, ::IconAction_length); }
+	static Image IconPreview() { return Get(::IconPreview, ::IconPreview_length); }
+	static Image IconGit() { return Get(::IconGit, ::IconGit_length); }
+	static Image IconSessions() { return Get(::IconSessions, ::IconSessions_length); }
+	static Image IconInsights() { return Get(::IconInsights, ::IconInsights_length); }
+	static Image IconUsage() { return Get(::IconUsage, ::IconUsage_length); }
+	static Image IconSearch() { return Get(::IconSearch, ::IconSearch_length); }
+	static Image IconUndo() { return Get(::IconUndo, ::IconUndo_length); }
+	static Image IconRedo() { return Get(::IconRedo, ::IconRedo_length); }
+	static Image IconSettings() { return Get(::IconSettings, ::IconSettings_length); }
+	static Image IconExport() { return Get(::IconExport, ::IconExport_length); }
+	static Image IconRefresh() { return Get(::IconRefresh, ::IconRefresh_length); }
+};
+
 enum {
 	FLAG_TEMPORARY = 1,
 	FLAG_WRONG_LOCATION = 2,
@@ -289,6 +323,29 @@ struct ProjectDashboard {
 		proposed_decisions = accepted_decisions = total_comments = active_insights = 0;
 		for(int i = 0; i < 6; i++) priority_counts[i] = 0;
 	}
+	
+	ProjectDashboard(const ProjectDashboard& s) { *this = s; }
+	ProjectDashboard& operator=(const ProjectDashboard& s) {
+		total_files = s.total_files; total_dirs = s.total_dirs; flagged_entries = s.flagged_entries;
+		needs_review = s.needs_review; missing_priority = s.missing_priority;
+		missing_completion = s.missing_completion; with_notes = s.with_notes;
+		with_problems = s.with_problems; with_tasks = s.with_tasks; with_leads = s.with_leads;
+		suggestions_pending = s.suggestions_pending;
+		memcpy(priority_counts, s.priority_counts, sizeof(priority_counts));
+		top_reason_tags <<= s.top_reason_tags;
+		top_gap_tags <<= s.top_gap_tags;
+		top_current_tags <<= s.top_current_tags;
+		recent_changes = s.recent_changes;
+		recently_modified <<= s.recently_modified;
+		stale_entries = s.stale_entries;
+		top_action_items <<= s.top_action_items;
+		activity_by_actor <<= s.activity_by_actor;
+		proposed_decisions = s.proposed_decisions;
+		accepted_decisions = s.accepted_decisions;
+		total_comments = s.total_comments;
+		active_insights = s.active_insights;
+		return *this;
+	}
 };
 
 struct OverviewerProject {
@@ -320,6 +377,9 @@ struct OverviewerProject {
 	Vector<Comment> comments;
 	Vector<Insight> insights;
 	Vector<UsageEvent> usage_history;
+	
+	mutable ProjectDashboard dashboard_cache;
+	mutable bool dashboard_dirty = true;
 
 	void Jsonize(JsonIO& jio) {
 		jio("version", version)("working_dir", working_dir)("metadata", metadata)
@@ -335,6 +395,7 @@ struct OverviewerProject {
 		   ("comments", comments)
 		   ("insights", insights)
 		   ("usage_history", usage_history);
+		if(jio.IsLoading()) dashboard_dirty = true;
 	}
 	
 	void Reset() {
@@ -344,6 +405,7 @@ struct OverviewerProject {
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
 		decisions.Clear(); comments.Clear(); insights.Clear(); usage_history.Clear();
+		dashboard_dirty = true;
 	}
 	
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
@@ -354,6 +416,7 @@ struct OverviewerProject {
 	void AnalyzeEntry(const String& rel_path);
 	void RunConsistencyCheck();
 	ProjectDashboard GetDashboard() const;
+	void MarkDashboardDirty() { dashboard_dirty = true; }
 
 	void LogEvent(const String& path, const String& type, const String& desc, const String& old_val = "", const String& new_val = "", const String& src = "user");
 	void StartSession(const String& actor_id, const String& actor_type);
@@ -684,6 +747,7 @@ private:
 		typedef UsagePanel CLASSNAME;
 		ArrayCtrl summary;
 		ArrayCtrl friction;
+		OverviewerWindow* window;
 		UsagePanel();
 		void Refresh(const UsageSummary& s, const Vector<FrictionSignal>& f);
 	};

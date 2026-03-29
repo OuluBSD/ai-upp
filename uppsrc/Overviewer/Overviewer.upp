@@ -7,6 +7,7 @@ uses
 
 file
 	Overviewer.h,
+	Overviewer.brc,
 	Settings.h,
 	Settings.cpp,
 	Project.cpp,

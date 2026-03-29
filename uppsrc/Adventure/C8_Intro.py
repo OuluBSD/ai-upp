@@ -124,7 +124,7 @@ def decomp(src, px, py, xget, xset):
     """Decompress graphics data"""
     global pn
     pn = {}
-    src -= 1
+    src = src - 1
     bit = 256
     b = 0
     byte = 0
@@ -136,11 +136,11 @@ def decomp(src, px, py, xget, xset):
             # Get next bit from stream
             if bit == 256:
                 bit = 1
-                src += 1
+                src = src + 1
                 byte = peek(src)
             if band(byte, bit) > 0:
-                val += shl(1, i)
-            bit *= 2
+                val = val + shl(1, i)
+            bit = bit * 2
         return val
 
     # Read header
@@ -161,7 +161,7 @@ def decomp(src, px, py, xget, xset):
         # Span length
         bl = 1
         while getval(1) == 0:
-            bl += 1
+            bl = bl + 1
         minv = shl(1, bl - 1)
         if bl == 1:
             minv = 0
@@ -188,7 +188,7 @@ def decomp(src, px, py, xget, xset):
                 index = 0
                 while True:
                     v = getval(cbits)
-                    index += v
+                    index = index + v
                     if v < shl(1, cbits) - 1:
                         break
                 pindex = 999
@@ -196,7 +196,7 @@ def decomp(src, px, py, xget, xset):
                     if pc == clist[i_idx]:
                         pindex = i_idx
                 if pindex <= index:
-                    index += 1
+                    index = index + 1
                 col = clist[index]
 
                 # Move to front
@@ -213,16 +213,16 @@ def decomp(src, px, py, xget, xset):
             pn[t] = col
             pn[l] = col
             pn[t + l] = col
-            i += 1
+            i = i + 1
 
-        span += 1
+        span = span + 1
 
 
 def load_gfx(index, x, y):
     """Load graphics at index"""
     offset = 0x0000  # Screen memory
     for i in range(index):
-        offset += peek(offset + 0) + peek(offset + 1) * 256 + 2
+        offset = offset + peek(offset + 0) + peek(offset + 1) * 256 + 2
     decomp(offset + 2, x, y, pget, pset)
 
 

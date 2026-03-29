@@ -469,11 +469,11 @@ def hall_anim_clock():
     avel = 0
     val = -10
     played = False
-    
+
     while True:
         aacc = -6.81 / 31 * __import__("math").sin(angle)  # -9.81
-        avel += aacc * 0.1 * 0.2
-        angle += avel * 0.1
+        avel = avel + aacc * 0.1 * 0.2
+        angle = angle + avel * 0.1
         obj_pendulum["bobx"] = obj_pendulum["x"] + __import__("math").sin(angle) * 31
         obj_pendulum["boby"] = obj_pendulum["y"] - __import__("math").cos(angle) * 31
         if angle <= 0.4850 and not played:
@@ -712,7 +712,7 @@ def key_use(me, noun2):
         obj_library_secret_panel["state"] = "state_open"
         shake(True)
         while obj_library_secret_panel["y_offset"] > -8:
-            obj_library_secret_panel["y_offset"] -= 1
+            obj_library_secret_panel["y_offset"] = obj_library_secret_panel["y_offset"] - 1
             break_time(10)
         shake(False)
 
@@ -782,8 +782,8 @@ def kitchen_spin_top():
                 obj_spinning_top["state"] = f
                 break_time(4)
             # Move top
-            obj_spinning_top["x"] -= dir
-        dir *= -1
+            obj_spinning_top["x"] = obj_spinning_top["x"] - dir
+        dir = dir * -1
 
 
 obj_spinning_top["scripts"]["spin_top"] = kitchen_spin_top

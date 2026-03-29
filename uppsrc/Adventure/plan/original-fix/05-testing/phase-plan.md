@@ -26,6 +26,28 @@
 
 See `001-fix-graphics-crash.md` for details.
 
+### Task 002: Test Python Loading ✓
+
+**Status**: PyVM loads Game.py but compilation fails
+
+**Findings**:
+- ✅ InitPyVM() executes correctly
+- ✅ 52 bindings register successfully
+- ✅ Game.py found and loaded (37492 bytes)
+- ✗ PyVM compilation error: compound assignment operators not supported
+  - Error: `obj_spinning_top["x"] -= dir` (line 783)
+  - PyVM doesn't support `-=`, `*=`, `/=`, etc.
+
+**Fix Needed**: Convert compound assignments to simple assignments in Game.py
+- `obj["x"] -= dir` → `obj["x"] = obj["x"] - dir`
+- `obj["y"] += val` → `obj["y"] = obj["y"] + val`
+
+**Files Modified**:
+- Program.cpp - Added InitPyVM() logging
+- PyValue.h - Fixed X11 macro conflicts (None/True/False)
+
+See `002-test-python-loading.md` for details.
+
 ### Remaining Tasks
 
 **Task 002**: Test Python script loading

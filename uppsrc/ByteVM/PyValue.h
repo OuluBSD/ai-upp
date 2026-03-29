@@ -29,6 +29,17 @@ class PyValue;
 
 typedef PyValue (*PyBuiltin)(const Vector<PyValue>& args, void* user_data);
 
+// Undefine X11 macros that conflict with Python-style naming
+#ifdef None
+#undef None
+#endif
+#ifdef True
+#undef True
+#endif
+#ifdef False
+#undef False
+#endif
+
 String PyTypeName(int type);
 
 struct PyLambda;
@@ -154,13 +165,7 @@ public:
 	bool IsSameObject(const PyValue& other) const;
 
 	static PyValue None() { return PyValue(); }
-	#ifdef True
-#undef True
-#endif
         static PyValue True() { return PyValue(true); }
-	#ifdef False
-#undef False
-#endif
         static PyValue False() { return PyValue(false); }
 	static PyValue List();
 	static PyValue Tuple();

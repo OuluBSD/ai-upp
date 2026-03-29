@@ -234,9 +234,9 @@ def hall_spin_top():
     while True:
         for x in range(3):
             # Move top
-            obj_spinning_top["x"] -= dir
+            obj_spinning_top["x"] = obj_spinning_top["x"] - dir
             break_time(12)
-        dir *= -1
+        dir = dir * -1
 
 
 rm_hall = {

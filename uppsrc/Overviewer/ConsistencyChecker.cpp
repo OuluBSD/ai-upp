@@ -1,16 +1,25 @@
 #include "Overviewer.h"
 
 ProjectDashboard OverviewerProject::GetDashboard() const {
+	if(!dashboard_dirty) return dashboard_cache;
+	
 	ProjectDashboard db;
 	Time now = GetSysTime();
 	
+	// Pre-process history to find last modification time for each path in O(history)
+	VectorMap<String, Time> last_mod;
+	for(const auto& e : history) {
+		if(!e.path.IsEmpty())
+			last_mod.GetAdd(e.path) = e.time;
+	}
+
 	for(int i = 0; i < metadata.GetCount(); i++) {
 		const String& path = metadata.GetKey(i);
 		const FileMetadata& m = metadata[i];
-		
+
 		if(DirectoryExists(AppendFileName(working_dir, path))) db.total_dirs++;
 		else db.total_files++;
-		
+
 		if(m.flags != 0) db.flagged_entries++;
 		if(m.flags & (FLAG_NEEDS_REVIEW | FLAG_CONTENT_NEEDS_REVIEW)) db.needs_review++;
 		if(m.priority == 0) db.missing_priority++;
@@ -19,25 +28,21 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 		if(!m.problems.IsEmpty()) db.with_problems++;
 		if(!m.tasks.IsEmpty()) db.with_tasks++;
 		if(!m.leads.IsEmpty()) db.with_leads++;
-		
+
 		if(m.priority >= 0 && m.priority <= 5) db.priority_counts[m.priority]++;
-		
+
 		for(const String& t : m.reason_tags) db.top_reason_tags.GetAdd(t, 0)++;
 		for(const String& t : m.gap_tags) db.top_gap_tags.GetAdd(t, 0)++;
 		for(const String& t : m.current_tags) db.top_current_tags.GetAdd(t, 0)++;
-		
-		// Stale check
-		bool found = false;
-		for(int j = history.GetCount() - 1; j >= 0; j--) {
-			if(history[j].path == path) {
-				if(now - history[j].time > 30 * 24 * 3600) db.stale_entries++;
-				found = true;
-				break;
-			}
+
+		// Efficient stale check using the pre-processed map
+		int mod_idx = last_mod.Find(path);
+		if(mod_idx >= 0) {
+			if(now - last_mod[mod_idx] > 30 * 24 * 3600) db.stale_entries++;
+		} else if(history.GetCount() > 0) {
+			db.stale_entries++;
 		}
-		if(!found && history.GetCount() > 0) db.stale_entries++;
-	}
-	
+	}	
 	db.recent_changes = history.GetCount();
 	Index<String> recent_paths;
 	for(int i = history.GetCount() - 1; i >= 0 && i >= history.GetCount() - 100; i--) {
@@ -77,6 +82,8 @@ ProjectDashboard OverviewerProject::GetDashboard() const {
 	for(int i = 0; i < actions.GetCount(); i++)
 		db.top_action_items.Add(actions.GetKey(i), actions[i].score);
 	
+	dashboard_cache = db;
+	dashboard_dirty = false;
 	return db;
 }
 

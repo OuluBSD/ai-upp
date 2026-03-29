@@ -96,3 +96,35 @@ combined_test:
   copy1: *settings
   copy2: *settings
   inline: {key: value, num: 42}
+
+# Chomping indicators test
+chomping_test:
+  strip: |-
+    No trailing newline
+  keep: |+
+    With trailing newline
+    
+  clip: |
+    Default clip (one newline)
+  folded_strip: >-
+    This is folded
+    with strip
+  folded_keep: >+
+    This is folded
+    with keep
+    
+# Merge keys test
+merge_test:
+  defaults: &defaults
+    name: Default Name
+    timeout: 30
+    retries: 3
+  production:
+    <<: *defaults
+    timeout: 60
+    environment: production
+  development:
+    <<: *defaults
+    timeout: 10
+    environment: development
+    debug: true

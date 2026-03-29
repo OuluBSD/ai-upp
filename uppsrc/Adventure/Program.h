@@ -224,21 +224,44 @@ protected:
 		SCRIPT_LOCAL,
 		SCRIPT_CUTSCENE,
 	};
-	
+
 	/*
 	Array<Script> global_scripts;	// table of scripts that are at game-level (background)
 	Array<Script> local_scripts;	// table of scripts that are actively running
 	Array<Script> cutscenes;		// table of scripts for (the active Cutscene(s)
 	*/
-	
-	using Script = EscAnimProgram;
+
+	// Script class supporting both PyVM (Python) and ESC (legacy) execution
+	struct Script : public EscAnimProgram {
+		// PyVM members for Python script execution
+		PyValue py_func;              // Python function to call
+		Vector<PyValue> py_args;      // Arguments for Python function
+		int calls_remaining;          // For multi-call scripts (-1 = infinite)
+		bool is_python;               // true if this is a Python script
+		PyVM* py_vm;                  // Pointer to PyVM instance
+
+		typedef Script CLASSNAME;
+		Script();
+		void Clear();
+		
+		// Python script setup
+		Script& SetPyVM(PyVM& vm, const PyValue& func, const Vector<PyValue>& args = Vector<PyValue>(), int calls = 1);
+		
+		// Override Iterate to handle PyVM execution (hide override since base is not virtual)
+		void Iterate();
+		
+		// Execute Python function
+		bool ProcessPyVM();
+	};
+
+	using ScriptBase = EscAnimProgram;  // Keep reference to base for backward compat
 	
 	
 	Script& AddScript(String name, int group);
 	Script& AddLocal(String name);
 	Script& AddGlobal(String name);
 	Script& AddCutscene(String name);
-	
+
 	Script* cutscene_curr = 0;
 	
 	
@@ -306,9 +329,10 @@ protected:
 	
 	bool pressed[BTN_COUNT];
 	dword mouse_pressed = 0;
-	
+
 	// Script
-	EscAnimContext ctx;
+	PyVM vm;  // PyVM for Python script execution
+	EscAnimContext ctx;  // EscAnimContext for animation system (keep for now)
 	EscValue rooms;
 	EscValue cutscene_override;
 	EscValue verbs;
@@ -331,10 +355,11 @@ protected:
 	
 	
 public:
-	
+
 	Program();
-	
-	bool AddEscFunctions();
+
+	bool InitPyVM();  // Initialize PyVM and register bindings
+	bool AddEscFunctions();  // Deprecated: kept for backward compatibility
 	bool ReadGame();
 	EscValue RunLambda1(EscValue* self, const EscValue& l, const EscValue& arg0);
 	void ProcessEsc();
@@ -383,7 +408,7 @@ public:
 	void EscDialogClear(EscEscape& e);
 	void EscTodo(EscEscape& e);
 	
-	void ClearCutsceneOverride(Script& s);
+	void ClearCutsceneOverride(EscAnimProgram& s);
 	void CameraFollow(SObj actor);
 	void ChangeRoom(SObj new_room, SObj fade);
 	bool CamScript0();
@@ -408,7 +433,8 @@ public:
 	bool IsValidVerb(EscValue verb, SObj object);
 	void PickupObj(SObj& obj, SObj& actor);
 	EscAnimProgram& StartScript(Gate0 func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
-	EscAnimProgram& StartScriptEsc(EscValue* self, EscValue func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
+	Script& StartScriptEsc(EscValue* self, EscValue func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
+	Script& StartScriptPyVM(const PyValue& func, const Vector<PyValue>& args, bool bg, int calls = 1);
 	void StopScript(Script& func);
 	void RemoveStoppedScripts();
 	void BreakTime(int jiffies=0);

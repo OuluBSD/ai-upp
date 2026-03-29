@@ -14,6 +14,7 @@ file
 	AdventureBindings.h,
 	AdventureBindings.cpp,
 	Game.esc highlight cpp,
+	Game.py,
 	CarverTest.esc highlight cpp,
 	Demo.esc highlight cpp,
 	C8_Intro.esc highlight cpp,

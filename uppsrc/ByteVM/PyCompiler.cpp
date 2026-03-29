@@ -161,14 +161,9 @@ void PyCompiler::CompileBlock(Vector<PyIR>& out)
 void PyCompiler::CompileLambdaBody(Vector<PyIR>& out)
 {
 	ir.Clear();
-	int start_pos = pos;
-	int start_line = GetLine();
-	LOG("PyVM DEBUG [CompileLambdaBody]: Starting at pos=" << pos << ", line=" << start_line << ", token='" << Peek().ToString() << "'");
 	Expression();
-	LOG("PyVM DEBUG [CompileLambdaBody]: After Expression(), pos=" << pos << ", token='" << (pos < tokens.GetCount() ? tokens[pos].ToString() : "EOF") << "'");
 	Emit(PY_RETURN_VALUE);
 	out = pick(ir);
-	LOG("PyVM DEBUG [CompileLambdaBody]: Complete, IR count=" << out.GetCount());
 }
 
 void PyCompiler::Statement()
@@ -1102,37 +1097,25 @@ void PyCompiler::Atom()
 		Next();
 	}
 	else if(IsId("lambda")) {
-		int lambda_start_pos = pos;
-		int lambda_line = GetLine();
-		LOG("PyVM DEBUG: Lambda at line " << lambda_line << ", pos=" << pos << ", token='" << Peek().ToString() << "'");
-		
 		Next(); // consume 'lambda'
 		Vector<String> largs;
 		while(IsId() && !IsId("in") && !IsId("for") && !IsId("if")) {
 			largs.Add(Peek().str_value);
-			LOG("PyVM DEBUG:   Lambda arg: " << Peek().str_value);
 			Next();
 			if(IsToken(TK_COMMA)) Next(); else break;
 		}
-		LOG("PyVM DEBUG:   Before COLON, pos=" << pos << ", token='" << Peek().ToString() << "'");
 		this->Expect(TK_COLON);
-		LOG("PyVM DEBUG:   After COLON, pos=" << pos << ", token='" << Peek().ToString() << "'");
-		
 		PyCompiler sub(tokens, file);
 		sub.pos = pos;
 		Vector<PyIR> body;
-		LOG("PyVM DEBUG:   Calling CompileLambdaBody, sub.pos=" << sub.pos);
 		sub.CompileLambdaBody(body);
 		pos = sub.pos;
-		LOG("PyVM DEBUG:   After CompileLambdaBody, pos=" << pos << ", token='" << (pos < tokens.GetCount() ? tokens[pos].ToString() : "EOF") << "'");
-		
 		PyValue func = PyValue::Function("<lambda>");
 		func.GetLambdaRW().ir = pick(body);
 		func.GetLambdaRW().arg = pick(largs);
 		for(const String& a : func.GetLambda().arg)
 			func.GetLambdaRW().arg_values.Add(PyValue(a));
 		EmitConst(func);
-		LOG("PyVM DEBUG: Lambda compilation complete");
 	}
 	else if(IsId()) {
 		String id = Peek().str_value;

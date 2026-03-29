@@ -13,6 +13,7 @@ file
 	Adventure.cpp,
 	AdventureBindings.h,
 	AdventureBindings.cpp,
+	test_lambda.py,
 	Game.esc highlight cpp,
 	Game.py,
 	CarverTest.esc highlight cpp,

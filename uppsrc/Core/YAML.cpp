@@ -758,7 +758,7 @@ Value YamlParser::ParseMap(int min_indent)
 			for(int j = 0; j < merge_map.GetCount(); j++) {
 				String merge_key = merge_map.GetKey(j);
 				if(m.Find(merge_key) < 0) {
-					m.Add(merge_key, merge_map[j]);
+					m.Add(merge_key, merge_map.GetValue(j));
 				}
 			}
 		}

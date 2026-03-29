@@ -42,6 +42,7 @@ file
 	Builtin.cpp;
 
 mainconfig
-	"" = "GUI",
-	"" = "GUI USEMALLOC";
+	"Console" = "GUI",
+	"X11" = "GUI X11",
+	"X11 (Valgrind)" = "GUI X11 USEMALLOC";
 

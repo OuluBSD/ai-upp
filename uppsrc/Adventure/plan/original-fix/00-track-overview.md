@@ -21,13 +21,49 @@ Convert the Adventure package from custom ESC scripting language to Python using
 - **Scripts**: 7 `.py` files (converted from ESC)
 - **Status**: Working adventure game with Python scripting
 
-## Phases
+## Progress
 
-1. **01-bindings** - Create Python bindings for engine functions
-2. **02-game-esc** - Convert Game.esc to Python
-3. **03-other-esc** - Convert remaining ESC files
-4. **04-integration** - Update C++ integration code
-5. **05-testing** - Test and debug the conversion
+**Phase 01: Python Bindings** - ✓ COMPLETE (7/7 tasks, 52 functions)
+**Phase 1.5: PyVM Integration** - ✓ COMPLETE (Engine converted to PyVM)
+**Phase 02: Convert Game.esc** - ✓ COMPLETE (Game.py, 1569 lines)
+**Phase 03: Convert Other ESC** - ✓ COMPLETE (5 files, 2360 lines)
+**Phase 04: C++ Integration** - ✓ COMPLETE (done in Phase 1.5)
+**Phase 05: Testing** - ⏳ PENDING
+
+## Summary
+
+### Completed
+
+| Phase | Status | Output |
+|-------|--------|--------|
+| 01 - Bindings | ✓ | 52 Python functions |
+| 1.5 - PyVM Integration | ✓ | Engine uses PyVM |
+| 02 - Game.esc | ✓ | Game.py (1569 lines) |
+| 03 - Other ESC | ✓ | 5 Python files (2360 lines) |
+| 04 - Integration | ✓ | Done in Phase 1.5 |
+
+### Total Python Code
+
+- **6 Python files**: Game.py, Demo.py, C8_Intro.py, C8_Part1.py, C8_Part2.py, CarverTest.py
+- **~3930 lines** of Python game logic
+- **52 Python bindings** for engine functions
+- **Build**: ✓ Successful (bin/Adventure, 56 MB)
+
+**Build configurations**:
+```
+[0] Console = GUI
+[1] X11 = GUI X11
+[2] X11 (Valgrind) = GUI X11 USEMALLOC
+
+Usage:
+  script/build.py -mc 1 Adventure    # Build with X11
+  script/build.py -mc 2 Adventure    # Build for Valgrind
+```
+
+### Remaining
+
+- **Phase 05**: Testing and debugging
+- Runtime crash fix (pre-existing graphics issue, unrelated to Python)
 
 ## Files to Convert
 

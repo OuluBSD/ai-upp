@@ -1,5 +1,7 @@
 #include "Overviewer.h"
 
+#include "Overviewer.brc"
+
 SettingsWindow::SettingsWindow() {
 	CtrlLayoutOKCancel(*this, "Settings");
 	backup_mode.Add(0, "Alongside project (.autosave.json)");
@@ -415,6 +417,9 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 		res.current_tags <<= m->current_tags;
 		res.reason_tags <<= m->reason_tags;
 		res.gap_tags <<= m->gap_tags;
+		res.problems <<= m->problems;
+		res.tasks <<= m->tasks;
+		res.leads <<= m->leads;
 	}
 
 	auto inherit = [&](int& val, int (FileMetadata::*field)) {
@@ -445,6 +450,7 @@ FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) con
 }
 
 FileMetadata& OverviewerProject::GetMetadataWrite(const String& rel_path) {
+	MarkDashboardDirty();
 	if(!active_scenario_id.IsEmpty()) {
 		Scenario& s = scenarios.GetAdd(active_scenario_id);
 		int idx = s.metadata_delta.Find(rel_path);
@@ -474,6 +480,7 @@ bool OverviewerProject::WriteBackup() const {
 }
 
 void OverviewerProject::LogEvent(const String& path, const String& type, const String& desc, const String& old_val, const String& new_val, const String& src) {
+	MarkDashboardDirty();
 	HistoryEvent& e = history.Add();
 	e.time = GetSysTime();
 	e.path = path;
@@ -604,6 +611,7 @@ String OverviewerProject::AddComment(const String& text, const String& entry, co
 }
 
 void OverviewerProject::GenerateInsights() {
+	MarkDashboardDirty();
 	Vector<Insight> next = InsightEngine::Generate(*this);
 	for(auto& ins : next) {
 		for(const auto& old : insights) {
@@ -841,6 +849,8 @@ OverviewerWindow::OverviewerWindow()
 	dummy_metadata.quality = 0;
 	dummy_metadata.completion = 0;
 	dummy_metadata.priority = 0;
+	
+	search_ctrl.SetData(""); // Explicitly initialize to empty
 
 	current_tags_pane.assigned = &dummy_metadata.current_tags;
 	current_tags_pane.global_known = &project.known_current_tags;
@@ -864,6 +874,7 @@ OverviewerWindow::OverviewerWindow()
 	decision_pane.window = this;
 	comment_pane.window = this;
 	insight_pane.window = this;
+	usage_pane.window = this;
 
 	Title("Overviewer");
 	Sizeable().Zoomable();
@@ -919,7 +930,12 @@ OverviewerWindow::OverviewerWindow()
 	project.StartSession("local-user", "user");
 }
 
+static bool sCheckingAutosave = false;
+
 void OverviewerWindow::CheckAutosave() {
+	if(sCheckingAutosave) return;
+	sCheckingAutosave = true;
+	
 	OverviewerSettings& s = GetSettings();
 	if(s.autosave_enabled && !project.path.IsEmpty() && dirty) {
 		if(GetSysTime() - last_autosave > s.autosave_interval_minutes * 60) {
@@ -929,7 +945,7 @@ void OverviewerWindow::CheckAutosave() {
 		}
 	}
 	CheckExternalChange();
-	SetTimeCallback(-1000, THISBACK(CheckAutosave));
+	sCheckingAutosave = false;
 }
 
 void OverviewerWindow::SyncStatusBar() {
@@ -1005,17 +1021,18 @@ void OverviewerWindow::DockInit() {
 	dock_tasks = &Dockable(tasks_pane, "Tasks").SizeHint(Size(300, 200));
 	dock_leads = &Dockable(leads_pane, "Leads").SizeHint(Size(300, 200));
 	dock_suggestions = &Dockable(suggestion_pane, "Suggestions").SizeHint(Size(400, 200));
-	dock_dashboard = &Dockable(dashboard_pane, "Dashboard").SizeHint(Size(300, 400));
-	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300));
-	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300));
-	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300));
-	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400));
-	dock_git_history = &Dockable(git_history_pane, "Git History").SizeHint(Size(400, 200));
-	dock_sessions = &Dockable(session_pane, "Sessions").SizeHint(Size(400, 200));
-	dock_decisions = &Dockable(decision_pane, "Decisions").SizeHint(Size(400, 300));
-	dock_comments = &Dockable(comment_pane, "Comments").SizeHint(Size(400, 200));
-	dock_insights = &Dockable(insight_pane, "Insights").SizeHint(Size(400, 300));
-	dock_usage = &Dockable(usage_pane, "Usage Insights").SizeHint(Size(600, 300));
+	
+	dock_dashboard = &Dockable(dashboard_pane, "Dashboard").SizeHint(Size(300, 400)).Icon(OverviewerImg::IconDashboard());
+	dock_review_queue = &Dockable(review_queue_pane, "Review Queue").SizeHint(Size(400, 300)).Icon(OverviewerImg::IconReview());
+	dock_timeline = &Dockable(timeline_pane, "Timeline").SizeHint(Size(400, 300)).Icon(OverviewerImg::IconTimeline());
+	dock_action_view = &Dockable(action_view_pane, "Action View").SizeHint(Size(400, 300)).Icon(OverviewerImg::IconAction());
+	dock_overview_preview = &Dockable(overview_preview_pane, "Overview Preview").SizeHint(Size(600, 400)).Icon(OverviewerImg::IconPreview());
+	dock_git_history = &Dockable(git_history_pane, "Git History").SizeHint(Size(400, 200)).Icon(OverviewerImg::IconGit());
+	dock_sessions = &Dockable(session_pane, "Sessions").SizeHint(Size(400, 200)).Icon(OverviewerImg::IconSessions());
+	dock_decisions = &Dockable(decision_pane, "Decisions").SizeHint(Size(400, 300)).Icon(OverviewerImg::IconDecision());
+	dock_comments = &Dockable(comment_pane, "Comments").SizeHint(Size(400, 200)).Icon(OverviewerImg::IconComment());
+	dock_insights = &Dockable(insight_pane, "Insights").SizeHint(Size(400, 300)).Icon(OverviewerImg::IconInsights());
+	dock_usage = &Dockable(usage_pane, "Usage Insights").SizeHint(Size(600, 300)).Icon(OverviewerImg::IconUsage());
 	
 	Register(*dock_tree);
 	Register(*dock_flags);
@@ -1043,31 +1060,34 @@ void OverviewerWindow::DockInit() {
 	
 	DockLeft(*dock_tree);
 	DockRight(*dock_flags);
-	DockBottom(*dock_numeric);
-	DockBottom(*dock_info);
-	
-	DockBottom(*dock_notes);
-	
-	DockBottom(*dock_current_tags);
-	DockBottom(*dock_reason_tags);
-	DockBottom(*dock_gap_tags);
-	
 	DockRight(*dock_problems);
-	DockBottom(*dock_tasks);
-	DockBottom(*dock_leads);
-	DockBottom(*dock_suggestions);
 	
 	DockLeft(*dock_dashboard);
-	DockBottom(*dock_review_queue);
-	DockBottom(*dock_timeline);
-	DockBottom(*dock_action_view);
-	DockBottom(*dock_overview_preview);
-	DockBottom(*dock_git_history);
-	DockBottom(*dock_sessions);
-	DockBottom(*dock_decisions);
-	DockBottom(*dock_comments);
-	DockBottom(*dock_insights);
-	DockBottom(*dock_usage);
+	Tabify(*dock_dashboard, *dock_review_queue);
+	Tabify(*dock_dashboard, *dock_timeline);
+	Tabify(*dock_dashboard, *dock_action_view);
+	Tabify(*dock_dashboard, *dock_overview_preview);
+	Tabify(*dock_dashboard, *dock_git_history);
+	Tabify(*dock_dashboard, *dock_sessions);
+	Tabify(*dock_dashboard, *dock_decisions);
+	Tabify(*dock_dashboard, *dock_comments);
+	Tabify(*dock_dashboard, *dock_insights);
+	Tabify(*dock_dashboard, *dock_usage);
+
+	// Bottom Group 1: Meta
+	DockBottom(*dock_info);
+	Tabify(*dock_info, *dock_numeric);
+	Tabify(*dock_info, *dock_suggestions);
+	
+	// Bottom Group 2: Context
+	DockBottom(*dock_notes);
+	Tabify(*dock_notes, *dock_current_tags);
+	Tabify(*dock_notes, *dock_reason_tags);
+	Tabify(*dock_notes, *dock_gap_tags);
+	
+	// Bottom Group 3: Tasks
+	DockBottom(*dock_tasks);
+	Tabify(*dock_tasks, *dock_leads);
 }
 
 void OverviewerWindow::SaveLayout() {
@@ -1371,13 +1391,19 @@ void OverviewerWindow::UpdatePanels() {
 		size_lbl = "Size: " + FormatInt64(GetFileLength(abs_path));
 	}
 	
-	RefreshTimeline();
-	RefreshActionView();
-	RefreshGitHistory();
-	RefreshComments();
-	RefreshInsights();
-	RefreshUsage();
+	// Immediate fast refresh
 	SyncStatusBar();
+	
+	// Delayed expensive refreshes to avoid freezing the GUI during rapid navigation
+	KillTimeCallback(12345);
+	SetTimeCallback(250, [this]{
+		RefreshTimeline();
+		RefreshActionView();
+		RefreshGitHistory();
+		RefreshComments();
+		RefreshInsights();
+		RefreshUsage();
+	}, 12345);
 }
 
 void OverviewerWindow::OnMetadataChange() {
@@ -1419,17 +1445,18 @@ void OverviewerWindow::OnMetadataChange() {
 
 void OverviewerWindow::OnNoteChange() {
 	if(current_selection.IsEmpty() || current_selection == ".") return;
-	FileMetadata old_m = project.GetEffectiveMetadata(current_selection);
 	FileMetadata& m = project.GetMetadataWrite(current_selection);
 	String n = (String)notes_editor.GetData();
 	if(m.notes != n) {
-		project.LogEvent(current_selection, "set_note", "Note modified");
 		m.notes = n;
-		RecordUndo(current_selection, old_m, m);
-		MarkDirty();
-		RefreshTimeline();
-		RefreshActionView();
-		project.RecordUsage("edit_note", current_selection);
+		// Use a dedicated timer for marking dirty and refreshes to avoid freezing during typing
+		KillTimeCallback(54321);
+		SetTimeCallback(500, [this]{
+			MarkDirty();
+			RefreshTimeline();
+			RefreshActionView();
+			project.RecordUsage("edit_note", current_selection);
+		}, 54321);
 	}
 }
 
@@ -1653,11 +1680,11 @@ void OverviewerWindow::Undo() {
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
 	UndoEvent re;
 	re.path = e.path;
-	re.old_meta = FileMetadata(current);
-	re.new_meta = FileMetadata(e.old_meta);
+	re.old_meta = current;
+	re.new_meta = e.old_meta;
 	redo_stack.Add(pick(re));
 	
-	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta);
+	project.GetMetadataWrite(e.path) = e.old_meta;
 	MarkDirty();
 	UpdatePanels();
 	project.RecordUsage("undo", e.path);
@@ -1671,11 +1698,11 @@ void OverviewerWindow::Redo() {
 	FileMetadata current = project.GetEffectiveMetadata(e.path);
 	UndoEvent ue;
 	ue.path = e.path;
-	ue.old_meta = FileMetadata(current);
-	ue.new_meta = FileMetadata(e.old_meta);
+	ue.old_meta = current;
+	ue.new_meta = e.old_meta;
 	undo_stack.Add(pick(ue));
 	
-	project.GetMetadataWrite(e.path) = FileMetadata(e.old_meta);
+	project.GetMetadataWrite(e.path) = e.old_meta;
 	MarkDirty();
 	UpdatePanels();
 	project.RecordUsage("redo", e.path);
@@ -1684,8 +1711,8 @@ void OverviewerWindow::Redo() {
 void OverviewerWindow::RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m) {
 	UndoEvent ue;
 	ue.path = path;
-	ue.old_meta = FileMetadata(old_m);
-	ue.new_meta = FileMetadata(new_m);
+	ue.old_meta = old_m;
+	ue.new_meta = new_m;
 	undo_stack.Add(pick(ue));
 	redo_stack.Clear();
 	if(undo_stack.GetCount() > 50) undo_stack.Remove(0);
@@ -1740,7 +1767,7 @@ void OverviewerWindow::OnCompareScenario() {
 }
 
 void OverviewerWindow::OnScenarioMenu(Bar& bar) {
-	bar.Add("Create New...", THISBACK(OnCreateScenario));
+	bar.Add("Create New...", OverviewerImg::IconScenario(), THISBACK(OnCreateScenario));
 	bar.Add("Deactivate", THISBACK(OnDeactivateScenario)).Enable(!project.active_scenario_id.IsEmpty());
 	bar.Add("Apply Active", THISBACK(OnApplyScenario)).Enable(!project.active_scenario_id.IsEmpty());
 	bar.Add("Compare Diff", THISBACK(OnCompareScenario)).Enable(!project.active_scenario_id.IsEmpty());
@@ -1761,22 +1788,22 @@ void OverviewerWindow::MainMenu(Bar& bar) {
 }
 
 void OverviewerWindow::FileMenu(Bar& bar) {
-	bar.Add("New", THISBACK(New));
-	bar.Add("Open", THISBACK(Open));
-	bar.Add("Save", THISBACK(Save));
+	bar.Add("New", OverviewerImg::IconNew(), THISBACK(New));
+	bar.Add("Open", OverviewerImg::IconOpen(), THISBACK(Open));
+	bar.Add("Save", OverviewerImg::IconSave(), THISBACK(Save));
 	bar.Add("Save As", THISBACK(SaveAs));
 	bar.Separator();
-	bar.Add("Export Overview...", THISBACK(OnExportOverview));
+	bar.Add("Export Overview...", OverviewerImg::IconExport(), THISBACK(OnExportOverview));
 	bar.Separator();
 	bar.Add("Exit", THISBACK(Exit));
 }
 
 void OverviewerWindow::EditMenu(Bar& bar) {
-	bar.Add("Undo", THISBACK(Undo)).Key(K_CTRL_Z).Enable(!undo_stack.IsEmpty());
-	bar.Add("Redo", THISBACK(Redo)).Key(K_CTRL_Y).Enable(!redo_stack.IsEmpty());
+	bar.Add("Undo", OverviewerImg::IconUndo(), THISBACK(Undo)).Key(K_CTRL_Z).Enable(!undo_stack.IsEmpty());
+	bar.Add("Redo", OverviewerImg::IconRedo(), THISBACK(Redo)).Key(K_CTRL_Y).Enable(!redo_stack.IsEmpty());
 	bar.Separator();
 	bar.Add("Batch Edit...", THISBACK(OnBatchEdit));
-	bar.Add("Settings...", THISBACK(OnSettings));
+	bar.Add("Settings...", OverviewerImg::IconSettings(), THISBACK(OnSettings));
 }
 
 void OverviewerWindow::ViewMenu(Bar& bar) {
@@ -1788,30 +1815,30 @@ void OverviewerWindow::ViewMenu(Bar& bar) {
 		RefreshTree();
 	}).Check(filter.mode == 1);
 	bar.Separator();
-	bar.Add("Dashboard", THISBACK(OnShowDashboard));
-	bar.Add("Review Queue", THISBACK(OnShowReviewQueue));
-	bar.Add("Timeline", THISBACK(OnShowTimeline));
-	bar.Add("Action View", THISBACK(OnShowActionView));
-	bar.Add("Overview Preview", THISBACK(OnShowOverviewPreview));
-	bar.Add("Git History", THISBACK(OnShowGitHistory));
-	bar.Add("Sessions", THISBACK(OnShowSessions));
-	bar.Add("Decisions", THISBACK(OnShowDecisions));
-	bar.Add("Comments", THISBACK(OnShowComments));
-	bar.Add("Insights", THISBACK(OnShowInsights));
-	bar.Add("Usage Insights", THISBACK(OnShowUsage));
+	bar.Add("Dashboard", OverviewerImg::IconDashboard(), THISBACK(OnShowDashboard));
+	bar.Add("Review Queue", OverviewerImg::IconReview(), THISBACK(OnShowReviewQueue));
+	bar.Add("Timeline", OverviewerImg::IconTimeline(), THISBACK(OnShowTimeline));
+	bar.Add("Action View", OverviewerImg::IconAction(), THISBACK(OnShowActionView));
+	bar.Add("Overview Preview", OverviewerImg::IconPreview(), THISBACK(OnShowOverviewPreview));
+	bar.Add("Git History", OverviewerImg::IconGit(), THISBACK(OnShowGitHistory));
+	bar.Add("Sessions", OverviewerImg::IconSessions(), THISBACK(OnShowSessions));
+	bar.Add("Decisions", OverviewerImg::IconDecision(), THISBACK(OnShowDecisions));
+	bar.Add("Comments", OverviewerImg::IconComment(), THISBACK(OnShowComments));
+	bar.Add("Insights", OverviewerImg::IconInsights(), THISBACK(OnShowInsights));
+	bar.Add("Usage Insights", OverviewerImg::IconUsage(), THISBACK(OnShowUsage));
 	bar.Separator();
 	bar.Add("Reset Layout", THISBACK(ResetLayout));
 }
 
 void OverviewerWindow::ToolsMenu(Bar& bar) {
-	bar.Add("Analyze Selection", THISBACK(OnAnalyze));
-	bar.Add("Run Consistency Check", THISBACK(OnRunConsistencyCheck));
+	bar.Add("Analyze Selection", OverviewerImg::IconAnalyze(), THISBACK(OnAnalyze));
+	bar.Add("Run Consistency Check", OverviewerImg::IconConsistency(), THISBACK(OnRunConsistencyCheck));
 	bar.Separator();
-	bar.Add("Scenario", THISBACK(OnScenarioMenu));
+	bar.Add("Scenario", OverviewerImg::IconScenario(), THISBACK(OnScenarioMenu));
 	bar.Separator();
-	bar.Add("Add Comment", THISBACK(OnAddComment));
+	bar.Add("Add Comment", OverviewerImg::IconComment(), THISBACK(OnAddComment));
 	bar.Separator();
-	bar.Add("Refresh Git Status", THISBACK(OnRefreshGit));
+	bar.Add("Refresh Git Status", OverviewerImg::IconRefresh(), THISBACK(OnRefreshGit));
 }
 
 void OverviewerWindow::HelpMenu(Bar& bar) {
@@ -1819,12 +1846,12 @@ void OverviewerWindow::HelpMenu(Bar& bar) {
 }
 
 void OverviewerWindow::QuickActions(Bar& bar) {
-	bar.Add("Analyze", THISBACK(OnAnalyze));
-	bar.Add("Consistency", THISBACK(OnRunConsistencyCheck));
+	bar.Add("Analyze", OverviewerImg::IconAnalyze(), THISBACK(OnAnalyze));
+	bar.Add("Consistency", OverviewerImg::IconConsistency(), THISBACK(OnRunConsistencyCheck));
 	bar.Separator();
-	bar.Add("New Scenario", THISBACK(OnCreateScenario));
-	bar.Add("New Decision", [this]{ decision_pane.OnAdd(); });
-	bar.Add("Add Comment", THISBACK(OnAddComment));
+	bar.Add("New Scenario", OverviewerImg::IconScenario(), THISBACK(OnCreateScenario));
+	bar.Add("New Decision", OverviewerImg::IconDecision(), [this]{ decision_pane.OnAdd(); });
+	bar.Add("Add Comment", OverviewerImg::IconComment(), THISBACK(OnAddComment));
 	bar.Separator();
 	bar.Add(search_ctrl, 150);
 }

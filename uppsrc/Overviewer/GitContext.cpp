@@ -1,4 +1,5 @@
 #include "GitContext.h"
+#include <CtrlLib/CtrlLib.h>
 
 String GitContext::RunGit(const String& dir, const Vector<String>& args) {
 	String cmd = "git";
@@ -11,6 +12,7 @@ String GitContext::RunGit(const String& dir, const Vector<String>& args) {
 	while(lp.IsRunning()) {
 		out << lp.Get();
 		Sleep(1);
+		Ctrl::ProcessEvents();
 	}
 	out << lp.Get();
 	return out;

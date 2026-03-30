@@ -37,6 +37,24 @@ static EscValue PyToEscValue(const Upp::PyValue& pv)
 	if(pv.IsFloat()) {
 		return EscValue(pv.AsDouble());
 	}
+	if(pv.GetType() == Upp::PY_DICT) {
+		// Convert Python dict to EscValue map
+		const VectorMap<Upp::PyValue, Upp::PyValue>& py_dict = pv.GetDict();
+		EscValue result;
+		result.SetEmptyMap();
+		VectorMap<EscValue, EscValue>& esc_map = result.AsMap();
+		for(int i = 0; i < py_dict.GetCount(); i++) {
+			EscValue key = PyToEscValue(py_dict.GetKey(i));
+			EscValue val = PyToEscValue(py_dict[i]);
+			esc_map.Add(key, val);
+		}
+		return result;
+	}
+	if(pv.IsFunction()) {
+		// Python function - for now return empty EscValue
+		// The Esc system will look up the function by name from the module
+		return EscValue();
+	}
 	return EscValue();
 }
 

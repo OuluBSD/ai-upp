@@ -10,7 +10,7 @@ namespace Adventure {
 // Helper Functions
 // ============================================================================
 
-static Program* GetProgram(void* user_data)
+Program* GetProgram(void* user_data)
 {
 	return (Program*)user_data;
 }
@@ -23,16 +23,16 @@ EscValue PyFunctionWrapper::Call(const Vector<EscValue>& args)
 {
 	if(!prog || !func.IsFunction())
 		return EscValue();
-	
+
 	// Convert EscValue args to PyValue
 	Vector<PyValue> py_args;
 	for(int i = 0; i < args.GetCount(); i++) {
 		py_args.Add(EscToPyValue(args[i]));
 	}
-	
-	// Call Python function
-	PyValue result = prog->py_vm.Call(func, py_args);
-	
+
+	// Call Python function using public accessor
+	PyValue result = prog->GetPyVM().Call(func, py_args);
+
 	// Convert result back to EscValue
 	return PyToEscValue(result, prog);
 }
@@ -44,14 +44,14 @@ EscValue PyFunctionWrapper::Call(const Vector<EscValue>& args)
 // Convert EscValue to PyValue
 PyValue EscToPyValue(const EscValue& ev)
 {
-	if(ev.IsString()) {
-		return PyValue::String(ev.GetStr());
+	if(ev.IsStringLike()) {
+		return PyValue(ev.ToString());
 	}
 	if(ev.IsInt()) {
-		return PyValue::Int(ev.GetInt());
+		return PyValue((int64)ev.GetInt());
 	}
-	if(ev.IsDouble()) {
-		return PyValue::Float(ev.GetDouble());
+	if(ev.IsNumber()) {
+		return PyValue(ev.GetNumber());
 	}
 	if(ev.IsMap()) {
 		const VectorMap<EscValue, EscValue>& esc_map = ev.GetMap();
@@ -65,7 +65,7 @@ PyValue EscToPyValue(const EscValue& ev)
 	if(ev.IsArray()) {
 		const Vector<EscValue>& esc_arr = ev.GetArray();
 		PyValue py_list = PyValue::List();
-		Vector<PyValue>& l = py_list.GetListRW();
+		Vector<PyValue>& l = const_cast<Vector<PyValue>&>(py_list.GetArray());
 		for(int i = 0; i < esc_arr.GetCount(); i++) {
 			l.Add(EscToPyValue(esc_arr[i]));
 		}
@@ -125,9 +125,9 @@ PyValue AdventureBindings::change_room(const Vector<PyValue>& args, void* user_d
 		return PyValue::None();
 	}
 
-	// Extract room and fade parameters
-	PyValue room = args[0];
-	PyValue fade = args.GetCount() > 1 ? args[1] : PyValue();
+	// Convert PyValue to EscValue for ChangeRoom
+	EscValue room = PyToEscValue(args[0], prog);
+	EscValue fade = args.GetCount() > 1 ? PyToEscValue(args[1], prog) : EscValue();
 
 	// Call the C++ implementation
 	prog->ChangeRoom(room, fade);
@@ -513,8 +513,12 @@ PyValue AdventureBindings::cutscene(const Vector<PyValue>& args, void* user_data
 	PyValue setup_fn = args[1];
 	PyValue cleanup_fn = args.GetCount() > 2 ? args[2] : PyValue::None();
 
-	// Call Python cutscene function
-	prog->CutscenePy((SceneType)type, setup_fn, cleanup_fn);
+	// Call Python cutscene function directly
+	if(setup_fn.IsFunction()) {
+		Vector<PyValue> fn_args;
+		fn_args.Add(PyValue());  // self/context placeholder
+		prog->GetPyVM().Call(setup_fn, fn_args);
+	}
 
 	return PyValue::None();
 }

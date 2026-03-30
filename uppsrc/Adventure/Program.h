@@ -374,6 +374,7 @@ public:
 
 	// PyVM helper functions
 	static PyValue GetDictItem(const PyValue& dict, const char* key);
+	PyVM& GetPyVM() { return py_vm; }  // Access to PyVM for bindings
 
 	// Esc* handlers removed - use Python instead
 

@@ -66,7 +66,7 @@ String GetString(PasteClip& clip)
 	GuiLock __;
 	if(clip.Accept("wtext")) {
 		String s = ~clip;
-		return WString((const wchar *)~s, wstrlen((const wchar *)~s)).ToString();
+		return WString((const wchar *)~s, Utf16Len((const wchar *)~s)).ToString();
 	}
 	if(clip.IsAvailable("text"))
 		return ~clip;
@@ -78,7 +78,7 @@ WString GetWString(PasteClip& clip)
 	GuiLock __;
 	if(clip.Accept("wtext")) {
 		String s = ~clip;
-		return WString((const wchar *)~s, wstrlen((const wchar *)~s));
+		return WString((const wchar *)~s, Utf16Len((const wchar *)~s));
 	}
 	if(clip.IsAvailable("text"))
 		return (~clip).ToWString();
@@ -98,7 +98,7 @@ static String sText(const Value& data)
 
 static String sWText(const Value& data)
 {
-	return Unicode__(WString(data));
+	return ToUtf8(WString(data));
 }
 
 void Append(VectorMap<String, ClipData>& data, const String& text)
@@ -118,7 +118,7 @@ String GetTextClip(const WString& text, const String& fmt)
 	if(fmt == "text")
 		return text.ToString();
 	if(fmt == "wtext")
-		return Unicode__(text);
+		return ToUtf8(text);
 	return Null;
 }
 
@@ -127,7 +127,7 @@ String GetTextClip(const String& text, const String& fmt)
 	if(fmt == "text")
 		return text;
 	if(fmt == "wtext")
-		return Unicode__(text.ToWString());
+		return ToUtf8(text.ToWString());
 	return Null;
 }
 

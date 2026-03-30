@@ -10,6 +10,4 @@ file
 	main.cpp;
 
 mainconfig
-	"" = "GUI",
-	"" = "GUI MLUI";
-
+	"" = "GUI";

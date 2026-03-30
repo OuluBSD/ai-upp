@@ -88,7 +88,27 @@ void HandleSDLEvent(SDL_Event* event)
 		return;
 	if(event->type == SDL_ACTIVEEVENT)
 		return; // Focus/visibility changes, not input
+	
 	LOG("HandleSDLEvent: type=" << (int)event->type);
+	
+	switch(event->type) {
+		case SDL_KEYDOWN:
+			LOG("  KEYDOWN: sym=" << (int)event->key.keysym.sym << " unicode=" << (int)event->key.keysym.unicode);
+			break;
+		case SDL_KEYUP:
+			LOG("  KEYUP: sym=" << (int)event->key.keysym.sym << " unicode=" << (int)event->key.keysym.unicode);
+			break;
+		case SDL_MOUSEMOTION:
+			LOG("  MOUSEMOTION: x=" << event->motion.x << " y=" << event->motion.y);
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+			LOG("  MOUSEBUTTONDOWN: button=" << (int)event->button.button);
+			break;
+		case SDL_MOUSEBUTTONUP:
+			LOG("  MOUSEBUTTONUP: button=" << (int)event->button.button);
+			break;
+	}
+	
 	switch(event->type) {
 		case SDL_KEYDOWN:
 		case SDL_KEYUP: //SDL_KeyboardEvent

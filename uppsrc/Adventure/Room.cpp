@@ -86,23 +86,23 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 		ShowError("target door does not exist");
 		return;
 	}*/
-	EscValue selected_actor = GetSelectedActor();
-	
+	PyValue selected_actor = GetSelectedActor();
+
 	StateType from_state = GetState(from_door);
 	if (from_state != STATE_OPEN) {
 		SayLine("the door is closed");
 		return;
 	}
-	
+
 	// go to new room!
-	SObj new_room = GetInRoom(to_door);
+	SObj new_room = GetInRoom(PyToEscValue(selected_actor));
 
 	if (new_room.GetType() != room_curr.GetType() || !new_room.IsMap()) {
 		ChangeRoom(new_room, fade_effect); // switch to new room and ...
 
 		// ...auto-position actor at to_door in new room...
 		Point pos = GetUsePoint(to_door);
-		PutAt(selected_actor, pos.x, pos.y, new_room);
+		PutAt(PyToEscValue(selected_actor), pos.x, pos.y, new_room);
 	}
 	
 	FaceDir to_dir = GetFaceDir(to_door);
@@ -120,12 +120,12 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 	else {
 		opp_dir = FACE_FRONT;
 	}
-	
-	selected_actor.MapSet("face_dir", GetFaceString(opp_dir));
-	
+
+	Program::SetProp(selected_actor, "face_dir", PyValue(GetFaceString(opp_dir)));
+
 	// is target dir left? flip?
-	selected_actor.MapSet("flip", GetFaceDir(selected_actor) == FACE_LEFT);
-	
+	Program::SetProp(selected_actor, "flip", PyValue(GetFaceDirPy(selected_actor) == FACE_LEFT));
+
 }
 
 void Program::ChangeRoom(SObj new_room, SObj fade_) {
@@ -175,7 +175,7 @@ void Program::ChangeRoom(SObj new_room, SObj fade_) {
 	room_curr = py_room;
 
 	// reset camera pos in new room
-	if (cam_following_actor.IsVoid() || GetInRoom(cam_following_actor).IsVoid())
+	if (cam_following_actor.IsNone() || GetInRoomPy(cam_following_actor).IsNone())
 		cam = Point(0,0);
 
 	// stop everyone talking & remove displayed text
@@ -234,11 +234,10 @@ void Program::PutAt(SObj obj, int x, int y, SObj room) {
 }
 
 void Program::ChangeRoomPy(PyValue new_room, PyValue fade) {
-	if (new_room.GetType() != PY_DICT)
-		return;
-	
-	int fade_val = Program::PyInt(fade);
-	ChangeRoom(EscToPyValue(new_room), EscValue(fade_val));
+	// Convert PyValue to EscValue and call ChangeRoom
+	SObj new_room_sobj = PyToEscValue(new_room);
+	SObj fade_sobj = EscValue(Program::PyInt(fade));
+	ChangeRoom(new_room_sobj, fade_sobj);
 }
 
 }

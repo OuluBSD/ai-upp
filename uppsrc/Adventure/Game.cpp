@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -14,10 +15,10 @@ namespace Adventure {
 
 bool Program::ReadGame() {
 	auto& global = ctx.global;
-	
+
 	//DUMPM(global);
 	//RealizeGame();
-	
+
 	/*room_names.Clear();
 	FindRooms("", game, room_names);
 	if (room_names.IsEmpty()) {
@@ -25,8 +26,8 @@ bool Program::ReadGame() {
 		return false;
 	}*/
 	//DUMPC(room_names);
-	
-	if (!room_curr) {
+
+	if (room_curr.GetType() != PY_DICT) {
 		TODO
 		/*const SObj* found = FindDeep(room_names[0]);
 		if (!found || !found->IsMap()) {
@@ -35,30 +36,34 @@ bool Program::ReadGame() {
 		}
 		room_curr = *found;*/
 	}
-	
+
 	//rooms = game.MapGet("rooms");
-	rooms = global.Get("rooms", EscValue());
-	
-	if (!rooms.IsArray() || rooms.GetArray().IsEmpty()) {
+	rooms = EscToPyValue(global.Get("rooms", EscValue()));
+
+	if (rooms.GetType() != PY_LIST || rooms.GetArray().IsEmpty()) {
 		LOG("Program::ParseGame: error: could not find rooms");
 		return false;
 	}
-	
-	verbs = global.Get("verbs", SObj());
-	if (!verbs.IsArray()) {
+
+	verbs = EscToPyValue(global.Get("verbs", EscValue()));
+	if (verbs.GetType() != PY_LIST) {
 		LOG("No verbs in game");
 		return false;
 	}
-	
-	const Vector<EscValue>& verb_arr = verbs.GetArray();
+
+	const Vector<PyValue>& verb_arr = verbs.GetArray();
 	for(int i = 0; i < verb_arr.GetCount(); i++) {
-		const EscValue& verb = verb_arr[i];
-		if (!verb.IsMap() || verb.GetMap().Find("name") < 0 || verb.GetMap().Find("text") < 0) {
+		const PyValue& verb = verb_arr[i];
+		if (verb.GetType() != PY_DICT) {
 			LOG("Invalid verb");
 			return false;
 		}
-		String name = verb.MapGet("name");
-		if (name == "use")		V_USE = verb;
+		const VectorMap<PyValue, PyValue>& verb_dict = verb.GetDict();
+		if(verb_dict.Find(PyValue(WString("name"))) < 0 || verb_dict.Find(PyValue(WString("text"))) < 0) {
+			LOG("Invalid verb");
+			return false;
+		}
+		String name = verb_dict.Get(PyValue(WString("name"))).GetStr().ToString();
 		if (name == "use")		V_USE = verb;
 		if (name == "give")		V_GIVE = verb;
 		if (name == "push")		V_PUSH = verb;
@@ -82,24 +87,13 @@ bool Program::ReadGame() {
 		return false;
 	}
 	
-	/*EscValue def_verb = global.Get("verb_default", EscValue());
-	if (!def_verb.IsMap() || def_verb.GetMap().Find("name") < 0) {
-		LOG("No default verb defined");
-		return false;
-	}
-	String def_verb_name = def_verb.MapGet("name");
-	int def_verb_idx = verb_idx.Find(def_verb_name);
-	if (def_verb_idx < 0) {
-		LOG("Could not find default verb from list");
-		return false;
-	}*/
-	
-	int verb_default = global.Get("verb_default", -1);
-	if (verb_default < 0 || verb_default >= verb_idx.GetCount()) {
+	PyValue def_verb_val = EscToPyValue(global.Get("verb_default", EscValue()));
+	int verb_default_idx = Program::PyInt(def_verb_val);
+	if (verb_default_idx < 0 || verb_default_idx >= verb_idx.GetCount()) {
 		LOG("Invalid default inventory index");
 		return false;
 	}
-	verb_curr = verbs[verb_default];
+	verb_curr = verbs.GetArray()[verb_default_idx];
 	
 	
 	//LOG(game.ToString());

@@ -3,11 +3,11 @@
 namespace Adventure {
 	
 
-SObj Program::GetSelectedActor() {
+PyValue Program::GetSelectedActor() {
 	auto& global = ctx.global;
 	//DUMPC(global.GetKeys());
 	//ASSERT(global.Find("selected_actor") >= 0);
-	return global.Get("selected_actor", EscValue());
+	return EscToPyValue(global.Get("selected_actor", EscValue()));
 }
 
 
@@ -49,14 +49,16 @@ void Program::UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2) {
 
 void Program::PickupObj(SObj& obj, SObj& actor) {
 	// use actor spectified, || default to selected
-	if (actor.IsVoid())
-		actor = GetSelectedActor();
-	
+	if (actor.IsVoid()) {
+		PyValue actor_py = GetSelectedActor();
+		actor = PyToEscValue(actor_py);
+	}
+
 	TODO
 	/*add(actor.inventory, obj);
 	obj.owner = actor;
 	// remove it from room
-	
+
 	del(obj.in_room.objects, obj);*/
 }
 
@@ -79,15 +81,15 @@ void Program::SayLineActor(SObj& actor, String msg, bool use_caps, float duratio
 }
 
 void Program::SayLine(String msg) {
-	EscValue selected_actor = ctx.GetGlobal("selected_actor");
-	if (selected_actor)
-		SayLineActor(selected_actor, msg, false, 0);
+	PyValue selected_actor = GetSelectedActor();
+	if (selected_actor.GetType() != PY_NONE)
+		SayLineActor(PyToEscValue(selected_actor), msg, false, 0);
 }
 
 // stop everyone talking & remove displayed text
 void Program::StopTalking() {
 	talking_curr.Clear();
-	talking_actor = EscValue();
+	talking_actor = PyValue();
 }
 
 void Program::StopActor(SObj& actor) {
@@ -192,11 +194,13 @@ void Program::WalkTo(SObj a, int x, int y) {
 }
 
 void Program::WaitForActor(SObj& actor) {
-	if (actor.IsVoid())
-		actor = GetSelectedActor();
-	
+	if (actor.IsVoid()) {
+		PyValue actor_py = GetSelectedActor();
+		actor = PyToEscValue(actor_py);
+	}
+
 	ASSERT(actor.IsMap());
-	
+
 	// wait for (actor to stop moving/turning
 	while (actor.MapGet("moving").GetInt() != 2) {
 		TODO // yield();
@@ -205,10 +209,10 @@ void Program::WaitForActor(SObj& actor) {
 
 bool Program::WalkScript() {
 	auto& global = ctx.global;
-	
-	EscValue selected_actor = global.Get("selected_actor");
-	WalkTo(selected_actor, cursor_x + cam.x, cursor_y - stage_top);
-	
+
+	PyValue selected_actor = GetSelectedActor();
+	WalkTo(PyToEscValue(selected_actor), cursor_x + cam.x, cursor_y - stage_top);
+
 	// clear current command
 	ClearCurrCmd();
 	return false;
@@ -216,14 +220,15 @@ bool Program::WalkScript() {
 
 bool Program::VerbScript(EscValue vc2) {
 	auto& global = ctx.global;
-	
+
 	// if (obj not in inventory (or about to give/use it)...
-	if ((!noun1_curr("owner")
+	if ((!Program::GetProp(noun1_curr, "owner").GetType() != PY_NONE
 			 ? !HasFlag(Classes(noun1_curr), "class_actor")
 			 : vc2 != V_USE)
-		|| noun2_curr) {
-		SObj selected_actor = global.Get("selected_actor");
-		
+		|| noun2_curr.GetType() != PY_NONE) {
+		PyValue selected_actor_py = GetSelectedActor();
+		SObj selected_actor = PyToEscValue(selected_actor_py);
+
 		// walk to use pos and face dir
 		// determine which item we're walking to
 		SObj walk_obj = noun2_curr || noun1_curr;

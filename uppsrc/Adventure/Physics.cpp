@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -39,7 +40,11 @@ void Program::CheckCollisions() {
 		// capture bounds (even for ("invisible", but not untouchable/dependent, objects)
 		PyValue c = Program::ClassesPy(obj);
 		PyValue dep_on_key = Program::GetProp(obj, "dependent_on");
-		PyValue dep_on = dep_on_key.GetType() == PY_STR ? global.Get(dep_on_key, PyValue()) : PyValue();
+		PyValue dep_on;
+		if(dep_on_key.GetType() == PY_STR) {
+			String key_str = dep_on_key.GetStr().ToString();
+			dep_on = EscToPyValue(global.Get(key_str, EscValue()));
+		}
 		if ((c.IsNone() || (!c.IsNone() && !HasFlag(c, "class_untouchable")))
 			&& (dep_on.IsNone() // object has a valid dependent state?
 			 || Program::GetProp(dep_on, "state") == Program::GetProp(obj, "dependent_on_state"))) {
@@ -68,19 +73,20 @@ void Program::CheckCollisions() {
 	PyValue selected_actor = GetSelectedActorPy();
 
 	// check actor collisions
-	PyValue actors = global.Get(PyValue("actors"), PyValue());
+	PyValue actors_val = global.Get("actors", EscValue());
+	PyValue actors = EscToPyValue(actors_val);
 	if (actors.GetType() == PY_LIST) {
 		const Vector<PyValue>& actor_arr = actors.GetArray();
 		for(const PyValue& actor : actor_arr) {
 			PyValue in_room = Program::GetProp(actor, "in_room");
-			if (in_room == room_curr) {
+			if (in_room.GetPtr() == room_curr.GetPtr()) {
 				RecalculateBoundsPy(actor, (int)Program::PyInt(Program::GetProp(actor, "w"))*8, (int)Program::PyInt(Program::GetProp(actor, "h"))*8, cam.x, cam.y);
 
 				// recalc z-plane
 				RecalcZPlanePy(actor);
 
 				// are we colliding (ignore self!)
-				if (IsCursorCollidingPy(actor) && actor != selected_actor)
+				if (IsCursorCollidingPy(actor) && actor.GetPtr() != selected_actor.GetPtr())
 					hover_curr_object = actor;
 			}
 		}
@@ -88,11 +94,13 @@ void Program::CheckCollisions() {
 
 	if (selected_actor.GetType() != PY_NONE) {
 		// check ui/inventory collisions
-		for (const PyValue& v : verbs.GetArray()) {
+		const Vector<PyValue>& verbs_arr = verbs.GetArray();
+		for (const PyValue& v : verbs_arr) {
 			if (IsCursorCollidingPy(v))
 				hover_curr_verb = v;
 		}
-		for (const PyValue& a : ui_arrows.GetArray()) {
+		const Vector<PyValue>& arrows_arr = ui_arrows.GetArray();
+		for (const PyValue& a : arrows_arr) {
 			if (IsCursorCollidingPy(a))
 				hover_curr_arrow = a;
 		}
@@ -105,19 +113,18 @@ void Program::CheckCollisions() {
 				if (IsCursorCollidingPy(obj)) {
 					hover_curr_object = obj;
 					// pickup override for (inventory objects
-					if (verb_curr == V_PICKUP && Program::GetProp(hover_curr_object, "owner").GetType() != PY_NONE)
+					if (verb_curr.GetPtr() == V_PICKUP.GetPtr() && Program::GetProp(hover_curr_object, "owner").GetType() != PY_NONE)
 						verb_curr = PyValue();
 				}
 				// check for (disowned objects!
 				PyValue owner = Program::GetProp(obj, "owner");
-				if (owner != selected_actor) {
-					Vector<PyValue> new_inv;
-					for(const PyValue& item : inv_arr) {
-						if(item != obj)
-							new_inv.Add(item);
-					}
+				if (owner.GetPtr() != selected_actor.GetPtr()) {
 					PyValue new_inv_list = PyValue::List();
-					const_cast<Vector<PyValue>&>(new_inv_list.GetArray()) = new_inv;
+					Vector<PyValue>& new_inv_arr = const_cast<Vector<PyValue>&>(new_inv_list.GetArray());
+					for(const PyValue& item : inv_arr) {
+						if(item.GetPtr() != obj.GetPtr())
+							new_inv_arr.Add(item);
+					}
 					Program::SetProp(selected_actor, "inventory", new_inv_list);
 				}
 			}
@@ -125,11 +132,11 @@ void Program::CheckCollisions() {
 
 		// default to walkto (if (nothing set)
 		if (verb_curr.IsNone())
-			verb_curr = GetVerb(verb_default);
+			verb_curr = GetVerb(Program::PyInt(verb_default));
 
 		// update "default" verb for (hovered object (if (any)
 		hover_curr_default_verb =
-			hover_curr_object ? FindDefaultVerb(hover_curr_object) : hover_curr_default_verb;
+			hover_curr_object.GetType() != PY_NONE ? FindDefaultVerb(PyToEscValue(hover_curr_object)) : hover_curr_default_verb;
 	}
 }
 
@@ -272,14 +279,15 @@ void Program::FindPath(Point start, Point goal, Vector<Point>& path) {
 	};
 	ArrayMap<Point, Node> frontier, visited;
 	frontier.Add(start).Set(start, 0, 0, GetDistance(start, goal));
-	
+
 	const int frontier_limit = 1000;
-	
-	SObj map = room_curr("map");
-	int rc_map_x = map[0];
-	int rc_map_y = map[1];
-	int rc_map_w = map[2];
-	int rc_map_h = map[3];
+
+	PyValue map_py = Program::GetProp(room_curr, "map");
+	const Vector<PyValue>& map_arr = map_py.GetArray();
+	int rc_map_x = Program::PyInt(map_arr[0]);
+	int rc_map_y = Program::PyInt(map_arr[1]);
+	int rc_map_w = Program::PyInt(map_arr[2]);
+	int rc_map_h = Program::PyInt(map_arr[3]);
 	Node* lowest_dist_node = 0;
 	while (!frontier.IsEmpty() && frontier.GetCount() < frontier_limit) {
 		double lowest_dist = DBL_MAX;

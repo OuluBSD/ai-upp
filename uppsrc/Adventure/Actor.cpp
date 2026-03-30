@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 	
@@ -12,39 +13,39 @@ PyValue Program::GetSelectedActor() {
 
 
 // actions to perform when object doesn't have an entry for (verb
-void Program::UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2) {
+void Program::UnsupportedAction(PyValue verb, SObj& obj1, SObj& obj2) {
 	bool is_actor = HasFlag(Classes(obj1), "class_actor");
 
-	if (verb == V_WALKTO)
+	if (verb.GetPtr() == V_WALKTO.GetPtr())
 		return;
 
-	else if (verb == V_PICKUP)
+	else if (verb.GetPtr() == V_PICKUP.GetPtr())
 		SayLine(is_actor ? "i don't need them" : "i don't need that");
 
-	else if (verb == V_USE)
+	else if (verb.GetPtr() == V_USE.GetPtr())
 		SayLineActor(is_actor ? obj1 : obj2,
 			is_actor ? "i can't just *use* someone" :
 				(HasFlag(Classes(obj2), "class_actor") ?
 					"i can't use that on someone!" : "that doesn't work"));
 
-	else if (verb == V_GIVE)
+	else if (verb.GetPtr() == V_GIVE.GetPtr())
 		SayLine(is_actor ? "i don't think i should be giving this away" : "i can't do that");
 
-	else if (verb == V_LOOKAT)
+	else if (verb.GetPtr() == V_LOOKAT.GetPtr())
 		SayLine(is_actor ? "i think it's alive" : "looks pretty ordinary");
 
-	else if (verb == V_OPEN || verb == V_CLOSE)
-		SayLine(String(is_actor ? "they don't" : "it doesn't")  + " seem to " + GetVerbString(verb));
+	else if (verb.GetPtr() == V_OPEN.GetPtr() || verb.GetPtr() == V_CLOSE.GetPtr())
+		SayLine(String(is_actor ? "they don't" : "it doesn't")  + " seem to " + GetVerbString(PyToEscValue(verb)));
 
-	else if (verb == V_PUSH || verb == V_PULL)
+	else if (verb.GetPtr() == V_PUSH.GetPtr() || verb.GetPtr() == V_PULL.GetPtr())
 		SayLine(is_actor ? "moving them would accomplish nothing" : "it won't budge!");
 
-	else if (verb == V_TALKTO)
+	else if (verb.GetPtr() == V_TALKTO.GetPtr())
 		SayLine(is_actor ? "erm ...  i don't think they want to talk" : "i am not talking to that!");
 
 	else
 		SayLine("hmm. no.");
-	
+
 }
 
 void Program::PickupObj(SObj& obj, SObj& actor) {
@@ -63,13 +64,13 @@ void Program::PickupObj(SObj& obj, SObj& actor) {
 }
 
 // uses actor's position and color
-void Program::SayLineActor(SObj& actor, String msg, bool use_caps, float duration) {
+void Program::SayLineActor(SObj actor, String msg, bool use_caps, float duration) {
 	if (duration == 0)
 		duration = 1.0f;
-	
+
 	// trigger actor's talk anim
-	talking_actor = actor;
-	
+	talking_actor = EscToPyValue(actor);
+
 	// offset to display speech above actors (dist in px from their feet)
 	// call the base PrintLine to show actor line
 	int x = actor("x",0);
@@ -104,13 +105,14 @@ void Program::StopActor(SObj& actor) {
 // walk actor to position
 void Program::WalkTo(SObj a, int x, int y) {
 	Point actor_cell_pos = GetCellPos(a);
-	EscValue map = room_curr("map");
-	int map_x = map(0,0);
-	int map_y = map(1,0);
+	PyValue map_py = Program::GetProp(room_curr, "map");
+	const Vector<PyValue>& map_arr = map_py.GetArray();
+	int map_x = Program::PyInt(map_arr[0]);
+	int map_y = Program::PyInt(map_arr[1]);
 	int celx = x / 8 + map_x;
 	int cely = y / 8 + map_y;
 	Point target_cell_pos(celx, cely);
-	
+
 	// use pathfinding!
 	FindPath(actor_cell_pos, target_cell_pos, path);
 	
@@ -125,11 +127,12 @@ void Program::WalkTo(SObj a, int x, int y) {
 		SObj auto_scale = a("auto_scale", 1.0);
 		double s = scale ? scale : auto_scale;
 		double scaled_speed = walk_speed * s;
-		
+
 		//local y_speed = actor.walk_speed/2 // removed, messes up the a* pathfinding
-		SObj rc_map = room_curr("map");
-		int rc_map_x = rc_map[0];
-		int rc_map_y = rc_map[1];
+		PyValue rc_map_py = Program::GetProp(room_curr, "map");
+		const Vector<PyValue>& rc_map_arr = rc_map_py.GetArray();
+		int rc_map_x = Program::PyInt(rc_map_arr[0]);
+		int rc_map_y = Program::PyInt(rc_map_arr[1]);
 		int px = (p.x - rc_map_x) * 8 + 4;
 		int py = (p.y - rc_map_y) * 8 + 4;
 		

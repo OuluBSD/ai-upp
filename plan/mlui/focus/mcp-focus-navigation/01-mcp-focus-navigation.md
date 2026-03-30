@@ -4,8 +4,22 @@
 Provide practical MCP tooling (`pysrc/bin/mcp_mlui.py`) for browsing large MLUI trees through focus pages using shell-like navigation and fast filtering.
 
 ## Current Status
-- MCP MLUI tooling exists but focus-page aware UX is incomplete.
-- Large raw row sets are difficult to consume directly.
+- MCP MLUI tooling now includes focus forwarding and compact detail helpers.
+- Path navigation (`cd/ls/tree/find`) is available and working with snapshot index.
+
+## Progress Update (2026-03-30)
+Completed:
+1. Added focus method forwarding in `pysrc/bin/mcp_mlui.py`:
+   - `mlui.focus.list`, `mlui.focus.get`, `mlui.focus.tree`, `mlui.focus.search`, `mlui.focus.action`
+2. Added compact detail endpoint:
+   - `mlui.focus.detail` (page summary + optional item detail for value/ctrl/action)
+3. Added helper command:
+   - `mcp.help` with command flow examples
+4. Updated README method list/examples for focus methods.
+
+Remaining:
+1. Add explicit arg schemas to `mcp.help` output for each focus method (machine-readable).
+2. Add one “session macro” helper flow (`select -> set_priority -> verify`) for common Overviewer workflows.
 
 ## Next Tasks
 1. Add path-oriented focus navigation commands:

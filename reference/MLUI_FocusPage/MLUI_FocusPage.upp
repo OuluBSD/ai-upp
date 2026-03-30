@@ -1,0 +1,15 @@
+description "MLUI FocusPage reference package (design-first)\377";
+
+uses
+	CtrlLib;
+
+file
+	AGENTS.md,
+	README.md,
+	MLUI_FocusPage.h,
+	main.cpp;
+
+mainconfig
+	"" = "GUI",
+	"" = "GUI MLUI";
+

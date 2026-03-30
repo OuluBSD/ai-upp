@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -181,17 +182,17 @@ void Program::InputButtonPressed(dword button_index) {
 		//else
 		// what else could there be? actors!?
 	}
-	
-	SObj vc2 = verb_curr;
-	
+
+	PyValue vc2 = verb_curr;
+
 	// attempt to use verb on object (if is not already executing verb)
 	if (noun1_curr.GetType() != PY_NONE) {
 		// are we starting a 'use' command?
-		if (vc2 == V_USE || vc2 == V_GIVE) {
+		if (vc2.GetPtr() == V_USE.GetPtr() || vc2.GetPtr() == V_GIVE.GetPtr()) {
 			if (noun2_curr.GetType() != PY_NONE) {
 				// 'use' part 2
 			}
-			else if (Program::GetProp(noun1_curr, "use_with").GetType() != PY_NONE && Program::GetProp(noun1_curr, "owner") == selected_actor) {
+			else if (Program::GetProp(noun1_curr, "use_with").GetType() != PY_NONE && Program::GetProp(noun1_curr, "owner").GetPtr() == selected_actor.GetPtr()) {
 				// 'use' part 1 (e.g. "use hammer")
 				// wait for (noun2 to be set
 				return;
@@ -200,7 +201,7 @@ void Program::InputButtonPressed(dword button_index) {
 
 		// execute verb script
 		executing_cmd = true;
-		StartScript(THISBACK1(VerbScript, vc2), 0);
+		StartScript(THISBACK1(VerbScript, PyToEscValue(vc2)), 0);
 	}
 	else if (cursor_y > stage_top && cursor_y < stage_top + 64) {
 		// in map area

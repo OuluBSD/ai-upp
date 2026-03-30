@@ -374,8 +374,8 @@ public:
 	void ResetPalette();
 	void ResetUI();
 	void Shake(bool enabled);
-	PyValue FindDefaultVerb(SObj& obj);
-	void UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2);
+	PyValue FindDefaultVerb(SObj obj);
+	void UnsupportedAction(PyValue verb, SObj& obj1, SObj& obj2);
 	void CameraAt(const Point& val);
 
 	// PyVM helper functions
@@ -427,7 +427,7 @@ public:
 	void RemoveStoppedScripts();
 	void BreakTime(int jiffies=0);
 	//void WaitForMessage();
-	void SayLineActor(SObj& actor, String msg, bool use_caps=false, float duration=1.0f);
+	void SayLineActor(SObj actor, String msg, bool use_caps=false, float duration=1.0f);
 	void SayLine(String msg);
 	void StopTalking();
 	void PrintLine(String msg, int x, int y, int col, int align, bool use_caps, float duration, bool big_font);

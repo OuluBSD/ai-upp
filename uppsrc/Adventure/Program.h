@@ -375,7 +375,7 @@ public:
 	void ResetUI();
 	void Shake(bool enabled);
 	PyValue FindDefaultVerb(SObj obj);
-	void UnsupportedAction(PyValue verb, SObj& obj1, SObj& obj2);
+	void UnsupportedAction(PyValue verb, PyValue obj1, PyValue obj2);
 	void CameraAt(const Point& val);
 
 	// PyVM helper functions
@@ -447,7 +447,7 @@ public:
 	void CheckCollisions();
 	void ResetZPlanes();
 	void RecalcZPlane(SObj& obj);
-	void RecalcZPlanePy(PyValue& obj);
+	void RecalcZPlanePy(const PyValue& obj);
 	bool InitGame();
 	bool IsTable(SObj& t);
 	Point CenterCamera(Point val);

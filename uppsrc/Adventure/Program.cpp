@@ -46,32 +46,44 @@ Program::Program() {
 
 bool Program::InitPyVM() {
 	LOG("InitPyVM: Starting initialization");
-	
+
 	// Initialize PyVM and register all bindings
 	AdventureBindings::RegisterAll(vm, *this);
 	LOG("InitPyVM: Registered bindings");
 
-	// Load Python game script if it exists
-	String game_py_path = GetDataFile("Game.py");
-	LOG("InitPyVM: Looking for Game.py at: " << game_py_path);
+	// Load Python game script - try Demo.py first for testing
+	String game_py_path = GetDataFile("Demo.py");
+	LOG("InitPyVM: Looking for Demo.py at: " << game_py_path);
 
-	if (FileExists(game_py_path)) {
+	bool found = FileExists(game_py_path);
+	LOG("InitPyVM: Demo.py exists=" << found);
+	
+	if (!found) {
+		game_py_path = GetDataFile("Game.py");
+		LOG("InitPyVM: Demo.py not found, trying Game.py at: " << game_py_path);
+		found = FileExists(game_py_path);
+		LOG("InitPyVM: Game.py exists=" << found);
+	}
+
+	if (found) {
 		String src = LoadFile(game_py_path);
 		LOG("InitPyVM: Loaded " << src.GetCount() << " bytes");
 
 		if (!src.IsEmpty()) {
-			if (vm.LoadModule("game", src, game_py_path)) {
-				LOG("InitPyVM: SUCCESS - Game.py loaded");
+			String module_name = game_py_path.Find("Demo.py") >= 0 ? "demo" : "game";
+			LOG("InitPyVM: Loading module '" << module_name << "'");
+			if (vm.LoadModule(module_name, src, game_py_path)) {
+				LOG("InitPyVM: SUCCESS - " << module_name << ".py loaded");
 			} else {
 				LOG("InitPyVM: FAILED - LoadModule returned error");
 				return false;
 			}
 		} else {
-			LOG("InitPyVM: FAILED - Game.py is empty");
+			LOG("InitPyVM: FAILED - Python file is empty");
 			return false;
 		}
 	} else {
-		LOG("InitPyVM: FAILED - Game.py not found");
+		LOG("InitPyVM: FAILED - Python file not found at either location");
 		return false;
 	}
 

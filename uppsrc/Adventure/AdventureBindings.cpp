@@ -1012,6 +1012,7 @@ PyValue AdventureBindings::obj_set_x(const Vector<PyValue>& args, void* user_dat
 
 void AdventureBindings::RegisterAll(PyVM& vm, Program& prog)
 {
+	LOG("RegisterAll: Starting to register Python bindings");
 	PyValue globals = vm.GetGlobals();
 
 	// ========================================================================
@@ -1029,6 +1030,7 @@ void AdventureBindings::RegisterAll(PyVM& vm, Program& prog)
 	globals.SetItem(PyValue("is_in_room"), PyValue::Function("is_in_room", is_in_room, &prog));
 	globals.SetItem(PyValue("get_distance"), PyValue::Function("get_distance", get_distance, &prog));
 	globals.SetItem(PyValue("face_direction"), PyValue::Function("face_direction", face_direction, &prog));
+	LOG("RegisterAll: Registered 12 core functions");
 
 	// ========================================================================
 	// UI Functions - Dialog & Text (10 total)
@@ -1043,6 +1045,7 @@ void AdventureBindings::RegisterAll(PyVM& vm, Program& prog)
 	globals.SetItem(PyValue("clear_dialog"), PyValue::Function("clear_dialog", clear_dialog, &prog));
 	globals.SetItem(PyValue("say_get"), PyValue::Function("say_get", say_get, &prog));
 	globals.SetItem(PyValue("stop_talking"), PyValue::Function("stop_talking", stop_talking, &prog));
+	LOG("RegisterAll: Registered 10 UI functions");
 
 	// ========================================================================
 	// Game Logic Functions - Scripts, Inventory, Objects (15 total)
@@ -1062,6 +1065,7 @@ void AdventureBindings::RegisterAll(PyVM& vm, Program& prog)
 	globals.SetItem(PyValue("get_selected_actor"), PyValue::Function("get_selected_actor", get_selected_actor, &prog));
 	globals.SetItem(PyValue("open_door"), PyValue::Function("open_door", open_door, &prog));
 	globals.SetItem(PyValue("close_door"), PyValue::Function("close_door", close_door, &prog));
+	LOG("RegisterAll: Registered 15 game logic functions");
 
 	// ========================================================================
 	// Drawing Functions (9 total)
@@ -1075,12 +1079,14 @@ void AdventureBindings::RegisterAll(PyVM& vm, Program& prog)
 	globals.SetItem(PyValue("line"), PyValue::Function("line", line, &prog));
 	globals.SetItem(PyValue("pal"), PyValue::Function("pal", pal, &prog));
 	globals.SetItem(PyValue("rectfill"), PyValue::Function("rectfill", rectfill, &prog));
+	LOG("RegisterAll: Registered 9 drawing functions");
 
 	// ========================================================================
 	// Audio Functions (2 total)
 	// ========================================================================
 	globals.SetItem(PyValue("sfx"), PyValue::Function("sfx", sfx, &prog));
 	globals.SetItem(PyValue("music"), PyValue::Function("music", music, &prog));
+	LOG("RegisterAll: Registered 2 audio functions");
 
 	// ========================================================================
 	// Object Property Access (4 total)

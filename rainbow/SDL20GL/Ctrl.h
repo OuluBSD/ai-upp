@@ -71,6 +71,9 @@ public:
 
 	static int  GetCaretBlinkTime()            { return 500; }
 
+	static int  RegisterSystemHotKey(dword key, Callback cb)    { return -1; }
+	static void UnregisterSystemHotKey(int id)                  { }
+
 	static void PaintScene(SystemDraw& draw);
 	static void PaintCaretCursor(SystemDraw& draw);
 	

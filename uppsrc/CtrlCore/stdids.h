@@ -1,3 +1,6 @@
+#ifndef _CtrlCore_stdids_h_
+#define _CtrlCore_stdids_h_
+
 enum StandardDialogIds__ {
 	IDOK = 1,
 	IDCANCEL = 2,
@@ -9,3 +12,5 @@ enum StandardDialogIds__ {
 	IDCLOSE = 8,
 	IDHELP = 9,
 };
+
+#endif

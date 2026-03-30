@@ -266,28 +266,44 @@ bool Script::RunEscSteps() {
 
 
 void Program::Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override) {
-	
+
 	/*cut = {
 		flags = type,
 		thrd = cocreate(func_cutscene),
 		override_ = func_override,
 		paused_cam_following = cam_following_actor
 	};*/
-	
+
 	if (cutscene_override.IsVoid()) {
 		cutscene_override = func_override;
-		
+
 		Script& cut = AddCutscene("cutscene0");
 		cut.user_type = type;
 		cut.WhenStop = THISBACK(ClearCutsceneOverride);
 		cut.Set(0, func_cutscene, room_curr);
-		
+
 		// set as active cutscene
 		cutscene_curr = &cut;
 	}
 	else {
 		StartScriptEsc(self, cutscene_override, 0);
 	}
+}
+
+// PyVM version: calls Python functions for cutscene
+void Program::CutscenePy(SceneType type, const PyValue& func_cutscene, const PyValue& func_override) {
+	if(!func_cutscene.IsFunction()) {
+		LOG("CutscenePy: func_cutscene is not a function");
+		return;
+	}
+
+	// Call Python cutscene function with current room
+	Vector<PyValue> args;
+	args.Add(room_curr_py);
+	py_vm.Call(func_cutscene, args);
+
+	// Clear cutscene after completion
+	cutscene_curr = nullptr;
 }
 
 void Program::ClearCutsceneOverride(EscAnimProgram& s) {

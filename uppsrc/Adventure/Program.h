@@ -332,12 +332,14 @@ protected:
 
 	// Script
 	PyVM vm;  // PyVM for Python script execution
+	PyVM py_vm;  // Alias for vm (for consistency)
 	EscAnimContext ctx;  // EscAnimContext for animation system (keep for now)
 	EscValue rooms;
 	EscValue cutscene_override;
 	EscValue verbs;
 	EscValue V_DEFAULT, V_USE, V_GIVE, V_PUSH, V_PULL, V_WALKTO, V_PICKUP, V_LOOKAT, V_OPEN, V_CLOSE, V_TALKTO;
 	EscValue room_curr;
+	PyValue room_curr_py;  // Python room object (PyVM)
 	Script* scr_obj = 0;
 	int V_COUNT = 0;
 	Index<String> verb_idx;
@@ -369,8 +371,11 @@ public:
 	EscValue FindDefaultVerb(SObj& obj);
 	void UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2);
 	void CameraAt(const Point& val);
-	
-	
+
+	// PyVM helper functions
+	static PyValue GetDictItem(const PyValue& dict, const char* key);
+
+
 	void EscCameraFollow(EscEscape& e);
 	void EscChangeRoom(EscEscape& e);
 	void EscCutscene(EscEscape& e);
@@ -411,6 +416,7 @@ public:
 	void ClearCutsceneOverride(EscAnimProgram& s);
 	void CameraFollow(SObj actor);
 	void ChangeRoom(SObj new_room, SObj fade);
+	void ChangeRoomPy(const PyValue& new_room, const PyValue& fade);  // PyVM version
 	bool CamScript0();
 	bool CamScript1();
 	bool VerbScript(EscValue vc2);
@@ -418,6 +424,7 @@ public:
 	void CameraPanTo(SObj& val);
 	bool ScriptRunning(Script& script);
 	void Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override);
+	void CutscenePy(SceneType type, const PyValue& func_cutscene, const PyValue& func_override);  // PyVM version
 	void DialogAdd(const String& msg);
 	void DialogStart(int col, int hlcol);
 	void DialogHide();
@@ -541,12 +548,12 @@ class ProgramDraw : public Ctrl {
 	void Animate(SObj obj);
 	void GetPaletteImage(const byte* src, Size src_sz, Image& out);
 	
-	
+
 protected:
 	friend class Program;
 	ImageDraw* img_draw = 0;
-	
-	
+
+
 public:
 	
 	ProgramDraw();

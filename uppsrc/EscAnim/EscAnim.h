@@ -8,6 +8,8 @@
 
 NAMESPACE_UPP
 
+#include <Core/MathNumeric/Math.h>
+
 #include "Common.h"
 #include "Object.h"
 #include "Scene.h"

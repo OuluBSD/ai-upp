@@ -193,6 +193,73 @@ void Program::ChangeRoom(SObj new_room, SObj fade_) {
 	}
 }
 
+// PyVM version: works with Python room objects directly
+void Program::ChangeRoomPy(const PyValue& new_room, const PyValue& fade_) {
+	if(new_room.GetType() != PY_DICT) {
+		LOG("ChangeRoomPy: room is not a dict");
+		return;
+	}
+
+	int fade = 0;
+	if(fade_.IsInt())
+		fade = (int)fade_.AsInt();
+
+	// Stop any existing fade
+	if(fade_script) {
+		StopScript(*fade_script);
+		fade_script = 0;
+	}
+
+	// Fade out existing room
+	if(fade && room_curr.GetType() != ESC_VOID) {
+		Fades(fade, 1);
+	}
+
+	// Execute room exit callback (Python function)
+	if(room_curr_py.GetType() == PY_DICT) {
+		PyValue exit_fn = Program::GetDictItem(room_curr_py, "exit");
+		if(exit_fn.IsFunction()) {
+			Vector<PyValue> args;
+			args.Add(room_curr_py);
+			py_vm.Call(exit_fn, args);
+		}
+	}
+
+	// Stop all active (local) scripts
+	ctx.RemoveProgramGroup(SCRIPT_LOCAL);
+
+	// Clear current command
+	ClearCurrCmd();
+
+	// Change to new room
+	room_curr_py = new_room;
+
+	// Reset camera position
+	if(cam_following_actor.IsVoid())
+		cam = Point(0, 0);
+
+	// Stop talking
+	StopTalking();
+
+	// Fade in
+	if(fade) {
+		StartScript(THISBACK2(Fades, fade, -1), true);
+	}
+	else {
+		fade_iris = 0;
+	}
+
+	// Execute room enter callback (Python function)
+	if(room_curr_py.GetType() == PY_DICT) {
+		PyValue enter_fn = Program::GetDictItem(room_curr_py, "enter");
+		if(enter_fn.IsFunction()) {
+			Vector<PyValue> args;
+			args.Add(room_curr_py);
+			py_vm.Call(enter_fn, args);
+		}
+	}
+}
+
 void Program::PutAt(SObj obj, int x, int y, SObj room) {
 	//GetReference(obj, true);
 	//GetReference(room, true);

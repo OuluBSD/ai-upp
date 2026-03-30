@@ -304,14 +304,14 @@ protected:
 	Sentence* selected_sentence = 0;
 	Dialog dialog_curr;
 
-	SObj hover_curr_arrow;
+	PyValue hover_curr_arrow;
 
 	int fade_iris = 0;
 	int cutscene_cooloff = 0;
 	Script* fade_script = 0;
 
 	Array<TalkingState> talking_curr;
-	SObj talking_actor;
+	PyValue talking_actor;
 
 	PyValue ui_arrows;
 	PyValue arrow[2];
@@ -451,6 +451,7 @@ public:
 	bool IsTable(SObj& t);
 	Point CenterCamera(Point val);
 	Point CenterCamera(SObj& val);
+	Point CenterCameraPy(PyValue val);
 	Point GetCellPos(SObj& obj);
 	bool IsCellWalkable(int celx, int cely);
 	void CreateTextLines(String msg, int max_line_length, Vector<String>& lines);
@@ -556,6 +557,7 @@ public:
 	void PaintTalking(Draw& d, double dt);
 	void OutlineText(Draw& d, String str, int x, int y, int c0, int c1, bool use_caps, bool big_font);
 	void PaintObject(Draw& d, SObj obj);
+	void PaintObjectPy(Draw& d, PyValue obj);
 	void PaintActor(Draw& d, SObj actor);
 	void PaintCommand(Draw& d);
 	void PaintUI(Draw& d);

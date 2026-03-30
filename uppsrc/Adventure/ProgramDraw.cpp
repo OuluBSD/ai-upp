@@ -418,7 +418,7 @@ void ProgramDraw::PaintUI(Draw& d) {
 				Program::SetProp(obj, "y", PyValue(ypos));
 
 				// draw object/sprite
-				PaintObject(d, obj);
+				PaintObjectPy(d, obj);
 
 				// re-calculate bounds (as pos may have changed)
 				int w = Program::PyInt(Program::GetProp(obj, "w"));
@@ -652,8 +652,14 @@ void ProgramDraw::PaintObject(Draw& d, SObj o) {
      
 	//reset palette
 	ResetPalette();
-	
+
  }
+
+void ProgramDraw::PaintObjectPy(Draw& d, PyValue o) {
+	// PyValue version - convert to SObj and call original
+	SObj o_sobj = PyToEscValue(o);
+	PaintObject(d, o_sobj);
+}
 
 
 void ProgramDraw::Animate(SObj obj) {
@@ -764,28 +770,28 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 	double scale0 = Program::PyInt(scale_arr[0]);
 	double scale1 = Program::PyInt(scale_arr[1]);
 	double scale2 = Program::PyInt(scale_arr[2]);
-	double actor_y = Program::PyInt(Program::GetProp(a, "y"));
+	double actor_y = Program::PyInt(Program::GetProp(a_py, "y"));
 	double factor = (actor_y - pos0) / (pos1 - pos0);
 	factor = scale0 + (scale1 - scale0) * factor;
-	Program::SetProp(a, "auto_scale", PyValue(factor));
+	Program::SetProp(a_py, "auto_scale", PyValue(factor));
 
 	// apply "zoom" to autoscale (e.g. camera further away)
 	//auto_scale *= (r.scale || 1)
 
 
 	// calc scaling offset (to align to bottom-centered)
-	PyValue a_scale = Program::GetProp(a, "scale");
-	PyValue a_auto_scale = Program::GetProp(a, "auto_scale");
+	PyValue a_scale = Program::GetProp(a_py, "scale");
+	PyValue a_auto_scale = Program::GetProp(a_py, "auto_scale");
 	ASSERT(a_scale.GetType() != PY_NONE || a_auto_scale.GetType() != PY_NONE);
 	if (a_scale.IsNone() && a_auto_scale.IsNone())
 		return;
 	double scale = a_scale.GetType() != PY_NONE ? Program::PyInt(a_scale) : Program::PyInt(a_auto_scale);
-	int a_w = Program::PyInt(Program::GetProp(a, "w"));
-	int a_h = Program::PyInt(Program::GetProp(a, "h"));
-	int a_offset_x = Program::PyInt(Program::GetProp(a, "offset_x"));
-	int a_offset_y = Program::PyInt(Program::GetProp(a, "offset_y"));
-	int a_trans_col = Program::PyInt(Program::GetProp(a, "trans_col"));
-	int a_flip = Program::PyInt(Program::GetProp(a, "flip"));
+	int a_w = Program::PyInt(Program::GetProp(a_py, "w"));
+	int a_h = Program::PyInt(Program::GetProp(a_py, "h"));
+	int a_offset_x = Program::PyInt(Program::GetProp(a_py, "offset_x"));
+	int a_offset_y = Program::PyInt(Program::GetProp(a_py, "offset_y"));
+	int a_trans_col = Program::PyInt(Program::GetProp(a_py, "trans_col"));
+	int a_flip = Program::PyInt(Program::GetProp(a_py, "flip"));
 	double scale_height = 8 * a_h;
 	double scale_width = 8 * a_w;
 	double scaleoffset_y = scale_height - (scale_height * scale);
@@ -808,16 +814,16 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 
 
 	// talking overlay
-	PyValue t = EscToPyValue(p->talking_actor);
-	if (t.GetType() != PY_NONE && t.GetPtr() == a.GetPtr()) {
+	PyValue t = p->talking_actor;
+	if (t.GetType() != PY_NONE && t.GetPtr() == a_py.GetPtr()) {
 		PyValue talk_prop = Program::GetProp(t, "talk");
 		if (talk_prop.GetType() != PY_NONE) {
-			int talk_tmr = Program::PyInt(Program::GetProp(a, "talk_tmr"));
+			int talk_tmr = Program::PyInt(Program::GetProp(a_py, "talk_tmr"));
 			if (talk_tmr < 7) {
 				// note: scaling from top-left
-				PyValue talk = Program::GetProp(a, "talk");
-			int trans_col = Program::PyInt(Program::GetProp(a, "trans_col"));
-			int flip = Program::PyInt(Program::GetProp(a, "flip"));
+				PyValue talk = Program::GetProp(a_py, "talk");
+			int trans_col = Program::PyInt(Program::GetProp(a_py, "trans_col"));
+			int flip = Program::PyInt(Program::GetProp(a_py, "flip"));
 			PaintSprite(
 					d,
 					gfx,
@@ -831,7 +837,7 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 					false,
 					scale);
 		}
-		Program::SetProp(a, "talk_tmr", PyValue(talk_tmr % 14 + 1));
+		Program::SetProp(a_py, "talk_tmr", PyValue(talk_tmr % 14 + 1));
 	}
 	
 	// debug

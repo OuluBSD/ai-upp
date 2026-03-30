@@ -44,7 +44,7 @@ bool Program::CamScript0() {
 	if (cam_following_actor.GetType() == PY_DICT) {
 		// keep camera within "room" bounds
 		if (GetInRoomPy(cam_following_actor) == room_curr)
-			cam = CenterCamera(cam_following_actor);
+			cam = CenterCameraPy(cam_following_actor);
 		return true;
 	}
 	else
@@ -146,6 +146,17 @@ Point Program::CenterCamera(SObj& val) {
 	return CenterCamera(p);
 	//int map_w = room_curr.MapGet("map_w").GetInt();
 	//return mid(0, (istable(val) and val.x or val)-64, (room_curr.map_w*8) -128 )
+}
+
+Point Program::CenterCameraPy(PyValue val) {
+	Point p(0,0);
+
+	if (val.GetType() == PY_DICT)
+		p.x = Program::PyInt(Program::GetProp(val, "x"));
+	else if (val.IsInt())
+		p.x = Program::PyInt(val);
+
+	return CenterCamera(p);
 }
 
 

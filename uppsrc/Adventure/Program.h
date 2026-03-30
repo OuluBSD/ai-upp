@@ -145,8 +145,9 @@ struct TalkingState {
 
 struct ZPlane : Moveable<ZPlane> {
 	Vector<EscValue> objs;
-	
-	
+	Vector<PyValue> objs_py;
+
+
 };
 
 class ProgramDraw;
@@ -443,6 +444,7 @@ public:
 	void CheckCollisions();
 	void ResetZPlanes();
 	void RecalcZPlane(SObj& obj);
+	void RecalcZPlanePy(PyValue& obj);
 	bool InitGame();
 	bool IsTable(SObj& t);
 	Point CenterCamera(Point val);
@@ -458,6 +460,7 @@ public:
 	void ExplodeData(SObj& obj);
 	bool IsCursorColliding(const SObj& obj);
 	bool IsCursorColliding(const Sentence& obj);
+	bool IsCursorCollidingPy(const PyValue& obj);
 	String SmallCaps(const String& s);
 	String Autotype(const String& str_value);
 	void FindPath(Point start, Point goal, Vector<Point>& pt);
@@ -478,6 +481,7 @@ public:
 	Size GetSize(SObj o);
 	UsePos GetUsePos(SObj o);
 	static FaceDir GetFaceDir(SObj o);
+	static FaceDir GetFaceDirPy(PyValue o);
 	StateType GetState(SObj o);
 	String GetFaceString(FaceDir d);
 	SObj GetSelectedActor();
@@ -524,6 +528,7 @@ class ProgramDraw : public Ctrl {
 	
 	void LoadBuiltinGfx();
 	void Animate(SObj obj);
+	void AnimatePy(PyValue obj);
 	void GetPaletteImage(const byte* src, Size src_sz, Image& out);
 	
 
@@ -559,6 +564,7 @@ public:
 	void SetPalette(int idx, PaletteColor clr);
 	void ResetPalette();
 	void ReplaceColors(SObj o);
+	void ReplaceColorsPy(PyValue o);
 	void FadePalette(float perc);
 	
 	

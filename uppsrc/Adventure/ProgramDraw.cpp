@@ -169,7 +169,7 @@ void ProgramDraw::PaintRoom(Draw& d) {
 		// draw bg layer?
 		if (z == 0) {
 			// replace colors?
-			ReplaceColors(room_curr);
+			ReplaceColorsPy(room_curr);
 
 			Color trans_col;
 			if (TryReadColor(room_curr, "trans_col", trans_col)) {
@@ -272,7 +272,7 @@ void ProgramDraw::PaintRoom(Draw& d) {
 					// actor
 					//DUMP(obj);
 					SObj in_room = this->p->GetInRoom(obj);
-					if (in_room == room_curr)
+					if (in_room.IsMap())
 						PaintActor(d, obj);
 				}
 				//show_collision_box(obj);
@@ -344,12 +344,12 @@ void ProgramDraw::PaintUI(Draw& d) {
 	PyValue ea = PyValue::List();
 
 	for (int i = 0; i != p->V_COUNT; i++) {
-		PyValue v = p->verbs.GetList()[i];
+		PyValue v = p->verbs.GetArray()[i];
 
 		PaletteColor txtcol;
-		if (v == hover_curr_verb)
+		if (v.GetType() != PY_NONE && hover_curr_verb.GetType() != PY_NONE && v.GetPtr() == hover_curr_verb.GetPtr())
 			txtcol = verb_hovcol;
-		else if (v == hover_curr_default_verb)
+		else if (v.GetType() != PY_NONE && hover_curr_default_verb.GetType() != PY_NONE && v.GetPtr() == hover_curr_default_verb.GetPtr())
 			txtcol = verb_defcol;
 		else
 			txtcol = verb_maincol;
@@ -382,19 +382,20 @@ void ProgramDraw::PaintUI(Draw& d) {
 		}
 	}
 	
-	if (selected_actor.IsMap()) {
-		EscValue inventory = selected_actor("inventory");
-		if (!inventory.IsArray()) {DUMP(inventory);}
-		ASSERT(inventory.IsArray());
-		
-		int inv_arr_len = inventory.GetArray().GetCount();
-		
+	if (selected_actor.GetType() == PY_DICT) {
+		PyValue inventory = Program::GetProp(selected_actor, "inventory");
+		if (inventory.GetType() != PY_LIST) {DUMP(inventory);}
+		ASSERT(inventory.GetType() == PY_LIST);
+
+		const Vector<PyValue>& inv_arr = inventory.GetArray();
+		int inv_arr_len = inv_arr.GetCount();
+
 		// draw inventory
 		int xpos = 86;
 		int ypos = 76;
-		
+
 		// determine the inventory "window"
-		int inv_pos = selected_actor("inv_pos").GetInt();
+		int inv_pos = Program::PyInt(Program::GetProp(selected_actor, "inv_pos"));
 		ASSERT(inv_pos >= 0 && inv_pos < 0x10000);
 		int start_pos = inv_pos * 4;
 		int end_pos = min(start_pos+8, inv_arr_len);
@@ -433,11 +434,11 @@ void ProgramDraw::PaintUI(Draw& d) {
 
 		// draw arrows
 		for (int i = 0; i < 2; i++) {
-			PyValue arrow = p->ui_arrows.GetList()[i];
+			PyValue arrow = p->ui_arrows.GetArray()[i];
 			int spr = Program::PyInt(Program::GetProp(arrow, "spr"));
 			int x = Program::PyInt(Program::GetProp(arrow, "x"));
 			int y = Program::PyInt(Program::GetProp(arrow, "y"));
-			SetPalette(7, hover_curr_arrow == arrow ? verb_hovcol : verb_maincol);
+			SetPalette(7, hover_curr_arrow.GetType() != PY_NONE && arrow.GetType() != PY_NONE && hover_curr_arrow.GetPtr() == arrow.GetPtr() ? verb_hovcol : verb_maincol);
 			SetPalette(5, verb_shadcol);
 			PaintSprite(d, gfx, spr, x, y, 1, 1, 0);
 
@@ -669,6 +670,24 @@ void ProgramDraw::Animate(SObj obj) {
 	obj.MapSet("tmr", tmr);
 }
 
+void ProgramDraw::AnimatePy(PyValue obj) {
+	// animate the object (PyValue version)
+	// (update frames, looping as req)
+	int tmr = Program::PyInt(Program::GetProp(obj, "tmr"));
+	int frame_delay = Program::PyInt(Program::GetProp(obj, "frame_delay"));
+	tmr += 1;
+	if (tmr > frame_delay) {
+		tmr = 1;
+		PyValue curr_anim = Program::GetProp(obj, "curr_anim");
+		int anim_pos = Program::PyInt(Program::GetProp(obj, "anim_pos"));
+		if (curr_anim.GetType() == PY_LIST) {
+			int anim_len = curr_anim.GetArray().GetCount();
+			Program::SetProp(obj, "anim_pos", PyValue(anim_pos % anim_len + 1));
+		}
+	}
+	Program::SetProp(obj, "tmr", PyValue(tmr));
+}
+
 void ProgramDraw::GetPaletteImage(const byte* src, Size src_sz, Image& out) {
 	ImageBuffer ib(src_sz);
 	RGBA* it = ib.Begin();
@@ -696,17 +715,18 @@ void ProgramDraw::GetPaletteImage(const byte* src, Size src_sz, Image& out) {
 
 // draw actor(s)
 void ProgramDraw::PaintActor(Draw& d, SObj a) {
+	PyValue a_py = EscToPyValue(a);
 	PyValue r = p->room_curr;
-	PyValue curr_anim = Program::GetProp(a, "curr_anim");
-	FaceDir dirnum = Program::GetFaceDir(a);
+	PyValue curr_anim = Program::GetProp(a_py, "curr_anim");
+	FaceDir dirnum = Program::GetFaceDirPy(a_py);
 	int sprnum = 0;
-	int moving = Program::PyInt(Program::GetProp(a, "moving"));
+	int moving = Program::PyInt(Program::GetProp(a_py, "moving"));
 	if (curr_anim.GetType() == PY_LIST && moving) {
 		// update animation state
-		Animate(a);
+		AnimatePy(a_py);
 
 		// choose walk anim frame
-		int i = Program::PyInt(Program::GetProp(a, "anim_pos"));
+		int i = Program::PyInt(Program::GetProp(a_py, "anim_pos"));
 		const Vector<PyValue>& curr_anim_arr = curr_anim.GetArray();
 		if (!curr_anim_arr.IsEmpty()) {
 			i = i % curr_anim_arr.GetCount();
@@ -718,14 +738,16 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 	}
 	else {
 		// idle
-		PyValue idle = Program::GetProp(a, "idle");
+		PyValue idle = Program::GetProp(a_py, "idle");
 		ASSERT(idle.GetType() != PY_NONE);
 		if (idle.IsNone()) return;
-		sprnum = Program::PyInt(idle.GetList()[dirnum]);
+		const Vector<PyValue>& idle_arr = idle.GetArray();
+		if(dirnum >= 0 && dirnum < idle_arr.GetCount())
+			sprnum = Program::PyInt(idle_arr[dirnum]);
 	}
 
 	// replace colors?
-	ReplaceColors(a);
+	ReplaceColorsPy(a_py);
 
 	// auto-scaling for (depth?
 	PyValue rc_autodepth_pos = Program::GetProp(r, "autodepth_pos");
@@ -883,10 +905,10 @@ void ProgramDraw::PaintCommand(Draw& d) {
 
 void ProgramDraw::ReplaceColors(SObj o) {
 	if (!o.IsMap()) return;
-	
+
 	EscValue col_replace = o("col_replace");
 	EscValue lighting = o("lighting");
-	
+
 	// replace colors (where defined)
 	if (col_replace.IsArray()) {
 		ASSERT(col_replace.GetArray().GetCount() == 2);
@@ -894,7 +916,7 @@ void ProgramDraw::ReplaceColors(SObj o) {
 		int b = col_replace.ArrayGet(1).GetInt();
 		SetPalette(a, b);
 	}
-	
+
 	// also apply brightness (default to room-level, if (not set)
 	if (lighting.IsInt()) {
 		int a = lighting.GetInt();
@@ -906,6 +928,39 @@ void ProgramDraw::ReplaceColors(SObj o) {
 			EscValue lighting = in_room("lighting");
 			if (lighting) {
 				int a = lighting.GetInt();
+				FadePalette(a);
+			}
+		}
+	}
+}
+
+void ProgramDraw::ReplaceColorsPy(PyValue o) {
+	if (o.GetType() != PY_DICT) return;
+
+	PyValue col_replace = Program::GetProp(o, "col_replace");
+	PyValue lighting = Program::GetProp(o, "lighting");
+
+	// replace colors (where defined)
+	if (col_replace.GetType() == PY_LIST) {
+		const Vector<PyValue>& arr = col_replace.GetArray();
+		if(arr.GetCount() == 2) {
+			int a = Program::PyInt(arr[0]);
+			int b = Program::PyInt(arr[1]);
+			SetPalette(a, b);
+		}
+	}
+
+	// also apply brightness (default to room-level, if (not set)
+	if (lighting.IsInt()) {
+		int a = Program::PyInt(lighting);
+		FadePalette(a);
+	}
+	else {
+		PyValue in_room = Program::GetProp(o, "in_room");
+		if (in_room.GetType() == PY_DICT) {
+			PyValue lighting_prop = Program::GetProp(in_room, "lighting");
+			if (lighting_prop.GetType() != PY_NONE) {
+				int a = Program::PyInt(lighting_prop);
 				FadePalette(a);
 			}
 		}

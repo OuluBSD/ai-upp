@@ -214,8 +214,8 @@ String Program::State(SObj& s) {
 
 
 
-EscValue Program::FindDefaultVerb(SObj& obj) {
-	EscValue default_verb = V_LOOKAT;
+PyValue Program::FindDefaultVerb(SObj& obj) {
+	PyValue default_verb = V_LOOKAT;
 
 	if (HasFlag(Classes(obj), "class_talkable"))
 		default_verb = V_TALKTO;
@@ -226,12 +226,6 @@ EscValue Program::FindDefaultVerb(SObj& obj) {
 			default_verb = V_CLOSE;
 	}
 
-	// now find the full verb definition
-	/*for (auto v : all(verbs)) {
-		vi = GetVerb(v);
-		if (vi[2] == default_verb) { default_verb = v; break; }
-	}*/
-	
 	return default_verb;
 }
 
@@ -323,15 +317,21 @@ double Program::Proximity(SObj& obj1, SObj& obj2) {
 	return keys;
 }*/
 
-EscValue Program::GetVerb(int idx) {
-	EscValue ret = verbs(idx);
-	//DUMP(ret);
+PyValue Program::GetVerb(int idx) {
+	if(idx < 0 || idx >= V_COUNT)
+		return PyValue();
+	PyValue ret = verbs.GetList()[idx];
 	return ret;
 }
 
 String Program::GetVerbString(int i) {
-	if (i >= 0 && i < V_COUNT)
-		return verbs.ArrayGet(i);
+	if (i >= 0 && i < V_COUNT) {
+		PyValue v = verbs.GetList()[i];
+		if(v.GetType() == PY_DICT) {
+			PyValue name = v.GetDict().Get(PyValue(WString("text")));
+			return name.GetStr();
+		}
+	}
 	return "<error>";
 }
 
@@ -352,8 +352,8 @@ void Program::ClearCurrCmd() {
 	verb_curr = V_DEFAULT;
 	executing_cmd = 0;
 	cmd_curr.Clear();
-	noun1_curr = EscValue();
-	noun2_curr = EscValue();
+	noun1_curr = PyValue();
+	noun2_curr = PyValue();
 	//me.Clear();
 }
 

@@ -284,7 +284,7 @@ protected:
 	Point cam_pan_to;
 	SObj cam_following_actor;
 	Thread thrd;
-	
+
 	int stage_top = 16;
 	Point cam;
 	float cam_shake_amount = 0;
@@ -294,39 +294,39 @@ protected:
 	float last_cursor_y = 0;
 	int cursor_tmr = 0;
 	int cursor_colpos = 1;
-	
+
 	Script* cam_script = 0;
-	
+
 	String cmd_curr;
 	Sentence* selected_sentence = 0;
 	Dialog dialog_curr;
-	
+
 	SObj hover_curr_arrow;
-	
+
 	int fade_iris = 0;
 	int cutscene_cooloff = 0;
 	Script* fade_script = 0;
-	
+
 	Array<TalkingState> talking_curr;
 	SObj talking_actor;
-	
-	EscValue ui_arrows;
-	SObj arrow[2];
-	
-	EscValue hover_curr_default_verb;
-	EscValue hover_curr_verb;
+
+	PyValue ui_arrows;
+	PyValue arrow[2];
+
+	PyValue hover_curr_default_verb;
+	PyValue hover_curr_verb;
 	Sentence* hover_curr_sentence = 0;
-	
-	EscValue verb_curr;
-	SObj noun1_curr;
-	SObj noun2_curr;
-	SObj hover_curr_object;
+
+	PyValue verb_curr;
+	PyValue noun1_curr;
+	PyValue noun2_curr;
+	PyValue hover_curr_object;
 	bool executing_cmd = false;
 	bool is_mouse_clicked = false;
-	
+
 	float cam_shake_x = 0;
 	float cam_shake_y = 0;
-	
+
 	bool pressed[BTN_COUNT];
 	dword mouse_pressed = 0;
 
@@ -334,12 +334,15 @@ protected:
 	PyVM vm;  // PyVM for Python script execution
 	PyVM py_vm;  // Alias for vm (for consistency)
 	EscAnimContext ctx;  // EscAnimContext for animation system (keep for now)
-	EscValue rooms;
-	EscValue cutscene_override;
-	EscValue verbs;
-	EscValue V_DEFAULT, V_USE, V_GIVE, V_PUSH, V_PULL, V_WALKTO, V_PICKUP, V_LOOKAT, V_OPEN, V_CLOSE, V_TALKTO;
-	EscValue room_curr;
-	PyValue room_curr_py;  // Python room object (PyVM)
+	
+	// Python game state (converted from EscValue)
+	PyValue rooms;
+	PyValue cutscene_override;
+	PyValue verbs;
+	PyValue V_DEFAULT, V_USE, V_GIVE, V_PUSH, V_PULL, V_WALKTO, V_PICKUP, V_LOOKAT, V_OPEN, V_CLOSE, V_TALKTO;
+	PyValue room_curr;
+	
+	// Note: SObj (EscValue) still used for game objects/actors - to be converted later
 	Script* scr_obj = 0;
 	int V_COUNT = 0;
 	Index<String> verb_idx;
@@ -380,8 +383,7 @@ public:
 
 	void ClearCutsceneOverride(EscAnimProgram& s);
 	void CameraFollow(SObj actor);
-	void ChangeRoom(SObj new_room, SObj fade);
-	void ChangeRoomPy(const PyValue& new_room, const PyValue& fade);  // PyVM version
+	void ChangeRoom(SObj new_room, SObj fade);  // Now uses PyValue internally for room_curr
 	bool CamScript0();
 	bool CamScript1();
 	bool VerbScript(EscValue vc2);
@@ -389,7 +391,6 @@ public:
 	void CameraPanTo(SObj& val);
 	bool ScriptRunning(Script& script);
 	void Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override);
-	void CutscenePy(SceneType type, const PyValue& func_cutscene, const PyValue& func_override);  // PyVM version
 	void DialogAdd(const String& msg);
 	void DialogStart(int col, int hlcol);
 	void DialogHide();

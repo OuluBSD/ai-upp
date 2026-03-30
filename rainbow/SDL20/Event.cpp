@@ -117,30 +117,13 @@ void Ctrl::RemoveCaret()
 	fbCaretBak = Null;
 }
 
-void Ctrl::SetCaret(int x, int y, int cx, int cy)
-{
-	GuiLock __;
-	caretx = x;
-	carety = y;
-	caretcx = cx;
-	caretcy = cy;
-	fbCaretTm = GetTickCount();
-	SyncCaret();
-}
-
-void Ctrl::SyncCaret()
-{
-	GuiLock __;
-}
-
 void Ctrl::CursorSync()
 {
 	LLOG("@ CursorSync");
 	Point p = GetMousePos() - fbCursorImage.GetHotSpot();
 	Rect cr = Null;
 	if(focusCtrl && (((GetTickCount() - fbCaretTm) / 500) & 1) == 0)
-		cr = (RectC(focusCtrl->caretx, focusCtrl->carety, focusCtrl->caretcx, focusCtrl->caretcy)
-		      + focusCtrl->GetScreenView().TopLeft()) & focusCtrl->GetScreenView();
+		cr = (focusCtrl->GetCaret() + focusCtrl->GetScreenView().TopLeft()) & focusCtrl->GetScreenView();
 	LDUMP(GetTickCount());
 	if(fbCursorPos != p || cr != fbCaretRect) {
 		LDUMP(fbCaretRect);
@@ -182,6 +165,12 @@ void  Ctrl::SetMouseCursor(const Image& image)
 		fbCursorImage = image;
 		fbCursorPos = Null;
 	}
+}
+
+// Stub for SDL20 backend
+void WakeUpGuiThread()
+{
+	// SDL20 doesn't need explicit GUI thread wake-up
 }
 
 END_UPP_NAMESPACE

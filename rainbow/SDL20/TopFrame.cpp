@@ -9,10 +9,10 @@ NAMESPACE_UPP
 
 TopWindowFrame::TopWindowFrame()
 {
-	close.SetImage(FBImg::close());
+	close.SetImage(SDL20FBImg::close());
 	close.EdgeStyle();
 	Add(close);
-	maximize.SetImage(FBImg::maximize());
+	maximize.SetImage(SDL20FBImg::maximize());
 	maximize.EdgeStyle();
 	Add(maximize);
 	maximize <<= THISBACK(ToggleMaximize);
@@ -36,7 +36,7 @@ void TopWindowFrame::Maximize()
 		maximized = true;
 		overlapped = GetRect();
 		SetRect(framebuffer.GetSize());
-		maximize.SetImage(FBImg::overlap());
+		maximize.SetImage(SDL20FBImg::overlap());
 	}
 }
 
@@ -45,7 +45,7 @@ void TopWindowFrame::Overlap()
 	if(maximized && maximize.IsShown()) {
 		maximized = false;
 		SetRect(overlapped);
-		maximize.SetImage(FBImg::maximize());
+		maximize.SetImage(SDL20FBImg::maximize());
 	}
 }
 
@@ -59,7 +59,7 @@ void TopWindowFrame::ToggleMaximize()
 
 Rect TopWindowFrame::Margins() const
 {
-	return maximized ? Rect(0, 0, 0, 0) : ChMargins(FBImg::border());
+	return maximized ? Rect(0, 0, 0, 0) : ChMargins(SDL20FBImg::border());
 }
 
 void TopWindowFrame::Paint(Draw& w)
@@ -67,9 +67,9 @@ void TopWindowFrame::Paint(Draw& w)
 	Size sz = GetSize();
 	Rect m = Margins();
 	int c = GetStdFontCy() + 4;
-	ChPaintEdge(w, sz, FBImg::border());
+	ChPaintEdge(w, sz, SDL20FBImg::border());
 	ChPaint(w, m.left, m.top, sz.cx - m.left - m.right, GetStdFontCy() + 4,
-	        window->IsForeground() ? FBImg::title() : FBImg::bgtitle());
+	        window->IsForeground() ? SDL20FBImg::title() : SDL20FBImg::bgtitle());
 	int tx = m.left + 2;
 	int tcx = sz.cx - m.left - m.right - 4 - c * (close.IsShown() + maximize.IsShown());
 	if(!IsNull(icon)) {
@@ -126,7 +126,7 @@ void TopWindowFrame::SetClient(Rect r)
 Point TopWindowFrame::GetDragMode(Point p)
 {
 	Size sz = GetSize();
-	Rect m = ChMargins(FBImg::border());
+	Rect m = ChMargins(SDL20FBImg::border());
 	Point dir;
 	dir.y = p.y < m.top ? -1 : p.y > sz.cy - m.top ? 1 : 0;
 	dir.x = p.x < m.left ? -1 : p.x > sz.cx - m.right ? 1 : 0;

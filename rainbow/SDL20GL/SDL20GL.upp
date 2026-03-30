@@ -6,9 +6,9 @@ uses
 	GLDraw,
 	PdfDraw;
 
-library(POSIX) "SDL2 SDL2main GL";
+library(POSIX) "SDL2 SDL2main GLEW GL";
 
-library(WIN32) "SDL2.lib SDL2main.lib OpenGL32.lib";
+library(WIN32) "SDL2.lib SDL2main.lib OpenGL32.lib glew32.lib";
 
 file
 	SDL20GL.h,

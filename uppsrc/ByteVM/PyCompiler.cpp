@@ -730,9 +730,41 @@ void PyCompiler::Statement()
 		String id = Peek().str_value;
 		Next(); // id
 		EmitName(PY_LOAD_NAME, id);
-		this->Expect(TK_SQUARE_BEGIN);
-		Expression();
-		this->Expect(TK_SQUARE_END);
+		
+		// Count total subscripts in chain
+		int subscript_count = 0;
+		int check_pos = pos;
+		while(check_pos + 1 < tokens.GetCount() && tokens[check_pos].type == TK_SQUARE_BEGIN) {
+			// Find matching ]
+			int depth = 1;
+			check_pos++;
+			while(check_pos < tokens.GetCount() && depth > 0) {
+				if(tokens[check_pos].type == TK_SQUARE_BEGIN) depth++;
+				else if(tokens[check_pos].type == TK_SQUARE_END) depth--;
+				check_pos++;
+			}
+			if(depth == 0) subscript_count++;
+			else break;
+			// Skip whitespace/comments to check for next [
+			while(check_pos < tokens.GetCount() && (tokens[check_pos].type == TK_NEWLINE || tokens[check_pos].type == TK_COMMENT))
+				check_pos++;
+		}
+		
+		// Parse all subscripts in a chain (e.g., obj["a"]["b"]["c"])
+		int current_subscript = 0;
+		while(IsToken(TK_SQUARE_BEGIN)) {
+			current_subscript++;
+			this->Expect(TK_SQUARE_BEGIN);
+			Expression();
+			this->Expect(TK_SQUARE_END);
+			
+			// For all but the last subscript, emit BINARY_SUBSCR
+			// For the last subscript, we'll handle it based on whether it's an assignment
+			if(current_subscript < subscript_count) {
+				Emit(PY_BINARY_SUBSCR);
+			}
+		}
+		
 		if(IsToken(TK_ASS)) {
 			Next(); // =
 			Expression();
@@ -742,10 +774,8 @@ void PyCompiler::Statement()
 				Next();
 		}
 		else {
-			// Not an assignment, backtrack and use normal expression parsing
-			pos = start_pos;
-			ir.SetCount(start_ir);
-			Expression();
+			// Not an assignment, just an expression - emit final BINARY_SUBSCR
+			Emit(PY_BINARY_SUBSCR);
 			Emit(PY_POP_TOP);
 			if (!IsStmtEnd()) throw Exc(Format("Line %d: Expected statement end after expression, found %s", GetLine(), Peek().GetTypeString()));
 			if (IsToken(TK_NEWLINE) || (IsToken(TK_PUNCT) && Peek().str_value == ";"))

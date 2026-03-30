@@ -122,38 +122,6 @@ Ctrl *Ctrl::GetActiveCtrl()
 	return focusCtrl ? focusCtrl->GetTopCtrl() : NULL;
 }
 
-// Vector<Callback> Ctrl::hotkey;
-
-int Ctrl::RegisterSystemHotKey(dword key, Function<void ()> cb)
-{
-/*	ASSERT(key >= K_DELTA);
-	int q = hotkey.GetCount();
-	for(int i = 0; i < hotkey.GetCount(); i++)
-		if(!hotkey[i]) {
-			q = i;
-			break;
-		}
-	hotkey.At(q) = cb;
-	dword mod = 0;
-	if(key & K_ALT)
-		mod |= MOD_ALT;
-	if(key & K_SHIFT)
-		mod |= MOD_SHIFT;
-	if(key & K_CTRL)
-		mod |= MOD_CONTROL;
-	
-	return RegisterHotKey(NULL, q, mod, key & 0xffff) ? q : -1;*/
-	return -1;
-}
-
-void Ctrl::UnregisterSystemHotKey(int id)
-{
-/*	if(id >= 0 && id < hotkey.GetCount()) {
-		UnregisterHotKey(NULL, id);
-		hotkey[id].Clear();
-	}*/
-}
-
 bool Ctrl::IsWaitingEvent()
 {
 	SDL_PumpEvents();

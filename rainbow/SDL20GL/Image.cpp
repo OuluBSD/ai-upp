@@ -18,12 +18,12 @@ void SetSurface(SystemDraw& w, const Rect& dest, const RGBA *pixels, Size psz, P
 	// Empty as CanSetSurface is false
 }
 
-#define IMAGECLASS FBImg
+#define IMAGECLASS SDL20GLFBImg
 #define IMAGEFILE <SDL20GL/FB.iml>
 #include <Draw/iml_source.h>
 
 #define STD_CURSOR(name, sdl) \
-Image Image::name() { static Image img; ONCELOCK { img = FBImg::name(); img.SetAuxData(sdl + 1); } return img; }
+Image Image::name() { static Image img; ONCELOCK { img = SDL20GLFBImg::name(); img.SetAuxData(sdl + 1); } return img; }
 
 STD_CURSOR(Arrow, SDL_SYSTEM_CURSOR_ARROW)
 STD_CURSOR(Wait, SDL_SYSTEM_CURSOR_WAIT)

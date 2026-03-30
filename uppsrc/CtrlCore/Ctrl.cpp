@@ -10,10 +10,12 @@ namespace Upp {
 
 #ifndef GUIPLATFORM_FBIMG_INTERFACE
 #ifndef GUI_FB  // rainbow Framebuffer backend provides its own FBImg
-#ifndef GUI_SDL20  // rainbow SDL20 backend provides its own SDL20FBImg
+#ifndef flagSDL20  // rainbow SDL20 backend provides its own SDL20FBImg
+#ifndef flagSDL20GL  // rainbow SDL20GL backend provides its own SDL20GLFBImg
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_source.h>
+#endif
 #endif
 #endif
 #endif

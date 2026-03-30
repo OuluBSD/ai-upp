@@ -28,10 +28,6 @@ bool Ctrl::GuiPlatformSetFullRefreshSpecial()
 	return false;
 }
 
-void Ctrl::PaintCaret(SystemDraw& w)
-{
-}
-
 String GuiPlatformGetKeyDesc(dword key)
 {
 	return Null;

@@ -1,3 +1,4 @@
+#include <CtrlLib/CtrlLib.h>
 #include "Turtle.h"
 
 #define LLOG(x)     // LLOG(x)
@@ -77,11 +78,11 @@ void TurtleServer::Put(const String& s)
 	sTurtleStream.Put(s);
 }
 
-//void Turtle_PutLink(const String& link) // FIXME
-//{
-//	TurtleServer::Put8(OPENLINK);
-//	TurtleServer::Put(link);
-//}
+void Turtle_PutLink(const String& link)
+{
+	TurtleServer::Put8(TurtleServer::OPENLINK);
+	TurtleServer::Put(link);
+}
 
 void TurtleServer::Flush()
 {

@@ -1,6 +1,9 @@
 #ifndef _VirtualGui_VirtualGui_h_
 #define _VirtualGui_VirtualGui_h_
 
+#include <Core/Core.h>
+#include <Draw/Draw.h>
+
 #ifdef PLATFORM_POSIX
 #include <CtrlCore/stdids.h>
 #endif

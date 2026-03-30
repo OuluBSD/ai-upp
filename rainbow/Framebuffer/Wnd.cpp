@@ -117,7 +117,7 @@ Ctrl *Ctrl::GetOwner()
 	GuiLock __;
 	int q = FindTopCtrl();
 	if(q > 0 && topctrl[q]->top) {
-		Ctrl *x = topctrl[q]->top->owner_window;
+		Ctrl *x = topctrl[q]->utop->owner_window;
 		LDUMP(Upp::Name(x));
 		return dynamic_cast<TopWindowFrame *>(x) ? x->GetOwner() : x;
 	}
@@ -531,7 +531,7 @@ int Ctrl::GetKbdSpeed()
 void Ctrl::DestroyWnd()
 {
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i]->top && topctrl[i]->top->owner_window == this)
+		if(topctrl[i]->utop && topctrl[i]->utop->owner_window == this)
 			topctrl[i]->WndDestroy();
 	int q = FindTopCtrl();
 	if(q >= 0) {
@@ -539,8 +539,8 @@ void Ctrl::DestroyWnd()
 		topctrl.Remove(q);
 	}
 	if(top) {
-		delete top;
-		top = NULL;
+		delete utop;
+		top = false;
 	}
 	isopen = false;
 	TopWindow *win = dynamic_cast<TopWindow *>(this);
@@ -565,7 +565,7 @@ void Ctrl::PutForeground()
 	}
 	Vector< Ptr<Ctrl> > fw;
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i] && topctrl[i]->top && topctrl[i]->top->owner_window == this && topctrl[i] != this)
+		if(topctrl[i] && topctrl[i]->utop && topctrl[i]->utop->owner_window == this && topctrl[i] != this)
 			fw.Add(topctrl[i]);
 	for(int i = 0; i < fw.GetCount(); i++)
 		if(fw[i])
@@ -579,8 +579,8 @@ void Ctrl::SetWndForeground()
 	if(IsWndForeground())
 		return;
 	Ctrl *to = this;
-	while(to->top && to->top->owner_window)
-		to = to->top->owner_window;
+	while(to->top && to->utop->owner_window)
+		to = to->utop->owner_window;
 	to->PutForeground();
 	if(this != focusCtrl)
 		ActivateWnd();
@@ -712,7 +712,7 @@ void Ctrl::PopUp(Ctrl *owner, bool savebits, bool activate, bool dropshadow, boo
 		ASSERT(owner_window->IsOpen());
 		if(owner_window != desktop) {
 			owner_window->SetForeground();
-			top->owner_window = owner_window;
+			utop->owner_window = owner_window;
 		}
 	}
 	topctrl.Add(this);

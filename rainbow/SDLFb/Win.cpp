@@ -34,32 +34,29 @@ void FBQuitSession()
 bool FBIsWaitingEvent()
 {
 	SDL_PumpEvents();
+	// Check if there are actual events before peeking
+	int pending = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, SDL_ALLEVENTS);
+	if(pending <= 0)
+		return false;
 	// Use static buffer to avoid stack issues
 	static SDL_Event s_peek_event;
 	memset(&s_peek_event, 0, sizeof(s_peek_event));
 	int tc = SDL_PeepEvents(&s_peek_event, 1, SDL_PEEKEVENT, SDL_ALLEVENTS);
-	return (tc>0);
+	return (tc > 0 && s_peek_event.type != SDL_NOEVENT);
 }
-
-// Static event buffer to avoid stack corruption issues with SDL_PollEvent
-static SDL_Event s_event;
 
 bool FBProcessEvent(bool *quit)
 {
-	// SDL_PumpEvents is called by SDL_PollEvent, but let's be explicit
-	SDL_PumpEvents();
-	memset(&s_event, 0, sizeof(s_event));
-	if(SDL_PollEvent(&s_event)) {
-		LOG("FBProcessEvent: got event type=" << (int)s_event.type);
-		if(s_event.type == SDL_QUIT && quit)
+	SDL_Event event;
+	if(SDL_PollEvent(&event)) {
+		// Skip SDL_NOEVENT (type=0) - spurious events
+		if(event.type == SDL_NOEVENT)
+			return false;
+		LOG("FBProcessEvent: got event type=" << (int)event.type);
+		if(event.type == SDL_QUIT && quit)
 			*quit = true;
-		HandleSDLEvent(&s_event);
+		HandleSDLEvent(&event);
 		return true;
-	}
-	else {
-		static int skip_count = 0;
-		if(++skip_count % 100 == 0)
-			LOG("FBProcessEvent: no events (count=" << skip_count << ")");
 	}
 	return false;
 }

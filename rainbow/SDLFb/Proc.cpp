@@ -83,10 +83,13 @@ dword lastbdowntime[16] = {0};
 dword isdblclick[16] = {0};
 void HandleSDLEvent(SDL_Event* event)
 {
+	// Filter out spurious/non-input events
+	if(event->type == SDL_NOEVENT)
+		return;
+	if(event->type == SDL_ACTIVEEVENT)
+		return; // Focus/visibility changes, not input
 	LOG("HandleSDLEvent: type=" << (int)event->type);
 	switch(event->type) {
-		case SDL_ACTIVEEVENT: //SDL_ActiveEvent
-			break;
 		case SDL_KEYDOWN:
 		case SDL_KEYUP: //SDL_KeyboardEvent
 		{

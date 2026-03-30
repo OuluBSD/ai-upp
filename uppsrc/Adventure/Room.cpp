@@ -117,144 +117,72 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 }
 
 void Program::ChangeRoom(SObj new_room, SObj fade_) {
-	if (!new_room.IsMap()) {
-		DUMP(new_room);
-		TODO
-		/*
-		String name = new_room;
-		const SObj* ptr = FindDeep(name);
-		if (!ptr) {
-			LOG("Could not find room '" << name << "'");
-			return;
+	// Convert EscValue room to PyValue
+	PyValue py_room;
+	if(new_room.IsMap()) {
+		const VectorMap<EscValue, EscValue>& esc_map = new_room.GetMap();
+		py_room = PyValue::Dict();
+		VectorMap<PyValue, PyValue>& d = py_room.GetDictRW();
+		for(int i = 0; i < esc_map.GetCount(); i++) {
+			if(esc_map.GetKey(i).IsStringLike()) {
+				d.Add(PyValue(esc_map.GetKey(i).ToString()), EscToPyValue(esc_map[i]));
+			}
 		}
-		new_room = *ptr;
-		*/
 	}
-	ASSERT(new_room.IsMap());
-	int fade = fade_.GetInt();
 	
-	// check param
-	if (new_room.IsVoid()) {
-		ShowError("room does not exist");
-		return;
-	}
+	int fade = fade_.GetInt();
 
-	// stop any existing fade (shouldn't be any, but just in case!)
+	// stop any existing fade
 	if (fade_script) {
 		StopScript(*fade_script);
 		fade_script = 0;
 	}
 
-	// fade) {wn existing room (or skip if (first room)
-	if (fade && room_curr) {
-		Fades(fade, 1);
-	}
-	
-	// switch to new room
-	// execute the exit() script of old room
-	if (room_curr) {
-		StartScriptEsc(&room_curr, "exit", 0, room_curr); // run script directly, so wait to finish
-	}
-	
-	// stop all active (local) scripts
-	ctx.RemoveProgramGroup(SCRIPT_LOCAL);
-	
-	// clear current command
-	ClearCurrCmd();
-	
-	// actually change rooms now
-	room_curr = new_room;
-	
-	// reset camera pos in new room (unless camera following)
-	if (cam_following_actor.IsVoid() || GetInRoom(cam_following_actor) != room_curr)
-		cam = Point(0,0);
-	
-	// stop everyone talking & remove displayed text
-	StopTalking();
-	
-	// fade up again?
-	// (use "thread" so that room.enter code is able to
-	//  reposition camera before fade-up, if (needed)
-	if (fade) {
-		// setup new fade up
-		StartScript(THISBACK2(Fades, fade, -1), true);
-	}
-	else {
-		// no fade - reset any existing fade
-		fade_iris = 0;
-	}
-
-	// execute the enter() script of new room
-	if (room_curr) {
-		StartScriptEsc(&room_curr, "enter", 0, room_curr);
-	}
-	else {
-		LOG("Program::ChangeRoom. error: room is not string");
-	}
-}
-
-// PyVM version: works with Python room objects directly
-void Program::ChangeRoomPy(const PyValue& new_room, const PyValue& fade_) {
-	if(new_room.GetType() != PY_DICT) {
-		LOG("ChangeRoomPy: room is not a dict");
-		return;
-	}
-
-	int fade = 0;
-	if(fade_.IsInt())
-		fade = (int)fade_.AsInt();
-
-	// Stop any existing fade
-	if(fade_script) {
-		StopScript(*fade_script);
-		fade_script = 0;
-	}
-
-	// Fade out existing room
-	if(fade && room_curr.GetType() != ESC_VOID) {
+	// fade out existing room (if any)
+	if (fade && room_curr.GetType() == PY_DICT) {
 		Fades(fade, 1);
 	}
 
-	// Execute room exit callback (Python function)
-	if(room_curr_py.GetType() == PY_DICT) {
-		PyValue exit_fn = Program::GetDictItem(room_curr_py, "exit");
+	// execute the exit() callback of old room (Python)
+	if (room_curr.GetType() == PY_DICT) {
+		PyValue exit_fn = GetDictItem(room_curr, "exit");
 		if(exit_fn.IsFunction()) {
 			Vector<PyValue> args;
-			args.Add(room_curr_py);
+			args.Add(room_curr);
 			py_vm.Call(exit_fn, args);
 		}
 	}
 
-	// Stop all active (local) scripts
+	// stop all active (local) scripts
 	ctx.RemoveProgramGroup(SCRIPT_LOCAL);
 
-	// Clear current command
+	// clear current command
 	ClearCurrCmd();
 
-	// Change to new room
-	room_curr_py = new_room;
+	// change to new room
+	room_curr = py_room;
 
-	// Reset camera position
-	if(cam_following_actor.IsVoid())
-		cam = Point(0, 0);
+	// reset camera pos in new room
+	if (cam_following_actor.IsVoid() || GetInRoom(cam_following_actor).IsVoid())
+		cam = Point(0,0);
 
-	// Stop talking
+	// stop everyone talking & remove displayed text
 	StopTalking();
 
-	// Fade in
-	if(fade) {
+	// fade up again?
+	if (fade) {
 		StartScript(THISBACK2(Fades, fade, -1), true);
 	}
 	else {
 		fade_iris = 0;
 	}
 
-	// Execute room enter callback (Python function)
-	if(room_curr_py.GetType() == PY_DICT) {
-		PyValue enter_fn = Program::GetDictItem(room_curr_py, "enter");
+	// execute the enter() callback of new room (Python)
+	if (room_curr.GetType() == PY_DICT) {
+		PyValue enter_fn = GetDictItem(room_curr, "enter");
 		if(enter_fn.IsFunction()) {
 			Vector<PyValue> args;
-			args.Add(room_curr_py);
+			args.Add(room_curr);
 			py_vm.Call(enter_fn, args);
 		}
 	}

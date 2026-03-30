@@ -148,47 +148,47 @@ void ProgramDraw::PaintLog(Draw& d, String s, int x, int y, PaletteColor clr) {
 void ProgramDraw::PaintRoom(Draw& d) {
 	const auto& cam_x = p->cam.x;
 	const auto& stage_top = p->stage_top;
-	
+
 	// check for (current room
-	if (p->room_curr.IsVoid()) {
+	if (p->room_curr.IsNone()) {
 		PaintLog(d, "-error-  no current room set", 5 + cam_x, 5 + stage_top, 8);
 		return;
 	}
-	
-	const SObj& room_curr = p->room_curr;
-	
-	
+
+	const PyValue& room_curr = p->room_curr;
+
+
 	// set room background col (or black by default)
 	d.DrawRect(0, stage_top, 127, stage_top + 64, ReadColor(room_curr, "bg_col", Black()));
-	
+
 	// draw each zplane, from back to front
 	int begin_z = -64;
 	int end_z = +64;
 	for (int z = begin_z; z <= end_z; z++) {
-	
+
 		// draw bg layer?
 		if (z == 0) {
 			// replace colors?
 			ReplaceColors(room_curr);
-			
+
 			Color trans_col;
 			if (TryReadColor(room_curr, "trans_col", trans_col)) {
 				//palt(0, false);
 				//palt(room_curr.trans_col, true);
 				TODO
 			}
-			EscValue map = room_curr("map");
-			//LOG(room_curr.ToString()); LOG(map.ToString());
-			ASSERT(map.IsArray());
-			int map0 = map.ArrayGet(0).GetInt();
-			int map1 = map.ArrayGet(1).GetInt();
+			PyValue map = Program::GetProp(room_curr, "map");
+			ASSERT(map.GetType() == PY_LIST);
+			const Vector<PyValue>& map_arr = map.GetArray();
+			int map0 = Program::PyInt(map_arr[0]);
+			int map1 = Program::PyInt(map_arr[1]);
 			int map_w = 0, map_h = 0;
-			if (map.GetArray().GetCount() >= 4) {
-				map_w = map.ArrayGet(2).GetInt();
-				map_h = map.ArrayGet(3).GetInt();
+			if (map_arr.GetCount() >= 4) {
+				map_w = Program::PyInt(map_arr[2]);
+				map_h = Program::PyInt(map_arr[3]);
 			}
 			PaintMap(d, map0, map1, 0, stage_top, map_w, map_h);
-			
+
 			ResetPalette();
 			
 			
@@ -325,28 +325,27 @@ void ProgramDraw::PaintTalking(Draw& d, double dt) {
 
 // draw ui and inventory
 void ProgramDraw::PaintUI(Draw& d) {
-	
+
 	// draw verbs
 	int xpos = 0;
 	int ypos = 75;
 	int col_len = 0;
-	
-	SObj hover_curr_verb = p->hover_curr_verb;
-	SObj hover_curr_default_verb = p->hover_curr_default_verb;
+
+	PyValue hover_curr_verb = p->hover_curr_verb;
+	PyValue hover_curr_default_verb = p->hover_curr_default_verb;
 	PaletteColor verb_shadcol = p->verb_shadcol;
 	PaletteColor verb_hovcol = p->verb_hovcol;
 	PaletteColor verb_defcol = p->verb_defcol;
 	PaletteColor verb_maincol = p->verb_maincol;
 	int stage_top = p->stage_top;
-	SObj selected_actor = p->GetSelectedActor();
-	const SObj& hover_curr_arrow = p->hover_curr_arrow;
-	
-	EscValue ea;
-	ea.SetEmptyArray();
-	
+	PyValue selected_actor = p->GetSelectedActorPy();
+	const PyValue& hover_curr_arrow = p->hover_curr_arrow;
+
+	PyValue ea = PyValue::List();
+
 	for (int i = 0; i != p->V_COUNT; i++) {
-		SObj v = p->verbs.ArrayGet(i);
-		
+		PyValue v = p->verbs.GetList()[i];
+
 		PaletteColor txtcol;
 		if (v == hover_curr_verb)
 			txtcol = verb_hovcol;
@@ -354,19 +353,19 @@ void ProgramDraw::PaintUI(Draw& d) {
 			txtcol = verb_defcol;
 		else
 			txtcol = verb_maincol;
-		
+
 		// get verb info
-		String name = p->GetVerbString(v);
+		String name = p->GetVerbString(i);
 		int namelen = name.GetCount();
 		PaintLog(d, name, xpos, ypos+stage_top+1, verb_shadcol);  // shadow
 		PaintLog(d, name, xpos, ypos+stage_top, txtcol);  // main
-		
+
 		// capture bounds
-		SObj o;
-		o.MapSet("x", xpos);
-		o.MapSet("y", ypos);
-		o.MapSet("classes", ea);
-		p->RecalculateBounds(o, namelen*4, 5, 0, 0);
+		PyValue o = PyValue::Dict();
+		o.SetItem(PyValue("x"), PyValue(xpos));
+		o.SetItem(PyValue("y"), PyValue(ypos));
+		o.SetItem(PyValue("classes"), ea);
+		p->RecalculateBoundsPy(o, namelen*4, 5, 0, 0);
 		//show_collision_box(obj)
 
 		// auto-size column
@@ -434,17 +433,17 @@ void ProgramDraw::PaintUI(Draw& d) {
 
 		// draw arrows
 		for (int i = 0; i < 2; i++) {
-			EscValue arrow = p->ui_arrows[i];
-			int spr = arrow("spr");
-			int x = arrow("x");
-			int y = arrow("y");
+			PyValue arrow = p->ui_arrows.GetList()[i];
+			int spr = Program::PyInt(Program::GetProp(arrow, "spr"));
+			int x = Program::PyInt(Program::GetProp(arrow, "x"));
+			int y = Program::PyInt(Program::GetProp(arrow, "y"));
 			SetPalette(7, hover_curr_arrow == arrow ? verb_hovcol : verb_maincol);
 			SetPalette(5, verb_shadcol);
 			PaintSprite(d, gfx, spr, x, y, 1, 1, 0);
-			
+
 			// capture bounds
-			p->RecalculateBounds(arrow, 8, 7, 0, 0);
-			
+			p->RecalculateBoundsPy(arrow, 8, 7, 0, 0);
+
 			//show_collision_box(arrow)
 			ResetPalette(); //reset palette
 		}
@@ -697,77 +696,77 @@ void ProgramDraw::GetPaletteImage(const byte* src, Size src_sz, Image& out) {
 
 // draw actor(s)
 void ProgramDraw::PaintActor(Draw& d, SObj a) {
-	EscValue r = p->room_curr;
-	EscValue curr_anim = a("curr_anim");
+	PyValue r = p->room_curr;
+	PyValue curr_anim = Program::GetProp(a, "curr_anim");
 	FaceDir dirnum = Program::GetFaceDir(a);
 	int sprnum = 0;
-	int moving = a("moving");
-	if (curr_anim.IsArray() && moving) {
+	int moving = Program::PyInt(Program::GetProp(a, "moving"));
+	if (curr_anim.GetType() == PY_LIST && moving) {
 		// update animation state
 		Animate(a);
-		
+
 		// choose walk anim frame
-		int i = a("anim_pos");
-		const auto& curr_anim_arr = curr_anim.GetArray();
+		int i = Program::PyInt(Program::GetProp(a, "anim_pos"));
+		const Vector<PyValue>& curr_anim_arr = curr_anim.GetArray();
 		if (!curr_anim_arr.IsEmpty()) {
 			i = i % curr_anim_arr.GetCount();
-			sprnum = curr_anim[i];
+			sprnum = Program::PyInt(curr_anim_arr[i]);
 		}
 	}
-	else if (curr_anim) {
-		sprnum = curr_anim;
+	else if (curr_anim.GetType() != PY_NONE) {
+		sprnum = Program::PyInt(curr_anim);
 	}
 	else {
 		// idle
-		EscValue idle = a("idle");
-		//DUMP(a);
-		ASSERT(idle);
-		if (!idle) return;
-		sprnum = idle[dirnum];
+		PyValue idle = Program::GetProp(a, "idle");
+		ASSERT(idle.GetType() != PY_NONE);
+		if (idle.IsNone()) return;
+		sprnum = Program::PyInt(idle.GetList()[dirnum]);
 	}
-	
+
 	// replace colors?
 	ReplaceColors(a);
-	
+
 	// auto-scaling for (depth?
-	//DUMP(r);
-	EscValue rc_autodepth_pos = r("autodepth_pos");
-	EscValue rc_autodepth_scale = r("autodepth_scale");
-	double pos0 = rc_autodepth_pos(0, 0);
-	double pos1 = rc_autodepth_pos(1, canvas_sz.cx);
-	double pos2 = rc_autodepth_pos(2, 0);
-	double scale0 = rc_autodepth_scale(0, 0);
-	double scale1 = rc_autodepth_scale(1, 1);
-	double scale2 = rc_autodepth_scale(2, 0);
-	double actor_y = a("y", 0);
+	PyValue rc_autodepth_pos = Program::GetProp(r, "autodepth_pos");
+	PyValue rc_autodepth_scale = Program::GetProp(r, "autodepth_scale");
+	const Vector<PyValue>& pos_arr = rc_autodepth_pos.GetArray();
+	const Vector<PyValue>& scale_arr = rc_autodepth_scale.GetArray();
+	double pos0 = Program::PyInt(pos_arr[0]);
+	double pos1 = Program::PyInt(pos_arr[1]);
+	double pos2 = Program::PyInt(pos_arr[2]);
+	double scale0 = Program::PyInt(scale_arr[0]);
+	double scale1 = Program::PyInt(scale_arr[1]);
+	double scale2 = Program::PyInt(scale_arr[2]);
+	double actor_y = Program::PyInt(Program::GetProp(a, "y"));
 	double factor = (actor_y - pos0) / (pos1 - pos0);
 	factor = scale0 + (scale1 - scale0) * factor;
-	a.MapSet("auto_scale", clamp(factor, scale0, scale1));
-	
+	Program::SetProp(a, "auto_scale", PyValue(factor));
+
 	// apply "zoom" to autoscale (e.g. camera further away)
 	//auto_scale *= (r.scale || 1)
-	
-	
+
+
 	// calc scaling offset (to align to bottom-centered)
-	EscValue a_scale = a("scale");
-	EscValue a_auto_scale = a("auto_scale");
-	ASSERT(a_scale || a_auto_scale);
-	if (!a_scale && !a_auto_scale)
+	PyValue a_scale = Program::GetProp(a, "scale");
+	PyValue a_auto_scale = Program::GetProp(a, "auto_scale");
+	ASSERT(a_scale.GetType() != PY_NONE || a_auto_scale.GetType() != PY_NONE);
+	if (a_scale.IsNone() && a_auto_scale.IsNone())
 		return;
-	double scale = a_scale ? a_scale : a_auto_scale;
-	int a_w = a("w", 0);
-	int a_h = a("h", 0);
-	int a_offset_x = a("offset_x", 0);
-	int a_offset_y = a("offset_y", 0);
-	int a_trans_col = a("trans_col", 0);
-	int a_flip = a("flip", 0);
+	double scale = a_scale.GetType() != PY_NONE ? Program::PyInt(a_scale) : Program::PyInt(a_auto_scale);
+	int a_w = Program::PyInt(Program::GetProp(a, "w"));
+	int a_h = Program::PyInt(Program::GetProp(a, "h"));
+	int a_offset_x = Program::PyInt(Program::GetProp(a, "offset_x"));
+	int a_offset_y = Program::PyInt(Program::GetProp(a, "offset_y"));
+	int a_trans_col = Program::PyInt(Program::GetProp(a, "trans_col"));
+	int a_flip = Program::PyInt(Program::GetProp(a, "flip"));
 	double scale_height = 8 * a_h;
 	double scale_width = 8 * a_w;
 	double scaleoffset_y = scale_height - (scale_height * scale);
 	double scaleoffset_x = scale_width - (scale_width * scale);
 	double draw_x = a_offset_x + floor(scaleoffset_x / 2);
 	double draw_y = a_offset_y + scaleoffset_y;
-	
+
 	PaintSprite(
 			d,
 			gfx,
@@ -780,15 +779,17 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 			a_flip,
 			false,
 			scale);
-    
-    
+
+
 	// talking overlay
-	SObj t = p->talking_actor;
-	if (t && t == a && t("talk")) {
-		int talk_tmr = a("talk_tmr", 0);
-		if (talk_tmr < 7) {
-			// note: scaling from top-left
-			EscValue talk = a("talk");
+	PyValue t = p->talking_actor;
+	if (t.GetType() != PY_NONE && t == a) {
+		PyValue talk_prop = Program::GetProp(t, "talk");
+		if (talk_prop.GetType() != PY_NONE) {
+			int talk_tmr = Program::PyInt(Program::GetProp(a, "talk_tmr"));
+			if (talk_tmr < 7) {
+				// note: scaling from top-left
+				PyValue talk = Program::GetProp(a, "talk");
 			int trans_col = a("trans_col", 0);
 			int flip = a("flip", 0);
 			PaintSprite(

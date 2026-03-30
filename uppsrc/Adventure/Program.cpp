@@ -120,8 +120,7 @@ bool Program::Init() {
 	if (!ctx.Init(false))
 		return false;
 
-	if (!AddEscFunctions())
-		return false;
+	// AddEscFunctions() removed - Esc scripts no longer supported
 
 	// init all the rooms/objects/actors
 	if (!InitGame())

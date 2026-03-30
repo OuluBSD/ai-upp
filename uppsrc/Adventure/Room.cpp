@@ -27,7 +27,7 @@ SObj Program::GetInRoom(SObj o) {
 			SObj in_room = o.MapGet("in_room");
 			if (in_room.IsMap())
 				return in_room;
-			
+
 			DUMPM(o.GetMap());
 			TODO
 			/*LOG(in_room.ToString());
@@ -42,6 +42,15 @@ SObj Program::GetInRoom(SObj o) {
 		}
 	}
 	return SObj();
+}
+
+PyValue Program::GetInRoomPy(PyValue o) {
+	if (o.GetType() == PY_DICT) {
+		PyValue in_room = GetProp(o, "in_room");
+		if (in_room.GetType() == PY_DICT)
+			return in_room;
+	}
+	return PyValue();
 }
 
 // open one (or more) doors
@@ -217,13 +226,19 @@ void Program::PutAt(SObj obj, int x, int y, SObj room) {
 		}
 	}
 	obj.MapSet("in_room", room);
-	
+
 	//LOG(obj.ToString());
 	ASSERT(obj.IsMap());
 	obj.MapSet("x", x);
 	obj.MapSet("y", y);
 }
 
-
+void Program::ChangeRoomPy(PyValue new_room, PyValue fade) {
+	if (new_room.GetType() != PY_DICT)
+		return;
+	
+	int fade_val = Program::PyInt(fade);
+	ChangeRoom(EscToPyValue(new_room), EscValue(fade_val));
+}
 
 }

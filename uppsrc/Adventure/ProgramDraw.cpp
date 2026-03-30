@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -405,23 +406,26 @@ void ProgramDraw::PaintUI(Draw& d) {
 			Color rect_clr = GetPaletteColor(verb_shadcol);
 			d.DrawRect(xpos-1, stage_top+ypos-1, xpos+8, stage_top+ypos+8, rect_clr);
 
-			SObj obj = inventory.ArrayGetDef(start_pos+ipos, SObj());
-			
+			PyValue obj;
+			int idx = start_pos+ipos;
+			if(idx >= 0 && idx < inv_arr.GetCount())
+				obj = inv_arr[idx];
+
 			//DUMP(obj);
-			if (obj) {
+			if (obj.GetType() != PY_NONE) {
 				// something to draw
-				obj.MapSet("x", xpos);
-				obj.MapSet("y", ypos);
-				
+				Program::SetProp(obj, "x", PyValue(xpos));
+				Program::SetProp(obj, "y", PyValue(ypos));
+
 				// draw object/sprite
 				PaintObject(d, obj);
-				
+
 				// re-calculate bounds (as pos may have changed)
-				int w = obj("w");
-				int h = obj("h");
+				int w = Program::PyInt(Program::GetProp(obj, "w"));
+				int h = Program::PyInt(Program::GetProp(obj, "h"));
 				ASSERT(w >= 0 && w < 0x10000);
 				ASSERT(h >= 0 && h < 0x10000);
-				p->RecalculateBounds(obj, w*8, h*8, 0, 0);
+				p->RecalculateBoundsPy(obj, w*8, h*8, 0, 0);
 				//show_collision_box(obj)
 			}
 			xpos += 11;
@@ -804,30 +808,30 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 
 
 	// talking overlay
-	PyValue t = p->talking_actor;
-	if (t.GetType() != PY_NONE && t == a) {
+	PyValue t = EscToPyValue(p->talking_actor);
+	if (t.GetType() != PY_NONE && t.GetPtr() == a.GetPtr()) {
 		PyValue talk_prop = Program::GetProp(t, "talk");
 		if (talk_prop.GetType() != PY_NONE) {
 			int talk_tmr = Program::PyInt(Program::GetProp(a, "talk_tmr"));
 			if (talk_tmr < 7) {
 				// note: scaling from top-left
 				PyValue talk = Program::GetProp(a, "talk");
-			int trans_col = a("trans_col", 0);
-			int flip = a("flip", 0);
+			int trans_col = Program::PyInt(Program::GetProp(a, "trans_col"));
+			int flip = Program::PyInt(Program::GetProp(a, "flip"));
 			PaintSprite(
 					d,
 					gfx,
-					talk("dirnum",0),
-					draw_x + (double)(talk(4, 0)),
-					draw_y + floor((double)(talk(5, 8)) * scale),
-					talk(6, 1),
-					talk(7, 1),
+					Program::PyInt(Program::GetProp(talk, "dirnum")),
+					draw_x + (double)(Program::PyInt(Program::GetProp(talk, "4"))),
+					draw_y + floor((double)(Program::PyInt(Program::GetProp(talk, "5"))) * scale),
+					Program::PyInt(Program::GetProp(talk, "6")),
+					Program::PyInt(Program::GetProp(talk, "7")),
 					trans_col,
 					flip,
 					false,
 					scale);
 		}
-		a.MapSet("talk_tmr", talk_tmr % 14 + 1);
+		Program::SetProp(a, "talk_tmr", PyValue(talk_tmr % 14 + 1));
 	}
 	
 	// debug

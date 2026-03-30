@@ -155,7 +155,9 @@ void Ctrl::ChildRemoved(Ctrl *q)
 {
 	GuiLock __;
 	Ctrl *parent = GetParent();
-	if(parent)
+	// Safety check: parent pointer might be corrupted during destruction
+	// Valid pointers should be in heap or stack, not small values or obvious garbage
+	if(parent && (uintptr_t)parent >= 0x1000 && ((uintptr_t)parent & 0x7) == 0)
 		parent->ChildRemoved(q);
 }
 

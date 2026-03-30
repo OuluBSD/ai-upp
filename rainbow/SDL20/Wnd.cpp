@@ -86,7 +86,7 @@ void Ctrl::SetFramebufferSize(Size sz)
 int Ctrl::FindTopCtrl() const
 {
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(this == topctrl[i])
+		if(topctrl[i] && this == topctrl[i])
 			return i;
 	return -1;
 }
@@ -107,7 +107,7 @@ Vector<Ctrl *> Ctrl::GetTopCtrls()
 	if(desktop)
 		ctrl.Add(desktop);
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(!dynamic_cast<TopWindowFrame *>(topctrl[i]))
+		if(topctrl[i] && !dynamic_cast<TopWindowFrame *>(topctrl[i]))
 			ctrl.Add(topctrl[i]);
 	return ctrl;
 }
@@ -116,7 +116,7 @@ Ctrl *Ctrl::GetOwner()
 {
 	GuiLock __;
 	int q = FindTopCtrl();
-	if(q > 0 && topctrl[q]->top) {
+	if(q > 0 && topctrl[q] && topctrl[q]->utop) {
 		Ctrl *x = topctrl[q]->utop->owner_window;
 		LDUMP(Upp::Name(x));
 		return dynamic_cast<TopWindowFrame *>(x) ? x->GetOwner() : x;
@@ -150,7 +150,7 @@ void Ctrl::AddInvalid(const Rect& rect)
 void Ctrl::SyncTopWindows()
 {
 	for(int i = 0; i < topctrl.GetCount(); i++) {
-		TopWindow *w = dynamic_cast<TopWindow *>(topctrl[i]);
+		TopWindow *w = topctrl[i] ? dynamic_cast<TopWindow *>(topctrl[i]) : nullptr;
 		if(w)
 			w->SyncRect();
 	}
@@ -195,7 +195,7 @@ ViewDraw::ViewDraw(Ctrl *ctrl)
 	Ctrl::invalid.Add(r);
 	Ctrl::AddUpdate(r);
 	for(int i = max(ctrl->GetTopCtrl()->FindTopCtrl() + 1, 0); i < Ctrl::topctrl.GetCount(); i++) {
-		Rect rr = Ctrl::topctrl[i]->GetScreenRect();
+		if(!Ctrl::topctrl[i]) continue; Rect rr = Ctrl::topctrl[i]->GetScreenRect();
 		ExcludeClip(rr);
 		Subtract(Ctrl::invalid, rr);
 	}
@@ -234,7 +234,7 @@ Vector<Rect> Ctrl::GetPaintRects()
 	Vector<Rect> r;
 	r.Add(GetScreenRect());
 	for(int i = max(FindTopCtrl() + 1, 0); i < topctrl.GetCount(); i++)
-		Subtract(r, topctrl[i]->GetScreenRect());
+		if(topctrl[i]) Subtract(r, topctrl[i]->GetScreenRect());
 	return r;
 }
 
@@ -308,7 +308,7 @@ void Ctrl::DoPaint()
 		if(desktop)
 			desktop->SyncScroll();
 		for(int i = 0; i < topctrl.GetCount(); i++)
-			topctrl[i]->SyncScroll();
+			if(topctrl[i]) topctrl[i]->SyncScroll();
 		if((invalid.GetCount() || scroll) && desktop) {
 			RemoveCursor();
 			RemoveCaret();
@@ -323,11 +323,11 @@ void Ctrl::DoPaint()
 					AddUpdate(invalid[i]);
 				}
 				for(int i = topctrl.GetCount() - 1; i >= 0; i--) {
-					Rect r = topctrl[i]->GetRect();
+					if(!topctrl[i]) continue; Rect r = topctrl[i]->GetRect();
 					Rect ri = GetClipBound(invalid, r);
 					if(!IsNull(ri)) {
 						draw.Clipoff(r);
-						topctrl[i]->UpdateArea(draw, ri - r.TopLeft());
+						if(topctrl[i]) topctrl[i]->UpdateArea(draw, ri - r.TopLeft());
 						draw.End();
 						Subtract(invalid, r);
 						draw.ExcludeClip(r);
@@ -501,8 +501,8 @@ int Ctrl::GetKbdSpeed()
 void Ctrl::DestroyWnd()
 {
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i]->utop && topctrl[i]->utop->owner_window == this)
-			topctrl[i]->WndDestroy();
+		if(topctrl[i] && topctrl[i]->utop && topctrl[i]->utop->owner_window == this)
+			if(topctrl[i]) topctrl[i]->WndDestroy();
 	int q = FindTopCtrl();
 	if(q >= 0) {
 		AddInvalid(GetRect());
@@ -561,7 +561,7 @@ bool Ctrl::IsWndForeground() const
 	GuiLock __;
 	bool b = false;
 	for(int i = 0; i < topctrl.GetCount(); i++) {
-		const TopWindow *tw = dynamic_cast<const TopWindow *>(topctrl[i]);
+		const TopWindow *tw = topctrl[i] ? dynamic_cast<const TopWindow *>(topctrl[i]) : nullptr;
 		if(tw)
 			b = tw == this;
 	}

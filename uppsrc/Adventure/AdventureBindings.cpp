@@ -15,20 +15,69 @@ static Program* GetProgram(void* user_data)
 	return (Program*)user_data;
 }
 
-// Helper function to extract EscValue from PyValue (for object references)
-static EscValue PyToEscValue(const Upp::PyValue& pv)
+// ============================================================================
+// PyFunctionWrapper Implementation
+// ============================================================================
+
+EscValue PyFunctionWrapper::Call(const Vector<EscValue>& args)
 {
-	if(pv.IsUserData()) {
-		// If it's a wrapped EscValue, extract it
-		Upp::PyUserData& ud = pv.GetUserData();
-		// Check if it's our EscValue wrapper
-		if(ud.GetTypeName() == "EscValue") {
-			// This would need a custom wrapper class for EscValue
-			// For now, return empty EscValue
-		}
+	if(!prog || !func.IsFunction())
+		return EscValue();
+	
+	// Convert EscValue args to PyValue
+	Vector<PyValue> py_args;
+	for(int i = 0; i < args.GetCount(); i++) {
+		py_args.Add(EscToPyValue(args[i]));
 	}
-	if(pv.GetType() == Upp::PY_STR) {
-		// String keys like ":room_name" can be converted to EscValue
+	
+	// Call Python function
+	PyValue result = prog->py_vm.Call(func, py_args);
+	
+	// Convert result back to EscValue
+	return PyToEscValue(result, prog);
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// Convert EscValue to PyValue
+PyValue EscToPyValue(const EscValue& ev)
+{
+	if(ev.IsString()) {
+		return PyValue::String(ev.GetStr());
+	}
+	if(ev.IsInt()) {
+		return PyValue::Int(ev.GetInt());
+	}
+	if(ev.IsDouble()) {
+		return PyValue::Float(ev.GetDouble());
+	}
+	if(ev.IsMap()) {
+		const VectorMap<EscValue, EscValue>& esc_map = ev.GetMap();
+		PyValue py_dict = PyValue::Dict();
+		VectorMap<PyValue, PyValue>& d = py_dict.GetDictRW();
+		for(int i = 0; i < esc_map.GetCount(); i++) {
+			d.Add(EscToPyValue(esc_map.GetKey(i)), EscToPyValue(esc_map[i]));
+		}
+		return py_dict;
+	}
+	if(ev.IsArray()) {
+		const Vector<EscValue>& esc_arr = ev.GetArray();
+		PyValue py_list = PyValue::List();
+		Vector<PyValue>& l = py_list.GetListRW();
+		for(int i = 0; i < esc_arr.GetCount(); i++) {
+			l.Add(EscToPyValue(esc_arr[i]));
+		}
+		return py_list;
+	}
+	return PyValue();
+}
+
+// Convert PyValue to EscValue (wraps Python functions)
+EscValue PyToEscValue(const PyValue& pv, Program* prog)
+{
+	if(pv.GetType() == PY_STR) {
 		return EscValue(pv.GetStr());
 	}
 	if(pv.IsInt()) {
@@ -37,23 +86,29 @@ static EscValue PyToEscValue(const Upp::PyValue& pv)
 	if(pv.IsFloat()) {
 		return EscValue(pv.AsDouble());
 	}
-	if(pv.GetType() == Upp::PY_DICT) {
+	if(pv.GetType() == PY_DICT) {
 		// Convert Python dict to EscValue map
-		const VectorMap<Upp::PyValue, Upp::PyValue>& py_dict = pv.GetDict();
+		const VectorMap<PyValue, PyValue>& py_dict = pv.GetDict();
 		EscValue result;
 		result.SetEmptyMap();
 		VectorMap<EscValue, EscValue>& esc_map = result.AsMap();
 		for(int i = 0; i < py_dict.GetCount(); i++) {
-			EscValue key = PyToEscValue(py_dict.GetKey(i));
-			EscValue val = PyToEscValue(py_dict[i]);
+			EscValue key = PyToEscValue(py_dict.GetKey(i), prog);
+			EscValue val = PyToEscValue(py_dict[i], prog);
 			esc_map.Add(key, val);
 		}
 		return result;
 	}
 	if(pv.IsFunction()) {
-		// Python function - for now return empty EscValue
-		// The Esc system will look up the function by name from the module
-		return EscValue();
+		// Wrap Python function in PyFunctionWrapper
+		// Store as userdata in EscValue
+		PyFunctionWrapper* wrapper = new PyFunctionWrapper(pv, pv, "py_func", prog);
+		EscValue result;
+		// We need to store the wrapper pointer somehow
+		// For now, use a map with special marker
+		result.SetEmptyMap();
+		result.AsMap().Add(EscValue("__pyfunc__"), EscValue((int64)(uintptr_t)wrapper));
+		return result;
 	}
 	return EscValue();
 }
@@ -71,8 +126,8 @@ PyValue AdventureBindings::change_room(const Vector<PyValue>& args, void* user_d
 	}
 
 	// Extract room and fade parameters
-	EscValue room = PyToEscValue(args[0]);
-	EscValue fade = args.GetCount() > 1 ? PyToEscValue(args[1]) : EscValue();
+	PyValue room = args[0];
+	PyValue fade = args.GetCount() > 1 ? args[1] : PyValue();
 
 	// Call the C++ implementation
 	prog->ChangeRoom(room, fade);
@@ -458,14 +513,8 @@ PyValue AdventureBindings::cutscene(const Vector<PyValue>& args, void* user_data
 	PyValue setup_fn = args[1];
 	PyValue cleanup_fn = args.GetCount() > 2 ? args[2] : PyValue::None();
 
-	// For Python cutscenes, we start the setup function as a cutscene script
-	// The cleanup function would be called when the cutscene ends (via WhenStop callback)
-	if(setup_fn.IsFunction()) {
-		// Start as a cutscene script (background=true, calls=1)
-		Vector<PyValue> cut_args;
-		cut_args.Add(PyValue::None());  // Placeholder for self/context
-		prog->StartScriptPyVM(setup_fn, cut_args, true, 1);
-	}
+	// Call Python cutscene function
+	prog->CutscenePy((SceneType)type, setup_fn, cleanup_fn);
 
 	return PyValue::None();
 }

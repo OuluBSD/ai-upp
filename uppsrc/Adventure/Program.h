@@ -29,6 +29,8 @@ using StrVec = Vector<String>;
 
 Color ReadColor(const SObj& o, EscValue key, Color def);
 bool TryReadColor(const SObj& o, EscValue key, Color& c);
+Color ReadColor(const PyValue& o, const char* key, Color def);
+bool TryReadColor(const PyValue& o, const char* key, Color& c);
 bool ReadFlag(const SObj& o, String key);
 bool HasArrayValue(SObj arr, SObj value);
 
@@ -371,13 +373,22 @@ public:
 	void ResetPalette();
 	void ResetUI();
 	void Shake(bool enabled);
-	EscValue FindDefaultVerb(SObj& obj);
+	PyValue FindDefaultVerb(SObj& obj);
 	void UnsupportedAction(EscValue verb, SObj& obj1, SObj& obj2);
 	void CameraAt(const Point& val);
 
 	// PyVM helper functions
 	static PyValue GetDictItem(const PyValue& dict, const char* key);
 	PyVM& GetPyVM() { return py_vm; }  // Access to PyVM for bindings
+	
+	// PyValue accessors
+	static PyValue GetProp(const PyValue& obj, const char* key);
+	static void SetProp(PyValue& obj, const char* key, const PyValue& val);
+	static int PyInt(const PyValue& v, int def = 0);
+	static String PyStr(const PyValue& v);
+	static PyValue ClassesPy(const PyValue& s);
+	static bool HasFlag(const PyValue& obj, String key);
+	static PyValue GetSelectedActorPy();
 
 	// Esc* handlers removed - use Python instead
 
@@ -421,7 +432,7 @@ public:
 	void WalkTo(SObj a, int x, int y);
 	void WaitForActor(SObj& actor);
 	double Proximity(SObj& obj1, SObj& obj2);
-	EscValue GetVerb(int idx);
+	PyValue GetVerb(int idx);
 	String GetVerbString(int idx);
 	String GetVerbString(SObj v);
 	void ClearCurrCmd();
@@ -442,6 +453,7 @@ public:
 	int GetLongestLineSize(const Vector<String>& lines);
 	bool HasFlag(const SObj& obj, String key);
 	void RecalculateBounds(SObj obj, int w, int h, int cam_off_x, int cam_off_y);
+	void RecalculateBoundsPy(PyValue obj, int w, int h, int cam_off_x, int cam_off_y);
 	void ShowError(String msg);
 	void ExplodeData(SObj& obj);
 	bool IsCursorColliding(const SObj& obj);

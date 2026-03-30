@@ -7,18 +7,18 @@ namespace Adventure {
 // collision detection
 void Program::CheckCollisions() {
 	auto& global = ctx.global;
-	
+
 	// check for (current room
-	if (room_curr.IsVoid())
+	if (room_curr.IsNone())
 		return;
-		
+
 	// reset hover collisions
-	hover_curr_verb			= EscValue();
-	hover_curr_default_verb	= EscValue();
-	hover_curr_object		= EscValue();
+	hover_curr_verb			= PyValue();
+	hover_curr_default_verb	= PyValue();
+	hover_curr_object		= PyValue();
 	//hover_curr_sentence	= EscValue();
-	hover_curr_arrow		= EscValue();
-	
+	hover_curr_arrow		= PyValue();
+
 	// are we in dialog mode?
 	if (dialog_curr && dialog_curr.visible) {
 		for (Sentence& s : dialog_curr.sentences) {
@@ -28,70 +28,70 @@ void Program::CheckCollisions() {
 		// skip remaining collisions
 		return;
 	}
-	
+
 	// reset zplane info
 	ResetZPlanes();
-	
+
 	// check room/object collisions
-	EscValue objects = room_curr("objects");
-	Vector<EscValue>& room_arr = const_cast<Vector<EscValue>&>(objects.GetArray());
-	for (EscValue& obj : room_arr) {
+	PyValue objects = Program::GetProp(room_curr, "objects");
+	const Vector<PyValue>& room_arr = objects.GetArray();
+	for(PyValue& obj : const_cast<Vector<PyValue>&>(room_arr)) {
 		// capture bounds (even for ("invisible", but not untouchable/dependent, objects)
-		EscValue c = Classes(obj);
-		EscValue dep_on = global.Get(obj.MapGet("dependent_on").ToString(), EscValue());
-		if ((c.IsVoid() || (!c.IsVoid() && !HasFlag(c, "class_untouchable")))
-			&& (dep_on.IsVoid() // object has a valid dependent state?
-			 || dep_on.MapGet("state") == obj.MapGet("dependent_on_state"))) {
-			int w = obj.MapGet("w").GetInt();
-			int h = obj.MapGet("h").GetInt();
-			RecalculateBounds(obj, w*8, h*8, cam.x, cam.y);
+		PyValue c = Program::ClassesPy(obj);
+		PyValue dep_on = global.Get(Program::PyStr(Program::GetProp(obj, "dependent_on")), PyValue());
+		if ((c.IsNone() || (!c.IsNone() && !HasFlag(c, "class_untouchable")))
+			&& (dep_on.IsNone() // object has a valid dependent state?
+			 || Program::GetProp(dep_on, "state") == Program::GetProp(obj, "dependent_on_state"))) {
+			int w = Program::PyInt(Program::GetProp(obj, "w"));
+			int h = Program::PyInt(Program::GetProp(obj, "h"));
+			RecalculateBoundsPy(obj, w*8, h*8, cam.x, cam.y);
 		}
 		else {
 			// reset bounds
-			obj.MapSet("bounds", EscValue());
+			Program::SetProp(obj, "bounds", PyValue());
 		}
-		
+
 		if (IsCursorColliding(obj)) {
 			// if (highest (or first) object in hover "stack"
-			int obj_z = obj.MapGet("z").GetInt();
-			int hover_curr_object_z = hover_curr_object.IsMap() ? hover_curr_object.MapGet("z").GetInt() : 0;
+			int obj_z = Program::PyInt(Program::GetProp(obj, "z"));
+			int hover_curr_object_z = hover_curr_object.GetType() != PY_NONE ? Program::PyInt(Program::GetProp(hover_curr_object, "z")) : 0;
 			int max_z = max(obj_z, hover_curr_object_z);
-			if (hover_curr_object.IsVoid() || max_z == obj_z) {
+			if (hover_curr_object.IsNone() || max_z == obj_z) {
 				hover_curr_object = obj;
 			}
 		}
 		// recalc z-plane
 		RecalcZPlane(obj);
 	}
-	
-	SObj selected_actor = GetSelectedActor();
-	
+
+	PyValue selected_actor = GetSelectedActorPy();
+
 	// check actor collisions
-	SObj actors = global.Get("actors", EscValue());
-	if (actors.IsArray()) {
-		int actor_count = actors.GetArray().GetCount();
-		for(int k = 0; k < actor_count; k++) {
-			SObj actor = actors.ArrayGet(k);
-			if (actor("in_room") == room_curr) {
-				RecalculateBounds(actor, (int)actor("w")*8, (int)actor("h")*8, cam.x, cam.y);
-				
+	PyValue actors = global.Get(PyValue("actors"), PyValue());
+	if (actors.GetType() == PY_LIST) {
+		const Vector<PyValue>& actor_arr = actors.GetArray();
+		for(const PyValue& actor : actor_arr) {
+			PyValue in_room = Program::GetProp(actor, "in_room");
+			if (in_room == room_curr) {
+				RecalculateBoundsPy(actor, (int)Program::PyInt(Program::GetProp(actor, "w"))*8, (int)Program::PyInt(Program::GetProp(actor, "h"))*8, cam.x, cam.y);
+
 				// recalc z-plane
 				RecalcZPlane(actor);
-				
+
 				// are we colliding (ignore self!)
 				if (IsCursorColliding(actor) && actor != selected_actor)
 					hover_curr_object = actor;
 			}
 		}
 	}
-	
-	if (selected_actor) {
+
+	if (selected_actor.GetType() != PY_NONE) {
 		// check ui/inventory collisions
-		for (const EscValue& v : verbs.GetArray()) {
+		for (const PyValue& v : verbs.GetArray()) {
 			if (IsCursorColliding(v))
 				hover_curr_verb = v;
 		}
-		for (const EscValue& a : ui_arrows.GetArray()) {
+		for (const PyValue& a : ui_arrows.GetArray()) {
 			if (IsCursorColliding(a))
 				hover_curr_arrow = a;
 		}
@@ -168,7 +168,7 @@ bool Program::IsCellWalkable(int celx, int cely) {
 void Program::RecalculateBounds(SObj o, int w, int h, int cam_off_x, int cam_off_y) {
 	int x = o("x");
 	int y = o("y");
-	
+
 	// offset for (actors?
 	if (HasFlag(Classes(o), "class_actor")) {
 		int w = o("w");
@@ -180,7 +180,7 @@ void Program::RecalculateBounds(SObj o, int w, int h, int cam_off_x, int cam_off
 		o.MapSet("offset_x", offset_x);
 		o.MapSet("offset_y", offset_y);
 	}
-	
+
 	EscValue bounds;
 	bounds.SetEmptyMap();
 	bounds.MapSet("x", x);
@@ -190,6 +190,32 @@ void Program::RecalculateBounds(SObj o, int w, int h, int cam_off_x, int cam_off
 	bounds.MapSet("cam_off_x", cam_off_x);
 	bounds.MapSet("cam_off_y", cam_off_y);
 	o.MapSet("bounds", bounds);
+}
+
+void Program::RecalculateBoundsPy(PyValue o, int w, int h, int cam_off_x, int cam_off_y) {
+	int x = PyInt(GetProp(o, "x"));
+	int y = PyInt(GetProp(o, "y"));
+
+	// offset for (actors?
+	if (HasFlag(ClassesPy(o), "class_actor")) {
+		int w = PyInt(GetProp(o, "w"));
+		int h = PyInt(GetProp(o, "h"));
+		int offset_x = x - (w * 8) / 2;
+		int offset_y = y - (h * 8) + 1;
+		x = offset_x;
+		y = offset_y;
+		SetProp(o, "offset_x", PyValue(offset_x));
+		SetProp(o, "offset_y", PyValue(offset_y));
+	}
+
+	PyValue bounds = PyValue::Dict();
+	bounds.SetItem(PyValue("x"), PyValue(x));
+	bounds.SetItem(PyValue("y"), PyValue(y + stage_top));
+	bounds.SetItem(PyValue("x1"), PyValue(x + w - 1));
+	bounds.SetItem(PyValue("y1"), PyValue(y + h + stage_top - 1));
+	bounds.SetItem(PyValue("cam_off_x"), PyValue(cam_off_x));
+	bounds.SetItem(PyValue("cam_off_y"), PyValue(cam_off_y));
+	SetProp(o, "bounds", bounds);
 }
 
 

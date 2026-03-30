@@ -134,6 +134,55 @@ bool Program::Init() {
 	return true;
 }
 
+// PyValue accessors
+PyValue Program::GetProp(const PyValue& obj, const char* key) {
+	if(obj.GetType() != PY_DICT)
+		return PyValue();
+	const VectorMap<PyValue, PyValue>& d = obj.GetDict();
+	for(int i = 0; i < d.GetCount(); i++) {
+		if(d.GetKey(i).GetType() == PY_STR && d.GetKey(i).GetStr() == WString(key))
+			return d[i];
+	}
+	return PyValue();
+}
+
+void Program::SetProp(PyValue& obj, const char* key, const PyValue& val) {
+	if(obj.GetType() != PY_DICT)
+		return;
+	VectorMap<PyValue, PyValue>& d = obj.GetDictRW();
+	d.Set(PyValue(WString(key)), val);
+}
+
+int Program::PyInt(const PyValue& v, int def) {
+	if(v.IsInt()) return (int)v.AsInt();
+	if(v.IsFloat()) return (int)v.AsDouble();
+	return def;
+}
+
+String Program::PyStr(const PyValue& v) {
+	return v.GetType() == PY_STR ? v.GetStr() : String();
+}
+
+PyValue Program::ClassesPy(const PyValue& s) {
+	return GetProp(s, "classes");
+}
+
+bool Program::HasFlag(const PyValue& obj, String key) {
+	PyValue classes = ClassesPy(obj);
+	if(classes.GetType() != PY_LIST)
+		return false;
+	const Vector<PyValue>& arr = classes.GetArray();
+	for(int i = 0; i < arr.GetCount(); i++) {
+		if(arr[i].GetType() == PY_STR && arr[i].GetStr() == WString(key))
+			return true;
+	}
+	return false;
+}
+
+PyValue Program::GetSelectedActorPy() {
+	return cam_following_actor;
+}
+
 /*void Program::ProcessEsc() {
 	//LOG("Program::ProcessEsc: start");
 	
@@ -320,16 +369,25 @@ double Program::Proximity(SObj& obj1, SObj& obj2) {
 PyValue Program::GetVerb(int idx) {
 	if(idx < 0 || idx >= V_COUNT)
 		return PyValue();
-	PyValue ret = verbs.GetList()[idx];
-	return ret;
+	const Vector<PyValue>& verbs_arr = verbs.GetArray();
+	if(idx >= verbs_arr.GetCount())
+		return PyValue();
+	return verbs_arr[idx];
 }
 
 String Program::GetVerbString(int i) {
 	if (i >= 0 && i < V_COUNT) {
-		PyValue v = verbs.GetList()[i];
+		const Vector<PyValue>& verbs_arr = verbs.GetArray();
+		if(i >= verbs_arr.GetCount())
+			return "<error>";
+		PyValue v = verbs_arr[i];
 		if(v.GetType() == PY_DICT) {
-			PyValue name = v.GetDict().Get(PyValue(WString("text")));
-			return name.GetStr();
+			const VectorMap<PyValue, PyValue>& d = v.GetDict();
+			for(int j = 0; j < d.GetCount(); j++) {
+				if(d.GetKey(j).GetStr() == WString("text")) {
+					return d[j].GetStr();
+				}
+			}
 		}
 	}
 	return "<error>";
@@ -458,10 +516,11 @@ bool Program::IsTable(SObj& t) {
 
 Point Program::GetCellPos(SObj& obj) {
 	Point p;
-	int map_x = room_curr("map").ArrayGetDef(0,0);
-	int map_y = room_curr("map").ArrayGetDef(1,0);
-	int obj_x = obj("x");
-	int obj_y = obj("y");
+	const Vector<PyValue>& map_arr = room_curr.GetArray();
+	int map_x = map_arr.GetCount() > 0 ? PyInt(map_arr[0]) : 0;
+	int map_y = map_arr.GetCount() > 1 ? PyInt(map_arr[1]) : 0;
+	int obj_x = PyInt(GetProp(obj, "x"));
+	int obj_y = PyInt(GetProp(obj, "y"));
 	p.x = obj_x/8 + map_x;
 	p.y = obj_y/8 + map_y;
 	return p;

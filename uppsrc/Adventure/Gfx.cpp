@@ -45,6 +45,20 @@ Color ReadColor(const SObj& o, EscValue key, Color def) {
 	return def;
 }
 
+Color ReadColor(const PyValue& o, const char* key, Color def) {
+	if(o.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& d = o.GetDict();
+		for(int i = 0; i < d.GetCount(); i++) {
+			if(d.GetKey(i).GetType() == PY_STR && d.GetKey(i).GetStr() == WString(key)) {
+				// Parse color from PyValue (assume int RGB)
+				int col = Program::PyInt(d[i]);
+				return Color(col & 0xFF, (col >> 8) & 0xFF, (col >> 16) & 0xFF);
+			}
+		}
+	}
+	return def;
+}
+
 bool TryReadColor(const SObj& o, EscValue key, Color& c) {
 	if (o.IsMap()) {
 		const auto& m = o.GetMap();
@@ -52,6 +66,20 @@ bool TryReadColor(const SObj& o, EscValue key, Color& c) {
 		if (i >= 0) {
 			LOG(o.ToString());
 			TODO
+		}
+	}
+	return false;
+}
+
+bool TryReadColor(const PyValue& o, const char* key, Color& c) {
+	if(o.GetType() == PY_DICT) {
+		const VectorMap<PyValue, PyValue>& d = o.GetDict();
+		for(int i = 0; i < d.GetCount(); i++) {
+			if(d.GetKey(i).GetType() == PY_STR && d.GetKey(i).GetStr() == WString(key)) {
+				int col = Program::PyInt(d[i]);
+				c = Color(col & 0xFF, (col >> 8) & 0xFF, (col >> 16) & 0xFF);
+				return true;
+			}
 		}
 	}
 	return false;

@@ -5,6 +5,8 @@
 
 NAMESPACE_UPP
 
+static const int MLUI_PROTOCOL_VERSION = 1;
+
 static bool MluiParsePort(const String& text, int& out_port)
 {
 	const char *end = NULL;
@@ -84,6 +86,7 @@ String MluiMakeJsonResponse(bool ok, const Value& id, const Value& result, const
 	ValueMap out;
 	if(!IsNull(id))
 		out.Add("id", id);
+	out.Add("protocol_version", MLUI_PROTOCOL_VERSION);
 	out.Add("ok", ok);
 	if(ok)
 		out.Add("result", result);

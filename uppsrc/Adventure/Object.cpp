@@ -219,7 +219,7 @@ String Program::GetFaceString(FaceDir d) {
 
 void Program::SetSelectedActor(SObj o) {
 	auto& global = ctx.global;
-	global.GetAdd("selected_actor") = o;
+	global.GetAdd("selected_actor") = EscToPyValue(o);
 }
 
 

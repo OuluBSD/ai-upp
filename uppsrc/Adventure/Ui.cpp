@@ -106,11 +106,11 @@ void Program::PlayerControl() {
 // 1 = z/lmb, 2 = x/rmb, (4=middle)
 void Program::InputButtonPressed(dword button_index) {
 	auto& global = ctx.global;
-	
-	SObj selected_actor = global.Get("selected_actor");
-	
+
+	PyValue selected_actor = GetSelectedActor();
+
 	// abort if (no actor selected at this point
-	if (!selected_actor)
+	if (selected_actor.IsNone())
 		return;
 		
 	// check for (sentence selection

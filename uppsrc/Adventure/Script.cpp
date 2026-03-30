@@ -271,16 +271,16 @@ void Program::Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, E
 		flags = type,
 		thrd = cocreate(func_cutscene),
 		override_ = func_override,
-		paused_cam_following = cam_following_actor
+		paused_cam_following = EscToPyValue(cam_following_actor)
 	};*/
 
-	if (cutscene_override.IsVoid()) {
-		cutscene_override = func_override;
+	if (cutscene_override.IsNone()) {
+		cutscene_override = EscToPyValue(func_override);
 
 		Script& cut = AddCutscene("cutscene0");
 		cut.user_type = type;
 		cut.WhenStop = THISBACK(ClearCutsceneOverride);
-		cut.Set(0, func_cutscene, room_curr);
+		cut.Set(0, func_cutscene, EscToPyValue(room_curr));
 
 		// set as active cutscene
 		cutscene_curr = &cut;
@@ -299,7 +299,7 @@ void Program::CutscenePy(SceneType type, const PyValue& func_cutscene, const PyV
 
 	// Call Python cutscene function with current room
 	Vector<PyValue> args;
-	args.Add(room_curr_py);
+	args.Add(room_curr);
 	py_vm.Call(func_cutscene, args);
 
 	// Clear cutscene after completion
@@ -307,7 +307,7 @@ void Program::CutscenePy(SceneType type, const PyValue& func_cutscene, const PyV
 }
 
 void Program::ClearCutsceneOverride(EscAnimProgram& s) {
-	cutscene_override = EscValue();
+	cutscene_override = PyValue();
 
 	// Cast to Script to compare
 	Script* script_ptr = dynamic_cast<Script*>(&s);

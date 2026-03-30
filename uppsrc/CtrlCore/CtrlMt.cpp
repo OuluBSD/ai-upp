@@ -106,6 +106,21 @@ void Ctrl::Call(Function<void ()> cb)
 	}
 }
 
+void MluiGuiPost(Function<void ()> cb, void *id)
+{
+	if(IsMainThread())
+		cb();
+	else {
+		UPP::PostCallback(cb, id);
+		WakeUpGuiThread();
+	}
+}
+
+void MluiGuiCall(Function<void ()> cb)
+{
+	Ctrl::Call(cb);
+}
+
 void Ctrl::ShutdownThreads()
 {
 	Thread::BeginShutdownThreads();

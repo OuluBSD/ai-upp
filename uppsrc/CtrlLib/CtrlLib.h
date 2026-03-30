@@ -29,6 +29,7 @@ INITIALIZE(CtrlLib);
 #include <CtrlLib/EditCtrl.h>
 #include <CtrlLib/AKeys.h>
 #include <CtrlLib/GuiAutomation.h>
+#include <CtrlLib/Mlui.h>
 #include <CtrlLib/StatusBar.h>
 #include <CtrlLib/TabCtrl.h>
 #include <CtrlLib/PageCtrl.h>

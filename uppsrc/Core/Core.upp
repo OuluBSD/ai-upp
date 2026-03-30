@@ -73,6 +73,8 @@ file
 	NetNode.cpp,
 	App.h,
 	App.cpp,
+	Mlui.h,
+	Mlui.cpp,
 	Huge.h,
 	Huge.cpp,
 	Stream.h,
@@ -226,4 +228,3 @@ file
 	src.tpp,
 	srcimp.tpp,
 	Copying;
-

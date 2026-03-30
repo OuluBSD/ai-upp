@@ -269,17 +269,53 @@ Bar::Bar()
 }
 
 bool MenuBar::Access(Visitor& v) {
-	if(proc) proc(*this);
+	if(proc && item.IsEmpty()) {
+		lock++;
+		proc(*this);
+		SyncBar();
+		lock--;
+	}
 	for(int i = 0; i < item.GetCount(); i++)
 		item[i].Access(v);
 	return true;
 }
 
 bool ToolBar::Access(Visitor& v) {
-	if(proc) proc(*this);
+	if(proc && ii == 0) {
+		lock++;
+		proc(*this);
+		item.SetCount(ii);
+		for(int i = 0; i < item.GetCount(); i++)
+			item[i].FinalSync();
+		BarCtrl::IFinish();
+		SyncBar();
+		lock--;
+	}
 	for(int i = 0; i < ii; i++)
 		item[i].Access(v);
 	return true;
+}
+
+int MenuBar::GetAutomationItemCount() const
+{
+	return item.GetCount();
+}
+
+const Ctrl *MenuBar::GetAutomationItemCtrl(int i) const
+{
+	if(i >= 0 && i < item.GetCount())
+		return &item[i];
+	return nullptr;
+}
+
+int ToolBar::GetAutomationItemCount() const
+{
+	return ii;
+}
+
+const Ctrl *ToolBar::GetAutomationItemCtrl(int i) const
+{
+	return (i >= 0 && i < ii) ? &item[i] : nullptr;
 }
 
 

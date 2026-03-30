@@ -478,4 +478,44 @@ PrinterJob& PrinterJob::CurrentPage(int i)
 
 #endif
 
+// Stub implementations for framebuffer and other backends without printing support
+#if !defined(GUI_WIN) && !defined(PLATFORM_X11) && !defined(PLATFORM_COCOA) || defined(VIRTUALGUI) || defined(GUI_FB)
+
+PrinterJob::PrinterJob(const char *_name)
+{
+	name = _name;
+	landscape = false;
+	from = to = 1;
+	current = 1;
+}
+
+PrinterJob::~PrinterJob()
+{
+}
+
+Draw& PrinterJob::GetDraw()
+{
+	return *draw;
+}
+
+PrinterJob& PrinterJob::MinMaxPage(int minpage, int maxpage)
+{
+	from = minpage;
+	to = maxpage;
+	return *this;
+}
+
+PrinterJob& PrinterJob::CurrentPage(int i)
+{
+	current = i;
+	return *this;
+}
+
+bool PrinterJob::Execute()
+{
+	return false;
+}
+
+#endif
+
 }

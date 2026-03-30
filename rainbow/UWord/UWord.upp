@@ -5,8 +5,9 @@ uses
 	RichEdit,
 	PdfDraw,
 	plugin\jpg,
-	SDL20,
-	Telpp;
+	SDL20;
+
+uses(TELPP) Telpp;
 
 uses(SKELETON) Skeleton;
 

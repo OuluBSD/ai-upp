@@ -79,8 +79,13 @@ public:
 
 	static Ctrl *FindMouseTopCtrl();
 
+	static int  GetCaretBlinkTime()            { return 500; }
+
+	static int  RegisterSystemHotKey(dword key, Callback cb)    { return -1; }
+	static void UnregisterSystemHotKey(int id)                  { }
+
 	static bool FullWindowDrag;
-	
+
 	enum { DRAWDRAGRECT_SCREEN = 0x8000 };
 
 //$ };

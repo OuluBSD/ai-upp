@@ -9,9 +9,11 @@ namespace Upp {
 #include <Draw/iml_source.h>
 
 #ifndef GUIPLATFORM_FBIMG_INTERFACE
+#ifndef GUI_FB  // rainbow Framebuffer backend provides its own FBImg
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_source.h>
+#endif
 #endif
 
 static bool StdDisplayErrorFn(const Value& e)

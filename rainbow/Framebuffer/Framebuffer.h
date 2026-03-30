@@ -4,7 +4,7 @@
 
 NAMESPACE_UPP
 
-#define IMAGECLASS FBGuiImg
+#define IMAGECLASS FBImg
 #define IMAGEFILE <Framebuffer/FB.iml>
 #include <Draw/iml_header.h>
 

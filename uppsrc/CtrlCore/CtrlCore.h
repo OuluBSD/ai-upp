@@ -15,31 +15,45 @@
 
 #include <guiplatform.h>
 
-#ifndef GUIPLATFORM_INCLUDE
-	#ifdef flagVIRTUALGUI // Required for VirtualGui package (simple GUI host implemented by virtual functions)
+#ifdef flagMLUI
+	#ifndef flagVIRTUALGUI
+		#define flagVIRTUALGUI
+	#endif
+	#ifndef VIRTUALGUI
 		#define VIRTUALGUI 1
 	#endif
+#endif
 
-	#ifdef flagTURTLE
+#ifndef GUIPLATFORM_INCLUDE
+	#ifdef flagMLUI
+		#define GUIPLATFORM_KEYCODES_INCLUDE <VirtualGui/Keys.h>
+		#define GUIPLATFORM_INCLUDE          <VirtualGui/VirtualGui.h>
+	#else
+		#ifdef flagVIRTUALGUI // Required for VirtualGui package (simple GUI host implemented by virtual functions)
+			#define VIRTUALGUI 1
+		#endif
+
+		#ifdef flagTURTLE
 		#define GUIPLATFORM_KEYCODES_INCLUDE <Turtle/Keys.h>
 		//need to make SDL_keysym.h known before K_ enum
 		#define GUIPLATFORM_INCLUDE          <Turtle/Turtle.h>
 		#define GUIPLATFORM_NOSCROLL
 		#define PLATFORM_TURTLE
 		#define TURTLE
-	#elif VIRTUALGUI
+		#elif VIRTUALGUI
 		#define GUIPLATFORM_KEYCODES_INCLUDE <VirtualGui/Keys.h>
 		#define GUIPLATFORM_INCLUDE          <VirtualGui/VirtualGui.h>
-	#elif PLATFORM_COCOA
+		#elif PLATFORM_COCOA
 		#define GUIPLATFORM_INCLUDE          "Coco.h"
 		#define GUIPLATFORM_NOSCROLL
-	#elif PLATFORM_WIN32
+		#elif PLATFORM_WIN32
 		#define GUIPLATFORM_INCLUDE "Win32Gui.h"
-	#else
-		#ifdef flagX11 // forces the legacy X11 backend (instead of GTK)
-			#define GUIPLATFORM_INCLUDE "X11Gui.h"
 		#else
-			#define GUIPLATFORM_INCLUDE "Gtk.h"
+			#ifdef flagX11 // forces the legacy X11 backend (instead of GTK)
+				#define GUIPLATFORM_INCLUDE "X11Gui.h"
+			#else
+				#define GUIPLATFORM_INCLUDE "Gtk.h"
+			#endif
 		#endif
 	#endif
 
@@ -54,9 +68,11 @@ namespace Upp {
 struct Visitor;
 
 #ifndef GUIPLATFORM_FBIMG_INTERFACE
+#ifndef GUI_FB  // rainbow Framebuffer backend provides its own FBImg
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_header.h>
+#endif
 #endif
 
 INITIALIZE(CtrlCore)
@@ -970,8 +986,10 @@ public:
 	static  void   InstallPaintHook(PaintHook hook);
 	static  void   DeinstallPaintHook(PaintHook hook);
 
+#ifndef GUI_FB  // rainbow Framebuffer backend provides its own
 	static  int    RegisterSystemHotKey(dword key, Function<void ()> cb);
 	static  void   UnregisterSystemHotKey(int id);
+#endif
 
 	virtual bool   Accept();
 	virtual void   Reject();
@@ -1900,6 +1918,40 @@ void WriteClipboardHTML(const String& html);
 #include <CtrlCore/TopWindow.h>
 
 #include GUIPLATFORM_INCLUDE_AFTER
+
+#if defined(flagMLUI) && !defined(GUI_APP_MAIN)
+	#ifdef PLATFORM_WIN32
+		#define GUI_APP_MAIN \
+		void GuiMainFn_(); \
+		\
+		int main(int argc, char *argv[]) { \
+			UPP::AppInit__(argc, (const char **)argv); \
+			GUI_APP_MAIN_HOOK \
+			UPP::AppExecute__(GuiMainFn_); \
+			UPP::Ctrl::CloseTopCtrls(); \
+			UPP::Ctrl::ShutdownThreads(); \
+			UPP::AppExit__(); \
+			return UPP::GetExitCode(); \
+		} \
+		\
+		void GuiMainFn_()
+	#else
+		#define GUI_APP_MAIN \
+		void GuiMainFn_(); \
+		\
+		int main(int argc, const char **argv, const char **envptr) { \
+			UPP::AppInit__(argc, argv, envptr); \
+			GUI_APP_MAIN_HOOK \
+			UPP::AppExecute__(GuiMainFn_); \
+			UPP::Ctrl::CloseTopCtrls(); \
+			UPP::Ctrl::ShutdownThreads(); \
+			UPP::AppExit__(); \
+			return UPP::GetExitCode(); \
+		} \
+		\
+		void GuiMainFn_()
+	#endif
+#endif
 
 template <class T>
 T *Ctrl::GetAscendant() const

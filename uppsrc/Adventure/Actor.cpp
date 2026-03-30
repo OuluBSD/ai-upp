@@ -13,8 +13,9 @@ PyValue Program::GetSelectedActor() {
 
 
 // actions to perform when object doesn't have an entry for (verb
-void Program::UnsupportedAction(PyValue verb, SObj& obj1, SObj& obj2) {
-	bool is_actor = HasFlag(Classes(obj1), "class_actor");
+void Program::UnsupportedAction(PyValue verb, PyValue obj1, PyValue obj2) {
+	PyValue classes1 = Program::GetProp(obj1, "classes");
+	bool is_actor = HasFlag(classes1, "class_actor");
 
 	if (verb.GetPtr() == V_WALKTO.GetPtr())
 		return;
@@ -22,11 +23,12 @@ void Program::UnsupportedAction(PyValue verb, SObj& obj1, SObj& obj2) {
 	else if (verb.GetPtr() == V_PICKUP.GetPtr())
 		SayLine(is_actor ? "i don't need them" : "i don't need that");
 
-	else if (verb.GetPtr() == V_USE.GetPtr())
-		SayLineActor(is_actor ? obj1 : obj2,
-			is_actor ? "i can't just *use* someone" :
-				(HasFlag(Classes(obj2), "class_actor") ?
-					"i can't use that on someone!" : "that doesn't work"));
+	else if (verb.GetPtr() == V_USE.GetPtr()) {
+		PyValue classes2 = Program::GetProp(obj2, "classes");
+		SayLine(is_actor ? "i can't just *use* someone" :
+			(HasFlag(classes2, "class_actor") ?
+				"i can't use that on someone!" : "that doesn't work"));
+	}
 
 	else if (verb.GetPtr() == V_GIVE.GetPtr())
 		SayLine(is_actor ? "i don't think i should be giving this away" : "i can't do that");
@@ -274,13 +276,13 @@ bool Program::VerbScript(EscValue vc2) {
 			String s = vc2;
 			ASSERT(s.GetCount());
 			Gate0 func;
-			if      (s == "open")	OpenDoor(noun1_curr, noun1_curr("target_door"));
-			else if (s == "close")	CloseDoor(noun1_curr, noun1_curr("target_door"));
-			else if (s == "walkto")	ComeOutDoor(noun1_curr, noun1_curr("target_door"), 0);
+			if      (s == "open")	OpenDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"));
+			else if (s == "close")	CloseDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"));
+			else if (s == "walkto")	ComeOutDoor(noun1_curr, Program::GetProp(noun1_curr, "target_door"), 0);
 		}
 		else {
 			// e.g. "i don't think that will work"
-			UnsupportedAction(vc2, noun1_curr, noun2_curr);
+			UnsupportedAction(EscToPyValue(vc2), noun1_curr, noun2_curr);
 		}
 	}
 	

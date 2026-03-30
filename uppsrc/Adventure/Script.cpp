@@ -142,7 +142,7 @@ Script& Script::Set(Gate0 cb, EscValue a0, EscValue a1) {
 Script& Script::Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0, EscValue a1) {
 	Clear();
 	is_esc = false;
-	
+
 	// Find & check lambda before setting fields
 	EscValue lambda;
 	String fn_name;
@@ -163,11 +163,11 @@ Script& Script::Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0, EscV
 			}
 		}
 	}
-	
+
 	Vector<EscValue> arg;
 	if (!a0.IsVoid()) arg << a0;
 	if (!a0.IsVoid() && !a1.IsVoid()) arg << a1;
-	
+
 	const HiLambda& l = lambda.GetLambda();
 	if (arg.GetCount() != l.arg.GetCount()) {
 		String argnames;
@@ -176,14 +176,14 @@ Script& Script::Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0, EscV
 		LOG(Format("invalid number of arguments (%d passed, expected: %s)", arg.GetCount(), argnames));
 		return *this;
 	}
-	
+
 	// Set fields
 	this->a0 = a0;
 	this->a1 = a1;
 	is_esc = true;
 	global = &g;
 	this->fn_name = fn_name;
-	
+
 	// Initialize esc runner
 	op_limit = 1000000;
 	esc = new Esc(g, l.code, op_limit, l.filename, l.line);
@@ -192,14 +192,14 @@ Script& Script::Set(EscGlobal& g, EscValue *self, EscValue fn, EscValue a0, EscV
 		e.Self() = *self;
 	for(int i = 0; i < l.arg.GetCount(); i++)
 		e.Var().GetPut(l.arg[i]) = arg[i];
-	
+
 	//e.no_return = e.no_break = e.no_continue = true;
 	//e.loop = 0;
 	//e.skipexp = 0;
-	
+
 	running = true;
-	LOG("Script::Set: started " << fn_name);
-	
+	LOG("Script::Set: started Esc lambda " << fn_name);
+
 	return *this;
 }
 
@@ -348,6 +348,20 @@ Program::Script& Program::StartScriptEsc(EscValue* self, EscValue script_name, b
 
 	//LOG("Program::StartScriptEsc: " << script_name);
 	RemoveStoppedScripts();
+
+	// Check if it's a Python function (stored as map with __pyfunc__ key)
+	if (script_name.IsMap() && script_name.MapGet("__pyfunc__").GetInt() != 0) {
+		// It's a Python function - extract wrapper and use PyVM execution
+		int64 wrapper_ptr = script_name.MapGet("__pyfunc__").GetInt();
+		PyFunctionWrapper* wrapper = (PyFunctionWrapper*)(uintptr_t)wrapper_ptr;
+		
+		Vector<PyValue> args;
+		if (noun1.GetType() != PY_NONE)
+			args.Add(EscToPyValue(noun1));
+		if (noun2.GetType() != PY_NONE)
+			args.Add(EscToPyValue(noun2));
+		return StartScriptPyVM(wrapper->func, args, bg, 1);
+	}
 
 	// background || local?
 	if (bg) {

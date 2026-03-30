@@ -36,7 +36,7 @@ private:
 
 	void DestroyWnd();
 
-	void NewTop()                       { top = new Top; top->owner_window = NULL; }
+	void NewTop()                       { utop = new Top; top = true; utop->owner_window = NULL; }
 	void PutForeground();
 	static void MouseEventFB(Ptr<Ctrl> t, int event, Point p, int zdelta);
 	Vector<Rect> GetPaintRects();
@@ -79,8 +79,13 @@ public:
 
 	static Ctrl *FindMouseTopCtrl();
 
+	static int  GetCaretBlinkTime()            { return 500; }
+
+	static int  RegisterSystemHotKey(dword key, Callback cb)    { return -1; }
+	static void UnregisterSystemHotKey(int id)                  { }
+
 	static bool FullWindowDrag;
-	
+
 	enum { DRAWDRAGRECT_SCREEN = 0x8000 };
 
 //$ };

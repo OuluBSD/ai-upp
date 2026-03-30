@@ -54,11 +54,14 @@ dword fbKEYtoK(dword chr) {
 	return chr;
 }
 
-dword lastbdowntime[8] = {0};
-dword isdblclick[8] = {0};
+dword lastbdowntime[16] = {0};
+dword isdblclick[16] = {0};
 void HandleSDLEvent(SDL_Event* event)
 {
-	DLOG("HandleSDLEvent " << event->type);
+	// Filter out spurious/non-input events
+	if(event->type == SDL_FIRSTEVENT)
+		return;
+	LLOG("HandleSDLEvent " << (int)event->type);
 	switch(event->type) {
 //		case SDL_ACTIVEEVENT: //SDL_ActiveEvent
 //			break;
@@ -83,10 +86,10 @@ void HandleSDLEvent(SDL_Event* event)
 				if(keycode != K_SPACE) //dont send space on keydown
 					/*b = */Ctrl::DoKeyFB(keycode, 1);
 
-				//send respective keyup things as char events as well
-				keycode = (dword)event->key.keysym.unicode;
-				if((keycode != 127 && keycode >= 32 && keycode < 255))
-					/*b = */Ctrl::DoKeyFB(keycode, 1);
+				// SDL2 doesn't have keysym.unicode - use scancode or skip
+				// keycode = (dword)event->key.keysym.unicode;
+				// if((keycode != 127 && keycode >= 32 && keycode < 255))
+				//     /*b = */Ctrl::DoKeyFB(keycode, 1);
 			}
 			else
 			if(event->type == SDL_KEYUP)
@@ -115,6 +118,8 @@ void HandleSDLEvent(SDL_Event* event)
 		{
 			Point p(event->button.x, event->button.y);
 			int bi = event->button.button;
+			// Bounds check to prevent buffer overflow (SDL buttons can be > 8)
+			if(bi < 0 || bi >= 16) return;
 			dword ct = SDL_GetTicks();
 			if(isdblclick[bi] && (abs(int(ct) - int(lastbdowntime[bi])) < 400))
 			{
@@ -142,6 +147,8 @@ void HandleSDLEvent(SDL_Event* event)
 		case SDL_MOUSEBUTTONUP:
 		{
 			int bi = event->button.button;
+			// Bounds check to prevent buffer overflow
+			if(bi < 0 || bi >= 16) return;
 			isdblclick[bi] = 1; //indicate maybe a dblclick
 
 			Point p(event->button.x, event->button.y);

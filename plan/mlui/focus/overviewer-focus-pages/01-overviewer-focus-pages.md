@@ -4,8 +4,31 @@
 Integrate Focus pages into `uppsrc/Overviewer` so MCP can reliably access high-value context (e.g., file tree + active file) without parsing entire raw UI snapshots.
 
 ## Current Status
-- Overviewer already has MLUI usability issues from raw snapshot scale.
-- Focus model exists in references but not integrated into production app flow.
+- Overviewer now has production focus pages integrated.
+- End-to-end focus actions are callable over MLUI server.
+
+## Progress Update (2026-03-30)
+Completed:
+1. Added initial focus pages in `uppsrc/Overviewer/Project.cpp`:
+   - `file_tree`
+   - `active_file`
+2. Wired runtime state emission through `OverviewerWindow::Access(Visitor&)`:
+   - project file path
+   - root dir
+   - selected relative path
+   - selected metadata values
+3. Added action handlers:
+   - `file_tree.select`
+   - `file_tree.reload`
+   - `active_file.analyze`
+   - `active_file.set_priority`
+   - `active_file.add_comment`
+4. Added targeted tree-path selection helper to avoid expensive full-tree expand in action flow.
+5. Verified with MLUI socket smoke calls against `bin/Overviewer --mlui-server__ ...`.
+
+Remaining:
+1. Add one more page for project-wide summary (dashboard/session/active scenario) to reduce fallback snapshot usage.
+2. Stabilize/normalize returned path semantics further for cross-platform separators in action args.
 
 ## Next Tasks
 1. Add initial Focus pages in Overviewer (minimum two):

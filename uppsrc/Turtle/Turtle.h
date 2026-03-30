@@ -1,7 +1,23 @@
 #ifndef _VirtualGui_Turtle_h
 #define _VirtualGui_Turtle_h
 
-#include <CtrlLib/CtrlLib.h>
+// Turtle backend - uses VirtualGui with WebSocket server
+// This header is included via GUIPLATFORM_INCLUDE from CtrlCore.h
+
+// GUIPLATFORM macros MUST be defined BEFORE including VirtualGui.h
+#define GUIPLATFORM_CTRL_TOP_DECLS   Ctrl *owner_window;
+#define GUIPLATFORM_CTRL_DECLS_INCLUDE <Turtle/Ctrl.h>
+#define GUIPLATFORM_PASTECLIP_DECLS \
+	bool dnd; \
+	friend struct DnDLoop; \
+#define GUIPLATFORM_TOPWINDOW_DECLS_INCLUDE <Turtle/Top.h>
+
+// Include VirtualGui.h which defines namespace Upp and SystemDraw
+#include <VirtualGui/VirtualGui.h>
+
+#ifdef PLATFORM_POSIX
+#include <CtrlCore/stdids.h>
+#endif
 
 namespace Upp {
 
@@ -18,7 +34,7 @@ public:
     TurtleServer&       MaxConnections(int limit)          { TurtleServer::connection_limit = max(1, limit); return *this; }
 
     static void         DebugMode(bool b = true)           { TurtleServer::debugmode = b; }
-    
+
     static Event<int, String>  WhenConnect;
     static Event<int>          WhenTerminate;
     static Event<>             WhenDisconnect;
@@ -38,7 +54,7 @@ private:
     virtual void        CommitDraw();
     virtual void        WakeUpGuiThread()                  {}
     virtual void        Quit()                             { WhenDisconnect(); }
-        
+
 private:
     void                MouseButton(dword event, CParser& p);
     void                MouseWheel(CParser& p);
@@ -53,7 +69,7 @@ private:
 
     static void         Broadcast(int signal);
     void                SyncClient();
-    
+
 public:
     struct Stream : OutStream
     {
@@ -64,7 +80,7 @@ public:
         Zlib            zlib;
         bool            hasdata;
     };
-    
+
     struct ImageSysData
     {
         ImageSysData();
@@ -73,7 +89,7 @@ public:
         Image           image;
         int             handle;
     };
-    
+
     struct Draw : SDraw
     {
         Draw();
@@ -98,26 +114,26 @@ public:
         MOUSECURSOR     = 6,
         DISABLESENDING  = 7,
         UPDATESERIAL    = 8,
-    
+
         IMAGEPP         = 9,
         IMAGENP         = 10,
         IMAGEPN         = 11,
         IMAGENN         = 12,
-    
+
         RECTPP          = 13,
         RECTNP          = 14,
         RECTPN          = 15,
         RECTNN          = 16,
-    
+
         SETCARET        = 17,
-        
+
         HORZDRAGLINE    = 18,
         VERTDRAGLINE    = 19,
-        
+
         OPENLINK        = 20,
     };
 
-private:
+    // Protocol encoding methods (public for Turtle_PutLink)
     static void         Put8(int x);
     static void         Put16(int x);
     static void         Put32(int x);
@@ -127,9 +143,10 @@ private:
     static void         Put(const String& s);
     static void         Flush();
 
+private:
     static void         SetCanvasSize(const Size& sz);
     static void         ResetImageCache();
-        
+
 private:
     static WebSocket    websocket;
     static dword        mousebuttons;
@@ -159,7 +176,7 @@ public:
     static int64        stat_setimage_len;
     static int          stat_roundtrip_ms;
     static int          stat_client_ms;
-    
+
 private:
     static bool         StartSession();
     friend void         RunTurtleGui(TurtleServer&, Event<>);
@@ -167,5 +184,8 @@ private:
 
 void RunTurtleGui(TurtleServer& gui, Event<> app_main);
 
-}
+}  // namespace Upp
+
+#define GUIPLATFORM_INCLUDE_AFTER <Turtle/After.h>
+
 #endif

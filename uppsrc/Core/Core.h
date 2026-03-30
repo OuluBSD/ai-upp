@@ -410,6 +410,7 @@ class YamlIO;
 #include "Topic.h"
 
 #include "App.h"
+#include "Mlui.h"
 
 #include "CoWork.h"
 

@@ -175,6 +175,9 @@ dword GetTimeClick();
 inline
 void  PostCallback(Function<void ()> cb, void *id = NULL)  { SetTimeCallback(1, cb, id); }
 
+void  MluiGuiPost(Function<void ()> cb, void *id = NULL);
+void  MluiGuiCall(Function<void ()> cb);
+
 class TimeCallback
 {
 public:

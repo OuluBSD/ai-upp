@@ -70,6 +70,8 @@ file
 	Bar.cpp,
 	GuiAutomation.h,
 	GuiAutomation.cpp,
+	Mlui.h,
+	Mlui.cpp,
 	MenuImp.h,
 	MenuItem.cpp,
 	MenuBar.cpp,

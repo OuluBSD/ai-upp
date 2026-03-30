@@ -25,6 +25,8 @@ INITIALIZER(CtrlLib) {
                           Color ink, int accesskey, Color qtf_ink) {
 		DrawSmartText(draw, x, y, cx, text, font, ink, accesskey, qtf_ink);
 	};
+
+	RegisterMluiRuntimeStarter();
 };
 
 }

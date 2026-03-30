@@ -45,17 +45,20 @@ bool FBIsWaitingEvent()
 	return (tc > 0 && s_peek_event.type != SDL_NOEVENT);
 }
 
+// Static event buffer - SDL 1.2.68 SDL_PollEvent corrupts stack variables
+static SDL_Event s_event;
+
 bool FBProcessEvent(bool *quit)
 {
-	SDL_Event event;
-	if(SDL_PollEvent(&event)) {
+	memset(&s_event, 0, sizeof(s_event));
+	if(SDL_PollEvent(&s_event)) {
 		// Skip SDL_NOEVENT (type=0) - spurious events
-		if(event.type == SDL_NOEVENT)
+		if(s_event.type == SDL_NOEVENT)
 			return false;
-		LOG("FBProcessEvent: got event type=" << (int)event.type);
-		if(event.type == SDL_QUIT && quit)
+		LOG("FBProcessEvent: got event type=" << (int)s_event.type);
+		if(s_event.type == SDL_QUIT && quit)
 			*quit = true;
-		HandleSDLEvent(&event);
+		HandleSDLEvent(&s_event);
 		return true;
 	}
 	return false;

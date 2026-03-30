@@ -38,7 +38,8 @@ void Program::CheckCollisions() {
 	for(PyValue& obj : const_cast<Vector<PyValue>&>(room_arr)) {
 		// capture bounds (even for ("invisible", but not untouchable/dependent, objects)
 		PyValue c = Program::ClassesPy(obj);
-		PyValue dep_on = global.Get(Program::PyStr(Program::GetProp(obj, "dependent_on")), PyValue());
+		PyValue dep_on_key = Program::GetProp(obj, "dependent_on");
+		PyValue dep_on = dep_on_key.GetType() == PY_STR ? global.Get(dep_on_key, PyValue()) : PyValue();
 		if ((c.IsNone() || (!c.IsNone() && !HasFlag(c, "class_untouchable")))
 			&& (dep_on.IsNone() // object has a valid dependent state?
 			 || Program::GetProp(dep_on, "state") == Program::GetProp(obj, "dependent_on_state"))) {
@@ -51,7 +52,7 @@ void Program::CheckCollisions() {
 			Program::SetProp(obj, "bounds", PyValue());
 		}
 
-		if (IsCursorColliding(obj)) {
+		if (IsCursorCollidingPy(obj)) {
 			// if (highest (or first) object in hover "stack"
 			int obj_z = Program::PyInt(Program::GetProp(obj, "z"));
 			int hover_curr_object_z = hover_curr_object.GetType() != PY_NONE ? Program::PyInt(Program::GetProp(hover_curr_object, "z")) : 0;
@@ -61,7 +62,7 @@ void Program::CheckCollisions() {
 			}
 		}
 		// recalc z-plane
-		RecalcZPlane(obj);
+		RecalcZPlanePy(obj);
 	}
 
 	PyValue selected_actor = GetSelectedActorPy();
@@ -76,10 +77,10 @@ void Program::CheckCollisions() {
 				RecalculateBoundsPy(actor, (int)Program::PyInt(Program::GetProp(actor, "w"))*8, (int)Program::PyInt(Program::GetProp(actor, "h"))*8, cam.x, cam.y);
 
 				// recalc z-plane
-				RecalcZPlane(actor);
+				RecalcZPlanePy(actor);
 
 				// are we colliding (ignore self!)
-				if (IsCursorColliding(actor) && actor != selected_actor)
+				if (IsCursorCollidingPy(actor) && actor != selected_actor)
 					hover_curr_object = actor;
 			}
 		}
@@ -88,34 +89,44 @@ void Program::CheckCollisions() {
 	if (selected_actor.GetType() != PY_NONE) {
 		// check ui/inventory collisions
 		for (const PyValue& v : verbs.GetArray()) {
-			if (IsCursorColliding(v))
+			if (IsCursorCollidingPy(v))
 				hover_curr_verb = v;
 		}
 		for (const PyValue& a : ui_arrows.GetArray()) {
-			if (IsCursorColliding(a))
+			if (IsCursorCollidingPy(a))
 				hover_curr_arrow = a;
 		}
-		    
+
 		// check room/object collisions
-		for (const EscValue& obj : selected_actor("inventory").GetArray()) {
-			if (IsCursorColliding(obj)) {
-				hover_curr_object = obj;
-				// pickup override for (inventory objects
-				if (verb_curr == V_PICKUP && !hover_curr_object.MapGet("owner").IsVoid())
-					verb_curr = EscValue();
-			}
-			// check for (disowned objects!
-			if (obj.MapGet("owner") != selected_actor) {
-				auto arr = selected_actor("inventory");
-				arr.ArrayRemoveValue(obj);
-				selected_actor.MapSet("inventory", arr);
+		PyValue inventory = Program::GetProp(selected_actor, "inventory");
+		if(inventory.GetType() == PY_LIST) {
+			const Vector<PyValue>& inv_arr = inventory.GetArray();
+			for (const PyValue& obj : inv_arr) {
+				if (IsCursorCollidingPy(obj)) {
+					hover_curr_object = obj;
+					// pickup override for (inventory objects
+					if (verb_curr == V_PICKUP && Program::GetProp(hover_curr_object, "owner").GetType() != PY_NONE)
+						verb_curr = PyValue();
+				}
+				// check for (disowned objects!
+				PyValue owner = Program::GetProp(obj, "owner");
+				if (owner != selected_actor) {
+					Vector<PyValue> new_inv;
+					for(const PyValue& item : inv_arr) {
+						if(item != obj)
+							new_inv.Add(item);
+					}
+					PyValue new_inv_list = PyValue::List();
+					const_cast<Vector<PyValue>&>(new_inv_list.GetArray()) = new_inv;
+					Program::SetProp(selected_actor, "inventory", new_inv_list);
+				}
 			}
 		}
-		
+
 		// default to walkto (if (nothing set)
-		if (!verb_curr)
+		if (verb_curr.IsNone())
 			verb_curr = GetVerb(verb_default);
-		
+
 		// update "default" verb for (hovered object (if (any)
 		hover_curr_default_verb =
 			hover_curr_object ? FindDefaultVerb(hover_curr_object) : hover_curr_default_verb;
@@ -148,6 +159,25 @@ void Program::RecalcZPlane(SObj& obj) {
 	draw_zplanes[idx].objs.Add(obj);
 }
 
+void Program::RecalcZPlanePy(PyValue& obj) {
+	// calculate the correct z-plane (PyValue version)
+	// based on obj || x,y pos + elevation
+	PyValue y = Program::GetProp(obj, "y");
+	PyValue h = Program::GetProp(obj, "h");
+	PyValue z = Program::GetProp(obj, "z");
+	PyValue offset_y = Program::GetProp(obj, "offset_y");
+	int idx;
+	if (z.GetType() == PY_INT)
+		idx = Program::PyInt(z);
+	else {
+		int hi = Program::PyInt(h);
+		int yi = Program::PyInt(y);
+		int offset_yi = Program::PyInt(offset_y);
+		idx = (int)(yi + (offset_yi ? 0 : hi * 8));
+	}
+	draw_zplanes[idx].objs_py.Add(obj);
+}
+
 bool Program::IsCellWalkable(int celx, int cely) {
 	const uint16* m = map.Begin();
 	int img_w = map_sz.cx;
@@ -156,10 +186,10 @@ bool Program::IsCellWalkable(int celx, int cely) {
 	ASSERT(cely >= 0 && cely < img_h);
 	int i = (cely * img_w) + celx;
 	uint16 tile = *(m + i);
-	
+
 	ASSERT(tile >= 0 && tile < gff.GetCount());
 	uint16 flag = *(gff + tile);
-	
+
 	bool r = flag & 1;
 	return r;
 }
@@ -348,7 +378,21 @@ bool Program::IsCursorColliding(const SObj& obj) {
 	int y1 = bounds("y1");
 	int x = bounds("x");
 	int y = bounds("y");
-	
+
+	return !((cursor_x + cam_off_x > x1 || cursor_x + cam_off_x < x) || (cursor_y > y1 || cursor_y < y));
+}
+
+bool Program::IsCursorCollidingPy(const PyValue& obj) {
+	// check params / not in cutscene
+	PyValue bounds = Program::GetProp(obj, "bounds");
+	if (bounds.IsNone() || cutscene_curr) return false;
+
+	int cam_off_x = Program::PyInt(Program::GetProp(bounds, "cam_off_x"));
+	int x1 = Program::PyInt(Program::GetProp(bounds, "x1"));
+	int y1 = Program::PyInt(Program::GetProp(bounds, "y1"));
+	int x = Program::PyInt(Program::GetProp(bounds, "x"));
+	int y = Program::PyInt(Program::GetProp(bounds, "y"));
+
 	return !((cursor_x + cam_off_x > x1 || cursor_x + cam_off_x < x) || (cursor_y > y1 || cursor_y < y));
 }
 

@@ -191,6 +191,15 @@ FaceDir Program::GetFaceDir(SObj o) {
 	return FACE_NULL;
 }
 
+FaceDir Program::GetFaceDirPy(PyValue o) {
+	String s = Program::PyStr(Program::GetProp(o, "face_dir"));
+	if (s == "face_front")	return FACE_FRONT;
+	if (s == "face_left")	return FACE_LEFT;
+	if (s == "face_back")	return FACE_BACK;
+	if (s == "face_right")	return FACE_RIGHT;
+	return FACE_NULL;
+}
+
 String Program::GetFaceString(FaceDir d) {
 	switch (d) {
 		case FACE_FRONT:	return "face_front";

@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -8,9 +9,9 @@ const SObj* Program::FindRoom(const String& name) const {
 	const auto& arr = rooms.GetArray();
 	for (const auto& val : arr) {
 		if(val.GetType() == PY_STR) {
-			String room_str = val.GetStr();
+			WString room_str = val.GetStr();
 			//LOG(room_str);
-			if (room_str == name)
+			if (room_str == WString(name))
 				return FindDeep(name);
 		}
 	}
@@ -87,7 +88,7 @@ void Program::ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect) {
 	// go to new room!
 	SObj new_room = GetInRoom(to_door);
 
-	if (new_room.GetType() != room_curr.GetType() || new_room != PyValue(room_curr)) {
+	if (new_room.GetType() != room_curr.GetType() || !new_room.IsMap()) {
 		ChangeRoom(new_room, fade_effect); // switch to new room and ...
 
 		// ...auto-position actor at to_door in new room...
@@ -127,7 +128,7 @@ void Program::ChangeRoom(SObj new_room, SObj fade_) {
 		VectorMap<PyValue, PyValue>& d = py_room.GetDictRW();
 		for(int i = 0; i < esc_map.GetCount(); i++) {
 			if(esc_map.GetKey(i).IsStringLike()) {
-				d.Add(PyValue(esc_map.GetKey(i).ToString()), Adventure::EscToPyValue(esc_map[i]));
+				d.Add(PyValue(esc_map.GetKey(i).ToString()), EscToPyValue(esc_map[i]));
 			}
 		}
 	}

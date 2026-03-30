@@ -2,190 +2,29 @@
 
 NAMESPACE_UPP
 
-namespace MLUI {
-
-static VectorMap<String, FocusPageDef>& FocusPages()
+static ValueMap FocusError(const String& error)
 {
-	static VectorMap<String, FocusPageDef> pages;
-	return pages;
+	ValueMap out;
+	out.Add("ok", false);
+	out.Add("error", error);
+	return out;
 }
 
-FocusPageDef& FocusPageDef::Add(Ctrl& c)
+INITBLOCK
 {
-	String id = c.GetLayoutId();
-	if(id.IsEmpty())
-		id = String().Cat() << c.GetTypeName() << "@" << HexStr((uintptr_t)&c);
-	if(FindIndex(linked_ctrls, id) < 0)
-		linked_ctrls.Add(id);
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::Action(const String& action_id, const String& label, const String& hint, bool enabled)
-{
-	FocusAction& a = actions.Add();
-	a.id = action_id;
-	a.label = label;
-	a.hint = hint;
-	a.enabled = enabled;
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::Context(const String& key, const Value& value)
-{
-	static_context.GetAdd(key) = value;
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::ClearRuntime()
-{
-	runtime_values.Clear();
-	runtime_value_desc.Clear();
-	runtime_ctrls.Clear();
-	runtime_ctrl_desc.Clear();
-	runtime_action_enabled.Clear();
-	runtime_action_desc.Clear();
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::AddValue(const String& key, const Value& value, const String& description)
-{
-	runtime_values.GetAdd(key) = value;
-	runtime_value_desc.GetAdd(key) = description;
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::AddCtrl(const String& key, const Ctrl& ctrl, const String& description)
-{
-	String id = ctrl.GetLayoutId();
-	if(id.IsEmpty())
-		id = String().Cat() << ctrl.GetTypeName() << "@" << HexStr((uintptr_t)&ctrl);
-	runtime_ctrls.GetAdd(key) = id;
-	runtime_ctrl_desc.GetAdd(key) = description;
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::AddState(const String& key, const Value& value, const String& description)
-{
-	String state_key = String().Cat() << "state." << key;
-	runtime_values.GetAdd(state_key) = value;
-	runtime_value_desc.GetAdd(state_key) = description;
-	return *this;
-}
-
-FocusPageDef& FocusPageDef::AddAction(const String& action_id, bool enabled, const String& description)
-{
-	runtime_action_enabled.GetAdd(action_id) = enabled;
-	runtime_action_desc.GetAdd(action_id) = description;
-	return *this;
-}
-
-FocusPageDef& RegisterFocusPage(const String& id, const String& title, const String& description)
-{
-	VectorMap<String, FocusPageDef>& pages = FocusPages();
-	int i = pages.Find(id);
-	if(i < 0) {
-		FocusPageDef& p = pages.Add(id);
-		p.id = id;
-		p.title = title;
-		p.description = description;
-		return p;
-	}
-	FocusPageDef& p = pages[i];
-	p.title = title;
-	p.description = description;
-	return p;
-}
-
-FocusPageDef& GetFocusPage(const String& id)
-{
-	VectorMap<String, FocusPageDef>& pages = FocusPages();
-	int i = pages.Find(id);
-	if(i < 0)
-		return RegisterFocusPage(id, id, "No description");
-	return pages[i];
-}
-
-bool HasFocusPage(const String& id)
-{
-	return FocusPages().Find(id) >= 0;
-}
-
-void EmitFocusPages(AutomationVisitor& av)
-{
-	av.AccessLabel("MLUI FocusPages");
-	av.AccessValue(FocusPages().GetCount());
-
-	for(int i = 0; i < FocusPages().GetCount(); i++) {
-		const FocusPageDef& p = FocusPages()[i];
-		String header = String().Cat() << "FocusPage : " << p.id << " (" << p.title << ")";
-		av.AccessLabel(~header);
-		av.AccessLabel(~p.description);
-
-		for(int j = 0; j < p.static_context.GetCount(); j++) {
-			String line = String().Cat() << "ctx." << p.static_context.GetKey(j) << "=" << AsString(p.static_context[j]);
-			av.AccessLabel(~line);
-		}
-
-		for(const FocusAction& a : p.actions) {
-			String line = String().Cat() << "action." << a.id
-			                             << " label=\"" << a.label << "\""
-			                             << " enabled=" << (a.enabled ? "true" : "false")
-			                             << " hint=\"" << a.hint << "\"";
-			av.AccessLabel(~line);
-		}
-
-		for(int j = 0; j < p.runtime_values.GetCount(); j++) {
-			String key = p.runtime_values.GetKey(j);
-			String desc;
-			int di = p.runtime_value_desc.Find(key);
-			if(di >= 0)
-				desc = p.runtime_value_desc[di];
-			av.AccessLabel(String().Cat() << "runtime.value." << p.id << "." << key << "=" << AsString(p.runtime_values[j]));
-			if(!desc.IsEmpty())
-				av.AccessLabel(String().Cat() << "runtime.value_desc." << p.id << "." << key << "=" << desc);
-		}
-
-		for(int j = 0; j < p.runtime_ctrls.GetCount(); j++) {
-			String key = p.runtime_ctrls.GetKey(j);
-			String desc;
-			int di = p.runtime_ctrl_desc.Find(key);
-			if(di >= 0)
-				desc = p.runtime_ctrl_desc[di];
-			av.AccessLabel(String().Cat() << "runtime.ctrl." << p.id << "." << key << "=" << p.runtime_ctrls[j]);
-			if(!desc.IsEmpty())
-				av.AccessLabel(String().Cat() << "runtime.ctrl_desc." << p.id << "." << key << "=" << desc);
-		}
-
-		for(int j = 0; j < p.runtime_action_enabled.GetCount(); j++) {
-			String key = p.runtime_action_enabled.GetKey(j);
-			String desc;
-			int di = p.runtime_action_desc.Find(key);
-			if(di >= 0)
-				desc = p.runtime_action_desc[di];
-			av.AccessLabel(String().Cat() << "runtime.action." << p.id << "." << key
-			                              << " enabled=" << (p.runtime_action_enabled[j] ? "true" : "false"));
-			if(!desc.IsEmpty())
-				av.AccessLabel(String().Cat() << "runtime.action_desc." << p.id << "." << key << "=" << desc);
-		}
-	}
-}
-
-}
-
-INITBLOCK {
 	MLUI::RegisterFocusPage(
-		"issue_board",
-		"Issue Board",
-		"Compact issue list for active workspace and sprint")
+	    "issue_board",
+	    "Issue Board",
+	    "Compact issue list for active workspace and sprint")
 		.Context("purpose", "Navigate and triage issues quickly")
 		.Action("select_issue", "Select issue", "Set active issue from board row")
 		.Action("set_status", "Set status", "Move issue to new workflow state")
 		.Action("set_filter", "Set filter", "Filter board by text or owner");
 
 	MLUI::RegisterFocusPage(
-		"issue_editor",
-		"Issue Editor",
-		"Focused metadata view for selected issue")
+	    "issue_editor",
+	    "Issue Editor",
+	    "Focused metadata view for selected issue")
 		.Context("purpose", "Edit issue details and execution readiness")
 		.Action("set_assignee", "Set assignee", "Assign issue to owner")
 		.Action("set_severity", "Set severity", "Update severity level")
@@ -277,14 +116,28 @@ IssueTrackerDemo::IssueTrackerDemo()
 void IssueTrackerDemo::PopulateIssues()
 {
 	issues.Clear();
-	issues.Add({ "OVR-101", "MLUI click timeout in menu action", "In Progress", "sblo", 4, true, false,
-	             "Investigate UI thread blocking path in click handlers." });
-	issues.Add({ "OVR-118", "Duplicate semantic rows in MLUI viewer", "Review", "ai-agent", 3, true, false,
-	             "Root cause likely path key instability during incremental updates." });
-	issues.Add({ "OVR-123", "FocusPage API draft in reference package", "Backlog", "team", 2, false, false,
-	             "Agree minimal MCP shape: list/get/action first." });
-	issues.Add({ "OVR-130", "Exit action reports success but process stays alive", "In Progress", "sblo", 5, true, true,
-	             "Need deterministic shutdown path and better action confirmation." });
+
+	auto AddIssue = [&](const char *key, const char *title, const char *status_, const char *assignee_,
+	                    int severity_, bool has_repro_, bool crash_, const char *notes_) {
+		Issue& i = issues.Add();
+		i.key = key;
+		i.title = title;
+		i.status = status_;
+		i.assignee = assignee_;
+		i.severity = severity_;
+		i.has_repro = has_repro_;
+		i.crash = crash_;
+		i.notes = notes_;
+	};
+
+	AddIssue("OVR-101", "MLUI click timeout in menu action", "In Progress", "sblo", 4, true, false,
+	         "Investigate UI thread blocking path in click handlers.");
+	AddIssue("OVR-118", "Duplicate semantic rows in MLUI viewer", "Review", "ai-agent", 3, true, false,
+	         "Root cause likely path key instability during incremental updates.");
+	AddIssue("OVR-123", "FocusPage API draft in reference package", "Backlog", "team", 2, false, false,
+	         "Agree minimal MCP shape: list/get/action first.");
+	AddIssue("OVR-130", "Exit action reports success but process stays alive", "In Progress", "sblo", 5, true, true,
+	         "Need deterministic shutdown path and better action confirmation.");
 
 	issue_list.Clear();
 	for(const Issue& i : issues)
@@ -294,6 +147,12 @@ void IssueTrackerDemo::PopulateIssues()
 		issue_list.SetCursor(0);
 }
 
+int IssueTrackerDemo::GetSelectedIssueIndex() const
+{
+	int row = issue_list.GetCursor();
+	return (row >= 0 && row < issues.GetCount()) ? row : -1;
+}
+
 void IssueTrackerDemo::OnIssueSelection()
 {
 	RefreshInspector();
@@ -301,16 +160,28 @@ void IssueTrackerDemo::OnIssueSelection()
 
 String IssueTrackerDemo::GetSelectedIssueKey() const
 {
-	int row = issue_list.GetCursor();
-	if(row < 0 || row >= issue_list.GetCount())
-		return String();
-	return (String)issue_list.Get(row, 0);
+	int row = GetSelectedIssueIndex();
+	return row >= 0 ? issues[row].key : String();
+}
+
+void IssueTrackerDemo::SetSelectedIssueByKey(const String& key)
+{
+	if(key.IsEmpty())
+		return;
+	for(int i = 0; i < issues.GetCount(); i++) {
+		if(issues[i].key == key) {
+			issue_list.SetCursor(i);
+			issue_list.SetFocus();
+			RefreshInspector();
+			return;
+		}
+	}
 }
 
 void IssueTrackerDemo::RefreshInspector()
 {
-	int row = issue_list.GetCursor();
-	if(row < 0 || row >= issues.GetCount()) {
+	int row = GetSelectedIssueIndex();
+	if(row < 0) {
 		issue_key <<= "";
 		issue_title <<= "";
 		status.SetIndex(0);
@@ -333,68 +204,199 @@ void IssueTrackerDemo::RefreshInspector()
 	notes.Set(i.notes);
 }
 
+void IssueTrackerDemo::RefreshFocusPages()
+{
+	MLUI::FocusPage& board_page = MLUI::GetFocusPage("issue_board");
+	board_page.ClearRuntime();
+	String board_workspace = workspace.GetData();
+	String board_sprint = sprint.GetData();
+	String board_selected_issue = GetSelectedIssueKey();
+	bool board_has_selection = !board_selected_issue.IsEmpty();
+	MLUI_USE_VAR(board_page, board_workspace, "Current workspace name");
+	MLUI_USE_VAR(board_page, board_sprint, "Current sprint name");
+	MLUI_USE_VAR(board_page, board_selected_issue, "Selected issue key in board list");
+	MLUI_USE_CTRL(board_page, issue_list, "Main issue board list control");
+	MLUI_USE_CTRL(board_page, workspace, "Workspace editor control");
+	MLUI_USE_CTRL(board_page, sprint, "Sprint editor control");
+	MLUI_USE_STATE(board_page, "selected_issue", board_selected_issue, "Board selection mirror");
+	MLUI_USE_ACTION(board_page, "select_issue", board_has_selection, "Select current issue row");
+	MLUI_USE_ACTION(board_page, "set_status", board_has_selection, "Set selected issue status");
+	MLUI_USE_ACTION(board_page, "set_filter", true, "Filter board by text or owner");
+
+	board_page.ActionHandler("select_issue", [this](const ValueMap& args) -> Value {
+		String key = args["key"];
+		if(key.IsEmpty())
+			key = args["value"];
+		if(key.IsEmpty())
+			return FocusError("Missing key/value");
+		SetSelectedIssueByKey(key);
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("selected_issue", GetSelectedIssueKey());
+		return out;
+	});
+	board_page.ActionHandler("set_status", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		String new_status = args["status"];
+		if(new_status.IsEmpty())
+			new_status = args["value"];
+		if(new_status.IsEmpty())
+			return FocusError("Missing status/value");
+		issues[row].status = new_status;
+		issue_list.Set(row, 2, new_status);
+		status.SetData(new_status);
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("status", new_status);
+		out.Add("selected_issue", GetSelectedIssueKey());
+		return out;
+	});
+	board_page.ActionHandler("set_filter", [this](const ValueMap& args) -> Value {
+		String q = args["query"];
+		if(q.IsEmpty())
+			q = args["value"];
+		q = ToLower(TrimBoth(q));
+		issue_list.Clear();
+		for(const Issue& i : issues) {
+			if(q.IsEmpty() || ToLower(i.key + " " + i.title + " " + i.assignee).Find(q) >= 0)
+				issue_list.Add(i.key, i.title, i.status, i.assignee);
+		}
+		if(issue_list.GetCount() > 0)
+			issue_list.SetCursor(0);
+		RefreshInspector();
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("rows", issue_list.GetCount());
+		out.Add("query", q);
+		return out;
+	});
+
+	MLUI::FocusPage& editor_page = MLUI::GetFocusPage("issue_editor");
+	editor_page.ClearRuntime();
+	String editor_issue_key = issue_key.GetData();
+	String editor_title = issue_title.GetData();
+	String editor_status = status.GetData();
+	String editor_assignee = assignee.GetData();
+	int editor_severity = severity.GetIndex();
+	bool editor_has_repro = has_repro;
+	bool editor_is_crash = crash;
+	bool editor_has_issue = !editor_issue_key.IsEmpty();
+	MLUI_USE_VAR(editor_page, editor_issue_key, "Issue key shown in editor");
+	MLUI_USE_VAR(editor_page, editor_title, "Issue title shown in editor");
+	MLUI_USE_VAR(editor_page, editor_status, "Editor status value");
+	MLUI_USE_VAR(editor_page, editor_assignee, "Editor assignee value");
+	MLUI_USE_VAR(editor_page, editor_severity, "Editor severity index");
+	MLUI_USE_VAR(editor_page, editor_has_repro, "Editor repro flag");
+	MLUI_USE_VAR(editor_page, editor_is_crash, "Editor crash flag");
+	MLUI_USE_CTRL(editor_page, issue_key, "Issue key control");
+	MLUI_USE_CTRL(editor_page, issue_title, "Issue title control");
+	MLUI_USE_CTRL(editor_page, status, "Issue status selector");
+	MLUI_USE_CTRL(editor_page, assignee, "Issue assignee editor");
+	MLUI_USE_CTRL(editor_page, severity, "Issue severity selector");
+	MLUI_USE_CTRL(editor_page, notes, "Issue notes editor");
+	MLUI_USE_STATE(editor_page, "selected_issue", editor_issue_key, "Editor selection mirror");
+	MLUI_USE_ACTION(editor_page, "set_assignee", editor_has_issue, "Assign selected issue to owner");
+	MLUI_USE_ACTION(editor_page, "set_severity", editor_has_issue, "Change selected issue severity");
+	MLUI_USE_ACTION(editor_page, "toggle_repro", editor_has_issue, "Toggle reproduction availability");
+	MLUI_USE_ACTION(editor_page, "toggle_crash", editor_has_issue, "Toggle crash-level marker");
+	MLUI_USE_ACTION(editor_page, "update_notes", editor_has_issue, "Update selected issue notes");
+
+	editor_page.ActionHandler("set_assignee", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		String value = args["assignee"];
+		if(value.IsEmpty())
+			value = args["value"];
+		if(value.IsEmpty())
+			return FocusError("Missing assignee/value");
+		issues[row].assignee = value;
+		assignee <<= value;
+		issue_list.Set(row, 3, value);
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("assignee", value);
+		return out;
+	});
+	editor_page.ActionHandler("set_severity", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		Value sv = args["severity"];
+		if(IsNull(sv))
+			sv = args["value"];
+		if(IsNull(sv))
+			return FocusError("Missing severity/value");
+		int value = minmax((int)sv, 0, 5);
+		issues[row].severity = value;
+		severity.SetIndex(value);
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("severity", value);
+		return out;
+	});
+	editor_page.ActionHandler("toggle_repro", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		bool value = issues[row].has_repro;
+		Value vv = args["value"];
+		if(!IsNull(vv))
+			value = (bool)vv;
+		else
+			value = !value;
+		issues[row].has_repro = value;
+		has_repro = value;
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("has_repro", value);
+		return out;
+	});
+	editor_page.ActionHandler("toggle_crash", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		bool value = issues[row].crash;
+		Value vv = args["value"];
+		if(!IsNull(vv))
+			value = (bool)vv;
+		else
+			value = !value;
+		issues[row].crash = value;
+		crash = value;
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("crash", value);
+		return out;
+	});
+	editor_page.ActionHandler("update_notes", [this](const ValueMap& args) -> Value {
+		int row = GetSelectedIssueIndex();
+		if(row < 0)
+			return FocusError("No selection");
+		String value = args["notes"];
+		if(value.IsEmpty())
+			value = args["value"];
+		issues[row].notes = value;
+		notes.Set(value);
+		ValueMap out;
+		out.Add("ok", true);
+		out.Add("notes_len", value.GetCount());
+		return out;
+	});
+}
+
 bool IssueTrackerDemo::Access(Visitor& v)
 {
 	bool base_handled = TopWindow::Access(v);
-
-	if(auto *av = dynamic_cast<AutomationVisitor*>(&v)) {
-		MLUI::FocusPageDef& board_page = MLUI::GetFocusPage("issue_board");
-		board_page.ClearRuntime();
-		String board_workspace = workspace.GetData();
-		String board_sprint = sprint.GetData();
-		String board_selected_issue = GetSelectedIssueKey();
-		bool board_has_selection = !board_selected_issue.IsEmpty();
-		MLUI_USE_VAR(board_page, board_workspace, "Current workspace name");
-		MLUI_USE_VAR(board_page, board_sprint, "Current sprint name");
-		MLUI_USE_VAR(board_page, board_selected_issue, "Selected issue key in board list");
-		MLUI_USE_CTRL(board_page, issue_list, "Main issue board list control");
-		MLUI_USE_CTRL(board_page, workspace, "Workspace editor control");
-		MLUI_USE_CTRL(board_page, sprint, "Sprint editor control");
-		MLUI_USE_STATE(board_page, "selected_issue", board_selected_issue, "Board selection mirror");
-		MLUI_USE_ACTION(board_page, "select_issue", board_has_selection, "Select current issue row");
-		MLUI_USE_ACTION(board_page, "set_status", board_has_selection, "Set selected issue status");
-		MLUI_USE_ACTION(board_page, "set_filter", true, "Filter board by text or owner");
-
-		MLUI::FocusPageDef& editor_page = MLUI::GetFocusPage("issue_editor");
-		editor_page.ClearRuntime();
-		String editor_issue_key = issue_key.GetData();
-		String editor_title = issue_title.GetData();
-		String editor_status = status.GetData();
-		String editor_assignee = assignee.GetData();
-		int editor_severity = severity.GetIndex();
-		bool editor_has_repro = has_repro;
-		bool editor_is_crash = crash;
-		bool editor_has_issue = !editor_issue_key.IsEmpty();
-		MLUI_USE_VAR(editor_page, editor_issue_key, "Issue key shown in editor");
-		MLUI_USE_VAR(editor_page, editor_title, "Issue title shown in editor");
-		MLUI_USE_VAR(editor_page, editor_status, "Editor status value");
-		MLUI_USE_VAR(editor_page, editor_assignee, "Editor assignee value");
-		MLUI_USE_VAR(editor_page, editor_severity, "Editor severity index");
-		MLUI_USE_VAR(editor_page, editor_has_repro, "Editor repro flag");
-		MLUI_USE_VAR(editor_page, editor_is_crash, "Editor crash flag");
-		MLUI_USE_CTRL(editor_page, issue_key, "Issue key control");
-		MLUI_USE_CTRL(editor_page, issue_title, "Issue title control");
-		MLUI_USE_CTRL(editor_page, status, "Issue status selector");
-		MLUI_USE_CTRL(editor_page, assignee, "Issue assignee editor");
-		MLUI_USE_CTRL(editor_page, severity, "Issue severity selector");
-		MLUI_USE_CTRL(editor_page, notes, "Issue notes editor");
-		MLUI_USE_STATE(editor_page, "selected_issue", editor_issue_key, "Editor selection mirror");
-		MLUI_USE_ACTION(editor_page, "set_assignee", editor_has_issue, "Assign selected issue to owner");
-		MLUI_USE_ACTION(editor_page, "set_severity", editor_has_issue, "Change selected issue severity");
-		MLUI_USE_ACTION(editor_page, "toggle_repro", editor_has_issue, "Toggle reproduction availability");
-		MLUI_USE_ACTION(editor_page, "toggle_crash", editor_has_issue, "Toggle crash-level marker");
-		MLUI_USE_ACTION(editor_page, "update_notes", editor_has_issue, "Update selected issue notes");
-
-		MLUI::EmitFocusPages(*av);
-		return true;
-	}
-
+	RefreshFocusPages();
 	return base_handled;
 }
 
-GUI_APP_MAIN
-{
-	IssueTrackerDemo().Run();
-}
-
 END_UPP_NAMESPACE
+
+CONSOLE_APP_MAIN
+{
+	Upp::IssueTrackerDemo().Run();
+}

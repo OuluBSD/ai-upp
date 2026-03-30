@@ -46,8 +46,11 @@ static SDL_Event s_event;
 
 bool FBProcessEvent(bool *quit)
 {
+	// SDL_PumpEvents is called by SDL_PollEvent, but let's be explicit
+	SDL_PumpEvents();
 	memset(&s_event, 0, sizeof(s_event));
 	if(SDL_PollEvent(&s_event)) {
+		LOG("FBProcessEvent: got event type=" << (int)s_event.type);
 		if(s_event.type == SDL_QUIT && quit)
 			*quit = true;
 		HandleSDLEvent(&s_event);

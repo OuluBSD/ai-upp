@@ -36,22 +36,31 @@ bool FBIsWaitingEvent()
 	SDL_PumpEvents();
 	// Check if there are actual events before peeking
 	int pending = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, SDL_ALLEVENTS);
-	if(pending <= 0)
-		return false;
-	// Use static buffer to avoid stack issues
-	static SDL_Event s_peek_event;
-	memset(&s_peek_event, 0, sizeof(s_peek_event));
-	int tc = SDL_PeepEvents(&s_peek_event, 1, SDL_PEEKEVENT, SDL_ALLEVENTS);
-	return (tc > 0 && s_peek_event.type != SDL_NOEVENT);
+	return pending > 0;
 }
 
 // Static event buffer - SDL 1.2.68 SDL_PollEvent corrupts stack variables
 static SDL_Event s_event;
 
+// Custom event filter to log ALL events before they reach the queue
+// SDL 1.2 doesn't have userdata parameter
+static int SDLCALL DebugEventFilter(const SDL_Event *event)
+{
+	// Just allow all events through
+	return 1;
+}
+
 bool FBProcessEvent(bool *quit)
 {
 	memset(&s_event, 0, sizeof(s_event));
-	if(SDL_PollEvent(&s_event)) {
+	int result = SDL_PollEvent(&s_event);
+	
+	// Log all events for debugging
+	if(result) {
+		LOG("SDL_PollEvent: type=" << (int)s_event.type << " result=" << result);
+	}
+	
+	if(result) {
 		// Skip SDL_NOEVENT (type=0) - spurious events
 		if(s_event.type == SDL_NOEVENT)
 			return true;  // Continue processing
@@ -149,6 +158,14 @@ void FBInit()
 	SDL_EnableUNICODE(1); //for unicode keycode availability
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL/2);
 	SDL_ShowCursor(0);
+
+	// Check if there's an existing event filter
+	SDL_EventFilter existing_filter = SDL_GetEventFilter();
+	LOG("SDL_GetEventFilter returned: " << (void*)existing_filter);
+	
+	// Install our debug event filter to see ALL events
+	SDL_SetEventFilter(DebugEventFilter);
+	LOG("Installed DebugEventFilter");
 }
 
 void FBDeInit()

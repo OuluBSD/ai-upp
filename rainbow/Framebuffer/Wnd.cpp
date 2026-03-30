@@ -162,14 +162,11 @@ bool Ctrl::ProcessEvent(bool *quit)
 	ASSERT(IsMainThread());
 	if(!GetMouseLeft() && !GetMouseRight() && !GetMouseMiddle())
 		ReleaseCtrlCapture();
-	if(FBProcessEvent(quit)) {
-		LLOG("FBProcesEvent returned true");
-		SyncTopWindows();
-		DefferedFocusSync();
-		SyncCaret();
-		return true;
+	// Keep polling until we get a real event or no events
+	while(FBProcessEvent(quit)) {
+		// Continue draining events
 	}
-	return false;
+	return true;  // Always continue to painting
 }
 
 Rect Ctrl::GetClipBound(const Vector<Rect>& inv, const Rect& r)
@@ -360,9 +357,7 @@ bool Ctrl::ProcessEvents(bool *quit)
 {
 	//LOGBLOCK("@ ProcessEvents");
 //	MemoryCheckDebug();
-	if(!ProcessEvent(quit))
-		return false;
-	while(ProcessEvent(quit) && (!LoopCtrl || LoopCtrl->InLoop()));
+	ProcessEvent(quit);  // Process and drain events, always continues to painting
 	TimeStop tm;
 	TimerProc(GetTickCount());
 	LLOG("TimerProc elapsed: " << tm);

@@ -54,13 +54,14 @@ bool FBProcessEvent(bool *quit)
 	if(SDL_PollEvent(&s_event)) {
 		// Skip SDL_NOEVENT (type=0) - spurious events
 		if(s_event.type == SDL_NOEVENT)
-			return false;
+			return true;  // Continue processing
 		LOG("FBProcessEvent: got event type=" << (int)s_event.type);
 		if(s_event.type == SDL_QUIT && quit)
 			*quit = true;
 		HandleSDLEvent(&s_event);
-		return true;
+		return true;  // Had an event, continue draining
 	}
+	// No events - this will cause while loop to exit and proceed to painting
 	return false;
 }
 

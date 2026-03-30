@@ -105,7 +105,7 @@ void FBFlush()
 void FBInit()
 {
 	GuiLock __;
-	
+
 	Ctrl::InitFB();
 
 	if(SDL_Init(SDL_INIT_VIDEO/* | SDL_INIT_TIMER*/) < 0) //timer not needed, we post to queue directly
@@ -118,16 +118,18 @@ void FBInit()
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL/2);
 	SDL_ShowCursor(0);
 
+	// Set a video mode first so SDL_GetVideoInfo() works
+	// Use desktop resolution if available, otherwise default to 1024x768
+	int width = 1024, height = 768, bpp = 32;
 	const SDL_VideoInfo* vi = SDL_GetVideoInfo();
-	//ASSERT(vi->hw_available);
-
-	width = vi->current_w;
-	height = vi->current_h;
-	bpp = vi->vfmt->BitsPerPixel;
-	ASSERT(bpp == 32);
+	if(vi) {
+		width = vi->current_w ? vi->current_w : 1024;
+		height = vi->current_h ? vi->current_h : 768;
+		bpp = vi->vfmt ? vi->vfmt->BitsPerPixel : 32;
+	}
 	
 	//FIXME adjustable
-	videoflags = SDL_HWSURFACE | SDL_HWACCEL | SDL_DOUBLEBUF | SDL_RESIZABLE;// | SDL_NOFRAME | SDL_FULLSCREEN;
+	Uint32 videoflags = SDL_HWSURFACE | SDL_HWACCEL | SDL_DOUBLEBUF | SDL_RESIZABLE;// | SDL_NOFRAME | SDL_FULLSCREEN;
 
 	screen = CreateScreen(width, height, bpp, videoflags);
 	ASSERT(screen);

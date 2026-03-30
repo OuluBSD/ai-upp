@@ -26,22 +26,23 @@ void Program::ResetUI() {
 	mouse_pressed = 0;
 	
 	
-	ui_arrows.SetEmptyArray();
-	
-	EscValue up;
-	up.SetEmptyMap();
-	up.MapSet("spr", ui_uparrowspr);
-	up.MapSet("x", 75);
-	up.MapSet("y", stage_top + 60);
-	ui_arrows.ArrayAdd(up);
-	
-	EscValue down;
-	down.SetEmptyMap();
-	down.MapSet("spr", ui_dnarrowspr);
-	down.MapSet("x", 75);
-	down.MapSet("y", stage_top + 72);
-	ui_arrows.ArrayAdd(down);
-	
+	ui_arrows = PyValue::List();
+	Vector<PyValue>& arr = const_cast<Vector<PyValue>&>(ui_arrows.GetArray());
+
+	PyValue up = PyValue::Dict();
+	VectorMap<PyValue, PyValue>& up_dict = up.GetDictRW();
+	up_dict.Add(PyValue(WString("spr")), PyValue((int64)ui_uparrowspr));
+	up_dict.Add(PyValue(WString("x")), PyValue(75));
+	up_dict.Add(PyValue(WString("y")), PyValue(stage_top + 60));
+	arr.Add(up);
+
+	PyValue down = PyValue::Dict();
+	VectorMap<PyValue, PyValue>& down_dict = down.GetDictRW();
+	down_dict.Add(PyValue(WString("spr")), PyValue((int64)ui_dnarrowspr));
+	down_dict.Add(PyValue(WString("x")), PyValue(75));
+	down_dict.Add(PyValue(WString("y")), PyValue(stage_top + 72));
+	arr.Add(down);
+
 }
 
 void Program::UpdateMouseClickState() {
@@ -124,50 +125,53 @@ void Program::InputButtonPressed(dword button_index) {
 	// (allow abort of commands by) {ing other actions, like walking)
 	if (executing_cmd)
 		ClearCurrCmd();
-	
-	EscValue noun1_curr, noun2_curr;
-	if (hover_curr_verb) {
+
+	PyValue noun1_curr, noun2_curr;
+	if (hover_curr_verb.GetType() != PY_NONE) {
 		// change verb and now reset any active objects
-		verb_curr = GetVerb(hover_curr_verb);
+		verb_curr = GetVerb(Program::PyInt(hover_curr_verb));
 	}
-	else if (hover_curr_object) {
+	else if (hover_curr_object.GetType() != PY_NONE) {
 		// if (valid obj, complete command
 		// else, abort command (clear verb, etc.)
 		if (button_index == 1) {
 		}
 		// if (already have obj #1
-		if (noun1_curr && !executing_cmd) {
+		if (noun1_curr.GetType() != PY_NONE && !executing_cmd) {
 			// complete with obj #2
 			noun2_curr = hover_curr_object;
 		}
 		else {
 			noun1_curr = hover_curr_object;
 		}
-		
-		if (verb_curr[2] == GetVerb(verb_default)[2] && hover_curr_object("owner")) {
+
+		PyValue default_verb = GetVerb(Program::PyInt(verb_default));
+		if (verb_curr.GetType() == PY_LIST && Program::PyInt(Program::GetProp(verb_curr, "2")) == Program::PyInt(Program::GetProp(default_verb, "2")) && Program::GetProp(hover_curr_object, "owner").GetType() != PY_NONE) {
 			// inventory item, perform look-at
-			verb_curr = GetVerb(verbs[verb_default]);
+			verb_curr = GetVerb(Program::PyInt(Program::GetProp(verbs, "verb_default")));
 		}
-		
-		else if (hover_curr_default_verb) {
+
+		else if (hover_curr_default_verb.GetType() != PY_NONE) {
 			// perform default verb action (if (present)
-			verb_curr = GetVerb(hover_curr_default_verb);
-			
+			verb_curr = GetVerb(Program::PyInt(hover_curr_default_verb));
+
 			// force repaint of command (to reflect default verb)
 			//PaintCommand();
 		}
-		
+
 		// ui arrow clicked
-		else if (hover_curr_arrow) {
-			int inv_pos = selected_actor("inv_pos");
-			
+		else if (hover_curr_arrow.GetType() != PY_NONE) {
+			int inv_pos = Program::PyInt(Program::GetProp(selected_actor, "inv_pos"));
+
 			// up arrow
-			if (hover_curr_arrow == ui_arrows[1]) {
+			const Vector<PyValue>& arrows_arr = ui_arrows.GetArray();
+			if (hover_curr_arrow.GetPtr() == arrows_arr[1].GetPtr()) {
 				if (inv_pos > 0)
 					inv_pos -= 1;
 			}
 			else { // down arrow
-				int inv_len = selected_actor("inventory").GetArray().GetCount();
+				PyValue inv = Program::GetProp(selected_actor, "inventory");
+				int inv_len = inv.GetArray().GetCount();
 				if (inv_pos + 2 < inv_len/4) {
 					inv_pos += 1;
 				}
@@ -181,19 +185,19 @@ void Program::InputButtonPressed(dword button_index) {
 	SObj vc2 = verb_curr;
 	
 	// attempt to use verb on object (if is not already executing verb)
-	if (noun1_curr) {
+	if (noun1_curr.GetType() != PY_NONE) {
 		// are we starting a 'use' command?
 		if (vc2 == V_USE || vc2 == V_GIVE) {
-			if (noun2_curr) {
+			if (noun2_curr.GetType() != PY_NONE) {
 				// 'use' part 2
 			}
-			else if (noun1_curr("use_with") && noun1_curr("owner") == selected_actor) {
+			else if (Program::GetProp(noun1_curr, "use_with").GetType() != PY_NONE && Program::GetProp(noun1_curr, "owner") == selected_actor) {
 				// 'use' part 1 (e.g. "use hammer")
 				// wait for (noun2 to be set
 				return;
 			}
 		}
-		
+
 		// execute verb script
 		executing_cmd = true;
 		StartScript(THISBACK1(VerbScript, vc2), 0);

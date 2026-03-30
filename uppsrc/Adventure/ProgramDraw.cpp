@@ -857,36 +857,36 @@ void ProgramDraw::PaintCommand(Draw& d) {
 
 	// draw current command
 	PaletteColor cmd_col = p->verb_maincol;
-	SObj verb_curr_ref = p->verb_curr;
-	String command = p->GetVerbString(verb_curr_ref);
+	PyValue verb_curr_ref = p->verb_curr;
+	String command = p->GetVerbString(Program::PyInt(verb_curr_ref));
 	bool executing_cmd = p->executing_cmd;
-	SObj noun1_curr = p->noun1_curr;
-	SObj noun2_curr = p->noun2_curr;
-	SObj hover_curr_object = p->hover_curr_object;
+	PyValue noun1_curr = p->noun1_curr;
+	PyValue noun2_curr = p->noun2_curr;
+	PyValue hover_curr_object = p->hover_curr_object;
 	int stage_top = p->stage_top;
-	
-	
-	if (noun1_curr) {
+
+
+	if (noun1_curr.GetType() != PY_NONE) {
 		DUMP(noun1_curr);
-		command << " " << noun1_curr("name");
-		if (verb_curr_ref == p->V_USE && (!executing_cmd || noun2_curr)) {
+		command << " " << Program::GetProp(noun1_curr, "name").GetStr().ToString();
+		if (verb_curr_ref.GetPtr() == p->V_USE.GetPtr() && (!executing_cmd || noun2_curr.GetType() != PY_NONE)) {
 			command << " with";
 		}
 		else
-			if (verb_curr_ref == p->V_GIVE) {
+			if (verb_curr_ref.GetPtr() == p->V_GIVE.GetPtr()) {
 				command << " to";
 			}
 	}
-	if (noun2_curr) {
-		command << " " << noun2_curr("name");
+	if (noun2_curr.GetType() != PY_NONE) {
+		command << " " << Program::GetProp(noun2_curr, "name").GetStr().ToString();
 	}
-	else if (hover_curr_object) {
+	else if (hover_curr_object.GetType() != PY_NONE) {
 		//DUMP(hover_curr_object);
-		String name = hover_curr_object("name");
+		String name = Program::GetProp(hover_curr_object, "name").GetStr().ToString();
 		
 		if (!name.IsEmpty()
 			// don't show use object with itself!
-			&& (!noun1_curr || noun1_curr != hover_curr_object)
+			&& (noun1_curr.IsNone() || noun1_curr.GetPtr() != hover_curr_object.GetPtr())
 			// || walk-to objs in inventory!
 			// && ( not hover_curr_object.owner or
 			//				or verb_curr_ref != GetVerb(verb_default)[2] )

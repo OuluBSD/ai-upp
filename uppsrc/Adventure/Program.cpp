@@ -268,7 +268,7 @@ String Program::State(SObj& s) {
 
 
 
-PyValue Program::FindDefaultVerb(SObj& obj) {
+PyValue Program::FindDefaultVerb(SObj obj) {
 	PyValue default_verb = V_LOOKAT;
 
 	if (HasFlag(Classes(obj), "class_talkable"))

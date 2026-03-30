@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -280,13 +281,13 @@ void Program::Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, E
 		Script& cut = AddCutscene("cutscene0");
 		cut.user_type = type;
 		cut.WhenStop = THISBACK(ClearCutsceneOverride);
-		cut.Set(0, func_cutscene, EscToPyValue(room_curr));
+		cut.Set(0, func_cutscene, PyToEscValue(room_curr));
 
 		// set as active cutscene
 		cutscene_curr = &cut;
 	}
 	else {
-		StartScriptEsc(self, cutscene_override, 0);
+		StartScriptEsc(self, PyToEscValue(cutscene_override), 0);
 	}
 }
 

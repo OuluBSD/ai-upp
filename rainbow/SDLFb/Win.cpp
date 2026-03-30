@@ -34,18 +34,23 @@ void FBQuitSession()
 bool FBIsWaitingEvent()
 {
 	SDL_PumpEvents();
-	SDL_Event events;
-	int tc = SDL_PeepEvents(&events, 1, SDL_PEEKEVENT, SDL_EVENTMASK(SDL_ALLEVENTS));
+	// Use static buffer to avoid stack issues
+	static SDL_Event s_peek_event;
+	memset(&s_peek_event, 0, sizeof(s_peek_event));
+	int tc = SDL_PeepEvents(&s_peek_event, 1, SDL_PEEKEVENT, SDL_ALLEVENTS);
 	return (tc>0);
 }
 
+// Static event buffer to avoid stack corruption issues with SDL_PollEvent
+static SDL_Event s_event;
+
 bool FBProcessEvent(bool *quit)
 {
-	SDL_Event event;
-	if(SDL_PollEvent(&event)) {
-		if(event.type == SDL_QUIT && quit)
+	memset(&s_event, 0, sizeof(s_event));
+	if(SDL_PollEvent(&s_event)) {
+		if(s_event.type == SDL_QUIT && quit)
 			*quit = true;
-		HandleSDLEvent(&event);
+		HandleSDLEvent(&s_event);
 		return true;
 	}
 	return false;

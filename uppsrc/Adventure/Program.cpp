@@ -423,12 +423,12 @@ void Program::ClearCurrCmd() {
 
 
 void Program::Update() {
-	SObj selected_actor = GetSelectedActor();
-	
+	PyValue selected_actor = GetSelectedActor();
+
 	// See EscAnimContext::Iterate
 	// It is implemented here
 	ASSERT(ctx.IsRunning());
-	
+
 	// global scripts (always updated - regardless of cutscene)
 	ctx.ProcessAndRemoveGroup(SCRIPT_GLOBAL);
 

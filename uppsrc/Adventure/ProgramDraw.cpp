@@ -839,6 +839,7 @@ void ProgramDraw::PaintActor(Draw& d, SObj a) {
 		}
 		Program::SetProp(a_py, "talk_tmr", PyValue(talk_tmr % 14 + 1));
 	}
+	}
 	
 	// debug
 	// if (show_debuginfo {

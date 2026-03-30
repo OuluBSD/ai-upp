@@ -405,6 +405,7 @@ public:
 	void CameraPanTo(SObj& val);
 	bool ScriptRunning(Script& script);
 	void Cutscene(SceneType type, EscValue* self, EscValue func_cutscene, EscValue func_override);
+	void CutscenePy(SceneType type, const PyValue& func_cutscene, const PyValue& func_override);
 	void DialogAdd(const String& msg);
 	void DialogStart(int col, int hlcol);
 	void DialogHide();
@@ -489,7 +490,7 @@ public:
 	static FaceDir GetFaceDirPy(PyValue o);
 	StateType GetState(SObj o);
 	String GetFaceString(FaceDir d);
-	SObj GetSelectedActor();
+	PyValue GetSelectedActor();
 	dword GetMouseButtonMask() const {return mouse_pressed;}
 	bool IsPressed(GamepadButton b) const;
 	bool IsMousePressed(MouseButtonMask m) const;

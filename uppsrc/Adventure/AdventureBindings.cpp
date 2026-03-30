@@ -679,10 +679,10 @@ PyValue AdventureBindings::get_selected_actor(const Vector<PyValue>& args, void*
 	Program* prog = GetProgram(user_data);
 
 	// Call the C++ implementation
-	EscValue actor = prog->GetSelectedActor();
+	PyValue actor = prog->GetSelectedActor();
 
-	// Return as PyValue - would need proper EscValue wrapper
-	return PyValue::None();
+	// Return as PyValue
+	return actor;
 }
 
 PyValue AdventureBindings::open_door(const Vector<PyValue>& args, void* user_data)

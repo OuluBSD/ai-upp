@@ -73,8 +73,8 @@ void Program::CheckCollisions() {
 	PyValue selected_actor = GetSelectedActorPy();
 
 	// check actor collisions
-	PyValue actors_val = global.Get("actors", EscValue());
-	PyValue actors = EscToPyValue(actors_val);
+	EscValue actors_esc = global.Get("actors", EscValue());
+	PyValue actors = EscToPyValue(actors_esc);
 	if (actors.GetType() == PY_LIST) {
 		const Vector<PyValue>& actor_arr = actors.GetArray();
 		for(const PyValue& actor : actor_arr) {

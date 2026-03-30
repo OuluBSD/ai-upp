@@ -15,6 +15,7 @@ namespace Adventure {
 
 bool Program::ReadGame() {
 	auto& global = ctx.global;
+	LOG("ReadGame: Starting to read game state from Python module");
 
 	//DUMPM(global);
 	//RealizeGame();
@@ -28,6 +29,7 @@ bool Program::ReadGame() {
 	//DUMPC(room_names);
 
 	if (room_curr.GetType() != PY_DICT) {
+		LOG("ReadGame: room_curr is not a dict, type=" << room_curr.GetType());
 		TODO
 		/*const SObj* found = FindDeep(room_names[0]);
 		if (!found || !found->IsMap()) {
@@ -38,29 +40,35 @@ bool Program::ReadGame() {
 	}
 
 	//rooms = game.MapGet("rooms");
-	rooms = EscToPyValue(global.Get("rooms", EscValue()));
+	EscValue rooms_esc = global.Get("rooms", EscValue());
+	LOG("ReadGame: Got rooms from global, type=" << rooms_esc.GetType());
+	rooms = EscToPyValue(rooms_esc);
+	LOG("ReadGame: Converted rooms, count=" << rooms.GetArray().GetCount());
 
 	if (rooms.GetType() != PY_LIST || rooms.GetArray().IsEmpty()) {
 		LOG("Program::ParseGame: error: could not find rooms");
 		return false;
 	}
 
-	verbs = EscToPyValue(global.Get("verbs", EscValue()));
+	EscValue verbs_esc = global.Get("verbs", EscValue());
+	LOG("ReadGame: Got verbs from global, type=" << verbs_esc.GetType());
+	verbs = EscToPyValue(verbs_esc);
 	if (verbs.GetType() != PY_LIST) {
 		LOG("No verbs in game");
 		return false;
 	}
+	LOG("ReadGame: Converted verbs, count=" << verbs.GetArray().GetCount());
 
 	const Vector<PyValue>& verb_arr = verbs.GetArray();
 	for(int i = 0; i < verb_arr.GetCount(); i++) {
 		const PyValue& verb = verb_arr[i];
 		if (verb.GetType() != PY_DICT) {
-			LOG("Invalid verb");
+			LOG("Invalid verb at index " << i);
 			return false;
 		}
 		const VectorMap<PyValue, PyValue>& verb_dict = verb.GetDict();
 		if(verb_dict.Find(PyValue(WString("name"))) < 0 || verb_dict.Find(PyValue(WString("text"))) < 0) {
-			LOG("Invalid verb");
+			LOG("Invalid verb - missing name or text");
 			return false;
 		}
 		String name = verb_dict.Get(PyValue(WString("name"))).GetStr().ToString();
@@ -74,9 +82,9 @@ bool Program::ReadGame() {
 		if (name == "open")		V_OPEN = verb;
 		if (name == "close")	V_CLOSE = verb;
 		if (name == "talkto")	V_TALKTO = verb;
-		
+
 		if (verb_idx.Find(name) >= 0) {
-			LOG("Verb already defined");
+			LOG("Verb already defined: " << name);
 			return false;
 		}
 		verb_idx.Add(name);

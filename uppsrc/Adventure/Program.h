@@ -361,7 +361,7 @@ public:
 	Program();
 
 	bool InitPyVM();  // Initialize PyVM and register bindings
-	bool AddEscFunctions();  // Deprecated: kept for backward compatibility
+	// AddEscFunctions() removed - Esc scripts no longer supported
 	bool ReadGame();
 	EscValue RunLambda1(EscValue* self, const EscValue& l, const EscValue& arg0);
 	void ProcessEsc();
@@ -375,44 +375,8 @@ public:
 	// PyVM helper functions
 	static PyValue GetDictItem(const PyValue& dict, const char* key);
 
+	// Esc* handlers removed - use Python instead
 
-	void EscCameraFollow(EscEscape& e);
-	void EscChangeRoom(EscEscape& e);
-	void EscCutscene(EscEscape& e);
-	void EscPutAt(EscEscape& e);
-	void EscPrintLine(EscEscape& e);
-	void EscBreakTime(EscEscape& e);
-	void EscSelectActor(EscEscape& e);
-	void EscPickupObject(EscEscape& e);
-	void EscSetTransparencyColor(EscEscape& e);
-	void EscFades(EscEscape& e);
-	void EscMap(EscEscape& e);
-	void EscSayLine(EscEscape& e);
-	void EscSayLineActor(EscEscape& e);
-	void EscCameraAt(EscEscape& e);
-	void EscCameraPanTo(EscEscape& e);
-	void EscCameraPanToCoord(EscEscape& e);
-	void EscWaitForCamera(EscEscape& e);
-	void EscDrawRectFill(EscEscape& e);
-	void EscDrawLine(EscEscape& e);
-	void EscDrawCircleFill(EscEscape& e);
-	void EscComeOutDoor(EscEscape& e);
-	void EscStartScript(EscEscape& e);
-	void EscStopScript(EscEscape& e);
-	void EscSoundFx0(EscEscape& e);
-	void EscSoundFx1(EscEscape& e);
-	void EscDoAnimation(EscEscape& e);
-	void EscShake(EscEscape& e);
-	void EscScriptRunning(EscEscape& e);
-	void EscWalkTo(EscEscape& e);
-	void EscOpenDoor(EscEscape& e);
-	void EscCloseDoor(EscEscape& e);
-	void EscDialogSet(EscEscape& e);
-	void EscDialogStart(EscEscape& e);
-	void EscDialogHide(EscEscape& e);
-	void EscDialogClear(EscEscape& e);
-	void EscTodo(EscEscape& e);
-	
 	void ClearCutsceneOverride(EscAnimProgram& s);
 	void CameraFollow(SObj actor);
 	void ChangeRoom(SObj new_room, SObj fade);

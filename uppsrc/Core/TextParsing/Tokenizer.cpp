@@ -545,9 +545,15 @@ bool Tokenizer::Process(String str, String path) {
 				}
 				if (tk) tk->end = loc;
 				if (add_line) {
+					// Consume the newline and produce a TK_NEWLINE token
+					// so the parser knows the statement ended
+					Next();
 					parse_indent = have_indent_tokens;
 					loc.line++;
 					loc.col = 1;
+					if (!skip_newlines) {
+						Add(TK_NEWLINE);
+					}
 				}
 			}
 			else {

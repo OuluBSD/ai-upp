@@ -2,6 +2,54 @@
 
 #include "Overviewer.brc"
 
+namespace {
+
+const char *FOCUS_FILE_TREE = "file_tree";
+const char *FOCUS_ACTIVE_FILE = "active_file";
+
+String FocusArgString(const ValueMap& args, const char *k1, const char *k2 = NULL, const char *k3 = NULL)
+{
+	Value v = args[k1];
+	if(IsNull(v) && k2)
+		v = args[k2];
+	if(IsNull(v) && k3)
+		v = args[k3];
+	return IsNull(v) ? String() : (String)v;
+}
+
+ValueMap FocusResult(bool ok, const String& message = String())
+{
+	ValueMap out;
+	out.Add("ok", ok);
+	if(!message.IsEmpty())
+		out.Add(ok ? "message" : "error", message);
+	return out;
+}
+
+}
+
+INITBLOCK
+{
+	MLUI::RegisterFocusPage(
+	    FOCUS_FILE_TREE,
+	    "File Tree",
+	    "Project file tree navigation with compact selection state"
+	)
+	.Action("select", "Select Path", "Select a tree row by relative path")
+	.Action("reload", "Reload Tree", "Rescan filesystem and rebuild the tree")
+	.Context("scope", "Overviewer");
+
+	MLUI::RegisterFocusPage(
+	    FOCUS_ACTIVE_FILE,
+	    "Active File",
+	    "Metadata and edit actions for currently selected file"
+	)
+	.Action("analyze", "Analyze Selection", "Run heuristic analysis for current selection")
+	.Action("set_priority", "Set Priority", "Set priority [0..5] for current selection")
+	.Action("add_comment", "Add Comment", "Append a comment to current selection")
+	.Context("scope", "Overviewer");
+}
+
 SettingsWindow::SettingsWindow() {
 	CtrlLayoutOKCancel(*this, "Settings");
 	backup_mode.Add(0, "Alongside project (.autosave.json)");
@@ -397,6 +445,35 @@ void OverviewerWindow::UsagePanel::Refresh(const UsageSummary& s, const Vector<F
 		String sev = sig.severity == 2 ? "!!!" : (sig.severity == 1 ? "!!" : "!");
 		friction.Add(sev, sig.type, sig.description);
 	}
+}
+
+static void RecursiveScan(const String& dir, const String& base, Vector<String>& res) {
+	for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
+		String rel = ff.GetName();
+		if(rel == "." || rel == "..") continue;
+		if(!base.IsEmpty()) rel = AppendFileName(base, rel);
+		res.Add(rel);
+		if(ff.IsFolder())
+			RecursiveScan(ff.GetPath(), rel, res);
+	}
+}
+
+String OverviewerProject::GetRootDir() const {
+	if(!working_dir.IsEmpty()) return working_dir;
+	if(!path.IsEmpty()) {
+		String d = GetFileDirectory(path);
+		if(d.IsEmpty()) return GetCurrentDirectory();
+		return d;
+	}
+	return GetCurrentDirectory();
+}
+
+void OverviewerProject::DoScan() {
+	MarkDashboardDirty();
+	current_scan.Clear();
+	String root = GetRootDir();
+	if(!root.IsEmpty() && DirectoryExists(root))
+		RecursiveScan(root, "", current_scan);
 }
 
 FileMetadata OverviewerProject::GetEffectiveMetadata(const String& rel_path) const {
@@ -887,7 +964,111 @@ OverviewerWindow::OverviewerWindow()
 	
 	AddFrame(status_bar);
 
+	Add(main_tabs.SizePos());
+	main_tabs.Add(overview_preview_pane.SizePos(), "Overview");
+	main_tabs.Add(dashboard_pane.SizePos(), "Dashboard");
+
+	tree.AddColumn("File", 300);
+	tree.AddColumn("Prio", 40);
+	tree.AddColumn("Done", 40);
 	tree.WhenSel = THISBACK(OnTreeSelection);
+	tree.WhenOpen = [this](int id) {
+		String path = (String)tree.Get(id);
+		String root_dir = project.GetRootDir();
+		
+		bool has_dummy = false;
+		if(tree.GetChildCount(id) == 1) {
+			if((String)tree.Get(tree.GetChild(id, 0)) == "__dummy__")
+				has_dummy = true;
+		}
+		
+		if(has_dummy) {
+			tree.RemoveChildren(id);
+			
+			// If we already have current_scan, use it to quickly find immediate children
+			if(project.current_scan.GetCount() > 0) {
+				for(const String& p : project.current_scan) {
+					bool match = false;
+					String sub;
+					if(path == ".") {
+						if(p.Find('/') < 0 && p.Find('\\') < 0) {
+							match = true;
+							sub = p;
+						}
+					} else if(p.StartsWith(path + "/") || p.StartsWith(path + "\\")) {
+						sub = p.Mid(path.GetCount() + 1);
+						if(sub.Find('/') < 0 && sub.Find('\\') < 0) {
+							match = true;
+						}
+					}
+					
+					if(match) {
+						bool visible = true;
+						if(!filter.search_text.IsEmpty() && p.Find(filter.search_text) < 0) visible = false;
+						
+						FileMetadata m;
+						if(visible && filter.mode == 1) {
+							m = project.GetEffectiveMetadata(p);
+							if(filter.flags != 0 && (m.flags & filter.flags) == 0) visible = false;
+							if(filter.priority_min > 0 && m.priority < filter.priority_min) visible = false;
+							if(filter.missing_priority && m.priority != 0) visible = false;
+							if(filter.missing_completion && m.completion != 0) visible = false;
+							if(!filter.tag_current.IsEmpty() && FindIndex(m.current_tags, filter.tag_current) < 0) visible = false;
+							if(!filter.tag_reason.IsEmpty() && FindIndex(m.reason_tags, filter.tag_reason) < 0) visible = false;
+							if(!filter.tag_gap.IsEmpty() && FindIndex(m.gap_tags, filter.tag_gap) < 0) visible = false;
+						}
+						
+						if(visible) {
+							String abs = AppendFileName(root_dir, p);
+							bool is_dir = DirectoryExists(abs);
+							int cid = tree.Add(id, is_dir ? CtrlImg::Dir() : CtrlImg::File(), p, sub);
+							if(is_dir) tree.Add(cid, Image(), "__dummy__", "");
+							else {
+								if(filter.mode == 0) m = project.GetEffectiveMetadata(p);
+								if(m.priority > 0) tree.SetRowValue(cid, 1, m.priority);
+								if(m.completion > 0) tree.SetRowValue(cid, 2, String().Cat() << m.completion << "%");
+							}
+						}
+					}
+				}
+			} else {
+				// Fallback to slow FindFile if no scan exists
+				String abs_path = path == "." ? root_dir : AppendFileName(root_dir, path);
+				for(FindFile ff(AppendFileName(abs_path, "*")); ff; ff.Next()) {
+					String name = ff.GetName();
+					if(name == "." || name == "..") continue;
+					String rel = path == "." ? name : AppendFileName(path, name);
+					
+					bool visible = true;
+					if(!filter.search_text.IsEmpty() && rel.Find(filter.search_text) < 0) visible = false;
+					
+					FileMetadata m;
+					if(visible && filter.mode == 1) {
+						m = project.GetEffectiveMetadata(rel);
+						if(filter.flags != 0 && (m.flags & filter.flags) == 0) visible = false;
+						if(filter.priority_min > 0 && m.priority < filter.priority_min) visible = false;
+						if(filter.missing_priority && m.priority != 0) visible = false;
+						if(filter.missing_completion && m.completion != 0) visible = false;
+						if(!filter.tag_current.IsEmpty() && FindIndex(m.current_tags, filter.tag_current) < 0) visible = false;
+						if(!filter.tag_reason.IsEmpty() && FindIndex(m.reason_tags, filter.tag_reason) < 0) visible = false;
+						if(!filter.tag_gap.IsEmpty() && FindIndex(m.gap_tags, filter.tag_gap) < 0) visible = false;
+					}
+					
+					if(visible) {
+						if(ff.IsFolder()) {
+							int child_id = tree.Add(id, CtrlImg::Dir(), rel, name);
+							tree.Add(child_id, Image(), "__dummy__", "");
+						} else {
+							int child_id = tree.Add(id, CtrlImg::File(), rel, name);
+							if(filter.mode == 0) m = project.GetEffectiveMetadata(rel);
+							if(m.priority > 0) tree.SetRowValue(child_id, 1, m.priority);
+							if(m.completion > 0) tree.SetRowValue(child_id, 2, String().Cat() << m.completion << "%");
+						}
+					}
+				}
+			}
+		}
+	};
 	
 	CreateFlagsPane();
 	CreateNumericPane();
@@ -1154,6 +1335,7 @@ void OverviewerWindow::New() {
 	if (!ConfirmSave()) return;
 	project.Reset();
 	project.StartSession("local-user", "user");
+	project.DoScan();
 	RefreshTree();
 	RefreshDashboard();
 	RefreshReviewQueue();
@@ -1220,6 +1402,7 @@ void OverviewerWindow::OpenFile(const String& path) {
 		project.usage_history <<= p.usage_history;
 		
 		project.StartSession("local-user", "user");
+		project.DoScan();
 		
 		RefreshTree();
 		RefreshDashboard();
@@ -1289,51 +1472,29 @@ void OverviewerWindow::Close() {
 	}
 }
 
-static void ScanDir(TreeCtrl& tree, int parent, const String& dir, const String& base, const OverviewerProject& project, const OverviewerWindow::FilterConfig& filter) {
-	for(FindFile ff(AppendFileName(dir, "*")); ff; ff.Next()) {
-		String rel = ff.GetName();
-		if(!base.IsEmpty()) rel = AppendFileName(base, rel);
-		
-		bool visible = true;
-		if(!filter.search_text.IsEmpty() && rel.Find(filter.search_text) < 0) visible = false;
-		
-		if(visible && filter.mode == 1) {
-			FileMetadata m = project.GetEffectiveMetadata(rel);
-			if(filter.flags != 0 && (m.flags & filter.flags) == 0) visible = false;
-			if(filter.priority_min > 0 && m.priority < filter.priority_min) visible = false;
-			if(filter.missing_priority && m.priority != 0) visible = false;
-			if(filter.missing_completion && m.completion != 0) visible = false;
-			if(!filter.tag_current.IsEmpty() && FindIndex(m.current_tags, filter.tag_current) < 0) visible = false;
-			if(!filter.tag_reason.IsEmpty() && FindIndex(m.reason_tags, filter.tag_reason) < 0) visible = false;
-			if(!filter.tag_gap.IsEmpty() && FindIndex(m.gap_tags, filter.tag_gap) < 0) visible = false;
-		}
-		
-		if(ff.IsFolder()) {
-			int node = tree.Add(parent, CtrlImg::Dir(), rel, ff.GetName());
-			ScanDir(tree, node, ff.GetPath(), rel, project, filter);
-		} else if(visible) {
-			tree.Add(parent, CtrlImg::File(), rel, ff.GetName());
-		}
-	}
-}
-
 void OverviewerWindow::RefreshTree() {
 	tree.Clear();
-	String root_dir = project.working_dir;
-	if(root_dir.IsEmpty() && !project.path.IsEmpty())
-		root_dir = GetFileDirectory(project.path);
-	
+	tree.NoRoot();
+	String root_dir = project.GetRootDir();
 	if(root_dir.IsEmpty()) return;
 	
-	int root = tree.Add(0, CtrlImg::Dir(), ".", root_dir);
-	ScanDir(tree, root, root_dir, "", project, filter);
-	tree.Open(root);
+	if(project.current_scan.IsEmpty()) project.DoScan();
+	
+	tree.SetRoot(CtrlImg::Dir(), ".");
+	tree.Set(0, ".", "Root"); 
+	tree.Add(0, Image(), "__dummy__", ""); 
+	
+	// TreeArrayCtrl::Clear sets item 0 to isopen=true. 
+	// To trigger WhenOpen(0), we must close it first then open.
+	tree.Open(0, false);
+	tree.Open(0, true);
 }
 
 void OverviewerWindow::OnTreeSelection() {
 	int id = tree.GetCursor();
 	if(id >= 0) {
 		current_selection = (String)tree.Get(id);
+		if(current_selection == ".") current_selection = "";
 		UpdatePanels();
 		project.RecordUsage("select_entry", current_selection);
 	} else {
@@ -1344,7 +1505,7 @@ void OverviewerWindow::OnTreeSelection() {
 
 void OverviewerWindow::UpdatePanels() {
 	FileMetadata effective = project.GetEffectiveMetadata(current_selection);
-	EntrySuggestions* s = current_selection.IsEmpty() || current_selection == "." ? nullptr : project.suggestions.FindPtr(current_selection);
+	EntrySuggestions* s = current_selection.IsEmpty() ? nullptr : project.suggestions.FindPtr(current_selection);
 
 	temporary = !!(effective.flags & FLAG_TEMPORARY);
 	wrong_location = !!(effective.flags & FLAG_WRONG_LOCATION);
@@ -1378,10 +1539,9 @@ void OverviewerWindow::UpdatePanels() {
 	tasks_pane.Refresh();
 	leads_pane.Refresh();
 	
-	path_lbl = current_selection;
-	String root_path = project.working_dir;
-	if(root_path.IsEmpty() && !project.path.IsEmpty()) root_path = GetFileDirectory(project.path);
-	String abs_path = AppendFileName(root_path, current_selection);
+	path_lbl = current_selection.IsEmpty() ? "Project Root" : current_selection;
+	String root_path = project.GetRootDir();
+	String abs_path = current_selection.IsEmpty() ? root_path : AppendFileName(root_path, current_selection);
 	
 	if(DirectoryExists(abs_path)) {
 		type_lbl = "Type: Directory";
@@ -1395,7 +1555,7 @@ void OverviewerWindow::UpdatePanels() {
 	SyncStatusBar();
 	
 	// Delayed expensive refreshes to avoid freezing the GUI during rapid navigation
-	KillTimeCallback(12345);
+	KillTimeCallback(1);
 	SetTimeCallback(250, [this]{
 		RefreshTimeline();
 		RefreshActionView();
@@ -1403,14 +1563,288 @@ void OverviewerWindow::UpdatePanels() {
 		RefreshComments();
 		RefreshInsights();
 		RefreshUsage();
-	}, 12345);
+		DumpUI();
+	}, 1);
+}
+
+void OverviewerWindow::DumpUI() {
+	Json json;
+	json("current_selection", current_selection);
+	
+	JsonArray tree_dump;
+	for(int i = 0; i < tree.GetLineCount(); i++) {
+		int id = tree.GetItemAtLine(i);
+		if(id >= 0) {
+			Json item;
+			item("path", (String)tree.Get(id));
+			item("display", (String)tree.GetValue(id));
+			item("prio", (String)tree.GetRowValue(id, 1));
+			item("done", (String)tree.GetRowValue(id, 2));
+			tree_dump << item;
+		}
+	}
+	json("tree", tree_dump);
+	
+	auto dump_list = [](ArrayCtrl& list) {
+		JsonArray arr;
+		for(int i = 0; i < list.GetCount(); i++) {
+			JsonArray row;
+			for(int j = 0; j < list.GetColumnCount(); j++)
+				row << AsString(list.Get(i, j));
+			arr << row;
+		}
+		return arr;
+	};
+	
+	json("problems", dump_list(problems_pane.list));
+	json("tasks", dump_list(tasks_pane.list));
+	json("leads", dump_list(leads_pane.list));
+	json("current_tags", dump_list(current_tags_pane.list));
+	json("reason_tags", dump_list(reason_tags_pane.list));
+	json("gap_tags", dump_list(gap_tags_pane.list));
+	json("suggestions", dump_list(suggestion_pane.list));
+	
+	json("overview_qtf", AsQTF(overview_preview_pane.view.Get()));
+	json("dashboard", dump_list(dashboard_pane.stats));
+	
+	SaveFile(AppendFileName(GetFileDirectory(project.path), "ui_dump.log"), json.ToString());
+}
+
+String OverviewerWindow::NormalizeTreePath(String path) const
+{
+	path = TrimBoth(path);
+	path.Replace("\\", "/");
+	String root = NormalizePath(project.GetRootDir());
+	if(!root.IsEmpty()) {
+		String rooted = root + "/";
+		if(path == root)
+			path.Clear();
+		else if(path.StartsWith(rooted))
+			path = path.Mid(rooted.GetCount());
+	}
+	while(path.StartsWith("./"))
+		path = path.Mid(2);
+	while(path.StartsWith("/"))
+		path = path.Mid(1);
+	while(path.EndsWith("/"))
+		path = path.Left(path.GetCount() - 1);
+	if(path == ".")
+		path.Clear();
+	return path;
+}
+
+int OverviewerWindow::FindTreeItemByPath(const String& rel_path, bool expand_all)
+{
+	String target = NormalizeTreePath(rel_path);
+	if(tree.GetLineCount() <= 0)
+		RefreshTree();
+	if(tree.GetLineCount() <= 0 || !tree.IsValid(0))
+		return -1;
+	if(target.IsEmpty())
+		return 0;
+
+	auto FindChildByKey = [&](int parent, const String& full_key) {
+		for(int i = 0; i < tree.GetChildCount(parent); i++) {
+			int child = tree.GetChild(parent, i);
+			if(!tree.IsValid(child))
+				continue;
+			String key = NormalizeTreePath((String)tree.Get(child));
+			if(key == full_key)
+				return child;
+		}
+		return -1;
+	};
+
+	int current = 0;
+	String accum;
+	Vector<String> parts = Split(target, '/');
+	for(const String& part0 : parts) {
+		String part = TrimBoth(part0);
+		if(part.IsEmpty())
+			continue;
+		if(!accum.IsEmpty())
+			accum << "/";
+		accum << part;
+		if(expand_all)
+			tree.Open(current, true);
+		int child = FindChildByKey(current, accum);
+		if(child < 0)
+			return -1;
+		current = child;
+	}
+	return current;
+}
+
+bool OverviewerWindow::SelectTreePath(const String& rel_path, bool expand_all)
+{
+	int id = FindTreeItemByPath(rel_path, expand_all);
+	if(id < 0)
+		return false;
+	tree.SetCursor(id);
+	tree.MakeVisible(id);
+	OnTreeSelection();
+	return true;
+}
+
+void OverviewerWindow::RefreshMluiFocusPages()
+{
+	MLUI::FocusPage& file_tree = MLUI::GetFocusPage(FOCUS_FILE_TREE);
+	file_tree.ClearRuntime();
+	file_tree.Add(tree).Add(search_ctrl);
+	MLUI_USE_CTRL(file_tree, tree, "Main file tree control");
+	MLUI_USE_CTRL(file_tree, search_ctrl, "Tree text filter input");
+
+	String root_dir = project.GetRootDir();
+	String selected_path = NormalizeTreePath(current_selection);
+	String project_file = project.path;
+	int visible_rows = tree.GetLineCount();
+	bool has_project = !project_file.IsEmpty();
+	bool can_reload = !root_dir.IsEmpty();
+
+	MLUI_USE_VAR(file_tree, project_file, "Project JSON file path");
+	MLUI_USE_VAR(file_tree, root_dir, "Current project root directory");
+	MLUI_USE_VAR(file_tree, selected_path, "Selected relative path in file tree");
+	MLUI_USE_VAR(file_tree, visible_rows, "Visible tree row count");
+	MLUI_USE_STATE(file_tree, "has_project", has_project, "Whether a project file is open");
+
+	file_tree.AddAction("select", visible_rows > 0, "Select a row by relative path");
+	file_tree.AddAction("reload", can_reload, "Rescan and rebuild visible tree");
+
+	file_tree.ActionHandler("select", [this](const ValueMap& args) -> Value {
+		String path = NormalizeTreePath(FocusArgString(args, "path", "target", "rel_path"));
+		if(path.IsEmpty() && !current_selection.IsEmpty())
+			path = NormalizeTreePath(current_selection);
+		if(path.IsEmpty()) {
+			ValueMap out = FocusResult(false, "Missing path/target/rel_path");
+			out.Add("action", "select");
+			return out;
+		}
+		if(!SelectTreePath(path, true)) {
+			ValueMap out = FocusResult(false, "Path not found in tree: " + path);
+			out.Add("action", "select");
+			out.Add("path", path);
+			return out;
+		}
+		ValueMap out = FocusResult(true);
+		out.Add("action", "select");
+		out.Add("path", NormalizeTreePath(current_selection));
+		return out;
+	});
+
+	file_tree.ActionHandler("reload", [this](const ValueMap& args) -> Value {
+		(void)args;
+		project.DoScan();
+		RefreshTree();
+		String prev = NormalizeTreePath(current_selection);
+		if(!prev.IsEmpty())
+			SelectTreePath(prev, true);
+		ValueMap out = FocusResult(true);
+		out.Add("action", "reload");
+		out.Add("scan_count", project.current_scan.GetCount());
+		out.Add("selected_path", NormalizeTreePath(current_selection));
+		return out;
+	});
+
+	MLUI::FocusPage& active_file = MLUI::GetFocusPage(FOCUS_ACTIVE_FILE);
+	active_file.ClearRuntime();
+	active_file.Add(notes_editor).Add(priority).Add(quality).Add(completion);
+	MLUI_USE_CTRL(active_file, notes_editor, "Notes editor for selected entry");
+	MLUI_USE_CTRL(active_file, priority, "Priority selector");
+	MLUI_USE_CTRL(active_file, quality, "Quality selector");
+	MLUI_USE_CTRL(active_file, completion, "Completion selector");
+
+	String active_path = NormalizeTreePath(current_selection);
+	bool has_selection = !active_path.IsEmpty();
+	FileMetadata meta = project.GetEffectiveMetadata(active_path);
+	int selected_priority = priority.GetIndex();
+	String notes = (String)notes_editor.GetData();
+
+	MLUI_USE_VAR(active_file, active_path, "Current selected relative path");
+	MLUI_USE_VAR(active_file, selected_priority, "Priority value for selection");
+	MLUI_USE_VAR(active_file, notes, "Free-form notes for selection");
+	MLUI_USE_STATE(active_file, "has_selection", has_selection, "Whether tree selection points to an entry");
+	MLUI_USE_STATE(active_file, "flags", (int)meta.flags, "Metadata bitmask for active entry");
+	MLUI_USE_STATE(active_file, "quality", meta.quality, "Quality score [0..5]");
+	MLUI_USE_STATE(active_file, "completion", meta.completion, "Completion score [0..5]");
+
+	active_file.AddAction("analyze", has_selection, "Run analysis for selected entry");
+	active_file.AddAction("set_priority", has_selection, "Set selected entry priority");
+	active_file.AddAction("add_comment", has_selection, "Add comment for selected entry");
+
+	active_file.ActionHandler("analyze", [this](const ValueMap& args) -> Value {
+		(void)args;
+		if(current_selection.IsEmpty()) {
+			ValueMap out = FocusResult(false, "No active selection");
+			out.Add("action", "analyze");
+			return out;
+		}
+		OnAnalyze();
+		ValueMap out = FocusResult(true);
+		out.Add("action", "analyze");
+		out.Add("path", NormalizeTreePath(current_selection));
+		return out;
+	});
+
+	active_file.ActionHandler("set_priority", [this](const ValueMap& args) -> Value {
+		if(current_selection.IsEmpty()) {
+			ValueMap out = FocusResult(false, "No active selection");
+			out.Add("action", "set_priority");
+			return out;
+		}
+		Value pv = args["value"];
+		if(IsNull(pv))
+			pv = args["priority"];
+		if(IsNull(pv)) {
+			ValueMap out = FocusResult(false, "Missing value/priority");
+			out.Add("action", "set_priority");
+			return out;
+		}
+		int value = minmax((int)pv, 0, 5);
+		priority.SetIndex(value);
+		OnMetadataChange();
+		ValueMap out = FocusResult(true);
+		out.Add("action", "set_priority");
+		out.Add("path", NormalizeTreePath(current_selection));
+		out.Add("priority", value);
+		return out;
+	});
+
+	active_file.ActionHandler("add_comment", [this](const ValueMap& args) -> Value {
+		if(current_selection.IsEmpty()) {
+			ValueMap out = FocusResult(false, "No active selection");
+			out.Add("action", "add_comment");
+			return out;
+		}
+		String text = FocusArgString(args, "text", "comment", "value");
+		text = TrimBoth(text);
+		if(text.IsEmpty()) {
+			ValueMap out = FocusResult(false, "Missing text/comment/value");
+			out.Add("action", "add_comment");
+			return out;
+		}
+		String id = project.AddComment(text, current_selection, "");
+		RefreshComments();
+		MarkDirty();
+		ValueMap out = FocusResult(true);
+		out.Add("action", "add_comment");
+		out.Add("path", NormalizeTreePath(current_selection));
+		out.Add("comment_id", id);
+		return out;
+	});
+}
+
+bool OverviewerWindow::Access(Visitor& v)
+{
+	bool handled = DockWindow::Access(v);
+	RefreshMluiFocusPages();
+	return handled;
 }
 
 void OverviewerWindow::OnMetadataChange() {
-	if(current_selection.IsEmpty() || current_selection == ".") return;
+	if(current_selection == ".") current_selection = "";
 	FileMetadata old_m = project.GetEffectiveMetadata(current_selection);
 	FileMetadata& m = project.GetMetadataWrite(current_selection);
-	
+
 	auto log_if_changed = [&](int& field, int new_val, const char* type) {
 		if(field != new_val) {
 			project.LogEvent(current_selection, type, String().Cat() << "Changed " << type << " from " << field << " to " << new_val, AsString(field), AsString(new_val));
@@ -1418,7 +1852,7 @@ void OverviewerWindow::OnMetadataChange() {
 			project.RecordUsage(String("set_") + type, current_selection);
 		}
 	};
-	
+
 	log_if_changed(m.quality, quality.GetIndex(), "quality");
 	log_if_changed(m.completion, completion.GetIndex(), "completion");
 	log_if_changed(m.priority, priority.GetIndex(), "priority");
@@ -1430,12 +1864,20 @@ void OverviewerWindow::OnMetadataChange() {
 	if(too_large) bits |= FLAG_TOO_LARGE;
 	if(needs_review) bits |= FLAG_NEEDS_REVIEW;
 	if(content_needs_review) bits |= FLAG_CONTENT_NEEDS_REVIEW;
-	
+
 	if(m.flags != bits) {
 		project.LogEvent(current_selection, "set_flags", "Metadata flags changed", AsString((int)m.flags), AsString((int)bits));
 		m.flags = bits;
 		project.RecordUsage("set_flags", current_selection);
 	}
+	
+	// Sync tags and lists from dummy_metadata back to project
+	m.current_tags <<= dummy_metadata.current_tags;
+	m.reason_tags <<= dummy_metadata.reason_tags;
+	m.gap_tags <<= dummy_metadata.gap_tags;
+	m.problems <<= dummy_metadata.problems;
+	m.tasks <<= dummy_metadata.tasks;
+	m.leads <<= dummy_metadata.leads;
 
 	RecordUndo(current_selection, old_m, m);
 	MarkDirty();
@@ -1450,13 +1892,13 @@ void OverviewerWindow::OnNoteChange() {
 	if(m.notes != n) {
 		m.notes = n;
 		// Use a dedicated timer for marking dirty and refreshes to avoid freezing during typing
-		KillTimeCallback(54321);
+		KillTimeCallback(2);
 		SetTimeCallback(500, [this]{
 			MarkDirty();
 			RefreshTimeline();
 			RefreshActionView();
 			project.RecordUsage("edit_note", current_selection);
-		}, 54321);
+		}, 2);
 	}
 }
 

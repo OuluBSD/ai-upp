@@ -378,6 +378,8 @@ struct OverviewerProject {
 	Vector<Insight> insights;
 	Vector<UsageEvent> usage_history;
 	
+	Vector<String> current_scan;
+	
 	mutable ProjectDashboard dashboard_cache;
 	mutable bool dashboard_dirty = true;
 
@@ -405,9 +407,12 @@ struct OverviewerProject {
 		known_current_tags.Clear(); known_reason_tags.Clear(); known_gap_tags.Clear();
 		scenarios.Clear(); active_scenario_id = "";
 		decisions.Clear(); comments.Clear(); insights.Clear(); usage_history.Clear();
+		current_scan.Clear();
 		dashboard_dirty = true;
 	}
 	
+	void DoScan();
+	String GetRootDir() const;
 	FileMetadata GetEffectiveMetadata(const String& rel_path) const;
 	FileMetadata& GetMetadataWrite(const String& rel_path);
 	String GetBackupPath() const;
@@ -472,6 +477,7 @@ public:
 
 	virtual void Close() override;
 	virtual void DockInit() override;
+	virtual bool Access(Visitor& v) override;
 
 	void RefreshTree();
 	void OnTreeSelection();
@@ -537,6 +543,12 @@ public:
 	void RecordUndo(const String& path, const FileMetadata& old_m, const FileMetadata& new_m);
 
 	void OnSearch();
+	
+	void DumpUI();
+	void RefreshMluiFocusPages();
+	String NormalizeTreePath(String path) const;
+	int FindTreeItemByPath(const String& rel_path, bool expand_all);
+	bool SelectTreePath(const String& rel_path, bool expand_all = true);
 
 public:
 	struct FilterConfig {
@@ -560,9 +572,11 @@ private:
 	ToolBar quick_actions;
 	StatusBar status_bar;
 	
+	TabCtrl main_tabs;
+	
 	EditString search_ctrl;
 	
-	TreeCtrl tree;
+	TreeArrayCtrl tree;
 	
 	ParentCtrl flags_pane;
 	Option temporary, wrong_location, wrong_name, too_large, needs_review, content_needs_review;

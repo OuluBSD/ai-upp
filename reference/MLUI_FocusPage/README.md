@@ -1,10 +1,11 @@
 # MLUI_FocusPage
 
-Reference package for the proposed MLUI FocusPage model.
+Reference package for the MLUI FocusPage model using the production API in `uppsrc/CtrlLib/Mlui.*`.
 
-This package is intentionally design-first:
-- It demonstrates the API shape and data flow direction.
-- It is not intended to be production-complete yet.
+Status:
+- runnable reference app (`bin/MLUI_FocusPage`)
+- demonstrates `INITBLOCK` registration + runtime refresh in `Access(Visitor&)`
+- demonstrates `focus.action` handlers for page actions
 
 ## Why FocusPage
 
@@ -34,12 +35,23 @@ Control binding by reference (window constructor):
 - `MLUI::GetFocusPage(\"issue_board\").Add(issue_list);`
 
 Dynamic page output (automation path):
-- `bool Access(Visitor& v) override { ... MLUI::EmitFocusPages(av); }`
+- `bool Access(Visitor& v) override { ... RefreshFocusPages(); }`
 - Runtime values/controls/actions are added with macro helpers:
   - `MLUI_USE_VAR(page, var, "desc")`
   - `MLUI_USE_CTRL(page, ctrl, "desc")`
   - `MLUI_USE_STATE(page, key, value, "desc")`
   - `MLUI_USE_ACTION(page, id, enabled, "desc")`
+
+Action handlers:
+- `MLUI::GetFocusPage("...").ActionHandler("action_id", [](const ValueMap& args){ ... })`
+
+## Build / Run
+
+Build:
+- `script/build.py -mc 0 reference/MLUI_FocusPage`
+
+Run with MLUI server enabled:
+- `bin/MLUI_FocusPage --mlui-server__ 127.0.0.1:8082`
 
 ## MCP Usage Intent
 

@@ -1,4 +1,5 @@
 #include "Adventure.h"
+#include "AdventureBindings.h"
 
 namespace Adventure {
 
@@ -26,28 +27,48 @@ void Program::CameraFollow(SObj actor) {
 	}
 
 	// set target, clear other cam values
-	cam_following_actor = actor;
+	cam_following_actor = EscToPyValue(actor);
 	cam_pan_to = GetXY(actor);
 
 	cam_script = &dynamic_cast<Script&>(StartScript(THISBACK(CamScript0), true)); // bg script
 
 	// auto-switch to room actor resides in
-	SObj r = GetInRoom(cam_following_actor);
-	if (r && r != room_curr)
-		ChangeRoom(r, 1);
+	PyValue r = GetInRoomPy(cam_following_actor);
+	if (r.GetType() == PY_DICT && r != room_curr)
+		ChangeRoomPy(r, 1);
 }
 
 bool Program::CamScript0() {
 	// keep the camera following actor
 	// (until further notice)
-	if (cam_following_actor.IsMap()) {
+	if (cam_following_actor.GetType() == PY_DICT) {
 		// keep camera within "room" bounds
-		if (GetInRoom(cam_following_actor) == room_curr)
+		if (GetInRoomPy(cam_following_actor) == room_curr)
 			cam = CenterCamera(cam_following_actor);
 		return true;
 	}
 	else
 		return false;
+}
+
+void Program::CameraFollowPy(PyValue actor) {
+	if (actor.GetType() != PY_DICT)
+		return;
+
+	if (cam_script) {
+		StopScript(*cam_script);
+		cam_script = 0;
+	}
+
+	cam_following_actor = actor;
+	cam_pan_to = GetXYPy(actor);
+
+	cam_script = &dynamic_cast<Script&>(StartScript(THISBACK(CamScript0), true));
+
+	// auto-switch to room actor resides in
+	PyValue r = GetInRoomPy(cam_following_actor);
+	if (r.GetType() == PY_DICT && r != room_curr)
+		ChangeRoomPy(r, PyValue(1));
 }
 
 void Program::CameraPanTo(SObj& val) {
@@ -97,10 +118,11 @@ bool Program::Fades(int fade, int dir) {
 }
 
 Point Program::CenterCamera(Point val) {
-	ASSERT(room_curr.IsMap());
-	auto v = room_curr.MapGet("map").ArrayGet(2);
-	int map_w = v.GetInt();
-	
+	ASSERT(room_curr.GetType() == PY_DICT);
+	PyValue map_prop = Program::GetProp(room_curr, "map");
+	const Vector<PyValue>& map_arr = map_prop.GetArray();
+	int map_w = Program::PyInt(map_arr[2]);
+
 	Point pt(0,0);
 	pt.x = clamp(val.x-64, 0, (map_w*8) -128 );
 	return pt;
@@ -108,19 +130,19 @@ Point Program::CenterCamera(Point val) {
 
 Point Program::CenterCamera(SObj& val) {
 	//LOG(val.ToString());
-	
+
 	// check params for (obj/actor
 	// keep camera within "room" bounds
 	Point p(0,0);
-	
+
 	//DUMP(val);
-	
+
 	if (val.IsMap())
 		p.x = val.MapGet("x").GetInt();
-	
+
 	else if (val.IsInt())
 		p.x = val.GetInt();
-	
+
 	return CenterCamera(p);
 	//int map_w = room_curr.MapGet("map_w").GetInt();
 	//return mid(0, (istable(val) and val.x or val)-64, (room_curr.map_w*8) -128 )

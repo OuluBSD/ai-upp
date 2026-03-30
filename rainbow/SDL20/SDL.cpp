@@ -33,21 +33,31 @@ void FBQuitSession()
 bool FBIsWaitingEvent()
 {
 	SDL_PumpEvents();
-	SDL_Event events;
-	int tc = SDL_PeepEvents(&events, 1, SDL_PEEKEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
-	return (tc>0);
+	// Use static buffer to avoid stack issues
+	static SDL_Event s_peek_event;
+	SDL_memset(&s_peek_event, 0, sizeof(s_peek_event));
+	int tc = SDL_PeepEvents(&s_peek_event, 1, SDL_PEEKEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
+	return (tc > 0 && s_peek_event.type != SDL_FIRSTEVENT);
 }
+
+// Static event buffer - SDL2 can have issues with stack variables
+static SDL_Event s_event;
 
 bool FBProcessEvent(bool *quit)
 {
-	DLOG("FBProcessEvent");
-	SDL_Event event;
-	if(SDL_PollEvent(&event)) {
-		if(event.type == SDL_QUIT && quit)
+	LLOG("FBProcessEvent");
+	SDL_memset(&s_event, 0, sizeof(s_event));
+	if(SDL_PollEvent(&s_event)) {
+		// Skip SDL_FIRSTEVENT (type=0) - spurious events
+		if(s_event.type == SDL_FIRSTEVENT)
+			return true;  // Continue processing
+		LLOG("FBProcessEvent: got event type=" << (int)s_event.type);
+		if(s_event.type == SDL_QUIT && quit)
 			*quit = true;
-		HandleSDLEvent(&event);
-		return true;
+		HandleSDLEvent(&s_event);
+		return true;  // Had an event, continue draining
 	}
+	// No events - this will cause while loop to exit and proceed to painting
 	return false;
 }
 

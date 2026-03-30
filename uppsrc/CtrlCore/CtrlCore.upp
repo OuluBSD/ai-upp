@@ -9,9 +9,9 @@ uses
 
 library(WIN32) "advapi32 comdlg32 comctl32 imm32";
 
-pkg_config(POSIX !OSX !VIRTUALGUI) "freetype2 x11 xinerama xrender xft xdmcp fontconfig xcb xext";
+pkg_config(POSIX !OSX !VIRTUALGUI !MLUI) "freetype2 x11 xinerama xrender xft xdmcp fontconfig xcb xext";
 
-pkg_config(POSIX !X11 !OSX !VIRTUALGUI) "gtk+-3.0 libnotify";
+pkg_config(POSIX !X11 !OSX !VIRTUALGUI !MLUI) "gtk+-3.0 libnotify";
 
 file
 	AGENTS.md,

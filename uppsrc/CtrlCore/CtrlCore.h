@@ -69,9 +69,11 @@ struct Visitor;
 
 #ifndef GUIPLATFORM_FBIMG_INTERFACE
 #ifndef GUI_FB  // rainbow Framebuffer backend provides its own FBImg
+#ifndef GUI_SDL20  // rainbow SDL20 backend provides its own SDL20FBImg
 #define IMAGECLASS FBImg
 #define IMAGEFILE <VirtualGui/FB.iml>
 #include <Draw/iml_header.h>
+#endif
 #endif
 #endif
 
@@ -987,8 +989,10 @@ public:
 	static  void   DeinstallPaintHook(PaintHook hook);
 
 #ifndef GUI_FB  // rainbow Framebuffer backend provides its own
+#ifndef GUI_SDL20  // rainbow SDL20 backend provides its own
 	static  int    RegisterSystemHotKey(dword key, Function<void ()> cb);
 	static  void   UnregisterSystemHotKey(int id);
+#endif
 #endif
 
 	virtual bool   Accept();

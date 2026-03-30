@@ -8,8 +8,8 @@
 
 NAMESPACE_UPP
 
-#define IMAGECLASS FBImg
-#define IMAGEFILE <Framebuffer/FB.iml>
+#define IMAGECLASS SDL20FBImg
+#define IMAGEFILE <SDL20/FB.iml>
 #include <Draw/iml_header.h>
 
 enum FtStyle {
@@ -112,29 +112,6 @@ void FBFlush();
 void FBQuitSession();
 
 // }
-
-class PrinterJob { // Dummy only...
-	NilDraw             nil;
-	Vector<int>         pages;
-
-public:
-	Draw&               GetDraw()                       { return nil; }
-	operator            Draw&()                         { return GetDraw(); }
-	const Vector<int>&  GetPages() const                { return pages; }
-	int                 operator[](int i) const         { return 0; }
-	int                 GetPageCount() const            { return 0; }
-
-	bool                Execute()                       { return false; }
-
-	PrinterJob& Landscape(bool b = true)                { return *this; }
-	PrinterJob& MinMaxPage(int minpage, int maxpage)    { return *this; }
-	PrinterJob& PageCount(int n)                        { return *this; }
-	PrinterJob& CurrentPage(int currentpage)            { return *this; }
-	PrinterJob& Name(const char *_name)                 { return *this; }
-
-	PrinterJob(const char *name = NULL)                 {}
-	~PrinterJob()                                       {}
-};
 
 END_UPP_NAMESPACE
 

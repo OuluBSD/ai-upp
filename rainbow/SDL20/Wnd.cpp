@@ -117,7 +117,7 @@ Ctrl *Ctrl::GetOwner()
 	GuiLock __;
 	int q = FindTopCtrl();
 	if(q > 0 && topctrl[q]->top) {
-		Ctrl *x = topctrl[q]->top->owner_window;
+		Ctrl *x = topctrl[q]->utop->owner_window;
 		LDUMP(Upp::Name(x));
 		return dynamic_cast<TopWindowFrame *>(x) ? x->GetOwner() : x;
 	}
@@ -128,38 +128,6 @@ Ctrl *Ctrl::GetActiveCtrl()
 {
 	GuiLock __;
 	return focusCtrl ? focusCtrl->GetTopCtrl() : NULL;
-}
-
-// Vector<Callback> Ctrl::hotkey;
-
-int Ctrl::RegisterSystemHotKey(dword key, Callback cb)
-{
-/*	ASSERT(key >= K_DELTA);
-	int q = hotkey.GetCount();
-	for(int i = 0; i < hotkey.GetCount(); i++)
-		if(!hotkey[i]) {
-			q = i;
-			break;
-		}
-	hotkey.At(q) = cb;
-	dword mod = 0;
-	if(key & K_ALT)
-		mod |= MOD_ALT;
-	if(key & K_SHIFT)
-		mod |= MOD_SHIFT;
-	if(key & K_CTRL)
-		mod |= MOD_CONTROL;
-	
-	return RegisterHotKey(NULL, q, mod, key & 0xffff) ? q : -1;*/
-	return -1;
-}
-
-void Ctrl::UnregisterSystemHotKey(int id)
-{
-/*	if(id >= 0 && id < hotkey.GetCount()) {
-		UnregisterHotKey(NULL, id);
-		hotkey[id].Clear();
-	}*/
 }
 
 bool Ctrl::IsWaitingEvent()
@@ -533,7 +501,7 @@ int Ctrl::GetKbdSpeed()
 void Ctrl::DestroyWnd()
 {
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i]->top && topctrl[i]->top->owner_window == this)
+		if(topctrl[i]->utop && topctrl[i]->utop->owner_window == this)
 			topctrl[i]->WndDestroy();
 	int q = FindTopCtrl();
 	if(q >= 0) {
@@ -541,8 +509,8 @@ void Ctrl::DestroyWnd()
 		topctrl.Remove(q);
 	}
 	if(top) {
-		delete top;
-		top = NULL;
+		delete utop;
+		top = false;
 	}
 	isopen = false;
 	TopWindow *win = dynamic_cast<TopWindow *>(this);
@@ -567,7 +535,7 @@ void Ctrl::PutForeground()
 	}
 	Vector< Ptr<Ctrl> > fw;
 	for(int i = 0; i < topctrl.GetCount(); i++)
-		if(topctrl[i] && topctrl[i]->top && topctrl[i]->top->owner_window == this && topctrl[i] != this)
+		if(topctrl[i] && topctrl[i]->utop && topctrl[i]->utop->owner_window == this && topctrl[i] != this)
 			fw.Add(topctrl[i]);
 	for(int i = 0; i < fw.GetCount(); i++)
 		if(fw[i])
@@ -581,8 +549,8 @@ void Ctrl::SetWndForeground()
 	if(IsWndForeground())
 		return;
 	Ctrl *to = this;
-	while(to->top && to->top->owner_window)
-		to = to->top->owner_window;
+	while(to->utop && to->utop->owner_window)
+		to = to->utop->owner_window;
 	to->PutForeground();
 	if(this != focusCtrl)
 		ActivateWnd();
@@ -714,7 +682,7 @@ void Ctrl::PopUp(Ctrl *owner, bool savebits, bool activate, bool dropshadow, boo
 		ASSERT(owner_window->IsOpen());
 		if(owner_window != desktop) {
 			owner_window->SetForeground();
-			top->owner_window = owner_window;
+			utop->owner_window = owner_window;
 		}
 	}
 	topctrl.Add(this);

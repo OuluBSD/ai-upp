@@ -54,11 +54,11 @@ bool Program::InitPyVM() {
 	// Load Python game script if it exists
 	String game_py_path = GetDataFile("Game.py");
 	LOG("InitPyVM: Looking for Game.py at: " << game_py_path);
-	
+
 	if (FileExists(game_py_path)) {
 		String src = LoadFile(game_py_path);
 		LOG("InitPyVM: Loaded " << src.GetCount() << " bytes");
-		
+
 		if (!src.IsEmpty()) {
 			if (vm.LoadModule("game", src, game_py_path)) {
 				LOG("InitPyVM: SUCCESS - Game.py loaded");
@@ -76,6 +76,19 @@ bool Program::InitPyVM() {
 	}
 
 	return true;
+}
+
+// PyVM helper: Get value from dict by string key
+PyValue Program::GetDictItem(const PyValue& dict, const char* key)
+{
+	if(dict.GetType() != PY_DICT)
+		return PyValue();
+	const VectorMap<PyValue, PyValue>& d = dict.GetDict();
+	for(int i = 0; i < d.GetCount(); i++) {
+		if(d.GetKey(i).GetType() == PY_STR && d.GetKey(i).GetStr() == WString(key))
+			return d[i];
+	}
+	return PyValue();
 }
 
 bool Program::Init() {

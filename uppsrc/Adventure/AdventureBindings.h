@@ -8,6 +8,34 @@ namespace Adventure {
 
 // Don't use NAMESPACE_UPP here - we're declaring classes in the Adventure namespace
 
+// Python function wrapper - stores Python function reference for Esc calls
+struct PyFunctionWrapper : Moveable<PyFunctionWrapper> {
+	PyValue func;       // Python function object
+	PyValue module;     // Python module where function lives (for globals)
+	String name;        // Function name for debugging
+	Program* prog;      // Program pointer for PyVM access
+	
+	PyFunctionWrapper() : prog(nullptr) {}
+	PyFunctionWrapper(const PyValue& f, const PyValue& m, const String& n, Program* p) 
+		: func(f), module(m), name(n), prog(p) {}
+	
+	// Call the Python function from Esc context
+	EscValue Call(const Vector<EscValue>& args);
+};
+
+// Helper functions
+Program* GetProgram(void* user_data);
+PyValue GetDictItem(const PyValue& dict, const char* key);
+String PyStr(const PyValue& v);
+int PyInt(const PyValue& v, int def = 0);
+
+// Convert EscValue to PyValue (for calling Python from Esc)
+PyValue EscToPyValue(const EscValue& ev);
+
+// Convert PyValue to EscValue (for calling Esc from Python)
+// Wraps Python functions so they can be called from Esc scripts
+EscValue PyToEscValue(const PyValue& pv, Program* prog = nullptr);
+
 class AdventureBindings {
 public:
 	// Register all bindings with the PyVM

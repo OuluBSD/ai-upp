@@ -83,6 +83,7 @@ dword lastbdowntime[16] = {0};
 dword isdblclick[16] = {0};
 void HandleSDLEvent(SDL_Event* event)
 {
+	LOG("HandleSDLEvent: type=" << (int)event->type);
 	switch(event->type) {
 		case SDL_ACTIVEEVENT: //SDL_ActiveEvent
 			break;

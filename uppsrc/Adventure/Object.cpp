@@ -144,6 +144,12 @@ Point Program::GetXY(SObj o) {
 		o("y").GetInt());
 }
 
+Point Program::GetXYPy(PyValue o) {
+	return Point(
+		Program::PyInt(Program::GetProp(o, "x")),
+		Program::PyInt(Program::GetProp(o, "y")));
+}
+
 Point Program::GetOffset(SObj o) {
 	return Point(
 		o("offset_x").GetInt(),

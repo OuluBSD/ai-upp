@@ -150,7 +150,12 @@ void Program::SetProp(PyValue& obj, const char* key, const PyValue& val) {
 	if(obj.GetType() != PY_DICT)
 		return;
 	VectorMap<PyValue, PyValue>& d = obj.GetDictRW();
-	d.Set(PyValue(WString(key)), val);
+	PyValue key_val(WString(key));
+	int idx = d.Find(key_val);
+	if(idx >= 0)
+		d[idx] = val;
+	else
+		d.Add(key_val, val);
 }
 
 int Program::PyInt(const PyValue& v, int def) {
@@ -159,8 +164,8 @@ int Program::PyInt(const PyValue& v, int def) {
 	return def;
 }
 
-String Program::PyStr(const PyValue& v) {
-	return v.GetType() == PY_STR ? v.GetStr() : String();
+WString Program::PyStr(const PyValue& v) {
+	return v.GetType() == PY_STR ? v.GetStr() : WString();
 }
 
 PyValue Program::ClassesPy(const PyValue& s) {
@@ -385,7 +390,7 @@ String Program::GetVerbString(int i) {
 			const VectorMap<PyValue, PyValue>& d = v.GetDict();
 			for(int j = 0; j < d.GetCount(); j++) {
 				if(d.GetKey(j).GetStr() == WString("text")) {
-					return d[j].GetStr();
+					return d[j].GetStr().ToString();
 				}
 			}
 		}
@@ -519,8 +524,8 @@ Point Program::GetCellPos(SObj& obj) {
 	const Vector<PyValue>& map_arr = room_curr.GetArray();
 	int map_x = map_arr.GetCount() > 0 ? PyInt(map_arr[0]) : 0;
 	int map_y = map_arr.GetCount() > 1 ? PyInt(map_arr[1]) : 0;
-	int obj_x = PyInt(GetProp(obj, "x"));
-	int obj_y = PyInt(GetProp(obj, "y"));
+	int obj_x = obj("x").GetInt();
+	int obj_y = obj("y").GetInt();
 	p.x = obj_x/8 + map_x;
 	p.y = obj_y/8 + map_y;
 	return p;

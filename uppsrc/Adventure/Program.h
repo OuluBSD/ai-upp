@@ -285,7 +285,7 @@ protected:
 	
 	bool cam_shake = false;
 	Point cam_pan_to;
-	SObj cam_following_actor;
+	PyValue cam_following_actor;  // PyValue - actor being followed by camera
 	Thread thrd;
 
 	int stage_top = 16;
@@ -386,16 +386,18 @@ public:
 	static PyValue GetProp(const PyValue& obj, const char* key);
 	static void SetProp(PyValue& obj, const char* key, const PyValue& val);
 	static int PyInt(const PyValue& v, int def = 0);
-	static String PyStr(const PyValue& v);
+	static WString PyStr(const PyValue& v);
 	static PyValue ClassesPy(const PyValue& s);
 	static bool HasFlag(const PyValue& obj, String key);
-	static PyValue GetSelectedActorPy();
+	PyValue GetSelectedActorPy();
 
 	// Esc* handlers removed - use Python instead
 
 	void ClearCutsceneOverride(EscAnimProgram& s);
 	void CameraFollow(SObj actor);
+	void CameraFollowPy(PyValue actor);
 	void ChangeRoom(SObj new_room, SObj fade);  // Now uses PyValue internally for room_curr
+	void ChangeRoomPy(PyValue new_room, PyValue fade);  // PyVM version
 	bool CamScript0();
 	bool CamScript1();
 	bool VerbScript(EscValue vc2);
@@ -476,7 +478,9 @@ public:
 	String State(SObj& s);
 	//String GetInRoomString(SObj& o);
 	SObj GetInRoom(SObj o);
+	PyValue GetInRoomPy(PyValue o);
 	Point GetXY(SObj o);
+	Point GetXYPy(PyValue o);
 	Point GetOffset(SObj o);
 	Size GetSize(SObj o);
 	UsePos GetUsePos(SObj o);

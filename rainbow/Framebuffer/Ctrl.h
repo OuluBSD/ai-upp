@@ -36,7 +36,7 @@ private:
 
 	void DestroyWnd();
 
-	void NewTop()                       { top = new Top; top->owner_window = NULL; }
+	void NewTop()                       { utop = new Top; top = true; utop->owner_window = NULL; }
 	void PutForeground();
 	static void MouseEventFB(Ptr<Ctrl> t, int event, Point p, int zdelta);
 	Vector<Rect> GetPaintRects();

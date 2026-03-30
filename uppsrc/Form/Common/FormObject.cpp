@@ -1,7 +1,17 @@
 #include "FormObject.hpp"
 
-FormObject::FormObject() : _Rect(Rect(Point(10, 10), Size(120, 30))), _HAlign(Ctrl::LEFT),
-	_VAlign(Ctrl::TOP), _State(FormObject::NONE)
+namespace {
+#ifdef flagGUI
+const dword kDefaultHAlign = Ctrl::LEFT;
+const dword kDefaultVAlign = Ctrl::TOP;
+#else
+const dword kDefaultHAlign = 0;
+const dword kDefaultVAlign = 0;
+#endif
+}
+
+FormObject::FormObject() : _Rect(Rect(Point(10, 10), Size(120, 30))), _HAlign(kDefaultHAlign),
+	_VAlign(kDefaultVAlign), _State(FormObject::NONE)
 {
 	Name = "Noname";
 	Set("Variable", "None");
@@ -18,7 +28,7 @@ FormObject::FormObject(const FormObject& other)
 }
 
 FormObject::FormObject(const Rect& r)
-	: _Rect(r), _HAlign(Ctrl::LEFT), _VAlign(Ctrl::TOP), _State(FormObject::NONE)
+	: _Rect(r), _HAlign(kDefaultHAlign), _VAlign(kDefaultVAlign), _State(FormObject::NONE)
 {
 	Name = "Noname";
 	Set("Variable", "None");
@@ -26,7 +36,7 @@ FormObject::FormObject(const Rect& r)
 }
 
 FormObject::FormObject(int x, int y, int cx, int cy) : _Rect(Rect(Point(x, y), Size(cx, cy))),
-	_HAlign(Ctrl::LEFT), _VAlign(Ctrl::TOP), _State(FormObject::NONE)
+	_HAlign(kDefaultHAlign), _VAlign(kDefaultVAlign), _State(FormObject::NONE)
 {
 	Name = "Noname";
 	Set("Variable", "None");

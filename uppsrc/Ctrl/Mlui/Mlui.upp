@@ -1,0 +1,10 @@
+description "Ctrl/Mlui - GUI controls for MluiScript editing\377";
+
+uses
+	CtrlLib,
+	Core/MluiScript;
+
+file
+	MluiCtrls.h,
+	MluiCtrls.cpp;
+

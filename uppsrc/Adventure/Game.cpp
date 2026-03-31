@@ -15,21 +15,26 @@ namespace Adventure {
 
 bool Program::ReadGame() {
 	LOG("ReadGame: Starting to read game state from Python module");
-	
+
 	// Get the loaded Python module from sys.modules
+	// Try both 'game' and 'demo' module names
 	PyValue sys = Program::GetProp(vm.GetGlobals(), "sys");
 	PyValue sys_modules = Program::GetProp(sys, "modules");
-	PyValue demo_module;
-	if (sys_modules.GetType() == PY_DICT) {
-		demo_module = Program::GetProp(sys_modules, "demo");
-	}
+	PyValue py_globals;
 	
-	if (demo_module.GetType() != PY_DICT) {
-		LOG("ReadGame: demo module not found in sys.modules, type=" << sys_modules.GetType());
+	if (sys_modules.GetType() == PY_DICT) {
+		// Try 'game' first (for Game.py)
+		py_globals = Program::GetProp(sys_modules, "game");
+		if (py_globals.GetType() != PY_DICT) {
+			// Try 'demo' (for Demo.py)
+			py_globals = Program::GetProp(sys_modules, "demo");
+		}
+	}
+
+	if (py_globals.GetType() != PY_DICT) {
+		LOG("ReadGame: Python module not found in sys.modules");
 		return false;
 	}
-	
-	PyValue py_globals = demo_module;  // Module IS the globals dict
 
 	// Get rooms and verbs from Python module globals
 	PyValue rooms = Program::GetProp(py_globals, "rooms");
@@ -105,21 +110,26 @@ bool Program::ReadGame() {
 // initialise all the rooms (e.g. add in parent links)
 bool Program::InitGame() {
 	LOG("InitGame: Starting initialization");
-	
+
 	// Get the loaded Python module from sys.modules
+	// Try both 'game' and 'demo' module names
 	PyValue sys = Program::GetProp(vm.GetGlobals(), "sys");
 	PyValue sys_modules = Program::GetProp(sys, "modules");
-	PyValue demo_module;
-	if (sys_modules.GetType() == PY_DICT) {
-		demo_module = Program::GetProp(sys_modules, "demo");
-	}
+	PyValue py_globals;
 	
-	if (demo_module.GetType() != PY_DICT) {
-		LOG("InitGame: demo module not found in sys.modules, type=" << sys_modules.GetType());
+	if (sys_modules.GetType() == PY_DICT) {
+		// Try 'game' first (for Game.py)
+		py_globals = Program::GetProp(sys_modules, "game");
+		if (py_globals.GetType() != PY_DICT) {
+			// Try 'demo' (for Demo.py)
+			py_globals = Program::GetProp(sys_modules, "demo");
+		}
+	}
+
+	if (py_globals.GetType() != PY_DICT) {
+		LOG("InitGame: Python module not found in sys.modules");
 		return false;
 	}
-	
-	PyValue py_globals = demo_module;  // Module IS the globals dict
 
 	try {
 		// Call Python main() and startup_script() if they exist

@@ -135,11 +135,10 @@ PyValue AdventureBindings::change_room(const Vector<PyValue>& args, void* user_d
 		return PyValue::None();
 	}
 
-	// For Python rooms, store the PyValue directly in room_curr
+	// Call Python-native ChangeRoomPy directly
 	PyValue room_arg = args[0];
 	PyValue fade_arg = args.GetCount() > 1 ? args[1] : PyValue();
 	
-	// Store room PyValue directly - ChangeRoomPy will handle it
 	prog->ChangeRoomPy(room_arg, fade_arg);
 
 	return PyValue::None();

@@ -80,9 +80,10 @@ bool Program::InitPyVM(const String& script_path) {
 		if (!src.IsEmpty()) {
 			String module_name = game_py_path.Find("Demo.py") >= 0 ? "demo" : "game";
 			LOG("InitPyVM: Loading module '" << module_name << "'");
+			
 			if (vm.LoadModule(module_name, src, game_py_path)) {
 				LOG("InitPyVM: SUCCESS - " << module_name << ".py loaded");
-				
+
 				// Inject bindings into module's globals so Python code can call them
 				PyValue sys = vm.GetGlobals().GetItem(PyValue("sys"));
 				if(sys.GetType() == PY_DICT) {

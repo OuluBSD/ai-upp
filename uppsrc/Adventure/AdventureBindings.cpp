@@ -122,15 +122,22 @@ PyValue AdventureBindings::change_room(const Vector<PyValue>& args, void* user_d
 	Program* prog = GetProgram(user_data);
 
 	if(args.GetCount() < 1) {
+		LOG("change_room: error - no room argument");
 		return PyValue::None();
 	}
+
+	LOG("change_room: called with room type=" << args[0].GetType());
 
 	// Convert PyValue to EscValue for ChangeRoom
 	EscValue room = PyToEscValue(args[0], prog);
 	EscValue fade = args.GetCount() > 1 ? PyToEscValue(args[1], prog) : EscValue();
 
+	LOG("change_room: calling prog->ChangeRoom");
+
 	// Call the C++ implementation
 	prog->ChangeRoom(room, fade);
+
+	LOG("change_room: completed");
 
 	return PyValue::None();
 }

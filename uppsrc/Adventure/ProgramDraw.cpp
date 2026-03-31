@@ -179,7 +179,6 @@ void ProgramDraw::PaintRoom(Draw& d) {
 				TODO
 			}
 			PyValue map = Program::GetProp(room_curr, "map");
-			ASSERT(map.GetType() == PY_LIST);
 			const Vector<PyValue>& map_arr = map.GetArray();
 			int map0 = Program::PyInt(map_arr[0]);
 			int map1 = Program::PyInt(map_arr[1]);

@@ -9,7 +9,7 @@
 |--------|------|-------------|-----------|-------|
 | Demo.py | 12KB | ✅ SUCCESS | ✅ WORKS | Python callbacks execute successfully! |
 | Game.py | 40KB | ✅ SUCCESS | ✅ WORKS | startup_script() calls change_room() successfully |
-| CarverTest.py | 745B | ❌ FAILED | N/A | Uses undefined functions (carve_room, etc.) |
+| CarverTest.py | 745B | ❌ N/A | N/A | Uses carve_room/use_tiles (don't exist in scumm-8) |
 | C8_Intro.py | 9KB | ❌ FAILED | N/A | Line 133: nested functions, `nonlocal` not supported |
 | C8_Part1.py | 25KB | ❌ FAILED | N/A | Line 132: dict call syntax not supported |
 | C8_Part2.py | 20KB | ❓ NOT TESTED | N/A | Likely similar issues |

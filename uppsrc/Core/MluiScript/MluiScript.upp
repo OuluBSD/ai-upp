@@ -1,0 +1,9 @@
+description "MluiScript - .mlui layout script data structures\377";
+
+uses
+	Core;
+
+file
+	MluiScript.h,
+	MluiScript.cpp;
+

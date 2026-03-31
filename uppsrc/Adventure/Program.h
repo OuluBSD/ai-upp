@@ -413,12 +413,17 @@ public:
 	void DialogEnd();
 	void DialogSet(StrVec& msg_table);
 	Point GetUsePoint(SObj& obj);
+	Point GetUsePointPy(PyValue obj);
 	void DoAnim(SObj thing, const String& param1, int& param2);
+	void DoAnimPy(PyValue thing, const String& param1, int param2);
 	void OpenDoor(SObj door_obj1, SObj door_obj2);
+	void OpenDoorPy(PyValue door_obj1, PyValue door_obj2);
 	void CloseDoor(SObj door_obj1, SObj door_obj2);
+	void CloseDoorPy(PyValue door_obj1, PyValue door_obj2);
 	void ComeOutDoor(SObj from_door, SObj to_door, bool fade_effect);
+	void ComeOutDoorPy(PyValue from_door, PyValue to_door, bool fade_effect);
 	bool Fades(int fade, int dir);
-	bool IsValidVerb(EscValue verb, SObj object);
+	bool IsValidVerb(PyValue verb, PyValue object);
 	void PickupObj(SObj& obj, SObj& actor);
 	EscAnimProgram& StartScript(Gate0 func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
 	Script& StartScriptEsc(EscValue* self, EscValue func, bool bg, EscValue noun1=EscValue(), EscValue noun2=EscValue());
@@ -434,6 +439,7 @@ public:
 	void PutAt(SObj obj, int x, int y, SObj room);
 	void StopActor(SObj& actor);
 	void WalkTo(SObj a, int x, int y);
+	void WalkToPy(PyValue a, int x, int y);
 	void WaitForActor(SObj& actor);
 	double Proximity(SObj& obj1, SObj& obj2);
 	PyValue GetVerb(int idx);

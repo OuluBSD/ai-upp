@@ -3,16 +3,24 @@
 **Date**: 2026-03-31
 **Status**: ✅ **FULLY WORKING**
 
+## Usage
+
+```bash
+# Run with specific script
+bin/Adventure uppsrc/Adventure/Game.py
+
+# Run with default (Demo.py or Game.py)
+bin/Adventure
+```
+
 ## Test Summary
 
 | Script | Size | Load | Execution | Notes |
 |--------|------|------|-----------|-------|
-| Demo.py | 12KB | ✅ | ✅ | Python callbacks work perfectly |
-| Game.py | 40KB | ✅ | ✅ | startup_script + room rendering work! |
+| Game.py | 40KB | ✅ | ✅ | Full game with room rendering |
+| Demo.py | 12KB | ✅ | ✅ | Basic demo |
 | C8_Intro_refactored.py | 5KB | ✅ | ✅ | Refactored - no nested functions |
 | C8_Part1_fixed.py | 25KB | ✅ | ✅ | Fixed nested dict calls |
-| C8_Intro.py (orig) | 9KB | ❌ | N/A | Has nested functions with nonlocal |
-| C8_Part1.py (orig) | 25KB | ❌ | N/A | Has obj["scripts"]["name"]() syntax |
 
 ## Test Output
 

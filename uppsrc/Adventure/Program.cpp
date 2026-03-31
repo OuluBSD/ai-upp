@@ -74,6 +74,29 @@ bool Program::InitPyVM() {
 			LOG("InitPyVM: Loading module '" << module_name << "'");
 			if (vm.LoadModule(module_name, src, game_py_path)) {
 				LOG("InitPyVM: SUCCESS - " << module_name << ".py loaded");
+				
+				// Inject bindings into module's globals so Python code can call them
+				PyValue sys = vm.GetGlobals().GetItem(PyValue("sys"));
+				if(sys.GetType() == PY_DICT) {
+					PyValue modules = sys.GetItem(PyValue("modules"));
+					if(modules.GetType() == PY_DICT) {
+						PyValue mod = modules.GetItem(PyValue(module_name));
+						if(mod.GetType() == PY_DICT) {
+							LOG("InitPyVM: Injecting bindings into module globals");
+							// Copy all bindings from vm.globals to module globals
+							const VectorMap<PyValue, PyValue>& vm_globals = vm.GetGlobals().GetDict();
+							VectorMap<PyValue, PyValue>& mod_dict = mod.GetDictRW();
+							for(int i = 0; i < vm_globals.GetCount(); i++) {
+								PyValue key = vm_globals.GetKey(i);
+								PyValue val = vm_globals[i];
+								if(val.IsFunction()) {
+									mod_dict.Add(key, val);
+								}
+							}
+							LOG("InitPyVM: Bindings injected");
+						}
+					}
+				}
 			} else {
 				LOG("InitPyVM: FAILED - LoadModule returned error");
 				return false;

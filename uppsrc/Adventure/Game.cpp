@@ -121,19 +121,33 @@ bool Program::InitGame() {
 		LOG("InitGame: main_func type=" << main_func.GetType() << " IsFunction=" << main_func.IsFunction());
 		if (main_func.GetType() != PY_NONE && main_func.IsFunction()) {
 			LOG("InitGame: Calling Python main()");
-			py_vm.Call(main_func, Vector<PyValue>());
+			try {
+				py_vm.Call(main_func, Vector<PyValue>());
+				LOG("InitGame: Python main() completed");
+			} catch(Exc& e) {
+				LOG("InitGame: Python main() exception: " << e);
+			}
 		}
 		
 		PyValue startup_func = Program::GetProp(py_globals, "startup_script");
 		LOG("InitGame: startup_func type=" << startup_func.GetType() << " IsFunction=" << startup_func.IsFunction());
 		if (startup_func.GetType() != PY_NONE && startup_func.IsFunction()) {
 			LOG("InitGame: Calling Python startup_script()");
-			py_vm.Call(startup_func, Vector<PyValue>());
+			try {
+				py_vm.Call(startup_func, Vector<PyValue>());
+				LOG("InitGame: Python startup_script() completed");
+			} catch(Exc& e) {
+				LOG("InitGame: Python startup_script() exception: " << e);
+			}
 		}
 		//RealizeGame();
 	}
 	catch(CParser::Error e) {
 		LOG("Program::InitGame: error: " << e << "\n");
+		return false;
+	}
+	catch(Exc& e) {
+		LOG("Program::InitGame: unhandled exception: " << e << "\n");
 		return false;
 	}
 	
